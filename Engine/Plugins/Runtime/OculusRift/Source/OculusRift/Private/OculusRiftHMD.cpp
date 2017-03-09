@@ -26,6 +26,9 @@
 
 static TAutoConsoleVariable<int32> CStartInVRVar(TEXT("vr.bStartInVR"), 0, TEXT("Start in VR flag"));
 static TAutoConsoleVariable<int32> CGracefulExitVar(TEXT("vr.bExitGracefully"), 0, TEXT("Exit gracefully when forced by Universal Menu."));
+static TAutoConsoleVariable<float> CRightEyeResolutionScaling( TEXT( "rift.RightEyeResolutionScaling" ), 1.0f, TEXT( "Scales the resolution of the right eye only" ) );
+static TAutoConsoleVariable<int32> CLeftEyeOverscan( TEXT( "rift.LeftEyeOverscan" ), 0, TEXT( "Whether to render the left eye at a larger widescreen resolution, then crop a column from the center for the HMD.  This is a presentation mode feature." ) );
+static TAutoConsoleVariable<float> CLeftEyeOverscanAspect( TEXT( "rift.LeftEyeOverscanAspect" ), 16.0f / 9.0f, TEXT( "Aspect ratio when rift.LeftEyeOverscan is enabled" ) );
 
 //---------------------------------------------------
 // Oculus Rift Plugin Implementation
@@ -580,17 +583,17 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 		const OVR::Vector3f newRight(CurrentSettings->EyeRenderDesc[1].HmdToEyeOffset);
 		const OVR::Vector3f prevLeft(MasterSettings->EyeRenderDesc[0].HmdToEyeOffset);
 		const OVR::Vector3f prevRight(MasterSettings->EyeRenderDesc[1].HmdToEyeOffset);
-		if (newLeft != prevLeft || newRight != prevRight)
+		// for debugging purposes only: overriding IPD
+		if( CurrentSettings->Flags.bOverrideIPD )
+		{
+			check( CurrentSettings->InterpupillaryDistance >= 0 );
+			CurrentSettings->EyeRenderDesc[ 0 ].HmdToEyeOffset.x = -CurrentSettings->InterpupillaryDistance * 0.5f;
+			CurrentSettings->EyeRenderDesc[ 1 ].HmdToEyeOffset.x = CurrentSettings->InterpupillaryDistance * 0.5f;
+		}
+		else if (newLeft != prevLeft || newRight != prevRight)
 		{
 			const float newIAD = newRight.Distance(newLeft);
 			UE_LOG(LogHMD, Log, TEXT("IAD has changed, new IAD is %.4f meters"), newIAD);
-		}
-		// for debugging purposes only: overriding IPD
-		if (CurrentSettings->Flags.bOverrideIPD)
-		{
-			check(CurrentSettings->InterpupillaryDistance >= 0);
-			CurrentSettings->EyeRenderDesc[0].HmdToEyeOffset.x = -CurrentSettings->InterpupillaryDistance * 0.5f;
-			CurrentSettings->EyeRenderDesc[1].HmdToEyeOffset.x = CurrentSettings->InterpupillaryDistance * 0.5f;
 		}
 #endif // #if !UE_BUILD_SHIPPING
 		// Save EyeRenderDesc in main settings.
@@ -1752,7 +1755,9 @@ void FOculusRiftHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 	auto frame = GetFrame();
 	check(frame);
 
-	InViewFamily.EngineShowFlags.MotionBlur = 0;
+	extern RENDERER_API TAutoConsoleVariable<int32> CVarAllowMotionBlurInVR;
+
+	InViewFamily.EngineShowFlags.MotionBlur = CVarAllowMotionBlurInVR->GetInt() != 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = false;
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
 	if (frame->Settings->Flags.bPauseRendering)
@@ -2137,10 +2142,6 @@ void FOculusRiftHMD::UpdateHmdRenderInfo()
 		// Calc FOV, symmetrical, for each eye. 
 		CurrentSettings->EyeFov[0] = HmdDesc.DefaultEyeFov[0];
 		CurrentSettings->EyeFov[1] = HmdDesc.DefaultEyeFov[1];
-
-		// Calc FOV in radians
-		CurrentSettings->VFOVInRadians = GetVerticalFovRadians(CurrentSettings->EyeFov[0], CurrentSettings->EyeFov[1]);
-		CurrentSettings->HFOVInRadians = GetHorizontalFovRadians(CurrentSettings->EyeFov[0], CurrentSettings->EyeFov[1]);
 	}
 
 	const ovrSizei recommenedTex0Size = ovr_GetFovTextureSize(OvrSession, ovrEye_Left, CurrentSettings->EyeFov[0], 1.0f);
@@ -2152,6 +2153,27 @@ void FOculusRiftHMD::UpdateHmdRenderInfo()
 
 	CurrentSettings->IdealScreenPercentage = FMath::Max(float(idealRenderTargetSize.w) / float(HmdDesc.Resolution.w) * 100.f,
 														float(idealRenderTargetSize.h) / float(HmdDesc.Resolution.h) * 100.f);
+
+	if (!CurrentSettings->Flags.bOverrideFOV)
+	{
+		if( CLeftEyeOverscan->GetInt() != 0 )
+		{
+			// Compute a new FOV for the left eye that will "overscan" the HMD's viewport to allow for a
+			// much wider mirror image.  The user of the HMD will see the horizontally cropped section of
+			// view that would normally be rendered without the overscan, but viewers of the mirror display
+			// will see the entire view.
+			const ovrSizei OriginalEyeRenderTargetSize = ovr_GetFovTextureSize( OvrSession, ovrEye_Left, CurrentSettings->EyeFov[ 0 ], 1.0f );
+			const float OriginalEyeAspect = (float)OriginalEyeRenderTargetSize.w / (float)OriginalEyeRenderTargetSize.h;
+			const float NewEyeAspect = CLeftEyeOverscanAspect->GetFloat();
+
+			CurrentSettings->EyeFov[ 0 ].LeftTan *= NewEyeAspect / OriginalEyeAspect;
+			CurrentSettings->EyeFov[ 0 ].RightTan *= NewEyeAspect / OriginalEyeAspect;
+		}
+
+		// Calc FOV in radians
+		CurrentSettings->VFOVInRadians = GetVerticalFovRadians(CurrentSettings->EyeFov[0], CurrentSettings->EyeFov[1]);
+		CurrentSettings->HFOVInRadians = GetHorizontalFovRadians(CurrentSettings->EyeFov[0], CurrentSettings->EyeFov[1]);
+	}
 
 	// Override eye distance by the value from HMDInfo (stored in Profile).
 	if (!CurrentSettings->Flags.bOverrideIPD)
@@ -2242,7 +2264,13 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 
 		for(int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
 		{
-			vpSize[eyeIndex] = ovr_GetFovTextureSize(OvrSession, (ovrEyeType) eyeIndex, CurrentSettings->EyeFov[eyeIndex], pixelDensity);
+			float eyePixelDensity = pixelDensity;
+			if( eyeIndex == ovrEye_Right )
+			{
+				eyePixelDensity *= CRightEyeResolutionScaling->GetFloat();
+			}
+
+			vpSize[eyeIndex] = ovr_GetFovTextureSize(OvrSession, (ovrEyeType) eyeIndex, CurrentSettings->EyeFov[eyeIndex], eyePixelDensity);
 			vpSize[eyeIndex].w = FMath::Max(vpSize[eyeIndex].w, 1);
 			vpSize[eyeIndex].h = FMath::Max(vpSize[eyeIndex].h, 1);
 
@@ -2512,32 +2540,35 @@ void FOculusRiftHMD::OnBeginPlay(FWorldContext& InWorldContext)
 	CachedViewportWidget.Reset();
 	CachedWindow.Reset();
 
+	if( !GEnableVREditorHacks )
+	{
 #if WITH_EDITOR
-	// @TODO: add more values here.
-	// This call make sense when 'Play' is used from the Editor;
-	if (GIsEditor)
-	{
-		Settings->PositionOffset = FVector::ZeroVector;
-		Settings->BaseOrientation = FQuat::Identity;
-		Settings->BaseOffset = FVector::ZeroVector;
-		Settings->WorldToMetersScale = InWorldContext.World()->GetWorldSettings()->WorldToMeters;
-		//Settings->Flags.bWorldToMetersOverride = false;
-		InitDevice();
+		// @TODO: add more values here.
+		// This call make sense when 'Play' is used from the Editor;
+		if( GIsEditor )
+		{
+			Settings->PositionOffset = FVector::ZeroVector;
+			Settings->BaseOrientation = FQuat::Identity;
+			Settings->BaseOffset = FVector::ZeroVector;
+			Settings->WorldToMetersScale = InWorldContext.World()->GetWorldSettings()->WorldToMeters;
+			//Settings->Flags.bWorldToMetersOverride = false;
+			InitDevice();
 
-		FApp::SetUseVRFocus(true);
-		FApp::SetHasVRFocus(true);
-		OnStartGameFrame(InWorldContext);
-	}
-	else
+			FApp::SetUseVRFocus( true );
+			FApp::SetHasVRFocus( true );
+			OnStartGameFrame( InWorldContext );
+		}
+		else
 #endif
-	{
-		MakeSureValidFrameExists(InWorldContext.World()->GetWorldSettings());
+		{
+			MakeSureValidFrameExists( InWorldContext.World()->GetWorldSettings() );
+		}
 	}
 }
 
 void FOculusRiftHMD::OnEndPlay(FWorldContext& InWorldContext)
 {
-	if (GIsEditor)
+	if (GIsEditor && !GEnableVREditorHacks)
 	{
 		// @todo vreditor: If we add support for starting PIE while in VR Editor, we don't want to kill stereo mode when exiting PIE
 		EnableStereo(false);

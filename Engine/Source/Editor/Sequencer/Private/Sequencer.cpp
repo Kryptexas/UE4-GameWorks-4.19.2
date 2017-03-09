@@ -134,8 +134,9 @@ struct FSequencerTemplateStore : FMovieSceneSequenceTemplateStore
 
 		if (TUniquePtr<FCachedMovieSceneEvaluationTemplate>* ExistingTemplate = Templates.Find(SequenceKey))
 		{
-			(*ExistingTemplate)->Regenerate(TemplateParameters);
-			return **ExistingTemplate;
+			FCachedMovieSceneEvaluationTemplate* Template = ExistingTemplate->Get();
+			Template->Regenerate(TemplateParameters);
+			return *Template;
 		}
 		else
 		{
@@ -501,6 +502,8 @@ void FSequencer::ResetToNewRootSequence(UMovieSceneSequence& NewSequence)
 {
 	RootSequence = &NewSequence;
 	RestorePreAnimatedState();
+
+	RootTemplateInstance.Finish(*this);
 
 	TemplateStore->Reset();
 
@@ -988,10 +991,14 @@ void FSequencer::NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChan
 
 	if (DataChangeType == EMovieSceneDataChangeType::TrackValueChanged || 
 		DataChangeType == EMovieSceneDataChangeType::TrackValueChangedRefreshImmediately || 
-		DataChangeType == EMovieSceneDataChangeType::Unknown)
+		DataChangeType == EMovieSceneDataChangeType::Unknown ||
+		DataChangeType == EMovieSceneDataChangeType::MovieSceneStructureItemRemoved)
 	{
 		FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
-		SequencerEdMode->CleanUpMeshTrails();
+		if (SequencerEdMode != nullptr)
+		{
+			SequencerEdMode->CleanUpMeshTrails();
+		}
 	}
 
 	bNeedsEvaluate = true;

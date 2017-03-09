@@ -371,6 +371,9 @@ public:
 	/** Pause playback */
 	virtual void Pause() = 0;
 
+	/** Getter for sequencer settings */
+	virtual USequencerSettings* GetSequencerSettings() = 0;
+
 	/** Attempt to find a spawned object in the currently focused movie scene, or the template object for the specified binding ID, if possible */
 	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) = 0;
 

@@ -6,8 +6,7 @@ namespace UnrealBuildTool.Rules
 	{
         public VREditor(TargetInfo Target)
 		{
-
-			PrivateDependencyModuleNames.AddRange(
+            PrivateDependencyModuleNames.AddRange(
                 new string[] {
                     "AppFramework",
 				    "Core",
@@ -29,19 +28,20 @@ namespace UnrealBuildTool.Rules
 
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
-					"ViewportInteraction",
+					"ViewportInteraction"
 				}
 			);
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
-					"PlacementMode",
+					"PlacementMode"
 				}
 			);
 
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
-				}
+                    "PlacementMode"
+                }
 			);
 
             PrivateIncludePaths.AddRange(

@@ -8,21 +8,34 @@
 #include "VIStretchGizmoHandle.h"
 #include "VIUniformScaleGizmoHandle.h"
 #include "ViewportWorldInteraction.h"
+#include "ViewportInteractor.h"
+#include "ViewportInteractionAssetContainer.h"
+#include "Materials/Material.h"
+#include "Engine/Font.h"
+#include "Engine/CollisionProfile.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Components/TextRenderComponent.h"
+#include "Math/UnitConversion.h"
 
 namespace VREd //@todo VREditor: Duplicates of TransformGizmo
 {
 	// @todo vreditor tweak: Tweak out console variables
 	static FAutoConsoleVariable PivotGizmoMinDistanceForScaling( TEXT( "VI.PivotGizmoMinDistanceForScaling" ), 0.0f, TEXT( "How far away the camera needs to be from an object before we'll start scaling it based on distance"));
-	static FAutoConsoleVariable PivotGizmoDistanceScaleFactor( TEXT( "VI.PivotGizmoDistanceScaleFactor" ), 0.003f, TEXT( "How much the gizmo handles should increase in size with distance from the camera, to make it easier to select" ) );
+	static FAutoConsoleVariable PivotGizmoDistanceScaleFactor( TEXT( "VI.PivotGizmoDistanceScaleFactor" ), 0.0035f, TEXT( "How much the gizmo handles should increase in size with distance from the camera, to make it easier to select" ) );
 	static FAutoConsoleVariable PivotGizmoTranslationPivotOffsetX( TEXT("VI.PivotGizmoTranslationPivotOffsetX" ), 30.0f, TEXT( "How much the translation cylinder is offsetted from the pivot" ) );
 	static FAutoConsoleVariable PivotGizmoScalePivotOffsetX( TEXT( "VI.PivotGizmoScalePivotOffsetX" ), 120.0f, TEXT( "How much the non-uniform scale is offsetted from the pivot" ) );
 	static FAutoConsoleVariable PivotGizmoPlaneTranslationPivotOffsetYZ(TEXT("VI.PivotGizmoPlaneTranslationPivotOffsetYZ" ), 40.0f, TEXT( "How much the plane translation is offsetted from the pivot" ) );
 	static FAutoConsoleVariable PivotGizmoTranslationScaleMultiply( TEXT( "VI.PivotGizmoTranslationScaleMultiply" ), 2.0f, TEXT( "Multiplies translation handles scale" ) );
 	static FAutoConsoleVariable PivotGizmoTranslationHoverScaleMultiply( TEXT( "VI.PivotGizmoTranslationHoverScaleMultiply" ), 0.75f, TEXT( "Multiplies translation handles hover scale" ) );
+	static FAutoConsoleVariable PivotGizmoAimAtShrinkSize( TEXT( "VI.PivotGizmoAimAtShrinkSize" ), 0.3f, TEXT( "The minimum size when not aiming at the gizmo (0 to 1)" ) );
+	static FAutoConsoleVariable PivotGizmoAimAtAnimationSpeed( TEXT( "VI.PivotGizmoAimAtAnimationSpeed" ), 0.15f, TEXT( "The speed to animate to the gizmo full size when aiming at it" ) );
 }
 
 APivotTransformGizmo::APivotTransformGizmo() :
-	Super()
+	Super(),
+	AimingAtGizmoScaleAlpha(0.0f),
+	LastDraggingHandle(nullptr)
 {
 	UniformScaleGizmoHandleGroup = CreateDefaultSubobject<UUniformScaleGizmoHandleGroup>( TEXT( "UniformScaleHandles" ), true );
 	UniformScaleGizmoHandleGroup->SetOwningTransformGizmo(this);
@@ -76,34 +89,78 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 {
 	GizmoType = InGizmoType;
 
-	const float WorldScaleFactor = GetWorld()->GetWorldSettings()->WorldToMeters / 100.0f;
-
 	// Position the gizmo at the location of the first selected actor
-	const bool bSweep = false;
-	this->SetActorTransform(InLocalToWorld, bSweep);
-
+	SetActorTransform(InLocalToWorld);
 
 	// Increase scale with distance, to make gizmo handles easier to click on
 	const float WorldSpaceDistanceToToPivot = FMath::Max(VREd::PivotGizmoMinDistanceForScaling->GetFloat(), FMath::Sqrt(FVector::DistSquared( GetActorLocation(), InViewLocation )));
+	const float WorldScaleFactor = WorldInteraction->GetWorldScaleFactor();
+	float GizmoScale = (InScaleMultiplier * ((WorldSpaceDistanceToToPivot / WorldScaleFactor) * VREd::PivotGizmoDistanceScaleFactor->GetFloat())) * WorldScaleFactor;
+	const bool bIsWorldSpaceGizmo = (WorldInteraction->GetTransformGizmoCoordinateSpace() == COORD_World);
 
-	// @todo gizmo: Scale causes bounds-based features to look wrong
-	const float GizmoScale(InScaleMultiplier * ((WorldSpaceDistanceToToPivot / WorldScaleFactor) * VREd::PivotGizmoDistanceScaleFactor->GetFloat() ) * WorldScaleFactor);
+	if (LastDraggingHandle != nullptr && DraggingHandle == nullptr)
+	{
+		AimingAtGizmoScaleAlpha = 0.0f;
+	}
+
+	// Only scale the gizmo down when not aiming at it for VR implementations
+	if (WorldInteraction->IsInVR())
+	{
+		bool bIsAimingTowards = false;
+		bool bAnyInteractorInCorrectState = false;
+		const float GizmoRadius = (GizmoScale * 350) * 0.5f;
+
+		// Check if any interactor has a laser close to the gizmo
+		for (UViewportInteractor* Interactor : WorldInteraction->GetInteractors())
+		{	
+			// We only want the interactor to affect the size when aiming at the gizmo if they are dragging nothing
+			if (Interactor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing)
+			{
+				bAnyInteractorInCorrectState = true;			
+
+				FVector LaserPointerStart, LaserPointerEnd;
+				if (Interactor->GetLaserPointer(/*Out*/ LaserPointerStart, /*Out*/ LaserPointerEnd))
+				{
+					const FVector ClosestPointOnLaser = FMath::ClosestPointOnLine(LaserPointerStart, LaserPointerEnd, InLocalToWorld.GetLocation());
+					const float ClosestPointDistance = (ClosestPointOnLaser - InLocalToWorld.GetLocation()).Size();
+					if (ClosestPointDistance <= GizmoRadius)
+					{
+						bIsAimingTowards = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if (bAnyInteractorInCorrectState)
+		{
+			const float DeltaTime = WorldInteraction->GetCurrentDeltaTime();
+			if (bIsAimingTowards)
+			{
+				AimingAtGizmoScaleAlpha += DeltaTime / VREd::PivotGizmoAimAtAnimationSpeed->GetFloat();
+			}
+			else
+			{
+				AimingAtGizmoScaleAlpha -= DeltaTime / VREd::PivotGizmoAimAtAnimationSpeed->GetFloat();
+			}
+			AimingAtGizmoScaleAlpha = FMath::Clamp(AimingAtGizmoScaleAlpha, VREd::PivotGizmoAimAtShrinkSize->GetFloat(), 1.0f);
+
+			GizmoScale *= AimingAtGizmoScaleAlpha;
+		}
+	}
 
 	// Update animation
 	float AnimationAlpha = GetAnimationAlpha();
 
 	// Update all the handles
-	bool bIsHoveringOrDraggingScaleGizmo = false;
 	for (UGizmoHandleGroup* HandleGroup : AllHandleGroups)
 	{
 		if (HandleGroup != nullptr)
 		{
-			if (DraggingHandle == nullptr || HandleGroup == StretchGizmoHandleGroup || HandleGroup == RotationGizmoHandleGroup)
-			{
-				bool bIsHoveringOrDraggingThisHandleGroup = false;
-				HandleGroup->UpdateGizmoHandleGroup(InLocalToWorld, InLocalBounds, InViewLocation, bInAllHandlesVisible, DraggingHandle,
-					InHoveringOverHandles, AnimationAlpha, GizmoScale, InGizmoHoverScale, InGizmoHoverAnimationDuration, /* Out */ bIsHoveringOrDraggingThisHandleGroup );
-			}
+			//const FTransform HandleGroupTransform = bIsWorldSpaceGizmo == true && HandleGroup != RotationGizmoHandleGroup == true ? TransformGizmoToWorld : InLocalToWorld;
+			bool bIsHoveringOrDraggingThisHandleGroup = false;
+			HandleGroup->UpdateGizmoHandleGroup(InLocalToWorld, InLocalBounds, InViewLocation, bInAllHandlesVisible, DraggingHandle,
+				InHoveringOverHandles, AnimationAlpha, GizmoScale, InGizmoHoverScale, InGizmoHoverAnimationDuration, /* Out */ bIsHoveringOrDraggingThisHandleGroup);
 			
 			if (HandleGroup != RotationGizmoHandleGroup)
 			{
@@ -111,6 +168,8 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 			}
 		}
 	}
+
+	LastDraggingHandle = DraggingHandle;
 }
 
 /************************************************************************/
@@ -119,14 +178,8 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 UPivotTranslationGizmoHandleGroup::UPivotTranslationGizmoHandleGroup() :
 	Super()
 {
-	UStaticMesh* TranslationHandleMesh = nullptr;
-	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TranslateArrowHandle" ) );
-		TranslationHandleMesh = ObjectFinder.Object;
-		check( TranslationHandleMesh != nullptr );
-	}
-
-	CreateHandles( TranslationHandleMesh, FString( "PivotTranslationHandle" ) );
+	const UViewportInteractionAssetContainer& AssetContainer = UViewportWorldInteraction::LoadAssetContainer();
+	CreateHandles( AssetContainer.TranslationHandleMesh, FString( "PivotTranslationHandle" ) );
 }
 
 
@@ -159,14 +212,8 @@ EGizmoHandleTypes UPivotTranslationGizmoHandleGroup::GetHandleType() const
 UPivotScaleGizmoHandleGroup::UPivotScaleGizmoHandleGroup() :
 	Super()
 {
-	UStaticMesh* ScaleHandleMesh = nullptr;
-	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/UniformScaleHandle" ) );
-		ScaleHandleMesh = ObjectFinder.Object;
-		check( ScaleHandleMesh != nullptr );
-	}
-
-	CreateHandles( ScaleHandleMesh, FString( "PivotScaleHandle" ) );	
+	const UViewportInteractionAssetContainer& AssetContainer = UViewportWorldInteraction::LoadAssetContainer();
+	CreateHandles( AssetContainer.UniformScaleHandleMesh, FString( "PivotScaleHandle" ) );	
 }
 
 void UPivotScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
@@ -200,14 +247,8 @@ bool UPivotScaleGizmoHandleGroup::SupportsWorldCoordinateSpace() const
 UPivotPlaneTranslationGizmoHandleGroup::UPivotPlaneTranslationGizmoHandleGroup() :
 	Super()
 {
-	UStaticMesh* TranslationHandleMesh = nullptr;
-	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/PlaneTranslationHandle" ) );
-		TranslationHandleMesh = ObjectFinder.Object;
-		check( TranslationHandleMesh != nullptr );
-	}
-
-	CreateHandles( TranslationHandleMesh, FString( "PlaneTranslationHandle" ) );
+	const UViewportInteractionAssetContainer& AssetContainer = UViewportWorldInteraction::LoadAssetContainer();
+	CreateHandles( AssetContainer.PlaneTranslationHandleMesh, FString( "PlaneTranslationHandle" ) );
 }
 
 void UPivotPlaneTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle,
@@ -237,23 +278,60 @@ EGizmoHandleTypes UPivotPlaneTranslationGizmoHandleGroup::GetHandleType() const
 UPivotRotationGizmoHandleGroup::UPivotRotationGizmoHandleGroup() :
 	Super()
 {
-	UStaticMesh* QuarterRotationHandleMesh = nullptr;
-	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder(TEXT("/Engine/VREditor/TransformGizmo/RotationHandleQuarter"));
-		QuarterRotationHandleMesh = ObjectFinder.Object;
-		check(QuarterRotationHandleMesh != nullptr);
-	}
+	const UViewportInteractionAssetContainer& AssetContainer = UViewportWorldInteraction::LoadAssetContainer();
 
+	UStaticMesh* QuarterRotationHandleMesh = AssetContainer.RotationHandleMesh;
 	CreateHandles(QuarterRotationHandleMesh, FString("RotationHandle"));
 
 	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder(TEXT("/Engine/VREditor/TransformGizmo/RotationHandleFull"));
-		UStaticMesh* FullRotationHandleMesh = ObjectFinder.Object;
+		RootFullRotationHandleComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootFullRotationHandleComponent"));
+		RootFullRotationHandleComponent->SetMobility(EComponentMobility::Movable);
+		RootFullRotationHandleComponent->SetupAttachment(this);
+
+		UStaticMesh* FullRotationHandleMesh = AssetContainer.RotationHandleSelectedMesh;
 		check(FullRotationHandleMesh != nullptr);
 
 		FullRotationHandleMeshComponent = CreateMeshHandle(FullRotationHandleMesh, FString("FullRotationHandle"));
 		FullRotationHandleMeshComponent->SetVisibility(false);
 		FullRotationHandleMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		FullRotationHandleMeshComponent->SetupAttachment(RootFullRotationHandleComponent);
+	}
+
+	{
+		UStaticMesh* RotationHandleIndicatorMesh = AssetContainer.StartRotationIndicatorMesh;
+		check(RotationHandleIndicatorMesh != nullptr);
+
+		//Start rotation indicator
+		RootStartRotationIdicatorComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootStartRotationIndicator"));
+		StartRotationIndicatorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StartRotationIndicator"));
+		SetupIndicator(RootStartRotationIdicatorComponent, StartRotationIndicatorMeshComponent, RotationHandleIndicatorMesh);
+	}
+
+	{
+		UStaticMesh* RotationHandleIndicatorMesh = AssetContainer.CurrentRotationIndicatorMesh;
+		check(RotationHandleIndicatorMesh != nullptr);
+
+		//Delta rotation indicator
+		RootDeltaRotationIndicatorComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootDeltaRotationIndicator"));
+		DeltaRotationIndicatorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DeltaRotationIndicator"));
+		SetupIndicator(RootDeltaRotationIndicatorComponent, DeltaRotationIndicatorMeshComponent, RotationHandleIndicatorMesh);
+	}
+
+	{
+		UMaterialInstanceDynamic* DynamicMaterialInst = UMaterialInstanceDynamic::Create(AssetContainer.TransformGizmoMaterial, GetTransientPackage());
+		check(DynamicMaterialInst != nullptr);
+
+		DeltaRotationIndicatorMeshComponent->SetMaterial(0, DynamicMaterialInst);
+		StartRotationIndicatorMeshComponent->SetMaterial(0, DynamicMaterialInst);
+		FullRotationHandleMeshComponent->SetMaterial(0, DynamicMaterialInst);
+
+		UMaterialInstanceDynamic* TranslucentDynamicMaterialInst = UMaterialInstanceDynamic::Create(AssetContainer.TranslucentTransformGizmoMaterial, GetTransientPackage());
+		check(TranslucentDynamicMaterialInst != nullptr);
+
+		DeltaRotationIndicatorMeshComponent->SetMaterial(1, TranslucentDynamicMaterialInst);
+		StartRotationIndicatorMeshComponent->SetMaterial(1, TranslucentDynamicMaterialInst);
+		FullRotationHandleMeshComponent->SetMaterial(1, TranslucentDynamicMaterialInst);
+
 	}
 }
 
@@ -265,9 +343,8 @@ void UPivotRotationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& L
 		GizmoScale, GizmoHoverScale, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup);
 
 	bool bShowFullRotationDragHandle = false;
-	const ECoordSystem CoordSystem = OwningTransformGizmoActor->GetOwnerWorldInteraction()->GetTransformGizmoCoordinateSpace();
-	
-	const bool bIsDraggingHandle = DraggingHandle == nullptr ? true : false;
+	UViewportWorldInteraction* WorldInteraction = OwningTransformGizmoActor->GetOwnerWorldInteraction();
+	const ECoordSystem CoordSystem = WorldInteraction->GetTransformGizmoCoordinateSpace();
 	const bool bIsTypeSupported = (OwningTransformGizmoActor->GetGizmoType() == EGizmoHandleTypes::All && GetShowOnUniversalGizmo()) || GetHandleType() == OwningTransformGizmoActor->GetGizmoType();
 	const bool bSupportsCurrentCoordinateSpace = SupportsWorldCoordinateSpace() || CoordSystem != COORD_World;
 	const bool bShowAnyRotationHandle = (bIsTypeSupported && bSupportsCurrentCoordinateSpace && bAllHandlesVisible);
@@ -279,7 +356,9 @@ void UPivotRotationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& L
 		if (GizmoHandleMeshComponent != nullptr)	// Can be null if no handle for this specific placement
 		{
 			const bool bDraggingCurrentHandle = (DraggingHandle != nullptr && DraggingHandle == GizmoHandleMeshComponent);
-			GizmoHandleMeshComponent->SetVisibility(bShowAnyRotationHandle && !bDraggingCurrentHandle);
+			const bool bShouldShowHandle = bShowAnyRotationHandle && !bDraggingCurrentHandle;
+			GizmoHandleMeshComponent->SetVisibility(bShouldShowHandle);
+			GizmoHandleMeshComponent->SetCollisionEnabled(bShouldShowHandle ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 
 			int32 CenterHandleCount, FacingAxisIndex, CenterAxisIndex;
 			const FTransformGizmoHandlePlacement HandlePlacement = MakeHandlePlacementForIndex(HandleIndex);
@@ -287,19 +366,40 @@ void UPivotRotationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& L
 
 			if (bDraggingCurrentHandle)
 			{
+				bool bInitialDrag = false;
 				bShowFullRotationDragHandle = true;
-				if (!StartActorRotation.IsSet())
+				FVector GizmoSpaceFacingAxisVector = GetAxisVector(FacingAxisIndex, HandlePlacement.Axes[FacingAxisIndex]);
+				
+				// Set the initial rotation
+				if (!StartDragRotation.IsSet())
 				{
-					StartActorRotation = OwningTransformGizmoActor->GetTransform().GetRotation();
+					StartDragRotation = LocalToWorld.GetRotation();
+					bInitialDrag = true;
 				}
-
+				
+				// Set the root of the full rotation handles to the rotation we had when starting the drag.
 				if (CoordSystem == ECoordSystem::COORD_Local)
 				{
-					OwningTransformGizmoActor->SetActorRotation(StartActorRotation.GetValue());
+					RootFullRotationHandleComponent->SetWorldRotation(StartDragRotation.GetValue());	
 				}
 
-				const FVector GizmoSpaceFacingAxisVector = GetAxisVector(FacingAxisIndex, HandlePlacement.Axes[FacingAxisIndex]);
-				FullRotationHandleMeshComponent->SetRelativeTransform(FTransform(GizmoSpaceFacingAxisVector.ToOrientationQuat(), FVector::ZeroVector, FVector(GizmoScale * AnimationAlpha)));
+				FullRotationHandleMeshComponent->SetRelativeTransform(FTransform(GizmoSpaceFacingAxisVector.ToOrientationQuat(), FVector::ZeroVector, FVector(GizmoScale)));
+
+				const FVector LocalIntersectPoint = OwningTransformGizmoActor->GetOwnerWorldInteraction()->GetLocalIntersectPointOnRotationGizmo();
+				UpdateIndicator(RootDeltaRotationIndicatorComponent, LocalIntersectPoint, FacingAxisIndex);
+
+				// Update the start indicator only if this was the first time dragging
+				if (bInitialDrag)
+				{
+					UpdateIndicator(RootStartRotationIdicatorComponent, LocalIntersectPoint, FacingAxisIndex);
+
+					FLinearColor Color = WorldInteraction->GetColor(UViewportWorldInteraction::EColors::GizmoHover);
+					SetIndicatorColor(FullRotationHandleMeshComponent, Color);
+					SetIndicatorColor(DeltaRotationIndicatorMeshComponent, Color);
+					SetIndicatorColor(StartRotationIndicatorMeshComponent, Color);
+
+					bInitialDrag = false;
+				}
 			}
 			else if(DraggingHandle == nullptr)
 			{
@@ -346,22 +446,19 @@ void UPivotRotationGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& L
 				}
 
 				// Set the final transform
-				GizmoHandleMeshComponent->SetRelativeTransform(FTransform(Rotation, FVector::ZeroVector, FVector(GizmoScale * AnimationAlpha )));
+				GizmoHandleMeshComponent->SetRelativeTransform(FTransform(Rotation, FVector::ZeroVector, FVector(GizmoScale)));
 
 				// Update material
 				UpdateHandleColor(FacingAxisIndex, Handle, DraggingHandle, HoveringOverHandles);
+
+				// Reset the start rotation
+				StartDragRotation.Reset();
 			}
 		}
 	}
 
-	// Show or hide the visuals for full rotation and set the collision accordingly
-	FullRotationHandleMeshComponent->SetCollisionEnabled(bShowFullRotationDragHandle == true ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-	FullRotationHandleMeshComponent->SetVisibility(bShowFullRotationDragHandle);
-
-	if (!bShowFullRotationDragHandle)
-	{
-		StartActorRotation.Reset();
-	}
+	// Show or hide the visuals for when rotating
+	ShowRotationVisuals(bShowFullRotationDragHandle);
 }
 
 ETransformGizmoInteractionType UPivotRotationGizmoHandleGroup::GetInteractionType() const
@@ -372,4 +469,64 @@ ETransformGizmoInteractionType UPivotRotationGizmoHandleGroup::GetInteractionTyp
 EGizmoHandleTypes UPivotRotationGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Rotate;
+}
+
+void UPivotRotationGizmoHandleGroup::UpdateIndicator(USceneComponent* IndicatorRoot, const FVector& Direction, const uint32 FacingAxisIndex)
+{
+	float Y = 0, X = 0;
+	if (FacingAxisIndex == 0)
+	{
+		Y = Direction.Y;
+		X = Direction.Z;
+	}
+	else if (FacingAxisIndex == 1)
+	{
+		Y = -Direction.X;
+		X = Direction.Z;
+	}
+	else if (FacingAxisIndex == 2)
+	{
+		Y = Direction.Y;
+		X = -Direction.X;
+	}
+
+	const float Angle = FMath::RadiansToDegrees(FMath::Atan2(Y, X));
+	IndicatorRoot->SetRelativeRotation(FRotator(0, 0, Angle));
+}
+
+void UPivotRotationGizmoHandleGroup::ShowRotationVisuals(const bool bInShow)
+{
+	FullRotationHandleMeshComponent->SetCollisionEnabled(bInShow == true ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+	FullRotationHandleMeshComponent->SetVisibility(bInShow);
+	StartRotationIndicatorMeshComponent->SetVisibility(bInShow);
+	DeltaRotationIndicatorMeshComponent->SetVisibility(bInShow);
+}
+
+void UPivotRotationGizmoHandleGroup::SetupIndicator(USceneComponent* RootComponent, UStaticMeshComponent* IndicatorMeshComponent, UStaticMesh* Mesh)
+{
+	RootComponent->SetMobility(EComponentMobility::Movable);
+	RootComponent->SetupAttachment(FullRotationHandleMeshComponent);
+
+	IndicatorMeshComponent->SetStaticMesh(Mesh);
+	IndicatorMeshComponent->SetMobility(EComponentMobility::Movable);
+	IndicatorMeshComponent->SetupAttachment(RootComponent);
+	IndicatorMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	IndicatorMeshComponent->SetVisibility(false);
+	IndicatorMeshComponent->bGenerateOverlapEvents = false;
+	IndicatorMeshComponent->SetCanEverAffectNavigation(false);
+	IndicatorMeshComponent->bCastDynamicShadow = true;
+	IndicatorMeshComponent->bCastStaticShadow = false;
+	IndicatorMeshComponent->bAffectDistanceFieldLighting = false;
+	IndicatorMeshComponent->bAffectDynamicIndirectLighting = false;
+	IndicatorMeshComponent->SetRelativeLocation(FVector(0, 0, 100));
+}
+
+void UPivotRotationGizmoHandleGroup::SetIndicatorColor(UStaticMeshComponent* InMeshComponent, const FLinearColor& InHandleColor)
+{
+	UMaterialInstanceDynamic* MID0 = Cast<UMaterialInstanceDynamic>(InMeshComponent->GetMaterial(0));
+	UMaterialInstanceDynamic* MID1 = Cast<UMaterialInstanceDynamic>(InMeshComponent->GetMaterial(1));
+
+	static FName StaticHandleColorParameter("Color");
+	MID0->SetVectorParameterValue(StaticHandleColorParameter, InHandleColor);
+	MID1->SetVectorParameterValue(StaticHandleColorParameter, InHandleColor);
 }

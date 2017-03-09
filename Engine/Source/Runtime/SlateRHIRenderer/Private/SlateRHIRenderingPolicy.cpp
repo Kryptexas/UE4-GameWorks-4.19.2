@@ -239,7 +239,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	static const FEngineShowFlags DefaultShowFlags(ESFIM_Game);
 
-	const float DisplayGamma = bGammaCorrect ? GEngine ? GEngine->GetDisplayGamma() : 2.2f : 1.0f;
+	const float EngineGamma = GEngine ? GEngine->GetDisplayGamma() : 2.2f;
+	const float DisplayGamma = bGammaCorrect ? EngineGamma : 1.0f;
 
 	// In order to support MaterialParameterCollections, we need to create multiple FSceneViews for 
 	// each possible Scene that we encounter. The following code creates these as separate arrays, where the first 
@@ -325,6 +326,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 		const ESlateDrawEffect::Type DrawEffects = RenderBatch.DrawEffects;
 		const ESlateShader::Type ShaderType = RenderBatch.ShaderType;
 		const FShaderParams& ShaderParams = RenderBatch.ShaderParams;
+
+		const float FinalGamma = DrawFlags & ESlateBatchDrawFlag::ReverseGamma ? 1.0f / EngineGamma : (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma;
 
 		auto UpdateScissorRect = [&RHICmdList, &RenderBatch]()
 		{
@@ -474,7 +477,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
                 
 				PixelShader->SetTexture(RHICmdList, TextureRHI, SamplerState);
 				PixelShader->SetShaderParams(RHICmdList, ShaderParams.PixelParams);
-				PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
+
+				
+				PixelShader->SetDisplayGamma(RHICmdList, FinalGamma);
 
 	
 				// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
@@ -547,8 +552,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						VertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f);
 						VertexShader->SetMaterialShaderParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material);
 
-						PixelShader->SetParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material, DisplayGamma, ShaderParams.PixelParams);
-						PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
+						PixelShader->SetParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material, FinalGamma, ShaderParams.PixelParams);
+						PixelShader->SetDisplayGamma(RHICmdList, FinalGamma);
 
 						FSlateShaderResource* MaskResource = MaterialShaderResource->GetTextureMaskResource();
 						if (MaskResource)

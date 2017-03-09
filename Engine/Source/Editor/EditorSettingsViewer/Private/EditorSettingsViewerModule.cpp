@@ -41,6 +41,7 @@
 
 #include "CrashReporterSettings.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
+#include "VRModeSettings.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -169,6 +170,13 @@ protected:
 			LOCTEXT("ExperimentalSettingsDescription", "Enable and configure experimental Editor features."),
 			GetMutableDefault<UEditorExperimentalSettings>()
 		);
+
+		// experimental features
+		SettingsModule.RegisterSettings("Editor", "General", "VR Mode",
+			LOCTEXT("VRModeSettings", "VR Mode"),
+			LOCTEXT("VRModeSettingsDescription", "Configure VR editing features."),
+			GetMutableDefault<UVRModeSettings>()
+			);
 	}
 
 	/**

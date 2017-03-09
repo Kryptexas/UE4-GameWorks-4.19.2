@@ -20,7 +20,7 @@ public:
 
 	/** Default constructor that sets up CDO properties */
 	APivotTransformGizmo();
-
+	
 	/** Called by the world interaction system after we've been spawned into the world, to allow
 	    us to create components and set everything up nicely for the selected objects that we'll be
 		used to manipulate */
@@ -52,6 +52,13 @@ private:
 	/** Stretch handle group component */
 	UPROPERTY()
 	class UStretchGizmoHandleGroup* StretchGizmoHandleGroup;
+
+	/** The alpha for gizmo animation when aiming at it with a laser */
+	float AimingAtGizmoScaleAlpha;
+
+	/** Handle from previous tick that was dragged */
+	UPROPERTY()
+	UActorComponent* LastDraggingHandle;
 };
 
 /**
@@ -155,9 +162,40 @@ public:
 
 private:
 
+	/** Updates the root of an indicator to rotate the indicator itself */
+	void UpdateIndicator(USceneComponent* IndicatorRoot, const FVector& Direction, const uint32 FacingAxisIndex);
+
+	/** Make the components visible when dragging rotation */
+	void ShowRotationVisuals(const bool bInShow);
+
+	void SetupIndicator(USceneComponent* RootComponent, UStaticMeshComponent* IndicatorMeshComponent, UStaticMesh* Mesh);
+	
+	void SetIndicatorColor(UStaticMeshComponent* InMeshComponent, const FLinearColor& InHandleColor);
+
+	/** Root component of all the mesh components that are used to visualize the rotation when dragging */
+	UPROPERTY()
+	USceneComponent* RootFullRotationHandleComponent;
+
+	/** When dragging a rotation handle the full rotation circle appears */
 	UPROPERTY()
 	UStaticMeshComponent* FullRotationHandleMeshComponent;
 
-	// The rotation of the owning transform gizmo when starting to use a rotation handle
-	TOptional<FQuat> StartActorRotation;
+	/** The mesh that indicated the start rotation */
+	UPROPERTY()
+	UStaticMeshComponent* StartRotationIndicatorMeshComponent;
+
+	/** The root component of the start rotation indicator */
+	UPROPERTY()
+	USceneComponent* RootStartRotationIdicatorComponent;
+
+	/** The mesh that indicated the delta rotation */
+	UPROPERTY()
+	UStaticMeshComponent* DeltaRotationIndicatorMeshComponent;
+
+	/** The root component of the delta rotation indicator */
+	UPROPERTY()
+	USceneComponent* RootDeltaRotationIndicatorComponent;
+
+	/** The rotation when starting to drag the gizmo */
+	TOptional<FQuat> StartDragRotation;
 };

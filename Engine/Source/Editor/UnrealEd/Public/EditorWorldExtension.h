@@ -13,7 +13,7 @@ class UNREALED_API UEditorWorldExtension : public UObject
 {
 	GENERATED_BODY()
 
-	friend class FEditorWorldExtensionCollection;
+	friend class UEditorWorldExtensionCollection;
 public:
 	
 	/** Default constructor */
@@ -37,33 +37,72 @@ public:
 	/** Gets the world owning this extension */
 	virtual UWorld* GetWorld() const override;
 
+	/**  Spawns a transient actor that we can use in the current world of this extension (templated for convenience) */
+	template<class T>
+	inline T* SpawnTransientSceneActor(const FString& ActorName, const bool bWithSceneComponent = false, const EObjectFlags InObjectFlags = EObjectFlags::RF_Transient | EObjectFlags::RF_DuplicateTransient )
+	{
+		return CastChecked<T>(SpawnTransientSceneActor(T::StaticClass(), ActorName, bWithSceneComponent, InObjectFlags));
+	}
+
+	/** Spawns a transient actor that we can use in the current world of this extension */
+	AActor* SpawnTransientSceneActor(TSubclassOf<AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent = false, const EObjectFlags InObjectFlags = EObjectFlags::RF_Transient | EObjectFlags::RF_DuplicateTransient );
+
+	/** Destroys a transient actor we created earlier */
+	void DestroyTransientActor(AActor* Actor);
+
+	/** Get the owning collection of extensions */
+	UEditorWorldExtensionCollection* GetOwningCollection();
+
+	/** Executes command */
+	bool ExecCommand(const FString& InCommand);
+
+protected:
+	
+	/** Reparent actors to a new world */
+	virtual void TransitionWorld(UWorld* NewWorld);
+
+	/** Give base class a chance to act on entering simulate mode */
+	virtual void EnteredSimulateInEditor() {};
+	
+	/** Give base class a chance to act on leaving simulate mode */
+	virtual void LeftSimulateInEditor() {};
+
+	/** The collection of extensions that is owning this extension */
+	UEditorWorldExtensionCollection* OwningExtensionsCollection;
+
 private:
 
-	/** Let the FEditorWorldExtensionCollection set the world of this extension before init */
-	void SetWorld( UWorld* InitWorld );
+	void ReparentActor(AActor* Actor, UWorld* NewWorld);
 
-	/** The world that is owning this extension */
-	UWorld* OwningWorld;
+	/** Let the FEditorWorldExtensionCollection set the world of this extension before init */
+	void InitInternal(UEditorWorldExtensionCollection* InOwningExtensionsCollection);
+
+	UPROPERTY()
+	TArray<AActor*> ExtensionActors;
 };
 
 /**
  * Holds a collection of UEditorExtension
  */
-class UNREALED_API FEditorWorldExtensionCollection : public FGCObject
+UCLASS()
+class UNREALED_API UEditorWorldExtensionCollection : public UObject
 {
+	GENERATED_BODY()
+
+	friend class UEditorWorldExtensionManager;
 public:
 
 	/** Default constructor */
-	FEditorWorldExtensionCollection( FWorldContext& InWorldContext );
+	UEditorWorldExtensionCollection();
 
 	/** Default destructor */
-	virtual ~FEditorWorldExtensionCollection();
+	virtual ~UEditorWorldExtensionCollection();
 
 	/** Gets the world from the world context */
-	UWorld* GetWorld() const;
+	virtual UWorld* GetWorld() const override;
 
 	/** Gets the world context */
-	FWorldContext& GetWorldContext() const;
+	FWorldContext* GetWorldContext() const;
 
 	/** 
 	 * Adds an extension to the collection
@@ -99,15 +138,24 @@ public:
 
 	/** Notifies all extensions of axis movement */
 	bool InputAxis( FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime);
-
-	// FGCObject
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-	// End FGCObject
-
+	
 private:
 
+	/** Sets the world for this collection and gives every extension an opportunity to transition */
+	void SetWorldContext(FWorldContext* InWorldContext);
+
+	/** Called by the editor after PIE or Simulate is started */
+	void PostPIEStarted( bool bIsSimulatingInEditor );
+
+	/** Called when PIE or Simulate ends */
+	void OnEndPIE( bool bWasSimulatingInEditor );
+
 	/** World context */
-	FWorldContext& WorldContext;
+	FWorldContext* WorldContext;
+
+	/** After entering Simulate, this stores the counterpart editor world to the Simulate world, so that we
+        know this collection needs to transition back to editor world after Simulate finishes */
+	FWorldContext* EditorWorldOnSimulate;
 
 	/** List of extensions along with their reference count.  Extensions will only be truly removed and Shutdown() after their
 	    reference count drops to zero. */
@@ -118,19 +166,21 @@ private:
 /**
  * Holds a map of extension collections paired with worlds
  */
-class UNREALED_API FEditorWorldExtensionManager	
+UCLASS()
+class UNREALED_API UEditorWorldExtensionManager	: public UObject
 {
-public:
+	GENERATED_BODY()
 
+public:
 	/** Default constructor */
-	FEditorWorldExtensionManager();
+	UEditorWorldExtensionManager();
 
 	/** Default destructor */
-	virtual ~FEditorWorldExtensionManager();
+	virtual ~UEditorWorldExtensionManager();
 
 	/** Gets the editor world wrapper that is found with the world passed.
 	 * Adds one for this world if there was non found. */
-	TSharedPtr<FEditorWorldExtensionCollection> GetEditorWorldExtensions(const UWorld* InWorld);
+	UEditorWorldExtensionCollection* GetEditorWorldExtensions(UWorld* InWorld);
 
 	/** Ticks all the collections */
 	void Tick( float DeltaSeconds );
@@ -138,11 +188,14 @@ public:
 private:
 
 	/** Adds a new editor world wrapper when a new world context was created */
-	TSharedPtr<FEditorWorldExtensionCollection> OnWorldContextAdd(FWorldContext& InWorldContext);
+	UEditorWorldExtensionCollection* OnWorldContextAdd(FWorldContext* InWorldContext);
 
 	/** Adds a new editor world wrapper when a new world context was created */
 	void OnWorldContextRemove(FWorldContext& InWorldContext);
 
+	UEditorWorldExtensionCollection* FindExtensionCollection(const UWorld* InWorld);
+
 	/** Map of all the editor world maps */
-	TMap<uint32, TSharedPtr<FEditorWorldExtensionCollection>> EditorWorldExtensionCollection;
+	UPROPERTY()
+	TArray<UEditorWorldExtensionCollection*> EditorWorldExtensionCollection;
 };

@@ -149,6 +149,7 @@ public class UnrealEd : ModuleRules
                 "PixelInspectorModule",
 				"MovieScene",
 				"MovieSceneTracks",
+                "ViewportInteraction"
             }
 		);
 
@@ -214,7 +215,7 @@ public class UnrealEd : ModuleRules
                 "IOSPlatformEditor",
 				"HTML5PlatformEditor",
 				"SizeMap",
-                "PortalProxies",
+				"PortalProxies",
                 "PortalServices",
                 "GeometryCacheEd",
                 "BlueprintNativeCodeGen",
@@ -231,7 +232,8 @@ public class UnrealEd : ModuleRules
 			{
                 "GraphEditor",
 				"Kismet",
-				"AudioEditor"
+				"AudioEditor",
+                "ViewportInteraction"
             }
 		); 
 

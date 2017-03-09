@@ -16,7 +16,9 @@
 #include "VIBaseTransformGizmo.h"
 #include "LevelEditorViewport.h"
 #include "ViewportTransformable.h"
+#include "GenericPlatform/ICursor.h"
 #include "ViewportWorldInteraction.generated.h"
+
 
 class IViewportInteractableInterface;
 class UViewportInteractor;
@@ -26,7 +28,7 @@ namespace ViewportWorldActionTypes
 	static const FName NoAction( "NoAction" );
 	static const FName WorldMovement( "WorldMovement" );
 	static const FName SelectAndMove( "SelectAndMove" );
-	static const FName SelectAndMove_LightlyPressed( "SelectAndMove_LightlyPressed" );
+	static const FName SelectAndMove_FullyPressed( "SelectAndMove_FullyPressed" );
 	static const FName Undo( "Undo" );
 	static const FName Redo( "Redo" );
 	static const FName Delete( "Delete" );
@@ -73,6 +75,10 @@ public:
 	DECLARE_EVENT_ThreeParams( UViewportWorldInteraction, FOnVIHoverUpdate, class UViewportInteractor* /* Interactor */, FVector& /* OutHoverImpactPoint */, bool& /* bWasHandled */ );
 	FOnVIHoverUpdate& OnViewportInteractionHoverUpdate() { return OnHoverUpdateEvent; }
 
+	/** Gets the event for previewing input actions.  This allows systems to get a first chance at actions before everything else. */
+	DECLARE_EVENT_FiveParams( UViewportWorldInteraction, FOnPreviewInputAction, class FEditorViewportClient& /* ViewportClient */, class UViewportInteractor* /* Interactor */, const struct FViewportActionKeyInput& /* Action */, bool& /* bOutIsInputCaptured */, bool& /* bWasHandled */ );
+	FOnPreviewInputAction& OnPreviewInputAction() { return OnPreviewInputActionEvent; }
+
 	/** Gets the event for input actions update which is broadcasted for each interactor */
 	DECLARE_EVENT_FiveParams( UViewportWorldInteraction, FOnVIActionHandle, class FEditorViewportClient& /* ViewportClient */, class UViewportInteractor* /* Interactor */, const struct FViewportActionKeyInput& /* Action */, bool& /* bOutIsInputCaptured */, bool& /* bWasHandled */ );
 	FOnVIActionHandle& OnViewportInteractionInputAction() { return OnInputActionEvent; }
@@ -81,11 +87,11 @@ public:
 	DECLARE_EVENT_ThreeParams( UViewportWorldInteraction, FOnViewportInteractionInputUnhandled, class FEditorViewportClient& /* ViewportClient */, class UViewportInteractor* /* Interactor */, const struct FViewportActionKeyInput& /* Action */ );
 	FOnViewportInteractionInputUnhandled& OnViewportInteractionInputUnhandled() { return OnViewportInteractionInputUnhandledEvent; };
 
-	/** To handle raw key input from the Inputprocessor */
+	/** To handle raw key input from the Input Preprocessor */
 	DECLARE_EVENT_FourParams( UViewportWorldInteraction, FOnHandleInputKey, class FEditorViewportClient* /* ViewportClient */, const FKey /* Key */, const EInputEvent /* Event */, bool& /* bWasHandled */ );
 	FOnHandleInputKey& OnHandleKeyInput() { return OnKeyInputEvent; }
 
-	/** To handle raw axis input from the Inputprocessor */
+	/** To handle raw axis input from the Input Preprocessor */
 	DECLARE_EVENT_SixParams( UViewportWorldInteraction, FOnHandleInputAxis, class FEditorViewportClient* /* ViewportClient */, const int32 /* ControllerId */, const FKey /* Key */, const float /* Delta */, const float /* DeltaTime */, bool& /* bWasHandled */ );
 	FOnHandleInputAxis& OnHandleAxisInput() { return OnAxisInputEvent; }
 
@@ -109,6 +115,12 @@ public:
 	    nullptr, a default transformer for actors/components will be enabled */
 	void SetTransformer( class UViewportTransformer* NewTransformer );
 
+	/** @return	Gets the currently active transformer object */
+	const UViewportTransformer* GetTransformer() const
+	{
+		return ViewportTransformer;
+	}
+
 	/** Sets the list of objects that this system will be responsible for transforming when interacting using the
 	    gizmo or directly on the objects */
 	void SetTransformables( TArray< TUniquePtr< FViewportTransformable > >&& NewTransformables );
@@ -119,6 +131,20 @@ public:
 	/** Pairs to interactors by setting	the other interactor for each interactor */
 	void PairInteractors( UViewportInteractor* FirstInteractor, UViewportInteractor* SecondInteractor );
 	
+	/**
+	 * Adds an actor to the list of actors to never allow an interactor to hit in the scene.  No selection.  No hover.
+	 * There's no need to remove actors from this list.  They'll expire from it automatically when destroyed.
+	 *
+	 * @param	ActorToExcludeFromHitTests	The actor that should be forever excluded from hit tests
+	 */
+	void AddActorToExcludeFromHitTests( AActor* ActorToExcludeFromHitTests );
+
+	/** @return	Returns the list of actors that should never be included in interctor hit tests (hovering or selection) */
+	const TArray<TWeakObjectPtr<AActor>>& GetActorsToExcludeFromHitTest() const
+	{
+		return ActorsToExcludeFromHitTest;
+	}
+
 
 	//
 	// Input
@@ -127,10 +153,10 @@ public:
 	virtual bool InputKey( FEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
 	virtual bool InputAxis( FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime ) override;
 
-	/** Handles the key input from the InputProcessor*/
+	/** Handles the key input from the Input Preprocessor*/
 	bool PreprocessedInputKey( const FKey Key, const EInputEvent Event );
 
-	/** Handles the axis input from the InputProcessor*/
+	/** Handles the axis input from the Input Preprocessor*/
 	bool PreprocessedInputAxis( const int32 ControllerId, const FKey Key, const float Delta, const float DeltaTime );
 
 	/** Gets the world space transform of the calibrated VR room origin.  When using a seated VR device, this will feel like the
@@ -151,9 +177,6 @@ public:
 	
 	/** Gets the world scale factor, which can be multiplied by a scale vector to convert to room space */
 	float GetWorldScaleFactor() const;
-
-	/** Gets the world of the viewport used for this worldinteraction */
-	virtual UWorld* GetWorld() const;
 
 	/** Gets the currently used viewport */
 	FEditorViewportClient* GetDefaultOptionalViewportClient() const;
@@ -188,8 +211,8 @@ public:
 	/** Called to finish a drag action with the specified interactor */
 	void StopDragging( class UViewportInteractor* Interactor );
 
-	/** Starts dragging selected objects around.  Called when clicking and dragging on actors/gizmos in the world, or when placing new objects.  Returns true if dragging actually started. */
-	bool StartDragging( UViewportInteractor* Interactor, UActorComponent* ClickedTransformGizmoComponent, const FVector& HitLocation, const bool bIsPlacingNewObjects, const bool bStartTransaction );
+	/** Starts dragging selected objects around.  Called when clicking and dragging on actors/gizmos in the world, or when placing new objects. */
+	void StartDragging( UViewportInteractor* Interactor, UActorComponent* ClickedTransformGizmoComponent, const FVector& HitLocation, const bool bIsPlacingNewObjects, const bool bAllowInterpolationWhenPlacing, const bool bStartTransaction, const bool bWithGrabberSphere );
 
 	DECLARE_EVENT_OneParam( UViewportWorldInteraction, FOnWorldScaleChanged, const float /* NewWorldToMetersScale */);
 	virtual FOnWorldScaleChanged& OnWorldScaleChanged() { return OnWorldScaleChangedEvent; };
@@ -207,7 +230,7 @@ public:
 	float GetMinScale();
 
 	/** Sets GNewWorldToMetersScale */
-	void SetWorldToMetersScale( const float NewWorldToMetersScale );
+	void SetWorldToMetersScale( const float NewWorldToMetersScale, const bool bCompensateRoomWorldScale = false );
 
 	/** Tells the world interaction system to skip updates of world movement this frame.  This is useful if you've called
 	    SetWorldToMetersScale() yourself to set a static world scale, and the cached room-space transforms for the last
@@ -261,7 +284,7 @@ public:
 	void SetTransformGizmoClass( const TSubclassOf<ABaseTransformGizmo>& NewTransformGizmoClass );
 
 	/** Sets the currently dragged interactavle */
-	void SetDraggedInteractable( IViewportInteractableInterface* InDraggedInteractable );	
+	void SetDraggedInteractable( IViewportInteractableInterface* InDraggedInteractable, UViewportInteractor* Interactor );	
 
 	/** Check if there is another interactor hovering over the component */
 	bool IsOtherInteractorHoveringOverComponent( UViewportInteractor* Interactor, UActorComponent* Component ) const;
@@ -275,10 +298,8 @@ public:
 	/** Gets the tracking transactions */
 	FTrackingTransaction& GetTrackingTransaction();
 	
-	void SetUseInputProcessor( bool bInUseInputProcessor );
-
-	/** Resets the start transform all of transformables to match current transform */
-	void ResetTransformables();
+	/** Sets whether we should allow input events from the input preprocessor or not */
+	void SetUseInputPreprocessor( bool bInUseInputPreprocessor );
 
 	/** Gets a list of all of the objects we're currently interacting with, such as selected actors */
 	TArray< TUniquePtr< FViewportTransformable > >& GetTransformables()
@@ -286,22 +307,49 @@ public:
 		return Transformables;
 	}
 
-	/** Static: Spawns a transient actor that we can use in the editor world (templated for convenience) */
-	template<class T>
-	static inline T* SpawnTransientSceneActor(UWorld* World, const FString& ActorName, const bool bWithSceneComponent)
+	/** The ability to move and scale the world */
+	void AllowWorldMovement(bool bDisable);
+
+	/** For other systems to check if the Viewport World Interaction system is currently aligning transformables to actors*/
+	bool AreAligningToActors();
+	/** For other systems to check if the Viewport World Interaction system currently has candidate actors selected */
+	bool HasCandidatesSelected();
+	/** If there are no currently selected candidates, use the currently selected actors as candidates. Otherwise, reset the candidates */
+	void SetSelectionAsCandidates();
+
+	/** When RotateOnAngle we intersect on a plane to rotate the transform gizmo. This is the local point from the transform gizmo location of that intersect */
+	FVector GetLocalIntersectPointOnRotationGizmo() const;
+
+	/** Gets the current delta time, so functions that don't get the delta time passed can still get it */
+	float GetCurrentDeltaTime() const;
+
+	/** Getters and setters for whether or not to show the cursor on the viewport */
+	bool ShouldSuppressExistingCursor() const;
+	void SetShouldSuppressExistingCursor(const bool bInShouldSuppressCursor)
 	{
-		return CastChecked<T>(SpawnTransientSceneActor(World, T::StaticClass(), ActorName, bWithSceneComponent));
-	}
+		bShouldSuppressCursor = bInShouldSuppressCursor;
+	};
 
-	/** Static: Spawns a transient actor that we can use in the editor world */
-	static AActor* SpawnTransientSceneActor( UWorld* World, TSubclassOf<AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent );
+	/** Gets the container for all the assets of ViewportInteraction. */
+	const class UViewportInteractionAssetContainer& GetAssetContainer() const;
 
-	/** Static: Destroys a transient actor we created earlier */
-	static void DestroyTransientActor( UWorld* World, AActor* Actor );
+	/** Static function to load the asset container */
+	static const class UViewportInteractionAssetContainer& LoadAssetContainer();
 
+	/** Plays sound at location. */
+	void PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume = 1.0f);
+
+	/** Set if this world interaction is in VR. */
+	void SetInVR(const bool bInVR);
+
+	/** Get if this world interaction is in VR. */
+	bool IsInVR() const;
 
 protected:
 
+	virtual void TransitionWorld(UWorld* NewWorld) override;
+	virtual void EnteredSimulateInEditor() override;
+	virtual void LeftSimulateInEditor() override;
 
 private:
 
@@ -334,13 +382,20 @@ private:
 		const float LaserPointerMaxLength,
 		const bool bIsLaserPointerValid, 
 		const FTransform& GizmoStartTransform, 
-		const FBox& GizmoStartLocalBounds, 
+		FTransform& GizmoLastTransform,
+		FTransform& GizmoTargetTransform,
+		FTransform& GizmoUnsnappedTargetTransform,
+		const FTransform& GizmoInterpolationSnapshotTransform,
+		const FBox& GizmoStartLocalBounds,
 		const USceneComponent* const DraggingTransformGizmoComponent,
 		FVector& GizmoSpaceFirstDragUpdateOffsetAlongAxis,
 		FVector& DragDeltaFromStartOffset,
 		bool& bIsDrivingVelocityOfSimulatedTransformables,
 		FVector& OutUnsnappedDraggedTo);
-	
+
+	FVector SnapLocation(const bool bLocalSpaceSnapping, const FVector& DesiredGizmoLocation, const FTransform &GizmoStartTransform, const FVector SnapGridBase, const bool bShouldConstrainMovement, const FVector AlignAxes);
+
+
 	/** Given a drag delta from a starting point, contrains that delta based on a gizmo handle axis */
 	FVector ComputeConstrainedDragDeltaFromStart( 
 		const bool bIsFirstDragUpdate, 
@@ -373,7 +428,7 @@ private:
 	void PollInputIfNeeded();
 
 	/** Refreshes the transform gizmo to match the currently selected actor set */
-	void RefreshTransformGizmo( const bool bNewObjectsSelected, bool bAllHandlesVisible, class UActorComponent* SingleVisibleHandle, const TArray< UActorComponent* >& HoveringOverHandles );
+	void RefreshTransformGizmo( const bool bNewObjectsSelected );
 
 	/** Spawn new transform gizmo when refreshing and at start if there is none yet or the current one is different from the TransformGizmoClass */
 	void SpawnTransformGizmoIfNeeded();
@@ -384,15 +439,6 @@ private:
 	/** Destroys the actors */
 	void DestroyActors();
 
-public:
-	/** Gets the snap grid mesh actor */
-	AActor* GetSnapGridActor()
-	{
-		SpawnGridMeshActor();
-		return SnapGridActor;
-	}
-
-private:
 	/** Gets the snap grid mesh MID */
 	class UMaterialInstanceDynamic* GetSnapGridMID()
 	{
@@ -406,6 +452,16 @@ private:
 	/** Average location of all the current transformables */
 	FVector CalculateAverageLocationOfTransformables();
 
+	/** Location the transformable should snap to if aligning to other transformables*/
+	FVector FindTransformGizmoAlignPoint(const FTransform& GizmoStartTransform, const FTransform& DesiredGizmoTransform, const bool bShouldConstrainMovement, FVector ConstraintAxes);
+	void DrawBoxBrackets(const FBox InActor, const FTransform LocalToWorld, const FLinearColor BracketColor);
+	
+	/** Calculate a new room transform location according to the world to meters scale */
+	void CompensateRoomTransformForWorldScale(FTransform& InOutRoomTransform, const float InNewWorldToMetersScale, const FVector& InRoomPivotLocation);
+
+	/** If there is a transformable with velocity in simulate */
+	bool HasTransformableWithVelocityInSimulate() const;
+
 	//
 	// Colors
 	//
@@ -416,18 +472,24 @@ public:
 		Forward,
 		Right,
 		Up,
-		Hover,
-		Dragging,
+		GizmoHover,
+		GizmoDragging,
 		TotalCount
 	};
 
 	/** Gets the color from color type */
-	FLinearColor GetColor( const EColors Color ) const;
+	FLinearColor GetColor(const EColors Color, const float Multiplier = 1.f) const;
+
+	/** The path of the asset container */
+	static const FString AssetContainerPath;
 
 private:
 
 	// All the colors for this mode
 	TArray<FLinearColor> Colors;
+
+	/** Candidate actors for aligning in the scene */
+	TArray<const AActor*> CandidateActors;
 
 protected:
 
@@ -482,6 +544,12 @@ private:
 	/** True if we should skip interactive world movement/rotation/scaling this frame (because it was already set by something else) */
 	bool bSkipInteractiveWorldMovementThisFrame;
 
+	/** The room transform to apply at the beginning of the next frame (if needed.)  This is used to defer
+	    updates of the room transform to match with the GNewWorldToMetersScale, which will also take effect
+		on the next frame.  It's critical that those two are applied at the same time, because otherwise a
+		frame rate dependent feedback loop will occur */
+	TOptional<TTuple<FTransform,uint32>> RoomTransformToSetOnFrame;
+
 
 	//
 	// Hover state
@@ -500,6 +568,9 @@ private:
 
 	/** True if our transformables are currently interpolating to their target location */
 	bool bIsInterpolatingTransformablesFromSnapshotTransform;
+
+	/** When interpolating from a snapshot transform, this will be true if we should freeze the destination placement location until the interpolation finishes */
+	bool bFreezePlacementWhileInterpolatingTransformables;
 
 	/** Time that we started interpolating at */
 	FTimespan TransformablesInterpolationStartTime;
@@ -524,8 +595,10 @@ private:
 	/** Starting angle when rotating an object with  ETransformGizmoInteractionType::RotateOnAngle */
 	TOptional<float> StartDragAngleOnRotation;
 
+	FVector LocalIntersectPointOnRotationGizmo;
+
 	/** The direction of where the rotation handle is facing when starting rotation */
-	TOptional<FVector> StartDragHandleDirection;
+	TOptional<FVector> DraggingRotationHandleDirection;
 
 	/** Whether the gizmo should be visible or not */
 	bool bShouldTransformGizmoBeVisible;
@@ -566,6 +639,9 @@ private:
 	/** Event that fires every frame to update hover state based on what's under the cursor.  Set bWasHandled to true if you detect something to hover. */
 	FOnVIHoverUpdate OnHoverUpdateEvent;
 
+	/** Event for previewing input actions.  This allows systems to get a first chance at actions before everything else. */
+	FOnPreviewInputAction OnPreviewInputActionEvent;
+
 	/** Event that is fired for when a key is pressed by an interactor */
 	FOnVIActionHandle OnInputActionEvent;
 
@@ -605,6 +681,16 @@ private:
 	/** Reference count for the default mouse cursor interactor.  When this reaches zero, the mouse cursor interactor goes away. */
 	int32 DefaultMouseCursorInteractorRefCount;
 
+	/** List of actors which should never be hit by an interactor, such as the 'avatar mesh actor' in VR */
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AActor>> ActorsToExcludeFromHitTest;
+
+	//
+	// VR
+	//
+	
+	/** If this world interaction is in VR */
+	bool bIsInVR;
 
 	//
 	// Configuration
@@ -617,5 +703,24 @@ private:
 	bool bActive;
 
 	/** If this world interaction should get input from the input processor */
-	bool bUseInputProcessor;
+	bool bUseInputPreprocessor;
+
+	/** If the user can scale and navigate around in the world */
+	bool bAllowWorldMovement;
+
+	/** The delta time of this tick */
+	float CurrentDeltaTime;
+
+	/** Whether or not to show the cursor on the viewport */
+	bool bShouldSuppressCursor;
+
+	/** The current tick number */
+	uint32 CurrentTickNumber;
+
+	/** Container of assets */
+	UPROPERTY()
+	class UViewportInteractionAssetContainer* AssetContainer;
+
+	/** If we want to skip playing the sound when refreshing the transform gizmo next time */
+	bool bPlayNextRefreshTransformGizmoSound;
 };

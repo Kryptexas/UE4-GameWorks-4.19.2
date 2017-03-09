@@ -21,9 +21,10 @@ public:
 	// FViewportTransformable overrides
 	virtual const FTransform GetTransform() const override;
 	virtual void ApplyTransform( const FTransform& NewTransform, const bool bSweep ) override;
-	virtual FBox GetLocalSpaceBoundingBox() const override;
+	virtual FBox BuildBoundingBox( const FTransform& BoundingBoxToWorld ) const override;
 	virtual bool IsPhysicallySimulated() const override;
 	virtual void SetLinearVelocity( const FVector& NewVelocity ) override;
+	virtual FVector GetLinearVelocity() const override;
 	virtual void UpdateIgnoredActorList( TArray<class AActor*>& IgnoredActors ) override;
 
 	/** The actual actor object */

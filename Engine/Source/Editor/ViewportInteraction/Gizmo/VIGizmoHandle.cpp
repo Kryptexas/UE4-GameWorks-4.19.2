@@ -192,42 +192,42 @@ void UGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FGizmoHandle& 
 	UMaterialInstanceDynamic* MID1 = CastChecked<UMaterialInstanceDynamic>( HandleMesh->GetMaterial( 1 ) );
 
 	ABaseTransformGizmo* GizmoActor = CastChecked<ABaseTransformGizmo>( GetOwner() );
-	if ( GizmoActor )
+	if (GizmoActor)
 	{
 		UViewportWorldInteraction* WorldInteraction = GizmoActor->GetOwnerWorldInteraction();
-		if ( WorldInteraction )
+		if (WorldInteraction)
 		{
-			FLinearColor HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::DefaultColor );
-			if ( HandleMesh == DraggingHandle )
+			FLinearColor HandleColor = WorldInteraction->GetColor(UViewportWorldInteraction::EColors::DefaultColor);
+			if (HandleMesh == DraggingHandle)
 			{
-				HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Dragging );
+				HandleColor = WorldInteraction->GetColor(UViewportWorldInteraction::EColors::GizmoDragging);
 			}
-			else if ( AxisIndex != INDEX_NONE )
+			else if (AxisIndex != INDEX_NONE)
 			{
-				switch ( AxisIndex )
+				switch (AxisIndex)
 				{
 				case 0:
-					HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Forward );
+					HandleColor = WorldInteraction->GetColor(UViewportWorldInteraction::EColors::Forward);
 					break;
 
 				case 1:
-					HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Right );
+					HandleColor = WorldInteraction->GetColor(UViewportWorldInteraction::EColors::Right);
 					break;
 
 				case 2:
-					HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Up );
+					HandleColor = WorldInteraction->GetColor(UViewportWorldInteraction::EColors::Up);
 					break;
 				}
 
-				if ( HoveringOverHandles.Contains( HandleMesh ) )
+				if (HoveringOverHandles.Contains(HandleMesh))
 				{
-					HandleColor = FLinearColor::LerpUsingHSV( HandleColor, WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Hover ), Handle.HoverAlpha );
+					HandleColor = FLinearColor::LerpUsingHSV(HandleColor, WorldInteraction->GetColor(UViewportWorldInteraction::EColors::GizmoHover), Handle.HoverAlpha);
 				}
 			}
 
-			static FName StaticHandleColorParameter( "Color" );
-			MID0->SetVectorParameterValue( StaticHandleColorParameter, HandleColor );
-			MID1->SetVectorParameterValue( StaticHandleColorParameter, HandleColor );
+			static FName StaticHandleColorParameter("Color");
+			MID0->SetVectorParameterValue(StaticHandleColorParameter, HandleColor);
+			MID1->SetVectorParameterValue(StaticHandleColorParameter, HandleColor);
 		}
 	}
 }
@@ -373,47 +373,48 @@ void UAxisGizmoHandleGroup::UpdateHandlesRelativeTransformOnAxis( const FTransfo
 			int32 CenterHandleCount, FacingAxisIndex, CenterAxisIndex;
 			HandlePlacement.GetCenterHandleCountAndFacingAxisIndex( /* Out */ CenterHandleCount, /* Out */ FacingAxisIndex, /* Out */ CenterAxisIndex);
 			
-			FVector GizmoSpaceFacingAxisVector = GetAxisVector( FacingAxisIndex, HandlePlacement.Axes[FacingAxisIndex] );
-			
-			// Check on which side we are relative to the gizmo
-			const FVector GizmoSpaceViewLocation = GetOwner()->GetTransform().InverseTransformPosition( ViewLocation );
-			if ( GizmoSpaceViewLocation[ FacingAxisIndex ] < 0 )
+			if (DraggingHandle == nullptr)
 			{
-				GizmoSpaceFacingAxisVector[ FacingAxisIndex ] *= -1.0f;
-			}
-
-			const FTransform GizmoOriginToFacingAxisRotation( GizmoSpaceFacingAxisVector.ToOrientationQuat() );
-	
-			FTransform HandleToGizmoOrigin = HandleToCenter * GizmoOriginToFacingAxisRotation;
-				
-			// Check on the axis if the offset is on the other side of the object compared to the view. Switch the offset to the side of the view if it does
-			FVector GizmoSpaceFacingAxisOffset = HandleToGizmoOrigin.GetLocation();
-			for ( int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex )
-			{		
-				if ( AxisIndex != FacingAxisIndex &&
-					( ( GizmoSpaceFacingAxisOffset[ AxisIndex ] > 0 && GizmoSpaceViewLocation[ AxisIndex ] < 0 ) ||
-					  ( GizmoSpaceFacingAxisOffset[ AxisIndex ] < 0 && GizmoSpaceViewLocation[ AxisIndex ] > 0 ) ) )
+				FVector GizmoSpaceFacingAxisVector = GetAxisVector( FacingAxisIndex, HandlePlacement.Axes[FacingAxisIndex] );
+			
+				// Check on which side we are relative to the gizmo
+				const FVector GizmoSpaceViewLocation = GetOwner()->GetTransform().InverseTransformPosition( ViewLocation );
+				if ( GizmoSpaceViewLocation[ FacingAxisIndex ] < 0 )
 				{
-					GizmoSpaceFacingAxisOffset[ AxisIndex ] *= -1.0f;
-				}	
-			}
+					GizmoSpaceFacingAxisVector[ FacingAxisIndex ] *= -1.0f;
+				}
 
-			GizmoSpaceFacingAxisOffset *= AnimationAlpha;
+				const FTransform GizmoOriginToFacingAxisRotation( GizmoSpaceFacingAxisVector.ToOrientationQuat() );
+	
+				FTransform HandleToGizmoOrigin = HandleToCenter * GizmoOriginToFacingAxisRotation;
+				
+				// Check on the axis if the offset is on the other side of the object compared to the view. Switch the offset to the side of the view if it does
+				FVector GizmoSpaceFacingAxisOffset = HandleToGizmoOrigin.GetLocation();
+				for ( int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex )
+				{		
+					if ( AxisIndex != FacingAxisIndex &&
+						( ( GizmoSpaceFacingAxisOffset[ AxisIndex ] > 0 && GizmoSpaceViewLocation[ AxisIndex ] < 0 ) ||
+						  ( GizmoSpaceFacingAxisOffset[ AxisIndex ] < 0 && GizmoSpaceViewLocation[ AxisIndex ] > 0 ) ) )
+					{
+						GizmoSpaceFacingAxisOffset[ AxisIndex ] *= -1.0f;
+					}	
+				}
 
-			HandleToGizmoOrigin.SetLocation( GizmoSpaceFacingAxisOffset * GizmoScale );
+				GizmoSpaceFacingAxisOffset *= AnimationAlpha;
 
-			// Set the final transform
-			GizmoHandleMeshComponent->SetRelativeTransform( HandleToGizmoOrigin );
+				HandleToGizmoOrigin.SetLocation( GizmoSpaceFacingAxisOffset * GizmoScale );
+
+				// Set the final transform
+				GizmoHandleMeshComponent->SetRelativeTransform( HandleToGizmoOrigin );
 			
-			float GizmoHandleScale = GizmoScale;
-			if ( GizmoScale != GizmoHoverScale )
-			{
+				float GizmoHandleScale = GizmoScale;
+
 				// Make the handle bigger while hovered (but don't affect the offset -- we want it to scale about it's origin)
 				GizmoHandleScale *= FMath::Lerp( 1.0f, GizmoHoverScale, Handle.HoverAlpha );
-			}
 			
-			GizmoHandleScale *= AnimationAlpha;
-			GizmoHandleMeshComponent->SetRelativeScale3D( FVector( GizmoHandleScale ) );
+				GizmoHandleScale *= AnimationAlpha;
+				GizmoHandleMeshComponent->SetRelativeScale3D( FVector( GizmoHandleScale ) );
+			}
 
 			// Update material
 			UpdateHandleColor( FacingAxisIndex, Handle, DraggingHandle, HoveringOverHandles );

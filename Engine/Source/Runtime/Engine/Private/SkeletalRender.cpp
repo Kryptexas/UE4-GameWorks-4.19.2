@@ -68,7 +68,9 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 	static const auto* SkeletalMeshLODRadiusScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SkeletalMeshLODRadiusScale"));
 	float LODScale = FMath::Clamp(SkeletalMeshLODRadiusScale->GetValueOnRenderThread(), 0.25f, 1.0f);
 
-	const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Bounds.Origin, Bounds.SphereRadius, *View) * LODScale * LODScale;
+	// With stereo rendering views may have asymmetric FOVs, so always use the left eye's view for LOD calculation
+	const FSceneView* ViewForLOD = ( View->Family != nullptr && View->StereoPass == eSSP_RIGHT_EYE ) ? View->Family->Views[ 0 ] : View;
+	const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Bounds.Origin, Bounds.SphereRadius, *ViewForLOD) * LODScale * LODScale;
 
 	check( SkeletalMeshLODInfo.Num() == SkeletalMeshResource->LODModels.Num() );
 

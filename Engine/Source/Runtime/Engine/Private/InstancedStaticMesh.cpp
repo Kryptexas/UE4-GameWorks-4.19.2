@@ -22,6 +22,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "SceneManagement.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -2013,6 +2014,9 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 		InstancingWorldViewOriginOne.W = 1.0f;
 		if (InstancingUserData && BatchElement.InstancedLODRange)
 		{
+			// With stereo rendering views may have asymmetric FOVs, so always use the left eye's view for LOD calculation
+			const FSceneView& ViewForLOD = ( View.Family != nullptr && View.StereoPass == eSSP_RIGHT_EYE ) ? *View.Family->Views[ 0 ] : View;
+
 			int32 FirstLOD = InstancingUserData->MinLOD;
 
 			int32 DebugMin = FMath::Min(CVarMinLOD.GetValueOnRenderThread(), InstancingUserData->MeshRenderData->LODResources.Num() - 1);
@@ -2048,34 +2052,31 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 			{
 				FVector4& InstancingViewZCompare(SampleIndex ? InstancingViewZCompareOne : InstancingViewZCompareZero);
-				float Fac = View.GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * LODScale;
 
 				float FinalCull = MAX_flt;
 				if (MinSize > 0.0)
 				{
-					FinalCull = FMath::Sqrt(Fac / MinSize);
+					FinalCull = ComputeBoundsDrawDistance(MinSize, SphereRadius, ViewForLOD.ViewMatrices.GetProjectionMatrix()) * LODScale;
 				}
-				if (InstancingUserData->EndCullDistance > 0.0f && InstancingUserData->EndCullDistance < FinalCull)
+				if (InstancingUserData->EndCullDistance > 0.0f)
 				{
-					FinalCull = InstancingUserData->EndCullDistance;
+					FinalCull = FMath::Min(FinalCull, InstancingUserData->EndCullDistance * MaxDrawDistanceScale);
 				}
-				FinalCull *= MaxDrawDistanceScale;
 
 				InstancingViewZCompare.Z = FinalCull;
 				if (BatchElement.InstancedLODIndex < InstancingUserData->MeshRenderData->LODResources.Num() - 1)
 				{
-					float NextCut = InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex + 1];
-					InstancingViewZCompare.Z = FMath::Min(FMath::Sqrt(Fac / NextCut), FinalCull);
+					float NextCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex + 1], SphereRadius, ViewForLOD.ViewMatrices.GetProjectionMatrix()) * LODScale;
+					InstancingViewZCompare.Z = FMath::Min(NextCut, FinalCull);
 				}
 
 				InstancingViewZCompare.X = MIN_flt;
 				if (BatchElement.InstancedLODIndex > FirstLOD)
 				{
-					float CurCut = FMath::Sqrt(Fac / InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex]);
+					float CurCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex], SphereRadius, ViewForLOD.ViewMatrices.GetProjectionMatrix()) * LODScale;
 					if (CurCut < FinalCull)
 					{
 						InstancingViewZCompare.Y = CurCut;
-
 					}
 					else
 					{
@@ -2095,7 +2096,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			InstancingWorldViewOriginZero = View.GetTemporalLODOrigin(0);
 			InstancingWorldViewOriginOne = View.GetTemporalLODOrigin(1);
 
-			float Alpha = View.GetTemporalLODTransition();
+			float Alpha = ViewForLOD.GetTemporalLODTransition();
 			InstancingWorldViewOriginZero.W = 1.0f - Alpha;
 			InstancingWorldViewOriginOne.W = Alpha;
 

@@ -391,6 +391,7 @@ public:
 	/** Delegate handler for recording finishing */
 	void HandleRecordingFinished(UMovieSceneSequence* Sequence);
 
+	/** Whether or not playback is looping */
 	bool IsLooping() const;
 
 	/** Set the new global time, accounting for looping options */
@@ -618,6 +619,7 @@ public:
 	virtual FGuid MakeNewSpawnable(UObject& SourceObject) override;
 	virtual bool IsReadOnly() const override;
 	virtual void ExternalSelectionHasChanged() override { SynchronizeSequencerSelectionWithExternalSelection(); }
+	virtual USequencerSettings* GetSequencerSettings() override { return Settings; }
 
 public:
 

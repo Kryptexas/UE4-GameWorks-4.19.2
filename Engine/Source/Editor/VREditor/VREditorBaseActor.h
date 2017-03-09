@@ -97,12 +97,13 @@ protected:
 	/** How big the actor should be */
 	float Scale;
 
-private:
+protected:
 
 	/** The VR mode that owns this actor */
 	UPROPERTY()
 	class UVREditorMode* VRMode;
 
+private:
 	/** Local rotation of the UI */
 	FRotator LocalRotation;
 
@@ -132,4 +133,7 @@ private:
 
 	/** Dock state to switch to when finished moving */
 	EDockedTo MoveToResultDock;
+
+	/** When docked, our transform last frame.  This is used for smoothing */
+	TOptional<FTransform> LastDockedUIToWorld;
 };

@@ -30,14 +30,12 @@ void FMovieSceneTrackEditor::AnimatablePropertyChanged(FOnKeyProperty OnKeyPrope
 			}
 
 			UpdatePlaybackRange();
-	
+
+
 			TSharedPtr<FSequencer> SequencerToUpdate = StaticCastSharedPtr<FSequencer>(Sequencer.Pin());
 			if (SequencerToUpdate.IsValid())
 			{
-				SequencerToUpdate->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::Unknown);
 				SequencerToUpdate->SynchronizeSequencerSelectionWithExternalSelection();
-				SequencerToUpdate->SynchronizeExternalSelectionWithSequencerSelection();
-				
 			}
 		}
 	}

@@ -7,14 +7,25 @@
 #include "ViewportWorldInteraction.h"
 #include "ViewportInteractableInterface.h"
 #include "MouseCursorInteractor.h"
+#include "ScopedTransaction.h"
+#include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
+#include "ActorTransformer.h"
+#include "Engine/Selection.h"
+
+#define LOCTEXT_NAMESPACE "ViewportInteractor"
 
 namespace VI
 {
-	static FAutoConsoleVariable GrabberSphereRadius( TEXT( "VI.GrabberSphereRadius" ), 15.0f, TEXT( "In radial mode, the radius of the sphere used to select and interact" ) );
-	static FAutoConsoleVariable GrabberSphereOffset( TEXT( "VI.GrabberSphereOffset" ), 10.0f, TEXT( "Offset from the controller origin that the grabber sphere should be centered at" ) );
-	static FAutoConsoleVariable LaserPointerMaxLength( TEXT( "VI.LaserPointerMaxLength" ), 10000.0f, TEXT( "Maximum length of the laser pointer line" ) );
+	static FAutoConsoleVariable GrabberSphereRadius( TEXT( "VI.GrabberSphereRadius" ), 12.0f, TEXT( "In radial mode, the radius of the sphere used to select and interact" ) );
+	static FAutoConsoleVariable GrabberSphereOffset( TEXT( "VI.GrabberSphereOffset" ), 2.0f, TEXT( "Offset from the controller origin that the grabber sphere should be centered at" ) );
+	static FAutoConsoleVariable LaserPointerMaxLength( TEXT( "VI.LaserPointerMaxLength" ), 30000.0f, TEXT( "Maximum length of the laser pointer line" ) );
 	static FAutoConsoleVariable DragHapticFeedbackStrength( TEXT( "VI.DragHapticFeedbackStrength" ), 1.0f, TEXT( "Default strength for haptic feedback when starting to drag objects" ) ); //@todo ViewportInteraction: Duplicate from ViewportWorldInteraction
 	static FAutoConsoleVariable SelectionHapticFeedbackStrength( TEXT( "VI.SelectionHapticFeedbackStrength" ), 0.5f, TEXT( "Default strength for haptic feedback when selecting objects" ) );
+	static FAutoConsoleVariable LaserPointerRetractDuration( TEXT( "VI.LaserPointerRetractDuration" ), 0.2f, TEXT( "How fast the laser pointer should extend or retract" ) );
+	static FAutoConsoleVariable AllowLaserSmooth(TEXT("VI.AllowLaserSmooth"), 1, TEXT("Allow laser smoothing using one euro"));
+	static FAutoConsoleVariable LaserSmoothLag(TEXT("VI.LaserSmoothLag"), 0.007f, TEXT("Laser smooth lag"));
+	static FAutoConsoleVariable LaserSmoothMinimumCutoff(TEXT("VI.LaserSmoothMinimumCutoff"), 0.9f, TEXT("Laser smooth lag"));
 }
 
 UViewportInteractor::UViewportInteractor( const FObjectInitializer& Initializer ) : 
@@ -23,8 +34,10 @@ UViewportInteractor::UViewportInteractor( const FObjectInitializer& Initializer 
 	KeyToActionMap(),
 	WorldInteraction( nullptr ),
 	OtherInteractor( nullptr ),
-	bAllowGrabberSphere( true )
+	bAllowGrabberSphere( true ),
+	SavedLaserPointerEnd()
 {
+	SmoothingOneEuroFilter = ViewportInteractionUtils::FOneEuroFilter(VI::LaserSmoothMinimumCutoff->GetFloat(), VI::LaserSmoothLag->GetFloat(), 1.0f);
 }
 
 FViewportInteractorData& UViewportInteractor::GetInteractorData()
@@ -52,14 +65,6 @@ UViewportInteractor* UViewportInteractor::GetOtherInteractor() const
 	return OtherInteractor;
 }
 
-void UViewportInteractor::UpdateHoverResult( FHitResult& OutHitResult )
-{
-	FHitResult HitResult = GetHitResultFromLaserPointer();
-	InteractorData.bIsHovering = HitResult.bBlockingHit;
-	InteractorData.HoverLocation = HitResult.ImpactPoint;
-	OutHitResult = HitResult;
-}
-
 void UViewportInteractor::Shutdown()
 {
 	KeyToActionMap.Empty();
@@ -68,9 +73,27 @@ void UViewportInteractor::Shutdown()
 	OtherInteractor = nullptr;
 }
 
-class UActorComponent* UViewportInteractor::GetHoverComponent()
+void UViewportInteractor::Tick( const float DeltaTime )
 {
-	return InteractorData.HoveredActorComponent.Get();
+}
+
+void UViewportInteractor::OnStartDragging( const FVector& HitLocation, const bool bIsPlacingNewObjects )
+{
+	// If the user is holding down the modifier key, go ahead and duplicate the selection first.  Don't do this if we're
+	// placing objects right now though.
+	if( IsModifierPressed() && !bIsPlacingNewObjects )
+	{
+		// Only duplicate selected objects if we're using the "actor" transformer.  Other transformable types might not support duplication!
+		if( Cast<const UActorTransformer>( WorldInteraction->GetTransformer() ) != nullptr )
+		{
+			WorldInteraction->Duplicate();
+		}
+	}
+}
+
+class UActorComponent* UViewportInteractor::GetLastHoverComponent()
+{
+	return InteractorData.LastHoveredActorComponent.Get();
 }
 
 void UViewportInteractor::AddKeyAction( const FKey& Key, const FViewportActionKeyInput& Action )
@@ -91,18 +114,33 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 	{
 		Action->Event = Event;
 		
-		// Prefer transform gizmo interactions over anything else
-		FHitResult HitResult = GetHitResultFromLaserPointer();
-		const bool bPressedTransformGizmo =
-			Event == IE_Pressed &&
-			HitResult.Actor.IsValid() &&
-			HitResult.Actor == WorldInteraction->GetTransformGizmoActor() &&
-			( Action->ActionType == ViewportWorldActionTypes::SelectAndMove ||
-			  Action->ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed );
-		if( !bPressedTransformGizmo )
+		if( !bHandled )
 		{
-			// Give subsystems a chance to handle actions for this interactor
-			WorldInteraction->OnViewportInteractionInputAction().Broadcast( ViewportClient, this, *Action, Action->bIsInputCaptured, bHandled );
+			// Give the derived classes a chance to update according to the input
+			PreviewInputKey( ViewportClient, *Action, Key, Event, bHandled );
+		}
+
+		FHitResult HitResult = GetHitResultFromLaserPointer();
+
+		if( !bHandled )
+		{
+			// "Preview" the event first.  This gives a first chance for systems to intercept the event regardless of registration order.
+			WorldInteraction->OnPreviewInputAction().Broadcast( ViewportClient, this, *Action, Action->bIsInputCaptured, bHandled );
+		}
+
+		if( !bHandled )
+		{
+			// Prefer transform gizmo interactions over anything else
+			const bool bPressedTransformGizmo =
+				Event == IE_Pressed &&
+				HitResult.Actor.IsValid() &&
+				HitResult.Actor == WorldInteraction->GetTransformGizmoActor() &&
+				Action->ActionType == ViewportWorldActionTypes::SelectAndMove;
+			if( !bPressedTransformGizmo )
+			{
+				// Give subsystems a chance to handle actions for this interactor
+				WorldInteraction->OnViewportInteractionInputAction().Broadcast( ViewportClient, this, *Action, Action->bIsInputCaptured, bHandled );
+			}
 		}
 
 		if(!bHandled)
@@ -115,8 +153,7 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 		if ( !bHandled )
 		{
 			// Selection/Movement
-			if ( ( Action->ActionType == ViewportWorldActionTypes::SelectAndMove ||
-				   Action->ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) )
+			if( Action->ActionType == ViewportWorldActionTypes::SelectAndMove )
 			{
 				const bool bIsDraggingWorld = InteractorData.DraggingMode == EViewportInteractionDraggingMode::World;
 				const bool bIsDraggingWorldWithTwoHands =
@@ -127,7 +164,7 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 				if ( Event == IE_Pressed )
 				{
 					// No clicking while we're dragging the world.  (No laser pointers are visible, anyway.)
-					if ( !bIsDraggingWorldWithTwoHands && !bHandled && HitResult.Actor.IsValid() )
+					if ( !bIsDraggingWorldWithTwoHands && HitResult.Actor.IsValid() )
 					{
 						if ( WorldInteraction->IsInteractableComponent( HitResult.GetComponent() ) )
 						{
@@ -141,18 +178,13 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 
 							if ( IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>( Actor ) )
 							{
-								if ( Action->ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
-								{
-									bHandled = true;
-									SetAllowTriggerFullPress( false );
-									bool bResultedInInteractableDrag = false;
-									ActorInteractable->OnPressed( this, HitResult, bResultedInInteractableDrag );
+								bHandled = true;
+								bool bResultedInInteractableDrag = false;
+								ActorInteractable->OnPressed( this, HitResult, bResultedInInteractableDrag );
 
-									if ( bResultedInInteractableDrag )
-									{
-										InteractorData.DraggingMode = EViewportInteractionDraggingMode::Interactable;
-										WorldInteraction->SetDraggedInteractable( ActorInteractable );
-									}
+								if ( bResultedInInteractableDrag )
+								{
+									WorldInteraction->SetDraggedInteractable(ActorInteractable, this);
 								}
 							}
 							else
@@ -180,21 +212,22 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 
 											UPrimitiveComponent* ClickedTransformGizmoComponent = nullptr;
 											const bool bIsPlacingNewObjects = false;
-											const bool bStartTransaction = true;
-											if( WorldInteraction->StartDragging( OtherInteractor, ClickedTransformGizmoComponent, OtherInteractorData->HoverLocation, bIsPlacingNewObjects, bStartTransaction ) )
-											{
-												// ...
-											}
+											const bool bAllowInterpolationWhenPlacing = false;
+											const bool bStartTransaction = !WorldInteraction->GetTrackingTransaction().IsActive();
+											const bool bWithGrabberSphere = false;	// @todo grabber: Not supported yet
+											WorldInteraction->StartDragging( OtherInteractor, ClickedTransformGizmoComponent, OtherInteractor->GetHoverLocation(), bIsPlacingNewObjects, bAllowInterpolationWhenPlacing, bStartTransaction, bWithGrabberSphere );
 										}
 
 										InteractorData.DraggingMode = InteractorData.LastDraggingMode = EViewportInteractionDraggingMode::AssistingDrag;
 
+										InteractorData.bDraggingWithGrabberSphere = false;	// @todo grabber: Not supported yet
 										InteractorData.bIsFirstDragUpdate = true;
 										InteractorData.bWasAssistingDrag = true;
 										InteractorData.DragRayLength = ( HitResult.ImpactPoint - LaserPointerStart ).Size();
-										InteractorData.LastLaserPointerStart = LaserPointerStart;
 										InteractorData.LastDragToLocation = HitResult.ImpactPoint;
-										InteractorData.LaserPointerImpactAtDragStart = HitResult.ImpactPoint;
+										InteractorData.InteractorRotationAtDragStart = InteractorData.Transform.GetRotation();
+										InteractorData.GrabberSphereLocationAtDragStart = FVector::ZeroVector;
+										InteractorData.ImpactLocationAtDragStart = HitResult.ImpactPoint;
 										InteractorData.DragTranslationVelocity = FVector::ZeroVector;
 										InteractorData.DragRayLengthVelocity = 0.0f;
 										InteractorData.DraggingTransformGizmoComponent = nullptr;
@@ -202,6 +235,7 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 										InteractorData.bIsDrivingVelocityOfSimulatedTransformables = false;
 
 										InteractorData.GizmoStartTransform = OtherInteractorData->GizmoStartTransform;
+										InteractorData.GizmoLastTransform = InteractorData.GizmoTargetTransform = InteractorData.GizmoUnsnappedTargetTransform = InteractorData.GizmoInterpolationSnapshotTransform = InteractorData.GizmoStartTransform;
 										InteractorData.GizmoStartLocalBounds = OtherInteractorData->GizmoStartLocalBounds;
 										InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;	// Will be determined on first update
 										InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;	// Set every frame while dragging
@@ -229,87 +263,78 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 								}
 								else
 								{
-									// Default to replacing our selection with whatever the user clicked on
-									enum ESelectionModification
-									{
-										Replace,
-										AddTo,
-										Toggle
-									} SelectionModification = ESelectionModification::Replace;
-
-									// If the other hand is holding down the button after selecting an object, we'll allow this hand to toggle selection
-									// of additional objects (multi select)
-									{
-										if( OtherInteractorData != nullptr && 
-											OtherInteractorData->ClickingOnComponent.IsValid() &&		// Other hand is clicking on something
-											Actor != WorldInteraction->GetTransformGizmoActor() &&					// Not clicking on a gizmo
-											OtherInteractorData->ClickingOnComponent.Get()->GetOwner() != Actor )	// Not clicking on same actor
-										{
-											// OK, the other hand is holding down the "select and move" button.
-											SelectionModification = ESelectionModification::Toggle;
-										}
-									}
-
 									// Only start dragging if the actor was already selected (and it's a full press), or if we clicked on a gizmo.  It's too easy to 
 									// accidentally move actors around the scene when you only want to select them otherwise.
-									bool bShouldDragSelected =
-										( ( Actor->IsSelected() && Action->ActionType == ViewportWorldActionTypes::SelectAndMove ) || Actor == WorldInteraction->GetTransformGizmoActor() ) &&
-										( SelectionModification == ESelectionModification::Replace );
+									const bool bOtherHandTryingToDrag =
+										Actor != WorldInteraction->GetTransformGizmoActor() &&
+										OtherInteractorData != nullptr &&
+										OtherInteractorData->ClickingOnComponent.IsValid() &&
+										OtherInteractorData->ClickingOnComponent.Get()->GetOwner()->IsSelected() &&
+										OtherInteractorData->ClickingOnComponent.Get()->GetOwner() == HitResult.GetComponent()->GetOwner();	// Trying to drag same actor
 
+									FTrackingTransaction& TrackingTransaction = WorldInteraction->GetTrackingTransaction();
+
+									bool bShouldDragSelected = false;
 									bool bSelectionChanged = false;
-									if ( Actor != WorldInteraction->GetTransformGizmoActor() )  // Don't change any actor selection state if the user clicked on a gizmo
+									if( Actor == WorldInteraction->GetTransformGizmoActor() )
 									{
+										bShouldDragSelected = true;
+										bSelectionChanged = false;
+									}
+									else
+									{
+										// Clicked on a normal actor.  So update selection!
 										const bool bWasSelected = Actor->IsSelected();
 
-										// Clicked on a normal actor.  So update selection!
-										if ( SelectionModification == ESelectionModification::Replace || SelectionModification == ESelectionModification::AddTo )
-										{
-											if ( !bWasSelected )
-											{
-												if ( SelectionModification == ESelectionModification::Replace )
-												{
-													GEditor->SelectNone( true, true );
-												}
+										// Determine whether we are starting a marquee select
+										const bool bIsMarqueeSelect = ViewportClient.IsAltPressed() && ViewportClient.IsCtrlPressed();
 
+										// Default to replacing our selection with whatever the user clicked on
+										enum ESelectionModification
+										{
+											Replace,
+											Toggle
+										} SelectionModification = ESelectionModification::Replace;
+
+										// Light pressing on an actor while holding the modifier button will toggle selection
+										const bool bIsMouseCursorInteractor = this->IsA( UMouseCursorInteractor::StaticClass() );
+										if( this->IsModifierPressed() && !bWasSelected )
+										{
+											SelectionModification = ESelectionModification::Toggle;
+										}
+
+										if( !bIsMarqueeSelect )
+										{
+											if( !bWasSelected && SelectionModification == ESelectionModification::Replace )
+											{
+												// Capture undo state
+												bSelectionChanged = true;
+												TrackingTransaction.TransCount++;
+												TrackingTransaction.Begin( LOCTEXT( "UndoSelectingActors", "Select Actor" ) );
+
+												GEditor->SelectNone( true, true );
 												GEditor->SelectActor( Actor, true, true );
+											}
+											else if ( SelectionModification == ESelectionModification::Toggle )
+											{
+												TrackingTransaction.TransCount++;
+												TrackingTransaction.Begin( LOCTEXT( "UndoSelectingActors", "Toggle Actor Selection" ) );
+
+												GEditor->SelectActor( Actor, !Actor->IsSelected(), true );
 												bSelectionChanged = true;
 											}
 										}
-										else if ( SelectionModification == ESelectionModification::Toggle )
-										{
-											GEditor->SelectActor( Actor, !Actor->IsSelected(), true );
-											bSelectionChanged = true;
-										}
 
-										// If we've selected an actor with a light press, don't prevent the user from moving the actor if they
-										// press down all the way.  We only want locking when interacting with gizmos
-										SetAllowTriggerLightPressLocking( false );
-
-										// If the user did a full press to select an actor that wasn't selected, allow them to drag it right away
-										const bool bOtherHandTryingToDrag =
-											OtherInteractorData != nullptr &&
-											OtherInteractorData->ClickingOnComponent.IsValid() &&
-											OtherInteractorData->ClickingOnComponent.Get()->GetOwner()->IsSelected() &&
-											OtherInteractorData->ClickingOnComponent.Get()->GetOwner() == HitResult.GetComponent()->GetOwner();	// Trying to drag same actor
-										if ( ( !bWasSelected || bOtherHandTryingToDrag ) &&
-											Actor->IsSelected() &&
-											( Action->ActionType == ViewportWorldActionTypes::SelectAndMove || bOtherHandTryingToDrag ) )
-										{
-											bShouldDragSelected = true;
-										}
+										bShouldDragSelected = bOtherHandTryingToDrag || !bSelectionChanged;
 									}
 
 									if ( bShouldDragSelected && InteractorData.DraggingMode != EViewportInteractionDraggingMode::Interactable )
 									{
 										UPrimitiveComponent* ClickedTransformGizmoComponent = nullptr;
 										{
-											const bool bIsMouseCursorInteractor = this->IsA( UMouseCursorInteractor::StaticClass() );
-
 											const bool bUsingGizmo =
 												HitResult.GetComponent() != nullptr &&
-												HitResult.GetComponent()->GetOwner() == WorldInteraction->GetTransformGizmoActor() &&
-												( Action->ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed ||
-												( bIsMouseCursorInteractor && Action->ActionType == ViewportWorldActionTypes::SelectAndMove ) );		// Only use the gizmo when lightly pressed (unless we're dealing with the mouse cursor)
+												HitResult.GetComponent()->GetOwner() == WorldInteraction->GetTransformGizmoActor();
 											if( bUsingGizmo )
 											{
 												ClickedTransformGizmoComponent = HitResult.GetComponent();
@@ -317,14 +342,18 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 										}
 
 										const bool bIsPlacingNewObjects = false;
-										const bool bStartTransaction = true;
-										if( WorldInteraction->StartDragging( this, ClickedTransformGizmoComponent, HitResult.ImpactPoint, bIsPlacingNewObjects, bStartTransaction ) )
-										{
-											Action->bIsInputCaptured = true;
-										}
+										const bool bAllowInterpolationWhenPlacing = true;
+										const bool bStartTransaction = !bSelectionChanged;
+										const bool bWithGrabberSphere = false;	// @todo grabber: Not supported yet
+										WorldInteraction->StartDragging( this, ClickedTransformGizmoComponent, HitResult.ImpactPoint, bIsPlacingNewObjects, bAllowInterpolationWhenPlacing, bStartTransaction, bWithGrabberSphere );
+
+										Action->bIsInputCaptured = true;
 									}
 									else if ( bSelectionChanged )
 									{
+										// Stop our transaction 
+										TrackingTransaction.End();
+
 										// User didn't drag but did select something, so play a haptic effect.
 										PlayHapticEffect( VI::SelectionHapticFeedbackStrength->GetFloat() );
 									}
@@ -380,9 +409,11 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 					}
 
 					InteractorData.bIsFirstDragUpdate = true;
+					InteractorData.bDraggingWithGrabberSphere = false;
 					InteractorData.DragRayLength = 0.0f;
-					InteractorData.LastLaserPointerStart = InteractorData.Transform.GetLocation();
 					InteractorData.LastDragToLocation = InteractorData.Transform.GetLocation();
+					InteractorData.InteractorRotationAtDragStart = InteractorData.Transform.GetRotation();
+					InteractorData.GrabberSphereLocationAtDragStart = FVector::ZeroVector;
 					InteractorData.DragTranslationVelocity = FVector::ZeroVector;
 					InteractorData.DragRayLengthVelocity = 0.0f;
 					InteractorData.bIsDrivingVelocityOfSimulatedTransformables = false;
@@ -392,6 +423,7 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 					InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
 					InteractorData.OptionalHandlePlacement.Reset();
 					InteractorData.GizmoStartTransform = FTransform::Identity;
+					InteractorData.GizmoLastTransform = InteractorData.GizmoTargetTransform = InteractorData.GizmoUnsnappedTargetTransform = InteractorData.GizmoInterpolationSnapshotTransform = InteractorData.GizmoStartTransform;
 					InteractorData.GizmoStartLocalBounds = FBox( 0 );
 					InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;
 					InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;
@@ -433,8 +465,11 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 
 		if ( !bHandled )
 		{
+			// Determine whether we are starting a marquee select
+			const bool bIsMarqueeSelect = ViewportClient.IsAltPressed() && ViewportClient.IsCtrlPressed();
+
 			// If "select and move" was pressed but not handled, go ahead and deselect everything
-			if ( Action->ActionType == ViewportWorldActionTypes::SelectAndMove && Event == IE_Pressed )
+			if ( !bIsMarqueeSelect && Action->ActionType == ViewportWorldActionTypes::SelectAndMove && Event == IE_Pressed )
 			{
 				WorldInteraction->Deselect();
 			}
@@ -454,11 +489,25 @@ bool UViewportInteractor::HandleInputAxis( FEditorViewportClient& ViewportClient
 	{
 		FViewportActionKeyInput Action( KnownAction->ActionType );
 
-		// Give the derived classes a chance to update according to the input
-		HandleInputAxis( ViewportClient, Action, Key, Delta, DeltaTime, bHandled );
+		if( !bHandled )
+		{
+			// Give the derived classes a chance to update according to the input
+			PreviewInputAxis( ViewportClient, Action, Key, Delta, DeltaTime, bHandled );
+		}
+
+		if( !bHandled )
+		{
+			// Give the derived classes a chance to update according to the input
+			HandleInputAxis( ViewportClient, Action, Key, Delta, DeltaTime, bHandled );
+		}
 	}
 
 	return bHandled;
+}
+
+bool UViewportInteractor::AllowLaserSmoothing() const
+{
+	return true;
 }
 
 FTransform UViewportInteractor::GetTransform() const
@@ -481,35 +530,52 @@ FVector UViewportInteractor::GetDragTranslationVelocity() const
 	return InteractorData.DragTranslationVelocity;
 }
 
-bool UViewportInteractor::GetLaserPointer( FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfBlocked, const float LaserLengthOverride ) const
+void UViewportInteractor::SetHoverLocation(const FVector& InHoverLocation)
 {
-	// If we're currently grabbing the world with both hands, then the laser pointer is not available
-	if ( /*bHaveMotionController &&*/ //@todo ViewportInteraction
-		 OtherInteractor == nullptr ||
-		 ( !( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::AssistingDrag ) &&
-		   !( InteractorData.DraggingMode == EViewportInteractionDraggingMode::AssistingDrag && GetOtherInteractor()->GetInteractorData().DraggingMode == EViewportInteractionDraggingMode::World ) ) )
+	InteractorData.HoverLocation = InHoverLocation;
+}
+
+bool UViewportInteractor::GetLaserPointer( FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfBlocked, const float LaserLengthOverride )
+{
+	// If we have UI attached to us, don't allow a laser pointer
+	if( bEvenIfBlocked || !GetIsLaserBlocked() )
 	{
-		// If we have UI attached to us, don't allow a laser pointer
-		if ( bEvenIfBlocked || !GetIsLaserBlocked() )
+		FTransform HandTransform;
+		FVector HandForwardVector;
+		if (GetTransformAndForwardVector(HandTransform, HandForwardVector))
 		{
-			FTransform HandTransform;
-			FVector HandForwardVector;
-			if ( GetTransformAndForwardVector( HandTransform, HandForwardVector ) )
+			LaserPointerStart = HandTransform.GetLocation();
+
+			/** To avoid calculating the smooth end location multiple times in one tick we will check if it has already been done this frame and use that */
+			if (!SavedLaserPointerEnd.IsSet())
 			{
-				LaserPointerStart = HandTransform.GetLocation();
+				const float LaserLength = LaserLengthOverride == 0.0f ? GetLaserPointerMaxLength() : LaserLengthOverride;
+				FVector FinalLaserPointerEnd = LaserPointerStart + HandForwardVector * LaserLength;
 
-				float LaserLength = LaserLengthOverride == 0.0f ? GetLaserPointerMaxLength() : LaserLengthOverride;
-				LaserPointerEnd = LaserPointerStart + HandForwardVector * LaserLength;
+				/** Only smooth the endlocation when not disabled */
+				if (WorldInteraction != nullptr && AllowLaserSmoothing() && VI::AllowLaserSmooth->GetInt() == 1)
+				{
+					SmoothingOneEuroFilter.SetCutoffSlope(VI::LaserSmoothLag->GetFloat());
+					SmoothingOneEuroFilter.SetMinCutoff(VI::LaserSmoothMinimumCutoff->GetFloat());
+					FinalLaserPointerEnd = SmoothingOneEuroFilter.Filter(FinalLaserPointerEnd, WorldInteraction->GetCurrentDeltaTime());
+				}
 
-				return true;
+				LaserPointerEnd = FinalLaserPointerEnd;
+				SavedLaserPointerEnd = FinalLaserPointerEnd;
 			}
+			else
+			{
+				LaserPointerEnd = SavedLaserPointerEnd.GetValue();
+			}
+
+			return true;
 		}
 	}
 	return false;
 }
 
 
-bool UViewportInteractor::GetGrabberSphere( FSphere& OutGrabberSphere, const bool bEvenIfBlocked ) const
+bool UViewportInteractor::GetGrabberSphere( FSphere& OutGrabberSphere, const bool bEvenIfBlocked )
 {
 	OutGrabberSphere = FSphere( 0 );
 
@@ -536,7 +602,13 @@ bool UViewportInteractor::GetGrabberSphere( FSphere& OutGrabberSphere, const boo
 
 float UViewportInteractor::GetLaserPointerMaxLength() const
 {
-	return VI::LaserPointerMaxLength->GetFloat() * WorldInteraction->GetWorldScaleFactor();
+	return VI::LaserPointerMaxLength->GetFloat();
+}
+
+void UViewportInteractor::ResetHoverState()
+{
+	InteractorData.HoverLocation.Reset();
+	InteractorData.HoveringOverTransformGizmoComponent = nullptr;
 }
 
 FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors /*= nullptr*/, const bool bIgnoreGizmos /*= false*/, 
@@ -553,6 +625,21 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 			bActuallyIgnoreGizmos = true;
 		}
 
+		// Ignore all volume objects.  They'll just get in the way of selecting other things.
+		// @todo viewportinteraction: We'll need to device a way to allow volume wire bounds to be selectable using this system
+		static TArray<AActor*> VolumeActors;
+		VolumeActors.Reset();
+		{
+			for( TActorIterator<AVolume> It( WorldInteraction->GetWorld(), AVolume::StaticClass() ); It; ++It )
+			{
+				AActor* Actor = *It;
+				if( !Actor->IsPendingKill() )
+				{
+					VolumeActors.Add( Actor );
+				}
+			}
+		}
+
 		// Twice twice.  Once for editor gizmos which are "on top" and always take precedence, then a second time
 		// for all of the scene objects
 		for ( int32 PassIndex = bActuallyIgnoreGizmos ? 1 : 0; PassIndex < 2; ++PassIndex )
@@ -566,6 +653,17 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 			{
 				TraceParams.AddIgnoredActors( *OptionalListOfIgnoredActors );
 			}
+
+			for( const TWeakObjectPtr<AActor> ActorToIgnoreWeakPtr : WorldInteraction->GetActorsToExcludeFromHitTest() )
+			{
+				AActor* ActorToIgnore = ActorToIgnoreWeakPtr.Get();
+				if( ActorToIgnore != nullptr )
+				{
+					TraceParams.AddIgnoredActor( ActorToIgnore );
+				}
+			}
+
+			TraceParams.AddIgnoredActors( VolumeActors );
 
 			bool bHit = false;
 			FHitResult HitResult;
@@ -629,14 +727,26 @@ bool UViewportInteractor::GetTransformAndForwardVector( FTransform& OutHandTrans
 	return true;
 }
 
-FVector UViewportInteractor::GetHoverLocation() const 
+FVector UViewportInteractor::GetHoverLocation() 
 {
-	return InteractorData.HoverLocation;
+	FVector Result = FVector::ZeroVector;
+	if (InteractorData.HoverLocation.IsSet())
+	{
+		Result = InteractorData.HoverLocation.GetValue();
+	}
+	else
+	{
+		FVector LaserStart, LaserEnd;
+		GetLaserPointer(LaserStart, LaserEnd, true);
+		Result = LaserEnd;
+	}
+
+	return Result;
 }
 
 bool UViewportInteractor::IsHovering() const
 {
-	return InteractorData.bIsHovering;
+	return InteractorData.HoverLocation.IsSet();
 }
 
 bool UViewportInteractor::IsHoveringOverGizmo()
@@ -668,26 +778,36 @@ float UViewportInteractor::GetDragHapticFeedbackStrength() const
 	return VI::DragHapticFeedbackStrength->GetFloat();
 }
 
-void UViewportInteractor::SetAllowTriggerLightPressLocking( const bool bInAllow )
-{
-	InteractorData.bAllowTriggerLightPressLocking = bInAllow;
-}
-
-bool UViewportInteractor::AllowTriggerLightPressLocking() const
-{
-	return InteractorData.bAllowTriggerLightPressLocking;
-}
-
-void UViewportInteractor::SetAllowTriggerFullPress( const bool bInAllow )
-{
-	InteractorData.bAllowTriggerFullPress = bInAllow;
-}
-
-bool UViewportInteractor::AllowTriggerFullPress() const
-{
-	return InteractorData.bAllowTriggerFullPress;
-}
 bool UViewportInteractor::IsHoveringOverPriorityType() const
 {
 	return InteractorData.bHitResultIsPriorityType;
 }
+
+bool UViewportInteractor::IsHoveringOverSelectedActor() const
+{
+	bool bResult = false;
+
+	if (InteractorData.LastHoveredActorComponent != nullptr && InteractorData.HoverLocation.IsSet())
+	{
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		for (FSelectionIterator SelectionIt(*SelectedActors); SelectionIt; ++SelectionIt)
+		{
+			AActor* Actor = CastChecked<AActor>(*SelectionIt);
+			if (InteractorData.LastHoveredActorComponent->GetOwner() == Actor)
+			{
+				bResult = true;
+				break;
+			}
+		}
+	}
+
+	return bResult;
+}
+
+
+void UViewportInteractor::ResetLaserEnd()
+{
+	SavedLaserPointerEnd.Reset();
+}
+
+#undef LOCTEXT_NAMESPACE

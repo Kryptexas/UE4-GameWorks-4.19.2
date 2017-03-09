@@ -19,6 +19,8 @@
 #include "UObject/Package.h"
 #include "EngineGlobals.h"
 #include "IHeadMountedDisplay.h"
+#include "VREditorAssetContainer.h"
+#include "VRModeSettings.h"
 
 namespace VREd
 {
@@ -36,9 +38,6 @@ namespace VREd
 
 	static FAutoConsoleVariable ScaleProgressBarLength( TEXT( "VREd.ScaleProgressBarLength" ), 50.0f, TEXT( "Length of the progressbar that appears when scaling" ) );
 	static FAutoConsoleVariable ScaleProgressBarRadius( TEXT( "VREd.ScaleProgressBarRadius" ), 1.0f, TEXT( "Radius of the progressbar that appears when scaling" ) );
-
-	static FAutoConsoleVariable ShowMovementGrid( TEXT( "VREd.ShowMovementGrid" ), 1, TEXT( "Showing the ground movement grid" ) );
-	static FAutoConsoleVariable ShowWorldMovementPostProcess( TEXT( "VREd.ShowWorldMovementPostProcess" ), 1, TEXT( "Showing the movement post processing" ) );
 }
 
 AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInitializer ) :
@@ -58,6 +57,10 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 		SetRootComponent( SceneRootComponent );
 	}
 
+	// Setup the asset container.
+	UVREditorAssetContainer* AssetContainer = LoadObject<UVREditorAssetContainer>(nullptr, *UVREditorMode::AssetContainerPath);
+	check(AssetContainer != nullptr);
+
 	// Give us a head mesh
 	{
 		HeadMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "HeadMeshComponent" ) );
@@ -65,12 +68,13 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 		HeadMeshComponent->SetupAttachment( RootComponent );
 
 		// @todo vreditor: This needs to adapt based on the device you're using
-		UStaticMesh* HeadMesh = LoadObject<UStaticMesh>( nullptr, TEXT( "/Engine/VREditor/Devices/Generic/GenericHMD" ) );
+		UStaticMesh* HeadMesh = AssetContainer->GenericHMDMesh;
 		check( HeadMesh != nullptr );
 
 		HeadMeshComponent->SetStaticMesh( HeadMesh );
 		HeadMeshComponent->SetMobility( EComponentMobility::Movable );
 		HeadMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		HeadMeshComponent->bSelectable = false;
 	}
 
 	// World movement grid mesh
@@ -79,13 +83,14 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 		AddOwnedComponent( WorldMovementGridMeshComponent );
 		WorldMovementGridMeshComponent->SetupAttachment( RootComponent );
 	
-		UStaticMesh* GridMesh = LoadObject<UStaticMesh>( nullptr, TEXT( "/Engine/VREditor/WorldMovementGrid/PlaneMesh" ) );
+		UStaticMesh* GridMesh = AssetContainer->PlaneMesh;
 		check( GridMesh != nullptr );
 		WorldMovementGridMeshComponent->SetStaticMesh( GridMesh );
 		WorldMovementGridMeshComponent->SetMobility( EComponentMobility::Movable );
 		WorldMovementGridMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		WorldMovementGridMeshComponent->bSelectable = false;
 
-		UMaterialInterface* GridMaterial = LoadObject<UMaterialInterface>( nullptr, TEXT( "/Engine/VREditor/WorldMovementGrid/GridMaterial" ) );
+		UMaterialInterface* GridMaterial = AssetContainer->GridMaterial;
 		check( GridMaterial != nullptr );
 
 		WorldMovementGridMID = UMaterialInstanceDynamic::Create( GridMaterial, GetTransientPackage( ) );
@@ -98,10 +103,10 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 
 	{
 		{
-			UMaterialInterface* UserScaleIndicatorMaterial = LoadObject<UMaterialInterface>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/LaserPointerMaterialInst" ) );
+			UMaterialInterface* UserScaleIndicatorMaterial = AssetContainer->LaserPointerMaterial;
 			check( UserScaleIndicatorMaterial != nullptr );
 
-			UMaterialInstance* TranslucentUserScaleIndicatorMaterial = LoadObject<UMaterialInstance>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/TranslucentLaserPointerMaterialInst" ) );
+			UMaterialInterface* TranslucentUserScaleIndicatorMaterial = AssetContainer->LaserPointerTranslucentMaterial;
 			check( TranslucentUserScaleIndicatorMaterial != nullptr );
 
 			FixedUserScaleMID = UMaterialInstanceDynamic::Create( UserScaleIndicatorMaterial, GetTransientPackage() );
@@ -116,7 +121,7 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 			TranslucentCurrentUserScaleMID = UMaterialInstanceDynamic::Create( TranslucentUserScaleIndicatorMaterial, GetTransientPackage() );
 			check( TranslucentCurrentUserScaleMID != nullptr );
 
-			UStaticMesh* ScaleLineMesh = LoadObject<UStaticMesh>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/LaserPointerMesh" ) );
+			UStaticMesh* ScaleLineMesh = AssetContainer->LaserPointerMesh; //@todo VREditor: The laser pointer mesh is not a closed cylinder anymore.
 			check( ScaleLineMesh != nullptr );
 
 			// Creating the background bar progress of the scale 
@@ -130,6 +135,7 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 				ScaleProgressMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 				ScaleProgressMeshComponent->SetMaterial( 0, FixedUserScaleMID );
 				ScaleProgressMeshComponent->SetMaterial( 1, TranslucentFixedUserScaleMID );
+				ScaleProgressMeshComponent->bSelectable = false;
 
 				// The user scale indicator starts invisible
 				ScaleProgressMeshComponent->SetVisibility( false );
@@ -146,6 +152,7 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 				CurrentScaleProgressMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 				CurrentScaleProgressMeshComponent->SetMaterial( 0, CurrentUserScaleMID );
 				CurrentScaleProgressMeshComponent->SetMaterial( 1, TranslucentCurrentUserScaleMID );
+				CurrentScaleProgressMeshComponent->bSelectable = false;
 
 				// The user scale indicator starts invisible
 				CurrentScaleProgressMeshComponent->SetVisibility( false );
@@ -154,10 +161,10 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 
 		// Creating the text for scaling
 		{
-			UFont* TextFont = LoadObject<UFont>( nullptr, TEXT( "/Engine/VREditor/Fonts/VRText_RobotoLarge" ) );
+			UFont* TextFont = AssetContainer->TextFont;
 			check( TextFont != nullptr );
 
-			UMaterialInterface* UserScaleIndicatorMaterial = LoadObject<UMaterialInterface>( nullptr, TEXT( "/Engine/VREditor/Fonts/VRTextMaterial" ) );
+			UMaterialInterface* UserScaleIndicatorMaterial = AssetContainer->TextMaterial;
 			check( UserScaleIndicatorMaterial != nullptr );
 
 			UserScaleIndicatorText = CreateDefaultSubobject<UTextRenderComponent>( TEXT( "UserScaleIndicatorText" ) );
@@ -167,6 +174,7 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 			UserScaleIndicatorText->SetMobility( EComponentMobility::Movable );
 			UserScaleIndicatorText->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 			UserScaleIndicatorText->SetCollisionProfileName( UCollisionProfile::NoCollision_ProfileName );
+			UserScaleIndicatorText->bSelectable = false;
 
 			UserScaleIndicatorText->bGenerateOverlapEvents = false;
 			UserScaleIndicatorText->SetCanEverAffectNavigation( false );
@@ -188,7 +196,7 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 
 	// Load our post process material for the world movement grid
 	{
-		UMaterial* Material = LoadObject<UMaterial>( nullptr, TEXT( "/Engine/VREditor/WorldMovementGrid/GridPostProcess" ) );
+		UMaterial* Material = AssetContainer->WorldMovementPostProcessMaterial;
 		check( Material != nullptr );
 		WorldMovementPostProcessMaterial = UMaterialInstanceDynamic::Create( Material, GetTransientPackage() );
 		check( WorldMovementPostProcessMaterial != nullptr );
@@ -201,7 +209,7 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 		PostProcessComponent->SetupAttachment( this->GetRootComponent( ) );
 
 		// Unlimited size
-		PostProcessComponent->bEnabled = VREd::ShowWorldMovementPostProcess->GetInt( ) == 1 ? true : false;
+		PostProcessComponent->bEnabled = GetDefault<UVRModeSettings>()->bShowWorldMovementPostProcess;
 		PostProcessComponent->bUnbound = true;
 	}
 
@@ -226,16 +234,16 @@ void AVREditorAvatarActor::Init( UVREditorMode* InVRMode  )
 	// Set the default color for the progress bar
 	{
 		static FName StaticLaserColorName( "LaserColor" );
-		const FLinearColor FixedProgressbarColor = VRMode->GetColor( UVREditorMode::EColors::WorldDraggingColor_TwoHands );
+		const FLinearColor FixedProgressbarColor = VRMode->GetColor( UVREditorMode::EColors::WorldDraggingColor );
 		FixedUserScaleMID->SetVectorParameterValue( StaticLaserColorName, FixedProgressbarColor );
 		TranslucentFixedUserScaleMID->SetVectorParameterValue( StaticLaserColorName, FixedProgressbarColor );
 
-		const FLinearColor CurrentProgressbarColor = VRMode->GetColor( UVREditorMode::EColors::GreenGizmoColor );
+		const FLinearColor CurrentProgressbarColor = VRMode->GetColor( UVREditorMode::EColors::DefaultColor );
 		CurrentUserScaleMID->SetVectorParameterValue( StaticLaserColorName, CurrentProgressbarColor );
 		TranslucentCurrentUserScaleMID->SetVectorParameterValue( StaticLaserColorName, CurrentProgressbarColor );
 	}
 
-	UserScaleIndicatorText->SetTextRenderColor( VRMode->GetColor( UVREditorMode::EColors::WorldDraggingColor_TwoHands ).ToFColor( false ) );
+	UserScaleIndicatorText->SetTextRenderColor( VRMode->GetColor( UVREditorMode::EColors::WorldDraggingColor ).ToFColor( false ) );
 
 	// Tell the grid to stay relative to the rootcomponent
 	const FAttachmentTransformRules AttachmentTransformRules = FAttachmentTransformRules( EAttachmentRule::KeepRelative, true );
@@ -281,7 +289,8 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 		UVREditorInteractor* LeftHandInteractor = VRMode->GetHandInteractor( EControllerHand::Left );
 		UVREditorInteractor* RightHandInteractor = VRMode->GetHandInteractor( EControllerHand::Right );
 
-		if ( LeftHandInteractor != nullptr && RightHandInteractor != nullptr &&
+		if (GetDefault<UVRModeSettings>()->bShowWorldScaleProgressBar &&
+			LeftHandInteractor != nullptr && RightHandInteractor != nullptr &&
 			 ( ( LeftHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World && RightHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::AssistingDrag ) ||
 			   ( LeftHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::AssistingDrag && RightHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World ) ) )
 		{
@@ -352,7 +361,7 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 
 	// Updating the opacity and visibility of the grid according to the controllers //@todo
 	{
-		if ( VREd::ShowMovementGrid->GetInt( ) == 1 )
+		if (GetDefault<UVRModeSettings>()->bShowWorldMovementGrid)
 		{
 			UVREditorInteractor* LeftHandInteractor = VRMode->GetHandInteractor( EControllerHand::Left );
 			UVREditorInteractor* RightHandInteractor = VRMode->GetHandInteractor( EControllerHand::Right );
@@ -416,7 +425,7 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 	// that are not nearby, and completely hides the skybox and other very distant objects.  This is to help
 	// prevent simulation sickness when moving/rotating/scaling the entire world around them.
 	{
-		PostProcessComponent->bEnabled = VREd::ShowWorldMovementPostProcess->GetInt( ) == 1 ? true : false;
+		PostProcessComponent->bEnabled = GetDefault<UVRModeSettings>()->bShowWorldMovementPostProcess;
 
 		// Make sure our world size is reflected in the post process material
 		static FName WorldScaleFactorParameterName( "WorldScaleFactor" );

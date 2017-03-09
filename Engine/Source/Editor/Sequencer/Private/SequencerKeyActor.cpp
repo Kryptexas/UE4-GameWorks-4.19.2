@@ -4,6 +4,7 @@
 #include "Sections/MovieScene3DTransformSection.h"
 #include "SequencerEdMode.h"
 #include "Materials/MaterialInstance.h" 
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/Selection.h"
 #include "EditorModeTools.h"
 #include "EditorModeManager.h"
@@ -12,12 +13,32 @@
 ASequencerKeyActor::ASequencerKeyActor()
 	: Super()
 {
-	UStaticMesh* KeyEditorMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere"));
+	UStaticMesh* KeyEditorMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/VREditor/TransformGizmo/SM_Sequencer_Key"));
 	check(KeyEditorMesh != nullptr);
-	UMaterialInstance* KeyEditorMaterial = LoadObject<UMaterialInstance>(nullptr, TEXT("/Engine/VREditor/LaserPointer/LaserPointerMaterial_Inst"));
+	UMaterial* KeyEditorMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Engine/VREditor/TransformGizmo/Main"));
 	check(KeyEditorMaterial != nullptr);
-	GetStaticMeshComponent()->SetStaticMesh(KeyEditorMesh);
-	GetStaticMeshComponent()->SetMaterial(0, KeyEditorMaterial);
+
+	const bool bTransient = true;
+	USceneComponent* SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"), bTransient);
+	check(SceneComponent != nullptr);
+	this->RootComponent = SceneComponent;
+
+	KeyMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("KeyMesh"));
+	KeyMeshComponent->SetMobility(EComponentMobility::Movable);
+	KeyMeshComponent->SetupAttachment(RootComponent);
+	KeyMeshComponent->SetStaticMesh(KeyEditorMesh);
+	KeyMeshComponent->CreateAndSetMaterialInstanceDynamicFromMaterial(0, KeyEditorMaterial);
+
+	KeyMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	KeyMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	KeyMeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	
+	KeyMeshComponent->bGenerateOverlapEvents = false;
+	KeyMeshComponent->SetCanEverAffectNavigation(false);
+	KeyMeshComponent->bCastDynamicShadow = false;
+	KeyMeshComponent->bCastStaticShadow = false;
+	KeyMeshComponent->bAffectDistanceFieldLighting = false;
+	KeyMeshComponent->bAffectDynamicIndirectLighting = false;
 }
 
 
@@ -34,6 +55,13 @@ void ASequencerKeyActor::SetKeyData(class UMovieScene3DTransformSection* NewTrac
 	KeyTime = NewKeyTime;
 	// Associate the currently selected actor with this key
 	AssociatedActor = GEditor->GetSelectedActors()->GetTop<AActor>();
+	// Draw a single transform track based on the data from this key
+	FEditorViewportClient* ViewportClient = StaticCast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
+	if (ViewportClient != nullptr)
+	{
+		FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(ViewportClient->GetModeTools()->GetActiveMode(FSequencerEdMode::EM_SequencerMode));
+		SequencerEdMode->DrawMeshTransformTrailFromKey(this);
+	}
 }
 
 
@@ -51,14 +79,6 @@ void ASequencerKeyActor::PropagateKeyChange()
 		TransXCurve.UpdateOrAddKey(KeyTime, GetActorTransform().GetLocation().X);
 		TransYCurve.UpdateOrAddKey(KeyTime, GetActorTransform().GetLocation().Y);
 		TransZCurve.UpdateOrAddKey(KeyTime, GetActorTransform().GetLocation().Z);
-
-		// Update the rotation keys
-		FRichCurve& RotXCurve = TrackSection->GetRotationCurve(EAxis::X);
-		FRichCurve& RotYCurve = TrackSection->GetRotationCurve(EAxis::Y);
-		FRichCurve& RotZCurve = TrackSection->GetRotationCurve(EAxis::Z);
-		RotXCurve.UpdateOrAddKey(KeyTime, GetActorTransform().GetRotation().X);
-		RotYCurve.UpdateOrAddKey(KeyTime, GetActorTransform().GetRotation().Y);
-		RotZCurve.UpdateOrAddKey(KeyTime, GetActorTransform().GetRotation().Z);
 
 		// Draw a single transform track based on the data from this key
 		FEditorViewportClient* ViewportClient = StaticCast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());

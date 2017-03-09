@@ -13,17 +13,23 @@ class VIEWPORTINTERACTION_API UActorTransformer : public UViewportTransformer
 
 public:
 
-	UFUNCTION()
+	// UViewportTransformer overrides
 	virtual void Init( class UViewportWorldInteraction* InitViewportWorldInteraction ) override;
-
-	UFUNCTION()
 	virtual void Shutdown() override;
-
+	virtual bool CanAlignToActors() const override
+	{
+		return true;
+	}
+	virtual void OnStartDragging(class UViewportInteractor* Interactor) override;
+	virtual void OnStopDragging(class UViewportInteractor* Interactor) override;
 
 protected:
 
 	/** Called when selection changes in the level */
 	void OnActorSelectionChanged( UObject* ChangedObject );
+
+	/** Creates a list of transformables with the current selected actors */
+	void UpdateTransformables();
 
 };
 

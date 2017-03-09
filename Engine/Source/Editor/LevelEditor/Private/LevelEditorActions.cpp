@@ -2083,7 +2083,7 @@ void FLevelEditorActionCallbacks::ToggleVR()
 bool FLevelEditorActionCallbacks::ToggleVR_CanExecute()
 {
 	IVREditorModule& VREditorModule = IVREditorModule::Get();
-	return VREditorModule.IsVREditorAvailable() && !GEditor->bIsSimulatingInEditor;
+	return VREditorModule.IsVREditorAvailable();
 }
 
 
@@ -2092,13 +2092,6 @@ bool FLevelEditorActionCallbacks::ToggleVR_IsChecked()
 	IVREditorModule& VREditorModule = IVREditorModule::Get();
 	return VREditorModule.IsVREditorEnabled();
 }
-
-
-bool FLevelEditorActionCallbacks::ToggleVR_IsVisible()
-{
-	return GetDefault<UEditorExperimentalSettings>()->bEnableVREditing;
-}
-
 
 bool FLevelEditorActionCallbacks::CanSelectGameModeBlueprint()
 {

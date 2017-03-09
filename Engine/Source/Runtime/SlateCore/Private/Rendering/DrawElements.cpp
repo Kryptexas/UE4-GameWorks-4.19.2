@@ -65,6 +65,10 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 	{
 		DataPayload.BatchFlags |= ESlateBatchDrawFlag::NoGamma;
 	}
+	if (InDrawEffects & ESlateDrawEffect::ReverseGamma)
+	{
+		DataPayload.BatchFlags |= ESlateBatchDrawFlag::ReverseGamma;
+	}
 }
 
 void FSlateDrawElement::MakeDebugQuad( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect)

@@ -8,6 +8,7 @@ UVREditorWidgetComponent::UVREditorWidgetComponent(const FObjectInitializer& Obj
 	bIsHovering = false;
 	DrawingPolicy = EVREditorWidgetDrawingPolicy::Always;
 	bHasEverDrawn = false;
+	bSelectable = false;
 }
 
 bool UVREditorWidgetComponent::ShouldDrawWidget() const

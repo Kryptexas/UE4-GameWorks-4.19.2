@@ -3748,8 +3748,12 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 			if( InAssetData.Num() > 0 )
 			{
 				UActorFactory* FactoryToUse = nullptr;
-				FEditorDelegates::OnAssetDragStarted.Broadcast( InAssetData, FactoryToUse );
-				if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
+				if( FEditorDelegates::OnAssetDragStarted.IsBound() )
+				{
+					FEditorDelegates::OnAssetDragStarted.Broadcast( InAssetData, FactoryToUse );
+					return FReply::Handled();
+				}
+				else if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
 				{
 					return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( InAssetData ) );
 				}

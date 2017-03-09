@@ -1009,6 +1009,7 @@ private:
 
 //#HACK VREDITOR - Had to introduce the proxy tab manager to steal asset tabs.
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FIsTabSupportedEvent, FTabId /* TabId */, bool& /* bOutIsSupported */ );
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnTabEvent, TSharedPtr<SDockTab>);
 
 
@@ -1025,8 +1026,12 @@ public:
 
 	virtual void OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab) override;
 	virtual void DrawAttention(const TSharedRef<SDockTab>& TabToHighlight) override;
+	
+	bool IsTabSupported( const FTabId TabId ) const;
+	void SetParentWindow(TSharedRef<SWindow> InParentWindow);
 
 public:
+	FIsTabSupportedEvent OnIsTabSupported;
 	FOnTabEvent OnTabOpened;
 	FOnTabEvent OnAttentionDrawnToTab;
 

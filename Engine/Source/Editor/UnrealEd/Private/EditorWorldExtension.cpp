@@ -3,20 +3,22 @@
 #include "EditorWorldExtension.h"
 #include "EngineGlobals.h"
 #include "Editor.h"
+#include "ILevelEditor.h"
+#include "LevelEditor.h"
 
 /************************************************************************/
 /* UEditorExtension		                                                */
 /************************************************************************/
 UEditorWorldExtension::UEditorWorldExtension() :
 	Super(),
-	OwningWorld( nullptr )
+	OwningExtensionsCollection( nullptr )
 {
 
 }
 
 UEditorWorldExtension::~UEditorWorldExtension()
 {
-	OwningWorld = nullptr;
+	OwningExtensionsCollection = nullptr;
 }
 
 bool UEditorWorldExtension::InputKey( FEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
@@ -31,46 +33,183 @@ bool UEditorWorldExtension::InputAxis( FEditorViewportClient* InViewportClient, 
 
 UWorld* UEditorWorldExtension::GetWorld() const
 {
-	return OwningWorld;
+	return OwningExtensionsCollection->GetWorld();
 }
 
-void UEditorWorldExtension::SetWorld( UWorld* InitWorld )
+AActor* UEditorWorldExtension::SpawnTransientSceneActor(TSubclassOf<AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent /*= false*/, const EObjectFlags InObjectFlags /*= EObjectFlags::RF_DuplicateTransient*/)
 {
-	OwningWorld = InitWorld;
+	UWorld* World = GetWorld();
+	check(World != nullptr);
+	const bool bWasWorldPackageDirty = World->GetOutermost()->IsDirty();
+
+	FActorSpawnParameters ActorSpawnParameters;
+	ActorSpawnParameters.Name = MakeUniqueObjectName(World, ActorClass, *ActorName);
+	ActorSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	ActorSpawnParameters.ObjectFlags = InObjectFlags;
+
+	check(ActorClass != nullptr);
+	AActor* NewActor = World->SpawnActor< AActor >(ActorClass, ActorSpawnParameters);
+	NewActor->SetActorLabel(ActorName);
+
+	// Keep track of this actor so that we can migrate it between worlds if needed
+	ExtensionActors.Add( NewActor );
+
+	if (bWithSceneComponent)
+	{
+		// Give the new actor a root scene component, so we can attach multiple sibling components to it
+		USceneComponent* SceneComponent = NewObject<USceneComponent>(NewActor);
+		NewActor->AddOwnedComponent(SceneComponent);
+		NewActor->SetRootComponent(SceneComponent);
+		SceneComponent->RegisterComponent();
+	}
+
+	// Don't dirty the level file after spawning a transient actor
+	if (!bWasWorldPackageDirty)
+	{
+		World->GetOutermost()->SetDirtyFlag(false);
+	}
+
+	return NewActor;
+}
+
+void UEditorWorldExtension::DestroyTransientActor(AActor* Actor)
+{
+	if (Actor != nullptr)
+	{
+		ExtensionActors.RemoveSingleSwap(Actor);
+	}
+
+	UWorld* World = GetWorld();
+	check(World != nullptr);
+	if (Actor != nullptr)
+	{
+		const bool bWasWorldPackageDirty = World->GetOutermost()->IsDirty();
+
+		const bool bNetForce = false;
+		const bool bShouldModifyLevel = false;	// Don't modify level for transient actor destruction
+		World->DestroyActor(Actor, bNetForce, bShouldModifyLevel);
+
+		// Don't dirty the level file after destroying a transient actor
+		if (!bWasWorldPackageDirty)
+		{
+			World->GetOutermost()->SetDirtyFlag(false);
+		}
+	}
+}
+
+UEditorWorldExtensionCollection* UEditorWorldExtension::GetOwningCollection()
+{
+	return OwningExtensionsCollection;
+}
+
+bool UEditorWorldExtension::ExecCommand(const FString& InCommand)
+{
+	bool bResult = false;
+
+	UWorld* World = GetWorld();
+
+	// @todo vreditor: The following should not be needed.  It's a workaround because the input preprocessor
+	// in VREditor fires input events without setting GWorld to the PlayWorld during event processing.  This
+	// is inconsistent with the normal editor.  We're working around it by only using this logic when
+	// GIsPlayInEditorWorld is not set. (Which would be the case in Force VR Mode)
+	if (!GIsPlayInEditorWorld && GEditor->bIsSimulatingInEditor && GEditor->PlayWorld != nullptr && GEditor->PlayWorld == World)
+	{
+		UWorld* OldWorld = World;
+
+		// The play world needs to be selected if it exists
+		OldWorld = SetPlayInEditorWorld(OldWorld);
+
+		bResult = GUnrealEd->Exec(World, *InCommand);
+
+		// Restore the old world if there was one
+		if (OldWorld)
+		{
+			RestoreEditorWorld(OldWorld);
+		}
+	}
+	else
+	{
+		bResult = GUnrealEd->Exec(World, *InCommand);
+	}
+
+	return bResult;
+}
+
+void UEditorWorldExtension::TransitionWorld(UWorld* NewWorld)
+{
+	for (int32 ActorIndex = 0; ActorIndex < ExtensionActors.Num(); ++ActorIndex)
+	{
+		AActor* Actor = ExtensionActors[ ActorIndex ];
+		if( Actor != nullptr )
+		{
+			ReparentActor( Actor, NewWorld );
+		}
+		else
+		{
+			ExtensionActors.RemoveAtSwap( ActorIndex-- );
+		}
+	}
+}
+
+void UEditorWorldExtension::ReparentActor(AActor* Actor, UWorld* NewWorld)
+{
+	// Do not try to reparent the actor if it is in the same world as the requested new world
+	if(Actor->GetWorld() == NewWorld)
+	{
+		return;
+	}
+
+	ULevel* Level = NewWorld->PersistentLevel;
+	Actor->Rename(nullptr, Level);
+	Actor->DispatchBeginPlay();
+}
+
+void UEditorWorldExtension::InitInternal(UEditorWorldExtensionCollection* InOwningExtensionsCollection)
+{
+	OwningExtensionsCollection = InOwningExtensionsCollection;
 }
 
 /************************************************************************/
-/* FEditorWorldExtensionCollection                                      */
+/* UEditorWorldExtensionCollection                                      */
 /************************************************************************/
-FEditorWorldExtensionCollection::FEditorWorldExtensionCollection( FWorldContext& InWorldContext ) :
-	WorldContext ( InWorldContext )
+UEditorWorldExtensionCollection::UEditorWorldExtensionCollection() :
+	Super(),
+	EditorWorldOnSimulate(nullptr)
 {
-
+	if( !IsTemplate() )
+	{
+		FEditorDelegates::PostPIEStarted.AddUObject( this, &UEditorWorldExtensionCollection::PostPIEStarted );
+		FEditorDelegates::EndPIE.AddUObject( this, &UEditorWorldExtensionCollection::OnEndPIE );
+	}
 }
 
-FEditorWorldExtensionCollection::~FEditorWorldExtensionCollection()
+UEditorWorldExtensionCollection::~UEditorWorldExtensionCollection()
 {
+	FEditorDelegates::PostPIEStarted.RemoveAll( this );
+	FEditorDelegates::EndPIE.RemoveAll( this );
+
 	EditorExtensions.Empty();
+	EditorWorldOnSimulate = nullptr;
 }
 
-UWorld* FEditorWorldExtensionCollection::GetWorld() const
+UWorld* UEditorWorldExtensionCollection::GetWorld() const
 {
-	return WorldContext.World();
+	return WorldContext->World();
 }
 
-FWorldContext& FEditorWorldExtensionCollection::GetWorldContext() const
+FWorldContext* UEditorWorldExtensionCollection::GetWorldContext() const
 {
 	return WorldContext;
 }
 
-UEditorWorldExtension* FEditorWorldExtensionCollection::AddExtension( TSubclassOf<UEditorWorldExtension> EditorExtensionClass )
+UEditorWorldExtension* UEditorWorldExtensionCollection::AddExtension( TSubclassOf<UEditorWorldExtension> EditorExtensionClass )
 {
 	UEditorWorldExtension* CreatedExtension = EditorExtensionClass.GetDefaultObject();
 	AddExtension( CreatedExtension );
 	return CreatedExtension;
 }
 
-void FEditorWorldExtensionCollection::AddExtension( UEditorWorldExtension* EditorExtension )
+void UEditorWorldExtensionCollection::AddExtension( UEditorWorldExtension* EditorExtension )
 {
 	check( EditorExtension != nullptr );
 
@@ -92,12 +231,12 @@ void FEditorWorldExtensionCollection::AddExtension( UEditorWorldExtension* Edito
 		const int32 InitialRefCount = 1;
 		EditorExtensions.Add( FEditorExtensionTuple( EditorExtension, InitialRefCount ) );
 
-		EditorExtension->SetWorld( GetWorld() );
+		EditorExtension->InitInternal(this);
 		EditorExtension->Init();
 	}
 }
 
-void FEditorWorldExtensionCollection::RemoveExtension( UEditorWorldExtension* EditorExtension )
+void UEditorWorldExtensionCollection::RemoveExtension( UEditorWorldExtension* EditorExtension )
 {
 	check( EditorExtension != nullptr );
 
@@ -121,7 +260,7 @@ void FEditorWorldExtensionCollection::RemoveExtension( UEditorWorldExtension* Ed
 	}
 }
 
-UEditorWorldExtension* FEditorWorldExtensionCollection::FindExtension( TSubclassOf<UEditorWorldExtension> EditorExtensionClass )
+UEditorWorldExtension* UEditorWorldExtensionCollection::FindExtension( TSubclassOf<UEditorWorldExtension> EditorExtensionClass )
 {
 	UEditorWorldExtension* ResultExtension = nullptr;
 	for( FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions )
@@ -137,19 +276,18 @@ UEditorWorldExtension* FEditorWorldExtensionCollection::FindExtension( TSubclass
 	return ResultExtension;
 }
 
-void FEditorWorldExtensionCollection::Tick( float DeltaSeconds )
+void UEditorWorldExtensionCollection::Tick( float DeltaSeconds )
 {
-	for( FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions )
+	for (FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions)
 	{
 		UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
-		EditorExtension->Tick( DeltaSeconds );
+		EditorExtension->Tick(DeltaSeconds);
 	}
 }
 
-bool FEditorWorldExtensionCollection::InputKey( FEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
+bool UEditorWorldExtensionCollection::InputKey( FEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
 {
 	bool bHandled = false;
-
 	for( FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions )
 	{
 		UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
@@ -159,7 +297,7 @@ bool FEditorWorldExtensionCollection::InputKey( FEditorViewportClient* InViewpor
 	return bHandled;
 }
 
-bool FEditorWorldExtensionCollection::InputAxis( FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime )
+bool UEditorWorldExtensionCollection::InputAxis( FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime )
 {
 	bool bHandled = false;
 
@@ -172,27 +310,76 @@ bool FEditorWorldExtensionCollection::InputAxis( FEditorViewportClient* InViewpo
 	return bHandled;
 }
 
-void FEditorWorldExtensionCollection::AddReferencedObjects( FReferenceCollector& Collector )
+
+void UEditorWorldExtensionCollection::PostPIEStarted( bool bIsSimulatingInEditor )
 {
-	for( FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions )
+	if( bIsSimulatingInEditor && GEditor->EditorWorld != nullptr && GEditor->EditorWorld == WorldContext->World() )
 	{
-		UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
-		Collector.AddReferencedObject( EditorExtension );
+		SetWorldContext( GEditor->GetPIEWorldContext() );
+		EditorWorldOnSimulate = &GEditor->GetEditorWorldContext();
+
+		for (FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions)
+		{
+			UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
+			EditorExtension->EnteredSimulateInEditor();
+		}
 	}
 }
 
+
+void UEditorWorldExtensionCollection::OnEndPIE( bool bWasSimulatingInEditor )
+{
+	if( bWasSimulatingInEditor && EditorWorldOnSimulate != nullptr && EditorWorldOnSimulate->World() == GEditor->EditorWorld )
+	{
+		if( !GIsRequestingExit )
+		{
+			// Revert back to the editor world before closing the play world, otherwise actors and objects will be destroyed.
+			SetWorldContext( EditorWorldOnSimulate );
+			EditorWorldOnSimulate = nullptr;
+
+			for( FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions )
+			{
+				UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
+				EditorExtension->LeftSimulateInEditor();
+			}
+		}
+	}
+}
+
+
+void UEditorWorldExtensionCollection::SetWorldContext(FWorldContext* InWorldContext)
+{
+	check( InWorldContext != nullptr );
+
+	if( this->WorldContext != nullptr )
+	{
+		UWorld* CurrentWorld = WorldContext->World();
+		if (CurrentWorld != nullptr)
+		{
+			for (FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions)
+			{
+				UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
+				EditorExtension->TransitionWorld(InWorldContext->World());
+			}
+		}
+	}
+
+	WorldContext = InWorldContext;
+}
+
 /************************************************************************/
-/* FEditorWorldExtensionManager                                         */
+/* UEditorWorldExtensionManager                                         */
 /************************************************************************/
-FEditorWorldExtensionManager::FEditorWorldExtensionManager()
+UEditorWorldExtensionManager::UEditorWorldExtensionManager() :
+	Super()
 {
 	if( GEngine )
 	{
-		GEngine->OnWorldContextDestroyed().AddRaw( this, &FEditorWorldExtensionManager::OnWorldContextRemove );
+		GEngine->OnWorldContextDestroyed().AddUObject( this, &UEditorWorldExtensionManager::OnWorldContextRemove );
 	}
 }
 
-FEditorWorldExtensionManager::~FEditorWorldExtensionManager()
+UEditorWorldExtensionManager::~UEditorWorldExtensionManager()
 {
 	if( GEngine )
 	{
@@ -202,55 +389,74 @@ FEditorWorldExtensionManager::~FEditorWorldExtensionManager()
 	EditorWorldExtensionCollection.Empty();
 }
 
-TSharedPtr<FEditorWorldExtensionCollection> FEditorWorldExtensionManager::GetEditorWorldExtensions( const UWorld* InWorld )
+UEditorWorldExtensionCollection* UEditorWorldExtensionManager::GetEditorWorldExtensions(UWorld* InWorld)
 {
 	// Try to find this world in the map and return it or create and add one if nothing found
-	TSharedPtr<FEditorWorldExtensionCollection> Result;
-	if( InWorld )
+	UEditorWorldExtensionCollection* Result = nullptr;
+	if (InWorld)
 	{
-		TSharedPtr<FEditorWorldExtensionCollection>* FoundWorld = EditorWorldExtensionCollection.Find( InWorld->GetUniqueID() );
-		if( FoundWorld != nullptr )
+		UEditorWorldExtensionCollection* FoundExtensionCollection = FindExtensionCollection(InWorld);
+		if (FoundExtensionCollection != nullptr)
 		{
-			Result = *FoundWorld;
+			Result = FoundExtensionCollection;
 		}
 		else
 		{
-			FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld( InWorld );
-			Result = OnWorldContextAdd( *WorldContext );
+			FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld(InWorld);
+			Result = OnWorldContextAdd(WorldContext);
 		}
 	}
 	return Result;
 }
 
-TSharedPtr<FEditorWorldExtensionCollection> FEditorWorldExtensionManager::OnWorldContextAdd( FWorldContext& InWorldContext )
+UEditorWorldExtensionCollection* UEditorWorldExtensionManager::OnWorldContextAdd(FWorldContext* InWorldContext)
 {
-	//Only add editor type world to the map
-	UWorld* World = InWorldContext.World();
-	TSharedPtr<FEditorWorldExtensionCollection> Result;
-	if( World != nullptr )
+	const UWorld* World = InWorldContext->World();
+	UEditorWorldExtensionCollection* Result = nullptr;
+	if (World != nullptr)
 	{
-		TSharedPtr<FEditorWorldExtensionCollection> ExtensionCollection( new FEditorWorldExtensionCollection( InWorldContext ) );
+		UEditorWorldExtensionCollection* ExtensionCollection = NewObject<UEditorWorldExtensionCollection>();
+		ExtensionCollection->SetWorldContext(InWorldContext);
 		Result = ExtensionCollection;
-		EditorWorldExtensionCollection.Add( World->GetUniqueID(), Result );
+		EditorWorldExtensionCollection.Add(Result);
 	}
 	return Result;
 }
 
-void FEditorWorldExtensionManager::OnWorldContextRemove( FWorldContext& InWorldContext )
+void UEditorWorldExtensionManager::OnWorldContextRemove(FWorldContext& InWorldContext)
 {
 	UWorld* World = InWorldContext.World();
 	if(World)
 	{
-		EditorWorldExtensionCollection.Remove( World->GetUniqueID() );
+		UEditorWorldExtensionCollection* ExtensionCollection = FindExtensionCollection(World);
+		if (ExtensionCollection)
+		{
+			EditorWorldExtensionCollection.Remove(ExtensionCollection);
+		}
 	}
 }
 
-void FEditorWorldExtensionManager::Tick( float DeltaSeconds )
+UEditorWorldExtensionCollection* UEditorWorldExtensionManager::FindExtensionCollection(const UWorld* InWorld)
+{
+	UEditorWorldExtensionCollection* ResultCollection = nullptr;
+	for (UEditorWorldExtensionCollection* ExtensionCollection : EditorWorldExtensionCollection)
+	{
+		if (ExtensionCollection != nullptr && ExtensionCollection->GetWorld() == InWorld)
+		{
+			ResultCollection = ExtensionCollection;
+			break;
+		}
+	}
+
+	return ResultCollection;
+}
+
+void UEditorWorldExtensionManager::Tick( float DeltaSeconds )
 {
 	// Tick all the collections
-	for( auto& Collection : EditorWorldExtensionCollection )
+	for(UEditorWorldExtensionCollection* ExtensionCollection : EditorWorldExtensionCollection)
 	{
-		FEditorWorldExtensionCollection& ExtensionCollection = *Collection.Value;
-		ExtensionCollection.Tick( DeltaSeconds );
+		check(ExtensionCollection != nullptr && ExtensionCollection->IsValidLowLevel());
+		ExtensionCollection->Tick(DeltaSeconds);
 	}
 }

@@ -62,9 +62,6 @@ enum class EViewportInteractionDraggingMode : uint8
 	/** Moving a custom interactable */
 	Interactable,
 
-	/** Custom implementation for dragging */
-	Custom,
-
 	/** Dragging a material */
 	Material
 };

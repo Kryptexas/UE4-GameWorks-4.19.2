@@ -259,4 +259,10 @@ protected:
 
 	/** Flag to auto-destroy this list. */
 	bool bDone;
+
+private:
+
+	/** The last notification added to the list. To avoid weak pointer pointing to a destroyed notification when notification are not allowed. */
+	TSharedPtr<SNotificationItem> LastNotification;
+
 };

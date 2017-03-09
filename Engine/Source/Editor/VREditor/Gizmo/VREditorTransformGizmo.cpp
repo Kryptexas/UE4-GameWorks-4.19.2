@@ -15,11 +15,11 @@
 #include "VREditorPlaneTranslationGizmoHandle.h"
 #include "VIStretchGizmoHandle.h"
 #include "VIUniformScaleGizmoHandle.h"
+#include "VRModeSettings.h"
 
 namespace VREd
 {
 	// @todo vreditor tweak: Tweak out console variables
-	static FAutoConsoleVariable GizmoScale( TEXT( "VREd.GizmoScale" ), 0.80f, TEXT( "How big the gizmo handles should be" ) );
 	static FAutoConsoleVariable GizmoDistanceScaleFactor( TEXT( "VREd.GizmoDistanceScaleFactor" ), 0.002f, TEXT( "How much the gizmo handles should increase in size with distance from the camera, to make it easier to select" ) );
 	static FAutoConsoleVariable MinActorSizeForTransformGizmo( TEXT( "VREd.MinActorSizeForTransformGizmo" ), 50.0f, TEXT( "How big an object must be in scaled world units before we'll start to shrink the gizmo" ) );
 }
@@ -167,7 +167,7 @@ void ATransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, const ECo
 	// @todo vreditor: Should probably be a curve, not linear
 	// @todo vreditor: Should take FOV into account (especially in non-stereo/HMD mode)
 	const float WorldSpaceDistanceToGizmoBounds = FMath::Sqrt(WorldSpaceBounds.ComputeSquaredDistanceToPoint(InViewLocation));
-	const float GizmoScaleUpClose = VREd::GizmoScale->GetFloat();
+	const float GizmoScaleUpClose = GetDefault<UVRModeSettings>()->GizmoScale;
 	const float GizmoScale(InScaleMultiplier * (GizmoScaleUpClose + (WorldSpaceDistanceToGizmoBounds / WorldScaleFactor) * VREd::GizmoDistanceScaleFactor->GetFloat()) * ScaleCompensationForTinyGizmo * WorldScaleFactor);
 
 	// Update animation

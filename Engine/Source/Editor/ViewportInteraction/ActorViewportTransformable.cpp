@@ -11,6 +11,16 @@ void FActorViewportTransformable::ApplyTransform( const FTransform& NewTransform
 		const FTransform& ExistingTransform = Actor->GetActorTransform();
 		if( !ExistingTransform.Equals( NewTransform, 0.0f ) )
 		{
+			// If we're moving a non-movable actor while in simulate mode, go ahead and make it movable.  We're only
+			// editing the PIE copy of the actor here, so this won't affect the actual editor world.
+			if( GEditor->bIsSimulatingInEditor && Actor->GetWorld()->IsPlayInEditor() )
+			{
+				if( Actor->GetRootComponent() != nullptr && Actor->GetRootComponent()->Mobility != EComponentMobility::Movable )
+				{
+					Actor->GetRootComponent()->SetMobility( EComponentMobility::Movable );
+				}
+			}
+
 			GEditor->BroadcastBeginObjectMovement(*Actor);
 			const bool bOnlyTranslationChanged =
 				ExistingTransform.GetRotation() == NewTransform.GetRotation() &&
@@ -19,9 +29,14 @@ void FActorViewportTransformable::ApplyTransform( const FTransform& NewTransform
 			Actor->SetActorTransform( NewTransform, bSweep );
 			//GWarn->Logf( TEXT( "SMOOTH: Actor %s to %s" ), *Actor->GetName(), *Transformable.TargetTransform.ToString() );
 
-			Actor->InvalidateLightingCacheDetailed( bOnlyTranslationChanged );
+			// @todo vreditor: InvalidateLightingCacheDetailed() causes static mesh components to re-create their physics state, 
+			// cancelling all velocity on the rigid body.  So we currently avoid calling it for simulated actors.
+			if( !IsPhysicallySimulated() )
+			{
+				Actor->InvalidateLightingCacheDetailed( bOnlyTranslationChanged );
+			}
 
-			const bool bFinished = false;	// @todo gizmo now: PostEditChange never called; and bFinished=true never known!!
+			const bool bFinished = false;	// @todo gizmo: PostEditChange never called; and bFinished=true never known!!
 			Actor->PostEditMove( bFinished );
 			GEditor->BroadcastEndObjectMovement(*Actor);
 		}
@@ -43,17 +58,24 @@ const FTransform FActorViewportTransformable::GetTransform() const
 }
 
 
-FBox FActorViewportTransformable::GetLocalSpaceBoundingBox() const
+FBox FActorViewportTransformable::BuildBoundingBox( const FTransform& BoundingBoxToWorld ) const
 {
-	FBox LocalSpaceBounds( 0 );
-
+	FBox BoundingBox( 0 );
 	AActor* Actor = Cast<AActor>( ActorWeakPtr.Get() );
+
 	if( Actor != nullptr )
 	{
+		const FTransform WorldToBoundingBox = BoundingBoxToWorld.Inverse();
+		const FTransform& ActorToWorld = Actor->GetTransform();
+		const FTransform ActorToBoundingBox = ActorToWorld * WorldToBoundingBox;
+
 		const bool bIncludeNonCollidingComponents = false;	// @todo gizmo: Disabled this because it causes lights to have huge bounds
-		LocalSpaceBounds = Actor->CalculateComponentsBoundingBoxInLocalSpace( bIncludeNonCollidingComponents );
+		const FBox ActorSpaceBoundingBox = Actor->CalculateComponentsBoundingBoxInLocalSpace( bIncludeNonCollidingComponents );
+
+		BoundingBox = ActorSpaceBoundingBox.TransformBy( ActorToBoundingBox );
 	}
-	return LocalSpaceBounds;
+
+	return BoundingBox;
 }
 
 
@@ -91,6 +113,17 @@ void FActorViewportTransformable::SetLinearVelocity( const FVector& NewVelocity 
 	}
 }
 
+
+FVector FActorViewportTransformable::GetLinearVelocity() const
+{
+	const AActor* Actor = Cast<AActor>(ActorWeakPtr.Get());
+	if (Actor != nullptr)
+	{
+		return Actor->GetVelocity();
+	}
+
+	return FVector::ZeroVector;
+}
 
 void FActorViewportTransformable::UpdateIgnoredActorList( TArray<AActor*>& IgnoredActors )
 {

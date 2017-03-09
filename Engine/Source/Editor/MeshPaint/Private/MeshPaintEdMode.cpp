@@ -255,11 +255,11 @@ void FEdModeMeshPaint::Enter()
 		ApplyOrRemoveForceBestLOD(/*bApply=*/ true, PaintingMeshLODIndex);
 	}
 
-	TSharedPtr<FEditorWorldExtensionCollection> EditorWorld = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() );
-	if(EditorWorld.IsValid())
+	UEditorWorldExtensionCollection* ExtensionCollection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld());
+	if(ExtensionCollection != nullptr)
 	{
 		// Register to find out about VR input events
-		UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld())->FindExtension(UViewportWorldInteraction::StaticClass()));
+		UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(ExtensionCollection->FindExtension(UViewportWorldInteraction::StaticClass()));
 		if(ViewportWorldInteraction != nullptr)
 		{
 			ViewportWorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
@@ -275,14 +275,18 @@ void FEdModeMeshPaint::Enter()
 void FEdModeMeshPaint::Exit()
 {
 	{
-		UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld())->FindExtension(UViewportWorldInteraction::StaticClass()));
-		if(ViewportWorldInteraction != nullptr )
+		UEditorWorldExtensionCollection* ExtensionCollection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld());
+		if (ExtensionCollection != nullptr)
 		{
-			// Restore the transform gizmo visibility
-			ViewportWorldInteraction->SetTransformGizmoVisible( true );
+			UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(ExtensionCollection->FindExtension(UViewportWorldInteraction::StaticClass()));
+			if(ViewportWorldInteraction != nullptr )
+			{
+				// Restore the transform gizmo visibility
+				ViewportWorldInteraction->SetTransformGizmoVisible( true );
 
-			// Unregister from event handlers
-			ViewportWorldInteraction->OnViewportInteractionInputAction().RemoveAll( this );
+				// Unregister from event handlers
+				ViewportWorldInteraction->OnViewportInteractionInputAction().RemoveAll( this );
+			}
 		}
 	}
 
@@ -5425,9 +5429,9 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 {
 	UVREditorMode* VREditorMode = Cast<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() )->FindExtension( UVREditorMode::StaticClass() ) );
 	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
-	if( VREditorMode != nullptr && VREditorMode->IsActive() && VRInteractor != nullptr )
+	if( VREditorMode != nullptr && VREditorMode->IsActive() && VRInteractor != nullptr && VRInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing)
 	{
-		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
+		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove )
 		{
 			if( !bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType() )
 			{
@@ -5465,10 +5469,6 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 					bWasHandled = true;
 					bOutIsInputCaptured = true;
 
-					// Don't allow a "full press" to happen at all with this trigger pull.  We don't need full press for anything, and it
-					// would interrupt our light press.
-					VRInteractor->SetAllowTriggerFullPress( false );
-
 					StartPainting();
 					PaintingWithInteractorInVR = Interactor;
 
@@ -5497,6 +5497,12 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 
 				bWasHandled = true;
 				bOutIsInputCaptured = false;
+			}
+
+			else if( bIsPainting )
+			{
+				// A different hand might be painting, so absorb the input
+				bOutIsInputCaptured = bWasHandled = ( Action.Event == IE_Released ? false : true );
 			}
 		}
 	}

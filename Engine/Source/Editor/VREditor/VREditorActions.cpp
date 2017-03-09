@@ -12,18 +12,34 @@
 #include "ImageUtils.h"
 #include "FileHelper.h"
 #include "Framework/Application/SlateApplication.h"
-
+#include "ILevelEditor.h"
+#include "LevelEditor.h"
 #include "AssetEditorManager.h"
 #include "Developer/AssetTools/Public/IAssetTools.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "ModuleManager.h"
 #include "LevelSequence.h"
 #include "LevelSequenceActor.h"
+#include "ISequencer.h"
+#include "SequencerSettings.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
+#include "EditorModes.h"
+#include "EdMode.h"
+#include "Engine/Selection.h"
+#include "VREditorMotionControllerInteractor.h"
+#include "LevelEditorActions.h"
 
 #define LOCTEXT_NAMESPACE "VREditorActions"
 
+namespace VREd
+{
+	static FAutoConsoleVariable AllowPlay(TEXT("VREd.AllowPlay"), 1, TEXT("Allow to start play."));
+}
+
 FText FVREditorActionCallbacks::GizmoCoordinateSystemText;
 FText FVREditorActionCallbacks::GizmoModeText;
+FText FVREditorActionCallbacks::SelectingCandidateActorsText;
 
 ECheckBoxState FVREditorActionCallbacks::GetTranslationSnapState()
 {
@@ -107,7 +123,7 @@ FText FVREditorActionCallbacks::GetScaleSnapSizeText()
 	return FText::AsNumber(GEditor->GetScaleGridSize());
 }
 
-void FVREditorActionCallbacks::OnGizmoCoordinateSystemButtonClicked(class UVREditorMode* InVRMode)
+void FVREditorActionCallbacks::OnGizmoCoordinateSystemButtonClicked(UVREditorMode* InVRMode)
 {
 	InVRMode->GetWorldInteraction().CycleTransformGizmoCoordinateSpace();
 	UpdateGizmoModeText(InVRMode);
@@ -115,18 +131,47 @@ void FVREditorActionCallbacks::OnGizmoCoordinateSystemButtonClicked(class UVREdi
 
 }
 
+void FVREditorActionCallbacks::SetCoordinateSystem(UVREditorMode* InVRMode, ECoordSystem InCoordSystem)
+{
+	if (!(InVRMode->GetWorldInteraction().GetTransformGizmoCoordinateSpace() == InCoordSystem))
+	{
+		InVRMode->GetWorldInteraction().SetTransformGizmoCoordinateSpace(InCoordSystem);
+		UpdateGizmoCoordinateSystemText(InVRMode);
+	}
+}
+
+ECheckBoxState FVREditorActionCallbacks::IsActiveCoordinateSystem(UVREditorMode* InVRMode, ECoordSystem InCoordSystem)
+{
+	return (InVRMode->GetWorldInteraction().GetTransformGizmoCoordinateSpace() == InCoordSystem) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+
+void FVREditorActionCallbacks::SetGizmoMode(UVREditorMode* InVRMode, EGizmoHandleTypes InGizmoMode)
+{
+	if (!(InVRMode->GetWorldInteraction().GetCurrentGizmoType() == InGizmoMode))
+	{
+		InVRMode->GetWorldInteraction().SetGizmoHandleType(InGizmoMode);
+		UpdateGizmoCoordinateSystemText(InVRMode);
+	}
+}
+
+ECheckBoxState FVREditorActionCallbacks::IsActiveGizmoMode(UVREditorMode* InVRMode, EGizmoHandleTypes InGizmoMode)
+{
+	return (InVRMode->GetWorldInteraction().GetCurrentGizmoType() == InGizmoMode) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
 FText FVREditorActionCallbacks::GetGizmoCoordinateSystemText()
 {
 	return FVREditorActionCallbacks::GizmoCoordinateSystemText;
 }
 
-void FVREditorActionCallbacks::UpdateGizmoCoordinateSystemText(class UVREditorMode* InVRMode) 
+void FVREditorActionCallbacks::UpdateGizmoCoordinateSystemText(UVREditorMode* InVRMode) 
 {
 	const ECoordSystem CurrentCoordSystem = InVRMode->GetWorldInteraction().GetTransformGizmoCoordinateSpace(); //@todo VREditor
-	FVREditorActionCallbacks::GizmoCoordinateSystemText = (CurrentCoordSystem == COORD_World ? LOCTEXT("WorldCoordinateSystem", "World Space") : LOCTEXT("LocalCoordinateSystem", "Local Space"));
+	FVREditorActionCallbacks::GizmoCoordinateSystemText = (CurrentCoordSystem == COORD_World ? LOCTEXT("WorldCoordinateSystem", "World") : LOCTEXT("LocalCoordinateSystem", "Local"));
 }
 
-void FVREditorActionCallbacks::OnGizmoModeButtonClicked(class UVREditorMode* InVRMode)
+void FVREditorActionCallbacks::OnGizmoModeButtonClicked(UVREditorMode* InVRMode)
 {
 	const EGizmoHandleTypes CurrentGizmoMode = InVRMode->GetWorldInteraction().GetCurrentGizmoType();
 	InVRMode->CycleTransformGizmoHandleType();
@@ -140,7 +185,7 @@ FText FVREditorActionCallbacks::GetGizmoModeText()
 	return FVREditorActionCallbacks::GizmoModeText;
 }
 
-void FVREditorActionCallbacks::UpdateGizmoModeText(class UVREditorMode* InVRMode) 
+void FVREditorActionCallbacks::UpdateGizmoModeText(UVREditorMode* InVRMode) 
 {
 	const EGizmoHandleTypes CurrentGizmoType = InVRMode->GetWorldInteraction().GetCurrentGizmoType();
 	FText GizmoTypeText;
@@ -155,7 +200,7 @@ void FVREditorActionCallbacks::UpdateGizmoModeText(class UVREditorMode* InVRMode
 		break;
 
 	case EGizmoHandleTypes::Rotate:
-		GizmoTypeText = LOCTEXT("RotationGizmoType", "Rotation");
+		GizmoTypeText = LOCTEXT("RotationGizmoType", "Rotate");
 		break;
 
 	case EGizmoHandleTypes::Scale:
@@ -170,25 +215,18 @@ void FVREditorActionCallbacks::UpdateGizmoModeText(class UVREditorMode* InVRMode
 	FVREditorActionCallbacks::GizmoModeText = GizmoTypeText;
 }
 
-void FVREditorActionCallbacks::OnGizmoCycle(class UVREditorMode* InVRMode)
-{
-	InVRMode->CycleTransformGizmoHandleType();
-	UpdateGizmoModeText(InVRMode);
-	UpdateGizmoCoordinateSystemText(InVRMode);
-}
-
-void FVREditorActionCallbacks::OnUIToggleButtonClicked(class UVREditorMode* InVRMode, const UVREditorUISystem::EEditorUIPanel PanelToToggle)
+void FVREditorActionCallbacks::OnUIToggleButtonClicked(UVREditorMode* InVRMode, const UVREditorUISystem::EEditorUIPanel PanelToToggle)
 {
 	InVRMode->GetUISystem().TogglePanelVisibility(PanelToToggle);
 }
 
-ECheckBoxState FVREditorActionCallbacks::GetUIToggledState(class UVREditorMode* InVRMode, const UVREditorUISystem::EEditorUIPanel PanelToCheck)
+ECheckBoxState FVREditorActionCallbacks::GetUIToggledState(UVREditorMode* InVRMode, const UVREditorUISystem::EEditorUIPanel PanelToCheck)
 {
 	return InVRMode->GetUISystem().IsShowingEditorUIPanel(PanelToCheck) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 
-void FVREditorActionCallbacks::OnLightButtonClicked(class UVREditorMode* InVRMode)
+void FVREditorActionCallbacks::OnLightButtonClicked(UVREditorMode* InVRMode)
 {
 	// Always spawn the flashlight on the hand clicking on the UI
 	UVREditorInteractor* VREditorInteractor = InVRMode->GetHandInteractor(EControllerHand::Left);
@@ -201,13 +239,13 @@ void FVREditorActionCallbacks::OnLightButtonClicked(class UVREditorMode* InVRMod
 
 }
 
-ECheckBoxState FVREditorActionCallbacks::GetFlashlightState(class UVREditorMode* InVRMode)
+ECheckBoxState FVREditorActionCallbacks::GetFlashlightState(UVREditorMode* InVRMode)
 {
 	return InVRMode->IsFlashlightOn() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 
-void FVREditorActionCallbacks::OnScreenshotButtonClicked(class UVREditorMode* InVRMode)
+void FVREditorActionCallbacks::OnScreenshotButtonClicked(UVREditorMode* InVRMode)
 {
 	// @todo vreditor: update after direct buffer grab changes
 
@@ -251,21 +289,33 @@ void FVREditorActionCallbacks::OnScreenshotButtonClicked(class UVREditorMode* In
 		FFileHelper::SaveArrayToFile(CompressedBitmap, *FinalFileName);
 
 	}
-
-
 }
 
-void FVREditorActionCallbacks::OnPlayButtonClicked(class UVREditorMode* InVRMode)
+void FVREditorActionCallbacks::OnPlayButtonClicked(UVREditorMode* InVRMode)
 {
-	InVRMode->StartExitingVRMode(EVREditorExitType::PIE_VR);
+	InVRMode->TogglePIEAndVREditor();
 }
 
-void FVREditorActionCallbacks::OnSnapActorsToGroundClicked(class UVREditorMode* InVRMode)
+bool FVREditorActionCallbacks::CanPlay()
+{
+	return FLevelEditorActionCallbacks::DefaultCanExecuteAction() && VREd::AllowPlay->GetInt() == 1;
+}
+
+void FVREditorActionCallbacks::OnSimulateButtonClicked(UVREditorMode* InVRMode)
+{
+	InVRMode->ToggleSIEAndVREditor();
+}
+
+FText FVREditorActionCallbacks::GetSimulateText()
+{
+	return GEditor->bIsSimulatingInEditor ? LOCTEXT( "SimulateStopButton", "Stop" ) : LOCTEXT( "SimulateStartButton", "Simulate" );
+}
+
+void FVREditorActionCallbacks::OnSnapActorsToGroundClicked(UVREditorMode* InVRMode)
 {
 	InVRMode->SnapSelectedActorsToGround();
 }
-
-
+ 
 void FVREditorActionCallbacks::SimulateCharacterEntry(const FString InChar)
 {
 
@@ -277,6 +327,14 @@ void FVREditorActionCallbacks::SimulateCharacterEntry(const FString InChar)
 		FSlateApplication::Get().ProcessKeyCharEvent(CharacterEvent);
 	}
 
+}
+
+void FVREditorActionCallbacks::SimulateBackspace()
+{
+	// Slate editable text fields handle backspace as a character entry
+	FString BackspaceString = FString(TEXT("\b"));
+	bool bRepeat = false;
+	SimulateCharacterEntry(BackspaceString);
 }
 
 void FVREditorActionCallbacks::SimulateKeyDown(const FKey Key, const bool bRepeat)
@@ -311,7 +369,7 @@ void FVREditorActionCallbacks::SimulateKeyUp(const FKey Key)
 	FSlateApplication::Get().ProcessKeyUpEvent( KeyEvent );
 }
 
-void FVREditorActionCallbacks::CreateNewSequence(class UVREditorMode* InVRMode)
+void FVREditorActionCallbacks::CreateNewSequence(UVREditorMode* InVRMode)
 {
 	// Create a new level sequence
 	IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
@@ -351,17 +409,169 @@ void FVREditorActionCallbacks::CreateNewSequence(class UVREditorMode* InVRMode)
 
 	ALevelSequenceActor* NewActor = CastChecked<ALevelSequenceActor>(GEditor->UseActorFactory(ActorFactory, FAssetData(NewAsset), &FTransform::Identity));
 
+	InVRMode->GetUISystem().SequencerOpenendFromRadialMenu(true);
+
 	// Open the Sequencer window
 	FAssetEditorManager::Get().OpenEditorForAsset(NewAsset);
 }
 
-void FVREditorActionCallbacks::CloseSequencer(class UMovieSceneSequence* OpenSequence)
+void FVREditorActionCallbacks::CloseSequencer(UMovieSceneSequence* OpenSequence)
 {
 	IAssetEditorInstance* SequencerEditor = FAssetEditorManager::Get().FindEditorForAsset(OpenSequence, false);
 	if (SequencerEditor != nullptr)
 	{
 		SequencerEditor->CloseWindow();
 	}
+}
+
+void FVREditorActionCallbacks::PlaySequenceAtRate(UVREditorMode* InVRMode, float Rate)
+{
+	ISequencer* CurrentSequencer = InVRMode->GetCurrentSequencer();
+	if (CurrentSequencer != nullptr)
+	{
+		CurrentSequencer->OnPlay(false, Rate);
+	}
+}
+
+void FVREditorActionCallbacks::PauseSequencePlayback(UVREditorMode* InVRMode)
+{
+	ISequencer* CurrentSequencer = InVRMode->GetCurrentSequencer();
+	if (CurrentSequencer != nullptr)
+	{
+		CurrentSequencer->Pause();
+	}
+}
+
+void FVREditorActionCallbacks::PlayFromBeginning(UVREditorMode* InVRMode)
+{
+	ISequencer* CurrentSequencer = InVRMode->GetCurrentSequencer();
+	if (CurrentSequencer != nullptr)
+	{
+		CurrentSequencer->SetLocalTime(0.0f);
+		const float Rate = 1.0f;
+		CurrentSequencer->OnPlay(false, Rate);
+	}
+}
+
+void FVREditorActionCallbacks::ToggleLooping(UVREditorMode* InVRMode)
+{
+	ISequencer* CurrentSequencer = InVRMode->GetCurrentSequencer();
+	if (CurrentSequencer != nullptr)
+	{
+		CurrentSequencer->GetSequencerSettings()->SetLooping(!CurrentSequencer->GetSequencerSettings()->IsLooping());
+	}
+}
+
+ECheckBoxState FVREditorActionCallbacks::IsLoopingChecked(UVREditorMode* InVRMode)
+{
+	bool bShouldReturnChecked = false;
+	ISequencer* CurrentSequencer = InVRMode->GetCurrentSequencer();
+	if (CurrentSequencer != nullptr)
+	{
+		bShouldReturnChecked = InVRMode->GetCurrentSequencer()->GetSequencerSettings()->IsLooping();
+	}
+	return bShouldReturnChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+
+}
+
+void FVREditorActionCallbacks::ToggleSequencerScrubbing(UVREditorMode* InVRMode, UVREditorMotionControllerInteractor* InController)
+{
+	InController->ToggleSequencerScrubbingMode();
+	if (!InController->IsScrubbingSequencer())
+	{
+		PauseSequencePlayback(InVRMode);
+	}
+}
+
+ECheckBoxState FVREditorActionCallbacks::GetSequencerScrubState(UVREditorMotionControllerInteractor* InController)
+{
+	return InController->IsScrubbingSequencer() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void FVREditorActionCallbacks::ToggleAligningToActors(UVREditorMode* InVRMode)
+{
+	if (InVRMode->GetWorldInteraction().AreAligningToActors())
+	{
+		// Deselect any candidates if we have them
+		if (InVRMode->GetWorldInteraction().HasCandidatesSelected())
+		{
+			ToggleSelectingCandidateActors(InVRMode);
+		}
+		GUnrealEd->Exec(InVRMode->GetWorld(), TEXT("VI.EnableGuides 0"));
+	}
+	else
+	{
+		GUnrealEd->Exec(InVRMode->GetWorld(), TEXT("VI.EnableGuides 1"));
+	}
+}
+
+ECheckBoxState FVREditorActionCallbacks::AreAligningToActors(UVREditorMode* InVRMode)
+{
+	return InVRMode->GetWorldInteraction().AreAligningToActors() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void FVREditorActionCallbacks::ToggleSelectingCandidateActors(UVREditorMode* InVRMode)
+{
+	InVRMode->GetWorldInteraction().SetSelectionAsCandidates();
+	UpdateSelectingCandidateActorsText(InVRMode);
+}
+
+bool FVREditorActionCallbacks::CanSelectCandidateActors(UVREditorMode* InVRMode)
+{
+	return InVRMode->GetWorldInteraction().AreAligningToActors();
+}
+
+FText FVREditorActionCallbacks::GetSelectingCandidateActorsText()
+{
+	return FVREditorActionCallbacks::SelectingCandidateActorsText;
+}
+
+void FVREditorActionCallbacks::UpdateSelectingCandidateActorsText(UVREditorMode* InVRMode)
+{
+	if (InVRMode->GetWorldInteraction().HasCandidatesSelected())
+	{
+		FVREditorActionCallbacks::SelectingCandidateActorsText = LOCTEXT("ResetCandidates", "Reset Targets");
+	}
+	else
+	{
+		FVREditorActionCallbacks::SelectingCandidateActorsText = LOCTEXT("SetCandidates", "Set Targets");
+	}
+}
+
+void FVREditorActionCallbacks::ChangeEditorModes(FEditorModeID InMode)
+{
+	// *Important* - activate the mode first since FEditorModeTools::DeactivateMode will
+	// activate the default mode when the stack becomes empty, resulting in multiple active visible modes.
+	GLevelEditorModeTools().ActivateMode(InMode);
+
+	// Find and disable any other 'visible' modes since we only ever allow one of those active at a time.
+	TArray<FEdMode*> ActiveModes;
+	GLevelEditorModeTools().GetActiveModes(ActiveModes);
+	for (FEdMode* Mode : ActiveModes)
+	{
+		if (Mode->GetID() != InMode && Mode->GetModeInfo().bVisible)
+		{
+			GLevelEditorModeTools().DeactivateMode(Mode->GetID());
+		}
+	}
+}
+
+ECheckBoxState FVREditorActionCallbacks::EditorModeActive(FEditorModeID InMode)
+{
+	return GLevelEditorModeTools().IsModeActive(InMode) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+bool FVREditorActionCallbacks::ModeActionsMenuActive(UVREditorMode* VRMode)
+{
+	bool bShouldModeActionsBeActive = (VRMode->GetCurrentSequencer() != nullptr);
+	return bShouldModeActionsBeActive;
+}
+
+void FVREditorActionCallbacks::DeselectAll()
+{
+	GEditor->SelectNone(true, true, false);
+	GEditor->GetSelectedActors()->DeselectAll();
+	GEditor->GetSelectedObjects()->DeselectAll();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -9,6 +9,7 @@
 #include "Engine/EngineTypes.h"
 #include "ViewportInteractionTypes.h"
 #include "Editor/ViewportInteraction/ViewportInteractorData.h"
+#include "ViewportInteractionUtils.h"
 #include "ViewportInteractor.generated.h"
 
 class AActor;
@@ -41,17 +42,14 @@ public:
 	/** Gets the paired interactor assigned by the world interaction, can return null when there is no other interactor */
 	UViewportInteractor* GetOtherInteractor() const;
 
-	/** Updates the hover state of this interactor */
-	void UpdateHoverResult( FHitResult& HitResult );
-
 	/** Whenever the ViewportWorldInteraction is shut down, the interacts will shut down as well */
 	virtual void Shutdown();
 
 	/** Update for this interactor called by the ViewportWorldInteraction */
-	virtual void Tick( const float DeltaTime ) {};
+	virtual void Tick( const float DeltaTime );
 
-	/** Gets the hover component from the interactor data */
-	virtual class UActorComponent* GetHoverComponent();
+	/** Gets the last component hovered on by the interactor laser. */
+	virtual class UActorComponent* GetLastHoverComponent();
 
 	/** Adds a new action to the KeyToActionMap */
 	void AddKeyAction( const FKey& Key, const FViewportActionKeyInput& Action );
@@ -68,6 +66,12 @@ public:
 	/** Handles axis input and translates it to actions */
 	bool HandleInputAxis( class FEditorViewportClient& ViewportClient, const FKey Key, const float Delta, const float DeltaTime );
 
+	/** @return	Returns true if this interactor's designated 'modifier button' is currently held down.  Some interactors may not support this */
+	virtual bool IsModifierPressed() const
+	{
+		return false;
+	}
+
 	/** Gets the world transform of this interactor */
 	FTransform GetTransform() const;
 
@@ -80,6 +84,9 @@ public:
 	/** Gets the interactor data drag velocity */
 	FVector GetDragTranslationVelocity() const;
 
+	/** Sets the hover location */
+	void SetHoverLocation(const FVector& InHoverLocation);
+
 	/**
 	 * Gets the start and end point of the laser pointer for the specified hand
 	 *
@@ -91,7 +98,7 @@ public:
 	 *
 	 * @return	True if we have motion controller data for this hand and could return a valid result
 	 */
-	bool GetLaserPointer( FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f ) const;
+	bool GetLaserPointer( FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f );
 
 	/**
 	 * Gets a sphere on this interactor that can be used to interact with objects in close proximity
@@ -101,7 +108,7 @@ public:
 	 *
 	 * @return	True if the sphere is available and valid, or false is the interactor was busy or we could not determine a valid position for the interactor
 	 */
-	bool GetGrabberSphere( FSphere& OutGrabberSphere, const bool bEvenIfBlocked = false ) const;
+	bool GetGrabberSphere( FSphere& OutGrabberSphere, const bool bEvenIfBlocked = false );
 
 	/** Gets the maximum length of a laser pointer */
 	float GetLaserPointerMaxLength() const;
@@ -123,10 +130,10 @@ public:
 		TArray<UClass*>* ObjectsInFrontOfGizmo = nullptr, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f );
 
 	/** Reset the values before checking the hover actions */
-	virtual void ResetHoverState( const float DeltaTime ) {};
+	virtual void ResetHoverState();
 
 	/** Needs to be implemented by the base to calculate drag ray length and the velocity for the ray */
-	virtual void CalculateDragRay() {};
+	virtual void CalculateDragRay( float& InOutDragRayLength, float& InOutDragRayVelocity ) {};
 
 	/**
 	 * Creates a hand transform and forward vector for a laser pointer for a given hand
@@ -140,10 +147,10 @@ public:
 	virtual bool GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector ) const;
 
 	/** Called by StartDragging in world interaction to give the interactor a chance of acting upon starting a drag operation */
-	virtual void OnStartDragging( const FVector& HitLocation, const bool bIsPlacingNewObjects ) {};
+	virtual void OnStartDragging( const FVector& HitLocation, const bool bIsPlacingNewObjects );
 
 	/** Gets the interactor laser hover location */
-	FVector GetHoverLocation() const;
+	FVector GetHoverLocation();
 
 	/** If the interactor laser is currently hovering */
 	bool IsHovering() const;
@@ -164,41 +171,31 @@ public:
 	/** Gets the drag haptic feedback strength console variable */
 	float GetDragHapticFeedbackStrength() const;
 
-	/**
-	 * Enables or disable "light press" locking for this interactor.  This is an advanced feature.
-	 * It should be true if we allow locking of the lightly pressed state for the current event.  This can 
-	 * be useful to turn off in cases where you always want a full press to override the light press, even 
-	 * if it was a very slow press
-	 *
-	 * @param	bAllow		Enables or disables light press locking for this hand
-	 */
-	void SetAllowTriggerLightPressLocking( const bool bInAllow );
-
-	/** @return Check if this interactor allows the light press to be locked */
-	bool AllowTriggerLightPressLocking() const;
-
-	/**
-	 * When responding to a "light press" event, you can call this and pass false to to prevent a full press event from
-	 * being possible at all.  Useful when you're not planning to use FullyPressed for anything, but you don't want a 
-	 * full press to cancel your light press.
-	 *
-	 * @param	bInAllow	Whether to allow a full press to interrupt the light press.  Defaults to true, and will reset to true with every re-press of the trigger.
-	 */
-	void SetAllowTriggerFullPress( const bool bInAllow );
-
-	/** @return Returns whether a full press is allowed to interrupt a light press. */
-	bool AllowTriggerFullPress() const;
-
 	/** If this interactor is hovering over a type that has priority from GetHitResultFromLaserPointer */
 	bool IsHoveringOverPriorityType() const;
 
+	/** Returns true if currently hovering over selected actor */
+	bool IsHoveringOverSelectedActor() const;
+
+	/** Reset the stored laser end location at the end of tick */
+	void ResetLaserEnd();
+
 protected:
 
-	/** To be overridden by base class. Called by HandleInputKey before delegates and default input implementation */
+	/** To be overridden. Called by HandleInputKey before delegates and default input implementation */
+	virtual void PreviewInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) {};
+
+	/** To be overridden. Called by HandleInputAxis before delegates and default input implementation */
+	virtual void PreviewInputAxis( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) {};
+
+	/** To be overridden. Called by HandleInputKey before delegates and default input implementation */
 	virtual void HandleInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) {};
 	
-	/** To be overridden by base class. Called by HandleInputAxis before delegates and default input implementation */
+	/** To be overridden. Called by HandleInputAxis before delegates and default input implementation */
 	virtual void HandleInputAxis( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) {};
+
+	/** If this interactors allows to smooth the laser. Default is true. */
+	virtual bool AllowLaserSmoothing() const;
 
 protected:
 
@@ -218,4 +215,12 @@ protected:
 
 	/** True if this interactor supports 'grabber sphere' interaction.  Usually disabled for mouse cursors */
 	bool bAllowGrabberSphere;
+
+	/** Store end of the laser pointer. This will be returned when calling GetLaserPointer multiple times a tick */
+	TOptional<FVector> SavedLaserPointerEnd;
+
+private:
+
+	/** Smoothing filter for laser */
+	ViewportInteractionUtils::FOneEuroFilter SmoothingOneEuroFilter;
 };

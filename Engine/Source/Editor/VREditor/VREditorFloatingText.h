@@ -22,6 +22,10 @@ public:
 
 	// AActor overrides
 	virtual void PostActorCreated() override;
+	virtual bool IsEditorOnly() const final
+	{
+		return true;
+	}
 
 	/** Sets the text to display */
 	void SetText( const FText& NewText );

@@ -51,6 +51,8 @@ DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnWindowAction, const TSharedRef<FGener
 /** Delegate for overriding the behavior when a navigation action is taken, Not to be confused with FNavigationDelegate which allows a specific widget to override behavior for itself */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FCustomNavigationHandler, TSharedPtr<SWidget>);
 
+DECLARE_DELEGATE_RetVal(bool, FDragDropCheckingOverride);
+
 extern SLATE_API const FName NAME_UnrealOS;
 
 
@@ -1489,6 +1491,9 @@ public:
 	* This will first try and get the window that owns the widget (if provided), before falling back to using the MainFrame window.
 	*/
 	const void* FindBestParentWindowHandleForDialogs(const TSharedPtr<SWidget>& InWidget);
+
+public:
+	FDragDropCheckingOverride OnDragDropCheckOverride;
 
 private:
 

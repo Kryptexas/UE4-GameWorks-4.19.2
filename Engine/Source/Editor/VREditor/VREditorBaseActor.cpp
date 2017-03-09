@@ -7,7 +7,8 @@
 namespace VREd
 {
 	static FAutoConsoleVariable UIOnHandRotationOffset( TEXT( "VREd.UIOnHandRotationOffset" ), 45.0f, TEXT( "Rotation offset for UI that's docked to your hand, to make it more comfortable to hold" ) );
-	static FAutoConsoleVariable UIOnArmRotationOffset( TEXT( "VREd.UIOnArmRotationOffset" ), 15.0f, TEXT( "Rotation offset for UI that's docked to your arm, so it aligns with the controllers" ) );
+	static FAutoConsoleVariable UIOnArmRotationOffset( TEXT( "VREd.UIOnArmRotationOffset" ), 0.0f, TEXT( "Rotation offset for UI that's docked to your arm, so it aligns with the controllers" ) );
+	static FAutoConsoleVariable DockUISmoothingAmount( TEXT( "VREd.DockUISmoothingAmount" ), 0.75f, TEXT( "How much to smooth out UI transforms (frame rate sensitive)" ) );
 }
 
 AVREditorBaseActor::AVREditorBaseActor() 
@@ -22,7 +23,8 @@ AVREditorBaseActor::AVREditorBaseActor()
 	StartMoveToTransform( FTransform() ),
 	MoveToAlpha( 0.0f ),
 	MoveToTime( 0.0f ),
-	MoveToResultDock( EDockedTo::Nothing )
+	MoveToResultDock( EDockedTo::Nothing ),
+	LastDockedUIToWorld()
 {
 
 }
@@ -147,7 +149,28 @@ void AVREditorBaseActor::UpdateTransformIfDocked()
 			check( 0 );
 		}
 
+		// Smooth out the transform
+		if( DockedTo != EDockedTo::Custom && DockedTo != EDockedTo::Room )
+		{
+			if( LastDockedUIToWorld.IsSet() )
+			{
+				FTransform SmoothedDockedUIToWorld;
+				SmoothedDockedUIToWorld.Blend( NewTransform, LastDockedUIToWorld.GetValue(), VREd::DockUISmoothingAmount->GetFloat() );
+				NewTransform = SmoothedDockedUIToWorld;
+			}
+
+			LastDockedUIToWorld = NewTransform;
+		}
+		else
+		{
+			LastDockedUIToWorld.Reset();
+		}
+
 		SetTransform( NewTransform );
+	}
+	else
+	{
+		LastDockedUIToWorld.Reset();
 	}
 }
 

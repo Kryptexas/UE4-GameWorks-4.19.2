@@ -49,7 +49,7 @@ private:
 	void StartVREditorMode( const bool bForceWithoutHMD );
 
 	/** Closes the current VR Editor if any and sets the WorldToMeters to back to the one from before entering the VR mode */
-	void CloseVREditor(const bool bHMDShouldExitStereo);
+	void CloseVREditor(const bool bShouldDisableStereo );
 
 	/** Directly set the GWorld WorldToMeters */
 	void SetDirectWorldToMeters( const float NewWorldToMeters );
@@ -67,12 +67,6 @@ private:
 
 	/** If the VR Editor mode needs to be enabled next tick */
 	bool bEnableVRRequest;
-
-	/** If PIE session started from within the VR Editor, so we can go back to the VR Editor when closing PIE with the motion controllers */
-	bool bPlayStartedFromVREditor;
-
-	/** Saved last world to meters scale from last VR Editor session so we can restore it when entering the VR Editor when PIE starter from VR Editor */
-	float LastWorldToMeters;
 
 	/** True when we detect that the user is wearing the HMD */
 	EHMDWornState::Type HMDWornState;

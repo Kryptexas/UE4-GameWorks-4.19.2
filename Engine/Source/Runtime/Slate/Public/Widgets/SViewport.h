@@ -29,6 +29,7 @@ public:
 		, _ShowEffectWhenDisabled(true)
 		, _RenderDirectlyToWindow(false)
 		, _EnableGammaCorrection(true)
+		, _ReverseGammaCorrection(false)
 		, _EnableBlending(false)
 		, _EnableStereoRendering(false)
 		, _PreMultipliedAlpha(true)
@@ -50,6 +51,9 @@ public:
 
 		/** Whether or not to enable gamma correction. Doesn't apply when rendering directly to a backbuffer. */
 		SLATE_ARGUMENT( bool, EnableGammaCorrection )
+
+		/** Whether or not to reverse the gamma correction done to the texture in this viewport.  Ignores the bEnableGammaCorrection setting */
+		SLATE_ARGUMENT( bool, ReverseGammaCorrection )
 
 		/** Allow this viewport to blend with its background. */
 		SLATE_ARGUMENT( bool, EnableBlending )
@@ -256,6 +260,9 @@ private:
 
 	/** Whether or not to apply gamma correction on the render target supplied by the ISlateViewport. */
 	bool bEnableGammaCorrection;
+
+	/** Whether or not to reverse the gamma correction done by the texture in this viewport.  Ignores the bEnableGammaCorrection setting */
+	bool bReverseGammaCorrection;
 
 	/** Whether or not to blend this viewport with the background. */
 	bool bEnableBlending;

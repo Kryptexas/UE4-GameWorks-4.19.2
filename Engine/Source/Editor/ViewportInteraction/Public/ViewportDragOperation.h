@@ -52,6 +52,9 @@ public:
 	/* Destroys the dragoperation */
 	void ClearDragOperation();
 
+	/** If this operation is currently active. */
+	bool IsDragging() const;
+
 private:
 
 	/** The actual dragging implementation */

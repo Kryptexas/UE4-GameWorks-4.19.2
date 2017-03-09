@@ -74,6 +74,8 @@ namespace ESlateDrawEffect
 	const Type PreMultipliedAlpha	= 1 << 3;
 	/** Advanced: No gamma correction should be done */
 	const Type NoGamma				= 1 << 4;
+	/** Advanced: Existing Gamma correction should be reversed */
+	const Type ReverseGamma			= 1 << 5;
 };
 
 
@@ -95,6 +97,8 @@ namespace ESlateBatchDrawFlag
 	const Type TileU				= 1 << 4;
 	/** The element should be tiled vertically */
 	const Type TileV				= 1 << 5;
+	/** Reverse gamma correction */
+	const Type ReverseGamma			 = 1 << 6;
 };
 
 namespace ESlateLineJoinType

@@ -537,6 +537,9 @@ public:
 	/** Whether or not the component supports default collision from its static mesh asset */
 	virtual bool SupportsDefaultCollision();
 
+	/** Whether we can support dithered LOD transitions (default behavior checks all materials). Used for HISMC LOD. */
+	virtual bool SupportsDitheredLODTransitions();
+
 private:
 	/** Initializes the resources used by the static mesh component. */
 	void InitResources();

@@ -63,6 +63,7 @@ void FSlateNotificationManager::FRegionalNotificationList::Arrange()
 }
 
 FSlateNotificationManager::FSlateNotificationManager()
+	: bAllowNotifications( true )
 {
 }
 

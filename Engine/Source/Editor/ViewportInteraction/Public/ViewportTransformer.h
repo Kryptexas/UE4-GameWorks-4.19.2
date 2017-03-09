@@ -18,6 +18,27 @@ public:
 	UFUNCTION()
 	virtual void Shutdown();
 
+	/** @return If this transformer can be used to align its transformable to actors in the scene */
+	UFUNCTION()
+	virtual bool CanAlignToActors() const
+	{
+		return false;
+	};
+
+	/** @return True if the transform gizmo should be aligned to the center of the bounds of all selected objects with more than one is selected.  Otherwise it will be at the pivot of the last transformable, similar to legacl editor actor selection */
+	UFUNCTION()
+	virtual bool ShouldCenterTransformGizmoPivot() const
+	{
+		return false;
+	}
+
+	/** When starting to drag */
+	UFUNCTION()
+	virtual void OnStartDragging(class UViewportInteractor* Interactor) {};
+
+	/** When ending drag */
+	UFUNCTION()
+	virtual void OnStopDragging(class UViewportInteractor* Interactor) {};
 
 protected:
 

@@ -279,12 +279,13 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 	FLevelSequenceEditorToolkit::OnOpened().Broadcast(*this);
 
 	{
-		const UWorld* World = CastChecked<UWorld>( GetLevelSequenceEditorPlaybackContext() );
+		UWorld* World = CastChecked<UWorld>( GetLevelSequenceEditorPlaybackContext() );
 		UVREditorMode* VRMode = Cast<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
 		if (VRMode != nullptr)
 		{
 			VRMode->OnVREditingModeExit_Handler.BindSP(this, &FLevelSequenceEditorToolkit::HandleVREditorModeExit);
-			VRMode->SaveSequencerSettings(Sequencer->GetKeyAllEnabled(), Sequencer->GetAutoKeyMode());
+			USequencerSettings& SavedSequencerSettings = *Sequencer->GetSequencerSettings();
+			VRMode->SaveSequencerSettings(Sequencer->GetKeyAllEnabled(), Sequencer->GetAutoKeyMode(), SavedSequencerSettings);
 			// Override currently set autokey behavior to always autokey all
 			Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyAll);
 			Sequencer->SetKeyAllEnabled(true);
@@ -725,13 +726,12 @@ void FLevelSequenceEditorToolkit::HandleActorAddedToSequencer(AActor* Actor, con
 
 void FLevelSequenceEditorToolkit::HandleVREditorModeExit()
 {
-	const UWorld* World = Cast<UWorld>(GetLevelSequenceEditorPlaybackContext());
+	UWorld* World = Cast<UWorld>(GetLevelSequenceEditorPlaybackContext());
 	UVREditorMode* VRMode = CastChecked<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
 
-	// Reset auto key settings
+	// Reset sequencer settings
 	Sequencer->SetAutoKeyMode(VRMode->GetSavedEditorState().AutoKeyMode);
 	Sequencer->SetKeyAllEnabled(VRMode->GetSavedEditorState().bKeyAllEnabled);
-
 	VRMode->OnVREditingModeExit_Handler.Unbind();
 }
 
@@ -967,7 +967,7 @@ void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack(FMenuBuilder&
 
 bool FLevelSequenceEditorToolkit::OnRequestClose()
 {
-	const UWorld* World = CastChecked<UWorld>(GetLevelSequenceEditorPlaybackContext());
+	UWorld* World = CastChecked<UWorld>(GetLevelSequenceEditorPlaybackContext());
 	UVREditorMode* VRMode = Cast<UVREditorMode>(GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World)->FindExtension(UVREditorMode::StaticClass()));
 	if (VRMode != nullptr)
 	{

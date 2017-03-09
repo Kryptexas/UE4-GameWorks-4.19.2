@@ -88,6 +88,8 @@ FEditorDelegates::FOnEditorModeTransitioned				FEditorDelegates::EditorModeEnter
 FEditorDelegates::FOnEditorModeTransitioned				FEditorDelegates::EditorModeExit;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::PreBeginPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::BeginPIE;
+FEditorDelegates::FOnPIEEvent							FEditorDelegates::PrePIEEnded;
+FEditorDelegates::FOnPIEEvent							FEditorDelegates::PostPIEStarted;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::EndPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::PausePIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::ResumePIE;

@@ -571,7 +571,7 @@ void FEdModeLandscape::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector&
 	if( InteractorPainting != nullptr && InteractorPainting == Interactor )
 	{
 		UVREditorMode* VREditorMode = Cast<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() )->FindExtension( UVREditorMode::StaticClass() ) );
-		if( VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr )
+		if( VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr && Interactor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing )
 		{
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
 
@@ -601,9 +601,9 @@ void FEdModeLandscape::OnVRAction(FEditorViewportClient& ViewportClient, UViewpo
 	// Never show the traditional Unreal transform widget.  It doesn't work in VR because we don't have hit proxies.
 	ViewportClient.EngineShowFlags.SetModeWidgets(false);
 
-	if (VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr)
+	if (VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr && Interactor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing)
 	{
-		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed || Action.ActionType == ViewportWorldActionTypes::SelectAndMove)
+		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove)
 		{
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
 

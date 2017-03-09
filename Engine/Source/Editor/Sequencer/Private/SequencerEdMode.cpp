@@ -88,12 +88,12 @@ void FSequencerEdMode::Render(const FSceneView* View, FViewport* Viewport, FPrim
 
 #if WITH_EDITORONLY_DATA
 	// Draw spline trails using the PDI
-	if (View->Family->EngineShowFlags.Splines && !bDrawMeshTrails)
+	if (View->Family->EngineShowFlags.Splines)
 	{
 		DrawTracks3D(PDI);
 	}
 	// Draw mesh trails (doesn't use the PDI)
-	else 	
+	else if (bDrawMeshTrails)
 	{
 		PDI = nullptr;
 		DrawTracks3D(PDI);
@@ -121,7 +121,7 @@ void FSequencerEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* 
 
 void FSequencerEdMode::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	for (FMeshTrailData MeshTrail : MeshTrails)
+	for (FMeshTrailData& MeshTrail : MeshTrails)
 	{
 		Collector.AddReferencedObject(MeshTrail.Track);
 		Collector.AddReferencedObject(MeshTrail.Trail);
@@ -148,20 +148,23 @@ void FSequencerEdMode::OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* K
 void FSequencerEdMode::DrawMeshTransformTrailFromKey(const class ASequencerKeyActor* KeyActor)
 {
 	ASequencerMeshTrail* Trail = Cast<ASequencerMeshTrail>(KeyActor->GetOwner());
-	FMeshTrailData* TrailPtr = MeshTrails.FindByPredicate([Trail](const FMeshTrailData InTrail)
+	if(Trail != nullptr)
 	{
-		return Trail == InTrail.Trail;
-	});
-	if(TrailPtr)
-	{
-		// From the key, get the mesh trail, and then the track associated with that mesh trail
-		UMovieScene3DTransformTrack* Track = TrailPtr->Track;
-		// Draw a mesh trail for the key's associated actor
-		TArray<TWeakObjectPtr<UObject>> KeyObjects;
-		AActor* TrailActor = KeyActor->GetAssociatedActor();
-		KeyObjects.Add(TrailActor);
-		FPrimitiveDrawInterface* PDI = nullptr;
-		DrawTransformTrack(PDI, Track, KeyObjects, true);
+		FMeshTrailData* TrailPtr = MeshTrails.FindByPredicate([Trail](const FMeshTrailData InTrail)
+		{
+			return Trail == InTrail.Trail;
+		});
+		if(TrailPtr != nullptr)
+		{
+			// From the key, get the mesh trail, and then the track associated with that mesh trail
+			UMovieScene3DTransformTrack* Track = TrailPtr->Track;
+			// Draw a mesh trail for the key's associated actor
+			TArray<TWeakObjectPtr<UObject>> KeyObjects;
+			AActor* TrailActor = KeyActor->GetAssociatedActor();
+			KeyObjects.Add(TrailActor);
+			FPrimitiveDrawInterface* PDI = nullptr;
+			DrawTransformTrack(PDI, Track, KeyObjects, true);
+		}
 	}
 }
 
@@ -170,7 +173,10 @@ void FSequencerEdMode::CleanUpMeshTrails()
 	// Clean up any existing trails
 	for (FMeshTrailData& MeshTrail : MeshTrails)
 	{
-		MeshTrail.Trail->Cleanup();
+		if (MeshTrail.Trail)
+		{
+			MeshTrail.Trail->Cleanup();
+		}
 	}
 	MeshTrails.Empty();
 }
@@ -311,7 +317,6 @@ void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieSc
 
 					FVector OldPos_G = RefTM.TransformPosition(OldPos);
 					FVector NewKeyPos_G = RefTM.TransformPosition(NewKeyPos);
-					
 					// For constant interpolation - don't draw ticks - just draw dotted line.
 					if (bIsConstantKey)
 					{
@@ -332,7 +337,6 @@ void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieSc
 							GetLocationAtTime(TransformSection, NewTime, NewPos, NewRot);
 
 							FVector NewPos_G = RefTM.TransformPosition(NewPos);
-
 							if (PDI != nullptr)
 							{
 								PDI->DrawLine(OldPos_G, NewPos_G, TrackColor, SDPG_Foreground);
@@ -347,7 +351,7 @@ void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieSc
 								}
 								else if (TrailActor != nullptr)
 								{
-									TrailActor->AddFrameMeshComponent(NewTime, FTransform::FTransform(NewRot, NewPos_G, FVector::FVector(0.25f)));
+									TrailActor->AddFrameMeshComponent(NewTime, FTransform::FTransform(NewRot, NewPos, FVector::FVector(3.0f)));
 								}
 							}
 							OldTime = NewTime;
@@ -404,7 +408,7 @@ void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieSc
 				}
 				else if (TrailActor != nullptr)
 				{
-					TrailActor->AddKeyMeshActor(NewKeyTime, FTransform::FTransform(NewKeyRot, NewKeyPos_G, FVector::FVector(0.5f)), TransformSection);
+					TrailActor->AddKeyMeshActor(NewKeyTime, FTransform::FTransform(NewKeyRot, NewKeyPos, FVector::FVector(3.0f)), TransformSection);
 				}
 
 				//@todo
@@ -547,9 +551,13 @@ void FSequencerEdMode::DrawTracks3D(FPrimitiveDrawInterface* PDI)
 							});
 							if (TrailPtr == nullptr)
 							{
-								ASequencerMeshTrail* TrailActor = UViewportWorldInteraction::SpawnTransientSceneActor<ASequencerMeshTrail>(GetWorld(), TEXT("SequencerMeshTrail"), true);
-								FMeshTrailData MeshTrail = FMeshTrailData(TransformTrack, TrailActor);
-								MeshTrails.Add(MeshTrail);
+								UViewportWorldInteraction* WorldInteraction = Cast<UViewportWorldInteraction>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() )->FindExtension( UViewportWorldInteraction::StaticClass() ) );
+								if( WorldInteraction != nullptr )
+								{
+									ASequencerMeshTrail* TrailActor = WorldInteraction->SpawnTransientSceneActor<ASequencerMeshTrail>(TEXT("SequencerMeshTrail"), true);
+									FMeshTrailData MeshTrail = FMeshTrailData(TransformTrack, TrailActor);
+									MeshTrails.Add(MeshTrail);
+								}
 							}
 						}
 						DrawTransformTrack(PDI, TransformTrack, BoundObjects, ObjectBindingNode.Value);

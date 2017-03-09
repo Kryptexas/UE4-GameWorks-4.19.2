@@ -11,128 +11,83 @@
 #include "VREditorWidgetComponent.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
+#include "VREditorAssetContainer.h"
 
 namespace VREd
 {
 	static FAutoConsoleVariable DockWindowThickness( TEXT( "VREd.DockWindowTickness" ), 1.0f, TEXT( "How thick the window is" ) );
 	static FAutoConsoleVariable DockUISelectionBarVerticalOffset( TEXT( "VREd.DockUISelectionBarVerticalOffset" ), 2.0f, TEXT( "Z Distance between the selectionbar and the UI" ) );
-	static FAutoConsoleVariable DockUICloseButtonOffsetFromCorner( TEXT( "VREd.DockUICloseButtonOffsetFromCorner" ), 1.5f, TEXT( "How far away from the corner (along each 2D axis) of the UI the close button draws" ) );
 	static FAutoConsoleVariable DockUIFadeAnimationDuration( TEXT( "VREd.DockUIFadeAnimationDuration" ), 0.15f, TEXT( "How quick the fade animation should complete in" ) );
-	static FAutoConsoleVariable DockUIHoverScale( TEXT( "VREd.DockUIHoverScale" ), 1.15f, TEXT( "How big the selection bar gets when you hover over it" ) );
+	static FAutoConsoleVariable DockUIHoverScale( TEXT( "VREd.DockUIHoverScale" ), 1.1f, TEXT( "How big the selection bar gets when you hover over it" ) );
 	static FAutoConsoleVariable DockUIHoverAnimationDuration( TEXT( "VREd.DockUIHoverAnimationDuration" ), 0.15f, TEXT( "How quick the hover animation should complete in" ) );
+	static FAutoConsoleVariable DockUIDragSmoothingAmount( TEXT( "VREd.DockUIDragSmoothingAmount" ), 0.85f, TEXT( "How much to smooth out motion when dragging UI (frame rate sensitive)" ) );
 }
 
 
-AVREditorDockableWindow::AVREditorDockableWindow()
-	: Super(),
-	DockSelectDistance( 0.0f )
+AVREditorDockableWindow::AVREditorDockableWindow() : 
+	Super(),
+	bIsLaserAimingTowardUI(false),
+	AimingAtMeFadeAlpha(0.0f),
+	bIsHoveringOverSelectionBar(false),
+	SelectionBarHoverAlpha(0.0f),
+	bIsHoveringOverCloseButton(false),
+	CloseButtonHoverAlpha(0.0f),
+	DockSelectDistance(0.0f)
 {
+	UVREditorAssetContainer* AssetContainer = LoadObject<UVREditorAssetContainer>(nullptr, *UVREditorMode::AssetContainerPath);
+
 	{
-		UStaticMesh* WindowMesh = nullptr;
-		{
-			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/UI/SM_ContentWindow_01" ) );
-			WindowMesh = ObjectFinder.Object;
-			check( WindowMesh != nullptr );
-		}
-
-		WindowMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "WindowMesh" ) );
-		WindowMeshComponent->SetStaticMesh( WindowMesh );
-		WindowMeshComponent->SetMobility( EComponentMobility::Movable );
-		WindowMeshComponent->SetupAttachment( RootComponent );
-
-		WindowMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-		WindowMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );
-		WindowMeshComponent->SetCollisionResponseToChannel( COLLISION_GIZMO, ECollisionResponse::ECR_Block );
-		WindowMeshComponent->SetCollisionObjectType( COLLISION_GIZMO );
-
-		WindowMeshComponent->bGenerateOverlapEvents = false;
-		WindowMeshComponent->SetCanEverAffectNavigation( false );
-		WindowMeshComponent->bCastDynamicShadow = false;
-		WindowMeshComponent->bCastStaticShadow = false;
-		WindowMeshComponent->bAffectDistanceFieldLighting = false;
+		UStaticMesh* WindowMesh = AssetContainer->WindowMesh;
+		WindowMeshComponent->SetStaticMesh(WindowMesh);
+		check(WindowMeshComponent != nullptr);
 	}
 
+	UMaterialInterface* HoverMaterial = AssetContainer->WindowMaterial;
+	UMaterialInterface* TranslucentHoverMaterial = AssetContainer->WindowMaterial;
+
+	const FRotator RelativeRotation(30.f, 0.f, 0.f);
 	{
-		UStaticMesh* SelectionMesh = nullptr;
-		{
-			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/UI/SelectionBarMesh" ) );
-			SelectionMesh = ObjectFinder.Object;
-			check( SelectionMesh != nullptr );
-		}
+		UStaticMesh* SelectionMesh = AssetContainer->WindowSelectionBarMesh;
 
 		SelectionBarMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBarMesh" ) );
 		SelectionBarMeshComponent->SetStaticMesh( SelectionMesh );
 		SelectionBarMeshComponent->SetMobility( EComponentMobility::Movable );
 		SelectionBarMeshComponent->SetupAttachment( RootComponent );
 
-		SelectionBarMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 		SelectionBarMeshComponent->bGenerateOverlapEvents = false;
 		SelectionBarMeshComponent->SetCanEverAffectNavigation( false );
 		SelectionBarMeshComponent->bCastDynamicShadow = false;
 		SelectionBarMeshComponent->bCastStaticShadow = false;
 		SelectionBarMeshComponent->bAffectDistanceFieldLighting = false;
+		SelectionBarMeshComponent->SetRelativeRotation(RelativeRotation);
 
-		UMaterial* HoverMaterial = nullptr;
-		{
-			static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TransformGizmoMaterial" ) );
-			HoverMaterial = ObjectFinder.Object;
-			check( HoverMaterial != nullptr );
-		}
+
 		SelectionBarMID = UMaterialInstanceDynamic::Create( HoverMaterial, GetTransientPackage() );
 		check( SelectionBarMID != nullptr );
 		SelectionBarMeshComponent->SetMaterial( 0, SelectionBarMID );
-
-		UMaterial* TranslucentHoverMaterial = nullptr;
-		{
-			static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TranslucentTransformGizmoMaterial" ) );
-			TranslucentHoverMaterial = ObjectFinder.Object;
-			check( TranslucentHoverMaterial != nullptr );
-		}
 		SelectionBarTranslucentMID = UMaterialInstanceDynamic::Create( TranslucentHoverMaterial, GetTransientPackage() );
 		check( SelectionBarTranslucentMID != nullptr );
 		SelectionBarMeshComponent->SetMaterial( 1, SelectionBarTranslucentMID );
 	}
 
 	{
-		UStaticMesh* CloseButtonMesh = nullptr;
-		{
-			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/UI/CloseButtonMesh" ) );
-			CloseButtonMesh = ObjectFinder.Object;
-			check( CloseButtonMesh != nullptr );
-		}
+		UStaticMesh* CloseButtonMesh = AssetContainer->WindowCloseButtonMesh;
 
 		CloseButtonMeshComponent= CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "CloseButtonMesh" ) );
 		CloseButtonMeshComponent->SetStaticMesh( CloseButtonMesh );
 		CloseButtonMeshComponent->SetMobility( EComponentMobility::Movable );
 		CloseButtonMeshComponent->SetupAttachment( RootComponent );
 
-		CloseButtonMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-		CloseButtonMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );
-		CloseButtonMeshComponent->SetCollisionResponseToChannel( COLLISION_GIZMO, ECollisionResponse::ECR_Block );
-		CloseButtonMeshComponent->SetCollisionObjectType( COLLISION_GIZMO );
-
 		CloseButtonMeshComponent->bGenerateOverlapEvents = false;
 		CloseButtonMeshComponent->SetCanEverAffectNavigation( false );
 		CloseButtonMeshComponent->bCastDynamicShadow = false;
 		CloseButtonMeshComponent->bCastStaticShadow = false;
 		CloseButtonMeshComponent->bAffectDistanceFieldLighting = false;
+		CloseButtonMeshComponent->SetRelativeRotation(RelativeRotation);
 
-		UMaterial* HoverMaterial = nullptr;
-		{
-			static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TransformGizmoMaterial" ) );
-			HoverMaterial = ObjectFinder.Object;
-			check( HoverMaterial != nullptr );
-		}
 		CloseButtonMID = UMaterialInstanceDynamic::Create( HoverMaterial, GetTransientPackage() );
 		check( CloseButtonMID != nullptr );
 		CloseButtonMeshComponent->SetMaterial( 0, CloseButtonMID );
-
-		UMaterial* TranslucentHoverMaterial = nullptr;
-		{
-			static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TranslucentTransformGizmoMaterial" ) );
-			TranslucentHoverMaterial = ObjectFinder.Object;
-			check( TranslucentHoverMaterial != nullptr );
-		}
 		CloseButtonTranslucentMID = UMaterialInstanceDynamic::Create( TranslucentHoverMaterial, GetTransientPackage() );
 		check( CloseButtonTranslucentMID != nullptr );
 		CloseButtonMeshComponent->SetMaterial( 1, CloseButtonTranslucentMID );
@@ -151,7 +106,6 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 
 AVREditorDockableWindow::~AVREditorDockableWindow()
 {
-	WindowMeshComponent = nullptr;
 	SelectionBarMeshComponent = nullptr;
 	CloseButtonMeshComponent = nullptr;
 	SelectionBarMID = nullptr;
@@ -170,24 +124,38 @@ void AVREditorDockableWindow::SetupWidgetComponent()
 }
 
 
+void AVREditorDockableWindow::SetCollision(const ECollisionEnabled::Type InCollisionType, const ECollisionResponse InCollisionResponse, const ECollisionChannel InCollisionChannel)
+{
+	AVREditorFloatingUI::SetCollision(InCollisionType, InCollisionResponse, InCollisionChannel);
+
+	SelectionBarMeshComponent->SetCollisionEnabled(InCollisionType);
+	SelectionBarMeshComponent->SetCollisionResponseToAllChannels(InCollisionResponse);
+	SelectionBarMeshComponent->SetCollisionObjectType(InCollisionChannel);
+	CloseButtonMeshComponent->SetCollisionEnabled(InCollisionType);
+	CloseButtonMeshComponent->SetCollisionResponseToAllChannels(InCollisionResponse);
+}
+
+
 void AVREditorDockableWindow::TickManually( float DeltaTime )
 {
 	Super::TickManually( DeltaTime );
 
 	if( WidgetComponent->IsVisible() )
 	{
+		const FVector2D Size = GetSize();
 		const float WorldScaleFactor = GetOwner().GetOwner().GetWorldScaleFactor();
 		const FVector AnimatedScale = CalculateAnimatedScale();
 
-
 		// Update whether the user is aiming toward us or not
 		bIsLaserAimingTowardUI = false;
+
+		if (!GetOwner().IsDraggingDockUI())
 		{
 			const FTransform UICapsuleTransform = this->GetActorTransform();
 
-			const FVector UICapsuleStart = FVector( 0.0f, 0.0f, -GetSize().Y * 0.4f ) * WorldScaleFactor * AnimatedScale;
-			const FVector UICapsuleEnd = FVector( 0.0f, 0.0f, GetSize().Y * 0.4f ) * WorldScaleFactor * AnimatedScale;
-			const float UICapsuleLocalRadius = GetSize().X * 0.5f * WorldScaleFactor * AnimatedScale.Y;
+			const FVector UICapsuleStart = FVector( 0.0f, 0.0f, -Size.Y * 0.4f ) * WorldScaleFactor * AnimatedScale;
+			const FVector UICapsuleEnd = FVector( 0.0f, 0.0f, Size.Y * 0.4f ) * WorldScaleFactor * AnimatedScale;
+			const float UICapsuleLocalRadius = Size.X * 0.5f * WorldScaleFactor * AnimatedScale.Y;
 			const float MinDistanceToUICapsule = 10.0f * WorldScaleFactor * AnimatedScale.Y;	// @todo vreditor tweak
 			const FVector UIForwardVector = FVector::ForwardVector;
 			const float MinDotForAimingAtOtherHand = -1.1f;	// @todo vreditor tweak
@@ -226,8 +194,8 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 
 			const FVector WindowMeshScale = FVector(
 				VREd::DockWindowThickness->GetFloat(),
-				GetSize().X / WindowMeshSize,
-				GetSize().Y / WindowMeshSize ) * AnimatedScale * WorldScaleFactor;
+				Size.X / WindowMeshSize,
+				Size.Y / WindowMeshSize ) * AnimatedScale * WorldScaleFactor;
 			WindowMeshComponent->SetRelativeScale3D( WindowMeshScale );			
 		}
 
@@ -244,7 +212,7 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 			SelectionBarHoverAlpha = FMath::Clamp( SelectionBarHoverAlpha, 0.0f, 1.0f );
 
 			// How big the selection bar should be
-			const FVector SelectionBarSize( 1.0f, GetSize().X * 0.8f, 6.0f );	// @todo vreditor tweak
+			const FVector SelectionBarSize(20.0f, Size.X * 0.8f, Size.X * 0.1f);
 			FVector SelectionBarScale = SelectionBarSize * AnimatedScale * WorldScaleFactor;
 			SelectionBarScale *= FMath::Lerp( 1.0f, VREd::DockUIHoverScale->GetFloat(), SelectionBarHoverAlpha );
 
@@ -253,9 +221,9 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 
 			SelectionBarMeshComponent->SetRelativeScale3D( SelectionBarScale );
 			const FVector SelectionBarRelativeLocation = FVector(
-				0.0f,
-				0.0f,
-				-( GetSize().Y * 0.5f + SelectionBarSize.Z * 0.5f + VREd::DockUISelectionBarVerticalOffset->GetFloat() ) ) * AnimatedScale * WorldScaleFactor;
+				4.0f,
+				((Size.X * 0.5f) - (SelectionBarSize.Y * 0.5f)),
+				-(Size.Y * 0.5f + SelectionBarSize.Z + VREd::DockUISelectionBarVerticalOffset->GetFloat())) * AnimatedScale * WorldScaleFactor;
 			SelectionBarMeshComponent->SetRelativeLocation( SelectionBarRelativeLocation );
 
 			SetSelectionBarColor( GetOwner().GetOwner().GetColor( bIsHoveringOverSelectionBar ? UVREditorMode::EColors::UISelectionBarHoverColor : UVREditorMode::EColors::UISelectionBarColor ) );
@@ -274,20 +242,22 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 			CloseButtonHoverAlpha = FMath::Clamp( CloseButtonHoverAlpha, 0.0f, 1.0f );
 
 			// How big the close button should be
-			const FVector CloseButtonSize( 1.0f, 2.0f, 2.0f );	// @todo vreditor tweak
+			const FVector CloseButtonSize(20.0f, Size.X * 0.1f, Size.X * 0.1f);
 			FVector CloseButtonScale = CloseButtonSize * AnimatedScale * WorldScaleFactor * EasedAimingAtMeFadeAlpha;
 			CloseButtonScale *= FMath::Lerp( 1.0f, VREd::DockUIHoverScale->GetFloat(), CloseButtonHoverAlpha );
 
-
 			CloseButtonMeshComponent->SetRelativeScale3D( CloseButtonScale );
 			const FVector CloseButtonRelativeLocation = FVector(
-				0.0f,
-				-( GetSize().X * 0.5f + CloseButtonSize.Y * 0.5f + VREd::DockUICloseButtonOffsetFromCorner->GetFloat() ),
-				( GetSize().Y * 0.5f + CloseButtonSize.Z * 0.5f + VREd::DockUICloseButtonOffsetFromCorner->GetFloat() ) ) * AnimatedScale * WorldScaleFactor;
-			CloseButtonMeshComponent->SetRelativeLocation( CloseButtonRelativeLocation );
+				4.0f,
+				-((Size.X * 0.5f) - (CloseButtonSize.Y * 0.5f)),
+				-(Size.Y * 0.5f + CloseButtonSize.Z + VREd::DockUISelectionBarVerticalOffset->GetFloat())) * AnimatedScale * WorldScaleFactor;
+			CloseButtonMeshComponent->SetRelativeLocation(CloseButtonRelativeLocation);
 
 			SetCloseButtonColor( GetOwner().GetOwner().GetColor( bIsHoveringOverCloseButton ? UVREditorMode::EColors::UICloseButtonHoverColor : UVREditorMode::EColors::UICloseButtonColor ) );
 		}
+
+		const FVector NewScale(GetScale() * AnimatedScale * VRMode->GetWorldScaleFactor());
+		SetWidgetComponentScale(NewScale);
 	}
 } 
 
@@ -321,9 +291,15 @@ float AVREditorDockableWindow::GetDockSelectDistance() const
 	return DockSelectDistance;
 }
 
+void AVREditorDockableWindow::SetDockSelectDistance(const float InDockDistance)
+{
+	DockSelectDistance = InDockDistance;
+}
+
 void AVREditorDockableWindow::OnPressed( UViewportInteractor* Interactor, const FHitResult& InHitResult, bool& bOutResultedInDrag )
 {
 	bOutResultedInDrag = false;
+
 	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
 	if( VRInteractor != nullptr )
 	{
@@ -331,17 +307,14 @@ void AVREditorDockableWindow::OnPressed( UViewportInteractor* Interactor, const 
 		{
 			// Close the window
 			const bool bShouldShow = false;
-			const bool bShowOnHand = false;
-			const bool bRefreshQuickMenu = true;
-			GetOwner().ShowEditorUIPanel( this, VRInteractor, bShouldShow, bShowOnHand, bRefreshQuickMenu );
+			const bool bSpawnInFront = false;
+			GetOwner().ShowEditorUIPanel(this, VRInteractor, bShouldShow, bSpawnInFront);
 		}
-		else if( InHitResult.Component == GetSelectionBarMeshComponent() )
+		else if(InHitResult.Component == GetSelectionBarMeshComponent() && !GetOwner().IsDraggingPanelFromOpen())
 		{
 			bOutResultedInDrag = true;
-
-			FVector LaserPointerStart, LaserPointerEnd;
-			DockSelectDistance = ( InHitResult.TraceStart - InHitResult.Location ).Size();
-			GetOwner().StartDraggingDockUI( this, VRInteractor, DockSelectDistance );
+			SetDockSelectDistance((InHitResult.TraceStart - InHitResult.Location ).Size());
+			GetOwner().StartDraggingDockUI(this, VRInteractor, DockSelectDistance);
 		}
 	}
 }
@@ -369,10 +342,10 @@ void AVREditorDockableWindow::OnHoverLeave( UViewportInteractor* Interactor, con
 	UActorComponent* OtherInteractorHoveredComponent = nullptr;
 	if( Interactor->GetOtherInteractor() != nullptr )
 	{
-		OtherInteractorHoveredComponent = Interactor->GetOtherInteractor()->GetHoverComponent();
+		OtherInteractorHoveredComponent = Interactor->GetOtherInteractor()->GetLastHoverComponent();
 	}
 
-	if ( OtherInteractorHoveredComponent != SelectionBarMeshComponent && NewComponent != SelectionBarMeshComponent )
+	if ( OtherInteractorHoveredComponent != SelectionBarMeshComponent && NewComponent != SelectionBarMeshComponent && !GetDragOperationComponent()->IsDragging() )
 	{
 		bIsHoveringOverSelectionBar = false;
 	}
@@ -423,23 +396,41 @@ void UDockableWindowDragOperation::ExecuteDrag( UViewportInteractor* Interactor,
 	{
 		UVREditorUISystem& UISystem = DockableWindow->GetOwner();
 
-		const bool bIsAbsolute = ( UISystem.GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
-		float SlideDeltaY = VRInteractor->GetSlideDelta();
-
-		float NewUIScale = DockableWindow->GetScale() + SlideDeltaY;
-		if ( NewUIScale <= UISystem.GetMinDockWindowSize() )
+		if (UISystem.CanScalePanel())
 		{
-			NewUIScale = UISystem.GetMinDockWindowSize();
+			float NewUIScale = DockableWindow->GetScale() + VRInteractor->GetSlideDelta();
+			if (NewUIScale <= UISystem.GetMinDockWindowSize())
+			{
+				NewUIScale = UISystem.GetMinDockWindowSize();
+			}
+			else if (NewUIScale >= UISystem.GetMaxDockWindowSize())
+			{
+				NewUIScale = UISystem.GetMaxDockWindowSize();
+			}
+			DockableWindow->SetScale(NewUIScale);
 		}
-		else if ( NewUIScale >= UISystem.GetMaxDockWindowSize() )
+
+		const FTransform UIToWorld = UISystem.MakeDockableUITransform( DockableWindow, VRInteractor, DockableWindow->GetDockSelectDistance() );
+		FTransform SmoothedUIToWorld = UIToWorld;
+		if( LastUIToWorld.IsSet() )
 		{
-			NewUIScale = UISystem.GetMaxDockWindowSize();
+			SmoothedUIToWorld.Blend( UIToWorld, LastUIToWorld.GetValue(), VREd::DockUIDragSmoothingAmount->GetFloat() );
 		}
 
-		DockableWindow->SetScale( NewUIScale );
+		// Update interactor hover location while dragging the interactor
+		const FTransform LaserImpactToWorld = UISystem.MakeDockableUITransformOnLaser( DockableWindow, VRInteractor, DockableWindow->GetDockSelectDistance() );
+		FTransform SmoothedLaserImpactToWorld = LaserImpactToWorld;
+		if( LastLaserImpactToWorld.IsSet() )
+		{
+			SmoothedLaserImpactToWorld.Blend( LaserImpactToWorld, LastLaserImpactToWorld.GetValue(), VREd::DockUIDragSmoothingAmount->GetFloat() );
+		}
 
-		const FTransform DockedUIToWorld = UISystem.MakeDockableUITransform( DockableWindow, VRInteractor, DockableWindow->GetDockSelectDistance() );
-		DockableWindow->SetActorTransform( DockedUIToWorld );
+		DockableWindow->SetActorTransform( SmoothedUIToWorld );
 		DockableWindow->UpdateRelativeRoomTransform();
+
+		Interactor->SetHoverLocation(SmoothedLaserImpactToWorld.GetLocation());
+
+		LastUIToWorld = SmoothedUIToWorld;
+		LastLaserImpactToWorld = SmoothedLaserImpactToWorld;
 	}
 }

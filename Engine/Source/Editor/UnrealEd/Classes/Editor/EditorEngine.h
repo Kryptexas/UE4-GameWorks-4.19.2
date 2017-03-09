@@ -55,6 +55,7 @@ class USoundBase;
 class USoundNode;
 class UTextureRenderTarget2D;
 struct FAnalyticsEventAttribute;
+class UEditorWorldExtensionManager;
 
 //
 // Things to set in mapSetBrush.
@@ -613,6 +614,12 @@ public:
 
 	/** The feature level we should use when loading or creating a new world */
 	ERHIFeatureLevel::Type DefaultWorldFeatureLevel;
+
+private:
+
+	/** Manager that holds all extensions paired with a world */
+	UPROPERTY()
+	UEditorWorldExtensionManager* EditorWorldExtensionsManager;
 
 protected:
 
@@ -1819,7 +1826,7 @@ public:
 	/**
 	*  Returns the Editors world manager instance.
 	*/
-	TSharedRef<class FEditorWorldExtensionManager> GetEditorWorldExtensionsManager() { return EditorWorldExtensionsManager.ToSharedRef(); }
+	UEditorWorldExtensionManager* GetEditorWorldExtensionsManager() { return EditorWorldExtensionsManager; }
 
 	// Editor specific
 
@@ -2822,9 +2829,6 @@ private:
 
 	/** The Timer manager for all timer delegates */
 	TSharedPtr<class FTimerManager> TimerManager;
-
-	/** Manager that holds all the worlds contexts with viewport interaction */
-	TSharedPtr<class FEditorWorldExtensionManager> EditorWorldExtensionsManager;
 
 	/** The output log -> message log redirector for use during PIE */
 	TSharedPtr<class FOutputLogErrorsToMessageLogProxy> OutputLogErrorsToMessageLogProxyPtr;

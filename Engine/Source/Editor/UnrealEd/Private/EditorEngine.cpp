@@ -317,6 +317,8 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	NumOnlinePIEInstances = 0;
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
 
+	EditorWorldExtensionsManager = nullptr;
+
 #if !UE_BUILD_SHIPPING
 	if (!AutomationCommon::OnEditorAutomationMapLoadDelegate().IsBound())
 	{
@@ -613,7 +615,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	TimerManager = MakeShareable(new FTimerManager());
 
 	// create the editor world manager
-	EditorWorldExtensionsManager = MakeShareable(new FEditorWorldExtensionManager());
+	EditorWorldExtensionsManager = NewObject<UEditorWorldExtensionManager>();
 
 	// Settings.
 	FBSPOps::GFastRebuild = 0;
@@ -896,6 +898,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("UndoHistory"),
 			TEXT("DeviceProfileEditor"),
 			TEXT("SourceCodeAccess"),
+			TEXT("MeshEditor"),
 			TEXT("BehaviorTreeEditor"),
 			TEXT("HardwareTargeting"),
 			TEXT("LocalizationDashboard"),
@@ -1699,8 +1702,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 	}
 
-	// Updates the ViewportWorldInteraction
-	EditorWorldExtensionsManager->Tick( DeltaSeconds );
+	// Updates all the extensions for all the editor worlds
+	EditorWorldExtensionsManager->Tick(DeltaSeconds);
 
 	bool bIsMouseOverAnyLevelViewport = false;
 

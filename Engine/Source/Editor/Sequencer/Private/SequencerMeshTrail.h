@@ -60,4 +60,9 @@ private:
 	TArray<FFrameComponentData> FrameMeshComponents;
 
 	TSharedPtr<class FSequencer> Sequencer;
+
+	void UpdateTrailAppearance(float UpdateTime);
+	float TrailTime;
+	float MaxTrailTime;
+	FTimerHandle TrailUpdate; 
 };

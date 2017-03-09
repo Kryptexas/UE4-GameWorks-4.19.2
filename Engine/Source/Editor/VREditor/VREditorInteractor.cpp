@@ -3,13 +3,15 @@
 #include "VREditorInteractor.h"
 #include "EngineUtils.h"
 #include "ViewportWorldInteraction.h"
-
+#include "Editor.h"
+#include "Engine/Selection.h"
 #include "VREditorMode.h"
 #include "VREditorFloatingText.h"
-
+#include "VREditorWorldInteraction.h"
 #include "VREditorButton.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorDockableWindow.h"
+#include "ActorTransformer.h"
 
 #define LOCTEXT_NAMESPACE "VREditor"
 
@@ -18,13 +20,12 @@ UVREditorInteractor::UVREditorInteractor( const FObjectInitializer& Initializer 
 	VRMode( nullptr ),
 	bIsModifierPressed( false ),
 	SelectAndMoveTriggerValue( 0.0f ),
-	bHasUIInFront( false ),
 	bHasUIOnForearm( false ),
 	bIsClickingOnUI( false ),
 	bIsRightClickingOnUI( false ),
 	bIsHoveringOverUI( false ),
 	UIScrollVelocity( 0.0f ),
-	LastClickReleaseTime( 0.0f ),
+	LastUIPressTime( 0.0f ),
 	bWantHelpLabels( false ),
 	HelpLabelShowOrHideStartTime( FTimespan::MinValue() )
 {
@@ -47,7 +48,7 @@ void UVREditorInteractor::Shutdown()
 	for ( auto& KeyAndValue : HelpLabels )
 	{
 		AFloatingText* FloatingText = KeyAndValue.Value;
-		UViewportWorldInteraction::DestroyTransientActor( GetVRMode().GetWorld(), FloatingText );
+		GetVRMode().DestroyTransientActor(FloatingText);
 	}
 
 	HelpLabels.Empty();	
@@ -57,10 +58,37 @@ void UVREditorInteractor::Shutdown()
 	Super::Shutdown();
 }
 
+void UVREditorInteractor::SetControllerType( const EControllerType& InControllerType )
+{
+	this->ControllerType = InControllerType;
+}
+
 void UVREditorInteractor::Tick( const float DeltaTime )
 {
 	Super::Tick( DeltaTime );
+
+	// If the other controller is dragging freely, the UI controller can assist
+	if( ControllerType == EControllerType::UI )
+	{
+		if( GetOtherInteractor() &&
+			( GetOtherInteractor()->GetDraggingMode() == EViewportInteractionDraggingMode::TransformablesFreely ) )
+		{
+			ControllerType = EControllerType::AssistingLaser;
+		}
+	}
+	// Otherwise the UI controller resets to a UI controller
+	// Allow for "trading off" during an assisted drag
+	else if( ControllerType == EControllerType::AssistingLaser )
+	{
+		if( GetOtherInteractor() &&
+			!( GetOtherInteractor()->GetDraggingMode() == EViewportInteractionDraggingMode::TransformablesFreely ||
+				GetOtherInteractor()->GetInteractorData().bWasAssistingDrag ) )
+		{
+			ControllerType = EControllerType::UI;
+		}
+	}
 }
+
 
 FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors /*= nullptr*/, const bool bIgnoreGizmos /*= false*/,
 	TArray<UClass*>* ObjectsInFrontOfGizmo /*= nullptr */, const bool bEvenIfBlocked /*= false */, const float LaserLengthOverride /*= 0.0f */ )
@@ -72,8 +100,6 @@ FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 		OptionalListOfIgnoredActors = &IgnoredActors;
 	}
 
-	OptionalListOfIgnoredActors->Add( GetVRMode().GetAvatarMeshActor() );
-	
 	// Ignore UI widgets too
 	if ( GetDraggingMode() == EViewportInteractionDraggingMode::TransformablesAtLaserImpact )
 	{
@@ -97,20 +123,32 @@ FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 	return UViewportInteractor::GetHitResultFromLaserPointer( OptionalListOfIgnoredActors, bIgnoreGizmos, ObjectsInFrontOfGizmo, bEvenIfBlocked, LaserLengthOverride );
 }
 
-void UVREditorInteractor::ResetHoverState( const float DeltaTime )
+void UVREditorInteractor::PreviewInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled )
 {
-	bIsHoveringOverUI = false;
-}	
-
-void UVREditorInteractor::OnStartDragging( const FVector& HitLocation, const bool bIsPlacingNewObjects )
-{
-	// If the user is holding down the modifier key, go ahead and duplicate the selection first.  Don't do this if we're
-	// placing objects right now though.
-	if ( bIsModifierPressed && !bIsPlacingNewObjects )
+	// Update modifier state
+	if( Action.ActionType == VRActionTypes::Modifier )
 	{
-		WorldInteraction->Duplicate();
+		if( Event == IE_Pressed )
+		{
+			bIsModifierPressed = true;
+		}
+		else if( Event == IE_Released )
+		{
+			bIsModifierPressed = false;
+		}
+	}
+
+	if( !bOutWasHandled )
+	{
+		Super::PreviewInputKey( ViewportClient, Action, Key, Event, bOutWasHandled );
 	}
 }
+
+void UVREditorInteractor::ResetHoverState()
+{
+	Super::ResetHoverState();
+	bIsHoveringOverUI = false;
+}	
 
 float UVREditorInteractor::GetSlideDelta()
 {
@@ -120,16 +158,6 @@ float UVREditorInteractor::GetSlideDelta()
 bool UVREditorInteractor::IsHoveringOverUI() const
 {
 	return bIsHoveringOverUI;
-}
-
-void UVREditorInteractor::SetHasUIInFront( const bool bInHasUIInFront )
-{
-	bHasUIInFront = bInHasUIInFront;
-}
-
-bool UVREditorInteractor::HasUIInFront() const
-{
-	return bHasUIInFront;
 }
 
 void UVREditorInteractor::SetHasUIOnForearm( const bool bInHasUIOnForearm )
@@ -142,14 +170,14 @@ bool UVREditorInteractor::HasUIOnForearm() const
 	return bHasUIOnForearm;
 }
 
-UWidgetComponent* UVREditorInteractor::GetHoveringOverWidgetComponent() const
+UWidgetComponent* UVREditorInteractor::GetLastHoveredWidgetComponent() const
 {
-	return InteractorData.HoveringOverWidgetComponent;
+	return InteractorData.LastHoveredWidgetComponent;
 }
 
-void UVREditorInteractor::SetHoveringOverWidgetComponent( UWidgetComponent* NewHoveringOverWidgetComponent )
+void UVREditorInteractor::SetLastHoveredWidgetComponent( UWidgetComponent* NewHoveringOverWidgetComponent )
 {
-	InteractorData.HoveringOverWidgetComponent = NewHoveringOverWidgetComponent;
+	InteractorData.LastHoveredWidgetComponent = NewHoveringOverWidgetComponent;
 }
 
 bool UVREditorInteractor::IsModifierPressed() const
@@ -182,14 +210,14 @@ bool UVREditorInteractor::IsRightClickingOnUI() const
 	return bIsRightClickingOnUI;
 }
 
-void UVREditorInteractor::SetLastClickReleaseTime( const double InLastClickReleaseTime )
+void UVREditorInteractor::SetLastUIPressTime( const double InLastUIPressTime )
 {
-	LastClickReleaseTime = InLastClickReleaseTime;
+	LastUIPressTime = InLastUIPressTime;
 }
 
-double UVREditorInteractor::GetLastClickReleaseTime() const
+double UVREditorInteractor::GetLastUIPressTime() const
 {
-	return LastClickReleaseTime;
+	return LastUIPressTime;
 }
 
 void UVREditorInteractor::SetUIScrollVelocity( const float InUIScrollVelocity )
@@ -209,7 +237,7 @@ float UVREditorInteractor::GetSelectAndMoveTriggerValue() const
 
 bool UVREditorInteractor::GetIsLaserBlocked() const
 {
-	return bHasUIInFront;
+	return Super::GetIsLaserBlocked() || bHasUIInFront;
 }
 
 #undef LOCTEXT_NAMESPACE

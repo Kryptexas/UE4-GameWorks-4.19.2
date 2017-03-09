@@ -22,7 +22,6 @@ void UMouseCursorInteractor::Init()
 	// Setup keys
 	{
 		AddKeyAction( EKeys::LeftMouseButton, FViewportActionKeyInput( ViewportWorldActionTypes::SelectAndMove ) );
-		AddKeyAction( EKeys::MiddleMouseButton, FViewportActionKeyInput( ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) );
 	}
 }
 
@@ -37,6 +36,8 @@ void UMouseCursorInteractor::PollInput()
 	if( ViewportClientPtr != nullptr && ViewportClientPtr->GetWorld() == WorldInteraction->GetWorld() )
 	{
 		FEditorViewportClient& ViewportClient = *ViewportClientPtr;
+
+		bIsControlKeyPressed = ViewportClient.Viewport->KeyState( EKeys::LeftControl ) || ViewportClient.Viewport->KeyState( EKeys::RightControl );
 
 		// Only if we're not tracking (RMB looking)
 		if( !ViewportClient.IsTracking() )
@@ -74,3 +75,15 @@ void UMouseCursorInteractor::PollInput()
 	}
 	InteractorData.RoomSpaceTransform = InteractorData.Transform * WorldInteraction->GetRoomTransform().Inverse();
 }
+
+
+bool UMouseCursorInteractor::IsModifierPressed() const
+{
+	return bIsControlKeyPressed;
+}
+
+bool UMouseCursorInteractor::AllowLaserSmoothing() const
+{
+	return false;
+}
+
