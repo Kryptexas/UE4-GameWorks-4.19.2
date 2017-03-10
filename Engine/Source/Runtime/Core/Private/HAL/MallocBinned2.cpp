@@ -548,8 +548,8 @@ FMallocBinned2::FMallocBinned2()
 		SmallBlockSizesReversed[Index] = SmallBlockSizes[Partner];
 	}
 	FGenericPlatformMemoryConstants Constants = FPlatformMemory::GetConstants();
-	PageSize = Constants.PageSize;
-	OsAllocationGranularity = Constants.OsAllocationGranularity ? Constants.OsAllocationGranularity : PageSize;
+	PageSize = Constants.BinnedPageSize;
+	OsAllocationGranularity = Constants.BinnedAllocationGranularity ? Constants.BinnedAllocationGranularity : PageSize;
 	NumPoolsPerPage = PageSize / sizeof(FPoolInfo);
 	PtrToPoolMapping.Init(PageSize, NumPoolsPerPage, Constants.AddressLimit);
 

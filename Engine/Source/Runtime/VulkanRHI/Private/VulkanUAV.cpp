@@ -207,6 +207,7 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTextur
 	// delay the shader view create until we use it, so we just track the source info here
 	SRV->SourceTexture = ResourceCast(Texture3DRHI);
 	SRV->MipLevel = MipLevel;
+	SRV->NumMips = 1;
 	return SRV;
 }
 
@@ -216,6 +217,7 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTextur
 	// delay the shader view create until we use it, so we just track the source info here
 	SRV->SourceTexture = ResourceCast(Texture2DArrayRHI);
 	SRV->MipLevel = MipLevel;
+	SRV->NumMips = 1;
 	return SRV;
 }
 
@@ -225,6 +227,7 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTextur
 	// delay the shader view create until we use it, so we just track the source info here
 	SRV->SourceTexture = ResourceCast(TextureCubeRHI);
 	SRV->MipLevel = MipLevel;
+	SRV->NumMips = 1;
 	return SRV;
 }
 
@@ -263,4 +266,35 @@ void FVulkanCommandListContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unor
 	{
 		ensure(0);
 	}
+}
+
+FVulkanComputeFence::FVulkanComputeFence(FVulkanDevice* InDevice, FName InName)
+	: FRHIComputeFence(InName)
+	, VulkanRHI::FGPUEvent(InDevice)
+{
+}
+
+FVulkanComputeFence::~FVulkanComputeFence()
+{
+}
+
+void FVulkanComputeFence::WriteCmd(VkCommandBuffer CmdBuffer)
+{
+	FRHIComputeFence::WriteFence();
+	VulkanRHI::vkCmdSetEvent(CmdBuffer, Handle, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+}
+
+
+FComputeFenceRHIRef FVulkanDynamicRHI::RHICreateComputeFence(const FName& Name)
+{
+	return new FVulkanComputeFence(Device, Name);
+}
+
+void FVulkanCommandListContext::RHIWaitComputeFence(FComputeFenceRHIParamRef InFence)
+{
+	FVulkanComputeFence* Fence = ResourceCast(InFence);
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	VkEvent Event = Fence->GetHandle();
+	VulkanRHI::vkCmdWaitEvents(CmdBuffer->GetHandle(), 1, &Event, VK_SHADER_STAGE_COMPUTE_BIT, VK_SHADER_STAGE_ALL_GRAPHICS, 0, nullptr, 0, nullptr, 0, nullptr);
+	IRHICommandContext::RHIWaitComputeFence(InFence);
 }

@@ -1197,7 +1197,7 @@ public:
 	// LevelScriptBlueprint
 
 	/** Find how many nodes reference the supplied actor */
-	static int32 FindNumReferencesToActorFromLevelScript(ULevelScriptBlueprint* LevelScriptBlueprint, AActor* InActor);
+	static bool FindReferencesToActorFromLevelScript(ULevelScriptBlueprint* LevelScriptBlueprint, AActor* InActor, TArray<UK2Node*>& ReferencedToActors);
 
 	/** Replace all references of the old actor with the new actor */
 	static void ReplaceAllActorRefrences(ULevelScriptBlueprint* InLevelScriptBlueprint, AActor* InOldActor, AActor* InNewActor);

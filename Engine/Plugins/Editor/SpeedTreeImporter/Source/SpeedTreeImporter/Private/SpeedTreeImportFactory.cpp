@@ -447,6 +447,32 @@ FText USpeedTreeImportFactory::GetDisplayName() const
 	return LOCTEXT("SpeedTreeImportFactoryDescription", "SpeedTree");
 }
 
+bool USpeedTreeImportFactory::FactoryCanImport(const FString& Filename)
+{
+	bool bCanImport = false;
+
+#if WITH_SPEEDTREE
+	if (FPaths::GetExtension(Filename) == TEXT("srt"))
+	{
+		// SpeedTree RealTime files should begin with the bytes "SRT " in the header. If they don't, then this isn't a SpeedTree file
+		TArray<uint8> FileData;
+
+		FFileHelper::LoadFileToArray(FileData, *Filename);
+
+		if (FileData.Num() > 4)
+		{
+			bCanImport = (FileData[0] == 'S' &&
+						  FileData[1] == 'R' &&
+						  FileData[2] == 'T' &&
+						  FileData[3] == ' ');
+		}
+	}
+#else	// WITH_SPEEDTREE
+	bCanImport = Super::FactoryCanImport(Filename);
+#endif	// WITH_SPEEDTREE
+
+	return bCanImport;
+}
 
 #if WITH_SPEEDTREE
 

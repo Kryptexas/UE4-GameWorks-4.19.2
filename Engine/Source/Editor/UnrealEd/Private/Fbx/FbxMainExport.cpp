@@ -156,6 +156,10 @@ void FFbxExporter::CreateDocument()
 	
 	//FbxScene->GetGlobalSettings().SetOriginalUpAxis(KFbxAxisSystem::Max);
 	FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector)-FbxAxisSystem::eParityOdd;
+	const bool FbxExportForceFrontXAxis = GetDefault<UEditorPerProjectUserSettings>()->bForceFrontXAxis;
+	if (FbxExportForceFrontXAxis)
+		FrontVector = FbxAxisSystem::eParityEven;
+
 	const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
 	Scene->GetGlobalSettings().SetAxisSystem(UnrealZUp);
 	Scene->GetGlobalSettings().SetOriginalUpAxis(UnrealZUp);

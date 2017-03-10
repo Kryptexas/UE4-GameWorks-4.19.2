@@ -32,6 +32,9 @@ class IFontFaceInterface
 	/** Get the enum controlling how this font should be loaded at runtime. */
 	virtual EFontLoadingPolicy GetLoadingPolicy() const = 0;
 
+	/** Get the method to use when laying out the font? */
+	virtual EFontLayoutMethod GetLayoutMethod() const = 0;
+
 	/** Get the data buffer containing the data for the current font face. */
 	virtual FFontFaceDataConstRef GetFontFaceData() const = 0;
 

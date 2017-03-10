@@ -53,6 +53,10 @@ public:
 	/** Notification for committing undetermined values */
 	DECLARE_DELEGATE_TwoParams(FOnUndeterminedValueCommitted, FText /*NewValue*/, ETextCommit::Type /*CommitType*/);
 
+	/** Notification when the max/min spinner values are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
+	DECLARE_DELEGATE_FourParams(FOnDynamicSliderMaxValueChanged, NumericType, TWeakPtr<SWidget>, bool, bool);
+	DECLARE_DELEGATE_FourParams(FOnDynamicSliderMinValueChanged, NumericType, TWeakPtr<SWidget>, bool, bool);
+
 public:
 
 	SLATE_BEGIN_ARGS( SNumericEntryBox<NumericType> )
@@ -67,14 +71,15 @@ public:
 		, _UseDarkStyle(false)
 		, _ColorIndex(-1)
 		, _ShiftMouseMovePixelPerDelta(1)
+		, _SupportDynamicSliderMaxValue(false)
+		, _SupportDynamicSliderMinValue(false)
 		, _Delta(0)
 		, _MinValue(TNumericLimits<NumericType>::Lowest())
 		, _MaxValue(TNumericLimits<NumericType>::Max())
 		, _MinSliderValue(0)				
 		, _MaxSliderValue(100)
 		, _SliderExponent(1.f)
-		, _MinDesiredValueWidth(0)
-		
+		, _MinDesiredValueWidth(0)		
 	{}		
 
 		/** Style to use for the editable text box within this widget */
@@ -104,6 +109,14 @@ public:
 		SLATE_ARGUMENT( int32, ColorIndex )
 		/** How many pixel the mouse must move to change the value of the delta step (only use if there is a spinbox allow) */
 		SLATE_ARGUMENT( int32, ShiftMouseMovePixelPerDelta )
+		/** Tell us if we want to support dynamically changing of the max value using ctrl  (only use if there is a spinbox allow) */
+		SLATE_ATTRIBUTE(bool, SupportDynamicSliderMaxValue)
+		/** Tell us if we want to support dynamically changing of the min value using ctrl  (only use if there is a spinbox allow) */
+		SLATE_ATTRIBUTE(bool, SupportDynamicSliderMinValue)
+		/** Called right after the spinner max value is changed (only relevant if SupportDynamicSliderMaxValue is true) */
+		SLATE_EVENT(FOnDynamicSliderMaxValueChanged, OnDynamicSliderMaxValueChanged)
+		/** Called right after the spinner min value is changed (only relevant if SupportDynamicSliderMinValue is true) */
+		SLATE_EVENT(FOnDynamicSliderMinValueChanged, OnDynamicSliderMinValueChanged)
 		/** Delta to increment the value as the slider moves.  If not specified will determine automatically */
 		SLATE_ATTRIBUTE( NumericType, Delta )
 		/** The minimum value that can be entered into the text edit box */
@@ -174,6 +187,10 @@ public:
 				.Value( this, &SNumericEntryBox<NumericType>::OnGetValueForSpinBox )
 				.Delta( InArgs._Delta )
 				.ShiftMouseMovePixelPerDelta(InArgs._ShiftMouseMovePixelPerDelta)
+				.SupportDynamicSliderMaxValue(InArgs._SupportDynamicSliderMaxValue)
+				.SupportDynamicSliderMinValue(InArgs._SupportDynamicSliderMinValue)
+				.OnDynamicSliderMaxValueChanged(InArgs._OnDynamicSliderMaxValueChanged)
+				.OnDynamicSliderMinValueChanged(InArgs._OnDynamicSliderMinValueChanged)
 				.OnValueChanged( OnValueChanged )
 				.OnValueCommitted( OnValueCommitted )
 				.MinSliderValue(InArgs._MinSliderValue)
@@ -290,6 +307,9 @@ public:
 				.Text( LabelText )
 			];
 	}
+
+	/** Return the internally created SpinBox if bAllowSpin is true */
+	TSharedPtr<SWidget> GetSpinBox() const { return SpinBox; }
 
 private:
 

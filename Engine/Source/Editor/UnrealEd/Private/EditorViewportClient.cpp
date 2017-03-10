@@ -1345,6 +1345,12 @@ EMouseCursor::Type FEditorViewportClient::GetCursor(FViewport* InViewport,int32 
 {
 	EMouseCursor::Type MouseCursor = EMouseCursor::Default;
 
+	// StaticFindObject is used lower down in this code, and that's not allowed while saving packages.
+	if ( GIsSavingPackage )
+	{
+		return MouseCursor;
+	}
+
 	bool bMoveCanvasMovement = ShouldUseMoveCanvasMovement();
 	
 	if (RequiredCursorVisibiltyAndAppearance.bOverrideAppearance &&

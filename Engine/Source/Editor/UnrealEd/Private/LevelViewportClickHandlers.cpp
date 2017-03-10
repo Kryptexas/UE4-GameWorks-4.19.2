@@ -112,12 +112,7 @@ namespace ClickHandlers
 
 	bool ClickViewport(FLevelEditorViewportClient* ViewportClient, const FViewportClick& Click)
 	{
-		if (Click.GetKey() == EKeys::MiddleMouseButton && Click.GetEvent() == EInputEvent::IE_DoubleClick)
-		{
-			ViewportClient->SetViewportTypeFromTool(LVT_Perspective);
-			return true;
-		}
-		else if (Click.GetKey() == EKeys::MiddleMouseButton && Click.IsControlDown())
+		if (Click.GetKey() == EKeys::MiddleMouseButton && Click.IsControlDown())
 		{
 			PrivateSummonViewportMenu(ViewportClient);
 			return true;

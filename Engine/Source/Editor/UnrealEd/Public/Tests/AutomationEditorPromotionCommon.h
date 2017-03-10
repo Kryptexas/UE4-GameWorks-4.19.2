@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "Framework/Commands/InputChord.h"
+#include "AutomationScreenshotOptions.h"
 
 class SWidget;
 class UMaterial;
@@ -108,5 +109,5 @@ public:
 	*
 	* @param ScreenshotName - The sub name to use for the screenshot
 	*/
-	UNREALED_API static void TakeScreenshot(const FString& ScreenshotName, bool bUseTopWindow = false);
+	UNREALED_API static void TakeScreenshot(const FString& ScreenshotName, const FAutomationScreenshotOptions& Options, bool bUseTopWindow = false);
 };

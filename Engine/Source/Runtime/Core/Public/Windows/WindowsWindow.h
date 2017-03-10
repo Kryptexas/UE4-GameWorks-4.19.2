@@ -35,14 +35,7 @@ public:
 	/** Destructor. */
 	~FWindowsWindow();
 
-	/** Create a new FWin32Window.
-	 *
-	 * @param SlateWindows List of all top level Slate windows.  This function will add the owner window to this list.
-	 * @param OwnerWindow The SlateWindow for which we are crating a backing Win32Window.
-	 * @param InHInstance Win32 application instance handle.
-	 * @param InParent Parent Win32 window; usually NULL.
-	 * @param bShowImmediately True to show this window as soon as its initialized.
-	 */
+	/** Create a new FWin32Window. */
 	static TSharedRef<FWindowsWindow> Make();
 
 	/**

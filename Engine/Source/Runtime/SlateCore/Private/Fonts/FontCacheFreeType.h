@@ -49,11 +49,39 @@ namespace FreeTypeUtils
 
 #if WITH_FREETYPE
 
-/** Apply the given point size and scale to the face */
+/**
+ * Apply the given point size and scale to the face.
+ */
 void ApplySizeAndScale(FT_Face InFace, const int32 InFontSize, const float InFontScale);
 
-/** Load the given glyph into the active slot of the given face */
+/**
+ * Load the given glyph into the active slot of the given face.
+ */
 FT_Error LoadGlyph(FT_Face InFace, const uint32 InGlyphIndex, const int32 InLoadFlags, const int32 InFontSize, const float InFontScale);
+
+/**
+ * Get the height of the given face under the given layout method.
+ * @note ApplySizeAndScale must have been called prior to this function to prepare the face.
+ */
+FT_Pos GetHeight(FT_Face InFace, const EFontLayoutMethod InLayoutMethod);
+
+/**
+ * Get the height of the given face under the given layout method, scaled by the face scale.
+ * @note ApplySizeAndScale must have been called prior to this function to prepare the face.
+ */
+FT_Pos GetScaledHeight(FT_Face InFace, const EFontLayoutMethod InLayoutMethod);
+
+/**
+ * Get the ascender of the given face under the given layout method (ascenders are always scaled by the face scale).
+ * @note ApplySizeAndScale must have been called prior to this function to prepare the face.
+ */
+FT_Pos GetAscender(FT_Face InFace, const EFontLayoutMethod InLayoutMethod);
+
+/**
+ * Get the descender of the given face under the given layout method (descenders are always scaled by the face scale).
+ * @note ApplySizeAndScale must have been called prior to this function to prepare the face.
+ */
+FT_Pos GetDescender(FT_Face InFace, const EFontLayoutMethod InLayoutMethod);
 
 #endif // WITH_FREETYPE
 
@@ -117,8 +145,8 @@ private:
 class FFreeTypeFace
 {
 public:
-	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataConstRef InMemory);
-	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, const FString& InFilename);
+	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataConstRef InMemory, const EFontLayoutMethod InLayoutMethod);
+	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, const FString& InFilename, const EFontLayoutMethod InLayoutMethod);
 	~FFreeTypeFace();
 
 	FORCEINLINE bool IsValid() const
@@ -135,11 +163,36 @@ public:
 	{
 		return FTFace;
 	}
+
+	FORCEINLINE FT_Pos GetHeight() const
+	{
+		return FreeTypeUtils::GetHeight(FTFace, LayoutMethod);
+	}
+
+	FORCEINLINE FT_Pos GetScaledHeight() const
+	{
+		return FreeTypeUtils::GetScaledHeight(FTFace, LayoutMethod);
+	}
+
+	FORCEINLINE FT_Pos GetAscender() const
+	{
+		return FreeTypeUtils::GetAscender(FTFace, LayoutMethod);
+	}
+
+	FORCEINLINE FT_Pos GetDescender() const
+	{
+		return FreeTypeUtils::GetDescender(FTFace, LayoutMethod);
+	}
 #endif // WITH_FREETYPE
 
 	FORCEINLINE const TSet<FName>& GetAttributes() const
 	{
 		return Attributes;
+	}
+
+	FORCEINLINE EFontLayoutMethod GetLayoutMethod() const
+	{
+		return LayoutMethod;
 	}
 
 private:
@@ -174,6 +227,8 @@ private:
 #endif // WITH_FREETYPE
 
 	TSet<FName> Attributes;
+
+	EFontLayoutMethod LayoutMethod;
 };
 
 

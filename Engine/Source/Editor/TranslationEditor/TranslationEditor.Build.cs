@@ -24,7 +24,6 @@ public class TranslationEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
                 "InputCore",
-				"Internationalization",
 				"Json",
                 "PropertyEditor",
 				"Slate",
@@ -36,7 +35,8 @@ public class TranslationEditor : ModuleRules
                 "MessageLog",
                 "Documentation",
                 "Localization",
-                "LocalizationService",
+				"LocalizationCommandletExecution",
+				"LocalizationService",
 			}
 		);
 

@@ -206,7 +206,16 @@ public partial class Project : CommandUtils
 		}
 	}
 
-    private static void StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
+	private static void StageLocalizationDataForTarget(DeploymentContext SC, List<string> CulturesToStage, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
+	{
+		SC.StageFiles(StagedFileType.UFS, SourceDirectory, "*.locmeta", false, null, DestinationDirectory, true, bRemap);
+		foreach (string Culture in CulturesToStage)
+		{
+			StageLocalizationDataForCulture(SC, Culture, SourceDirectory, DestinationDirectory, bRemap);
+		}
+	}
+
+	private static void StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
     {
         CultureName = CultureName.Replace('-', '_');
 
@@ -396,10 +405,7 @@ public partial class Project : CommandUtils
             // Engine ufs (content)
             SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
 
-            foreach (string Culture in CulturesToStage)
-            {
-                StageLocalizationDataForCulture(SC, Culture, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), null, !Params.UsePak(SC.StageTargetPlatform));
-            }
+            StageLocalizationDataForTarget(SC, CulturesToStage, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), null, !Params.UsePak(SC.StageTargetPlatform));
 			
             // Game ufs (content)
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot), "*.uproject", false, null, CombinePaths(SC.RelativeProjectRootForStage), true, !Params.UsePak(SC.StageTargetPlatform));
@@ -435,10 +441,7 @@ public partial class Project : CommandUtils
 					string[] ProjectLocTargetDirectories = CommandUtils.FindDirectories(true, "*", false, new string[] { ProjectLocRootDirectory });
 					foreach (string ProjectLocTargetDirectory in ProjectLocTargetDirectories)
 					{
-						foreach (string Culture in CulturesToStage)
-						{
-							StageLocalizationDataForCulture(SC, Culture, ProjectLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
-						}
+						StageLocalizationDataForTarget(SC, CulturesToStage, ProjectLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
 					}
 				}
 			}
@@ -474,10 +477,7 @@ public partial class Project : CommandUtils
 						var PluginLocTargetDirectory = CombinePaths(Plugin.Directory.FullName, "Content", "Localization", LocalizationTarget.Name);
 						if (DirectoryExists(PluginLocTargetDirectory))
 						{
-							foreach (string Culture in CulturesToStage)
-							{
-								StageLocalizationDataForCulture(SC, Culture, PluginLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
-							}
+							StageLocalizationDataForTarget(SC, CulturesToStage, PluginLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
 						}
 					}
 				}

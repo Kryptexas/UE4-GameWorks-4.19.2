@@ -10,7 +10,6 @@
 #include "Logging/LogMacros.h"
 #include "HAL/FileManager.h"
 #include "Misc/Parse.h"
-#include "Misc/ScopeLock.h"
 #include "Misc/Paths.h"
 #include "HAL/TlsAutoCleanup.h"
 #include "Misc/App.h"
@@ -22,6 +21,9 @@
 #include "MallocProfiler.h"
 #include "ModuleManager.h"
 #include "MemoryMisc.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/ConfigCacheIni.h"
 
 
 CORE_API FMallocProfiler* GMallocProfiler;

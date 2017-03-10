@@ -173,6 +173,24 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 		( InParent.IsValid() ) ? static_cast<HWND>( InParent->HWnd ) : NULL,
 		NULL, InHInstance, NULL);
 
+	if (HWnd == NULL)
+	{
+		FSlowHeartBeatScope SuspendHeartBeat;
+
+		// @todo Error message should be localized!
+		MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
+
+		const uint32 Error = GetLastError();
+
+		// Get the number of handles.  A large number of windows has been known to cause window creation to fail because windows only allows so many.
+		DWORD NumHandles = 0;
+		GetProcessHandleCount(GetCurrentProcess(), &NumHandles);
+		checkf(0, TEXT("Window Creation Failed (%d). %d"), Error, NumHandles);
+
+		return;
+	}
+
+
 #if WINVER >= 0x0601
 	if ( RegisterTouchWindow( HWnd, 0 ) == false )
 	{
@@ -190,15 +208,6 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	// desired client area space.
 	ReshapeWindow( ClientX, ClientY, ClientWidth, ClientHeight );
 
-	if( HWnd == NULL )
-	{
-		FSlowHeartBeatScope SuspendHeartBeat;
-
-		// @todo Error message should be localized!
-		MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
-		checkf(0, TEXT("Window Creation Failed (%d)"), ::GetLastError() );
-		return;
-	}
 
 	if ( Definition->TransparencySupport == EWindowTransparency::PerWindow )
 	{

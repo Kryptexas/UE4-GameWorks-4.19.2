@@ -36,6 +36,7 @@
 #include "Misc/FeedbackContext.h"
 #include "ILevelViewport.h"
 #include "SLandscapeEditor.h"
+#include "SlateApplication.h"
 
 // VR Editor
 #include "VREditorMode.h"
@@ -350,8 +351,8 @@ void FEdModeLandscape::Enter()
 	UpdateLandscapeList();
 	UpdateTargetList();
 
-	OnWorldChangeDelegateHandle                 = FEditorSupportDelegates::WorldChange.AddRaw(this, &FEdModeLandscape::HandleLevelsChanged);
-	OnLevelsChangedDelegateHandle				= GetWorld()->OnLevelsChanged().AddRaw(this, &FEdModeLandscape::HandleLevelsChanged);
+	OnWorldChangeDelegateHandle                 = FEditorSupportDelegates::WorldChange.AddRaw(this, &FEdModeLandscape::HandleLevelsChanged, true);
+	OnLevelsChangedDelegateHandle				= GetWorld()->OnLevelsChanged().AddRaw(this, &FEdModeLandscape::HandleLevelsChanged, true);
 	OnMaterialCompilationFinishedDelegateHandle = UMaterial::OnMaterialCompilationFinished().AddRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
 
 	if (CurrentGizmoActor.IsValid())
@@ -1333,6 +1334,16 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 	if (!IsEditingEnabled())
 	{
 		return false;
+	}
+
+	if (Event != IE_Released)
+	{
+		ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
+
+		if (LandscapeEditorModule.GetLandscapeLevelViewportCommandList()->ProcessCommandBindings(Key, FSlateApplication::Get().GetModifierKeys(), false/*Event == IE_Repeat*/))
+		{
+			return true;
+		}
 	}
 
 	if (NewLandscapePreviewMode != ENewLandscapePreviewMode::None)
@@ -2365,7 +2376,7 @@ void FEdModeLandscape::MoveTargetLayerDisplayOrder(int32 IndexToMove, int32 Inde
 
 FEdModeLandscape::FTargetsListUpdated FEdModeLandscape::TargetsListUpdated;
 
-void FEdModeLandscape::HandleLevelsChanged()
+void FEdModeLandscape::HandleLevelsChanged(bool ShouldExitMode)
 {
 	bool bHadLandscape = (NewLandscapePreviewMode == ENewLandscapePreviewMode::None);
 
@@ -2374,7 +2385,7 @@ void FEdModeLandscape::HandleLevelsChanged()
 	UpdateShownLayerList();
 
 	// if the Landscape is deleted then close the landscape editor
-	if (bHadLandscape && CurrentToolTarget.LandscapeInfo == nullptr)
+	if (ShouldExitMode && bHadLandscape && CurrentToolTarget.LandscapeInfo == nullptr)
 	{
 		RequestDeletion();
 	}
@@ -2830,7 +2841,7 @@ void FEdModeLandscape::ActorMoveNotify()
 
 void FEdModeLandscape::PostUndo()
 {
-	HandleLevelsChanged();
+	HandleLevelsChanged(false);
 }
 
 /** Forces all level editor viewports to realtime mode */

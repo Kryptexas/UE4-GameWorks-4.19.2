@@ -73,7 +73,8 @@ void FSlateMaterialResource::ResetMaterial()
 #if !UE_BUILD_SHIPPING
 void FSlateMaterialResource::UpdateMaterialName()
 {
-	if(const UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(MaterialObject))
+	const UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(MaterialObject);
+	if(MID && MID->Parent)
 	{
 		// MID's don't have nice names. Get the name of the parent instead for tracking
 		MaterialName = MID->Parent->GetFName();

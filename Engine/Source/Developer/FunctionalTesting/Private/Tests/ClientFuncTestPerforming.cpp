@@ -165,7 +165,7 @@ void FClientFunctionalTestingMaps::GetTests(TArray<FString>& OutBeautifiedNames,
 							if ( MapTest.Split(TEXT("|"), &BeautifulTestName, &RealTestName) )
 							{
 								OutBeautifiedNames.Add(MapAsset.PackageName.ToString() + TEXT(".") + *BeautifulTestName);
-								OutTestCommands.Add(MapAsset.PackageName.ToString() + TEXT(";") + *RealTestName);
+								OutTestCommands.Add(MapAsset.ObjectPath.ToString() + TEXT(";") + *RealTestName);
 							}
 						}
 					}

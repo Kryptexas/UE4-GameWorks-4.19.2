@@ -147,33 +147,6 @@ bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 	ADD_LATENT_AUTOMATION_COMMAND(FBeginModifyLandscapeCommand());
 	ADD_LATENT_AUTOMATION_COMMAND(FEndModifyLandscapeCommand());
 
-	//Wait for the landscape to update before the screenshot
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
-
-	//Update the screenshot name, then take a screenshot.
-	if (FAutomationTestFramework::Get().IsScreenshotAllowed())
-	{
-		WindowScreenshotParameters ScreenshotParameters;
-
-		//Find the main editor window
-		TArray<TSharedRef<SWindow> > AllWindows;
-		FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
-		if (AllWindows.Num() == 0)
-		{
-			UE_LOG(LogLandscapeAutomationTests, Error, TEXT("ERROR: Could not find the main editor window."));
-			return true;
-		}
-
-		//Create the path
-		ScreenshotParameters.CurrentWindow = AllWindows[0];
-		const FString LandscapeTestName = TEXT("NewLandscapeTest");
-		FString PathName = FPaths::AutomationDir() + LandscapeTestName / FPlatformProperties::PlatformName();
-		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
-		ScreenshotParameters.ScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, FEngineVersion::Current().GetChangelist());
-
-		//Take a screenshot
-		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(ScreenshotParameters));
-	}
 	return true;
 }
 

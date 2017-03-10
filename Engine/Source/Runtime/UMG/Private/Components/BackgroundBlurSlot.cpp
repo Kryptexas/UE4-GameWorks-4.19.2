@@ -74,21 +74,25 @@ void UBackgroundBlurSlot::PostEditChangeProperty(FPropertyChangedEvent& Property
 
 		if ( PropertyChangedEvent.Property )
 		{
+			static const FName PaddingName("Padding");
+			static const FName HorizontalAlignmentName("HorizontalAlignment");
+			static const FName VerticalAlignmentName("VerticalAlignment");
+
 			FName PropertyName = PropertyChangedEvent.Property->GetFName();
 
 			if ( UBackgroundBlur* ParentBackgroundBlur = CastChecked<UBackgroundBlur>(Parent) )
 			{
-				if ( PropertyName == "Padding" )
+				if (PropertyName == PaddingName)
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "Padding", ParentBackgroundBlur, "Padding");
+					FObjectEditorUtils::MigratePropertyValue(this, PaddingName, ParentBackgroundBlur, PaddingName);
 				}
-				else if ( PropertyName == "HorizontalAlignment" )
+				else if (PropertyName == HorizontalAlignmentName)
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "HorizontalAlignment", ParentBackgroundBlur, "HorizontalAlignment");
+					FObjectEditorUtils::MigratePropertyValue(this, HorizontalAlignmentName, ParentBackgroundBlur, HorizontalAlignmentName);
 				}
-				else if ( PropertyName == "VerticalAlignment" )
+				else if (PropertyName == VerticalAlignmentName)
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "VerticalAlignment", ParentBackgroundBlur, "VerticalAlignment");
+					FObjectEditorUtils::MigratePropertyValue(this, VerticalAlignmentName, ParentBackgroundBlur, VerticalAlignmentName);
 				}
 			}
 		}

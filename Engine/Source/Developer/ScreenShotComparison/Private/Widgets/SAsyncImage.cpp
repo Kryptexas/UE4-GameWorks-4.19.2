@@ -35,9 +35,16 @@ void SAsyncImage::Construct(const FArguments& InArgs)
 	];
 
 	// Enqueue the request to load the screenshot on the thread pool.
-	TextureFuture = Async<FSlateTextureDataPtr>(EAsyncExecution::ThreadPool,
-		[this] () {
-		return LoadScreenshot(ImageFilePath);
+	FString ImagePath = InArgs._ImageFilePath;
+	TWeakPtr<SAsyncImage> TempWeakThis = SharedThis(this);
+	TextureFuture = Async<FSlateTextureDataPtr>(EAsyncExecution::ThreadPool, [TempWeakThis, ImagePath] () {
+
+		if ( TempWeakThis.IsValid() )
+		{
+			return SAsyncImage::LoadScreenshot(ImagePath);
+		}
+
+		return ( FSlateTextureDataPtr )nullptr;
 	});
 }
 

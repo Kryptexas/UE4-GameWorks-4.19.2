@@ -26,6 +26,8 @@
 	#define UE4_DO_ROOT_PRIVILEGE_CHECK	 0
 #endif // defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
 
+// Set rather to use BinnedMalloc2 for binned malloc, can be overridden below
+#define USE_MALLOC_BINNED2 (1)
 
 void FLinuxPlatformMemory::Init()
 {
@@ -38,9 +40,6 @@ void FLinuxPlatformMemory::Init()
 		MemoryConstants.TotalPhysical / 1024ULL, 
 		MemoryConstants.TotalPhysical);
 }
-
-// Set rather to use BinnedMalloc2 for binned malloc, can be overridden below
-#define USE_MALLOC_BINNED2 (0)
 
 class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 {
@@ -129,7 +128,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 
 	default:	// intentional fall-through
 	case EMemoryAllocatorToUse::Binned:
-		Allocator = new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
+		Allocator = new FMallocBinned(FPlatformMemory::GetConstants().BinnedPageSize & MAX_uint32, 0x100000000);
 		break;
 	}
 
@@ -158,21 +157,6 @@ bool FLinuxPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const
 		ProtectMode = PROT_NONE;
 	}
 	return mprotect(Ptr, Size, ProtectMode) == 0;
-}
-
-void* FLinuxPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
-{	
-	return mmap(nullptr, Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-}
-
-void FLinuxPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
-{
-	if (munmap(Ptr, Size) != 0)
-	{
-		const int ErrNo = errno;
-		UE_LOG(LogHAL, Fatal, TEXT("munmap(addr=%p, len=%llu) failed with errno = %d (%s)"), Ptr, Size,
-			ErrNo, StringCast< TCHAR >(strerror(ErrNo)).Get());
-	}
 }
 
 namespace LinuxPlatformMemory
@@ -339,6 +323,9 @@ const FPlatformMemoryConstants& FLinuxPlatformMemory::GetConstants()
 		MemoryConstants.TotalVirtual = MaxVirtualRAMBytes;
 		MemoryConstants.TotalPhysicalGB = (MemoryConstants.TotalPhysical + 1024 * 1024 * 1024 - 1) / 1024 / 1024 / 1024;
 		MemoryConstants.PageSize = sysconf(_SC_PAGESIZE);
+		MemoryConstants.BinnedPageSize = FMath::Max((SIZE_T)65536, MemoryConstants.PageSize);
+		MemoryConstants.BinnedAllocationGranularity = 16384;  // Binned2 malloc will allocate in increments of this, and this is the minimum constant recommended
+		MemoryConstants.OsAllocationGranularity = MemoryConstants.BinnedPageSize;
 	}
 
 	return MemoryConstants;	

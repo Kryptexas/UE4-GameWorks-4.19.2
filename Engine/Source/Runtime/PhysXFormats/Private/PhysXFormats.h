@@ -22,7 +22,12 @@
 #pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
 #endif	// USING_CODE_ANALYSIS
 
-#pragma pack(push,8)
+// on Linux 32-bit, PhysX is compiled differently
+#if (PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && !PLATFORM_64BITS)
+	#pragma pack(push,16)
+#else
+	#pragma pack(push,8)
+#endif // (PLATFORM_LINUX && PLATFORM_CPU_X86)
 
 #include "Px.h"
 #include "PxPhysicsAPI.h"

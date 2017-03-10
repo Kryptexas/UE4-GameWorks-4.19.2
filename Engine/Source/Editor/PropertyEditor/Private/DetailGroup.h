@@ -65,6 +65,13 @@ public:
 	 * @param OutChildren	The list of children to add to
 	 */
 	void OnGenerateChildren( FDetailNodeList& OutChildren );
+
+
+	/**
+	* Permit resetting all the properties in the group
+	*/
+	virtual void EnableReset(bool InValue);
+
 private:
 	/**
 	 * Called when the name of the group is clicked to expand the group
@@ -75,6 +82,13 @@ private:
 	 * Makes a name widget for this group 
 	 */
 	TSharedRef<SWidget> MakeNameWidget();
+
+	/** Called when the "Reset to Default" button for the location has been clicked */
+	FReply OnResetClicked();
+	EVisibility GetResetVisibility() const;
+	bool GetAllChildrenPropertyHandles(TArray<TSharedPtr<IPropertyHandle>>& PropertyHandles) const;
+	bool GetAllChildrenPropertyHandlesRecursive(const FDetailGroup* CurrentDetailGroup, TArray<TSharedPtr<IPropertyHandle>>& PropertyHandles) const;
+
 private:
 	/** Customized group children */
 	TArray<FDetailLayoutCustomization> GroupChildren;
@@ -92,4 +106,6 @@ private:
 	FName GroupName;
 	/** Whether the detail group should start expanded or not */
 	bool bStartExpanded;
+	/** Permit resetting all the properties in the group */
+	bool ResetEnabled;
 };

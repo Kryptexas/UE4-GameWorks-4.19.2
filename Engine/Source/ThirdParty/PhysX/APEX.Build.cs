@@ -208,7 +208,7 @@ public class APEX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			if (Target.Architecture != "arm-unknown-linux-gnueabihf")
+			if (Target.Architecture.StartsWith("x86_64"))
 			{
 				APEXLibDir += "/Linux/" + Target.Architecture;
 				bIsApexStaticallyLinked = true;

@@ -839,7 +839,7 @@ bool UFbxSceneImportFactory::FactoryCanImport(const FString& Filename)
 {
 	const FString Extension = FPaths::GetExtension(Filename);
 
-	if (Extension == TEXT("fbx"))
+	if (Extension == TEXT("fbx") || Extension == TEXT("obj"))
 	{
 		return true;
 	}
@@ -891,6 +891,7 @@ void UFbxSceneImportFactory::ChangeFrontAxis(void* VoidFbxImporter, void* VoidSc
 				{
 					continue;
 				}
+
 				LocalNodeInfo.Transform = RealFbxNode->EvaluateLocalTransform();
 				TSharedPtr<FFbxNodeInfo> LocalNodeInfoPtr = GetNodeInfoPtrById(SceneInfoPtr->HierarchyInfo, LocalNodeInfo.UniqueId);
 				if (LocalNodeInfoPtr.IsValid())
@@ -902,6 +903,24 @@ void UFbxSceneImportFactory::ChangeFrontAxis(void* VoidFbxImporter, void* VoidSc
 					LocalNodeInfoPtr->Transform.SetTranslation(UnFbx::FFbxDataConverter::ConvertPos(NewLocalT));
 					LocalNodeInfoPtr->Transform.SetScale3D(UnFbx::FFbxDataConverter::ConvertScale(NewLocalS));
 					LocalNodeInfoPtr->Transform.SetRotation(UnFbx::FFbxDataConverter::ConvertRotToQuat(NewLocalQ));
+
+					FString AttributeType = LocalNodeInfo.AttributeType;
+					if (AttributeType.Compare(TEXT("eLight")) == 0)
+					{
+						//Add the z rotation of 90 degree locally for every light. Light direction differ from fbx to unreal 
+						FRotator LightRotator(0.0f, 90.0f, 0.0f);
+						FTransform LightTransform = FTransform(LightRotator);
+						LocalNodeInfoPtr->Transform = LightTransform * LocalNodeInfoPtr->Transform;
+					}
+					if (AttributeType.Compare(TEXT("eCamera")) == 0)
+					{
+						//Add a roll of -90 degree locally for every cameras. Camera up vector differ from fbx to unreal
+						FRotator CameraRotator(0.0f, 0.0f, -90.0f);
+						FTransform CameraTransform = FTransform(CameraRotator);
+						//Remove the scale of the node holding a camera (the mesh is provide by the engine and can be different in size)
+						LocalNodeInfoPtr->Transform.SetScale3D(FVector(1.0f));
+						LocalNodeInfoPtr->Transform = CameraTransform * LocalNodeInfoPtr->Transform;
+					}
 				}
 			}
 		}
@@ -1802,7 +1821,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			}
 		}
 	}
-
+	MaxLODLevel = FMath::Min(MAX_SKELETAL_MESH_LODS, MaxLODLevel);
 	int32 LODIndex;
 	for (LODIndex = 0; LODIndex < MaxLODLevel; LODIndex++)
 	{
@@ -1868,7 +1887,15 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			RootNodeInfo->AttributeInfo->SetOriginalImportPath(PackageName);
 			FName SkeletalMeshFName = FName(*SkeletalMeshName);
 			//Import the skeletal mesh
-			USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh(Pkg, bUseSkelMeshNodePivotArray ? SkelMeshNodePivotArray : SkelMeshNodeArray, SkeletalMeshFName, Flags, SkeletalMeshImportData, LODIndex);
+			UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
+			ImportSkeletalMeshArgs.InParent = Pkg;
+			ImportSkeletalMeshArgs.NodeArray = bUseSkelMeshNodePivotArray ? SkelMeshNodePivotArray : SkelMeshNodeArray;
+			ImportSkeletalMeshArgs.Name = SkeletalMeshFName;
+			ImportSkeletalMeshArgs.Flags = Flags;
+			ImportSkeletalMeshArgs.TemplateImportData = SkeletalMeshImportData;
+			ImportSkeletalMeshArgs.LodIndex = LODIndex;
+
+			USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 			NewObject = NewMesh;
 			if (NewMesh)
 			{
@@ -1898,7 +1925,15 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewObject);
 			FName LODObjectName = NAME_None;
 			//Import skeletal mesh LOD
-			USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(BaseSkeletalMesh->GetOutermost(), bUseSkelMeshNodePivotArray ? SkelMeshNodePivotArray : SkelMeshNodeArray, LODObjectName, RF_Transient, SkeletalMeshImportData, LODIndex);
+			UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
+			ImportSkeletalMeshArgs.InParent = BaseSkeletalMesh->GetOutermost();
+			ImportSkeletalMeshArgs.NodeArray = bUseSkelMeshNodePivotArray ? SkelMeshNodePivotArray : SkelMeshNodeArray;
+			ImportSkeletalMeshArgs.Name = LODObjectName;
+			ImportSkeletalMeshArgs.Flags = RF_Transient;
+			ImportSkeletalMeshArgs.TemplateImportData = SkeletalMeshImportData;
+			ImportSkeletalMeshArgs.LodIndex = LODIndex;
+
+			USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(ImportSkeletalMeshArgs);
 			bool bImportSucceeded = FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, LODIndex);
 			if (bImportSucceeded)
 			{
@@ -2044,6 +2079,11 @@ UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void
 				// import LOD meshes
 				for (int32 LODIndex = 1; LODIndex < Node->GetChildCount(); LODIndex++)
 				{
+					if (LODIndex >= MAX_STATIC_MESH_LODS)
+					{
+						FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("ImporterLimits_MaximumStaticMeshLODReach", "Reach the maximum LOD number({0}) for a staticmesh."), FText::AsNumber(MAX_STATIC_MESH_LODS))), FFbxErrors::Generic_Mesh_TooManyLODs);
+						continue;
+					}
 					AllNodeInLod.Empty();
 					FFbxImporter->FindAllLODGroupNode(AllNodeInLod, Node, LODIndex);
 					TmpVoidArray.Empty();

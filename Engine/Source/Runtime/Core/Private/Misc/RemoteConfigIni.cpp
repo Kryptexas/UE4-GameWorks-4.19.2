@@ -391,12 +391,14 @@ void FRemoteConfig::Flush()
 #define NUM_SPECIAL_CHARS 6
 static const TCHAR* SpecialCharMap[NUM_SPECIAL_CHARS][2] =
 {
+	// ORDER IS IMPORTANT, we must go from the most generic/global to specific, the reason being that a key could be named the same as the one listed here and since they
+	// are in quote it will break the assumption done here.
+	{ TEXT("{"), TEXT("~OpenBracket~") },
+	{ TEXT("}"), TEXT("~CloseBracket~") },
+	{ TEXT("\""), TEXT("~Quote~") },
 	{ TEXT("\\"), TEXT("~Backslash~")  },
 	{ TEXT("/"), TEXT("~Forwardslash~")  },
-	{ TEXT("|"), TEXT("~Bar~")  },
-	{ TEXT("{"), TEXT("~OpenBracket~")  },
-	{ TEXT("}"), TEXT("~CloseBracket~")  },
-	{ TEXT("\""), TEXT("~Quote~")  }
+	{ TEXT("|"), TEXT("~Bar~")  }
 };
 
 

@@ -228,12 +228,9 @@ void FAutomationWorkerModule::ReportTestComplete()
 			Message->ExecutionCount = ExecutionCount;
 			Message->Success = bSuccess;
 			Message->Duration = ExecutionInfo.Duration;
-			for ( auto& Error : ExecutionInfo.Errors )
-			{
-				Message->Errors.Add(FAutomationWorkerEvent(Error));
-			}
-			Message->Warnings = ExecutionInfo.Warnings;
-			Message->Logs = ExecutionInfo.LogItems;
+			Message->Events = ExecutionInfo.GetEvents();
+			Message->WarningTotal = ExecutionInfo.GetWarningTotal();
+			Message->ErrorTotal = ExecutionInfo.GetErrorTotal();
 
 			// sending though the endpoint will free Message memory, so analytics need to be sent first
 			if (bSendAnalytics)
@@ -392,7 +389,7 @@ void FAutomationWorkerModule::HandlePostTestingEvent()
 void FAutomationWorkerModule::HandleScreenShotCompared(const FAutomationWorkerImageComparisonResults& Message, const IMessageContextRef& Context)
 {
 	// Image comparison finished.
-	FAutomationTestFramework::Get().NotifyScreenshotComparisonComplete(Message.bNew, Message.bSimilar);
+	FAutomationTestFramework::Get().NotifyScreenshotComparisonComplete(Message.bNew, Message.bSimilar, Message.MaxLocalDifference, Message.GlobalDifference, Message.ErrorMessage);
 }
 
 #if WITH_ENGINE

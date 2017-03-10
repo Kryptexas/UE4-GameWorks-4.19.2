@@ -49,6 +49,7 @@
 #include "LandscapeRender.h"
 #include "MaterialCompiler.h"
 #include "Containers/Algo/Accumulate.h"
+#include "Package.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -2135,11 +2136,14 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 											FolSeed++;
 										}
 
+										// Do not record the transaction of creating temp component for visualizations
+										ClearFlags(RF_Transactional);
+										bool PreviousPackageDirtyFlag = GetOutermost()->IsDirty();
+
 										UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent;
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateComp);
-											HierarchicalInstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(this);
-											HierarchicalInstancedStaticMeshComponent->SetFlags(RF_Transient);
+											HierarchicalInstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, NAME_None, RF_Transient);
 										}
 										NewComp.Foliage = HierarchicalInstancedStaticMeshComponent;
 										FoliageCache.CachedGrassComps.Add(NewComp);
@@ -2233,8 +2237,12 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										}
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassRegisterComp);
+
 											HierarchicalInstancedStaticMeshComponent->RegisterComponent();
 										}
+
+										SetFlags(RF_Transactional);
+										GetOutermost()->SetDirtyFlag(PreviousPackageDirtyFlag);
 									}
 								}
 							}

@@ -244,7 +244,7 @@ void FEditorPromotionTestUtilities::EndPIE()
 *
 * @param ScreenshotName - The sub name to use for the screenshot
 */
-void FEditorPromotionTestUtilities::TakeScreenshot(const FString& ScreenshotName, bool bUseTopWindow)
+void FEditorPromotionTestUtilities::TakeScreenshot(const FString& ScreenshotName, const FAutomationScreenshotOptions& Options, bool bUseTopWindow)
 {
 	//Update the screenshot name, then take a screenshot.
 	if (FAutomationTestFramework::Get().IsScreenshotAllowed())
@@ -271,21 +271,34 @@ void FEditorPromotionTestUtilities::TakeScreenshot(const FString& ScreenshotName
 
 		if (Window.IsValid())
 		{
-			FString ScreenshotFileName;
-			const FString TestName = FString::Printf(TEXT("EditorBuildPromotion/%s"), *ScreenshotName);
-			AutomationCommon::GetScreenshotPath(TestName, ScreenshotFileName);
-
 			TSharedRef<SWidget> WindowRef = Window.ToSharedRef();
 
 			TArray<FColor> OutImageData;
 			FIntVector OutImageSize;
 			if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
 			{
-				FAutomationScreenshotData Data;
-				Data.Width = OutImageSize.X;
-				Data.Height = OutImageSize.Y;
-				Data.Path = ScreenshotFileName;
+				FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(TEXT("Editor"), ScreenshotName, OutImageSize.X, OutImageSize.Y);
+
+				// Copy the relevant data into the metadata for the screenshot.
+				Data.bHasComparisonRules = true;
+				Data.ToleranceRed = Options.ToleranceAmount.Red;
+				Data.ToleranceGreen = Options.ToleranceAmount.Green;
+				Data.ToleranceBlue = Options.ToleranceAmount.Blue;
+				Data.ToleranceAlpha = Options.ToleranceAmount.Alpha;
+				Data.ToleranceMinBrightness = Options.ToleranceAmount.MinBrightness;
+				Data.ToleranceMaxBrightness = Options.ToleranceAmount.MaxBrightness;
+				Data.bIgnoreAntiAliasing = Options.bIgnoreAntiAliasing;
+				Data.bIgnoreColors = Options.bIgnoreColors;
+				Data.MaximumLocalError = Options.MaximumLocalError;
+				Data.MaximumGlobalError = Options.MaximumGlobalError;
+
 				FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound(OutImageData, Data);
+
+				// TODO Add comparison support.
+				if ( GIsAutomationTesting )
+				{
+					//FAutomationTestFramework::Get().OnScreenshotCompared.AddRaw(this, &FAutomationScreenshotTaker::OnComparisonComplete);
+				}
 			}
 		}
 		else

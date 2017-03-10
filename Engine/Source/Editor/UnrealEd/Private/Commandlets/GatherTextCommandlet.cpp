@@ -74,11 +74,11 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 
 	UE_LOG(LogGatherTextCommandlet, Log,TEXT("Beginning GatherText Commandlet."));
 
-	TSharedPtr< FGatherTextSCC > CommandletSourceControlInfo = nullptr;
+	TSharedPtr< FLocalizationSCC > CommandletSourceControlInfo = nullptr;
 
 	if( bEnableSourceControl )
 	{
-		CommandletSourceControlInfo = MakeShareable( new FGatherTextSCC() );
+		CommandletSourceControlInfo = MakeShareable( new FLocalizationSCC() );
 
 		FText SCCErrorStr;
 		if( !CommandletSourceControlInfo->IsReady( SCCErrorStr ) )

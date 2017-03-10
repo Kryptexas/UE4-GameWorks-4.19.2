@@ -68,6 +68,10 @@
 #include "GameDelegates.h"
 #include "IPAddress.h"
 
+#include "IPluginManager.h"
+#include "ProjectDescriptor.h"
+#include "IProjectManager.h"
+
 // cook by the book requirements
 #include "Commandlets/ChunkManifestGenerator.h"
 #include "Engine/WorldComposition.h"
@@ -3090,6 +3094,32 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	}
 	
 	UE_LOG(LogCook, Display, TEXT("Mobile HDR setting %d"), IsMobileHDR());
+
+	// See if there are any plugins that need to be remapped for the sandbox
+	const FProjectDescriptor* Project = IProjectManager::Get().GetCurrentProject();
+	if (Project != nullptr)
+	{
+		PluginsToRemap = IPluginManager::Get().GetEnabledPlugins();
+		TArray<FString> AdditionalPluginDirs = Project->GetAdditionalPluginDirectories();
+		// Remove any plugin that is not in the additional directories since they are handled normally
+		for (int32 Index = PluginsToRemap.Num() - 1; Index >= 0; Index--)
+		{
+			bool bRemove = true;
+			for (const FString& PluginDir : AdditionalPluginDirs)
+			{
+				// If this plugin is in a directory that needs remapping
+				if (PluginsToRemap[Index]->GetBaseDir().StartsWith(PluginDir))
+				{
+					bRemove = false;
+					break;
+				}
+			}
+			if (bRemove)
+			{
+				PluginsToRemap.RemoveAt(Index);
+			}
+		}
+	}
 }
 
 bool UCookOnTheFlyServer::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -5573,6 +5603,29 @@ FString UCookOnTheFlyServer::ConvertToFullSandboxPath( const FString &FileName, 
 	FString Result;
 	if ( bForWrite)
 	{
+		// Ideally this would be in the Sandbox File but it can't access the project or plugin
+		if (PluginsToRemap.Num() > 0)
+		{
+			// Handle remapping of plugins
+			for (TSharedRef<IPlugin> Plugin : PluginsToRemap)
+			{
+				// If these match, then this content is part of plugin that gets remapped when packaged/staged
+				if (FileName.StartsWith(Plugin->GetContentDir()))
+				{
+					FString SearchFor;
+					SearchFor /= Plugin->GetName() / TEXT("Content");
+					int32 FoundAt = FileName.Find(SearchFor, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+					check(FoundAt != -1);
+					// Strip off everything but <PluginName/Content/<remaing path to file>
+					FString SnippedOffPath = FileName.RightChop(FoundAt);
+					// Put this is in <sandbox path>/RemappedPlugins/<PluginName>/Content/<remaing path to file>
+					FString RemappedPath = SandboxFile->GetSandboxDirectory();
+					RemappedPath /= TEXT("RemappedPlugins");
+					Result = RemappedPath / SnippedOffPath;
+					return Result;
+				}
+			}
+		}
 		Result = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FileName);
 	}
 	else

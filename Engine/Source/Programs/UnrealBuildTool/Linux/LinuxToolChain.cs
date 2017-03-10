@@ -312,8 +312,8 @@ namespace UnrealBuildTool
 				return true;
 			}
 
-			// at the moment only x86_64 is supported
-			return Architecture.StartsWith("x86_64") || Architecture.StartsWith("aarch64");
+			// at the moment ARM32 libc++ remains missing
+			return Architecture.StartsWith("x86_64") || Architecture.StartsWith("aarch64") || Architecture.StartsWith("i686");
 		}
 
 		static string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment)

@@ -17,7 +17,7 @@
 class FDetailItemNode : public IDetailTreeNode, public TSharedFromThis<FDetailItemNode>
 {
 public:
-	FDetailItemNode( const FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailCategoryImpl> InParentCategory, TAttribute<bool> InIsParentEnabled );
+	FDetailItemNode( const FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailCategoryImpl> InParentCategory, TAttribute<bool> InIsParentEnabled, TSharedPtr<IDetailGroup> InParentGroup = nullptr);
 	~FDetailItemNode();
 
 	/**
@@ -89,6 +89,8 @@ private:
 	FDetailNodeList Children;
 	/** Parent categories on this node */
 	TWeakPtr<FDetailCategoryImpl> ParentCategory;
+	/** Parent group on this node */
+	TWeakPtr<IDetailGroup> ParentGroup;
 	/** Attribute for checking if our parent is enabled */
 	TAttribute<bool> IsParentEnabled;
 	/** Cached visibility of this node */

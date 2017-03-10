@@ -110,7 +110,7 @@ public:
 		for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
 		{
 			checkSlow(ControlPoint->IsSplineSelected());
-			ControlPoint->Modify();
+			ControlPoint->Modify(false);
 			ControlPoint->SetSplineSelected(false);
 		}
 		SelectedSplineControlPoints.Empty();
@@ -121,7 +121,7 @@ public:
 		for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
 		{
 			checkSlow(Segment->IsSplineSelected());
-			Segment->Modify();
+			Segment->Modify(false);
 			Segment->SetSplineSelected(false);
 		}
 		SelectedSplineSegments.Empty();
@@ -137,7 +137,7 @@ public:
 	{
 		checkSlow(ControlPoint->IsSplineSelected());
 		SelectedSplineControlPoints.Remove(ControlPoint);
-		ControlPoint->Modify();
+		ControlPoint->Modify(false);
 		ControlPoint->SetSplineSelected(false);
 	}
 
@@ -145,7 +145,7 @@ public:
 	{
 		checkSlow(Segment->IsSplineSelected());
 		SelectedSplineSegments.Remove(Segment);
-		Segment->Modify();
+		Segment->Modify(false);
 		Segment->SetSplineSelected(false);
 	}
 
@@ -153,7 +153,7 @@ public:
 	{
 		checkSlow(!ControlPoint->IsSplineSelected());
 		SelectedSplineControlPoints.Add(ControlPoint);
-		ControlPoint->Modify();
+		ControlPoint->Modify(false);
 		ControlPoint->SetSplineSelected(true);
 	}
 
@@ -161,7 +161,7 @@ public:
 	{
 		checkSlow(!Segment->IsSplineSelected());
 		SelectedSplineSegments.Add(Segment);
-		Segment->Modify();
+		Segment->Modify(false);
 		Segment->SetSplineSelected(true);
 
 		GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Scale);

@@ -305,46 +305,37 @@ FReply FAutoReimportDirectoryCustomization::BrowseForFolder()
 	return FReply::Handled();
 }
 
-void FAutoReimportDirectoryCustomization::SetSourcePath(FString InSourceDir)
+void FAutoReimportDirectoryCustomization::SetSourcePath(const FString& InSourceDir)
 {
 	MountPathVisibility = EVisibility::Visible;
 
 	// Don't log errors and warnings
 	FAutoReimportDirectoryConfig::FParseContext Context(false);
 
-	FString MountPoint;
-	if (FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(InSourceDir, MountPoint, Context))
-	{
-		// If we have a mount point from the source path, we use that as the source path
-		if (!MountPoint.IsEmpty())
-		{
-			SourceDirProperty->SetValue(MountPoint);
-			MountPointProperty->SetValue(FString());
-			MountPathVisibility = EVisibility::Collapsed;
-		}
-		else
-		{
-			FString ExistingMountPath;
-			MountPointProperty->GetValue(ExistingMountPath);
+	// Check to see if we need to reset mount point to empty string.
+	FString ExistingMountPath, ExisitingSourceDir, DerivedMountPoint, ParseSourceDir = InSourceDir;
+	SourceDirProperty->GetValue(ExisitingSourceDir);
+	MountPointProperty->GetValue(ExistingMountPath);
+	FString MountPoint(ExistingMountPath);
 
-			if (ExistingMountPath.IsEmpty())
-			{
-				MountPointProperty->SetValue(MountPoint);	
-			}
-			SourceDirProperty->SetValue(InSourceDir);
-		}
-	}
-	else
+	// Does the supplied directory resolve successfully?
+	if (FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(ParseSourceDir, MountPoint, Context))
 	{
-		SourceDirProperty->SetValue(InSourceDir);
-		MountPathVisibility = InSourceDir.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
+		// Parse previous path to determine if the mount point was implicit. If parsing fails keep existing mount point.
+		if (FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(ExisitingSourceDir, DerivedMountPoint, Context))
+		{
+			// Set to empty to use implicit empty string mount point
+			// Otherwise keep explicit mount point intact so user may change the source for the mount without losing the value.
+			if (ExistingMountPath == DerivedMountPoint)
+			{
+				MountPointProperty->SetValue(FString());
+			}
+		}
 	}
 	
-}
-
-void FAutoReimportDirectoryCustomization::UpdateMountPath()
-{
-
+	// Set source dir regardless of it parsed and resolved correctly.
+	// Could be in intermediate state from user typing for example.
+	SourceDirProperty->SetValue(InSourceDir);
 }
 
 #undef LOCTEXT_NAMESPACE

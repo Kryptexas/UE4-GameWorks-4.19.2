@@ -90,6 +90,7 @@ FMalloc* FMacPlatformMemory::BaseAllocator()
 
 	default:	// intentional fall-through
 	case EMemoryAllocatorToUse::Binned:
+		// [RCL] 2017-03-06 FIXME: perhaps BinnedPageSize should be used here, but leaving this change to the Mac platform owner.
 		return new FMallocBinned((uint32)(GetConstants().PageSize&MAX_uint32), 0x100000000);
 	}
 
@@ -159,6 +160,8 @@ const FPlatformMemoryConstants& FMacPlatformMemory::GetConstants()
 		MemoryConstants.TotalPhysical = AvailablePhysical;
 		MemoryConstants.TotalVirtual = AvailablePhysical + SwapUsage.xsu_total;
 		MemoryConstants.PageSize = (uint32)PageSize;
+		MemoryConstants.OsAllocationGranularity = (uint32)PageSize;
+		MemoryConstants.BinnedPageSize = FMath::Max((SIZE_T)65536, (SIZE_T)PageSize);
 
 		MemoryConstants.TotalPhysicalGB = (MemoryConstants.TotalPhysical + 1024 * 1024 * 1024 - 1) / 1024 / 1024 / 1024;
 	}

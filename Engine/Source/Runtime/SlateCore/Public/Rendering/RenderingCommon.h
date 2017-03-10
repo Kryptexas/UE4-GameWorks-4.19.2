@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Layout/SlateRect.h"
+#include "Layout/SlateRotatedRect.h"
 #include "Input/CursorReply.h"
 #include "Input/Reply.h"
 #include "Input/NavigationReply.h"
@@ -118,79 +119,6 @@ enum class ESlateLineJoinType : uint8
 	Simple = 1,
 };
 
-/**
- * Stores a rectangle that has been transformed by an arbitrary render transform. 
- * We provide a ctor that does the work common to slate drawing, but you could technically 
- * create this any way you want.
- */
-struct SLATECORE_API FSlateRotatedRect
-{
-public:
-	/** Default ctor. */
-	FSlateRotatedRect();
-	/** Construct a rotated rect from a given aligned rect. */
-	explicit FSlateRotatedRect(const FSlateRect& AlignedRect);
-	/** Per-element constructor. */
-	FSlateRotatedRect(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
-
-public:
-
-	/** transformed Top-left corner. */
-	FVector2D TopLeft;
-	/** transformed X extent (right-left). */
-	FVector2D ExtentX;
-	/** transformed Y extent (bottom-top). */
-	FVector2D ExtentY;
-
-public:
-	bool operator == (const FSlateRotatedRect& Other) const
-	{
-		return
-			TopLeft == Other.TopLeft &&
-			ExtentX == Other.ExtentX &&
-			ExtentY == Other.ExtentY;
-	}
-
-public:
-
-	/** Convert to a bounding, aligned rect. */
-	FSlateRect ToBoundingRect() const;
-	/** Point-in-rect test. */
-	bool IsUnderLocation(const FVector2D& Location) const;
-
-	static FSlateRotatedRect MakeRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform)
-	{
-		return MakeRotatedRect(ClipRectInLayoutWindowSpace, Concatenate(InverseLayoutTransform, RenderTransform));
-	}
-
-	static FSlateRotatedRect MakeRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FTransform2D& LayoutToRenderTransform);
-
-	static FSlateRotatedRect MakeSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform)
-	{
-		return MakeSnappedRotatedRect(ClipRectInLayoutWindowSpace, Concatenate(InverseLayoutTransform, RenderTransform));
-	}
-
-	/**
-	 * Used to construct a rotated rect from an aligned clip rect and a set of layout and render transforms from the geometry, snapped to pixel boundaries. Returns a float or float16 version of the rect based on the typedef.
-	 */
-	static FSlateRotatedRect MakeSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FTransform2D& LayoutToRenderTransform);
-};
-
-/**
- * Transforms a rect by the given transform.
- */
-template <typename TransformType>
-FSlateRotatedRect TransformRect(const TransformType& Transform, const FSlateRotatedRect& Rect)
-{
-	return FSlateRotatedRect
-	(
-		TransformPoint(Transform, Rect.TopLeft),
-		TransformVector(Transform, Rect.ExtentX),
-		TransformVector(Transform, Rect.ExtentY)
-	);
-}
-
-typedef FSlateRotatedRect FSlateRotatedClipRectType;
 
 
 enum class ESlateVertexRounding : uint8
@@ -216,7 +144,7 @@ struct SLATECORE_API FSlateVertex
 	FVector2D Position;
 
 	/** clip center/extents in render window space (window space with render transforms applied) */
-	FSlateRotatedClipRectType ClipRect;
+	FSlateRotatedRect ClipRect;
 
 	/** Vertex color */
 	FColor Color;
@@ -230,7 +158,7 @@ public:
 	
 	// These constructors have more or less been deprecated, you should use FSlateVertex::Make<ESlateVertexRounding::Enabled>(...) in order to have fine control over pixel snapping or not.
 	DEPRECATED(4.16, "FSlateVertex constructors have been deprecated, you should use FSlateVertex::Make" )
-	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 		: Position(TransformPoint(RenderTransform, InLocalPosition))
 		, ClipRect(InClipRect)
 		, Color(InColor)
@@ -245,7 +173,7 @@ public:
 	}
 
 	DEPRECATED(4.16, "FSlateVertex constructors have been deprecated, you should use FSlateVertex::Make")
-	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 		: Position(TransformPoint(RenderTransform, InLocalPosition))
 		, ClipRect(InClipRect)
 		, Color(InColor)
@@ -260,7 +188,7 @@ public:
 	}
 
 	DEPRECATED(4.16, "FSlateVertex constructors have been deprecated, you should use FSlateVertex::Make")
-	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 		: MaterialTexCoords(InMaterialTexCoords)
 		, Position(TransformPoint(RenderTransform, InLocalPosition))
 		, ClipRect(InClipRect)
@@ -276,7 +204,7 @@ public:
 	}
 
 	DEPRECATED(4.16, "FSlateVertex constructors have been deprecated, you should use FSlateVertex::Make")
-	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 		: MaterialTexCoords(InLocalPosition.X / InLocalSize.X, InLocalPosition.Y / InLocalSize.Y)
 		, Position(TransformPoint(RenderTransform, InLocalPosition))
 		, ClipRect(InClipRect)
@@ -297,7 +225,7 @@ public:
 public:
 
 	template<ESlateVertexRounding Rounding>
-	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 	{
 		FSlateVertex Vertex;
 		Vertex.TexCoords[0] = InTexCoord.X;
@@ -310,7 +238,7 @@ public:
 	}
 
 	template<ESlateVertexRounding Rounding>
-	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 	{
 		FSlateVertex Vertex;
 		Vertex.TexCoords[0] = InTexCoord.X;
@@ -323,7 +251,7 @@ public:
 	}
 
 	template<ESlateVertexRounding Rounding>
-	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 	{
 		FSlateVertex Vertex;
 		Vertex.TexCoords[0] = InTexCoords.X;
@@ -337,7 +265,7 @@ public:
 	}
 
 	template<ESlateVertexRounding Rounding>
-	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 	{
 		FSlateVertex Vertex;
 		Vertex.TexCoords[0] = InTexCoords.X;
@@ -347,6 +275,7 @@ public:
 		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
 		Vertex.PixelSize[0] = FMath::RoundToInt(InLocalSize.X * Scale);
 		Vertex.PixelSize[1] = FMath::RoundToInt(InLocalSize.Y * Scale);
+		Vertex.MaterialTexCoords = FVector2D(InLocalPosition.X / InLocalSize.X, InLocalPosition.Y / InLocalSize.Y);
 
 		return Vertex;
 	}
@@ -354,7 +283,7 @@ public:
 private:
 
 	template<ESlateVertexRounding Rounding>
-	FORCEINLINE void InitCommon(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect)
+	FORCEINLINE void InitCommon(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FColor& InColor, const FSlateRotatedRect& InClipRect)
 	{
 		Position = TransformPoint(RenderTransform, InLocalPosition);
 
@@ -374,9 +303,30 @@ template<> struct TIsPODType<FSlateVertex> { enum { Value = true }; };
 /** Stores an aligned rect as shorts. */
 struct FShortRect
 {
-	FShortRect() : Left(0), Top(0), Right(0), Bottom(0) {}
-	FShortRect(uint16 InLeft, uint16 InTop, uint16 InRight, uint16 InBottom) : Left(InLeft), Top(InTop), Right(InRight), Bottom(InBottom) {}
-	explicit FShortRect(const FSlateRect& Rect) : Left((uint16)Rect.Left), Top((uint16)Rect.Top), Right((uint16)Rect.Right), Bottom((uint16)Rect.Bottom) {}
+	FShortRect()
+		: Left(0)
+		, Top(0)
+		, Right(0)
+		, Bottom(0)
+	{
+	}
+	
+	FShortRect(uint16 InLeft, uint16 InTop, uint16 InRight, uint16 InBottom)
+		: Left(InLeft)
+		, Top(InTop)
+		, Right(InRight)
+		, Bottom(InBottom)
+	{
+	}
+	
+	explicit FShortRect(const FSlateRect& Rect)
+		: Left((uint16)FMath::Clamp(Rect.Left, 0.0f, 65535.0f))
+		, Top((uint16)FMath::Clamp(Rect.Top, 0.0f, 65535.0f))
+		, Right((uint16)FMath::Clamp(Rect.Right, 0.0f, 65535.0f))
+		, Bottom((uint16)FMath::Clamp(Rect.Bottom, 0.0f, 65535.0f))
+	{
+	}
+
 	bool operator==(const FShortRect& RHS) const { return Left == RHS.Left && Top == RHS.Top && Right == RHS.Right && Bottom == RHS.Bottom; }
 	bool operator!=(const FShortRect& RHS) const { return !(*this == RHS); }
 	bool DoesIntersect( const FShortRect& B ) const
@@ -386,6 +336,15 @@ struct FShortRect
 			B.Bottom < Top || Bottom < B.Top;
 
 		return ! bDoNotOverlap;
+	}
+
+	bool DoesIntersect(const FSlateRect& B) const
+	{
+		const bool bDoNotOverlap =
+			B.Right < Left || Right < B.Left ||
+			B.Bottom < Top || Bottom < B.Top;
+
+		return !bDoNotOverlap;
 	}
 
 	uint16 Left;

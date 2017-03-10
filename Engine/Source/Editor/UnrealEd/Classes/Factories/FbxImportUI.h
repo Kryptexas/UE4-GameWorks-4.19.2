@@ -74,6 +74,42 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Mesh, meta=(ImportType="SkeletalMesh", editcondition="!bCreatePhysicsAsset"))
 	class UPhysicsAsset* PhysicsAsset;
 
+	/** If checked, the static mesh auto compute LOD distance will be turn on. If unchecked user will be able to specify custom LOD distance for every LOD. */
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh"))
+	uint32 bAutoComputeLodDistances : 1;
+	/** Specify the LOD distance for LOD 0*/
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "0.0"))
+	float LodDistance0;
+	/** Specify the LOD distance for LOD 1*/
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "0.0"))
+	float LodDistance1;
+	/** Specify the LOD distance for LOD 2*/
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "0.0"))
+	float LodDistance2;
+	/** Specify the LOD distance for LOD 3*/
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "0.0"))
+	float LodDistance3;
+	/** Specify the LOD distance for LOD 4*/
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "0.0"))
+	float LodDistance4;
+	/** Specify the LOD distance for LOD 5*/
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "0.0"))
+	float LodDistance5;
+	/** Specify the LOD distance for LOD 6*/
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "0.0"))
+	float LodDistance6;
+	/** Specify the LOD distance for LOD 7*/
+	UPROPERTY(EditAnywhere, config, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "0.0"))
+	float LodDistance7;
+
+	/** Set the minimum LOD number. A value of 0 disable the option. */
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "-1"))
+	int32 MinimumLodNumber;
+
+	/** Set the number of LODs. A value of 0 disable the option. */
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = LodSettings, meta = (ImportType = "StaticMesh", UIMin = "-1"))
+	int32 LodNumber;
+
 	/** True to import animations from the FBX File */
 	UPROPERTY(EditAnywhere, config, Category=Animation, meta=(ImportType="SkeletalMesh|Animation"))
 	uint32 bImportAnimations:1;

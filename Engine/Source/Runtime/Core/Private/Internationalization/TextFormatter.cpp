@@ -840,6 +840,42 @@ const FTokenDefinitions& FTextFormatter::GetTextFormatDefinitions() const
 
 FText FTextFormatter::Format(FTextFormat&& InFmt, FFormatNamedArguments&& InArguments, const bool bInRebuildText, const bool bInRebuildAsSource)
 {
+	FString ResultString = FormatStr(InFmt, InArguments, bInRebuildText, bInRebuildAsSource);
+
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_NamedFormat>, ESPMode::ThreadSafe>(MoveTemp(ResultString), FTextHistory_NamedFormat(MoveTemp(InFmt), MoveTemp(InArguments))));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
+}
+
+FText FTextFormatter::Format(FTextFormat&& InFmt, FFormatOrderedArguments&& InArguments, const bool bInRebuildText, const bool bInRebuildAsSource)
+{
+	FString ResultString = FormatStr(InFmt, InArguments, bInRebuildText, bInRebuildAsSource);
+
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_OrderedFormat>, ESPMode::ThreadSafe>(MoveTemp(ResultString), FTextHistory_OrderedFormat(MoveTemp(InFmt), MoveTemp(InArguments))));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
+}
+
+FText FTextFormatter::Format(FTextFormat&& InFmt, TArray<FFormatArgumentData>&& InArguments, const bool bInRebuildText, const bool bInRebuildAsSource)
+{
+	FString ResultString = FormatStr(InFmt, InArguments, bInRebuildText, bInRebuildAsSource);
+
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_ArgumentDataFormat>, ESPMode::ThreadSafe>(MoveTemp(ResultString), FTextHistory_ArgumentDataFormat(MoveTemp(InFmt), MoveTemp(InArguments))));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
+}
+
+FString FTextFormatter::FormatStr(const FTextFormat& InFmt, const FFormatNamedArguments& InArguments, const bool bInRebuildText, const bool bInRebuildAsSource)
+{
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 
 	int32 EstimatedArgumentValuesLength = 0;
@@ -860,17 +896,10 @@ FText FTextFormatter::Format(FTextFormat&& InFmt, FFormatNamedArguments&& InArgu
 		return nullptr;
 	};
 
-	FString ResultString = Format(InFmt, FPrivateTextFormatArguments(FPrivateTextFormatArguments::FGetArgumentValue(GetArgumentValue), EstimatedArgumentValuesLength, bInRebuildText, bInRebuildAsSource));
-
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_NamedFormat>(MoveTemp(ResultString), FTextHistory_NamedFormat(MoveTemp(InFmt), MoveTemp(InArguments)))));
-	if (!GIsEditor)
-	{
-		Result.Flags |= ETextFlag::Transient;
-	}
-	return Result;
+	return Format(InFmt, FPrivateTextFormatArguments(FPrivateTextFormatArguments::FGetArgumentValue(GetArgumentValue), EstimatedArgumentValuesLength, bInRebuildText, bInRebuildAsSource));
 }
 
-FText FTextFormatter::Format(FTextFormat&& InFmt, FFormatOrderedArguments&& InArguments, const bool bInRebuildText, const bool bInRebuildAsSource)
+FString FTextFormatter::FormatStr(const FTextFormat& InFmt, const FFormatOrderedArguments& InArguments, const bool bInRebuildText, const bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 
@@ -896,17 +925,10 @@ FText FTextFormatter::Format(FTextFormat&& InFmt, FFormatOrderedArguments&& InAr
 		return InArguments.IsValidIndex(ArgumentIndex) ? &(InArguments[ArgumentIndex]) : nullptr;
 	};
 
-	FString ResultString = Format(InFmt, FPrivateTextFormatArguments(FPrivateTextFormatArguments::FGetArgumentValue(GetArgumentValue), EstimatedArgumentValuesLength, bInRebuildText, bInRebuildAsSource));
-
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_OrderedFormat>(MoveTemp(ResultString), FTextHistory_OrderedFormat(MoveTemp(InFmt), MoveTemp(InArguments)))));
-	if (!GIsEditor)
-	{
-		Result.Flags |= ETextFlag::Transient;
-	}
-	return Result;
+	return Format(InFmt, FPrivateTextFormatArguments(FPrivateTextFormatArguments::FGetArgumentValue(GetArgumentValue), EstimatedArgumentValuesLength, bInRebuildText, bInRebuildAsSource));
 }
 
-FText FTextFormatter::Format(FTextFormat&& InFmt, TArray<FFormatArgumentData>&& InArguments, const bool bInRebuildText, const bool bInRebuildAsSource)
+FString FTextFormatter::FormatStr(const FTextFormat& InFmt, const TArray<FFormatArgumentData>& InArguments, const bool bInRebuildText, const bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 
@@ -948,14 +970,7 @@ FText FTextFormatter::Format(FTextFormat&& InFmt, TArray<FFormatArgumentData>&& 
 		return nullptr;
 	};
 
-	FString ResultString = Format(InFmt, FPrivateTextFormatArguments(FPrivateTextFormatArguments::FGetArgumentValue(GetArgumentValue), EstimatedArgumentValuesLength, bInRebuildText, bInRebuildAsSource));
-
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_ArgumentDataFormat>(MoveTemp(ResultString), FTextHistory_ArgumentDataFormat(MoveTemp(InFmt), MoveTemp(InArguments)))));
-	if (!GIsEditor)
-	{
-		Result.Flags |= ETextFlag::Transient;
-	}
-	return Result;
+	return Format(InFmt, FPrivateTextFormatArguments(FPrivateTextFormatArguments::FGetArgumentValue(GetArgumentValue), EstimatedArgumentValuesLength, bInRebuildText, bInRebuildAsSource));
 }
 
 FString FTextFormatter::Format(const FTextFormat& InFmt, const FPrivateTextFormatArguments& InFormatArgs)

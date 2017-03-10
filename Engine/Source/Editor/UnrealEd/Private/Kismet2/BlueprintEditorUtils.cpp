@@ -6675,12 +6675,15 @@ bool FBlueprintEditorUtils::RenameTimeline(UBlueprint* Blueprint, const FName Ol
 //////////////////////////////////////////////////////////////////////////
 // LevelScriptBlueprint
 
-int32 FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(ULevelScriptBlueprint* LevelScriptBlueprint, AActor* InActor)
+bool FBlueprintEditorUtils::FindReferencesToActorFromLevelScript(ULevelScriptBlueprint* LevelScriptBlueprint, AActor* InActor, TArray<UK2Node*>& ReferencedToActors)
 {
+	if (LevelScriptBlueprint == nullptr)
+	{
+		return false;
+	}
+
 	TArray<UEdGraph*> AllGraphs;
 	LevelScriptBlueprint->GetAllGraphs(AllGraphs);
-
-	int32 RefCount = 0;
 
 	for(TArray<UEdGraph*>::TConstIterator it(AllGraphs); it; ++it)
 	{
@@ -6689,17 +6692,16 @@ int32 FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(ULevelScrip
 		TArray<UK2Node*> GraphNodes;
 		CurrentGraph->GetNodesOfClass(GraphNodes);
 
-		for( TArray<UK2Node*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt )
+		for(UK2Node* Node : GraphNodes)
 		{
-			const UK2Node* CurrentNode = *NodeIt;
-			if( CurrentNode != nullptr && CurrentNode->GetReferencedLevelActor() == InActor )
+			if(Node != nullptr && Node->GetReferencedLevelActor() == InActor )
 			{
-				RefCount++;
+				ReferencedToActors.Add(Node);
 			}
 		}
 	}
 
-	return RefCount;
+	return ReferencedToActors.Num() > 0;
 }
 
 void FBlueprintEditorUtils::ReplaceAllActorRefrences(ULevelScriptBlueprint* InLevelScriptBlueprint, AActor* InOldActor, AActor* InNewActor)

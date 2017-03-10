@@ -182,7 +182,10 @@ namespace EditorLevelUtils
 		// Set the last loaded level to be the current level
 		if (NewLevel)
 		{
-			InWorld->SetCurrentLevel(NewLevel);
+			if (InWorld->SetCurrentLevel(NewLevel))
+			{
+				FEditorDelegates::NewCurrentLevel.Broadcast();
+			}
 		}
 
 		// For safety
@@ -616,7 +619,10 @@ namespace EditorLevelUtils
 				GEditor->MoveSelectedActorsToLevel( NewLevel );
 			}
 			// Finally make the new level the current one
-			InWorld->SetCurrentLevel( NewLevel );
+			if (InWorld->SetCurrentLevel(NewLevel))
+			{
+				FEditorDelegates::NewCurrentLevel.Broadcast();
+			}
 		}
 
 		// Broadcast the levels have changed (new style)

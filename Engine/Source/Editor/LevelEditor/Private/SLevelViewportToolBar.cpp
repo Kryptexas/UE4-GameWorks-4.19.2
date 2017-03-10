@@ -204,7 +204,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 					.LabelIcon( this, &SLevelViewportToolBar::GetDevicePreviewMenuLabelIcon )
 					.OnGetMenuContent( this, &SLevelViewportToolBar::GenerateDevicePreviewMenu )
 					//@todo rendering: mobile preview in view port is not functional yet - remove this once it is.
-					//.Visibility(EVisibility::Collapsed)
+					.Visibility(EVisibility::Collapsed)
 				]
 				+ SHorizontalBox::Slot()
 				.Padding( ToolbarSlotPadding )

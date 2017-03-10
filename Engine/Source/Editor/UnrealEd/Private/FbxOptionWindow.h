@@ -21,6 +21,8 @@ public:
 		, _FullPath()
 		, _ForcedImportType()
 		, _IsObjFormat(false)
+		, _MaxWindowHeight(0.0f)
+		, _MaxWindowWidth(0.0f)
 		{}
 
 		SLATE_ARGUMENT( UFbxImportUI*, ImportUI )
@@ -28,6 +30,8 @@ public:
 		SLATE_ARGUMENT( FText, FullPath )
 		SLATE_ARGUMENT( TOptional<EFBXImportType>, ForcedImportType )
 		SLATE_ARGUMENT( bool, IsObjFormat )
+		SLATE_ARGUMENT( float, MaxWindowHeight)
+		SLATE_ARGUMENT(float, MaxWindowWidth)
 	SLATE_END_ARGS()
 
 public:

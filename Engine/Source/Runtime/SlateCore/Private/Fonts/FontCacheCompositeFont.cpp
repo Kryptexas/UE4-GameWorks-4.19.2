@@ -6,6 +6,8 @@
 #include "Fonts/FontBulkData.h"
 #include "Misc/FileHelper.h"
 
+DECLARE_CYCLE_STAT(TEXT("Load Font"), STAT_SlateLoadFont, STATGROUP_Slate);
+
 FCachedTypefaceData::FCachedTypefaceData()
 	: Typeface(nullptr)
 	, SingularFontData(nullptr)
@@ -273,6 +275,8 @@ TSharedPtr<FFreeTypeFace> FCompositeFontCache::GetFontFace(const FFontData& InFo
 	TSharedPtr<FFreeTypeFace> FaceAndMemory = FontFaceMap.FindRef(InFontData);
 	if (!FaceAndMemory.IsValid() && InFontData.HasFont())
 	{
+		SCOPE_CYCLE_COUNTER(STAT_SlateLoadFont);
+
 		// IMPORTANT: Do not log from this function until the new font has been added to the FontFaceMap, as it may be the Output Log font being loaded, which would cause an infinite recursion!
 		FString LoadLogMessage;
 
@@ -281,7 +285,7 @@ TSharedPtr<FFreeTypeFace> FCompositeFontCache::GetFontFace(const FFontData& InFo
 			FFontFaceDataConstPtr FontFaceData = InFontData.GetFontFaceData();
 			if (FontFaceData.IsValid() && FontFaceData->HasData())
 			{
-				FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, FontFaceData.ToSharedRef());
+				FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, FontFaceData.ToSharedRef(), InFontData.GetLayoutMethod());
 			}
 		}
 
@@ -300,13 +304,13 @@ TSharedPtr<FFreeTypeFace> FCompositeFontCache::GetFontFace(const FFontData& InFo
 						const int32 FontDataSizeKB = (FontFaceData.Num() + 1023) / 1024;
 						LoadLogMessage = FString::Printf(TEXT("Took %f seconds to synchronously load lazily loaded font '%s' (%dK)"), float(FPlatformTime::Seconds() - FontDataLoadStartTime), *InFontData.GetFontFilename(), FontDataSizeKB);
 
-						FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, FFontFaceData::MakeFontFaceData(MoveTemp(FontFaceData)));
+						FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, FFontFaceData::MakeFontFaceData(MoveTemp(FontFaceData)), InFontData.GetLayoutMethod());
 					}
 				}
 				break;
 			case EFontLoadingPolicy::Stream:
 				{
-					FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, InFontData.GetFontFilename());
+					FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, InFontData.GetFontFilename(), InFontData.GetLayoutMethod());
 				}
 				break;
 			default:

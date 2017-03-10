@@ -72,6 +72,7 @@ public:
 	// Font data
 	FSlateFontInfo FontInfo;
 	TCHAR* ImmutableText;
+	FLinearColor OutlineTint;
 
 	// Shaped text data
 	FShapedGlyphSequencePtr ShapedGlyphSequence;
@@ -167,9 +168,10 @@ public:
 
 	void SetTextPayloadProperties( FSlateWindowElementList& DrawBuffer, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint, const int32 StartIndex = 0, const int32 EndIndex = MAX_int32 );
 
-	void SetShapedTextPayloadProperties( const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FLinearColor& InTint )
+	void SetShapedTextPayloadProperties( const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FLinearColor& InBaseTint, const FLinearColor& InOutlineTint )
 	{
-		Tint = InTint;
+		Tint = InBaseTint;
+		OutlineTint = InOutlineTint;
 		ShapedGlyphSequence = InShapedGlyphSequence;
 	}
 
@@ -386,7 +388,7 @@ public:
 	 * @param InDrawEffects         Optional draw effects to apply
 	 * @param InTint                Color to tint the element
 	 */
-	SLATECORE_API static void MakeShapedText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint = FLinearColor::White );
+	SLATECORE_API static void MakeShapedText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects, const FLinearColor& BaseTint, const FLinearColor& OutlineTint);
 
 	/**
 	 * Creates a gradient element
@@ -485,19 +487,27 @@ public:
 	FORCEINLINE const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
 	FORCEINLINE const int32 GetSceneIndex() const { return SceneIndex; }
 
-	FORCEINLINE FSlateRotatedClipRectType CalculateRenderClippingRect() const
+	FORCEINLINE FSlateRotatedRect CalculateRenderClippingRect() const
 	{
 		// The clip rect is NOT subject to the rotations specified by MakeRotatedBox.
 		return
 			EnumHasAllFlags(DrawEffects, ESlateDrawEffect::NoPixelSnapping)
-			? FSlateRotatedClipRectType::MakeRotatedRect(ClippingRect, LayoutToRenderTransform)
-			: FSlateRotatedClipRectType::MakeSnappedRotatedRect(ClippingRect, LayoutToRenderTransform);
+			? FSlateRotatedRect::MakeRotatedRect(ClippingRect, LayoutToRenderTransform)
+			: FSlateRotatedRect::MakeSnappedRotatedRect(ClippingRect, LayoutToRenderTransform);
 	}
 
 	FORCEINLINE FSlateLayoutTransform GetInverseLayoutTransform() const
 	{
 		return Inverse(FSlateLayoutTransform(Scale, Position));
 	}
+
+	/**
+	 * Update element cached position with an arbitrary offset
+	 *
+	 * @param Element		   Element to update
+	 * @param InOffset         Absolute translation delta
+	 */
+	SLATECORE_API static void ApplyPositionOffset(FSlateDrawElement& Element, const FVector2D& InOffset);
 
 private:
 	void Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects);
@@ -1266,7 +1276,7 @@ public:
 	public:
 		SLATECORE_API FVolatilePaint(const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool InParentEnabled);
 
-		int32 ExecutePaint(FSlateWindowElementList& OutDrawElements) const;
+		int32 ExecutePaint(FSlateWindowElementList& OutDrawElements, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset) const;
 
 		FORCEINLINE const SWidget* GetWidget() const { return WidgetToPaintPtr.Pin().Get(); }
 		FORCEINLINE FGeometry GetGeometry() const { return AllottedGeometry; }
@@ -1287,7 +1297,7 @@ public:
 
 	SLATECORE_API void QueueVolatilePainting( const FVolatilePaint& InVolatilePaint );
 
-	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList);
+	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset);
 
 	SLATECORE_API void BeginLogicalLayer(const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& LayerHandle);
 	SLATECORE_API void EndLogicalLayer();

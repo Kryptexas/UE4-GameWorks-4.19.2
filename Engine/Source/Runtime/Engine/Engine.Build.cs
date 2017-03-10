@@ -98,13 +98,18 @@ public class Engine : ModuleRules
 				"Landscape",
                 "UMG",
 				"Projects",
-                "Internationalization",
                 "MaterialShaderQualitySettings",
                 "CinematicCamera",
 				"Analytics",
 				"AnalyticsET",
             }
 		);
+
+		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			PrivateIncludePathModuleNames.Add("Localization");
+			DynamicallyLoadedModuleNames.Add("Localization");
+		}
 
         // to prevent "causes WARNING: Non-editor build cannot depend on non-redistributable modules."
         if (Target.Type == TargetType.Editor)

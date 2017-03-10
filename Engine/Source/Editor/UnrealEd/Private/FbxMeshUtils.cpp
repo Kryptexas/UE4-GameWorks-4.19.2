@@ -13,9 +13,11 @@
 #include "EditorDirectories.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Misc/MessageDialog.h"
-
+#include "ComponentReregisterContext.h"
 #include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
+#include "StaticMeshResources.h"
+#include "Components/SkeletalMeshComponent.h"
 
 #include "DesktopPlatformModule.h"
 
@@ -33,6 +35,16 @@
 DEFINE_LOG_CATEGORY_STATIC(LogExportMeshUtils, Log, All);
 
 #define LOCTEXT_NAMESPACE "FbxMeshUtil"
+
+struct ExistingStaticMeshData;
+extern ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, UnFbx::FBXImportOptions* ImportOptions, int32 LodIndex);
+extern void RestoreExistingMeshSettings(struct ExistingStaticMeshData* ExistingMesh, UStaticMesh* NewMesh, int32 LODIndex);
+extern void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr, UStaticMesh* NewMesh, int32 LodLevel);
+extern void UpdateSomeLodsImportMeshData(UStaticMesh* NewMesh, TArray<int32> *ReimportLodList);
+
+struct ExistingSkelMeshData;
+extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials, int32 ReimportLODIndex);
+extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh, int32 ReimportLODIndex);
 
 namespace FbxMeshUtils
 {
@@ -92,6 +104,7 @@ namespace FbxMeshUtils
 
 		UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
 		
+		bool IsReimport = BaseStaticMesh->RenderData->LODResources.Num() > LODLevel;
 		UFbxStaticMeshImportData* ImportData = Cast<UFbxStaticMeshImportData>(BaseStaticMesh->AssetImportData);
 		if (ImportData != nullptr)
 		{
@@ -148,6 +161,8 @@ namespace FbxMeshUtils
 				}
 			}
 
+			struct ExistingStaticMeshData* ExistMeshDataPtr = IsReimport ? SaveExistingStaticMeshData(BaseStaticMesh, FFbxImporter->ImportOptions, LODLevel) : nullptr;
+
 			// Display the LOD selection dialog
 			if (LODLevel > BaseStaticMesh->GetNumLODs())
 			{
@@ -157,13 +172,32 @@ namespace FbxMeshUtils
 			else
 			{
 				UStaticMesh* TempStaticMesh = NULL;
-				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel, nullptr);
-
+				if (!LODNodeList.IsValidIndex(bUseLODs ? LODLevel : 0))
+				{
+					if (bUseLODs)
+					{
+						//Use the first LOD when user try to add or re-import a LOD from a file(different from the LOD 0 file) containing multiple LODs
+						bUseLODs = false;
+					}
+				}
+				
+				if (LODNodeList.IsValidIndex(bUseLODs ? LODLevel : 0))
+				{
+					TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs ? LODLevel : 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel, ExistMeshDataPtr);
+				}
+				
 				// Add imported mesh to existing model
 				if( TempStaticMesh )
 				{
 					//Build the staticmesh
 					FFbxImporter->PostImportStaticMesh(TempStaticMesh, *(LODNodeList[bUseLODs ? LODLevel : 0]));
+					TArray<int32> ReimportLodList;
+					ReimportLodList.Add(LODLevel);
+					UpdateSomeLodsImportMeshData(BaseStaticMesh, &ReimportLodList);
+					if(IsReimport)
+					{
+						RestoreExistingMeshData(ExistMeshDataPtr, BaseStaticMesh, LODLevel);
+					}
 
 					// Update mesh component
 					BaseStaticMesh->MarkPackageDirty();
@@ -390,16 +424,57 @@ namespace FbxMeshUtils
 						}
 					}
 					
-					TempSkelMesh = (USkeletalMesh*)FFbxImporter->ImportSkeletalMesh(SelectedSkelMesh->GetOutermost(), bUseLODs? SkelMeshNodeArray: *MeshObject, NAME_None, RF_Transient, TempAssetImportData, LODLevel, nullptr, nullptr, nullptr, true, OrderedMaterialNames.Num() > 0 ? &OrderedMaterialNames : nullptr);
+					ExistingSkelMeshData* SkelMeshDataPtr = nullptr;
+					if (SelectedSkelMesh->LODInfo.Num() > LODLevel)
+					{
+						SelectedSkelMesh->PreEditChange(NULL);
+						SkelMeshDataPtr = SaveExistingSkelMeshData(SelectedSkelMesh, true, SelectedLOD);
+					}
+
+					//Original fbx data storage
+					TArray<FName> ImportMaterialOriginalNameData;
+					TArray<FImportMeshLodSectionsData> ImportMeshLodData;
+					ImportMeshLodData.AddZeroed();
+
+					UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
+					ImportSkeletalMeshArgs.InParent = SelectedSkelMesh->GetOutermost();
+					ImportSkeletalMeshArgs.NodeArray = bUseLODs ? SkelMeshNodeArray : *MeshObject;
+					ImportSkeletalMeshArgs.Name = NAME_None;
+					ImportSkeletalMeshArgs.Flags = RF_Transient;
+					ImportSkeletalMeshArgs.TemplateImportData = TempAssetImportData;
+					ImportSkeletalMeshArgs.LodIndex = LODLevel;
+					ImportSkeletalMeshArgs.OrderedMaterialNames = OrderedMaterialNames.Num() > 0 ? &OrderedMaterialNames : nullptr;
+					ImportSkeletalMeshArgs.ImportMaterialOriginalNameData = &ImportMaterialOriginalNameData;
+					ImportSkeletalMeshArgs.ImportMeshSectionsData = &ImportMeshLodData[0];
+
+					TempSkelMesh = (USkeletalMesh*)FFbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 
 					// Add imported mesh to existing model
 					bool bMeshImportSuccess = false;
 					if( TempSkelMesh )
 					{
-						bMeshImportSuccess = FFbxImporter->ImportSkeletalMeshLOD(TempSkelMesh, SelectedSkelMesh, SelectedLOD);
+						bMeshImportSuccess = FFbxImporter->ImportSkeletalMeshLOD(TempSkelMesh, SelectedSkelMesh, SelectedLOD, true, nullptr, TempAssetImportData);
 
+						//Update the import data for this lod
+						UnFbx::FFbxImporter::UpdateSkeletalMeshImportData(SelectedSkelMesh, nullptr, LODLevel, &ImportMaterialOriginalNameData, &ImportMeshLodData);
+
+						if (SkelMeshDataPtr != nullptr)
+						{
+							RestoreExistingSkelMeshData(SkelMeshDataPtr, SelectedSkelMesh, SelectedLOD);
+						}
+						SelectedSkelMesh->PostEditChange();
 						// Mark package containing skeletal mesh as dirty.
 						SelectedSkelMesh->MarkPackageDirty();
+
+						// Now iterate over all skeletal mesh components re-initialising them.
+						for (TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+						{
+							USkeletalMeshComponent* SkelComp = *It;
+							if (SkelComp->SkeletalMesh == SelectedSkelMesh)
+							{
+								FComponentReregisterContext ReregisterContext(SkelComp);
+							}
+						}
 					}
 
 					if(ImportOptions->bImportMorph)

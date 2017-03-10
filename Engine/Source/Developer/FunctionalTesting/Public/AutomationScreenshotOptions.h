@@ -70,7 +70,34 @@ struct FAutomationScreenshotOptions
 	GENERATED_BODY()
 
 public:
-	FAutomationScreenshotOptions();
+	FAutomationScreenshotOptions()
+		: Resolution(ForceInit)
+		, Delay(0.2f)
+		, bDisableNoisyRenderingFeatures(true)
+		, VisualizeBuffer(NAME_None)
+		, Tolerance(EComparisonTolerance::Low)
+		, ToleranceAmount()
+		, MaximumLocalError(0.10f)
+		, MaximumGlobalError(0.02f)
+		, bIgnoreAntiAliasing(true)
+		, bIgnoreColors(false)
+	{
+	}
+
+	FAutomationScreenshotOptions(EComparisonTolerance InTolerance)
+		: Resolution(ForceInit)
+		, Delay(0.2f)
+		, bDisableNoisyRenderingFeatures(true)
+		, VisualizeBuffer(NAME_None)
+		, Tolerance(EComparisonTolerance::Low)
+		, ToleranceAmount()
+		, MaximumLocalError(0.10f)
+		, MaximumGlobalError(0.02f)
+		, bIgnoreAntiAliasing(true)
+		, bIgnoreColors(false)
+	{
+		SetToleranceAmounts(InTolerance);
+	}
 
 	/**
 	 * The desired resolution of the screenshot, if none is provided, it will use the default for the
@@ -86,7 +113,9 @@ public:
 	float Delay;
 
 	/**
-	 * 
+	 * Disables Anti-Aliasing, Motion Blur, Screen Space Reflections, Eye Adaptation and Contact Shadows,
+	 * because those features contribute a lot to the noise in the final rendered image.  If you're explicitly
+	 * looking for changes 
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Screenshot")
 	bool bDisableNoisyRenderingFeatures;
@@ -146,5 +175,22 @@ public:
 	bool bIgnoreColors;
 
 public:
-	void SetToleranceAmounts(EComparisonTolerance InTolerance);
+	void SetToleranceAmounts(EComparisonTolerance InTolerance)
+	{
+		switch ( InTolerance )
+		{
+		case EComparisonTolerance::Zero:
+			ToleranceAmount = FComparisonToleranceAmount(0, 0, 0, 0, 0, 255);
+			break;
+		case EComparisonTolerance::Low:
+			ToleranceAmount = FComparisonToleranceAmount(16, 16, 16, 16, 16, 240);
+			break;
+		case EComparisonTolerance::Medium:
+			ToleranceAmount = FComparisonToleranceAmount(24, 24, 24, 24, 24, 220);
+			break;
+		case EComparisonTolerance::High:
+			ToleranceAmount = FComparisonToleranceAmount(32, 32, 32, 32, 64, 96);
+			break;
+		}
+	}
 };

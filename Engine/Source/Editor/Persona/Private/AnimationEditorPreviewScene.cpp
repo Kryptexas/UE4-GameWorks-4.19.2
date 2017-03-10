@@ -122,6 +122,9 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 {
 	USkeletalMesh* OldPreviewMesh = SkeletalMeshComponent->SkeletalMesh;
 
+	//Persona skeletal mesh component is the only component that can highlight a particular section
+	SkeletalMeshComponent->bCanHighlightSelectedSections = true;
+
 	ValidatePreviewAttachedAssets(NewPreviewMesh);
 
 	if (NewPreviewMesh != SkeletalMeshComponent->SkeletalMesh)
@@ -168,7 +171,6 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 		AddPreviewAttachedObjects();
 
 		SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-		SkeletalMeshComponent->bCanHighlightSelectedSections = true;
 	}
 
 	for (auto Iter = AdditionalMeshes.CreateIterator(); Iter; ++Iter)

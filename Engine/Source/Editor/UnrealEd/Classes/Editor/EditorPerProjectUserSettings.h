@@ -112,6 +112,10 @@ class UEditorPerProjectUserSettings : public UObject
 	UPROPERTY(EditAnywhere, config, Category = Export)
 	uint32 bFbxExportCollisionMesh : 1;
 
+	/** If enabled, export with X axis as the front axis instead of default -Y */
+	UPROPERTY(EditAnywhere, config, Category = Export)
+	uint32 bForceFrontXAxis : 1;
+
 	/** Select to make Distributions use the curves, not the baked lookup tables. */
 	UPROPERTY(config)
 	uint32 bUseCurvesForDistributions:1; //(GDistributionType == 0)

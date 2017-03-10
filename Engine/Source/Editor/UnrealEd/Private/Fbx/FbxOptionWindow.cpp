@@ -25,43 +25,47 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 	TSharedPtr<SBox> InspectorBox;
 	this->ChildSlot
 	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(2)
+		SNew(SBox)
+		.MaxDesiredHeight(InArgs._MaxWindowHeight)
+		.MaxDesiredWidth(InArgs._MaxWindowWidth)
 		[
-			SNew(SBorder)
-			.Padding(FMargin(3))
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2)
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
+				SNew(SBorder)
+				.Padding(FMargin(3))
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 				[
-					SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
-					.Text(LOCTEXT("Import_CurrentFileTitle", "Current File: "))
-				]
-				+SHorizontalBox::Slot()
-				.Padding(5, 0, 0, 0)
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
-					.Text(InArgs._FullPath)
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
+						.Text(LOCTEXT("Import_CurrentFileTitle", "Current File: "))
+					]
+					+SHorizontalBox::Slot()
+					.Padding(5, 0, 0, 0)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
+						.Text(InArgs._FullPath)
+					]
 				]
 			]
-		]
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(2)
-		[
-			SAssignNew(InspectorBox, SBox)
-			.MaxDesiredHeight(650.0f)
-			.WidthOverride(400.0f)
-		]
-		+ SVerticalBox::Slot()
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2)
+			[
+				SAssignNew(InspectorBox, SBox)
+				.MaxDesiredHeight(650.0f)
+				.WidthOverride(400.0f)
+			]
+			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.HAlign(HAlign_Right)
 			.Padding(2)
@@ -82,22 +86,23 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 					.OnClicked(this, &SFbxOptionWindow::OnImportAll)
 				]
 				+ SUniformGridPanel::Slot(2, 0)
-					[
-						SAssignNew(ImportButton, SButton)
-						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("FbxOptionWindow_Import", "Import"))
-						.IsEnabled(this, &SFbxOptionWindow::CanImport)
-						.OnClicked(this, &SFbxOptionWindow::OnImport)
-					]
+				[
+					SAssignNew(ImportButton, SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("FbxOptionWindow_Import", "Import"))
+					.IsEnabled(this, &SFbxOptionWindow::CanImport)
+					.OnClicked(this, &SFbxOptionWindow::OnImport)
+				]
 				+ SUniformGridPanel::Slot(3, 0)
-					[
-						SNew(SButton)
-						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("FbxOptionWindow_Cancel", "Cancel"))
-						.ToolTipText(LOCTEXT("FbxOptionWindow_Cancel_ToolTip", "Cancels importing this FBX file"))
-						.OnClicked(this, &SFbxOptionWindow::OnCancel)
-					]
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("FbxOptionWindow_Cancel", "Cancel"))
+					.ToolTipText(LOCTEXT("FbxOptionWindow_Cancel_ToolTip", "Cancels importing this FBX file"))
+					.OnClicked(this, &SFbxOptionWindow::OnCancel)
+				]
 			]
+		]
 	];
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");

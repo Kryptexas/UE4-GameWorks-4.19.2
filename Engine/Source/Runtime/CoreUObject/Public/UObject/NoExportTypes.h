@@ -1069,6 +1069,38 @@ struct FInt32Interval
 	int32 Max;
 };
 
+// Automation
+
+UENUM()
+enum class EAutomationEventType : uint8
+{
+	Info,
+	Warning,
+	Error
+};
+
+USTRUCT(noexport)
+struct FAutomationEvent
+{
+	UPROPERTY()
+	EAutomationEventType Type;
+
+	UPROPERTY()
+	FString Message;
+
+	UPROPERTY()
+	FString Context;
+
+	UPROPERTY()
+	FString Filename;
+
+	UPROPERTY()
+	int32 LineNumber;
+
+	UPROPERTY()
+	FDateTime Timestamp;
+};
+
 //=============================================================================
 /**
  * Object: The base class all objects.

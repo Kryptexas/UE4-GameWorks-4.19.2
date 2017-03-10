@@ -586,10 +586,6 @@ public:
 	virtual FString GetLabelMetadata() const;
 
 	/** Gets the label to display to the user for this widget. */
-	DEPRECATED(4.8, "Use GetLabelText(), which will return the label as FText.")
-	FString GetLabel() const;
-
-	/** Gets the label to display to the user for this widget. */
 	FText GetLabelText() const;
 
 	/** Gets the palette category of the widget */

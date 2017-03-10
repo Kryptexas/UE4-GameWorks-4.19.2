@@ -29,6 +29,7 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 ,   bHasBeenUpdatedAtLeastOnce(false)
 #if WITH_EDITORONLY_DATA
 ,   SectionIndexPreview(InMeshComponent->SectionIndexPreview)
+,   MaterialIndexPreview(InMeshComponent->MaterialIndexPreview)
 #endif	
 ,	SkeletalMeshResource(InSkeletalMeshResource)
 ,	SkeletalMeshLODInfo(InMeshComponent->SkeletalMesh->LODInfo)
@@ -47,6 +48,7 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 	if ( !GIsEditor )
 	{
 		SectionIndexPreview = -1;
+		MaterialIndexPreview = -1;
 	}
 #endif // #if WITH_EDITORONLY_DATA
 

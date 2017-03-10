@@ -430,7 +430,7 @@ struct FSkeletalMaterial
 	FName						MaterialSlotName;
 #if WITH_EDITORONLY_DATA
 	/*This name should be use when we re-import a skeletal mesh so we can order the Materials array like it should be*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	UPROPERTY(VisibleAnywhere, Category = SkeletalMesh)
 	FName						ImportedMaterialSlotName;
 #endif //WITH_EDITORONLY_DATA
 
@@ -637,6 +637,10 @@ public:
 	/** The section currently selected in the Editor. Used for highlighting */
 	UPROPERTY(transient)
 	int32 SelectedEditorSection;
+
+	/** The Material currently selected. need to remember this index for reimporting cloth */
+	UPROPERTY(transient)
+	int32 SelectedEditorMaterial;
 
 	/** The section currently selected for clothing. need to remember this index for reimporting cloth */
 	UPROPERTY(transient)

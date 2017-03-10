@@ -129,3 +129,32 @@ bool FOnlyNewLinesTest::RunTest(const FString& Parameters)
 {
 	return	FCsvParser(FString("\r\n\r\r\n\n\r\n\n\r")).GetRows().Num() == 0;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEndOfStringTest, "System.Core.CSV Parser.End of String", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FEndOfStringTest::RunTest(const FString& Parameters)
+{
+	bool bSuccess = true;
+
+	{
+		const FCsvParser Parser(TEXT(",,,"));
+
+		const FString Expected[][4] = {
+			{ "", "", "", "" },
+		};
+
+		bSuccess &= CsvParser_Tests::CheckRows(Parser.GetRows(), Expected, this);
+	}
+
+	{
+		const FCsvParser Parser(TEXT(",,,\n"));
+
+		const FString Expected[][4] = {
+			{ "", "", "", "" },
+		};
+
+		bSuccess &= CsvParser_Tests::CheckRows(Parser.GetRows(), Expected, this);
+	}
+
+	return bSuccess;
+}

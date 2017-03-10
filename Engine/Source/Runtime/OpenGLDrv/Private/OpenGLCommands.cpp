@@ -1550,21 +1550,6 @@ void FOpenGLDynamicRHI::SetPendingBlendStateForActiveRenderTargets( FOpenGLConte
 							RenderTargetBlendState.AlphaBlendOperation
 							);
 					}
-#if PLATFORM_MAC // Only need this workaround for Mavericks. Fixed in Yosemite.
-					if (IsRHIDeviceIntel() && FPlatformMisc::IsRunningOnMavericks())
-					{
-						// Flush the separate blend state changes through GL or on Intel cards under OS X the state change may be silently ignored.
-						if (CachedRenderTargetBlendState.ColorSourceBlendFactor != RenderTargetBlendState.ColorSourceBlendFactor
-							|| CachedRenderTargetBlendState.ColorDestBlendFactor != RenderTargetBlendState.ColorDestBlendFactor
-							|| CachedRenderTargetBlendState.AlphaSourceBlendFactor != RenderTargetBlendState.AlphaSourceBlendFactor
-							|| CachedRenderTargetBlendState.AlphaDestBlendFactor != RenderTargetBlendState.AlphaDestBlendFactor
-							|| CachedRenderTargetBlendState.ColorBlendOperation != RenderTargetBlendState.ColorBlendOperation
-							|| CachedRenderTargetBlendState.AlphaBlendOperation != RenderTargetBlendState.AlphaBlendOperation)
-						{
-							FOpenGL::Flush();
-						}
-					}
-#endif
 				}
 				else
 				{

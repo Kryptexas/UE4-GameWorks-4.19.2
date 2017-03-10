@@ -1953,12 +1953,18 @@ int32 FMeshSectionInfoMap::GetSectionNumber(int32 LODIndex) const
 	int SectionCount = 0;
 	for (auto kvp : Map)
 	{
-		if (((kvp.Key & 0xffff) >> 16) == LODIndex)
+		if (((kvp.Key & 0xffff0000) >> 16) == LODIndex)
 		{
 			SectionCount++;
 		}
 	}
 	return SectionCount;
+}
+
+bool FMeshSectionInfoMap::IsValidSection(int32 LODIndex, int32 SectionIndex) const
+{
+	uint32 Key = GetMeshMaterialKey(LODIndex, SectionIndex);
+	return (Map.Find(Key) != nullptr);
 }
 
 FMeshSectionInfo FMeshSectionInfoMap::Get(int32 LODIndex, int32 SectionIndex) const

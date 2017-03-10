@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #import <Foundation/Foundation.h>
 
 @interface FIOSAsyncTask : NSObject

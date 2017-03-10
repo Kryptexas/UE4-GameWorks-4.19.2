@@ -2117,12 +2117,14 @@ void AInstancedFoliageActor::PostEditUndo()
 	Super::PostEditUndo();
 
 	FlushRenderingCommands();
+
+	InstanceBaseCache.UpdateInstanceBaseCachedTransforms();
+
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
 		MeshInfo.CheckComponentClass(this, MeshPair.Key);
-
 		MeshInfo.ReapplyInstancesToComponent();
 
 		// Regenerate instance hash

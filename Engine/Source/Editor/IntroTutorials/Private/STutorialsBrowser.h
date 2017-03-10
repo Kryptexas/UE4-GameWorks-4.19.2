@@ -31,9 +31,6 @@ struct ITutorialListEntry
 	/** Get the text representation of this item's title */
 	virtual FText GetTitleText() const = 0;
 
-	/** Get the string representation of this item's title */
-	virtual FString GetTitleString() const = 0;
-
 	/** Get a priority value to override alphabetical sorting */
 	virtual int32 GetSortOrder() const = 0;
 

@@ -25,11 +25,11 @@ FString GetSourceString(const FText& Text)
 	return Text.ToString();
 }
 
-void AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData, const int32 InIndex, const int32 InPortFlags, FStringOutputDevice& OutImportError)
+void AssignStringToPropertyDirect(const FString& InString, const UProperty* InProp, uint8* InData, const int32 InPortFlags, FStringOutputDevice& OutImportError)
 {
 	auto DoImportText = [&](const FString& InStringToImport)
 	{
-		InProp->ImportText(*InStringToImport, InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex), InPortFlags, nullptr, &OutImportError);
+		InProp->ImportText(*InStringToImport, InData, InPortFlags, nullptr, &OutImportError);
 	};
 
 	bool bNeedsImport = true;
@@ -81,7 +81,13 @@ void AssignStringToProperty(const FString& InString, const UProperty* InProp, ui
 	}
 }
 
-void GetPropertyValueAsString(const UProperty* InProp, const uint8* InData, const int32 InIndex, const int32 InPortFlags, const EDataTableExportFlags InDTExportFlags, FString& OutString)
+void AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData, const int32 InIndex, const int32 InPortFlags, FStringOutputDevice& OutImportError)
+{
+	uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
+	AssignStringToPropertyDirect(InString, InProp, ValuePtr, InPortFlags, OutImportError);
+}
+
+void GetPropertyValueAsStringDirect(const UProperty* InProp, const uint8* InData, const int32 InPortFlags, const EDataTableExportFlags InDTExportFlags, FString& OutString)
 {
 	if (!!(InDTExportFlags & EDataTableExportFlags::UsePrettyEnumNames))
 	{
@@ -90,14 +96,12 @@ void GetPropertyValueAsString(const UProperty* InProp, const uint8* InData, cons
 		if (const UEnumProperty* EnumProp = Cast<UEnumProperty>(InProp))
 		{
 			Enum = EnumProp->GetEnum();
-			const uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
-			Val = EnumProp->GetUnderlyingProperty()->GetSignedIntPropertyValue(ValuePtr);
+			Val = EnumProp->GetUnderlyingProperty()->GetSignedIntPropertyValue(InData);
 		}
 		else if (const UByteProperty* ByteProp = Cast<UByteProperty>(InProp))
 		{
 			Enum = ByteProp->GetIntPropertyEnum();
-			const uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
-			Val = *ValuePtr;
+			Val = *InData;
 		}
 
 		if (UUserDefinedEnum* UDEnum = Cast<UUserDefinedEnum>(Enum))
@@ -107,7 +111,7 @@ void GetPropertyValueAsString(const UProperty* InProp, const uint8* InData, cons
 		}
 	}
 #if WITH_EDITOR
-	if ((InPortFlags & PPF_PropertyWindow) && !!(InDTExportFlags & EDataTableExportFlags::UseJsonObjectsForStructs))
+	if (InPortFlags & PPF_PropertyWindow)
 	{
 		auto ExportStructAsJson = [InDTExportFlags](const UScriptStruct* InStruct, const void* InStructData) -> FString
 		{
@@ -130,23 +134,91 @@ void GetPropertyValueAsString(const UProperty* InProp, const uint8* InData, cons
 		};
 
 		const UArrayProperty* ArrayProp = Cast<const UArrayProperty>(InProp);
-		if (ArrayProp && ArrayProp->Inner->IsA<UStructProperty>())
+		const USetProperty* SetProp = Cast<const USetProperty>(InProp);
+		const UMapProperty* MapProp = Cast<const UMapProperty>(InProp);
+
+		if (ArrayProp && ArrayProp->Inner->IsA<UStructProperty>() && !!(InDTExportFlags & EDataTableExportFlags::UseJsonObjectsForStructs))
 		{
-			const uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
 			const UStructProperty* StructInner = CastChecked<const UStructProperty>(ArrayProp->Inner);
 
 			OutString.AppendChar('(');
 
-			FScriptArrayHelper ArrayHelper(ArrayProp, ValuePtr);
+			FScriptArrayHelper ArrayHelper(ArrayProp, InData);
 			for (int32 ArrayEntryIndex = 0; ArrayEntryIndex < ArrayHelper.Num(); ++ArrayEntryIndex)
 			{
-				const void* ArrayEntryData = ArrayHelper.GetRawPtr(ArrayEntryIndex);
-				OutString.Append(ExportStructAsJson(StructInner->Struct, ArrayEntryData));
-
-				if ((ArrayEntryIndex + 1) < ArrayHelper.Num())
+				if (ArrayEntryIndex > 0)
 				{
 					OutString.AppendChar(',');
 					OutString.AppendChar(' ');
+				}
+
+				const uint8* ArrayEntryData = ArrayHelper.GetRawPtr(ArrayEntryIndex);
+				OutString.Append(ExportStructAsJson(StructInner->Struct, ArrayEntryData));
+			}
+
+			OutString.AppendChar(')');
+			return;
+		}
+		else if (SetProp && SetProp->ElementProp->IsA<UStructProperty>() && !!(InDTExportFlags & EDataTableExportFlags::UseJsonObjectsForStructs))
+		{
+			const UStructProperty* StructInner = CastChecked<const UStructProperty>(SetProp->ElementProp);
+
+			OutString.AppendChar('(');
+
+			int32 NumWrittenSetEntries = 0;
+			FScriptSetHelper SetHelper(SetProp, InData);
+			for (int32 SetEntryIndex = 0; SetEntryIndex < SetHelper.Num(); ++SetEntryIndex)
+			{
+				if (SetHelper.IsValidIndex(SetEntryIndex))
+				{
+					if (NumWrittenSetEntries++ > 0)
+					{
+						OutString.AppendChar(',');
+						OutString.AppendChar(' ');
+					}
+
+					const uint8* SetEntryData = SetHelper.GetElementPtr(SetEntryIndex);
+					OutString.Append(ExportStructAsJson(StructInner->Struct, SetEntryData));
+				}
+			}
+
+			OutString.AppendChar(')');
+			return;
+		}
+		else if (MapProp)
+		{
+			OutString.AppendChar('(');
+
+			int32 NumWrittenMapEntries = 0;
+			FScriptMapHelper MapHelper(MapProp, InData);
+			for (int32 MapEntryIndex = 0; MapEntryIndex < MapHelper.Num(); ++MapEntryIndex)
+			{
+				if (MapHelper.IsValidIndex(MapEntryIndex))
+				{
+					if (NumWrittenMapEntries++ > 0)
+					{
+						OutString.AppendChar(',');
+						OutString.AppendChar(' ');
+					}
+
+					const uint8* MapKeyData = MapHelper.GetKeyPtr(MapEntryIndex);
+					const uint8* MapValueData = MapHelper.GetValuePtr(MapEntryIndex);
+
+					OutString.AppendChar('"');
+					GetPropertyValueAsStringDirect(MapHelper.GetKeyProperty(), MapKeyData, InPortFlags, InDTExportFlags, OutString);
+					OutString.AppendChar('"');
+
+					OutString.Append(TEXT(" = "));
+
+					if (MapHelper.GetValueProperty()->IsA<UStructProperty>() && !!(InDTExportFlags & EDataTableExportFlags::UseJsonObjectsForStructs))
+					{
+						const UStructProperty* StructMapValue = CastChecked<const UStructProperty>(MapHelper.GetValueProperty());
+						OutString.Append(ExportStructAsJson(StructMapValue->Struct, MapValueData));
+					}
+					else
+					{
+						GetPropertyValueAsStringDirect(MapHelper.GetValueProperty(), MapValueData, InPortFlags, InDTExportFlags, OutString);
+					}
 				}
 			}
 
@@ -155,23 +227,28 @@ void GetPropertyValueAsString(const UProperty* InProp, const uint8* InData, cons
 		}
 		else if (const UStructProperty* StructProp = Cast<const UStructProperty>(InProp))
 		{
-			const uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
-			OutString.Append(ExportStructAsJson(StructProp->Struct, ValuePtr));
+			OutString.Append(ExportStructAsJson(StructProp->Struct, InData));
 			return;
 		}
 	}
 #endif // WITH_EDITOR
-	InProp->ExportText_InContainer(InIndex, OutString, InData, InData, nullptr, InPortFlags);
+	InProp->ExportText_Direct(OutString, InData, InData, nullptr, InPortFlags);
+}
+
+void GetPropertyValueAsString(const UProperty* InProp, const uint8* InData, const int32 InIndex, const int32 InPortFlags, const EDataTableExportFlags InDTExportFlags, FString& OutString)
+{
+	const uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
+	return GetPropertyValueAsStringDirect(InProp, ValuePtr, InPortFlags, InDTExportFlags, OutString);
 }
 
 }
 
-FString DataTableUtils::AssignStringToSingleProperty(const FString& InString, const UProperty* InProp, uint8* InData)
+FString DataTableUtils::AssignStringToPropertyDirect(const FString& InString, const UProperty* InProp, uint8* InData)
 {
 	FStringOutputDevice ImportError;
 	if(InProp && IsSupportedTableProperty(InProp))
 	{
-		DataTableUtilsImpl::AssignStringToProperty(InString, InProp, InData, 0, PPF_None, ImportError);
+		DataTableUtilsImpl::AssignStringToPropertyDirect(InString, InProp, InData, PPF_None, ImportError);
 	}
 
 	FString Error = ImportError;
@@ -221,13 +298,13 @@ FString DataTableUtils::AssignStringToProperty(const FString& InString, const UP
 	return Error;
 }
 
-FString DataTableUtils::GetSinglePropertyValueAsString(const UProperty* InProp, uint8* InData, const EDataTableExportFlags InDTExportFlags)
+FString DataTableUtils::GetPropertyValueAsStringDirect(const UProperty* InProp, uint8* InData, const EDataTableExportFlags InDTExportFlags)
 {
 	FString Result;
 
 	if(InProp && IsSupportedTableProperty(InProp))
 	{
-		DataTableUtilsImpl::GetPropertyValueAsString(InProp, InData, 0, PPF_None, InDTExportFlags, Result);
+		DataTableUtilsImpl::GetPropertyValueAsStringDirect(InProp, InData, PPF_None, InDTExportFlags, Result);
 	}
 
 	return Result;
@@ -264,14 +341,14 @@ FString DataTableUtils::GetPropertyValueAsString(const UProperty* InProp, uint8*
 	return Result;
 }
 
-FText DataTableUtils::GetSinglePropertyValueAsText(const UProperty* InProp, uint8* InData)
+FText DataTableUtils::GetPropertyValueAsTextDirect(const UProperty* InProp, uint8* InData)
 {
 	FText Result;
 
 	if(InProp && IsSupportedTableProperty(InProp))
 	{
 		FString ExportedString;
-		DataTableUtilsImpl::GetPropertyValueAsString(InProp, InData, 0, PPF_PropertyWindow, EDataTableExportFlags::UsePrettyPropertyNames | EDataTableExportFlags::UsePrettyEnumNames | EDataTableExportFlags::UseJsonObjectsForStructs, ExportedString);
+		DataTableUtilsImpl::GetPropertyValueAsStringDirect(InProp, InData, PPF_PropertyWindow, EDataTableExportFlags::UsePrettyPropertyNames | EDataTableExportFlags::UsePrettyEnumNames | EDataTableExportFlags::UseJsonObjectsForStructs, ExportedString);
 
 		Result = FText::FromString(MoveTemp(ExportedString));
 	}
@@ -362,6 +439,8 @@ bool DataTableUtils::IsSupportedTableProperty(const UProperty* InProp)
 			InProp->IsA(UByteProperty::StaticClass()) ||
 			InProp->IsA(UTextProperty::StaticClass()) ||
 			InProp->IsA(UArrayProperty::StaticClass()) ||
+			InProp->IsA(USetProperty::StaticClass()) ||
+			InProp->IsA(UMapProperty::StaticClass()) ||
 			InProp->IsA(UEnumProperty::StaticClass())
 			);
 }

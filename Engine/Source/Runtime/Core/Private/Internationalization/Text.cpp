@@ -9,10 +9,11 @@
 #include "Internationalization/StringTableRegistry.h"
 
 #include "Internationalization/TextHistory.h"
-#include "Internationalization/ITextData.h"
 #include "Internationalization/TextData.h"
 #include "Misc/Guid.h"
 #include "Internationalization/TextFormatter.h"
+#include "Internationalization/TextChronoFormatter.h"
+#include "Internationalization/TextTransformer.h"
 #include "Internationalization/TextNamespaceUtil.h"
 #include "Internationalization/FastDecimalFormat.h"
 
@@ -176,7 +177,7 @@ FText::FText()
 }
 
 FText::FText( EInitToEmptyString )
-	: TextData(new TLocalizedTextData<FTextHistory_Base>(MakeShareable(new FString())))
+	: TextData(new TLocalizedTextData<FTextHistory_Base>(MakeShared<FString, ESPMode::ThreadSafe>()))
 	, Flags(0)
 {
 }
@@ -283,6 +284,30 @@ bool FText::IsEmptyOrWhitespace() const
 	}
 
 	return true;
+}
+
+FText FText::ToLower() const
+{
+	FString ResultString = FTextTransformer::ToLower(ToString());
+
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_Transform>, ESPMode::ThreadSafe>(MoveTemp(ResultString), FTextHistory_Transform(*this, FTextHistory_Transform::ETransformType::ToLower)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
+}
+
+FText FText::ToUpper() const
+{
+	FString ResultString = FTextTransformer::ToUpper(ToString());
+
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_Transform>, ESPMode::ThreadSafe>(MoveTemp(ResultString), FTextHistory_Transform(*this, FTextHistory_Transform::ETransformType::ToUpper)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
 }
 
 FText FText::TrimPreceding( const FText& InText )
@@ -503,7 +528,12 @@ FText FText::AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Opti
 	const FNumberFormattingOptions& FormattingOptions = (Options) ? *Options : FormattingRules.CultureDefaultFormattingOptions;
 	FString NativeString = FastDecimalFormat::NumberToString(Val, FormattingRules, FormattingOptions);
 
-	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsNumber>(MoveTemp(NativeString), FTextHistory_AsNumber(Val, Options, TargetCulture))));
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_AsNumber>, ESPMode::ThreadSafe>(MoveTemp(NativeString), FTextHistory_AsNumber(Val, Options, TargetCulture)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
 }
 
 /**
@@ -535,7 +565,12 @@ FText FText::AsCurrencyTemplate(T1 Val, const FString& CurrencyCode, const FNumb
 	const FNumberFormattingOptions& FormattingOptions = (Options) ? *Options : FormattingRules.CultureDefaultFormattingOptions;
 	FString NativeString = FastDecimalFormat::NumberToString(Val, FormattingRules, FormattingOptions);
 
-	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsCurrency>(MoveTemp(NativeString), FTextHistory_AsCurrency(Val, CurrencyCode, Options, TargetCulture))));
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_AsCurrency>, ESPMode::ThreadSafe>(MoveTemp(NativeString), FTextHistory_AsCurrency(Val, CurrencyCode, Options, TargetCulture)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
 }
 
 FText FText::AsCurrencyBase(int64 BaseVal, const FString& CurrencyCode, const FCulturePtr& TargetCulture)
@@ -549,7 +584,12 @@ FText FText::AsCurrencyBase(int64 BaseVal, const FString& CurrencyCode, const FC
 	double Val = static_cast<double>(BaseVal) / FMath::Pow(10.0f, FormattingOptions.MaximumFractionalDigits);
 	FString NativeString = FastDecimalFormat::NumberToString(Val, FormattingRules, FormattingOptions);
 
-	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsCurrency>(MoveTemp(NativeString), FTextHistory_AsCurrency(Val, CurrencyCode, nullptr, TargetCulture))));
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_AsCurrency>, ESPMode::ThreadSafe>(MoveTemp(NativeString), FTextHistory_AsCurrency(Val, CurrencyCode, nullptr, TargetCulture)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
 }
 
 /**
@@ -574,7 +614,91 @@ FText FText::AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Opt
 	const FNumberFormattingOptions& FormattingOptions = (Options) ? *Options : FormattingRules.CultureDefaultFormattingOptions;
 	FString NativeString = FastDecimalFormat::NumberToString(Val * static_cast<T1>(100), FormattingRules, FormattingOptions);
 
-	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsPercent>(MoveTemp(NativeString), FTextHistory_AsPercent(Val, Options, TargetCulture))));
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_AsPercent>, ESPMode::ThreadSafe>(MoveTemp(NativeString), FTextHistory_AsPercent(Val, Options, TargetCulture)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
+}
+
+FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+
+	FString ChronoSting = FTextChronoFormatter::AsDate(DateTime, DateStyle, TimeZone, Culture);
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_AsDate>, ESPMode::ThreadSafe>(MoveTemp(ChronoSting), FTextHistory_AsDate(DateTime, DateStyle, TimeZone, TargetCulture)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
+}
+
+FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+
+	FString ChronoString = FTextChronoFormatter::AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, Culture);
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_AsDateTime>, ESPMode::ThreadSafe>(MoveTemp(ChronoString), FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
+}
+
+FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+
+	FString ChronoString = FTextChronoFormatter::AsTime(DateTime, TimeStyle, TimeZone, Culture);
+	FText Result = FText(MakeShared<TGeneratedTextData<FTextHistory_AsTime>, ESPMode::ThreadSafe>(MoveTemp(ChronoString), FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture)));
+	if (!GIsEditor)
+	{
+		Result.Flags |= ETextFlag::Transient;
+	}
+	return Result;
+}
+
+FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCulture)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	FCultureRef Culture = TargetCulture.IsValid() ? TargetCulture.ToSharedRef() : I18N.GetCurrentCulture();
+
+	double TotalHours = Timespan.GetTotalHours();
+	int32 Hours = static_cast<int32>(TotalHours);
+	int32 Minutes = Timespan.GetMinutes();
+	int32 Seconds = Timespan.GetSeconds();
+
+	FNumberFormattingOptions NumberFormattingOptions;
+	NumberFormattingOptions.MinimumIntegralDigits = 2;
+	NumberFormattingOptions.MaximumIntegralDigits = 2;
+
+	if (Hours > 0)
+	{
+		FText TimespanFormatPattern = NSLOCTEXT("Timespan", "Format_HoursMinutesSeconds", "{Hours}:{Minutes}:{Seconds}");
+		FFormatNamedArguments TimeArguments;
+		TimeArguments.Add(TEXT("Hours"), Hours);
+		TimeArguments.Add(TEXT("Minutes"), FText::AsNumber(Minutes, &NumberFormattingOptions, Culture));
+		TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &NumberFormattingOptions, Culture));
+		return FText::Format(TimespanFormatPattern, TimeArguments);
+	}
+	else
+	{
+		FText TimespanFormatPattern = NSLOCTEXT("Timespan", "Format_MinutesSeconds", "{Minutes}:{Seconds}");
+		FFormatNamedArguments TimeArguments;
+		TimeArguments.Add(TEXT("Minutes"), Minutes);
+		TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &NumberFormattingOptions, Culture));
+		return FText::Format(TimespanFormatPattern, TimeArguments);
+	}
 }
 
 FText FText::AsMemory(uint64 NumBytes, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture)
@@ -649,11 +773,11 @@ void FText::SerializeText(FArchive& Ar, FText& Value)
 		}
 		else
 		{
-			DisplayString = MakeShareable(new FString());
+			DisplayString = MakeShared<FString, ESPMode::ThreadSafe>();
 		}
 
 		check(DisplayString.IsValid());
-		Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Base>(DisplayString.ToSharedRef(), FTextHistory_Base(MoveTemp(SourceStringToImplantIntoHistory))));
+		Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_Base>, ESPMode::ThreadSafe>(DisplayString.ToSharedRef(), FTextHistory_Base(MoveTemp(SourceStringToImplantIntoHistory)));
 	}
 
 #if WITH_EDITOR
@@ -718,63 +842,63 @@ void FText::SerializeText(FArchive& Ar, FText& Value)
 			{
 			case ETextHistoryType::Base:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Base>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_Base>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::NamedFormat:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_NamedFormat>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_NamedFormat>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::OrderedFormat:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_OrderedFormat>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_OrderedFormat>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::ArgumentFormat:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_ArgumentDataFormat>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_ArgumentDataFormat>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::AsNumber:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsNumber>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_AsNumber>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::AsPercent:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsPercent>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_AsPercent>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::AsCurrency:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsCurrency>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_AsCurrency>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::AsDate:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsDate>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_AsDate>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::AsTime:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsTime>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_AsTime>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::AsDateTime:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsDateTime>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_AsDateTime>, ESPMode::ThreadSafe>();
 					break;
 				}
 			case ETextHistoryType::Transform:
 				{
-					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Transform>());
+					Value.TextData = MakeShared<TLocalizedTextData<FTextHistory_Transform>, ESPMode::ThreadSafe>();
 					break;
 				}
 
 			case ETextHistoryType::StringTableEntry:
 				{
-					Value.TextData = MakeShareable(new TIndirectTextData<FTextHistory_StringTableEntry>());
+					Value.TextData = MakeShared<TIndirectTextData<FTextHistory_StringTableEntry>, ESPMode::ThreadSafe>();
 					break;
 				}
 			default:
@@ -820,26 +944,6 @@ FText FText::ChangeKey( const FString& Namespace, const FString& Key, const FTex
 	return FText(FString(*Text.TextData->GetTextHistory().GetSourceString()), Namespace, Key, 0);
 }
 #endif
-
-FText FText::CreateNumericalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData)
-{
-	FText NewText = FText(MoveTemp(InTextData));
-	if (!GIsEditor)
-	{
-		NewText.Flags |= ETextFlag::Transient;
-	}
-	return NewText;
-}
-
-FText FText::CreateChronologicalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData)
-{
-	FText NewText = FText(MoveTemp(InTextData));
-	if (!GIsEditor)
-	{
-		NewText.Flags |= ETextFlag::Transient;
-	}
-	return NewText;
-}
 
 FText FText::FromStringTable(const FName InTableId, const FString& InKey, const EStringTableLoadingPolicy InLoadingPolicy)
 {
@@ -910,7 +1014,7 @@ const FString& FText::ToString() const
 
 FString FText::BuildSourceString() const
 {
-	return TextData->GetTextHistory().ToText(true).ToString();
+	return TextData->GetTextHistory().BuildInvariantDisplayString();
 }
 
 bool FText::IsNumeric() const
@@ -1234,7 +1338,7 @@ FScopedTextIdentityPreserver::~FScopedTextIdentityPreserver()
 		const FTextDisplayStringRef DisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, SourceString);
 
 		// ... and update the data on the text instance
-		TextToPersist.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Base>(MoveTemp(DisplayString), FTextHistory_Base(FString(*SourceString))));
+		TextToPersist.TextData = MakeShared<TLocalizedTextData<FTextHistory_Base>, ESPMode::ThreadSafe>(MoveTemp(DisplayString), FTextHistory_Base(FString(*SourceString)));
 	}
 }
 
@@ -1307,7 +1411,7 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 			return false;					\
 		}
 
-	if (FCString::Strstr(Buffer, *LocTableMarker))
+	if (FCString::Strncmp(Buffer, *LocTableMarker, LocTableMarker.Len()) == 0)
 	{
 		// Parsing something of the form: LOCTABLE("...", "...")
 		Buffer += LocTableMarker.Len();
@@ -1338,7 +1442,7 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 
 		return true;
 	}
-	else if (FCString::Strstr(Buffer, *InvTextMarker))
+	else if (FCString::Strncmp(Buffer, *InvTextMarker, InvTextMarker.Len()) == 0)
 	{
 		// Parsing something of the form: INVTEXT("...")
 		Buffer += InvTextMarker.Len();
@@ -1364,7 +1468,7 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 
 		return true;
 	}
-	else if (FCString::Strstr(Buffer, *NsLocTextMarker))
+	else if (FCString::Strncmp(Buffer, *NsLocTextMarker, NsLocTextMarker.Len()) == 0)
 	{
 		// Parsing something of the form: NSLOCTEXT("...", "...", "...")
 		Buffer += NsLocTextMarker.Len();
@@ -1420,7 +1524,7 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 
 		return true;
 	}
-	else if (FCString::Strstr(Buffer, *LocTextMarker))
+	else if (FCString::Strncmp(Buffer, *LocTextMarker, LocTextMarker.Len()) == 0)
 	{
 		// Parsing something of the form: LOCTEXT("...", "...")
 		// This only exists as people sometimes do this in config files. We assume an empty namespace should be used
@@ -1619,7 +1723,10 @@ bool FTextStringHelper::WriteToString(FString& Buffer, const FText& Value, const
 bool FTextStringHelper::IsComplexText(const TCHAR* Buffer)
 {
 #define LOC_DEFINE_REGION
-	return FCString::Strstr(Buffer, *InvTextMarker) || FCString::Strstr(Buffer, *NsLocTextMarker) || FCString::Strstr(Buffer, *LocTextMarker) || FCString::Strstr(Buffer, *LocTableMarker);
+	return FCString::Strncmp(Buffer, *InvTextMarker, InvTextMarker.Len()) == 0 
+		|| FCString::Strncmp(Buffer, *NsLocTextMarker, NsLocTextMarker.Len()) == 0 
+		|| FCString::Strncmp(Buffer, *LocTextMarker, LocTextMarker.Len()) == 0 
+		|| FCString::Strncmp(Buffer, *LocTableMarker, LocTableMarker.Len()) == 0;
 #undef LOC_DEFINE_REGION
 }
 

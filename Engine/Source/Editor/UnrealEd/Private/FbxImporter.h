@@ -138,6 +138,10 @@ struct FBXImportOptions
 	bool bAutoGenerateCollision;
 	FName StaticMeshLODGroup;
 	bool bImportStaticMeshLODs;
+	bool bAutoComputeLodDistances;
+	TArray<float> LodDistances;
+	int32 MinimumLodNumber;
+	int32 LodNumber;
 	// Material import options
 	class UMaterialInterface *BaseMaterial;
 	FString BaseColorName;
@@ -473,6 +477,12 @@ private:
 	TSet<FName> ImportedMaterialNames;
 };
 
+enum EFbxCreator
+{
+	Blender,
+	Unknow
+};
+
 /**
  * Main FBX Importer class.
  */
@@ -614,6 +624,8 @@ public:
 	*/
 	UNREALED_API void PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
 
+	static void UpdateStaticMeshImportData(UStaticMesh *StaticMesh, UFbxStaticMeshImportData* StaticMeshImportData);
+	static void UpdateSkeletalMeshImportData(USkeletalMesh *SkeletalMesh, UFbxSkeletalMeshImportData* SkeletalMeshImportData, int32 SpecificLod, TArray<FName> *ImportMaterialOriginalNameData, TArray<FImportMeshLodSectionsData> *ImportMeshLodData);
 	/**
 	* Creates a SubDSurface mesh from all the meshes in FBX scene with the given name and flags.
 	*
@@ -669,7 +681,43 @@ public:
 	 *
 	 * @return The USkeletalMesh object created
 	 */
-	USkeletalMesh* ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, int32 LodIndex, bool* bCancelOperation = nullptr, TArray<FbxShape*> *FbxShapeArray = nullptr, FSkeletalMeshImportData* OutData = nullptr, bool bCreateRenderData = true, TArray<FName> *OrderedMaterialNames = nullptr);
+
+	class FImportSkeletalMeshArgs
+	{
+	public:
+		FImportSkeletalMeshArgs()
+			: InParent(nullptr)
+			, NodeArray()
+			, Name(NAME_None)
+			, Flags(RF_NoFlags)
+			, TemplateImportData(nullptr)
+			, LodIndex(0)
+			, bCancelOperation(nullptr)
+			, FbxShapeArray(nullptr)
+			, OutData(nullptr)
+			, bCreateRenderData(true)
+			, OrderedMaterialNames(nullptr)
+			, ImportMaterialOriginalNameData(nullptr)
+			, ImportMeshSectionsData(nullptr)
+		{}
+
+		UObject* InParent;
+		TArray<FbxNode*> NodeArray;
+		FName Name;
+		EObjectFlags Flags;
+		UFbxSkeletalMeshImportData* TemplateImportData;
+		int32 LodIndex;
+		bool* bCancelOperation;
+		TArray<FbxShape*> *FbxShapeArray;
+		FSkeletalMeshImportData* OutData;
+		bool bCreateRenderData;
+		TArray<FName> *OrderedMaterialNames;
+
+		TArray<FName> *ImportMaterialOriginalNameData;
+		FImportMeshLodSectionsData *ImportMeshSectionsData;
+	};
+
+	USkeletalMesh* ImportSkeletalMesh(FImportSkeletalMeshArgs &ImportSkeletalMeshArgs);
 
 	/**
 	 * Add to the animation set, the animations contained within the FBX scene, for the given skeletal mesh
@@ -737,7 +785,7 @@ public:
 									But you can set this to false when in the first loading before rendering this mesh for a performance issue 
 	   @param ReregisterAssociatedComponents - if NULL, just re-registers all SkinnedMeshComponents but if you set the specific components, will only re-registers those components
 	 */
-	bool ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister = true, TArray<UActorComponent*>* ReregisterAssociatedComponents = NULL);
+	bool ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister = true, TArray<UActorComponent*>* ReregisterAssociatedComponents = NULL, UFbxSkeletalMeshImportData* TemplateImportData = nullptr);
 
 	/**
 	 * Empties the FBX scene, releasing its memory.
@@ -798,6 +846,13 @@ public:
 	*/
 	int32 GetFbxMeshCount(FbxNode* Node,bool bCountLODs, int32 &OutNumLODGroups );
 	
+	/**
+	* Fill the collision models array by going through all mesh node recursively
+	*
+	* @param Node Root node to find collision meshes
+	*/
+	UNREALED_API void FillFbxCollisionMeshArray(FbxNode* Node);
+
 	/**
 	* Get all Fbx mesh objects
 	*
@@ -965,7 +1020,7 @@ private:
 	* @param BaseSkeletalMesh - the destination mesh object 
 	* @param DesiredLOD - the LOD index to import into. A new LOD entry is created if one doesn't exist
 	*/
-	void InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD);
+	void InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, UFbxSkeletalMeshImportData* TemplateImportData);
 
 	/**
 	* Method used to verify if the geometry is valid. For example, if the bounding box is tiny we should warn
@@ -1005,6 +1060,9 @@ protected:
 		FString GetName() const { return FbxMaterial ? ANSI_TO_TCHAR( FbxMaterial->GetName() ) : TEXT("None"); }
 	};
 	
+	//make sure we are not applying two time the option transform to the same node
+	TArray<FbxNode*> TransformSettingsToFbxApply;
+
 	// scene management
 	FFbxDataConverter Converter;
 	FbxGeometryConverter* GeometryConverter;
@@ -1021,6 +1079,9 @@ protected:
 	// FBX scene may contain multiple meshes, importer can import them at one time.
 	// Initialized as true when start to import a FBX scene
 	bool bFirstMesh;
+
+	//Value is true if the file was create by blender
+	EFbxCreator FbxCreator;
 	
 	// Set when importing skeletal meshes if the merge bones step fails. Used to track
 	// YesToAll and NoToAll for an entire scene

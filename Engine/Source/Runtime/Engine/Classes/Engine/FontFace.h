@@ -42,6 +42,7 @@ public:
 	virtual const FString& GetFontFilename() const override;
 	virtual EFontHinting GetHinting() const override;
 	virtual EFontLoadingPolicy GetLoadingPolicy() const override;
+	virtual EFontLayoutMethod GetLayoutMethod() const override;
 	virtual FFontFaceDataConstRef GetFontFaceData() const override;
 	virtual FString GetCookedFilename() const override;
 	//~ End IFontFaceInterface interface
@@ -57,6 +58,10 @@ public:
 	/** Enum controlling how this font face should be loaded at runtime. See the enum for more explanations of the options. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FontFace)
 	EFontLoadingPolicy LoadingPolicy;
+
+	/** Which method should we use when laying out the font? Try changing this if you notice clipping or height issues with your font. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FontFace, AdvancedDisplay)
+	EFontLayoutMethod LayoutMethod;
 
 	/** The data associated with the font face. This should always be filled in providing the source filename is valid. */
 	FFontFaceDataRef FontFaceData;

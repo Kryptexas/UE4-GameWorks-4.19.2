@@ -2,7 +2,6 @@
 
 #include "Commandlets/SwapSoundForDialogueInCuesCommandlet.h"
 #include "Modules/ModuleManager.h"
-#include "Commandlets/GatherTextCommandletBase.h"
 #include "SoundCueGraph/SoundCueGraph.h"
 #include "SoundCueGraph/SoundCueGraphNode.h"
 #include "AssetData.h"
@@ -14,6 +13,8 @@
 #include "Sound/SoundNodeDialoguePlayer.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "AudioEditorModule.h"
+#include "LocalizedAssetUtil.h"
+#include "LocalizationSourceControlUtil.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSwapSoundForDialogueInCuesCommandlet, Log, All);
 
@@ -30,11 +31,11 @@ int32 USwapSoundForDialogueInCuesCommandlet::Main(const FString& Params)
 	TMap<FString, FString> Parameters;
 	UCommandlet::ParseCommandLine(*Params, Tokens, Switches, Parameters);
 
-	TSharedPtr<FGatherTextSCC> SourceControlInfo;
+	TSharedPtr<FLocalizationSCC> SourceControlInfo;
 	const bool bEnableSourceControl = Switches.Contains(TEXT("EnableSCC"));
 	if (bEnableSourceControl)
 	{
-		SourceControlInfo = MakeShareable(new FGatherTextSCC());
+		SourceControlInfo = MakeShareable(new FLocalizationSCC());
 
 		FText SCCErrorStr;
 		if (!SourceControlInfo->IsReady(SCCErrorStr))

@@ -23,14 +23,6 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Elements (Text)"), STAT_SlateNumTextElements, S
 // Super-hacky way of storing the scissor rect so we don't have to change all the FSlateDrawElement APIs for this hacky support.
 SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
 
-namespace ElementBatcherUtils
-{
-	static FVector2D RoundToInt(const FVector2D& Vec)
-	{
-		return FVector2D(FMath::RoundToInt(Vec.X), FMath::RoundToInt(Vec.Y));
-	}
-}
-
 FSlateElementBatcher::FSlateElementBatcher( TSharedRef<FSlateRenderingPolicy> InRenderingPolicy )
 	: BatchData( nullptr )
 	, DrawLayer( nullptr )
@@ -57,17 +49,21 @@ void FSlateElementBatcher::AddElements(FSlateWindowElementList& WindowElementLis
 	NumDrawnBatchesStat = NumDrawnBoxesStat = NumDrawnTextsStat = 0;
 
 	BatchData = &WindowElementList.GetBatchData();
-
-	AddElements(WindowElementList, WindowElementList.GetRootDrawLayer());
+	DrawLayer = &WindowElementList.GetRootDrawLayer();
+	
+	FVector2D ViewportSize = WindowElementList.GetWindow()->GetViewportSize();
+	
+	AddElements(WindowElementList.GetRootDrawLayer().DrawElements, ViewportSize);
 
 	TMap < TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>, TSharedPtr<FSlateDrawLayer> >& DrawLayers = WindowElementList.GetChildDrawLayers();
 	for ( auto& Entry : DrawLayers )
 	{
-		AddElements(WindowElementList, *Entry.Value.Get());
+		AddElements(Entry.Value.Get()->DrawElements, ViewportSize);
 	}
 
 	// Done with the element list
 	BatchData = nullptr;
+	DrawLayer = nullptr;
 
 	SET_DWORD_STAT(STAT_SlateNumPrebatchElements, NumDrawnBatchesStat);
 	SET_DWORD_STAT(STAT_SlateNumBoxElements, NumDrawnBoxesStat);
@@ -76,7 +72,7 @@ void FSlateElementBatcher::AddElements(FSlateWindowElementList& WindowElementLis
 	FPlatformMisc::EndNamedEvent();
 }
 
-void FSlateElementBatcher::AddElements(const FSlateWindowElementList& ElementList, FSlateDrawLayer& InDrawLayer)
+void FSlateElementBatcher::AddElements(const TArray<FSlateDrawElement>& DrawElements, const FVector2D& ViewportSize)
 {
 	// This stuff is just for the counters. Could be scoped by an #ifdef if necessary.
 	static_assert(
@@ -115,9 +111,7 @@ void FSlateElementBatcher::AddElements(const FSlateWindowElementList& ElementLis
 		FName(TEXT("FXPass")),
 	};
 
-	DrawLayer = &InDrawLayer;
-
-	const TArray<FSlateDrawElement>& DrawElements = InDrawLayer.DrawElements;
+	checkSlow(DrawLayer);
 
 	for( int32 DrawElementIndex = 0; DrawElementIndex < DrawElements.Num(); ++DrawElementIndex )
 	{
@@ -197,7 +191,7 @@ void FSlateElementBatcher::AddElements(const FSlateWindowElementList& ElementLis
 					AddLayer( DrawElement );
 					break;
 				case FSlateDrawElement::ET_PostProcessPass:
-					AddPostProcessPass( DrawElement, ElementList.GetWindow()->GetViewportSize());
+					AddPostProcessPass( DrawElement, ViewportSize);
 					break;
 				default:
 					checkf(0, TEXT("Invalid element type"));
@@ -230,7 +224,7 @@ void FSlateElementBatcher::AddQuadElement( const FSlateDrawElement& DrawElement,
 
 	// extract the layout transform from the draw element
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
-	FSlateRotatedClipRectType RenderClipRect = FSlateRotatedClipRectType::MakeSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
+	FSlateRotatedRect RenderClipRect = FSlateRotatedRect::MakeSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
 
 	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, ESlateDrawEffect::None, ESlateBatchDrawFlag::Wireframe|ESlateBatchDrawFlag::NoBlending, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 	FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
@@ -301,7 +295,7 @@ void FSlateElementBatcher::AddBoxElement(const FSlateDrawElement& DrawElement)
 	const float DrawScale = DrawElement.GetScale();
 
 
-	const FSlateRotatedClipRectType RenderClipRect = DrawElement.CalculateRenderClippingRect();
+	const FSlateRotatedRect RenderClipRect = DrawElement.CalculateRenderClippingRect();
 
 	// Do pixel snapping
 	FVector2D TopLeft(0,0);
@@ -617,7 +611,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 	FSlateLayoutTransform InverseLayoutTransform = Inverse(Concatenate(Inverse(FontScale), LayoutTransform));
 	const FSlateRenderTransform RenderTransform = Concatenate(Inverse(FontScale), DrawElement.GetRenderTransform());
 
-	FSlateRotatedClipRectType RenderClipRect = FSlateRotatedClipRectType::MakeSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
+	FSlateRotatedRect RenderClipRect = FSlateRotatedRect::MakeSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
 	// Used to clip individual characters as we generate them.
 	FSlateRect LocalClipRect = TransformRect(InverseLayoutTransform, InClippingRect);
 
@@ -829,8 +823,9 @@ void FSlateElementBatcher::AddShapedTextElement( const FSlateDrawElement& DrawEl
 
 	FColor BaseTint = PackVertexColor(InPayload.Tint);
 
+
 	// Don't do anything if there the font would be completely transparent 
-	if((BaseTint.A == 0 && OutlineSettings.OutlineSize == 0) || (BaseTint.A == 0 && OutlineSettings.OutlineColor.A == 0))
+	if((BaseTint.A == 0 && OutlineSettings.OutlineSize == 0) || (BaseTint.A == 0 && InPayload.OutlineTint.A == 0))
 	{
 		return;
 	}
@@ -857,7 +852,7 @@ void FSlateElementBatcher::AddShapedTextElement( const FSlateDrawElement& DrawEl
 	FSlateLayoutTransform InverseLayoutTransform = Inverse(Concatenate(Inverse(FontScale), LayoutTransform));
 	const FSlateRenderTransform RenderTransform = Concatenate(Inverse(FontScale), DrawElement.GetRenderTransform());
 
-	FSlateRotatedClipRectType RenderClipRect = FSlateRotatedClipRectType::MakeSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
+	FSlateRotatedRect RenderClipRect = FSlateRotatedRect::MakeSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
 	// Used to clip individual characters as we generate them.
 	FSlateRect LocalClipRect = TransformRect(InverseLayoutTransform, InClippingRect);
 
@@ -996,7 +991,7 @@ void FSlateElementBatcher::AddShapedTextElement( const FSlateDrawElement& DrawEl
 	if (bOutlineFont)
 	{
 		// Build geometry for the outline
-		BuildFontGeometry(OutlineSettings, PackVertexColor(OutlineSettings.OutlineColor), OutlineFontMaterial, Layer, 0);
+		BuildFontGeometry(OutlineSettings, PackVertexColor(InPayload.OutlineTint), OutlineFontMaterial, Layer, 0);
 		
 		//The fill area was measured without an outline so it must be shifted by the scaled outline size
 		float HorizontalOffset = FMath::RoundToFloat(OutlineSize * FontScale);
@@ -1025,7 +1020,7 @@ void FSlateElementBatcher::AddGradientElement( const FSlateDrawElement& DrawElem
 	ESlateDrawEffect InDrawEffects = DrawElement.GetDrawEffects();
 	uint32 Layer = DrawElement.GetLayer();
 
-	FSlateRotatedClipRectType RenderClipRect = DrawElement.CalculateRenderClippingRect();
+	FSlateRotatedRect RenderClipRect = DrawElement.CalculateRenderClippingRect();
 
 	// There must be at least one gradient stop
 	check( InPayload.GradientStops.Num() > 0 );
@@ -1160,7 +1155,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 	ESlateDrawEffect InDrawEffects = DrawElement.GetDrawEffects();
 	uint32 Layer = DrawElement.GetLayer();
 
-	const FSlateRotatedClipRectType RenderClipRect = DrawElement.CalculateRenderClippingRect();
+	const FSlateRotatedRect RenderClipRect = DrawElement.CalculateRenderClippingRect();
 
 	//@todo SLATE: Merge with AddLineElement?
 
@@ -1313,7 +1308,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 	ESlateDrawEffect DrawEffects = DrawElement.GetDrawEffects();
 	uint32 Layer = DrawElement.GetLayer();
 
-	const FSlateRotatedClipRectType RenderClipRect = DrawElement.CalculateRenderClippingRect();
+	const FSlateRotatedRect RenderClipRect = DrawElement.CalculateRenderClippingRect();
 
 	if( InPayload.Points.Num() < 2 )
 	{
@@ -1481,7 +1476,7 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 	ESlateDrawEffect InDrawEffects = DrawElement.GetDrawEffects();
 	uint32 Layer = DrawElement.GetLayer();
 
-	const FSlateRotatedClipRectType RenderClipRect = DrawElement.CalculateRenderClippingRect();
+	const FSlateRotatedRect RenderClipRect = DrawElement.CalculateRenderClippingRect();
 
 	const FColor FinalColor = PackVertexColor(InPayload.Tint);
 
@@ -1557,7 +1552,7 @@ void FSlateElementBatcher::AddBorderElement( const FSlateDrawElement& DrawElemen
 
 	const float DrawScale = DrawElement.GetScale();
 
-	const FSlateRotatedClipRectType RenderClipRect = DrawElement.CalculateRenderClippingRect();
+	const FSlateRotatedRect RenderClipRect = DrawElement.CalculateRenderClippingRect();
 
 	check( InPayload.BrushResource );
 
@@ -1875,7 +1870,6 @@ void FSlateElementBatcher::AddLayer(const FSlateDrawElement& DrawElement)
 	}
 }
 
-
 void FSlateElementBatcher::AddPostProcessPass(const FSlateDrawElement& DrawElement, const FVector2D& WindowSize)
 {
 	++NumPostProcessPasses;
@@ -1892,7 +1886,7 @@ void FSlateElementBatcher::AddPostProcessPass(const FSlateDrawElement& DrawEleme
 
 	uint32 Layer = DrawElement.GetLayer();
 
-	const FSlateRotatedClipRectType RenderClipRect = DrawElement.CalculateRenderClippingRect();
+	const FSlateRotatedRect RenderClipRect = DrawElement.CalculateRenderClippingRect();
 
 	// Determine the four corners of the quad
 	FVector2D TopLeft = FVector2D::ZeroVector;
@@ -1904,8 +1898,8 @@ void FSlateElementBatcher::AddPostProcessPass(const FSlateDrawElement& DrawEleme
 	// Offset by half a texel if the platform requires it for pixel perfect sampling
 	//FVector2D HalfTexel = FVector2D(PixelCenterOffset / WindowSize.X, PixelCenterOffset / WindowSize.Y);
 
-	FVector2D WorldTopLeft = ElementBatcherUtils::RoundToInt(TransformPoint(RenderTransform, TopLeft));
-	FVector2D WorldBotRight = ElementBatcherUtils::RoundToInt(TransformPoint(RenderTransform, BotRight));
+	FVector2D WorldTopLeft = TransformPoint(RenderTransform, TopLeft).RoundToVector();
+	FVector2D WorldBotRight = TransformPoint(RenderTransform, BotRight).RoundToVector();
 
 	// Clip post processing rect to the clip rect
 	WorldTopLeft = FMath::Max(WorldTopLeft, RenderClipRect.TopLeft);
@@ -1913,21 +1907,25 @@ void FSlateElementBatcher::AddPostProcessPass(const FSlateDrawElement& DrawEleme
 
 	FVector2D SizeUV = (WorldBotRight - WorldTopLeft) / WindowSize;
 
-	FShaderParams Params = FShaderParams::MakePixelShaderParams(FVector4(WorldTopLeft, WorldBotRight), FVector4(Payload.PostProcessData.X, Payload.PostProcessData.Y, Payload.DownsampleAmount, 0));
-
-	FElementBatchMap& LayerToElementBatches = DrawLayer->GetElementBatchMap();
-
-	// See if the layer already exists.
-	TUniqueObj<FElementBatchArray>* ElementBatches = LayerToElementBatches.Find(Layer);
-	if (!ElementBatches)
+	// These could be negative with rotation or negative scales.  This is not supported yet
+	if(SizeUV.X > 0 && SizeUV.Y > 0)
 	{
-		// The layer doesn't exist so make it now
-		ElementBatches = &LayerToElementBatches.Add(Layer);
-	}
-	check(ElementBatches);
+		FShaderParams Params = FShaderParams::MakePixelShaderParams(FVector4(WorldTopLeft, WorldBotRight), FVector4(Payload.PostProcessData.X, Payload.PostProcessData.Y, Payload.DownsampleAmount, 0));
 
-	// Custom elements are not batched together 
-	(*ElementBatches)->Add(FSlateElementBatch(nullptr, Params, ESlateShader::PostProcess, ESlateDrawPrimitive::TriangleList, ESlateDrawEffect::None, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect()));
+		FElementBatchMap& LayerToElementBatches = DrawLayer->GetElementBatchMap();
+
+		// See if the layer already exists.
+		TUniqueObj<FElementBatchArray>* ElementBatches = LayerToElementBatches.Find(Layer);
+		if (!ElementBatches)
+		{
+			// The layer doesn't exist so make it now
+			ElementBatches = &LayerToElementBatches.Add(Layer);
+		}
+		check(ElementBatches);
+
+		// Custom elements are not batched together 
+		(*ElementBatches)->Add(FSlateElementBatch(nullptr, Params, ESlateShader::PostProcess, ESlateDrawPrimitive::TriangleList, ESlateDrawEffect::None, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect()));
+	}
 	
 }
 

@@ -299,46 +299,6 @@ struct FAutomationWorkerRunTests
 	{ }
 };
 
-USTRUCT()
-struct FAutomationWorkerEvent
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Event")
-	FString Message;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Event")
-	FString Context;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Event")
-	FString Filename;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Event")
-	int32 LineNumber;
-
-	FAutomationWorkerEvent()
-		: LineNumber(0)
-	{
-	}
-
-	FAutomationWorkerEvent(const FAutomationEvent& Event)
-		: Message(Event.Message)
-		, Context(Event.Context)
-		, Filename(Event.Filename)
-		, LineNumber(Event.LineNumber)
-	{
-	}
-
-	FAutomationEvent ToAutomationEvent() const
-	{
-		return FAutomationEvent(Message, Context, Filename, LineNumber);
-	}
-};
-
 /**
  * Implements a message that is sent in response to FAutomationWorkerRunTests.
  */
@@ -347,25 +307,7 @@ struct FAutomationWorkerRunTestsReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	float Duration;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	TArray<FAutomationWorkerEvent> Errors;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	uint32 ExecutionCount;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	TArray<FString> Logs;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	bool Success;
+public:
 
 	/** */
 	UPROPERTY(EditAnywhere, Category="Message")
@@ -373,7 +315,25 @@ struct FAutomationWorkerRunTestsReply
 
 	/** */
 	UPROPERTY(EditAnywhere, Category="Message")
-	TArray<FString> Warnings;
+	TArray<FAutomationEvent> Events;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 WarningTotal;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 ErrorTotal;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category="Message")
+	float Duration;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint32 ExecutionCount;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool Success;
 };
 
 
@@ -662,9 +622,12 @@ public:
 	{
 	}
 
-	FAutomationWorkerImageComparisonResults(bool InIsNew, bool InAreSimilar)
+	FAutomationWorkerImageComparisonResults(bool InIsNew, bool InAreSimilar, double InMaxLocalDifference, double InGlobalDifference, FString InErrorMessage)
 		: bNew(InIsNew)
 		, bSimilar(InAreSimilar)
+		, MaxLocalDifference(InMaxLocalDifference)
+		, GlobalDifference(InGlobalDifference)
+		, ErrorMessage(InErrorMessage)
 	{
 	}
 
@@ -675,4 +638,13 @@ public:
 	/** Were the images similar?  If they're not you should log an error. */
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool bSimilar;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	double MaxLocalDifference;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	double GlobalDifference;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString ErrorMessage;
 };

@@ -13,8 +13,26 @@ SColorGradingPicker::~SColorGradingPicker()
 
 void SColorGradingPicker::Construct( const FArguments& InArgs )
 {
-	ValuesMin = InArgs._ValuesMin;
-	ValuesMax = InArgs._ValuesMax;
+	if (!InArgs._SliderValueMin.IsSet())
+	{
+		SliderValueMin = TNumericLimits<float>::Lowest();
+	}
+	else
+	{
+		SliderValueMin = InArgs._SliderValueMin.GetValue();
+	}
+
+	if (!InArgs._SliderValueMax.IsSet())
+	{
+		SliderValueMax = TNumericLimits<float>::Max();
+	}
+	else
+	{
+		SliderValueMax = InArgs._SliderValueMax.GetValue();
+	}
+
+	check(SliderValueMin < SliderValueMax);
+
 	MainDelta = InArgs._MainDelta;
 	MainShiftMouseMovePixelPerDelta = InArgs._MainShiftMouseMovePixelPerDelta;
 	ColorGradingModes = InArgs._ColorGradingModes;
@@ -45,21 +63,26 @@ void SColorGradingPicker::Construct( const FArguments& InArgs )
 					.SelectedColor(TAttribute<FLinearColor>::Create(TAttribute<FLinearColor>::FGetter::CreateSP(this, &SColorGradingPicker::GetCurrentLinearColor)))
 					.DesiredWheelSize(125)
 					.ExponentDisplacement(ColorGradingWheelExponent)
-					.OnValueChanged(this, &SColorGradingPicker::HandleCurrentColorValueChanged)
+					.OnValueChanged(this, &SColorGradingPicker::HandleCurrentColorValueChanged, false)
+					.OnMouseCaptureEnd(this, &SColorGradingPicker::HandleCurrentColorValueChanged, true)
 				]
 			]
 		+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(SNumericEntryBox<float>)
+				SAssignNew(NumericEntryBoxWidget, SNumericEntryBox<float>)
 				.EditableTextBoxStyle(&FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("DarkEditableTextBox"))
 				.Value(this, &SColorGradingPicker::OnGetMainValue)
-				.OnValueChanged(this, &SColorGradingPicker::OnMainValueChanged)
+				.OnValueChanged(this, &SColorGradingPicker::OnMainValueChanged, false)
 				.AllowSpin(true)
-				.MinValue(ValuesMin)
-				.MaxValue(ValuesMax)
-				.MinSliderValue(ValuesMin)
-				.MaxSliderValue(ValuesMax)
+				.SupportDynamicSliderMaxValue(InArgs._SupportDynamicSliderMaxValue)
+				.SupportDynamicSliderMinValue(InArgs._SupportDynamicSliderMinValue)
+				.OnDynamicSliderMaxValueChanged(this, &SColorGradingPicker::OnDynamicSliderMaxValueChanged)
+				.OnDynamicSliderMinValueChanged(this, &SColorGradingPicker::OnDynamicSliderMinValueChanged)
+				.MinValue(InArgs._ValueMin)
+				.MaxValue(InArgs._ValueMax)
+				.MinSliderValue(SliderValueMin)
+				.MaxSliderValue(SliderValueMax)
 				.Delta(MainDelta)
 				.ShiftMouseMovePixelPerDelta(MainShiftMouseMovePixelPerDelta)
 				.OnBeginSliderMovement(this, &SColorGradingPicker::OnBeginSliderMovement)
@@ -91,6 +114,13 @@ void SColorGradingPicker::OnEndSliderMovement(float NewValue)
 	StartDragRatio.X = 1.0f;
 	StartDragRatio.Y = 1.0f;
 	StartDragRatio.Z = 1.0f;
+
+	OnMainValueChanged(NewValue, true);
+}
+
+void SColorGradingPicker::HandleColorWheelMouseCaptureEnd()
+{
+
 }
 
 void SColorGradingPicker::AdjustRatioValue(FVector4 &NewValue)
@@ -108,7 +138,7 @@ void SColorGradingPicker::AdjustRatioValue(FVector4 &NewValue)
 	}
 }
 
-void SColorGradingPicker::OnMainValueChanged(float InValue)
+void SColorGradingPicker::OnMainValueChanged(float InValue, bool ShouldCommitValueChanges)
 {
 	TransformColorGradingRangeToLinearColorRange(InValue);
 
@@ -131,7 +161,7 @@ void SColorGradingPicker::OnMainValueChanged(float InValue)
 		AdjustRatioValue(CurrentValue);
 	}
 	TransformLinearColorRangeToColorGradingRange(CurrentValue);
-	OnColorCommitted.ExecuteIfBound(CurrentValue);
+	OnColorCommitted.ExecuteIfBound(CurrentValue, ShouldCommitValueChanges);
 }
 
 TOptional<float> SColorGradingPicker::OnGetMainValue() const
@@ -145,22 +175,22 @@ TOptional<float> SColorGradingPicker::OnGetMainValue() const
 
 void SColorGradingPicker::TransformLinearColorRangeToColorGradingRange(FVector4 &VectorValue) const
 {
-	float Ratio = (ValuesMax - ValuesMin);
+	float Ratio = (SliderValueMax - SliderValueMin);
 	VectorValue *= Ratio;
-	VectorValue += FVector4(ValuesMin, ValuesMin, ValuesMin, ValuesMin);
+	VectorValue += FVector4(SliderValueMin, SliderValueMin, SliderValueMin, SliderValueMin);
 }
 
 void SColorGradingPicker::TransformColorGradingRangeToLinearColorRange(FVector4 &VectorValue) const
 {
-	VectorValue += -FVector4(ValuesMin, ValuesMin, ValuesMin, ValuesMin);
-	float Ratio = 1.0f/(ValuesMax - ValuesMin);
+	VectorValue += -FVector4(SliderValueMin, SliderValueMin, SliderValueMin, SliderValueMin);
+	float Ratio = 1.0f/(SliderValueMax - SliderValueMin);
 	VectorValue *= Ratio;
 }
 
 void SColorGradingPicker::TransformColorGradingRangeToLinearColorRange(float &FloatValue)
 {
-	FloatValue -= ValuesMin;
-	float Ratio = 1.0f/(ValuesMax - ValuesMin);
+	FloatValue -= SliderValueMin;
+	float Ratio = 1.0f/(SliderValueMax - SliderValueMin);
 	FloatValue *= Ratio;
 }
 
@@ -176,7 +206,7 @@ FLinearColor SColorGradingPicker::GetCurrentLinearColor()
 	return CurrentColor.LinearRGBToHSV();
 }
 
-void SColorGradingPicker::HandleCurrentColorValueChanged( FLinearColor NewValue )
+void SColorGradingPicker::HandleCurrentColorValueChanged( const FLinearColor& NewValue, bool ShouldCommitValueChanges)
 {
 	//Query the current vector4 so we can pass back the w value
 	FVector4 CurrentValue(0.0f, 0.0f, 0.0f, 0.0f);
@@ -187,7 +217,51 @@ void SColorGradingPicker::HandleCurrentColorValueChanged( FLinearColor NewValue 
 	TransformLinearColorRangeToColorGradingRange(NewValueVector);
 	//Set the W with the original value
 	NewValueVector.W = CurrentValue.W;
-	OnColorCommitted.ExecuteIfBound(NewValueVector);
+	OnColorCommitted.ExecuteIfBound(NewValueVector, ShouldCommitValueChanges);
+}
+
+void SColorGradingPicker::OnDynamicSliderMaxValueChanged(float NewMaxSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfHigher)
+{
+	TSharedPtr<SSpinBox<float>> SpinBox = StaticCastSharedPtr<SSpinBox<float>>(NumericEntryBoxWidget->GetSpinBox());
+
+	if (SpinBox.IsValid())
+	{
+		if (SpinBox != InValueChangedSourceWidget)
+		{
+			if ((NewMaxSliderValue > SpinBox->GetMaxSliderValue() && UpdateOnlyIfHigher) || !UpdateOnlyIfHigher)
+			{
+				SpinBox->SetMaxSliderValue(NewMaxSliderValue);
+				SliderValueMax = NewMaxSliderValue;
+			}
+		}
+	}
+
+	if (IsOriginator)
+	{
+		OnNumericEntryBoxDynamicSliderMaxValueChanged.Broadcast(NewMaxSliderValue, InValueChangedSourceWidget, false, UpdateOnlyIfHigher);
+	}
+}
+
+void SColorGradingPicker::OnDynamicSliderMinValueChanged(float NewMinSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfLower)
+{
+	TSharedPtr<SSpinBox<float>> SpinBox = StaticCastSharedPtr<SSpinBox<float>>(NumericEntryBoxWidget->GetSpinBox());
+
+	if (SpinBox.IsValid())
+	{
+		if (SpinBox != InValueChangedSourceWidget)
+		{
+			if ((NewMinSliderValue < SpinBox->GetMinSliderValue() && UpdateOnlyIfLower) || !UpdateOnlyIfLower)
+			{
+				SpinBox->SetMinSliderValue(NewMinSliderValue);
+				SliderValueMin = NewMinSliderValue;
+			}
+		}
+	}
+
+	if (IsOriginator)
+	{
+		OnNumericEntryBoxDynamicSliderMinValueChanged.Broadcast(NewMinSliderValue, InValueChangedSourceWidget, false, UpdateOnlyIfLower);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

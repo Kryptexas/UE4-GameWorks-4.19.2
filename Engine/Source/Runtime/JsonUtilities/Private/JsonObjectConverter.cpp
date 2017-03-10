@@ -85,14 +85,52 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 		FScriptArrayHelper Helper(ArrayProperty, Value);
 		for (int32 i=0, n=Helper.Num(); i<n; ++i)
 		{
-			TSharedPtr<FJsonValue> Elem = FJsonObjectConverter::UPropertyToJsonValue(ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags, ExportCb);
-			if (Elem.IsValid())
+			TSharedPtr<FJsonValue> Elem = FJsonObjectConverter::UPropertyToJsonValue(ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags, ExportCb);
+			if ( Elem.IsValid() )
 			{
 				// add to the array
 				Out.Push(Elem);
 			}
 		}
 		return MakeShareable(new FJsonValueArray(Out));
+	}
+	else if ( USetProperty* SetProperty = Cast<USetProperty>(Property) )
+	{
+		TArray< TSharedPtr<FJsonValue> > Out;
+		FScriptSetHelper Helper(SetProperty, Value);
+		for ( int32 i=0, n=Helper.Num(); i < n; ++i )
+		{
+			if ( Helper.IsValidIndex(i) )
+			{
+				TSharedPtr<FJsonValue> Elem = FJsonObjectConverter::UPropertyToJsonValue(SetProperty->ElementProp, Helper.GetElementPtr(i), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags, ExportCb);
+				if ( Elem.IsValid() )
+				{
+					// add to the array
+					Out.Push(Elem);
+				}
+			}
+		}
+		return MakeShareable(new FJsonValueArray(Out));
+	}
+	else if ( UMapProperty* MapProperty = Cast<UMapProperty>(Property) )
+	{
+		TSharedRef<FJsonObject> Out = MakeShareable(new FJsonObject());
+
+		FScriptMapHelper Helper(MapProperty, Value);
+		for ( int32 i=0, n = Helper.Num(); i < n; ++i )
+		{
+			if ( Helper.IsValidIndex(i) )
+			{
+				TSharedPtr<FJsonValue> KeyElement = FJsonObjectConverter::UPropertyToJsonValue(MapProperty->KeyProp, Helper.GetKeyPtr(i), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags, ExportCb);
+				TSharedPtr<FJsonValue> ValueElement = FJsonObjectConverter::UPropertyToJsonValue(MapProperty->ValueProp, Helper.GetValuePtr(i), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags, ExportCb);
+				if ( KeyElement.IsValid() && ValueElement.IsValid() )
+				{
+					Out->SetField(KeyElement->AsString(), ValueElement);
+				}
+			}
+		}
+
+		return MakeShareable(new FJsonValueObject(Out));
 	}
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{
@@ -364,6 +402,74 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 		else
 		{
 			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import TArray from non-array JSON key for property %s"), *Property->GetNameCPP());
+			return false;
+		}
+	}
+	else if ( UMapProperty* MapProperty = Cast<UMapProperty>(Property) )
+	{
+		if ( JsonValue->Type == EJson::Object )
+		{
+			TSharedPtr<FJsonObject> ObjectValue = JsonValue->AsObject();
+
+			FScriptMapHelper Helper(MapProperty, OutValue);
+
+			// set the property values
+			for ( const auto& Entry : ObjectValue->Values )
+			{
+				if ( Entry.Value.IsValid() && !Entry.Value->IsNull() )
+				{
+					int32 NewIndex = Helper.AddDefaultValue_Invalid_NeedsRehash();
+					
+					TSharedPtr<FJsonValueString> TempKeyValue = MakeShareable(new FJsonValueString(Entry.Key));
+
+					const bool bKeySuccess = FJsonObjectConverter::JsonValueToUProperty(TempKeyValue, MapProperty->KeyProp, Helper.GetKeyPtr(NewIndex), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags);
+					const bool bValueSuccess = FJsonObjectConverter::JsonValueToUProperty(Entry.Value, MapProperty->ValueProp, Helper.GetValuePtr(NewIndex), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags);
+
+					if ( !(bKeySuccess && bValueSuccess) )
+					{
+						UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to deserialize map element [key: %s] for property %s"), *Entry.Key, *Property->GetNameCPP());
+						return false;
+					}
+				}
+			}
+
+			Helper.Rehash();
+		}
+		else
+		{
+			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import TMap from non-object JSON key for property %s"), *Property->GetNameCPP());
+			return false;
+		}
+	}
+	else if ( USetProperty* SetProperty = Cast<USetProperty>(Property) )
+	{
+		if ( JsonValue->Type == EJson::Array )
+		{
+			TArray< TSharedPtr<FJsonValue> > ArrayValue = JsonValue->AsArray();
+			int32 ArrLen = ArrayValue.Num();
+
+			FScriptSetHelper Helper(SetProperty, OutValue);
+
+			// set the property values
+			for ( int32 i=0; i < ArrLen; ++i )
+			{
+				const TSharedPtr<FJsonValue>& ArrayValueItem = ArrayValue[i];
+				if ( ArrayValueItem.IsValid() && !ArrayValueItem->IsNull() )
+				{
+					int32 NewIndex = Helper.AddDefaultValue_Invalid_NeedsRehash();
+					if ( !FJsonObjectConverter::JsonValueToUProperty(ArrayValueItem, SetProperty->ElementProp, Helper.GetElementPtr(NewIndex), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags) )
+					{
+						UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to deserialize set element [%d] for property %s"), i, *Property->GetNameCPP());
+						return false;
+					}
+				}
+			}
+
+			Helper.Rehash();
+		}
+		else
+		{
+			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import TSet from non-array JSON key for property %s"), *Property->GetNameCPP());
 			return false;
 		}
 	}

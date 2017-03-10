@@ -770,10 +770,10 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 				OnSkeletalMeshPropertyChanged.Broadcast();
 			}
 
-			// Skeletal mesh was switched so we should empty out the override materials and dirty the render state to recreate material proxies
+			// Skeletal mesh was switched so we should clean up the override materials and dirty the render state to recreate material proxies
 			if (OverrideMaterials.Num())
 			{
-				OverrideMaterials.Empty(SkeletalMesh ? SkeletalMesh->Materials.Num() : 0);
+				CleanUpOverrideMaterials();
 				MarkRenderStateDirty();
 			}
 		}

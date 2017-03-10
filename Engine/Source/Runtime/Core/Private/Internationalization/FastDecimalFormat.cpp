@@ -45,7 +45,7 @@ void SanitizeNumberFormattingOptions(FNumberFormattingOptions& InOutFormattingOp
 
 int32 IntegralToString_UInt64ToString(
 	const uint64 InVal, 
-	const bool InUseGrouping, const uint8 InPrimaryGroupingSize, const uint8 InSecondaryGroupingSize, const TCHAR InGroupingSeparatorCharacter, 
+	const bool InUseGrouping, const uint8 InPrimaryGroupingSize, const uint8 InSecondaryGroupingSize, const TCHAR InGroupingSeparatorCharacter, const TCHAR* InDigitCharacters, 
 	const int32 InMinDigitsToPrint, const int32 InMaxDigitsToPrint, 
 	TCHAR* InBufferToFill, const int32 InBufferToFillSize
 	)
@@ -70,7 +70,7 @@ int32 IntegralToString_UInt64ToString(
 				NumUntilNextGroup = InSecondaryGroupingSize - 1; // -1 to account for the digit we're about to print
 			}
 
-			TmpBuffer[StringLen++] = '0' + (TmpNum % 10);
+			TmpBuffer[StringLen++] = InDigitCharacters[TmpNum % 10];
 			TmpNum /= 10;
 
 			++DigitsPrinted;
@@ -88,7 +88,7 @@ int32 IntegralToString_UInt64ToString(
 				NumUntilNextGroup = InSecondaryGroupingSize;
 			}
 
-			TmpBuffer[StringLen++] = '0';
+			TmpBuffer[StringLen++] = InDigitCharacters[0];
 		}
 	}
 
@@ -111,6 +111,7 @@ FORCEINLINE int32 IntegralToString_Common(const uint64 InVal, const FDecimalNumb
 		InFormattingRules.PrimaryGroupingSize, 
 		InFormattingRules.SecondaryGroupingSize, 
 		InFormattingRules.GroupingSeparatorCharacter, 
+		InFormattingRules.DigitCharacters, 
 		InFormattingOptions.MinimumIntegralDigits, 
 		InFormattingOptions.MaximumIntegralDigits, 
 		InBufferToFill, 
@@ -238,7 +239,7 @@ void IntegralToString(const bool bIsNegative, const uint64 InVal, const FDecimal
 		const int32 PaddingToApply = FMath::Min(InFormattingOptions.MinimumFractionalDigits, MaxFractionalPrintPrecision);
 		for (int32 PaddingIndex = 0; PaddingIndex < PaddingToApply; ++PaddingIndex)
 		{
-			FractionalPartBuffer[FractionalPartLen++] = '0';
+			FractionalPartBuffer[FractionalPartLen++] = InFormattingRules.DigitCharacters[0];
 		}
 	}
 	FractionalPartBuffer[FractionalPartLen] = 0;
@@ -277,7 +278,7 @@ void FractionalToString(const double InVal, const FDecimalNumberFormattingRules&
 	int32 FractionalPartLen = 0;
 	if (FractionalPart != 0.0)
 	{
-		FractionalPartLen = IntegralToString_UInt64ToString(static_cast<uint64>(FractionalPart), false, 0, 0, ' ', 0, InFormattingOptions.MaximumFractionalDigits, FractionalPartBuffer, ARRAY_COUNT(FractionalPartBuffer));
+		FractionalPartLen = IntegralToString_UInt64ToString(static_cast<uint64>(FractionalPart), false, 0, 0, ' ', InFormattingRules.DigitCharacters, 0, InFormattingOptions.MaximumFractionalDigits, FractionalPartBuffer, ARRAY_COUNT(FractionalPartBuffer));
 	
 		{
 			// Pad the fractional part with any leading zeros that may have been lost when the number was split
@@ -288,7 +289,7 @@ void FractionalToString(const double InVal, const FDecimalNumberFormattingRules&
 
 				for (int32 Index = 0; Index < LeadingZerosToAdd; ++Index)
 				{
-					FractionalPartBuffer[Index] = '0';
+					FractionalPartBuffer[Index] = InFormattingRules.DigitCharacters[0];
 				}
 
 				FractionalPartLen += LeadingZerosToAdd;
@@ -296,7 +297,7 @@ void FractionalToString(const double InVal, const FDecimalNumberFormattingRules&
 		}
 
 		// Trim any trailing zeros back down to InFormattingOptions.MinimumFractionalDigits
-		while (FractionalPartLen > InFormattingOptions.MinimumFractionalDigits && FractionalPartBuffer[FractionalPartLen - 1] == '0')
+		while (FractionalPartLen > InFormattingOptions.MinimumFractionalDigits && FractionalPartBuffer[FractionalPartLen - 1] == InFormattingRules.DigitCharacters[0])
 		{
 			--FractionalPartLen;
 		}
@@ -308,7 +309,7 @@ void FractionalToString(const double InVal, const FDecimalNumberFormattingRules&
 		const int32 PaddingToApply = FMath::Min(InFormattingOptions.MinimumFractionalDigits - FractionalPartLen, MaxFractionalPrintPrecision - FractionalPartLen);
 		for (int32 PaddingIndex = 0; PaddingIndex < PaddingToApply; ++PaddingIndex)
 		{
-			FractionalPartBuffer[FractionalPartLen++] = '0';
+			FractionalPartBuffer[FractionalPartLen++] = InFormattingRules.DigitCharacters[0];
 		}
 		FractionalPartBuffer[FractionalPartLen] = 0;
 	}

@@ -2,7 +2,9 @@
 
 #include "Commandlets/GenerateTextLocalizationResourceCommandlet.h"
 #include "HAL/FileManager.h"
+#include "Misc/Paths.h"
 #include "Templates/ScopedPointer.h"
+#include "TextLocalizationResource.h"
 #include "TextLocalizationResourceGenerator.h"
 #include "UniquePtr.h"
 
@@ -133,28 +135,32 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 		}
 	}
 
-	// For each culture:
+	// Generate the LocMeta file for all cultures
+	{
+		const FString TextLocalizationMetaDataResourcePath = DestinationPath / FPaths::GetBaseFilename(ResourceName) + TEXT(".locmeta");
+
+		const bool bLocMetaFileSaved = FLocalizedAssetSCCUtil::SaveFileWithSCC(SourceControlInfo, TextLocalizationMetaDataResourcePath, [&LocTextHelper, &ResourceName](const FString& InSaveFileName) -> bool
+		{
+			FTextLocalizationMetaDataResource LocMeta;
+			return FTextLocalizationResourceGenerator::GenerateLocMeta(LocTextHelper, ResourceName, LocMeta) && LocMeta.SaveToFile(InSaveFileName);
+		});
+
+		if (!bLocMetaFileSaved)
+		{
+			UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("Could not write file %s"), *TextLocalizationMetaDataResourcePath);
+			return false;
+		}
+	}
+
+	// Generate the LocRes file for each culture
 	for (const FString& CultureName : CulturesToGenerate)
 	{
-		// Write resource.
 		const FString TextLocalizationResourcePath = DestinationPath / CultureName / ResourceName;
 
 		const bool bLocResFileSaved = FLocalizedAssetSCCUtil::SaveFileWithSCC(SourceControlInfo, TextLocalizationResourcePath, [&LocTextHelper, &CultureName, &bSkipSourceCheck](const FString& InSaveFileName) -> bool
 		{
-			bool bSaved = false;
-
-			TUniquePtr<FArchive> TextLocalizationResourceArchive(IFileManager::Get().CreateFileWriter(*InSaveFileName));
-			if (TextLocalizationResourceArchive)
-			{
-				bSaved = FTextLocalizationResourceGenerator::Generate(LocTextHelper, CultureName, bSkipSourceCheck, *TextLocalizationResourceArchive);
-				if (!bSaved)
-				{
-					IFileManager::Get().Delete(*InSaveFileName);
-				}
-				TextLocalizationResourceArchive->Close();
-			}
-
-			return bSaved;
+			FTextLocalizationResource LocRes;
+			return FTextLocalizationResourceGenerator::GenerateLocRes(LocTextHelper, CultureName, bSkipSourceCheck, InSaveFileName, LocRes) && LocRes.SaveToFile(InSaveFileName);
 		});
 
 		if (!bLocResFileSaved)

@@ -368,27 +368,34 @@ public class DeploymentContext //: ProjectParams
 			{
 				OutputPath = CommandUtils.CombinePaths(RelativeProjectRootForStage, InputPath.Substring(ProjectRoot.Length).TrimStart('/', '\\'));
 			}
-			else if (InputPath.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
-			{
-				OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
-			}
             else if (InputPath.EndsWith(".uplugin", StringComparison.InvariantCultureIgnoreCase))
             {
-                // This is a plugin that lives outside of the Engine/Plugins or Game/Plugins directory so needs to be remapped for staging/packaging
-                // We need to remap C:\SomePath\PluginName\PluginName.uplugin to RemappedPlugins\PluginName\PluginName.uplugin
-                int Index = InputPath.LastIndexOf(Path.DirectorySeparatorChar);
-                if (Index != -1)
-                {
-                    int PluginDirIndex = InputPath.LastIndexOf(Path.DirectorySeparatorChar, Index - 1);
-                    if (PluginDirIndex != -1)
-                    {
-                        OutputPath = CommandUtils.CombinePaths("RemappedPlugins", InputPath.Substring(PluginDirIndex));
-                    }
-                }
-                if (OutputPath == null)
-                {
-                    throw new AutomationException("Can't deploy {0} because the plugin path is non-standard, so could not be remapped", InputPath);
-                }
+                if (InputPath.StartsWith(CommandUtils.CombinePaths(LocalRoot + "/Engine"), StringComparison.InvariantCultureIgnoreCase))
+				{
+					OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
+				}
+                else
+				{
+					// This is a plugin that lives outside of the Engine/Plugins or Game/Plugins directory so needs to be remapped for staging/packaging
+					// We need to remap C:\SomePath\PluginName\PluginName.uplugin to RemappedPlugins\PluginName\PluginName.uplugin
+					int Index = InputPath.LastIndexOf(Path.DirectorySeparatorChar);
+					if (Index != -1)
+					{
+						int PluginDirIndex = InputPath.LastIndexOf(Path.DirectorySeparatorChar, Index - 1);
+						if (PluginDirIndex != -1)
+						{
+							OutputPath = CommandUtils.CombinePaths("RemappedPlugins", InputPath.Substring(PluginDirIndex));
+						}
+					}
+					if (OutputPath == null)
+					{
+						throw new AutomationException("Can't deploy {0} because the plugin path is non-standard, so could not be remapped", InputPath);
+					}
+				}
+            }
+            else if (InputPath.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
+            {
+                OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
             }
             else
             {

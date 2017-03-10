@@ -16,12 +16,13 @@ public class Paper2D : ModuleRules
 				"ShaderCore",
 				"RenderCore",
 				"RHI",
+                "SlateCore",
+                "Slate"
 			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Slate",
 				"Renderer",
 			}
 		);

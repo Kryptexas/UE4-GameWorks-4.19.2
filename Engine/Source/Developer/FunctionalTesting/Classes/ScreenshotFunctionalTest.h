@@ -31,8 +31,7 @@ protected:
 	virtual void StartTest() override;
 
 	void OnScreenshotTakenAndCompared();
-	void SetupVisualizeBuffer();
-
+	
 protected:
 	
 	UPROPERTY()

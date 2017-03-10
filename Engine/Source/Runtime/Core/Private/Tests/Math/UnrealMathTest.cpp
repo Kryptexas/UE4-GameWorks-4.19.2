@@ -1515,7 +1515,7 @@ bool FInterpolationFunctionTests::RunTest(const FString&)
 
 					for (int32 L = 0; L < Values.Num(); ++L)
 					{
-						TestContext->AddLogItem(FString::Printf(TEXT("%s: %f"), *(Functions[L].Value), Values[L]));
+						TestContext->AddInfo(FString::Printf(TEXT("%s: %f"), *(Functions[L].Value), Values[L]));
 					}
 					// don't record further failures, it would likely create a tremendous amount of spam
 					return;

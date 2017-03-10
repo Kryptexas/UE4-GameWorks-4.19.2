@@ -14,7 +14,7 @@ void RunSegmentationTest(FAutomationTestBase& Test, uint32 MessageSize, uint16 S
 	check(MessageSize < 255u * SegmentSize);
 
 	uint16 NumSegments = (MessageSize + SegmentSize - 1) / SegmentSize;
-	Test.AddLogItem(FString::Printf(TEXT("Segmenting message of size %i with %i segments of size %i..."), MessageSize, NumSegments, SegmentSize));
+	Test.AddInfo(FString::Printf(TEXT("Segmenting message of size %i with %i segments of size %i..."), MessageSize, NumSegments, SegmentSize));
 
 	// create a large message to segment
 	TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> Message = MakeShareable(new FUdpSerializedMessage());

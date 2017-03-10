@@ -1026,13 +1026,16 @@ public:
 	}
 	virtual void InitializeValueInternal( void* Dest ) const override
 	{
-		TTypeFundamentals::InitializePropertyValue(Dest);
+		for (int32 i = 0; i < this->ArrayDim; ++i)
+		{
+			TTypeFundamentals::InitializePropertyValue((uint8*)Dest + i * this->ElementSize);
+		}
 	}
 	virtual void DestroyValueInternal( void* Dest ) const override
 	{
-		for( int32 i = 0; i < this->ArrayDim; ++i )
+		for (int32 i = 0; i < this->ArrayDim; ++i)
 		{
-			TTypeFundamentals::DestroyPropertyValue((uint8*) Dest + i * this->ElementSize);
+			TTypeFundamentals::DestroyPropertyValue((uint8*)Dest + i * this->ElementSize);
 		}
 	}
 

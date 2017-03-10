@@ -21,11 +21,11 @@ static FAutoConsoleVariableRef CVarVulkanUseSingleQueue(
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferPool* InCommandBufferPool)
 	: bNeedsDynamicStateSet(true)
 	, Device(InDevice)
-	, CommandBufferPool(InCommandBufferPool)
 	, CommandBufferHandle(VK_NULL_HANDLE)
 	, State(EState::ReadyForBegin)
 	, Fence(nullptr)
 	, FenceSignaledCounter(0)
+	, CommandBufferPool(InCommandBufferPool)
 {
 	VkCommandBufferAllocateInfo CreateCmdBufInfo;
 	FMemory::Memzero(CreateCmdBufInfo);

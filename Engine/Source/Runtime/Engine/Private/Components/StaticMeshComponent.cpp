@@ -195,6 +195,8 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
 	SectionIndexPreview = INDEX_NONE;
+	SelectedEditorMaterial = INDEX_NONE;
+	MaterialIndexPreview = INDEX_NONE;
 	StaticMeshImportVersion = BeforeImportStaticMeshVersionWasAdded;
 	bCustomOverrideVertexColorPerLOD = false;
 #endif
@@ -1004,6 +1006,16 @@ void UStaticMeshComponent::SetSectionPreview(int32 InSectionIndexPreview)
 #endif
 }
 
+void UStaticMeshComponent::SetMaterialPreview(int32 InMaterialIndexPreview)
+{
+#if WITH_EDITORONLY_DATA
+	if (MaterialIndexPreview != InMaterialIndexPreview)
+	{
+		MaterialIndexPreview = InMaterialIndexPreview;
+		MarkRenderStateDirty();
+	}
+#endif
+}
 
 void UStaticMeshComponent::RemoveInstanceVertexColorsFromLOD( int32 LODToRemoveColorsFrom )
 {
@@ -1525,8 +1537,8 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 			
 			if (OverrideMaterials.Num())
 			{
-				// Static mesh was switched so we should empty out the override materials
-				OverrideMaterials.Empty(GetStaticMesh() ? GetStaticMesh()->StaticMaterials.Num() : 0);
+				// Static mesh was switched so we should clean up the override materials
+				CleanUpOverrideMaterials();
 			}
 		}
 

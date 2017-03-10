@@ -11,7 +11,7 @@
 #if !UE_ENABLE_ICU
 class FCulture::FLegacyCultureImplementation
 {
-	friend FCulture;
+	friend class FCulture;
 
 	FLegacyCultureImplementation(
 		const FText& InDisplayName, 

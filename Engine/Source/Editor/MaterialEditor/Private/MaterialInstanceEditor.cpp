@@ -963,7 +963,8 @@ void FMaterialInstanceEditor::LoadSettings()
 		{
 			PreviewVC->OnToggleRealtime();
 		}
-		PreviewVC->OnSetPreviewPrimitive( static_cast<EThumbnailPrimType>(PrimType) );
+
+		PreviewVC->OnSetPreviewPrimitive( static_cast<EThumbnailPrimType>(PrimType), true);
 
 		// Load the preview scene
 		PreviewVC->PreviewScene.LoadSettings(TEXT("MaterialInstanceEditor"));

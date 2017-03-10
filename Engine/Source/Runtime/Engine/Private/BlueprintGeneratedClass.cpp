@@ -331,6 +331,11 @@ void UBlueprintGeneratedClass::PostLoadDefaultObject(UObject* Object)
 	{
 		// Rebuild the custom property list used in post-construct initialization logic. Note that PostLoad() may have altered some serialized properties.
 		UpdateCustomPropertyListForPostConstruction();
+		// Restore any property values from config file
+		if (HasAnyClassFlags(CLASS_Config))
+		{
+			ClassDefaultObject->LoadConfig();
+		}
 	}
 }
 

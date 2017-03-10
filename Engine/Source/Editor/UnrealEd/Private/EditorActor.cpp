@@ -774,9 +774,13 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 			ReferencingActors = ReferencingActorsMap.Find(Actor);
 		}
 
-		bool bReferencedByLevelScript = bWarnAboutReferences && (nullptr != LSB && FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor) > 0);
+		TArray<UK2Node*> ReferencedToActorsFromLevelScriptArray;
+		FBlueprintEditorUtils::FindReferencesToActorFromLevelScript(LSB, Actor, ReferencedToActorsFromLevelScriptArray);
+
+		bool bReferencedByLevelScript = bWarnAboutReferences && (nullptr != LSB && ReferencedToActorsFromLevelScriptArray.Num() > 0);
 		bool bReferencedByActor = false;
 		bool bReferencedByLODActor = false;
+		FString LODActorName;
 
 		// If there are any referencing actors, make sure that they are reference types that we care about.
 		if (ReferencingActors != nullptr)
@@ -786,6 +790,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 				if (ReferencingActor->IsA(ALODActor::StaticClass()))
 				{
 					bReferencedByLODActor = true;
+					LODActorName = ReferencingActor->GetActorLabel();
 					break;
 				}
 				// If the referencing actor is a child actor that is referencing us, do not treat it
@@ -808,31 +813,68 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 			{
 				FText ConfirmDelete;
 
+				FString LevelScriptReferenceString;
+
+				for (int32 i = 0; i < ReferencedToActorsFromLevelScriptArray.Num(); ++i)
+				{
+					LevelScriptReferenceString += ReferencedToActorsFromLevelScriptArray[i]->GetFindReferenceSearchString();
+
+					if (bReferencedByLevelScript && bReferencedByActor)
+					{
+						LevelScriptReferenceString += TEXT(" (Level Blueprint)");
+					}
+
+					if (i < ReferencedToActorsFromLevelScriptArray.Num() - 1)
+					{
+						LevelScriptReferenceString += TEXT("\n");
+					}
+				}
+
+				FString ActorReferenceString;
+
+				if (ReferencingActors != nullptr)
+				{
+					for (int32 i = 0; i < ReferencingActors->Num(); ++i)
+					{
+						ActorReferenceString += (*ReferencingActors)[i]->GetActorLabel();
+
+						if (bReferencedByLevelScript && bReferencedByActor)
+						{
+							ActorReferenceString += TEXT(" (Other Actor)");
+						}
+
+						if (i < ReferencingActors->Num() - 1)
+						{
+							ActorReferenceString += TEXT("\n");
+						}
+					}
+				}
+
 				// check LODActor outside of normal check
 				// you might like to know other actor is referencing it
 				if (bReferencedByLODActor)
 				{
 					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferencedByHLOD",
-						"Actor {0} is referenced by LODActor, do you really want to delete it?"),
-						FText::FromString(Actor->GetActorLabel()));
+						"Actor {0} is referenced by LODActor {1}, do you really want to delete it?"),
+						FText::FromString(Actor->GetActorLabel()),  FText::FromString(LODActorName));
 				}
 				else if (bReferencedByLevelScript && bReferencedByActor)
 				{
 					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferenceByScriptAndActor",
-						"Actor {0} is referenced by the level blueprint and another Actor, do you really want to delete it?"),
-						FText::FromString(Actor->GetActorLabel()));
+						"Actor {0} is referenced by the level blueprint and other Actors.\nDo you really want to delete it?\n\nReference List:\n\t{1}\n\t{2}"),
+						FText::FromString(Actor->GetActorLabel()), FText::FromString(LevelScriptReferenceString), FText::FromString(ActorReferenceString));
 				}
 				else if (bReferencedByLevelScript)
 				{
 					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferencedByScript",
-						"Actor {0} is referenced by the level blueprint, do you really want to delete it?"),
-						FText::FromString(Actor->GetActorLabel()));
+						"Actor {0} is referenced by the level blueprint.\nDo you really want to delete it?\n\nReference List:\n\t{1}"),
+						FText::FromString(Actor->GetActorLabel()), FText::FromString(LevelScriptReferenceString));
 				}
 				else
 				{
 					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferencedByActor",
-						"Actor {0} is referenced by another Actor, do you really want to delete it?"),
-						FText::FromString(Actor->GetActorLabel()));
+						"Actor {0} is referenced by another Actor(s).\nDo you really want to delete it?\n\nReference List:\n\t{1}"),
+						FText::FromString(Actor->GetActorLabel()), FText::FromString(ActorReferenceString));
 				}
 
 				int32 Result = FMessageDialog::Open(MessageType, ConfirmDelete);

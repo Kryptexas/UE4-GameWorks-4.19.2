@@ -8,7 +8,9 @@ public class ShaderFormatOpenGL : ModuleRules
 	{
 
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
-		PrivateIncludePathModuleNames.Add("OpenGLDrv"); 
+
+		PrivateIncludePaths.Add("Runtime/OpenGLDrv/Private");
+		PrivateIncludePaths.Add("Runtime/OpenGLDrv/Public");
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

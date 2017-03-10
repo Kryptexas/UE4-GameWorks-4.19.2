@@ -98,7 +98,7 @@ bool FGeometryPromotionValidation::RunTest(const FString& Parameters)
 	//** SETUP **//
 	// Set the Test Description
 	FString Description = TEXT("Geometry Validation:\n- Adds one of every brush type to the world.\n- Undo and redo the placement of an additive and subtractive brush.\n- Verify by finding the number of surfaces, vertices, brushes created, and their location.\n");
-	AddLogItem(Description);
+	AddInfo(Description);
 
 	// Create the world and setup the level.
 	UWorld* World = FAutomationEditorCommonUtils::CreateNewMap();

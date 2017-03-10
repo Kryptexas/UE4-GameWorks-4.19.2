@@ -679,7 +679,7 @@ void FOneSkyLocalizationServiceProvider::ImportCultureForTargetFromOneSky_Callba
 		TargetName = FPaths::GetBaseFilename(InRelativeOutputFilePathAndName);
 		FString EngineOrGamePath = FPaths::GetBaseFilename(FPaths::GetPath(FPaths::GetPath(FPaths::GetPath(InRelativeOutputFilePathAndName))));
 		bool bIsEngineTarget = EngineOrGamePath == "Engine";
-		Target = FLocalizationModule::Get().GetLocalizationTargetByName(TargetName, bIsEngineTarget);
+		Target = ILocalizationModule::Get().GetLocalizationTargetByName(TargetName, bIsEngineTarget);
 
 		// Remove each file we get a callback for so we know when we've gotten a callback for all of them
 		FilesDownloadingForImportFromOneSky.Remove(InRelativeOutputFilePathAndName);
@@ -850,7 +850,7 @@ void FOneSkyLocalizationServiceProvider::ExportCultureForTargetToOneSky_Callback
 		TargetName = FPaths::GetBaseFilename(InRelativeInputFilePathAndName);
 		FString EngineOrGamePath = FPaths::GetBaseFilename(FPaths::GetPath(FPaths::GetPath(FPaths::GetPath(InRelativeInputFilePathAndName))));
 		bool bIsEngineTarget = EngineOrGamePath == "Engine";
-		Target = FLocalizationModule::Get().GetLocalizationTargetByName(TargetName, bIsEngineTarget);
+		Target = ILocalizationModule::Get().GetLocalizationTargetByName(TargetName, bIsEngineTarget);
 
 		// Remove each file we get a callback for so we know when we've gotten a callback for all of them
 		FilesDownloadingForImportFromOneSky.Remove(InRelativeInputFilePathAndName);
@@ -858,7 +858,7 @@ void FOneSkyLocalizationServiceProvider::ExportCultureForTargetToOneSky_Callback
 		ErrorText = UploadLocalizationTargetOp->GetOutErrorText();
 		InTargetGuid = UploadLocalizationTargetOp->GetInTargetGuid();
 
-		Target = FLocalizationModule::Get().GetLocalizationTargetByName(TargetName, bIsEngineTarget);
+		Target = ILocalizationModule::Get().GetLocalizationTargetByName(TargetName, bIsEngineTarget);
 
 		FilesUploadingForExportToOneSky.Remove(InRelativeInputFilePathAndName);
 

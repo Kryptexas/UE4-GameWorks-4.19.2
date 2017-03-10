@@ -58,7 +58,6 @@ public class LevelEditor : ModuleRules
 				"TargetPlatform",
 				"EngineSettings",
 				"PropertyEditor",
-				"WebBrowser",
                 "Persona",
                 "Kismet",
 				"KismetWidgets",

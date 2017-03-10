@@ -1927,7 +1927,7 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	static FReinstanceHotReloadedClassesDelegate ReinstanceHotReloadedClassesDelegate;
 
 	// Sent at the very beginning of LoadMap
-	DECLARE_MULTICAST_DELEGATE_OneParam(FPreLoadMapDelegate, const FString&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPreLoadMapDelegate, const FString& /* MapName */);
 	static FPreLoadMapDelegate PreLoadMap;
 
 	// Sent at the _successful_ end of LoadMap

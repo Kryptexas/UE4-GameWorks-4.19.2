@@ -94,7 +94,7 @@ public class UnrealEd : ModuleRules
 				"UnrealAudio",
                 "FunctionalTesting",
 				"AutomationController",
-				"Internationalization",
+				"Localization",
 				"AudioEditor",
 			}
 		);

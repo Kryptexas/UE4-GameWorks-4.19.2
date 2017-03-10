@@ -64,7 +64,6 @@ void FVulkanDevice::CreateDevice()
 
 	// Setup Queue info
 	TArray<VkDeviceQueueCreateInfo> QueueFamilyInfos;
-	QueueFamilyInfos.AddZeroed(QueueFamilyProps.Num());
 	int32 GfxQueueFamilyIndex = -1;
 	int32 TransferQueueFamilyIndex = -1;
 	UE_LOG(LogVulkanRHI, Display, TEXT("Found %d Queue Families"), QueueFamilyProps.Num());
@@ -72,17 +71,14 @@ void FVulkanDevice::CreateDevice()
 	for (int32 FamilyIndex = 0; FamilyIndex < QueueFamilyProps.Num(); ++FamilyIndex)
 	{
 		const VkQueueFamilyProperties& CurrProps = QueueFamilyProps[FamilyIndex];
-		VkDeviceQueueCreateInfo& CurrQueue = QueueFamilyInfos[FamilyIndex];
-		CurrQueue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		CurrQueue.queueFamilyIndex = FamilyIndex;
-		CurrQueue.queueCount = CurrProps.queueCount;
-		NumPriorities += CurrProps.queueCount;
 
+		bool bIsValidQueue = false;
 		if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT)
 		{
 			if (GfxQueueFamilyIndex == -1)
 			{
 				GfxQueueFamilyIndex = FamilyIndex;
+				bIsValidQueue = true;
 			}
 			else
 			{
@@ -93,52 +89,68 @@ void FVulkanDevice::CreateDevice()
 		if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
 		{
 			// Prefer a non-gfx transfer queue
-			if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) != VK_QUEUE_GRAPHICS_BIT)
+			if (TransferQueueFamilyIndex == -1 && (CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) != VK_QUEUE_GRAPHICS_BIT)
 			{
 				TransferQueueFamilyIndex = FamilyIndex;
+				bIsValidQueue = true;
 			}
 		}
 
 		auto GetQueueInfoString = [&]()
+		{
+			FString Info;
+			if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT)
 			{
-				FString Info;
-				if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT)
-				{
-					Info += TEXT(" Gfx");
-				}
-				if ((CurrProps.queueFlags & VK_QUEUE_COMPUTE_BIT) == VK_QUEUE_COMPUTE_BIT)
-				{
-					Info += TEXT(" Compute");
-				}
-				if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
-				{
-					Info += TEXT(" Xfer");
-				}
-				if ((CurrProps.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == VK_QUEUE_SPARSE_BINDING_BIT)
-				{
-					Info += TEXT(" Sparse");
-				}
+				Info += TEXT(" Gfx");
+			}
+			if ((CurrProps.queueFlags & VK_QUEUE_COMPUTE_BIT) == VK_QUEUE_COMPUTE_BIT)
+			{
+				Info += TEXT(" Compute");
+			}
+			if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
+			{
+				Info += TEXT(" Xfer");
+			}
+			if ((CurrProps.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == VK_QUEUE_SPARSE_BINDING_BIT)
+			{
+				Info += TEXT(" Sparse");
+			}
 
-				return Info;
-			};
-		UE_LOG(LogVulkanRHI, Display, TEXT("Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString());
+			return Info;
+		};
+
+		if (!bIsValidQueue)
+		{
+			UE_LOG(LogVulkanRHI, Display, TEXT("Skipping unnecessary Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString());
+			continue;
+		}
+
+		int32 QueueIndex = QueueFamilyInfos.Num();
+		QueueFamilyInfos.AddZeroed(1);
+		VkDeviceQueueCreateInfo& CurrQueue = QueueFamilyInfos[QueueIndex];
+		CurrQueue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		CurrQueue.queueFamilyIndex = FamilyIndex;
+		CurrQueue.queueCount = CurrProps.queueCount;
+		NumPriorities += CurrProps.queueCount;
+		UE_LOG(LogVulkanRHI, Display, TEXT("Initializing Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString());
 	}
 
 	TArray<float> QueuePriorities;
 	QueuePriorities.AddUninitialized(NumPriorities);
 	float* CurrentPriority = QueuePriorities.GetData();
-	for (int32 Index = 0; Index < QueueFamilyProps.Num(); ++Index)
+	for (int32 Index = 0; Index < QueueFamilyInfos.Num(); ++Index)
 	{
-		const VkQueueFamilyProperties& CurrProps = QueueFamilyProps[Index];
 		VkDeviceQueueCreateInfo& CurrQueue = QueueFamilyInfos[Index];
 		CurrQueue.pQueuePriorities = CurrentPriority;
+
+		const VkQueueFamilyProperties& CurrProps = QueueFamilyProps[CurrQueue.queueFamilyIndex];
 		for (int32 QueueIndex = 0; QueueIndex < (int32)CurrProps.queueCount; ++QueueIndex)
 		{
 			*CurrentPriority++ = 1.0f;
 		}
 	}
 
-	DeviceInfo.queueCreateInfoCount = QueueFamilyProps.Num();
+	DeviceInfo.queueCreateInfoCount = QueueFamilyInfos.Num();
 	DeviceInfo.pQueueCreateInfos = QueueFamilyInfos.GetData();
 
 	DeviceInfo.pEnabledFeatures = &Features;
@@ -404,7 +416,7 @@ void FVulkanDevice::MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanForma
 
 	if(!FormatInfo.Supported)
 	{
-		UE_LOG(LogVulkanRHI, Warning, TEXT("EPixelFormat(%d) is not supported"), (int32)UEFormat);
+		UE_LOG(LogVulkanRHI, Warning, TEXT("EPixelFormat(%d) is not supported with Vk format %d"), (int32)UEFormat, (int32)VulkanFormat);
 	}
 }
 

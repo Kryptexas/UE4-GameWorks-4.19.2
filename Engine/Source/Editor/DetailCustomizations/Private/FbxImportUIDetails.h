@@ -30,6 +30,9 @@ public:
 	*/
 	bool IsImportTypeMetaDataValid(EFBXImportType& ImportType, FString& MetaData);
 	
+	/** Called if the bAutoComputeLodDistances changes */
+	void ImportAutoComputeLodDistancesChanged();
+
 	/** Called if the bImportMaterials changes */
 	void ImportMaterialsChanged();
 

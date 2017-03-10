@@ -55,6 +55,7 @@ public class UMGEditor : ModuleRules
 				"DetailCustomizations",
                 "Settings",
 				"RenderCore",
+                "TargetPlatform"
 			}
 			);
 	}

@@ -102,13 +102,18 @@ private:
 	void ShowSelectionInContentBrowser();
 	void OpenSelectedInAssetEditor();
 	void ReCenterGraph();
-	void ListReferencedObjects();
-	void ListObjectsThatReference();
+	void CopyReferencedObjects();
+	void CopyReferencingObjects();
+	void ShowReferencedObjects();
+	void ShowReferencingObjects();
 	void MakeCollectionWithReferencersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers);
 	void ShowSizeMap();
 	void ShowReferenceTree();
 
 	void ReCenterGraphOnNodes(const TSet<UObject*>& Nodes);
+
+	FString GetReferencedObjectsList() const;
+	FString GetReferencingObjectsList() const;
 
 	UObject* GetObjectFromSingleSelectedNode() const;
 	void GetPackageNamesFromSelectedNodes(TSet<FName>& OutNames) const;

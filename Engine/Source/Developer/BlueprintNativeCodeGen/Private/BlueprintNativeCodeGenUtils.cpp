@@ -17,6 +17,7 @@
 #include "Misc/ScopeExit.h"
 #include "FindInBlueprintManager.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "TextPackageNamespaceUtil.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 
@@ -316,6 +317,8 @@ void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FStr
 			TempPackage->RemoveFromRoot();
 			TempPackage->MarkPendingKill();
 		};
+
+		TextNamespaceUtil::ForcePackageNamespace(TempPackage, TextNamespaceUtil::GetPackageNamespace(InBlueprintObj));
 
 		UBlueprint* DuplicateBP = nullptr;
 		{

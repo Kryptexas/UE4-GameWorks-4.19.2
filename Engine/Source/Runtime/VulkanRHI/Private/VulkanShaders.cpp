@@ -445,11 +445,11 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 		FGeometryShaderRHIParamRef InGeometryShaderRHI)
 	: FVulkanShaderState(InDevice)
 	, CacheLink(InVertexDeclarationRHI,InVertexShaderRHI,InPixelShaderRHI,InHullShaderRHI,InDomainShaderRHI,InGeometryShaderRHI,this)
+	, GlobalListLink(this)
 	, bDirtyVertexStreams(true)
 	, BindingsNum(0)
 	, BindingsMask(0)
 	, AttributesNum(0)
-	, GlobalListLink(this)
 {
 	static int32 sID = 0;
 	ID = sID++;

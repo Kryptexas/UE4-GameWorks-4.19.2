@@ -99,6 +99,18 @@ public:
 	TArray<FString>  FullSearchCategoryArray;
 
 	UPROPERTY()
+	TArray<FString> LocalizedMenuDescriptionArray;
+
+	UPROPERTY()
+	TArray<FString> LocalizedFullSearchTitlesArray;
+
+	UPROPERTY()
+	TArray<FString>  LocalizedFullSearchKeywordsArray;
+
+	UPROPERTY()
+	TArray<FString>  LocalizedFullSearchCategoryArray;
+
+	UPROPERTY()
 	FString SearchText;
 	FEdGraphSchemaAction() 
 		: Grouping(0)
@@ -193,6 +205,29 @@ public:
 		return FullSearchCategoryArray;
 	}
 
+	const TArray<FString>& GetLocalizedMenuDescriptionArray() const
+	{
+		return LocalizedMenuDescriptionArray;
+	}
+
+	/** Retrieves the localized full searchable title for this action. */
+	const TArray<FString>& GetLocalizedSearchTitleArray() const
+	{
+		return LocalizedFullSearchTitlesArray;
+	}
+
+	/** Retrieves the localized full searchable keywords for this action. */
+	const TArray<FString>& GetLocalizedSearchKeywordsArray() const
+	{
+		return LocalizedFullSearchKeywordsArray;
+	}
+
+	/** Retrieves the localized full searchable categories for this action. */
+	const TArray<FString>& GetLocalizedSearchCategoryArray() const
+	{
+		return LocalizedFullSearchCategoryArray;
+	}
+
 	const FString& GetFullSearchText() const
 	{
 		return SearchText;
@@ -200,6 +235,9 @@ public:
 
 	// GC.
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) {}
+
+private:
+	void UpdateSearchText();
 };
 
 /** Action to add a node to the graph */
@@ -380,6 +418,15 @@ public:
 		ENGINE_API const TArray<FString>& GetSearchTitleArrayForFirstAction() const { return Actions[0]->GetSearchTitleArray(); }
 		/** Returns the SearchCategoryArray */
 		ENGINE_API const TArray<FString>& GetSearchCategoryArrayForFirstAction() const { return Actions[0]->GetSearchCategoryArray(); }
+
+		/** Returns the localized SearchKeywordsArray */
+		ENGINE_API const TArray<FString>& GetLocalizedSearchKeywordsArrayForFirstAction() const { return Actions[0]->GetLocalizedSearchKeywordsArray(); }
+		/** Returns the localized MenuDescriptionArray */
+		ENGINE_API const TArray<FString>& GetLocalizedMenuDescriptionArrayForFirstAction() const { return Actions[0]->GetLocalizedMenuDescriptionArray(); }
+		/** Returns the localized SearchTitleArray */
+		ENGINE_API const TArray<FString>& GetLocalizedSearchTitleArrayForFirstAction() const { return Actions[0]->GetLocalizedSearchTitleArray(); }
+		/** Returns the localized SearchCategoryArray */
+		ENGINE_API const TArray<FString>& GetLocalizedSearchCategoryArrayForFirstAction() const { return Actions[0]->GetLocalizedSearchCategoryArray(); }
 
 		/** All of the actions this entry contains */
 		TArray< TSharedPtr<FEdGraphSchemaAction> > Actions;

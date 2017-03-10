@@ -8,9 +8,10 @@
 
 
 
-FDetailItemNode::FDetailItemNode(const FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailCategoryImpl> InParentCategory, TAttribute<bool> InIsParentEnabled )
+FDetailItemNode::FDetailItemNode(const FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailCategoryImpl> InParentCategory, TAttribute<bool> InIsParentEnabled, TSharedPtr<IDetailGroup> InParentGroup)
 	: Customization( InCustomization )
 	, ParentCategory( InParentCategory )
+	, ParentGroup(InParentGroup)
 	, IsParentEnabled( InIsParentEnabled )
 	, CachedItemVisibility( EVisibility::Visible )
 	, bShouldBeVisibleDueToFiltering( false )
@@ -90,7 +91,7 @@ void FDetailItemNode::InitPropertyEditor()
 		Customization.GetPropertyNode()->SetOnRebuildChildren( OnRegenerateChildren );
 	}
 
-	Customization.PropertyRow->OnItemNodeInitialized( ParentCategory.Pin().ToSharedRef(), IsParentEnabled );
+	Customization.PropertyRow->OnItemNodeInitialized( ParentCategory.Pin().ToSharedRef(), IsParentEnabled, ParentGroup.IsValid() ? ParentGroup.Pin() : nullptr );
 }
 
 void FDetailItemNode::InitCustomBuilder()

@@ -32,6 +32,14 @@ struct FForeignControlPointData
 
 	UPROPERTY()
 	UControlPointMeshComponent* MeshComponent;
+
+	UPROPERTY()
+	TLazyObjectPtr<ULandscapeSplineControlPoint> Identifier;
+
+	friend bool operator==(const FForeignControlPointData& LHS, const FForeignControlPointData& RHS)
+	{
+		return LHS.Identifier == RHS.Identifier;
+	}
 #endif
 };
 
@@ -46,6 +54,14 @@ struct FForeignSplineSegmentData
 
 	UPROPERTY()
 	TArray<USplineMeshComponent*> MeshComponents;
+
+	UPROPERTY()
+	TLazyObjectPtr<ULandscapeSplineSegment> Identifier;
+
+	friend bool operator==(const FForeignSplineSegmentData& LHS, const FForeignSplineSegmentData& RHS)
+	{
+		return LHS.Identifier == RHS.Identifier;
+	}
 #endif
 };
 
@@ -56,14 +72,23 @@ struct FForeignWorldSplineData
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	TMap<TLazyObjectPtr<ULandscapeSplineControlPoint>, FForeignControlPointData> ForeignControlPointDataMap;
+	TMap<TLazyObjectPtr<ULandscapeSplineControlPoint>, FForeignControlPointData> ForeignControlPointDataMap_DEPRECATED;
 
 	UPROPERTY()
-	TMap<TLazyObjectPtr<ULandscapeSplineSegment>, FForeignSplineSegmentData> ForeignSplineSegmentDataMap;
+	TArray<FForeignControlPointData> ForeignControlPointData;
+
+	UPROPERTY()
+	TMap<TLazyObjectPtr<ULandscapeSplineSegment>, FForeignSplineSegmentData> ForeignSplineSegmentDataMap_DEPRECATED;
+
+	UPROPERTY()
+	TArray<FForeignSplineSegmentData> ForeignSplineSegmentData;
 #endif
 
 #if WITH_EDITOR
 	bool IsEmpty();
+
+	FForeignControlPointData* FindControlPoint(ULandscapeSplineControlPoint* InIdentifer);
+	FForeignSplineSegmentData* FindSegmentData(ULandscapeSplineSegment* InIdentifer);
 #endif
 };
 

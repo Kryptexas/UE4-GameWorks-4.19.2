@@ -71,8 +71,7 @@ private:
 
 	FText GetMountPointText() const;
 
-	void SetSourcePath(FString InSourceDir);
-	void UpdateMountPath();
+	void SetSourcePath(const FString& InSourceDir);
 	FReply BrowseForFolder();
 
 	TSharedRef<class SWidget> GetPathPickerContent();

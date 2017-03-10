@@ -262,6 +262,7 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** Index of the section to preview... If set to -1, all section will be rendered */
 	int32 SectionIndexPreview;
+	int32 MaterialIndexPreview;
 #endif
 
 	/** returns the feature level this FSkeletalMeshObject was created with */

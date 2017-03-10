@@ -381,6 +381,13 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 	float CurrentSourceSide = SourceSideFunc(WidgetRect);
 
 	int32 StrideAxis, StrideAxisMin, StrideAxisMax;
+
+	// Ensure that the hit test grid is valid before proceeding
+	if (NumCells.X < 1 || NumCells.Y < 1)
+	{
+		return TSharedPtr<SWidget>();
+	}
+
 	if (AxisIndex == 0)
 	{
 		StrideAxis = 1;

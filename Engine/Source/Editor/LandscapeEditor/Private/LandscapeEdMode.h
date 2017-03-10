@@ -469,7 +469,7 @@ public:
 	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
 	/** Handle notification that visible levels may have changed and we should update the editable landscapes list */
-	void HandleLevelsChanged();
+	void HandleLevelsChanged(bool ShouldExitMode);
 
 	void OnMaterialCompilationFinished(UMaterialInterface* MaterialInterface);
 

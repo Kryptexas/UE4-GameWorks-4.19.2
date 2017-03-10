@@ -5002,6 +5002,12 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 		GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, bIsAutomated, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_StaticMesh );
 	}
 
+	//We do not touch bAutoComputeLodDistances when we re-import, setting it to true will make sure we do not change anything.
+	//We set the LODDistance only when the value is false.
+	ImportOptions->bAutoComputeLodDistances = true;
+	ImportOptions->LodNumber = 0;
+	ImportOptions->MinimumLodNumber = 0;
+
 	if( !bOperationCanceled && ensure(ImportData) )
 	{
 		const FString Filename = ImportData->GetFirstFilename();

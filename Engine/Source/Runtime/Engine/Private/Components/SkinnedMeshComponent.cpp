@@ -299,6 +299,7 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	ProgressiveDrawingFraction = 1.0f;
 	ChunkIndexPreview = -1;
 	SectionIndexPreview = -1;
+	MaterialIndexPreview = -1;
 #endif // WITH_EDITORONLY_DATA
 	bPerBoneMotionBlur = true;
 	bCastCapsuleDirectShadow = false;
@@ -1330,6 +1331,17 @@ void USkinnedMeshComponent::SetSectionPreview(int32 InSectionIndexPreview)
 	if (SectionIndexPreview != InSectionIndexPreview)
 	{
 		SectionIndexPreview = InSectionIndexPreview;
+		MarkRenderStateDirty();
+	}
+#endif
+}
+
+void USkinnedMeshComponent::SetMaterialPreview(int32 InMaterialIndexPreview)
+{
+#if WITH_EDITORONLY_DATA
+	if (MaterialIndexPreview != InMaterialIndexPreview)
+	{
+		MaterialIndexPreview = InMaterialIndexPreview;
 		MarkRenderStateDirty();
 	}
 #endif

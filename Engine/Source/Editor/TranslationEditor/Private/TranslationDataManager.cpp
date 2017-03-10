@@ -21,7 +21,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Internationalization/Culture.h"
-#include "Localization/PortableObjectFormatDOM.h"
+#include "PortableObjectFormatDOM.h"
 #include "ILocalizationServiceModule.h"
 #include "LocalizationModule.h"
 #include "LocalizationTargetTypes.h"
@@ -646,7 +646,7 @@ void FTranslationDataManager::PreviewAllTranslationsInEditor(ULocalizationTarget
 	{
 		const FString ConfigFilePath = LocalizationConfigurationScript::GetRegenerateResourcesConfigPath(LocalizationTarget);
 		LocalizationConfigurationScript::GenerateRegenerateResourcesConfigFile(LocalizationTarget).Write(ConfigFilePath);
-		FTextLocalizationResourceGenerator::GenerateAndUpdateLiveEntriesFromConfig(ConfigFilePath, /*bSkipSourceCheck*/false);
+		FTextLocalizationResourceGenerator::GenerateLocResAndUpdateLiveEntriesFromConfig(ConfigFilePath, /*bSkipSourceCheck*/false);
 	}
 	else
 	{
@@ -897,7 +897,7 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 			IsEngineManifest = true;
 		}
 
-		ULocalizationTarget* LocalizationTarget = FLocalizationModule::Get().GetLocalizationTargetByName(ManifestAndArchiveName, IsEngineManifest);
+		ULocalizationTarget* LocalizationTarget = ILocalizationModule::Get().GetLocalizationTargetByName(ManifestAndArchiveName, IsEngineManifest);
 
 		if (LocalizationTarget && FPaths::FileExists(ManifestFullPath) && FPaths::FileExists(ArchiveFullPath))
 		{

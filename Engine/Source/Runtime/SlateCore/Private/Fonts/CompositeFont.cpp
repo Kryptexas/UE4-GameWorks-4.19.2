@@ -109,6 +109,16 @@ EFontLoadingPolicy FFontData::GetLoadingPolicy() const
 	return LoadingPolicy;
 }
 
+EFontLayoutMethod FFontData::GetLayoutMethod() const
+{
+	if (FontFaceAsset)
+	{
+		const IFontFaceInterface* FontFace = CastChecked<const IFontFaceInterface>(FontFaceAsset);
+		return FontFace->GetLayoutMethod();
+	}
+	return EFontLayoutMethod::Metrics;
+}
+
 FFontFaceDataConstPtr FFontData::GetFontFaceData() const
 {
 	if (FontFaceAsset)

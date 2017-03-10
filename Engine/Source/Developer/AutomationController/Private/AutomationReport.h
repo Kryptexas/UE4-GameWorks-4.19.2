@@ -67,19 +67,6 @@ public:
 	virtual void ResetNetworkCommandResponses() override;
 	virtual const bool ExpandInUI() const override;
 	virtual void StopRunningTest() override;
-	virtual void TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack) override;
-	virtual const TArray<TSharedPtr<FAutomationHistoryItem>>& GetHistory() const override;
-	
-private:
-
-	/** Export the current report as part of it's tracked history. */
-	void AddToHistory();
-
-	/** Load this reports tracked history. */
-	void LoadHistory();
-
-	/** Update what is tracked for this reports history. */
-	void MaintainHistory(TArray<FString> &InLogFiles);
 
 private:
 
@@ -118,13 +105,4 @@ private:
 
 	/** Structure holding the test info */
 	FAutomationTestInfo TestInfo;
-
-	/** Flag to determine whether this report should track it's history */
-	bool bTrackingHistory;
-
-	/** Flag to determine how many history items to keep */
-	int32 NumRecordsToKeep;
-
-	/** The collection of history items which holds the results of previous runs. */
-	TArray<TSharedPtr<FAutomationHistoryItem> > HistoryItems;
 };

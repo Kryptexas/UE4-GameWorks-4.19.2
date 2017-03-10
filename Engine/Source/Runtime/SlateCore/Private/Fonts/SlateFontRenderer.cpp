@@ -5,6 +5,9 @@
 #include "Fonts/SlateTextShaper.h"
 #include "Fonts/LegacySlateFontInfoCache.h"
 #include "HAL/IConsoleManager.h"
+#include "SlateGlobals.h"
+
+DECLARE_CYCLE_STAT(TEXT("Render Glyph"), STAT_SlateRenderGlyph, STATGROUP_Slate);
 
 /**
  * Method for rendering fonts with the possibility of an outline.
@@ -66,13 +69,11 @@ uint16 FSlateFontRenderer::GetMaxHeight(const FSlateFontInfo& InFontInfo, const 
 
 	if (FaceGlyphData.FaceAndMemory.IsValid())
 	{
-		FFreeTypeGlyphCache::FCachedGlyphData CachedGlyphData;
-		if (FTGlyphCache->FindOrCache(FaceGlyphData.FaceAndMemory->GetFace(), FaceGlyphData.GlyphIndex, FaceGlyphData.GlyphFlags, InFontInfo.Size, InScale, CachedGlyphData))
-		{
-			// Adjust the height by the size of the outline that was applied.  The outline is counted twice since it surrounds the font on top and bottom
-			const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize * 2;
-			return static_cast<uint16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FT_MulFix(CachedGlyphData.Height, CachedGlyphData.SizeMetrics.y_scale)) + HeightAdjustment) * InScale);
-		}
+		FreeTypeUtils::ApplySizeAndScale(FaceGlyphData.FaceAndMemory->GetFace(), InFontInfo.Size, InScale);
+
+		// Adjust the height by the size of the outline that was applied.  The outline is counted twice since it surrounds the font on top and bottom
+		const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize * 2;
+		return static_cast<uint16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FaceGlyphData.FaceAndMemory->GetScaledHeight()) + HeightAdjustment) * InScale);
 	}
 
 	return 0;
@@ -91,13 +92,11 @@ int16 FSlateFontRenderer::GetBaseline(const FSlateFontInfo& InFontInfo, const fl
 
 	if (FaceGlyphData.FaceAndMemory.IsValid())
 	{
-		FFreeTypeGlyphCache::FCachedGlyphData CachedGlyphData;
-		if (FTGlyphCache->FindOrCache(FaceGlyphData.FaceAndMemory->GetFace(), FaceGlyphData.GlyphIndex, FaceGlyphData.GlyphFlags, InFontInfo.Size, InScale, CachedGlyphData))
-		{
-			// Adjust the height by the size of the outline that was applied.  The outline is counted twice since it surrounds the font on top and bottom
-			const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize * 2;
-			return static_cast<int16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(CachedGlyphData.SizeMetrics.descender) + HeightAdjustment) * InScale);
-		}
+		FreeTypeUtils::ApplySizeAndScale(FaceGlyphData.FaceAndMemory->GetFace(), InFontInfo.Size, InScale);
+
+		// Adjust the height by the size of the outline that was applied.  The outline is counted twice since it surrounds the font on top and bottom
+		const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize * 2;
+		return static_cast<int16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FaceGlyphData.FaceAndMemory->GetDescender()) + HeightAdjustment) * InScale);
 	}
 
 	return 0;
@@ -147,7 +146,6 @@ int8 FSlateFontRenderer::GetKerning(const FFontData& InFontData, const int32 InS
 {
 #if WITH_FREETYPE
 	int8 Kerning = 0;
-	int32* FoundKerning = nullptr;
 
 	FT_Face FontFace = GetFontFace(InFontData);
 
@@ -257,34 +255,11 @@ FFreeTypeFaceGlyphData FSlateFontRenderer::GetFontFaceForCharacter(const FFontDa
 
 #endif // WITH_FREETYPE
 
-bool FSlateFontRenderer::GetRenderData(const FFontData& InFontData, const int32 InSize, const FFontOutlineSettings& InOutlineSettings, TCHAR Char, FCharacterRenderData& OutRenderData, const float InScale, EFontFallback* OutFallbackLevel) const
-{
-#if WITH_FREETYPE
-	FFreeTypeFaceGlyphData FaceGlyphData = GetFontFaceForCharacter(InFontData, Char, EFontFallback::FF_Max);
-	if (FaceGlyphData.FaceAndMemory.IsValid())
-	{
-		check(FaceGlyphData.FaceAndMemory->IsValid());
-
-		if (OutFallbackLevel)
-		{
-			*OutFallbackLevel = FaceGlyphData.CharFallbackLevel;
-		}
-
-		SlateFontRendererUtils::AppendGlyphFlags(InFontData, FaceGlyphData.GlyphFlags);
-
-		FT_Error Error = FreeTypeUtils::LoadGlyph(FaceGlyphData.FaceAndMemory->GetFace(), FaceGlyphData.GlyphIndex, FaceGlyphData.GlyphFlags, InSize, InScale);
-		check(Error == 0);
-
-		OutRenderData.Char = Char;
-		return GetRenderData(FaceGlyphData, InScale, InOutlineSettings, OutRenderData);
-	}
-#endif // WITH_FREETYPE
-	return false;
-}
-
 bool FSlateFontRenderer::GetRenderData(const FShapedGlyphEntry& InShapedGlyph, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const
 {
 #if WITH_FREETYPE
+	SCOPE_CYCLE_COUNTER(STAT_SlateRenderGlyph);
+
 	FFreeTypeFaceGlyphData FaceGlyphData;
 	FaceGlyphData.FaceAndMemory = InShapedGlyph.FontFaceData->FontFace.Pin();
 	FaceGlyphData.GlyphIndex = InShapedGlyph.GlyphIndex;
@@ -562,23 +537,17 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 		ScaledOutlineSize = 0;
 	}
 
-	const int32 Height = static_cast<int32>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FT_MulFix(Face->height, Face->size->metrics.y_scale)) * InScale);
-
 	// Set measurement info for this character
 	OutRenderData.GlyphIndex = InFaceGlyphData.GlyphIndex;
 	OutRenderData.HasKerning = FT_HAS_KERNING(Face) != 0;
 
-	OutRenderData.MaxHeight = Height;
-
-	// Ascender is not scaled by freetype.  Scale it now. 
-	OutRenderData.MeasureInfo.GlobalAscender = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(Face->size->metrics.ascender) * InScale);
-	// Descender is not scaled by freetype.  Scale it now. 
-	OutRenderData.MeasureInfo.GlobalDescender = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(Face->size->metrics.descender) * InScale);
+	OutRenderData.MaxHeight = static_cast<int32>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(InFaceGlyphData.FaceAndMemory->GetScaledHeight()) * InScale);
+	OutRenderData.MeasureInfo.GlobalAscender = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(InFaceGlyphData.FaceAndMemory->GetAscender()) * InScale);
+	OutRenderData.MeasureInfo.GlobalDescender = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(InFaceGlyphData.FaceAndMemory->GetDescender()) * InScale);
 	// Note we use Slot->advance instead of Slot->metrics.horiAdvance because Slot->Advance contains transformed position (needed if we scale)
 	OutRenderData.MeasureInfo.XAdvance = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(Slot->advance.x);
 	OutRenderData.MeasureInfo.HorizontalOffset = Slot->bitmap_left;
 	OutRenderData.MeasureInfo.VerticalOffset = Slot->bitmap_top + ScaledOutlineSize;
-
 
 	return true;
 }

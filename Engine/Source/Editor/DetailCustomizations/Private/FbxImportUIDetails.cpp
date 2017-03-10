@@ -78,6 +78,9 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 	TSharedRef<IPropertyHandle> ImportMaterialsProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFbxImportUI, bImportMaterials));
 	ImportMaterialsProp->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FFbxImportUIDetails::ImportMaterialsChanged));
 
+	TSharedRef<IPropertyHandle> ImportAutoComputeLodDistancesProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFbxImportUI, bAutoComputeLodDistances));
+	ImportAutoComputeLodDistancesProp->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FFbxImportUIDetails::ImportAutoComputeLodDistancesChanged));
+
 	MeshCategory.GetDefaultProperties(CategoryDefaultProperties);
 
 	switch(ImportUI->MeshTypeToImport)
@@ -99,6 +102,29 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 			break;
 	}
 	EFBXImportType ImportType = ImportUI->MeshTypeToImport;
+
+	//Hide LodDistance property if we do not need them
+	if (ImportType == FBXIT_StaticMesh && ImportUI->bAutoComputeLodDistances)
+	{
+		for (int32 LodIndex = 0; LodIndex < 8; ++LodIndex)
+		{
+			TArray<FStringFormatArg> Args;
+			Args.Add(TEXT("LodDistance"));
+			Args.Add(FString::FromInt(LodIndex));
+			FString LodDistancePropertyName = FString::Format(TEXT("{0}{1}"), Args);
+			TSharedRef<IPropertyHandle> Handle = DetailBuilder.GetProperty(FName(*LodDistancePropertyName));
+			UProperty* Property = Handle->GetProperty();
+			if (Property != nullptr && Property->GetName().Compare(LodDistancePropertyName) == 0)
+			{
+				DetailBuilder.HideProperty(Handle);
+			}
+		}
+	}
+	else if (ImportType != FBXIT_StaticMesh)
+	{
+		DetailBuilder.HideCategory(FName(TEXT("LodSettings")));
+	}
+	
 
 	if(ImportType != FBXIT_Animation)
 	{
@@ -479,8 +505,11 @@ void FFbxImportUIDetails::SetStaticMeshLODGroupWidget(IDetailPropertyRow& Proper
 	FName InitialValue;
 	ensure(Handle->GetValue(InitialValue) == FPropertyAccess::Success);
 	int32 GroupIndex = LODGroupNames.Find(InitialValue);
+	if (GroupIndex == INDEX_NONE && LODGroupNames.Num() > 0)
+	{
+		GroupIndex = 0;
+	}
 	check(GroupIndex != INDEX_NONE);
-
 	StaticMeshLODGroupPropertyHandle = Handle;
 	TWeakPtr<IPropertyHandle> HandlePtr = Handle;
 
@@ -556,6 +585,15 @@ bool FFbxImportUIDetails::IsImportTypeMetaDataValid(EFBXImportType& ImportType, 
 			return Types.Contains(TEXT("Animation"));
 		default:
 			return false;
+	}
+}
+
+void FFbxImportUIDetails::ImportAutoComputeLodDistancesChanged()
+{
+	//We need to update the Base Material UI
+	if (CachedDetailBuilder)
+	{
+		CachedDetailBuilder->ForceRefreshDetails();
 	}
 }
 

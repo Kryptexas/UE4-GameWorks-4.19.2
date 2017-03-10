@@ -5560,8 +5560,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 					if (BulkArchive)
 					{
-						BulkArchive->Close();
 						COOK_STAT(TotalPackageSizeUncompressed += BulkArchive->TotalSize());
+						BulkArchive->Close();
 						if ( bSaveAsync )
 						{
 							FBufferArchive* BulkBuffer = (FBufferArchive*)(BulkArchive);

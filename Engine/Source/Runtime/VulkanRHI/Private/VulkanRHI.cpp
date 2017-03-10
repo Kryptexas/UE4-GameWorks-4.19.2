@@ -326,15 +326,15 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	: Instance(VK_NULL_HANDLE)
 	, Device(nullptr)
 	, DrawingViewport(nullptr)
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	, MsgCallback(VK_NULL_HANDLE)
-#endif
-	, PresentCount(0)
 	, SavePipelineCacheCmd(nullptr)
 	, RebuildPipelineCacheCmd(nullptr)
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	, DumpMemoryCmd(nullptr)
 #endif
+#if VULKAN_HAS_DEBUGGING_ENABLED
+	, MsgCallback(VK_NULL_HANDLE)
+#endif
+	, PresentCount(0)
 {
 	// This should be called once at the start 
 	check(IsInGameThread());
@@ -1252,8 +1252,8 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 
 FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, VkFlags Usage, VkMemoryPropertyFlags MemPropertyFlags)
 	: VulkanRHI::FDeviceChild(InDevice)
-	, BufferOffset(0)
 	, BufferSize(TotalSize)
+	, BufferOffset(0)
 	, MinAlignment(0)
 {
 	FRHIResourceCreateInfo CreateInfo;

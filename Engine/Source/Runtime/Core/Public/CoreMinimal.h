@@ -135,6 +135,7 @@
 #include "Math/Rotator.h"
 #include "Misc/DateTime.h"
 #include "Math/RangeBound.h"
+#include "Misc/AutomationEvent.h"
 #include "Math/Range.h"
 #include "Math/RangeSet.h"
 #include "Math/Interval.h"

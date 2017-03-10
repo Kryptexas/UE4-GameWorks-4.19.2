@@ -22,6 +22,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, FFreePageBlock* First, F
 			}
 		}
 
+		/* This is dubious - it results in larger block than Size bytes being returned, with no way for the client code to know the proper size
 		if (!Found)
 		{
 			SIZE_T SizeTimes4 = Size * 4;
@@ -36,6 +37,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, FFreePageBlock* First, F
 				}
 			}
 		}
+		*/
 
 		if (Found)
 		{

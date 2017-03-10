@@ -238,7 +238,6 @@ private:
 
 	FText GetFirstMaterialSlotUsedBySection(int32 MaterialIndex) const;
 
-	bool GetFirstLodSectionUsingMaterial(int32 MaterialIndex, int32 &OutMaterialLODIndex, int32 &OutMaterialSectionIndex) const;
 	/**
 	* Handler for check box display based on whether the material is highlighted
 	*

@@ -287,24 +287,9 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 	Results.IncomingFile = ImagePathB;
 	FPaths::MakePathRelativeTo(Results.IncomingFile, *ImageRootB);
 
-	TSharedPtr<FComparableImage> ImageA;
-	TSharedPtr<FComparableImage> ImageB;
-
-	FText ErrorA;
-	FText ErrorB;
-
-	ParallelFor(2,
-		[&] (int32 Index)
-	{
-		if ( Index == 0 )
-		{
-			ImageA = Open(ImagePathA, ErrorA);
-		}
-		else
-		{
-			ImageB = Open(ImagePathB, ErrorB);
-		}
-	});
+	FText ErrorA, ErrorB;
+	TSharedPtr<FComparableImage> ImageA = Open(ImagePathA, ErrorA);
+	TSharedPtr<FComparableImage> ImageB = Open(ImagePathB, ErrorB);
 
 	if ( !ImageA.IsValid() )
 	{
@@ -424,24 +409,9 @@ double FImageComparer::CompareStructuralSimilarity(const FString& ImagePathA, co
 	Results.IncomingFile = ImagePathB;
 	FPaths::MakePathRelativeTo(Results.IncomingFile, *ImageRootB);
 
-	TSharedPtr<FComparableImage> ImageA;
-	TSharedPtr<FComparableImage> ImageB;
-
-	FText ErrorA;
-	FText ErrorB;
-
-	ParallelFor(2,
-		[&] (int32 Index)
-	{
-		if ( Index == 0 )
-		{
-			ImageA = Open(ImagePathA, ErrorA);
-		}
-		else
-		{
-			ImageB = Open(ImagePathB, ErrorB);
-		}
-	});
+	FText ErrorA, ErrorB;
+	TSharedPtr<FComparableImage> ImageA = Open(ImagePathA, ErrorA);
+	TSharedPtr<FComparableImage> ImageB = Open(ImagePathB, ErrorB);
 
 	if ( !ImageA.IsValid() )
 	{

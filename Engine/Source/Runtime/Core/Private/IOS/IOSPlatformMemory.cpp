@@ -79,6 +79,8 @@ const FPlatformMemoryConstants& FIOSPlatformMemory::GetConstants()
 		MemoryConstants.TotalPhysical = TotalPhys;
 		MemoryConstants.TotalVirtual = TotalVirtual;
 		MemoryConstants.PageSize = (uint32)PageSize;
+		MemoryConstants.OsAllocationGranularity = (uint32)PageSize;
+		MemoryConstants.BinnedPageSize = FMath::Max((SIZE_T)65536, (SIZE_T)PageSize);
 
 		MemoryConstants.TotalPhysicalGB = (MemoryConstants.TotalPhysical + 1024 * 1024 * 1024 - 1) / 1024 / 1024 / 1024;
 	}
@@ -89,19 +91,17 @@ const FPlatformMemoryConstants& FIOSPlatformMemory::GetConstants()
 FMalloc* FIOSPlatformMemory::BaseAllocator()
 {
 	// get free memory
-	vm_size_t PageSize;
-	host_page_size(mach_host_self(), &PageSize);
-
 	vm_statistics Stats;
 	mach_msg_type_number_t StatsSize = sizeof(Stats);
 	host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&Stats, &StatsSize);
 	// 1 << FMath::CeilLogTwo(MemoryConstants.TotalPhysical) should really be FMath::RoundUpToPowerOfTwo,
 	// but that overflows to 0 when MemoryConstants.TotalPhysical is close to 4GB, since CeilLogTwo returns 32
 	// this then causes the MemoryLimit to be 0 and crashing the app
-	uint64 MemoryLimit = FMath::Min<uint64>( uint64(1) << FMath::CeilLogTwo(Stats.free_count * PageSize), 0x100000000);
+	uint64 MemoryLimit = FMath::Min<uint64>( uint64(1) << FMath::CeilLogTwo(Stats.free_count * GetConstants().PageSize), 0x100000000);
 
 	//return new FMallocAnsi();
-	return new FMallocBinned(PageSize, MemoryLimit);
+	// [RCL] 2017-03-06 FIXME: perhaps BinnedPageSize should be used here, but leaving this change to the iOS platform owner.
+	return new FMallocBinned(GetConstants().PageSize, MemoryLimit);
 }
 
 bool FIOSPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite)

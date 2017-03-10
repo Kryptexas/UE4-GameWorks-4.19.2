@@ -370,8 +370,9 @@ private:
 
 class FCulture::FICUCultureImplementation
 {
-	friend FCulture;
-	friend FText;
+	friend class FCulture;
+	friend class FText;
+	friend class FTextChronoFormatter;
 	friend class FICUBreakIteratorManager;
 
 	FICUCultureImplementation(const FString& LocaleName);

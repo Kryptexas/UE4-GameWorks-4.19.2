@@ -1085,7 +1085,23 @@ void UWidgetComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterial
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
+
+bool UWidgetComponent::CanEditChange(const UProperty* InProperty) const
+{
+	if ( InProperty )
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, CylinderArcAngle) )
+		{
+			return GeometryMode == EWidgetGeometryMode::Cylinder;
+		}
+	}
+
+	return Super::CanEditChange(InProperty);
+}
+
 void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* Property = PropertyChangedEvent.MemberProperty;
@@ -1136,6 +1152,7 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
 #endif
 
 void UWidgetComponent::InitWidget()

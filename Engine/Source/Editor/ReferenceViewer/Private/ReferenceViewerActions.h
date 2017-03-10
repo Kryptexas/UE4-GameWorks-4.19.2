@@ -30,11 +30,17 @@ public:
 	// Re-constructs the graph with the selected asset as the center
 	TSharedPtr<FUICommandInfo> ReCenterGraph;
 
-	// Shows a list of objects that the selected asset references.
-	TSharedPtr<FUICommandInfo> ListReferencedObjects;
+	// Copies the list of objects that the selected asset references
+	TSharedPtr<FUICommandInfo> CopyReferencedObjects;
 
-	// Lists objects that reference the selected asset.
-	TSharedPtr<FUICommandInfo> ListObjectsThatReference;
+	// Copies the list of objects that reference the selected asset
+	TSharedPtr<FUICommandInfo> CopyReferencingObjects;
+
+	// Shows a list of objects that the selected asset references
+	TSharedPtr<FUICommandInfo> ShowReferencedObjects;
+
+	// Shows a list of objects that reference the selected asset
+	TSharedPtr<FUICommandInfo> ShowReferencingObjects;
 
 	// Shows a size map for the selected asset.
 	TSharedPtr<FUICommandInfo> ShowSizeMap;

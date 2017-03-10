@@ -120,6 +120,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, 
 	, StreamingTransformScale(InComponent->GetTextureStreamingTransformScale())
 	, MaterialStreamingRelativeBoxes(InComponent->MaterialStreamingRelativeBoxes)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
+	, MaterialIndexPreview(InComponent->MaterialIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	, LightMapResolution(InComponent->GetStaticLightMapResolution())
@@ -329,6 +330,11 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 	OutMeshBatch.VertexFactory = &LOD.VertexFactory;
 
 #if WITH_EDITORONLY_DATA
+	// If material is hidden, then skip the draw.
+	if ((MaterialIndexPreview >= 0) && (MaterialIndexPreview != Section.MaterialIndex))
+	{
+		return false;
+	}
 	// If section is hidden, then skip the draw.
 	if ((SectionIndexPreview >= 0) && (SectionIndexPreview != SectionIndex))
 	{
@@ -1463,7 +1469,14 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 #if WITH_EDITORONLY_DATA
 		if (GIsEditor)
 		{
-			SectionInfo.bSelected = (InComponent->SelectedEditorSection == SectionIndex);
+			if (InComponent->SelectedEditorMaterial >= 0)
+			{
+				SectionInfo.bSelected = (InComponent->SelectedEditorMaterial == Section.MaterialIndex);
+			}
+			else
+			{
+				SectionInfo.bSelected = (InComponent->SelectedEditorSection == SectionIndex);
+			}
 		}
 #endif
 

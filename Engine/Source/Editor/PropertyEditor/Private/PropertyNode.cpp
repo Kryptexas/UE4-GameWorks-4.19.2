@@ -2928,15 +2928,11 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 				bool bShouldImport = false;
 				{
 					uint8* TempComplexPropAddr = (uint8*)FMemory::Malloc(ComplexProperty->GetSize(), ComplexProperty->GetMinAlignment());
-					ON_SCOPE_EXIT
-					{
-						FMemory::Free(TempComplexPropAddr);
-					};
-
 					ComplexProperty->InitializeValue(TempComplexPropAddr);
 					ON_SCOPE_EXIT
 					{
 						ComplexProperty->DestroyValue(TempComplexPropAddr);
+						FMemory::Free(TempComplexPropAddr);
 					};
 
 					// Importing the previous value into the temporary property can potentially affect shared state (such as FText display string values), so we back-up the current value 

@@ -2896,6 +2896,13 @@ bool FLightmassProcessor::Update()
 	{
 		bool bAllTaskAreComplete = (NumCompletedTasks == NumTotalSwarmTasks ? true : false);
 
+#if USE_LOCAL_SWARM_INTERFACE
+		if (IsRunningCommandlet())
+		{
+			FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+		}
+#endif
+
 		GLog->Flush();
 
 		bIsFinished = bAllTaskAreComplete && bProcessingSuccessful;

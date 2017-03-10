@@ -3181,8 +3181,8 @@ bool UEditorEngine::AreAnySelectedActorsInLevelScript()
 		ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint(true);
 		if( LSB != NULL )
 		{
-			int32 NumRefs = FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor);
-			if(NumRefs > 0)
+			TArray<UK2Node*> ReferencedToActors;
+			if(FBlueprintEditorUtils::FindReferencesToActorFromLevelScript(LSB, Actor, ReferencedToActors))
 			{
 				return true;
 			}
@@ -3234,7 +3234,7 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.OverrideLevel = CurActorLevel;
-			ABrush* NewVolume = World->SpawnActor<ABrush>( VolumeClass, CurBrushActor->GetActorTransform());
+			ABrush* NewVolume = World->SpawnActor<ABrush>( VolumeClass, CurBrushActor->GetActorTransform(), SpawnInfo);
 			if ( NewVolume )
 			{
 				NewVolume->PreEditChange( NULL );

@@ -69,6 +69,10 @@ public:
 	/**
 	 * @return the parent category on the customized object that this children is in.
 	 */
-	virtual IDetailCategoryBuilder& GetParentCategory() = 0;
+	virtual IDetailCategoryBuilder& GetParentCategory() const = 0;
 
+	/**
+	* @return the parent group on the customized object that this children is in (if there is one)
+	*/
+	virtual IDetailGroup* GetParentGroup() const = 0;
 };

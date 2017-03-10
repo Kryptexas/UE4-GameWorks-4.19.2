@@ -86,6 +86,7 @@
 #include "DateTimeStructCustomization.h"
 #include "TimespanStructCustomization.h"
 #include "FbxImportUIDetails.h"
+#include "FbxSceneImportDataDetails.h"
 #include "RigDetails.h"
 #include "SceneCaptureDetails.h"
 #include "CurveColorCustomization.h"
@@ -329,6 +330,7 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 	RegisterCustomClassLayout("ParticleSystemComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FParticleSystemComponentDetails::MakeInstance));
 
 	RegisterCustomClassLayout("FbxImportUI", FOnGetDetailCustomizationInstance::CreateStatic(&FFbxImportUIDetails::MakeInstance));
+	RegisterCustomClassLayout("FbxSceneImportData", FOnGetDetailCustomizationInstance::CreateStatic(&FFbxSceneImportDataDetails::MakeInstance));
 
 	RegisterCustomClassLayout("ConfigHierarchyPropertyView", FOnGetDetailCustomizationInstance::CreateStatic(&FConfigPropertyHelperDetails::MakeInstance));
 

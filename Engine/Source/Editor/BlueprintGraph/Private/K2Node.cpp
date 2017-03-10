@@ -774,48 +774,51 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 {
 	const UEdGraphSchema_K2* Schema = CastChecked<UEdGraphSchema_K2>(CompilerContext ? CompilerContext->GetSchema() : SourceGraph->GetSchema());
 
-	UK2Node* ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
-
-	int32 SubPinIndex = 0;
-
-	for (int32 ExpandedPinIndex=0; ExpandedPinIndex < ExpandedNode->Pins.Num(); ++ExpandedPinIndex)
+	if (Pins.Contains(Pin))
 	{
-		UEdGraphPin* ExpandedPin = ExpandedNode->Pins[ExpandedPinIndex];
+		UK2Node* ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
 
-		if (!ExpandedPin->bHidden)
+		int32 SubPinIndex = 0;
+
+		for (int32 ExpandedPinIndex = 0; ExpandedPinIndex < ExpandedNode->Pins.Num(); ++ExpandedPinIndex)
 		{
-			if (ExpandedPin->Direction == Pin->Direction)
+			UEdGraphPin* ExpandedPin = ExpandedNode->Pins[ExpandedPinIndex];
+
+			if (!ExpandedPin->bHidden)
 			{
-				if (Pin->SubPins.Num() == SubPinIndex)
+				if (ExpandedPin->Direction == Pin->Direction)
 				{
+					if (Pin->SubPins.Num() == SubPinIndex)
+					{
+						if (CompilerContext)
+						{
+							CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+						}
+						break;
+					}
+
+					UEdGraphPin* SubPin = Pin->SubPins[SubPinIndex++];
 					if (CompilerContext)
 					{
-						CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+						CompilerContext->MovePinLinksToIntermediate(*SubPin, *ExpandedPin);
 					}
-					break;
-				}
-
-				UEdGraphPin* SubPin = Pin->SubPins[SubPinIndex++];
-				if (CompilerContext)
-				{
-					CompilerContext->MovePinLinksToIntermediate(*SubPin, *ExpandedPin);
+					else
+					{
+						Schema->MovePinLinks(*SubPin, *ExpandedPin);
+					}
+					// We should only discard the pin set when this node owns them.
+					Pins.Remove(SubPin);
+					SubPin->ParentPin = nullptr;
+					SubPin->MarkPendingKill();
 				}
 				else
 				{
-					Schema->MovePinLinks(*SubPin, *ExpandedPin);
+					Schema->TryCreateConnection(Pin, ExpandedPin);
 				}
-				Pins.Remove(SubPin);
-				SubPin->ParentPin = nullptr;
-				SubPin->MarkPendingKill();
-			}
-			else
-			{
-				Schema->TryCreateConnection(Pin, ExpandedPin);
 			}
 		}
+		Pin->SubPins.Empty();
 	}
-
-	Pin->SubPins.Empty();				
 }
 
 void UK2Node::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
