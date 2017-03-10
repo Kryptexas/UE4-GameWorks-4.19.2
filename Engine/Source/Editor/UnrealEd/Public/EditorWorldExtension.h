@@ -7,6 +7,7 @@
 #include "EditorWorldExtension.generated.h"
 
 struct FWorldContext;
+class UEditorWorldExtensionCollection;
 
 UCLASS()
 class UNREALED_API UEditorWorldExtension : public UObject
