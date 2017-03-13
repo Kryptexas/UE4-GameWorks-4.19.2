@@ -1123,7 +1123,7 @@ const UVREditorAssetContainer& UVREditorMode::GetAssetContainer() const
 
 void UVREditorMode::PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume /*= 1.0f*/)
 {
-	if (bIsActive && bIsFullyInitialized)
+	if (bIsActive && bIsFullyInitialized && GEditor != nullptr && GEditor->CanPlayEditorSound())
 	{
 		const float Volume = InVolume*VREd::SFXMultiplier->GetFloat();
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundBase, InWorldLocation, Volume);

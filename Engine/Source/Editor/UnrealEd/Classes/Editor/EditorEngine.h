@@ -1161,6 +1161,12 @@ public:
 	void PlayEditorSound( USoundBase* InSound );
 
 	/**
+	 * Returns true if currently able to play a sound and if the user has sounds enabled.
+	 */
+	bool CanPlayEditorSound() const;
+
+
+	/**
 	 * Returns the preview audio component
 	 */
 	UAudioComponent* GetPreviewAudioComponent();

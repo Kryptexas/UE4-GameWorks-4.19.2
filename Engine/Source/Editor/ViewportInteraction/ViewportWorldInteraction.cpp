@@ -3084,7 +3084,7 @@ const class UViewportInteractionAssetContainer& UViewportWorldInteraction::LoadA
 
 void UViewportWorldInteraction::PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume /*= 1.0f*/)
 {
-	if (bActive)
+	if (bActive && GEditor != nullptr && GEditor->CanPlayEditorSound())
 	{
 		const float Volume = InVolume*VI::SFXMultiplier->GetFloat();
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundBase, InWorldLocation, FRotator::ZeroRotator, Volume);

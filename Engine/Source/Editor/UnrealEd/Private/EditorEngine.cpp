@@ -2263,13 +2263,18 @@ void UEditorEngine::PlayEditorSound( const FString& SoundAssetName )
 void UEditorEngine::PlayEditorSound( USoundBase* InSound )
 {
 	// Only play sounds if the user has that feature enabled
-	if (!GIsSavingPackage && IsInGameThread() && GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds)
+	if (!GIsSavingPackage && CanPlayEditorSound())
 	{
 		if (InSound != nullptr)
 		{
 			GEditor->PlayPreviewSound(InSound);
 		}
 	}
+}
+
+bool UEditorEngine::CanPlayEditorSound() const
+{
+	return IsInGameThread() && GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds;
 }
 
 void UEditorEngine::ClearPreviewComponents()
