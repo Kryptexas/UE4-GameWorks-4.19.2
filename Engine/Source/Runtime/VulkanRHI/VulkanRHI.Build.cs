@@ -119,5 +119,9 @@ public class VulkanRHI : ModuleRules
 				PrecompileForTargets = PrecompileTargetsType.None;
 			}
 		}
+		else
+		{
+			PrecompileForTargets = PrecompileTargetsType.None;
+		}
 	}
 }
