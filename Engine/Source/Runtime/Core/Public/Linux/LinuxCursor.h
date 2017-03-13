@@ -34,7 +34,7 @@ public:
 
 	virtual void Lock( const RECT* const Bounds ) override;
 
-	virtual void SetCustomShape(void* CursorHandle) override;
+	virtual void SetTypeShape(EMouseCursor::Type InCursorType, void* CursorHandle) override;
 
 public:
 
@@ -48,14 +48,6 @@ public:
 	bool UpdateCursorClipping( FVector2D& CursorPosition );
 
 	bool IsHidden();
-
-	uint32 GetCursorEvent();
-
-	/** Updates accumulated offset which is used for maintaining a "shadow" cursor position */
-	void AddOffset(const int32 DX, const int32 DY);
-
-	/** Resets accumulated offsets to (0,0), */
-	void ResetOffset();
 
 	/**
 	 * Invalidates whatever cached data cursor may have
@@ -72,6 +64,9 @@ private:
 
 	/** Cursors */
 	SDL_HCursor CursorHandles[ EMouseCursor::TotalCursorCount ];
+
+	/** Override Cursors */
+	SDL_HCursor CursorOverrideHandles[ EMouseCursor::TotalCursorCount ];
 
 	FIntRect CursorClipRect;
 

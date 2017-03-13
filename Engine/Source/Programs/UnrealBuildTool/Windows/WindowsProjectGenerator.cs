@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Base class for platform-specific project generators
 	/// </summary>
-	public class WindowsProjectGenerator : UEPlatformProjectGenerator
+	class WindowsProjectGenerator : UEPlatformProjectGenerator
 	{
 		/// <summary>
 		/// Register the platform with the UEPlatformProjectGenerator class

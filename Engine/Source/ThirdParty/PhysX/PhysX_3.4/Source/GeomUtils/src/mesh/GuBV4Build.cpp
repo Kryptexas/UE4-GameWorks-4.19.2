@@ -23,11 +23,12 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
 #include "foundation/PxVec4.h"
+#include "foundation/PxMemory.h"
 #include "GuBV4Build.h"
 #include "GuBV4.h"
 #include "PxTriangle.h"
@@ -1188,7 +1189,7 @@ static bool BuildBV4Internal(BV4Tree& tree, const AABBTree& Source, SourceMesh* 
 		{
 			PX_ASSERT(sizeof(BVDataSwizzled)==sizeof(BVDataPacked)*4);
 			BVDataPacked* Copy = PX_NEW(BVDataPacked)[NbNeeded];
-			memcpy(Copy, Nodes, sizeof(BVDataPacked)*NbNeeded);
+			PxMemCopy(Copy, Nodes, sizeof(BVDataPacked)*NbNeeded);
 			for(PxU32 i=0;i<NbNeeded/4;i++)
 			{
 				const BVDataPacked* Src = Copy + i*4;

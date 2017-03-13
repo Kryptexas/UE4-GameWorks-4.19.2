@@ -20,7 +20,7 @@ struct FNavigationPath;
  *  TODO: serialization (with maps?)
  *  TODO: FNavigationPath support?
  */
-struct FNavLocalGridData : public TSimpleCellGrid<uint8>
+struct AIMODULE_API FNavLocalGridData : public TSimpleCellGrid<uint8, MAX_uint8>
 {
 	FNavLocalGridData() : GridId(0) {}
 	FNavLocalGridData(const FVector& Center, float Extent2D);
@@ -32,6 +32,9 @@ struct FNavLocalGridData : public TSimpleCellGrid<uint8>
 
 	/** mark box (AABB or rotated) shape as obstacle */
 	void MarkBoxObstacle(const FVector& Center, const FVector& Extent, const FQuat& Quat = FQuat::Identity);
+
+	/** mark capsule shape as obstacle */
+	void MarkCapsuleObstacle(const FVector& Center, float Radius, float HalfHeight);
 
 	/** set height of bounds, if not set: ProjectCells will use height of default query box */
 	void SetHeight(float ExtentZ);
@@ -97,6 +100,7 @@ struct FNavLocalGridData : public TSimpleCellGrid<uint8>
 protected:
 	friend class UNavLocalGridManager;
 	TArray<float> CellZ;
+	float LastAccessTime;
 
 	/** convert PathIndices into pruned PathCoords */
 	void PostProcessPath(const FIntVector& StartCoords, const FIntVector& EndCoords, const TArray<int32>& PathIndices, TArray<FIntVector>& PathCoords) const;

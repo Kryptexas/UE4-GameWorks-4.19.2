@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SGraphEditorActionMenu_h__
-#define __SGraphEditorActionMenu_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -53,5 +51,3 @@ protected:
 	/** Callback used to populate all actions list in SGraphActionMenu */
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
 };
-
-#endif // __SGraphEditorActionMenu_h__

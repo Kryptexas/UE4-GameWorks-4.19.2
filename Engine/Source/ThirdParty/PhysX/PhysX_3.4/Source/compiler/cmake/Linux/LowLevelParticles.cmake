@@ -2,9 +2,6 @@
 # Build LowLevelParticles
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/LowLevelParticles/src)
@@ -44,13 +41,14 @@ else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	MESSAGE(FATAL_ERROR "Unknown configuration ${CMAKE_BUILD_TYPE}")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
-
+IF(DEFINED PX_STATIC_LIBRARIES)
+	SET(LOWLEVELPARTICLES_LIBTYPE OBJECT)
+ELSE()
+	SET(LOWLEVELPARTICLES_LIBTYPE STATIC)
+ENDIF()
 
 # include common low level particles settings
 INCLUDE(../common/LowLevelParticles.cmake)
-
-# Add linked libraries
-TARGET_LINK_LIBRARIES(LowLevelParticles PUBLIC ${NVTOOLSEXT_LIBRARIES})
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(LowLevelParticles PROPERTIES POSITION_INDEPENDENT_CODE TRUE)

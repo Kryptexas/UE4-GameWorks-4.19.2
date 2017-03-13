@@ -5,7 +5,7 @@ using System.IO;
 
 public class HarfBuzz : ModuleRules
 {
-	public HarfBuzz(TargetInfo Target)
+	public HarfBuzz(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 		

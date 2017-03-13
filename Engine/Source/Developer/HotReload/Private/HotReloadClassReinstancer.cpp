@@ -20,7 +20,6 @@ void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, U
 	DuplicatedClass = InOldClass;
 	OriginalCDO = InOldClass->GetDefaultObject();
 	bHasReinstanced = false;
-	bSkipGarbageCollection = false;
 	bNeedsReinstancing = true;
 	NewClass = InNewClass;
 
@@ -223,7 +222,6 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	DuplicatedClass = InOldClass;
 	OriginalCDO = InOldClass->GetDefaultObject();
 	bHasReinstanced = false;
-	bSkipGarbageCollection = false;
 	bNeedsReinstancing = false;
 	NewClass = InOldClass; // The class doesn't change in this case
 

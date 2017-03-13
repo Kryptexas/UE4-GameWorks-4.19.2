@@ -28,6 +28,7 @@
 #include "LODUtilities.h"
 #include "UObject/Package.h"
 #include "MeshUtilities.h"
+#include "ClothingAssetInterface.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalMeshImport, Log, All);
 
@@ -844,6 +845,8 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, 
 
 		ExistingMeshDataPtr->ExistingAssetImportData = ExistingSkelMesh->AssetImportData;
 		ExistingMeshDataPtr->ExistingThumbnailInfo = ExistingSkelMesh->ThumbnailInfo;
+
+		ExistingMeshDataPtr->ExistingClothingAssets = ExistingSkelMesh->MeshClothingAssets;
 	}
 
 	return ExistingMeshDataPtr;
@@ -1099,6 +1102,13 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 
 		SkeletalMesh->AssetImportData = MeshData->ExistingAssetImportData.Get();
 		SkeletalMesh->ThumbnailInfo = MeshData->ExistingThumbnailInfo.Get();
+
+		SkeletalMesh->MeshClothingAssets = MeshData->ExistingClothingAssets;
+
+		for(UClothingAssetBase* ClothingAsset : SkeletalMesh->MeshClothingAssets)
+		{
+			ClothingAsset->RefreshBoneMapping(SkeletalMesh);
+		}
 	}
 }
 #undef LOCTEXT_NAMESPACE

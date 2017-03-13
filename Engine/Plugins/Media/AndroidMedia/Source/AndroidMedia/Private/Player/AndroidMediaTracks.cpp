@@ -527,3 +527,5 @@ void FAndroidMediaTracks::UpdateVideoSink()
 	}
 #endif
 }
+
+#undef LOCTEXT_NAMESPACE

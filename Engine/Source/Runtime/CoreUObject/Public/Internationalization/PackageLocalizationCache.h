@@ -142,7 +142,7 @@ protected:
 	void HandleContentPathDismounted(const FString& InAssetPath, const FString& InFilesystemPath);
 
 	/**
-	 * Callback handler for when a new content path is mounted.
+	 * Callback handler for when the active culture is changed.
 	 */
 	void HandleCultureChanged();
 

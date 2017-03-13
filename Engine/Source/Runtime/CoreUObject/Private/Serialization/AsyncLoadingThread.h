@@ -144,6 +144,9 @@ class FAsyncLoadingThread : public FRunnable
 	/** Stops this thread */
 	FThreadSafeCounter StopTaskCounter;
 
+	/** [ASYNC/GAME THREAD] true if the async thread is actually started. We don't start it until after we boot because the boot process on the game thread can create objects that are also being created by the loader */
+	static bool bThreadStarted;
+
 	/** [ASYNC/GAME THREAD] Event used to signal there's queued packages to stream */
 	FEvent* QueuedRequestsEvent;
 	/** [ASYNC/GAME THREAD] Event used to signal loading should be cancelled */
@@ -236,6 +239,9 @@ public:
 	/** Returns the async loading thread singleton */
 	static FAsyncLoadingThread& Get();
 
+	/** Start the async loading thread */
+	void StartThread();
+
 	/** [EDL] Event queue */
 	FAsyncLoadEventQueue EventQueue;
 
@@ -273,31 +279,11 @@ public:
 	void QueueEvent_StartPostLoad(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
 
 	/** True if multithreaded async loading should be used. */
+	static bool ShouldBeMultithreaded();
+	/** True if multithreaded async loading is currently being used. */
 	static FORCEINLINE bool IsMultithreaded()
 	{
-		static struct FAsyncLoadingThreadEnabled
-		{
-			bool Value;
-			FORCENOINLINE FAsyncLoadingThreadEnabled()
-			{
-#if THREADSAFE_UOBJECTS
-				if (FPlatformProperties::RequiresCookedData())
-				{
-					check(GConfig);
-					bool bConfigValue = true;
-					GConfig->GetBool(TEXT("/Script/Engine.StreamingSettings"), TEXT("s.AsyncLoadingThreadEnabled"), bConfigValue, GEngineIni);
-					bool bCommandLineNoAsyncThread = FParse::Param(FCommandLine::Get(), TEXT("NoAsyncLoadingThread"));
-					bool bCommandLineAsyncThread = FParse::Param(FCommandLine::Get(), TEXT("AsyncLoadingThread"));
-					Value = bCommandLineAsyncThread || (bConfigValue && FApp::ShouldUseThreadingForPerformance() && !bCommandLineNoAsyncThread);
-				}
-				else
-#endif
-				{
-					Value = false;
-				}
-			}
-		} AsyncLoadingThreadEnabled;
-		return AsyncLoadingThreadEnabled.Value;
+		return bThreadStarted;
 	}
 
 	/** Sets the current state of async loading */

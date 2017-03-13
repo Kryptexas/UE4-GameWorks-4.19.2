@@ -49,6 +49,7 @@
 #include "UObject/UObjectThreadContext.h"
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "Serialization/DeferredMessageLog.h"
+#include "UObject/CoreRedirects.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
 
@@ -127,30 +128,42 @@ UObject* UObject::CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UCla
 
 void UObject::GetDefaultSubobjects(TArray<UObject*>& OutDefaultSubobjects)
 {
-	OutDefaultSubobjects.Empty();
-	GetObjectsWithOuter(this, OutDefaultSubobjects, false);
-	for (int32 SubobjectIndex = 0; SubobjectIndex < OutDefaultSubobjects.Num(); SubobjectIndex++)
+	OutDefaultSubobjects.Reset();
+	ForEachObjectWithOuter(this, [&OutDefaultSubobjects](UObject* Object)
 	{
-		UObject* PotentialSubobject = OutDefaultSubobjects[SubobjectIndex];
-		if (!PotentialSubobject->IsDefaultSubobject())
+		if (Object->IsDefaultSubobject())
 		{
-			OutDefaultSubobjects.RemoveAtSwap(SubobjectIndex--);
+			OutDefaultSubobjects.Add(Object);
 		}
-	}
+	}, false);
 }
 
 UObject* UObject::GetDefaultSubobjectByName(FName ToFind)
 {
-	TArray<UObject*> SubObjects;
-	GetDefaultSubobjects(SubObjects);
-	for (int32 Index = 0; Index < SubObjects.Num(); ++Index)
+	UObject* Object = nullptr;
+	// If it is safe use the faster StaticFindObjectFast rather than searching all the subobjects
+	if (!GIsSavingPackage && !IsGarbageCollecting())
 	{
-		if (SubObjects[Index]->GetFName() == ToFind)
+		Object = StaticFindObjectFast(UObject::StaticClass(), this, ToFind);
+		if (Object && !Object->IsDefaultSubobject())
 		{
-			return SubObjects[Index];
+			Object = nullptr;
 		}
 	}
-	return nullptr;
+	else
+	{
+		TArray<UObject*> SubObjects;
+		GetDefaultSubobjects(SubObjects);
+		for (UObject* SubObject : SubObjects)
+		{
+			if (SubObject->GetFName() == ToFind)
+			{
+				Object = SubObject;
+				break;
+			}
+		}
+	}
+	return Object;
 }
 
 bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
@@ -403,7 +416,7 @@ void UObject::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyCh
 
 				// Since we found property, propagate PostEditChange to all relevant components of archetype instances.
 				TArray<UObject*> ArchetypeComponentInstances;
-				for (auto ArchetypeInstance : ArchetypeInstances)
+				for (UObject* ArchetypeInstance : ArchetypeInstances)
 				{
 					if (UObject* ComponentInstance = *Property->ContainerPtrToValuePtr<UObject*>(ArchetypeInstance))
 					{
@@ -527,9 +540,10 @@ void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionA
 */
 struct FClassExclusionData
 {
-	TArray<FName> ExcludedClassNames;
-	TArray<FName> CachedExcludeList;
-	TArray<FName> CachedIncludeList;
+	TSet<FName> ExcludedClassNames;
+	TSet<FName> ExcludedPackageShortNames;
+	TSet<FName> CachedExcludeList;
+	TSet<FName> CachedIncludeList;
 
 	bool IsExcluded(UClass* InClass)
 	{
@@ -545,8 +559,20 @@ struct FClassExclusionData
 			return false;
 		}
 
+		auto ModuleShortNameFromClass = [](const UClass* Class) -> FName
+		{
+			return FName(*FPackageName::GetLongPackageAssetName(Class->GetOutermost()->GetName()));
+		};
+
 		while (InClass != nullptr)
 		{
+			if(ExcludedPackageShortNames.Num() && ExcludedPackageShortNames.Contains(ModuleShortNameFromClass(InClass)))
+			{
+				UE_LOG(LogObj, Display, TEXT("Class %s is excluded because its module is excluded in the current platform"), *OriginalClassName.ToString());
+				CachedExcludeList.Add(OriginalClassName);
+				return true;
+			}
+
 			if (ExcludedClassNames.Contains(InClass->GetFName()))
 			{
 				CachedExcludeList.Add(OriginalClassName);
@@ -560,15 +586,21 @@ struct FClassExclusionData
 		return false;
 	}
 
-	void UpdateExclusionList(const TArray<FString>& InClassNames)
+	void UpdateExclusionList(const TArray<FString>& InClassNames, const TArray<FString>& InPackageShortNames)
 	{
 		ExcludedClassNames.Empty(InClassNames.Num());
+		ExcludedPackageShortNames.Empty(InPackageShortNames.Num());
 		CachedIncludeList.Empty();
 		CachedExcludeList.Empty();
 
 		for (const FString& ClassName : InClassNames)
 		{
 			ExcludedClassNames.Add(FName(*ClassName));
+		}
+
+		for (const FString& PkgName : InPackageShortNames)
+		{
+			ExcludedPackageShortNames.Add(FName(*PkgName));
 		}
 	}
 };
@@ -581,9 +613,9 @@ bool UObject::NeedsLoadForServer() const
 	return !GDedicatedServerExclusionList.IsExcluded(GetClass());
 }
 
-void UObject::UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames)
+void UObject::UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames, const TArray<FString>& InModulesNames)
 {
-	GDedicatedServerExclusionList.UpdateExclusionList(InClassNames);
+	GDedicatedServerExclusionList.UpdateExclusionList(InClassNames, InModulesNames);
 }
 
 bool UObject::NeedsLoadForClient() const
@@ -591,9 +623,9 @@ bool UObject::NeedsLoadForClient() const
 	return !GDedicatedClientExclusionList.IsExcluded(GetClass());
 }
 
-void UObject::UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames)
+void UObject::UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames, const TArray<FString>& InModulesNames)
 {
-	GDedicatedClientExclusionList.UpdateExclusionList(InClassNames);
+	GDedicatedClientExclusionList.UpdateExclusionList(InClassNames, InModulesNames);
 }
 
 bool UObject::CanCreateInCurrentContext(UObject* Template)
@@ -638,7 +670,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 		if ( !HasAnyFlags(RF_ArchetypeObject) )
 		{
 			Instances.Reserve(IterObjects.Num()-1);
-			for (auto It : IterObjects)
+			for (UObject* It : IterObjects)
 			{
 				UObject* Obj = It;
 				if ( Obj != this )
@@ -649,7 +681,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 		}
 		else
 		{
-			for (auto It : IterObjects)
+			for (UObject* It : IterObjects)
 			{
 				UObject* Obj = It;
 				
@@ -963,11 +995,16 @@ void UObject::PreSave(const class ITargetPlatform* TargetPlatform)
 #endif
 }
 
+bool UObject::CanModify() const
+{
+	return (!HasAnyFlags(RF_NeedInitialization) && !IsGarbageCollecting());
+}
+
 bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
 	bool bSavedToTransactionBuffer = false;
 
-	if (!IsGarbageCollecting())
+	if (CanModify())
 	{
 		// Do not consider PIE world objects or script packages, as they should never end up in the
 		// transaction buffer and we don't want to mark them dirty here either.
@@ -1001,7 +1038,7 @@ bool UObject::IsSelected() const
 void UObject::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 {
 	UClass *ObjClass = GetClass();
-	if (!ObjClass->HasAnyClassFlags(CLASS_Intrinsic | CLASS_Native))
+	if (!ObjClass->HasAnyClassFlags(CLASS_Intrinsic))
 	{
 		OutDeps.Add(ObjClass);
 
@@ -1416,16 +1453,33 @@ FString GetConfigFilename( UObject* SourceObject )
 
 void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(const UObject* Object, TArray<FAssetRegistryTag>& OutTags)
 {
-	check(NULL != Object);
+	TSet<FName> FoundSpecialStructs;
+
+	check(nullptr != Object);
 	for( TFieldIterator<UProperty> FieldIt( Object->GetClass() ); FieldIt; ++FieldIt )
 	{
-		if ( FieldIt->HasAnyPropertyFlags(CPF_AssetRegistrySearchable) )
-		{
-			FString PropertyStr;
-			const uint8* PropertyAddr = FieldIt->ContainerPtrToValuePtr<uint8>(Object);
-			FieldIt->ExportTextItem( PropertyStr, PropertyAddr, PropertyAddr, NULL, PPF_None );
+		FName TagName;
+		FAssetRegistryTag::ETagType TagType = TT_Alphabetical;
+		UStructProperty* StructProp = Cast<UStructProperty>(*FieldIt);
 
-			FAssetRegistryTag::ETagType TagType;
+		if (StructProp && StructProp->Struct && IsUniqueAssetRegistryTagStruct(StructProp->Struct->GetFName(), TagType))
+		{
+			// Special unique structure type
+			TagName = StructProp->Struct->GetFName();
+			
+			if (FoundSpecialStructs.Contains(TagName))
+			{
+				UE_LOG(LogObj, Error, TEXT("Object %s has more than one unique asset registry struct %s!"), *Object->GetPathName(), *TagName.ToString());
+			}
+			else
+			{
+				FoundSpecialStructs.Add(TagName);
+			}
+		}
+		else if (FieldIt->HasAnyPropertyFlags(CPF_AssetRegistrySearchable))
+		{
+			TagName = FieldIt->GetFName();
+
 			UClass* Class = FieldIt->GetClass();
 			if (Class->IsChildOf(UIntProperty::StaticClass()) ||
 				Class->IsChildOf(UFloatProperty::StaticClass()) ||
@@ -1434,11 +1488,11 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 				// ints and floats are always numerical
 				TagType = FAssetRegistryTag::TT_Numerical;
 			}
-			else if ( Class->IsChildOf(UByteProperty::StaticClass()) )
+			else if (Class->IsChildOf(UByteProperty::StaticClass()))
 			{
 				// bytes are numerical, enums are alphabetical
 				UByteProperty* ByteProp = static_cast<UByteProperty*>(*FieldIt);
-				if ( ByteProp->Enum )
+				if (ByteProp->Enum)
 				{
 					TagType = FAssetRegistryTag::TT_Alphabetical;
 				}
@@ -1462,11 +1516,35 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 				// All other types are alphabetical
 				TagType = FAssetRegistryTag::TT_Alphabetical;
 			}
+		}
 
-			OutTags.Add( FAssetRegistryTag(FieldIt->GetFName(), PropertyStr, TagType) );
+		if (TagName != NAME_None)
+		{
+
+			FString PropertyStr;
+			const uint8* PropertyAddr = FieldIt->ContainerPtrToValuePtr<uint8>(Object);
+			FieldIt->ExportTextItem( PropertyStr, PropertyAddr, PropertyAddr, nullptr, PPF_None );
+
+			OutTags.Add( FAssetRegistryTag(TagName, PropertyStr, TagType) );
 		}
 	}
 }
+
+bool UObject::FAssetRegistryTag::IsUniqueAssetRegistryTagStruct(FName StructName, ETagType& TagType)
+{
+	static const FName AssetBundleDataName("AssetBundleData"); // Name of FAssetBundleData in Engine
+
+	if (StructName == AssetBundleDataName)
+	{
+		TagType = FAssetRegistryTag::TT_Hidden;
+		return true;
+	}
+
+	return false;
+}
+
+const FName FPrimaryAssetId::PrimaryAssetTypeTag(TEXT("PrimaryAssetType"));
+const FName FPrimaryAssetId::PrimaryAssetNameTag(TEXT("PrimaryAssetName"));
 
 void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
@@ -1476,6 +1554,15 @@ void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	{
 		OutTags.Add( FAssetRegistryTag("ResourceSize", FString::Printf(TEXT("%d"), (ResourceSize + 512) / 1024), FAssetRegistryTag::TT_Numerical) );
 	}
+
+	// Add primary asset info if valid
+	FPrimaryAssetId PrimaryAssetId = GetPrimaryAssetId();
+	if (PrimaryAssetId.IsValid())
+	{
+		OutTags.Add(FAssetRegistryTag(FPrimaryAssetId::PrimaryAssetTypeTag, PrimaryAssetId.PrimaryAssetType.ToString(), UObject::FAssetRegistryTag::TT_Alphabetical));
+		OutTags.Add(FAssetRegistryTag(FPrimaryAssetId::PrimaryAssetNameTag, PrimaryAssetId.PrimaryAssetName.ToString(), UObject::FAssetRegistryTag::TT_Alphabetical));
+	}
+
 	FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(this, OutTags);
 }
 
@@ -1513,6 +1600,17 @@ bool UObject::IsAsset() const
 	}
 
 	return false;
+}
+
+FPrimaryAssetId UObject::GetPrimaryAssetId() const
+{
+	if (FCoreUObjectDelegates::GetPrimaryAssetIdForObject.IsBound() && IsAsset())
+	{
+		// Call global callback if bound
+		return FCoreUObjectDelegates::GetPrimaryAssetIdForObject.Execute(this);
+	}
+
+	return FPrimaryAssetId();
 }
 
 bool UObject::IsLocalizedResource() const
@@ -1733,6 +1831,18 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 
 	const bool bPerObject = UsesPerObjectConfig(this);
 
+	// does the class want to override the platform hierarchy (ignored if we passd in a specific ini file),
+	// and if the name isn't the current running platform (no need to load extra files if already in GConfig)
+	bool bUseConfigOverride = InFilename == nullptr && GetConfigOverridePlatform() != nullptr &&
+		FCString::Stricmp(GetConfigOverridePlatform(), ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName())) != 0;
+	FConfigFile OverrideConfig;
+	if (bUseConfigOverride)
+	{
+		// load into a local ini file
+		FConfigCacheIni::LoadLocalIniFile(OverrideConfig, *GetClass()->ClassConfigName.ToString(), true, GetConfigOverridePlatform());
+	}
+
+
 	FString ClassSection;
 	FName LongCommitName;
 	if ( bPerObject == true )
@@ -1824,7 +1934,16 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 				}
 
 				FString Value;
-				const bool bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
+				bool bFoundValue;
+				if (bUseConfigOverride)
+				{
+					bFoundValue = OverrideConfig.GetString(*ClassSection, *Key, Value);
+				}
+				else
+				{
+					bFoundValue = GConfig->GetString(*ClassSection, *Key, Value, *PropFileName);
+				}
+
 				if (bFoundValue)
 				{
 					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
@@ -1844,7 +1963,16 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 		}
 		else
 		{
-			FConfigSection* Sec = GConfig->GetSectionPrivate( *ClassSection, false, true, *PropFileName );
+			FConfigSection* Sec;
+			if (bUseConfigOverride)
+			{
+				Sec = OverrideConfig.Find(*ClassSection);
+			}
+			else
+			{
+				Sec = GConfig->GetSectionPrivate(*ClassSection, false, true, *PropFileName);
+			}
+
 			FConfigSection* AltSec = NULL;
 			//@Package name transition
 			if( Sec )
@@ -1931,9 +2059,7 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 		: GetConfigFilename(this);
 
 	// Determine whether the file we are writing is a default file config.
-	const bool bIsADefaultIniWrite = !Filename.Contains(FPaths::GameSavedDir())
-		&& !Filename.Contains(FPaths::EngineSavedDir())
-		&& (FPaths::GetBaseFilename(Filename).StartsWith(TEXT("Default")) || FPaths::GetBaseFilename(Filename).StartsWith(TEXT("User")));
+	const bool bIsADefaultIniWrite = Filename == GetDefaultConfigFilename() || Filename == GetGlobalUserConfigFilename();
 
 	const bool bPerObject = UsesPerObjectConfig(this);
 	FString Section;
@@ -2085,8 +2211,23 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 	}
 }
 
+static FString GetFinalOverridePlatform(const UObject* Obj)
+{
+	FString Platform;
+	if (Obj->GetConfigOverridePlatform() != nullptr && FCString::Stricmp(Obj->GetConfigOverridePlatform(), ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName())) != 0)
+	{
+		Platform = Obj->GetConfigOverridePlatform();
+	}
+	return Platform;
+}
+
 FString UObject::GetDefaultConfigFilename() const
 {
+	FString OverridePlatform = GetFinalOverridePlatform(this);
+	if (OverridePlatform.Len())
+	{
+		return FString::Printf(TEXT("%s%s/%s%s.ini"), *FPaths::SourceConfigDir(), *OverridePlatform, *OverridePlatform, *GetClass()->ClassConfigName.ToString());
+	}
 	return FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *GetClass()->ClassConfigName.ToString());
 }
 
@@ -2109,12 +2250,19 @@ void UObject::UpdateSingleSectionOfConfigFile(const FString& ConfigIniName)
 
 	ensureMsgf(Config.Num() == 1, TEXT("UObject::UpdateDefaultConfig() caused more files than expected in the Sandbox config cache!"));
 
-	// make sure SaveConfig wrote only to the file we expected
-	NewFile.UpdateSections(*ConfigIniName, *GetClass()->ClassConfigName.ToString());
+	// do we need to use a special platform hierarchy?
+	FString OverridePlatform = GetFinalOverridePlatform(this);
 
-	// reload the file, so that it refresh the cache internally.
-	FString FinalIniFileName;
-	GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+	// make sure SaveConfig wrote only to the file we expected
+	NewFile.UpdateSections(*ConfigIniName, *GetClass()->ClassConfigName.ToString(), OverridePlatform.Len() ? *OverridePlatform : nullptr);
+
+	// reload the file, so that it refresh the cache internally, unless a non-standard platform was used,
+	// then we don't want to touch GConfig
+	if (OverridePlatform.Len() == 0)
+	{
+		FString FinalIniFileName;
+		GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+	}
 }
 
 void UObject::UpdateDefaultConfigFile(const FString& SpecificFileLocation)
@@ -2159,11 +2307,18 @@ void UObject::UpdateSinglePropertyInConfigFile(const UProperty* InProperty, cons
 		}
 #endif // #if WITH_EDITOR
 
+		// do we need to use a special platform hierarchy?
+		FString OverridePlatform = GetFinalOverridePlatform(this);
+
 		NewFile.UpdateSinglePropertyInSection(*InConfigIniName, *PropertyKey, *SectionName);
 
-		// reload the file, so that it refresh the cache internally.
-		FString FinalIniFileName;
-		GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+		// reload the file, so that it refresh the cache internally, unless a non-standard platform was used,
+		// then we don't want to touch GConfig
+		if (OverridePlatform.Len() == 0)
+		{
+			FString FinalIniFileName;
+			GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+		}
 	}
 	else
 	{
@@ -2282,7 +2437,7 @@ static void ShowClasses( UClass* Class, FOutputDevice& Ar, int32 Indent )
 	// Workaround for Visual Studio 2013 analyzer bug. Using a temporary directly in the range-for
 	// errors if the analyzer is enabled.
 	TObjectRange<UClass> Range;
-	for( auto Obj : Range )
+	for( UClass* Obj : Range )
 	{
 		if( Obj->GetSuperClass() == Class )
 		{
@@ -2876,19 +3031,19 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					if (bResult)
 					{
 						FString ExtraInfo;
-						if (auto* StructProperty = dynamic_cast<UStructProperty*>(It->GetClass()))
+						if (UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(It->GetClass()))
 						{
 							ExtraInfo = *StructProperty->Struct->GetName();
 						}
-						else if (auto* ClassProperty = dynamic_cast<UClassProperty*>(It->GetClass()))
+						else if (UClassProperty* ClassProperty = dynamic_cast<UClassProperty*>(It->GetClass()))
 						{
 							ExtraInfo = FString::Printf(TEXT("class<%s>"), *ClassProperty->MetaClass->GetName());
 						}
-						else if (auto* AssetClassProperty = dynamic_cast<UAssetClassProperty*>(It->GetClass()))
+						else if (UAssetClassProperty* AssetClassProperty = dynamic_cast<UAssetClassProperty*>(It->GetClass()))
 						{
 							ExtraInfo = FString::Printf(TEXT("AssetSubclassOf<%s>"), *AssetClassProperty->MetaClass->GetName());
 						}
-						else if (auto* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(It->GetClass()))
+						else if (UObjectPropertyBase* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(It->GetClass()))
 						{
 							ExtraInfo = *ObjectPropertyBase->PropertyClass->GetName();
 						}
@@ -3260,7 +3415,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 				TArray<FString> Errors;
 
-				for (auto SubObjIt : SubObjects)
+				for (UObject* SubObjIt : SubObjects)
 				{
 					const UObject* SubObj = SubObjIt;
 					const UClass* SubObjClass = SubObj->GetClass();
@@ -3299,11 +3454,11 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 				if (Errors.Num() > 0)
 				{
-					Ar.Logf(*FString::Printf(TEXT("Errors for %s"), *Target->GetName()));
+					Ar.Logf(TEXT("Errors for %s"), *Target->GetName());
 
-					for (auto ErrorStr : Errors)
+					for (const FString& ErrorStr : Errors)
 					{
-						Ar.Logf(*(FString(TEXT("  - ") + ErrorStr)));
+						Ar.Logf(TEXT("  - %s"), *ErrorStr);
 					}
 				}
 			}
@@ -3803,8 +3958,9 @@ void PreInitUObject()
 void InitUObject()
 {
 	// Initialize redirects map
-	for (const auto& It : *GConfig)
+	for (const TPair<FString,FConfigFile>& It : *GConfig)
 	{
+		FCoreRedirects::ReadRedirectsFromIni(It.Key);
 		FLinkerLoad::CreateActiveRedirectsMap(It.Key);
 	}
 

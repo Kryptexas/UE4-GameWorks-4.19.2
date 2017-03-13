@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class KDevelopSourceCodeAccess : ModuleRules
 	{
-		public KDevelopSourceCodeAccess(TargetInfo Target)
+		public KDevelopSourceCodeAccess(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[]

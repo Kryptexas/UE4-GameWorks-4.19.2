@@ -60,7 +60,7 @@ const FTransform FActorViewportTransformable::GetTransform() const
 
 FBox FActorViewportTransformable::BuildBoundingBox( const FTransform& BoundingBoxToWorld ) const
 {
-	FBox BoundingBox( 0 );
+	FBox BoundingBox(ForceInit);
 	AActor* Actor = Cast<AActor>( ActorWeakPtr.Get() );
 
 	if( Actor != nullptr )

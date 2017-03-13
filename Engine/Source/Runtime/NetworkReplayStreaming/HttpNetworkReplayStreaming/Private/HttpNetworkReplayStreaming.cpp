@@ -192,7 +192,8 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	StreamerLastError( ENetworkReplayError::None ),
 	DownloadCheckpointIndex( -1 ),
 	LastGotoTimeInMS( -1 ),
-	TotalUploadBytes( 0 )
+	TotalUploadBytes( 0 ),
+	RefreshViewerFails( 0 )
 {
 	// Initialize the server URL
 	GConfig->GetString( TEXT( "HttpNetworkReplayStreaming" ), TEXT( "ServerURL" ), ServerURL, GEngineIni );
@@ -249,6 +250,8 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 	StreamChunkIndex = 0;
 
 	TotalUploadBytes = 0;
+
+	RefreshViewerFails = 0;
 
 	if ( !bRecord )
 	{
@@ -977,7 +980,7 @@ void FHttpNetworkReplayStreamer::AddEvent( const uint32 TimeInMS, const FString&
 	AddOrUpdateEvent( TEXT( "" ), TimeInMS, Group, Meta, Data );
 }
 
-void FHttpNetworkReplayStreamer::DownloadHeader()
+void FHttpNetworkReplayStreamer::DownloadHeader(const FOnDownloadHeaderComplete& Delegate /*= FOnDownloadHeaderComplete()*/)
 {
 	// Download header first
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
@@ -985,7 +988,7 @@ void FHttpNetworkReplayStreamer::DownloadHeader()
 	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/file/replay.header" ), *ServerURL, *SessionName, *ViewerName ) );
 	HttpRequest->SetVerb( TEXT( "GET" ) );
 
-	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished );
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished, Delegate );
 
 	AddRequestToQueue( EQueuedHttpRequestType::DownloadingHeader, HttpRequest );
 }
@@ -1161,7 +1164,7 @@ void FHttpNetworkReplayStreamer::RefreshViewer( const bool bFinal )
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpRefreshViewerFinished );
 
-	AddRequestToQueue( EQueuedHttpRequestType::RefreshingViewer, HttpRequest, 2, 2.0f );
+	AddRequestToQueue( EQueuedHttpRequestType::RefreshingViewer, HttpRequest );
 
 	LastRefreshViewerTime = FPlatformTime::Seconds();
 }
@@ -1339,7 +1342,7 @@ void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 	// Add optional User parameter (filter replays by a user that was in the replay)
 	if ( !UserString.IsEmpty() )
 	{
-		URL += FString::Printf( TEXT( "&user=%s" ), *UserString );
+		URL += FString::Printf( TEXT( "&user=%s" ), *FGenericPlatformHttp::UrlEncode( UserString ) );
 	}
 
 	// Add any extra parms now
@@ -1707,14 +1710,14 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 	}
 }
 
-void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FOnDownloadHeaderComplete Delegate)
 {
 	RequestFinished( EStreamerState::StreamingDown, EQueuedHttpRequestType::DownloadingHeader, HttpRequest );
 
 	check( StreamArchive.IsLoading() );
-	check( StartStreamingDelegate.IsBound() );
 
-	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
+	bool bWasRequestSuccessful = bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok;
+	if ( bWasRequestSuccessful )
 	{
 		HeaderArchive.Buffer.Append( HttpResponse->GetContent() );
 
@@ -1733,6 +1736,8 @@ void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr Htt
 
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
+
+	Delegate.ExecuteIfBound(bWasRequestSuccessful);
 }
 
 void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, int32 RequestedStreamChunkIndex, bool bStreamWasLive )
@@ -1979,13 +1984,22 @@ void FHttpNetworkReplayStreamer::HttpRefreshViewerFinished( FHttpRequestPtr Http
 
 	if ( !bSucceeded || HttpResponse->GetResponseCode() != EHttpResponseCodes::NoContent )
 	{
-		if ( RetryRequest( SavedFlightHttpRequest, HttpResponse, true ) )
-		{
-			return;
-		}
+		static const int32 MaxViewerRefreshFails = 6;
 
-		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpRefreshViewerFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
-		SetLastError( ENetworkReplayError::ServiceUnavailable );
+		if ( ++RefreshViewerFails > MaxViewerRefreshFails )
+		{
+			UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpRefreshViewerFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
+			SetLastError( ENetworkReplayError::ServiceUnavailable );
+		}
+		else
+		{
+			const int32 RetriesLeft = MaxViewerRefreshFails - RefreshViewerFails;
+			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpRefreshViewerFinished. Failed. Retries left: %i, %s" ), RetriesLeft, *BuildRequestErrorString( HttpRequest, HttpResponse ) );
+		}
+	}
+	else
+	{
+		RefreshViewerFails = 0;
 	}
 }
 

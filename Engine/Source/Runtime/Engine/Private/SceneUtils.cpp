@@ -96,7 +96,7 @@ bool IsMobileHDR()
 bool IsMobileHDR32bpp()
 {
 	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
-	return IsMobileHDR() && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppModeCvar->GetValueOnRenderThread() != 0);
+	return IsMobileHDR() && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppModeCvar->GetValueOnAnyThread() != 0);
 }
 
 bool IsMobileHDRMosaic()
@@ -105,7 +105,7 @@ bool IsMobileHDRMosaic()
 		return false;
 
 	static auto* MobileHDR32bppMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
-	switch (MobileHDR32bppMode->GetValueOnRenderThread())
+	switch (MobileHDR32bppMode->GetValueOnAnyThread())
 	{
 		case 1:
 			return true;

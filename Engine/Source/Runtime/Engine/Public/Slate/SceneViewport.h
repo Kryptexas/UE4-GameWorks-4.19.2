@@ -227,6 +227,7 @@ public:
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& InGestureEvent ) override;
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent ) override;
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
+	virtual bool HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination) override;
 	virtual TOptional<bool> OnQueryShowFocus(const EFocusCause InFocusCause) const override;
 	virtual void OnFinishedPointerInput() override;
 	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
@@ -340,6 +341,11 @@ private:
 		return bUseSeparateRenderTarget || bForceSeparateRenderTarget;
 	}
 
+	/**
+	 * Called right before a slate window is destroyed so we can free up the backbuffer resource before the window backing it is destroyed
+	 */
+	void OnWindowBackBufferResourceDestroyed(void* Backbuffer);
+
 	/** 
 	 * Called right before a backbuffer is resized. If this viewport is using this backbuffer 
 	 * it will release its resource here
@@ -411,4 +417,7 @@ private:
 	int32 NumBufferedFrames;
 	int32 CurrentBufferedTargetIndex;
 	int32 NextBufferedTargetIndex;
+
+	/** Tracks the number of touches currently active on the viewport */
+	int32 NumTouches;
 };

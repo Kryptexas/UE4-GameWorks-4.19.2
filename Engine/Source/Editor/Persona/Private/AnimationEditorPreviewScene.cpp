@@ -237,36 +237,59 @@ void FAnimationEditorPreviewScene::RefreshAdditionalMeshes()
 	// add new components
 	if (SkeletonAdditionalMeshes != nullptr)
 	{
-		const int32 NumMeshes = SkeletonAdditionalMeshes->SkeletalMeshes.Num();
+		// While loading our meshes, look for the one with the 'best' bone count.
+		// We will use this in lieu of a master if we have none set
+		int32 BestBoneCount = 0;
+		int32 BestMasterIndex = 0;
+		TArray<USkeletalMesh*> ValidMeshes;
+		for (int32 MeshIndex = 0; MeshIndex < SkeletonAdditionalMeshes->SkeletalMeshes.Num(); ++MeshIndex)
+		{
+			FPreviewMeshCollectionEntry& Entry = SkeletonAdditionalMeshes->SkeletalMeshes[MeshIndex];
+
+			// Load up our valid skeletal meshes
+			if (Entry.SkeletalMesh.LoadSynchronous())
+			{
+				USkeletalMesh* SkeletalMesh = Entry.SkeletalMesh.Get();
+				
+				int32 BoneCount = SkeletalMesh->RefSkeleton.GetNum();
+				if (BoneCount > BestBoneCount)
+				{
+					BestMasterIndex = ValidMeshes.Num();
+					BestBoneCount = BoneCount;
+				}
+
+				ValidMeshes.Add(SkeletalMesh);
+			}
+		}
+
+		const int32 NumMeshes = ValidMeshes.Num();
 		if (NumMeshes > 0)
 		{
 			// if the master component has no skeletal mesh, we need to set up one of the additional meshes
 			// as the master instead
-			int32 StartIndex = 0;
-			if (PreviewSceneDescription->PreviewMesh == nullptr)
+			bool bSubstitutedMaster = false;
+			if (SkeletalMeshComponent->SkeletalMesh == nullptr)
 			{
-				SetPreviewMeshInternal(SkeletonAdditionalMeshes->SkeletalMeshes[0].SkeletalMesh.LoadSynchronous());
-				StartIndex++;
+				SetPreviewMeshInternal(ValidMeshes[BestMasterIndex]);
+				bSubstitutedMaster = true;
 			}
 
-			for (int32 MeshIndex = StartIndex; MeshIndex < NumMeshes; ++MeshIndex)
+			for (int32 MeshIndex = 0; MeshIndex < NumMeshes; ++MeshIndex)
 			{
-				FPreviewMeshCollectionEntry& Entry = SkeletonAdditionalMeshes->SkeletalMeshes[MeshIndex];
-				USkeletalMesh* SkeletalMesh = Entry.SkeletalMesh.LoadSynchronous();
-				if (SkeletalMesh)
+				if (!(bSubstitutedMaster && MeshIndex == BestMasterIndex))
 				{
-					USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>(Actor);
-					NewComp->SetMasterPoseComponent(SkeletalMeshComponent);
-					NewComp->SetSkeletalMesh(SkeletalMesh);
-					NewComp->UpdateMasterBoneMap();
-					AddComponent(NewComp, FTransform::Identity);
-					AdditionalMeshes.Add(NewComp);
+					USkeletalMesh* SkeletalMesh = ValidMeshes[MeshIndex];
+					if (SkeletalMesh)
+					{
+						USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>(Actor);
+						NewComp->SetMasterPoseComponent(SkeletalMeshComponent);
+						NewComp->SetSkeletalMesh(SkeletalMesh);
+						NewComp->UpdateMasterBoneMap();
+						AddComponent(NewComp, FTransform::Identity);
+						AdditionalMeshes.Add(NewComp);
+					}
 				}
 			}
-		}
-		else if (PreviewSceneDescription->PreviewMesh == nullptr)
-		{
-			SetPreviewMeshInternal(nullptr);
 		}
 	}
 }

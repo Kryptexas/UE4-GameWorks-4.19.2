@@ -270,7 +270,7 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 		LegacyMapBuildData->IrrelevantLights = IrrelevantLights_DEPRECATED;
 
 		FMeshMapBuildLegacyData LegacyComponentData;
-		LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(MapBuildDataId, LegacyMapBuildData));
+		LegacyComponentData.Data.Emplace(MapBuildDataId, LegacyMapBuildData);
 		GComponentsWithLegacyLightmaps.AddAnnotation(this, LegacyComponentData);
 	}
 
@@ -515,6 +515,18 @@ void ULandscapeInfo::UpdateDebugColorMaterial()
 	//GWarn->EndSlowTask();
 }
 
+void ULandscapeComponent::UpdatedSharedPropertiesFromActor()
+{
+	ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
+
+	bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
+	bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
+	bCastFarShadow = LandscapeProxy->bCastFarShadow;
+	bRenderCustomDepth = LandscapeProxy->bRenderCustomDepth;
+	CustomDepthStencilValue = LandscapeProxy->CustomDepthStencilValue;
+	LightingChannels = LandscapeProxy->LightingChannels;
+}
+
 void ULandscapeComponent::PostLoad()
 {
 	Super::PostLoad();
@@ -523,8 +535,7 @@ void ULandscapeComponent::PostLoad()
 	if (ensure(LandscapeProxy))
 	{
 		// Ensure that the component's lighting settings matches the actor's.
-		bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
-		bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
+		UpdatedSharedPropertiesFromActor();	
 
 		// check SectionBaseX/Y are correct
 		int32 CheckSectionBaseX = FMath::RoundToInt(RelativeLocation.X) + LandscapeProxy->LandscapeSectionOffset.X;
@@ -647,6 +658,9 @@ void ULandscapeComponent::PostLoad()
 
 ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+#if WITH_EDITORONLY_DATA
+	, TargetDisplayOrder(ELandscapeLayerDisplayMode::Default)
+#endif // WITH_EDITORONLY_DATA
 	, bHasLandscapeGrass(true)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -1382,6 +1396,13 @@ bool ULandscapeInfo::UpdateLayerInfoMap(ALandscapeProxy* Proxy /*= nullptr*/, bo
 							int32 LayerInfoIndex = GetLayerInfoIndex(LayerInfo);
 							bool bValid = LayerNames.Contains(LayerInfo->LayerName);
 
+							#if WITH_EDITORONLY_DATA
+							if (bValid)
+							{
+								//LayerInfo->IsReferencedFromLoadedData = true;
+							}
+							#endif
+
 							if (LayerInfoIndex != INDEX_NONE)
 							{
 								FLandscapeInfoLayerSettings& LayerSettings = Layers[LayerInfoIndex];
@@ -1576,6 +1597,9 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		StaticLightingResolution = Landscape->StaticLightingResolution;
 		bCastStaticShadow = Landscape->bCastStaticShadow;
 		bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
+		LightingChannels = Landscape->LightingChannels;
+		bRenderCustomDepth = Landscape->bRenderCustomDepth;
+		CustomDepthStencilValue = Landscape->CustomDepthStencilValue;
 		ComponentSizeQuads = Landscape->ComponentSizeQuads;
 		NumSubsections = Landscape->NumSubsections;
 		SubsectionSizeQuads = Landscape->SubsectionSizeQuads;
@@ -1630,6 +1654,18 @@ void ALandscapeProxy::ConditionalAssignCommonProperties(ALandscape* Landscape)
 	if (LODFalloff != Landscape->LODFalloff)
 	{
 		LODFalloff = Landscape->LODFalloff;
+		bUpdated = true;
+	}
+
+	if (TargetDisplayOrder != Landscape->TargetDisplayOrder)
+	{
+		TargetDisplayOrder = Landscape->TargetDisplayOrder;
+		bUpdated = true;
+	}
+
+	if (TargetDisplayOrderList != Landscape->TargetDisplayOrderList)
+	{
+		TargetDisplayOrderList = Landscape->TargetDisplayOrderList;
 		bUpdated = true;
 	}
 

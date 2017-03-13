@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class WinHttp : ModuleRules
 {
-	public WinHttp(TargetInfo Target)
+	public WinHttp(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

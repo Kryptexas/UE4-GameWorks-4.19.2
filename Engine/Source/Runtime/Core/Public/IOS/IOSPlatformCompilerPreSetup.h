@@ -134,3 +134,8 @@
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
 #define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
 #endif
+
+// Apple LLVM 8.1.0 (Xcode 8.3) introduced -Wnonportable-include-path, which triggers some unfortunate issues with iOS vs IOS vs ios on disk
+#if (__clang_major__ > 8) || (__clang_major__ == 8 && __clang_minor__ >= 1)
+#pragma clang diagnostic ignored "-Wnonportable-include-path"
+#endif

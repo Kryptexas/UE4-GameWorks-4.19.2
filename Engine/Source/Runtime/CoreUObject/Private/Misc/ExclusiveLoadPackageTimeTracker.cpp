@@ -190,7 +190,7 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 
 		if (LowThresholdCount > 0)
 		{
-			UE_LOG(LogLoad, Log, TEXT("    ... skipped %d assets slower than %.1fms totaling %.1fms"), LowThresholdCount, LowTimeThreshold * 1000, TotalLowTime * 1000);
+			UE_LOG(LogLoad, Log, TEXT("    ... skipped %d assets that loaded in less than %.1fms totaling %.1fms"), LowThresholdCount, LowTimeThreshold * 1000, TotalLowTime * 1000);
 		}
 	}
 

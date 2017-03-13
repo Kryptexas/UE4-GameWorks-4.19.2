@@ -26,6 +26,8 @@ public:
 	// Sets the effect parameters
 	void SetEffectParameters(const FAudioEQEffect& InEQEffectParameters);
 
+	virtual void SetPreset(USoundEffectSubmixPreset* InPreset) override {};
+
 protected:
 	void UpdateParameters();
 

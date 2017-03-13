@@ -234,6 +234,8 @@ struct EPropertyArrayChangeType
 		Delete,
 		/** An item has been duplicated */
 		Duplicate,
+		/** Two items have been swapped */
+		Swap,
 	};
 };
 

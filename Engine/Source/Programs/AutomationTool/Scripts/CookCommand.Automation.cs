@@ -139,7 +139,7 @@ public partial class Project : CommandUtils
 					Log("Params.HasMapsToCook " + M.ToString());
                 }
 			}
-
+			
 			string[] Dirs = null;
 			if (Params.HasDirectoriesToCook)
 			{
@@ -218,7 +218,13 @@ public partial class Project : CommandUtils
 				{
 					CommandletParams += " -partialgc";
 				}
-                if (Params.HasDLCName)
+				if (Params.HasMapIniSectionsToCook)
+				{
+					string MapIniSections = CombineCommandletParams(Params.MapIniSectionsToCook.ToArray());
+
+					CommandletParams += " -MapIniSection=" + MapIniSections;
+				}
+				if (Params.HasDLCName)
                 {
                     CommandletParams += " -dlcname=" + Params.DLCName;
                     if ( !Params.DLCIncludeEngineContent )

@@ -11,6 +11,7 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessCombineLUTs.h"
 #include "PostProcess/PostProcessMobile.h"
+#include "ClearQuad.h"
 
 static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("r.Tonemapper.Sharpen"),
@@ -85,7 +86,6 @@ typedef enum {
 	TonemapperColorFringe       = (1<<12),
 	TonemapperMsaa              = (1<<13),
 	TonemapperSharpen           = (1<<14),
-	TonemapperInverseTonemapping = (1 << 15),
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -107,7 +107,6 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperColorFringe
 	1, //TonemapperMsaa
 	1, //TonemapperSharpen
-	1, //TonemapperInverseTonemapping
 };
 
 // Edit the following to add and remove configurations.
@@ -173,45 +172,6 @@ static uint32 TonemapperConfBitmaskPC[15] = {
 
 	TonemapperBloom + 
 	TonemapperVignette +
-	0,
-
-	// with TonemapperInverseTonemapping
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperColorFringe +
-	TonemapperSharpen +
-	TonemapperInverseTonemapping +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperColorFringe +
-	TonemapperInverseTonemapping +
-	0,
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperGrainQuantization +
-	TonemapperColorFringe +
-	TonemapperInverseTonemapping +
-	0,
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperGrainQuantization +
-	TonemapperInverseTonemapping +
-	0,
-
-	TonemapperBloom +
-	TonemapperSharpen +
-	TonemapperInverseTonemapping +
 	0,
 
 	//
@@ -653,17 +613,6 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 		}
 	}
 
-	// Inverse Tonemapping
-	{
-		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
-		int32 Value = CVar->GetValueOnRenderThread();
-
-		if (Value > 0)
-		{
-			Bitmask |= TonemapperInverseTonemapping;
-		}
-	}
-
 	if( View->FinalPostProcessSettings.SceneFringeIntensity > 0.01f)
 	{
 		Bitmask |= TonemapperColorFringe;
@@ -947,7 +896,6 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		OutEnvironment.SetDefine(TEXT("USE_SHARPEN"),	         TonemapperIsDefined(ConfigBitmask, TonemapperSharpen));
-		OutEnvironment.SetDefine(TEXT("USE_INVERSE_TONEMAPPING"), TonemapperIsDefined(ConfigBitmask, TonemapperInverseTonemapping));
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Platform));
 	}
 
@@ -1141,20 +1089,15 @@ public:
 			SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
 		}
 
-		// Use a provided tonemaping LUT (provided by a CombineLUTs pass). 
 		{
-			
 			FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput(ePId_Input3);
 
-			// Indicates the Tonemapper combined LUT node was nominally in the network.
-			const bool bUseLUT = (OutputRef != NULL);
-
-			const FTextureRHIRef* SrcTexture = nullptr;
-			if (bUseLUT)
+			const FTextureRHIRef* SrcTexture = Context.View.GetTonemappingLUTTexture();
+			bool bShowErrorLog = false;
+			// Use a provided tonemaping LUT (provided by a CombineLUTs pass). 
+			if (!SrcTexture)
 			{
-				SrcTexture = Context.View.GetTonemappingLUTTexture();
-				
-				if (!SrcTexture)
+				if (OutputRef && OutputRef->IsValid())
 				{
 					FRenderingCompositeOutput* Input = OutputRef->GetOutput();
 					
@@ -1169,14 +1112,17 @@ public:
 							SrcTexture = &InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 						}
 					}
+
+					// Indicates the Tonemapper combined LUT node was nominally in the network, so error if it's not found
+					bShowErrorLog = true;
 				}
-			}
+			}	
 
 			if (SrcTexture && *SrcTexture)
 			{
 				SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), *SrcTexture);
 			}
-			else
+			else if (bShowErrorLog)
 			{
 				UE_LOG(LogRenderer, Error, TEXT("No Color LUT texture to sample: output will be invalid."));
 			}
@@ -1327,12 +1273,12 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
 		{
 			// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
-			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 		}
 		else if (ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture)
 		{
 			// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
-			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, DestRect);
+			DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 		}
 	}
 
@@ -1417,6 +1363,11 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 
+	// Mobile needs to override the extent
+	if (bDoScreenPercentageInTonemapper && View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)
+	{
+		Ret.Extent = View.UnscaledViewRect.Max;
+	}
 	return Ret;
 }
 
@@ -1713,12 +1664,10 @@ namespace PostProcessTonemap_ES2Util
 	}
 }
 
-
-FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& View, FIntRect InViewRect, FIntPoint InDestSize, bool bInUsedFramebufferFetch) 
-	:
-	ViewRect(InViewRect),
-	DestSize(InDestSize),
-	bUsedFramebufferFetch(bInUsedFramebufferFetch)
+FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& InView, bool bInUsedFramebufferFetch)
+	: bDoScreenPercentageInTonemapper(false)
+	, View(InView)
+	, bUsedFramebufferFetch(bInUsedFramebufferFetch)
 {
 	uint32 ConfigBitmask = TonemapperGenerateBitmaskMobile(&View, false);
 	ConfigIndexMobile = TonemapperFindLeastExpensive(TonemapperConfBitmaskMobile, sizeof(TonemapperConfBitmaskMobile)/4, TonemapperCostTab, ConfigBitmask);
@@ -1736,14 +1685,13 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		return;
 	}
 	
-	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 	const FPooledRenderTargetDesc& OutputDesc = PassOutputs[0].RenderTargetDesc;
 
-	FIntRect SrcRect = ViewRect;
 	// no upscale if separate ren target is used.
-	FIntRect DestRect = (ViewFamily.bUseSeparateRenderTarget) ? ViewRect : View.UnscaledViewRect; // Simple upscaling, ES2 post process does not currently have a specific upscaling pass.
+	FIntRect SrcRect = View.ViewRect;
+	FIntRect DestRect = bDoScreenPercentageInTonemapper ? View.UnscaledViewRect : View.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DstSize = OutputDesc.Extent;
 
@@ -1767,7 +1715,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		// Full clear to avoid restore
 		if ((View.StereoPass == eSSP_FULL && bFirstView) || View.StereoPass == eSSP_LEFT_EYE)
 		{
-			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 		}
 	}
 
@@ -1851,8 +1799,10 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOut
 	Ret.Reset();
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
-	Ret.Extent = DestSize;
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
-
+	if (bDoScreenPercentageInTonemapper)
+	{
+		Ret.Extent = View.UnscaledViewRect.Max;
+	}
 	return Ret;
 }

@@ -274,7 +274,7 @@ UViewportWorldInteraction::UViewportWorldInteraction():
 	TransformablesInterpolationDuration( 1.0f ),
 	TransformGizmoActor( nullptr ),
 	TransformGizmoClass( APivotTransformGizmo::StaticClass() ),
-	GizmoLocalBounds( FBox( 0 ) ),
+	GizmoLocalBounds( FBox(ForceInit) ),
 	StartDragAngleOnRotation(),
 	DraggingRotationHandleDirection(),
 	bShouldTransformGizmoBeVisible( true ),
@@ -2303,7 +2303,7 @@ void UViewportWorldInteraction::StartDragging( UViewportInteractor* Interactor, 
 	{
 		InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
 		InteractorData.GizmoStartTransform = FTransform::Identity;
-		InteractorData.GizmoStartLocalBounds = FBox( 0 );
+		InteractorData.GizmoStartLocalBounds = FBox(ForceInit);
 	}
 	InteractorData.GizmoLastTransform = InteractorData.GizmoTargetTransform = InteractorData.GizmoUnsnappedTargetTransform = InteractorData.GizmoInterpolationSnapshotTransform = InteractorData.GizmoStartTransform;
 	InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;	// Will be determined on first update
@@ -2821,7 +2821,7 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 	        const bool bPropagateToChildren = true;
 	        TransformGizmoActor->GetRootComponent()->SetVisibility( bShouldBeVisible, bPropagateToChildren );
 		}
-		GizmoLocalBounds = FBox( 0 );
+		GizmoLocalBounds = FBox(ForceInit);
 
 		// Hide the snap actor
 		if( SnapGridActor != nullptr )

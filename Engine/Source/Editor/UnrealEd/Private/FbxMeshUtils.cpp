@@ -28,6 +28,8 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
+#include "Assets/ClothingAsset.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogExportMeshUtils, Log, All);
 
 #define LOCTEXT_NAMESPACE "FbxMeshUtil"
@@ -105,7 +107,7 @@ namespace FbxMeshUtils
 			ImportOptions->bImportTextures = false;
 		}
 
-		if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
+		if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ), true ) )
 		{
 			// Log the error message and fail the import.
 			// @todo verify if the message works
@@ -160,6 +162,9 @@ namespace FbxMeshUtils
 				// Add imported mesh to existing model
 				if( TempStaticMesh )
 				{
+					//Build the staticmesh
+					FFbxImporter->PostImportStaticMesh(TempStaticMesh, *(LODNodeList[bUseLODs ? LODLevel : 0]));
+
 					// Update mesh component
 					BaseStaticMesh->MarkPackageDirty();
 
@@ -204,14 +209,41 @@ namespace FbxMeshUtils
 
 		if (bIsFBX)
 		{
-#if WITH_APEX_CLOTHING
-			FClothingBackup ClothingBackup;
+			// Get a list of all the clothing assets affecting this LOD so we can re-apply later
+			TArray<UClothingAssetBase*> ClothingAssetsInUse;
+			TArray<int32> ClothingAssetSectionIndices;
+			TArray<int32> ClothingAssetInternalLodIndices;
 
-			if(LODLevel == 0)
+			FSkeletalMeshResource* ImportedResource = SelectedSkelMesh->GetImportedResource();
+			if(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODLevel))
 			{
-				ApexClothingUtils::BackupClothingDataFromSkeletalMesh(SelectedSkelMesh, ClothingBackup);
+				FStaticLODModel& LodModel = ImportedResource->LODModels[LODLevel];
+
+				const int32 NumSections = LodModel.Sections.Num();
+
+				for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+				{
+					FSkelMeshSection& Section = LodModel.Sections[SectionIndex];
+
+					if(Section.CorrespondClothSectionIndex != INDEX_NONE)
+					{
+						// See if this is the original section
+						if(Section.bDisabled)
+						{
+							UClothingAssetBase* AssetInUse = SelectedSkelMesh->GetSectionClothingAsset(LODLevel, SectionIndex);
+							ClothingAssetsInUse.Add(AssetInUse);
+							ClothingAssetSectionIndices.Add(SectionIndex);
+							ClothingAssetInternalLodIndices.Add(Section.ClothingData.AssetLodIndex);
+						}
+					}
+				}
 			}
-#endif// #if WITH_APEX_CLOTHING
+
+			// Remove our clothing assets while we import this LOD
+			for(UClothingAssetBase* ClothingAsset : ClothingAssetsInUse)
+			{
+				ClothingAsset->UnbindFromSkeletalMesh(SelectedSkelMesh, LODLevel);
+			}
 
 			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 			// don't import material and animation
@@ -245,7 +277,7 @@ namespace FbxMeshUtils
 			}
 			ImportOptions->bImportAnimations = false;
 
-			if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
+			if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ), true ) )
 			{
 				// Log the error message and fail the import.
 				FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FBXImport_ParseFailed", "FBX file parsing failed.")), FFbxErrors::Generic_FBXFileParseFailed);
@@ -405,13 +437,21 @@ namespace FbxMeshUtils
 			}
 			FFbxImporter->ReleaseScene();
 
-#if WITH_APEX_CLOTHING
-			if(LODLevel == 0)
+			// Re-apply our clothing assets
+			int32 NumClothingAssetsToApply = ClothingAssetsInUse.Num();
+			if(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODLevel))
 			{
-				ApexClothingUtils::ReapplyClothingDataToSkeletalMesh(SelectedSkelMesh, ClothingBackup);
+				FStaticLODModel& LodModel = ImportedResource->LODModels[LODLevel];
+				for(int32 AssetIndex = 0; AssetIndex < NumClothingAssetsToApply; ++AssetIndex)
+				{
+					// Only if the same section exists
+					if(LodModel.Sections.IsValidIndex(ClothingAssetSectionIndices[AssetIndex]))
+					{
+						UClothingAssetBase* AssetToApply = ClothingAssetsInUse[AssetIndex];
+						AssetToApply->BindToSkeletalMesh(SelectedSkelMesh, LODLevel, ClothingAssetSectionIndices[AssetIndex], ClothingAssetInternalLodIndices[AssetIndex]);
+					}
+				}
 			}
-			ApexClothingUtils::ReImportClothingSectionsFromClothingAsset(SelectedSkelMesh);
-#endif// #if WITH_APEX_CLOTHING
 		}
 
 		return bSuccess;

@@ -436,7 +436,7 @@ public:
 			.OnGenerateWidget_Lambda([this](TSharedPtr<int32> InItem)
 			{
 				return SNew(STextBlock)
-					.Text(Enum->GetDisplayNameText(*InItem));
+					.Text(Enum->GetDisplayNameTextByIndex(*InItem));
 			})
 			.OnSelectionChanged(this, &SEnumCombobox::OnComboSelectionChanged)
 			.OnComboBoxOpening(this, &SEnumCombobox::OnComboMenuOpening)
@@ -452,13 +452,13 @@ private:
 	FText GetCurrentValue() const
 	{
 		int32 CurrentNameIndex = Enum->GetIndexByValue(CurrentValue.Get());
-		return Enum->GetDisplayNameText(CurrentNameIndex);
+		return Enum->GetDisplayNameTextByIndex(CurrentNameIndex);
 	}
 
 	TSharedRef<SWidget> OnGenerateWidget(TSharedPtr<int32> InItem)
 	{
 		return SNew(STextBlock)
-			.Text(Enum->GetDisplayNameText(*InItem));
+			.Text(Enum->GetDisplayNameTextByIndex(*InItem));
 	}
 
 	void OnComboSelectionChanged(TSharedPtr<int32> InSelectedItem, ESelectInfo::Type SelectInfo)

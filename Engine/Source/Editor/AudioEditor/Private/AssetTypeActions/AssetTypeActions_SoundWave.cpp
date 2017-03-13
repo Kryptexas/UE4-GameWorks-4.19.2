@@ -191,7 +191,6 @@ void FAssetTypeActions_SoundWave::FillVoiceMenu(FMenuBuilder& MenuBuilder, TArra
 
 	TSharedRef<SWidget> VoicePicker = PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
 		FAssetData(),
-		false,
 		false, 
 		AllowedClasses,
 		PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses),
@@ -206,10 +205,15 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundWave::GetThumbnailOverlay(const FAsse
 {
 	auto OnGetDisplayBrushLambda = [this, AssetData]() -> const FSlateBrush*
 	{
-		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
-		if (IsSoundPlaying(Sound))
+		UObject* Asset = AssetData.GetAsset();
+		if (Asset)
 		{
-			return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
+			USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
+
+			if (IsSoundPlaying(Sound))
+			{
+				return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
+			}
 		}
 
 		return FEditorStyle::GetBrush("MediaAsset.AssetActions.Play.Large");
@@ -248,14 +252,18 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundWave::GetThumbnailOverlay(const FAsse
 
 	auto OnGetVisibilityLambda = [this, Box, AssetData]() -> EVisibility
 	{
-		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
-		if (Box.IsValid())
+		UObject* Asset = AssetData.GetAsset();
+		if (Asset)
 		{
-			if (Box->IsHovered() || IsSoundPlaying(Sound))
+			USoundBase* Sound = CastChecked<USoundBase>(Asset);
+			if (Box.IsValid())
 			{
-				return EVisibility::Visible;
-			}
+				if (Box->IsHovered() || IsSoundPlaying(Sound))
+				{
+					return EVisibility::Visible;
+				}
 
+			}
 		}
 
 		return EVisibility::Hidden;

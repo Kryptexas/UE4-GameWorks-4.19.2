@@ -529,7 +529,7 @@ FBoxSphereBounds UBrushComponent::CalcBounds(const FTransform& LocalToWorld) con
 	}
 }
 
-void UBrushComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
+void UBrushComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials ) const
 {
 #if WITH_EDITOR
 	// Get the material from each polygon making up the brush.

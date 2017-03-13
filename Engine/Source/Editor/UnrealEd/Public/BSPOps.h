@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __BSPOPS_H__
-#define __BSPOPS_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/Brush.h"
@@ -153,7 +151,3 @@ private:
 	typedef TMap<FBspPointsKey, FBspPointsGridItem> FGridMap;
 	FGridMap GridMap;
 };
-
-
-
-#endif // __BSPOPS_H__

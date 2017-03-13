@@ -74,7 +74,7 @@ TSet<FString> FEditorFileUtils::PackagesNotSavedDuringSaveAll;
 TSet<FString> FEditorFileUtils::PackagesNotToPromptAnyMore;
 
 static const FString InvalidFilenames[] = {
-	TEXT("CON"), TEXT("PRN"), TEXT("AUX"), TEXT("CLOCK$"), TEXT("NUL"),
+	TEXT("CON"), TEXT("PRN"), TEXT("AUX"), TEXT("CLOCK$"), TEXT("NUL"), TEXT("NONE"),
 	TEXT("COM1"), TEXT("COM2"), TEXT("COM3"), TEXT("COM4"), TEXT("COM5"), TEXT("COM6"), TEXT("COM7"), TEXT("COM8"), TEXT("COM9"),
 	TEXT("LPT1"), TEXT("LPT2"), TEXT("LPT3"), TEXT("LPT4"), TEXT("LPT5"), TEXT("LPT6"), TEXT("LPT7"), TEXT("LPT8"), TEXT("LPT9")
 };
@@ -326,7 +326,32 @@ FString FEditorFileUtils::GetFilterString(EFileInteraction Interaction)
 		break;
 
 	case FI_ImportScene:
-		Result = TEXT("FBX (*.fbx) OBJ (*.obj)|*.fbx;*.obj|FBX (*.fbx)|*.fbx|OBJ (*.obj)|*.obj");
+		{
+			TArray<UFactory*> Factories;
+			for (UClass* Class : TObjectRange<UClass>())
+			{
+				if (Class->IsChildOf<USceneImportFactory>())
+				{
+					Factories.Add(Class->GetDefaultObject<UFactory>());
+				}
+
+			}
+
+			if (Factories.Num() > 0)
+			{
+				FString FileTypes;
+				FString AllExtensions;
+				TMultiMap<uint32, UFactory*> FilterIndexToFactory;
+
+				ObjectTools::GenerateFactoryFileExtensions(Factories, FileTypes, AllExtensions, FilterIndexToFactory);
+
+				FileTypes = FString::Printf(TEXT("All Files (%s)|%s|%s"), *AllExtensions, *AllExtensions, *FileTypes);
+
+
+				Result = FileTypes;
+			}
+
+		}
 		break;
 
 	case FI_ExportScene:
@@ -1060,39 +1085,52 @@ void FEditorFileUtils::Import(const FString& InFilename)
 {
 	const FScopedBusyCursor BusyCursor;
 
-	FFormatNamedArguments Args;
-	//Import scene support only fbx for now
-	//Check the extension because the import map don't support fbx file import
-	if (FPaths::GetExtension(InFilename).Compare(TEXT("fbx"), ESearchCase::IgnoreCase) == 0)
+	USceneImportFactory *SceneFactory = nullptr;
+	for (UClass* Class : TObjectRange<UClass>() )
 	{
-		//Ask a root content path to the user
-		TSharedRef<SDlgPickPath> PickContentPathDlg =
-			SNew(SDlgPickPath)
-			.Title(LOCTEXT("FbxChooseImportRootContentPath", "Choose Location for importing the fbx scene content"));
-
-		FString Path = "";
-		if (PickContentPathDlg->ShowModal() == EAppReturnType::Cancel)
+		if (Class->IsChildOf<USceneImportFactory>())
 		{
-			return;
-		}
-		Path = PickContentPathDlg->GetPath().ToString();
-		UFactory *FbxSceneFactory = NULL;
-		//Search the UFbxSceneImportFactory instance
-		for (TObjectIterator<UClass> It; It; ++It)
-		{
-			if (It->IsChildOf(UFbxSceneImportFactory::StaticClass()))
+			USceneImportFactory* TestFactory = Class->GetDefaultObject<USceneImportFactory>();
+			if (TestFactory->FactoryCanImport(InFilename))
 			{
-				FbxSceneFactory = It->GetDefaultObject<UFactory>();
+				/// Pick the first one for now 
+				SceneFactory = TestFactory;
 				break;
 			}
 		}
+
+	}
+	
+	if (SceneFactory)
+	{
+		FString Path = "";
+
+		//Ask the user for the root path where they want to any content to be placed
+		if(SceneFactory->ImportsAssets())
+		{
+			TSharedRef<SDlgPickPath> PickContentPathDlg =
+				SNew(SDlgPickPath)
+				.Title(LOCTEXT("ChooseImportRootContentPath", "Choose Location for importing the scene content"));
+		
+			if (PickContentPathDlg->ShowModal() == EAppReturnType::Cancel)
+			{
+				return;
+			}
+
+			Path = PickContentPathDlg->GetPath().ToString();
+		}
+
+
 		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 		TArray<FString> Files;
 		Files.Add(InFilename);
-		AssetToolsModule.Get().ImportAssets(Files, Path, FbxSceneFactory);
+		AssetToolsModule.Get().ImportAssets(Files, Path, SceneFactory);
 	}
 	else
 	{
+
+		FFormatNamedArguments Args;
+
 		Args.Add(TEXT("MapFilename"), FText::FromString(FPaths::GetCleanFilename(InFilename)));
 		GWarn->BeginSlowTask(FText::Format(NSLOCTEXT("UnrealEd", "ImportingMap_F", "Importing map: {MapFilename}..."), Args), true);
 		GUnrealEd->Exec(GWorld, *FString::Printf(TEXT("MAP IMPORTADD FILE=\"%s\""), *InFilename));
@@ -3584,7 +3622,7 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 	FSourceControlStatePtr ProjectFileSourceControlState = SourceControlProvider.GetState(FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()), EStateCacheUsage::Use);
 
 	if (ProjectFileSourceControlState.IsValid() && ProjectFileSourceControlState->IsCurrent() &&
-		(ProjectFileSourceControlState->IsCheckedOut() || ProjectFileSourceControlState->IsAdded() || (!ProjectFileSourceControlState->IsSourceControlled() && ProjectFileSourceControlState->CanAdd())))
+		(ProjectFileSourceControlState->CanCheckIn() || (!ProjectFileSourceControlState->IsSourceControlled() && ProjectFileSourceControlState->CanAdd())))
 	{
 		OutPackages.Add(FPaths::GetProjectFilePath(), MoveTemp(ProjectFileSourceControlState));
 	}
@@ -3604,8 +3642,8 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(FPaths::ConvertRelativePathToFull(Filename), EStateCacheUsage::Use);
 
 		// Only include non-map packages that are currently checked out or packages not under source control
-		if (SourceControlState.IsValid() && SourceControlState->IsCurrent() && 
-			(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())) &&
+		if (SourceControlState.IsValid() && SourceControlState->IsCurrent() &&
+			(SourceControlState->CanCheckIn() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())) &&
 			(bIncludeMaps || !IsMapPackageAsset(*Filename)))
 		{
 			OutPackages.Add(MoveTemp(PackageName), MoveTemp(SourceControlState));
@@ -3650,8 +3688,8 @@ void FEditorFileUtils::FindAllSubmittableConfigFiles(TMap<FString, TSharedPtr<cl
 			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFilename, EStateCacheUsage::Use);
 
 			// Only include config files that are currently checked out or packages not under source control
-			if (SourceControlState.IsValid() &&
-				(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())))
+			if (SourceControlState.IsValid() && SourceControlState->IsCurrent() &&
+				(SourceControlState->CanCheckIn() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())))
 			{
 				OutConfigFiles.Add(ConfigFilename, SourceControlState);
 			}

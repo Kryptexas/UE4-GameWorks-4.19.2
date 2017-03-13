@@ -466,6 +466,34 @@ private:
 	TArray<TFunction<FExpressionDefinition>> Definitions;
 };
 
+
+/**
+ * Enum specifying the associativity (order of execution) for binary operators
+ */
+enum class EAssociativity
+{
+	RightToLeft,
+	LeftToRight
+};
+
+/**
+ * Struct for storing binary operator definition parameters
+ */
+struct FOpParameters
+{
+	/** The precedence of the operator */
+	int32			Precedence;
+
+	/** The associativity of the operator */
+	EAssociativity	Associativity;
+
+	FOpParameters(int32 InPrecedence, EAssociativity InAssociativity)
+		: Precedence(InPrecedence)
+		, Associativity(InAssociativity)
+	{
+	}
+};
+
 /** A lexical gammer defining how to parse an expression. Clients must define the tokens and operators to be interpreted by the parser. */
 class CORE_API FExpressionGrammar
 {
@@ -482,9 +510,31 @@ public:
 	template<typename TExpressionNode>
 	void DefinePostUnaryOperator() { PostUnaryOperators.Add(TGetExpressionNodeTypeId<TExpressionNode>::GetTypeId()); }
 
-	/** Define a binary operator for the specified symbol, with the specified precedence */
+	/**
+	 * Define a binary operator for the specified symbol, with the specified precedence and associativity
+	 * NOTE: Associativity defaults to RightToLeft for legacy reasons.
+	 *
+	 * @param InPrecedence		The precedence (priority of execution) this operator should have
+	 * @param InAssociativity	With operators of the same precedence, determines whether they execute left to right, or right to left
+	 */
 	template<typename TExpressionNode>
-	void DefineBinaryOperator(int32 InPrecedence) { BinaryOperators.Add(TGetExpressionNodeTypeId<TExpressionNode>::GetTypeId(), InPrecedence); }
+	void DefineBinaryOperator(int32 InPrecedence, EAssociativity InAssociativity=EAssociativity::RightToLeft)
+	{
+#if DO_CHECK
+		for (TMap<FGuid, FOpParameters>::TConstIterator It(BinaryOperators); It; ++It)
+		{
+			const FOpParameters& CurValue = It.Value();
+
+			if (CurValue.Precedence == InPrecedence)
+			{
+				// Operators of the same precedence, must all have the same associativity
+				check(CurValue.Associativity == InAssociativity);
+			}
+		}
+#endif
+
+		BinaryOperators.Add(TGetExpressionNodeTypeId<TExpressionNode>::GetTypeId(), FOpParameters(InPrecedence, InAssociativity));
+	}
 
 public:
 
@@ -497,15 +547,15 @@ public:
 	/** Check if this grammar defines a post-unary operator for the specified symbol */
 	bool HasPostUnaryOperator(const FGuid& TypeId) const;
 
-	/** Get the binary operator precedence for the specified symbol, if any */
-	const int* GetBinaryOperatorPrecedence(const FGuid& TypeId) const;
+	/** Get the binary operator precedence and associativity parameters, for the specified symbol, if any */
+	const FOpParameters* GetBinaryOperatorDefParameters(const FGuid& TypeId) const;
 
 private:
 
-	TMap<FGuid, FGuid>	Groupings;
-	TSet<FGuid>			PreUnaryOperators;
-	TSet<FGuid>			PostUnaryOperators;
-	TMap<FGuid, int32>	BinaryOperators;
+	TMap<FGuid, FGuid>			Groupings;
+	TSet<FGuid>					PreUnaryOperators;
+	TSet<FGuid>					PostUnaryOperators;
+	TMap<FGuid, FOpParameters>	BinaryOperators;
 };
 
 #include "Misc/ExpressionParserTypes.inl"

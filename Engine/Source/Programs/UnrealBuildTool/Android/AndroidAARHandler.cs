@@ -13,7 +13,7 @@ using Ionic.Zip;
 
 namespace UnrealBuildTool
 {
-	public class AndroidAARHandler
+	class AndroidAARHandler
 	{
 		private List<string> Repositories = null;
 		private List<string> AARList = null;
@@ -320,7 +320,8 @@ namespace UnrealBuildTool
 				string TargetPath = Path.Combine(DestinationPath, BaseName);
 
 				// Only extract if haven't before to prevent changing timestamps
-				if (!Directory.Exists(TargetPath))
+				string TargetManifestFileName = Path.Combine(TargetPath, "AndroidManifest.xml");
+				if (!File.Exists(TargetManifestFileName))
 				{
 					Log.TraceInformation("Extracting AAR {0}", BaseName);
 					IEnumerable<string> FileNames = UnzipFiles(Name + ".aar", TargetPath);
@@ -386,7 +387,19 @@ namespace UnrealBuildTool
 				List<string> OutputFileNames = new List<string>();
 				foreach (Ionic.Zip.ZipEntry Entry in Zip.Entries)
 				{
+					// support-v4 and support-v13 has the jar file named with "internal_impl-XX.X.X.jar"
+					// this causes error "Found 2 versions of internal_impl-XX.X.X.jar"
+					// following codes adds "support-v4-..." to the output jar file name to avoid the collision
 					string OutputFileName = Path.Combine(BaseDirectory, Entry.FileName);
+					if (Entry.FileName.Contains("internal_impl"))
+					{
+						string _ZipName = Path.GetFileNameWithoutExtension(ZipFileName);
+						string NewOutputFileName = Path.Combine(Path.GetDirectoryName(OutputFileName),
+							_ZipName + '-' + Path.GetFileNameWithoutExtension(OutputFileName) + '.' + Path.GetExtension(OutputFileName));
+						Log.TraceInformation("Changed FileName {0} => {1}", Entry.FileName, NewOutputFileName);
+						OutputFileName = NewOutputFileName;
+					}
+
 					Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
 					if (!Entry.IsDirectory)
 					{

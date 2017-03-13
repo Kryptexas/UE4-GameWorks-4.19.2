@@ -37,6 +37,7 @@ struct FOpenGLVertexDeclarationKey
 			GLElement.Offset = Element.Offset;
 			GLElement.Divisor = Element.bUseInstanceIndex ? 1 : 0;
 			GLElement.AttributeIndex = Element.AttributeIndex;
+			GLElement.Padding = 0;
 			switch(Element.Type)
 			{
 				case VET_Float1:		SetupGLElement(GLElement, GL_FLOAT,			1,			false,	true); break;
@@ -100,7 +101,7 @@ struct FOpenGLVertexDeclarationKey
 			}
 		};
 		// Sort the FOpenGLVertexElements by stream then offset.
-		Sort( VertexElements.GetData(),InElements.Num(), FCompareFOpenGLVertexElement() );
+		Sort( VertexElements.GetData(), VertexElements.Num(), FCompareFOpenGLVertexElement() );
 
 		Hash = FCrc::MemCrc_DEPRECATED(VertexElements.GetData(),VertexElements.Num()*sizeof(FOpenGLVertexElement));
 	}

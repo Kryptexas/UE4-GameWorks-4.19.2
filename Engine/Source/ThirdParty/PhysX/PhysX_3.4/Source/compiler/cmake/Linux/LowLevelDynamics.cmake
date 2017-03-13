@@ -2,9 +2,6 @@
 # Build LowLevelDynamics
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/LowLevelDynamics/src)
@@ -45,12 +42,14 @@ else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	MESSAGE(FATAL_ERROR "Unknown configuration ${CMAKE_BUILD_TYPE}")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
+IF(DEFINED PX_STATIC_LIBRARIES)
+	SET(LOWLEVELDYNAMICS_LIBTYPE OBJECT)
+ELSE()
+	SET(LOWLEVELDYNAMICS_LIBTYPE STATIC)
+ENDIF()
 
 # include common low level dynamics settings
 INCLUDE(../common/LowLevelDynamics.cmake)
-
-# Add linked libraries
-TARGET_LINK_LIBRARIES(LowLevelDynamics PUBLIC ${NVTOOLSEXT_LIBRARIES})
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(LowLevelDynamics PROPERTIES POSITION_INDEPENDENT_CODE TRUE)

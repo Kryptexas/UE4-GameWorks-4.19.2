@@ -154,6 +154,7 @@ struct FObjectResource
 #if WITH_EDITOR
 	/**
 	 * Name of the class this object was serialized with (in case active class redirects have changed it)
+	 * If this is a class and was directly redirected, this is what it was redirected from
 	 */
 	FName			OldClassName;
 #endif
@@ -214,14 +215,14 @@ struct FObjectExport : public FObjectResource
 	 * The number of bytes to serialize when saving/loading this export's UObject.
 	 * Serialized
 	 */
-	int32         	SerialSize;
+	int64         	SerialSize;
 
 	/**
 	 * The location (into the FLinker's underlying file reader archive) of the beginning of the
 	 * data for this export's UObject.  Used for verification only.
 	 * Serialized
 	 */
-	int32         	SerialOffset;
+	int64         	SerialOffset;
 
 	/**
 	 * The location (into the FLinker's underlying file reader archive) of the beginning of the
@@ -250,44 +251,44 @@ struct FObjectExport : public FObjectResource
 	int32				HashNext;
 
 	/**
-	 * whether the export was forced into the export table via OBJECTMARK_ForceTagExp.
+	 * Whether the export was forced into the export table via OBJECTMARK_ForceTagExp.
 	 * Serialized
 	 */
 	bool			bForcedExport;   
 
 	/**
-	 * whether the export should be loaded on clients
+	 * Whether the export should be loaded on clients
 	 * Serialized
 	 */
 	bool			bNotForClient;   
 
 	/**
-	* whether the export should be loaded on servers
+	 * Whether the export should be loaded on servers
 	 * Serialized
 	 */
 	bool			bNotForServer;
 
 	/**
-	* whether the export should be always loaded in editor game
-	* False means that the object is necessary for editor game,
-	* True doesn't means, that the object won't be loaded.
-	* Serialized
-	*/
-	bool			bNotForEditorGame;
+	 * Whether the export should be always loaded in editor game
+	 * False means that the object is 
+	 * True doesn't means, that the object won't be loaded.
+	 * Serialized
+	 */
+	bool			bNotAlwaysLoadedForEditorGame;
 
 	/**
-	* True if this export is an asset object.
-	*/
+	 * True if this export is an asset object.
+	 */
 	bool			bIsAsset;
 
 	/**
-	* Force this export to not load, it failed because the outer didn't exist.
-	*/
+	 * Force this export to not load, it failed because the outer didn't exist.
+	 */
 	bool			bExportLoadFailed;
 
 	/**
-	* Export is a dynamic type.
-	*/
+	 * Export is a dynamic type.
+	 */
 	enum class EDynamicType : uint8
 	{
 		NotDynamicExport,
@@ -298,8 +299,8 @@ struct FObjectExport : public FObjectResource
 	EDynamicType	DynamicType;
 
 	/**
-	* Export was filtered out on load
-	*/
+	 * Export was filtered out on load
+	 */
 	bool			bWasFiltered;
 
 	/** If this object is a top level package (which must have been forced into the export table via OBJECTMARK_ForceTagExp)
@@ -315,9 +316,9 @@ struct FObjectExport : public FObjectResource
 	uint32			PackageFlags;
 
 	/**
-	* The export table must serialize as a fixed size, this is use to index into a long list, which is later loaded into the array. -1 means dependencies are not present
-	* These are contiguous blocks, so CreateBeforeSerializationDependencies starts at FirstExportDependency + SerializationBeforeSerializationDependencies
-	*/
+	 * The export table must serialize as a fixed size, this is use to index into a long list, which is later loaded into the array. -1 means dependencies are not present
+	 * These are contiguous blocks, so CreateBeforeSerializationDependencies starts at FirstExportDependency + SerializationBeforeSerializationDependencies
+	 */
 	int32 FirstExportDependency;
 	int32 SerializationBeforeSerializationDependencies;
 	int32 CreateBeforeSerializationDependencies;

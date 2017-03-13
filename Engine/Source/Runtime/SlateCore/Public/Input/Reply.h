@@ -78,10 +78,22 @@ public:
 	}
 
 	/** An event should return FReply::Handled().SetNavigation( NavigationType ) as a means of asking the system to attempt a navigation*/
-	FReply& SetNavigation(EUINavigation InNavigationType, ENavigationSource InNavigationSource = ENavigationSource::FocusedWidget)
+	FReply& SetNavigation(EUINavigation InNavigationType, const ENavigationGenesis InNavigationGenesis, const ENavigationSource InNavigationSource = ENavigationSource::FocusedWidget)
 	{
 		this->NavigationType = InNavigationType;
+		this->NavigationGenesis = InNavigationGenesis;
 		this->NavigationSource = InNavigationSource;
+		this->NavigationDestination = nullptr;
+		return Me();
+	}
+
+	/** An event should return FReply::Handled().SetNavigation( NavigationDestination ) as a means of asking the system to attempt a navigation to the specified destination*/
+	FReply& SetNavigation(TSharedRef<SWidget> InNavigationDestination, const ENavigationGenesis InNavigationGenesis, const ENavigationSource InNavigationSource = ENavigationSource::FocusedWidget)
+	{
+		this->NavigationType = EUINavigation::Invalid;
+		this->NavigationGenesis = InNavigationGenesis;
+		this->NavigationSource = InNavigationSource;
+		this->NavigationDestination = InNavigationDestination;
 		return Me();
 	}
 
@@ -206,8 +218,14 @@ public:
 	/** Get the navigation type (Invalid if no navigation is requested). */
 	EUINavigation GetNavigationType() const { return NavigationType; }
 
-	/** Get the widget that is the source of the navigation (nullptr will result in the source being the currently focused widget). */
+	/** Get the genesis of the navigation. */
+	ENavigationGenesis GetNavigationGenesis() const { return NavigationGenesis; }
+
+	/** Get the source of the navigation. */
 	ENavigationSource GetNavigationSource() const { return NavigationSource; }
+
+	/** Get the widget that is the navigation destination. */
+	const TSharedPtr<SWidget>& GetNavigationDestination() const { return NavigationDestination; }
 
 	/** @return the Content that we should use for the Drag and Drop operation; Invalid SharedPtr if a drag and drop operation is not requested*/
 	const TSharedPtr<FDragDropOperation>& GetDragDropContent() const { return DragDropContent; }
@@ -254,9 +272,12 @@ private:
 		, MouseCaptor(nullptr)
 		, FocusRecipient(nullptr)
 		, MouseLockWidget(nullptr)
+		, DetectDragForWidget(nullptr)
+		, NavigationDestination(nullptr)
 		, DragDropContent(nullptr)
 		, FocusChangeReason(EFocusCause::SetDirectly)
 		, NavigationType(EUINavigation::Invalid)
+		, NavigationGenesis(ENavigationGenesis::User)
 		, NavigationSource(ENavigationSource::FocusedWidget)
 		, bReleaseMouseCapture(false)
 		, bSetUserFocus(false)
@@ -280,10 +301,12 @@ private:
 	TSharedPtr<SWidget> FocusRecipient;
 	TSharedPtr<SWidget> MouseLockWidget;
 	TSharedPtr<SWidget> DetectDragForWidget;
+	TSharedPtr<SWidget> NavigationDestination;
 	FKey DetectDragForMouseButton;
 	TSharedPtr<FDragDropOperation> DragDropContent;
 	EFocusCause FocusChangeReason;
 	EUINavigation NavigationType;
+	ENavigationGenesis NavigationGenesis;
 	ENavigationSource NavigationSource;
 	uint32 bReleaseMouseCapture:1;
 	uint32 bSetUserFocus:1;

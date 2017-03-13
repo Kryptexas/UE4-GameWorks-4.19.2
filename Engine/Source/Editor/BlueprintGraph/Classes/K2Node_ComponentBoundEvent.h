@@ -47,6 +47,7 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	virtual UClass* GetDynamicBindingClass() const override;
 	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const override;
+	virtual void HandleVariableRenamed(UBlueprint* InBlueprint, UClass* InVariableClass, UEdGraph* InGraph, const FName& InOldVarName, const FName& InNewVarName) override;
 	//~ End K2Node Interface
 
 	virtual bool IsUsedByAuthorityOnlyDelegate() const override;
@@ -57,6 +58,10 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 	BLUEPRINTGRAPH_API void InitializeComponentBoundEventParams(UObjectProperty const* InComponentProperty, const UMulticastDelegateProperty* InDelegateProperty);
 
 private:
+	/** Cached display name for the delegate property */
+	UPROPERTY()
+	FText DelegatePropertyDisplayName;
+
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;
 };

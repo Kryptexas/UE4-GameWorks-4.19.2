@@ -168,6 +168,11 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->Constant3(0.f,0.f,1.f);
 	}
 
+	virtual int32 VertexInterpolator(uint32 InterpolatorIndex) override
+	{
+		return Compiler->Constant4(0.f,0.f,0.f,0.f);
+	}
+
 	virtual int32 RealTime(bool bPeriodic, float Period) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered RealTime... Forcing constant 0.0f."));

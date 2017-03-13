@@ -321,6 +321,15 @@ public:
 	 */ 
 	void DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelete );
 
+	/** 
+	 * Swaps the children at FirstIndex and SecondIndex
+	 */ 
+	void SwapChildren( int32 FirstIndex, int32 SecondIndex );
+
+	/** 
+	 * Swaps the children provided children (containers only)
+	 */ 
+	void SwapChildren( TSharedPtr<FPropertyNode> FirstChildNode, TSharedPtr<FPropertyNode> SecondChildNode );
 
 	/**
 	 * @return true if the property node is valid
@@ -629,6 +638,7 @@ public:
 	virtual FPropertyAccess::Result Insert( int32 Index ) override;
 	virtual FPropertyAccess::Result DuplicateItem( int32 Index ) override;
 	virtual FPropertyAccess::Result DeleteItem( int32 Index ) override;
+	virtual FPropertyAccess::Result SwapItems(int32 FirstIndex, int32 SecondIndex) override;
 	virtual FPropertyAccess::Result GetNumElements( uint32& OutNumItems ) const override;
 	virtual void SetOnNumElementsChanged( FSimpleDelegate& InOnNumElementsChanged ) override;
 	virtual TSharedPtr<IPropertyHandleArray> AsArray() override;
@@ -666,7 +676,7 @@ public:
 	virtual FPropertyAccess::Result GetNumElements(uint32& OutNumElements) override;
 	virtual void SetOnNumElementsChanged(FSimpleDelegate& InOnNumElementsChanged) override;
 	virtual bool HasDocumentation() override { return true; }
-	virtual FString GetDocumentationLink() override { return FString("Engine/UI/LevelEditor/Details/Properties/Set/"); }	// @todo: needs a better documentation page
+	virtual FString GetDocumentationLink() override { return FString("Engine/UI/LevelEditor/Details/Properties/Set/"); }
 	virtual FString GetDocumentationExcerptName() override { return FString("Sets"); }
 private:
 	/**

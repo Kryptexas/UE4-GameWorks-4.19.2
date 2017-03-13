@@ -1,9 +1,9 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class DX11Input : ModuleRules
 {
-	public DX11Input(TargetInfo Target)
+	public DX11Input(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

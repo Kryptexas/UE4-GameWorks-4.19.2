@@ -367,7 +367,7 @@ struct FBoneIndices
 	{}
 };
 
-void UPoseAsset::GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
+void UPoseAsset::GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve) const
 {
 	if (bAdditivePose && PoseContainer.Poses.IsValidIndex(BasePoseIndex))
 	{
@@ -595,8 +595,8 @@ void UPoseAsset::PostLoad()
 			// fix up curve flags to skeleton
 			for (auto& Curve : PoseContainer.Curves)
 			{
-				bool bMorphtargetSet = Curve.GetCurveTypeFlag(ACF_DriveMorphTarget_DEPRECATED);
-				bool bMaterialSet = Curve.GetCurveTypeFlag(ACF_DriveMaterial_DEPRECATED);
+				bool bMorphtargetSet = Curve.GetCurveTypeFlag(AACF_DriveMorphTarget_DEPRECATED);
+				bool bMaterialSet = Curve.GetCurveTypeFlag(AACF_DriveMaterial_DEPRECATED);
 
 				// only add this if that has to 
 				if (bMorphtargetSet || bMaterialSet)
@@ -645,6 +645,12 @@ int32 UPoseAsset::GetNumCurves() const
 {
 	return PoseContainer.Curves.Num();
 }
+
+int32 UPoseAsset::GetNumTracks() const
+{
+	return PoseContainer.Tracks.Num();
+}
+
 
 const TArray<FSmartName> UPoseAsset::GetPoseNames() const
 {
@@ -1138,6 +1144,47 @@ bool UPoseAsset::ConvertToAdditivePose(int32 NewBasePoseIndex)
 	return false;
 }
 
+bool UPoseAsset::GetFullPose(int32 PoseIndex, TArray<FTransform>& OutTransforms) const
+{
+	if (!PoseContainer.Poses.IsValidIndex(PoseIndex))
+	{
+		return false;
+	}
+
+	bool bSuccess = false;
+
+	if (bAdditivePose)
+	{
+		// if this pose is not base pose
+		if (PoseIndex != BasePoseIndex)
+		{
+			TArray<FTransform> BasePose;
+			TArray<float> BaseCurves;
+			GetBasePoseTransform(BasePose, BaseCurves);
+
+			const FPoseData& PoseData = PoseContainer.Poses[PoseIndex];
+			OutTransforms.AddUninitialized(PoseData.LocalSpacePose.Num());
+
+			const ScalarRegister AdditiveWeight(1.f);
+
+			for (int32 BoneIdx = 0; BoneIdx < OutTransforms.Num(); ++BoneIdx)
+			{
+				OutTransforms[BoneIdx] = BasePose[BoneIdx];
+				OutTransforms[BoneIdx].AccumulateWithAdditiveScale(PoseData.LocalSpacePose[BoneIdx], AdditiveWeight);
+			}
+
+			bSuccess = true;
+		}
+	}
+	else
+	{
+		OutTransforms = PoseContainer.Poses[PoseIndex].LocalSpacePose;
+		bSuccess = true;
+	}
+
+	return bSuccess;
+}
+
 bool UPoseAsset::ConvertSpace(bool bNewAdditivePose, int32 NewBasePoseInde)
 {
 	// first convert to full pose first
@@ -1201,6 +1248,7 @@ void UPoseAsset::RecacheTrackmap()
 		{
 			const FName& TrackName = PoseContainer.Tracks[TrackIndex];
 			const int32 SkeletonTrackIndex = RefSkeleton.FindBoneIndex(TrackName);
+			ensureAlways(SkeletonTrackIndex != INDEX_NONE);
 			PoseContainer.TrackMap.Add(TrackName, SkeletonTrackIndex);
 		}
 	}

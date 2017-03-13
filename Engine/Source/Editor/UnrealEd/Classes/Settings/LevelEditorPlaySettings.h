@@ -180,7 +180,11 @@ public:
 
 	/** Whether to play sounds during PIE */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor, meta=(ToolTip="Whether to play sounds when in a Play In Editor session"))
-	bool EnableSound;
+	bool EnableGameSound;
+
+	/** Whether to play a sound when entering and exiting PIE */
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = PlayInEditor, meta = (DisplayName = "Enable PIE Enter and Exit Sounds"))
+	bool EnablePIEEnterAndExitSounds;
 
 	/** Which quality level to use when playing in editor */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor)
@@ -305,7 +309,7 @@ private:
 	*
 	* Enabling this will allow rendering accurate audio from every player's perspective but will use more CPU. Keep this disabled on lower-perf machines.
 	*/
-	UPROPERTY(config, EditAnywhere, Category = MultiplayerOptions, meta=(EditCondition = "EnableSound"))
+	UPROPERTY(config, EditAnywhere, Category = MultiplayerOptions, meta=(EditCondition = "EnableGameSound"))
 	bool CreateAudioDeviceForEveryPlayer;
 
 	/** Height to use when spawning additional windows. */

@@ -30,7 +30,10 @@
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "CinematicViewport/CinematicViewportLayoutEntity.h"
-
+#include "ISequencerModule.h"
+#include "Misc/LevelSequenceEditorActorBinding.h"
+#include "ILevelSequenceModule.h"
+#include "Misc/LevelSequenceEditorActorSpawner.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
@@ -52,6 +55,8 @@ public:
 	{
 		FLevelSequenceEditorStyle::Get();
 
+		RegisterEditorObjectBindings();
+		RegisterEditorActorSpawner();
 		RegisterAssetTools();
 		RegisterMenuExtensions();
 		RegisterLevelEditorExtensions();
@@ -61,6 +66,8 @@ public:
 	
 	virtual void ShutdownModule() override
 	{
+		UnregisterEditorObjectBindings();
+		UnregisterEditorActorSpawner();
 		UnregisterAssetTools();
 		UnregisterMenuExtensions();
 		UnregisterLevelEditorExtensions();
@@ -69,6 +76,20 @@ public:
 	}
 
 protected:
+
+	/** Register sequencer editor object bindings */
+	void RegisterEditorObjectBindings()
+	{
+		ISequencerModule& SequencerModule = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer");
+		ActorBindingDelegateHandle = SequencerModule.RegisterEditorObjectBinding(FOnCreateEditorObjectBinding::CreateStatic(&FLevelSequenceEditorModule::OnCreateActorBinding));
+	}
+
+	/** Register level sequence object spawner */
+	void RegisterEditorActorSpawner()
+	{
+		ILevelSequenceModule& LevelSequenceModule = FModuleManager::LoadModuleChecked<ILevelSequenceModule>("LevelSequence");
+		EditorActorSpawnerDelegateHandle = LevelSequenceModule.RegisterObjectSpawner(FOnCreateMovieSceneObjectSpawner::CreateStatic(&FLevelSequenceEditorActorSpawner::CreateObjectSpawner));
+	}
 
 	/** Registers asset tool actions. */
 	void RegisterAssetTools()
@@ -157,6 +178,26 @@ protected:
 	}
 
 protected:
+
+	/** Unregisters sequencer editor object bindings */
+	void UnregisterEditorActorSpawner()
+	{
+		ILevelSequenceModule* LevelSequenceModule = FModuleManager::GetModulePtr<ILevelSequenceModule>("LevelSequence");
+		if (LevelSequenceModule)
+		{
+			LevelSequenceModule->UnregisterObjectSpawner(EditorActorSpawnerDelegateHandle);
+		}
+	}
+
+	/** Unregisters sequencer editor object bindings */
+	void UnregisterEditorObjectBindings()
+	{
+		ISequencerModule* SequencerModule = FModuleManager::GetModulePtr<ISequencerModule>("Sequencer");
+		if (SequencerModule)
+		{
+			SequencerModule->UnRegisterEditorObjectBinding(ActorBindingDelegateHandle);
+		}
+	}
 
 	/** Unregisters asset tool actions. */
 	void UnregisterAssetTools()
@@ -281,6 +322,11 @@ protected:
 		return OnMasterSequenceCreatedEvent;
 	}
 
+	static TSharedRef<ISequencerEditorObjectBinding> OnCreateActorBinding(TSharedRef<ISequencer> InSequencer)
+	{
+		return MakeShareable(new FLevelSequenceEditorActorBinding(InSequencer));
+	}
+
 private:
 
 	/** The collection of registered asset type actions. */
@@ -292,6 +338,10 @@ private:
 	TSharedPtr<FUICommandList> CommandList;
 
 	FOnMasterSequenceCreated OnMasterSequenceCreatedEvent;
+
+	FDelegateHandle ActorBindingDelegateHandle;
+
+	FDelegateHandle EditorActorSpawnerDelegateHandle;
 };
 
 

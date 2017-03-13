@@ -22,6 +22,7 @@ struct FK2Node_SpawnActorFromClassHelper
 	static FString WorldContextPinName;
 	static FString ClassPinName;
 	static FString SpawnTransformPinName;
+	static FString SpawnEvenIfCollidingPinName;
 	static FString NoCollisionFailPinName;
 	static FString CollisionHandlingOverridePinName;
 	static FString OwnerPinName;
@@ -30,7 +31,8 @@ struct FK2Node_SpawnActorFromClassHelper
 FString FK2Node_SpawnActorFromClassHelper::WorldContextPinName(TEXT("WorldContextObject"));
 FString FK2Node_SpawnActorFromClassHelper::ClassPinName(TEXT("Class"));
 FString FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName(TEXT("SpawnTransform"));
-FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("SpawnEvenIfColliding"));		// deprecated pin, name kept for backwards compat
+FString FK2Node_SpawnActorFromClassHelper::SpawnEvenIfCollidingPinName(TEXT("SpawnEvenIfColliding"));		// deprecated pin, name kept for backwards compat
+FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("bNoCollisionFail"));		// deprecated pin, name kept for backwards compat
 FString FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName(TEXT("CollisionHandlingOverride"));
 FString FK2Node_SpawnActorFromClassHelper::OwnerPinName(TEXT("Owner"));
 
@@ -66,7 +68,7 @@ void UK2Node_SpawnActorFromClass::AllocateDefaultPins()
 	// Collision handling method pin
 	UEnum* const MethodEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ESpawnActorCollisionHandlingMethod"), true);
 	UEdGraphPin* const CollisionHandlingOverridePin = CreatePin(EGPD_Input, K2Schema->PC_Byte, TEXT(""), MethodEnum, false, false, FK2Node_SpawnActorFromClassHelper::CollisionHandlingOverridePinName);
-	CollisionHandlingOverridePin->DefaultValue = MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::Undefined));
+	CollisionHandlingOverridePin->DefaultValue = MethodEnum->GetNameStringByValue(static_cast<int>(ESpawnActorCollisionHandlingMethod::Undefined));
 
 	UEdGraphPin* OwnerPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), AActor::StaticClass(),/*bIsArray =*/false, /*bIsReference =*/false, FK2Node_SpawnActorFromClassHelper::OwnerPinName);
 	OwnerPin->bAdvancedView = true;
@@ -153,7 +155,7 @@ void UK2Node_SpawnActorFromClass::MaybeUpdateCollisionPin(TArray<UEdGraphPin*>& 
 	// see if there's a bNoCollisionFail pin
 	for (UEdGraphPin* Pin : OldPins)
 	{
-		if (Pin->PinName == FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName)
+		if (Pin->PinName == FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName || Pin->PinName == FK2Node_SpawnActorFromClassHelper::SpawnEvenIfCollidingPinName)
 		{
 			bool bHadOldCollisionPin = true;
 			if (Pin->LinkedTo.Num() == 0)
@@ -167,8 +169,8 @@ void UK2Node_SpawnActorFromClass::MaybeUpdateCollisionPin(TArray<UEdGraphPin*>& 
 					UEnum const* const MethodEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ESpawnActorCollisionHandlingMethod"), true);
 					CollisionHandlingOverridePin->DefaultValue =
 						bOldCollisionPinValue
-						? MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
-						: MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding));
+						? MethodEnum->GetNameStringByValue(static_cast<int>(ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
+						: MethodEnum->GetNameStringByValue(static_cast<int>(ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding));
 				}
 			}
 			else
@@ -244,8 +246,8 @@ void UK2Node_SpawnActorFromClass::MaybeUpdateCollisionPin(TArray<UEdGraphPin*>& 
 				// now set data and links that we want to set
 				//
 
-				AlwaysSpawnLiteralNodeInputPin->DefaultValue = MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::AlwaysSpawn));
-				AdjustIfNecessaryLiteralInputPin->DefaultValue = MethodEnum->GetEnumName(static_cast<int>(ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding));
+				AlwaysSpawnLiteralNodeInputPin->DefaultValue = MethodEnum->GetNameStringByValue(static_cast<int>(ESpawnActorCollisionHandlingMethod::AlwaysSpawn));
+				AdjustIfNecessaryLiteralInputPin->DefaultValue = MethodEnum->GetNameStringByValue(static_cast<int>(ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding));
 
 				OldBoolPin->BreakLinkTo(Pin);
 				OldBoolPin->MakeLinkTo(SelectIndexPin);

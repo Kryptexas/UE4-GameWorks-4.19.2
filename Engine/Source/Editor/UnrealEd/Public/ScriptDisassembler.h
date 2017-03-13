@@ -4,8 +4,7 @@
 	ScriptDisassembler.h: Disassembler for Kismet bytecode.
 =============================================================================*/
 
-#ifndef __SCRIPTDISASSEMBLER_H__
-#define __SCRIPTDISASSEMBLER_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Script.h"
@@ -85,5 +84,3 @@ private:
 		return (T*)ReadQWORD(ScriptIndex);
 	}
 };
-
-#endif

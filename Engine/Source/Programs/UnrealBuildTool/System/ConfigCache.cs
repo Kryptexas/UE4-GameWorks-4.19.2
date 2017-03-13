@@ -124,19 +124,19 @@ namespace UnrealBuildTool
 		/// Attempts to read a config file (or retrieve it from the cache)
 		/// </summary>
 		/// <param name="Location">Location of the file to read</param>
-		/// <param name="File">On success, receives the parsed config file</param>
+		/// <param name="ConfigFile">On success, receives the parsed config file</param>
 		/// <returns>True if the file exists and was read, false otherwise</returns>
-		internal static bool TryReadFile(FileReference Location, out ConfigFile File)
+		internal static bool TryReadFile(FileReference Location, out ConfigFile ConfigFile)
 		{
-			if(!LocationToConfigFile.TryGetValue(Location, out File))
+			if(!LocationToConfigFile.TryGetValue(Location, out ConfigFile))
 			{
-				if(Location.Exists())
+				if(FileReference.Exists(Location))
 				{
-					File = new ConfigFile(Location);
+					ConfigFile = new ConfigFile(Location);
 				}
-				LocationToConfigFile.Add(Location, File);
+				LocationToConfigFile.Add(Location, ConfigFile);
 			}
-			return File != null;
+			return ConfigFile != null;
 		}
 
 		/// <summary>
@@ -337,6 +337,19 @@ namespace UnrealBuildTool
 					return true;
 				}
 				else
+				{
+					Value = null;
+					return false;
+				}
+			}
+			else if(FieldType.IsEnum)
+			{
+				try
+				{
+					Value = Enum.Parse(FieldType, Text);
+					return true;
+				}
+				catch
 				{
 					Value = null;
 					return false;

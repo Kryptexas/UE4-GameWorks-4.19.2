@@ -39,7 +39,7 @@ FText UK2Node_ComponentBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) 
 	if (CachedNodeTitle.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
+		Args.Add(TEXT("DelegatePropertyName"), DelegatePropertyDisplayName.IsEmpty() ? FText::FromName(DelegatePropertyName) : DelegatePropertyDisplayName);
 		Args.Add(TEXT("ComponentPropertyName"), FText::FromName(ComponentPropertyName));
 
 		// FText::Format() is slow, so we cache this to save on performance
@@ -54,6 +54,7 @@ void UK2Node_ComponentBoundEvent::InitializeComponentBoundEventParams(UObjectPro
 	{
 		ComponentPropertyName = InComponentProperty->GetFName();
 		DelegatePropertyName = InDelegateProperty->GetFName();
+		DelegatePropertyDisplayName = InDelegateProperty->GetDisplayNameText();
 		DelegateOwnerClass = CastChecked<UClass>(InDelegateProperty->GetOuter())->GetAuthoritativeClass();
 
 		EventReference.SetFromField<UFunction>(InDelegateProperty->SignatureFunction, /*bIsConsideredSelfContext =*/false);
@@ -81,6 +82,15 @@ void UK2Node_ComponentBoundEvent::RegisterDynamicBinding(UDynamicBlueprintBindin
 
 	CachedNodeTitle.MarkDirty();
 	ComponentBindingObject->ComponentDelegateBindings.Add(Binding);
+}
+
+void UK2Node_ComponentBoundEvent::HandleVariableRenamed(UBlueprint* InBlueprint, UClass* InVariableClass, UEdGraph* InGraph, const FName& InOldVarName, const FName& InNewVarName)
+{
+	if (InOldVarName == ComponentPropertyName && InVariableClass->IsChildOf(InBlueprint->GeneratedClass))
+	{
+		Modify();
+		ComponentPropertyName = InNewVarName;
+	}
 }
 
 bool UK2Node_ComponentBoundEvent::IsUsedByAuthorityOnlyDelegate() const

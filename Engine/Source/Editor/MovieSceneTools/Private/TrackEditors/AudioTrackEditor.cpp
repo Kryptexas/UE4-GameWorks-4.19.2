@@ -841,6 +841,11 @@ const FSlateBrush* FAudioTrackEditor::GetIconBrush() const
 	return FEditorStyle::GetBrush("Sequencer.Tracks.Audio");
 }
 
+EMultipleRowMode FAudioTrackEditor::GetMultipleRowMode() const
+{
+	return EMultipleRowMode::MultipleTrack;
+}
+
 TSharedRef<ISequencerSection> FAudioTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );

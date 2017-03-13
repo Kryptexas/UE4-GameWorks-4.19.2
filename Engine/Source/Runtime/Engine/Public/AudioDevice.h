@@ -423,6 +423,7 @@ private:
 	bool HandleAudioSoloSoundWave(const TCHAR* Cmd, FOutputDevice& Ar);
 	bool HandleAudioSoloSoundCue(const TCHAR* Cmd, FOutputDevice& Ar);
 	bool HandleAudioMixerDebugSound(const TCHAR* Cmd, FOutputDevice& Ar);
+	bool HandleSoundClassFixup(const TCHAR* Cmd, FOutputDevice& Ar);
 
 	/**
 	* Lists a summary of loaded sound collated by class
@@ -842,7 +843,11 @@ public:
 		return true;
 	}
 
-	const TArray<FActiveSound*>& GetActiveSounds() const { return ActiveSounds; }
+	const TArray<FActiveSound*>& GetActiveSounds() const 
+	{ 
+		check(IsInAudioThread()); 
+		return ActiveSounds; 
+	}
 
 	/* When the set of Audio volumes have changed invalidate the cached values of active sounds */
 	void InvalidateCachedInteriorVolumes() const;
@@ -931,10 +936,10 @@ public:
 	virtual int32 GetNumActiveSources() const { return 0; }
 
 	/** Returns the sample rate used by the audio device. */
-	float GetSampleRate() const { return SampleRate; }
+	float GetSampleRate() const { return AUDIO_SAMPLE_RATE; }
 
 	/** Returns the buffer length of the audio device. */
-	int32 GetBufferLength() const { return BufferLength; }
+	int32 GetBufferLength() const { return DeviceOutputBufferLength; }
 
 	/** Whether or not the spatialization plugin is enabled. */
 	bool IsSpatializationPluginEnabled() const
@@ -1128,11 +1133,6 @@ public:
 	{
 	}
 
-	/** Checks hardware device state changes */
-	virtual void CheckDeviceStateChange()
-	{
-	}
-
 	/** Creates a new platform specific sound source */
 	virtual FAudioEffectsManager* CreateEffectsManager();
 
@@ -1228,8 +1228,14 @@ public:
 	/** The maximum number of concurrent audible sounds */
 	int32 MaxChannels;
 
+	/** The number of worker threads to use to process sources. (audio mixer feature) */
+	int32 NumSourceWorkers;
+
 	/** The sample rate of the audio device */
 	int32 SampleRate;
+
+	/** The length of output callback buffer */
+	int32 DeviceOutputBufferLength;
 
 	/** The length of output callback buffer */
 	int32 BufferLength;
@@ -1361,6 +1367,9 @@ protected:
 
 	/** The audio clock from the audio hardware. Not supported on all platforms. */
 	double AudioClock;
+
+	/** Whether or not we allow center channel panning (audio mixer only feature.) */
+	uint8 bAllowCenterChannel3DPanning : 1;
 
 private:
 

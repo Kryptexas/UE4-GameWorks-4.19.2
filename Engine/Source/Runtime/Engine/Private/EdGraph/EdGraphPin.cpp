@@ -57,29 +57,6 @@ FPinDeletionQueue* PinDeletionQueue = new FPinDeletionQueue();;
 TArray<TPair<UEdGraphPin*, FString>> PinAllocationTracking;
 #endif //TRACK_PINS
 
-FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
-{
-	Ar << T.TerminalCategory;
-	Ar << T.TerminalSubCategory;
-
-	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
-	// The PinSubCategoryObject should be serialized into the package.
-	if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() || Ar.IsPersistent())
-	{
-		UObject* Object = T.TerminalSubCategoryObject.Get(true);
-		Ar << Object;
-		if (Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences())
-		{
-			T.TerminalSubCategoryObject = Object;
-		}
-	}
-
-	Ar << T.bTerminalIsConst;
-	Ar << T.bTerminalIsWeakPointer;
-
-	return Ar;
-}
-
 /////////////////////////////////////////////////////
 // FEdGraphPinType
 
@@ -868,10 +845,10 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 			bParseSuccess = (Buffer != nullptr);
 			if (bParseSuccess)
 			{
-				int32 EnumIdx = PinDirectionEnum->GetIndexByName(FName(*DirectionString));
+				int32 EnumIdx = PinDirectionEnum->GetIndexByNameString(DirectionString);
 				if (EnumIdx != INDEX_NONE)
 				{
-					Direction = (EEdGraphPinDirection)EnumIdx;
+					Direction = (EEdGraphPinDirection)PinDirectionEnum->GetValueByIndex(EnumIdx);
 				}
 				else
 				{
@@ -923,6 +900,14 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 			if (bParseSuccess)
 			{
 				DefaultObject = FindObject<UObject>(nullptr, *DefaultObjectString);
+
+#if WITH_EDITORONLY_DATA
+				// Fixup redirectors
+				while (Cast<UObjectRedirector>(DefaultObject) != nullptr)
+				{
+					DefaultObject = Cast<UObjectRedirector>(DefaultObject)->DestinationObject;
+				}
+#endif
 			}
 		}
 		else if (PropertyToken == PinHelpers::DefaultTextValueName)
@@ -1086,7 +1071,7 @@ UEdGraphPin::UEdGraphPin(UEdGraphNode* InOwningNode, const FGuid& PinIdGuid)
 {
 	PinHelpers::NumPinsInMemory++;
 #ifdef TRACK_PINS
-	PinAllocationTracking.Add(TPairInitializer<UEdGraphPin*, FString>(this, InOwningNode ? InOwningNode->GetName() : FString(TEXT("UNOWNED"))));
+	PinAllocationTracking.Emplace(this, InOwningNode ? InOwningNode->GetName() : FString(TEXT("UNOWNED")));
 #endif //TRACK_PINS
 }
 

@@ -220,7 +220,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 	{
 
 		Warn->BeginSlowTask( NSLOCTEXT("FbxFactory", "BeginImportingFbxMeshTask", "Importing FBX mesh"), true );
-		if ( !FbxImporter->ImportFromFile( *UFactory::CurrentFilename, Type ) )
+		if ( !FbxImporter->ImportFromFile( *UFactory::CurrentFilename, Type, true ) )
 		{
 			// Log the error message and fail the import.
 			Warn->Log(ELogVerbosity::Error, FbxImporter->GetErrorMessage() );
@@ -299,7 +299,11 @@ UObject* UFbxFactory::FactoryCreateBinary
 						if (FbxMeshArray.Num() > 0)
 						{
 							NewStaticMesh = FbxImporter->ImportStaticMeshAsSingle(InParent, FbxMeshArray, Name, Flags, ImportUI->StaticMeshImportData, NULL, 0);
-							FbxImporter->ReorderMaterialToFbxOrder(NewStaticMesh, FbxMeshArray);
+							if (NewStaticMesh != nullptr)
+							{
+								//Build the staticmesh
+								FbxImporter->PostImportStaticMesh(NewStaticMesh, FbxMeshArray);
+							}
 						}
 
 						ImportedMeshCount = NewStaticMesh ? 1 : 0;
@@ -349,6 +353,13 @@ UObject* UFbxFactory::FactoryCreateBinary
 						{
 							TArray<FbxNode*> &LODMeshesArray = FbxMeshesLod[LODIndex];
 							FbxImporter->ImportStaticMeshAsSingle(InParent, LODMeshesArray, Name, Flags, ImportUI->StaticMeshImportData, NewStaticMesh, LODIndex);
+						}
+						
+						//Build the staticmesh
+						if (NewStaticMesh)
+						{
+							TArray<FbxNode*> &LODMeshesArray = FbxMeshesLod[0];
+							FbxImporter->PostImportStaticMesh(NewStaticMesh, LODMeshesArray);
 						}
 					}
 					else
@@ -406,9 +417,12 @@ UObject* UFbxFactory::FactoryCreateBinary
 						}
 					
 						int32 LODIndex;
+						int32 SuccessfulLodIndex = 0;
 						bool bImportSkeletalMeshLODs = ImportUI->SkeletalMeshImportData->bImportMeshLODs;
 						for (LODIndex = 0; LODIndex < MaxLODLevel; LODIndex++)
 						{
+							//We need to know what is the imported lod index when importing the morph targets
+							int32 ImportedSuccessfulLodIndex = INDEX_NONE;
 							if ( !bImportSkeletalMeshLODs && LODIndex > 0) // not import LOD if UI option is OFF
 							{
 								break;
@@ -457,27 +471,35 @@ UObject* UFbxFactory::FactoryCreateBinary
 									return nullptr;
 								}
 
-								if ( NewMesh && ImportUI->bImportAnimations )
+								if ( NewMesh )
 								{
-									// We need to remove all scaling from the root node before we set up animation data.
-									// Othewise some of the global transform calculations will be incorrect.
-									FbxImporter->RemoveTransformSettingsFromFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
-									FbxImporter->SetupAnimationDataFromMesh(NewMesh, InParent, SkelMeshNodeArray, ImportUI->AnimSequenceImportData, OutputName.ToString());
+									if (ImportUI->bImportAnimations)
+									{
+										// We need to remove all scaling from the root node before we set up animation data.
+										// Othewise some of the global transform calculations will be incorrect.
+										FbxImporter->RemoveTransformSettingsFromFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
+										FbxImporter->SetupAnimationDataFromMesh(NewMesh, InParent, SkelMeshNodeArray, ImportUI->AnimSequenceImportData, OutputName.ToString());
 
-									// Reapply the transforms for the rest of the import
-									FbxImporter->ApplyTransformSettingsToFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
+										// Reapply the transforms for the rest of the import
+										FbxImporter->ApplyTransformSettingsToFbxNode(RootNodeToImport, ImportUI->SkeletalMeshImportData);
+									}
+									ImportedSuccessfulLodIndex = SuccessfulLodIndex;
+									//Increment the LOD index
+									SuccessfulLodIndex++;
 								}
 							}
 							else if (NewObject) // the base skeletal mesh is imported successfully
 							{
 								USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewObject);
 								FName LODObjectName = NAME_None;
-								USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(BaseSkeletalMesh->GetOutermost(), SkelMeshNodeArray, LODObjectName, RF_Transient, ImportUI->SkeletalMeshImportData, LODIndex, &bOperationCanceled );
-								bool bImportSucceeded = !bOperationCanceled && FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, LODIndex, false);
+								USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(BaseSkeletalMesh->GetOutermost(), SkelMeshNodeArray, LODObjectName, RF_Transient, ImportUI->SkeletalMeshImportData, SuccessfulLodIndex, &bOperationCanceled );
+								bool bImportSucceeded = !bOperationCanceled && FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, SuccessfulLodIndex, false);
 
 								if (bImportSucceeded)
 								{
-									BaseSkeletalMesh->LODInfo[LODIndex].ScreenSize = 1.0f / (MaxLODLevel * LODIndex);
+									BaseSkeletalMesh->LODInfo[SuccessfulLodIndex].ScreenSize = 1.0f / (MaxLODLevel * SuccessfulLodIndex);
+									ImportedSuccessfulLodIndex = SuccessfulLodIndex;
+									SuccessfulLodIndex++;
 								}
 								else
 								{
@@ -486,7 +508,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 							}
 						
 							// import morph target
-							if ( NewObject && ImportUI->SkeletalMeshImportData->bImportMorphTargets)
+							if ( NewObject && ImportUI->SkeletalMeshImportData->bImportMorphTargets && ImportedSuccessfulLodIndex != INDEX_NONE)
 							{
 								// Disable material importing when importing morph targets
 								uint32 bImportMaterials = ImportOptions->bImportMaterials;
@@ -494,7 +516,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								uint32 bImportTextures = ImportOptions->bImportTextures;
 								ImportOptions->bImportTextures = 0;
 
-								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, LODIndex);
+								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, ImportedSuccessfulLodIndex);
 							
 								ImportOptions->bImportMaterials = !!bImportMaterials;
 								ImportOptions->bImportTextures = !!bImportTextures;
@@ -625,12 +647,16 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 		
 		if (NewObject)
 		{
-			//Reorder the material
-			TArray<FbxNode*> Nodes;
-			FbxImporter->FindAllLODGroupNode(Nodes, Node, 0);
-			if (Nodes.Num() > 0)
+			UStaticMesh *NewStaticMesh = Cast<UStaticMesh>(NewObject);
+			if (NewStaticMesh != nullptr)
 			{
-				FbxImporter->ReorderMaterialToFbxOrder(Cast<UStaticMesh>(NewObject), Nodes);
+				//Reorder the material
+				TArray<FbxNode*> Nodes;
+				FbxImporter->FindAllLODGroupNode(Nodes, Node, 0);
+				if (Nodes.Num() > 0)
+				{
+					FbxImporter->PostImportStaticMesh(NewStaticMesh, Nodes);
+				}
 			}
 		}
 	}
@@ -644,10 +670,14 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 
 			if ( NewObject )
 			{
-				//Reorder the material
-				TArray<FbxNode*> Nodes;
-				Nodes.Add(Node);
-				FbxImporter->ReorderMaterialToFbxOrder(Cast<UStaticMesh>(NewObject), Nodes);
+				UStaticMesh *NewStaticMesh = Cast<UStaticMesh>(NewObject);
+				if (NewStaticMesh != nullptr)
+				{
+					//Reorder the material
+					TArray<FbxNode*> Nodes;
+					Nodes.Add(Node);
+					FbxImporter->PostImportStaticMesh(NewStaticMesh, Nodes);
+				}
 
 				OutNewAssets.Add(NewObject);
 			}

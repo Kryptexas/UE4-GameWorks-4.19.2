@@ -811,10 +811,17 @@ public:
 	FD3D12ShaderResourceView(FD3D12Device* InParent, D3D12_SHADER_RESOURCE_VIEW_DESC* InSRVDesc, FD3D12ResourceLocation* InResourceLocation, uint32 InStride = 1)
 		: FD3D12View(InParent, InSRVDesc, InResourceLocation, ViewSubresourceSubsetFlags_None)
 		, bIsBuffer(InSRVDesc->ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
-		, bContainsDepthPlane(InResourceLocation ? InResourceLocation->GetResource()->IsDepthStencilResource() && InSRVDesc->ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D && InSRVDesc->Texture2D.PlaneSlice == 0 : false)
-		, bContainsStencilPlane(InResourceLocation ? InResourceLocation->GetResource()->IsDepthStencilResource() && InSRVDesc->ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D && InSRVDesc->Texture2D.PlaneSlice == 1 : false)
+		, bContainsDepthPlane(InResourceLocation ? InResourceLocation->GetResource()->IsDepthStencilResource() && GetPlaneSliceFromViewFormat(InResourceLocation->GetResource()->GetDesc().Format, InSRVDesc->Format) == 0 : false)
+		, bContainsStencilPlane(InResourceLocation ? InResourceLocation->GetResource()->IsDepthStencilResource() && GetPlaneSliceFromViewFormat(InResourceLocation->GetResource()->GetDesc().Format, InSRVDesc->Format) == 1 : false)
 		, Stride(InStride)
 	{
+		// Check the plane slice of the SRV matches the texture format
+		// Texture2DMS does not have explicit plane index (it's implied by the format)
+		if (InResourceLocation && InSRVDesc->ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
+		{
+			check(GetPlaneSliceFromViewFormat(InResourceLocation->GetResource()->GetDesc().Format, InSRVDesc->Format) == InSRVDesc->Texture2D.PlaneSlice);
+		}
+		
 		if (bIsBuffer && !!InResourceLocation)
 		{
 			check(InResourceLocation->GetOffsetFromBaseOfResource() / Stride == InSRVDesc->Buffer.FirstElement);

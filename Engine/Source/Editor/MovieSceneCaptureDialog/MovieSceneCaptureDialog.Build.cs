@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MovieSceneCaptureDialog : ModuleRules
 {
-	public MovieSceneCaptureDialog(TargetInfo Target)
+	public MovieSceneCaptureDialog(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {

@@ -9,6 +9,7 @@
 #include "ScreenRendering.h"
 #include "RHIStaticStates.h"
 #include "ResolveShader.h"
+#include "SceneUtils.h"
 
 static inline DXGI_FORMAT ConvertTypelessToUnorm(DXGI_FORMAT Format)
 {
@@ -43,6 +44,7 @@ static FResolveRect GetDefaultRect(const FResolveRect& Rect, uint32 DefaultWidth
 template<typename TPixelShader>
 void FD3D12CommandContext::ResolveTextureUsingShader(
 	FRHICommandList_RecursiveHazardous& RHICmdList,
+	FGlobalBoundShaderState& ResolveBoundShaderState,
 	FD3D12Texture2D* SourceTexture,
 	FD3D12Texture2D* DestTexture,
 	FD3D12RenderTargetView* DestTextureRTV,
@@ -57,6 +59,8 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 	D3D12_VIEWPORT SavedViewports[D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
 	uint32 NumSavedViewports = StateCache.GetNumViewports();
 	StateCache.GetViewports(&NumSavedViewports, SavedViewports);
+
+	SCOPED_DRAW_EVENT(RHICmdList, ResolveTextureUsingShader);
 
 	// No alpha blending, no depth tests or writes, no stencil tests or writes, no backface culling.
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI(), FLinearColor::White);
@@ -97,14 +101,12 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 			CommandListHandle.UpdateResidency(DestTextureDSV->GetResource());
 		}
 
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Always>::GetRHI(), 0);
-		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
-
 		// Write to the dest texture as a depth-stencil target.
-		FD3D12RenderTargetView* NullRTV = NULL;
-
+		FD3D12RenderTargetView* NullRTV = nullptr;
 		StateCache.SetRenderTargets(1, &NullRTV, DestTextureDSV);
 
+		FD3D12DepthStencilState* NewState = FD3D12DynamicRHI::ResourceCast(TStaticDepthStencilState<true, CF_Always>::GetRHI());
+		StateCache.SetDepthStencilState(&NewState->Desc, 0);
 	}
 	else
 	{
@@ -126,11 +128,11 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 			CommandListHandle.UpdateResidency(DestTextureRTV->GetResource());
 		}
 
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
-
 		// Write to the dest surface as a render target.
-		StateCache.SetRenderTargets(1, &DestTextureRTV, NULL);
+		StateCache.SetRenderTargets(1, &DestTextureRTV, nullptr);
+
+		FD3D12DepthStencilState* NewState = FD3D12DynamicRHI::ResourceCast(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		StateCache.SetDepthStencilState(&NewState->Desc, 0);
 	}
 
 	RHICmdList.SetViewport(0.0f, 0.0f, 0.0f, (uint32)ResolveTargetDesc.Width, ResolveTargetDesc.Height, 1.0f);
@@ -144,9 +146,6 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 	const float MinY = +1.f - DestRect.Y1 / ((float)ResolveTargetDesc.Height * 0.5f);
 	const float MaxX = -1.f + DestRect.X2 / ((float)ResolveTargetDesc.Width * 0.5f);
 	const float MaxY = +1.f - DestRect.Y2 / ((float)ResolveTargetDesc.Height * 0.5f);
-
-	// MSFT: Seb: Does this need to be extern?
-	static FGlobalBoundShaderState ResolveBoundShaderState;
 
 	// Set the vertex and pixel shader
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
@@ -247,6 +246,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 
 				ResolveTextureUsingShader<FResolveDepthPS>(
 					RHICmdList,
+					GD3D12ResolveBoundShaderState_Depth,
 					SourceTexture2D,
 					DestTexture2D,
 					DestTexture2D->GetRenderTargetView(0, -1),
@@ -264,6 +264,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 
 				ResolveTextureUsingShader<FResolveDepthNonMSPS>(
 					RHICmdList,
+					GD3D12ResolveBoundShaderState_DepthNonMS,
 					SourceTexture2D,
 					DestTexture2D,
 					NULL,
@@ -1225,6 +1226,7 @@ void FD3D12DynamicRHI::ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous
 		// Resolve the sample to the non-MSAA render target.
 		DefaultContext.ResolveTextureUsingShader<FResolveSingleSamplePS>(
 			RHICmdList,
+			GD3D12ResolveBoundShaderState_SingleSamplePS,
 			(FD3D12Texture2D*)TextureRHI->GetTexture2D(),
 			NULL,
 			NonMSAARTV,

@@ -5,9 +5,12 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Components/PrimitiveComponent.h"
+#include "InterpCurve.h"
 #include "SplineComponent.generated.h"
 
 class FPrimitiveSceneProxy;
+class FPrimitiveDrawInterface;
+class FSceneView;
 
 /** Permitted spline point types for SplineComponent. */
 UENUM()
@@ -35,7 +38,7 @@ namespace ESplineCoordinateSpace
 }
 
 USTRUCT()
-struct FSplineCurves
+struct ENGINE_API FSplineCurves
 {
 	GENERATED_BODY()
 
@@ -64,6 +67,46 @@ struct FSplineCurves
 	{
 		return !(*this == Other);
 	}
+
+	/** 
+	 * Update the spline's internal data according to the passed-in params 
+	 * @param	bClosedLoop				Whether the spline is to be considered as a closed loop.
+	 * @param	bStationaryEndpoints	Whether the endpoints of the spline are considered stationary when traversing the spline at non-constant velocity.  Essentially this sets the endpoints' tangents to zero vectors.
+	 * @param	ReparamStepsPerSegment	Number of steps per spline segment to place in the reparameterization table
+	 * @param	bLoopPositionOverride	Whether to override the loop position with LoopPosition
+	 * @param	LoopPosition			The loop position to use instead of the last key
+	 * @param	Scale3D					The world scale to override
+	 */
+	void UpdateSpline(bool bClosedLoop = false, bool bStationaryEndpoints = false, int32 ReparamStepsPerSegment = 10, bool bLoopPositionOverride = false, float LoopPosition = 0.0f, const FVector& Scale3D = FVector(1.0f));
+
+	/** Returns the length of the specified spline segment up to the parametric value given */
+	float GetSegmentLength(const int32 Index, const float Param, bool bClosedLoop = false, const FVector& Scale3D = FVector(1.0f)) const;
+
+	/** Returns total length along this spline */
+	float GetSplineLength() const;
+};
+
+/** A single point in linear approximation of a spline */
+struct ENGINE_API FSplinePositionLinearApproximation
+{
+	FSplinePositionLinearApproximation(const FVector& InPosition, float InSplineParam)
+		: Position(InPosition)
+		, SplineParam(InSplineParam)
+	{}
+
+	/**
+	 * Build a linear approximation to the passed-in spline curves.
+	 * @param	InCurves	The curves to approximate
+	 * @param	OutPoints	The array of points to fill as a linear approximation
+	 * @param	InDensity	Scalar applied to determine how many points are generated in the approximation. 1.0 = one point per distance unit.
+	 */
+	static void Build(const FSplineCurves& InCurves, TArray<FSplinePositionLinearApproximation>& OutPoints, float InDensity = 0.5f);
+
+	/** Position on the spline */
+	FVector Position;
+
+	/** Param of the spline at this position */
+	float SplineParam;
 };
 
 USTRUCT(BlueprintType)
@@ -222,8 +265,6 @@ public:
 #endif
 
 	//~ Begin UObject Interface
-	virtual void PostLoad() override;
-	virtual void PostEditImport() override;
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
@@ -243,6 +284,9 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	//~ End USceneComponent Interface
 #endif
+
+	/** Helper function to draw a vector curve */
+	static void Draw(FPrimitiveDrawInterface* PDI, const FSceneView* View, const FInterpCurveVector& SplineInfo, const FMatrix& LocalToWorld, const FLinearColor& LineColor, uint8 DepthPriorityGroup);
 
 	FInterpCurveVector& GetSplinePointsPosition() { return SplineCurves.Position; }
 	const FInterpCurveVector& GetSplinePointsPosition() const { return SplineCurves.Position; }

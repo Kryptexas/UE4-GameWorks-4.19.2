@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MovieSceneTools : ModuleRules
 {
-	public MovieSceneTools(TargetInfo Target)
+	public MovieSceneTools(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
             new string[] {

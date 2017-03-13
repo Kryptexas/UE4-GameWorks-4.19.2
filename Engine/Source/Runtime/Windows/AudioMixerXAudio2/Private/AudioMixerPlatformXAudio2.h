@@ -48,6 +48,7 @@ namespace Audio
 		//~ Begin IAudioMixerPlatformInterface
 		EAudioMixerPlatformApi::Type GetPlatformApi() const override { return EAudioMixerPlatformApi::XAudio2; }
 		bool InitializeHardware() override;
+		bool CheckAudioDeviceChange() override;
 		bool TeardownHardware() override;
 		bool IsInitialized() const override;
 		bool GetNumOutputDevices(uint32& OutNumOutputDevices) override;
@@ -57,6 +58,7 @@ namespace Audio
 		bool CloseAudioStream() override;
 		bool StartAudioStream() override;
 		bool StopAudioStream() override;
+		bool MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId) override;
 		FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const override;
 		void SubmitBuffer(const TArray<float>& Buffer) override;
 		FName GetRuntimeFormat(USoundWave* InSoundWave) override;
@@ -65,6 +67,16 @@ namespace Audio
 		FString GetDefaultDeviceName() override;
 		//~ End IAudioMixerPlatformInterface
 
+		//~ Begin IAudioMixerDeviceChangedLister
+		void RegisterDeviceChangedListener() override;
+		void UnRegisterDeviceChangedListener() override;
+		void OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) override;
+		void OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) override;
+		void OnDeviceAdded(const FString& DeviceId) override;
+		void OnDeviceRemoved(const FString& DeviceId) override;
+		void OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState) override;
+		//~ End IAudioMixerDeviceChangedLister
+
 	private:
 
 		const TCHAR* GetErrorString(HRESULT Result);
@@ -72,11 +84,18 @@ namespace Audio
 	private:
 		typedef TArray<long> TChannelTypeMap;
 
+		// Bool indicating that the default audio device changed
+		// And that we need to restart the audio device.
+		FThreadSafeBool bDeviceChanged;
+
 		TChannelTypeMap ChannelTypeMap;
 		IXAudio2* XAudio2System;
 		IXAudio2MasteringVoice* OutputAudioStreamMasteringVoice;
 		IXAudio2SourceVoice* OutputAudioStreamSourceVoice;
 		FXAudio2VoiceCallback OutputVoiceCallback;
+		FString OriginalAudioDeviceId;
+		FString NewAudioDeviceId;
+		FThreadSafeBool bMoveAudioStreamToNewAudioDevice;
 		uint32 bIsComInitialized : 1;
 		uint32 bIsInitialized : 1;
 		uint32 bIsDeviceOpen : 1;

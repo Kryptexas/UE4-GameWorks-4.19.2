@@ -631,9 +631,12 @@ namespace UnrealGameSync
 									int ResultFromBuild = Utility.ExecuteProcess(UnrealBuildToolPath, CommandLine + " -progress", null, new ProgressTextWriter(Progress, new PrefixedTextWriter("ubt> ", Log)));
 									if(ResultFromBuild != 0)
 									{
+										StepStopwatch.Stop("Failed");
 										StatusMessage = String.Format("Failed to compile {0}.", Step.Target);
 										return (HasModifiedSourceFiles() || Context.UserBuildStepObjects.Count > 0)? WorkspaceUpdateResult.FailedToCompile : WorkspaceUpdateResult.FailedToCompileWithCleanWorkspace;
 									}
+
+									StepStopwatch.Stop("Success");
 								}
 								break;
 							case BuildStepType.Cook:
@@ -646,9 +649,12 @@ namespace UnrealGameSync
 									int ResultFromUAT = Utility.ExecuteProcess(CmdExe, Arguments, null, new ProgressTextWriter(Progress, new PrefixedTextWriter("uat> ", Log)));
 									if(ResultFromUAT != 0)
 									{
+										StepStopwatch.Stop("Failed");
 										StatusMessage = String.Format("Cook failed. ({0})", ResultFromUAT);
 										return WorkspaceUpdateResult.FailedToCompile;
 									}
+
+									StepStopwatch.Stop("Success");
 								}
 								break;
 							case BuildStepType.Other:
@@ -663,6 +669,7 @@ namespace UnrealGameSync
 										int ResultFromTool = Utility.ExecuteProcess(ToolFileName, ToolArguments, null, new ProgressTextWriter(Progress, new PrefixedTextWriter("tool> ", Log)));
 										if(ResultFromTool != 0)
 										{
+											StepStopwatch.Stop("Failed");
 											StatusMessage = String.Format("Tool terminated with exit code {0}.", ResultFromTool);
 											return WorkspaceUpdateResult.FailedToCompile;
 										}
@@ -673,6 +680,8 @@ namespace UnrealGameSync
 										{
 										}
 									}
+
+									StepStopwatch.Stop("Success");
 								}
 								break;
 						}

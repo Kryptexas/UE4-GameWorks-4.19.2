@@ -168,10 +168,7 @@ namespace BlueprintEditorPromotionUtils
 	{
 		FBlueprintEditorUtils::RefreshAllNodes(InBlueprint);
 
-		bool bIsRegeneratingOnLoad = false;
-		bool bSkipGarbageCollection = true;
-
-		FKismetEditorUtilities::CompileBlueprint(InBlueprint, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+		FKismetEditorUtilities::CompileBlueprint(InBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 		if (InBlueprint->Status == EBlueprintStatus::BS_UpToDate)
 		{
 			UE_LOG(LogBlueprintEditorPromotionTests, Display, TEXT("Blueprint compiled successfully (%s)"), *InBlueprint->GetName());
@@ -611,7 +608,7 @@ namespace BlueprintEditorPromotionUtils
 	static void AddStringMemberValue(UBlueprint* InBlueprint, const FName& VariableName)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FEdGraphPinType StringPinType(K2Schema->PC_String, TEXT(""), NULL, false, false);
+		FEdGraphPinType StringPinType(K2Schema->PC_String, TEXT(""), NULL, false, false, false, false, FEdGraphTerminalType());
 		FBlueprintEditorUtils::AddMemberVariable(InBlueprint, VariableName, StringPinType);
 	}
 

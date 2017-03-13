@@ -47,7 +47,7 @@ void ULevelThumbnailRenderer::GetView(ULevel* Level, FSceneViewFamily* ViewFamil
 		FMath::Max<int32>(X+SizeX,0),
 		FMath::Max<int32>(Y+SizeY,0));
 
-	FBox LevelBox(0);
+	FBox LevelBox(ForceInit);
 
 	if (Level->LevelBoundsActor.IsValid())
 	{

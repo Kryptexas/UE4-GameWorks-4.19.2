@@ -13,7 +13,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Represents a color in the displayed graph.  Values are between 0.0 and 1.0 inclusive.
 	/// </summary>
-	public struct GraphColor
+	struct GraphColor
 	{
 		public float R;
 		public float G;
@@ -25,7 +25,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// A single "node" in a directed graph
 	/// </summary>
-	public class GraphNode
+	class GraphNode
 	{
 		/// ID number, unique for all nodes.  This must also be the array index into the main nodes array
 		public int Id;
@@ -47,7 +47,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Describes a graph "edge" in a directed graph
 	/// </summary>
-	public class GraphEdge
+	class GraphEdge
 	{
 		/// ID number, unique for all edges.  This must also be the array index into the main edges array.
 		public int Id;
@@ -85,7 +85,7 @@ namespace UnrealBuildTool
 	}
 
 
-	public static class GraphVisualization
+	static class GraphVisualization
 	{
 		/// <summary>
 		/// Writes a GEXF graph file for the specified graph nodes and edges

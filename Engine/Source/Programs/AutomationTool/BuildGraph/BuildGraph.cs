@@ -121,6 +121,8 @@ namespace AutomationTool
 			DefaultProperties["RootDir"] = CommandUtils.RootDirectory.FullName;
 			DefaultProperties["IsBuildMachine"] = IsBuildMachine ? "true" : "false";
 			DefaultProperties["HostPlatform"] = HostPlatform.Current.HostEditorPlatform.ToString();
+			DefaultProperties["RestrictedFolderNames"] = String.Join(";", PlatformExports.RestrictedFolderNames);
+			DefaultProperties["RestrictedFolderFilter"] = String.Join(";", PlatformExports.RestrictedFolderNames.Select(x => String.Format(".../{0}/...", x)));
 
 			// Attempt to read existing Build Version information
 			BuildVersion Version;
@@ -308,7 +310,7 @@ namespace AutomationTool
 						}
 						foreach(FileReference CreatedToken in CreatedTokens)
 						{
-							CreatedToken.Delete();
+							FileReference.Delete(CreatedToken);
 						}
 						return ExitCode.Error_Unknown;
 					}
@@ -474,7 +476,7 @@ namespace AutomationTool
 		/// <returns>Contents of the token, or null if it does not exist</returns>
 		public string ReadTokenFile(FileReference Location)
 		{
-			return Location.Exists()? File.ReadAllText(Location.FullName) : null;
+			return FileReference.Exists(Location)? File.ReadAllText(Location.FullName) : null;
 		}
 
 		/// <summary>
@@ -484,13 +486,13 @@ namespace AutomationTool
 		public bool WriteTokenFile(FileReference Location, string Signature)
 		{
 			// Check it doesn't already exist
-			if(Location.Exists())
+			if(FileReference.Exists(Location))
 			{
 				return false;
 			}
 
 			// Make sure the directory exists
-			Location.Directory.CreateDirectory();
+			DirectoryReference.CreateDirectory(Location.Directory);
 
 			// Create a temp file containing the owner name
 			string TempFileName;
@@ -538,7 +540,7 @@ namespace AutomationTool
 		/// <returns>True if the assembly is distributed publically</returns>
 		static bool IsPublicAssembly(FileReference File)
 		{
-			DirectoryReference EngineDirectory = UnrealBuildTool.UnrealBuildTool.EngineDirectory;
+			DirectoryReference EngineDirectory = CommandUtils.EngineDirectory;
 			if(File.IsUnderDirectory(EngineDirectory))
 			{
 				string[] PathFragments = File.MakeRelativeTo(EngineDirectory).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -800,7 +802,7 @@ namespace AutomationTool
 			}
 
 			// Create the output directory
-			OutputFile.Directory.CreateDirectory();
+			DirectoryReference.CreateDirectory(OutputFile.Directory);
 			Log("Writing {0}...", OutputFile);
 
 			// Parse the engine version

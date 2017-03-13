@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SequenceRecorderSections : ModuleRules
 	{
-		public SequenceRecorderSections(TargetInfo Target)
+		public SequenceRecorderSections(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

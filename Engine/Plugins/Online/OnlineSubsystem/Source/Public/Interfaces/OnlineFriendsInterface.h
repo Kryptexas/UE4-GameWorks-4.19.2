@@ -17,6 +17,8 @@ namespace EFriendsLists
 		OnlinePlayers,
 		/** list of players running the same title/game */
 		InGamePlayers,
+		/** list of players running the same title/game and in a session that has started */
+		InGameAndSessionPlayers,
 	};
 
 	/** @return the stringified version of the enum passed in */
@@ -30,6 +32,8 @@ namespace EFriendsLists
 				return TEXT("onlinePlayers");
 			case InGamePlayers:
 				return TEXT("inGamePlayers");
+			case InGameAndSessionPlayers:
+				return TEXT("inGameAndSessionPlayers");
 		}
 		return TEXT("");
 	}

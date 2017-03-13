@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UE4Game : ModuleRules
 {
-	public UE4Game(TargetInfo Target)
+	public UE4Game(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
 	

@@ -26,10 +26,13 @@ class UEnvQueryItemType_VectorBase;
 class UEnvQueryTest;
 struct FEnvQueryInstance;
 
-AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Warning, All);
+AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Display, All);
 
 // If set, execution details will be processed by debugger
 #define USE_EQS_DEBUGGER				(1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+
+// If set, execution stats will also gather EQS tick load data (16k memory for each query record)
+#define USE_EQS_TICKLOADDATA			(1 && USE_EQS_DEBUGGER && WITH_EDITOR)
 
 DECLARE_STATS_GROUP(TEXT("Environment Query"), STATGROUP_AI_EQS, STATCAT_Advanced);
 
@@ -262,7 +265,7 @@ namespace EEnvQueryTestClamping
 USTRUCT(BlueprintType)
 struct AIMODULE_API FEnvNamedValue
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	FName ParamName;
@@ -527,6 +530,7 @@ public:
 
 	FORCEINLINE bool IsFinished() const { return Status != EEnvQueryStatus::Processing; }
 	FORCEINLINE bool IsAborted() const { return Status == EEnvQueryStatus::Aborted; }
+	FORCEINLINE bool IsSuccsessful() const { return Status == EEnvQueryStatus::Success; }
 	FORCEINLINE void MarkAsMissingParam() { Status = EEnvQueryStatus::MissingParam; }
 	FORCEINLINE void MarkAsAborted() { Status = EEnvQueryStatus::Aborted; }
 	FORCEINLINE void MarkAsFailed() { Status = EEnvQueryStatus::Failed; }
@@ -610,6 +614,9 @@ struct AIMODULE_API FEnvQueryOptionInstance
 	/** test objects, raw pointer can be used safely because it will be always referenced by EnvQueryManager */
 	TArray<UEnvQueryTest*> Tests;
 
+	/** index of option in source asset */
+	int32 SourceOptionIndex;
+
 	/** type of generated items */
 	TSubclassOf<UEnvQueryItemType> ItemType;
 
@@ -625,26 +632,68 @@ struct AIMODULE_API FEnvQueryOptionInstance
 #define EQSHEADERLOG(msg) Log(msg)
 #endif // NO_LOGGING
 
-struct FEQSQueryDebugData
+struct FEnvQueryDebugProfileData
+{
+	struct FStep
+	{
+		float ExecutionTime;
+		int32 NumProcessedItems;
+
+		FStep() : ExecutionTime(0.0f), NumProcessedItems(0) {}
+	};
+
+	// runtime stats, can be merged
+	struct FOptionStat
+	{
+		TArray<FStep> StepData;
+		int32 NumRuns;
+
+		FOptionStat() : NumRuns(0) {}
+	};
+
+	// setup data
+	struct FOptionData
+	{
+		int32 NumGenerators;
+		TArray<FName> GeneratorNames;
+
+		int32 OptionIdx;
+		TArray<int32> TestIndices;
+
+		FOptionData() : NumGenerators(1), OptionIdx(INDEX_NONE) {}
+	};
+
+	TArray<FOptionStat> OptionStats;
+	TArray<FOptionData> OptionData;
+
+	void Add(const FEnvQueryDebugProfileData& Other);
+};
+
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FStep& Data);
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FOptionStat& Data);
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FOptionData& Data);
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData& Data);
+
+struct FEnvQueryDebugData : public FEnvQueryDebugProfileData
 {
 	TArray<FEnvQueryItem> DebugItems;
 	TArray<FEnvQueryItemDetails> DebugItemDetails;
 	TArray<uint8> RawData;
 	TArray<FString> PerformedTestNames;
+
 	// indicates the query was run in a single-item mode and that it has been found
 	uint32 bSingleItemResult : 1;
 
-	void Store(const FEnvQueryInstance* QueryInstance);
-	void Reset()
-	{
-		DebugItems.Reset();
-		DebugItemDetails.Reset();
-		RawData.Reset();
-		PerformedTestNames.Reset();
-		bSingleItemResult = false;
-	}
+	FEnvQueryDebugData() : bSingleItemResult(false) {}
+	
+	void Store(const FEnvQueryInstance& QueryInstance, const float ExecutionTime, const bool bStepDone);
+	void PrepareOption(const FEnvQueryInstance& QueryInstance, const TArray<UEnvQueryGenerator*>& Generators, const int32 NumTests);
 };
 
+// This struct is now deprecated, please use FEnvQueryDebugData instead.
+struct FEQSQueryDebugData : public FEnvQueryDebugData
+{
+};
 
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTypes : public UObject
@@ -654,6 +703,9 @@ class AIMODULE_API UEnvQueryTypes : public UObject
 public:
 	/** special test value assigned to items skipped by condition check */
 	static float SkippedItemValue;
+
+	/** special value used for executing query steps to prevent them from being time sliced */
+	static float UnlimitedStepTime;
 
 	static FText GetShortTypeName(const UObject* Ob);
 	static FText DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass);
@@ -700,37 +752,31 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	/** size of current value */
 	uint16 ValueSize;
 
+#if USE_EQS_DEBUGGER
+	/** number of items processed in current step */
+	int32 NumProcessedItems;
+
+	/** set to true to store additional debug info */
+	uint8 bStoreDebugInfo : 1;
+#endif // USE_EQS_DEBUGGER
+
 	/** used to breaking from item iterator loops */
 	uint8 bFoundSingleResult : 1;
 
-private:
 	/** set when testing final condition of an option */
 	uint8 bPassOnSingleResult : 1;
 
 	/** true if this query has logged a warning that it overran the time limit */
 	uint8 bHasLoggedTimeLimitWarning : 1;
 
-	/** platform time when this query was started */
+	/** timestamp of creating query instance */
 	double StartTime;
 
-	/** if > 0 then it's how much time query has for performing current step */
-	double CurrentStepTimeLimit;
-
 	/** time spent executing this query */
-	double TotalExecutionTime;
+	float TotalExecutionTime;
 
-	/** time spent doing generation for this query */
-	double GenerationExecutionTime;
-
-	// @todo do we really need this data in shipped builds?
-	/** time spent on each test of this query */
-	TArray<double> PerStepExecutionTime;
-
-public:
-#if USE_EQS_DEBUGGER
-	/** set to true to store additional debug info */
-	uint8 bStoreDebugInfo : 1;
-#endif // USE_EQS_DEBUGGER
+	/** if > 0 then it's how much time query has for performing current step */
+	float CurrentStepTimeLimit;
 
 	/** run mode */
 	EEnvQueryRunMode::Type Mode;
@@ -746,25 +792,7 @@ public:
 	~FEnvQueryInstance();
 
 	/** execute single step of query */
-	void ExecuteOneStep(double InCurrentStepTimeLimit);
-
-	/** set when we started the query */
-	void SetQueryStartTime() { StartTime = FPlatformTime::Seconds(); }
-
-	/** get when we started the query */
-	double GetQueryStartTime() const { return StartTime; }
-
-	/** have we logged that we overran time the time limit? */
-	bool HasLoggedTimeLimitWarning() const { return !!bHasLoggedTimeLimitWarning; }
-
-	/** set that we logged that we overran time the time limit. */
-	void SetHasLoggedTimeLimitWarning() { bHasLoggedTimeLimitWarning = true; }
-
-	/** get the amount of time spent executing query */
-	double GetTotalExecutionTime() const { return TotalExecutionTime; }
-
-	/** describe for logging purposes what the query spent time on */
-	FString GetExecutionTimeDescription() const;
+	void ExecuteOneStep(float TimeLimit);
 
 	/** update context cache */
 	bool PrepareContext(UClass* Context, FEnvQueryContextData& ContextData);
@@ -894,7 +922,7 @@ public:
 #	define  UE_EQS_DBGMSG(Condition, Format, ...) \
 					if (Condition) \
 					{ \
-						Instance->ItemDetails[CurrentItem].FailedDescription = FString::Printf(Format, ##__VA_ARGS__); \
+						Instance.ItemDetails[CurrentItem].FailedDescription = FString::Printf(Format, ##__VA_ARGS__); \
 					}
 
 #	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) \
@@ -905,14 +933,67 @@ public:
 #	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); 
 #endif
 
-#if CPP || UE_BUILD_DOCS
-	struct AIMODULE_API ItemIterator
-	{
-		ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE);
+	/** describe for logging purposes what the query spent time on */
+	FString GetExecutionTimeDescription() const;
 
-		~ItemIterator()
+#if CPP || UE_BUILD_DOCS
+	/** Note that this iterator is for read-only purposes. Please use FItemIterator for regular item iteration 
+	 *	while performing EQS testing and scoring */
+	struct AIMODULE_API FConstItemIterator
+	{
+		FConstItemIterator(FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE)
+			: Instance(QueryInstance)
+			, CurrentItem(StartingItemIndex != INDEX_NONE ? StartingItemIndex : QueryInstance.CurrentTestStartingItem)
 		{
-			Instance->CurrentTestStartingItem = CurrentItem;
+			if (StartingItemIndex != INDEX_NONE)
+			{
+				CurrentItem = StartingItemIndex;
+			}
+			else
+			{
+				CurrentItem = QueryInstance.CurrentTestStartingItem;
+				if (Instance.Items.IsValidIndex(CurrentItem) == false || Instance.Items[CurrentItem].IsValid() == false)
+				{
+					++(*this);
+				}
+			}
+		}
+
+		uint8* GetItemData()
+		{
+			return Instance.RawData.GetData() + Instance.Items[CurrentItem].DataOffset;
+		}
+
+		int32 GetIndex() const
+		{
+			return CurrentItem;
+		}
+
+		FORCEINLINE explicit operator bool() const
+		{
+			return CurrentItem < Instance.Items.Num();
+		}
+
+		void operator++()
+		{
+			++CurrentItem;
+			for (; CurrentItem < Instance.Items.Num() && !Instance.Items[CurrentItem].IsValid(); ++CurrentItem)
+				;
+		}
+
+	protected:
+
+		FEnvQueryInstance& Instance;
+		int32 CurrentItem;
+	};
+
+	struct AIMODULE_API FItemIterator : public FConstItemIterator
+	{
+		FItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE);
+
+		~FItemIterator()
+		{
+			Instance.CurrentTestStartingItem = CurrentItem;
 		}
 
 		/** Filter and score an item - used by tests working on float values
@@ -1020,11 +1101,6 @@ public:
 			NumTestsForItem++;
 		}
 
-		uint8* GetItemData()
-		{
-			return Instance->RawData.GetData() + Instance->Items[CurrentItem].DataOffset;
-		}
-
 		/** Force state and score of item
 		 *  Any following SetScore calls for current item will be ignored
 		 */
@@ -1036,37 +1112,31 @@ public:
 		}
 
 		/** Disables time slicing for this iterator, use with caution! */
-		void IgnoreTimeLimit()
+		FItemIterator& IgnoreTimeLimit()
 		{
 			Deadline = -1.0f;
-		}
-
-		int32 GetIndex() const
-		{
-			return CurrentItem;
+			return *this;
 		}
 
 		FORCEINLINE explicit operator bool() const
 		{
-			return CurrentItem < Instance->Items.Num() && !Instance->bFoundSingleResult && (Deadline < 0 || FPlatformTime::Seconds() < Deadline);
+			return CurrentItem < Instance.Items.Num() && !Instance.bFoundSingleResult && (Deadline < 0 || FPlatformTime::Seconds() < Deadline);
 		}
 
 		void operator++()
 		{
 			StoreTestResult();
-			if (!Instance->bFoundSingleResult)
+			if (!Instance.bFoundSingleResult)
 			{
 				InitItemScore();
-				FindNextValidIndex();
+				FConstItemIterator::operator++();
 			}
 		}
 
 	protected:
 
-		FEnvQueryInstance* Instance;
 		double Deadline;
 		float ItemScore;
-		int32 CurrentItem;
 		int16 NumPassedForItem;
 		int16 NumTestsForItem;
 		uint8 CachedFilterOp;
@@ -1086,12 +1156,6 @@ public:
 
 		void HandleFailedTestResult();
 		void StoreTestResult();
-
-		FORCEINLINE void FindNextValidIndex()
-		{
-			for (CurrentItem++; CurrentItem < Instance->Items.Num() && !Instance->Items[CurrentItem].IsValid(); CurrentItem++)
-				;
-		}
 
 		FORCEINLINE void SetScoreInternal(float Score)
 		{
@@ -1140,13 +1204,14 @@ public:
 			}
 		}
 	};
+	typedef FItemIterator ItemIterator;
 #endif
 
 #undef UE_EQS_LOG
 #undef UE_EQS_DBGMSG
 
 #if USE_EQS_DEBUGGER
-	FEQSQueryDebugData DebugData;
+	FEnvQueryDebugData DebugData;
 	static bool bDebuggingInfoEnabled;
 #endif // USE_EQS_DEBUGGER
 

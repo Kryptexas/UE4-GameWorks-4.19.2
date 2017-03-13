@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Framework/Commands/Commands.h"
 #include "Commandlets/GatherTextCommandletBase.h"
+#include "Internationalization/StringTableCore.h"
 #include "GatherTextFromSourceCommandlet.generated.h"
 
 class Error;
@@ -27,6 +28,53 @@ private:
 		EditorOnly,
 	};
 
+	struct FSourceLocation
+	{
+		FSourceLocation()
+			: File()
+			, Line(INDEX_NONE)
+		{
+		}
+
+		FSourceLocation(FString InFile, const int32 InLine)
+			: File(MoveTemp(InFile))
+			, Line(InLine)
+		{
+		}
+
+		FString ToString() const
+		{
+			return (Line == INDEX_NONE) ? File : FString::Printf(TEXT("%s - line %d"), *File, Line);
+		}
+
+		FString File;
+		int32 Line;
+	};
+
+	struct FParsedStringTableEntry
+	{
+		FString SourceString;
+		FSourceLocation SourceLocation;
+		bool bIsEditorOnly;
+	};
+
+	struct FParsedStringTableEntryMetaData
+	{
+		FString MetaData;
+		FSourceLocation SourceLocation;
+		bool bIsEditorOnly;
+	};
+
+	typedef TMap<FName, FParsedStringTableEntryMetaData> FParsedStringTableEntryMetaDataMap;
+
+	struct FParsedStringTable
+	{
+		FString TableNamespace;
+		FSourceLocation SourceLocation;
+		TMap<FString, FParsedStringTableEntry, FDefaultSetAllocator, FLocKeyMapFuncs<FParsedStringTableEntry>> TableEntries;
+		TMap<FString, FParsedStringTableEntryMetaDataMap, FDefaultSetAllocator, FLocKeyMapFuncs<FParsedStringTableEntryMetaDataMap>> MetaDataEntries;
+	};
+
 	struct FSourceFileParseContext
 	{
 		bool AddManifestText( const FString& Token, const FString& Namespace, const FString& SourceText, const FManifestContext& Context );
@@ -42,6 +90,14 @@ private:
 		void SetDefine( const FString& InDefineCtx );
 
 		void RemoveDefine( const FString& InDefineCtx );
+
+		void AddStringTable( const FName InTableId, const FString& InTableNamespace );
+
+		void AddStringTableFromFile( const FName InTableId, const FString& InTableNamespace, const FString& InTableFilename, const FString& InRootPath );
+
+		void AddStringTableEntry( const FName InTableId, const FString& InKey, const FString& InSourceString );
+
+		void AddStringTableEntryMetaData( const FName InTableId, const FString& InKey, const FName InMetaDataId, const FString& InMetaData );
 
 		//Working data
 		FString Filename;
@@ -61,6 +117,9 @@ private:
 
 		//Destination location of the parsed FLocTextEntrys
 		TSharedPtr< FLocTextHelper > GatherManifestHelper;
+
+		//Discovered string table data from all files
+		TMap<FName, FParsedStringTable> ParsedStringTables;
 
 		FSourceFileParseContext()
 			: Filename()
@@ -83,6 +142,10 @@ private:
 		}
 
 	private:
+		bool AddStringTableImpl( const FName InTableId, const FString& InTableNamespace );
+		bool AddStringTableEntryImpl( const FName InTableId, const FString& InKey, const FString& InSourceString, const FSourceLocation& InSourceLocation );
+		bool AddStringTableEntryMetaDataImpl( const FName InTableId, const FString& InKey, const FName InMetaDataId, const FString& InMetaData, const FSourceLocation& InSourceLocation );
+
 		//Working data
 		TArray<FString> MacroBlockStack;
 		mutable TOptional<EMacroBlockState> CachedMacroBlockState;
@@ -170,24 +233,9 @@ private:
 	class FMacroDescriptor : public FParsableDescriptor
 	{
 	public:
-		enum EMacroArgSemantic
-		{
-			MAS_Namespace,
-			MAS_Identifier,
-			MAS_SourceText,
-		};
-
-		struct FMacroArg
-		{
-			EMacroArgSemantic Semantic;
-			bool IsAutoText;
-
-			FMacroArg(EMacroArgSemantic InSema, bool InIsAutoText) : Semantic(InSema), IsAutoText(InIsAutoText) {}
-		};
-
 		static const FString TextMacroString;
 
-		FMacroDescriptor(FString InName) : Name(InName) {}
+		FMacroDescriptor(FString InName) : Name(MoveTemp(InName)) {}
 
 		virtual const FString& GetToken() const override { return Name; }
 
@@ -211,6 +259,21 @@ private:
 	class FStringMacroDescriptor : public FMacroDescriptor
 	{
 	public:
+		enum EMacroArgSemantic
+		{
+			MAS_Namespace,
+			MAS_Identifier,
+			MAS_SourceText,
+		};
+
+		struct FMacroArg
+		{
+			EMacroArgSemantic Semantic;
+			bool IsAutoText;
+
+			FMacroArg(EMacroArgSemantic InSema, bool InIsAutoText) : Semantic(InSema), IsAutoText(InIsAutoText) {}
+		};
+
 		FStringMacroDescriptor(FString InName, FMacroArg Arg0, FMacroArg Arg1, FMacroArg Arg2) : FMacroDescriptor(InName)
 		{
 			Arguments.Add(Arg0);
@@ -233,6 +296,41 @@ private:
 
 	private:
 		TArray<FMacroArg> Arguments;
+	};
+
+	class FStringTableMacroDescriptor : public FMacroDescriptor
+	{
+	public:
+		FStringTableMacroDescriptor() : FMacroDescriptor(TEXT("LOCTABLE_NEW")) {}
+
+		virtual void TryParse(const FString& Text, FSourceFileParseContext& Context) const override;
+	};
+
+	class FStringTableFromFileMacroDescriptor : public FMacroDescriptor
+	{
+	public:
+		FStringTableFromFileMacroDescriptor(FString InName, FString InRootPath) : FMacroDescriptor(MoveTemp(InName)), RootPath(MoveTemp(InRootPath)) {}
+
+		virtual void TryParse(const FString& Text, FSourceFileParseContext& Context) const override;
+
+	private:
+		FString RootPath;
+	};
+
+	class FStringTableEntryMacroDescriptor : public FMacroDescriptor
+	{
+	public:
+		FStringTableEntryMacroDescriptor() : FMacroDescriptor(TEXT("LOCTABLE_SETSTRING")) {}
+
+		virtual void TryParse(const FString& Text, FSourceFileParseContext& Context) const override;
+	};
+
+	class FStringTableEntryMetaDataMacroDescriptor : public FMacroDescriptor
+	{
+	public:
+		FStringTableEntryMetaDataMacroDescriptor() : FMacroDescriptor(TEXT("LOCTABLE_SETMETA")) {}
+
+		virtual void TryParse(const FString& Text, FSourceFileParseContext& Context) const override;
 	};
 
 	class FIniNamespaceDescriptor : public FPreProcessorDescriptor

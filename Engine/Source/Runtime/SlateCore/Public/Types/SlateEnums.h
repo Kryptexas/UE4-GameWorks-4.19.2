@@ -102,13 +102,13 @@ enum class EUINavigation : uint8
 	Previous,
 
 	/** Number of navigation types*/
-	Num,
+	Num UMETA(Hidden),
 	/** Denotes an invalid navigation, more important used to denote no specified navigation*/
-	Invalid
+	Invalid UMETA(Hidden),
 };
 
 /**
- * Context for focus change
+ * Enumerates the source of the navigation
  */
 UENUM()
 enum class ENavigationSource : uint8
@@ -118,6 +118,22 @@ enum class ENavigationSource : uint8
 	
 	/** Navigate from the widget under the cursor */
 	WidgetUnderCursor,
+};
+
+/**
+ * Enumerates the genesis of the navigation, where generated the navigation
+ */
+UENUM()
+enum class ENavigationGenesis : uint8
+{
+	/** Navigation caused by the Keyboard */
+	Keyboard,
+	
+	/** Navigation caused by a Controller */
+	Controller,
+
+	/** Navigate caused by a user generated event (Users = WIdgets, Client Code, ...)*/
+	User,
 };
 
 /**

@@ -269,6 +269,23 @@ public:
 		}
 	}
 
+	void Move(int32 IndexToMove, int32 IndexToDestination)
+	{
+		// Since we're dealing with an Indirect Array, we can't move an item already in the array.
+		if (IndexToMove > IndexToDestination) // going up
+		{
+			TIndirectArray< SlotType >::Insert(new SlotType(), IndexToDestination);
+			TIndirectArray< SlotType >::Swap(IndexToDestination, IndexToMove + 1);
+			TIndirectArray< SlotType >::RemoveAt(IndexToMove + 1);
+		}
+		else // going down
+		{
+			TIndirectArray< SlotType >::Insert(new SlotType(), IndexToDestination + 1);
+			TIndirectArray< SlotType >::Swap(IndexToMove, IndexToDestination + 1);
+			TIndirectArray< SlotType >::RemoveAt(IndexToMove);
+		}
+	}
+
 	void Reserve( int32 NumToReserve )
 	{
 		TIndirectArray< SlotType >::Reserve(NumToReserve);

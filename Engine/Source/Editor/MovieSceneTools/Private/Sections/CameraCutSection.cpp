@@ -22,7 +22,7 @@
 /* FCameraCutSection structors
  *****************************************************************************/
 
-FCameraCutSection::FCameraCutSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection) : FThumbnailSection(InSequencer, InThumbnailPool, InSection)
+FCameraCutSection::FCameraCutSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection) : FViewportThumbnailSection(InSequencer, InThumbnailPool, InSection)
 {
 }
 
@@ -58,12 +58,12 @@ void FCameraCutSection::Tick(const FGeometry& AllottedGeometry, const FGeometry&
 		}
 	}
 
-	FThumbnailSection::Tick(AllottedGeometry, ClippedGeometry, InCurrentTime, InDeltaTime);
+	FViewportThumbnailSection::Tick(AllottedGeometry, ClippedGeometry, InCurrentTime, InDeltaTime);
 }
 
 void FCameraCutSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding)
 {
-	FThumbnailSection::BuildSectionContextMenu(MenuBuilder, ObjectBinding);
+	FViewportThumbnailSection::BuildSectionContextMenu(MenuBuilder, ObjectBinding);
 
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 
@@ -150,7 +150,7 @@ const AActor* FCameraCutSection::GetCameraForFrame(float Time) const
 
 float FCameraCutSection::GetSectionHeight() const
 {
-	return FThumbnailSection::GetSectionHeight() + 10.f;
+	return FViewportThumbnailSection::GetSectionHeight() + 10.f;
 }
 
 FMargin FCameraCutSection::GetContentPadding() const
@@ -163,7 +163,7 @@ int32 FCameraCutSection::OnPaintSection(FSequencerSectionPainter& InPainter) con
 	static const FSlateBrush* FilmBorder = FEditorStyle::GetBrush("Sequencer.Section.FilmBorder");
 
 	InPainter.LayerId = InPainter.PaintSectionBackground();
-	return FThumbnailSection::OnPaintSection(InPainter);
+	return FViewportThumbnailSection::OnPaintSection(InPainter);
 }
 
 FText FCameraCutSection::HandleThumbnailTextBlockText() const

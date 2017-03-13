@@ -94,11 +94,6 @@ TSharedRef<SWidget> FPlatformMediaSourceCustomization::MakePlatformMediaSourcesV
 	{
 		const PlatformInfo::FPlatformInfo* Platform = AvailablePlatforms[PlatformIndex];
 
-		// hack: FPlatformInfo does not currently include IniPlatformName,
-		// so we're using PlatformInfoName and strip desktop suffixes.
-		FString PlatformName = Platform->PlatformInfoName.ToString();
-		PlatformName.RemoveFromEnd(TEXT("NoEditor"));
-
 		// platform icon
 		PlatformPanel->AddSlot(0, PlatformIndex)
 			.VAlign(VAlign_Center)
@@ -123,8 +118,9 @@ TSharedRef<SWidget> FPlatformMediaSourceCustomization::MakePlatformMediaSourcesV
 				SNew(SObjectPropertyEntryBox)
 					.AllowedClass(UMediaSource::StaticClass())
 					.AllowClear(true)
-					.ObjectPath(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryObjectPath, PlatformName)
-					.OnObjectChanged(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged, PlatformName)
+					.OnShouldFilterAsset(this, &FPlatformMediaSourceCustomization::HandleShouldFilterAsset)
+					.ObjectPath(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryObjectPath, Platform->IniPlatformName)
+					.OnObjectChanged(this, &FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged, Platform->IniPlatformName)
 			];
 	}
 
@@ -154,6 +150,13 @@ void FPlatformMediaSourceCustomization::SetPlatformMediaSourcesValue(FString Pla
 
 /* FPlatformMediaSourceCustomization callbacks
  *****************************************************************************/
+
+bool FPlatformMediaSourceCustomization::HandleShouldFilterAsset(const FAssetData& AssetData)
+{
+	// Don't allow nesting platform media sources.
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	return AssetClass->IsChildOf(UPlatformMediaSource::StaticClass());
+}
 
 void FPlatformMediaSourceCustomization::HandleMediaSourcePropertyEntryBoxChanged(const FAssetData& AssetData, FString PlatformName)
 {

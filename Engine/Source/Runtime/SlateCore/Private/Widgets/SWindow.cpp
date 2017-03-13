@@ -1345,7 +1345,7 @@ EWindowTransparency SWindow::GetTransparencySupport() const
 /** @return A String representation of the widget */
 FString SWindow::ToString() const
 {
-	return FString::Printf( *NSLOCTEXT("SWindow", "Window_Title", " Window : %s ").ToString(), *GetTitle().ToString() );
+	return FText::Format(NSLOCTEXT("SWindow", "Window_TitleFmt", " Window : {0} "), GetTitle()).ToString();
 }
 
 /** @return true if the window should be activated when first shown */
@@ -1371,7 +1371,7 @@ bool SWindow::IsAutosized() const
 	return SizingRule == ESizingRule::Autosized;
 }
 
-void SWindow::SetSizingRule( ESizingRule::Type InSizingRule )
+void SWindow::SetSizingRule( ESizingRule InSizingRule )
 {
 	SizingRule = InSizingRule;
 }

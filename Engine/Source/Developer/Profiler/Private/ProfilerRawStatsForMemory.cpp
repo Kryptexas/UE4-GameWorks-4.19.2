@@ -202,7 +202,7 @@ void FRawStatsMemoryProfiler::PreProcessStats()
 	Super::PreProcessStats();
 
 	// Begin marker.
-	Snapshots.Add( TPairInitializer<uint32, FName>( LastSequenceTagForNamedMarker, TEXT( "BeginSnapshot" ) ) );
+	Snapshots.Emplace( LastSequenceTagForNamedMarker, TEXT( "BeginSnapshot" ) );
 }
 
 
@@ -217,7 +217,7 @@ void FRawStatsMemoryProfiler::PostProcessStats()
 		SortSequenceAllocations();
 
 		// End marker.
-		Snapshots.Add( TPairInitializer<uint32, FName>( TNumericLimits<uint32>::Max(), TEXT( "EndSnapshot" ) ) );
+		Snapshots.Emplace( TNumericLimits<uint32>::Max(), TEXT( "EndSnapshot" ) );
 
 		// Copy snapshots.
 		SnapshotsToBeProcessed = Snapshots;
@@ -446,7 +446,7 @@ void FRawStatsMemoryProfiler::ProcessSpecialMessageMarkerOperation( const FStatM
 	if (RawName == FStatConstants::RAW_NamedMarker)
 	{
 		const FName NamedMarker = Message.GetValue_FName();
-		Snapshots.Add( TPairInitializer<uint32, FName>( LastSequenceTagForNamedMarker, NamedMarker ) );
+		Snapshots.Emplace( LastSequenceTagForNamedMarker, NamedMarker );
 	}
 }
 

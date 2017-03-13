@@ -70,6 +70,18 @@ void VertexMain(
 -----------------------------------------------------------------------------*/
 #if PIXELSHADER
 
+#if STATIC_PROPERTIES_ONLY
+void PixelMain(
+	in FShaderInterpolants Interpolants,
+	out float4 OutRenderAttributes : SV_Target0,
+	out float4 OutSimulationAttributes : SV_Target1
+)
+{
+	// Store attributes in textures.
+	OutRenderAttributes = Interpolants.RenderAttributes;
+	OutSimulationAttributes = Interpolants.SimulationAttributes;
+}
+#else
 void PixelMain(
 	in FShaderInterpolants Interpolants,
 	out float4 OutPosition				: SV_Target0,
@@ -84,5 +96,6 @@ void PixelMain(
 	OutRenderAttributes = Interpolants.RenderAttributes;
 	OutSimulationAttributes = Interpolants.SimulationAttributes;
 }
+#endif
 
 #endif // #if PIXELSHADER

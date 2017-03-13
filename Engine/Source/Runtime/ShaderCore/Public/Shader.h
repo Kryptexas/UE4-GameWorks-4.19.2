@@ -218,7 +218,12 @@ public:
 
 	/** Returns true if and only if TargetPlatform is compatible for use with CurrentPlatform. */
 	SHADERCORE_API static bool ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform TargetPlatform);
-	
+
+	void GetShaderCode(TArray<uint8>& OutCode) const
+	{
+		UncompressCode(OutCode);
+	}
+
 private:
 	// compression functions
 	void UncompressCode(TArray<uint8>& UncompressedCode) const;

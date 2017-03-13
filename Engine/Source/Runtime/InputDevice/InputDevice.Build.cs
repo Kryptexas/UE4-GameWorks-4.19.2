@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class InputDevice : ModuleRules
 {
-    public InputDevice(TargetInfo Target)
+    public InputDevice(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.AddRange(
 			new string[] {

@@ -5,7 +5,7 @@ using System.IO;
 
 public class AnimGraph : ModuleRules
 {
-	public AnimGraph(TargetInfo Target)
+	public AnimGraph(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/AnimGraph/Private");
 

@@ -1,11 +1,25 @@
 <?xml version='1.0' ?>
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../../Engine/Build/Graph/Schema.xsd" >
 
-	<!-- List of patterns that should always be excluded when making an installed build -->
-	<Property Name="ConfidentialExceptions" Value=".../EpicInternal/...;.../CarefullyRedist/...;.../NotForLicensees/...;.../NoRedist/..."/>
-	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../PS4/..." If="'$(WithPS4)' != true"/>
-	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../XboxOne/..." If="'$(WithXboxOne)' != true"/>
-	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../Switch/...;.../Wolf/...;.../WolfPlat/..." If="'$(WithSwitch)' != true"/>
+	<!-- List of patterns that should always be excluded when making an installed build. Filter the default list of exclusions to include confidential platforms if they're enabled. -->
+	<Property Name="ConfidentialExceptions" Value=""/>
+	<ForEach Name="RestrictedFolderName" Values="$(RestrictedFolderNames)">
+		<Switch>
+			<Case If="'$(RestrictedFolderName)' == 'PS4' And '$(WithPS4)' == true">
+				<!-- Allow this folder -->
+			</Case>
+			<Case If="'$(RestrictedFolderName)' == 'XboxOne' And '$(WithXboxOne)' == true">
+				<!-- Allow this folder -->
+			</Case>
+			<Case If="'$(RestrictedFolderName)' == 'Switch' And '$(WithSwitch)' == true">
+				<!-- Allow this folder -->
+			</Case>
+			<Default>
+				<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);" If="'$(ConfidentialExceptions)' != ''"/>
+				<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions).../$(RestrictedFolderName)/..."/>
+			</Default>
+		</Switch>
+	</ForEach>
 
 	<!-- List of file types to be stripped and signed for different platforms -->
 	<Property Name="Win64StripFilter" Value="*.pdb"/>
@@ -19,6 +33,7 @@
 
 	<Property Name="WindowsSignFilter" Value="*.exe;*.dll"/>
 	<Property Name="MacSignFilter" Value="*.dylib;*.app"/>
+	<Property Name="SignExceptions" Value=".../ThirdParty/..."/>
 
 	<!-- List of projects to build DDC for -->
 	<Property Name="ProjectsToBuildDDC" Value="Templates/FP_FirstPersonBP/FP_FirstPersonBP.uproject"/>
@@ -39,10 +54,6 @@
 	<!-- Define Filters/Exceptions to make it easy to add to them -->
 	<Property Name="CopyEditorFilter" Value=""/>
 	<Property Name="CopyEditorExceptions" Value=""/>
-
-	<!-- Tool dependencies -->
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/DotNET/Ionic.Zip.Reduced.dll"/>
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/DotNET/OneSky.dll"/>
 
 	<!-- API docs -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/CHM/API.chm" If="Exists('Engine/Documentation/CHM/API.chm')"/>
@@ -68,6 +79,7 @@
 	<!-- Plugins -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Plugins/....uplugin"/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Plugins/.../Content/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Plugins/.../Config/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Plugins/.../Resources/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Plugins/.../Source/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Plugins/.../Templates/..."/>
@@ -171,7 +183,6 @@
 		<!-- Extra tools -->
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/3dsMaxScripts/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/VisualStudioDebugging/UE4.natvis"/>
-		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Maya_AnimationRiggingTools/MayaTools/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/MayaVelocityGridExporter/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/UnrealVS/..."/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Redist/en-us/*"/>
@@ -199,7 +210,6 @@
 
 		<!-- Extra tools -->
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/LLDBDataFormatters/UE4DataFormatters.py"/>
-		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/..."/>
 
 		<!-- Don't want these folders, even if they're part of Windows tools -->
 		<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Binaries/Win64/...;Engine/Binaries/Win32/..."/>
@@ -307,6 +317,7 @@
 
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/OpenAL/..."/>
 	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu/*.so"/>
+	<Property Name="CopyLinuxFilter" Value="$(CopyLinuxFilter);Engine/Extras/ThirdPartyNotUE/putty/..."/>
 
 	<!-- Win64 specific -->
 	<Do If="'$(HostPlatform)' == 'Win64'">

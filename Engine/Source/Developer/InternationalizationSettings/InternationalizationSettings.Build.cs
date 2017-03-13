@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class InternationalizationSettings : ModuleRules
 	{
-        public InternationalizationSettings(TargetInfo Target)
+        public InternationalizationSettings(ReadOnlyTargetRules Target) : base(Target)
 		{
             PrivateDependencyModuleNames.AddRange(
                 new string[] {

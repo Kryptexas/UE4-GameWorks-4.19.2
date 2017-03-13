@@ -46,7 +46,7 @@ void RayTraceThroughLightTileCulledObjectsFirstHit(
 		float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
 		float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
 		float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
-		float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+		float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 
 		float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 		float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
@@ -126,7 +126,7 @@ float3 ComputeDistanceFieldNormal(float3 WorldPosition, uint ObjectIndex)
 {
 	float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
 	float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
-	float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+	float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 
 	float3x3 VolumeToWorld = LoadObjectVolumeToWorld(ObjectIndex);
 
@@ -313,8 +313,8 @@ float4 LightPositionAndInvRadius;
 float LightSourceRadius;
 float2 TanLightAngleAndNormalThreshold;
 
-Buffer<float4> ShadowCulledObjectBounds;
-Buffer<float4> ShadowCulledObjectData;
+StructuredBuffer<float4> ShadowCulledObjectBounds;
+StructuredBuffer<float4> ShadowCulledObjectData;
 
 float RayTraceThroughLightTileCulledObjects(
 	float3 WorldRayStart, 
@@ -352,7 +352,7 @@ float RayTraceThroughLightTileCulledObjects(
 			float4x4 WorldToVolume = LoadObjectWorldToVolumeFromBuffer(ObjectIndex, ShadowCulledObjectData);
 			bool bGeneratedAsTwoSided;
 			float4 UVScaleAndVolumeScale = LoadObjectUVScaleFromBuffer(ObjectIndex, ShadowCulledObjectData, bGeneratedAsTwoSided);
-			float3 UVAdd = LoadObjectUVAddFromBuffer(ObjectIndex, ShadowCulledObjectData);
+			float3 UVAdd = LoadObjectUVAddAndSelfShadowBiasFromBuffer(ObjectIndex, ShadowCulledObjectData).xyz;
 
 			float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 			float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
@@ -906,42 +906,18 @@ float3 GatherIrradianceFromVPLs(float3 WorldPosition, float3 WorldNormal, uint R
 	float3 Irradiance = 0;
 
 #if IRRADIANCE_FROM_SURFELS
-
+	/*
 	uint4 TileHead = GetTileHead(TileCoordinate);
-
-	#if USE_DEPTH_RANGE_LISTS
-		
-		uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
-		float4 ConeAxisDepthRanges = TileConeDepthRanges.Load(TileIndex);
-		float SceneDepth = mul(float4(WorldPosition, 1), View.WorldToClip).w;
-		uint ListIndex = SceneDepth < ConeAxisDepthRanges.y ? 0 : 1;
-		uint NumObjectsAffectingTile = SceneDepth < ConeAxisDepthRanges.y ? TileHead.y : TileHead.z;
-	#else
-		uint NumObjectsAffectingTile = TileHead.y + TileHead.z + TileHead.w;
-	#endif
+	uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
+	float4 ConeAxisDepthRanges = TileConeDepthRanges.Load(TileIndex);
+	float SceneDepth = mul(float4(WorldPosition, 1), View.WorldToClip).w;
+	uint ListIndex = SceneDepth < ConeAxisDepthRanges.y ? 0 : 1;
+	uint NumObjectsAffectingTile = SceneDepth < ConeAxisDepthRanges.y ? TileHead.y : TileHead.z;
 
 	LOOP 
 	for (uint ListObjectIndex = 0; ListObjectIndex < NumObjectsAffectingTile; ListObjectIndex++)
 	{
-		#if USE_DEPTH_RANGE_LISTS
-			uint ArrayIndex = ListObjectIndex;
-		#else
-			uint ListIndex = 0;
-			uint ArrayIndex = ListObjectIndex;
-
-			FLATTEN
-			if (ListObjectIndex >= TileHead.y + TileHead.z)
-			{
-				ListIndex = 2;
-				ArrayIndex = ListObjectIndex - TileHead.y - TileHead.z;
-			}
-			else if (ListObjectIndex >= TileHead.y)
-			{
-				ListIndex = 1;
-				ArrayIndex = ListObjectIndex - TileHead.y;
-			}
-		#endif
-
+		uint ArrayIndex = ListObjectIndex;
 		uint ObjectIndex = TileArrayData.Load((ArrayIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
 		float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
 		float ObjectDistance = length(ObjectPositionAndRadius.xyz - WorldPosition);
@@ -968,7 +944,7 @@ float3 GatherIrradianceFromVPLs(float3 WorldPosition, float3 WorldNormal, uint R
 				Irradiance += ComputeVirtualPointLighting(VPLIndex + SurfelOffsetAndNum.x, VPLIndex + InstancedSurfelOffsetAndNum.x, RelativeRecordIndex, WorldPosition, WorldNormal, ObjectInstanceToWorld);
 			}
 		}
-	}
+	}*/
 
 #else
 
@@ -1073,8 +1049,8 @@ void ComputeStepBentNormalScreenGridCS(
 	float3 WorldNormal;
 	float SceneDepth;
 	bool bHasDistanceFieldRepresentation;
-	bool bHasHeightfieldRepresentation;
-	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+	bool bLit;
+	GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 	float3 TangentX;
 	float3 TangentY;
@@ -1121,8 +1097,8 @@ void ComputeIrradianceScreenGridCS(
 		float3 WorldNormal;
 		float SceneDepth;
 		bool bHasDistanceFieldRepresentation;
-		bool bHasHeightfieldRepresentation;
-		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+		bool bLit;
+		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 		float3 TangentX;
 		float3 TangentY;

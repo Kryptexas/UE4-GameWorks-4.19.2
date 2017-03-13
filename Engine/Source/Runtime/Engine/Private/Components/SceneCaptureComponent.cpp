@@ -169,6 +169,7 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
 {
 	bCaptureEveryFrame = true;
 	bCaptureOnMovement = true;
+	LODDistanceFactor = 1.0f;
 	MaxViewDistanceOverride = -1;
 
 	// Disable features that are not desired when capturing the scene

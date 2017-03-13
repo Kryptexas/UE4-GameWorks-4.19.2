@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Base class for platform-specific project generators
 	/// </summary>
-	public abstract class UEPlatformProjectGenerator
+	abstract class UEPlatformProjectGenerator
 	{
 		static Dictionary<UnrealTargetPlatform, UEPlatformProjectGenerator> ProjectGeneratorDictionary = new Dictionary<UnrealTargetPlatform, UEPlatformProjectGenerator>();
 
@@ -65,8 +65,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Allow various platform project generators to generate stub projects if required
 		/// </summary>
+		/// <param name="InGenerator"></param>
 		/// <param name="InTargetName"></param>
 		/// <param name="InTargetFilepath"></param>
+		/// <param name="InTargetRules"></param>
+		/// <param name="InPlatforms"></param>
+		/// <param name="InConfigurations"></param>
 		/// <returns></returns>
 		public static bool GenerateGameProjectStubs(ProjectFileGenerator InGenerator, string InTargetName, string InTargetFilepath, TargetRules InTargetRules,
 			List<UnrealTargetPlatform> InPlatforms, List<UnrealTargetConfiguration> InConfigurations)
@@ -83,8 +87,13 @@ namespace UnrealBuildTool
 		/// Allow various platform project generators to generate any special project properties if required
 		/// </summary>
 		/// <param name="InPlatform"></param>
+		/// <param name="Configuration"></param>
+		/// <param name="TargetType"></param>
+		/// <param name="VCProjectFileContent"></param>
+		/// <param name="RootDirectory"></param>
+		/// <param name="TargetFilePath"></param>
 		/// <returns></returns>
-		public static bool GenerateGamePlatformSpecificProperties(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration Configuration, TargetRules.TargetType TargetType, StringBuilder VCProjectFileContent, DirectoryReference RootDirectory, FileReference TargetFilePath)
+		public static bool GenerateGamePlatformSpecificProperties(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration Configuration, TargetType TargetType, StringBuilder VCProjectFileContent, DirectoryReference RootDirectory, FileReference TargetFilePath)
 		{
 			if (ProjectGeneratorDictionary.ContainsKey(InPlatform) == true)
 			{
@@ -118,7 +127,7 @@ namespace UnrealBuildTool
 			// Do nothing
 		}
 
-		public virtual void GenerateGameProperties(UnrealTargetConfiguration Configuration, StringBuilder VCProjectFileContent, TargetRules.TargetType TargetType, DirectoryReference RootDirectory, FileReference TargetFilePath)
+		public virtual void GenerateGameProperties(UnrealTargetConfiguration Configuration, StringBuilder VCProjectFileContent, TargetType TargetType, DirectoryReference RootDirectory, FileReference TargetFilePath)
 		{
 			// Do nothing
 		}
@@ -206,11 +215,15 @@ namespace UnrealBuildTool
 		/// Return any custom paths for VisualStudio this platform requires
 		/// This include ReferencePath, LibraryPath, LibraryWPath, IncludePath and ExecutablePath.
 		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="TargetType">  The type of target (game or program)</param>
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The configuration being built</param>
+		/// <param name="TargetType">The type of target (game or program)</param>
+		/// <param name="TargetRulesPath">Path to the .target.cs file</param>
+		/// <param name="ProjectFilePath"></param>
+		/// <param name="NMakeOutputPath"></param>
 		/// <param name="InProjectFileFormat">The visual studio project file format being generated</param>
-		/// <returns>string    The custom path lines for the project file; Empty string if it doesn't require one</returns>
-		public virtual string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath, VCProjectFileFormat InProjectFileFormat)
+		/// <returns>The custom path lines for the project file; Empty string if it doesn't require one</returns>
+		public virtual string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath, VCProjectFileFormat InProjectFileFormat)
 		{
 			// NOTE: We are intentionally overriding defaults for these paths with empty strings.  We never want Visual Studio's
 			//       defaults for these fields to be propagated, since they are version-sensitive paths that may not reflect
@@ -226,6 +239,16 @@ namespace UnrealBuildTool
 				"		<ExcludePath />\n";
 
 			return PathsLines;
+		}
+
+		/// <summary>
+		/// Return any custom property settings. These will be included in the ImportGroup section
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
+		public virtual string GetVisualStudioImportGroupProperties(UnrealTargetPlatform InPlatform)
+		{
+			return "";
 		}
 
 		/// <summary>
@@ -252,11 +275,16 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Return any custom layout directory sections
 		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="TargetType">  The type of target (game or program)</param>
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The configuration being built</param>
+		/// <param name="InConditionString"></param>
+		/// <param name="TargetType">The type of target (game or program)</param>
 		/// <param name="InProjectFileFormat">The visual studio project file format being generated</param>
+		/// <param name="NMakeOutputPath"></param>
+		/// <param name="ProjectFilePath"></param>
+		/// <param name="TargetRulesPath"></param>
 		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
-		public virtual string GetVisualStudioLayoutDirSection(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, string InConditionString, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath, VCProjectFileFormat InProjectFileFormat)
+		public virtual string GetVisualStudioLayoutDirSection(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, string InConditionString, TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath, VCProjectFileFormat InProjectFileFormat)
 		{
 			return "";
 		}
@@ -264,10 +292,13 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Get the output manifest section, if required
 		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="TargetType">The type of the target being built</param>
+		/// <param name="TargetRulesPath">Path to the .target.cs file</param>
+		/// <param name="ProjectFilePath">Path to the project file</param>
 		/// <param name="InProjectFileFormat">The visual studio project file format being generated</param>
-		/// <returns>string    The output manifest section for the project file; Empty string if it doesn't require one</returns>
-		public virtual string GetVisualStudioOutputManifestSection(UnrealTargetPlatform InPlatform, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, VCProjectFileFormat InProjectFileFormat)
+		/// <returns>The output manifest section for the project file; Empty string if it doesn't require one</returns>
+		public virtual string GetVisualStudioOutputManifestSection(UnrealTargetPlatform InPlatform, TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, VCProjectFileFormat InProjectFileFormat)
 		{
 			return "";
 		}
@@ -295,6 +326,31 @@ namespace UnrealBuildTool
 			string InConditionString, TargetRules InTargetRules, FileReference TargetRulesPath, FileReference ProjectFilePath)
 		{
 			return "";
+		}
+
+		/// <summary>
+		/// For Additional Project Property files that need to be written out.  This is currently used only on Android. 
+		/// </summary>
+		public virtual void WriteAdditionalPropFile()
+		{
+		}
+
+		/// <summary>
+		/// For additional Project files (ex. *PROJECTNAME*-AndroidRun.androidproj.user) that needs to be written out.  This is currently used only on Android. 
+		/// </summary>
+		/// <param name="ProjectFile">Project file this will be related to</param>
+		public virtual void WriteAdditionalProjUserFile(ProjectFile ProjectFile)
+		{
+		}
+
+		/// <summary>
+		/// For additional Project files (ex. *PROJECTNAME*-AndroidRun.androidproj) that needs to be written out.  This is currently used only on Android. 
+		/// </summary>
+		/// <param name="ProjectFile">Project file this will be related to</param>
+		/// <returns>Project file written out, Solution folder it should be put in</returns>
+		public virtual Tuple<ProjectFile, string> WriteAdditionalProjFile(ProjectFile ProjectFile)
+		{
+			return null;
 		}
 	}
 }

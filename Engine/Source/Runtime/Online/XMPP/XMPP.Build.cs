@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class XMPP : ModuleRules
 {
-	public XMPP(TargetInfo Target)
+	public XMPP(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("XMPP_PACKAGE=1");
 
@@ -35,6 +35,15 @@ public class XMPP : ModuleRules
 		else
 		{
 			Definitions.Add("WITH_XMPP_JINGLE=0");
+		}
+		
+		if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "libstrophe");
+		}
+		else
+		{
+			Definitions.Add("WITH_XMPP_STROPHE=0");
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 ||

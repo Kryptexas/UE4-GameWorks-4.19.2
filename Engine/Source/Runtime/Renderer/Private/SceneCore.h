@@ -211,6 +211,7 @@ public:
 	float DirectionalInscatteringStartDistance;
 	FLinearColor DirectionalInscatteringColor;
 	UTextureCube* InscatteringColorCubemap;
+	float InscatteringColorCubemapAngle;
 	float FullyDirectionalInscatteringColorDistance;
 	float NonDirectionalInscatteringColorDistance;
 

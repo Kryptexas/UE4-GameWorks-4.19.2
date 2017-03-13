@@ -51,8 +51,8 @@ public:
 
 #if WITH_EDITOR
 	virtual const FText GetPaletteCategory() override;
-	virtual void OnDescendantSelected(UWidget* DescendantWidget) override;
-	virtual void OnDescendantDeselected(UWidget* DescendantWidget) override;
+	virtual void OnDescendantSelectedByDesigner(UWidget* DescendantWidget) override;
+	virtual void OnDescendantDeselectedByDesigner(UWidget* DescendantWidget) override;
 
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

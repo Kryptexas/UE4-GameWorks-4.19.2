@@ -31,6 +31,7 @@
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
 #include "KismetCompilerModule.h"
 #include "Widgets/Input/SDirectoryPicker.h"
+#include "SourceCodeNavigation.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"
 
@@ -80,11 +81,11 @@ struct FGeneratedCodeData
 
 		if (DependentObjects.Num())
 		{
-			TypeDependencies = LOCTEXT("ConvertedDependencies", "Converted Dependencies:\n").ToString();
+			TypeDependencies = LOCTEXT("ConvertedDependencies", "Detected Dependencies:\n").ToString();
 		}
 		else
 		{
-			TypeDependencies = LOCTEXT("NoConvertedAssets", "No Converted Dependencies was found.\n").ToString();
+			TypeDependencies = LOCTEXT("NoConvertedAssets", "No dependencies found.\n").ToString();
 		}
 
 		for (auto Obj : DependentObjects)
@@ -111,14 +112,14 @@ struct FGeneratedCodeData
 
 	static FString DefaultHeaderDir()
 	{
-		auto DefaultSourceDir = FPaths::ConvertRelativePathToFull(FPaths::GameSourceDir());
-		return FPaths::Combine(*DefaultSourceDir, FApp::GetGameName(), TEXT("Public"));
+		auto DefaultSourceDir = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir());
+		return FPaths::Combine(*DefaultSourceDir, TEXT("NativizationTest"), TEXT("Public"));
 	}
 
 	static FString DefaultSourceDir()
 	{
-		auto DefaultSourceDir = FPaths::ConvertRelativePathToFull(FPaths::GameSourceDir());
-		return FPaths::Combine(*DefaultSourceDir, FApp::GetGameName(), TEXT("Private"));
+		auto DefaultSourceDir = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir());
+		return FPaths::Combine(*DefaultSourceDir, TEXT("NativizationTest"), TEXT("Private"));
 	}
 
 	FString HeaderFileName() const
@@ -139,7 +140,7 @@ struct FGeneratedCodeData
 			return false;
 		}
 
-		const int WorkParts = 3 + (4 * DependentObjects.Num());
+		const int WorkParts = 3 +(4 * DependentObjects.Num());
 		FScopedSlowTask SlowTask(WorkParts, LOCTEXT("GeneratingCppFiles", "Generating C++ files.."));
 		SlowTask.MakeDialog();
 
@@ -188,7 +189,13 @@ struct FGeneratedCodeData
 
 		SlowTask.EnterProgressFrame();
 
-		return ErrorString.IsEmpty();
+		bool bSuccess = ErrorString.IsEmpty();
+		if (bSuccess && CreatedFiles.Num() > 0)
+		{
+			// assume the last element is the target cpp file
+			FSourceCodeNavigation::OpenSourceFile(CreatedFiles.Last());
+		}
+		return bSuccess;
 	}
 };
 
@@ -227,22 +234,15 @@ private:
 
 	FReply OnButtonClicked()
 	{
-		if (IsEditable())
-		{
-			bSaved = GeneratedCodeData->Save(HeaderDirectoryBrowser->GetDirectory(), SourceDirectoryBrowser->GetDirectory());
-			ErrorWidget->SetError(GeneratedCodeData->ErrorString);
-		}
-		else
-		{
-			CloseParentWindow();
-		}
+		bSaved = GeneratedCodeData->Save(HeaderDirectoryBrowser->GetDirectory(), SourceDirectoryBrowser->GetDirectory());
+		ErrorWidget->SetError(GeneratedCodeData->ErrorString);
 		
 		return FReply::Handled();
 	}
 
 	FText ButtonText() const
 	{
-		return IsEditable() ? LOCTEXT("Generate", "Generate") : LOCTEXT("Close", "Close");
+		return IsEditable() ? LOCTEXT("Generate", "Generate") : LOCTEXT("Regenerate", "Regenerate");
 	}
 
 	FText GetClassName() const

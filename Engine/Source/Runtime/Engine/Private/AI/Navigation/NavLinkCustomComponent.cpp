@@ -68,6 +68,11 @@ uint32 UNavLinkCustomComponent::GetLinkId() const
 	return NavLinkUserId;
 }
 
+void UNavLinkCustomComponent::UpdateLinkId(uint32 NewUniqueId)
+{
+	NavLinkUserId = NewUniqueId;
+}
+
 bool UNavLinkCustomComponent::IsLinkPathfindingAllowed(const UObject* Querier) const
 {
 	return true;
@@ -110,7 +115,7 @@ void UNavLinkCustomComponent::GetNavigationData(FNavigationRelevantData& Data) c
 
 void UNavLinkCustomComponent::CalcAndCacheBounds() const
 {
-	Bounds = FBox(0);
+	Bounds = FBox(ForceInit);
 	Bounds += GetStartPoint();
 	Bounds += GetEndPoint();
 

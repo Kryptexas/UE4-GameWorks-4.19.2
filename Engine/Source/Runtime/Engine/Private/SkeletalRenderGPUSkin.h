@@ -12,10 +12,10 @@
 #include "ShaderParameters.h"
 #include "SkeletalMeshTypes.h"
 #include "Components/SkinnedMeshComponent.h"
-#include "ClothSimData.h"
 #include "GlobalShader.h"
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalRenderPublic.h"
+#include "ClothingSystemRuntimeTypes.h"
 
 /** 
 * Stores the updated matrices needed to skin the verts.
@@ -79,7 +79,7 @@ public:
 	int32 NumWeightedActiveMorphTargets;
 
 	/** data for updating cloth section */
-	TMap<int32, FClothSimulData> ClothSimulUpdateData;
+	TMap<int32, FClothSimulData> ClothingSimData;
 
 	/** a weight factor to blend between simulated positions and skinned positions */	
 	float ClothBlendWeight;
@@ -295,6 +295,8 @@ public:
 	}
 	//~ End FSkeletalMeshObject Interface
 
+	FSkinWeightVertexBuffer* GetSkinWeightVertexBuffer(int32 LODIndex) const;
+
 	/** 
 	 * Vertex buffers that can be used for GPU skinning factories 
 	 */
@@ -313,7 +315,7 @@ public:
 		FSkinWeightVertexBuffer* SkinWeightVertexBuffer;
 		FColorVertexBuffer*	ColorVertexBuffer;
 		FMorphVertexBuffer* MorphVertexBuffer;
-		FSkeletalMeshVertexAPEXClothBuffer*	APEXClothVertexBuffer;
+		FSkeletalMeshVertexClothBuffer*	APEXClothVertexBuffer;
 	};
 
 private:
@@ -409,6 +411,8 @@ private:
 		:	SkelMeshResource(InSkelMeshResource)
 		,	LODIndex(InLOD)
 		,	MorphVertexBuffer(InSkelMeshResource,LODIndex)
+		,	MeshObjectWeightBuffer(nullptr)
+		,	MeshObjectColorBuffer(nullptr)
 		{
 		}
 
@@ -468,6 +472,12 @@ private:
 		/** Default GPU skinning vertex factories and matrices */
 		FVertexFactoryData GPUSkinVertexFactories;
 
+		/** Skin weight buffer to use, could be from asset or component override */
+		FSkinWeightVertexBuffer* MeshObjectWeightBuffer;
+
+		/** Color buffer to user, could be from asset or component override */
+		FColorVertexBuffer* MeshObjectColorBuffer;
+
 		/**
 		 * Update the contents of the morphtarget vertex buffer by accumulating all 
 		 * delta positions and delta normals from the set of active morph targets
@@ -481,7 +491,7 @@ private:
 		 *
 		 * @param OutVertexBuffers output vertex buffers
 		 */
-		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel,const FSkelMeshObjectLODInfo& MeshLODInfo, FSkelMeshComponentLODInfo* CompLODInfo);
+		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel);
 
 		// Temporary arrays used on UpdateMorphVertexBuffer(); these grow to the max and are not thread safe.
 		static TArray<FVector> MorphDeltaTangentZAccumulationArray;

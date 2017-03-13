@@ -71,7 +71,7 @@ void UInheritableComponentHandler::PostLoad()
 				}
 				else if (Record.CookedComponentInstancingData.bIsValid)
 				{
-					// Generate "fast path" instancing data.
+					// Generate "fast path" instancing data. This data may also be used to override components inherited from a nativized BP parent class.
 					Record.CookedComponentInstancingData.LoadCachedPropertyDataForSerialization(Record.ComponentTemplate);
 				}
 			}
@@ -278,7 +278,7 @@ bool UInheritableComponentHandler::IsRecordValid(const FComponentOverrideRecord&
 		return false;
 	}
 
-	UBlueprintGeneratedClass* ComponentOwner = Record.ComponentKey.GetComponentOwner();
+	UClass* ComponentOwner = Record.ComponentKey.GetComponentOwner();
 	if (!ComponentOwner || !OwnerClass->IsChildOf(ComponentOwner))
 	{
 		return false;
@@ -515,7 +515,7 @@ FComponentKey::FComponentKey(const USCS_Node* SCSNode) : OwnerClass(nullptr)
 	if (SCSNode)
 	{
 		const USimpleConstructionScript* ParentSCS = SCSNode->GetSCS();
-		OwnerClass      = ParentSCS ? Cast<UBlueprintGeneratedClass>(ParentSCS->GetOwnerClass()) : nullptr;
+		OwnerClass      = ParentSCS ? ParentSCS->GetOwnerClass() : nullptr;
 		AssociatedGuid  = SCSNode->VariableGuid;
 		SCSVariableName = SCSNode->GetVariableName();
 	}
@@ -524,7 +524,7 @@ FComponentKey::FComponentKey(const USCS_Node* SCSNode) : OwnerClass(nullptr)
 #if WITH_EDITOR
 FComponentKey::FComponentKey(UBlueprint* Blueprint, const FUCSComponentId& UCSComponentID)
 {
-	OwnerClass     = CastChecked<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+	OwnerClass     = Blueprint->GeneratedClass;
 	AssociatedGuid = UCSComponentID.GetAssociatedGuid();
 }
 #endif // WITH_EDITOR
@@ -536,7 +536,7 @@ bool FComponentKey::Match(const FComponentKey OtherKey) const
 
 USCS_Node* FComponentKey::FindSCSNode() const
 {
-	USimpleConstructionScript* ParentSCS = (OwnerClass && IsSCSKey()) ? OwnerClass->SimpleConstructionScript : nullptr;
+	USimpleConstructionScript* ParentSCS = (OwnerClass && IsSCSKey()) ? CastChecked<UBlueprintGeneratedClass>(OwnerClass)->SimpleConstructionScript : nullptr;
 	return ParentSCS ? ParentSCS->FindSCSNodeByGuid(AssociatedGuid) : nullptr;
 }
 

@@ -141,7 +141,7 @@ namespace
 			const int Height = PopupFeaturesSP->IsHeightSet() ? PopupFeaturesSP->GetHeight() : 600;
 			const FVector2D BrowserWindowSize(Width, Height);
 
-			const ESizingRule::Type SizeingRule = PopupFeaturesSP->IsResizable() ? ESizingRule::UserSized : ESizingRule::FixedSize;
+			const ESizingRule SizeingRule = PopupFeaturesSP->IsResizable() ? ESizingRule::UserSized : ESizingRule::FixedSize;
 
 			TSharedPtr<IWebBrowserWindow> NewBrowserWindowSP = NewBrowserWindow.Pin();
 			check(NewBrowserWindowSP.IsValid())

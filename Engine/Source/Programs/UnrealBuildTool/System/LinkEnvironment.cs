@@ -8,24 +8,24 @@ using System.Text;
 namespace UnrealBuildTool
 {
 	/// <summary>
-	/// Configuration class for LinkEnvironment
+	/// Encapsulates the environment that is used to link object files.
 	/// </summary>
-	public class LinkEnvironmentConfiguration
+	class LinkEnvironment
 	{
 		/// <summary>
 		/// The platform to be compiled/linked for.
 		/// </summary>
-		public CPPTargetPlatform Platform;
+		public readonly CppPlatform Platform;
 
 		/// <summary>
 		/// The configuration to be compiled/linked for.
 		/// </summary>
-		public CPPTargetConfiguration Configuration;
+		public readonly CppConfiguration Configuration;
 
 		/// <summary>
 		/// The architecture that is being compiled/linked (empty string by default)
 		/// </summary>
-		public string Architecture;
+		public readonly string Architecture;
 
 		/// <summary>
 		/// The directory to put the non-executable files in (PDBs, import library, etc)
@@ -176,51 +176,70 @@ namespace UnrealBuildTool
 		public bool bIsBuildingDotNetAssembly = false;
 
 		/// <summary>
-		/// Default constructor.
+		/// The default stack memory size allocation
 		/// </summary>
-		public LinkEnvironmentConfiguration()
-		{
-		}
+		public int DefaultStackSize = 5000000;
 
 		/// <summary>
-		/// Copy constructor.
+		/// The amount of the default stack size to commit initially. Set to 0 to allow the OS to decide.
 		/// </summary>
-		public LinkEnvironmentConfiguration(LinkEnvironmentConfiguration InCopyEnvironment)
-		{
-			Platform = InCopyEnvironment.Platform;
-			Configuration = InCopyEnvironment.Configuration;
-			Architecture = InCopyEnvironment.Architecture;
-			OutputDirectory = InCopyEnvironment.OutputDirectory;
-			IntermediateDirectory = InCopyEnvironment.IntermediateDirectory;
-			LocalShadowDirectory = InCopyEnvironment.LocalShadowDirectory;
-			OutputFilePaths = InCopyEnvironment.OutputFilePaths.ToList();
-			ProjectFile = InCopyEnvironment.ProjectFile;
-			LibraryPaths.AddRange(InCopyEnvironment.LibraryPaths);
-			ExcludedLibraries.AddRange(InCopyEnvironment.ExcludedLibraries);
-			AdditionalLibraries.AddRange(InCopyEnvironment.AdditionalLibraries);
-			Frameworks.AddRange(InCopyEnvironment.Frameworks);
-			AdditionalShadowFiles.AddRange(InCopyEnvironment.AdditionalShadowFiles);
-			AdditionalFrameworks.AddRange(InCopyEnvironment.AdditionalFrameworks);
-			WeakFrameworks.AddRange(InCopyEnvironment.WeakFrameworks);
-			AdditionalBundleResources.AddRange(InCopyEnvironment.AdditionalBundleResources);
-			DelayLoadDLLs.AddRange(InCopyEnvironment.DelayLoadDLLs);
-			AdditionalArguments = InCopyEnvironment.AdditionalArguments;
-			bCreateDebugInfo = InCopyEnvironment.bCreateDebugInfo;
-			bIsBuildingLibrary = InCopyEnvironment.bIsBuildingLibrary;
-			bIsBuildingDLL = InCopyEnvironment.bIsBuildingDLL;
-			bIsBuildingConsoleApplication = InCopyEnvironment.bIsBuildingConsoleApplication;
-			WindowsEntryPointOverride = InCopyEnvironment.WindowsEntryPointOverride;
-			bIsCrossReferenced = InCopyEnvironment.bIsCrossReferenced;
-			bHasExports = InCopyEnvironment.bHasExports;
-			bIsBuildingDotNetAssembly = InCopyEnvironment.bIsBuildingDotNetAssembly;
-		}
-	}
+		public int DefaultStackSizeCommit = 0;
 
-	/// <summary>
-	/// Encapsulates the environment that is used to link object files.
-	/// </summary>
-	public class LinkEnvironment
-	{
+		/// <summary>
+		/// Whether to optimize for minimal code size
+		/// </summary>
+		public bool bOptimizeForSize = false;
+
+		/// <summary>
+		/// Whether to omit frame pointers or not. Disabling is useful for e.g. memory profiling on the PC
+		/// </summary>
+		public bool bOmitFramePointers = true;
+
+		/// <summary>
+		/// Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
+		/// </summary>
+		public bool bSupportEditAndContinue;
+
+		/// <summary>
+		/// Whether to use incremental linking or not.
+		/// </summary>
+		public bool bUseIncrementalLinking;
+
+		/// <summary>
+		/// Whether to allow the use of LTCG (link time code generation) 
+		/// </summary>
+		public bool bAllowLTCG;
+
+		/// <summary>
+		/// Whether to request the linker create a map file as part of the build
+		/// </summary>
+		public bool bCreateMapFile;
+
+		/// <summary>
+		/// Whether to allow the use of ASLR (address space layout randomization) if supported.
+		/// </summary>
+		public bool bAllowALSR;
+
+		/// <summary>
+		/// Whether PDB files should be used for Visual C++ builds.
+		/// </summary>
+		public bool bUsePDBFiles;
+
+		/// <summary>
+		/// Whether to use the :FASTLINK option when building with /DEBUG to create local PDBs
+		/// </summary>
+		public bool bUseFastPDBLinking;
+
+		/// <summary>
+		/// Whether to log detailed timing information
+		/// </summary>
+		public bool bPrintTimingInfo;
+
+		/// <summary>
+		/// Bundle version for Mac apps
+		/// </summary>
+		public string BundleVersion;
+
 		/// <summary>
 		/// Whether we're linking in monolithic mode. Determines if linking should produce import library file. Relevant only for VC++, clang stores imports in shared library.
 		/// </summary>
@@ -247,37 +266,62 @@ namespace UnrealBuildTool
 		public List<FileItem> CommonResourceFiles = new List<FileItem>();
 
 		/// <summary>
-		/// The LinkEnvironmentConfiguration.
-		/// </summary>
-		public LinkEnvironmentConfiguration Config = new LinkEnvironmentConfiguration();
-
-		/// <summary>
 		/// Default constructor.
 		/// </summary>
-		public LinkEnvironment()
+		public LinkEnvironment(CppPlatform Platform, CppConfiguration Configuration, string Architecture)
 		{
+			this.Platform = Platform;
+			this.Configuration = Configuration;
+			this.Architecture = Architecture;
 		}
 
 		/// <summary>
 		/// Copy constructor.
 		/// </summary>
-		protected LinkEnvironment(LinkEnvironment InCopyEnvironment)
+		public LinkEnvironment(LinkEnvironment Other)
 		{
-			InputFiles.AddRange(InCopyEnvironment.InputFiles);
-			InputLibraries.AddRange(InCopyEnvironment.InputLibraries);
-			DefaultResourceFiles.AddRange(InCopyEnvironment.DefaultResourceFiles);
-			CommonResourceFiles.AddRange(InCopyEnvironment.CommonResourceFiles);
-			
-			Config = new LinkEnvironmentConfiguration(InCopyEnvironment.Config);
-		}
-
-		/// <summary>
-		/// Performs a deep copy of this LinkEnvironment object.
-		/// </summary>
-		/// <returns>Copied new LinkEnvironment object.</returns>
-		public virtual LinkEnvironment DeepCopy()
-		{
-			return new LinkEnvironment(this);
+			Platform = Other.Platform;
+			Configuration = Other.Configuration;
+			Architecture = Other.Architecture;
+			OutputDirectory = Other.OutputDirectory;
+			IntermediateDirectory = Other.IntermediateDirectory;
+			LocalShadowDirectory = Other.LocalShadowDirectory;
+			OutputFilePaths = Other.OutputFilePaths.ToList();
+			ProjectFile = Other.ProjectFile;
+			LibraryPaths.AddRange(Other.LibraryPaths);
+			ExcludedLibraries.AddRange(Other.ExcludedLibraries);
+			AdditionalLibraries.AddRange(Other.AdditionalLibraries);
+			Frameworks.AddRange(Other.Frameworks);
+			AdditionalShadowFiles.AddRange(Other.AdditionalShadowFiles);
+			AdditionalFrameworks.AddRange(Other.AdditionalFrameworks);
+			WeakFrameworks.AddRange(Other.WeakFrameworks);
+			AdditionalBundleResources.AddRange(Other.AdditionalBundleResources);
+			DelayLoadDLLs.AddRange(Other.DelayLoadDLLs);
+			AdditionalArguments = Other.AdditionalArguments;
+			bCreateDebugInfo = Other.bCreateDebugInfo;
+			bIsBuildingLibrary = Other.bIsBuildingLibrary;
+            bDisableSymbolCache = Other.bDisableSymbolCache;
+			bIsBuildingDLL = Other.bIsBuildingDLL;
+			bIsBuildingConsoleApplication = Other.bIsBuildingConsoleApplication;
+			WindowsEntryPointOverride = Other.WindowsEntryPointOverride;
+			bIsCrossReferenced = Other.bIsCrossReferenced;
+			bHasExports = Other.bHasExports;
+			bIsBuildingDotNetAssembly = Other.bIsBuildingDotNetAssembly;
+			bOptimizeForSize = Other.bOptimizeForSize;
+			bOmitFramePointers = Other.bOmitFramePointers;
+			bSupportEditAndContinue = Other.bSupportEditAndContinue;
+			bUseIncrementalLinking = Other.bUseIncrementalLinking;
+			bAllowLTCG = Other.bAllowLTCG;
+			bCreateMapFile = Other.bCreateMapFile;
+			bAllowALSR = Other.bAllowALSR;
+			bUsePDBFiles = Other.bUsePDBFiles;
+			bUseFastPDBLinking = Other.bUseFastPDBLinking;
+			bPrintTimingInfo = Other.bPrintTimingInfo;
+			BundleVersion = Other.BundleVersion;
+			InputFiles.AddRange(Other.InputFiles);
+			InputLibraries.AddRange(Other.InputLibraries);
+			DefaultResourceFiles.AddRange(Other.DefaultResourceFiles);
+			CommonResourceFiles.AddRange(Other.CommonResourceFiles);
 		}
 	}
 }

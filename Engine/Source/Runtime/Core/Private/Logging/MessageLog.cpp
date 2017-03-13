@@ -36,19 +36,19 @@ public:
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("PageTitle"), Title);
-		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, *FText::Format(LOCTEXT("BasicMessageLog_NewPage", "New Page: {PageTitle}"), Arguments).ToString());
+		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, TEXT("%s"), *FText::Format(LOCTEXT("BasicMessageLog_NewPage", "New Page: {PageTitle}"), Arguments).ToString());
 	}
 
 	virtual void NotifyIfAnyMessages( const FText& Message, EMessageSeverity::Type SeverityFilter, bool bForce ) override
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Message"), Message);
-		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, *FText::Format(LOCTEXT("BasicMessageLog_Notify", "Notify: {Message}"), Arguments).ToString());
+		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, TEXT("%s"), *FText::Format(LOCTEXT("BasicMessageLog_Notify", "Notify: {Message}"), Arguments).ToString());
 	}
 
 	virtual void Open() override
 	{
-		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, *LOCTEXT("BasicMessageLog_Open", "Open Log").ToString());
+		FMsg::Logf(__FILE__, __LINE__, LogName, ELogVerbosity::Log, TEXT("%s"), *LOCTEXT("BasicMessageLog_Open", "Open Log").ToString());
 	}
 
 	virtual int32 NumMessages( EMessageSeverity::Type SeverityFilter ) override
@@ -67,7 +67,7 @@ private:
 			{
 				SET_WARN_COLOR(LogColor);
 			}
-			FMsg::Logf(__FILE__, __LINE__, LogName, FMessageLog::GetLogVerbosity(Message->GetSeverity()), *Message->ToText().ToString());
+			FMsg::Logf(__FILE__, __LINE__, LogName, FMessageLog::GetLogVerbosity(Message->GetSeverity()), TEXT("%s"), *Message->ToText().ToString());
 			CLEAR_WARN_COLOR();
 		}
 	}

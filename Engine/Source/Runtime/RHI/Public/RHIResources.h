@@ -552,6 +552,11 @@ public:
 	/** @return The height of the texture. */
 	uint32 GetSizeY() const { return SizeY; }
 
+	inline FIntPoint GetSizeXY() const
+	{
+		return FIntPoint(SizeX, SizeY);
+	}
+
 private:
 
 	uint32 SizeX;
@@ -1455,7 +1460,7 @@ public:
 	{
 	}
 
-	bool operator==(FGraphicsPipelineStateInitializer& rhs)
+	bool operator==(const FGraphicsPipelineStateInitializer& rhs) const
 	{
 		if (BoundShaderState.VertexDeclarationRHI != rhs.BoundShaderState.VertexDeclarationRHI || 
 			BoundShaderState.VertexShaderRHI != rhs.BoundShaderState.VertexShaderRHI ||
@@ -1577,6 +1582,25 @@ public:
 		OptState &= ~OptionalState::OS_SetBlendFactor;
 	}
 
+	uint32 ComputeNumValidRenderTargets() const
+	{
+		// Get the count of valid render targets (ignore those at the end of the array with PF_Unknown)
+		if (RenderTargetsEnabled > 0)
+		{
+			int32 LastValidTarget = -1;
+			for (int32 i = (int32)RenderTargetsEnabled - 1; i >= 0; i--)
+			{
+				if (RenderTargetFormats[i] != PF_Unknown)
+				{
+					LastValidTarget = i;
+					break;
+				}
+			}
+			return uint32(LastValidTarget + 1);
+		}
+		return RenderTargetsEnabled;
+	}
+
 	// TODO: [PSO API] - As we migrate reuse existing API objects, but eventually we can move to the direct initializers. 
 	// When we do that work, move this to RHI.h as its more appropriate there, but here for now since dependent typdefs are here.
 	FBoundShaderStateInput			BoundShaderState;
@@ -1615,4 +1639,22 @@ public:
 	}
 
 	FGraphicsPipelineStateInitializer Initializer;
+};
+
+class FRHIComputePipelineStateFallback : public FRHIComputePipelineState
+{
+public:
+	FRHIComputePipelineStateFallback(FRHIComputeShader* InComputeShader)
+		: ComputeShader(InComputeShader)
+	{
+		check(InComputeShader);
+	}
+
+	FRHIComputeShader* GetComputeShader()
+	{
+		return ComputeShader;
+	}
+
+protected:
+	TRefCountPtr<FRHIComputeShader> ComputeShader;
 };

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Merge : ModuleRules
 	{
-        public Merge(TargetInfo Target)
+        public Merge(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

@@ -41,53 +41,55 @@ void FSoundWaveDetails::CustomizeCurveDetails(IDetailLayoutBuilder& DetailBuilde
 		USoundWave* SoundWave = CastChecked<USoundWave>(Objects[0].Get());
 
 		TSharedRef<IPropertyHandle> CurvePropertyHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USoundWave, Curves));
+		if(CurvePropertyHandle->IsValidHandle())
+		{
+			IDetailPropertyRow& CurvePropertyRow = DetailBuilder.EditCategory(TEXT("Curves")).AddProperty(CurvePropertyHandle);
+			TSharedPtr<SWidget> DefaultNameWidget;
+			TSharedPtr<SWidget> DefaultValueWidget;
+			CurvePropertyRow.GetDefaultWidgets(DefaultNameWidget, DefaultValueWidget);
 
-		IDetailPropertyRow& CurvePropertyRow = DetailBuilder.EditCategory(TEXT("Curves")).AddProperty(CurvePropertyHandle);
-		TSharedPtr<SWidget> DefaultNameWidget;
-		TSharedPtr<SWidget> DefaultValueWidget;
-		CurvePropertyRow.GetDefaultWidgets(DefaultNameWidget, DefaultValueWidget);
-
-		CurvePropertyRow.CustomWidget()
-		.NameContent()
-		[
-			DefaultNameWidget.ToSharedRef()
-		]
-		.ValueContent()
-		.MaxDesiredWidth(TOptional<float>())
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
+			CurvePropertyRow.CustomWidget()
+			.NameContent()
 			[
-				DefaultValueWidget.ToSharedRef()
+				DefaultNameWidget.ToSharedRef()
 			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
+			.ValueContent()
+			.MaxDesiredWidth(TOptional<float>())
 			[
-				SNew(SButton)
-				.Visibility(this, &FSoundWaveDetails::GetMakeInternalCurvesVisibility, SoundWave, CurvePropertyHandle)
-				.OnClicked(this, &FSoundWaveDetails::HandleMakeInternalCurves, SoundWave)
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("MakeInternal", "Copy To Internal"))
-					.ToolTipText(LOCTEXT("MakeInternalTooltip", "Convert the currently selected curve table to an internal curve table."))
-					.Font(DetailBuilder.GetDetailFont())
+					DefaultValueWidget.ToSharedRef()
 				]
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.Visibility(this, &FSoundWaveDetails::GetUseInternalCurvesVisibility, SoundWave, CurvePropertyHandle)
-				.OnClicked(this, &FSoundWaveDetails::HandleUseInternalCurves, SoundWave, CurvePropertyHandle)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("UseInternal", "Use Internal"))
-					.ToolTipText(LOCTEXT("UseInternalTooltip", "Use the curve table internal to this sound wave."))
-					.Font(DetailBuilder.GetDetailFont())
+					SNew(SButton)
+					.Visibility(this, &FSoundWaveDetails::GetMakeInternalCurvesVisibility, SoundWave, CurvePropertyHandle)
+					.OnClicked(this, &FSoundWaveDetails::HandleMakeInternalCurves, SoundWave)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("MakeInternal", "Copy To Internal"))
+						.ToolTipText(LOCTEXT("MakeInternalTooltip", "Convert the currently selected curve table to an internal curve table."))
+						.Font(DetailBuilder.GetDetailFont())
+					]
 				]
-			]
-		];
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.Visibility(this, &FSoundWaveDetails::GetUseInternalCurvesVisibility, SoundWave, CurvePropertyHandle)
+					.OnClicked(this, &FSoundWaveDetails::HandleUseInternalCurves, SoundWave, CurvePropertyHandle)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("UseInternal", "Use Internal"))
+						.ToolTipText(LOCTEXT("UseInternalTooltip", "Use the curve table internal to this sound wave."))
+						.Font(DetailBuilder.GetDetailFont())
+					]
+				]
+			];
+		}
 	}
 }
 

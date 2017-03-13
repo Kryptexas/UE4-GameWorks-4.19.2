@@ -340,13 +340,7 @@ FBoxSphereBounds UArrowComponent::CalcBounds(const FTransform& LocalToWorld) con
 	return FBoxSphereBounds(FBox(FVector(0,-ARROW_SCALE,-ARROW_SCALE),FVector(ArrowSize * ARROW_SCALE * 3.0f,ARROW_SCALE,ARROW_SCALE))).TransformBy(LocalToWorld);
 }
 
-void UArrowComponent::SetArrowColor_DEPRECATED(FColor NewColor)
-{
-	ArrowColor = NewColor;
-	MarkRenderStateDirty();
-}
-
-void UArrowComponent::SetArrowColor_New(FLinearColor NewColor)
+void UArrowComponent::SetArrowColor(FLinearColor NewColor)
 {
 	ArrowColor = NewColor.ToFColor(true);
 	MarkRenderStateDirty();

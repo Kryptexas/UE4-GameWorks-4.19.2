@@ -987,7 +987,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			APlayerController* PlayerController = LocalPlayer->PlayerController;
 
 			const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
-			const int32 NumViews = bStereoRendering ? ((ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off) ? 3 : 2) : 1;
+			const int32 NumViews = bStereoRendering ? ((ViewFamily.IsMonoscopicFarFieldEnabled()) ? 3 : 2) : 1;
 
 			for (int32 i = 0; i < NumViews; ++i)
 			{
@@ -1529,7 +1529,7 @@ void UGameViewportClient::CloseRequested(FViewport* InViewport)
 	FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
 	
 	// broadcast close request to anyone that registered an interest
-	CloseRequestedDelegate.ExecuteIfBound(InViewport);
+	CloseRequestedDelegate.Broadcast(InViewport);
 
 	SetViewportFrame(NULL);
 
@@ -2032,6 +2032,8 @@ void UGameViewportClient::NotifyPlayerAdded( int32 PlayerIndex, ULocalPlayer* Ad
 {
 	LayoutPlayers();
 
+	FSlateApplication::Get().SetUserFocusToGameViewport(PlayerIndex);
+
 	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
 	if ( GameLayerManager.IsValid() )
 	{
@@ -2408,6 +2410,15 @@ FPopupMethodReply UGameViewportClient::OnQueryPopupMethod() const
 		.SetShouldThrottle(EShouldThrottle::No);
 }
 
+bool UGameViewportClient::HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination)
+{
+	if (CustomNavigationEvent.IsBound())
+	{
+		return CustomNavigationEvent.Execute(InUserIndex, InDestination);
+	}
+	return false;
+}
+
 void UGameViewportClient::ToggleShowVolumes()
 {
 	// Don't allow 'show collision' and 'show volumes' at the same time, so turn collision off
@@ -2772,12 +2783,13 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 		UGameUserSettings* UserSettings = GameEngine->GetGameUserSettings();
 		if( UserSettings != nullptr )
 		{
-			UserSettings->SetFullscreenMode( FullScreenMode );
-			UserSettings->ConfirmVideoMode();
-
+			// Ensure that our desired screen size will fit on the display
 			ResolutionX = UserSettings->GetScreenResolution().X;
 			ResolutionY = UserSettings->GetScreenResolution().Y;
-			UGameEngine::ConditionallyOverrideSettings(ResolutionX, ResolutionY, FullScreenMode);
+			UGameEngine::DetermineGameWindowResolution(ResolutionX, ResolutionY, FullScreenMode);
+
+			UserSettings->SetFullscreenMode(FullScreenMode);
+			UserSettings->ConfirmVideoMode();
 		}
 	}
 
@@ -3118,44 +3130,43 @@ bool UGameViewportClient::HandlePauseRenderClockCommand( const TCHAR* Cmd, FOutp
 
 bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHUDInfo)
 {
-	// find where these are really defined
-	const static int32 MaxFilenameLen = 100;
+	// Path/name is the first (and only supported) argument
+	FString FileName = Cmd;
 
-	if( Viewport != NULL )
+	// Handle just a plain console command (e.g. "BUGSCREENSHOT").
+	if (FileName.Len() == 0)
 	{
-		TCHAR File[MAX_SPRINTF] = TEXT("");
-		for( int32 TestBitmapIndex = 0; TestBitmapIndex < 9; ++TestBitmapIndex )
-		{ 
-			const FString DescPlusExtension = FString::Printf( TEXT("%s%i.png"), Cmd, TestBitmapIndex );
-			const FString SSFilename = CreateProfileFilename( DescPlusExtension, false );
+		FileName = TEXT("BugScreenShot.png");
+	}
 
-			const FString OutputDir = FPaths::BugItDir() + FString::Printf( TEXT("%s"), Cmd) + TEXT("/");
+	// Handle a console command and name (e.g. BUGSCREENSHOT FOO)
+	if (FileName.Contains(TEXT("/")) == false)
+	{
+		// Path will be <gamename>/bugit/<platform>/desc_
+		const FString BaseFile = FString::Printf(TEXT("%s%s_"), *FPaths::BugItDir(), *FPaths::GetBaseFilename(FileName));
 
-			//UE_LOG(LogPlayerManagement, Warning, TEXT( "BugIt Looking: %s" ), *(OutputDir + SSFilename) );
-			FCString::Sprintf( File, TEXT("%s"), *(OutputDir + SSFilename) );
-			if( IFileManager::Get().FileSize(File) == INDEX_NONE )
+		// find the next filename in the sequence, e.g <gamename>/bugit/<platform>/desc_00000.png
+		FFileHelper::GenerateNextBitmapFilename(BaseFile, TEXT("png"), FileName);
+	}
+
+	if (Viewport != NULL)
+	{
+		UWorld* const ViewportWorld = GetWorld();
+		if (bDisplayHUDInfo && (ViewportWorld != nullptr))
+		{
+			for (FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 			{
-				UWorld* const ViewportWorld = GetWorld();
-				if ( bDisplayHUDInfo && (ViewportWorld != nullptr) )
-				{
-					for( FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
-					{
 						APlayerController* PlayerController = Iterator->Get();
-						if (PlayerController && PlayerController->GetHUD() )
-						{
-							PlayerController->GetHUD()->HandleBugScreenShot();
-						}
-					}
+				if (PlayerController && PlayerController->GetHUD())
+				{
+					PlayerController->GetHUD()->HandleBugScreenShot();
 				}
-
-				GScreenshotBitmapIndex = TestBitmapIndex; // this is safe as the UnMisc.cpp ScreenShot code will test each number before writing a file
-
-				const bool bShowUI = true;
-				const bool bAddFilenameSuffix = false;
-				FScreenshotRequest::RequestScreenshot( File, bShowUI, bAddFilenameSuffix );
-				break;
 			}
 		}
+
+		const bool bShowUI = true;
+		const bool bAddFilenameSuffix = false;
+		FScreenshotRequest::RequestScreenshot(FileName, true, bAddFilenameSuffix);
 	}
 
 	return true;

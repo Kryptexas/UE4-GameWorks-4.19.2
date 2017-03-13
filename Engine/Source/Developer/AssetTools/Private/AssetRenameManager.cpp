@@ -40,6 +40,7 @@
 #include "ObjectTools.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "AssetRenameManager"
 
@@ -639,6 +640,12 @@ void FAssetRenameManager::RenameReferencingStringAssetReferences(const TArray<UP
 		for (auto* Object : ObjectsInPackage)
 		{
 			Object->Serialize(RenameSerializer);
+
+			if (UBlueprint* Blueprint = Cast<UBlueprint>(Object))
+			{
+				// Serialize may have dirtied the BP bytecode in some way
+				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+			}
 		}
 	}
 }

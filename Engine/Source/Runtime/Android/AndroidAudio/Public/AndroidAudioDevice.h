@@ -22,7 +22,8 @@ enum ESoundFormat
 {
 	SoundFormat_Invalid,
 	SoundFormat_PCM,
-	SoundFormat_PCMRT
+	SoundFormat_PCMRT,
+	SoundFormat_Streaming
 };
 
 struct SLESAudioBuffer
@@ -60,6 +61,15 @@ public:
 	 * @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FSLESSoundBuffer* CreateQueuedBuffer( FSLESAudioDevice* AudioDevice, USoundWave* Wave );
+
+	/**
+	 * Static function used to create a buffer and stream data directly off disk as needed
+	 *
+	 * @param InWave		USoundWave to use as template and wave source
+	 * @param AudioDevice	audio device to attach created buffer to
+	 * @return FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 */
+	static FSLESSoundBuffer* CreateStreamBuffer( FSLESAudioDevice* AudioDevice, USoundWave* Wave );
 
 	/**
 	 * Static function used to create an Audio buffer and upload decompressed ogg vorbis data to.
@@ -114,6 +124,10 @@ public:
 	{ 
 		return( BufferSize ); 
 	}
+	
+	// These are used by the streaming engine to manage loading/unloading of chunks
+	virtual int32 GetCurrentChunkIndex() const override;
+	virtual int32 GetCurrentChunkOffset() const override;
 
 	/**
 	 * Returns the size for a real time/streaming buffer based on decompressor
@@ -217,7 +231,8 @@ protected:
 	};
 
 	friend class FSLESAudioDevice;
-	FSLESSoundBuffer*		Buffer;
+	// Do not shadow the Buffer member variable defined in the parent class
+	FSLESSoundBuffer*		SLESBuffer;
 	FSLESAudioDevice*		Device;
 	
 	// OpenSL interface objects

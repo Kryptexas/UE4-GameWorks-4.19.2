@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PixelInspectorModule : ModuleRules
 {
-    public PixelInspectorModule(TargetInfo Target)
+    public PixelInspectorModule(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicDependencyModuleNames.AddRange
         (

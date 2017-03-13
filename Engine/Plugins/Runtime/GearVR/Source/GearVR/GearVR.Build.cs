@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GearVR : ModuleRules
 	{
-		public GearVR(TargetInfo Target)
+		public GearVR(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(new string[]
 				{

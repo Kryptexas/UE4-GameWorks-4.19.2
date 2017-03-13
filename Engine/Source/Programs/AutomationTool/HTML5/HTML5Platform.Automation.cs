@@ -119,29 +119,7 @@ public class HTML5Platform : Platform
 		string TemplateFile = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", TemplateFileName);
 		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
 
-		// find Heap Size.
-		ulong HeapSize;
-
-		int ConfigHeapSize = 0;
-		// Valuer set by Editor UI
-		var bGotHeapSize = ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "HeapSize" + Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize);
-
-		// Fallback if the previous method failed
-		if (!bGotHeapSize && !ConfigCache.GetInt32("/Script/BuildSettings.BuildSettings", "HeapSize" + Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize)) // in Megs.
-		{
-			// we couldn't find a per config heap size, look for a common one.
-			if (!ConfigCache.GetInt32("/Script/BuildSettings.BuildSettings", "HeapSize", out ConfigHeapSize))
-			{
-				ConfigHeapSize = Params.IsCodeBasedProject ? 1024 : 512;
-				Log("Could not find Heap Size setting in .ini for Client config {0}", Params.ClientConfigsToBuild[0].ToString());
-			}
-		}
-
-		HeapSize = (ulong)ConfigHeapSize * 1024L * 1024L; // convert to bytes.
-		Log("Setting Heap size to {0} Mb ", ConfigHeapSize);
-
-
-		GenerateFileFromTemplate(TemplateFile, OutputFile, Params.ShortProjectName, Params.ClientConfigsToBuild[0].ToString(), Params.StageCommandline, !Params.IsCodeBasedProject, HeapSize);
+		GenerateFileFromTemplate(TemplateFile, OutputFile, Params.ShortProjectName, Params.ClientConfigsToBuild[0].ToString(), Params.StageCommandline, !Params.IsCodeBasedProject, HTML5SDKInfo.HeapSize(ConfigCache, Params.ClientConfigsToBuild[0].ToString()));
 
 		string MacBashTemplateFile = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", "RunMacHTML5LaunchHelper.command.template");
 		string MacBashOutputFile = Path.Combine(PackagePath, "RunMacHTML5LaunchHelper.command");
@@ -236,7 +214,7 @@ public class HTML5Platform : Platform
 	}
 
 
-	protected void GenerateFileFromTemplate(string InTemplateFile, string InOutputFile, string InGameName, string InGameConfiguration, string InArguments, bool IsContentOnly, ulong HeapSize)
+	protected void GenerateFileFromTemplate(string InTemplateFile, string InOutputFile, string InGameName, string InGameConfiguration, string InArguments, bool IsContentOnly, int HeapSize)
 	{
 		StringBuilder outputContents = new StringBuilder();
 		using (StreamReader reader = new StreamReader(InTemplateFile))
@@ -252,7 +230,7 @@ public class HTML5Platform : Platform
 
 				if (LineStr.Contains("%HEAPSIZE%"))
 				{
-					LineStr = LineStr.Replace("%HEAPSIZE%", HeapSize.ToString());
+					LineStr = LineStr.Replace("%HEAPSIZE%", HeapSize.ToString() + " * 1024 * 1024");
 				}
 
 				if (LineStr.Contains("%CONFIG%"))

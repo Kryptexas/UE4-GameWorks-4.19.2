@@ -6,7 +6,7 @@
 #include "Ticker.h"
 #include "Containers/Queue.h"
 
-#if WITH_WEBSOCKETS
+#if WITH_WEBSOCKETS && WITH_LIBWEBSOCKETS
 
 #include "IWebSocket.h"
 
@@ -44,16 +44,12 @@ struct FLwsSendBuffer
 
 class FLwsWebSocket
 	: public IWebSocket
-	, public FTickerObjectBase
 	, public TSharedFromThis<FLwsWebSocket>
 {
 
 public:
 
 	virtual ~FLwsWebSocket();
-
-	// FTickerObjectBase
-	virtual bool Tick(float DeltaTime) override;
 
 	// IWebSocket
 	virtual void Connect() override;
@@ -117,16 +113,13 @@ public:
 		return RawMessageEvent;
 	}
 
+	int LwsCallback(lws* Instance, lws_callback_reasons Reason, void* Data, size_t Length);
 private:
 
-	FLwsWebSocket(const FString& Url, const TArray<FString>& Protocols);
-	void InitLwsProtocols();
-	void DeleteLwsProtocols();
+	FLwsWebSocket(const FString& Url, const TArray<FString>& Protocols, lws_context* Context, const FString& UpgradeHeader);
 	void SendFromQueue();
 	void FlushQueues();
 	void DelayConnectionError(const FString& Error);
-
-	static int CallbackWrapper(struct lws *Connection, enum lws_callback_reasons Reason, void *UserData, void *Data, size_t Length);
 
 	FWebSocketConnectedEvent ConnectedEvent;
 	FWebSocketConnectionErrorEvent ConnectionErrorEvent;
@@ -134,11 +127,11 @@ private:
 	FWebSocketMessageEvent MessageEvent;
 	FWebSocketRawMessageEvent RawMessageEvent;
 
-	TArray<struct lws_protocols> LwsProtocols;
 	struct lws_context *LwsContext;
 	struct lws *LwsConnection;
 	FString Url;
 	TArray<FString> Protocols;
+	FString UpgradeHeader;
 
 	FString ReceiveBuffer;
 	TQueue<TSharedPtr<FLwsSendBuffer>, EQueueMode::Spsc> SendQueue;
@@ -146,7 +139,7 @@ private:
 	FString CloseReason;
 	bool bIsConnecting;
 
-	friend class FWebSocketsModule;
+	friend class FLwsWebSocketsManager;
 };
 
 #endif

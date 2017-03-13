@@ -145,6 +145,13 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
 	MaxNormalizedTireLoadFiltered = PTireLoadFilterDef.mMaxFilteredNormalisedLoad;
 }
 
+void UWheeledVehicleMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
+{
+	//Skip PawnMovementComponent and simply set PawnOwner to null if we don't have a PawnActor as owner
+	UNavMovementComponent::SetUpdatedComponent(NewUpdatedComponent);
+	PawnOwner = NewUpdatedComponent ? Cast<APawn>(NewUpdatedComponent->GetOwner()) : nullptr;
+}
+
 bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 {
 	if ( UpdatedComponent == NULL )
@@ -297,14 +304,11 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 	});
 }
 
-void UWheeledVehicleMovementComponent::SetupVehicleMass()
-{
-	if (!UpdatedPrimitive)
-	{
-		return;
-	}
 
-	ExecuteOnPxRigidDynamicReadWrite(UpdatedPrimitive->GetBodyInstance(), [&](PxRigidDynamic* PVehicleActor)
+
+void UWheeledVehicleMovementComponent::UpdateMassProperties(FBodyInstance* BI)
+{
+	ExecuteOnPxRigidDynamicReadWrite(BI, [&](PxRigidDynamic* PVehicleActor)
 	{
 		// Override mass
 		const float MassRatio = Mass > 0.0f ? Mass / PVehicleActor->getMass() : 1.0f;
@@ -319,8 +323,22 @@ void UWheeledVehicleMovementComponent::SetupVehicleMass()
 		PVehicleActor->setMass(Mass);
 
 		const PxVec3 PCOMOffset = U2PVector(GetLocalCOM());
-		PVehicleActor->setCMassLocalPose(PxTransform(PCOMOffset, PxQuat(physx::PxIdentity)));
+		PVehicleActor->setCMassLocalPose(PxTransform(PCOMOffset, PxQuat(physx::PxIdentity)));	//ignore the mass reference frame. TODO: expose this to the user
 	});
+}
+
+
+void UWheeledVehicleMovementComponent::SetupVehicleMass()
+{
+	if (!UpdatedPrimitive)
+	{
+		return;
+	}
+
+	//Ensure that if mass properties ever change we set them back to our override
+	UpdatedPrimitive->GetBodyInstance()->OnRecalculatedMassProperties.AddUObject(this, &UWheeledVehicleMovementComponent::UpdateMassProperties);
+
+	UpdateMassProperties(UpdatedPrimitive->GetBodyInstance());
 }
 
 void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWheelsSimData )
@@ -351,8 +369,8 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		}
 
 		// Now that we have all the wheel offsets, calculate the sprung masses
-		PxVec3 PLocalCOM = U2PVector(GetLocalCOM());
-		PxVehicleComputeSprungMasses(NumWheels, WheelOffsets, PLocalCOM, PVehicleActor->getMass(), /*gravityDirection=*/2, SprungMasses);
+		const PxTransform PLocalCOM = PVehicleActor->getCMassLocalPose();
+		PxVehicleComputeSprungMasses(NumWheels, WheelOffsets, PLocalCOM.p, PVehicleActor->getMass(), /*gravityDirection=*/2, SprungMasses);
 
 		for (int32 WheelIdx = 0; WheelIdx < NumWheels; ++WheelIdx)
 		{
@@ -389,8 +407,8 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 			// init offsets
 			const PxVec3 PWheelOffset = WheelOffsets[WheelIdx];
 
-			PxVec3 PSuspTravelDirection = PxVec3(0.0f, 0.0f, -1.0f);
-			PxVec3 PWheelCentreCMOffset = PWheelOffset - PLocalCOM;
+			PxVec3 PSuspTravelDirection = PLocalCOM.rotate(PxVec3(0.0f, 0.0f, -1.0f));
+			PxVec3 PWheelCentreCMOffset = PLocalCOM.transformInv(PWheelOffset);
 			PxVec3 PSuspForceAppCMOffset = !bDeprecatedSpringOffsetMode ? PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset + PWheelCentreCMOffset.z)
 																							 : PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset);
 			PxVec3 PTireForceAppCMOffset = PSuspForceAppCMOffset;

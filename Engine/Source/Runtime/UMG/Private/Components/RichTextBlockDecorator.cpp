@@ -54,7 +54,7 @@ public:
 
 				const FTextRange BlockRange = Block->GetTextRange();
 				const float InverseScale = Inverse(AllottedGeometry.Scale);
-				const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+				const ESlateDrawEffect DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 				int32 EndIndex = FMath::Clamp(RichBlock->RevealedIndex - AbsoluteBeginIndex, BlockRange.BeginIndex, BlockRange.EndIndex);
 

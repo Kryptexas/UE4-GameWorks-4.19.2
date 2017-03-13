@@ -56,7 +56,7 @@ void FGameplayDebuggerCategory_EQS::CollectData(APlayerController* OwnerPC, AAct
 	APawn* DebugPawn = Cast<APawn>(DebugActor);
 	if (DebugPawn && DebugPawn->GetController())
 	{
-		TArray<FEQSDebugger::FEnvQueryInfo>& AuthControllerQueryData = QueryManager->GetDebugger().GetAllQueriesForOwner(DebugPawn->GetController());
+		const TArray<FEQSDebugger::FEnvQueryInfo>& AuthControllerQueryData = QueryManager->GetDebugger().GetAllQueriesForOwner(DebugPawn->GetController());
 		AuthQueryData.Append(AuthControllerQueryData);
 	}
 

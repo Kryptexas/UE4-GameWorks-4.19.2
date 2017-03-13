@@ -76,3 +76,26 @@ IHttpRequest* FWindowsPlatformHttp::ConstructRequest()
 		return new FHttpRequestWinInet();
 	}
 }
+
+FString FWindowsPlatformHttp::GetMimeType(const FString& FilePath)
+{
+	FString MimeType = TEXT("application/unknown");
+	const FString FileExtension = FPaths::GetExtension(FilePath, true);
+
+	HKEY hKey;
+	if ( ::RegOpenKeyEx(HKEY_CLASSES_ROOT, *FileExtension, 0, KEY_READ, &hKey) == ERROR_SUCCESS )
+	{
+		TCHAR MimeTypeBuffer[128];
+		DWORD MimeTypeBufferSize = sizeof(MimeTypeBuffer);
+		DWORD KeyType = 0;
+
+		if ( ::RegQueryValueEx(hKey, TEXT("Content Type"), NULL, &KeyType, (BYTE*)MimeTypeBuffer, &MimeTypeBufferSize) == ERROR_SUCCESS && KeyType == REG_SZ )
+		{
+			MimeType = MimeTypeBuffer;
+		}
+
+		::RegCloseKey(hKey);
+	}
+
+	return MimeType;
+}

@@ -36,7 +36,7 @@ namespace Audio
 	};
 
 	// Basic implementation of a 4x4 Feedback Delay Network
-	class FEarlyReflections
+	class AUDIOMIXER_API FEarlyReflections
 	{
 	public:
 		FEarlyReflections();
@@ -119,7 +119,7 @@ namespace Audio
 		{}
 	};
 
-	class FPlateReverb
+	class AUDIOMIXER_API FPlateReverb
 	{
 	public:
 		FPlateReverb();

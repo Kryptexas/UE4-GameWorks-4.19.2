@@ -480,10 +480,9 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 
 	TArray<UObject*> Objects;
 	StructPropertyHandle->GetOuterObjects(Objects);
-	UAnimGraphNode_Base* AnimGraphNode = NULL;
-	USkeletalMesh* SkeletalMesh = NULL;
-	UAnimationAsset * AnimationAsset = NULL;
-	USkeleton* TargetSkeleton = NULL;
+	UAnimGraphNode_Base* AnimGraphNode = nullptr;
+	USkeletalMesh* SkeletalMesh = nullptr;
+	UAnimationAsset * AnimationAsset = nullptr;
 
 	TSharedPtr<IEditableSkeleton> EditableSkeleton; 
 
@@ -530,10 +529,10 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 		}
 	}
 
-	if (TargetSkeleton)
+	if (TargetSkeleton.IsValid())
 	{
 		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-		EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton);
+		EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton.Get());
 	}
 
 	if (EditableSkeleton.IsValid())
@@ -546,10 +545,11 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 		HeaderRow.ValueContent()
 		.MinDesiredWidth(200.f)
 		[
-			SNew(SBoneSelectionWidget, EditableSkeleton.ToSharedRef())
+			SNew(SBoneSelectionWidget)
 			.ToolTipText(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
+			.OnGetReferenceSkeleton(this, &FBoneReferenceCustomization::GetReferenceSkeleton)
 		];
 	}
 	else
@@ -578,6 +578,14 @@ FName FBoneReferenceCustomization::GetSelectedBone() const
 	BoneRefProperty->GetValueAsFormattedString(OutText);
 
 	return FName(*OutText);
+}
+
+const struct FReferenceSkeleton&  FBoneReferenceCustomization::GetReferenceSkeleton() const
+{
+	// retruning dummy skeleton if any reason, it is invalid
+	static FReferenceSkeleton DummySkeleton;
+
+	return (TargetSkeleton.IsValid()) ? TargetSkeleton.Get()->GetReferenceSkeleton() : DummySkeleton;
 }
 
 TSharedRef<IDetailCustomization> FAnimGraphParentPlayerDetails::MakeInstance(TSharedRef<FBlueprintEditor> InBlueprintEditor)

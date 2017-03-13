@@ -80,7 +80,7 @@ protected:
 
 template<>
 struct TStructOpsTypeTraits<FSlateSound>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FSlateSound>
 {
 	enum 
 	{

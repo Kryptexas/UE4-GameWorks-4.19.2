@@ -341,13 +341,13 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	BloomTint = FColor::White;
 
 	RayStartOffsetDepthScale = .003f;
+
+	MaxDrawDistance = 0.0f;
+	MaxDistanceFadeRange = 0.0f;
 	bAddedToSceneVisible = false;
-}
 
-
-void ULightComponent::UpdateLightGUIDs()
-{
-	Super::UpdateLightGUIDs();
+	MaxDrawDistance = 0.0f;
+	MaxDistanceFadeRange = 0.0f;
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const

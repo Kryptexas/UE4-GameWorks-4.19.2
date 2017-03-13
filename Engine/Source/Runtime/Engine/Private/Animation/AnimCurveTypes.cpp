@@ -85,6 +85,22 @@ void FFloatCurve::UpdateOrAddKey(float NewKey, float CurrentTime)
 	FloatCurve.UpdateOrAddKey(CurrentTime, NewKey);
 }
 
+void FFloatCurve::GetKeys(TArray<float>& OutTimes, TArray<float>& OutValues)
+{
+	const int32 NumKeys = FloatCurve.GetNumKeys();
+	OutTimes.Empty(NumKeys);
+	OutValues.Empty(NumKeys);
+	for (auto It = FloatCurve.GetKeyHandleIterator(); It; ++It)
+	{
+		const FKeyHandle KeyHandle = It.Key();
+		const float KeyTime = FloatCurve.GetKeyTime(KeyHandle);
+		const float Value = FloatCurve.Eval(KeyTime);
+
+		OutTimes.Add(KeyTime);
+		OutValues.Add(Value);
+	}
+}
+
 void FFloatCurve::Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
 	FloatCurve.ReadjustTimeRange(0, NewLength, bInsert, OldStartTime, OldEndTime);
@@ -116,12 +132,56 @@ void FVectorCurve::UpdateOrAddKey(const FVector& NewKey, float CurrentTime)
 	FloatCurves[Z].UpdateOrAddKey(CurrentTime, NewKey.Z);
 }
 
+void FVectorCurve::GetKeys(TArray<float>& OutTimes, TArray<FVector>& OutValues)
+{
+	// Determine curve with most keys
+	int32 MaxNumKeys = 0;
+	int32 UsedCurveIndex = INDEX_NONE;
+	for (int32 CurveIndex = 0; CurveIndex < 3; ++CurveIndex)
+	{
+		const int32 NumKeys = FloatCurves[CurveIndex].GetNumKeys();
+		if (NumKeys > MaxNumKeys)
+		{
+			MaxNumKeys = NumKeys;
+			UsedCurveIndex = CurveIndex;
+		}
+	}
+
+	if (UsedCurveIndex != INDEX_NONE)
+	{
+		OutTimes.Empty(MaxNumKeys);
+		OutValues.Empty(MaxNumKeys);
+		for (auto It = FloatCurves[UsedCurveIndex].GetKeyHandleIterator(); It; ++It)
+		{
+			const FKeyHandle KeyHandle = It.Key();
+			const float KeyTime = FloatCurves[UsedCurveIndex].GetKeyTime(KeyHandle);
+			const FVector Value = Evaluate(KeyTime, 1.0f);
+
+			OutTimes.Add(KeyTime);
+			OutValues.Add(Value);
+		}
+	}
+}
+
 void FVectorCurve::Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
 	FloatCurves[X].ReadjustTimeRange(0, NewLength, bInsert, OldStartTime, OldEndTime);
 	FloatCurves[Y].ReadjustTimeRange(0, NewLength, bInsert, OldStartTime, OldEndTime);
 	FloatCurves[Z].ReadjustTimeRange(0, NewLength, bInsert, OldStartTime, OldEndTime);
 }
+
+int32 FVectorCurve::GetNumKeys()
+{
+	int32 MaxNumKeys = 0;
+	for (int32 CurveIndex = 0; CurveIndex < 3; ++CurveIndex)
+	{
+		const int32 NumKeys = FloatCurves[CurveIndex].GetNumKeys();
+		MaxNumKeys = FMath::Max(MaxNumKeys, NumKeys);
+	}
+
+	return MaxNumKeys;
+}
+
 ////////////////////////////////////////////////////
 //  FTransformCurve
 
@@ -169,6 +229,58 @@ void FTransformCurve::UpdateOrAddKey(const FTransform& NewKey, float CurrentTime
 	ScaleCurve.UpdateOrAddKey(NewKey.GetScale3D(), CurrentTime);
 }
 
+void FTransformCurve::GetKeys(TArray<float>& OutTimes, TArray<FTransform>& OutValues)
+{
+	FVectorCurve* UsedCurve = nullptr;
+	int32 MaxNumKeys = 0;
+
+	int32 NumKeys = TranslationCurve.GetNumKeys();
+	if (NumKeys > MaxNumKeys)
+	{
+		UsedCurve = &TranslationCurve;
+		MaxNumKeys = NumKeys;
+	}
+
+	NumKeys = RotationCurve.GetNumKeys();
+	if (NumKeys > MaxNumKeys)
+	{
+		UsedCurve = &RotationCurve;
+		MaxNumKeys = NumKeys;
+	}
+
+	NumKeys = ScaleCurve.GetNumKeys();
+	if (NumKeys > MaxNumKeys)
+	{
+		UsedCurve = &ScaleCurve;
+		MaxNumKeys = NumKeys;
+	}
+
+	if (UsedCurve != nullptr)
+	{
+		int32 UsedChannelIndex = 0;
+		for (int32 ChannelIndex = 0; ChannelIndex < 3; ++ChannelIndex)
+		{
+			if (UsedCurve->FloatCurves[ChannelIndex].GetNumKeys() == MaxNumKeys)
+			{
+				UsedChannelIndex = ChannelIndex;
+				break;
+			}
+		}
+
+		OutTimes.Empty(MaxNumKeys);
+		OutValues.Empty(MaxNumKeys);
+		for (auto It = UsedCurve->FloatCurves[UsedChannelIndex].GetKeyHandleIterator(); It; ++It)
+		{
+			const FKeyHandle KeyHandle = It.Key();
+			const float KeyTime = UsedCurve->FloatCurves[UsedChannelIndex].GetKeyTime(KeyHandle);
+			const FTransform Value = Evaluate(KeyTime, 1.0f);
+
+			OutTimes.Add(KeyTime);
+			OutValues.Add(Value);
+		}
+	}
+}
+
 void FTransformCurve::Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
 	TranslationCurve.Resize(NewLength, bInsert, OldStartTime, OldEndTime);
@@ -204,7 +316,7 @@ void FRawCurveTracks::EvaluateTransformCurveData(USkeleton * Skeleton, TMap<FNam
 		const FTransformCurve& Curve = *CurveIter;
 
 		// if disabled, do not handle
-		if (Curve.GetCurveTypeFlag(ACF_Disabled))
+		if (Curve.GetCurveTypeFlag(AACF_Disabled))
 		{
 			continue;
 		}
@@ -218,51 +330,51 @@ void FRawCurveTracks::EvaluateTransformCurveData(USkeleton * Skeleton, TMap<FNam
 	}
 }
 #endif
-FAnimCurveBase * FRawCurveTracks::GetCurveData(USkeleton::AnimCurveUID Uid, ESupportedCurveType SupportedCurveType /*= FloatType*/)
+FAnimCurveBase * FRawCurveTracks::GetCurveData(USkeleton::AnimCurveUID Uid, ERawCurveTrackTypes SupportedCurveType /*= FloatType*/)
 {
 	switch (SupportedCurveType)
 	{
 #if WITH_EDITOR
-	case VectorType:
+	case ERawCurveTrackTypes::RCT_Vector:
 		return GetCurveDataImpl<FVectorCurve>(VectorCurves, Uid);
-	case TransformType:
+	case ERawCurveTrackTypes::RCT_Transform:
 		return GetCurveDataImpl<FTransformCurve>(TransformCurves, Uid);
 #endif // WITH_EDITOR
-	case FloatType:
+	case ERawCurveTrackTypes::RCT_Float:
 	default:
 		return GetCurveDataImpl<FFloatCurve>(FloatCurves, Uid);
 	}
 }
 
-bool FRawCurveTracks::DeleteCurveData(const FSmartName& CurveToDelete, ESupportedCurveType SupportedCurveType /*= FloatType*/)
+bool FRawCurveTracks::DeleteCurveData(const FSmartName& CurveToDelete, ERawCurveTrackTypes SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)
 	{
 #if WITH_EDITOR
-	case VectorType:
+	case ERawCurveTrackTypes::RCT_Vector:
 		return DeleteCurveDataImpl<FVectorCurve>(VectorCurves, CurveToDelete);
-	case TransformType:
+	case ERawCurveTrackTypes::RCT_Transform:
 		return DeleteCurveDataImpl<FTransformCurve>(TransformCurves, CurveToDelete);
 #endif // WITH_EDITOR
-	case FloatType:
+	case ERawCurveTrackTypes::RCT_Float:
 	default:
 		return DeleteCurveDataImpl<FFloatCurve>(FloatCurves, CurveToDelete);
 	}
 }
 
-void FRawCurveTracks::DeleteAllCurveData(ESupportedCurveType SupportedCurveType /*= FloatType*/)
+void FRawCurveTracks::DeleteAllCurveData(ERawCurveTrackTypes SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)
 	{
 #if WITH_EDITOR
-	case VectorType:
+	case ERawCurveTrackTypes::RCT_Vector:
 		VectorCurves.Empty();
 		break;
-	case TransformType:
+	case ERawCurveTrackTypes::RCT_Transform:
 		TransformCurves.Empty();
 		break;
 #endif // WITH_EDITOR
-	case FloatType:
+	case ERawCurveTrackTypes::RCT_Float:
 	default:
 		FloatCurves.Empty();
 		break;
@@ -275,7 +387,7 @@ void FRawCurveTracks::AddFloatCurveKey(const FSmartName& NewCurve, int32 CurveFl
 	FFloatCurve* FloatCurve = GetCurveDataImpl<FFloatCurve>(FloatCurves, NewCurve.UID);
 	if (FloatCurve == nullptr)
 	{
-		AddCurveData(NewCurve, CurveFlags, FloatType);
+		AddCurveData(NewCurve, CurveFlags, ERawCurveTrackTypes::RCT_Float);
 		FloatCurve = GetCurveDataImpl<FFloatCurve>(FloatCurves, NewCurve.UID);
 	}
 
@@ -297,17 +409,17 @@ void FRawCurveTracks::RemoveRedundantKeys()
 }
 #endif
 
-bool FRawCurveTracks::AddCurveData(const FSmartName& NewCurve, int32 CurveFlags /*= ACF_DefaultCurve*/, ESupportedCurveType SupportedCurveType /*= FloatType*/)
+bool FRawCurveTracks::AddCurveData(const FSmartName& NewCurve, int32 CurveFlags /*= ACF_DefaultCurve*/, ERawCurveTrackTypes SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)
 	{
 #if WITH_EDITOR
-	case VectorType:
+	case ERawCurveTrackTypes::RCT_Vector:
 		return AddCurveDataImpl<FVectorCurve>(VectorCurves, NewCurve, CurveFlags);
-	case TransformType:
+	case ERawCurveTrackTypes::RCT_Transform:
 		return AddCurveDataImpl<FTransformCurve>(TransformCurves, NewCurve, CurveFlags);
 #endif // WITH_EDITOR
-	case FloatType:
+	case ERawCurveTrackTypes::RCT_Float:
 	default:
 		return AddCurveDataImpl<FFloatCurve>(FloatCurves, NewCurve, CurveFlags);
 	}
@@ -355,35 +467,35 @@ void FRawCurveTracks::PostSerialize(FArchive& Ar)
 #endif // WITH_EDITORONLY_DATA
 }
 
-void FRawCurveTracks::RefreshName(const FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType /*= FloatType*/)
+void FRawCurveTracks::RefreshName(const FSmartNameMapping* NameMapping, ERawCurveTrackTypes SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)
 	{
 #if WITH_EDITOR
-	case VectorType:
+	case ERawCurveTrackTypes::RCT_Vector:
 		UpdateLastObservedNamesImpl<FVectorCurve>(VectorCurves, NameMapping);
 		break;
-	case TransformType:
+	case ERawCurveTrackTypes::RCT_Transform:
 		UpdateLastObservedNamesImpl<FTransformCurve>(TransformCurves, NameMapping);
 		break;
 #endif // WITH_EDITOR
-	case FloatType:
+	case ERawCurveTrackTypes::RCT_Float:
 	default:
 		UpdateLastObservedNamesImpl<FFloatCurve>(FloatCurves, NameMapping);
 	}
 }
 
-bool FRawCurveTracks::DuplicateCurveData(const FSmartName& CurveToCopy, const FSmartName& NewCurve, ESupportedCurveType SupportedCurveType /*= FloatType*/)
+bool FRawCurveTracks::DuplicateCurveData(const FSmartName& CurveToCopy, const FSmartName& NewCurve, ERawCurveTrackTypes SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)
 	{
 #if WITH_EDITOR
-	case VectorType:
+	case ERawCurveTrackTypes::RCT_Vector:
 		return DuplicateCurveDataImpl<FVectorCurve>(VectorCurves, CurveToCopy, NewCurve);
-	case TransformType:
+	case ERawCurveTrackTypes::RCT_Transform:
 		return DuplicateCurveDataImpl<FTransformCurve>(TransformCurves, CurveToCopy, NewCurve);
 #endif // WITH_EDITOR
-	case FloatType:
+	case ERawCurveTrackTypes::RCT_Float:
 	default:
 		return DuplicateCurveDataImpl<FFloatCurve>(FloatCurves, CurveToCopy, NewCurve);
 	}

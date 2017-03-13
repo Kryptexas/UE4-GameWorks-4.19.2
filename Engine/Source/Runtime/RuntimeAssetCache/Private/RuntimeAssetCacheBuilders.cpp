@@ -131,11 +131,11 @@ void UExampleTextureCacheBuilder::SerializeAsset(FArchive& Ar)
 		{
 			FString PixelFormatString;
 			Ar << PixelFormatString;
-			PlatformData->PixelFormat = (EPixelFormat)PixelFormatEnum->FindEnumIndex(*PixelFormatString);
+			PlatformData->PixelFormat = (EPixelFormat)PixelFormatEnum->GetValueByName(*PixelFormatString);
 		}
 		else if (Ar.IsSaving())
 		{
-			FString PixelFormatString = PixelFormatEnum->GetEnum(PlatformData->PixelFormat).GetPlainNameString();
+			FString PixelFormatString = PixelFormatEnum->GetNameByValue(PlatformData->PixelFormat).GetPlainNameString();
 			Ar << PixelFormatString;
 		}
 

@@ -126,3 +126,13 @@ const FPlatformUserId PLATFORMUSERID_NONE = INDEX_NONE;
 	#define PUSH_MACRO(name) __pragma(push_macro(PREPROCESSOR_TO_STRING(name)))
 	#define POP_MACRO(name) __pragma(pop_macro(PREPROCESSOR_TO_STRING(name)))
 #endif
+
+
+#ifdef __COUNTER__
+	// Created a variable with a unique name
+	#define ANONYMOUS_VARIABLE( Name ) PREPROCESSOR_JOIN(Name, __COUNTER__)
+#else
+	// Created a variable with a unique name.
+	// Less reliable than the __COUNTER__ version.
+	#define ANONYMOUS_VARIABLE( Name ) PREPROCESSOR_JOIN(Name, __LINE__)
+#endif

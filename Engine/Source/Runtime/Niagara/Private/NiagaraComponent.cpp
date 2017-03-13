@@ -2,10 +2,15 @@
 
 #include "NiagaraComponent.h"
 #include "VectorVM.h"
-#include "NiagaraModule.h"
 #include "NiagaraEffectRenderer.h"
 #include "NiagaraEffect.h"
+#include "NiagaraEffectInstance.h"
+#include "NiagaraSimulation.h"
+#include "MeshBatch.h"
+#include "SceneUtils.h"
 #include "ComponentReregisterContext.h"
+#include "NiagaraConstants.h"
+#include "NiagaraStats.h"
 
 DECLARE_CYCLE_STAT(TEXT("Gen Verts"),STAT_NiagaraGenerateVertices,STATGROUP_Niagara);
 
@@ -136,27 +141,8 @@ UNiagaraComponent::UNiagaraComponent(const FObjectInitializer& ObjectInitializer
 
 void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-//	EmitterAge += DeltaSeconds;
-
 	if (EffectInstance.Get())
 	{ 
-		static FNiagaraVariableInfo Const_Zero(TEXT("ZERO"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_DeltaTime(TEXT("Delta Time"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterPos(TEXT("Emitter Position"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterAge(TEXT("Emitter Age"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterX(TEXT("Emitter X Axis"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterY(TEXT("Emitter Y Axis"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterZ(TEXT("Emitter Z Axis"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterTransform(TEXT("Emitter Transform"), ENiagaraDataType::Matrix);
-		//Todo, open this up to the UI and setting via code and BPs.
-		EffectInstance->SetConstant(Const_Zero, FVector4(0.0f, 0.0f, 0.0f, 0.0f));	// zero constant
-		EffectInstance->SetConstant(Const_DeltaTime, FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
-		EffectInstance->SetConstant(Const_EmitterPos, FVector4(ComponentToWorld.GetTranslation()));
-		EffectInstance->SetConstant(Const_EmitterX, FVector4(ComponentToWorld.GetUnitAxis(EAxis::X)));
-		EffectInstance->SetConstant(Const_EmitterY, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Y)));
-		EffectInstance->SetConstant(Const_EmitterZ, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Z)));
-		EffectInstance->SetConstant(Const_EmitterTransform, ComponentToWorld.ToMatrixWithScale());
-
 		EffectInstance->Tick(DeltaSeconds);
 	}
 
@@ -173,38 +159,15 @@ void UNiagaraComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	if (!EffectInstance.IsValid() && Asset)
+	if (EffectInstance.IsValid() == false)
 	{
-		EffectInstance = MakeShareable(new FNiagaraEffectInstance(Asset, this));
+		EffectInstance = MakeShareable(new FNiagaraEffectInstance(this));
 	}
-
-	if (EffectInstance.IsValid())
-	{
-		EffectInstance->Init(this);
-
-		// initialize all render modules
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FChangeNiagaraRenderModule,
-			FNiagaraEffectInstance*, InEffect, this->EffectInstance.Get(),
-			UNiagaraComponent*, InComponent, this,
-			{
-			for (TSharedPtr<FNiagaraSimulation> Emitter : InEffect->GetEmitters())
-			{
-				Emitter->SetRenderModuleType(Emitter->GetProperties()->RenderModuleType, InComponent->GetWorld()->FeatureLevel);
-			}
-			InEffect->RenderModuleupdate();
-		}
-		);
-		FlushRenderingCommands();
-	}
+	
+	EffectInstance->Init(Asset);
 	VectorVM::Init();
 }
 
-
-void UNiagaraComponent::OnUnregister()
-{
-	Super::OnUnregister();
-}
 
 void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 {
@@ -219,7 +182,7 @@ void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 			{
 				if (Emitter->IsEnabled())
 				{
-					FNiagaraDynamicDataBase* DynamicData = Renderer->GenerateVertexData(Emitter->GetData());
+					FNiagaraDynamicDataBase* DynamicData = Renderer->GenerateVertexData(NiagaraProxy, Emitter->GetData());
 
 					ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 						FSendNiagaraDynamicData,
@@ -269,6 +232,20 @@ FPrimitiveSceneProxy* UNiagaraComponent::CreateSceneProxy()
 	return Proxy;
 }
 
+TSharedPtr<FNiagaraEffectInstance> UNiagaraComponent::GetEffectInstance() const
+{
+	return EffectInstance;
+}
+
+TSharedRef<FNiagaraEffectInstance> UNiagaraComponent::GetEffectInstance()
+{
+	if (EffectInstance.IsValid() == false)
+	{
+		EffectInstance = MakeShareable(new FNiagaraEffectInstance(this));
+	}
+	return EffectInstance.ToSharedRef();
+}
+
 #if WITH_EDITOR
 void UNiagaraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -276,6 +253,72 @@ void UNiagaraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	FComponentReregisterContext ReregisterContext(this);
 }
+
+
+bool UNiagaraComponent::SynchronizeWithSourceEffect()
+{
+	if (Asset == nullptr)
+	{
+		return false; 
+	}
+
+	UNiagaraScript* Script = Asset->GetEffectScript();
+	if (Script == nullptr)
+	{
+		return false;
+	}
+
+	bool bEditsMade = false;
+	TArray<int32> VarIndicesToRemove;
+
+	// Check over all of our overrides to see if they still match up with the source effect.
+	for (int32 i = 0; i < EffectParameterLocalOverrides.Num(); i++)
+	{
+		FNiagaraVariable* Variable = Script->Parameters.FindParameter(EffectParameterLocalOverrides[i].GetId());
+		// If the variable still exists, keep digging... otherwise remove it.
+		if (Variable)
+		{
+			if (Variable->GetType() != EffectParameterLocalOverrides[i].GetType())
+			{
+				UE_LOG(LogNiagara, Warning, TEXT("Variable '%s' types changed.. possibly losing override value."), *Variable->GetName().ToString());
+				VarIndicesToRemove.Add(i);
+			}
+			else if (Variable->GetName() != EffectParameterLocalOverrides[i].GetName())
+			{
+				if (bEditsMade == false)
+				{
+					bEditsMade = true;
+					Modify();
+				}
+				EffectParameterLocalOverrides[i].SetName(Variable->GetName());
+			}
+		}
+		else
+		{
+			VarIndicesToRemove.Add(i);
+		}
+	}
+
+	// Handle the variables that we want to remove.
+	if (VarIndicesToRemove.Num() != 0)
+	{
+		if (bEditsMade == false)
+		{
+			bEditsMade = true;
+			Modify();
+		}
+
+		for (int32 removeIdx = VarIndicesToRemove.Num() - 1; removeIdx >= 0; removeIdx--)
+		{
+			UE_LOG(LogNiagara, Warning, TEXT("Removing local override '%s'."), *EffectParameterLocalOverrides[VarIndicesToRemove[removeIdx]].GetName().ToString());
+
+			EffectParameterLocalOverrides.RemoveAt(VarIndicesToRemove[removeIdx]);
+		}
+	}
+
+	return bEditsMade;
+}
+
 #endif // WITH_EDITOR
 
 
@@ -284,33 +327,49 @@ void UNiagaraComponent::SetAsset(UNiagaraEffect* InAsset)
 {
 	Asset = InAsset;
 
-	EffectInstance = MakeShareable(new FNiagaraEffectInstance(Asset, this));
+	if (IsRegistered())
+	{
+		EffectInstance->Init(Asset);
+	}
 }
 
-const TArray<FNiagaraVariableInfo>& UNiagaraComponent::GetSystemConstants()
+
+const TArray<FNiagaraVariable>& UNiagaraComponent::GetSystemConstants()
 {
-	static TArray<FNiagaraVariableInfo> SystemConstants;
-	if (SystemConstants.Num() == 0)
+	static TArray<FNiagaraVariable> SystemParameters;
+	if (SystemParameters.Num() == 0)
 	{
-		static FNiagaraVariableInfo Const_Zero(TEXT("ZERO"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_DeltaTime(TEXT("Delta Time"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterPos(TEXT("Emitter Position"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterAge(TEXT("Emitter Age"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterX(TEXT("Emitter X Axis"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterY(TEXT("Emitter Y Axis"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterZ(TEXT("Emitter Z Axis"), ENiagaraDataType::Vector);
-		static FNiagaraVariableInfo Const_EmitterTransform(TEXT("Emitter Transform"), ENiagaraDataType::Matrix);
-		SystemConstants.Add(Const_Zero);
-		SystemConstants.Add(Const_DeltaTime);
-		SystemConstants.Add(Const_EmitterPos);
-		SystemConstants.Add(Const_EmitterAge);
-		SystemConstants.Add(Const_EmitterX);
-		SystemConstants.Add(Const_EmitterY);
-		SystemConstants.Add(Const_EmitterZ);
-		SystemConstants.Add(Const_EmitterTransform);
+		SystemParameters.Add(SYS_PARAM_DELTA_TIME);
+		SystemParameters.Add(SYS_PARAM_EMITTER_AGE);
+		SystemParameters.Add(SYS_PARAM_EFFECT_POSITION);
+		SystemParameters.Add(SYS_PARAM_EFFECT_X_AXIS);
+		SystemParameters.Add(SYS_PARAM_EFFECT_Y_AXIS);
+		SystemParameters.Add(SYS_PARAM_EFFECT_Z_AXIS);
+		SystemParameters.Add(SYS_PARAM_EFFECT_LOCAL_TO_WORLD);
+		SystemParameters.Add(SYS_PARAM_EFFECT_WORLD_TO_LOCAL);
+		SystemParameters.Add(SYS_PARAM_EFFECT_LOCAL_TO_WORLD_TRANSPOSED);
+		SystemParameters.Add(SYS_PARAM_EFFECT_WORLD_TO_LOCAL_TRANSPOSED);
+		SystemParameters.Add(SYS_PARAM_EXEC_COUNT);
+
+		//TODO: Should be exposed to spawn script only? What about modules?
+		//Think our idea of "system parameters" needs improving.
+		SystemParameters.Add(SYS_PARAM_SPAWNRATE);
+		SystemParameters.Add(SYS_PARAM_SPAWNRATE_INVERSE);
+		SystemParameters.Add(SYS_PARAM_SPAWNRATE_REMAINDER);
 	}
-	return SystemConstants;
+	return SystemParameters;
 }
-FNiagaraDataSetID FNiagaraDataSetID::DeathEvent(TEXT("Death"),ENiagaraDataSetType::Event);
+
+const FNiagaraVariable* UNiagaraComponent::FindSystemConstant(const FNiagaraVariable& InVar)
+{
+	const TArray<FNiagaraVariable>& SystemParameters = GetSystemConstants();
+	const FNiagaraVariable* FoundSystemVar = SystemParameters.FindByPredicate([&](const FNiagaraVariable& Var)
+	{
+		return Var.GetName() == InVar.GetName();
+	});
+	return FoundSystemVar;
+}
+/*FNiagaraDataSetID FNiagaraDataSetID::DeathEvent(TEXT("Death"),ENiagaraDataSetType::Event);
 FNiagaraDataSetID FNiagaraDataSetID::SpawnEvent(TEXT("Spawn"), ENiagaraDataSetType::Event);
-FNiagaraDataSetID FNiagaraDataSetID::CollisionEvent(TEXT("Collision"), ENiagaraDataSetType::Event);
+FNiagaraDataSetID FNiagaraDataSetID::CollisionEvent(TEXT("Collision"), ENiagaraDataSetType::Event);*/
+

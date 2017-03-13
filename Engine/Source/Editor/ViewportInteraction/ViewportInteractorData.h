@@ -172,8 +172,8 @@ struct FViewportInteractorData
 		bIsDrivingVelocityOfSimulatedTransformables = false;
 
 		GizmoStartTransform = FTransform::Identity;
+		GizmoStartLocalBounds = FBox(ForceInit);
 		GizmoLastTransform = GizmoTargetTransform = GizmoUnsnappedTargetTransform = GizmoInterpolationSnapshotTransform = GizmoStartTransform;
-		GizmoStartLocalBounds = FBox( 0 );
 		GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;
 		GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;
 		TransformGizmoInteractionType = ETransformGizmoInteractionType::None;

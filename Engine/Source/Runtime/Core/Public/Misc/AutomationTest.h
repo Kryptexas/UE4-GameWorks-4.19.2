@@ -22,6 +22,8 @@
 #include "Future.h"
 #include "Async.h"
 #include "Misc/Guid.h"
+#include "Math/Vector.h"
+#include "Math/Color.h"
 
 /** Flags for specifying automation test requirements/behavior */
 namespace EAutomationTestFlags
@@ -30,25 +32,40 @@ namespace EAutomationTestFlags
 	{
 		//~ Application context required for the test - not specifying means it will be valid for any context
 		// Test is suitable for running within the editor
-		EditorContext				= 0x00000001,
+		EditorContext = 0x00000001,
 		// Test is suitable for running within the client
-		ClientContext				= 0x00000002,
+		ClientContext = 0x00000002,
 		// Test is suitable for running within the server
-		ServerContext				= 0x00000004,
+		ServerContext = 0x00000004,
 		// Test is suitable for running within a commandlet
-		CommandletContext			= 0x00000008,
-		ApplicationContextMask		= EditorContext | ClientContext | ServerContext | CommandletContext,
+		CommandletContext = 0x00000008,
+		ApplicationContextMask = EditorContext | ClientContext | ServerContext | CommandletContext,
 
 		//~ Features required for the test - not specifying means it is valid for any feature combination
 		// Test requires a non-null RHI to run correctly
-		NonNullRHI					= 0x00000100,
+		NonNullRHI = 0x00000100,
 		// Test requires a user instigated session
-		RequiresUser				= 0x00000200,
-		FeatureMask					= NonNullRHI | RequiresUser,
+		RequiresUser = 0x00000200,
+		FeatureMask = NonNullRHI | RequiresUser,
 
 		//~ One-off flag to allow for fast disabling of tests without commenting code out
 		// Temp disabled and never returns for a filter
-		Disabled					= 0x00010000,
+		Disabled = 0x00010000,
+
+		//~ Priority of the test
+		// The highest priority possible. Showstopper/blocker.
+		CriticalPriority			= 0x00100000,
+		// High priority. Major feature functionality etc. 
+		HighPriority				= 0x00200000,
+		// Mask for High on SetMinimumPriority
+		HighPriorityAndAbove		= CriticalPriority | HighPriority,
+		// Medium Priority. Minor feature functionality, major generic content issues.
+		MediumPriority				= 0x00400000,
+		// Mask for Medium on SetMinimumPriority
+		MediumPriorityAndAbove		= CriticalPriority | HighPriority | MediumPriority,
+		// Low Priority. Minor content bugs. String errors. Etc.
+		LowPriority					= 0x00800000,
+		PriorityMask = CriticalPriority | HighPriority | MediumPriority | LowPriority,
 
 		//~ Speed of the test
 		//Super Fast Filter
@@ -92,7 +109,6 @@ struct CORE_API FAutomationEvent
 	FString ToString() const;
 };
 
-
 /** Simple class to store the results of the execution of a automation test */
 class FAutomationTestExecutionInfo
 {
@@ -128,14 +144,19 @@ public:
 
 	/** Whether the automation test completed successfully or not */
 	bool bSuccessful;
+	
 	/** Any errors that occurred during execution */
 	TArray<FAutomationEvent> Errors;
+	
 	/** Any warnings that occurred during execution */
 	TArray<FString> Warnings;
+	
 	/** Any log items that occurred during execution */
 	TArray<FString> LogItems;
+	
 	/** Any analytics items that occurred during execution */
 	TArray<FString> AnalyticsItems;
+
 	/** Time to complete the task */
 	float Duration;
 };
@@ -467,6 +488,7 @@ struct FAutomationScreenshotData
 	FString Context;
 
 	FGuid Id;
+	FString Commit;
 
 	int32 Width;
 	int32 Height;
@@ -510,7 +532,9 @@ struct FAutomationScreenshotData
 	FString Path;
 
 	FAutomationScreenshotData()
-		: Width(0)
+		: Id()
+		, Commit()
+		, Width(0)
 		, Height(0)
 		, bIsStereo(false)
 		, ResolutionQuality(1.0f)
@@ -920,7 +944,6 @@ public:
 	 */
 	virtual void AddError( const FString& InError, int32 StackOffset = 0 );
 
-
 	/**
 	 * Adds an error message to this test
 	 *
@@ -945,10 +968,10 @@ public:
 	virtual void AddLogItem( const FString& InLogItem );
 
 	/**
-	* Adds a analytics string to parse later
-	*
-	* @param	InLogItem	Log item to add to this test
-	*/
+	 * Adds a analytics string to parse later
+	 *
+	 * @param	InLogItem	Log item to add to this test
+	 */
 	virtual void AddAnalyticsItem(const FString& InAnalyticsItem);
 
 	/**
@@ -1054,6 +1077,22 @@ public:
 		if ( !FMath::IsNearlyEqual(Actual, Expected, Tolerance) )
 		{
 			AddError(FString::Printf(TEXT("Expected '%s' to be %f, but it was %f within tolerance %f."), *What, Expected, Actual, Tolerance), 1);
+		}
+	}
+
+	void TestEqual(const FString& What, const FVector Actual, const FVector Expected, float Tolerance = 1.e-4)
+	{
+		if ( !Expected.Equals(Actual, Tolerance) )
+		{
+			AddError(FString::Printf(TEXT("Expected '%s' to be %s, but it was %s within tolerance %f."), *What, *Expected.ToString(), *Actual.ToString(), Tolerance), 1);
+		}
+	}
+
+	void TestEqual(const FString& What, const FColor Actual, const FColor Expected)
+	{
+		if ( Expected != Actual )
+		{
+			AddError(FString::Printf(TEXT("Expected '%s' to be %s, but it was %s."), *What, *Expected.ToString(), *Actual.ToString()), 1);
 		}
 	}
 
@@ -1249,7 +1288,6 @@ public:
 		}
 	}
 
-
 protected:
 	/**
 	 * Asks the test to enumerate variants that will all go through the "RunTest" function with different parameters (for load all maps, this should enumerate all maps to load)\
@@ -1289,7 +1327,6 @@ protected:
 
 	//allow framework to call protected function
 	friend class FAutomationTestFramework;
-
 };
 
 class CORE_API FBDDAutomationTestBase : public FAutomationTestBase

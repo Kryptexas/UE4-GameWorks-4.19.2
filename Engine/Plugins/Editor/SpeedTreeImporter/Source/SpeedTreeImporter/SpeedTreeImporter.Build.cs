@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SpeedTreeImporter : ModuleRules
 	{
-		public SpeedTreeImporter(TargetInfo Target)
+		public SpeedTreeImporter(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

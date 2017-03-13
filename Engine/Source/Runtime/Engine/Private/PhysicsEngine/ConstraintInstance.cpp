@@ -271,11 +271,11 @@ float ComputeAverageMass_AssumesLocked(const PxRigidActor* PActor1, const PxRigi
 }
 
 /** Finds the common scene and appropriate actors for the passed in body instances. Makes sure to do this without requiring a scene lock*/
-PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Body2, UObject* DebugOwner)
+bool GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Body2, UObject* DebugOwner,PxScene*& OutScene)
 {
 	const int32 SceneIndex1 = Body1 ? Body1->GetSceneIndex() : -1;
 	const int32 SceneIndex2 = Body2 ? Body2->GetSceneIndex() : -1;
-	PxScene* PScene = nullptr;
+	OutScene = nullptr;
 
 	//ensure we constrain components from the same scene
 	if(SceneIndex1 >= 0 && SceneIndex2 >= 0 && SceneIndex1 != SceneIndex2)
@@ -292,13 +292,14 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 			->AddToken(FUObjectToken::Create(PrimComp2))
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesEnd", ").  No joint created.")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		return false;
 	}
 	else if(SceneIndex1 >= 0 || SceneIndex2 >= 0)
 	{
-		PScene = GetPhysXSceneFromIndex(SceneIndex1 >= 0 ? SceneIndex1 : SceneIndex2);
+		OutScene = GetPhysXSceneFromIndex(SceneIndex1 >= 0 ? SceneIndex1 : SceneIndex2);
 	}
 
-	return PScene;
+	return true;	//we are simply using a nullscene which is valid in some cases
 }
 
 bool CanActorSimulate(const FBodyInstance* BI, const PxRigidActor* PActor, UObject* DebugOwner)
@@ -413,22 +414,26 @@ bool FConstraintInstance::CreatePxJoint_AssumesLocked(physx::PxRigidActor* PActo
 	///////// POINTERS
 	PD6Joint->userData = &PhysxUserData;
 
-	// Remember reference to scene index.
-	FPhysScene* RBScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-	if (RBScene->GetPhysXScene(PST_Sync) == PScene)
+	if(PScene)
 	{
-		SceneIndex = RBScene->PhysXSceneIndex[PST_Sync];
+		// Remember reference to scene index.
+		FPhysScene* RBScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+		if (RBScene->GetPhysXScene(PST_Sync) == PScene)
+		{
+			SceneIndex = RBScene->PhysXSceneIndex[PST_Sync];
+		}
+		else
+			if (RBScene->GetPhysXScene(PST_Async) == PScene)
+			{
+				SceneIndex = RBScene->PhysXSceneIndex[PST_Async];
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Log, TEXT("URB_ConstraintInstance::InitConstraint: PxScene has inconsistent FPhysScene userData.  No joint created."));
+				return false;
+			}
 	}
-	else
-	if (RBScene->GetPhysXScene(PST_Async) == PScene)
-	{
-		SceneIndex = RBScene->PhysXSceneIndex[PST_Async];
-	}
-	else
-	{
-		UE_LOG(LogPhysics, Log, TEXT("URB_ConstraintInstance::InitConstraint: PxScene has inconsistent FPhysScene userData.  No joint created."));
-		return false;
-	}
+	
 
 	ConstraintData = PD6Joint;
 	return true;
@@ -502,10 +507,11 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
 #if WITH_PHYSX
 	PxRigidActor* PActor1 = nullptr;
 	PxRigidActor* PActor2 = nullptr;
-	PxScene* PScene = GetPScene_LockFree(Body1, Body2, DebugOwner);
+	PxScene* PScene;
+	bool bValidScene = GetPScene_LockFree(Body1, Body2, DebugOwner, PScene);
 	SCOPED_SCENE_WRITE_LOCK(PScene);
 	{
-		const bool bValidConstraintSetup = PScene && GetPActors_AssumesLocked(Body1, Body2, &PActor1, &PActor2, DebugOwner);
+		const bool bValidConstraintSetup = bValidScene && GetPActors_AssumesLocked(Body1, Body2, &PActor1, &PActor2, DebugOwner);
 		if (!bValidConstraintSetup)
 		{
 			return;
@@ -542,7 +548,10 @@ void FConstraintInstance::InitConstraintPhysX_AssumesLocked(physx::PxRigidActor*
 
 	ProfileInstance.UpdatePhysX_AssumesLocked(ConstraintData, AverageMass, bScaleLinearLimits ? LastKnownScale : 1.f);
 
-	EnsureSleepingActorsStaySleeping_AssumesLocked(PActor1, PActor2);
+	if(PScene)
+	{
+		EnsureSleepingActorsStaySleeping_AssumesLocked(PActor1, PActor2);
+	}
 }
 #endif
 
@@ -588,7 +597,7 @@ void FConstraintInstance::TermConstraint()
 	}
 
 	// use correct scene
-	if(PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex))
+	PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
 	{
 		SCOPED_SCENE_WRITE_LOCK(PScene);
 		ConstraintData->release();

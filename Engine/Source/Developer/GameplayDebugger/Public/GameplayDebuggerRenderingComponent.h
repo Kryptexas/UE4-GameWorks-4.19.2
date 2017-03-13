@@ -22,13 +22,6 @@ public:
 
 	void Reset();
 
-	virtual void InitDelegateHelper(const FDebugRenderSceneProxy* InSceneProxy) override
-	{
-		check(0);
-	}
-
-	void InitDelegateHelper(const FGameplayDebuggerCompositeSceneProxy* InSceneProxy);
-
 	void AddDelegateHelper(FDebugDrawDelegateHelper* InDebugDrawDelegateHelper);
 
 	virtual void RegisterDebugDrawDelgate() override;

@@ -12,6 +12,9 @@
 #include "Widgets/SWidget.h"
 #include "Layout/Children.h"
 #include "Widgets/SPanel.h"
+#include "ArrangedChildren.h"
+#include "DragAndDrop.h"
+#include "DrawElements.h"
 
 class FArrangedChildren;
 
@@ -398,4 +401,120 @@ public:
 	 * @param	InArgs	The declaration data for this widget
 	 */
 	void Construct( const FArguments& InArgs );
+};
+
+class FDragAndDropVerticalBoxOp : public FDragDropOperation
+{
+public:
+	DRAG_DROP_OPERATOR_TYPE(FDragAndDropVerticalBoxOp, FDragDropOperation)
+
+	/** Data this item represent */
+	int32 SlotIndexBeingDragged;
+	SVerticalBox::FSlot* SlotBeingDragged;
+
+	virtual ~FDragAndDropVerticalBoxOp()
+	{}
+};
+
+/** A Vertical Box Panel. See SBoxPanel for more info. */
+class SLATECORE_API SDragAndDropVerticalBox : public SVerticalBox
+{
+public:
+	/**
+	* Where we are going to drop relative to the target item.
+	*/
+	enum class EItemDropZone
+	{
+		AboveItem,
+		BelowItem
+	};
+
+	DECLARE_DELEGATE_RetVal_FourParams(FReply, FOnDragAndDropVerticalBoxDragDetected, const FGeometry&, const FPointerEvent&, int32, SVerticalBox::FSlot*)
+	DECLARE_DELEGATE_OneParam(FOnDragAndDropVerticalBoxDragEnter, FDragDropEvent const&);
+	DECLARE_DELEGATE_OneParam(FOnDragAndDropVerticalBoxDragLeave, FDragDropEvent const&);
+	DECLARE_DELEGATE_RetVal_OneParam(FReply, FOnDragAndDropVerticalBoxDrop, FDragDropEvent const&);
+
+	/** Delegate signature for querying whether this FDragDropEvent will be handled by the drop target of type ItemType. */
+	DECLARE_DELEGATE_RetVal_ThreeParams(TOptional<EItemDropZone>, FOnCanAcceptDrop, const FDragDropEvent&, SDragAndDropVerticalBox::EItemDropZone, SVerticalBox::FSlot*);
+	/** Delegate signature for handling the drop of FDragDropEvent onto target of type ItemType */
+	DECLARE_DELEGATE_RetVal_FourParams(FReply, FOnAcceptDrop, const FDragDropEvent&, SDragAndDropVerticalBox::EItemDropZone, int32, SVerticalBox::FSlot*);
+
+	SLATE_BEGIN_ARGS(SDragAndDropVerticalBox)
+		{}
+
+		// High Level DragAndDrop
+
+		/**
+		* Handle this event to determine whether a drag and drop operation can be executed on top of the target row widget.
+		* Most commonly, this is used for previewing re-ordering and re-organization operations in lists or trees.
+		* e.g. A user is dragging one item into a different spot in the list or tree.
+		*      This delegate will be called to figure out if we should give visual feedback on whether an item will
+		*      successfully drop into the list.
+		*/
+		SLATE_EVENT(FOnCanAcceptDrop, OnCanAcceptDrop)
+
+		/**
+		* Perform a drop operation onto the target row widget
+		* Most commonly used for executing a re-ordering and re-organization operations in lists or trees.
+		* e.g. A user was dragging one item into a different spot in the list; they just dropped it.
+		*      This is our chance to handle the drop by reordering items and calling for a list refresh.
+		*/
+		SLATE_EVENT(FOnAcceptDrop, OnAcceptDrop)
+
+		// Low level DragAndDrop
+		SLATE_EVENT(FOnDragAndDropVerticalBoxDragDetected, OnDragDetected)
+		SLATE_EVENT(FOnDragAndDropVerticalBoxDragEnter, OnDragEnter)
+		SLATE_EVENT(FOnDragAndDropVerticalBoxDragLeave, OnDragLeave)
+		SLATE_EVENT(FOnDragAndDropVerticalBoxDrop, OnDrop)
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs);
+
+	/** Set the Drop indicators */
+	SDragAndDropVerticalBox& SetDropIndicator_Above(const FSlateBrush& InValue) { DropIndicator_Above = InValue; return *this; }
+	SDragAndDropVerticalBox& SetDropIndicator_Below(const FSlateBrush& InValue) { DropIndicator_Below = InValue; return *this; }
+
+	/** Drag detection and handling */
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+		
+	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnDragEnter(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) override;
+	virtual void OnDragLeave(FDragDropEvent const& DragDropEvent) override;
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+
+private:
+	/** @see SDragAndDropVerticalBox's OnCanAcceptDrop event */
+	FOnCanAcceptDrop OnCanAcceptDrop;
+
+	/** @see SDragAndDropVerticalBox's OnAcceptDrop event */
+	FOnAcceptDrop OnAcceptDrop;
+
+	/** Are we currently dragging/dropping over this item? */
+	TOptional<EItemDropZone> ItemDropZone;
+
+	/** Delegate triggered when a user starts to drag a slot item */
+	FOnDragAndDropVerticalBoxDragDetected OnDragDetected_Handler;
+
+	/** Delegate triggered when a user's drag enters the bounds of this slot item */
+	FOnDragAndDropVerticalBoxDragEnter OnDragEnter_Handler;
+
+	/** Delegate triggered when a user's drag leaves the bounds of this slot item */
+	FOnDragAndDropVerticalBoxDragLeave OnDragLeave_Handler;
+
+	/** Delegate triggered when a user's drag is dropped in the bounds of this slot item */
+	FOnDragAndDropVerticalBoxDrop OnDrop_Handler;
+
+	/** Brush used to provide feedback that a user can drop below the hovered row. */
+	FSlateBrush DropIndicator_Above;
+	FSlateBrush DropIndicator_Below;
+
+	/** This is required for the paint to access which item we're hovering */
+	FVector2D CurrentDragOperationScreenSpaceLocation;
+	int32 CurrentDragOverSlotIndex;
+
+	/** @return the zone (above, below) based on where the user is hovering over */
+	EItemDropZone ZoneFromPointerPosition(FVector2D LocalPointerPos, const FGeometry& CurrentGeometry, const FGeometry& StartGeometry) const;
 };

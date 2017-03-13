@@ -129,7 +129,18 @@ namespace AutomationTool
 			}
 			else
 			{
-				return new FilePattern(BaseDirectory, String.Join("", Tokens) + Path.DirectorySeparatorChar + "...");
+				StringBuilder Pattern = new StringBuilder();
+				foreach(string Token in Tokens)
+				{
+					Pattern.Append(Token);
+				}
+				if(Pattern.Length > 0)
+				{
+					Pattern.Append(Path.DirectorySeparatorChar);
+				}
+				Pattern.Append("...");
+
+				return new FilePattern(BaseDirectory, Pattern.ToString());
 			}
 		}
 
@@ -350,7 +361,7 @@ namespace AutomationTool
 			{
 				// Just copy a single file
 				FileReference SourceFile = SourcePattern.GetSingleFile();
-				if(SourceFile.Exists())
+				if(FileReference.Exists(SourceFile))
 				{
 					FileReference TargetFile = TargetPattern.GetSingleFile();
 					TargetFileToSourceFile[TargetFile] = SourceFile;
@@ -402,7 +413,7 @@ namespace AutomationTool
 					CommandUtils.LogError("Source file '{0}' is not under '{1}'", InputFile, BaseDirectory);
 					bResult = false;
 				}
-				else if(!InputFile.Exists())
+				else if(!FileReference.Exists(InputFile))
 				{
 					CommandUtils.LogError("Source file '{0}' does not exist", InputFile);
 					bResult = false;

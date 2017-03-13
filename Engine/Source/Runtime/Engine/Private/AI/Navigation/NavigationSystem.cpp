@@ -845,7 +845,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	if (!bAsyncBuildPaused && (bNavigationAutoUpdateEnabled || bIsGame 
 #if WITH_EDITOR
 		// continue ticking if build is in progress
-		|| (GIsEditor && IsNavigationBuildInProgress())
+		|| (GIsEditor && IsNavigationBuildInProgress(/*bCheckDirtyToo=*/false))
 #endif // WITH_EDITOR
 		))
 	{
@@ -1648,7 +1648,7 @@ FBox UNavigationSystem::GetWorldBounds() const
 {
 	checkSlow(IsInGameThread() == true);
 
-	NavigableWorldBounds = FBox(0);
+	NavigableWorldBounds = FBox(ForceInit);
 
 	if (GetWorld() != nullptr)
 	{
@@ -1677,7 +1677,7 @@ FBox UNavigationSystem::GetWorldBounds() const
 
 FBox UNavigationSystem::GetLevelBounds(ULevel* InLevel) const
 {
-	FBox NavigableLevelBounds(0);
+	FBox NavigableLevelBounds(ForceInit);
 
 	if (InLevel)
 	{
@@ -1918,7 +1918,38 @@ void UNavigationSystem::UnregisterNavData(ANavigationData* NavData)
 
 void UNavigationSystem::RegisterCustomLink(INavLinkCustomInterface& CustomLink)
 {
-	CustomLinksMap.Add(CustomLink.GetLinkId(), FNavigationSystem::FCustomLinkOwnerInfo(&CustomLink));
+	uint32 LinkId = CustomLink.GetLinkId();
+
+	// if there's already a link with that Id registered, assign new Id and mark dirty area
+	// this won't fix baked data in static navmesh (in game), but every other case will regenerate affected tiles 
+	if (CustomLinksMap.Contains(LinkId))
+	{
+		LinkId = INavLinkCustomInterface::GetUniqueId();
+		CustomLink.UpdateLinkId(LinkId);
+
+		UObject* CustomLinkOb = CustomLink.GetLinkOwner();
+		UActorComponent* OwnerComp = Cast<UActorComponent>(CustomLinkOb);
+		AActor* OwnerActor = OwnerComp ? OwnerComp->GetOwner() : Cast<AActor>(CustomLinkOb);
+
+		if (OwnerActor)
+		{
+			ENavLinkDirection::Type DummyDir = ENavLinkDirection::BothWays;
+			FVector RelativePtA, RelativePtB;
+			CustomLink.GetLinkData(RelativePtA, RelativePtB, DummyDir);
+
+			const FTransform OwnerActorTM = OwnerActor->GetTransform();
+			const FVector WorldPtA = OwnerActorTM.TransformPosition(RelativePtA);
+			const FVector WorldPtB = OwnerActorTM.TransformPosition(RelativePtB);
+
+			FBox LinkBounds(EForceInit::ForceInitToZero);
+			LinkBounds += WorldPtA;
+			LinkBounds += WorldPtB;
+
+			AddDirtyArea(LinkBounds, OctreeUpdate_Modifiers);
+		}
+	}
+
+	CustomLinksMap.Add(LinkId, FNavigationSystem::FCustomLinkOwnerInfo(&CustomLink));
 }
 
 void UNavigationSystem::UnregisterCustomLink(INavLinkCustomInterface& CustomLink)
@@ -2113,7 +2144,7 @@ void UNavigationSystem::DescribeFilterFlags(UEnum* FlagsEnum) const
 	const int32 NumEnums = FMath::Min(16, FlagsEnum->NumEnums() - 1);	// skip _MAX
 	for (int32 FlagIndex = 0; FlagIndex < NumEnums; FlagIndex++)
 	{
-		FlagDesc[FlagIndex] = FlagsEnum->GetEnumText(FlagIndex).ToString();
+		FlagDesc[FlagIndex] = FlagsEnum->GetDisplayNameTextByIndex(FlagIndex).ToString();
 	}
 
 	DescribeFilterFlags(FlagDesc);
@@ -2527,7 +2558,7 @@ void UNavigationSystem::UpdateActorInNavOctree(AActor& Actor)
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor.GetWorld());
 		if (NavSys)
 		{
-			NavSys->UpdateNavOctreeElement(&Actor, NavElement, OctreeUpdate_Modifiers);
+			NavSys->UpdateNavOctreeElement(&Actor, NavElement, OctreeUpdate_Default);
 		}
 	}
 }
@@ -2847,7 +2878,7 @@ void UNavigationSystem::OnActorRegistered(AActor* Actor)
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor->GetWorld());
 		if (NavSys)
 		{
-			NavSys->RegisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Modifiers);
+			NavSys->RegisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Default);
 		}
 	}
 }
@@ -2866,7 +2897,7 @@ void UNavigationSystem::OnActorUnregistered(AActor* Actor)
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Actor->GetWorld());
 		if (NavSys)
 		{
-			NavSys->UnregisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Modifiers);
+			NavSys->UnregisterNavOctreeElement(Actor, NavInterface, OctreeUpdate_Default);
 		}
 	}
 }
@@ -3585,8 +3616,10 @@ void UNavigationSystem::CleanUp(ECleanupMode Mode)
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
 
 #if WITH_HOT_RELOAD
-	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-	HotReloadSupport.OnHotReload().Remove(HotReloadDelegateHandle);
+	if (IHotReloadInterface* HotReloadSupport = FModuleManager::GetModulePtr<IHotReloadInterface>("HotReload"))
+	{
+		HotReloadSupport->OnHotReload().Remove(HotReloadDelegateHandle);
+	}
 #endif
 
 	DestroyNavOctree();
@@ -3685,28 +3718,33 @@ UNavigationSystem* UNavigationSystem::GetNavigationSystem(UObject* WorldContext)
 	return GetCurrent(WorldContext);
 }
 
-FVector UNavigationSystem::ProjectPointToNavigation(UObject* WorldContextObject, const FVector& Point, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass, const FVector QueryExtent)
+bool UNavigationSystem::K2_ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, FVector& ProjectedLocation, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass, const FVector QueryExtent)
 {
-	FNavLocation ProjectedPoint(Point);
-
-	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+
+	ProjectedLocation = Point;
+	bool bResult = false;
+
 	if (NavSys)
 	{
+		FNavLocation OutNavLocation;
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->ProjectPointToNavigation(Point, ProjectedPoint, QueryExtent.IsNearlyZero() ? INVALID_NAVEXTENT : QueryExtent, UseNavData,
-				UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
+			bResult = NavSys->ProjectPointToNavigation(Point, OutNavLocation, QueryExtent, NavData
+				, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			ProjectedLocation = OutNavLocation.Location;
 		}
 	}
 
-	return ProjectedPoint.Location;
+	return bResult;
 }
 
-FVector UNavigationSystem::GetRandomReachablePointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+bool UNavigationSystem::K2_GetRandomReachablePointInRadius(UObject* WorldContext, const FVector& Origin, FVector& RandomLocation, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
-	FNavLocation RandomPoint;
+	FNavLocation RandomPoint(Origin);
+	bool bResult = false;
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
@@ -3715,16 +3753,18 @@ FVector UNavigationSystem::GetRandomReachablePointInRadius(UObject* WorldContext
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			bResult = NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			RandomLocation = RandomPoint.Location;
 		}
 	}
 
-	return RandomPoint.Location;
+	return bResult;
 }
 
-FVector UNavigationSystem::GetRandomPointInNavigableRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+bool UNavigationSystem::K2_GetRandomPointInNavigableRadius(UObject* WorldContext, const FVector& Origin, FVector& RandomLocation, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
-	FNavLocation RandomPoint;
+	FNavLocation RandomPoint(Origin);
+	bool bResult = false;
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
@@ -3733,11 +3773,12 @@ FVector UNavigationSystem::GetRandomPointInNavigableRadius(UObject* WorldContext
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			bResult = NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			RandomLocation = RandomPoint.Location;
 		}
 	}
 
-	return RandomPoint.Location;
+	return bResult;
 }
 
 ENavigationQueryResult::Type UNavigationSystem::GetPathCost(UObject* WorldContextObject, const FVector& PathStart, const FVector& PathEnd, float& OutPathCost, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
@@ -4122,6 +4163,61 @@ void UNavigationSystem::UpdateNavOctreeAll(AActor* Actor)
 	{
 		UpdateActorAndComponentsInNavOctree(*Actor);
 	}
+}
+
+FVector UNavigationSystem::ProjectPointToNavigation(UObject* WorldContextObject, const FVector& Point, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass, const FVector QueryExtent)
+{
+	FNavLocation ProjectedPoint(Point);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+	if (NavSys)
+	{
+		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
+		if (UseNavData)
+		{
+			NavSys->ProjectPointToNavigation(Point, ProjectedPoint, QueryExtent.IsNearlyZero() ? INVALID_NAVEXTENT : QueryExtent, UseNavData,
+				UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
+		}
+	}
+
+	return ProjectedPoint.Location;
+}
+
+FVector UNavigationSystem::GetRandomReachablePointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+{
+	FNavLocation RandomPoint;
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+	if (NavSys)
+	{
+		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
+		if (UseNavData)
+		{
+			NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+		}
+	}
+
+	return RandomPoint.Location;
+}
+
+FVector UNavigationSystem::GetRandomPointInNavigableRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+{
+	FNavLocation RandomPoint;
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+	if (NavSys)
+	{
+		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
+		if (UseNavData)
+		{
+			NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+		}
+	}
+
+	return RandomPoint.Location;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MessagingDebugger : ModuleRules
 {
-	public MessagingDebugger(TargetInfo Target)
+	public MessagingDebugger(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[]

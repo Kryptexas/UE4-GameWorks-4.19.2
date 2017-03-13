@@ -97,19 +97,19 @@ public:
 	void RenderBasePassDynamicDataParallel(FParallelCommandListSet& ParallelCommandListSet);
 
 	/** Renders the basepass for a given View, in parallel */
-	void RenderBasePassViewParallel(FViewInfo& View, FRHICommandListImmediate& ParentCmdList);
+	void RenderBasePassViewParallel(FViewInfo& View, FRHICommandListImmediate& ParentCmdList, FExclusiveDepthStencil::Type BasePassDepthStencilAccess);
 
 	/** Renders the basepass for a given View. */
-	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess);
 
 	/** Renders editor primitives for a given View. */
-	void RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
+	void RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, bool& bOutDirty);
 	
 	/** 
 	* Renders the scene's base pass 
 	* @return true if anything was rendered
 	*/
-	bool RenderBasePass(FRHICommandListImmediate& RHICmdList);
+	bool RenderBasePass(FRHICommandListImmediate& RHICmdList, FExclusiveDepthStencil::Type BasePassDepthStencilAccess);
 
 	/** Finishes the view family rendering. */
 	void RenderFinish(FRHICommandListImmediate& RHICmdList);
@@ -125,9 +125,6 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	void RenderVisualizeTexturePool(FRHICommandListImmediate& RHICmdList);
 #endif
-
-	/** Offline culling of static triangles that won't be seen at runtime. */
-	void PreCullStaticMeshes(FRHICommandListImmediate& RHICmdList, const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes);
 
 	/** bound shader state for occlusion test prims */
 	static FGlobalBoundShaderState OcclusionTestBoundShaderState;
@@ -175,6 +172,8 @@ private:
 	* @return true if the depth was cleared
 	*/
 	bool PreRenderPrePass(FRHICommandListImmediate& RHICmdList);
+
+	void RenderPrePassEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FDepthDrawingPolicyFactory::ContextType Context);
 
 	/**
 	 * Renders the scene's prepass and occlusion queries.
@@ -230,14 +229,6 @@ private:
 		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance);
-
-	void RenderDistanceFieldSpecularOcclusion(
-		FRHICommandListImmediate& RHICmdList, 
-		const FViewInfo& View,
-		FIntPoint TileListGroupSize,
-		const FDistanceFieldAOParameters& Parameters, 
-		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
-		TRefCountPtr<IPooledRenderTarget>& OutSpecularOcclusion);
 
 	void RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters);
 

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealAudio : ModuleRules
 {
-	public UnrealAudio(TargetInfo Target)
+	public UnrealAudio(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {

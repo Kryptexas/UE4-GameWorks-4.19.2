@@ -276,7 +276,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 		LinearColor = ST2084ToLinear( LUTEncodedColor );
 	// Decode log values
 	else
-		LinearColor = LogToLin( LUTEncodedColor );
+		LinearColor = LogToLin( LUTEncodedColor ) - LogToLin( 0 );
 
 	float3 BalancedColor = WhiteBalance( LinearColor );
 	float3 GradedColor = ColorGrade( BalancedColor );

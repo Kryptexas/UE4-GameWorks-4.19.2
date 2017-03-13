@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MergeActors : ModuleRules
 {
-	public MergeActors(TargetInfo Target)
+	public MergeActors(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.AddRange(
             new string[] {

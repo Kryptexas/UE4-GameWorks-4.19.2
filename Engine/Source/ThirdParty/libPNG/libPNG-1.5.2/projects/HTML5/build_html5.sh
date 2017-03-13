@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 PNG_HTML5=$(pwd)
 
@@ -42,14 +42,14 @@ build_via_cmake()
 	if [ $OLEVEL == 0 ]; then
 		SUFFIX=
 	fi
-	cp libpng15${d}.bc ../../../Lib/HTML5/libpng${SUFFIX}.bc
+	cp libpng15${d}.bc ../../../lib/HTML5/libpng${SUFFIX}.bc
 	cd ..
 }
 type=Debug;       OLEVEL=0;  build_via_cmake
 type=Release;     OLEVEL=2;  build_via_cmake
 type=Release;     OLEVEL=3;  build_via_cmake
 type=MinSizeRel;  OLEVEL=z;  build_via_cmake
-ls -l ../../Lib/HTML5
+ls -l ../../lib/HTML5
 
 
 # NOT USED: LEFT HERE FOR REFERENCE

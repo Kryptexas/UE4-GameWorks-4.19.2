@@ -234,7 +234,7 @@ int32 FBoneContainer::GetPoseBoneIndexForBoneName(const FName& BoneName) const
 	return RefSkeleton->FindBoneIndex(BoneName);
 }
 
-int32 FBoneContainer::GetParentBoneIndex(const int32& BoneIndex) const
+int32 FBoneContainer::GetParentBoneIndex(const int32 BoneIndex) const
 {
 	checkSlow( IsValid() );
 	checkSlow(BoneIndex != INDEX_NONE);
@@ -248,14 +248,14 @@ FCompactPoseBoneIndex FBoneContainer::GetParentBoneIndex(const FCompactPoseBoneI
 	return CompactPoseParentBones[BoneIndex.GetInt()];
 }
 
-int32 FBoneContainer::GetDepthBetweenBones(const int32& BoneIndex, const int32& ParentBoneIndex) const
+int32 FBoneContainer::GetDepthBetweenBones(const int32 BoneIndex, const int32 ParentBoneIndex) const
 {
 	checkSlow( IsValid() );
 	checkSlow( BoneIndex != INDEX_NONE );
 	return RefSkeleton->GetDepthBetweenBones(BoneIndex, ParentBoneIndex);
 }
 
-bool FBoneContainer::BoneIsChildOf(const int32& BoneIndex, const int32& ParentBoneIndex) const
+bool FBoneContainer::BoneIsChildOf(const int32 BoneIndex, const int32 ParentBoneIndex) const
 {
 	checkSlow( IsValid() );
 	checkSlow( (BoneIndex != INDEX_NONE) && (ParentBoneIndex != INDEX_NONE) );

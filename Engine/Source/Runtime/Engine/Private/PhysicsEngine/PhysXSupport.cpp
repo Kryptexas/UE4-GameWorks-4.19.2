@@ -917,12 +917,31 @@ FString ErrorCodeToString(PxErrorCode::Enum e)
 	return CodeString;
 }
 
+bool GHillClimbError = false;
+
 void FPhysXErrorCallback::reportError(PxErrorCode::Enum e, const char* message, const char* file, int line)
 {
 	// if not in game, ignore Perf warnings - i.e. Moving Static actor in editor will produce this warning
 	if (GIsEditor && e == PxErrorCode::ePERF_WARNING)
 	{
 		return;
+	}
+
+
+	if(e == PxErrorCode::eINTERNAL_ERROR)
+	{
+		const char* HillClimbError = "HillClimbing";
+		const char* TestSATCapsulePoly = "testSATCapsulePoly";
+		//HACK: We parse the message to see if it's hill climbing so that we can log some more useful information higher up in the callstack
+		if(FPlatformString::Strstr(message, HillClimbError))
+		{
+			GHillClimbError = true;
+		}
+		
+		if(FPlatformString::Strstr(message, TestSATCapsulePoly))
+		{
+			GHillClimbError = true;
+		}
 	}
 
 	// Make string to print out, include physx file/line

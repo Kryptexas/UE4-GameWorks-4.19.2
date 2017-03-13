@@ -11,7 +11,7 @@ void FAndroidJSStructSerializerBackend::WriteProperty(const FStructSerializerSta
 	// The parent class serialzes UObjects as NULLs
 	if (State.ValueType == UObjectProperty::StaticClass())
 	{
-		WriteUObject(State, Cast<UObjectProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		WriteUObject(State, CastChecked<UObjectProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	// basic property type (json serializable)
 	else

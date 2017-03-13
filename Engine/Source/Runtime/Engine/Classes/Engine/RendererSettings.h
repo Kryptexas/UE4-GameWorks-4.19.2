@@ -44,6 +44,22 @@ namespace ECompositingSampleCount
 
 
 /**
+* Enumerates available mobile MSAA sample counts.
+*/
+UENUM()
+namespace EMobileMSAASampleCount
+{
+	enum Type
+	{
+		One = 1 UMETA(DisplayName = "No MSAA"),
+		Two = 2 UMETA(DisplayName = "2x MSAA"),
+		Four = 4 UMETA(DisplayName = "4x MSAA"),
+		Eight = 8 UMETA(DisplayName = "8x MSAA"),
+	};
+}
+
+
+/**
  * Enumerates available options for custom depth.
  */
 UENUM()
@@ -112,6 +128,11 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConsoleVariable = "r.Shadow.CSM.MaxMobileCascades", DisplayName = "Maximum number of CSM cascades to render", ClampMin = 1, ClampMax = 4,
 		ToolTip = "The maximum number of cascades with which to render dynamic directional light shadows when using the mobile renderer."))
 		int32 MaxMobileCascades;
+
+	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
+		ConsoleVariable = "r.MobileMSAA", DisplayName = "Mobile MSAA",
+		ToolTip = "Multi-sample anti-aliasing setting to use on mobile. MSAA is currently supported using Metal on iOS, and on Android devices with the required support using ES 2 or ES 3.1.\nIf MSAA is not available, the current default AA method will be used."))
+	TEnumAsByte<EMobileMSAASampleCount::Type> MobileMSAASampleCount;
 
 	UPROPERTY(config, EditAnywhere, Category = Materials, meta = (
 		ConsoleVariable = "r.DiscardUnusedQuality", DisplayName = "Game Discards Unused Material Quality Levels",
@@ -206,6 +227,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.  This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage."))
 	uint32 bGenerateLandscapeGIData : 1;
 
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		ConsoleVariable="r.CompressMeshDistanceFields",
+		ToolTip="Whether to store mesh distance fields compressed in memory, which reduces how much memory they take, but also causes serious hitches when making new levels visible.  Only enable if your project does not stream levels in-game.  Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bCompressMeshDistanceFields:1;
+
 	UPROPERTY(config, EditAnywhere, Category=Tessellation, meta=(
 		ConsoleVariable="r.TessellationAdaptivePixelsPerTriangle",DisplayName="Adaptive pixels per triangle",
 		ToolTip="When adaptive tessellation is enabled it will try to tessellate a mesh so that each triangle contains the specified number of pixels. The tessellation multiplier specified in the material can increase or decrease the amount of tessellation."))
@@ -218,7 +245,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category=Translucency, meta=(
 		ConsoleVariable="r.TranslucentSortPolicy",DisplayName="Translucent Sort Policy",
-		ToolTip="The sort mode for translucent primitives, affecting how they are ordered and how they change order as the camera moves."))
+		ToolTip="The sort mode for translucent primitives, affecting how they are ordered and how they change order as the camera moves. Requires that Separate Translucency (under Postprocessing) is true."))
 	TEnumAsByte<ETranslucentSortPolicy::Type> TranslucentSortPolicy;
 
 	UPROPERTY(config, EditAnywhere, Category=Translucency, meta=(
@@ -362,6 +389,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 		uint32 bMobileMultiView : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
+		ConsoleVariable = "vr.MonoscopicFarField", DisplayName = "Monoscopic Far Field (Experimental)",
+		ToolTip = "Enable monoscopic far field rendering (only available for mobile).",
+		ConfigRestartRequired = true))
+		uint32 bMonoscopicFarField : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
@@ -467,6 +500,11 @@ class ENGINE_API URendererOverrideSettings : public UDeveloperSettings
 		ConsoleVariable = "r.SupportAllShaderPermutations", DisplayName = "Force all shader permutation support",
 		ConfigRestartRequired = true))
 		uint32 bSupportAllShaderPermutations : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Miscellaneous, meta = (
+		ConsoleVariable = "r.SkinCache.ForceRecomputeTangents", DisplayName = "Force all skinned meshes to recompute tangents (also forces Compute SkinCache)",
+		ConfigRestartRequired = true))
+		uint32 bForceRecomputeTangents : 1;
 
 public:
 

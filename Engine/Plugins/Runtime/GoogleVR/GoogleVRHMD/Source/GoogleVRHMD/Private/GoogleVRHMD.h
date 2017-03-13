@@ -86,6 +86,7 @@ public:
 		uint32 InSizeZ,
 		uint32 InNumMips,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		uint32 InArraySize,
 		EPixelFormat InFormat,
 		bool bInCubemap,
@@ -100,6 +101,7 @@ public:
 		FOpenGLDynamicRHI* InGLRHI,
 		uint32 SizeX, uint32 SizeY,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		EPixelFormat InFormat,
 		uint32 InFlags);
 };
@@ -256,6 +258,11 @@ public:
 	/** Check if application was launched in Vr." */
 	bool IsVrLaunch() const;
 
+	/** Check if the application is running in Daydream mode*/
+	bool IsInDaydreamMode() const;
+
+	void SetSPMEnable(bool bEnable) const;
+
 	/**
 	 * Returns the string representation of the data URI on which this activity's intent is operating.
 	 * See Intent.getDataString() in the Android documentation.
@@ -291,6 +298,9 @@ private:
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	/** Get the Viewport Rect from GVR */
 	FIntRect CalculateGVRViewportRect(int RenderTargetSizeX, int RenderTargetSizeY, EStereoscopicPass StereoPassType);
+
+	/** Get the Eye FOV from GVR SDK */
+	gvr_rectf GetGVREyeFOV(int EyeIndex) const;
 #endif
 
 	/** Function get called when start loading a map*/

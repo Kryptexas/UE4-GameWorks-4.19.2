@@ -86,9 +86,6 @@ private:
 	/** Track expansion state of the in-line editor */
 	bool bInlineEditorExpanded;
 
-	/** Box for the user to type in the name - stored here so that SSkeletonTree can set the keyboard focus in Slate */
-	TSharedPtr<SEditableText> NameEntryBox;
-
 	/** Delegate for when the context menu requests a rename */
 	DECLARE_DELEGATE(FOnRenameRequested);
 	FOnRenameRequested OnRenameRequested;

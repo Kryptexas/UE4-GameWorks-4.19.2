@@ -11,7 +11,7 @@ FMetadataArchiveProxy::FMetadataArchiveProxy(FUHTMakefile& UHTMakefile, UMetaDat
 {
 	for (auto& Kvp : UMetaData::KeyRedirectMap)
 	{
-		KeyRedirectMap.Add(TPairInitializer<FNameArchiveProxy, FNameArchiveProxy>(FNameArchiveProxy(UHTMakefile, Kvp.Key), FNameArchiveProxy(UHTMakefile, Kvp.Value)));
+		KeyRedirectMap.Emplace(FNameArchiveProxy(UHTMakefile, Kvp.Key), FNameArchiveProxy(UHTMakefile, Kvp.Value));
 	}
 	
 	for (auto& Kvp : Metadata->ObjectMetaDataMap)
@@ -21,9 +21,9 @@ FMetadataArchiveProxy::FMetadataArchiveProxy(FUHTMakefile& UHTMakefile, UMetaDat
 		Value.Empty(Kvp.Value.Num());
 		for (const auto& KvpInner : Kvp.Value)
 		{
-			Value.Add(TPairInitializer<FNameArchiveProxy, FString>(FNameArchiveProxy(UHTMakefile, KvpInner.Key), KvpInner.Value));
+			Value.Emplace(FNameArchiveProxy(UHTMakefile, KvpInner.Key), KvpInner.Value);
 		}
-		ObjectMetaDataMapProxy.Add(TPairInitializer<FSerializeIndex, TArray<TPair<FNameArchiveProxy, FString>>>(Index, Value));
+		ObjectMetaDataMapProxy.Emplace(Index, Value);
 	}
 }
 

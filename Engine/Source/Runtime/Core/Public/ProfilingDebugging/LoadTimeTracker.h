@@ -12,7 +12,10 @@
 #include "UObject/NameTypes.h"
 #include "ProfilingDebugging/ScopedTimers.h"
 
-#define ENABLE_LOADTIME_TRACKING 0
+#ifndef ENABLE_LOADTIME_TRACKING
+	#define ENABLE_LOADTIME_TRACKING 0
+#endif
+
 #define ENABLE_LOADTIME_RAW_TIMINGS 0
 
 /** High level load time tracker utility (such as initial engine startup or game specific timings) */
@@ -83,7 +86,6 @@ public:
 	double LinkerLoad_SerializeImportMap;
 	double LinkerLoad_SerializeExportMap;
 	double LinkerLoad_FixupImportMap;
-	double LinkerLoad_RemapImports;
 	double LinkerLoad_FixupExportMap;
 	double LinkerLoad_SerializeDependsMap;
 	double LinkerLoad_SerializePreloadDependencies;

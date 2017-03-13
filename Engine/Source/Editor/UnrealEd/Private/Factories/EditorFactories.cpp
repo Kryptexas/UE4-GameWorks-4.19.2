@@ -105,6 +105,7 @@
 #include "Factories/SoundMixFactory.h"
 #include "Factories/ReimportSoundSurroundFactory.h"
 #include "Factories/StructureFactory.h"
+#include "Factories/StringTableFactory.h"
 #include "Factories/SubsurfaceProfileFactory.h"
 #include "Factories/Texture2dFactoryNew.h"
 #include "Engine/Texture.h"
@@ -163,6 +164,7 @@
 #include "GameFramework/TouchInterface.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
+#include "Internationalization/StringTable.h"
 #include "Editor.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpGroupCamera.h"
@@ -244,6 +246,7 @@
 #include "Engine/PreviewMeshCollection.h"
 #include "Factories/PreviewMeshCollectionFactory.h"
 #include "Factories/ForceFeedbackAttenuationFactory.h"
+#include "FileHelper.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -256,20 +259,42 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 class FAssetClassParentFilter : public IClassViewerFilter
 {
 public:
+	FAssetClassParentFilter()
+		: DisallowedClassFlags(0), bDisallowBlueprintBase(false)
+	{}
+
 	/** All children of these classes will be included unless filtered out by another setting. */
 	TSet< const UClass* > AllowedChildrenOfClasses;
 
 	/** Disallowed class flags. */
 	uint32 DisallowedClassFlags;
 
+	/** Disallow blueprint base classes. */
+	bool bDisallowBlueprintBase;
+
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 	{
-		return !InClass->HasAnyClassFlags(DisallowedClassFlags)
+		bool bAllowed= !InClass->HasAnyClassFlags(DisallowedClassFlags)
 			&& InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed;
+
+		if (bAllowed && bDisallowBlueprintBase)
+		{
+			if (FKismetEditorUtilities::CanCreateBlueprintOfClass(InClass))
+			{
+				return false;
+			}
+		}
+
+		return bAllowed;
 	}
 
 	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 	{
+		if (bDisallowBlueprintBase)
+		{
+			return false;
+		}
+
 		return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags)
 			&& InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Failed;
 	}
@@ -668,7 +693,7 @@ UObject* ULevelFactory::FactoryCreateText
 					{
 						NewBP->ClearFlags(RF_Standalone);
 
-						FKismetEditorUtilities::CompileBlueprint(NewBP, false, true);
+						FKismetEditorUtilities::CompileBlueprint(NewBP, EBlueprintCompileOptions::SkipGarbageCollection);
 
 						TempClass = NewBP->GeneratedClass;
 
@@ -2623,8 +2648,9 @@ UTexture2D* UTextureFactory::CreateTexture2D( UObject* InParent, FName Name, EOb
 
 UTextureCube* UTextureFactory::CreateTextureCube( UObject* InParent, FName Name, EObjectFlags Flags )
 {
-	UTextureCube* NewTextureCube = CastChecked<UTextureCube>( CreateOrOverwriteAsset(UTextureCube::StaticClass(), InParent, Name, Flags) );
-	return NewTextureCube;
+	// CreateOrOverwriteAsset could fail if this cubemap replaces an asset that still has references.
+	UObject* NewObject = CreateOrOverwriteAsset(UTextureCube::StaticClass(), InParent, Name, Flags);
+	return NewObject ? CastChecked<UTextureCube>(NewObject) : nullptr;
 }
 
 void UTextureFactory::SuppressImportOverwriteDialog()
@@ -5003,7 +5029,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 
 		CurrentFilename = Filename;
 
-		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
+		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ), true ) )
 		{
 			FFbxImporter->ApplyTransformSettingsToFbxNode(FFbxImporter->Scene->GetRootNode(), ImportData);
 			const TArray<UAssetUserData*>* UserData = Mesh->GetAssetUserDataArray();
@@ -5231,7 +5257,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		}
 		CurrentFilename = Filename;
 
-		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
+		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ), true ) )
 		{
 			if ( FFbxImporter->ReimportSkeletalMesh(SkeletalMesh, ImportData) )
 			{
@@ -6020,6 +6046,7 @@ bool UDataAssetFactory::ConfigureProperties()
 
 	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists;
 	Filter->AllowedChildrenOfClasses.Add(UDataAsset::StaticClass());
+	Filter->bDisallowBlueprintBase = true; // If a DataAsset subclass is blueprintable, data blueprints should be made instead
 
 	const FText TitleText = LOCTEXT("CreateDataAssetOptions", "Pick Data Asset Class");
 	UClass* ChosenClass = nullptr;
@@ -6055,6 +6082,11 @@ UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 /*------------------------------------------------------------------------------
 	UDestructibleMeshFactory implementation.
 ------------------------------------------------------------------------------*/
+namespace DestructibleFactoryConstants
+{
+	static const FString DestructibleAssetClass("DestructibleAssetParameters");
+}
+
 UDestructibleMeshFactory::UDestructibleMeshFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -6072,6 +6104,41 @@ FText UDestructibleMeshFactory::GetDisplayName() const
 }
 
 #if WITH_APEX
+
+bool UDestructibleMeshFactory::FactoryCanImport(const FString& Filename)
+{
+	// Need to read in the file and try to create an asset to get it's type
+	TArray<uint8> FileBuffer; 
+	if(FFileHelper::LoadFileToArray(FileBuffer, *Filename, FILEREAD_Silent))
+	{
+		physx::PxFileBuf* Stream = GApexSDK->createMemoryReadStream(FileBuffer.GetData(), FileBuffer.Num());
+			if(Stream)
+			{
+				NvParameterized::Serializer::SerializeType SerializeType = GApexSDK->getSerializeType(*Stream);
+				if(NvParameterized::Serializer* Serializer = GApexSDK->createSerializer(SerializeType))
+				{
+					NvParameterized::Serializer::DeserializedData DeserializedData;
+					Serializer->deserialize(*Stream, DeserializedData);
+
+					if(DeserializedData.size() > 0)
+					{
+						NvParameterized::Interface* AssetInterface = DeserializedData[0];
+
+						int32 StringLength = StringCast<TCHAR>(AssetInterface->className()).Length();
+						FString ClassName(StringLength, StringCast<TCHAR>(AssetInterface->className()).Get());
+
+						if(ClassName == DestructibleFactoryConstants::DestructibleAssetClass)
+						{
+							return true;
+						}
+					}
+				}
+
+				GApexSDK->releaseMemoryReadStream(*Stream);
+			}
+	}
+	return false;
+}
 
 UObject* UDestructibleMeshFactory::FactoryCreateBinary
 (
@@ -6788,6 +6855,22 @@ UObject* UDataTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 		}
 	}
 	return DataTable;
+}
+
+/*------------------------------------------------------------------------------
+UStringTableFactory implementation.
+------------------------------------------------------------------------------*/
+UStringTableFactory::UStringTableFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UStringTable::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UStringTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<UStringTable>(InParent, Name, Flags);
 }
 
 /*------------------------------------------------------------------------------

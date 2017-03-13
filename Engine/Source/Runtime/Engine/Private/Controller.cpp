@@ -678,7 +678,7 @@ void AController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutL
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( AController, PlayerState );
-	DOREPLIFETIME( AController, Pawn );
+	DOREPLIFETIME_CONDITION_NOTIFY(AController, Pawn, COND_None, REPNOTIFY_Always);
 }
 
 /** Returns TransformComponent subobject **/

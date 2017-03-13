@@ -23,7 +23,10 @@ void UAbilityTask_WaitGameplayEffectRemoved::Activate()
 {
 	if (Handle.IsValid() == false)
 	{
-		InvalidHandle.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			InvalidHandle.Broadcast();
+		}
 		EndTask();
 		return;;
 	}
@@ -64,6 +67,9 @@ void UAbilityTask_WaitGameplayEffectRemoved::OnDestroy(bool AbilityIsEnding)
 
 void UAbilityTask_WaitGameplayEffectRemoved::OnGameplayEffectRemoved()
 {
-	OnRemoved.Broadcast();
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnRemoved.Broadcast();
+	}
 	EndTask();
 }

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class BlankModule : ModuleRules
 	{
-		public BlankModule(TargetInfo Target)
+		public BlankModule(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

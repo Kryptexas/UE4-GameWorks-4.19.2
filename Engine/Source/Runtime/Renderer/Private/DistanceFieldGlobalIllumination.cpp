@@ -105,6 +105,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		FLightTileIntersectionParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GDistanceFieldAOTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GDistanceFieldAOTileSizeY);
 	}
@@ -124,9 +125,7 @@ public:
 		LightDirectionAndTraceDistance.Bind(Initializer.ParameterMap, TEXT("LightDirectionAndTraceDistance"));
 		LightColor.Bind(Initializer.ParameterMap, TEXT("LightColor"));
 		ObjectParameters.Bind(Initializer.ParameterMap);
-		ShadowTileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("ShadowTileHeadDataUnpacked"));
-		ShadowTileArrayData.Bind(Initializer.ParameterMap, TEXT("ShadowTileArrayData"));
-		ShadowTileListGroupSize.Bind(Initializer.ParameterMap, TEXT("ShadowTileListGroupSize"));
+		LightTileIntersectionParameters.Bind(Initializer.ParameterMap);
 		VPLPlacementCameraRadius.Bind(Initializer.ParameterMap, TEXT("VPLPlacementCameraRadius"));
 	}
 
@@ -157,13 +156,11 @@ public:
 		VPLParameterBuffer.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLParameterBuffer);
 		VPLData.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLData);
 
-		check(TileIntersectionResources || !ShadowTileHeadDataUnpacked.IsBound());
+		check(TileIntersectionResources || !LightTileIntersectionParameters.IsBound());
 
 		if (TileIntersectionResources)
 		{
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileArrayData, TileIntersectionResources->TileArrayData.SRV);
-			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileListGroupSize, TileIntersectionResources->TileDimensions);
+			LightTileIntersectionParameters.Set(RHICmdList, ShaderRHI, *TileIntersectionResources);
 		}
 
 		SetShaderValue(RHICmdList, ShaderRHI, VPLPlacementCameraRadius, GVPLPlacementCameraRadius);
@@ -192,9 +189,7 @@ public:
 		Ar << LightDirectionAndTraceDistance;
 		Ar << LightColor;
 		Ar << ObjectParameters;
-		Ar << ShadowTileHeadDataUnpacked;
-		Ar << ShadowTileArrayData;
-		Ar << ShadowTileListGroupSize;
+		Ar << LightTileIntersectionParameters;
 		Ar << VPLPlacementCameraRadius;
 		return bShaderHasOutdatedParameters;
 	}
@@ -209,9 +204,7 @@ private:
 	FShaderParameter LightDirectionAndTraceDistance;
 	FShaderParameter LightColor;
 	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
-	FShaderResourceParameter ShadowTileHeadDataUnpacked;
-	FShaderResourceParameter ShadowTileArrayData;
-	FShaderParameter ShadowTileListGroupSize;
+	FLightTileIntersectionParameters LightTileIntersectionParameters;
 	FShaderParameter VPLPlacementCameraRadius;
 };
 
@@ -598,7 +591,7 @@ public:
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		DispatchParameters.UnsetUAV(RHICmdList, ShaderRHI);
 
-		ObjectParameters.UnsetParameters(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
+		ObjectParameters.UnsetParameters(RHICmdList, ShaderRHI);
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch.UAV);
 	}
 
@@ -632,6 +625,7 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		FLightTileIntersectionParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("LIGHT_VPLS_THREADGROUP_SIZE"), LightVPLsThreadGroupSize);
 	}
 
@@ -650,9 +644,7 @@ public:
 		LightColor.Bind(Initializer.ParameterMap, TEXT("LightColor"));
 		ObjectParameters.Bind(Initializer.ParameterMap);
 		SurfelParameters.Bind(Initializer.ParameterMap);
-		ShadowTileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("ShadowTileHeadDataUnpacked"));
-		ShadowTileArrayData.Bind(Initializer.ParameterMap, TEXT("ShadowTileArrayData"));
-		ShadowTileListGroupSize.Bind(Initializer.ParameterMap, TEXT("ShadowTileListGroupSize"));
+		LightTileIntersectionParameters.Bind(Initializer.ParameterMap);
 		WorldToShadow.Bind(Initializer.ParameterMap, TEXT("WorldToShadow"));
 		ShadowObjectIndirectArguments.Bind(Initializer.ParameterMap, TEXT("ShadowObjectIndirectArguments"));
 		ShadowCulledObjectBounds.Bind(Initializer.ParameterMap, TEXT("ShadowCulledObjectBounds"));
@@ -699,13 +691,11 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, TanLightAngleAndNormalThreshold, TanLightAngleAndNormalThresholdValue);
 		SetShaderValue(RHICmdList, ShaderRHI, LightColor, LightSceneProxy->GetColor() * LightSceneProxy->GetIndirectLightingScale());
 
-		check(TileIntersectionResources || !ShadowTileHeadDataUnpacked.IsBound());
+		check(TileIntersectionResources || !LightTileIntersectionParameters.IsBound());
 
 		if (TileIntersectionResources)
 		{
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
-			SetSRVParameter(RHICmdList, ShaderRHI, ShadowTileArrayData, TileIntersectionResources->TileArrayData.SRV);
-			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileListGroupSize, TileIntersectionResources->TileDimensions);
+			LightTileIntersectionParameters.Set(RHICmdList, ShaderRHI, *TileIntersectionResources);
 		}
 
 		SetShaderValue(RHICmdList, ShaderRHI, WorldToShadow, WorldToShadowMatrixValue);
@@ -735,9 +725,7 @@ public:
 		Ar << LightColor;
 		Ar << ObjectParameters;
 		Ar << SurfelParameters;
-		Ar << ShadowTileHeadDataUnpacked;
-		Ar << ShadowTileArrayData;
-		Ar << ShadowTileListGroupSize;
+		Ar << LightTileIntersectionParameters;
 		Ar << WorldToShadow;
 		Ar << ShadowObjectIndirectArguments;
 		Ar << ShadowCulledObjectBounds;
@@ -757,9 +745,7 @@ private:
 	FShaderParameter LightColor;
 	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
 	FSurfelBufferParameters SurfelParameters;
-	FShaderResourceParameter ShadowTileHeadDataUnpacked;
-	FShaderResourceParameter ShadowTileArrayData;
-	FShaderParameter ShadowTileListGroupSize;
+	FLightTileIntersectionParameters LightTileIntersectionParameters;
 	FShaderParameter WorldToShadow;
 	FShaderResourceParameter ShadowObjectIndirectArguments;
 	FShaderResourceParameter ShadowCulledObjectBounds;
@@ -888,525 +874,6 @@ void UpdateVPLs(
 		}
 	}
 }
-
-
-class FClearIrradianceSamplesCS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FClearIrradianceSamplesCS,Global)
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-	}
-
-	FClearIrradianceSamplesCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		SurfelIrradiance.Bind(Initializer.ParameterMap, TEXT("SurfelIrradiance"));
-		HeightfieldIrradiance.Bind(Initializer.ParameterMap, TEXT("HeightfieldIrradiance"));
-		ScatterDrawParameters.Bind(Initializer.ParameterMap, TEXT("ScatterDrawParameters"));
-		SavedStartIndex.Bind(Initializer.ParameterMap, TEXT("SavedStartIndex"));
-	}
-
-	FClearIrradianceSamplesCS()
-	{
-	}
-
-	void SetParameters(
-		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
-		int32 DepthLevel, 
-		FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[2];
-		OutUAVs[0] = TemporaryIrradianceCacheResources->SurfelIrradiance.UAV;
-		OutUAVs[1] = TemporaryIrradianceCacheResources->HeightfieldIrradiance.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-
-		SurfelIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->SurfelIrradiance);
-		HeightfieldIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->HeightfieldIrradiance);
-	}
-
-	void UnsetParameters(FRHICommandList& RHICmdList, FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-	{
-		SurfelIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
-		HeightfieldIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
-
-		FUnorderedAccessViewRHIParamRef OutUAVs[2];
-		OutUAVs[0] = TemporaryIrradianceCacheResources->SurfelIrradiance.UAV;
-		OutUAVs[1] = TemporaryIrradianceCacheResources->HeightfieldIrradiance.UAV;
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
-	}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{		
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << SurfelIrradiance;
-		Ar << HeightfieldIrradiance;
-		Ar << ScatterDrawParameters;
-		Ar << SavedStartIndex;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FRWShaderParameter SurfelIrradiance;
-	FRWShaderParameter HeightfieldIrradiance;
-	FShaderResourceParameter ScatterDrawParameters;
-	FShaderResourceParameter SavedStartIndex;
-};
-
-IMPLEMENT_SHADER_TYPE(,FClearIrradianceSamplesCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("ClearIrradianceSamplesCS"),SF_Compute);
-
-
-class FComputeStepBentNormalCS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FComputeStepBentNormalCS,Global)
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
-	}
-
-	FComputeStepBentNormalCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		StepBentNormal.Bind(Initializer.ParameterMap, TEXT("StepBentNormal"));
-		IrradianceCacheNormal.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheNormal"));
-		RecordConeData.Bind(Initializer.ParameterMap, TEXT("RecordConeData"));
-		ScatterDrawParameters.Bind(Initializer.ParameterMap, TEXT("ScatterDrawParameters"));
-		SavedStartIndex.Bind(Initializer.ParameterMap, TEXT("SavedStartIndex"));
-		BentNormalNormalizeFactor.Bind(Initializer.ParameterMap, TEXT("BentNormalNormalizeFactor"));
-	}
-
-	FComputeStepBentNormalCS()
-	{
-	}
-
-	void SetParameters(
-		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
-		int32 DepthLevel, 
-		FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheNormal, SurfaceCacheResources.Level[DepthLevel]->Normal.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, RecordConeData, TemporaryIrradianceCacheResources->ConeData.SRV);
-
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources->StepBentNormal.UAV);
-		StepBentNormal.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->StepBentNormal);
-
-		FAOSampleData2 AOSampleData;
-
-		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
-
-		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
-		{
-			AOSampleData.SampleDirections[SampleIndex] = FVector4(SampleDirections[SampleIndex]);
-		}
-
-		SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, GetUniformBufferParameter<FAOSampleData2>(), AOSampleData);
-
-		FVector UnoccludedVector(0);
-
-		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
-		{
-			UnoccludedVector += SampleDirections[SampleIndex];
-		}
-
-		float BentNormalNormalizeFactorValue = 1.0f / (UnoccludedVector / NumConeSampleDirections).Size();
-		SetShaderValue(RHICmdList, ShaderRHI, BentNormalNormalizeFactor, BentNormalNormalizeFactorValue);
-	}
-
-	void UnsetParameters(FRHICommandList& RHICmdList, FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-	{
-		StepBentNormal.UnsetUAV(RHICmdList, GetComputeShader());
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources->StepBentNormal.UAV);
-	}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{		
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << StepBentNormal;
-		Ar << IrradianceCacheNormal;
-		Ar << RecordConeData;
-		Ar << ScatterDrawParameters;
-		Ar << SavedStartIndex;
-		Ar << BentNormalNormalizeFactor;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FRWShaderParameter StepBentNormal;
-	FShaderResourceParameter IrradianceCacheNormal;
-	FShaderResourceParameter RecordConeData;
-	FShaderResourceParameter ScatterDrawParameters;
-	FShaderResourceParameter SavedStartIndex;
-	FShaderParameter BentNormalNormalizeFactor;
-};
-
-IMPLEMENT_SHADER_TYPE(,FComputeStepBentNormalCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeStepBentNormalCS"),SF_Compute);
-
-
-enum EVPLMode
-{
-	VPLMode_PlaceFromLight,
-	VPLMode_PlaceFromSurfels
-};
-
-template<EVPLMode VPLMode>
-class TComputeIrradianceCS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(TComputeIrradianceCS,Global)
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("IRRADIANCE_FROM_SURFELS"), VPLMode == VPLMode_PlaceFromSurfels);
-
-		// To reduce shader compile time of compute shaders with shared memory, doesn't have an impact on generated code with current compiler (June 2010 DX SDK)
-		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
-	}
-
-	TComputeIrradianceCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		AOParameters.Bind(Initializer.ParameterMap);
-		SurfelIrradiance.Bind(Initializer.ParameterMap, TEXT("SurfelIrradiance"));
-		IrradianceCachePositionRadius.Bind(Initializer.ParameterMap, TEXT("IrradianceCachePositionRadius"));
-		IrradianceCacheNormal.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheNormal"));
-		IrradianceCacheTileCoordinate.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheTileCoordinate"));
-		ScatterDrawParameters.Bind(Initializer.ParameterMap, TEXT("ScatterDrawParameters"));
-		SavedStartIndex.Bind(Initializer.ParameterMap, TEXT("SavedStartIndex"));
-		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
-		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
-		GlobalObjectParameters.Bind(Initializer.ParameterMap);
-		ObjectParameters.Bind(Initializer.ParameterMap);
-		SurfelParameters.Bind(Initializer.ParameterMap);
-		VPLParameterBuffer.Bind(Initializer.ParameterMap, TEXT("VPLParameterBuffer"));
-		VPLData.Bind(Initializer.ParameterMap, TEXT("VPLData"));
-		VPLGatherRadius.Bind(Initializer.ParameterMap, TEXT("VPLGatherRadius"));
-		TileListGroupSize.Bind(Initializer.ParameterMap, TEXT("TileListGroupSize"));
-		TileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("TileHeadDataUnpacked"));
-		TileArrayData.Bind(Initializer.ParameterMap, TEXT("TileArrayData"));
-		TileConeDepthRanges.Bind(Initializer.ParameterMap, TEXT("TileConeDepthRanges"));
-		StepBentNormalBuffer.Bind(Initializer.ParameterMap, TEXT("StepBentNormalBuffer"));
-	}
-
-	TComputeIrradianceCS()
-	{
-	}
-
-	void SetParameters(
-		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
-		int32 DepthLevel, 
-		const FDistanceFieldAOParameters& Parameters,
-		FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCachePositionRadius, SurfaceCacheResources.Level[DepthLevel]->PositionAndRadius.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheNormal, SurfaceCacheResources.Level[DepthLevel]->Normal.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheTileCoordinate, SurfaceCacheResources.Level[DepthLevel]->TileCoordinate.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
-
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources->SurfelIrradiance.UAV);
-		SurfelIrradiance.SetBuffer(RHICmdList, ShaderRHI, TemporaryIrradianceCacheResources->SurfelIrradiance);
-
-		GlobalObjectParameters.Set(RHICmdList, ShaderRHI, *Scene->DistanceFieldSceneData.ObjectBuffers, Scene->DistanceFieldSceneData.NumObjectsInBuffer);
-		extern TGlobalResource<FDistanceFieldObjectBufferResource> GAOCulledObjectBuffers;
-		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
-		SurfelParameters.Set(RHICmdList, ShaderRHI, *Scene->DistanceFieldSceneData.SurfelBuffers, *Scene->DistanceFieldSceneData.InstancedSurfelBuffers);
-
-		FVPLResources& SourceVPLResources = GVPLViewCulling ? GCulledVPLResources : GVPLResources;
-		SetSRVParameter(RHICmdList, ShaderRHI, VPLParameterBuffer, SourceVPLResources.VPLParameterBuffer.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, VPLData, SourceVPLResources.VPLData.SRV);
-
-		SetShaderValue(RHICmdList, ShaderRHI, VPLGatherRadius, Parameters.ObjectMaxOcclusionDistance);
-
-		FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
-
-		SetSRVParameter(RHICmdList, ShaderRHI, TileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, TileArrayData, TileIntersectionResources->TileArrayData.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, TileConeDepthRanges, TileIntersectionResources->TileConeDepthRanges.SRV);
-		SetShaderValue(RHICmdList, ShaderRHI, TileListGroupSize, TileIntersectionResources->TileDimensions);
-
-		SetSRVParameter(RHICmdList, ShaderRHI, StepBentNormalBuffer, TemporaryIrradianceCacheResources->StepBentNormal.SRV);
-	}
-
-	void UnsetParameters(FRHICommandList& RHICmdList, FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-	{
-		SurfelIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, TemporaryIrradianceCacheResources->SurfelIrradiance.UAV);
-	}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{		
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << AOParameters;
-		Ar << SurfelIrradiance;
-		Ar << IrradianceCachePositionRadius;
-		Ar << IrradianceCacheNormal;
-		Ar << IrradianceCacheTileCoordinate;
-		Ar << ScatterDrawParameters;
-		Ar << SavedStartIndex;
-		Ar << DistanceFieldNormalTexture;
-		Ar << DistanceFieldNormalSampler;
-		Ar << GlobalObjectParameters;
-		Ar << ObjectParameters;
-		Ar << SurfelParameters;
-		Ar << VPLParameterBuffer;
-		Ar << VPLData;
-		Ar << VPLGatherRadius;
-		Ar << TileListGroupSize;
-		Ar << TileHeadDataUnpacked;
-		Ar << TileArrayData;
-		Ar << TileConeDepthRanges;
-		Ar << StepBentNormalBuffer;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FAOParameters AOParameters;
-	FRWShaderParameter SurfelIrradiance;
-	FShaderResourceParameter IrradianceCachePositionRadius;
-	FShaderResourceParameter IrradianceCacheNormal;
-	FShaderResourceParameter IrradianceCacheTileCoordinate;
-	FShaderResourceParameter ScatterDrawParameters;
-	FShaderResourceParameter SavedStartIndex;
-	FShaderResourceParameter DistanceFieldNormalTexture;
-	FShaderResourceParameter DistanceFieldNormalSampler;
-	FDistanceFieldObjectBufferParameters GlobalObjectParameters;
-	FDistanceFieldCulledObjectBufferParameters ObjectParameters;
-	FSurfelBufferParameters SurfelParameters;
-	FShaderResourceParameter VPLParameterBuffer;
-	FShaderResourceParameter VPLData;
-	FShaderParameter VPLGatherRadius;
-	FShaderParameter TileListGroupSize;
-	FShaderResourceParameter TileHeadDataUnpacked;
-	FShaderResourceParameter TileArrayData;
-	FShaderResourceParameter TileConeDepthRanges;
-	FShaderResourceParameter StepBentNormalBuffer;
-};
-
-IMPLEMENT_SHADER_TYPE(template<>,TComputeIrradianceCS<VPLMode_PlaceFromLight>,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeIrradianceCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TComputeIrradianceCS<VPLMode_PlaceFromSurfels>,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeIrradianceCS"),SF_Compute);
-
-
-class FCombineIrradianceSamplesCS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FCombineIrradianceSamplesCS,Global)
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldGI(Platform);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-	}
-
-	FCombineIrradianceSamplesCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
-	{
-		IrradianceCacheIrradiance.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheIrradiance"));
-		SurfelIrradiance.Bind(Initializer.ParameterMap, TEXT("SurfelIrradiance"));
-		HeightfieldIrradiance.Bind(Initializer.ParameterMap, TEXT("HeightfieldIrradiance"));
-		ScatterDrawParameters.Bind(Initializer.ParameterMap, TEXT("ScatterDrawParameters"));
-		SavedStartIndex.Bind(Initializer.ParameterMap, TEXT("SavedStartIndex"));
-	}
-
-	FCombineIrradianceSamplesCS()
-	{
-	}
-
-	void SetParameters(
-		FRHICommandList& RHICmdList, 
-		const FSceneView& View, 
-		int32 DepthLevel, 
-		FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-		SetSRVParameter(RHICmdList, ShaderRHI, SurfelIrradiance, TemporaryIrradianceCacheResources->SurfelIrradiance.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, HeightfieldIrradiance,TemporaryIrradianceCacheResources->HeightfieldIrradiance.SRV);
-
-		SetSRVParameter(RHICmdList, ShaderRHI, ScatterDrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, SavedStartIndex, SurfaceCacheResources.Level[DepthLevel]->SavedStartIndex.SRV);
-
-		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, SurfaceCacheResources.Level[DepthLevel]->Irradiance.UAV);
-		IrradianceCacheIrradiance.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.Level[DepthLevel]->Irradiance);
-	}
-
-	void UnsetParameters(FRHICommandList& RHICmdList, const FSceneView& View, int32 DepthLevel)
-	{
-		IrradianceCacheIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, SurfaceCacheResources.Level[DepthLevel]->Irradiance.UAV);
-	}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{		
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << IrradianceCacheIrradiance;
-		Ar << SurfelIrradiance;
-		Ar << HeightfieldIrradiance;
-		Ar << ScatterDrawParameters;
-		Ar << SavedStartIndex;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-
-	FRWShaderParameter IrradianceCacheIrradiance;
-	FShaderResourceParameter SurfelIrradiance;
-	FShaderResourceParameter HeightfieldIrradiance;
-	FShaderResourceParameter ScatterDrawParameters;
-	FShaderResourceParameter SavedStartIndex;
-};
-
-IMPLEMENT_SHADER_TYPE(,FCombineIrradianceSamplesCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("CombineIrradianceSamplesCS"),SF_Compute);
-
-
-void ComputeIrradianceForSamples(
-	int32 DepthLevel,
-	FRHICommandListImmediate& RHICmdList,
-	const FViewInfo& View,
-	const FScene* Scene,
-	const FDistanceFieldAOParameters& Parameters,
-	FTemporaryIrradianceCacheResources* TemporaryIrradianceCacheResources)
-{
-	FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
-	{
-		SCOPED_DRAW_EVENT(RHICmdList, ComputeStepBentNormal);
-
-		{	
-			TShaderMapRef<TSetupFinalGatherIndirectArgumentsCS<false> > ComputeShader(View.ShaderMap);
-			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
-			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
-			ComputeShader->UnsetParameters(RHICmdList, View);
-		}
-
-		{
-			TShaderMapRef<FComputeStepBentNormalCS> ComputeShader(View.ShaderMap);
-			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
-			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
-			ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
-		}
-		
-		{
-			TShaderMapRef<FClearIrradianceSamplesCS> ComputeShader(View.ShaderMap);
-			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
-			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
-			ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
-		}
-	}
-
-	View.HeightfieldLightingViewInfo.ComputeIrradianceForSamples(View, RHICmdList, *TemporaryIrradianceCacheResources, DepthLevel, Parameters);
-
-	if (GVPLMeshGlobalIllumination)
-	{
-		SCOPED_DRAW_EVENT(RHICmdList, MeshIrradiance);
-
-		{	
-			TShaderMapRef<TSetupFinalGatherIndirectArgumentsCS<true> > ComputeShader(View.ShaderMap);
-			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
-			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
-			ComputeShader->UnsetParameters(RHICmdList, View);
-		}
-	
-		if (GVPLSurfelRepresentation)
-		{
-			TShaderMapRef<TComputeIrradianceCS<VPLMode_PlaceFromSurfels> > ComputeShader(View.ShaderMap);
-
-			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, Parameters, TemporaryIrradianceCacheResources);
-			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
-
-			ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
-		}
-		else
-		{
-			TShaderMapRef<TComputeIrradianceCS<VPLMode_PlaceFromLight> > ComputeShader(View.ShaderMap);
-
-			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, DepthLevel, Parameters, TemporaryIrradianceCacheResources);
-			DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
-
-			ComputeShader->UnsetParameters(RHICmdList, TemporaryIrradianceCacheResources);
-		}
-	}
-
-	{	
-		TShaderMapRef<TSetupFinalGatherIndirectArgumentsCS<false> > ComputeShader(View.ShaderMap);
-		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-		ComputeShader->SetParameters(RHICmdList, View, DepthLevel);
-		DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
-		ComputeShader->UnsetParameters(RHICmdList, View);
-	}
-		
-	{
-		TShaderMapRef<FCombineIrradianceSamplesCS> ComputeShader(View.ShaderMap);
-		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-		ComputeShader->SetParameters(RHICmdList, View, DepthLevel, TemporaryIrradianceCacheResources);
-		DispatchIndirectComputeShader(RHICmdList, *ComputeShader, SurfaceCacheResources.DispatchParameters.Buffer, 0);
-		ComputeShader->UnsetParameters(RHICmdList, View, DepthLevel);
-	}
-}
-
 
 const int32 GScreenGridIrradianceThreadGroupSizeX = 8;
 
@@ -1572,8 +1039,6 @@ public:
 
 		FTileIntersectionResources* TileIntersectionResources = View.ViewState->AOTileIntersectionResources;
 
-		SetSRVParameter(RHICmdList, ShaderRHI, TileHeadDataUnpacked, TileIntersectionResources->TileHeadDataUnpacked.SRV);
-		SetSRVParameter(RHICmdList, ShaderRHI, TileArrayData, TileIntersectionResources->TileArrayData.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, TileConeDepthRanges, TileIntersectionResources->TileConeDepthRanges.SRV);
 		SetShaderValue(RHICmdList, ShaderRHI, TileListGroupSize, TileIntersectionResources->TileDimensions);
 
@@ -1669,9 +1134,6 @@ public:
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-
-		const FScene* Scene = (const FScene*)View.Family->Scene;
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
 
 		SetSRVParameter(RHICmdList, ShaderRHI, SurfelIrradiance, ScreenGridResources.SurfelIrradiance.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, HeightfieldIrradiance, ScreenGridResources.HeightfieldIrradiance.SRV);

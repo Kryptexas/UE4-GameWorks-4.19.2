@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SlateReflector : ModuleRules
 {
-	public SlateReflector(TargetInfo Target)
+	public SlateReflector(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
@@ -44,7 +44,7 @@ public class SlateReflector : ModuleRules
 		);
 
 		// Editor builds include SessionServices to populate the remote target drop-down for remote widget snapshots
-		if (Target.Type == TargetRules.TargetType.Editor)
+		if (Target.Type == TargetType.Editor)
 		{
 			Definitions.Add("SLATE_REFLECTOR_HAS_SESSION_SERVICES=1");
 
@@ -70,7 +70,7 @@ public class SlateReflector : ModuleRules
 			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Win64
 			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac
 			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Linux;
-		if (Target.Type == TargetRules.TargetType.Editor || (Target.Type == TargetRules.TargetType.Program && IsDesktopPlatformType))
+		if (Target.Type == TargetType.Editor || (Target.Type == TargetType.Program && IsDesktopPlatformType))
 		{
 			Definitions.Add("SLATE_REFLECTOR_HAS_DESKTOP_PLATFORM=1");
 

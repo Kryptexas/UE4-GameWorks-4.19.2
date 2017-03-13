@@ -466,6 +466,8 @@ void SActorDetails::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorT
 					const bool bShouldActuallyTransact = !GIsTransacting;
 					const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "ClickingOnComponentInTree", "Clicking on Component (tree view)"), bShouldActuallyTransact);
 
+					// Dirty the actor selection so it stays in sync with the component selection
+					GEditor->GetSelectedActors()->Modify();
 					// Update the editor's component selection to match the node selection
 					SelectedComponents->Modify();
 					SelectedComponents->BeginBatchSelectOperation();

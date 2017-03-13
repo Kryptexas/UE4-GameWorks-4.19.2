@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -74,7 +74,7 @@ namespace physx { namespace profile {
 	{
 		static const char* getName()
 		{
-#if PX_LINUX || PX_ANDROID || PX_PS4 || PX_IOS || PX_OSX ||PX_EMSCRIPTEN || PX_NX
+#if PX_LINUX || PX_ANDROID || PX_PS4 || PX_IOS || PX_OSX || PX_EMSCRIPTEN || PX_NX
 			return __PRETTY_FUNCTION__;
 #else
 			return typeid(T).name();

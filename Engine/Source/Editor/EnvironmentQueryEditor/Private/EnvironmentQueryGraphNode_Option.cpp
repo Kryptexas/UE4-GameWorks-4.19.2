@@ -16,6 +16,7 @@
 UEnvironmentQueryGraphNode_Option::UEnvironmentQueryGraphNode_Option(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bStatShowOverlay = false;
 }
 
 void UEnvironmentQueryGraphNode_Option::AllocateDefaultPins()

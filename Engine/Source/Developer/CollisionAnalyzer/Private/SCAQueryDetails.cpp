@@ -257,7 +257,7 @@ TSharedRef<ITableRow> SCAQueryDetails::ResultListGenerateRow(TSharedPtr<FCAHitIn
 void SCAQueryDetails::UpdateDisplayedBox()
 {
 	FCollisionAnalyzer* Analyzer = OwningAnalyzerWidgetPtr.Pin()->Analyzer;
-	Analyzer->DrawBox = FBox(0);
+	Analyzer->DrawBox = FBox(ForceInit);
 
 	if(bDisplayQuery)
 	{

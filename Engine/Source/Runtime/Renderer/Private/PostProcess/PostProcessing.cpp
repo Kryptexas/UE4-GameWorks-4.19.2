@@ -214,10 +214,19 @@ public:
 				PostProcessDownsamples[i] = FRenderingCompositeOutputRef(BasicEyeSetupPass);
 			}
 		}
+
+		// Calculate the final viewrect size (matching FRCPassPostProcessDownsample behavior)
+		FinalViewRectSize.X = FMath::Max(1, FMath::DivideAndRoundUp(InContext.View.ViewRect.Width(), 1 << DownSampleStages));
+		FinalViewRectSize.Y = FMath::Max(1, FMath::DivideAndRoundUp(InContext.View.ViewRect.Height(), 1 << DownSampleStages));
 	}
 
 	// The number of elements in the array.
 	inline static int32 Num() { return DownSampleStages; }
+
+	FIntPoint GetFinalViewRectSize() const
+	{
+		return FinalViewRectSize;
+	}
 
 	// Member data kept public for simplicity
 	bool bHasLog2Alpha;
@@ -227,6 +236,8 @@ public:
 private:
 	// no default constructor.
 	TBloomDownSampleArray() {};
+
+	FIntPoint	FinalViewRectSize;
 };
 
 // Standard DownsampleArray shared by Bloom, Tint, and Eye-Adaptation. 
@@ -386,8 +397,10 @@ static FRenderingCompositeOutputRef AddPostProcessBasicEyeAdaptation(const FView
 	static const int32 FinalDSIdx = FBloomDownSampleArray::Num() - 1;
 	FRenderingCompositeOutputRef PostProcessPriorReduction = BloomAndEyeDownSamples.PostProcessDownsamples[FinalDSIdx];
 
+	const FIntPoint DownsampledViewRectSize = BloomAndEyeDownSamples.GetFinalViewRectSize();
+
 	// Compute the eye adaptation value based on average luminance from log2 luminance buffer, history, and specific shader parameters.
-	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasicEyeAdaptation());
+	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasicEyeAdaptation(DownsampledViewRectSize));
 	Node->SetInput(ePId_Input0, PostProcessPriorReduction);
 	return FRenderingCompositeOutputRef(Node);
 }
@@ -1153,7 +1166,8 @@ bool FPostProcessing::AllowFullPostProcessing(const FViewInfo& View, ERHIFeature
 		&& !View.Family->EngineShowFlags.VisualizeDistanceFieldAO
 		&& !View.Family->EngineShowFlags.VisualizeDistanceFieldGI
 		&& !View.Family->EngineShowFlags.VisualizeShadingModels
-		&& !View.Family->EngineShowFlags.VisualizeMeshDistanceFields;
+		&& !View.Family->EngineShowFlags.VisualizeMeshDistanceFields
+		&& !View.Family->EngineShowFlags.VisualizeGlobalDistanceField;
 }
 
 void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
@@ -1253,7 +1267,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		}
 
 		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-		const bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+		const bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
 
 		static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
 		const bool bHDRTonemapperOutput = bAllowTonemapper && (GetHighResScreenshotConfig().bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread() || bHDROutputEnabled);
@@ -2305,21 +2319,31 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		
 		static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperFilm"));
 		const bool bUseTonemapperFilm = IsMobileHDR() && GSupportsRenderTargetFormat_PF_FloatRGBA && (VarTonemapperFilm && VarTonemapperFilm->GetValueOnRenderThread());
+
+		static const auto VarTonemapperUpscale = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileTonemapperUpscale"));
+		bool bDisableUpscaleInTonemapper = Context.View.Family->bUseSeparateRenderTarget || IsMobileHDRMosaic() || !VarTonemapperUpscale || VarTonemapperUpscale->GetValueOnRenderThread() == 0;
+
+		bool* DoScreenPercentageInTonemapperPtr = nullptr;
 		if (bUseTonemapperFilm)
 		{
 			//@todo Ronin Set to EAutoExposureMethod::AEM_Basic for PC vk crash.
-			AddTonemapper(Context, BloomOutput, nullptr, EAutoExposureMethod::AEM_Histogram, false, false);
+			FRCPassPostProcessTonemap* PostProcessTonemap = AddTonemapper(Context, BloomOutput, nullptr, EAutoExposureMethod::AEM_Histogram, false, false);
+			DoScreenPercentageInTonemapperPtr = &PostProcessTonemap->bDoScreenPercentageInTonemapper;
 		}
 		else
 		{
 			// Must run to blit to back buffer even if post processing is off.
-			FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(Context.View, FinalOutputViewRect, FinalTargetSize, bViewRectSource));
+			FRCPassPostProcessTonemapES2* PostProcessTonemap = (FRCPassPostProcessTonemapES2*)Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(Context.View,  bViewRectSource));
 			PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 			PostProcessTonemap->SetInput(ePId_Input1, BloomOutput);
 			PostProcessTonemap->SetInput(ePId_Input2, DofOutput);
 			Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
+			DoScreenPercentageInTonemapperPtr = &PostProcessTonemap->bDoScreenPercentageInTonemapper;
 		}
-			
+
+		// remember the tonemapper pass so we can check if it's last
+		FRenderingCompositePass* TonemapperPass = Context.FinalOutput.GetPass();
+		
 		// if Context.FinalOutput was the clipped result of sunmask stage then this stage also restores Context.FinalOutput back original target size.
 		FinalOutputViewRect = View.UnscaledViewRect;
 
@@ -2328,6 +2352,12 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			if (IsMobileHDR() && !IsMobileHDRMosaic())
 			{
 				AddPostProcessMaterial(Context, BL_AfterTonemapping, nullptr);
+
+				// Tonemapper is not the final pass so if we may need to use a separate upscale pass
+				if (Context.FinalOutput.GetPass() != TonemapperPass)
+				{
+					bDisableUpscaleInTonemapper = true;
+				}
 			}
 	
 			if (bUseAa)
@@ -2349,6 +2379,28 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 				PostProcessAa->SetInput(ePId_Input1, PostProcessPrior);
 				Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessAa);
 			}
+		}
+
+		// Apply ScreenPercentage
+		if (View.UnscaledViewRect != View.ViewRect)
+		{
+			if (bDisableUpscaleInTonemapper)
+			{
+				FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscaleES2(View));
+				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput)); // Bilinear sampling.
+				Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput)); // Point sampling.
+				Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+				*DoScreenPercentageInTonemapperPtr = false;
+			}
+			else
+			{
+				check(DoScreenPercentageInTonemapperPtr != nullptr);
+				*DoScreenPercentageInTonemapperPtr = true;
+			}
+		}
+		else
+		{
+			*DoScreenPercentageInTonemapperPtr = false;
 		}
 
 #if WITH_EDITOR

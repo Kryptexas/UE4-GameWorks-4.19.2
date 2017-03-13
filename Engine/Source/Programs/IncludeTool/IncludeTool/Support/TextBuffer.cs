@@ -264,6 +264,26 @@ namespace IncludeTool.Support
 		}
 
 		/// <summary>
+		/// Access a single line within the file
+		/// </summary>
+		/// <param name="LineIdx">The line  to return</param>
+		/// <returns>The line at the given position</returns>
+		public string this[int LineIdx]
+		{
+			get
+			{
+				if (LineIdx < 0 || LineIdx >= Lines.Length)
+				{
+					return "";
+				}
+				else
+				{
+					return Lines[LineIdx];
+				}
+			}
+		}
+
+		/// <summary>
 		/// Access a single character within the file, by line and column
 		/// </summary>
 		/// <param name="LineIdx">The line of the character to return</param>

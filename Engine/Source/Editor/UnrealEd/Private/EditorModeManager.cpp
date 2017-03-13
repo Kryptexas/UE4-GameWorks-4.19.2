@@ -18,8 +18,8 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/LevelStreaming.h"
+#include "EditorWorldExtension.h"
 #include "ViewportWorldInteraction.h"
-#include "Public/EditorWorldExtension.h"
 #include "Editor/EditorEngine.h"
 
 /*------------------------------------------------------------------------------

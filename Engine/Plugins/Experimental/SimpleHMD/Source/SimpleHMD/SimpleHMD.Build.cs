@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SimpleHMD : ModuleRules
 	{
-		public SimpleHMD(TargetInfo Target)
+		public SimpleHMD(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

@@ -48,7 +48,10 @@ void UAbilityTask_WaitAbilityCommit::OnAbilityCommit(UGameplayAbility *Activated
 		return;
 	}
 
-	OnCommit.Broadcast(ActivatedAbility);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnCommit.Broadcast(ActivatedAbility);
+	}
 
 	if (TriggerOnce)
 	{

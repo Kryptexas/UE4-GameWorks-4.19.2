@@ -168,7 +168,7 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 			UE_LOG(LogFixupRedirectsCommandlet, Display, TEXT("Looking for redirects in %s..."), *Filename);
 
 			// Assert if package couldn't be opened so we have no chance of messing up saving later packages.
-			UPackage* Package = Cast<UPackage>(LoadPackage(NULL, *Filename, 0));
+			UPackage* Package = LoadPackage(NULL, *Filename, 0);
 
 			// load all string asset reference targets, and add fake redirectors for them
 			GRedirectCollector.ResolveStringAssetReference();
@@ -775,8 +775,8 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 		{
 			const FString& Filename = PackageList[PackageIndex];
 
-			FString PackageName(FPackageName::FilenameToLongPackageName(Filename));
-			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(Filename), EStateCacheUsage::ForceUpdate);
+			FString PackageName(SourceControlHelpers::PackageFilename(Filename));
+			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(PackageName, EStateCacheUsage::ForceUpdate);
 
 			if( SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || SourceControlState->IsDeleted()) )
 			{
@@ -788,11 +788,14 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 			}
 		}
 
-		// Check in all changed files
-		const FText Description = NSLOCTEXT("FixupRedirectsCmdlet", "ChangelistDescription", "Fixed up Redirects");
-		TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
-		CheckInOperation->SetDescription( Description );
-		SourceControlProvider.Execute(CheckInOperation, SourceControlHelpers::PackageFilenames(FilesToSubmit));
+		// Check in all changed files, but don't actually create a changelist if there's nothing to submit.
+		if (FilesToSubmit.Num() > 0)
+		{
+			const FText Description = NSLOCTEXT("FixupRedirectsCmdlet", "ChangelistDescription", "Fixed up Redirects");
+			TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
+			CheckInOperation->SetDescription(Description);
+			SourceControlProvider.Execute(CheckInOperation, FilesToSubmit);
+		}
 
 		// toss the SCC manager
 		ISourceControlModule::Get().GetProvider().Close();

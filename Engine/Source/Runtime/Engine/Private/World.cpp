@@ -882,7 +882,7 @@ bool UWorld::PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPacka
 	{
 		for (UBlueprint* Blueprint : PersistentLevel->GetLevelBlueprints())
 		{
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 		}
 	}
 #endif
@@ -1371,7 +1371,8 @@ void UWorld::DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld )
 	{
 		if (Driver != nullptr)
 		{
-			check(Driver->GetNetworkObjectList().GetObjects().Num() == 0);
+			check(Driver->GetNetworkObjectList().GetAllObjects().Num() == 0);
+			check(Driver->GetNetworkObjectList().GetActiveObjects().Num() == 0);
 		}
 	});
 
@@ -2111,7 +2112,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 
 		// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 		// from disk rather than duplicated
-		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
+		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bHasRerunConstructionScripts || Level->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
 		
 		// Incrementally update components.
 		int32 NumComponentsToUpdate = GLevelStreamingComponentsRegistrationGranularity;
@@ -2444,7 +2445,7 @@ void FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC()
 
 		if( Level && (!GIsEditor || Level->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor) ))
 		{
-			UPackage* LevelPackage = Cast<UPackage>(Level->GetOutermost());
+			UPackage* LevelPackage = Level->GetOutermost();
 			UE_LOG(LogStreaming, Log, TEXT("PrepareStreamedOutLevelsForGC called on '%s'"), *LevelPackage->GetName() );
 			
 			for (const FWorldContext& Context : GEngine->GetWorldContexts())
@@ -2723,16 +2724,18 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	bool bShouldBlockOnLoad	= StreamingLevel->bShouldBlockOnLoad || StreamingLevel->ShouldBeAlwaysLoaded();
 
 	// Don't update if the code requested this level object to be unloaded and removed or it has an invisibility request pending
-	if ( bHasInvisibilityRequestPending )
-	{
-		// If we have an invisibily request pending, we can't make the level visible again until the request is completed
-		bShouldBeVisible = false;
-	}
-	else if (!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
+	if (!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
 	{
 		bShouldBeLoaded		= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded();
 		bShouldBeVisible	= bShouldBeVisible || (bShouldBeLoaded && StreamingLevel->ShouldBeVisible());
 	}
+
+	// If we have an invisibility request pending, we can't make the level visible again until the request is completed
+	if ( bHasInvisibilityRequestPending )
+	{
+		bShouldBeVisible = false;
+	}
+
 	// We want to give the garbage collector a chance to remove levels before we stream in more. We can't do this in the
 	// case of a blocking load as it means those requests should be fulfilled right away. By waiting on GC before kicking
 	// off new levels we potentially delay streaming in maps, but AllowLevelLoadRequests already looks and checks whether
@@ -2969,7 +2972,7 @@ bool UWorld::AreAlwaysLoadedLevelsLoaded() const
 
 			if (LevelStreaming->bHasLoadRequestPending
 				|| !LoadedLevel
-				|| !LoadedLevel->bIsVisible)
+				|| LoadedLevel->bIsVisible != LevelStreaming->bShouldBeVisible)
 			{
 				return false;
 			}
@@ -3291,15 +3294,8 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	// Update world and the components of all levels.	
 	// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 	// from disk rather than duplicated
-	const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (PersistentLevel->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
+	const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (PersistentLevel->bHasRerunConstructionScripts || PersistentLevel->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
 	UpdateWorldComponents( bRerunConstructionScript, true );
-
-	// Reset indices till we have a chance to rearrange actor list at the end of this function.
-	for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
-	{
-		ULevel* Level = Levels[LevelIndex];
-		Level->iFirstNetRelevantActor	= 0;
-	}
 
 	// Init level gameplay info.
 	if( !AreActorsInitialized() )
@@ -3469,7 +3465,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 	{
 		if (Driver != nullptr)
 		{
-			Driver->GetNetworkObjectList().GetObjects().Reset();
+			Driver->GetNetworkObjectList().Reset();
 		}
 	});
 
@@ -3712,7 +3708,7 @@ void UWorld::RemoveNetworkActor( AActor* Actor )
 		{
 			if (Driver != nullptr)
 			{
-				Driver->GetNetworkObjectList().GetObjects().Remove(Actor);
+				Driver->GetNetworkObjectList().Remove(Actor);
 			}
 		});
 	}
@@ -3844,15 +3840,15 @@ ALevelScriptActor* UWorld::GetLevelScriptActor( ULevel* OwnerLevel ) const
 }
 
 
-AWorldSettings* UWorld::GetWorldSettings( bool bCheckStreamingPesistent, bool bChecked ) const
+AWorldSettings* UWorld::GetWorldSettings( const bool bCheckStreamingPersistent, const bool bChecked ) const
 {
-	checkSlow(IsInGameThread());
+	checkSlow(!IsInActualRenderingThread());
 	AWorldSettings* WorldSettings = nullptr;
 	if (PersistentLevel)
 	{
 		WorldSettings = PersistentLevel->GetWorldSettings(bChecked);
 
-		if( bCheckStreamingPesistent )
+		if( bCheckStreamingPersistent )
 		{
 			if( StreamingLevels.Num() > 0 &&
 				StreamingLevels[0] &&
@@ -4593,6 +4589,7 @@ bool UWorld::SetNewWorldOrigin(FIntVector InNewOriginLocation)
 	FCoreDelegates::PreWorldOriginOffset.Broadcast(this, OriginLocation, InNewOriginLocation);
 
 	FVector Offset(OriginLocation - InNewOriginLocation);
+	OriginOffsetThisFrame = Offset;
 
 	// Send offset command to rendering thread
 	Scene->ApplyWorldOffset(Offset);
@@ -4806,7 +4803,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 
 			if (CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsRecording())
 			{
-				CurrentWorld->DemoNetDriver->PauseRecording(true);
+				CurrentWorld->DemoNetDriver->OnSeamlessTravelStartDuringRecording(InURL.Map);
 			}
 
 			checkSlow(LoadedPackage == NULL);
@@ -4875,7 +4872,8 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 				LoadPackageAsync(TransitionMap, 
 					FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback),
 					0, 
-					(CurrentWorld->WorldType == EWorldType::PIE ? PKG_PlayInEditor : PKG_None)
+					(CurrentWorld->WorldType == EWorldType::PIE ? PKG_PlayInEditor : PKG_None),
+					Context.PIEInstance
 					);
 			}
 
@@ -4977,9 +4975,9 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
 			if (EditorLevelPackage)
 			{
-				PIEInstanceID = WorldContext.PIEInstance;
 				URLMapPackageName = UWorld::ConvertToPIEPackageName(URLMapPackageName, PIEInstanceID);
 			}
+			PIEInstanceID = WorldContext.PIEInstance;
 		}
 #endif
 		LoadPackageAsync(
@@ -5190,11 +5188,13 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Rename dynamic actors in the old world's PersistentLevel that we want to keep into the new world
 			auto ProcessActor = [this, &KeepAnnotation, &ActuallyKeptActors, NetDriver](AActor* TheActor) -> bool
 			{
-				const bool bIsInCurrentLevel = TheActor->GetLevel() == CurrentWorld->PersistentLevel;
-				const bool bManuallyMarkedKeep = KeepAnnotation.Get(TheActor);
-				const bool bDormant = NetDriver && NetDriver->ServerConnection && NetDriver->ServerConnection->DormantActors.Contains(TheActor);
-				const bool bKeepNonOwnedActor = TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor();
-				const bool bForceExcludeActor = TheActor->IsA(ALevelScriptActor::StaticClass());
+				const FNetworkObjectInfo* NetworkObjectInfo = NetDriver ? NetDriver->GetNetworkObjectInfo(TheActor) : nullptr;
+
+				const bool bIsInCurrentLevel	= TheActor->GetLevel() == CurrentWorld->PersistentLevel;
+				const bool bManuallyMarkedKeep	= KeepAnnotation.Get(TheActor);
+				const bool bDormant				= NetworkObjectInfo && NetDriver && NetDriver->ServerConnection && NetworkObjectInfo->DormantConnections.Contains(NetDriver->ServerConnection);
+				const bool bKeepNonOwnedActor	= TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor();
+				const bool bForceExcludeActor	= TheActor->IsA(ALevelScriptActor::StaticClass());
 
 				// Keep if it's in the current level AND it isn't specifically excluded AND it was either marked as should keep OR we don't own this actor
 				if (bIsInCurrentLevel && !bForceExcludeActor && (bManuallyMarkedKeep || bKeepNonOwnedActor))
@@ -5587,17 +5587,6 @@ int32 UWorld::GetActorCount()
 	return TotalActorCount;
 }
 
-int32 UWorld::GetNetRelevantActorCount()
-{
-	int32 TotalActorCount = 0;
-	for( int32 LevelIndex=0; LevelIndex<GetNumLevels(); LevelIndex++ )
-	{
-		ULevel* Level = GetLevel(LevelIndex);
-		TotalActorCount += Level->Actors.Num() - Level->iFirstNetRelevantActor;
-	}
-	return TotalActorCount;
-}
-
 FConstLevelIterator	UWorld::GetLevelIterator() const
 {
 	return Levels.CreateConstIterator();
@@ -5606,7 +5595,7 @@ FConstLevelIterator	UWorld::GetLevelIterator() const
 ULevel* UWorld::GetLevel( int32 InLevelIndex ) const
 {
 	check( InLevelIndex < Levels.Num() );
-	check(Levels[ InLevelIndex ]);
+		check(Levels[InLevelIndex]);
 	return Levels[ InLevelIndex ];
 }
 
@@ -6381,28 +6370,35 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
             FeatureLevel = InFeatureLevel;
 
             SlowTask.EnterProgressFrame(10.0f);
-            if (Scene)
-            {
-				for (ULevel* Level : Levels)
-				{
-					Level->ReleaseRenderingResources();
-				}
-
-                Scene->Release();
-                GetRendererModule().RemoveScene(Scene);
-                GetRendererModule().AllocateScene(this, bRequiresHitProxies, FXSystem != nullptr, InFeatureLevel );
-
-				for (ULevel* Level : Levels)
-				{
-					Level->InitializeRenderingResources();
-					Level->PrecomputedVisibilityHandler.UpdateScene(Scene);
-					Level->PrecomputedVolumeDistanceField.UpdateScene(Scene);
-				}
-            }
+			RecreateScene(InFeatureLevel);
 
             SlowTask.EnterProgressFrame(10.0f);
             TriggerStreamingDataRebuild();
         }
+	}
+}
+
+void UWorld::RecreateScene(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (Scene)
+	{
+		ensure(InFeatureLevel == FeatureLevel);
+		for (ULevel* Level : Levels)
+		{
+			Level->ReleaseRenderingResources();
+		}
+
+		Scene->Release();
+		IRendererModule& RendererModule = GetRendererModule();
+		RendererModule.RemoveScene(Scene);
+		RendererModule.AllocateScene(this, bRequiresHitProxies, FXSystem != nullptr, InFeatureLevel);
+
+		for (ULevel* Level : Levels)
+		{
+			Level->InitializeRenderingResources();
+			Level->PrecomputedVisibilityHandler.UpdateScene(Scene);
+			Level->PrecomputedVolumeDistanceField.UpdateScene(Scene);
+		}
 	}
 }
 #endif // WITH_EDITOR

@@ -18,7 +18,7 @@
 #include "UniquePtr.h"
 
 // DDC key for distance field data, must be changed when modifying the generation code or data format
-#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798764B445A9543C94442EA899D")
+#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798764B445A9553C94442EA899D")
 
 class FDistanceFieldVolumeData;
 class UStaticMesh;
@@ -117,8 +117,11 @@ class FDistanceFieldVolumeData : public FDeferredCleanupInterface
 {
 public:
 
-	/** Signed distance field volume stored in local space. */
-	TArray<FFloat16> DistanceFieldVolume;
+	/** 
+	 * FP16 Signed distance field volume stored in local space.  
+	 * This has to be kept around after the inital upload to GPU memory to support reallocs of the distance field atlas, so it is compressed.
+	 */
+	TArray<uint8> CompressedDistanceFieldVolume;
 
 	/** Dimensions of DistanceFieldVolume. */
 	FIntVector Size;
@@ -139,7 +142,7 @@ public:
 
 	FDistanceFieldVolumeData() :
 		Size(FIntVector(0, 0, 0)),
-		LocalBoundingBox(0),
+		LocalBoundingBox(ForceInit),
 		bMeshWasClosed(true),
 		bBuiltAsIfTwoSided(false),
 		bMeshWasPlane(false),
@@ -161,7 +164,7 @@ public:
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
 	{
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
-		CumulativeResourceSize.AddUnknownMemoryBytes(DistanceFieldVolume.GetAllocatedSize());
+		CumulativeResourceSize.AddUnknownMemoryBytes(CompressedDistanceFieldVolume.GetAllocatedSize());
 	}
 
 	SIZE_T GetResourceSizeBytes() const
@@ -173,14 +176,14 @@ public:
 
 #if WITH_EDITORONLY_DATA
 
-	void CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, float DistanceFieldBias, bool bGenerateDistanceFieldAsIfTwoSided);
+	void CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, bool bGenerateDistanceFieldAsIfTwoSided);
 
 #endif
 
 	friend FArchive& operator<<(FArchive& Ar,FDistanceFieldVolumeData& Data)
 	{
 		// Note: this is derived data, no need for versioning (bump the DDC guid)
-		Ar << Data.DistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed << Data.bBuiltAsIfTwoSided << Data.bMeshWasPlane;
+		Ar << Data.CompressedDistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed << Data.bBuiltAsIfTwoSided << Data.bMeshWasPlane;
 		return Ar;
 	}
 };
@@ -195,7 +198,6 @@ public:
 	UStaticMesh* StaticMesh;
 	UStaticMesh* GenerateSource;
 	float DistanceFieldResolutionScale;
-	float DistanceFieldBias;
 	bool bGenerateDistanceFieldAsIfTwoSided;
 	FString DDCKey;
 	FDistanceFieldVolumeData* GeneratedVolumeData;

@@ -31,6 +31,8 @@
 #include "Matinee/MatineeActor.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "PostProcess/PostProcessSubsurface.h"
+#include "HdrCustomResolveShaders.h"
+#include "WideCustomResolveShaders.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -202,6 +204,17 @@ static TAutoConsoleVariable<int32> CVarRHICmdMinDrawsPerParallelCmdList(
 	TEXT("r.RHICmdMinDrawsPerParallelCmdList"),
 	64,
 	TEXT("The minimum number of draws per cmdlist. If the total number of draws is less than this, then no parallel work will be done at all. This can't always be honored or done correctly. More effective with RHICmdBalanceParallelLists."));
+
+static TAutoConsoleVariable<int32> CVarWideCustomResolve(
+	TEXT("r.WideCustomResolve"),
+	0,
+	TEXT("Use a wide custom resolve filter when MSAA is enabled")
+	TEXT("0: Disabled [hardware box filter]")
+	TEXT("1: Wide (r=1.25, 12 samples)")
+	TEXT("2: Wider (r=1.4, 16 samples)")
+	TEXT("3: Widest (r=1.5, 20 samples)"),
+	ECVF_RenderThreadSafe | ECVF_Scalability
+	);
 
 static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
 
@@ -420,6 +433,7 @@ void FViewInfo::Init()
 	ExponentialFogColor = FVector::ZeroVector;
 	FogMaxOpacity = 1;
 	ExponentialFogParameters3 = FVector4(0, 0, 0, 0);
+	SinCosInscatteringColorCubemapRotation = FVector2D(0, 0);
 	FogInscatteringColorCubemap = NULL;
 	FogInscatteringTextureParameters = FVector::ZeroVector;
 
@@ -1269,7 +1283,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 		}
 		
 		extern int32 GDistanceFieldAO;
-		const bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
+		const bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeGlobalDistanceField || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
 
 		const bool bShowAtmosphericFogWarning = Scene->AtmosphericFog != nullptr && !Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
 		const bool bShowSkylightWarning = (Scene->ShouldRenderSkylight_Internal(BLEND_Opaque) || Scene->ShouldRenderSkylight_Internal(BLEND_Translucent)) && !Scene->ReadOnlyCVARCache.bEnableStationarySkylight;
@@ -1725,7 +1739,10 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 		}
 
 		// Only reset per-frame scene state once all views have processed their frame, including those in planar reflections
-		SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds.Reset();
+		for (int32 CacheType = 0; CacheType < ARRAY_COUNT(SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds); CacheType++)
+		{
+			SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds[CacheType].Reset();
+		}
 
 #if STATS
 		{
@@ -2141,3 +2158,89 @@ TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension()
 }
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+/**
+* Saves a previously rendered scene color target
+*/
+void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
+{
+	SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneColor);
+
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	auto& CurrentSceneColor = SceneContext.GetSceneColor();
+	uint32 CurrentNumSamples = CurrentSceneColor->GetDesc().NumSamples;
+
+	const EShaderPlatform CurrentShaderPlatform = GShaderPlatformForFeatureLevel[SceneContext.GetCurrentFeatureLevel()];
+	if (CurrentNumSamples <= 1 || !RHISupportsSeparateMSAAAndResolveTextures(CurrentShaderPlatform))
+	{
+		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	}
+	else 
+	{
+		// Custom shader based color resolve for HDR color to emulate mobile.
+		SetRenderTarget(RHICmdList, SceneContext.GetSceneColorTexture(), FTextureRHIParamRef());
+		
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			const FViewInfo& View = Views[ViewIndex];
+
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			RHICmdList.SetStreamSource(0, NULL, 0, 0);
+
+			// Resolve views individually
+			// In the case of adaptive resolution, the view family will be much larger than the views individually
+			RHICmdList.SetScissorRect(true, View.ViewRect.Min.X, View.ViewRect.Min.Y, View.ViewRect.Max.X, View.ViewRect.Max.Y);
+
+			int32 ResolveWidth = CVarWideCustomResolve.GetValueOnRenderThread();
+
+			if (CurrentNumSamples <= 1)
+			{
+				ResolveWidth = 0;
+			}
+
+			if (ResolveWidth != 0)
+			{
+				ResolveFilterWide(RHICmdList, SceneContext.GetCurrentFeatureLevel(), CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FIntPoint(0, 0), CurrentNumSamples, ResolveWidth);
+			}
+			else
+			{
+				auto ShaderMap = GetGlobalShaderMap(SceneContext.GetCurrentFeatureLevel());
+				TShaderMapRef<FHdrCustomResolveVS> VertexShader(ShaderMap);
+
+				if (CurrentNumSamples == 2)
+				{
+					TShaderMapRef<FHdrCustomResolve2xPS> PixelShader(ShaderMap);
+					static FGlobalBoundShaderState BoundShaderState;
+					SetGlobalBoundShaderState(RHICmdList, SceneContext.GetCurrentFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+				}
+				else if (CurrentNumSamples == 4)
+				{
+					TShaderMapRef<FHdrCustomResolve4xPS> PixelShader(ShaderMap);
+					static FGlobalBoundShaderState BoundShaderState;
+					SetGlobalBoundShaderState(RHICmdList, SceneContext.GetCurrentFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+				}
+				else if (CurrentNumSamples == 8)
+				{
+					TShaderMapRef<FHdrCustomResolve8xPS> PixelShader(ShaderMap);
+					static FGlobalBoundShaderState BoundShaderState;
+					SetGlobalBoundShaderState(RHICmdList, SceneContext.GetCurrentFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+				}
+				else
+				{
+					// Everything other than 2,4,8 samples is not implemented.
+					check(0);
+				}
+			}
+		}
+
+		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+	}
+}

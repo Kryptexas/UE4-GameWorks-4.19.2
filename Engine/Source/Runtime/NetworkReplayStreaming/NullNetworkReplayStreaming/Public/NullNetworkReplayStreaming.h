@@ -75,6 +75,7 @@ public:
 	virtual FString	GetReplayID() const override { return TEXT( "" ); }
 	virtual void SetTimeBufferHintSeconds(const float InTimeBufferHintSeconds) override {}
 	virtual void RefreshHeader() override {};
+	virtual void DownloadHeader(const FOnDownloadHeaderComplete& Delegate = FOnDownloadHeaderComplete()) override {}
 
 	/** FTickableObjectBase implementation */
 	virtual void Tick(float DeltaSeconds) override;

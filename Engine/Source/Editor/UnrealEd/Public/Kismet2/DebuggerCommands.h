@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __DebuggerCommands_h__
-#define __DebuggerCommands_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -157,5 +156,3 @@ public:
 	static bool HasPlayWorldAndPaused();
 	static bool HasPlayWorldAndRunning();
 };
-
-#endif // __DebuggerCommands_h__

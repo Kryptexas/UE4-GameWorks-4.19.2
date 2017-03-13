@@ -39,7 +39,7 @@ UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton* Skeleton, UObject*
 
 	const bool bPrevImportMorph = FFbxImporter->ImportOptions->bImportMorph;
 	FFbxImporter->ImportOptions->bImportMorph = bImportMorphTracks;
-	if ( !FFbxImporter->ImportFromFile( InFilename, FPaths::GetExtension( InFilename ) ) )
+	if ( !FFbxImporter->ImportFromFile( InFilename, FPaths::GetExtension( InFilename ), true ) )
 	{
 		// Log the error message and fail the import.
 		FFbxImporter->FlushToTokenizedErrorMessage(EMessageSeverity::Error);
@@ -129,7 +129,7 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 		FbxImporter->ImportOptions->ResetForReimportAnimation();	
 	}
 
-	if ( !FbxImporter->ImportFromFile( InFilename, FPaths::GetExtension( InFilename ) ) )
+	if ( !FbxImporter->ImportFromFile( InFilename, FPaths::GetExtension( InFilename ), true ) )
 	{
 		// Log the error message and fail the import.
 		FbxImporter->FlushToTokenizedErrorMessage(EMessageSeverity::Error);
@@ -1018,12 +1018,12 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		FSmartName NewName;
 		Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Name, NewName);
 
-		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(NewName.UID, FRawCurveTracks::FloatType));
+		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(NewName.UID, ERawCurveTrackTypes::RCT_Float));
 		if(CurveToImport==NULL)
 		{
-			if (TargetSequence->RawCurveData.AddCurveData(NewName, ACF_DefaultCurve | CurveFlags))
+			if (TargetSequence->RawCurveData.AddCurveData(NewName, AACF_DefaultCurve | CurveFlags))
 			{
-				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(NewName.UID, FRawCurveTracks::FloatType));
+				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(NewName.UID, ERawCurveTrackTypes::RCT_Float));
 				CurveToImport->Name = NewName;
 			}
 			else
@@ -1226,7 +1226,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							const FText StatusUpate = FText::Format(LOCTEXT("ImportingCustomAttributeCurvesDetail", "Importing Custom Attribute [{CurveName}]"), Args);
 							GWarn->StatusUpdate(CurLinkIndex + 1, TotalLinks, StatusUpate);
 
-							int32 CurveFlags = ACF_DefaultCurve;
+							int32 CurveFlags = AACF_DefaultCurve;
 							if (ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan))
 							{
 								// first let them override material curve if required

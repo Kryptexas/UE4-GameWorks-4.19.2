@@ -349,7 +349,7 @@ void UVREditorMotionControllerInteractor::Shutdown()
 void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-
+	
 	{
 		const float WorldScaleFactor = WorldInteraction->GetWorldScaleFactor();
 

@@ -28,14 +28,7 @@
 //
 //
 // Remember to define WITH_GAMEPLAY_DEBUGGER=1 when adding module to your project's Build.cs!
-// 
-// if (UEBuildConfiguration.bBuildDeveloperTools &&
-//     Target.Configuration != UnrealTargetConfiguration.Shipping &&
-//     Target.Configuration != UnrealTargetConfiguration.Test)
-// {
-//     PrivateDependencyModuleNames.Add("GameplayDebugger");
-//     Definitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
-// }
+// Check AIModule/AIModule.Build.cs for more details.
 // 
 
 #pragma once

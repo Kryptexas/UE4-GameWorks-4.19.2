@@ -4,10 +4,15 @@ using UnrealBuildTool;
 
 public class NiagaraEditor : ModuleRules
 {
-	public NiagaraEditor(TargetInfo Target)
+	public NiagaraEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(new string[] {
 			"Editor/NiagaraEditor/Private",
+			"Editor/NiagaraEditor/Private/Toolkits",
+			"Editor/NiagaraEditor/Private/Widgets",
+			"Editor/NiagaraEditor/Private/Sequencer",
+			"Editor/NiagaraEditor/Private/ViewModels",
+			"Editor/NiagaraEditor/Private/TypeEditorUtilities"
 		});
 
 		PrivateDependencyModuleNames.AddRange(
@@ -28,7 +33,11 @@ public class NiagaraEditor : ModuleRules
                 "MovieScene",
 				"Sequencer",
 				"PropertyEditor",
-				"GraphEditor"
+				"GraphEditor",
+                "ShaderFormatVectorVM",
+				"AppFramework",
+				"MovieSceneTools",
+                "MovieSceneTracks",
 			}
 		);
 
@@ -37,7 +46,8 @@ public class NiagaraEditor : ModuleRules
 				"Engine",
 				"Messaging",
 				"LevelEditor",
-				"AssetTools"
+				"AssetTools",
+				"ContentBrowser",
 			}
 		);
 
@@ -56,7 +66,7 @@ public class NiagaraEditor : ModuleRules
 			}
 		);
 
-		DynamicallyLoadedModuleNames.AddRange(
+        DynamicallyLoadedModuleNames.AddRange(
             new string[] {
                 "WorkspaceMenuStructure",
                 }

@@ -30,6 +30,10 @@ class ENGINE_API UExponentialHeightFogComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InscatteringTexture)
 	class UTextureCube* InscatteringColorCubemap;
 
+	/** Angle to rotate the InscatteringColorCubemap around the Z axis. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InscatteringTexture, meta=(UIMin = "0", UIMax = "360"))
+	float InscatteringColorCubemapAngle;
+
 	/** Tint color used when InscatteringColorCubemap is specified, for quick edits without having to reimport InscatteringColorCubemap. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InscatteringTexture)
 	FLinearColor InscatteringTextureTint;
@@ -95,6 +99,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|ExponentialHeightFog")
 	void SetInscatteringColorCubemap(UTextureCube* Value);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|ExponentialHeightFog")
+	void SetInscatteringColorCubemapAngle(float Value);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|ExponentialHeightFog")
 	void SetFullyDirectionalInscatteringColorDistance(float Value);

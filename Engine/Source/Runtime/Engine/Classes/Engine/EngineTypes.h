@@ -329,8 +329,8 @@ enum ESceneCaptureSource
 	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
 	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
 	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
-	SCS_Normal UMETA(DisplayName="Normal in RGB"),
-	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
+	SCS_Normal UMETA(DisplayName="Normal in RGB (Deferred Renderer only)"),
+	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB (Deferred Renderer only)")
 };
 
 UENUM()
@@ -1120,6 +1120,17 @@ namespace ECollisionEnabled
 	}; 
 } 
 
+FORCEINLINE bool CollisionEnabledHasPhysics(ECollisionEnabled::Type CollisionEnabled)
+{
+	return (CollisionEnabled == ECollisionEnabled::PhysicsOnly) ||
+			(CollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+}
+
+FORCEINLINE bool CollisionEnabledHasQuery(ECollisionEnabled::Type CollisionEnabled)
+{
+	return (CollisionEnabled == ECollisionEnabled::QueryOnly) ||
+			(CollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+}
 
 /** Describes the physical state of a rigid body. */
 USTRUCT()
@@ -2055,7 +2066,7 @@ struct ENGINE_API FHitResult
 template<> struct TIsPODType<FHitResult> { enum { Value = true }; };
 
 template<>
-struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase2<FHitResult>
 {
 	enum
 	{
@@ -2292,8 +2303,8 @@ public:
 		, MaxEvalRateForInterpolation(4)
 		, ShiftBucket(EUpdateRateShiftBucket::ShiftBucket0)
 	{ 
-		BaseVisibleDistanceFactorThesholds.Add(0.4f);
-		BaseVisibleDistanceFactorThesholds.Add(0.2f);
+		BaseVisibleDistanceFactorThesholds.Add(0.12f);
+		BaseVisibleDistanceFactorThesholds.Add(0.24f);
 	}
 
 	/** Set parameters and verify inputs for Trail Mode (original behaviour - skip frames, track skipped time and then catch up afterwards).
@@ -2473,13 +2484,8 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Two-Sided Distance Field Generation"))
 	bool bGenerateDistanceFieldAsIfTwoSided;
 
-	/** 
-	 * Adding a constant distance effectively shrinks the distance field representation.  
-	 * This is useful for preventing self shadowing aritfacts when doing some minor ambient animation.
-	 * Thin walls will be affected more severely than large hollow objects, because thin walls don't have a large negative region.
-	 */
-	UPROPERTY(EditAnywhere, Category = BuildSettings)
-	float DistanceFieldBias;
+	UPROPERTY()
+	float DistanceFieldBias_DEPRECATED;
 
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	class UStaticMesh* DistanceFieldReplacementMesh;
@@ -2502,7 +2508,7 @@ struct FMeshBuildSettings
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 		, DistanceFieldResolutionScale(1.0f)
 		, bGenerateDistanceFieldAsIfTwoSided(false)
-		, DistanceFieldBias(0.0f)
+		, DistanceFieldBias_DEPRECATED(0.0f)
 		, DistanceFieldReplacementMesh(NULL)
 	{ }
 
@@ -2524,7 +2530,6 @@ struct FMeshBuildSettings
 			&& BuildScale3D == Other.BuildScale3D
 			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale
 			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided
-			&& DistanceFieldBias == Other.DistanceFieldBias
 			&& DistanceFieldReplacementMesh == Other.DistanceFieldReplacementMesh;
 	}
 
@@ -3203,7 +3208,7 @@ private:
 template<> struct TIsPODType<FWalkableSlopeOverride> { enum { Value = true }; };
 
 template<>
-struct TStructOpsTypeTraits<FRepMovement> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FRepMovement> : public TStructOpsTypeTraitsBase2<FRepMovement>
 {
 	enum 
 	{
@@ -3794,6 +3799,14 @@ enum class ESpawnActorCollisionHandlingMethod : uint8
 	DontSpawnIfColliding					UMETA(DisplayName = "Do Not Spawn"),
 };
 
+/** Defines the context of a user activity. Activities triggered in Blueprints will by type Game. Those created in code might choose to set another type. */
+enum class EUserActivityContext : uint8
+{
+	Game,
+	Editor,
+	Other
+};
+
 /**
  * The description of a user activity
  */
@@ -3806,12 +3819,24 @@ struct FUserActivity
 	UPROPERTY(BlueprintReadWrite, Category = "Activity")
 	FString ActionName;
 
+	/** A game or editor activity? */
+	EUserActivityContext Context;
+
 	/** Default constructor. */
-	FUserActivity() { }
+	FUserActivity()
+		: Context(EUserActivityContext::Game)
+	{ }
 
 	/** Creates and initializes a new instance. */
 	FUserActivity(const FString& InActionName)
 		: ActionName(InActionName)
+		, Context(EUserActivityContext::Game)
+	{ }
+
+	/** Creates and initializes a new instance with a context other than the default "Game". */
+	FUserActivity(const FString& InActionName, EUserActivityContext InContext)
+		: ActionName(InActionName)
+		, Context(InContext)
 	{ }
 };
 

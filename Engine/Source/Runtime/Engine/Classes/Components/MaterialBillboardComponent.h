@@ -86,6 +86,6 @@ class ENGINE_API UMaterialBillboardComponent : public UPrimitiveComponent
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual UMaterialInterface* GetMaterial(int32 Index) const override;
 	virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* Material) override;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	//~ End UPrimitiveComponent Interface
 };

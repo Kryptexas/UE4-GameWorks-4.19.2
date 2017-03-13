@@ -176,7 +176,6 @@ struct FD3D12ShaderResourceViewCache : public FD3D12ResourceCache<SRVSlotMask>
 		DirtyAll();
 
 		NumViewsIntersectWithDepthCount = 0;
-		FMemory::Memzero(Views);
 		FMemory::Memzero(ResidencyHandles);
 		FMemory::Memzero(ViewsIntersectWithDepthRT);
 		FMemory::Memzero(BoundMask);
@@ -185,9 +184,17 @@ struct FD3D12ShaderResourceViewCache : public FD3D12ResourceCache<SRVSlotMask>
 		{
 			Index = INDEX_NONE;
 		}
+
+		for (int32 FrequencyIdx = 0; FrequencyIdx < SF_NumFrequencies; ++FrequencyIdx)
+		{
+			for (int32 SRVIdx = 0; SRVIdx < MAX_SRVS; ++SRVIdx)
+			{
+				Views[FrequencyIdx][SRVIdx].SafeRelease();
+			}
+		}
 	}
 
-	FD3D12ShaderResourceView* Views[SF_NumFrequencies][MAX_SRVS];
+	TRefCountPtr<FD3D12ShaderResourceView> Views[SF_NumFrequencies][MAX_SRVS];
 	FD3D12ResidencyHandle* ResidencyHandles[SF_NumFrequencies][MAX_SRVS];
 
 	bool ViewsIntersectWithDepthRT[SF_NumFrequencies][MAX_SRVS];
@@ -242,7 +249,7 @@ struct FD3D12SamplerStateCache : public FD3D12ResourceCache<SamplerSlotMask>
 //-----------------------------------------------------------------------------
 //	FD3D12StateCache Class Definition
 //-----------------------------------------------------------------------------
-class FD3D12StateCacheBase : public FD3D12DeviceChild , public FD3D12SingleNodeGPUObject
+class FD3D12StateCacheBase : public FD3D12DeviceChild, public FD3D12SingleNodeGPUObject
 {
 	friend class FD3D12DynamicRHI;
 
@@ -259,6 +266,7 @@ protected:
 	bool bNeedSetPrimitiveTopology;
 	bool bNeedSetBlendFactor;
 	bool bNeedSetStencilRef;
+	bool bNeedSetDepthBounds;
 	bool bAutoFlushComputeShaderCache;
 	D3D12_RESOURCE_BINDING_TIER ResourceBindingTier;
 
@@ -308,6 +316,9 @@ protected:
 			FD3D12RenderTargetView* RenderTargetArray[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
 
 			FD3D12DepthStencilView* CurrentDepthStencilTarget;
+
+			float MinDepth;
+			float MaxDepth;
 		} Graphics;
 
 		struct
@@ -678,7 +689,8 @@ public:
 		*BoundShaderState = PipelineState.Graphics.HighLevelDesc.BoundShaderState;
 	}
 
-	void SetPipelineState(FD3D12PipelineState* PipelineState, bool IsCompute);
+	template <bool IsCompute = false>
+	void SetPipelineState(FD3D12PipelineState* PipelineState);
 
 	void SetComputeShader(FD3D12ComputeShader* Shader);
 
@@ -799,6 +811,17 @@ public:
 
 	template <EShaderFrequency ShaderStage>
 	void SetUAVs(uint32 UAVStartSlot, uint32 NumSimultaneousUAVs, FD3D12UnorderedAccessView** UAVArray, uint32* UAVInitialCountArray);
+
+	void SetDepthBounds(float MinDepth, float MaxDepth)
+	{
+		if (PipelineState.Graphics.MinDepth != MinDepth || PipelineState.Graphics.MaxDepth != MaxDepth)
+		{
+			PipelineState.Graphics.MinDepth = MinDepth;
+			PipelineState.Graphics.MaxDepth = MaxDepth;
+
+			bNeedSetDepthBounds = true;
+		}
+	}
 
 	D3D12_STATE_CACHE_INLINE void AutoFlushComputeShaderCache(bool bEnable)
 	{

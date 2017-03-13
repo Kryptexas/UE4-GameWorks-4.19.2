@@ -406,6 +406,8 @@ public:
 	virtual bool GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void* InData) override;
 	virtual bool GetCustomInputCoordinateSystem(FMatrix& InMatrix, void* InData) override;
 
+	virtual bool GetCursor(EMouseCursor::Type& OutCursor) const override;
+
 	/** Forces real-time perspective viewports */
 	void ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState);
 
@@ -436,13 +438,27 @@ public:
 	void SetCurrentBrush(FName BrushName);
 	void SetCurrentBrush(int32 BrushIndex);
 
-	const TArray<TSharedRef<FLandscapeTargetListInfo>>& GetTargetList();
+	const TArray<TSharedRef<FLandscapeTargetListInfo>>& GetTargetList() const;
+	const TArray<FName>* GetTargetDisplayOrderList() const;
+	const TArray<FName>& GetTargetShownList() const;
+	int32 GetTargetLayerStartingIndex() const;
 	const TArray<FLandscapeListInfo>& GetLandscapeList();
 
 	void AddLayerInfo(ULandscapeLayerInfoObject* LayerInfo);
 
 	int32 UpdateLandscapeList();
 	void UpdateTargetList();
+	
+	/** Update Display order list */
+	void UpdateTargetLayerDisplayOrder(ELandscapeLayerDisplayMode InTargetDisplayOrder);
+	void MoveTargetLayerDisplayOrder(int32 IndexToMove, int32 IndexToDestination);
+
+	/** Update shown layer list */	
+	void UpdateShownLayerList();
+	bool ShouldShowLayer(TSharedRef<FLandscapeTargetListInfo> Target) const;
+	void UpdateLayerUsageInformation();
+
+	void RefreshDetailPanel();
 
 	DECLARE_EVENT(FEdModeLandscape, FTargetsListUpdated);
 	static FTargetsListUpdated TargetsListUpdated;
@@ -483,6 +499,10 @@ public:
 private:
 	TArray<TSharedRef<FLandscapeTargetListInfo>> LandscapeTargetList;
 	TArray<FLandscapeListInfo> LandscapeList;
+	TArray<FName> ShownTargetLayerList;
+	
+	/** Represent the index offset of the target layer in LandscapeTargetList */
+	int32 TargetLayerStartingIndex;
 
 	UMaterialInterface* CachedLandscapeMaterial;
 

@@ -213,6 +213,26 @@ public:
 	 */
 	virtual void AddPluginSearchPath(const FString& ExtraDiscoveryPath, bool bRefresh = true) = 0;
 
+	/**
+	 * Gets an array of plugins that loaded their own content pak file
+	 */
+	virtual TArray<TSharedRef<IPlugin>> GetPluginsWithPakFile() const = 0;
+
+	/**
+	 * Event signature for being notified that a new plugin has been mounted
+	 */
+	DECLARE_EVENT_OneParam(IPluginManager, FNewPluginMountedEvent, IPlugin&);
+
+	/**
+	 * Gets an array of plugins that loaded their own content pak file
+	 */
+	virtual FNewPluginMountedEvent& OnNewPluginMounted() = 0;
+
+	/**
+	 * Marks a newly created plugin as enabled, mounts its content and tries to load its modules
+	 */
+	virtual void MountNewlyCreatedPlugin(const FString& PluginName) = 0;
+
 public:
 
 	/**

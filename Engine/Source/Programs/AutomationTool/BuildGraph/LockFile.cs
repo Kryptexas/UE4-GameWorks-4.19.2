@@ -23,7 +23,7 @@ namespace AutomationTool
 
             try
             {
-                LockDirectory.CreateDirectory();
+                DirectoryReference.CreateDirectory(LockDirectory);
 
                 for (int Iterations = 0; ; ++Iterations)
                 {

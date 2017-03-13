@@ -124,6 +124,7 @@ struct FBXImportOptions
 	EFBXNormalGenerationMethod::Type NormalGenerationMethod;
 	bool bTransformVertexToAbsolute;
 	bool bBakePivotInVertex;
+	EFBXImportType ImportType;
 	// Static Mesh options
 	bool bCombineToSingle;
 	EVertexColorImportOption::Type VertexColorImportOption;
@@ -606,11 +607,11 @@ public:
 	UNREALED_API UStaticMesh* ImportStaticMeshAsSingle(UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData, UStaticMesh* InStaticMesh, int LODIndex = 0, void *ExistMeshDataPtr = nullptr);
 
 	/**
-	 * Helper function to reorder the material array after we build the staticmesh.
-	 * It order the material like it is in the fbx file and reassign section material index properly.
-	 * This must be call once all LOD are imported.
-	 */
-	void ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
+	* Finish the import of the staticmesh after all LOD have been process (cannot be call before all LOD are imported). There is two main operation done by this function
+	* 1. Build the staticmesh render data
+	* 2. Reorder the material array to follow the fbx file material order
+	*/
+	UNREALED_API void PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
 
 	void ImportStaticMeshGlobalSockets( UStaticMesh* StaticMesh );
 	void ImportStaticMeshLocalSockets( UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
@@ -1005,6 +1006,8 @@ protected:
 	// base path of fbx file
 	FString FileBasePath;
 	TWeakObjectPtr<UObject> Parent;
+	FString FbxFileVersion;
+
 	// Flag that the mesh is the first mesh to import in current FBX scene
 	// FBX scene may contain multiple meshes, importer can import them at one time.
 	// Initialized as true when start to import a FBX scene

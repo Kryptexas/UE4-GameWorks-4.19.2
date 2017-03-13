@@ -217,7 +217,7 @@ bool UObjectLibrary::AddObject(UObject *NewObject)
 
 bool UObjectLibrary::RemoveObject(UObject *ObjectToRemove)
 {
-	if (bUseWeakReferences)
+	if (!bUseWeakReferences)
 	{
 		if (Objects.Remove(ObjectToRemove) != 0)
 		{
@@ -346,10 +346,11 @@ int32 UObjectLibrary::LoadAssetDataFromPaths(const TArray<FString>& Paths, bool 
 	{
 		ARFilter.ClassNames.Add(ObjectBaseClass->GetFName());
 
+#if WITH_EDITOR
 		// Add any old names to the list in case things haven't been resaved
 		TArray<FName> OldNames = FLinkerLoad::FindPreviousNamesForClass(ObjectBaseClass->GetPathName(), false);
-
 		ARFilter.ClassNames.Append(OldNames);
+#endif
 
 		ARFilter.bRecursiveClasses = true;
 	}
@@ -503,16 +504,9 @@ int32 UObjectLibrary::LoadAssetsFromAssetData()
 		if (AssetsToStream.Num())
 		{
 			FStreamableManager Streamable;
-			bool bLoadFinished = false;
-
-			Streamable.RequestAsyncLoad(AssetsToStream,
-				FStreamableDelegate::CreateLambda([&bLoadFinished]()
-			{
-				bLoadFinished = true;
-			}));
-
-			FlushAsyncLoading();
-			check(bLoadFinished);
+			
+			// This will either use loadobject or async load + flush as appropriate
+			Streamable.RequestSyncLoad(AssetsToStream);
 		}
 
 	}

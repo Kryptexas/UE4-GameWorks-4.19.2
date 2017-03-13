@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class SoundVisualizations : ModuleRules
     {
-        public SoundVisualizations(TargetInfo Target)
+        public SoundVisualizations(ReadOnlyTargetRules Target) : base(Target)
         {
             PrivateIncludePaths.Add("SoundVisualizations/Private");
 

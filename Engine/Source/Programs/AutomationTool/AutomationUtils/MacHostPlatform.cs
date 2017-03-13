@@ -17,11 +17,6 @@ namespace AutomationTool
 			return "xbuild";
 		}
 
-		public override string GetMsDevExe()
-		{
-			return "";
-		}
-
 		public override string RelativeBinariesFolder
 		{
 			get { return @"Engine/Binaries/Mac/"; }

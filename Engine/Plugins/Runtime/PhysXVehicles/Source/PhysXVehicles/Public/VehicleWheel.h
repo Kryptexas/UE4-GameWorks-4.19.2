@@ -185,6 +185,9 @@ class PHYSXVEHICLES_API UVehicleWheel : public UObject
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
 	float GetSuspensionOffset() const;
 
+	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
+	bool IsInAir() const;
+
 #if WITH_PHYSX
 
 	// Our wheelshape

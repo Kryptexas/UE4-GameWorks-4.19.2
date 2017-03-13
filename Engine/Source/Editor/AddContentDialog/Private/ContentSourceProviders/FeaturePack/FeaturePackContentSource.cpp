@@ -372,7 +372,7 @@ void FFeaturePackContentSource::HandleActOnSearchText(TSharedPtr<FSearchEntry> S
 			UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EContentSourceCategory"));
 			FString CurrentLanguage = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
 			FLocalizedText CurrentName = ChooseLocalizedText(LocalizedNames,CurrentLanguage);
-			FString MyTitle = FText::Format( LOCTEXT("FeaturePackSearchResult", "{0} ({1})"), CurrentName.GetText(), Enum->GetDisplayNameText((int32)Category)).ToString();
+			FString MyTitle = FText::Format( LOCTEXT("FeaturePackSearchResult", "{0} ({1})"), CurrentName.GetText(), Enum->GetDisplayNameTextByValue((int64)Category)).ToString();
 			if (SearchEntry->Title == MyTitle)
 			{
 				IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
@@ -415,7 +415,7 @@ void FFeaturePackContentSource::HandleSuperSearchTextChanged(const FString& InTe
 				// This will add the category if one doesnt exist
 				TryAddFeaturePackCategory(FeaturePackSearchCat,OutSuggestions);
 				TSharedPtr<FSearchEntry> FeaturePackEntry = MakeShareable(new FSearchEntry());
-				FeaturePackEntry->Title = FText::Format( LOCTEXT("FeaturePackSearchResult", "{0} ({1})"), CurrentName.GetText(), Enum->GetDisplayNameText((int32)Category)).ToString();
+				FeaturePackEntry->Title = FText::Format( LOCTEXT("FeaturePackSearchResult", "{0} ({1})"), CurrentName.GetText(), Enum->GetDisplayNameTextByValue((int64)Category)).ToString();
 				FeaturePackEntry->bCategory = false;
 				OutSuggestions.Add(FeaturePackEntry);
 				return;

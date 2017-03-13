@@ -54,7 +54,8 @@ public:
 	//~ End UObject Interface
 
 	/** 
-	 * Static function to create a new ObjectLibrary at runtime, with various options set 
+	 * Static function to create a new ObjectLibrary at runtime, with various options set
+	 * There is now a better version of this functionality in AssetManager, if you are creating many game-specific libraries you should switch to using AssetManager instead
 	 * @param	InBaseClass				Only objects of this class can exist in the library
 	 * @param	bInHasBlueprintClasses	If true, this library contains blueprint classes derived from BaseClass, will convert them correctly
 	 * @param	InUseWeak				If true, references to objects are weak, so they can be garbage collected. Useful in the editor to allow deletion

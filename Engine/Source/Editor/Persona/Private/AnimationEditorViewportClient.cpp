@@ -348,46 +348,8 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 		
 		DrawWatchedPoses(PreviewMeshComponent, PDI);
 
-		// Display normal vectors of each simulation vertex
-		if (PreviewMeshComponent->bDisplayClothingNormals )
-		{
-			PreviewMeshComponent->DrawClothingNormals(PDI);
-		}
+		PreviewMeshComponent->DebugDrawClothing(PDI);
 
-		// Display tangent spaces of each graphical vertex
-		if (PreviewMeshComponent->bDisplayClothingTangents )
-		{
-			PreviewMeshComponent->DrawClothingTangents(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothingCollisionVolumes )
-		{
-			PreviewMeshComponent->DrawClothingCollisionVolumes(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothPhysicalMeshWire )
-		{
-			PreviewMeshComponent->DrawClothingPhysicalMeshWire(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothMaxDistances )
-		{
-			PreviewMeshComponent->DrawClothingMaxDistances(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothBackstops )
-		{
-			PreviewMeshComponent->DrawClothingBackstops(PDI);
-		}
-
-		if(PreviewMeshComponent->bDisplayClothFixedVertices )
-		{
-			PreviewMeshComponent->DrawClothingFixedVertices(PDI);
-		}
 		
 		// Display socket hit points
 		if (PreviewMeshComponent->bDrawSockets )
@@ -634,7 +596,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 		if (MaterialsThatNeedMorphFlagOn.Num() > 0)
 		{
-			InfoString = FString::Printf( *LOCTEXT("MorphSupportNeeded", "The following materials need morph support ('Used with Morph Targets' in material editor):").ToString() );
+			InfoString = LOCTEXT("MorphSupportNeeded", "The following materials need morph support ('Used with Morph Targets' in material editor):").ToString();
 			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), HeadlineColour );
 
 			CurYOffset += YL + 2;
@@ -651,7 +613,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 		if (MaterialsThatNeedSaving.Num() > 0)
 		{
-			InfoString = FString::Printf( *LOCTEXT("MaterialsNeedSaving", "The following materials need saving to fully support morph targets:").ToString() );
+			InfoString = LOCTEXT("MaterialsNeedSaving", "The following materials need saving to fully support morph targets:").ToString();
 			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), HeadlineColour );
 
 			CurYOffset += YL + 2;
@@ -876,7 +838,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	{
 		// Notify the user if they are isolating a mesh section.
 		CurYOffset += YL + 2;
-		InfoString = FString::Printf(*LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden").ToString());
+		InfoString = LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden").ToString();
 		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
 		
 	}

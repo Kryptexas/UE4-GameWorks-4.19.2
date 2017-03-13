@@ -3,6 +3,7 @@
 #include "GameplayTagContainer.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
+#include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
@@ -56,7 +57,7 @@ void FGameplayDebuggerCategory_Abilities::FRepData::Serialize(FArchive& Ar)
 
 void FGameplayDebuggerCategory_Abilities::CollectData(APlayerController* OwnerPC, AActor* DebugActor)
 {
-	UAbilitySystemComponent* AbilityComp = DebugActor ? DebugActor->FindComponentByClass<UAbilitySystemComponent>() : nullptr;
+	UAbilitySystemComponent* AbilityComp = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(DebugActor);
 	if (AbilityComp)
 	{
 		static FGameplayTagContainer OwnerTags;
@@ -110,7 +111,7 @@ void FGameplayDebuggerCategory_Abilities::DrawData(APlayerController* OwnerPC, F
 	CanvasContext.Printf(TEXT("Owned Tags: {yellow}%s"), *DataPack.OwnedTags);
 
 	AActor* LocalDebugActor = FindLocalDebugActor();
-	UAbilitySystemComponent* AbilityComp = LocalDebugActor ? LocalDebugActor->FindComponentByClass<UAbilitySystemComponent>() : nullptr;
+	UAbilitySystemComponent* AbilityComp = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(LocalDebugActor);
 	if (AbilityComp)
 	{
 		static FGameplayTagContainer OwnerTags;

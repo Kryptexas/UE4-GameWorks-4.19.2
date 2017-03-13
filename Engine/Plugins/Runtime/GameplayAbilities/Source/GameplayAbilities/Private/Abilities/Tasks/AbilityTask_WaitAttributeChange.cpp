@@ -92,7 +92,10 @@ void UAbilityTask_WaitAttributeChange::OnAttributeChange(float NewValue, const F
 	}
 	if (PassedComparison)
 	{
-		OnChange.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnChange.Broadcast();
+		}
 		if (bTriggerOnce)
 		{
 			EndTask();

@@ -3,6 +3,7 @@
 #include "KeyStructCustomization.h"
 #include "DetailWidgetRow.h"
 #include "SKeySelector.h"
+#include "UnrealType.h"
 
 #define LOCTEXT_NAMESPACE "FKeyStructCustomization"
 
@@ -36,6 +37,7 @@ void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle>
 		.CurrentKey(this, &FKeyStructCustomization::GetCurrentKey)
 		.OnKeyChanged(this, &FKeyStructCustomization::OnKeyChanged)
 		.Font(StructCustomizationUtils.GetRegularFont())
+		.AllowClear(!StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_NoClear))
 	];
 }
 

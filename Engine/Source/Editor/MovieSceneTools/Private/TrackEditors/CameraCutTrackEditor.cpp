@@ -100,13 +100,6 @@ void FCameraCutTrackEditor::BindCommands(TSharedRef<FUICommandList> SequencerCom
 
 void FCameraCutTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
-	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
-
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
-	{
-		return;
-	}
-
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddCameraCutTrack", "Camera Cut Track"),
 		LOCTEXT("AddCameraCutTooltip", "Adds a camera cut track, as well as a new camera cut at the current scrubber location if a camera is selected."),
@@ -158,6 +151,12 @@ TSharedRef<ISequencerSection> FCameraCutTrackEditor::MakeSectionInterface(UMovie
 	check(SupportsType(SectionObject.GetOuter()->GetClass()));
 
 	return MakeShareable(new FCameraCutSection(GetSequencer(), ThumbnailPool, SectionObject));
+}
+
+
+bool FCameraCutTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("LevelSequence"));
 }
 
 

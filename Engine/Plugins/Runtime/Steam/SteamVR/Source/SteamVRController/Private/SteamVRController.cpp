@@ -107,9 +107,17 @@ public:
 			DeviceToControllerMap[i] = INDEX_NONE;
 		}
 
-		for (int32 i=0; i < MaxControllers; ++i)
+		for (int32 UnrealControllerIndex = 0; UnrealControllerIndex < MaxUnrealControllers; ++UnrealControllerIndex)
 		{
-			ControllerToDeviceMap[i] = INDEX_NONE;
+			for (int32 HandIndex = 0; HandIndex < CONTROLLERS_PER_PLAYER; ++HandIndex)
+			{
+				UnrealControllerIdAndHandToDeviceIdMap[UnrealControllerIndex][HandIndex] = INDEX_NONE;
+			}
+		}
+
+		for (int32& Count : UnrealControllerHandUsageCount)
+		{
+			Count = 0;
 		}
 
 		NumControllersMapped = 0;
@@ -176,27 +184,98 @@ public:
 				// update the mappings if this is a new device
 				if (DeviceToControllerMap[DeviceIndex] == INDEX_NONE )
 				{
-					// don't map too many controllers
-					if (NumControllersMapped >= MaxControllers)
+					// skip unregistered devices that are not connected.
+					// This lets connected devices claim their preferred hands.
+					if (!VRSystem->IsTrackedDeviceConnected(DeviceIndex))
 					{
 						continue;
 					}
 
+					// don't map too many controllers
+					if (NumControllersMapped >= MaxControllers)
+					{
+						UE_LOG(LogSteamVRController, Warning, TEXT("Found more controllers than we support (%i vs %i)!  Probably need to fix this."), NumControllersMapped + 1, MaxControllers);
+						continue;
+					}
+
+					// Decide which hand to associate this controller with
+					EControllerHand ChosenHand = EControllerHand::Special_9;
+					{
+						const vr::ETrackedControllerRole Role = VRSystem->GetControllerRoleForTrackedDeviceIndex(DeviceIndex);
+						UE_LOG(LogSteamVRController, Log, TEXT("Controller role for device %i is %i (invalid=0, left=1, right=2)."), DeviceIndex, (int32)Role);
+
+						// if we already have one hand we have to put the controller on the other hand
+						if (UnrealControllerHandUsageCount[(int32)EControllerHand::Right] != 0 && UnrealControllerHandUsageCount[(int32)EControllerHand::Left] == 0)
+						{
+							UE_LOG(LogSteamVRController, Log, TEXT("Putting controller %i on the left hand because there is already a controller for the right."), DeviceIndex);
+							if (Role == vr::TrackedControllerRole_RightHand)
+							{
+								UE_LOG(LogSteamVRController, Warning, TEXT("We are ignoring the steam api controller role for device %i, because we have already used that spot."), DeviceIndex);
+							}
+							ChosenHand = EControllerHand::Left;
+						}
+						else if (UnrealControllerHandUsageCount[(int32)EControllerHand::Left] != 0 && UnrealControllerHandUsageCount[(int32)EControllerHand::Right] == 0)
+						{
+							UE_LOG(LogSteamVRController, Log, TEXT("Putting controller %i on the right hand because there is already a controller for the left."), DeviceIndex);
+							if (Role == vr::TrackedControllerRole_LeftHand)
+							{
+								UE_LOG(LogSteamVRController, Warning, TEXT("We are ignoring the steam api controller role for device %i, because we have already used that spot."), DeviceIndex);
+							}
+							ChosenHand = EControllerHand::Right;
+						}
+						else
+						{
+							// Either both controller hands are unused or both are used.
+
+							// Try to give the controller to the role it prefers.
+							switch (Role)
+							{
+							case vr::TrackedControllerRole_LeftHand:
+								UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i is being assigned to its prefered role 'left'."), DeviceIndex);
+								ChosenHand = EControllerHand::Left;
+								break;
+							case vr::TrackedControllerRole_RightHand:
+								UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i is being assigned to its prefered role 'right'."), DeviceIndex);
+								ChosenHand = EControllerHand::Right;
+								break;
+							case vr::TrackedControllerRole_Invalid:
+							{
+								const uint32 LeftDeviceIndex = VRSystem->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
+								const uint32 RightDeviceIndex = VRSystem->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
+								if (RightDeviceIndex == vr::k_unTrackedDeviceIndexInvalid)
+								{
+									UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i has no role set.  There is no 'right' controller according to steamvr, so we are pickign that."), DeviceIndex);
+									ChosenHand = EControllerHand::Right;
+								}
+								else if (LeftDeviceIndex == vr::k_unTrackedDeviceIndexInvalid)
+								{
+									UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i has no role set.  There is no 'left' controller according to steamvr, so we are pickign that."), DeviceIndex);
+									ChosenHand = EControllerHand::Left;
+								}
+								else
+								{
+									UE_LOG(LogSteamVRController, Warning, TEXT("Controller device %i has no role set.  We could not find an unused role, so picking Right.  This controller may not function correctly."), DeviceIndex);
+									ChosenHand = EControllerHand::Right;
+								}
+							}
+							break;
+							default:
+								UE_LOG(LogSteamVRController, Error, TEXT("Controller device with unknown role %i encountered.  Ignoring it."), (int32)Role);
+								continue;
+							}
+						}
+					}
+
+					UE_LOG(LogSteamVRController, Log, TEXT("Controller device %i is being assigned unreal hand %i (left=0, right=1)."), DeviceIndex, (int32)ChosenHand);
+					ControllerStates[DeviceIndex].Hand = ChosenHand;
+					UnrealControllerHandUsageCount[(int32)ChosenHand] += 1;
+					
 					DeviceToControllerMap[DeviceIndex] = FMath::FloorToInt(NumControllersMapped / CONTROLLERS_PER_PLAYER);
-					ControllerToDeviceMap[NumControllersMapped] = DeviceIndex;
-					ControllerStates[DeviceIndex].Hand = (EControllerHand)(NumControllersMapped % CONTROLLERS_PER_PLAYER);
 					++NumControllersMapped;
 
 					// update the SteamVR plugin with the new mapping
 					{
-						int32 UnrealControllerIdAndHandToDeviceIdMap[MaxUnrealControllers][CONTROLLERS_PER_PLAYER];
-						for( int32 UnrealControllerIndex = 0; UnrealControllerIndex < MaxUnrealControllers; ++UnrealControllerIndex )
-						{
-							for (int32 HandIndex = 0; HandIndex < CONTROLLERS_PER_PLAYER; ++HandIndex)
-							{
-								UnrealControllerIdAndHandToDeviceIdMap[ UnrealControllerIndex ][ HandIndex ] = ControllerToDeviceMap[ UnrealControllerIdToControllerIndex( UnrealControllerIndex, (EControllerHand)HandIndex ) ];
-							}
-						}
+						UnrealControllerIdAndHandToDeviceIdMap[DeviceToControllerMap[DeviceIndex]][(int32)ControllerStates[DeviceIndex].Hand] = DeviceIndex;
 						SteamVRPlugin->SetUnrealControllerIdAndHandToDeviceIdMap( UnrealControllerIdAndHandToDeviceIdMap );
 					}
 				}
@@ -320,7 +399,7 @@ public:
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	int32 UnrealControllerIdToControllerIndex( const int32 UnrealControllerId, const EControllerHand Hand ) const
 	{
-		return UnrealControllerId * CONTROLLERS_PER_PLAYER + (int32)Hand;
+		return UnrealControllerIdAndHandToDeviceIdMap[UnrealControllerId][(int32)Hand];
 	}
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	
@@ -408,12 +487,6 @@ public:
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	void UpdateVibration( const int32 ControllerIndex )
 	{
-		// make sure there is a valid device for this controller
-		int32 DeviceIndex = ControllerToDeviceMap[ ControllerIndex ];
-		if (DeviceIndex < 0)
-		{
-			return;
-		}
 
 		const FControllerState& ControllerState = ControllerStates[ ControllerIndex ];
 		vr::IVRSystem* VRSystem = GetVRSystem();
@@ -427,7 +500,7 @@ public:
  		const float LeftIntensity = FMath::Clamp(ControllerState.ForceFeedbackValue * 2000.f, 0.f, 2000.f);
 		if (LeftIntensity > 0.f)
 		{
-			VRSystem->TriggerHapticPulse(DeviceIndex, TOUCHPAD_AXIS, LeftIntensity);
+			VRSystem->TriggerHapticPulse(ControllerIndex, TOUCHPAD_AXIS, LeftIntensity);
 		}
 	}
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
@@ -540,8 +613,9 @@ private:
 
 	/** Mappings between tracked devices and 0 indexed controllers */
 	int32 NumControllersMapped;
-	int32 ControllerToDeviceMap[ MaxControllers ];
-	int32 DeviceToControllerMap[vr::k_unMaxTrackedDeviceCount];
+	int32 DeviceToControllerMap[ vr::k_unMaxTrackedDeviceCount ];
+	int32 UnrealControllerIdAndHandToDeviceIdMap[ MaxUnrealControllers ][ CONTROLLERS_PER_PLAYER ];
+	int32 UnrealControllerHandUsageCount[CONTROLLERS_PER_PLAYER];
 
 	/** Controller states */
 	FControllerState ControllerStates[ MaxControllers ];

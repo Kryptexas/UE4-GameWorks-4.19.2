@@ -42,18 +42,18 @@
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh VxColor Inst Mem" ), STAT_InstVertexColorMemory, STATGROUP_MemoryStaticMesh );
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh PreCulled Index Memory" ), STAT_StaticMeshPreCulledIndexMemory, STATGROUP_MemoryStaticMesh );
 
-class FStaticMeshComponentInstanceData : public FSceneComponentInstanceData
+class FStaticMeshComponentInstanceData : public FPrimitiveComponentInstanceData
 {
 public:
 	FStaticMeshComponentInstanceData(const UStaticMeshComponent* SourceComponent)
-		: FSceneComponentInstanceData(SourceComponent)
+		: FPrimitiveComponentInstanceData(SourceComponent)
 		, StaticMesh(SourceComponent->GetStaticMesh())
 	{
 	}
 
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
-		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		FPrimitiveComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 		if (CacheApplyPhase == ECacheApplyPhase::PostUserConstructionScript)
 		{
 			CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
@@ -62,7 +62,7 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		FSceneComponentInstanceData::AddReferencedObjects(Collector);
+		FPrimitiveComponentInstanceData::AddReferencedObjects(Collector);
 
 		Collector.AddReferencedObject(StaticMesh);
 	}
@@ -312,7 +312,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 			if (LODData[LODIndex].LegacyMapBuildData)
 			{
 				LODData[LODIndex].LegacyMapBuildData->IrrelevantLights = IrrelevantLights_DEPRECATED;
-				LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(LODData[LODIndex].MapBuildDataId, LODData[LODIndex].LegacyMapBuildData));
+				LegacyComponentData.Data.Emplace(LODData[LODIndex].MapBuildDataId, LODData[LODIndex].LegacyMapBuildData);
 				LODData[LODIndex].LegacyMapBuildData = NULL;
 			}
 		}
@@ -558,8 +558,8 @@ const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStatic
 			{
 				return MapBuildData->GetMeshBuildData(LODInfo.MapBuildDataId);
 			}
-			}
 		}
+	}
 	
 	return NULL;
 }
@@ -2063,7 +2063,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const
 	}
 }
 
-void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	if( GetStaticMesh() && GetStaticMesh()->RenderData )
 	{

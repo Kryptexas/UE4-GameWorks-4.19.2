@@ -19,10 +19,7 @@ namespace UnrealBuildTool
 		public override void RegisterPlatformProjectGenerator()
 		{
 			// Register this project generator for both Linux
-			if (BuildConfiguration.bPrintDebugInfo)
-			{
-				Console.WriteLine("        Registering for {0}", UnrealTargetPlatform.Linux.ToString());
-			}
+			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.Linux.ToString());
 			UEPlatformProjectGenerator.RegisterPlatformProjectGenerator(UnrealTargetPlatform.Linux, this);
 		}
 
@@ -34,6 +31,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
 		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <param name="ProjectFileFormat"></param>
 		/// <returns>bool    true if native VisualStudio support (or custom VSI) is available</returns>
 		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFileFormat ProjectFileFormat)
 		{

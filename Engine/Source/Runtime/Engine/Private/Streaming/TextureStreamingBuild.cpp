@@ -20,6 +20,8 @@ TextureStreamingBuild.cpp : Contains definitions to build texture streaming data
 #include "Engine/StaticMesh.h"
 #include "Streaming/TextureStreamingHelpers.h"
 #include "UObject/UObjectIterator.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 
 DEFINE_LOG_CATEGORY(TextureStreamingBuild);
 #define LOCTEXT_NAMESPACE "TextureStreamingBuild"
@@ -358,8 +360,24 @@ int32* FStreamingTextureLevelContext::GetBuildDataIndexRef(UTexture2D* Texture2D
 			const int32* LevelIndex = TextureGuidToLevelIndex->Find(Texture2D->GetLightingGuid());
 			if (LevelIndex) // If the index is found in the map, the index is valid in BoundStates
 			{
-				Texture2D->LevelIndex = *LevelIndex;
-				BoundStates[*LevelIndex].Texture = Texture2D; // Update the mapping now!
+				// Here we need to support the invalid case where 2 textures have the same GUID.
+				// If this happens, BoundState.Texture will already be set.
+				FTextureBoundState& BoundState = BoundStates[*LevelIndex];
+				if (!BoundState.Texture)
+				{
+					Texture2D->LevelIndex = *LevelIndex;
+					BoundState.Texture = Texture2D; // Update the mapping now!
+				}
+				else // Don't allow 2 textures to be using the same level index otherwise UTexture2D::LevelIndex won't be reset properly in the destructor.
+				{
+					FMessageLog("AssetCheck").Error()
+						->AddToken(FUObjectToken::Create(BoundState.Texture))
+						->AddToken(FUObjectToken::Create(Texture2D))
+						->AddToken(FTextToken::Create( NSLOCTEXT("AssetCheck", "TextureError_NonUniqueLightingGuid", "Same lighting guid, modify or touch any property in the texture editor to generate a new guid and fix the issue.") ) );
+
+					// This will fallback not using the precomputed data. Note also that the other texture might be using the wrong precomputed data.
+					return nullptr;
+				}
 			}
 			else // Otherwise add a dummy entry to prevent having to search in the map multiple times.
 			{
@@ -368,9 +386,9 @@ int32* FStreamingTextureLevelContext::GetBuildDataIndexRef(UTexture2D* Texture2D
 		}
 
 		FTextureBoundState& BoundState = BoundStates[Texture2D->LevelIndex];
-		check(BoundState.Texture == Texture2D);
+		check(BoundState.Texture == nullptr || BoundState.Texture == Texture2D);
 
-		if (BoundState.BuildDataTimestamp == BuildDataTimestamp)
+		if (BoundState.BuildDataTimestamp == BuildDataTimestamp && BoundState.Texture == Texture2D)
 		{
 			return &BoundState.BuildDataIndex; // Only return the bound static if it has data relative to this component.
 		}

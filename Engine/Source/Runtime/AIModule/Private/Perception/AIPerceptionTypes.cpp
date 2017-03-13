@@ -30,6 +30,28 @@ FAIStimulus::FAIStimulus(const UAISense& Sense, float StimulusStrength, const FV
 	ExpirationAge = Sense.GetDefaultExpirationAge();
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+FString FAIStimulus::GetDebugDescription() const
+{
+	if (IsValid() == false)
+	{
+		return TEXT("Uninitialized");
+	}
+	
+	if (bExpired)
+	{
+		return FString::Printf(TEXT("%s Expired"), *Type.Name.ToString());
+	}
+
+	return FString::Printf(TEXT("%s %s %.1fs ago at %s")
+		, *Type.Name.ToString()
+		, bSuccessfullySensed ? TEXT("+") : TEXT("-")
+		, Age
+		, *StimulusLocation.ToString()
+	);
+}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 //----------------------------------------------------------------------//
 // FPerceptionListener
 //----------------------------------------------------------------------//

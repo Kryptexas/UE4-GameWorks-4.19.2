@@ -1175,7 +1175,7 @@ void UModel::ApplyStaticLighting(ULevel* LightingScenario)
 		}
 
 		// Calculate the bounds for the lightmap group.
-		FBox GroupBox(0);
+		FBox GroupBox(ForceInit);
 		for(int32 SurfaceIndex = 0;SurfaceIndex < SurfaceGroup.Surfaces.Num();SurfaceIndex++)
 		{
 			const FSurfaceStaticLightingGroup::FSurfaceInfo& SurfaceInfo = SurfaceGroup.Surfaces[SurfaceIndex];

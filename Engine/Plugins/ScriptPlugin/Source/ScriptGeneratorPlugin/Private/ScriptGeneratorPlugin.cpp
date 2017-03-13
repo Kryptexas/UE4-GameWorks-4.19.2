@@ -6,8 +6,9 @@
 #include "GenericScriptCodeGenerator.h"
 #include "LuaScriptCodeGenerator.h"
 #include "IProjectManager.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "Features/IModularFeatures.h"
 #include "UniquePtr.h"
+#include "ProjectDescriptor.h"
 
 DEFINE_LOG_CATEGORY(LogScriptGenerator);
 

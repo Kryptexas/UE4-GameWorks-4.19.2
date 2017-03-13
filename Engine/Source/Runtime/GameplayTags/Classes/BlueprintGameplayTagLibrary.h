@@ -137,6 +137,15 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	static void AddGameplayTag(UPARAM(ref) FGameplayTagContainer& InOutTagContainer, FGameplayTag Tag);
 
 	/**
+	 * Adds the gameplay tag to the gameplay tag container
+	 *
+	 * @param TagContainer		The container to add to
+	 * @param Tag				The tag to be added
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GameplayTags|Tag Container")
+	static bool AddGameplayTagToContainer(UPARAM(ref) FGameplayTagContainer& TagContainer, const FGameplayTag& Tag);
+
+	/**
 	 * Appends all tags in the InTagContainer to InOutTagContainer
 	 *
 	 * @param InOutTagContainer		The container that will be appended too.

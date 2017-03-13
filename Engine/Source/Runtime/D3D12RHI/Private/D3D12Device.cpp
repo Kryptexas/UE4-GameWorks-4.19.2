@@ -230,7 +230,7 @@ void FD3D12Device::Cleanup()
 	TextureAllocator.Destroy();
 	/*
 	// Cleanup thread resources
-	for (uint32 index; (index = InterlockedDecrement(&NumThreadDynamicHeapAllocators)) != (uint32)-1;)
+	for (int32 index; (index = FPlatformAtomics::InterlockedDecrement(&NumThreadDynamicHeapAllocators)) != -1;)
 	{
 		FD3D12DynamicHeapAllocator* pHeapAllocator = ThreadDynamicHeapAllocatorArray[index];
 		pHeapAllocator->ReleaseAllResources();

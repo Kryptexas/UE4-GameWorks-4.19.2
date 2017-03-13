@@ -110,7 +110,7 @@ void UK2Node_EditablePinBase::ExportCustomProperties(FOutputDevice& Out, uint32 
 
 		if (UEnum* PinDirEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEdGraphPinDirection")))
 		{ 
-			FString ValueName = PinDirEnum->GetEnumName(PinInfo.DesiredPinDirection);
+			FString ValueName = PinDirEnum->GetNameStringByValue(PinInfo.DesiredPinDirection);
 			if (!ValueName.IsEmpty())
 			{
 				Out.Logf(TEXT("PinDir=\"%s\" "), *ValueName);

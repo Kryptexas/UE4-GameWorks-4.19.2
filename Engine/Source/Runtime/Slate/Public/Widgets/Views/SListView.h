@@ -62,7 +62,7 @@ public:
 	DECLARE_DELEGATE_OneParam( FOnWidgetToBeRemoved, const TSharedRef<ITableRow>& );
 
 public:
-	SLATE_BEGIN_ARGS( SListView<ItemType> )
+	SLATE_BEGIN_ARGS(SListView<ItemType>)
 		: _OnGenerateRow()
 		, _OnRowReleased()
 		, _ListItemsSource()
@@ -75,11 +75,12 @@ public:
 		, _ClearSelectionOnClick(true)
 		, _ExternalScrollbar()
 		, _AllowOverscroll(EAllowOverscroll::Yes)
-		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
+		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
 		, _HandleGamepadEvents( true )
 		, _OnItemToString_Debug()
 		, _OnEnteredBadState()
+		, _NavigateOnScrollIntoView(false)
 		{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -125,6 +126,8 @@ public:
 
 		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
 
+		SLATE_ARGUMENT( bool, NavigateOnScrollIntoView );
+
 	SLATE_END_ARGS()
 
 	/**
@@ -152,6 +155,7 @@ public:
 
 		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
 		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
+		this->bNavigateOnScrollIntoView = InArgs._NavigateOnScrollIntoView;
 
 		this->OnItemToString_Debug =
 			InArgs._OnItemToString_Debug.IsBound()
@@ -203,6 +207,7 @@ public:
 		, RangeSelectionStart( NullableItemType(nullptr) )
 		, ItemsSource( nullptr )
 		, ItemToScrollIntoView( NullableItemType(nullptr) )
+		, UserRequestingScrollIntoView( 0 )
 		, ItemToNotifyWhenInView( NullableItemType(nullptr) ) 
 	{ }
 
@@ -281,48 +286,11 @@ public:
 
 				bWasHandled = true;
 			}
-			else if (InKeyEvent.GetKey() == EKeys::Up || ( bHandleGamepadEvents && ( InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up ) ) )
-			{
-				int32 SelectionIndex = 0;
-				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
-				{
-					SelectionIndex = ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( SelectorItem ) );
-				}
-
-				int32 NumItemsWide = this->GetNumItemsWide();
-
-				if ( SelectionIndex >= NumItemsWide )
-				{
-					// Select an item on the previous row
-					ItemNavigatedTo = ItemsSourceRef[SelectionIndex - NumItemsWide];
-				}
-
-				bWasHandled = true;
-			}
-			else if (InKeyEvent.GetKey() == EKeys::Down || ( bHandleGamepadEvents && ( InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down ) ) )
-			{
-				// Begin at INDEX_NONE so the first item will get selected
-				int32 SelectionIndex = INDEX_NONE;
-				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
-				{
-					SelectionIndex = ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( SelectorItem ) );
-				}
-
-				int32 NumItemsWide = this->GetNumItemsWide();
-
-				if ( SelectionIndex < ItemsSourceRef.Num() - NumItemsWide )
-				{
-					// Select an item on the next row
-					ItemNavigatedTo = ItemsSourceRef[SelectionIndex + NumItemsWide];
-				}
-
-				bWasHandled = true;
-			}
 
 			if( TListTypeTraits<ItemType>::IsPtrValid(ItemNavigatedTo) )
 			{
 				ItemType ItemToSelect( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( ItemNavigatedTo ) );
-				KeyboardSelect( ItemToSelect, InKeyEvent );
+				NavigationSelect( ItemToSelect, InKeyEvent );
 			}
 			else
 			{
@@ -360,7 +328,7 @@ public:
 					TSharedPtr<ITableRow> WidgetForItem = this->WidgetGenerator.GetWidgetForItem( SelectorItemDereference );
 					if ( !WidgetForItem.IsValid() )
 					{
-						this->RequestScrollIntoView( SelectorItemDereference );
+						this->RequestScrollIntoView(SelectorItemDereference, InKeyEvent.GetUserIndex());
 					}
 				}
 				// Select all items
@@ -383,6 +351,49 @@ public:
 		}
 
 		return STableViewBase::OnKeyDown(MyGeometry, InKeyEvent);
+	}
+
+	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override
+	{
+		if (this->ItemsSource && (this->bHandleGamepadEvents || InNavigationEvent.GetNavigationGenesis() != ENavigationGenesis::Controller))
+		{
+			const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
+
+			const int32 NumItemsWide = GetNumItemsWide();
+			const int32 CurSelectionIndex = (!TListTypeTraits<ItemType>::IsPtrValid(SelectorItem)) ? 0 : ItemsSourceRef.Find(TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType(SelectorItem));
+			int32 AttemptSelectIndex = -1;
+			bool bAttempt = false;
+
+			const EUINavigation NavType = InNavigationEvent.GetNavigationType();
+			switch (NavType)
+			{
+			case EUINavigation::Up:
+				bAttempt = true;
+				AttemptSelectIndex = CurSelectionIndex - NumItemsWide;
+				break;
+
+			case EUINavigation::Down:
+				bAttempt = true;
+				AttemptSelectIndex = CurSelectionIndex + NumItemsWide;
+				break;
+
+			default:
+				break;
+			}
+
+			// We are attempting to move to a specific index
+			// If it's valid we'll scroll it into view and return an explicit widget in the FNavigationReply
+			if (bAttempt)
+			{
+				if (ItemsSourceRef.IsValidIndex(AttemptSelectIndex))
+				{
+					NavigationSelect(ItemsSourceRef[AttemptSelectIndex], InNavigationEvent);
+				}
+				return FNavigationReply::Explicit(nullptr);
+			}
+		}
+
+		return STableViewBase::OnNavigation(MyGeometry, InNavigationEvent);
 	}
 
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -1178,16 +1189,17 @@ public:
 	bool IsItemVisible( ItemType Item )
 	{
 		return WidgetGenerator.GetWidgetForItem(Item).IsValid();
-	}	
+	}
 
 	/**
 	 * Scroll an item into view. If the item is not found, fails silently.
 	 *
 	 * @param ItemToView  The item to scroll into view on next tick.
 	 */
-	void RequestScrollIntoView( ItemType ItemToView )
+	void RequestScrollIntoView( ItemType ItemToView, const uint32 UserIndex = 0)
 	{
-		ItemToScrollIntoView = ItemToView;
+		ItemToScrollIntoView = ItemToView; 
+		UserRequestingScrollIntoView = UserIndex;
 		RequestListRefresh();
 	}
 
@@ -1224,6 +1236,33 @@ public:
 	virtual void AddReferencedObjects( FReferenceCollector& Collector )
 	{
 		TListTypeTraits<ItemType>::AddReferencedObjects( Collector, WidgetGenerator.ItemsWithGeneratedWidgets, SelectedItems );
+	}
+
+	/**
+	* Will determine the max row size for the specified column id
+	*
+	* @param ColumnId  Column Id
+	* @param Orientation  Orientation that is main axis you want to query
+	*
+	* @return The max size for a column Id.
+	*/
+	FVector2D GetMaxRowSizeForColumn(const FName& ColumnId, EOrientation Orientation)
+	{
+		FVector2D MaxSize = FVector2D::ZeroVector;
+
+		for (auto It = WidgetGenerator.WidgetMapToItem.CreateConstIterator(); It; ++It)
+		{
+			const ITableRow* TableRow = It.Key();
+			FVector2D NewMaxSize = TableRow->GetRowSizeForColumn(ColumnId);
+
+			// We'll return the full size, but we only take into consideration the asked axis for the calculation of the size
+			if (NewMaxSize.Component(Orientation) > MaxSize.Component(Orientation))
+			{
+				MaxSize = NewMaxSize;
+			}
+		}
+
+		return MaxSize;
 	}
 
 protected:
@@ -1304,9 +1343,15 @@ protected:
 		{
 			ItemType NonNullItemToNotifyWhenInView = TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( ItemToNotifyWhenInView );
 			TSharedPtr<ITableRow> Widget = WidgetGenerator.GetWidgetForItem(NonNullItemToNotifyWhenInView);
-			OnItemScrolledIntoView.ExecuteIfBound( NonNullItemToNotifyWhenInView, Widget );
+			
+			if (bNavigateOnScrollIntoView && Widget.IsValid())
+			{
+				NavigateToWidget(UserRequestingScrollIntoView, Widget->AsWidget());
+			}
 
-			TListTypeTraits<ItemType>::ResetPtr( ItemToNotifyWhenInView );
+			OnItemScrolledIntoView.ExecuteIfBound(NonNullItemToNotifyWhenInView, Widget);
+
+			TListTypeTraits<ItemType>::ResetPtr(ItemToNotifyWhenInView);
 		}
 	}
 
@@ -1459,45 +1504,42 @@ protected:
 	 * Selects the specified item and scrolls it into view. If shift is held, it will be a range select.
 	 * 
 	 * @param ItemToSelect		The item that was selected by a keystroke
-	 * @param InKeyEvent	The key event that caused this selection
+	 * @param InInputEvent	The key event that caused this selection
 	 */
-	virtual void KeyboardSelect(const ItemType& ItemToSelect, const FKeyEvent& InKeyEvent, bool bCausedByNavigation=false)
+	virtual void NavigationSelect(const ItemType& ItemToSelect, const FInputEvent& InInputEvent)
 	{
 		const ESelectionMode::Type CurrentSelectionMode = SelectionMode.Get();
 
-		if ( CurrentSelectionMode != ESelectionMode::None )
+		if (CurrentSelectionMode != ESelectionMode::None)
 		{
 			// Must be set before signaling selection changes because sometimes new items will be selected that need to stomp this value
 			SelectorItem = ItemToSelect;
 
-			if ( CurrentSelectionMode == ESelectionMode::Multi && ( InKeyEvent.IsShiftDown() || InKeyEvent.IsControlDown() ) )
+			if (CurrentSelectionMode == ESelectionMode::Multi && (InInputEvent.IsShiftDown() || InInputEvent.IsControlDown()))
 			{
 				// Range select.
-				if ( InKeyEvent.IsShiftDown() )
+				if (InInputEvent.IsShiftDown())
 				{
 					// Holding control makes the range select bidirectional, where as it is normally unidirectional.
-					if( !( InKeyEvent.IsControlDown() ) )
+					if (!(InInputEvent.IsControlDown()))
 					{
 						this->Private_ClearSelection();
 					}
 
-					this->Private_SelectRangeFromCurrentTo( ItemToSelect );
+					this->Private_SelectRangeFromCurrentTo(ItemToSelect);
 				}
 
-				this->Private_SignalSelectionChanged( ESelectInfo::OnNavigation );
+				this->Private_SignalSelectionChanged(ESelectInfo::OnNavigation);
 			}
 			else
 			{
 				// Single select.
-				this->SetSelection( ItemToSelect, ESelectInfo::OnNavigation );
+				this->SetSelection(ItemToSelect, ESelectInfo::OnNavigation);;
 			}
 
-			// If the selector is not in the view, scroll it into view.
-			TSharedPtr<ITableRow> WidgetForItem = this->WidgetGenerator.GetWidgetForItem( ItemToSelect );
-			if ( !WidgetForItem.IsValid() )
-			{
-				this->RequestScrollIntoView( ItemToSelect );
-			}
+			// Always request scroll into view, otherwise partially visible items will be selected.
+			TSharedPtr<ITableRow> WidgetForItem = this->WidgetGenerator.GetWidgetForItem(ItemToSelect);
+			this->RequestScrollIntoView(ItemToSelect, InInputEvent.GetUserIndex()); 
 		}
 	}
 
@@ -1536,6 +1578,9 @@ protected:
 	/** When not null, the list will try to scroll to this item on tick. */
 	NullableItemType ItemToScrollIntoView;
 
+	/** The user index requesting the item to be scrolled into view. */
+	uint32 UserRequestingScrollIntoView;
+
 	/** When set, the list will notify this item when it has been scrolled into view */
 	NullableItemType ItemToNotifyWhenInView;
 
@@ -1553,6 +1598,9 @@ protected:
 
 	/** Should gamepad nav be supported */
 	bool bHandleGamepadEvents;
+
+	/** Should scrolling an item into view generate a navigation */
+	bool bNavigateOnScrollIntoView;
 
 private:
 

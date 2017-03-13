@@ -25,6 +25,7 @@
 #include "ComponentReregisterContext.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Engine/PreviewMeshCollection.h"
+#include "Misc/ScopedSlowTask.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
 #define ROOT_BONE_PARENT	INDEX_NONE
@@ -58,6 +59,23 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 	}
 #endif
 	return Ar;
+}
+
+const TCHAR* SkipPrefix(const FString& InName)
+{
+	const int32 PrefixLength = VirtualBoneNameHelpers::VirtualBonePrefix.Len();
+	check(InName.Len() > PrefixLength);
+	return &InName[PrefixLength];
+}
+
+FString VirtualBoneNameHelpers::AddVirtualBonePrefix(const FString& InName)
+{
+	return VirtualBoneNameHelpers::VirtualBonePrefix + InName;
+}
+
+FName VirtualBoneNameHelpers::RemoveVirtualBonePrefix(const FString& InName)
+{
+	return FName(SkipPrefix(InName));
 }
 
 USkeleton::USkeleton(const FObjectInitializer& ObjectInitializer)
@@ -561,7 +579,7 @@ bool USkeleton::CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalM
 	if( FilteredRequiredBones.Num() > 0 )
 	{
 		const int32 NumBones = FilteredRequiredBones.Num();
-		ReferenceSkeleton.Allocate(NumBones);
+		ReferenceSkeleton.Empty(NumBones);
 		BoneTree.Empty(NumBones);
 		BoneTree.AddZeroed(NumBones);
 
@@ -656,7 +674,7 @@ bool USkeleton::MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const 
 	return bSuccess;
 }
 
-void USkeleton::SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo)
+void USkeleton::SetBoneTranslationRetargetingMode(const int32 BoneIndex, EBoneTranslationRetargetingMode::Type NewRetargetingMode, bool bChildrenToo)
 {
 	BoneTree[BoneIndex].TranslationRetargetingMode = NewRetargetingMode;
 
@@ -674,7 +692,7 @@ void USkeleton::SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneT
 	}
 }
 
-int32 USkeleton::GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq, const bool bUseRawData)
+int32 USkeleton::GetAnimationTrackIndex(const int32 InSkeletonBoneIndex, const UAnimSequence* InAnimSeq, const bool bUseRawData)
 {
 	const TArray<FTrackToSkeletonMap>& TrackToSkelMap = bUseRawData ? InAnimSeq->GetRawTrackToSkeletonMapTable() : InAnimSeq->GetCompressedTrackToSkeletonMapTable();
 	if( InSkeletonBoneIndex != INDEX_NONE )
@@ -693,7 +711,7 @@ int32 USkeleton::GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const 
 }
 
 
-int32 USkeleton::GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh* InSkelMesh, const int32& MeshBoneIndex)
+int32 USkeleton::GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh* InSkelMesh, const int32 MeshBoneIndex)
 {
 	check(MeshBoneIndex != INDEX_NONE);
 	const int32 LinkupCacheIdx = GetMeshLinkupIndex(InSkelMesh);
@@ -703,7 +721,7 @@ int32 USkeleton::GetSkeletonBoneIndexFromMeshBoneIndex(const USkeletalMesh* InSk
 }
 
 
-int32 USkeleton::GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh* InSkelMesh, const int32& SkeletonBoneIndex)
+int32 USkeleton::GetMeshBoneIndexFromSkeletonBoneIndex(const USkeletalMesh* InSkelMesh, const int32 SkeletonBoneIndex)
 {
 	check(SkeletonBoneIndex != INDEX_NONE);
 	const int32 LinkupCacheIdx = GetMeshLinkupIndex(InSkelMesh);
@@ -961,11 +979,26 @@ void USkeleton::HandleSkeletonHierarchyChange()
 	ClearCacheData();
 
 	// Fix up loaded animations (any animations that aren't loaded will be fixed on load)
-	for(TObjectIterator<UAnimationAsset> It; It; ++It)
+	int32 NumLoadedAssets = 0;
+	for (TObjectIterator<UAnimationAsset> It; It; ++It)
 	{
 		UAnimationAsset* CurrentAnimation = *It;
 		if (CurrentAnimation->GetSkeleton() == this)
 		{
+			NumLoadedAssets++;
+		}
+	}
+
+	FScopedSlowTask SlowTask((float)NumLoadedAssets, LOCTEXT("HandleSkeletonHierarchyChange", "Rebuilding animations..."));
+	SlowTask.MakeDialog();
+
+	for (TObjectIterator<UAnimationAsset> It; It; ++It)
+	{
+		UAnimationAsset* CurrentAnimation = *It;
+		if (CurrentAnimation->GetSkeleton() == this)
+		{
+			SlowTask.EnterProgressFrame(1.0f, FText::Format(LOCTEXT("HandleSkeletonHierarchyChange_Format", "Rebuilding Animation: {0}"), FText::FromString(CurrentAnimation->GetName())));
+
 			CurrentAnimation->ValidateSkeleton();
 		}
 	}
@@ -1546,13 +1579,75 @@ bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName Target
 	return true;
 }
 
+int32 FindBoneByName(const FName& BoneName, TArray<FVirtualBone>& Bones)
+{
+	for (int32 Idx = 0; Idx < Bones.Num(); ++Idx)
+	{
+		if (Bones[Idx].VirtualBoneName == BoneName)
+		{
+			return Idx;
+		}
+	}
+	return INDEX_NONE;
+}
+
 void USkeleton::RemoveVirtualBones(const TArray<FName>& BonesToRemove)
 {
 	Modify();
-	VirtualBones.RemoveAllSwap([&BonesToRemove](const FVirtualBone& VB) { return BonesToRemove.Contains(VB.VirtualBoneName); });
+	for (const FName& BoneName : BonesToRemove)
+	{
+		int32 Idx = FindBoneByName(BoneName, VirtualBones);
+		if (Idx != INDEX_NONE)
+		{
+			FName Parent = VirtualBones[Idx].SourceBoneName;
+			for (FVirtualBone& VB : VirtualBones)
+			{
+				if (VB.SourceBoneName == BoneName)
+				{
+					VB.SourceBoneName = Parent;
+				}
+			}
+			VirtualBones.RemoveAt(Idx,1,false);
+		}
+	}
 
 	RegenerateVirtualBoneGuid();
 	HandleVirtualBoneChanges();
+}
+
+void USkeleton::RenameVirtualBone(const FName OriginalBoneName, const FName NewBoneName)
+{
+	bool bModified = false;
+
+	for (FVirtualBone& VB : VirtualBones)
+	{
+		if (VB.VirtualBoneName == OriginalBoneName)
+		{
+			if (!bModified)
+			{
+				bModified = true;
+				Modify();
+			}
+
+			VB.VirtualBoneName = NewBoneName;
+		}
+
+		if (VB.SourceBoneName == OriginalBoneName)
+		{
+			if (!bModified)
+			{
+				bModified = true;
+				Modify();
+			}
+			VB.SourceBoneName = NewBoneName;
+		}
+	}
+
+	if (bModified)
+	{
+		RegenerateVirtualBoneGuid();
+		HandleVirtualBoneChanges();
+	}
 }
 
 void USkeleton::HandleVirtualBoneChanges()
@@ -1794,6 +1889,51 @@ USkeletalMeshSocket* USkeleton::FindSocketAndIndex(FName InSocketName, int32& Ou
 	}
 
 	return nullptr;
+}
+
+
+void USkeleton::AddAssetUserData(UAssetUserData* InUserData)
+{
+	if (InUserData != NULL)
+	{
+		UAssetUserData* ExistingData = GetAssetUserDataOfClass(InUserData->GetClass());
+		if (ExistingData != NULL)
+		{
+			AssetUserData.Remove(ExistingData);
+		}
+		AssetUserData.Add(InUserData);
+	}
+}
+
+UAssetUserData* USkeleton::GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
+{
+	for (int32 DataIdx = 0; DataIdx < AssetUserData.Num(); DataIdx++)
+	{
+		UAssetUserData* Datum = AssetUserData[DataIdx];
+		if (Datum != NULL && Datum->IsA(InUserDataClass))
+		{
+			return Datum;
+		}
+	}
+	return NULL;
+}
+
+void USkeleton::RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
+{
+	for (int32 DataIdx = 0; DataIdx < AssetUserData.Num(); DataIdx++)
+	{
+		UAssetUserData* Datum = AssetUserData[DataIdx];
+		if (Datum != NULL && Datum->IsA(InUserDataClass))
+		{
+			AssetUserData.RemoveAt(DataIdx);
+			return;
+		}
+	}
+}
+
+const TArray<UAssetUserData*>* USkeleton::GetAssetUserDataArray() const
+{
+	return &AssetUserData;
 }
 
 #undef LOCTEXT_NAMESPACE 

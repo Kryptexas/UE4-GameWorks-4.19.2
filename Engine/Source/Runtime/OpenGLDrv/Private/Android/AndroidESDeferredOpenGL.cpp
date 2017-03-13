@@ -308,7 +308,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 {
 	if (FOpenGL::IsES2())
 	{
-		AndroidEGL::GetInstance()->SwapBuffers();
+		AndroidEGL::GetInstance()->SwapBuffers(bLockToVsync ? SyncInterval : 0);
 	}
 	else
 	{
@@ -341,7 +341,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 		{
 			uint32 IdleStart = FPlatformTime::Cycles();
 
-			AndroidEGL::GetInstance()->SwapBuffers();
+			AndroidEGL::GetInstance()->SwapBuffers(bLockToVsync ? SyncInterval : 0);
 			REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
 //			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 
@@ -393,7 +393,7 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 	if ( FOpenGL::IsES2())
 	{
 		uint32 Flags = TexCreate_RenderTargetable;
-		Texture2D = new FOpenGLTexture2D(OpenGLRHI, AndroidEGL::GetInstance()->GetOnScreenColorRenderBuffer(), GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
+		Texture2D = new FOpenGLTexture2D(OpenGLRHI, AndroidEGL::GetInstance()->GetOnScreenColorRenderBuffer(), GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
 		OpenGLTextureAllocated(Texture2D, Flags);
 	}
 

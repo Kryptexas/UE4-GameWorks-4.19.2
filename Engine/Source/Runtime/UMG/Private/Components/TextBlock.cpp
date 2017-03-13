@@ -126,7 +126,7 @@ void UTextBlock::OnBindingChanged(const FName& Property)
 
 		if ( Property == TextProperty )
 		{
-			TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+			TAttribute<FText> TextBinding = GetDisplayText();
 			MyTextBlock->SetText(TextBinding);
 		}
 		else if ( Property == ColorAndOpacityProperty )
@@ -146,7 +146,7 @@ void UTextBlock::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+	TAttribute<FText> TextBinding = GetDisplayText();
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
 
@@ -176,10 +176,17 @@ FText UTextBlock::GetText() const
 void UTextBlock::SetText(FText InText)
 {
 	Text = InText;
+	TextDelegate.Unbind();
 	if ( MyTextBlock.IsValid() )
 	{
-		MyTextBlock->SetText(Text);
+		TAttribute<FText> TextBinding = GetDisplayText();
+		MyTextBlock->SetText(TextBinding);
 	}
+}
+
+TAttribute<FText> UTextBlock::GetDisplayText()
+{
+	return OPTIONAL_BINDING(FText, Text);
 }
 
 #if WITH_EDITOR

@@ -37,11 +37,17 @@ void UAbilityTask_StartAbilityState::OnDestroy(bool AbilityEnded)
 
 	if (bWasInterrupted && OnStateInterrupted.IsBound())
 	{
-		OnStateInterrupted.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnStateInterrupted.Broadcast();
+		}
 	}
 	else if ((bWasEnded || AbilityEnded) && OnStateEnded.IsBound())
 	{
-		OnStateEnded.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnStateEnded.Broadcast();
+		}
 	}
 
 	if (Ability)

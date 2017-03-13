@@ -47,10 +47,16 @@ float ComplexityToFloat(uint Complexity)
 
 #if OUTPUT_QUAD_OVERDRAW
 
+#if FORWARD_SHADING
+#define QUAD_BUFFER_REGISTER u1
+#else
+#define QUAD_BUFFER_REGISTER u7
+#endif
+
 // The temporary buffer used to synchronize and exchange data between quad sub-pixels.
 // Left half hold QuadDescriptor, right half hold QuadComplexity
 // Both are halfres here.
-RWTexture2D<uint> RWQuadBuffer : register(u7);
+RWTexture2D<uint> RWQuadBuffer : register(QUAD_BUFFER_REGISTER);
 
 
 // The QuadComplexity is the same resource as the QuadDescriptor with an offset in X.

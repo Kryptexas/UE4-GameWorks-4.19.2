@@ -270,7 +270,7 @@ private:
 
 template<>
 struct TStructOpsTypeTraits<FSlateFontInfo>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FSlateFontInfo>
 {
 	enum 
 	{

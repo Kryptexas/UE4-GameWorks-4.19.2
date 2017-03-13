@@ -111,7 +111,9 @@ FDragValidationInfo FFolderDropTarget::ValidateDrop(FDragDropPayload& DraggedObj
 	}
 	else
 	{
-		return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, FText::Format(LOCTEXT("MoveInto", "Move into \"{DropPath}\""), FText::FromName(DestinationPath)));
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DestPath"), FText::FromName(DestinationPath));
+		return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, FText::Format(LOCTEXT("MoveInto", "Move into \"{DestPath}\""), Args));
 	}
 }
 

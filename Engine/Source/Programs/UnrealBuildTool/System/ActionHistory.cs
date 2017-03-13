@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Caches include dependency information to speed up preprocessing on subsequent runs.
 	/// </summary>
-	public class ActionHistory
+	class ActionHistory
 	{
 		/// <summary>
 		/// Path to store the cache data to.
@@ -101,7 +101,7 @@ namespace UnrealBuildTool
 		public static FileReference GeneratePathForTarget(UEBuildTarget Target)
 		{
 			DirectoryReference Folder = null;
-			if (Target.ShouldCompileMonolithic() || Target.TargetType == TargetRules.TargetType.Program)
+			if (Target.ShouldCompileMonolithic() || Target.TargetType == TargetType.Program)
 			{
 				// Monolithic configs and programs have their Action History stored in their respective project folders
 				// or under engine intermediate folder + program name folder
@@ -114,14 +114,14 @@ namespace UnrealBuildTool
 				{
 					RootDirectory = UnrealBuildTool.EngineDirectory;
 				}
-				Folder = DirectoryReference.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, Target.GetTargetName());
+				Folder = DirectoryReference.Combine(RootDirectory, Target.PlatformIntermediateFolder, Target.GetTargetName());
 			}
 			else
 			{
 				// Shared action history (unless this is an installed build target)
 				Folder = (UnrealBuildTool.IsEngineInstalled() && Target.ProjectFile != null) ?
-					DirectoryReference.Combine(Target.ProjectFile.Directory, BuildConfiguration.BaseIntermediateFolder) :
-					DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.BaseIntermediateFolder);
+					DirectoryReference.Combine(Target.ProjectFile.Directory, "Intermediate", "Build") :
+					DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build");
 			}
 			return FileReference.Combine(Folder, "ActionHistory.bin");
 		}

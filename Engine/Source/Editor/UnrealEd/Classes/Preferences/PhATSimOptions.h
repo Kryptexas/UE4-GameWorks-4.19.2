@@ -26,6 +26,10 @@ class UNREALED_API UPhATSimOptions : public UObject
 	UPROPERTY(EditAnywhere, transient, Category = Anim)
 	TEnumAsByte<EPhysicsTransformUpdateMode::Type> PhysicsUpdateMode;
 
+	/** Whether to simulate using the Immediate mode physics solver. This requires an anim blueprint RigidBodySim node outside of preview */
+	UPROPERTY(EditAnywhere, transient, Category = Anim)
+	bool bImmediatePhysics;
+
 	/** Time between poking ragdoll and starting to blend back. */
 	UPROPERTY(EditAnywhere, config, Category=Anim)
 	float PokePauseTime;

@@ -10,6 +10,8 @@
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 
+static TAutoConsoleVariable<int32> CUsePostPresentHandoff(TEXT("vr.SteamVR.UsePostPresentHandoff"), 0, TEXT("Whether or not to use PostPresentHandoff.  If true, more GPU time will be available, but this relies on no SceneCaptureComponent2D or WidgetComponents being active in the scene.  Otherwise, it will break async reprojection."));
+
 void FSteamVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize)
 {
 	check(0);
@@ -24,7 +26,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 	if (bSplashIsShown)
 	{
 		SetRenderTarget(RHICmdList, SrcTexture, FTextureRHIRef());
-		RHICmdList.ClearColorTexture(SrcTexture, FLinearColor(0, 0, 0, 0), FIntRect());
+		RHICmdList.ClearColorTexture(SrcTexture, FLinearColor(0, 0, 0, 0));
 	}
 
 	if (WindowMirrorMode != 0)
@@ -53,7 +55,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 		if (WindowMirrorMode == 1)
 		{
 			// need to clear when rendering only one eye since the borders won't be touched by the DrawRect below
-			RHICmdList.ClearColorTexture(BackBuffer, FLinearColor::Black, FIntRect());
+			RHICmdList.ClearColorTexture(BackBuffer, FLinearColor::Black);
 
 			RendererModule->DrawRectangle(
 				RHICmdList,
@@ -205,7 +207,10 @@ bool FSteamVRHMD::D3D11Bridge::Present(int& SyncInterval)
 
 void FSteamVRHMD::D3D11Bridge::PostPresent()
 {
-	//Plugin->VRCompositor->PostPresentHandoff();
+	if (CUsePostPresentHandoff.GetValueOnRenderThread() == 1)
+	{
+		Plugin->VRCompositor->PostPresentHandoff();
+	}
 }
 
 #endif // PLATFORM_WINDOWS

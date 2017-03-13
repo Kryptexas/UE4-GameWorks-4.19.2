@@ -728,7 +728,7 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 	ViewInitOptions.StereoPass = StereoPass;
 	ViewInitOptions.WorldToMetersScale = PlayerController->GetWorldSettings()->WorldToMeters;
 	ViewInitOptions.CursorPos = Viewport->HasMouseCapture() ? FIntPoint(-1, -1) : FIntPoint(Viewport->GetMouseX(), Viewport->GetMouseY());
-	ViewInitOptions.bOriginOffsetThisFrame = PlayerController->GetWorld()->bOriginOffsetThisFrame;
+	ViewInitOptions.OriginOffsetThisFrame = PlayerController->GetWorld()->OriginOffsetThisFrame;
 
 	return true;
 }
@@ -831,7 +831,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	}
 
 	// Monoscopic far field setup
-	if (ViewFamily->MonoParameters.Mode != EMonoscopicFarFieldMode::Off && StereoPass == eSSP_MONOSCOPIC_EYE)
+	if (ViewFamily->IsMonoscopicFarFieldEnabled() && StereoPass == eSSP_MONOSCOPIC_EYE)
 	{
 		SetupMonoParameters(*ViewFamily, *View);
 	}
@@ -1454,7 +1454,7 @@ void ULocalPlayer::ExecMacro( const TCHAR* Filename, FOutputDevice& Ar )
 	}
 	else
 	{
-		UE_SUPPRESS(LogExec, Warning, Ar.Logf(*FString::Printf( TEXT("Can't find file '%s'"), Filename) ));
+		UE_SUPPRESS(LogExec, Warning, Ar.Logf(TEXT("Can't find file '%s'"), Filename));
 	}
 }
 

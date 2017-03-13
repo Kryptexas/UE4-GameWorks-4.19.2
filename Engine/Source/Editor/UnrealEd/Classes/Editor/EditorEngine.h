@@ -219,7 +219,7 @@ struct FCachedActorLabels
 	FCachedActorLabels();
 
 	/** Constructor that populates the set of actor names */
-	explicit FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
+	explicit UNREALED_API FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
 
 	/** Populate the set of actor names */
 	void Populate(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
@@ -2986,6 +2986,9 @@ public:
 
 private:
 	FTimerHandle CleanupPIEOnlineSessionsTimerHandle;
+
+	/** Delegate handle for game viewport close requests in PIE sessions. */
+	FDelegateHandle ViewportCloseRequestedDelegateHandle;
 };
 
 //////////////////////////////////////////////////////////////////////////

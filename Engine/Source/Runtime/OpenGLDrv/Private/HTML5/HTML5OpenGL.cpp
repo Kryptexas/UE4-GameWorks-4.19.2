@@ -196,9 +196,6 @@ struct FPlatformOpenGLDevice
 		WindowHandle = SDL_CreateWindow("HTML5", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN| SDL_WINDOW_RESIZABLE);
 #if PLATFORM_HTML5_BROWSER
-//		EM_ASM(
-//			console.log("SDL_CreateWindow() 800x600");
-//		);
 		UE_GSystemResolution( GSystemResolution_ResX, GSystemResolution_ResY );
 #endif
 		PlatformCreateOpenGLContext(this,WindowHandle);
@@ -358,7 +355,7 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 {
 	UE_LOG(LogHTML5OpenGL, Verbose, TEXT("PlatformCreateBuiltinBackBuffer(%d, %d)"), SizeX, SizeY);
 	uint32 Flags = TexCreate_RenderTargetable;
-	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, 0, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
+	FOpenGLTexture2D* Texture2D = new FOpenGLTexture2D(OpenGLRHI, 0, GL_RENDERBUFFER, GL_COLOR_ATTACHMENT0, SizeX, SizeY, 0, 1, 1, 1, 1, PF_B8G8R8A8, false, false, Flags, nullptr, FClearValueBinding::Transparent);
 	OpenGLTextureAllocated(Texture2D, Flags);
 
 	return Texture2D;
@@ -374,6 +371,9 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 
 void PlatformRestoreDesktopDisplayMode()
 {
+#if PLATFORM_HTML5_BROWSER
+	EM_ASM( Module['canvas'].UE_canvas.bIsFullScreen = 0; );
+#endif
 }
 
 #if PLATFORM_HTML5_BROWSER
@@ -392,6 +392,7 @@ extern "C"
 #else
 		emscripten_request_fullscreen("canvas", true);
 #endif
+		EM_ASM( Module['canvas'].UE_canvas.bIsFullScreen = 1; );
 		return 0;
 	}
 }

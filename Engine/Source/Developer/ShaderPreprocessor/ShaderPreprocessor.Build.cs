@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ShaderPreprocessor : ModuleRules
 {
-	public ShaderPreprocessor(TargetInfo Target)
+	public ShaderPreprocessor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

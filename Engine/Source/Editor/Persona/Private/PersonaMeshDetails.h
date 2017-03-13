@@ -12,6 +12,7 @@
 #include "PropertyHandle.h"
 #include "IDetailCustomNodeBuilder.h"
 #include "IDetailCustomization.h"
+#include "SComboBox.h"
 
 class FAssetData;
 class FDetailWidgetRow;
@@ -211,6 +212,14 @@ private:
 	FText GetOriginalImportMaterialNameText(int32 MaterialIndex)const;
 
 	/**
+	* Called by the material list widget on generating name side content
+	*
+	* @param Material		The material that is being displayed
+	* @param MaterialIndex	The index of the material slot
+	*/
+	TSharedRef<SWidget> OnGenerateCustomNameWidgetsForMaterialArray(UMaterialInterface* Material, int32 MaterialIndex);
+	
+	/**
 	* Called by the material list widget on generating each thumbnail widget
 	*
 	* @param Material		The material that is being displayed
@@ -228,6 +237,36 @@ private:
 	TSharedRef<SWidget> OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex);
 
 	FText GetFirstMaterialSlotUsedBySection(int32 MaterialIndex) const;
+
+	bool GetFirstLodSectionUsingMaterial(int32 MaterialIndex, int32 &OutMaterialLODIndex, int32 &OutMaterialSectionIndex) const;
+	/**
+	* Handler for check box display based on whether the material is highlighted
+	*
+	* @param MaterialIndex	The material index that is being selected
+	*/
+	ECheckBoxState IsMaterialSelected(int32 MaterialIndex) const;
+
+	/**
+	* Handler for changing highlight status on a material
+	*
+	* @param MaterialIndex	The material index that is being selected
+	*/
+	void OnMaterialSelectedChanged(ECheckBoxState NewState, int32 MaterialIndex);
+
+	/**
+	* Handler for check box display based on whether the material is isolated
+	*
+	* @param MaterialIndex	The material index that is being isolate
+	*/
+	ECheckBoxState IsIsolateMaterialEnabled(int32 MaterialIndex) const;
+
+	/**
+	* Handler for changing isolated status on a material
+	*
+	* @param MaterialIndex	The material index that is being isolate
+	*/
+	void OnMaterialIsolatedChanged(ECheckBoxState NewState, int32 MaterialIndex);
+
 
 	/**
 	 * Handler for check box display based on whether the material is highlighted
@@ -442,13 +481,49 @@ private:
 
 	// info about clothing combo boxes for multiple LOD
 	TArray<FClothingComboInfo>				ClothingComboLODInfos;
+	TArray<int32> ClothingSelectedSubmeshIndices;
 
+	// Menu entry for clothing dropdown
+	struct FClothingEntry
+	{
+		// Asset index inside the mesh
+		int32 AssetIndex;
 
-	/* Clothing combo box functions */
-	EVisibility IsClothingComboBoxVisible(int32 LODIndex, int32 SectionIndex) const;
-	FString HandleSectionsComboBoxGetRowText(TSharedPtr<FString> Section, int32 LODIndex, int32 SectionIndex);
-	void HandleSectionsComboBoxSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo, int32 LODIndex, int32 SectionIndex );
-	void UpdateComboBoxStrings();
+		// LOD index inside the clothing asset
+		int32 AssetLodIndex;
+
+		// Pointer back to the asset for this clothing entry
+		TWeakObjectPtr<UClothingAssetBase> Asset;
+	};
+
+	// Cloth combo box tracking for refreshes post-import/creation
+	typedef SComboBox<TSharedPtr<FClothingEntry>> SClothComboBox;
+	typedef TSharedPtr<SClothComboBox> SClothComboBoxPtr;
+	TArray<SClothComboBoxPtr> ClothComboBoxes;
+
+	// Clothing entries available to bind to the mesh
+	TArray<TSharedPtr<FClothingEntry>> NewClothingAssetEntries;
+
+	// Update the list of valid entries
+	void UpdateClothingEntries();
+
+	// Refreshes clothing combo boxes that are currently active
+	void RefreshClothingComboBoxes();
+
+	// Generate a widget for the clothing details panel
+	TSharedRef<SWidget> OnGenerateWidgetForClothingEntry(TSharedPtr<FClothingEntry> InEntry);
+
+	// Get the current text for the clothing selection combo box for the specified LOD and section
+	FText OnGetClothingComboText(int32 InLodIdx, int32 InSectionIdx) const;
+
+	// Callback when the clothing asset is changed
+	void OnClothingSelectionChanged(TSharedPtr<FClothingEntry> InNewEntry, ESelectInfo::Type InSelectType, int32 InLodIdx, int32 InSectionIdx);
+
+	// If the clothing details widget is editable
+	bool IsClothingPanelEnabled() const;
+
+	// Callback after the clothing details are changed
+	void OnFinishedChangingClothingProperties(const FPropertyChangedEvent& Event);
 
 	/* Generate slate UI for Clothing category */
 	void CustomizeClothingProperties(class IDetailLayoutBuilder& DetailLayout, class IDetailCategoryBuilder& ClothingFilesCategory);
@@ -457,7 +532,7 @@ private:
 	void OnGenerateElementForClothingAsset( TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder, IDetailLayoutBuilder* DetailLayout );
 
 	/* Make uniform grid widget for Apex details */
-	TSharedRef<SUniformGridPanel> MakeApexDetailsWidget(int32 AssetIndex) const;
+	TSharedRef<SUniformGridPanel> MakeClothingDetailsWidget(int32 AssetIndex) const;
 
 	/* Opens dialog to add a new clothing asset */
 	FReply OnOpenClothingFileClicked(IDetailLayoutBuilder* DetailLayout);
@@ -468,9 +543,6 @@ private:
 	/* Removes a clothing asset */ 
 	FReply OnRemoveApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout);
 
-
-	/* if physics properties are changed, then save to the clothing asset */
-	void UpdateClothPhysicsProperties(int32 AssetIndex);
 #endif // #if WITH_APEX_CLOTHING
 
 };

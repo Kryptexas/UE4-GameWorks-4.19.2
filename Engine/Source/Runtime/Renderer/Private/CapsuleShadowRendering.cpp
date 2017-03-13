@@ -21,7 +21,7 @@
 #include "ShadowRendering.h"
 #include "DeferredShadingRenderer.h"
 #include "MaterialShaderType.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 #include "DistanceFieldLightingPost.h"
 #include "DistanceFieldLightingShared.h"
 
@@ -1170,7 +1170,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 				SCOPED_DRAW_EVENT(RHICmdList, ClearIndirectOcclusion);
 				// We are the first users of the indirect occlusion texture so we must clear to unoccluded
 				SetRenderTargets(RHICmdList, RenderTargets.Num(), RenderTargets.GetData(), FTextureRHIParamRef(), 0, NULL, true);
-				RHICmdList.ClearColorTexture(SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture, FLinearColor::White, FIntRect());
+				RHICmdList.ClearColorTexture(SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture, FLinearColor::White);
 			}
 							
 			check(RenderTargets.Num() > 0);
@@ -1383,7 +1383,7 @@ void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHIC
 		if (bAnyViewsUseCapsuleShadows)
 		{
 			TRefCountPtr<IPooledRenderTarget> NewBentNormal;
-			AllocateOrReuseAORenderTarget(RHICmdList, NewBentNormal, TEXT("CapsuleBentNormal"), true);
+			AllocateOrReuseAORenderTarget(RHICmdList, NewBentNormal, TEXT("CapsuleBentNormal"), PF_FloatRGBA);
 
 			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 			{

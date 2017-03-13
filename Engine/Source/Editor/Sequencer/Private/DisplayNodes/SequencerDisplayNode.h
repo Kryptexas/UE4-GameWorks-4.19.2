@@ -90,6 +90,13 @@ public:
 	*/
 	void AddObjectBindingNode( TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode );
 
+	/** 
+	 * Finds any parent object binding node above this node in the hierarchy
+	 *
+	 * @return the parent node, or nullptr if no object binding is found
+	 */
+	TSharedPtr<FSequencerObjectBindingNode> FindParentObjectBindingNode() const;
+
 	/**
 	 * Adds a category to this node
 	 * 
@@ -99,12 +106,12 @@ public:
 	TSharedRef<class FSequencerSectionCategoryNode> AddCategoryNode( FName CategoryName, const FText& DisplayLabel );
 
 	/**
-	 * Adds a new section area for this node.
+	 * Adds a new track for this node.
 	 * 
 	 * @param AssociatedTrack	The track associated with sections in this node
 	 * @param AssociatedEditor	The track editor for the associated track
 	 */
-	TSharedRef<class FSequencerTrackNode> AddSectionAreaNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor );
+	TSharedRef<class FSequencerTrackNode> AddTrackNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor );
 
 	/**
 	 * Adds a key area to this node

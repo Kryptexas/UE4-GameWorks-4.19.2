@@ -38,7 +38,9 @@ namespace PackageNameConstants
 
 bool FPackageName::IsShortPackageName(const FString& PossiblyLongName)
 {
-	return !PossiblyLongName.Contains(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+	// Long names usually have / as first character so check from the front
+	int32 SlashIndex = INDEX_NONE;
+	return !PossiblyLongName.FindChar('/', SlashIndex);
 }
 
 bool FPackageName::IsShortPackageName(const FName PossiblyLongName)
@@ -48,7 +50,9 @@ bool FPackageName::IsShortPackageName(const FName PossiblyLongName)
 
 FString FPackageName::GetShortName(const FString& LongName)
 {
-	const int32 IndexOfLastSlash = LongName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+	// Get everything after the last slash
+	int32 IndexOfLastSlash = INDEX_NONE;
+	LongName.FindLastChar('/', IndexOfLastSlash);
 	return LongName.Mid(IndexOfLastSlash + 1);
 }
 
@@ -71,7 +75,8 @@ FString FPackageName::GetShortName(const TCHAR* LongName)
 
 FName FPackageName::GetShortFName(const FString& LongName)
 {
-	const int32 IndexOfLastSlash = LongName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+	int32 IndexOfLastSlash = INDEX_NONE;
+	LongName.FindLastChar('/', IndexOfLastSlash);
 	return FName(*LongName.Mid(IndexOfLastSlash + 1));
 }
 
@@ -385,8 +390,15 @@ FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName
 
 FString FPackageName::GetLongPackagePath(const FString& InLongPackageName)
 {
-	const int32 LastSlashIdx = InLongPackageName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-	return LastSlashIdx >= 0 ? InLongPackageName.Left(LastSlashIdx) : InLongPackageName;
+	int32 IndexOfLastSlash = INDEX_NONE;
+	if (InLongPackageName.FindLastChar('/', IndexOfLastSlash))
+	{
+		return InLongPackageName.Left(IndexOfLastSlash);
+	}
+	else
+	{
+		return InLongPackageName;
+	}
 }
 
 bool FPackageName::SplitLongPackageName(const FString& InLongPackageName, FString& OutPackageRoot, FString& OutPackagePath, FString& OutPackageName, const bool bStripRootLeadingSlash)
@@ -430,8 +442,16 @@ bool FPackageName::SplitLongPackageName(const FString& InLongPackageName, FStrin
 
 FString FPackageName::GetLongPackageAssetName(const FString& InLongPackageName)
 {
-	const int32 LastSlashIdx = InLongPackageName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-	return LastSlashIdx >= 0 ? InLongPackageName.Mid(LastSlashIdx + 1) : InLongPackageName;
+	int32 IndexOfLastSlash = INDEX_NONE;
+	if (InLongPackageName.FindLastChar('/', IndexOfLastSlash))
+	{
+		return InLongPackageName.Mid(IndexOfLastSlash + 1);
+	}
+	else
+	{
+		return InLongPackageName;
+	}
+
 }
 
 bool FPackageName::DoesPackageNameContainInvalidCharacters(const FString& InLongPackageName, FText* OutReason /*= NULL*/)
@@ -848,36 +868,49 @@ FString FPackageName::GetNormalizedObjectPath(const FString& ObjectPath)
 
 FString FPackageName::GetDelegateResolvedPackagePath(const FString& InSourcePackagePath)
 {
-	bool WasResolved = false;
-
-	// If the path is /Game/Path/Foo.Foo only worry about resolving the /Game/Path/Foo
-	FString PathName = InSourcePackagePath;
-	FString ObjectName;
-	PathName.Split(TEXT("."), &PathName, &ObjectName);
-
-	for (auto Delegate : FCoreDelegates::PackageNameResolvers)
+	if (FCoreDelegates::PackageNameResolvers.Num() > 0)
 	{
-		FString ResolvedPath;
-		if (Delegate.Execute(PathName, ResolvedPath))
-		{
-			UE_LOG(LogPackageName, Display, TEXT("Package '%s' was resolved to '%s'"), *PathName, *ResolvedPath);
-			PathName = ResolvedPath;
-			WasResolved = true;
-		}
-	}
+		bool WasResolved = false;
 
-	if (WasResolved)
-	{
-		// If package was passed in with an object, add that back on by deriving it from the package name
-		if (ObjectName.Len())
-		{
-			PathName.Split(TEXT("/"), nullptr, &ObjectName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		// If the path is /Game/Path/Foo.Foo only worry about resolving the /Game/Path/Foo
+		FString PathName = InSourcePackagePath;
+		FString ObjectName;
+		int32 DotIndex = INDEX_NONE;
 
-			PathName += TEXT(".");
-			PathName += ObjectName;
+		if (PathName.FindChar('.', DotIndex))
+		{
+			ObjectName = PathName.Mid(DotIndex + 1);
+			PathName = PathName.Left(DotIndex);
 		}
 
-		return PathName;
+		for (auto Delegate : FCoreDelegates::PackageNameResolvers)
+		{
+			FString ResolvedPath;
+			if (Delegate.Execute(PathName, ResolvedPath))
+			{
+				UE_LOG(LogPackageName, Display, TEXT("Package '%s' was resolved to '%s'"), *PathName, *ResolvedPath);
+				PathName = ResolvedPath;
+				WasResolved = true;
+			}
+		}
+
+		if (WasResolved)
+		{
+			// If package was passed in with an object, add that back on by deriving it from the package name
+			if (ObjectName.Len())
+			{
+				int32 LastSlashIndex = INDEX_NONE;
+				if (PathName.FindLastChar('/', LastSlashIndex))
+				{
+					ObjectName = PathName.Mid(LastSlashIndex + 1);
+				}
+
+				PathName += TEXT(".");
+				PathName += ObjectName;
+			}
+
+			return PathName;
+		}
 	}
 
 	return InSourcePackagePath;

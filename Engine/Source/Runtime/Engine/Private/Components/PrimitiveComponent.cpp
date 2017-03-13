@@ -1110,19 +1110,27 @@ bool UPrimitiveComponent::ShouldCreatePhysicsState() const
 		return false;
 	}
 
-	bool bShouldCreatePhysicsState = IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
+	bool bShouldCreatePhysicsState = IsRegistered() && (bAlwaysCreatePhysicsState || BodyInstance.GetCollisionEnabled() != ECollisionEnabled::NoCollision);
 
 #if WITH_EDITOR
-	if (BodyInstance.bSimulatePhysics && (GetCollisionEnabled() == ECollisionEnabled::NoCollision || GetCollisionEnabled() == ECollisionEnabled::QueryOnly))
+	if (BodyInstance.bSimulatePhysics)
 	{
-		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidSimulateOptions", "Invalid Simulate Options: Body ({0}) is set to simulate physics but Collision Enabled is incompatible"),
-			FText::FromString(GetReadableName())));
+		const ECollisionEnabled::Type CollisionEnabled = GetCollisionEnabled();
+		if (CollisionEnabled == ECollisionEnabled::NoCollision || CollisionEnabled == ECollisionEnabled::QueryOnly)
+		{
+			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidSimulateOptions", "Invalid Simulate Options: Body ({0}) is set to simulate physics but Collision Enabled is incompatible"),
+				FText::FromString(GetReadableName())));
+		}
 	}
 
 	// if it shouldn't create physics state, but if world wants to enable trace collision for components, allow it
-	if (!bShouldCreatePhysicsState && GetWorld() && GetWorld()->bEnableTraceCollision)
+	if (!bShouldCreatePhysicsState)
 	{
-		bShouldCreatePhysicsState = true;
+		UWorld* World = GetWorld();
+		if (World && World->bEnableTraceCollision)
+		{
+			bShouldCreatePhysicsState = true;
+		}
 	}
 #endif
 	return bShouldCreatePhysicsState;
@@ -1650,7 +1658,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	// Set up
 	const FVector TraceStart = GetComponentLocation();
 	const FVector TraceEnd = TraceStart + Delta;
-	float DeltaSizeSq = Delta.SizeSquared();
+	float DeltaSizeSq = (TraceEnd - TraceStart).SizeSquared();				// Recalc here to account for precision loss of float addition
 	const FQuat InitialRotationQuat = ComponentToWorld.GetRotation();
 
 	// ComponentSweepMulti does nothing if moving < KINDA_SMALL_NUMBER in distance, so it's important to not try to sweep distances smaller than that. 

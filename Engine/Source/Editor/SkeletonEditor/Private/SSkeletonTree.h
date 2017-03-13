@@ -168,8 +168,8 @@ private:
 	/** Function to check if it is possible to rename the selected item */
 	bool CanRenameSelected() const;
 
-	/** Function to start renaming a socket */
-	void OnRenameSocket();
+	/** Function to start renaming the selected item */
+	void OnRenameSelected();
 
 	/** Function to customize a socket - this essentially copies a socket from the skeleton to the mesh */
 	void OnCustomizeSocket();
@@ -178,10 +178,10 @@ private:
 	void OnPromoteSocket();
 
 	/** Create sub menu to allow users to pick a target bone for the new space switching bone(s) */
-	void FillVirtualBoneSubmenu(FMenuBuilder& MenuBuilder, TArray<TSharedPtr<class FSkeletonTreeBoneItem>> SourceBones);
+	void FillVirtualBoneSubmenu(FMenuBuilder& MenuBuilder, TArray<TSharedPtr<class ISkeletonTreeItem>> SourceBones);
 
 	/** Handler for user picking a target bone */
-	void OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TSharedPtr<class FSkeletonTreeBoneItem>> SourceBones);
+	void OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TSharedPtr<class ISkeletonTreeItem>> SourceBones);
 
 	/** Create content picker sub menu to allow users to pick an asset to attach */
 	void FillAttachAssetSubmenu(FMenuBuilder& MenuBuilder, const TSharedPtr<class ISkeletonTreeItem> TargetItem);
@@ -264,6 +264,11 @@ private:
 	/** Handle filtering the tree  */
 	ESkeletonTreeFilterResult HandleFilterSkeletonTreeItem(const TSharedPtr<class ISkeletonTreeItem>& InItem);
 
+	// Called when bone tree queries reference skeleton
+	const FReferenceSkeleton& OnGetReferenceSkeleton() const
+	{
+		return GetEditableSkeletonInternal()->GetSkeleton().GetReferenceSkeleton();
+	}
 private:
 	/** Pointer back to the skeleton tree that owns us */
 	TWeakPtr<FEditableSkeleton> EditableSkeleton;

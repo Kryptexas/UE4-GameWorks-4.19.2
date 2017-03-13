@@ -312,8 +312,8 @@ public:
 	virtual const TCHAR* GetName() override { return TEXT("D3D11"); }
 
 	// HDR display output
-	virtual void EnableHDR( IDXGIOutput* Output);
-	virtual void ShutdownHDR(IDXGIOutput* Output);
+	virtual void EnableHDR();
+	virtual void ShutdownHDR();
 
 	virtual void FlushPendingLogs() override;
 
@@ -496,7 +496,9 @@ public:
 	virtual void RHISetShaderParameter(FGeometryShaderRHIParamRef GeometryShader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue) final override;
 	virtual void RHISetShaderParameter(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue) final override;
 	virtual void RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewState, uint32 StencilRef) final override;
+	virtual void RHISetStencilRef(uint32 StencilRef) final override;
 	virtual void RHISetBlendState(FBlendStateRHIParamRef NewState, const FLinearColor& BlendFactor) final override;
+	virtual void RHISetBlendFactor(const FLinearColor& BlendFactor) final override;
 	virtual void RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargets, const FRHIDepthRenderTargetView* NewDepthStencilTarget, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs) final override;
 	virtual void RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo) final override;
 	virtual void RHIBindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil) final override;
@@ -509,9 +511,9 @@ public:
 	virtual void RHIEndDrawPrimitiveUP() final override;
 	virtual void RHIBeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData) final override;
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override;
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) final override;
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) final override;
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) final override;
+	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) final override;
+	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) final override;
+	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) final override;
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
 	virtual void RHIPopEvent() final override;
@@ -533,8 +535,8 @@ public:
 		return DXGIFactory1;
 	}
 private:
-	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
-	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
+	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
+	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 	enum class EForceFullScreenClear
 	{
@@ -542,7 +544,7 @@ private:
 		EForce
 	};
 
-	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear, EForceFullScreenClear ForceFullScreen);
+	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 	template <EShaderFrequency ShaderFrequency>
 	void ClearShaderResourceViews(FD3D11BaseShaderResource* Resource);
@@ -587,6 +589,17 @@ public:
 		void* D3DTextureResource, void* RawTextureMemory, uint32 NumMips, uint32& DestStride) = 0;
 	virtual bool HandleSpecialUnlock(uint32 MipIndex, uint32 Flags, void* D3DTextureResource, void* RawTextureMemory) = 0;
 #endif
+
+	uint32 GetHDRDetectedDisplayIndex() const
+	{
+		return HDRDetectedDisplayIndex;
+	}
+
+	void SetHDRDetectedDisplayIndices(const uint32 DisplayIndex, const uint32 IHVIndex)
+	{
+		HDRDetectedDisplayIndex = DisplayIndex;
+		HDRDetectedDisplayIHVIndex = IHVIndex;
+	}
 
 protected:
 	/** The global D3D interface. */
@@ -690,6 +703,10 @@ protected:
 	/** A history of the most recently used bound shader states, used to keep transient bound shader states from being recreated for each use. */
 	TGlobalResource< TBoundShaderStateHistory<10000> > BoundShaderStateHistory;
 	FComputeShaderRHIRef CurrentComputeShader;
+
+	/** If HDR display detected, we store the output device. */
+	uint32 HDRDetectedDisplayIndex;
+	uint32 HDRDetectedDisplayIHVIndex;
 
 #if CHECK_SRV_TRANSITIONS
 	/*

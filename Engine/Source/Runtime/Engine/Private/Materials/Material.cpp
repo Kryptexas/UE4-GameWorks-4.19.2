@@ -32,6 +32,7 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialExpressionSceneColor.h"
 #include "SceneManagement.h"
 #include "Materials/MaterialUniformExpressions.h"
@@ -152,6 +153,11 @@ int32 FMaterialResource::CompileCustomAttribute(const FGuid& AttributeID, FMater
 void FMaterialResource::GatherCustomOutputExpressions(TArray<UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
 {
 	Material->GetAllCustomOutputExpressions(OutCustomOutputs);
+}
+
+void FMaterialResource::GatherExpressionsForCustomInterpolators(TArray<UMaterialExpression*>& OutExpressions) const
+{
+	Material->GetAllExpressionsForCustomInterpolators(OutExpressions);
 }
 
 void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -367,6 +373,13 @@ void UMaterialInterface::InitDefaultMaterials()
 	if (!bInitialized)
 	{		
 		check(IsInGameThread());
+		if (!IsInGameThread())
+		{
+			return;
+		}
+		static int32 RecursionLevel = 0;
+		RecursionLevel++;
+
 		
 #if WITH_EDITOR
 		GPowerToRoughnessMaterialFunction = LoadObject< UMaterialFunction >( NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness.PowerToRoughness"), NULL, LOAD_None, NULL );
@@ -383,17 +396,39 @@ void UMaterialInterface::InitDefaultMaterials()
 			if (GDefaultMaterials[Domain] == NULL)
 			{
 				GDefaultMaterials[Domain] = FindObject<UMaterial>(NULL,GDefaultMaterialNames[Domain]);
-				if (GDefaultMaterials[Domain] == NULL)
+				if (GDefaultMaterials[Domain] == NULL
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+					&& (RecursionLevel == 1 || !GEventDrivenLoaderEnabled)
+#endif
+					)
 				{
 					GDefaultMaterials[Domain] = LoadObject<UMaterial>(NULL, GDefaultMaterialNames[Domain], NULL, LOAD_DisableDependencyPreloading, NULL);
 					checkf(GDefaultMaterials[Domain] != NULL, TEXT("Cannot load default material '%s'"), GDefaultMaterialNames[Domain]);
 				}
-				GDefaultMaterials[Domain]->AddToRoot();
+				if (GDefaultMaterials[Domain])
+				{
+					GDefaultMaterials[Domain]->AddToRoot();
+				}
 			}
 		}
+		RecursionLevel--;
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+		bInitialized = !GEventDrivenLoaderEnabled || RecursionLevel == 0;
+#else
 		bInitialized = true;
+#endif
 	}
 }
+
+void UMaterialInterface::PostCDOContruct()
+{
+	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+	{
+		UMaterial::StaticClass()->GetDefaultObject();
+		UMaterialInterface::InitDefaultMaterials();
+	}
+}
+
 
 void UMaterialInterface::PostLoadDefaultMaterials()
 {
@@ -414,11 +449,24 @@ void UMaterialInterface::PostLoadDefaultMaterials()
 		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
 		{
 			UMaterial* Material = GDefaultMaterials[Domain];
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+			check(Material || (GIsInitialLoad && GEventDrivenLoaderEnabled));
+			check((GIsInitialLoad && GEventDrivenLoaderEnabled) || !Material->HasAnyFlags(RF_NeedLoad));
+			if (Material && !Material->HasAnyFlags(RF_NeedLoad))
+#else
 			check(Material);
-			Material->ConditionalPostLoad();
-			// Sometimes the above will get called before the material has been fully serialized
-			// in this case its NeedPostLoad flag will not be cleared.
-			if (Material->HasAnyFlags(RF_NeedPostLoad))
+			if (Material)
+#endif
+			{
+				Material->ConditionalPostLoad();
+				// Sometimes the above will get called before the material has been fully serialized
+				// in this case its NeedPostLoad flag will not be cleared.
+				if (Material->HasAnyFlags(RF_NeedPostLoad))
+				{
+					bPostLoaded = false;
+				}
+			}
+			else
 			{
 				bPostLoaded = false;
 			}
@@ -428,18 +476,28 @@ void UMaterialInterface::PostLoadDefaultMaterials()
 
 void UMaterialInterface::AssertDefaultMaterialsExist()
 {
-	for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+#if (USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME)
+	if (!GIsInitialLoad || !GEventDrivenLoaderEnabled)
+#endif
 	{
-		check(GDefaultMaterials[Domain] != NULL);
+		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+		{
+			check(GDefaultMaterials[Domain] != NULL);
+		}
 	}
 }
 
 void UMaterialInterface::AssertDefaultMaterialsPostLoaded()
 {
-	for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+#if (USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME)
+	if (!GIsInitialLoad || !GEventDrivenLoaderEnabled)
+#endif
 	{
-		check(GDefaultMaterials[Domain] != NULL);
-		check(!GDefaultMaterials[Domain]->HasAnyFlags(RF_NeedPostLoad));
+		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+		{
+			check(GDefaultMaterials[Domain] != NULL);
+			check(!GDefaultMaterials[Domain]->HasAnyFlags(RF_NeedPostLoad));
+		}
 	}
 }
 
@@ -967,10 +1025,48 @@ void UMaterial::OverrideScalarParameterDefault(FName ParameterName, float Value,
 #endif // #if WITH_EDITOR
 }
 
+float UMaterial::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (FApp::CanEverRender())
+	{
+		FMaterialResource* Resource = GetMaterialResource(InFeatureLevel);
+		
+		if (ensureAlways(Resource))
+		{
+			// Iterate over both the 2D textures and cube texture expressions.
+			const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = Resource->GetUniformScalarParameterExpressions();
+
+			// Iterate over each of the material's texture expressions.
+			for (FMaterialUniformExpression* UniformExpression : UniformExpressions)
+			{
+				if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
+				{
+					FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+					if (ScalarExpression->GetParameterName() == ParameterName)
+					{
+						float Value = 0.f;
+						ScalarExpression->GetDefaultValue(Value);
+						return Value;
+					}
+				}
+			}
+		}
+	}
+
+
+	return 0.f;
+}
+
 void UMaterial::RecacheUniformExpressions() const
 {
+	bool bUsingNewLoader = EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME && GEventDrivenLoaderEnabled;
+
 	// Ensure that default material is available before caching expressions.
-	UMaterial::GetDefaultMaterial(MD_Surface);
+	if (!bUsingNewLoader)
+	{
+		UMaterial::GetDefaultMaterial(MD_Surface);
+	}
 
 	// Only cache the unselected + unhovered material instance. Selection color
 	// can change at runtime and would invalidate the parameter cache.
@@ -3813,6 +3909,19 @@ void UMaterial::GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCu
 		if (CustomOutput)
 		{
 			OutCustomOutputs.Add(CustomOutput);
+		}
+	}
+}
+
+void UMaterial::GetAllExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const
+{
+	for (UMaterialExpression* Expression : Expressions)
+	{
+		if (Expression &&
+			(Expression->IsA(UMaterialExpressionVertexInterpolator::StaticClass()) ||
+			Expression->IsA(UMaterialExpressionMaterialFunctionCall::StaticClass())) )
+		{
+				OutExpressions.Add(Expression);
 		}
 	}
 }

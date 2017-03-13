@@ -133,10 +133,14 @@ public:
 	inline const VkExtent3D& GetExtent3D() const { return Extent.Extent3D; }
 	inline const VkAttachmentDescription* GetAttachmentDescriptions() const { return Desc; }
 	inline uint32 GetNumColorAttachments() const { return NumColorAttachments; }
-	inline bool GetHasDepthStencil() const { return bHasDepthStencil; }
-	inline bool GetHasResolveAttachments() const { return bHasResolveAttachments; }
+	inline bool GetHasDepthStencil() const { return bHasDepthStencil != 0; }
+	inline bool GetHasResolveAttachments() const { return bHasResolveAttachments != 0; }
 	inline uint32 GetNumAttachmentDescriptions() const { return NumAttachmentDescriptions; }
 	inline uint32 GetNumSamples() const { return NumSamples; }
+	inline uint32 GetNumUsedClearValues() const
+	{
+		return NumUsedClearValues;
+	}
 
 	inline const VkAttachmentReference* GetColorAttachmentReferences() const { return NumColorAttachments > 0 ? ColorReferences : nullptr; }
 	inline const VkAttachmentReference* GetResolveAttachmentReferences() const { return bHasResolveAttachments ? ResolveReferences : nullptr; }
@@ -151,9 +155,10 @@ protected:
 
 	uint32 NumAttachmentDescriptions;
 	uint32 NumColorAttachments;
-	bool bHasDepthStencil;
-	bool bHasResolveAttachments;
-	uint32 NumSamples;
+	uint8 bHasDepthStencil;
+	uint8 bHasResolveAttachments;
+	uint8 NumSamples;
+	uint8 NumUsedClearValues;
 
 	uint32 Hash;
 
@@ -163,7 +168,6 @@ protected:
 		VkExtent2D	Extent2D;
 	} Extent;
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	FVulkanRenderTargetLayout()
 	{
 		FMemory::Memzero(ColorReferences);
@@ -180,7 +184,6 @@ protected:
 		Extent.Extent3D.depth = 0;
 	}
 	friend class FVulkanPipelineStateCache;
-#endif
 };
 
 #include "VulkanDevice.h"
@@ -277,11 +280,11 @@ public:
 			}
 		}
 
-		FVulkanTexture2D* Depth = (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
-		if (Depth)
+		if (RTInfo.DepthStencilRenderTarget.Texture)
 		{
-			ensure(RTInfo.DepthStencilRenderTarget.Texture->GetTexture2D());
-			return Depth && Depth->Surface.Image == Image;
+			FVulkanTextureBase* Depth = (FVulkanTextureBase*)RTInfo.DepthStencilRenderTarget.Texture->GetTextureBaseRHI();
+			check(Depth);
+			return Depth->Surface.Image == Image;
 		}
 
 		return false;
@@ -319,14 +322,16 @@ class FVulkanRenderPass
 public:
 	const FVulkanRenderTargetLayout& GetLayout() const { return Layout; }
 	VkRenderPass GetHandle() const { check(RenderPass != VK_NULL_HANDLE); return RenderPass; }
+	uint32 GetNumUsedClearValues() const
+	{
+		return NumUsedClearValues;
+	}
 
 private:
 	friend class FVulkanPendingGfxState;
 	friend class FVulkanCommandListContext;
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	friend class FVulkanPipelineStateCache;
-#endif
 
 	FVulkanRenderPass(FVulkanDevice& Device, const FVulkanRenderTargetLayout& RTLayout);
 	~FVulkanRenderPass();
@@ -334,6 +339,7 @@ private:
 private:
 	FVulkanRenderTargetLayout Layout;
 	VkRenderPass RenderPass;
+	uint32 NumUsedClearValues;
 	FVulkanDevice& Device;
 
 #if VULKAN_KEEP_CREATE_INFO
@@ -453,6 +459,7 @@ struct FVulkanDescriptorSets
 private:
 	friend class FVulkanDescriptorPool;
 	friend class FVulkanShaderState;
+	friend class FVulkanDescriptorSetUpdater;
 
 	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext);
 

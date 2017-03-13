@@ -202,7 +202,8 @@ float UAISense_Sight::Update()
 				float StimulusStrength = 1.f;
 				
 				// @Note that automagical "seeing" does not care about sight range nor vision cone
-				if (ShouldAutomaticallySeeTarget(PropDigest, SightQuery, Listener, TargetActor, StimulusStrength))
+				const bool bShouldAutomatically = ShouldAutomaticallySeeTarget(PropDigest, SightQuery, Listener, TargetActor, StimulusStrength);
+				if (bShouldAutomatically)
 				{
 					// Pretend like we've seen this target where we last saw them
 					Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, StimulusStrength, SightQuery->LastSeenLocation, Listener.CachedLocation));

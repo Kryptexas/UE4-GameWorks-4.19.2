@@ -862,7 +862,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, SrcRect);
+	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 

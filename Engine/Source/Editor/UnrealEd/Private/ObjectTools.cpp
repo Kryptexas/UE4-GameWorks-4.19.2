@@ -731,16 +731,22 @@ namespace ObjectTools
 					TArray<UProperty*> CurReferencedProperties;
 					CurReferencingPropertiesMMap.GenerateValueArray( CurReferencedProperties );
 					ReferencingPropertiesMap.Add( CurObject, CurReferencedProperties );
-					for ( TArray<UProperty*>::TConstIterator RefPropIter( CurReferencedProperties ); RefPropIter; ++RefPropIter )
+					if ( CurReferencedProperties.Num() > 0)
 					{
-						CurObject->PreEditChange( *RefPropIter );
+						for ( TArray<UProperty*>::TConstIterator RefPropIter( CurReferencedProperties ); RefPropIter; ++RefPropIter )
+						{
+							CurObject->PreEditChange( *RefPropIter );
+						}
+					}
+					else
+					{
+						CurObject->PreEditChange(nullptr);
 					}
 				}
 			}
 		}
-
-		// Iterate over the map of referencing objects/changed properties, forcefully replacing the references and then
-		// alerting the referencing objects the change has completed via PostEditChange
+		
+		// Iterate over the map of referencing objects/changed properties, forcefully replacing the references and
 		int32 NumObjsReplaced = 0;
 		for ( TMap< UObject*, TArray<UProperty*> >::TConstIterator MapIter( ReferencingPropertiesMap ); MapIter; ++MapIter )
 		{
@@ -748,14 +754,33 @@ namespace ObjectTools
 			GWarn->StatusUpdate( NumObjsReplaced, ReferencingPropertiesMap.Num(), NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_ReplacingReferences", "Replacing Asset References...") );
 
 			UObject* CurReplaceObj = MapIter.Key();
-			const TArray<UProperty*>& RefPropArray = MapIter.Value();
 
 			FArchiveReplaceObjectRef<UObject> ReplaceAr( CurReplaceObj, ReplacementMap, false, true, false );
+		}
 
-			for ( TArray<UProperty*>::TConstIterator RefPropIter( RefPropArray ); RefPropIter; ++RefPropIter )
+		// Now alter the referencing objects the change has completed via PostEditChange, 
+		// this is done in a separate loop to prevent reading of data that we want to overwrite
+		int32 NumObjsPostEdited = 0;
+		for ( TMap< UObject*, TArray<UProperty*> >::TConstIterator MapIter( ReferencingPropertiesMap ); MapIter; ++MapIter )
+		{
+			++NumObjsPostEdited;
+			GWarn->StatusUpdate( NumObjsPostEdited, ReferencingPropertiesMap.Num(), NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_PostEditing", "Performing Post Update Edits...") );
+
+			UObject* CurReplaceObj = MapIter.Key();
+			const TArray<UProperty*>& RefPropArray = MapIter.Value();
+
+			if (RefPropArray.Num() > 0)
 			{
-				FPropertyChangedEvent PropertyEvent(*RefPropIter, EPropertyChangeType::Redirected);
-				CurReplaceObj->PostEditChangeProperty( PropertyEvent );
+				for ( TArray<UProperty*>::TConstIterator RefPropIter( RefPropArray ); RefPropIter; ++RefPropIter )
+				{
+					FPropertyChangedEvent PropertyEvent(*RefPropIter, EPropertyChangeType::Redirected);
+					CurReplaceObj->PostEditChangeProperty( PropertyEvent );
+				}
+			}
+			else
+			{
+				FPropertyChangedEvent PropertyEvent(nullptr, EPropertyChangeType::Redirected);
+				CurReplaceObj->PostEditChangeProperty(PropertyEvent);
 			}
 
 			if ( !CurReplaceObj->HasAnyFlags(RF_Transient) && CurReplaceObj->GetOutermost() != GetTransientPackage() )
@@ -1295,7 +1320,7 @@ namespace ObjectTools
 	 */
 	void SelectActorsInLevelDirectlyReferencingObject( UObject* RefObj )
 	{
-		UPackage* Package = Cast<UPackage>(RefObj->GetOutermost());
+		UPackage* Package = RefObj->GetOutermost();
 		if (Package && Package->ContainsMap())
 		{
 			// Walk the chain of outers to find the object that is 'in' the level...
@@ -1477,6 +1502,7 @@ namespace ObjectTools
 	void CleanupAfterSuccessfulDelete (const TArray<UPackage*>& PotentialPackagesToDelete, bool bPerformReferenceCheck)
 	{
 		TArray<UPackage*> PackagesToDelete = PotentialPackagesToDelete;
+		TArray<UPackage*> EmptyPackagesToUnload;
 		TArray<FString> PackageFilesToDelete;
 		TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe> > PackageSCCStates;
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
@@ -1492,7 +1518,7 @@ namespace ObjectTools
 
 			bool bIsReferenced = false;
 			
-			if ( bPerformReferenceCheck )
+			if ( Package != nullptr && bPerformReferenceCheck )
 			{
 				FReferencerInformationList FoundReferences;
 				bIsReferenced = IsReferenced(Package, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags,  true, &FoundReferences);
@@ -1518,16 +1544,26 @@ namespace ObjectTools
 			}
 			else
 			{
+				UPackage* CurrentPackage = Cast<UPackage>(Package);
+
 				FString PackageFilename;
-				if( !FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
+				if( Package != nullptr && FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
+				{
+					PackageFilesToDelete.Add(PackageFilename);
+					CurrentPackage->SetDirtyFlag(false);
+				}
+				else
 				{
 					// Could not determine filename for package so we can not delete
 					PackagesToDelete.RemoveAt(PackageIdx);
-					continue;
-				}
 
-				PackageFilesToDelete.Add(PackageFilename);
-				Cast<UPackage>(Package)->SetDirtyFlag(false);
+					if (UPackage::IsEmptyPackage(CurrentPackage))
+					{
+						// If the package is empty, unload it anyway
+						EmptyPackagesToUnload.Add(CurrentPackage);
+						CurrentPackage->SetDirtyFlag(false);
+					}
+				}
 			}
 		}
 
@@ -1546,9 +1582,14 @@ namespace ObjectTools
 		}
 
 		// Unload the packages and collect garbage.
-		if ( PackagesToDelete.Num() > 0 )
+		if ( PackagesToDelete.Num() > 0 || EmptyPackagesToUnload.Num() > 0 )
 		{
-			PackageTools::UnloadPackages(PackagesToDelete);
+			TArray<UPackage*> AllPackagesToUnload;
+			AllPackagesToUnload.Reserve(PackagesToDelete.Num() + EmptyPackagesToUnload.Num());
+			AllPackagesToUnload.Append(PackagesToDelete);
+			AllPackagesToUnload.Append(EmptyPackagesToUnload);
+
+			PackageTools::UnloadPackages(AllPackagesToUnload);
 		}
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
@@ -2200,7 +2241,7 @@ namespace ObjectTools
 												ChildBlueprint->ParentClass = BlueprintObject->ParentClass;
 
 												// Recompile the child blueprint to fix up the generated class
-												FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, false, true);
+												FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 
 												// Defer garbage collection until after we're done processing the list of objects
 												bNeedsGarbageCollection = true;

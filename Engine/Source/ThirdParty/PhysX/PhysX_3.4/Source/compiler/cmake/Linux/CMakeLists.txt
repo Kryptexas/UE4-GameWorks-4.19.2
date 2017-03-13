@@ -14,36 +14,50 @@ IF (NOT ${TARGET_BUILD_PLATFORM} IN_LIST PLATFORM_LIST)
 ENDIF()
 
 IF (${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "x86_64-unknown-linux-gnu" OR ${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "x86_64-linux-gnu")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions -ffast-math -ffunction-sections -fdata-sections -Werror -ferror-limit=0 -Wall -Wextra -fstrict-aliasing -Wstrict-aliasing=2 -Weverything -Wno-documentation-deprecated-sync -Wno-documentation-unknown-command -Wno-float-equal -Wno-padded -Wno-weak-vtables -Wno-cast-align -Wno-conversion -Wno-missing-noreturn -Wno-missing-variable-declarations -Wno-shift-sign-overflow -Wno-covered-switch-default -Wno-exit-time-destructors -Wno-global-constructors -Wno-missing-prototypes -Wno-unreachable-code -Wno-unused-macros -Wno-unused-member-function -Wno-used-but-marked-unused -Wno-weak-template-vtables -Wno-deprecated -Wno-non-virtual-dtor -Wno-invalid-noreturn -Wno-return-type-c-linkage -Wno-reserved-id-macro -Wno-c++98-compat-pedantic -Wno-unused-local-typedef -Wno-old-style-cast -Wno-newline-eof -Wno-unused-private-field -Wno-undefined-reinterpret-cast -Wno-undefined-func-template")
+	IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	  # using Clang	  
+	  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions -ffast-math -ffunction-sections -fdata-sections -Werror -ferror-limit=0 -Wall -Wextra -fstrict-aliasing -Wstrict-aliasing=2 -Weverything -Wno-documentation-deprecated-sync -Wno-documentation-unknown-command -Wno-float-equal -Wno-padded -Wno-weak-vtables -Wno-cast-align -Wno-conversion -Wno-missing-noreturn -Wno-missing-variable-declarations -Wno-shift-sign-overflow -Wno-covered-switch-default -Wno-exit-time-destructors -Wno-global-constructors -Wno-missing-prototypes -Wno-unreachable-code -Wno-unused-macros -Wno-unused-member-function -Wno-used-but-marked-unused -Wno-weak-template-vtables -Wno-deprecated -Wno-non-virtual-dtor -Wno-invalid-noreturn -Wno-return-type-c-linkage -Wno-reserved-id-macro -Wno-c++98-compat-pedantic -Wno-unused-local-typedef -Wno-old-style-cast -Wno-newline-eof -Wno-unused-private-field -Wno-undefined-func-template -Wno-format-nonliteral -Wno-implicit-fallthrough -Wno-undefined-reinterpret-cast")
+	ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+	  # using GCC
+	  SET(LIBPATH_SUFFIX "x64")
+	  SET(CMAKE_CXX_FLAGS "-Werror -m64 -fPIC -msse2 -mfpmath=sse -ffast-math -fno-exceptions -fno-rtti -fvisibility=hidden -fvisibility-inlines-hidden -Wall -Wextra -fno-strict-aliasing -fdiagnostics-show-option -Wno-invalid-offsetof -Wno-uninitialized -Wno-missing-field-initializers")	  
+	ENDIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")	
 ELSEIF(${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "arm-unknown-linux-gnueabihf")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -mfpu=neon -fno-rtti -fno-exceptions -ffast-math -ffunction-sections -fdata-sections -Werror -ferror-limit=0 -Wall -Wextra -fstrict-aliasing -Wstrict-aliasing=2 -Weverything -Wno-documentation-deprecated-sync -Wno-documentation-unknown-command -Wno-float-equal -Wno-padded -Wno-weak-vtables -Wno-cast-align -Wno-conversion -Wno-missing-noreturn -Wno-missing-variable-declarations -Wno-shift-sign-overflow -Wno-covered-switch-default -Wno-exit-time-destructors -Wno-global-constructors -Wno-missing-prototypes -Wno-unreachable-code -Wno-unused-macros -Wno-unused-member-function -Wno-used-but-marked-unused -Wno-weak-template-vtables -Wno-deprecated -Wno-non-virtual-dtor -Wno-invalid-noreturn -Wno-return-type-c-linkage -Wno-c++98-compat-pedantic -Wno-old-style-cast -Wno-newline-eof -Wno-unused-private-field -Wno-undefined-reinterpret-cast")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -mfpu=neon -fno-rtti -fno-exceptions -ffast-math -ffunction-sections -fdata-sections -Werror -ferror-limit=0 -Wall -Wextra -fstrict-aliasing -Wstrict-aliasing=2 -Weverything -Wno-documentation-deprecated-sync -Wno-documentation-unknown-command -Wno-float-equal -Wno-padded -Wno-weak-vtables -Wno-cast-align -Wno-conversion -Wno-missing-noreturn -Wno-missing-variable-declarations -Wno-shift-sign-overflow -Wno-covered-switch-default -Wno-exit-time-destructors -Wno-global-constructors -Wno-missing-prototypes -Wno-unreachable-code -Wno-unused-macros -Wno-unused-member-function -Wno-used-but-marked-unused -Wno-weak-template-vtables -Wno-deprecated -Wno-non-virtual-dtor -Wno-invalid-noreturn -Wno-return-type-c-linkage -Wno-reserved-id-macro -Wno-c++98-compat-pedantic -Wno-unused-local-typedef -Wno-old-style-cast -Wno-newline-eof -Wno-unused-private-field -Wno-undefined-reinterpret-cast -Wno-undefined-func-template -Wno-double-promotion")
+ELSEIF(${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "aarch64-unknown-linux-gnueabi")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions -ffast-math -ffunction-sections -fdata-sections -Werror -ferror-limit=0 -Wall -Wextra -fstrict-aliasing -Wstrict-aliasing=2 -Weverything -Wno-documentation-deprecated-sync -Wno-documentation-unknown-command -Wno-float-equal -Wno-padded -Wno-weak-vtables -Wno-cast-align -Wno-conversion -Wno-missing-noreturn -Wno-missing-variable-declarations -Wno-shift-sign-overflow -Wno-covered-switch-default -Wno-exit-time-destructors -Wno-global-constructors -Wno-missing-prototypes -Wno-unreachable-code -Wno-unused-macros -Wno-unused-member-function -Wno-used-but-marked-unused -Wno-weak-template-vtables -Wno-deprecated -Wno-non-virtual-dtor -Wno-invalid-noreturn -Wno-return-type-c-linkage -Wno-reserved-id-macro -Wno-c++98-compat-pedantic -Wno-unused-local-typedef -Wno-old-style-cast -Wno-newline-eof -Wno-unused-private-field -Wno-undefined-reinterpret-cast -Wno-undefined-func-template -Wno-double-promotion")
 ELSE(${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "x86_64-unknown-linux-gnu" OR ${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "x86_64-linux-gnu")
 	MESSAGE(FATAL_ERROR "Unknown CMAKE_LIBRARY_ARCHITECTURE ${CMAKE_LIBRARY_ARCHITECTURE}")
 ENDIF(${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "x86_64-unknown-linux-gnu" OR ${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "x86_64-linux-gnu")
 
 
 # Build debug info for all configurations
-SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-SET(CMAKE_CXX_FLAGS_CHECKED "-O3 -g")
-SET(CMAKE_CXX_FLAGS_PROFILE "-O3 -g")
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -g")
+SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -gdwarf-3")
+SET(CMAKE_CXX_FLAGS_CHECKED "-O3 -g -gdwarf-3")
+SET(CMAKE_CXX_FLAGS_PROFILE "-O3 -g -gdwarf-3")
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -gdwarf-3")
 
 # Controls PX_NVTX for all projects on linux
 SET(PHYSX_LINUX_ENABLE_NVTX 0)
 
+IF(DEFINED PX_GENERATE_GPU_PROJECTS)
+SET(PHYSX_LINUX_COMPILE_DEFS )
+ELSE()
 # Disable cuda and dx for all projects on linux
-SET(PHYSX_LINUX_COMPILE_DEFS DISABLE_COMPUTE_PHYSX)
+SET(PHYSX_LINUX_COMPILE_DEFS DISABLE_CUDA_PHYSX)
+ENDIF()
 SET(PHYSX_LINUX_DEBUG_COMPILE_DEFS _DEBUG;PX_DEBUG=1;PX_CHECKED=1;PX_NVTX=${PHYSX_LINUX_ENABLE_NVTX};PX_SUPPORT_PVD=1)
 SET(PHYSX_LINUX_CHECKED_COMPILE_DEFS NDEBUG;PX_CHECKED=1;PX_NVTX=${PHYSX_LINUX_ENABLE_NVTX};PX_SUPPORT_PVD=1)
 SET(PHYSX_LINUX_PROFILE_COMPILE_DEFS NDEBUG;PX_PROFILE=1;PX_NVTX=${PHYSX_LINUX_ENABLE_NVTX};PX_SUPPORT_PVD=1)
 SET(PHYSX_LINUX_RELEASE_COMPILE_DEFS NDEBUG;PX_SUPPORT_PVD=0)
 
-SET(CMAKE_DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
-SET(CMAKE_PROFILE_POSTFIX "${CMAKE_PROFILE_POSTFIX}")
-SET(CMAKE_CHECKED_POSTFIX "${CMAKE_CHECKED_POSTFIX}")
-SET(CMAKE_RELEASE_POSTFIX "${CMAKE_RELEASE_POSTFIX}")
-
-FIND_PACKAGE(PxShared REQUIRED)
+	
+IF(DEFINED LIBPATH_SUFFIX)
+	SET(CMAKE_DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}_${LIBPATH_SUFFIX}")
+	SET(CMAKE_PROFILE_POSTFIX "${CMAKE_PROFILE_POSTFIX}_${LIBPATH_SUFFIX}")
+	SET(CMAKE_CHECKED_POSTFIX "${CMAKE_CHECKED_POSTFIX}_${LIBPATH_SUFFIX}")
+	SET(CMAKE_RELEASE_POSTFIX "${CMAKE_RELEASE_POSTFIX}_${LIBPATH_SUFFIX}")
+ENDIF()
 
 # Include the PxShared-exports.cmake file that PxShared created. There's other ways to do this, but there's a bunch of issues with it in a CI environment
 #  such as - we don't want to be installing any built artifacts on this server, etc. So for now we hack it.
@@ -65,4 +79,6 @@ INCLUDE(PhysXExtensions.cmake)
 INCLUDE(PhysXVehicle.cmake)
 INCLUDE(SceneQuery.cmake)
 INCLUDE(SimulationController.cmake)
-# INCLUDE(PhysXGpu.cmake)
+IF(DEFINED PX_GENERATE_GPU_PROJECTS)
+ INCLUDE(PhysXGpu.cmake)
+ENDIF()

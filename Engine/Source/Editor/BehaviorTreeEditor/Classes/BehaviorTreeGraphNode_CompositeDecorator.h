@@ -29,6 +29,8 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	UPROPERTY()
 	uint32 bCanAbortFlow : 1;
 
+	uint32 bHasBrokenInstances : 1;
+
 	FString GetNodeTypeDescription() const;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void AllocateDefaultPins() override;
@@ -51,6 +53,7 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	void OnBlackboardUpdate();
 	void OnInnerGraphChanged();
 	void BuildDescription();
+	void UpdateBrokenInstances();
 
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 

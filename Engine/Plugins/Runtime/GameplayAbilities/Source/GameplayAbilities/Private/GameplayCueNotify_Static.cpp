@@ -118,6 +118,5 @@ bool UGameplayCueNotify_Static::OnRemove_Implementation(AActor* MyTarget, const 
 
 UWorld* UGameplayCueNotify_Static::GetWorld() const
 {
-	static TWeakObjectPtr<UGameplayCueManager> CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
-	return CueManager.IsValid() ? CueManager->GetWorld() : nullptr;
+	return UGameplayCueManager::GetCachedWorldForGameplayCueNotifies();
 }

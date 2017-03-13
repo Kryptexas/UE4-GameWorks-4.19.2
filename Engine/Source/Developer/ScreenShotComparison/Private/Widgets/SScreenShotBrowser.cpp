@@ -12,20 +12,27 @@
 #include "Widgets/SScreenComparisonRow.h"
 #include "Models/ScreenComparisonModel.h"
 #include "Misc/FeedbackContext.h"
+#include "EditorStyleSet.h"
+#include "Modules/ModuleManager.h"
+#include "DirectoryWatcherModule.h"
+#include "IDirectoryWatcher.h"
 
 #define LOCTEXT_NAMESPACE "ScreenshotComparison"
 
 void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManagerRef InScreenShotManager  )
 {
 	ScreenShotManager = InScreenShotManager;
-	ComparisonRoot = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() / TEXT("Exported"));
+	ComparisonRoot = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() / TEXT("Automation/Comparisons"));
+	bReportsChanged = true;
 
+	FModuleManager::Get().LoadModuleChecked(FName("ImageWrapper"));
 
 	ChildSlot
 	[
 		SNew( SVerticalBox )
-		+SVerticalBox::Slot()
+		+ SVerticalBox::Slot()
 		.AutoHeight()
+		.Padding(2.0f)
 		[
 			SNew(SHorizontalBox)
 
@@ -38,26 +45,29 @@ void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManage
 			]
 
 			+ SHorizontalBox::Slot()
-			.AutoWidth()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Right)
 			[
 				SNew(SButton)
-				.Text(LOCTEXT("RunComparison", "Run Compare"))
-				.OnClicked_Lambda(
-					[&]()
+				.HAlign(HAlign_Center)
+				.Text(LOCTEXT("DeleteAllReports", "Delete All Reports"))
+				.ToolTipText(LOCTEXT("DeleteAllReportsTooltip", "Deletes all the current reports.  Reports are not removed unless the user resolves them, \nso if you just want to reset the state of the reports, clear them here and then re-run the tests."))
+				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Danger")
+				.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
+				.OnClicked_Lambda([this]()
 				{
-					GWarn->BeginSlowTask(LOCTEXT("ComparingScreenshots", "Comparing Screenshots..."), true);
-					ScreenShotManager->CompareScreensotsAsync().Wait();
-					ScreenShotManager->ExportScreensotsAsync().Wait();
-					GWarn->EndSlowTask();
-
-					RebuildTree();
+					while ( ComparisonList.Num() > 0 )
+					{
+						TSharedPtr<FScreenComparisonModel> Model = ComparisonList.Pop();
+						Model->Complete();
+					}
 
 					return FReply::Handled();
 				})
 			]
 		]
-
-		+SVerticalBox::Slot()
+		
+		+ SVerticalBox::Slot()
 		.FillHeight( 1.0f )
 		[
 			SAssignNew(ComparisonView, SListView< TSharedPtr<FScreenComparisonModel> >)
@@ -91,17 +101,51 @@ void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManage
 		]
 	];
 
-	// Register for callbacks
-	ScreenShotManager->RegisterScreenShotUpdate(ScreenShotDelegate);
+	RefreshDirectoryWatcher();
+}
 
-	RebuildTree();
+SScreenShotBrowser::~SScreenShotBrowser()
+{
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+
+	if ( DirectoryWatchingHandle.IsValid() )
+	{
+		DirectoryWatcherModule.Get()->UnregisterDirectoryChangedCallback_Handle(ComparisonRoot, DirectoryWatchingHandle);
+	}
+}
+
+void SScreenShotBrowser::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	if ( bReportsChanged )
+	{
+		RebuildTree();
+	}
 }
 
 void SScreenShotBrowser::OnDirectoryChanged(const FString& Directory)
 {
 	ComparisonRoot = Directory;
 
-	RebuildTree();
+	RefreshDirectoryWatcher();
+
+	bReportsChanged = true;
+}
+
+void SScreenShotBrowser::RefreshDirectoryWatcher()
+{
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+	
+	if ( DirectoryWatchingHandle.IsValid() )
+	{
+		DirectoryWatcherModule.Get()->UnregisterDirectoryChangedCallback_Handle(ComparisonRoot, DirectoryWatchingHandle);
+	}
+
+	DirectoryWatcherModule.Get()->RegisterDirectoryChangedCallback_Handle(ComparisonRoot, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &SScreenShotBrowser::OnReportsChanged), DirectoryWatchingHandle, IDirectoryWatcher::WatchOptions::IncludeDirectoryChanges);
+}
+
+void SScreenShotBrowser::OnReportsChanged(const TArray<struct FFileChangeData>& /*FileChanges*/)
+{
+	bReportsChanged = true;
 }
 
 TSharedRef<ITableRow> SScreenShotBrowser::OnGenerateWidgetForScreenResults(TSharedPtr<FScreenComparisonModel> InItem, const TSharedRef<STableViewBase>& OwnerTable)
@@ -110,52 +154,26 @@ TSharedRef<ITableRow> SScreenShotBrowser::OnGenerateWidgetForScreenResults(TShar
 	return
 		SNew(SScreenComparisonRow, OwnerTable)
 		.ScreenshotManager(ScreenShotManager)
-		.ComparisonDirectory(ComparisonDirectory)
-		.Comparisons(CurrentComparisons)
+		.ComparisonDirectory(ComparisonRoot)
 		.ComparisonResult(InItem);
 }
 
 void SScreenShotBrowser::RebuildTree()
 {
-	TArray<FString> Changelists;
-	FString SearchDirectory = ComparisonRoot / TEXT("*");
-	IFileManager::Get().FindFiles(Changelists, *SearchDirectory, false, true);
-
+	bReportsChanged = false;
 	ComparisonList.Reset();
 
-	if ( Changelists.Num() > 0 )
+	if ( ScreenShotManager->OpenComparisonReports(ComparisonRoot, CurrentReports) )
 	{
-		Changelists.StableSort();
-
-		ComparisonDirectory = ComparisonRoot / Changelists.Top();
-		CurrentComparisons = ScreenShotManager->ImportScreensots(ComparisonDirectory);
-
-		if ( CurrentComparisons.IsValid() )
+		for ( const FComparisonReport& Report : CurrentReports )
 		{
-			// Copy the comparisons to an array as shared pointers the list view can use.
-			for ( FString& Added : CurrentComparisons->Added )
-			{
-				TSharedPtr<FScreenComparisonModel> Model = MakeShared<FScreenComparisonModel>(EComparisonResultType::Added);
-				Model->Folder = Added;
-				ComparisonList.Add(Model);
-			}
+			TSharedPtr<FScreenComparisonModel> Model = MakeShared<FScreenComparisonModel>(Report);
+			Model->OnComplete.AddLambda([this, Model] () {
+				ComparisonList.Remove(Model);
+				ComparisonView->RequestListRefresh();
+			});
 
-			// Ignore Missing
-			//for ( FString& Missing : CurrentComparisons->Missing )
-			//{
-			//	TSharedPtr<FScreenComparisonModel> Model = MakeShared<FScreenComparisonModel>(EComparisonResultType::Missing);
-			//	Model->Folder = Missing;
-			//	ComparisonList.Add(Model);
-			//}
-
-			// Copy the comparisons to an array as shared pointers the list view can use.
-			for ( FImageComparisonResult& Result : CurrentComparisons->Comparisons )
-			{
-				TSharedPtr<FScreenComparisonModel> Model = MakeShared<FScreenComparisonModel>(EComparisonResultType::Compared);
-				Model->ComparisonResult = Result;
-
-				ComparisonList.Add(Model);
-			}
+			ComparisonList.Add(Model);
 		}
 	}
 

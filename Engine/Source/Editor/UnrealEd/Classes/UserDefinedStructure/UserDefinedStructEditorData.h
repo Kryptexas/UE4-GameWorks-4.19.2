@@ -41,7 +41,16 @@ struct FStructVariableDescription
 	TAssetPtr<UObject> SubCategoryObject;
 
 	UPROPERTY()
+	FEdGraphTerminalType PinValueType;
+
+	UPROPERTY()
 	bool bIsArray;
+
+	UPROPERTY()
+	bool bIsSet;
+
+	UPROPERTY()
+	bool bIsMap;
 
 	UPROPERTY(Transient)
 	bool bInvalidMember;
@@ -68,6 +77,8 @@ struct FStructVariableDescription
 
 	FStructVariableDescription()
 		: bIsArray(false)
+		, bIsSet(false)
+		, bIsMap(false)
 		, bInvalidMember(false)
 		, bDontEditoOnInstance(false)
 		, bEnableMultiLineText(false)

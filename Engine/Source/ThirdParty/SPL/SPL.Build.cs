@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class SPL : ModuleRules
 {
-    public SPL(TargetInfo Target)
+    public SPL(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
 

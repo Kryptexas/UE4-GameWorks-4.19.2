@@ -24,6 +24,9 @@ class UEnvironmentQueryGraphNode_Test : public UEnvironmentQueryGraphNode
 	UPROPERTY()
 	uint32 bTestEnabled : 1;
 
+	uint32 bStatShowOverlay : 1;
+	FEnvionmentQueryNodeStats Stats;
+
 	virtual void InitializeInstance() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetDescription() const override;

@@ -75,8 +75,9 @@ void AActor::ResetPropertiesForConstruction()
 	const FName RandomStreamName(TEXT("RandomStream"));
 
 	// We don't want to reset references to world object
+	UWorld* World = GetWorld();
 	const bool bIsLevelScriptActor = IsA<ALevelScriptActor>();
-	const bool bIsPlayInEditor = GetWorld()->IsPlayInEditor();
+	const bool bIsPlayInEditor = World && World->IsPlayInEditor();
 
 	// Iterate over properties
 	for( TFieldIterator<UProperty> It(GetClass()) ; It ; ++It )
@@ -202,8 +203,9 @@ void AActor::RerunConstructionScripts()
 	checkf(!HasAnyFlags(RF_ClassDefaultObject), TEXT("RerunConstructionScripts should never be called on a CDO as it can mutate the transient data on the CDO which then propagates to instances!"));
 
 	FEditorScriptExecutionGuard ScriptGuard;
-	// don't allow (re)running construction scripts on dying actors
-	bool bAllowReconstruction = !IsPendingKill() && !HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed);
+	// don't allow (re)running construction scripts on dying actors and Actors that seamless traveled 
+	// were constructed in the previous level and should not have construction scripts rerun
+	bool bAllowReconstruction =  !bActorSeamlessTraveled && !IsPendingKill() && !HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed);
 #if WITH_EDITOR
 	if(bAllowReconstruction && GIsEditor)
 	{

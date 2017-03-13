@@ -22,6 +22,12 @@ void FPackageLocalizationCultureCache::ConditionalUpdateCache()
 
 void FPackageLocalizationCultureCache::ConditionalUpdateCache_NoLock()
 {
+	if (!IsInGameThread())
+	{
+		UE_CLOG(PendingSourceRootPathsToSearch.Num() > 0, LogPackageLocalizationCache, Warning, TEXT("Skipping the cache update for %d pending package path(s) due to a cache request from a non-game thread. Some localized packages may be missed for this query."), PendingSourceRootPathsToSearch.Num());
+		return;
+	}
+
 	if (PendingSourceRootPathsToSearch.Num() == 0)
 	{
 		return;
@@ -160,7 +166,9 @@ FName FPackageLocalizationCultureCache::FindLocalizedPackageName(const FName InS
 
 FPackageLocalizationCache::FPackageLocalizationCache()
 {
-	HandleCultureChanged();
+	const FString CurrentCultureName = FInternationalization::Get().GetCurrentCulture()->GetName();
+	CurrentCultureCache = FindOrAddCacheForCulture_NoLock(CurrentCultureName);
+
 	FInternationalization::Get().OnCultureChanged().AddRaw(this, &FPackageLocalizationCache::HandleCultureChanged);
 
 	FPackageName::OnContentPathMounted().AddRaw(this, &FPackageLocalizationCache::HandleContentPathMounted);
@@ -257,4 +265,11 @@ void FPackageLocalizationCache::HandleCultureChanged()
 
 	const FString CurrentCultureName = FInternationalization::Get().GetCurrentCulture()->GetName();
 	CurrentCultureCache = FindOrAddCacheForCulture_NoLock(CurrentCultureName);
+
+	if (CurrentCultureCache.IsValid())
+	{
+		// We expect culture changes to happen on the game thread, so update the cache now while it is likely safe to do so
+		// (ConditionalUpdateCache will internally check that this is currently the game thread before allowing the update)
+		CurrentCultureCache->ConditionalUpdateCache();
+	}
 }

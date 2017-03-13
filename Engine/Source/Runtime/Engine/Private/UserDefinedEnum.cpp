@@ -28,7 +28,8 @@ void UUserDefinedEnum::Serialize(FArchive& Ar)
 
 		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::StableUserDefinedEnumDisplayNames)
 		{
-			FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(this);
+			// Make sure DisplayNameMap is empty so we perform the meta-data upgrade in PostLoad
+			DisplayNameMap.Reset();
 		}
 	}
 #endif // WITH_EDITOR
@@ -38,9 +39,8 @@ FString UUserDefinedEnum::GenerateFullEnumName(const TCHAR* InEnumName) const
 {
 	check(CppForm == ECppForm::Namespaced);
 
-	FString PathName;
-	GetPathName(NULL, PathName);
-	return UEnum::GenerateFullEnumName(this, InEnumName);
+	// This code used to compute full path but not use it
+	return Super::GenerateFullEnumName(InEnumName);
 }
 
 #if WITH_EDITOR
@@ -75,6 +75,10 @@ void UUserDefinedEnum::PostLoad()
 {
 	Super::PostLoad();
 	FEnumEditorUtils::UpdateAfterPathChanged(this);
+	if (NumEnums() > 1 && DisplayNameMap.Num() == 0) // >1 because User Defined Enums always have a "MAX" entry
+	{
+		FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(this);
+	}
 	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
 }
 
@@ -109,9 +113,9 @@ int64 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int64 EnumeratorValue) c
 #endif // WITH_EDITOR
 }
 
-FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
+FText UUserDefinedEnum::GetDisplayNameTextByIndex(int32 InIndex) const
 {
-	const FName EnumEntryName = *GetEnumName(InIndex);
+	const FName EnumEntryName = *GetNameStringByIndex(InIndex);
 
 	const FText* EnumEntryDisplayName = DisplayNameMap.Find(EnumEntryName);
 	if (EnumEntryDisplayName)
@@ -119,7 +123,7 @@ FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
 		return *EnumEntryDisplayName;
 	}
 
-	return FText::GetEmpty();
+	return Super::GetDisplayNameTextByIndex(InIndex);
 }
 
 bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing)
@@ -144,7 +148,7 @@ bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm I
 		if ((MaxEnumItemIndex == INDEX_NONE) && (LookupEnumName(MaxEnumItem) == INDEX_NONE))
 		{
 			int64 MaxEnumValue = (InNames.Num() == 0)? 0 : GetMaxEnumValue() + 1;
-			Names.Add(TPairInitializer<FName, int64>(MaxEnumItem, MaxEnumValue));
+			Names.Emplace(MaxEnumItem, MaxEnumValue);
 			AddNamesToMasterList();
 			return true;
 		}

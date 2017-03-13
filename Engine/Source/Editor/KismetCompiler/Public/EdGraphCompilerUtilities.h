@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __EdGraphCompilerUtilities_h__
-#define __EdGraphCompilerUtilities_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -93,5 +89,3 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////
-
-#endif	// __EdGraphCompilerUtilities_h__

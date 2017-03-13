@@ -180,6 +180,8 @@ public:
 	virtual void EndSession() override;
 	virtual void FlushEvents() override;
 
+	virtual void SetAppID(const FString&& AppID) override;
+	virtual const FString& GetAppID() const override;
 	virtual void SetUserID(const FString& InUserID) override;
 	virtual FString GetUserID() const override;
 
@@ -648,12 +650,33 @@ void FAnalyticsProviderET::FlushEvents()
 	ANALYTICS_FLUSH_TRACKING_END(PayloadSize, EventCount);
 }
 
+void FAnalyticsProviderET::SetAppID(const FString&& InAppID)
+{
+	if (APIKey != InAppID)
+	{
+		// Flush any cached events that would be using the old AppID.
+		FlushEvents();
+		APIKey = MoveTemp(InAppID);
+	}
+}
+
+const FString& FAnalyticsProviderET::GetAppID() const
+{
+	return APIKey;
+}
+
 void FAnalyticsProviderET::SetUserID(const FString& InUserID)
 {
 	// command-line specified user ID overrides all attempts to reset it.
 	if (!FParse::Value(FCommandLine::Get(), TEXT("ANALYTICSUSERID="), UserID, false))
 	{
 		UE_LOG(LogAnalytics, Log, TEXT("[%s] SetUserId %s"), *APIKey, *InUserID);
+		// Deliberately DO NOT Flush any cached events that would be using the old UserID.
+		// There are cases in our games where we create a provider before we've logged into the backend, so we can't set the final UserID in advance.
+		// Once the login is complete (generally before the first flush), we can set the UserID such that when the flush finally happens, all the 
+		// events come in with the correct UserID.
+		// It's kind of a hack, and subject to incorrect behavior.
+		// @todo add an overload of this method that explicitly avoids the flush and have the game code call that instead.
 		UserID = InUserID;
 	}
 	else if (UserID != InUserID)
@@ -674,8 +697,13 @@ FString FAnalyticsProviderET::GetSessionID() const
 
 bool FAnalyticsProviderET::SetSessionID(const FString& InSessionID)
 {
-	SessionID = InSessionID;
-	UE_LOG(LogAnalytics, Log, TEXT("[%s] Forcing SessionID to %s."), *APIKey, *SessionID);
+	if (SessionID != InSessionID)
+	{
+		// Flush any cached events that would be using the old SessionID.
+		FlushEvents();
+		SessionID = InSessionID;
+		UE_LOG(LogAnalytics, Log, TEXT("[%s] Forcing SessionID to %s."), *APIKey, *SessionID);
+	}
 	return true;
 }
 

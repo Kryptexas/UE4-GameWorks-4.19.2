@@ -293,59 +293,193 @@ void USimpleConstructionScript::FixupSceneNodeHierarchy()
 	USCS_Node* SceneRootNode = nullptr;
 	USceneComponent* SceneRootComponentTemplate = GetSceneRootComponentTemplate(&SceneRootNode);
 
-	// if there is no scene root (then there shouldn't be anything but the 
-	// default placeholder root).
 	if (SceneRootComponentTemplate == nullptr)
 	{
-		return;
+		if (DefaultSceneRootNode && DefaultSceneRootNode->ComponentTemplate)
+		{
+			SceneRootNode = DefaultSceneRootNode;
+			SceneRootComponentTemplate = CastChecked<USceneComponent>(DefaultSceneRootNode->ComponentTemplate);
+		}
+		// if there is no scene root (then there shouldn't be anything but the 
+		// default placeholder root).
+		else
+		{
+			return;
+		}
 	}
 
 	bool const bIsSceneRootNative = (SceneRootNode == nullptr);
+	// cache this information before the mapper messes with the RootNode list
 	bool const bThisOwnsSceneRoot = !bIsSceneRootNative && RootNodes.Contains(SceneRootNode);
 
-	// iterate backwards so that we can remove nodes from the array as we go
-	for (int32 NodeIndex = RootNodes.Num() - 1; NodeIndex >= 0; --NodeIndex)
+	/** Helper struct which recursively maps the specified SCS hierarchy. */
+	struct FSceneHierarchyMapper
 	{
-		USCS_Node* Node = RootNodes[NodeIndex];
+	public:
+		FSceneHierarchyMapper(TArray<USCS_Node*>& RootNodesIn)
+			: RootNodeList(RootNodesIn)
+			, PendingParent(nullptr)
+			, bBreak(false)
+		{}
 
-		// we only care about the scene component hierarchy (non-scene components 
-		// can share root placement)
-		if ((Node->ComponentTemplate == nullptr) || !Node->ComponentTemplate->IsA<USceneComponent>())
+		/** Identifies orphan (root) nodes, and fixes up broken/cyclic tree linkages */
+		void MapHierarchy(const TArray<USCS_Node*>& NodeList)
 		{
-			continue;
-		}
-
-		// if this is the scene's root, then we shouldn't fix it up (instead we 
-		// need to be nesting others under this one)
-		if (SceneRootComponentTemplate == Node->ComponentTemplate)
-		{
-			continue;
-		}
-
-		// if this node has a clear parent already defined, then ignore it (I 
-		// imagine that its attachment will be handled elsewhere)
-		if (Node->ParentComponentOrVariableName != NAME_None)
-		{
-			continue;
+			for (USCS_Node* Node : NodeList)
+			{
+				VisitNode(Node);
+			}
 		}
 
-		if (bIsSceneRootNative)
+		/** Nests all orphans (and their nested hierarchies) under the target root */
+		void FixupOrphanedNodes(USCS_Node* SceneRootNodeIn, USceneComponent* RootComponentTemplate, const bool bThisOwnsSceneRootIn)
 		{
-			// Parent to the native component template if not already attached
-			Node->SetParent(SceneRootComponentTemplate);
+			bool bSkippedRootNode = false;
+			for (USCS_Node* Orphan : OrphanedNodes)
+			{
+				if (Orphan == SceneRootNodeIn)
+				{
+					bSkippedRootNode = true;
+					continue;
+				}
+
+				TArray<USCS_Node*>& RootNodeListRef = RootNodeList;
+				auto AddToRootSet = [&RootNodeListRef](USCS_Node* Node)
+				{
+					int32 PreAddNum = RootNodeListRef.Num();
+					RootNodeListRef.AddUnique(Node);
+
+					// if it wasn't already in the RootSet, notify the user
+					if (PreAddNum < RootNodeListRef.Num())
+					{
+						UE_LOG(LogBlueprint, Warning, TEXT("Found orphaned component ('%s') and added it to the Blueprint's root set. Please validate the component hierarchy is as wanted and resave."),
+							*Node->GetVariableName().ToString());
+					}
+				};
+
+				if (bThisOwnsSceneRootIn)
+				{
+					// Reparent to this BP's root node if it's still in the root set
+					RootNodeList.Remove(Orphan);
+					SceneRootNodeIn->AddChildNode(Orphan, false);
+				}
+				// if this field is filled out, assume it's set up to attach to  
+				// a inherited component (unknown how to handle if that component is gone)
+				else if (Orphan && Orphan->ParentComponentOrVariableName.IsNone())
+				{
+					if (SceneRootNodeIn == nullptr)
+					{
+						AddToRootSet(Orphan);
+						// Parent to the native component template if not already attached
+						Orphan->SetParent(RootComponentTemplate);
+					}
+					else
+					{
+						AddToRootSet(Orphan);
+						// Parent to an inherited parent BP's node if not already attached
+						Orphan->SetParent(SceneRootNodeIn);
+					}
+				} 
+			}
+			// make sure our root node is still in the root set
+			check(!bThisOwnsSceneRootIn || bSkippedRootNode);
 		}
-		else if (bThisOwnsSceneRoot)
+
+	private:
+		/** Recursively visits this node and its children (attempting to map the hierarchy) */
+		bool VisitNode(USCS_Node* Node)
 		{
-			// Reparent to this BP's root node if it's still in the root set
-			RootNodes.Remove(Node);
-			SceneRootNode->AddChildNode(Node, false);
+			bool bPreviouslyVisited = false;
+			VisitedNodes.Add(Node, &bPreviouslyVisited);
+
+			if (bPreviouslyVisited)
+			{
+				// if we've visited this already, then we may be recursively 
+				// traversing the tree, searching for broken link chains
+				if (PendingParent && OrphanedNodes.Remove(Node))
+				{
+					FixupParentage(Node);
+				}
+				else
+				{
+					// we've visited this node before (and not as an orphan) - this  
+					// indicates broken linkage (we've already identified it as 
+					// belonging to another parent) - return false, so the parent 
+					// will know to remove this from its children
+					return false;
+				}
+			}
+			else
+			{
+				UClass* ComponentClass = Node->ComponentClass ? Node->ComponentClass :
+					Node->ComponentTemplate ? Node->ComponentTemplate->GetClass() : nullptr;
+				// we don't care about non-scene nodes
+				if (ComponentClass && ComponentClass->IsChildOf<USceneComponent>())
+				{
+					// scoped for the following TGuardValue
+					{
+						TGuardValue<USCS_Node*> ParentStack(PendingParent, Node);
+						// recursively visit children so we can construct the hierarchy - iterate backwards so we can remove as we go
+						for (int32 ChildIndex = Node->ChildNodes.Num() - 1; ChildIndex >= 0; --ChildIndex)
+						{
+							if (!VisitNode(Node->ChildNodes[ChildIndex]))
+							{
+								Node->ChildNodes.RemoveAt(ChildIndex);
+							}
+						}
+					}
+
+					// happens after recursing into children, so we don't add to 
+					// the orphaned list till after children are querying it
+					FixupParentage(Node);
+				}
+			}
+			return true;
 		}
-		else
+
+		/** Nests the specified node under the active parent (if there isn't one pending, then it gets added to the orphan list - possibly removed later when we find the parent) */
+		void FixupParentage(USCS_Node* Node)
 		{
-			// Parent to an inherited parent BP's node if not already attached
-			Node->SetParent(SceneRootNode);
+			if (PendingParent)
+			{
+				if (!ensure(Node->ParentComponentOrVariableName.IsNone() || Node->ParentComponentOrVariableName != PendingParent->GetVariableName()))
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("Reparenting the '%s' component (now nested under '%s)' - possible cyclic linkage? Please validate the component hierarchy and resave the Blueprint."),
+						*Node->GetVariableName().ToString(),
+						*PendingParent->GetVariableName().ToString()
+					);
+				}
+				PendingParent->AddChildNode(Node, /*bAddToAllNodes =*/false);
+ 
+				if (RootNodeList.Remove(Node))
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("The '%s' component is being removed from the root set and nested under '%s' - possible cyclic linkage? Please validate the component hierarchy and resave the Blueprint."),
+						*Node->GetVariableName().ToString(),
+						*PendingParent->GetVariableName().ToString()
+					);
+				}
+				OrphanedNodes.Remove(Node);
+			}
+			else
+			{
+				// not necessarily an orphan, but waiting for us to parse its parent
+				OrphanedNodes.Add(Node);
+			}
 		}
-	}
+
+	private:
+		TArray<USCS_Node*>& RootNodeList;
+		TSet<USCS_Node*> VisitedNodes;
+		TSet<USCS_Node*> OrphanedNodes;
+		USCS_Node* PendingParent;
+		bool bBreak;
+	};
+
+	FSceneHierarchyMapper HierarchyMapper(RootNodes);
+	// identify orphan (root) nodes, and fixup cyclic hierarchies
+	HierarchyMapper.MapHierarchy(AllNodes);
+	// nest all orphaned nodes under the primary root node
+	HierarchyMapper.FixupOrphanedNodes(SceneRootNode, SceneRootComponentTemplate, bThisOwnsSceneRoot);
 #endif // #if WITH_EDITOR
 }
 

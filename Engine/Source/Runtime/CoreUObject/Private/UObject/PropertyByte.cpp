@@ -44,7 +44,7 @@ void UByteProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaul
 
 		// There's no guarantee EnumValueName is still present in Enum, in which case Value will be set to the enum's max value.
 		// On save, it will then be serialized as NAME_None.
-		int32 EnumIndex = Enum->FindEnumIndex(EnumValueName);
+		int32 EnumIndex = Enum->GetIndexByName(EnumValueName, true);
 		if (EnumIndex == INDEX_NONE)
 		{
 			*(uint8*)Value = Enum->GetMaxEnumValue();
@@ -311,7 +311,7 @@ void UByteProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 			else
 			{
 				ValueStr += FString::Printf(TEXT("%s::%s"), *FullyQualifiedEnumName,
-					*Enum->GetEnumName(Enum->GetIndexByValue(GoodValue)));
+					*Enum->GetNameStringByValue(GoodValue));
 			}
 		}
 		else
@@ -332,11 +332,11 @@ void UByteProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 			// We do not want to export the enum text for non-display uses, localization text is very dynamic and would cause issues on import
 			if (PortFlags & PPF_PropertyWindow)
 			{
-				ValueStr += Enum->GetEnumTextByValue(*(const uint8*)PropertyValue).ToString();
+				ValueStr += Enum->GetDisplayNameTextByValue(*(const uint8*)PropertyValue).ToString();
 			}
 			else
 			{
-				ValueStr += Enum->GetEnumNameStringByValue(*(const uint8*)PropertyValue);
+				ValueStr += Enum->GetNameStringByValue(*(const uint8*)PropertyValue);
 			}
 		}
 		else
@@ -357,7 +357,7 @@ const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Da
 		const TCHAR* Buffer = UPropertyHelpers::ReadToken( InBuffer, Temp, true );
 		if( Buffer != NULL )
 		{
-			int32 EnumIndex = Enum->FindEnumIndex(*Temp);
+			int32 EnumIndex = Enum->GetIndexByName(*Temp, true);
 			if (EnumIndex != INDEX_NONE)
 			{
 				*(uint8*)Data = Enum->GetValueByIndex(EnumIndex);

@@ -25,6 +25,11 @@ namespace AutomationTool
 		public readonly string Project;
 
 		/// <summary>
+		/// The changelist to post the badge for
+		/// </summary>
+		public readonly int Change;
+
+		/// <summary>
 		/// Set of nodes that this badge reports the status of
 		/// </summary>
 		public HashSet<Node> Nodes = new HashSet<Node>();
@@ -34,10 +39,12 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="InName">Name of this report</param>
 		/// <param name="InProject">Depot path to the project that this badge applies to</param>
-		public Badge(string InName, string InProject)
+		/// <param name="InChange">The changelist to post the badge for</param>
+		public Badge(string InName, string InProject, int InChange)
 		{
 			Name = InName;
 			Project = InProject;
+			Change = InChange;
 		}
 
 		/// <summary>

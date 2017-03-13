@@ -753,8 +753,16 @@ public:
 	{
 	}
 
-	void ParseClassDeclaration(const TCHAR* InputText, int32 InLineNumber, const TCHAR* StartingMatchID, FString& out_ClassName, FString& out_BaseClassName, TArray<FHeaderProvider>& out_ClassNames, const TArray<FSimplifiedParsingClassInfo>& ParsedClassArray);
-
-private:
-	void AddDependencyIfNeeded(const TArray<FSimplifiedParsingClassInfo>& ParsedClassArray, const FString& DependencyClassName, TArray<FHeaderProvider>& RequiredIncludes) const;
+	void ParseClassDeclaration(
+		const TCHAR* Filename,
+		const TCHAR* InputText,
+		int32 InLineNumber,
+		const TCHAR*
+		StartingMatchID,
+		FName& out_StrippedClassName,
+		FString& out_ClassName,
+		FString& out_BaseClassName,
+		TArray<FHeaderProvider>& out_ClassNames,
+		const TArray<FSimplifiedParsingClassInfo>& ParsedClassArray
+	);
 };

@@ -123,8 +123,11 @@ struct exec_node {
 
    void remove()
    {
-      next->prev = prev;
-      prev->next = next;
+	  if(next)
+		next->prev = prev;
+	  if(prev)
+		prev->next = next;
+
       next = nullptr;
       prev = nullptr;
    }
@@ -148,7 +151,9 @@ struct exec_node {
       after->next = this->next;
       after->prev = this;
 
-      this->next->prev = after;
+	  if(this->next)
+		this->next->prev = after;
+
       this->next = after;
    }
    /**
@@ -159,8 +164,10 @@ struct exec_node {
       before->next = this;
       before->prev = this->prev;
 
-      this->prev->next = before;
-      this->prev = before;
+	  if(this->prev)
+		this->prev->next = before;
+      
+	  this->prev = before;
    }
 
    /**
@@ -176,8 +183,10 @@ struct exec_node {
       replacement->prev = this->prev;
       replacement->next = this->next;
 
-      this->prev->next = replacement;
-      this->next->prev = replacement;
+	  if(this->prev)
+		this->prev->next = replacement;
+	  if(this->next)
+		this->next->prev = replacement;
    }
 
    /**

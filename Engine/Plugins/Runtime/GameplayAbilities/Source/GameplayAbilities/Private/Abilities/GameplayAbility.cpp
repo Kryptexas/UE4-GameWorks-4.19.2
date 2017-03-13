@@ -674,6 +674,8 @@ void UGameplayAbility::PreActivate(const FGameplayAbilitySpecHandle Handle, cons
 		bIsCancelable = true;
 	}
 
+	RemoteInstanceEnded = false;
+
 	Comp->HandleChangeAbilityCanBeCanceled(AbilityTags, this, true);
 	Comp->ApplyAbilityBlockAndCancelTags(AbilityTags, this, true, BlockAbilitiesWithTag, true, CancelAbilitiesWithTag);
 	Comp->AddLooseGameplayTags(ActivationOwnedTags);

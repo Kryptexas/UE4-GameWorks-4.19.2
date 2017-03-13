@@ -88,6 +88,12 @@ void FAnimNode_PoseHandler::UpdatePoseAssetProperty(struct FAnimInstanceProxy* I
 
 			CacheBones(FAnimationCacheBonesContext(InstanceProxy));
 		}
+		else
+		{
+			PoseUIDList.Reset();
+			PoseExtractContext.PoseCurves.Reset();
+			BoneBlendWeights.Reset();
+		}
 	}
 	else
 	{

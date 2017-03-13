@@ -629,7 +629,7 @@ FVector UGameplayStatics::GetActorArrayAverageLocation(const TArray<AActor*>& Ac
 
 void UGameplayStatics::GetActorArrayBounds(const TArray<AActor*>& Actors, bool bOnlyCollidingComponents, FVector& Center, FVector& BoxExtent)
 {
-	FBox ActorBounds(0);
+	FBox ActorBounds(ForceInit);
 	// Iterate over actors and accumulate bouding box
 	for(int32 ActorIdx=0; ActorIdx<Actors.Num(); ActorIdx++)
 	{
@@ -652,6 +652,7 @@ void UGameplayStatics::GetActorArrayBounds(const TArray<AActor*>& Actors, bool b
 
 void UGameplayStatics::GetAllActorsOfClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, TArray<AActor*>& OutActors)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsOfClass);
 	OutActors.Empty();
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
@@ -672,6 +673,7 @@ void UGameplayStatics::GetAllActorsOfClass(const UObject* WorldContextObject, TS
 
 void UGameplayStatics::GetAllActorsWithInterface(const UObject* WorldContextObject, TSubclassOf<UInterface> Interface, TArray<AActor*>& OutActors)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsWithTag);
 	OutActors.Empty();
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
@@ -691,6 +693,7 @@ void UGameplayStatics::GetAllActorsWithInterface(const UObject* WorldContextObje
 
 void UGameplayStatics::GetAllActorsWithTag(const UObject* WorldContextObject, FName Tag, TArray<AActor*>& OutActors)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(UGameplayStatics_GetAllActorsWithTag);
 	OutActors.Empty();
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
@@ -1975,9 +1978,8 @@ bool UGameplayStatics::PredictProjectilePath(const UObject* WorldContextObject, 
 
 		FCollisionQueryParams QueryParams(NAME_PredictProjectilePath, PredictParams.bTraceComplex);
 		FCollisionObjectQueryParams ObjQueryParams;
-		const bool bTraceWithChannel = (PredictParams.TraceChannel != ECC_MAX);
 		const bool bTraceWithObjectType = (PredictParams.ObjectTypes.Num() > 0);
-		const bool bTracePath = PredictParams.bTraceWithCollision && (bTraceWithChannel || bTraceWithObjectType);
+		const bool bTracePath = PredictParams.bTraceWithCollision && (PredictParams.bTraceWithChannel || bTraceWithObjectType);
 		if (bTracePath)
 		{
 			QueryParams.AddIgnoredActors(PredictParams.ActorsToIgnore);
@@ -2026,7 +2028,7 @@ bool UGameplayStatics::PredictProjectilePath(const UObject* WorldContextObject, 
 				{
 					bObjectHit = World->SweepSingleByObjectType(ObjectTraceHit, TraceStart, TraceEnd, FQuat::Identity, ObjQueryParams, FCollisionShape::MakeSphere(ProjectileRadius), QueryParams);
 				}
-				if (bTraceWithChannel)
+				if (PredictParams.bTraceWithChannel)
 				{
 					bChannelHit = World->SweepSingleByChannel(ChannelTraceHit, TraceStart, TraceEnd, FQuat::Identity, PredictParams.TraceChannel, FCollisionShape::MakeSphere(ProjectileRadius), QueryParams);
 				}
@@ -2145,6 +2147,7 @@ bool UGameplayStatics::Blueprint_PredictProjectilePath_ByObjectType(
 	Params.SimFrequency = SimFrequency;
 	Params.OverrideGravityZ = OverrideGravityZ;
 	Params.ObjectTypes = ObjectTypes; // Object trace
+	Params.bTraceWithChannel = false;
 
 	// Do the trace
 	FPredictProjectilePathResult PredictResult;

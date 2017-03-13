@@ -49,7 +49,7 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 
 		{
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			AddVariable(Struct, FEdGraphPinType(K2Schema->PC_Boolean, FString(), NULL, false, false));
+			AddVariable(Struct, FEdGraphPinType(K2Schema->PC_Boolean, FString(), NULL, false, false, false, false, FEdGraphTerminalType()));
 		}
 	}
 
@@ -514,6 +514,22 @@ bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UUserDefinedStr
 	}
 	
 	return bResult;
+}
+
+bool FStructureEditorUtils::DiffersFromDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)
+{
+	bool bDiffers = false;
+	if (Struct && StructData)
+	{
+		UUserDefinedStructEditorData* StructEditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
+		const uint8* DefaultInstance = StructEditorData->GetDefaultInstance();
+		if (DefaultInstance)
+		{
+			const int32 PortFlags = PPF_None;
+			bDiffers = !Struct->CompareScriptStruct(StructData, DefaultInstance, PortFlags);
+		}
+	}
+	return bDiffers;
 }
 
 bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UProperty* Property, uint8* PropertyData)

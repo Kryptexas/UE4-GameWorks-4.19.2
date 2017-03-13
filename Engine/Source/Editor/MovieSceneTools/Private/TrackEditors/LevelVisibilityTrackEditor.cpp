@@ -20,6 +20,10 @@ TSharedRef<ISequencerTrackEditor> FLevelVisibilityTrackEditor::CreateTrackEditor
 	return MakeShareable( new FLevelVisibilityTrackEditor( InSequencer ) );
 }
 
+bool FLevelVisibilityTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("LevelSequence"));
+}
 
 bool FLevelVisibilityTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
@@ -41,13 +45,6 @@ TSharedRef<ISequencerSection> FLevelVisibilityTrackEditor::MakeSectionInterface(
 
 void FLevelVisibilityTrackEditor::BuildAddTrackMenu( FMenuBuilder& MenuBuilder )
 {
-	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
-
-	if ( ( RootMovieSceneSequence == nullptr ) || ( RootMovieSceneSequence->GetClass()->GetName() != TEXT( "LevelSequence" ) ) )
-	{
-		return;
-	}
-
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddTrack", "Level Visibility Track" ),
 		LOCTEXT("AddAdTrackToolTip", "Adds a new track which can control level visibility." ),
@@ -77,7 +74,7 @@ void FLevelVisibilityTrackEditor::AddNewSection( UMovieScene* MovieScene, UMovie
 	LevelVisibilitySection->SetStartTime( MovieScene->GetPlaybackRange().GetLowerBoundValue() );
 	LevelVisibilitySection->SetEndTime( MovieScene->GetPlaybackRange().GetUpperBoundValue() );
 
-	int32 RowIndex = 0;
+	int32 RowIndex = -1;
 	for ( const UMovieSceneSection* Section : LevelVisibilityTrack->GetAllSections() )
 	{
 		RowIndex = FMath::Max( RowIndex, Section->GetRowIndex() );

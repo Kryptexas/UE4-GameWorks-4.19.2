@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class IOSPlatformEditor : ModuleRules
 {
-	public IOSPlatformEditor(TargetInfo Target)
+	public IOSPlatformEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "IOS";
 

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Blutility : ModuleRules
 {
-	public Blutility(TargetInfo Target)
+	public Blutility(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/Blutility/Private");
 

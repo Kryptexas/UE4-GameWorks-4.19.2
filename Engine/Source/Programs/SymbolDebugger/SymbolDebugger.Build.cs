@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SymbolDebugger : ModuleRules
 {
-	public SymbolDebugger(TargetInfo Target)
+	public SymbolDebugger(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 

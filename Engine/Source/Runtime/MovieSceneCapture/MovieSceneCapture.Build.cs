@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MovieSceneCapture : ModuleRules
 {
-	public MovieSceneCapture(TargetInfo Target)
+	public MovieSceneCapture(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -27,6 +27,7 @@ public class MovieSceneCapture : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
                 "AssetRegistry",
+				"AVIWriter",
                 "Core",
 				"CoreUObject",
 				"Engine",

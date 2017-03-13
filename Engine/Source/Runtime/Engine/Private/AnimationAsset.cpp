@@ -161,6 +161,16 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 			}
 		}
 	}
+	else
+	{
+		// Leader has no markers, we can't use SyncMarkers.
+		bCanUseMarkerSync = false;
+		ValidMarkers.Reset();
+		for (FAnimTickRecord& AnimTickRecord : ActivePlayers)
+		{
+			AnimTickRecord.MarkerTickRecord->Reset();
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -212,6 +222,25 @@ void UAnimationAsset::Serialize(FArchive& Ar)
 	{
 		Ar << SkeletonGuid;
 	}
+}
+
+void UAnimationAsset::AddMetaData(class UAnimMetaData* MetaDataInstance)
+{
+	MetaData.Add(MetaDataInstance);
+}
+
+void UAnimationAsset::RemoveMetaData(class UAnimMetaData* MetaDataInstance)
+{
+	MetaData.Remove(MetaDataInstance);
+}
+
+void UAnimationAsset::RemoveMetaData(const TArray<UAnimMetaData*> MetaDataInstances)
+{
+	MetaData.RemoveAll(
+		[&](UAnimMetaData* MetaDataInstance)
+	{
+		return MetaDataInstances.Find(MetaDataInstance);
+	});
 }
 
 void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)

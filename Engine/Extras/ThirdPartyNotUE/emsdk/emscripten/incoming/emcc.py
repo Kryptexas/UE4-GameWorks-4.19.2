@@ -1054,7 +1054,7 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR P
         assert not shared.Settings.ALLOW_MEMORY_GROWTH, 'memory growth is not supported with shared modules yet'
 
       if shared.Settings.ALLOW_MEMORY_GROWTH:
-        logging.warning('not all asm.js optimizations are possible with ALLOW_MEMORY_GROWTH, disabling those')
+        logging.info('not all asm.js optimizations are possible with ALLOW_MEMORY_GROWTH, disabling those')
         shared.Settings.ASM_JS = 2 # memory growth does not validate as asm.js http://discourse.wicg.io/t/request-for-comments-switching-resizing-heaps-in-asm-js/641/23
 
       if shared.Settings.EMULATE_FUNCTION_POINTER_CASTS:

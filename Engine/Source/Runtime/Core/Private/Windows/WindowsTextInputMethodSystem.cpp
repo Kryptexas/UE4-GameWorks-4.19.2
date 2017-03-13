@@ -722,62 +722,68 @@ void FWindowsTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputM
 	const TSharedPtr<FGenericWindow> GenericWindow = Context->GetWindow();
 	InternalContext.WindowHandle = GenericWindow.IsValid() ? reinterpret_cast<HWND>(GenericWindow->GetOSWindowHandle()) : nullptr;
 
-	// IMM Implementation
-	InternalContext.IMMContext.IsComposing = false;
-	InternalContext.IMMContext.IsDeactivating = false;
-	::ImmAssociateContext(InternalContext.WindowHandle, IMMContextId);
-
-	// TSF Implementation
-	TComPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
-	ITfDocumentMgr* Unused;
-	Result = TSFThreadManager->AssociateFocus(InternalContext.WindowHandle, TextStore->TSFDocumentManager, &Unused);
-	if(FAILED(Result))
+	if (InternalContext.WindowHandle)
 	{
-		TCHAR ErrorMsg[1024];
-		FPlatformMisc::GetSystemErrorMessage(ErrorMsg, 1024, Result);
-		UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Activating a context failed while setting focus on a TSF document manager. %s (0x%08x)"), ErrorMsg, Result);
-	}
+		// IMM Implementation
+		InternalContext.IMMContext.IsComposing = false;
+		InternalContext.IMMContext.IsDeactivating = false;
+		::ImmAssociateContext(InternalContext.WindowHandle, IMMContextId);
 
-	UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Activated context %p!"), &(Context.Get()));
+		// TSF Implementation
+		TComPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
+		ITfDocumentMgr* Unused;
+		Result = TSFThreadManager->AssociateFocus(InternalContext.WindowHandle, TextStore->TSFDocumentManager, &Unused);
+		if (FAILED(Result))
+		{
+			TCHAR ErrorMsg[1024];
+			FPlatformMisc::GetSystemErrorMessage(ErrorMsg, 1024, Result);
+			UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Activating a context failed while setting focus on a TSF document manager. %s (0x%08x)"), ErrorMsg, Result);
+		}
+
+		UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Activated context %p!"), &(Context.Get()));
+	}
 }
 
 void FWindowsTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context)
 {
-	UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Deactivating context %p..."), &(Context.Get()));
-	
 	FInternalContext& InternalContext = ContextToInternalContextMap[Context];
 
-	// IMM Implementation
-	HIMC IMMContext = ::ImmGetContext(InternalContext.WindowHandle);
-	InternalContext.IMMContext.IsDeactivating = true;
-	// Request the composition is completed to ensure that the composition input UI is closed, and that a WM_IME_ENDCOMPOSITION message is sent
-	::ImmNotifyIME(IMMContext, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
-	::ImmReleaseContext(InternalContext.WindowHandle, IMMContext);
-
-	// Ensure all known windows are associated with a disabled IME
-	ClearStaleWindowHandles();
-	for(const TWeakPtr<FGenericWindow>& Window : KnownWindows)
+	if (InternalContext.WindowHandle)
 	{
-		TSharedPtr<FGenericWindow> WindowPtr = Window.Pin();
-		if(WindowPtr.IsValid())
-		{
-			const HWND Hwnd = reinterpret_cast<HWND>(WindowPtr->GetOSWindowHandle());
-			if(Hwnd)
-			{
-				//  TSF Implementation
-				ITfDocumentMgr* Unused;
-				TSFThreadManager->AssociateFocus(Hwnd, TSFDisabledDocumentManager, &Unused);
+		UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Deactivating context %p..."), &(Context.Get()));
 
-				// IMM Implementation
-				::ImmAssociateContext(InternalContext.WindowHandle, nullptr);
+		// IMM Implementation
+		HIMC IMMContext = ::ImmGetContext(InternalContext.WindowHandle);
+		InternalContext.IMMContext.IsDeactivating = true;
+		// Request the composition is completed to ensure that the composition input UI is closed, and that a WM_IME_ENDCOMPOSITION message is sent
+		::ImmNotifyIME(IMMContext, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
+		::ImmReleaseContext(InternalContext.WindowHandle, IMMContext);
+
+		// Ensure all known windows are associated with a disabled IME
+		ClearStaleWindowHandles();
+		for (const TWeakPtr<FGenericWindow>& Window : KnownWindows)
+		{
+			TSharedPtr<FGenericWindow> WindowPtr = Window.Pin();
+			if (WindowPtr.IsValid())
+			{
+				const HWND Hwnd = reinterpret_cast<HWND>(WindowPtr->GetOSWindowHandle());
+				if (Hwnd)
+				{
+					//  TSF Implementation
+					ITfDocumentMgr* Unused;
+					TSFThreadManager->AssociateFocus(Hwnd, TSFDisabledDocumentManager, &Unused);
+
+					// IMM Implementation
+					::ImmAssociateContext(InternalContext.WindowHandle, nullptr);
+				}
 			}
+
+			UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Deactivated context %p!"), &(Context.Get()));
 		}
 	}
 
 	// General Implementation
 	ActiveContext = nullptr;
-
-	UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Deactivated context %p!"), &(Context.Get()));
 }
 
 bool FWindowsTextInputMethodSystem::IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const

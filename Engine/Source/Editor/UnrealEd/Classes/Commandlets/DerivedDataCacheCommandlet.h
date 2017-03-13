@@ -20,7 +20,7 @@ class UDerivedDataCacheCommandlet : public UCommandlet
 	//~ End UCommandlet Interface
 
 	// We hook this up to a delegate to avoid reloading textures and whatnot
-	TSet<FString> PackagesToNotReload;
+	TSet<FName> ProcessedPackages;
 
 	void MaybeMarkPackageAsAlreadyLoaded(UPackage *Package);
 };

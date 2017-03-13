@@ -25,7 +25,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogShaderCompilers, Log, All);
 class FShaderCompileJob;
 class FShaderPipelineCompileJob;
 
-#define DEBUG_INFINITESHADERCOMPILE 1
+#define DEBUG_INFINITESHADERCOMPILE 0
 
 
 /** Stores all of the common information used to compile a shader or pipeline. */
@@ -529,7 +529,7 @@ extern ENGINE_API FShaderCompilingManager* GShaderCompilingManager;
 extern class FConsoleShaderPrecompiler* GConsoleShaderPrecompilers[SP_NumPlatforms];
 
 /** Enqueues a shader compile job with GShaderCompilingManager. */
-extern void GlobalBeginCompileShader(
+extern ENGINE_API void GlobalBeginCompileShader(
 	const FString& DebugGroupName,
 	class FVertexFactoryType* VFType,
 	class FShaderType* ShaderType,

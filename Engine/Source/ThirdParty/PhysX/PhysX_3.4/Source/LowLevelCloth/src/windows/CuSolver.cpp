@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -55,148 +55,12 @@ extern "C" void cudaPrintfEnd();
 extern "C" cudaError_t cudaPrintfDisplay(CUmodule hmod, void* outputFP = NULL, bool showThreadID = false);
 #endif
 
-#define NV_CUPTI 0
-
-#if NV_CUPTI
-#pragma warning(disable : 4324)
-#include "cupti_activity.h"
-#include "cupti_metrics.h"
-#include "cupti_driver_cbid.h"
-#include <cstdio>
-
-namespace
-{
-void CUPTIAPI bufferRequested(uint8_t** buffer, size_t* size, size_t* maxNumRecords)
-{
-	*buffer = (uint8_t*)PX_ALIGNED16_ALLOC(*size = 32 * 1024 * 1024);
-	*maxNumRecords = 0;
-}
-
-void CUPTIAPI bufferCompleted(CUcontext context, uint32_t streamId, uint8_t* buffer, size_t /*size*/, size_t validSize)
-{
-	CUpti_Activity* record = NULL;
-	uint64_t totalTime = 0, numRecords = 0;
-	while(CUPTI_SUCCESS == cuptiActivityGetNextRecord(buffer, validSize, &record))
-	{
-		if(record->kind != CUPTI_ACTIVITY_KIND_KERNEL)
-			continue;
-
-		CUpti_ActivityKernel3* kernel = (CUpti_ActivityKernel3*)record;
-		if(strcmp(kernel->name, physx::cloth::getKernelFunctionName()))
-			continue;
-
-		totalTime += kernel->end - kernel->start;
-		++numRecords;
-	}
-
-	if(numRecords)
-	{
-		printf("%u kernel records, average runtime is %u ns\n", unsigned(numRecords), unsigned(totalTime / numRecords));
-	}
-
-	size_t dropped;
-	cuptiActivityGetNumDroppedRecords(context, streamId, &dropped);
-	if(dropped)
-	{
-		printf("Dropped %u activity records\n", unsigned(dropped));
-	}
-
-	PX_ALIGNED16_FREE(buffer);
-}
-
-struct CuptiEventProfiler : physx::shdfnd::UserAllocated
-{
-	CuptiEventProfiler() : mActiveCycles(0), mNumEvents(0)
-	{
-		CUdevice device = 0;
-		cuCtxGetDevice(&device);
-		CUcontext context = 0;
-		cuCtxGetCurrent(&context);
-		cuptiEventGetIdFromName(device, "active_cycles", &mEventId);
-		cuptiEventGroupCreate(context, &mEventGroup, 0);
-		cuptiEventGroupAddEvent(mEventGroup, mEventId);
-		cuptiSubscribe(&mSubscriber, eventCallback, this);
-		cuptiEnableCallback(1, mSubscriber, CUPTI_CB_DOMAIN_DRIVER_API, CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel);
-	}
-
-	~CuptiEventProfiler()
-	{
-		cuptiUnsubscribe(mSubscriber);
-		cuptiEventGroupRemoveEvent(mEventGroup, mEventId);
-		cuptiEventGroupDestroy(mEventGroup);
-		if(mNumEvents)
-		{
-			printf("%u kernel events, average active cycles is %u\n", unsigned(mNumEvents),
-			       unsigned(mActiveCycles / mNumEvents));
-		}
-	}
-
-	static void CUPTIAPI
-	eventCallback(void* profiler, CUpti_CallbackDomain domain, CUpti_CallbackId cbid, const void* cbInfo)
-	{
-		// This callback is enabled only for launch so we shouldn't see anything else.
-		PX_ASSERT(domain == CUPTI_CB_DOMAIN_DRIVER_API);
-		PX_ASSERT(cbid == CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel);
-
-		reinterpret_cast<CuptiEventProfiler*>(profiler)
-		    ->eventCallback(reinterpret_cast<const CUpti_CallbackData*>(cbInfo));
-	}
-
-	void eventCallback(const CUpti_CallbackData* cbInfo)
-	{
-		// on entry, enable all the event groups being collected this pass,
-		// for metrics we collect for all instances of the event
-		if(cbInfo->callbackSite == CUPTI_API_ENTER)
-		{
-			cuCtxSynchronize();
-			cuptiSetEventCollectionMode(cbInfo->context, CUPTI_EVENT_COLLECTION_MODE_KERNEL);
-			cuptiEventGroupEnable(mEventGroup);
-		}
-
-		// on exit, read and record event values
-		if(cbInfo->callbackSite == CUPTI_API_EXIT)
-		{
-			cuCtxSynchronize();
-			uint64_t activeCycles = 0;
-			size_t bytesRead = sizeof(activeCycles);
-			cuptiEventGroupReadEvent(mEventGroup, CUPTI_EVENT_READ_FLAG_NONE, mEventId, &bytesRead, &activeCycles);
-			cuptiEventGroupDisable(mEventGroup);
-			mActiveCycles += activeCycles;
-			++mNumEvents;
-		}
-	}
-
-	CUpti_SubscriberHandle mSubscriber;
-	CUpti_EventGroup mEventGroup;
-	CUpti_EventID mEventId;
-	uint64_t mActiveCycles;
-	uint64_t mNumEvents;
-};
-}
-#endif
-
 using namespace physx;
 
 namespace
 {
-const char* gKernelNames[] = { cloth::getKernelFunctionName(), };
-
-// Note: gCuProfileZoneNames has a corresponding enum list (CuProfileZoneIds) in CuSolverKernel.h.
-// Additions/deletions to gCuProfileZoneNames requires a similar action to CuProfileZoneIds.
-const char* gCuProfileZoneNames[] = {
-	"cloth::CuSolverKernel::simulateKernel",         "cloth::CuSolverKernel::integrateParticles",
-	"cloth::CuSolverKernel::accelerateParticles",    "cloth::CuSolverKernel::applyWind",
-	"cloth::CuSolverKernel::constrainTether",        "cloth::CuSolverKernel::solveFabric",
-	"cloth::CuSolverKernel::constrainMotion",        "cloth::CuSolverKernel::constrainSeparation",
-	"cloth::CuSolverKernel::collideParticles",       "cloth::CuSolverKernel::selfCollideParticles",
-	"cloth::CuSolverKernel::updateSleepState",       "cloth::CuSolverKernel::simulateShared",
-	"cloth::CuSolverKernel::simulateStreamed",       "cloth::CuSolverKernel::simulateGlobal",
-	"cloth::CuSolverKernel::solveConstraintSet",     "cloth::CuCollision::buildAccleration",
-	"cloth::CuCollision::collideCapsules",           "cloth::CuCollision::collideVirtualCapsules",
-	"cloth::CuCollision::collideContinuousCapsules", "cloth::CuCollision::collideConvexes",
-	"cloth::CuCollision::collideTriangles",          "cloth::CuSelfCollision::buildAccleration",
-	"cloth::CuSelfCollision::collideParticles",
-};
+//for KernelWrangler interface
+const char* gKernelName = cloth::getKernelFunctionName();
 }
 
 namespace
@@ -247,15 +111,10 @@ cloth::CuSolver::CuSolver(CuFactory& factory)
 , mInterCollisionIterations(1)
 , mInterCollisionScratchMem(NULL)
 , mInterCollisionScratchMemSize(0)
-, mKernelWrangler(getDispatcher(), physx::shdfnd::getFoundation().getErrorCallback(), gKernelNames,
-                  sizeof(gKernelNames) / sizeof(char*))
+, mKernelWrangler(getDispatcher(), physx::shdfnd::getFoundation().getErrorCallback(), &gKernelName, 1)
 , mSimulateNvtxRangeId(0)
-, mProfileBuffer(0)
-, mProfileBaseId(getDispatcher().registerKernelNames(gCuProfileZoneNames, CuProfileZoneIds::NUMZONES))
 , mCudaError(mKernelWrangler.hadError())
 {
-	PX_ASSERT(CuProfileZoneIds::NUMZONES == PX_ARRAY_SIZE(gCuProfileZoneNames));
-
 	if(mCudaError)
 	{
 		CuContextLock::release();
@@ -271,8 +130,8 @@ cloth::CuSolver::CuSolver(CuFactory& factory)
 
 	if(1)
 	{
-		mKernelModule = mKernelWrangler.getCuModule(CuProfileZoneIds::SIMULATE);
-		mKernelFunction = mKernelWrangler.getCuFunction(CuProfileZoneIds::SIMULATE);
+		mKernelModule = mKernelWrangler.getCuModule(0);
+		mKernelFunction = mKernelWrangler.getCuFunction(0);
 	}
 	else
 	{
@@ -294,16 +153,6 @@ cloth::CuSolver::CuSolver(CuFactory& factory)
 	// initialize cloth index
 	checkSuccess(cuMemsetD32(mClothIndex.dev(), 0, 1));
 
-#if NV_CUPTI
-	// activity (measure kernel runtime in ns)
-	CUcontext context = 0;
-	cuCtxGetCurrent(&context);
-	cuptiActivityEnableContext(context, CUPTI_ACTIVITY_KIND_KERNEL);
-	cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted);
-	// event (measure kernel active cycles)
-	mCuptiEventProfiler = PX_NEW(CuptiEventProfiler);
-#endif
-
 	CuContextLock::release();
 }
 
@@ -312,12 +161,6 @@ cloth::CuSolver::~CuSolver()
 	PX_ASSERT(mCloths.empty());
 
 	CuContextLock::acquire();
-
-#if NV_CUPTI
-	cuptiActivityFlushAll(0);
-	cuptiActivityDisable(CUPTI_ACTIVITY_KIND_KERNEL);
-	PX_DELETE((CuptiEventProfiler*)mCuptiEventProfiler);
-#endif
 
 	CuKernelData kernelData = {};
 	*mKernelData = kernelData;
@@ -338,9 +181,6 @@ void cloth::CuSolver::updateKernelData()
 	kernelData.mClothIndex = mClothIndex.get();
 	kernelData.mClothData = mClothData.begin().get();
 	kernelData.mFrameData = getDevicePointer(mFrameData);
-
-	kernelData.mProfileBuffer = mProfileBuffer;
-	kernelData.mProfileBaseId = mProfileBaseId;
 
 	*mKernelData = kernelData;
 }
@@ -554,16 +394,6 @@ void cloth::CuSolver::beginFrame()
 void cloth::CuSolver::executeKernel()
 {
 	CuContextLock contextLock(mFactory);
-
-#if PX_PROFILE
-	// Note: The profile buffer is valid only within the cuda launch context
-	void* profileBuffer = getDispatcher().getCurrentProfileBuffer();
-	if(mProfileBuffer != profileBuffer && mProfileBaseId + 1)
-	{
-		mProfileBuffer = profileBuffer;
-		updateKernelData();
-	}
-#endif
 
 #if ENABLE_CUDA_PRINTF
 	if(cudaError result = cudaPrintfInit(mKernelModule))

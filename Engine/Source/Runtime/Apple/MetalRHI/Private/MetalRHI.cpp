@@ -185,13 +185,14 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 		bSupportsPointLights = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
 		GRHIVendorId = 0x8086;
 		bSupportsRHIThread = true;
+		bSupportsDistanceFields = (FPlatformMisc::MacOSXVersionCompare(10,12,2) >= 0);
 	}
 
 	// Default to Metal SM5 on 10.11.5 or later. Earlier versions should still be running SM4. Apparently so will Intel GPUs - as of 10.12.1 and UE4 4.14 the Intel drivers can't compile our compute shaders.
 	// Similarly Metal v1.2 shaders require 10.12.1.
-	bool const bAcceptableOSVersion = (FPlatformMisc::MacOSXVersionCompare(10,11,5) >= 0) && ((RHIGetShaderLanguageVersion(SP_METAL_SM5) < 2) || (FPlatformMisc::MacOSXVersionCompare(10,12,1) >= 0));
+	bool const bAcceptableOSVersion = (FPlatformMisc::MacOSXVersionCompare(10,11,5) >= 0) && ((RHIGetShaderLanguageVersion(SP_METAL_SM5) < 2) || (FPlatformMisc::MacOSXVersionCompare(10,12,1) >= 0) || (!IsRHIDeviceIntel() || FPlatformMisc::MacOSXVersionCompare(10,12,2) >= 0));
 	bool const bRequestedSM5 = (RequestedFeatureLevel == ERHIFeatureLevel::SM5 || (!bRequestedFeatureLevel && FParse::Param(FCommandLine::Get(),TEXT("metalsm5"))));
-	if(bAcceptableOSVersion && !IsRHIDeviceIntel() && bRequestedSM5)
+	if(bAcceptableOSVersion && bRequestedSM5)
 	{
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 		GMaxRHIShaderPlatform = SP_METAL_SM5;
@@ -526,7 +527,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GDynamicRHI = this;
 	
 #if PLATFORM_DESKTOP
-	if (!GRHISupportsRHIThread) // Can't use the shader cache with RHI thread yet, but SM5 is not a problem.
+	if (!GRHISupportsRHIThread || FParse::Param(FCommandLine::Get(),TEXT("norhithread"))) // Can't use the shader cache with RHI thread yet, but SM5 is not a problem.
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
 		

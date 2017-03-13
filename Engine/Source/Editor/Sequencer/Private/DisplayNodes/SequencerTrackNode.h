@@ -35,6 +35,18 @@ public:
 	FSequencerTrackNode(UMovieSceneTrack& InAssociatedTrack, ISequencerTrackEditor& InAssociatedEditor, bool bInCanBeDragged, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree);
 
 public:
+	/** Defines interaction modes when using sub-tracks for sections on multiple rows. */
+	enum class ESubTrackMode
+	{
+		/** This track node isn't part of a sub-track set. */
+		None,
+		/** This track node is the parent and has child sub tracks. */
+		ParentTrack,
+		/** This track node is a sub-track of another track node. */
+		SubTrack
+	};
+
+public:
 
 	/**
 	 * Adds a section to this node
@@ -44,6 +56,11 @@ public:
 	void AddSection(TSharedRef<ISequencerSection>& SequencerSection)
 	{
 		Sections.Add(SequencerSection);
+	}
+
+	void AddChildTrack(TSharedRef<FSequencerTrackNode> TrackNode)
+	{
+		ChildNodes.Add(TrackNode);
 	}
 
 	/**
@@ -84,11 +101,23 @@ public:
 		return AssociatedTrack.Get();
 	}
 
-	/** Gets the greatest row index of all the sections we have */
-	int32 GetMaxRowIndex() const;
+	/** Gets the track editor associated with this track node. */
+	ISequencerTrackEditor& GetTrackEditor() const
+	{
+		return AssociatedEditor;
+	}
 
-	/** Ensures all row indices which have no sections are gone */
-	void FixRowIndices();
+	/** Gets the sub track mode for this track node, used when the track supports multiple rows. */
+	ESubTrackMode GetSubTrackMode() const;
+
+	/** Sets the sub track mode for this track node, used when the track supports multiple rows. */
+	void SetSubTrackMode(ESubTrackMode InSubTrackMode);
+
+	/** Gets the row index for this track node.  This is only relevant when this track node is a sub-track node. */
+	int32 GetRowIndex() const;
+
+	/**  Gets the row index for this track node when this track node is a sub-track. */
+	void SetRowIndex(int32 InRowIndex);
 
 public:
 
@@ -122,4 +151,10 @@ private:
 
 	/** Whether or not this track node can be dragged. */
 	bool bCanBeDragged;
+
+	/** The current sub-track mode this node is using. */
+	ESubTrackMode SubTrackMode;
+
+	/** The row index when this track node is a sub-track node. */
+	int32 RowIndex;
 };

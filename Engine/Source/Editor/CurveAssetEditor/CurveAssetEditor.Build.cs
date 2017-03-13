@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CurveAssetEditor : ModuleRules
 {
-	public CurveAssetEditor(TargetInfo Target)
+	public CurveAssetEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePathModuleNames.Add("LevelEditor");
         PublicIncludePathModuleNames.Add("WorkspaceMenuStructure");

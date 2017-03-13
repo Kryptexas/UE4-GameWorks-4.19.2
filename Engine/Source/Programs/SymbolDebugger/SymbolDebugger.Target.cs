@@ -6,29 +6,18 @@ using System.Collections.Generic;
 [SupportedPlatforms(UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac)]
 public class SymbolDebuggerTarget : TargetRules
 {
-	public SymbolDebuggerTarget(TargetInfo Target)
+	public SymbolDebuggerTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
+
+		LaunchModuleName = "SymbolDebugger";
+        ExtraModuleNames.Add("EditorStyle");
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
-											InModuleNames: new List<string>() { "SymbolDebugger" })
-			);
-
-        OutExtraModuleNames.Add("EditorStyle");
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

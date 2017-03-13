@@ -149,6 +149,7 @@ public:
 
 	int				CpuLevel;
 	int				GpuLevel;
+	int				MaxFullspeedMSAASamples;
 
 	ovrHeadModelParms HeadModelParms;
 
@@ -243,6 +244,7 @@ public:
 		uint32 InSizeZ,
 		uint32 InNumMips,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		uint32 InArraySize,
 		EPixelFormat InFormat,
 		bool bInCubemap,
@@ -260,6 +262,7 @@ public:
 			InSizeZ,
 			InNumMips,
 			InNumSamples,
+			InNumSamplesTileMem,
 			InArraySize,
 			InFormat,
 			bInCubemap,
@@ -288,6 +291,7 @@ public:
 		FOpenGLDynamicRHI* InGLRHI,
 		uint32 SizeX, uint32 SizeY,
 		uint32 InNumSamples,
+		uint32 InNumSamplesTileMem,
 		uint32 InNumMips,
 		EPixelFormat InFormat,
 		uint32 InFlags,
@@ -482,7 +486,7 @@ public:
 	// If returns false then a default RT texture will be used.
 	bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 
-	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, bool bBuffered, bool bInCubemap);
+	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumSamples, uint32 NumMips, bool bBuffered, bool bInCubemap);
 
 	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTextureRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false) const;
 		

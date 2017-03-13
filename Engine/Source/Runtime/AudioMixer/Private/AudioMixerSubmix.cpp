@@ -108,7 +108,7 @@ namespace Audio
 	void FMixerSubmix::DownmixBuffer(const int32 InputChannelCount, const TArray<float>& InBuffer, const int32 DownMixChannelCount, TArray<float>& OutDownmixedBuffer)
 	{
 		// Retrieve ptr to the cached downmix channel map from the mixer device
-		const float* DownmixChannelMap = MixerDevice->Get2DChannelMap(InputChannelCount, DownMixChannelCount);
+		const float* DownmixChannelMap = MixerDevice->Get2DChannelMap(InputChannelCount, DownMixChannelCount, false);
 
 		// Input and output frame count is going to be the same
 		const int32 InputFrames = InBuffer.Num() / InputChannelCount;
@@ -149,41 +149,51 @@ namespace Audio
 		DryBuffer.Reset(NumSamples);
 		DryBuffer.AddZeroed(NumSamples);
 
-		// First loop this submix's child submixes mixing in their output into this submix's dry/wet buffers.
-		for (auto ChildSubmixEntry : ChildSubmixes)
 		{
-			TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> ChildSubmix = ChildSubmixEntry.Value;
+			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixChildren);
 
-			AUDIO_MIXER_CHECK(ChildSubmix.IsValid());
-
-			ScratchBuffer.Reset(NumSamples);
-			ScratchBuffer.AddZeroed(NumSamples);
-
-			ChildSubmix->ProcessAudio(ScratchBuffer);
-
-			// Get this child submix's wet level
-			float ChildWetLevel = ChildSubmix->WetLevel;
-			float ChildDryLevel = 1.0f - ChildWetLevel;
-
-			// Mix the child's submix results into this submix's dry and wet levels
-			for (int32 i = 0; i < NumSamples; ++i)
+			// First loop this submix's child submixes mixing in their output into this submix's dry/wet buffers.
+			for (auto ChildSubmixEntry : ChildSubmixes)
 			{
-				WetBuffer[i] += ChildDryLevel * ScratchBuffer[i];
-				DryBuffer[i] += ChildDryLevel* ScratchBuffer[i];
+				TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> ChildSubmix = ChildSubmixEntry.Value;
+
+				AUDIO_MIXER_CHECK(ChildSubmix.IsValid());
+
+				ScratchBuffer.Reset(NumSamples);
+				ScratchBuffer.AddZeroed(NumSamples);
+
+				ChildSubmix->ProcessAudio(ScratchBuffer);
+
+				// Get this child submix's wet level
+				float ChildWetLevel = ChildSubmix->WetLevel;
+				float ChildDryLevel = 1.0f - ChildWetLevel;
+
+				// Mix the child's submix results into this submix's dry and wet levels
+				for (int32 i = 0; i < NumSamples; ++i)
+				{
+					WetBuffer[i] += ChildDryLevel * ScratchBuffer[i];
+					DryBuffer[i] += ChildDryLevel* ScratchBuffer[i];
+				}
 			}
 		}
 
-		// Loop through this submix's sound sources
-		for (auto MixerSourceVoiceIter : MixerSourceVoices)
 		{
-			const FMixerSourceVoice* MixerSourceVoice = MixerSourceVoiceIter.Key;
-			const FSubmixEffectSendInfo& EffectInfo = MixerSourceVoiceIter.Value;
+			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixSource);
 
-			MixerSourceVoice->MixOutputBuffers(DryBuffer, WetBuffer, EffectInfo.DryLevel, EffectInfo.WetLevel);
+			// Loop through this submix's sound sources
+			for (auto MixerSourceVoiceIter : MixerSourceVoices)
+			{
+				const FMixerSourceVoice* MixerSourceVoice = MixerSourceVoiceIter.Key;
+				const FSubmixEffectSendInfo& EffectInfo = MixerSourceVoiceIter.Value;
+
+				MixerSourceVoice->MixOutputBuffers(DryBuffer, WetBuffer, EffectInfo.DryLevel, EffectInfo.WetLevel);
+			}
 		}
 
 		if (EffectSubmixChain.Num() > 0)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixEffectProcessing);
+
 			// Setup the input data buffer
 			FSoundEffectSubmixInputData InputData;
 			InputData.AudioClock = MixerDevice->GetAudioTime();

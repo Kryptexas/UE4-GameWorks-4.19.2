@@ -1,9 +1,9 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class SDL2 : ModuleRules
 {
-	public SDL2(TargetInfo Target)
+	public SDL2(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -21,7 +21,7 @@ public class SDL2 : ModuleRules
                 // Debug version should be built with -fPIC and usable in all targets
                 PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2_fPIC_Debug.a");
             }
-            else if (Target.IsMonolithic)
+            else if (Target.LinkType == TargetLinkType.Monolithic)
             {
                 PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2.a");
             }

@@ -43,6 +43,7 @@ public:
 	ENGINE_API void SetSoundWave(USoundWave* SoundWave);
 
 	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

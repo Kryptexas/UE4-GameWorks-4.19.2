@@ -19,7 +19,7 @@
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf<UK2Node_Variable> NodeClass, UProperty const* VarProperty, UObject* Outer/*= nullptr*/)
+UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::CreateFromMemberOrParam(TSubclassOf<UK2Node_Variable> NodeClass, UProperty const* VarProperty, UEdGraph* VarContext, UObject* Outer/*= nullptr*/)
 {
 	check(VarProperty != nullptr);
 	if (Outer == nullptr)
@@ -33,7 +33,8 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 
 	UBlueprintVariableNodeSpawner* NodeSpawner = NewObject<UBlueprintVariableNodeSpawner>(Outer);
 	NodeSpawner->NodeClass = NodeClass;
-	NodeSpawner->Field     = VarProperty;
+	NodeSpawner->Field = VarProperty;
+	NodeSpawner->LocalVarOuter = VarContext;
 
 	//--------------------------------------
 	// Default UI Signature
@@ -78,10 +79,11 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 			UClass* OwnerClass = Property->GetOwnerClass();
 
 			// We need to use a generated class instead of a skeleton class for IsChildOf, so if the OwnerClass has a Blueprint, grab the GeneratedClass
-			bool const bIsSelfContext = Blueprint->SkeletonGeneratedClass->GetAuthoritativeClass() == OwnerClass || Blueprint->SkeletonGeneratedClass->IsChildOf(OwnerClass);
+			const bool bOwnerClassIsSelfContext = (Blueprint->SkeletonGeneratedClass->GetAuthoritativeClass() == OwnerClass) || Blueprint->SkeletonGeneratedClass->IsChildOf(OwnerClass);
+			const bool bIsFunctionVariable = Property->GetOuter()->IsA(UFunction::StaticClass());
 
 			UK2Node_Variable* VarNode = CastChecked<UK2Node_Variable>(NewNode);
-			VarNode->SetFromProperty(Property, bIsSelfContext);
+			VarNode->SetFromProperty(Property, bOwnerClassIsSelfContext && !bIsFunctionVariable);
 		}
 	};
 	NodeSpawner->SetNodeFieldDelegate = FSetNodeFieldDelegate::CreateStatic(MemberVarSetupLambda);
@@ -90,7 +92,7 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 }
 
 //------------------------------------------------------------------------------
-UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf<UK2Node_Variable> NodeClass, UEdGraph* VarContext, FBPVariableDescription const& VarDesc, UProperty* VarProperty, UObject* Outer/*= nullptr*/)
+UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::CreateFromLocal(TSubclassOf<UK2Node_Variable> NodeClass, UEdGraph* VarContext, FBPVariableDescription const& VarDesc, UProperty* VarProperty, UObject* Outer/*= nullptr*/)
 {
 	check(VarContext != nullptr);
 	if (Outer == nullptr)
@@ -158,7 +160,7 @@ void UBlueprintVariableNodeSpawner::Prime()
 FBlueprintNodeSignature UBlueprintVariableNodeSpawner::GetSpawnerSignature() const
 {
 	FBlueprintNodeSignature SpawnerSignature(NodeClass);
-	if (IsLocalVariable())
+	if (IsUserLocalVariable())
 	{
 		SpawnerSignature.AddSubObject(LocalVarOuter);
 		static const FName LocalVarSignatureKey(TEXT("LocalVarName"));
@@ -221,7 +223,7 @@ UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 		FCustomizeNodeDelegate PostSpawnDelegate = CustomizeNodeDelegate;
 		if (UObject const* LocalVariableOuter = GetVarOuter())
 		{
-			PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(LocalVarSetupLambda, LocalVarDesc.VarName, LocalVariableOuter, LocalVarDesc.VarGuid, CustomizeNodeDelegate);
+			PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(LocalVarSetupLambda, IsUserLocalVariable() ? LocalVarDesc.VarName : Field->GetFName(), LocalVariableOuter, LocalVarDesc.VarGuid, CustomizeNodeDelegate);
 		}
 
 		NewNode = UBlueprintNodeSpawner::SpawnNode<UEdGraphNode>(NodeClass, ParentGraph, Bindings, Location, PostSpawnDelegate);
@@ -235,9 +237,15 @@ UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 }
 
 //------------------------------------------------------------------------------
-bool UBlueprintVariableNodeSpawner::IsLocalVariable() const
+bool UBlueprintVariableNodeSpawner::IsUserLocalVariable() const
 {
 	return (LocalVarDesc.VarName != NAME_None);
+}
+
+//------------------------------------------------------------------------------
+bool UBlueprintVariableNodeSpawner::IsLocalVariable() const
+{
+	return (LocalVarDesc.VarName != NAME_None) || (LocalVarOuter != nullptr);
 }
 
 //------------------------------------------------------------------------------
@@ -266,7 +274,7 @@ UProperty const* UBlueprintVariableNodeSpawner::GetVarProperty() const
 FEdGraphPinType UBlueprintVariableNodeSpawner::GetVarType() const
 {
 	FEdGraphPinType VarType;
-	if (IsLocalVariable())
+	if (IsUserLocalVariable())
 	{
 		VarType = LocalVarDesc.VarType;
 	}
@@ -284,7 +292,7 @@ FText UBlueprintVariableNodeSpawner::GetVariableName() const
 	FText VarName;
 
 	bool bShowFriendlyNames = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
-	if (IsLocalVariable())
+	if (IsUserLocalVariable())
 	{
 		VarName = bShowFriendlyNames ? FText::FromString(LocalVarDesc.FriendlyName) : FText::FromName(LocalVarDesc.VarName);
 	}

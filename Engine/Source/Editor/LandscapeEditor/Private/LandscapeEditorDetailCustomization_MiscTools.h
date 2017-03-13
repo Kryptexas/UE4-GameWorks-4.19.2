@@ -46,4 +46,11 @@ protected:
 	// Mirror Tool
 	static FReply OnApplyMirrorButtonClicked();
 	static FReply OnResetMirrorPointButtonClicked();
+
+	// Flatten Tool
+	void HandleFlattenValueChanged(float NewValue);
+	void OnBeginFlattenToolEyeDrop();
+	void OnCompletedFlattenToolEyeDrop(bool Canceled);
+	TOptional<float> GetFlattenValue() const;
+
 };

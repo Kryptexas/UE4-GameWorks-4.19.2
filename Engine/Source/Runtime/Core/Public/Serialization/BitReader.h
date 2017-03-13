@@ -126,6 +126,11 @@ public:
 		return Buffer.GetData();
 	}
 
+	FORCEINLINE_DEBUGGABLE const TArray<uint8>& GetBuffer()
+	{
+		return Buffer;
+	}
+
 	FORCEINLINE_DEBUGGABLE uint8* GetDataPosChecked()
 	{
 		check(Pos % 8 == 0);

@@ -165,9 +165,9 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 
 		const FSlateShaderResource* Texture = RenderBatch.Texture;
 
-		const ESlateBatchDrawFlag::Type DrawFlags = RenderBatch.DrawFlags;
+		const ESlateBatchDrawFlag DrawFlags = RenderBatch.DrawFlags;
 
-		if( DrawFlags & ESlateBatchDrawFlag::NoBlending )
+		if( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::NoBlending) )
 		{
 			glDisable( GL_BLEND );
 		}
@@ -177,7 +177,7 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		}
 
 #if !PLATFORM_USES_ES2
-		if( DrawFlags & ESlateBatchDrawFlag::Wireframe )
+		if( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::Wireframe) )
 		{
 			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 			glDisable(GL_BLEND);
@@ -202,8 +202,8 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		}
 		else if( Texture )
 		{
-			uint32 RepeatU = DrawFlags & ESlateBatchDrawFlag::TileU ? GL_REPEAT : GL_CLAMP_TO_EDGE;
-			uint32 RepeatV = DrawFlags & ESlateBatchDrawFlag::TileV ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+			uint32 RepeatU = EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::TileU) ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+			uint32 RepeatV = EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::TileV) ? GL_REPEAT : GL_CLAMP_TO_EDGE;
 
 #if PLATFORM_USES_ES2
 			if(!FMath::IsPowerOfTwo(Texture->GetWidth()) || !FMath::IsPowerOfTwo(Texture->GetHeight()))

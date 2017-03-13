@@ -279,6 +279,10 @@ void UTexture::Serialize(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	if (!StripFlags.IsEditorDataStripped())
 	{
+		if ( Ar.IsSaving() )
+		{
+			check( Source.HasHadBulkDataCleared() == false);
+		}
 		Source.BulkData.Serialize(Ar, this);
 	}
 
@@ -499,6 +503,12 @@ UEnum* UTexture::GetPixelFormatEnum()
 	}
 	return PixelFormatEnum;
 }
+
+void UTexture::PostCDOContruct()
+{
+	GetPixelFormatEnum();
+}
+
 
 bool UTexture::ForceUpdateTextureStreaming()
 {

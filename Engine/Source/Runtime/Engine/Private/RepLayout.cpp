@@ -531,6 +531,8 @@ bool FRepLayout::CompareProperties(
 	const uint8* RESTRICT			Data,
 	const FReplicationFlags&		RepFlags ) const
 {
+	SCOPE_CYCLE_COUNTER( STAT_NetReplicateDynamicPropTime );
+
 	RepChangelistState->CompareIndex++;
 
 	check( RepChangelistState->HistoryEnd - RepChangelistState->HistoryStart < FRepChangelistState::MAX_CHANGE_HISTORY );
@@ -1925,7 +1927,14 @@ bool FRepLayout::ReceiveProperties( UActorChannel* OwningChannel, UClass * InObj
 
 	if ( OwningChannel->Connection->InternalAck )
 	{
-		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = ( ( UPackageMapClient* )OwningChannel->Connection->PackageMap )->GetNetFieldExportGroupChecked( Owner->GetPathName() );
+		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = ( ( UPackageMapClient* )OwningChannel->Connection->PackageMap )->GetNetFieldExportGroup( Owner->GetPathName() );
+
+		if ( !ensure( NetFieldExportGroup.IsValid() ) )
+		{
+			UE_LOG( LogRep, Warning, TEXT( "ReceiveProperties_BackwardsCompatible: Invalid path name: %s" ), *Owner->GetPathName() );
+			InBunch.SetError();
+			return false;
+		}
 
 		return ReceiveProperties_BackwardsCompatible_r( RepState, NetFieldExportGroup.Get(), InBunch, 0, Cmds.Num() - 1, bEnableRepNotifies ? RepState->StaticBuffer.GetData() : nullptr, ( uint8* )Data, ( uint8* )Data, &RepState->GuidReferencesMap, bOutHasUnmapped, bOutGuidsChanged );
 	}
@@ -2348,7 +2357,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			}
 
 			// Initialize the reader with the stored buffer that we need to read from
-			FBitReader Reader( GuidReferences.Buffer.GetData(), GuidReferences.NumBufferBits );
+			FNetBitReader Reader( PackageMap, GuidReferences.Buffer.GetData(), GuidReferences.NumBufferBits );
 
 			// Read the property
 			Cmd.Property->NetSerializeItem( Reader, PackageMap, Data + AbsOffset );
@@ -3300,7 +3309,7 @@ void FRepLayout::SendPropertiesForRPC( UObject* Object, UFunction * Function, UA
 	}
 }
 
-void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function, UActorChannel * Channel, FNetBitReader & Reader, void* Data ) const
+void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function, UActorChannel * Channel, FNetBitReader & Reader, void* Data, TSet<FNetworkGUID>& UnmappedGuids) const
 {
 	check( Function == Owner );
 
@@ -3327,6 +3336,7 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 		if ( Reader.PackageMap->GetTrackedUnmappedGuids().Num() > 0 )
 		{
 			bHasUnmapped = true;
+			UnmappedGuids = Reader.PackageMap->GetTrackedUnmappedGuids();
 		}
 
 		Reader.PackageMap->ResetTrackedGuids( false );
@@ -3339,6 +3349,8 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 	}
 	else
 	{
+		Reader.PackageMap->ResetTrackedGuids(true);
+
 		for ( int32 i = 0; i < Parents.Num(); i++ )
 		{
 			if ( Cast<UBoolProperty>( Parents[i].Property ) || Reader.ReadBit() )
@@ -3359,6 +3371,13 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 				}
 			}
 		}
+
+		if (Reader.PackageMap->GetTrackedUnmappedGuids().Num() > 0)
+		{
+			UnmappedGuids = Reader.PackageMap->GetTrackedUnmappedGuids();
+		}
+
+		Reader.PackageMap->ResetTrackedGuids(false);
 	}
 }
 

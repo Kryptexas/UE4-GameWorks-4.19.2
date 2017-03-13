@@ -338,7 +338,7 @@ public class DeploymentContext //: ProjectParams
 			CommandUtils.CreateDirectory(ArchiveDirectory);
 		}
 		ProjectArgForCommandLines = ProjectArgForCommandLines.Replace("\\", "/");
-		ProjectBinariesFolder = CommandUtils.CombinePaths(ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, TargetRules.TargetType.Game, IsCodeBasedProject), PlatformDir);
+		ProjectBinariesFolder = CommandUtils.CombinePaths(ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, TargetType.Game, IsCodeBasedProject), PlatformDir);
 
         // If we were configured to use manifests across the whole project, then this platform should use manifests.
         // Otherwise, read whether we are generating chunks from the ProjectPackagingSettings ini.
@@ -372,8 +372,26 @@ public class DeploymentContext //: ProjectParams
 			{
 				OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
 			}
-			else
-			{
+            else if (InputPath.EndsWith(".uplugin", StringComparison.InvariantCultureIgnoreCase))
+            {
+                // This is a plugin that lives outside of the Engine/Plugins or Game/Plugins directory so needs to be remapped for staging/packaging
+                // We need to remap C:\SomePath\PluginName\PluginName.uplugin to RemappedPlugins\PluginName\PluginName.uplugin
+                int Index = InputPath.LastIndexOf(Path.DirectorySeparatorChar);
+                if (Index != -1)
+                {
+                    int PluginDirIndex = InputPath.LastIndexOf(Path.DirectorySeparatorChar, Index - 1);
+                    if (PluginDirIndex != -1)
+                    {
+                        OutputPath = CommandUtils.CombinePaths("RemappedPlugins", InputPath.Substring(PluginDirIndex));
+                    }
+                }
+                if (OutputPath == null)
+                {
+                    throw new AutomationException("Can't deploy {0} because the plugin path is non-standard, so could not be remapped", InputPath);
+                }
+            }
+            else
+            {
 				throw new AutomationException("Can't deploy {0} because it doesn't start with {1} or {2}", InputPath, ProjectRoot, LocalRoot);
 			}
 		}
@@ -439,13 +457,13 @@ public class DeploymentContext //: ProjectParams
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
-			foreach(FileReference File in CommandUtils.ResolveFilespec(CommandUtils.RootDirectory, RuntimeDependency.Path, ExcludePatterns))
+			foreach(FileReference MatchingFile in CommandUtils.ResolveFilespec(CommandUtils.RootDirectory, RuntimeDependency.Path, ExcludePatterns))
 			{
 				// allow missing files if needed
-				if ((RequireDependenciesToExist && RuntimeDependency.Type != StagedFileType.DebugNonUFS) || File.Exists())
+				if ((RequireDependenciesToExist && RuntimeDependency.Type != StagedFileType.DebugNonUFS) || FileReference.Exists(MatchingFile))
 				{
 					bool bRemap = RuntimeDependency.Type != StagedFileType.UFS || !bUsingPakFile;
-					StageFile(RuntimeDependency.Type, File.FullName, bRemap: bRemap);
+					StageFile(RuntimeDependency.Type, MatchingFile.FullName, bRemap: bRemap);
 				}
 			}
 		}

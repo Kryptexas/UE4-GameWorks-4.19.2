@@ -147,7 +147,6 @@ public:
 	UUserWidget(const FObjectInitializer& ObjectInitializer);
 
 	//UObject interface
-	virtual void PostInitProperties() override;
 	virtual class UWorld* GetWorld() const override;
 	virtual void PostEditImport() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -230,6 +229,14 @@ public:
 	void SetAlignmentInViewport(FVector2D Alignment);
 
 	/*  */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Viewport")
+		FAnchors GetAnchorsInViewport() const;
+
+	/*  */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Viewport")
+		FVector2D GetAlignmentInViewport() const;
+
+	/*  */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Appearance", meta=( DeprecatedFunction, DeprecationMessage="Use IsInViewport instead" ))
 	bool GetIsVisible() const;
 
@@ -277,6 +284,21 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
 	class APawn* GetOwningPlayerPawn() const;
+
+	/**
+	 * Called by both the game and the editor.  Allows users to run initial setup for their widgets to better preview
+	 * the setup in the designer and since generally that same setup code is required at runtime, it's called there
+	 * as well.
+	 *
+	 * **WARNING**
+	 * This is intended purely for cosmetic updates using locally owned data, you can not safely access any game related
+	 * state, if you call something that doesn't expect to be run at editor time, you may crash the editor.
+	 *
+	 * In the event you save the asset with blueprint code that causes a crash on evaluation.  You can turn off
+	 * PreConstruct evaluation in the Widget Designer settings in the Editor Preferences.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="User Interface")
+	void PreConstruct(bool IsDesignTime);
 
 	/**
 	 * Called after the underlying slate widget is constructed.  Depending on how the slate object is used
@@ -848,6 +870,8 @@ public:
 	//~ End UWidget Interface
 
 	void SetDesignerFlags(EWidgetDesignFlags::Type NewFlags);
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 public:
@@ -957,12 +981,11 @@ protected:
 	virtual void OnWidgetRebuilt() override;
 
 	FMargin GetFullScreenOffset() const;
-	FAnchors GetViewportAnchors() const;
-	FVector2D GetFullScreenAlignment() const;
 
 	//native SObjectWidget methods
 	friend class SObjectWidget;
 
+	virtual void NativePreConstruct();
 	virtual void NativeConstruct();
 	virtual void NativeDestruct();
 
@@ -1082,7 +1105,7 @@ private:
 
 namespace CreateWidgetHelpers
 {
-	UMG_API bool ValidateUserWidgetClass(UClass* UserWidgetClass);
+	UMG_API bool ValidateUserWidgetClass(const UClass* UserWidgetClass);
 }
 
 template< class T >

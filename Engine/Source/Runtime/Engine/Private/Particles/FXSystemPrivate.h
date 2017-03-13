@@ -75,6 +75,45 @@ inline EParticleSimulatePhase::Type GetLastParticleSimulationPhase(EShaderPlatfo
 }
 
 /*-----------------------------------------------------------------------------
+Injecting particles in to the GPU for simulation.
+-----------------------------------------------------------------------------*/
+
+/**
+* Data passed to the GPU to inject a new particle in to the simulation.
+*/
+struct FNewParticle
+{
+	/** The initial position of the particle. */
+	FVector Position;
+	/** The relative time of the particle. */
+	float RelativeTime;
+	/** The initial velocity of the particle. */
+	FVector Velocity;
+	/** The time scale for the particle. */
+	float TimeScale;
+	/** Initial size of the particle. */
+	FVector2D Size;
+	/** Initial rotation of the particle. */
+	float Rotation;
+	/** Relative rotation rate of the particle. */
+	float RelativeRotationRate;
+	/** Coefficient of drag. */
+	float DragCoefficient;
+	/** Per-particle vector field scale. */
+	float VectorFieldScale;
+	/** Resilience for collision. */
+	union
+	{
+		float Resilience;
+		int32 AllocatedTileIndex;
+	} ResilienceAndTileIndex;
+	/** Random selection of orbit attributes. */
+	float RandomOrbit;
+	/** The offset at which to inject the new particle. */
+	FVector2D Offset;
+};
+
+/*-----------------------------------------------------------------------------
 	FX system declaration.
 -----------------------------------------------------------------------------*/
 
@@ -192,6 +231,11 @@ private:
 	bool UsesGlobalDistanceFieldInternal() const;
 
 	/**
+	* Updates resources used in a multi-GPU context
+	*/
+	void UpdateMultiGPUResources(FRHICommandListImmediate& RHICmdList);
+
+	/**
 	 * Update particles simulated on the GPU.
 	 * @param Phase				Which emitters are being simulated.
 	 * @param CollisionView		View to be used for collision checks.
@@ -229,6 +273,9 @@ private:
 	ERHIFeatureLevel::Type FeatureLevel;
 	/** Shader platform that will be rendering this effects system */
 	EShaderPlatform ShaderPlatform;
+
+	/** Previous frame new particles for multi-gpu simulation*/
+	TArray<FNewParticle> LastFrameNewParticles;
 
 #if WITH_EDITOR
 	/** true if the system has been suspended. */

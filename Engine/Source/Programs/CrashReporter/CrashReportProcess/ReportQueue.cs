@@ -269,6 +269,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 			OutCrashContext.PrimaryCrashProperties.BaseDir = ReportData.BaseDir;
 			// 			OutCrashContext.PrimaryCrashProperties.RootDir
 			OutCrashContext.PrimaryCrashProperties.MachineId = ReportData.MachineId;
+			OutCrashContext.PrimaryCrashProperties.LoginId = ReportData.LoginId;
+			if (string.IsNullOrWhiteSpace(OutCrashContext.PrimaryCrashProperties.MachineId))
+			{
+				// Set MachineId from LoginId if the metadata is too new to contain MachineId
+				OutCrashContext.PrimaryCrashProperties.MachineId = OutCrashContext.PrimaryCrashProperties.LoginId;
+			}
 			OutCrashContext.PrimaryCrashProperties.EpicAccountId = ReportData.EpicAccountId;
 			// 			OutCrashContext.PrimaryCrashProperties.CallStack
 			// 			OutCrashContext.PrimaryCrashProperties.SourceContext
@@ -494,17 +500,14 @@ namespace Tools.CrashReporter.CrashReportProcess
 			// This can be safely discontinued when all crashes come from the same SQS
 			// This DOES NOT scale to multiple CRP instances
 			// ReportIndex can be disabled by leaving the path empty in config
-			lock (ReportIndexLock)
+			if (!CrashReporterProcessServicer.ReportIndex.TryAddNewReport(ReportName))
 			{
-				if (!CrashReporterProcessServicer.ReportIndex.TryAddNewReport(ReportName))
-				{
-					// Crash report not accepted by index
-					CrashReporterProcessServicer.WriteEvent(string.Format(
-						"EnqueueNewReport: Duplicate report skipped {0} in queue {1}", NewReportPath, QueueName));
-					CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
-					ReportProcessor.CleanReport(new DirectoryInfo(NewReportPath));
-					return false;
-				}
+				// Crash report not accepted by index
+				CrashReporterProcessServicer.WriteEvent(string.Format(
+					"EnqueueNewReport: Duplicate report skipped {0} in queue {1}", NewReportPath, QueueName));
+				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
+				ReportProcessor.CleanReport(new DirectoryInfo(NewReportPath));
+				return false;
 			}
 
 			if (ShouldDecimateNextReport())
@@ -688,8 +691,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 		private ReportIdSet ReportsInLandingZoneLastTimeWeChecked = new ReportIdSet();
 
 		private readonly EventCounter EnqueueCounter = new EventCounter(TimeSpan.FromMinutes(90), 20);
-
-		protected static Object ReportIndexLock = new Object();
 
 		/// <summary>
 		/// The number of waiting reports needed to trigger decimation (discarding a fraction of the incoming reports to stop runaway backlog)

@@ -55,7 +55,9 @@ public:
 	void SetVAlign(EVerticalAlignment VAlign);
 	void SetPadding(const TAttribute<FMargin>& InPadding);
 
-private:
+	bool IsUsingLowQualityFallbackBrush() const;
+
+protected:
 	void ComputeEffectiveKernelSize(float Strength, int32& OutKernelSize, int32& OutDownsampleAmount) const;
 
 	bool bApplyAlphaToBlur;

@@ -5,7 +5,7 @@ using System.IO;
 
 public class Engine : ModuleRules
 {
-	public Engine(TargetInfo Target)
+	public Engine(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivatePCHHeaderFile = "Private/EnginePrivatePCH.h";
 
@@ -79,7 +79,7 @@ public class Engine : ModuleRules
             }
         );
 
-		if (Target.Type == TargetRules.TargetType.Editor)
+		if (Target.Type == TargetType.Editor)
 		{
 			PrivateIncludePathModuleNames.AddRange(new string[] { "CrashTracker" });
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "CrashTracker" });
@@ -107,7 +107,7 @@ public class Engine : ModuleRules
 		);
 
         // to prevent "causes WARNING: Non-editor build cannot depend on non-redistributable modules."
-        if (Target.Type == TargetRules.TargetType.Editor)
+        if (Target.Type == TargetType.Editor)
         {
             // for now we depend on this 
             PrivateDependencyModuleNames.Add("RawMesh");
@@ -138,7 +138,7 @@ public class Engine : ModuleRules
                 }
             );
 
-            if (Target.Type == TargetRules.TargetType.Editor)
+            if (Target.Type == TargetType.Editor)
             {
             // these modules require variadic templates
             PrivateDependencyModuleNames.AddRange(
@@ -173,12 +173,13 @@ public class Engine : ModuleRules
 				"MovieSceneTracks",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
+                "Niagara",
 			}
 		);
 
         PrivateIncludePathModuleNames.Add("LightPropagationVolumeRuntime");
 
-		if (Target.Type != TargetRules.TargetType.Server)
+		if (Target.Type != TargetType.Server)
 		{
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
@@ -195,7 +196,7 @@ public class Engine : ModuleRules
 			);
 		}
 
-		if (Target.Type == TargetRules.TargetType.Server || Target.Type == TargetRules.TargetType.Editor)
+		if (Target.Type == TargetType.Server || Target.Type == TargetType.Editor)
 		{
 			PrivateDependencyModuleNames.Add("PerfCounters");
 		}
@@ -206,7 +207,7 @@ public class Engine : ModuleRules
 			// at any time if needed.  The module isn't actually loaded by the engine so there is no runtime cost.
 			DynamicallyLoadedModuleNames.Add("BlankModule");
 
-			if (Target.Type != TargetRules.TargetType.Server)
+			if (Target.Type != TargetType.Server)
 			{
 				PrivateIncludePathModuleNames.Add("MeshUtilities");
 				DynamicallyLoadedModuleNames.Add("MeshUtilities");
@@ -218,7 +219,7 @@ public class Engine : ModuleRules
 					});
 			}
 
-			if (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test && Target.Type != TargetRules.TargetType.Server)
+			if (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test && Target.Type != TargetType.Server)
 			{
 				PrivateDependencyModuleNames.Add("CollisionAnalyzer");
 				CircularlyReferencedDependentModules.Add("CollisionAnalyzer");
@@ -274,7 +275,7 @@ public class Engine : ModuleRules
 			}
 		);
 
-		if (Target.Type.Value != TargetRules.TargetType.Server)
+		if (Target.Type != TargetType.Server)
         {
 		    DynamicallyLoadedModuleNames.AddRange(
 			    new string[] {
@@ -283,6 +284,8 @@ public class Engine : ModuleRules
 			    }
 		    );
         }
+
+		WhitelistRestrictedFolders.Add("Private/NotForLicensees");
 
 		if (!UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bCompileAgainstEngine)
 		{
@@ -317,6 +320,8 @@ public class Engine : ModuleRules
 
             PrivateIncludePathModuleNames.Add("HierarchicalLODUtilities");
             DynamicallyLoadedModuleNames.Add("HierarchicalLODUtilities");
+
+            DynamicallyLoadedModuleNames.Add("AnimationModifiers");
         }
 
 		SetupModulePhysXAPEXSupport(Target);
@@ -326,6 +331,18 @@ public class Engine : ModuleRules
             PrivateIncludePathModuleNames.Add("PhysXFormats");
         }
             
+        if(UEBuildConfiguration.bCompilePhysX)
+        {
+            // Engine public headers need to know about some types (enums etc.)
+            PublicIncludePathModuleNames.Add("ClothingSystemRuntimeInterface");
+            PublicDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
+
+            if (UEBuildConfiguration.bBuildEditor)
+            {
+                PrivateDependencyModuleNames.Add("ClothingSystemEditorInterface");
+                PrivateIncludePathModuleNames.Add("ClothingSystemEditorInterface");
+            }
+        }
 
 		SetupModuleBox2DSupport(Target);
 
@@ -338,11 +355,6 @@ public class Engine : ModuleRules
 				"VorbisFile",
 				"libOpus"
 				);
-
-			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
-			{
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "DirectShow");
-			}
 
             // Head Mounted Display support
 //            PrivateIncludePathModuleNames.AddRange(new string[] { "HeadMountedDisplay" });

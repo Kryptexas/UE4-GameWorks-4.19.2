@@ -14,6 +14,11 @@ namespace UnrealBuildTool
 	public class TargetInfo : ISerializable
 	{
 		/// <summary>
+		/// Name of the target
+		/// </summary>
+		public readonly string Name;
+
+		/// <summary>
 		/// The platform that the target is being built for
 		/// </summary>
 		public readonly UnrealTargetPlatform Platform;
@@ -29,9 +34,14 @@ namespace UnrealBuildTool
 		public readonly string Architecture;
 
 		/// <summary>
+		/// The project containing the target
+		/// </summary>
+		public readonly FileReference ProjectFile;
+
+		/// <summary>
 		/// The type of the target (if known)
 		/// </summary>
-		public readonly TargetRules.TargetType? Type;
+		public readonly TargetType? Type;
 
 		/// <summary>
 		/// Whether the target is monolithic or not (if known)
@@ -39,38 +49,35 @@ namespace UnrealBuildTool
 		public readonly bool? bIsMonolithic;
 
 		/// <summary>
-		/// Read-only accessor for the configured target rules
-		/// </summary>
-		public readonly ReadOnlyTargetRules Rules;
-
-		/// <summary>
 		/// Constructs a TargetInfo for passing to the TargetRules constructor.
 		/// </summary>
+		/// <param name="Name">Name of the target being built</param>
 		/// <param name="Platform">The platform that the target is being built for</param>
 		/// <param name="Configuration">The configuration being built</param>
 		/// <param name="Architecture">The architecture being built for</param>
-		public TargetInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture)
+		/// <param name="ProjectFile">Path to the project file containing the target</param>
+		public TargetInfo(string Name, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, FileReference ProjectFile)
 		{
+			this.Name = Name;
 			this.Platform = Platform;
 			this.Configuration = Configuration;
 			this.Architecture = Architecture;
+			this.ProjectFile = ProjectFile;
 		}
 
 		/// <summary>
 		/// Constructs a TargetInfo for passing to the ModuleRules constructor.
 		/// </summary>
-		/// <param name="Platform">The platform that the target is being built for</param>
-		/// <param name="Configuration">The configuration being built</param>
-		/// <param name="Architecture">The architecture being built for</param>
 		/// <param name="Rules">The constructed target rules object. This is null when passed into a TargetRules constructor, but should be valid at all other times.</param>
-		public TargetInfo(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, ReadOnlyTargetRules Rules)
+		public TargetInfo(ReadOnlyTargetRules Rules)
 		{
-			this.Platform = Platform;
-			this.Configuration = Configuration;
-			this.Architecture = Architecture;
-			this.Rules = Rules;
+			this.Name = Rules.Name;
+			this.Platform = Rules.Platform;
+			this.Configuration = Rules.Configuration;
+			this.Architecture = Rules.Architecture;
+			this.ProjectFile = Rules.ProjectFile;
 			this.Type = Rules.Type;
-			this.bIsMonolithic = (Rules.LinkType == TargetRules.TargetLinkType.Monolithic);
+			this.bIsMonolithic = (Rules.LinkType == TargetLinkType.Monolithic);
 		}
 
 		/// <summary>
@@ -80,12 +87,14 @@ namespace UnrealBuildTool
 		/// <param name="Context">Streaming context</param>
 		public TargetInfo(SerializationInfo Info, StreamingContext Context)
 		{
+			Name = Info.GetString("nm");
 			Platform = (UnrealTargetPlatform)Info.GetInt32("pl");
 			Architecture = Info.GetString("ar");
 			Configuration = (UnrealTargetConfiguration)Info.GetInt32("co");
+			ProjectFile = (FileReference)Info.GetValue("pf", typeof(FileReference));
 			if (Info.GetBoolean("t?"))
 			{
-				Type = (TargetRules.TargetType)Info.GetInt32("tt");
+				Type = (TargetType)Info.GetInt32("tt");
 			}
 			if (Info.GetBoolean("m?"))
 			{
@@ -100,9 +109,11 @@ namespace UnrealBuildTool
 		/// <param name="Context">Streaming context</param>
 		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
 		{
+			Info.AddValue("nm", Name);
 			Info.AddValue("pl", (int)Platform);
 			Info.AddValue("ar", Architecture);
 			Info.AddValue("co", (int)Configuration);
+			Info.AddValue("pf", ProjectFile);
 			Info.AddValue("t?", Type.HasValue);
 			if (Type.HasValue)
 			{
@@ -126,9 +137,7 @@ namespace UnrealBuildTool
 				{
 					throw new BuildException("Trying to access TargetInfo.IsCooked when TargetInfo.Type is not set. Make sure IsCooked is used only in ModuleRules.");
 				}
-				return Type == TargetRules.TargetType.Client ||
-					 Type == TargetRules.TargetType.Game ||
-					 Type == TargetRules.TargetType.Server;
+				return Type == TargetType.Client || Type == TargetType.Game || Type == TargetType.Server;
 			}
 		}
 

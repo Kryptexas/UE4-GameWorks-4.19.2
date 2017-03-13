@@ -93,11 +93,6 @@ UWorld* UAIPerceptionSystem::GetWorld() const
 	return Cast<UWorld>(GetOuter());
 }
 
-void UAIPerceptionSystem::PostInitProperties() 
-{
-	Super::PostInitProperties();
-}
-
 TStatId UAIPerceptionSystem::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UAIPerceptionSystem, STATGROUP_Tickables);
@@ -295,6 +290,19 @@ UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UObject* WorldContextObject
 	{
 		check(Cast<UAISystem>(World->GetAISystem()));
 		UAISystem* AISys = (UAISystem*)(World->GetAISystem());
+
+		return AISys->GetPerceptionSystem();
+	}
+
+	return nullptr;
+}
+
+UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UWorld& World)
+{
+	if (World.GetAISystem())
+	{
+		check(Cast<UAISystem>(World.GetAISystem()));
+		UAISystem* AISys = (UAISystem*)(World.GetAISystem());
 
 		return AISys->GetPerceptionSystem();
 	}

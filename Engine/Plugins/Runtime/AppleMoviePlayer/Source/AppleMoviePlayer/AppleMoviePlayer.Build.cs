@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AppleMoviePlayer : ModuleRules
 	{
-        public AppleMoviePlayer(TargetInfo Target)
+        public AppleMoviePlayer(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

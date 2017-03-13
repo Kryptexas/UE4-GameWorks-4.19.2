@@ -38,6 +38,11 @@ public:
 	uint16 GetLocalizedFallbackFontRevision() const;
 
 	/**
+	 * Is that last resort fallback font available (not all builds have it).
+	 */
+	bool IsLastResortFontAvailable() const;
+
+	/**
 	 * Get (or create) the last resort fallback font
 	 */
 	TSharedPtr<const FCompositeFont> GetLastResortFont();
@@ -109,6 +114,9 @@ private:
 	FCriticalSection LocalizedFallbackFontDataCS;
 	FCriticalSection LastResortFontCS;
 	FCriticalSection LastResortFontDataCS;
+
+	FString LastResortFontPath;
+	bool bIsLastResortFontAvailable;
 
 	static TSharedPtr<FLegacySlateFontInfoCache> Singleton;
 };

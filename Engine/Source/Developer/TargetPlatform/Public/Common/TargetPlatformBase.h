@@ -221,6 +221,9 @@ public:
 
 		case ETargetPlatformFeatures::ShouldUseCompressedCookedPackages:
 			return false;
+
+		case ETargetPlatformFeatures::ShouldSplitPaksIntoSmallerSizes :
+			return false;
 		}
 
 		return false;

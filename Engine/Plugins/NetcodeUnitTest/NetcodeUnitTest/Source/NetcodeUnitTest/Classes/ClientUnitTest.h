@@ -449,6 +449,9 @@ public:
 	 */
 	bool SendRPCChecked(UObject* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize, int16 ParmsSizeCorrection=0);
 
+	// @todo #JohnB: Consider deprecating/removing this, as all bits of code that use this, just implement a UnitTestServer_ function;
+	//					replace with SendUnitRPCChecked
+#if 1
 	/**
 	 * As above, except the RPC is called within a lambda
 	 * NOTE: Only call a single RPC within the lambda
@@ -468,6 +471,7 @@ public:
 
 		return bSuccess;
 	}
+#endif
 
 	/**
 	 * As above, except optimized for use with reflection
@@ -477,6 +481,16 @@ public:
 	 * @return						Whether or not the RPC was sent successfully
 	 */
 	bool SendRPCChecked(UObject* Target, FFuncReflection& FuncRefl);
+
+
+	/**
+	 * As above, except executes a static UFunction in the unit test (must be prefixed with UnitTestServer_), on the unit test server,
+	 * allowing unit tests to define and contain their own 'pseudo'-RPC's.
+	 *
+	 * @param RPCName	The name of the pseudo-RPC, which should be executed
+	 * @return			Whether or not the pseudo-RPC was sent successfully
+	 */
+	bool SendUnitRPCChecked(FString RPCName);
 
 
 	/**
@@ -497,7 +511,7 @@ public:
 	/**
 	 * Gets the generic log message that is used to indicate unit test failure
 	 */
-	FORCEINLINE const TCHAR* GetGenericExploitFailLog()
+	static FORCEINLINE const TCHAR* GetGenericExploitFailLog()
 	{
 		return TEXT("Blank exploit fail log message");
 	}

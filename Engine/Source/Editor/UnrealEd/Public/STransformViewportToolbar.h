@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __STransformViewportToolBar_h__
-#define __STransformViewportToolBar_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Layout/Visibility.h"
@@ -118,6 +116,3 @@ private:
 	/** Command list */
 	TSharedPtr<FUICommandList> CommandList;
 };
-
-#endif //__STransformViewportToolBar_h__
-

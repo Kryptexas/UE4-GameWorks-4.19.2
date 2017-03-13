@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class MobileLauncherProfileWizard : ModuleRules
 	{
-		public MobileLauncherProfileWizard(TargetInfo Target)
+		public MobileLauncherProfileWizard(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

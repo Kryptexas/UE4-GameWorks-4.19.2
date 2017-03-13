@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ZLIB_HTML5=$(pwd)
 
@@ -24,6 +24,7 @@ build_via_cmake()
 		DBGFLAG=NDEBUG
 	fi
 	# ----------------------------------------
+	rm -f "$ZLIB_HTML5"/../zconf.h
 	emcmake cmake -G "Unix Makefiles" \
 		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
 		-DBUILD_SHARED_LIBS=OFF \

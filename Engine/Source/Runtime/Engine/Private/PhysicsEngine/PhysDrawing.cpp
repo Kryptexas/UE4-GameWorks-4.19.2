@@ -774,6 +774,15 @@ void UPhysicsAsset::GetCollisionMesh(int32 ViewIndex, FMeshElementCollector& Col
 	}
 }
 
+void UPhysicsAsset::GetUsedMaterials(TArray<UMaterialInterface*>& Materials)
+{
+	for (int32 i = 0; i < ConstraintSetup.Num(); i++)
+	{
+		FConstraintInstance& Instance = ConstraintSetup[i]->DefaultInstance;
+		Instance.GetUsedMaterials(Materials);
+	}
+}
+
 void UPhysicsAsset::DrawConstraints(int32 ViewIndex, FMeshElementCollector& Collector, const USkeletalMesh* SkelMesh, const TArray<FTransform>& SpaceBases, const FTransform& LocalToWorld, float Scale)
 {
 	for (int32 i = 0; i < ConstraintSetup.Num(); i++)
@@ -879,6 +888,16 @@ void FConstraintInstance::FPDIOrCollector::DrawCylinder(const FVector& Start, co
 	{
 		::DrawCylinder(PDI, Start, End, Thickness, 4, MaterialProxy, DepthPriority);
 	}
+}
+
+void FConstraintInstance::GetUsedMaterials(TArray<UMaterialInterface*>& Materials)
+{
+	Materials.AddUnique(GEngine->ConstraintLimitMaterialX);
+	Materials.AddUnique(GEngine->ConstraintLimitMaterialXAxis);
+	Materials.AddUnique(GEngine->ConstraintLimitMaterialY);
+	Materials.AddUnique(GEngine->ConstraintLimitMaterialYAxis);
+	Materials.AddUnique(GEngine->ConstraintLimitMaterialZ);
+	Materials.AddUnique(GEngine->ConstraintLimitMaterialZAxis);
 }
 
 void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollector, float Scale, float LimitDrawScale, bool bDrawLimits, bool bDrawSelected, const FTransform& Con1Frame, const FTransform& Con2Frame, bool bDrawAsPoint) const

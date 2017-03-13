@@ -98,8 +98,9 @@
 		else \
 		{ \
 			/* Write the value to the Name field */ \
-			Serializer.WriteIdentifierPrefix(TEXT(JsonName)); \
+			Serializer.StartObject(JsonName); \
 			JsonSerializableObject.Serialize(Serializer, true); \
+			Serializer.EndObject(); \
 		}
 
 struct FJsonSerializerBase;

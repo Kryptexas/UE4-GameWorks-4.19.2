@@ -134,11 +134,11 @@ public:
 				);
 
 			// If it was set by an ini that has to be hand edited, it is not an issue if a lower priority system tried and failed to set it afterwards
-			const bool bIntentionallyIgnored = (OldPri == EConsoleVariableFlags::ECVF_SetBySystemSettingsIni);
+			const bool bIntentionallyIgnored = (OldPri & (ECVF_SetByConsoleVariablesIni | ECVF_SetByCommandline | ECVF_SetBySystemSettingsIni)) != 0;
 
 			if (bIntentionallyIgnored)
 			{
-				UE_LOG(LogConsoleManager, Display, TEXT("%s"), *Message);
+				UE_LOG(LogConsoleManager, Verbose, TEXT("%s"), *Message);
 			}
 			else
 			{
@@ -1078,6 +1078,13 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		return false;
 	}
 
+	// Remove a trailing ? if present, to kick it into help mode
+	const bool bCommandEndedInQuestion = Param1.EndsWith(TEXT("?"), ESearchCase::CaseSensitive);
+	if (bCommandEndedInQuestion)
+	{
+		Param1 = Param1.Mid(0, Param1.Len() - 1);
+	}
+
 	IConsoleObject* CObj = FindConsoleObject(*Param1);
 	if(!CObj)
 	{
@@ -1109,7 +1116,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		TArray< FString > Args;
 		FString( It ).ParseIntoArrayWS( Args );
 
-		const bool bShowHelp = Args.Num() == 1 && Args[0] == TEXT("?");
+		const bool bShowHelp = bCommandEndedInQuestion || ((Args.Num() == 1) && (Args[0] == TEXT("?")));
 		if( bShowHelp )
 		{
 			// get help
@@ -1125,7 +1132,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 	else if( CVar )
 	{
 		// Process variable
-
+		bool bShowHelp = bCommandEndedInQuestion;
 		bool bShowCurrentState = false;
 
 		if(*It == 0)
@@ -1135,6 +1142,8 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		else
 		{
 			FString Param2 = FString(It).Trim().TrimTrailing();
+
+			const bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
 
 			if(Param2.Len() >= 2)
 			{
@@ -1150,13 +1159,9 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 				}
 			}
 
-			bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
-
-			if(Param2 == TEXT("?"))
+			if (Param2 == TEXT("?"))
 			{
-				// get help
-				Ar.Logf(TEXT("HELP for '%s'%s:\n%s"), *Param1, bReadOnly ? TEXT("(ReadOnly)") : TEXT(""), CVar->GetHelp());
-				bShowCurrentState = true;
+				bShowHelp = true;
 			}
 			else
 			{
@@ -1174,6 +1179,14 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 					CallAllConsoleVariableSinks();
 				}
 			}
+		}
+
+		if(bShowHelp)
+		{
+			// get help
+			const bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
+			Ar.Logf(TEXT("HELP for '%s'%s:\n%s"), *Param1, bReadOnly ? TEXT("(ReadOnly)") : TEXT(""), CVar->GetHelp());
+			bShowCurrentState = true;
 		}
 
 		if(bShowCurrentState)
@@ -1752,16 +1765,6 @@ static TAutoConsoleVariable<int32> CVarUniformBufferPooling(
 	TEXT(" 1: on (optimization)"),
 	ECVF_RenderThreadSafe);
 
-// The following console variable should never be compiled out ------------------
-static TAutoConsoleVariable<int32> CVarClearWithExcludeRects(
-	TEXT("r.ClearWithExcludeRects"),
-	2,
-	TEXT("Control the use of exclude rects when using RHIClear\n")
-	TEXT(" 0: Force off (can be faster on hardware that has fast clears)\n")
-	TEXT(" 1: Use exclude rect if supplied\n")
-	TEXT(" 2: Auto (default is 2, pick what is considered best on this hardware)"),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarTranslucentSortPolicy(
 	TEXT("r.TranslucentSortPolicy"),
 	0,
@@ -2145,12 +2148,12 @@ static TAutoConsoleVariable<float> CVarMobileContentScaleFactor(
 	TEXT("Content scale multiplier (equates to iOS's contentScaleFactor to support Retina displays"),
 	ECVF_Default);
 
-static TAutoConsoleVariable<int32> CVarMobileOnChipMSAA(
-	TEXT("r.MobileOnChipMSAA"),
+static TAutoConsoleVariable<int32> CVarMobileTonemapperUpscale(
+	TEXT("r.MobileTonemapperUpscale"),
 	0,
-	TEXT("Whether to enable on-chip MSAA for tile based mobile GPUs")
-	TEXT("0: disabed (default)\n")
-	TEXT("1: enabled\n"),
+	TEXT("On mobile, whether to allow upscaling as part of the tonemapper or as a separate pass when possible")
+	TEXT("0: separate pass (default)\n")
+	TEXT("1: as part of the tonemapper pass\n"),
 	ECVF_Default);
 
 // this cvar can be removed in shipping to not compile shaders for development (faster)

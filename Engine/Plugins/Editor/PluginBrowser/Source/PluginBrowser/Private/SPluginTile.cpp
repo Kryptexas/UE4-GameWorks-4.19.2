@@ -466,7 +466,15 @@ void SPluginTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 
 EVisibility SPluginTile::GetAuthoringButtonsVisibility() const
 {
-	return (FApp::IsEngineInstalled() && Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine)? EVisibility::Hidden : EVisibility::Visible;
+	if (FApp::IsEngineInstalled() && Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine)
+	{
+		return EVisibility::Hidden;
+	}
+	if (FApp::IsInstalled() && Plugin->GetLoadedFrom() == EPluginLoadedFrom::GameProject && !Plugin->GetDescriptor().bIsMod)
+	{
+		return EVisibility::Hidden;
+	}
+	return EVisibility::Visible;
 }
 
 void SPluginTile::OnEditPlugin()

@@ -24,6 +24,7 @@ MobileSceneCaptureRendering.cpp - Mobile specific scene capture code.
 #include "PostProcess/RenderTargetPool.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "ScreenRendering.h"
+#include "ClearQuad.h"
 
 
 /**
@@ -369,7 +370,7 @@ void UpdateSceneCaptureContentMobile_RenderThread(
 		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
 		auto& RenderTargetRHI = Target->GetRenderTargetTexture();
 		SetRenderTarget(RHICmdList, RenderTargetRHI, NULL, true);
-		RHICmdList.ClearColorTexture(RenderTargetRHI, FLinearColor::Black, ViewRect);
+		DrawClearQuad(RHICmdList, SceneRenderer->FeatureLevel, true, FLinearColor::Black, false, 0, false, 0, Target->GetSizeXY(), ViewRect);
 
 		// Render the scene normally
 		{

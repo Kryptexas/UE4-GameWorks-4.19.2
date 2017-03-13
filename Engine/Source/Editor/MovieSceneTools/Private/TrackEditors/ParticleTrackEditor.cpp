@@ -79,7 +79,7 @@ int32 FParticleSection::OnPaintSection( FSequencerSectionPainter& InPainter ) co
 		return InPainter.LayerId + 1;
 	}
 
-	const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	UMovieSceneParticleSection* AnimSection = Cast<UMovieSceneParticleSection>( &Section );
 	const FTimeToPixel& TimeToPixelConverter = InPainter.GetTimeConverter();
 

@@ -24,7 +24,7 @@ void FAtmosphereTextures::InitDynamicRHI()
 		GRenderTargetPool.FindFreeElement(RHICmdList, TransmittanceDesc, AtmosphereTransmittance, TEXT("AtmosphereTransmittance"));
 
 		SetRenderTarget(RHICmdList, AtmosphereTransmittance->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-		RHICmdList.ClearColorTexture(AtmosphereTransmittance->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0), FIntRect());
+		RHICmdList.ClearColorTexture(AtmosphereTransmittance->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0));
 		RHICmdList.CopyToResolveTarget(AtmosphereTransmittance->GetRenderTargetItem().TargetableTexture, AtmosphereTransmittance->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 
 		// Irradiance
@@ -33,7 +33,7 @@ void FAtmosphereTextures::InitDynamicRHI()
 		GRenderTargetPool.FindFreeElement(RHICmdList, IrradianceDesc, AtmosphereIrradiance, TEXT("AtmosphereIrradiance"));
 
 		SetRenderTarget(RHICmdList, AtmosphereIrradiance->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-		RHICmdList.ClearColorTexture(AtmosphereIrradiance->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0), FIntRect());
+		RHICmdList.ClearColorTexture(AtmosphereIrradiance->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0));
 		RHICmdList.CopyToResolveTarget(AtmosphereIrradiance->GetRenderTargetItem().TargetableTexture, AtmosphereIrradiance->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 
 		// DeltaE

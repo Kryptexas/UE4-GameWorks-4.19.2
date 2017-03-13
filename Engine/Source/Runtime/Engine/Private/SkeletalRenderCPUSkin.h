@@ -12,7 +12,7 @@
 #include "LocalVertexFactory.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "SkeletalRenderPublic.h"
-#include "ClothSimData.h"
+#include "ClothingSystemRuntimeTypes.h"
 
 class FPrimitiveDrawInterface;
 class UMorphTarget;
@@ -150,7 +150,7 @@ public:
 		return ResSize.GetTotalMemoryBytes();
 	}
 
-	/** Update Simulated Positions & Normals from APEX Clothing actor */
+	/** Update Simulated Positions & Normals from Clothing actor */
 	bool UpdateClothSimulationData(USkinnedMeshComponent* InMeshComponent);
 };
 
@@ -226,21 +226,31 @@ private:
 	/** vertex data for rendering a single LOD */
 	struct FSkeletalMeshObjectLOD
 	{
+		FSkeletalMeshResource* SkelMeshResource;
+		// index into FSkeletalMeshResource::LODModels[]
+		int32 LODIndex;
+
 		FLocalVertexFactory				VertexFactory;
 		mutable FFinalSkinVertexBuffer	VertexBuffer;
+
+		/** Skin weight buffer to use, could be from asset or component override */
+		FSkinWeightVertexBuffer* MeshObjectWeightBuffer;
 
 		/** true if resources for this LOD have already been initialized. */
 		bool						bResourcesInitialized;
 
-		FSkeletalMeshObjectLOD(FSkeletalMeshResource* InSkelMeshResource,int32 InLOD)
-		:	VertexBuffer(InSkelMeshResource,InLOD)
+		FSkeletalMeshObjectLOD(FSkeletalMeshResource* InSkelMeshResource, int32 InLOD)
+		:	SkelMeshResource(InSkelMeshResource)
+		,	LODIndex(InLOD)
+		,	VertexBuffer(InSkelMeshResource,InLOD)
+		,	MeshObjectWeightBuffer(nullptr)
 		,	bResourcesInitialized( false )
 		{
 		}
 		/** 
 		 * Init rendering resources for this LOD 
 		 */
-		void InitResources();
+		void InitResources(FSkelMeshComponentLODInfo* CompLODInfo);
 		/** 
 		 * Release rendering resources for this LOD 
 		 */

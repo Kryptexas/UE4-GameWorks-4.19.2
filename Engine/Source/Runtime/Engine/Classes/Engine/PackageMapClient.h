@@ -299,6 +299,12 @@ public:
 	virtual FNetworkGUID	GetNetGUIDFromObject( const UObject* InObject) const override;
 	virtual bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const override { return GuidCache->IsGUIDBroken( NetGUID, bMustBeRegistered ); }
 
+	/** Returns true if this guid is directly pending, or depends on another guid that is pending */
+	virtual bool			IsGUIDPending( const FNetworkGUID& NetGUID ) const;
+
+	/** Set rather this actor is associated with a channel with queued bunches */
+	virtual void			SetHasQueuedBunches( const FNetworkGUID& NetGUID, bool bHasQueuedBunches );
+
 	TArray< FNetworkGUID > & GetMustBeMappedGuidsInLastBunch() { return MustBeMappedGuidsInLastBunch; }
 
 	class UNetConnection* GetConnection() { return Connection; }
@@ -339,6 +345,7 @@ protected:
 	bool ObjectLevelHasFinishedLoading(UObject* Obj);
 
 	TSet< FNetworkGUID >				CurrentExportNetGUIDs;				// Current list of NetGUIDs being written to the Export Bunch.
+	TSet< FNetworkGUID >				CurrentQueuedBunchNetGUIDs;			// List of NetGuids with currently queued bunches
 
 	TArray< FNetworkGUID >				PendingAckGUIDs;					// Quick access to all GUID's that haven't been acked
 

@@ -20,6 +20,10 @@ void FAnimPreviewInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 	// link up our curve post-process mini-graph
 	PoseBlendNode.SourcePose.SetLinkNode(&CurveSource);
 	CurveSource.SourcePose.SetLinkNode(&SingleNode);
+
+	FAnimationInitializeContext InitContext(this);
+	PoseBlendNode.Initialize(InitContext);
+	CurveSource.Initialize(InitContext);
 }
 
 void FAnimPreviewInstanceProxy::ResetModifiedBone(bool bCurveController)
@@ -243,7 +247,7 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers(UAnimationAsset* Ass
 		for (auto& Curve : Curves)
 		{
 			// skip if disabled
-			if (Curve.GetCurveTypeFlag(ACF_Disabled))
+			if (Curve.GetCurveTypeFlag(AACF_Disabled))
 			{
 				continue;
 			}

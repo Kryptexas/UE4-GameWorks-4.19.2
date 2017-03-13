@@ -102,20 +102,19 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				TimeCursorPosition = EndTime;
 			}
 		}
-		
-		if (bCompleted)
-		{
-			PlayerStatus = EMovieScenePlayerStatus::Stopped;
-			OnSequenceFinishedPlayingEvent.Broadcast(*this);
-			Animation->OnAnimationFinished.Broadcast();
-		}
-
 		if (RootTemplateInstance.IsValid())
-		{			
+		{
 			const FMovieSceneContext Context(
 				FMovieSceneEvaluationRange(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset),
 				PlayerStatus);
 			RootTemplateInstance.Evaluate(Context, *this);
+		}
+
+		if ( bCompleted )
+		{
+			PlayerStatus = EMovieScenePlayerStatus::Stopped;
+			OnSequenceFinishedPlayingEvent.Broadcast(*this);
+			Animation->OnAnimationFinished.Broadcast();
 		}
 	}
 }

@@ -54,7 +54,7 @@ void FOSVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& rhiCmdList, 
     SetGlobalBoundShaderState(rhiCmdList, featureLevel, boundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *vertexShader, *pixelShader);
 
     pixelShader->SetParameters(rhiCmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), srcTexture);
-    rhiCmdList.ClearColorTexture(backBuffer, FLinearColor::Black, FIntRect());
+    rhiCmdList.ClearColorTexture(backBuffer, FLinearColor::Black);
 
     RendererModule->DrawRectangle(
         rhiCmdList,

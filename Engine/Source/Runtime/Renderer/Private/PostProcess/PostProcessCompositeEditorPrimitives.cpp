@@ -10,6 +10,7 @@
 #include "MobileBasePassRendering.h"
 #include "PostProcess/RenderTargetPool.h"
 #include "DynamicPrimitiveDrawing.h"
+#include "ClearQuad.h"
 
 #if WITH_EDITOR
 
@@ -205,6 +206,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	
 	FDrawingPolicyRenderState DrawRenderState(&Context.RHICmdList, View);
+	DrawRenderState.SetDepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite);
 
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.ViewRect;
@@ -231,8 +233,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		if (bClearIsNeeded)
 		{
 			SCOPED_DRAW_EVENT(Context.RHICmdList, ClearViewEditorPrimitives);
-			Context.RHICmdList.ClearColorTexture(ColorTarget, FLinearColor(0, 0, 0, 0), FIntRect());
-			Context.RHICmdList.ClearDepthStencilTexture(DepthTarget, EClearDepthStencil::Depth, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
+			DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, false, 0, ColorTarget->GetSizeXY(), FIntRect());
 		}
 
 		SCOPED_DRAW_EVENT(Context.RHICmdList, RenderEditorPrimitives);

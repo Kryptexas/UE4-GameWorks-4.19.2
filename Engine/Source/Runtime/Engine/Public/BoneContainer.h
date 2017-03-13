@@ -216,16 +216,16 @@ public:
 	int32 GetPoseBoneIndexForBoneName(const FName& BoneName) const;
 
 	/** Get ParentBoneIndex for current Asset. */
-	int32 GetParentBoneIndex(const int32& BoneIndex) const;
+	int32 GetParentBoneIndex(const int32 BoneIndex) const;
 
 	/** Get ParentBoneIndex for current Asset. */
 	FCompactPoseBoneIndex GetParentBoneIndex(const FCompactPoseBoneIndex& BoneIndex) const;
 
 	/** Get Depth between bones for current asset. */
-	int32 GetDepthBetweenBones(const int32& BoneIndex, const int32& ParentBoneIndex) const;
+	int32 GetDepthBetweenBones(const int32 BoneIndex, const int32 ParentBoneIndex) const;
 
 	/** Returns true if bone is child of for current asset. */
-	bool BoneIsChildOf(const int32& BoneIndex, const int32& ParentBoneIndex) const;
+	bool BoneIsChildOf(const int32 BoneIndex, const int32 ParentBoneIndex) const;
 
 	/** Returns true if bone is child of for current asset. */
 	bool BoneIsChildOf(const FCompactPoseBoneIndex& BoneIndex, const FCompactPoseBoneIndex& ParentBoneIndex) const;
@@ -333,6 +333,13 @@ struct FBoneReference
 
 	FBoneReference()
 		: BoneIndex(INDEX_NONE)
+		, bUseSkeletonIndex(false)
+	{
+	}
+
+	FBoneReference(const FName& InBoneName)
+		: BoneName(InBoneName)
+		, BoneIndex(INDEX_NONE)
 		, bUseSkeletonIndex(false)
 	{
 	}

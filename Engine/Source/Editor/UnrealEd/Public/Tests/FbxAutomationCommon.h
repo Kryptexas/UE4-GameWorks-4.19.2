@@ -23,6 +23,8 @@ enum EFBXExpectedResultPreset
 	Created_Skeletalmesh_Number,
 	/** Data should contain the number of Material created [int0] under the target content folder. */
 	Materials_Created_Number,
+	/** Data should be the slot index [int0], and the expected original imported material slot name [string0]. */
+	Material_Slot_Imported_Name,
 
 	/** Data should be the total number of vertex for all LOD [int0]. */
 	Vertex_Number,
@@ -45,6 +47,8 @@ enum EFBXExpectedResultPreset
 	Mesh_LOD_Section_Material_Name,
 	/** Data should be the LOD index [int0], section index [int1] and the expected material index of mesh materials [int2]. */
 	Mesh_LOD_Section_Material_Index,
+	/** Data should be the LOD index [int0], section index [int1] and the expected original imported material slot name [string0]. */
+	Mesh_LOD_Section_Material_Imported_Name,
 	
 	/** Data should be the LOD index [int0] and the number of UV channel [int1] for the specified LOD. */
 	LOD_UV_Channel_Number,
@@ -59,10 +63,16 @@ enum EFBXExpectedResultPreset
 UENUM()
 enum EFBXTestPlanActionType
 {
+	/*Normal import*/
 	Import,
+	/*Re-import the previous import, this is mandatory to make an import before*/
 	Reimport,
+	/*Add a new LOD*/
 	AddLOD,
+	/*Reimport an existing LOD*/
 	ReimportLOD,
+	/*The fbx will be imported, package will be save, object will be delete from memory then reload from the saved package. This mode force a delete of the asset after the test, no reimport is possible after*/
+	ImportReload,
 };
 
 /**

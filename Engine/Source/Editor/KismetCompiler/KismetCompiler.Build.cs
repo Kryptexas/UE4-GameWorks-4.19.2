@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class KismetCompiler : ModuleRules
 {
-	public KismetCompiler(TargetInfo Target)
+	public KismetCompiler(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

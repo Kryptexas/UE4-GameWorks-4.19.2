@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class StreamingFile : ModuleRules
 {
-	public StreamingFile(TargetInfo Target)
+	public StreamingFile(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicDependencyModuleNames.AddRange(
             new string[] {

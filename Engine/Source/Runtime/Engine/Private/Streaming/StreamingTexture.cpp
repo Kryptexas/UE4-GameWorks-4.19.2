@@ -15,14 +15,11 @@ FStreamingTexture::FStreamingTexture(UTexture2D* InTexture, const int32 NumStrea
 	UpdateDynamicData(NumStreamedMips, Settings);
 
 	InstanceRemovedTimestamp = -FLT_MAX;
-	LastRenderTimeRefCountTimestamp = -FLT_MAX;
-	LastRenderTimeRefCount = 0;
 	DynamicBoostFactor = 1.f;
 
 	bHasUpdatePending = InTexture && InTexture->bHasStreamingUpdatePending;
 
 	bForceFullyLoadHeuristic = false;
-	bUseLastRenderTimeHeuristic = false;
 	bUseUnkownRefHeuristic = false;
 	NumMissingMips = 0;
 	bLooksLowRes = false;
@@ -81,7 +78,7 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 		const float LastRenderTimeForTexture = Texture->GetLastRenderTimeForStreaming();
 		LastRenderTime = (FApp::GetCurrentTime() > LastRenderTimeForTexture) ? float( FApp::GetCurrentTime() - LastRenderTimeForTexture ) : 0.0f;
 
-		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || LODGroup == TEXTUREGROUP_Skybox || (LODGroup == TEXTUREGROUP_HierarchicalLOD && Settings.HLODStrategy == 2);
+		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || LODGroup == TEXTUREGROUP_Skybox;
 
 		const int32 NumCinematicMipLevels = (bForceFullyLoad && Texture->bUseCinematicMipLevels) ? Texture->NumCinematicMipLevels : 0;
 
@@ -102,11 +99,7 @@ void FStreamingTexture::UpdateDynamicData(const int32 NumStreamedMips[TEXTUREGRO
 		// The max mip count is affected by the texture bias and cinematic bias settings.
 		MaxAllowedMips = FMath::Clamp<int32>(FMath::Min<int32>(MipCount - LODBias, GMaxTextureMipCount), NumNonStreamingMips, MipCount);
 
-		if (LODGroup == TEXTUREGROUP_HierarchicalLOD && Settings.HLODStrategy == 1)
-		{
-			MinAllowedMips = FMath::Clamp<int32>(MaxAllowedMips - 1, NumNonStreamingMips, MaxAllowedMips);
-		}
-		else if (NumStreamedMips[LODGroup] > 0)
+		if (NumStreamedMips[LODGroup] > 0)
 		{
 			MinAllowedMips = FMath::Clamp<int32>(MipCount - NumStreamedMips[LODGroup], NumNonStreamingMips, MaxAllowedMips);
 		}
@@ -312,8 +305,8 @@ bool FStreamingTexture::UpdateLoadOrderPriority_Async(int32 MinMipForSplitReques
 {
 	LoadOrderPriority = 0;
 
-	// First load the visible mips, then later load the non visible part.
-	if (ResidentMips < VisibleWantedMips && VisibleWantedMips < BudgetedMips && BudgetedMips >= MinMipForSplitRequest)
+	// First load the visible mips, then later load the non visible part (does not apply to terrain textures as distance fields update may be waiting).
+	if (ResidentMips < VisibleWantedMips && VisibleWantedMips < BudgetedMips && BudgetedMips >= MinMipForSplitRequest && !bIsTerrainTexture)
 	{
 		WantedMips = VisibleWantedMips;
 	}
@@ -358,7 +351,7 @@ void FStreamingTexture::StreamWantedMips(FStreamingManagerTexture& Manager)
 	{
 		ensure(ResidentMips == RequestedMips);
 
-		if (Texture->PendingMipChangeRequestStatus.GetValue() == TexState_ReadyFor_Requests)
+		if (Texture->Resource && Texture->PendingMipChangeRequestStatus.GetValue() == TexState_ReadyFor_Requests)
 		{
 			Texture->RequestedMips = WantedMips;
 

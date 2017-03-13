@@ -14,7 +14,7 @@
 #include "Templates/AreTypesEqual.h"
 #include "Templates/UnrealTypeTraits.h"
 #include "Templates/RemoveReference.h"
-#include "Delegates/Tuple.h"
+#include "Templates/Tuple.h"
 #include "Delegates/DelegateInstanceInterface.h"
 #include "UObject/NameTypes.h"
 

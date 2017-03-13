@@ -84,7 +84,8 @@ bool UExponentialHeightFogComponent::CanEditChange(const UProperty* InProperty) 
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, FullyDirectionalInscatteringColorDistance) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, NonDirectionalInscatteringColorDistance) ||
-			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, InscatteringTextureTint))
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, InscatteringTextureTint) ||
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, InscatteringColorCubemapAngle))
 		{
 			return InscatteringColorCubemap != NULL;
 		}
@@ -102,7 +103,8 @@ void UExponentialHeightFogComponent::PostEditChangeProperty(FPropertyChangedEven
 	FogCutoffDistance = FMath::Clamp(FogCutoffDistance, 0.0f, (float)(10 * WORLD_MAX));
 	FullyDirectionalInscatteringColorDistance = FMath::Clamp(FullyDirectionalInscatteringColorDistance, 0.0f, (float)WORLD_MAX);
 	NonDirectionalInscatteringColorDistance = FMath::Clamp(NonDirectionalInscatteringColorDistance, 0.0f, FullyDirectionalInscatteringColorDistance);
-	
+	InscatteringColorCubemapAngle = FMath::Clamp(InscatteringColorCubemapAngle, 0.0f, 360.0f);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif // WITH_EDITOR
@@ -137,6 +139,15 @@ void UExponentialHeightFogComponent::SetInscatteringColorCubemap(UTextureCube* V
 	if(InscatteringColorCubemap != Value)
 	{
 		InscatteringColorCubemap = Value;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetInscatteringColorCubemapAngle(float Value)
+{
+	if(InscatteringColorCubemapAngle != Value)
+	{
+		InscatteringColorCubemapAngle = Value;
 		MarkRenderStateDirty();
 	}
 }

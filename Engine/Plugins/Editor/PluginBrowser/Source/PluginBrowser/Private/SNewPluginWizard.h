@@ -122,9 +122,10 @@ private:
 	 * @param bCanContainContent Can this plugin contain content
 	 * @param bHasModules Does this plugin have Source?
 	 * @param ModuleDescriptorType If this plugin has Source, what is the type of Source included (so it can potentially be excluded in the right builds)
+	 * @param LoadingPhase If this plugin has Source, when should the module be loaded (may need to be earlier than default if used in blueprints)
 	 * @return Whether the files was written successfully
 	 */
-	bool WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules, EHostType::Type InModuleDescriptorType);
+	bool WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules, EHostType::Type InModuleDescriptorType, ELoadingPhase::Type LoadingPhase);
 
 	/**
 	 * Displays an editor pop up error notification

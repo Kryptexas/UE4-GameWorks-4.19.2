@@ -25,6 +25,7 @@
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "PhATAnimInstance.h"
 
 #define LOCTEXT_NAMESPACE "PhATShared"
 
@@ -120,10 +121,6 @@ void FPhATSharedData::Initialize()
 
 	PhysicalAnimationComponent = NewObject<UPhysicalAnimationComponent>();
 	PhysicalAnimationComponent->SetSkeletalMeshComponent(EditorSkelComp);
-	
-	// first disable collision first to avoid creating physics body
-	EditorSkelComp->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	EditorSkelComp->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
 
 	// Create floor component
 	UStaticMesh* FloorMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PhAT_FloorBox.PhAT_FloorBox"), NULL, LOAD_None, NULL);
@@ -966,11 +963,11 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex, bool bAutoSelect)
 	// Create a new physics body for this bone.
 	if (NewBodyData.VertWeight == EVW_DominantWeight)
 	{
-		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, DominantWeightBoneInfos);
+		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, DominantWeightBoneInfos[NewBoneIndex]);
 	}
 	else
 	{
-		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, AnyWeightBoneInfos);
+		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, AnyWeightBoneInfos[NewBoneIndex]);
 	}
 
 	if (bCreatedBody == false)
@@ -1495,11 +1492,18 @@ void FPhATSharedData::EnableSimulation(bool bEnableSimulation)
 		// Flush geometry cache inside the asset (don't want to use cached version of old geometry!)
 		PhysicsAsset->InvalidateAllPhysicsMeshes();
 
+		EditorSkelComp->RecreatePhysicsState();
+		
 		// We should not already have an instance (destroyed when stopping sim).
 		EditorSkelComp->SetSimulatePhysics(true);
 		EditorSkelComp->SetPhysicsBlendWeight(EditorSimOptions->PhysicsBlend);
-		EditorSkelComp->InitArticulated(PreviewScene.GetWorld()->GetPhysicsScene());
 		PhysicalAnimationComponent->SetSkeletalMeshComponent(EditorSkelComp);
+		
+		EditorSkelComp->SetAnimationMode(EAnimationMode::AnimationCustomMode);
+		EditorSkelComp->AnimScriptInstance = NewObject<UPhATAnimInstance>(EditorSkelComp, TEXT("PhatAnimScriptInstance"));
+		EditorSkelComp->AnimScriptInstance->InitializeAnimation();
+		EditorSkelComp->InitAnim(true);
+
 
 		// Make it start simulating
 		EditorSkelComp->WakeAllRigidBodies();
@@ -1509,13 +1513,14 @@ void FPhATSharedData::EnableSimulation(bool bEnableSimulation)
 	}
 	else
 	{
-		// Stop any animation and clear node when stopping simulation.
-		EditorSkelComp->SetAnimation(NULL);
-		PhysicalAnimationComponent->SetSkeletalMeshComponent(nullptr);
+		EditorSkelComp->AnimScriptInstance = nullptr;
+		EditorSkelComp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 
-		// Turn off/remove the physics instance for this thing, and move back to start location.
-		EditorSkelComp->TermArticulated();
-		EditorSkelComp->SetSimulatePhysics(false);
+		// Stop any animation and clear node when stopping simulation.
+		PhysicalAnimationComponent->SetSkeletalMeshComponent(nullptr);
+		
+
+		EditorSkelComp->DestroyPhysicsState();
 		EditorSkelComp->SetPhysicsBlendWeight(0.f);
 
 		// Since simulation, actor location changes. Reset to identity 

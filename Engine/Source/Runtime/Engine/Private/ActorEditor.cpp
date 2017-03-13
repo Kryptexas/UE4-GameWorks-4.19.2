@@ -58,7 +58,7 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 
 	// During SIE, allow components to reregistered and reconstructed in PostEditChangeProperty.
 	// This is essential as construction is deferred during spawning / duplication when in SIE.
-	if ((GEditor && GEditor->bIsSimulatingInEditor) || ReregisterComponentsWhenModified())
+	if ((GEditor && GEditor->bIsSimulatingInEditor && GetWorld() != nullptr) || ReregisterComponentsWhenModified())
 	{
 		// In the Undo case we have an annotation storing information about constructed components and we do not want
 		// to improperly apply out of date changes so we need to skip registration of all blueprint created components

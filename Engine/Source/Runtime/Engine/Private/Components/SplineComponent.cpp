@@ -128,71 +128,64 @@ void USplineComponent::Serialize(FArchive& Ar)
 }
 
 
-void USplineComponent::PostLoad()
+void FSplineCurves::UpdateSpline(bool bClosedLoop, bool bStationaryEndpoints, int32 ReparamStepsPerSegment, bool bLoopPositionOverride, float LoopPosition, const FVector& Scale3D)
 {
-	Super::PostLoad();
-}
-
-
-void USplineComponent::PostEditImport()
-{
-	Super::PostEditImport();
-}
-
-
-void USplineComponent::UpdateSpline()
-{
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	check(SplineCurves.Rotation.Points.Num() == NumPoints && SplineCurves.Scale.Points.Num() == NumPoints);
+	const int32 NumPoints = Position.Points.Num();
+	check(Rotation.Points.Num() == NumPoints && Scale.Points.Num() == NumPoints);
 
 #if DO_CHECK
 	// Ensure input keys are strictly ascending
 	for (int32 Index = 1; Index < NumPoints; Index++)
 	{
-		check(SplineCurves.Position.Points[Index - 1].InVal < SplineCurves.Position.Points[Index].InVal);
+		check(Position.Points[Index - 1].InVal < Position.Points[Index].InVal);
 	}
 #endif
 
 	// Ensure splines' looping status matches with that of the spline component
 	if (bClosedLoop)
 	{
-		const float LastKey = SplineCurves.Position.Points.Num() > 0 ? SplineCurves.Position.Points.Last().InVal : 0.0f;
+		const float LastKey = Position.Points.Num() > 0 ? Position.Points.Last().InVal : 0.0f;
 		const float LoopKey = bLoopPositionOverride ? LoopPosition : LastKey + 1.0f;
-		SplineCurves.Position.SetLoopKey(LoopKey);
-		SplineCurves.Rotation.SetLoopKey(LoopKey);
-		SplineCurves.Scale.SetLoopKey(LoopKey);
+		Position.SetLoopKey(LoopKey);
+		Rotation.SetLoopKey(LoopKey);
+		Scale.SetLoopKey(LoopKey);
 	}
 	else
 	{
-		SplineCurves.Position.ClearLoopKey();
-		SplineCurves.Rotation.ClearLoopKey();
-		SplineCurves.Scale.ClearLoopKey();
+		Position.ClearLoopKey();
+		Rotation.ClearLoopKey();
+		Scale.ClearLoopKey();
 	}
 
 	// Automatically set the tangents on any CurveAuto keys
-	SplineCurves.Position.AutoSetTangents(0.0f, bStationaryEndpoints);
-	SplineCurves.Rotation.AutoSetTangents(0.0f, bStationaryEndpoints);
-	SplineCurves.Scale.AutoSetTangents(0.0f, bStationaryEndpoints);
+	Position.AutoSetTangents(0.0f, bStationaryEndpoints);
+	Rotation.AutoSetTangents(0.0f, bStationaryEndpoints);
+	Scale.AutoSetTangents(0.0f, bStationaryEndpoints);
 
 	// Now initialize the spline reparam table
 	const int32 NumSegments = bClosedLoop ? NumPoints : NumPoints - 1;
 
 	// Start by clearing it
-	SplineCurves.ReparamTable.Points.Reset(NumSegments * ReparamStepsPerSegment + 1);
+	ReparamTable.Points.Reset(NumSegments * ReparamStepsPerSegment + 1);
 	float AccumulatedLength = 0.0f;
 	for (int32 SegmentIndex = 0; SegmentIndex < NumSegments; ++SegmentIndex)
 	{
 		for (int32 Step = 0; Step < ReparamStepsPerSegment; ++Step)
 		{
 			const float Param = static_cast<float>(Step) / ReparamStepsPerSegment;
-			const float SegmentLength = (Step == 0) ? 0.0f : GetSegmentLength(SegmentIndex, Param);
+			const float SegmentLength = (Step == 0) ? 0.0f : GetSegmentLength(SegmentIndex, Param, bClosedLoop, Scale3D);
 
-			SplineCurves.ReparamTable.Points.Emplace(SegmentLength + AccumulatedLength, SegmentIndex + Param, 0.0f, 0.0f, CIM_Linear);
+			ReparamTable.Points.Emplace(SegmentLength + AccumulatedLength, SegmentIndex + Param, 0.0f, 0.0f, CIM_Linear);
 		}
-		AccumulatedLength += GetSegmentLength(SegmentIndex, 1.0f);
+		AccumulatedLength += GetSegmentLength(SegmentIndex, 1.0f, bClosedLoop, Scale3D);
 	}
 
-	SplineCurves.ReparamTable.Points.Emplace(AccumulatedLength, static_cast<float>(NumSegments), 0.0f, 0.0f, CIM_Linear);
+	ReparamTable.Points.Emplace(AccumulatedLength, static_cast<float>(NumSegments), 0.0f, 0.0f, CIM_Linear);
+}
+
+void USplineComponent::UpdateSpline()
+{
+	SplineCurves.UpdateSpline(bClosedLoop, bStationaryEndpoints, ReparamStepsPerSegment, bLoopPositionOverride, LoopPosition, ComponentToWorld.GetScale3D());
 
 #if !UE_BUILD_SHIPPING
 	if (bDrawDebug)
@@ -202,10 +195,9 @@ void USplineComponent::UpdateSpline()
 #endif
 }
 
-
-float USplineComponent::GetSegmentLength(const int32 Index, const float Param) const
+float FSplineCurves::GetSegmentLength(const int32 Index, const float Param, bool bClosedLoop, const FVector& Scale3D) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
+	const int32 NumPoints = Position.Points.Num();
 	const int32 LastPoint = NumPoints - 1;
 
 	check(Index >= 0 && ((bClosedLoop && Index < NumPoints) || (!bClosedLoop && Index < LastPoint)));
@@ -232,10 +224,8 @@ float USplineComponent::GetSegmentLength(const int32 Index, const float Param) c
 		{ 0.90617985f, 0.23692688f }
 	};
 
-	const auto& StartPoint = SplineCurves.Position.Points[Index];
-	const auto& EndPoint = SplineCurves.Position.Points[Index == LastPoint ? 0 : Index + 1];
-
-	const FVector Scale3D = ComponentToWorld.GetScale3D();
+	const auto& StartPoint = Position.Points[Index];
+	const auto& EndPoint = Position.Points[Index == LastPoint ? 0 : Index + 1];
 
 	const auto& P0 = StartPoint.OutVal;
 	const auto& T0 = StartPoint.LeaveTangent;
@@ -272,6 +262,10 @@ float USplineComponent::GetSegmentLength(const int32 Index, const float Param) c
 	return Length;
 }
 
+float USplineComponent::GetSegmentLength(const int32 Index, const float Param) const
+{
+	return SplineCurves.GetSegmentLength(Index, Param, bClosedLoop, ComponentToWorld.GetScale3D());
+}
 
 float USplineComponent::GetSegmentParamFromLength(const int32 Index, const float Length, const float SegmentLength) const
 {
@@ -952,18 +946,22 @@ float USplineComponent::GetDistanceAlongSplineAtSplinePoint(int32 PointIndex) co
 	return 0.0f;
 }
 
-
-float USplineComponent::GetSplineLength() const
+float FSplineCurves::GetSplineLength() const
 {
-	const int32 NumPoints = SplineCurves.ReparamTable.Points.Num();
+	const int32 NumPoints = ReparamTable.Points.Num();
 
 	// This is given by the input of the last entry in the remap table
 	if (NumPoints > 0)
 	{
-		return SplineCurves.ReparamTable.Points.Last().InVal;
+		return ReparamTable.Points.Last().InVal;
 	}
-	
+
 	return 0.0f;
+}
+
+float USplineComponent::GetSplineLength() const
+{
+	return SplineCurves.GetSplineLength();
 }
 
 
@@ -1414,58 +1412,7 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 						continue;
 					}
 
-					const int32 GrabHandleSize = 6;
-					FVector OldKeyPos(0);
-
-					const int32 NumPoints = SplineInfo.Points.Num();
-					const int32 NumSegments = SplineInfo.bIsLooped ? NumPoints : NumPoints - 1;
-					for (int32 KeyIdx = 0; KeyIdx < NumSegments + 1; KeyIdx++)
-					{
-						const FVector NewKeyPos = LocalToWorld.TransformPosition(SplineInfo.Eval(static_cast<float>(KeyIdx), FVector(0)));
-
-						// Draw the keypoint
-						if (KeyIdx < NumPoints)
-						{
-							PDI->DrawPoint(NewKeyPos, LineColor, GrabHandleSize, SDPG_World);
-						}
-
-						// If not the first keypoint, draw a line to the previous keypoint.
-						if (KeyIdx > 0)
-						{
-							// For constant interpolation - don't draw ticks - just draw dotted line.
-							if (SplineInfo.Points[KeyIdx - 1].InterpMode == CIM_Constant)
-							{
-								// Calculate dash length according to size on screen
-								const float StartW = View->WorldToScreen(OldKeyPos).W;
-								const float EndW = View->WorldToScreen(NewKeyPos).W;
-
-								const float WLimit = 10.0f;
-								if (StartW > WLimit || EndW > WLimit)
-								{
-									const float Scale = 0.03f;
-									DrawDashedLine(PDI, OldKeyPos, NewKeyPos, LineColor, FMath::Max(StartW, EndW) * Scale, SDPG_World);
-								}
-							}
-							else
-							{
-								// Find position on first keyframe.
-								FVector OldPos = OldKeyPos;
-
-								// Then draw a line for each substep.
-								const int32 NumSteps = 20;
-
-								for (int32 StepIdx = 1; StepIdx <= NumSteps; StepIdx++)
-								{
-									const float Key = (KeyIdx - 1) + (StepIdx / static_cast<float>(NumSteps));
-									const FVector NewPos = LocalToWorld.TransformPosition(SplineInfo.Eval(Key, FVector(0)));
-									PDI->DrawLine(OldPos, NewPos, LineColor, SDPG_World);
-									OldPos = NewPos;
-								}
-							}
-						}
-
-						OldKeyPos = NewKeyPos;
-					}
+					USplineComponent::Draw(PDI, View, SplineInfo, LocalToWorld, LineColor, SDPG_World);
 				}
 			}
 		}
@@ -1492,6 +1439,61 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 	return new FSplineSceneProxy(this);
 }
 
+void USplineComponent::Draw(FPrimitiveDrawInterface* PDI, const FSceneView* View, const FInterpCurveVector& SplineInfo, const FMatrix& LocalToWorld, const FLinearColor& LineColor, uint8 DepthPriorityGroup)
+{
+	const int32 GrabHandleSize = 6;
+	FVector OldKeyPos(0);
+
+	const int32 NumPoints = SplineInfo.Points.Num();
+	const int32 NumSegments = SplineInfo.bIsLooped ? NumPoints : NumPoints - 1;
+	for (int32 KeyIdx = 0; KeyIdx < NumSegments + 1; KeyIdx++)
+	{
+		const FVector NewKeyPos = LocalToWorld.TransformPosition(SplineInfo.Eval(static_cast<float>(KeyIdx), FVector(0)));
+
+		// Draw the keypoint
+		if (KeyIdx < NumPoints)
+		{
+			PDI->DrawPoint(NewKeyPos, LineColor, GrabHandleSize, DepthPriorityGroup);
+		}
+
+		// If not the first keypoint, draw a line to the previous keypoint.
+		if (KeyIdx > 0)
+		{
+			// For constant interpolation - don't draw ticks - just draw dotted line.
+			if (SplineInfo.Points[KeyIdx - 1].InterpMode == CIM_Constant)
+			{
+				// Calculate dash length according to size on screen
+				const float StartW = View->WorldToScreen(OldKeyPos).W;
+				const float EndW = View->WorldToScreen(NewKeyPos).W;
+
+				const float WLimit = 10.0f;
+				if (StartW > WLimit || EndW > WLimit)
+				{
+					const float Scale = 0.03f;
+					DrawDashedLine(PDI, OldKeyPos, NewKeyPos, LineColor, FMath::Max(StartW, EndW) * Scale, DepthPriorityGroup);
+				}
+			}
+			else
+			{
+				// Find position on first keyframe.
+				FVector OldPos = OldKeyPos;
+
+				// Then draw a line for each substep.
+				const int32 NumSteps = 20;
+
+				for (int32 StepIdx = 1; StepIdx <= NumSteps; StepIdx++)
+				{
+					const float Key = (KeyIdx - 1) + (StepIdx / static_cast<float>(NumSteps));
+					const FVector NewPos = LocalToWorld.TransformPosition(SplineInfo.Eval(Key, FVector(0)));
+					PDI->DrawLine(OldPos, NewPos, LineColor, DepthPriorityGroup);
+					OldPos = NewPos;
+				}
+			}
+		}
+
+		OldKeyPos = NewKeyPos;
+	}
+}
 
 FBoxSphereBounds USplineComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
@@ -1634,3 +1636,21 @@ void USplineComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& P
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
 #endif
+
+void FSplinePositionLinearApproximation::Build(const FSplineCurves& InCurves, TArray<FSplinePositionLinearApproximation>& OutPoints, float InDensity)
+{
+	OutPoints.Reset();
+
+	const float SplineLength = InCurves.GetSplineLength();
+	int32 NumLinearPoints = FMath::Min((int32)(SplineLength * InDensity), 2);
+
+	for (int32 LinearPointIndex = 0; LinearPointIndex < NumLinearPoints; ++LinearPointIndex)
+	{
+		const float DistanceAlpha = (float)LinearPointIndex / (float)NumLinearPoints;
+		const float SplineDistance = SplineLength * DistanceAlpha;
+		const float Param = InCurves.ReparamTable.Eval(SplineDistance, 0.0f);
+		OutPoints.Emplace(InCurves.Position.Eval(Param, FVector::ZeroVector), Param);
+	}
+
+	OutPoints.Emplace(InCurves.Position.Points.Last().OutVal, InCurves.ReparamTable.Points.Last().OutVal);
+}

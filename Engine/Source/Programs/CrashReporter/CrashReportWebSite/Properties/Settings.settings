@@ -21,7 +21,7 @@
       <Value Profile="(Default)">https://hooks.slack.com/services/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</Value>
     </Setting>
     <Setting Name="SlackChannel" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">#crashreporterspam</Value>
+      <Value Profile="(Default)">#Crashreporterspam</Value>
     </Setting>
     <Setting Name="SlackUsername" Type="System.String" Scope="Application">
       <Value Profile="(Default)">CrashReportWebsite</Value>

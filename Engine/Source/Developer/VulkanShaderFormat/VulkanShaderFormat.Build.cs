@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class VulkanShaderFormat : ModuleRules
 {
-	public VulkanShaderFormat(TargetInfo Target)
+	public VulkanShaderFormat(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 

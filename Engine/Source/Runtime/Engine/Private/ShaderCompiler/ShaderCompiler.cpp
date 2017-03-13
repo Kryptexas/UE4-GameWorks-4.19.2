@@ -303,7 +303,8 @@ static const TArray<const IShaderFormat*>& GetShaderFormats()
 
 		for (int32 Index = 0; Index < Modules.Num(); Index++)
 		{
-			IShaderFormat* Format = FModuleManager::LoadModuleChecked<IShaderFormatModule>(Modules[Index]).GetShaderFormat();
+			IShaderFormat* Format = FModuleManager::GetModuleChecked<IShaderFormatModule>(Modules[Index]).GetShaderFormat();
+
 			if (Format != nullptr)
 			{
 				Results.Add(Format);
@@ -385,11 +386,11 @@ static bool DoWriteTasks(const TArray<FShaderCommonCompileJob*>& QueuedJobs, FAr
 		TransferFile << SingleJobHeader;
 
 		int32 NumBatches = QueuedSingleJobs.Num();
-	TransferFile << NumBatches;
+		TransferFile << NumBatches;
 
-	// Serialize all the batched jobs
+		// Serialize all the batched jobs
 		for (int32 JobIndex = 0; JobIndex < QueuedSingleJobs.Num(); JobIndex++)
-	{
+		{
 			TransferFile << QueuedSingleJobs[JobIndex]->Input;
 		}
 	}
@@ -2604,15 +2605,17 @@ void GlobalBeginCompileShader(
 	// #defines get stripped out by the preprocessor without this. We can override with this
 	Input.Environment.SetDefine(TEXT("COMPILER_DEFINE"), TEXT("#define"));
 
-	// Set instanced stereo define
+	// Set VR definitions
 	{
 		static const auto CVarInstancedStereo = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
 		static const auto CVarMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 		static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+		static const auto CVarMonoscopicFarField = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
 
 		const bool bIsInstancedStereoCVar = CVarInstancedStereo ? (CVarInstancedStereo->GetValueOnGameThread() != 0) : false;
 		const bool bIsMultiViewCVar = CVarMultiView ? (CVarMultiView->GetValueOnGameThread() != 0) : false;
 		const bool bIsMobileMultiViewCVar = CVarMobileMultiView ? (CVarMobileMultiView->GetValueOnGameThread() != 0) : false;
+		const bool bIsMonoscopicFarField = CVarMonoscopicFarField && (CVarMonoscopicFarField->GetValueOnGameThread() != 0);
 
 		const EShaderPlatform ShaderPlatform = static_cast<EShaderPlatform>(Target.Platform);
 		
@@ -2629,6 +2632,8 @@ void GlobalBeginCompileShader(
 			UE_LOG(LogShaderCompilers, Log, TEXT("Instanced stereo rendering is not supported for the %s shader platform."), *LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
 			GShaderCompilingManager->SuppressWarnings(ShaderPlatform);
 		}
+
+		Input.Environment.SetDefine(TEXT("MONOSCOPIC_FAR_FIELD"), bIsMonoscopicFarField);
 	}
 
 	ShaderType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix, (EShaderPlatform)Target.Platform);

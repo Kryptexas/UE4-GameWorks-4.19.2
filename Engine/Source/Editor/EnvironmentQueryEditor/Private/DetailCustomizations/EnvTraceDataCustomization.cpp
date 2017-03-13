@@ -140,19 +140,19 @@ void FEnvTraceDataCustomization::CacheTraceModes(TSharedRef<class IPropertyHandl
 	TraceModes.Reset();
 	if (bCanDisable)
 	{
-		TraceModes.Add(FTextIntPair(TraceModeEnum->GetEnumText(EEnvQueryTrace::None), EEnvQueryTrace::None));
+		TraceModes.Add(FTextIntPair(TraceModeEnum->GetDisplayNameTextByValue(EEnvQueryTrace::None), EEnvQueryTrace::None));
 	}
 	if (bCanNavMesh)
 	{
-		TraceModes.Add(FTextIntPair(TraceModeEnum->GetEnumText(EEnvQueryTrace::Navigation), EEnvQueryTrace::Navigation));
+		TraceModes.Add(FTextIntPair(TraceModeEnum->GetDisplayNameTextByValue(EEnvQueryTrace::Navigation), EEnvQueryTrace::Navigation));
 	}
 	if (bCanGeometry)
 	{
-		TraceModes.Add(FTextIntPair(TraceModeEnum->GetEnumText(EEnvQueryTrace::Geometry), EEnvQueryTrace::Geometry));
+		TraceModes.Add(FTextIntPair(TraceModeEnum->GetDisplayNameTextByValue(EEnvQueryTrace::Geometry), EEnvQueryTrace::Geometry));
 	}
 	if (bCanGeometry && bCanNavMesh && !bCanShowProjection)
 	{
-		TraceModes.Add(FTextIntPair(TraceModeEnum->GetEnumText(EEnvQueryTrace::NavigationOverLedges), EEnvQueryTrace::NavigationOverLedges));
+		TraceModes.Add(FTextIntPair(TraceModeEnum->GetDisplayNameTextByValue(EEnvQueryTrace::NavigationOverLedges), EEnvQueryTrace::NavigationOverLedges));
 	}
 
 	ActiveMode = EEnvQueryTrace::None;

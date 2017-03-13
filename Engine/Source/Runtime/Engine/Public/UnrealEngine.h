@@ -136,7 +136,7 @@ protected:
 		while(Iter && (!Current || (LocalOnly && !Current->IsLocalController())))
 		{
 			++Iter;
-			Current = Cast<T>(*Iter);
+			Current = Iter ? Cast<T>(*Iter) : nullptr;
 		}
 	}
 

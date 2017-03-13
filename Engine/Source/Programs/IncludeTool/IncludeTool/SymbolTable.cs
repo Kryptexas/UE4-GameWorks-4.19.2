@@ -307,6 +307,28 @@ namespace IncludeTool
 		{
 			TokenReader Reader = new TokenReader(OriginalReader);
 
+			// Read the UENUM prefix if present. We don't want to forward-declare types that need to be parsed by UHT, because it needs the definition.
+			bool bIsUENUM = false;
+			if (Reader.Current.Text == "UENUM")
+			{
+				if(!Reader.MoveNext(TokenReaderContext.IgnoreNewlines) || Reader.Current.Text != "(")
+				{
+					return false;
+				}
+				while(Reader.Current.Text != ")")
+				{
+					if(!Reader.MoveNext(TokenReaderContext.IgnoreNewlines))
+					{
+						return false;
+					}
+				}
+				if(!Reader.MoveNext(TokenReaderContext.IgnoreNewlines))
+				{
+					return false;
+				}
+				bIsUENUM = true;
+			}
+
 			// Read the 'enum class' tokens
 			if(Reader.Current.Text != "enum" || !Reader.MoveNext(TokenReaderContext.IgnoreNewlines))
 			{
@@ -328,30 +350,35 @@ namespace IncludeTool
 				return false;
 			}
 
-			// Build the forward declaration for it
-			StringBuilder ForwardDeclaration = new StringBuilder();
-			ForwardDeclaration.AppendFormat("enum class {0}", Name);
-			while(Reader.Current.Text != ";" && Reader.Current.Text != "{")
+			// Build the forward declaration for it. Don't forward-declare UENUM types because UHT needs to parse their definition first.
+			string ForwardDeclaration = null;
+			if(!bIsUENUM)
 			{
-				// Append the next token
-				if(Reader.Current.HasLeadingSpace)
+				StringBuilder ForwardDeclarationBuilder = new StringBuilder();
+				ForwardDeclarationBuilder.AppendFormat("enum class {0}", Name);
+				while(Reader.Current.Text != ";" && Reader.Current.Text != "{")
 				{
-					ForwardDeclaration.Append(" ");
-				}
-				ForwardDeclaration.Append(Reader.Current.Text);
+					// Append the next token
+					if(Reader.Current.HasLeadingSpace)
+					{
+						ForwardDeclarationBuilder.Append(" ");
+					}
+					ForwardDeclarationBuilder.Append(Reader.Current.Text);
 
-				// Try to move to the next token
-				if(!Reader.MoveNext(TokenReaderContext.IgnoreNewlines))
-				{
-					return false;
+					// Try to move to the next token
+					if(!Reader.MoveNext(TokenReaderContext.IgnoreNewlines))
+					{
+						return false;
+					}
 				}
+				ForwardDeclarationBuilder.Append(";");
+				ForwardDeclaration = ForwardDeclarationBuilder.ToString();
 			}
-			ForwardDeclaration.Append(";");
 
 			// Create a symbol for it if it's an actual definition rather than a forward declaration
 			if(Reader.Current.Text == "{" && Rules.AllowSymbol(Name))
 			{
-				AddSymbol(Name, SymbolType.Enumeration, ForwardDeclaration.ToString(), Fragment, OriginalReader.TokenLocation);
+				AddSymbol(Name, SymbolType.Enumeration, ForwardDeclaration, Fragment, OriginalReader.TokenLocation);
 			}
 
 			// Update the original reader to be the new location
@@ -645,7 +672,7 @@ namespace IncludeTool
 						&& !ReadTemplateClassOrStructForwardDeclaration(Reader, HeaderFile, SymbolToHeader, Log)
 						&& !ReadEnumClassForwardDeclaration(Reader, HeaderFile, SymbolToHeader, Log))
 					{
-						Log.WriteLine("{0}({1}): error: invalid forward declaration", HeaderFile.Location, Reader.CurrentLine);
+						Log.WriteLine("{0}({1}): error: invalid forward declaration - '{2}'", HeaderFile.Location, Reader.CurrentLine + 1, HeaderFile.Text[Reader.CurrentLine]);
 						return false;
 					}
 				}
@@ -726,7 +753,7 @@ namespace IncludeTool
 			Token Identifier = Reader.Current;
 			while(Reader.Current.Text != ";")
 			{
-				if(!Reader.MoveNext(TokenReaderContext.IgnoreNewlines))
+				if(Reader.Current.Text == "{" || !Reader.MoveNext(TokenReaderContext.IgnoreNewlines))
 				{
 					return false;
 				}

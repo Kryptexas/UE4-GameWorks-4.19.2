@@ -256,7 +256,7 @@ void SStaticMeshEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh)
 	EditorViewportClient->SetPreviewMesh(InStaticMesh, PreviewMeshComponent);
 }
 
-void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
+void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh, bool bResetCamera/*= true*/)
 {
 	{
 		const int32 SocketedComponentCount = SocketPreviewMeshComponents.Num();
@@ -300,7 +300,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 		}
 	}
 
-	EditorViewportClient->SetPreviewMesh(InStaticMesh, PreviewMeshComponent);
+	EditorViewportClient->SetPreviewMesh(InStaticMesh, PreviewMeshComponent, bResetCamera);
 }
 
 bool SStaticMeshEditorViewport::IsVisible() const
@@ -516,7 +516,7 @@ void SStaticMeshEditorViewport::OnFocusViewportToSelection()
 	}
 
 	// If we have selected primitives, focus on them 
-	FBox Box(0);
+	FBox Box(ForceInit);
 	const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->CalcSelectedPrimsAABB(Box);
 	if (bSelectedPrim)
 	{

@@ -32,6 +32,7 @@ namespace VorbisChannelInfo
 ENGINE_API void LoadVorbisLibraries();
 
 #if WITH_OGGVORBIS
+
 /** 
  * Helper class to parse ogg vorbis data
  */
@@ -42,10 +43,18 @@ public:
 	ENGINE_API virtual ~FVorbisAudioInfo( void );
 
 	/** Emulate read from memory functionality */
-	size_t			Read( void *ptr, uint32 size );
-	int				Seek( uint32 offset, int whence );
-	int				Close( void );
-	long			Tell( void );
+	size_t			ReadMemory( void *ptr, uint32 size );
+	int				SeekMemory( uint32 offset, int whence );
+	int				CloseMemory( void );
+	long			TellMemory( void );
+
+	/** Emulate read from streaming functionality */
+	size_t			ReadStreaming( void *ptr, uint32 size );
+	int				CloseStreaming( void );
+
+	/** Common info and data functions between ReadCompressedInfo/ReadCompressedData and StreamCompressedInfo/StreamCompressedData */
+	/** Can't use ov_callbacks here so we have to pass in a void* for the callbacks instead */
+	bool GetCompressedInfoCommon(void*	Callbacks, FSoundQualityInfo* QualityInfo);
 
 	/** 
 	 * Reads the header information of an ogg vorbis file
@@ -63,7 +72,7 @@ public:
 	 *
 	 * @return	bool		true if the end of the data was reached (for both single shot and looping sounds)
 	 */
-	ENGINE_API virtual bool ReadCompressedData( uint8* Destination, bool bLooping, uint32 BufferSize ) override;
+	ENGINE_API virtual bool ReadCompressedData( uint8* InDestination, bool bLooping, uint32 BufferSize ) override;
 
 	ENGINE_API virtual void SeekToTime( const float SeekTime ) override;
 
@@ -84,6 +93,14 @@ public:
 	virtual bool UsesVorbisChannelOrdering() const override { return true; }
 	virtual int GetStreamBufferSize() const override { return MONO_PCM_BUFFER_SIZE; }
 
+	// Additional overrides for streaming
+	virtual bool SupportsStreaming() const override {return true;}
+	virtual bool StreamCompressedInfo(USoundWave* Wave, struct FSoundQualityInfo* QualityInfo) override;
+	virtual bool StreamCompressedData(uint8* InDestination, bool bLooping, uint32 BufferSize) override;
+	virtual int32 GetCurrentChunkIndex() const override {return StreamingChunksSize == 0 ? 0 : BufferOffset / StreamingChunksSize;}
+	virtual int32 GetCurrentChunkOffset() const override {return StreamingChunksSize == 0 ? 0 : BufferOffset % StreamingChunksSize;}
+	// End of ICompressedAudioInfo Interface
+
 	struct FVorbisFileWrapper* VFWrapper;
 	const uint8*		SrcBufferData;
 	uint32			SrcBufferDataSize;
@@ -93,5 +110,8 @@ public:
 
 	/** Critical section used to prevent multiple threads accessing same ogg-vorbis file handles at the same time */
 	FCriticalSection VorbisCriticalSection;
+
+	USoundWave*		StreamingSoundWave;				// The current sound wave being streamed, this is used to fetch new chunks
+	uint32			StreamingChunksSize;
 };
 #endif

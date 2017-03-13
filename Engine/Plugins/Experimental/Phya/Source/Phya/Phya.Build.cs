@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Phya : ModuleRules
 	{
-        public Phya(TargetInfo Target)
+        public Phya(ReadOnlyTargetRules Target) : base(Target)
 		{
             PrivateIncludePaths.Add("Phya/Private");
             PrivateIncludePaths.Add("Phya/Private/PhyaLib/include");

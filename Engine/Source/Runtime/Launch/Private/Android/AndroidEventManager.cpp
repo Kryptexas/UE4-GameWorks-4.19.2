@@ -484,6 +484,13 @@ bool FAppEventManager::IsGamePaused()
 	return !bRunning;
 }
 
+
+bool FAppEventManager::IsGameInFocus()
+{
+	return (bWindowInFocus && bHaveWindow);
+}
+
+
 bool FAppEventManager::WaitForEventInQueue(EAppEventState InState, double TimeoutSeconds)
 {
 	bool FoundEvent = false;

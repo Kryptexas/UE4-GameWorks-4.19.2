@@ -50,7 +50,7 @@ FNavLocalGridData::FNavLocalGridData(const TArray<FNavLocalGridData>& SourceGrid
 		return;
 	}
 
-	FBox CombinedBounds(0);
+	FBox CombinedBounds(ForceInit);
 	for (int32 Idx = 0; Idx < SourceGrids.Num(); Idx++)
 	{
 		CombinedBounds += SourceGrids[Idx].WorldBounds;
@@ -143,6 +143,27 @@ void FNavLocalGridData::MarkBoxObstacle(const FVector& Center, const FVector& Ex
 	}
 }
 
+void FNavLocalGridData::MarkCapsuleObstacle(const FVector& Center, float Radius, float HalfHeight)
+{
+	const float RadiusSq = FMath::Square(Radius);
+	for (int32 IdxX = 0; IdxX < (int32)GridSize.Width; IdxX++)
+	{
+		for (int32 IdxY = 0; IdxY < (int32)GridSize.Height; IdxY++)
+		{
+			const FVector GridCellLocation = GetWorldCellCenter(IdxX, IdxY);
+			const float Dist2DSq = (GridCellLocation - Center).SizeSquared2D();
+			const float DistZ = FMath::Abs(GridCellLocation.Z - Center.Z);
+
+			const bool bIsInside = (Dist2DSq < RadiusSq) && (DistZ < HalfHeight);
+			if (bIsInside)
+			{
+				const int32 CellIndex = GetCellIndexUnsafe(IdxX, IdxY);
+				Cells[CellIndex] = 1;
+			}
+		}
+	}
+}
+
 void FNavLocalGridData::SetHeight(float ExtentZ)
 {
 	const float CenterZ = (WorldBounds.Max.Z + WorldBounds.Min.Z) * 0.5f;
@@ -158,7 +179,7 @@ void FNavLocalGridData::SetGridId(int32 NewId)
 void FNavLocalGridData::FindPathForMovingAgent(const FNavigationPath& SourcePath, const FVector& EntryLocation, int32 EntrySegmentStart, TArray<FVector>& PathPointsInside, int32& NextSegmentStart) const
 {
 	// prepare Start & End points for grid pathfinding
-	const FIntVector StartPos = GetCellCoords(EntryLocation);
+	FIntVector StartPos = GetCellCoords(EntryLocation);
 	FIntVector EndPos = GetCellCoords(SourcePath.GetEndLocation());
 
 	int32 NextSegmentEnd = EntrySegmentStart + 1;
@@ -177,6 +198,35 @@ void FNavLocalGridData::FindPathForMovingAgent(const FNavigationPath& SourcePath
 		}
 	}
 
+	const FIntVector OrgStartPos = StartPos;
+	int32 StartCellIdx = GetCellIndex(StartPos.X, StartPos.Y);
+	bool bHasAdjustedStart = false;
+
+	if (StartCellIdx == INDEX_NONE || GetCellAtIndexUnsafe(StartCellIdx) != 0)
+	{
+		const FVector AdjustDirection = (EntryLocation - SourcePath.GetEndLocation()).GetSafeNormal();
+		const float MaxAdjustDistance = 150.0f;
+		const int32 MaxAdjustSteps = 15;
+
+		FIntVector PrevTestPos = StartPos;
+		for (int32 StepIdx = 1; StepIdx < MaxAdjustSteps; StepIdx++)
+		{
+			FIntVector TestPos = GetCellCoords(EntryLocation + (AdjustDirection * MaxAdjustDistance * StepIdx / MaxAdjustSteps));
+			if (TestPos != PrevTestPos)
+			{
+				PrevTestPos = TestPos;
+
+				StartCellIdx = GetCellIndex(TestPos.X, TestPos.Y);
+				if (StartCellIdx != INDEX_NONE && GetCellAtIndexUnsafe(StartCellIdx) == 0)
+				{
+					StartPos = TestPos;
+					bHasAdjustedStart = true;
+					break;
+				}
+			}
+		}
+	}
+
 	NextSegmentStart = NextSegmentEnd - 1;
 	PathPointsInside.Reset();
 
@@ -186,6 +236,11 @@ void FNavLocalGridData::FindPathForMovingAgent(const FNavigationPath& SourcePath
 	const bool bResult = FindPath(StartPos, EndPos, PathCoords);
 	if (bResult)
 	{
+		if (bHasAdjustedStart)
+		{
+			PathPointsInside.Add(GetProjectedCellCenter(OrgStartPos.X, OrgStartPos.Y));
+		}
+
 		for (int32 Idx = 0; Idx < PathCoords.Num(); Idx++)
 		{
 			PathPointsInside.Add(GetProjectedCellCenter(PathCoords[Idx].X, PathCoords[Idx].Y));
@@ -257,25 +312,20 @@ void FNavLocalGridData::PostProcessPath(const FIntVector& StartCoords, const FIn
 	// string pulling
 	PathCoords.Reserve(PathIndices.Num());
 	PathCoords.Add(StartCoords);
-	
-	FIntVector FromCoords(StartCoords);
-	FIntVector PrevCoords(StartCoords);
-	for (int32 Idx = 1; Idx < PathIndices.Num() - 1; Idx++)
+
+	if (PathIndices.Num() > 2)
 	{
-		const FIntVector TestCoords(GetCellCoords(PathIndices[Idx]));
-		const bool bHit = IsLineObstructed(FromCoords, TestCoords);
-		if (!bHit)
+		FIntVector PrevCoords(StartCoords);
+		for (int32 Idx = 2; Idx < PathIndices.Num(); Idx++)
 		{
-			PrevCoords = TestCoords;
-			continue;
+			const FIntVector TestCoords(GetCellCoords(PathIndices[Idx]));
+			const bool bHit = IsLineObstructed(PrevCoords, TestCoords);
+			if (bHit)
+			{
+				PrevCoords = GetCellCoords(PathIndices[Idx - 1]);
+				PathCoords.Add(PrevCoords);
+			}
 		}
-
-		if (Idx > 1)
-		{
-			PathCoords.Add(PrevCoords);
-		}
-
-		FromCoords = TestCoords;
 	}
 
 	PathCoords.Add(EndCoords);
@@ -359,7 +409,10 @@ void FNavLocalGridData::ProjectCells(const ANavigationData& NavData)
 	{
 		if (Cells[Idx] == 0)
 		{
-			Workload.Add(FNavigationProjectionWork(GetWorldCellCenter(Idx)));
+			FNavigationProjectionWork CellProjectionInfo(GetWorldCellCenter(Idx));
+			CellProjectionInfo.bHintProjection2D = true;
+
+			Workload.Add(CellProjectionInfo);
 		}
 	}
 

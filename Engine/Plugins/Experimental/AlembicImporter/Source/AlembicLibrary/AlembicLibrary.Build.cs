@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AlembicLibrary : ModuleRules
 {
-    public AlembicLibrary(TargetInfo Target)
+    public AlembicLibrary(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicIncludePaths.Add("AlembicLibrary/Public");
         PrivateIncludePaths.Add("AlembicLibrary/Private"); 

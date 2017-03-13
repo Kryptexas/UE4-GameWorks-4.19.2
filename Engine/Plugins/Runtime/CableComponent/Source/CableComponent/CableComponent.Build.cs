@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class CableComponent : ModuleRules
 	{
-        public CableComponent(TargetInfo Target)
+        public CableComponent(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.Add("CableComponent/Private");
 

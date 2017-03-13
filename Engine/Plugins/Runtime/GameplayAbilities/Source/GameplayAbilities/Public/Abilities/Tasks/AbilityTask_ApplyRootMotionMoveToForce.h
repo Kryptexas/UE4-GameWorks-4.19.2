@@ -70,17 +70,5 @@ protected:
 	UPROPERTY(Replicated)
 	UCurveVector* PathOffsetCurve;
 
-	/** What to do with character's Velocity when root motion finishes */
-	UPROPERTY(Replicated)
-	ERootMotionFinishVelocityMode VelocityOnFinishMode;
-
-	/** If VelocityOnFinish mode is "SetVelocity", character velocity is set to this value when root motion finishes */
-	UPROPERTY(Replicated)
-	FVector SetVelocityOnFinish;
-
-	/** If VelocityOnFinish mode is "ClampVelocity", character velocity is clamped to this value when root motion finishes */
-	UPROPERTY(Replicated)
-	float ClampVelocityOnFinish;
-
 	EMovementMode PreviousMovementMode;
 };

@@ -409,7 +409,7 @@ private:
 			bControllerInputCaptured = false;
 			//Ensure the ListView selection is set back to the last committed selection
 			ComboListView->SetSelection(SelectedItem, ESelectInfo::OnNavigation);
-			ComboListView->RequestScrollIntoView(SelectedItem);
+			ComboListView->RequestScrollIntoView(SelectedItem, 0);
 
 			// Set focus back to ComboBox for users focusing the ListView that just closed
 			FSlateApplication::Get().ForEachUser([&](FSlateUser* User) {

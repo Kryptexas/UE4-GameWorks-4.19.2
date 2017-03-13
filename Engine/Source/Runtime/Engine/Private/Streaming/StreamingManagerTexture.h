@@ -10,7 +10,8 @@ TextureStreamingManager.h: Definitions of classes used for texture streaming.
 #include "ContentStreaming.h"
 #include "Streaming/TextureStreamingHelpers.h"
 #include "Streaming/StreamingTexture.h"
-#include "Streaming/TextureInstanceManager.h"
+#include "Streaming/LevelTextureManager.h"
+#include "Streaming/TextureInstanceTask.h"
 
 class AActor;
 class FAsyncTextureStreamingTask;
@@ -153,24 +154,6 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	virtual void NotifyPrimitiveDetached( const UPrimitiveComponent* Primitive ) override;
 
 	/**
-	 * Called when a LastRenderTime primitive is attached to an actor or another component.
-	 * Modifies the LastRenderTimeRefCount for the textures used, so that those textures can
-	 * use both distance-based and LastRenderTime heuristics.
-	 *
-	 * @param Primitive	Newly attached dynamic/spawned primitive
-	 */
-	virtual void NotifyTimedPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType ) override;
-
-	/**
-	 * Called when a LastRenderTime primitive is detached from an actor or another component.
-	 * Modifies the LastRenderTimeRefCount for the textures used, so that those textures can
-	 * use both distance-based and LastRenderTime heuristics.
-	 *
-	 * @param Primitive	Newly detached dynamic/spawned primitive
-	 */
-	virtual void NotifyTimedPrimitiveDetached( const UPrimitiveComponent* Primitive ) override;
-
-	/**
 	 * Called when a primitive has had its textured changed.
 	 * Only affects primitives that were already attached.
 	 * Replaces previous info.
@@ -257,7 +240,7 @@ protected:
 	void	UpdateStats();
 	void	LogViewLocationChange();
 
-	void	IncrementalUpdate( float Percentage );
+	void	IncrementalUpdate( float Percentage, bool bUpdateDynamicComponents = true );
 
 	/** Next sync, dump texture group stats. */
 	bool	bTriggerDumpTextureGroupStats;
@@ -273,8 +256,11 @@ protected:
 	/** Async work for calculating priorities for all textures. */
 	FAsyncTask<FAsyncTextureStreamingTask>*	AsyncWork;
 
+	/** Async work for texture instance managers. */
+	TRefCountPtr<TextureInstanceTask::FDoWorkAsyncTask> TextureInstanceAsyncWork;
+
 	/** Textures from dynamic primitives. Owns the data for all levels. */
-	FDynamicComponentTextureManager DynamicComponentManager;
+	FDynamicTextureInstanceManager DynamicComponentManager;
 
 	/** New textures, before they've been added to the thread-safe container. */
 	TArray<UTexture2D*>	PendingStreamingTextures;

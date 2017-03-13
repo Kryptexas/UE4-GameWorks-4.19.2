@@ -218,6 +218,13 @@ static FSceneView* CreateSceneView( FSceneViewFamilyContext* ViewFamilyContext, 
 
 	ViewUniformShaderParameters.WorldViewOrigin = View->ViewMatrices.GetViewOrigin();
 
+	ERHIFeatureLevel::Type RHIFeatureLevel = View->GetFeatureLevel();
+
+	ViewUniformShaderParameters.MobilePreviewMode =
+		(GIsEditor &&
+		(RHIFeatureLevel == ERHIFeatureLevel::ES2 || RHIFeatureLevel == ERHIFeatureLevel::ES3_1) &&
+		GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1) ? 1.0f : 0.0f;
+
 	UpdateNoiseTextureParameters(ViewUniformShaderParameters);
 
 	View->ViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
@@ -322,12 +329,10 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 		}
 
 		const FSlateShaderResource* ShaderResource = RenderBatch.Texture;
-		const ESlateBatchDrawFlag::Type DrawFlags = RenderBatch.DrawFlags;
-		const ESlateDrawEffect::Type DrawEffects = RenderBatch.DrawEffects;
+		const ESlateBatchDrawFlag DrawFlags = RenderBatch.DrawFlags;
+		const ESlateDrawEffect DrawEffects = RenderBatch.DrawEffects;
 		const ESlateShader::Type ShaderType = RenderBatch.ShaderType;
 		const FShaderParams& ShaderParams = RenderBatch.ShaderParams;
-
-		const float FinalGamma = DrawFlags & ESlateBatchDrawFlag::ReverseGamma ? 1.0f / EngineGamma : (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma;
 
 		auto UpdateScissorRect = [&RHICmdList, &RenderBatch]()
 		{
@@ -373,9 +378,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 #if !DEBUG_OVERDRAW
 				RHICmdList.SetBlendState(
-					( RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending )
+					EnumHasAllFlags( DrawFlags, ESlateBatchDrawFlag::NoBlending )
 					? TStaticBlendState<>::GetRHI()
-					: ( ( RenderBatch.DrawFlags & ESlateBatchDrawFlag::PreMultipliedAlpha )
+					: ( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::PreMultipliedAlpha )
 						? TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
 						: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI() )
 					);
@@ -383,7 +388,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
 #endif
 
-				if (DrawFlags & ESlateBatchDrawFlag::Wireframe)
+				if ( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::Wireframe) )
 				{
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Wireframe, CM_None, false>::GetRHI());
 				}
@@ -412,7 +417,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					else
 					{	
 						FTextureRHIParamRef NativeTextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)ShaderResource)->GetTypedResource();
-						// Atlas textures that have no content are never initialised but null textures are invalid on many platforms.
+						// Atlas textures that have no content are never initialized but null textures are invalid on many platforms.
 						TextureRHI = NativeTextureRHI ? NativeTextureRHI : (FTextureRHIParamRef)GWhiteTexture->TextureRHI;
 					}
 
@@ -430,7 +435,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 							SamplerState = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 						}
 					}
-					else if ( DrawFlags & ESlateBatchDrawFlag::TileU )
+					else if ( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::TileU) )
 					{
 						switch ( Filter )
 						{
@@ -444,7 +449,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 							SamplerState = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Clamp, AM_Wrap>::GetRHI();
 						}
 					}
-					else if ( DrawFlags & ESlateBatchDrawFlag::TileV )
+					else if ( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::TileV) )
 					{
 						switch ( Filter )
 						{
@@ -477,9 +482,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
                 
 				PixelShader->SetTexture(RHICmdList, TextureRHI, SamplerState);
 				PixelShader->SetShaderParams(RHICmdList, ShaderParams.PixelParams);
-
-				
-				PixelShader->SetDisplayGamma(RHICmdList, FinalGamma);
+				PixelShader->SetDisplayGamma(RHICmdList, EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::NoGamma ) ? 1.0f : DisplayGamma);
+				PixelShader->SetInvertAlpha(RHICmdList, EnumHasAllFlags(DrawEffects, ESlateDrawEffect::InvertAlpha ) ? true : false );
 
 	
 				// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
@@ -506,9 +510,19 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				{
 					ActiveSceneIndex = NumScenes - 1;
 				}
-				else
+				else if (RenderBatch.SceneIndex >= ResourceManager->GetSceneCount())
 				{
-					ensure(RenderBatch.SceneIndex < ResourceManager->GetSceneCount());
+					// Ideally we should never hit this scenario, but given that Paragon may be using cached
+					// render batches and is running into this daily, for this branch we should
+					// just ignore the scene if the index is invalid. Note that the
+					// MaterialParameterCollections will not be correct for this scene, should they be
+					// used.
+					ActiveSceneIndex = NumScenes - 1;
+#if UE_BUILD_DEBUG
+	#if WITH_EDITOR
+					UE_LOG(LogSlate, Error, TEXT("Invalid scene index in batch: %d of %d known scenes!"), RenderBatch.SceneIndex, ResourceManager->GetSceneCount());
+	#endif
+#endif
 				}
 
 				// Handle the case where we skipped out early above
@@ -552,9 +566,18 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						VertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f);
 						VertexShader->SetMaterialShaderParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material);
 
-						PixelShader->SetParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material, FinalGamma, ShaderParams.PixelParams);
-						PixelShader->SetDisplayGamma(RHICmdList, FinalGamma);
+						PixelShader->SetParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material, DisplayGamma, ShaderParams.PixelParams);
+						PixelShader->SetDisplayGamma(RHICmdList, EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
 
+						if ( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::Wireframe) )
+						{
+							RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Wireframe, CM_None, false>::GetRHI());
+						}
+						else
+						{
+							RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None, false>::GetRHI());
+						}
+						
 						FSlateShaderResource* MaskResource = MaterialShaderResource->GetTextureMaskResource();
 						if (MaskResource)
 						{
@@ -675,7 +698,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 }
 
 
-FSlateElementPS* FSlateRHIRenderingPolicy::GetTexturePixelShader( ESlateShader::Type ShaderType, ESlateDrawEffect::Type DrawEffects )
+FSlateElementPS* FSlateRHIRenderingPolicy::GetTexturePixelShader( ESlateShader::Type ShaderType, ESlateDrawEffect DrawEffects )
 {
 	FSlateElementPS* PixelShader = nullptr;
 	const auto FeatureLevel = GMaxRHIFeatureLevel;
@@ -683,8 +706,8 @@ FSlateElementPS* FSlateRHIRenderingPolicy::GetTexturePixelShader( ESlateShader::
 
 #if !DEBUG_OVERDRAW
 	
-	const bool bDrawDisabled = ( DrawEffects & ESlateDrawEffect::DisabledEffect ) != 0;
-	const bool bUseTextureAlpha = ( DrawEffects & ESlateDrawEffect::IgnoreTextureAlpha ) == 0;
+	const bool bDrawDisabled = EnumHasAllFlags( DrawEffects, ESlateDrawEffect::DisabledEffect );
+	const bool bUseTextureAlpha = !EnumHasAllFlags( DrawEffects, ESlateDrawEffect::IgnoreTextureAlpha );
 
 	if ( bDrawDisabled )
 	{
@@ -761,12 +784,12 @@ FSlateElementPS* FSlateRHIRenderingPolicy::GetTexturePixelShader( ESlateShader::
 	return PixelShader;
 }
 
-FSlateMaterialShaderPS* FSlateRHIRenderingPolicy::GetMaterialPixelShader( const FMaterial* Material, ESlateShader::Type ShaderType, ESlateDrawEffect::Type DrawEffects )
+FSlateMaterialShaderPS* FSlateRHIRenderingPolicy::GetMaterialPixelShader( const FMaterial* Material, ESlateShader::Type ShaderType, ESlateDrawEffect DrawEffects )
 {
 	const FMaterialShaderMap* MaterialShaderMap = Material->GetRenderingThreadShaderMap();
 
-	const bool bDrawDisabled = (DrawEffects & ESlateDrawEffect::DisabledEffect) != 0;
-	const bool bUseTextureAlpha = (DrawEffects & ESlateDrawEffect::IgnoreTextureAlpha) == 0;
+	const bool bDrawDisabled = EnumHasAllFlags(DrawEffects, ESlateDrawEffect::DisabledEffect);
+	const bool bUseTextureAlpha = !EnumHasAllFlags(DrawEffects, ESlateDrawEffect::IgnoreTextureAlpha);
 
 	FShader* FoundShader = nullptr;
 	switch (ShaderType)

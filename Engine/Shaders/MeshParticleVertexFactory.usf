@@ -85,12 +85,12 @@ struct FVertexFactoryInterpolantsVSToPS
 	float4 SubUV0AndTexCoord0 : TEXCOORD1;
 	float4 SubUV1AndLerp : TEXCOORD2;
 #else
-	#if NUM_MATERIAL_TEXCOORDS
+	#if NUM_TEX_COORD_INTERPOLATORS
 			#if (ES2_PROFILE || ES3_1_PROFILE)
 				// Avoid dependent texture fetches, put all UVs in xy
-				float2	TexCoords[NUM_MATERIAL_TEXCOORDS] : TEXCOORD0;
+				float2	TexCoords[NUM_TEX_COORD_INTERPOLATORS] : TEXCOORD0;
 			#else
-				float4	TexCoords[(NUM_MATERIAL_TEXCOORDS+1)/2]	: TEXCOORD0;
+				float4	TexCoords[(NUM_TEX_COORD_INTERPOLATORS+1)/2] : TEXCOORD0;
 			#endif
 	#endif
 #endif
@@ -213,20 +213,20 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	Result.Particle.SubUVCoords[0] = Interpolants.SubUV0AndTexCoord0.xy;
 	Result.Particle.SubUVCoords[1] = Interpolants.SubUV1AndLerp.xy;
 	Result.Particle.SubUVLerp = Interpolants.SubUV1AndLerp.z;
-#elif NUM_MATERIAL_TEXCOORDS
+#elif NUM_TEX_COORD_INTERPOLATORS
 	#if (ES2_PROFILE || ES3_1_PROFILE)
 		UNROLL
-		for( int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++ )
+		for( int CoordinateIndex = 0; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++ )
 		{
 			Result.TexCoords[CoordinateIndex] = Interpolants.TexCoords[CoordinateIndex].xy;
 		}
 	#else
 		UNROLL
-		for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex += 2)
+		for(int CoordinateIndex = 0;CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS;CoordinateIndex += 2)
 		{
 			Result.TexCoords[CoordinateIndex] = Interpolants.TexCoords[CoordinateIndex/2].xy;
 
-			if(CoordinateIndex + 1 < NUM_MATERIAL_TEXCOORDS)
+			if(CoordinateIndex + 1 < NUM_TEX_COORD_INTERPOLATORS)
 			{
 				Result.TexCoords[CoordinateIndex + 1] = Interpolants.TexCoords[CoordinateIndex/2].wz;
 			}
@@ -490,23 +490,24 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	#else
 		Interpolants.SubUV0AndTexCoord0.zw = 0;
 	#endif
-#elif NUM_MATERIAL_TEXCOORDS
+#elif NUM_TEX_COORD_INTERPOLATORS
 	#if (ES2_PROFILE || ES3_1_PROFILE)
 		GetMaterialCustomizedUVs(VertexParameters, Interpolants.TexCoords);
 	#else
 		// Ensure the unused components of the last packed texture coordinate are initialized.
-		Interpolants.TexCoords[(NUM_MATERIAL_TEXCOORDS + 1) / 2 - 1] = 0;
+		Interpolants.TexCoords[(NUM_TEX_COORD_INTERPOLATORS + 1) / 2 - 1] = 0;
 
-		float2 CustomizedUVs[NUM_MATERIAL_TEXCOORDS];
+		float2 CustomizedUVs[NUM_TEX_COORD_INTERPOLATORS];
 		GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
+		GetCustomInterpolators(VertexParameters, CustomizedUVs);
 
 		UNROLL
-		for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex += 2)
+		for(int CoordinateIndex = 0;CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS;CoordinateIndex += 2)
 		{
-				Interpolants.TexCoords[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
-			if(CoordinateIndex + 1 < NUM_MATERIAL_TEXCOORDS)
+			Interpolants.TexCoords[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
+			if(CoordinateIndex + 1 < NUM_TEX_COORD_INTERPOLATORS)
 			{
-					Interpolants.TexCoords[CoordinateIndex / 2].wz = CustomizedUVs[CoordinateIndex + 1];
+				Interpolants.TexCoords[CoordinateIndex / 2].wz = CustomizedUVs[CoordinateIndex + 1];
 			}
 		}
 	#endif 
@@ -574,12 +575,12 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 	FMaterialTessellationParameters GetMaterialTessellationParameters(FVertexFactoryInterpolantsVSToDS Interpolants, float3 CameraLocalWorldPosition)
 	{
 		FMaterialTessellationParameters	Result;
-	#if NUM_MATERIAL_TEXCOORDS
+	#if NUM_TEX_COORD_INTERPOLATORS
 		UNROLL
-		for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex += 2)
+		for(int CoordinateIndex = 0;CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS;CoordinateIndex += 2)
 		{
 			Result.TexCoords[CoordinateIndex] = Interpolants.InterpolantsVSToPS.TexCoords[CoordinateIndex/2].xy;
-			if(CoordinateIndex + 1 < NUM_MATERIAL_TEXCOORDS)
+			if(CoordinateIndex + 1 < NUM_TEX_COORD_INTERPOLATORS)
 			{
 				Result.TexCoords[CoordinateIndex + 1] = Interpolants.InterpolantsVSToPS.TexCoords[CoordinateIndex/2].wz;
 			}
@@ -621,8 +622,8 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 		TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.ParticleColor);
 #endif
 
-#if NUM_MATERIAL_TEXCOORDS
-		for (int i = 0; i < (NUM_MATERIAL_TEXCOORDS + 1) / 2; ++i)
+#if NUM_TEX_COORD_INTERPOLATORS
+		for (int i = 0; i < (NUM_TEX_COORD_INTERPOLATORS + 1) / 2; ++i)
 		{
 			TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.TexCoords[i]);
 		}

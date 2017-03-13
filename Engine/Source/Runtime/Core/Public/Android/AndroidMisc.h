@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "CoreTypes.h"
 #include "Android/AndroidSystemIncludes.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 //@todo android: this entire file

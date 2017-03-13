@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ApsalarEditor : ModuleRules
 {
-    public ApsalarEditor(TargetInfo Target)
+    public ApsalarEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("ApsalarEditor/Private");
 

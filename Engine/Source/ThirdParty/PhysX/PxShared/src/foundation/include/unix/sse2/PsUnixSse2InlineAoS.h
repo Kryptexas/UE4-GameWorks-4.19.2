@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -165,7 +165,7 @@ PX_FORCE_INLINE PxU32 FiniteTestEq(const Vec4V a, const Vec4V b)
 	    _mm_comieq_ss(_mm_shuffle_ps(a1, a1, _MM_SHUFFLE(3, 3, 3, 3)), _mm_shuffle_ps(b1, b1, _MM_SHUFFLE(3, 3, 3, 3))));
 }
 
-#ifndef __EMSCRIPTEN__
+#if !PX_EMSCRIPTEN
 const PX_ALIGN(16, PxF32 gMaskXYZ[4]) = { physx::PxUnionCast<PxF32>(0xffffffff), physx::PxUnionCast<PxF32>(0xffffffff),
 	                                      physx::PxUnionCast<PxF32>(0xffffffff), 0 };
 }
@@ -347,7 +347,7 @@ PX_FORCE_INLINE BoolV BLoad(const bool f)
 PX_FORCE_INLINE Vec3V V3LoadA(const PxVec3& f)
 {
 	ASSERT_ISALIGNED16(const_cast<PxVec3*>(&f));
-#ifndef __EMSCRIPTEN__
+#if !PX_EMSCRIPTEN
 	return _mm_and_ps(reinterpret_cast<const Vec3V&>(f), V4LoadA(internalUnitSSE2Simd::gMaskXYZ));
 #else
 	return _mm_and_ps((Vec3V&)f, (VecI32V&)internalUnitSSE2Simd::gMaskXYZ);
@@ -368,7 +368,7 @@ PX_FORCE_INLINE Vec3V V3LoadUnsafeA(const PxVec3& f)
 PX_FORCE_INLINE Vec3V V3LoadA(const PxF32* const f)
 {
 	ASSERT_ISALIGNED16(const_cast<PxF32*>(f));
-#ifndef __EMSCRIPTEN__
+#if !PX_EMSCRIPTEN
 	return _mm_and_ps(V4LoadA(f), V4LoadA(internalUnitSSE2Simd::gMaskXYZ));
 #else
 	return _mm_and_ps((Vec3V&)*f, (VecI32V&)internalUnitSSE2Simd::gMaskXYZ);
@@ -1781,7 +1781,7 @@ PX_FORCE_INLINE Vec4V V4SetZ(const Vec4V v, const FloatV f)
 
 PX_FORCE_INLINE Vec4V V4ClearW(const Vec4V v)
 {
-#ifndef __EMSCRIPTEN__
+#if !PX_EMSCRIPTEN
 	return _mm_and_ps(v, V4LoadA(internalUnitSSE2Simd::gMaskXYZ));
 #else
 	return _mm_and_ps(v, (VecI32V&)internalUnitSSE2Simd::gMaskXYZ);

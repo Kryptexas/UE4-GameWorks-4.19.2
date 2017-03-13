@@ -159,7 +159,7 @@ struct TIsPODType<FRichCurveKey>
 
 template<>
 struct TStructOpsTypeTraits<FRichCurveKey>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FRichCurveKey>
 {
 	enum
 	{

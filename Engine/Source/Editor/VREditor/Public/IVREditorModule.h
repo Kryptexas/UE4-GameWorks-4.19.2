@@ -65,7 +65,6 @@ public:
 	 * @return True if the VREditor is currently running 
 	 */
 	virtual bool IsVREditorModeActive() = 0;
-
 	/** 
 	* Get the current VREditor running
 	*

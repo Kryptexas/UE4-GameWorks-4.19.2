@@ -268,6 +268,30 @@ private:
 	Type OldValue;
 };
 
+
+/** 
+ * Commonly used to make sure a value is incremented, and then decremented anyway the function can terminate.
+ * Usage:
+ *  	TScopeCounter<int32> BeginProcessing(ProcessingCount); // increments ProcessingCount, and decrements it in the dtor
+ */
+template <typename Type>
+struct TScopeCounter : private FNoncopyable
+{
+	TScopeCounter(Type& ReferenceValue)
+		: RefValue(ReferenceValue)
+	{
+		++RefValue;
+	}
+	~TScopeCounter()
+	{
+		--RefValue;
+	}
+
+private:
+	Type& RefValue;
+};
+
+
 /**
  * Helper class to make it easy to use key/value pairs with a container.
  */

@@ -44,10 +44,14 @@ public:
 	 */
 	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) override
 	{
-		int32 A, B, C, D;
 		int32 Port = 0;
 
 		FString AddressString = InAddr;
+		if (AddressString.IsEmpty())
+		{
+			bIsValid = false;
+			return;
+		}
 
 		TArray<FString> PortTokens;
 		AddressString.ParseIntoArray(PortTokens, TEXT(":"), true);
@@ -58,32 +62,19 @@ public:
 			Port = FCString::Atoi(*PortTokens[1]);
 		}
 
-		// now split the part before the : into a.b.c.d
-		TArray<FString> AddrTokens;
-		PortTokens[0].ParseIntoArray(AddrTokens, TEXT("."), true);
-
-		if (AddrTokens.Num() < 4)
+		// Check if it's a valid IPv4 address, and if it is convert
+		in_addr IPv4Addr;
+		const auto InAddrAnsi = StringCast<ANSICHAR>(*(PortTokens[0]));
+		if (inet_pton(AF_INET, InAddrAnsi.Get(), &IPv4Addr))
 		{
-			bIsValid = false;
-			return;
-		}
-
-		A = FCString::Atoi(*AddrTokens[0]);
-		B = FCString::Atoi(*AddrTokens[1]);
-		C = FCString::Atoi(*AddrTokens[2]);
-		D = FCString::Atoi(*AddrTokens[3]);
-
-		// Make sure the address was valid
-		if ((A & 0xFF) == A && (B & 0xFF) == B && (C & 0xFF) == C && (D & 0xFF) == D)
-		{
-			SetIp((A << 24) | (B << 16) | (C << 8) | (D << 0));
-
 			if (Port != 0)
 			{
 				SetPort(Port);
 			}
 
 			bIsValid = true;
+
+			SetIp(IPv4Addr);
 		}
 		else
 		{

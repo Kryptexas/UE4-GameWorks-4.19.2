@@ -108,10 +108,6 @@ void AStaticMeshActor::PostEditChangeChainProperty(FPropertyChangedChainEvent& P
 			bReplicateMovement = bStaticMeshReplicateMovement;
 			SetReplicates(bReplicateMovement);
 		}
-		else if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_STRING_CHECKED(AStaticMeshActor, StaticMeshComponent) && StaticMeshComponent->GetStaticMesh() != nullptr)
-		{
-			StaticMeshComponent->CleanUpOverrideMaterials();
-		}
 	}
 
 	// Get 'deepest' property name we changed.

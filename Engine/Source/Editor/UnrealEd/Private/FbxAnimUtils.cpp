@@ -59,7 +59,7 @@ namespace FbxAnimUtils
 		UnFbx::FFbxImporter* FbxImporter = UnFbx::FFbxImporter::GetInstance();
 
 		const FString FileExtension = FPaths::GetExtension(InFbxFilename);
-		if (FbxImporter->ImportFromFile(*InFbxFilename, FileExtension))
+		if (FbxImporter->ImportFromFile(*InFbxFilename, FileExtension, true))
 		{
 			if (FbxImporter->Scene != nullptr)
 			{

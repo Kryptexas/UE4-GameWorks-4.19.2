@@ -1229,18 +1229,21 @@ void FThreadStats::CheckForCollectingStartupStats()
 	{
 		DirectStatsCommand( TEXT( "stat group enable LinkerLoad" ) );
 		DirectStatsCommand( TEXT( "stat group enable AsyncLoad" ) );
+		DirectStatsCommand( TEXT( "stat group enable LoadTimeVerbose" ) );
 		DirectStatsCommand( TEXT( "stat dumpsum -start -ms=250 -num=240" ), true );
 	}
 	else if (FParse::Param( FCommandLine::Get(), TEXT( "LoadTimeFile" ) ) || FStats::HasLoadTimeFileForCommandletToken())
 	{
 		DirectStatsCommand( TEXT( "stat group enable LinkerLoad" ) );
 		DirectStatsCommand( TEXT( "stat group enable AsyncLoad" ) );
+		DirectStatsCommand( TEXT( "stat group enable LoadTimeVerbose" ) );
 		DirectStatsCommand( TEXT( "stat startfile" ), true );
 	}
 	else if (FStats::HasLoadTimeStatsForCommandletToken())
 	{
 		DirectStatsCommand( TEXT( "stat group enable LinkerLoad" ) );
 		DirectStatsCommand( TEXT( "stat group enable AsyncLoad" ) );
+		DirectStatsCommand( TEXT( "stat group enable LoadTimeVerbose" ) );
 		DirectStatsCommand( TEXT( "stat dumpsum -start" ), true );
 	}
 

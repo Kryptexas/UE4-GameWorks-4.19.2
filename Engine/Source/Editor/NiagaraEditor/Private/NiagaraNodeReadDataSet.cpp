@@ -3,23 +3,15 @@
 #include "NiagaraNodeReadDataSet.h"
 #include "UObject/UnrealType.h"
 #include "INiagaraCompiler.h"
-
+#include "NiagaraEvents.h"
 #include "EdGraphSchema_Niagara.h"
+#include "NiagaraGraph.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeDataSetRead"
 
 UNiagaraNodeReadDataSet::UNiagaraNodeReadDataSet(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-}
-
-void UNiagaraNodeReadDataSet::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-	if (PropertyChangedEvent.Property != nullptr)
-	{
-		ReallocatePins();
-	}
-	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void UNiagaraNodeReadDataSet::AllocateDefaultPins()
@@ -29,30 +21,13 @@ void UNiagaraNodeReadDataSet::AllocateDefaultPins()
 	if (DataSet.Type == ENiagaraDataSetType::Event)
 	{
 		//Probably need this for all data set types tbh!
-		UEdGraphPin* Pin = CreatePin(EGPD_Output, Schema->PC_Vector, TEXT(""), NULL, false, false, TEXT("Valid"));//TODO - CHANGE TO INT / BOOL / SCALAR
-		Pin->bDefaultValueIsIgnored = true;
+		//UEdGraphPin* Pin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(FNiagaraTypeDefinition::GetBoolDef()), TEXT("Valid"));
+		//Pin->bDefaultValueIsIgnored = true;
 	}
 
-	for (const FNiagaraVariableInfo& Var : Variables)
+	for (const FNiagaraVariable& Var : Variables)
 	{
-		switch (Var.Type)
-		{
-		case ENiagaraDataType::Scalar:
-		{
-			CreatePin(EGPD_Output, Schema->PC_Float, TEXT(""), NULL, false, false, Var.Name.ToString());
-		}
-			break;
-		case ENiagaraDataType::Vector:
-		{
-			CreatePin(EGPD_Output, Schema->PC_Vector, TEXT(""), NULL, false, false, Var.Name.ToString());
-		}
-			break;
-		case ENiagaraDataType::Matrix:
-		{
-			CreatePin(EGPD_Output, Schema->PC_Matrix, TEXT(""), NULL, false, false, Var.Name.ToString());
-		}
-			break;
-		};
+		CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString());
 	}
 }
 
@@ -61,30 +36,63 @@ FText UNiagaraNodeReadDataSet::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	return FText::Format(LOCTEXT("NiagaraDataSetReadFormat", "{0} Read"), FText::FromName(DataSet.Name));
 }
 
-FLinearColor UNiagaraNodeReadDataSet::GetNodeTitleColor() const
+bool UNiagaraNodeReadDataSet::CanAddToGraph(UNiagaraGraph* TargetGraph, FString& OutErrorMsg) const
 {
-	check(DataSet.Type == ENiagaraDataSetType::Event);//Implement other datasets
-	return CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_Event;
-}
-
-void UNiagaraNodeReadDataSet::Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)
-{
-	if(DataSet.Type == ENiagaraDataSetType::Event)
+	if (Super::CanAddToGraph(TargetGraph, OutErrorMsg) == false)
 	{
-		TNiagaraExprPtr IndexExpr = Compiler->ConsumeSharedDataIndex(DataSet, true);//Where do we decide wrapping?
-		check(Variables.Num() == Pins.Num() - 1);//We should have a pin for each variable + 1 for the Valid pin.
-		Outputs.Add(FNiagaraNodeResult(Compiler->SharedDataIndexIsValid(DataSet, IndexExpr), Pins[0]));
-		for (int32 i = 0; i < Variables.Num(); ++i)
+		return false;
+	}
+	// Gather up all the referenced graphs of the one we are about to be added to.
+	TArray<const UNiagaraGraph*> Graphs;
+	TargetGraph->GetAllReferencedGraphs(Graphs);
+
+	// Iterate over each graph and check to see if that graph has a UNiagaraNodeReadDataSet node. We *only* allow 
+	// read nodes for graphs that have identical payloads and can therefore be coalesced into the same event instance.
+	for (const UNiagaraGraph* Graph : Graphs)
+	{
+		TArray<UNiagaraNodeReadDataSet*> ReadNodes;
+		Graph->GetNodesOfClass(ReadNodes);
+		for (UNiagaraNodeReadDataSet* ReadNode : ReadNodes)
 		{
-			check(Variables[i].Type == ENiagaraDataType::Vector);//Only support vectors currently.
-			Outputs.Add(FNiagaraNodeResult(Compiler->SharedDataRead(DataSet, Variables[i], IndexExpr), Pins[i+1]));
+			check(ReadNode);
+			if (ReadNode == this)
+			{
+				continue;
+			}
+
+			bool bMatches = true;
+			if (ReadNode->Variables.Num() != Variables.Num())
+			{
+				bMatches = false;
+			}
+			else
+			{
+				for (int32 i = 0; i < Variables.Num(); i++)
+				{
+					if (false == ReadNode->Variables[i].IsEquivalent(Variables[i]))
+					{
+						bMatches = false;
+						break;
+					}
+				}
+			}
+
+			if (!bMatches)
+			{
+				OutErrorMsg = FText::Format(LOCTEXT("NiagaraDataSetReadCannotAddToGraph", "Cannot add to graph because Graph '{0}' already has an Event Read node of different type '{1}'."),
+					Graph->GetOutermost() ? FText::FromString(Graph->GetOutermost()->GetPathName()) : FText::FromString(FString("nullptr")), FText::FromName(ReadNode->DataSet.Name)).ToString();
+				return false;
+			}
 		}
 	}
-	else
-	{
-		Compiler->Error(LOCTEXT("UnImplDataSetTypeError", "This data set type hasn't been implemented."), this, nullptr);
-	}
-	
+	return true;
+}
+
+void UNiagaraNodeReadDataSet::Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs)
+{
+	TArray<int32> Inputs;
+	CompileInputPins(Compiler, Inputs);
+	Compiler->ReadDataSet(DataSet, Variables, ENiagaraDataSetAccessMode::AppendConsume, INDEX_NONE, Outputs);
 }
 
 #undef LOCTEXT_NAMESPACE

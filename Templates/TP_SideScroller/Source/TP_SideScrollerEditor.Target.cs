@@ -5,21 +5,9 @@ using System.Collections.Generic;
 
 public class TP_SideScrollerEditorTarget : TargetRules
 {
-	public TP_SideScrollerEditorTarget(TargetInfo Target)
+	public TP_SideScrollerEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
-	}
-
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("TP_SideScroller");
+		ExtraModuleNames.Add("TP_SideScroller");
 	}
 }

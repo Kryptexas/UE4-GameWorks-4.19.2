@@ -55,7 +55,7 @@ struct FMovieSceneSequencePlaybackSettings
 	MOVIESCENE_API bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 };
 
-template<> struct TStructOpsTypeTraits<FMovieSceneSequencePlaybackSettings> : public TStructOpsTypeTraitsBase
+template<> struct TStructOpsTypeTraits<FMovieSceneSequencePlaybackSettings> : public TStructOpsTypeTraitsBase2<FMovieSceneSequencePlaybackSettings>
 {
 	enum { WithCopy = true, WithSerializeFromMismatchedTag = true };
 };

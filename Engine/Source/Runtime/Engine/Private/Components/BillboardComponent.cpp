@@ -106,8 +106,10 @@ public:
 		}
 
 		FColor NewPropertyColor;
-		GEngine->GetPropertyColorationColor( (UObject*)InComponent, NewPropertyColor );
-		PropertyColor = NewPropertyColor;
+		if (GEngine->GetPropertyColorationColor( (UObject*)InComponent, NewPropertyColor ))
+		{
+			PropertyColor = NewPropertyColor;
+		}
 	}
 
 	// FPrimitiveSceneProxy interface.

@@ -261,6 +261,7 @@ void SCommentBubble::UpdateBubble()
 							.ClearKeyboardFocusOnCommit( true )
 							.ModiferKeyForNewLine( EModifierKey::Shift )
 							.ForegroundColor( this, &SCommentBubble::GetTextForegroundColor )
+							.ReadOnlyForegroundColor( this, &SCommentBubble::GetTextForegroundColor )
 							.BackgroundColor( this, &SCommentBubble::GetTextBackgroundColor )
 							.OnTextCommitted( this, &SCommentBubble::OnCommentTextCommitted )
 						]

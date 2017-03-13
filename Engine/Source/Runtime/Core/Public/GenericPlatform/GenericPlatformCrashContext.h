@@ -86,6 +86,8 @@ public:
 	static const TCHAR* CrashConfigFileNameW;
 	static const FString CrashConfigExtension;
 	static const FString ConfigSectionName;
+	static const FString CrashConfigPurgeDays;
+	static const FString CrashGUIDRootPrefix;
 
 	static const FString CrashContextExtension;
 	static const FString RuntimePropertiesTag;
@@ -169,6 +171,12 @@ public:
 
 	/** Helper to get the crash report client config filepath saved by this instance and copied to each crash report folder. */
 	static const TCHAR* GetCrashConfigFilePath();
+
+	/** Helper to get the crash report client config folder used by GetCrashConfigFilePath(). */
+	static const TCHAR* GetCrashConfigFolder();
+
+	/** Helper to clean out old files in the crash report client config folder. */
+	static void PurgeOldCrashConfig();
 
 	/**
 	 * @return whether this crash is a non-crash event

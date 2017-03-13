@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Represents a folder within the master project (e.g. Visual Studio solution)
 	/// </summary>
-	public class KDevelopFolder : MasterProjectFolder
+	class KDevelopFolder : MasterProjectFolder
 	{
 		/// <summary>
 		/// Constructor
@@ -22,7 +22,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public class KDevelopProjectFile : ProjectFile
+	class KDevelopProjectFile : ProjectFile
 	{
 		public KDevelopProjectFile(FileReference InitFilePath)
 			: base(InitFilePath)
@@ -33,7 +33,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// KDevelop project file generator implementation
 	/// </summary>
-	public class KDevelopGenerator : ProjectFileGenerator
+	class KDevelopGenerator : ProjectFileGenerator
 	{
 		public KDevelopGenerator(FileReference InOnlyGameProject)
 			: base(InOnlyGameProject)
@@ -154,7 +154,7 @@ namespace UnrealBuildTool
 		{
 			int BuildConfigIndex = 1;
 
-			var UnrealRootPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+			var UnrealRootPath = UnrealBuildTool.RootDirectory.FullName;
 			FileContent.Append("[CustomBuildSystem]\n");
 			FileContent.Append("CurrentConfiguration=BuildConfig0\n\n"); //
 
@@ -267,7 +267,7 @@ namespace UnrealBuildTool
 			List<string> IncludeDirectories = new List<string>();
 			List<string> SystemIncludeDirectories = new List<string>();
 
-			var UnrealEngineRootPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+			var UnrealEngineRootPath = UnrealBuildTool.RootDirectory.FullName;
 
 			int IncludeIndex = 1;
 			// Iterate through all the include paths that
@@ -459,8 +459,8 @@ namespace UnrealBuildTool
 		/// Simple Place to call all the Write*Section functions.
 		private bool WriteKDevelopPro()
 		{
-			/// RAKE! Take one KDevelopProjectFileContent and pass
-			/// it through each function that writes out the sections.
+			// RAKE! Take one KDevelopProjectFileContent and pass
+			// it through each function that writes out the sections.
 			var KDevelopFileContent = new StringBuilder();
 			var KDevelopMasterFileContent = new StringBuilder();
 

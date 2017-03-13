@@ -268,6 +268,9 @@ private:
 
 	/** Pointer back to the variable's Blueprint */
 	TWeakObjectPtr<UBlueprint> PropertyOwnerBlueprint;
+
+	/** External detail customizations */
+	TArray<TSharedPtr<IDetailCustomization>> ExternalDetailCustomizations;
 };
 
 class FBaseBlueprintGraphActionDetails : public IDetailCustomization
@@ -734,6 +737,18 @@ protected:
 
 	/** Returns the tooltip explaining deprecation */
 	FText GetDeprecatedTooltip() const;
+
+	/** Disabled in level and macro Blueprints */
+	bool IsNativizeEnabled() const;
+
+	/** Returns the check box state (undefined if the Blueprint is a dependency that will get added as part of another Blueprint) */
+	ECheckBoxState GetNativizeState() const;
+
+	/** Depending on the property's state, returns a tooltip describing the Blueprint nativize setting */
+	FText GetNativizeTooltip() const;
+
+	/** Flags the current Blueprint for nativization (as well as any dependencies that are required) */
+	void OnNativizeToggled(ECheckBoxState NewState) const;
 
 private:
 	/** Weak reference to the Blueprint editor */

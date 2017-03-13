@@ -112,11 +112,11 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 			// Check if the Inner property can successfully serialize, the type may have changed
 			UStructProperty* StructProperty = CastChecked<UStructProperty>(Inner);
 			// if check redirector to make sure if the name has changed
-			FName* NewName = FLinkerLoad::StructNameRedirects.Find(InnerTag.StructName);
+			FName NewName = FLinkerLoad::FindNewNameForStruct(InnerTag.StructName);
 			FName StructName = CastChecked<UStructProperty>(StructProperty)->Struct->GetFName();
-			if (NewName != nullptr && *NewName == StructName)
+			if (NewName != NAME_None && NewName == StructName)
 			{
-				InnerTag.StructName = *NewName;
+				InnerTag.StructName = NewName;
 			}
 
 			if (InnerTag.StructName != StructProperty->Struct->GetFName()
@@ -199,6 +199,12 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 		// Serialize each item until we get to the end of the array
 		while (i < n)
 		{
+#if WITH_EDITOR
+			static const FName NAME_UArraySerialize = FName(TEXT("UArrayProperty::Serialize"));
+			FName NAME_UArraySerializeCount = FName(NAME_UArraySerialize);
+			NAME_UArraySerializeCount.SetNumber(i);
+			FArchive::FScopeAddDebugData P(Ar, NAME_UArraySerializeCount);
+#endif
 			Inner->SerializeItem(Ar, ArrayHelper.GetRawPtr(i++));
 		}
 

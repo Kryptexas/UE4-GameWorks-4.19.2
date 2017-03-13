@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __MOUSEDELTATRACKER_H__
-#define __MOUSEDELTATRACKER_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "InputCoreTypes.h"
@@ -192,5 +190,3 @@ private:
 };
 
 static const float MOUSE_CLICK_DRAG_DELTA = 4.0f*4.0f;
-
-#endif // __MOUSEDELTATRACKER_H__

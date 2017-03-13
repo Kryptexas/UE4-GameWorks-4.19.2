@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SLevelEditor_h__
-#define __SLevelEditor_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -117,6 +113,7 @@ public:
 	virtual TSharedRef< class SWidget > GetParentWidget() override;
 	virtual void BringToFront() override;
 	virtual TSharedRef< class SDockTabStack > GetTabSpot( const EToolkitTabSpot::Type TabSpot ) override;
+	virtual TSharedPtr<FTabManager> GetTabManager() const override;
 	virtual void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit ) override;
 	virtual void OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit ) override;
 	virtual UWorld* GetWorld() const override;
@@ -128,9 +125,6 @@ public:
 	{
 		return true;
 	}
-
-	// Tab Management
-	virtual TSharedRef<FTabManager> GetTabManager() const override;
 	
 	/** Attaches a sequencer asset editor used to animate objects in the level to this level editor */
 	void AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> NewSequencerAssetEditor );
@@ -249,7 +243,3 @@ private:
 	/** Weak pointer to the level editor's Sequencer widget */
 	TWeakPtr<SWidget> SequencerWidgetPtr;
 };
-
-
-
-#endif	// __SLevelEditor_h__

@@ -164,4 +164,9 @@ public:
 	{
 		Array.Empty();
 	}
+
+	FORCEINLINE bool IsValidIndex(int32 Index)
+	{
+		return Array.IsValidIndex(Index);
+	}
 };

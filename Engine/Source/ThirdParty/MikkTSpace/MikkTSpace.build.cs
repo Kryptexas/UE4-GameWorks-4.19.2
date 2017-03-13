@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class MikkTSpace : ModuleRules
 {
-	public MikkTSpace(TargetInfo Target)
+	public MikkTSpace(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

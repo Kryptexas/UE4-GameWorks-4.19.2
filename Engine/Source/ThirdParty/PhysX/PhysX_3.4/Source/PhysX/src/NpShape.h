@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -183,11 +183,6 @@ public:
 					void						onActorAttach(PxRigidActor& actor);
 					void						onActorDetach();
 
-#if PX_ENABLE_DEBUG_VISUALIZATION
-public:
-	virtual			void						visualize(Cm::RenderOutput& out, const PxRigidActor& owner);
-#endif
-
 					// These methods are used only for sync'ing, and may only be called on exclusive shapes since only exclusive shapes have buffering
 					Sc::RigidCore&				getScRigidObjectExclusive() const;
 					void						releaseInternal();
@@ -200,6 +195,7 @@ private:
 					void						decMeshRefCount();
 					Cm::RefCountable*			getMeshRefCountable();
 					bool						isWritable();
+					void						updateSQ(const char* errorMessage);
 
 					PxRigidActor*				mActor;							// Auto-resolving refs breaks DLL loading for some reason
 					Scb::Shape					mShape;

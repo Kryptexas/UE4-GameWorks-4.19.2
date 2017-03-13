@@ -853,6 +853,7 @@ public:
 	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel ) override;
 	ENGINE_API virtual void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
+	ENGINE_API virtual float GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
 	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
 	ENGINE_API virtual FMaterialResource* AllocateResource();
@@ -1371,6 +1372,7 @@ public:
 
 	/* Returns any UMaterialExpressionCustomOutput expressions */
 	ENGINE_API void GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const;
+	ENGINE_API void GetAllExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const;
 
 #if WITH_EDITOR
 	/**

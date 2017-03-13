@@ -189,58 +189,68 @@ bool FSlateFontRenderer::CanLoadCharacter(const FFontData& InFontData, TCHAR Cha
 FFreeTypeFaceGlyphData FSlateFontRenderer::GetFontFaceForCharacter(const FFontData& InFontData, TCHAR Char, EFontFallback MaxFallbackLevel) const 
 {
 	FFreeTypeFaceGlyphData ReturnVal;
-
-	TSharedPtr<FFreeTypeFace> FaceAndMemory = CompositeFontCache->GetFontFace(InFontData);
-	uint32 GlyphIndex = 0;
 	const bool bOverrideFallback = Char == SlateFontRendererUtils::InvalidSubChar;
 
-	if (FaceAndMemory.IsValid())
+	// Try the requested font first
 	{
-		// Get the index to the glyph in the font face
-		GlyphIndex = FT_Get_Char_Index(FaceAndMemory->GetFace(), Char);
-		ReturnVal.CharFallbackLevel = EFontFallback::FF_NoFallback;
+		ReturnVal.FaceAndMemory = CompositeFontCache->GetFontFace(InFontData);
+
+		if (ReturnVal.FaceAndMemory.IsValid())
+		{
+			ReturnVal.GlyphIndex = FT_Get_Char_Index(ReturnVal.FaceAndMemory->GetFace(), Char);
+			ReturnVal.CharFallbackLevel = EFontFallback::FF_NoFallback;
+		}
 	}
 
 	// If the requested glyph doesn't exist, use the localization fallback font
-	if (!FaceAndMemory.IsValid() || (Char != 0 && GlyphIndex == 0))
+	if (Char != 0 && ReturnVal.GlyphIndex == 0)
 	{
 		const bool bCanFallback = bOverrideFallback || MaxFallbackLevel >= EFontFallback::FF_LocalizedFallback;
 
 		if (bCanFallback)
 		{
-			FaceAndMemory = CompositeFontCache->GetFontFace(FLegacySlateFontInfoCache::Get().GetLocalizedFallbackFontData());
+			ReturnVal.FaceAndMemory = CompositeFontCache->GetFontFace(FLegacySlateFontInfoCache::Get().GetLocalizedFallbackFontData());
 
-			if (FaceAndMemory.IsValid())
+			if (ReturnVal.FaceAndMemory.IsValid())
 			{	
-				GlyphIndex = FT_Get_Char_Index(FaceAndMemory->GetFace(), Char);
+				ReturnVal.GlyphIndex = FT_Get_Char_Index(ReturnVal.FaceAndMemory->GetFace(), Char);
 
-				ReturnVal.CharFallbackLevel = EFontFallback::FF_LocalizedFallback;
-				ReturnVal.GlyphFlags |= FT_LOAD_FORCE_AUTOHINT;
+				if (ReturnVal.GlyphIndex != 0)
+				{
+					ReturnVal.CharFallbackLevel = EFontFallback::FF_LocalizedFallback;
+					ReturnVal.GlyphFlags |= FT_LOAD_FORCE_AUTOHINT;
+				}
 			}
 		}
 	}
 
 	// If the requested glyph doesn't exist, use the last resort fallback font
-	if (!FaceAndMemory.IsValid() || (Char != 0 && GlyphIndex == 0))
+	if (Char != 0 && ReturnVal.GlyphIndex == 0)
 	{
-		bool bCanFallback = bOverrideFallback || MaxFallbackLevel >= EFontFallback::FF_LastResortFallback;
+		const bool bCanFallback = bOverrideFallback || MaxFallbackLevel >= EFontFallback::FF_LastResortFallback;
 
-		if (bCanFallback)
+		if (bCanFallback && FLegacySlateFontInfoCache::Get().IsLastResortFontAvailable())
 		{
-			FaceAndMemory = CompositeFontCache->GetFontFace(FLegacySlateFontInfoCache::Get().GetLastResortFontData());
+			ReturnVal.FaceAndMemory = CompositeFontCache->GetFontFace(FLegacySlateFontInfoCache::Get().GetLastResortFontData());
 
-			if (FaceAndMemory.IsValid())
+			if (ReturnVal.FaceAndMemory.IsValid())
 			{
-				GlyphIndex = FT_Get_Char_Index(FaceAndMemory->GetFace(), Char);
+				ReturnVal.GlyphIndex = FT_Get_Char_Index(ReturnVal.FaceAndMemory->GetFace(), Char);
 
-				ReturnVal.CharFallbackLevel = EFontFallback::FF_LastResortFallback;
-				ReturnVal.GlyphFlags |= FT_LOAD_FORCE_AUTOHINT;
+				if (ReturnVal.GlyphIndex != 0)
+				{
+					ReturnVal.CharFallbackLevel = EFontFallback::FF_LastResortFallback;
+					ReturnVal.GlyphFlags |= FT_LOAD_FORCE_AUTOHINT;
+				}
 			}
 		}
 	}
 
-	ReturnVal.FaceAndMemory = FaceAndMemory;
-	ReturnVal.GlyphIndex = GlyphIndex;
+	// Found an invalid glyph?
+	if (Char != 0 && ReturnVal.GlyphIndex == 0)
+	{
+		ReturnVal.FaceAndMemory.Reset();
+	}
 
 	return ReturnVal;
 }
@@ -331,7 +341,7 @@ struct FRasterizerSpanList
 	FBox2D BoundingBox;
 
 	FRasterizerSpanList()
-		: BoundingBox(0)
+		: BoundingBox(ForceInit)
 	{}
 };
 

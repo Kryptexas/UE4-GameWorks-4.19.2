@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class libcurl : ModuleRules
 {
-	public libcurl(TargetInfo Target)
+	public libcurl(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

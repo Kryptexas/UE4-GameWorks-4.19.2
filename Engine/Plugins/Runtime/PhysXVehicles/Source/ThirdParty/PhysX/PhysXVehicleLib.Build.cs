@@ -16,7 +16,7 @@ public class PhysXVehicleLib : ModuleRules
         Shipping
     }
 
-    static PhysXLibraryMode GetPhysXLibraryMode(UnrealTargetConfiguration Config)
+    PhysXLibraryMode GetPhysXLibraryMode(UnrealTargetConfiguration Config)
     {
         switch (Config)
         {
@@ -67,7 +67,7 @@ public class PhysXVehicleLib : ModuleRules
         }
     }
 
-    public PhysXVehicleLib(TargetInfo Target)
+    public PhysXVehicleLib(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
 
@@ -116,12 +116,14 @@ public class PhysXVehicleLib : ModuleRules
             PublicLibraryPaths.Add(PhysXLibDir + "IOS");
 
             PublicAdditionalLibraries.Add("PhysX3Vehicle" + LibrarySuffix);
+            PublicAdditionalShadowFiles.Add(Path.Combine(PhysXLibDir, "IOS", "libPhysX3Vehicle" + LibrarySuffix + ".a"));
         }
         else if (Target.Platform == UnrealTargetPlatform.TVOS)
         {
             PublicLibraryPaths.Add(PhysXLibDir + "TVOS");
 
             PublicAdditionalLibraries.Add("PhysX3Vehicle" + LibrarySuffix);
+            PublicAdditionalShadowFiles.Add(Path.Combine(PhysXLibDir, "TVOS", "libPhysX3Vehicle" + LibrarySuffix + ".a"));
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
@@ -135,7 +137,7 @@ public class PhysXVehicleLib : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.XboxOne)
         {
-            PublicLibraryPaths.Add(Path.Combine(PhysXLibDir, "XboxOne\\VS" + WindowsPlatform.GetVisualStudioCompilerVersionName()));
+            PublicLibraryPaths.Add(Path.Combine(PhysXLibDir, "XboxOne\\VS2015"));
 
             PublicAdditionalLibraries.Add(String.Format("PhysX3Vehicle{0}.lib", LibrarySuffix));
         }

@@ -5,7 +5,7 @@ using System.IO;
 
 public class UnrealEd : ModuleRules
 {
-	public UnrealEd(TargetInfo Target)
+	public UnrealEd(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivatePCHHeaderFile = "Private/UnrealEdPrivatePCH.h";
 
@@ -64,6 +64,7 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "BlueprintNativeCodeGen",
                 "Persona",
+                "ClothingSystemEditorInterface",
             }
 		);
 
@@ -149,7 +150,9 @@ public class UnrealEd : ModuleRules
                 "PixelInspectorModule",
 				"MovieScene",
 				"MovieSceneTracks",
-                "ViewportInteraction"
+                "ViewportInteraction",
+                "ClothingSystemEditor",
+                "ClothingSystemRuntime"
             }
 		);
 
@@ -186,7 +189,8 @@ public class UnrealEd : ModuleRules
 				"SettingsEditor",
 				"SessionFrontend",
 				"Sequencer",
-                "SuperSearch",
+				"StringTableEditor",
+				"SuperSearch",
                 "GeometryMode",
 				"TextureAlignMode",
 				"FoliageEdit",
@@ -219,6 +223,7 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "GeometryCacheEd",
                 "BlueprintNativeCodeGen",
+                "AnimationModifiers",
             }
 		);
 
@@ -248,7 +253,7 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
 				"AddContentDialog",                
                 "MeshUtilities"
-			}
+            }
 			);
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||

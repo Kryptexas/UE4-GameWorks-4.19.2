@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreMinimal.h"
-#include "Tests/AITestsCommon.h"
+#include "AITestsCommon.h"
 #include "Actions/TestPawnAction_Log.h"
 #include "Actions/TestPawnAction_CallFunction.h"
 

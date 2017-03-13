@@ -5,7 +5,7 @@ using System.IO;
 
 public class BlowFishBlockEncryptor : ModuleRules
 {
-    public BlowFishBlockEncryptor(TargetInfo Target)
+    public BlowFishBlockEncryptor(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {

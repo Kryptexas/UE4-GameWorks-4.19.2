@@ -31,7 +31,7 @@ class UK2Node_VariableSetRef : public UK2Node
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
 	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	//~ End UK2Node Interface
-
+		
 	/** 
 	 * Changes the type of variable set by this node, based on the specified pin
 	 *

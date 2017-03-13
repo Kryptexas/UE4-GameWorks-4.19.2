@@ -462,11 +462,19 @@ public:
 		return FScale2D(A*A + B*B, C*C + D*D);
 	}
 
-	/** Gets the squared scale from the matrix (avoids sqrt). */
+	/** Gets the scale from the matrix. */
 	FScale2D GetScale() const
 	{
 		FScale2D ScaleSquared = GetScaleSquared();
 		return FScale2D(FMath::Sqrt(ScaleSquared.GetVector().X), FMath::Sqrt(ScaleSquared.GetVector().Y));
+	}
+
+	/** Gets the rotation angle of the matrix. */
+	float GetRotationAngle() const
+	{
+		float A, B, C, D;
+		GetMatrix(A, B, C, D);
+		return FMath::Atan(C / D);
 	}
 
 	/** Determines if the matrix is identity or not. Uses exact float comparison, so rounding error is not considered. */

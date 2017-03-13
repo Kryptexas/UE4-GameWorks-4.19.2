@@ -24,6 +24,7 @@
 #include "IHeadMountedDisplay.h"
 #include "ScreenRendering.h"
 #include "PostProcess/SceneFilterRendering.h"
+#include "DynamicPrimitiveDrawing.h"
 
 static TAutoConsoleVariable<int32> CVarRHICmdPrePassDeferredContexts(
 	TEXT("r.RHICmdPrePassDeferredContexts"),
@@ -868,6 +869,8 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RH
 		}
 	}
 
+	RenderPrePassEditorPrimitives(RHICmdList, View, Context);
+
 	return true;
 }
 
@@ -1183,6 +1186,33 @@ bool FDeferredShadingSceneRenderer::PreRenderPrePass(FRHICommandListImmediate& R
 	return bDepthWasCleared;
 }
 
+void FDeferredShadingSceneRenderer::RenderPrePassEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FDepthDrawingPolicyFactory::ContextType Context) 
+{
+	FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+	SetupPrePassView(RHICmdList, View, DrawRenderState);
+
+	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::OpaqueAndMasked);
+
+	bool bDirty = false;
+	if (!View.Family->EngineShowFlags.CompositeEditorPrimitives)
+	{
+		const auto ShaderPlatform = View.GetShaderPlatform();
+		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(ShaderPlatform);
+
+		// Draw the base pass for the view's batched mesh elements.
+		bDirty |= DrawViewElements<FDepthDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, Context, SDPG_World, true) || bDirty;
+
+		// Draw the view's batched simple elements(lines, sprites, etc).
+		bDirty |= View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, false) || bDirty;
+
+		// Draw foreground objects last
+		bDirty |= DrawViewElements<FDepthDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, Context, SDPG_Foreground, true) || bDirty;
+
+		// Draw the view's batched simple elements(lines, sprites, etc).
+		bDirty |= View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, false) || bDirty;
+	}
+}
+
 bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList, TFunctionRef<void()> AfterTasksAreStarted)
 {
 	bool bDepthWasCleared = false;
@@ -1262,7 +1292,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 			}
 			RHICmdList.SetViewport(FullViewRect.Min.X, FullViewRect.Min.Y, 0, FullViewRect.Max.X, FullViewRect.Max.Y, 1);
 		}
-		RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0.f, 0, FIntRect());
+		RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0.f, 0);
 	}
 
 	SceneContext.FinishRenderingPrePass(RHICmdList);

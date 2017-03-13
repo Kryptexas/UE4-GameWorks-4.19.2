@@ -323,8 +323,8 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 						if (SkeletonObj->GetSmartNameByUID(USkeleton::AnimCurveMappingName, UID, CurveName))
 						{
 							// give default curve flag for recording 
-							AnimationObject->RawCurveData.AddFloatCurveKey(CurveName, ACF_DefaultCurve, TimeToRecord, CurCurve.Value);
-							FloatCurveData = static_cast<FFloatCurve*>(AnimationObject->RawCurveData.GetCurveData(UID, FRawCurveTracks::FloatType));
+							AnimationObject->RawCurveData.AddFloatCurveKey(CurveName, AACF_DefaultCurve, TimeToRecord, CurCurve.Value);
+							FloatCurveData = static_cast<FFloatCurve*>(AnimationObject->RawCurveData.GetCurveData(UID, ERawCurveTrackTypes::RCT_Float));
 						}
 					}
 
@@ -658,7 +658,7 @@ void FAnimationRecorder::RecordNotifies(USkeletalMeshComponent* Component, const
 				else
 				{
 					// add a new active notify with duration
-					ActiveNotifies.Add(TPairInitializer<const FAnimNotifyEvent*, bool>(NotifyEvent, true));
+					ActiveNotifies.Emplace(NotifyEvent, true);
 				}
 			}
 

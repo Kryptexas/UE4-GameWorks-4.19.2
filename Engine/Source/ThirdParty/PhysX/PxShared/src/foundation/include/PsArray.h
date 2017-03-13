@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -35,21 +35,10 @@
 #include "PsAllocator.h"
 #include "PsBasicTemplates.h"
 
-#if (PX_LINUX && !(PX_EMSCRIPTEN || defined(_LIBCPP_VERSION))) || PX_ANDROID
-#include <tr1/type_traits>
-#elif PX_XBOXONE || PX_IOS || PX_WIN64 || PX_WIN32 || PX_PS4 || PX_OSX || PX_EMSCRIPTEN || defined(_LIBCPP_VERSION) || PX_NX
+#if PX_LIBCPP
 #include <type_traits>
-#if PX_IOS&& PX_A64 || PX_NX
-namespace std
-{
-namespace tr1
-{
-using std::is_pod;
-}
-}
-#endif
 #else
-#error "OS with no defined path to type_traits.h"
+#include <tr1/type_traits>
 #endif
 
 #if PX_VC == 9 || PX_VC == 10
@@ -171,7 +160,7 @@ class Array : protected Alloc
 
 	PX_FORCE_INLINE static bool isArrayOfPOD()
 	{
-#if PX_VC >= 14 || PX_OSX || PX_EMSCRIPTEN || defined(_LIBCPP_VERSION)
+#if PX_LIBCPP
 		return std::is_trivially_copyable<T>::value;
 #else
 		return std::tr1::is_pod<T>::value;
@@ -444,16 +433,15 @@ class Array : protected Alloc
 		}
 		else
 		{
-			T* it = mData + i++;
+			T* it = mData + i;
 			it->~T();
-			do
+			while (++i < mSize)
 			{								
 				new (it) T(mData[i]);
 				++it;
 				it->~T();
-			} while(++i < mSize);
+			} 
 		}
-
 		--mSize;
 	}
 
@@ -638,13 +626,18 @@ definition for serialized classes is complete in checked builds.
 
 	static PX_INLINE bool isZeroInit(const T& object)
 	{
+		if (!isArrayOfPOD())
+			return false;
 		char ZeroBuffOnStack[sizeof(object)] = {};
-		return memcmp(&object, ZeroBuffOnStack, sizeof(object)) == 0;
+		// bgaldrikian - casting to void* to avoid compiler error:
+		// error : first operand of this 'memcmp' call is a pointer to dynamic class [...]; vtable pointer will be compared [-Werror,-Wdynamic-class-memaccess]
+		// even though POD check prevents memcmp from being used on a dynamic class
+		return memcmp(reinterpret_cast<const void*>(&object), ZeroBuffOnStack, sizeof(object)) == 0;
 	}
 
 	static PX_INLINE void create(T* first, T* last, const T& a)
 	{
-		if(isArrayOfPOD() && isZeroInit(a))
+		if(isZeroInit(a))
 		{
 			if(last > first)
 				physx::intrinsics::memZero(first, uint32_t((last - first) * sizeof(T)));

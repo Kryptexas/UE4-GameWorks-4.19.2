@@ -6,24 +6,17 @@ using System.Collections.Generic;
 public class UE4ClientTarget : TargetRules
 {
 
-    public UE4ClientTarget(TargetInfo Target)
+    public UE4ClientTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Client;
+		BuildEnvironment = TargetBuildEnvironment.Shared;
         bOutputToEngineBinaries = true;
+		ExtraModuleNames.Add("UE4Game");
 	}
 
 	//
 	// TargetRules interface.
 	//
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		base.SetupBinaries(Target, ref OutBuildBinaryConfigurations, ref OutExtraModuleNames);
-		OutExtraModuleNames.Add("UE4Game");
-	}
 
 	public override void SetupGlobalEnvironment(
         TargetInfo Target,
@@ -32,9 +25,4 @@ public class UE4ClientTarget : TargetRules
         )
     {
     }
-
-	public override bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
-	{
-		return true;
-	}
 }

@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class Perforce : ModuleRules
 {
-	public Perforce(TargetInfo Target)
+	public Perforce(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

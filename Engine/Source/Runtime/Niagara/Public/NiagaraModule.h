@@ -12,6 +12,8 @@
 class INiagaraModule : public IModuleInterface
 {
 public:
+
+	virtual void StartupModule()override;
+
 };
 
-DECLARE_STATS_GROUP(TEXT("Niagara"), STATGROUP_Niagara, STATCAT_Advanced);

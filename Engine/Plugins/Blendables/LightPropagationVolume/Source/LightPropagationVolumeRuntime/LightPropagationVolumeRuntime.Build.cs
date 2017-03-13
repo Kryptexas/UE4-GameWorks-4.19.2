@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LightPropagationVolumeRuntime : ModuleRules
 {
-	public LightPropagationVolumeRuntime(TargetInfo Target)
+	public LightPropagationVolumeRuntime(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {	

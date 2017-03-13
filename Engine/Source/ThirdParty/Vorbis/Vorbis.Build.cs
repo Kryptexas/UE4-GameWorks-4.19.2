@@ -1,9 +1,9 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class Vorbis : ModuleRules
 {
-	public Vorbis(TargetInfo Target)
+	public Vorbis(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

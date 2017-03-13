@@ -31,6 +31,7 @@ class NIAGARA_API UNiagaraFunctionLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (Keywords = "niagara effect", UnsafeDuringActorConstruction = "true"))
 	static UNiagaraComponent* SpawnEffectAttached(UNiagaraEffect* EffectTemplate, USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bAutoDestroy);
 
-	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (Keywords = "niagara effect", UnsafeDuringActorConstruction = "true"))
-	static void SetUpdateScriptConstant(UNiagaraComponent* Component, FName EmitterName, FName ConstantName, FVector Value);
+	//This is gonna be totally reworked
+// 	UFUNCTION(BlueprintCallable, Category = Niagara, meta = (Keywords = "niagara effect", UnsafeDuringActorConstruction = "true"))
+// 	static void SetUpdateScriptConstant(UNiagaraComponent* Component, FName EmitterName, FName ConstantName, FVector Value);
 };

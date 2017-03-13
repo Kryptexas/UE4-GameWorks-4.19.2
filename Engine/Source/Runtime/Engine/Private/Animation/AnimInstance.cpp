@@ -77,6 +77,12 @@ extern TAutoConsoleVariable<int32> CVarUseParallelAnimUpdate;
 extern TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation;
 extern TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate;
 
+ENGINE_API float RK4_SPRING_INTERPOLATOR_UPDATE_RATE = 60.f;
+static FAutoConsoleVariableRef CVarRK4SpringInterpolatorUpdateRate(TEXT("p.RK4SpringInterpolator.UpdateRate"), RK4_SPRING_INTERPOLATOR_UPDATE_RATE, TEXT("RK4 Spring Interpolator's rate of update"), ECVF_Default);
+
+ENGINE_API int32 RK4_SPRING_INTERPOLATOR_MAX_ITER = 4;
+static FAutoConsoleVariableRef CVarRK4SpringInterpolatorMaxIter(TEXT("p.RK4SpringInterpolator.MaxIter"), RK4_SPRING_INTERPOLATOR_MAX_ITER, TEXT("RK4 Spring Interpolator's max number of iterations"), ECVF_Default);
+
 /////////////////////////////////////////////////////
 // UAnimInstance
 /////////////////////////////////////////////////////
@@ -241,7 +247,8 @@ void UAnimInstance::UninitializeAnimation()
 		TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 		for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 		{
-			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], 0.0f);
+			float DefaultValue = SkelMeshComp->GetScalarParameterDefaultValue(ParamsToClearCopy[i]);
+			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], DefaultValue);
 		}
 	}
 
@@ -1112,7 +1119,7 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	MaterialParamatersToClear.Reset();
 	for(auto Iter = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].CreateConstIterator(); Iter; ++Iter)
 	{
-		if(Iter.Value() > 0.0f)
+		if(Iter.Value() != 0.0f)
 		{
 			MaterialParamatersToClear.Add(Iter.Key());
 		}
@@ -1125,19 +1132,26 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		const TArray<SmartName::UID_Type>& UIDList = *InCurve.UIDList;
 		for (int32 CurveId = 0; CurveId < InCurve.UIDList->Num(); ++CurveId)
 		{
-			// had to add to another data type
-			AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value);
+			if (ensureAlwaysMsgf(InCurve.Elements.IsValidIndex(CurveId), TEXT("%s Animation Instance contains out of bound UIDList."), *GetClass()->GetName())
+				&& InCurve.Elements[CurveId].IsValid())
+			{
+				// had to add to another data type
+				AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value);
+			}
 		}
 	}	
 
-	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
+	// Add curves to reset parameters that we have previously set but didn't tick this frame.
 	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
 	//	 - When clear, we have to make sure to add directly to the material curve list because 
 	//   - sometimes they don't have the flag anymore, so we can't just call AddCurveValue
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 	{
-		AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], 0.0f);
+		// when reset, we go back to default value
+		float DefaultValue = SkelMeshComp->GetScalarParameterDefaultValue(ParamsToClearCopy[i]);
+		AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], DefaultValue);
 	}
 
 	// @todo: delete me later when james g's change goes in
@@ -1462,16 +1476,16 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 		ensure(MontageInstance);
 		if (MontageInstance)
 		{
-			bool const bUsingBlendedRootMotion = RootMotionMode == ERootMotionMode::RootMotionFromEverything;
-			bool const bNoRootMotionExtraction = RootMotionMode == ERootMotionMode::NoRootMotionExtraction;
+			bool const bUsingBlendedRootMotion = (RootMotionMode == ERootMotionMode::RootMotionFromEverything);
+			bool const bNoRootMotionExtraction = (RootMotionMode == ERootMotionMode::NoRootMotionExtraction);
 
 			// Extract root motion if we are using blend root motion (RootMotionFromEverything) or if we are set to extract root 
 			// motion AND we are the active root motion instance. This is so we can make root motion deterministic for networking when
 			// we are not using RootMotionFromEverything
-			bool const bExtractRootMotion = bUsingBlendedRootMotion || (!bNoRootMotionExtraction && MontageInstance == GetRootMotionMontageInstance());
+			bool const bExtractRootMotion = !MontageInstance->IsRootMotionDisabled() && (bUsingBlendedRootMotion || (!bNoRootMotionExtraction && (MontageInstance == GetRootMotionMontageInstance())));
 
 			FRootMotionMovementParams LocalExtractedRootMotion;
-			FRootMotionMovementParams* RootMotionParams = NULL;
+			FRootMotionMovementParams* RootMotionParams = nullptr;
 			if (bExtractRootMotion)
 			{
 				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion() : &LocalExtractedRootMotion;
@@ -2710,12 +2724,12 @@ void UAnimInstance::DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy)
 	delete InProxy;
 }
 
-void UAnimInstance::RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight)
+void UAnimInstance::RecordMachineWeight(const int32 InMachineClassIndex, const float InMachineWeight)
 {
 	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordMachineWeight(InMachineClassIndex, InMachineWeight);
 }
 
-void UAnimInstance::RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight)
+void UAnimInstance::RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight)
 {
 	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordStateWeight(InMachineClassIndex, InStateIndex, InStateWeight);
 }

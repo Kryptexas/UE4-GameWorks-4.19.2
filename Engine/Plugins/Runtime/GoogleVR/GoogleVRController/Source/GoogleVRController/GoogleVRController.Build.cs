@@ -19,12 +19,15 @@ namespace UnrealBuildTool.Rules
 {
 	public class GoogleVRController : ModuleRules
 	{
-		public GoogleVRController(TargetInfo Target)
+		public GoogleVRController(ReadOnlyTargetRules Target) : base(Target)
 		{
-			string GoogleVRSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "GoogleVR/";
+            bFasterWithoutUnity = true;
+
+            string GoogleVRSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "GoogleVR/";
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"GoogleVRController/Private",
+					"GoogleVRController/Private/ArmModel",
 					// ... add other private include paths required here ...
 					GoogleVRSDKDir + "include",
 					GoogleVRSDKDir + "include/vr/gvr/capi/include",
@@ -40,7 +43,10 @@ namespace UnrealBuildTool.Rules
 					"InputCore",
 					"InputDevice",
 					"HeadMountedDisplay",
-					"GoogleVRHMD"
+					"GoogleVRHMD",
+					"UMG",
+					"Slate",
+					"SlateCore"
 				}
 				);
 

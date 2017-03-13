@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DSP/Osc.h"
 
 namespace Audio
 {
@@ -34,7 +35,7 @@ namespace Audio
 	};
 
 	// A wave table oscillator class
-	class FWaveTableOsc
+	class AUDIOMIXER_API FWaveTableOsc
 	{
 	public:
 		// Constructor
@@ -44,10 +45,10 @@ namespace Audio
 		virtual ~FWaveTableOsc();
 
 		// Initialize the wave table oscillator
-		void Init(const int32 InSampleRate, const float InFrequencyHz);
+		void Init(const float InSampleRate, const float InFrequencyHz);
 
 		// Sets the sample rate of the oscillator.
-		void SetSampleRate(const int32 InSampleRate);
+		void SetSampleRate(const float InSampleRate);
 
 		// Resets the wave table read indices.
 		void Reset();
@@ -65,7 +66,7 @@ namespace Audio
 		float GetFrequencyHz() const { return FrequencyHz; }
 
 		// Processes the wave table, outputs the normal and quad phase (optional) values 
-		void ProcessAudio(float* OutputNormalPhase, float* OutputQuadPhase = nullptr);
+		void Generate(float* OutputNormalPhase, float* OutputQuadPhase = nullptr);
 
 		// Sets the factory interface to use to create a custom wave table
 		static void SetCustomWaveTableOscFactory(ICustomWaveTableOscFactory* InCustomWaveTableOscFactory);
@@ -89,7 +90,7 @@ namespace Audio
 		float FrequencyHz;
 
 		// The sample rate of the oscillator
-		int32 SampleRate;
+		float SampleRate;
 
 		// Normal phase read index
 		float NormalPhaseReadIndex;

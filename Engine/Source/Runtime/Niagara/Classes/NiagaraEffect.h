@@ -6,19 +6,66 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "NiagaraCommon.h"
-#include "Runtime/Niagara/NiagaraConstantSet.h"
 #include "NiagaraDataSet.h"
 #include "NiagaraSimulation.h"
 #include "NiagaraComponent.h"
+#include "NiagaraEmitterHandle.h"
 #include "NiagaraEffect.generated.h"
 
-enum NiagaraTickState
+/** Represents a binding between a parameter on an effect and a parameter on an emitter. */
+USTRUCT()
+struct NIAGARA_API FNiagaraParameterBinding
 {
-	ERunning,		// normally running
-	ESuspended,		// stop simulating and spawning, still render
-	EDieing,		// stop spawning, still simulate and render
-	EDead			// no live particles, no new spawning
+	GENERATED_USTRUCT_BODY()
+
+	FNiagaraParameterBinding()
+	{
+	}
+
+	/**
+	 * Creates a new parameter binding
+	 * @param InSourceParameterId The id of the source parameter from the effect. 
+	 * @param InDestinationId The id of the emitter handle which owns the bound destination parameter.
+	 * @param InDestinationParamterId The id of the destination parameter in the emitter.
+	 */
+	FNiagaraParameterBinding(FGuid InSourceParameterId, FGuid InDestinationEmitterId, FGuid InDestinationParameterId)
+		: SourceParameterId(InSourceParameterId)
+		, DestinationEmitterId(InDestinationEmitterId)
+		, DestinationParameterId(InDestinationParameterId)
+	{
+	}
+
+	/** Gets the id of the source parameter from the effect. */
+	FGuid GetSourceParameterId() const { return SourceParameterId; }
+
+	/** Gets the id of the emitter handle which owns the bound destination parameter. */
+	FGuid GetDestinationEmitterId() const { return DestinationEmitterId; }
+
+	/** Gets the id of the destination parameter in the emitter. */
+	FGuid GetDestinationParameterId() const { return DestinationParameterId; }
+
+	bool operator == (const FNiagaraParameterBinding &Other) const
+	{
+		return SourceParameterId == Other.SourceParameterId &&
+			DestinationEmitterId == Other.DestinationEmitterId &&
+			DestinationParameterId == Other.DestinationParameterId;
+	}
+
+
+private:
+	UPROPERTY()
+	FGuid SourceParameterId;
+
+	UPROPERTY()
+	FGuid DestinationEmitterId;
+	UPROPERTY()
+	FGuid DestinationParameterId;
 };
+
+FORCEINLINE uint32 GetTypeHash(const FNiagaraParameterBinding& Binding)
+{
+	return GetTypeHash(Binding.GetSourceParameterId()) ^ GetTypeHash(Binding.GetDestinationEmitterId()) ^ GetTypeHash(Binding.GetDestinationParameterId());
+}
 
 UCLASS()
 class NIAGARA_API UNiagaraEffect : public UObject
@@ -26,146 +73,72 @@ class NIAGARA_API UNiagaraEffect : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	UNiagaraEmitterProperties* AddEmitterProperties(UNiagaraEmitterProperties *Props = nullptr);
-	void DeleteEmitterProperties(UNiagaraEmitterProperties *Props);
+	//~ UObject interface
+	void PostInitProperties();
+	virtual void PostLoad() override;
 
-	void Init()
+	/** Gets an array of the emitter handles. */
+	const TArray<FNiagaraEmitterHandle>& GetEmitterHandles();
+
+	/** Adds a new emitter handle to this effect.  The new handle exposes an Instance value which is a copy of the
+		original asset. */
+	FNiagaraEmitterHandle AddEmitterHandle(const UNiagaraEmitterProperties& SourceEmitter, FName EmitterName);
+
+	/** Adds a new emitter handle to this effect.  The new handle will not copy the emitter and any changes made to it's
+		Instance value will modify the original asset.  This should only be used in the emitter toolkit for simulation
+		purposes. */
+	FNiagaraEmitterHandle AddEmitterHandleWithoutCopying(UNiagaraEmitterProperties& Emitter);
+
+	/** Duplicates an existing emitter handle and adds it to the effect.  The new handle will reference the same source asset,
+		but will have a copy of the duplicated Instance value. */
+	FNiagaraEmitterHandle DuplicateEmitterHandle(const FNiagaraEmitterHandle& EmitterHandleToDuplicate, FName EmitterName);
+
+	/** Removes the provided emitter handle. */
+	void RemoveEmitterHandle(const FNiagaraEmitterHandle& EmitterHandleToDelete);
+
+	/** Removes the emitter handles which have an Id in the supplied set. */
+	void RemoveEmitterHandlesById(const TSet<FGuid>& HandlesToRemove);
+
+	FNiagaraEmitterHandle& GetEmitterHandle(int Idx)
 	{
-	}
+		check(Idx < EmitterHandles.Num());
+		return EmitterHandles[Idx];
+	};
 
-
-	UNiagaraEmitterProperties *GetEmitterProperties(int Idx)
+	const FNiagaraEmitterHandle& GetEmitterHandle(int Idx) const
 	{
-		check(Idx < EmitterProps.Num());
-		return EmitterProps[Idx];
+		check(Idx < EmitterHandles.Num());
+		return EmitterHandles[Idx];
 	};
 
 	int GetNumEmitters()
 	{
-		return EmitterProps.Num();
+		return EmitterHandles.Num();
 	}
 
-	void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
+	/** Gets the effect script which is used to populate the effect parameters and parameter bindings. */
+	UNiagaraScript* GetEffectScript();
 
-	//Begin UObject Interface
-	virtual void PostLoad()override;
-	//End UObject Interface
-private:
+	/** Gets the parameter bindins for this effect. */
+	const TArray<FNiagaraParameterBinding>& GetParameterBindings() const;
+
+	/** Adds a parameter binding to the effect. */
+	void AddParameterBinding(FNiagaraParameterBinding InParameterBinding);
+
+	/** Removes all parameter bindings from this effect. */
+	void ClearParameterBindings();
+
+protected:
+	/** Handles to the emitter this effect will simulate. */
+	UPROPERTY(VisibleAnywhere, Category = "Emitters")
+	TArray<FNiagaraEmitterHandle> EmitterHandles;
+
+	/** The script which defines the effect parameters, and which generates the bindings from effect
+		parameter to emitter parameter. */
 	UPROPERTY()
-	TArray<UNiagaraEmitterProperties*> EmitterProps;
-};
+	UNiagaraScript* EffectScript;
 
-
-
-class FNiagaraEffectInstance
-{
-public:
-	explicit FNiagaraEffectInstance(UNiagaraEffect *InAsset, UNiagaraComponent *InComponent)
-		: Effect(InAsset)
-	{
-		Component = InComponent;
-		for (int32 i = 0; i < InAsset->GetNumEmitters(); i++)
-		{
-			FNiagaraSimulation *Sim = new FNiagaraSimulation(InAsset->GetEmitterProperties(i), this, Component->GetWorld()->FeatureLevel);
-			Emitters.Add(MakeShareable(Sim));
-		}
-		InitRenderModules(Component->GetWorld()->FeatureLevel);
-	}
-
-	explicit FNiagaraEffectInstance(UNiagaraEffect *InAsset)
-		: Component(nullptr)
-		, Effect(InAsset)
-	{
-		InitEmitters(InAsset);
-	}
-
-	NIAGARA_API void InitEmitters(UNiagaraEffect *InAsset);
-	NIAGARA_API void ReInitEmitters();
-	void InitRenderModules(ERHIFeatureLevel::Type InFeatureLevel)
-	{
-		for (TSharedPtr<FNiagaraSimulation> Sim : Emitters)
-		{
-			if(Sim->GetProperties()->RendererProperties == nullptr)
-			{
-				Component->GetAsset()->CreateEffectRendererProps(Sim);
-			}
-			Sim->SetRenderModuleType(Sim->GetProperties()->RenderModuleType, InFeatureLevel);
-		}
-	}
-
-	void Init(UNiagaraComponent *InComponent)
-	{
-		if (InComponent->GetAsset())
-		{
-			Emitters.Empty();
-			InitEmitters(InComponent->GetAsset());
-		}
-		Component = InComponent;
-		InitRenderModules(Component->GetWorld()->FeatureLevel);
-		RenderModuleupdate();
-
-		Age = 0.0f;
-	}
-
-	void ReInit()
-	{
-		if (Component)
-		{
-			ReInitEmitters();
-			InitRenderModules(Component->GetWorld()->FeatureLevel);
-			RenderModuleupdate();
-		}
-		Age = 0.0f;
-	}
-
-	NIAGARA_API TSharedPtr<FNiagaraSimulation> AddEmitter(UNiagaraEmitterProperties *Properties);
-	NIAGARA_API void DeleteEmitter(TSharedPtr<FNiagaraSimulation> Emitter);
-
-	void SetConstant(FNiagaraVariableInfo ID, const float Value)
-	{
-		InstanceConstants.SetOrAdd(ID.Name, Value);
-	}
-
-	void SetConstant(FNiagaraVariableInfo ID, const FVector4& Value)
-	{
-		InstanceConstants.SetOrAdd(ID.Name, Value);
-	}
-
-	void SetConstant(FNiagaraVariableInfo ID, const FMatrix& Value)
-	{
-		InstanceConstants.SetOrAdd(ID.Name, Value);
-	}
-	
-	void Tick(float DeltaSeconds);
-
-	NIAGARA_API void RenderModuleupdate();
-
-	FNiagaraSimulation *GetEmitter(uint32 idx)
-	{
-		return Emitters[idx].Get();
-	}
-
-	FNiagaraSimulation* GetEmitter(FString Name);
-
-	UNiagaraComponent *GetComponent() { return Component; }
-
-	TArray< TSharedPtr<FNiagaraSimulation> > &GetEmitters()	{ return Emitters; }
-
-	FBox GetEffectBounds()	{ return EffectBounds;  }
-
-	/** Gets a data set either from another emitter or one owned by the effect itself. */
-	FNiagaraDataSet* GetDataSet(FNiagaraDataSetID SetID, FName EmitterName=NAME_None);
-	
-private:
-	UNiagaraComponent *Component;
-	UNiagaraEffect *Effect;
-	FBox EffectBounds;
-	float Age;
-
-	/** Local constant table. */
-	FNiagaraConstants InstanceConstants;
-	
-	TMap<FNiagaraDataSetID, FNiagaraDataSet> ExternalEvents;
-
-	TArray< TSharedPtr<FNiagaraSimulation> > Emitters;
+	/** Bindings from effect parameter to emitter parameter which are generated from the effect script graph. */
+	UPROPERTY()
+	TArray<FNiagaraParameterBinding> ParameterBindings;
 };

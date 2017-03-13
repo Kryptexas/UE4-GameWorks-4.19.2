@@ -409,7 +409,7 @@ FPrimitiveSceneProxy* ULandscapeSplinesComponent::CreateSceneProxy()
 
 FBoxSphereBounds ULandscapeSplinesComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	FBox NewBoundsCalc(0);
+	FBox NewBoundsCalc(ForceInit);
 
 	for (ULandscapeSplineControlPoint* ControlPoint : ControlPoints)
 	{
@@ -1604,7 +1604,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 	}
 
 	// Update bounds
-	Bounds = FBox(0);
+	Bounds = FBox(ForceInit);
 
 	// Sprite bounds
 	float SpriteScale = FMath::Clamp<float>(Width != 0 ? Width / 2 : SideFalloff / 4, 10, 1000);
@@ -1636,7 +1636,7 @@ void ULandscapeSplineControlPoint::DeleteSplinePoints()
 	ULandscapeSplinesComponent* OuterSplines = CastChecked<ULandscapeSplinesComponent>(GetOuter());
 
 	Points.Reset();
-	Bounds = FBox(0);
+	Bounds = FBox(ForceInit);
 
 	OuterSplines->MarkRenderStateDirty();
 
@@ -1989,7 +1989,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 	LandscapeSplineRaster::Pointify(SplineInfo, Points, NumPoints, StartFalloffFraction, EndFalloffFraction, StartWidth, EndWidth, StartSideFalloff, EndSideFalloff, StartRollDegrees, EndRollDegrees);
 
 	// Update Bounds
-	Bounds = FBox(0);
+	Bounds = FBox(ForceInit);
 	for (const FLandscapeSplineInterpPoint& Point : Points)
 	{
 		Bounds += Point.FalloffLeft;
@@ -2442,7 +2442,7 @@ void ULandscapeSplineSegment::DeleteSplinePoints()
 
 	SplineInfo.Reset();
 	Points.Reset();
-	Bounds = FBox(0);
+	Bounds = FBox(ForceInit);
 
 	OuterSplines->MarkRenderStateDirty();
 

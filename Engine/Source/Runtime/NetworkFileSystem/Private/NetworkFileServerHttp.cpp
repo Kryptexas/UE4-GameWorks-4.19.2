@@ -366,11 +366,19 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 				{
 					// umm. we didn't find file, we should tell the client that we couldn't find it.
 					// send 404.
-					char Header[]= 	"HTTP/1.1 404 Not Found\x0d\x0a"
-									"Server: Unreal File Server\x0d\x0a"
-									"Connection: close\x0d\x0a";
-
-					lws_write(Wsi,(unsigned char*)Header,FCStringAnsi::Strlen(Header), LWS_WRITE_HTTP);
+					TCHAR Buffer[1024];
+					TCHAR ServerBanner[] = TEXT("<HTML>Not Found</HTML>");
+					int x = FCString::Sprintf(
+						Buffer,
+						TEXT("HTTP/1.0 404 Not Found\x0d\x0a")
+						TEXT("Server: Unreal File Server\x0d\x0a")
+						TEXT("Connection: close\x0d\x0a")
+						TEXT("Content-Type: text/html; charset=utf-8\x0d\x0a")
+						TEXT("Content-Length: %u\x0d\x0a\x0d\x0a%s"),
+						FCString::Strlen(ServerBanner),
+						ServerBanner
+						);
+					lws_write(Wsi,(unsigned char*)TCHAR_TO_ANSI(Buffer),FCStringAnsi::Strlen(TCHAR_TO_ANSI(Buffer)), LWS_WRITE_HTTP);
 					// chug along, client will close the connection.
 					break;
 				}

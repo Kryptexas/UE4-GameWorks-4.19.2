@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TP_TwinStick : ModuleRules
 {
-	public TP_TwinStick(TargetInfo Target)
+	public TP_TwinStick(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 	}

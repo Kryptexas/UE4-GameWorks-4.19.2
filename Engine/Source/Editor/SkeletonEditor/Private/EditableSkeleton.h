@@ -42,6 +42,8 @@ public:
 	virtual void RenameSocket(const FName& OldSocketName, const FName& NewSocketName, USkeletalMesh* InSkeletalMesh) override;
 	virtual void SetSocketParent(const FName& SocketName, const FName& NewParentName, USkeletalMesh* InSkeletalMesh) override;
 	virtual bool DoesSocketAlreadyExist(const class USkeletalMeshSocket* InSocket, const FText& InSocketName, ESocketParentType SocketParentType, USkeletalMesh* InSkeletalMesh) const override;
+	virtual bool DoesVirtualBoneAlreadyExist(const FString& InVBName) const override;
+	virtual void RenameVirtualBone(const FName& OriginalName, const FName& InVBName) override;
 	virtual bool AddSmartname(const FName& InContainerName, const FName& InNewName, FSmartName& OutSmartName) override;
 	virtual void RenameSmartname(const FName& InContainerName, SmartName::UID_Type InNameUid, const FName& InNewName) override;
 	virtual void RemoveSmartname(const FName& InContainerName, SmartName::UID_Type InNameUid) override;

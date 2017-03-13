@@ -216,7 +216,7 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 			const float SimpleCollisionScale = bCreateSimpleCollision ? CollisionScale * CollisionSizeQuads / SimpleCollisionSizeQuads : 0;
 
 			// Create the geometry
-			PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfield, PxMeshGeometryFlags(), LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
+			PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfield, PxMeshGeometryFlag::eDOUBLE_SIDED, LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
 
 			if (LandscapeComponentGeom.isValid())
 			{
@@ -1140,6 +1140,10 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 			return;
 		}
 
+		// We don't lock the async scene as we only set the geometry in the sync scene's RigidActor.
+		// This function is used only during painting for line traces by the painting tools.
+		SCOPED_SCENE_WRITE_LOCK(GetPhysXSceneFromIndex(BodyInstance.SceneIndexSync));
+
 		int32 CollisionSizeVerts = CollisionSizeQuads + 1;
 
 		bool bIsMirrored = GetComponentToWorld().GetDeterminant() < 0.f;
@@ -1195,14 +1199,11 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 		// Create the geometry
 		PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfieldEd, PxMeshGeometryFlags(), LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
 
-		if (BodyInstance.RigidActorSync)
+		FInlinePxShapeArray PShapes;
+		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *(BodyInstance.RigidActorSync));
+		if (NumShapes > 1)
 		{
-			FInlinePxShapeArray PShapes;
-			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *(BodyInstance.RigidActorSync));
-			if (NumShapes > 1)
-			{
-				PShapes[1]->setGeometry(LandscapeComponentGeom);
-			}
+			PShapes[1]->setGeometry(LandscapeComponentGeom);
 		}
 	}
 
@@ -1282,6 +1283,8 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 
 				bool bFirst = true;
 				TArray<int32> InstancesToRemove;
+				TSet<UHierarchicalInstancedStaticMeshComponent*> AffectedFoliageComponets;
+
 				for (int32 InstanceIndex : *InstanceSet)
 				{
 					FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
@@ -1343,8 +1346,6 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 									check(MeshInfo.Component);
 									MeshInfo.Component->Modify();
 									MeshInfo.Component->UpdateInstanceTransform(InstanceIndex, Instance.GetInstanceWorldTransform(), true);
-									MeshInfo.Component->InvalidateLightingCache();
-
 									// Re-add the new instance location to the hash
 									MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
 								}
@@ -1357,11 +1358,18 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 							// Couldn't find new spot - remove instance
 							InstancesToRemove.Add(InstanceIndex);
 						}
+
+						AffectedFoliageComponets.Add(MeshInfo.Component);
 					}
 				}
 
 				// Remove any unused instances
 				MeshInfo.RemoveInstances(IFA, InstancesToRemove);
+
+				for (UHierarchicalInstancedStaticMeshComponent* FoliageComp : AffectedFoliageComponets)
+				{
+					FoliageComp->InvalidateLightingCache();
+				}
 			}
 		}
 	}

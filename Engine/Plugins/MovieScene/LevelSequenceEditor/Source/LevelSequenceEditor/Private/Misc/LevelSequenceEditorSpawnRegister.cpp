@@ -16,6 +16,7 @@
 #include "AssetSelection.h"
 #include "Evaluation/MovieSceneSpawnTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "Sections/MovieScene3DTransformSection.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditorSpawnRegister"
 
@@ -66,17 +67,18 @@ FLevelSequenceEditorSpawnRegister::~FLevelSequenceEditorSpawnRegister()
 UObject* FLevelSequenceEditorSpawnRegister::SpawnObject(FMovieSceneSpawnable& Spawnable, FMovieSceneSequenceIDRef TemplateID, IMovieScenePlayer& Player)
 {
 	TGuardValue<bool> Guard(bShouldClearSelectionCache, false);
-	AActor* NewObject = Cast<AActor>(FLevelSequenceSpawnRegister::SpawnObject(Spawnable, TemplateID, Player));
+
+	UObject* NewObject = FLevelSequenceSpawnRegister::SpawnObject(Spawnable, TemplateID, Player);
 	
-	if (NewObject)
+	if (AActor* NewActor = Cast<AActor>(NewObject))
 	{
 		// Cache the spawned object, and editable state first
-		SpawnedObjects.FindOrAdd(TemplateID).Add(NewObject);
+		SpawnedObjects.FindOrAdd(TemplateID).Add(NewActor);
 
 		// Select the actor if we think it should be selected
 		if (SelectedSpawnedObjects.Contains(FMovieSceneSpawnRegisterKey(TemplateID, Spawnable.GetGuid())))
 		{
-			GEditor->SelectActor(NewObject, true /*bSelected*/, true /*bNotify*/);
+			GEditor->SelectActor(NewActor, true /*bSelected*/, true /*bNotify*/);
 		}
 	}
 
@@ -300,73 +302,49 @@ void FLevelSequenceEditorSpawnRegister::OnObjectsReplaced(const TMap<UObject*, U
 
 TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorSpawnRegister::CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene)
 {
-	FNewSpawnable NewSpawnable(nullptr, FName::NameToDisplayString(SourceObject.GetName(), false));
-
-	const FName TemplateName = MakeUniqueObjectName(&OwnerMovieScene, UObject::StaticClass(), SourceObject.GetFName());
-
-	// First off, deal with creating a spawnable from a class
-	if (UClass* InClass = Cast<UClass>(&SourceObject))
+	for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
 	{
-		if (!InClass->IsChildOf(AActor::StaticClass()))
+		TValueOrError<FNewSpawnable, FText> Result = MovieSceneObjectSpawner->CreateNewSpawnableType(SourceObject, OwnerMovieScene);
+		if (Result.IsValid())
 		{
-			FText ErrorText = FText::Format(LOCTEXT("NotAnActorClass", "Unable to add spawnable for class of type '{0}' since it is not a valid actor class."), FText::FromString(InClass->GetName()));
-			return MakeError(ErrorText);
+			return Result;
 		}
-
-		NewSpawnable.ObjectTemplate = NewObject<UObject>(&OwnerMovieScene, InClass, TemplateName);
 	}
 
-	// Deal with creating a spawnable from an instance of an actor
-	else if (AActor* Actor = Cast<AActor>(&SourceObject))
-	{
-		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Actor, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transactional);
-		NewSpawnable.Name = Actor->GetActorLabel();
-	}
+	return MakeError(LOCTEXT("NoSpawnerFound", "No spawner found to create new spawnable type"));
+}
 
-	// If it's a blueprint, we need some special handling
-	else if (UBlueprint* SourceBlueprint = Cast<UBlueprint>(&SourceObject))
+void FLevelSequenceEditorSpawnRegister::SetupDefaultsForSpawnable(UObject* SpawnedObject, const FGuid& Guid, const FTransformData& TransformData, TSharedRef<ISequencer> Sequencer, USequencerSettings* Settings)
+{
+	for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
 	{
-		NewSpawnable.ObjectTemplate = NewObject<UObject>(&OwnerMovieScene, SourceBlueprint->GeneratedClass, TemplateName);
-	}
-
-	// At this point we have to assume it's an asset
-	else
-	{
-		// @todo sequencer: Add support for forcing specific factories for an asset?
-		UActorFactory* FactoryToUse = FActorFactoryAssetProxy::GetFactoryForAssetObject(&SourceObject);
-		if (!FactoryToUse)
+		if (SpawnedObject->IsA(MovieSceneObjectSpawner->GetSupportedTemplateType()))
 		{
-			FText ErrorText = FText::Format(LOCTEXT("CouldNotFindFactory", "Unable to create spawnable from  asset '{0}' - no valid factory could be found."), FText::FromString(SourceObject.GetName()));
-			return MakeError(ErrorText);
+			MovieSceneObjectSpawner->SetupDefaultsForSpawnable(SpawnedObject, Guid, TransformData, Sequencer, Settings);
+			return;
 		}
-
-		FText ErrorText;
-		if (!FactoryToUse->CanCreateActorFrom(FAssetData(&SourceObject), ErrorText))
-		{
-			if (!ErrorText.IsEmpty())
-			{
-				return MakeError(FText::Format(LOCTEXT("CannotCreateActorFromAsset_Ex", "Unable to create spawnable from  asset '{0}'. {1}."), FText::FromString(SourceObject.GetName()), ErrorText));
-			}
-			else
-			{
-				return MakeError(FText::Format(LOCTEXT("CannotCreateActorFromAsset", "Unable to create spawnable from  asset '{0}'."), FText::FromString(SourceObject.GetName())));
-			}
-		}
-
-		AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_NoFlags, TemplateName );
-
-		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName);
-
-		GWorld->DestroyActor(Instance);
 	}
+}
 
-	if (!NewSpawnable.ObjectTemplate || !NewSpawnable.ObjectTemplate->IsA<AActor>())
+void FLevelSequenceEditorSpawnRegister::HandleConvertPossessableToSpawnable(UObject* OldObject, IMovieScenePlayer& Player, FTransformData& OutTransformData)
+{
+	// @TODO: this could probably be handed off to a spawner if we need anything else to be convertible between spawnable/posessable
+
+	AActor* OldActor = Cast<AActor>(OldObject);
+	if (OldActor)
 	{
-		FText ErrorText = FText::Format(LOCTEXT("UnknownClassError", "Unable to create a new spawnable object from {0}."), FText::FromString(SourceObject.GetName()));
-		return MakeError(ErrorText);
-	}
+		OutTransformData.Translation = OldActor->GetActorLocation();
+		OutTransformData.Rotation = OldActor->GetActorRotation();
+		OutTransformData.Scale = OldActor->GetActorScale();
+		OutTransformData.bValid = true;
 
-	return MakeValue(NewSpawnable);
+		GEditor->SelectActor(OldActor, false, true);
+		UWorld* World = Cast<UWorld>(Player.GetPlaybackContext());
+		if (World)
+		{
+			World->EditorDestroyActor(OldActor, true);
+		}
+	}
 }
 
 #endif

@@ -43,6 +43,8 @@ public:
 	USoundMod* GetSoundMod() const { return SoundMod; }
 	void SetSoundMod(USoundMod* SoundMod);
 
+	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

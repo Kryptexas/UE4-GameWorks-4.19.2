@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -1308,7 +1308,7 @@ void Aggregate::sortBounds()
 		{
 			Ps::Array<PxU32> copy = mAggregated;
 			InflatedAABB* boundsCopy = reinterpret_cast<InflatedAABB*>(PX_ALLOC(sizeof(InflatedAABB)*(nbObjects+1), "mInflatedBounds"));
-			memcpy(boundsCopy, mInflatedBounds, (nbObjects+1)*sizeof(InflatedAABB));
+			PxMemCopy(boundsCopy, mInflatedBounds, (nbObjects+1)*sizeof(InflatedAABB));
 
 			const PxU32* Sorted = mRS.GetRanks();
 			for(PxU32 i=0;i<nbObjects;i++)
@@ -1822,23 +1822,23 @@ void SimpleAABBManager::handleOriginShift()
 	mPersistentStateChanged = true;
 	// PT: TODO: isn't the following loop potentially updating removed objects?
 	// PT: TODO: check that aggregates code is correct here
-	for (PxU32 i = 0; i<mUsedSize; i++)
+	for(PxU32 i=0; i<mUsedSize; i++)
 	{
-		if (!mAddedHandleMap.test(i) && mGroups[i] != PX_INVALID_U32)
+		if(!mAddedHandleMap.test(i) && mGroups[i] != PX_INVALID_U32)
 		{
-			if (mVolumeData[i].isSingleActor())
-				mUpdatedHandles.pushBack(i);    // PT: TODO: BoundsIndex-to-ShapeHandle confusion here
-			else if (mVolumeData[i].isAggregate())
+			if(mVolumeData[i].isSingleActor())
+				mUpdatedHandles.pushBack(i);	// PT: TODO: BoundsIndex-to-ShapeHandle confusion here
+			else if(mVolumeData[i].isAggregate())
 			{
 				const AggregateHandle aggregateHandle = mVolumeData[i].getAggregate();
 				Aggregate* aggregate = getAggregateFromHandle(aggregateHandle);
-				if (aggregate->getNbAggregated())
+				if(aggregate->getNbAggregated())
 				{
 					aggregate->markAsDirty(mDirtyAggregates);
 					aggregate->allocateBounds();
 					aggregate->computeBounds(mBoundsArray, mContactDistance.begin());
 					mBoundsArray.begin()[aggregate->mIndex] = aggregate->mBounds;
-					mUpdatedHandles.pushBack(i);    // PT: TODO: BoundsIndex-to-ShapeHandle confusion here
+					mUpdatedHandles.pushBack(i);	// PT: TODO: BoundsIndex-to-ShapeHandle confusion here
 				}
 			}
 		}

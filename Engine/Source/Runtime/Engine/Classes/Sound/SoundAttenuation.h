@@ -200,11 +200,11 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	float GetFocusDistanceScale(const struct FGlobalFocusSettings& FocusSettings, float FocusFactor) const;
 };
 
-DEPRECATED(4.15, "FAttenuationSettings has been renamed FAudioAttenuationSettings")
+DEPRECATED(4.15, "FAttenuationSettings has been renamed FSoundAttenuationSettings")
 typedef FSoundAttenuationSettings FAttenuationSettings;
 
 template<>
-struct TStructOpsTypeTraits<FSoundAttenuationSettings> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FSoundAttenuationSettings> : public TStructOpsTypeTraitsBase2<FSoundAttenuationSettings>
 {
 	enum 
 	{

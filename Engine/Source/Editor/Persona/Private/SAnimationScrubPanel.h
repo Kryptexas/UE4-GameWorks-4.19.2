@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __SAnimationScrubPanel_h__
-#define __SAnimationScrubPanel_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -113,4 +112,3 @@ protected:
 
 	bool GetDisplayDrag() const;
 };
-#endif // __SAnimationScrubPanel_h__

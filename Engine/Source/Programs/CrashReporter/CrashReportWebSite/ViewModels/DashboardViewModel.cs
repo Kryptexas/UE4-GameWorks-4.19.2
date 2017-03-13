@@ -8,13 +8,13 @@ using System.Web.Mvc;
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
 	/// <summary>
-	/// The view model for the crash summary page.
+	/// The view model for the Crash summary page.
 	/// </summary>
 	public class DashboardViewModel
 	{
-		/// <summary>An encoded table of crashes by week for the display plugin to use.</summary>
+		/// <summary>An encoded table of Crashes by week for the display plugin to use.</summary>
 		public string CrashesByWeek { get; set; }
-		/// <summary>An encoded table of crashes by day for the display plugin to use.</summary>
+		/// <summary>An encoded table of Crashes by day for the display plugin to use.</summary>
 		public string CrashesByDay { get; set; }
 		/// <summary>An encoded table of buggs by day for the display plugin to use.</summary>
 		public string BuggsByDay { get; set; }

@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SGraphNodeK2Var_h__
-#define __SGraphNodeK2Var_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Styling/SlateColor.h"
@@ -29,5 +27,3 @@ public:
 protected:
 	FSlateColor GetVariableColor() const;
 };
-
-#endif // __SGraphNodeK2Var_h__

@@ -721,9 +721,9 @@ bool FInstancedStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int
 	return false;
 }
 
-void FInstancedStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
+void FInstancedStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
 {
-	FStaticMeshSceneProxy::GetDistancefieldAtlasData(LocalVolumeBounds, OutBlockMin, OutBlockSize, bOutBuiltAsIfTwoSided, bMeshWasPlane, ObjectLocalToWorldTransforms);
+	FStaticMeshSceneProxy::GetDistancefieldAtlasData(LocalVolumeBounds, OutBlockMin, OutBlockSize, bOutBuiltAsIfTwoSided, bMeshWasPlane, SelfShadowBias, ObjectLocalToWorldTransforms);
 
 	ObjectLocalToWorldTransforms.Reset();
 
@@ -1264,19 +1264,18 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "LargeStaticLightingWarning", "The total lightmap size for this InstancedStaticMeshComponent is large, consider reducing the component's lightmap resolution or number of mesh instances in this component")));
 		}
 
-		bool bCanLODsShareStaticLighting = GetStaticMesh()->CanLODsShareStaticLighting();
+		// TODO: Support separate static lighting in LODs for instanced meshes.
 
-		// TODO: We currently only support one LOD of static lighting in instanced meshes
-		// Need to create per-LOD instance data to fix that
-		if (!bCanLODsShareStaticLighting)
+		if (!GetStaticMesh()->CanLODsShareStaticLighting())
 		{
+			//TODO: Detect if the UVs for all sub-LODs overlap the base LOD UVs and omit this warning if they do.
 			FMessageLog("LightingResults").Message(EMessageSeverity::Warning)
 				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "UniqueStaticLightingForLODWarning", "Instanced meshes don't yet support unique static lighting for each LOD, lighting on LOD 1+ may be incorrect")));
-			bCanLODsShareStaticLighting = true;
+				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "UniqueStaticLightingForLODWarning", "Instanced meshes don't yet support unique static lighting for each LOD. Lighting on LOD 1+ may be incorrect unless lightmap UVs are the same for all LODs.")));
 		}
 
-		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : GetStaticMesh()->RenderData->LODResources.Num();
+		// Force sharing LOD 0 lightmaps for now.
+		int32 NumLODs = 1;
 
 		CachedMappings.Reset(PerInstanceSMData.Num() * NumLODs);
 		CachedMappings.AddZeroed(PerInstanceSMData.Num() * NumLODs);
@@ -2052,28 +2051,30 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 			{
 				FVector4& InstancingViewZCompare(SampleIndex ? InstancingViewZCompareOne : InstancingViewZCompareZero);
+				float Fac = View.GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * LODScale;
 
 				float FinalCull = MAX_flt;
 				if (MinSize > 0.0)
 				{
-					FinalCull = ComputeBoundsDrawDistance(MinSize, SphereRadius, ViewForLOD.ViewMatrices.GetProjectionMatrix()) * LODScale;
+					FinalCull = ComputeBoundsDrawDistance(MinSize, SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
 				}
 				if (InstancingUserData->EndCullDistance > 0.0f)
 				{
 					FinalCull = FMath::Min(FinalCull, InstancingUserData->EndCullDistance * MaxDrawDistanceScale);
 				}
+				FinalCull *= MaxDrawDistanceScale;
 
 				InstancingViewZCompare.Z = FinalCull;
 				if (BatchElement.InstancedLODIndex < InstancingUserData->MeshRenderData->LODResources.Num() - 1)
 				{
-					float NextCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex + 1], SphereRadius, ViewForLOD.ViewMatrices.GetProjectionMatrix()) * LODScale;
+					float NextCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex + 1], SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
 					InstancingViewZCompare.Z = FMath::Min(NextCut, FinalCull);
 				}
 
 				InstancingViewZCompare.X = MIN_flt;
 				if (BatchElement.InstancedLODIndex > FirstLOD)
 				{
-					float CurCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex], SphereRadius, ViewForLOD.ViewMatrices.GetProjectionMatrix()) * LODScale;
+					float CurCut = ComputeBoundsDrawDistance(InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex], SphereRadius, View.ViewMatrices.GetProjectionMatrix()) * LODScale;
 					if (CurCut < FinalCull)
 					{
 						InstancingViewZCompare.Y = CurCut;
@@ -2096,7 +2097,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			InstancingWorldViewOriginZero = View.GetTemporalLODOrigin(0);
 			InstancingWorldViewOriginOne = View.GetTemporalLODOrigin(1);
 
-			float Alpha = ViewForLOD.GetTemporalLODTransition();
+			float Alpha = View.GetTemporalLODTransition();
 			InstancingWorldViewOriginZero.W = 1.0f - Alpha;
 			InstancingWorldViewOriginOne.W = Alpha;
 

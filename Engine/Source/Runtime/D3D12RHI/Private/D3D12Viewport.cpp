@@ -421,7 +421,9 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 {
 	HRESULT Result = S_OK;
 	bool bNeedNativePresent = true;
-	if (IsValidRef(CustomPresent))
+
+	const bool bHasCustomPresent = IsValidRef(CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = CustomPresent->Present(SyncInterval);
 	}
@@ -429,6 +431,11 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 	{
 		// Present the back buffer to the viewport window.
 		Result = PresentInternal(SyncInterval);
+
+		if (bHasCustomPresent)
+		{
+			CustomPresent->PostPresent();
+		}
 
 #if LOG_PRESENT
 		const FString ThreadName(FThreadManager::Get().GetThreadName(FPlatformTLS::GetCurrentThreadId()));

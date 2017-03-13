@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -437,35 +437,6 @@ void ClothImpl<CuCloth>::clearParticleAccelerations()
 	CuDeviceVector<PxVec4>(mCloth.mFactory.mContextManager).swap(mCloth.mParticleAccelerations);
 	mCloth.mParticleAccelerationsHostCopy.reset();
 	mCloth.wakeUp();
-}
-
-namespace
-{
-uint32_t calculateNumReplays(const Vector<Vec4u>::Type& triplets, const Vector<uint32_t>::Type setSizes)
-{
-	uint32_t result = 0;
-
-	Vector<Vec4u>::Type::ConstIterator tIt = triplets.begin();
-	Vector<uint32_t>::Type::ConstIterator sIt, sEnd = setSizes.end();
-	uint32_t index = 0;
-	for(sIt = setSizes.begin(); sIt != sEnd; ++sIt, ++index)
-	{
-		Vector<Vec4u>::Type::ConstIterator tEnd = tIt + *sIt, tLast = tIt;
-		while(tLast != tEnd)
-		{
-			uint8_t numConflicts[3][32] = {};
-			uint8_t numReplays[3] = {};
-
-			for(tLast += PxMin(ptrdiff_t(32), tEnd - tLast); tIt != tLast; ++tIt)
-				for(int i = 0; i < 3; ++i)
-					numReplays[i] = PxMax(numReplays[i], ++numConflicts[i][(*tIt)[i] & 31]);
-
-			result += numReplays[0] + numReplays[1] + numReplays[2];
-		}
-	}
-
-	return result;
-}
 }
 
 template <>

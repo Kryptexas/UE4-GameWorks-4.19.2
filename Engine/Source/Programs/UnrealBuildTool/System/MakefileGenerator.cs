@@ -10,7 +10,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Represents a folder within the master project (e.g. Visual Studio solution)
 	/// </summary>
-	public class MakefileFolder : MasterProjectFolder
+	class MakefileFolder : MasterProjectFolder
 	{
 		/// <summary>
 		/// Constructor
@@ -21,7 +21,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public class MakefileProjectFile : ProjectFile
+	class MakefileProjectFile : ProjectFile
 	{
 		public MakefileProjectFile(FileReference InitFilePath)
 			: base(InitFilePath)
@@ -32,7 +32,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Makefile project file generator implementation
 	/// </summary>
-	public class MakefileGenerator : ProjectFileGenerator
+	class MakefileGenerator : ProjectFileGenerator
 	{
 		/// True if intellisense data should be generated (takes a while longer)
 		/// Now this is needed for project target generation.
@@ -73,7 +73,7 @@ namespace UnrealBuildTool
 
 			string MakeGameProjectFile = "";
 
-			var UnrealRootPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+			var UnrealRootPath = UnrealBuildTool.RootDirectory.FullName;
 
 			if (!String.IsNullOrEmpty(GameProjectName))
 			{
@@ -125,7 +125,7 @@ namespace UnrealBuildTool
 
 			MakefileContent.Append("\n\n" + BuildCommand + ProjectBuildCommand + "\n" +
 				"all: StandardSet\n\n" +
-				"RequiredTools: CrashReportClient-Linux-Shipping ShaderCompileWorker UnrealPak UnrealLightmass\n\n" +
+				"RequiredTools: CrashReportClient-Linux-Shipping ShaderCompileWorker UnrealLightmass\n\n" +
 				"StandardSet: RequiredTools UnrealFrontend UE4Editor\n\n" +
 				"DebugSet: RequiredTools UnrealFrontend-Linux-Debug UE4Editor-Linux-Debug\n\n"
 			);

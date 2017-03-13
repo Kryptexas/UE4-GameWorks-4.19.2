@@ -3,6 +3,7 @@
 
 #include "SubmixEffects/AudioMixerSubmixEffectEQ.h"
 #include "Misc/ScopeLock.h"
+#include "AudioMixer.h"
 
 void FSubmixEffectSubmixEQ::Init(const FSoundEffectSubmixInitData& InitData)
 {
@@ -11,6 +12,8 @@ void FSubmixEffectSubmixEQ::Init(const FSoundEffectSubmixInitData& InitData)
 
 void FSubmixEffectSubmixEQ::OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AudioMixerMasterEQ);
+
 	UpdateParameters();
 
 	const float* AudioData = InData.AudioBuffer->GetData();

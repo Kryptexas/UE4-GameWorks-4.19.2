@@ -11,9 +11,6 @@
 #include "GlobalDistanceFieldShared.usf"
 #include "HeightfieldLightingShared.usf"
 
-RWBuffer<float4> RWCulledObjectBounds;
-RWBuffer<float4> RWCulledObjectData;
-
 #ifndef CULLOBJECTS_THREADGROUP_SIZE
 #define CULLOBJECTS_THREADGROUP_SIZE 1
 #endif
@@ -31,7 +28,7 @@ float4 FetchObjectDataFloat4(uint SourceIndex)
 
 void CopyCulledObjectData(uint DestIndex, uint SourceIndex)
 {
-	RWCulledObjectBounds[DestIndex] = float4(ObjectBounds[4 * SourceIndex + 0], ObjectBounds[4 * SourceIndex + 1], ObjectBounds[4 * SourceIndex + 2], ObjectBounds[4 * SourceIndex + 3]);
+	RWCulledObjectBounds[DestIndex] = LoadGlobalObjectPositionAndRadius(SourceIndex);
 
 	UNROLL
 	for (uint VectorIndex = 0; VectorIndex < CULLED_OBJECT_DATA_STRIDE; VectorIndex++)
@@ -44,6 +41,8 @@ void CopyCulledObjectData(uint DestIndex, uint SourceIndex)
 }
 
 float4 VolumeBounds;
+// 0: accept only mostly static objects, 1: accept only often moving objects, 2: accept all objects
+uint AcceptOftenMovingObjectsOnly;
 
 [numthreads(CULLOBJECTS_THREADGROUP_SIZE, 1, 1)]
 void CullObjectsForVolumeCS(
@@ -53,6 +52,7 @@ void CullObjectsForVolumeCS(
 {
 	uint ObjectIndex = DispatchThreadId.x;
 
+// Warning: disabled path ignores AcceptOftenMovingObjectsOnly
 #define USE_FRUSTUM_CULLING 1
 #if USE_FRUSTUM_CULLING
 	if (GroupThreadId.x == 0)
@@ -64,16 +64,16 @@ void CullObjectsForVolumeCS(
 
 	if (ObjectIndex < NumSceneObjects)
 	{
-		uint SourceIndex = ObjectIndex;
-
-		float4 ObjectBoundingSphere = float4(ObjectBounds[4 * SourceIndex + 0], ObjectBounds[4 * SourceIndex + 1], ObjectBounds[4 * SourceIndex + 2], ObjectBounds[4 * SourceIndex + 3]);
+		float4 ObjectBoundingSphere = LoadGlobalObjectPositionAndRadius(ObjectIndex);
 		float Distance = length(VolumeBounds.xyz - ObjectBoundingSphere.xyz);
+		uint OftenMoving = LoadGlobalObjectOftenMoving(ObjectIndex);
 
-		if (Distance < VolumeBounds.w + ObjectBoundingSphere.w + AOGlobalMaxSphereQueryRadius)
+		if (Distance < VolumeBounds.w + ObjectBoundingSphere.w + AOGlobalMaxSphereQueryRadius
+			&& (AcceptOftenMovingObjectsOnly == 2 || OftenMoving == AcceptOftenMovingObjectsOnly))
 		{
 			uint DestIndex;
 			InterlockedAdd(NumGroupObjects, 1U, DestIndex);
-			GroupObjectIndices[DestIndex] = SourceIndex;
+			GroupObjectIndices[DestIndex] = ObjectIndex;
 		}
 	}
 
@@ -185,6 +185,7 @@ void CullObjectsToGridCS(
 
 uint3 UpdateRegionSize;
 Buffer<uint> CulledObjectGrid;
+Texture3D<float> ParentGlobalDistanceFieldTexture;
 RWTexture3D<float> RWGlobalDistanceFieldTexture;
 
 #ifndef COMPOSITE_THREADGROUP_SIZE
@@ -258,7 +259,14 @@ void CompositeObjectDistanceFieldsCS(
 #endif
 
 	float3 WorldPosition = UpdateRegionVolumeMin + (DispatchThreadId.xyz + .5f) * VolumeTexelSize * GlobalVolumeExtent * 2;
+	float3 GlobalUV = ComputeGlobalUV(WorldPosition, ClipmapIndex);
+	uint3 IntCoordinate = (uint3)(frac(GlobalUV) * GlobalVolumeDimension);
+
 	float MinDistance = AOGlobalMaxSphereQueryRadius;
+
+#if USE_PARENT_DISTANCE_FIELD
+	MinDistance = ParentGlobalDistanceFieldTexture[IntCoordinate].r;
+#endif
 
 	LOOP 
 	for (uint ListObjectIndex = 0; ListObjectIndex < NumCulledObjects; ListObjectIndex++)
@@ -279,7 +287,7 @@ void CompositeObjectDistanceFieldsCS(
 		BRANCH
 		if (BoxDistance < AOGlobalMaxSphereQueryRadius)
 		{
-			float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+			float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
 
 			float3 ClampedSamplePosition = clamp(VolumePosition, -LocalPositionExtent, LocalPositionExtent);
 			float DistanceToClamped = length(VolumePosition - ClampedSamplePosition);
@@ -293,9 +301,7 @@ void CompositeObjectDistanceFieldsCS(
 	
 	if (all(DispatchThreadId.xyz < UpdateRegionSize))
 	{
-		float3 GlobalUV = ComputeGlobalUV(WorldPosition, ClipmapIndex);
-		uint3 WriteCoordinate = (uint3)(frac(GlobalUV) * GlobalVolumeDimension);
-		RWGlobalDistanceFieldTexture[WriteCoordinate] = MinDistance;
+		RWGlobalDistanceFieldTexture[IntCoordinate] = MinDistance;
 	}
 }
 

@@ -23,10 +23,9 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
-
 
 #define NOMINMAX
 
@@ -120,8 +119,7 @@ PX_PHYSX_GPU_API Bp::BPMemoryAllocator* createGpuMemoryAllocator();
 #endif
 
 extern bool gUnifiedHeightfieldCollision;
-	
-	
+
 namespace Sc {
 
 class LLArticulationPool: public Ps::Pool<Articulation, Ps::AlignedAllocator<DY_ARTICULATION_MAX_SIZE> > 
@@ -129,7 +127,6 @@ class LLArticulationPool: public Ps::Pool<Articulation, Ps::AlignedAllocator<DY_
 public:
 	LLArticulationPool() {}
 };
-
 
 static const char* sFilterShaderDataMemAllocId = "SceneDesc filterShaderData";
 
@@ -287,10 +284,8 @@ private:
 	ScAfterIntegrationTask& operator = (const ScAfterIntegrationTask&);
 };
 
-
 class ScSimulationControllerCallback : public PxsSimulationControllerCallback
 {
-
 	Sc::Scene* mScene; 
 public:
 
@@ -359,7 +354,6 @@ public:
 				task->setContinuation(continuation);
 				task->removeReference();
 			}
-
 		}
 	}
 
@@ -367,7 +361,6 @@ public:
 	{ 
 		return mScene->getCcdBodies().size(); 
 	}
-
 };
 
 class PxgUpdateBodyAndShapeStatusTask :  public Cm::Task
@@ -383,7 +376,6 @@ private:
 	PxU32*	mDeactivatedBodies;
 	PxI32&	mCCDBodyWriteIndex;
 	
-
 public:
 
 	PxgUpdateBodyAndShapeStatusTask(const IG::NodeIndex* const indices, PxU32 numBodies, PxsBodySim* bodySimsLL, PxU32* activatedBodies, PxU32* deactivatedBodies, 
@@ -469,7 +461,6 @@ public:
 
 	virtual void updateScBodyAndShapeSim(PxBaseTask* continuation)
 	{
-
 		IG::SimpleIslandManager* islandManager = mScene->getSimpleIslandManager();
 		PxsSimulationController* simulationController = mScene->getSimulationController();
 		PxsContext*	contextLL = mScene->getLowLevelContext();
@@ -499,8 +490,6 @@ public:
 			task->removeReference();
 		}
 		
-
-
 		PxU32* unfrozenShapeIndices = simulationController->getUnfrozenShapes();
 		PxU32* frozenShapeIndices = simulationController->getFrozenShapes();
 		const PxU32 nbFrozenShapes = simulationController->getNbFrozenShapes();
@@ -525,17 +514,13 @@ public:
 			Sc::ShapeSim* shape = reinterpret_cast<Sc::ShapeSim*>(reinterpret_cast<PxU8*>(shapeLL) - shapeOffset);
 			shape->createSqBounds();
 		}
-
-	
 	}
 
 	virtual PxU32	getNbCcdBodies()
 	{
 		return PxU32(mCcdBodyWriteIndex);
 	}
-
 };
-
 
 Sc::Scene::Scene(const PxSceneDesc& desc, PxU64 contextID) :
 	mContextId						(contextID),
@@ -577,7 +562,6 @@ Sc::Scene::Scene(const PxSceneDesc& desc, PxU64 contextID) :
 	mBatchRemoveState				(NULL),
 	mLostTouchPairs					(PX_DEBUG_EXP("sceneLostTouchPairs")),
 	mOutOfBoundsIDs					(PX_DEBUG_EXP("sceneOutOfBoundsIds")),
-	mErrorState						(0),
 	mVisualizationScale				(0.0f),
 	mVisualizationParameterChanged	(false),
 	mNbRigidStatics					(0),
@@ -909,11 +893,6 @@ Sc::Scene::Scene(const PxSceneDesc& desc, PxU64 contextID) :
 	mFilterShader = desc.filterShader;
 	mFilterCallback = desc.filterCallback;
 
-#if EXTRA_PROFILING
-	mExtraProfileFile = fopen("extraProfile.txt", "w");
-	mLineNum = 0;
-#endif
-
 #if PX_USE_CLOTH_API
 	createClothSolver();
 #endif  // PX_USE_CLOTH_API
@@ -927,7 +906,6 @@ Sc::Scene::Scene(const PxSceneDesc& desc, PxU64 contextID) :
 
 void Sc::Scene::release()
 {
-
 #if PX_USE_PARTICLE_SYSTEM_API
 	if (mParticleContext)
 	{
@@ -965,10 +943,6 @@ void Sc::Scene::release()
 		delete &core;
 	}
 
-#if EXTRA_PROFILING
-	fclose(mExtraProfileFile);
-#endif
-
 	// Free object IDs and the deleted object id map
 	postReportsCleanup();
 
@@ -991,7 +965,6 @@ void Sc::Scene::release()
 	PX_DELETE_AND_RESET(mProjectionManager);
 	PX_DELETE_AND_RESET(mSqBoundsManager);
 	PX_DELETE_AND_RESET(mBoundsArray);
-
 
 	for(PxU32 i=0;i<mClients.size(); i++)
 		PX_DELETE_AND_RESET(mClients[i]);
@@ -1035,17 +1008,12 @@ void Sc::Scene::release()
 
 	mDynamicsContext->destroy();
 
-
 	mCCDContext->destroy();
-
-	
 
 	mSimpleIslandManager->~SimpleIslandManager();
 	PX_FREE(mSimpleIslandManager);
 
 #if PX_SUPPORT_GPU_PHYSX
-
-
 	if (mGpuWranglerManagers)
 	{
 		mGpuWranglerManagers->~PxsKernelWranglerManager();
@@ -1080,7 +1048,6 @@ void Sc::Scene::release()
 		PX_FREE(mMemoryManager);
 		mMemoryManager = NULL;
 	}
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1460,7 +1427,6 @@ void Sc::Scene::prepareCollide()
 
 	PxcClearContactCacheStats();
 }
-  
 
 void Sc::Scene::simulate(PxReal timeStep, PxBaseTask* continuation)
 {
@@ -1554,7 +1520,6 @@ void Sc::Scene::endSimulation()
 	PxcDisplayContactCacheStats();
 }
 
-
 void Sc::Scene::flush(bool sendPendingReports)
 {
 	if (sendPendingReports)
@@ -1605,7 +1570,6 @@ void Sc::Scene::flush(bool sendPendingReports)
 
 	mLLContext->getNpMemBlockPool().releaseUnusedBlocks();
 }
-
 
 // User callbacks
 
@@ -1660,7 +1624,6 @@ PxU32 Sc::Scene::getCCDMaxPasses() const
 	return mCCDContext->getCCDMaxPasses();
 }
 
-
 void Sc::Scene::setBroadPhaseCallback(PxBroadPhaseCallback* callback, PxClientID client)
 {
 	PX_ASSERT(client < mClients.size());
@@ -1701,7 +1664,6 @@ void Sc::Scene::removeBody(BodySim& body)	//this also notifies any connected joi
 	markReleasedBodyIDForLostTouch(body.getID());
 }
 
-
 void Sc::Scene::addConstraint(ConstraintCore& constraint, RigidCore* body0, RigidCore* body1)
 {
 	ConstraintSim* sim = mConstraintSimPool->construct(constraint, body0, body1, *this);
@@ -1709,7 +1671,6 @@ void Sc::Scene::addConstraint(ConstraintCore& constraint, RigidCore* body0, Rigi
 
 	mConstraints.insert(&constraint);
 }
-
 
 void Sc::Scene::removeConstraint(ConstraintCore& constraint)
 {
@@ -1728,7 +1689,6 @@ void Sc::Scene::removeConstraint(ConstraintCore& constraint)
 	mConstraints.erase(&constraint);
 }
 
-
 void Sc::Scene::addArticulation(ArticulationCore& articulation, BodyCore& root)
 {
 	ArticulationSim* sim = PX_NEW(ArticulationSim)(articulation, *this, root);
@@ -1741,7 +1701,6 @@ void Sc::Scene::addArticulation(ArticulationCore& articulation, BodyCore& root)
 	mArticulations.insert(&articulation);
 }
 
-
 void Sc::Scene::removeArticulation(ArticulationCore& articulation)
 {
 	ArticulationSim* a = articulation.getSim();
@@ -1750,20 +1709,17 @@ void Sc::Scene::removeArticulation(ArticulationCore& articulation)
 	mArticulations.erase(&articulation);
 }
 
-
 void Sc::Scene::addArticulationJoint(ArticulationJointCore& joint, BodyCore& parent, BodyCore& child)
 {
 	ArticulationJointSim* sim = PX_NEW(ArticulationJointSim)(joint, *parent.getSim(), *child.getSim());
 	PX_UNUSED(sim);
 }
 
-
 void Sc::Scene::removeArticulationJoint(ArticulationJointCore& joint)
 {
 	if (joint.getSim())
 		PX_DELETE(joint.getSim());
 }
-
 
 void Sc::Scene::addBrokenConstraint(Sc::ConstraintCore* c)
 {
@@ -2038,7 +1994,6 @@ void Sc::Scene::advanceStep(PxBaseTask* continuation)
 	}
 }
 
-
 //void Sc::Scene::advanceStep(PxBaseTask* continuation)
 //{
 //	PX_PROFILE_ZONE("Sim.solveQueueTasks", getContextId());
@@ -2118,7 +2073,6 @@ void Sc::Scene::collideStep(PxBaseTask* continuation)
 	mRigidBodyNarrowPhase.removeReference();
 	mPreRigidBodyNarrowPhase.removeReference();
 }
-
 
 void Sc::Scene::clothPreprocessing(PxBaseTask* /*continuation*/)
 {
@@ -2226,7 +2180,6 @@ public:
 
 	virtual const char* getName() const { return "DirtyShapeUpdatesTask";  }
 
-
 private:
 	PX_NOCOPY(DirtyShapeUpdatesTask)
 };
@@ -2284,6 +2237,7 @@ public:
 private:
 	PX_NOCOPY(SpeculativeCCDContactDistanceArticulationUpdateTask)
 };
+
 
 void Sc::Scene::preRigidBodyNarrowPhase(PxBaseTask* continuation)
 {
@@ -2356,11 +2310,13 @@ void Sc::Scene::preRigidBodyNarrowPhase(PxBaseTask* continuation)
 
 	DirtyShapeUpdatesTask* task = PX_PLACEMENT_NEW(pool.allocate(sizeof(DirtyShapeUpdatesTask)), DirtyShapeUpdatesTask)(cache, boundsArray);
 
+	bool hasDirtyShapes = false;
 	while ((index = dirtyShapeIter.getNext()) != Cm::BitMap::Iterator::DONE)
 	{
 		Sc::ShapeSim* shapeSim = reinterpret_cast<Sc::ShapeSim*>(mAABBManager->getUserData(index));
 		if (shapeSim)
 		{
+			hasDirtyShapes = true;
 			changedMap.growAndSet(index);
 			task->mShapes[task->mNbShapes++] = shapeSim;
 			if (task->mNbShapes == DirtyShapeUpdatesTask::MaxShapes)
@@ -2370,6 +2326,14 @@ void Sc::Scene::preRigidBodyNarrowPhase(PxBaseTask* continuation)
 				task = PX_PLACEMENT_NEW(pool.allocate(sizeof(DirtyShapeUpdatesTask)), DirtyShapeUpdatesTask)(cache, boundsArray);
 			}
 		}
+	}
+
+	if (hasDirtyShapes)
+	{
+		//Setting the boundsArray and transform cache as dirty so that they get DMAd to GPU if GPU dynamics and BP are being used respectively.
+		//These bits are no longer set when we update the cached state for actors due to an optimization avoiding setting these dirty bits multiple times.
+		getBoundsArray().setChangedState();
+		getLowLevelContext()->getTransformCache().setChangedState();
 	}
 
 	if (task->mNbShapes != 0)
@@ -2517,9 +2481,8 @@ void Sc::Scene::processNarrowPhaseTouchEvents()
 			}
 		}
 
-
-		getLowLevelContext()->getSimStats().mNbNewTouches = newTouchCount;
-		getLowLevelContext()->getSimStats().mNbLostTouches = lostTouchCount;
+		context->getSimStats().mNbNewTouches = newTouchCount;
+		context->getSimStats().mNbLostTouches = lostTouchCount;
 	}
 }
 
@@ -2673,8 +2636,6 @@ void Sc::Scene::processNarrowPhaseLostTouchEvents(PxBaseTask*)
 				addToLostTouchList(si->getShape0().getBodySim(), si->getShape1().getBodySim());
 		}
 	}
-
-	
 }
 
 void Sc::Scene::processLostSolverPatches(PxBaseTask* /*continuation*/)
@@ -2682,7 +2643,6 @@ void Sc::Scene::processLostSolverPatches(PxBaseTask* /*continuation*/)
 	PxsContactManagerOutputIterator outputs = mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
 	mDynamicsContext->processLostPatches(*mSimpleIslandManager, mLostPatchManagers.begin(), mLostPatchManagers.size(), outputs);
 }
-
 
 void Sc::Scene::islandGen(PxBaseTask* continuation)
 {
@@ -2704,7 +2664,6 @@ void Sc::Scene::islandGen(PxBaseTask* continuation)
 
 PX_FORCE_INLINE void Sc::Scene::putObjectsToSleep(PxU32 infoFlag)
 {
-
 	const IG::IslandSim& islandSim = mSimpleIslandManager->getAccurateIslandSim();
 
 	//Set to sleep all bodies that were in awake islands that have just been put to sleep.
@@ -2730,9 +2689,6 @@ PX_FORCE_INLINE void Sc::Scene::putObjectsToSleep(PxU32 infoFlag)
 		if (articSim && !islandSim.getNode(articIndices[i]).isActive())
 			articSim->setActive(false, infoFlag);
 	}
-
-	
-
 }
 
 PX_FORCE_INLINE void Sc::Scene::putInteractionsToSleep(PxU32 infoFlag)
@@ -2945,7 +2901,6 @@ void Sc::Scene::unregisterInteractions(PxBaseTask*)
 void Sc::Scene::destroyManagers(PxBaseTask*)
 {
 	{
-
 		PX_PROFILE_ZONE("Sim.destroyManagers", getContextId());
 
 		mPostThirdPassIslandGenTask.setContinuation(mProcessLostContactsTask3.getContinuation());
@@ -2981,8 +2936,6 @@ void Sc::Scene::processLostContacts2(PxBaseTask* continuation)
 
 	mUnregisterInteractionsTask.setContinuation(continuation);
 	mUnregisterInteractionsTask.removeReference();
-	
-	
 	
 	{
 		PX_PROFILE_ZONE("Sim.clearIslandData", getContextId());
@@ -3053,8 +3006,6 @@ void Sc::Scene::processLostContacts3(PxBaseTask* /*continuation*/)
 	mPostThirdPassIslandGenTask.removeReference();
 }
 
-
-
 //This is called after solver finish
 void Sc::Scene::updateSimulationController(PxBaseTask* continuation)
 {
@@ -3073,7 +3024,6 @@ void Sc::Scene::updateSimulationController(PxBaseTask* continuation)
 }
 
 void Sc::Scene::updateDynamics(PxBaseTask* continuation)
-
 {
 	mProcessLostContactsTask3.setContinuation(continuation);
 	mProcessLostContactsTask2.setContinuation(&mProcessLostContactsTask3);
@@ -3103,9 +3053,7 @@ void Sc::Scene::updateDynamics(PxBaseTask* continuation)
 	mProcessLostContactsTask3.removeReference();
 	mProcessLostContactsTask2.removeReference();
 	mProcessLostContactsTask.removeReference();
-
 }
-
 
 void Sc::Scene::updateCCDMultiPass(PxBaseTask* parentContinuation)
 {
@@ -3155,18 +3103,15 @@ void Sc::Scene::updateCCDMultiPass(PxBaseTask* parentContinuation)
 			}
 		}
 
-
 		//reset thread context in a place we know all tasks possibly accessing it, are in sync with. (see US6664)
 		mLLContext->resetThreadContexts();
 
 		mCCDContext->updateCCDBegin();
 
-		
 		mCCDBroadPhase[0].setContinuation(parentContinuation);
 		mCCDBroadPhaseAABB[0].setContinuation(&mCCDBroadPhase[0]);
 		mCCDBroadPhase[0].removeReference();
 		mCCDBroadPhaseAABB[0].removeReference();
-
 	}
 }
 
@@ -3213,7 +3158,6 @@ public:
 
 		Ps::atomicAdd(mNumFastMovingShapes, PxI32(activeShapes));
 	}
-
 };
 
 void Sc::Scene::ccdBroadPhaseAABB(PxBaseTask* continuation)
@@ -3239,9 +3183,7 @@ void Sc::Scene::ccdBroadPhaseAABB(PxBaseTask* continuation)
 			task->removeReference();
 		}
 	}
-
 }
-
 
 void Sc::Scene::ccdBroadPhase(PxBaseTask* continuation)
 {
@@ -3267,7 +3209,6 @@ void Sc::Scene::ccdBroadPhase(PxBaseTask* continuation)
 		mUpdateCCDSinglePass2[currIndex].setContinuation(&mUpdateCCDSinglePass3[currIndex]);
 		mUpdateCCDSinglePass[currIndex].setContinuation(&mUpdateCCDSinglePass2[currIndex]);
 
-
 		//Do the actual broad phase
 		PxBaseTask* continuationTask = &mUpdateCCDSinglePass[currIndex];
 		const PxU32 numCpuTasks = continuationTask->getTaskManager()->getCpuDispatcher()->getWorkerCount();
@@ -3292,7 +3233,6 @@ void Sc::Scene::ccdBroadPhase(PxBaseTask* continuation)
 	}
 }
 
-
 void Sc::Scene::updateCCDSinglePass(PxBaseTask* continuation)
 {
 	PX_PROFILE_ZONE("Sim.updateCCDSinglePass", getContextId());
@@ -3301,7 +3241,6 @@ void Sc::Scene::updateCCDSinglePass(PxBaseTask* continuation)
 	const PxU32 currentPass = mCCDContext->getCurrentCCDPass() + 1;  // 0 is reserved for discrete collision phase
 	finishBroadPhase(currentPass, continuation);
 	
-
 	if (currentPass == 1)		// reset the handle map so we only update CCD objects from here on
 	{
 		Cm::BitMapPinned& changedAABBMgrActorHandles = mAABBManager->getChangedAABBMgActorHandleMap();
@@ -3338,7 +3277,6 @@ void Sc::Scene::updateCCDSinglePassStage3(PxBaseTask* continuation)
 
 	mCCDContext->updateCCD(mDt, continuation, (mPublicFlags & PxSceneFlag::eDISABLE_CCD_RESWEEP), mNumFastMovingShapes);
 }
-
 
 void Sc::Scene::integrateKinematicPose()
 {
@@ -3394,7 +3332,6 @@ void Sc::Scene::updateKinematicCached()
 	}
 }
 
-
 class ConstraintProjectionTask : public Cm::Task
 {
 private:
@@ -3437,7 +3374,6 @@ public:
 	{
 		return "ScScene.constraintProjectionWork";
 	}
-
 
 public:
 	static const PxU32 sProjectingConstraintsPerTask = 256;  // just a guideline, will not match exactly most of the time
@@ -3554,7 +3490,6 @@ void Sc::Scene::postSolver(PxBaseTask* continuation)
 	}
 
 	//afterIntegration(continuation);
-
 }
 
 void Sc::Scene::postCCDPass(PxBaseTask* /*continuation*/)
@@ -3688,10 +3623,8 @@ void Sc::Scene::postReportsCleanup()
 	mRigidIDTracker->processPendingReleases();
 	mRigidIDTracker->clearDeletedIDMap();
 
-
 	mConstraintIDTracker->processPendingReleases();
 	mConstraintIDTracker->clearDeletedIDMap();
-
 }
 
 void Sc::Scene::syncSceneQueryBounds(SqBoundsSync& sync, SqRefFinder& finder)
@@ -3771,8 +3704,6 @@ void Sc::Scene::stepSetupCollide()
 	mInternalFlags &= ~(SceneInternalFlag::eSCENE_SIP_STATES_DIRTY_DOMINANCE | SceneInternalFlag::eSCENE_SIP_STATES_DIRTY_VISUALIZATION);
 }
 
-
-
 void Sc::Scene::processLostTouchPairs()
 {
 	PX_PROFILE_ZONE("Sc::Scene::processLostTouchPairs", getContextId());
@@ -3806,7 +3737,6 @@ void Sc::Scene::processLostTouchPairs()
 			mLostTouchPairs[i].body2->internalWakeUp();
 		}
 	}
-
 
 	mLostTouchPairs.clear();
 	mLostTouchPairsDeletedBodyIDs.clear();
@@ -3872,7 +3802,6 @@ private:
 	ScBeforeSolverTask& operator = (const ScBeforeSolverTask&);
 };
 
-
 void Sc::Scene::beforeSolver(PxBaseTask* continuation)
 {
 	PX_PROFILE_ZONE("Sim.updateForces", getContextId());
@@ -3934,7 +3863,6 @@ void Sc::Scene::beforeSolver(PxBaseTask* continuation)
 	mBodyGravityDirty = false;
 }
 
-
 #if PX_DEBUG
 bool DEBUG_solverlock = false;
 #endif
@@ -3965,7 +3893,6 @@ public:
 	}
 };
 
-
 void Sc::Scene::afterIntegration(PxBaseTask* continuation)
 {		
 	mLLContext->getTransformCache().resetChangedState(); //Reset the changed state. If anything outside of the GPU kernels updates any shape's transforms, this will be raised again
@@ -3975,8 +3902,6 @@ void Sc::Scene::afterIntegration(PxBaseTask* continuation)
 	Bp::BoundsArray& boundArray = getBoundsArray();
 
 	mSimulationController->udpateScBodyAndShapeSim(cache, boundArray, continuation);
-
-	
 
 	{
 		PX_PROFILE_ZONE("AfterIntegration::lockStage", getContextId());
@@ -4144,7 +4069,6 @@ void Sc::Scene::checkForceThresholdContactEvents(const PxU32 ccdPass)
 
 	const PxU32 nbThresholdElements = thresholdStream.size();
 
-
 	for (PxU32 i = 0; i< nbThresholdElements; ++i)
 	{
 		ThresholdStreamElement& elem = thresholdStream[i];
@@ -4268,7 +4192,6 @@ void Sc::Scene::visualizeEndStep()
 #endif
 }
 
-
 void Sc::Scene::collectPostSolverVelocitiesBeforeCCD()
 {
 	if (mContactReportsNeedPostSolverVelocity)
@@ -4300,7 +4223,6 @@ void Sc::Scene::collectPostSolverVelocitiesBeforeCCD()
 		}
 	}
 }
-
 
 void Sc::Scene::finalizeContactStreamAndCreateHeader(PxContactPairHeader& header, const ActorPairReport& aPair, ContactStreamManager& cs, PxU32 removedShapeTestMask)
 {
@@ -4347,9 +4269,7 @@ void Sc::Scene::finalizeContactStreamAndCreateHeader(PxContactPairHeader& header
 		}
 	}
 	header.extraDataStreamSize = extraDataSize;
-
 }
-
 
 const Ps::Array<PxContactPairHeader>& Sc::Scene::getQueuedContactPairHeaders()
 {
@@ -4448,7 +4368,6 @@ void Sc::Scene::fireQueuedContactCallbacks(bool asPartOfFlush)
 	}
 }
 
-
 PX_FORCE_INLINE void markDeletedShapes(Sc::ObjectIDTracker& idTracker, Sc::TriggerPairExtraData& tped, PxTriggerPair& pair)
 {
 	PxTriggerPairFlags::InternalType flags = 0;
@@ -4459,7 +4378,6 @@ PX_FORCE_INLINE void markDeletedShapes(Sc::ObjectIDTracker& idTracker, Sc::Trigg
 
 	pair.flags = PxTriggerPairFlags(flags);
 }
-
 
 void Sc::Scene::fireTriggerCallbacks()
 {
@@ -4576,7 +4494,6 @@ void Sc::Scene::fireTriggerCallbacks()
 	mTriggerBufferExtraData->clear();
 }
 
-
 namespace
 {
 	struct BrokenConstraintReportData
@@ -4600,7 +4517,6 @@ void Sc::Scene::fireBrokenConstraintCallbacks()
 	PxU32 activeClients[(PX_MAX_CLIENTS+7)/8];
 	PxMemSet(activeClients, 0, (PX_MAX_CLIENTS+7)/8);
 
-	
 	PxU16 activeClientLimit = 0;
 
 	for(PxU32 i=0;i<count;i++)
@@ -4664,7 +4580,6 @@ void Sc::Scene::fireBrokenConstraintCallbacks()
 		mClients[i]->simulationEventCallback->onConstraintBreak(perClientArray.begin(), perClientArray.size());
 	}
 }
-
 
 /*
 Threading: called in the context of the user thread, but only after the physics thread has finished its run
@@ -4788,7 +4703,6 @@ void Sc::Scene::prepareOutOfBoundsCallbacks()
 		mOutOfBoundsIDs.pushBack(id);
 	}
 }
-
 
 bool Sc::Scene::fireOutOfBoundsCallbacks()
 {
@@ -4937,23 +4851,6 @@ void Sc::Scene::postCallbacksPreSync()
 	releaseConstraints(true); //release constraint blocks at the end of the frame, so user can retrieve the blocks
 }
 
-PxU32 Sc::Scene::getErrorState()
-{
-	return mErrorState; // we only signal critical errors from the HW core
-}
-
-
-void Sc::Scene::setLimits(const PxSceneLimits & limits)
-{
-	mLimits = limits;
-}
-
-
-const PxSceneLimits& Sc::Scene::getLimits() const
-{
-	return mLimits;
-}
-
 void Sc::Scene::setNbContactDataBlocks(PxU32 numBlocks)
 {
 	mLLContext->getNpMemBlockPool().setBlockCount(numBlocks);
@@ -5042,7 +4939,6 @@ void Sc::Scene::removeShapes(Sc::RigidSim& sim, Ps::InlineArray<Sc::ShapeSim*, 6
 		removeShape(*shapesBuffer[i], wakeOnLostTouch);
 }
 
-
 void Sc::Scene::addStatic(StaticCore& ro, void*const *shapes, PxU32 nbShapes, size_t shapePtrOffset, PxBounds3* uninflatedBounds)
 {
 	PX_ASSERT(ro.getActorCoreType() == PxActorType::eRIGID_STATIC);
@@ -5097,7 +4993,6 @@ void Sc::Scene::removeStatic(StaticCore& ro, Ps::InlineArray<const Sc::ShapeCore
 	}
 }
 
-
 void Sc::Scene::addBody(BodyCore& body, void*const *shapes, PxU32 nbShapes, size_t shapePtrOffset, PxBounds3* outBounds)
 {
 	// sim objects do all the necessary work of adding themselves to broad phase,
@@ -5107,7 +5002,10 @@ void Sc::Scene::addBody(BodyCore& body, void*const *shapes, PxU32 nbShapes, size
 	if (sim->getLowLevelBody().mCore->mFlags & PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD)
 	{
 		if (sim->isArticulationLink())
-			mSpeculativeCDDArticulationBitMap.growAndSet(sim->getNodeIndex().index());
+		{
+			if (sim->getNodeIndex().isValid())
+				mSpeculativeCDDArticulationBitMap.growAndSet(sim->getNodeIndex().index());
+		}
 		else
 			mSpeculativeCCDRigidBodyBitMap.growAndSet(sim->getNodeIndex().index());
 	}
@@ -5141,7 +5039,6 @@ void Sc::Scene::removeBody(BodyCore& body, Ps::InlineArray<const Sc::ShapeCore*,
 		mNbRigidDynamics--;
 	}
 }
-
 
 void Sc::Scene::addShape(RigidSim& owner, ShapeCore& shapeCore, PxBounds3* uninflatedBounds)
 {
@@ -5191,7 +5088,6 @@ void Sc::Scene::startBatchInsertion(BatchInsertionState&state)
 	state.staticSim = mStaticSimPool->allocateAndPrefetch();
 	state.bodySim = mBodySimPool->allocateAndPrefetch();														   
 }
-
 
 void Sc::Scene::addShapes(void *const* shapes, PxU32 nbShapes, size_t ptrOffset, RigidSim& rigidSim, ShapeSim*& prefetchedShapeSim, PxBounds3* outBounds)
 {
@@ -5293,7 +5189,6 @@ void Sc::Scene::setDominanceGroupPair(PxDominanceGroup group1, PxDominanceGroup 
 	mInternalFlags |= SceneInternalFlag::eSCENE_SIP_STATES_DIRTY_DOMINANCE;		//force an update on all interactions on matrix change -- very expensive but we have no choice!!
 }
 
-
 PxDominanceGroupPair Sc::Scene::getDominanceGroupPair(PxDominanceGroup group1, PxDominanceGroup group2) const
 {
 	PxU8 dom0 = PxU8((mDominanceBitMatrix[group1]>>group2) & 0x1 ? 1u : 0u);
@@ -5312,12 +5207,10 @@ void Sc::Scene::setSolverBatchSize(PxU32 solverBatchSize)
 	mDynamicsContext->setSolverBatchSize(solverBatchSize);
 }
 
-
 PxU32 Sc::Scene::getSolverBatchSize() const
 {
 	return mDynamicsContext->getSolverBatchSize();
 }
-
 
 void Sc::Scene::setVisualizationParameter(PxVisualizationParameter::Enum param, PxReal value)
 {
@@ -5331,14 +5224,12 @@ void Sc::Scene::setVisualizationParameter(PxVisualizationParameter::Enum param, 
 		mVisualizationScale = value;
 }
 
-
 PxReal Sc::Scene::getVisualizationParameter(PxVisualizationParameter::Enum param) const
 {
 	PX_ASSERT(mLLContext->getVisualizationParameter(PxVisualizationParameter::eSCALE) == mVisualizationScale); // Safety check because the scale is duplicated for performance reasons
 
 	return mLLContext->getVisualizationParameter(param);
 }
-
 
 void Sc::Scene::setVisualizationCullingBox(const PxBounds3& box)
 {
@@ -5618,7 +5509,6 @@ void Sc::Scene::clearSleepWakeBodies(void)
 	mSleepBodyListValid = true;
 }
 
-
 void Sc::Scene::onBodySleep(BodySim* body)
 {
 	//temp: TODO: Add support for other clients
@@ -5657,7 +5547,6 @@ void Sc::Scene::onBodySleep(BodySim* body)
 	}
 }
 
-
 void Sc::Scene::onBodyWakeUp(BodySim* body)
 {
 	//temp: TODO: Add support for other clients
@@ -5687,7 +5576,6 @@ void Sc::Scene::onBodyWakeUp(BodySim* body)
 	}
 }
 
-
 PX_INLINE void Sc::Scene::cleanUpSleepBodies()
 {
 	BodyCore* const* bodyArray = mSleepBodies.getEntries();
@@ -5714,15 +5602,12 @@ PX_INLINE void Sc::Scene::cleanUpSleepBodies()
 	}
 
 	mSleepBodyListValid = true;
-
 }
-
 
 PX_INLINE void Sc::Scene::cleanUpWokenBodies()
 {
 	cleanUpSleepOrWokenBodies(mWokeBodies, BodySim::BF_SLEEP_NOTIFY, mWokeBodyListValid);
 }
-
 
 PX_INLINE void Sc::Scene::cleanUpSleepOrWokenBodies(Ps::CoalescedHashSet<BodyCore*>& bodyList, PxU32 removeFlag, bool& validMarker)
 {
@@ -5749,7 +5634,6 @@ PX_INLINE void Sc::Scene::cleanUpSleepOrWokenBodies(Ps::CoalescedHashSet<BodyCor
 	validMarker = true;
 }
 
-
 void Sc::Scene::releaseConstraints(bool endOfScene)
 {
 	PX_ASSERT(mLLContext);
@@ -5775,12 +5659,10 @@ void Sc::Scene::releaseConstraints(bool endOfScene)
 	}
 }
 
-
 PX_INLINE void Sc::Scene::clearBrokenConstraintBuffer()
 {
 	mBrokenConstraints.clear();
 }
-
 
 void Sc::Scene::updateFromVisualizationParameters()
 {
@@ -5795,13 +5677,6 @@ void Sc::Scene::updateFromVisualizationParameters()
 	mVisualizationParameterChanged = false;
 }
 
-
-bool Sc::Scene::isValid() const
-{
-	return (mLLContext != NULL);
-}
-
-
 void Sc::Scene::addToLostTouchList(BodySim* body1, BodySim* body2)
 {
 	PX_ASSERT(body1 != 0);
@@ -5809,7 +5684,6 @@ void Sc::Scene::addToLostTouchList(BodySim* body1, BodySim* body2)
 	SimpleBodyPair p = { body1, body2, body1->getID(), body2->getID() };
 	mLostTouchPairs.pushBack(p);
 }
-
 
 void Sc::Scene::initDominanceMatrix()
 {
@@ -5828,12 +5702,10 @@ Articulation* Sc::Scene::createLLArticulation(Sc::ArticulationSim* sim)
 	return mLLArticulationPool->construct(sim);
 }
 
-
 void Sc::Scene::destroyLLArticulation(Articulation& articulation)
 {
 	mLLArticulationPool->destroy(&articulation);
 }
-
 
 #if PX_USE_PARTICLE_SYSTEM_API
 
@@ -5855,7 +5727,6 @@ void Sc::Scene::addParticleSystem(ParticleSystemCore& ps)
 	mParticleSystems.insert(&ps);
 }
 
-
 void Sc::Scene::removeParticleSystem(ParticleSystemCore& ps, bool isRelease)
 {
 	const bool exists = mParticleSystems.erase(&ps);
@@ -5864,12 +5735,10 @@ void Sc::Scene::removeParticleSystem(ParticleSystemCore& ps, bool isRelease)
 	ps.getSim()->release(isRelease);
 }
 
-
 PxU32 Sc::Scene::getNbParticleSystems() const
 {
 	return mParticleSystems.size();
 }
-
 
 Sc::ParticleSystemCore* const* Sc::Scene::getParticleSystems()
 {
@@ -6018,9 +5887,6 @@ Sc::ConstraintCore*const * Sc::Scene::getConstraints()
 {
 	return mConstraints.getEntries();
 }
-
-
-
 
 // PX_AGGREGATE
 PxU32 Sc::Scene::createAggregate(void* userData, bool selfCollisions)
@@ -6328,7 +6194,6 @@ public:
 	virtual const char* getName() const { return "OverlapFilterTask"; }
 };
 
-
 class OnOverlapCreatedTask : public Cm::Task
 {
 public:
@@ -6393,10 +6258,7 @@ public:
 	}
 
 	virtual const char* getName() const { return "OnOverlapCreatedTask"; }
-
 };
-
-#include <stdio.h>
 
 void Sc::Scene::preallocateContactManagers(PxBaseTask* continuation)
 {
@@ -6416,7 +6278,6 @@ void Sc::Scene::preallocateContactManagers(PxBaseTask* continuation)
 	{
 		OverlapFilterTask* task = mOverlapFilterTasks[a];
 		
-
 		if (task->mNbToCallback)
 		{
 			//Iterate and process callbacks. Refilter then increment the results, setting the appropriate settings
@@ -6453,9 +6314,9 @@ void Sc::Scene::preallocateContactManagers(PxBaseTask* continuation)
 
 	{
 		//We allocate at least 1 element in this array to ensure that the onOverlapCreated functions don't go bang!
-		mPreallocatedContactManagers.reserve(totalCreatedPairs);
-		mPreallocatedShapeInteractions.reserve(totalCreatedPairs);
-		mPreallocatedInteractionMarkers.reserve(totalSuppressPairs);
+		mPreallocatedContactManagers.reserve(totalCreatedPairs+1);
+		mPreallocatedShapeInteractions.reserve(totalCreatedPairs+1);
+		mPreallocatedInteractionMarkers.reserve(totalSuppressPairs+1);
 
 		mPreallocatedContactManagers.forceSize_Unsafe(totalCreatedPairs);
 		mPreallocatedShapeInteractions.forceSize_Unsafe(totalCreatedPairs);
@@ -6470,11 +6331,7 @@ void Sc::Scene::preallocateContactManagers(PxBaseTask* continuation)
 
 	Bp::BroadPhasePair* bpPairs = mAABBManager->getBroadPhase()->getBroadPhasePairs();
 
-	
-
 	Cm::FlushPool& flushPool = mLLContext->getTaskPool();
-
-	
 
 	OnOverlapCreatedTask* createTask = PX_PLACEMENT_NEW(flushPool.allocate(sizeof(OnOverlapCreatedTask)), OnOverlapCreatedTask)(mNPhaseCore, p,
 			fInfo, cms, shapeInter, markerIter, bpPairs, 0);

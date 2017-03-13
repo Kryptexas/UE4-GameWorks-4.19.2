@@ -249,7 +249,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase2< FGameplayTag >
 {
 	enum
 	{
@@ -843,7 +843,7 @@ FORCEINLINE bool FGameplayTag::MatchesAnyExact(const FGameplayTagContainer& Cont
 }
 
 template<>
-struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraitsBase2<FGameplayTagContainer>
 {
 	enum
 	{
@@ -1101,7 +1101,7 @@ struct GAMEPLAYTAGS_API FGameplayTagQueryExpression
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayTagQuery> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayTagQuery> : public TStructOpsTypeTraitsBase2<FGameplayTagQuery>
 {
 	enum
 	{

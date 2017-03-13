@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -96,6 +96,7 @@ namespace Gu
 		const FloatV eps1 = FMul(minMargin, FLoad(0.1f));
 		const FloatV inflationPlusEps(FAdd(eps1, inflation));
 		const FloatV eps2 = FMul(eps1, eps1);
+		const FloatV maxLambdaDecrement = FLoad(-1e-4f);
 
 		const FloatV inflation2 = FMul(inflationPlusEps, inflationPlusEps);
 
@@ -139,7 +140,7 @@ namespace Gu
 				else
 				{
 					const FloatV _oldLambda = _lambda;
-					_lambda = FSub(_lambda, FDiv(vw, vr));
+					_lambda = FSub(_lambda, FMin(FDiv(vw, vr), maxLambdaDecrement));
 					if(FAllGrtr(_lambda, _oldLambda))
 					{
 						if(FAllGrtr(_lambda, one))

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Persona : ModuleRules
 {
-	public Persona(TargetInfo Target)
+	public Persona(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/Persona/Private");	// For PCH includes (because they don't work with relative paths, yet)
 
@@ -41,6 +41,9 @@ public class Persona : ModuleRules
                 "RHI",
                 "Json",
                 "JsonUtilities",
+                "ClothingSystemRuntime",
+                "ClothingSystemEditorInterface",
+                "ClothingSystemRuntimeInterface",
             }
 		);
 

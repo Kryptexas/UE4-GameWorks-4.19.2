@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Projects : ModuleRules
 	{
-		public Projects(TargetInfo Target)
+		public Projects(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

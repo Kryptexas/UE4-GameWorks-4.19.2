@@ -2,8 +2,6 @@
 # Build PxPvdSDK
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-
 SET(PXSHARED_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../../src)
 
 SET(LL_SOURCE_DIR ${PXSHARED_SOURCE_DIR}/pvd)
@@ -13,7 +11,7 @@ SET(PXPVDSDK_LIBTYPE STATIC)
 # Use generator expressions to set config specific preprocessor definitions
 SET(PXPVDSDK_COMPILE_DEFS 
 	# Common to all configurations
-	${PXSHARED_Android_COMPILE_DEFS}
+	${PXSHARED_ANDROID_COMPILE_DEFS};PxShared_STATIC_LIB;
 )
 
 if(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")

@@ -19,11 +19,14 @@ public:
 	virtual bool AllowsEnginePlugins() const override;
 	virtual bool CanShowOnStartup() const override { return false; }
 	virtual bool CanContainContent() const override;
+	virtual bool IsMod() const override;
 	virtual void OnShowOnStartupCheckboxChanged(ECheckBoxState CheckBoxState) override {}
 	virtual ECheckBoxState GetShowOnStartupCheckBoxState() const override { return ECheckBoxState::Undetermined; }
 	virtual FText GetInstructions() const override;
 
 	virtual bool GetPluginIconPath(FString& OutIconPath) const override;
+	virtual EHostType::Type GetPluginModuleDescriptor() const override;
+	virtual ELoadingPhase::Type GetPluginLoadingPhase() const override;
 	virtual bool GetTemplateIconPath(TSharedRef<FPluginTemplateDescription> InTemplate, FString& OutIconPath) const override;
 	virtual FString GetFolderForSelection() const override;
 	// End IPluginWizardDefinition interface

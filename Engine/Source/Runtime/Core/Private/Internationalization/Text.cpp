@@ -6,6 +6,7 @@
 #include "UObject/DebugSerializationFlags.h"
 #include "Internationalization/Culture.h"
 #include "Internationalization/Internationalization.h"
+#include "Internationalization/StringTableRegistry.h"
 
 #include "Internationalization/TextHistory.h"
 #include "Internationalization/ITextData.h"
@@ -75,6 +76,17 @@ const FTextDisplayStringRef FTextInspector::GetSharedDisplayString(const FText& 
 	// todo: calling PersistText here probably isn't the right thing to do, however it avoids having to make an external API change at this point
 	Text.TextData->PersistText();
 	return Text.TextData->GetLocalizedString().ToSharedRef();
+}
+
+bool FTextInspector::GetTableIdAndKey(const FText& Text, FName& OutTableId, FString& OutKey)
+{
+	if (Text.IsFromStringTable())
+	{
+		static_cast<const FTextHistory_StringTableEntry&>(Text.TextData->GetTextHistory()).GetTableIdAndKey(OutTableId, OutKey);
+		return true;
+	}
+
+	return false;
 }
 
 uint32 FTextInspector::GetFlags(const FText& Text)
@@ -227,6 +239,12 @@ FText::FText( FString&& InSourceString )
 	, Flags(0)
 {
 	TextData->SetTextHistory(FTextHistory_Base(MoveTemp(InSourceString)));
+}
+
+FText::FText( FName InTableId, FString InKey )
+	: TextData(new TIndirectTextData<FTextHistory_StringTableEntry>(FTextHistory_StringTableEntry(InTableId, MoveTemp(InKey))))
+	, Flags(0)
+{
 }
 
 FText::FText( FString&& InSourceString, FTextDisplayStringRef InDisplayString )
@@ -664,7 +682,7 @@ void FText::SerializeText(FArchive& Ar, FText& Value)
 	}
 	Ar << Value.Flags;
 
-	if (Ar.IsLoading() && Ar.ArIsPersistent)
+	if (Ar.IsLoading() && Ar.IsPersistent())
 	{
 		Value.Flags &= ~(ETextFlag::ConvertedProperty | ETextFlag::InitializedFromString); // Remove conversion flag before saving.
 	}
@@ -748,6 +766,17 @@ void FText::SerializeText(FArchive& Ar, FText& Value)
 					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_AsDateTime>());
 					break;
 				}
+			case ETextHistoryType::Transform:
+				{
+					Value.TextData = MakeShareable(new TLocalizedTextData<FTextHistory_Transform>());
+					break;
+				}
+
+			case ETextHistoryType::StringTableEntry:
+				{
+					Value.TextData = MakeShareable(new TIndirectTextData<FTextHistory_StringTableEntry>());
+					break;
+				}
 			default:
 				{
 					bSerializeHistory = false;
@@ -760,7 +789,11 @@ void FText::SerializeText(FArchive& Ar, FText& Value)
 		{
 			FTextHistory& MutableTextHistory = Value.TextData->GetMutableTextHistory();
 			MutableTextHistory.Serialize(Ar);
-			MutableTextHistory.SerializeForDisplayString(Ar, Value.TextData->GetMutableLocalizedString());
+
+			if (Value.TextData->OwnsLocalizedString())
+			{
+				MutableTextHistory.SerializeForDisplayString(Ar, Value.TextData->GetMutableLocalizedString());
+			}
 		}
 	}
 
@@ -784,7 +817,7 @@ void FText::SerializeText(FArchive& Ar, FText& Value)
 #if WITH_EDITOR
 FText FText::ChangeKey( const FString& Namespace, const FString& Key, const FText& Text )
 {
-	return FText(FString(*Text.TextData->GetTextHistory().GetSourceString()), Namespace, Key, Text.Flags);
+	return FText(FString(*Text.TextData->GetTextHistory().GetSourceString()), Namespace, Key, 0);
 }
 #endif
 
@@ -806,6 +839,11 @@ FText FText::CreateChronologicalText(TSharedRef<ITextData, ESPMode::ThreadSafe> 
 		NewText.Flags |= ETextFlag::Transient;
 	}
 	return NewText;
+}
+
+FText FText::FromStringTable(const FName InTableId, const FString& InKey, const EStringTableLoadingPolicy InLoadingPolicy)
+{
+	return FStringTableRegistry::Get().Internal_FindLocTableEntry(InTableId, InKey, InLoadingPolicy);
 }
 
 FText FText::FromName( const FName& Val) 
@@ -901,6 +939,11 @@ bool FText::IsCultureInvariant() const
 	return (Flags & ETextFlag::CultureInvariant) != 0;
 }
 
+bool FText::IsFromStringTable() const
+{
+	return TextData->GetTextHistory().GetType() == ETextHistoryType::StringTableEntry;
+}
+
 bool FText::ShouldGatherForLocalization() const
 {
 	const FString& SourceString = GetSourceString();
@@ -917,7 +960,7 @@ bool FText::ShouldGatherForLocalization() const
 		return true;
 	};
 
-	return !((Flags & ETextFlag::CultureInvariant) || (Flags & ETextFlag::Transient)) && !SourceString.IsEmpty() && !IsAllWhitespace(SourceString);
+	return !((Flags & ETextFlag::CultureInvariant) || (Flags & ETextFlag::Transient)) && !IsFromStringTable() && !SourceString.IsEmpty() && !IsAllWhitespace(SourceString);
 }
 
 const FString& FText::GetSourceString() const
@@ -1215,9 +1258,10 @@ bool TextBiDi::IsControlCharacter(const TCHAR InChar)
 const FString FTextStringHelper::InvTextMarker = TEXT("INVTEXT");
 const FString FTextStringHelper::NsLocTextMarker = TEXT("NSLOCTEXT");
 const FString FTextStringHelper::LocTextMarker = TEXT("LOCTEXT");
+const FString FTextStringHelper::LocTableMarker = TEXT("LOCTABLE");
 #undef LOC_DEFINE_REGION
 
-bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace, const TCHAR* PackageNamespace, int32* OutNumCharsRead)
+bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace, const TCHAR* PackageNamespace, int32* OutNumCharsRead, const EStringTableLoadingPolicy InLoadingPolicy)
 {
 #define LOC_DEFINE_REGION
 	const TCHAR* const Start = Buffer;
@@ -1263,7 +1307,38 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 			return false;					\
 		}
 
-	if (FCString::Strstr(Buffer, *InvTextMarker))
+	if (FCString::Strstr(Buffer, *LocTableMarker))
+	{
+		// Parsing something of the form: LOCTABLE("...", "...")
+		Buffer += LocTableMarker.Len();
+
+		// Walk to the opening bracket
+		WALK_TO_CHARACTER('(');
+
+		// Walk to the opening quote, and then parse out the quoted table ID
+		FString TableIdString;
+		WALK_TO_CHARACTER('"');
+		EXTRACT_QUOTED_STRING(TableIdString);
+
+		// Walk to the opening quote, and then parse out the quoted key
+		FString KeyString;
+		WALK_TO_CHARACTER('"');
+		EXTRACT_QUOTED_STRING(KeyString);
+
+		// Walk to the closing bracket, and then move past it to indicate that the value was successfully imported
+		WALK_TO_CHARACTER(')');
+		++Buffer;
+
+		OutValue = FText::FromStringTable(FName(*TableIdString), KeyString, InLoadingPolicy);
+
+		if (OutNumCharsRead)
+		{
+			*OutNumCharsRead = (Buffer - Start);
+		}
+
+		return true;
+	}
+	else if (FCString::Strstr(Buffer, *InvTextMarker))
 	{
 		// Parsing something of the form: INVTEXT("...")
 		Buffer += InvTextMarker.Len();
@@ -1412,7 +1487,7 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 	return false;
 }
 
-bool FTextStringHelper::ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace, const TCHAR* PackageNamespace, int32* OutNumCharsRead, const bool bRequiresQuotes)
+bool FTextStringHelper::ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace, const TCHAR* PackageNamespace, int32* OutNumCharsRead, const bool bRequiresQuotes, const EStringTableLoadingPolicy InLoadingPolicy)
 {
 	const TCHAR* const Start = Buffer;
 
@@ -1424,7 +1499,7 @@ bool FTextStringHelper::ReadFromString(const TCHAR* Buffer, FText& OutValue, con
 	// First, try and parse the text as a complex text export
 	{
 		int32 SubNumCharsRead = 0;
-		if (FTextStringHelper::ReadFromString_ComplexText(Buffer, OutValue, TextNamespace, PackageNamespace, &SubNumCharsRead))
+		if (FTextStringHelper::ReadFromString_ComplexText(Buffer, OutValue, TextNamespace, PackageNamespace, &SubNumCharsRead, InLoadingPolicy))
 		{
 			Buffer += SubNumCharsRead;
 			if (OutNumCharsRead)
@@ -1479,7 +1554,20 @@ bool FTextStringHelper::WriteToString(FString& Buffer, const FText& Value, const
 #define LOC_DEFINE_REGION
 	const FString& StringValue = FTextInspector::GetDisplayString(Value);
 
-	if (Value.IsCultureInvariant())
+	if (Value.IsFromStringTable())
+	{
+		FName TableId;
+		FString Key;
+		FStringTableRegistry::Get().FindTableIdAndKey(Value, TableId, Key);
+
+		// Produces LOCTABLE("...", "...")
+		Buffer += TEXT("LOCTABLE(\"");
+		Buffer += TableId.ToString().ReplaceCharWithEscapedChar();
+		Buffer += TEXT("\", \"");
+		Buffer += Key.ReplaceCharWithEscapedChar();
+		Buffer += TEXT("\")");
+	}
+	else if (Value.IsCultureInvariant())
 	{
 		// Produces INVTEXT("...")
 		Buffer += TEXT("INVTEXT(\"");
@@ -1531,7 +1619,7 @@ bool FTextStringHelper::WriteToString(FString& Buffer, const FText& Value, const
 bool FTextStringHelper::IsComplexText(const TCHAR* Buffer)
 {
 #define LOC_DEFINE_REGION
-	return FCString::Strstr(Buffer, *InvTextMarker) || FCString::Strstr(Buffer, *NsLocTextMarker) || FCString::Strstr(Buffer, *LocTextMarker);
+	return FCString::Strstr(Buffer, *InvTextMarker) || FCString::Strstr(Buffer, *NsLocTextMarker) || FCString::Strstr(Buffer, *LocTextMarker) || FCString::Strstr(Buffer, *LocTableMarker);
 #undef LOC_DEFINE_REGION
 }
 

@@ -166,7 +166,7 @@ private:
 	TMap<FGuid, FLevelSequenceObjectReference> Map;
 };
 
-template<> struct TStructOpsTypeTraits<FLevelSequenceObjectReferenceMap> : public TStructOpsTypeTraitsBase
+template<> struct TStructOpsTypeTraits<FLevelSequenceObjectReferenceMap> : public TStructOpsTypeTraitsBase2<FLevelSequenceObjectReferenceMap>
 {
 	enum { WithSerializer = true, WithIdenticalViaEquality = true };
 };

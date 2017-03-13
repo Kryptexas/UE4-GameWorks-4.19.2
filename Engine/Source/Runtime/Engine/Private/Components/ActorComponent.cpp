@@ -122,9 +122,9 @@ FGlobalComponentRecreateRenderStateContext::~FGlobalComponentRecreateRenderState
 }
 
 // Create Physics global delegate
-FActorComponentCreatePhysicsSignature UActorComponent::CreatePhysicsDelegate;
+FActorComponentGlobalCreatePhysicsSignature UActorComponent::GlobalCreatePhysicsDelegate;
 // Destroy Physics global delegate
-FActorComponentDestroyPhysicsSignature UActorComponent::DestroyPhysicsDelegate;
+FActorComponentGlobalDestroyPhysicsSignature UActorComponent::GlobalDestroyPhysicsDelegate;
 
 const FString UActorComponent::ComponentTemplateNameSuffix(TEXT("_GEN_VARIABLE"));
 
@@ -1169,7 +1169,8 @@ void UActorComponent::CreatePhysicsState()
 		checkf(bPhysicsStateCreated, TEXT("Failed to route OnCreatePhysicsState (%s)"), *GetFullName());
 
 		// Broadcast delegate
-		CreatePhysicsDelegate.Broadcast(this);
+		GlobalCreatePhysicsDelegate.Broadcast(this);
+		InstanceCreatePhysicsDelegate.Broadcast();
 	}
 }
 
@@ -1180,7 +1181,8 @@ void UActorComponent::DestroyPhysicsState()
 	if (bPhysicsStateCreated)
 	{
 		// Broadcast delegate
-		DestroyPhysicsDelegate.Broadcast(this);
+		GlobalDestroyPhysicsDelegate.Broadcast(this);
+		InstanceDestroyPhysicsDelegate.Broadcast();
 
 		ensureMsgf(bRegistered, TEXT("Component has physics state when not registered (%s)"), *GetFullName()); // should not have physics state unless we are registered
 

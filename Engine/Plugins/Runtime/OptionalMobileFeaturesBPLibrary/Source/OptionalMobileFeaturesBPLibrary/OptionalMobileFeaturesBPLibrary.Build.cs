@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class OptionalMobileFeaturesBPLibrary : ModuleRules
 	{
-        public OptionalMobileFeaturesBPLibrary(TargetInfo Target)
+        public OptionalMobileFeaturesBPLibrary(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

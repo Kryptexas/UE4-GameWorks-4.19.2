@@ -278,6 +278,9 @@ struct FFieldCompiledInInfo
 	/** Registers the native class (constructs a UClass object) */
 	virtual UClass* Register() const = 0;
 
+	/** Return the package the class belongs in */
+	virtual const TCHAR* ClassPackage() const = 0;
+
 	/** Size of the class */
 	SIZE_T Size;
 	/** CRC of the generated code for this class */
@@ -308,29 +311,33 @@ struct TClassCompiledInDefer : public FFieldCompiledInInfo
 	{
 		return TClass::StaticClass();
 	}
+	virtual const TCHAR* ClassPackage() const override
+	{
+		return TClass::StaticPackage();
+	}
 };
 
 /**
  * Stashes the singleton function that builds a compiled in class. Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDefer(class UClass *(*InRegister)(), class UClass *(*InStaticClass)(), const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPathName, void (*InInitSearchableValues)(TMap<FName, FName>&));
+COREUOBJECT_API void UObjectCompiledInDefer(class UClass *(*InRegister)(), class UClass *(*InStaticClass)(), const TCHAR* Name, const TCHAR* PackageName, bool bDynamic, const TCHAR* DynamicPathName, void (*InInitSearchableValues)(TMap<FName, FName>&));
 
 struct FCompiledInDefer
 {
-	FCompiledInDefer(class UClass *(*InRegister)(), class UClass *(*InStaticClass)(), const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPackageName = nullptr, const TCHAR* DynamicPathName = nullptr, void (*InInitSearchableValues)(TMap<FName, FName>&) = nullptr)
+	FCompiledInDefer(class UClass *(*InRegister)(), class UClass *(*InStaticClass)(), const TCHAR* PackageName, const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPackageName = nullptr, const TCHAR* DynamicPathName = nullptr, void (*InInitSearchableValues)(TMap<FName, FName>&) = nullptr)
 	{
 		if (bDynamic)
 		{
 			GetConvertedDynamicPackageNameToTypeName().Add(FName(DynamicPackageName), FName(Name));
 		}
-		UObjectCompiledInDefer(InRegister, InStaticClass, Name, bDynamic, DynamicPathName, InInitSearchableValues);
+		UObjectCompiledInDefer(InRegister, InStaticClass, Name, PackageName, bDynamic, DynamicPathName, InInitSearchableValues);
 	}
 };
 
 /**
  * Stashes the singleton function that builds a compiled in struct (StaticStruct). Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const FName PathName, bool bDynamic);
+COREUOBJECT_API void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const FName ObjectName, bool bDynamic, const TCHAR* DynamicPathName);
 
 struct FCompiledInDeferStruct
 {
@@ -340,7 +347,7 @@ struct FCompiledInDeferStruct
 		{
 			GetConvertedDynamicPackageNameToTypeName().Add(FName(DynamicPackageName), FName(Name));
 		}
-		UObjectCompiledInDeferStruct(InRegister, PackageName, DynamicPathName, bDynamic);
+		UObjectCompiledInDeferStruct(InRegister, PackageName, Name, bDynamic, DynamicPathName);
 	}
 };
 
@@ -352,7 +359,7 @@ COREUOBJECT_API class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRe
 /**
  * Stashes the singleton function that builds a compiled in enum. Later, this is executed.
  */
-COREUOBJECT_API void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const FName PathName, bool bDynamic);
+COREUOBJECT_API void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const FName ObjectName, bool bDynamic, const TCHAR* DynamicPathName);
 
 struct FCompiledInDeferEnum
 {
@@ -362,7 +369,7 @@ struct FCompiledInDeferEnum
 		{
 			GetConvertedDynamicPackageNameToTypeName().Add(FName(DynamicPackageName), FName(Name));
 		}
-		UObjectCompiledInDeferEnum(InRegister, PackageName, DynamicPathName, bDynamic);
+		UObjectCompiledInDeferEnum(InRegister, PackageName, Name, bDynamic, DynamicPathName);
 	}
 };
 

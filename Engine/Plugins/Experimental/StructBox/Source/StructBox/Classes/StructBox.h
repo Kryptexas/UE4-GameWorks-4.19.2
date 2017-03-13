@@ -44,7 +44,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FStructBox> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FStructBox> : public TStructOpsTypeTraitsBase2<FStructBox>
 {
 	enum
 	{

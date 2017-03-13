@@ -19,6 +19,11 @@ public:
 	}
 
 	/**
+	 * True if this text data owns its localized string pointer, and allows you to call GetMutableLocalizedString on it
+	 */
+	virtual bool OwnsLocalizedString() const = 0;
+
+	/**
 	 * Get the string to use for display purposes.
 	 * This may have come from the localization manager, or may been generated at runtime (eg, via FText::AsNumber).
 	 */

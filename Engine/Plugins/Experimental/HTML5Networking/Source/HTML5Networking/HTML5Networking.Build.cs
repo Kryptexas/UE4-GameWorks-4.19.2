@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class HTML5Networking  : ModuleRules
 	{
-		public HTML5Networking(TargetInfo Target)
+		public HTML5Networking(ReadOnlyTargetRules Target) : base(Target)
 		{
             PrivateDependencyModuleNames.AddRange(
                 new string[] { 

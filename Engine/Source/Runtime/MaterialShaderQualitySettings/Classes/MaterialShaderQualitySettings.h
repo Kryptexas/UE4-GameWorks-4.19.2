@@ -30,11 +30,6 @@ public:
 	// to revert to its default behaviour.
 	void SetPreviewPlatform(FName PlatformName);
 	const FName& GetPreviewPlatform();
-
-	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void PostInitProperties() override;
-	// End of UObject interface
 #endif
 
 	static UMaterialShaderQualitySettings* Get();

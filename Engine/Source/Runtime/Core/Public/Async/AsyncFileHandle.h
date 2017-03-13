@@ -28,7 +28,7 @@ protected:
 		PTRINT Size;
 		uint8* Memory;
 	};
-	FAsyncFileCallBack* Callback;
+	FAsyncFileCallBack Callback;
 	bool bDataIsReady;
 	bool bCompleteAndCallbackCalled;
 	bool bCompleteSync;
@@ -38,14 +38,17 @@ protected:
 public:
 
 	FORCEINLINE IAsyncReadRequest(FAsyncFileCallBack* InCallback, bool bInSizeRequest, uint8* UserSuppliedMemory)
-		: Callback(InCallback)
-		, bDataIsReady(false)
+		: bDataIsReady(false)
 		, bCompleteAndCallbackCalled(false)
 		, bCompleteSync(false)
 		, bCanceled(false)
 		, bSizeRequest(bInSizeRequest)
 		, bUserSuppliedMemory(!!UserSuppliedMemory)
 	{
+		if (InCallback)
+		{
+			Callback = *InCallback;
+		}
 		if (bSizeRequest)
 		{
 			Size = -1;
@@ -148,7 +151,7 @@ protected:
 		FPlatformMisc::MemoryBarrier();
 		if (Callback)
 		{
-			(*Callback)(bCanceled, this);
+			Callback(bCanceled, this);
 		}
 		FPlatformMisc::MemoryBarrier();
 		bCompleteAndCallbackCalled = true;

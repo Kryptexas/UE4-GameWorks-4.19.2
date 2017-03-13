@@ -99,14 +99,8 @@ public:
 
 protected:
 
-	/** Add the specified actors to the sequencer */
-	void AddActorsToSequencer(AActor*const* InActors, int32 NumActors);
-
 	/** Add default movie scene tracks for the given actor. */
 	void AddDefaultTracksForActor(AActor& Actor, const FGuid Binding);
-
-	/** Menu extension callback for the add menu */
-	void AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder);
 	
 	/** Add a shot to a master sequence */
 	void AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate);

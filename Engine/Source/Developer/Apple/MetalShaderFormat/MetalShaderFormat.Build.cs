@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MetalShaderFormat : ModuleRules
 {
-	public MetalShaderFormat(TargetInfo Target)
+	public MetalShaderFormat(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 		PublicIncludePaths.Add("Runtime/Apple/MetalRHI/Public");

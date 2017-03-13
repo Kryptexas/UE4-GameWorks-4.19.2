@@ -30,8 +30,6 @@ struct FServiceConnection
 
 	~FServiceConnection();
 
-	FServiceConnection(const FServiceConnection& InConnnection);
-
 	/** Instance Id */
 	FGuid InstanceId;
 

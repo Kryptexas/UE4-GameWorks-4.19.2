@@ -374,11 +374,14 @@ void FAutomationReport::ResetForExecution(const int32 NumTestPasses)
 			{
 				//reset all stats
 				Results[ClusterIndex][PassIndex].State = EAutomationState::NotRun;
+				Results[ClusterIndex][PassIndex].Logs.Empty();
 				Results[ClusterIndex][PassIndex].Warnings.Empty();
 				Results[ClusterIndex][PassIndex].Errors.Empty();
+				Results[ClusterIndex][PassIndex].Artifacts.Empty();
 			}
 		}
 	}
+
 	//recurse to children
 	for (int32 ChildIndex = 0; ChildIndex < ChildReports.Num(); ++ChildIndex)
 	{
@@ -622,7 +625,10 @@ void FAutomationReport::SetResults( const int32 ClusterIndex, const int32 PassIn
 		TestInfo.InformOfNewDeviceRunningTest();
 	}
 
-	Results[ ClusterIndex ][ PassIndex ] = InResults;
+	TArray<FAutomationArtifact> ExistingArtifacts = Results[ClusterIndex][PassIndex].Artifacts;
+	Results[ClusterIndex][PassIndex] = InResults;
+	Results[ClusterIndex][PassIndex].Artifacts.Append(ExistingArtifacts);
+
 	// Add an error report if none was received
 	if ( InResults.State == EAutomationState::Fail && InResults.Errors.Num() == 0 && InResults.Warnings.Num() == 0 )
 	{
@@ -641,13 +647,21 @@ void FAutomationReport::SetResults( const int32 ClusterIndex, const int32 PassIn
 	OnSetResults.ExecuteIfBound(AsShared());
 }
 
+void FAutomationReport::AddArtifact(const int32 ClusterIndex, const int32 PassIndex, const FAutomationArtifact& Artifact)
+{
+	//verify this is a platform this test is aware of
+	check(( ClusterIndex >= 0 ) && ( ClusterIndex < Results.Num() ));
+	check(( PassIndex >= 0 ) && ( PassIndex < Results[ClusterIndex].Num() ));
+
+	Results[ClusterIndex][PassIndex].Artifacts.Add(Artifact);
+}
 
 void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, const int32 PassIndex, FAutomationCompleteState& OutCompletionState)
 {
 	//if this test is enabled and a leaf test
 	if (IsSupported(ClusterIndex) && (ChildReports.Num()==0))
 	{
-		EAutomationState::Type CurrentState = Results[ClusterIndex][PassIndex].State;
+		EAutomationState CurrentState = Results[ClusterIndex][PassIndex].State;
 		//Enabled and In-Process
 		if (IsEnabled())
 		{
@@ -686,7 +700,7 @@ void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, const int3
 }
 
 
-EAutomationState::Type FAutomationReport::GetState(const int32 ClusterIndex, const int32 PassIndex) const
+EAutomationState FAutomationReport::GetState(const int32 ClusterIndex, const int32 PassIndex) const
 {
 	if ((ClusterIndex >= 0) && (ClusterIndex < Results.Num()) &&
 		(PassIndex >= 0) && (PassIndex < Results[ClusterIndex].Num()))
@@ -846,7 +860,7 @@ TSharedPtr<IAutomationReport> FAutomationReport::GetNextReportToExecute(bool& bO
 		//consider self
 		if (IsEnabled() && IsSupported(ClusterIndex))
 		{
-			EAutomationState::Type TestState = GetState(ClusterIndex,PassIndex);
+			EAutomationState TestState = GetState(ClusterIndex,PassIndex);
 			//if any enabled test hasn't been run yet or is in process
 			if ((TestState != EAutomationState::Success) && (TestState != EAutomationState::Fail) && (TestState != EAutomationState::NotEnoughParticipants))
 			{

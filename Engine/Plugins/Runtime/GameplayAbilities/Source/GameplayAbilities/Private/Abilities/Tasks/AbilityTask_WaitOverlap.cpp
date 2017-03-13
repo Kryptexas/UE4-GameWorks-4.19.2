@@ -18,7 +18,10 @@ void UAbilityTask_WaitOverlap::OnHitCallback(UPrimitiveComponent* HitComp, AActo
 		// Give it a handle and return
 		FGameplayAbilityTargetDataHandle	Handle;
 		Handle.Data.Add(TSharedPtr<FGameplayAbilityTargetData>(TargetData));
-		OnOverlap.Broadcast(Handle);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnOverlap.Broadcast(Handle);
+		}
 
 		// We are done. Kill us so we don't keep getting broadcast messages
 		EndTask();

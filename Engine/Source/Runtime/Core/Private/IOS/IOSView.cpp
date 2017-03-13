@@ -337,7 +337,7 @@ id<MTLDevice> GMetalDevice = nil;
 #if HAS_METAL
 - (id<CAMetalDrawable>)MakeDrawable
 {
-	return [(CAMetalLayer*)self.layer nextDrawable];
+    return ![IOSAppDelegate GetDelegate].bIsSuspended ? [(CAMetalLayer*)self.layer nextDrawable] : nil;
 }
 #endif
 

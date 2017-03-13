@@ -108,7 +108,7 @@ void FVulkanViewport::AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBac
 
 	// Submit here so we can add a dependency with the acquired semaphore
 	CmdBuffer->End();
-	Device->GetQueue()->Submit(CmdBuffer, AcquiredSemaphore, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, nullptr);
+	Device->GetGraphicsQueue()->Submit(CmdBuffer, AcquiredSemaphore, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, nullptr);
 	CmdBufferManager->PrepareForNewActiveCommandBuffer();
 }
 
@@ -209,6 +209,10 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		AttachmentViews.Add(Texture->DefaultView.View);
 	}
 
+	const VkExtent3D& RTExtents = RTLayout.GetExtent3D();
+	// Adreno does not like zero size RTs
+	check(RTExtents.width != 0 && RTExtents.height != 0);
+
 #if !VULKAN_KEEP_CREATE_INFO
 	VkFramebufferCreateInfo CreateInfo;
 #endif
@@ -218,7 +222,6 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	CreateInfo.renderPass = RenderPass.GetHandle();
 	CreateInfo.attachmentCount = AttachmentViews.Num();
 	CreateInfo.pAttachments = AttachmentViews.GetData();
-	const VkExtent3D& RTExtents = RTLayout.GetExtent3D();
 	CreateInfo.width  = RTExtents.width;
 	CreateInfo.height = RTExtents.height;
 	CreateInfo.layers = RTExtents.depth;
@@ -307,10 +310,45 @@ void FVulkanViewport::RecreateSwapchain(void* NewNativeWindow)
 
 	for (VkImage& BackBufferImage : BackBufferImages)
 	{
-		BackBufferImage = 0;
+		BackBufferImage = VK_NULL_HANDLE;
 	}
 
 	WindowHandle = NewNativeWindow;
+	CreateSwapchain();
+}
+
+void FVulkanViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen)
+{
+	RenderingBackBuffer = nullptr;
+	RHIBackBuffer = nullptr;
+
+	// Submit all command buffers here
+	Device->SubmitCommandsAndFlushGPU();
+
+	Device->WaitUntilIdle();
+
+	for (VkImage& BackBufferImage : BackBufferImages)
+	{
+		Device->NotifyDeletedRenderTarget(BackBufferImage);
+		BackBufferImage = VK_NULL_HANDLE;
+	}
+
+	for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
+	{
+		TextureViews[Index].Destroy(*Device);
+	}
+
+	Device->GetDeferredDeletionQueue().ReleaseResources(true);
+
+	SwapChain->Destroy();
+	delete SwapChain;
+	SwapChain = nullptr;
+
+	Device->GetDeferredDeletionQueue().ReleaseResources(true);
+
+	SizeX = InSizeX;
+	SizeY = InSizeY;
+	bIsFullscreen = bInIsFullscreen;
 	CreateSwapchain();
 }
 
@@ -399,7 +437,9 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	//#todo-rco: Proper SyncInterval bLockToVsync ? RHIConsoleVariables::SyncInterval : 0
 	int32 SyncInterval = 0;
 	bool bNeedNativePresent = true;
-	if (IsValidRef(CustomPresent))
+
+	const bool bHasCustomPresent = IsValidRef(CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = CustomPresent->Present(SyncInterval);
 	}
@@ -409,6 +449,11 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	{
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
+
+		if (bHasCustomPresent)
+		{
+			CustomPresent->PostPresent();
+		}
 
 		// Release the back buffer
 		RHIBackBuffer = nullptr;
@@ -494,6 +539,18 @@ void FVulkanDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI, uint
 {
 	check(IsInGameThread());
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
+
+	if (Viewport->GetSizeXY() != FIntPoint(SizeX, SizeY))
+	{
+		FlushRenderingCommands();
+
+		ENQUEUE_RENDER_COMMAND(ResizeSwapchain)(
+			[Viewport, SizeX, SizeY, bIsFullscreen](FRHICommandListImmediate& RHICmdList)
+			{
+				Viewport->Resize(SizeX, SizeY, bIsFullscreen);
+			});
+		FlushRenderingCommands();
+	}
 }
 
 void FVulkanDynamicRHI::RHITick(float DeltaTime)
@@ -544,16 +601,22 @@ void FVulkanDynamicRHI::Present()
 	//#todo-rco: Proper SyncInterval bLockToVsync ? RHIConsoleVariables::SyncInterval : 0
 	int32 SyncInterval = 0;
 	bool bNeedNativePresent = true;
-	if (IsValidRef(DrawingViewport->CustomPresent))
+
+	const bool bHasCustomPresent = IsValidRef(DrawingViewport->CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = DrawingViewport->CustomPresent->Present(SyncInterval);
 	}
-
 
 	if (bNeedNativePresent)
 	{
 		// Present the back buffer to the viewport window.
 		/*Result = */DrawingViewport->SwapChain->Present(SyncInterval, 0);
+
+		if (bHasCustomPresent)
+		{
+			DrawingViewport->CustomPresent->PostPresent();
+		}
 	}
 #endif
 	check(0);

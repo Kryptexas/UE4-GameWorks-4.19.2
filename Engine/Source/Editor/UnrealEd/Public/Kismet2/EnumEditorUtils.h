@@ -1,8 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __EnumEditorUtils_h__
-#define __EnumEditorUtils_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -78,11 +75,8 @@ public:
 	static int64 ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int64 EnumeratorValue);
 
 	//DISPLAY NAME
-	static FText GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, int32 EnumeratorIndex);
 	static bool SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 EnumeratorIndex, FText NewDisplayName);
 	static bool IsEnumeratorDisplayNameValid(const UUserDefinedEnum* Enum, int32 EnumeratorIndex, FText NewDisplayName);
 	static void EnsureAllDisplayNamesExist(class UUserDefinedEnum* Enum);
 	static void UpgradeDisplayNamesFromMetaData(class UUserDefinedEnum* Enum);
 };
-
-#endif // __EnumEditorUtils_h__

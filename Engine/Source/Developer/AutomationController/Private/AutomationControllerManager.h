@@ -23,24 +23,31 @@ struct FAutomatedTestResult
 	GENERATED_BODY()
 public:
 
-	UPROPERTY()
-	FString TestName;
+	TSharedPtr<IAutomationReport> Test;
 
 	UPROPERTY()
-	FString TestResult;
+	FString TestDisplayName;
 
 	UPROPERTY()
-	TArray<FString> TestInfo;
+	FString FullTestPath;
 
 	UPROPERTY()
-	TArray<FString> TestErrors;
+	EAutomationState State;
 
 	UPROPERTY()
-	TArray<FString> TestWarnings;
+	TArray<FString> Logs;
+
+	UPROPERTY()
+	TArray<FString> Errors;
+
+	UPROPERTY()
+	TArray<FString> Warnings;
+
+	TArray<FAutomationArtifact> Artifacts;
 
 	FAutomatedTestResult()
 	{
-		TestResult = TEXT("Not Run");
+		State = EAutomationState::NotRun;
 	}
 };
 
@@ -85,8 +92,9 @@ public:
 class FAutomationControllerManager : public IAutomationControllerManager
 {
 public:
-	// IAutomationController Interface
+	FAutomationControllerManager();
 
+	// IAutomationController Interface
 	virtual void RequestAvailableWorkers( const FGuid& InSessionId ) override;
 	virtual void RequestTests() override;
 	virtual void RunTests( const bool bIsLocalSession) override;
@@ -266,6 +274,17 @@ public:
 	virtual const bool IsTrackingHistory() const override;
 	virtual const int32 GetNumberHistoryItemsTracking() const override;
 
+	// Checkpoint logic
+	virtual TArray<FString> GetCheckpointFileContents() override;
+
+	virtual FArchive* GetCheckpointFileForWrite() override;
+
+	virtual void CleanUpCheckpointFile() override;
+
+	virtual void WriteLoadedCheckpointDataToFile() override;
+
+	virtual void WriteLineToCheckpointFile(FString LineToWrite) override;
+
 protected:
 
 	/**
@@ -281,17 +300,14 @@ protected:
 	void ReportTestResults();
 
 	/**
-	* Create a json file that contains all of our test report data at /saved/automation/logs/AutomationReport-{CL}-{DateTime}.json
-	*/
-	void GenerateJsonTestPassSummary();
+	 * Create a json file that contains all of our test report data at /saved/automation/logs/AutomationReport-{CL}-{DateTime}.json
+	 */
+	void GenerateJsonTestPassSummary(FDateTime Timestamp);
 
 	/**
-	* Updates the result value of a finished test.
-	*
-	* @param TestName The test that was just run.
-	* @param TestResult The result that the test returned.
-	*/
-	void UpdateTestResultValue(FString TestName, EAutomationState::Type TestResult);
+	 * Generates a full html report of the testing, which may include links to images.  All of it will be bundled under a folder.
+	 */
+	void GenerateHtmlTestPassSummary(FDateTime Timestamp);
 
 	/**
 	* Gather all info, warning, and error lines generated over the course of a test.
@@ -299,8 +315,7 @@ protected:
 	* @param TestName The test that was just run.
 	* @param TestResult All of the messages of note generated during the test case.
 	*/
-	void CollectTestNotes(FString TestName, const FAutomationWorkerRunTestsReply& Message);
-
+	void CollectTestResults(TSharedPtr<IAutomationReport> Report, const FAutomationTestResults& Results);
 
 	/**
 	 * Checks the child result.
@@ -308,6 +323,10 @@ protected:
 	 * @param InReport The child result to check.
 	 */
 	void CheckChildResult( TSharedPtr< IAutomationReport > InReport );
+
+	FString CopyArtifact(const FString& DestFolder, const FString& SourceFile) const;
+
+	FString GetReportPath(FDateTime Timestamp) const;
 
 	/**
 	 * Execute the next task thats available.
@@ -480,11 +499,23 @@ private:
 	struct FComparisonEntry
 	{
 		FMessageAddress Sender;
+		FString Name;
 		TFuture<FImageComparisonResult> PendingComparison;
 	};
 
 	/** Pending image comparisons */
 	TQueue<TSharedPtr<FComparisonEntry>> ComparisonQueue;
+
+	/** The report folder override path that may have been provided over the commandline, -ReportOutputPath="" */
+	FString ReportOutputPathOverride;
+
+	// Checkpoint variables
+	//Test pass checkpoint backup file.
+	FArchive* CheckpointFile;
+
+	FString CheckpointCommand;
+
+	TArray<FString> TestsRun;
 
 private:
 

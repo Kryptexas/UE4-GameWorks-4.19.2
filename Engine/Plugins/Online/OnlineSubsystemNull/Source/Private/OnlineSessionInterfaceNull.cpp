@@ -622,7 +622,7 @@ bool FOnlineSessionNull::JoinSession(const FUniqueNetId& PlayerId, FName Session
 bool FOnlineSessionNull::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
-	FOnlineSessionSearchResult EmptySearchResult;
+	TArray<FOnlineSessionSearchResult> EmptySearchResult;
 	TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptySearchResult);
 	return false;
 };
@@ -630,7 +630,15 @@ bool FOnlineSessionNull::FindFriendSession(int32 LocalUserNum, const FUniqueNetI
 bool FOnlineSessionNull::FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
-	FOnlineSessionSearchResult EmptySearchResult;
+	TArray<FOnlineSessionSearchResult> EmptySearchResult;
+	TriggerOnFindFriendSessionCompleteDelegates(0, false, EmptySearchResult);
+	return false;
+}
+
+bool FOnlineSessionNull::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList)
+{
+	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
+	TArray<FOnlineSessionSearchResult> EmptySearchResult;
 	TriggerOnFindFriendSessionCompleteDelegates(0, false, EmptySearchResult);
 	return false;
 }

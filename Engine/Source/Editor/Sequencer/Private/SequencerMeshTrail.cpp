@@ -2,11 +2,12 @@
 
 #include "SequencerMeshTrail.h"
 #include "SequencerKeyActor.h"
-#include "ViewportWorldInteraction.h"
 #include "EditorWorldExtension.h"
+#include "ViewportWorldInteraction.h"
 #include "Materials/MaterialInstance.h" 
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/BillboardComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "MovieScene3DTransformSection.h"
 #include "TimerManager.h"
 

@@ -632,7 +632,7 @@ static void DumpHitch(int64 Frame)
 		Stats.UncondenseStackStats(Frame, Stack);
 		Stack.AddNameHierarchy();
 		Stack.AddSelf();
-
+		
 		const float MinTimeToReportInSecs = DumpCull / 1000.0f;
 		const int64 MinCycles = int64(MinTimeToReportInSecs / FPlatformTime::GetSecondsPerCycle());
 		FRawStatStackNode* GameThread = NULL;

@@ -397,7 +397,7 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 {
 	FText TestToolTip;
 	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
-	EAutomationState::Type TestState = TestStatus->GetState( ClusterIndex, PassIndex );
+	EAutomationState TestState = TestStatus->GetState( ClusterIndex, PassIndex );
 	if ( TestState == EAutomationState::NotRun )
 	{
 		TestToolTip = LOCTEXT("TestToolTipNotRun", "Not Run");
@@ -439,7 +439,7 @@ FSlateColor SAutomationTestItem::ItemStatus_BackgroundColor(const int32 ClusterI
 	if (TestStatus->GetTotalNumChildren()==0)
 	{
 		const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
-		EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex,PassIndex);
+		EAutomationState TestState = TestStatus->GetState(ClusterIndex,PassIndex);
 		if (TestState == EAutomationState::Fail)
 		{
 			// Failure is marked by a red background.
@@ -500,7 +500,7 @@ FText SAutomationTestItem::ItemStatus_DurationText() const
 EVisibility SAutomationTestItem::ItemStatus_GetStatusVisibility(const int32 ClusterIndex, const bool bForInProcessThrobber) const
 {
 	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
-	EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex,PassIndex);
+	EAutomationState TestState = TestStatus->GetState(ClusterIndex,PassIndex);
 	bool bImageVisible = TestState != EAutomationState::InProcess;
 
 	bool bFinalVisibility =  bForInProcessThrobber ? !bImageVisible : bImageVisible;
@@ -570,7 +570,7 @@ TOptional<float> SAutomationTestItem::ItemStatus_ProgressFraction(const int32 Cl
 const FSlateBrush* SAutomationTestItem::ItemStatus_StatusImage(const int32 ClusterIndex) const
 {
 	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
-	EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex,PassIndex);
+	EAutomationState TestState = TestStatus->GetState(ClusterIndex,PassIndex);
 
 	const FSlateBrush* ImageToUse;
 	switch( TestState )

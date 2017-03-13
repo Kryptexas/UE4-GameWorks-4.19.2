@@ -97,7 +97,7 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 	// Rendering info.
 	const bool bEnabled = ShouldBeEnabled( bParentEnabled );
-	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	const FSlateBrush* MiniViewArea = FEditorStyle::GetBrush( "Profiler.LineGraphArea" );
 	const FSlateBrush* WhiteBrush = FEditorStyle::GetBrush( "WhiteTexture" );
 

@@ -166,6 +166,8 @@ protected:
 	virtual void OnConvertToBlendSpacePlayer() override;
 	virtual void OnConvertToPoseBlender() override;
 	virtual void OnConvertToPoseByName() override;
+	virtual void OnConvertToAimOffsetLookAt() override;
+	virtual void OnConvertToAimOffsetSimple() override;
 	virtual bool IsInAScriptingMode() const override { return true; }
 	virtual void OnOpenRelatedAsset() override;
 	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const override;
@@ -180,6 +182,10 @@ protected:
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
+
+	//~ Begin FNotifyHook Interface
+	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
+	//~ End FNotifyHook Interface
 
 	// Toggle pose watch on selected nodes
 	void OnTogglePoseWatch();

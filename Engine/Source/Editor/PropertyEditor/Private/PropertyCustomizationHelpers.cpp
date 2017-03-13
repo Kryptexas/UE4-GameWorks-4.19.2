@@ -178,8 +178,8 @@ namespace PropertyCustomizationHelpers
 	}
 
 	TSharedRef<SWidget> MakeInsertDeleteDuplicateButton(FExecuteAction OnInsertClicked, FExecuteAction OnDeleteClicked, FExecuteAction OnDuplicateClicked)
-	{	
-		FMenuBuilder MenuContentBuilder( true, NULL );
+	{
+		FMenuBuilder MenuContentBuilder( true, nullptr, nullptr, true );
 		{
 			if (OnInsertClicked.IsBound())
 			{
@@ -220,13 +220,12 @@ namespace PropertyCustomizationHelpers
 			.OnAssetSelected( OnAssetSelectedFromPicker );
 	}
 
-	TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const bool SearchInBlueprint, const TArray<const UClass*>& AllowedClasses, const TArray<UFactory*>& NewAssetFactories, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose)
+	TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>& AllowedClasses, const TArray<UFactory*>& NewAssetFactories, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose)
 	{
 		return
 			SNew(SPropertyMenuAssetPicker)
 			.InitialObject(InitialObject)
 			.AllowClear(AllowClear)
-			.SearchInBlueprint(SearchInBlueprint)
 			.AllowedClasses(AllowedClasses)
 			.NewAssetFactories(NewAssetFactories)
 			.OnShouldFilterAsset(OnShouldFilterAsset)
@@ -424,8 +423,6 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 				.EnableContentPicker(InArgs._EnableContentPicker)
 				.PropertyHandle(PropertyHandle)
 				.ThumbnailSize(ThumbnailSize)
-				.AllowActorPicker(InArgs._AllowActorPicker)
-				.SearchInBlueprint(InArgs._SearchInBlueprint)
 		]
 	];
 }

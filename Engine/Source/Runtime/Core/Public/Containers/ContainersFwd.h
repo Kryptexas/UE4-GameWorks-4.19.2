@@ -7,7 +7,6 @@ class FDefaultSetAllocator;
 
 class FString;
 
-template<typename KeyType, typename ValueType> class TPair;
 template<typename T, typename Allocator = FDefaultAllocator> class TArray;
 template<typename T> class TTransArray;
 template<typename KeyType, typename ValueType, bool bInAllowDuplicateKeys> struct TDefaultMapKeyFuncs;

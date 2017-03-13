@@ -12,6 +12,7 @@
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
+#include "ITargetPlatform.h"
 
 #if PLATFORM_LINUX
 	#include <signal.h>
@@ -20,7 +21,6 @@
 
 class FLinuxTargetDevice;
 class IFileManager;
-class ITargetPlatform;
 struct FProcHandle;
 
 /**
@@ -47,10 +47,9 @@ public:
 	 *
 	 * @param InTargetPlatform - The target platform.
 	 */
-	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId& InDeviceId, const FString& InDeviceName, TFunction<void()> InSavePlatformDevices)
+	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FString& InDeviceName, TFunction<void()> InSavePlatformDevices)
 		: TargetPlatform(InTargetPlatform)
 		, DeviceName(InDeviceName)
-		, TargetDeviceId(InDeviceId)
 		, SavePlatformDevices(InSavePlatformDevices)
 	{ }
 
@@ -102,9 +101,9 @@ public:
 		return ETargetDeviceTypes::Desktop;
 	}
 
-	virtual FTargetDeviceId GetId( ) const override
+	virtual FTargetDeviceId GetId() const override
 	{
-		return TargetDeviceId;
+		return FTargetDeviceId(TargetPlatform.PlatformName(), GetName());
 	}
 
 	virtual FString GetName( ) const override
@@ -302,9 +301,6 @@ private:
 
 	/** Device display name */
 	FString DeviceName;
-
-	/** Device id */
-	FTargetDeviceId TargetDeviceId;
 
 	/** User name on the remote machine */
 	FString UserName;

@@ -502,34 +502,26 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 		{
 			UE_LOG(LogSynthBenchmark, Warning, TEXT("GPU driver does not support timer queries."));
 
-			// Temporary workaround for GL_TIMESTAMP being unavailable and GL_TIME_ELAPSED workaround breaking drivers
+			// Workaround for Metal not having a timing API and some drivers not properly supporting command-buffer completion handler based implementation...
 #if PLATFORM_MAC
-			GLint RendererID = 0;
+			FTextureMemoryStats MemStats;
+			RHIGetTextureMemoryStats(MemStats);
+			
 			float PerfScale = 1.0f;
-			[[NSOpenGLContext currentContext] getValues:&RendererID forParameter:NSOpenGLCPCurrentRendererID];
+			if(MemStats.TotalGraphicsMemory < (2ll * 1024ll * 1024ll * 1024ll))
 			{
-				switch((RendererID & kCGLRendererIDMatchingMask))
-				{
-					case kCGLRendererATIRadeonX4000ID: // AMD 7xx0 & Dx00 series - should be pretty beefy
-						PerfScale = 1.2f;
-						break;
-					case kCGLRendererATIRadeonX3000ID: // AMD 5xx0, 6xx0 series - mostly OK
-					case kCGLRendererGeForceID: // Nvidia 6x0 & 7x0 series - mostly OK
-						PerfScale = 2.0f;
-						break;
-					case kCGLRendererIntelHD5000ID: // Intel HD 5000, Iris, Iris Pro - not dreadful
-						PerfScale = 4.2f;
-						break;
-					case kCGLRendererIntelHD4000ID: // Intel HD 4000 - quite slow
-						PerfScale = 7.5f;
-						break;
-					case kCGLRendererATIRadeonX2000ID: // ATi 4xx0, 3xx0, 2xx0 - almost all very slow and drivers are now very buggy
-					case kCGLRendererGeForce8xxxID: // Nvidia 3x0, 2x0, 1x0, 9xx0, 8xx0 - almost all very slow
-					case kCGLRendererIntelHDID: // Intel HD 3000 - very, very slow and very buggy driver
-					default:
-						PerfScale = 10.0f;
-						break;
-				}
+				// Assume Intel HD 5000, Iris, Iris Pro performance - not dreadful
+				PerfScale = 4.2f;
+			}
+			else if(MemStats.TotalGraphicsMemory < (3ll * 1024ll * 1024ll * 1024ll))
+			{
+				// Assume Nvidia 6x0 & 7x0 series/AMD M370X or Radeon Pro 4x0 series - mostly OK
+				PerfScale = 2.0f;
+			}
+			else
+			{
+				// AMD 7xx0 & Dx00 series - should be pretty beefy
+				PerfScale = 1.2f;
 			}
 
 			for (int32 Index = 0; Index < MethodCount; ++Index)

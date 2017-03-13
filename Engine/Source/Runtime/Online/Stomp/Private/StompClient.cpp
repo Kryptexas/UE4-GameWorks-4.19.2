@@ -12,13 +12,15 @@
 
 namespace
 {
-	static const FTimespan RequestTimeout = FTimespan::FromMinutes(5);
+const FTimespan RequestTimeout = FTimespan::FromMinutes(5);
+const int MissedServerPongsBeforeError = 5;
 }
 
 FStompClient::FStompClient(const FString& Url, const FTimespan& InPingInterval, const FTimespan& InPongInterval)
 	: IdCounter(0)
 	, PingInterval(InPingInterval)
 	, PongInterval(InPongInterval)
+	, bReportedNoHeartbeatError(false)
 	, bIsConnected(false)
 {
 	TArray<FString> Protocols;
@@ -160,7 +162,7 @@ void FStompClient::HandleWebSocketConnectionClosed(int32 Status, const FString& 
 
 void FStompClient::HandleWebSocketData(const void* Data, SIZE_T Length, SIZE_T BytesRemaining)
 {
-	LastReceived = FDateTime::UtcNow();
+	LastReceivedPacket = FDateTime::UtcNow();
 	if (BytesRemaining == 0 && ReceiveBuffer.Num() == 0)
 	{
 		// Skip the temporary buffer when the entire frame arrives in a single message. (common case)
@@ -185,6 +187,9 @@ void FStompClient::HandleIncomingFrame(const uint8* Data, SIZE_T Length)
 	static const FName VersionHeader(TEXT("version"));
 	static const FName SessionHeader(TEXT("session"));
 	static const FName ServerHeader(TEXT("server"));
+
+	LastReceivedFrame = FDateTime::UtcNow();
+	bReportedNoHeartbeatError = false;
 
 	TSharedRef<FStompFrame> Frame = MakeShareable(new FStompFrame(Data, Length));
 	const FStompCommand& Command = Frame->GetCommand();
@@ -234,11 +239,11 @@ void FStompClient::HandleIncomingFrame(const uint8* Data, SIZE_T Length)
 		FStompSubscriptionId Id = Message.GetSubscriptionId();
 		if (!Subscriptions.Contains(Id))
 		{
-			UE_LOG(LogStomp, Error, TEXT("Received a message from %s with an unknown or unhandled subscription id %s"), *Message.GetDestination(), *Id);
+			UE_LOG(LogStomp, Warning, TEXT("Received a message from %s with an unknown or unhandled subscription id %s"), *Message.GetDestination(), *Id);
 		}
 		else
 		{
-			Subscriptions[Id].Execute(Message);
+			Subscriptions[Id].ExecuteIfBound(Message);
 		}
 	}
 	else if (Command == ReceiptCommand)
@@ -246,11 +251,11 @@ void FStompClient::HandleIncomingFrame(const uint8* Data, SIZE_T Length)
 		const FString& ReceiptId = Header[ReceiptHeader];
 		if (!OutstandingRequests.Contains(ReceiptId))
 		{
-			UE_LOG(LogStomp, Error, TEXT("Got a receipt with an unknown or unhandled recept id %s"), *ReceiptId);
+			UE_LOG(LogStomp, Warning, TEXT("Got a receipt with an unknown or unhandled recept id %s"), *ReceiptId);
 		}
 		else
 		{
-			OutstandingRequests[ReceiptId].Delegate.Execute(true, FString());
+			OutstandingRequests[ReceiptId].Delegate.ExecuteIfBound(true, FString());
 			OutstandingRequests.Remove(ReceiptId);
 		}
 	}
@@ -267,7 +272,7 @@ void FStompClient::HandleIncomingFrame(const uint8* Data, SIZE_T Length)
 			const FString& ReceiptId = Header.Contains(ReceiptHeader)?Header[ReceiptHeader]:FString();
 			if (!ReceiptId.IsEmpty() && OutstandingRequests.Contains(ReceiptId))
 			{
-				OutstandingRequests[ReceiptId].Delegate.Execute(false, Message);
+				OutstandingRequests[ReceiptId].Delegate.ExecuteIfBound(false, Message);
 				OutstandingRequests.Remove(ReceiptId);
 			}
 			else
@@ -293,6 +298,18 @@ bool FStompClient::Tick(float DeltaTime)
 			PingServer();
 		}
 
+		if (!bReportedNoHeartbeatError && PongInterval > FTimespan::Zero() &&
+			Now - LastReceivedFrame >= PongInterval * (float)MissedServerPongsBeforeError)
+		{
+			bReportedNoHeartbeatError = true;
+			UE_LOG(LogStomp, Error, TEXT("No Stomp heartbeat for %.1f seconds"), (Now - LastReceivedFrame).GetTotalSeconds());
+			if (ReceiveBuffer.Num() != 0)
+			{
+				UE_LOG(LogStomp, Log, TEXT("Stomp: %d bytes pending, received %.1f seconds ago"), ReceiveBuffer.Num(), (Now - LastReceivedPacket).GetTotalSeconds());
+
+			}
+		}
+
 		TArray<FString> ExpiredRequests;
 		for (const auto& Item : OutstandingRequests)
 		{
@@ -303,7 +320,7 @@ bool FStompClient::Tick(float DeltaTime)
 		}
 		for (const auto& Key : ExpiredRequests)
 		{
-			OutstandingRequests[Key].Delegate.Execute(false, TEXT("Request timed out"));
+			OutstandingRequests[Key].Delegate.ExecuteIfBound(false, TEXT("Request timed out"));
 			OutstandingRequests.Remove(Key);
 		}
 	}

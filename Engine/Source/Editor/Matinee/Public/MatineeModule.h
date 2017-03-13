@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __MatineeModule_h__
-#define __MatineeModule_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
@@ -44,6 +43,3 @@ public:
 	DECLARE_EVENT(IMainFrameModule, FMatineeEditorOpenedEvent);
 	virtual FMatineeEditorOpenedEvent& OnMatineeEditorOpened() = 0;
 };
-
-
-#endif // __MatineeModule_h__

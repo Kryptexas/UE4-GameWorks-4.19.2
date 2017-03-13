@@ -489,6 +489,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Float", meta=(CompactNodeTitle = "e"))
 	static float Exp(float A);
 
+	/* Returns log of A base B (if B^R == A, returns R)*/
+	UFUNCTION(BlueprintPure, Category = "Math|Float")
+	static float Log(float A, float Base = 1.f);
+
 	/* Returns natural log of A (if e^R == A, returns R)*/
 	UFUNCTION(BlueprintPure, Category="Math|Float")
 	static float Loge(float A);
@@ -1430,6 +1434,14 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/** Convert a float into a LinearColor, where each element is that float */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToLinearColor (float)", CompactNodeTitle = "->", Keywords="cast convert", BlueprintAutocast), Category="Math|Conversions")
 	static FLinearColor Conv_FloatToLinearColor(float InFloat);
+
+	/** Makes an FBox from Min and Max and sets IsValid to true */
+	UFUNCTION(BlueprintPure, Category="Math|Box", meta=(Keywords="construct build", NativeMakeFunc))
+	static FBox MakeBox(FVector Min, FVector Max);
+
+	/** Makes an FBox2D from Min and Max and sets IsValid to true */
+	UFUNCTION(BlueprintPure, Category = "Math|Box2D", meta = (Keywords = "construct build", NativeMakeFunc))
+	static FBox2D MakeBox2D(FVector2D Min, FVector2D Max);
 
 	/** Makes a vector {X, Y, Z} */
 	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords="construct build", NativeMakeFunc))

@@ -68,7 +68,7 @@ void FRedirectCollector::OnStringAssetReferenceLoaded(const FString& InString)
 		FLinkerLoad* Linker = ThreadContext.SerializedObject->GetLinker();
 		if (Linker)
 		{
-			ContainingPackageAndProperty.SetPackage(FName(*Linker->Filename));
+			ContainingPackageAndProperty.SetPackage(FName(*FPackageName::FilenameToLongPackageName(Linker->Filename)));
 			if (Linker->GetSerializedProperty())
 			{
 				ContainingPackageAndProperty.SetProperty( FName(*FString::Printf(TEXT("%s:%s"), *ThreadContext.SerializedObject->GetPathName(), *Linker->GetSerializedProperty()->GetName())));
@@ -190,7 +190,16 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 
 				StringAssetRefFilenameStack.Push(RefFilenameAndProperty.GetPackage().ToString());
 
-				UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, RefFilenameAndProperty.GetReferencedByEditorOnlyProperty() ? LOAD_EditorOnly : LOAD_None, NULL);
+				int32 DotIndex = ToLoad.Find(TEXT("."));
+				FString PackageName = DotIndex != INDEX_NONE ? ToLoad.Left(DotIndex) : ToLoad;
+
+				// If is known missing don't try
+				if (FLinkerLoad::IsKnownMissingPackage(FName(*PackageName)))
+				{
+					continue;
+				}
+
+				UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, RefFilenameAndProperty.GetReferencedByEditorOnlyProperty() ? LOAD_EditorOnly | LOAD_NoWarn : LOAD_NoWarn, NULL);
 				StringAssetRefFilenameStack.Pop();
 
 				UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Loaded);
@@ -222,15 +231,7 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 				else
 				{
 					const FString Referencer = RefFilenameAndProperty.GetProperty().ToString().Len() ? RefFilenameAndProperty.GetProperty().ToString() : TEXT("Unknown");
-
-					int32 DotIndex = ToLoad.Find(TEXT("."));
-
-					FString PackageName = DotIndex != INDEX_NONE ? ToLoad.Left(DotIndex) : ToLoad;
-
-					if (FLinkerLoad::IsKnownMissingPackage(FName(*PackageName)) == false)
-					{
-						UE_LOG(LogRedirectors, Warning, TEXT("String Asset Reference '%s' was not found! (Referencer '%s')"), *ToLoad, *Referencer);
-					}
+					UE_LOG(LogRedirectors, Warning, TEXT("String Asset Reference '%s' was not found! (Referencer '%s')"), *ToLoad, *Referencer);
 				}
 			}
 

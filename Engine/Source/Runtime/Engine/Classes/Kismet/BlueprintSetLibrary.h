@@ -102,7 +102,7 @@ public:
 	 * @param		B		Another set to intersect
 	 * @param		Result	Set to store results in
 	 */
-	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Intersection", CompactNodeTitle = "INTERSECTION", SetParam = "A,B,Result"), Category="Utilities|Set")
+	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Intersection", CompactNodeTitle = "INTERSECTION", SetParam = "A|B|Result"), Category="Utilities|Set")
 	static void Set_Intersection(const TSet<int32>& A, const TSet<int32>& B, TSet<int32>& Result );
 
 	/**
@@ -114,7 +114,7 @@ public:
 	 * @param		B		Another set to union
 	 * @param		Result	Set to store results in
 	 */
-	UFUNCTION(BlueprintCallable, CustomThunk, meta = (DisplayName = "Union", CompactNodeTitle = "UNION", SetParam = "A,B,Result"), Category = "Utilities|Set")
+	UFUNCTION(BlueprintCallable, CustomThunk, meta = (DisplayName = "Union", CompactNodeTitle = "UNION", SetParam = "A|B|Result"), Category = "Utilities|Set")
 	static void Set_Union(const TSet<int32>& A, const TSet<int32>& B, TSet<int32>& Result );
 
 	/**
@@ -127,7 +127,7 @@ public:
 	 * @param		B		Set of elements to remove from set A
 	 * @param		Result	Set containing all elements in A that are not found in B
 	 */
-	UFUNCTION(BlueprintCallable, CustomThunk, meta = (DisplayName = "Difference", CompactNodeTitle = "DIFFERENCE", SetParam = "A,B,Result"), Category = "Utilities|Set")
+	UFUNCTION(BlueprintCallable, CustomThunk, meta = (DisplayName = "Difference", CompactNodeTitle = "DIFFERENCE", SetParam = "A|B|Result"), Category = "Utilities|Set")
 	static void Set_Difference(const TSet<int32>& A, const TSet<int32>& B, TSet<int32>& Result );
 
 	DECLARE_FUNCTION(execSet_Add)

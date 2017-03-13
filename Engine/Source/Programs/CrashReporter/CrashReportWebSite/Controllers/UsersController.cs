@@ -1,7 +1,8 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System.Linq;
 using System.Web.Mvc;
+using Tools.CrashReporter.CrashReportWebSite.DataModels;
 using Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories;
 using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 
@@ -12,15 +13,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	/// </summary>
 	public class UsersController : Controller
 	{
-	    private IUnitOfWork _unitOfWork;
-
         /// <summary>
         /// 
         /// </summary>
         /// <param name="unitOfWork"></param>
 	    public UsersController(IUnitOfWork unitOfWork)
 	    {
-	        _unitOfWork = unitOfWork;
+
 	    }
 
 	    /// <summary>
@@ -32,49 +31,65 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    /// <returns>A view to show a list of users in the current user group.</returns>
 	    public ActionResult Index( FormCollection formData, string userName, string userGroup = "General" )
         {
-            var group = _unitOfWork.UserGroupRepository.First(data => data.Name == userGroup);
-
-            if (!string.IsNullOrWhiteSpace(userName))
-            {
-                var user = _unitOfWork.UserRepository.GetByUserName(userName);
-                if (user != null && group != null)
-                {
-                    user.UserGroup = group;
-                    _unitOfWork.UserRepository.Update(user);
-                    _unitOfWork.Save();
-                }
-            }
-
-	        var formhelper = new FormHelper(Request, formData, "");
-	        var skip = (formhelper.Page -1) * formhelper.PageSize;
-	        var take = formhelper.PageSize;
-
-			var model = new UsersViewModel
-			{
-			    UserGroup = userGroup,
-			    User = userName,
-			    Users = _unitOfWork.UserRepository.ListAll().Where(data => data.UserGroupId == group.Id).OrderBy(data => data.UserName)
-                    .Skip(skip)
-                    .Take(take)
-			        .Select(data => new UserViewModel() {Name = data.UserName, UserGroup = data.UserGroup.Name})
-			        .ToList()
-			};
-
-		    var groupCounts =
-		        _unitOfWork.UserRepository.ListAll()
-		            .GroupBy(data => data.UserGroup)
-		            .Select(data => new { Key = data.Key, Count = data.Count() }).ToDictionary( groupCount => groupCount.Key.Name, groupCount => groupCount.Count );
-            
-		    model.GroupSelectList = groupCounts.Select(listItem => new SelectListItem{Selected = listItem.Key == userGroup, Text = listItem.Key, Value = listItem.Key}).ToList();
-            model.GroupCounts = groupCounts;
-	        model.PagingInfo = new PagingInfo
+	        UsersViewModel model;
+	        using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
 	        {
-	            CurrentPage = formhelper.Page,
-	            PageSize = formhelper.PageSize,
-	            TotalResults = _unitOfWork.UserRepository.ListAll().Count(data => data.UserGroupId == group.Id)
-	        };
+	            var group = unitOfWork.UserGroupRepository.First(data => data.Name == userGroup);
 
-			return View( "Index", model );
+	            if (!string.IsNullOrWhiteSpace(userName))
+	            {
+	                var user = unitOfWork.UserRepository.GetByUserName(userName);
+	                if (user != null && group != null)
+	                {
+	                    user.UserGroup = group;
+	                    unitOfWork.UserRepository.Update(user);
+	                    unitOfWork.Save();
+	                }
+	            }
+
+	            var formhelper = new FormHelper(Request, formData, "");
+	            var skip = (formhelper.Page - 1)*formhelper.PageSize;
+	            var take = formhelper.PageSize;
+
+	            model = new UsersViewModel
+	            {
+	                UserGroup = userGroup,
+	                User = userName,
+	                Users =
+	                    unitOfWork.UserRepository.ListAll()
+	                        .Where(data => data.UserGroupId == @group.Id)
+	                        .OrderBy(data => data.UserName)
+	                        .Skip(skip)
+	                        .Take(take)
+	                        .Select(data => new UserViewModel() {Name = data.UserName, UserGroup = data.UserGroup.Name})
+	                        .ToList()
+	            };
+
+	            var groupCounts =
+	                unitOfWork.UserRepository.ListAll()
+	                    .GroupBy(data => data.UserGroup)
+	                    .Select(data => new {Key = data.Key, Count = data.Count()})
+	                    .ToDictionary(groupCount => groupCount.Key.Name, groupCount => groupCount.Count);
+
+	            model.GroupSelectList =
+	                groupCounts.Select(
+	                    listItem =>
+	                        new SelectListItem
+	                        {
+	                            Selected = listItem.Key == userGroup,
+	                            Text = listItem.Key,
+	                            Value = listItem.Key
+	                        }).ToList();
+	            model.GroupCounts = groupCounts;
+	            model.PagingInfo = new PagingInfo
+	            {
+	                CurrentPage = formhelper.Page,
+	                PageSize = formhelper.PageSize,
+	                TotalResults = unitOfWork.UserRepository.ListAll().Count(data => data.UserGroupId == group.Id)
+	            };
+	        }
+
+	        return View( "Index", model );
 		}
 
         /// <summary>
@@ -84,13 +99,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         /// <returns></returns>
 	    public JsonResult AutocompleteUser(string userName)
         {
-            var users = _unitOfWork.UserRepository.Get(data => data.UserName.Contains(userName)).Take(10).Select(data => new { UserName = data.UserName, Group = data.UserGroup.Name}).ToList();
-            return Json(users, JsonRequestBehavior.AllowGet);
+            using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
+            {
+                var users =
+                    unitOfWork.UserRepository.Get(data => data.UserName.Contains(userName))
+                        .Take(10)
+                        .Select(data => new {UserName = data.UserName, Group = data.UserGroup.Name})
+                        .ToList();
+                return Json(users, JsonRequestBehavior.AllowGet);
+            }
         }
 
         protected override void Dispose(bool disposing)
         {
-            _unitOfWork.Dispose();
             base.Dispose(disposing);
         }
 	}

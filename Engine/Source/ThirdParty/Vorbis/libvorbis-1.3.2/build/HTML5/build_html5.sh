@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 VORBIS_HTML5=$(pwd)
 
@@ -42,16 +42,16 @@ build_via_cmake()
 	if [ $OLEVEL == 0 ]; then
 		SUFFIX=
 	fi
-	cp lib/libvorbis.bc ../../../Lib/HTML5/libvorbis${SUFFIX}.bc
-#	cp lib/libvorbisenc.bc ../../../Lib/HTML5/libvorbisenc${SUFFIX}.bc
-	cp lib/libvorbisfile.bc ../../../Lib/HTML5/libvorbisfile${SUFFIX}.bc
+	cp lib/libvorbis.bc ../../../lib/HTML5/libvorbis${SUFFIX}.bc
+#	cp lib/libvorbisenc.bc ../../../lib/HTML5/libvorbisenc${SUFFIX}.bc
+	cp lib/libvorbisfile.bc ../../../lib/HTML5/libvorbisfile${SUFFIX}.bc
 	cd ..
 }
 type=Debug;       OLEVEL=0;  build_via_cmake
 type=Release;     OLEVEL=2;  build_via_cmake
 type=Release;     OLEVEL=3;  build_via_cmake
 type=MinSizeRel;  OLEVEL=z;  build_via_cmake
-ls -l ../../Lib/HTML5
+ls -l ../../lib/HTML5
 
 
 # NOT USED: LEFT HERE FOR REFERENCE

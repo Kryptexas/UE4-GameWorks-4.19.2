@@ -1,6 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -13,7 +11,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
     /// </summary>
     public class BuggRepository : IBuggRepository
     {
-        private readonly CrashReportEntities _entityContext;
+        private CrashReportEntities _entityContext;
 
         /// <summary>
         /// Constructor
@@ -86,7 +84,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         /// <returns>Bugg data model</returns>
         public Bugg GetById(int id)
         {
-            return _entityContext.Buggs.FirstOrDefault(data => data.Id == id);
+            return _entityContext.Buggs.Include(data => data.Crashes).FirstOrDefault(data => data.Id == id);
         }
 
         /// <summary>

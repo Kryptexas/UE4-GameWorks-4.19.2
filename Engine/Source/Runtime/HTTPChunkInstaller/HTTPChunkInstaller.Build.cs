@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class HTTPChunkInstaller : ModuleRules
 {
-	public HTTPChunkInstaller(TargetInfo Target)
+	public HTTPChunkInstaller(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
         PrivateDependencyModuleNames.Add("Engine");

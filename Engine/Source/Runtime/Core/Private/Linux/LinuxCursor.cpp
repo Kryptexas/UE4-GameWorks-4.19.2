@@ -33,6 +33,7 @@ FLinuxCursor::FLinuxCursor()
 	for( int32 CurCursorIndex = 0; CurCursorIndex < EMouseCursor::TotalCursorCount; ++CurCursorIndex )
 	{
 		CursorHandles[ CurCursorIndex ] = NULL;
+		CursorOverrideHandles[ CurCursorIndex ] = NULL;
 
 		SDL_HCursor CursorHandle = NULL;
 		switch( CurCursorIndex )
@@ -229,11 +230,14 @@ void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 	SetCachedPosition(X, Y);
 }
 
-void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
-{	
-	checkf( InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), InNewCursor );
+void FLinuxCursor::SetType(const EMouseCursor::Type InNewCursor)
+{
+	checkf(InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), InNewCursor);
 	CurrentType = InNewCursor;
-	if(CursorHandles[InNewCursor] == nullptr)
+
+	SDL_HCursor CurrentCursor = CursorOverrideHandles[InNewCursor] ? CursorOverrideHandles[InNewCursor] : CursorHandles[InNewCursor];
+
+	if (CurrentCursor == nullptr)
 	{
 		if (InNewCursor != EMouseCursor::Custom)
 		{
@@ -246,7 +250,7 @@ void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
 	{
 		bHidden = false;
 		SDL_ShowCursor(SDL_ENABLE);
-		SDL_SetCursor(CursorHandles[InNewCursor]);
+		SDL_SetCursor(CurrentCursor);
 	}
 }
 
@@ -333,7 +337,15 @@ bool FLinuxCursor::IsHidden()
 	return bHidden;
 }
 
-void FLinuxCursor::SetCustomShape(void* CursorHandle)
+void FLinuxCursor::SetTypeShape(EMouseCursor::Type InCursorType, void* InCursorHandle)
 {
-	
+	checkf(InCursorType < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), (int)InCursorType);
+
+	SDL_Cursor* CursorHandle = (SDL_Cursor*)InCursorHandle;
+	CursorOverrideHandles[InCursorType] = CursorHandle;
+
+	if (CurrentType == InCursorType)
+	{
+		SetType(CurrentType);
+	}
 }

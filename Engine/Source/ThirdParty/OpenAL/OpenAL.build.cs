@@ -4,7 +4,7 @@ using System.IO;
 using System.Diagnostics;
 public class OpenAL : ModuleRules
 {
-	public OpenAL(TargetInfo Target)
+	public OpenAL(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 		string version = "1.15.1";

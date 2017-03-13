@@ -170,8 +170,8 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 
 	GMaxTextureMipCount = FMath::CeilLogTwo(GMaxTextureDimensions) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
-	GMaxShadowDepthBufferSizeX = 4096;
-	GMaxShadowDepthBufferSizeY = 4096;
+	GMaxShadowDepthBufferSizeX = GMaxTextureDimensions;
+	GMaxShadowDepthBufferSizeY = GMaxTextureDimensions;
 
 	// Enable multithreading if not in the editor (editor crashes with multithreading enabled).
 	if (!GIsEditor)
@@ -182,6 +182,13 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 
 	GSupportsTimestampRenderQueries = true;
 	GSupportsParallelOcclusionQueries = true;
+
+	{
+		// Workaround for 4.14. Limit the number of GPU stats on D3D12 due to an issue with high memory overhead with render queries (Jira UE-38139)
+		//@TODO: Remove this when render query issues are fixed
+		static IConsoleVariable* GPUStatsEnabledCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GPUStatsMaxQueriesPerFrame"));
+		GPUStatsEnabledCVar->Set(1024); // 1024*64KB = 64MB
+	}
 
 	// Enable async compute by default
 	GEnableAsyncCompute = true;

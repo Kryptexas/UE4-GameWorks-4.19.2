@@ -2784,6 +2784,25 @@ void FBlueprintEditor::ReparentBlueprint_NewParentChosen(UClass* ChosenClass)
 			// Ensure that the Blueprint is up-to-date (valid SCS etc.) after compiling (new parent class)
 			EnsureBlueprintIsUpToDate(BlueprintObj);
 
+			if (BlueprintObj->NativizationFlag != EBlueprintNativizationFlag::Disabled)
+			{
+				UBlueprint* ParentBlueprint = UBlueprint::GetBlueprintFromClass(ChosenClass);
+				if (ParentBlueprint && ParentBlueprint->NativizationFlag == EBlueprintNativizationFlag::Disabled)
+				{
+					ParentBlueprint->NativizationFlag = EBlueprintNativizationFlag::Dependency;
+
+					FNotificationInfo Warning(FText::Format(
+						LOCTEXT("InterfaceFlaggedForNativization", "{0} flagged for nativization (as a required dependency)."),
+						FText::FromName(ParentBlueprint->GetFName())
+						)
+					);
+					Warning.ExpireDuration = 5.0f;
+					Warning.bFireAndForget = true;
+					Warning.Image = FCoreStyle::Get().GetBrush(TEXT("MessageLog.Warning"));
+					FSlateNotificationManager::Get().AddNotification(Warning);
+				}
+			}
+
 			if (SCSEditor.IsValid())
 			{
 				SCSEditor->UpdateTree();
@@ -3259,7 +3278,16 @@ void FBlueprintEditor::Compile()
 		LogResults.BeginEvent(TEXT("Compile"));
 		LogResults.bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
 		LogResults.EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
-		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, false, false, bSaveIntermediateBuildProducts, &LogResults, false, false, bAddInstrumentation);
+		EBlueprintCompileOptions CompileOptions = EBlueprintCompileOptions::None;
+		if( bSaveIntermediateBuildProducts )
+		{
+			CompileOptions |= EBlueprintCompileOptions::SaveIntermediateProducts;
+		}
+		if(bAddInstrumentation)
+		{
+			CompileOptions |= EBlueprintCompileOptions::AddInstrumentation;
+		}
+		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, CompileOptions, &LogResults);
 
 		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
 		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);

@@ -31,7 +31,7 @@
 <!-- -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <h1 style="TEXT-ALIGN: center">Release Notes - NVIDIA<sup>&reg;</sup> PhysX<sup>&reg;</sup> SDK 3.4</h1>
-<h2 style="TEXT-ALIGN: center">November 2016</h2>
+<h2 style="TEXT-ALIGN: center">January 2017</h2>
 
 	<h2>Supported Platforms</h2>
 	<blockquote>
@@ -39,7 +39,7 @@
 		<ul>
 		<li>Apple iOS</li>
 		<li>Apple Mac OS X</li>
-		<li>Google Android ARM (version 2.2 or later required for SDK, 2.3 or later required for samples)</li>
+		<li>Google Android ARM (version 2.2 or later required for SDK, 2.3 or later required for snippets)</li>
 		<li>Linux (tested on Ubuntu)</li>
 		<li>Microsoft Windows XP or later (NVIDIA Driver version R304 or later is required for GPU acceleration)</li>
 		<li>Microsoft XBox One</li>
@@ -49,7 +49,7 @@
 		<ul>
 				<li>Microsoft Windows XP or later</li>
 				<li>Microsoft Visual Studio 2012, 2013, 2015</li>
-				<li>Xcode 7.3</li>
+				<li>Xcode 8.2</li>
 		</ul>
 	</blockquote>
 	<h2>Known Issues</h2>
@@ -74,6 +74,8 @@
 			<li>PxCloneShape has been added to enable cloning of shapes.</li>
 			<li>acquireReference() has been added to increment the reference count of shapes, materials, triangle meshes, convex meshes heightfields and cloth fabrics.</li>
 			<li>The global filter shader data block can now be set through PxScene::setFilterShaderData().</li>
+			<li>PxGpuLoadHook and PxSetPhysXGpuLoadHook has been added to support loading of GPU dll with a different name than the default.</li>
+			<li>A new profile zone has been added for debug visualization.</li>
 		</ul>
 		<li>Changed:</li>
 		<ul>
@@ -100,16 +102,22 @@
 			<li>Visual Studio 2010 is not supported any longer.</li>
 			<li>Microsoft Windows RT is not supported any longer.</li>
 			<li>Google Android X86 is not supported any longer.</li>
+			<li>PhysX Samples are not supported anymore except on Microsoft Windows.</li>
 			<li>Linux 32-bit no longer support GPU acceleration. Linux 64-bit still supports GPU acceleration.</li>
 		</ul>
 		<li>Fixed:</li>
 		<ul>
 			<li>PxScene::setFlag() does now properly send error messages in CHECKED builds if a non-mutable scene flag gets passed in.</li>
             <li>Fixed a bug in force threshold based contact reports, which caused events to be lost.</li>
-			<li>Fixed a bug in aggregates that led to a crash when rigid bodies are added to an aggregate after removing all rigid bodies from an aggregate.   This only occurred with aggregates that were added to the scene and with rigid bodies that had shapes attached.</li>
+			<li>Fixed a bug in aggregates that led to a crash when rigid bodies are added to an aggregate after removing all rigid bodies from an aggregate. This only occurred with aggregates that were added to the scene and with rigid bodies that had shapes attached.</li>
             <li>Fixed a bug where non-breakable joints could break, leading to a crash. </li>
             <li>Fixed RepX load of kinematic rigid bodies with mesh shapes.</li>
-            <li>Fixed a divide by zero bug in SIMD distanceSegmentTriangle function</li>
+            <li>Fixed a divide by zero bug in SIMD distanceSegmentTriangle function.</li>
+            <li>Debug visualization for compound bounds (PxVisualizationParameter::eCOLLISION_COMPOUNDS) now works even when all the compounds' shapes have their debug viz flag (PxShapeFlag::eVISUALIZATION) disabled.</li>
+			<li>Double-buffering now works properly for the debug visualization culling box.</li>
+			<li>The default debug visualization culling box now works correctly with heightfields.</li>
+			<li>Rare crashes in PxShape::setGeometry() and PxShape::getMaterials() have been fixed.</li>
+			<li>A crash happening when doing an origin shift on a scene containing an empty aggregate has been fixed.</li>
 		</ul>
 		<li>Deprecated:</li>
 		<ul>
@@ -203,6 +211,7 @@
             <li>Calls to contact modification callbacks can be made from multiple threads simultaneously. Therefore, modification callbacks should must be thread-safe. </li>
             <li>Unified heightfield contact generation is now the default heightfield contact generation approach. This approach offers similar performance and behavior to contact generation with triangle meshes. Unified heightfields have no thickness because contact genreation operates on triangles so objects may tunnel if CCD is not enabled.</li>
             <li>When unified heightfield contact generation is in use, the bounds of heightfield shapes are no longer extruded by "thickness".</li>
+			<li>PxArticulationJoint::setTwistLimit and PxArticulationJoint::getTwistLimit were incorrectly documented with zLimit and yLimit in the wrong order.  The behavior of both functions remains unchanged but now they are correctly documented with zLimit and yLimit in the correct order. This is simply a clarification of the existing function behavior.</li>
 		</ul>
 		<li>Removed:</li>
 		<ul>
@@ -228,6 +237,7 @@
 			<li>Fixed a bug when PxShape::setMaterials was called with less materials than shape had before.</li>
             <li>Fixed a bug in CCD that could lead to a hang in the simulation.</li>
             <li>Fixed a bug in PCM mesh edge-edge check for the parallel case. </li>
+            <li>Fixed a bug in CCD where contact modify callbacks could be called when the CCD did not detect a contact.</li>
 		</ul>
 	</ul>
 
@@ -253,6 +263,10 @@
 
 	<h3>Character controller</h3>
 	<ul>
+		<li>Added:</li>
+		<ul>
+			<li>Profile zones have been added for the character controller.</li>
+		</ul>
 		<li>Fixed:</li>
 		<ul>
 			<li>Character controllers cannot stand on dynamic triggers anymore.</li>
@@ -278,11 +292,13 @@
 		<ul>
 			<li>In checked build the functions PxVehicleDrive4W::allocate, PxVehicleDriveNW::allocate, PxVehicleDriveTank::allocate, PxVehicleNoDrive::allocate all return NULL and issue a warning if called before
 			PxInitVehicleSDK.</li>
+			<li>Tire width is no longer accounted for when computing the suspension compression from raycasts (PxVehicleSuspensionRaycasts).  Instead, tire width is incorporated into the suspension compression arising from swept wheels (PxVehicleSuspensionSweeps).  It is recommended to use PxVehicleSuspensionSweeps if there is a strict requirement that the inside and outside of the wheel don't visibly penetrate geometry.</li>
 		</ul>
 		<li>Fixed:</li>
 		<ul>
 			<li>Suspension force calculation now applies an extra force perpendicular to the spring travel direction.	This force is calculated to satisfy the constraint that the sprung mass only has motion along the spring travel direction.	This change mostly affects vehicles with suspension travel directions that are not vertical.</li>
 			<li>PxVehicleWheelsSimData::mThresholdLongitudinalSpeed and PxVehicleWheelsSimData::mMinLongSlipDenominator are now given default values that reflect the length scale set in PxTolerancesScale.</li>
+			<li>Unphysically large constraint forces were generated to resolve the suspension compression beyond its limit when the suspension direction and the hit normal under the wheel approach perpendicularity.  This has been fixed so that the constraint force approaches zero as the angle between the hit normal and suspension direction approaches a right angle.</li>
 		</ul>
 	</ul>
 
@@ -331,6 +347,7 @@
 			<li>Convex hull generator vertex limit has two different algorithms - plane shifting and OBB slicing.</li>
 			<li>PxConvexFlag::eFAST_INERTIA_COMPUTATION added. When enabled, the inertia tensor is computed faster but with less precision.</li>
 			<li>PxConvexFlag::eGPU_COMPATIBLE added. When enabled convex hulls are created with vertex limit set to 64 and vertex limit per face is 32.</li>
+			<li>PxConvexFlag::eSHIFT_VERTICES added. When enabled input points are shifted to be around origin to improve computation stability.</li>
 			<li>PxCookingParams::gaussMapLimit has been added. The limit can now be fully user-defined. Please refer to the migration guide and best practices sections of the manual.</li>
 		</ul>
 		<li>Changed:</li>
@@ -376,15 +393,13 @@
 
 	<h3>Physx Visual Debugger</h3>
 	<ul>
-		<li>PhysXVisualDebuggerSDK, PvdRuntime projects relpaced with PxPvdSDK.</li>
-		<li>PxPvdSceneClient::drawPoints now takes physx::pvdsdk::PvdDebugPoint as input parameter instead of PxDebugPoint. drawLines, drawTriangles,  drawText and so on.</li>
+		<li>PhysXVisualDebuggerSDK, PvdRuntime projects replaced with PxPvdSDK.</li>
+		<li>PxPvdSceneClient::drawPoints now takes physx::pvdsdk::PvdDebugPoint as input parameter instead of PxDebugPoint. drawLines, drawTriangles, drawText and so on.</li>
+		<li>The SDK's Debug visualization data is not sent to PVD anymore in ePROFILE mode.</li>
+		<li>PxPvdSceneFlag::eTRANSMIT_CONTACTS (instead of PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS) was sometimes incorrectly used to control the transmission of constraint-related data. This has been fixed. In addition, the PxPvdSceneFlag flags are now consistently ignored when PxPvdInstrumentationFlag::eDEBUG is not set.</li>
 	</ul>
 
 	<h3>Aggregates</h3>
-	<ul>
-	</ul>
-
-	<h3>Samples</h3>
 	<ul>
 	</ul>
 
@@ -2838,7 +2853,7 @@
 
 
 <p><br>
-Copyright (C) 2008-2016 NVIDIA Corporation, 2701 San Thomas Expressway, Santa Clara, CA 95050 U.S.A. All rights reserved. <A href="http://www.nvidia.com">www.nvidia.com</A>
+Copyright (C) 2008-2017 NVIDIA Corporation, 2701 San Thomas Expressway, Santa Clara, CA 95050 U.S.A. All rights reserved. <A href="http://www.nvidia.com">www.nvidia.com</A>
 </p>
 </body>
 </html>

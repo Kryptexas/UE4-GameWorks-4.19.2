@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __DistCurveEditorModule_h__
-#define __DistCurveEditorModule_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
@@ -23,5 +22,3 @@ public:
 	virtual TSharedRef<IDistributionCurveEditor> CreateCurveEditorWidget(UInterpCurveEdSetup* EdSetup, FCurveEdNotifyInterface* NotifyObject) = 0;
 	virtual TSharedRef<IDistributionCurveEditor> CreateCurveEditorWidget(UInterpCurveEdSetup* EdSetup, FCurveEdNotifyInterface* NotifyObject, IDistributionCurveEditor::FCurveEdOptions Options) = 0;
 };
-
-#endif // __DistCurveEditorModule_h__

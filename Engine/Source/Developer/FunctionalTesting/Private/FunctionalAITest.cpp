@@ -94,6 +94,12 @@ void AFunctionalAITest::StartSpawning()
 		return;
 	}
 
+	if (!SpawnSets.IsValidIndex(CurrentSpawnSetIndex))
+	{
+		FinishTest(EFunctionalTestResult::Failed, FString::Printf(TEXT("Unable to use spawn set: %d"), CurrentSpawnSetIndex));
+		return;
+	}
+
 	UWorld* World = GetWorld();
 	check(World);
 	const FAITestSpawnSet& SpawnSet = SpawnSets[CurrentSpawnSetIndex];

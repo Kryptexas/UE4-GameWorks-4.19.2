@@ -1224,21 +1224,27 @@ void UDestructibleComponent::Deactivate()
 void UDestructibleComponent::SetCollisionResponseToChannel(ECollisionChannel Channel, ECollisionResponse NewResponse)
 {
 #if WITH_APEX
-	PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
-
-	for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+	if(ApexDestructibleActor)
 	{
-		PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-		int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
+		if (DestructibleAsset* Asset = GetDestructibleMesh()->GetApexDestructibleAsset())
+		{
+			PxU32 NumChunks = Asset->getChunkCount();
 
-		SetupFakeBodyInstance(PxActor, BoneIndex);
+			for (uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+			{
+				PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+				int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
 
-		BodyInstance.SetResponseToChannel(Channel, NewResponse);
-	}
+				SetupFakeBodyInstance(PxActor, BoneIndex);
 
-	if(NumChunks > 0)
-	{
-		OnComponentCollisionSettingsChanged();
+				BodyInstance.SetResponseToChannel(Channel, NewResponse);
+			}
+
+			if (NumChunks > 0)
+			{
+				OnComponentCollisionSettingsChanged();
+			}
+		}
 	}
 #endif
 }
@@ -1246,21 +1252,28 @@ void UDestructibleComponent::SetCollisionResponseToChannel(ECollisionChannel Cha
 void UDestructibleComponent::SetCollisionResponseToAllChannels(ECollisionResponse NewResponse)
 {
 #if WITH_APEX
-	PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
-
-	for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+	if(ApexDestructibleActor)
 	{
-		PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-		int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
+		if (DestructibleAsset* Asset = GetDestructibleMesh()->GetApexDestructibleAsset())
+		{
+			PxU32 NumChunks = Asset->getChunkCount();
 
-		SetupFakeBodyInstance(PxActor, BoneIndex);
 
-		BodyInstance.SetResponseToAllChannels(NewResponse);
-	}
+			for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+			{
+				PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+				int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
 
-	if(NumChunks > 0)
-	{
-		OnComponentCollisionSettingsChanged();
+				SetupFakeBodyInstance(PxActor, BoneIndex);
+
+				BodyInstance.SetResponseToAllChannels(NewResponse);
+			}
+
+			if(NumChunks > 0)
+			{
+				OnComponentCollisionSettingsChanged();
+			}
+		}
 	}
 #endif
 }
@@ -1268,21 +1281,28 @@ void UDestructibleComponent::SetCollisionResponseToAllChannels(ECollisionRespons
 void UDestructibleComponent::SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses)
 {
 #if WITH_APEX
-	PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
-
-	for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+	if(ApexDestructibleActor)
 	{
-		PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-		int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
+		if (DestructibleAsset* Asset = GetDestructibleMesh()->GetApexDestructibleAsset())
+		{
+			PxU32 NumChunks = Asset->getChunkCount();
 
-		SetupFakeBodyInstance(PxActor, BoneIndex);
 
-		BodyInstance.SetResponseToChannels(NewReponses);
-	}
+			for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+			{
+				PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+				int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
 
-	if(NumChunks > 0)
-	{
-		OnComponentCollisionSettingsChanged();
+				SetupFakeBodyInstance(PxActor, BoneIndex);
+
+				BodyInstance.SetResponseToChannels(NewReponses);
+			}
+
+			if(NumChunks > 0)
+			{
+				OnComponentCollisionSettingsChanged();
+			}
+		}
 	}
 #endif
 }
@@ -1499,8 +1519,8 @@ void UDestructibleComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType
 		
 		PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
 		
-		const bool bSetQuery = NewType == ECollisionEnabled::QueryAndPhysics || NewType == ECollisionEnabled::QueryOnly;
-		const bool bSetSim = NewType == ECollisionEnabled::PhysicsOnly || NewType == ECollisionEnabled::QueryAndPhysics;
+		const bool bSetQuery = CollisionEnabledHasQuery(NewType);
+		const bool bSetSim = CollisionEnabledHasPhysics(NewType);
 		
 		for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
 		{

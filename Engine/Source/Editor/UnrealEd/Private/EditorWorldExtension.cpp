@@ -389,7 +389,7 @@ UEditorWorldExtensionManager::~UEditorWorldExtensionManager()
 	EditorWorldExtensionCollection.Empty();
 }
 
-UEditorWorldExtensionCollection* UEditorWorldExtensionManager::GetEditorWorldExtensions(UWorld* InWorld)
+UEditorWorldExtensionCollection* UEditorWorldExtensionManager::GetEditorWorldExtensions(const UWorld* InWorld, const bool bCreateIfNeeded /**= true*/)
 {
 	// Try to find this world in the map and return it or create and add one if nothing found
 	UEditorWorldExtensionCollection* Result = nullptr;
@@ -400,7 +400,7 @@ UEditorWorldExtensionCollection* UEditorWorldExtensionManager::GetEditorWorldExt
 		{
 			Result = FoundExtensionCollection;
 		}
-		else
+		else if(bCreateIfNeeded)
 		{
 			FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld(InWorld);
 			Result = OnWorldContextAdd(WorldContext);

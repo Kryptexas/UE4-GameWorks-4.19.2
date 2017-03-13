@@ -45,7 +45,7 @@ public:
 /** The slate Vertex shader representation */
 class FSlateElementVS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE( FSlateElementVS, Global );
+	DECLARE_SHADER_TYPE(FSlateElementVS, Global);
 public:
 	/** Indicates that this shader should be cached */
 	static bool ShouldCache( EShaderPlatform Platform ) { return true; }
@@ -112,6 +112,7 @@ public:
 		TextureParameterSampler.Bind( Initializer.ParameterMap, TEXT("ElementTextureSampler"));
 		ShaderParams.Bind( Initializer.ParameterMap, TEXT("ShaderParams"));
 		GammaValues.Bind( Initializer.ParameterMap,TEXT("GammaValues"));
+		InvertAlpha.Bind(Initializer.ParameterMap, TEXT("InvertAlpha"));
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment);
@@ -149,6 +150,14 @@ public:
 		SetShaderValue(RHICmdList, GetPixelShader(),GammaValues,InGammaValues);
 	}
 
+	/**
+	 * Sets if we should invert alpha of the incoming.
+	 */
+	void SetInvertAlpha(FRHICommandList& RHICmdList, bool bInvertAlpha )
+	{
+		SetShaderValue(RHICmdList, GetPixelShader(), InvertAlpha, bInvertAlpha ? 1.0f : 0.0f );
+	}
+
 	virtual bool Serialize( FArchive& Ar )
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
@@ -157,6 +166,7 @@ public:
 		Ar << TextureParameterSampler;
 		Ar << ShaderParams;
 		Ar << GammaValues;
+		Ar << InvertAlpha;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -166,6 +176,7 @@ private:
 	FShaderResourceParameter TextureParameterSampler;
 	FShaderParameter ShaderParams;
 	FShaderParameter GammaValues;
+	FShaderParameter InvertAlpha;
 };
 
 /** 

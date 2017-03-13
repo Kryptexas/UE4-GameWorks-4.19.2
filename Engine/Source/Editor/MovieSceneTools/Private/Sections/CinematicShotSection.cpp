@@ -33,7 +33,7 @@ FCinematicShotSection::FCinematicSectionCache::FCinematicSectionCache(UMovieScen
 
 
 FCinematicShotSection::FCinematicShotSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection, TSharedPtr<FCinematicShotTrackEditor> InCinematicShotTrackEditor)
-	: FThumbnailSection(InSequencer, InThumbnailPool, InSection)
+	: FViewportThumbnailSection(InSequencer, InThumbnailPool, InSection)
 	, SectionObject(*CastChecked<UMovieSceneCinematicShotSection>(&InSection))
 	, Sequencer(InSequencer)
 	, CinematicShotTrackEditor(InCinematicShotTrackEditor)
@@ -50,7 +50,7 @@ FCinematicShotSection::~FCinematicShotSection()
 
 float FCinematicShotSection::GetSectionHeight() const
 {
-	return FThumbnailSection::GetSectionHeight() + 2*9.f;
+	return FViewportThumbnailSection::GetSectionHeight() + 2*9.f;
 }
 
 FMargin FCinematicShotSection::GetContentPadding() const
@@ -83,7 +83,7 @@ void FCinematicShotSection::ResizeSection(ESequencerSectionResizeMode ResizeMode
 		SectionObject.Parameters.StartOffset = StartOffset;
 	}
 
-	FThumbnailSection::ResizeSection(ResizeMode, ResizeTime);
+	FViewportThumbnailSection::ResizeSection(ResizeMode, ResizeTime);
 }
 
 void FCinematicShotSection::Tick(const FGeometry& AllottedGeometry, const FGeometry& ClippedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -106,7 +106,7 @@ void FCinematicShotSection::Tick(const FGeometry& AllottedGeometry, const FGeome
 		ThumbnailCache.SetSingleReferenceFrame(TOptional<float>());
 	}
 
-	FThumbnailSection::Tick(AllottedGeometry, ClippedGeometry, InCurrentTime, InDeltaTime);
+	FViewportThumbnailSection::Tick(AllottedGeometry, ClippedGeometry, InCurrentTime, InDeltaTime);
 }
 
 int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter) const
@@ -142,7 +142,7 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 		return InPainter.LayerId;
 	}
 
-	FThumbnailSection::OnPaintSection(InPainter);
+	FViewportThumbnailSection::OnPaintSection(InPainter);
 
 	const float DrawScale = InPainter.SectionGeometry.Size.X / SectionSize;
 		
@@ -240,7 +240,7 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 
 void FCinematicShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding)
 {
-	FThumbnailSection::BuildSectionContextMenu(MenuBuilder, ObjectBinding);
+	FViewportThumbnailSection::BuildSectionContextMenu(MenuBuilder, ObjectBinding);
 
 	MenuBuilder.BeginSection(NAME_None, LOCTEXT("ShotMenuText", "Shot"));
 	{

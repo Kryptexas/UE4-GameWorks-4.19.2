@@ -13,18 +13,9 @@ static void ClearQuadSetup( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 	// Set new states
 	FBlendStateRHIParamRef BlendStateRHI;
 		
-	if (NumClearColors <= 1)
-	{
-		BlendStateRHI = bClearColor
-			? TStaticBlendState<>::GetRHI()
-			: TStaticBlendState<CW_NONE>::GetRHI();
-	}
-	else
-	{
-		BlendStateRHI = bClearColor
-			? TStaticBlendState<>::GetRHI()
-			: TStaticBlendStateWriteMask<CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE>::GetRHI();
-	}
+	BlendStateRHI = bClearColor
+		? TStaticBlendState<>::GetRHI()
+		: TStaticBlendStateWriteMask<CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE>::GetRHI();
 	
 	const FDepthStencilStateRHIParamRef DepthStencilStateRHI = 
 		(bClearDepth && bClearStencil)
@@ -47,7 +38,7 @@ static void ClearQuadSetup( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(BlendStateRHI);
-	RHICmdList.SetDepthStencilState(DepthStencilStateRHI);
+	RHICmdList.SetDepthStencilState(DepthStencilStateRHI, Stencil);
 
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 

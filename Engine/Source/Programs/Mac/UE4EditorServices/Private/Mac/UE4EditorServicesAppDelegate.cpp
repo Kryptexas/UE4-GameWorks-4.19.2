@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UE4EditorServicesAppDelegate.h"
-#include "CoreMinimal.h"
 #include "DesktopPlatformModule.h"
 
 @implementation FUE4EditorServicesAppDelegate

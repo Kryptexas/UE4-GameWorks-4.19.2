@@ -1518,7 +1518,7 @@ void FCEFWebBrowserWindow::OnCursorChange(CefCursorHandle CefCursor, CefRenderHa
 
 				if (PlatformCursor.IsValid())
 				{
-					PlatformCursor->SetCustomShape((void*)CefCursor);
+					PlatformCursor->SetTypeShape(EMouseCursor::Custom, (void*)CefCursor);
 					Cursor = EMouseCursor::Custom;
 				}
 			}

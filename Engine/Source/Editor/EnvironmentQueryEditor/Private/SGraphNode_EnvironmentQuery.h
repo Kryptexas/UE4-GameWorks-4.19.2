@@ -35,6 +35,13 @@ public:
 	ECheckBoxState IsTestToggleChecked() const;
 	void OnTestToggleChanged(ECheckBoxState NewState);
 
+	FSlateColor GetProfilerTestSlateColor() const;
+	EVisibility GetProfilerTestVisibility() const;
+	EVisibility GetProfilerOptionVisibility() const;
+	FText GetProfilerDescAverage() const;
+	FText GetProfilerDescWorst() const;
+	FText GetProfilerDescOption() const;
+
 protected:
 	TSharedPtr<SVerticalBox> TestBox;
 

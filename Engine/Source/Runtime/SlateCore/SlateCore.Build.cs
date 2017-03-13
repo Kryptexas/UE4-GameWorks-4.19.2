@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SlateCore : ModuleRules
 {
-	public SlateCore(TargetInfo Target)
+	public SlateCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] { 
@@ -35,7 +35,7 @@ public class SlateCore : ModuleRules
 			}
 		);
 
-		if (Target.Type.Value != TargetRules.TargetType.Server)
+		if (Target.Type != TargetType.Server)
 		{
 			if (UEBuildConfiguration.bCompileFreeType)
 			{

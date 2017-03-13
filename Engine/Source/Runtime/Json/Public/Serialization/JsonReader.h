@@ -786,9 +786,14 @@ class FJsonStringReader
 {
 public:
 
-	static TSharedRef<FJsonStringReader> Create( const FString& JsonString )
+	static TSharedRef<FJsonStringReader> Create(const FString& JsonString)
 	{
 		return MakeShareable(new FJsonStringReader(JsonString));
+	}
+
+	static TSharedRef<FJsonStringReader> Create(FString&& JsonString)
+	{
+		return MakeShareable(new FJsonStringReader(MoveTemp(JsonString)));
 	}
 
 public:
@@ -809,9 +814,26 @@ protected:
 	 *
 	 * @param JsonString The Json string to parse.
 	 */
-	FJsonStringReader( const FString& JsonString )
+	FJsonStringReader(const FString& JsonString)
 		: Content(JsonString)
 		, Reader(nullptr)
+	{
+		InitReader();
+	}
+
+	/**
+	 * Parses a string containing Json information.
+	 *
+	 * @param JsonString The Json string to parse.
+	 */
+	FJsonStringReader(FString&& JsonString)
+		: Content(MoveTemp(JsonString))
+		, Reader(nullptr)
+	{
+		InitReader();
+	}
+
+	FORCEINLINE void InitReader()
 	{
 		if (Content.IsEmpty())
 		{
@@ -836,12 +858,17 @@ class TJsonReaderFactory
 {
 public:
 
-	static TSharedRef<TJsonReader<TCHAR>> Create( const FString& JsonString )
+	static TSharedRef<TJsonReader<TCHAR>> Create(const FString& JsonString)
 	{
 		return FJsonStringReader::Create(JsonString);
 	}
 
-	static TSharedRef<TJsonReader<CharType>> Create( FArchive* const Stream )
+	static TSharedRef<TJsonReader<TCHAR>> Create(FString&& JsonString)
+	{
+		return FJsonStringReader::Create(MoveTemp(JsonString));
+	}
+
+	static TSharedRef<TJsonReader<CharType>> Create(FArchive* const Stream)
 	{
 		return TJsonReader<CharType>::Create(Stream);
 	}

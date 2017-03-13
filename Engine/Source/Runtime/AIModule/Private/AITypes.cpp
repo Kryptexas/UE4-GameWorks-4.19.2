@@ -72,7 +72,7 @@ FString FAIResourceLock::GetLockPriorityName() const
 	{
 		if (IsLocked() && IsLockedBy(EAIRequestPriority::Type(LockLevel)))
 		{
-			LockNames += FString::Printf(TEXT("%s, "), *SourceEnum->GetEnumName(LockLevel));
+			LockNames += FString::Printf(TEXT("%s, "), *SourceEnum->GetNameStringByValue(LockLevel));
 		}
 	}
 

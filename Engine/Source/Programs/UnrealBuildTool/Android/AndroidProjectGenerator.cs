@@ -15,7 +15,39 @@ namespace UnrealBuildTool
 	{
 		static bool CheckedForNsight = false;		// whether we have checked for a recent enough version of Nsight yet
 		static bool NsightInstalled = false;		// true if a recent enough version of Nsight is installed
-		static int NsightVersionCode = 0;			// version code matching detected Nsight
+		static int NsightVersionCode = 0;           // version code matching detected Nsight
+
+		public static bool VSDebugCommandLineOptionPresent = false;    //User must put -vsdebugandroid commandline option to build the debug projects
+		static bool VSDebuggingEnabled = false;      // When set to true, allows debugging with built in MS Cross Platform Android tools.  
+													 //  It adds separate projects ending in .androidproj and a file VSAndroidUnreal.props for the engine and all game projects
+
+		static bool VSSupportChecked = false;       // Don't want to check multiple times
+
+		static bool VSPropsFileWritten = false;     // This is for the file VSAndroidUnreal.props which only needs to be written once
+
+
+		bool IsVSAndroidSupportInstalled()
+		{
+			if (VSSupportChecked)
+			{
+				return VSDebuggingEnabled;
+			}
+			VSSupportChecked = true;
+			
+			//check to make sure Cross Platform Tools are installed for MS
+			string Path = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Android SDK Tools", "Path", null) as string;
+			if (!String.IsNullOrEmpty(Path) && VSDebugCommandLineOptionPresent)
+			{
+				VSDebuggingEnabled = true;
+			}
+			else if (VSDebugCommandLineOptionPresent)
+			{
+				Log.TraceWarning("Android SDK tools have to be installed to use this.  Please Install Visual C++ for Cross-Platform Mobile Development https://msdn.microsoft.com/en-us/library/dn707598.aspx");
+			}
+
+			return VSDebuggingEnabled;
+
+		}
 
 		/// <summary>
 		/// Check to see if a recent enough version of Nsight is installed.
@@ -107,11 +139,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
 		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <param name="ProjectFileFormat"></param>
 		/// <returns>bool    true if native VisualStudio support (or custom VSI) is available</returns>
 		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFileFormat ProjectFileFormat)
 		{
 			// Debugging, etc. are dependent on the TADP being installed
-			return IsNsightInstalled(ProjectFileFormat);
+			return IsNsightInstalled(ProjectFileFormat) || IsVSAndroidSupportInstalled();
 		}
 
 		/// <summary>
@@ -122,22 +155,32 @@ namespace UnrealBuildTool
 		/// <returns>string    The name of the platform that VisualStudio recognizes</returns>
 		public override string GetVisualStudioPlatformName(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
+			string PlatformName = InPlatform.ToString();
+
 			if (InPlatform == UnrealTargetPlatform.Android)
 			{
-				return "Tegra-Android";
+				if (IsVSAndroidSupportInstalled())
+				{
+					PlatformName = "ARM";
+				}
+				else
+				{
+					PlatformName = "Tegra-Android";
+				}
 			}
 
-			return InPlatform.ToString();
+			return PlatformName;
 		}
 
 		/// <summary>
 		/// Return any custom property group lines
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="ProjectFileFormat"></param>
 		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
 		public override string GetAdditionalVisualStudioPropertyGroups(UnrealTargetPlatform InPlatform, VCProjectFileFormat ProjectFileFormat)
 		{
-			if (!IsNsightInstalled(ProjectFileFormat))
+			if(IsVSAndroidSupportInstalled() || !IsNsightInstalled(ProjectFileFormat))
 			{
 				return base.GetAdditionalVisualStudioPropertyGroups(InPlatform, ProjectFileFormat);
 			}
@@ -151,15 +194,26 @@ namespace UnrealBuildTool
 		/// Return any custom property group lines
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <param name="ProjectFileFormat"></param>
 		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
 		public override string GetVisualStudioPlatformConfigurationType(UnrealTargetPlatform InPlatform, VCProjectFileFormat ProjectFileFormat)
 		{
-			if (!IsNsightInstalled(ProjectFileFormat))
-			{
-				return base.GetVisualStudioPlatformConfigurationType(InPlatform, ProjectFileFormat);
-			}
+			string ConfigurationType = "";
 
-			return "ExternalBuildSystem";
+			if(IsVSAndroidSupportInstalled())
+			{
+				ConfigurationType = "Makefile";
+			}
+			else if (IsNsightInstalled(ProjectFileFormat))
+			{
+				ConfigurationType = "ExternalBuildSystem";				
+			}
+			else
+			{
+				ConfigurationType = base.GetVisualStudioPlatformConfigurationType(InPlatform, ProjectFileFormat);
+			}
+			
+			return ConfigurationType;
 		}
 
 		/// <summary>
@@ -167,10 +221,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
 		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+		/// <param name="InProjectFileFormat">The version of Visual Studio to target</param>
 		/// <returns>string    The custom configuration section for the project file; Empty string if it doesn't require one</returns>
 		public override string GetVisualStudioPlatformToolsetString(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, VCProjectFileFormat InProjectFileFormat)
 		{
-			if (!IsNsightInstalled(InProjectFileFormat))
+			if (IsVSAndroidSupportInstalled() || !IsNsightInstalled(InProjectFileFormat))
 			{
 				return "\t\t<PlatformToolset>" + VCProjectFileGenerator.GetProjectFilePlatformToolsetVersionString(InProjectFileFormat) + "</PlatformToolset>" + ProjectFileGenerator.NewLine;
 			}
@@ -183,61 +238,398 @@ namespace UnrealBuildTool
 		/// Return any custom paths for VisualStudio this platform requires
 		/// This include ReferencePath, LibraryPath, LibraryWPath, IncludePath and ExecutablePath.
 		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="TargetType">  The type of target (game or program)</param>
-		/// <returns>string    The custom path lines for the project file; Empty string if it doesn't require one</returns>
-		public override string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath, VCProjectFileFormat InProjectFileFormat)
+		/// <param name="InPlatform">The UnrealTargetPlatform being built</param>
+		/// <param name="InConfiguration">The configuration being built</param>
+		/// <param name="TargetType">The type of target (game or program)</param>
+		/// <param name="TargetRulesPath">Path to the target.cs file</param>
+		/// <param name="ProjectFilePath">Path to the project file</param>
+		/// <param name="NMakeOutputPath"></param>
+		/// <param name="InProjectFileFormat">Format for the generated project files</param>
+		/// <returns>The custom path lines for the project file; Empty string if it doesn't require one</returns>
+		public override string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath, VCProjectFileFormat InProjectFileFormat)
 		{
-			if (!IsNsightInstalled(InProjectFileFormat))
+			string PathsLines = "";
+
+			if (!IsVSAndroidSupportInstalled() && IsNsightInstalled(InProjectFileFormat))
 			{
-				return base.GetVisualStudioPathsEntries(InPlatform, InConfiguration, TargetType, TargetRulesPath, ProjectFilePath, NMakeOutputPath, InProjectFileFormat);
+
+				// NOTE: We are intentionally overriding defaults for these paths with empty strings.  We never want Visual Studio's
+				//       defaults for these fields to be propagated, since they are version-sensitive paths that may not reflect
+				//       the environment that UBT is building in.  We'll set these environment variables ourselves!
+				// NOTE: We don't touch 'ExecutablePath' because that would result in Visual Studio clobbering the system "Path"
+				//       environment variable
+
+				//@todo android: clean up debug path generation
+				string GameName = TargetRulesPath.GetFileNameWithoutExtension();
+				GameName = Path.GetFileNameWithoutExtension(GameName);
+
+
+				// intermediate path for Engine or Game's intermediate
+				string IntermediateDirectoryPath;
+				IntermediateDirectoryPath = Path.GetDirectoryName(NMakeOutputPath.FullName) + "/../../Intermediate/Android/APK";
+
+				// string for <OverrideAPKPath>
+				string APKPath = Path.Combine(
+					Path.GetDirectoryName(NMakeOutputPath.FullName),
+					Path.GetFileNameWithoutExtension(NMakeOutputPath.FullName) + "-armv7-es2.apk");
+
+				// string for <BuildXmlPath> and <AndroidManifestPath>
+				string BuildXmlPath = IntermediateDirectoryPath;
+				string AndroidManifestPath = Path.Combine(IntermediateDirectoryPath, "AndroidManifest.xml");
+
+				// string for <AdditionalLibraryDirectories>
+				string AdditionalLibDirs = "";
+				AdditionalLibDirs += IntermediateDirectoryPath + @"\obj\local\armeabi-v7a";
+				AdditionalLibDirs += ";" + IntermediateDirectoryPath + @"\obj\local\x86";
+				AdditionalLibDirs += @";$(AdditionalLibraryDirectories)";
+
+				PathsLines =
+					"		<IncludePath />" + ProjectFileGenerator.NewLine +
+					"		<ReferencePath />" + ProjectFileGenerator.NewLine +
+					"		<LibraryPath />" + ProjectFileGenerator.NewLine +
+					"		<LibraryWPath />" + ProjectFileGenerator.NewLine +
+					"		<SourcePath />" + ProjectFileGenerator.NewLine +
+					"		<ExcludePath />" + ProjectFileGenerator.NewLine +
+					"		<AndroidAttach>False</AndroidAttach>" + ProjectFileGenerator.NewLine +
+					"		<DebuggerFlavor>AndroidDebugger</DebuggerFlavor>" + ProjectFileGenerator.NewLine +
+					"		<OverrideAPKPath>" + APKPath + "</OverrideAPKPath>" + ProjectFileGenerator.NewLine +
+					"		<AdditionalLibraryDirectories>" + AdditionalLibDirs + "</AdditionalLibraryDirectories>" + ProjectFileGenerator.NewLine +
+					"		<BuildXmlPath>" + BuildXmlPath + "</BuildXmlPath>" + ProjectFileGenerator.NewLine +
+					"		<AndroidManifestPath>" + AndroidManifestPath + "</AndroidManifestPath>" + ProjectFileGenerator.NewLine;
+			}
+			else 
+			{
+				PathsLines = base.GetVisualStudioPathsEntries(InPlatform, InConfiguration, TargetType, TargetRulesPath, ProjectFilePath, NMakeOutputPath, InProjectFileFormat);
 			}
 
-			// NOTE: We are intentionally overriding defaults for these paths with empty strings.  We never want Visual Studio's
-			//       defaults for these fields to be propagated, since they are version-sensitive paths that may not reflect
-			//       the environment that UBT is building in.  We'll set these environment variables ourselves!
-			// NOTE: We don't touch 'ExecutablePath' because that would result in Visual Studio clobbering the system "Path"
-			//       environment variable
-
-			//@todo android: clean up debug path generation
-			string GameName = TargetRulesPath.GetFileNameWithoutExtension();
-			GameName = Path.GetFileNameWithoutExtension(GameName);
-
-
-			// intermediate path for Engine or Game's intermediate
-			string IntermediateDirectoryPath;
-			IntermediateDirectoryPath = Path.GetDirectoryName(NMakeOutputPath.FullName) + "/../../Intermediate/Android/APK";
-
-			// string for <OverrideAPKPath>
-			string APKPath = Path.Combine(
-				Path.GetDirectoryName(NMakeOutputPath.FullName),
-				Path.GetFileNameWithoutExtension(NMakeOutputPath.FullName) + "-armv7-es2.apk");
-
-			// string for <BuildXmlPath> and <AndroidManifestPath>
-			string BuildXmlPath = IntermediateDirectoryPath;
-			string AndroidManifestPath = Path.Combine(IntermediateDirectoryPath, "AndroidManifest.xml");
-
-			// string for <AdditionalLibraryDirectories>
-			string AdditionalLibDirs = "";
-			AdditionalLibDirs += IntermediateDirectoryPath + @"\obj\local\armeabi-v7a";
-			AdditionalLibDirs += ";" + IntermediateDirectoryPath + @"\obj\local\x86";
-			AdditionalLibDirs += @";$(AdditionalLibraryDirectories)";
-
-			string PathsLines =
-				"		<IncludePath />" + ProjectFileGenerator.NewLine +
-				"		<ReferencePath />" + ProjectFileGenerator.NewLine +
-				"		<LibraryPath />" + ProjectFileGenerator.NewLine +
-				"		<LibraryWPath />" + ProjectFileGenerator.NewLine +
-				"		<SourcePath />" + ProjectFileGenerator.NewLine +
-				"		<ExcludePath />" + ProjectFileGenerator.NewLine +
-				"		<AndroidAttach>False</AndroidAttach>" + ProjectFileGenerator.NewLine +
-				"		<DebuggerFlavor>AndroidDebugger</DebuggerFlavor>" + ProjectFileGenerator.NewLine +
-				"		<OverrideAPKPath>" + APKPath + "</OverrideAPKPath>" + ProjectFileGenerator.NewLine +
-				"		<AdditionalLibraryDirectories>" + AdditionalLibDirs + "</AdditionalLibraryDirectories>" + ProjectFileGenerator.NewLine +
-				"		<BuildXmlPath>" + BuildXmlPath + "</BuildXmlPath>" + ProjectFileGenerator.NewLine +
-				"		<AndroidManifestPath>" + AndroidManifestPath + "</AndroidManifestPath>" + ProjectFileGenerator.NewLine;
-
 			return PathsLines;
+
 		}
+		
+		/// <summary>
+		/// Return any custom property settings. These will be included right after Global properties to make values available to all other imports.
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
+		public override string GetVisualStudioGlobalProperties(UnrealTargetPlatform InPlatform)
+		{
+			if (IsVSAndroidSupportInstalled())
+			{
+				return "	<Import Project=\"$(AndroidTargetsPath)\\Android.Tools.props\"/>" + ProjectFileGenerator.NewLine;
+			}
+			return base.GetVisualStudioGlobalProperties(InPlatform);
+		}
+
+		/// <summary>
+		/// Return any custom property settings. These will be included in the ImportGroup section
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
+		public override string GetVisualStudioImportGroupProperties(UnrealTargetPlatform InPlatform)
+		{
+			if (IsVSAndroidSupportInstalled())
+			{
+				return "		<Import Project=\"VSAndroidUnreal.props\" /> " + ProjectFileGenerator.NewLine;
+			}
+			return base.GetVisualStudioImportGroupProperties(InPlatform);
+		}
+
+		/// <summary>
+		/// For Additional Project Property file  VSAndroidUnreal.props file that need to be written out.  This is currently used only on Android. 
+		/// </summary>
+		public override void WriteAdditionalPropFile()
+		{
+			if(!IsVSAndroidSupportInstalled())
+			{
+				return;
+			}
+
+			//This file only needs to be written once and doesn't change.
+			if(VSPropsFileWritten)
+			{
+				return;
+			}
+			VSPropsFileWritten = true;
+
+
+			string FileName = "VSAndroidUnreal.props";
+
+			string FileText = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + ProjectFileGenerator.NewLine +
+								"<Project ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" + ProjectFileGenerator.NewLine +
+								"	<ImportGroup Label=\"PropertySheets\" />" + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Label=\"UserMacros\">" + ProjectFileGenerator.NewLine +
+								"		<ANDROID_HOME>$(VS_AndroidHome)</ANDROID_HOME>" + ProjectFileGenerator.NewLine +
+								"		<JAVA_HOME>$(VS_JavaHome)</JAVA_HOME>" + ProjectFileGenerator.NewLine +
+								"		<ANT_HOME>$(VS_AntHome)</ANT_HOME>" + ProjectFileGenerator.NewLine +
+								"		<NDKROOT>$(VS_NdkRoot)</NDKROOT>" + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup>" + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup />" + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup />" + ProjectFileGenerator.NewLine +
+								"	<ItemGroup>" + ProjectFileGenerator.NewLine +
+								"		<BuildMacro Include=\"ANDROID_HOME\">" + ProjectFileGenerator.NewLine +
+								"			<Value>$(ANDROID_HOME)</Value>" + ProjectFileGenerator.NewLine +
+								"			<EnvironmentVariable>true</EnvironmentVariable>" + ProjectFileGenerator.NewLine +
+								"		</BuildMacro>" + ProjectFileGenerator.NewLine +
+								"		<BuildMacro Include=\"JAVA_HOME\">" + ProjectFileGenerator.NewLine +
+								"			<Value>$(JAVA_HOME)</Value>" + ProjectFileGenerator.NewLine +
+								"			<EnvironmentVariable>true</EnvironmentVariable>" + ProjectFileGenerator.NewLine +
+								"		</BuildMacro>" + ProjectFileGenerator.NewLine +
+								"		<BuildMacro Include=\"ANT_HOME\">" + ProjectFileGenerator.NewLine +
+								"			<Value>$(ANT_HOME)</Value>" + ProjectFileGenerator.NewLine +
+								"			<EnvironmentVariable>true</EnvironmentVariable>" + ProjectFileGenerator.NewLine +
+								"		</BuildMacro>" + ProjectFileGenerator.NewLine +
+								"		<BuildMacro Include=\"NDKROOT\">" + ProjectFileGenerator.NewLine +
+								"			<Value>$(NDKROOT)</Value>" + ProjectFileGenerator.NewLine +
+								"			<EnvironmentVariable>true</EnvironmentVariable>" + ProjectFileGenerator.NewLine +
+								"		</BuildMacro>" + ProjectFileGenerator.NewLine +
+								"	</ItemGroup>" + ProjectFileGenerator.NewLine +
+								"</Project>";
+
+			ProjectFileGenerator.WriteFileIfChanged(ProjectFileGenerator.IntermediateProjectFilesPath + "\\" + FileName, FileText);
+
+		}
+
+
+		/// <summary>
+		/// For additional Project file *PROJECTNAME*-AndroidRun.androidproj.user that needs to be written out.  This is currently used only on Android. 
+		/// </summary>
+		/// <param name="ProjectFile">ProjectFile object</param>
+		public override void WriteAdditionalProjUserFile(ProjectFile ProjectFile)
+		{
+			if (!IsVSAndroidSupportInstalled() || ProjectFile.SourceFiles.Count == 0)
+			{
+				return;
+			}
+
+			string BaseDirectory = ProjectFile.SourceFiles[0].BaseFolder.FullName;
+
+			string ProjectName = ProjectFile.ProjectFilePath.GetFileNameWithoutExtension();
+
+			string FileName = ProjectName + "-AndroidRun.androidproj.user";
+
+			string FileText =   "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + ProjectFileGenerator.NewLine +
+								"<Project ToolsVersion=\"14.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|ARM\'\">" + ProjectFileGenerator.NewLine +
+								"		<PackagePath>" + BaseDirectory + "\\Binaries\\Android\\" + ProjectName + "-armv7-es2.apk</PackagePath>" + ProjectFileGenerator.NewLine +
+								"		<LaunchActivity>" + ProjectFileGenerator.NewLine +
+								"		</LaunchActivity>" + ProjectFileGenerator.NewLine +
+								"		<AdditionalSymbolSearchPaths>" + BaseDirectory + "\\Intermediate\\Android\\APK\\obj\\local\\armeabi-v7a;" + BaseDirectory + "\\Intermediate\\Android\\APK\\jni\\armeabi-v7a;" + BaseDirectory + "\\Binaries\\Android;$(AdditionalSymbolSearchPaths)</AdditionalSymbolSearchPaths>" + ProjectFileGenerator.NewLine +
+								"		<DebuggerFlavor>AndroidDebugger</DebuggerFlavor>" + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup>" + ProjectFileGenerator.NewLine +
+								"</Project>";
+
+			ProjectFileGenerator.WriteFileIfChanged(ProjectFileGenerator.IntermediateProjectFilesPath + "\\" + FileName, FileText);
+
+		}
+
+
+		/// <summary>
+		/// For additional Project file *PROJECTNAME*-AndroidRun.androidproj that needs to be written out.  This is currently used only on Android. 
+		/// </summary>
+		/// <param name="ProjectFile">ProjectFile object</param>
+		public override Tuple<ProjectFile, string> WriteAdditionalProjFile(ProjectFile ProjectFile)
+		{
+			if (!IsVSAndroidSupportInstalled())
+			{
+				return null;
+			}
+
+			string ProjectName = ProjectFile.ProjectFilePath.GetFileNameWithoutExtension() + "-AndroidRun";
+			
+			string FileName = ProjectName + ".androidproj";
+
+			string FileText = "<?xml version=\"1.0\" encoding=\"utf-8\"?> " + ProjectFileGenerator.NewLine +
+								"<Project DefaultTargets=\"Build\" ToolsVersion=\"14.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\"> " + ProjectFileGenerator.NewLine +
+								"	<ItemGroup Label=\"ProjectConfigurations\"> " + ProjectFileGenerator.NewLine +
+								"		<ProjectConfiguration Include=\"Debug|ARM\"> " + ProjectFileGenerator.NewLine +
+								"			<Configuration>Debug</Configuration> " + ProjectFileGenerator.NewLine +
+								"			<Platform>ARM</Platform> " + ProjectFileGenerator.NewLine +
+								"		</ProjectConfiguration> " + ProjectFileGenerator.NewLine +
+								"		<ProjectConfiguration Include=\"Release|ARM\"> " + ProjectFileGenerator.NewLine +
+								"			<Configuration>Release</Configuration> " + ProjectFileGenerator.NewLine +
+								"			<Platform>ARM</Platform> " + ProjectFileGenerator.NewLine +
+								"		</ProjectConfiguration> " + ProjectFileGenerator.NewLine +
+								"		<ProjectConfiguration Include=\"Debug|ARM64\"> " + ProjectFileGenerator.NewLine +
+								"			<Configuration>Debug</Configuration> " + ProjectFileGenerator.NewLine +
+								"			<Platform>ARM64</Platform> " + ProjectFileGenerator.NewLine +
+								"		</ProjectConfiguration> " + ProjectFileGenerator.NewLine +
+								"		<ProjectConfiguration Include=\"Release|ARM64\"> " + ProjectFileGenerator.NewLine +
+								"			<Configuration>Release</Configuration> " + ProjectFileGenerator.NewLine +
+								"			<Platform>ARM64</Platform> " + ProjectFileGenerator.NewLine +
+								"		</ProjectConfiguration> " + ProjectFileGenerator.NewLine +
+								"		<ProjectConfiguration Include=\"Debug|x64\"> " + ProjectFileGenerator.NewLine +
+								"			<Configuration>Debug</Configuration> " + ProjectFileGenerator.NewLine +
+								"			<Platform>x64</Platform> " + ProjectFileGenerator.NewLine +
+								"		</ProjectConfiguration> " + ProjectFileGenerator.NewLine +
+								"		<ProjectConfiguration Include=\"Release|x64\"> " + ProjectFileGenerator.NewLine +
+								"			<Configuration>Release</Configuration> " + ProjectFileGenerator.NewLine +
+								"			<Platform>x64</Platform> " + ProjectFileGenerator.NewLine +
+								"		</ProjectConfiguration> " + ProjectFileGenerator.NewLine +
+								"		<ProjectConfiguration Include=\"Debug|x86\"> " + ProjectFileGenerator.NewLine +
+								"			<Configuration>Debug</Configuration> " + ProjectFileGenerator.NewLine +
+								"			<Platform>x86</Platform> " + ProjectFileGenerator.NewLine +
+								"		</ProjectConfiguration> " + ProjectFileGenerator.NewLine +
+								"		<ProjectConfiguration Include=\"Release|x86\"> " + ProjectFileGenerator.NewLine +
+								"			<Configuration>Release</Configuration> " + ProjectFileGenerator.NewLine +
+								"			<Platform>x86</Platform> " + ProjectFileGenerator.NewLine +
+								"		</ProjectConfiguration> " + ProjectFileGenerator.NewLine +
+								"	</ItemGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Label=\"Globals\"> " + ProjectFileGenerator.NewLine +
+								"		<RootNamespace>" + ProjectName + "</RootNamespace> " + ProjectFileGenerator.NewLine +
+								"		<MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion> " + ProjectFileGenerator.NewLine +
+								"		<ProjectVersion>1.0</ProjectVersion> " + ProjectFileGenerator.NewLine +
+								
+								//Set the project guid 
+								"		<ProjectGuid>" + System.Guid.NewGuid().ToString("B").ToUpper() + "</ProjectGuid> " + ProjectFileGenerator.NewLine +
+								
+								"		<ConfigurationType>Application</ConfigurationType> " + ProjectFileGenerator.NewLine +
+								"		<_PackagingProjectWithoutNativeComponent>true</_PackagingProjectWithoutNativeComponent> " + ProjectFileGenerator.NewLine +
+								"		<LaunchActivity Condition=\"\'$(LaunchActivity)\' == \'\'\">com." + ProjectName + "." + ProjectName + "</LaunchActivity> " + ProjectFileGenerator.NewLine +
+								"		<JavaSourceRoots>src</JavaSourceRoots> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<Import Project=\"$(AndroidTargetsPath)\\Android.Default.props\" /> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|ARM\'\" Label=\"Configuration\"> " + ProjectFileGenerator.NewLine +
+								"		<UseDebugLibraries>true</UseDebugLibraries> " + ProjectFileGenerator.NewLine +
+								"		<TargetName>$(RootNamespace)</TargetName> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|ARM\'\" Label=\"Configuration\"> " + ProjectFileGenerator.NewLine +
+								"		<UseDebugLibraries>false</UseDebugLibraries> " + ProjectFileGenerator.NewLine +
+								"		<TargetName>$(RootNamespace)</TargetName> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|ARM64\'\" Label=\"Configuration\"> " + ProjectFileGenerator.NewLine +
+								"		<UseDebugLibraries>true</UseDebugLibraries> " + ProjectFileGenerator.NewLine +
+								"		<TargetName>$(RootNamespace)</TargetName> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|ARM64\'\" Label=\"Configuration\"> " + ProjectFileGenerator.NewLine +
+								"		<UseDebugLibraries>false</UseDebugLibraries> " + ProjectFileGenerator.NewLine +
+								"		<TargetName>$(RootNamespace)</TargetName> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|x64\'\" Label=\"Configuration\"> " + ProjectFileGenerator.NewLine +
+								"		<UseDebugLibraries>true</UseDebugLibraries> " + ProjectFileGenerator.NewLine +
+								"		<TargetName>$(RootNamespace)</TargetName> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|x64\'\" Label=\"Configuration\"> " + ProjectFileGenerator.NewLine +
+								"		<UseDebugLibraries>false</UseDebugLibraries> " + ProjectFileGenerator.NewLine +
+								"		<TargetName>$(RootNamespace)</TargetName> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|x86\'\" Label=\"Configuration\"> " + ProjectFileGenerator.NewLine +
+								"		<UseDebugLibraries>true</UseDebugLibraries> " + ProjectFileGenerator.NewLine +
+								"		<TargetName>$(RootNamespace)</TargetName> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|x86\'\" Label=\"Configuration\"> " + ProjectFileGenerator.NewLine +
+								"		<UseDebugLibraries>false</UseDebugLibraries> " + ProjectFileGenerator.NewLine +
+								"		<TargetName>$(RootNamespace)</TargetName> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<Import Project=\"$(AndroidTargetsPath)\\Android.props\" /> " + ProjectFileGenerator.NewLine +
+								"	<ImportGroup Label=\"ExtensionSettings\" /> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Label=\"UserMacros\" /> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|ARM\'\"> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|ARM\'\"> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|ARM64\'\"> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|ARM64\'\"> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|x64\'\"> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|x64\'\"> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|x86\'\"> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<PropertyGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|x86\'\"> " + ProjectFileGenerator.NewLine +
+								"	</PropertyGroup> " + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|ARM\'\"> " + ProjectFileGenerator.NewLine +
+								"		<AntPackage> " + ProjectFileGenerator.NewLine +
+								"			<AndroidAppLibName /> " + ProjectFileGenerator.NewLine +
+								"		</AntPackage> " + ProjectFileGenerator.NewLine +
+								"	</ItemDefinitionGroup> " + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|ARM\'\"> " + ProjectFileGenerator.NewLine +
+								"		<AntPackage> " + ProjectFileGenerator.NewLine +
+								"			<AndroidAppLibName /> " + ProjectFileGenerator.NewLine +
+								"		</AntPackage> " + ProjectFileGenerator.NewLine +
+								"	</ItemDefinitionGroup> " + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|ARM64\'\"> " + ProjectFileGenerator.NewLine +
+								"		<AntPackage> " + ProjectFileGenerator.NewLine +
+								"			<AndroidAppLibName /> " + ProjectFileGenerator.NewLine +
+								"		</AntPackage> " + ProjectFileGenerator.NewLine +
+								"	</ItemDefinitionGroup> " + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|ARM64\'\"> " + ProjectFileGenerator.NewLine +
+								"		<AntPackage> " + ProjectFileGenerator.NewLine +
+								"			<AndroidAppLibName /> " + ProjectFileGenerator.NewLine +
+								"		</AntPackage> " + ProjectFileGenerator.NewLine +
+								"	</ItemDefinitionGroup> " + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|x64\'\"> " + ProjectFileGenerator.NewLine +
+								"		<AntPackage> " + ProjectFileGenerator.NewLine +
+								"			<AndroidAppLibName /> " + ProjectFileGenerator.NewLine +
+								"		</AntPackage> " + ProjectFileGenerator.NewLine +
+								"	</ItemDefinitionGroup> " + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|x64\'\"> " + ProjectFileGenerator.NewLine +
+								"		<AntPackage> " + ProjectFileGenerator.NewLine +
+								"			<AndroidAppLibName /> " + ProjectFileGenerator.NewLine +
+								"		</AntPackage> " + ProjectFileGenerator.NewLine +
+								"	</ItemDefinitionGroup> " + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Debug|x86\'\"> " + ProjectFileGenerator.NewLine +
+								"		<AntPackage> " + ProjectFileGenerator.NewLine +
+								"			<AndroidAppLibName /> " + ProjectFileGenerator.NewLine +
+								"		</AntPackage> " + ProjectFileGenerator.NewLine +
+								"	</ItemDefinitionGroup> " + ProjectFileGenerator.NewLine +
+								"	<ItemDefinitionGroup Condition=\"\'$(Configuration)|$(Platform)\'==\'Release|x86\'\"> " + ProjectFileGenerator.NewLine +
+								"		<AntPackage> " + ProjectFileGenerator.NewLine +
+								"			<AndroidAppLibName /> " + ProjectFileGenerator.NewLine +
+								"		</AntPackage> " + ProjectFileGenerator.NewLine +
+								"	</ItemDefinitionGroup> " + ProjectFileGenerator.NewLine +
+								"	<Import Project=\"$(AndroidTargetsPath)\\Android.targets\" /> " + ProjectFileGenerator.NewLine +
+								"	<ImportGroup Label=\"ExtensionTargets\" /> " + ProjectFileGenerator.NewLine +
+								"</Project>";
+			
+			bool Success = ProjectFileGenerator.WriteFileIfChanged(ProjectFileGenerator.IntermediateProjectFilesPath + "\\" + FileName, FileText);
+
+			FileReference ProjectFilePath = FileReference.Combine(ProjectFileGenerator.IntermediateProjectFilesPath, FileName);
+			AndroidDebugProjectFile Project = new AndroidDebugProjectFile(ProjectFilePath);
+			Project.ShouldBuildForAllSolutionTargets = false;
+			Project.ShouldBuildByDefaultForSolutionTargets = false;
+
+			return Success ? new Tuple<ProjectFile, string>(Project, "UE4 Android Debug Projects") : null;
+
+		}
+
+	}
+
+
+	/// <summary>
+	/// An Android Debug Project
+	/// </summary>
+	class AndroidDebugProjectFile : MSBuildProjectFile
+	{
+		/// <summary>
+		/// Constructs a new project file object
+		/// </summary>
+		/// <param name="InitFilePath">The path to the project file on disk</param>
+		public AndroidDebugProjectFile(FileReference InitFilePath)
+			: base(InitFilePath)
+		{
+		}
+
+		// This is the GUID that Visual Studio uses to identify an Android project file in the solution
+		public override string ProjectTypeGUID
+		{
+			get { return "{39E2626F-3545-4960-A6E8-258AD8476CE5}"; }
+		}
+
+		/// <summary>
+		/// The only valid configuration for these to be run in is Debug|ARM
+		/// </summary>
+		/// <param name="Platform">Actual platform</param>
+		/// <param name="Configuration">Actual configuration</param>
+		/// <param name="TargetConfigurationName">The configuration name from the target rules, or null if we don't have one</param>
+		/// <param name="ProjectPlatformName">Name of platform string to use for Visual Studio project</param>
+		/// <param name="ProjectConfigurationName">Name of configuration string to use for Visual Studio project</param>
+		public override void MakeProjectPlatformAndConfigurationNames(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string TargetConfigurationName, out string ProjectPlatformName, out string ProjectConfigurationName)
+		{
+			ProjectConfigurationName = UnrealTargetConfiguration.Debug.ToString();
+			ProjectPlatformName = "ARM";
+		}
+
 	}
 }

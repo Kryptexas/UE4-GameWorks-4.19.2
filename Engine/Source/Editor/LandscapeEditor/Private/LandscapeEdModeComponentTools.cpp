@@ -870,8 +870,7 @@ public:
 						LandscapeComponent->AttachToComponent(Landscape->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 
 						// Assign shared properties
-						LandscapeComponent->bCastStaticShadow = Landscape->bCastStaticShadow;
-						LandscapeComponent->bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
+						LandscapeComponent->UpdatedSharedPropertiesFromActor();
 
 						int32 ComponentVerts = (Landscape->SubsectionSizeQuads + 1) * Landscape->NumSubsections;
 						// Update Weightmap Scale Bias
@@ -916,6 +915,68 @@ public:
 				{
 					CollisionComp->MarkRenderStateDirty();
 					CollisionComp->RecreateCollision();
+				}
+
+				TMap<ULandscapeLayerInfoObject*, int32> NeighbourLayerInfoObjectCount;
+
+				// Cover 9 tiles around us to determine which object should we use by default
+				for (int32 ComponentIndexX = ComponentIndexX1 - 1; ComponentIndexX <= ComponentIndexX2 + 1; ++ComponentIndexX)
+				{
+					for (int32 ComponentIndexY = ComponentIndexY1 - 1; ComponentIndexY <= ComponentIndexY2 + 1; ++ComponentIndexY)
+					{
+						ULandscapeComponent* NeighbourComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY));
+
+						if (NeighbourComponent != nullptr && NeighbourComponent != NewComponent)
+						{
+							ULandscapeInfo* NeighbourLandscapeInfo = NeighbourComponent->GetLandscapeInfo();
+
+							for (int32 i = 0; i < NeighbourLandscapeInfo->Layers.Num(); ++i)
+							{
+								ULandscapeLayerInfoObject* NeighbourLayerInfo = NeighbourLandscapeInfo->Layers[i].LayerInfoObj;
+
+								if (NeighbourLayerInfo != nullptr)
+								{
+									TArray<uint8> WeightmapTextureData;
+
+									FLandscapeComponentDataInterface DataInterface(NeighbourComponent);
+									DataInterface.GetWeightmapTextureData(NeighbourLayerInfo, WeightmapTextureData);
+
+									if (WeightmapTextureData.Num() > 0)
+									{
+										int32* Count = NeighbourLayerInfoObjectCount.Find(NeighbourLayerInfo);
+
+										if (Count == nullptr)
+										{
+											Count = &NeighbourLayerInfoObjectCount.Add(NeighbourLayerInfo, 1);
+										}
+
+										for (uint8 Value : WeightmapTextureData)
+										{
+											(*Count) += Value;
+										}
+									}
+								}
+							}							
+						}
+					}					
+				}
+
+				int32 BestLayerInfoObjectCount = 0;
+				ULandscapeLayerInfoObject* BestLayerInfoObject = nullptr;
+
+				for (auto& LayerInfoObjectCount : NeighbourLayerInfoObjectCount)
+				{
+					if (LayerInfoObjectCount.Value > BestLayerInfoObjectCount)
+					{
+						BestLayerInfoObjectCount = LayerInfoObjectCount.Value;
+						BestLayerInfoObject = LayerInfoObjectCount.Key;
+					}
+				}
+				
+				if (BestLayerInfoObject != nullptr)
+				{
+					FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+					NewComponent->FillLayer(BestLayerInfoObject, LandscapeEdit);
 				}
 			}
 

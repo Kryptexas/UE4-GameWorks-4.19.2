@@ -170,7 +170,12 @@ FString FPaths::GameUserDir()
 		FString UserDir;
 		if (FParse::Value(FCommandLine::Get(), TEXT("UserDir="), UserDir))
 		{
-			return FPaths::Combine(*FPaths::GameDir(), *UserDir) + TEXT("/");
+			if (FPaths::IsRelative(UserDir))
+			{
+				return FPaths::Combine(*FPaths::GameDir(), *UserDir) + TEXT("/");
+			}
+			FPaths::NormalizeDirectoryName(UserDir);
+			return UserDir + TEXT("/");
 		}
 
 		return FPaths::GameDir();

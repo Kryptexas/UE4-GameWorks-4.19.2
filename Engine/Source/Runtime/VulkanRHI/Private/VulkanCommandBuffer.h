@@ -11,6 +11,7 @@
 #include "VulkanConfiguration.h"
 
 class FVulkanDevice;
+class FVulkanCommandBufferPool;
 class FVulkanCommandBufferManager;
 
 namespace VulkanRHI
@@ -22,15 +23,16 @@ class FVulkanCmdBuffer
 {
 protected:
 	friend class FVulkanCommandBufferManager;
+	friend class FVulkanCommandBufferPool;
 	friend class FVulkanQueue;
 
-	FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferManager* InCommandBufferManager);
+	FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferPool* InCommandBufferPool);
 	~FVulkanCmdBuffer();
 
 public:
-	FVulkanCommandBufferManager* GetOwner()
+	FVulkanCommandBufferPool* GetOwner()
 	{
-		return CommandBufferManager;
+		return CommandBufferPool;
 	}
 
 	inline bool IsInsideRenderPass() const
@@ -63,7 +65,7 @@ public:
 		return CommandBufferHandle;
 	}
 
-	void BeginRenderPass(const FVulkanRenderTargetLayout& Layout, VkRenderPass RenderPass, VkFramebuffer Framebuffer, const VkClearValue* AttachmentClearValues);
+	void BeginRenderPass(const FVulkanRenderTargetLayout& Layout, class FVulkanRenderPass* RenderPass, VkFramebuffer Framebuffer, const VkClearValue* AttachmentClearValues);
 
 	void EndRenderPass()
 	{
@@ -109,9 +111,68 @@ private:
 
 	void RefreshFenceStatus();
 
-	FVulkanCommandBufferManager* CommandBufferManager;
+	FVulkanCommandBufferPool* CommandBufferPool;
 
 	friend class FVulkanDynamicRHI;
+};
+
+class FVulkanCommandBufferPool
+{
+public:
+	FVulkanCommandBufferPool(FVulkanDevice* InDevice);
+
+	~FVulkanCommandBufferPool();
+
+/*
+	inline FVulkanCmdBuffer* GetActiveCmdBuffer()
+	{
+		if (UploadCmdBuffer)
+		{
+			SubmitUploadCmdBuffer(false);
+		}
+
+		return ActiveCmdBuffer;
+	}
+
+	inline bool HasPendingUploadCmdBuffer() const
+	{
+		return UploadCmdBuffer != nullptr;
+	}
+
+	inline bool HasPendingActiveCmdBuffer() const
+	{
+		return ActiveCmdBuffer != nullptr;
+	}
+
+	FVulkanCmdBuffer* GetUploadCmdBuffer();
+
+	void SubmitUploadCmdBuffer(bool bWaitForFence);
+	void SubmitActiveCmdBuffer(bool bWaitForFence);
+
+	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 1.0f);
+	*/
+	void RefreshFenceStatus();
+	/*
+	void PrepareForNewActiveCommandBuffer();
+*/
+
+	inline VkCommandPool GetHandle() const
+	{
+		check(Handle != VK_NULL_HANDLE);
+		return Handle;
+	}
+
+private:
+	FVulkanDevice* Device;
+	VkCommandPool Handle;
+	//FVulkanCmdBuffer* ActiveCmdBuffer;
+
+	FVulkanCmdBuffer* Create();
+
+	TArray<FVulkanCmdBuffer*> CmdBuffers;
+
+	void Create(uint32 QueueFamilyIndex);
+	friend class FVulkanCommandBufferManager;
 };
 
 class FVulkanCommandBufferManager
@@ -148,22 +209,21 @@ public:
 
 	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 1.0f);
 
-	void RefreshFenceStatus();
+	void RefreshFenceStatus()
+	{
+		Pool.RefreshFenceStatus();
+	}
+
 	void PrepareForNewActiveCommandBuffer();
 
 	inline VkCommandPool GetHandle() const
 	{
-		check(Handle != VK_NULL_HANDLE);
-		return Handle;
+		return Pool.GetHandle();
 	}
 
 private:
 	FVulkanDevice* Device;
-	VkCommandPool Handle;
+	FVulkanCommandBufferPool Pool;
 	FVulkanCmdBuffer* ActiveCmdBuffer;
 	FVulkanCmdBuffer* UploadCmdBuffer;
-
-	FVulkanCmdBuffer* Create();
-
-	TArray<FVulkanCmdBuffer*> CmdBuffers;
 };

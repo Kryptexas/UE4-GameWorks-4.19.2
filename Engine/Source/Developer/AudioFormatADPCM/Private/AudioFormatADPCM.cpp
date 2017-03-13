@@ -248,8 +248,9 @@ namespace ADPCM
 		/* TODO::JTM - Dec 10, 2012 05:30PM - Calculate the optimal starting coefficient */
 		uint8 CoefficientIndex = 0;
 		Context.AdaptationDelta = Context.AdaptationTable[0];
-		Context.Sample1 = ReadFromArray<int16>(InputPCMSamples, ReadIndex, NumSamples, SampleStride);
+		// First PCM sample goes to Context.Sample2, decoder will reverse it
 		Context.Sample2 = ReadFromArray<int16>(InputPCMSamples, ReadIndex, NumSamples, SampleStride);
+		Context.Sample1 = ReadFromArray<int16>(InputPCMSamples, ReadIndex, NumSamples, SampleStride);
 		Context.Coefficient1 = Context.AdaptationCoefficient1[CoefficientIndex];
 		Context.Coefficient2 = Context.AdaptationCoefficient2[CoefficientIndex];
 
@@ -402,10 +403,10 @@ public:
 	{
 		uint8 const*	SrcData = SrcBuffer.GetData();
 		uint32			SrcSize = SrcBuffer.Num();
-		uint32			bytesProcessed = 0;
+		uint32			BytesProcessed = 0;
 		
-		FWaveModInfo	waveInfo;
-		waveInfo.ReadWaveInfo((uint8*)SrcData, SrcSize);
+		FWaveModInfo	WaveInfo;
+		WaveInfo.ReadWaveInfo((uint8*)SrcData, SrcSize);
 		
 		// Choose a chunk size that is much larger then the number of samples that the os audio render callback will ask for so that the chunk system has time to load new data before its needed
 		// The audio render callback will typically ask for a power of 2 number of samples. However, there is not a power of 2 number of samples in the uncompressed block.
@@ -415,21 +416,23 @@ public:
 		// Also, the first 78 odd bytes of the buffer is for the header so the first chunk is 78 bytes bigger then the rest. This needs to be accounted for when using chunk 0.
 
 		// The incoming data is organized by channel (all samples for channel 0 then all samples for channel 1, etc) but for streaming we need the channels interlaced by compressed blocks
-		// so that each chunk contains an even number of copmressed blocks per channel, ie channels can not span one chunk
+		// so that each chunk contains an even number of compressed blocks per channel, ie channels can not span one chunk
 		
-		const int32	NumChannels = *waveInfo.pChannels;
+		const int32	NumChannels = *WaveInfo.pChannels;
 		
-		if(*waveInfo.pFormatTag == WAVE_FORMAT_ADPCM)
+		if(*WaveInfo.pFormatTag == WAVE_FORMAT_ADPCM)
 		{
-			int32 BlockSize = *waveInfo.pBlockAlign;
-			const int32 NumBlocksPerChannel = (waveInfo.SampleDataSize + BlockSize * NumChannels - 1) / (BlockSize * NumChannels);
+			int32 BlockSize = *WaveInfo.pBlockAlign;
+			const int32 NumBlocksPerChannel = (WaveInfo.SampleDataSize + BlockSize * NumChannels - 1) / (BlockSize * NumChannels);
 			
 			// Ensure chunk size is an even multiple of block size and channel number, ie (ChunkSize % (BlockSize * NumChannels)) == 0
-			int32 ChunkSize = ((MONO_PCM_BUFFER_SIZE + BlockSize * NumChannels - 1) / (BlockSize * NumChannels)) * (BlockSize * NumChannels);
+			// Use a base chunk size of MONO_PCM_BUFFER_SIZE * NumChannels * 2 because Android uses MONO_PCM_BUFFER_SIZE to submit buffers to the os, the streaming system has more scheduling flexability when the chunk size is
+			//	larger the the buffer size submitted to the OS
+			int32 ChunkSize = ((MONO_PCM_BUFFER_SIZE * NumChannels * 2 + BlockSize * NumChannels - 1) / (BlockSize * NumChannels)) * (BlockSize * NumChannels);
 			
 			// Add the first chunk and the header data
-			AddNewChunk(OutBuffers, ChunkSize + waveInfo.SampleDataStart - SrcData);	// Add the first chunk with enough reserve room for the header data
-			AddChunkData(OutBuffers, SrcData, waveInfo.SampleDataStart - SrcData);
+			AddNewChunk(OutBuffers, ChunkSize + WaveInfo.SampleDataStart - SrcData);	// Add the first chunk with enough reserve room for the header data
+			AddChunkData(OutBuffers, SrcData, WaveInfo.SampleDataStart - SrcData);
 			
 			int32	CurChunkDataSize = 0;	// Don't include the header size here since we want the first chunk to include both the header data and a full ChunkSize of data
 			
@@ -443,12 +446,12 @@ public:
 						CurChunkDataSize = 0;
 					}
 					
-					AddChunkData(OutBuffers, waveInfo.SampleDataStart + (channelItr * NumBlocksPerChannel + blockItr) * BlockSize, BlockSize);
+					AddChunkData(OutBuffers, WaveInfo.SampleDataStart + (channelItr * NumBlocksPerChannel + blockItr) * BlockSize, BlockSize);
 					CurChunkDataSize += BlockSize;
 				}
 			}
 		}
-		else if(*waveInfo.pFormatTag == WAVE_FORMAT_LPCM)
+		else if(*WaveInfo.pFormatTag == WAVE_FORMAT_LPCM)
 		{
 			int32 ChunkSize = MONO_PCM_BUFFER_SIZE * 4;	// Use an extra big buffer for uncompressed data since uncompressed uses about x4 amount of data
 			int32	FrameSize = sizeof(uint16) * NumChannels;
@@ -457,9 +460,9 @@ public:
 			
 			// Add the first chunk and the header data
 			AddNewChunk(OutBuffers, ChunkSize + 128);	// Add the first chunk with enough reserve room for the header data
-			AddChunkData(OutBuffers, SrcData, waveInfo.SampleDataStart - SrcData);
-			SrcSize -= waveInfo.SampleDataStart - SrcData;
-			SrcData = waveInfo.SampleDataStart;
+			AddChunkData(OutBuffers, SrcData, WaveInfo.SampleDataStart - SrcData);
+			SrcSize -= WaveInfo.SampleDataStart - SrcData;
+			SrcData = WaveInfo.SampleDataStart;
 			
 			while(SrcSize > 0)
 			{

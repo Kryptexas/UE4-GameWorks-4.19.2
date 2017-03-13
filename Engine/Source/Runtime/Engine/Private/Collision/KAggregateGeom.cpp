@@ -50,7 +50,7 @@ FBox FKAggregateGeom::CalcAABB(const FTransform& Transform) const
 	FTransform BoneTM = Transform;
 	BoneTM.RemoveScaling();
 
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	// Instead of ignore if not uniform, I'm getting Min of the abs value
 	// the reason for below function is for negative scale

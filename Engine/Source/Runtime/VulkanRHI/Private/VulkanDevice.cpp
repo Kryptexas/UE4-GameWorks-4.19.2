@@ -17,16 +17,15 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, DeferredDeletionQueue(this)
 	, DefaultSampler(VK_NULL_HANDLE)
 	, TimestampQueryPool(nullptr)
-	, Queue(nullptr)
+	, GfxQueue(nullptr)
+	, TransferQueue(nullptr)
 	, ImmediateContext(nullptr)
 #if VULKAN_ENABLE_DRAW_MARKERS
 	, CmdDbgMarkerBegin(nullptr)
 	, CmdDbgMarkerEnd(nullptr)
 	, DebugMarkerSetObjectName(nullptr)
 #endif
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	, PipelineStateCache(nullptr)
-#endif
 {
 	FMemory::Memzero(GpuProps);
 	FMemory::Memzero(Features);
@@ -67,6 +66,7 @@ void FVulkanDevice::CreateDevice()
 	TArray<VkDeviceQueueCreateInfo> QueueFamilyInfos;
 	QueueFamilyInfos.AddZeroed(QueueFamilyProps.Num());
 	int32 GfxQueueFamilyIndex = -1;
+	int32 TransferQueueFamilyIndex = -1;
 	UE_LOG(LogVulkanRHI, Display, TEXT("Found %d Queue Families"), QueueFamilyProps.Num());
 	uint32 NumPriorities = 0;
 	for (int32 FamilyIndex = 0; FamilyIndex < QueueFamilyProps.Num(); ++FamilyIndex)
@@ -87,6 +87,15 @@ void FVulkanDevice::CreateDevice()
 			else
 			{
 				//#todo-rco: Support for multi-queue/choose the best queue!
+			}
+		}
+
+		if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
+		{
+			// Prefer a non-gfx transfer queue
+			if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) != VK_QUEUE_GRAPHICS_BIT)
+			{
+				TransferQueueFamilyIndex = FamilyIndex;
 			}
 		}
 
@@ -138,7 +147,13 @@ void FVulkanDevice::CreateDevice()
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateDevice(Gpu, &DeviceInfo, nullptr, &Device));
 
 	// Create Graphics Queue, here we submit command buffers for execution
-	Queue = new FVulkanQueue(this, GfxQueueFamilyIndex, 0);
+	GfxQueue = new FVulkanQueue(this, GfxQueueFamilyIndex, 0);
+	if (TransferQueueFamilyIndex == -1)
+	{
+		// If we didn't find a dedicated Queue, use the default one
+		TransferQueueFamilyIndex = GfxQueueFamilyIndex;
+	}
+	TransferQueue = new FVulkanQueue(this, TransferQueueFamilyIndex, 0);
 
 #if VULKAN_ENABLE_DRAW_MARKERS
 	if (bDebugMarkersFound || VULKAN_ENABLE_DUMP_LAYER)
@@ -360,6 +375,13 @@ void FVulkanDevice::SetupFormats()
 		SetComponentMapping(PF_ASTC_12x12, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 	}
 
+	// ETC1 is a subset of ETC2 R8G8B8.
+	MapFormatSupport(PF_ETC1, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
+	if (GPixelFormats[PF_ETC1].Supported)
+	{
+		SetComponentMapping(PF_ETC1, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE);
+	}
+	
 	MapFormatSupport(PF_ETC2_RGB, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
 	if (GPixelFormats[PF_ETC2_RGB].Supported)
 	{
@@ -469,9 +491,8 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	FenceManager.Init(this);
 
-	StagingManager.Init(this, Queue);
+	StagingManager.Init(this, GfxQueue);
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	PipelineStateCache = new FVulkanPipelineStateCache(this);
 
 	TArray<FString> CacheFilenames;
@@ -481,7 +502,6 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	}
 	CacheFilenames.Add(FPaths::GameSavedDir() / TEXT("VulkanPSO.cache"));
 	PipelineStateCache->InitAndLoad(CacheFilenames);
-#endif
 
 	bool bSupportsTimestamps = (GpuProps.limits.timestampComputeAndGraphics == VK_TRUE);
 	if (bSupportsTimestamps)
@@ -526,9 +546,8 @@ void FVulkanDevice::Destroy()
 	}
 	OcclusionQueryPools.SetNum(0, false);
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	delete PipelineStateCache;
-#endif
+	PipelineStateCache = nullptr;
 
 	delete DefaultSampler;
 	DefaultSampler = nullptr;
@@ -537,7 +556,8 @@ void FVulkanDevice::Destroy()
 
 	ResourceHeapManager.Deinit();
 
-	delete Queue;
+	delete TransferQueue;
+	delete GfxQueue;
 
 	FenceManager.Deinit();
 
@@ -591,10 +611,10 @@ const VkComponentMapping& FVulkanDevice::GetFormatComponentMapping(EPixelFormat 
 	return PixelFormatComponentMapping[UEFormat];
 }
 
-void FVulkanDevice::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
+void FVulkanDevice::NotifyDeletedRenderTarget(VkImage Image)
 {
 	//#todo-rco: Loop through all contexts!
-	GetImmediateContext().NotifyDeletedRenderTarget(Texture);
+	GetImmediateContext().NotifyDeletedRenderTarget(Image);
 }
 
 void FVulkanDevice::PrepareForCPURead()
@@ -608,6 +628,13 @@ void FVulkanDevice::SubmitCommandsAndFlushGPU()
 	//#todo-rco: Process other contexts first!
 
 	FVulkanCommandBufferManager* CmdMgr = ImmediateContext->GetCommandBufferManager();
-	CmdMgr->SubmitActiveCmdBuffer(true);
+	if (CmdMgr->HasPendingUploadCmdBuffer())
+	{
+		CmdMgr->SubmitUploadCmdBuffer(true);
+	}
+	if (CmdMgr->HasPendingActiveCmdBuffer())
+	{
+		CmdMgr->SubmitActiveCmdBuffer(true);
+	}
 	CmdMgr->PrepareForNewActiveCommandBuffer();
 }

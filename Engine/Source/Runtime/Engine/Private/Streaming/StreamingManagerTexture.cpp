@@ -140,6 +140,9 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 	ProcessingStage = 0;
 	AsyncWork = new FAsyncTask<FAsyncTextureStreamingTask>(this);
 
+	TextureInstanceAsyncWork = new TextureInstanceTask::FDoWorkAsyncTask();
+	DynamicComponentManager.RegisterTasks(TextureInstanceAsyncWork->GetTask());
+
 	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FStreamingManagerTexture::OnPreGarbageCollect);
 }
 
@@ -148,6 +151,8 @@ FStreamingManagerTexture::~FStreamingManagerTexture()
 	AsyncWork->EnsureCompletion();
 	delete AsyncWork;
 
+	TextureInstanceAsyncWork->EnsureCompletion();
+	
 	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
 
 	// Clear the stats
@@ -334,10 +339,9 @@ bool FStreamingManagerTexture::StreamOutTextureData( int64 RequiredMemorySize )
 	return bSucceeded;
 }
 
-void FStreamingManagerTexture::IncrementalUpdate( float Percentage )
+void FStreamingManagerTexture::IncrementalUpdate(float Percentage, bool bUpdateDynamicComponents)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStreamingManagerTexture_IncrementalUpdate);
-
 	FRemovedTextureArray RemovedTextures;
 
 	int64 NumStepsLeftForIncrementalBuild = CVarStreamingNumStaticComponentsProcessedPerFrame.GetValueOnGameThread();
@@ -346,34 +350,16 @@ void FStreamingManagerTexture::IncrementalUpdate( float Percentage )
 		NumStepsLeftForIncrementalBuild = MAX_int64;
 	}
 
-	// Create a single async task for all levels as the cost of creating / launching task is not neglectible.
-	// Each level keeps a shared ptr to the task in order to wait for completion it required.
-	// This would normally only happen in next frames, or if the level is deleted.
-	TRefCountPtr<FAsyncUpdateLastRenderTimeTask> AsyncUpdateLastRenderTimeTask;
-	if (Percentage < 1.f)
-	{
-		AsyncUpdateLastRenderTimeTask = new FAsyncUpdateLastRenderTimeTask();
-		AsyncUpdateLastRenderTimeTask->GetTask().Reserve(LevelTextureManagers.Num());
-	}
-
 	for (FLevelTextureManager& LevelManager : LevelTextureManagers)
 	{
-		LevelManager.IncrementalUpdate(AsyncUpdateLastRenderTimeTask, DynamicComponentManager, RemovedTextures, NumStepsLeftForIncrementalBuild, Percentage, bUseDynamicStreaming); // Complete the incremental update.
+		LevelManager.IncrementalUpdate(DynamicComponentManager, RemovedTextures, NumStepsLeftForIncrementalBuild, Percentage, bUseDynamicStreaming); // Complete the incremental update.
 	}
 
-	if (AsyncUpdateLastRenderTimeTask.IsValid())
+	// Dynamic component are only udpated when it is useful for the dynamic async view.
+	if (bUpdateDynamicComponents && bUseDynamicStreaming)
 	{
-		if (AsyncUpdateLastRenderTimeTask->GetTask().HasLevelData())
-		{
-			AsyncUpdateLastRenderTimeTask->StartBackgroundTask();
-		}
-		else // Otherwise the task must be kicked in anyway
-		{
-			AsyncUpdateLastRenderTimeTask->StartSynchronousTask();
-		}
+		DynamicComponentManager.IncrementalUpdate(RemovedTextures, Percentage);
 	}
-
-	DynamicComponentManager.IncrementalUpdate(RemovedTextures, Percentage); // Complete the incremental update.
 
 	SetTexturesRemovedTimestamp(RemovedTextures);
 }
@@ -438,7 +424,6 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 			PreviousSettings.bUsePerTextureBias != Settings.bUsePerTextureBias)
 		{
 			TArray<ULevel*> Levels;
-
 			FRemovedTextureArray RemovedTextures;
 
 			// RemoveLevel data
@@ -456,7 +441,7 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 
 			// Reinsert dynamic components
 			TArray<const UPrimitiveComponent*> DynamicComponents;
-			DynamicComponentManager.GetAllComponents(DynamicComponents);
+			DynamicComponentManager.GetReferencedComponents(DynamicComponents);
 			for (const UPrimitiveComponent* Primitive : DynamicComponents)
 			{
 				NotifyPrimitiveUpdated(Primitive);
@@ -476,15 +461,17 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
  */
 void FStreamingManagerTexture::UpdateThreadData(bool bProcessEverything)
 {
-	// Update the textures, can only be done while the async task is stopped since it accessed this StreamingTextures.
+	// Update the textures, can only be done while the async task is stopped since it accesses this StreamingTextures.
 	ProcessRemovedTextures();
 	ProcessAddedTextures();
 
 	Settings.Update();
 	ConditionalUpdateStaticData();
 
-	// Fully complete all pending update.
-	IncrementalUpdate(1.f);
+	// Fully complete all pending update static data (newly loaded levels).
+	// Dynamic bounds are not updated here since the async task uses the async view generated from the last frame.
+	// this makes the current dynamic data fully dirty, and it will get refreshed iterativelly for the next full update.
+	IncrementalUpdate(1.f, false);
 
 	// Update the thread data.
 
@@ -566,7 +553,8 @@ void FStreamingManagerTexture::AddLevel( ULevel* Level )
 	}
 
 	// If the level was not already there, add a new entry.
-	new (LevelTextureManagers) FLevelTextureManager(Level);
+	TextureInstanceAsyncWork->EnsureCompletion();
+	new (LevelTextureManagers) FLevelTextureManager(Level, TextureInstanceAsyncWork->GetTask());
 }
 
 /** Removes a ULevel from the streaming manager. */
@@ -600,6 +588,8 @@ void FStreamingManagerTexture::RemoveLevel( ULevel* Level )
  */
 void FStreamingManagerTexture::AddStreamingTexture( UTexture2D* Texture )
 {
+	STAT(GatheredStats.CallbacksCycles = -(int32)FPlatformTime::Cycles();)
+
 	// Adds the new texture to the Pending list, to avoid reallocation of the thread-safe StreamingTextures array.
 	check(Texture->StreamingIndex == INDEX_NONE);
 	Texture->StreamingIndex = PendingStreamingTextures.Add(Texture);
@@ -609,6 +599,8 @@ void FStreamingManagerTexture::AddStreamingTexture( UTexture2D* Texture )
 
 	// Notify that this texture ptr is valid.
 	ReferencedTextures.Add(Texture);
+
+	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
 }
 
 /**
@@ -616,6 +608,8 @@ void FStreamingManagerTexture::AddStreamingTexture( UTexture2D* Texture )
  */
 void FStreamingManagerTexture::RemoveStreamingTexture( UTexture2D* Texture )
 {
+	STAT(GatheredStats.CallbacksCycles = -(int32)FPlatformTime::Cycles();)
+
 	const int32	TextureIndex = Texture->StreamingIndex;
 
 	// Remove it from the Pending list if it is there.
@@ -634,6 +628,8 @@ void FStreamingManagerTexture::RemoveStreamingTexture( UTexture2D* Texture )
 
 	// Remove reference to this texture.
 	ReferencedTextures.Remove(Texture);
+
+	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
 }
 
 /** Called when an actor is spawned. */
@@ -658,6 +654,8 @@ void FStreamingManagerTexture::NotifyActorSpawned( AActor* Actor )
 /** Called when a spawned primitive is deleted, or when an actor is destroyed in the editor. */
 void FStreamingManagerTexture::NotifyActorDestroyed( AActor* Actor )
 {
+	STAT(GatheredStats.CallbacksCycles = -(int32)FPlatformTime::Cycles();)
+	FRemovedTextureArray RemovedTextures;
 	check(Actor);
 
 	TInlineComponentArray<UPrimitiveComponent*> Components;
@@ -674,18 +672,19 @@ void FStreamingManagerTexture::NotifyActorDestroyed( AActor* Actor )
 			LevelManager.RemoveActorReferences(Actor);
 			for (UPrimitiveComponent* Component : Components)
 			{
-				LevelManager.RemoveComponentReferences(Component);
+				LevelManager.RemoveComponentReferences(Component, RemovedTextures);
 			}
 		}
 	}
 
 	// Remove any references in the dynamic component manager.
-	FRemovedTextureArray RemovedTextures;
 	for (UPrimitiveComponent* Component : Components)
 	{
 		DynamicComponentManager.Remove(Component, RemovedTextures);
 	}
+
 	SetTexturesRemovedTimestamp(RemovedTextures);
+	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
 }
 
 bool FStreamingManagerTexture::IsHandledAsStatic(const UPrimitiveComponent* Primitive) const
@@ -720,6 +719,8 @@ bool FStreamingManagerTexture::IsHandledAsStatic(const UPrimitiveComponent* Prim
  */
 void FStreamingManagerTexture::NotifyPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType )
 {
+	STAT(GatheredStats.CallbacksCycles = -(int32)FPlatformTime::Cycles();)
+
 	// Only add it if it's a UMeshComponent, since we only track those in UMeshComponent::BeginDestroy().
 	// Also only consider non static primitive as they can only be created in the editor, which will trigger a data rebuild.
 	if (bUseDynamicStreaming && Primitive && Primitive->IsA(UMeshComponent::StaticClass()) && !IsHandledAsStatic(Primitive))
@@ -727,10 +728,11 @@ void FStreamingManagerTexture::NotifyPrimitiveAttached( const UPrimitiveComponen
 #if STREAMING_LOG_DYNAMIC
 		UE_LOG(LogContentStreaming, Log, TEXT("NotifyPrimitiveAttached(0x%08x \"%s\"), IsRegistered=%d"), SIZE_T(Primitive), *Primitive->GetReadableName(), Primitive->IsRegistered());
 #endif
-		FRemovedTextureArray RemovedTextures;
-		DynamicComponentManager.Add(Primitive, DynamicType, RemovedTextures);
-		SetTexturesRemovedTimestamp(RemovedTextures);
+		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Primitive);
+		DynamicComponentManager.Add(Primitive, LevelContext);
 	}
+
+	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
 }
 
 /**
@@ -743,6 +745,9 @@ void FStreamingManagerTexture::NotifyPrimitiveDetached( const UPrimitiveComponen
 	{
 		return;
 	}
+
+	STAT(GatheredStats.CallbacksCycles = -(int32)FPlatformTime::Cycles();)
+	FRemovedTextureArray RemovedTextures;
 
 #if STREAMING_LOG_DYNAMIC
 		UE_LOG(LogContentStreaming, Log, TEXT("NotifyPrimitiveDetached(0x%08x \"%s\"), IsRegistered=%d"), SIZE_T(Primitive), *Primitive->GetReadableName(), Primitive->IsRegistered());
@@ -763,15 +768,16 @@ void FStreamingManagerTexture::NotifyPrimitiveDetached( const UPrimitiveComponen
 		{
 			if (!Level || LevelManager.GetLevel() == Level)
 			{
-				LevelManager.RemoveComponentReferences(Primitive);
+				LevelManager.RemoveComponentReferences(Primitive, RemovedTextures);
 			}
 		}
 	}
 	
 	// Dynamic component must be removed when visibility changes.
-	FRemovedTextureArray RemovedTextures;
 	DynamicComponentManager.Remove(Primitive, RemovedTextures);
+
 	SetTexturesRemovedTimestamp(RemovedTextures);
+	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
 }
 
 /**
@@ -805,66 +811,15 @@ void FStreamingManagerTexture::SetTexturesRemovedTimestamp(const FRemovedTexture
  */
 void FStreamingManagerTexture::NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive )
 {
-	FRemovedTextureArray RemovedTextures;
-	DynamicComponentManager.Update(Primitive, RemovedTextures);
-	SetTexturesRemovedTimestamp(RemovedTextures);
-}
+	STAT(GatheredStats.CallbacksCycles = -(int32)FPlatformTime::Cycles();)
 
-/**
- * Called when a LastRenderTime primitive is attached to an actor or another component.
- * Modifies the LastRenderTimeRefCount for the textures used, so that those textures can
- * use both distance-based and LastRenderTime heuristics.
- *
- * @param Primitive		Newly attached dynamic/spawned primitive
- */
-void FStreamingManagerTexture::NotifyTimedPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType )
-{
-	const double CurrentTime = FApp::GetCurrentTime();
-	if ( Primitive  && Primitive->IsRegistered() )
+	if (DynamicComponentManager.IsReferenced(Primitive))
 	{
-		FStreamingTextureLevelContext LevelContext( EMaterialQualityLevel::Num, Primitive );
-		TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
-		Primitive->GetStreamingTextureInfoWithNULLRemoval( LevelContext, TextureInstanceInfos );
-
-		for ( const FStreamingTexturePrimitiveInfo& Info :  TextureInstanceInfos )
-		{
-			FStreamingTexture* StreamingTexture = GetStreamingTexture( Info.Texture );
-			if ( StreamingTexture )
-			{
-				// Note: Doesn't have to be cycle-perfect for thread safety.
-				StreamingTexture->LastRenderTimeRefCount++;
-				StreamingTexture->LastRenderTimeRefCountTimestamp = CurrentTime;
-			}
-		}
+		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Primitive);
+		DynamicComponentManager.Add(Primitive, LevelContext);
 	}
-}
 
-/**
- * Called when a LastRenderTime primitive is detached from an actor or another component.
- * Modifies the LastRenderTimeRefCount for the textures used, so that those textures can
- * use both distance-based and LastRenderTime heuristics.
- *
- * @param Primitive		Newly detached dynamic/spawned primitive
- */
-void FStreamingManagerTexture::NotifyTimedPrimitiveDetached( const UPrimitiveComponent* Primitive )
-{
-	const double CurrentTime = FApp::GetCurrentTime();
-	if ( Primitive )
-	{
-		FStreamingTextureLevelContext LevelContext( EMaterialQualityLevel::Num, Primitive );
-		TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
-		Primitive->GetStreamingTextureInfoWithNULLRemoval( LevelContext, TextureInstanceInfos );
-
-		for ( const FStreamingTexturePrimitiveInfo& Info :  TextureInstanceInfos )
-		{
-			FStreamingTexture* StreamingTexture = GetStreamingTexture( Info.Texture );
-			if ( StreamingTexture && StreamingTexture->LastRenderTimeRefCount > 0 )
-			{
-				StreamingTexture->LastRenderTimeRefCount--;
-				StreamingTexture->LastRenderTimeRefCountTimestamp = CurrentTime;
-			}
-		}
-	}
+	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
 }
 
 /**
@@ -1115,6 +1070,8 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 	LogViewLocationChange();
 	STAT(DisplayedStats.Apply();)
 
+	TextureInstanceAsyncWork->EnsureCompletion();
+
 	if (NumTextureProcessingStages <= 0 || bProcessEverything)
 	{
 		if (!AsyncWork->IsDone())
@@ -1128,8 +1085,10 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		// Update Thread Data
 		CheckUserSettings();
 		SetLastUpdateTime();
+		// Clear the async view so that we generate a new one.
 		UpdateStreamingTextures(0, 1);
 		IncrementalUpdate(1.f);
+		DynamicComponentManager.PrepareAsyncView();
 		UpdateThreadData(bProcessEverything);
 		AsyncWork->StartSynchronousTask();
 		StreamTextures(bProcessEverything);
@@ -1137,6 +1096,7 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		STAT(GatheredStats.SetupAsyncTaskCycles = 0);
 		STAT(GatheredStats.UpdateStreamingDataCycles = 0);
 		STAT(GatheredStats.StreamTexturesCycles = 0);
+		STAT(GatheredStats.CallbacksCycles = 0);
 		STAT(UpdateStats();)
 	}
 	else if (ProcessingStage == 0)
@@ -1183,11 +1143,18 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		}
 
 		StreamTextures(bProcessEverything);
+		// Release the old view now as the destructors can be expensive. Now only the dynamic manager holds a ref.
+		AsyncWork->GetTask().ReleaseAsyncViews();
+		IncrementalUpdate(1.f / (float)FMath::Max(NumTextureProcessingStages - 1, 1)); // Just in case continue any pending update.
+		DynamicComponentManager.PrepareAsyncView();
+
 		ProcessingStage = 0;
 
 		STAT(GatheredStats.StreamTexturesCycles += FPlatformTime::Cycles();)
 		STAT(UpdateStats();)
 	}
+
+	TextureInstanceAsyncWork->StartBackgroundTask();
 }
 
 /**
@@ -1573,6 +1540,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 	if ( InvestigateTextureName.Len() )
 	{
 		// Make sure the async task is idle (also implies Update_Async is finished and that the distances are valid).
+		UpdateResourceStreaming(0, true);
 		AsyncWork->EnsureCompletion();
 		FAsyncTextureStreamingData& StreamingData = AsyncWork->GetTask().StreamingData;
 		StreamingData.UpdateBoundSizes_Async(Settings);
@@ -1630,7 +1598,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 				{
 					// Calculate distance of viewer to bounding sphere.
 					const FStreamingViewInfo& ViewInfo = StreamingData.GetViewInfos()[ViewIndex];
-					UE_LOG(LogContentStreaming, Log,  TEXT("  View%d: Position=(%s) ScreenSize=%f Boost=%f"), ViewIndex, *ViewInfo.ViewOrigin.ToString(), ViewInfo.ScreenSize, ViewInfo.BoostFactor);
+					UE_LOG(LogContentStreaming, Log,  TEXT("  View%d: Position=(%s) ScreenSize=%f MaxEffectiveScreenSize=%f Boost=%f"), ViewIndex, *ViewInfo.ViewOrigin.ToString(), ViewInfo.ScreenSize, Settings.MaxEffectiveScreenSize, ViewInfo.BoostFactor);
 				}
 
 				StreamingData.UpdatePerfectWantedMips_Async(StreamingTexture, Settings, true);

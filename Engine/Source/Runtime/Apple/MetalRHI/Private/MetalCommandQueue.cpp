@@ -43,7 +43,15 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 	if(StatsModule && (![Device.name containsString:@"AMD"] || FParse::Param(FCommandLine::Get(),TEXT("metalstats"))))
 	{
 		Statistics = StatsModule->CreateMetalStatistics(CommandQueue);
-		if(!Statistics->SupportsStatistics())
+		if(Statistics->SupportsStatistics())
+		{
+			Features |= EMetalFeaturesStatistics;
+			if(StatsModule->IsValidationEnabled())
+			{
+				Features |= EMetalFeaturesValidation;
+			}
+		}
+		else
 		{
 			delete Statistics;
 			Statistics = nullptr;
@@ -96,6 +104,11 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
     {
     	Features |= EMetalFeaturesSetBytes;
     }
+	// Time query emulation breaks on AMD - disable by default until they can explain why, should work everywhere else.
+	if ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location == NSNotFound || FParse::Param(FCommandLine::Get(),TEXT("metaltimequery")))
+	{
+		Features |= EMetalFeaturesAbsoluteTimeQueries;
+	}
 #endif
 }
 

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AvfMediaFactory : ModuleRules
 	{
-		public AvfMediaFactory(TargetInfo Target)
+		public AvfMediaFactory(ReadOnlyTargetRules Target) : base(Target)
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
@@ -38,7 +38,7 @@ namespace UnrealBuildTool.Rules
                 }
             );
 
-            if (Target.Type == TargetRules.TargetType.Editor)
+            if (Target.Type == TargetType.Editor)
             {
                 DynamicallyLoadedModuleNames.Add("Settings");
                 PrivateIncludePathModuleNames.Add("Settings");

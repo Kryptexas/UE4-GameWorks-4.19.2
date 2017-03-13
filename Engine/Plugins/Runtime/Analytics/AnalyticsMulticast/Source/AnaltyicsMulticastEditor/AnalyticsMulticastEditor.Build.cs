@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AnalyticsMulticastEditor : ModuleRules
 {
-    public AnalyticsMulticastEditor(TargetInfo Target)
+    public AnalyticsMulticastEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("AnalyticsMulticastEditor/Private");
 

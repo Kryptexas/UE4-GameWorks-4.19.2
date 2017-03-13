@@ -16,7 +16,7 @@ namespace UnrealBuildTool
 
 		// cache the location of SDK tools
 		public HTML5ToolChain()
-			: base(CPPTargetPlatform.HTML5, false)
+			: base(CppPlatform.HTML5, WindowsCompiler.VisualStudio2015)
 		{
 			if (!HTML5SDKInfo.IsSDKInstalled())
 			{
@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public override void PreBuildSync()
+		public static void PreBuildSync()
 		{
 			Log.TraceInformation("Setting Emscripten SDK ");
 			HTML5SDKInfo.SetupEmscriptenTemp();
@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarnings, bool bEnableUndefinedIdentifierWarnings)
+		static string GetSharedArguments_Global(CppConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarnings, bool bShadowVariableWarningsAsErrors, bool bEnableUndefinedIdentifierWarnings, bool bUndefinedIdentifierWarningsAsErrors)
 		{
 			string Result = " ";
 
@@ -72,20 +72,23 @@ namespace UnrealBuildTool
 
 			if (bEnableShadowVariableWarnings)
 			{
-				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow");
+				Result += " -Wshadow" + (bShadowVariableWarningsAsErrors ? "" : " -Wno-error=shadow");
 			}
 
 			if (bEnableUndefinedIdentifierWarnings)
 			{
-				Result += " -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef");
+				Result += " -Wundef" + (bUndefinedIdentifierWarningsAsErrors ? "" : " -Wno-error=undef");
 			}
 
 			// JavsScript option overrides (see src/settings.js)
 
 			// we have to specify the full amount of memory with Asm.JS (1.5 G)
-			// I wonder if there's a per game way to change this.
-			int TotalMemory = 256 * 1024 * 1024;
-			Result += " -s TOTAL_MEMORY=" + TotalMemory.ToString();
+//			ConfigHierarchy cc = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.HTML5);
+//			int TotalMemory = HTML5SDKInfo.HeapSize(cc, TargetConfiguration.ToString()) * 1024 * 1024;
+//			Result += " -s TOTAL_MEMORY=" + TotalMemory.ToString();
+			// and, have to specify size smaller than used and must use "grow memory" !!!
+			Result += " -s TOTAL_MEMORY=" + 128 * 1024 * 1024;
+			Result += " -s ALLOW_MEMORY_GROWTH=1";
 
 			// no need for exceptions
 			Result += " -s DISABLE_EXCEPTION_CATCHING=1";
@@ -120,14 +123,14 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
+		static string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment)
 		{
-			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Configuration, CompileEnvironment.Config.Architecture, CompileEnvironment.Config.bEnableShadowVariableWarnings, CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings);
+			string Result = GetSharedArguments_Global(CompileEnvironment.Configuration, CompileEnvironment.Architecture, CompileEnvironment.bEnableShadowVariableWarnings, CompileEnvironment.bShadowVariableWarningsAsErrors, CompileEnvironment.bEnableUndefinedIdentifierWarnings, CompileEnvironment.bUndefinedIdentifierWarningsAsErrors);
 
-			if (CompileEnvironment.Config.Architecture != "-win32")  // ! simulator
+			if (CompileEnvironment.Architecture != "-win32")  // ! simulator
 			{
 				// do we want debug info?
-//				if (CompileEnvironment.Config.bCreateDebugInfo)
+//				if (CompileEnvironment.bCreateDebugInfo)
 //				{
 //					Result += " -g";
 //
@@ -138,12 +141,12 @@ namespace UnrealBuildTool
 //				Result += " -Wno-warn-absolute-paths "; // as of emscripten 1.35.0 complains that this is unknown
 				Result += " -Wno-reorder"; // we disable constructor order warnings.
 
-				if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Debug || CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Development)
+				if (CompileEnvironment.Configuration == CppConfiguration.Debug || CompileEnvironment.Configuration == CppConfiguration.Development)
 				{
 					Result += " -s GL_ASSERTIONS=1";
 				}
 
-				if (!CompileEnvironment.Config.bOptimizeCode)
+				if (!CompileEnvironment.bOptimizeCode)
 				{
 					Result += " -O0";
 				}
@@ -151,7 +154,7 @@ namespace UnrealBuildTool
 				{
 					Result += " -s ASM_JS=1";
 
-					if (UEBuildConfiguration.bCompileForSize)
+					if (CompileEnvironment.bOptimizeForSize)
 					{
 						Result += " -Oz -s OUTLINING_LIMIT=40000";
 					}
@@ -159,11 +162,11 @@ namespace UnrealBuildTool
 					{
 						Result += " -s OUTLINING_LIMIT=110000";
 
-						if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Development)
+						if (CompileEnvironment.Configuration == CppConfiguration.Development)
 						{
 							Result += " -O2";
                         }
-						if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Shipping)
+						if (CompileEnvironment.Configuration == CppConfiguration.Shipping)
 						{
 							Result += " -O3";
 						}
@@ -174,11 +177,11 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetCLArguments_CPP(CPPEnvironment CompileEnvironment)
+		static string GetCLArguments_CPP(CppCompileEnvironment CompileEnvironment)
 		{
 			string Result = "";
 
-			if (CompileEnvironment.Config.Architecture != "-win32") // ! simulator
+			if (CompileEnvironment.Architecture != "-win32") // ! simulator
 			{
 				Result = " -std=c++14";
 			}
@@ -192,11 +195,11 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetLinkArguments(LinkEnvironment LinkEnvironment)
+		string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
-			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Configuration, LinkEnvironment.Config.Architecture, false, false);
+			string Result = GetSharedArguments_Global(LinkEnvironment.Configuration, LinkEnvironment.Architecture, false, false, false, false);
 
-			if (LinkEnvironment.Config.Architecture != "-win32") // ! simulator
+			if (LinkEnvironment.Architecture != "-win32") // ! simulator
 			{
 				// suppress link time warnings
 				Result += " -Wno-ignored-attributes"; // function alias that always gets resolved
@@ -206,7 +209,7 @@ namespace UnrealBuildTool
 				// enable verbose mode
 				Result += " -v";
 
-				if (LinkEnvironment.Config.Configuration == CPPTargetConfiguration.Debug || LinkEnvironment.Config.Configuration == CPPTargetConfiguration.Development)
+				if (LinkEnvironment.Configuration == CppConfiguration.Debug || LinkEnvironment.Configuration == CppConfiguration.Development)
 				{
 					// check for alignment/etc checking
 //					Result += " -s SAFE_HEAP=1";
@@ -217,7 +220,7 @@ namespace UnrealBuildTool
 					Result += " -s ASSERTIONS=1";
 				}
 
-				if (LinkEnvironment.Config.Configuration == CPPTargetConfiguration.Debug)
+				if (LinkEnvironment.Configuration == CppConfiguration.Debug)
 				{
 					Result += " -O0";
 				}
@@ -225,7 +228,7 @@ namespace UnrealBuildTool
 				{
 					Result += " -s ASM_JS=1";
 
-					if (UEBuildConfiguration.bCompileForSize)
+					if (LinkEnvironment.bOptimizeForSize)
 					{
 						Result += " -Oz -s OUTLINING_LIMIT=40000";
 					}
@@ -233,11 +236,11 @@ namespace UnrealBuildTool
 					{
 						Result += " -s OUTLINING_LIMIT=110000";
 
-						if (LinkEnvironment.Config.Configuration == CPPTargetConfiguration.Development)
+						if (LinkEnvironment.Configuration == CppConfiguration.Development)
 						{
 							Result += " -O2";
 						}
-						if (LinkEnvironment.Config.Configuration == CPPTargetConfiguration.Shipping)
+						if (LinkEnvironment.Configuration == CppConfiguration.Shipping)
 						{
 							Result += " -O3";
 						}
@@ -255,7 +258,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (LinkEnvironment.Config.Architecture == "-win32") // simulator
+			if (LinkEnvironment.Architecture == "-win32") // simulator
 			{
 				// Prevents the linker from displaying its logo for each invocation.
 				Result += " /NOLOGO";
@@ -272,7 +275,7 @@ namespace UnrealBuildTool
 				//
 				//	Shipping & LTCG
 				//
-				if (LinkEnvironment.Config.Configuration == CPPTargetConfiguration.Shipping)
+				if (LinkEnvironment.Configuration == CppConfiguration.Shipping)
 				{
 					// Use link-time code generation.
 					Result += " /ltcg";
@@ -332,9 +335,9 @@ namespace UnrealBuildTool
 			Log.TraceInformation(Output);				// To preserve readable output log
 		}
 
-		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
+		public override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
-			if (CompileEnvironment.Config.Architecture == "-win32") // simulator
+			if (CompileEnvironment.Architecture == "-win32") // simulator
 			{
 				return base.CompileCPPFiles(CompileEnvironment, SourceFiles, ModuleName, ActionGraph);
 			}
@@ -344,18 +347,18 @@ namespace UnrealBuildTool
 			CPPOutput Result = new CPPOutput();
 
 			// Add include paths to the argument list.
-			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
+			foreach (string IncludePath in CompileEnvironment.IncludePaths.UserIncludePaths)
 			{
 				Arguments += string.Format(" -I\"{0}\"", IncludePath);
 			}
-			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
+			foreach (string IncludePath in CompileEnvironment.IncludePaths.SystemIncludePaths)
 			{
 				Arguments += string.Format(" -I\"{0}\"", IncludePath);
 			}
 
 
 			// Add preprocessor definitions to the argument list.
-			foreach (string Definition in CompileEnvironment.Config.Definitions)
+			foreach (string Definition in CompileEnvironment.Definitions)
 			{
 				Arguments += string.Format(" -D{0}", Definition);
 			}
@@ -365,15 +368,13 @@ namespace UnrealBuildTool
 				Arguments += string.Format(" -D__EMSCRIPTEN_TRACING__");
 			}
 
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Platform);
-
 			foreach (FileItem SourceFile in SourceFiles)
 			{
 				Action CompileAction = ActionGraph.Add(ActionType.Compile);
 				bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				AddPrerequisiteSourceFile(BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
+				AddPrerequisiteSourceFile(CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
 
 				// Add the source file path to the command-line.
 				string FileArguments = string.Format(" \"{0}\"", SourceFile.AbsolutePath);
@@ -381,7 +382,7 @@ namespace UnrealBuildTool
 				// Add the object file to the produced item list.
 				FileItem ObjectFile = FileItem.GetItemByFileReference(
 					FileReference.Combine(
-						CompileEnvironment.Config.OutputDirectory,
+						CompileEnvironment.OutputDirectory,
 						Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 						)
 					);
@@ -391,7 +392,7 @@ namespace UnrealBuildTool
 				// Add C or C++ specific compiler arguments.
 				if (bIsPlainCFile)
 				{
-					FileArguments += GetCLArguments_C(CompileEnvironment.Config.Architecture);
+					FileArguments += GetCLArguments_C(CompileEnvironment.Architecture);
 				}
 				else
 				{
@@ -401,14 +402,14 @@ namespace UnrealBuildTool
 				CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 				CompileAction.CommandPath = HTML5SDKInfo.Python();
 
-				CompileAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler() + " " + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				CompileAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler() + " " + Arguments + FileArguments + CompileEnvironment.AdditionalArguments;
 
 				//System.Console.WriteLine(CompileAction.CommandArguments);
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
 
 				// Don't farm out creation of precomputed headers as it is the critical path task.
-				CompileAction.bCanExecuteRemotely = CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create;
+				CompileAction.bCanExecuteRemotely = CompileEnvironment.PrecompiledHeaderAction != PrecompiledHeaderAction.Create;
 
 				// this is the final output of the compile step (a .abc file)
 				Result.ObjectFiles.Add(ObjectFile);
@@ -418,20 +419,20 @@ namespace UnrealBuildTool
 
 				// Don't farm out creation of precompiled headers as it is the critical path task.
 				CompileAction.bCanExecuteRemotely =
-					CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
-					BuildConfiguration.bAllowRemotelyCompiledPCHs;
+					CompileEnvironment.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
+					CompileEnvironment.bAllowRemotelyCompiledPCHs;
 			}
 
 			return Result;
 		}
 
-		public override CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles, ActionGraph ActionGraph)
+		public override CPPOutput CompileRCFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> RCFiles, ActionGraph ActionGraph)
 		{
 			CPPOutput Result = new CPPOutput();
 
-			if (Environment.Config.Architecture == "-win32") // simulator
+			if (CompileEnvironment.Architecture == "-win32") // simulator
 			{
-				return base.CompileRCFiles(Environment, RCFiles, ActionGraph);
+				return base.CompileRCFiles(CompileEnvironment, RCFiles, ActionGraph);
 			}
 
 			return Result;
@@ -493,7 +494,7 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly, ActionGraph ActionGraph)
 		{
-			if (LinkEnvironment.Config.Architecture == "-win32") // simulator
+			if (LinkEnvironment.Architecture == "-win32") // simulator
 			{
 				return base.LinkFiles(LinkEnvironment, bBuildImportLibraryOnly, ActionGraph);
 			}
@@ -520,41 +521,38 @@ namespace UnrealBuildTool
 				LinkAction.PrerequisiteItems.Add(InputFile);
 			}
 
-			if (!LinkEnvironment.Config.bIsBuildingLibrary)
+			if (!LinkEnvironment.bIsBuildingLibrary)
 			{
 				// Make sure ThirdParty libs are at the end.
-				List<string> ThirdParty = (from Lib in LinkEnvironment.Config.AdditionalLibraries
+				List<string> ThirdParty = (from Lib in LinkEnvironment.AdditionalLibraries
 											where Lib.Contains("ThirdParty")
 											select Lib).ToList();
 
-				LinkEnvironment.Config.AdditionalLibraries.RemoveAll(Element => Element.Contains("ThirdParty"));
-				LinkEnvironment.Config.AdditionalLibraries.AddRange(ThirdParty);
+				LinkEnvironment.AdditionalLibraries.RemoveAll(Element => Element.Contains("ThirdParty"));
+				LinkEnvironment.AdditionalLibraries.AddRange(ThirdParty);
 
-				foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
+				foreach (string InputFile in LinkEnvironment.AdditionalLibraries)
 				{
 					FileItem Item = FileItem.GetItemByPath(InputFile);
 
 					if (Item.AbsolutePath.Contains(".lib"))
 						continue;
 
-					if (Item != null)
-					{
-						if (Item.ToString().Contains(".js"))
-							ReponseLines.Add(string.Format(" --js-library \"{0}\"", Item.AbsolutePath));
-						else
-							ReponseLines.Add(string.Format(" \"{0}\"", Item.AbsolutePath));
-						LinkAction.PrerequisiteItems.Add(Item);
-					}
+					if (Item.ToString().Contains(".js"))
+						ReponseLines.Add(string.Format(" --js-library \"{0}\"", Item.AbsolutePath));
+					else
+						ReponseLines.Add(string.Format(" \"{0}\"", Item.AbsolutePath));
+					LinkAction.PrerequisiteItems.Add(Item);
 				}
 			}
 			// make the file we will create
 
 
-			OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
+			OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.OutputFilePath);
 			LinkAction.ProducedItems.Add(OutputFile);
 			ReponseLines.Add(string.Format(" -o \"{0}\"", OutputFile.AbsolutePath));
 
-			FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.FullName.Replace(".js", ".bc").Replace(".html", ".bc"));
+			FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.OutputFilePath.FullName.Replace(".js", ".bc").Replace(".html", ".bc"));
 			LinkAction.ProducedItems.Add(OutputBC);
 			ReponseLines.Add(" --emit-symbol-map " + string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath));
 
@@ -575,7 +573,7 @@ namespace UnrealBuildTool
 			throw new BuildException("HTML5 cannot compile C# files");
 		}
 
-		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
+		public override void ModifyBuildProducts(ReadOnlyTargetRules Target, UEBuildBinary Binary, List<string> Libraries, List<UEBuildBundleResource> BundleResources, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			// we need to include the generated .mem and .symbols file.
 			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)

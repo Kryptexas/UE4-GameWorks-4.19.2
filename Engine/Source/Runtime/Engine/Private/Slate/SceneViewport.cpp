@@ -45,6 +45,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, NumBufferedFrames(1)
 	, CurrentBufferedTargetIndex(0)
 	, NextBufferedTargetIndex(0)
+	, NumTouches(0)
 {
 	bIsSlateViewport = true;
 	RenderThreadSlateTexture = new FSlateRenderTargetRHI(nullptr, 0, 0);
@@ -56,6 +57,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 
 	if(FSlateApplication::IsInitialized())
 	{
+		FSlateApplication::Get().GetRenderer()->OnSlateWindowDestroyed().AddRaw(this, &FSceneViewport::OnWindowBackBufferResourceDestroyed);
 		FSlateApplication::Get().GetRenderer()->OnPreResizeWindowBackBuffer().AddRaw(this, &FSceneViewport::OnPreResizeWindowBackbuffer);
 		FSlateApplication::Get().GetRenderer()->OnPostResizeWindowBackBuffer().AddRaw(this, &FSceneViewport::OnPostResizeWindowBackbuffer);
 	}
@@ -69,6 +71,7 @@ FSceneViewport::~FSceneViewport()
 
 	if(FSlateApplication::IsInitialized())
 	{
+		FSlateApplication::Get().GetRenderer()->OnSlateWindowDestroyed().RemoveAll(this);
 		FSlateApplication::Get().GetRenderer()->OnPreResizeWindowBackBuffer().RemoveAll(this);
 		FSlateApplication::Get().GetRenderer()->OnPostResizeWindowBackBuffer().RemoveAll(this);
 	}
@@ -278,6 +281,35 @@ void FSceneViewport::ProcessAccumulatedPointerInput()
 		ViewportClient->InputAxis( this, 0, EKeys::MouseY, MouseDelta.Y, DeltaTime, NumMouseSamplesY );
 	}
 
+	if ( bCursorHiddenDueToCapture )
+	{
+		switch ( ViewportClient->CaptureMouseOnClick() )
+		{
+		case EMouseCaptureMode::NoCapture:
+		case EMouseCaptureMode::CaptureDuringMouseDown:
+		case EMouseCaptureMode::CaptureDuringRightMouseDown:
+			if ( !bViewportHasCapture )
+			{
+				bool bShouldMouseBeVisible = ViewportClient->GetCursor(this, GetMouseX(), GetMouseY()) != EMouseCursor::None;
+
+				UWorld* World = ViewportClient->GetWorld();
+				if ( World && World->IsGameWorld() && World->GetGameInstance() )
+				{
+					APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
+					bShouldMouseBeVisible &= PC && PC->ShouldShowMouseCursor();
+				}
+
+				if ( bShouldMouseBeVisible )
+				{
+					bCursorHiddenDueToCapture = false;
+					CurrentReplyState.SetMousePos(MousePosBeforeHiddenDueToCapture);
+					MousePosBeforeHiddenDueToCapture = FIntPoint(-1, -1);
+				}
+			}
+			break;
+		}
+	}
+
 	MouseDelta = FIntPoint::ZeroValue;
 	NumMouseSamplesX = 0;
 	NumMouseSamplesY = 0;
@@ -314,6 +346,10 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	if (ViewportClient && ViewportClient->GetWorld() && ViewportClient->GetWorld()->Scene)
 	{
 		FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(ViewportClient->GetWorld()->Scene);
+	}
+	else
+	{
+		FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(nullptr);
 	}
 	
 	/** Check to see if the viewport should be resized */
@@ -448,21 +484,6 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 				CurrentReplyState = FReply::Unhandled();
 			}
 		}
-		//else
-		//{
-		//	TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
-		//	if ( ViewportWidgetRef->HasUserFocusedDescendants(InMouseEvent.GetUserIndex()) )
-		//	{
-		//		// If we're still focused on a descendant, force it to stay focused.  Need to do this to fool SlateApplication
-		//		// otherwise it will reassign focus thinking that nobody requested it.
-		//		TSharedPtr<SWidget> FocusedWidgetPtr = FSlateApplication::Get().GetUserFocusedWidget(InMouseEvent.GetUserIndex());
-		//		if ( FocusedWidgetPtr.IsValid() )
-		//		{
-		//			CurrentReplyState.SetUserFocus(FocusedWidgetPtr.ToSharedRef(), EFocusCause::SetDirectly, false);
-		//		}
-		//	}
-		//}
-
 
 		// a new menu was opened if there was previously not a menu visible but now there is
 		const bool bNewMenuWasOpened = !bAnyMenuWasVisible && FSlateApplication::Get().AnyMenusVisible();
@@ -507,13 +528,15 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 		}
 
 		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
-		bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
-		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
+		const bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
+
+		if ( ViewportClient->HideCursorDuringCapture() )
 		{
 			bCursorHiddenDueToCapture = true;
 			MousePosBeforeHiddenDueToCapture = MousePosition;
 		}
-		if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
+
+		if ( bCursorHiddenDueToCapture || !bShouldShowMouseCursor )
 		{
 			ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		}
@@ -545,7 +568,7 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 	// Switch to the viewport clients world before processing input
 	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 	bool bCursorVisible = true;
-	bool bReleaseMouse = true;
+	bool bReleaseMouseCapture = true;
 	
 	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue )
 	{
@@ -553,39 +576,31 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
+
 		bCursorVisible = ViewportClient->GetCursor(this, GetMouseX(), GetMouseY()) != EMouseCursor::None;
 
-		bool bShouldMouseBeVisible = false;
-
-		UWorld* World = ViewportClient->GetWorld();
-		if (World && World->IsGameWorld() && World->GetGameInstance())
-		{
-			APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
-			bShouldMouseBeVisible = PC && PC->ShouldShowMouseCursor();
-		}
-
-		bReleaseMouse = 
-			(bCursorVisible && !bShouldMouseBeVisible) || 
+		bReleaseMouseCapture =
+			bCursorVisible ||
 			ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
 			( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton );
 	}
 
-	if (!IsCurrentlyGameViewport() || bReleaseMouse)
+	if ( !IsCurrentlyGameViewport() || bReleaseMouseCapture )
 	{
 		// On mouse up outside of the game (editor viewport) or if the cursor is visible in game, we should make sure the mouse is no longer captured
 		// as long as the left or right mouse buttons are not still down
-		if( !InMouseEvent.IsMouseButtonDown( EKeys::RightMouseButton ) && !InMouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
+		if ( !InMouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) && !InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) )
 		{
-			if( bCursorHiddenDueToCapture )
+			if ( bCursorHiddenDueToCapture )
 			{
 				bCursorHiddenDueToCapture = false;
-				CurrentReplyState.SetMousePos( MousePosBeforeHiddenDueToCapture );
-				MousePosBeforeHiddenDueToCapture = FIntPoint( -1, -1 );
+				CurrentReplyState.SetMousePos(MousePosBeforeHiddenDueToCapture);
+				MousePosBeforeHiddenDueToCapture = FIntPoint(-1, -1);
 			}
 
 			CurrentReplyState.ReleaseMouseCapture();
 
-			if (bCursorVisible && !ViewportClient->ShouldAlwaysLockMouse())
+			if ( bCursorVisible && !ViewportClient->ShouldAlwaysLockMouse() )
 			{
 				CurrentReplyState.ReleaseMouseLock();
 			}
@@ -715,10 +730,11 @@ FReply FSceneViewport::OnTouchStarted( const FGeometry& MyGeometry, const FPoint
 {
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled().PreventThrottling(); 
+	++NumTouches;
 
 	UpdateCachedMousePos(MyGeometry, TouchEvent);
 	UpdateCachedGeometry(MyGeometry);
-
+	
 	if( ViewportClient )
 	{
 		// Switch to the viewport clients world before processing input
@@ -764,7 +780,14 @@ FReply FSceneViewport::OnTouchEnded( const FGeometry& MyGeometry, const FPointer
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
 
-	UpdateCachedMousePos(MyGeometry, TouchEvent);
+	if (--NumTouches > 0)
+	{
+		UpdateCachedMousePos(MyGeometry, TouchEvent);
+	}
+	else
+	{
+		CachedMousePos = FIntPoint(-1, -1);
+	}
 	UpdateCachedGeometry(MyGeometry);
 
 	if( ViewportClient )
@@ -836,6 +859,15 @@ FPopupMethodReply FSceneViewport::OnQueryPopupMethod() const
 	{
 		return FPopupMethodReply::Unhandled();
 	}
+}
+
+bool FSceneViewport::HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination)
+{
+	if (ViewportClient != nullptr)
+	{
+		return ViewportClient->HandleNavigation(InUserIndex, InDestination);
+	}
+	return false;
 }
 
 TOptional<bool> FSceneViewport::OnQueryShowFocus(const EFocusCause InFocusCause) const
@@ -1618,7 +1650,7 @@ void FSceneViewport::WindowRenderTargetUpdate(FSlateRenderer* Renderer, SWindow*
 	}
 }
 
-void FSceneViewport::OnPreResizeWindowBackbuffer(void* Backbuffer)
+void FSceneViewport::OnWindowBackBufferResourceDestroyed(void* Backbuffer)
 {
 	check(IsInGameThread());
 	FViewportRHIRef TestReference = *(FViewportRHIRef*)Backbuffer;
@@ -1629,11 +1661,16 @@ void FSceneViewport::OnPreResizeWindowBackbuffer(void* Backbuffer)
 	}
 }
 
+void FSceneViewport::OnPreResizeWindowBackbuffer(void* Backbuffer)
+{
+	OnWindowBackBufferResourceDestroyed(Backbuffer);
+}
+
 void FSceneViewport::OnPostResizeWindowBackbuffer(void* Backbuffer)
 {
 	check(IsInGameThread());
 
-	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI))
+	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI) && ViewportWidget.IsValid())
 	{
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;

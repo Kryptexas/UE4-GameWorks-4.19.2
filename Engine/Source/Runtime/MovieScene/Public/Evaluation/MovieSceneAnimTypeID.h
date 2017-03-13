@@ -105,7 +105,7 @@ struct TMovieSceneAnimTypeIDContainer
 
 		Data.Add(InPredicate);
 
-		FTypeID NewID(this, Index);
+		FTypeID NewID(this, TypeIDs.Num());
 		TypeIDs.Add(NewID);
 
 		Lock.Set(0);

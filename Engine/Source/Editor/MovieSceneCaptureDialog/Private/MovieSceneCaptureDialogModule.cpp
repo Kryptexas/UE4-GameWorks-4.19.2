@@ -473,7 +473,7 @@ private:
 		PlayInEditorSettings->GameGetsMouseControl = false;
 		PlayInEditorSettings->ShowMouseControlLabel = false;
 		PlayInEditorSettings->ViewportGetsHMDControl = false;
-		PlayInEditorSettings->EnableSound = false;
+		PlayInEditorSettings->EnableGameSound = false;
 		PlayInEditorSettings->bOnlyLoadVisibleLevelsInPIE = false;
 		PlayInEditorSettings->bPreferToStreamLevelsInPIE = false;
 		PlayInEditorSettings->PIEAlwaysOnTop = false;

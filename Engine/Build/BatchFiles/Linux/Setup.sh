@@ -214,4 +214,41 @@ pushd Build/BatchFiles/Linux > /dev/null
 ./BuildThirdParty.sh
 popd > /dev/null
 
+# Creation of user shortcuts and addition of Mime types for Ubuntu
+if [ -e /etc/os-release ]; then
+  source /etc/os-release
+  # Ubuntu/Debian/Mint
+  if [[ "$ID" == "ubuntu" ]] || [[ "$ID_LIKE" == "ubuntu" ]] || [[ "$ID" == "debian" ]] || [[ "$ID_LIKE" == "debian" ]] || [[ "$ID" == "tanglu" ]] || [[ "$ID_LIKE" == "tanglu" ]]; then
+    echo "Installing UE4 project types associations"
+    # Place icon in system icon folder
+    if [ ! -f ~/.local/share/icons/ue4editor.png ]; then
+        cp "$TOP_DIR/Source/Programs/UnrealVS/Resources/Preview.png" ~/.local/share/icons/ue4editor.png
+    fi
+    # Generate Mime type file
+    if [ ! -f ~/.local/share/mime/packages/uproject.xml ]; then
+        mkdir -p ~/.local/share/mime/packages/
+        cp "$TOP_DIR/Build/Linux/uproject.xml" ~/.local/share/mime/packages/
+        update-mime-database ~/.local/share/mime
+    fi
+    # Generate .desktop file
+    if [ ! -f ~/.local/share/applications/UE4Editor.desktop ]; then
+        ICON_DIR=$(cd $TOP_DIR/../../.. ; pwd)
+        echo "#!/usr/bin/env xdg-open
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=$TOP_DIR/Binaries/Linux/UE4Editor %f
+Path=$TOP_DIR/Binaries/Linux
+Name=Unreal Engine Editor
+Icon=ue4editor
+Terminal=false
+StartupWMClass=UE4Editor
+MimeType=application/uproject;" > ~/.local/share/applications/UE4Editor.desktop
+        chmod u+x ~/.local/share/applications/UE4Editor.desktop
+        update-desktop-database ~/.local/share/applications
+    fi
+  fi
+fi
+
+echo "Setup successful."
 touch Build/OneTimeSetupPerformed

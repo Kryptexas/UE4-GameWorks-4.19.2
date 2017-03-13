@@ -7,6 +7,7 @@
 #include "SystemTextures.h"
 #include "Math/RandomStream.h"
 #include "PostProcess/RenderTargetPool.h"
+#include "ClearQuad.h"
 
 /*-----------------------------------------------------------------------------
 SystemTextures
@@ -47,30 +48,27 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, BlackAlphaOneDummy, TEXT("BlackAlphaOneDummy"));
 
-			SetRenderTarget(RHICmdList, BlackAlphaOneDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-			RHICmdList.ClearColorTexture(BlackAlphaOneDummy->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 1), FIntRect());
+			SetRenderTarget(RHICmdList, BlackAlphaOneDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
 			RHICmdList.CopyToResolveTarget(BlackAlphaOneDummy->GetRenderTargetItem().TargetableTexture, BlackAlphaOneDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
 		// Create a GreenDummy texture
 		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::Green, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GreenDummy, TEXT("GreenDummy"));
 
 			SetRenderTarget(RHICmdList, GreenDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
-			RHICmdList.ClearColorTexture(GreenDummy->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 1, 0, 1), FIntRect());
 			RHICmdList.CopyToResolveTarget(GreenDummy->GetRenderTargetItem().TargetableTexture, GreenDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
 		// Create a MidGrayDummy texture
 		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::MidGray, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, MidGrayDummy, TEXT("MidGrayDummy"));
 
 			SetRenderTarget(RHICmdList, MidGrayDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
-			RHICmdList.ClearColorTexture(MidGrayDummy->GetRenderTargetItem().TargetableTexture, FLinearColor(0.5, 0.5, 0.5, 1), FIntRect());
 			RHICmdList.CopyToResolveTarget(MidGrayDummy->GetRenderTargetItem().TargetableTexture, MidGrayDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
@@ -113,7 +111,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, MaxFP16Depth, TEXT("MaxFP16Depth"));
 
 			SetRenderTarget(RHICmdList, MaxFP16Depth->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-			RHICmdList.ClearColorTexture(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, FLinearColor(65000.0f, 65000.0f, 65000.0f, 65000.0f), FIntRect());
+			RHICmdList.ClearColorTexture(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, FLinearColor(65000.0f, 65000.0f, 65000.0f, 65000.0f));
 			RHICmdList.CopyToResolveTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, MaxFP16Depth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
@@ -125,7 +123,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DepthDummy, TEXT("DepthDummy"));
 
 			SetRenderTarget(RHICmdList, FTextureRHIRef(), DepthDummy->GetRenderTargetItem().TargetableTexture);
-			RHICmdList.ClearDepthStencilTexture(DepthDummy->GetRenderTargetItem().TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
+			RHICmdList.ClearDepthStencilTexture(DepthDummy->GetRenderTargetItem().TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0);
 			RHICmdList.CopyToResolveTarget(DepthDummy->GetRenderTargetItem().TargetableTexture, DepthDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 	}

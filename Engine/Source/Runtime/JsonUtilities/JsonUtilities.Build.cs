@@ -4,19 +4,14 @@ using UnrealBuildTool;
 
 public class JsonUtilities : ModuleRules
 {
-	public JsonUtilities( TargetInfo Target )
+	public JsonUtilities( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
-				"Json",
-			}
-		);
-		PrivateDependencyModuleNames.AddRange(
-			new string[] 
-			{ 			
 				"CoreUObject",
+				"Json",
 			}
 		);
 	}

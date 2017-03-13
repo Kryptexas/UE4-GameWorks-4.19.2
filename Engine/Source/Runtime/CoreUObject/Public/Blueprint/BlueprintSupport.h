@@ -290,14 +290,26 @@ struct COREUOBJECT_API FBlueprintDependencyData
 	// 1 - dependency type for CD0
 	FBlueprintDependencyType DependencyTypes[2];
 
+	int16 ObjectRefIndex; // NativizationWithoutEDLBT
+
 	FBlueprintDependencyData(const FBlueprintDependencyObjectRef& InObjectRef
 		, FBlueprintDependencyType InClassDependency
-		, FBlueprintDependencyType InCDODependency)
+		, FBlueprintDependencyType InCDODependency
+		, int16 InObjectRefIndex)
 		: ObjectRef(InObjectRef)
+		, ObjectRefIndex(InObjectRefIndex)
 	{
 		DependencyTypes[0] = InClassDependency;
 		DependencyTypes[1] = InCDODependency;
 	}
+
+	bool operator==(const FBlueprintDependencyData& Other) const
+	{
+		return Other.ObjectRefIndex == ObjectRefIndex;
+	}
+
+	static bool ContainsDependencyData(TArray<FBlueprintDependencyData>& Assets, int16 ObjectRefIndex);
+	static void AppendUniquely(TArray<FBlueprintDependencyData>& Destination, const TArray<FBlueprintDependencyData>& AdditionalData);
 };
 
 /**

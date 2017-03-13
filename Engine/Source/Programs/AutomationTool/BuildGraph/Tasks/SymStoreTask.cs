@@ -72,9 +72,6 @@ namespace AutomationTool
         {
             bool bSuccess = false;
 
-            UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(Parameters.Platform);
-            UEToolChain ToolChain = Platform.CreateContext(null, null).CreateToolChainForDefaultCppPlatform();
-            
             // Find the matching files
             List<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet).ToList();
             
@@ -82,9 +79,10 @@ namespace AutomationTool
             DirectoryReference StoreDir = ResolveDirectory(Parameters.StoreDir);
 
             // Take the lock before accessing the symbol server
+            Platform TargetPlatform = Platform.GetPlatform(Parameters.Platform);
             LockFile.TakeLock(StoreDir, TimeSpan.FromMinutes(15), () =>
             {
-                bSuccess = ToolChain.PublishSymbols(StoreDir, Files, Parameters.Product);
+                bSuccess = TargetPlatform.PublishSymbols(StoreDir, Files, Parameters.Product);
             });
 
             if (!bSuccess)

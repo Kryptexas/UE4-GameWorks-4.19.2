@@ -386,11 +386,16 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 					SamplerSource = &Clamp_WorldGroupSettings->SamplerStateRHI;
 				}
 
+				checkf(*SamplerSource, TEXT("Texture %s of class %s had invalid sampler source. Material %s with texture expression in slot %i"),
+					*Value->GetName(), *Value->GetClass()->GetName(),
+					*MaterialRenderContext.Material.GetFriendlyName(), ExpressionIndex);
 				*ResourceTable++ = *SamplerSource;
 			}
 			else
 			{
+				check(GWhiteTexture->TextureRHI);
 				*ResourceTable++ = GWhiteTexture->TextureRHI;
+				check(GWhiteTexture->SamplerStateRHI);
 				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
 			}
 		}
@@ -416,16 +421,21 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 					SamplerSource = &Clamp_WorldGroupSettings->SamplerStateRHI;
 				}
 
+				check(*SamplerSource);
 				*ResourceTable++ = *SamplerSource;
 			}
 			else
 			{
+				check(GWhiteTexture->TextureRHI);
 				*ResourceTable++ = GWhiteTexture->TextureRHI;
+				check(GWhiteTexture->SamplerStateRHI);
 				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
 			}
 		}
 
+		check(Wrap_WorldGroupSettings->SamplerStateRHI);
 		*ResourceTable++ = Wrap_WorldGroupSettings->SamplerStateRHI;
+		check(Clamp_WorldGroupSettings->SamplerStateRHI);
 		*ResourceTable++ = Clamp_WorldGroupSettings->SamplerStateRHI;
 
 		if (CommandListIfLocalMode)

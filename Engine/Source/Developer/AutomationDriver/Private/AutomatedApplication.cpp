@@ -109,13 +109,13 @@ public:
 		}
 	}
 
-	virtual void SetCustomShape(void* CursorHandle) override
+	virtual void SetTypeShape(EMouseCursor::Type InCursorType, void* CursorHandle) override
 	{
 		if (bAllowMessageHandling)
 		{
 			if (RealCursor.IsValid())
 			{
-				RealCursor->SetCustomShape(CursorHandle);
+				RealCursor->SetTypeShape(InCursorType, CursorHandle);
 			}
 		}
 	}

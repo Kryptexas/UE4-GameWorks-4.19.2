@@ -87,10 +87,10 @@ namespace AutomationScripts.Automation
 				Builder.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: true, InForceNoXGE: false, InChangelistNumberOverride: GetLatestCodeChange());
 				UE4Build.CheckBuildProducts(Builder.BuildProductFiles);
 			}
-			catch (AutomationException Ex)
+			catch (AutomationException)
 			{
 				LogError("Rebuild Light Maps has failed.");
-				throw Ex;
+				throw;
 			}
 		}
 

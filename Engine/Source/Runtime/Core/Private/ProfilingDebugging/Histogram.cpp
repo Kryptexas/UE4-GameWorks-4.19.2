@@ -101,8 +101,8 @@ void FHistogram::DumpToAnalytics(const FString& ParamNamePrefix, TArray<TPair<FS
 		{
 			FBin& Bin = Bins[BinIdx];
 			FString ParamName = FString::Printf(TEXT("_%.0f_%.0f"), Bin.MinValue, Bin.UpperBound);
-			OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + ParamName + TEXT("_Count"), Bin.Count));
-			OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + ParamName + TEXT("_Sum"), Bin.Sum));
+			OutParamArray.Emplace(ParamNamePrefix + ParamName + TEXT("_Count"), Bin.Count);
+			OutParamArray.Emplace(ParamNamePrefix + ParamName + TEXT("_Sum"), Bin.Sum);
 
 			TotalObservations += Bin.Count;
 			TotalSum += Bin.Sum;
@@ -110,8 +110,8 @@ void FHistogram::DumpToAnalytics(const FString& ParamNamePrefix, TArray<TPair<FS
 
 		FBin& LastBin = Bins.Last();
 		FString ParamName = FString::Printf(TEXT("_%.0f_AndAbove"), LastBin.MinValue);
-		OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + ParamName + TEXT("_Count"), LastBin.Count));
-		OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + ParamName + TEXT("_Sum"), LastBin.Sum));
+		OutParamArray.Emplace(ParamNamePrefix + ParamName + TEXT("_Count"), LastBin.Count);
+		OutParamArray.Emplace(ParamNamePrefix + ParamName + TEXT("_Sum"), LastBin.Sum);
 
 		TotalObservations += LastBin.Count;
 		TotalSum += LastBin.Sum;
@@ -123,7 +123,7 @@ void FHistogram::DumpToAnalytics(const FString& ParamNamePrefix, TArray<TPair<FS
 	}
 
 	// add an average value for ease of monitoring/analyzing
-	OutParamArray.Add(TPairInitializer<FString, double>(ParamNamePrefix + TEXT("_Average"), AverageObservation));
+	OutParamArray.Emplace(ParamNamePrefix + TEXT("_Average"), AverageObservation);
 }
 
 void FHistogram::DumpToLog(const FString& HistogramName)

@@ -43,7 +43,7 @@ namespace Audio
 		}
 	};
 
-	typedef FAsyncRealtimeAudioTaskProxy<FMixerBuffer> FAsyncRealtimeAudioTask;
+	typedef FAsyncTask<FAsyncRealtimeAudioTaskWorker<FMixerBuffer>> FAsyncRealtimeAudioTask;
 
 	/** 
 	 * FMixerSource
@@ -74,6 +74,7 @@ namespace Audio
 
 		//~Begin ISourceBufferQueueListener
 		void OnSourceBufferEnd() override;
+		void OnRelease() override;
 		//~End ISourceBufferQueueListener
 
 	private:
@@ -142,6 +143,9 @@ namespace Audio
 		FMixerBuffer* MixerBuffer;
 		FMixerSourceVoice* MixerSourceVoice;
 		FAsyncRealtimeAudioTask* AsyncRealtimeAudioTask;
+		FSoundBuffer* PendingReleaseBuffer;
+		FAsyncRealtimeAudioTask* PendingReleaseRealtimeAudioTask;
+		FCriticalSection RenderThreadCritSect;
 
 		TArray<float> ChannelMap;
 		TArray<float> StereoChannelMap;
@@ -160,11 +164,14 @@ namespace Audio
 		FThreadSafeBool bPlaying;
 		FThreadSafeBool bLoopCallback;
 		FThreadSafeBool bIsFinished;
+		FThreadSafeBool bIsPlayingEffectTails;
 		FThreadSafeBool bBuffersToFlush;
+		FThreadSafeBool bFreeAsyncTask;
 
 		uint32 bResourcesNeedFreeing : 1;
 		uint32 bEditorWarnedChangedSpatialization : 1;
 		uint32 bUsingHRTFSpatialization : 1;
+		uint32 bIs3D : 1;
 		uint32 bDebugMode : 1;
 	};
 }

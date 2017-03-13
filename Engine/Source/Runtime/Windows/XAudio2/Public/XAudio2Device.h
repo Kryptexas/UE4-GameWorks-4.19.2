@@ -97,9 +97,6 @@ class FXAudio2Device : public FAudioDevice
 	/** Get a sample-accurate time clock. */
 	virtual void UpdateAudioClock() override;
 
-	/** Checks the device state change */
-	virtual void CheckDeviceStateChange() override;
-
 	/** Creates a new platform specific sound source */
 	virtual FAudioEffectsManager* CreateEffectsManager() override;
 

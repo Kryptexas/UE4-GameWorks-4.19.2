@@ -3,12 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ModulationMatrix.h"
 #include "BiQuadFilter.h"
 
 namespace Audio
 {
 	// Enumeration of filter types
-	namespace EFilter
+	namespace EBiquadFilter
 	{
 		enum Type
 		{
@@ -20,24 +21,18 @@ namespace Audio
 		};
 	}
 
-	// Helper function to get bandwidth from Q
-	float GetBandwidthFromQ(const float InQ);
-
-	// Helper function get Q from bandwidth
-	float GetQFromBandwidth(const float InBandwidth);
-
-	// Filter class which wraps a biquad filter object.
+	// Biquad filter class which wraps a biquad filter struct
 	// Handles multi-channel audio to avoid calculating filter coefficients for multiple channels of audio.
-	class FFilter
+	class AUDIOMIXER_API FBiquadFilter
 	{
 	public:
 		// Constructor
-		FFilter();
+		FBiquadFilter();
 		// Destructor
-		virtual ~FFilter();
+		virtual ~FBiquadFilter();
 
 		// Initialize the filter
-		void Init(const float InSampleRate, const int32 InNumChannels, const EFilter::Type InType, const float InCutoffFrequency, const float InBandwidth, const float InGain = 0.0f);
+		void Init(const float InSampleRate, const int32 InNumChannels, const EBiquadFilter::Type InType, const float InCutoffFrequency, const float InBandwidth, const float InGain = 0.0f);
 
 		// Resets the filter state
 		void Reset();
@@ -46,10 +41,10 @@ namespace Audio
 		void ProcessAudioFrame(const float* InAudio, float* OutAudio);
 
 		// Sets all filter parameters with one function
-		void SetParams(const EFilter::Type InFilterType, const float InCutoffFrequency, const float InBandwidth, const float InGainDB);
+		void SetParams(const EBiquadFilter::Type InFilterType, const float InCutoffFrequency, const float InBandwidth, const float InGainDB);
 
 		// Sets the type of the filter to use
-		void SetType(const EFilter::Type InType);
+		void SetType(const EBiquadFilter::Type InType);
 
 		// Sets the filter frequency
 		void SetFrequency(const float InCutoffFrequency);
@@ -69,7 +64,7 @@ namespace Audio
 		void CalculateBiquadCoefficients();
 
 		// What kind of filter to use when computing coefficients
-		EFilter::Type FilterType;
+		EBiquadFilter::Type FilterType;
 
 		// Biquad filter objects for each channel
 		FBiquad* Biquad;
@@ -92,4 +87,196 @@ namespace Audio
 		// Whether or not this filter is enabled (will bypass otherwise)
 		bool bEnabled;
 	};
+
+	namespace EFilter
+	{
+		enum Type
+		{
+			LowPass,
+			HighPass,
+			BandPass,
+			BandStop,
+
+			NumFilterTypes
+		};
+	}
+
+	static const int32 MaxFilterChannels = 8;
+
+	// Base class for filters usable in synthesis
+	class AUDIOMIXER_API IFilter
+	{
+	public:
+		IFilter();
+		virtual ~IFilter();
+
+		// Initialize the filter
+		virtual void Init(const float InSampleRate, const int32 InNumChannels, const int32 InVoiceId, FModulationMatrix* InModMatrix = nullptr);
+
+		// Sets the cutoff frequency of the filter.
+		virtual void SetFrequency(const float InCutoffFrequency);
+
+		// Sets the modulated frequency
+		virtual void SetModFrequency(const float InModFrequency);
+
+		// Sets the quality/resonance of the filter
+		virtual void SetQ(const float InQ);
+
+		// Sets the modulated quality/resonance of the filter
+		virtual void SetModQ(const float InModQ);
+
+		// Sets the filter saturation (not used on all filters)
+		virtual void SetSaturation(const float InSaturation) {}
+
+		// Sets the band stop control param (not used on all filters)
+		virtual void SetBandStopControl(const float InBandStop) {}
+
+		// Sets the band pass gain compensation (not used on all filters)
+		virtual void SetPassBandGainCompensation(const float InPassBandGainCompensation) {}
+
+		// Sets the filter type
+		virtual void SetFilterType(const EFilter::Type InFilterType);
+
+		// Reset the filter
+		virtual void Reset() {}
+
+		// Updates the filter
+		virtual void Update();
+
+		// Processes a single frame of audio. Number of channels MUST be what was used during filter initialization.
+		virtual void ProcessAudio(const float* InSamples, float* OutSamples) = 0;
+
+		// Filter patch destinations
+		FPatchDestination GetModDestCutoffFrequency() const { return ModCutoffFrequencyDest; }
+		FPatchDestination GetModDestQ() const { return ModQDest; }
+
+	protected:
+
+		FORCEINLINE float GetGCoefficient() const
+		{
+			const float OmegaDigital = 2.0f * PI * Frequency;
+			const float OmegaAnalog = 2.0f * SampleRate * Audio::FastTan(0.5f * OmegaDigital / SampleRate);
+			const float G = 0.5f * OmegaAnalog / SampleRate;
+			return G;
+		}
+
+		// The voice id of the owner of the filter (for use with mod matrix)
+		int32 VoiceId;
+
+		// Sample rate of the filter
+		float SampleRate;
+
+		// Number of channels of the sound
+		int32 NumChannels;
+
+		// The cutoff frequency currently used by the filter (can be modulated)
+		float Frequency;
+
+		// The base filter cutoff frequency
+		float BaseFrequency;
+
+		// A modulated frequency
+		float ModFrequency;
+
+		// The current Q
+		float Q;
+
+		// The modulated Q
+		float ModQ;
+
+		// The base 
+		float BaseQ;
+
+		// The filter type of the filter
+		EFilter::Type FilterType;
+
+		FModulationMatrix* ModMatrix;
+
+		// Mod matrix patchable destinations
+		FPatchDestination ModCutoffFrequencyDest;
+		FPatchDestination ModQDest;
+
+		bool bChanged;
+	};
+
+	// A virtual analog one-pole filter.
+	// Defaults to a low-pass mode, but can be switched to high-pass
+	class AUDIOMIXER_API FOnePoleFilter : public IFilter
+	{
+	public:
+		FOnePoleFilter();
+		virtual ~FOnePoleFilter();
+
+		virtual void Init(const float InSampleRate, const int32 InNumChannels, const int32 InVoiceId = 0, FModulationMatrix* InModMatrix = nullptr) override;
+		virtual void Reset() override;
+		virtual void Update() override;
+		virtual void ProcessAudio(const float* InSamples, float* OutSamples) override;
+
+		void SetCoefficient(const float InCoefficient) { A0 = InCoefficient; }
+		float GetCoefficient() const { return A0; }
+
+		float GetState(const int32 InChannel) const { return Z1[InChannel]; }
+
+	protected:
+		float A0;
+		float* Z1;
+	};
+
+	class AUDIOMIXER_API FStateVariableFilter : public IFilter
+	{
+	public:
+		FStateVariableFilter();
+		virtual ~FStateVariableFilter();
+
+		virtual void Init(const float InSampleRate, const int32 InNumChannels, const int32 InVoiceId = 0, FModulationMatrix* InModMatrix = nullptr) override;
+		virtual void SetBandStopControl(const float InBandStop) override;
+		virtual void Reset() override;
+		virtual void Update() override;
+		virtual void ProcessAudio(const float* InSamples, float* OutSamples) override;
+
+	protected:
+		float InputScale;
+		float A0;
+		float Feedback;
+		float BandStopParam;
+
+		struct FFilterState
+		{
+			float Z1_1;
+			float Z1_2;
+
+			FFilterState()
+				: Z1_1(0.0f)
+				, Z1_2(0.0f)
+			{}
+		};
+
+		TArray<FFilterState> FilterState;
+	};
+
+	class AUDIOMIXER_API FLadderFilter : public IFilter
+	{
+	public:
+		FLadderFilter();
+		virtual ~FLadderFilter();
+
+		virtual void Init(const float InSampleRate, const int32 InNumChannels, const int32 InVoiceId = 0, FModulationMatrix* InModMatrix = nullptr) override;
+		virtual void Reset() override;
+		virtual void Update() override;
+		virtual void SetQ(const float InQ) override;
+		virtual void SetPassBandGainCompensation(const float InPassBandGainCompensation) override;
+		virtual void ProcessAudio(const float* InSamples, float* OutSamples) override;
+
+	protected:
+
+		// Ladder filter is made of 4 LPF filters
+		FOnePoleFilter OnePoleFilters[4];
+		float Beta[4];
+		float K;
+		float Gamma;
+		float Alpha;
+		float Factors[5];
+		float PassBandGainCompensation;
+	};
+
 }

@@ -444,13 +444,13 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 			{
 				FString const VarName = VariableReference.GetMemberName().ToString();
 
-				FText const WarningFormat = LOCTEXT("VariableNotFound", "Could not find a variable named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
-				MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *VarName, *OwnerName, *OwnerName), this);
+				FText const WarningFormat = LOCTEXT("VariableNotFoundFmt", "Could not find a variable named \"{0}\" in '{1}'.\nMake sure '{2}' has been compiled for @@");
+				MessageLog.Warning(*FText::Format(WarningFormat, FText::FromString(VarName), FText::FromString(OwnerName), FText::FromString(OwnerName)).ToString(), this);
 			}
 		}
 		else
 		{
-			MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableDeprecated", "Variable '%s' for @@ was deprecated.  Please update it.").ToString(), *VariableReference.GetMemberName().ToString()), this);
+			MessageLog.Warning(*FText::Format(LOCTEXT("VariableDeprecatedFmt", "Variable '{0}' for @@ was deprecated.  Please update it."), FText::FromString(VariableReference.GetMemberName().ToString())).ToString(), this);
 		}
 	}
 
@@ -531,6 +531,46 @@ void UK2Node_Variable::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), VariableName ));
 }
 
+void UK2Node_Variable::HandleVariableRenamed(UBlueprint* InBlueprint, UClass* InVariableClass, UEdGraph* InGraph, const FName& InOldVarName, const FName& InNewVarName)
+{
+	UClass* const NodeRefClass = VariableReference.GetMemberParentClass(InBlueprint->GeneratedClass);
+	if (NodeRefClass && NodeRefClass->IsChildOf(InVariableClass) && InOldVarName == GetVarName())
+	{
+		Modify();
+
+		if (VariableReference.IsLocalScope())
+		{
+			VariableReference.SetLocalMember(InNewVarName, VariableReference.GetMemberScopeName(), VariableReference.GetMemberGuid());
+		}
+		else if (VariableReference.IsSelfContext())
+		{
+			VariableReference.SetSelfMember(InNewVarName);
+		}
+		else
+		{
+			VariableReference.SetExternalMember(InNewVarName, NodeRefClass);
+		}
+
+		RenameUserDefinedPin(InOldVarName.ToString(), InNewVarName.ToString());
+	}
+}
+
+bool UK2Node_Variable::ReferencesVariable(const FName& InVarName, const UStruct* InScope) const
+{
+	if (InVarName == GetVarName())
+	{
+		if (InScope && VariableReference.GetMemberScopeName() != InScope->GetName())
+		{
+			// Variables are not in the same scope
+			return false;
+		}
+		
+		return true;
+	}
+
+	return false;
+}
+
 FSlateIcon UK2Node_Variable::GetVariableIconAndColor(const UStruct* VarScope, FName VarName, FLinearColor& IconColorOut)
 {
 	if(VarScope != NULL)
@@ -573,27 +613,24 @@ void UK2Node_Variable::ReconstructNode()
 	{
 		bool bRemappedProperty = false;
 		UClass* SearchClass = VarClass;
-		while (SearchClass != NULL)
+		while (SearchClass != nullptr)
 		{
-			const TMap<FName, FName>* const ClassTaggedPropertyRedirects = UStruct::TaggedPropertyRedirects.Find( SearchClass->GetFName() );
-			if (ClassTaggedPropertyRedirects)
-			{
-				const FName* const NewPropertyName = ClassTaggedPropertyRedirects->Find( VariableReference.GetMemberName() );
-				if (NewPropertyName)
-				{
-					if (VariableReference.IsSelfContext())
-					{
-						VariableReference.SetSelfMember( *NewPropertyName );
-					}
-					else
-					{
-						VariableReference.SetExternalMember( *NewPropertyName, VarClass );
-					}
+			FName NewPropertyName = UProperty::FindRedirectedPropertyName(SearchClass, VariableReference.GetMemberName());
 
-					// found, can break
-					bRemappedProperty = true;
-					break;
+			if (NewPropertyName != NAME_None)
+			{
+				if (VariableReference.IsSelfContext())
+				{
+					VariableReference.SetSelfMember(NewPropertyName);
 				}
+				else
+				{
+					VariableReference.SetExternalMember(NewPropertyName, VarClass);
+				}
+
+				// found, can break
+				bRemappedProperty = true;
+				break;
 			}
 
 			SearchClass = SearchClass->GetSuperClass();

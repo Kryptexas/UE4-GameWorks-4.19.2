@@ -23,6 +23,7 @@
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Widgets/Layout/SSplitter.h"
 
 #include "PropertyCustomizationHelpers.h"
 #include "SPinTypeSelector.h"
@@ -381,7 +382,7 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 	TSharedRef<SSplitter> Splitter = SNew(SSplitter)
 		.Orientation(Orient_Vertical)
 		.PhysicalSplitterHandleSize(10.0f)
-		.ResizeMode(ESplitterResizeMode::Fixed);
+		.ResizeMode(ESplitterResizeMode::FixedPosition);
 
 	{
 		// Create a property view
@@ -434,7 +435,7 @@ class FUserDefinedStructureLayout : public IDetailCustomNodeBuilder, public TSha
 public:
 	FUserDefinedStructureLayout(TWeakPtr<class FUserDefinedStructureDetails> InStructureDetails)
 		: StructureDetails(InStructureDetails)
-		, InitialPinType(GetDefault<UEdGraphSchema_K2>()->PC_Boolean, TEXT(""), NULL, false, false)
+		, InitialPinType(GetDefault<UEdGraphSchema_K2>()->PC_Boolean, TEXT(""), NULL, false, false, false, false, FEdGraphTerminalType())
 	{}
 
 	void OnChanged()

@@ -35,7 +35,7 @@ EBlackboardCompare::Type UBlackboardKeyType_Enum::CompareValues(const UBlackboar
 
 FString UBlackboardKeyType_Enum::DescribeValue(const UBlackboardComponent& OwnerComp, const uint8* RawData) const
 {
-	return EnumType ? EnumType->GetEnumText(GetValue(this, RawData)).ToString() : FString("UNKNOWN!");
+	return EnumType ? EnumType->GetDisplayNameTextByValue(GetValue(this, RawData)).ToString() : FString("UNKNOWN!");
 }
 
 FString UBlackboardKeyType_Enum::DescribeSelf() const
@@ -68,7 +68,7 @@ bool UBlackboardKeyType_Enum::TestArithmeticOperation(const UBlackboardComponent
 
 FString UBlackboardKeyType_Enum::DescribeArithmeticParam(int32 IntValue, float FloatValue) const
 {
-	return EnumType ? EnumType->GetEnumText(IntValue).ToString() : FString("UNKNOWN!");
+	return EnumType ? EnumType->GetDisplayNameTextByValue(IntValue).ToString() : FString("UNKNOWN!");
 }
 
 #if WITH_EDITOR

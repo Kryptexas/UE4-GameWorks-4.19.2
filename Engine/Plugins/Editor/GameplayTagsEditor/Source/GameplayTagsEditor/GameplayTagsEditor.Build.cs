@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GameplayTagsEditor : ModuleRules
 	{
-		public GameplayTagsEditor(TargetInfo Target)
+		public GameplayTagsEditor(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {
@@ -50,13 +50,6 @@ namespace UnrealBuildTool.Rules
 					"Settings"
 				}
 			);
-
-			CircularlyReferencedDependentModules.AddRange(
-				new string[]
-				{
-                    "BlueprintGraph",
-				}
-		);
 		}
 	}
 }

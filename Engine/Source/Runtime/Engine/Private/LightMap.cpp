@@ -405,7 +405,7 @@ struct FLightMapPendingTexture : public FTextureLayout
 		, SkyOcclusionTexture(nullptr)
 		, AOMaterialMaskTexture(nullptr)
 		, OwningWorld(InWorld)
-		, Bounds(FBox(0))
+		, Bounds(FBox(ForceInit))
 		, LightmapFlags(LMF_None)
 		, UnallocatedTexels(InSizeX * InSizeY)
 		, NumOutstandingAsyncTasks(0)

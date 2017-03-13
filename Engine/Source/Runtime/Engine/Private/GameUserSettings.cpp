@@ -249,6 +249,13 @@ float UGameUserSettings::GetDefaultResolutionScale()
 	return FMath::Max(DesiredResQuality, MinResolutionScale);
 }
 
+float UGameUserSettings::GetRecommendedResolutionScale()
+{
+	const float RecommendedResQuality = FindResolutionQualityForScreenSize(LastRecommendedScreenWidth, LastRecommendedScreenHeight);
+
+	return FMath::Max(RecommendedResQuality, MinResolutionScale);
+}
+
 float UGameUserSettings::FindResolutionQualityForScreenSize(float Width, float Height)
 {
 	float ResolutionQuality = 100.0f;
@@ -531,7 +538,8 @@ FIntPoint UGameUserSettings::GetDefaultWindowPosition()
 
 EWindowMode::Type UGameUserSettings::GetDefaultWindowMode()
 {
-	return EWindowMode::Windowed;
+	// WindowedFullscreen should be the general default or games
+	return EWindowMode::WindowedFullscreen;
 }
 
 void UGameUserSettings::ResetToCurrentSettings()
@@ -731,7 +739,7 @@ void UGameUserSettings::ApplyHardwareBenchmarkResults()
 	SaveSettings();
 }
 
-bool UGameUserSettings::SupportsHDRDisplayOutput()
+bool UGameUserSettings::SupportsHDRDisplayOutput() const
 {
 	return GRHISupportsHDROutput;
 }
@@ -810,4 +818,14 @@ void UGameUserSettings::EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits /
 		bUseHDRDisplayOutput = bEnable;
 		HDRDisplayOutputNits = DisplayNitLevel;
 	}
+}
+
+int32 UGameUserSettings::GetCurrentHDRDisplayNits() const
+{
+	return bUseHDRDisplayOutput ? HDRDisplayOutputNits : 0;
+}
+
+bool UGameUserSettings::IsHDREnabled() const
+{
+	return bUseHDRDisplayOutput;
 }

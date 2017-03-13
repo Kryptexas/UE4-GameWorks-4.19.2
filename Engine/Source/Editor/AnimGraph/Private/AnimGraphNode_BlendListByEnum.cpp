@@ -110,10 +110,10 @@ void UAnimGraphNode_BlendListByEnum::GetContextMenuActions(const FGraphNodeConte
 		const int32 MaxIndex = BoundEnum->NumEnums() - 1; // we don't want to show _MAX enum
 		for (int32 Index = 0; Index < MaxIndex; ++Index)
 		{
-			FName ElementName = BoundEnum->GetEnum(Index);
+			FName ElementName = BoundEnum->GetNameByIndex(Index);
 			if (!VisibleEnumEntries.Contains(ElementName))
 			{
-				FText PrettyElementName = BoundEnum->GetEnumText(Index);
+				FText PrettyElementName = BoundEnum->GetDisplayNameTextByIndex(Index);
 
 				// Offer to add this entry
 				if (!bAddedHeader)
@@ -224,10 +224,10 @@ void UAnimGraphNode_BlendListByEnum::CustomizePinData(UEdGraphPin* Pin, FName So
 			if (VisibleEnumEntries.IsValidIndex(ExposedEnumPinIndex) && (BoundEnum != NULL))
 			{
 				const FName& EnumElementName = VisibleEnumEntries[ExposedEnumPinIndex];
-				const int32 EnumIndex = BoundEnum->FindEnumIndex(EnumElementName);
+				const int32 EnumIndex = BoundEnum->GetIndexByName(EnumElementName);
 				if (EnumIndex != INDEX_NONE)
 				{
-					Pin->PinFriendlyName = BoundEnum->GetEnumText(EnumIndex);
+					Pin->PinFriendlyName = BoundEnum->GetDisplayNameTextByIndex(EnumIndex);
 				}
 				else
 				{
@@ -274,12 +274,12 @@ void UAnimGraphNode_BlendListByEnum::Serialize(FArchive& Ar)
 			for (auto ExposedIt = VisibleEnumEntries.CreateIterator(); ExposedIt; ++ExposedIt)
 			{
 				FName& EnumElementName = *ExposedIt;
-				const int32 EnumIndex = BoundEnum->FindEnumIndex(EnumElementName);
+				const int32 EnumIndex = BoundEnum->GetIndexByName(EnumElementName);
 
 				if (EnumIndex != INDEX_NONE)
 				{
 					// This handles redirectors, we need to update the VisibleEnumEntries if the name has changed
-					FName NewElementName = BoundEnum->GetEnum(EnumIndex);
+					FName NewElementName = BoundEnum->GetNameByIndex(EnumIndex);
 
 					if (NewElementName != EnumElementName)
 					{
@@ -321,7 +321,7 @@ void UAnimGraphNode_BlendListByEnum::BakeDataDuringCompilation(class FCompilerRe
 		for (auto ExposedIt = VisibleEnumEntries.CreateConstIterator(); ExposedIt; ++ExposedIt)
 		{
 			const FName& EnumElementName = *ExposedIt;
-			const int32 EnumIndex = BoundEnum->FindEnumIndex(EnumElementName);
+			const int32 EnumIndex = BoundEnum->GetIndexByName(EnumElementName);
 
 			if (EnumIndex != INDEX_NONE)
 			{

@@ -340,7 +340,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 
 bool USkeletalMeshComponent::ShouldBlendPhysicsBones() const
 {
-	return Bodies.Num() > 0 && (DoAnyPhysicsBodiesHaveWeight() || bBlendPhysics);
+	return Bodies.Num() > 0 && CollisionEnabledHasPhysics(GetCollisionEnabled()) && (DoAnyPhysicsBodiesHaveWeight() || bBlendPhysics);
 }
 
 bool USkeletalMeshComponent::DoAnyPhysicsBodiesHaveWeight() const
@@ -370,7 +370,7 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 
 	// We now have all the animations blended together and final relative transforms for each bone.
 	// If we don't have or want any physics, we do nothing.
-	if( Bodies.Num() > 0 )
+	if( Bodies.Num() > 0 && CollisionEnabledHasPhysics(GetCollisionEnabled()) )
 	{
 		HandleExistingParallelEvaluationTask(/*bBlockOnTask = */ true, /*bPerformPostAnimEvaluation =*/ true);
 		// start parallel work

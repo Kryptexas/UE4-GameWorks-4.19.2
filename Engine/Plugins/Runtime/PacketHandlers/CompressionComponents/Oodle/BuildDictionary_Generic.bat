@@ -21,6 +21,7 @@ if exist %UE4EditorLoc:"=% goto GetGame
 echo Could not locate UE4Editor.exe
 goto End
 
+
 :GetGame
 set GameName=%1
 if not "%1" == "" goto GetDictionaryOutput

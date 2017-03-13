@@ -56,6 +56,11 @@ UObject* ULevelSequence::MakeSpawnableTemplateFromInstance(UObject& InSourceObje
 	return NewInstance;
 }
 
+bool ULevelSequence::CanAnimateObject(UObject& InObject) const 
+{
+	return InObject.IsA<AActor>() || InObject.IsA<UActorComponent>();
+}
+
 void ULevelSequence::PostLoad()
 {
 	Super::PostLoad();

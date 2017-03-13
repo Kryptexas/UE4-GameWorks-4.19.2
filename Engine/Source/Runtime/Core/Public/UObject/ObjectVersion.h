@@ -617,6 +617,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_PROPERTY_TAG_SET_MAP_SUPPORT,
 	// Added SearchableNames to the package summary and asset registry
 	VER_UE4_ADDED_SEARCHABLE_NAMES,
+	// Increased size of SerialSize and SerialOffset in export map entries to 64 bit, allow support for bigger files
+	VER_UE4_64BIT_EXPORTMAP_SERIALSIZES,
+
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

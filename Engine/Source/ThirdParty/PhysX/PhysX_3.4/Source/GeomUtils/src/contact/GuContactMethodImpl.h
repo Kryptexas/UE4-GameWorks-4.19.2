@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -64,12 +64,14 @@ namespace Gu
 
 		PX_FORCE_INLINE void setManifold(void* manifold)
 		{
+			PX_ASSERT((size_t(manifold) & 0xF) == 0);
 			mCachedData = reinterpret_cast<PxU8*>(manifold);
 			mManifoldFlags |= IS_MANIFOLD;
 		}
 
 		PX_FORCE_INLINE void setMultiManifold(void* manifold)
 		{
+			PX_ASSERT((size_t(manifold) & 0xF) == 0);
 			mCachedData = reinterpret_cast<PxU8*>(manifold);
 			mManifoldFlags |= IS_MANIFOLD|IS_MULTI_MANIFOLD;
 		}

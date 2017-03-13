@@ -71,12 +71,6 @@ UBlueprintPlatformLibrary::UBlueprintPlatformLibrary(const FObjectInitializer& O
 			platformService = module->GetLocalNotificationService();
 		}
 	}
-	else
-	{
-#if !WITH_EDITOR
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("DEBUG: LocalNotification DefaultPlatformService NOT FOUND"));
-#endif
-	}
 }
 
 void UBlueprintPlatformLibrary::ClearAllLocalNotifications()

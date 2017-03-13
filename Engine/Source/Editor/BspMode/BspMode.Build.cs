@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class BspMode : ModuleRules
 {
-	public BspMode(TargetInfo Target)
+	public BspMode(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

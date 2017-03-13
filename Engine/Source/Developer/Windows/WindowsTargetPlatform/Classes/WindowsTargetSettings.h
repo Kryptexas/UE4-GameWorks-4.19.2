@@ -22,7 +22,7 @@ enum class ECompilerVersion : uint8
 	Default = 0,
 	VisualStudio2013 = 1 UMETA(DisplayName = "Visual Studio 2013"),
 	VisualStudio2015 = 2 UMETA(DisplayName = "Visual Studio 2015"),
-	VisualStudio2017 = 3 UMETA(DisplayName = "Visual Studio '15'"),
+	VisualStudio2017 = 3 UMETA(DisplayName = "Visual Studio 2017"),
 };
 
 /**

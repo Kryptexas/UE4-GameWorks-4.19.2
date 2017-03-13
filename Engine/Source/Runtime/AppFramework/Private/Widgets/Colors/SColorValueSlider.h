@@ -61,7 +61,7 @@ public:
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 	{
 		const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
-		const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+		const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	
 		FLinearColor FullValueColor = SelectedColor.Get();
 		FullValueColor.B = FullValueColor.A = 1.f;

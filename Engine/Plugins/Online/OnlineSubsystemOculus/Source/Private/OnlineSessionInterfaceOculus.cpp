@@ -665,11 +665,10 @@ bool FOnlineSessionOculus::FindFriendSession(int32 LocalUserNum, const FUniqueNe
 		ovr_Room_GetCurrentForUser(OculusId.GetID()),
 		FOculusMessageOnCompleteDelegate::CreateLambda([this, LocalUserNum](ovrMessageHandle Message, bool bIsError)
 	{
-		auto SearchResult = FOnlineSessionSearchResult();
-
 		if (bIsError)
 		{
-			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, SearchResult);
+			TArray<FOnlineSessionSearchResult> EmptyResult;
+			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptyResult);
 			return;
 		}
 
@@ -678,15 +677,19 @@ bool FOnlineSessionOculus::FindFriendSession(int32 LocalUserNum, const FUniqueNe
 		// Friend is not in a room
 		if (Room == nullptr)
 		{
-			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, SearchResult);
+			TArray<FOnlineSessionSearchResult> EmptyResult;
+			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptyResult);
 			return;
 		}
 
+		auto SearchResult = FOnlineSessionSearchResult();
 		auto Session = CreateSessionFromRoom(Room);
 		SearchResult.Session = Session.Get();
 
+		TArray<FOnlineSessionSearchResult> SearchResults;
+		SearchResults.Add(SearchResult);
 		auto RoomJoinability = ovr_Room_GetJoinability(Room);
-		TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, RoomJoinability == ovrRoom_JoinabilityCanJoin, SearchResult);
+		TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, RoomJoinability == ovrRoom_JoinabilityCanJoin, SearchResults);
 	}));
 
 	return true;
@@ -695,6 +698,20 @@ bool FOnlineSessionOculus::FindFriendSession(int32 LocalUserNum, const FUniqueNe
 bool FOnlineSessionOculus::FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend)
 {
 	return FindFriendSession(0, Friend);
+}
+
+bool FOnlineSessionOculus::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList)
+{
+	bool bSuccessfullyJoinedFriendSession = false;
+
+	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionOculus::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList) - not implemented"));
+
+	int32 LocalUserNum = OculusSubsystem.GetIdentityInterface()->GetPlatformUserIdFromUniqueNetId(LocalUserId);
+
+	TArray<FOnlineSessionSearchResult> EmptyResult;
+	TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, bSuccessfullyJoinedFriendSession, EmptyResult);
+
+	return bSuccessfullyJoinedFriendSession;
 }
 
 bool FOnlineSessionOculus::SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend)

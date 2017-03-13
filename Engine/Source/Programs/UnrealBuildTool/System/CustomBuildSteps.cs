@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// Stores custom build steps to be executed by a project or plugin
+	/// </summary>
 	public class CustomBuildSteps
 	{
 		SortedDictionary<UnrealTargetPlatform, string[]> HostPlatformToCommands = new SortedDictionary<UnrealTargetPlatform,string[]>();
@@ -52,9 +55,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Reads a list of build steps from a Json project or plugin descriptor
 		/// </summary>
-		/// <param name="RawObject">The json descriptor object</param>
+		/// <param name="Writer">Writer to receive json output</param>
 		/// <param name="FieldName">Name of the field to read</param>
-		/// <param name="OutBuildSteps">Output variable to store the sorted dictionary that was read</param>
 		/// <returns>True if the field was read (and OutBuildSteps is set), false otherwise.</returns>
 		public void Write(JsonWriter Writer, string FieldName)
 		{

@@ -10,6 +10,7 @@
 #include "SequencerSectionPainter.h"
 #include "SDropTarget.h"
 #include "DragAndDrop/LevelDragDropOp.h"
+#include "ScopedTransaction.h"
 
 FLevelVisibilitySection::FLevelVisibilitySection( UMovieSceneLevelVisibilitySection& InSectionObject )
 	: SectionObject( InSectionObject )
@@ -102,6 +103,9 @@ FReply FLevelVisibilitySection::OnDrop( TSharedPtr<FDragDropOperation> DragDropO
 		TSharedPtr<FLevelDragDropOp> LevelDragDropOperation = StaticCastSharedPtr<FLevelDragDropOp>( DragDropOperation );
 		if ( LevelDragDropOperation->StreamingLevelsToDrop.Num() > 0 )
 		{
+			FScopedTransaction Transaction(NSLOCTEXT("LevelVisibilitySection", "TransactionText", "Add Level(s) to Level Visibility Section"));
+			SectionObject.Modify();
+
 			for ( TWeakObjectPtr<ULevelStreaming> Level : LevelDragDropOperation->StreamingLevelsToDrop )
 			{
 				if ( Level.IsValid() )

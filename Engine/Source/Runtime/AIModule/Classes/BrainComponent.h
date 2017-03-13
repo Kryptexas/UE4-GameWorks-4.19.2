@@ -113,7 +113,7 @@ private:
 	FAIMessageObserver& operator=(const FAIMessageObserver&);
 };
 
-UCLASS(abstract, BlueprintType)
+UCLASS(BlueprintType)
 class AIMODULE_API UBrainComponent : public UActorComponent, public IAIResourceInterface
 {
 	GENERATED_UCLASS_BODY()

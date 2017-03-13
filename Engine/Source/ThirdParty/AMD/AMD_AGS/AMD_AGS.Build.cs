@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class AMD_AGS : ModuleRules
 {
-	public AMD_AGS(TargetInfo Target)
+	public AMD_AGS(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

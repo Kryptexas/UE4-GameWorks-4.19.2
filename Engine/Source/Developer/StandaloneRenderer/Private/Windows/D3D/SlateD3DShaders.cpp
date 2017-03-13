@@ -374,9 +374,9 @@ void FSlateDefaultPS::SetShaderType( uint32 InShaderType )
 	PerElementConstants.GetBufferData().ShaderType = InShaderType;
 }
 
-void FSlateDefaultPS::SetDrawEffects( uint32 InDrawEffects )
+void FSlateDefaultPS::SetDrawEffects( ESlateDrawEffect InDrawEffects )
 {
-	PerElementConstants.GetBufferData().DrawEffects = InDrawEffects;
+	PerElementConstants.GetBufferData().DrawEffects = (uint32)InDrawEffects;
 }
 
 void FSlateDefaultPS::SetShaderParams( const FVector4& InShaderParams )

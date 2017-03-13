@@ -74,16 +74,19 @@ struct FDirectoryWatcherTestPayload
 	}
 };
 
-FString GetWorkingDir()
+namespace DirectoryWatcherTests
 {
-	return FPaths::ConvertRelativePathToFull(FPaths::AutomationTransientDir() / TEXT("DirectoryWatcher")) / TEXT("");
+	FString GetWorkingDir()
+	{
+		return FPaths::ConvertRelativePathToFull(FPaths::AutomationTransientDir() / TEXT("DirectoryWatcher")) / TEXT("");
+	}
 }
 
 static const float TestTickDelay = 1.0f;
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleCreateTest, "System.Plugins.Directory Watcher.Simple Create", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherSimpleCreateTest::RunTest(const FString& Parameters)
 {
-	const FString WorkingDir = GetWorkingDir();
+	const FString WorkingDir = DirectoryWatcherTests::GetWorkingDir();
 
 	static const TCHAR* Filename = TEXT("created.tmp");
 
@@ -115,7 +118,7 @@ bool FDirectoryWatcherSimpleCreateTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleModifyTest, "System.Plugins.Directory Watcher.Simple Modify", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherSimpleModifyTest::RunTest(const FString& Parameters)
 {
-	const FString WorkingDir = GetWorkingDir();
+	const FString WorkingDir = DirectoryWatcherTests::GetWorkingDir();
 
 	static const TCHAR* Filename = TEXT("modified.tmp");
 
@@ -153,7 +156,7 @@ bool FDirectoryWatcherSimpleModifyTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleDeleteTest, "System.Plugins.Directory Watcher.Simple Delete", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherSimpleDeleteTest::RunTest(const FString& Parameters)
 {
-	const FString WorkingDir = GetWorkingDir();
+	const FString WorkingDir = DirectoryWatcherTests::GetWorkingDir();
 
 	static const TCHAR* Filename = TEXT("removed.tmp");
 
@@ -188,7 +191,7 @@ bool FDirectoryWatcherSimpleDeleteTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSubFolderTest, "System.Plugins.Directory Watcher.Sub Folder", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherSubFolderTest::RunTest(const FString& Parameters)
 {
-	const FString WorkingDir = GetWorkingDir();
+	const FString WorkingDir = DirectoryWatcherTests::GetWorkingDir();
 
 	static const TCHAR* CreatedFilename = TEXT("sub_folder/created.tmp");
 	static const TCHAR* ModifiedFilename = TEXT("sub_folder/modified.tmp");
@@ -247,7 +250,7 @@ bool FDirectoryWatcherSubFolderTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherNewFolderTest, "System.Plugins.Directory Watcher.New Folder", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherNewFolderTest::RunTest(const FString& Parameters)
 {
-	const FString WorkingDir = GetWorkingDir();
+	const FString WorkingDir = DirectoryWatcherTests::GetWorkingDir();
 
 	static const TCHAR* CreatedDirectory = TEXT("created");
 	static const TCHAR* RemovedDirectory = TEXT("removed");
@@ -294,7 +297,7 @@ bool FDirectoryWatcherNewFolderTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherIgnoreSubtreeTest, "System.Plugins.Directory Watcher.Ignore Subtree", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherIgnoreSubtreeTest::RunTest(const FString& Parameters)
 {
-	const FString WorkingDir = GetWorkingDir();
+	const FString WorkingDir = DirectoryWatcherTests::GetWorkingDir();
 
 	static const TCHAR* ChildDirectory = TEXT("child");
 	static const TCHAR* GrandchildDirectory = TEXT("grandchild");

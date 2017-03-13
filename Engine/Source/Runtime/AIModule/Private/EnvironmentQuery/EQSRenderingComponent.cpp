@@ -193,7 +193,7 @@ void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FE
 
 	if (ShouldDrawFailedItems && QueryInstance)
 	{
-		const FEQSQueryDebugData& InstanceDebugData = QueryInstance->DebugData;
+		const FEnvQueryDebugData& InstanceDebugData = QueryInstance->DebugData;
 		const TArray<FEnvQueryItem>& DebugQueryItems = InstanceDebugData.DebugItems;
 		const TArray<FEnvQueryItemDetails>& Details = InstanceDebugData.DebugItemDetails;
 
@@ -281,7 +281,7 @@ FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 	FEQSSceneProxy* NewSceneProxy = new FEQSSceneProxy(*this, DrawFlagName, DebugDataSolidSpheres, DebugDataTexts);
 
 #if  USE_EQS_DEBUGGER
-	if (NewSceneProxy->Texts.Num() > 0)
+	if (NewSceneProxy)
 	{
 		EQSRenderingDebugDrawDelegateHelper.InitDelegateHelper(NewSceneProxy);
 		EQSRenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();

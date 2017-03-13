@@ -7,6 +7,8 @@
 #include "PostProcess/PostProcessEyeAdaptation.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
+#include "ClearQuad.h"
+#include "UnrealMathUtility.h"
 
 
 /**
@@ -335,7 +337,7 @@ void FRCPassPostProcessBasicEyeAdaptationSetUp::Process(FRenderingCompositePassC
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, DestRect);
+	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
@@ -400,7 +402,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		EyeAdaptationTexture.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationTexture"));
 		EyeAdaptationParams.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationParams"));
-		EyeAdaptationExtent.Bind(Initializer.ParameterMap, TEXT("EyeAdaptionSrcExtent"));
+		EyeAdaptationSrcRect.Bind(Initializer.ParameterMap, TEXT("EyeAdaptionSrcRect"));
 	}
 
 public:
@@ -418,7 +420,7 @@ public:
 	}
 
 
-	void SetPS(const FRenderingCompositePassContext& Context, const FIntPoint SrcSize, IPooledRenderTarget* EyeAdaptationLastFrameRT)
+	void SetPS(const FRenderingCompositePassContext& Context, const FIntRect& SrcRect, IPooledRenderTarget* EyeAdaptationLastFrameRT)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -452,7 +454,7 @@ public:
 		}
 
 		// Set the src extent for the shader
-		SetShaderValue(Context.RHICmdList, ShaderRHI, EyeAdaptationExtent, SrcSize);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, EyeAdaptationSrcRect, SrcRect);
 	}
 
 	// FShader interface.
@@ -460,7 +462,7 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter << EyeAdaptationTexture 
-			<< EyeAdaptationParams << EyeAdaptationExtent;
+			<< EyeAdaptationParams << EyeAdaptationSrcRect;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -468,7 +470,7 @@ private:
 	FPostProcessPassParameters PostprocessParameter;
 	FShaderResourceParameter EyeAdaptationTexture;
 	FShaderParameter EyeAdaptationParams;
-	FShaderParameter EyeAdaptationExtent;
+	FShaderParameter EyeAdaptationSrcRect;
 };
 
 IMPLEMENT_SHADER_TYPE(, FPostProcessLogLuminance2ExposureScalePS, TEXT("PostProcessEyeAdaptation"), TEXT("MainLogLuminance2ExposureScalePS"), SF_Pixel);
@@ -488,7 +490,12 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 	FIntPoint DestSize = EyeAdaptationThisFrameRT->GetDesc().Extent;
 
 	// The input texture sample size.  Averaged in the pixel shader.
-	const FIntPoint SrcSize = GetInputDesc(ePId_Input0)->Extent;
+	FIntPoint SrcSize = GetInputDesc(ePId_Input0)->Extent;
+
+	// Compute the region of interest in the source texture.
+	uint32 ScaleFactor = FMath::DivideAndRoundUp(FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().Y, SrcSize.Y);
+
+	FIntRect SrcRect = View.ViewRect / ScaleFactor;
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessBasicEyeAdaptation, TEXT("PostProcessBasicEyeAdaptation %dx%d"), SrcSize.X, SrcSize.Y);
 
@@ -517,7 +524,7 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 
 	// Set the parameters used by the pixel shader.
 
-	PixelShader->SetPS(Context, SrcSize, EyeAdaptationLastFrameRT);
+	PixelShader->SetPS(Context, SrcRect, EyeAdaptationLastFrameRT);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

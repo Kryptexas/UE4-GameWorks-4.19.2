@@ -156,16 +156,16 @@ TSharedRef< SWidget > FSkeletonTreeBoneItem::CreateBoneTranslationRetargetingMod
 		check(Enum);
 
 		FUIAction ActionRetargetingAnimation = FUIAction(FExecuteAction::CreateSP(this, &FSkeletonTreeBoneItem::SetBoneTranslationRetargetingMode, EBoneTranslationRetargetingMode::Animation));
-		MenuBuilder.AddMenuEntry( Enum->GetDisplayNameText(EBoneTranslationRetargetingMode::Animation), LOCTEXT( "BoneTranslationRetargetingAnimationToolTip", "Use translation from animation." ), FSlateIcon(), ActionRetargetingAnimation);
+		MenuBuilder.AddMenuEntry( Enum->GetDisplayNameTextByValue(EBoneTranslationRetargetingMode::Animation), LOCTEXT( "BoneTranslationRetargetingAnimationToolTip", "Use translation from animation." ), FSlateIcon(), ActionRetargetingAnimation);
 
 		FUIAction ActionRetargetingSkeleton = FUIAction(FExecuteAction::CreateSP(this, &FSkeletonTreeBoneItem::SetBoneTranslationRetargetingMode, EBoneTranslationRetargetingMode::Skeleton));
-		MenuBuilder.AddMenuEntry( Enum->GetDisplayNameText(EBoneTranslationRetargetingMode::Skeleton), LOCTEXT( "BoneTranslationRetargetingSkeletonToolTip", "Use translation from Skeleton." ), FSlateIcon(), ActionRetargetingSkeleton);
+		MenuBuilder.AddMenuEntry( Enum->GetDisplayNameTextByValue(EBoneTranslationRetargetingMode::Skeleton), LOCTEXT( "BoneTranslationRetargetingSkeletonToolTip", "Use translation from Skeleton." ), FSlateIcon(), ActionRetargetingSkeleton);
 
 		FUIAction ActionRetargetingLengthScale = FUIAction(FExecuteAction::CreateSP(this, &FSkeletonTreeBoneItem::SetBoneTranslationRetargetingMode, EBoneTranslationRetargetingMode::AnimationScaled));
-		MenuBuilder.AddMenuEntry( Enum->GetDisplayNameText(EBoneTranslationRetargetingMode::AnimationScaled), LOCTEXT( "BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions." ), FSlateIcon(), ActionRetargetingLengthScale);
+		MenuBuilder.AddMenuEntry( Enum->GetDisplayNameTextByValue(EBoneTranslationRetargetingMode::AnimationScaled), LOCTEXT( "BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions." ), FSlateIcon(), ActionRetargetingLengthScale);
 
 		FUIAction ActionRetargetingAnimationRelative = FUIAction(FExecuteAction::CreateSP(this, &FSkeletonTreeBoneItem::SetBoneTranslationRetargetingMode, EBoneTranslationRetargetingMode::AnimationRelative));
-		MenuBuilder.AddMenuEntry( Enum->GetDisplayNameText(EBoneTranslationRetargetingMode::AnimationRelative), LOCTEXT("BoneTranslationRetargetingAnimationRelativeToolTip", "Use relative translation from animation similar to an additive animation."), FSlateIcon(), ActionRetargetingAnimationRelative);
+		MenuBuilder.AddMenuEntry( Enum->GetDisplayNameTextByValue(EBoneTranslationRetargetingMode::AnimationRelative), LOCTEXT("BoneTranslationRetargetingAnimationRelativeToolTip", "Use relative translation from animation similar to an additive animation."), FSlateIcon(), ActionRetargetingAnimationRelative);
 	}
 	MenuBuilder.EndSection();
 
@@ -183,7 +183,7 @@ FText FSkeletonTreeBoneItem::GetTranslationRetargetingModeMenuTitle() const
 		UEnum* const Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EBoneTranslationRetargetingMode"), true);	
 		if (Enum)
 		{
-			return Enum->GetDisplayNameText(RetargetingMode);
+			return Enum->GetDisplayNameTextByValue(RetargetingMode);
 		}
 	}
 

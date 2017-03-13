@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -74,8 +74,9 @@ namespace Cct
 						mManager = cm;
 						mCctModule.setCctManager(cm);
 					}
-					CharacterControllerManager*			getCctManager() { return mManager; }
 
+	PX_FORCE_INLINE	CharacterControllerManager*			getCctManager()				{ return mManager;									}
+	PX_FORCE_INLINE	PxU64								getContextId()		const	{ return PxU64(reinterpret_cast<size_t>(mScene));	}
 
 					PxControllerShapeType::Enum			mType;
 		// User params

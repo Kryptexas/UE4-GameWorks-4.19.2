@@ -35,6 +35,7 @@ int32 TLinkerImportPlaceholder<PlaceholderType>::ResolveAllPlaceholderReferences
 				// here, needing to use the ClassB redirector, but we haven't 
 				// returned up the stack for it to be set yet... here we force 
 				// it to finish preloading (like we do in VerifyImport): 
+				check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 				ReplacementRedirector->SetFlags(RF_NeedLoad);
 				ReplacementLinker->Preload(ReplacementRedirector);
 			}

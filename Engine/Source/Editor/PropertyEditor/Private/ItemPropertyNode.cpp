@@ -538,10 +538,7 @@ FText FItemPropertyNode::GetDisplayName() const
 				}
 				else
 				{
-					FString TempDisplayName = ArraySizeEnum->GetEnumName(GetArrayIndex());
-					//fixup the display name if we have displayname metadata
-					AdjustEnumPropDisplayName(ArraySizeEnum, TempDisplayName);
-					FinalDisplayName = FText::FromString(TempDisplayName); // todo: should this be using ArraySizeEnum->GetEnumText?
+					FinalDisplayName = ArraySizeEnum->GetDisplayNameTextByIndex(GetArrayIndex());
 				}
 			}
 		}

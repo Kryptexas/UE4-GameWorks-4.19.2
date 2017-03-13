@@ -18,9 +18,13 @@
 #include "CoreDelegates.h"
 #include "IHeadMountedDisplay.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
-#include "Engine/Engine.h"
+#include "Classes/GoogleVRControllerEventManager.h"
+//#include "Engine/Engine.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/World.h"
+#include "Engine/Engine.h"
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
 #include "Android/AndroidJNI.h"
@@ -37,7 +41,6 @@ static int EmulatorHandednessPreference = 0; // set to right handed by default;
 static bool bKeepConnectingControllerEmulator = false;
 static double LastTimeTryAdbForward = 0.0;
 static bool bIsLastTickInPlayMode = false;
-static FRotator BaseEmulatorOrientation= FRotator::ZeroRotator;
 static bool SetupAdbForward();
 static bool ExecuteAdbCommand( const FString& CommandLine, FString* OutStdOut, FString* OutStdErr);
 static void GetAdbPath(FString& OutADBPath);
@@ -124,6 +127,11 @@ FGoogleVRController::FGoogleVRController(gvr::ControllerApi* pControllerAPI, con
 #else
 FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
 	: MessageHandler(InMessageHandler)
+#endif
+	, bUseArmModel(true)
+	, CurrentControllerState(EGoogleVRControllerState::Disconnected)
+#if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
+	, BaseEmulatorOrientation(FRotator::ZeroRotator)
 #endif
 {
 	UE_LOG(LogGoogleVRController, Log, TEXT("GoogleVR Controller Created"));
@@ -225,7 +233,7 @@ void FGoogleVRController::ApplicationResumeDelegate()
 #endif
 }
 
-void FGoogleVRController::PollController()
+void FGoogleVRController::PollController(float DeltaTime)
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 #if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
@@ -259,6 +267,68 @@ void FGoogleVRController::PollController()
 #elif GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
 	CachedControllerState.Update(*pController);
 #endif
+	if (bUseArmModel)
+	{
+		// Update the handedness. This could be changed in UserSettings at anytime so we poll for it.
+		int GvrHandedness = GetGVRControllerHandedness();
+		if (GvrHandedness == 0)
+		{
+			ArmModelController.SetHandedness(gvr_arm_model::Controller::Right);
+		}
+		else if (GvrHandedness == 1)
+		{
+			ArmModelController.SetHandedness(gvr_arm_model::Controller::Left);
+		}
+		else
+		{
+			ArmModelController.SetHandedness(gvr_arm_model::Controller::Unknown);
+		}
+
+		// Updating the Arm Model requires us to pass in some data in GVR space
+		gvr_arm_model::Controller::UpdateData UpdateData;
+
+		// get acceleration data
+		gvr_vec3f GvrAccel = CachedControllerState.GetAccel();
+		UpdateData.acceleration = gvr_arm_model::Vector3(GvrAccel.x, GvrAccel.y, GvrAccel.z);
+
+		// Get orientation data
+		gvr_quatf GvrOrientation = CachedControllerState.GetOrientation();
+		UpdateData.orientation = gvr_arm_model::Quaternion(GvrOrientation.qw, GvrOrientation.qx, GvrOrientation.qy, GvrOrientation.qz);
+
+		// Get gyroscope data
+		gvr_vec3f GvrGyro = CachedControllerState.GetGyro();
+		UpdateData.gyro = gvr_arm_model::Vector3(GvrGyro.x, GvrGyro.y, GvrGyro.z);
+
+		// Get head direction and position of the HMD, used for FollowGaze options
+		if (GEngine->HMDDevice.IsValid())
+		{
+			FQuat HmdOrientation;
+			FVector HmdPosition;
+			GEngine->HMDDevice->GetCurrentOrientationAndPosition(HmdOrientation, HmdPosition);
+			FVector HmdDirection = HmdOrientation * FVector::ForwardVector;
+
+			const float WorldToMetersScale = GetWorldToMetersScale();
+
+			// Gvr: Negative Z is Forward, UE: Positive X is Forward.
+			UpdateData.headDirection.z(-HmdDirection.X);
+			UpdateData.headPosition.z(-HmdPosition.X / WorldToMetersScale);
+			// Gvr: Positive X is Right, UE: Positive Y is Right.
+			UpdateData.headDirection.x(HmdDirection.Y);
+			UpdateData.headPosition.x(HmdPosition.Y / WorldToMetersScale);
+			// Gvr: Positive Y is Up, UE: Positive Z is Up
+			UpdateData.headDirection.y(HmdDirection.Z);
+			UpdateData.headPosition.y(HmdPosition.Z / WorldToMetersScale);
+		}
+
+		// Get delta time
+		UpdateData.deltaTimeSeconds = DeltaTime;
+
+		// Get connected status
+		UpdateData.connected = CachedControllerState.GetConnectionState() == gvr::ControllerConnectionState::GVR_CONTROLLER_CONNECTED;
+
+		// Update the arm model
+		ArmModelController.Update(UpdateData);
+	}
 #endif
 }
 
@@ -267,70 +337,74 @@ void FGoogleVRController::ProcessControllerButtons()
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	// Capture our current button states
 	bool CurrentButtonStates[EGoogleVRControllerButton::TotalButtonCount] = {0};
+	FVector2D TranslatedLocation = FVector2D::ZeroVector;
 
-	// Process our known set of buttons
-	if (CachedControllerState.GetButtonState(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_CLICK))
+	if (IsAvailable())
 	{
-		CurrentButtonStates[EGoogleVRControllerButton::TouchPadPress] = true;
-	}
-	else if (CachedControllerState.GetButtonUp(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_CLICK))
-	{
-		CurrentButtonStates[EGoogleVRControllerButton::TouchPadPress] = false;
-	}
+		// Process our known set of buttons
+		if (CachedControllerState.GetButtonState(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_CLICK))
+		{
+			CurrentButtonStates[EGoogleVRControllerButton::TouchPadPress] = true;
+		}
+		else if (CachedControllerState.GetButtonUp(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_CLICK))
+		{
+			CurrentButtonStates[EGoogleVRControllerButton::TouchPadPress] = false;
+		}
 
-	if (CachedControllerState.GetButtonDown(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_HOME))
-	{
-		// Ignore Home press as its reserved
-	}
-	else if (CachedControllerState.GetButtonUp(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_HOME))
-	{
-		// Ignore Home release as its reserved
-	}
+		if (CachedControllerState.GetButtonState(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_HOME))
+		{
+			CurrentButtonStates[EGoogleVRControllerButton::System] = true;
+		}
+		else if (CachedControllerState.GetButtonUp(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_HOME))
+		{
+			CurrentButtonStates[EGoogleVRControllerButton::System] = false;
+		}
 
-	// Note: VolumeUp and VolumeDown Controller states are also ignored as they are reserved
+		// Note: VolumeUp and VolumeDown Controller states are also ignored as they are reserved
 
-	if (CachedControllerState.GetButtonState(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_APP))
-	{
-		CurrentButtonStates[EGoogleVRControllerButton::ApplicationMenu] = true;
-	}
-	else if (CachedControllerState.GetButtonUp(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_APP))
-	{
-		CurrentButtonStates[EGoogleVRControllerButton::ApplicationMenu] = false;
-	}
+		if (CachedControllerState.GetButtonState(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_APP))
+		{
+			CurrentButtonStates[EGoogleVRControllerButton::ApplicationMenu] = true;
+		}
+		else if (CachedControllerState.GetButtonUp(gvr::ControllerButton::GVR_CONTROLLER_BUTTON_APP))
+		{
+			CurrentButtonStates[EGoogleVRControllerButton::ApplicationMenu] = false;
+		}
 
-	// Note: There is no Grip or Trigger button information from the CachedControllerState; so do nothing
-	// EGoogleVRControllerButton::TriggerPress - unhandled
-	// EGoogleVRControllerButton::Grip - unhandled
+		// Note: There is no Grip or Trigger button information from the CachedControllerState; so do nothing
+		// EGoogleVRControllerButton::TriggerPress - unhandled
+		// EGoogleVRControllerButton::Grip - unhandled
 
-	// Process touches and analog information
-	// OnDown
-	CurrentButtonStates[EGoogleVRControllerButton::TouchPadTouch] = CachedControllerState.IsTouching();
+		// Process touches and analog information
+		// OnDown
+		CurrentButtonStates[EGoogleVRControllerButton::TouchPadTouch] = CachedControllerState.IsTouching();
 
-	// The controller's touch positions are in [0,1]^2 coordinate space, we want to be in [-1,1]^2, so translate the touch positions.
-	FVector2D TranslatedLocation = FVector2D((CachedControllerState.GetTouchPos().x * 2) - 1, (CachedControllerState.GetTouchPos().y * 2) - 1);
+		// The controller's touch positions are in [0,1]^2 coordinate space, we want to be in [-1,1]^2, so translate the touch positions.
+		TranslatedLocation = FVector2D((CachedControllerState.GetTouchPos().x * 2) - 1, (CachedControllerState.GetTouchPos().y * 2) - 1);
 
-	// OnHold
-	if( CachedControllerState.IsTouching() || CachedControllerState.GetTouchUp() )
-	{
-		const FVector2D TouchDir = TranslatedLocation.GetSafeNormal();
-		const FVector2D UpDir(0.f, 1.f);
-		const FVector2D RightDir(1.f, 0.f);
+		// OnHold
+		if( CachedControllerState.IsTouching() || CachedControllerState.GetTouchUp() )
+		{
+			const FVector2D TouchDir = TranslatedLocation.GetSafeNormal();
+			const FVector2D UpDir(0.f, 1.f);
+			const FVector2D RightDir(1.f, 0.f);
 
-		const float VerticalDot = TouchDir | UpDir;
-		const float RightDot = TouchDir | RightDir;
+			const float VerticalDot = TouchDir | UpDir;
+			const float RightDot = TouchDir | RightDir;
 
-		const bool bPressed = !TouchDir.IsNearlyZero() && CurrentButtonStates[EGoogleVRControllerButton::TouchPadPress];
+			const bool bPressed = !TouchDir.IsNearlyZero() && CurrentButtonStates[EGoogleVRControllerButton::TouchPadPress];
 
-		CurrentButtonStates[EGoogleVRControllerButton::TouchPadUp] = bPressed && (VerticalDot <= -DOT_45DEG);
-		CurrentButtonStates[EGoogleVRControllerButton::TouchPadDown] = bPressed && (VerticalDot >= DOT_45DEG);
-		CurrentButtonStates[EGoogleVRControllerButton::TouchPadLeft] = bPressed && (RightDot <= -DOT_45DEG);
-		CurrentButtonStates[EGoogleVRControllerButton::TouchPadRight] = bPressed && (RightDot >= DOT_45DEG);
-	}
+			CurrentButtonStates[EGoogleVRControllerButton::TouchPadUp] = bPressed && (VerticalDot <= -DOT_45DEG);
+			CurrentButtonStates[EGoogleVRControllerButton::TouchPadDown] = bPressed && (VerticalDot >= DOT_45DEG);
+			CurrentButtonStates[EGoogleVRControllerButton::TouchPadLeft] = bPressed && (RightDot <= -DOT_45DEG);
+			CurrentButtonStates[EGoogleVRControllerButton::TouchPadRight] = bPressed && (RightDot >= DOT_45DEG);
+		}
 
-	else if(!CachedControllerState.IsTouching())
-	{
-		TranslatedLocation.X = 0.0f;
-		TranslatedLocation.Y = 0.0f;
+		else if(!CachedControllerState.IsTouching())
+		{
+			TranslatedLocation.X = 0.0f;
+			TranslatedLocation.Y = 0.0f;
+		}
 	}
 
 	MessageHandler->OnControllerAnalog( FGamepadKeyNames::MotionController_Left_Thumbstick_X, 0, TranslatedLocation.X);
@@ -379,6 +453,13 @@ void FGoogleVRController::ProcessControllerEvents()
 #endif
 		UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerEventManager()->OnControllerRecenteredDelegate.Broadcast();
 	}
+
+	EGoogleVRControllerState PreviousControllerState = CurrentControllerState;
+	CurrentControllerState = (EGoogleVRControllerState) CachedControllerState.GetConnectionState();
+	if (CurrentControllerState != PreviousControllerState)
+	{
+		UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerEventManager()->OnControllerStateChangedDelegate.Broadcast(CurrentControllerState);
+	}
 #endif
 }
 
@@ -412,6 +493,52 @@ int FGoogleVRController::GetGVRControllerHandedness() const
 #endif
 }
 
+EGoogleVRControllerState FGoogleVRController::GetControllerState() const
+{
+	return CurrentControllerState;
+}
+
+FVector FGoogleVRController::ConvertGvrVectorToUnreal(float x, float y, float z) const
+{
+	// Number of Unreal Units per meter.
+	const float WorldToMetersScale = GetWorldToMetersScale();
+
+	FVector Result;
+
+	// Gvr: Negative Z is Forward, UE: Positive X is Forward.
+	Result.X = -z * WorldToMetersScale;
+	// Gvr: Positive X is Right, UE: Positive Y is Right.
+	Result.Y = x * WorldToMetersScale;
+	// Gvr: Positive Y is Up, UE: Positive Z is Up
+	Result.Z = y * WorldToMetersScale;
+
+	return Result;
+
+}
+
+FQuat FGoogleVRController::ConvertGvrQuaternionToUnreal(float w, float x, float y, float z) const
+{
+	FQuat Result = FQuat(-z, x, y, -w);
+	return Result;
+}
+
+bool FGoogleVRController::GetUseArmModel() const
+{
+	return bUseArmModel;
+}
+
+void FGoogleVRController::SetUseArmModel(bool bNewUseArmModel)
+{
+	bUseArmModel = bNewUseArmModel;
+}
+
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+gvr_arm_model::Controller& FGoogleVRController::GetArmModelController()
+{
+	return ArmModelController;
+}
+#endif
+
 void FGoogleVRController::Tick(float DeltaTime)
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
@@ -426,8 +553,7 @@ void FGoogleVRController::Tick(float DeltaTime)
 	}
 	bIsLastTickInPlayMode = bIsInPlayMode;
 #endif
-
-	PollController();
+	PollController(DeltaTime);
 }
 
 void FGoogleVRController::SendControllerEvents()
@@ -462,8 +588,30 @@ bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 Contro
 		OutOrientation = FRotator::ZeroRotator;
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
-		gvr_quatf ControllerOrientation = CachedControllerState.GetOrientation();
-		OutOrientation = FQuat(ControllerOrientation.qz, -ControllerOrientation.qx, -ControllerOrientation.qy, ControllerOrientation.qw).Rotator();
+		if (bUseArmModel)
+		{
+			// Number of Unreal Units per meter.
+			const float WorldToMetersScale = GetWorldToMetersScale();
+
+			const gvr_arm_model::Vector3& ControllerPosition = ArmModelController.GetControllerPosition();
+			const gvr_arm_model::Quaternion& ControllerRotation = ArmModelController.GetControllerRotation();
+			FVector Position = ConvertGvrVectorToUnreal(ControllerPosition.x(), ControllerPosition.y(), ControllerPosition.z());
+			FQuat Orientation = ConvertGvrQuaternionToUnreal(ControllerRotation.w(), ControllerRotation.x(), ControllerRotation.y(), ControllerRotation.z());
+
+			FQuat BaseOrientation;
+			if (GEngine->HMDDevice.IsValid())
+			{
+				BaseOrientation = GEngine->HMDDevice->GetBaseOrientation();
+			}
+
+			OutOrientation = (BaseOrientation * Orientation).Rotator();
+			OutPosition = BaseOrientation.RotateVector(Position);
+		}
+		else
+		{
+			gvr_quatf ControllerOrientation = CachedControllerState.GetOrientation();
+			OutOrientation = FQuat(ControllerOrientation.qz, -ControllerOrientation.qx, -ControllerOrientation.qy, ControllerOrientation.qw).Rotator();
+		}
 #if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
 		OutOrientation.Yaw -= BaseEmulatorOrientation.Yaw;
 #endif
@@ -475,6 +623,17 @@ bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 Contro
 	}
 
 	return false;
+}
+
+float FGoogleVRController::GetWorldToMetersScale() const
+{
+	if (IsInGameThread() && GWorld != nullptr)
+	{
+		return GWorld->GetWorldSettings()->WorldToMeters;
+	}
+
+	// Default value, assume Unreal units are in centimeters
+	return 100.0f;
 }
 
 ETrackingStatus FGoogleVRController::GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const

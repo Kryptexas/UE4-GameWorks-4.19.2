@@ -4,341 +4,730 @@
 #include "CoreMinimal.h"
 #include "NiagaraCommon.h"
 #include "RHI.h"
+#include "VectorVM.h"
 
-const FName BUILTIN_VAR_PARTICLEAGE = FName(TEXT("Age"));
+/** Helper class defining the layout and location of an FNiagaraVariable in an FNiagaraDataBuffer. */
+struct FNiagaraVariableLayoutInfo
+{
+	/** Index of this variable in the combined component arrays of FNiagaraDataSet and FNiagaraDataBuffer. */
+	uint32 ComponentIdx;
+	/** This variable's type layout info. */
+	FNiagaraTypeLayoutInfo LayoutInfo;
+};
 
-#define SEPARATE_PER_VARIABLE_DATA 1
+class FNiagaraDataSet;
 
-
-
-
-/** Niagara Data Buffer
-  * Holds a number of elements of data of a specific type; set Target to determine
-  * whether CPU or GPU side
-  */
+/** Buffer containing one frame of Niagara simulation data. */
 class FNiagaraDataBuffer
 {
 public:
-	FNiagaraDataBuffer()
-		: DataType(ENiagaraDataType::Vector)
-		, ElementType(ENiagaraType::Float)
-		, Target(ENiagaraSimTarget::CPUSim)
-	{
-	}
+	void Init(FNiagaraDataSet* InOwner, uint32 NumComponents);
+	void Allocate(uint32 NumInstances);
+	void KillInstance(uint32 InstanceIdx);
 
-	ENiagaraSimTarget GetTarget()
-	{
-		return Target;
-	}
+	/** Returns a ptr to the start of the buffer for the passed component idx. */
+	uint8* GetComponentPtr(uint32 ComponentIdx);
+	/** Returns a ptr to specific instance data in the buffer for the passed component idx. */
+	uint8* GetInstancePtr(uint32 ComponentIdx, uint32 InstanceIdx);
 
-	// when changing sim target at runtime, make sure to Reset/Alloc
-	// generally only happens when changing sim type on emitters, case components are usually re-registered and no further work is needed
-	void SetTarget(ENiagaraSimTarget InTarget)
-	{
-		Target = InTarget;
-	}
+	uint32 GetNumInstances()const { return NumInstances; }
+	uint32 GetNumInstancesAllocated()const { return NumInstancesAllocated; }
 
-	void Allocate(int32 NumElements)
-	{
-		uint32 SizePerElement = GetNiagaraBytesPerElement(DataType, ElementType);
-		uint32 SizeInBytes = NumElements * SizePerElement;
-
-		if (Target == CPUSim)
-		{
-			CPUBuffer.AddUninitialized(SizeInBytes);
-		}
-		else if (Target == GPUComputeSim)
-		{
-			FRHIResourceCreateInfo CreateInfo;
-			CreateInfo.ClearValueBinding = FClearValueBinding::None;
-			CreateInfo.BulkData = nullptr;
-			GPUBuffer = RHICreateStructuredBuffer(SizePerElement, SizeInBytes, BUF_ShaderResource, CreateInfo);
-		}
-	}
-
-	void Reset(uint32 NumElements)
-	{
-		if (Target == CPUSim)
-		{
-			CPUBuffer.Reset(NumElements);
-		}
-		else if (Target == GPUComputeSim)
-		{
-			FRHIResourceCreateInfo CreateInfo;
-			uint32 SizePerElement = GetNiagaraBytesPerElement(DataType, ElementType);
-			uint32 SizeInBytes = NumElements * SizePerElement;
-			GPUBuffer = RHICreateStructuredBuffer(SizePerElement, SizeInBytes, BUF_ShaderResource, CreateInfo);
-		}
-	}
-
-	const TArray<FVector4>& GetCPUBuffer() const
-	{
-		return CPUBuffer;
-	}
-
-	TArray<FVector4>& GetCPUBuffer() 
-	{
-		return CPUBuffer;
-	}
-
-
-private:
-	ENiagaraDataType DataType;
-	ENiagaraType ElementType;
-	FStructuredBufferRHIRef GPUBuffer;
-	TArray<FVector4> CPUBuffer;
-	ENiagaraSimTarget Target;
-};
-
-
-
-/** Storage for a single particle attribute for all particles of one emitter 
-  * We double buffer at this level, so we can avoid copying or explicitly dealing
-  * with unused attributes.
-  */
-class FNiagaraVariableData
-{
-public:
-	FNiagaraVariableData()
-		: CurrentBuffer(0)
-		, bPassThroughEnabled(false)
-	{}
+	void SetNumInstances(uint32 InNumInstances) { NumInstances = InNumInstances; }
 	
-	TArray<FVector4> &GetCurrentBuffer() { return DataBuffers[CurrentBuffer].GetCPUBuffer(); }
-	TArray<FVector4> &GetPrevBuffer() { return DataBuffers[CurrentBuffer ^ 0x1].GetCPUBuffer(); }
-
-	const TArray<FVector4> &GetCurrentBuffer() const { return DataBuffers[CurrentBuffer].GetCPUBuffer(); }
-	const TArray<FVector4> &GetPrevBuffer() const { return DataBuffers[CurrentBuffer ^ 0x1].GetCPUBuffer(); }
-
-	void Allocate(uint32 NumElements)
+	void Reset()
 	{
-		//DataBuffers[CurrentBuffer].AddUninitialized(NumElements);
-		DataBuffers[CurrentBuffer].Allocate(NumElements);
+		OffsetTable.Empty();
+		Data.Empty();
+		NumInstances = 0;
+		NumInstancesAllocated = 0;
 	}
 
-	void Reset(uint32 NumElements)
+	uint32 GetSizeBytes()const
 	{
-		DataBuffers[CurrentBuffer].Reset(NumElements);
+		return Data.Num();
 	}
-
-	void SwapBuffers()
-	{ 
-		// Passthrough is usually enabled when an attribute is unused during VM execution; 
-		// in this case, we don't swap buffers, to avoid needing to copy source to destination
-		if (!bPassThroughEnabled)
-		{
-			CurrentBuffer ^= 0x1;
-		}
-	}
-
-	// Passthrough enabled means no double buffering; to be used for unused attributes only
-	void EnablePassThrough() { bPassThroughEnabled = true; }
-	void DisablePassThrough() { bPassThroughEnabled = false; }
-
 
 private:
-	ENiagaraDataType Type;
-	uint8 CurrentBuffer;
-	FNiagaraDataBuffer DataBuffers[2];
-	FStructuredBufferRHIRef GPUDataBuffers[2];
 
-	bool bPassThroughEnabled;
+	int32 GetSafeComponentBufferSize(int32 RequiredSize)
+	{
+		//Round up to VECTOR_WIDTH_BYTES.
+		//Both aligns the component buffers to the vector width but also ensures their ops cannot stomp over one another.		
+		return RequiredSize + VECTOR_WIDTH_BYTES - (RequiredSize % VECTOR_WIDTH_BYTES);
+	}
+
+	/** Back ptr to our owning data set. Used to access layout info for the buffer. */
+	FNiagaraDataSet* Owner;
+	/** Offset to the beginning of each component in the data array. */
+	TArray<uint32> OffsetTable;
+	/** Simulation data. */
+	TArray<uint8> Data;
+	/** Number of instances in data. */
+	uint32 NumInstances;
+	/** Number of instances the buffer has been allocated for. */
+	uint32 NumInstancesAllocated;
 };
 
+//////////////////////////////////////////////////////////////////////////
 
-
-
-/** Storage for Niagara data. 
-  * Holds a set of FNiagaraVariableData along with mapping from FNiagaraVariableInfos
-  * Generally, this is the entire set of particle attributes for one emitter
-  */
+/**
+General storage class for all per instance simulation data in Niagara.
+*/
 class FNiagaraDataSet
 {
+	friend FNiagaraDataBuffer;
 public:
 	FNiagaraDataSet()
 	{
 		Reset();
 	}
-
+	
 	FNiagaraDataSet(FNiagaraDataSetID InID)
 		: ID(InID)
 	{
 		Reset();
 	}
 
-	~FNiagaraDataSet()
-	{
-		Reset();
-	}
-
-	void Allocate(uint32 NumExpectedInstances, bool bReset = true)
-	{
-		if (bReset)
-		{
-			VariableDataArray.SetNumZeroed(VariableMap.Num());
-			for (auto &Data : VariableDataArray)
-			{
-				Data.Reset(NumExpectedInstances);
-				Data.Allocate(NumExpectedInstances);
-			}
-		}
-		else
-		{
-			VariableDataArray.SetNumUninitialized(VariableMap.Num());
-			for (auto &Data : VariableDataArray)
-			{
-				Data.Allocate(NumExpectedInstances);
-			}
-		}
-
-		DataAllocation[CurrentBuffer] = NumExpectedInstances;
-	}
-
 	void Reset()
 	{
-		VariableMap.Empty();
-		NumInstances[0] = 0;
-		NumInstances[1] = 0;
-		DataAllocation[0] = 0;
-		DataAllocation[1] = 0;
-		CurrentBuffer = 0;
+		Variables.Empty();
+		VariableLayoutMap.Empty();
+		ComponentSizes.Empty();
+		Data[0].Reset();
+		Data[1].Reset();
+		CurrBuffer = 0;
+		bFinalized = false;
 	}
 
-	FVector4* GetVariableData(const FNiagaraVariableInfo& VariableID, uint32 StartParticle = 0)
+	void AddVariable(FNiagaraVariable& Variable)
 	{
-		const uint32* Offset = VariableMap.Find(VariableID);
-		return Offset ? VariableDataArray[*Offset].GetCurrentBuffer().GetData() + StartParticle : NULL;
+		check(!bFinalized);
+		Variables.AddUnique(Variable);
 	}
 
-	const FVector4* GetVariableData(const FNiagaraVariableInfo& VariableID, uint32 StartParticle = 0)const
+	void AddVariables(const TArray<FNiagaraVariable>& Vars)
 	{
-		const uint32* Offset = VariableMap.Find(VariableID);
-		return Offset ? VariableDataArray[*Offset].GetCurrentBuffer().GetData() + StartParticle : NULL;
-	}
-
-	FVector4* GetPrevVariableData(const FNiagaraVariableInfo& VariableID, uint32 StartParticle = 0)
-	{
-		const uint32* Offset = VariableMap.Find(VariableID);
-		return Offset ? VariableDataArray[*Offset].GetPrevBuffer().GetData() + StartParticle : NULL;
-	}
-
-	const FVector4* GetPrevVariableData(const FNiagaraVariableInfo& VariableID, uint32 StartParticle = 0)const
-	{
-		const uint32* Offset = VariableMap.Find(VariableID);
-		return Offset ? VariableDataArray[*Offset].GetPrevBuffer().GetData() + StartParticle : NULL;
-	}
-
-	void GetVariableData(const FNiagaraVariableInfo& VariableID, FVector4*& PrevBuffer, FVector4*& CurrBuffer, uint32 StartParticle)
-	{
-		const uint32* Offset = VariableMap.Find(VariableID);
-		if (Offset)
+		check(!bFinalized);
+		for (const FNiagaraVariable& Var : Vars)
 		{
-			PrevBuffer = VariableDataArray[*Offset].GetPrevBuffer().GetData() + StartParticle;
-			CurrBuffer = VariableDataArray[*Offset].GetCurrentBuffer().GetData() + StartParticle;
-		}
-		else
-		{
-			PrevBuffer = NULL;
-			CurrBuffer = NULL;
+			Variables.AddUnique(Var);
 		}
 	}
 
-
-	FNiagaraVariableData &GetVariableBuffer(const FNiagaraVariableInfo& VariableID)
+	/** Finalize the addition of variables and other setup before this data set can be used. */
+	void Finalize()
 	{
-		const uint32* VarIdx = VariableMap.Find(VariableID);
-		return VariableDataArray[*VarIdx];
+		check(!bFinalized);
+		bFinalized = true;
+		BuildLayout();
 	}
 
-
-	bool HasAttriubte(const FNiagaraVariableInfo& VariableID)
+	/** Removes a specific instance from the current frame's data buffer. */
+	void KillInstance(uint32 InstanceIdx)
 	{
-		return VariableMap.Find(VariableID) != NULL;
+		check(bFinalized);
+		CurrData().KillInstance(InstanceIdx);
 	}
 
-	void SetVariables(const TArray<FNiagaraVariableInfo>& VariableIDs)
+	/** Appends the passed variable to the set of input and output registers ready for consumption by the VectorVM. */
+	bool AppendToRegisterTable(const FNiagaraVariable& VarInfo, uint8** InputRegisters, uint8* InputRegisterSizes, int32& NumInputRegisters, uint8** OutputRegisters, uint8* OutputRegisterSizes, int32& NumOutputRegisters, int32 StartInstance)
 	{
-		Reset();
-		for (const FNiagaraVariableInfo& Var : VariableIDs)
+		check(bFinalized);
+		if (const FNiagaraVariableLayoutInfo* VariableLayout = VariableLayoutMap.Find(VarInfo))
 		{
-			//TODO: Support attributes of any type. This may as well wait until the move of matrix ops etc over into UNiagaraScriptStructs.
-			uint32 Idx = VariableMap.Num();
-			VariableMap.Add(Var, Idx);
+			uint32 StartIdx = VariableLayout->ComponentIdx;
+			uint32 EndIdx = StartIdx + VariableLayout->LayoutInfo.GetNumScalarComponents();
+			for (uint32 VarComp = StartIdx; VarComp < EndIdx; ++VarComp)
+			{
+				InputRegisters[NumInputRegisters] = PrevData().GetInstancePtr(VarComp, StartInstance);
+				InputRegisterSizes[NumInputRegisters++] = ComponentSizes[VarComp];
+				OutputRegisters[NumOutputRegisters] = CurrData().GetInstancePtr(VarComp, StartInstance);
+				OutputRegisterSizes[NumOutputRegisters++] = ComponentSizes[VarComp];
+			}
+			return true;
 		}
+		check(false);
+		return false;
 	}
 
-	void AddVariables(const TArray<FNiagaraVariableInfo>& Variables)
+	bool AppendSingleInstanceToRegisterTable(const FNiagaraVariable& VarInfo, uint8** InputRegisters, uint8* InputRegisterSizes, int32& NumInputRegisters, uint8** OutputRegisters, uint8* OutputRegisterSizes, int32& NumOutputRegisters, int32 InstanceIdx)
 	{
-		for (const FNiagaraVariableInfo& Variable : Variables)
-		{
-			AddVariable(Variable);
-		}
+		return false;
 	}
 
-	void AddVariable(const FNiagaraVariableInfo& Variable)
+	void Allocate(uint32 NumInstances)
 	{
-		//TODO: Support attributes of any type. This may as well wait until the move of matrix ops etc over into UNiagaraScriptStructs.
-		uint32 Idx = VariableMap.Num();
-		if (!VariableMap.Find(Variable))
-		{
-			VariableMap.Add(Variable, Idx);
-		}
+		check(bFinalized);
+		CurrData().Allocate(NumInstances);
 	}
 
+	void Tick()
+	{
+		SwapBuffers();
+	}
 
-	const TMap<FNiagaraVariableInfo, uint32>& GetVariables()const { return VariableMap; }
-	int GetNumVariables()				{ return VariableMap.Num(); }
-
-	uint32 GetNumInstances() const		{ return NumInstances[CurrentBuffer]; }
-	uint32 GetPrevNumInstances() const		{ return NumInstances[CurrentBuffer ^ 0x1]; }
-	uint32 GetDataAllocation() const { return DataAllocation[CurrentBuffer]; }
-	uint32 GetPrevDataAllocation() const { return DataAllocation[CurrentBuffer ^ 0x1]; }
-	void SetNumInstances(uint32 Num)	{ NumInstances[CurrentBuffer] = Num; }
-	void SwapBuffers()					{ CurrentBuffer ^= 0x1; }
-
-	FVector4* GetCurrentBuffer(uint32 AttrIndex) { return VariableDataArray[AttrIndex].GetCurrentBuffer().GetData(); }
-	FVector4* GetPreviousBuffer(uint32 AttrIndex) { return VariableDataArray[AttrIndex].GetPrevBuffer().GetData(); }
-
-	int GetBytesUsed()	
-	{ 
-		if (VariableDataArray.Num() == 0)
-		{
-			return 0;
-		}
-		return (VariableDataArray[0].GetCurrentBuffer().Num() + VariableDataArray[0].GetPrevBuffer().Num()) * 16 + VariableMap.Num() * 4; 
+	void CopyPrevToCur()
+	{
+		CurrData().Allocate(PrevData().GetNumInstances());
+		CurrData().SetNumInstances(PrevData().GetNumInstances());
+		FMemory::Memcpy(CurrData().GetInstancePtr(0, 0), PrevData().GetInstancePtr(0, 0), CurrData().GetSizeBytes());
 	}
 
 	FNiagaraDataSetID GetID()const { return ID; }
 	void SetID(FNiagaraDataSetID InID) { ID = InID; }
 
-	void Tick()
+	FNiagaraDataBuffer& CurrData() { return Data[CurrBuffer]; }
+	FNiagaraDataBuffer& PrevData() { return Data[CurrBuffer ^ 0x1]; }
+	const FNiagaraDataBuffer& CurrData()const { return Data[CurrBuffer]; }
+	const FNiagaraDataBuffer& PrevData()const { return Data[CurrBuffer ^ 0x1]; }
+
+	uint32 GetNumInstances()const { return CurrData().GetNumInstances(); }
+	uint32 GetNumInstancesAllocated()const { return CurrData().GetNumInstancesAllocated(); }
+	void SetNumInstances(uint32 InNumInstances) { CurrData().SetNumInstances(InNumInstances); }
+
+	uint32 GetPrevNumInstances()const { return PrevData().GetNumInstances(); }
+
+	uint32 GetNumVariables()const { return Variables.Num(); }
+
+	uint32 GetSizeBytes()const
 	{
-		SwapBuffers();
+		return Data[0].GetSizeBytes() + Data[1].GetSizeBytes();
+	}
 
-		for (auto &VarData : VariableDataArray)
-		{
-			VarData.SwapBuffers();
-		}
+	bool HasVariable(const FNiagaraVariable& Var)const 
+	{
+		return Variables.Contains(Var);
+	}
 
-		if (ID.Type == ENiagaraDataSetType::Event)
+	const FNiagaraVariableLayoutInfo* GetVariableLayout(const FNiagaraVariable& Var)const
+	{
+		return VariableLayoutMap.Find(Var);
+	}
+
+	void Dump(bool bCurr);
+	const TArray<FNiagaraVariable> &GetVariables() { return Variables; }
+private:
+
+	void SwapBuffers()
+	{
+		CurrBuffer ^= 0x1;
+	}
+	
+	void BuildLayout()
+	{
+		VariableLayoutMap.Empty();
+		ComponentSizes.Empty();
+
+		uint32 NumScalarComponents = 0;
+		for (FNiagaraVariable& Var : Variables)
 		{
-			SetNumInstances(0);
-			Allocate(GetPrevDataAllocation());
-			//Fancier allocation for events?
+			FNiagaraVariableLayoutInfo& VarInfo = VariableLayoutMap.Add(Var);
+			VarInfo.ComponentIdx = NumScalarComponents;
+			FNiagaraTypeLayoutInfo::GenerateLayoutInfo(VarInfo.LayoutInfo, Var.GetType().GetScriptStruct());
+
+			ComponentSizes.Append(VarInfo.LayoutInfo.ComponentSizes);
+			NumScalarComponents += VarInfo.LayoutInfo.GetNumScalarComponents();
 		}
-		else if (ID.Type == ENiagaraDataSetType::ParticleData)
+		CurrData().Init(this, NumScalarComponents);
+		PrevData().Init(this, NumScalarComponents);
+	}
+
+	uint32 CurrIdx()const { return CurrBuffer; }
+	uint32 PrevIdx()const {	return CurrBuffer ^ 0x1; }
+		
+	/** Unique ID for this data set. Used to allow referencing from other emitters and effects. */
+	FNiagaraDataSetID ID;
+	/** Variables in the data set. */
+	TArray<FNiagaraVariable> Variables;
+	/** Combined array of sizes for every scalar component in the data set.*/
+	TArray<uint32> ComponentSizes;
+	/** Map from the variable to some extra data describing it's layout in the data set. */
+	TMap<FNiagaraVariable, FNiagaraVariableLayoutInfo> VariableLayoutMap;
+	/** Index of current state data. */
+	uint32 CurrBuffer;
+	/** Once finalized, the data layout etc is built and no more variables can be added. */
+	bool bFinalized;
+
+	FNiagaraDataBuffer Data[2];
+};
+
+/**
+General iterator for getting and setting data in and FNiagaraDataSet.
+*/
+struct FNiagaraDataSetIteratorBase
+{
+	FNiagaraDataSetIteratorBase(const FNiagaraDataSet& InDataSet, FNiagaraVariable InVar, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: DataSet(const_cast<FNiagaraDataSet&>(InDataSet))//TODO HANDLE CONST ITR
+		, DataBuffer(bCurrBuffer ? DataSet.CurrData() : DataSet.PrevData())
+		, Variable(InVar)
+		, CurrIdx(StartIdx)
+	{
+		VarLayout = DataSet.GetVariableLayout(Variable);
+
+		if (!VarLayout)
 		{
-			SetNumInstances(GetPrevNumInstances());
+			CurrIdx = INDEX_NONE;
+			NumScalarComponents = 0;
+		}
+		else
+		{
+			NumScalarComponents = VarLayout->LayoutInfo.GetNumScalarComponents();
+		}
+	}
+
+	void Advance() { ++CurrIdx; }
+	
+	bool IsValid()const
+	{
+		return CurrIdx < DataBuffer.GetNumInstances();
+	}
+
+	uint32 GetCurrIndex()const { return CurrIdx; }
+
+protected:
+
+	FNiagaraDataSet& DataSet;
+	FNiagaraDataBuffer& DataBuffer;
+	FNiagaraVariable Variable;
+	const FNiagaraVariableLayoutInfo* VarLayout;
+
+	uint32 NumScalarComponents;
+	uint32 CurrIdx;
+};
+
+template<typename T>
+struct FNiagaraDataSetIterator : public FNiagaraDataSetIteratorBase
+{
+	FNiagaraDataSetIterator(const FNiagaraDataSet& InDataSet, FNiagaraVariable InVar, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: FNiagaraDataSetIteratorBase(InDataSet, InVar, StartIdx, bCurrBuffer)
+	{
+		check(sizeof(T) == InVar.GetType().GetSize());		
+		checkf(false, TEXT("You must provide a fast runtime specialization for this type."));// Allow this slow generic version?
+	}
+
+	T operator*() { return Get(); }
+	T Get()const 
+	{
+		T Ret;	
+		GetValue(&Ret);
+		return Ret; 	
+	}
+	void Get(T& OutValue)const	{ GetValue(&OutValue);	}
+	//T* operator *(const T& InValue){ Set(InValue);	}
+
+	void Set(const T& InValue)
+	{
+		uint8* ValuePtr = (uint8*)&InValue;
+		uint32 StartIdx = VarLayout->ComponentIdx;
+		uint32 EndIdx = StartIdx + VarLayout->LayoutInfo.GetNumScalarComponents();
+		for (uint32 VarComp = 0; VarComp < VarLayout->LayoutInfo.GetNumScalarComponents(); ++VarComp)
+		{
+			int32 SetComp = VarLayout->ComponentIdx + VarComp;
+
+			uint8* DestPtr = DataBuffer.GetInstancePtr(SetComp, CurrIdx);
+			uint8* SrcPtr = ValuePtr + VarLayout->LayoutInfo.ComponentOffsets[VarComp];
+			FMemory::Memcpy(DestPtr, SrcPtr, VarLayout->LayoutInfo.ComponentSizes[VarComp]);
 		}
 	}
 
 private:
-	uint32 CurrentBuffer;
-	uint32 DataAllocation[2];
-	uint32 NumInstances[2];
 
-	TMap<FNiagaraVariableInfo, uint32> VariableMap;
-	FNiagaraDataSetID ID;
-	TArray<FNiagaraVariableData> VariableDataArray;
+	void GetValue(T* Output)const
+	{
+		uint8* ValuePtr = (uint8*)Output;
+		for (uint32 VarComp = 0; VarComp < NumScalarComponents; ++VarComp)
+		{
+			uint32 SetComp = VarLayout->ComponentIdx + VarComp;
+
+			uint8* DestPtr = ValuePtr + VarLayout->LayoutInfo.ComponentOffsets[VarComp];
+			uint8* SrcPtr = DataBuffer.GetInstancePtr(SetComp, CurrIdx);
+			FMemory::Memcpy(DestPtr, SrcPtr, VarLayout->LayoutInfo.ComponentSizes[VarComp]);
+		}
+	}
 };
 
+template<>
+struct FNiagaraDataSetIterator<int32> : public FNiagaraDataSetIteratorBase
+{
+	FNiagaraDataSetIterator<int32>(const FNiagaraDataSet& InDataSet, FNiagaraVariable InVar, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: FNiagaraDataSetIteratorBase(InDataSet, InVar, StartIdx, bCurrBuffer)
+	{
+		check(sizeof(int32) == InVar.GetType().GetSize());	
+		if (VarLayout != nullptr)
+		{
+			Base = (int32*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx);
+		}
+		else
+		{
+			Base = nullptr;
+		}
+	}
+
+	FORCEINLINE int32 operator*() { return Get(); }
+	FORCEINLINE int32 Get()const
+	{
+		int32 Ret;
+		GetValue(&Ret);
+		return Ret;
+	}
+	FORCEINLINE void Get(int32& OutValue)const { GetValue(&OutValue); }
+	//FORCEINLINE int32* operator *(const int32& InValue) { Set(InValue); }
+
+	FORCEINLINE void Set(const int32 InValue)
+	{
+		Base[CurrIdx] = InValue;
+	}
+
+private:
+
+	FORCEINLINE void GetValue(int32* Output)const
+	{
+		*Output = Base[CurrIdx];
+	}
+
+	int32* Base;
+};
+
+template<>
+struct FNiagaraDataSetIterator<float> : public FNiagaraDataSetIteratorBase
+{
+	FNiagaraDataSetIterator<float>(const FNiagaraDataSet& InDataSet, FNiagaraVariable InVar, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: FNiagaraDataSetIteratorBase(InDataSet, InVar, StartIdx, bCurrBuffer)
+	{
+		check(sizeof(float) == InVar.GetType().GetSize());
+		if (VarLayout != nullptr)
+		{
+			Base = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx);
+		}
+		else
+		{
+			Base = nullptr;
+		}
+	}
+
+	FORCEINLINE float operator*() { return Get(); }
+	FORCEINLINE float Get()const
+	{
+		float Ret;
+		GetValue(&Ret);
+		return Ret;
+	}
+	FORCEINLINE void Get(float& OutValue)const { GetValue(&OutValue); }
+	//FORCEINLINE float* operator *(const float& InValue) { Set(InValue); }
+
+	FORCEINLINE void Set(const float& InValue)
+	{
+		Base[CurrIdx] = InValue;
+	}
+
+private:
+
+	FORCEINLINE void GetValue(float* Output)const
+	{
+		*Output = Base[CurrIdx];
+	}
+
+	float* Base;
+};
+
+template<>
+struct FNiagaraDataSetIterator<FVector2D> : public FNiagaraDataSetIteratorBase
+{
+	FNiagaraDataSetIterator<FVector2D>(const FNiagaraDataSet& InDataSet, FNiagaraVariable InVar, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: FNiagaraDataSetIteratorBase(InDataSet, InVar, StartIdx, bCurrBuffer)
+	{
+		check(sizeof(FVector2D) == InVar.GetType().GetSize());
+
+		if (VarLayout != nullptr)
+		{
+			XBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx);
+			YBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 1);
+		}
+		else
+		{
+			XBase = nullptr;
+			YBase = nullptr;
+		}
+	}
+
+	FORCEINLINE FVector2D operator*() { return Get(); }
+	FORCEINLINE FVector2D Get()const
+	{
+		FVector2D Ret;
+		GetValue(&Ret);
+		return Ret;
+	}
+	FORCEINLINE void Get(FVector2D& OutValue)const { GetValue(&OutValue); }
+	//FORCEINLINE FVector2D* operator *(const FVector2D& InValue) { Set(InValue); }
+
+	FORCEINLINE void Set(const FVector2D& InValue)
+	{
+		XBase[CurrIdx] = InValue.X;
+		YBase[CurrIdx] = InValue.Y;
+	}
+
+private:
+
+	FORCEINLINE void GetValue(FVector2D* Output)const
+	{
+		Output->X = XBase[CurrIdx];
+		Output->Y = YBase[CurrIdx];
+	}
+
+	float* XBase;
+	float* YBase;
+};
+
+template<>
+struct FNiagaraDataSetIterator<FVector> : public FNiagaraDataSetIteratorBase
+{
+	FNiagaraDataSetIterator<FVector>(const FNiagaraDataSet& InDataSet, FNiagaraVariable InVar, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: FNiagaraDataSetIteratorBase(InDataSet, InVar, StartIdx, bCurrBuffer)
+	{
+		check(sizeof(FVector) == InVar.GetType().GetSize());
+		if (VarLayout != nullptr)
+		{
+			XBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx);
+			YBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 1);
+			ZBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 2);
+		}
+		else
+		{
+			XBase = nullptr;
+			YBase = nullptr;
+			ZBase = nullptr;
+		}
+	}
+
+	FORCEINLINE FVector operator*() { return Get(); }
+	FORCEINLINE FVector Get()const
+	{
+		FVector Ret;
+		GetValue(&Ret);
+		return Ret;
+	}
+	FORCEINLINE void Get(FVector& OutValue)const { GetValue(&OutValue); }
+	//FORCEINLINE FVector* operator *(const FVector& InValue) { Set(InValue); }
+
+	FORCEINLINE void Set(const FVector& InValue)
+	{
+		XBase[CurrIdx] = InValue.X;
+		YBase[CurrIdx] = InValue.Y;
+		ZBase[CurrIdx] = InValue.Z;
+	}
+
+private:
+
+	FORCEINLINE void GetValue(FVector* Output)const
+	{
+		Output->X = XBase[CurrIdx];
+		Output->Y = YBase[CurrIdx];
+		Output->Z = ZBase[CurrIdx];
+	}
+
+	float* XBase;
+	float* YBase;
+	float* ZBase;
+};
+
+template<>
+struct FNiagaraDataSetIterator<FVector4> : public FNiagaraDataSetIteratorBase
+{
+	FNiagaraDataSetIterator<FVector4>(const FNiagaraDataSet& InDataSet, FNiagaraVariable InVar, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: FNiagaraDataSetIteratorBase(InDataSet, InVar, StartIdx, bCurrBuffer)
+	{
+		check(sizeof(FVector4) == InVar.GetType().GetSize());
+		if (VarLayout)
+		{
+			XBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx);
+			YBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 1);
+			ZBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 2);
+			WBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 3);
+		}
+		else
+		{
+			XBase = nullptr;
+			YBase = nullptr;
+			ZBase = nullptr;
+			WBase = nullptr;
+		}
+	}
+
+	FORCEINLINE FVector4 operator*() { return Get(); }
+	FORCEINLINE FVector4 Get()const
+	{
+		FVector4 Ret;
+		GetValue(&Ret);
+		return Ret;
+	}
+	FORCEINLINE void Get(FVector4& OutValue)const { GetValue(&OutValue); }
+	//FORCEINLINE FVector4* operator *(const FVector4& InValue) { Set(InValue); }
+
+	FORCEINLINE void Set(const FVector4& InValue)
+	{
+		XBase[CurrIdx] = InValue.X;
+		YBase[CurrIdx] = InValue.Y;
+		ZBase[CurrIdx] = InValue.Z;
+		WBase[CurrIdx] = InValue.W;
+	}
+
+private:
+
+	FORCEINLINE void GetValue(FVector4* Output)const
+	{
+		Output->X = XBase[CurrIdx];
+		Output->Y = YBase[CurrIdx];
+		Output->Z = ZBase[CurrIdx];
+		Output->W = WBase[CurrIdx];
+	}
+
+	float* XBase;
+	float* YBase;
+	float* ZBase;
+	float* WBase;
+};
+
+template<>
+struct FNiagaraDataSetIterator<FLinearColor> : public FNiagaraDataSetIteratorBase
+{
+	FNiagaraDataSetIterator<FLinearColor>(const FNiagaraDataSet& InDataSet, FNiagaraVariable InVar, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: FNiagaraDataSetIteratorBase(InDataSet, InVar, StartIdx, bCurrBuffer)
+	{
+		check(sizeof(FLinearColor) == InVar.GetType().GetSize());
+		if (VarLayout)
+		{
+			RBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx);
+			GBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 1);
+			BBase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 2);
+			ABase = (float*)DataBuffer.GetComponentPtr(VarLayout->ComponentIdx + 3);
+		}
+		else
+		{
+			RBase = nullptr;
+			GBase = nullptr;
+			BBase = nullptr;
+			ABase = nullptr;
+		}
+	}
+
+	FORCEINLINE FLinearColor operator*() { return Get(); }
+	FORCEINLINE FLinearColor Get()const
+	{
+		FLinearColor Ret;
+		GetValue(&Ret);
+		return Ret;
+	}
+	FORCEINLINE void Get(FLinearColor& OutValue)const { GetValue(&OutValue); }
+	//FORCEINLINE FLinearColor* operator *(const FLinearColor& InValue) { Set(InValue); }
+
+	FORCEINLINE void Set(const FLinearColor& InValue)
+	{
+		RBase[CurrIdx] = InValue.R;
+		GBase[CurrIdx] = InValue.G;
+		BBase[CurrIdx] = InValue.B;
+		ABase[CurrIdx] = InValue.A;
+	}
+
+private:
+
+	FORCEINLINE void GetValue(FLinearColor* Output)const
+	{
+		Output->R = RBase[CurrIdx];
+		Output->G = GBase[CurrIdx];
+		Output->B = BBase[CurrIdx];
+		Output->A = ABase[CurrIdx];
+	}
+
+	float* RBase;
+	float* GBase;
+	float* BBase;
+	float* ABase;
+};
+
+/** 
+Iterator that will pull or push data between a DataSet and some FNiagaraVariables it contains.
+Super slow. Don't use at runtime.
+*/
+struct FNiagaraDataSetVariableIterator
+{
+	FNiagaraDataSetVariableIterator(FNiagaraDataSet& InDataSet, uint32 StartIdx = 0, bool bCurrBuffer = true)
+		: DataSet(InDataSet)
+		, DataBuffer(bCurrBuffer ? DataSet.CurrData() : DataSet.PrevData())
+		, CurrIdx(StartIdx)
+	{
+	}
+
+	void Get()
+	{
+		for (int32 VarIdx = 0; VarIdx < Variables.Num(); ++VarIdx)
+		{
+			FNiagaraVariable* Var = Variables[VarIdx];
+			const FNiagaraVariableLayoutInfo* Layout = VarLayouts[VarIdx];
+
+			check(Var && Layout);
+
+			for (uint32 VarComp = 0; VarComp < Layout->LayoutInfo.GetNumScalarComponents(); ++VarComp)
+			{
+				int32 SetComp = Layout->ComponentIdx + VarComp;
+
+				uint8* DestPtr = Var->GetData() + Layout->LayoutInfo.ComponentOffsets[VarComp];
+				uint8* SrcPtr = DataBuffer.GetInstancePtr(SetComp, CurrIdx);
+				FMemory::Memcpy(DestPtr, SrcPtr, Layout->LayoutInfo.ComponentSizes[VarComp]);
+			}
+		}
+	}
+
+	void Set()
+	{
+		for (int32 VarIdx = 0; VarIdx < Variables.Num(); ++VarIdx)
+		{
+			FNiagaraVariable* Var = Variables[VarIdx];
+			const FNiagaraVariableLayoutInfo* Layout = VarLayouts[VarIdx];
+
+			check(Var && Layout);
+
+			for (uint32 VarComp = 0; VarComp < Layout->LayoutInfo.GetNumScalarComponents(); ++VarComp)
+			{
+				uint32 SetComp = Layout->ComponentIdx + VarComp;
+
+				uint8* DestPtr = DataBuffer.GetInstancePtr(SetComp, CurrIdx); 
+				uint8* SrcPtr = Var->GetData() + Layout->LayoutInfo.ComponentOffsets[VarComp];
+				FMemory::Memcpy(DestPtr, SrcPtr, Layout->LayoutInfo.ComponentSizes[VarComp]);
+			}
+		}
+	}
+
+	void Advance() { ++CurrIdx; }
+
+	bool IsValid()const
+	{
+		return CurrIdx < DataBuffer.GetNumInstances();
+	}
+
+	uint32 GetCurrIndex()const { return CurrIdx; }
+
+	void AddVariable(FNiagaraVariable* InVar)
+	{
+		check(InVar);
+		Variables.AddUnique(InVar);
+		VarLayouts.AddUnique(DataSet.GetVariableLayout(*InVar));
+		InVar->AllocateData();
+	}
+
+	void AddVariables(TArray<FNiagaraVariable>& Vars)
+	{
+		for (FNiagaraVariable& Var : Vars)
+		{
+			AddVariable(&Var);
+		}
+	}
+private:
+	
+	FNiagaraDataSet& DataSet;
+	FNiagaraDataBuffer& DataBuffer;
+	TArray<FNiagaraVariable*> Variables;
+	TArray<const FNiagaraVariableLayoutInfo*> VarLayouts;
+
+	uint32 CurrIdx;
+};

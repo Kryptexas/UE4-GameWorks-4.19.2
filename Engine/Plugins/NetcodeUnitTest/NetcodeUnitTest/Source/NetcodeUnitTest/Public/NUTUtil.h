@@ -192,6 +192,8 @@ public:
 			}
 		}
 
+		UE_LOG(LogUnitTest, Log, TEXT("Blocking disabled assert: %s"), V);
+
 		return bReturnVal;
 	}
 

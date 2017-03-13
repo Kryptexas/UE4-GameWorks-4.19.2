@@ -106,6 +106,12 @@ void SKeySelector::Construct(const FArguments& InArgs)
 		}
 	}
 
+	// if we allow NoClear, add a "None" option to be able to clear out a binding
+	if (InArgs._AllowClear)
+	{
+		new (KeyTreeRoot) FKeyTreeItem(MakeShareable(new FKeyTreeInfo(FText(), MakeShareable(new FKey(NAME_None)))));
+	}
+
 	TreeViewWidth = InArgs._TreeViewWidth;
 	TreeViewHeight = InArgs._TreeViewHeight;
 	CategoryFont = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 );

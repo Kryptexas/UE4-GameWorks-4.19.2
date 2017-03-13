@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MinidumpDiagnostics : ModuleRules
 {
-	public MinidumpDiagnostics( TargetInfo Target )
+	public MinidumpDiagnostics( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add( "Launch" );
 		PrivateIncludePaths.Add( "Runtime/Launch/Private" );

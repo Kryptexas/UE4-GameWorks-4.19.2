@@ -174,7 +174,7 @@ void FVulkanCommandListContext::FTransitionState::BeginRenderPass(FVulkanCommand
 	ensure(RTLayout.GetNumSamples() <= (1 << NUMBITS_NUM_SAMPLES_MINUS_ONE));
 	SetKeyBits(GfxKey, OFFSET_NUM_SAMPLES_MINUS_ONE, NUMBITS_NUM_SAMPLES_MINUS_ONE, RTLayout.GetNumSamples() - 1);
 
-	CmdBuffer->BeginRenderPass(RenderPass->GetLayout(), RenderPass->GetHandle(), Framebuffer->GetHandle(), ClearValues);
+	CmdBuffer->BeginRenderPass(RenderPass->GetLayout(), RenderPass, Framebuffer->GetHandle(), ClearValues);
 
 	{
 		const VkExtent3D& Extents = RTLayout.GetExtent3D();
@@ -193,7 +193,7 @@ void FVulkanCommandListContext::FTransitionState::EndRenderPass(FVulkanCmdBuffer
 	CurrentRenderPass = nullptr;
 }
 
-void FVulkanCommandListContext::FTransitionState::NotifyDeletedRenderTarget(FVulkanDevice& InDevice, const FVulkanTextureBase* Texture)
+void FVulkanCommandListContext::FTransitionState::NotifyDeletedRenderTarget(FVulkanDevice& InDevice, VkImage Image)
 {
 	for (auto It = Framebuffers.CreateIterator(); It; ++It)
 	{
@@ -201,7 +201,7 @@ void FVulkanCommandListContext::FTransitionState::NotifyDeletedRenderTarget(FVul
 		for (int32 Index = List->Framebuffer.Num() - 1; Index >= 0; --Index)
 		{
 			FVulkanFramebuffer* Framebuffer = List->Framebuffer[Index];
-			if (Framebuffer->ContainsRenderTarget(Texture->Surface.Image))
+			if (Framebuffer->ContainsRenderTarget(Image))
 			{
 				List->Framebuffer.RemoveAtSwap(Index, 1, false);
 				Framebuffer->Destroy(InDevice);
@@ -215,11 +215,6 @@ void FVulkanCommandListContext::FTransitionState::NotifyDeletedRenderTarget(FVul
 			It.RemoveCurrent();
 		}
 	}
-}
-
-void FVulkanCommandListContext::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
-{
-	TransitionState.NotifyDeletedRenderTarget(*Device, Texture);
 }
 
 void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargets, const FRHIDepthRenderTargetView* NewDepthStencilTarget, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs)
@@ -247,8 +242,16 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 
 	FVulkanRenderTargetLayout RTLayout(RenderTargetsInfo);
 	const uint32 RTLayoutHash = RTLayout.GetHash();
-	FVulkanRenderPass* RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
-	FVulkanFramebuffer* Framebuffer = TransitionState.GetOrCreateFramebuffer(*Device, RenderTargetsInfo, RTLayout, RenderPass);
+
+	FVulkanRenderPass* RenderPass = nullptr;
+	FVulkanFramebuffer* Framebuffer = nullptr;
+
+	if (RTLayout.GetExtent2D().width != 0 && RTLayout.GetExtent2D().height != 0)
+	{
+		RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
+		Framebuffer = TransitionState.GetOrCreateFramebuffer(*Device, RenderTargetsInfo, RTLayout, RenderPass);
+	}
+
 	if (Framebuffer == TransitionState.CurrentFramebuffer && RenderPass == TransitionState.CurrentRenderPass)
 	{
 		return;
@@ -265,13 +268,15 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 		CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	}
 
-
-	// Verify we are not setting the same render targets again
-	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture ||
-		RenderTargetsInfo.NumColorRenderTargets > 1 ||
-		RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture)
+	if (RenderPass != nullptr && Framebuffer != nullptr)
 	{
-		TransitionState.BeginRenderPass(*this, PendingGfxState->CurrentKey, *Device, CmdBuffer, RenderTargetsInfo, RTLayout, RenderPass, Framebuffer);
+		// Verify we are not setting the same render targets again
+		if (RenderTargetsInfo.DepthStencilRenderTarget.Texture ||
+			RenderTargetsInfo.NumColorRenderTargets > 1 ||
+			RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture)
+		{
+			TransitionState.BeginRenderPass(*this, PendingGfxState->CurrentKey, *Device, CmdBuffer, RenderTargetsInfo, RTLayout, RenderPass, Framebuffer);
+		}
 	}
 }
 
@@ -456,6 +461,8 @@ void FVulkanDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntR
 	}
 
 	VkBufferMemoryBarrier Barrier;
+	ensure(StagingBuffer->GetSize() == Size);
+		//#todo-rco: Change offset if reusing a buffer suballocation
 	VulkanRHI::SetupAndZeroBufferBarrier(Barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, StagingBuffer->GetHandle(), 0/*StagingBuffer->GetOffset()*/, Size);
 	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 1, &Barrier, 0, nullptr);
 
@@ -541,8 +548,9 @@ void FVulkanDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, 
 		}
 
 		VkBufferMemoryBarrier Barrier;
+		ensure(StagingBuffer->GetSize() == Size);
 		//#todo-rco: Change offset if reusing a buffer suballocation
-		VulkanRHI::SetupAndZeroBufferBarrier(Barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_HOST_READ_BIT, StagingBuffer->GetHandle(), 0/*StagingBuffer->GetOffset()*/, StagingBuffer->GetDeviceMemoryAllocationSize());
+		VulkanRHI::SetupAndZeroBufferBarrier(Barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_HOST_READ_BIT, StagingBuffer->GetHandle(), 0/*StagingBuffer->GetOffset()*/, StagingBuffer->GetSize());
 		VulkanRHI::vkCmdPipelineBarrier(InCmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 1, &Barrier, 0, nullptr);
 
 		// Force upload
@@ -648,9 +656,17 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 			SrcAccess = VK_ACCESS_SHADER_READ_BIT;
 			DestAccess = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 			break;
+		case EResourceTransitionAccess::ERWNoBarrier:
+			//#todo-rco: Skip for now
+			continue;
 		default:
 			ensure(0);
 			break;
+		}
+
+		if (!UAV)
+		{
+			continue;
 		}
 
 		if (UAV->SourceVertexBuffer)
@@ -874,7 +890,11 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 		{
 			SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResourcesLoop, bShowTransitionEvents, TEXT("To:%i - %s"), i, *InTextures[i]->GetName().ToString());
 			FRHITexture* RHITexture = InTextures[i];
-		
+			if (!RHITexture)
+			{
+				continue;
+			}
+
 			FRHITexture2D* RHITexture2D = RHITexture->GetTexture2D();
 			if (RHITexture2D)
 			{
@@ -907,6 +927,11 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 	}
 	else if (TransitionType == EResourceTransitionAccess::ERWSubResBarrier)
 	{
+		//#todo-rco: Ignore for now; will be needed for SM5
+	}
+	else if (TransitionType == EResourceTransitionAccess::EMetaData)
+	{
+		// Nothing to do here
 	}
 	else
 	{
@@ -973,6 +998,7 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 	, bHasDepthStencil(false)
 	, bHasResolveAttachments(false)
 	, NumSamples(0)
+	, NumUsedClearValues(0)
 	, Hash(0)
 {
 	FMemory::Memzero(ColorReferences);
@@ -982,7 +1008,7 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 	FMemory::Memzero(Extent);
 
 	bool bSetExtent = false;
-
+	int32 StartClearEntry = -1;
 	for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
 	{
 		const FRHIRenderTargetView& RTView = RTInfo.ColorRenderTarget[Index];
@@ -1014,6 +1040,18 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		    CurrDesc.samples = static_cast<VkSampleCountFlagBits>(NumSamples);
 		    CurrDesc.format = UEToVkFormat(RTView.Texture->GetFormat(), (Texture->Surface.UEFlags & TexCreate_SRGB) == TexCreate_SRGB);
 		    CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTView.LoadAction);
+			if (CurrDesc.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+			{
+				if (StartClearEntry == -1)
+				{
+					StartClearEntry = NumAttachmentDescriptions;
+					NumUsedClearValues = StartClearEntry + 1;
+				}
+				else
+				{
+					NumUsedClearValues = NumAttachmentDescriptions + 1;
+				}
+			}
 		    CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTView.StoreAction);
 		    CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		    CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1050,6 +1088,18 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		CurrDesc.format = UEToVkFormat(RTInfo.DepthStencilRenderTarget.Texture->GetFormat(), false);
 		CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.DepthLoadAction);
 		CurrDesc.stencilLoadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.StencilLoadAction);
+		if (CurrDesc.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR || CurrDesc.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+		{
+			if (StartClearEntry == -1)
+			{
+				StartClearEntry = NumAttachmentDescriptions;
+				NumUsedClearValues = StartClearEntry + 1;
+			}
+			else
+			{
+				NumUsedClearValues = NumAttachmentDescriptions + 1;
+			}
+		}
 		if (CurrDesc.samples == VK_SAMPLE_COUNT_1_BIT)
 		{
 			CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTInfo.DepthStencilRenderTarget.DepthStoreAction);

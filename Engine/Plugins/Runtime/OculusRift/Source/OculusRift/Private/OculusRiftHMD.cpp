@@ -1131,7 +1131,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 	else if (FParse::Command(&Cmd, TEXT("OVRVERSION")))
 	{
 		// deprecated. Use 'hmdversion' instead
-		Ar.Logf(*GetVersionString());
+		Ar.Logf(TEXT("%s"), *GetVersionString());
 		return true;
 	}
 #if !UE_BUILD_SHIPPING
@@ -2242,7 +2242,7 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 			}
 		}
 
-		if (CurrentSettings->PixelDensityAdaptive)
+		if (CurrentSettings->PixelDensityAdaptive && pCustomPresent && pCustomPresent->IsReadyToSubmitFrame())
 		{
 			ovrPerfStats perfStats;
 			ovrResult result = ovr_GetPerfStats(OvrSession, &perfStats);

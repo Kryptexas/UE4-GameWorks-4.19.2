@@ -61,9 +61,20 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 	BuildEditableContainerList();
 	
 	FString Categories;
-	if (StructPropertyHandle->GetProperty()->HasMetaData(TEXT("Categories")))
 	{
-		Categories = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("Categories"));
+		TSharedPtr<IPropertyHandle> PropertyHandle = StructPropertyHandle;
+		while(PropertyHandle.IsValid())
+		{
+			if (PropertyHandle->GetProperty())
+			{
+				if (PropertyHandle->GetProperty()->HasMetaData( TEXT("Categories") ))
+				{
+					Categories = PropertyHandle->GetProperty()->GetMetaData( TEXT("Categories") );
+					break;
+				}
+			}
+			PropertyHandle = PropertyHandle->GetParentHandle();
+		}
 	}
 
 	bool bReadOnly = StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst);

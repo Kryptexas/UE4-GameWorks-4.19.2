@@ -14,7 +14,7 @@ void FPreviewAssetAttachContainer::AddUniqueAttachedObject(UObject* AttachObject
 {
 	for (const FPreviewAttachedObjectPair& AttachedObject : AttachedObjects)
 	{
-		if (AttachedObject.AttachedTo == AttachPointName)
+		if (AttachedObject.GetAttachedObject() == AttachObject && AttachedObject.AttachedTo == AttachPointName)
 		{
 			return;
 		}

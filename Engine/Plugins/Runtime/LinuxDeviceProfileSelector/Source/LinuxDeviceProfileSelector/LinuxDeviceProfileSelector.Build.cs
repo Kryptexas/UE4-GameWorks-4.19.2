@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class LinuxDeviceProfileSelector : ModuleRules
 	{
-        public LinuxDeviceProfileSelector(TargetInfo Target)
+        public LinuxDeviceProfileSelector(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

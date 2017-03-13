@@ -6,25 +6,14 @@ using System.Collections.Generic;
 [SupportedPlatforms(UnrealTargetPlatform.Mac)]
 public class DsymExporterTarget : TargetRules
 {
-	public DsymExporterTarget( TargetInfo Target )
+	public DsymExporterTarget( TargetInfo Target ) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
+		LaunchModuleName = "DsymExporter";
 	}
 
 	// TargetRules interface.
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
-				InModuleNames: new List<string>() { "DsymExporter" })
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

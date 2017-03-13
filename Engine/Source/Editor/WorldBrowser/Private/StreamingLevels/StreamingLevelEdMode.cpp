@@ -90,7 +90,7 @@ void FStreamingLevelEdMode::SetLevel( ULevelStreaming* LevelStream )
 
 
 		// Calculate the Level bounds box
-		LevelBounds = FBox(0);
+		LevelBounds = FBox(ForceInit);
 
 		if( Level )
 		{

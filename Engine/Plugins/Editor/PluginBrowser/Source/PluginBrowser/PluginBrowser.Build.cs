@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class PluginBrowser : ModuleRules
 	{
-		public PluginBrowser(TargetInfo Target)
+		public PluginBrowser(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

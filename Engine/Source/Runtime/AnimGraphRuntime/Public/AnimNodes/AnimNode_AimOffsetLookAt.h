@@ -35,8 +35,32 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AimOffsetLookAt : public FAnimNode_BlendSp
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LookAt, meta = (PinHiddenByDefault))
 	FName SourceSocketName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LookAt, meta = (PinHiddenByDefault))
+	FName PivotSocketName;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LookAt, meta = (PinShownByDefault))
 	float Alpha;
+
+	UPROPERTY(Transient)
+	bool bCachedSocketInfo;
+
+	UPROPERTY()
+	FBoneReference SocketBoneReference;
+
+	UPROPERTY()
+	FTransform SocketLocalTransform;
+
+	UPROPERTY()
+	FBoneReference PivotSocketBoneReference;
+
+	UPROPERTY()
+	FTransform PivotSocketLocalTransform;
+
+	UPROPERTY()
+	FTransform ActorTransform;
+
+	UPROPERTY()
+	FTransform ComponentToWorld;
 
 public:
 	FAnimNode_AimOffsetLookAt();
@@ -47,6 +71,10 @@ public:
 	virtual void UpdateAssetPlayer(const FAnimationUpdateContext& Context) override;
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
+
+	virtual bool HasPreUpdate() const override { return true; }
+	virtual void PreUpdate(const UAnimInstance* InAnimInstance) override;
+
 	// End of FAnimNode_Base interface
 
 	void UpdateFromLookAtTarget(FPoseContext& LocalPoseContext);

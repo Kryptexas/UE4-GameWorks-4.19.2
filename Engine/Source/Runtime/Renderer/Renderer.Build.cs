@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Renderer : ModuleRules
 {
-	public Renderer(TargetInfo Target)
+	public Renderer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {

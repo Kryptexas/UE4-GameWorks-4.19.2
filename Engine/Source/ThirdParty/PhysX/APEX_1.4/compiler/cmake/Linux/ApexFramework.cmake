@@ -11,7 +11,13 @@ SET(FRAMEWORK_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../framework)
 
 SET(APEXFRAMEWORK_LIBTYPE STATIC)
 
-SET(APEXFRAMEWORK_PLATFORM_SOURCE_FILES
+IF(DEFINED PX_STATIC_LIBRARIES)
+SET(APEXFRAMEWORK_PLATFORM_OBJECT_FILES
+	$<TARGET_OBJECTS:PxTask>
+)
+ENDIF()
+
+SET(APEXFRAMEWORK_PLATFORM_SOURCE_FILES ${APEXFRAMEWORK_PLATFORM_OBJECT_FILES}
 )
 
 # Use generator expressions to set config specific preprocessor definitions
@@ -47,9 +53,15 @@ endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 INCLUDE(../common/ApexFramework.cmake)
 
 # Do final direct sets after the target has been defined
-TARGET_LINK_LIBRARIES(ApexFramework PUBLIC ApexCommon ApexShared NvParameterized PsFastXml PxFoundation PxPvdSDK PxTask RenderDebug
-#	PhysxCommon - does it really need this?
+IF(DEFINED PX_STATIC_LIBRARIES)
+	TARGET_LINK_LIBRARIES(ApexFramework PUBLIC ApexCommon ApexShared NvParameterized PsFastXml PxFoundation PxPvdSDK RenderDebug
+	#	PhysxCommon - does it really need this?
 )
+ELSE()
+	TARGET_LINK_LIBRARIES(ApexFramework PUBLIC ApexCommon ApexShared NvParameterized PsFastXml PxFoundation PxPvdSDK PxTask RenderDebug
+#	PhysxCommon - does it really need this?
+)	
+ENDIF()
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(ApexFramework PROPERTIES POSITION_INDEPENDENT_CODE TRUE)

@@ -74,7 +74,7 @@ void FScriptBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			}
 			if (!PinCategory.IsEmpty())
 			{
-				FEdGraphPinType ScriptPinType(PinCategory, TEXT(""), InnerType, false, false);
+				FEdGraphPinType ScriptPinType(PinCategory, TEXT(""), InnerType, false, false, false, false, FEdGraphTerminalType());
 				UProperty* ScriptProperty = CreateVariable(Field.Name, ScriptPinType);
 				if (ScriptProperty != NULL)
 				{
@@ -104,7 +104,7 @@ void FScriptBlueprintCompiler::CreateScriptContextProperty()
 
 	if (ContextClass)
 	{
-		FEdGraphPinType ScriptContextPinType(Schema->PC_Object, TEXT(""), ContextClass, false, false);
+		FEdGraphPinType ScriptContextPinType(Schema->PC_Object, TEXT(""), ContextClass, false, false, false, false, FEdGraphTerminalType());
 		ContextProperty = CastChecked<UObjectProperty>(CreateVariable(TEXT("Generated_ScriptContext"), ScriptContextPinType));
 		ContextProperty->SetPropertyFlags(CPF_ContainsInstancedReference | CPF_InstancedReference);
 	}

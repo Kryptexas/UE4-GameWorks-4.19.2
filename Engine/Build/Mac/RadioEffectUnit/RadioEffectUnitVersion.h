@@ -2,9 +2,6 @@
  * Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  */
 
-#ifndef __RadioEffectUnitVersion_h__
-#define __RadioEffectUnitVersion_h__
+#pragma once
 
 #define kRadioEffectUnitVersion 0x00010000
-
-#endif

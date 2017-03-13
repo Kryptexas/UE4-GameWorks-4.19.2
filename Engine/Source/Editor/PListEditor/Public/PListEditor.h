@@ -2,9 +2,6 @@
 
 #pragma once
 
-#ifndef __PListEditor_h__
-#define __PListEditor_h__
-
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
 
@@ -29,5 +26,3 @@ private:
 
 
 };
-
-#endif

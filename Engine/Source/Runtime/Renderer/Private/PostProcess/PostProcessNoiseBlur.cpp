@@ -11,6 +11,7 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "SceneRenderTargetParameters.h"
 #include "PostProcess/PostProcessing.h"
+#include "ClearQuad.h"
 
 /** Encapsulates the post processing noise blur shader. */
 template <uint32 Method>
@@ -141,7 +142,7 @@ void FRCPassPostProcessNoiseBlur::Process(FRenderingCompositePassContext& Contex
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor(0, 0, 0, 0), DestRect);
+	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 

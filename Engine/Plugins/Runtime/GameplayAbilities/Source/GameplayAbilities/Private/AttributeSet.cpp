@@ -660,6 +660,35 @@ void FAttributeSetInitterDiscreteLevels::ApplyAttributeDefault(UAbilitySystemCom
 	AbilitySystemComponent->ForceReplication();
 }
 
+TArray<float> FAttributeSetInitterDiscreteLevels::GetAttributeSetValues(UClass* AttributeSetClass, UProperty* AttributeProperty, FName GroupName) const
+{
+	TArray<float> AttributeSetValues;
+	const FAttributeSetDefaultsCollection* Collection = Defaults.Find(GroupName);
+	if (!Collection)
+	{
+		ABILITY_LOG(Error, TEXT("FAttributeSetInitterDiscreteLevels::InitAttributeSetDefaults Default DefaultAttributeSet not found! Skipping Initialization"));
+		return TArray<float>();
+	}
+
+	for (const FAttributeSetDefaults& SetDefaults : Collection->LevelData)
+	{
+		const FAttributeDefaultValueList* DefaultDataList = SetDefaults.DataMap.Find(AttributeSetClass);
+		if (DefaultDataList)
+		{
+			for (auto& DataPair : DefaultDataList->List)
+			{
+				check(DataPair.Property);
+				if (DataPair.Property == AttributeProperty)
+				{
+					AttributeSetValues.Add(DataPair.Value);
+				}
+			}
+		}
+	}
+	return AttributeSetValues;
+}
+
+
 bool FAttributeSetInitterDiscreteLevels::IsSupportedProperty(UProperty* Property) const
 {
 	return (Property && (Cast<UNumericProperty>(Property) || FGameplayAttribute::IsGameplayAttributeDataProperty(Property)));

@@ -835,6 +835,17 @@ UObject* UFbxSceneImportFactory::FactoryCreateBinary
 	return ReturnObject;
 }
 
+bool UFbxSceneImportFactory::FactoryCanImport(const FString& Filename)
+{
+	const FString Extension = FPaths::GetExtension(Filename);
+
+	if (Extension == TEXT("fbx"))
+	{
+		return true;
+	}
+	return false;
+}
+
 TSharedPtr<FFbxNodeInfo> GetNodeInfoPtrById(TArray<TSharedPtr<FFbxNodeInfo>> &HierarchyInfo, uint64 SearchId)
 {
 	for (TSharedPtr<FFbxNodeInfo> NodeInfoPtr : HierarchyInfo)
@@ -1904,8 +1915,16 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 		{
 			if (Pkg == nullptr)
 				continue;
-			// TODO: Disable material importing when importing morph targets
-			FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), Pkg, LODIndex);
+			
+			USkeletalMesh *NewSkelMesh = Cast<USkeletalMesh>(NewObject);
+			if ((GlobalImportSettings->bImportSkeletalMeshLODs || LODIndex == 0) &&
+				NewSkelMesh &&
+				NewSkelMesh->GetImportedResource() &&
+				NewSkelMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
+			{
+				// TODO: Disable material importing when importing morph targets
+				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex);
+			}
 		}
 	}
 	//Put back the options
@@ -2035,6 +2054,13 @@ UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void
 					ImportANode(VoidFbxImporter, TmpVoidArray, Flags, NodeIndex, SceneInfo, OutNodeInfo, PackagePath, Total, NewObject, LODIndex);
 				}
 			}
+			UStaticMesh *NewStaticMesh = Cast<UStaticMesh>(NewObject);
+			if (NewStaticMesh != nullptr)
+			{
+				//Build the staticmesh
+				FFbxImporter->FindAllLODGroupNode(AllNodeInLod, Node, 0);
+				FFbxImporter->PostImportStaticMesh(NewStaticMesh, AllNodeInLod);
+			}
 		}
 	}
 	else
@@ -2049,6 +2075,15 @@ UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void
 			{
 				//We should always have a valid attribute if we just create a new asset
 				check(OutNodeInfo.IsValid() && OutNodeInfo->AttributeInfo.IsValid());
+
+				UStaticMesh *NewStaticMesh = Cast<UStaticMesh>(FirstBaseObject);
+				if (NewStaticMesh != nullptr)
+				{
+					//Build the staticmesh
+					TArray<FbxNode*> AllNodeInLod;
+					AllNodeInLod.Add(Node);
+					FFbxImporter->PostImportStaticMesh(NewStaticMesh, AllNodeInLod);
+				}
 
 				AllNewAssets.Add(OutNodeInfo->AttributeInfo, FirstBaseObject);
 			}

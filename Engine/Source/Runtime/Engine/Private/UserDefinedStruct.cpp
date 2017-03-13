@@ -138,6 +138,11 @@ void UUserDefinedStruct::InitializeDefaultValue(uint8* StructData) const
 	FStructureEditorUtils::Fill_MakeStructureDefaultValue(this, StructData);
 }
 
+bool UUserDefinedStruct::DiffersFromDefaultValue(uint8* StructData) const
+{
+	return FStructureEditorUtils::DiffersFromDefaultValue(this, StructData);
+}
+
 void UUserDefinedStruct::ValidateGuid()
 {
 	// Backward compatibility:
@@ -267,7 +272,7 @@ ENGINE_API FString GetPathPostfix(const UObject* ForObject)
 	FString AssetName = FPackageName::GetLongPackageAssetName(FullAssetName);
 	// append a hash of the path, this uniquely identifies assets with the same name, but different folders:
 	FullAssetName.RemoveFromEnd(AssetName);
-	return FString::Printf(TEXT("%u"), FCrc::MemCrc32(*FullAssetName, FullAssetName.Len()*sizeof(TCHAR)));
+	return FString::Printf(TEXT("%u"), GetTypeHash(FullAssetName));
 }
 
 FString UUserDefinedStruct::GetStructCPPName() const

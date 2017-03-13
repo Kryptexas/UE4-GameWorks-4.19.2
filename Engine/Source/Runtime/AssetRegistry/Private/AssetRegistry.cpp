@@ -101,7 +101,6 @@ FAssetRegistry::FAssetRegistry()
 
 	// Registers the configured cooked tags whitelist to prevent non-whitelisted tags from being added to cooked builds
 	bFilterlistIsWhitelist = false;
-	SetupCookedFilterlistTags();
 
 	// Collect all code generator classes (currently BlueprintCore-derived ones)
 	CollectCodeGeneratorClasses();
@@ -144,9 +143,15 @@ FAssetRegistry::FAssetRegistry()
 			{
 				const FString& RootPath = *RootPathIt;
 				const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
-				FDelegateHandle NewHandle;
-				DirectoryWatcher->RegisterDirectoryChangedCallback_Handle( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged), NewHandle);
-				OnDirectoryChangedDelegateHandles.Add(ContentFolder, NewHandle);
+
+				// This could be due to a plugin that specifies it contains content, yet has no content yet. PluginManager
+				// Mounts these folders anyway which results in then being returned from QueryRootContentPaths
+				if (IFileManager::Get().DirectoryExists(*ContentFolder))
+				{
+					FDelegateHandle NewHandle;
+					DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged), NewHandle);
+					OnDirectoryChangedDelegateHandles.Add(ContentFolder, NewHandle);
+				}
 			}
 		}
 	}
@@ -438,12 +443,10 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 	TSet<FName> FilterPackageNames;
 	TSet<FName> FilterPackagePaths;
 	TSet<FName> FilterClassNames;
-	TSet<FName> FilterContainerClassNames;
 	TSet<FName> FilterObjectPaths;
 	const int32 NumFilterPackageNames = Filter.PackageNames.Num();
 	const int32 NumFilterPackagePaths = Filter.PackagePaths.Num();
 	const int32 NumFilterClasses = Filter.ClassNames.Num();
-	const int32 NumFilterContainerClasses = Filter.ContainerClassNames.Num();
 	const int32 NumFilterObjectPaths = Filter.ObjectPaths.Num();
 
 	for ( int32 NameIdx = 0; NameIdx < NumFilterPackageNames; ++NameIdx )
@@ -476,11 +479,6 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 		{
 			FilterClassNames.Add(Filter.ClassNames[ClassIdx]);
 		}
-	}
-
-	for (int32 ClassIdx = 0; ClassIdx < NumFilterContainerClasses; ++ClassIdx)
-	{
-		FilterContainerClassNames.Add(Filter.ContainerClassNames[ClassIdx]);
 	}
 
 	if ( !Filter.bIncludeOnlyOnDiskAssets )
@@ -595,28 +593,6 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 				if(Class != nullptr)
 				{
 					GetObjectsOfClass(Class, InMemoryObjects, false, RF_NoFlags);
-
-					if (Filter.OnContainerContentValid.IsBound())
-					{
-						for (const auto& ContainerClassName : FilterContainerClassNames)
-						{
-							UClass* ContainerClass = FindObjectFast<UClass>(nullptr, *ContainerClassName.ToString(), false, true, RF_NoFlags);
-							
-							if (ContainerClass != nullptr)
-							{
-								TArray<UObject*> ContainerList;
-								GetObjectsOfClass(ContainerClass, ContainerList, false, RF_NoFlags);
-
-								for (UObject* Object : ContainerList)
-								{
-									if (Filter.OnContainerContentValid.Execute(Class, Object, nullptr))
-									{
-										InMemoryObjects.Add(Object);
-									}
-								}
-							}
-						}
-					}
 				}
 			}
 
@@ -682,30 +658,6 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			if (ClassAssets != nullptr)
 			{
 				ClassFilter->Append(*ClassAssets);
-			}
-
-			if (Filter.OnContainerContentValid.IsBound())
-			{
-				UClass* AssetClass = FindObjectFast<UClass>(nullptr, *ClassNameIt, false, true, RF_NoFlags);
-
-				if (AssetClass != nullptr)
-				{
-					for (const auto& ContainerClassName : FilterContainerClassNames)
-					{
-						auto ContainerAssets = CachedAssetsByClass.Find(ContainerClassName);
-
-						if (ContainerAssets != nullptr)
-						{
-							for (auto ContainerAssetsIt = ContainerAssets->CreateConstIterator(); ContainerAssetsIt; ++ContainerAssetsIt)
-							{
-								if (Filter.OnContainerContentValid.Execute(AssetClass, nullptr, *ContainerAssetsIt))
-								{
-									ClassFilter->Add(*ContainerAssetsIt);
-								}
-							}
-						}
-					}
-				}
 			}
 		}
 	}
@@ -1799,6 +1751,15 @@ FDependsNode* FAssetRegistry::ResolveRedirector(FDependsNode* InDependency, TMap
 
 void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps /* = nullptr */)
 {
+	bool bFilterListInitialized = false;
+
+	if (!bFilterListInitialized)
+	{
+		// Don't setup filter list until needed, this catches all modules that were loaded late in startup
+		bFilterListInitialized = true;
+		SetupCookedFilterlistTags();
+	}
+
 	// Write mini asset registry header
 	FGuid LocalGuid = GRuntimeRegistryGuid;
 	LocalGuid.Serialize(Ar);
@@ -2958,9 +2919,11 @@ void FAssetRegistry::GetSubClasses(const TArray<FName>& InClassNames, const TSet
 			for (int32 i = 0; i < Class->Interfaces.Num(); ++i)
 			{
 				UClass* InterfaceClass = Class->Interfaces[i].Class;
-
-				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(InterfaceClass->GetFName());
-				ChildClasses.Add(Class->GetFName());
+				if (ensureMsgf(InterfaceClass, TEXT("Invalid inteface class (index %d) detected on '%s' - possibly deleted?"), i, *Class->GetName()))
+				{
+					TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(InterfaceClass->GetFName());
+					ChildClasses.Add(Class->GetFName());
+				}
 			}
 
 			InMemoryClassNames.Add(Class->GetFName());

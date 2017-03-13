@@ -4,8 +4,7 @@
 	DebugToolExec.h: Game debug tool implementation.
 =============================================================================*/ 
 
-#ifndef __DEBUGTOOLEXEC_H__
-#define __DEBUGTOOLEXEC_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -31,5 +30,3 @@ public:
 	//~ End Exec Interface
 
 };
-
-#endif

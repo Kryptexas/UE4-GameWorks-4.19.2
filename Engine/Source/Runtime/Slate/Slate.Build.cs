@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Slate : ModuleRules
 {
-	public Slate(TargetInfo Target)
+	public Slate(ReadOnlyTargetRules Target) : base(Target)
 	{
 		SharedPCHHeaderFile = "Public/SlateSharedPCH.h";
 
@@ -15,7 +15,8 @@ public class Slate : ModuleRules
 				"InputCore",
 				"Json",
 				"SlateCore",
-			}
+                "ImageWrapper"
+            }
 		);
 
 		PrivateIncludePaths.AddRange(
@@ -55,5 +56,9 @@ public class Slate : ModuleRules
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "XInput");
 		}
-	}
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
+        }
+    }
 }

@@ -15,6 +15,7 @@
 #include "Interfaces/Interface_AssetUserData.h"
 #include "Engine/SkeletalMesh.h"
 #include "AnimInterpFilter.h"
+#include "AnimEnums.h"
 #include "AnimationAsset.generated.h"
 
 class UAssetMappingTable;
@@ -123,42 +124,6 @@ struct FBlendFilter
 		return FVector (FilterPerAxis[0].LastOutput, FilterPerAxis[1].LastOutput, FilterPerAxis[2].LastOutput);
 	}
 };
-
-UENUM()
-/** Root Bone Lock options when extracting Root Motion. */
-namespace ERootMotionRootLock
-{
-	enum Type
-	{
-		/** Use reference pose root bone position. */
-		RefPose,
-
-		/** Use root bone position on first frame of animation. */
-		AnimFirstFrame,
-
-		/** FTransform::Identity. */
-		Zero
-	};
-}
-
-UENUM()
-namespace ERootMotionMode
-{
-	enum Type
-	{
-		/** Leave root motion in animation. */
-		NoRootMotionExtraction,
-
-		/** Extract root motion but do not apply it. */
-		IgnoreRootMotion,
-
-		/** Root motion is taken from all animations contributing to the final pose, not suitable for network multiplayer setups. */
-		RootMotionFromEverything,
-
-		/** Root motion is only taken from montages, suitable for network multiplayer setups. */
-		RootMotionFromMontagesOnly,
-	};
-}
 
 /** Animation Extraction Context */
 struct FAnimExtractContext
@@ -855,6 +820,10 @@ public:
 	/** Get available Metadata within the animation asset
 	 */
 	ENGINE_API const TArray<class UAnimMetaData*>& GetMetaData() const { return MetaData; }
+	ENGINE_API void AddMetaData(class UAnimMetaData* MetaDataInstance); 
+	ENGINE_API void EmptyMetaData() { MetaData.Empty(); }	
+	ENGINE_API void RemoveMetaData(class UAnimMetaData* MetaDataInstance);
+	ENGINE_API void RemoveMetaData(const TArray<class UAnimMetaData*> MetaDataInstances);
 
 #if WITH_EDITOR
 	/** Replace Skeleton 

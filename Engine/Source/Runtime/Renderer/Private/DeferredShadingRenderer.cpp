@@ -15,7 +15,7 @@
 #include "FXSystem.h"
 #include "OneColorShader.h"
 #include "CompositionLighting/PostProcessDeferredDecals.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 #include "GlobalDistanceField.h"
 #include "PostProcess/PostProcessing.h"
 #include "DistanceFieldAtlas.h"
@@ -111,6 +111,12 @@ static TAutoConsoleVariable<int32> CVarAlphaChannel(
 	TEXT(" 1: enabled"),
 	ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarBasePassWriteDepthEvenWithFullPrepass(
+	TEXT("r.BasePassWriteDepthEvenWithFullPrepass"),
+	0,
+	TEXT("0 to allow a readonly base pass, which skips an MSAA depth resolve, and allows masked materials to get EarlyZ (writing to depth while doing clip() disables EarlyZ) (default)\n")
+	TEXT("1 to force depth writes in the base pass.  Useful for debugging when the prepass and base pass don't match what they render."));
+
 DECLARE_CYCLE_STAT(TEXT("PostInitViews FlushDel"), STAT_PostInitViews_FlushDel, STATGROUP_InitViews);
 DECLARE_CYCLE_STAT(TEXT("InitViews Intentional Stall"), STAT_InitViews_Intentional_Stall, STATGROUP_InitViews);
 
@@ -158,6 +164,32 @@ bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel)
 	return bDBufferAllowed || bStencilLODDither || IsForwardShadingEnabled(FeatureLevel) || UseSelectiveBasePassOutputs();
 }
 
+void GetEarlyZPassMode(ERHIFeatureLevel::Type FeatureLevel, EDepthDrawingMode& EarlyZPassMode, bool& bEarlyZPassMovable)
+{
+	EarlyZPassMode = DDM_NonMaskedOnly;
+	bEarlyZPassMovable = false;
+
+	// developer override, good for profiling, can be useful as project setting
+	{
+		const int32 CVarValue = CVarEarlyZPass.GetValueOnAnyThread();
+
+		switch(CVarValue)
+		{
+			case 0: EarlyZPassMode = DDM_None; break;
+			case 1: EarlyZPassMode = DDM_NonMaskedOnly; break;
+			case 2: EarlyZPassMode = DDM_AllOccluders; break;
+			case 3: break;	// Note: 3 indicates "default behavior" and does not specify an override
+		}
+	}
+
+	if (ShouldForceFullDepthPass(FeatureLevel))
+	{
+		// DBuffer decals and stencil LOD dithering force a full prepass
+		EarlyZPassMode = DDM_AllOpaque;
+		bEarlyZPassMovable = true;
+	}
+}
+
 bool SupportSceneAlpha()
 {
 	return CVarAlphaChannel.GetValueOnRenderThread() != 0;
@@ -192,48 +224,15 @@ const TCHAR* GetDepthPassReason(bool bDitheredLODTransitionsUseStencil, ERHIFeat
 
 FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
 	: FSceneRenderer(InViewFamily, HitProxyConsumer)
-	, EarlyZPassMode(DDM_NonMaskedOnly)
-	, bEarlyZPassMovable(false)
 {
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		// Use a depth only pass if we are using full blown HQ lightmaps
-		// Otherwise base pass pixel shaders will be cheap and there will be little benefit to rendering a depth only pass
-		if (AllowHighQualityLightmaps(FeatureLevel) || !ViewFamily.EngineShowFlags.Lighting)
-		{
-			EarlyZPassMode = DDM_None;
-		}
-	}
-
-	// developer override, good for profiling, can be useful as project setting
-	{
-		const int32 CVarValue = CVarEarlyZPass.GetValueOnGameThread();
-
-		switch(CVarValue)
-		{
-			case 0: EarlyZPassMode = DDM_None; break;
-			case 1: EarlyZPassMode = DDM_NonMaskedOnly; break;
-			case 2: EarlyZPassMode = DDM_AllOccluders; break;
-			case 3: break;	// Note: 3 indicates "default behavior" and does not specify an override
-		}
-	}
-
-	// Warning: EarlyZPass logic is mirrored in FStaticMesh::AddToDrawLists
-
-	bEarlyZPassMovable = GEarlyZPassMovable != 0;
-
 	static const auto StencilLODDitherCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
 	bDitheredLODTransitionsUseStencil = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
+
+	GetEarlyZPassMode(FeatureLevel, EarlyZPassMode, bEarlyZPassMovable);
 
 	// Shader complexity requires depth only pass to display masked material cost correctly
 	if (ViewFamily.UseDebugViewPS() && ViewFamily.GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
 	{
-		EarlyZPassMode = DDM_AllOpaque;
-		bEarlyZPassMovable = true;
-	}
-	else if (ShouldForceFullDepthPass(FeatureLevel))
-	{
-		// DBuffer decals and stencil LOD dithering force a full prepass
 		EarlyZPassMode = DDM_AllOpaque;
 		bEarlyZPassMovable = true;
 	}
@@ -427,7 +426,7 @@ static FORCEINLINE bool NeedsPrePass(const FDeferredShadingSceneRenderer* Render
 		(Renderer->EarlyZPassMode != DDM_None || Renderer->bEarlyZPassMovable != 0);
 }
 
-static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewInfo& View, bool bClearDepth)
+static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewInfo& View, FExclusiveDepthStencil::Type DepthStencilAccess, bool bClearDepth)
 {
 	// if we didn't to the prepass above, then we will need to clear now, otherwise, it's already been cleared and rendered to
 	ERenderTargetLoadAction DepthLoadAction = bClearDepth ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad;
@@ -437,7 +436,7 @@ static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewIn
 	const FLinearColor ClearColor = bClearBlack ? FLinearColor(0, 0, 0, ClearAlpha) : FLinearColor(View.BackgroundColor.R, View.BackgroundColor.G, View.BackgroundColor.B, ClearAlpha);
 
 	// clearing the GBuffer
-	FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::EClear, DepthLoadAction, View.Family->EngineShowFlags.ShaderComplexity, ClearColor);
+	FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::EClear, DepthLoadAction, DepthStencilAccess, View.Family->EngineShowFlags.ShaderComplexity, ClearColor);
 }
 
 static TAutoConsoleVariable<int32> CVarOcclusionQueryLocation(
@@ -781,18 +780,22 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
 	const bool bUseSelectiveBasePassOutputs = UseSelectiveBasePassOutputs();
 
-	// Skip the MSAA depth resolve if none of the features which read scene depth before the base pass can be active
-	// This is relying on the post-BasePass ResolveSceneDepthTexture to handle other uses of scene depth, like translucency with DepthFade
-	if ((ViewFamily.EngineShowFlags.Decals && bDBuffer) || ViewFamily.EngineShowFlags.DynamicShadows || bShouldRenderVelocities)
-	{
-		SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
-	}
-	else
-	{
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface());
-	}
+	// Use readonly depth in the base pass if we have a full depth prepass
+	const bool bAllowReadonlyDepthBasePass = EarlyZPassMode == DDM_AllOpaque
+		&& CVarBasePassWriteDepthEvenWithFullPrepass.GetValueOnRenderThread() == 0
+		&& !ViewFamily.EngineShowFlags.ShaderComplexity
+		&& !ViewFamily.UseDebugViewPS()
+		&& !bIsWireframe
+		&& !ViewFamily.EngineShowFlags.LightMapDensity;
 
-	if (bUseGBuffer)
+	const FExclusiveDepthStencil::Type BasePassDepthStencilAccess = 
+		bAllowReadonlyDepthBasePass
+		? FExclusiveDepthStencil::DepthRead_StencilWrite 
+		: FExclusiveDepthStencil::DepthWrite_StencilWrite;
+
+	SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+
+	if (bUseGBuffer || IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)))
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
 		SceneContext.PreallocGBufferTargets(); // Even if !bShouldRenderVelocities, the velocity buffer must be bound because it's a compile time option for the shader.
@@ -860,13 +863,13 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
-	// Clear the G Buffer render targets
+	// Clear the GBuffer render targets
 	bool bIsGBufferCurrent = false;
 	if (bRequiresRHIClear)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_SetAndClearViewGBuffer);
 		// set GBuffer to be current, and clear it
-		SetAndClearViewGBuffer(RHICmdList, Views[0], !bDepthWasCleared);
+		SetAndClearViewGBuffer(RHICmdList, Views[0], BasePassDepthStencilAccess, !bDepthWasCleared);
 
 		// depth was cleared now no matter what
 		bDepthWasCleared = true;
@@ -883,7 +886,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		// make sure the GBuffer is set, in case we didn't need to clear above
 		ERenderTargetLoadAction DepthLoadAction = bDepthWasCleared ? ERenderTargetLoadAction::ELoad : ERenderTargetLoadAction::EClear;
-		SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction, ViewFamily.EngineShowFlags.ShaderComplexity);
+		SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
 	}
 
 	//Single point to catch UE-31578, UE-32536 and UE-22073 and attempt to recover by reallocating Deferred Render Targets
@@ -906,15 +909,20 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	GRenderTargetPool.AddPhaseEvent(TEXT("BasePass"));
 
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_BasePass));
-	RenderBasePass(RHICmdList);
+	RenderBasePass(RHICmdList, BasePassDepthStencilAccess);
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterBasePass));
 	ServiceLocalQueue();
+
+	if (!bAllowReadonlyDepthBasePass)
+	{
+		SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	}
 
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
 		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
 		SceneContext.BeginRenderingSceneColor(RHICmdList);
-		RHICmdList.ClearColorTexture(SceneContext.GetSceneColorSurface(), FLinearColor(0, 0, 0, 0), FIntRect());
+		RHICmdList.ClearColorTexture(SceneContext.GetSceneColorSurface(), FLinearColor(0, 0, 0, 0));
 	}
 
 	SceneContext.DBufferA.SafeRelease();
@@ -937,7 +945,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		bRequiresFarZQuadClear = false;
 	}
 	
-	SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
 	bool bOcclusionAfterBasePass = bIsOcclusionTesting && !bOcclusionBeforeBasePass;
@@ -1096,7 +1103,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 
 		// SSS need the SceneColor finalized as an SRV.
-		SceneContext.FinishRenderingSceneColor(RHICmdList);
+		ResolveSceneColor(RHICmdList);
 
 		// Render reflections that only operate on opaque pixels
 		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
@@ -1223,7 +1230,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Draw visualizations just before use to avoid target contamination
-	if (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields)
+	if (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeGlobalDistanceField)
 	{
 		RenderMeshDistanceFieldVisualization(RHICmdList, FDistanceFieldAOParameters(Scene->DefaultMaxDistanceFieldOcclusionDistance));
 		ServiceLocalQueue();
@@ -1238,7 +1245,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Resolve the scene color for post processing.
-	SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	ResolveSceneColor(RHICmdList);
 
 	GetRendererModule().RenderPostResolvedSceneColorExtension(RHICmdList, SceneContext);
 

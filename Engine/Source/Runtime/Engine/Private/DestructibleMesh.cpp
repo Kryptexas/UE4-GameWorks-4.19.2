@@ -14,8 +14,11 @@
 #include "StaticMeshResources.h"
 #include "PhysXPublic.h"
 
-#if WITH_APEX && WITH_EDITOR
+#if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
+#endif
+
+#if WITH_APEX && WITH_EDITOR
 #include "ApexDestructibleAssetImport.h"
 #endif
 

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class EpicSurvey : ModuleRules
 	{
-        public EpicSurvey(TargetInfo Target)
+        public EpicSurvey(ReadOnlyTargetRules Target) : base(Target)
 		{
             PublicDependencyModuleNames.AddRange(
 				new string[]

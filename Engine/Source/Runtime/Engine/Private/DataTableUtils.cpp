@@ -52,17 +52,17 @@ void AssignStringToProperty(const FString& InString, const UProperty* InProp, ui
 	{
 		// Enum properties may use the friendly name in their import data, however the UPropertyByte::ImportText function will only accept the internal enum entry name
 		// Detect if we're using a friendly name for an entry, and if so, try and map it to the correct internal name before performing the import
-		const int32 EnumIndex = Enum->FindEnumIndex(*InString);
+		const int32 EnumIndex = Enum->GetIndexByNameString(InString);
 		if(EnumIndex == INDEX_NONE)
 		{
 			// Couldn't find a match for the name we were given, try and find a match using the friendly names
 			for(int32 EnumEntryIndex = 0; EnumEntryIndex < Enum->NumEnums(); ++EnumEntryIndex)
 			{
-				const FText FriendlyEnumEntryName = Enum->GetEnumText(EnumEntryIndex);
+				const FText FriendlyEnumEntryName = Enum->GetDisplayNameTextByIndex(EnumEntryIndex);
 				if ((FriendlyEnumEntryName.ToString() == InString) || (GetSourceString(FriendlyEnumEntryName) == InString))
 				{
 					// Get the corresponding internal name and warn the user that we're using this fallback if not a user-defined enum
-					FString StringToImport = Enum->GetEnumName(EnumEntryIndex);
+					FString StringToImport = Enum->GetNameStringByIndex(EnumEntryIndex);
 					if (!Enum->IsA<UUserDefinedEnum>())
 					{
 						UE_LOG(LogDataTable, Warning, TEXT("Could not a find matching enum entry for '%s', but did find a matching display name. Will import using the enum entry corresponding to that display name ('%s')"), *InString, *StringToImport);
@@ -102,7 +102,7 @@ void GetPropertyValueAsString(const UProperty* InProp, const uint8* InData, cons
 
 		if (UUserDefinedEnum* UDEnum = Cast<UUserDefinedEnum>(Enum))
 		{
-			OutString.Append(GetSourceString(UDEnum->GetEnumTextByValue(Val)));
+			OutString.Append(GetSourceString(UDEnum->GetDisplayNameTextByValue(Val)));
 			return;
 		}
 	}

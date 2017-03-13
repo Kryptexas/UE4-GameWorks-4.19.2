@@ -4,8 +4,7 @@
 	CodeAudioEffects.h: Unreal CoreAudio audio effects interface object.
 =============================================================================*/
 
-#ifndef _INC_COREAUDIOEFFECTS
-#define _INC_COREAUDIOEFFECTS
+#pragma once
 
 #include "CoreAudioDevice.h"
 #include "AudioEffect.h"
@@ -55,5 +54,3 @@ private:
 	friend class FCoreAudioDevice;
 	friend class FCoreAudioSoundSource;
 };
-
-#endif

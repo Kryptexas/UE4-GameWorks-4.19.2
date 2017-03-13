@@ -116,7 +116,9 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 
 		const bool bUseZConstructorInGeneratedCode = false;
 		//TODO: What About Delegates?
-		auto ObjAsBPGC = Cast<UBlueprintGeneratedClass>(Object);
+		UField* AsField = Cast<UField>(Object);
+		UBlueprintGeneratedClass* ObjAsBPGC = Cast<UBlueprintGeneratedClass>(Object);
+		//TODO: update once the BootTimeEDL is ready
 		const bool bWillBeConvetedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);
 		if (bWillBeConvetedAsBPGC)
 		{
@@ -128,6 +130,7 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 					IncludeTheHeaderInBody(ObjAsBPGC);
 				}
 			}
+			return;
 		}
 		else if (UUserDefinedStruct* UDS = Cast<UUserDefinedStruct>(Object))
 		{
@@ -147,28 +150,28 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 				Dependencies.ConvertedEnum.Add(UDE);
 			}
 		}
-		else if ((Object->IsAsset() || ObjAsBPGC) && !Object->IsIn(CurrentlyConvertedStruct))
+		else if ((Object->IsAsset() || AsField) && !Object->IsIn(CurrentlyConvertedStruct))
 		{
-			// include all not converted super classes
-			for (auto SuperBPGC = ObjAsBPGC ? Cast<UBlueprintGeneratedClass>(ObjAsBPGC->GetSuperClass()) : nullptr;
-				SuperBPGC && !Dependencies.WillClassBeConverted(SuperBPGC);
-				SuperBPGC = Cast<UBlueprintGeneratedClass>(SuperBPGC->GetSuperClass()))
+			if (AsField)
 			{
-				Dependencies.Assets.AddUnique(SuperBPGC);
+				UClass* OwnerClass = AsField->GetOwnerClass();
+				if (OwnerClass)
+				{
+					Dependencies.Assets.AddUnique(OwnerClass);
+				}
+				else if (UStruct* OwnerStruct = AsField->GetOwnerStruct())
+				{
+					Dependencies.Assets.AddUnique(OwnerStruct);
+				}
+				else
+				{
+					Dependencies.Assets.AddUnique(Object);
+				}
 			}
-
-			Dependencies.Assets.AddUnique(Object);
-			return;
-		}
-		else if (auto ObjAsClass = Cast<UClass>(Object))
-		{
-			if (ObjAsClass->HasAnyClassFlags(CLASS_Native))
+			else
 			{
-				return;
+				Dependencies.Assets.AddUnique(Object);
 			}
-		}
-		else if (Object->IsA<UScriptStruct>())
-		{
 			return;
 		}
 
@@ -550,7 +553,7 @@ TSet<const UObject*> FGatherConvertedClassDependencies::AllDependencies() const
 	TSet<const UObject*> All;
 
 	UBlueprintGeneratedClass* SuperClass = Cast<UBlueprintGeneratedClass>(OriginalStruct->GetSuperStruct());
-	if (SuperClass && WillClassBeConverted(SuperClass))
+	if (OriginalStruct->GetSuperStruct() && (!SuperClass || WillClassBeConverted(SuperClass)))
 	{
 		All.Add(SuperClass);
 	}
@@ -560,7 +563,7 @@ TSet<const UObject*> FGatherConvertedClassDependencies::AllDependencies() const
 		for (auto& ImplementedInterface : SourceClass->Interfaces)
 		{
 			UBlueprintGeneratedClass* InterfaceClass = Cast<UBlueprintGeneratedClass>(ImplementedInterface.Class);
-			if (InterfaceClass && WillClassBeConverted(InterfaceClass))
+			if (ImplementedInterface.Class && (!InterfaceClass || WillClassBeConverted(InterfaceClass)))
 			{
 				All.Add(InterfaceClass);
 			}

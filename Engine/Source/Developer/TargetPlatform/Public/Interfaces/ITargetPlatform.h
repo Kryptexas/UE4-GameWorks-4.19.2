@@ -58,6 +58,9 @@ enum class ETargetPlatformFeatures
 
 	/** Should use compressed cooked packages */
 	ShouldUseCompressedCookedPackages, 
+
+	/* Should split paks into smaller sized paks */
+	ShouldSplitPaksIntoSmallerSizes,
 };
 
 

@@ -153,7 +153,7 @@ protected:
 			{
 				TSharedRef<FPropertyRestriction> BuildConfigurationRestriction = MakeShareable(new FPropertyRestriction(LOCTEXT("DebugGameRestrictionReason", "The DebugGame build configuration is not available in content-only projects.")));
 				const UEnum* const ProjectPackagingBuildConfigurationsEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"));		
-				BuildConfigurationRestriction->AddDisabledValue(ProjectPackagingBuildConfigurationsEnum->GetEnumNameStringByValue((uint8)EProjectPackagingBuildConfigurations::PPBC_DebugGame));
+				BuildConfigurationRestriction->AddDisabledValue(ProjectPackagingBuildConfigurationsEnum->GetNameStringByValue((uint8)EProjectPackagingBuildConfigurations::PPBC_DebugGame));
 
 				TSharedRef<IPropertyHandle> BuildConfigurationHandle = LayoutBuilder.GetProperty("BuildConfiguration");
 				BuildConfigurationHandle->AddRestriction(BuildConfigurationRestriction);

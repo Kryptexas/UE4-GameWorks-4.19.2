@@ -17,6 +17,7 @@ void SPluginCategoryTree::Construct( const FArguments& Args, const TSharedRef< S
 	BuiltInCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Built-In"), LOCTEXT("BuiltInCategoryName", "Built-In")));
 	InstalledCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Installed"), LOCTEXT("InstalledCategoryName", "Installed")));
 	ProjectCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Project"), LOCTEXT("ProjectCategoryName", "Project")));
+	ModCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Mods"), LOCTEXT("ModsCategoryName", "Mods")));
 
 	// Create the tree view control
 	TreeView =
@@ -83,7 +84,11 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 	{
 		// Figure out which base category this plugin belongs in
 		TSharedPtr<FPluginCategory> RootCategory;
-		if(Plugin->GetDescriptor().bInstalled)
+		if (Plugin->GetDescriptor().bIsMod)
+		{
+			RootCategory = ModCategory;
+		}
+		else if(Plugin->GetDescriptor().bInstalled)
 		{
 			RootCategory = InstalledCategory;
 		}
@@ -152,6 +157,10 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 
 	// Build the new list of root plugin categories
 	RootCategories.Reset();
+	if(ModCategory->SubCategories.Num() > 0 || ModCategory->Plugins.Num() > 0)
+	{
+		RootCategories.Add(ModCategory);
+	}
 	if(InstalledCategory->SubCategories.Num() > 0 || InstalledCategory->Plugins.Num() > 0)
 	{
 		RootCategories.Add(InstalledCategory);
@@ -187,13 +196,17 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 		{
 			TreeView->SetSelection(SelectCategory);
 		}
+		else if(RootCategories.Contains(ModCategory))
+		{
+			TreeView->SetSelection(ModCategory);
+		}
 		else if(RootCategories.Contains(InstalledCategory))
 		{
 			TreeView->SetSelection(InstalledCategory);
 		}
-		else if(RootCategories.Num() > 0 && RootCategories[0]->SubCategories.Num() > 0)
+		else if(RootCategories.Num() > 0)
 		{
-			TreeView->SetSelection(RootCategories[0]->SubCategories[0]);
+			TreeView->SetSelection(RootCategories[0]);
 		}
 	}
 }

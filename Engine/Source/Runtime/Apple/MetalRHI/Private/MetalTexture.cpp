@@ -759,13 +759,8 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	{
 		Key = &PixelFormatKeyMap.Add(MTLFormat, NextKey++);
 
-#if PLATFORM_MAC
 		// only giving 5 bits to the key
 		checkf(NextKey < 32, TEXT("Too many unique pixel formats to fit into the PipelineStateHash"));
-#else
-		// only giving 4 bits to the key
-		checkf(NextKey < 16, TEXT("Too many unique pixel formats to fit into the PipelineStateHash"));
-#endif
 	}
 	// set the key
 	FormatKey = *Key;

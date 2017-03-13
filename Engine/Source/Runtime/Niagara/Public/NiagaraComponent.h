@@ -21,22 +21,24 @@ class UNiagaraEffect;
 * @see ANiagaraActor
 * @see UNiagaraEffect
 */
-UCLASS()
+UCLASS(editinlinenew)
 class NIAGARA_API UNiagaraComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 private:
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Category="Niagara", meta = (DisplayName = "Niagara Effect Asset", DisableCopyPaste))
 	UNiagaraEffect* Asset;
 
 	TSharedPtr<FNiagaraEffectInstance> EffectInstance;
-
+	
 	//~ Begin UActorComponent Interface.
 protected:
 	virtual void OnRegister() override;
-	virtual void OnUnregister()  override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 public:
+	UPROPERTY(EditAnywhere, Category="Niagara")
+	TArray<FNiagaraVariable> EffectParameterLocalOverrides;
+
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual const UObject* AdditionalStatObject() const override;
 	//~ End UActorComponent Interface.
@@ -50,16 +52,20 @@ public:
 	void SetAsset(UNiagaraEffect* InAsset);
 	UNiagaraEffect* GetAsset() const { return Asset; }
 
-	TSharedPtr<FNiagaraEffectInstance> GetEffectInstance()	const { return EffectInstance; }
-	void SetEffectInstance(TSharedPtr<FNiagaraEffectInstance> InInstance)	{ EffectInstance = InInstance; }
+	TSharedPtr<FNiagaraEffectInstance> GetEffectInstance() const;
+	TSharedRef<FNiagaraEffectInstance> GetEffectInstance();
 
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
+	/** Compare local overrides with the source Effect. Remove any that have mismatched types or no longer exist on the Effect. Returns whether or not any changes occurred.*/
+	virtual bool SynchronizeWithSourceEffect();
 #endif // WITH_EDITOR
 	//~ End UObject Interface.
 
-	static const TArray<FNiagaraVariableInfo>& GetSystemConstants();
+	static const TArray<FNiagaraVariable>& GetSystemConstants();
+	static const FNiagaraVariable *FindSystemConstant(const FNiagaraVariable& InVar);
 };
 
 
@@ -89,6 +95,7 @@ private:
 	//~ Begin FPrimitiveSceneProxy Interface.
 	virtual void CreateRenderThreadResources() override;
 
+	//virtual void OnActorPositionChanged() override;
 	virtual void OnTransformChanged() override;
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;

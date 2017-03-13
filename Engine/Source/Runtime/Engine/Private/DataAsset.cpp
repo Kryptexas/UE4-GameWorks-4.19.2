@@ -1,11 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/DataAsset.h"
-
-UDataAsset::UDataAsset(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
+#include "Misc/PackageName.h"
+#include "UObject/Package.h"
+#include "Engine/AssetManager.h"
 
 #if WITH_EDITORONLY_DATA
 void UDataAsset::Serialize(FArchive& Ar)
@@ -17,4 +15,64 @@ void UDataAsset::Serialize(FArchive& Ar)
 		SetFlags(RF_Transactional);
 	}
 }
+
+void UPrimaryDataAsset::UpdateAssetBundleData()
+{
+	AssetBundleData.Reset();
+
+	// By default parse the metadata
+	if (UAssetManager::IsValid())
+	{
+		UAssetManager::Get().InitializeAssetBundlesFromMetadata(this, AssetBundleData);
+	}
+}
+
+void UPrimaryDataAsset::PreSave(const class ITargetPlatform* TargetPlatform)
+{
+	Super::PreSave(TargetPlatform);
+
+	UpdateAssetBundleData();
+}
 #endif
+
+FPrimaryAssetId UPrimaryDataAsset::GetPrimaryAssetId() const
+{
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		UClass* SearchNativeClass = GetClass();
+
+		while (SearchNativeClass && !SearchNativeClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic))
+		{
+			SearchNativeClass = SearchNativeClass->GetSuperClass();
+		}
+
+		if (SearchNativeClass && SearchNativeClass != GetClass())
+		{
+			// If blueprint, return native class and asset name
+			return FPrimaryAssetId(SearchNativeClass->GetFName(), FPackageName::GetShortFName(GetOutermost()->GetFName()));
+		}
+		
+		// Native CDO, return nothing
+		return FPrimaryAssetId();
+	}
+
+	// Data assets use Class and ShortName by default, there's no inheritance so class works fine
+	return FPrimaryAssetId(GetClass()->GetFName(), GetFName());
+}
+
+void UPrimaryDataAsset::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITORONLY_DATA
+	int32 OldAssetDataNum = AssetBundleData.Bundles.Num();
+	
+	UpdateAssetBundleData();
+
+	if (AssetBundleData.Bundles.Num() != OldAssetDataNum && UAssetManager::IsValid())
+	{
+		// Bundles changed, refresh
+		UAssetManager::Get().RefreshAssetData(this);
+	}
+#endif
+}

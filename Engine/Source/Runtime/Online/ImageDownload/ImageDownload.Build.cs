@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ImageDownload : ModuleRules
 {
-	public ImageDownload(TargetInfo Target)
+	public ImageDownload(ReadOnlyTargetRules Target) : base(Target)
     {
         Definitions.Add("IMAGEDOWNLOAD_PACKAGE=1");
 

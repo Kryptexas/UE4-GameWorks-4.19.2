@@ -333,7 +333,7 @@ class FLogSuppressionImplementation: public FLogSuppressionInterface, private FS
 	/** Called after a change is made to the global verbosity...Iterates over all logging categories and adjusts them accordingly **/
 	void ApplyGlobalChanges()
 	{
-		static uint8 LastGlobalVerbosity = ELogVerbosity::All;
+		static ELogVerbosity::Type LastGlobalVerbosity = ELogVerbosity::All;
 		bool bVerbosityGoingUp = GlobalVerbosity.Verbosity > LastGlobalVerbosity;
 		bool bVerbosityGoingDown = GlobalVerbosity.Verbosity < LastGlobalVerbosity;
 		checkSlow(!(GlobalVerbosity.Verbosity & ELogVerbosity::BreakOnLog)); // this bit is factored out of this variable, always
@@ -345,17 +345,17 @@ class FLogSuppressionImplementation: public FLogSuppressionInterface, private FS
 		for (TMap<FLogCategoryBase*, FName>::TIterator It(Associations); It; ++It)
 		{
 			FLogCategoryBase* Verb = It.Key();
-			uint8 NewVerbosity = Verb->Verbosity;
+			ELogVerbosity::Type NewVerbosity = Verb->Verbosity;
 			checkSlow(!(NewVerbosity & ELogVerbosity::BreakOnLog)); // this bit is factored out of this variable, always
 
 			if (bVerbosityGoingDown)
 			{
-				NewVerbosity = FMath::Min<uint8>(GlobalVerbosity.Verbosity, Verb->Verbosity);
+				NewVerbosity = FMath::Min<ELogVerbosity::Type>(GlobalVerbosity.Verbosity, Verb->Verbosity);
 			}
 			if (bVerbosityGoingUp)
 			{
-				NewVerbosity = FMath::Max<uint8>(GlobalVerbosity.Verbosity, Verb->Verbosity);
-				NewVerbosity = FMath::Min<uint8>(Verb->CompileTimeVerbosity, NewVerbosity);
+				NewVerbosity = FMath::Max<ELogVerbosity::Type>(GlobalVerbosity.Verbosity, Verb->Verbosity);
+				NewVerbosity = FMath::Min<ELogVerbosity::Type>(Verb->CompileTimeVerbosity, NewVerbosity);
 			}
 			// store off the last non-zero one for toggle
 			if (NewVerbosity)

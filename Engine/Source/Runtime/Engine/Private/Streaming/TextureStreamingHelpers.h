@@ -110,7 +110,7 @@ typedef TArray<const UTexture2D*, TInlineAllocator<12> > FRemovedTextureArray;
 class UTexture2D;
 class UPrimitiveComponent;
 class FTextureBoundsVisibility;
-class FDynamicComponentTextureManager;
+class FDynamicTextureInstanceManager;
 template<typename T>
 class FAsyncTask;
 class FAsyncTextureStreamingTask;
@@ -179,7 +179,6 @@ struct FTextureStreamingStats
 	int64 HiddenMips;
 	int64 ForcedMips;
 	int64 UnkownRefMips;
-	int64 LastRenderTimeMips;
 	int64 CachedMips;
 
 	int64 WantedMips;
@@ -192,6 +191,7 @@ struct FTextureStreamingStats
 	double Timestamp;
 
 	
+	int32 CallbacksCycles;
 	int32 SetupAsyncTaskCycles;
 	int32 UpdateStreamingDataCycles;
 	int32 StreamTexturesCycles;

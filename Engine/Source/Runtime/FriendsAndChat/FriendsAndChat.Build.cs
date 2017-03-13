@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class FriendsAndChat : ModuleRules
 {
-	public FriendsAndChat(TargetInfo Target)
+	public FriendsAndChat(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]

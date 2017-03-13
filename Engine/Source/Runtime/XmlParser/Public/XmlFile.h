@@ -2,9 +2,6 @@
 
 #pragma once
 
-#ifndef __XmlFile_h__
-#define __XmlFile_h__
-
 #include "CoreMinimal.h"
 #include "XmlNode.h"
 
@@ -118,5 +115,3 @@ private:
 	/** Flag for whether the node creation process failed or not */
 	bool bCreationFailed;
 };
-
-#endif

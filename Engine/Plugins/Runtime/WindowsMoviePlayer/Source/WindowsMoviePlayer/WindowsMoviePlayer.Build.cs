@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class WindowsMoviePlayer : ModuleRules
 	{
-        public WindowsMoviePlayer(TargetInfo Target)
+        public WindowsMoviePlayer(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

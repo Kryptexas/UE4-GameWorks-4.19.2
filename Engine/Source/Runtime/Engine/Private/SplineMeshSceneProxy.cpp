@@ -4,7 +4,7 @@
 #include "Materials/Material.h"
 
 FSplineMeshSceneProxy::FSplineMeshSceneProxy(USplineMeshComponent* InComponent) :
-	FStaticMeshSceneProxy(InComponent)
+	FStaticMeshSceneProxy(InComponent, false)
 {
 	bSupportsDistanceFieldRepresentation = false;
 
@@ -27,17 +27,7 @@ FSplineMeshSceneProxy::FSplineMeshSceneProxy(USplineMeshComponent* InComponent) 
 	ForwardAxis = InComponent->ForwardAxis;
 
 	// Fill in info about the mesh
-	if (FMath::IsNearlyEqual(InComponent->SplineBoundaryMin, InComponent->SplineBoundaryMax))
-	{
-		FBoxSphereBounds StaticMeshBounds = StaticMesh->GetBounds();
-		SplineMeshScaleZ = 0.5f / USplineMeshComponent::GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis); // 1/(2 * Extent)
-		SplineMeshMinZ = USplineMeshComponent::GetAxisValue(StaticMeshBounds.Origin, ForwardAxis) * SplineMeshScaleZ - 0.5f;
-	}
-	else
-	{
-		SplineMeshScaleZ = 1.0f / (InComponent->SplineBoundaryMax - InComponent->SplineBoundaryMin);
-		SplineMeshMinZ = InComponent->SplineBoundaryMin * SplineMeshScaleZ;
-	}
+	InComponent->CalculateScaleZAndMinZ(SplineMeshScaleZ, SplineMeshMinZ);
 
 	for (int32 LODIndex = 0; LODIndex < LODs.Num(); LODIndex++)
 	{

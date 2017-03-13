@@ -654,7 +654,7 @@ namespace APIDocTool
 				}
 				else
 				{
-					Console.WriteLine("Failed to find either UBTExport.0.xge.xml or UBTExport.000.xge.xml under %s", Path.Combine(EngineDir, "Intermediate\\Build\\"));
+					Console.WriteLine("Failed to find either UBTExport.0.xge.xml or UBTExport.000.xge.xml under {0}", Path.Combine(EngineDir, "Intermediate\\Build\\"));
 					return false;
 				}
 			}
@@ -707,7 +707,7 @@ namespace APIDocTool
 			}
 			if((Actions & BuildActions.Build) != 0)
 			{
-				string MetadataInputPath = Path.Combine(EngineDir, "Source\\Runtime\\CoreUObject\\Public\\UObject\\ObjectBase.h");
+				string MetadataInputPath = Path.Combine(EngineDir, "Source\\Runtime\\CoreUObject\\Public\\UObject\\ObjectMacros.h");
 				Console.WriteLine("Building metadata descriptions from '{0}'...", MetadataInputPath);
 
 				DoxygenConfig Config = new DoxygenConfig("Metadata", new string[]{ MetadataInputPath }, MetadataDir);

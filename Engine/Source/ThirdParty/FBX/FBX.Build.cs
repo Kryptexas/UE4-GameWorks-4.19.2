@@ -5,7 +5,7 @@ using UnrealBuildTool;
 
 public class FBX : ModuleRules
 {
-	public FBX(TargetInfo Target)
+	public FBX(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

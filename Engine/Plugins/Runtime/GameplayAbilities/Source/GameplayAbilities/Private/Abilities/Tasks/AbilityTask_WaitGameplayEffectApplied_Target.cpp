@@ -24,7 +24,10 @@ UAbilityTask_WaitGameplayEffectApplied_Target* UAbilityTask_WaitGameplayEffectAp
 
 void UAbilityTask_WaitGameplayEffectApplied_Target::BroadcastDelegate(AActor* Avatar, FGameplayEffectSpecHandle SpecHandle, FActiveGameplayEffectHandle ActiveHandle)
 {
-	OnApplied.Broadcast(Avatar, SpecHandle, ActiveHandle);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnApplied.Broadcast(Avatar, SpecHandle, ActiveHandle);
+	}
 }
 
 void UAbilityTask_WaitGameplayEffectApplied_Target::RegisterDelegate()

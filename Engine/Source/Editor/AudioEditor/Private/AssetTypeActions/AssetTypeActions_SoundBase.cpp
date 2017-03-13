@@ -129,10 +129,14 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundBase::GetThumbnailOverlay(const FAsse
 {
 	auto OnGetDisplayBrushLambda = [this, AssetData]() -> const FSlateBrush*
 	{
-		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
-		if (IsSoundPlaying(Sound))
+		UObject* Asset = AssetData.GetAsset();
+		if (Asset)
 		{
-			return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
+			USoundBase* Sound = CastChecked<USoundBase>(Asset);
+			if (IsSoundPlaying(Sound))
+			{
+				return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
+			}
 		}
 
 		return FEditorStyle::GetBrush("MediaAsset.AssetActions.Play.Large");
@@ -140,25 +144,33 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundBase::GetThumbnailOverlay(const FAsse
 
 	auto OnClickedLambda = [this, AssetData]() -> FReply
 	{
-		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
+		UObject* Asset = AssetData.GetAsset();
+		if (Asset)
+		{
+			USoundBase* Sound = CastChecked<USoundBase>(Asset);
 
-		if (IsSoundPlaying(Sound))
-		{
-			StopSound();
-		}
-		else
-		{
-			PlaySound(Sound);
+			if (IsSoundPlaying(Sound))
+			{
+				StopSound();
+			}
+			else
+			{
+				PlaySound(Sound);
+			}
 		}
 		return FReply::Handled();
 	};
 
 	auto OnToolTipTextLambda = [this, AssetData]() -> FText
 	{
-		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
-		if (IsSoundPlaying(Sound))
+		UObject* Asset = AssetData.GetAsset();
+		if (Asset)
 		{
-			return LOCTEXT("Thumbnail_StopSoundToolTip", "Stop selected sound");
+			USoundBase* Sound = CastChecked<USoundBase>(Asset);
+			if (IsSoundPlaying(Sound))
+			{
+				return LOCTEXT("Thumbnail_StopSoundToolTip", "Stop selected sound");
+			}
 		}
 
 		return LOCTEXT("Thumbnail_PlaySoundToolTip", "Play selected sound");
@@ -172,14 +184,17 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundBase::GetThumbnailOverlay(const FAsse
 
 	auto OnGetVisibilityLambda = [this, Box, AssetData]() -> EVisibility
 	{
-		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
-		if (Box.IsValid())
+		UObject* Asset = AssetData.GetAsset();
+		if (Asset)
 		{
-			if (Box->IsHovered() || IsSoundPlaying(Sound))
+			USoundBase* Sound = CastChecked<USoundBase>(Asset);
+			if (Box.IsValid())
 			{
-				return EVisibility::Visible;
+				if (Box->IsHovered() || IsSoundPlaying(Sound))
+				{
+					return EVisibility::Visible;
+				}
 			}
-
 		}
 
 		return EVisibility::Hidden;

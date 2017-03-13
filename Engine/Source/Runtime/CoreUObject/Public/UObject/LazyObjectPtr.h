@@ -32,7 +32,7 @@ struct COREUOBJECT_API FUniqueObjectGuid
 	}
 
 	/** Construct from an existing object */
-	FUniqueObjectGuid(const class UObject* InObject);
+	explicit FUniqueObjectGuid(const class UObject* InObject);
 
 	/** Converts into a string */
 	FString ToString() const;

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class RenderCore : ModuleRules
 {
-	public RenderCore(TargetInfo Target)
+	public RenderCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "RHI" });
 	}

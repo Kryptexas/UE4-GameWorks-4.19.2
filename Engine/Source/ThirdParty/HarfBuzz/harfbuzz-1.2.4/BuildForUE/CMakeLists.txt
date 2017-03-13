@@ -2,7 +2,15 @@
 cmake_minimum_required(VERSION 2.8.11)
 
 # CMake script build HarfBuzz for using our pre-built third-party libraries
-if(${WIN32})
+option(BUILD_WITH_FREETYPE_2_6 OFF)
+if (${WIN32})
+	set(BUILD_WITH_FREETYPE_2_6 ON)
+endif()
+if ( NOT $ENV{EMSCRIPTEN} EQUAL "" )
+	set(BUILD_WITH_FREETYPE_2_6 ON)
+endif()
+
+if(BUILD_WITH_FREETYPE_2_6)
 	set(FREETYPE2_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../FreeType2/FreeType2-2.6")
 else()
 	set(FREETYPE2_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../FreeType2/FreeType2-2.4.12")
@@ -21,14 +29,14 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/../")
 
 # Gather up all the HarfBuzz source files
-file(GLOB HARFBUZZ_SRC_FILES 
+file(GLOB HARFBUZZ_SRC_FILES
 	LIST_DIRECTORIES=false
 	"${CMAKE_CURRENT_SOURCE_DIR}/../src/*.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/../src/*.hh"
 	"${CMAKE_CURRENT_SOURCE_DIR}/../src/*.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cc"
 	)
-	
+
 # We exclude some source files that we don't need (we'll be using ICU rather than GLib for our Unicode support, and we don't need CoreText, DirectWrite, Graphite2, HarfBuzz's internal UCDN library, or Uniscribe).
 list(REMOVE_ITEM HARFBUZZ_SRC_FILES
 	"${CMAKE_CURRENT_SOURCE_DIR}/../src/hb-coretext.cc"
@@ -55,7 +63,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 list(APPEND HARFBUZZ_SRC_FILES
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/config.h"
 	)
-	
+
 # Some platforms need to define these in order to build
 if(USE_INTEL_ATOMIC_PRIMITIVES)
 	add_definitions(-DHAVE_INTEL_ATOMIC_PRIMITIVES)
@@ -63,7 +71,7 @@ endif()
 if(USE_STUB_GETENV)
 	add_definitions(-DHAVE_STUB_GETENV)
 endif()
-	
+
 # Add the include directory for our own build of FreeType2
 add_definitions(-DHAVE_OT)
 include_directories("${FREETYPE2_ROOT}/Devel" "${FREETYPE2_ROOT}/Include")

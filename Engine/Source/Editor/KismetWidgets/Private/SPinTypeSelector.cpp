@@ -45,7 +45,7 @@ int32 SDoubleImage::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	SImage::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
-	const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	// draw rest of the images, we reuse the LayerId because images are assumed to note overlap:
 	const FSlateBrush* SecondImageResolved = SecondImage.Get();
 	if (SecondImageResolved && SecondImageResolved->DrawAs != ESlateBrushDrawType::NoDrawType)

@@ -8,6 +8,10 @@
 #include "Widgets/SWidget.h"
 #include "Layout/Children.h"
 #include "Widgets/SPanel.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateTypes.h"
+#include "Input/SButton.h"
+
 
 class FArrangedChildren;
 class FPaintArgs;
@@ -89,6 +93,14 @@ public:
 		OnDoubleClick = InOnDoubleClick;
 	}
 
+	void SetCustomStyleForWindowButtons(const FButtonStyle& InMinimizeButtonStyle, const FButtonStyle& InMaximizeButtonStyle, const FButtonStyle& InRestoreButtonStyle, const FButtonStyle& InCloseButtonStyle)
+	{
+		MinimizeButtonStyle = InMinimizeButtonStyle;
+		MaximizeButtonStyle = InMaximizeButtonStyle;
+		RestoreButtonStyle = InRestoreButtonStyle;
+		CloseButtonStyle = InCloseButtonStyle;
+	}
+
 protected:
 
 	FSlot ChildSlot;
@@ -97,4 +109,27 @@ private:
 
 	TSharedPtr<SWindow> GameWindow;
 	FSimpleDelegate OnDoubleClick;
+
+	FButtonStyle MinimizeButtonStyle;
+	FButtonStyle MaximizeButtonStyle;
+	FButtonStyle RestoreButtonStyle;
+	FButtonStyle CloseButtonStyle;
+
+	bool bIsMinimizeButtonEnabled;
+	bool bIsMaximizeRestoreButtonEnabled;
+	bool bIsCloseButtonEnabled;
+
+	FReply MinimizeButton_OnClicked();
+	FReply MaximizeRestoreButton_OnClicked();
+	FReply CloseButton_OnClicked();
+
+	const FSlateBrush* GetMinimizeImage() const;
+	const FSlateBrush* GetMaximizeRestoreImage() const;
+	const FSlateBrush* GetCloseImage() const;
+
+	TSharedPtr<SButton> MinimizeButton;
+	TSharedPtr<SButton> MaximizeRestoreButton;
+	TSharedPtr<SButton> CloseButton;
+
+	TSharedPtr<SVerticalBox> WindowButtonsBox;
 };

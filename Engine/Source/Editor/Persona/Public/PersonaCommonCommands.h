@@ -15,6 +15,7 @@ public:
 	}
 
 	virtual void RegisterCommands() override;
+	FORCENOINLINE static const FPersonaCommonCommands& Get();
 
 public:
 	// Toggle playback

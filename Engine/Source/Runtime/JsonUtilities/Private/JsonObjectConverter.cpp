@@ -40,7 +40,7 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 	{
 		// export enums as strings
 		UEnum* EnumDef = EnumProperty->GetEnum();
-		FString StringValue = EnumDef->GetEnumName(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(Value));
+		FString StringValue = EnumDef->GetNameStringByValue(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(Value));
 		return MakeShareable(new FJsonValueString(StringValue));
 	}
 	else if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
@@ -50,7 +50,7 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 		if (EnumDef != NULL)
 		{
 			// export enums as strings
-			FString StringValue = EnumDef->GetEnumName(NumericProperty->GetSignedIntPropertyValue(Value));
+			FString StringValue = EnumDef->GetNameStringByValue(NumericProperty->GetSignedIntPropertyValue(Value));
 			return MakeShareable(new FJsonValueString(StringValue));
 		}
 

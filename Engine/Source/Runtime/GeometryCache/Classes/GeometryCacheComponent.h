@@ -223,9 +223,6 @@ protected:
 	/** Local space bounds of mesh */
 	FBoxSphereBounds LocalBounds;
 
-	/** Pointer to SceneProxy for the instance of this component */
-	FGeometryCacheSceneProxy* SceneProxy;
-
 	/** Matrix and Mesh sample index for each individual track */
 	TArray<int32> TrackMeshSampleIndices;
 	TArray<int32> TrackMatrixSampleIndices;

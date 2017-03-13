@@ -147,7 +147,7 @@ public:
 
 	bool IsMetadata() const
 	{
-		return AnimSequenceBase.Get()->RawCurveData.GetCurveData(CurveUID)->GetCurveTypeFlag(ACF_Metadata);
+		return AnimSequenceBase.Get()->RawCurveData.GetCurveData(CurveUID)->GetCurveTypeFlag(AACF_Metadata);
 	}
 
 	void SetKeysToMetaData()
@@ -229,16 +229,18 @@ public:
 		: _AnimCurvePanel()
 		, _Sequence()
 		, _CurveUid()
+		, _bIsExpanded()
 		, _WidgetWidth()
 		, _ViewInputMin()
 		, _ViewInputMax()
 		, _OnSetInputViewRange()
-		, _OnGetScrubValue()
+		, _OnGetScrubValue()		
 	{}
 	SLATE_ARGUMENT( TSharedPtr<SAnimCurvePanel>, AnimCurvePanel)
 	// editing related variables
 	SLATE_ARGUMENT( class UAnimSequenceBase*, Sequence )
 	SLATE_ARGUMENT( USkeleton::AnimCurveUID, CurveUid )
+	SLATE_ARGUMENT( bool, bIsExpanded )
 	// widget viewing related variables
 	SLATE_ARGUMENT( float, WidgetWidth ) // @todo do I need this?
 	SLATE_ATTRIBUTE( float, ViewInputMin )
@@ -275,6 +277,9 @@ public:
 	// Bound to attribute for curve name, uses curve interface to request from skeleton
 	FText GetCurveName(USkeleton::AnimCurveUID Uid) const;
 
+	USkeleton::AnimCurveUID GetCurveUID() const;
+	bool IsExpanded() const;
+
 	float GetLength() const { return PanelPtr.Pin()->GetLength(); }
 	TOptional<float> GetOptionalLength() const { return GetLength(); }
 };
@@ -286,7 +291,7 @@ void SCurveEdTrack::Construct(const FArguments& InArgs)
 {
 	TSharedRef<SAnimCurvePanel> PanelRef = InArgs._AnimCurvePanel.ToSharedRef();
 	PanelPtr = InArgs._AnimCurvePanel;
-	bUseExpandEditor = false;
+	bUseExpandEditor = InArgs._bIsExpanded;
 	// now create CurveInterface, 
 	// find which curve this belongs to
 	UAnimSequenceBase * Sequence = InArgs._Sequence;
@@ -309,7 +314,7 @@ void SCurveEdTrack::Construct(const FArguments& InArgs)
 		SAssignNew(InnerBox, SHorizontalBox)
 	];
 	
-	bool bIsMetadata = Curve->GetCurveTypeFlag(ACF_Metadata);
+	bool bIsMetadata = Curve->GetCurveTypeFlag(AACF_Metadata);
 	if(!bIsMetadata)
 	{
 		InnerBox->AddSlot()
@@ -547,6 +552,16 @@ FText SCurveEdTrack::GetCurveName(USkeleton::AnimCurveUID Uid) const
 	return CurveInterface->GetCurveName(Uid);
 }
 
+USkeleton::AnimCurveUID SCurveEdTrack::GetCurveUID() const
+{
+	return CurveInterface->CurveUID;
+}
+
+bool SCurveEdTrack::IsExpanded() const
+{
+	return bUseExpandEditor;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // SAnimCurvePanel
 
@@ -585,6 +600,8 @@ void SAnimCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<class
 	OnGetScrubValue = InArgs._OnGetScrubValue;
 
 	InEditableSkeleton->RegisterOnSmartNameRemoved(FOnSmartNameRemoved::FDelegate::CreateSP(this, &SAnimCurvePanel::HandleSmartNameRemoved));
+
+	Sequence->RegisterOnAnimCurvesChanged(UAnimSequenceBase::FOnAnimCurvesChanged::CreateSP(this, &SAnimCurvePanel::UpdatePanel));
 
 	this->ChildSlot
 	[
@@ -662,6 +679,11 @@ void SAnimCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<class
 	];
 
 	UpdatePanel();
+}
+
+SAnimCurvePanel::~SAnimCurvePanel()
+{
+	Sequence->UnregisterOnAnimCurvesChanged(this);
 }
 
 FReply SAnimCurvePanel::AddButtonClicked()
@@ -826,8 +848,8 @@ void SAnimCurvePanel::UpdatePanel()
 		// Sort the raw curves before setting up display
 		Sequence->RawCurveData.FloatCurves.Sort([MetadataNameMap](const FFloatCurve& A, const FFloatCurve& B)
 		{
-			bool bAMeta = A.GetCurveTypeFlag(ACF_Metadata);
-			bool bBMeta = B.GetCurveTypeFlag(ACF_Metadata);
+			bool bAMeta = A.GetCurveTypeFlag(AACF_Metadata);
+			bool bBMeta = B.GetCurveTypeFlag(AACF_Metadata);
 			
 			if(bAMeta != bBMeta)
 			{
@@ -841,6 +863,16 @@ void SAnimCurvePanel::UpdatePanel()
 
 			return AName < BName;
 		});
+
+		// Store expanded state before clearing the tracks
+		TMap<SmartName::UID_Type, bool> ExpandedState;
+		for (TWeakPtr<class SCurveEdTrack> Track : Tracks)
+		{
+			if (Track.IsValid())
+			{
+				ExpandedState.Add(Track.Pin()->GetCurveUID(), Track.Pin()->IsExpanded());
+			}
+		}
 
 		// see if we need to clear or not
 		FChildren * VariableChildren = PanelSlot->GetChildren();
@@ -860,13 +892,15 @@ void SAnimCurvePanel::UpdatePanel()
 		{
 			FFloatCurve&  Curve = Sequence->RawCurveData.FloatCurves[CurrentIt];
 
-			const bool bEditable = Curve.GetCurveTypeFlag(ACF_Editable);
-			const bool bConstant = Curve.GetCurveTypeFlag(ACF_Metadata);
+			const bool bEditable = Curve.GetCurveTypeFlag(AACF_Editable);
+			const bool bConstant = Curve.GetCurveTypeFlag(AACF_Metadata);
 			FName CurveName;
 
 			// if editable, add to the list
 			if(bEditable && NameMapping->GetName(Curve.Name.UID, CurveName))
 			{
+				const bool bIsExpanded = ExpandedState.Contains(Curve.Name.UID) ? ExpandedState.FindChecked(Curve.Name.UID) : false;
+
 				TSharedPtr<SCurveEdTrack> CurrentTrack;
 				PanelSlot->AddSlot()
 				.SizeRule(SSplitter::SizeToContent)
@@ -885,6 +919,7 @@ void SAnimCurvePanel::UpdatePanel()
 						.ViewInputMax(ViewInputMax)
 						.OnGetScrubValue(OnGetScrubValue)
 						.OnSetInputViewRange(OnSetInputViewRange)
+						.bIsExpanded(bIsExpanded)
 					]
 				];
 				Tracks.Add(CurrentTrack);
@@ -1017,10 +1052,10 @@ ECheckBoxState SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveUID Uid) con
 {
 	if ( Sequence )
 	{
-		const FFloatCurve* Curve = static_cast<const FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
+		const FFloatCurve* Curve = static_cast<const FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, ERawCurveTrackTypes::RCT_Float));
 		if ( Curve )
 		{
-			return Curve->GetCurveTypeFlag(ACF_Editable)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			return Curve->GetCurveTypeFlag(AACF_Editable)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
@@ -1033,10 +1068,10 @@ void SAnimCurvePanel::ToggleEditability(ECheckBoxState NewType, USkeleton::AnimC
 
 	if ( Sequence )
 	{
-		FFloatCurve * Curve = static_cast<FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
+		FFloatCurve * Curve = static_cast<FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, ERawCurveTrackTypes::RCT_Float));
 		if ( Curve )
 		{
-			Curve->SetCurveTypeFlag(ACF_Editable, bEdit);
+			Curve->SetCurveTypeFlag(AACF_Editable, bEdit);
 		}
 	}
 }
@@ -1054,7 +1089,7 @@ FReply		SAnimCurvePanel::ShowAll(bool bShow)
 		for (auto Iter = Sequence->RawCurveData.FloatCurves.CreateIterator(); Iter; ++Iter)
 		{
 			FFloatCurve & Curve = *Iter;
-			Curve.SetCurveTypeFlag(ACF_Editable, bShow);
+			Curve.SetCurveTypeFlag(AACF_Editable, bShow);
 		}
 
 		UpdatePanel();
@@ -1176,9 +1211,9 @@ void SAnimCurvePanel::AddMetadataEntry(USkeleton::AnimCurveUID Uid)
 	{
 		Sequence->Modify(true);
 		Sequence->MarkRawDataAsModified();
-		FFloatCurve* Curve = static_cast<FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
+		FFloatCurve* Curve = static_cast<FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, ERawCurveTrackTypes::RCT_Float));
 		Curve->FloatCurve.AddKey(0.0f, 1.0f);
-		Curve->SetCurveTypeFlag(ACF_Metadata, true);
+		Curve->SetCurveTypeFlag(AACF_Metadata, true);
 		RefreshPanel();
 		Sequence->PostEditChange();
 	}
@@ -1281,8 +1316,8 @@ void SAnimCurvePanel::ToggleCurveTypeMenuCallback(FAnimCurveBaseInterface* Curve
 
 	FScopedTransaction Transaction(LOCTEXT("CurvePanel_ToggleCurveType", "Toggle curve type"));
 	Sequence->Modify(true);
-	bool bIsSet = Curve->GetCurveTypeFlag(ACF_Metadata);
-	Curve->SetCurveTypeFlag(ACF_Metadata, !bIsSet);
+	bool bIsSet = Curve->GetCurveTypeFlag(AACF_Metadata);
+	Curve->SetCurveTypeFlag(AACF_Metadata, !bIsSet);
 
 	if(!bIsSet)
 	{

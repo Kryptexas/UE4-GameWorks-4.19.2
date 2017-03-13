@@ -323,6 +323,11 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 {
 	TSharedPtr<FNativizationSummary> NativizationSummary(new FNativizationSummary());
+	{
+		IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+		CodeGenBackend.NativizationSummary() = NativizationSummary;
+	}
+
 	for (TAssetPtr<UBlueprint>& BPPtr : ToGenerate)
 	{
 		UBlueprint* BP = BPPtr.LoadSynchronous();
@@ -601,7 +606,7 @@ UClass* FBlueprintNativeCodeGenModule::FindReplacedClassForObject(const UObject*
 			}
 		}
 	}
-	ensure(!Object || !(Object->IsA<UUserDefinedStruct>() || Object->IsA<UUserDefinedEnum>()));
+	ensure(!Object || Object->HasAnyFlags(RF_ClassDefaultObject) || !(Object->IsA<UUserDefinedStruct>() || Object->IsA<UUserDefinedEnum>()));
 	return nullptr;
 }
 
@@ -609,12 +614,10 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 {
 	OutName = NAME_None;
 
-	UActorComponent* ActorComponent = Cast<UActorComponent>(Object);
-	if (ActorComponent)
+	auto GetOuterBPGC = [](UObject* FirstOuter) -> UBlueprintGeneratedClass*
 	{
-		//if is child of a BPGC and not child of a CDO
 		UBlueprintGeneratedClass* BPGC = nullptr;
-		for (UObject* OuterObject = ActorComponent->GetOuter(); OuterObject && !BPGC; OuterObject = OuterObject->GetOuter())
+		for (UObject* OuterObject = FirstOuter; OuterObject && !BPGC; OuterObject = OuterObject->GetOuter())
 		{
 			if (OuterObject->HasAnyFlags(RF_ClassDefaultObject))
 			{
@@ -622,7 +625,14 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 			}
 			BPGC = Cast<UBlueprintGeneratedClass>(OuterObject);
 		}
+		return BPGC;
+	};
 
+	UActorComponent* ActorComponent = Cast<UActorComponent>(Object);
+	if (ActorComponent)
+	{
+		//if is child of a BPGC and not child of a CDO
+		UBlueprintGeneratedClass* BPGC = GetOuterBPGC(ActorComponent->GetOuter());
 		FName NewName = NAME_None;
 		UObject* OuterCDO = nullptr;
 		for (UBlueprintGeneratedClass* SuperBPGC = BPGC; SuperBPGC && (NewName == NAME_None); SuperBPGC = Cast<UBlueprintGeneratedClass>(SuperBPGC->GetSuperClass()))
@@ -659,6 +669,18 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 			OutName = NewName;
 			UE_LOG(LogBlueprintCodeGen, Log, TEXT("Object '%s' has replaced name '%s' and outer: '%s'"), *GetPathNameSafe(Object), *OutName.ToString(), *GetPathNameSafe(OuterCDO));
 			return OuterCDO;
+		}
+	}
+	else
+	{
+		UChildActorComponent* OuterCAC = Cast<UChildActorComponent>(Object->GetOuter());
+		if (OuterCAC && OuterCAC->GetChildActorTemplate() == Object)
+		{
+			UBlueprintGeneratedClass* BPGC = GetOuterBPGC(OuterCAC->GetOuter());
+			if (BPGC && (EReplacementResult::ReplaceCompletely == IsTargetedForReplacement(BPGC)))
+			{
+				return BPGC;
+			}
 		}
 	}
 
@@ -706,6 +728,11 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 	const UBlueprint* const Blueprint = BlueprintClass ? Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy) : nullptr;
 
+
+	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+	const bool bNativizeOnlySelectedBPs = PackagingSettings && PackagingSettings->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive;
+
+
 	auto ObjectIsNotReplacedAtAll = [&]() -> bool
 	{
 		// EDITOR ON DEVELOPMENT OBJECT
@@ -743,7 +770,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 		// DATA ONLY BP
 		{
 			static const FBoolConfigValueHelper DontNativizeDataOnlyBP(TEXT("BlueprintNativizationSettings"), TEXT("bDontNativizeDataOnlyBP"));
-			if (DontNativizeDataOnlyBP && Blueprint && FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
+			if (DontNativizeDataOnlyBP && !bNativizeOnlySelectedBPs && Blueprint && FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
 			{
 				return true;
 			}
@@ -854,11 +881,11 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 				}
 			}
 
-			const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
-			const bool bNativizeOnlySelectedBPs = PackagingSettings && PackagingSettings->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive;
-
+			const bool bFlaggedForNativization  = (Blueprint->NativizationFlag == EBlueprintNativizationFlag::Dependency) ? 
+				PackagingSettings->IsBlueprintAssetInNativizationList(Blueprint) :
+				(Blueprint->NativizationFlag == EBlueprintNativizationFlag::ExplicitlyEnabled);
 			// Blueprint is not selected
-			if (bNativizeOnlySelectedBPs && !Blueprint->bSelectedForNativization)
+			if (bNativizeOnlySelectedBPs && !bFlaggedForNativization)
 			{
 				return true;
 			}

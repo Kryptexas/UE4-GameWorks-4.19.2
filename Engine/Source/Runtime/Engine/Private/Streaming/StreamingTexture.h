@@ -151,12 +151,6 @@ struct FStreamingTexture
 	/** If non-zero, the most recent time an instance location was removed for this texture. */
 	double			InstanceRemovedTimestamp;
 
-	/** Set to FApp::GetCurrentTime() every time LastRenderTimeRefCount is modified. */
-	double			LastRenderTimeRefCountTimestamp;
-
-	/** Current number of instances that need LRT heuristics for this texture. */
-	int32			LastRenderTimeRefCount;
-
 	/** Extra gameplay boost factor. Reset after every update. */
 	float			DynamicBoostFactor;
 
@@ -167,9 +161,6 @@ struct FStreamingTexture
 	/** Same as force fully load, but takes into account component settings. */
 	uint32			bForceFullyLoadHeuristic : 1; 
 
-	/** Whether this texture mips are driven by the last render time only. */
-	uint32			bUseLastRenderTimeHeuristic : 1;
-	
 	/** Whether this has not component referencing it. */
 	uint32			bUseUnkownRefHeuristic : 1;
 

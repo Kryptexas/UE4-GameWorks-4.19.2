@@ -35,6 +35,7 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "ScreenRendering.h"
 #include "MobileSceneCaptureRendering.h"
+#include "ClearQuad.h"
 
 const TCHAR* GShaderSourceModeDefineName[] =
 {
@@ -103,7 +104,14 @@ IMPLEMENT_SHADER_TYPE(template<>,TSceneCapturePS<SCS_BaseColor>,TEXT("SceneCaptu
 
 void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHICommandListImmediate& RHICmdList)
 {
-	if (ViewFamily.SceneCaptureSource != SCS_FinalColorLDR)
+	ESceneCaptureSource SceneCaptureSource = ViewFamily.SceneCaptureSource;
+
+	if (IsAnyForwardShadingEnabled(ViewFamily.GetShaderPlatform()) && (SceneCaptureSource == SCS_Normal || SceneCaptureSource == SCS_BaseColor))
+	{
+		SceneCaptureSource = SCS_SceneColorHDR;
+	}
+
+	if (SceneCaptureSource != SCS_FinalColorLDR)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, CaptureSceneComponent);
 
@@ -117,12 +125,12 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-			if (ViewFamily.SceneCaptureSource == SCS_SceneColorHDR && ViewFamily.SceneCaptureCompositeMode == SCCM_Composite)
+			if (SceneCaptureSource == SCS_SceneColorHDR && ViewFamily.SceneCaptureCompositeMode == SCCM_Composite)
 			{
 				// Blend with existing render target color. Scene capture color is already pre-multiplied by alpha.
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_SourceAlpha, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_SceneColorHDR && ViewFamily.SceneCaptureCompositeMode == SCCM_Additive)
+			else if (SceneCaptureSource == SCS_SceneColorHDR && ViewFamily.SceneCaptureCompositeMode == SCCM_Additive)
 			{
 				// Add to existing render target color. Scene capture color is already pre-multiplied by alpha.
 				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
@@ -134,7 +142,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 			TShaderMapRef<FScreenVS> VertexShader(View.ShaderMap);
 
-			if (ViewFamily.SceneCaptureSource == SCS_SceneColorHDR)
+			if (SceneCaptureSource == SCS_SceneColorHDR)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneColorHDR> > PixelShader(View.ShaderMap);
 
@@ -143,7 +151,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_SceneColorHDRNoAlpha)
+			else if (SceneCaptureSource == SCS_SceneColorHDRNoAlpha)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneColorHDRNoAlpha> > PixelShader(View.ShaderMap);
 
@@ -152,7 +160,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_SceneColorSceneDepth)
+			else if (SceneCaptureSource == SCS_SceneColorSceneDepth)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneColorSceneDepth> > PixelShader(View.ShaderMap);
 
@@ -161,7 +169,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_SceneDepth)
+			else if (SceneCaptureSource == SCS_SceneDepth)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneDepth> > PixelShader(View.ShaderMap);
 
@@ -170,7 +178,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_Normal)
+			else if (SceneCaptureSource == SCS_Normal)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_Normal> > PixelShader(View.ShaderMap);
 
@@ -179,7 +187,7 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 
 				PixelShader->SetParameters(RHICmdList, View);
 			}
-			else if (ViewFamily.SceneCaptureSource == SCS_BaseColor)
+			else if (SceneCaptureSource == SCS_BaseColor)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_BaseColor> > PixelShader(View.ShaderMap);
 
@@ -236,7 +244,7 @@ static void UpdateSceneCaptureContentDeferred_RenderThread(
 		FIntRect ViewRect = View.ViewRect;
 		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
 		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
-		RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor::Black, ViewRect);
+		DrawClearQuad(RHICmdList, SceneRenderer->FeatureLevel, true, FLinearColor::Black, false, 0, false, 0, Target->GetSizeXY(), ViewRect);
 
 		// Render the scene normally
 		{
@@ -247,7 +255,7 @@ static void UpdateSceneCaptureContentDeferred_RenderThread(
 		// Note: When the ViewFamily.SceneCaptureSource requires scene textures (i.e. SceneCaptureSource != SCS_FinalColorLDR), the copy to RenderTarget 
 		// will be done in CopySceneCaptureComponentToTarget while the GBuffers are still alive for the frame.
 		RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
-			}
+	}
 
 	FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
 }
@@ -389,6 +397,7 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 		ViewInitOptions.StereoPass = ViewState.StereoPass;
 		ViewInitOptions.SceneViewStateInterface = (ViewInitOptions.StereoPass != EStereoscopicPass::eSSP_RIGHT_EYE) ? SceneCaptureComponent->GetViewState() : SceneCaptureComponent->GetStereoViewState();
 		ViewInitOptions.ProjectionMatrix = ViewState.ProjectionMatrix;
+		ViewInitOptions.LODDistanceFactor = FMath::Clamp(SceneCaptureComponent->LODDistanceFactor, .01f, 100.0f);
 
 		if (bCaptureSceneColor)
 		{
@@ -562,15 +571,12 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 
 		FTextureRenderTargetResource* TextureRenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-			CaptureCommand,
-			FSceneRenderer*, SceneRenderer, SceneRenderer,
-			FTextureRenderTargetResource*, TextureRenderTarget, TextureRenderTarget,
-			FName, OwnerName, OwnerName,
-		{
-			UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams());
-		});
+		ENQUEUE_RENDER_COMMAND(CaptureCommand)(
+			[SceneRenderer, TextureRenderTarget, OwnerName](FRHICommandListImmediate& RHICmdList)
+			{
+				UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams());
+			}
+		);
 	}
 }
 
@@ -638,16 +644,12 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 
 			FTextureRenderTargetCubeResource* TextureRenderTarget = static_cast<FTextureRenderTargetCubeResource*>(CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource());
 			const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
-
-			ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
-				CaptureCommand,
-				FSceneRenderer*, SceneRenderer, SceneRenderer,
-				FTextureRenderTargetCubeResource*, TextureRenderTarget, TextureRenderTarget,
-				FName, OwnerName, OwnerName,
-				ECubeFace, TargetFace, TargetFace,
-			{
-				UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace));
-			});
+			ENQUEUE_RENDER_COMMAND(CaptureCommand)(
+				[SceneRenderer, TextureRenderTarget, OwnerName, TargetFace](FRHICommandListImmediate& RHICmdList)
+				{
+					UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace));
+				}
+			);
 		}
 	}
 }

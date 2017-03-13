@@ -23,11 +23,12 @@ namespace
 	// Optional pin manager subclass.
 	struct FClassDefaultsOptionalPinManager : public FOptionalPinManager
 	{
-		FClassDefaultsOptionalPinManager(UClass* InClass, bool bExcludeObjectArrays)
+		FClassDefaultsOptionalPinManager(UClass* InClass, bool bExcludeObjectContainers, bool bExcludeObjectArrays)
 			:FOptionalPinManager()
 		{
 			SrcClass = InClass;
-			bExcludeObjectArrayProperties = bExcludeObjectArrays;
+			bExcludeObjectArrayProperties = bExcludeObjectContainers | bExcludeObjectArrays;
+			bExcludeObjectContainerProperties = bExcludeObjectContainers;
 		}
 
 		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override
@@ -54,6 +55,20 @@ namespace
 					TestProperty = TestArrayProperty->Inner;
 				}
 			}
+			else if (USetProperty* TestSetProperty = Cast<USetProperty>(TestProperty))
+			{
+				if (bExcludeObjectContainerProperties && TestSetProperty->ElementProp)
+				{
+					TestProperty = TestSetProperty->ElementProp;
+				}
+			}
+			else if (UMapProperty* TestMapProperty = Cast<UMapProperty>(TestProperty))
+			{
+				// Since we can't treat the key or value as read-only right now, we exclude any TMap that has a non-class UObject reference as its key or value type.
+				return !(bExcludeObjectContainerProperties
+					&& ((TestMapProperty->KeyProp && TestMapProperty->KeyProp->IsA<UObjectProperty>() && !TestMapProperty->KeyProp->IsA<UClassProperty>())
+						|| (TestMapProperty->ValueProp && TestMapProperty->ValueProp->IsA<UObjectProperty>() && !TestMapProperty->ValueProp->IsA<UClassProperty>())));
+			}
 
 			// Don't expose object properties (except for those containing class objects).
 			// @TODO - Could potentially expose object reference values if/when we have support for 'const' input pins.
@@ -72,8 +87,11 @@ namespace
 		// Class type for which optional pins are being managed.
 		UClass* SrcClass;
 
-		// Indicates whether or not object array properties will be excluded.
+		// Indicates whether or not object array properties will be excluded (for backwards-compatibility).
 		bool bExcludeObjectArrayProperties;
+
+		// Indicates whether or not object container properties will be excluded (will supercede the array-specific flag when true).
+		bool bExcludeObjectContainerProperties;
 	};
 
 	// Compilation handler subclass.
@@ -200,9 +218,9 @@ void UK2Node_GetClassDefaults::AllocateDefaultPins()
 
 void UK2Node_GetClassDefaults::PostPlacedNewNode()
 {
-	// Always exclude object array properties for new nodes.
+	// Always exclude object container properties for new nodes.
 	// @TODO - Could potentially expose object reference values if/when we have support for 'const' input pins.
-	bExcludeObjectArrays = true;
+	bExcludeObjectContainers = true;
 
 	if(UEdGraphPin* ClassPin = FindClassPin(Pins))
 	{
@@ -240,20 +258,33 @@ void UK2Node_GetClassDefaults::ValidateNodeDuringCompilation(class FCompilerResu
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
-	if(auto SourceClass = GetInputClass())
+	if (const UClass* SourceClass = GetInputClass())
 	{
-		for(auto Pin : Pins)
+		for (const UEdGraphPin* Pin : Pins)
 		{
-			if(Pin && Pin->Direction == EGPD_Output && Pin->LinkedTo.Num() > 0)
+			// Emit a warning for existing connections to potentially unsafe array property defaults. We do this rather than just implicitly breaking the connection (for compatibility).
+			if (Pin && Pin->Direction == EGPD_Output && Pin->LinkedTo.Num() > 0)
 			{
-				// Emit a warning for existing connections to potentially unsafe array property defaults. We do this rather than just implicitly breaking the connection (for compatibility).
-				if(auto ArrayProperty = Cast<UArrayProperty>(SourceClass->FindPropertyByName(FName(*Pin->PinName))))
+				// Even though container property defaults are copied, the copy could still contain a reference to a non-class object that belongs to the CDO, which would potentially be unsafe to modify.
+				bool bEmitWarning = false;
+				const UProperty* TestProperty = SourceClass->FindPropertyByName(FName(*Pin->PinName));
+				if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(TestProperty))
 				{
-					// Even though array property defaults are copied, the copy could still contain a reference to a non-class object that belongs to the CDO, which would potentially be unsafe to modify.
-					if(ArrayProperty->Inner && ArrayProperty->Inner->IsA<UObjectProperty>() && !ArrayProperty->Inner->IsA<UClassProperty>())
-					{
-						MessageLog.Warning(*LOCTEXT("UnsafeConnectionWarning", "@@ has an unsafe connection to the @@ output pin that is not fully supported at this time. It should be disconnected to avoid potentially corrupting class defaults at runtime. If you need to keep this connection, make sure you're not changing the state of any elements in the array. Also note that if you recreate this node, it will not include this output pin.").ToString(), this, Pin);
-					}
+					bEmitWarning = ArrayProperty->Inner && ArrayProperty->Inner->IsA<UObjectProperty>() && !ArrayProperty->Inner->IsA<UClassProperty>();
+				}
+				else if (const USetProperty* SetProperty = Cast<USetProperty>(TestProperty))
+				{
+					bEmitWarning = SetProperty->ElementProp && SetProperty->ElementProp->IsA<UObjectProperty>() && !SetProperty->ElementProp->IsA<UClassProperty>();
+				}
+				else if (const UMapProperty* MapProperty = Cast<UMapProperty>(TestProperty))
+				{
+					bEmitWarning = (MapProperty->KeyProp && MapProperty->KeyProp->IsA<UObjectProperty>() && !MapProperty->KeyProp->IsA<UClassProperty>())
+						|| (MapProperty->ValueProp && MapProperty->ValueProp->IsA<UObjectProperty>() && !MapProperty->ValueProp->IsA<UClassProperty>());
+				}
+
+				if (bEmitWarning)
+				{
+					MessageLog.Warning(*LOCTEXT("UnsafeConnectionWarning", "@@ has an unsafe connection to the @@ output pin that is not fully supported at this time. It should be disconnected to avoid potentially corrupting class defaults at runtime. If you need to keep this connection, make sure you're not changing the state of any elements in the container. Also note that if you recreate this node, it will not include this output pin.").ToString(), this, Pin);
 				}
 			}
 		}
@@ -298,13 +329,13 @@ void UK2Node_GetClassDefaults::ExpandNode(class FKismetCompilerContext& Compiler
 	const UClass* ClassType = GetInputClass();
 
 	// @TODO - Remove if/when we support 'const' input pins.
-	// For array properties, return a local copy of the array so that the original cannot be modified.
+	// For container properties, return a local copy of the container so that the original cannot be modified.
 	for(UEdGraphPin* OutputPin : Pins)
 	{
 		if(OutputPin != nullptr && OutputPin->Direction == EGPD_Output && OutputPin->LinkedTo.Num() > 0)
 		{
 			UProperty* BoundProperty = FindField<UProperty>(ClassType, *(OutputPin->PinName));
-			if(BoundProperty != nullptr && BoundProperty->IsA<UArrayProperty>())
+			if(BoundProperty != nullptr && (BoundProperty->IsA<UArrayProperty>() || BoundProperty->IsA<USetProperty>() || BoundProperty->IsA<UMapProperty>()))
 			{
 				UK2Node_TemporaryVariable* LocalVariable = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
 				LocalVariable->VariableType = OutputPin->PinType;
@@ -419,7 +450,7 @@ void UK2Node_GetClassDefaults::OnBlueprintClassModified(UBlueprint* TargetBluepr
 void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 {
 	// Create the set of output pins through the optional pin manager
-	FClassDefaultsOptionalPinManager OptionalPinManager(InClass, bExcludeObjectArrays);
+	FClassDefaultsOptionalPinManager OptionalPinManager(InClass, bExcludeObjectContainers, bExcludeObjectArrays_DEPRECATED);
 	OptionalPinManager.RebuildPropertyList(ShowPinForProperties, InClass);
 	OptionalPinManager.CreateVisiblePins(ShowPinForProperties, InClass, EGPD_Output, this);
 

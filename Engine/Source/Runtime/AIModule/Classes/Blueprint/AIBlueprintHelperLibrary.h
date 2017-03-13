@@ -36,7 +36,7 @@ class AIMODULE_API UAIBlueprintHelperLibrary : public UBlueprintFunctionLibrary
 
 	/** The way it works exactly is if the actor passed in is a pawn, then the function retrieves 
 	 *	pawn's controller cast to AIController. Otherwise the function returns actor cast to AIController. */
-	UFUNCTION(BlueprintCallable, Category = "AI", meta = (DefaultToSelf = "ControlledObject"))
+	UFUNCTION(BlueprintPure, Category = "AI", meta = (DefaultToSelf = "ControlledObject"))
 	static AAIController* GetAIController(AActor* ControlledActor);
 
 	UFUNCTION(BlueprintPure, Category="AI", meta=(DefaultToSelf="Target"))

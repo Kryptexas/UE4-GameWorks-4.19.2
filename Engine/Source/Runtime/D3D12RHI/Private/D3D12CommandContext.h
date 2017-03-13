@@ -20,12 +20,9 @@ D3D12CommandContext.h: D3D12 Command Context Interfaces
 THIRD_PARTY_INCLUDES_START
 #include <delayimp.h>
 
-#if D3D12_PROFILING_ENABLED || (defined(XBOXONE_PROFILING_ENABLED) && XBOXONE_PROFILING_ENABLED)
+#if USE_PIX
 	static_assert(WITH_PROFILEGPU == 1, "PIX profiling is requested/enabled, however the engine is compiling out draw events. See Build.h.");
-#define USE_PIX 1
-#include "pix.h"
-#else
-#define USE_PIX 0
+	#include "pix3.h"
 #endif
 #include "HideWindowsPlatformTypes.h"
 THIRD_PARTY_INCLUDES_END
@@ -113,6 +110,21 @@ public:
 	const bool bIsDefaultContext;
 	const bool bIsAsyncComputeContext;
 
+#if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
+	bool bNeedFlushTextureCache;
+	void InvalidateTextureCache() { bNeedFlushTextureCache = true; }
+	inline void FlushTextureCacheIfNeeded()
+	{
+		if (bNeedFlushTextureCache)
+		{
+			FlushTextureCache();
+
+			bNeedFlushTextureCache = false;
+		}
+	}
+	virtual void FlushTextureCache() {};
+#endif
+
 	uint32 numDraws;
 	uint32 numDispatches;
 	uint32 numClears;
@@ -168,6 +180,7 @@ public:
 	template<typename TPixelShader>
 	void ResolveTextureUsingShader(
 		FRHICommandList_RecursiveHazardous& RHICmdList,
+		FGlobalBoundShaderState& ResolveBoundShaderState,
 		FD3D12Texture2D* SourceTexture,
 		FD3D12Texture2D* DestTexture,
 		FD3D12RenderTargetView* DestSurfaceRTV,
@@ -189,9 +202,12 @@ public:
 		return bIsDefaultContext;
 	}
 
+	virtual void SetDepthBounds(float MinDepth, float MaxDepth);
+
 	// IRHIComputeContext interface
 	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;
 	virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) final override;
+	virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState) final override;
 	virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) final override;
 	virtual void RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
 	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI) final override;
@@ -271,22 +287,22 @@ public:
 	virtual void RHIEndDrawPrimitiveUP() final override;
 	virtual void RHIBeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData) final override;
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override;
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) final override
+	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) final override
 	{
-		RHIClear(true, Color, false, 0, false, 0, ExcludeRect);
+		RHIClear(true, Color, false, 0, false, 0);
 	}
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) final override
+	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) final override
 	{
-		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil, ExcludeRect);
+		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil);
 	}
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) final override
+	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) final override
 	{
-		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0, ExcludeRect);
+		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0);
 	}
-	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) override;
+	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) final override;
 
-	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
+	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 	virtual void UpdateMemoryStats();
 
@@ -364,8 +380,8 @@ public:
 	const bool bIsMGPUAware;
 
 private:
-	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
-	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
+	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
+	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 };
 
 // This class is a temporary shim to get AFR working. Currently the upper engine only queries for the 'Immediate Context'
@@ -387,6 +403,10 @@ public:
 	FORCEINLINE virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) final override
 	{
 		ContextRedirect(RHISetComputeShader(ComputeShader));
+	}
+	FORCEINLINE virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState) final override
+	{
+		ContextRedirect(RHISetComputePipelineState(ComputePipelineState));
 	}
 	FORCEINLINE virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) final override
 	{
@@ -686,17 +706,17 @@ public:
 	{
 		ContextRedirect(RHIEndDrawIndexedPrimitiveUP());
 	}
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) final override
+	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) final override
 	{
-		ContextRedirect(RHIClearColorTexture(Texture, Color, ExcludeRect));
+		ContextRedirect(RHIClearColorTexture(Texture, Color));
 	}
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) final override
+	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) final override
 	{
-		ContextRedirect(RHIClearDepthStencilTexture(Texture, ClearDepthStencil, Depth, Stencil, ExcludeRect));
+		ContextRedirect(RHIClearDepthStencilTexture(Texture, ClearDepthStencil, Depth, Stencil));
 	}
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) final override
+	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) final override
 	{
-		ContextRedirect(RHIClearColorTextures(NumTextures, Textures, ColorArray, ExcludeRect));
+		ContextRedirect(RHIClearColorTextures(NumTextures, Textures, ColorArray));
 	}
 	FORCEINLINE virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override
 	{
@@ -706,9 +726,9 @@ public:
 	{
 		ContextRedirect(RHIUpdateTextureReference(TextureRef, NewTexture));
 	}
-	FORCEINLINE virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+	FORCEINLINE virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 	{
-		ContextRedirect(RHIClearMRTImpl(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect));
+		ContextRedirect(RHIClearMRTImpl(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil));
 	}
 
 	FORCEINLINE virtual void RHIWaitForTemporalEffect(const FName& InEffectName) final AFR_API_OVERRIDE

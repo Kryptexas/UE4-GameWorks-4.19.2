@@ -127,7 +127,7 @@ struct FPackageNameAndLODIndex
 struct FWorldTilesGatherer
 	: public IPlatformFile::FDirectoryVisitor
 {
-	// List of tile long pakage names (non LOD)
+	// List of tile long package names (non LOD)
 	TArray<FString> TilesCollection;
 	
 	// Tile short pkg name -> Tiles LOD
@@ -220,7 +220,7 @@ void UWorldComposition::Rescan()
 	FString PersistentLevelPackageName = UWorld::StripPIEPrefixFromPackageName(OwningWorld->GetOutermost()->GetName(), OwningWorld->StreamingLevelsPrefix);
 		
 	// Add found tiles to a world composition, except persistent level
-	for (const auto& TilePackageName : Gatherer.TilesCollection)
+	for (const FString& TilePackageName : Gatherer.TilesCollection)
 	{
 		// Discard persistent level entry
 		if (TilePackageName == PersistentLevelPackageName)
@@ -247,7 +247,7 @@ void UWorldComposition::Rescan()
 		{
 			Tile.LODPackageNames.SetNum(WORLDTILE_LOD_MAX_INDEX);
 			FString TilePath = FPackageName::GetLongPackagePath(TilePackageName) + TEXT("/");
-			for (const auto& TileLOD : TileLODList)
+			for (const FPackageNameAndLODIndex& TileLOD : TileLODList)
 			{
 				// LOD tiles should be in the same directory or in nested directory
 				// Basically tile path should be a prefix of a LOD tile path
@@ -289,7 +289,7 @@ void UWorldComposition::ReinitializeForPIE()
 
 bool UWorldComposition::DoesTileExists(const FName& InTilePackageName) const
 {
-	for (const auto& Tile : Tiles)
+	for (const FWorldCompositionTile& Tile : Tiles)
 	{
 		if (Tile.PackageName == InTilePackageName)
 		{
@@ -303,7 +303,7 @@ ULevelStreaming* UWorldComposition::CreateStreamingLevel(const FWorldComposition
 {
 	UWorld* OwningWorld = GetWorld();
 	UClass* StreamingClass = ULevelStreamingKismet::StaticClass();
-	auto StreamingLevel = NewObject<ULevelStreaming>(OwningWorld, StreamingClass, NAME_None, RF_Transient, NULL);
+	ULevelStreaming* StreamingLevel = NewObject<ULevelStreaming>(OwningWorld, StreamingClass, NAME_None, RF_Transient, NULL);
 		
 	// Associate a package name.
 	StreamingLevel->SetWorldAssetByPackageName(InTile.PackageName);
@@ -465,7 +465,7 @@ void UWorldComposition::RestoreDirtyTilesInfo(const FTilesList& TilesPrevState)
 		UPackage* LevelPackage = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, Tile.PackageName));
 		if (LevelPackage && LevelPackage->IsDirty())
 		{
-			auto* FoundTile = TilesPrevState.FindByPredicate([=](const FWorldCompositionTile& TilePrev)
+			const FWorldCompositionTile* FoundTile = TilesPrevState.FindByPredicate([=](const FWorldCompositionTile& TilePrev)
 			{
 				return TilePrev.PackageName == Tile.PackageName;
 			});
@@ -615,13 +615,13 @@ void UWorldComposition::UpdateStreamingState(const FVector* InLocations, int32 N
 	bool bShouldBlock = (OwningWorld->GetNetMode() == NM_DedicatedServer);
 	
 	// Set distance hidden levels to unload
-	for (const auto& Level : DistanceHiddenLevels)
+	for (const FDistanceVisibleLevel& Level : DistanceHiddenLevels)
 	{
 		CommitTileStreamingState(OwningWorld, Level.TileIdx, false, false, bShouldBlock, Level.LODIndex);
 	}
 
 	// Set distance visible levels to load
-	for (const auto& Level : DistanceVisibleLevels)
+	for (const FDistanceVisibleLevel& Level : DistanceVisibleLevels)
 	{
 		CommitTileStreamingState(OwningWorld, Level.TileIdx, true, true, bShouldBlock, Level.LODIndex);
 	}
@@ -701,7 +701,7 @@ void UWorldComposition::UpdateStreamingState()
 	if (Locations.Num())
 	{
 		CentroidLocation/= Locations.Num();
-		if (PlayWorld->GetWorldSettings()->bEnableWorldOriginRebasing && !PlayWorld->bOriginOffsetThisFrame)
+		if (PlayWorld->GetWorldSettings()->bEnableWorldOriginRebasing && PlayWorld->OriginOffsetThisFrame.IsZero())
 		{
 			EvaluateWorldOriginLocation(CentroidLocation);
 		}
@@ -733,7 +733,7 @@ bool UWorldComposition::UpdateEditorStreamingState(const FVector& InLocation)
 		GetDistanceVisibleLevels(InLocation, DistanceVisibleLevels, DistanceHiddenLevels);
 
 		// Hidden levels
-		for (const auto& Level : DistanceHiddenLevels)
+		for (const FDistanceVisibleLevel& Level : DistanceHiddenLevels)
 		{
 			ULevelStreaming* EditorStreamingLevel = OwningWorld->GetLevelStreamingForPackageName(TilesStreaming[Level.TileIdx]->GetWorldAssetPackageFName());
 			if (EditorStreamingLevel && 
@@ -746,7 +746,7 @@ bool UWorldComposition::UpdateEditorStreamingState(const FVector& InLocation)
 		}
 
 		// Visible levels
-		for (const auto& Level : DistanceVisibleLevels)
+		for (const FDistanceVisibleLevel& Level : DistanceVisibleLevels)
 		{
 			ULevelStreaming* EditorStreamingLevel = OwningWorld->GetLevelStreamingForPackageName(TilesStreaming[Level.TileIdx]->GetWorldAssetPackageFName());
 			if (EditorStreamingLevel &&
@@ -872,7 +872,7 @@ void UWorldComposition::OnLevelRemovedFromWorld(ULevel* InLevel)
 
 void UWorldComposition::OnLevelPostLoad(ULevel* InLevel)
 {
-	UPackage* LevelPackage = Cast<UPackage>(InLevel->GetOutermost());	
+	UPackage* LevelPackage = InLevel->GetOutermost();	
 	if (LevelPackage && InLevel->OwningWorld)
 	{
 		FWorldTileInfo Info;
@@ -923,7 +923,7 @@ void UWorldComposition::OnLevelPostSave(ULevel* InLevel)
 FIntVector UWorldComposition::GetLevelOffset(ULevel* InLevel) const
 {
 	UWorld* OwningWorld = GetWorld();
-	UPackage* LevelPackage = Cast<UPackage>(InLevel->GetOutermost());
+	UPackage* LevelPackage = InLevel->GetOutermost();
 	
 	FIntVector LevelPosition = FIntVector::ZeroValue;
 	if (LevelPackage->WorldTileInfo)
@@ -938,9 +938,9 @@ FIntVector UWorldComposition::GetLevelOffset(ULevel* InLevel) const
 FBox UWorldComposition::GetLevelBounds(ULevel* InLevel) const
 {
 	UWorld* OwningWorld = GetWorld();
-	UPackage* LevelPackage = Cast<UPackage>(InLevel->GetOutermost());
+	UPackage* LevelPackage = InLevel->GetOutermost();
 	
-	FBox LevelBBox(0);
+	FBox LevelBBox(ForceInit);
 	if (LevelPackage->WorldTileInfo)
 	{
 		LevelBBox = LevelPackage->WorldTileInfo->Bounds.ShiftBy(FVector(GetLevelOffset(InLevel)));

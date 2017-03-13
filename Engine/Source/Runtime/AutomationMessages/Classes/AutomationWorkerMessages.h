@@ -419,6 +419,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="Message")
 	FGuid Id;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Commit;
 
 	UPROPERTY(EditAnywhere, Category="Message")
 	int32 Width;
@@ -504,6 +506,7 @@ public:
 
 		// Unique Id so we know if this screenshot has already been imported.
 		Id = Data.Id;
+		Commit = Data.Commit;
 
 		// Resolution Details
 		Width = Data.Width;

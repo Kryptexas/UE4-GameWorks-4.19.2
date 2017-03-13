@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TP_TopDown : ModuleRules
 {
-	public TP_TopDown(TargetInfo Target)
+	public TP_TopDown(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay" });
 	}

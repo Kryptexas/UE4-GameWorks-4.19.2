@@ -139,6 +139,6 @@ bool FTextPropertyTest::RunTest (const FString& Parameters)
 	return true;
 }
 
-#undef LOCTEXT_NAMESPACE
-
 #endif //WITH_DEV_AUTOMATION_TESTS
+
+#undef LOCTEXT_NAMESPACE

@@ -181,17 +181,17 @@ public:
 
 		if ( bWasNew )
 		{
-			UE_LOG(AutomationFunctionLibrary, Warning, TEXT("New Screenshot was discovered!  Please add a ground truth version of it."));
+			UE_LOG(AutomationFunctionLibrary, Warning, TEXT("New Screenshot '%s' was discovered!  Please add a ground truth version of it."), *Name);
 		}
 		else
 		{
 			if ( bWasSimilar )
 			{
-				UE_LOG(AutomationFunctionLibrary, Log, TEXT("Screenshot was similar!"));
+				UE_LOG(AutomationFunctionLibrary, Log, TEXT("Screenshot '%s' was similar!"), *Name);
 			}
 			else
 			{
-				UE_LOG(AutomationFunctionLibrary, Error, TEXT("Screenshot test failed, screenshots were different!"));
+				UE_LOG(AutomationFunctionLibrary, Error, TEXT("Screenshot '%s' test failed, screenshots were different!"), *Name);
 			}
 		}
 
@@ -259,6 +259,10 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
 #endif
+
+	//static IConsoleVariable* HighResScreenshotDelay = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HighResScreenshotDelay"));
+	//check(HighResScreenshotDelay);
+	//HighResScreenshotDelay->Set(10);
 
     if ( FPlatformProperties::HasFixedResolution() )
     {

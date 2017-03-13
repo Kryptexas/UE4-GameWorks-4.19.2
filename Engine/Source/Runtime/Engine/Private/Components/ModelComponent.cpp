@@ -262,7 +262,7 @@ void UModelComponent::Serialize(FArchive& Ar)
 
 			if (Element.LegacyMapBuildData)
 			{
-				LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(Element.MapBuildDataId, Element.LegacyMapBuildData));
+				LegacyComponentData.Data.Emplace(Element.MapBuildDataId, Element.LegacyMapBuildData);
 				Element.LegacyMapBuildData = NULL;
 			}
 		}
@@ -338,7 +338,7 @@ bool UModelComponent::IsNameStableForNetworking() const
 	return true;
 }
 
-void UModelComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UModelComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	for( int32 ElementIndex = 0; ElementIndex < Elements.Num(); ++ElementIndex )
 	{

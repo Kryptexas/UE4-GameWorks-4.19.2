@@ -17,8 +17,8 @@ public:
 
 	/** Returns this value as a double, logging an error and returning zero if this is not an Json Number */
 	double AsNumber() const;
-	
-	/** Returns this value as a number, logging an error and returning an empty string if not possible */
+
+	/** Returns this value as a string, logging an error and returning an empty string if not possible */
 	FString AsString() const;
 
 	/** Returns this value as a boolean, logging an error and returning false if not possible */

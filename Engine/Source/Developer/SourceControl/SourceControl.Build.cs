@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SourceControl : ModuleRules
 {
-	public SourceControl(TargetInfo Target)
+	public SourceControl(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("Developer/SourceControl/Private");
 

@@ -58,6 +58,8 @@
 #include "Engine/ChildConnection.h"
 #include "VisualLogger/VisualLogger.h"
 #include "Logging/MessageLog.h"
+#include "SceneViewport.h"
+#include "Engine/NetworkObjectList.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -616,7 +618,12 @@ void APlayerController::ForceSingleNetUpdateFor(AActor* Target)
 			UActorChannel* Channel = Conn->ActorChannels.FindRef(Target);
 			if (Channel != NULL)
 			{
-				Target->bPendingNetUpdate = true; // will cause some other clients to do lesser checks too, but that's unavoidable with the current functionality
+				FNetworkObjectInfo* NetActor = Target->GetNetworkObjectInfo();
+
+				if (NetActor != nullptr)
+				{
+					NetActor->bPendingNetUpdate = true; // will cause some other clients to do lesser checks too, but that's unavoidable with the current functionality
+				}
 			}
 		}
 	}
@@ -1001,7 +1008,7 @@ void APlayerController::ServerShortTimeout_Implementation()
 				{
 					if ( (A->NetUpdateFrequency < 1) && !A->bOnlyRelevantToOwner )
 					{
-						A->SetNetUpdateTime(FMath::Min(A->NetUpdateTime, World->TimeSeconds + NetUpdateTimeOffset * FMath::FRand()));
+						A->SetNetUpdateTime(World->TimeSeconds + NetUpdateTimeOffset * FMath::FRand());
 					}
 				}
 			}
@@ -3723,7 +3730,22 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 	bool bRightHapticsNeedUpdate = false;
 	bool bGunHapticsNeedUpdate = false;
 
-	if (!bGamePaused)
+	bool bProcessFeedback = !bGamePaused;
+#if WITH_EDITOR
+	if (bProcessFeedback)
+	{
+		const ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+		if (LocalPlayer && LocalPlayer->ViewportClient)
+		{
+			if (FSceneViewport* Viewport = LocalPlayer->ViewportClient->GetGameViewport())
+			{
+				bProcessFeedback = !Viewport->GetPlayInEditorIsSimulate();
+			}
+		}
+	}	
+#endif
+
+	if (bProcessFeedback)
 	{
 		// --- Force Feedback --------------------------
 		for (int32 Index = ActiveForceFeedbackEffects.Num() - 1; Index >= 0; --Index)
@@ -3998,7 +4020,7 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 			// Only send mouse hit events if we're directly over the viewport.
 			if ( IsInViewportClient(ViewportClient) )
 			{
-				if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
+				if ( ViewportClient->GetMousePosition(MousePosition) )
 				{
 					bHit = GetHitResultAtScreenPosition(MousePosition, CurrentClickTraceChannel, true, /*out*/ HitResult);
 				}

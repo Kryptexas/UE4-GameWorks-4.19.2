@@ -11,7 +11,6 @@
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProviderET.h"
 #include "Misc/EngineBuildSettings.h"
-#include "QoSReporter.h"
 
 // #CrashReport: 2015-07-23 Move crashes from C:\Users\[USER]\AppData\Local\Microsoft\Windows\WER\ReportQueue to C:\Users\[USER]\AppData\Local\CrashReportClient\Saved
 
@@ -259,19 +258,6 @@ void FPrimaryCrashProperties::SendPreUploadAnalytics()
 			FCrashReportAnalytics::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
 		}
 	}
-
-	// duplicate the event to QoS Reporter
-	if (FQoSReporter::IsAvailable())
-	{
-		if (bIsEnsure)
-		{
-			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportEnsure"), CrashAttributes);
-		}
-		else
-		{
-			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
-		}
-	}
 }
 
 /**
@@ -352,19 +338,6 @@ void FPrimaryCrashProperties::SendPostUploadAnalytics()
 		else
 		{
 			Analytics.RecordEvent(TEXT("CrashReportClient.ReportCrashUploaded"), CrashAttributes);
-		}
-	}
-
-	// duplicate the event to QoS Reporter
-	if (FQoSReporter::IsAvailable())
-	{
-		if (bIsEnsure)
-		{
-			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportEnsureUploaded"), CrashAttributes);
-		}
-		else
-		{
-			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrashUploaded"), CrashAttributes);
 		}
 	}
 }

@@ -5,21 +5,9 @@ using System.Collections.Generic;
 
 public class TP_TwinStickEditorTarget : TargetRules
 {
-	public TP_TwinStickEditorTarget(TargetInfo Target)
+	public TP_TwinStickEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
-	}
-
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("TP_TwinStick");
+		ExtraModuleNames.Add("TP_TwinStick");
 	}
 }

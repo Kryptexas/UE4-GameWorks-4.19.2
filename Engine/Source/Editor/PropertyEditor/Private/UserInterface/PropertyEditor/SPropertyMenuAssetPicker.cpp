@@ -96,9 +96,17 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 		FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 		FAssetPickerConfig AssetPickerConfig;
-		for(int32 i = 0; i < AllowedClasses.Num(); ++i)
+		// Add filter classes - if we have a single filter class of "Object" then don't set a filter since it would always match everything (but slower!)
+		if (AllowedClasses.Num() == 1 && AllowedClasses[0] == UObject::StaticClass())
 		{
-			AssetPickerConfig.Filter.ClassNames.Add( AllowedClasses[i]->GetFName() );
+			AssetPickerConfig.Filter.ClassNames.Reset();
+		}
+		else
+		{
+			for(int32 i = 0; i < AllowedClasses.Num(); ++i)
+			{
+				AssetPickerConfig.Filter.ClassNames.Add( AllowedClasses[i]->GetFName() );
+			}
 		}
 		// Allow child classes
 		AssetPickerConfig.Filter.bRecursiveClasses = true;
@@ -118,7 +126,6 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 		AssetPickerConfig.bAllowDragging = false;
 		// Save the settings into a special section for asset pickers for properties
 		AssetPickerConfig.SaveSettingsName = TEXT("AssetPropertyPicker");
-		AssetPickerConfig.bSearchInBlueprint = InArgs._SearchInBlueprint;
 
 		MenuContent =
 			SNew(SBox)

@@ -7,6 +7,7 @@
 #include "UObject/CoreNet.h"
 #include "UObject/Package.h"
 #include "UObject/LinkerLoad.h"
+#include "Serialization/ObjectReader.h"
 #include "Serialization/ObjectWriter.h"
 #include "Engine/Blueprint.h"
 #include "Components/ActorComponent.h"
@@ -22,6 +23,7 @@
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "BlueprintCompilationManager.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
@@ -31,6 +33,7 @@ UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& Obj
 {
 	NumReplicatedProperties = 0;
 	bHasInstrumentation = false;
+	bHasNativizedParent = false;
 }
 
 void UBlueprintGeneratedClass::PostInitProperties()
@@ -146,6 +149,28 @@ void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& 
 // 	}
 }
 
+FPrimaryAssetId UBlueprintGeneratedClass::GetPrimaryAssetId() const
+{
+	FPrimaryAssetId AssetId;
+	if (!ensure(ClassDefaultObject))
+	{
+		return AssetId;
+	}
+
+	AssetId = ClassDefaultObject->GetPrimaryAssetId();
+
+	/*
+	if (!AssetId.IsValid())
+	{ 
+		FName AssetType = NAME_None; // TODO: Support blueprint-only primary assets with a class flag. No way to guess at type currently
+		FName AssetName = FPackageName::GetShortFName(GetOutermost()->GetFName());
+		return FPrimaryAssetId(AssetType, AssetName);
+	}
+	*/
+
+	return AssetId;
+}
+
 #if WITH_EDITOR
 
 UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
@@ -213,9 +238,16 @@ struct FConditionalRecompileClassHepler
 };
 
 extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+extern COREUOBJECT_API bool GMinimalCompileOnLoad;
 
 void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLoaded)
 {
+	if(GMinimalCompileOnLoad)
+	{
+		FBlueprintCompilationManager::FlushCompilationQueue();
+		return;
+	}
+	
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy);
@@ -228,7 +260,7 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 			GeneratingBP->bIsRegeneratingOnLoad = true;
 
 			{
-				UPackage* const Package = Cast<UPackage>(GeneratingBP->GetOutermost());
+				UPackage* const Package = GeneratingBP->GetOutermost();
 				const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
 
 				// Make sure that nodes are up to date, so that we get any updated blueprint signatures
@@ -593,6 +625,13 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 			}
 			else if(UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
 			{
+				if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+				{
+					if (ICH->HasAnyFlags(RF_NeedLoad))
+					{
+						UE_LOG(LogClass, Fatal, TEXT("%s had RF_NeedLoad when searching for an archetype of %s named %s"), *GetFullNameSafe(ICH), *GetFullNameSafe(ArchetypeClass), *ArchetypeName.ToString());
+					}
+				}
 				// This would find either an SCS component template override (for which the archetype
 				// name will match the SCS variable name), or an old AddComponent node template override
 				// (for which the archetype name will match the override record's component template name).
@@ -914,8 +953,10 @@ void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTim
 void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass, AActor* Actor)
 {
 	check(ThisClass && Actor);
-	check(!Actor->IsTemplate());
-	check(!Actor->IsPendingKill());
+	if (Actor->IsTemplate() || Actor->IsPendingKill())
+	{
+		return;
+	}
 
 	if (const UBlueprintGeneratedClass* BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
 	{
@@ -942,6 +983,94 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 	}
 }
 
+void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* Actor)
+{
+	check(Actor != nullptr);
+
+	// Get the Blueprint class hierarchy (if valid).
+	TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
+	GetGeneratedClassesHierarchy(Actor->GetClass(), ParentBPClassStack);
+	if (ParentBPClassStack.Num() > 0)
+	{
+		// If the nearest native antecedent is also a nativized BP class, we may have an override
+		// in an ICH for some part of the non-native BP class hierarchy that also inherits from it.
+		if (UDynamicClass* ParentDynamicClass = Cast<UDynamicClass>(ParentBPClassStack[ParentBPClassStack.Num() - 1]->GetSuperClass()))
+		{
+			// Get all default subobjects owned by the nativized antecedent's CDO.
+			// Note: This will also include all other inherited default subobjects.
+			TArray<UObject*> DefaultSubobjects;
+			ParentDynamicClass->GetDefaultObjectSubobjects(DefaultSubobjects);
+
+			// Pick out only the UActorComponent-based subobjects and cache them to use for checking below.
+			TArray<UActorComponent*> NativizedParentClassComponentSubobjects;
+			for (UObject* DefaultSubobject : DefaultSubobjects)
+			{
+				if (UActorComponent* ComponentSubobject = Cast<UActorComponent>(DefaultSubobject))
+				{
+					NativizedParentClassComponentSubobjects.Add(ComponentSubobject);
+				}
+			}
+
+			// Now check each non-native BP class (on up to the given Actor) for any inherited component template overrides, and manually apply default value overrides as we go.
+			for (int32 i = ParentBPClassStack.Num() - 1; i >= 0; i--)
+			{
+				const UBlueprintGeneratedClass* CurrentBPGClass = ParentBPClassStack[i];
+				check(CurrentBPGClass);
+
+				UInheritableComponentHandler* ICH = const_cast<UBlueprintGeneratedClass*>(CurrentBPGClass)->GetInheritableComponentHandler();
+				if (ICH && NativizedParentClassComponentSubobjects.Num() > 0)
+				{
+					// Check each default subobject that we've inherited from the antecedent class
+					for (UActorComponent* NativizedComponentSubobject : NativizedParentClassComponentSubobjects)
+					{
+						const FName NativizedComponentSubobjectName = NativizedComponentSubobject->GetFName();
+						FComponentKey ComponentKey = ICH->FindKey(NativizedComponentSubobjectName);
+						if (ComponentKey.IsValid() && ComponentKey.IsSCSKey())
+						{
+							const FBlueprintCookedComponentInstancingData* OverrideData = ICH->GetOverridenComponentTemplateData(ComponentKey);
+							if (OverrideData != nullptr && OverrideData->bIsValid)
+							{
+								// This is the instance of the inherited component subobject that's owned by the given Actor instance
+								if (UObject* NativizedComponentSubobjectInstance = Actor->GetDefaultSubobjectByName(NativizedComponentSubobjectName))
+								{
+									// Nativized component override data loader implementation.
+									class FNativizedComponentOverrideDataLoader : public FObjectReader
+									{
+									public:
+										FNativizedComponentOverrideDataLoader(const TArray<uint8>& InSrcBytes, const FCustomPropertyListNode* InPropertyList)
+											:FObjectReader(const_cast<TArray<uint8>&>(InSrcBytes))
+										{
+											ArCustomPropertyList = InPropertyList;
+											ArUseCustomPropertyList = true;
+											ArWantBinaryPropertySerialization = true;
+
+											// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
+											ArPortFlags |= PPF_Duplicate;
+
+											// Set this flag to ensure that we also serialize any deprecated properties.
+											ArPortFlags |= PPF_UseDeprecatedProperties;
+										}
+									};
+
+									// Ensure that the ICH has gotten a PostLoad() call - we need to ensure that any cooked data will have been fully processed before proceeding.
+									ICH->ConditionalPostLoad();
+
+									// Serialize cached override data to the instanced subobject that's based on the default subobject from the nativized parent class and owned by the Actor instance.
+									FNativizedComponentOverrideDataLoader OverrideDataLoader(OverrideData->GetCachedPropertyDataForSerialization(), OverrideData->GetCachedPropertyListForSerialization());
+									NativizedComponentSubobjectInstance->Serialize(OverrideDataLoader);
+								}
+							}
+
+							// There can only be a single match, so we can stop searching now.
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const
 {
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
@@ -961,6 +1090,11 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 
 void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass, UClass* OldClass) const
 {
+	if (Obj && Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	{
+		return;
+	}
+
 	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
@@ -1065,6 +1199,38 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 			}
 		});
 	}
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForServer() const
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForServer())
+		{
+			return false;
+		}
+		if (ensure(ClassDefaultObject) && !ClassDefaultObject->NeedsLoadForServer())
+		{
+			return false;
+		}
+	}
+	return Super::NeedsLoadForServer();
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForClient() const
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForClient())
+		{
+			return false;
+		}
+		if (ensure(ClassDefaultObject) && !ClassDefaultObject->NeedsLoadForClient())
+		{
+			return false;
+		}
+	}
+	return Super::NeedsLoadForClient();
 }
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)

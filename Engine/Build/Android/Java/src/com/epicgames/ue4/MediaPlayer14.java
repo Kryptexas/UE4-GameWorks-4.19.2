@@ -791,6 +791,13 @@ public class MediaPlayer14
 			int[] previousViewport = new int[4];
 			if (mUseOwnContext)
 			{
+				// Received reports of these not being preserved when changing contexts
+				GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+				GLES20.glGetTexParameteriv(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, glInt, 0);
+				previousMinFilter = glInt[0];
+				GLES20.glGetTexParameteriv(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, glInt, 0);
+				previousMagFilter = glInt[0];
+
 				saveContext();
 				makeCurrent();
 			}
@@ -978,6 +985,10 @@ public class MediaPlayer14
 				}
 
 				restoreContext();
+
+				// Restore previous texture filtering
+				GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, previousMinFilter);
+				GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, previousMagFilter);
 			}
 			else
 			{

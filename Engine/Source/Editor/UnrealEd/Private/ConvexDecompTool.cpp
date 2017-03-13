@@ -61,7 +61,21 @@ public:
 		//GWarn->StatusUpdate(overallProgress*10.f, 1000, FText::FromString(StatusString));
 	};
 };
-#else
+
+//#define DEBUG_VHACD
+#ifdef DEBUG_VHACD
+class VHACDLogger : public IVHACD::IUserLogger
+{
+public:
+	virtual ~VHACDLogger() {};
+	virtual void Log(const char * const msg) override
+	{
+		UE_LOG(LogConvexDecompTool, Log, TEXT("VHACD: %s"), ANSI_TO_TCHAR(msg));
+	}
+};
+#endif // DEBUG_VHACD
+
+#else // USE_VHACD
 using namespace HACD_STANDALONE;
 
 class FHACDProgressCallback : public hacd::ICallback
@@ -77,7 +91,7 @@ public:
 		return (GWarn->ReceivedUserCancel() != false);
 	}
 };
-#endif
+#endif // USE_VHACD
 
 void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, float InAccuracy, int32 InMaxHullVerts)
 {
@@ -86,7 +100,7 @@ void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVert
 	bool bSuccess = false;
 
 	// Validate input by checking bounding box
-	FBox VertBox(0);
+	FBox VertBox(ForceInit);
 	for (FVector Vert : InVertices)
 	{
 		VertBox += Vert;
@@ -107,6 +121,12 @@ void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVert
 	VHACD_Params.m_concavity = 0.3f * (1.f - FMath::Clamp(InAccuracy, 0.f, 1.f)); // Maximum allowed concavity (default=0.0025, range=0.0-1.0)
 	VHACD_Params.m_callback = &VHACD_Callback;
 	VHACD_Params.m_oclAcceleration = false;
+	VHACD_Params.m_minVolumePerCH = 0.003f; // this should be around 1 / (3 * m_resolution ^ (1/3))
+
+#ifdef DEBUG_VHACD
+	VHACDLogger logger;
+	VHACD_Params.m_logger = &logger;
+#endif //DEBUG_VHACD
 
 	GWarn->BeginSlowTask(NSLOCTEXT("ConvexDecompTool", "BeginCreatingCollisionTask", "Creating Collision"), true, false);
 
@@ -181,7 +201,7 @@ void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVert
 	const unsigned int NumTris = InIndices.Num() / 3;
 
 	bSuccess = InterfaceVHACD->Compute(Verts, 3, NumVerts, Tris, 3, NumTris, VHACD_Params);
-#else
+#else // USE_VHACD
 	// Fill in data for decomposition tool.
 	HACD_API::Desc Desc;
 	Desc.mVertexCount = InVertices.Num();
@@ -210,7 +230,7 @@ void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVert
 	bSuccess = true;
 #endif // USE_VHACD
 
-
+	
 	GWarn->EndSlowTask();
 
 	if(bSuccess)

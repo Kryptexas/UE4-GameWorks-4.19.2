@@ -4,9 +4,6 @@
 	BuildPatchError.h: Declares classes involved setting and getting error information.
 =============================================================================*/
 
-#ifndef __BuildPatchError_h__
-#define __BuildPatchError_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -183,5 +180,3 @@ public:
 	 */
 	static const FString& EnumToString(const EBuildPatchInstallError& ErrorType);
 };
-
-#endif // __BuildPatchChunk_h__

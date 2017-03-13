@@ -185,7 +185,7 @@ struct ENGINE_API FCurveTableRowHandle
 };
 
 template<>
-struct TStructOpsTypeTraits< FCurveTableRowHandle > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FCurveTableRowHandle > : public TStructOpsTypeTraitsBase2< FCurveTableRowHandle >
 {
 	enum
 	{

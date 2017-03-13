@@ -78,19 +78,18 @@ private:
 class FRCPassPostProcessTonemapES2 : public TRenderingCompositePassBase<3, 1>
 {
 public:
-	FRCPassPostProcessTonemapES2(const FViewInfo& View, FIntRect InViewRect, FIntPoint InDestSize, bool bInUsedFramebufferFetch);
+	FRCPassPostProcessTonemapES2(const FViewInfo& View, bool bInUsedFramebufferFetch);
 
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
-
+	
+	bool bDoScreenPercentageInTonemapper;
 private:
+	const FViewInfo& View;
 
-
-	FIntRect ViewRect;
-	FIntPoint DestSize;
 	bool bUsedFramebufferFetch;
 	// set in constructor
 	uint32 ConfigIndexMobile;

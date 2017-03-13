@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PluginWarden : ModuleRules
 {
-	public PluginWarden(TargetInfo Target)
+	public PluginWarden(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

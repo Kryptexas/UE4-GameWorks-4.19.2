@@ -313,13 +313,6 @@ enum EStatType
 	STATTYPE_Error
 };
 
-template<class T> inline const TCHAR* GetStatFormatString(void) { return TEXT(""); }
-template<> inline const TCHAR* GetStatFormatString<uint32>(void) { return TEXT("%u"); }
-template<> inline const TCHAR* GetStatFormatString<uint64>(void) { return TEXT("%llu"); }
-template<> inline const TCHAR* GetStatFormatString<int64>(void) { return TEXT("%lld"); }
-template<> inline const TCHAR* GetStatFormatString<float>(void) { return TEXT("%.1f"); }
-template<> inline const TCHAR* GetStatFormatString<double>(void) { return TEXT("%.1f"); }
-
 /*----------------------------------------------------------------------------
 	Stats helpers
 ----------------------------------------------------------------------------*/

@@ -16,11 +16,6 @@ UMovieSceneSequence::UMovieSceneSequence(const FObjectInitializer& Init)
 #endif
 }
 
-void UMovieSceneSequence::PreSave(const ITargetPlatform* TargetPlatform)
-{
-	Super::PreSave(TargetPlatform);
-}
-
 #if WITH_EDITORONLY_DATA
 void UMovieSceneSequence::PostDuplicate(bool bDuplicateForPIE)
 {

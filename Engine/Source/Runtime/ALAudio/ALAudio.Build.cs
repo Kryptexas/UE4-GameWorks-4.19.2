@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ALAudio : ModuleRules
 {
-    public ALAudio(TargetInfo Target)
+    public ALAudio(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePathModuleNames.Add("TargetPlatform");
 

@@ -48,7 +48,7 @@ namespace Audio
 		void SetLPFFrequency(const float InFrequency);
 
 		// Sets the source voice's channel map (2d or 3d).
-		void SetChannelMap(TArray<float>& InChannelMap);
+		void SetChannelMap(TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
 
 		// Sets params used by HRTF spatializer
 		void SetSpatializationParams(const FSpatializationParams& InParams);
@@ -73,6 +73,12 @@ namespace Audio
 
 		// Queries if the source voice has finished playing all its audio.
 		bool IsDone() const;
+
+		// Queries if the source ffect tails have finished
+		bool IsSourceEffectTailsDone() const;
+
+		// Whether or not the device changed and needs another speaker map sent
+		bool NeedsSpeakerMap() const;
 
 		// Retrieves the total number of samples played.
 		int64 GetNumFramesPlayed() const;

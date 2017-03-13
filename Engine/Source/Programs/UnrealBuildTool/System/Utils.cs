@@ -23,13 +23,44 @@ namespace UnrealBuildTool
 	[Serializable]
 	public class BuildVersion
 	{
+		/// <summary>
+		/// The major engine version (4 for UE4)
+		/// </summary>
 		public int MajorVersion;
+
+		/// <summary>
+		/// The minor engine version
+		/// </summary>
 		public int MinorVersion;
+
+		/// <summary>
+		/// The hotfix/patch version
+		/// </summary>
 		public int PatchVersion;
+
+		/// <summary>
+		/// The changelist that the engine is being built from
+		/// </summary>
 		public int Changelist;
+
+		/// <summary>
+		/// The changelist that the engine maintains compatibility with
+		/// </summary>
 		public int CompatibleChangelist;
+
+		/// <summary>
+		/// Whether the changelist numbers are a licensee changelist
+		/// </summary>
 		public int IsLicenseeVersion;
+
+		/// <summary>
+		/// Whether the current build is a promoted build, that is, built strictly from a clean sync of the given changelist
+		/// </summary>
 		public int IsPromotedBuild;
+
+		/// <summary>
+		/// Name of the current branch, with '/' characters escaped as '+'
+		/// </summary>
 		public string BranchName;
 
 		/// <summary>
@@ -54,6 +85,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Try to read a version file from disk
 		/// </summary>
+		/// <param name="FileName">Path to the version file</param>
 		/// <param name="Version">The version information</param>
 		/// <returns>True if the version was read sucessfully, false otherwise</returns>
 		public static bool TryRead(string FileName, out BuildVersion Version)
@@ -104,8 +136,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Exports this object as Json
 		/// </summary>
-		/// <param name="Object">The object to read from</param>
-		/// <param name="Version">The resulting version field</param>
+		/// <param name="FileName">The filename to write to</param>
 		/// <returns>True if the build version could be read, false otherwise</returns>
 		public void Write(string FileName)
 		{
@@ -120,8 +151,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Exports this object as Json
 		/// </summary>
-		/// <param name="Object">The object to read from</param>
-		/// <param name="Version">The resulting version field</param>
+		/// <param name="Writer">The json writer to receive the version settings</param>
 		/// <returns>True if the build version could be read, false otherwise</returns>
 		public void WriteProperties(JsonWriter Writer)
 		{
@@ -141,12 +171,39 @@ namespace UnrealBuildTool
 	///
 	public enum LogEventType
 	{
+		/// <summary>
+		/// The log event is a fatal error
+		/// </summary>
 		Fatal = 1,
+
+		/// <summary>
+		/// The log event is an error
+		/// </summary>
 		Error = 2,
+
+		/// <summary>
+		/// The log event is a warning
+		/// </summary>
 		Warning = 4,
+
+		/// <summary>
+		/// Output the log event to the console
+		/// </summary>
 		Console = 8,
+
+		/// <summary>
+		/// Output the event to the on-disk log
+		/// </summary>
 		Log = 16,
+
+		/// <summary>
+		/// The log event should only be displayed if verbose logging is enabled
+		/// </summary>
 		Verbose = 32,
+
+		/// <summary>
+		/// The log event should only be displayed if very verbose logging is enabled
+		/// </summary>
 		VeryVerbose = 64
 	}
 
@@ -224,7 +281,7 @@ namespace UnrealBuildTool
 		/// Any unknown variables are ignored.
 		/// </summary>
 		/// <param name="InputString">String to search for variable names</param>
-		/// <param name="Variables">Lookup of variable names to values</param>
+		/// <param name="AdditionalVariables">Lookup of variable names to values</param>
 		/// <returns>String with all variables replaced</returns>
 		public static string ExpandVariables(string InputString, Dictionary<string, string> AdditionalVariables = null)
 		{
@@ -505,6 +562,7 @@ namespace UnrealBuildTool
 		/// Takes a path string and makes all of the path separator characters consistent. Also removes unnecessary multiple separators.
 		/// </summary>
 		/// <param name="FilePath">File path with potentially inconsistent slashes</param>
+		/// <param name="UseDirectorySeparatorChar">The directory separator to use</param>
 		/// <returns>File path with consistent separators</returns>
 		public static string CleanDirectorySeparators(string FilePath, char UseDirectorySeparatorChar = '\0')
 		{
@@ -662,6 +720,12 @@ namespace UnrealBuildTool
 		{
 		}
 
+		/// <summary>
+		/// Reads a class using XML serialization
+		/// </summary>
+		/// <typeparam name="T">The type to read</typeparam>
+		/// <param name="FileName">The XML file to read from</param>
+		/// <returns>New deserialized instance of type T</returns>
 		static public T ReadClass<T>(string FileName) where T : new()
 		{
 			T Instance = new T();
@@ -696,6 +760,14 @@ namespace UnrealBuildTool
 			return Instance;
 		}
 
+		/// <summary>
+		/// Serialize an object to an XML file
+		/// </summary>
+		/// <typeparam name="T">Type of the object to serialize</typeparam>
+		/// <param name="Data">Object to write</param>
+		/// <param name="FileName">File to write to</param>
+		/// <param name="DefaultNameSpace">Default namespace for the output elements</param>
+		/// <returns>True if the file was written successfully</returns>
 		static public bool WriteClass<T>(T Data, string FileName, string DefaultNameSpace)
 		{
 			bool bSuccess = true;
@@ -979,7 +1051,6 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the number of physical cores, excluding hyper threading.
 		/// </summary>
-		/// <param name="NumCores">The number of physical cores, excluding hyper threading</param>
 		/// <returns>The number of physical cores, or -1 if it could not be obtained</returns>
 		public static int GetPhysicalProcessorCount()
 		{
@@ -1017,13 +1088,24 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class ProgressWriter : IDisposable
 	{
+		/// <summary>
+		/// Global setting controlling whether to output markup
+		/// </summary>
 		public static bool bWriteMarkup = false;
 
+		/// <summary>
+		/// Whether to write messages to the console
+		/// </summary>
 		bool bWriteToConsole;
 		string Message;
 		int NumCharsToBackspaceOver;
 		string CurrentProgressString;
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="InMessage">The message to display before the progress percentage</param>
+		/// <param name="bInWriteToConsole">Whether to write progress message to the console</param>
 		public ProgressWriter(string InMessage, bool bInWriteToConsole)
 		{
 			Message = InMessage;
@@ -1035,6 +1117,9 @@ namespace UnrealBuildTool
 			Write(0, 100);
 		}
 
+		/// <summary>
+		/// Write the terminating newline
+		/// </summary>
 		public void Dispose()
 		{
 			if (!bWriteMarkup && bWriteToConsole)
@@ -1043,6 +1128,11 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Writes the current progress
+		/// </summary>
+		/// <param name="Numerator">Numerator for the progress fraction</param>
+		/// <param name="Denominator">Denominator for the progress fraction</param>
 		public void Write(int Numerator, int Denominator)
 		{
 			float ProgressValue = Denominator > 0 ? ((float)Numerator / (float)Denominator) : 1.0f;
@@ -1135,7 +1225,6 @@ namespace UnrealBuildTool
 		/// Allows us to change verbosity after initializing. This can happen since we initialize logging early, 
 		/// but then read the config and command line later, which could change this value.
 		/// </summary>
-		/// <param name="bLogVerbose">Whether to log verbose logs.</param>
 		public static void SetLoggingLevel(LogEventType InLogLevel)
 		{
 			Log.LogLevel = InLogLevel;
@@ -1145,9 +1234,10 @@ namespace UnrealBuildTool
 		/// This class allows InitLogging to be called more than once to work around chicken and eggs issues with logging and parsing command lines (see UBT startup code).
 		/// </summary>
 		/// <param name="bLogTimestamps">If true, the timestamp from Log init time will be prepended to all logs.</param>
-		/// <param name="bLogVerbose">If true, any Verbose log method method will not be ignored.</param>
+		/// <param name="InLogLevel"></param>
 		/// <param name="bLogSeverity">If true, warnings and errors will have a WARNING: and ERROR: prefix to them. </param>
 		/// <param name="bLogSources">If true, logs will have the originating method name prepended to them.</param>
+		/// <param name="bColorConsoleOutput"></param>
 		/// <param name="TraceListeners">Collection of trace listeners to attach to the Trace.Listeners, in addition to the Default listener. The existing listeners (except the Default listener) are cleared first.</param>
 		public static void InitLogging(bool bLogTimestamps, LogEventType InLogLevel, bool bLogSeverity, bool bLogSources, bool bColorConsoleOutput, IEnumerable<TraceListener> TraceListeners)
 		{
@@ -1193,7 +1283,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Converts a LogEventType into a log prefix. Only used when bLogSeverity is true.
 		/// </summary>
-		/// <param name="EventType"></param>
+		/// <param name="Severity"></param>
 		/// <returns></returns>
 		private static string GetSeverityPrefix(LogEventType Severity)
 		{
@@ -1219,7 +1309,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Converts a LogEventType into a message code
 		/// </summary>
-		/// <param name="EventType"></param>
+		/// <param name="Severity"></param>
 		/// <returns></returns>
 		private static int GetMessageCode(LogEventType Severity)
 		{
@@ -1349,7 +1439,6 @@ namespace UnrealBuildTool
 		/// Mostly an internal function, but expose StackFramesToSkip to allow UAT to use existing wrapper functions and still get proper formatting.
 		/// </summary>
 		/// <param name="StackFramesToSkip"></param>
-		/// <param name="CustomSource">Custom source string to use. Use the default if null.</param>
 		/// <param name="Verbosity"></param>
 		/// <param name="Format"></param>
 		/// <param name="Args"></param>
@@ -1537,6 +1626,10 @@ namespace UnrealBuildTool
 	}
 
 	#region StreamUtils
+
+	/// <summary>
+	/// Extension methods for Stream classes
+	/// </summary>
 	public static class StreamUtils
 	{
 		/// <summary>
@@ -1737,6 +1830,11 @@ namespace UnrealBuildTool
 		static int Indent = 0;
 		static object IndentLock = new object();
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Name">Name of the block being measured</param>
+		/// <param name="InVerbosity">Verbosity for output messages</param>
 		public ScopedTimer(string Name, LogEventType InVerbosity = LogEventType.Verbose)
 		{
 			TimerName = Name;
@@ -1748,6 +1846,9 @@ namespace UnrealBuildTool
 			StartTime = DateTime.UtcNow;
 		}
 
+		/// <summary>
+		/// Prints out the timing message
+		/// </summary>
 		public void Dispose()
 		{
 			double TotalSeconds = (DateTime.UtcNow - StartTime).TotalSeconds;
@@ -1779,6 +1880,11 @@ namespace UnrealBuildTool
 
 		static Dictionary<string, Accumulator> Accumulators = new Dictionary<string, Accumulator>();
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Name"></param>
+		/// <param name="InVerbosity"></param>
 		public ScopedCounter(string Name, LogEventType InVerbosity = LogEventType.Verbose)
 		{
 			CounterName = Name;

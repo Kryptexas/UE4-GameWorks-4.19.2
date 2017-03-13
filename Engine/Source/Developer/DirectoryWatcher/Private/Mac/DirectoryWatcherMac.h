@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef _INC_DIRECTORYWATCHERMAC
-#define _INC_DIRECTORYWATCHERMAC
+#pragma once
 
 #include "IDirectoryWatcher.h"
 #include "Containers/Map.h"
@@ -30,5 +29,3 @@ public:
 };
 
 typedef FDirectoryWatcherMac FDirectoryWatcher;
-
-#endif // _INC_DIRECTORYWATCHERMAC

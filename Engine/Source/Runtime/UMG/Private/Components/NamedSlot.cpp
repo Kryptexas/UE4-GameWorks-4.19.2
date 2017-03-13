@@ -55,11 +55,6 @@ TSharedRef<SWidget> UNamedSlot::RebuildWidget()
 	return BuildDesignTimeWidget( MyBox.ToSharedRef() );
 }
 
-void UNamedSlot::SynchronizeProperties()
-{
-	Super::SynchronizeProperties();
-}
-
 void UNamedSlot::OnSlotAdded(UPanelSlot* InSlot)
 {
 	// Add the child to the live slot if it already exists

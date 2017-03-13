@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Facebook : ModuleRules
 {
-    public Facebook(TargetInfo Target)
+    public Facebook(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
 

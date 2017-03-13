@@ -1378,6 +1378,21 @@ namespace VulkanRHI
 	}
 
 
+	FGPUEvent::FGPUEvent(FVulkanDevice* InDevice)
+		: FDeviceChild(InDevice)
+	{
+		VkEventCreateInfo Info;
+		FMemory::Memzero(Info);
+		Info.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateEvent(InDevice->GetInstanceHandle(), &Info, nullptr, &Handle));
+	}
+
+	FGPUEvent::~FGPUEvent()
+	{
+		VulkanRHI::vkDestroyEvent(Device->GetInstanceHandle(), Handle, nullptr);
+	}
+
+
 	FDeferredDeletionQueue::FDeferredDeletionQueue(FVulkanDevice* InDevice)
 		: FDeviceChild(InDevice)
 	{
@@ -1390,7 +1405,7 @@ namespace VulkanRHI
 
 	void FDeferredDeletionQueue::EnqueueGenericResource(EType Type, uint64 Handle)
 	{
-		FVulkanQueue* Queue = Device->GetQueue();
+		FVulkanQueue* Queue = Device->GetGraphicsQueue();
 
 		FEntry Entry;
 		Queue->GetLastSubmittedInfo(Entry.CmdBuffer, Entry.FenceCounter);

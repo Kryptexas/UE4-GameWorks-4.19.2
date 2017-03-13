@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AndroidMediaEditor : ModuleRules
 	{
-		public AndroidMediaEditor(TargetInfo Target)
+		public AndroidMediaEditor(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

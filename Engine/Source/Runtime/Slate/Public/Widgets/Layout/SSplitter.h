@@ -25,7 +25,8 @@ namespace ESplitterResizeMode
 {
 	enum Type
 	{
-		Fixed,		
+		FixedPosition,
+		FixedSize,
 		Fill,
 	};
 }
@@ -52,6 +53,8 @@ public:
 		FOnSlotResized,
 		/** The new size coefficient of the slot */
 		float );
+
+	DECLARE_DELEGATE_RetVal_OneParam(FVector2D, FOnGetMaxSlotSize, int32);
 
 public:
 	class FSlot : public TSlotBase<FSlot>
@@ -106,7 +109,7 @@ public:
 	SLATE_BEGIN_ARGS(SSplitter)
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FSplitterStyle>("Splitter") )
 		, _Orientation( Orient_Horizontal )
-		, _ResizeMode( ESplitterResizeMode::Fixed )
+		, _ResizeMode( ESplitterResizeMode::FixedPosition )
 		, _PhysicalSplitterHandleSize( 5.0f )
 		, _HitDetectionSplitterHandleSize( 5.0f )
 		, _OnSplitterFinishedResizing()
@@ -126,6 +129,8 @@ public:
 		SLATE_ARGUMENT( float, HitDetectionSplitterHandleSize )
 
 		SLATE_EVENT( FSimpleDelegate, OnSplitterFinishedResizing )
+		
+		SLATE_EVENT(FOnGetMaxSlotSize, OnGetMaxSlotSize)
 
 	SLATE_END_ARGS()
 
@@ -199,6 +204,8 @@ public:
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;
 	
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
@@ -253,8 +260,9 @@ protected:
 	 * @param Children         A reference to this splitter's children array; we will modify the children's layout values.
 	 * @param ChildGeometries  The arranged children; we need their sizes and positions so that we can perform a resizing.
 	 */
-	template<EOrientation SplitterOrientation>
-	static void HandleResizing( const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& LocalMousePos, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries );
+	static void HandleResizingByMousePosition(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& LocalMousePos, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries );
+	static void HandleResizingDelta(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, float Delta, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries);
+	static void HandleResizingBySize(EOrientation Orientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& DesiredSize, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries);
 
 	/**
 	 * @param ProposedSize  A size that a child would like to be
@@ -283,6 +291,7 @@ protected:
 	ESplitterResizeMode::Type ResizeMode;
 
 	FSimpleDelegate OnSplitterFinishedResizing;
+	FOnGetMaxSlotSize OnGetMaxSlotSize;
 
 	/** The thickness of the grip area that the user uses to resize a splitter */
 	float PhysicalSplitterHandleSize;

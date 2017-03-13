@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -343,7 +343,7 @@ public:
 	}
 
 
-	template < void (*NarrowPhase)(PxcNpThreadContext&, PxcNpWorkUnit&, Gu::Cache&, PxsContactManagerOutput&)>
+	template < void (*NarrowPhase)(PxcNpThreadContext&, const PxcNpWorkUnit&, Gu::Cache&, PxsContactManagerOutput&)>
 	void processCms(PxcNpThreadContext* threadContext)
 	{
 		// PT: use local variables to avoid reading class members N times, if possible
@@ -790,7 +790,7 @@ void PxsNphaseImplementationContext::appendContactManagers()
 void PxsNphaseImplementationContext::appendContactManagersFallback(PxsContactManagerOutput* cmOutputs)
 {
 	PX_PROFILE_ZONE("PxsNphaseImplementationContext.appendContactManagersFallback", mContext.mContextID);
-	//Copy new pairs to end of old pairs. Clear new flag, update npIndex on CM and clear the new pair buffer
+
 	//Copy new pairs to end of old pairs. Clear new flag, update npIndex on CM and clear the new pair buffer
 	const PxU32 existingSize = mNarrowPhasePairs.mContactManagerMapping.size();
 	const PxU32 nbToAdd = mNewNarrowPhasePairs.mContactManagerMapping.size();

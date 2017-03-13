@@ -7,6 +7,11 @@
 Buffer<uint> ShadowTileHeadDataUnpacked;
 Buffer<uint> ShadowTileArrayData;
 uint2 ShadowTileListGroupSize;
+uint ShadowMaxObjectsPerTile;
+
+#ifndef SHADOW_TILE_ARRAY_DATA_STRIDE
+#define SHADOW_TILE_ARRAY_DATA_STRIDE 0
+#endif
 
 uint2 GetShadowTileHead(uint2 TileCoordinate)
 {
@@ -14,7 +19,7 @@ uint2 GetShadowTileHead(uint2 TileCoordinate)
 
 	return uint2(
 		ShadowTileHeadDataUnpacked[TileIndex * 2 + 0], 
-		min(ShadowTileHeadDataUnpacked[TileIndex * 2 + 1], (uint)MAX_OBJECTS_PER_TILE)); 
+		min(ShadowTileHeadDataUnpacked[TileIndex * 2 + 1], (uint)ShadowMaxObjectsPerTile)); 
 }
 
 float4x4 WorldToShadow;
@@ -33,7 +38,7 @@ void GetShadowTileCulledData(float3 WorldPosition, out uint CulledDataStart, out
 	NumIntersectingObjects = TileHead.y;
 }
 
-#define MAX_INTERSECTING_OBJECTS 256
+#define MAX_INTERSECTING_OBJECTS 1024
 groupshared uint IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * 2];
 
 float TwoSidedMeshDistanceBias;
@@ -66,7 +71,7 @@ float ShadowRayTraceThroughCulledObjects(
 			if (bUseScatterTileCulling)
 			{
 				uint CulledDataStart = CulledDataParameter;
-				ObjectIndex = ShadowTileArrayData.Load(ListObjectIndex * ShadowTileListGroupSize.x * ShadowTileListGroupSize.y + CulledDataStart);
+				ObjectIndex = ShadowTileArrayData.Load((ListObjectIndex * ShadowTileListGroupSize.x * ShadowTileListGroupSize.y + CulledDataStart) * SHADOW_TILE_ARRAY_DATA_STRIDE);
 			}
 			else
 			{
@@ -89,7 +94,7 @@ float ShadowRayTraceThroughCulledObjects(
 			float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
 			bool bGeneratedAsTwoSided;
 			float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex, bGeneratedAsTwoSided);
-			float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+			float4 UVAddAndSelfShadowBias = LoadObjectUVAddAndSelfShadowBias(ObjectIndex);
 
 			float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 			float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
@@ -101,6 +106,7 @@ float ShadowRayTraceThroughCulledObjects(
 			float VolumeMinSphereRadius = MinSphereRadius * WorldToVolumeScale;
 			float VolumeMaxSphereRadius = MaxSphereRadius * WorldToVolumeScale;
 			float VolumeTwoSidedMeshDistanceBias = TwoSidedMeshDistanceBias * WorldToVolumeScale;
+			float SelfShadowScale = 1.0f / max(UVAddAndSelfShadowBias.w * WorldToVolumeScale, .0001f);
 
 			// Expand the intersection box by the radius of the cone at the distance of the object along the cone
 			float LocalConeRadiusAtObject = min(TanLightAngle * max(ObjectCenterDistanceAlongRay, 0) * WorldToVolumeScale, VolumeMaxSphereRadius);
@@ -123,9 +129,9 @@ float ShadowRayTraceThroughCulledObjects(
 					float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
 					float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
 					float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
-					float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+					float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAddAndSelfShadowBias.xyz);
 					float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
-
+					
 					FLATTEN
 					if (bGeneratedAsTwoSided)
 					{
@@ -133,8 +139,12 @@ float ShadowRayTraceThroughCulledObjects(
 					}
 
 					MinDistance = min(MinDistance, DistanceField);
+
+					// Don't allow occlusion within an object's self shadow distance
+					float SelfShadowVisibility = 1 - saturate(SampleRayTime * SelfShadowScale);
+
 					float SphereRadius = clamp(TanLightAngle * SampleRayTime, VolumeMinSphereRadius, VolumeMaxSphereRadius);
-					float StepVisibility = saturate(DistanceField / SphereRadius);
+					float StepVisibility = max(saturate(DistanceField / SphereRadius), SelfShadowVisibility);
 
 					if (bUseSubsurfaceTransmission)
 					{

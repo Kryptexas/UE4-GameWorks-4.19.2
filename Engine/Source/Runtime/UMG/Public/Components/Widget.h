@@ -118,9 +118,10 @@ namespace EWidgetDesignFlags
 {
 	enum Type
 	{
-		None		= 0,
-		Designing	= 1,
-		ShowOutline	= 2,
+		None				= 0,
+		Designing			= 1,
+		ShowOutline			= 2,
+		ExecutePreConstruct	= 4
 	};
 }
 
@@ -409,6 +410,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	FVector2D GetDesiredSize() const;
 
+	/**
+	 *	Sets the widget navigation rules for all directions. This can only be called on widgets that are in a widget tree.
+	 *	@param Rule The rule to use when navigation is taking place
+	 *	@param WidgetToFocus When using the Explicit rule, focus on this widget
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetAllNavigationRules(EUINavigationRule Rule, FName WidgetToFocus);
+
+	/**
+	 *	Sets the widget navigation rules for a specific direction. This can only be called on widgets that are in a widget tree.
+	 *	@param Direction
+	 *	@param Rule The rule to use when navigation is taking place
+	 *	@param WidgetToFocus When using the Explicit rule, focus on this widget
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetNavigationRule(EUINavigation Direction, EUINavigationRule Rule, FName WidgetToFocus);
+
+	
 	/** Gets the parent widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	class UPanelWidget* GetParent() const;
@@ -597,17 +616,17 @@ public:
 	EVisibility GetVisibilityInDesigner() const;
 
 	// Begin Designer contextual events
-	void Select();
-	void Deselect();
+	void SelectByDesigner();
+	void DeselectByDesigner();
 
-	virtual void OnSelected() { }
-	virtual void OnDeselected() { }
+	virtual void OnSelectedByDesigner() { }
+	virtual void OnDeselectedByDesigner() { }
 
-	virtual void OnDescendantSelected(UWidget* DescendantWidget) { }
-	virtual void OnDescendantDeselected(UWidget* DescendantWidget) { }
+	virtual void OnDescendantSelectedByDesigner(UWidget* DescendantWidget) { }
+	virtual void OnDescendantDeselectedByDesigner(UWidget* DescendantWidget) { }
 
-	virtual void OnBeginEdit() { }
-	virtual void OnEndEdit() { }
+	virtual void OnBeginEditByDesigner() { }
+	virtual void OnEndEditByDesigner() { }
 	// End Designer contextual events
 #endif
 
@@ -661,6 +680,8 @@ protected:
 	{
 		return FSlateColor(InLinearColor.Get());
 	}
+
+	void SetNavigationRuleInternal(EUINavigation Direction, EUINavigationRule Rule, FName WidgetToFocus);
 
 protected:
 	/** The underlying SWidget. */

@@ -315,8 +315,7 @@ window.onerror = function(msg, url, line, column, error) {
 
 function preInitEmscripten(){
 
-	// note: default is 800x600
-	// and is configurable via DefaultEngine.ini [SystemSettings] r.setRes=WidthxHeight
+	// NOTE: the following is for canvas size (i.e. viewport dimensions - not GL resolution)
 	var width = UE_JSlib.UE_GSystemResolution_ResX();
 	var height = UE_JSlib.UE_GSystemResolution_ResY();
 
@@ -331,7 +330,12 @@ function preInitEmscripten(){
 			}).appendTo('#mainarea').hide();
 
 	// setup emscripten's canvas.
-	Module['canvas'] = document.getElementById('canvas');
+	var c = document.getElementById('canvas');
+	c.UE_canvas = {
+		width: width,
+		height: height,
+	};
+	Module['canvas'] = c;
 
 }
 
@@ -354,11 +358,7 @@ function postRunEmscripten() {
 }
 
 function resize_game() {
-	// this will "stretch" the canvas.
-	// if you DO NO want auto resizing, disable addEventListener(resize_game) calls in postRunEmscripten() above
-
-	// jic it is not obvious, this does not (re)set the game's webGL resolution.
-	// (to do that, see comments at the top of preInitEmscripten() for details)
+	// this will "stretch" the canvas (again, not GL resolution)
 
 	var iWidth = window.innerWidth;
 	var iHeight = window.innerHeight;
@@ -379,6 +379,18 @@ function resize_game() {
 
 	// NOTE that this is the <div> -- not the <canvas>
 	$("#mainarea").css("max-width", parseInt(diff * 100) + "%");
+
+	var c = Module['canvas'];
+	if ( c.UE_canvas.bIsFullScreen ) {
+		// apply last known canvas size so that it can be stretched to fit the full screen
+		c.width = c.UE_canvas.width;
+		c.height = c.UE_canvas.height;
+	} else {
+		// save the canvas dimensions for use in fullscreen mode
+		c.UE_canvas.width = c.width;
+		c.UE_canvas.height = c.height;
+	}
+
 }
 
 // create a deffered object for the data file.

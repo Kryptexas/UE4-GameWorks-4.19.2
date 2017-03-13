@@ -242,13 +242,14 @@ public:
 		bShadowMapped = false;
 	}
 
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const 
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const 
 	{
-		LocalVolumeBounds = FBox(0);
+		LocalVolumeBounds = FBox(ForceInit);
 		OutBlockMin = FIntVector(-1, -1, -1);
 		OutBlockSize = FIntVector(0, 0, 0);
 		bOutBuiltAsIfTwoSided = false;
 		bMeshWasPlane = false;
+		SelfShadowBias = 0;
 	}
 
 	virtual void GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const

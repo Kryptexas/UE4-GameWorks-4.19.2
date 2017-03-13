@@ -207,13 +207,13 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 			{
 				if( !Enum->HasMetaData(TEXT("DisplayName"), i) )
 				{
-					Enum->SetMetaData(TEXT("DisplayName"), *FName::NameToDisplayString(Enum->GetEnumName(i), false), i);
+					Enum->SetMetaData(TEXT("DisplayName"), *FName::NameToDisplayString(Enum->GetNameStringByIndex(i), false), i);
 				}
 
 				for(int32 j = 0; j < Arguments.InputKeys.Num(); ++j)
 				{
 					FFormatNamedArguments PatternArguments;
-					PatternArguments.Add( TEXT("FieldPath"), FText::FromString( Enum->GetFullGroupName(false) + TEXT(".") + Enum->GetEnumName(i) ) );
+					PatternArguments.Add( TEXT("FieldPath"), FText::FromString( Enum->GetFullGroupName(false) + TEXT(".") + Enum->GetNameStringByIndex(i) ) );
 
 					if( Enum->HasMetaData(*Arguments.InputKeys[j], i) )
 					{
@@ -226,7 +226,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 							FLocItem LocItem(MetaDataValue);
 							FManifestContext Context;
 							Context.Key = FText::Format(Arguments.OutputKeys[j], PatternArguments).ToString();
-							Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of enum value %s of enum %s in %s"), *Arguments.InputKeys[j], *Enum->GetEnumName(i), *Enum->GetName(), *Enum->GetFullGroupName(true));
+							Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of enum value %s of enum %s in %s"), *Arguments.InputKeys[j], *Enum->GetNameStringByIndex(i), *Enum->GetName(), *Enum->GetFullGroupName(true));
 							GatherManifestHelper->AddSourceText(Namespace, LocItem, Context);
 						}
 					}

@@ -76,6 +76,16 @@ public:
 		return ShaderModule;
 	}
 
+	inline const FString& GetDebugName() const
+	{
+		return DebugName;
+	}
+
+	const FVulkanCodeHeader& GetCodeHeader() const
+	{
+		return CodeHeader;
+	}
+
 protected:
 	/** External bindings for this shader. */
 	FVulkanCodeHeader CodeHeader;
@@ -94,6 +104,7 @@ protected:
 	friend class FVulkanPipelineStateCache;
 	friend class FVulkanComputeShaderState;
 	friend class FVulkanBoundShaderState;
+	friend class FVulkanComputePipeline;
 };
 
 /** This represents a vertex shader that hasn't been combined with a specific declaration to create a bound shader. */
@@ -998,9 +1009,7 @@ protected:
 	uint32 Hash;
 
 	friend class FVulkanBoundShaderState;
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	friend class FVulkanPipelineStateCache;
-#endif
 };
 
 struct FVulkanPipelineGraphicsKey
@@ -1196,13 +1205,11 @@ protected:
 };
 
 
-
-// Common functionality for shader state (BSS for Gfx and Compute)
-class FVulkanShaderState
+class FVulkanDescriptorSetUpdater : public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanShaderState(FVulkanDevice* InDevice);
-	virtual ~FVulkanShaderState();
+	FVulkanDescriptorSetUpdater(FVulkanDevice* InDevice);
+	virtual ~FVulkanDescriptorSetUpdater();
 
 	inline const FVulkanDescriptorSetsLayout& GetDescriptorSetsLayout() const
 	{
@@ -1210,16 +1217,9 @@ public:
 	}
 
 protected:
-	TArray<VkDescriptorImageInfo> DescriptorImageInfo;
-	TArray<VkDescriptorBufferInfo> DescriptorBufferInfo;
-	TArray<VkWriteDescriptorSet> DescriptorWrites;
-
-	FVulkanDevice* Device;
 	mutable VkPipelineLayout PipelineLayout;
-
 	FVulkanDescriptorSetsLayout* Layout;
 	FVulkanDescriptorSets* CurrDescriptorSets;
-	VkPipeline LastBoundPipeline;
 
 	struct FDescriptorSetsPair
 	{
@@ -1248,11 +1248,21 @@ protected:
 	TArray<FDescriptorSetsEntry*> DescriptorSetsEntries;
 
 	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer);
+};
 
-	void UpdateDescriptorSetsForStage(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer,
-		FVulkanGlobalUniformPool* GlobalUniformPool, VkDescriptorSet DescriptorSet, FVulkanShader* StageShader,
-		uint32 RemainingGlobalUniformMask, VkDescriptorBufferInfo* BufferInfo, TArray<uint8>* PackedUniformBuffer,
-		FVulkanRingBuffer* RingBuffer, uint8* RingBufferBase, int32& WriteIndex);
+
+// Common functionality for shader state (BSS for Gfx and Compute)
+class FVulkanShaderState : public FVulkanDescriptorSetUpdater
+{
+public:
+	FVulkanShaderState(FVulkanDevice* InDevice);
+
+protected:
+	TArray<VkDescriptorImageInfo> DescriptorImageInfo;
+	TArray<VkDescriptorBufferInfo> DescriptorBufferInfo;
+	TArray<VkWriteDescriptorSet> DescriptorWrites;
+
+	VkPipeline LastBoundPipeline;
 
 	// Querying GetPipelineLayout() generates VkPipelineLayout on the first time
 	VkPipelineLayout GetPipelineLayout() const;
@@ -1369,9 +1379,7 @@ public:
 
 protected:
 	TRefCountPtr<FVulkanComputeShader> ComputeShader;
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	FSHAHash ShaderHash;
-#endif
 
 	FNEWPackedUniformBufferStaging NEWPackedUniformBufferStaging;
 	uint64 NEWPackedUniformBufferStagingDirty;
@@ -1434,12 +1442,10 @@ public:
 		return VertexInputStateInfo;
 	}
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	inline FSHAHash const* GetShaderHashes() const
 	{
 		return ShaderHashes;
 	}
-#endif
 
 	// Binding
 	inline void SetShaderParameter(EShaderFrequency Stage, uint32 BufferIndex, uint32 ByteOffset, uint32 NumBytes, const void* NewValue)
@@ -1537,7 +1543,6 @@ public:
 	}
 
 private:
-	void GenerateLayoutBindings(EShaderFrequency Stage, const FVulkanCodeHeader& CodeHeader);
 	void GenerateVertexInputStateInfo();
 
 	void InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, const void* VertexStreams);
@@ -1546,13 +1551,11 @@ private:
 	/** Cached vertex structure */
 	TRefCountPtr<FVulkanVertexDeclaration> VertexDeclaration;
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	friend class FVulkanPipelineStateCache;
 
 	FSHAHash ShaderHashes[SF_NumFrequencies];
 
 	TLinkedList<FVulkanBoundShaderState*> GlobalListLink;
-#endif
 
 	/** Cached shaders */
 	TRefCountPtr<FVulkanVertexShader> VertexShader;

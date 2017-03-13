@@ -29,7 +29,7 @@ volatile uint64 GKDOPTrianglesTraversedReal = 0;
 FStaticLightingAggregateMesh::FStaticLightingAggregateMesh(const FScene& InScene):
 	Scene(InScene),
 	bHasShadowCastingPrimitives(false),
-	SceneBounds(0),
+	SceneBounds(ForceInit),
 	SceneSurfaceArea(0),
 	SceneSurfaceAreaWithinImportanceVolume(0)
 {

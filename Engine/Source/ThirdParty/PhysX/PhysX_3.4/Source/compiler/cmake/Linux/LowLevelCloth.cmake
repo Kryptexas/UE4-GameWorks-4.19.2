@@ -1,9 +1,6 @@
 #
 # Build LowLevelCloth
 #
-
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
 FIND_PACKAGE(NvSimd REQUIRED)
 
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
@@ -39,10 +36,14 @@ else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	MESSAGE(FATAL_ERROR "Unknown configuration ${CMAKE_BUILD_TYPE}")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
+IF(DEFINED PX_STATIC_LIBRARIES)
+	SET(LOWLEVELCLOTH_LIBTYPE OBJECT)
+ELSE()
+	SET(LOWLEVELCLOTH_LIBTYPE STATIC)
+ENDIF()
 
 # include common low level cloth settings
 INCLUDE(../common/LowLevelCloth.cmake)
-
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(LowLevelCloth PROPERTIES POSITION_INDEPENDENT_CODE TRUE)

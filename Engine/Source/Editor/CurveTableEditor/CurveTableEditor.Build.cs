@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CurveTableEditor : ModuleRules
 {
-	public CurveTableEditor(TargetInfo Target)
+	public CurveTableEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePathModuleNames.Add("LevelEditor");
 

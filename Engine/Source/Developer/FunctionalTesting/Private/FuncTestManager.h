@@ -23,6 +23,10 @@ public:
 
 	virtual void RunTestOnMap(const FString& TestName, bool bClearLog, bool bRunLooped) override;
 	
+	virtual void MarkPendingActivation() override;
+
+	virtual bool IsActivationPending() const override;
+
 	virtual bool IsRunning() const override;
 
 	virtual bool IsFinished() const override;
@@ -41,4 +45,5 @@ protected:
 protected:
 
 	TWeakObjectPtr<class UFunctionalTestingManager> TestScript;
+	bool bPendingActivation;
 };

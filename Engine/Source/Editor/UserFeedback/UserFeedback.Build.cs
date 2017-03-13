@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UserFeedback : ModuleRules
 {
-    public UserFeedback(TargetInfo Target)
+    public UserFeedback(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

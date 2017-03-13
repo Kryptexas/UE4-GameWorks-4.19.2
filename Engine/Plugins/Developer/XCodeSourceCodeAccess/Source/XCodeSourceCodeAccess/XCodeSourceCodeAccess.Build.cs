@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class XCodeSourceCodeAccess : ModuleRules
 	{
-        public XCodeSourceCodeAccess(TargetInfo Target)
+        public XCodeSourceCodeAccess(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[]

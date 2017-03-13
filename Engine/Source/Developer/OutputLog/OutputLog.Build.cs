@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class OutputLog : ModuleRules
 {
-	public OutputLog(TargetInfo Target)
+	public OutputLog(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

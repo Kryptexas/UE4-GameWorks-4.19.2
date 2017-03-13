@@ -31,7 +31,6 @@ void FAnimViewportShowCommands::RegisterCommands()
 	UI_COMMAND( ShowBoneWeight, "Selected Bone Weight", "Display color overlay of the weight from Selected Bone in Viewport", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( ShowMorphTargetVerts, "Selected Morphtarget Vertices", "Display color overlay with the chnage of Selected Morphtarget in Viewport", EUserInterfaceActionType::RadioButton, FInputChord());
 
-
 	UI_COMMAND( ShowRawAnimation, "Uncompressed Animation", "Display Skeleton With Uncompressed Animation Data", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ShowNonRetargetedAnimation, "NonRetargeted Animation", "Display Skeleton With non retargeted Animation Data", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ShowAdditiveBaseBones, "Additive Base", "Display Skeleton In Additive Base Pose", EUserInterfaceActionType::ToggleButton, FInputChord() );
@@ -48,27 +47,16 @@ void FAnimViewportShowCommands::RegisterCommands()
 	UI_COMMAND( ShowLocalAxesSelected, "Selected Only", "Shows only the local bone axis of the selected bones", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( ShowLocalAxesAll, "All", "Shows all local hierarchy axes", EUserInterfaceActionType::RadioButton, FInputChord() );
 
-#if WITH_APEX_CLOTHING
 	UI_COMMAND( DisableClothSimulation, "Disable Cloth Simulation", "Disable Cloth Simulation and Show non-simulated mesh", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ApplyClothWind, "Apply Wind", "Apply Wind to Clothing", EUserInterfaceActionType::ToggleButton, FInputChord() );
 
-	UI_COMMAND( ShowClothSimulationNormals, "Simulation Normals", "Display Cloth Simulation Normals", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( ShowClothGraphicalTangents, "Graphical Tangents", "Display Cloth Graphical Tangents", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( ShowClothCollisionVolumes, "Collision Volumes", "Display Cloth Collision Volumes", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( EnableCollisionWithAttachedClothChildren, "Collide with Cloth Children", "Enables collision detection between collision primitives in the base mesh and clothing on any attachments in the preview scene.", EUserInterfaceActionType::ToggleButton, FInputChord() );	
-
-	UI_COMMAND( ShowClothPhysicalMeshWire, "Physical Mesh Wire", "Display Simulation Mesh's wire frame. Shows all physical mesh loaded from an asset file when cloth simulation is disabled and shows simulated results when simulating. The part having zero max distance value will be drawn in pink.", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( ShowClothMaxDistances, "Max Distances", "Display Max Distances only when simulation is disabled. If turned on this option, disables cloth simulation automatically", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( ShowClothBackstop, "Back stops", "Display Back stops. If it has a proper value, draws a line in red. Otherwise, draws a vertex in white.", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( ShowClothFixedVertices, "Fixed Vertices", "Display Fixed Vertices", EUserInterfaceActionType::ToggleButton, FInputChord() );	
 	UI_COMMAND(PauseClothWithAnim, "Pause with Animation", "If enabled, the clothing simulation will pause when the animation is paused using the scrub panel", EUserInterfaceActionType::ToggleButton, FInputChord());
 
 	// below 3 menus are radio button styles
 	UI_COMMAND(ShowAllSections, "Show All Sections", "Display All sections including Cloth Mapped Sections", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(ShowOnlyClothSections, "Show Only Cloth Sections", "Display Only Cloth Mapped Sections", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(HideOnlyClothSections, "Hide Only Cloth Sections", "Display All Except Cloth Mapped Sections", EUserInterfaceActionType::RadioButton, FInputChord());
-
-#endif// #if WITH_APEX_CLOTHING
 }
 
 #undef LOCTEXT_NAMESPACE

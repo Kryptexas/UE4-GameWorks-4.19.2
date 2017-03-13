@@ -46,34 +46,6 @@ public:
 			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *this->PlatformName());
 			TextureLODSettings = nullptr;
 			StaticMeshLODSettings.Initialize(EngineSettings);
-		
-			// Get the Target RHIs for this platform, we do not always want all those that are supported.
-			GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
-		
-			// Get the cached shader formats for this platform, we do not always want all those that are supported.
-			GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("CachedShaderFormats"), CachedShaderFormats, GEngineIni);
-		
-			// Gather the list of Target RHIs and filter out any that may be invalid.
-			TArray<FName> PossibleShaderFormats;
-			GetAllPossibleShaderFormats(PossibleShaderFormats);
-			
-			for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
-			{
-				FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
-				if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
-				{
-					TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
-				}
-			}
-		
-			for(int32 ShaderFormatIdx = CachedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
-			{
-				FString ShaderFormat = CachedShaderFormats[ShaderFormatIdx];
-				if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
-				{
-					CachedShaderFormats.RemoveAt(ShaderFormatIdx);
-				}
-			}
 		#endif
 	}
 
@@ -166,6 +138,23 @@ return TSuper::SupportsFeature(Feature);
 
 	virtual void GetAllTargetedShaderFormats(TArray<FName>& OutFormats) const override
 	{
+		// Get the Target RHIs for this platform, we do not always want all those that are supported.
+		TArray<FString>TargetedShaderFormats;
+		GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+
+		// Gather the list of Target RHIs and filter out any that may be invalid.
+		TArray<FName> PossibleShaderFormats;
+		GetAllPossibleShaderFormats(PossibleShaderFormats);
+
+		for (int32 ShaderFormatIdx = TargetedShaderFormats.Num() - 1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+		{
+			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+			if (PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+			{
+				TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
+			}
+		}
+
 		for(const FString& ShaderFormat : TargetedShaderFormats)
 		{
 			OutFormats.AddUnique(FName(*ShaderFormat));
@@ -174,6 +163,23 @@ return TSuper::SupportsFeature(Feature);
 	
 	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override
 	{
+		// Get the cached shader formats for this platform, we do not always want all those that are supported.
+		TArray<FString> CachedShaderFormats;
+		GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("CachedShaderFormats"), CachedShaderFormats, GEngineIni);
+
+		// Gather the list of Target RHIs and filter out any that may be invalid.
+		TArray<FName> PossibleShaderFormats;
+		GetAllPossibleShaderFormats(PossibleShaderFormats);
+
+		for (int32 ShaderFormatIdx = CachedShaderFormats.Num() - 1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+		{
+			FString ShaderFormat = CachedShaderFormats[ShaderFormatIdx];
+			if (PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+			{
+				CachedShaderFormats.RemoveAt(ShaderFormatIdx);
+			}
+		}
+
 		for(const FString& ShaderFormat : CachedShaderFormats)
 		{
 			OutFormats.AddUnique(FName(*ShaderFormat));
@@ -289,12 +295,7 @@ private:
 
 	// Holds the static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
-	
-	// List of shader formats specified as targets
-	TArray<FString> TargetedShaderFormats;
-	
-	// List of shader formats specified to cache
-	TArray<FString> CachedShaderFormats;
+
 #endif // WITH_ENGINE
 
 private:

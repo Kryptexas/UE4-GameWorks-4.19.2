@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class coremod: ModuleRules
 {
-	public coremod(TargetInfo Target)
+	public coremod(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

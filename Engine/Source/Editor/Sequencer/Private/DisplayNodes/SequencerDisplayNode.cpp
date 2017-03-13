@@ -178,6 +178,27 @@ void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FSequencerObjectBind
 }
 
 
+TSharedPtr<FSequencerObjectBindingNode> FSequencerDisplayNode::FindParentObjectBindingNode() const
+{
+	TSharedPtr<FSequencerDisplayNode> CurrentParentNode = GetParent();
+
+	while (CurrentParentNode.IsValid())
+	{
+		if (CurrentParentNode.Get()->GetType() == ESequencerNode::Object)
+		{
+			TSharedPtr<FSequencerObjectBindingNode> ObjectNode = StaticCastSharedPtr<FSequencerObjectBindingNode>(CurrentParentNode);
+			if (ObjectNode.IsValid())
+			{
+				return ObjectNode;
+			}
+		}
+		CurrentParentNode = CurrentParentNode->GetParent();
+	}
+
+	return nullptr;
+}
+
+
 bool FSequencerDisplayNode::Traverse_ChildFirst(const TFunctionRef<bool(FSequencerDisplayNode&)>& InPredicate, bool bIncludeThisNode)
 {
 	for (auto& Child : GetChildNodes())
@@ -281,7 +302,7 @@ TSharedRef<FSequencerSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode
 }
 
 
-TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddSectionAreaNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor)
+TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddTrackNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor)
 {
 	TSharedPtr<FSequencerTrackNode> SectionNode;
 

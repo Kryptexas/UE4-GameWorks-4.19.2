@@ -101,9 +101,6 @@ protected:
 	TArray<FPerceptionSourceRegistration> SourcesToRegister;
 
 public:
-	/** UObject begin */
-	virtual void PostInitProperties() override;
-	/* UObject end */
 
 	FORCEINLINE bool IsSenseInstantiated(const FAISenseID& SenseID) const { return SenseID.IsValid() && Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr; }
 
@@ -154,6 +151,7 @@ public:
 	void RegisterDelayedStimulus(FPerceptionListenerID ListenerId, float Delay, AActor* Instigator, const FAIStimulus& Stimulus);
 
 	static UAIPerceptionSystem* GetCurrent(UObject* WorldContextObject);
+	static UAIPerceptionSystem* GetCurrent(UWorld& World);
 
 	static void MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation, float MaxRange, FName Tag);
 

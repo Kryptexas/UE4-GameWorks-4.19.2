@@ -267,7 +267,7 @@ void FBlueprintUnloader::UnloadBlueprint(const bool bResetPackage)
 	{
 		UBlueprint* UnloadingBp = OldBlueprint.Get();
 
-		UPackage* const OldPackage = Cast<UPackage>(UnloadingBp->GetOutermost());
+		UPackage* const OldPackage = UnloadingBp->GetOutermost();
 		bool const bIsDirty = OldPackage->IsDirty();
 
 		UPackage* const TransientPackage = GetTransientPackage();
@@ -749,8 +749,16 @@ bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 	return (TotalReferenceCount > NonUndoReferenceCount);
 }
 
-void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults, bool bSkeletonUpToDate, bool bBatchCompile, bool bAddInstrumentation)
+void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, EBlueprintCompileOptions CompileFlags, FCompilerResultsLog* pResults)
 {
+	const bool bIsRegeneratingOnLoad		= (CompileFlags & EBlueprintCompileOptions::IsRegeneratingOnLoad		) != EBlueprintCompileOptions::None;
+	const bool bSkipGarbageCollection		= (CompileFlags & EBlueprintCompileOptions::SkipGarbageCollection		) != EBlueprintCompileOptions::None;
+	const bool bSaveIntermediateProducts	= (CompileFlags & EBlueprintCompileOptions::SaveIntermediateProducts	) != EBlueprintCompileOptions::None;
+	const bool bSkeletonUpToDate			= (CompileFlags & EBlueprintCompileOptions::SkeletonUpToDate			) != EBlueprintCompileOptions::None;
+	const bool bBatchCompile				= (CompileFlags & EBlueprintCompileOptions::BatchCompile				) != EBlueprintCompileOptions::None;
+	const bool bAddInstrumentation			= (CompileFlags & EBlueprintCompileOptions::AddInstrumentation			) != EBlueprintCompileOptions::None;
+	const bool bSkipReinstancing			= (CompileFlags & EBlueprintCompileOptions::SkipReinstancing			) != EBlueprintCompileOptions::None;
+
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileBlueprint);
 
@@ -771,7 +779,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	// Reset the flag, so if the user tries to use PIE it will warn them if the BP did not compile
 	BlueprintObj->bDisplayCompilePIEWarning = true;
 
-	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+	UPackage* const BlueprintPackage = BlueprintObj->GetOutermost();
 	// compiling the blueprint will inherently dirty the package, but if there 
 	// weren't any changes to save before, there shouldn't be after
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
@@ -807,7 +815,11 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		ensureMsgf(OldClass->ClassGeneratedBy == BlueprintObj, TEXT("Generated Class '%s' has an invalid ClassGeneratedBy '%s' while the expected is Blueprint '%s'"), *OldClass->GetPathName(), *GetPathNameSafe(OldClass->ClassGeneratedBy), *BlueprintObj->GetPathName());
 		OldClass->ClassGeneratedBy = BlueprintObj;
 	}
-	auto ReinstanceHelper = FBlueprintCompileReinstancer::Create(OldClass);
+	TSharedPtr<class FBlueprintCompileReinstancer> ReinstanceHelper;
+	if(!bSkipReinstancing)
+	{
+		ReinstanceHelper = FBlueprintCompileReinstancer::Create(OldClass);
+	}
 
 	// If enabled, suppress errors/warnings in the log if we're recompiling on load on a build machine
 	static const FBoolConfigValueHelper IgnoreCompileOnLoadErrorsOnBuildMachine(TEXT("Kismet"), TEXT("bIgnoreCompileOnLoadErrorsOnBuildMachine"), GEngineIni);
@@ -817,6 +829,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	CompileOptions.bSaveIntermediateProducts = bSaveIntermediateProducts;
 	CompileOptions.bRegenerateSkelton = !bSkeletonUpToDate;
 	CompileOptions.bAddInstrumentation = bAddInstrumentation;
+	CompileOptions.bReinstanceAndStubOnFailure = !bSkipReinstancing;
 	if (pResults)
 	{
 		// enable debug information for composite graph instances if we are instrumenting the blueprint.
@@ -837,7 +850,20 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		}
 	}
 
-	ReinstanceHelper->UpdateBytecodeReferences();
+	if(!bSkipReinstancing)
+	{
+		ReinstanceHelper->UpdateBytecodeReferences();
+	}
+	
+	// in case any errors/warnings have been added since the call to Compiler.CompileBlueprint()
+	if (Results.NumErrors > 0)
+	{
+		BlueprintObj->Status = BS_Error;
+	}
+	else if (Results.NumWarnings > 0)
+	{
+		BlueprintObj->Status = BS_UpToDateWithWarnings;
+	}
 
 	const bool bIsInterface = FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj);
 	const bool bLetReinstancerRefreshDependBP = !bIsRegeneratingOnLoad && (OldClass != NULL) && !bIsInterface;
@@ -847,10 +873,13 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 
 		TArray<UBlueprint*> DependentBPs;
 		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
-		ReinstanceHelper->ListDependentBlueprintsToRefresh(DependentBPs);
+		if(!bSkipReinstancing)
+		{
+			ReinstanceHelper->ListDependentBlueprintsToRefresh(DependentBPs);
+		}
 	}
 
-	if (!bIsRegeneratingOnLoad && (OldClass != NULL))
+	if ( (!bIsRegeneratingOnLoad) && (OldClass != NULL))
 	{
 		// Strip off any external components from the CDO, if needed because of reparenting, etc
 		FKismetEditorUtilities::StripExternalComponents(BlueprintObj);
@@ -862,8 +891,11 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		}
 
 		// Replace instances of this class
-		ReinstanceHelper->ReinstanceObjects();
-
+		if(!bSkipReinstancing)
+		{
+			ReinstanceHelper->ReinstanceObjects();
+		}
+		
 		// Notify everyone a blueprint has been compiled and reinstanced, but before GC so they can perform any final cleanup.
 		if ( GEditor )
 		{
@@ -900,7 +932,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
 	}
 
-	if (!bLetReinstancerRefreshDependBP && (bIsInterface || !BlueprintObj->bIsRegeneratingOnLoad))
+	if (!bLetReinstancerRefreshDependBP && (bIsInterface || !BlueprintObj->bIsRegeneratingOnLoad) && !bSkipReinstancing)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprints);
 
@@ -950,7 +982,7 @@ bool FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 
 	if( BlueprintObj->SkeletonGeneratedClass == NULL || bForceRegeneration )
 	{
-		UPackage* Package = Cast<UPackage>(BlueprintObj->GetOutermost());
+		UPackage* Package = BlueprintObj->GetOutermost();
 		bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 					
 		IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
@@ -973,14 +1005,16 @@ bool FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 }
 
 /** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
-void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded, bool bBatchCompile)
+void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded,  EBlueprintBytecodeRecompileOptions Flags)
 {
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
-	
+	bool bBatchCompile = (Flags & EBlueprintBytecodeRecompileOptions::BatchCompile) != EBlueprintBytecodeRecompileOptions::None;
+	bool bSkipReinstancing = (Flags & EBlueprintBytecodeRecompileOptions::SkipReinstancing) != EBlueprintBytecodeRecompileOptions::None;
+
 	check(BlueprintObj);
 	checkf(BlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *BlueprintObj->GetName());
 
-	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+	UPackage* const BlueprintPackage = BlueprintObj->GetOutermost();
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
 
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
@@ -988,7 +1022,11 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
 	FCompilerResultsLog Results;
 
-	auto ReinstanceHelper = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass, true);
+	TSharedPtr<FBlueprintCompileReinstancer> ReinstanceHelper;
+	if(!bSkipReinstancing)
+	{
+		ReinstanceHelper = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass, EBlueprintCompileReinstancerFlags::BytecodeOnly | EBlueprintCompileReinstancerFlags::AutoInferSaveOnCompile);
+	}
 
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.CompileType = EKismetCompileType::BytecodeOnly;
@@ -996,8 +1034,11 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 		FRecreateUberGraphFrameScope RecreateUberGraphFrameScope(BlueprintObj->GeneratedClass, true);
 		Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
 	}
-
-	ReinstanceHelper->UpdateBytecodeReferences();
+	
+	if(!bSkipReinstancing)
+	{
+		ReinstanceHelper->UpdateBytecodeReferences();
+	}
 
 	if (BlueprintPackage != NULL)
 	{

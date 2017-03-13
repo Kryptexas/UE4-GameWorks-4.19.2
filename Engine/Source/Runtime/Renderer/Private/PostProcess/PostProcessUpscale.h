@@ -77,3 +77,14 @@ private:
 	FIntPoint OutputExtent;
 };
 
+// Simple version used for ES2 forcing Bilinear and overriding the output extent
+class FRCPassPostProcessUpscaleES2 : public FRCPassPostProcessUpscale
+{
+public:
+	FRCPassPostProcessUpscaleES2(const FViewInfo& InView);
+
+	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+private:
+	const FViewInfo& View;
+};
+

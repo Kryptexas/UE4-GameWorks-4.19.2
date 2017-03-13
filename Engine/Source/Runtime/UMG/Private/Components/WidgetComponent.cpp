@@ -1077,7 +1077,7 @@ void UWidgetComponent::ApplyComponentInstanceData(FWidgetComponentInstanceData* 
 	MarkRenderStateDirty();
 }
 
-void UWidgetComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UWidgetComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
 	if (MaterialInstance)
 	{
@@ -1645,11 +1645,6 @@ void UWidgetComponent::SetOpacityFromTexture( const float NewOpacityFromTexture 
 TSharedPtr< SWindow > UWidgetComponent::GetVirtualWindow() const
 {
 	return StaticCastSharedPtr<SWindow>(SlateWindow);
-}
-
-void UWidgetComponent::PostLoad()
-{
-	Super::PostLoad();
 }
 
 UMaterialInterface* UWidgetComponent::GetMaterial(int32 MaterialIndex) const

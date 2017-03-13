@@ -188,7 +188,7 @@ int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const TArray<FVecto
 
 static void CalcBoundingBox(const FRawMesh& RawMesh, FVector& Center, FVector& Extents, FVector& LimitVec)
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	for (uint32 i = 0; i < (uint32)RawMesh.VertexPositions.Num(); i++)
 	{

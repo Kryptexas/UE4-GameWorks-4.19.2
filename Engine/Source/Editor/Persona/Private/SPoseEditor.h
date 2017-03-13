@@ -294,9 +294,9 @@ public:
 	FText& GetFilterText() { return FilterText; }
 
 	/**
-	* Refreshes the morph target list after an undo
+	* Update pose asset changes - including list of poses or names or deletions 
 	*/
-	void RefreshList();
+	void OnPoseAssetModified();
 
 	bool ModifyName(FName OldName, FName NewName, bool bSilence = false);
 	bool IsBasePose(FName PoseName) const;

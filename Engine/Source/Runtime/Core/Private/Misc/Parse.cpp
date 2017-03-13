@@ -222,7 +222,7 @@ bool FParse::Value(
 	const TCHAR*	Match,
 	TCHAR*			Value,
 	int32			MaxLen,
-	bool			bShouldStopOnComma
+	bool			bShouldStopOnSeparator
 )
 {
 	const TCHAR* Found = FCString::Strifind(Stream,Match);
@@ -277,9 +277,10 @@ bool FParse::Value(
 		Temp = FCString::Strstr( Value, TEXT("\r") ); if( Temp ) *Temp=0;
 		Temp = FCString::Strstr( Value, TEXT("\n") ); if( Temp ) *Temp=0;
 		Temp = FCString::Strstr( Value, TEXT("\t") ); if( Temp ) *Temp=0;
-		if (bShouldStopOnComma)
+		if (bShouldStopOnSeparator)
 		{
 			Temp = FCString::Strstr( Value, TEXT(",")  ); if( Temp ) *Temp=0;
+			Temp = FCString::Strstr( Value, TEXT(")")  ); if( Temp ) *Temp=0;
 		}
 	}
 	return true;
@@ -311,10 +312,10 @@ bool FParse::Param( const TCHAR* Stream, const TCHAR* Param )
 // 
 // Parse a string.
 //
-bool FParse::Value( const TCHAR* Stream, const TCHAR* Match, FString& Value, bool bShouldStopOnComma )
+bool FParse::Value( const TCHAR* Stream, const TCHAR* Match, FString& Value, bool bShouldStopOnSeparator )
 {
 	TCHAR Temp[4096]=TEXT("");
-	if( FParse::Value( Stream, Match, Temp, ARRAY_COUNT(Temp), bShouldStopOnComma ) )
+	if( FParse::Value( Stream, Match, Temp, ARRAY_COUNT(Temp), bShouldStopOnSeparator) )
 	{
 		Value = Temp;
 		return 1;
@@ -369,6 +370,11 @@ bool FParse::QuotedString( const TCHAR* Buffer, FString& Value, int32* OutNumCha
 		else if (*Buffer == TCHAR('r')) // escaped carriage return
 		{
 			Value += TCHAR('\r');
+			++Buffer;
+		}
+		else if (*Buffer == TCHAR('t')) // escaped tab
+		{
+			Value += TCHAR('\t');
 			++Buffer;
 		}
 		else // some other escape sequence, assume it's a hex character value

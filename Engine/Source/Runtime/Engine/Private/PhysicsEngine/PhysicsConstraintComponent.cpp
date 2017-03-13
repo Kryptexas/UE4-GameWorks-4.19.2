@@ -152,7 +152,7 @@ FTransform UPhysicsConstraintComponent::GetBodyTransformInternal(EConstraintFram
 
 FBox UPhysicsConstraintComponent::GetBodyBoxInternal(EConstraintFrame::Type Frame, FName InBoneName) const
 {
-	FBox ResultBox(0);
+	FBox ResultBox(ForceInit);
 
 	UPrimitiveComponent* PrimComp  = GetComponentInternal(Frame);
 

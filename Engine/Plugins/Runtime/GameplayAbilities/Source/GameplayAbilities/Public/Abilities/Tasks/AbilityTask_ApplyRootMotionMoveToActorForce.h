@@ -5,6 +5,8 @@
 #include "UObject/ObjectMacros.h"
 #include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_ApplyRootMotion_Base.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "IDelegateInstance.h"
 #include "AbilityTask_ApplyRootMotionMoveToActorForce.generated.h"
 
 class UCharacterMovementComponent;
@@ -43,11 +45,18 @@ class UAbilityTask_ApplyRootMotionMoveToActorForce : public UAbilityTask_ApplyRo
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_ApplyRootMotionMoveToActorForce* ApplyRootMotionMoveToActorForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish, bool bDisableDestinationReachedInterrupt);
 
+	/** Apply force to character's movement using an index into targetData instead of using an actor directly. */
+	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
+	static UAbilityTask_ApplyRootMotionMoveToActorForce* ApplyRootMotionMoveToTargetDataActorForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FGameplayAbilityTargetDataHandle TargetDataHandle, int32 TargetDataIndex, int32 TargetActorIndex, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish, bool bDisableDestinationReachedInterrupt);
+
 	/** Tick function for this task, if bTickingTask == true */
 	virtual void TickTask(float DeltaTime) override;
 
 	virtual void PreDestroyFromReplication() override;
 	virtual void OnDestroy(bool AbilityIsEnding) override;
+
+	UFUNCTION()
+	void OnTargetActorSwapped(class AActor* OriginalTarget, class AActor* NewTarget);
 
 protected:
 
@@ -63,6 +72,8 @@ protected:
 	void OnRep_TargetLocation();
 
 protected:
+
+	FDelegateHandle TargetActorSwapHandle;
 
 	UPROPERTY(Replicated)
 	FVector StartLocation;
@@ -117,18 +128,6 @@ protected:
 
 	UPROPERTY(Replicated)
 	UCurveFloat* TargetLerpSpeedVerticalCurve;
-
-	/** What to do with character's Velocity when root motion finishes */
-	UPROPERTY(Replicated)
-	ERootMotionFinishVelocityMode VelocityOnFinishMode;
-
-	/** If VelocityOnFinish mode is "SetVelocity", character velocity is set to this value when root motion finishes */
-	UPROPERTY(Replicated)
-	FVector SetVelocityOnFinish;
-
-	/** If VelocityOnFinish mode is "ClampVelocity", character velocity is clamped to this value when root motion finishes */
-	UPROPERTY(Replicated)
-	float ClampVelocityOnFinish;
 
 	EMovementMode PreviousMovementMode;
 };

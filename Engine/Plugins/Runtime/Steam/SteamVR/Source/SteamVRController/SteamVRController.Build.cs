@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SteamVRController : ModuleRules
 {
-    public SteamVRController(TargetInfo Target)
+    public SteamVRController(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePathModuleNames.AddRange(new string[]
 		{

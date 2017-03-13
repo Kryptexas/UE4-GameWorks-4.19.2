@@ -16,6 +16,7 @@ DerivedDataCacheCommandlet.cpp: Commandlet for DDC maintenence
 #include "ShaderCompiler.h"
 #include "DistanceFieldAtlas.h"
 #include "Misc/RedirectCollector.h"
+#include "Engine/Texture.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 
@@ -27,10 +28,9 @@ UDerivedDataCacheCommandlet::UDerivedDataCacheCommandlet(const FObjectInitialize
 
 void UDerivedDataCacheCommandlet::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 {
-	FString Name = Package->GetName();
-	if (PackagesToNotReload.Contains(Name))
+	if (ProcessedPackages.Contains(Package->GetFName()))
 	{
-		UE_LOG(LogDerivedDataCacheCommandlet, Verbose, TEXT("Marking %s already loaded."), *Name);
+		UE_LOG(LogDerivedDataCacheCommandlet, Verbose, TEXT("Marking %s already loaded."), *Package->GetName());
 		Package->SetPackageFlags(PKG_ReloadingForCooker);
 	}
 }
@@ -76,6 +76,15 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 		GShaderCompilingManager->FinishAllCompilation(); // Final blocking check as IsCompiling() may be non-deterministic
 		GDistanceFieldAsyncQueue->BlockUntilAllBuildsComplete();
 		UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Done waiting for shaders to finish."));
+	};
+
+
+	auto WaitForCurrentTextureBuildingToFinish = []()
+	{
+		for ( TObjectIterator<UTexture> Texture; Texture; ++Texture )
+		{
+			Texture->FinishCachePlatformData();
+		}
 	};
 
 	if (!bStartupOnly && bFillCache)
@@ -165,7 +174,6 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 		const int32 GCInterval = 100;
 		int32 NumProcessedSinceLastGC = 0;
 		bool bLastPackageWasMap = false;
-		TSet<FString> ProcessedPackages;
 
 		UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("%d packages to load..."), FilesInPath.Num());
 
@@ -177,14 +185,24 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			}
 			{
 				const FString& Filename = FilesInPath[FileIndex];
-				if (ProcessedPackages.Contains(Filename))
+
+				FString PackageName; 
+				FString FailureReason;
+				if ( !FPackageName::TryConvertFilenameToLongPackageName(Filename, PackageName, &FailureReason) )
+				{
+					UE_LOG(LogDerivedDataCacheCommandlet, Warning, TEXT("Unable to resolve filename %s to package name because: %s"), *Filename, *FailureReason);
+					continue;
+				}
+
+				FName PackageFName( *PackageName );
+				if (ProcessedPackages.Contains(PackageFName))
 				{
 					continue;
 				}
 				if (bDoSubset)
 				{
-					const FString& PackageName = FPackageName::PackageFromPath(*Filename);
-					if (FCrc::StrCrc_DEPRECATED(*PackageName.ToUpper()) % SubsetMod != SubsetTarget)
+					const FString& SubPackageName = FPackageName::PackageFromPath(*Filename);
+					if (FCrc::StrCrc_DEPRECATED(*SubPackageName.ToUpper()) % SubsetMod != SubsetTarget)
 					{
 						continue;
 					}
@@ -199,22 +217,27 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				}
 				else
 				{
-					GRedirectCollector.ResolveStringAssetReference();
-
-					// cache all the resources for this platform
-					for (TObjectIterator<UObject> It; It; ++It)
-					{
-						if (ProcessedPackages.Contains(It->GetOutermost()->GetName()))
-						{
-							for (auto Platform : Platforms)
-							{
-								It->BeginCacheForCookedPlatformData(Platform);
-							}
-						}
-					}
-
 					bLastPackageWasMap = Package->ContainsMap();
 					NumProcessedSinceLastGC++;
+				}
+			}
+
+			// even if the load failed this could be the first time through the loop so it might have all the startup packages to resolve
+			GRedirectCollector.ResolveStringAssetReference();
+
+			// cache all the resources for this platform
+			for (TObjectIterator<UObject> It; It; ++It)
+			{
+				if ((PackageFilter&NORMALIZE_ExcludeEnginePackages) == 0 || !It->GetOutermost()->GetName().StartsWith(TEXT("/Engine")))
+				{
+					if (!ProcessedPackages.Contains(It->GetOutermost()->GetFName()))
+					{
+						check((It->GetOutermost()->GetPackageFlags() & PKG_ReloadingForCooker) == 0);
+						for (auto Platform : Platforms)
+						{
+							It->BeginCacheForCookedPlatformData(Platform);
+						}
+					}
 				}
 			}
 
@@ -231,14 +254,9 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 					{
 						continue;
 					}
-					FString Filename;
-					if (FPackageName::DoesPackageExist(Pkg->GetName(), NULL, &Filename))
-					{
-						if (!ProcessedPackages.Contains(Filename))
+					if (!ProcessedPackages.Contains(Pkg->GetFName()))
 						{
-							ProcessedPackages.Add(Filename);
-
-							PackagesToNotReload.Add(Pkg->GetName());
+						ProcessedPackages.Add(Pkg->GetFName());
 							Pkg->SetPackageFlags(PKG_ReloadingForCooker);
 							{
 								TArray<UObject *> ObjectsInPackage;
@@ -251,7 +269,6 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 							}
 						}
 					}
-				}
 				FindProcessedPackagesTime += FPlatformTime::Seconds() - FindProcessedPackagesStartTime;
 			}
 
@@ -260,6 +277,9 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 
 			if (NumProcessedSinceLastGC >= GCInterval || FileIndex < 0 || bLastPackageWasMap)
 			{
+				WaitForCurrentShaderCompilationToFinish();
+				WaitForCurrentTextureBuildingToFinish();
+
 				const double StartGCTime = FPlatformTime::Seconds();
 				if (NumProcessedSinceLastGC >= GCInterval || FileIndex < 0)
 				{
@@ -275,12 +295,12 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				GCTime += FPlatformTime::Seconds() - StartGCTime;
 
 				bLastPackageWasMap = false;
-				WaitForCurrentShaderCompilationToFinish();
 			}
 		}
 	}
 
 	WaitForCurrentShaderCompilationToFinish();
+	WaitForCurrentTextureBuildingToFinish();
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 
 	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("%.2lfs spent looking for processed packages, %.2lfs spent on GC."), FindProcessedPackagesTime, GCTime);

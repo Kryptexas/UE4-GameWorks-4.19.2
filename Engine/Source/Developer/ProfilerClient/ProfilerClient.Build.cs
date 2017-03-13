@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class ProfilerClient : ModuleRules
 	{
-		public ProfilerClient(TargetInfo Target)
+		public ProfilerClient(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePathModuleNames.Add("ProfilerService");
 

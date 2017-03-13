@@ -925,31 +925,8 @@ void FLinuxPlatformSplash::Show( )
 
 	// first look for the splash, do not init anything if not found
 	{
-		const TCHAR* EditorSplashes[] =
-		{
-			TEXT("EdSplash"),
-			TEXT("EdSplashDefault"),
-			nullptr
-		};
-
-		const TCHAR* GameSplashes[] =
-		{
-			TEXT("Splash"),
-			TEXT("SplashDefault"),
-			nullptr
-		};
-
-		const TCHAR** SplashesToTry = GIsEditor? EditorSplashes : GameSplashes;
-		bool bSplashFound = false;
-		for (const TCHAR* SplashImage = *SplashesToTry; SplashImage != nullptr && !bSplashFound; SplashImage = *(++SplashesToTry))
-		{
-			if (GetSplashPath(SplashImage, GSplashPath, IsCustom))
-			{
-				bSplashFound = true;
-			}
-		}
-
-		if (!bSplashFound)
+		const TCHAR* SplashImage = GIsEditor ? (GameName.IsEmpty() ? TEXT("EdSplashDefault") : TEXT("EdSplash")) : (GameName.IsEmpty() ? TEXT("SplashDefault") : TEXT("Splash"));
+		if (!GetSplashPath(SplashImage, GSplashPath, IsCustom))
 		{
 			UE_LOG(LogHAL, Warning, TEXT("Splash screen image not found."));
 			return;	// early out

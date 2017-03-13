@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PaperTiledImporter : ModuleRules
 {
-	public PaperTiledImporter(TargetInfo Target)
+	public PaperTiledImporter(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

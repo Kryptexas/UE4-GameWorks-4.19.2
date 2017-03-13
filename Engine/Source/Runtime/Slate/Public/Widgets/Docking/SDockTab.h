@@ -14,9 +14,9 @@
 #include "Animation/CurveSequence.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Framework/Docking/TabManager.h"
-#include "Runtime/Slate/Private/Framework/Docking/SDockingArea.h"
 
 class FActiveTimerHandle;
+class SDockingArea;
 class SDockingTabStack;
 class SDockingTabWell;
 class SImage;

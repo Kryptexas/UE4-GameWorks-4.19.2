@@ -233,12 +233,12 @@ private:
 	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup) override;
 
 	virtual void GenerateSignedDistanceFieldVolumeData(
+		FString MeshName,
 		const FStaticMeshLODResources& LODModel,
 		class FQueuedThreadPool& ThreadPool,
 		const TArray<EBlendMode>& MaterialBlendModes,
 		const FBoxSphereBounds& Bounds,
 		float DistanceFieldResolutionScale,
-		float DistanceFieldBias,
 		bool bGenerateAsIfTwoSided,
 		FDistanceFieldVolumeData& OutData) override;
 
@@ -550,7 +550,7 @@ protected:
 		FMaterialUtilities::OptimizeFlattenMaterial(FlattenMaterial);
 
 		// Create a new proxy material instance
-		UMaterialInstanceConstant* ProxyMaterial = ProxyMaterialUtilities::CreateProxyMaterialInstance(Data->MergeData->InOuter, Data->MergeData->InProxySettings.MaterialSettings, FlattenMaterial, AssetBasePath, AssetBaseName);
+		UMaterialInstanceConstant* ProxyMaterial = ProxyMaterialUtilities::CreateProxyMaterialInstance(Data->MergeData->InOuter, Data->MergeData->InProxySettings.MaterialSettings, FlattenMaterial, AssetBasePath, AssetBaseName, OutAssetsToSync);
 
 		// Set material static lighting usage flag if project has static lighting enabled
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
@@ -690,7 +690,6 @@ public:
 		FBox InVolumeBounds,
 		FIntVector InVolumeDimensions,
 		float InVolumeMaxDistance,
-		float InDistanceFieldBias,
 		int32 InZIndex,
 		TArray<FFloat16>* DistanceFieldVolume)
 		:
@@ -699,7 +698,6 @@ public:
 		VolumeBounds(InVolumeBounds),
 		VolumeDimensions(InVolumeDimensions),
 		VolumeMaxDistance(InVolumeMaxDistance),
-		DistanceFieldBias(InDistanceFieldBias),
 		ZIndex(InZIndex),
 		OutDistanceFieldVolume(DistanceFieldVolume),
 		bNegativeAtBorder(false)
@@ -725,7 +723,6 @@ private:
 	FBox VolumeBounds;
 	FIntVector VolumeDimensions;
 	float VolumeMaxDistance;
-	float DistanceFieldBias;
 	int32 ZIndex;
 
 	// Output
@@ -802,7 +799,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 				MinDistance = -UnsignedDistance;
 			}
 
-			MinDistance = FMath::Min(MinDistance + DistanceFieldBias, VolumeMaxDistance);
+			MinDistance = FMath::Min(MinDistance, VolumeMaxDistance);
 			const float VolumeSpaceDistance = MinDistance / VolumeBounds.GetExtent().GetMax();
 
 			if (MinDistance < 0 &&
@@ -819,12 +816,12 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 }
 
 void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
+	FString MeshName,
 	const FStaticMeshLODResources& LODModel,
 	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale,
-	float DistanceFieldBias,
 	bool bGenerateAsIfTwoSided,
 	FDistanceFieldVolumeData& OutData)
 {
@@ -941,7 +938,9 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 
 			OutData.Size = VolumeDimensions;
 			OutData.LocalBoundingBox = DistanceFieldVolumeBounds;
-			OutData.DistanceFieldVolume.AddZeroed(VolumeDimensions.X * VolumeDimensions.Y * VolumeDimensions.Z);
+
+			TArray<FFloat16> DistanceFieldVolume;
+			DistanceFieldVolume.AddZeroed(VolumeDimensions.X * VolumeDimensions.Y * VolumeDimensions.Z);
 
 			TIndirectArray<FAsyncTask<FMeshDistanceFieldAsyncTask>> AsyncTasks;
 
@@ -953,9 +952,8 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 					DistanceFieldVolumeBounds,
 					VolumeDimensions,
 					DistanceFieldVolumeMaxDistance,
-					DistanceFieldBias,
 					ZIndex,
-					&OutData.DistanceFieldVolume);
+					&DistanceFieldVolume);
 
 				Task->StartBackgroundTask(&ThreadPool);
 
@@ -975,21 +973,63 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 			OutData.bBuiltAsIfTwoSided = bGenerateAsIfTwoSided;
 			OutData.bMeshWasPlane = bMeshWasPlane;
 
-			UE_LOG(LogMeshUtilities, Log, TEXT("Finished distance field build in %.1fs - %ux%ux%u distance field, %u triangles"),
-				(float)(FPlatformTime::Seconds() - StartTime),
-				VolumeDimensions.X,
-				VolumeDimensions.Y,
-				VolumeDimensions.Z,
-				Indices.Num() / 3);
-
 			// Toss distance field if mesh was not closed
 			if (bNegativeAtBorder)
 			{
 				OutData.Size = FIntVector(0, 0, 0);
-				OutData.DistanceFieldVolume.Empty();
+				DistanceFieldVolume.Empty();
 
-				UE_LOG(LogMeshUtilities, Log, TEXT("Discarded distance field as mesh was not closed!  Assign a two-sided material to fix."));
+				UE_LOG(LogMeshUtilities, Log, TEXT("Discarded distance field for %s as mesh was not closed!  Assign a two-sided material to fix."), *MeshName);
 			}
+
+			if (DistanceFieldVolume.Num() > 0)
+			{
+				static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompressMeshDistanceFields"));
+				const bool bCompress = CVarCompress->GetValueOnAnyThread() != 0;
+
+				if (bCompress)
+				{
+					const int32 UncompressedSize = DistanceFieldVolume.Num() * DistanceFieldVolume.GetTypeSize();
+					TArray<uint8> TempCompressedMemory;
+					// Compressed can be slightly larger than uncompressed
+					TempCompressedMemory.Empty(UncompressedSize * 4 / 3);
+					TempCompressedMemory.AddUninitialized(UncompressedSize * 4 / 3);
+					int32 CompressedSize = TempCompressedMemory.Num() * TempCompressedMemory.GetTypeSize();
+
+					verify(FCompression::CompressMemory(
+						(ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory), 
+						TempCompressedMemory.GetData(), 
+						CompressedSize, 
+						DistanceFieldVolume.GetData(), 
+						UncompressedSize));
+
+					OutData.CompressedDistanceFieldVolume.Empty(CompressedSize);
+					OutData.CompressedDistanceFieldVolume.AddUninitialized(CompressedSize);
+
+					FPlatformMemory::Memcpy(OutData.CompressedDistanceFieldVolume.GetData(), TempCompressedMemory.GetData(), CompressedSize);
+				}
+				else
+				{
+					int32 CompressedSize = DistanceFieldVolume.Num() * DistanceFieldVolume.GetTypeSize();
+
+					OutData.CompressedDistanceFieldVolume.Empty(CompressedSize);
+					OutData.CompressedDistanceFieldVolume.AddUninitialized(CompressedSize);
+
+					FPlatformMemory::Memcpy(OutData.CompressedDistanceFieldVolume.GetData(), DistanceFieldVolume.GetData(), CompressedSize);
+				}
+			}
+			else
+			{
+				OutData.CompressedDistanceFieldVolume.Empty();
+			}
+
+			UE_LOG(LogMeshUtilities, Log, TEXT("Finished distance field build in %.1fs - %ux%ux%u distance field, %u triangles, %s"),
+				(float)(FPlatformTime::Seconds() - StartTime),
+				VolumeDimensions.X,
+				VolumeDimensions.Y,
+				VolumeDimensions.Z,
+				Indices.Num() / 3,
+				*MeshName);
 		}
 	}
 }
@@ -997,12 +1037,12 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 #else
 
 void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
+	FString MeshName,
 	const FStaticMeshLODResources& LODModel,
 	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale,
-	float DistanceFieldBias,
 	bool bGenerateAsIfTwoSided,
 	FDistanceFieldVolumeData& OutData)
 {
@@ -4038,7 +4078,7 @@ public:
 		}
 
 		// Calculate the bounding box.
-		FBox BoundingBox(0);
+		FBox BoundingBox(ForceInit);
 		FPositionVertexBuffer& BasePositionVertexBuffer = OutRenderData.LODResources[0].PositionVertexBuffer;
 		for (uint32 VertexIndex = 0; VertexIndex < BasePositionVertexBuffer.GetNumVertices(); VertexIndex++)
 		{
@@ -7269,11 +7309,7 @@ void FMeshUtilities::CalculateTextureCoordinateBoundsForSkeletalMesh(const FStat
 	LODModel.GetVertices(Vertices);
 	LODModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
 
-#if WITH_APEX_CLOTHING
 	const uint32 SectionCount = (uint32)LODModel.NumNonClothingSections();
-#else
-	const uint32 SectionCount = LODModel.Sections.Num();
-#endif // #if WITH_APEX_CLOTHING
 
 	check(OutBounds.Num() != 0);
 
@@ -7889,7 +7925,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			MaterialPackage->Modify();
 		}
 
-		UMaterialInstanceConstant* MergedMaterial = ProxyMaterialUtilities::CreateProxyMaterialInstance(MaterialPackage, InSettings.MaterialSettings, MergedFlatMaterial, MaterialAssetName, MaterialPackageName);
+		UMaterialInstanceConstant* MergedMaterial = ProxyMaterialUtilities::CreateProxyMaterialInstance(MaterialPackage, InSettings.MaterialSettings, MergedFlatMaterial, MaterialAssetName, MaterialPackageName, OutAssetsToSync);
 		// Set material static lighting usage flag if project has static lighting enabled
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);

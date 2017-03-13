@@ -623,3 +623,16 @@ struct TArrayCaster
 		return *reinterpret_cast<TArray<U>*>(&ValRef);
 	}
 };
+
+template<typename T>
+T ConstructTInlineValue(UScriptStruct* Struct)
+{
+	check(Struct);
+	UScriptStruct::ICppStructOps* StructOps = Struct->GetCppStructOps();
+	check(StructOps);
+
+	T Value{};
+	void* Allocation = Value.Reserve(StructOps->GetSize(), StructOps->GetAlignment());
+	Struct->InitializeStruct(Allocation);
+	return Value;
+}

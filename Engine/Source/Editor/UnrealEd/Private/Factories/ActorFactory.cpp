@@ -263,6 +263,12 @@ AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform 
 		{
 			PostSpawnActor(Asset, NewActor);
 		}
+
+		// Only do this if the actor wasn't already given a name
+		if (Name == NAME_None && Asset)
+		{
+			FActorLabelUtilities::SetActorLabelUnique(NewActor, Asset->GetName());
+		}
 	}
 
 	return NewActor;
@@ -302,11 +308,6 @@ AActor* UActorFactory::SpawnActor( UObject* Asset, ULevel* InLevel, const FTrans
 
 void UActorFactory::PostSpawnActor( UObject* Asset, AActor* NewActor)
 {
-	// Subclasses may implement this to modify the actor after it has been spawned
-	if (Asset)
-	{
-		FActorLabelUtilities::SetActorLabelUnique(NewActor, Asset->GetName());
-	}
 }
 
 void UActorFactory::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -580,7 +581,7 @@ UActorFactoryTextRender::UActorFactoryTextRender(const FObjectInitializer& Objec
 {
 	// Property initialization
 	DisplayName = LOCTEXT("TextRenderDisplayName", "Text Render");
-	NewActorClass = ATextRenderActor::GetPrivateStaticClass(L"...");
+	NewActorClass = ATextRenderActor::StaticClass();
 	bUseSurfaceOrientation = true;
 }
 

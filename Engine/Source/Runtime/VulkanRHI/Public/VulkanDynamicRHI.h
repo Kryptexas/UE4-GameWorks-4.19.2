@@ -183,12 +183,10 @@ protected:
 
 	static void GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& OutInstanceExtensions, TArray<const ANSICHAR*>& OutInstanceLayers);
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	IConsoleObject* SavePipelineCacheCmd;
 	IConsoleObject* RebuildPipelineCacheCmd;
 	static void SavePipelineCache();
 	static void RebuildPipelineCache();
-#endif
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	IConsoleObject* DumpMemoryCmd;

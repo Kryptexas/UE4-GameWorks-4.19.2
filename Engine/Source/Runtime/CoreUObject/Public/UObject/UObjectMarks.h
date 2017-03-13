@@ -42,18 +42,16 @@
 
 enum EObjectMark
 {
-	OBJECTMARK_NOMARKS				= 0x00000000,		// Zero, nothing marked
-	OBJECTMARK_Saved				= 0x00000004,		// Object has been saved via SavePackage. Temporary.
-	OBJECTMARK_TagImp				= 0x00000008,		// Temporary import tag in load/save.
-	OBJECTMARK_TagExp				= 0x00000010,		// Temporary export tag in load/save.
-	OBJECTMARK_NotForClient			= 0x00000020,		// Temporary save tag for client load flag.
-	OBJECTMARK_NotForServer			= 0x00000040,		// Temporary save tag for server load flag.
-	OBJECTMARK_NotForEditorGame		= 0x00000080,		// Temporary save tag for editorgame load flag.
-	OBJECTMARK_EditorOnly = 0x00000100, // Temporary editor only flag
-	OBJECTMARK_ALLMARKS				= 0xffffffff,		// -1, all possible marks
+	OBJECTMARK_NOMARKS						= 0x00000000,		// Zero, nothing marked
+	OBJECTMARK_Saved						= 0x00000004,		// Object has been saved via SavePackage. Temporary.
+	OBJECTMARK_TagImp						= 0x00000008,		// Temporary import tag in load/save.
+	OBJECTMARK_TagExp						= 0x00000010,		// Temporary export tag in load/save.
+	OBJECTMARK_NotForClient					= 0x00000020,		// Temporary save tag for client load flag.
+	OBJECTMARK_NotForServer					= 0x00000040,		// Temporary save tag for server load flag.
+	OBJECTMARK_NotAlwaysLoadedForEditorGame	= 0x00000080,		// Temporary save tag for editorgame load flag.
+	OBJECTMARK_EditorOnly					= 0x00000100,		// Temporary editor only flag
+	OBJECTMARK_ALLMARKS						= 0xffffffff,		// -1, all possible marks
 };
-
-
 
 /**
  * Adds marks to an object

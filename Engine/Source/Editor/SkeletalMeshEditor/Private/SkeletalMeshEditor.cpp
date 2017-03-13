@@ -30,6 +30,7 @@ const FName SkeletalMeshEditorTabs::AssetDetailsTab(TEXT("AnimAssetPropertiesTab
 const FName SkeletalMeshEditorTabs::ViewportTab(TEXT("Viewport"));
 const FName SkeletalMeshEditorTabs::AdvancedPreviewTab(TEXT("AdvancedPreviewTab"));
 const FName SkeletalMeshEditorTabs::MorphTargetsTab("MorphTargetsTab");
+const FName SkeletalMeshEditorTabs::AnimationMappingTab("AnimationMappingWindow");
 
 DEFINE_LOG_CATEGORY(LogSkeletalMeshEditor);
 

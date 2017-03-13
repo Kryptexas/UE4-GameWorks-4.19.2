@@ -292,7 +292,7 @@ TSharedRef<SWidget> FMacTargetSettingsDetails::OnGetShaderVersionContent()
 		if (Enum->IsValidEnumValue(i))
 		{
 			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FMacTargetSettingsDetails::SetShaderStandard, i));
-			MenuBuilder.AddMenuEntry(Enum->GetEnumTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
+			MenuBuilder.AddMenuEntry(Enum->GetDisplayNameTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
 		}
 	}
 	
@@ -308,7 +308,7 @@ FText FMacTargetSettingsDetails::GetShaderVersionDesc() const
 	
 	if (EnumValue < Enum->GetMaxEnumValue() && Enum->IsValidEnumValue(EnumValue))
 	{
-		return Enum->GetEnumTextByValue(EnumValue);
+		return Enum->GetDisplayNameTextByValue(EnumValue);
 	}
 	
 	return FText::GetEmpty();

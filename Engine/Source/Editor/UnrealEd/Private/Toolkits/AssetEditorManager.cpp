@@ -212,6 +212,8 @@ void FAssetEditorManager::NotifyAssetOpened(UObject* Asset, IAssetEditorInstance
 	OpenedAssets.Add(Asset, InInstance);
 	OpenedEditors.Add(InInstance, Asset);
 
+	AssetOpenedInEditorEvent.Broadcast(Asset, InInstance);
+
 	SaveOpenAssetEditors(false);
 }
 

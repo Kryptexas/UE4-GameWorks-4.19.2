@@ -137,6 +137,17 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, const FString& PathToPr
 				}
 			}
 		}
+		// If this is a packaged build and there are additional directories, they need to be remapped to the packaged location
+		if (FPlatformProperties::RequiresCookedData() && AdditionalPluginDirectories.Num() > 0)
+		{
+			AdditionalPluginDirectories.Empty();
+			FString RemappedDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*(PathToProject / TEXT("../RemappedPlugins/")));
+			if (!IsRootedPath(RemappedDir))
+			{
+				RemappedDir = FPaths::ConvertRelativePathToFull(RemappedDir);
+			}
+			AddPluginDirectory(RemappedDir);
+		}
 	}
 
 	// Read the target platforms

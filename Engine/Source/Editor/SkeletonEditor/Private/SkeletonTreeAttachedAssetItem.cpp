@@ -19,6 +19,7 @@
 
 FSkeletonTreeAttachedAssetItem::FSkeletonTreeAttachedAssetItem(UObject* InAsset, const FName& InAttachedTo, const TSharedRef<class ISkeletonTree>& InSkeletonTree)
 	: FSkeletonTreeItem(InSkeletonTree)
+	, AttachedTo(InAttachedTo)
 	, Asset(InAsset)
 {
 	AssetComponent = PersonaUtils::GetComponentForAttachedObject(InSkeletonTree->GetPreviewScene()->GetPreviewMeshComponent(), InAsset, InAttachedTo);
@@ -27,7 +28,7 @@ FSkeletonTreeAttachedAssetItem::FSkeletonTreeAttachedAssetItem(UObject* InAsset,
 void FSkeletonTreeAttachedAssetItem::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, const TAttribute<FText>& FilterText, FIsSelected InIsSelected )
 {
 	UActorFactory* ActorFactory = FActorFactoryAssetProxy::GetFactoryForAssetObject( Asset );
-	const FSlateBrush* IconBrush = FSlateIconFinder::FindIconBrushForClass(ActorFactory->GetDefaultActorClass(FAssetData()));
+	const FSlateBrush* IconBrush = ActorFactory ? FSlateIconFinder::FindIconBrushForClass(ActorFactory->GetDefaultActorClass(FAssetData())) : nullptr;
 	
 	Box->AddSlot()
 		.Padding(FMargin(0.0f, 1.0f))

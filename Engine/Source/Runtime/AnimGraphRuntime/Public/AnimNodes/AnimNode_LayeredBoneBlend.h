@@ -42,6 +42,22 @@ public:
 	bool bHasRelevantPoses;
 
 protected:
+
+	// This is buffer to serialize blend weight data for each joints
+	// This has to save with the corresponding SkeletopnGuid
+	// If not, it will rebuild in run-time
+	UPROPERTY()
+	TArray<FPerBoneBlendWeight>	PerBoneBlendWeights;
+
+	UPROPERTY()
+	FGuid						SkeletonGuid;
+
+	UPROPERTY()
+	FGuid						VirtualBoneGuid;
+
+
+	// transient data to handle weight and target weight
+	// this array changes based on required bones
 	TArray<FPerBoneBlendWeight> DesiredBoneBlendWeights;
 	TArray<FPerBoneBlendWeight> CurrentBoneBlendWeights;
 	TArray<uint8> CurvePoseSourceIndices;
@@ -60,7 +76,6 @@ public:
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 
-#if WITH_EDITOR
 	void AddPose()
 	{
 		BlendWeights.Add(1.f);
@@ -75,11 +90,21 @@ public:
 		LayerSetup.RemoveAt(PoseIndex);
 	}
 
+#if WITH_EDITOR
 	// ideally you don't like to get to situation where it becomes inconsistent, but this happened, 
 	// and we don't know what caused this. Possibly copy/paste, but I tried copy/paste and that didn't work
 	// so here we add code to fix this up manually in editor, so that they can continue working on it. 
 	void ValidateData();
+	// FAnimNode_Base interface
+	virtual void PostCompile(const class USkeleton* InSkeleton) override;
+	// end FAnimNode_Base interface
 #endif
 
+	/** Reinitialize bone weights */
 	void ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton* Skeleton);
+
+private:
+	// Rebuild cache data from the skeleton
+	void RebuildCacheData(const USkeleton* InSkeleton);
+	bool IsCacheInvalid(const USkeleton* InSkeleton) const;
 };

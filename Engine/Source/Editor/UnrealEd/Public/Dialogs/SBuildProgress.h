@@ -4,8 +4,7 @@
 	DlgBuildProgress.h: UnrealEd dialog for displaying map build progress and cancelling builds.
 =============================================================================*/
 
-#ifndef __DLGBUILDPROGRESS_H__
-#define __DLGBUILDPROGRESS_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Input/Reply.h"
@@ -130,5 +129,3 @@ private:
 	int32				ErrorCount;
 	int32				CriticalErrorCount;
 };
-
-#endif // __DLGBUILDPROGRESS_H__

@@ -11,8 +11,9 @@ namespace Audio
 	* Direct-form sinusoid oscillator. 
 	* Created with a biquad filter (using only feedback coefficients) with poles directly on unit circle in z-plane.
 	* Setting frequency uses current filter state to compute initial conditions to avoid pops when changing frequency.
+	* Extremely cheap to run but expensive to set new frequencies. Good for test tones.
 	*/
-	class FSineOsc
+	class AUDIOMIXER_API FSineOsc
 	{
 	public:
 		/** Constructor */
@@ -34,7 +35,7 @@ namespace Audio
 		float GetFrequency() const;
 
 		/** Generates the next sample of the oscillator. */
-		float operator()();
+		float ProcessAudio();
 
 	protected:
 		int32 SampleRate;

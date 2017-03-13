@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace UnrealBuildTool
 {
-	public static class SourceFileSearch
+	static class SourceFileSearch
 	{
 		// Certain file types should never be added to project files. These extensions must all be lowercase.
 		static readonly string[] DefaultExcludedFileSuffixes = new string[] 
@@ -46,10 +46,9 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Fills in a project file with source files discovered in the specified list of paths
 		/// </summary>
-		/// <param name="SourceFilePaths">List of paths to look for source files</param>
+		/// <param name="DirectoryToSearch">Directory to search</param>
 		/// <param name="SubdirectoryNamesToExclude">Directory base names to ignore when searching subdirectories.  Can be null.</param>
 		/// <param name="SearchSubdirectories">True to include subdirectories, otherwise we only search the list of base directories</param>
-		/// <param name="IncludePrivateSourceCode">True if source files in the 'Private' directory should be included</param>
 		public static List<FileReference> FindFiles(DirectoryReference DirectoryToSearch, List<string> SubdirectoryNamesToExclude = null, bool SearchSubdirectories = true)
 		{
 			// Build a list of directory names that we don't want to search under. We always ignore intermediate directories.
@@ -78,7 +77,7 @@ namespace UnrealBuildTool
 
 		static void FindFilesInternal(DirectoryReference Directory, string[] ExcludedDirectorySuffixes, List<FileReference> FoundFiles)
 		{
-			foreach (FileReference File in Directory.EnumerateFileReferences())
+			foreach (FileReference File in DirectoryReference.EnumerateFiles(Directory))
 			{
 				if (ShouldInclude(File, DefaultExcludedFileSuffixes))
 				{
@@ -91,7 +90,7 @@ namespace UnrealBuildTool
 		{
 			FindFilesInternal(Directory, ExcludedDirectorySuffixes, FoundFiles);
 
-			foreach (DirectoryReference SubDirectory in Directory.EnumerateDirectoryReferences())
+			foreach (DirectoryReference SubDirectory in DirectoryReference.EnumerateDirectories(Directory))
 			{
 				if (ShouldInclude(SubDirectory, ExcludedDirectorySuffixes))
 				{

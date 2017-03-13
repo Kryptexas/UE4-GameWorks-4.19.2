@@ -26,6 +26,7 @@ class SLATE_API SVectorInputBox : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SVectorInputBox )
 		: _Font( FCoreStyle::Get().GetFontStyle("NormalFont") )
+		, _AllowSpin(true)
 		, _bColorAxisLabels( false )
 		, _AllowResponsiveLayout( false )
 		{}
@@ -41,6 +42,9 @@ public:
 
 		/** Font to use for the text in this box */
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
+
+		/** Whether or not values can be spun or if they should be typed in */
+		SLATE_ARGUMENT(bool, AllowSpin)
 
 		/** Should the axis labels be colored */
 		SLATE_ARGUMENT( bool, bColorAxisLabels )		

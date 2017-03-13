@@ -375,6 +375,15 @@ struct FStartPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FStartPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FStartPhysicsTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 /** 
 * Tick function that ends the physics tick
 **/
@@ -396,6 +405,15 @@ struct FEndPhysicsTickFunction : public FTickFunction
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage() override;
+};
+
+template<>
+struct TStructOpsTypeTraits<FEndPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FEndPhysicsTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 /**
@@ -421,6 +439,14 @@ struct FStartAsyncSimulationFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FStartAsyncSimulationFunction> : public TStructOpsTypeTraitsBase2<FStartAsyncSimulationFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
 
 /* Struct of optional parameters passed to SpawnActor function(s). */
 PRAGMA_DISABLE_DEPRECATION_WARNINGS // Required for auto-generated functions referencing bNoCollisionFail
@@ -641,7 +667,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FLevelCollection> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FLevelCollection> : public TStructOpsTypeTraitsBase2<FLevelCollection>
 {
 	enum
 	{
@@ -896,6 +922,8 @@ public:
 
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bShowSlowProgressDialog = true);
+
+	void RecreateScene(ERHIFeatureLevel::Type InFeatureLevel);
 
 #endif // WITH_EDITOR
 
@@ -1161,8 +1189,8 @@ public:
 	/** Requested new world origin location */
 	FIntVector RequestedOriginLocation;
 
-	/** Whether world origin was rebased this frame */
-	bool bOriginOffsetThisFrame;
+	/** World origin offset value. Non-zero only for a single frame when origin is rebased */
+	FVector OriginOffsetThisFrame;
 		
 	/** All levels information from which our world is composed */
 	UPROPERTY()
@@ -1980,7 +2008,7 @@ public:
 	 *
 	 * @return AWorldSettings actor associated with this world
 	 */
-	AWorldSettings* GetWorldSettings( bool bCheckStreamingPesistent = false, bool bChecked = true ) const;
+	AWorldSettings* GetWorldSettings( bool bCheckStreamingPersistent = false, bool bChecked = true ) const;
 
 	/**
 	 * Returns the current levels BSP model.
@@ -2405,11 +2433,12 @@ public:
 	 */
 	void UpdateActorComponentEndOfFrameUpdateState(UActorComponent* Component) const;
 
+	bool HasEndOfFrameUpdates();
+
 	/**
 	 * Send all render updates to the rendering thread.
 	 */
 	void SendAllEndOfFrameUpdates();
-
 
 	/** Do per frame tick behaviors related to the network driver */
 	void TickNetClient( float DeltaSeconds );
@@ -2945,9 +2974,6 @@ public:
 	/** Returns the actor count. */
 	int32 GetActorCount();
 	
-	/** Returns the net relevant actor count. */
-	int32 GetNetRelevantActorCount();
-
 public:
 
 	/**
@@ -3278,7 +3304,7 @@ FORCEINLINE_DEBUGGABLE float UWorld::GetUnpausedTimeSeconds() const
 
 FORCEINLINE_DEBUGGABLE float UWorld::GetRealTimeSeconds() const
 {
-	checkSlow(IsInGameThread());
+	checkSlow(!IsInActualRenderingThread());
 	return RealTimeSeconds;
 }
 
@@ -3297,7 +3323,7 @@ FORCEINLINE_DEBUGGABLE float UWorld::TimeSince(float Time) const
 	return GetTimeSeconds() - Time;
 }
 
-FORCEINLINE_DEBUGGABLE bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UPrimitiveComponent* PrimComp, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+FORCEINLINE_DEBUGGABLE bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UPrimitiveComponent* PrimComp, const FVector& Pos, const FRotator& Rot, const FComponentQueryParams& Params, const FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// Pass through to FQuat version.
 	return ComponentOverlapMulti(OutOverlaps, PrimComp, Pos, Rot.Quaternion(), Params, ObjectQueryParams);
@@ -3309,7 +3335,7 @@ FORCEINLINE_DEBUGGABLE bool UWorld::ComponentOverlapMultiByChannel(TArray<struct
 	return ComponentOverlapMultiByChannel(OutOverlaps, PrimComp, Pos, Rot.Quaternion(), TraceChannel, Params);
 }
 
-FORCEINLINE_DEBUGGABLE bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrimitiveComponent* PrimComp, const FVector& Start, const FVector& End, const FRotator& Rot, const struct FComponentQueryParams& Params) const
+FORCEINLINE_DEBUGGABLE bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrimitiveComponent* PrimComp, const FVector& Start, const FVector& End, const FRotator& Rot, const FComponentQueryParams& Params) const
 {
 	// Pass through to FQuat version.
 	return ComponentSweepMulti(OutHits, PrimComp, Start, End, Rot.Quaternion(), Params);

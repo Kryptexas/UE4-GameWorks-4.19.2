@@ -234,13 +234,13 @@ public:
 	virtual FString		GetReplayID() const override { return SessionName; }
 	virtual void		SetTimeBufferHintSeconds(const float InTimeBufferHintSeconds) override {}
 	virtual void		RefreshHeader() override;
+	virtual void		DownloadHeader(const FOnDownloadHeaderComplete& Delegate = FOnDownloadHeaderComplete());
 
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();
 	void FlushStream();
 	void ConditionallyFlushStream();
 	void StopUploading();
-	void DownloadHeader();
 	bool IsTaskPendingOrInFlight( const EQueuedHttpRequestType::Type Type ) const;
 	void CancelInFlightOrPendingTask( const EQueuedHttpRequestType::Type Type );
 	void ConditionallyDownloadNextChunk();
@@ -276,7 +276,7 @@ public:
 	void RequestFinished( EStreamerState ExpectedStreamerState, EQueuedHttpRequestType::Type ExpectedType, FHttpRequestPtr HttpRequest );
 
 	void HttpStartDownloadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
-	void HttpDownloadHeaderFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+	void HttpDownloadHeaderFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FOnDownloadHeaderComplete Delegate);
 	void HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, int32 RequestedStreamChunkIndex, bool bStreamWasLive );
 	void HttpDownloadCheckpointFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpRefreshViewerFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
@@ -337,6 +337,8 @@ public:
 	uint32								TotalUploadBytes;
 
 	TMap< FString, FCachedResponse >	ResponseCache;
+
+	int32								RefreshViewerFails;
 };
 
 class HTTPNETWORKREPLAYSTREAMING_API FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory, public FTickableGameObject

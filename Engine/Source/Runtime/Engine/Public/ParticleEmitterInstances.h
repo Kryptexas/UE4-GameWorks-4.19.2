@@ -254,7 +254,9 @@ public:
 	/** Whether this emitter requires sorting as specified by artist.	*/
 	uint32 bRequiresSorting:1;
 	/** If true, halt spawning for this instance.						*/
-	uint32 bHaltSpawning:1;
+	uint32 bHaltSpawning : 1;
+	/** If true, this emitter has been disabled by game code and some systems to re-enable are not allowed. */
+	uint32 bHaltSpawningExternal : 1;
 	/** If true, the emitter has modules that require loop notification.*/
 	uint32 bRequiresLoopNotification:1;
 	/** If true, the emitter ignores the component's scale. (Mesh emitters only). */
@@ -516,6 +518,12 @@ public:
 	virtual void SetHaltSpawning(bool bInHaltSpawning)
 	{
 		bHaltSpawning = bInHaltSpawning;
+	}
+
+	/** Set the bHaltSpawningExternal flag */
+	virtual void SetHaltSpawningExternal(bool bInHaltSpawning)
+	{
+		bHaltSpawningExternal = bInHaltSpawning;
 	}
 
 	FORCEINLINE void SetFakeBurstWhenSpawningSupressed(bool bInFakeBurstsWhenSpawningSupressed)

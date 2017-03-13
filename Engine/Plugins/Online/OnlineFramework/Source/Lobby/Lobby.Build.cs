@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Lobby : ModuleRules
 {
-	public Lobby(TargetInfo Target)
+	public Lobby(ReadOnlyTargetRules Target) : base(Target)
 	{		
 		Definitions.Add("LOBBY_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;

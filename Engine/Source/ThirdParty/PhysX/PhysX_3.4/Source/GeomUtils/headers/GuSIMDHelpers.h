@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -72,7 +72,7 @@ namespace Gu
 			const QuatV qV = V4LoadU(&q.x);
 			Vec3V column0V, column1V, column2V;
 			QuatGetMat33V(qV, column0V, column1V, column2V);
-#if defined(PX_SIMD_DISABLED) || PX_ANDROID || (PX_LINUX && PX_ARM)
+#if defined(PX_SIMD_DISABLED) || PX_ANDROID || (PX_LINUX && (PX_ARM || PX_A64))
 			V3StoreU(column0V, column0);
 			V3StoreU(column1V, column1);
 			V3StoreU(column2V, column2);

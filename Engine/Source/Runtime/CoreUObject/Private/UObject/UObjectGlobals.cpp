@@ -126,6 +126,7 @@ FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::String
 FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
 FCoreUObjectDelegates::FPackageLoadedFromStringAssetReference FCoreUObjectDelegates::PackageLoadedFromStringAssetReference;
+FCoreUObjectDelegates::FGetPrimaryAssetIdForObject FCoreUObjectDelegates::GetPrimaryAssetIdForObject;
 
 /** Check whether we should report progress or not */
 bool ShouldReportProgress()
@@ -949,6 +950,7 @@ UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* InNam
 }
 
 #if WITH_EDITOR
+#include "StackTracker.h"
 class FDiffFileArchive : public FArchiveProxy
 {
 private:
@@ -970,13 +972,15 @@ public:
 			delete DiffArchive;
 	}
 
-	virtual void PushDebugDataString(const FName& DebugData)
+	virtual void PushDebugDataString(const FName& DebugData) override
 	{
+		FArchiveProxy::PushDebugDataString(DebugData);
 		DebugDataStack.Add(DebugData);
 	}
 
-	virtual void PopDebugDataString()
+	virtual void PopDebugDataString() override
 	{
+		FArchiveProxy::PopDebugDataString();
 		DebugDataStack.Pop();
 	}
 
@@ -1002,7 +1006,15 @@ public:
 					DebugStackString += TEXT("->");
 				}
 
-				UE_LOG(LogUObjectGlobals, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s, stack %s "), Pos, *InnerArchive.GetArchiveName(), *DebugStackString);
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s"), Pos, *InnerArchive.GetArchiveName());
+
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("debug stack %s"), *DebugStackString);
+
+
+				FStackTracker TempTracker(NULL, NULL, true);
+				TempTracker.CaptureStackTrace(1);
+				TempTracker.DumpStackTraces(0, *GLog);
+				TempTracker.ResetTracking();
 
 				// only log one message per archive, from this point the entire package is probably messed up
 				bDisable = true;
@@ -1023,14 +1035,21 @@ public:
 	{
 		Package->LinkerLoad = this;
 
-		while (CreateLoader(TFunction<void()>([]() {})) == FLinkerLoad::LINKER_TimedOut)
+		/*while (CreateLoader(TFunction<void()>([]() {})) == FLinkerLoad::LINKER_TimedOut)
 		{
-		}
+		}*/
 
+
+		
+
+		while ( Tick(0.0, false, false) == FLinkerLoad::LINKER_TimedOut ) 
+		{ 
+		}
 
 		FArchive* OtherFile = IFileManager::Get().CreateFileReader(DiffFilename);
 		FDiffFileArchive* DiffArchive = new FDiffFileArchive(Loader, OtherFile);
 		Loader = DiffArchive;
+
 	}
 };
 
@@ -1126,26 +1145,15 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
 		if (!Result || !Result->IsFullyLoaded())
 		{
-			if (FLinkerLoad::IsKnownMissingPackage(PackageFName) || (Result && Result->IsPendingKill()))
-			{
-				// Don't retry if known missing or pending kill
-				UE_LOG(LogUObjectGlobals, Verbose, TEXT("Failing load of package %s because it's already failed once %s."), *InPackageName);
-			}
-			else
-			{
-				FlushAsyncLoading();
-				Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-			
-				check(!Result || Result->IsFullyLoaded());
-				if (!Result)
-				{
-					LoadPackageAsync(InName, nullptr, *InPackageName);
-					FlushAsyncLoading();
-					Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-				}
-			}
+			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
+			FlushAsyncLoading(RequestID);
 		}
 
+		if (InOuter)
+			{
+			return InOuter;
+			}
+				Result = FindObjectFast<UPackage>(nullptr, PackageFName);
 		return Result;
 }
 
@@ -1444,8 +1452,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		OrderTracker.ValueSort(TLess<int32>());
 		for (auto& Dependency : OrderTracker)
 		{
-			Result = FindObjectFast<UPackage>(nullptr, Dependency.Key, false, false); // might have already loaded this via a circular dependency
-			if (Result)
+			// might have already loaded this via a circular dependency
+			Result = FindObjectFast<UPackage>(nullptr, Dependency.Key, false, false); 
+
+			// In the case where the load request is coming from CreateImport, the package will exist and be found but still needs to be
+			// actually loaded.
+			if (Result && Result->bHasBeenFullyLoaded)
 			{
 				//UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage already loaded, skipping %s."), *Dependency.Key.ToString());
 			}
@@ -1749,6 +1761,9 @@ void EndLoad()
 			}
 		}
 	}
+
+	// Loaded new objects, so allow reaccessing asset ptrs
+	FStringAssetReference::InvalidateTag();
 }
 
 /*-----------------------------------------------------------------------------
@@ -2466,7 +2481,7 @@ UObject* StaticAllocateObject
 	if (!bSubObject)
 	{
 		FMemory::Memzero((void *)Obj, TotalSize);
-		new ((void *)Obj) UObjectBase(InClass, InFlags, InternalSetFlags, InOuter, InName);
+		new ((void *)Obj) UObjectBase(InClass, InFlags|RF_NeedInitialization, InternalSetFlags, InOuter, InName);
 	}
 	else
 	{
@@ -2950,7 +2965,9 @@ void FObjectInitializer::PostConstructInit()
 		Obj->CheckDefaultSubobjects();
 	}
 
-	// clear the object pointer so we can guard against runing this function again
+	Obj->ClearFlags(RF_NeedInitialization);
+
+	// clear the object pointer so we can guard against running this function again
 	Obj = nullptr;
 }
 

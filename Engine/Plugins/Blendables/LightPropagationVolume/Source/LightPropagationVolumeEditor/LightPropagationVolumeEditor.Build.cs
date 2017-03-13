@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LightPropagationVolumeEditor : ModuleRules
 {
-    public LightPropagationVolumeEditor(TargetInfo Target)
+    public LightPropagationVolumeEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {	

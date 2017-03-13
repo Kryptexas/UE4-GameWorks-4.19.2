@@ -53,6 +53,7 @@ public:
 	virtual TSharedRef< class SWidget > GetParentWidget() override;
 	virtual void BringToFront() override;
 	virtual TSharedRef< class SDockTabStack > GetTabSpot( const EToolkitTabSpot::Type TabSpot ) override;
+	virtual TSharedPtr< class FTabManager > GetTabManager() const override { return MyTabManager; }
 	virtual void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit ) override;
 	virtual void OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit ) override;
 	virtual UWorld* GetWorld() const override;

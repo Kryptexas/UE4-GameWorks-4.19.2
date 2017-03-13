@@ -517,7 +517,7 @@ class FInstancedStaticMeshSceneProxy : public FStaticMeshSceneProxy
 public:
 
 	FInstancedStaticMeshSceneProxy(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel)
-	:	FStaticMeshSceneProxy(InComponent)
+	:	FStaticMeshSceneProxy(InComponent, true)
 	,	InstancedRenderData(InComponent, InFeatureLevel)
 #if WITH_EDITOR
 	,	bHasSelectedInstances(InComponent->SelectedInstances.Num() > 0)
@@ -527,7 +527,7 @@ public:
 	}
 
 	FInstancedStaticMeshSceneProxy(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
-		:	FStaticMeshSceneProxy(InComponent)
+		:	FStaticMeshSceneProxy(InComponent, true)
 		,	InstancedRenderData(InComponent, InFeatureLevel, Other)
 #if WITH_EDITOR
 		,	bHasSelectedInstances(InComponent->SelectedInstances.Num() > 0)
@@ -574,7 +574,7 @@ public:
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
 	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const override;
 
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
 
 	virtual void GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const override;
 

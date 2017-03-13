@@ -155,6 +155,8 @@ struct ExistingSkelMeshData
 
 	TWeakObjectPtr<UAssetImportData>		ExistingAssetImportData;
 	TWeakObjectPtr<UThumbnailInfo>			ExistingThumbnailInfo;
+
+	TArray<UClothingAssetBase*>				ExistingClothingAssets;
 };
 
 /**

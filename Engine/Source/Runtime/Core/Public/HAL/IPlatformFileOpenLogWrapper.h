@@ -11,10 +11,36 @@
 #include "Misc/DateTime.h"
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "Misc/Paths.h"
+#include "Async/AsyncFileHandle.h"
 
 class IAsyncReadFileHandle;
+class FPlatformFileOpenLog;
 
 #if !UE_BUILD_SHIPPING
+
+class FLoggingAsyncReadFileHandle final : public IAsyncReadFileHandle
+{
+	FPlatformFileOpenLog* Owner;
+	FString Filename;
+	IAsyncReadFileHandle* ActualRequest;
+public:
+	FLoggingAsyncReadFileHandle(FPlatformFileOpenLog* InOwner, const TCHAR* InFilename, IAsyncReadFileHandle* InActualRequest)
+		: Owner(InOwner)
+		, Filename(InFilename)
+		, ActualRequest(InActualRequest)
+	{
+	}
+	~FLoggingAsyncReadFileHandle()
+	{
+		delete ActualRequest;
+	}
+	virtual IAsyncReadRequest* SizeRequest(FAsyncFileCallBack* CompleteCallback = nullptr) override
+	{
+		return ActualRequest->SizeRequest(CompleteCallback);
+	}
+	virtual IAsyncReadRequest* ReadRequest(int64 Offset, int64 BytesToRead, EAsyncIOPriority Priority = AIOP_Normal, FAsyncFileCallBack* CompleteCallback = nullptr, uint8* UserSuppliedMemory = nullptr) override;
+};
+
 
 class CORE_API FPlatformFileOpenLog : public IPlatformFile
 {
@@ -153,17 +179,7 @@ public:
 		IFileHandle* Result = LowerLevel->OpenRead(Filename, bAllowWrite);
 		if (Result)
 		{
-			CriticalSection.Lock();
-			if (FilenameAccessMap.Find(Filename) == nullptr)
-			{
-				FilenameAccessMap.Emplace(Filename, ++OpenOrder);
-				FString Text = FString::Printf(TEXT("\"%s\" %llu\n"), Filename, OpenOrder);
-				for (auto File = LogOutput.CreateIterator(); File; ++File)
-				{
-					(*File)->Write((uint8*)StringCast<ANSICHAR>(*Text).Get(), Text.Len());
-				}
-			}
-			CriticalSection.Unlock();
+			AddToOpenLog(Filename);
 		}
 		return Result;
 	}
@@ -233,23 +249,33 @@ public:
 	}
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
-		IAsyncReadFileHandle* Result = LowerLevel->OpenAsyncRead(Filename);
-		if (Result)
+		// we must not record the "open" here...what matters is when we start reading the file!
+		return new FLoggingAsyncReadFileHandle(this, Filename, LowerLevel->OpenAsyncRead(Filename));
+	}
+
+	void AddToOpenLog(const TCHAR* Filename)
+	{
+		CriticalSection.Lock();
+		if (FilenameAccessMap.Find(Filename) == nullptr)
 		{
-			CriticalSection.Lock();
-			if (FilenameAccessMap.Find(Filename) == nullptr)
+			FilenameAccessMap.Emplace(Filename, ++OpenOrder);
+			FString Text = FString::Printf(TEXT("\"%s\" %llu\n"), Filename, OpenOrder);
+			for (auto File = LogOutput.CreateIterator(); File; ++File)
 			{
-				FilenameAccessMap.Emplace(Filename, ++OpenOrder);
-				FString Text = FString::Printf(TEXT("\"%s\" %llu\n"), Filename, OpenOrder);
-				for (auto File = LogOutput.CreateIterator(); File; ++File)
-				{
-					(*File)->Write((uint8*)StringCast<ANSICHAR>(*Text).Get(), Text.Len());
-				}
+				(*File)->Write((uint8*)StringCast<ANSICHAR>(*Text).Get(), Text.Len());
 			}
-			CriticalSection.Unlock();
 		}
-		return Result;
+		CriticalSection.Unlock();
 	}
 };
+
+IAsyncReadRequest* FLoggingAsyncReadFileHandle::ReadRequest(int64 Offset, int64 BytesToRead, EAsyncIOPriority Priority, FAsyncFileCallBack* CompleteCallback, uint8* UserSuppliedMemory)
+{
+	if (Priority != AIOP_Precache)
+	{
+		Owner->AddToOpenLog(*Filename);
+	}
+	return ActualRequest->ReadRequest(Offset, BytesToRead, Priority, CompleteCallback, UserSuppliedMemory);
+}
 
 #endif // !UE_BUILD_SHIPPING

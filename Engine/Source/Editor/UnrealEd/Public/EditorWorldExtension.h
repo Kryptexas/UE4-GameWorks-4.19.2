@@ -8,6 +8,8 @@
 
 struct FWorldContext;
 class UEditorWorldExtensionCollection;
+class UEditorWorldExtensionManager;
+class UEditorWorldExtension;
 
 UCLASS()
 class UNREALED_API UEditorWorldExtension : public UObject
@@ -181,7 +183,7 @@ public:
 
 	/** Gets the editor world wrapper that is found with the world passed.
 	 * Adds one for this world if there was non found. */
-	UEditorWorldExtensionCollection* GetEditorWorldExtensions(UWorld* InWorld);
+	UEditorWorldExtensionCollection* GetEditorWorldExtensions(const UWorld* InWorld, const bool bCreateIfNeeded = true);
 
 	/** Ticks all the collections */
 	void Tick( float DeltaSeconds );

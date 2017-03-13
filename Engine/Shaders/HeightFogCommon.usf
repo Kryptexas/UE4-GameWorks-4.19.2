@@ -20,6 +20,7 @@ float4 ExponentialFogParameters;
 float4 ExponentialFogColorParameter;
 /** FogDensity in x, FogHeight in y, whether to use cubemap fog color in z, FogCutoffDistance in w. */
 float4 ExponentialFogParameters3;
+float2 SinCosInscatteringColorCubemapRotation;
 half4 InscatteringLightDirection;
 half4 DirectionalInscatteringColor;
 float DirectionalInscatteringStartDistance;
@@ -88,8 +89,11 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera)
 	if (ExponentialFogParameters3.z > 0)
 	{
 		float FadeAlpha = saturate(CameraToReceiverLength * FogInscatteringTextureParameters.x + FogInscatteringTextureParameters.y);
-		float3 DirectionalColor = TextureCubeSampleLevel(FogInscatteringColorCubemap, FogInscatteringColorSampler, CameraToReceiver, 0).xyz;
-		float3 NonDirectionalColor = TextureCubeSampleLevel(FogInscatteringColorCubemap, FogInscatteringColorSampler, CameraToReceiver, FogInscatteringTextureParameters.z).xyz;
+		float3 CubemapLookupVector = CameraToReceiver;
+		// Rotate around Z axis
+		CubemapLookupVector.xy = float2(dot(CubemapLookupVector.xy, float2(SinCosInscatteringColorCubemapRotation.y, -SinCosInscatteringColorCubemapRotation.x)), dot(CubemapLookupVector.xy, SinCosInscatteringColorCubemapRotation.xy));
+		float3 DirectionalColor = TextureCubeSampleLevel(FogInscatteringColorCubemap, FogInscatteringColorSampler, CubemapLookupVector, 0).xyz;
+		float3 NonDirectionalColor = TextureCubeSampleLevel(FogInscatteringColorCubemap, FogInscatteringColorSampler, CubemapLookupVector, FogInscatteringTextureParameters.z).xyz;
 		Inscattering *= lerp(NonDirectionalColor, DirectionalColor, FadeAlpha);
 	}
 #endif

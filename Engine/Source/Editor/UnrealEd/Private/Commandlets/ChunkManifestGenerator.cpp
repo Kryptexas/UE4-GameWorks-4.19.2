@@ -24,6 +24,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Stats/StatsMisc.h"
 #include "UniquePtr.h"
+#include "Engine/AssetManager.h"
 
 #include "JsonWriter.h"
 #include "JsonReader.h"
@@ -146,12 +147,34 @@ bool FChunkManifestGenerator::ShouldPlatformGenerateStreamingInstallManifest(con
 	return false;
 }
 
-bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const FString& Platform)
+
+int64 FChunkManifestGenerator::GetMaxChunkSizePerPlatform(const ITargetPlatform* Platform) const
 {
+	if ( Platform )
+	{
+		FConfigFile PlatformIniFile;
+		FConfigCacheIni::LoadLocalIniFile(PlatformIniFile, TEXT("Game"), true, *Platform->IniPlatformName());
+		FString ConfigString;
+		if (PlatformIniFile.GetString(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("MaxChunkSize"), ConfigString))
+		{
+			return FCString::Atoi64(*ConfigString);
+		}
+	}
+
+	return -1;
+}
+
+bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const ITargetPlatform* TargetPlatform)
+{
+	const FString Platform = TargetPlatform->PlatformName();
+
 	FString GameNameLower = FString(FApp::GetGameName()).ToLower();
 
 	// empty out the current paklist directory
 	FString TmpPackagingDir = GetTempPackagingDirectoryForPlatform(Platform);
+
+	int64 MaxChunkSize = GetMaxChunkSizePerPlatform( TargetPlatform );
+
 	if (!IFileManager::Get().MakeDirectory(*TmpPackagingDir, true))
 	{
 		UE_LOG(LogChunkManifestGenerator, Error, TEXT("Failed to create directory: %s"), *TmpPackagingDir);
@@ -179,35 +202,77 @@ bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const FString& Pl
 		{
 			continue;
 		}
-		FString PakListFilename = FString::Printf(TEXT("%s/pakchunk%d.txt"), *TmpPackagingDir, Index);
-		TUniquePtr<FArchive> PakListFile(IFileManager::Get().CreateFileWriter(*PakListFilename));
 
-		if (!PakListFile)
+		int32 FilenameIndex = 0;
+		TArray<FString> ChunkFilenames;
+		FinalChunkManifests[Index]->GenerateValueArray(ChunkFilenames);
+		int32 SubChunkIndex = 0;
+		while ( true )
 		{
-			UE_LOG(LogChunkManifestGenerator, Error, TEXT("Failed to open output paklist file %s"), *PakListFilename);
-			return false;
+			FString PakChunkFilename = FString::Printf(TEXT("pakchunk%d.txt"), Index);
+			if ( SubChunkIndex > 0 )
+			{
+				PakChunkFilename = FString::Printf(TEXT("pakchunk%d_s%d.txt"), Index, SubChunkIndex);
+			}
+			++SubChunkIndex;
+			FString PakListFilename = FString::Printf(TEXT("%s/%s"), *TmpPackagingDir, *PakChunkFilename, Index);
+			TUniquePtr<FArchive> PakListFile(IFileManager::Get().CreateFileWriter(*PakListFilename));
+
+			if (!PakListFile)
+			{
+				UE_LOG(LogChunkManifestGenerator, Error, TEXT("Failed to open output paklist file %s"), *PakListFilename);
+				return false;
+			}
+
+			int64 CurrentPakSize = 0;
+			bool bFinishedAllFiles = true;
+
+			for (; FilenameIndex < ChunkFilenames.Num(); ++FilenameIndex)
+			{
+				FString Filename = ChunkFilenames[FilenameIndex];
+				FString PakListLine = FPaths::ConvertRelativePathToFull(Filename.Replace(TEXT("[Platform]"), *Platform));
+				{
+					TArray<FString> FoundFiles;
+					FString FileSearchString = FString::Printf(TEXT("%s.*"), *PakListLine);
+					IFileManager::Get().FindFiles(FoundFiles, *FileSearchString, true,false);
+					const FString Path = FPaths::GetPath(FileSearchString);
+					for ( const FString& FoundFile : FoundFiles )
+					{
+						int64 FileSize = IFileManager::Get().FileSize(*(FPaths::Combine(Path,FoundFile)));
+						CurrentPakSize +=  FileSize > 0 ? FileSize : 0;
+					}
+				}
+				if ((MaxChunkSize > 0) && (MaxChunkSize < CurrentPakSize))
+				{
+					// early out if we are over memory limit
+					bFinishedAllFiles = false;
+					break;
+				}
+
+				PakListLine.ReplaceInline(TEXT("/"), TEXT("\\"));
+				PakListLine += TEXT("\r\n");
+				PakListFile->Serialize(TCHAR_TO_ANSI(*PakListLine), PakListLine.Len());
+			}
+
+			PakListFile->Close();
+
+			// add this pakfilelist to our master list of pakfilelists
+			FString PakChunkListLine = FString::Printf(TEXT("%s\r\n"), *PakChunkFilename);
+			PakChunkListFile->Serialize(TCHAR_TO_ANSI(*PakChunkListLine), PakChunkListLine.Len());
+
+			int32 TargetLayer = 0;
+			FGameDelegates::Get().GetAssignLayerChunkDelegate().ExecuteIfBound(FinalChunkManifests[Index], Platform, Index, TargetLayer);
+
+			FString LayerString = FString::Printf(TEXT("%d\r\n"), TargetLayer);
+
+			ChunkLayerFile->Serialize(TCHAR_TO_ANSI(*LayerString), LayerString.Len());
+			
+			if (bFinishedAllFiles)
+			{
+				break;
+			}
 		}
 
-		for (auto& Filename : *FinalChunkManifests[Index])
-		{
-			FString PakListLine = FPaths::ConvertRelativePathToFull(Filename.Value.Replace(TEXT("[Platform]"), *Platform));
-			PakListLine.ReplaceInline(TEXT("/"), TEXT("\\"));
-			PakListLine += TEXT("\r\n");
-			PakListFile->Serialize(TCHAR_TO_ANSI(*PakListLine), PakListLine.Len());
-		}
-
-		PakListFile->Close();
-
-		// add this pakfilelist to our master list of pakfilelists
-		FString PakChunkListLine = FString::Printf(TEXT("pakchunk%d.txt\r\n"), Index);
-		PakChunkListFile->Serialize(TCHAR_TO_ANSI(*PakChunkListLine), PakChunkListLine.Len());
-
-		int32 TargetLayer = 0;
-		FGameDelegates::Get().GetAssignLayerChunkDelegate().ExecuteIfBound(FinalChunkManifests[Index], Platform, Index, TargetLayer);
-
-		FString LayerString = FString::Printf(TEXT("%d\r\n"), TargetLayer);
-
-		ChunkLayerFile->Serialize(TCHAR_TO_ANSI(*LayerString), LayerString.Len());
 	}
 
 	ChunkLayerFile->Close();
@@ -239,6 +304,10 @@ void FChunkManifestGenerator::GenerateChunkManifestForPackage(const FName& Packa
 		if (FGameDelegates::Get().GetAssignStreamingChunkDelegate().IsBound())
 		{
 			FGameDelegates::Get().GetAssignStreamingChunkDelegate().ExecuteIfBound(PackagePathName, LastLoadedMapName, RegistryChunkIDs, ExistingChunkIDs, TargetChunks);
+		}
+		else if (UAssetManager::IsValid())
+		{
+			UAssetManager::Get().AssignStreamingChunk(PackagePathName, LastLoadedMapName, RegistryChunkIDs, ExistingChunkIDs, TargetChunks);
 		}
 		else
 		{
@@ -289,7 +358,7 @@ bool FChunkManifestGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 				continue;
 			}
 
-			if (!GenerateStreamingInstallManifest(Platform->PlatformName()))
+			if (!GenerateStreamingInstallManifest(Platform))
 			{
 				return false;
 			}
@@ -857,6 +926,10 @@ bool FChunkManifestGenerator::GetPackageDependencies(FName PackageName, TArray<F
 	if (FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().IsBound())
 	{
 		return FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().Execute(PackageName, DependentPackageNames, InDependencyType);
+	}
+	else if (UAssetManager::IsValid())
+	{
+		return UAssetManager::Get().GetPackageDependenciesForManifestGenerator(PackageName, DependentPackageNames, InDependencyType);
 	}
 	else
 	{

@@ -87,12 +87,24 @@ void UChildActorComponent::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITOR
-	// Since we sometimes serialize properties in instead of using duplication if we are a template
-	// and are not pointing at a component we own we'll need to fix that
-	if (!Ar.IsPersistent() && ChildActorTemplate && ChildActorTemplate->GetOuter() != this && IsTemplate())
+	// Since we sometimes serialize properties in instead of using duplication and we can end up pointing at the wrong template
+	if (!Ar.IsPersistent() && ChildActorTemplate)
 	{
-		const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
-		ChildActorTemplate = CastChecked<AActor>(StaticDuplicateObject(ChildActorTemplate, this, *TemplateName));
+		if (IsTemplate())
+		{
+			// If we are a template and are not pointing at a component we own we'll need to fix that
+			if (ChildActorTemplate->GetOuter() != this)
+			{
+				const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
+				ChildActorTemplate = CastChecked<AActor>(StaticDuplicateObject(ChildActorTemplate, this, *TemplateName));
+			}
+		}
+		else
+		{
+			// Because the template may have fixed itself up, the tagged property delta serialized for 
+			// the instance may point at a trashed template, so always repoint us to the archetypes template
+			ChildActorTemplate = CastChecked<UChildActorComponent>(GetArchetype())->ChildActorTemplate;
+		}
 	}
 #endif
 }

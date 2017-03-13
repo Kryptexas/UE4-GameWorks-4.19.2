@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SkeletonEditor : ModuleRules
 {
-	public SkeletonEditor(TargetInfo Target)
+	public SkeletonEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

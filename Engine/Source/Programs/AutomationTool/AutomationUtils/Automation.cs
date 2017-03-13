@@ -314,8 +314,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 						{
 							param += " ";
 						}
-						Arg.Replace("\"", "\'");
-						param += Arg;
+						param += Arg.Replace("\"", "\'");
 						bStart = false;
 					}
 					param += "\"";
@@ -434,7 +433,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		{
 			// Initial check for local or build machine runs BEFORE we parse the command line (We need this value set
 			// in case something throws the exception while parsing the command line)
-			IsBuildMachine = !String.IsNullOrEmpty(Environment.GetEnvironmentVariable("uebp_LOCAL_ROOT"));
+			IsBuildMachine = !String.IsNullOrEmpty(Environment.GetEnvironmentVariable("uebp_LOCAL_ROOT")) || Arguments.Any(x => x.Equals("-BuildMachine", StringComparison.InvariantCultureIgnoreCase));
 
 			// Scan the command line for commands to execute.
 			var CommandsToExecute = new List<CommandInfo>();
@@ -463,7 +462,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			// Disable AutoSDKs if specified on the command line
 			if (GlobalCommandLine.NoAutoSDK)
 			{
-				UEBuildPlatformSDK.bAllowAutoSDKSwitching = false;
+				PlatformExports.PreventAutoSDKSwitching();
 			}
 
 			// Setup environment
@@ -482,7 +481,13 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				bIsEngineInstalled = GlobalCommandLine.InstalledEngine;
 			}
-			UnrealBuildTool.UnrealBuildTool.SetIsEngineInstalled(bIsEngineInstalled.Value);
+
+			// Initialize UBT
+			if(!UnrealBuildTool.PlatformExports.Initialize(bIsEngineInstalled.Value))
+			{
+				Log.TraceInformation("Failed to initialize UBT");
+				return ExitCode.Error_Unknown;
+			}
 
 			// Change CWD to UE4 root.
 			Environment.CurrentDirectory = CommandUtils.CmdEnv.LocalRoot;

@@ -4,11 +4,11 @@ namespace UnrealBuildTool.Rules
 {
 	public class AudioMixer : ModuleRules
 	{
-		public AudioMixer(TargetInfo Target)
+		public AudioMixer(ReadOnlyTargetRules Target) : base(Target)
 		{
-			//OptimizeCode = CodeOptimization.Always;
+			OptimizeCode = CodeOptimization.Always;
 
-			PrivateIncludePathModuleNames.Add("TargetPlatform");
+            PrivateIncludePathModuleNames.Add("TargetPlatform");
 
 			PrivateIncludePaths.AddRange(
 				new string[] 

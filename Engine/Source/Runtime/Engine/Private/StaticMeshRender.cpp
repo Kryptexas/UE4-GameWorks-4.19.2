@@ -104,7 +104,7 @@ static FAutoConsoleCommand GToggleForceDefaultMaterialCmd(
 	);
 
 /** Initialization constructor. */
-FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
+FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, bool bForceLODsShareStaticLighting):
 	FPrimitiveSceneProxy(InComponent, InComponent->GetStaticMesh()->GetFName())
 	, Owner(InComponent->GetOwner())
 	, StaticMesh(InComponent->GetStaticMesh())
@@ -154,9 +154,10 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	// Build the proxy's LOD data.
 	bool bAnySectionCastsShadows = false;
 	LODs.Empty(RenderData->LODResources.Num());
+	const bool bLODsShareStaticLighting = RenderData->bLODsShareStaticLighting || bForceLODsShareStaticLighting;
 	for(int32 LODIndex = 0;LODIndex < RenderData->LODResources.Num();LODIndex++)
 	{
-		FLODInfo* NewLODInfo = new(LODs) FLODInfo(InComponent,LODIndex);
+		FLODInfo* NewLODInfo = new(LODs) FLODInfo(InComponent,LODIndex,bLODsShareStaticLighting);
 
 		// Under certain error conditions an LOD's material will be set to 
 		// DefaultMaterial. Ensure our material view relevance is set properly.
@@ -613,13 +614,14 @@ HHitProxy* FStaticMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Componen
 			{
 				HHitProxy* ActorHitProxy;
 
+				int32 MaterialIndex = LODModel.Sections[SectionIndex].MaterialIndex;
 				if ( Component->GetOwner()->IsA(ABrush::StaticClass()) && Component->IsA(UBrushComponent::StaticClass()) )
 				{
-					ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex);
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex, MaterialIndex);
 				}
 				else
 				{
-					ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex);
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex, MaterialIndex);
 				}
 
 				FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
@@ -1319,7 +1321,7 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 	}
 }
 
-void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
+void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
 {
 	if (DistanceFieldData)
 	{
@@ -1329,14 +1331,16 @@ void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, F
 		bOutBuiltAsIfTwoSided = DistanceFieldData->bBuiltAsIfTwoSided;
 		bMeshWasPlane = DistanceFieldData->bMeshWasPlane;
 		ObjectLocalToWorldTransforms.Add(GetLocalToWorld());
+		SelfShadowBias = StaticMesh->DistanceFieldSelfShadowBias;
 	}
 	else
 	{
-		LocalVolumeBounds = FBox(0);
+		LocalVolumeBounds = FBox(ForceInit);
 		OutBlockMin = FIntVector(-1, -1, -1);
 		OutBlockSize = FIntVector(0, 0, 0);
 		bOutBuiltAsIfTwoSided = false;
 		bMeshWasPlane = false;
+		SelfShadowBias = 0;
 	}
 }
 
@@ -1362,7 +1366,7 @@ bool FStaticMeshSceneProxy::HasDynamicIndirectShadowCasterRepresentation() const
 }
 
 /** Initialization constructor. */
-FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex)
+FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent, int32 LODIndex, bool bLODsShareStaticLighting)
 	: FLightCacheInterface(nullptr, nullptr)
 	, OverrideColorVertexBuffer(0)
 	, PreCulledIndexBuffer(NULL)
@@ -1407,7 +1411,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		}
 	}
 
-	if (MeshRenderData->bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
+	if (LODIndex > 0 && bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
 		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
@@ -1636,7 +1640,7 @@ FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()
 		return NULL;
 	}
 
-	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this);
+	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this, false);
 	return Proxy;
 }
 

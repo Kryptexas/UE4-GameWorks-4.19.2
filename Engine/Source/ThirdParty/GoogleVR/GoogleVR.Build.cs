@@ -5,7 +5,7 @@ using UnrealBuildTool;
 
 public class GoogleVR : ModuleRules
 {
-	public GoogleVR(TargetInfo Target)
+	public GoogleVR(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

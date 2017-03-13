@@ -1138,6 +1138,18 @@ static void BuildMetalShaderOutput(
 			IFileManager::Get().Delete(*ObjFilename);
 			IFileManager::Get().Delete(*OutputFilename);
 		}
+		else
+		{
+			// Write out the header and shader source code.
+			Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
+
+			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
+			// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
+			//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes
+			//ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+
+			ShaderOutput.bSucceeded = bSucceeded || ShaderOutput.bSucceeded;
+		}
 		
 		if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
 		{
@@ -1269,6 +1281,11 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
         AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 		VersionEnum = StandardVersion ? VersionEnum : 0;
 		StandardVersion = VersionEnum > 0 ? StandardVersion : TEXT("1.0"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
+		const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
+		if (bUseFullPrecisionInPS)
+		{
+			AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
+		}
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{

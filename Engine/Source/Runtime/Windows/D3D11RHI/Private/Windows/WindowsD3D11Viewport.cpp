@@ -39,32 +39,31 @@ FD3D11Viewport::FD3D11Viewport(FD3D11DynamicRHI* InD3DRHI,HWND InWindowHandle,ui
 	TRefCountPtr<IDXGIDevice> DXGIDevice;
 	VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->QueryInterface(IID_IDXGIDevice, (void**)DXGIDevice.GetInitReference()), D3DRHI->GetDevice());
 
-	// Check for request to use alt display
-	uint32 DisplayIndex = 0;
-	FParse::Value(FCommandLine::Get(), TEXT("FullscreenDisplay="), DisplayIndex);
+	// If requested, keep a handle to a DXGIOutput so we can force that display on fullscreen swap
+	uint32 DisplayIndex = D3DRHI->GetHDRDetectedDisplayIndex();
+	bForcedFullscreenDisplay = FParse::Value(FCommandLine::Get(), TEXT("FullscreenDisplay="), DisplayIndex);
 
-	// Keep a handle to the DXGIOutput used so we can connect to the proper display for disabling/enabling HDR
+	if (bForcedFullscreenDisplay || GRHISupportsHDROutput)
 	{
-		// Grab the adapter
 		TRefCountPtr<IDXGIAdapter> DXGIAdapter;
 		DXGIDevice->GetAdapter((IDXGIAdapter**)DXGIAdapter.GetInitReference());
 
-		// Try to get the requested display, fall back to default on failure
-		if (S_OK != DXGIAdapter->EnumOutputs(DisplayIndex, Output.GetInitReference()))
+		if (S_OK != DXGIAdapter->EnumOutputs(DisplayIndex, ForcedFullscreenOutput.GetInitReference()))
 		{
-			UE_LOG(LogD3D11RHI, Log, TEXT("Failed to find requested output display (%i), falling back to default."), DisplayIndex);
-
-			if (S_OK != DXGIAdapter->EnumOutputs(0, Output.GetInitReference()))
-			{
-				Output = nullptr;
-			}
+			UE_LOG(LogD3D11RHI, Log, TEXT("Failed to find requested output display (%i)."), DisplayIndex);
+			ForcedFullscreenOutput = nullptr;
+			bForcedFullscreenDisplay = false;
 		}
+	}
+	else
+	{
+		ForcedFullscreenOutput = nullptr;
 	}
 
 	if (PixelFormat == PF_FloatRGBA && bIsFullscreen)
 	{
 		// Send HDR meta data to enable
-		D3DRHI->EnableHDR(Output);
+		D3DRHI->EnableHDR();
 	}
 
 	// Create the swapchain.
@@ -114,8 +113,9 @@ void FD3D11Viewport::ConditionalResetSwapChain(bool bIgnoreFocus)
 			RECT OriginalCursorRect;
 			GetClipCursor(&OriginalCursorRect);
 
-			// Explicit output selection
-			HRESULT Result = SwapChain->SetFullscreenState(bIsFullscreen, Output);
+			// Explicit output selection in fullscreen only (commandline or HDR enabled)
+			bool bNeedsForcedDisplay = bIsFullscreen && (bForcedFullscreenDisplay || PixelFormat == PF_FloatRGBA);
+			HRESULT Result = SwapChain->SetFullscreenState(bIsFullscreen, bNeedsForcedDisplay ? ForcedFullscreenOutput : nullptr);
 
 			if(SUCCEEDED(Result))
 			{

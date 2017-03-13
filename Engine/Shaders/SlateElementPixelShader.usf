@@ -16,6 +16,11 @@ float2 GammaValues;
 /** Per element params */
 float4 ShaderParams;
 
+#if !USE_MATERIALS
+/** Per element option to invert the alpha, mostly only useful when dealing with data coming from the scene renderer, which writes out inverse opacity. */
+float InvertAlpha;
+#endif
+
 /** Texture for the element */
 Texture2D ElementTexture;
 SamplerState ElementTextureSampler;
@@ -24,7 +29,7 @@ float3 GammaCorrect(float3 InColor)
 {
 	float3 CorrectedColor = InColor;
 
-#if (!(ES2_PROFILE || ES3_1_PROFILE)) || USE_MATERIALS
+#if (!(ES2_PROFILE || ES3_1_PROFILE)) || USE_MATERIALS || METAL_PROFILE //  Metal supports sRGB textures
 	FLATTEN if( GammaValues.y != 1.0f )
 	{
 		CorrectedColor = ApplyGammaCorrection(CorrectedColor, GammaValues.x);
@@ -306,6 +311,12 @@ float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 
 	// gamma correct
 	OutColor.rgb = GammaCorrect(OutColor.rgb);
+
+#if !USE_MATERIALS
+    // Deal with cases where the incoming alpha is inverted like if you're dealing with render targets coming
+    // from the scene renderer.
+    OutColor.a = lerp(OutColor.a, 1 - OutColor.a, InvertAlpha);
+#endif
 
 #if DEBUG_CLIPPING
 	if (any(ClipTest < 0))

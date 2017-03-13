@@ -77,7 +77,7 @@ public:
 	{
 		if(ObjectSetEnum != nullptr)
 		{
-			return ObjectSetEnum->GetDisplayNameText( InObjectSetIndex ).ToString();
+			return ObjectSetEnum->GetDisplayNameTextByIndex( InObjectSetIndex ).ToString();
 		}
 
 		// if no valid object set, return a static empty string
@@ -89,7 +89,7 @@ public:
 	{
 		if(ObjectSetEnum != nullptr)
 		{
-			return ObjectSetEnum->GetToolTipText( InObjectSetIndex ).ToString();
+			return ObjectSetEnum->GetToolTipTextByIndex( InObjectSetIndex ).ToString();
 		}
 
 		// if no valid object set, return a static empty string

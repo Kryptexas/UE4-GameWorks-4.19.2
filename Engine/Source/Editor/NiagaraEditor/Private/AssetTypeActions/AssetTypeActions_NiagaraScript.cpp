@@ -2,7 +2,7 @@
 
 #include "AssetTypeActions/AssetTypeActions_NiagaraScript.h"
 #include "NiagaraScript.h"
-#include "NiagaraEditor.h"
+#include "NiagaraScriptToolkit.h"
 
 void FAssetTypeActions_NiagaraScript::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
@@ -13,8 +13,8 @@ void FAssetTypeActions_NiagaraScript::OpenAssetEditor( const TArray<UObject*>& I
 		auto Script = Cast<UNiagaraScript>(*ObjIt);
 		if (Script != NULL)
 		{
-			TSharedRef< FNiagaraEditor > NewNiagaraEditor(new FNiagaraEditor());
-			NewNiagaraEditor->InitNiagaraEditor(Mode, EditWithinLevelEditor, Script);
+			TSharedRef< FNiagaraScriptToolkit > NewNiagaraScriptToolkit(new FNiagaraScriptToolkit());
+			NewNiagaraScriptToolkit->Initialize(Mode, EditWithinLevelEditor, Script);
 		}
 	}
 }

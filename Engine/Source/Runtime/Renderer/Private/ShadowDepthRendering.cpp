@@ -1327,7 +1327,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, class FSceneR
 		
 		if (bClearColor)
 		{
-			RHICmdList.ClearColorTextures(NumClearColors, ColorTextures, Colors, FIntRect());
+			RHICmdList.ClearColorTextures(NumClearColors, ColorTextures, Colors);
 		}
 		DrawClearQuadMRT(RHICmdList, SceneRenderer->FeatureLevel, bClearColor, NumClearColors, Colors, true, 1.0f, false, 0);
 	}
@@ -2207,12 +2207,39 @@ void FSceneRenderer::RenderShadowDepthMapAtlases(FRHICommandListImmediate& RHICm
 	}
 }
 
+void FSceneRenderer::BeginRenderRayTracedDistanceFieldProjections(FRHICommandListImmediate& RHICmdList)
+{
+	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+	{
+		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
+		const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+		FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			const FViewInfo& View = Views[ViewIndex];
+
+			for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.ShadowsToProject.Num(); ShadowIndex++)
+			{
+				FProjectedShadowInfo* ProjectedShadowInfo = VisibleLightInfo.ShadowsToProject[ShadowIndex];
+
+				if (ProjectedShadowInfo->bRayTracedDistanceField)
+				{
+					ProjectedShadowInfo->BeginRenderRayTracedDistanceFieldProjection(RHICmdList, View);
+				}
+			}
+		}
+	}
+}
+
 void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	SCOPED_DRAW_EVENT(RHICmdList, ShadowDepths);
 	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ShadowDepths);
+
+	BeginRenderRayTracedDistanceFieldProjections(RHICmdList);
 
 	FSceneRenderer::RenderShadowDepthMapAtlases(RHICmdList);
 

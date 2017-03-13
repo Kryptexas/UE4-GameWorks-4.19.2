@@ -99,7 +99,11 @@ private:
 	UPROPERTY(EditAnywhere, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
 
-	/** Whether or not to exclude object array properties */
+	/** Whether or not to exclude object container properties */
 	UPROPERTY()
-	bool bExcludeObjectArrays;
+	bool bExcludeObjectContainers;
+
+	/** Whether or not to exclude object array properties (deprecated) */
+	UPROPERTY()
+	bool bExcludeObjectArrays_DEPRECATED;
 };

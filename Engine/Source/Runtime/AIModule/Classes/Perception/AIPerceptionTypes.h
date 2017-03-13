@@ -195,6 +195,10 @@ public:
 	FORCEINLINE bool IsActive() const { return WasSuccessfullySensed() == true && GetAge() < NeverHappenedAge; }
 	FORCEINLINE bool WantsToNotifyOnlyOnPerceptionChange() const { return bWantsToNotifyOnlyOnValueChange; }
 	FORCEINLINE bool IsValid() const { return Type != FAISenseID::InvalidID(); }
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FString GetDebugDescription() const;
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 };
 
 USTRUCT()

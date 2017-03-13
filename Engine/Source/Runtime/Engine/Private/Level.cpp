@@ -478,6 +478,11 @@ void ULevel::SortActorList()
 	// The WorldSettings tries to stay at index 0
 	NewActors.Add(WorldSettings);
 
+	if (OwningWorld != nullptr)
+	{
+		OwningWorld->AddNetworkActor(WorldSettings);
+	}
+
 	// Add non-net actors to the NewActors immediately, cache off the net actors to Append after
 	for (AActor* Actor : Actors)
 	{
@@ -486,6 +491,10 @@ void ULevel::SortActorList()
 			if (IsNetActor(Actor))
 			{
 				NewNetActors.Add(Actor);
+				if (OwningWorld != nullptr)
+				{
+					OwningWorld->AddNetworkActor(Actor);
+				}
 			}
 			else
 			{
@@ -494,36 +503,10 @@ void ULevel::SortActorList()
 		}
 	}
 
-	iFirstNetRelevantActor = NewActors.Num();
-
 	NewActors.Append(MoveTemp(NewNetActors));
 
 	// Replace with sorted list.
 	Actors = MoveTemp(NewActors);
-
-	// Add all network actors to the owning world
-	if ( OwningWorld != nullptr )
-	{
-		// Don't use sorted optimization outside of gameplay so we can safely shuffle around actors e.g. in the Editor
-		// without there being a chance to break code using dynamic/ net relevant actor iterators.
-		if (!OwningWorld->IsGameWorld())
-		{
-			iFirstNetRelevantActor = 0;
-		}
-		// Ensure the world settings actor is added if it's not going to get added in the loop below
-		else if ( IsNetActor( WorldSettings ) )
-		{
-			OwningWorld->AddNetworkActor( WorldSettings );
-		}
-
-		for ( int32 i = iFirstNetRelevantActor; i < Actors.Num(); i++ )
-		{
-			if ( Actors[ i ] != nullptr )
-			{
-				OwningWorld->AddNetworkActor( Actors[ i ] );
-			}
-		}
-	}
 }
 
 
@@ -634,6 +617,13 @@ void ULevel::PostLoad()
 		LevelSimplification[Index].PostLoadDeprecated();
 	}
 
+	if (LevelScriptActor)
+	{
+		if (ULevelScriptBlueprint* LevelBlueprint = Cast<ULevelScriptBlueprint>(LevelScriptActor->GetClass()->ClassGeneratedBy))
+		{
+			FBlueprintEditorUtils::FixLevelScriptActorBindings(LevelScriptActor, LevelBlueprint);
+		}
+	}
 #endif
 }
 
@@ -909,7 +899,7 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 	{
 		AActor* Actor = Actors[CurrentActorIndexForUpdateComponents];
 		bool bAllComponentsRegistered = true;
-		if (Actor)
+		if (Actor && !Actor->IsPendingKill())
 		{
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 			FScopeCycleCounterUObject ContextScope(Actor);
@@ -960,6 +950,7 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 					}
 				}
 			}
+			bHasRerunConstructionScripts = true;
 		}
 	}
 	// Only the game can use incremental update functionality.
@@ -1080,7 +1071,7 @@ void ULevel::CreateModelComponents()
 			if (Node.NumVertices > 0)
 			{
 				// Calculate the bounding box of this node.
-				FBox NodeBounds(0);
+				FBox NodeBounds(ForceInit);
 				for (int32 VertexIndex = 0; VertexIndex < Node.NumVertices; VertexIndex++)
 				{
 					NodeBounds += Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex];

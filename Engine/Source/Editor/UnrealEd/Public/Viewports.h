@@ -4,8 +4,7 @@
 	Viewports.h: The viewport windows used by the editor
 =============================================================================*/
 
-#ifndef __VIEWPORTS_H__
-#define __VIEWPORTS_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -20,8 +19,3 @@ namespace EditorViewportDefs
 	/** Default camera field of view angle for level editor perspective viewports */
 	const float DefaultPerspectiveFOVAngle( 90.0f );
 }
-
-
-
-
-#endif // __VIEWPORTS_H__

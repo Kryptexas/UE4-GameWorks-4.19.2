@@ -69,7 +69,6 @@ void UBackgroundBlur::SynchronizeProperties()
 
 void UBackgroundBlur::OnSlotAdded(UPanelSlot* InSlot)
 {
-	// Copy the content properties into the new slot
 	UBackgroundBlurSlot* BackgroundBlurSlot = CastChecked<UBackgroundBlurSlot>(InSlot);
 	BackgroundBlurSlot->Padding = Padding;
 	BackgroundBlurSlot->HorizontalAlignment = HorizontalAlignment;
@@ -82,7 +81,7 @@ void UBackgroundBlur::OnSlotAdded(UPanelSlot* InSlot)
 		BackgroundBlurSlot->BuildSlot(MyBackgroundBlur.ToSharedRef());
 	}
 }
-
+	
 void UBackgroundBlur::OnSlotRemoved(UPanelSlot* InSlot)
 {
 	// Remove the widget from the live slot if it exists.

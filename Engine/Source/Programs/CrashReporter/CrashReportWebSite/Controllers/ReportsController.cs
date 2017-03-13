@@ -25,12 +25,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	// buggs ID, 
 	// engine version, 
 	// 
-	// # of crashes with that buggs ID for 
+	// # of Crashes with that buggs ID for 
 	//	this engine version and 
 	//	user
 
     /// <summary>
-	/// The controller to handle graphing of crashes per user group over time.
+	/// The controller to handle graphing of Crashes per user group over time.
 	/// </summary>
 	public class ReportsController : Controller
     {
@@ -145,12 +145,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         {
             var emailBody = string.Format("{0}" + Environment.NewLine + "{1}{2}%3A{3}",
                 GetReportsEmailContents(branchName),
-                "http://crashreporter.epicgames.net/Reports/UnsubscribeFromEmail?jobId=",
+                "http://Crashreporter.epicgames.net/Reports/UnsubscribeFromEmail?jobId=",
                 branchName,
                 emailAddress);
             var sMail = new SmtpClient();
 
-            var message = new MailMessage("crashreporter@epicgames.com", emailAddress, "Weekly Crash Report : " + branchName, emailBody ) { IsBodyHtml = true };
+            var message = new MailMessage("Crashreporter@epicgames.com", emailAddress, "Weekly Crash Report : " + branchName, emailBody ) { IsBodyHtml = true };
             sMail.Send(message);
         }
 
@@ -255,57 +255,58 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     _unitOfWork.UserGroupRepository.First(data => data.Id == anonymousGroupId).Users.Select(data => data.Id).ToList();
 	            var anonymousId = anonymousIDs.First();
 
-	            var crashesQuery = _unitOfWork.CrashRepository.ListAll().Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
-	                // Only crashes and asserts
-	                .Where(crash => crash.CrashType == 1 || crash.CrashType == 2)
+	            var CrashQuery = _unitOfWork.CrashRepository.ListAll().Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
+	                // Only Crashes and asserts
+	                .Where(Crash => Crash.CrashType == 1 || Crash.CrashType == 2)
 	                // Only anonymous user
-	                .Where(crash => crash.UserNameId.Value == anonymousId);
+	                .Where(Crash => Crash.UserId == anonymousId);
 
 	            // Filter by BranchName
 	            if (!string.IsNullOrEmpty(branchName))
 	            {
-	                crashesQuery = crashesQuery.Where(data => data.Branch == branchName);
+	                CrashQuery = CrashQuery.Where(data => data.Branch == branchName);
 	            }
 
-	            var crashes = crashesQuery.Select(data => new
+                var crashes = CrashQuery.Select(data => new
 	            {
                     ID = data.Id,
-                    TimeOfCrash = data.TimeOfCrash.Value,
-	                UserID = data.UserNameId,
+                    TimeOfCrash = data.TimeOfCrash,
+	                UserID = data.UserId,
                     BuildVersion = data.BuildVersion,
                     JIRA = data.Jira,
                     Platform = data.PlatformName,
                     FixCL = data.FixedChangeList,
-                    BuiltFromCL = data.ChangeListVersion,
+                    BuiltFromCL = data.ChangelistVersion,
                     Pattern = data.Pattern,
                     MachineID = data.ComputerName,
                     Branch = data.Branch,
                     Description = data.Description,
                     RawCallStack = data.RawCallStack,
 	            }).ToList();
-                var numCrashes = crashesQuery.Count();
 
-	            // Total # of ALL (Anonymous) crashes in timeframe
+                var numCrashes = CrashQuery.Count();
+
+	            // Total # of ALL (Anonymous) Crashes in timeframe
 	            var totalAnonymousCrashes = numCrashes;
 
-	            // Total # of UNIQUE (Anonymous) crashes in timeframe
+	            // Total # of UNIQUE (Anonymous) Crashes in timeframe
                 var uniquePatterns = new HashSet<string>();
                 var uniqueMachines = new HashSet<string>();
 	            var patternToCount = new Dictionary<string, int>();
                 
 	            foreach (var crash in crashes)
 	            {
-	                uniquePatterns.Add(crash.Pattern);
-	                uniqueMachines.Add(crash.MachineID);
+                    uniquePatterns.Add(crash.Pattern);
+                    uniqueMachines.Add(crash.MachineID);
 
-	                var bAdd = !patternToCount.ContainsKey(crash.Pattern);
+                    var bAdd = !patternToCount.ContainsKey(crash.Pattern);
 	                if (bAdd)
 	                {
-	                    patternToCount.Add(crash.Pattern, 1);
+                        patternToCount.Add(crash.Pattern, 1);
 	                }
 	                else
 	                {
-	                    patternToCount[crash.Pattern]++;
+                        patternToCount[crash.Pattern]++;
 	                }
 	            }
 	            var PatternToCountOrdered = patternToCount.OrderByDescending(X => X.Value).ToList();
@@ -329,13 +330,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                var newBugg = RealBuggs.FirstOrDefault(X => X.Pattern == Top.Key);
 	                if (newBugg != null)
 	                {
-                        var crashesForBugg = crashes.Where(Crash => Crash.Pattern == Top.Key).ToList();
+                        var CrashForBugg = crashes.Where(Crash => Crash.Pattern == Top.Key).ToList();
 
 	                    // Convert anonymous to full type;
-	                    var fullCrashesForBugg = new List<Crash>(crashesForBugg.Count);
-	                    foreach (var anon in crashesForBugg)
+                        var fullCrashesForBugg = new List<Crash>(CrashForBugg.Count);
+                        foreach (var anon in CrashForBugg)
 	                    {
-	                        fullCrashesForBugg.Add(new Crash()
+                            fullCrashesForBugg.Add(new Crash()
 	                        {
 	                            Id = anon.ID,
 	                            TimeOfCrash = anon.TimeOfCrash,
@@ -343,7 +344,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                            Jira = anon.JIRA,
 	                            PlatformName = anon.Platform,
 	                            FixedChangeList = anon.FixCL,
-	                            ChangeListVersion = anon.BuiltFromCL,
+	                            ChangelistVersion = anon.BuiltFromCL,
 	                            Pattern = anon.Pattern,
 	                            ComputerName = anon.MachineID,
 	                            Branch = anon.Branch,
@@ -563,39 +564,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 _unitOfWork.UserGroupRepository.First(data => data.Id == anonymousGroupId).Users.Select(data => data.Id).ToList();
             var anonymousId = anonymousIDs.First();
 
-            var crashesQuery = _unitOfWork.CrashRepository.ListAll()
+            var CrashesQuery = _unitOfWork.CrashRepository.ListAll()
                 .Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
-                // Only crashes and asserts
-                .Where(crash => crash.CrashType == 1 || crash.CrashType == 2);
+                // Only Crashes and asserts
+                .Where(Crash => Crash.CrashType == 1 || Crash.CrashType == 2);
                 // Only anonymous user
-                    //.Where(crash => crash.UserNameId.Value == anonymousId);
+                    //.Where(Crash => Crash.UserNameId.Value == anonymousId);
 
             // Filter by BranchName
             if (!string.IsNullOrEmpty(branchName))
             {
-                crashesQuery = crashesQuery.Where(data => data.Branch == branchName);
+                CrashesQuery = CrashesQuery.Where(data => data.Branch == branchName);
             }
 
-            var crashesList = crashesQuery.ToList();
+            //var CrashesList = CrashesQuery.ToList();
 
-            var buggsList = crashesQuery.Where(data => data.Bugg != null).GroupBy(data => data.Bugg).Select(data => data.Key).ToList();
+            var buggsList = CrashesQuery.Where(data => data.Bugg != null).GroupBy(data => data.Bugg).Select(data => data.Key).ToList();
 
             foreach (var bugg in buggsList)
             {
                 if (bugg == null)
                     continue;
 
-                var crashes = crashesList.Where(data => data.BuggId == bugg.Id).ToList();
+                //var Crashes = CrashesQuery.Where(data => data.BuggId == bugg.Id).ToList();
 
-                bugg.PrepareBuggForJira(crashes);
+                //bugg.PrepareBuggForJira(Crashes);
 
-                bugg.CrashesInTimeFrameGroup = crashesList.Count(data => data.BuggId == bugg.Id);
-                bugg.AffectedVersions = new SortedSet<string>(crashes.Select(data => data.BuildVersion));
-                bugg.NumberOfUniqueMachines = crashes.GroupBy(data => data.ComputerName).Count();
+                bugg.CrashesInTimeFrameGroup = CrashesQuery.Count(data => data.BuggId == bugg.Id);
+                bugg.AffectedVersions = new SortedSet<string>(CrashesQuery.Where(data => data.BuggId == bugg.Id).Select(data => data.BuildVersion));
+                bugg.NumberOfUniqueMachines = CrashesQuery.Where(data => data.BuggId == bugg.Id).GroupBy(data => data.ComputerName).Count();
 
-                //get latest changelist
+                //get latest change list
                 int latestClAffected;
-                int.TryParse(crashes.Max(data => data.ChangeListVersion), out latestClAffected);
+                int.TryParse(CrashesQuery.Where(data => data.BuggId == bugg.Id).Max(data => data.ChangelistVersion), out latestClAffected);
                 bugg.LatestCLAffected = latestClAffected;
 
                 if (string.IsNullOrWhiteSpace(bugg.TTPID))
@@ -609,95 +610,95 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
             }
 
             //Get jira connection
-            var jiraConnection = JiraConnection.Get();
+            //var jiraConnection = JiraConnection.Get();
 
-            if (BuggIDToBeAddedToJira > 0)
-            {
-                var bugg = buggsList.FirstOrDefault(x => x.Id == BuggIDToBeAddedToJira);
-                if (bugg != null)
-                {
-                    bugg.CopyToJira();
-                }
-            }
+            //if (BuggIDToBeAddedToJira > 0)
+            //{
+            //    var bugg = buggsList.FirstOrDefault(x => x.Id == BuggIDToBeAddedToJira);
+            //    if (bugg != null)
+            //    {
+            //        bugg.CopyToJira();
+            //    }
+            //}
 
-            var jiraResults = new Dictionary<string, Dictionary<string, object>>();
+            //var jiraResults = new Dictionary<string, Dictionary<string, object>>();
 
-            foreach (var Query in buggsList.Where(data =>
-                !string.IsNullOrWhiteSpace(data.TTPID)).Select(data => data.TTPID))
-            {
-                try
-                {
-                    var TempResult = jiraConnection.SearchJiraTickets(
-                        "key = " + Query,
-                        new string[]
-	                    {
-	                        "key", // string
-	                        "summary", // string
-	                        "components", // System.Collections.ArrayList, Dictionary<string,object>, name
-	                        "resolution",
-	                        // System.Collections.Generic.Dictionary`2[System.String,System.Object], name
-	                        "fixVersions", // System.Collections.ArrayList, Dictionary<string,object>, name
-	                        "customfield_11200" // string
-	                    });
+            //foreach (var Query in buggsList.Where(data =>
+            //    !string.IsNullOrWhiteSpace(data.TTPID)).Select(data => data.TTPID))
+            //{
+            //    try
+            //    {
+            //        var TempResult = jiraConnection.SearchJiraTickets(
+            //            "key = " + Query,
+            //            new string[]
+            //            {
+            //                "key", // string
+            //                "summary", // string
+            //                "components", // System.Collections.ArrayList, Dictionary<string,object>, name
+            //                "resolution",
+            //                // System.Collections.Generic.Dictionary`2[System.String,System.Object], name
+            //                "fixVersions", // System.Collections.ArrayList, Dictionary<string,object>, name
+            //                "customfield_11200" // string
+            //            });
 
-                    foreach (var Temp in TempResult)
-                    {
-                        jiraResults.Add(Temp.Key, Temp.Value);
-                    }
-                }
-                catch (System.Exception)
-                {
+            //        foreach (var Temp in TempResult)
+            //        {
+            //            jiraResults.Add(Temp.Key, Temp.Value);
+            //        }
+            //    }
+            //    catch (System.Exception)
+            //    {
 
-                }
-            }
+            //    }
+            //}
 
-            // Jira Key, Summary, Components, Resolution, Fix version, Fix changelist
-            foreach (var Jira in jiraResults)
-            {
-                var jiraId = Jira.Key;
+            //// Jira Key, Summary, Components, Resolution, Fix version, Fix changelist
+            //foreach (var Jira in jiraResults)
+            //{
+            //    var jiraId = Jira.Key;
 
-                var summary = (string)Jira.Value["summary"];
+            //    var summary = (string)Jira.Value["summary"];
 
-                var ComponentsText = "";
-                System.Collections.ArrayList Components =
-                    (System.Collections.ArrayList)Jira.Value["components"];
-                foreach (Dictionary<string, object> Component in Components)
-                {
-                    ComponentsText += (string)Component["name"];
-                    ComponentsText += " ";
-                }
+            //    var ComponentsText = "";
+            //    System.Collections.ArrayList Components =
+            //        (System.Collections.ArrayList)Jira.Value["components"];
+            //    foreach (Dictionary<string, object> Component in Components)
+            //    {
+            //        ComponentsText += (string)Component["name"];
+            //        ComponentsText += " ";
+            //    }
 
-                Dictionary<string, object> ResolutionFields =
-                    (Dictionary<string, object>)Jira.Value["resolution"];
-                string Resolution = ResolutionFields != null ? (string)ResolutionFields["name"] : "";
+            //    Dictionary<string, object> ResolutionFields =
+            //        (Dictionary<string, object>)Jira.Value["resolution"];
+            //    string Resolution = ResolutionFields != null ? (string)ResolutionFields["name"] : "";
 
-                string FixVersionsText = "";
-                System.Collections.ArrayList FixVersions =
-                    (System.Collections.ArrayList)Jira.Value["fixVersions"];
-                foreach (Dictionary<string, object> FixVersion in FixVersions)
-                {
-                    FixVersionsText += (string)FixVersion["name"];
-                    FixVersionsText += " ";
-                }
+            //    string FixVersionsText = "";
+            //    System.Collections.ArrayList FixVersions =
+            //        (System.Collections.ArrayList)Jira.Value["fixVersions"];
+            //    foreach (Dictionary<string, object> FixVersion in FixVersions)
+            //    {
+            //        FixVersionsText += (string)FixVersion["name"];
+            //        FixVersionsText += " ";
+            //    }
 
-                int FixCL = Jira.Value["customfield_11200"] != null
-                    ? (int)(decimal)Jira.Value["customfield_11200"]
-                    : 0;
+            //    int FixCL = Jira.Value["customfield_11200"] != null
+            //        ? (int)(decimal)Jira.Value["customfield_11200"]
+            //        : 0;
 
 
-                if (buggsList.Any(data => data.TTPID == jiraId))
-                {
-                    var bugg = buggsList.First(data => data.TTPID == jiraId);
-                    bugg.JiraSummary = summary;
-                    bugg.JiraComponentsText = ComponentsText;
-                    bugg.JiraResolution = Resolution;
-                    bugg.JiraFixVersionsText = FixVersionsText;
-                    if (FixCL != 0)
-                    {
-                        bugg.JiraFixCL = FixCL.ToString();
-                    }
-                }
-            }
+            //    if (buggsList.Any(data => data.TTPID == jiraId))
+            //    {
+            //        var bugg = buggsList.First(data => data.TTPID == jiraId);
+            //        bugg.JiraSummary = summary;
+            //        bugg.JiraComponentsText = ComponentsText;
+            //        bugg.JiraResolution = Resolution;
+            //        bugg.JiraFixVersionsText = FixVersionsText;
+            //        if (FixCL != 0)
+            //        {
+            //            bugg.JiraFixCL = FixCL.ToString();
+            //        }
+            //    }
+            //}
 
             return new ReportsViewModel
             {
@@ -706,9 +707,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 BranchNames = _unitOfWork.CrashRepository.GetBranchesAsListItems(),
                 DateFrom = (long)(startDate - CrashesViewModel.Epoch).TotalMilliseconds,
                 DateTo = (long)(endDate - CrashesViewModel.Epoch).TotalMilliseconds,
-                TotalAffectedUsers = crashesQuery.GroupBy(data => data.ComputerName).Count(),
-                TotalAnonymousCrashes = crashesQuery.Count(),
-                TotalUniqueAnonymousCrashes = crashesQuery.GroupBy(data => data.BuggId).Count()
+                TotalAffectedUsers = CrashesQuery.GroupBy(data => data.ComputerName).Count(),
+                TotalAnonymousCrashes = CrashesQuery.Count(),
+                TotalUniqueAnonymousCrashes = CrashesQuery.GroupBy(data => data.BuggId).Count()
             };
         }
 

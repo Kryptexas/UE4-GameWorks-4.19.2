@@ -6,9 +6,11 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "NiagaraCommon.h"
-#include "Runtime/Niagara/NiagaraScriptConstantData.h"
+#include "NiagaraParameters.h"
 
 #include "NiagaraScript.generated.h"
+
+class UNiagaraDataInterface;
 
 #define NIAGARA_INVALID_MEMORY (0xBA)
 
@@ -28,32 +30,22 @@ enum class EUnusedAttributeBehaviour : uint8
 	PassThrough,
 };
 
-USTRUCT()
-struct FNiagaraDataSetProperties
+/** Defines different usages for a niagara script. */
+UENUM()
+enum class ENiagaraScriptUsage : uint8
 {
-	GENERATED_BODY()
-	
-	UPROPERTY(VisibleAnywhere, Category = "Data Set")
-	FNiagaraDataSetID ID;
-
-	UPROPERTY()
-	TArray<FNiagaraVariableInfo> Variables;
+	/** The script defines a function for use in modules and other functions. */
+	Function,
+	/** The script defines a module for use in emitter scripts. */
+	Module,
+	/** The script is an emitter spawn script. */
+	SpawnScript UMETA(Hidden),
+	/** The script is an emitter update script. */
+	UpdateScript UMETA(Hidden),
+	/** The script is an effect script. */
+	EffectScript UMETA(Hidden)
 };
 
-/** Struct containt usage information about a script. Things such as whether it reads attribute data, reads or writes events data etc.*/
-USTRUCT()
-struct FNiagaraScriptUsageInfo
-{
-	GENERATED_BODY()
-	
-	FNiagaraScriptUsageInfo()
-	: bReadsAttriubteData(false)
-	{}
-
-	/** If true, this script reads attribute data. */
-	UPROPERTY()
-	bool bReadsAttriubteData;
-};
 
 /** Runtime script for a Niagara system */
 UCLASS(MinimalAPI)
@@ -67,11 +59,14 @@ class UNiagaraScript : public UObject
 
 	/** All the data for using constants in the script. */
 	UPROPERTY()
-	FNiagaraScriptConstantData ConstantData;
+	FNiagaraParameters Parameters;
+
+	UPROPERTY()
+	FNiagaraParameters InternalParameters;
 
 	/** Attributes used by this script. */
 	UPROPERTY()
- 	TArray<FNiagaraVariableInfo> Attributes;
+ 	TArray<FNiagaraVariable> Attributes;
 
 	/** Information about the events this script receives and which variables are accessed. */
 	UPROPERTY()
@@ -83,11 +78,30 @@ class UNiagaraScript : public UObject
 
 	/** Contains various usage information for this script. */
 	UPROPERTY()
-	FNiagaraScriptUsageInfo Usage;
+	FNiagaraScriptDataUsageInfo DataUsage;
 
+	/** Gets how this script is to be used. */
+	UPROPERTY(AssetRegistrySearchable, EditAnywhere, Category=Script)
+	ENiagaraScriptUsage Usage;
+
+	/** Information about all data interfaces used by this script. */
+	UPROPERTY()
+	TArray<FNiagaraScriptDataInterfaceInfo> DataInterfaceInfo;
+
+	/** The mode to use when deducing the type of numeric output pins from the types of the input pins. */
+	UPROPERTY(EditAnywhere, Category=Script)
+	ENiagaraNumericOutputTypeSelectionMode NumericOutputTypeSelectionMode;
+
+	TArray<FNiagaraDataSetID> ReadDataSets;
+	TArray<FNiagaraDataSetProperties> WriteDataSets;
 #if WITH_EDITORONLY_DATA
 	/** 'Source' data/graphs for this script */
 	UPROPERTY()
 	class UNiagaraScriptSourceBase*	Source;
 #endif
+
+	//~ Begin UObject interface
+	virtual void PostLoad() override;
+	//~ End UObject interface
+
 };

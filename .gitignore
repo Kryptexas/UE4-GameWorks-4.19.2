@@ -115,6 +115,9 @@
 *.target.xml
 *.exe.config
 *.exe.manifest
+/.kdev4/
+/UE4CodeCompletionFolders.txt
+/UE4CodeLitePreProcessor.txt
 
 # Add exceptions for Mac Mono binaries needed to run GitDependencies.exe.
 !/Engine/Binaries/ThirdParty/Mono/Mac/bin/*
@@ -135,6 +138,10 @@
 # ...and GitDependencies.exe
 !/Engine/Binaries/DotNET/GitDependencies.exe
 !/Engine/Binaries/DotNET/GitDependencies.exe.config
+
+# Ignore documentation generated for C# tools
+Engine/Binaries/DotNET/UnrealBuildTool.xml
+Engine/Binaries/DotNET/AutomationScripts/BuildGraph.Automation.xml
 
 # Ignore content folders
 Content/

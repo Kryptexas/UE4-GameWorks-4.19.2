@@ -113,7 +113,7 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 		// extend bounds by required bones (respecting current LOD) but without root bone
 		if (GetNumComponentSpaceTransforms())
 		{
-			FBox BoundingBox(0);
+			FBox BoundingBox(ForceInit);
 			const int32 NumRequiredBones = RequiredBones.Num();
 			for (int32 BoneIndex = 1; BoneIndex < NumRequiredBones; ++BoneIndex)
 			{
@@ -341,14 +341,8 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 			}
 
 			AnimScriptInstance = PreviewInstance;
-
-#if WITH_APEX_CLOTHING
-		    // turn off these options when playing animations because max distances / back stops don't have meaning while moving
-		    bDisplayClothMaxDistances = false;
-			bDisplayClothBackstops = false;
 		    // restore previous state
 		    bDisableClothSimulation = bPrevDisableClothSimulation;
-#endif // #if WITH_APEX_CLOTHING
     
 			PreviewInstance->SetAnimationAsset(PreviewAsset);
 		}
@@ -612,8 +606,6 @@ void UDebugSkelMeshComponent::ClearAnimNotifyErrors(UObject* InSourceNotify)
 }
 #endif
 
-#if WITH_APEX_CLOTHING
-
 void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothSections)
 {
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
@@ -633,7 +625,7 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 				if (bShowOnlyClothSections)
 				{
 					// enables only cloth sections
-					if (Section.HasApexClothData())
+					if (Section.HasClothingData())
 					{
 						Section.bDisabled = false;
 					}
@@ -644,7 +636,7 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 				}
 				else
 				{   // disables cloth sections and also corresponding original sections
-					if (Section.HasApexClothData())
+					if (Section.HasClothingData())
 					{
 						Section.bDisabled = true;
 						LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
@@ -663,7 +655,7 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 {
 	// if this skeletal mesh doesn't have any clothing assets, just return
-	if (!SkeletalMesh || SkeletalMesh->ClothingAssets.Num() == 0)
+	if (!SkeletalMesh || SkeletalMesh->MeshClothingAssets.Num() == 0)
 	{
 		return;
 	}
@@ -688,7 +680,7 @@ void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 			{
 				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
-				if(Section.HasApexClothData())
+				if(Section.HasClothingData())
 				{
 					LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
 				}
@@ -705,7 +697,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
 	// if this skeletal mesh doesn't have any clothing asset, returns "None"
-	if (!SkelMeshResource || !SkeletalMesh || SkeletalMesh->ClothingAssets.Num() == 0)
+	if (!SkelMeshResource || !SkeletalMesh || SkeletalMesh->MeshClothingAssets.Num() == 0)
 	{
 		return ESectionDisplayMode::None;
 	}
@@ -716,7 +708,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 		for (LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 		{
 			// if find any LOD model which has cloth data, then break
-			if (SkelMeshResource->LODModels[LODIndex].HasApexClothData())
+			if (SkelMeshResource->LODModels[LODIndex].HasClothData())
 			{
 				break;
 			}
@@ -735,7 +727,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 		{
 			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
-			if (Section.HasApexClothData())
+			if (Section.HasClothingData())
 			{
 				// Normal state if the cloth section is visible and the corresponding section is disabled
 				if (Section.bDisabled == false &&
@@ -755,7 +747,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
 			// not related to cloth sections
-			if (!Section.HasApexClothData() &&
+			if (!Section.HasClothingData() &&
 				Section.CorrespondClothSectionIndex < 0)
 			{
 				bFoundNonClothSection = true;
@@ -785,8 +777,6 @@ void UDebugSkelMeshComponent::CheckClothTeleport()
 	// doesn't need cloth teleport while previewing
 }
 
-#endif // #if WITH_APEX_CLOTHING
-
 void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	if (TurnTableMode == EPersonaTurnTableMode::Playing)
@@ -810,4 +800,9 @@ void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	// The tick from our super will call ShouldRunClothTick on us which will 'consume' this flag.
 	// flip this flag here to only allow a single tick.
 	bPerformSingleClothingTick = false;
+}
+
+IClothingSimulation* UDebugSkelMeshComponent::GetMutableClothingSimulation()
+{
+	return ClothingSimulation;
 }

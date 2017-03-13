@@ -797,22 +797,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 	if (bDepthBoundsTestEnabled)
 	{
-		FVector4 Near = View->ViewMatrices.GetProjectionMatrix().TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
-		FVector4 Far = View->ViewMatrices.GetProjectionMatrix().TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
-		float DepthNear = Near.Z / Near.W;
-		float DepthFar = Far.Z / Far.W;
-
-		DepthFar = FMath::Clamp(DepthFar, 0.0f, 1.0f);
-		DepthNear = FMath::Clamp(DepthNear, 0.0f, 1.0f);
-
-		if (DepthNear <= DepthFar)
-		{
-			DepthNear = 1.0f;
-			DepthFar = 0.0f;
-		}
-
-		// Note, using a reversed z depth surface
-		RHICmdList.EnableDepthBoundsTest(true, DepthFar, DepthNear);
+		EnableDepthBoundsTest(RHICmdList, CascadeSettings.SplitNear, CascadeSettings.SplitFar, View->ViewMatrices.GetProjectionMatrix());
 
 		// no depth test or writes
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
@@ -911,8 +896,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 	if (bDepthBoundsTestEnabled)
 	{
-		// Disable depth bounds testing
-		RHICmdList.EnableDepthBoundsTest(false, 0, 1);
+		DisableDepthBoundsTest(RHICmdList);
 	}
 	else
 	{
@@ -920,7 +904,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		if (!GStencilOptimization)
 		{
 			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-			RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0, 0, FIntRect());
+			RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0, 0);
 		}
 	}
 }
@@ -1171,6 +1155,9 @@ void FProjectedShadowInfo::UpdateShaderDepthBias()
 			// * 2.0f to be compatible with the system we had before ShadowBias
 			DepthBias *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
 		}
+
+		// Prevent a large depth bias due to low resolution from causing near plane clipping
+		DepthBias = FMath::Min(DepthBias, .1f);
 	}
 
 	ShaderDepthBias = FMath::Max(DepthBias, 0.0f);

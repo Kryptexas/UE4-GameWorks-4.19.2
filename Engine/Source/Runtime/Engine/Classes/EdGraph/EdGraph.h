@@ -55,7 +55,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FGraphReference> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGraphReference> : public TStructOpsTypeTraitsBase2<FGraphReference>
 {
 	enum 
 	{

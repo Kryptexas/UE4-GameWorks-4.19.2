@@ -808,6 +808,10 @@ public:
 	/** Frustums for each cubemap face, used for object culling one pass point light shadows. */
 	TArray<FConvexVolume> OnePassShadowFrustums;
 
+	/** Data passed from async compute begin to end. */
+	FComputeFenceRHIRef RayTracedShadowsEndFence;
+	TRefCountPtr<IPooledRenderTarget> RayTracedShadowsRT;
+
 public:
 
 	// default constructor
@@ -871,8 +875,10 @@ public:
 	 */
 	void RenderProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const class FViewInfo* View, bool bProjectingForForwardShading, bool bMobile) const;
 
+	void BeginRenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
 	/** Renders ray traced distance field shadows. */
-	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, bool bProjectingForForwardShading) const;
+	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, bool bProjectingForForwardShading);
 
 	/** Render one pass point light shadow projections. */
 	void RenderOnePassPointLightProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo& View, bool bProjectingForForwardShading) const;

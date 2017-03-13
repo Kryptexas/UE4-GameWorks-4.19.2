@@ -165,7 +165,7 @@ static TAutoConsoleVariable<int32> CVarNetDormancyValidate(
 
 static TAutoConsoleVariable<int32> CVarUseAdaptiveNetUpdateFrequency(
 	TEXT( "net.UseAdaptiveNetUpdateFrequency" ), 
-	0, 
+	1, 
 	TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually send something when replicating" ) );
 
 /*-----------------------------------------------------------------------------
@@ -211,17 +211,28 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+void UNetDriver::InitPacketSimulationSettings()
+{
+#if DO_ENABLE_NET_TEST
+	// read the settings from .ini and command line, with the command line taking precedence	
+	PacketSimulationSettings = FPacketSimulationSettings();
+	PacketSimulationSettings.LoadConfig(*NetDriverName.ToString());
+	PacketSimulationSettings.RegisterCommands();
+	PacketSimulationSettings.ParseSettings(FCommandLine::Get(), *NetDriverName.ToString());
+#endif
+}
+
 void UNetDriver::PostInitProperties()
 {
 	Super::PostInitProperties();
+
+	// By default we're the game net driver and any child ones must override this
+	NetDriverName = NAME_GameNetDriver;
+
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
 	{
-#if DO_ENABLE_NET_TEST
-		// read the settings from .ini and command line, with the command line taking precedence
-		PacketSimulationSettings.LoadConfig();
-		PacketSimulationSettings.RegisterCommands();
-		PacketSimulationSettings.ParseSettings(FCommandLine::Get());
-#endif
+		InitPacketSimulationSettings();
+
 		RoleProperty		= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
 		RemoteRoleProperty	= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
 
@@ -239,9 +250,6 @@ void UNetDriver::PostInitProperties()
 		bNoTimeouts = bNoTimeouts || (GEditor && GEditor->PlayWorld);
 #endif // WITH_EDITOR
 	}
-
-	// By default we're the game net driver and any child ones must override this
-	NetDriverName = NAME_GameNetDriver;
 }
 
 void UNetDriver::AssertValid()
@@ -254,21 +262,26 @@ void UNetDriver::AssertValid()
 	return bUseAdapativeNetFrequency;
 }
 
-FNetworkObjectInfo* UNetDriver::GetNetworkActor(const AActor* InActor)
+FNetworkObjectInfo* UNetDriver::GetNetworkObjectInfo(const AActor* InActor)
 {
-	FNetworkObjectInfo* NetActor = nullptr;
-	if (InActor)
-	{
-		// note: const_cast<> required because the set keys are not const.
-		TSharedPtr<FNetworkObjectInfo>* NetActorInfo = GetNetworkObjectList().GetObjects().Find(const_cast<AActor*>(InActor));
-		NetActor = (NetActorInfo ? NetActorInfo->Get() : nullptr);
-	}
-	return NetActor;
+	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfo = GetNetworkObjectList().Add(const_cast<AActor*>(InActor), NetDriverName);
+
+	return NetworkObjectInfo ? NetworkObjectInfo->Get() : nullptr;
+}
+
+const FNetworkObjectInfo* UNetDriver::GetNetworkObjectInfo(const AActor* InActor) const
+{
+	return const_cast<UNetDriver*>(this)->GetNetworkObjectInfo(InActor);
 }
 
 const FNetworkObjectInfo* UNetDriver::GetNetworkActor(const AActor* InActor) const
 {
-	return const_cast<UNetDriver*>(this)->GetNetworkActor(InActor);
+	return GetNetworkObjectInfo(InActor);
+}
+
+FNetworkObjectInfo* UNetDriver::GetNetworkActor(const AActor* InActor)
+{
+	return const_cast<UNetDriver*>(this)->GetNetworkObjectInfo(InActor);
 }
 
 bool UNetDriver::IsNetworkActorUpdateFrequencyThrottled(const FNetworkObjectInfo& InNetworkActor) const
@@ -296,7 +309,7 @@ bool UNetDriver::IsNetworkActorUpdateFrequencyThrottled(const AActor* InActor) c
 	bool bThrottled = false;
 	if (InActor && IsAdaptiveNetUpdateFrequencyEnabled())
 	{
-		if (const FNetworkObjectInfo* NetActor = GetNetworkActor(InActor))
+		if (const FNetworkObjectInfo* NetActor = GetNetworkObjectInfo(InActor))
 		{
 			bThrottled = IsNetworkActorUpdateFrequencyThrottled(*NetActor);
 		}
@@ -314,7 +327,7 @@ void UNetDriver::CancelAdaptiveReplication(FNetworkObjectInfo& InNetworkActor)
 			if (UWorld* ActorWorld = Actor->GetWorld())
 			{
 				const float ExpectedNetDelay = (1.0f / Actor->NetUpdateFrequency);
-				Actor->SetNetUpdateTime(FMath::Min(Actor->NetUpdateTime, ActorWorld->GetTimeSeconds() + FMath::FRandRange(0.5f, 1.0f) * ExpectedNetDelay));
+				Actor->SetNetUpdateTime( ActorWorld->GetTimeSeconds() + FMath::FRandRange( 0.5f, 1.0f ) * ExpectedNetDelay );
 				InNetworkActor.OptimalNetUpdateDelta = ExpectedNetDelay;
 				// TODO: we really need a way to cancel the throttling completely. OptimalNetUpdateDelta is going to be recalculated based on LastNetReplicateTime.
 			}
@@ -489,7 +502,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				if (Connection)
 				{
 					NumActorChannels = Connection->ActorChannels.Num();
-					NumDormantActors = Connection->DormantActors.Num();
+					NumDormantActors = Connection->Driver->GetNetworkObjectList().GetNumDormantActorsForConnection( Connection );
 
 					if (World)
 					{
@@ -546,7 +559,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			SET_DWORD_STAT(STAT_NumActorChannels, NumActorChannels);
 			SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
 			SET_DWORD_STAT(STAT_NumActors, NumActors);
-			SET_DWORD_STAT(STAT_NumNetActors, GetNetworkObjectList().GetObjects().Num());
+			SET_DWORD_STAT(STAT_NumNetActors, GetNetworkObjectList().GetActiveObjects().Num());
 			SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
 			SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
 			SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
@@ -750,6 +763,15 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 					if ( Replicators )
 					{
 						AllReplicators.Append( *Replicators );
+					}
+				}
+
+				for (FObjectReplicator* Replicator : UnmappedReplicators)
+				{
+					if (Replicator->bForceUpdateUnmapped)
+					{
+						Replicator->bForceUpdateUnmapped = false;
+						AllReplicators.Add(Replicator);
 					}
 				}
 
@@ -1890,7 +1912,7 @@ bool UNetDriver::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 #if DO_ENABLE_NET_TEST
 	// This will allow changing the Pkt* options at runtime
-	else if (PacketSimulationSettings.ParseSettings(Cmd))
+	else if (PacketSimulationSettings.ParseSettings(Cmd, *NetDriverName.ToString()))
 	{
 		if (ServerConnection)
 		{
@@ -1974,11 +1996,13 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 	const bool bIsServer = ServerConnection == NULL;
 	if (bIsServer)
 	{
+		const FNetworkObjectInfo* NetworkObjectInfo = GetNetworkObjectInfo( ThisActor );
+
 		const bool bIsActorStatic = !GuidCache->IsDynamicObject( ThisActor );
 		const bool bActorHasRole = ThisActor->GetRemoteRole() != ROLE_None;
-		const bool ShouldCreateDestructionInfo = bIsServer && bIsActorStatic && bActorHasRole && !IsSeamlessTravel;
+		const bool bShouldCreateDestructionInfo = bIsServer && bIsActorStatic && bActorHasRole && !IsSeamlessTravel;
 
-		if(ShouldCreateDestructionInfo)
+		if(bShouldCreateDestructionInfo)
 		{
 			UE_LOG(LogNet, VeryVerbose, TEXT("NotifyActorDestroyed %s - StartupActor"), *ThisActor->GetPathName() );
 			DestructionInfo = CreateDestructionInfo( this, ThisActor, DestructionInfo);
@@ -1996,20 +2020,26 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 				Channel->bClearRecentActorRefs = false;
 				Channel->Close();
 			}
-			else if(ShouldCreateDestructionInfo || Connection->DormantActors.Contains(ThisActor) || Connection->RecentlyDormantActors.Contains(ThisActor))
+			else
 			{
-				// Make a new destruction info if necessary. It is necessary if the actor is dormant or recently dormant because
-				// even though the client knew about the actor at some point, it doesn't have a channel to handle destruction.
-				DestructionInfo = CreateDestructionInfo(this, ThisActor, DestructionInfo);
-				Connection->DestroyedStartupOrDormantActors.Add(DestructionInfo->NetGUID);
+				const bool bDormantOrRecentlyDormant = NetworkObjectInfo && (NetworkObjectInfo->DormantConnections.Contains(Connection) || NetworkObjectInfo->RecentlyDormantConnections.Contains(Connection));
+
+				if (bShouldCreateDestructionInfo || bDormantOrRecentlyDormant)
+				{
+					// Make a new destruction info if necessary. It is necessary if the actor is dormant or recently dormant because
+					// even though the client knew about the actor at some point, it doesn't have a channel to handle destruction.
+					DestructionInfo = CreateDestructionInfo(this, ThisActor, DestructionInfo);
+					Connection->DestroyedStartupOrDormantActors.Add(DestructionInfo->NetGUID);
+				}
 			}
 
 			// Remove it from any dormancy lists				
-			Connection->RecentlyDormantActors.Remove( ThisActor );
 			Connection->DormantReplicatorMap.Remove( ThisActor );
-			Connection->DormantActors.Remove( ThisActor );
 		}
 	}
+
+	// Remove this actor from the network object list
+	GetNetworkObjectList().Remove( ThisActor );
 }
 
 void UNetDriver::NotifyStreamingLevelUnload( ULevel* Level)
@@ -2170,28 +2200,64 @@ public:
 /** reads in settings from the .ini file 
  * @note: overwrites all previous settings
  */
-void FPacketSimulationSettings::LoadConfig()
+void FPacketSimulationSettings::LoadConfig(const TCHAR* OptionalQualifier)
 {
-	if (GConfig->GetInt(TEXT("PacketSimulationSettings"), TEXT("PktLoss"), PktLoss, GEngineIni))
+	if (ConfigHelperInt(TEXT("PktLoss"), PktLoss, OptionalQualifier))
 	{
 		PktLoss = FMath::Clamp<int32>(PktLoss, 0, 100);
 	}
 	
 	bool InPktOrder = !!PktOrder;
-	GConfig->GetBool(TEXT("PacketSimulationSettings"), TEXT("PktOrder"), InPktOrder, GEngineIni);
+	ConfigHelperBool(TEXT("PktOrder"), InPktOrder, OptionalQualifier);
 	PktOrder = int32(InPktOrder);
 	
-	GConfig->GetInt(TEXT("PacketSimulationSettings"), TEXT("PktLag"), PktLag, GEngineIni);
+	ConfigHelperInt(TEXT("PktLag"), PktLag, OptionalQualifier);
 	
-	if (GConfig->GetInt(TEXT("PacketSimulationSettings"), TEXT("PktDup"), PktDup, GEngineIni))
+	if (ConfigHelperInt(TEXT("PktDup"), PktDup, OptionalQualifier))
 	{
 		PktDup = FMath::Clamp<int32>(PktDup, 0, 100);
 	}
-
-	if (GConfig->GetInt(TEXT("PacketSimulationSettings"), TEXT("PktLagVariance"), PktLagVariance, GEngineIni))
+	
+	if (ConfigHelperInt(TEXT("PktLagVariance"), PktLagVariance, OptionalQualifier))
 	{
 		PktLagVariance = FMath::Clamp<int32>(PktLagVariance, 0, 100);
 	}
+}
+
+bool FPacketSimulationSettings::ConfigHelperInt(const TCHAR* Name, int32& Value, const TCHAR* OptionalQualifier)
+{
+	if (OptionalQualifier)
+	{
+		if (GConfig->GetInt(TEXT("PacketSimulationSettings"), *FString::Printf(TEXT("%s%s"), OptionalQualifier, Name), Value, GEngineIni))
+		{
+			return true;
+		}
+	}
+
+	if (GConfig->GetInt(TEXT("PacketSimulationSettings"), Name, Value, GEngineIni))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool FPacketSimulationSettings::ConfigHelperBool(const TCHAR* Name, bool& Value, const TCHAR* OptionalQualifier)
+{
+	if (OptionalQualifier)
+	{
+		if (GConfig->GetBool(TEXT("PacketSimulationSettings"), *FString::Printf(TEXT("%s%s"), OptionalQualifier, Name), Value, GEngineIni))
+		{
+			return true;
+		}
+	}
+
+	if (GConfig->GetBool(TEXT("PacketSimulationSettings"), Name, Value, GEngineIni))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void FPacketSimulationSettings::RegisterCommands()
@@ -2237,42 +2303,60 @@ void FPacketSimulationSettings::UnregisterCommands()
  *
  * @param Stream the string to read the settings from
  */
-bool FPacketSimulationSettings::ParseSettings(const TCHAR* Cmd)
+bool FPacketSimulationSettings::ParseSettings(const TCHAR* Cmd, const TCHAR* OptionalQualifier)
 {
+	UE_LOG(LogTemp, Display, TEXT("ParseSettings for %s"), OptionalQualifier);
 	// note that each setting is tested.
 	// this is because the same function will be used to parse the command line as well
 	bool bParsed = false;
 
-	if( FParse::Value(Cmd,TEXT("PktLoss="), PktLoss) )
+	if( ParseHelper(Cmd, TEXT("PktLoss="), PktLoss, OptionalQualifier) )
 	{
 		bParsed = true;
 		FMath::Clamp<int32>( PktLoss, 0, 100 );
 		UE_LOG(LogNet, Log, TEXT("PktLoss set to %d"), PktLoss);
 	}
-	if( FParse::Value(Cmd,TEXT("PktOrder="), PktOrder) )
+	if( ParseHelper(Cmd, TEXT("PktOrder="), PktOrder, OptionalQualifier) )
 	{
 		bParsed = true;
 		FMath::Clamp<int32>( PktOrder, 0, 1 );
 		UE_LOG(LogNet, Log, TEXT("PktOrder set to %d"), PktOrder);
 	}
-	if( FParse::Value(Cmd,TEXT("PktLag="), PktLag) )
+	if( ParseHelper(Cmd, TEXT("PktLag="), PktLag, OptionalQualifier) )
 	{
 		bParsed = true;
 		UE_LOG(LogNet, Log, TEXT("PktLag set to %d"), PktLag);
 	}
-	if( FParse::Value(Cmd,TEXT("PktDup="), PktDup) )
+	if( ParseHelper(Cmd, TEXT("PktDup="), PktDup, OptionalQualifier) )
 	{
 		bParsed = true;
 		FMath::Clamp<int32>( PktDup, 0, 100 );
 		UE_LOG(LogNet, Log, TEXT("PktDup set to %d"), PktDup);
-	}
-	if( FParse::Value(Cmd,TEXT("PktLagVariance="), PktLagVariance) )
+	}	
+	if (ParseHelper(Cmd, TEXT("PktLagVariance="), PktLagVariance, OptionalQualifier))
 	{
 		bParsed = true;
 		FMath::Clamp<int32>( PktLagVariance, 0, 100 );
 		UE_LOG(LogNet, Log, TEXT("PktLagVariance set to %d"), PktLagVariance);
 	}
 	return bParsed;
+}
+
+bool FPacketSimulationSettings::ParseHelper(const TCHAR* Cmd, const TCHAR* Name, int32& Value, const TCHAR* OptionalQualifier)
+{
+	if (OptionalQualifier)
+	{
+		if (FParse::Value(Cmd, *FString::Printf(TEXT("%s%s"), OptionalQualifier, Name), Value))
+		{
+			return true;
+		}
+	}
+
+	if (FParse::Value(Cmd, Name, Value))
+	{
+		return true;
+	}
+	return false;
 }
 
 #endif
@@ -2381,24 +2465,24 @@ FActorPriority::FActorPriority(class UNetConnection* InConnection, struct FActor
 
 #if WITH_SERVER_CODE
 int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSeconds )
-	{
+{
 	int32 NumClientsToTick = ClientConnections.Num();
 
 	// by default only throttle update for listen servers unless specified on the commandline
-	static bool bForceClientTickingThrottle = FParse::Param(FCommandLine::Get(),TEXT("limitclientticks"));
-	if (bForceClientTickingThrottle || GetNetMode() == NM_ListenServer)
+	static bool bForceClientTickingThrottle = FParse::Param( FCommandLine::Get(), TEXT( "limitclientticks" ) );
+	if ( bForceClientTickingThrottle || GetNetMode() == NM_ListenServer )
 	{
 		// determine how many clients to tick this frame based on GEngine->NetTickRate (always tick at least one client), double for lan play
 		// FIXME: DeltaTimeOverflow is a static, and will conflict with other running net drivers, we investigate storing it on the driver itself!
 		static float DeltaTimeOverflow = 0.f;
 		// updates are doubled for lan play
-		static bool LanPlay = FParse::Param(FCommandLine::Get(),TEXT("lanplay"));
+		static bool LanPlay = FParse::Param( FCommandLine::Get(), TEXT( "lanplay" ) );
 		//@todo - ideally we wouldn't want to tick more clients with a higher deltatime as that's not going to be good for performance and probably saturate bandwidth in hitchy situations, maybe 
 		// come up with a solution that is greedier with higher framerates, but still won't risk saturating server upstream bandwidth
-		float ClientUpdatesThisFrame = GEngine->NetClientTicksPerSecond * (DeltaSeconds + DeltaTimeOverflow) * (LanPlay ? 2.f : 1.f);
-		NumClientsToTick = FMath::Min<int32>(NumClientsToTick,FMath::TruncToInt(ClientUpdatesThisFrame));
+		float ClientUpdatesThisFrame = GEngine->NetClientTicksPerSecond * ( DeltaSeconds + DeltaTimeOverflow ) * ( LanPlay ? 2.f : 1.f );
+		NumClientsToTick = FMath::Min<int32>( NumClientsToTick, FMath::TruncToInt( ClientUpdatesThisFrame ) );
 		//UE_LOG(LogNet, Log, TEXT("%2.3f: Ticking %d clients this frame, %2.3f/%2.4f"),GetWorld()->GetTimeSeconds(),NumClientsToTick,DeltaSeconds,ClientUpdatesThisFrame);
-		if (NumClientsToTick == 0)
+		if ( NumClientsToTick == 0 )
 		{
 			// if no clients are ticked this frame accumulate the time elapsed for the next frame
 			DeltaTimeOverflow += DeltaSeconds;
@@ -2409,31 +2493,31 @@ int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSecond
 
 	bool bFoundReadyConnection = false;
 
-	for( int32 ConnIdx = 0; ConnIdx < ClientConnections.Num(); ConnIdx++ )
+	for ( int32 ConnIdx = 0; ConnIdx < ClientConnections.Num(); ConnIdx++ )
 	{
 		UNetConnection* Connection = ClientConnections[ConnIdx];
-		check(Connection);
-		check(Connection->State == USOCK_Pending || Connection->State == USOCK_Open || Connection->State == USOCK_Closed);
-		checkSlow(Connection->GetUChildConnection() == NULL);
+		check( Connection );
+		check( Connection->State == USOCK_Pending || Connection->State == USOCK_Open || Connection->State == USOCK_Closed );
+		checkSlow( Connection->GetUChildConnection() == NULL );
 
 		// Handle not ready channels.
 		//@note: we cannot add Connection->IsNetReady(0) here to check for saturation, as if that's the case we still want to figure out the list of relevant actors
 		//			to reset their NetUpdateTime so that they will get sent as soon as the connection is no longer saturated
 		AActor* OwningActor = Connection->OwningActor;
-		if (OwningActor != NULL && Connection->State == USOCK_Open && (Connection->Driver->Time - Connection->LastReceiveTime < 1.5f))
+		if ( OwningActor != NULL && Connection->State == USOCK_Open && ( Connection->Driver->Time - Connection->LastReceiveTime < 1.5f ) )
 		{
 			check( World == OwningActor->GetWorld() );
 
 			bFoundReadyConnection = true;
-			
+
 			// the view target is what the player controller is looking at OR the owning actor itself when using beacons
 			Connection->ViewTarget = Connection->PlayerController ? Connection->PlayerController->GetViewTarget() : OwningActor;
 
-			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
+			for ( int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++ )
 			{
 				UNetConnection *Child = Connection->Children[ChildIdx];
 				APlayerController* ChildPlayerController = Child->PlayerController;
-				if (ChildPlayerController != NULL)
+				if ( ChildPlayerController != NULL )
 				{
 					Child->ViewTarget = ChildPlayerController->GetViewTarget();
 				}
@@ -2446,7 +2530,7 @@ int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSecond
 		else
 		{
 			Connection->ViewTarget = NULL;
-			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
+			for ( int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++ )
 			{
 				Connection->Children[ChildIdx]->ViewTarget = NULL;
 			}
@@ -2466,20 +2550,28 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 
 	const bool bUseAdapativeNetFrequency = IsAdaptiveNetUpdateFrequencyEnabled();
 
-	for ( auto ActorIt = GetNetworkObjectList().GetObjects().CreateIterator(); ActorIt; ++ActorIt )
+	TArray<AActor*> ActorsToRemove;
+
+	for ( const TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetActiveObjects() )
 	{
-		FNetworkObjectInfo* ActorInfo = ( *ActorIt ).Get();
+		FNetworkObjectInfo* ActorInfo = ObjectInfo.Get();
+
+		if ( !ActorInfo->bPendingNetUpdate && World->TimeSeconds <= ActorInfo->NextUpdateTime )
+		{
+			continue;		// It's not time for this actor to perform an update, skip it
+		}
+
 		AActor* Actor = ActorInfo->Actor;
 
 		if ( Actor->IsPendingKill() )
 		{
-			ActorIt.RemoveCurrent();
+			ActorsToRemove.Add( Actor );
 			continue;
 		}
 
 		if ( Actor->GetRemoteRole() == ROLE_None )
 		{
-			ActorIt.RemoveCurrent();
+			ActorsToRemove.Add( Actor );
 			continue;
 		}
 
@@ -2510,74 +2602,75 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 			// We'll want to track initially dormant actors some other way to track them with stats
 			SCOPE_CYCLE_COUNTER( STAT_NetInitialDormantCheckTime );
 			NumInitiallyDormant++;
-			ActorIt.RemoveCurrent();
+			ActorsToRemove.Add( Actor );
 			//UE_LOG(LogNetTraffic, Log, TEXT("Skipping Actor %s - its initially dormant!"), *Actor->GetName() );
 			continue;
 		}
 
-		check( Actor->NeedsLoadForClient() ); // We have no business sending this unless the client can load
-		check( World == Actor->GetWorld() );
+		checkSlow( Actor->NeedsLoadForClient() ); // We have no business sending this unless the client can load
+		checkSlow( World == Actor->GetWorld() );
 
-		// See if it's time for this actor to update replicated properties
-		if ( ( Actor->bPendingNetUpdate || World->TimeSeconds > Actor->NetUpdateTime ) )
+		// Set defaults if this actor is replicating for first time
+		if ( ActorInfo->LastNetReplicateTime == 0 )
 		{
-			// Set defaults if this actor is replicating for first time
-			if ( ActorInfo->LastNetReplicateTime == 0 )
-			{
-				ActorInfo->LastNetReplicateTime = World->TimeSeconds;
-				ActorInfo->OptimalNetUpdateDelta = 1.0f / Actor->NetUpdateFrequency;
-			}
-
-			const float ScaleDownStartTime = 2.0f;
-			const float ScaleDownTimeRange = 5.0f;
-
-			const float LastReplicateDelta = World->TimeSeconds - ActorInfo->LastNetReplicateTime;
-
-			if ( LastReplicateDelta > ScaleDownStartTime )
-			{
-				if ( Actor->MinNetUpdateFrequency == 0.0f )
-				{
-					Actor->MinNetUpdateFrequency = 2.0f;
-				}
-
-				// Calculate min delta (max rate actor will update), and max delta (slowest rate actor will update)
-				const float MinOptimalDelta = 1.0f / Actor->NetUpdateFrequency;									  // Don't go faster than NetUpdateFrequency
-				const float MaxOptimalDelta = FMath::Max( 1.0f / Actor->MinNetUpdateFrequency, MinOptimalDelta ); // Don't go slower than MinNetUpdateFrequency (or NetUpdateFrequency if it's slower)
-
-				// Interpolate between MinOptimalDelta/MaxOptimalDelta based on how long it's been since this actor actually sent anything
-				const float Alpha = FMath::Clamp( ( LastReplicateDelta - ScaleDownStartTime ) / ScaleDownTimeRange, 0.0f, 1.0f );
-				ActorInfo->OptimalNetUpdateDelta = FMath::Lerp( MinOptimalDelta, MaxOptimalDelta, Alpha );
-			}
-
-			// Setup Actor->NetUpdateTime, which will be the next time this actor will replicate properties to connections
-			// NOTE - We don't do this if bPendingNetUpdate is true, since this means we're forcing an update due to at least one connection
-			//	that wasn't to replicate previously (due to saturation, etc)
-			// NOTE - This also means all other connections will force an update (even if they just updated, we should look into this)
-			if ( !Actor->bPendingNetUpdate )
-			{
-				UE_LOG( LogNetTraffic, Log, TEXT( "actor %s requesting new net update, time: %2.3f" ), *Actor->GetName(), World->TimeSeconds );
-
-				const float NextUpdateDelta = bUseAdapativeNetFrequency ? ActorInfo->OptimalNetUpdateDelta : 1.0f / Actor->NetUpdateFrequency;
-
-				// then set the next update time
-				Actor->NetUpdateTime = World->TimeSeconds + FMath::SRand() * ServerTickTime + NextUpdateDelta;
-
-				// and mark when the actor first requested an update
-				//@note: using Time because it's compared against UActorChannel.LastUpdateTime which also uses that value
-				Actor->LastNetUpdateTime = Time;
-			}
-
-			// and clear the pending update flag assuming all clients will be able to consider it
-			Actor->bPendingNetUpdate = false;
-
-			// add it to the list to consider below
-			// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
-			ensure( OutConsiderList.Num() < OutConsiderList.Max() );
-			OutConsiderList.Add( ActorInfo );
-
-			// Call PreReplication on all actors that will be considered
-			Actor->CallPreReplication( this );
+			ActorInfo->LastNetReplicateTime = World->TimeSeconds;
+			ActorInfo->OptimalNetUpdateDelta = 1.0f / Actor->NetUpdateFrequency;
 		}
+
+		const float ScaleDownStartTime = 2.0f;
+		const float ScaleDownTimeRange = 5.0f;
+
+		const float LastReplicateDelta = World->TimeSeconds - ActorInfo->LastNetReplicateTime;
+
+		if ( LastReplicateDelta > ScaleDownStartTime )
+		{
+			if ( Actor->MinNetUpdateFrequency == 0.0f )
+			{
+				Actor->MinNetUpdateFrequency = 2.0f;
+			}
+
+			// Calculate min delta (max rate actor will update), and max delta (slowest rate actor will update)
+			const float MinOptimalDelta = 1.0f / Actor->NetUpdateFrequency;									  // Don't go faster than NetUpdateFrequency
+			const float MaxOptimalDelta = FMath::Max( 1.0f / Actor->MinNetUpdateFrequency, MinOptimalDelta ); // Don't go slower than MinNetUpdateFrequency (or NetUpdateFrequency if it's slower)
+
+			// Interpolate between MinOptimalDelta/MaxOptimalDelta based on how long it's been since this actor actually sent anything
+			const float Alpha = FMath::Clamp( ( LastReplicateDelta - ScaleDownStartTime ) / ScaleDownTimeRange, 0.0f, 1.0f );
+			ActorInfo->OptimalNetUpdateDelta = FMath::Lerp( MinOptimalDelta, MaxOptimalDelta, Alpha );
+		}
+
+		// Setup ActorInfo->NextUpdateTime, which will be the next time this actor will replicate properties to connections
+		// NOTE - We don't do this if bPendingNetUpdate is true, since this means we're forcing an update due to at least one connection
+		//	that wasn't to replicate previously (due to saturation, etc)
+		// NOTE - This also means all other connections will force an update (even if they just updated, we should look into this)
+		if ( !ActorInfo->bPendingNetUpdate )
+		{
+			UE_LOG( LogNetTraffic, Log, TEXT( "actor %s requesting new net update, time: %2.3f" ), *Actor->GetName(), World->TimeSeconds );
+
+			const float NextUpdateDelta = bUseAdapativeNetFrequency ? ActorInfo->OptimalNetUpdateDelta : 1.0f / Actor->NetUpdateFrequency;
+
+			// then set the next update time
+			ActorInfo->NextUpdateTime = World->TimeSeconds + FMath::SRand() * ServerTickTime + NextUpdateDelta;
+
+			// and mark when the actor first requested an update
+			//@note: using Time because it's compared against UActorChannel.LastUpdateTime which also uses that value
+			ActorInfo->LastNetUpdateTime = Time;
+		}
+
+		// and clear the pending update flag assuming all clients will be able to consider it
+		ActorInfo->bPendingNetUpdate = false;
+
+		// add it to the list to consider below
+		// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
+		ensure( OutConsiderList.Num() < OutConsiderList.Max() );
+		OutConsiderList.Add( ActorInfo );
+
+		// Call PreReplication on all actors that will be considered
+		Actor->CallPreReplication( this );
+	}
+
+	for ( AActor* Actor : ActorsToRemove )
+	{
+		GetNetworkObjectList().Remove( Actor );
 	}
 
 	// Update stats
@@ -2627,27 +2720,10 @@ static FORCEINLINE_DEBUGGABLE UNetConnection* IsActorOwnedByAndRelevantToConnect
 }
 
 // Returns true if this actor is considered dormant (and all properties caught up) to the current connection
-static FORCEINLINE_DEBUGGABLE bool IsActorDormant( const AActor* Actor, const UNetConnection* Connection )
+static FORCEINLINE_DEBUGGABLE bool IsActorDormant( FNetworkObjectInfo* ActorInfo, const UNetConnection* Connection )
 {
 	// If actor is already dormant on this channel, then skip replication entirely
-	if ( Connection->DormantActors.Contains( Actor ) )
-	{
-		// net.DormancyValidate can be set to 2 to validate dormant actor properties on every replicate
-		// (this could be moved to be done every tick instead of every net update if necessary, but seems excessive)
-		if ( CVarNetDormancyValidate.GetValueOnAnyThread() == 2 )
-		{
-			const TSharedRef<FObjectReplicator>* Replicator = Connection->DormantReplicatorMap.Find( Actor );
-
-			if ( Replicator != NULL )
-			{
-				Replicator->Get().ValidateAgainstState( Actor );
-			}
-		}
-
-		return true;
-	}
-
-	return false;
+	return ActorInfo->DormantConnections.Contains( Connection );
 }
 
 // Returns true if this actor wants to go dormant for a particular connection
@@ -2737,7 +2813,7 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 			else if ( CVarSetNetDormancyEnabled.GetValueOnGameThread() != 0 )
 			{
 				// Skip Actor if dormant
-				if ( IsActorDormant( Actor, Connection ) )
+				if ( IsActorDormant( ActorInfo, Connection ) )
 				{
 					continue;
 				}
@@ -2918,7 +2994,7 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 					else if ( Actor->NetUpdateFrequency < 1.0f )
 					{
 						UE_LOG( LogNetTraffic, Log, TEXT( "Unable to replicate %s" ), *Actor->GetName() );
-						Actor->NetUpdateTime = Actor->GetWorld()->TimeSeconds + 0.2f * FMath::FRand();
+						PriorityActors[j]->ActorInfo->NextUpdateTime = Actor->GetWorld()->TimeSeconds + 0.2f * FMath::FRand();
 					}
 				}
 
@@ -3041,7 +3117,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 	}
 
 	TArray<FNetworkObjectInfo*> ConsiderList;
-	ConsiderList.Reserve( GetNetworkObjectList().GetObjects().Num() );
+	ConsiderList.Reserve( GetNetworkObjectList().GetActiveObjects().Num() );
 
 	// Build the consider list (actors that are ready to replicate)
 	ServerReplicateActors_BuildConsiderList( ConsiderList, ServerTickTime );
@@ -3053,6 +3129,20 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 		UNetConnection* Connection = ClientConnections[i];
 		check(Connection);
 
+		// net.DormancyValidate can be set to 2 to validate all dormant actors against last known state before going dormant
+		if ( CVarNetDormancyValidate.GetValueOnAnyThread() == 2 )
+		{
+			for ( auto It = Connection->DormantReplicatorMap.CreateIterator(); It; ++It )
+			{
+				FObjectReplicator& Replicator = It.Value().Get();
+
+				if ( Replicator.OwningChannel != nullptr )
+				{
+					Replicator.ValidateAgainstState( Replicator.OwningChannel->GetActor() );
+				}
+			}
+		}
+
 		// if this client shouldn't be ticked this frame
 		if (i >= NumClientsToTick)
 		{
@@ -3062,16 +3152,16 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			{
 				AActor *Actor = ConsiderList[ConsiderIdx]->Actor;
 				// if the actor hasn't already been flagged by another connection,
-				if (Actor != NULL && !Actor->bPendingNetUpdate)
+				if (Actor != NULL && !ConsiderList[ConsiderIdx]->bPendingNetUpdate)
 				{
 					// find the channel
 					UActorChannel *Channel = Connection->ActorChannels.FindRef(Actor);
 					// and if the channel last update time doesn't match the last net update time for the actor
-					if (Channel != NULL && Channel->LastUpdateTime < Actor->LastNetUpdateTime)
+					if (Channel != NULL && Channel->LastUpdateTime < ConsiderList[ConsiderIdx]->LastNetUpdateTime)
 					{
 						//UE_LOG(LogNet, Log, TEXT("flagging %s for a future update"),*Actor->GetName());
 						// flag it for a pending update
-						Actor->bPendingNetUpdate = true;
+						ConsiderList[ConsiderIdx]->bPendingNetUpdate = true;
 					}
 				}
 			}
@@ -3136,13 +3226,13 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				if (Channel != NULL && Time - Channel->RelevantTime <= 1.f)
 				{
 					UE_LOG(LogNetTraffic, Log, TEXT(" Saturated. Mark %s NetUpdateTime to be checked for next tick"), *Actor->GetName());
-					Actor->bPendingNetUpdate = true;
+					PriorityActors[k]->ActorInfo->bPendingNetUpdate = true;
 				}
 				else if ( IsActorRelevantToConnection( Actor, ConnectionViewers ) )
 				{
 					// If this actor was relevant but didn't get processed, force another update for next frame
 					UE_LOG( LogNetTraffic, Log, TEXT( " Saturated. Mark %s NetUpdateTime to be checked for next tick" ), *Actor->GetName() );
-					Actor->bPendingNetUpdate = true;
+					PriorityActors[k]->ActorInfo->bPendingNetUpdate = true;
 					if ( Channel != NULL )
 					{
 						Channel->RelevantTime = Time + 0.5f * FMath::SRand();
@@ -3187,6 +3277,11 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 #endif // WITH_SERVER_CODE
 }
 
+void UNetDriver::SetNetDriverName(FName NewNetDriverNamed)
+{
+	NetDriverName = NewNetDriverNamed;
+	InitPacketSimulationSettings();
+}
 
 void UNetDriver::PrintDebugRelevantActors()
 {
@@ -3294,8 +3389,10 @@ void UNetDriver::DrawNetDriverDebug()
 			continue;
 		}
 		
+		const FNetworkObjectInfo* NetworkObjectInfo = Connection->Driver->GetNetworkObjectInfo( *It );
+
 		FColor	DrawColor;
-		if (Connection->DormantActors.Contains(*It))
+		if ( NetworkObjectInfo && NetworkObjectInfo->DormantConnections.Contains( Connection ) )
 		{
 			DrawColor = FColor::Red;
 		}
@@ -3340,6 +3437,10 @@ void UNetDriver::AddClientConnection(UNetConnection * NewConnection)
 
 	PerfCountersIncrement(TEXT("AddedConnections"));
 
+	// When new connections join, we need to make sure to add all fully dormant actors back to the network list, so they can get processed for the new connection
+	// They'll eventually fall back off to this list when they are dormant on the new connection
+	GetNetworkObjectList().HandleConnectionAdded();
+
 	for (auto It = DestroyedStartupOrDormantActors.CreateIterator(); It; ++It)
 	{
 		if (It.Key().IsStatic())
@@ -3359,7 +3460,7 @@ void UNetDriver::SetWorld(class UWorld* InWorld)
 		World = NULL;
 		Notify = NULL;
 
-		GetNetworkObjectList().GetObjects().Reset();
+		GetNetworkObjectList().Reset();
 	}
 
 	if (InWorld)
@@ -3381,6 +3482,8 @@ void UNetDriver::ResetGameWorldState()
 	{
 		NetCache->ClearClassNetCache();	// Clear the cache net: it will recreate itself after seamless travel
 	}
+
+	GetNetworkObjectList().ResetDormancyState();
 
 	if (ServerConnection)
 	{

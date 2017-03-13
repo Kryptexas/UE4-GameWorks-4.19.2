@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class GammaUI : ModuleRules
 {
-	public GammaUI(TargetInfo Target)
+	public GammaUI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

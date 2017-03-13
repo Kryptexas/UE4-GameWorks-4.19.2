@@ -51,6 +51,15 @@ bool UGoogleVRHMDFunctionLibrary::IsGoogleVRStereoRenderingEnabled()
 	return false;
 }
 
+void UGoogleVRHMDFunctionLibrary::SetSustainedPerformanceModeEnabled(bool bEnable)
+{
+	FGoogleVRHMD* HMD = GetHMD();
+	if(HMD)
+	{
+		return HMD->SetSPMEnable(bEnable);
+	}
+}
+
 void UGoogleVRHMDFunctionLibrary::SetDistortionCorrectionEnabled(bool bEnable)
 {
 	FGoogleVRHMD* HMD = GetHMD();
@@ -119,6 +128,17 @@ bool UGoogleVRHMDFunctionLibrary::IsVrLaunch()
 	if(HMD)
 	{
 		return HMD->IsVrLaunch();
+	}
+
+	return false;
+}
+
+bool UGoogleVRHMDFunctionLibrary::IsInDaydreamMode()
+{
+	FGoogleVRHMD* HMD = GetHMD();
+	if(HMD)
+	{
+		return HMD->IsInDaydreamMode();
 	}
 
 	return false;
@@ -232,6 +252,75 @@ void UGoogleVRHMDFunctionLibrary::ClearDaydreamLoadingSplashScreenTexture()
 	{
 		HMD->GVRSplash->SplashTexture = nullptr;
 		HMD->GVRSplash->SplashTexturePath = "";
+	}
+#endif
+}
+
+float UGoogleVRHMDFunctionLibrary::GetDaydreamLoadingSplashScreenDistance()
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if(HMD && HMD->GVRSplash.IsValid())
+	{
+		return HMD->GVRSplash->RenderDistanceInMeter;
+	}
+#endif
+	return 0.0f;
+}
+
+void UGoogleVRHMDFunctionLibrary::SetDaydreamLoadingSplashScreenDistance(float NewDistanceInMeter)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if(HMD && HMD->GVRSplash.IsValid())
+	{
+		HMD->GVRSplash->RenderDistanceInMeter = NewDistanceInMeter;
+	}
+#endif
+}
+
+float UGoogleVRHMDFunctionLibrary::GetDaydreamLoadingSplashScreenScale()
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if(HMD && HMD->GVRSplash.IsValid())
+	{
+		return HMD->GVRSplash->RenderScale;
+	}
+#endif
+	return 0.0f;
+}
+
+void UGoogleVRHMDFunctionLibrary::SetDaydreamLoadingSplashScreenScale(float NewSize)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if(HMD && HMD->GVRSplash.IsValid())
+	{
+		HMD->GVRSplash->RenderScale = NewSize;
+	}
+#endif
+}
+
+float UGoogleVRHMDFunctionLibrary::GetDaydreamLoadingSplashScreenViewAngle()
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if(HMD && HMD->GVRSplash.IsValid())
+	{
+		return HMD->GVRSplash->ViewAngleInDegree;
+	}
+#endif
+	return 0.0f;
+}
+
+void UGoogleVRHMDFunctionLibrary::SetDaydreamLoadingSplashScreenViewAngle(float NewViewAngle)
+{
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FGoogleVRHMD* HMD = GetHMD();
+	if(HMD && HMD->GVRSplash.IsValid())
+	{
+		HMD->GVRSplash->ViewAngleInDegree = NewViewAngle;
 	}
 #endif
 }

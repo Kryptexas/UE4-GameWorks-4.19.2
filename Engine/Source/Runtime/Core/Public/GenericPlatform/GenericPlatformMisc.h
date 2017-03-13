@@ -451,6 +451,27 @@ public:
 	{
 	}
 
+    /**
+	* Platform specific function for initializing storage of tagged memory buffers
+	*/
+	FORCEINLINE static void InitTaggedStorage(uint32 NumTags)
+	{
+	}
+
+    /**
+	* Platform specific function for freeing storage of tagged memory buffers
+	*/
+	FORCEINLINE static void ShutdownTaggedStorage()
+	{
+	}
+
+    /**
+	* Platform specific function for tagging a memory buffer with a label. Helps see memory access in profilers
+	*/
+	FORCEINLINE static void TagBuffer(const char* Label, uint32 Category, const void* Buffer, size_t BufferSize)
+	{
+	}
+
 	/** 
 	 *	Set the value for the given section and key in the platform specific key->value store
 	 *  Note: The key->value store is user-specific, but may be used to share data between different applications for the same user
@@ -1057,6 +1078,12 @@ public:
 	{
 		return false;
 	}
+
+	/**
+	 * Returns a list of platforms that are confidential in nature. To avoid hardcoding the list, this
+	 * looks on disk the first time for special files, so it is non-instant.
+	 */
+	static const TArray<FString>& GetConfidentialPlatforms();
 
 #if !UE_BUILD_SHIPPING
 protected:

@@ -31,7 +31,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config)
 	float LoseSightRadius;
 
-	/** How far to the side AI can see, in degrees. Use SetPeripheralVisionAngle to change the value at runtime. */
+	/** How far to the side AI can see, in degrees. Use SetPeripheralVisionAngle to change the value at runtime. 
+	 *	The value represents the angle measured in relation to the forward vector, not the whole range. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config)
 	float PeripheralVisionAngleDegrees;
 

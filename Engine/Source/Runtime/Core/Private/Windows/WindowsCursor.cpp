@@ -21,6 +21,7 @@ FWindowsCursor::FWindowsCursor()
 	for( int32 CurCursorIndex = 0; CurCursorIndex < EMouseCursor::TotalCursorCount; ++CurCursorIndex )
 	{
 		CursorHandles[ CurCursorIndex ] = NULL;
+		CursorOverrideHandles[ CurCursorIndex ] = NULL;
 
 		HCURSOR CursorHandle = NULL;
 		switch( CurCursorIndex )
@@ -161,11 +162,21 @@ void FWindowsCursor::SetType( const EMouseCursor::Type InNewCursor )
 	// NOTE: Watch out for contention with FWindowsViewport::UpdateMouseCursor
 	checkf( InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), (int)InNewCursor );
 	CurrentType = InNewCursor;
-	::SetCursor( CursorHandles[ InNewCursor ] );
+
+	if (CursorOverrideHandles[InNewCursor])
+	{
+		::SetCursor(CursorOverrideHandles[InNewCursor]);
+	}
+	else
+	{
+		::SetCursor(CursorHandles[InNewCursor]);
+	}
 }
 
 void FWindowsCursor::GetSize( int32& Width, int32& Height ) const
 {
+	//TODO this is wrong, this should query the size of the cursor on the platform.
+
 	Width = 16;
 	Height = 16;
 }
@@ -191,8 +202,15 @@ void FWindowsCursor::Lock( const RECT* const Bounds )
 	// If the cursor is not visible and we're running game, assume we're in a mode where the mouse is controlling the camera and lock it to the center of the widget.
 }
 
-void FWindowsCursor::SetCustomShape(void* InCursorHandle)
+void FWindowsCursor::SetTypeShape(EMouseCursor::Type InCursorType, void* InCursorHandle)
 {
+	checkf(InCursorType < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), (int)InCursorType);
+
 	HCURSOR CursorHandle = (HCURSOR)InCursorHandle;
-	CursorHandles[EMouseCursor::Custom] = CursorHandle;
+	CursorOverrideHandles[InCursorType] = CursorHandle;
+
+	if (CurrentType == InCursorType)
+	{
+		SetType(CurrentType);
+	}
 }

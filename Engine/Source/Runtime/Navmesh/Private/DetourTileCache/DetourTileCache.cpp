@@ -167,7 +167,7 @@ dtStatus dtTileCache::init(const dtTileCacheParams* params,
 	m_nextFreeObstacle = 0;
 	for (int i = m_params.maxObstacles-1; i >= 0; --i)
 	{
-		m_obstacles[i].salt = 1;
+		m_obstacles[i].salt = DT_SALT_BASE;
 		m_obstacles[i].next = m_nextFreeObstacle;
 		m_nextFreeObstacle = &m_obstacles[i];
 	}
@@ -188,7 +188,7 @@ dtStatus dtTileCache::init(const dtTileCacheParams* params,
 	m_nextFreeTile = 0;
 	for (int i = m_params.maxTiles-1; i >= 0; --i)
 	{
-		m_tiles[i].salt = 1;
+		m_tiles[i].salt = DT_SALT_BASE;
 		m_tiles[i].next = m_nextFreeTile;
 		m_nextFreeTile = &m_tiles[i];
 	}

@@ -78,7 +78,7 @@ namespace BuildGraph.Tasks
 			if (Parameters.MergeTelemetryWithPrefix != null)
 			{
 				TelemetryFile = FileReference.Combine(CommandUtils.RootDirectory, "Engine", "Intermediate", "UAT", "Telemetry.json");
-				TelemetryFile.Directory.CreateDirectory();
+				DirectoryReference.CreateDirectory(TelemetryFile.Directory);
 			}
 
 			// Run the command

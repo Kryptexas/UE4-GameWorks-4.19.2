@@ -147,12 +147,21 @@ void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& 
 		PixelShader->SetParameters(RHICmdList, View, ReflectionSceneProxy, SceneColorInput);
 		VertexShader->SetSimpleLightParameters(RHICmdList, View, FSphere(0));
 
+		FIntPoint UV = View.ViewRect.Min;
+		FIntPoint UVSize = View.ViewRect.Size();
+
+		if (RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[View.FeatureLevel]) && !IsMobileHDR())
+		{
+			UV.Y = UV.Y + UVSize.Y;
+			UVSize.Y = -UVSize.Y;
+		}
+
 		DrawRectangle(
 			RHICmdList,
 			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
-			View.ViewRect.Min.X, View.ViewRect.Min.Y,
-			View.ViewRect.Width(), View.ViewRect.Height(),
+			UV.X, UV.Y,
+			UVSize.X, UVSize.Y,
 			View.ViewRect.Size(),
 			FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
 			*VertexShader,
@@ -245,7 +254,7 @@ static void UpdatePlanarReflectionContents_RenderThread(
 
 				// Note: relying on GBuffer SceneColor alpha being cleared to 1 in the main scene rendering
 				check(GetSceneColorClearAlpha() == 1.0f);
-				RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor(0, 0, 0, 1), FIntRect());
+				RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor(0, 0, 0, 1));
 
 				// Reflection view late update
 				if (SceneRenderer->Views.Num() > 1)
@@ -557,7 +566,7 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 
 		if (!bSSRAsInput)
 		{
-			RHICmdList.ClearColorTexture(Output->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0), FIntRect());
+			RHICmdList.ClearColorTexture(Output->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0));
 		}
 
 		{

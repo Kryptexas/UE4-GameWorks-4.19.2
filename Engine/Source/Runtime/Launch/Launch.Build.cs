@@ -5,7 +5,7 @@ using System.IO;
 
 public class Launch : ModuleRules
 {
-	public Launch(TargetInfo Target)
+	public Launch(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/Launch/Private");
 
@@ -49,7 +49,7 @@ public class Launch : ModuleRules
             Definitions.Add("WITH_LAUNCHERCHECK=1");
 		}
 
-		if (Target.Type != TargetRules.TargetType.Server)
+		if (Target.Type != TargetType.Server)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
@@ -118,6 +118,9 @@ public class Launch : ModuleRules
             // LaunchEngineLoop.cpp will still attempt to load XMPP but not all projects require it so it will silently fail unless referenced by the project's build.cs file.
             // DynamicallyLoadedModuleNames.Add("XMPP");
             DynamicallyLoadedModuleNames.Add("HTTP");
+
+            PrivateDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
+            PrivateDependencyModuleNames.Add("ClothingSystemRuntime");
 		}
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
@@ -197,7 +200,7 @@ public class Launch : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 			(Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Mac) ||
-			(Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetRules.TargetType.Server))
+			(Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetType.Server))
 		{
             // TODO: re-enable after implementing resource tables for OpenGL.
 			DynamicallyLoadedModuleNames.Add("OpenGLDrv");

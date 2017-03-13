@@ -131,9 +131,9 @@ namespace UnrealBuildTool
 	 * The boolean operator nodes may be combined to create a final state for more complex
 	 * conditions:
 	 * 
-	 *	<setBoolNot result="notDistribution" value="$B(Distribution)/>
-	 *	<setBoolEquals result="isX86" arg1="$S(Architecture)" arg2="x86"/>
-	 *	<setBoolEquals result="isX86_64" arg2="$S(Architecture)" arg2="x86_64/">
+	 *	<setBoolNot result="notDistribution" source="$B(Distribution)/>
+	 *	<setBoolIsEqual result="isX86" arg1="$S(Architecture)" arg2="x86"/>
+	 *	<setBoolIsEqual result="isX86_64" arg2="$S(Architecture)" arg2="x86_64/">
 	 *	<setBoolOr result="isIntel" arg1="$B(isX86)" arg2="$B(isX86_64)"/>
 	 *	<setBoolAnd result="intelAndNotDistribution" arg1="$B(isIntel)" arg2="$B(notDistribution)"/>
 	 *	<if condition="intelAndNotDistribution">
@@ -350,6 +350,9 @@ namespace UnrealBuildTool
 	 * 	<!-- optional additions to GameActivity onResume in GameActivity.java -->
 	 *	<gameActivityOnResumeAdditions>	</gameActivityOnResumeAdditions>
 	 *	
+	 * 	<!-- optional additions to GameActivity onNewIntent in GameActivity.java -->
+	 *	<gameActivityOnNewIntentAdditions> </gameActivityOnNewIntentAdditions>
+	 *	
 	 * 	<!-- optional additions to GameActivity onActivityResult in GameActivity.java -->
 	 * 	<gameActivityOnActivityResultAdditions>	</gameActivityOnActivityResultAdditions>
 	 * 	
@@ -402,7 +405,7 @@ namespace UnrealBuildTool
 	 * 
 	 */
 
-	public class UnrealPluginLanguage
+	class UnrealPluginLanguage
 	{
 		/** The merged XML program to run */
 		private XDocument XDoc;
@@ -2154,7 +2157,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Equivalent of FConfigCacheIni_UPL. Parses ini files.  This version reads ALL sections since ConfigCacheIni_UPL does NOT
 	/// </summary>
-	public class ConfigCacheIni_UPL
+	class ConfigCacheIni_UPL
 	{
 		/// <summary>
 		/// Exception when parsing ini files
@@ -2170,7 +2173,9 @@ namespace UnrealBuildTool
 		}
 
 
-		// command class for being able to create config caches over and over without needing to read the ini files
+		/// <summary>
+		/// command class for being able to create config caches over and over without needing to read the ini files
+		/// </summary>
 		public class Command
 		{
 			public string TrimmedLine;
@@ -2280,9 +2285,9 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Constructor. Parses ini hierarchy for the specified project.  No Platform settings.
 		/// </summary>
-		/// <param name="ProjectDirectory">Project path</param>
-		/// <param name="Platform">Target platform</param>
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
+		/// <param name="ProjectDirectory">Project path</param>
+		/// <param name="EngineDirectory"></param>
 		public ConfigCacheIni_UPL(string BaseIniName, string ProjectDirectory, string EngineDirectory = null)
 		{
 			Init(UnrealTargetPlatform.Unknown, BaseIniName, (ProjectDirectory == null) ? null : new DirectoryReference(ProjectDirectory), (EngineDirectory == null) ? null : new DirectoryReference(EngineDirectory));
@@ -2291,9 +2296,9 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Constructor. Parses ini hierarchy for the specified project.  No Platform settings.
 		/// </summary>
-		/// <param name="ProjectDirectory">Project path</param>
-		/// <param name="Platform">Target platform</param>
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
+		/// <param name="ProjectDirectory">Project path</param>
+		/// <param name="EngineDirectory"></param>
 		public ConfigCacheIni_UPL(string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory = null)
 		{
 			Init(UnrealTargetPlatform.Unknown, BaseIniName, ProjectDirectory, EngineDirectory);
@@ -2305,6 +2310,7 @@ namespace UnrealBuildTool
 		/// <param name="ProjectDirectory">Project path</param>
 		/// <param name="Platform">Target platform</param>
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
+		/// <param name="EngineDirectory"></param>
 		public ConfigCacheIni_UPL(UnrealTargetPlatform Platform, string BaseIniName, string ProjectDirectory, string EngineDirectory = null)
 		{
 			Init(Platform, BaseIniName, (ProjectDirectory == null) ? null : new DirectoryReference(ProjectDirectory), (EngineDirectory == null) ? null : new DirectoryReference(EngineDirectory));
@@ -2316,6 +2322,9 @@ namespace UnrealBuildTool
 		/// <param name="ProjectDirectory">Project path</param>
 		/// <param name="Platform">Target platform</param>
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
+		/// <param name="EngineDirectory"></param>
+		/// <param name="EngineOnly"></param>
+		/// <param name="BaseCache"></param>
 		public ConfigCacheIni_UPL(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory = null, bool EngineOnly = false, ConfigCacheIni_UPL BaseCache = null)
 		{
 			Init(Platform, BaseIniName, ProjectDirectory, EngineDirectory, EngineOnly, BaseCache);
@@ -2353,7 +2362,7 @@ namespace UnrealBuildTool
 			{
 				foreach (var IniFileName in EnumerateEngineIniFileNames(EngineDirectory, BaseIniName))
 				{
-					if (IniFileName.Exists())
+					if (FileReference.Exists(IniFileName))
 					{
 						ParseIniFile(IniFileName);
 					}
@@ -2363,7 +2372,7 @@ namespace UnrealBuildTool
 			{
 				foreach (var IniFileName in EnumerateCrossPlatformIniFileNames(ProjectDirectory, EngineDirectory, Platform, BaseIniName, BaseCache != null))
 				{
-					if (IniFileName.Exists())
+					if (FileReference.Exists(IniFileName))
 					{
 						ParseIniFile(IniFileName);
 					}
@@ -2675,7 +2684,7 @@ namespace UnrealBuildTool
 			{
 				Commands = FileCache[Filename.FullName];
 			}
-			if (IniLines != null)
+			if (IniLines != null && Commands != null)
 			{
 				IniSection CurrentSection = null;
 

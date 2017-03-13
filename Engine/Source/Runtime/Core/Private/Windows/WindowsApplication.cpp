@@ -2442,7 +2442,7 @@ uint32 FWindowsApplication::GetFirstFreeTouchIndex()
 
 void FTaskbarList::Initialize()
 {
-	if (FWindowsPlatformMisc::CoInitialize())
+	if (LIKELY(FApp::CanEverRender()) && FWindowsPlatformMisc::CoInitialize())
 	{
 		if (CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (void **)&TaskBarList3) != S_OK)
 		{
@@ -2459,7 +2459,7 @@ FTaskbarList::FTaskbarList()
 
 FTaskbarList::~FTaskbarList()
 {
-	if (FWindowsPlatformMisc::CoInitialize() && TaskBarList3)
+	if (TaskBarList3 && FWindowsPlatformMisc::CoInitialize())
 	{
 		TaskBarList3->Release();
 	}

@@ -21,6 +21,7 @@
 class FDetailWidgetRow;
 class IDetailChildrenBuilder;
 class IDetailLayoutBuilder;
+class SDragAndDropVerticalBox;
 
 /**
  * Slate widgets customizer for the target layers list in the Landscape Editor
@@ -43,10 +44,10 @@ protected:
 	static EVisibility GetVisibility_VisibilityTip();
 };
 
-class FLandscapeEditorCustomNodeBuilder_TargetLayers : public IDetailCustomNodeBuilder
+class FLandscapeEditorCustomNodeBuilder_TargetLayers : public IDetailCustomNodeBuilder, public TSharedFromThis<FLandscapeEditorCustomNodeBuilder_TargetLayers>
 {
 public:
-	FLandscapeEditorCustomNodeBuilder_TargetLayers(TSharedRef<FAssetThumbnailPool> ThumbnailPool);
+	FLandscapeEditorCustomNodeBuilder_TargetLayers(TSharedRef<FAssetThumbnailPool> ThumbnailPool, TSharedRef<IPropertyHandle> InTargetDisplayOrderPropertyHandle, TSharedRef<IPropertyHandle> InTargetShowUnusedLayersPropertyHandle);
 	~FLandscapeEditorCustomNodeBuilder_TargetLayers();
 
 	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override;
@@ -59,10 +60,12 @@ public:
 
 protected:
 	TSharedRef<FAssetThumbnailPool> ThumbnailPool;
+	TSharedRef<IPropertyHandle> TargetDisplayOrderPropertyHandle;
+	TSharedRef<IPropertyHandle> TargetShowUnusedLayersPropertyHandle;
 
 	static class FEdModeLandscape* GetEditorMode();
 
-	void GenerateRow(IDetailChildrenBuilder& ChildrenBuilder, const TSharedRef<FLandscapeTargetListInfo> Target);
+	TSharedPtr<SWidget> GenerateRow(const TSharedRef<FLandscapeTargetListInfo> Target);
 
 	static bool GetTargetLayerIsSelected(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static void OnTargetSelectionChanged(const TSharedRef<FLandscapeTargetListInfo> Target);
@@ -71,11 +74,12 @@ protected:
 	static void OnImportLayer(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static void OnReimportLayer(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static void OnFillLayer(const TSharedRef<FLandscapeTargetListInfo> Target);
+	static void FillEmptyLayers(ULandscapeInfo* LandscapeInfo, ULandscapeLayerInfoObject* LandscapeInfoObject);
 	static void OnClearLayer(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static bool ShouldFilterLayerInfo(const class FAssetData& AssetData, FName LayerName);
 	static void OnTargetLayerSetObject(const FAssetData& AssetData, const TSharedRef<FLandscapeTargetListInfo> Target);
 	static EVisibility GetTargetLayerInfoSelectorVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
-	static EVisibility GetTargetLayerCreateVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
+	static bool GetTargetLayerCreateEnabled(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static EVisibility GetTargetLayerMakePublicVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static EVisibility GetTargetLayerDeleteVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static TSharedRef<SWidget> OnGetTargetLayerCreateMenu(const TSharedRef<FLandscapeTargetListInfo> Target);
@@ -88,6 +92,21 @@ protected:
 	static EVisibility GetDebugModeColorChannelVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static ECheckBoxState DebugModeColorChannelIsChecked(const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel);
 	static void OnDebugModeColorChannelChanged(ECheckBoxState NewCheckedState, const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel);
+
+	// Drag/Drop handling
+	FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, int32 SlotIndex, SVerticalBox::FSlot* Slot);
+	TOptional<SDragAndDropVerticalBox::EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, SDragAndDropVerticalBox::EItemDropZone DropZone, SVerticalBox::FSlot* Slot);
+	FReply HandleAcceptDrop(FDragDropEvent const& DragDropEvent, SDragAndDropVerticalBox::EItemDropZone DropZone, int32 SlotIndex, SVerticalBox::FSlot* Slot);
+
+	const FSlateBrush* GetTargetLayerDisplayOrderBrush() const;
+	TSharedRef<SWidget> GetTargetLayerDisplayOrderButtonMenuContent();
+	void SetSelectedDisplayOrder(ELandscapeLayerDisplayMode InDisplayOrder);
+	bool IsSelectedDisplayOrder(ELandscapeLayerDisplayMode InDisplayOrder) const;
+
+	TSharedRef<SWidget> GetTargetLayerShowUnusedButtonMenuContent();
+	void ShowUnusedLayers(bool Result);
+	bool ShouldShowUnusedLayers(bool Result) const;
+	EVisibility ShouldShowLayer(TSharedRef<FLandscapeTargetListInfo> Target) const;
 };
 
 class SLandscapeEditorSelectableBorder : public SBorder
@@ -119,4 +138,19 @@ protected:
 	FOnContextMenuOpening OnContextMenuOpening;
 	FSimpleDelegate OnSelected;
 	TAttribute<bool> IsSelected;
+};
+
+class FTargetLayerDragDropOp : public FDragAndDropVerticalBoxOp
+{
+public:
+	DRAG_DROP_OPERATOR_TYPE(FTargetLayerDragDropOp, FDragAndDropVerticalBoxOp)
+
+	TSharedPtr<SWidget> WidgetToShow;
+
+	static TSharedRef<FTargetLayerDragDropOp> New(int32 InSlotIndexBeingDragged, SVerticalBox::FSlot* InSlotBeingDragged, TSharedPtr<SWidget> InWidgetToShow);
+
+public:
+	virtual ~FTargetLayerDragDropOp();
+
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
 };

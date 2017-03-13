@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealLightmass : ModuleRules
 {
-	public UnrealLightmass(TargetInfo Target)
+	public UnrealLightmass(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 

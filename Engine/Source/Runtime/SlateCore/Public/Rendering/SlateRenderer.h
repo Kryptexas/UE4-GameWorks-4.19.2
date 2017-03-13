@@ -207,6 +207,14 @@ public:
 	FOnSlateWindowRendered& OnSlateWindowRendered() { return SlateWindowRendered; }
 
 	/**
+	 * Called on the game thread right before the slate window handle is destroyed.  
+	 * This gives users a chance to release any viewport specific resources they may have active when the window is destroyed 
+	 * @param Pointer to the API specific backbuffer type
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSlateWindowDestroyed, void*);
+	FOnSlateWindowDestroyed& OnSlateWindowDestroyed() { return OnSlateWindowDestroyedDelegate; }
+
+	/**
 	 * Called on the game thread right before a window backbuffer is about to be resized
 	 * @param Pointer to the API specific backbuffer type
 	 */
@@ -243,6 +251,8 @@ public:
 	 * @return					true if the resource was successfully generated, otherwise false
 	 */
 	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) { return false; }
+
+	virtual bool GenerateDynamicImageResource(FName ResourceName, FSlateTextureDataRef TextureData) { return false; }
 
 	/**
 	 * Creates a handle to a Slate resource
@@ -457,6 +467,7 @@ protected:
 	/** Callback that fires after Slate has rendered each window, each frame */
 	FOnSlateWindowRendered SlateWindowRendered;
 
+	FOnSlateWindowDestroyed OnSlateWindowDestroyedDelegate;
 	FOnPreResizeWindowBackbuffer PreResizeBackBufferDelegate;
 	FOnPostResizeWindowBackbuffer PostResizeBackBufferDelegate;
 

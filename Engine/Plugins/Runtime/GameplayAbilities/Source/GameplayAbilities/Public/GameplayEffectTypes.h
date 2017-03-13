@@ -339,16 +339,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectContext()
-	: Ability(nullptr)
-	, AbilityLevel(1)
+	: AbilityLevel(1)
 	, bHasWorldOrigin(false)
 	{
 	}
 
 	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
-		: Ability(nullptr)
-		, AbilityLevel(1)
-		, bHasWorldOrigin(false)
+	: AbilityLevel(1)
+	, bHasWorldOrigin(false)
 	{
 		AddInstigator(InInstigator, InEffectCauser);
 	}
@@ -494,7 +492,7 @@ protected:
 
 	/** the ability that is responsible for this effect context */
 	UPROPERTY()
-	TSubclassOf<UGameplayAbility> Ability;
+	TWeakObjectPtr<UGameplayAbility> AbilityCDO;
 
 	UPROPERTY()
 	int32 AbilityLevel;
@@ -521,7 +519,7 @@ protected:
 };
 
 template<>
-struct TStructOpsTypeTraits< FGameplayEffectContext > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FGameplayEffectContext > : public TStructOpsTypeTraitsBase2< FGameplayEffectContext >
 {
 	enum
 	{
@@ -814,7 +812,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayEffectContextHandle> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayEffectContextHandle> : public TStructOpsTypeTraitsBase2<FGameplayEffectContextHandle>
 {
 	enum
 	{
@@ -923,7 +921,7 @@ struct GAMEPLAYABILITIES_API FGameplayCueParameters
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayCueParameters> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayCueParameters> : public TStructOpsTypeTraitsBase2<FGameplayCueParameters>
 {
 	enum
 	{
@@ -1331,7 +1329,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpecHandle
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayEffectSpecHandle> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayEffectSpecHandle> : public TStructOpsTypeTraitsBase2<FGameplayEffectSpecHandle>
 {
 	enum
 	{
@@ -1416,7 +1414,7 @@ struct GAMEPLAYABILITIES_API FMinimalReplicationTagCountMap
 };
 
 template<>
-struct TStructOpsTypeTraits<FMinimalReplicationTagCountMap> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FMinimalReplicationTagCountMap> : public TStructOpsTypeTraitsBase2<FMinimalReplicationTagCountMap>
 {
 	enum
 	{

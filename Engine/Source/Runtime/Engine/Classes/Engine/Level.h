@@ -435,9 +435,6 @@ public:
 	UPROPERTY()
 	TArray<FGuid> StreamingTextureGuids;
 
-	/** Index into Actors array pointing to first net relevant actor. Used as an optimization for FActorIterator	*/
-	int32										iFirstNetRelevantActor;
-
 	/** Data structures for holding the tick functions **/
 	class FTickTaskLevel*						TickTaskLevel;
 
@@ -523,6 +520,8 @@ public:
 	uint8										bWasDuplicatedForPIE:1;
 	/** Whether the level is currently being removed from the world */
 	uint8										bIsBeingRemoved:1;
+	/** Whether this level has gone through a complete rerun construction script pass. */
+	uint8										bHasRerunConstructionScripts:1;
 	/** Current index into actors array for updating components.							*/
 	int32										CurrentActorIndexForUpdateComponents;
 	/** Current index into actors array for updating components.							*/

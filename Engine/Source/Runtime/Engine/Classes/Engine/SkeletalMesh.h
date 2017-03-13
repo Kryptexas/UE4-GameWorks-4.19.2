@@ -31,6 +31,9 @@ class UBodySetup;
 class UMorphTarget;
 class USkeletalMeshSocket;
 class USkeleton;
+class UClothingAssetBase;
+class UBlueprint;
+class UNodeMappingContainer;
 
 #if WITH_APEX_CLOTHING
 
@@ -293,250 +296,81 @@ struct FSkeletalMeshLODInfo
 
 };
 
-/** 
- * constrain Coefficients - max distance, collisionSphere radius, collision sphere distance 
- */
-struct FClothConstrainCoeff
-{
-	float ClothMaxDistance;
-	float ClothBackstopRadius;
-	float ClothBackstopDistance;
-};
-
-/** 
- * bone weights & bone indices for visualization of cloth physical mesh 
- */
-struct FClothBoneWeightsInfo
-{
-	// support up 4 bone influences but used MAX_TOTAL_INFLUENCES for the future
-	uint16 Indices[MAX_TOTAL_INFLUENCES];
-	float Weights[MAX_TOTAL_INFLUENCES];
-};
-/** 
- * save temporary data only for debugging on Persona editor 
- */
-struct FClothVisualizationInfo
-{
-	TArray<FVector> ClothPhysicalMeshVertices;
-	TArray<FVector> ClothPhysicalMeshNormals;
-	TArray<uint32> ClothPhysicalMeshIndices;
-	TArray<FClothConstrainCoeff> ClothConstrainCoeffs;
-	// bone weights & bone indices
-	TArray<FClothBoneWeightsInfo> ClothPhysicalMeshBoneWeightsInfo;
-	uint8	NumMaxBoneInfluences;
-
-	// Max value of max distances
-	float MaximumMaxDistance;
-};
-
-/** 
- * data structure for loading bone planes of collision volumes data
- */
-struct FClothBonePlane
-{
-	int32 BoneIndex;
-	FPlane PlaneData;
-};
-
 /**
- * now exposed a part of properties based on 3DS Max plug-in
- * property names are also changed into 3DS Max plug-in's one
+ * Legacy object for back-compat loading, no longer used by clothing system
  */
 USTRUCT()
-struct FClothPhysicsProperties
+struct FClothPhysicsProperties_Legacy
 {
 	GENERATED_USTRUCT_BODY()
 
-	// vertical stiffness of the cloth in the range [0, 1].   usually set to 1.0
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float VerticalResistance;
-
-	// Horizontal stiffness of the cloth in the range [0, 1].  usually set to 1.0
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float HorizontalResistance;
-
-	// Bending stiffness of the cloth in the range [0, 1]. 
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float BendResistance;
-
-	// Shearing stiffness of the cloth in the range [0, 1]. 
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float ShearResistance;
-
-	//  latest email from nvidia suggested this is not in use, my code search revealed the same.   will wait for nv engineering confirmation before deleting
-	// Make cloth simulation less stretchy. A value smaller than 1 will turn it off.  Apex parameter hardStretchLimitation.
-	//UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "4.0"))
-	//float HardStretchLimitation;
-
-	// Friction coefficient in the range[0, 1]
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float Friction;
-	// Spring damping of the cloth in the range[0, 1]
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float Damping;
-
-	// Tether stiffness of the cloth in the range[0, 1].  Equivalent to 1.0-Relax in autodesk plugin.
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float TetherStiffness;
-	// Tether Limit, corresponds to 1.0+StretchLimit parameter on Autodesk plugin.  
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", UIMin = "1.0", UIMax = "2.0"))
+	UPROPERTY()
 	float TetherLimit;
-
-
-
-	// Drag coefficient n the range [0, 1] 
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float Drag;
-
-	// Frequency for stiffness 
-	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "1.0", UIMin = "1.0", UIMax = "1000"))
+	UPROPERTY()
 	float StiffnessFrequency;
-
-	// Gravity multiplier for this cloth.  Also called Density in Autodesk plugin.
-	UPROPERTY(EditAnywhere, Category = Scale, meta = ( UIMin = "0.0", UIMax = "100.0"))
+	UPROPERTY()
 	float GravityScale;
-
-	// A mass scaling that is applied to the cloth.   Corresponds to 100X the MotionAdaptation parameter in autodesk plugin.
-	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "100.0"))
+	UPROPERTY()
 	float MassScale;
-
-	// Amount of inertia that is kept when using local space simulation. Internal name is inertia scale
-	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float InertiaBlend;
-
-	// Minimal amount of distance particles will keep of each other.
-	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "10000.0"))
+	UPROPERTY()
 	float SelfCollisionThickness;
-
-	// unclear what this actually does.
-	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	UPROPERTY()
 	float SelfCollisionSquashScale;
-
-	// Self collision stiffness.  0 off, 1 for on.
-	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float SelfCollisionStiffness;
-
-	// A computation parameter for the Solver.   Along with frame rate this probably specifies the number of solver iterations
-	UPROPERTY(EditAnywhere, Category = Solver, meta = (ClampMin = "1.0", UIMin = "1.0", UIMax = "1000.0"))
+	UPROPERTY()
 	float SolverFrequency;
-
-
-	// Lower (compression) Limit of SoftZone (relative to rest length).  Applied for all fiber types.  If both compression and expansion are 1.0 then there is no deadzone.
-	UPROPERTY(EditAnywhere, Category = FiberSoftZone, meta = (UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float FiberCompression;
-
-	// Upper (expansion) Limit of SoftZone (relative to rest length).  Applied to all fiber types.   Also referred to as "stretch" range by apex internally.
-	UPROPERTY(EditAnywhere, Category = FiberSoftZone, meta = (UIMin = "1.0", UIMax = "2.0"))
+	UPROPERTY()
 	float FiberExpansion;
-
-	// Resistance Multiplier that's applied to within SoftZone amount for all fiber types.  0.0 for a complete deadzone (no force).  At 1.0 the spring response within the softzone is as stiff it is elsewhere.  This parameter also known as scale by Apex internally.
-	UPROPERTY(EditAnywhere, Category = FiberSoftZone, meta = (UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY()
 	float FiberResistance;
 
 };
 
-/**
-* A structure for holding the APEX cloth collision volumes data
-*/
-struct FApexClothCollisionVolumeData
-{
-	/**
-	\brief structure for presenting collision volume data
 
-	\note contains either capsule data or convex data.
-	*/
-
-	int32	BoneIndex;
-	// For convexes
-	uint32	ConvexVerticesCount;
-	// For convexes
-	uint32	ConvexVerticesStart;
-	TArray<FVector> BoneVertices;
-	TArray<FPlane>  BonePlanes;
-	// For capsules
-	float	CapsuleRadius;
-	// For capsules
-	float	CapsuleHeight;
-	FMatrix LocalPose;
-
-	FApexClothCollisionVolumeData()
-	{
-		BoneIndex = -1;
-		ConvexVerticesCount = 0;
-		ConvexVerticesStart = 0;
-		CapsuleRadius = 0.0f;
-		CapsuleHeight = 0.0f;
-		LocalPose.SetIdentity();
-	}
-
-	bool IsCapsule() const
-	{
-		return (ConvexVerticesCount == 0);
-	}
-};
-
-/**
-* \brief A structure for holding bone sphere ( one of the APEX cloth collision volumes data )
-* \note 2 bone spheres present a capsule
-*/
-struct FApexClothBoneSphereData
-{
-	int32	BoneIndex;
-	float	Radius;
-	FVector LocalPos;
-};
-
+// Legacy struct for handling back compat serialization
 USTRUCT()
-struct FClothingAssetData
+struct FClothingAssetData_Legacy
 {
 	GENERATED_USTRUCT_BODY()
 
-	/* User-defined asset name */
-	UPROPERTY(EditAnywhere, Category=ClothingAssetData)
+	UPROPERTY()
 	FName AssetName;
-
-	UPROPERTY(EditAnywhere, Category=ClothingAssetData)
+	UPROPERTY()
 	FString	ApexFileName;
-
-	/** the flag whether cloth physics properties are changed from UE4 editor or not */
-	UPROPERTY(EditAnywhere, Category = ClothingAssetData)
+	UPROPERTY()
 	bool bClothPropertiesChanged;
-
-	UPROPERTY(EditAnywhere, Transient, Category = ClothingAssetData)
-	FClothPhysicsProperties PhysicsProperties;
-
-	UPROPERTY(Transient)
-	/** Apex stores only the bones that cloth needs. We need a mapping from apex bone index to UE bone index. */
-	TArray<int32> ApexToUnrealBoneMapping;
-
+	UPROPERTY()
+	FClothPhysicsProperties_Legacy PhysicsProperties;
 #if WITH_APEX_CLOTHING
 	nvidia::apex::ClothingAsset* ApexClothingAsset;
-
-	/** Collision volume data for showing to the users whether collision shape is correct or not */
-	TArray<FApexClothCollisionVolumeData> ClothCollisionVolumes;
-	TArray<uint32> ClothCollisionConvexPlaneIndices;
-	TArray<FClothBonePlane> ClothCollisionVolumePlanes;
-	TArray<FApexClothBoneSphereData> ClothBoneSpheres;
-	TArray<uint16> BoneSphereConnections;
-
-	/**
-	 * saved temporarily just for debugging / visualization 
-	 * Num of this array means LOD number of clothing physical meshes 
-	 */
-	TArray<FClothVisualizationInfo> ClothVisualizationInfos;
-
-	/** currently mapped morph target name */
-	FName PreparedMorphTargetName;
-
-	FClothingAssetData()
+	FClothingAssetData_Legacy()
 		:ApexClothingAsset(NULL)
 	{
 	}
 #endif// #if WITH_APEX_CLOTHING
-
 	// serialization
-	friend FArchive& operator<<(FArchive& Ar, FClothingAssetData& A);
-
+	friend FArchive& operator<<(FArchive& Ar, FClothingAssetData_Legacy& A);
 	// get resource size
 	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	SIZE_T GetResourceSize() const;
@@ -715,7 +549,6 @@ public:
 	UPROPERTY()
 	uint32 bHasVertexColors:1;
 
-
 	/** Uses skinned data for collision data. Per poly collision cannot be used for simulation, in most cases you are better off using the physics asset */
 	UPROPERTY(EditAnywhere, Category = Physics)
 	uint32 bEnablePerPolyCollision : 1;
@@ -737,6 +570,13 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, BlueprintReadOnly, Category=Lighting)
 	class UPhysicsAsset* ShadowPhysicsAsset;
+
+	/** Mapping data that is saved */
+	UPROPERTY(EditAnywhere, editfixedsize, BlueprintReadOnly, Category=Animation)
+	TArray<class UNodeMappingContainer*> NodeMappingData;
+
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	ENGINE_API class UNodeMappingContainer* GetNodeMappingContainer(class UBlueprint* SourceAsset) const;
 
 #if WITH_EDITORONLY_DATA
 
@@ -812,9 +652,9 @@ public:
 
 #endif
 
-	/** Clothing asset data */
-	UPROPERTY(EditAnywhere, editfixedsize, BlueprintReadOnly, Category=Clothing)
-	TArray<FClothingAssetData>		ClothingAssets;
+	/** Legacy clothing asset data, will be converted to new assets after loading */
+	UPROPERTY()
+	TArray<FClothingAssetData_Legacy>		ClothingAssets_DEPRECATED;
 
 	/** Animation Blueprint class to run as a post process for this mesh.
 	 *  This blueprint will be ran before physics, but after the main
@@ -822,6 +662,36 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
 	TSubclassOf<UAnimInstance> PostProcessAnimBlueprint;
+
+	/** If the given section of the specified LOD has a clothing asset, unbind it's data and remove it from the asset array */
+	ENGINE_API void RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex);
+
+	/**
+	 * Given an LOD and section index, retrieve a clothing asset bound to that section.
+	 * If no clothing asset is in use, returns nullptr
+	 */
+	ENGINE_API UClothingAssetBase* GetSectionClothingAsset(int32 InLodIndex, int32 InSectionIndex);
+	ENGINE_API const UClothingAssetBase* GetSectionClothingAsset(int32 InLodIndex, int32 InSectionIndex) const;
+
+	/** 
+	 * Clothing assets imported to this mesh. May or may not be in use currently on the mesh.
+	 * Ordering not guaranteed, use the provided getters to access elements in this array
+	 * whenever possible
+	 */
+	UPROPERTY(EditAnywhere, editfixedsize, BlueprintReadOnly, Category = Clothing)
+	TArray<UClothingAssetBase*> MeshClothingAssets;
+
+	/** Get a clothing asset from its associated GUID (returns nullptr if no match is found) */
+	ENGINE_API UClothingAssetBase* GetClothingAsset(const FGuid& InAssetGuid) const;
+
+	/* Get the index in the clothing asset array for a given asset (INDEX_NONE if InAsset isn't in the array) */
+	ENGINE_API int32 GetClothingAssetIndex(UClothingAssetBase* InAsset) const;
+
+	/* Get the index in the clothing asset array for a given asset GUID (INDEX_NONE if there is no match) */
+	ENGINE_API int32 GetClothingAssetIndex(const FGuid& InAssetGuid) const;
+
+	/** Populates OutClothingAssets with all clothing assets that are mapped to sections in the mesh. */
+	ENGINE_API void GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutClothingAssets) const;
 
 protected:
 
@@ -1021,19 +891,6 @@ public:
 	/** Initialize MorphSets look up table : MorphTargetIndexMap */
 	ENGINE_API void InitMorphTargets();
 
-#if WITH_APEX_CLOTHING
-	ENGINE_API bool  HasClothSectionsInAllLODs(int AssetIndex);
-	ENGINE_API bool	 HasClothSections(int32 LODIndex,int AssetIndex);
-	ENGINE_API void	 GetOriginSectionIndicesWithCloth(int32 LODIndex, TArray<uint32>& OutSectionIndices);
-	ENGINE_API void	 GetOriginSectionIndicesWithCloth(int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices);
-	ENGINE_API void	 GetClothSectionIndices(int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices);
-	//moved from ApexClothingUtils because of compile issues
-	ENGINE_API void  LoadClothCollisionVolumes(int32 AssetIndex, nvidia::apex::ClothingAsset* ClothingAsset);
-	ENGINE_API bool IsMappedClothingLOD(int32 LODIndex, int32 AssetIndex);
-	ENGINE_API int32 GetClothAssetIndex(int32 LODIndex, int32 SectionIndex);
-	ENGINE_API void BuildApexToUnrealBoneMapping();
-#endif
-
 	/** 
 	 * Checks whether the provided section is using APEX cloth. if bCheckCorrespondingSections is true
 	 * disabled sections will defer to correspond sections to see if they use cloth (non-cloth sections
@@ -1054,7 +911,7 @@ public:
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames);
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, FName BoneName);
 #endif
-
+	
 #if WITH_EDITORONLY_DATA
 	/** Convert legacy screen size (based on fixed resolution) into screen size (diameter in screen units) */
 	void ConvertLegacyLODScreenSize();

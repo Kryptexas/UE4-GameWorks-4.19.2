@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Localization : ModuleRules
 {
-	public Localization(TargetInfo Target)
+	public Localization(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]

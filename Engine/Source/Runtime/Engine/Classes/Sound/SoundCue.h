@@ -7,6 +7,7 @@
 #include "Templates/SubclassOf.h"
 #include "Sound/SoundAttenuation.h"
 #include "Sound/SoundBase.h"
+#include "Sound/SoundNode.h"
 #include "SoundCue.generated.h"
 
 class USoundCue;
@@ -160,7 +161,24 @@ public:
 	/**
 	 * Recursively finds sound nodes of type T
 	 */
-	template<typename T> ENGINE_API void RecursiveFindNode( USoundNode* Node, TArray<T*>& OutNodes );
+	template<typename T> void RecursiveFindNode(USoundNode* Node, TArray<T*>& OutNodes)
+	{
+		if (Node)
+		{
+			// Record the node if it is the desired type
+			if (T* FoundNode = Cast<T>(Node))
+			{
+				OutNodes.AddUnique(FoundNode);
+			}
+
+			// Recurse.
+			const int32 MaxChildNodes = Node->GetMaxChildNodes();
+			for (int32 ChildIndex = 0; ChildIndex < Node->ChildNodes.Num() && ChildIndex < MaxChildNodes; ++ChildIndex)
+			{
+				RecursiveFindNode<T>(Node->ChildNodes[ChildIndex], OutNodes);
+			}
+		}
+	}
 
 	/** Find the path through the sound cue to a node identified by its hash */
 	ENGINE_API bool FindPathToNode(const UPTRINT NodeHashToFind, TArray<USoundNode*>& OutPath) const;

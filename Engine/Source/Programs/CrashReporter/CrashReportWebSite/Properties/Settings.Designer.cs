@@ -79,7 +79,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("#crashreporterspam")]
+        [global::System.Configuration.DefaultSettingValueAttribute("#Crashreporterspam")]
         public string SlackChannel {
             get {
                 return ((string)(this["SlackChannel"]));

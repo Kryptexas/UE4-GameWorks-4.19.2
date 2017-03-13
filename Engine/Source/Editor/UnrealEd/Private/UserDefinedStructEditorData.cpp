@@ -15,14 +15,17 @@ bool FStructVariableDescription::SetPinType(const FEdGraphPinType& VarType)
 	Category = VarType.PinCategory;
 	SubCategory = VarType.PinSubCategory;
 	SubCategoryObject = VarType.PinSubCategoryObject.Get();
+	PinValueType = VarType.PinValueType;
 	bIsArray = VarType.bIsArray;
+	bIsSet = VarType.bIsSet;
+	bIsMap = VarType.bIsMap;
 
 	return !VarType.bIsReference && !VarType.bIsWeakPointer;
 }
 
 FEdGraphPinType FStructVariableDescription::ToPinType() const
 {
-	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.Get(), bIsArray, false);
+	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.Get(), bIsArray, false, bIsSet, bIsMap, PinValueType);
 }
 
 UUserDefinedStructEditorData::UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer)

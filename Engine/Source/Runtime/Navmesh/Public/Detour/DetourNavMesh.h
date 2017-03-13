@@ -113,6 +113,7 @@ static const int DT_MAX_AREAS = 64;
 //@UE4 BEGIN
 /// Navmesh tiles' salt will have at least this much bits
 static const int DT_MIN_SALT_BITS = 5;
+static const int DT_SALT_BASE = 1;
 
 /// Max segment parts for segment-to-segment off mesh connection
 static const int DT_MAX_OFFMESH_SEGMENT_PARTS = 4;

@@ -26,7 +26,7 @@ namespace AutomationTool
 			{
 				if (String.IsNullOrEmpty(ChangelistStringInternal))
 				{
-					throw new AutomationException("P4Environment.ChangelistString has not been initialized but is requested. Set uebp_CL env var or run UAT with -P4CL to automatically detect changelist.");
+					throw new AutomationException("P4Environment.ChangelistString has not been initialized but is requested. Set uebp_CL env var or run UAT with -P4 to automatically detect changelist.");
 				}
 				return ChangelistStringInternal;
 			}
@@ -43,7 +43,7 @@ namespace AutomationTool
 			{
 				if (ChangelistInternal <= 0)
 				{
-					throw new AutomationException("P4Environment.Changelist has not been initialized but is requested. Set uebp_CL env var or run UAT with -P4CL to automatically detect changelist.");
+					throw new AutomationException("P4Environment.Changelist has not been initialized but is requested. Set uebp_CL env var or run UAT with -P4 to automatically detect changelist.");
 				}
 				return ChangelistInternal;
 			}
@@ -60,7 +60,7 @@ namespace AutomationTool
 			{
 				if (CodeChangelistInternal <= 0)
 				{
-					throw new AutomationException("P4Environment.CodeChangelist has not been initialized but is requested. Set uebp_CodeCL env var or run UAT with -P4CL to automatically detect changelist.");
+					throw new AutomationException("P4Environment.CodeChangelist has not been initialized but is requested. Set uebp_CodeCL env var or run UAT with -P4 to automatically detect changelist.");
 				}
 				return CodeChangelistInternal;
 			}

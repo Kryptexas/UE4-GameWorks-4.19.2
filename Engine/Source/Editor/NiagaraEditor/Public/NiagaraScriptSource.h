@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "NiagaraScriptSourceBase.h"
+#include "INiagaraCompiler.h"
 #include "NiagaraScriptSource.generated.h"
 
 UCLASS(MinimalAPI)
@@ -22,8 +23,5 @@ class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 	class UNiagaraGraph*	FlattenedNodeGraph;
 
 	// UObject interface.
-	virtual void PostLoad() override;
-	virtual void Compile() override;
-
-	void GetEmitterAttributes(TArray<FName>& VectorInputs, TArray<FName>& MatrixInputs);
+	virtual ENiagaraScriptCompileStatus Compile(FString& OutGraphLevelErrorMessages);
 };

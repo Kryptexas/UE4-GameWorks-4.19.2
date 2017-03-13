@@ -80,7 +80,7 @@ struct FFontCharacter
 
 
 template<>
-struct TStructOpsTypeTraits<FFontCharacter> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FFontCharacter> : public TStructOpsTypeTraitsBase2<FFontCharacter>
 {
 	enum 
 	{

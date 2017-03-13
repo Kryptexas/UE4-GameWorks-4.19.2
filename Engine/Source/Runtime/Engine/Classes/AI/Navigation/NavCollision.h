@@ -100,6 +100,9 @@ class ENGINE_API UNavCollision : public UObject
 	 *	collision data, stores it and uploads to DDC */
 	void Setup(class UBodySetup* BodySetup);
 
+	/** copy user settings from other nav collision data */
+	void CopyUserSettings(const UNavCollision& OtherData);
+
 	/** show cylinder and box collisions */
 	void DrawSimpleGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color);
 

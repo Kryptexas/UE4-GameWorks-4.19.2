@@ -14,7 +14,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 	public static class UrlHelperExtension
 	{
 		/// <summary>
-		/// Create the html required to create the links for table headers to control the sorting of crashes.
+		/// Create the html required to create the links for table headers to control the sorting of Crashes.
 		/// </summary>
 		/// <param name="Helper">The Url helper object.</param>
 		/// <param name="HeaderName">The table column header name.</param>
@@ -74,7 +74,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 		}
 
 		/// <summary>
-		/// Create the html required to make a link for a callstack line for a crash.
+		/// Create the html required to make a link for a callstack line for a Crash.
 		/// </summary>
 		/// <param name="Helper">The Url helper object.</param>
 		/// <param name="CallStack">A line of a callstack to wrap in a link.</param>
@@ -114,7 +114,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Views.Helpers
 		}
 
 		/// <summary>
-		/// Create the html required to change the current user group to filter crashes by.
+		/// Create the html required to change the current user group to filter Crashes by.
 		/// </summary>
 		/// <param name="Helper">The Url helper object.</param>
 		/// <param name="UserGroup">The user group to generate a link for.</param>

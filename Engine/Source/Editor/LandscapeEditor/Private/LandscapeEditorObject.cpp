@@ -98,6 +98,8 @@ ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectI
 	, AlphaTextureSizeY(1)
 
 	, BrushComponentSize(1)
+	, TargetDisplayOrder(ELandscapeLayerDisplayMode::Default)
+	, ShowUnusedLayers(true)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -163,6 +165,18 @@ void ULandscapeEditorObject::PostEditChangeProperty(FPropertyChangedEvent& Prope
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, PaintingRestriction))
 	{
 		UpdateComponentLayerWhitelist();
+	}
+
+	if (PropertyChangedEvent.MemberProperty == nullptr ||
+		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, TargetDisplayOrder))
+	{
+		UpdateTargetLayerDisplayOrder();
+	}
+
+	if (PropertyChangedEvent.MemberProperty == nullptr ||
+		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ShowUnusedLayers))
+	{
+		UpdateShowUnusedLayers();
 	}
 }
 
@@ -274,6 +288,8 @@ void ULandscapeEditorObject::Load()
 	GConfig->GetBool(TEXT("LandscapeEdit"), TEXT("bApplyToAllTargets"), InbApplyToAllTargets, GEditorPerProjectIni);
 	bApplyToAllTargets = InbApplyToAllTargets;
 
+	GConfig->GetBool(TEXT("LandscapeEdit"), TEXT("ShowUnusedLayers"), ShowUnusedLayers, GEditorPerProjectIni);
+
 	// Set EditRenderMode
 	SetbUseSelectedRegion(bUseSelectedRegion);
 	SetbUseNegativeMask(bUseNegativeMask);
@@ -368,6 +384,8 @@ void ULandscapeEditorObject::Save()
 	GConfig->SetString(TEXT("LandscapeEdit"), TEXT("NewLandscapeMaterialName"), *NewLandscapeMaterialName, GEditorPerProjectIni);
 
 	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("ImportLandscape_AlphamapType"), (uint8)ImportLandscape_AlphamapType, GEditorPerProjectIni);
+
+	GConfig->SetBool(TEXT("LandscapeEdit"), TEXT("ShowUnusedLayers"), ShowUnusedLayers, GEditorPerProjectIni);
 }
 
 // Region
@@ -645,3 +663,20 @@ void ULandscapeEditorObject::UpdateComponentLayerWhitelist()
 		ParentMode->CurrentToolTarget.LandscapeInfo->UpdateComponentLayerWhitelist();
 	}
 }
+
+void ULandscapeEditorObject::UpdateTargetLayerDisplayOrder()
+{
+	if (ParentMode != nullptr)
+	{
+		ParentMode->UpdateTargetLayerDisplayOrder(TargetDisplayOrder);
+	}
+}
+
+void ULandscapeEditorObject::UpdateShowUnusedLayers()
+{
+	if (ParentMode != nullptr)
+	{
+		ParentMode->UpdateShownLayerList();
+	}
+}
+

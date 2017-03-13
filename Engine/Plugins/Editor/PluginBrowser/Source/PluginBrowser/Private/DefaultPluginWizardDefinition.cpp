@@ -40,7 +40,7 @@ void FDefaultPluginWizardDefinition::PopulateTemplatesSource()
 	{
 		// Insert the blank template to make sure it appears before the content only template.
 		TemplateDefinitions.Insert(MakeShareable(new FPluginTemplateDescription(BlankTemplateName, BlankDescription, TEXT("Blank"), true, EHostType::Developer)), 0);
-		TemplateDefinitions.Add(MakeShareable(new FPluginTemplateDescription(BlueprintLibTemplateName, BlueprintLibDescription, TEXT("BlueprintLibrary"), true, EHostType::Developer)));
+		TemplateDefinitions.Add(MakeShareable(new FPluginTemplateDescription(BlueprintLibTemplateName, BlueprintLibDescription, TEXT("BlueprintLibrary"), true, EHostType::Runtime, ELoadingPhase::PreLoadingScreen)));
 		TemplateDefinitions.Add(MakeShareable(new FPluginTemplateDescription(BasicTemplateName, BasicDescription, TEXT("Basic"), false, EHostType::Editor)));
 		TemplateDefinitions.Add(MakeShareable(new FPluginTemplateDescription(AdvancedTemplateName, AdvancedDescription, TEXT("Advanced"), false, EHostType::Editor)));
 		TemplateDefinitions.Add(MakeShareable(new FPluginTemplateDescription(EditorModeTemplateName, EditorModeDescription, TEXT("EditorMode"), false, EHostType::Editor)));
@@ -91,6 +91,11 @@ bool FDefaultPluginWizardDefinition::CanContainContent() const
 	return CurrentTemplateDefinition.IsValid() ? CurrentTemplateDefinition->bCanContainContent : false;
 }
 
+bool FDefaultPluginWizardDefinition::IsMod() const
+{
+	return false;
+}
+
 FText FDefaultPluginWizardDefinition::GetInstructions() const
 {
 	return LOCTEXT("ChoosePluginTemplate", "Choose a template and then specify a name to create a new plugin.");
@@ -99,6 +104,30 @@ FText FDefaultPluginWizardDefinition::GetInstructions() const
 bool FDefaultPluginWizardDefinition::GetPluginIconPath(FString& OutIconPath) const
 {
 	return GetTemplateIconPath(CurrentTemplateDefinition.ToSharedRef(), OutIconPath);
+}
+
+EHostType::Type FDefaultPluginWizardDefinition::GetPluginModuleDescriptor() const
+{
+	EHostType::Type ModuleDescriptorType = EHostType::Developer;
+
+	if (CurrentTemplateDefinition.IsValid())
+	{
+		ModuleDescriptorType = CurrentTemplateDefinition->ModuleDescriptorType;
+	}
+
+	return ModuleDescriptorType;
+}
+
+ELoadingPhase::Type FDefaultPluginWizardDefinition::GetPluginLoadingPhase() const
+{
+	ELoadingPhase::Type Phase = ELoadingPhase::Default;
+
+	if (CurrentTemplateDefinition.IsValid())
+	{
+		Phase = CurrentTemplateDefinition->LoadingPhase;
+	}
+
+	return Phase;
 }
 
 bool FDefaultPluginWizardDefinition::GetTemplateIconPath(TSharedRef<FPluginTemplateDescription> Template, FString& OutIconPath) const

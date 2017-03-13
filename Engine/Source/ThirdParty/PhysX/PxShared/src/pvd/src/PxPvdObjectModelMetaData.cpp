@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 #include "PxPvdObjectModel.h"
 #include "PxPvdObjectModelBaseTypes.h"
 #include "PxPvdObjectModelInternalTypes.h"
@@ -194,7 +194,7 @@ class StringTableImpl : public StringTable, public UserAllocated
 	{
 		PX_ASSERT(isMeaningful(str));
 		const HashMap<const char*, char*>::Entry* entry(mStrings.find(str));
-		if(entry == NULL)
+        if(entry == NULL)
 		{
 			outAdded = true;
 			char* retval(copyStr(str));
@@ -418,7 +418,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 	TNameToPropMap mNameToProperties;
 	Array<ClassDescImpl*> mClasses;
 	Array<PropDescImpl*> mProperties;
-	StringTableImpl& mStringTable;
+    StringTableImpl* mStringTable;
 	TNameToPropertyMessageMap mPropertyMessageMap;
 	Array<PropertyMessageDescriptionImpl*> mPropertyMessages;
 	int32_t mNextClassId;
@@ -429,7 +429,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 	, mNameToProperties("ClassPropertyName->PropDescImpl*")
 	, mClasses("ClassDescImpl*")
 	, mProperties("PropDescImpl*")
-	, mStringTable(*PVD_NEW(StringTableImpl)())
+    , mStringTable(PVD_NEW(StringTableImpl)())
 	, mPropertyMessageMap("PropertyMessageMap")
 	, mPropertyMessages("PvdObjectModelMetaDataImpl::mPropertyMessages")
 	, mNextClassId(1)
@@ -639,7 +639,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 	}
 	virtual ~PvdObjectModelMetaDataImpl()
 	{
-		mStringTable.release();
+        mStringTable->release();
 		PVD_FOREACH(idx, mClasses.size())
 		{
 			if(mClasses[idx] != NULL)
@@ -657,7 +657,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 		ClassDescImpl* impl(getClassImpl(idx));
 		if(impl)
 			return *impl;
-		NamespacedName safeName(mStringTable.registerStr(nm.mNamespace), mStringTable.registerStr(nm.mName));
+        NamespacedName safeName(mStringTable->registerStr(nm.mNamespace), mStringTable->registerStr(nm.mName));
 		while(idx >= int32_t(mClasses.size()))
 			mClasses.pushBack(NULL);
 		mClasses[uint32_t(idx)] = PVD_NEW(ClassDescImpl)(ClassDescription(safeName, idx));
@@ -727,11 +727,11 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 	ClassDescImpl* getClassImpl(int32_t classId) const
 	{
 		if(classId < 0)
-			return NULL;
+            return NULL;
 		uint32_t idx = uint32_t(classId);
 		if(idx < mClasses.size())
 			return mClasses[idx];
-		return NULL;
+        return NULL;
 	}
 
 	virtual Option<ClassDescription> getClass(int32_t classId) const
@@ -875,7 +875,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 		int32_t propId = int32_t(mProperties.size());
 		PropertyDescription newDesc(cls->mName, cls->mClassId, name, semantic, datatype, propClsName, propertyType,
 		                            propId, offset32, offset64);
-		mProperties.pushBack(PVD_NEW(PropDescImpl)(newDesc, mStringTable));
+        mProperties.pushBack(PVD_NEW(PropDescImpl)(newDesc, *mStringTable));
 		mNameToProperties.insert(ClassPropertyName(cls->mName, mProperties.back()->mName), mProperties.back());
 		cls->addProperty(mProperties.back());
 		bool firstProp = cls->mPropImps.size() == 1;
@@ -947,12 +947,12 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 	{
 		PX_ASSERT(propId >= 0);
 		if(propId < 0)
-			return NULL;
+            return NULL;
 		uint32_t val = uint32_t(propId);
 		if(val >= mProperties.size())
 		{
 			PX_ASSERT(false);
-			return NULL;
+            return NULL;
 		}
 		return mProperties[val];
 	}
@@ -1118,8 +1118,8 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 			return None();
 		int32_t msgId = int32_t(mPropertyMessages.size());
 		PropertyMessageDescriptionImpl* newMessage = PVD_NEW(PropertyMessageDescriptionImpl)(
-		    PropertyMessageDescription(mStringTable.registerName(clsName), cls->mClassId,
-		                               mStringTable.registerName(messageName), msgId, messageSize));
+            PropertyMessageDescription(mStringTable->registerName(clsName), cls->mClassId,
+                                       mStringTable->registerName(messageName), msgId, messageSize));
 		uint32_t calculatedSize = 0;
 		PVD_FOREACH(idx, entries.size())
 		{
@@ -1233,12 +1233,12 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 
 		void streamify(NamespacedName& type)
 		{
-			mStream << mMetaData.mStringTable.strToHandle(type.mNamespace);
-			mStream << mMetaData.mStringTable.strToHandle(type.mName);
+            mStream << mMetaData.mStringTable->strToHandle(type.mNamespace);
+            mStream << mMetaData.mStringTable->strToHandle(type.mName);
 		}
 		void streamify(String& type)
 		{
-			mStream << mMetaData.mStringTable.strToHandle(type);
+            mStream << mMetaData.mStringTable->strToHandle(type);
 		}
 		void streamify(int32_t& type)
 		{
@@ -1328,7 +1328,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 		{
 			uint32_t handle;
 			mStream >> handle;
-			type = mMetaData.mStringTable.handleToStr(handle);
+            type = mMetaData.mStringTable->handleToStr(handle);
 		}
 		void streamify(int32_t& type)
 		{
@@ -1417,7 +1417,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 	{
 		stream << getCurrentPvdObjectModelVersion();
 		stream << mNextClassId;
-		mStringTable.write(stream);
+        mStringTable->write(stream);
 		MetaDataWriter writer(*this, stream);
 		writer.streamify(mProperties);
 		writer.streamify(mClasses);
@@ -1430,7 +1430,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 		uint32_t version;
 		stream >> version;
 		stream >> mNextClassId;
-		mStringTable.read(stream);
+        mStringTable->read(stream);
 		MetaDataReader<TReaderType> reader(*this, stream);
 		reader.streamify(mProperties);
 		reader.streamify(mClasses);
@@ -1474,7 +1474,7 @@ struct PvdObjectModelMetaDataImpl : public PvdObjectModelMetaData, public UserAl
 
 	virtual StringTable& getStringTable() const
 	{
-		return mStringTable;
+        return *mStringTable;
 	}
 	virtual void addRef()
 	{

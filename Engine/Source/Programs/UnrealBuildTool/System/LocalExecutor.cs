@@ -180,7 +180,7 @@ namespace UnrealBuildTool
 				ActionStartInfo.RedirectStandardError = false;
 
 				// Log command-line used to execute task if debug info printing is enabled.
-				if (BuildConfiguration.bPrintDebugInfo)
+				if (UnrealBuildTool.bPrintDebugInfo)
 				{
 					Log.TraceVerbose("Executing: {0} {1}", ExpandedCommandPath, ActionStartInfo.Arguments);
 				}
@@ -316,18 +316,42 @@ namespace UnrealBuildTool
 		}
 	};
 
-	public class LocalExecutor : ActionExecutor
+	class LocalExecutor : ActionExecutor
 	{
+		/// <summary>
+		/// Processor count multiplier for local execution. Can be below 1 to reserve CPU for other tasks.
+		/// When using the local executor (not XGE), run a single action on each CPU core.  Note that you can set this to a larger value
+		/// to get slightly faster build times in many cases, but your computer's responsiveness during compiling may be much worse.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		double ProcessorCountMultiplier = 1.0;
+
+		/// <summary>
+		/// Maximum processor count for local execution. 
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		int MaxProcessorCount = int.MaxValue;
+
+		public LocalExecutor()
+		{
+			XmlConfig.ApplyTo(this);
+		}
+
 		public override string Name
 		{
 			get { return "Local"; }
+		}
+
+		public virtual double AdjustedProcessorCountMultiplier
+		{
+			get { return ProcessorCountMultiplier; }
 		}
 
 		/// <summary>
 		/// Executes the specified actions locally.
 		/// </summary>
 		/// <returns>True if all the tasks successfully executed, or false if any of them failed.</returns>
-		public override bool ExecuteActions(List<Action> Actions)
+		public override bool ExecuteActions(List<Action> Actions, bool bLogDetailedActionStats)
 		{
 			// Time to sleep after each iteration of the loop in order to not busy wait.
 			const float LoopSleepTime = 0.1f;
@@ -340,11 +364,11 @@ namespace UnrealBuildTool
 			}
 			// The number of actions to execute in parallel is trying to keep the CPU busy enough in presence of I/O stalls.
 			int MaxActionsToExecuteInParallel = 0;
-			if (NumCores < System.Environment.ProcessorCount && BuildConfiguration.ProcessorCountMultiplier != 1.0)
+			if (NumCores < System.Environment.ProcessorCount && ProcessorCountMultiplier != 1.0)
 			{
 				// The CPU has more logical cores than physical ones, aka uses hyper-threading. 
 				// Use multiplier if provided
-				MaxActionsToExecuteInParallel = (int)(NumCores * BuildConfiguration.ProcessorCountMultiplier);
+				MaxActionsToExecuteInParallel = (int)(NumCores * ProcessorCountMultiplier);
 			}
 			else if (NumCores < System.Environment.ProcessorCount && NumCores > 4)
 			{
@@ -368,7 +392,7 @@ namespace UnrealBuildTool
 				MaxActionsToExecuteInParallel = Math.Min(MaxActionsToExecuteInParallel, MaxActionsAffordedByMemory);
 			}
 
-			MaxActionsToExecuteInParallel = Math.Max(1, Math.Min(MaxActionsToExecuteInParallel, BuildConfiguration.MaxProcessorCount));
+			MaxActionsToExecuteInParallel = Math.Max(1, Math.Min(MaxActionsToExecuteInParallel, MaxProcessorCount));
 
 			Log.TraceInformation("Performing {0} actions ({1} in parallel)", Actions.Count, MaxActionsToExecuteInParallel);
 
@@ -488,8 +512,8 @@ namespace UnrealBuildTool
 				}
 			}
 
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
+			Log.WriteLineIf(bLogDetailedActionStats, LogEventType.Console, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
+			Log.WriteLineIf(bLogDetailedActionStats, LogEventType.Console, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
 
 			double TotalThreadSeconds = 0;
 
@@ -520,7 +544,7 @@ namespace UnrealBuildTool
 				// Log CPU time, tool and task.
 				double ThreadSeconds = Action.Duration.TotalSeconds;
 
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats,
+				Log.WriteLineIf(bLogDetailedActionStats,
 					LogEventType.Console,
 					"^{0}^{1:0.00}^{2}^{3}^{4}",
 					Action.ActionType.ToString(),
@@ -561,14 +585,14 @@ namespace UnrealBuildTool
 				TotalThreadSeconds += ThreadSeconds;
 			}
 
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "-------- End Detailed Actions Stats -----------------------------------------------------------");
+			Log.WriteLineIf(bLogDetailedActionStats, LogEventType.Console, "-------- End Detailed Actions Stats -----------------------------------------------------------");
 
 			// Log total CPU seconds and numbers of processors involved in tasks.
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+			Log.WriteLineIf(bLogDetailedActionStats || UnrealBuildTool.bPrintDebugInfo,
 				LogEventType.Console, "Cumulative thread seconds ({0} processors): {1:0.00}", System.Environment.ProcessorCount, TotalThreadSeconds);
 
 			// Log detailed stats
-			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+			Log.WriteLineIf(bLogDetailedActionStats || UnrealBuildTool.bPrintDebugInfo,
 				LogEventType.Console,
 				"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
 				System.Environment.ProcessorCount,

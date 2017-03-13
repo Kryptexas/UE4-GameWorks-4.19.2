@@ -50,6 +50,7 @@
 #include "ActorDetailsDelegates.h"
 #include "EditorCategoryUtils.h"
 #include "Widgets/Input/SHyperlink.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 
@@ -458,20 +459,23 @@ void FActorDetails::AddTransformCategory( IDetailLayoutBuilder& DetailBuilder )
 void FActorDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder )
 {
 	const FSelectedActorInfo& SelectedActorInfo = DetailBuilder.GetDetailsView().GetSelectedActorInfo();
+	bool bBaseClassIsExperimental = false;
+	bool bBaseClassIsEarlyAccess = false;
 
-	if (SelectedActorInfo.bHaveExperimentalClass || SelectedActorInfo.bHaveEarlyAccessClass)
+	FObjectEditorUtils::GetClassDevelopmentStatus(DetailBuilder.GetBaseClass(), bBaseClassIsExperimental, bBaseClassIsEarlyAccess);
+
+	if (bBaseClassIsExperimental || bBaseClassIsEarlyAccess)
 	{
-		const bool bExperimental = SelectedActorInfo.bHaveExperimentalClass;
 
 		const FName CategoryName(TEXT("Warning"));
 		const FText CategoryDisplayName = LOCTEXT("WarningCategoryDisplayName", "Warning");
 		FString ClassUsed = DetailBuilder.GetTopLevelProperty().ToString();
-		const FText WarningText = bExperimental ? FText::Format( LOCTEXT("ExperimentalClassWarning", "Uses experimental class: {0}") , FText::FromString(ClassUsed) )
+		const FText WarningText = bBaseClassIsExperimental ? FText::Format( LOCTEXT("ExperimentalClassWarning", "Uses experimental class: {0}") , FText::FromString(ClassUsed) )
 			: FText::Format( LOCTEXT("EarlyAccessClassWarning", "Uses early access class {0}"), FText::FromString(*ClassUsed) );
 		const FText SearchString = WarningText;
-		const FText Tooltip = bExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
-		const FString ExcerptName = bExperimental ? TEXT("ActorUsesExperimentalClass") : TEXT("ActorUsesEarlyAccessClass");
-		const FSlateBrush* WarningIcon = FEditorStyle::GetBrush(bExperimental ? "PropertyEditor.ExperimentalClass" : "PropertyEditor.EarlyAccessClass");
+		const FText Tooltip = bBaseClassIsExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
+		const FString ExcerptName = bBaseClassIsExperimental ? TEXT("ActorUsesExperimentalClass") : TEXT("ActorUsesEarlyAccessClass");
+		const FSlateBrush* WarningIcon = FEditorStyle::GetBrush(bBaseClassIsExperimental ? "PropertyEditor.ExperimentalClass" : "PropertyEditor.EarlyAccessClass");
 
 		IDetailCategoryBuilder& WarningCategory = DetailBuilder.EditCategory(CategoryName, CategoryDisplayName, ECategoryPriority::Transform);
 

@@ -339,7 +339,9 @@ void UAnimSequence::PreSave(const class ITargetPlatform* TargetPlatform)
 	// make sure if it does contain transform curvesm it contains source data
 	// empty track animation still can be made by retargeting to invalid skeleton
 	// make sure to not trigger ensure if RawAnimationData is also null
-	check (!DoesContainTransformCurves() || (RawAnimationData.Num()==0 || SourceRawAnimationData.Num() != 0));
+	
+	// Why should we not be able to have empty transform curves?
+	ensure(!DoesContainTransformCurves() || (RawAnimationData.Num()==0 || SourceRawAnimationData.Num() != 0));
 
 	if (DoesNeedRecompress())
 	{
@@ -365,6 +367,9 @@ void UAnimSequence::PostLoad()
 	{
 		RemoveNaNTracks();
 	}
+
+	VerifyTrackMap(nullptr);
+
 #endif // WITH_EDITOR
 
 	Super::PostLoad();
@@ -537,12 +542,12 @@ void ShowResaveMessage(const UAnimSequence* Sequence)
 {
 	if (!IsRunningGame())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track data."), *GetNameSafe(Sequence));
+		UE_LOG(LogAnimation, Log, TEXT("Resave Animation Required(%s, %s): Fixing track data and recompressing."), *GetNameSafe(Sequence), *Sequence->GetPathName());
 
 		static FName NAME_LoadErrors("LoadErrors");
 		FMessageLog LoadErrors(NAME_LoadErrors);
 
-		TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
+		TSharedRef<FTokenizedMessage> Message = LoadErrors.Info();
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave1", "The Animation ")));
 		Message->AddToken(FAssetNameToken::Create(Sequence->GetPathName(), FText::FromString(GetNameSafe(Sequence))));
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave2", " needs resave.")));
@@ -554,7 +559,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 {
 	USkeleton* UseSkeleton = (MySkeleton)? MySkeleton: GetSkeleton();
 
-	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
+	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=nullptr)
 	{
 		ShowResaveMessage(this);
 
@@ -566,7 +571,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			AnimationTrackNames[I] = UseSkeleton->GetReferenceSkeleton().GetBoneName(TrackMap.BoneTreeIndex);
 		}
 	}
-	else if (UseSkeleton != NULL)
+	else if (UseSkeleton != nullptr)
 	{
 		// first check if any of them needs to be removed
 		{
@@ -580,7 +585,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			{
 				int32 SkeletonBoneIndex = TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
 				// invalid index found
-				if(NumSkeletonBone <= SkeletonBoneIndex)
+				if(SkeletonBoneIndex == INDEX_NONE || NumSkeletonBone <= SkeletonBoneIndex)
 				{
 					// if one is invalid, fix up for all.
 					// you don't know what index got messed up
@@ -946,9 +951,17 @@ FTransform UAnimSequence::ExtractRootMotion(float StartTime, float DeltaTime, bo
 
 FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, float EndTrackPosition) const
 {
+	const FVector DefaultScale(1.f);
+
 	FTransform InitialTransform = ExtractRootTrackTransform(0.f, NULL);
 	FTransform StartTransform = ExtractRootTrackTransform(StartTrackPosition, NULL);
 	FTransform EndTransform = ExtractRootTrackTransform(EndTrackPosition, NULL);
+
+	if(IsValidAdditive())
+	{
+		StartTransform.SetScale3D(StartTransform.GetScale3D() + DefaultScale);
+		EndTransform.SetScale3D(EndTransform.GetScale3D() + DefaultScale);
+	}
 
 	// Transform to Component Space Rotation (inverse root transform from first frame)
 	const FTransform RootToComponentRot = FTransform(InitialTransform.GetRotation().Inverse());
@@ -1047,6 +1060,12 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const 
 		case ERootMotionRootLock::Zero: BoneTransform = FTransform::Identity; break;
 		default:
 		case ERootMotionRootLock::RefPose: BoneTransform = RequiredBones.GetRefPoseArray()[0]; break;
+	}
+
+	if (IsValidAdditive() && InRootMotionRootLock != ERootMotionRootLock::AnimFirstFrame)
+	{
+		//Need to remove default scale here for additives
+		BoneTransform.SetScale3D(BoneTransform.GetScale3D() - FVector(1.f));
 	}
 }
 
@@ -1488,7 +1507,7 @@ void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, 
 	OutCurve.ConvertToAdditive(BaseCurve);
 }
 
-void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive) const
+void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32 SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive) const
 {
 	const USkeleton* MySkeleton = GetSkeleton();
 	FAnimationRuntime::RetargetBoneTransform(MySkeleton, RetargetSource, BoneTransform, SkeletonBoneIndex, BoneIndex, RequiredBones, bIsBakedAdditive);
@@ -2184,7 +2203,7 @@ bool UAnimSequence::CanBakeAdditive() const
 
 FFloatCurve* GetFloatCurve(FRawCurveTracks& RawCurveTracks, USkeleton::AnimCurveUID& CurveUID)
 {
-	return static_cast<FFloatCurve *>(RawCurveTracks.GetCurveData(CurveUID, FRawCurveTracks::FloatType));
+	return static_cast<FFloatCurve *>(RawCurveTracks.GetCurveData(CurveUID, ERawCurveTrackTypes::RCT_Float));
 }
 
 bool IsNewKeyDifferent(const FRichCurveKey& LastKey, float NewValue)
@@ -2444,7 +2463,7 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 				// if we don't have name, there is something wrong here. 
 				ensureAlways(MySkeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, CurveUID, NewCurveName));
 				// curve flags don't matter much for compressed curves
-				NewCurveTracks.AddCurveData(NewCurveName, 0, FRawCurveTracks::FloatType);
+				NewCurveTracks.AddCurveData(NewCurveName, 0, ERawCurveTrackTypes::RCT_Float);
 				RawCurve = GetFloatCurve(NewCurveTracks, CurveUID);
 			}
 
@@ -3403,7 +3422,7 @@ void UAnimSequence::RemoveTrack(int32 TrackIndex)
 		AnimationTrackNames.RemoveAt(TrackIndex);
 		TrackToSkeletonMapTable.RemoveAt(TrackIndex);
 		// source raw animation only exists if edited
-		if (SourceRawAnimationData.Num() > 0 )
+		if (SourceRawAnimationData.IsValidIndex(TrackIndex))
 		{
 			SourceRawAnimationData.RemoveAt(TrackIndex);
 		}
@@ -4045,7 +4064,7 @@ void UAnimSequence::ClearBakedTransformData()
 	UE_LOG(LogAnimation, Warning, TEXT("[%s] Detected previous edited data is invalidated. Clearing transform curve data and Source Data. This can happen if you do retarget another animation to this. If not, please report back to Epic. "), *GetName());
 	SourceRawAnimationData.Empty();
 	//Clear Transform curve data
-	RawCurveData.DeleteAllCurveData(FRawCurveTracks::TransformType);
+	RawCurveData.DeleteAllCurveData(ERawCurveTrackTypes::RCT_Transform);
 }
 
 void UAnimSequence::BakeTrackCurvesToRawAnimation()
@@ -4109,7 +4128,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 			// find curves first, and then see what is index of this curve
 			FName BoneName;
 
-			if(Curve.GetCurveTypeFlag(ACF_Disabled)== false &&
+			if(Curve.GetCurveTypeFlag(AACF_Disabled)== false &&
 				ensureAlways(NameMapping->GetName(Curve.Name.UID, BoneName)))
 			{
 				int32 TrackIndex = AnimationTrackNames.Find(BoneName);
@@ -4172,7 +4191,7 @@ void UAnimSequence::BakeTrackCurvesToRawAnimation()
 				for(int32 KeyIndex=0; KeyIndex < NumFrames; ++KeyIndex)
 				{
 					// now evaluate
-					FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(Curve.Name.UID, FRawCurveTracks::TransformType));
+					FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(Curve.Name.UID, ERawCurveTrackTypes::RCT_Transform));
 
 					if(ensure(TransformCurve))
 					{
@@ -4231,13 +4250,13 @@ void UAnimSequence::AddKeyToSequence(float Time, const FName& BoneName, const FT
 	CurrentSkeleton->AddSmartNameAndModify(USkeleton::AnimTrackCurveMappingName, CurveName, NewCurveName);
 
 	// add curve - this won't add duplicate curve
-	RawCurveData.AddCurveData(NewCurveName, ACF_DriveTrack | ACF_Editable, FRawCurveTracks::TransformType);
+	RawCurveData.AddCurveData(NewCurveName, AACF_DriveTrack | AACF_Editable, ERawCurveTrackTypes::RCT_Transform);
 
 	//Add this curve
-	FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(NewCurveName.UID, FRawCurveTracks::TransformType));
+	FTransformCurve* TransformCurve = static_cast<FTransformCurve*>(RawCurveData.GetCurveData(NewCurveName.UID, ERawCurveTrackTypes::RCT_Transform));
 	check(TransformCurve);
 
-	TransformCurve->UpdateOrAddKey(AdditiveTransform, Time);
+	TransformCurve->UpdateOrAddKey(AdditiveTransform, Time);	
 
 	bNeedsRebake = true;
 }
@@ -4887,7 +4906,8 @@ FMarkerSyncAnimPosition UAnimSequence::GetMarkerSyncPositionfromMarkerIndicies(i
 	FMarkerSyncAnimPosition SyncPosition;
 	float PrevTime, NextTime;
 	
-	if (PrevMarker != -1)
+	if (PrevMarker != -1 && ensureAlwaysMsgf(AuthoredSyncMarkers.IsValidIndex(PrevMarker),
+		TEXT("%s - MarkerCount: %d, PrevMarker : %d, NextMarker: %d, CurrentTime : %0.2f"), *GetFullName(), AuthoredSyncMarkers.Num(), PrevMarker, NextMarker, CurrentTime))
 	{
 		PrevTime = AuthoredSyncMarkers[PrevMarker].Time;
 		SyncPosition.PreviousMarkerName = AuthoredSyncMarkers[PrevMarker].MarkerName;
@@ -4897,7 +4917,8 @@ FMarkerSyncAnimPosition UAnimSequence::GetMarkerSyncPositionfromMarkerIndicies(i
 		PrevTime = 0.f;
 	}
 
-	if (NextMarker != -1)
+	if (NextMarker != -1 && ensureAlwaysMsgf(AuthoredSyncMarkers.IsValidIndex(NextMarker),
+		TEXT("%s - MarkerCount: %d, PrevMarker : %d, NextMarker: %d, CurrentTime : %0.2f"), *GetFullName(), AuthoredSyncMarkers.Num(), PrevMarker, NextMarker, CurrentTime))
 	{
 		NextTime = AuthoredSyncMarkers[NextMarker].Time;
 		SyncPosition.NextMarkerName = AuthoredSyncMarkers[NextMarker].MarkerName;

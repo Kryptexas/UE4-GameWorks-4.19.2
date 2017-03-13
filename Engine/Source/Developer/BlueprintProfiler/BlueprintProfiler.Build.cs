@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class BlueprintProfiler : ModuleRules
 {
-    public BlueprintProfiler(TargetInfo Target)
+    public BlueprintProfiler(ReadOnlyTargetRules Target) : base(Target)
     {
 		PrivateIncludePaths.Add("Private");
 

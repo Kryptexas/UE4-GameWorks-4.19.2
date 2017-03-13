@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class ScriptPlugin : ModuleRules
 	{
-		public ScriptPlugin(TargetInfo Target)
+		public ScriptPlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {					

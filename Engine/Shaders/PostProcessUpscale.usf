@@ -147,14 +147,15 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 		float2 f = UV - tc + 2;
 
 		// compute at f, f-1, f-2, f-3, f-4, and f-5 using trig angle addition
-		float4 sincos = float4(sin(f*PI), cos(f*PI)), sincos2 = float4(sin(f*PI / 3), cos(f*PI / 3));
+		float2 fpi = f*PI, fpi3 = f * (PI / 3.0);
+		float2 sinfpi = sin(fpi), sinfpi3 = sin(fpi3), cosfpi3 = cos(fpi3);
 		const float r3 = sqrt(3.0);
-		float2 w0 = (sincos.xy * sincos2.xy) / (f*f);
-		float2 w1 = (-sincos.xy * (sincos2.xy - r3*sincos2.zw)) / ((f - 1)*(f - 1));
-		float2 w2 = (sincos.xy * (-sincos2.xy - r3*sincos2.zw)) / ((f - 2)*(f - 2));
-		float2 w3 = (-sincos.xy * (-2 * sincos2.xy)) / ((f - 3)*(f - 3));
-		float2 w4 = (sincos.xy * (-sincos2.xy + r3*sincos2.zw)) / ((f - 4)*(f - 4));
-		float2 w5 = (-sincos.xy * (sincos2.xy + r3*sincos2.zw)) / ((f - 5)*(f - 5));
+		float2 w0 = ( sinfpi *       sinfpi3              ) / ( f       * f       );
+		float2 w1 = (-sinfpi * (     sinfpi3 - r3*cosfpi3)) / ((f - 1.0)*(f - 1.0));
+		float2 w2 = ( sinfpi * (    -sinfpi3 - r3*cosfpi3)) / ((f - 2.0)*(f - 2.0));
+		float2 w3 = (-sinfpi * (-2.0*sinfpi3             )) / ((f - 3.0)*(f - 3.0));
+		float2 w4 = ( sinfpi * (    -sinfpi3 + r3*cosfpi3)) / ((f - 4.0)*(f - 4.0));
+		float2 w5 = (-sinfpi * (     sinfpi3 + r3*cosfpi3)) / ((f - 5.0)*(f - 5.0));
 
 		// use bilinear texture weights to merge center two samples in each dimension
 		float2 Weight[5];

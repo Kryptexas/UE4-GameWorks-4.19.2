@@ -672,6 +672,12 @@ void FAsyncIOSystemBase::Tick()
 				}
 			}
 
+			// Simple workaround to handle cases where NameHashToHandleMap grows uncontrollably.
+			if (!OutstandingRequests.Num() && NameHashToHandleMap.Num())
+			{
+				FlushHandles();
+			}
+
 			for( int32 RequestIdx=0; RequestIdx<OutstandingRequests.Num(); RequestIdx++ )
 			{
 				// Early outs avoid unnecessary work and string copies with implicit allocator churn.

@@ -5,7 +5,7 @@ using System.IO;
 
 public class DerivedDataCache : ModuleRules
 {
-	public DerivedDataCache(TargetInfo Target)
+	public DerivedDataCache(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
 

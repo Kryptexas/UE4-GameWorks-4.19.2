@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -90,8 +90,8 @@ NpArticulationLink::NpArticulationLink(const PxTransform& bodyPose, NpArticulati
 , mInboundJoint(NULL)
 , mParent(parent)
 {
-	PX_ASSERT(mBody.getScbType() == ScbType::BODY);
-	mBody.setScbType(ScbType::BODY_FROM_ARTICULATION_LINK);
+	PX_ASSERT(mBody.getScbType() == ScbType::eBODY);
+	mBody.setScbType(ScbType::eBODY_FROM_ARTICULATION_LINK);
 
 	mRoot->addToLinkList(*this);
 

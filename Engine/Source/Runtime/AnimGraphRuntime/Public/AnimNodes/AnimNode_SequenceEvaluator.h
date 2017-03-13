@@ -37,8 +37,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinShownByDefault))
 	mutable float ExplicitTime;
 
+	/** This only works if bTeleportToExplicitTime is false OR this node is set to use SyncGroup */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinHiddenByDefault))
-	bool bShouldLoopWhenInSyncGroup;
+	bool bShouldLoop;
 
 	/** If true, teleport to explicit time, does NOT advance time (does not trigger notifies, does not extract Root Motion, etc.)
 	If false, will advance time (will trigger notifies, extract root motion if applicable, etc.)

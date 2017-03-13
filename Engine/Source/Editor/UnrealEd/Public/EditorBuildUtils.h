@@ -4,8 +4,7 @@
 	EditorBuildUtils.h: Utilities for building in the editor
 =============================================================================*/
 
-#ifndef __EditorBuildUtils_h__
-#define __EditorBuildUtils_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/EngineBaseTypes.h"
@@ -272,5 +271,3 @@ private:
 	/** Set to a valid build type if an async build is in progress. */
 	static FName InProgressBuildId;
 };
-
-#endif // #ifndef __EditorBuildUtils_h__

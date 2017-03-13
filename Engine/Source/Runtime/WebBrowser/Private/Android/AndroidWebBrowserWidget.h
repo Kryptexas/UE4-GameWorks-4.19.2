@@ -60,20 +60,14 @@ public:
 	void HandlePageLoad(jstring JUrl, bool bIsLoading, int InHistorySize, int InHistoryPosition);
 	void HandleReceivedError(jint ErrorCode, jstring JMessage, jstring JUrl);
 
-	// Helper to get the native widget pointer from a native WebViewControl.
-	// Jobj can either be a WebViewControl instance or a WebViewControl.Client instance
+	// Helper to get the native widget pointer from a Java callback.
+	// Jobj can either be a WebViewControl, a WebViewControl.ViewClient or WebViewControl.ChromeClient instance
 	static SAndroidWebBrowserWidget* GetWidgetPtr(JNIEnv* JEnv, jobject Jobj)
 	{
 		jclass Class = JEnv->GetObjectClass(Jobj);
-		jfieldID Fid = JEnv->GetFieldID(Class, "this$0", "Lcom/epicgames/ue4/WebViewControl;");
-		if (Fid != 0)
-		{
-			Jobj = JEnv->GetObjectField(Jobj, Fid);
-			Class = JEnv->GetObjectClass(Jobj);
-		}
-		Fid = JEnv->GetFieldID(Class, "nativePtr", "J");
-		check(Fid != 0);
-		return reinterpret_cast<SAndroidWebBrowserWidget*>(JEnv->GetLongField(Jobj,Fid));
+		jmethodID JMethod = JEnv->GetMethodID(Class, "GetNativePtr", "()J");
+		check(JMethod != nullptr);
+		return reinterpret_cast<SAndroidWebBrowserWidget*>(JEnv->CallLongMethod(Jobj, JMethod));
 	}
 
 protected:

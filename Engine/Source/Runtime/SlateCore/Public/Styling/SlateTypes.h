@@ -176,7 +176,7 @@ struct SLATECORE_API FCheckBoxStyle : public FSlateWidgetStyle
 };
 
 template<>
-struct TStructOpsTypeTraits<FCheckBoxStyle> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FCheckBoxStyle> : public TStructOpsTypeTraitsBase2<FCheckBoxStyle>
 {
 	enum 
 	{
@@ -338,7 +338,7 @@ struct SLATECORE_API FButtonStyle : public FSlateWidgetStyle
 };
 
 template<>
-struct TStructOpsTypeTraits<FButtonStyle> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FButtonStyle> : public TStructOpsTypeTraitsBase2<FButtonStyle>
 {
 	enum 
 	{
@@ -448,7 +448,7 @@ struct SLATECORE_API FComboBoxStyle : public FSlateWidgetStyle
 };
 
 template<>
-struct TStructOpsTypeTraits<FComboBoxStyle> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FComboBoxStyle> : public TStructOpsTypeTraitsBase2<FComboBoxStyle>
 {
 	enum 
 	{

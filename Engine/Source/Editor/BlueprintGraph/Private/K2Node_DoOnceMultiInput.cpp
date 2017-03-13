@@ -18,11 +18,6 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-void UK2Node_DoOnceMultiInput::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
-{
-	Super::ReallocatePinsDuringReconstruction(OldPins);
-}
-
 UK2Node::ERedirectType UK2Node_DoOnceMultiInput::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
 	// Temp work around: remove whitespaces from pin names before doing string comparison.

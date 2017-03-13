@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AllDesktopTargetPlatform : ModuleRules
 {
-	public AllDesktopTargetPlatform(TargetInfo Target)
+	public AllDesktopTargetPlatform(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[]

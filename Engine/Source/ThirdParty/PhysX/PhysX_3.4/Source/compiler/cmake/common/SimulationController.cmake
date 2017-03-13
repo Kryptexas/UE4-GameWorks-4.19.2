@@ -2,56 +2,127 @@
 # Build SimulationController common
 #
 
-ADD_LIBRARY(SimulationController STATIC 
-	${LL_SOURCE_DIR}/ScActorCore.cpp
-	${LL_SOURCE_DIR}/ScActorSim.cpp
-	${LL_SOURCE_DIR}/ScArticulationCore.cpp
-	${LL_SOURCE_DIR}/ScArticulationJointCore.cpp
-	${LL_SOURCE_DIR}/ScArticulationJointSim.cpp
-	${LL_SOURCE_DIR}/ScArticulationSim.cpp
-	${LL_SOURCE_DIR}/ScBodyCore.cpp
-	${LL_SOURCE_DIR}/ScBodyCoreKinematic.cpp
-	${LL_SOURCE_DIR}/ScBodySim.cpp
-	${LL_SOURCE_DIR}/ScConstraintCore.cpp
-	${LL_SOURCE_DIR}/ScConstraintGroupNode.cpp
-	${LL_SOURCE_DIR}/ScConstraintInteraction.cpp
-	${LL_SOURCE_DIR}/ScConstraintProjectionManager.cpp
-	${LL_SOURCE_DIR}/ScConstraintProjectionTree.cpp
-	${LL_SOURCE_DIR}/ScConstraintSim.cpp
-	${LL_SOURCE_DIR}/ScElementInteractionMarker.cpp
-	${LL_SOURCE_DIR}/ScElementSim.cpp
-	${LL_SOURCE_DIR}/ScInteraction.cpp
-	${LL_SOURCE_DIR}/ScIterators.cpp	
-	${LL_SOURCE_DIR}/ScMaterialCore.cpp
-	${LL_SOURCE_DIR}/ScMetaData.cpp
-	${LL_SOURCE_DIR}/ScNPhaseCore.cpp
-	${LL_SOURCE_DIR}/ScPhysics.cpp
-	${LL_SOURCE_DIR}/ScRigidCore.cpp
-	${LL_SOURCE_DIR}/ScRigidSim.cpp
-	${LL_SOURCE_DIR}/ScScene.cpp
-	${LL_SOURCE_DIR}/ScShapeCore.cpp
-	${LL_SOURCE_DIR}/ScShapeInteraction.cpp
-	${LL_SOURCE_DIR}/ScShapeSim.cpp
-	${LL_SOURCE_DIR}/ScSimStats.cpp
-	${LL_SOURCE_DIR}/ScStaticCore.cpp
-	${LL_SOURCE_DIR}/ScStaticSim.cpp
-	${LL_SOURCE_DIR}/ScTriggerInteraction.cpp
-	${LL_SOURCE_DIR}/cloth/ScClothCore.cpp
-	${LL_SOURCE_DIR}/cloth/ScClothFabricCore.cpp
-	${LL_SOURCE_DIR}/cloth/ScClothShape.cpp
-	${LL_SOURCE_DIR}/cloth/ScClothSim.cpp
-	${LL_SOURCE_DIR}/particles/ScParticleBodyInteraction.cpp
-	${LL_SOURCE_DIR}/particles/ScParticlePacketShape.cpp
-	${LL_SOURCE_DIR}/particles/ScParticleSystemCore.cpp
-	${LL_SOURCE_DIR}/particles/ScParticleSystemSim.cpp
-	
-	${LL_SOURCE_DIR}/ScSimulationController.cpp
-	${LL_SOURCE_DIR}/ScSqBoundsManager.cpp
-	
-
+SET(SIMULATIONCONTROLLER_BASE_DIR ${PHYSX_ROOT_DIR}/Source/SimulationController)
+SET(SIMULATIONCONTROLLER_HEADERS		
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScActorCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScArticulationCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScArticulationJointCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScBodyCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScClothCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScClothFabricCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScConstraintCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScIterators.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScMaterialCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScParticleSystemCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScPhysics.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScRigidCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScScene.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScShapeCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/include/ScStaticCore.h
 )
+SOURCE_GROUP(include FILES ${SIMULATIONCONTROLLER_HEADERS})
 
-# Target specific compile options
+SET(SIMULATIONCONTROLLER_SOURCE
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScActorCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScActorElementPair.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScActorInteraction.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScActorPair.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScActorSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScActorSim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScArticulationCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScArticulationJointCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScArticulationJointSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScArticulationJointSim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScArticulationSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScArticulationSim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScBodyCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScBodyCoreKinematic.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScBodySim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScBodySim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScClient.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintGroupNode.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintGroupNode.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintInteraction.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintInteraction.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintProjectionManager.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintProjectionManager.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintProjectionTree.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintProjectionTree.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScConstraintSim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScContactReportBuffer.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScContactStream.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScElementInteractionMarker.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScElementInteractionMarker.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScElementSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScElementSim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScElementSimInteraction.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScInteraction.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScInteraction.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScInteractionFlags.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScIterators.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScMaterialCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScMetaData.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScNPhaseCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScNPhaseCore.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScObjectIDTracker.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScPhysics.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScRbElementInteraction.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScRigidCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScRigidSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScRigidSim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScScene.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScShapeCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScShapeInteraction.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScShapeInteraction.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScShapeIterator.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScShapeSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScShapeSim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScSimStateData.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScSimStats.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScSimStats.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScSimulationController.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScSimulationController.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScSqBoundsManager.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScSqBoundsManager.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScStaticCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScStaticSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScStaticSim.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScTriggerInteraction.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScTriggerInteraction.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/ScTriggerPairs.h
+)
+SOURCE_GROUP(src FILES ${SIMULATIONCONTROLLER_SOURCE})
+
+SET(SIMULATIONCONTROLLER_CLOTH_SOURCE
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/cloth/ScClothCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/cloth/ScClothFabricCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/cloth/ScClothShape.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/cloth/ScClothShape.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/cloth/ScClothSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/cloth/ScClothSim.h
+)
+SOURCE_GROUP(src\\cloth FILES ${SIMULATIONCONTROLLER_CLOTH_SOURCE})
+
+SET(SIMULATIONCONTROLLER_PARTICLES_SOURCE	
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/particles/ScParticleBodyInteraction.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/particles/ScParticleBodyInteraction.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/particles/ScParticlePacketShape.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/particles/ScParticlePacketShape.h
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/particles/ScParticleSystemCore.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/particles/ScParticleSystemSim.cpp
+	${SIMULATIONCONTROLLER_BASE_DIR}/src/particles/ScParticleSystemSim.h
+)
+SOURCE_GROUP(src\\particles FILES ${SIMULATIONCONTROLLER_PARTICLES_SOURCE})
+
+ADD_LIBRARY(SimulationController ${SIMULATIONCONTROLLER_LIBTYPE}
+	${SIMULATIONCONTROLLER_HEADERS}
+	${SIMULATIONCONTROLLER_SOURCE}
+	
+	${SIMULATIONCONTROLLER_CLOTH_SOURCE}
+	${SIMULATIONCONTROLLER_PARTICLES_SOURCE}
+)
 
 TARGET_INCLUDE_DIRECTORIES(SimulationController 
 	PRIVATE ${SIMULATIONCONTROLLER_PLATFORM_INCLUDES}
@@ -119,9 +190,11 @@ TARGET_COMPILE_DEFINITIONS(SimulationController
 	PRIVATE ${SIMULATIONCONTROLLER_COMPILE_DEFS}
 )
 
-SET_TARGET_PROPERTIES(SimulationController PROPERTIES 
-	COMPILE_PDB_NAME_DEBUG "SimulationController${CMAKE_DEBUG_POSTFIX}"
-	COMPILE_PDB_NAME_CHECKED "SimulationController${CMAKE_CHECKED_POSTFIX}"
-	COMPILE_PDB_NAME_PROFILE "SimulationController${CMAKE_PROFILE_POSTFIX}"
-	COMPILE_PDB_NAME_RELEASE "SimulationController${CMAKE_RELEASE_POSTFIX}"
-)
+IF(NOT ${SIMULATIONCONTROLLER_LIBTYPE} STREQUAL "OBJECT")
+	SET_TARGET_PROPERTIES(SimulationController PROPERTIES 
+		COMPILE_PDB_NAME_DEBUG "SimulationController${CMAKE_DEBUG_POSTFIX}"
+		COMPILE_PDB_NAME_CHECKED "SimulationController${CMAKE_CHECKED_POSTFIX}"
+		COMPILE_PDB_NAME_PROFILE "SimulationController${CMAKE_PROFILE_POSTFIX}"
+		COMPILE_PDB_NAME_RELEASE "SimulationController${CMAKE_RELEASE_POSTFIX}"
+	)
+ENDIF()

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class DesktopPlatform : ModuleRules
 {
-	public DesktopPlatform(TargetInfo Target)
+	public DesktopPlatform(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Developer/DesktopPlatform/Private");
 

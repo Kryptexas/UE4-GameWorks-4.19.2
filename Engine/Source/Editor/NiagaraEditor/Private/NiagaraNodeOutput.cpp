@@ -3,6 +3,7 @@
 #include "NiagaraNodeOutput.h"
 #include "UObject/UnrealType.h"
 #include "INiagaraCompiler.h"
+#include "NiagaraScript.h"
 
 #include "EdGraphSchema_Niagara.h"
 
@@ -15,6 +16,15 @@ UNiagaraNodeOutput::UNiagaraNodeOutput(const FObjectInitializer& ObjectInitializ
 
 void UNiagaraNodeOutput::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
+// 	for (FNiagaraVariable& Output : Outputs)
+// 	{
+// 		//Ensure all pins are valid.
+// 		if (Output.GetStruct() == nullptr)
+// 		{
+// 			Output = FNiagaraVariable();
+// 		}
+// 	}
+
 	if (PropertyChangedEvent.Property != nullptr)
 	{
 		ReallocatePins();
@@ -25,26 +35,17 @@ void UNiagaraNodeOutput::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 void UNiagaraNodeOutput::AllocateDefaultPins()
 {
 	const UEdGraphSchema_Niagara* Schema = GetDefault<UEdGraphSchema_Niagara>();
-	for (const FNiagaraVariableInfo& Output : Outputs)
+	const UNiagaraScript* Script = GetTypedOuter<UNiagaraScript>();
+	check(Script);
+// 	if (Script->Usage == ENiagaraScriptUsage::SpawnScript || Script->Usage == ENiagaraScriptUsage::UpdateScript)
+// 	{
+// 		//For the outermost spawn and update scripts output nodes we need an extra pin telling whether the instance is still alive or not.
+// 		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(FNiagaraTypeDefinition::GetIntDef()), TEXT("Alive"));
+// 	}
+
+	for (const FNiagaraVariable& Output : Outputs)
 	{
-		switch (Output.Type)
-		{
-		case ENiagaraDataType::Scalar:
-		{
-			CreatePin(EGPD_Input, Schema->PC_Float, TEXT(""), NULL, false, false, Output.Name.ToString());
-		}
-			break;
-		case ENiagaraDataType::Vector:
-		{
-			CreatePin(EGPD_Input, Schema->PC_Vector, TEXT(""), NULL, false, false, Output.Name.ToString());
-		}
-			break;
-		case ENiagaraDataType::Matrix:
-		{
-			CreatePin(EGPD_Input, Schema->PC_Matrix, TEXT(""), NULL, false, false, Output.Name.ToString());
-		}
-			break;
-		};
+		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName().ToString());
 	}
 }
 
@@ -58,34 +59,18 @@ FLinearColor UNiagaraNodeOutput::GetNodeTitleColor() const
 	return CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_Attribute;
 }
 
-void UNiagaraNodeOutput::Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& OutputExpressions)
+void UNiagaraNodeOutput::NotifyOutputVariablesChanged()
 {
-	TArray<TNiagaraExprPtr> InputExpressions;
+	ReallocatePins();
+}
 
-	bool bError = false;
-	for (int32 i = 0; i < Outputs.Num(); ++i)
-	{
-		const FNiagaraVariableInfo& Out = Outputs[i];
-		UEdGraphPin* Pin = Pins[i];
-		check(Pin->Direction == EGPD_Input);
-
-		TNiagaraExprPtr Result = Compiler->CompilePin(Pin);
-		if (!Result.IsValid())
-		{
-			bError = true;
-			Compiler->Error(FText::Format(LOCTEXT("OutputErrorFormat", "Error compiling attriubte {0}"), Pin->PinFriendlyName), this, Pin);
-		}
-
-		InputExpressions.Add(Result);
-	}
-
+void UNiagaraNodeOutput::Compile(class INiagaraCompiler* Compiler, TArray<int32>& OutputExpressions)
+{
+	TArray<int32> Results;
+	bool bError = CompileInputPins(Compiler, Results);
 	if (!bError)
 	{
-		check(Outputs.Num() == InputExpressions.Num());
-		for (int32 i = 0; i < Outputs.Num(); ++i)
-		{
-			OutputExpressions.Add(FNiagaraNodeResult(Compiler->Output(Outputs[i], InputExpressions[i]), Pins[i]));
-		}
+		Compiler->Output(Outputs, Results);
 	}
 }
 

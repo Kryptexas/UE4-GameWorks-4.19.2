@@ -503,9 +503,16 @@ void FRawInputWindows::ShowDebugInfo(AHUD* HUD, UCanvas* Canvas, const FDebugDis
 
 			for (const FAnalogData& AnalogData : DeviceEntry.AnalogData)
 			{
-				if (!AnalogData.KeyName.IsNone() && AnalogData.HasValue())
+				if (!AnalogData.KeyName.IsNone())
 				{
-					DisplayDebugManager.DrawString(FString::Printf(TEXT("Analog ID: %s (%d) Val: %f"), *AnalogData.KeyName.ToString(), AnalogData.Index, AnalogData.GetValue()));
+					if (AnalogData.HasValue())
+					{
+						DisplayDebugManager.DrawString(FString::Printf(TEXT("Analog ID: %s (%d) Val: %f"), *AnalogData.KeyName.ToString(), AnalogData.Index, AnalogData.GetValue()));
+					}
+					else
+					{
+						DisplayDebugManager.DrawString(FString::Printf(TEXT("Analog ID: %s (%d) Val: --"), *AnalogData.KeyName.ToString(), AnalogData.Index));
+					}
 				}
 			}
 		}

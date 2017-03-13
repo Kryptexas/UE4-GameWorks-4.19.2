@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SourceCodeAccess : ModuleRules
 {
-	public SourceCodeAccess(TargetInfo Target)
+	public SourceCodeAccess(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

@@ -4,8 +4,7 @@
 	Lightmass.h: lightmass import/export definitions.
 =============================================================================*/
 
-#ifndef __LIGHTMASS_H__
-#define __LIGHTMASS_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
@@ -711,5 +710,3 @@ protected:
 	 **/
 	static void SwarmCallback( NSwarm::FMessage* CallbackMessage, void* CallbackData );
 };
-
-#endif //__LIGHTMASS_H__

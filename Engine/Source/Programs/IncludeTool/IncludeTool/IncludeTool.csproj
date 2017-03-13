@@ -86,6 +86,7 @@
       <Link>FastJSON\SafeDictionary.cs</Link>
     </Compile>
     <Compile Include="BuildTarget.cs" />
+    <Compile Include="ManagedProcess.cs" />
     <Compile Include="OutputFile.cs" />
     <Compile Include="Reports\ComplexityReport.cs" />
     <Compile Include="Reports\FragmentTimingReport.cs" />

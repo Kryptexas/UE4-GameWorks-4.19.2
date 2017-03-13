@@ -10,7 +10,7 @@
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 
-static const double HitchTime = 0.003;
+static const double HitchTime = 1.0 / 1000.0;
 
 void FVulkanGfxPipelineState::Reset()
 {
@@ -51,18 +51,13 @@ void FVulkanGfxPipelineState::InitializeDefaultStates()
 FVulkanPipeline::FVulkanPipeline(FVulkanDevice* InDevice)
 	: Device(InDevice)
 	, Pipeline(VK_NULL_HANDLE)
-#if !VULKAN_ENABLE_PIPELINE_CACHE
-	, PipelineCache(VK_NULL_HANDLE)
-#endif
 {
 }
 
 FVulkanPipeline::~FVulkanPipeline()
 {
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Pipeline, Pipeline);
 	Pipeline = VK_NULL_HANDLE;
-#endif
 }
 
 FVulkanComputePipeline::FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShaderState* CSS)
@@ -77,98 +72,19 @@ FVulkanComputePipeline::FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanC
 	PipelineInfo.stage.module = CSS->ComputeShader->GetHandle();
 	PipelineInfo.stage.pName = "main";
 	PipelineInfo.layout = CSS->GetPipelineLayout();
+
+	double BeginTime = FPlatformTime::Seconds();
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateComputePipelines(Device->GetInstanceHandle(), VK_NULL_HANDLE, 1, &PipelineInfo, nullptr, &Pipeline));
-}
-
-#if !VULKAN_ENABLE_PIPELINE_CACHE
-void FVulkanGfxPipeline::Create(const FVulkanGfxPipelineState& State)
-{
-	//SCOPE_CYCLE_COUNTER(STAT_VulkanCreatePipeline);
-
-	// Pipeline
-	VkGraphicsPipelineCreateInfo PipelineInfo;
-	FMemory::Memzero(PipelineInfo);
-	PipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	PipelineInfo.layout = State.BSS->GetPipelineLayout();
-
-	// Color Blend
-	VkPipelineColorBlendStateCreateInfo CBInfo;
-	FMemory::Memzero(CBInfo);
-	CBInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	CBInfo.attachmentCount = State.RenderPass->GetLayout().GetNumColorAttachments();
-	CBInfo.pAttachments = State.BlendState->BlendStates;
-	CBInfo.blendConstants[0] = 1.0f;
-	CBInfo.blendConstants[1] = 1.0f;
-	CBInfo.blendConstants[2] = 1.0f;
-	CBInfo.blendConstants[3] = 1.0f;
-
-	// Viewport
-	VkPipelineViewportStateCreateInfo VPInfo;
-	FMemory::Memzero(VPInfo);
-	VPInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	VPInfo.viewportCount = 1;
-	VPInfo.scissorCount = 1;
-
-	// Multisample
-	VkPipelineMultisampleStateCreateInfo MSInfo;
-	FMemory::Memzero(MSInfo);
-	MSInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	MSInfo.pSampleMask = NULL;
-	MSInfo.rasterizationSamples = State.RenderPass->GetLayout().GetAttachmentDescriptions()[0].samples;
-
-	// Two stages: vs and fs
-	VkPipelineShaderStageCreateInfo ShaderStages[SF_NumFrequencies];
-	FMemory::Memzero(ShaderStages);
-
-    PipelineInfo.stageCount = 0;
-	PipelineInfo.pStages = ShaderStages;
-	for(uint32 ShaderStage = 0; ShaderStage < SF_NumFrequencies; ++ShaderStage)
+	double EndTime = FPlatformTime::Seconds();
+	double Delta = EndTime - BeginTime;
+	if (Delta > HitchTime)
 	{
-		const EShaderFrequency CurrStage = (EShaderFrequency)ShaderStage;
-		if (!State.BSS->HasShaderStage(CurrStage))
-		{
-			continue;
-		}
-		
-		ShaderStages[PipelineInfo.stageCount].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		ShaderStages[PipelineInfo.stageCount].stage = UEFrequencyToVKStageBit(CurrStage);
-		ShaderStages[PipelineInfo.stageCount].module = State.BSS->GetShader(CurrStage).GetHandle();
-		ShaderStages[PipelineInfo.stageCount].pName = "main";
-		PipelineInfo.stageCount++;
+		UE_LOG(LogVulkanRHI, Warning, TEXT("Hitchy compute pipeline key CS %s (%.3f ms)"),
+			*CSS->ComputeShader->DebugName,
+			(float)(Delta * 1000.0));
 	}
-	
-	// Vertex Input. The structure is mandatory even without vertex attributes.
-	const VkPipelineVertexInputStateCreateInfo& VBInfo = State.BSS->GetVertexInputStateInfo().GetInfo();
-	PipelineInfo.pVertexInputState = &VBInfo;
 
-	VkPipelineCacheCreateInfo PipelineCacheInfo;
-	FMemory::Memzero(PipelineCacheInfo);
-	PipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineCache(Device->GetInstanceHandle(), &PipelineCacheInfo, nullptr, &PipelineCache));
-
-	check(State.RenderPass);
-	PipelineInfo.pColorBlendState = &CBInfo;
-	PipelineInfo.pMultisampleState = &MSInfo;
-	PipelineInfo.pViewportState = &VPInfo;
-	PipelineInfo.renderPass = State.RenderPass->GetHandle();
-	PipelineInfo.pInputAssemblyState = &State.InputAssembly;
-	PipelineInfo.pRasterizationState = &State.RasterizerState->RasterizerState;
-	PipelineInfo.pDepthStencilState = &State.DepthStencilState->DepthStencilState;
-	PipelineInfo.pDynamicState = &State.DynamicState;
-
-	VERIFYVULKANRESULT(VulkanRHI::vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline));
 }
-
-void FVulkanGfxPipeline::Destroy()
-{
-	if (Pipeline)
-	{
-		check(PipelineCache);
-		VulkanRHI::vkDestroyPipelineCache(Device->GetInstanceHandle(), PipelineCache, nullptr);
-		PipelineCache = VK_NULL_HANDLE;
-	}
-}
-#endif
 
 void FVulkanGfxPipeline::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanGfxPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate, bool bNeedsStencilRefUpdate, bool bCmdNeedsDynamicState)
 {
@@ -211,8 +127,6 @@ void FVulkanGfxPipeline::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVul
 		Cmd->bNeedsDynamicStateSet = false;
 	}
 }
-
-#if VULKAN_ENABLE_PIPELINE_CACHE
 
 static TAutoConsoleVariable<int32> GEnablePipelineCacheLoadCvar(
 	TEXT("r.Vulkan.PipelineCacheLoad"),
@@ -682,8 +596,10 @@ void FVulkanPipelineStateCache::FGfxPipelineEntry::FRenderTargets::ReadFrom(cons
 	NumAttachments =			RTLayout.NumAttachmentDescriptions;
 	NumColorAttachments =		RTLayout.NumColorAttachments;
 
-	bHasDepthStencil =			RTLayout.bHasDepthStencil;
-	bHasResolveAttachments =	RTLayout.bHasResolveAttachments;
+	bHasDepthStencil =			RTLayout.bHasDepthStencil != 0;
+	bHasResolveAttachments =	RTLayout.bHasResolveAttachments != 0;
+	NumUsedClearValues =		RTLayout.NumUsedClearValues;
+
 	Hash =						RTLayout.Hash;
 
 	Extent3D.X = RTLayout.Extent.Extent3D.width;
@@ -716,6 +632,8 @@ void FVulkanPipelineStateCache::FGfxPipelineEntry::FRenderTargets::WriteInto(FVu
 
 	Out.bHasDepthStencil =			bHasDepthStencil;
 	Out.bHasResolveAttachments =	bHasResolveAttachments;
+	Out.NumUsedClearValues =		NumUsedClearValues;
+
 	Out.Hash =						Hash;
 
 	Out.Extent.Extent3D.width =		Extent3D.X;
@@ -926,14 +844,14 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 	double Delta = EndTime - BeginTime;
 	if (Delta > HitchTime)
 	{
-		UE_LOG(LogVulkanRHI, Warning, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s (%.3f seconds)"), 
+		UE_LOG(LogVulkanRHI, Verbose, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s (%.3f ms)"), 
 			(uint32)((GfxEntry->GraphicsKey.Key[0] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[0] & 0xffffffff),
 			(uint32)((GfxEntry->GraphicsKey.Key[1] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[1] & 0xffffffff),
 			GfxEntry->VertexInputKey,
 			*BSS->VertexShader->DebugName,
 			BSS->GeometryShader ? *BSS->GeometryShader->DebugName : TEXT("nullptr"),
 			BSS->PixelShader ? *BSS->PixelShader->DebugName : TEXT("nullptr"),
-			(float)Delta);
+			(float)(Delta * 1000.0));
 	}
 }
 
@@ -1147,5 +1065,3 @@ void FVulkanPipelineStateCache::RebuildCache()
 	}
 	DestroyCache();
 }
-
-#endif	// VULKAN_ENABLE_PIPELINE_CACHE

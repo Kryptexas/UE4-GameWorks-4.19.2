@@ -5,7 +5,7 @@ using System.IO;
 
 public class MeshUtilities : ModuleRules
 {
-	public MeshUtilities(TargetInfo Target)
+	public MeshUtilities(ReadOnlyTargetRules Target) : base(Target)
 	{
 
         PublicDependencyModuleNames.AddRange(

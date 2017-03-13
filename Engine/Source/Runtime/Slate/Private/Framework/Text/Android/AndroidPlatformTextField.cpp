@@ -8,6 +8,10 @@
 #define TYPE_CLASS_TEXT						0x00000001
 #define TYPE_CLASS_NUMBER					0x00000002
 
+// Java InputType number flags
+#define TYPE_NUMBER_FLAG_SIGNED				0x00001000
+#define TYPE_NUMBER_FLAG_DECIMAL			0x00002000
+
 // Java InputType text variation flags
 #define TYPE_TEXT_VARIATION_EMAIL_ADDRESS	0x00000020
 #define TYPE_TEXT_VARIATION_NORMAL			0x00000000
@@ -28,7 +32,7 @@ void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex,
 		switch (TextEntryWidget->GetVirtualKeyboardType())
 		{
 			case EKeyboardType::Keyboard_Number:
-				InputType = TYPE_CLASS_NUMBER | TYPE_TEXT_VARIATION_NORMAL;
+				InputType = TYPE_CLASS_NUMBER | TYPE_NUMBER_FLAG_SIGNED | TYPE_NUMBER_FLAG_DECIMAL;
 				break;
 			case EKeyboardType::Keyboard_Web:
 				InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_URI;

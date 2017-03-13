@@ -115,7 +115,7 @@ void UInterfaceProperty::SerializeItem( FArchive& Ar, void* Value, void const* D
 	FScriptInterface* InterfaceValue = (FScriptInterface*)Value;
 
 	Ar << InterfaceValue->GetObjectRef();
-	if ( Ar.IsLoading() || Ar.IsTransacting() )
+	if ( Ar.IsLoading() || Ar.IsTransacting() || Ar.IsObjectReferenceCollector() )
 	{
 		if ( InterfaceValue->GetObject() != NULL )
 		{

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class SoundMod : ModuleRules
     {
-        public SoundMod(TargetInfo Target)
+        public SoundMod(ReadOnlyTargetRules Target) : base(Target)
         {
             PublicDependencyModuleNames.AddRange(
                 new string[]

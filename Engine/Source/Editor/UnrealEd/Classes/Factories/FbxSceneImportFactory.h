@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Factories/Factory.h"
+#include "SceneImportFactory.h"
 #include "FbxSceneImportFactory.generated.h"
 
 class AActor;
@@ -338,14 +338,17 @@ typedef TMap<FString, UnFbx::FBXImportOptions*> ImportOptionsNameMap;
 typedef ImportOptionsNameMap* ImportOptionsNameMapPtr;
 
 UCLASS(hidecategories=Object)
-class UNREALED_API UFbxSceneImportFactory : public UFactory
+class UNREALED_API UFbxSceneImportFactory : public USceneImportFactory
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UFactory Interface
+	/** UFactory Interface */
 	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn) override;
 	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
-	//~ Begin UFactory Interface
+	virtual bool FactoryCanImport(const FString& Filename) override;
+
+	/** USceneImportFactory Interface */
+	virtual bool ImportsAssets() const override { return true; }
 
 	/** Import options UI detail when importing fbx scene */
 	UPROPERTY(Transient)

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ForsythTriOptimizer : ModuleRules
 {
-	public ForsythTriOptimizer(TargetInfo Target)
+	public ForsythTriOptimizer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

@@ -1,8 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __BoneSelectionWidget_h__
-#define __BoneSelectionWidget_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -19,6 +16,7 @@ class SComboButton;
 
 DECLARE_DELEGATE_OneParam(FOnBoneSelectionChanged, FName);
 DECLARE_DELEGATE_RetVal(FName, FGetSelectedBone);
+DECLARE_DELEGATE_RetVal(const struct FReferenceSkeleton&, FGetReferenceSkeleton);
 
 class PERSONA_API SBoneTreeMenu : public SCompoundWidget
 {
@@ -39,6 +37,7 @@ public:
 		SLATE_ARGUMENT(FText, Title)
 		SLATE_ARGUMENT(bool, bShowVirtualBones)
 		SLATE_ARGUMENT(FName, SelectedBone)
+		SLATE_EVENT(FGetReferenceSkeleton, OnGetReferenceSkeleton)
 		SLATE_EVENT(FOnBoneSelectionChanged, OnBoneSelectionChanged)
 
 	SLATE_END_ARGS();
@@ -48,7 +47,7 @@ public:
 	*
 	* @param	InArgs	The declaration data for this widget
 	*/
-	void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
+	void Construct(const FArguments& InArgs);
 
 	//Filter text widget
 	TSharedPtr<SSearchBox> FilterTextWidget;
@@ -77,13 +76,12 @@ private:
 	// Text to filter bone tree with
 	FText FilterText;
 
-	// Skeleton to search
-	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
 
 	// Tree view used in the button menu
 	TSharedPtr<STreeView<TSharedPtr<FBoneNameInfo>>> TreeView;
 
 	FOnBoneSelectionChanged OnSelectionChangedDelegate;
+	FGetReferenceSkeleton	OnGetReferenceSkeletonDelegate;
 
 	bool bShowVirtualBones;
 };
@@ -103,6 +101,9 @@ public:
 		/** get selected bone name **/
 		SLATE_EVENT(FGetSelectedBone, OnGetSelectedBone);
 
+		/** Get Reference skeleton */
+		SLATE_EVENT(FGetReferenceSkeleton, OnGetReferenceSkeleton)
+
 	SLATE_END_ARGS();
 
 	/**
@@ -110,7 +111,7 @@ public:
 	 *
 	 * @param	InArgs	The declaration data for this widget
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton );
+	void Construct( const FArguments& InArgs );
 
 private: 
 
@@ -118,6 +119,7 @@ private:
 	TSharedRef<SWidget> CreateSkeletonWidgetMenu();
 	// Called when the user selects a bone name
 	void OnSelectionChanged(FName BoneName);
+
 	// Gets the current bone name, used to get the right name for the combo button
 	FText GetCurrentBoneName() const;
 
@@ -126,15 +128,10 @@ private:
 	// Base combo button 
 	TSharedPtr<SComboButton> BonePickerButton;
 
-	// Skeleton to search
-	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
-
 	// delegates
 	FOnBoneSelectionChanged OnBoneSelectionChanged;
-	FGetSelectedBone OnGetSelectedBone;
-
+	FGetSelectedBone		OnGetSelectedBone;
+	FGetReferenceSkeleton	OnGetReferenceSkeleton;
 	// Cache supplied tooltip
 	FText SuppliedToolTip;
 };
-
-#endif		//__BoneSelectionWidget_h__

@@ -710,6 +710,13 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 		{
 			// Just default to the sphere if the preview asset is null or missing
 			PreviewAsset = GUnrealEd->GetThumbnailManager()->EditorSphere;
+
+			USceneThumbnailInfoWithPrimitive* ThumbnailInfo = Cast<USceneThumbnailInfoWithPrimitive>(MaterialEditorInstance->SourceInstance->ThumbnailInfo);
+			if (ThumbnailInfo)
+			{
+				ThumbnailInfo->PreviewMesh.Reset();
+			}
+
 		}
 		PreviewVC->SetPreviewAsset(PreviewAsset);
 	}
@@ -849,15 +856,7 @@ void FMaterialInstanceEditor::DrawSamplerWarningStrings(FCanvas* Canvas, int32& 
 
 							if ( Expression && Expression->SamplerType != SamplerType )
 							{
-								FString SamplerTypeDisplayName;
-								if ( SamplerTypeEnum->HasMetaData( TEXT("DisplayName"), Expression->SamplerType ) )
-								{
-									SamplerTypeDisplayName = SamplerTypeEnum->GetMetaData( TEXT("DisplayName"), Expression->SamplerType );
-								}
-								else
-								{
-									SamplerTypeDisplayName = SamplerTypeEnum->GetEnumName( Expression->SamplerType );
-								}
+								FString SamplerTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(Expression->SamplerType).ToString();
 
 								Canvas->DrawShadowedString(
 									5,
@@ -872,16 +871,8 @@ void FMaterialInstanceEditor::DrawSamplerWarningStrings(FCanvas* Canvas, int32& 
 							}
 							if( Expression && ((Expression->SamplerType == (EMaterialSamplerType)TC_Normalmap || Expression->SamplerType ==  (EMaterialSamplerType)TC_Masks) && Texture->SRGB))
 							{
-								FString SamplerTypeDisplayName;
-								if ( SamplerTypeEnum->HasMetaData( TEXT("DisplayName"), Expression->SamplerType ) )
-								{
-									SamplerTypeDisplayName = SamplerTypeEnum->GetMetaData( TEXT("DisplayName"), Expression->SamplerType );
-								}
-								else
-								{
-									SamplerTypeDisplayName = SamplerTypeEnum->GetEnumName( Expression->SamplerType );
-								}
-
+								FString SamplerTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(Expression->SamplerType).ToString();
+								
 								Canvas->DrawShadowedString(
 									5,
 									DrawPositionY,

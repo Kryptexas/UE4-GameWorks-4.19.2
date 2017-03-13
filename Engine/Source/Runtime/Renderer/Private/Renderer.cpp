@@ -26,6 +26,35 @@
 #include "GPUBenchmark.h"
 #include "SystemSettings.h"
 
+/** A minimal forwarding lighting setup. */
+class FMinimalDummyForwardLightingResources : public FRenderResource
+{
+public:
+	FForwardLightingViewResources ForwardLightingResources;
+	
+	/** Destructor. */
+	virtual ~FMinimalDummyForwardLightingResources()
+	{}
+	
+	virtual void InitRHI()
+	{
+		if (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5)
+		{
+			ForwardLightingResources.ForwardLocalLightBuffer.Initialize(sizeof(FVector4), sizeof(FForwardLocalLightData) / sizeof(FVector4), PF_A32B32G32R32F, BUF_Dynamic);
+			ForwardLightingResources.ForwardGlobalLightData = TUniformBufferRef<FForwardGlobalLightData>::CreateUniformBufferImmediate(FForwardGlobalLightData(), UniformBuffer_MultiFrame);
+			ForwardLightingResources.NumCulledLightsGrid.Initialize(sizeof(uint32), 1, PF_R32_UINT);
+			ForwardLightingResources.CulledLightDataGrid.Initialize(sizeof(uint16), 1, PF_R16_UINT);
+		}
+	}
+	
+	virtual void ReleaseRHI()
+	{
+		ForwardLightingResources.Release();
+	}
+};
+
+static TGlobalResource<FMinimalDummyForwardLightingResources> GMinimalDummyForwardLightingResources;
+
 DEFINE_LOG_CATEGORY(LogRenderer);
 
 IMPLEMENT_MODULE(FRendererModule, Renderer);
@@ -61,6 +90,10 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		// Create an FViewInfo so we can initialize its RHI resources
 		//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
 		FViewInfo View(&SceneView);
+		
+		//Apply the minimal forward lighting resources
+		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources.ForwardLightingResources;
+		
 		View.InitRHIResources();
 
 		//TODO ResetState

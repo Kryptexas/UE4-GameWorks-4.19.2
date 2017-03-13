@@ -174,9 +174,9 @@ public:
 	static void PatchNewCDOIntoLinker(UObject* CDO, FLinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded);
 
 	/**
-	 * Helper for loading dependent data needed for compile, would not be needed if compile on load ran after serialization
+	 *  Synchronizes Blueprint's GeneratedClass's properties with the NewVariable declarations in the blueprint
 	 */
-	static void ForceLoadMembers(UObject* Object);
+	static void RefreshVariables(UBlueprint* Blueprint);
 
 	/**
 	 * Regenerates the class at class load time, and refreshes the blueprint
@@ -1084,6 +1084,12 @@ public:
 	/** Attempts to match up the FComponentKey with a ComponentTemplate from the Blueprint's UCS */
 	static UActorComponent* FindUCSComponentTemplate(const FComponentKey& ComponentKey);
 
+	/** Takes the Blueprint's NativizedFlag property and applies it to the authoritative config (does the same for flagged dependencies) */
+	static bool PropagateNativizationSetting(UBlueprint* Blueprint);
+
+	/** Retrieves all dependencies that need to be nativized for this to work as a nativized Blueprint */
+	static void FindNativizationDependencies(UBlueprint* Blueprint, TArray<UClass*>& NativizeDependenciesOut);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
 
@@ -1143,7 +1149,7 @@ public:
 	static void UpdateStalePinWatches( UBlueprint* Blueprint );
 
 	/** Return the first function from implemented interface with given name */
-	static UFunction* FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool* bOutInvalidInterface = NULL );
+	static UFunction* FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool* bOutInvalidInterface = nullptr, bool bGetAllInterfaces = false);
 
 	/** 
 	 * Build a list of all interface classes either implemented by this blueprint or through inheritance
@@ -1355,11 +1361,12 @@ public:
 	/**
 	 * Generate component instancing data (for cooked builds).
 	 *
-	 * @param ComponentTemplate	The component template to generate instancing data for.
-	 * @param OutData			The generated component instancing data.
-	 * @return					TRUE if component instancing data was built, FALSE otherwise.
+	 * @param ComponentTemplate		The component template to generate instancing data for.
+	 * @param OutData				The generated component instancing data.
+	 * @param bUseTemplateArchetype	Whether or not to use the template archetype or the template CDO for delta serialization (default is to use the template CDO).
+	 * @return						TRUE if component instancing data was built, FALSE otherwise.
 	 */
-	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData);
+	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData, bool bUseTemplateArchetype = false);
 
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
@@ -1410,7 +1417,7 @@ protected:
 	 * @param InScope		Option scope for local variables
 	 * @return				Array of variable nodes
 	 */
-	static TArray<UK2Node_Variable*> GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope = nullptr);
+	static TArray<UK2Node*> GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope = nullptr);
 
 	/**
 	 * Helper function to warn user of the results of changing var type by displaying a suppressible dialog

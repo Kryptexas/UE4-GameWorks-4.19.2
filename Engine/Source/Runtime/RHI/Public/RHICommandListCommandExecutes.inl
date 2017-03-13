@@ -343,6 +343,25 @@ template struct FRHICommandSetComputeShader<ECmdList::EGfx>;
 template struct FRHICommandSetComputeShader<ECmdList::ECompute>;
 
 template<ECmdList CmdListType>
+void FRHICommandSetComputePipelineState<CmdListType>::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetComputePipelineState);
+	extern FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState);
+	FRHIComputePipelineState* RHIComputePipelineState = ExecuteSetComputePipelineState(ComputePipelineState);
+	INTERNAL_DECORATOR_CONTEXT(RHISetComputePipelineState)(RHIComputePipelineState);
+}
+template struct FRHICommandSetComputePipelineState<ECmdList::EGfx>;
+template struct FRHICommandSetComputePipelineState<ECmdList::ECompute>;
+
+void FRHICommandSetGraphicsPipelineState::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetGraphicsPipelineState);
+	extern FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState);
+	FRHIGraphicsPipelineState* RHIGraphicsPipelineState = ExecuteSetGraphicsPipelineState(GraphicsPipelineState);
+	INTERNAL_DECORATOR(RHISetGraphicsPipelineState)(RHIGraphicsPipelineState);
+}
+
+template<ECmdList CmdListType>
 void FRHICommandDispatchComputeShader<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(DispatchComputeShader);
@@ -450,19 +469,19 @@ template struct FRHICommandWaitComputeFence<ECmdList::ECompute>;
 void FRHICommandClearColorTexture::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(ClearColor);
-	INTERNAL_DECORATOR(RHIClearColorTexture)(Texture, Color, ExcludeRect);
+	INTERNAL_DECORATOR(RHIClearColorTexture)(Texture, Color);
 }
 
 void FRHICommandClearDepthStencilTexture::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(ClearDepthStencil);
-	INTERNAL_DECORATOR(RHIClearDepthStencilTexture)(Texture, ClearDepthStencil, Depth, Stencil, ExcludeRect);
+	INTERNAL_DECORATOR(RHIClearDepthStencilTexture)(Texture, ClearDepthStencil, Depth, Stencil);
 }
 
 void FRHICommandClearColorTextures::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(ClearColorMRT);
-	INTERNAL_DECORATOR(RHIClearColorTextures)(NumClearColors, Textures, ColorArray, ExcludeRect);
+	INTERNAL_DECORATOR(RHIClearColorTextures)(NumClearColors, Textures, ColorArray);
 }
 
 void FRHICommandBuildLocalBoundShaderState::Execute(FRHICommandListBase& CmdList)

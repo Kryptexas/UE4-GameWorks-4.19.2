@@ -20,6 +20,11 @@
 #endif
 
 #if USE_MALLOC_STOMP
+
+#if PLATFORM_WINDOWS
+	#include "WindowsHWrapper.h"
+#endif
+
 /**
  * Stomp memory allocator. It helps find the following errors:
  * - Read or writes off the end of an allocation.

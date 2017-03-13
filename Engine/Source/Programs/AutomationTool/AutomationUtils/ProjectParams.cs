@@ -214,6 +214,7 @@ namespace AutomationTool
 
 			this.RawProjectPath = InParams.RawProjectPath;
 			this.MapsToCook = InParams.MapsToCook;
+			this.MapIniSectionsToCook = InParams.MapIniSectionsToCook;
 			this.DirectoriesToCook = InParams.DirectoriesToCook;
             this.InternationalizationPreset = InParams.InternationalizationPreset;
             this.CulturesToCook = InParams.CulturesToCook;
@@ -308,10 +309,6 @@ namespace AutomationTool
 			this.NumClients = InParams.NumClients;
             this.Compressed = InParams.Compressed;
             this.UseDebugParamForEditorExe = InParams.UseDebugParamForEditorExe;
-            this.bUsesSteam = InParams.bUsesSteam;
-			this.bUsesCEF3 = InParams.bUsesCEF3;
-			this.bUsesSlate = InParams.bUsesSlate;
-            this.bDebugBuildsActuallyUseDebugCRT = InParams.bDebugBuildsActuallyUseDebugCRT;
 			this.Archive = InParams.Archive;
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
 			this.ArchiveMetaData = InParams.ArchiveMetaData;
@@ -351,6 +348,7 @@ namespace AutomationTool
 			List<UnrealTargetConfiguration> ClientConfigsToBuild = null,
 			List<UnrealTargetConfiguration> ServerConfigsToBuild = null,
 			ParamList<string> MapsToCook = null,
+			ParamList<string> MapIniSectionsToCook = null,
 			ParamList<string> DirectoriesToCook = null,
             string InternationalizationPreset = null,
             ParamList<string> CulturesToCook = null,
@@ -764,7 +762,29 @@ namespace AutomationTool
                 this.MapsToCook = MapsToCook;
             }
 
-            if (String.IsNullOrEmpty(this.MapToRun) == false)
+			if (MapIniSectionsToCook == null)
+			{
+				if (Command != null)
+				{
+					this.MapIniSectionsToCook = new ParamList<string>();
+
+					var MapsString = Command.ParseParamValue("MapIniSectionsToCook");
+					if (String.IsNullOrEmpty(MapsString) == false)
+					{
+						var MapNames = new ParamList<string>(MapsString.Split('+'));
+						foreach (var M in MapNames)
+						{
+							this.MapIniSectionsToCook.Add(M);
+						}
+					}
+				}
+			}
+			else
+			{
+				this.MapIniSectionsToCook = MapIniSectionsToCook;
+			}
+
+			if (String.IsNullOrEmpty(this.MapToRun) == false)
             {
                 this.MapsToCook.Add(this.MapToRun);
             }
@@ -1209,6 +1229,13 @@ namespace AutomationTool
 		/// </summary>
 		public ParamList<string> MapsToCook = new ParamList<string>();
 
+
+		/// <summary>
+		/// Cook: List of map inisections to cook (see allmaps)
+		/// </summary>
+		public ParamList<string> MapIniSectionsToCook = new ParamList<string>();
+		
+
 		/// <summary>
 		/// Cook: List of directories to cook.
 		/// </summary>
@@ -1400,30 +1427,6 @@ namespace AutomationTool
 		/// </summary>
 		[Help("bundlename", "string to use as the bundle name when deploying to mobile device")]
         public string BundleName;
-
-        /// <summary>
-        /// Whether the project uses Steam (todo: substitute with more generic functionality)
-        /// </summary>
-        public bool bUsesSteam;
-
-        /// <summary>
-        /// Whether the project uses CEF3
-        /// </summary>
-        public bool bUsesCEF3;
-
-		/// <summary>
-		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is alway used)
-		/// </summary>
-		public bool bUsesSlate = true;
-
-        /// <summary>
-        /// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
-        /// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
-        /// our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
-        /// it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
-        /// so that you can debug your program's code.
-        /// </summary>
-        public bool bDebugBuildsActuallyUseDebugCRT = false;
 
         /// <summary>
         /// On Windows, adds an executable to the root of the staging directory which checks for prerequisites being 
@@ -1668,7 +1671,7 @@ namespace AutomationTool
 
 		#region Initialization
 
-		private Dictionary<TargetRules.TargetType, SingleTargetProperties> DetectedTargets;
+		private Dictionary<TargetType, SingleTargetProperties> DetectedTargets;
 		private Dictionary<UnrealTargetPlatform, ConfigHierarchy> LoadedEngineConfigs;
 		private Dictionary<UnrealTargetPlatform, ConfigHierarchy> LoadedGameConfigs;
 
@@ -1687,11 +1690,6 @@ namespace AutomationTool
             List<UnrealTargetPlatform> ClientTargetPlatformTypes = ClientTargetPlatforms.ConvertAll(x => x.Type).Distinct().ToList();
             var Properties = ProjectUtils.GetProjectProperties(RawProjectPath, ClientTargetPlatformTypes, RunAssetNativization);
 
-			bUsesSteam = Properties.bUsesSteam;
-			bUsesCEF3 = Properties.bUsesCEF3;
-			bUsesSlate = Properties.bUsesSlate;
-            bDebugBuildsActuallyUseDebugCRT = Properties.bDebugBuildsActuallyUseDebugCRT;
-
 			bIsCodeBasedProject = Properties.bIsCodeBasedProject;			
 			DetectedTargets = Properties.Targets;
 			LoadedEngineConfigs = Properties.EngineConfigs;
@@ -1701,7 +1699,7 @@ namespace AutomationTool
 			var EditorTarget = String.Empty;
 			var ServerTarget = String.Empty;
 			var ProgramTarget = String.Empty;
-			var ProjectType = TargetRules.TargetType.Game;
+			var ProjectType = TargetType.Game;
 
 			if (!bIsCodeBasedProject)
 			{
@@ -1720,13 +1718,13 @@ namespace AutomationTool
 			{
 				SingleTargetProperties TargetData;
 
-				var GameTargetType = TargetRules.TargetType.Game;
+				var GameTargetType = TargetType.Game;
 				
 				if( Client )
 				{
 					if( HasClientTargetDetected )
 					{
-						GameTargetType = TargetRules.TargetType.Client;
+						GameTargetType = TargetType.Client;
 					}
 					else
 					{
@@ -1734,10 +1732,10 @@ namespace AutomationTool
 					}
 				}
 
-				var ValidGameTargetTypes = new TargetRules.TargetType[]
+				var ValidGameTargetTypes = new TargetType[]
 				{
 					GameTargetType,
-					TargetRules.TargetType.Program		
+					TargetType.Program		
 				};
 
 				foreach (var ValidTarget in ValidGameTargetTypes)
@@ -1745,24 +1743,20 @@ namespace AutomationTool
 					if (DetectedTargets.TryGetValue(ValidTarget, out TargetData))
 					{
 						GameTarget = TargetData.TargetName;
-                        bDebugBuildsActuallyUseDebugCRT = TargetData.Rules.bDebugBuildsActuallyUseDebugCRT;
-						bUsesSlate = TargetData.Rules.bUsesSlate;
-						bUsesSteam = TargetData.Rules.bUsesSteam;
-						bUsesCEF3 = TargetData.Rules.bUsesCEF3;
 						ProjectType = ValidTarget;
 						break;
 					}
 				}
 
-				if (DetectedTargets.TryGetValue(TargetRules.TargetType.Editor, out TargetData))
+				if (DetectedTargets.TryGetValue(TargetType.Editor, out TargetData))
 				{
 					EditorTarget = TargetData.TargetName;
 				}
-				if (DetectedTargets.TryGetValue(TargetRules.TargetType.Server, out TargetData))
+				if (DetectedTargets.TryGetValue(TargetType.Server, out TargetData))
 				{
 					ServerTarget = TargetData.TargetName;
 				}
-				if (DetectedTargets.TryGetValue(TargetRules.TargetType.Program, out TargetData))
+				if (DetectedTargets.TryGetValue(TargetType.Program, out TargetData))
 				{
 					ProgramTarget = TargetData.TargetName;
 				}
@@ -1771,11 +1765,7 @@ namespace AutomationTool
 			{
 				SingleTargetProperties TargetData = Properties.Programs[0];
 
-				bDebugBuildsActuallyUseDebugCRT = TargetData.Rules.bDebugBuildsActuallyUseDebugCRT;
-				bUsesSlate = TargetData.Rules.bUsesSlate;
-				bUsesSteam = TargetData.Rules.bUsesSteam;
-				bUsesCEF3 = TargetData.Rules.bUsesCEF3;
-				ProjectType = TargetRules.TargetType.Program;
+				ProjectType = TargetType.Program;
 				ProgramTarget = TargetData.TargetName;
 				GameTarget = TargetData.TargetName;
 			}
@@ -1791,9 +1781,9 @@ namespace AutomationTool
 				throw new AutomationException("{0} does not look like uproject file but no targets have been found!", RawProjectPath);
 			}
 
-			IsProgramTarget = ProjectType == TargetRules.TargetType.Program;
+			IsProgramTarget = ProjectType == TargetType.Program;
 
-			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList))
+			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList))
 			{
 				if (Properties.bWasGenerated)
 				{
@@ -1811,7 +1801,7 @@ namespace AutomationTool
 
 			if (EditorTargetsList == null)
 			{
-				if (!GlobalCommandLine.NoCompileEditor && (ProjectType != TargetRules.TargetType.Program) && !String.IsNullOrEmpty(EditorTarget))
+				if (!GlobalCommandLine.NoCompileEditor && (ProjectType != TargetType.Program) && !String.IsNullOrEmpty(EditorTarget))
 				{
 					EditorTargetsList = new ParamList<string>(EditorTarget);
 				}
@@ -1823,7 +1813,7 @@ namespace AutomationTool
 
 			if (ProgramTargetsList == null)
 			{
-				if (ProjectType == TargetRules.TargetType.Program)
+				if (ProjectType == TargetType.Program)
 				{
 					ProgramTargetsList = new ParamList<string>(ProgramTarget);
 				}
@@ -1907,6 +1897,11 @@ namespace AutomationTool
 			get { return !CommandUtils.IsNullOrEmpty(MapsToCook); }
 		}
 
+		public bool HasMapIniSectionsToCook
+		{
+			get { return !CommandUtils.IsNullOrEmpty(MapIniSectionsToCook); }
+		}
+
 		public bool HasDirectoriesToCook
 		{
 			get { return !CommandUtils.IsNullOrEmpty(DirectoriesToCook); }
@@ -1949,12 +1944,12 @@ namespace AutomationTool
 
 		public bool HasGameTargetDetected
 		{
-			get { return ProjectTargets.ContainsKey(TargetRules.TargetType.Game); }
+			get { return ProjectTargets.ContainsKey(TargetType.Game); }
 		}
 
 		public bool HasClientTargetDetected
 		{
-			get { return ProjectTargets.ContainsKey( TargetRules.TargetType.Client ); }
+			get { return ProjectTargets.ContainsKey( TargetType.Client ); }
 		}
 
 		public bool HasDedicatedServerAndClient
@@ -2129,7 +2124,7 @@ namespace AutomationTool
 		/// <summary>
 		/// All auto-detected targets for this project
 		/// </summary>
-		public Dictionary<TargetRules.TargetType, SingleTargetProperties> ProjectTargets
+		public Dictionary<TargetType, SingleTargetProperties> ProjectTargets
 		{
 			get
 			{
@@ -2350,6 +2345,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("NoCleanStage={0}", NoCleanStage);
 				CommandUtils.LogLog("NoXGE={0}", NoXGE);
 				CommandUtils.LogLog("MapsToCook={0}", MapsToCook.ToString());
+				CommandUtils.LogLog("MapIniSectionsToCook={0}", MapIniSectionsToCook.ToString());
 				CommandUtils.LogLog("Pak={0}", Pak);
 				CommandUtils.LogLog("Package={0}", Package);
 				CommandUtils.LogLog("NullRHI={0}", NullRHI);
@@ -2382,10 +2378,6 @@ namespace AutomationTool
 				CommandUtils.LogLog("SkipPak={0}", SkipPak);
 				CommandUtils.LogLog("SkipStage={0}", SkipStage);
 				CommandUtils.LogLog("Stage={0}", Stage);
-				CommandUtils.LogLog("bUsesSteam={0}", bUsesSteam);
-				CommandUtils.LogLog("bUsesCEF3={0}", bUsesCEF3);
-				CommandUtils.LogLog("bUsesSlate={0}", bUsesSlate);
-                CommandUtils.LogLog("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
 				CommandUtils.LogLog("bTreatNonShippingBinariesAsDebugFiles={0}", bTreatNonShippingBinariesAsDebugFiles);
                 CommandUtils.LogLog("NativizeAssets={0}", RunAssetNativization);
 				CommandUtils.LogLog("Project Params **************");

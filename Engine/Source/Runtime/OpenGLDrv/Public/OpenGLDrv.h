@@ -469,7 +469,12 @@ public:
 	virtual void RHISetShaderParameter(FGeometryShaderRHIParamRef GeometryShader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue) final override;
 	virtual void RHISetShaderParameter(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue) final override;
 	virtual void RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewState, uint32 StencilRef) final override;
+	virtual void RHISetStencilRef(uint32 StencilRef) final override;
 	virtual void RHISetBlendState(FBlendStateRHIParamRef NewState, const FLinearColor& BlendFactor) final override;
+	virtual void RHISetBlendFactor(const FLinearColor& BlendFactor) final override
+	{
+		// Currently ignored as well as on RHISetBlendState()...
+	}
 	virtual void RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargets, const FRHIDepthRenderTargetView* NewDepthStencilTarget, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs) final override;
 	virtual void RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo) final override;
 	virtual void RHIDrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances) final override;
@@ -481,17 +486,17 @@ public:
 	virtual void RHIEndDrawPrimitiveUP() final override;
 	virtual void RHIBeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData) final override;
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override;
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) final override
+	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) final override
 	{
-		RHIClear(true, Color, false, 0, false, 0, ExcludeRect);
+		RHIClear(true, Color, false, 0, false, 0);
 	}
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) final override
+	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) final override
 	{
-		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil, ExcludeRect);
+		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil);
 	}
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) final override
+	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) final override
 	{
-		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0, ExcludeRect);
+		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0);
 	}
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
@@ -665,8 +670,8 @@ private:
 
 	void SetupUAVsForDraw(FOpenGLContextState& ContextState, const TRefCountPtr<FOpenGLComputeShader> &ComputeShader, int32 MaxUAVsNeeded);
 
-	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
-	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
+	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
+	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 public:
 	/** Remember what RHI user wants set on a specific OpenGL texture stage, translating from Stage and TextureIndex for stage pair. */

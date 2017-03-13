@@ -94,7 +94,7 @@ public:
 		PConvexMeshDesc.points.data = SrcBuffer.GetData();
 		PConvexMeshDesc.points.count = SrcBuffer.Num();
 		PConvexMeshDesc.points.stride = sizeof(FVector);
-		PConvexMeshDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
+		PConvexMeshDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX | PxConvexFlag::eSHIFT_VERTICES;
 
 		// Set up cooking
 		const PxCookingParams CurrentParams = PhysXCooking->getParams();

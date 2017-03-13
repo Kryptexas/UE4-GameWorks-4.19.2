@@ -86,9 +86,10 @@ class MegaXGE : BuildCommand
 
 					foreach (var SubPart in SubParts)
 					{
-						if (UEBuildPlatform.ConvertStringToPlatform(SubPart) != UnrealTargetPlatform.Unknown)
+						UnrealTargetPlatform Platform;
+						if(Enum.TryParse(SubPart, true, out Platform))
 						{
-							Platforms.Add(UEBuildPlatform.ConvertStringToPlatform(SubPart));
+							Platforms.Add(Platform);
 						}
 						else
 						{

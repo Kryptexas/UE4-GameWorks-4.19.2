@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MetalRHI : ModuleRules
 {	
-	public MetalRHI(TargetInfo Target)
+	public MetalRHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

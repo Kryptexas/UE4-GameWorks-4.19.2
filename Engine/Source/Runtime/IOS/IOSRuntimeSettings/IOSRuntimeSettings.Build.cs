@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class IOSRuntimeSettings : ModuleRules
 {
-	public IOSRuntimeSettings(TargetInfo Target)
+	public IOSRuntimeSettings(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "IOS";
 

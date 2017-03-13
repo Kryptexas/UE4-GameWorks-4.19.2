@@ -1529,16 +1529,17 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 			if (ParentActor != NULL)
 			{
 				//In case the parent was not export, get the absolute transform
-				const FTransform AbsoluteTransform = Actor->GetTransform();
+				const FTransform AbsoluteTransform = RotationDirectionConvert * Actor->GetTransform();
 				ActorLocation = AbsoluteTransform.GetTranslation();
 				ActorRotation = AbsoluteTransform.GetRotation().Euler();
 				ActorScale = AbsoluteTransform.GetScale3D();
 			}
 			else
 			{
-				ActorLocation = Actor->GetActorLocation();
-				ActorRotation = Actor->GetActorRotation().Euler();
-				ActorScale = Actor->GetRootComponent() ? Actor->GetRootComponent()->RelativeScale3D : FVector(1.f, 1.f, 1.f);
+				const FTransform ConvertedTransform = RotationDirectionConvert * Actor->GetTransform();
+				ActorLocation = ConvertedTransform.GetTranslation();
+				ActorRotation = ConvertedTransform.GetRotation().Euler();
+				ActorScale = ConvertedTransform.GetScale3D();
 			}
 		}
 

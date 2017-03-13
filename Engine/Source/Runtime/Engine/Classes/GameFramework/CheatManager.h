@@ -334,7 +334,7 @@ class ENGINE_API UCheatManager : public UObject
 	virtual void BugItWorker( FVector TheLocation, FRotator TheRotation );
 
 	/** Bug it log to file */
-	virtual void LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString );
+	virtual void LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InScreenShotPath, const FString& InGoString, const FString& InLocString );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Do any trace debugging that is currently enabled */

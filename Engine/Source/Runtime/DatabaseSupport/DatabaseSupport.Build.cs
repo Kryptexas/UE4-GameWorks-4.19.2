@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class DatabaseSupport: ModuleRules
 	{
-		public DatabaseSupport(TargetInfo Target)
+		public DatabaseSupport(ReadOnlyTargetRules Target) : base(Target)
 		{
 			if ((UEBuildConfiguration.bIncludeADO == true) || (UEBuildConfiguration.bCompileAgainstEngine == true))
 			{

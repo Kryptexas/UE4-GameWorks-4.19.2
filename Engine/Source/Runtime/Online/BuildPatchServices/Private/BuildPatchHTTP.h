@@ -5,9 +5,6 @@
 	in order to insure the HTTP module is only used from the main thread
 =============================================================================*/
 
-#ifndef __BuildPatchHTTP_h__
-#define __BuildPatchHTTP_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -141,5 +138,3 @@ private:
 	static TSharedPtr<FBuildPatchHTTP> SingletonInstance;
 	static FDelegateHandle TickDelegateHandle;
 };
-
-#endif // __BuildPatchHTTP_h__

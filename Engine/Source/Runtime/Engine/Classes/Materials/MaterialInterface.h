@@ -255,6 +255,8 @@ public:
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void PostLoad() override;
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	ENGINE_API virtual void PostCDOContruct() override;
+
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
@@ -334,6 +336,10 @@ public:
 	virtual void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL(UMaterialInterface::OverrideTexture, return;);
 	virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL(UMaterialInterface::OverrideTexture, return;);
 
+	/**
+	 * Returns default value of the given parameter
+	 */
+	virtual float GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL(UMaterialInterface::GetScalarParameterDefault, return 0.f;);
 	/**
 	 * Checks if the material can be used with the given usage flag.  
 	 * If the flag isn't set in the editor, it will be set and the material will be recompiled with it.

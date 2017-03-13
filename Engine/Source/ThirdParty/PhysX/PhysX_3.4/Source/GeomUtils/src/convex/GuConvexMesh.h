@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -155,6 +155,8 @@ namespace Gu
 
 		PX_FORCE_INLINE	void					setMeshFactory(GuMeshFactory* f)							{ mMeshFactory = f;						}
 
+		PX_FORCE_INLINE void					setNb(PxU32 nb)												{ mNb = nb; }
+
 	protected:
 						ConvexHullData			mHullData;
 						PxBitAndDword			mNb;	// ### PT: added for serialization. Try to remove later?
@@ -166,20 +168,7 @@ private:
 						GuMeshFactory*			mMeshFactory;	// PT: changed to pointer for serialization
 
 		PX_FORCE_INLINE	PxU32					getNb()												const	{ return mNb;						}
-		PX_FORCE_INLINE	PxU32					ownsMemory()										const	{ return PxU32(!mNb.isBitSet()); }
-
-#if PX_ENABLE_DEBUG_VISUALIZATION
-public:
-	/**
-	\brief Perform convex mesh geometry debug visualization
-
-	\param out Debug renderer.
-	\param pose World position.
-	\param scale Scale to apply.
-	*/
-						void					debugVisualize(	Cm::RenderOutput& out, const PxTransform& pose, const PxMeshScale& scale)	const;
-
-#endif
+		PX_FORCE_INLINE	PxU32					ownsMemory()										const	{ return PxU32(!mNb.isBitSet());	}
 	};
 
 } // namespace Gu

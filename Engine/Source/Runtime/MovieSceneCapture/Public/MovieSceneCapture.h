@@ -183,8 +183,6 @@ protected:
 	int32 FrameNumberOffset;
 	/** Event that is triggered when capturing has finished */
 	FOnCaptureFinished OnCaptureFinishedDelegate;
-	/** Format string used for frame numbers */
-	FString FrameNumberFormat;
 	/** Cached quality levels */
 	Scalability::FQualityLevels CachedQualityLevels;
 };

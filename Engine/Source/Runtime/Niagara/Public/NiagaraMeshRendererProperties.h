@@ -8,31 +8,22 @@
 #include "StaticMeshResources.h"
 #include "NiagaraMeshRendererProperties.generated.h"
 
-UCLASS()
+UCLASS(editinlinenew)
 class UNiagaraMeshRendererProperties : public UNiagaraEffectRendererProperties
 {
 public:
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
-	UNiagaraMeshRendererProperties()
-	{
-		ParticleMesh = nullptr;
-	}
+	UNiagaraMeshRendererProperties();
 
-	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-	{
-		if (ParticleMesh && PropertyChangedEvent.Property->GetName() == "ParticleMesh")
-		{
-			const FStaticMeshLODResources& LODModel = ParticleMesh->RenderData->LODResources[0];
-			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
-			{
-				const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
-				UMaterialInterface *Material = ParticleMesh->GetMaterial(Section.MaterialIndex);
-				FMaterialRenderProxy* MaterialProxy = Material->GetRenderProxy(false, false);
-				Material->CheckMaterialUsage(MATUSAGE_MeshParticles);
-			}
-		}
-	}
+	//~ UNiagaraEffectRendererProperties interface
+	virtual NiagaraEffectRenderer* CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel) override;
+#if WITH_EDITORONLY_DATA
+	virtual bool IsMaterialValidForRenderer(UMaterial* Material, FText& InvalidMessage) override;
+	virtual void FixMaterial(UMaterial* Material) override;
+#endif // WITH_EDITORONLY_DATA
+
+	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 
 	UPROPERTY(EditAnywhere, Category = "Mesh Rendering")
 	UStaticMesh *ParticleMesh;

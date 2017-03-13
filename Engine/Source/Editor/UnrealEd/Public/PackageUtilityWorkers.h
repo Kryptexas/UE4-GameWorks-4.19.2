@@ -4,8 +4,7 @@
 	PackageUtilityWorkers.cpp: Declarations for structs and classes used by package commandlets.
 =============================================================================*/
 
-#ifndef __PACKAGEUTILITYWORKERS_H__
-#define __PACKAGEUTILITYWORKERS_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -102,16 +101,3 @@ struct FPkgInfoReporter_Log : public FPkgInfoReporter
 	 */
 	virtual void GeneratePackageReport( class FLinkerLoad* InLinker=NULL );
 };
-
-#endif
-
-
-//EOF
-
-
-
-
-
-
-
-

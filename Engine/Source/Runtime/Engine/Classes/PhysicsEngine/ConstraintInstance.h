@@ -13,6 +13,7 @@
 class FMaterialRenderProxy;
 class FMeshElementCollector;
 class FPrimitiveDrawInterface;
+class UMaterialInterface;
 struct FBodyInstance;
 
 #if WITH_PHYSX
@@ -517,6 +518,8 @@ public:
 		DrawConstraintImp(FPDIOrCollector(PDI), Scale, LimitDrawScale, bDrawLimits, bDrawSelected, Con1Frame, Con2Frame, bDrawAsPoint);
 	}
 
+	void GetUsedMaterials(TArray<UMaterialInterface*>& Materials);
+
 	bool Serialize(FArchive& Ar);
 	void PostSerialize(const FArchive& Ar);
 
@@ -708,7 +711,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FConstraintInstance> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FConstraintInstance> : public TStructOpsTypeTraitsBase2<FConstraintInstance>
 {
 	enum 
 	{

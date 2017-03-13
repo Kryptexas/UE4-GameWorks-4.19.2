@@ -170,6 +170,9 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 
 	// shell to IPP and get the status of the provision and cert
 
+	bool bForDistribtion = false;
+	GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("ForDistribution"), bForDistribtion, GGameIni);
+
 	FString BundleIdentifier;
 	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("BundleIdentifier"), BundleIdentifier, GEngineIni);
 	BundleIdentifier = BundleIdentifier.Replace(TEXT("[PROJECT_NAME]"), FApp::GetGameName());
@@ -178,10 +181,10 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
     FString CmdExe = TEXT("/bin/sh");
     FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
     FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Validate Engine -project \"%s\" -bundlename \"%s\""), *ScriptPath, *IPPPath, *ProjectPath, *(BundleIdentifier));
+	FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Validate Engine -project \"%s\" -bundlename \"%s\" %s"), *ScriptPath, *IPPPath, *ProjectPath, *(BundleIdentifier), (bForDistribtion ? TEXT("-distribution") : TEXT("")) );
 #else
 	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("Validate Engine -project \"%s\" -bundlename \"%s\""), *ProjectPath, *(BundleIdentifier));
+	FString CommandLine = FString::Printf(TEXT("Validate Engine -project \"%s\" -bundlename \"%s\" %s"), *ProjectPath, *(BundleIdentifier), (bForDistribtion ? TEXT("-distribution") : TEXT("")) );
 	FString RemoteServerName;
 	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), RemoteServerName, GEngineIni);
 	if (RemoteServerName.Len() == 0)
@@ -194,7 +197,7 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 	OutputMessage = TEXT("");
 	IPPProcess->OnOutput().BindStatic(&OnOutput);
 	IPPProcess->Launch();
-	while(IPPProcess->IsRunning())
+	while(IPPProcess->Update())
 	{
 		FPlatformProcess::Sleep(0.01f);
 	}

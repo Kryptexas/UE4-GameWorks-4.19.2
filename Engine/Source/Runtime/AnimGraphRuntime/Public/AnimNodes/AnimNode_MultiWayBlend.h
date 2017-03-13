@@ -11,6 +11,9 @@ USTRUCT()
 struct ANIMGRAPHRUNTIME_API FAnimNode_MultiWayBlend : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
+
+	friend struct FAnimSequencerInstanceProxy;
+
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Links)

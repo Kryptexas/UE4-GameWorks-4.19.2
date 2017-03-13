@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SlateNullRenderer : ModuleRules
 {
-	public SlateNullRenderer(TargetInfo Target)
+	public SlateNullRenderer(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("Runtime/SlateNullRenderer/Private");
 

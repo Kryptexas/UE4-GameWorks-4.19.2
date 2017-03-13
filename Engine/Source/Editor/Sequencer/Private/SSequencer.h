@@ -173,6 +173,9 @@ public:
 
 		/** Extender to use for the add menu. */
 		SLATE_ARGUMENT( TSharedPtr<FExtender>, AddMenuExtender )
+
+		/** Extender to use for the toolbar. */
+		SLATE_ARGUMENT(TSharedPtr<FExtender>, ToolbarExtender)
 	SLATE_END_ARGS()
 
 
@@ -477,6 +480,9 @@ private:
 
 	/** Extender to use for the 'add' menu */
 	TSharedPtr<FExtender> AddMenuExtender;
+
+	/** Extender to use for the toolbar */
+	TSharedPtr<FExtender> ToolbarExtender;
 
 	/** Numeric type interface used for converting parsing and generating strings from numbers */
 	TSharedPtr<INumericTypeInterface<float>> NumericTypeInterface;

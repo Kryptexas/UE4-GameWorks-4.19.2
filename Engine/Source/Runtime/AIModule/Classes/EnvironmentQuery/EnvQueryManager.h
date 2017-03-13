@@ -97,17 +97,55 @@ struct AIMODULE_API FEQSDebugger
 {
 	struct FEnvQueryInfo
 	{
-		float Timestamp;
 		TSharedPtr<FEnvQueryInstance> Instance;
+		float Timestamp;
 	};
 
-	void StoreQuery(UWorld* InWorld, const TSharedPtr<FEnvQueryInstance>& Query);
-	TArray<FEnvQueryInfo>&  GetAllQueriesForOwner(const UObject* Owner);
+	struct FStatsInfo
+	{
+		// most expensive run
+		FEnvQueryDebugProfileData MostExpensive;
+		float MostExpensiveDuration;
+
+		// average run (sum of all runs, divide by TotalAvgCount to get values)
+		FEnvQueryDebugProfileData TotalAvgData;
+		float TotalAvgDuration;
+		int32 TotalAvgCount;
+
+		// EQS tick load
+		TArray<uint8> TickPct;
+		float LastTickTime;
+		uint64 LastTickFrame;
+		uint16 FirstTickEntry;
+		uint16 LastTickEntry;
+
+		FStatsInfo() :
+			MostExpensiveDuration(0.0f),
+			TotalAvgDuration(0.0f), TotalAvgCount(0),
+			LastTickTime(0.0f), LastTickFrame(0),
+			FirstTickEntry(MAX_uint16), LastTickEntry(0)
+		{}
+	};
+
+	void StoreStats(const FEnvQueryInstance& QueryInstance);
+	void StoreTickTime(const FEnvQueryInstance& QueryInstance, float TickTime, float MaxTickTime);
+	void StoreQuery(const TSharedPtr<FEnvQueryInstance>& QueryInstance);
+	
+	static void SaveStats(const FString& FileName);
+	static void LoadStats(const FString& FileName);
+
+	const TArray<FEnvQueryInfo>& GetAllQueriesForOwner(const UObject* Owner);
+
+	// map query name with profiler data
+	TMap<FName, FStatsInfo> StoredStats;
 
 protected:
 	// maps owner to performed queries
 	TMap<const UObject*, TArray<FEnvQueryInfo> > StoredQueries;
 };
+
+FArchive& operator<<(FArchive& Ar, FEQSDebugger::FStatsInfo& Data);
+
 FORCEINLINE bool operator== (const FEQSDebugger::FEnvQueryInfo & Left, const FEQSDebugger::FEnvQueryInfo & Right)
 {
 	return Left.Instance == Right.Instance;
@@ -115,7 +153,7 @@ FORCEINLINE bool operator== (const FEQSDebugger::FEnvQueryInfo & Left, const FEQ
 #endif // USE_EQS_DEBUGGER
 
 UCLASS(config = Game, defaultconfig)
-class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
+class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject, public FSelfRegisteringExec
 {
 	GENERATED_UCLASS_BODY()
 
@@ -196,6 +234,10 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 
 	static void SetAllowTimeSlicing(bool bAllowTimeSlicing);
 
+	//~ Begin FExec Interface
+	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+	//~ End FExec Interface
+
 protected:
 	friend UEnvQueryInstanceBlueprintWrapper;
 	TSharedPtr<FEnvQueryInstance> FindQueryInstance(const int32 QueryID);
@@ -203,6 +245,7 @@ protected:
 #if USE_EQS_DEBUGGER
 public:
 	static void NotifyAssetUpdate(UEnvQuery* Query);
+	static TMap<FName, FEQSDebugger::FStatsInfo> DebuggerStats;
 
 	FEQSDebugger& GetDebugger() { return EQSDebugger; }
 
@@ -243,7 +286,7 @@ protected:
 
 	/** how long are we allowed to test per update, in seconds. */
 	UPROPERTY(config)
-	double MaxAllowedTestingTime;
+	float MaxAllowedTestingTime;
 
 	/** whether we update EQS queries based on:
 	    running a test on one query and move to the next (breadth) - default behavior,
@@ -262,7 +305,7 @@ protected:
 private:
 
 	/** create and bind delegates in instance */
-	void CreateOptionInstance(UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, FEnvQueryInstance& Instance);
+	void CreateOptionInstance(UEnvQueryOption* OptionTemplate, int32 SourceOptionIndex, const TArray<UEnvQueryTest*>& SortedTests, FEnvQueryInstance& Instance);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static bool bAllowEQSTimeSlicing;

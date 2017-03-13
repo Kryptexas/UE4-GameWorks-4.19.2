@@ -70,6 +70,10 @@ public:
 
 	/** Initialization constructor. */
 	TMetalBaseShader()
+	: Function(nil)
+	, Library(nil)
+	, SideTableBinding(-1)
+	, GlslCodeNSString(nil)
 	{
 	}
 	TMetalBaseShader(const TArray<uint8>& InCode);
@@ -166,7 +170,7 @@ struct FMetalRenderPipelineHash
 {
 	friend uint32 GetTypeHash(FMetalRenderPipelineHash const& Hash)
 	{
-		return GetTypeHash(Hash.RasterBits) ^ GetTypeHash(Hash.TargetBits);
+		return HashCombine(GetTypeHash(Hash.RasterBits), GetTypeHash(Hash.TargetBits));
 	}
 	
 	friend bool operator==(FMetalRenderPipelineHash const& Left, FMetalRenderPipelineHash const& Right)
@@ -482,13 +486,13 @@ public:
 		
 	}
 	
-	TMetalPtr(T Obj)
+	explicit TMetalPtr(T Obj)
 	: Object(Obj)
 	{
 		
 	}
 	
-	TMetalPtr(TMetalPtr const& Other)
+	explicit TMetalPtr(TMetalPtr const& Other)
 	: Object(nil)
 	{
 		operator=(Other);
@@ -535,7 +539,16 @@ private:
 	T Object;
 };
 
-typedef TMetalPtr<id<MTLCommandBuffer>> MTLCommandBufferRef;
+struct MTLCommandBufferRef
+{
+	MTLCommandBufferRef(id<MTLCommandBuffer> CmdBuf, dispatch_semaphore_t Sema)
+	: CommandBuffer(CmdBuf)
+	, Semaphore(Sema)
+	{}
+	
+	TMetalPtr<id<MTLCommandBuffer>> CommandBuffer;
+	TMetalPtr<dispatch_semaphore_t> Semaphore;
+};
 
 struct FMetalCommandBufferFence
 {
@@ -594,12 +607,12 @@ public:
 
 	// Query buffer allocation details as the buffer is already set on the command-encoder
     FMetalQueryResult Buffer;
-
+	
     // Query result.
-    uint64 Result;
+    volatile uint64 Result;
     
-    // Result availability - if not set the first call to acquite it will read the buffer & cache
-    bool bAvailable;
+    // Result availability - if not set the first call to acquire it will read the buffer & cache
+    volatile bool bAvailable;
 };
 
 /** Index buffer resource class that stores stride information. */
@@ -762,6 +775,9 @@ public:
 
 	// The texture that this SRV come from
 	TRefCountPtr<FRHITexture> SourceTexture;
+	
+	// The source structured buffer (can be null)
+	TRefCountPtr<FMetalStructuredBuffer> SourceStructuredBuffer;
 	
 	FMetalSurface* TextureView;
 	uint8 MipLevel;

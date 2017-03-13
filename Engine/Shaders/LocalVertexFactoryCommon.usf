@@ -21,8 +21,8 @@ struct FVertexFactoryInterpolantsVSToPS
 	float4  PerInstanceParams : COLOR1;
 #endif
 
-#if NUM_MATERIAL_TEXCOORDS
-	float4	TexCoords[(NUM_MATERIAL_TEXCOORDS+1)/2]	: TEXCOORD0;
+#if NUM_TEX_COORD_INTERPOLATORS
+	float4	TexCoords[(NUM_TEX_COORD_INTERPOLATORS+1)/2]	: TEXCOORD0;
 #elif USE_PARTICLE_SUBUVS
 	float4	TexCoords[1] : TEXCOORD0;
 #endif
@@ -36,7 +36,7 @@ struct FVertexFactoryInterpolantsVSToPS
 #endif
 };
 
-#if NUM_MATERIAL_TEXCOORDS || USE_PARTICLE_SUBUVS
+#if NUM_TEX_COORD_INTERPOLATORS || USE_PARTICLE_SUBUVS
 float2 GetUV(FVertexFactoryInterpolantsVSToPS Interpolants, int UVIndex)
 {
 	float4 UVVector = Interpolants.TexCoords[UVIndex / 2];
@@ -111,7 +111,7 @@ void SetTangents(inout FVertexFactoryInterpolantsVSToPS Interpolants, float3 InT
 
 #else // #if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
 
-#define NUM_PACKED_UVS (NUM_MATERIAL_TEXCOORDS > 1 ? 3 : 1)
+#define NUM_PACKED_UVS (NUM_TEX_COORD_INTERPOLATORS > 1 ? 3 : 1)
 
 #define USE_INTERPOLATOR_345 ((!MATERIAL_SHADINGMODEL_UNLIT) || USES_TRANSFORM_VECTOR || USES_DISTORTION)
 

@@ -91,7 +91,7 @@ public:
 /**
 *  Room configuration types
 */
-enum class EConfigureRoomType : uint8
+enum class EConfigureRoomTypeJingle : uint8
 {
 	NoCallback, // Trigger no callbacks.  Currently used for global chat config.
 	UseCreateCallback, // New room config, trigger create callback when done
@@ -122,7 +122,7 @@ public:
 	virtual bool RegisterMember(const FXmppRoomId& RoomId, const FString& Nickname) override;
 	virtual bool UnregisterMember(const FXmppRoomId& RoomId, const FString& Nickname) override;
 	virtual bool ExitRoom(const FXmppRoomId& RoomId) override;
-	virtual bool SendChat(const FXmppRoomId& RoomId, const class FString& MsgBody) override;
+	virtual bool SendChat(const FXmppRoomId& RoomId, const FString& MsgBody, const FString& ChatInfo) override;
 	virtual void GetJoinedRooms(TArray<FXmppRoomId>& OutRooms) override;
 	virtual bool GetRoomInfo(const FXmppRoomId& RoomId, FXmppRoomInfo& OutRoomInfo) override;
 	virtual bool GetMembers(const FXmppRoomId& RoomId, TArray<FXmppChatMemberRef>& OutMembers) override;
@@ -187,8 +187,12 @@ private:
 	void ProcessResultOp(FXmppChatRoomOpResult* ResultOp, class FXmppMultiUserChatJingle& Muc);
 
 	// Configure room w/ flags for internal use to determine which callbacks to trigger
-	bool InternalConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig, EConfigureRoomType RoomConfigurationType);
+	bool InternalConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig, EConfigureRoomTypeJingle RoomConfigurationType);
 	void InternalHandleJoinedRoom(const FXmppChatMemberPtr& SelfMember, FXmppRoomJingle* XmppRoom);
+
+	// Update logging while joining a room
+	void JoinRoomStart();
+	void JoinRoomFinish();
 
 	TMap<FXmppRoomId, FXmppRoomJingle> Chatrooms;
 	// PendingRoomCreateConfigs used by friend OpResult classes
@@ -219,6 +223,10 @@ private:
 	int32 NumOpRequests;
 	/** Number of Muc room op responses generated */
 	int32 NumMucResponses;
+	/** Number of times verbosity was increased during MUC creation */
+	int32 VerbosityIncreasedCount;
+	/** Log verbosity prior to increasing it during MUC creation */
+	ELogVerbosity::Type OriginalLogVerbosity;
 
 	friend class FXmppChatRoomOpResult;
 	friend class FXmppChatRoomCreateOpResult;

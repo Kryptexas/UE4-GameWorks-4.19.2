@@ -11,7 +11,7 @@ using System.Xml.Linq;
 
 namespace UnrealBuildTool
 {
-	public class UEDeployTVOS : UEDeployIOS
+	class UEDeployTVOS : UEDeployIOS
 	{
 
         public UEDeployTVOS()
@@ -50,7 +50,8 @@ namespace UnrealBuildTool
 			// get the settings from the ini file
 			// plist replacements
 			// @todo tvos: Are we going to make TVOS specific .ini files?
-			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, bIsUE4Game? null : new DirectoryReference(ProjectDirectory), UnrealTargetPlatform.IOS);
+			DirectoryReference DirRef = bIsUE4Game ? (!string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? new DirectoryReference(UnrealBuildTool.GetRemoteIniPath()) : null) : new DirectoryReference(ProjectDirectory);
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirRef, UnrealTargetPlatform.IOS);
 
 			// bundle display name
 			string BundleDisplayName;
@@ -327,7 +328,7 @@ namespace UnrealBuildTool
 			return bSkipDefaultPNGs;
 		}
 
-		public override bool GeneratePList(UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+		public override bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
 			return GenerateTVOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
 		}

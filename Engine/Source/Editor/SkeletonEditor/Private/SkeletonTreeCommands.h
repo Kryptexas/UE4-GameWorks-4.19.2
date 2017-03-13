@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __SkeletonTreeCommands_h_
-#define __SkeletonTreeCommands_h_
+#pragma once
 
 #include "CoreMinimal.h"
 #include "EditorStyleSet.h"
@@ -97,5 +96,3 @@ public:
 	/** Focus the camera on the current selection */
 	TSharedPtr< FUICommandInfo > FocusCamera;
 };
-
-#endif // __SkeletonTreeCommands_h_

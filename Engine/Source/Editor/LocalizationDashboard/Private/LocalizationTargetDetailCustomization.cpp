@@ -438,7 +438,7 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 					.Text_Lambda([this]() 
 					{
 						UEnum* const LoadingPolicyEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ELocalizationTargetLoadingPolicy"));
-						return LoadingPolicyEnum->GetDisplayNameText(static_cast<int32>(GetLoadingPolicy()));
+						return LoadingPolicyEnum->GetDisplayNameTextByValue(static_cast<int64>(GetLoadingPolicy()));
 					})
 				]
 			];
@@ -703,7 +703,7 @@ TSharedRef<SWidget> FLocalizationTargetDetailCustomization::GenerateWidgetForLoa
 	UEnum* const LoadingPolicyEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ELocalizationTargetLoadingPolicy"));
 	return SNew(STextBlock)
 		.Font(DetailLayoutBuilder->GetDetailFont())
-		.Text(LoadingPolicyEnum->GetDisplayNameText(static_cast<int32>(*LoadingPolicy.Get())));
+		.Text(LoadingPolicyEnum->GetDisplayNameTextByValue(static_cast<int64>(*LoadingPolicy.Get())));
 };
 
 void FLocalizationTargetDetailCustomization::RebuildTargetDependenciesBox()

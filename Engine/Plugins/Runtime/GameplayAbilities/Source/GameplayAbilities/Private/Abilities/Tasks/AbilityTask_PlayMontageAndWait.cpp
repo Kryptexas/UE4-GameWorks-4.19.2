@@ -33,11 +33,17 @@ void UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut(UAnimMontage* Montage
 
 	if (bInterrupted)
 	{
-		OnInterrupted.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnInterrupted.Broadcast();
+		}
 	}
 	else
 	{
-		OnBlendOut.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnBlendOut.Broadcast();
+		}
 	}
 }
 
@@ -46,7 +52,10 @@ void UAbilityTask_PlayMontageAndWait::OnMontageInterrupted()
 	if (StopPlayingMontage())
 	{
 		// Let the BP handle the interrupt as well
-		OnInterrupted.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnInterrupted.Broadcast();
+		}
 	}
 }
 
@@ -54,7 +63,10 @@ void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool
 {
 	if (!bInterrupted)
 	{
-		OnCompleted.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnCompleted.Broadcast();
+		}
 	}
 
 	EndTask();
@@ -94,9 +106,8 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 			if (AbilitySystemComponent->PlayMontage(Ability, Ability->GetCurrentActivationInfo(), MontageToPlay, Rate, StartSection) > 0.f)
 			{
 				// Playing a montage could potentially fire off a callback into game code which could kill this ability! Early out if we are  pending kill.
-				if (IsPendingKill())
+				if (ShouldBroadcastAbilityTaskDelegates() == false)
 				{
-					OnCancelled.Broadcast();
 					return;
 				}
 
@@ -131,7 +142,10 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 	if (!bPlayedMontage)
 	{
 		ABILITY_LOG(Warning, TEXT("UAbilityTask_PlayMontageAndWait called in Ability %s failed to play montage %s; Task Instance Name %s."), *Ability->GetName(), *GetNameSafe(MontageToPlay),*InstanceName.ToString());
-		OnCancelled.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnCancelled.Broadcast();
+		}
 	}
 
 	SetWaitingOnAvatar();
@@ -141,7 +155,10 @@ void UAbilityTask_PlayMontageAndWait::ExternalCancel()
 {
 	check(AbilitySystemComponent);
 
-	OnCancelled.Broadcast();
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnCancelled.Broadcast();
+	}
 	Super::ExternalCancel();
 }
 

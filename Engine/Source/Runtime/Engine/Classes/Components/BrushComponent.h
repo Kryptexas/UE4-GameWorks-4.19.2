@@ -48,7 +48,7 @@ public:
 	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual class UBodySetup* GetBodySetup() override { return BrushBodySetup; };
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false ) const override;
 	virtual uint8 GetStaticDepthPriorityGroup() const override;
 	virtual bool IsEditorOnly() const override;
 #if WITH_EDITOR

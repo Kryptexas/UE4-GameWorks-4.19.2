@@ -66,6 +66,7 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 	UStaticMesh* SkySphere = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/AssetViewer/Sphere_inversenormals.Sphere_inversenormals"), NULL, LOAD_None, NULL);
 	check(SkySphere);
 	SkyComponent->SetStaticMesh(SkySphere);
+	SkyComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	UMaterial* SkyMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorMaterials/AssetViewer/M_SkyBox.M_SkyBox"), NULL, LOAD_None, NULL);
 	check(SkyMaterial);

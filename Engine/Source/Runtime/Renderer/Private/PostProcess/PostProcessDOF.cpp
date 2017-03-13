@@ -297,7 +297,7 @@ class FPostProcessDOFRecombinePS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("FAR_BLUR"), FarBlur);
 		OutEnvironment.SetDefine(TEXT("NEAR_BLUR"), NearBlur);
 		OutEnvironment.SetDefine(TEXT("SEPARATE_TRANSLUCENCY"), SeparateTranslucency);
-		OutEnvironment.SetDefine(TEXT("FORWARD_SHADING"), IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) ? 0u : 1u);
+		OutEnvironment.SetDefine(TEXT("MOBILE_SHADING"), IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) ? 0u : 1u);
 	}
 
 	/** Default constructor. */

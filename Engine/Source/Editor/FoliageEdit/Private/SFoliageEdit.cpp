@@ -303,6 +303,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 							[
 								SNew(SBox)
 								.MinDesiredWidth(91)
+								.Visibility(this, &SFoliageEdit::GetVisibility_LandscapeFilter)
 								[
 									SNew(SCheckBox)
 									.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
@@ -890,6 +891,17 @@ EVisibility SFoliageEdit::GetVisibility_EraseDensity() const
 EVisibility SFoliageEdit::GetVisibility_Filters() const
 {
 	if (FoliageEditMode->UISettings.GetSelectToolSelected())
+	{
+		return EVisibility::Collapsed;
+	}
+
+	return EVisibility::Visible;
+}
+
+EVisibility SFoliageEdit::GetVisibility_LandscapeFilter() const
+{
+	// Fill tool doesn't support Landscape
+	if (FoliageEditMode->UISettings.GetPaintBucketToolSelected())
 	{
 		return EVisibility::Collapsed;
 	}

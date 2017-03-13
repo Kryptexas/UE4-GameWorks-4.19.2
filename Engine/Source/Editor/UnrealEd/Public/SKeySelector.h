@@ -37,6 +37,7 @@ public:
 		, _TreeViewHeight(400.f)
 		, _Font( FEditorStyle::GetFontStyle( TEXT("NormalFont") ) )
 		, _FilterBlueprintBindable( true )
+		, _AllowClear( true )
 		{}
 		SLATE_ATTRIBUTE( TOptional<FKey>, CurrentKey )
 		SLATE_ATTRIBUTE( FOptionalSize, TreeViewWidth )
@@ -44,6 +45,7 @@ public:
 		SLATE_EVENT( FOnKeyChanged, OnKeyChanged )
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
 		SLATE_ARGUMENT( bool, FilterBlueprintBindable )
+		SLATE_ARGUMENT( bool, AllowClear )
 	SLATE_END_ARGS()
 public:
 	void Construct(const FArguments& InArgs);

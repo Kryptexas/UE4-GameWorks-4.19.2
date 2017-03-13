@@ -11,6 +11,7 @@
 #include "HAL/ThreadSafeBool.h"
 #include "Sound/SoundClass.h"
 #include "Sound/SoundAttenuation.h"
+#include "Sound/SoundEffectSource.h"
 #include "IAudioExtensionPlugin.h"
 
 class FAudioDevice;
@@ -54,6 +55,8 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 #define MAX_SOUND_PRIORITY				100.0f
 
 #define DEFAULT_SUBTITLE_PRIORITY		10000.0f
+
+#define AUDIO_SAMPLE_RATE				44100
 
 /**
  * Some filters don't work properly with extreme values, so these are the limits 
@@ -138,7 +141,7 @@ namespace EAudioMixerChannel
 		TopBackLeft,
 		TopBackCenter,
 		TopBackRight,
-		Unused,
+		Unknown,
 		ChannelTypeCount
 	};
 
@@ -166,9 +169,9 @@ namespace EAudioMixerChannel
 		case TopBackLeft:			return TEXT("TopBackLeft");
 		case TopBackCenter:			return TEXT("TopBackCenter");
 		case TopBackRight:			return TEXT("TopBackRight");
+		case Unknown:				return TEXT("Unknown");
 
 		default:
-			checkf(false, TEXT("Unsupport channel type"));
 			return TEXT("UNSUPPORTED");
 		}
 	}
@@ -264,6 +267,10 @@ struct ENGINE_API FWaveInstance
 	class USoundClass*  SoundClass;
 	/** Sound submix sends */
 	TArray<FSubmixSendInfo> SoundSubmixSends;
+	/** Sound effect chain */
+	TArray<USoundEffectSourcePreset*> SourceEffectChain;
+	/** Whether or not to play the effect chain tails when a one-shot source ends. */
+	bool bPlayEffectChainTails;
 
 	/** Sound nodes to notify when the current audio buffer finishes */
 	FNotifyBufferFinishedHooks NotifyBufferFinishedHooks;

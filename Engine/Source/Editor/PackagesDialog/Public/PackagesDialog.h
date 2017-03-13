@@ -1,16 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __PackagesDialog_h__
-#define __PackagesDialog_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Misc/Attribute.h"
 #include "Modules/ModuleInterface.h"
-
-#ifdef _MSC_VER
-	#pragma once
-#endif
 
 class SPackagesDialog;
 class SWindow;
@@ -164,5 +158,3 @@ private:
 	TArray<UPackage*> UncheckedPackages;
 	TArray<UPackage*> UndeterminedPackages;
 };
-
-#endif	// __PackagesDialog_h__

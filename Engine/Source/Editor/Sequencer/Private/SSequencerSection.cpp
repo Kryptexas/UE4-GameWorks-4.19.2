@@ -13,6 +13,7 @@
 #include "ISequencerEditTool.h"
 #include "ISequencerHotspot.h"
 #include "SequencerHotspots.h"
+#include "SequencerObjectBindingNode.h"
 
 double SSequencerSection::SelectionThrobEndTime = 0;
 
@@ -31,7 +32,7 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 
 	virtual int32 PaintSectionBackground(const FLinearColor& Tint) override
 	{
-		const ESlateDrawEffect::Type DrawEffects = bParentEnabled
+		const ESlateDrawEffect DrawEffects = bParentEnabled
 			? ESlateDrawEffect::None
 			: ESlateDrawEffect::DisabledEffect;
 
@@ -345,7 +346,7 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	
 	const bool bEnabled = bParentEnabled && SectionObject.IsActive();
 	const bool bLocked = SectionObject.IsLocked();
-	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
 
@@ -492,7 +493,7 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 	const FSlateBrush* SquareKeyBrush = FEditorStyle::GetBrush(SquareKeyBrushName);
 	const FSlateBrush* TriangleKeyBrush = FEditorStyle::GetBrush(TriangleKeyBrushName);
 
-	const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled
+	const ESlateDrawEffect DrawEffects = InPainter.bParentEnabled
 		? ESlateDrawEffect::None
 		: ESlateDrawEffect::DisabledEffect;
 
@@ -753,7 +754,7 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 }
 
 
-void SSequencerSection::DrawSectionHandles( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect::Type DrawEffects, FLinearColor SelectionColor, const ISequencerHotspot* Hotspot ) const
+void SSequencerSection::DrawSectionHandles( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect DrawEffects, FLinearColor SelectionColor, const ISequencerHotspot* Hotspot ) const
 {
 	UMovieSceneSection* Section = SectionInterface->GetSectionObject();
 	if (!Section || Section->IsInfinite())
@@ -892,6 +893,22 @@ FReply SSequencerSection::OnMouseButtonDoubleClick( const FGeometry& MyGeometry,
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		FReply Reply = SectionInterface->OnSectionDoubleClicked( MyGeometry, MouseEvent );
+
+		if (!Reply.IsEventHandled())
+		{
+			// Find the object binding this node is underneath
+			FGuid ObjectBinding;
+			if (ParentSectionArea.IsValid())
+			{
+				TSharedPtr<FSequencerObjectBindingNode> ObjectBindingNode = ParentSectionArea->FindParentObjectBindingNode();
+				if (ObjectBindingNode.IsValid())
+				{
+					ObjectBinding = ObjectBindingNode->GetObjectBinding();
+				}
+			}
+
+			Reply = SectionInterface->OnSectionDoubleClicked(MyGeometry, MouseEvent, ObjectBinding);
+		}
 
 		if (Reply.IsEventHandled())
 		{

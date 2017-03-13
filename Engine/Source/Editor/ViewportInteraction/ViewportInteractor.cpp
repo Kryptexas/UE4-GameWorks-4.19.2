@@ -423,8 +423,8 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 					InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
 					InteractorData.OptionalHandlePlacement.Reset();
 					InteractorData.GizmoStartTransform = FTransform::Identity;
+					InteractorData.GizmoStartLocalBounds = FBox(ForceInit);
 					InteractorData.GizmoLastTransform = InteractorData.GizmoTargetTransform = InteractorData.GizmoUnsnappedTargetTransform = InteractorData.GizmoInterpolationSnapshotTransform = InteractorData.GizmoStartTransform;
-					InteractorData.GizmoStartLocalBounds = FBox( 0 );
 					InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;
 					InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;
 

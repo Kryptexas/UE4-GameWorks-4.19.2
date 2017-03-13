@@ -12,10 +12,10 @@
 #define LOCTEXT_NAMESPACE "SBoneSelectionWidget"
 
 /////////////////////////////////////////////////////
-void SBoneTreeMenu::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton)
+void SBoneTreeMenu::Construct(const FArguments& InArgs)
 {
-	EditableSkeletonPtr = InEditableSkeleton;
 	OnSelectionChangedDelegate = InArgs._OnBoneSelectionChanged;
+	OnGetReferenceSkeletonDelegate = InArgs._OnGetReferenceSkeleton;
 	bShowVirtualBones = InArgs._bShowVirtualBones;
 
 	FText TitleToUse = !InArgs._Title.IsEmpty() ? InArgs._Title  : LOCTEXT("BonePickerTitle", "Pick Bone...");
@@ -110,59 +110,62 @@ void SBoneTreeMenu::RebuildBoneList(const FName& SelectedBone)
 	SkeletonTreeInfo.Empty();
 	SkeletonTreeInfoFlat.Empty();
 
-	const FReferenceSkeleton& RefSkeleton = EditableSkeletonPtr.Pin()->GetSkeleton().GetReferenceSkeleton();
-	const int32 MaxBone = bShowVirtualBones ? RefSkeleton.GetNum() : RefSkeleton.GetRawBoneNum();
-
-	for(int32 BoneIdx = 0; BoneIdx < MaxBone; ++BoneIdx)
+	if (ensure(OnGetReferenceSkeletonDelegate.IsBound()))
 	{
-		const FName BoneName = RefSkeleton.GetBoneName(BoneIdx);
-		TSharedRef<FBoneNameInfo> BoneInfo = MakeShareable(new FBoneNameInfo(BoneName));
+		const FReferenceSkeleton& RefSkeleton = OnGetReferenceSkeletonDelegate.Execute();
+		const int32 MaxBone = bShowVirtualBones ? RefSkeleton.GetNum() : RefSkeleton.GetRawBoneNum();
 
-		// Filter if Necessary
-		if(!FilterText.IsEmpty() && !BoneInfo->BoneName.ToString().Contains(FilterText.ToString()))
+		for (int32 BoneIdx = 0; BoneIdx < MaxBone; ++BoneIdx)
 		{
-			continue;
-		}
+			const FName BoneName = RefSkeleton.GetBoneName(BoneIdx);
+			TSharedRef<FBoneNameInfo> BoneInfo = MakeShareable(new FBoneNameInfo(BoneName));
 
-		int32 ParentIdx = RefSkeleton.GetParentIndex(BoneIdx);
-		bool bAddToParent = false;
-
-		if(ParentIdx != INDEX_NONE && FilterText.IsEmpty())
-		{
-			// We have a parent, search for it in the flat list
-			FName ParentName = RefSkeleton.GetBoneName(ParentIdx);
-
-			for(int32 FlatListIdx = 0; FlatListIdx < SkeletonTreeInfoFlat.Num(); ++FlatListIdx)
+			// Filter if Necessary
+			if (!FilterText.IsEmpty() && !BoneInfo->BoneName.ToString().Contains(FilterText.ToString()))
 			{
-				TSharedPtr<FBoneNameInfo> InfoEntry = SkeletonTreeInfoFlat[FlatListIdx];
-				if(InfoEntry->BoneName == ParentName)
-				{
-					bAddToParent = true;
-					ParentIdx = FlatListIdx;
-					break;
-				}
+				continue;
 			}
 
-			if(bAddToParent)
+			int32 ParentIdx = RefSkeleton.GetParentIndex(BoneIdx);
+			bool bAddToParent = false;
+
+			if (ParentIdx != INDEX_NONE && FilterText.IsEmpty())
 			{
-				SkeletonTreeInfoFlat[ParentIdx]->Children.Add(BoneInfo);
+				// We have a parent, search for it in the flat list
+				FName ParentName = RefSkeleton.GetBoneName(ParentIdx);
+
+				for (int32 FlatListIdx = 0; FlatListIdx < SkeletonTreeInfoFlat.Num(); ++FlatListIdx)
+				{
+					TSharedPtr<FBoneNameInfo> InfoEntry = SkeletonTreeInfoFlat[FlatListIdx];
+					if (InfoEntry->BoneName == ParentName)
+					{
+						bAddToParent = true;
+						ParentIdx = FlatListIdx;
+						break;
+					}
+				}
+
+				if (bAddToParent)
+				{
+					SkeletonTreeInfoFlat[ParentIdx]->Children.Add(BoneInfo);
+				}
+				else
+				{
+					SkeletonTreeInfo.Add(BoneInfo);
+				}
 			}
 			else
 			{
 				SkeletonTreeInfo.Add(BoneInfo);
 			}
-		}
-		else
-		{
-			SkeletonTreeInfo.Add(BoneInfo);
-		}
 
-		SkeletonTreeInfoFlat.Add(BoneInfo);
-		TreeView->SetItemExpansion(BoneInfo, true);
-		if (BoneName == SelectedBone)
-		{
-			TreeView->SetItemSelection(BoneInfo, true);
-			TreeView->RequestScrollIntoView(BoneInfo);
+			SkeletonTreeInfoFlat.Add(BoneInfo);
+			TreeView->SetItemExpansion(BoneInfo, true);
+			if (BoneName == SelectedBone)
+			{
+				TreeView->SetItemSelection(BoneInfo, true);
+				TreeView->RequestScrollIntoView(BoneInfo);
+			}
 		}
 	}
 
@@ -171,12 +174,11 @@ void SBoneTreeMenu::RebuildBoneList(const FName& SelectedBone)
 
 /////////////////////////////////////////////////////
 
-void SBoneSelectionWidget::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton)
+void SBoneSelectionWidget::Construct(const FArguments& InArgs)
 {
-	EditableSkeletonPtr = InEditableSkeleton;
-
 	OnBoneSelectionChanged = InArgs._OnBoneSelectionChanged;
 	OnGetSelectedBone = InArgs._OnGetSelectedBone;
+	OnGetReferenceSkeleton = InArgs._OnGetReferenceSkeleton;
 
 	SuppliedToolTip = InArgs._ToolTipText.Get();
 
@@ -203,9 +205,10 @@ TSharedRef<SWidget> SBoneSelectionWidget::CreateSkeletonWidgetMenu()
 		CurrentBoneName = OnGetSelectedBone.Execute();
 	}
 
-	TSharedRef<SBoneTreeMenu> MenuWidget = SNew(SBoneTreeMenu, EditableSkeletonPtr.Pin().ToSharedRef())
-									.OnBoneSelectionChanged(this, &SBoneSelectionWidget::OnSelectionChanged)
-									.SelectedBone(CurrentBoneName);
+	TSharedRef<SBoneTreeMenu> MenuWidget = SNew(SBoneTreeMenu)
+		.OnBoneSelectionChanged(this, &SBoneSelectionWidget::OnSelectionChanged)
+		.OnGetReferenceSkeleton(OnGetReferenceSkeleton)
+		.SelectedBone(CurrentBoneName);
 
 	BonePickerButton->SetMenuContentWidgetToFocus(MenuWidget->FilterTextWidget);
 

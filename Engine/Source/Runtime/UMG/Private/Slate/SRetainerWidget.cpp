@@ -235,7 +235,6 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 	// we should not be added to tick if we're not rendering
 	checkSlow(FApp::CanEverRender());
 
-
 	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
 	if ( bRenderingOffscreen && bShouldRenderAnything )
 	{
@@ -248,6 +247,10 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 		if (TickWorld && TickWorld->Scene && IsInGameThread())
 		{
 			FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(TickWorld->Scene);
+		}
+		else if (IsInGameThread())
+		{
+			FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(nullptr);
 		}
 
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );

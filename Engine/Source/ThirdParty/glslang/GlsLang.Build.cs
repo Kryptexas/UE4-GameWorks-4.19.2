@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class GlsLang : ModuleRules
 {
-	public GlsLang(TargetInfo Target)
+	public GlsLang(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

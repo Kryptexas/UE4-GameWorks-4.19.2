@@ -6,10 +6,6 @@
 #include "UObject/Class.h"
 
 class FAssetData;
-
-/** Called when filtering content with a container class */
-DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnContainerContentValid, const UClass* /*SearchingClass*/, const UObject* /*Container*/, const FAssetData* /*DiskAssetData*/);
-
 /** A struct to serve as a filter for Asset Registry queries. Each component element is processed as an 'OR' operation while all the components are processed together as an 'AND' operation. */
 struct FARFilter
 {
@@ -21,10 +17,6 @@ struct FARFilter
 	TArray<FName> ObjectPaths;
 	/** The filter component for class names. Instances of the specified classes, but not subclasses (by default), will be included. Derived classes will be included only if bRecursiveClasses is true. */
 	TArray<FName> ClassNames;
-	/** Container filter to search for ClassNames (example, UBlueprint parent class can be contained in ClassNames) */
-	TArray<FName> ContainerClassNames;
-	/** This will be called for each container to know if the container root is what we seek */
-	FOnContainerContentValid OnContainerContentValid;
 	/** The filter component for properties marked with the AssetRegistrySearchable flag */
 	TMultiMap<FName, FString> TagsAndValues;
 	/** Only if bRecursiveClasses is true, the results will exclude classes (and subclasses) in this list */

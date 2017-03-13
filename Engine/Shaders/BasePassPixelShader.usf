@@ -283,6 +283,14 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 #endif
 }
 
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	#define ILCSharedSampler1 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler0
+	#define ILCSharedSampler2 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler0
+#else
+	#define ILCSharedSampler1 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler1
+	#define ILCSharedSampler2 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler2
+#endif
+
 /** Calculates indirect lighting contribution on this object from precomputed data. */
 void GetPrecomputedIndirectLightingAndSkyLight(
 	FMaterialPixelParameters MaterialParameters, 
@@ -301,7 +309,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	// Method for movable components which want to use a volume texture of interpolated SH samples
 	#if CACHED_VOLUME_INDIRECT_LIGHTING
 	
-		// Compute volume teture UVs from world position
+		// Compute volume texture UVs from world position
 		float3 VolumeUVs = MaterialParameters.AbsoluteWorldPosition * PrecomputedLightingBuffer.IndirectLightingCachePrimitiveScale + PrecomputedLightingBuffer.IndirectLightingCachePrimitiveAdd;
 		// Clamp UV to be within the valid region
 		// Pixels outside of the object's bounding box would read garbage otherwise
@@ -316,8 +324,8 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 
 		#else
 
-			float4 Vector1 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture1, PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler1, VolumeUVs);
-			float4 Vector2 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture2, PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler2, VolumeUVs);
+			float4 Vector1 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture1, ILCSharedSampler1, VolumeUVs);
+			float4 Vector2 = Texture3DSample(PrecomputedLightingBuffer.IndirectLightingCacheTexture2, ILCSharedSampler2, VolumeUVs);
 
 			// Construct the SH environment
 			FTwoBandSHVectorRGB CachedSH;
@@ -943,7 +951,7 @@ void FPixelShaderInOut_MainPS(
 
 #if USE_DEVELOPMENT_SHADERS
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM4_PROFILE
+	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM4_PROFILE || VULKAN_PROFILE_SM4 || VULKAN_PROFILE_SM5
 		BRANCH
 		if (View.OutOfBoundsMask > 0)
 		{

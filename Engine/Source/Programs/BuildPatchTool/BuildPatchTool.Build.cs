@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class BuildPatchTool : ModuleRules
 {
-	public BuildPatchTool( TargetInfo Target )
+	public BuildPatchTool( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 

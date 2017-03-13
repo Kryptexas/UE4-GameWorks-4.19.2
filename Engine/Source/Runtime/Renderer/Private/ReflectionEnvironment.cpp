@@ -894,7 +894,7 @@ void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllV
 			EDRF_UseTriangleOptimization);
 	}
 
-	SceneContext.FinishRenderingSceneColor(RHICmdList);
+	ResolveSceneColor(RHICmdList);
 }
 
 bool FDeferredShadingSceneRenderer::ShouldDoReflectionEnvironment() const
@@ -1108,7 +1108,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 	TRefCountPtr<IPooledRenderTarget> NewSceneColor;
 	{
-		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		ResolveSceneColor(RHICmdList);
 
 		FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 		Desc.TargetableFlags |= TexCreate_UAV;
@@ -1449,7 +1449,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 				SceneContext.GetBufferSizeXY(),
 				*VertexShader);
 
-			SceneContext.FinishRenderingSceneColor(RHICmdList);
+			ResolveSceneColor(RHICmdList);
 		}
 	}
 }

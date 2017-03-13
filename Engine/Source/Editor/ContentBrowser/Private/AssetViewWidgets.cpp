@@ -1632,7 +1632,7 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 	TSharedPtr<SWidget> Content;
 
 	// A little right padding so text from this column does not run directly into text from the next.
-	static const FMargin ColumnItemPadding( 0, 0, 6, 0 );
+	static const FMargin ColumnItemPadding( 5, 0, 5, 0 );
 
 	if ( ColumnName == "Name" )
 	{
@@ -1650,7 +1650,7 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 		}
 		else
 		{
-			IconBrush = FEditorStyle::GetBrush("ContentBrowser.ColumnViewAssetIcon");;
+			IconBrush = FEditorStyle::GetBrush("ContentBrowser.ColumnViewAssetIcon");
 		}
 
 		// Make icon overlays (eg, SCC and dirty status) a reasonable size in relation to the icon size (note: it is assumed this icon is square)
@@ -1724,6 +1724,8 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 		return SNew(SBorder)
 			.BorderImage(this, &SAssetViewItem::GetBorderImage)
 			.Padding(0)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
 			[
 				SNew( SAssetColumnItemNameBox, SharedThis(this) )
 				.Padding( ColumnItemPadding )
@@ -1755,6 +1757,8 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 
 	return SNew(SBox)
 		.Padding( ColumnItemPadding )
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
 		[
 			Content.ToSharedRef()
 		];

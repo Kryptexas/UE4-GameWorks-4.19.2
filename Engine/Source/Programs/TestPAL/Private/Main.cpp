@@ -25,7 +25,6 @@ IMPLEMENT_APPLICATION(TestPAL, "TestPAL");
 #define ARG_CRASH_TEST						"crash"
 #define ARG_STRINGPRECISION_TEST			"stringprecision"
 #define ARG_DSO_TEST						"dso"
-#define ARG_OFFSCREEN_GL_TEST				"offscreen-gl"
 #define ARG_GET_ALLOCATION_SIZE_TEST		"getallocationsize"
 
 namespace TestPAL
@@ -367,7 +366,7 @@ int32 DynamicLibraryTest(const TCHAR* CommandLine)
 
 	if (PLATFORM_LINUX)
 	{
-		RootSteamPath = FPaths::EngineDir() / FString(TEXT("Binaries/ThirdParty/Steamworks/Steamv132/Linux/"));
+		RootSteamPath = FPaths::EngineDir() / FString(TEXT("Binaries/ThirdParty/Steamworks/Steamv139/x86_64-unknown-linux-gnu/"));
 		LibraryName = TEXT("libsteam_api.so");
 	}
 	else
@@ -403,30 +402,6 @@ int32 DynamicLibraryTest(const TCHAR* CommandLine)
 	return 0;
 }
 
-
-
-/**
- * Offscreen GL
- */
-int32 OffscreenGLTest(const TCHAR* CommandLine)
-{
-	FPlatformMisc::SetCrashHandler(NULL);
-	FPlatformMisc::SetGracefulTerminationHandler();
-
-	GEngineLoop.PreInit(CommandLine);
-	UE_LOG(LogTestPAL, Display, TEXT("Running offscreen GL test."));
-
-#if PLATFORM_LINUX
-	void DrawOffscreenGL();
-	DrawOffscreenGL();
-#else
-	UE_LOG(LogTestPAL, Fatal, TEXT("Test has not been implemented on this platform."));
-#endif // PLATFORM_LINUX
-
-	FEngineLoop::AppPreExit();
-	FEngineLoop::AppExit();
-	return 0;
-}
 
 
 /**
@@ -586,10 +561,6 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return DynamicLibraryTest(*TestPAL::CommandLine);
 		}
-		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_OFFSCREEN_GL_TEST))
-		{
-			return OffscreenGLTest(*TestPAL::CommandLine);
-		}
 		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_GET_ALLOCATION_SIZE_TEST))
 		{
 			return GetAllocationSizeTest(*TestPAL::CommandLine);
@@ -613,7 +584,6 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test crash handling (pass '-logfatal' for testing Fatal logs)"), ANSI_TO_TCHAR( ARG_CRASH_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test passing %%*s in a format string"), ANSI_TO_TCHAR( ARG_STRINGPRECISION_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test APIs for dealing with dynamic libraries"), ANSI_TO_TCHAR( ARG_DSO_TEST ));
-	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test rendering GL offscreen"), UTF8_TO_TCHAR(ARG_OFFSCREEN_GL_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test GMalloc->GetAllocationSize()"), UTF8_TO_TCHAR(ARG_GET_ALLOCATION_SIZE_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT(""));
 	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));

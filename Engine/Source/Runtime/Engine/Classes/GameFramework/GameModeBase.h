@@ -225,6 +225,15 @@ public:
 	virtual void GetSeamlessTravelActorList(bool bToTransition, TArray<AActor*>& ActorList);
 
 	/**
+	 * Used to swap a viewport/connection's PlayerControllers when seamless traveling and the new GameMode's
+	 * controller class is different than the previous
+	 * includes network handling
+	 * @param OldPC - the old PC that should be discarded
+	 * @param NewPC - the new PC that should be used for the player
+	 */
+	virtual void SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC);
+
+	/**
 	 * Handles reinitializing players that remained through a seamless level transition
 	 * called from C++ for players that finished loading after the server
 	 * @param C the Controller to handle
@@ -513,15 +522,6 @@ protected:
 
 	/** Handles initializing a seamless travel player, handles logic similar to InitNewPlayer */
 	virtual void InitSeamlessTravelPlayer(AController* NewController);
-
-	/** 
-	 * Used to swap a viewport/connection's PlayerControllers when seamless traveling and the new GameMode's
-	 * controller class is different than the previous
-	 * includes network handling
-	 * @param OldPC - the old PC that should be discarded
-	 * @param NewPC - the new PC that should be used for the player
-	 */
-	virtual void SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC);
 
 	/** Called when a PlayerController is swapped to a new one during seamless travel */
 	UFUNCTION(BlueprintImplementableEvent, Category=Game, meta=(DisplayName="OnSwapPlayerControllers"))

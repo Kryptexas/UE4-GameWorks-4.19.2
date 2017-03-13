@@ -23,6 +23,7 @@ DECLARE_CYCLE_STAT( TEXT( "Convert Quat to Rotator" ), STAT_MathConvertQuatToRot
 -----------------------------------------------------------------------------*/
 
 CORE_API const FVector FVector::ZeroVector(0.0f, 0.0f, 0.0f);
+CORE_API const FVector FVector::OneVector(1.0f, 1.0f, 1.0f);
 CORE_API const FVector FVector::UpVector(0.0f, 0.0f, 1.0f);
 CORE_API const FVector FVector::ForwardVector(1.0f, 0.0f, 0.0f);
 CORE_API const FVector FVector::RightVector(0.0f, 1.0f, 0.0f);

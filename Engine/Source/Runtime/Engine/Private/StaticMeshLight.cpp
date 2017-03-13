@@ -412,29 +412,21 @@ void UStaticMeshComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuild
 	// Save the static mesh state for transactions, force it to be marked dirty if we are going to discard any static lighting data.
 	Modify(true);
 
-	// Detach the component from the scene for the duration of this function.
-	FComponentReregisterContext ReregisterContext(this);
-
-	// Block until the RT processes the unregister before modifying variables that it may need to access
-	FlushRenderingCommands();
-
 	Super::InvalidateLightingCacheDetailed(bInvalidateBuildEnqueuedLighting, bTranslationOnly);
-
-	// Discard all cached lighting.
-	check(AttachmentCounter.GetValue() == 0);
 
 	for(int32 i = 0; i < LODData.Num(); i++)
 	{
 		FStaticMeshComponentLODInfo& LODDataElement = LODData[i];
 		LODDataElement.MapBuildDataId = FGuid::NewGuid();
 	}
+
+	MarkRenderStateDirty();
 }
 
 UObject const* UStaticMeshComponent::AdditionalStatObject() const
 {
 	return GetStaticMesh();
 }
-
 
 bool UStaticMeshComponent::SetStaticLightingMapping(bool bTextureMapping, int32 ResolutionToUse)
 {

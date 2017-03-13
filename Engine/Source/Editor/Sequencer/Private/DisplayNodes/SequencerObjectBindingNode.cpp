@@ -41,7 +41,7 @@ namespace SequencerNodeConstants
 }
 
 
-void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UProperty*>& PropertyPath, FSequencer& Sequencer, TArray<TArray<UProperty*>>& KeyablePropertyPaths)
+void GetKeyablePropertyPaths(UClass* Class, void* ValuePtr, UStruct* PropertySource, FPropertyPath PropertyPath, FSequencer& Sequencer, TArray<FPropertyPath>& KeyablePropertyPaths)
 {
 	//@todo need to resolve this between UMG and the level editor sequencer
 	const bool bRecurseAllProperties = Sequencer.IsLevelEditorSequencer();
@@ -52,7 +52,7 @@ void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UPro
 
 		if (Property && !Property->HasAnyPropertyFlags(CPF_Deprecated))
 		{
-			PropertyPath.Add(Property);
+			PropertyPath.AddProperty(FPropertyInfo(Property));
 
 			bool bIsPropertyKeyable = Sequencer.CanKeyProperty(FCanKeyPropertyParams(Class, PropertyPath));
 			if (bIsPropertyKeyable)
@@ -60,16 +60,37 @@ void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UPro
 				KeyablePropertyPaths.Add(PropertyPath);
 			}
 
-			if (!bIsPropertyKeyable || bRecurseAllProperties)
+			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
+			if (!bIsPropertyKeyable && ArrayProperty)
 			{
-				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
-				if (StructProperty != nullptr)
+				FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(ValuePtr));
+				for (int32 Index = 0; Index < ArrayHelper.Num(); ++Index)
 				{
-					GetKeyablePropertyPaths(Class, StructProperty->Struct, PropertyPath, Sequencer, KeyablePropertyPaths);
+					PropertyPath.AddProperty(FPropertyInfo(ArrayProperty->Inner, Index));
+
+					if (Sequencer.CanKeyProperty(FCanKeyPropertyParams(Class, PropertyPath)))
+					{
+						KeyablePropertyPaths.Add(PropertyPath);
+						bIsPropertyKeyable = true;
+					}
+					else if (UStructProperty* StructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
+					{
+						GetKeyablePropertyPaths(Class, ArrayHelper.GetRawPtr(Index), StructProperty->Struct, PropertyPath, Sequencer, KeyablePropertyPaths);
+					}
+
+					PropertyPath = *PropertyPath.TrimPath(1);
 				}
 			}
 
-			PropertyPath.RemoveAt(PropertyPath.Num() - 1);
+			if (!bIsPropertyKeyable || bRecurseAllProperties)
+			{
+				if (UStructProperty* StructProperty = Cast<UStructProperty>(Property))
+				{
+					GetKeyablePropertyPaths(Class, StructProperty->ContainerPtrToValuePtr<void>(ValuePtr), StructProperty->Struct, PropertyPath, Sequencer, KeyablePropertyPaths);
+				}
+			}
+
+			PropertyPath = *PropertyPath.TrimPath(1);
 		}
 	}
 }
@@ -78,7 +99,7 @@ void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UPro
 struct PropertyMenuData
 {
 	FString MenuName;
-	TArray<UProperty*> PropertyPath;
+	FPropertyPath PropertyPath;
 };
 
 
@@ -389,7 +410,7 @@ bool FSequencerObjectBindingNode::CanDrag() const
 /* FSequencerObjectBindingNode implementation
  *****************************************************************************/
 
-void FSequencerObjectBindingNode::AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyableProperties, int32 PropertyNameIndexStart, int32 PropertyNameIndexEnd)
+void FSequencerObjectBindingNode::AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<FPropertyPath> KeyableProperties, int32 PropertyNameIndexStart, int32 PropertyNameIndexEnd)
 {
 	TArray<PropertyMenuData> KeyablePropertyMenuData;
 
@@ -398,18 +419,18 @@ void FSequencerObjectBindingNode::AddPropertyMenuItems(FMenuBuilder& AddTrackMen
 		TArray<FString> PropertyNames;
 		if (PropertyNameIndexEnd == -1)
 		{
-			PropertyNameIndexEnd = KeyableProperty.Num();
+			PropertyNameIndexEnd = KeyableProperty.GetNumProperties();
 		}
 
 		//@todo
-		if (PropertyNameIndexStart >= KeyableProperty.Num())
+		if (PropertyNameIndexStart >= KeyableProperty.GetNumProperties())
 		{
 			continue;
 		}
 
 		for (int32 PropertyNameIndex = PropertyNameIndexStart; PropertyNameIndex < PropertyNameIndexEnd; ++PropertyNameIndex)
 		{
-			PropertyNames.Add(KeyableProperty[PropertyNameIndex]->GetDisplayNameText().ToString());
+			PropertyNames.Add(KeyableProperty.GetPropertyInfo(PropertyNameIndex).Property.Get()->GetDisplayNameText().ToString());
 		}
 
 		PropertyMenuData KeyableMenuData;
@@ -471,12 +492,12 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMen
 	GetSequencer().BuildObjectBindingTrackMenu(AddTrackMenuBuilder, ObjectBinding, ObjectClass);
 	AddTrackMenuBuilder.EndSection();
 
-	TArray<TArray<UProperty*>> KeyablePropertyPaths;
+	TArray<FPropertyPath> KeyablePropertyPaths;
 
 	if (BoundObject != nullptr)
 	{
-		TArray<UProperty*> PropertyPath;
-		GetKeyablePropertyPaths(BoundObject->GetClass(), BoundObject->GetClass(), PropertyPath, Sequencer, KeyablePropertyPaths);
+		FPropertyPath PropertyPath;
+		GetKeyablePropertyPaths(BoundObject->GetClass(), BoundObject, BoundObject->GetClass(), PropertyPath, Sequencer, KeyablePropertyPaths);
 	}
 
 	// [Aspect Ratio]
@@ -487,12 +508,23 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMen
 
 	// Create property menu data based on keyable property paths
 	TArray<PropertyMenuData> KeyablePropertyMenuData;
-	for (auto KeyablePropertyPath : KeyablePropertyPaths)
+	for (const FPropertyPath& KeyablePropertyPath : KeyablePropertyPaths)
 	{
-		PropertyMenuData KeyableMenuData;
-		KeyableMenuData.PropertyPath = KeyablePropertyPath;
-		KeyableMenuData.MenuName = KeyablePropertyPath[0]->GetDisplayNameText().ToString();
-		KeyablePropertyMenuData.Add(KeyableMenuData);
+		UProperty* Property = KeyablePropertyPath.GetRootProperty().Property.Get();
+		if (Property)
+		{
+			PropertyMenuData KeyableMenuData;
+			KeyableMenuData.PropertyPath = KeyablePropertyPath;
+			if (KeyablePropertyPath.GetRootProperty().ArrayIndex != INDEX_NONE)
+			{
+				KeyableMenuData.MenuName = FText::Format(LOCTEXT("PropertyMenuTextFormat", "{0} [{1}]"), Property->GetDisplayNameText(), FText::AsNumber(KeyablePropertyPath.GetRootProperty().ArrayIndex)).ToString();
+			}
+			else
+			{
+				KeyableMenuData.MenuName = Property->GetDisplayNameText().ToString();
+			}
+			KeyablePropertyMenuData.Add(KeyableMenuData);
+		}
 	}
 
 	// Sort on the menu name
@@ -507,12 +539,12 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMen
 	AddTrackMenuBuilder.BeginSection( SequencerMenuExtensionPoints::AddTrackMenu_PropertiesSection, LOCTEXT("PropertiesMenuHeader" , "Properties"));
 	for (int32 MenuDataIndex = 0; MenuDataIndex < KeyablePropertyMenuData.Num(); )
 	{
-		TArray<TArray<UProperty*> > KeyableSubMenuPropertyPaths;
+		TArray<FPropertyPath> KeyableSubMenuPropertyPaths;
 
 		KeyableSubMenuPropertyPaths.Add(KeyablePropertyMenuData[MenuDataIndex].PropertyPath);
 
 		// If this menu data only has one property name, add the menu item
-		if (KeyablePropertyMenuData[MenuDataIndex].PropertyPath.Num() == 1 || !bUseSubMenus)
+		if (KeyablePropertyMenuData[MenuDataIndex].PropertyPath.GetNumProperties() == 1 || !bUseSubMenus)
 		{
 			AddPropertyMenuItems(AddTrackMenuBuilder, KeyableSubMenuPropertyPaths);
 			++MenuDataIndex;
@@ -536,7 +568,7 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMen
 			AddTrackMenuBuilder.AddSubMenu(
 				FText::FromString(KeyablePropertyMenuData[MenuDataIndex].MenuName),
 				FText::GetEmpty(), 
-				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::HandleAddTrackSubMenuNew, KeyableSubMenuPropertyPaths));
+				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::HandleAddTrackSubMenuNew, KeyableSubMenuPropertyPaths, 0));
 
 			++MenuDataIndex;
 		}
@@ -547,7 +579,7 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMen
 }
 
 
-void FSequencerObjectBindingNode::HandleAddTrackSubMenuNew(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*> > KeyablePropertyPaths)
+void FSequencerObjectBindingNode::HandleAddTrackSubMenuNew(FMenuBuilder& AddTrackMenuBuilder, TArray<FPropertyPath> KeyablePropertyPaths, int32 PropertyNameIndexStart)
 {
 	// [PostProcessSettings] [Bloom1Tint] [X]
 	// [PostProcessSettings] [Bloom1Tint] [Y]
@@ -556,21 +588,31 @@ void FSequencerObjectBindingNode::HandleAddTrackSubMenuNew(FMenuBuilder& AddTrac
 	// Create property menu data based on keyable property paths
 	TSet<UProperty*> PropertiesTraversed;
 	TArray<PropertyMenuData> KeyablePropertyMenuData;
-	for (auto KeyablePropertyPath : KeyablePropertyPaths)
-	{		
+	for (const FPropertyPath& KeyablePropertyPath : KeyablePropertyPaths)
+	{
 		PropertyMenuData KeyableMenuData;
 		KeyableMenuData.PropertyPath = KeyablePropertyPath;
 
 		// If the path is greater than 1, keep track of the actual properties (not channels) and only add these properties once since we can't do single channel keying of a property yet.
-		if (KeyablePropertyPath.Num() > 1) //@todo
+		if (KeyablePropertyPath.GetNumProperties() > 1) //@todo
 		{
-			if (PropertiesTraversed.Find(KeyablePropertyPath[1]) != nullptr)
+			const FPropertyInfo& PropertyInfo = KeyablePropertyPath.GetPropertyInfo(1);
+			UProperty* Property = PropertyInfo.Property.Get();
+			if (PropertiesTraversed.Find(Property) != nullptr)
 			{
 				continue;
 			}
 
-			KeyableMenuData.MenuName = FObjectEditorUtils::GetCategoryFName(KeyablePropertyPath[1]).ToString();
-			PropertiesTraversed.Add(KeyablePropertyPath[1]);
+			if (PropertyInfo.ArrayIndex != INDEX_NONE)
+			{
+				KeyableMenuData.MenuName = FText::Format(LOCTEXT("ArrayElementFormat", "Element {0}"), FText::AsNumber(PropertyInfo.ArrayIndex)).ToString();
+			}
+			else
+			{
+				KeyableMenuData.MenuName = FObjectEditorUtils::GetCategoryFName(Property).ToString();
+			}
+
+			PropertiesTraversed.Add(Property);
 		}
 		else
 		{
@@ -590,7 +632,7 @@ void FSequencerObjectBindingNode::HandleAddTrackSubMenuNew(FMenuBuilder& AddTrac
 	// Add menu items
 	for (int32 MenuDataIndex = 0; MenuDataIndex < KeyablePropertyMenuData.Num(); )
 	{
-		TArray<TArray<UProperty*> > KeyableSubMenuPropertyPaths;
+		TArray<FPropertyPath> KeyableSubMenuPropertyPaths;
 		KeyableSubMenuPropertyPaths.Add(KeyablePropertyMenuData[MenuDataIndex].PropertyPath);
 
 		for (; MenuDataIndex < KeyablePropertyMenuData.Num()-1; )
@@ -606,13 +648,10 @@ void FSequencerObjectBindingNode::HandleAddTrackSubMenuNew(FMenuBuilder& AddTrac
 			}
 		}
 
-		const int32 PropertyNameIndexStart = 1; // Strip off the struct property name
-		const int32 PropertyNameIndexEnd = 2; // Stop at the property name, don't descend into the channels
-
 		AddTrackMenuBuilder.AddSubMenu(
 			FText::FromString(KeyablePropertyMenuData[MenuDataIndex].MenuName),
 			FText::GetEmpty(), 
-			FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::AddPropertyMenuItems, KeyableSubMenuPropertyPaths, PropertyNameIndexStart, PropertyNameIndexEnd));
+			FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::AddPropertyMenuItems, KeyableSubMenuPropertyPaths, PropertyNameIndexStart + 1, PropertyNameIndexStart + 2));
 
 		++MenuDataIndex;
 	}
@@ -640,7 +679,7 @@ void FSequencerObjectBindingNode::HandleLabelsSubMenuCreate(FMenuBuilder& MenuBu
 }
 
 
-void FSequencerObjectBindingNode::HandlePropertyMenuItemExecute(TArray<UProperty*> PropertyPath)
+void FSequencerObjectBindingNode::HandlePropertyMenuItemExecute(FPropertyPath PropertyPath)
 {
 	FSequencer& Sequencer = GetSequencer();
 	UObject* BoundObject = GetSequencer().FindSpawnedObjectOrTemplate(ObjectBinding);

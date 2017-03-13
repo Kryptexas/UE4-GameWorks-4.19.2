@@ -27,6 +27,15 @@ struct FStartPhysics2DTickFunction : public FTickFunction
 	// End of FTickFunction interface
 };
 
+template<>
+struct TStructOpsTypeTraits<FStartPhysics2DTickFunction> : public TStructOpsTypeTraitsBase2<FStartPhysics2DTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 // Tick function that ends the physics tick
 struct FEndPhysics2DTickFunction : public FTickFunction
 {
@@ -36,6 +45,15 @@ struct FEndPhysics2DTickFunction : public FTickFunction
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	virtual FString DiagnosticMessage() override;
 	// End of FTickFunction interface
+};
+
+template<>
+struct TStructOpsTypeTraits<FEndPhysics2DTickFunction> : public TStructOpsTypeTraitsBase2<FEndPhysics2DTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 //////////////////////////////////////////////////////////////////////////

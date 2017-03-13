@@ -270,9 +270,9 @@ UMaterialInterface* UPaperSpriteComponent::GetMaterial(int32 MaterialIndex) cons
 	return nullptr;
 }
 
-void UPaperSpriteComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+void UPaperSpriteComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
-	return Super::GetUsedMaterials(OutMaterials);
+	return Super::GetUsedMaterials(OutMaterials, bGetDebugMaterials);
 }
 
 void UPaperSpriteComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const

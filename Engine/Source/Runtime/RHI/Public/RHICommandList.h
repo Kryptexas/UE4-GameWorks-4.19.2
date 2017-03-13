@@ -52,6 +52,8 @@ enum class EAsyncComputeBudget;
 enum class EClearDepthStencil;
 enum class EResourceTransitionAccess;
 enum class EResourceTransitionPipeline;
+class FComputePipelineState;
+class FGraphicsPipelineState;
 
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 
@@ -180,6 +182,7 @@ public:
 	void QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList);
 	void QueueParallelAsyncCommandListSubmit(FGraphEventRef* AnyThreadCompletionEvents, bool bIsPrepass, class FRHICommandList** CmdLists, int32* NumDrawsIfKnown, int32 Num, int32 MinDrawsPerTranslate, bool bSpewMerge);
 	void QueueRenderThreadCommandListSubmit(FGraphEventRef& RenderThreadCompletionEvent, class FRHICommandList* CmdList);
+	void QueueAsyncPipelineStateCompile(FGraphEventRef& AsyncCompileCompletionEvent);
 	void QueueCommandListSubmit(class FRHICommandList* CmdList);
 	void WaitForTasks(bool bKnownToBeComplete = false);
 	void WaitForDispatch();
@@ -878,6 +881,27 @@ struct FRHICommandSetComputeShader : public FRHICommand<FRHICommandSetComputeSha
 };
 
 template<ECmdList CmdListType>
+struct FRHICommandSetComputePipelineState : public FRHICommand<FRHICommandSetComputePipelineState<CmdListType>>
+{
+	FComputePipelineState* ComputePipelineState;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetComputePipelineState(FComputePipelineState* InComputePipelineState)
+		: ComputePipelineState(InComputePipelineState)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandSetGraphicsPipelineState : public FRHICommand<FRHICommandSetGraphicsPipelineState>
+{
+	FGraphicsPipelineState* GraphicsPipelineState;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetGraphicsPipelineState(FGraphicsPipelineState* InGraphicsPipelineState)
+		: GraphicsPipelineState(InGraphicsPipelineState)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+template<ECmdList CmdListType>
 struct FRHICommandDispatchComputeShader : public FRHICommand<FRHICommandDispatchComputeShader<CmdListType>>
 {
 	uint32 ThreadGroupCountX;
@@ -1104,16 +1128,13 @@ struct FRHICommandClearColorTexture : public FRHICommand<FRHICommandClearColorTe
 {
 	FTextureRHIParamRef Texture;
 	FLinearColor Color;
-	FIntRect ExcludeRect;
 
 	FORCEINLINE_DEBUGGABLE FRHICommandClearColorTexture(
 		FTextureRHIParamRef InTexture,
-		const FLinearColor& InColor,
-		FIntRect InExcludeRect
+		const FLinearColor& InColor
 		)
 		: Texture(InTexture)
 		, Color(InColor)
-		, ExcludeRect(InExcludeRect)
 	{
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
@@ -1122,7 +1143,6 @@ struct FRHICommandClearColorTexture : public FRHICommand<FRHICommandClearColorTe
 struct FRHICommandClearDepthStencilTexture : public FRHICommand<FRHICommandClearDepthStencilTexture>
 {
 	FTextureRHIParamRef Texture;
-	FIntRect ExcludeRect;
 	float Depth;
 	uint32 Stencil;
 	EClearDepthStencil ClearDepthStencil;
@@ -1131,11 +1151,9 @@ struct FRHICommandClearDepthStencilTexture : public FRHICommand<FRHICommandClear
 		FTextureRHIParamRef InTexture,
 		EClearDepthStencil InClearDepthStencil,
 		float InDepth,
-		uint32 InStencil,
-		FIntRect InExcludeRect
+		uint32 InStencil
 	)
 		: Texture(InTexture)
-		, ExcludeRect(InExcludeRect)
 		, Depth(InDepth)
 		, Stencil(InStencil)
 		, ClearDepthStencil(InClearDepthStencil)
@@ -1148,17 +1166,14 @@ struct FRHICommandClearColorTextures : public FRHICommand<FRHICommandClearColorT
 {
 	FLinearColor ColorArray[MaxSimultaneousRenderTargets];
 	FTextureRHIParamRef Textures[MaxSimultaneousRenderTargets];
-	FIntRect ExcludeRect;
 	int32 NumClearColors;
 
 	FORCEINLINE_DEBUGGABLE FRHICommandClearColorTextures(
 		int32 InNumClearColors,
 		FTextureRHIParamRef* InTextures,
-		const FLinearColor* InColorArray,
-		FIntRect InExcludeRect
+		const FLinearColor* InColorArray
 		)
-		: ExcludeRect(InExcludeRect)
-		, NumClearColors(InNumClearColors)
+		: NumClearColors(InNumClearColors)
 	{
 		check(InNumClearColors <= MaxSimultaneousRenderTargets);
 		for (int32 Index = 0; Index < InNumClearColors; Index++)
@@ -2194,6 +2209,30 @@ public:
 		new (AllocCommand<FRHICommandSetComputeShader<ECmdList::EGfx>>()) FRHICommandSetComputeShader<ECmdList::EGfx>(ComputeShader);
 	}
 
+	FORCEINLINE_DEBUGGABLE void SetComputePipelineState(FComputePipelineState* ComputePipelineState)
+	{
+		if (Bypass())
+		{
+			extern RHI_API FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState);
+			FRHIComputePipelineState* RHIComputePipelineState = ExecuteSetComputePipelineState(ComputePipelineState);
+			CMD_CONTEXT(RHISetComputePipelineState)(RHIComputePipelineState);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetComputePipelineState<ECmdList::EGfx>>()) FRHICommandSetComputePipelineState<ECmdList::EGfx>(ComputePipelineState);
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState)
+	{
+		if (Bypass())
+		{
+			extern RHI_API FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState);
+			FRHIGraphicsPipelineState* RHIGraphicsPipelineState = ExecuteSetGraphicsPipelineState(GraphicsPipelineState);
+			CMD_CONTEXT(RHISetGraphicsPipelineState)(RHIGraphicsPipelineState);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetGraphicsPipelineState>()) FRHICommandSetGraphicsPipelineState(GraphicsPipelineState);
+	}
+
 	FORCEINLINE_DEBUGGABLE void DispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
 	{
 		if (Bypass())
@@ -2294,34 +2333,34 @@ public:
 		new (AllocCommand<FRHICommandCopyToResolveTarget>()) FRHICommandCopyToResolveTarget(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
 	}
 
-	FORCEINLINE_DEBUGGABLE void ClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect)
+	FORCEINLINE_DEBUGGABLE void ClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(RHIClearColorTexture)(Texture, Color, ExcludeRect);
+			CMD_CONTEXT(RHIClearColorTexture)(Texture, Color);
 			return;
 		}
-		new (AllocCommand<FRHICommandClearColorTexture>()) FRHICommandClearColorTexture(Texture, Color, ExcludeRect);
+		new (AllocCommand<FRHICommandClearColorTexture>()) FRHICommandClearColorTexture(Texture, Color);
 	}
 
-	FORCEINLINE_DEBUGGABLE void ClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect)
+	FORCEINLINE_DEBUGGABLE void ClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(RHIClearDepthStencilTexture)(Texture, ClearDepthStencil, Depth, Stencil, ExcludeRect);
+			CMD_CONTEXT(RHIClearDepthStencilTexture)(Texture, ClearDepthStencil, Depth, Stencil);
 			return;
 		}
-		new (AllocCommand<FRHICommandClearDepthStencilTexture>()) FRHICommandClearDepthStencilTexture(Texture, ClearDepthStencil, Depth, Stencil, ExcludeRect);
+		new (AllocCommand<FRHICommandClearDepthStencilTexture>()) FRHICommandClearDepthStencilTexture(Texture, ClearDepthStencil, Depth, Stencil);
 	}
 
-	FORCEINLINE_DEBUGGABLE void ClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ClearColorArray, FIntRect ExcludeRect)
+	FORCEINLINE_DEBUGGABLE void ClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ClearColorArray)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(RHIClearColorTextures)(NumTextures, Textures, ClearColorArray, ExcludeRect);
+			CMD_CONTEXT(RHIClearColorTextures)(NumTextures, Textures, ClearColorArray);
 			return;
 		}
-		new (AllocCommand<FRHICommandClearColorTextures>()) FRHICommandClearColorTextures(NumTextures, Textures, ClearColorArray, ExcludeRect);
+		new (AllocCommand<FRHICommandClearColorTextures>()) FRHICommandClearColorTextures(NumTextures, Textures, ClearColorArray);
 	}
 
 	FORCEINLINE_DEBUGGABLE void BeginRenderQuery(FRenderQueryRHIParamRef RenderQuery)
@@ -2594,6 +2633,18 @@ public:
 		new (AllocCommand<FRHICommandSetComputeShader<ECmdList::ECompute> >()) FRHICommandSetComputeShader<ECmdList::ECompute>(ComputeShader);
 	}
 
+	FORCEINLINE_DEBUGGABLE void SetComputePipelineState(FComputePipelineState* ComputePipelineState)
+	{
+		if (Bypass())
+		{
+			extern FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState);
+			FRHIComputePipelineState* RHIComputePipelineState = ExecuteSetComputePipelineState(ComputePipelineState);
+			COMPUTE_CONTEXT(RHISetComputePipelineState)(RHIComputePipelineState);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetComputePipelineState<ECmdList::ECompute> >()) FRHICommandSetComputePipelineState<ECmdList::ECompute>(ComputePipelineState);
+	}
+
 	FORCEINLINE_DEBUGGABLE void SetAsyncComputeBudget(EAsyncComputeBudget Budget)
 	{
 		if (Bypass())
@@ -2842,7 +2893,12 @@ public:
 	{
 		return RHICreateGraphicsPipelineState(Initializer);
 	}
-	
+
+	FORCEINLINE TRefCountPtr<FRHIComputePipelineState> CreateComputePipelineState(FRHIComputeShader* ComputeShader)
+	{
+		return RHICreateComputePipelineState(ComputeShader);
+	}
+
 	FORCEINLINE FUniformBufferRHIRef CreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
 	{
 		return RHICreateUniformBuffer(Contents, Layout, Usage);

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ScreenshotTools : ModuleRules
 {
-	public ScreenshotTools(TargetInfo Target)
+	public ScreenshotTools(ReadOnlyTargetRules Target) : base(Target)
 	{
 		
 		PublicIncludePaths.AddRange(

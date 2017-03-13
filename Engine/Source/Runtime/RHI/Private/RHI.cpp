@@ -30,6 +30,7 @@ DEFINE_STAT(STAT_IndexBufferMemory);
 DEFINE_STAT(STAT_VertexBufferMemory);
 DEFINE_STAT(STAT_StructuredBufferMemory);
 DEFINE_STAT(STAT_PixelBufferMemory);
+DEFINE_STAT(STAT_GetOrCreatePSO);
 
 static FAutoConsoleVariable CVarUseVulkanRealUBs(
 	TEXT("r.Vulkan.UseRealUBs"),
@@ -87,7 +88,8 @@ const FClearValueBinding FClearValueBinding::DepthOne(1.0f, 0);
 const FClearValueBinding FClearValueBinding::DepthZero(0.0f, 0);
 const FClearValueBinding FClearValueBinding::DepthNear((float)ERHIZBuffer::NearPlane, 0);
 const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPlane, 0);
-
+const FClearValueBinding FClearValueBinding::Green(FLinearColor(0.0f, 1.0f, 0.0f, 1.0f));
+const FClearValueBinding FClearValueBinding::MidGray(FLinearColor(0.5f, 0.5f, 0.5f, 1.0f));
 
 TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
@@ -521,7 +523,6 @@ RHI_API bool IsRHIDeviceIntel()
 {
 	check(GRHIVendorId != 0);
 	// Intel GPUs are integrated and use both DedicatedVideoMemory and SharedSystemMemory.
-	// The hardware has fast clears so we disable exclude rects (see r.ClearWithExcludeRects)
 	return GRHIVendorId == 0x8086;
 }
 

@@ -187,7 +187,7 @@ struct FMovieSceneEvalTemplatePtr
 	MOVIESCENE_API bool Serialize(FArchive& Ar);
 };
 
-template<> struct TStructOpsTypeTraits<FMovieSceneEvalTemplatePtr> : public TStructOpsTypeTraitsBase
+template<> struct TStructOpsTypeTraits<FMovieSceneEvalTemplatePtr> : public TStructOpsTypeTraitsBase2<FMovieSceneEvalTemplatePtr>
 {
 	enum { WithSerializer = true, WithCopy = true };
 };

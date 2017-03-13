@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class OpenSubdiv : ModuleRules
 {
-	public OpenSubdiv(TargetInfo Target)
+	public OpenSubdiv(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

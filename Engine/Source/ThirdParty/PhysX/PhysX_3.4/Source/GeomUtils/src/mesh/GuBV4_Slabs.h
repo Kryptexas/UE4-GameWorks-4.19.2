@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -189,17 +189,6 @@
 			}											\
 		}												\
 	}
-
-#if PX_INTEL_FAMILY
-namespace
-{
-	const VecU32V signMask = U4LoadXYZW((PxU32(1)<<31), (PxU32(1)<<31), (PxU32(1)<<31), (PxU32(1)<<31));
-	const Vec4V epsFloat4 = V4Load(1e-9f);
-	const Vec4V zeroes = V4Zero();
-	const Vec4V twos = V4Load(2.0f);
-	const Vec4V epsInflateFloat4 = V4Load(1e-7f);
-}
-#endif	// PX_INTEL_FAMILY
 
 #endif	// GU_BV4_USE_SLABS
 

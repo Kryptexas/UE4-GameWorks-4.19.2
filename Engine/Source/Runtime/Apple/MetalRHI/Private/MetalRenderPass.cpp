@@ -107,6 +107,7 @@ void FMetalRenderPass::BeginRenderPass(MTLRenderPassDescriptor* const RenderPass
 		CurrentEncoder.EndEncoding();
 	}
 	State.SetStateDirty();
+	State.SetRenderTargetsActive(true);
 	
 	RenderPassDesc = RenderPass;
 	
@@ -202,7 +203,7 @@ void FMetalRenderPass::RestartRenderPass(MTLRenderPassDescriptor* const RenderPa
 		CurrentEncoder.EndEncoding();
 	}
 	State.SetStateDirty();
-	State.SetHasValidRenderTarget(true);
+	State.SetRenderTargetsActive(true);
 	
 	CurrentEncoder.SetRenderPassDescriptor(RenderPassDesc);
 	CurrentEncoder.BeginRenderCommandEncoding();
@@ -581,6 +582,8 @@ id FMetalRenderPass::EndRenderPass(void)
 		{
 			CurrentEncoder.EndEncoding();
 		}
+		
+		State.SetRenderTargetsActive(false);
 	
 		RenderPassDesc = nil;
 		bWithinRenderPass = false;
@@ -594,7 +597,15 @@ void FMetalRenderPass::CopyFromTextureToBuffer(id<MTLTexture> Texture, uint32 so
 	id<MTLBlitCommandEncoder> Encoder = CurrentEncoder.GetBlitCommandEncoder();
 	check(Encoder);
 	
-	[Encoder copyFromTexture:Texture sourceSlice:sourceSlice sourceLevel:sourceLevel sourceOrigin:sourceOrigin sourceSize:sourceSize toBuffer:toBuffer destinationOffset:destinationOffset destinationBytesPerRow:destinationBytesPerRow destinationBytesPerImage:destinationBytesPerImage options:options];
+	if (CmdList.GetCommandQueue().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions))
+	{
+		[Encoder copyFromTexture : Texture sourceSlice : sourceSlice sourceLevel : sourceLevel sourceOrigin : sourceOrigin sourceSize : sourceSize toBuffer : toBuffer destinationOffset : destinationOffset destinationBytesPerRow : destinationBytesPerRow destinationBytesPerImage : destinationBytesPerImage options : options];
+	}
+	else
+	{
+		check(options == MTLBlitOptionNone);
+		[Encoder copyFromTexture : Texture sourceSlice : sourceSlice sourceLevel : sourceLevel sourceOrigin : sourceOrigin sourceSize : sourceSize toBuffer : toBuffer destinationOffset : destinationOffset destinationBytesPerRow : destinationBytesPerRow destinationBytesPerImage : destinationBytesPerImage];
+	}
 	ConditionalSubmit();
 }
 
@@ -669,6 +680,11 @@ id FMetalRenderPass::End(EMetalSubmitFlags Flags)
 {
 	Submit(Flags);
 	return CurrentEncoderFence;
+}
+
+void FMetalRenderPass::InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler)
+{
+	CurrentEncoder.InsertCommandBufferFence(Fence, Handler);
 }
 
 #pragma mark - Public Debug Support -
@@ -765,7 +781,7 @@ void FMetalRenderPass::ConditionalSwitchToCompute(void)
 	
 	if (CurrentEncoder.IsRenderCommandEncoderActive() || CurrentEncoder.IsBlitCommandEncoderActive())
 	{
-		State.SetHasValidRenderTarget(false);
+		State.SetRenderTargetsActive(false);
 		CurrentEncoder.EndEncoding();
 	}
 	if (PrologueEncoder.IsComputeCommandEncoderActive() || PrologueEncoder.IsBlitCommandEncoderActive())
@@ -787,7 +803,7 @@ void FMetalRenderPass::ConditionalSwitchToBlit(void)
 	
 	if (CurrentEncoder.IsRenderCommandEncoderActive() || CurrentEncoder.IsComputeCommandEncoderActive())
 	{
-		State.SetHasValidRenderTarget(false);
+		State.SetRenderTargetsActive(false);
 		CurrentEncoder.EndEncoding();
 	}
 	if (!CurrentEncoder.IsBlitCommandEncoderActive())

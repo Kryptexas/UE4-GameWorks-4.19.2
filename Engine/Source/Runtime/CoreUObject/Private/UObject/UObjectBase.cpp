@@ -17,6 +17,7 @@
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
 #include "UObject/GCObject.h"
+#include "LinkerLoad.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectBase, Log, All);
 DEFINE_STAT(STAT_UObjectsStatGroupTester);
@@ -168,8 +169,10 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
 {
 	check(Internal::GObjInitialized);
 	// Set object properties.
-	OuterPrivate        = CreatePackage(nullptr,PackageName);
-	check(OuterPrivate);
+	UPackage* Package = CreatePackage(nullptr, PackageName);
+	check(Package);
+	Package->SetPackageFlags(PKG_CompiledIn);
+	OuterPrivate = Package;
 
 	check(UClassStaticClass);
 	check(!ClassPrivate);
@@ -438,7 +441,7 @@ TMap<FName, UScriptStruct *(*)()>& GetDynamicStructMap()
 	return DynamicStructMap;
 }
 
-void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const FName PathName, bool bDynamic)
+void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const FName ObjectName, bool bDynamic, const TCHAR* DynamicPathName)
 {
 	if (!bDynamic)
 	{
@@ -449,13 +452,18 @@ void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TC
 	}
 	else
 	{
-		GetDynamicStructMap().Add(PathName, InRegister);
+		GetDynamicStructMap().Add(DynamicPathName, InRegister);
 	}
+	NotifyRegistrationEvent(PackageName, *ObjectName.ToString(), ENotifyRegistrationType::NRT_Struct, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), bDynamic);
+
 }
 
 class UScriptStruct *GetStaticStruct(class UScriptStruct *(*InRegister)(), UObject* StructOuter, const TCHAR* StructName, SIZE_T Size, uint32 Crc)
 {
-	return (*InRegister)();
+	NotifyRegistrationEvent(*StructOuter->GetOutermost()->GetName(), StructName, ENotifyRegistrationType::NRT_Struct, ENotifyRegistrationPhase::NRP_Started);
+	UScriptStruct *Result = (*InRegister)();
+	NotifyRegistrationEvent(*StructOuter->GetOutermost()->GetName(), StructName, ENotifyRegistrationType::NRT_Struct, ENotifyRegistrationPhase::NRP_Finished);
+	return Result;
 }
 
 /**
@@ -491,7 +499,7 @@ TMap<FName, UEnum *(*)()>& GetDynamicEnumMap()
 	return DynamicEnumMap;
 }
 
-void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const FName PathName, bool bDynamic)
+void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const FName ObjectName, bool bDynamic, const TCHAR* DynamicPathName)
 {
 	if (!bDynamic)
 	{
@@ -502,13 +510,17 @@ void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* Packa
 	}
 	else
 	{
-		GetDynamicEnumMap().Add(PathName, InRegister);
+		GetDynamicEnumMap().Add(DynamicPathName, InRegister);
 	}
+	NotifyRegistrationEvent(PackageName, *ObjectName.ToString(), ENotifyRegistrationType::NRT_Enum, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), bDynamic);
 }
 
 class UEnum *GetStaticEnum(class UEnum *(*InRegister)(), UObject* EnumOuter, const TCHAR* EnumName)
 {
-	return (*InRegister)();
+	NotifyRegistrationEvent(*EnumOuter->GetOutermost()->GetName(), EnumName, ENotifyRegistrationType::NRT_Enum, ENotifyRegistrationPhase::NRP_Started);
+	UEnum *Result = (*InRegister)();
+	NotifyRegistrationEvent(*EnumOuter->GetOutermost()->GetName(), EnumName, ENotifyRegistrationType::NRT_Enum, ENotifyRegistrationPhase::NRP_Finished);
+	return Result;
 }
 
 static TArray<class UClass *(*)()>& GetDeferredCompiledInRegistration()
@@ -640,7 +652,7 @@ TMap<FName, FDynamicClassStaticData>& GetDynamicClassMap()
 	return DynamicClassMap;
 }
 
-void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(), const TCHAR* Name, bool bDynamic, const TCHAR* DynamicPathName, void (*InInitSearchableValues)(TMap<FName, FName>&))
+void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(), const TCHAR* Name, const TCHAR* PackageName, bool bDynamic, const TCHAR* DynamicPathName, void (*InInitSearchableValues)(TMap<FName, FName>&))
 {
 	if (!bDynamic)
 	{
@@ -649,6 +661,9 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 		if (!GIsHotReload || GetDeferRegisterClassMap().FindChecked(Name)->bHasChanged)
 #endif
 		{
+			FString NoPrefix(RemoveClassPrefix(Name));
+			NotifyRegistrationEvent(PackageName, *NoPrefix, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), false);
+			NotifyRegistrationEvent(PackageName, *(FString(DEFAULT_OBJECT_PREFIX) + NoPrefix), ENotifyRegistrationType::NRT_ClassCDO, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), false);
 			checkSlow(!GetDeferredCompiledInRegistration().Contains(InRegister));
 			GetDeferredCompiledInRegistration().Add(InRegister);
 		}
@@ -663,6 +678,15 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 			InInitSearchableValues(ClassFunctions.SelectedSearchableValues);
 		}
 		GetDynamicClassMap().Add(FName(DynamicPathName), ClassFunctions);
+
+		FString OriginalPackageName = DynamicPathName;
+		check(OriginalPackageName.EndsWith(Name));
+		OriginalPackageName.RemoveFromEnd(FString(Name));
+		check(OriginalPackageName.EndsWith(TEXT(".")));
+		OriginalPackageName.RemoveFromEnd(FString(TEXT(".")));
+
+		NotifyRegistrationEvent(*OriginalPackageName, Name, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), true);
+		NotifyRegistrationEvent(*OriginalPackageName, *(FString(DEFAULT_OBJECT_PREFIX) + Name), ENotifyRegistrationType::NRT_ClassCDO, ENotifyRegistrationPhase::NRP_Added, (UObject *(*)())(InRegister), true);
 	}
 }
 
@@ -768,10 +792,23 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 	if( bHaveRegistrants )
 	{
 		TArray<UClass*> NewClasses;
+		TArray<UClass*> NewClassesInCoreUObject;
 		TArray<UClass* (*)()> PendingRegistrants = MoveTemp(DeferredCompiledInRegistration);
 		for (UClass* (*Registrant)() : PendingRegistrants)
 		{
-			NewClasses.Add(Registrant());
+			UClass* Class = Registrant();
+			if (Class->GetOutermost()->GetFName() == GLongCoreUObjectPackageName)
+			{
+				NewClassesInCoreUObject.Add(Class);
+			}
+			else
+			{
+				NewClasses.Add(Class);
+			}
+		}
+		for (UClass* Class : NewClassesInCoreUObject) // we do these first because we assume these never trigger loads
+		{
+			Class->GetDefaultObject();
 		}
 		for (UClass* Class : NewClasses)
 		{
@@ -833,6 +870,8 @@ static void UObjectLoadAllCompiledInStructs()
 void ProcessNewlyLoadedUObjects()
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ProcessNewlyLoadedUObjects"), STAT_ProcessNewlyLoadedUObjects, STATGROUP_ObjectVerbose);
+
+
 
 #if WITH_HOT_RELOAD
 	UClassGenerateCDODuplicatesForHotReload();
@@ -1089,6 +1128,11 @@ namespace
 		{
 			return nullptr;
 		}
+		virtual const TCHAR* ClassPackage() const override
+		{
+			check(0);
+			return nullptr;
+		}
 	};
 
 
@@ -1220,6 +1264,27 @@ FName GetDynamicTypeClassName(FName TypePathName)
 	{
 		Result = UEnum::StaticClass()->GetFName();
 	}
+	if (false && Result == NAME_None)
+	{
+		UE_LOG(LogUObjectBase, Warning, TEXT("GetDynamicTypeClassName %s not found."), *TypePathName.ToString());
+		UE_LOG(LogUObjectBase, Warning, TEXT("---- classes"));
+		for (auto& Pair : GetDynamicClassMap())
+		{
+			UE_LOG(LogUObjectBase, Warning, TEXT("    %s"), *Pair.Key.ToString());
+		}
+		UE_LOG(LogUObjectBase, Warning, TEXT("---- structs"));
+		for (auto& Pair : GetDynamicStructMap())
+		{
+			UE_LOG(LogUObjectBase, Warning, TEXT("    %s"), *Pair.Key.ToString());
+		}
+		UE_LOG(LogUObjectBase, Warning, TEXT("---- enums"));
+		for (auto& Pair : GetDynamicEnumMap())
+		{
+			UE_LOG(LogUObjectBase, Warning, TEXT("    %s"), *Pair.Key.ToString());
+		}
+		UE_LOG(LogUObjectBase, Fatal, TEXT("GetDynamicTypeClassName %s not found."), *TypePathName.ToString());
+	}
+	UE_CLOG(Result == NAME_None, LogUObjectBase, Warning, TEXT("GetDynamicTypeClassName %s not found."), *TypePathName.ToString());
 	return Result;
 }
 

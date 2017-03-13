@@ -45,6 +45,15 @@ void FVulkanShaderResourceView::UpdateView()
 				}
 				TextureView.Create(*Device, VTex2D->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, VTex2D->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, NumMips, 0, 1);
 			}
+			else if (FRHITextureCube* TexCube = SourceTexture->GetTextureCube())
+			{
+				FVulkanTextureCube* VTexCube = ResourceCast(TexCube);
+				if (Format == PF_X24_G8)
+				{
+					Format = PF_DepthStencil;
+				}
+				TextureView.Create(*Device, VTexCube->Surface.Image, VK_IMAGE_VIEW_TYPE_CUBE, VTexCube->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, NumMips, 0, 1);
+			}
 			else
 			{
 				ensure(0);
@@ -194,38 +203,29 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTextur
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture3DRHIParamRef Texture3DRHI, uint8 MipLevel)
 {
-#if 0
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView;
-	SRV->SourceTexture = (FRHITexture*)Texture3DRHI;
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device);
+	// delay the shader view create until we use it, so we just track the source info here
+	SRV->SourceTexture = ResourceCast(Texture3DRHI);
+	SRV->MipLevel = MipLevel;
 	return SRV;
-#else
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	return nullptr;
-#endif
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture2DArrayRHIParamRef Texture2DArrayRHI, uint8 MipLevel)
 {
-#if 0
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView;
-	SRV->SourceTexture = (FRHITexture*)Texture2DArrayRHI;
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device);
+	// delay the shader view create until we use it, so we just track the source info here
+	SRV->SourceTexture = ResourceCast(Texture2DArrayRHI);
+	SRV->MipLevel = MipLevel;
 	return SRV;
-#else
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	return nullptr;
-#endif
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTextureCubeRHIParamRef TextureCubeRHI, uint8 MipLevel)
 {
-#if 0
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView;
-	SRV->SourceTexture = (FRHITexture*)TextureCubeRHI;
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device);
+	// delay the shader view create until we use it, so we just track the source info here
+	SRV->SourceTexture = ResourceCast(TextureCubeRHI);
+	SRV->MipLevel = MipLevel;
 	return SRV;
-#else
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	return nullptr;
-#endif
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FIndexBufferRHIParamRef Buffer)
@@ -242,7 +242,22 @@ void FVulkanCommandListContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unor
 	if (UnorderedAccessView->SourceVertexBuffer)
 	{
 		FVulkanVertexBuffer* VertexBuffer = UnorderedAccessView->SourceVertexBuffer;
-		VulkanRHI::vkCmdFillBuffer(CmdBuffer->GetHandle(), VertexBuffer->GetHandle(), 0, VertexBuffer->GetSize(), Values[0]);
+		switch (UnorderedAccessView->BufferViewFormat)
+		{
+		case PF_R32_SINT:
+		case PF_R32_FLOAT:
+		case PF_R32_UINT:
+			break;
+		case PF_A8R8G8B8:
+		case PF_R8G8B8A8:
+		case PF_B8G8R8A8:
+			ensure(Values[0] == Values[1] && Values[1] == Values[2] && Values[2] == Values[3]);
+			break;
+		default:
+			ensureMsgf(0, TEXT("Unsupported format (EPixelFormat)%d!"), (uint32)UnorderedAccessView->BufferViewFormat);
+			break;
+		}
+		VulkanRHI::vkCmdFillBuffer(CmdBuffer->GetHandle(), VertexBuffer->GetHandle(), VertexBuffer->GetOffset(), VertexBuffer->GetSize(), Values[0]);
 	}
 	else
 	{

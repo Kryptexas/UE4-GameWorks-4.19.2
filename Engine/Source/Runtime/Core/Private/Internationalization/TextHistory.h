@@ -7,6 +7,7 @@
 #include "Templates/SharedPointer.h"
 #include "Misc/Optional.h"
 #include "Internationalization/Text.h"
+#include "Internationalization/StringTableCoreFwd.h"
 #include "Misc/DateTime.h"
 
 enum class ETextHistoryType
@@ -20,7 +21,9 @@ enum class ETextHistoryType
 	AsCurrency,
 	AsDate,
 	AsTime,
-	AsDateTime
+	AsDateTime,
+	Transform,
+	StringTableEntry,
 
 	// Add new enum types at the end only! They are serialized by index.
 };
@@ -36,6 +39,9 @@ public:
 	/** Allow moving */
 	FTextHistory(FTextHistory&& Other);
 	FTextHistory& operator=(FTextHistory&& Other);
+
+	/** Get the type of this history */
+	virtual ETextHistoryType GetType() const = 0;
 
 	/** Rebuilds the FText from the hierarchical history, the result should be in the current locale */
 	virtual FText ToText(bool bInAsSource) const = 0;
@@ -89,6 +95,7 @@ public:
 	FTextHistory_Base& operator=(FTextHistory_Base&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::Base; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SerializeForDisplayString(FArchive& Ar, FTextDisplayStringPtr& InOutDisplayString) override;
@@ -121,6 +128,7 @@ public:
 	FTextHistory_NamedFormat& operator=(FTextHistory_NamedFormat&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::NamedFormat; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const override;
@@ -149,6 +157,7 @@ public:
 	FTextHistory_OrderedFormat& operator=(FTextHistory_OrderedFormat&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::OrderedFormat; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const override;
@@ -177,6 +186,7 @@ public:
 	FTextHistory_ArgumentDataFormat& operator=(FTextHistory_ArgumentDataFormat&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::ArgumentFormat; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const override;
@@ -234,6 +244,7 @@ public:
 	FTextHistory_AsNumber& operator=(FTextHistory_AsNumber&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::AsNumber; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual bool GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const override;
@@ -257,6 +268,7 @@ public:
 	FTextHistory_AsPercent& operator=(FTextHistory_AsPercent&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::AsPercent; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual bool GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const override;
@@ -280,6 +292,7 @@ public:
 	FTextHistory_AsCurrency& operator=(FTextHistory_AsCurrency&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::AsCurrency; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	//~ End FTextHistory Interface
@@ -305,6 +318,7 @@ public:
 	FTextHistory_AsDate& operator=(FTextHistory_AsDate&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::AsDate; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	//~ End FTextHistory Interface
@@ -336,6 +350,7 @@ public:
 	FTextHistory_AsTime& operator=(FTextHistory_AsTime&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::AsTime; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	//~ End FTextHistory Interface
@@ -367,6 +382,7 @@ public:
 	FTextHistory_AsDateTime& operator=(FTextHistory_AsDateTime&& Other);
 
 	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::AsDateTime; }
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	//~ End FTextHistory Interfaces
@@ -386,4 +402,91 @@ private:
 	FString TimeZone;
 	/** Culture to format the time in */
 	FCulturePtr TargetCulture;
+};
+
+/**  Handles history for transforming text (eg, ToLower/ToUpper) */
+class CORE_API FTextHistory_Transform : public FTextHistory
+{
+public:
+	enum class ETransformType : uint8
+	{
+		ToLower = 0,
+		ToUpper,
+
+		// Add new enum types at the end only! They are serialized by index.
+	};
+
+	FTextHistory_Transform() {}
+	FTextHistory_Transform(FText InSourceText, const ETransformType InTransformType);
+
+	/** Allow moving */
+	FTextHistory_Transform(FTextHistory_Transform&& Other);
+	FTextHistory_Transform& operator=(FTextHistory_Transform&& Other);
+
+	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::Transform; }
+	virtual FText ToText(bool bInAsSource) const override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const override;
+	virtual bool GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const override;
+	//~ End FTextHistory Interfaces
+
+private:
+	/** Disallow copying */
+	FTextHistory_Transform(const FTextHistory_Transform&);
+	FTextHistory_Transform& operator=(FTextHistory_Transform&);
+
+	/** The source text instance that was transformed */
+	FText SourceText;
+	/** How the source text was transformed */
+	ETransformType TransformType;
+};
+
+/** Holds a pointer to a referenced display string from a string table. */
+class CORE_API FTextHistory_StringTableEntry : public FTextHistory
+{
+public:
+	FTextHistory_StringTableEntry() {}
+	FTextHistory_StringTableEntry(FName InTableId, FString&& InKey);
+
+	/** Allow moving */
+	FTextHistory_StringTableEntry(FTextHistory_StringTableEntry&& Other);
+	FTextHistory_StringTableEntry& operator=(FTextHistory_StringTableEntry&& Other);
+
+	//~ Begin FTextHistory Interface
+	virtual ETextHistoryType GetType() const override { return ETextHistoryType::StringTableEntry; }
+	virtual FText ToText(bool bInAsSource) const override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void SerializeForDisplayString(FArchive& Ar, FTextDisplayStringPtr& InOutDisplayString) override;
+	virtual const FString* GetSourceString() const override;
+	//~ End FTextHistory Interface
+
+	FTextDisplayStringRef GetDisplayString() const;
+
+	void GetTableIdAndKey(FName& OutTableId, FString& OutKey) const;
+
+protected:
+	//~ Begin FTextHistory Interface
+	virtual bool CanRebuildText() { return false; }
+	//~ End FTextHistory Interface
+
+private:
+	/** Disallow copying */
+	FTextHistory_StringTableEntry(const FTextHistory_StringTableEntry&);
+	FTextHistory_StringTableEntry& operator=(FTextHistory_StringTableEntry&);
+
+	/** Get the string table pointer, potentially re-caching it if it's missing or stale */
+	FStringTableEntryConstPtr GetStringTableEntry() const;
+
+	/** The string table ID being referenced */
+	FName TableId;
+
+	/** The key within the string table being referenced */
+	FString Key;
+
+	/** Cached string table entry pointer */
+	mutable FStringTableEntryConstWeakPtr StringTableEntry;
+
+	/** Critical section preventing concurrent access when re-caching StringTableEntry */
+	mutable FCriticalSection StringTableEntryCS;
 };

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class MessagingRpc : ModuleRules
 	{
-		public MessagingRpc(TargetInfo Target)
+		public MessagingRpc(ReadOnlyTargetRules Target) : base(Target)
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[]

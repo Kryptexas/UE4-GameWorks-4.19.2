@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __DRAGTOOL_MEASURE_H__
-#define __DRAGTOOL_MEASURE_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "EditorDragTools.h"
@@ -49,5 +47,3 @@ private:
 
 	FEditorViewportClient* ViewportClient;
 };
-
-#endif // __DRAGTOOL_MEASURE_H__

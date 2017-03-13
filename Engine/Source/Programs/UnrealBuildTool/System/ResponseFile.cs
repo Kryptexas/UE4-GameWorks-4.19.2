@@ -7,12 +7,19 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	public class ResponseFile
+	class ResponseFile
 	{
 		[FlagsAttribute]
 		public enum CreateOptions
 		{
+			/// <summary>
+			/// 
+			/// </summary>
 			None                 = 0x0,
+
+			/// <summary>
+			/// 
+			/// </summary>
 			WriteEvenIfUnchanged = 0x1
 		}
 
@@ -21,6 +28,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="TempFileName">Name of response file</param>
 		/// <param name="Lines">List of lines to write to the response file</param>
+		/// <param name="Options"></param>
 		public static FileReference Create(FileReference TempFileName, IEnumerable<string> Lines, CreateOptions Options = CreateOptions.None)
 		{
 			FileInfo TempFileInfo = new FileInfo(TempFileName.FullName);

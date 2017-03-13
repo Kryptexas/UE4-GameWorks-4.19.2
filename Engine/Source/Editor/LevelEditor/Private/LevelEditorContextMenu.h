@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __LevelViewportContextMenu_h__
-#define __LevelViewportContextMenu_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -74,5 +70,3 @@ private:
 	 */
 	static void BuildGroupMenu( FMenuBuilder& MenuBuilder, const struct FSelectedActorInfo& SelectedActorInfo );
 };
-
-#endif		// __LevelViewportContextMenu_h__

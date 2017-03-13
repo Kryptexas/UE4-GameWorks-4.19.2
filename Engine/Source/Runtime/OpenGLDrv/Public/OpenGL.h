@@ -207,6 +207,7 @@ public:
 
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum() UGL_REQUIRED(0)
 
+	static FORCEINLINE GLint GetMaxMSAASamplesTileMem()			{ return 0; /* not supported */ }
 
 	// Silently ignored if not implemented:
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID) UGL_OPTIONAL_VOID

@@ -976,7 +976,7 @@ UBlueprint *UReimportFbxSceneFactory::UpdateOriginalBluePrint(FString &BluePrint
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 
 		//Create the new nodes from the hierarchy actor
-		FKismetEditorUtilities::AddComponentsToBlueprint(BluePrint, HierarchyActor->GetInstanceComponents());
+		FKismetEditorUtilities::AddComponentsToBlueprint(BluePrint, HierarchyActor->GetInstanceComponents(), false, nullptr, true);
 		
 		UWorld* World = HierarchyActor->GetWorld();
 		World->DestroyActor(HierarchyActor);
@@ -1149,6 +1149,12 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 				AllNodeInLod.Empty();
 				FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
 				FbxImporter->ImportStaticMeshAsSingle(Pkg, AllNodeInLod, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData, NewObject, LODIndex);
+			}
+			UStaticMesh *NewMesh = Cast<UStaticMesh>(NewObject);
+			if (NewMesh != nullptr)
+			{
+				FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+				FbxImporter->PostImportStaticMesh(NewMesh, AllNodeInLod);
 			}
 		}
 	}

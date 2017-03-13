@@ -104,6 +104,8 @@ class FMoveSection
 public:
 	FMoveSection( FSequencer& InSequencer, TArray<FSectionHandle> Sections );
 
+	~FMoveSection();
+
 public:
 
 	// FEditToolDragOperation interface
@@ -112,6 +114,10 @@ public:
 	virtual void OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 	virtual void OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 	virtual FCursorReply GetCursor() const override { return FCursorReply::Cursor( EMouseCursor::CardinalCross ); }
+
+private:
+	/** Callback for when the node tree is updated in sequencer. */
+	void OnSequencerNodeTreeUpdated();
 
 private:
 	/** The sections we are interacting with */
@@ -127,6 +133,9 @@ private:
 
 	/** Optional snap field to use when dragging */
 	TOptional<FSequencerSnapField> SnapField;
+
+	/** A handle for the sequencer node tree updated delegate. */
+	FDelegateHandle SequencerNodeTreeUpdatedHandle;
 };
 
 

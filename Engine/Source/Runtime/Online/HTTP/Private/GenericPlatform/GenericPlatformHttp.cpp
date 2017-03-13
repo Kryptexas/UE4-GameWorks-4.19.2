@@ -2,6 +2,7 @@
 
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Interfaces/IHttpRequest.h"
+#include "Paths.h"
 
 
 /**
@@ -166,4 +167,75 @@ FString FGenericPlatformHttp::UrlDecode(const FString &EncodedString)
 
 	Data.Add('\0');
 	return FString(UTF8_TO_TCHAR(Data.GetData()));
+}
+
+FString FGenericPlatformHttp::HtmlEncode(const FString& UnencodedString)
+{
+	FString EncodedString;
+	EncodedString.Reserve(UnencodedString.Len());
+
+	for ( int32 Index = 0; Index != UnencodedString.Len(); ++Index )
+	{
+		switch ( UnencodedString[Index] )
+		{
+			case '&':  EncodedString.Append(TEXT("&amp;"));					break;
+			case '\"': EncodedString.Append(TEXT("&quot;"));				break;
+			case '\'': EncodedString.Append(TEXT("&apos;"));				break;
+			case '<':  EncodedString.Append(TEXT("&lt;"));					break;
+			case '>':  EncodedString.Append(TEXT("&gt;"));					break;
+			default:   EncodedString.AppendChar(UnencodedString[Index]);	break;
+		}
+	}
+
+	return EncodedString;
+}
+
+FString FGenericPlatformHttp::GetMimeType(const FString& FilePath)
+{
+	const FString FileExtension = FPaths::GetExtension(FilePath, true);
+
+	static TMap<FString, FString> ExtensionMimeTypeMap;
+	if ( ExtensionMimeTypeMap.Num() == 0 )
+	{
+		// Web
+		ExtensionMimeTypeMap.Add(TEXT(".html"), TEXT("text/html"));
+		ExtensionMimeTypeMap.Add(TEXT(".css"), TEXT("text/css"));
+		ExtensionMimeTypeMap.Add(TEXT(".js"), TEXT("application/x-javascript"));
+
+		// Video
+		ExtensionMimeTypeMap.Add(TEXT(".avi"), TEXT("video/msvideo, video/avi, video/x-msvideo"));
+		ExtensionMimeTypeMap.Add(TEXT(".mpeg"), TEXT("video/mpeg"));
+
+		// Image
+		ExtensionMimeTypeMap.Add(TEXT(".bmp"), TEXT("image/bmp"));
+		ExtensionMimeTypeMap.Add(TEXT(".gif"), TEXT("image/gif"));
+		ExtensionMimeTypeMap.Add(TEXT(".jpg"), TEXT("image/jpeg"));
+		ExtensionMimeTypeMap.Add(TEXT(".jpeg"), TEXT("image/jpeg"));
+		ExtensionMimeTypeMap.Add(TEXT(".png"), TEXT("image/png"));
+		ExtensionMimeTypeMap.Add(TEXT(".svg"), TEXT("image/svg+xml"));
+		ExtensionMimeTypeMap.Add(TEXT(".tiff"), TEXT("image/tiff"));
+
+		// Audio
+		ExtensionMimeTypeMap.Add(TEXT(".midi"), TEXT("audio/x-midi"));
+		ExtensionMimeTypeMap.Add(TEXT(".mp3"), TEXT("audio/mpeg"));
+		ExtensionMimeTypeMap.Add(TEXT(".ogg"), TEXT("audio/vorbis, application/ogg"));
+		ExtensionMimeTypeMap.Add(TEXT(".wav"), TEXT("audio/wav, audio/x-wav"));
+
+		// Documents
+		ExtensionMimeTypeMap.Add(TEXT(".xml"), TEXT("application/xml"));
+		ExtensionMimeTypeMap.Add(TEXT(".txt"), TEXT("text/plain"));
+		ExtensionMimeTypeMap.Add(TEXT(".tsv"), TEXT("text/tab-separated-values"));
+		ExtensionMimeTypeMap.Add(TEXT(".csv"), TEXT("text/csv"));
+		ExtensionMimeTypeMap.Add(TEXT(".json"), TEXT("application/json"));
+		
+		// Compressed
+		ExtensionMimeTypeMap.Add(TEXT(".zip"), TEXT("application/zip, application/x-compressed-zip"));
+	}
+
+	if ( FString* FoundMimeType = ExtensionMimeTypeMap.Find(FileExtension) )
+	{
+		return *FoundMimeType;
+	}
+
+	return TEXT("application/unknown");
 }

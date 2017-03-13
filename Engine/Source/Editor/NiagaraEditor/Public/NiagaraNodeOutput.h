@@ -15,7 +15,7 @@ class UNiagaraNodeOutput : public UNiagaraNode
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category = Output)
-	TArray<FNiagaraVariableInfo> Outputs;
+	TArray<FNiagaraVariable> Outputs;
 
 public:
 
@@ -30,6 +30,9 @@ public:
 	virtual FLinearColor GetNodeTitleColor() const override;
 	//~ End EdGraphNode Interface
 
-	virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& OutputExpressions)override;
+	/** Notifies the node that it's output variables have been modified externally. */
+	void NotifyOutputVariablesChanged();
+
+	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& OutputExpressions)override;
 };
 

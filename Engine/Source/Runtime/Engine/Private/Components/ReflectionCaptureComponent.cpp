@@ -1516,6 +1516,28 @@ void UReflectionCaptureComponent::ReadbackFromGPU(UWorld* WorldToUpdate)
 	}
 }
 
+#if WITH_EDITOR
+// If the feature level preview has been set before on-load captures have been built then the editor must update them.
+bool UReflectionCaptureComponent::MobileReflectionCapturesNeedForcedUpdate(UWorld* WorldToUpdate)
+{
+	if (WorldToUpdate->Scene 
+		&& WorldToUpdate->Scene->GetFeatureLevel() <= ERHIFeatureLevel::ES3_1
+		&& (GShaderCompilingManager == NULL || !GShaderCompilingManager->IsCompiling()))
+	{
+		FScopeLock Lock(&ReflectionCapturesToUpdateForLoadLock);
+		for (int32 CaptureIndex = ReflectionCapturesToUpdateForLoad.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
+		{
+			UReflectionCaptureComponent* CaptureComponent = ReflectionCapturesToUpdateForLoad[CaptureIndex];
+			if (!CaptureComponent->GetOwner() || WorldToUpdate->ContainsActor(CaptureComponent->GetOwner()))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+#endif
+
 void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldToUpdate)
 {
 	if (WorldToUpdate->Scene 
@@ -1579,14 +1601,14 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 		WorldToUpdate->Scene->AllocateReflectionCaptures(WorldCombinedCaptures);
 
 		if (FeatureLevel >= ERHIFeatureLevel::SM4 && !FPlatformProperties::RequiresCookedData())
-		{
-			for (int32 CaptureIndex = 0; CaptureIndex < WorldCapturesToUpdateForLoad.Num(); CaptureIndex++)
 			{
-				// Save the derived data for any captures that were dirty on load
-				// This allows the derived data to get cached without having to resave a map
-				WorldCapturesToUpdateForLoad[CaptureIndex]->ReadbackFromGPU(WorldToUpdate);
+				for (int32 CaptureIndex = 0; CaptureIndex < WorldCapturesToUpdateForLoad.Num(); CaptureIndex++)
+				{
+					// Save the derived data for any captures that were dirty on load
+					// This allows the derived data to get cached without having to resave a map
+					WorldCapturesToUpdateForLoad[CaptureIndex]->ReadbackFromGPU(WorldToUpdate);
+				}
 			}
-		}
 	}
 }
 

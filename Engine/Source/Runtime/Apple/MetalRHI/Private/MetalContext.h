@@ -36,7 +36,7 @@ public:
 	FMetalStateCache& GetCurrentState() { return StateCache; }
 	FMetalRenderPass& GetCurrentRenderPass() { return RenderPass; }
 	
-	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence);
+	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler = nil);
 	
 	/**
 	 * Handle rendering thread starting/stopping
@@ -67,9 +67,6 @@ public:
 	{
 		return QueryBuffer.ToSharedRef();
 	}
-	
-	/** @returns True if the Metal validation layer is enabled else false. */
-	bool IsValidationLayerEnabled() const { return bValidationEnabled; }
 
     void SubmitCommandsHint(uint32 const bFlags = EMetalSubmitFlagsCreateCommandBuffer);
 	void SubmitCommandBufferAndWait();
@@ -144,9 +141,6 @@ protected:
 	
 	/** A pool of buffers for writing visibility query results. */
 	TSharedPtr<FMetalQueryBufferPool, ESPMode::ThreadSafe> QueryBuffer;
-	
-	/** A fallback depth-stencil surface for draw calls that write to depth without a depth-stencil surface bound. */
-	FTexture2DRHIRef FallbackDepthStencilSurface;
 	
 	/** the slot to store a per-thread autorelease pool */
 	static uint32 AutoReleasePoolTLSSlot;

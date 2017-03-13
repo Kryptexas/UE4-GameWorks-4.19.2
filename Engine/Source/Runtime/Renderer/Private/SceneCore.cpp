@@ -341,29 +341,18 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 
 	if (Scene->GetShadingPath() == EShadingPath::Deferred)
 	{
-		if (bUseAsOccluder)
+		extern void GetEarlyZPassMode(ERHIFeatureLevel::Type FeatureLevel, EDepthDrawingMode& EarlyZPassMode, bool& bEarlyZPassMovable);
+
+		EDepthDrawingMode EarlyZPassMode;
+		bool bEarlyZPassMovable;
+		GetEarlyZPassMode(Scene->GetFeatureLevel(), EarlyZPassMode, bEarlyZPassMovable);
+
+		if (bUseAsOccluder || EarlyZPassMode == DDM_AllOpaque)
 		{
-			// Render non-masked materials in the depth only pass
-			extern TAutoConsoleVariable<int32> CVarEarlyZPass;
-			int32 EarlyZPass = CVarEarlyZPass.GetValueOnRenderThread();
-
-			extern int32 GEarlyZPassMovable;
-
-			EDepthDrawingMode EarlyZPassMode = (EDepthDrawingMode)EarlyZPass;
-			bool bEarlyZPassMovable = GEarlyZPassMovable != 0;
-
-			extern bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel);
-			if (ShouldForceFullDepthPass(Scene->GetFeatureLevel()))
-			{
-				// DBuffer decals force a full prepass
-				EarlyZPassMode = DDM_AllOccluders;
-				bEarlyZPassMovable = true;
-			}
-
 			// WARNING : If you change this condition, also change the logic in FStaticMeshSceneProxy::DrawStaticElements.
 			// Warning: also mirrored in FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer
-			if (PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder() 
-				&& (!IsMasked(FeatureLevel) || EarlyZPassMode == DDM_AllOccluders)
+			if ((PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder() || EarlyZPassMode == DDM_AllOpaque)
+				&& (!IsMasked(FeatureLevel) || EarlyZPassMode >= DDM_AllOccluders)
 				&& (!PrimitiveSceneInfo->Proxy->IsMovable() || bEarlyZPassMovable))
 			{
 				FDepthDrawingPolicyFactory::AddStaticMesh(Scene,this);
@@ -448,6 +437,7 @@ FExponentialHeightFogSceneInfo::FExponentialHeightFogSceneInfo(const UExponentia
 {
 	FogColor = InComponent->InscatteringColorCubemap ? InComponent->InscatteringTextureTint : InComponent->FogInscatteringColor;
 	InscatteringColorCubemap = InComponent->InscatteringColorCubemap;
+	InscatteringColorCubemapAngle = InComponent->InscatteringColorCubemapAngle * (PI / 180.f);
 	FullyDirectionalInscatteringColorDistance = InComponent->FullyDirectionalInscatteringColorDistance;
 	NonDirectionalInscatteringColorDistance = InComponent->NonDirectionalInscatteringColorDistance;
 }

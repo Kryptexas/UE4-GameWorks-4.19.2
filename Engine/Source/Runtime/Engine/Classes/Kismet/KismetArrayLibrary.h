@@ -310,7 +310,7 @@ public:
 		Stack.StepCompiledIn<UArrayProperty>(NULL);
 		void* SourceArrayAddr = Stack.MostRecentPropertyAddress;
 		UArrayProperty* SourceArrayProperty = Cast<UArrayProperty>(Stack.MostRecentProperty);
-		if (!TargetArrayProperty)
+		if (!SourceArrayProperty )
 		{
 			Stack.bArrayContextFailed = true;
 			return;

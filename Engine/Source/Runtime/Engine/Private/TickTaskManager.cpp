@@ -1102,7 +1102,7 @@ public:
 		Ar.Logf(TEXT("%s, %s, ActualStartTickGroup: %s, Prerequesities: %d"),
 			*Function->DiagnosticMessage(),
 			Function->IsTickFunctionEnabled() ? (RemainingCooldown > 0.f ? *FString::Printf(TEXT("Cooling Down for %.4g seconds"),RemainingCooldown) : TEXT("Enabled")) : TEXT("Disabled"),
-			*TickGroupEnum->GetEnumName(Function->ActualStartTickGroup),			
+			*TickGroupEnum->GetNameStringByValue(Function->ActualStartTickGroup),
 			Function->Prerequisites.Num());
 
 		// List all prerequisities
@@ -1957,6 +1957,15 @@ struct FTestTickFunction : public FTickFunction
 	{
 		return FString(TEXT("test"));
 	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FTestTickFunction> : public TStructOpsTypeTraitsBase2<FTestTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
 };
 
 static const int32 NumTestTickFunctions = 10000;

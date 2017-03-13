@@ -64,6 +64,8 @@ public:
     void Submit(EMetalSubmitFlags SubmissionFlags);
     
     id End(EMetalSubmitFlags Flags);
+	
+	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler);
 
 #pragma mark - Public Debug Support -
 	

@@ -75,7 +75,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE( FLevelStreamingVisibilityStatus );
  * interface for when a level should be streamed in and out of memory.
  *
  */
-UCLASS(abstract, editinlinenew,MinimalAPI)
+UCLASS(abstract, editinlinenew,MinimalAPI,BlueprintType)
 class ULevelStreaming : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -273,7 +273,7 @@ public:
 		FName PackageName;
 	};
 
-	UWorld* GetWorld() const override;
+	virtual UWorld* GetWorld() const override;
 
 	/** Returns whether streaming level is visible */
 	UFUNCTION(BlueprintCallable, Category="Game")

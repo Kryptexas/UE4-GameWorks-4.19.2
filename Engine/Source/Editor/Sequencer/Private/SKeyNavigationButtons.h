@@ -269,6 +269,7 @@ public:
 				if (OwningSection->TryModify())
 				{
 					KeyArea->AddKeyUnique(CurrentTime, Sequencer.GetKeyInterpolation());
+					Sequencer.NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 				}
 			}
 		}

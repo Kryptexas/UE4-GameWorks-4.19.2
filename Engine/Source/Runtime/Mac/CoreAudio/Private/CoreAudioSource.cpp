@@ -89,10 +89,15 @@ void FCoreAudioSoundSource::FreeResources( void )
 	if( bStreamedSound )
 	{
 		// ... free the buffers
-		FMemory::Free( ( void* )CoreAudioBuffers[0].AudioData );
-		FMemory::Free( ( void* )CoreAudioBuffers[1].AudioData );
-		FMemory::Free( ( void* )CoreAudioBuffers[2].AudioData );
-		
+		for (int32 Index = 0; Index < 3; Index++)
+		{
+			if (CoreAudioBuffers[Index].AudioData)
+			{
+				FMemory::Free((void*)CoreAudioBuffers[Index].AudioData);
+				CoreAudioBuffers[Index].AudioData = nullptr;
+			}
+		}
+
 		// Buffers without a valid resource ID are transient and need to be deleted.
 		if( Buffer )
 		{
@@ -174,7 +179,7 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioSubmitBuffersTime );
 
-	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffer ) * 3 );
+	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffers ) );
 
 	bStreamedSound = true;
 

@@ -173,12 +173,12 @@ public:
 
 	/** Builds a signed distance field volume for the given LODModel. */
 	virtual void GenerateSignedDistanceFieldVolumeData(
+		FString MeshName,
 		const FStaticMeshLODResources& LODModel,
 		class FQueuedThreadPool& ThreadPool,
 		const TArray<EBlendMode>& MaterialBlendModes,
 		const FBoxSphereBounds& Bounds,
 		float DistanceFieldResolutionScale,
-		float DistanceFieldBias,
 		bool bGenerateAsIfTwoSided,
 		class FDistanceFieldVolumeData& OutData) = 0;
 

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class ProfilerService : ModuleRules
 	{
-		public ProfilerService(TargetInfo Target)
+		public ProfilerService(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

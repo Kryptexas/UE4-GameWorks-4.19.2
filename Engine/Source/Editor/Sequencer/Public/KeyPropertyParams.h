@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/UnrealType.h"
+#include "PropertyPath.h"
 
 class IPropertyHandle;
 enum class ESequencerKeyMode;
@@ -16,10 +17,9 @@ struct SEQUENCER_API FCanKeyPropertyParams
 	/**
 	 * Creates new can key property parameters.
 	 * @param InObjectClass the class of the object which has the property to be keyed.
-	 * @param InPropertyPath an array of UProperty objects which represents a path of properties to get from
-	 *        the root object to the property to be keyed.
+	 * @param InPropertyPath path get from the root object to the property to be keyed.
 	 */
-	FCanKeyPropertyParams(UClass* InObjectClass, TArray<UProperty*> InPropertyPath);
+	FCanKeyPropertyParams(UClass* InObjectClass, const FPropertyPath& InPropertyPath);
 
 	/**
 	* Creates new can key property parameters.
@@ -28,12 +28,13 @@ struct SEQUENCER_API FCanKeyPropertyParams
 	*/
 	FCanKeyPropertyParams(UClass* InObjectClass, const IPropertyHandle& InPropertyHandle);
 
+	const UStruct* FindPropertyContainer(const UProperty* ForProperty) const;
+
 	/** The class of the object which has the property to be keyed. */
 	const UClass* ObjectClass;
 
-	/** An array of UProperty objects which represents a path of properties to get from the root object to the
-	property to be keyed. */
-	const TArray<UProperty*> PropertyPath;
+	/** A path of properties to get from the root object to the property to be keyed. */
+	FPropertyPath PropertyPath;
 };
 
 /**
@@ -44,10 +45,9 @@ struct SEQUENCER_API FKeyPropertyParams
 	/**
 	* Creates new key property parameters for a manually triggered property change.
 	* @param InObjectsToKey an array of the objects who's property will be keyed.
-	* @param InPropertyPath an array of UProperty objects which represents a path of properties to get from
-	*        the root object to the property to be keyed.
+	* @param InPropertyPath path get from the root object to the property to be keyed.
 	*/
-	FKeyPropertyParams(TArray<UObject*> InObjectsToKey, TArray<UProperty*> InPropertyPath, ESequencerKeyMode InKeyMode);
+	FKeyPropertyParams(TArray<UObject*> InObjectsToKey, const FPropertyPath& InPropertyPath, ESequencerKeyMode InKeyMode);
 
 	/**
 	* Creates new key property parameters from an actual property change notification with a property handle.
@@ -59,9 +59,8 @@ struct SEQUENCER_API FKeyPropertyParams
 	/** An array of the objects who's property will be keyed. */
 	const TArray<UObject*> ObjectsToKey;
 
-	/** An array of UProperty objects which represents a path of properties to get from the root object to the
-	property to be keyed. */
-	const TArray<UProperty*> PropertyPath;
+	/** A path of properties to get from the root object to the property to be keyed. */
+	FPropertyPath PropertyPath;
 
 	/** Keyframing params */
 	const ESequencerKeyMode KeyMode;
@@ -73,7 +72,7 @@ struct SEQUENCER_API FKeyPropertyParams
 class SEQUENCER_API FPropertyChangedParams
 {
 public:
-	FPropertyChangedParams(TArray<UObject*> InObjectsThatChanged, TArray<UProperty*> InPropertyPath, FName InStructPropertyNameToKey, ESequencerKeyMode InKeyMode);
+	FPropertyChangedParams(TArray<UObject*> InObjectsThatChanged, const FPropertyPath& InPropertyPath, FName InStructPropertyNameToKey, ESequencerKeyMode InKeyMode);
 
 	/**
 	 * Gets the value of the property that changed.
@@ -81,28 +80,38 @@ public:
 	template<typename ValueType>
 	ValueType GetPropertyValue() const
 	{
-		void* CurrentObject = ObjectsThatChanged[0];
-		void* PropertyValue = nullptr;
-		for (int32 i = 0; i < PropertyPath.Num(); i++)
+		TOptional<FScriptArrayHelper> ParentArray;
+
+		void* ContainerPtr = ObjectsThatChanged[0];
+		for (int32 i = 0; i < PropertyPath.GetNumProperties(); i++)
 		{
-			CurrentObject = PropertyPath[i]->ContainerPtrToValuePtr<ValueType>(CurrentObject, 0);
+			const FPropertyInfo& PropertyInfo = PropertyPath.GetPropertyInfo(i);
+			if (UProperty* Property = PropertyInfo.Property.Get())
+			{
+				if (UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property))
+				{
+					ParentArray = FScriptArrayHelper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(ContainerPtr));
+					continue;
+				}
+
+				int32 ArrayIndex = FMath::Max(0, PropertyInfo.ArrayIndex);
+				if (ParentArray.IsSet())
+				{
+					if (!ParentArray->IsValidIndex(ArrayIndex))
+					{
+						return ValueType();
+					}
+					ContainerPtr = ParentArray->GetRawPtr(ArrayIndex);
+					ParentArray.Reset();
+				}
+				else
+				{
+					ContainerPtr = Property->ContainerPtrToValuePtr<ValueType>(ContainerPtr, ArrayIndex);
+				}
+			}
 		}
 
-		// Bool property values are stored in a bit field so using a straight cast of the pointer to get their value does not
-		// work.  Instead use the actual property to get the correct value.
-		const UBoolProperty* BoolProperty = Cast<const UBoolProperty>( PropertyPath.Last() );
-		bool BoolPropertyValue;
-		if ( BoolProperty )
-		{
-			BoolPropertyValue = BoolProperty->GetPropertyValue(CurrentObject);
-			PropertyValue =  &BoolPropertyValue;
-		}
-		else
-		{
-			PropertyValue = CurrentObject;
-		}
-
-		return *((ValueType*)PropertyValue);
+		return GetPropertyValueImpl<ValueType>(ContainerPtr, PropertyPath.GetLeafMostProperty());
 	}
 
 	/** Gets the property path as a period seperated string of property names. */
@@ -111,9 +120,8 @@ public:
 	/** An array of the objects that changed. */
 	const TArray<UObject*> ObjectsThatChanged;
 
-	/** An array of UProperty objects which represents a path of properties to get from the root object to the 
-	property that changed. */
-	const TArray<UProperty*> PropertyPath;
+	/** A path of properties to get from the root object to the property to be keyed. */
+	FPropertyPath PropertyPath;
 
 	/** Represents the FName of an inner property which should be keyed for a struct property.  If all inner 
 	properties should be keyed, this will be FName::None. */
@@ -121,4 +129,14 @@ public:
 
 	/** Keyframing params */
 	const ESequencerKeyMode KeyMode;
+
+private:
+
+	template<typename ValueType>
+	static ValueType GetPropertyValueImpl(void* Data, const FPropertyInfo& Info)
+	{
+		return *((ValueType*)Data);
+	}
 };
+
+template<> SEQUENCER_API bool FPropertyChangedParams::GetPropertyValueImpl<bool>(void* Data, const FPropertyInfo& Info);

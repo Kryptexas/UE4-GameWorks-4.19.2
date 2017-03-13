@@ -24,10 +24,10 @@ FMonitoredProcess::FMonitoredProcess( const FString& InURL, const FString& InPar
 	, SleepInterval(0.0f)
 { }
 
-
+ 
 FMonitoredProcess::~FMonitoredProcess()
 {
-	if (IsRunning())
+	if (bIsRunning)
 	{
 		Cancel(true);
 	}
@@ -45,7 +45,7 @@ FMonitoredProcess::~FMonitoredProcess()
 
 FTimespan FMonitoredProcess::GetDuration() const
 {
-	if (IsRunning())
+	if (bIsRunning)
 	{
 		return (FDateTime::UtcNow() - StartTime);
 	}
@@ -56,7 +56,7 @@ FTimespan FMonitoredProcess::GetDuration() const
 
 bool FMonitoredProcess::Launch()
 {
-	if (IsRunning())
+	if (bIsRunning)
 	{
 		return false;
 	}
@@ -81,6 +81,10 @@ bool FMonitoredProcess::Launch()
 
 	bIsRunning = true;
 	Thread = FRunnableThread::Create(this, *MonitoredProcessName, 128 * 1024, TPri_AboveNormal);
+	if ( !FPlatformProcess::SupportsMultithreading() )
+	{
+		StartTime = FDateTime::UtcNow();
+	}
 
 	return true;
 }
@@ -115,46 +119,70 @@ void FMonitoredProcess::ProcessOutput( const FString& Output )
 	OutputBuffer = OutputBuffer.Mid(LineStartIdx);
 }
 
+void FMonitoredProcess::TickInternal()
+{
+	// monitor the process
+	ProcessOutput(FPlatformProcess::ReadPipe(ReadPipe));
+
+	if (Canceling)
+	{
+		FPlatformProcess::TerminateProc(ProcessHandle, KillTree);
+		CanceledDelegate.ExecuteIfBound();
+		bIsRunning = false;
+	}
+	else if (!FPlatformProcess::IsProcRunning(ProcessHandle))
+	{
+		EndTime = FDateTime::UtcNow();
+
+		// close output pipes
+		FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+		ReadPipe = WritePipe = nullptr;
+
+		// get completion status
+		if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
+		{
+			ReturnCode = -1;
+		}
+
+		CompletedDelegate.ExecuteIfBound(ReturnCode);
+		bIsRunning = false;
+	}
+}
+
+
+bool FMonitoredProcess::Update()
+{
+	if (!FPlatformProcess::SupportsMultithreading())
+	{
+		FPlatformProcess::Sleep(SleepInterval);
+		Tick();
+	}
+	return bIsRunning;
+}
+
 
 /* FRunnable interface
  *****************************************************************************/
 
 uint32 FMonitoredProcess::Run()
 {
-	// monitor the process
 	StartTime = FDateTime::UtcNow();
+	while (bIsRunning)
 	{
-		do
-		{
-			FPlatformProcess::Sleep(SleepInterval);
-
-			ProcessOutput(FPlatformProcess::ReadPipe(ReadPipe));
-
-			if (Canceling)
-			{
-				FPlatformProcess::TerminateProc(ProcessHandle, KillTree);
-				CanceledDelegate.ExecuteIfBound();
-				bIsRunning = false;
-
-				return 0;
-			}
-		}
-		while (FPlatformProcess::IsProcRunning(ProcessHandle));
-	}
-	EndTime = FDateTime::UtcNow();
-
-	// close output pipes
-	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
-	ReadPipe = WritePipe = nullptr;
-
-	// get completion status
-	if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
-	{
-		ReturnCode = -1;
-	}
-
-	CompletedDelegate.ExecuteIfBound(ReturnCode);
-	bIsRunning = false;
+		FPlatformProcess::Sleep(SleepInterval);
+		TickInternal();
+	} 
 
 	return 0;
 }
+
+/* FRunnableSingleThreaded interface
+*****************************************************************************/
+void FMonitoredProcess::Tick()
+{
+	if (bIsRunning)
+	{
+		TickInternal();
+	}
+}
+

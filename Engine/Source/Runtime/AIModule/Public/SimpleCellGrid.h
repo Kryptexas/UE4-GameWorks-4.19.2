@@ -17,7 +17,7 @@ struct FGridSize2D
 };
 
 /**	No virtuals on purpose */
-template<typename CellType>
+template<typename CellType, int InvalidCellValue = 0>
 struct TSimpleCellGrid
 {
 	typedef CellType FCellType;
@@ -33,7 +33,6 @@ struct TSimpleCellGrid
 
 protected:
 	TArray<FCellType> Cells;
-	static FCellType InvalidCell;
 
 public:
 	TSimpleCellGrid()
@@ -193,8 +192,9 @@ public:
 
 	const FCellType& GetCellAtWorldLocation(const FVector& WorldLocation) const
 	{
+		static FCellType InvalidCellInstance = FCellType(InvalidCellValue);
 		const int32 CellIndex = GetCellIndex(WorldLocation);
-		return (CellIndex == INDEX_NONE) ? InvalidCell : Cells[CellIndex];
+		return (CellIndex == INDEX_NONE) ? InvalidCellInstance : Cells[CellIndex];
 	}
 
 	FORCEINLINE FCellType& operator[](int32 CellIndex) { return Cells[CellIndex]; }
@@ -316,7 +316,7 @@ public:
 	{
 		const uint32 LocationX = FMath::TruncToInt((WorldLocation.X - Origin.X) / CellSize);
 		const uint32 LocationY = FMath::TruncToInt((WorldLocation.Y - Origin.Y) / CellSize);
-		return CellCoordsToCellIndex(LocationX, LocationY);
+		return GetCellIndex(LocationX, LocationY);
 	}
 
 	DEPRECATED(4.14, "This function is now deprecated, please use GetCellCoords instead.")
@@ -342,8 +342,7 @@ public:
 	DEPRECATED(4.14, "This function is now deprecated, please use GetCellAtWorldLocation instead.")
 	const FCellType& GetCellAtWorldLocationSafe(const FVector& WorldLocation) const
 	{
-		const uint32 CellIndex = GetCellIndex(WorldLocation);
-		return CellIndex < (GridSize.Height * GridSize.Width) ? Cells[CellIndex] : InvalidCell;
+		return GetCellAtWorldLocation(WorldLocation);
 	}
 
 	DEPRECATED(4.14, "This function is now deprecated, please use GetAllocatedSize instead.")

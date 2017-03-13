@@ -708,7 +708,7 @@ void UProceduralMeshComponent::SetCollisionConvexMeshes(const TArray< TArray<FVe
 
 void UProceduralMeshComponent::UpdateLocalBounds()
 {
-	FBox LocalBox(0);
+	FBox LocalBox(ForceInit);
 
 	for (const FProcMeshSection& Section : ProcMeshSections)
 	{
@@ -885,7 +885,7 @@ void UProceduralMeshComponent::UpdateCollision()
 	// Also we want cooked data for this
 	ProcMeshBodySetup->bHasCookedCollisionData = true;
 
-#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 	// Clear current mesh data
 	ProcMeshBodySetup->InvalidatePhysicsData();
 	// Create new mesh data

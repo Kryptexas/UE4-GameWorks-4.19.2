@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PakFile : ModuleRules
 {
-	public PakFile(TargetInfo Target)
+	public PakFile(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
 	}

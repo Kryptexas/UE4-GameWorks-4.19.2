@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AlembicImporter : ModuleRules
 {
-    public AlembicImporter(TargetInfo Target)
+    public AlembicImporter(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("AlembicImporter/Private");
         PublicIncludePaths.Add("AlembicImporter/Public");

@@ -1555,11 +1555,9 @@ private:
 		check( TexCoordCount <= MAX_TEXCOORDS );
 
 		uint32 TriCount = 0;
-#if WITH_APEX_CLOTHING
+
 		const uint32 SectionCount = (uint32)LODModel.NumNonClothingSections();
-#else
-		const uint32 SectionCount = LODModel.Sections.Num();
-#endif // #if WITH_APEX_CLOTHING
+
 		for ( uint32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex )
 		{
 			TriCount += LODModel.Sections[ SectionIndex ].NumTriangles;

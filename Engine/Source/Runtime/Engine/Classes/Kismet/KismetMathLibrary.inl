@@ -1674,6 +1674,18 @@ FLinearColor UKismetMathLibrary::Conv_FloatToLinearColor(float InFloat)
 }
 
 KISMET_MATH_FORCEINLINE
+FBox UKismetMathLibrary::MakeBox(FVector Min, FVector Max)
+{
+	return FBox(Min, Max);
+}
+
+KISMET_MATH_FORCEINLINE
+FBox2D UKismetMathLibrary::MakeBox2D(FVector2D Min, FVector2D Max)
+{
+	return FBox2D(Min, Max);
+}
+
+KISMET_MATH_FORCEINLINE
 FVector UKismetMathLibrary::MakeVector(float X, float Y, float Z)
 {
 	return FVector(X,Y,Z);

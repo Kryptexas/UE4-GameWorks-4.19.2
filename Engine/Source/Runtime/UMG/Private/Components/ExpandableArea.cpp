@@ -157,7 +157,7 @@ const FText UExpandableArea::GetPaletteCategory()
 	return LOCTEXT("Extra", "Extra");
 }
 
-void UExpandableArea::OnDescendantSelected(UWidget* DescendantWidget)
+void UExpandableArea::OnDescendantSelectedByDesigner(UWidget* DescendantWidget)
 {
 	// Temporarily sets the active child to the selected child to make
 	// dragging and dropping easier in the editor.
@@ -168,7 +168,7 @@ void UExpandableArea::OnDescendantSelected(UWidget* DescendantWidget)
 	}
 }
 
-void UExpandableArea::OnDescendantDeselected(UWidget* DescendantWidget)
+void UExpandableArea::OnDescendantDeselectedByDesigner(UWidget* DescendantWidget)
 {
 	if ( MyExpandableArea.IsValid() )
 	{

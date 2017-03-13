@@ -57,6 +57,7 @@ void SSplitter::Construct( const SSplitter::FArguments& InArgs )
 	HoveredHandleIndex = INDEX_NONE;
 	bIsResizing = false;
 	Style = InArgs._Style;
+	OnGetMaxSlotSize = InArgs._OnGetMaxSlotSize;
 
 	for (int32 SlotIndex = 0; SlotIndex < InArgs.Slots.Num(); ++SlotIndex )
 	{
@@ -197,7 +198,7 @@ int32 SSplitter::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 				GeometryAfterSplitter.ToPaintGeometry( HandlePosition, HandleSize, 1.0f ),
 				NormalHandleBrush,
 				MyClippingRect,
-				ShouldBeEnabled( bParentEnabled ),
+				ShouldBeEnabled(bParentEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 				InWidgetStyle.GetColorAndOpacityTint() * NormalHandleBrush->TintColor.GetSpecifiedColor()
 			);
 		}
@@ -209,7 +210,7 @@ int32 SSplitter::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 				GeometryAfterSplitter.ToPaintGeometry( HandlePosition, HandleSize, 1.0f ),
 				&Style->HandleHighlightBrush,
 				MyClippingRect,
-				ShouldBeEnabled( bParentEnabled ),
+				ShouldBeEnabled(bParentEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 				InWidgetStyle.GetColorAndOpacityTint() * Style->HandleHighlightBrush.TintColor.GetSpecifiedColor()
 			);	
 		}
@@ -343,14 +344,7 @@ FReply SSplitter::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent&
 	{
 		if ( !MouseEvent.GetCursorDelta().IsZero() )
 		{
-			if (Orientation == Orient_Horizontal)
-			{
-				HandleResizing<Orient_Horizontal>( PhysicalSplitterHandleSize, ResizeMode, HoveredHandleIndex, LocalMousePosition, Children, LayoutChildren );
-			}
-			else
-			{
-				HandleResizing<Orient_Vertical>( PhysicalSplitterHandleSize, ResizeMode, HoveredHandleIndex, LocalMousePosition, Children, LayoutChildren );
-			}
+			HandleResizingByMousePosition(Orientation, PhysicalSplitterHandleSize, ResizeMode, HoveredHandleIndex, LocalMousePosition, Children, LayoutChildren );
 		}
 
 		return FReply::Handled();
@@ -373,6 +367,25 @@ FReply SSplitter::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent&
 		return FReply::Unhandled();
 	}
 
+}
+
+FReply SSplitter::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (OnGetMaxSlotSize.IsBound())
+	{
+		FVector2D MaxSlotSize = OnGetMaxSlotSize.Execute(HoveredHandleIndex);
+
+		if (!MaxSlotSize.IsZero())
+		{
+			TArray<FLayoutGeometry> LayoutChildren = ArrangeChildrenForLayout(InMyGeometry);
+
+			HandleResizingBySize(Orientation, PhysicalSplitterHandleSize, ResizeMode, HoveredHandleIndex, MaxSlotSize, Children, LayoutChildren);
+
+			return FReply::Handled();
+		}
+	}
+
+	return SWidget::OnMouseButtonDoubleClick(InMyGeometry, InMouseEvent);
 }
 
 void SSplitter::OnMouseLeave( const FPointerEvent& MouseEvent )
@@ -487,25 +500,19 @@ void SSplitter::FindAllResizeableSlotsAfterHandle( int32 DraggedHandle, const TP
 	}
 };
 
-
-template<EOrientation SplitterOrientation>
-void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& LocalMousePos, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries )
+void SSplitter::HandleResizingDelta(EOrientation SplitterOrientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, float Delta, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries)
 {
 	const int32 NumChildren = Children.Num();
-
 	const int32 AxisIndex = (SplitterOrientation == Orient_Horizontal) ? 0 : 1;
 
 	// Note:
 	//  - Prev vs. Next refers to the widgets in the order they are laid out (left->right, top->bottom).
 	//  - New vs. Old refers to the Old values for width/height vs. the post-resize values.
 
-	const float HandlePos = ChildGeometries[DraggedHandle+1].GetLocalToParentTransform().GetTranslation().Component(AxisIndex) - PhysicalSplitterHandleSize / 2;
-	float Delta = LocalMousePos.Component(AxisIndex) - HandlePos;
-
-	const int32 SlotBeforeDragHandle = FindResizeableSlotBeforeHandle( DraggedHandle, Children );
+	const int32 SlotBeforeDragHandle = FindResizeableSlotBeforeHandle(DraggedHandle, Children);
 
 	TArray< int32 > SlotsAfterDragHandleIndicies;
-	if ( ResizeMode == ESplitterResizeMode::Fixed )
+	if (ResizeMode == ESplitterResizeMode::FixedPosition)
 	{
 		const int32 SlotAfterDragHandle = FindResizeableSlotAfterHandle( DraggedHandle, Children );
 
@@ -514,7 +521,7 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 			SlotsAfterDragHandleIndicies.Add( SlotAfterDragHandle );
 		}
 	}
-	else if ( ResizeMode == ESplitterResizeMode::Fill )
+	else if (ResizeMode == ESplitterResizeMode::Fill || ResizeMode == ESplitterResizeMode::FixedSize)
 	{
 		FindAllResizeableSlotsAfterHandle( DraggedHandle, Children, /*OUT*/ SlotsAfterDragHandleIndicies );
 	}
@@ -551,20 +558,25 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 
 		// Distribute the Delta across the affected slots after the drag handle
 		float UnusedDelta = Delta;
+
 		for (int DistributionCount = 0; DistributionCount < SlotsAfterDragHandle.Num() && UnusedDelta != 0; DistributionCount++)
 		{
-			float DividedDelta = UnusedDelta / SlotsAfterDragHandle.Num();
+			float DividedDelta = ResizeMode != ESplitterResizeMode::FixedSize ? UnusedDelta / SlotsAfterDragHandle.Num() : UnusedDelta;
 			UnusedDelta = 0;
+
 			for (int SlotIndex = 0; SlotIndex < SlotsAfterDragHandle.Num(); SlotIndex++)
 			{
 				FSlotInfo& SlotInfo = SlotsAfterDragHandle[ SlotIndex ];
 
-				float CurrentSize = ClampChild( SlotInfo.Geometry->GetSizeInParentSpace().Component(AxisIndex) );
-				SlotInfo.NewSize = ClampChild( CurrentSize - DividedDelta );
+				if (ResizeMode != ESplitterResizeMode::FixedSize || (ResizeMode == ESplitterResizeMode::FixedSize && SlotIndex == SlotsAfterDragHandle.Num() - 1)) // resize only the last handle in the case of fixed size
+				{
+					float CurrentSize = ClampChild(SlotInfo.Geometry->GetSizeInParentSpace().Component(AxisIndex));
+					SlotInfo.NewSize = ClampChild(CurrentSize - DividedDelta);
 
-				// If one of the slots couldn't be fully adjusted by the delta due to min/max constraints then
-				// the leftover delta needs to be evenly distributed to all of the other slots
-				UnusedDelta += SlotInfo.NewSize - ( CurrentSize - DividedDelta );
+					// If one of the slots couldn't be fully adjusted by the delta due to min/max constraints then
+					// the leftover delta needs to be evenly distributed to all of the other slots
+					UnusedDelta += SlotInfo.NewSize - (CurrentSize - DividedDelta);
+				}
 			}
 		}
 
@@ -615,6 +627,26 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 			}
 		}
 	}
+}
+
+void SSplitter::HandleResizingBySize(EOrientation SplitterOrientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& DesiredSize, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries)
+{
+	const int32 AxisIndex = (SplitterOrientation == Orient_Horizontal) ? 0 : 1;
+
+	float CurrentSlotSize = ChildGeometries[DraggedHandle].GetSizeInParentSpace().Component(AxisIndex);
+	float Delta = DesiredSize.Component(AxisIndex) - CurrentSlotSize;
+
+	HandleResizingDelta(SplitterOrientation, PhysicalSplitterHandleSize, ResizeMode, DraggedHandle, Delta, Children, ChildGeometries);
+}
+
+void SSplitter::HandleResizingByMousePosition(EOrientation SplitterOrientation, const float PhysicalSplitterHandleSize, const ESplitterResizeMode::Type ResizeMode, int32 DraggedHandle, const FVector2D& LocalMousePos, TPanelChildren<FSlot>& Children, const TArray<FLayoutGeometry>& ChildGeometries )
+{
+	const int32 AxisIndex = (SplitterOrientation == Orient_Horizontal) ? 0 : 1;
+
+	const float HandlePos = ChildGeometries[DraggedHandle+1].GetLocalToParentTransform().GetTranslation().Component(AxisIndex) - PhysicalSplitterHandleSize / 2;
+	float Delta = LocalMousePos.Component(AxisIndex) - HandlePos;
+
+	HandleResizingDelta(SplitterOrientation, PhysicalSplitterHandleSize, ResizeMode, DraggedHandle, Delta, Children, ChildGeometries);
 }
 
 /**

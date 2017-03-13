@@ -1509,7 +1509,7 @@ UStaticMesh* FStaticMeshEditor::GetFirstSelectedStaticMeshInContentBrowser() con
 	return NULL;
 }
 
-void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh)
+void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCamera/*=true*/)
 {
 	ClearSelectedPrims();
 
@@ -1569,7 +1569,7 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh)
 	// Set the details view.
 	StaticMeshDetailsView->SetObject(StaticMesh);
 
-	Viewport->UpdatePreviewMesh(StaticMesh);
+	Viewport->UpdatePreviewMesh(StaticMesh, bResetCamera);
 	Viewport->RefreshViewport();
 }
 
@@ -1867,7 +1867,9 @@ void FStaticMeshEditor::OnObjectReimported(UObject* InObject)
 	// Make sure we are using the object that is being reimported, otherwise a lot of needless work could occur.
 	if(StaticMesh == InObject)
 	{
-		SetEditorMesh(Cast<UStaticMesh>(InObject));
+		//When we re-import we want to avoid moving the camera in the staticmesh editor
+		bool bResetCamera = false;
+		SetEditorMesh(Cast<UStaticMesh>(InObject), bResetCamera);
 
 		if (SocketManager.IsValid())
 		{

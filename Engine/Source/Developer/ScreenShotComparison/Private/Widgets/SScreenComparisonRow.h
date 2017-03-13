@@ -10,9 +10,11 @@
 #include "Widgets/Views/STableRow.h"
 #include "ISourceControlState.h"
 #include "Interfaces/IScreenShotManager.h"
+#include "Async/Async.h"
 
 class FScreenComparisonModel;
 struct FSlateDynamicImageBrush;
+class SAsyncImage;
 
 /**
  * Widget to display a particular view.
@@ -26,7 +28,6 @@ public:
 
 		SLATE_ARGUMENT( IScreenShotManagerPtr, ScreenshotManager )
 		SLATE_ARGUMENT( FString, ComparisonDirectory )
-		SLATE_ARGUMENT( TSharedPtr<FComparisonResults>, Comparisons )
 		SLATE_ARGUMENT( TSharedPtr<FScreenComparisonModel>, ComparisonResult )
 
 	SLATE_END_ARGS()
@@ -44,7 +45,6 @@ public:
 private:
 	bool CanUseSourceControl() const;
 
-	TSharedRef<SWidget> BuildMissingView();
 	TSharedRef<SWidget> BuildAddedView();
 	TSharedRef<SWidget> BuildComparisonPreview();
 
@@ -57,13 +57,7 @@ private:
 	bool CanAddAsAlternative() const;
 	FReply AddAlternative();
 
-	FReply RemoveExistingApproved();
-
-	void GetStatus();
-
-	TSharedPtr<FSlateDynamicImageBrush> LoadScreenshot(FString ImagePath);
-	void LoadMetadata();
-
+	FReply OnCompareImages(const FGeometry& InGeometry, const FPointerEvent& InEvent);
 	FReply OnImageClicked(const FGeometry& InGeometry, const FPointerEvent& InEvent, TSharedPtr<FSlateDynamicImageBrush> Image);
 
 private:
@@ -76,23 +70,9 @@ private:
 
 	FString ComparisonDirectory;
 
-	TSharedPtr<FComparisonResults> Comparisons;
-
 	//The cached actual size of the screenshot
 	FIntPoint CachedActualImageSize;
 
-	//Holds the dynamic brush.
-	TSharedPtr<FSlateDynamicImageBrush> ApprovedBrush;
-
-	//Holds the dynamic brush.
-	TSharedPtr<FSlateDynamicImageBrush> UnapprovedBrush;
-
-	//Holds the dynamic brush.
-	TSharedPtr<FSlateDynamicImageBrush> ComparisonBrush;
-
-	// 
-	TArray<FString> ExternalFiles;
-
-	// 
-	TArray<FSourceControlStateRef> SourceControlStates;
+	TSharedPtr<SAsyncImage> ApprovedImageWidget;
+	TSharedPtr<SAsyncImage> UnapprovedImageWidget;
 };

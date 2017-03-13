@@ -183,7 +183,6 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView_RenderTh
 
 FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FStructuredBufferRHIParamRef StructuredBuffer)
 {
-	UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHICreateShaderResourceView with FStructuredBufferRHIParamRef yet!"));
 	return GDynamicRHI->RHICreateShaderResourceView(StructuredBuffer);
 }
 
@@ -193,8 +192,13 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FStructu
 	FMetalStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
 
 	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
+	SRV->SourceVertexBuffer = nullptr;
+	SRV->SourceIndexBuffer = nullptr;
 	SRV->TextureView = nullptr;
-	UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHICreateShaderResourceView with FStructuredBufferRHIParamRef yet!"));
+	SRV->SourceStructuredBuffer = StructuredBuffer;
+	
+	UE_LOG(LogRHI, Warning, TEXT("FShaderCache doesn't support RHICreateShaderResourceView with FStructuredBufferRHIParamRef yet!"));
+	
 	return SRV;
 }
 
@@ -205,6 +209,8 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FVertexB
 	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
 	SRV->SourceVertexBuffer = VertexBuffer;
 	SRV->TextureView = nullptr;
+	SRV->SourceIndexBuffer = nullptr;
+	SRV->SourceStructuredBuffer = nullptr;
 	
 	FShaderCache::LogSRV(SRV, VertexBufferRHI, Stride, Format);
 	
@@ -219,6 +225,7 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FIndexBu
 	SRV->SourceVertexBuffer = nullptr;
 	SRV->SourceIndexBuffer = Buffer;
 	SRV->TextureView = nullptr;
+	SRV->SourceStructuredBuffer = nullptr;
 	
 	UE_LOG(LogRHI, Warning, TEXT("FShaderCache doesn't support RHICreateShaderResourceView with FIndexBufferRHIParamRef yet!"));
 	//FShaderCache::LogSRV(SRV, VertexBufferRHI, Stride, Format);
@@ -233,6 +240,10 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 	
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture2DRHI);
 	SRV->TextureView = Surface ? new FMetalSurface(*Surface, NSMakeRange(MipLevel, 1)) : nullptr;
+	
+	SRV->SourceVertexBuffer = nullptr;
+	SRV->SourceIndexBuffer = nullptr;
+	SRV->SourceStructuredBuffer = nullptr;
 	
 	SRV->MipLevel = MipLevel;
 	SRV->NumMips = 1;
@@ -251,6 +262,10 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture2DRHI);
 	SRV->TextureView = Surface ? new FMetalSurface(*Surface, NSMakeRange(MipLevel, NumMipLevels), (EPixelFormat)Format) : nullptr;
 	
+	SRV->SourceVertexBuffer = nullptr;
+	SRV->SourceIndexBuffer = nullptr;
+	SRV->SourceStructuredBuffer = nullptr;
+	
 	SRV->MipLevel = MipLevel;
 	SRV->NumMips = NumMipLevels;
 	SRV->Format = Format;
@@ -266,6 +281,10 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 	
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture3DRHI);
 	SRV->TextureView = Surface ? new FMetalSurface(*Surface, NSMakeRange(MipLevel, 1)) : nullptr;
+	
+	SRV->SourceVertexBuffer = nullptr;
+	SRV->SourceIndexBuffer = nullptr;
+	SRV->SourceStructuredBuffer = nullptr;
 	
 	SRV->MipLevel = MipLevel;
 	SRV->NumMips = 1;
@@ -283,6 +302,10 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture2DArrayRHI);
 	SRV->TextureView = Surface ? new FMetalSurface(*Surface, NSMakeRange(MipLevel, 1)) : nullptr;
 	
+	SRV->SourceVertexBuffer = nullptr;
+	SRV->SourceIndexBuffer = nullptr;
+	SRV->SourceStructuredBuffer = nullptr;
+	
 	SRV->MipLevel = MipLevel;
 	SRV->NumMips = 1;
 	SRV->Format = PF_Unknown;
@@ -298,6 +321,10 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 	
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureCubeRHI);
 	SRV->TextureView = Surface ? new FMetalSurface(*Surface, NSMakeRange(MipLevel, 1)) : nullptr;
+	
+	SRV->SourceVertexBuffer = nullptr;
+	SRV->SourceIndexBuffer = nullptr;
+	SRV->SourceStructuredBuffer = nullptr;
 	
 	SRV->MipLevel = MipLevel;
 	SRV->NumMips = 1;

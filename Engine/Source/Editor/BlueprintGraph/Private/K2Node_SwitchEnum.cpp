@@ -34,14 +34,10 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 			bool const bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );
 			if (!bShouldBeHidden)
 			{
-				FString const EnumValueName = Enum->GetEnumName(EnumIndex);
+				FString const EnumValueName = Enum->GetNameStringByIndex(EnumIndex);
 				EnumEntries.Add( FName(*EnumValueName) );
 
-				FText EnumFriendlyName = Enum->GetEnumText(EnumIndex);
-				if (EnumFriendlyName.IsEmpty() )
-				{
-					EnumFriendlyName = FText::FromString(EnumValueName);
-				}
+				FText EnumFriendlyName = Enum->GetDisplayNameTextByIndex(EnumIndex);
 				EnumFriendlyNames.Add( EnumFriendlyName );
 			}
 		}

@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuite.h"
-#include "Tests/AITestsCommon.h"
+#include "AITestsCommon.h"
 
 DEFINE_LOG_CATEGORY(LogAITestSuite);
 DEFINE_LOG_CATEGORY(LogBehaviorTreeTest);

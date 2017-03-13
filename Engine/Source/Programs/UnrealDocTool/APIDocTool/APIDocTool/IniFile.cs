@@ -96,7 +96,7 @@ namespace APIDocTool
 		{
 			if (!File.Exists(InputPath))
 			{
-				Console.WriteLine("Ini File %s not found!", InputPath);
+				Console.WriteLine("Ini File {0} not found!", InputPath);
 				return new IniFile();
 			}
 

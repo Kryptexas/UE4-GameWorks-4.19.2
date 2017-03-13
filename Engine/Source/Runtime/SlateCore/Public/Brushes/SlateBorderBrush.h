@@ -101,4 +101,18 @@ struct SLATECORE_API FSlateBorderBrush
 		// A border with no margin will not show up at all.
 		check(InMargin.GetDesiredSize().SizeSquared() > 0);
 	}
+
+	/**
+	 * @param InResourceObject	The image to render for this brush, can be a UTexture, UMaterialInterface, or AtlasedTextureInterface
+	 * @param InMargin			Determines the sides and corner sizes; see FSlateBoxBrush.
+	 * @param InColorAndOpacity	Color and opacity scale.
+	 * @param InImageType		The type of image this this is
+	 */
+	FORCENOINLINE FSlateBorderBrush(UObject* InResourceObject, const FMargin& InMargin, const FSlateColor& InColorAndOpacity = FSlateColor(FLinearColor(1, 1, 1, 1)), ESlateBrushImageType::Type InImageType = ESlateBrushImageType::FullColor)
+		: FSlateBrush(ESlateBrushDrawType::Border, NAME_None, InMargin, ESlateBrushTileType::Both, InImageType, FVector2D::ZeroVector, InColorAndOpacity, InResourceObject)
+	{
+		// A border with no margin will not show up at all.
+		check(InMargin.GetDesiredSize().SizeSquared() > 0);
+	}
+
 };

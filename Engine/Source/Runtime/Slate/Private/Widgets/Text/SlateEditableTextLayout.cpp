@@ -1818,7 +1818,11 @@ void FSlateEditableTextLayout::OnContextMenuClosed(TSharedRef<IMenu> Menu)
 	// to know that the window is still available for OnFocusReceived and OnFocusLost even though it's about to be destroyed
 
 	// Give our owner widget focus when the context menu has been dismissed
-	FSlateApplication::Get().SetKeyboardFocus(OwnerWidget->GetSlateWidget(), EFocusCause::OtherWidgetLostFocus);
+	TSharedPtr<SWidget> OwnerSlateWidget = OwnerWidget->GetSlateWidgetPtr();
+	if (OwnerSlateWidget.IsValid())
+	{
+		FSlateApplication::Get().SetKeyboardFocus(OwnerSlateWidget, EFocusCause::OtherWidgetLostFocus);
+	}
 }
 
 void FSlateEditableTextLayout::InsertRunAtCursor(TSharedRef<IRun> InRun)
@@ -2314,6 +2318,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 	const bool bHasKeyboardFocus = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet();
 	const bool bIsComposing = TextInputMethodContext->IsComposing();
 	const bool bHasSelection = SelectionLocation != CursorInteractionPosition;
+	const bool bIsReadOnly = OwnerWidget->IsTextReadOnly();
 
 	if (bIsComposing)
 	{
@@ -2379,7 +2384,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 		}
 	}
 
-	if (bHasKeyboardFocus)
+	if (bHasKeyboardFocus && !bIsReadOnly)
 	{
 		// The cursor mode uses the literal position rather than the interaction position
 		const FTextLocation CursorPosition = CursorInfo.GetCursorLocation();

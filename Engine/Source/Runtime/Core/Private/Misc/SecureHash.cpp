@@ -669,6 +669,13 @@ void FSHA1::Transform(uint32 *state, const uint8 *buffer)
 	state[4] += e;
 }
 
+// do not remove #undefs, or you can get name collision with libc++'s <functional>
+#undef _R0
+#undef _R1
+#undef _R2
+#undef _R3
+#undef _R4
+
 // Use this function to hash in binary data
 void FSHA1::Update(const uint8 *data, uint32 len)
 {

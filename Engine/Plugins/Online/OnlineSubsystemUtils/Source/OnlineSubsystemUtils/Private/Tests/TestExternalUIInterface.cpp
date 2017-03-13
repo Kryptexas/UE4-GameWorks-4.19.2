@@ -89,7 +89,7 @@ bool FTestExternalUIInterface::TestLoginUI()
 		return false;
 	}
 
-	bool bShowingUI = ExternalUI->ShowLoginUI(0, true, FOnLoginUIClosedDelegate::CreateRaw(this, &FTestExternalUIInterface::OnLoginUIClosed));
+	bool bShowingUI = ExternalUI->ShowLoginUI(0, true, false, FOnLoginUIClosedDelegate::CreateRaw(this, &FTestExternalUIInterface::OnLoginUIClosed));
 	UE_LOG(LogOnline, Log, TEXT("TestLoginUI bShowingUI: %d"), bShowingUI);
 	return bShowingUI;
 }

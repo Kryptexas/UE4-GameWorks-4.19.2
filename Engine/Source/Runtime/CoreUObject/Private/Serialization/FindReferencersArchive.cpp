@@ -35,60 +35,61 @@ FFindReferencersArchive::FFindReferencersArchive(UObject* InPotentialReferencer,
 		}
 	}
 
-	PotentialReferencer = InPotentialReferencer;
-
-	// now start the search
-	if (PotentialReferencer)
-	{
-		PotentialReferencer->Serialize(*this);
-	}
+	PotentialReferencer = nullptr;
+	ResetPotentialReferencer(InPotentialReferencer);
 }
 
 void FFindReferencersArchive::ResetPotentialReferencer(UObject* InPotentialReferencer)
 {
-	PotentialReferencer = InPotentialReferencer;
-
-	// Reset all reference counts
-	for ( TMap<UObject*, int32>::TIterator It(TargetObjects); It; ++It )
+	if (PotentialReferencer)
 	{
-		It.Value() = 0;
+		// Reset all reference counts
+		for (TMap<UObject*, int32>::TIterator It(TargetObjects); It; ++It)
+		{
+			It.Value() = 0;
+		}
 	}
 
-	// now start the search
-	PotentialReferencer->Serialize(*this);
+	PotentialReferencer = InPotentialReferencer;
 
-	// search for references coming from AddReferencedObjects
-	class FArchiveProxyCollector : public FReferenceCollector
+	if (PotentialReferencer)
 	{
-		/** Archive we are a proxy for */
-		FArchive& Archive;
-	public:
-		FArchiveProxyCollector(FArchive& InArchive)
-			: Archive(InArchive)
+		// now start the search
+		PotentialReferencer->Serialize(*this);
+
+		// search for references coming from AddReferencedObjects
+		class FArchiveProxyCollector : public FReferenceCollector
 		{
-		}
-		virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty) override
-		{
-			Archive << Object;
-		}
-		virtual void HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
-		{
-			for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
+			/** Archive we are a proxy for */
+			FArchive& Archive;
+		public:
+			FArchiveProxyCollector(FArchive& InArchive)
+				: Archive(InArchive)
 			{
-				UObject*& Object = InObjects[ObjectIndex];
+			}
+			virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty) override
+			{
 				Archive << Object;
 			}
-		}
-		virtual bool IsIgnoringArchetypeRef() const override
-		{
-			return false;
-		}
-		virtual bool IsIgnoringTransient() const override
-		{
-			return false;
-		}
-	} ArchiveProxyCollector(*this);
-	PotentialReferencer->GetClass()->CallAddReferencedObjects(PotentialReferencer, ArchiveProxyCollector);
+			virtual void HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
+			{
+				for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
+				{
+					UObject*& Object = InObjects[ObjectIndex];
+					Archive << Object;
+				}
+			}
+			virtual bool IsIgnoringArchetypeRef() const override
+			{
+				return false;
+			}
+			virtual bool IsIgnoringTransient() const override
+			{
+				return false;
+			}
+		} ArchiveProxyCollector(*this);
+		PotentialReferencer->GetClass()->CallAddReferencedObjects(PotentialReferencer, ArchiveProxyCollector);
+	}
 }
 
 /**

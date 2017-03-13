@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SPackagesDialog_h__
-#define __SPackagesDialog_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Misc/Attribute.h"
@@ -17,10 +15,6 @@
 #include "Widgets/Views/STableRow.h"
 #include "ISourceControlProvider.h"
 #include "ISourceControlModule.h"
-
-#ifdef _MSC_VER
-	#pragma once
-#endif
 
 class SCheckBox;
 
@@ -579,6 +573,3 @@ private:
 	/** The item associated with this row of data */
 	TSharedPtr< FPackageItem > Item;
 };
-
-
-#endif	// __SPackagesDialog_h__

@@ -359,7 +359,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(FRHICommandListI
 			// One some hardware we can read and write from the same UAV with a 32 bit format. We don't do that yet.
 			TRefCountPtr<IPooledRenderTarget> OutTexture;
 			{
-				SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+				ResolveSceneColor(RHICmdList);
 
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 				Desc.TargetableFlags |= TexCreate_UAV;

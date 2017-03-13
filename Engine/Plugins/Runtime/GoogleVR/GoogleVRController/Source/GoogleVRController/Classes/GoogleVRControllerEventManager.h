@@ -21,7 +21,17 @@
 #include "UObject/WeakObjectPtr.h"
 #include "GoogleVRControllerEventManager.generated.h"
 
+UENUM(BlueprintType)
+enum class EGoogleVRControllerState : uint8
+{
+	Disconnected = 0,
+	Scanning = 1,
+	Connecting = 2,
+	Connected = 3,
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGoogleVRControllerRecenterDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGoogleVRControllerStateChangeDelegate, EGoogleVRControllerState, NewControllerState);
 
 /**
  * GoogleVRController Extensions Function Library
@@ -35,4 +45,10 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FGoogleVRControllerRecenterDelegate OnControllerRecenteredDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FGoogleVRControllerStateChangeDelegate OnControllerStateChangedDelegate;
+
+public:
+	static UGoogleVRControllerEventManager* GetInstance();
 };

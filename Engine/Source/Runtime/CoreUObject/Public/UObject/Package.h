@@ -552,22 +552,23 @@ public:
 	static void SaveWorldLevelInfo( UPackage* InOuter, FLinkerSave* Linker );
 
 	/**
-	  * Determines if a package contains no more assets.
-	  *
-	  * @param Package			the package to test
-	  * @param LastReferencer	the optional last UObject referencer to this package. This object will be excluded when determining if the package is empty
-	  * @return true if Package contains no more assets.
-	  */
+	 * Determines if a package contains no more assets.
+	 *
+	 * @param Package			the package to test
+	 * @param LastReferencer	the optional last UObject referencer to this package. This object will be excluded when determining if the package is empty
+	 * @return true if Package contains no more assets.
+	 */
 	static bool IsEmptyPackage(UPackage* Package, const UObject* LastReferencer = NULL);
 
-
 	/**
-	 * @param TargetPlatform - The platform being saved for
-	 * @param bIsCooking	 - Whether we are cooking or not
+	 * Determines the set of object marks that should be excluded for the target platform
 	 *
-	 * @return Objects marks specific for the particular target platform, objects with these marks will be rejected from the cook
+	 * @param TargetPlatform	The platform being saved for
+	 * @param bIsCooking		Whether we are cooking or not
+	 *
+	 * @return Excluded object marks specific for the particular target platform, objects with any of these marks will be rejected from the cook
 	 */
-	static EObjectMark GetObjectMarksForTargetPlatform( const class ITargetPlatform* TargetPlatform, const bool bIsCooking );
+	static EObjectMark GetExcludedObjectMarksForTargetPlatform( const class ITargetPlatform* TargetPlatform, const bool bIsCooking );
 
 };
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

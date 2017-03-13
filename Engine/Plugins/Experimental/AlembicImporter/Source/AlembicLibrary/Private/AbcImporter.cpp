@@ -214,14 +214,14 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	case EAlembicSamplingType::PerFrame:
 		{
 			// Calculates the time step required to get the number of frames
-			TimeStep = CacheLength / (float)ImportData->NumFrames;
+			TimeStep = CacheLength / (float)(ImportData->MaxFrameIndex - ImportData->MinFrameIndex);
 			break;
 		}
 	
 	case EAlembicSamplingType::PerTimeStep:
 		{
 			// Calculates the original time step and the ratio between it and the user specified time step
-			const float OriginalTimeStep = CacheLength / (float)ImportData->NumFrames;
+			const float OriginalTimeStep = CacheLength / (float)(ImportData->MaxFrameIndex - ImportData->MinFrameIndex);
 			const float FrameStepRatio = OriginalTimeStep / SamplingSettings.TimeSteps;
 			TimeStep = SamplingSettings.TimeSteps;
 
@@ -232,7 +232,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	case EAlembicSamplingType::PerXFrames:
 		{
 			// Calculates the original time step and the ratio between it and the user specified time step
-			const float OriginalTimeStep = CacheLength / (float)ImportData->NumFrames;
+			const float OriginalTimeStep = CacheLength / (float)(ImportData->MaxFrameIndex - ImportData->MinFrameIndex);
 			const float FrameStepRatio = OriginalTimeStep / ((float)SamplingSettings.FrameSteps * OriginalTimeStep);
 			TimeStep = ((float)SamplingSettings.FrameSteps * OriginalTimeStep);			
 
@@ -1108,7 +1108,7 @@ void FAbcImporter::SetupMorphTargetCurves(USkeleton* Skeleton, FName ConstCurveN
 	Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, ConstCurveName, NewName);
 
 	check(Sequence->RawCurveData.AddCurveData(NewName));
-	FFloatCurve * NewCurve = static_cast<FFloatCurve *> (Sequence->RawCurveData.GetCurveData(NewName.UID, FRawCurveTracks::FloatType));
+	FFloatCurve * NewCurve = static_cast<FFloatCurve *> (Sequence->RawCurveData.GetCurveData(NewName.UID, ERawCurveTrackTypes::RCT_Float));
 
 	for (int32 KeyIndex = 0; KeyIndex < CurveValues.Num(); ++KeyIndex)
 	{

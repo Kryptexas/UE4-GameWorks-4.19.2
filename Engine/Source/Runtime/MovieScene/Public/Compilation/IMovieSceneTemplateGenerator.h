@@ -14,6 +14,25 @@ struct FMovieSceneSequenceTransform;
 struct FMovieSceneSharedDataId;
 struct FMovieSceneSubSequenceData;
 
+struct FMovieSceneEvaluationGroupParameters
+{
+	FMovieSceneEvaluationGroupParameters()
+		: EvaluationPriority(0)
+		, bRequiresImmediateFlush(false)
+	{
+	}
+
+	FMovieSceneEvaluationGroupParameters(uint16 InPriority, bool bInRequiresImmediateFlush)
+		: EvaluationPriority(InPriority)
+		, bRequiresImmediateFlush(bInRequiresImmediateFlush)
+	{}
+
+	/** Prioirty assigned to this group. Higher priorities are evaluated first */
+	uint16 EvaluationPriority;
+	/** Whether this group requires an immediate of the token stack */
+	bool bRequiresImmediateFlush;
+};
+
 /** Abstract base class used to generate evaluation templates */
 struct IMovieSceneTemplateGenerator
 {
@@ -67,9 +86,23 @@ struct IMovieSceneTemplateGenerator
 	virtual FMovieSceneSequenceID GenerateSequenceID(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID) = 0;
 
 	/**
-	 * Indicate that the specified evaluation group should flush the execution stack immediately
-	 *
-	 * @param EvaluationGroup			The name of the evaluation group to flush
+	 * Register template parameters for compilation
 	 */
-	virtual void FlushGroupImmediately(FName EvaluationGroup) = 0;
+	MOVIESCENE_API static void RegisterEvaluationGroupParameters(FName GroupName, const FMovieSceneEvaluationGroupParameters& GroupParameters);
+
+	/**
+	 * Find group parameters for a specific evaluation group
+	 */
+	MOVIESCENE_API static FMovieSceneEvaluationGroupParameters GetEvaluationGroupParameters(FName GroupName);
 };
+
+
+/** Helper struct for registering evaluation group parameters */
+struct FMovieSceneTemplateParameterRegistration
+{
+	FMovieSceneTemplateParameterRegistration(FName InGroupName, const FMovieSceneEvaluationGroupParameters& InGroupParameters)
+	{
+		IMovieSceneTemplateGenerator::RegisterEvaluationGroupParameters(InGroupName, InGroupParameters);
+	}
+};
+

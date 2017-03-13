@@ -137,6 +137,36 @@ FString FConfigValue::CollapseValue(const FString& InExpandedValue)
 	return CollapsedValue;
 }
 
+#if !UE_BUILD_SHIPPING
+/**
+* Checks if the section name is the expected name format (long package name or simple name)
+*/
+static void CheckLongSectionNames(const TCHAR* Section, const FConfigFile* File)
+{
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		// Guard against short names in ini files.
+		if (FCString::Strnicmp(Section, TEXT("/Script/"), 8) == 0)
+		{
+			// Section is a long name
+			if (File->Find(Section + 8))
+			{
+				UE_LOG(LogConfig, Fatal, TEXT("Short config section found while looking for %s"), Section);
+			}
+		}
+		else
+		{
+			// Section is a short name
+			FString LongName = FString(TEXT("/Script/")) + Section;
+			if (File->Find(*LongName))
+			{
+				UE_LOG(LogConfig, Fatal, TEXT("Short config section used instead of long %s"), Section);
+			}
+		}
+	}
+}
+#endif // UE_BUILD_SHIPPING
+
 /*-----------------------------------------------------------------------------
 	FConfigSection
 -----------------------------------------------------------------------------*/
@@ -1341,6 +1371,31 @@ bool FConfigFile::GetBool(const TCHAR* Section, const TCHAR* Key, bool& Value ) 
 	return 0;
 }
 
+int32 FConfigFile::GetArray(const TCHAR* Section, const TCHAR* Key, TArray<FString>& Value) const
+{
+	const FConfigSection* Sec = Find(Section);
+	if (Sec != nullptr)
+	{
+		TArray<FConfigValue> RemapArray;
+		Sec->MultiFind(Key, RemapArray);
+
+		// TMultiMap::MultiFind will return the results in reverse order
+		Value.AddZeroed(RemapArray.Num());
+		for (int32 RemapIndex = RemapArray.Num() - 1, Index = 0; RemapIndex >= 0; RemapIndex--, Index++)
+		{
+			Value[Index] = RemapArray[RemapIndex].GetValue();
+		}
+	}
+#if !UE_BUILD_SHIPPING
+	else
+	{
+		CheckLongSectionNames(Section, this);
+	}
+#endif
+
+	return Value.Num();
+}
+
 
 
 void FConfigFile::SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value )
@@ -1779,36 +1834,6 @@ void FConfigCacheIni::Detach(const FString& Filename)
 	if( File )
 		File->NoSave = 1;
 }
-
-#if !UE_BUILD_SHIPPING
-/**
- * Checks if the section name is the expected name format (long package name or simple name)
- */
-static void CheckLongSectionNames(const TCHAR* Section, FConfigFile* File)
-{
-	if (!FPlatformProperties::RequiresCookedData())
-	{
-		// Guard against short names in ini files.
-		if (FCString::Strnicmp(Section, TEXT("/Script/"), 8) == 0)
-		{
-			// Section is a long name
-			if (File->Find( Section + 8 ))
-			{
-				UE_LOG(LogConfig, Fatal, TEXT("Short config section found while looking for %s"), Section);
-			}
-		}
-		else
-		{
-			// Section is a short name
-			FString LongName = FString(TEXT("/Script/")) + Section;
-			if (File->Find( *LongName ))
-			{
-				UE_LOG(LogConfig, Fatal, TEXT("Short config section used instead of long %s"), Section);
-			}
-		}
-	}
-}
-#endif // UE_BUILD_SHIPPING
 
 bool FConfigCacheIni::GetString( const TCHAR* Section, const TCHAR* Key, FString& Value, const FString& Filename )
 {
@@ -2913,7 +2938,7 @@ static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCH
 #if IS_PROGRAM
 	const bool BaseIniRequired = false;
 #else
-	const bool BaseIniRequired = true;
+	const bool BaseIniRequired = (EngineConfigDir == FPaths::EngineConfigDir());
 #endif
 	OutHierarchy.Add(EConfigFileHierarchy::AbsoluteBase, FIniFilename(FString::Printf(TEXT("%sBase.ini"), EngineConfigDir), BaseIniRequired));
 	// Engine/Config/Base* ini
@@ -3124,84 +3149,33 @@ bool FConfigCacheIni::LoadGlobalIniFile(FString& FinalIniFilename, const TCHAR* 
 	// make a new entry in GConfig (overwriting what's already there)
 	FConfigFile& NewConfigFile = GConfig->Add(FinalIniFilename, FConfigFile());
 
-	if ( bForceReload )
-	{
-		ClearHierarchyCache(BaseIniName);
-	}
-
-
-	// calculate the source ini file name,
-	GetSourceIniHierarchyFilenames( BaseIniName, Platform, *FPaths::EngineConfigDir(), *FPaths::SourceConfigDir(), NewConfigFile.SourceIniHierarchy, bRequireDefaultIni );
-
-	// Keep a record of the original settings
-	NewConfigFile.SourceConfigFile = new FConfigFile();
-
-	// now generate and make sure it's up to date
-	bool bResult = GenerateDestIniFile(NewConfigFile, FinalIniFilename, NewConfigFile.SourceIniHierarchy, bAllowGeneratedIniWhenCooked, true);
-	NewConfigFile.Name = BaseIniName;
-
-	// don't write anything to disk in cooked builds - we will always use re-generated INI files anyway.
-	if ((!FPlatformProperties::RequiresCookedData() || bAllowGeneratedIniWhenCooked)
-			// We shouldn't save config files when in multiprocess mode,
-			// otherwise we get file contention in XGE shader builds.
-			&& !FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")))
-	{
-		// Check the config system for any changes made to defaults and propagate through to the saved.
-		NewConfigFile.ProcessSourceAndCheckAgainstBackup();
-
-		if (bResult)
-		{
-			// if it was dirtied during the above function, save it out now
-			NewConfigFile.Write(FinalIniFilename);
-		}
-	}
-
-	return bResult;
+	return LoadExternalIniFile(NewConfigFile, BaseIniName, *FPaths::EngineConfigDir(), *FPaths::SourceConfigDir(), true, Platform, bForceReload, true, bAllowGeneratedIniWhenCooked, GeneratedConfigDir);
 }
 
-void FConfigCacheIni::LoadLocalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, bool bGenerateDestIni, const TCHAR* Platform, const bool bForceReload )
+bool FConfigCacheIni::LoadLocalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, bool bIsBaseIniName, const TCHAR* Platform, bool bForceReload )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FConfigCacheIni::LoadLocalIniFile" ), STAT_FConfigCacheIni_LoadLocalIniFile, STATGROUP_LoadTime );
 
-	LoadExternalIniFile( ConfigFile, IniName, *FPaths::EngineConfigDir(), *FPaths::SourceConfigDir(), bGenerateDestIni, Platform, bForceReload );
-
-
-	// if bGenerateDestIni is false, that means the .ini is a ready-to-go .ini file, and just needs to be loaded into the FConfigFile
-	/*if (!bGenerateDestIni)
-	{
-		// generate path to the .ini file (not a Default ini, IniName is the complete name of the file, without path)
-		FString SourceIniFilename = FString::Printf(TEXT("%s%s.ini"), *FPaths::SourceConfigDir(), IniName);
-
-		// load the .ini file straight up
-		LoadAnIniFile(*SourceIniFilename, ConfigFile);
-	}
-	else
-	{
-		GetSourceIniHierarchyFilenames( IniName, Platform, *FPaths::EngineConfigDir(), *FPaths::SourceConfigDir(), ConfigFile.SourceIniHierarchy, false );
-		
-		// Keep a record of the original settings
-		ConfigFile.SourceConfigFile = new FConfigFile();
-
-		// now generate and make sure it's up to date (using IniName as a Base for an ini filename)
-		const bool bAllowGeneratedINIs = true;
-		GenerateDestIniFile(ConfigFile, GetDestIniFilename(IniName, Platform, *FPaths::GeneratedConfigDir()), ConfigFile.SourceIniHierarchy, bAllowGeneratedINIs, true);
-	}
-	ConfigFile.Name = IniName;*/
+	return LoadExternalIniFile(ConfigFile, IniName, *FPaths::EngineConfigDir(), *FPaths::SourceConfigDir(), bIsBaseIniName, Platform, bForceReload, false);
 }
 
-void FConfigCacheIni::LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, bool bGenerateDestIni, const TCHAR* Platform, const bool bForceReload)
+bool FConfigCacheIni::LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, bool bIsBaseIniName, const TCHAR* Platform, bool bForceReload, bool bWriteDestIni, bool bAllowGeneratedIniWhenCooked, const TCHAR* GeneratedConfigDir)
 {
-	// if bGenerateDestIni is false, that means the .ini is a ready-to-go .ini file, and just needs to be loaded into the FConfigFile
-	if (!bGenerateDestIni)
+	// if bIsBaseIniName is false, that means the .ini is a ready-to-go .ini file, and just needs to be loaded into the FConfigFile
+	if (!bIsBaseIniName)
 	{
 		// generate path to the .ini file (not a Default ini, IniName is the complete name of the file, without path)
 		FString SourceIniFilename = FString::Printf(TEXT("%s/%s.ini"), SourceConfigDir, IniName);
 
 		// load the .ini file straight up
 		LoadAnIniFile(*SourceIniFilename, ConfigFile);
+
+		ConfigFile.Name = IniName;
 	}
 	else
 	{
+		FString DestIniFilename = GetDestIniFilename(IniName, Platform, GeneratedConfigDir);
+
 		GetSourceIniHierarchyFilenames( IniName, Platform, EngineConfigDir, SourceConfigDir, ConfigFile.SourceIniHierarchy, false );
 
 		if ( bForceReload )
@@ -3209,15 +3183,34 @@ void FConfigCacheIni::LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* 
 			ClearHierarchyCache( IniName );
 		}
 
-
 		// Keep a record of the original settings
 		ConfigFile.SourceConfigFile = new FConfigFile();
 
 		// now generate and make sure it's up to date (using IniName as a Base for an ini filename)
 		const bool bAllowGeneratedINIs = true;
-		GenerateDestIniFile(ConfigFile, GetDestIniFilename(IniName, Platform, *FPaths::GeneratedConfigDir()), ConfigFile.SourceIniHierarchy, bAllowGeneratedINIs, true);
+		bool bNeedsWrite = GenerateDestIniFile(ConfigFile, DestIniFilename, ConfigFile.SourceIniHierarchy, bAllowGeneratedIniWhenCooked, true);
+
+		ConfigFile.Name = IniName;
+
+		// don't write anything to disk in cooked builds - we will always use re-generated INI files anyway.
+		if (bWriteDestIni && (!FPlatformProperties::RequiresCookedData() || bAllowGeneratedIniWhenCooked)
+			// We shouldn't save config files when in multiprocess mode,
+			// otherwise we get file contention in XGE shader builds.
+			&& !FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")))
+		{
+			// Check the config system for any changes made to defaults and propagate through to the saved.
+			ConfigFile.ProcessSourceAndCheckAgainstBackup();
+
+			if (bNeedsWrite)
+			{
+				// if it was dirtied during the above function, save it out now
+				ConfigFile.Write(DestIniFilename);
+			}
+		}
 	}
-	ConfigFile.Name = IniName;
+
+	// GenerateDestIniFile returns true if nothing is loaded, so check if we actually loaded something
+	return ConfigFile.Num() > 0;
 }
 
 void FConfigCacheIni::LoadConsoleVariablesFromINI()
@@ -3236,7 +3229,7 @@ void FConfigCacheIni::LoadConsoleVariablesFromINI()
 		IConsoleManager::Get().CallAllConsoleVariableSinks();
 }
 
-void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName/*=nullptr*/)
+void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName/*=nullptr*/, const TCHAR* OverridePlatform/*=nullptr*/)
 {
 	// since we don't want any modifications to other sections, we manually process the file, not read into sections, etc
 	FString DiskFile;
@@ -3283,7 +3276,7 @@ void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRoot
 	{
 		// get the standard ini files
 		SourceIniHierarchy.Empty();
-		GetSourceIniHierarchyFilenames(IniRootName, nullptr, *FPaths::EngineConfigDir(), *FPaths::SourceConfigDir(), SourceIniHierarchy, false);
+		GetSourceIniHierarchyFilenames(IniRootName, OverridePlatform, *FPaths::EngineConfigDir(), *FPaths::SourceConfigDir(), SourceIniHierarchy, false);
 
 		// now chop off this file and any after it
 		for (auto& HierarchyFileIt : SourceIniHierarchy)
@@ -3305,7 +3298,7 @@ void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRoot
 		SourceConfigFile = new FConfigFile();
 
 		// now when Write it called below, it will diff against SourceIniHierarchy
-		LoadIniFileHierarchy(SourceIniHierarchy, *SourceConfigFile, true );
+		LoadIniFileHierarchy(SourceIniHierarchy, *SourceConfigFile, true);
 
 	}
 

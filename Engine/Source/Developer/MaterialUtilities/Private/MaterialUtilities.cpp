@@ -181,6 +181,11 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->PreSkinnedNormal();
 	}
 
+	virtual int32 VertexInterpolator(uint32 InterpolatorIndex) override
+	{
+		return Compiler->VertexInterpolator(InterpolatorIndex);
+	}
+
 	virtual int32 LightVector() override
 	{
 		return Compiler->LightVector();

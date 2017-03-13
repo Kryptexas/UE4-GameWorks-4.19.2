@@ -201,7 +201,12 @@ half3 BlendReflectionCaptures(FMaterialPixelParameters MaterialParameters, half 
 
 float4 GetPlanarReflection(float3 WorldPosition, float3 WorldNormal, float Roughness)
 {
-	return ComputePlanarReflections(WorldPosition, WorldNormal, Roughness, PlanarReflectionSampler);
+	float4 PlanarReflection = ComputePlanarReflections(WorldPosition, WorldNormal, Roughness, PlanarReflectionSampler);
+#if OUTPUT_GAMMA_SPACE
+	// the capture will also be in gamma space, convert to linear:
+	PlanarReflection.rgb *= PlanarReflection.rgb;
+#endif
+	return PlanarReflection;
 }
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness)
@@ -630,8 +635,9 @@ void Main(
 		OutColor.rgb = sqrt(OutColor.rgb);
 	#endif
 
-	// TODO RyanV: This needs to be gated by a read only cvar and only enabled for opaque objects
-	// We write to alpha here for mono far field mask computation.
-	//OutColor.a = 1.0;
+	// We write to alpha here for mono far field mask computation
+	#if MONOSCOPIC_FAR_FIELD && !MATERIALBLENDING_ANY_TRANSLUCENT
+	OutColor.a = 1.0;
+	#endif
 #endif
 }

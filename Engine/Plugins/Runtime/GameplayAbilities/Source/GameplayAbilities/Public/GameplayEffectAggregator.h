@@ -231,7 +231,7 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	FAggregator(float InBaseValue=0.f) 
 		: NetUpdateID(0)
 		, BaseValue(InBaseValue)
-		, bIsBroadcastingDirty(false)
+		, BroadcastingDirtyCount(0)
 	{}
 	
 	~FAggregator();
@@ -272,6 +272,7 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	void TakeSnapshotOf(const FAggregator& AggToSnapshot);
 
 	FOnAggregatorDirty OnDirty;
+	FOnAggregatorDirty OnDirtyRecursive;	// Called in case where we are in a recursive dirtying chain. This will force the backing uproperty to update but not call the game code delegates
 
 	void AddModsFrom(const FAggregator& SourceAggregator);
 
@@ -305,7 +306,7 @@ private:
 
 	/** ActiveGE handles that we need to notify if we change. NOT copied over during snapshots. */
 	TArray<FActiveGameplayEffectHandle>	Dependents;
-	bool bIsBroadcastingDirty;
+	int32 BroadcastingDirtyCount;
 
 	// @todo: Try to eliminate as many of these as possible
 	friend struct FActiveGameplayEffectsContainer;

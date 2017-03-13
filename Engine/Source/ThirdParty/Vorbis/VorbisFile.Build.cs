@@ -1,9 +1,9 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class VorbisFile : ModuleRules
 {
-	public VorbisFile(TargetInfo Target)
+	public VorbisFile(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -33,7 +33,7 @@ public class VorbisFile : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            string VorbisLibPath = VorbisPath + "Lib/HTML5/";
+            string VorbisLibPath = VorbisPath + "lib/HTML5/";
             PublicLibraryPaths.Add(VorbisLibPath);
 
             string OpimizationSuffix = "";

@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Delay.h"
-#include "Dsp.h"
+#include "DSP/Delay.h"
+#include "DSP/Dsp.h"
 #include "AudioMixer.h"
 
 namespace Audio
@@ -13,6 +13,7 @@ namespace Audio
 		, WriteIndex(0)
 		, SampleRate(0)
 		, DelayInSamples(0.0f)
+		, EaseDelayMsec(0.0f, 0.0001f)
 		, DelayMsec(0.0f)
 		, OutputAttenuation(1.0f)
 		, OutputAttenuationDB(0.0f)
@@ -25,20 +26,21 @@ namespace Audio
 		if (AudioBuffer)
 		{
 			delete[] AudioBuffer;
+			AudioBuffer = nullptr;
 		}
 	}
 
-	void FDelay::Init(const int32 InSampleRate, const int32 InBufferSizeSamples)
+	void FDelay::Init(const float InSampleRate, const float InBufferLengthSec)
 	{
 		SampleRate = InSampleRate;
-		AudioBufferSize = InBufferSizeSamples;
+		AudioBufferSize = (int32) (InBufferLengthSec * (float)InSampleRate);
 
 		if (AudioBuffer)
 		{
 			delete[] AudioBuffer;
 		}
 
-		AudioBuffer = new float[InBufferSizeSamples];
+		AudioBuffer = new float[AudioBufferSize];
 
 		Reset();
 	}
@@ -53,19 +55,32 @@ namespace Audio
 		WriteIndex = 0;
 		ReadIndex = 0;
 
-		Update();
+		Update(true);
 	}
-
+	 
 	void FDelay::SetDelayMsec(const float InDelayMsec)
 	{
+		// Directly set the delay
 		DelayMsec = InDelayMsec;
-		Update();
+		Update(true);
+	}
+
+	void FDelay::SetEasedDelayMsec(const float InDelayMsec, const bool bIsInit)
+	{
+		EaseDelayMsec.SetValue(InDelayMsec, bIsInit);
+		if (bIsInit)
+		{
+			DelayMsec = InDelayMsec;
+		}
+		Update(bIsInit);
 	}
 
 	void FDelay::SetOutputAttenuationDB(const float InDelayAttenDB)
 	{
 		OutputAttenuationDB = InDelayAttenDB;
-		Update();
+
+		// Compute linear output attenuation based on DB attenuation settings
+		OutputAttenuation = FMath::Pow(10.0f, OutputAttenuationDB / 20.0f);
 	}
 
 	float FDelay::Read() const
@@ -138,35 +153,42 @@ namespace Audio
 		}
 	}
 
-	void FDelay::ProcessAudio(const float* InputSample, float* OutputSample)
+	void FDelay::ProcessAudio(const float* InAudio, float* OutAudio)
 	{
-		const float Xn = *InputSample;
+		Update();
+
+		const float Xn = *InAudio;
 		const float Yn = DelayInSamples == 0 ? Xn : Read();
 		WriteDelayAndInc(Xn);
-		*OutputSample = OutputAttenuation*Yn;
+		*OutAudio = OutputAttenuation*Yn;
 	}
-
-	void FDelay::Update()
+	 
+	void FDelay::Update(bool bForce)
 	{
-		// Compute linear output attenuation based on DB attenuation settings
-		OutputAttenuation = FMath::Pow(10.0f, OutputAttenuationDB / 20.0f);
-
-		// Compute the delay in samples based on msec delay line
-		DelayInSamples = DelayMsec*((float)SampleRate / 1000.0f);
-
-		if (DelayInSamples >= (float)AudioBufferSize)
+		if (!EaseDelayMsec.IsDone() || bForce)
 		{
-			DelayInSamples = (float)AudioBufferSize;
-		}
+			// Compute the delay in samples based on msec delay line
+			// If we're easing, then get the delay based on the current value of the ease
+			if (!EaseDelayMsec.IsDone())
+			{
+				DelayMsec = EaseDelayMsec.GetValue();
+			}
 
-		// Subtract from write index the delay in samples (will do interpolation during read)
-		ReadIndex = WriteIndex - (int32)DelayInSamples;
+			DelayInSamples = DelayMsec * ((float)SampleRate / 1000.0f);
 
-		// If negative, wrap around
-		if (ReadIndex < 0)
-		{
-			ReadIndex += AudioBufferSize;
+			if (DelayInSamples >= (float)AudioBufferSize)
+			{
+				DelayInSamples = (float)AudioBufferSize;
+			}
+
+			// Subtract from write index the delay in samples (will do interpolation during read)
+			ReadIndex = WriteIndex - (int32)(DelayInSamples + 1.0f);
+
+			// If negative, wrap around
+			if (ReadIndex < 0)
+			{
+				ReadIndex += AudioBufferSize;
+			}
 		}
 	}
-
 }

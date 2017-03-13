@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class NullSourceCodeAccess : ModuleRules
 	{
-		public NullSourceCodeAccess(TargetInfo Target)
+		public NullSourceCodeAccess(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[]

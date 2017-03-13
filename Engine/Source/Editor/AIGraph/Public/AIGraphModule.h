@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogAIGraph, Display, All);
+AIGRAPH_API DECLARE_LOG_CATEGORY_EXTERN(LogAIGraph, Display, All);
 
 class FAIGraphModule : public IModuleInterface
 {

@@ -36,3 +36,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("ApplyGameplayEffectToTarget"), STAT_ApplyGamepla
 DECLARE_CYCLE_STAT_EXTERN(TEXT("ActiveGameplayEffect Added"), STAT_OnActiveGameplayEffectAdded, STATGROUP_AbilitySystem, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("ActiveGameplayEffect Removed"), STAT_OnActiveGameplayEffectRemoved, STATGROUP_AbilitySystem, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("GameplayCueInterface HandleGameplayCue"), STAT_GameplayCueInterface_HandleGameplayCue, STATGROUP_AbilitySystem, );
+
+
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("AbilityTask Count"), STAT_AbilitySystem_TaskCount, STATGROUP_AbilitySystem, );

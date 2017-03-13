@@ -107,92 +107,6 @@ void UK2Node_Message::ExpandLevelStreamingHandlers(class FKismetCompilerContext&
 	GetLevelScriptActorNode->AllocateDefaultPins();
 
 	UEdGraphPin* PinToCastToInterface = nullptr;
-
-	if (ULevelStreaming::StaticClass() != Cast<UClass>(InMessageSelfPin->LinkedTo[0]->PinType.PinSubCategoryObject.Get()))
-	{
-		/**
-		 * Create intermediate nodes
-		 */
-
-		// We need to Cast to a ULevelStreaming object, so we can pull the ALevelScriptActor if successful
-		UK2Node_DynamicCast* CastToLevelStreamingNode = InCompilerContext.SpawnIntermediateNode<UK2Node_DynamicCast>(this, InSourceGraph);
-		CastToLevelStreamingNode->TargetType = ULevelStreaming::StaticClass(); // I want this to be ULevel!
-		CastToLevelStreamingNode->SetPurity(false);
-		CastToLevelStreamingNode->AllocateDefaultPins();
-
-		// We will store the UObject we want to cast to interface into a temporary variable node
-		UK2Node_TemporaryVariable* TempVariable = InCompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, InSourceGraph);
-		TempVariable->VariableType = InMessageSelfPin->PinType;
-		TempVariable->AllocateDefaultPins();
-
-		// AssignmentStatement node for when the ULevelStreaming cast was successful
-		UK2Node_AssignmentStatement* AssignTempVariableForCastSuccess = InCompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, InSourceGraph);
-		AssignTempVariableForCastSuccess->AllocateDefaultPins();
-
-		// AssignmentStatement node for failed ULevelStreaming casts
-		UK2Node_AssignmentStatement* AssignTempVariableForCastFail = InCompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, InSourceGraph);
-		AssignTempVariableForCastFail->AllocateDefaultPins();
-
-		/**
-		 * Make pin connections to the generated nodes
-		 */
-
-		// Move the connections on the Message node's self pin to the ULevelStreaming Cast node's source pin
-		{
-			InCompilerContext.MovePinLinksToIntermediate(*InMessageSelfPin, *CastToLevelStreamingNode->GetCastSourcePin());
-			CastToLevelStreamingNode->NotifyPinConnectionListChanged(CastToLevelStreamingNode->GetCastSourcePin());
-		}
-
-		// Connect the incoming exec pin to the ULevelStreaming cast node's exec pin, which is the exec flow's entry into this
-		if (InStartingExecPin != nullptr)
-		{
-			// Wire up the connections
-			InCompilerContext.MovePinLinksToIntermediate(*InStartingExecPin, *CastToLevelStreamingNode->GetExecPin());
-		}
-
-		{
-			Schema->TryCreateConnection(Schema->FindSelfPin(*GetLevelScriptActorNode, EGPD_Input), CastToLevelStreamingNode->GetCastResultPin());
-		}
-
-		// Prepare left side pin connections of AssignTempVariableForCastSuccess
-		{
-			// Connect the TempVariable to the AssignmentStatement node
-			// For the successful cast of ULevelStreaming temporary assignment, hook-up the variable pin
-			Schema->TryCreateConnection(AssignTempVariableForCastSuccess->GetVariablePin(), TempVariable->GetVariablePin());
-
-			// The last pin on the function node is the ALevelScriptActor
-			UEdGraphPin* FuncResultPin = GetLevelScriptActorNode->Pins[GetLevelScriptActorNode->Pins.Num() - 1];
-			ensure(!FuncResultPin->PinType.PinSubCategoryObject->IsA(ALevelScriptActor::StaticClass()));
-
-			// We do not want to let NotifyPinConnectionListChanged get called, it'll change the assignment's type to LevelScript instead of UObject
-			FuncResultPin->MakeLinkTo(AssignTempVariableForCastSuccess->GetValuePin());
-
-			// Hook up the AssignTempVariableForCastSuccess node's exec pin to the valid cast result of the Cast to ULevelStreaming node
-			Schema->TryCreateConnection(AssignTempVariableForCastSuccess->GetExecPin(), CastToLevelStreamingNode->GetValidCastPin());
-		}
-
-		// Prepare left side pin connections of AssignTempVariableForCastFail
-		{
-			// For the non-level actor temporary assignment, hook-up the variable pin
-			Schema->TryCreateConnection(AssignTempVariableForCastFail->GetVariablePin(), TempVariable->GetVariablePin());
-
-			// Connect the value pin to the pin the Cast to ULevelStreaming node's source pin was attached to
-			if (CastToLevelStreamingNode->GetCastSourcePin()->LinkedTo[0])
-			{
-				AssignTempVariableForCastFail->GetValuePin()->MakeLinkTo(CastToLevelStreamingNode->GetCastSourcePin()->LinkedTo[0]);
-			}
-
-			// Connect the LevelStreaming cast failed pin to the appropriate Assignment node
-			AssignTempVariableForCastFail->GetExecPin()->MakeLinkTo(CastToLevelStreamingNode->GetInvalidCastPin());
-		}
-
-		// Both assignment nodes (for the temporary variable) get connected to the interface node's exec pin
-		InCastToInterfaceNode->GetExecPin()->MakeLinkTo(AssignTempVariableForCastSuccess->GetThenPin());
-		InCastToInterfaceNode->GetExecPin()->MakeLinkTo(AssignTempVariableForCastFail->GetThenPin());
-
-		PinToCastToInterface = TempVariable->GetVariablePin();
-	}
-	else
 	{
 		PinToCastToInterface = InMessageSelfPin;
 
@@ -220,6 +134,16 @@ void UK2Node_Message::ExpandLevelStreamingHandlers(class FKismetCompilerContext&
 	}
 }
 
+static bool IsLevelStreamingClass(UClass* InClass)
+{
+	if (InClass)
+	{
+		UClass* Parent = ULevelStreaming::StaticClass();
+		return (Parent == InClass || InClass->IsChildOf(Parent));
+	}
+	return false;
+}
+
 void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
@@ -244,8 +168,8 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 		UFunction* MessageNodeFunction = GetTargetFunction();
 		if (MessageNodeFunction == NULL)
 		{
-			//@TODO: Why do this here in teh compiler, it's already done on AllocateDefaultPins() during on-load node reconstruction
-			MessageNodeFunction = Cast<UFunction>(FMemberReference::FindRemappedField(FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode()), FunctionReference.GetMemberName()));
+			//@TODO: Why do this here in the compiler, it's already done on AllocateDefaultPins() during on-load node reconstruction
+			MessageNodeFunction = FMemberReference::FindRemappedField<UFunction>(FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode()), FunctionReference.GetMemberName());
 		}
 
 		if (MessageNodeFunction == NULL)
@@ -277,7 +201,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 
 		// If the message pin is linked and what it is linked to is not a ULevelStreaming pin reference but is a child of ULevelStreaming, 
 		// then we need to leave the possibility that it could be a ULevelStreaming and will need to make an attempt at casting to one
-		if (MessageSelfPin->LinkedTo.Num() > 0 && ULevelStreaming::StaticClass()->IsChildOf(Cast<UClass>(MessageSelfPin->LinkedTo[0]->PinType.PinSubCategoryObject.Get())))
+		if (MessageSelfPin->LinkedTo.Num() > 0 && IsLevelStreamingClass(Cast<UClass>(MessageSelfPin->LinkedTo[0]->PinType.PinSubCategoryObject.Get())))
 		{
 			ExpandLevelStreamingHandlers(CompilerContext, SourceGraph, ExecPin, MessageSelfPin, CastToInterfaceNode);
 		}

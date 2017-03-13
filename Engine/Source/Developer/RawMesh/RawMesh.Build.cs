@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class RawMesh : ModuleRules
 {
-    public RawMesh(TargetInfo Target)
+    public RawMesh(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicIncludePaths.AddRange(new string[] {"Developer/RawMesh/Public"});
         PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject" });

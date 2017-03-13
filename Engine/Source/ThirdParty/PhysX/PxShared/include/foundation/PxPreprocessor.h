@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -31,7 +31,9 @@
 #define PXFOUNDATION_PXPREPROCESSOR_H
 
 #include <stddef.h>
-
+#if !defined(PX_GENERATE_META_DATA)
+#include <ciso646>  
+#endif
 /** \addtogroup foundation
   @{
 */
@@ -223,10 +225,18 @@ family shortcuts
 #define PX_EMSCRIPTEN 0
 #endif
 // architecture
-//#define PX_INTEL_FAMILY (PX_X64 || PX_X86) && (!PX_EMSCRIPTEN || __SSE2__)
 #define PX_INTEL_FAMILY (PX_X64 || PX_X86)
 #define PX_ARM_FAMILY (PX_ARM || PX_A64)
 #define PX_P64_FAMILY (PX_X64 || PX_A64) // shortcut for 64-bit architectures
+
+/**
+C++ standard library defines
+*/
+#if defined(_LIBCPP_VERSION) || PX_WIN64 || PX_WIN32 || PX_PS4 || PX_XBOXONE || PX_EMSCRIPTEN
+#define PX_LIBCPP 1
+#else
+#define PX_LIBCPP 0
+#endif
 
 // legacy define for PhysX
 #define PX_WINDOWS (PX_WINDOWS_FAMILY && !PX_ARM_FAMILY)
@@ -415,7 +425,7 @@ General defines
 */
 
 // static assert
-#if(defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))) || (PX_PS4) || (PX_APPLE_FAMILY) || (PX_NX)
+#if(defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))) || (PX_PS4) || (PX_APPLE_FAMILY) || (PX_NX) || (PX_CLANG && PX_ARM)
 #define PX_COMPILE_TIME_ASSERT(exp) typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1] __attribute__((unused))
 #else
 #define PX_COMPILE_TIME_ASSERT(exp) typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1]
@@ -459,13 +469,13 @@ PX_CUDA_CALLABLE PX_INLINE void PX_UNUSED(T const&)
 // This assert works on win32/win64, but may need further specialization on other platforms.
 // Some GCC compilers need the compiler flag -malign-double to be set.
 // Apparently the apple-clang-llvm compiler doesn't support malign-double.
-#if PX_PS4 || PX_APPLE_FAMILY
+#if PX_PS4 || PX_APPLE_FAMILY || (PX_CLANG && !PX_ARM)
 struct PxPackValidation
 {
 	char _;
 	long a;
 };
-#elif PX_ANDROID
+#elif PX_ANDROID || (PX_CLANG && PX_ARM)
 struct PxPackValidation
 {
 	char _;
@@ -478,7 +488,7 @@ struct PxPackValidation
 	long long a;
 };
 #endif
-#if !PX_APPLE_FAMILY
+#if !PX_APPLE_FAMILY && !PX_EMSCRIPTEN
 PX_COMPILE_TIME_ASSERT(PX_OFFSET_OF(PxPackValidation, a) == 8);
 #endif
 

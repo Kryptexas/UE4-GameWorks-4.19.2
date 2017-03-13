@@ -1,11 +1,11 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
 
 public class libOpus : ModuleRules
 {
-	public libOpus(TargetInfo Target)
+	public libOpus(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the library */
 		string OpusVersion = "1.1";
@@ -47,7 +47,7 @@ public class libOpus : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            if (Target.IsMonolithic)
+            if (Target.LinkType == TargetLinkType.Monolithic)
             {
                 PublicAdditionalLibraries.Add(LibraryPath + "Linux/" + Target.Architecture + "/libopus.a");
             }

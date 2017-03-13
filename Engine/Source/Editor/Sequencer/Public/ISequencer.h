@@ -108,6 +108,8 @@ public:
 	
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedObjectGuids, TArray<FGuid> /*Object*/)
 
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorAddedToSequencer, AActor*, const FGuid);
+
 public:
 
 	/** Close the sequencer. */
@@ -293,7 +295,6 @@ public:
 	 */
 	virtual bool IsInSilentMode() const = 0;
 
-	DECLARE_EVENT_TwoParams(ISequencer, FOnActorAddedToSequencer, AActor*, const FGuid)
 	virtual FOnActorAddedToSequencer& OnActorAddedToSequencer() = 0;
 
 	DECLARE_EVENT_TwoParams(ISequencer, FOnCameraCut, UObject*, bool)
@@ -343,6 +344,9 @@ public:
 
 	virtual FSequencerSelection& GetSelection() = 0;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;
+
+	/** Selects an object by GUID */
+	virtual void SelectObject(FGuid ObjectBinding) = 0;
 
 	/** Gets a multicast delegate which is executed whenever the global time changes. */
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;

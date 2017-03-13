@@ -121,7 +121,7 @@ public:
 		}
 
 		const float DrawScale = InPainter.SectionGeometry.Size.X / SectionSize;
-		const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled
+		const ESlateDrawEffect DrawEffects = InPainter.bParentEnabled
 			? ESlateDrawEffect::None
 			: ESlateDrawEffect::DisabledEffect;
 
@@ -313,13 +313,6 @@ FSubTrackEditor::FSubTrackEditor(TSharedRef<ISequencer> InSequencer)
 
 void FSubTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
-	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
-
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
-	{
-		return;
-	}
-
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddSubTrack", "Subscenes Track"),
 		LOCTEXT("AddSubTooltip", "Adds a new track that can contain other sequences."),
@@ -384,6 +377,10 @@ bool FSubTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObject
 	return false;
 }
 
+bool FSubTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("LevelSequence"));
+}
 
 bool FSubTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 {

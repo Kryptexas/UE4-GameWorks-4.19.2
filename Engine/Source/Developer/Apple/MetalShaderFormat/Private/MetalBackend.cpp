@@ -3367,31 +3367,43 @@ protected:
             
             FCustomStdString patchCountName("patchCount");
             int32 patchIndex = Buffers.GetIndex(patchCountName, Backend->bIsDesktop);
-            check(patchIndex >= 0 && patchIndex < 30);
-            ralloc_asprintf_append(buffer, "// @TessellationPatchCountBuffer: %d\n", patchIndex);
+            if(patchIndex < 0 || patchIndex > 30)
+            {
+                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationPatchCountBuffer.", patchIndex);
+            }
+            ralloc_asprintf_append(buffer, "// @TessellationPatchCountBuffer: %u\n", (uint32)patchIndex);
 
             FCustomStdString indexBufferName("indexBuffer");
             int32 ibIndex = Buffers.GetIndex(indexBufferName, Backend->bIsDesktop);
             if (ibIndex >= 0)
             {
                 check(ibIndex < 30);
-                ralloc_asprintf_append(buffer, "// @TessellationIndexBuffer: %d\n", ibIndex);
+                ralloc_asprintf_append(buffer, "// @TessellationIndexBuffer: %u\n", (uint32)ibIndex);
             }
             
             FCustomStdString HSOutName("__HSOut");
             int32 hsOutIndex = Buffers.GetIndex(HSOutName, Backend->bIsDesktop);
-            check(hsOutIndex >= 0 && hsOutIndex < 30);
-			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %d\n", hsOutIndex);
+            if(hsOutIndex > 30)
+            {
+                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationHSOutBuffer.", hsOutIndex);
+            }
+			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %u\n", (uint32)hsOutIndex);
 			
 			FCustomStdString PatchControlPointOutBufferName("PatchControlPointOutBuffer");
 			int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName, Backend->bIsDesktop);
-			check(patchControlIndex >= 0 && patchControlIndex < 30);
-			ralloc_asprintf_append(buffer, "// @TessellationControlPointOutBuffer: %d\n", patchControlIndex);
+            if(patchControlIndex < 0 || patchControlIndex > 30)
+            {
+                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationControlPointOutBuffer.", patchControlIndex);
+            }
+			ralloc_asprintf_append(buffer, "// @TessellationControlPointOutBuffer: %u\n", (uint32)patchControlIndex);
 
             FCustomStdString HSTFOutName("__HSTFOut");
             int32 hstfOutIndex = Buffers.GetIndex(HSTFOutName, Backend->bIsDesktop);
-            check(hstfOutIndex >= 0 && hstfOutIndex < 30);
-            ralloc_asprintf_append(buffer, "// @TessellationHSTFOutBuffer: %d\n", hstfOutIndex);
+            if(hstfOutIndex < 0 || hstfOutIndex > 30)
+            {
+                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationHSTFOutBuffer.", hstfOutIndex);
+            }
+            ralloc_asprintf_append(buffer, "// @TessellationHSTFOutBuffer: %u\n", (uint32)hstfOutIndex);
             
             int32 ControlPointBuffer = Buffers.Buffers.Num();
             for (uint32 i = 0; i < 30u && i < (uint32)Buffers.Buffers.Num(); i++)
@@ -3408,7 +3420,7 @@ protected:
             }
             else
             {
-                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point for the TessellationControlPointIndexBuffer.");
+                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationControlPointIndexBuffer.", ControlPointBuffer);
             }
 		}
 
@@ -3453,14 +3465,20 @@ protected:
 			ralloc_asprintf_append(buffer, "\n");
 			
 			FCustomStdString HSOutName("__DSStageIn");
-			int32 hsOutIndex = Buffers.GetIndex(HSOutName, Backend->bIsDesktop);
-			check(hsOutIndex >= 0 && hsOutIndex < 30);
-			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %d\n", hsOutIndex);
+            int32 hsOutIndex = Buffers.GetIndex(HSOutName, Backend->bIsDesktop);
+            if(hsOutIndex > 30)
+            {
+                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationHSOutBuffer.", hsOutIndex);
+            }
+			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %u\n", (uint32)hsOutIndex);
 			
 			FCustomStdString PatchControlPointOutBufferName("__DSPatch");
-			int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName, Backend->bIsDesktop);
-			check(patchControlIndex >= 0 && patchControlIndex < 30);
-			ralloc_asprintf_append(buffer, "// @TessellationControlPointOutBuffer: %d\n", patchControlIndex);
+            int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName, Backend->bIsDesktop);
+            if(patchControlIndex < 0 || patchControlIndex > 30)
+            {
+                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationControlPointOutBuffer.", patchControlIndex);
+            }
+			ralloc_asprintf_append(buffer, "// @TessellationControlPointOutBuffer: %u\n", (uint32)patchControlIndex);
 		}
 
 		bool foundSideTable = false;
@@ -4648,7 +4666,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 								uint32 MemberSize = FMath::RoundUpToPowerOfTwo(TypeSizes[(uint8)Attr.Type] * Attr.Components);
 								Attr.Offset = Align(TessAttribs.PatchControlPointOutSize, MemberSize);
 								TessAttribs.PatchControlPointOutSize = Attr.Offset + MemberSize;
-								if (PatchControlPointOutAlignment == 0)
+								if (PatchControlPointOutAlignment < MemberSize)
 								{
 									PatchControlPointOutAlignment = MemberSize;
 								}
@@ -5002,7 +5020,7 @@ void FMetalCodeBackend::CallPatchConstantFunction(_mesa_glsl_parse_state* ParseS
 						uint32 MemberSize = FMath::RoundUpToPowerOfTwo(TypeSizes[(uint8)Attr.Type] * Attr.Components);
 						Attr.Offset = Align(TessAttribs.HSOutSize, MemberSize);
 						TessAttribs.HSOutSize = Attr.Offset + MemberSize;
-						if (HSOutAlignment == 0)
+						if (HSOutAlignment < MemberSize)
 						{
 							HSOutAlignment = MemberSize;
 						}

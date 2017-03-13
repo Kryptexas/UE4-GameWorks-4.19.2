@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class StructBox : ModuleRules
 	{
-		public StructBox(TargetInfo Target)
+		public StructBox(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

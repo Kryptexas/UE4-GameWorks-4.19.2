@@ -501,11 +501,11 @@ public:
 	}
 	
 	/** Called by the Engine/RHI. Logs the use of a given shader & will ensure it is instantiated if not already. */
-	static FORCEINLINE void LogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code)
+	static FORCEINLINE void LogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, uint32 UncompressedSize, TArray<uint8> const& Code)
 	{
 		if ( Cache )
 		{
-			Cache->InternalLogShader(Platform, Frequency, Hash, Code);
+			Cache->InternalLogShader(Platform, Frequency, Hash, UncompressedSize, Code);
 		}
 	}
 	
@@ -744,7 +744,7 @@ public:
 	/** Returns the number of shaders waiting for precompilation */
 	static uint32 NumShaderPrecompilesRemaining();
 	
-	static void CookShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code);
+	static void CookShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, uint32 UncompressedSize, TArray<uint8> const& Code);
 	
 	static void CookPipeline(class FShaderPipeline* Pipeline);
 
@@ -783,8 +783,14 @@ public:
 	{
 		friend FArchive& operator<<( FArchive& Ar, FShaderCodeCache& Info );
 		
-		TMap<FShaderCacheKey, TArray<uint8>> Shaders;
+		// Serialised
+		TMap<FShaderCacheKey, TPair<uint32, TArray<uint8>>> Shaders;
 		TMap<FShaderCacheKey, TSet<FShaderPipelineKey>> Pipelines;
+
+		// Non-serialised
+#if WITH_EDITORONLY_DATA
+		TMap<FShaderCacheKey, TArray<TPair<int32, TArray<uint8>>>> Counts;
+#endif
 	};
 	
 public: // From FTickableObjectRenderThread
@@ -1002,7 +1008,8 @@ private:
 	static void MergeShaderCaches(FShaderCaches& Target, FShaderCaches const& Source);
 	static bool LoadShaderCache(FString Path, FShaderCaches* Cache);
 	static bool SaveShaderCache(FString Path, FShaderCaches* Cache);
-	
+	static void DumpCookCache();
+
 	struct FShaderResourceViewBinding
 	{
 		FShaderResourceViewBinding()
@@ -1058,8 +1065,8 @@ private:
 	
 private:
 	void InternalLogStreamingKey(uint32 StreamKey, bool const bActive);
-	void InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code);
-	
+	void InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, uint32 UncompressedSize, TArray<uint8> const& Code);
+
 	void InternalLogVertexDeclaration(const FVertexDeclarationElementList& VertexElements, FVertexDeclarationRHIParamRef VertexDeclaration);
 	
 	void InternalLogBoundShaderState(EShaderPlatform Platform, FVertexDeclarationRHIParamRef VertexDeclaration,

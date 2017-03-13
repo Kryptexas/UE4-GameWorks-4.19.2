@@ -441,11 +441,11 @@ UK2Node::ERedirectType UK2Node_Select::DoPinsMatchForReconstruction(const UEdGra
 	if(Enum != nullptr && NewPinIndex < NumOptionPins && !NewPin->PinName.Equals(OldPin->PinName, ESearchCase::IgnoreCase))
 	{
 		// The names don't match, so check for an enum redirect from the old pin name.
-		int32 EnumIndex = UEnum::FindEnumRedirects(Enum, FName(*OldPin->PinName));
+		int32 EnumIndex = Enum->GetIndexByNameString(OldPin->PinName);
 		if(EnumIndex != INDEX_NONE)
 		{
 			// Found a redirect. Attempt to match it to the new pin name.
-			FString NewPinName = Enum->GetEnumName(EnumIndex);
+			FString NewPinName = Enum->GetNameStringByIndex(EnumIndex);
 			if(NewPinName.Equals(NewPin->PinName, ESearchCase::IgnoreCase))
 			{
 				// The redirect is a match, so we can reconstruct this pin using the old pin's state.
@@ -820,8 +820,8 @@ void UK2Node_Select::SetEnum(UEnum* InEnum, bool bForceRegenerate)
 				bool const bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );
 				if (!bShouldBeHidden)
 				{
-					FString EnumValueName = Enum->GetEnumName(EnumIndex);
-					FText EnumFriendlyName = Enum->GetDisplayNameText(EnumIndex);
+					FString EnumValueName = Enum->GetNameStringByIndex(EnumIndex);
+					FText EnumFriendlyName = Enum->GetDisplayNameTextByIndex(EnumIndex);
 					EnumEntries.Add(FName(*EnumValueName));
 					EnumEntryFriendlyNames.Add(EnumFriendlyName);
 				}

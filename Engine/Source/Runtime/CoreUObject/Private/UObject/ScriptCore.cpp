@@ -880,12 +880,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	{
 		if (!GIsReinstancing)
 		{
-			static int32 num = 0;
-			num++;
-			if (num < 5)
-			{
-				ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
-			}
+			ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
 		}
 		return;
 	}
@@ -1101,7 +1096,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("Message"), FText::FromName( Message ));
 			Arguments.Add(TEXT("PropertyName"), FText::FromString( It->GetName() ));
-			Ar.Logf( *FText::Format( NSLOCTEXT( "Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}'" ), Arguments ).ToString() );
+			Ar.Logf( TEXT("%s"), *FText::Format( NSLOCTEXT( "Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}'" ), Arguments ).ToString() );
 			Failed = true;
 
 			break;
@@ -2466,6 +2461,20 @@ void UObject::execTextConst( FFrame& Stack, RESULT_DECL )
 			Stack.Step(Stack.Object, &SourceString);
 
 			*(FText*)RESULT_PARAM = FText::FromString(MoveTemp(SourceString));
+		}
+		break;
+
+	case EBlueprintTextLiteralType::StringTableEntry:
+		{
+			Stack.ReadObject(); // String Table asset (if any)
+
+			FString TableIdString;
+			Stack.Step(Stack.Object, &TableIdString);
+
+			FString KeyString;
+			Stack.Step(Stack.Object, &KeyString);
+
+			*(FText*)RESULT_PARAM = FText::FromStringTable(FName(*TableIdString), KeyString);
 		}
 		break;
 

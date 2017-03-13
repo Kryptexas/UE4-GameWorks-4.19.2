@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SkeletalMeshEditor : ModuleRules
 {
-	public SkeletalMeshEditor(TargetInfo Target)
+	public SkeletalMeshEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

@@ -464,6 +464,11 @@ void FMetalRHICommandContext::RHISetDepthStencilState(FDepthStencilStateRHIParam
 	FShaderCache::SetDepthStencilState(NewStateRHI);
 }
 
+void FMetalRHICommandContext::RHISetStencilRef(uint32 StencilRef)
+{
+	Context->GetCurrentState().SetStencilRef(StencilRef);
+}
+
 void FMetalRHICommandContext::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI, const FLinearColor& BlendFactor)
 {
 	FMetalBlendState* NewState = ResourceCast(NewStateRHI);
@@ -474,6 +479,10 @@ void FMetalRHICommandContext::RHISetBlendState(FBlendStateRHIParamRef NewStateRH
 	FShaderCache::SetBlendState(NewStateRHI);
 }
 
+void FMetalRHICommandContext::RHISetBlendFactor(const FLinearColor& BlendFactor)
+{
+	Context->GetCurrentState().SetBlendFactor(BlendFactor);
+}
 
 void FMetalRHICommandContext::RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargets,
 	const FRHIDepthRenderTargetView* NewDepthStencilTargetRHI, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs)
@@ -507,6 +516,7 @@ void FMetalRHICommandContext::RHISetRenderTargetsAndClear(const FRHISetRenderTar
 {
 	FMetalContext* Manager = Context;
 	
+
 	if (Context->GetCommandQueue().SupportsFeature(EMetalFeaturesGraphicsUAVs))
 	{
 		for (uint32 i = 0; i < RenderTargetsInfo.NumUAVs; i++)
@@ -754,9 +764,9 @@ void FMetalRHICommandContext::RHIEndDrawIndexedPrimitiveUP()
 }
 
 
-void FMetalRHICommandContext::RHIClear(bool bClearColor,const FLinearColor& Color, bool bClearDepth,float Depth, bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
+void FMetalRHICommandContext::RHIClear(bool bClearColor,const FLinearColor& Color, bool bClearDepth,float Depth, bool bClearStencil,uint32 Stencil)
 {
-	FMetalRHICommandContext::RHIClearMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	FMetalRHICommandContext::RHIClearMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil);
 }
 
 void FMetalDynamicRHI::SetupRecursiveResources()
@@ -834,8 +844,10 @@ void FMetalDynamicRHI::SetupRecursiveResources()
 	}
 }
 
-void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
+void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil)
 {
+	FIntRect ExcludeRect;
+
 	// we don't support draw call clears before the RHI is initialized, reorder the code or make sure it's not a draw call clear
 	check(GIsRHIInitialized);
 

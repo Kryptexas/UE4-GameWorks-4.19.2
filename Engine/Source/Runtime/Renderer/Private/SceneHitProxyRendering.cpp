@@ -16,6 +16,7 @@
 #include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
 #include "DynamicPrimitiveDrawing.h"
+#include "ClearQuad.h"
 
 /**
  * A vertex shader for rendering the depth of a mesh.
@@ -442,7 +443,7 @@ void InitHitProxyRender(FRHICommandListImmediate& RHICmdList, const FSceneRender
 	{
 		const FViewInfo& View = Views[ViewIndex];
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-		RHICmdList.ClearColorTexture(OutHitProxyRT->GetRenderTargetItem().TargetableTexture, FLinearColor::White, FIntRect());
+		DrawClearQuad(RHICmdList, SceneRenderer->FeatureLevel, true, FLinearColor::White, false, 0, false, 0, OutHitProxyRT->GetDesc().Extent, FIntRect());
 	}
 }
 
@@ -466,15 +467,15 @@ static void DoRenderHitProxies(FRHICommandListImmediate& RHICmdList, const FScen
 
 		FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
 
-		// Depth tests + writes, no alpha blending.
-		DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
-		DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
-
 		// Set the device viewport for the view.
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 		// Clear the depth buffer for each DPG.
-		RHICmdList.ClearDepthStencilTexture(HitProxyDepthRT->GetRenderTargetItem().TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
+		DrawClearQuad(RHICmdList, SceneRenderer->FeatureLevel, false, FLinearColor(), true, (float)ERHIZBuffer::FarPlane, true, 0, HitProxyDepthRT->GetDesc().Extent, FIntRect());
+
+		// Depth tests + writes, no alpha blending.
+		DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+		DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
 
 		// Adjust the visibility map for this view
 		if (!View.bAllowTranslucentPrimitivesInHitProxy)

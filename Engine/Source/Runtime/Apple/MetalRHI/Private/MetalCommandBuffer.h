@@ -34,6 +34,7 @@ enum EMetalDebugLevel
 	EMetalDebugLevelValidation,
 	EMetalDebugLevelLogDebugGroups,
 	EMetalDebugLevelLogOperations,
+	EMetalDebugLevelResetOnBind,
 	EMetalDebugLevelConditionalSubmit,
 	EMetalDebugLevelWaitForComplete
 };

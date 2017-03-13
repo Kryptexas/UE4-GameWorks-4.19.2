@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class UEOgg : ModuleRules
 {
-	public UEOgg(TargetInfo Target)
+	public UEOgg(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -78,7 +78,7 @@ public class UEOgg : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            if (Target.IsMonolithic)
+            if (Target.LinkType == TargetLinkType.Monolithic)
             {
                 PublicAdditionalLibraries.Add(OggLibPath + "Linux/" + Target.Architecture + "/libogg.a");
             }

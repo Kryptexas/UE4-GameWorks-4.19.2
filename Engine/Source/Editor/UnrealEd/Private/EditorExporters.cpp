@@ -426,7 +426,7 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 	if ((PortFlags & PPF_Copy) == 0)
 	{
 		// If we are not copying to clipboard, then export objects contained in the map package itself...
-		MapPackage = Cast<UPackage>(Object->GetOutermost());
+		MapPackage = Object->GetOutermost();
 	}
 
 	// this is the top level in the .t3d file

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class GameMenuBuilder : ModuleRules
 {
-    public GameMenuBuilder(TargetInfo Target)
+    public GameMenuBuilder(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] { 

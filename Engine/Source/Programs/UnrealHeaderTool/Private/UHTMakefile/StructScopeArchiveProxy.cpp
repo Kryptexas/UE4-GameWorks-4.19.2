@@ -34,5 +34,5 @@ void FStructScopeArchiveProxy::Resolve(FStructScope* StructScope, const FUHTMake
 	FScopeArchiveProxy::Resolve(StructScope, UHTMakefile);
 	StructScope->Struct = UHTMakefile.GetStructByIndex(StructIndex);
 
-	FScope::ScopeMap.Add(StructScope->Struct, StructScope->HasBeenAlreadyMadeSharable() ? StructScope->AsShared() : MakeShareable(StructScope));
+	FScope::ScopeMap.Add(StructScope->Struct, StructScope->DoesSharedInstanceExist() ? StructScope->AsShared() : MakeShareable(StructScope));
 }

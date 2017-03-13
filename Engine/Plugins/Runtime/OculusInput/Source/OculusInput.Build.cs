@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class OculusInput : ModuleRules
 	{
-		public OculusInput(TargetInfo Target)
+		public OculusInput(ReadOnlyTargetRules Target) : base(Target)
 		{
             PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "MediaAssets", "HeadMountedDisplay", "Launch", "RHI", "RenderCore", "Renderer", "OculusRift" });
 

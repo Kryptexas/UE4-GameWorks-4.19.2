@@ -577,6 +577,12 @@ public:
 	virtual FPropertyAccess::Result DeleteItem( int32 Index ) = 0;
 
 	/**
+	 * Swaps two items
+	 * @return Whether or not this was successful
+	 */
+	virtual FPropertyAccess::Result SwapItems( int32 FirstIndex, int32 SecondIndex ) = 0;
+
+	/**
 	 * @return The number of elements in the array
 	 */
 	virtual FPropertyAccess::Result GetNumElements( uint32& OutNumItems ) const = 0;

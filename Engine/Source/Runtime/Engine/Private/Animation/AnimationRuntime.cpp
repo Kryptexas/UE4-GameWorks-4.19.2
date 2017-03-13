@@ -482,6 +482,40 @@ void FAnimationRuntime::LerpBoneTransforms(TArray<FTransform>& A, const TArray<F
 	}
 }
 
+void FAnimationRuntime::BlendTransformsByWeight(FTransform& OutTransform, const TArray<FTransform>& Transforms, const TArray<float>& Weights)
+{
+	int32 NumBlends = Transforms.Num();
+	check(Transforms.Num() == Weights.Num());
+
+	if (NumBlends == 0)
+	{
+		OutTransform = FTransform::Identity;
+	}
+	else if (NumBlends == 1)
+	{
+		OutTransform = Transforms[0];
+	}
+	else
+	{
+		// @todo : change this to be veoctorized or move to Ftransform
+		FVector		OutTranslation = Transforms[0].GetTranslation() * Weights[0];
+		FQuat		OutRotation = Transforms[0].GetRotation() * Weights[0];
+		FVector		OutScale = Transforms[0].GetScale3D() * Weights[0];
+
+		// otherwise we just purely blend by number, and then later we normalize
+		for (int32 Index = 1; Index < NumBlends; ++Index)
+		{
+			// Simple linear interpolation for translation and scale.
+			OutTranslation = FMath::Lerp(OutTranslation, Transforms[Index].GetTranslation(), Weights[Index]);
+			OutScale = FMath::Lerp(OutScale, Transforms[Index].GetScale3D(), Weights[Index]);
+			OutRotation = FQuat::FastLerp(OutRotation, Transforms[Index].GetRotation(), Weights[Index]);
+		}
+
+		OutRotation.Normalize();
+		OutTransform = FTransform(OutRotation, OutTranslation, OutScale);
+	}
+}
+
 void FAnimationRuntime::CombineWithAdditiveAnimations(int32 NumAdditivePoses, const FTransformArrayA2** SourceAdditivePoses, const float* SourceAdditiveWeights, const FBoneContainer& RequiredBones, /*inout*/ FTransformArrayA2& Atoms)
 {
 	const TArray<FBoneIndexType>& RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
@@ -1131,14 +1165,15 @@ void FAnimationRuntime::BlendPosesPerBoneFilter(
 	}
 }
 
-void FAnimationRuntime::CreateMaskWeights(TArray<FPerBoneBlendWeight>& BoneBlendWeights, const TArray<FInputBlendPose>& BlendFilters, const FBoneContainer& RequiredBones, const USkeleton* Skeleton)
+void FAnimationRuntime::CreateMaskWeights(TArray<FPerBoneBlendWeight>& BoneBlendWeights, const TArray<FInputBlendPose>& BlendFilters, const USkeleton* Skeleton)
 {
 	if ( Skeleton )
 	{
-		const TArray<FBoneIndexType>& RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
+		const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 		
-		BoneBlendWeights.Empty(RequiredBoneIndices.Num());
-		BoneBlendWeights.AddZeroed(RequiredBoneIndices.Num());
+		const int32 TotalNum = RefSkeleton.GetNum();
+		BoneBlendWeights.Reset(TotalNum);
+		BoneBlendWeights.AddZeroed(TotalNum);
 
 		// base mask bone
 		for (int32 PoseIndex=0; PoseIndex<BlendFilters.Num(); ++PoseIndex)
@@ -1148,20 +1183,17 @@ void FAnimationRuntime::CreateMaskWeights(TArray<FPerBoneBlendWeight>& BoneBlend
 			for (int32 BranchIndex=0; BranchIndex<BlendPose.BranchFilters.Num(); ++BranchIndex)
 			{
 				const FBranchFilter& BranchFilter = BlendPose.BranchFilters[BranchIndex];
-				int32 MaskBoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(BranchFilter.BoneName);
+				int32 MaskBoneIndex = RefSkeleton.FindBoneIndex(BranchFilter.BoneName);
 
 				// how much weight increase Per depth
-				float MaxWeight = (BranchFilter.BlendDepth > 0) ? 1.f : -1.f;
 				float IncreaseWeightPerDepth = (BranchFilter.BlendDepth != 0) ? (1.f/((float)BranchFilter.BlendDepth)) : 1.f;
-	
-				// go through skeleton tree requiredboneindices
-				for (int32 BoneIndex = 0; BoneIndex<RequiredBoneIndices.Num(); ++BoneIndex)
-				{
-					int32 MeshBoneIndex = RequiredBoneIndices[BoneIndex];
-					int32 Depth = RequiredBones.GetDepthBetweenBones(MeshBoneIndex, MaskBoneIndex);
 
+				// go through skeleton tree requiredboneindices
+				for (int32 BoneIndex = 0; BoneIndex < TotalNum; ++BoneIndex)
+				{
 					// if Depth == -1, it's not a child
-					if( Depth != -1 )
+					int32 Depth = RefSkeleton.GetDepthBetweenBones(BoneIndex, MaskBoneIndex);
+					if (Depth != -1)
 					{
 						// when you write to buffer, you'll need to match with BasePoses BoneIndex
 						FPerBoneBlendWeight& BoneBlendWeight = BoneBlendWeights[BoneIndex];
@@ -1338,7 +1370,32 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType>& RequiredBoneIndices,
 }
 #endif
 
-#if WITH_EDITOR
+FTransform FAnimationRuntime::GetComponentSpaceTransformRefPose(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex)
+{
+	if (RefSkeleton.IsValidIndex(BoneIndex))
+	{
+		// initialize to identity since some of them don't have tracks
+		int32 IterBoneIndex = BoneIndex;
+		const TArray<FTransform>& RefSkeletonPose = RefSkeleton.GetRefBonePose();
+		FTransform CompTransform = RefSkeletonPose[BoneIndex];
+
+		do
+		{
+			int32 ParentIndex = RefSkeleton.GetParentIndex(IterBoneIndex);
+			if (ParentIndex != INDEX_NONE)
+			{
+				CompTransform = CompTransform * RefSkeletonPose[ParentIndex];
+			}
+
+			IterBoneIndex = ParentIndex;
+		} while (RefSkeleton.IsValidIndex(IterBoneIndex));
+
+		return CompTransform;
+	}
+
+	return FTransform::Identity;
+}
+
 void FAnimationRuntime::FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms)
 {
 	ComponentSpaceTransforms.Empty(BoneSpaceTransforms.Num());
@@ -1359,6 +1416,7 @@ void FAnimationRuntime::FillUpComponentSpaceTransforms(const FReferenceSkeleton&
 	}
 }
 
+#if WITH_EDITOR
 void FAnimationRuntime::FillUpComponentSpaceTransformsRefPose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms)
 {
 	check(Skeleton);
@@ -1520,7 +1578,7 @@ int32 FAnimationRuntime::GetStringDistance(const FString& First, const FString& 
 	return NextRow[SecondLength];
 }
 
-void FAnimationRuntime::RetargetBoneTransform(const USkeleton* MySkeleton, const FName& RetargetSource, FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive)
+void FAnimationRuntime::RetargetBoneTransform(const USkeleton* MySkeleton, const FName& RetargetSource, FTransform& BoneTransform, const int32 SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive)
 {
 	if (MySkeleton)
 	{
@@ -1596,7 +1654,7 @@ bool FA2CSPose::IsValid() const
 	return (BoneContainer && BoneContainer->IsValid());
 }
 
-int32 FA2CSPose::GetParentBoneIndex(const int32& BoneIndex) const
+int32 FA2CSPose::GetParentBoneIndex(const int32 BoneIndex) const
 {
 	checkSlow( IsValid() );
 	return BoneContainer->GetParentBoneIndex(BoneIndex);

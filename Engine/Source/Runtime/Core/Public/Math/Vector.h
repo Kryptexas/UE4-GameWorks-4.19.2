@@ -39,6 +39,9 @@ public:
 	/** A zero vector (0,0,0) */
 	static CORE_API const FVector ZeroVector;
 
+	/** One vector (1,1,1) */
+	static CORE_API const FVector OneVector;
+
 	/** World up vector (0,0,1) */
 	static CORE_API const FVector UpVector;
 

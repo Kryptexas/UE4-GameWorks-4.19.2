@@ -270,8 +270,6 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify) override;
 #endif
 
-#if WITH_APEX_CLOTHING
-
 	enum ESectionDisplayMode
 	{
 		None = -1,
@@ -292,12 +290,18 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	/** Restore all section visibilities to original states for all LODs */
 	UNREALED_API void RestoreClothSectionsVisibility();
 
+	/** 
+	 * To normal game/runtime code we don't want to expose a non-const pointer to the simulation, so we can only get
+	 * one from this editor-only component. Intended for debug options/visualisations/editor-only code to poke the sim
+	 */
+	UNREALED_API IClothingSimulation* GetMutableClothingSimulation();
+
 	int32 FindCurrentSectionDisplayMode();
+
 
 	/** to avoid clothing reset while modifying properties in Persona */
 	virtual void CheckClothTeleport() override;
 
-#endif //#if WITH_APEX_CLOTHING
 
 private:
 

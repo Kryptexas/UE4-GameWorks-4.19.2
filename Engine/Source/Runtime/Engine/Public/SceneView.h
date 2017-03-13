@@ -119,13 +119,16 @@ struct FMonoscopicFarFieldParameters
 
 	EMonoscopicFarFieldMode Mode;
 
+	bool bEnabled;
+
 	FMonoscopicFarFieldParameters() :
 		CullingDistance(0.0f),
 		StereoDepthClip(0.0f),
 		MonoDepthClip(0.0f), 
 		LateralOffset(0.0f),
 		OverlapDistance(50.0f),
-		Mode(EMonoscopicFarFieldMode::Off)
+		Mode(EMonoscopicFarFieldMode::Off),
+		bEnabled(false)
 	{
 	}
 };
@@ -161,11 +164,11 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	/** If > 0, overrides the view's far clipping plane with a plane at the specified distance. */
 	float OverrideFarClippingPlaneDistance;
 
+	/** World origin offset value. Non-zero only for a single frame when origin is rebased */
+	FVector OriginOffsetThisFrame;
+
 	// Was there a camera cut this frame?
 	bool bInCameraCut;
-
-	// Whether world origin was rebased this frame?
-	bool bOriginOffsetThisFrame;
 
 	// Whether to use FOV when computing mesh LOD.
 	bool bUseFieldOfViewForLOD;
@@ -194,8 +197,8 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, CursorPos(-1, -1)
 		, LODDistanceFactor(1.0f)
 		, OverrideFarClippingPlaneDistance(-1.0f)
+		, OriginOffsetThisFrame(ForceInitToZero)
 		, bInCameraCut(false)
-		, bOriginOffsetThisFrame(false)
 		, bUseFieldOfViewForLOD(true)
 #if WITH_EDITOR
 		, EditorViewBitflag(1)
@@ -440,6 +443,16 @@ public:
 		VRight.Normalize();
 
 		return FVector2D(FMath::Acos(VCenter | VRight), FMath::Acos(VCenter | VUp));
+	}
+
+	void ApplyWorldOffset(const FVector& InOffset)
+	{
+		ViewOrigin+= InOffset;
+		PreViewTranslation-= InOffset;
+	
+		ViewMatrix.SetOrigin(ViewMatrix.GetOrigin() + ViewMatrix.TransformVector(-InOffset));
+		InvViewMatrix.SetOrigin(ViewOrigin);
+		RecomputeDerivedMatrices();
 	}
 
 private:
@@ -851,6 +864,9 @@ public:
 	/* Vector used by shaders to convert depth buffer samples into z coordinates in world space */
 	FVector4 InvDeviceZToWorldZTransform;
 
+	/** World origin offset value. Non-zero only for a single frame when origin is rebased */
+	FVector OriginOffsetThisFrame;
+
 	/** FOV based multiplier for cull distance on objects */
 	float LODDistanceFactor;
 	/** Square of the FOV based multiplier for cull distance on objects */
@@ -859,9 +875,6 @@ public:
 	/** Whether we did a camera cut for this view this frame. */
 	bool bCameraCut;
 	
-	/** Whether world origin was rebased this frame. */
-	bool bOriginOffsetThisFrame;
-
 	// -1,-1 if not setup
 	FIntPoint CursorPos;
 
@@ -1388,6 +1401,11 @@ public:
 
 	/** Returns the appropriate view for a given eye in a stereo pair. */
 	const FSceneView& GetStereoEyeView(const EStereoscopicPass Eye) const;
+
+	const bool IsMonoscopicFarFieldEnabled() const
+	{
+		return MonoParameters.bEnabled && MonoParameters.Mode != EMonoscopicFarFieldMode::Off;
+	}
 };
 
 /**

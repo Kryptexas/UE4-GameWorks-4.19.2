@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class FunctionalTestingEditor : ModuleRules
 {
-    public FunctionalTestingEditor(TargetInfo Target)
+    public FunctionalTestingEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicDependencyModuleNames.AddRange
         (

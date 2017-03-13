@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SGraphNodeK2Sequence_h__
-#define __SGraphNodeK2Sequence_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -26,5 +24,3 @@ protected:
 	virtual FReply OnAddPin() override;
 	// End of SGraphNode interface
 };
-
-#endif // __SGraphNodeK2Sequence_h__

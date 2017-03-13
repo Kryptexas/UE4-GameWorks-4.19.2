@@ -11,5 +11,5 @@
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <LicenseFolder>/Engine/Source/ThirdParty/AMD/AMD_AGS/AGSlib_License.txt</LicenseFolder>
+  <LicenseFolder>/Engine/Source/ThirdParty/AMD/AMD_AGS/LICENSE.txt</LicenseFolder>
 </TpsData>

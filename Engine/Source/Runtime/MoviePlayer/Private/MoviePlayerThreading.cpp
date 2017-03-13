@@ -6,8 +6,7 @@
 #include "Misc/ScopeLock.h"
 #include "Framework/Application/SlateApplication.h"
 
-
-
+FThreadSafeCounter FSlateLoadingSynchronizationMechanism::LoadingThreadInstanceCounter;
 
 /**
  * The Slate thread is simply run on a worker thread.
@@ -52,8 +51,11 @@ void FSlateLoadingSynchronizationMechanism::Initialize()
 
 	MainLoop.Lock();
 
+	FString ThreadName = TEXT("SlateLoadingThread");
+	ThreadName.AppendInt(LoadingThreadInstanceCounter.Increment());
+
 	SlateRunnableTask = new FSlateLoadingThreadTask( *this );
-	SlateLoadingThread = FRunnableThread::Create(SlateRunnableTask, TEXT("SlateLoadingThread"));
+	SlateLoadingThread = FRunnableThread::Create(SlateRunnableTask, *ThreadName);
 }
 
 void FSlateLoadingSynchronizationMechanism::DestroySlateThread()

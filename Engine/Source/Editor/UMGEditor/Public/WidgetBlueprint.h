@@ -164,7 +164,7 @@ struct FWidgetAnimation_DEPRECATED
 };
 
 template<>
-struct TStructOpsTypeTraits<FWidgetAnimation_DEPRECATED> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FWidgetAnimation_DEPRECATED> : public TStructOpsTypeTraitsBase2<FWidgetAnimation_DEPRECATED>
 {
 	enum
 	{

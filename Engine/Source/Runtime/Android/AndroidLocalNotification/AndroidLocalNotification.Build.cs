@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AndroidLocalNotification : ModuleRules
 {
-	public AndroidLocalNotification(TargetInfo Target)
+	public AndroidLocalNotification(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "Android";
 

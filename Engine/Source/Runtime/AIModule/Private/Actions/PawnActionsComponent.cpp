@@ -15,18 +15,18 @@
 
 namespace
 {
-	FString GetEventName(int32 Index)
+	FString GetEventName(int64 Value)
 	{
 		static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPawnActionEventType"));
 		check(Enum);
-		return Enum->GetEnumName(Index);
+		return Enum->GetNameStringByValue(Value);
 	}
 
-	FString GetPriorityName(int32 Index)
+	FString GetPriorityName(int64 Value)
 	{
 		static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAIRequestPriority"));
 		check(Enum);
-		return Enum->GetEnumName(Index);
+		return Enum->GetNameStringByValue(Value);
 	}
 
 	FString GetActionSignature(UPawnAction* Action)

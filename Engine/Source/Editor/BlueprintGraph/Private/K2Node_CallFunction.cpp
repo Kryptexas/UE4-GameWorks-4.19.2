@@ -321,6 +321,19 @@ void FDynamicOutputHelper::VerifyNode(const UK2Node_CallFunction* FuncNode, FCom
 			}
 		}
 	}
+	
+	// Ensure that editor module BP exposed UFunctions can only be called in blueprints for which the baseclass is also part of an editor module
+	const UClass* FunctionClass = FuncNode->FunctionReference.GetMemberParentClass();
+	const bool bIsEditorOnlyFunction = FunctionClass && IsEditorOnlyObject(FunctionClass);
+
+	const UBlueprint* Blueprint = FuncNode->GetBlueprint();
+	const UClass* BlueprintClass = Blueprint->ParentClass;
+	bool bIsEditorOnlyBlueprintBaseClass = !BlueprintClass || IsEditorOnlyObject(BlueprintClass);
+	if (bIsEditorOnlyFunction && !bIsEditorOnlyBlueprintBaseClass)
+	{
+		FText const ErrorFormat = LOCTEXT("BlueprintEditorOnly", "Function in Editor Only Module '@@' cannot be called within the Non-Editor module blueprint base class '@@'.");
+		MessageLog.Warning(*ErrorFormat.ToString(), FuncNode, BlueprintClass);
+	}
 }
 
 UK2Node_CallFunction* FDynamicOutputHelper::GetFunctionNode() const
@@ -583,7 +596,7 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 
 		if (ParentClass != NULL)
 		{
-			if (UFunction* NewFunction = Cast<UFunction>(FMemberReference::FindRemappedField(ParentClass, FunctionReference.GetMemberName())))
+			if (UFunction* NewFunction = FMemberReference::FindRemappedField<UFunction>(ParentClass, FunctionReference.GetMemberName()))
 			{
 				// Found a remapped property, update the node
 				Function = NewFunction;
@@ -752,7 +765,7 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 					bool const bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), ExecIdx) || Enum->HasMetaData(TEXT("Spacer"), ExecIdx);
 					if (!bShouldBeHidden)
 					{
-						FString ExecName = Enum->GetEnumName(ExecIdx);
+						FString ExecName = Enum->GetNameStringByIndex(ExecIdx);
 						CreatePin(Direction, K2Schema->PC_Exec, TEXT(""), NULL, false, false, ExecName);
 					}
 				}
@@ -962,7 +975,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 		UEdGraphPin* EnumParamPin = FindPin(EnumParamName);
 		if (UEnum* PinEnum = (EnumParamPin ? Cast<UEnum>(EnumParamPin->PinType.PinSubCategoryObject.Get()) : NULL))
 		{
-			EnumParamPin->DefaultValue = PinEnum->GetEnumName(0);
+			EnumParamPin->DefaultValue = PinEnum->GetNameStringByIndex(0);
 		}
 	}
 
@@ -1350,13 +1363,13 @@ void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, cons
 				}
 
 				// replace the newline with a single space
-				if(!FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
+				if(CurStrPos < FullToolTipLen && !FChar::IsLinebreak(FunctionToolTipText[CurStrPos]))
 				{
 					ParamDesc.AppendChar(TEXT(' '));
 				}
 			}
 
-			if (FunctionToolTipText[CurStrPos] != TEXT('@'))
+			if (CurStrPos < FullToolTipLen && FunctionToolTipText[CurStrPos] != TEXT('@'))
 			{
 				ParamDesc.AppendChar(FunctionToolTipText[CurStrPos++]);
 			}

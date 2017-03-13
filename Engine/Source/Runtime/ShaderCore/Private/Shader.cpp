@@ -24,6 +24,9 @@ static TAutoConsoleVariable<int32> CVarUsePipelines(
 	1,
 	TEXT("Enable using Shader pipelines."));
 
+static TLinkedList<FShaderType*>*			GShaderTypeList = nullptr;
+static TLinkedList<FShaderPipelineType*>*	GShaderPipelineList = nullptr;
+
 /**
  * Find the shader pipeline type with the given name.
  * @return NULL if no type matched.
@@ -163,7 +166,6 @@ FShaderType::~FShaderType()
 
 TLinkedList<FShaderType*>*& FShaderType::GetTypeList()
 {
-	static TLinkedList<FShaderType*>* GShaderTypeList = nullptr;
 	return GShaderTypeList;
 }
 
@@ -310,9 +312,15 @@ void FShaderType::Initialize(const TMap<FString, TArray<const TCHAR*> >& ShaderF
 	//#todo-rco: Need to call this only when Initializing from a Pipeline once it's removed from the global linked list
 	if (!FPlatformProperties::RequiresCookedData())
 	{
+#if UE_BUILD_DEBUG
+		TArray<FShaderType*> UniqueShaderTypes;
+#endif
 		for(TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next())
 		{
 			FShaderType* Type = *It;
+#if UE_BUILD_DEBUG
+			UniqueShaderTypes.Add(Type);
+#endif
 			GenerateReferencedUniformBuffers(Type->SourceFilename, Type->Name, ShaderFileToUniformBufferVariables, Type->ReferencedUniformBufferStructsCache);
 
 			// Cache serialization history for each shader type
@@ -333,6 +341,15 @@ void FShaderType::Initialize(const TMap<FString, TArray<const TCHAR*> >& ShaderF
 				delete TempShader;
 			}
 		}
+	
+#if UE_BUILD_DEBUG
+		// Check for duplicated shader type names
+		UniqueShaderTypes.Sort([](const FShaderType& A, const FShaderType& B) { return (SIZE_T)&A < (SIZE_T)&B; });
+		for (int32 Index = 1; Index < UniqueShaderTypes.Num(); ++Index)
+		{
+			checkf(UniqueShaderTypes[Index - 1] != UniqueShaderTypes[Index], TEXT("Duplicated FShader type name %s found, please rename one of them!"), UniqueShaderTypes[Index]->GetName());
+		}
+#endif
 	}
 
 	bInitializedSerializationHistory = true;
@@ -456,16 +473,16 @@ void FShaderResource::Serialize(FArchive& Ar)
 		INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), (int64)Code.Num());
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 		
-		FShaderCache::LogShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, Code);
+		FShaderCache::LogShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, UncompressedCodeSize, Code);
 
 		// The shader resource has been serialized in, so this shader resource is now initialized.
 		check(Canary != FShader::ShaderMagic_CleaningUp);
 		Canary = FShader::ShaderMagic_Initialized;
 	}
 #if WITH_EDITORONLY_DATA
-	else if(Ar.IsCooking())
+	else if (Ar.IsCooking() && Ar.IsPersistent() && !Ar.IsObjectReferenceCollector())
 	{
-		FShaderCache::CookShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, Code);
+		FShaderCache::CookShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, UncompressedCodeSize, Code);
 	}
 #endif
 }
@@ -1149,7 +1166,6 @@ TMap<FName, FShaderPipelineType*>& FShaderPipelineType::GetNameToTypeMap()
 
 TLinkedList<FShaderPipelineType*>*& FShaderPipelineType::GetTypeList()
 {
-	static TLinkedList<FShaderPipelineType*>* GShaderPipelineList = nullptr;
 	return GShaderPipelineList;
 }
 
@@ -1177,9 +1193,16 @@ void FShaderPipelineType::Initialize()
 
 	TSet<FName> UsedNames;
 
+#if UE_BUILD_DEBUG
+	TArray<const FShaderPipelineType*> UniqueShaderPipelineTypes;
+#endif
 	for (TLinkedList<FShaderPipelineType*>::TIterator It(FShaderPipelineType::GetTypeList()); It; It.Next())
 	{
 		const auto* PipelineType = *It;
+
+#if UE_BUILD_DEBUG
+		UniqueShaderPipelineTypes.Add(PipelineType);
+#endif
 
 		// Validate stages
 		for (int32 Index = 0; Index < SF_NumFrequencies; ++Index)
@@ -1214,6 +1237,15 @@ void FShaderPipelineType::Initialize()
 		checkf(!UsedNames.Contains(PipelineName), TEXT("Two Pipelines with the same name %s found!"), PipelineType->Name);
 		UsedNames.Add(PipelineName);
 	}
+
+#if UE_BUILD_DEBUG
+	// Check for duplicated shader pipeline type names
+	UniqueShaderPipelineTypes.Sort([](const FShaderPipelineType& A, const FShaderPipelineType& B) { return (SIZE_T)&A < (SIZE_T)&B; });
+	for (int32 Index = 1; Index < UniqueShaderPipelineTypes.Num(); ++Index)
+	{
+		checkf(UniqueShaderPipelineTypes[Index - 1] != UniqueShaderPipelineTypes[Index], TEXT("Duplicated FShaderPipeline type name %s found, please rename one of them!"), UniqueShaderPipelineTypes[Index]->GetName());
+	}
+#endif
 
 	bInitialized = true;
 }
@@ -1705,12 +1737,15 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		static const auto CVarInstancedStereo = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
 		static const auto CVarMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 		static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+		static const auto CVarMonoscopicFarField = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
 
 		const bool bIsInstancedStereo = ((Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4) && (CVarInstancedStereo && CVarInstancedStereo->GetValueOnGameThread() != 0));
 		const bool bIsMultiView = (Platform == EShaderPlatform::SP_PS4 && (CVarMultiView && CVarMultiView->GetValueOnGameThread() != 0));
 
 		const bool bIsAndroidGLES = (Platform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || Platform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
 		const bool bIsMobileMultiView = (bIsAndroidGLES && (CVarMobileMultiView && CVarMobileMultiView->GetValueOnGameThread() != 0));
+
+		const bool bIsMonoscopicFarField = CVarMonoscopicFarField && (CVarMonoscopicFarField->GetValueOnGameThread() != 0);
 
 		if (bIsInstancedStereo)
 		{
@@ -1725,6 +1760,11 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		if (bIsMobileMultiView)
 		{
 			KeyString += TEXT("_MMVIEW");
+		}
+
+		if (bIsMonoscopicFarField)
+		{
+			KeyString += TEXT("_MONO");
 		}
 	}
 

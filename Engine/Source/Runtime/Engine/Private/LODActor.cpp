@@ -699,7 +699,7 @@ FBox ALODActor::GetComponentsBoundingBox(bool bNonColliding) const
 	// If BoundBox ends up to nothing create a new invalid one
 	if (BoundBox.GetVolume() == 0.0f)
 	{
-		BoundBox = FBox(0);
+		BoundBox = FBox(ForceInit);
 	}
 
 	if (bNonColliding)

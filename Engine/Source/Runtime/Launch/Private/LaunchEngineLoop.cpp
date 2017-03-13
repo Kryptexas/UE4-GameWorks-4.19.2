@@ -55,6 +55,7 @@
 	#include "UObject/UObjectHash.h"
 	#include "UObject/Package.h"
 	#include "UObject/Linker.h"
+	#include "UObject/LinkerLoad.h"
 #endif
 
 #if WITH_EDITOR
@@ -90,7 +91,9 @@
 	#include "EngineStats.h"
 	#include "EngineGlobals.h"
 	#include "AudioThread.h"
+#if WITH_ENGINE && !UE_BUILD_SHIPPING
 	#include "Interfaces/IAutomationControllerModule.h"
+#endif // WITH_ENGINE && !UE_BUILD_SHIPPING
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
 	#include "ShaderCompiler.h"
@@ -99,6 +102,7 @@
 	#include "Materials/MaterialInterface.h"
 	#include "TextureResource.h"
 	#include "Engine/Texture2D.h"
+	#include "StringTable.h"
 	#include "SceneUtils.h"
 	#include "ParticleHelper.h"
 	#include "PhysicsPublic.h"
@@ -246,9 +250,9 @@ public:
 		if ( (bAllowLogVerbosity && Verbosity <= ELogVerbosity::Log) || (Verbosity <= ELogVerbosity::Display) )
 		{
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
-			wprintf(TEXT("\n%ls"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("%ls\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #else
-			wprintf(TEXT("\n%s"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("%s\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #endif
 			fflush(stdout);
 		}
@@ -854,6 +858,8 @@ DECLARE_CYCLE_STAT( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_
 
 int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
+	FPlatformMisc::InitTaggedStorage(1024);
+
 	if (FParse::Param(CmdLine, TEXT("UTF8Output")))
 	{
 		FPlatformMisc::SetUTF8Output();
@@ -1381,7 +1387,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			{
 				NumThreadsInThreadPool = 2;
 			}
-			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
+			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 64 * 1024, TPri_AboveNormal));
 		}
 	}
 
@@ -1580,6 +1586,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	EndInitTextLocalization();
 
+	UStringTable::InitializeEngineBridge();
+
 	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowAudioThread())
 	{
 		bool bUseThreadedAudio = false;
@@ -1685,6 +1693,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					GUseRHIThread = false;
 				}
 			}
+
 			StartRenderingThread();
 		}
 #endif
@@ -1721,6 +1730,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 
 		}
+		else if ( IsRunningCommandlet() )
+		{
+			// Create the engine font services now that the Slate renderer is ready
+			FEngineFontServices::Create();
+		}
 #endif
 
 		// In order to be able to use short script package names get all script
@@ -1728,6 +1742,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPackageName::RegisterShortPackageNamesForUObjectModules();
 
 		SlowTask.EnterProgressFrame(5);
+
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+		// If we don't do this now and the async loading thread is active, then we will attempt to load this module from a thread
+		if (GEventDrivenLoaderEnabled)
+		{
+			FModuleManager::Get().LoadModule("AssetRegistry");
+		}
+#endif
 
 		// Make sure all UObject classes are registered and default properties have been initialized
 		ProcessNewlyLoadedUObjects();
@@ -1848,6 +1871,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		GUObjectArray.CloseDisregardForGC();
 	}
+	NotifyRegistrationComplete();
 #endif // WITH_COREUOBJECT
 
 #if WITH_ENGINE
@@ -2248,6 +2272,7 @@ void FEngineLoop::LoadPreInitModules()
 #if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 	// Load audio editor module before engine class CDOs are loaded
 	FModuleManager::Get().LoadModule(TEXT("AudioEditor"));
+	FModuleManager::Get().LoadModule(TEXT("AnimationModifiers"));
 #endif
 
 }
@@ -2335,6 +2360,9 @@ bool FEngineLoop::LoadStartupCoreModules()
 	IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
 	AudioEditorModule->RegisterAssetActions();
 
+	// Load the StringTableEditor module to register its asset actions
+	FModuleManager::Get().LoadModule("StringTableEditor");
+
 	if( !IsRunningDedicatedServer() )
 	{
 		// VREditor needs to be loaded in non-server editor builds early, so engine content Blueprints can be loaded during DDC generation
@@ -2374,6 +2402,12 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 	}
 #endif
+
+	FModuleManager::Get().LoadModule(TEXT("ClothingSystemRuntime"));
+#if WITH_EDITOR
+	FModuleManager::Get().LoadModule(TEXT("ClothingSystemEditor"));
+#endif
+
 
 	return bSuccess;
 }
@@ -2684,6 +2718,8 @@ void FEngineLoop::Exit()
 	{
 		FIOSystem::Shutdown();
 	}
+
+FPlatformMisc::ShutdownTaggedStorage();
 }
 
 
@@ -2886,6 +2922,12 @@ void FEngineLoop::Tick()
 	// Send a heartbeat for the diagnostics thread
 	FThreadHeartBeat::Get().HeartBeat();
 
+	// Make sure something is ticking the rendering tickables in -onethread mode to avoid leaks/bugs.
+	if (!GUseThreadedRendering && !GIsRenderingThreadSuspended)
+	{
+		TickRenderingTickables();
+	}
+
 	// Ensure we aren't starting a frame while loading or playing a loading movie
 	ensure(GetMoviePlayer()->IsLoadingFinished() && !GetMoviePlayer()->IsMovieCurrentlyPlaying());
 
@@ -3054,24 +3096,26 @@ void FEngineLoop::Tick()
 		if (bDoConcurrentSlateTick)
 		{
 			const float DeltaSeconds = FApp::GetDeltaTime();
-			UGameViewportClient* const GameViewport = GEngine->GameViewport;
-			ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-				[GameViewport, DeltaSeconds]()
-				{
-					if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
+			const UGameViewportClient* const GameViewport = GEngine->GameViewport;
+			const UWorld* const GameViewportWorld = GameViewport ? GameViewport->GetWorld() : nullptr;
+			UDemoNetDriver* const CurrentDemoNetDriver = GameViewportWorld ? GameViewportWorld->DemoNetDriver : nullptr;
+
+			if (CurrentDemoNetDriver && CurrentDemoNetDriver->ShouldTickFlushAsyncEndOfFrame())
+			{
+				ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+					[CurrentDemoNetDriver, DeltaSeconds]()
 					{
-						FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
-					}
-					if (GameViewport != nullptr)
-					{
-						UWorld* const World = GameViewport->GetWorld();
-						if (World && World->DemoNetDriver)
+						if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
 						{
-							World->DemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
+							FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
+						}
+						if (CurrentDemoNetDriver != nullptr)
+						{
+							CurrentDemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
 						}
 					}
-				}
-			);
+				);
+			}
 		}
 #endif
 
@@ -3104,7 +3148,7 @@ void FEngineLoop::Tick()
 		ClearPendingStatGroups();
 #endif
 
-#if WITH_EDITOR
+#if WITH_EDITOR && !UE_BUILD_SHIPPING
 		{
 			QUICK_SCOPE_CYCLE_COUNTER( STAT_FEngineLoop_Tick_AutomationController );
 			static FName AutomationController( "AutomationController" );
@@ -3297,6 +3341,37 @@ bool FEngineLoop::AppInit( )
 
 	// Avoiding potential exploits by not exposing command line overrides in the shipping games.
 #if !UE_BUILD_SHIPPING && WITH_EDITORONLY_DATA
+	FString CmdLineFile;
+
+	if (FParse::Value(FCommandLine::Get(), TEXT("-CmdLineFile="), CmdLineFile))
+	{
+		if (CmdLineFile.EndsWith(TEXT(".txt")))
+		{
+			FString FileCmds;
+
+			if (FFileHelper::LoadFileToString(FileCmds, *CmdLineFile))
+			{
+				FileCmds = FString(TEXT(" ")) + FileCmds.Trim().TrimTrailing();
+
+				if (FileCmds.Len() > 1)
+				{
+					UE_LOG(LogInit, Log, TEXT("Appending commandline from file:%s"), *FileCmds);
+
+					FCommandLine::Append(*FileCmds);
+				}
+			}
+			else
+			{
+				UE_LOG(LogInit, Warning, TEXT("Failed to load commandline file '%s'."), *CmdLineFile);
+			}
+		}
+		else
+		{
+			UE_LOG(LogInit, Warning, TEXT("Can only load commandline files ending with .txt, can't load: %s"), *CmdLineFile);
+		}
+	}
+
+
 	// 8192 is the maximum length of the command line on Windows XP.
 	TCHAR CmdLineEnv[8192];
 

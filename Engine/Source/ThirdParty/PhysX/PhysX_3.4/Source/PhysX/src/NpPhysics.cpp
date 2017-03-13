@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -71,6 +71,10 @@
 
 #if PX_USE_CLOTH_API
 #include "NpCloth.h"
+#endif
+
+#if PX_NX
+#include "nx/NpMiddlewareInfo.h"
 #endif
 
 using namespace physx;
@@ -202,18 +206,18 @@ void NpPhysics::initOffsetTables(PxvOffsetTable& pxvOffsetTable)
 		offsetTable.pxActorToScbActor[PxConcreteType::eCLOTH]				= reinterpret_cast<ptrdiff_t>(&static_cast<NpCloth*>(n)->getScbCloth()) - addr;
 #endif
 		// init scb2sc
-		for(PxU32 i=0;i<ScbType::TYPE_COUNT;i++)
+		for(PxU32 i=0;i<ScbType::eTYPE_COUNT;i++)
 			offsetTable.scbToSc[i] = 0;
 		ptrdiff_t staticOffset = static_cast<ptrdiff_t>(Scb::RigidStatic::getScOffset());
 		ptrdiff_t bodyOffset = static_cast<ptrdiff_t>(Scb::Body::getScOffset());
-		offsetTable.scbToSc[ScbType::RIGID_STATIC] = staticOffset;
-		offsetTable.scbToSc[ScbType::BODY] = bodyOffset;
-		offsetTable.scbToSc[ScbType::BODY_FROM_ARTICULATION_LINK] = bodyOffset;
+		offsetTable.scbToSc[ScbType::eRIGID_STATIC] = staticOffset;
+		offsetTable.scbToSc[ScbType::eBODY] = bodyOffset;
+		offsetTable.scbToSc[ScbType::eBODY_FROM_ARTICULATION_LINK] = bodyOffset;
 #if PX_USE_PARTICLE_SYSTEM_API
-		offsetTable.scbToSc[ScbType::PARTICLE_SYSTEM] = static_cast<ptrdiff_t>(Scb::ParticleSystem::getScOffset());
+		offsetTable.scbToSc[ScbType::ePARTICLE_SYSTEM] = static_cast<ptrdiff_t>(Scb::ParticleSystem::getScOffset());
 #endif
 #if PX_USE_CLOTH_API
-		offsetTable.scbToSc[ScbType::CLOTH] = static_cast<ptrdiff_t>(Scb::Cloth::getScOffset());
+		offsetTable.scbToSc[ScbType::eCLOTH] = static_cast<ptrdiff_t>(Scb::Cloth::getScOffset());
 #endif
 	}
 	{
@@ -228,6 +232,10 @@ NpPhysics* NpPhysics::createInstance(PxU32 version, PxFoundation& foundation, co
 	                                 physx::pvdsdk::PsPvd* pvd)
 {
 	PX_UNUSED(foundation);
+
+#if PX_NX
+	NpSetMiddlewareInfo();  // register middleware info such that PhysX usage can be tracked
+#endif
 	
 	if (version!=PX_PHYSICS_VERSION) 
 	{

@@ -273,7 +273,7 @@ void FBlueprintCompilerCppBackend::EmitAddMulticastDelegateStatement(FEmitterLoc
 	const FString Delegate = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference, false);
 	const FString DelegateToAdd = TermToText(EmitterContext, Statement.RHS[0], ENativizedTermUsage::Getter);
 
-	EmitterContext.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *Delegate, *DelegateToAdd));
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.AddUnique(%s);"), *Delegate, *DelegateToAdd));
 }
 
 void FBlueprintCompilerCppBackend::EmitRemoveMulticastDelegateStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -804,7 +804,6 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		if (bUnconvertedClass)
 		{
 			ensure(!Statement.bIsParentContext); //unsupported yet
-			ensure(!bStaticCall); //unsupported yet
 			ensure(bCallOnDifferentObject); //unexpected
 			const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
 			const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::UnspecifiedOrReference, false) : TEXT("this");
@@ -1212,83 +1211,134 @@ bool FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 }
 
 bool FBlueprintCompilerCppBackend::SortNodesInUberGraphExecutionGroup(FKismetFunctionContext &FunctionContext, UEdGraphNode* TheOnlyEntryPoint, int32 ExecutionGroup, TArray<UEdGraphNode*> &LocalLinearExecutionList)
-{
-	bool bFoundComputedGoto = false;
+{	
 	ensure(FunctionContext.LinearExecutionList.Contains(TheOnlyEntryPoint));
-	TArray<UEdGraphNode*> RemainLinearExecutionList;
-	for (UEdGraphNode* NodeIt : FunctionContext.LinearExecutionList)
+
+	TArray<int32> ExecutionIndiceQueue;
+	int32 EntryIndiceIndex = INDEX_NONE;
+	for (int32 NodeIndex = 0; NodeIndex < FunctionContext.LinearExecutionList.Num(); ++NodeIndex)
 	{
-		if (FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup].Contains(NodeIt))
+		UEdGraphNode* Node = FunctionContext.LinearExecutionList[NodeIndex];
+		if (FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup].Contains(Node))
 		{
-			RemainLinearExecutionList.Push(NodeIt);
+			if (Node == TheOnlyEntryPoint)
+			{
+				EntryIndiceIndex = ExecutionIndiceQueue.Num();
+			}
+			ExecutionIndiceQueue.Add(NodeIndex);
 		}
 	}
-	UEdGraphNode* NextNode = TheOnlyEntryPoint;
-	while (RemainLinearExecutionList.Num())
+
+	bool bFoundComputedGoto = false;
+	bool bDetectedCyclicalLogic = false;
+	for (int32 IndiceIndex = EntryIndiceIndex; IndiceIndex >= 0 && IndiceIndex < ExecutionIndiceQueue.Num() && !bDetectedCyclicalLogic; )
 	{
-		UEdGraphNode* CurrentNode = NextNode;
-		NextNode = nullptr;
-		int32 IndexOfCurrentNodeInRemainList = RemainLinearExecutionList.IndexOfByKey(CurrentNode);
-		ensure(IndexOfCurrentNodeInRemainList != INDEX_NONE);
-		RemainLinearExecutionList.RemoveAt(IndexOfCurrentNodeInRemainList, 1, false);
+		int32 NodeIndex = ExecutionIndiceQueue[IndiceIndex];
+		// pop this from the execution queue (so we can detect if a separate statement requires a loop, jumping back to this one)
+		ExecutionIndiceQueue.RemoveAt(IndiceIndex, /*Count =*/1, /*bAllowShrinking =*/false);
+
+		UEdGraphNode* CurrentNode = FunctionContext.LinearExecutionList[NodeIndex];
+		// here we're defining the (possibly new) execution order
 		LocalLinearExecutionList.Push(CurrentNode);
+
+		int32 NextIndiceIndex = INDEX_NONE;
+		bool  bReturnExpected = false;
+
 		TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(CurrentNode);
 		if (StatementList)
 		{
-			for (int32 StatementIndex = 0; StatementIndex < StatementList->Num(); ++StatementIndex)
+			for (int32 StatementIndex = 0; StatementIndex < StatementList->Num() && !bDetectedCyclicalLogic; ++StatementIndex)
 			{
 				FBlueprintCompiledStatement& Statement = *((*StatementList)[StatementIndex]);
-				if (Statement.Type == KCST_ComputedGoto)
+				switch (Statement.Type)
 				{
-					ensure(!bFoundComputedGoto);
-					bFoundComputedGoto = true;
-					ensure(CurrentNode == TheOnlyEntryPoint);
-				}
-				if (Statement.Type == KCST_UnconditionalGoto)
-				{
-					ensure(StatementIndex == (StatementList->Num() - 1)); // it should be the last statement generated from the node
-					ensure(Statement.TargetLabel);
-					auto FindNodeFormStatement = [&](FBlueprintCompiledStatement* InStatement, TArray<UEdGraphNode*> InNodes)->UEdGraphNode*
+				case KCST_ComputedGoto:
 					{
-						UEdGraphNode* FoundNode = nullptr;
-						for (UEdGraphNode* ItNode : InNodes)
+						// sanity checking, that is all
+						ensure(!bFoundComputedGoto);
+						bFoundComputedGoto = true;
+						ensure(CurrentNode == TheOnlyEntryPoint);
+					}
+					break;
+
+				case KCST_UnconditionalGoto:
+					{
+						ensure(StatementIndex == (StatementList->Num() - 1)); // it should be the last statement generated from the node
+						ensure(Statement.TargetLabel);
+
+						int32 TargetIndiceIndex = 0;
+						for ( ; TargetIndiceIndex < ExecutionIndiceQueue.Num(); ++TargetIndiceIndex)
 						{
-							TArray<FBlueprintCompiledStatement*>* LocStatementList = FunctionContext.StatementsPerNode.Find(ItNode);
-							if (LocStatementList && LocStatementList->Contains(InStatement))
+							int32 TargetNodeIndex = ExecutionIndiceQueue[TargetIndiceIndex];
+							UEdGraphNode* RemainingNode = FunctionContext.LinearExecutionList[TargetNodeIndex];
+							
+							TArray<FBlueprintCompiledStatement*>* TargetStatementList = FunctionContext.StatementsPerNode.Find(RemainingNode);
+							// check and see if the statement we're supposed to jump to is contained within this node
+							if (TargetStatementList && TargetStatementList->Contains(Statement.TargetLabel))
 							{
-								return ItNode;
+								break;
 							}
 						}
-						return nullptr;
-					};
-					NextNode = FindNodeFormStatement(Statement.TargetLabel, RemainLinearExecutionList);
-					if (!NextNode)
-					{
-						UE_LOG(LogK2Compiler, Log
-							, TEXT("Unexpected UnconditionalGoto (probably a cycle) in %s execution group %d, node: %s (%s)")
-							, *GetPathNameSafe(FunctionContext.Function)
-							, ExecutionGroup
-							, *GetPathNameSafe(CurrentNode)
-							, *CurrentNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString());
-						return false;
+						NextIndiceIndex = TargetIndiceIndex;
+
+						// if we couldn't find the target node (it was likely already processed - implying cyclical logic)
+						if (TargetIndiceIndex >= ExecutionIndiceQueue.Num())
+						{
+							bDetectedCyclicalLogic = true;
+						}
 					}
-				}
+					break;
+
+				case KCST_GotoReturn:
+				case KCST_EndOfThread:
+					{
+						ensure(StatementIndex == (StatementList->Num() - 1)); // it should be the last statement generated from the node
+						bReturnExpected = true;
+					}
+					break;
+
+				default:
+					break;
+				};
 			}
 		}
-		if (!NextNode && RemainLinearExecutionList.Num())
+
+		// if there was no goto statement, then we expect the statement to fall through to the next
+		if (NextIndiceIndex == INDEX_NONE)
 		{
-			if (IndexOfCurrentNodeInRemainList >= RemainLinearExecutionList.Num())
+			// the index remains the same, because we popped the current one out of the queue
+			NextIndiceIndex = IndiceIndex;
+			if (NextIndiceIndex >= ExecutionIndiceQueue.Num())
 			{
-				UE_LOG(LogK2Compiler, Log
-					, TEXT("SortNodesInUberGraphExecutionGroup: changed the nodes sequence in %s execution group %d")
-					, *GetPathNameSafe(FunctionContext.Function)
-					, ExecutionGroup);
-				IndexOfCurrentNodeInRemainList = 0;
+				NextIndiceIndex = 0;
 			}
-			NextNode = RemainLinearExecutionList[IndexOfCurrentNodeInRemainList];
+
+			if (ExecutionIndiceQueue.Num() == 0 && !bReturnExpected)
+			{
+				// we've popped a node out of the queue that we were supposed to 
+				// fall through to (implying cyclical logic)
+				bDetectedCyclicalLogic = true;
+			}
+			// since we're falling through to the next node, we expect that node 
+			// to be what was directly next in the source LinearExecutionList, 
+			// if not, we can assume something pulled it out of order (implying cyclical logic)
+			else if (ExecutionIndiceQueue.Num() > 0 && ExecutionIndiceQueue[NextIndiceIndex] != NodeIndex+1)
+			{
+				bDetectedCyclicalLogic = true;
+			}
 		}
+		IndiceIndex = NextIndiceIndex;
 	}
-	return true;
+
+	// we didn't get through the entire execution queue, meaning we likely found 
+	// a cycle that we couldn't resolve (an UnconditionalGoto that looped back
+	// on a node we already processed)
+	if (ExecutionIndiceQueue.Num() > 0)
+	{
+		bDetectedCyclicalLogic = true;
+	}
+	// if we detected cyclical logic, then we cannot compose a sorted/linear execution list
+	return !bDetectedCyclicalLogic;
 }
 
 void FBlueprintCompilerCppBackend::EmitStatement(FBlueprintCompiledStatement &Statement, FEmitterLocalContext &EmitterContext, FKismetFunctionContext& FunctionContext)

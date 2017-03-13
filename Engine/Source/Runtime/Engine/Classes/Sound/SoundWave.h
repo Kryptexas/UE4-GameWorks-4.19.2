@@ -239,7 +239,7 @@ class ENGINE_API USoundWave : public USoundBase
 #endif // WITH_EDITORONLY_DATA
 
 	/** Curves associated with this sound wave */
-	UPROPERTY(EditAnywhere, Category = "Curves")
+	UPROPERTY(EditAnywhere, Category = SoundWave, AdvancedDisplay)
 	class UCurveTable* Curves;
 
 	/** Hold a reference to our internal curve so we can switch back to it if we want to */

@@ -3,6 +3,7 @@
 #include "SubmixEffects/AudioMixerSubmixEffectReverb.h"
 #include "AudioMixerEffectsManager.h"
 #include "Audio.h"
+#include "AudioMixer.h"
 
 void FSubmixEffectReverb::Init(const FSoundEffectSubmixInitData& InitData)
 {
@@ -30,6 +31,10 @@ void FSubmixEffectReverb::Init(const FSoundEffectSubmixInitData& InitData)
 	DecayCurve.AddKey(20.0f, 0.0001f);
 }
 
+void FSubmixEffectReverb::SetPreset(USoundEffectSubmixPreset* InPreset)
+{
+}
+
 void FSubmixEffectReverb::OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData)
 {
 	check(InData.NumChannels == 2);
@@ -38,6 +43,8 @@ void FSubmixEffectReverb::OnProcessAudio(const FSoundEffectSubmixInputData& InDa
 		// Not supported
 		return;
 	}
+
+	SCOPE_CYCLE_COUNTER(STAT_AudioMixerMasterReverb);
 
 	UpdateParameters();
 

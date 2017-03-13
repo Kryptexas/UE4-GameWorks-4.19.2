@@ -8,7 +8,9 @@
 #include "EdGraphSchema_Niagara.generated.h"
 
 class UEdGraph;
+struct FNiagaraVariable;
 struct FNiagaraVariableInfo;
+struct FNiagaraTypeDefinition;
 enum class ENiagaraDataType : uint8;
 
 /** Action to add a node to the graph */
@@ -54,12 +56,9 @@ class NIAGARAEDITOR_API UEdGraphSchema_Niagara : public UEdGraphSchema
 	GENERATED_UCLASS_BODY()
 
 	// Allowable PinType.PinCategory values
-	UPROPERTY()
-	FString PC_Float;
-	UPROPERTY()
-	FString PC_Vector;
-	UPROPERTY()
-	FString PC_Matrix;
+	static const FString PinCategoryType;
+	static const FString PinCategoryMisc;
+	static const FString PinCategoryClass;
 
 	//~ Begin EdGraphSchema Interface
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
@@ -72,16 +71,13 @@ class NIAGARAEDITOR_API UEdGraphSchema_Niagara : public UEdGraphSchema
 	virtual void BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) override;
 	//~ End EdGraphSchema Interface
 
-	ENiagaraDataType GetPinDataType(UEdGraphPin* Pin)const;
-	void GetPinDefaultValue(UEdGraphPin* Pin, float& OutDefault)const;
-	void GetPinDefaultValue(UEdGraphPin* Pin, FVector4& OutDefault)const;
-	void GetPinDefaultValue(UEdGraphPin* Pin, FMatrix& OutDefault)const;
-		
-	bool IsSystemConstant(const FNiagaraVariableInfo& Variable)const;
+	FNiagaraVariable PinToNiagaraVariable(const UEdGraphPin* Pin, bool bNeedsValue=false)const;
+	FNiagaraTypeDefinition PinToTypeDefinition(const UEdGraphPin* Pin)const;
+	FEdGraphPinType TypeDefinitionToPinType(FNiagaraTypeDefinition TypeDef)const;
+	
+	bool IsSystemConstant(const FNiagaraVariable& Variable)const;
 
-	virtual FString GetFloatName()const { return PC_Float; }
-	virtual FString GetVectorName()const { return PC_Vector; }
-	virtual FString GetMatrixName()const { return PC_Matrix; }
+	FNiagaraTypeDefinition GetTypeDefForProperty(const UProperty* Property)const;
 
 	static const FLinearColor NodeTitleColor_Attribute;
 	static const FLinearColor NodeTitleColor_Constant;

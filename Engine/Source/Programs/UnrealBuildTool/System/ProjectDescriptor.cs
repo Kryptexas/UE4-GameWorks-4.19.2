@@ -8,52 +8,100 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// The version format for .uproject files. This rarely changes now; project descriptors should maintain backwards compatibility automatically.
+	/// </summary>
 	enum ProjectDescriptorVersion
 	{
+		/// <summary>
+		/// Invalid
+		/// </summary>
 		Invalid = 0,
+
+		/// <summary>
+		/// Initial version
+		/// </summary>
 		Initial = 1,
+
+		/// <summary>
+		/// Adding SampleNameHash
+		/// </summary>
 		NameHash = 2,
+
+		/// <summary>
+		/// Unifying plugin/project files (since abandoned, but backwards compatibility maintained)
+		/// </summary>
 		ProjectPluginUnification = 3,
-		// !!!!!!!!!! IMPORTANT: Remember to also update LatestPluginDescriptorFileVersion in Plugins.cs (and Plugin system documentation) when this changes!!!!!!!!!!!
-		// -----<new versions can be added before this line>-------------------------------------------------
-		// - this needs to be the last line (see note below)
-		LatestPlusOne,
+
+		/// <summary>
+        /// This needs to be the last line, so we can calculate the value of Latest below
+		/// </summary>
+        LatestPlusOne,
+
+		/// <summary>
+		/// The latest plugin descriptor version
+		/// </summary>
 		Latest = LatestPlusOne - 1
 	}
 
+	/// <summary>
+	/// In-memory representation of a .uproject file
+	/// </summary>
 	public class ProjectDescriptor
 	{
-		// Descriptor version number. */
+		/// <summary>
+		/// Descriptor version number.
+		/// </summary>
 		public int FileVersion;
 
-		// The engine to open this project with.
+		/// <summary>
+		/// The engine to open this project with.
+		/// </summary>
 		public string EngineAssociation;
 
-		// Category to show under the project browser
+		/// <summary>
+		/// Category to show under the project browser
+		/// </summary>
 		public string Category;
 
-		// Description to show in the project browser
+		/// <summary>
+		/// Description to show in the project browser
+		/// </summary>
 		public string Description;
 
-		// List of all modules associated with this project
+		/// <summary>
+		/// List of all modules associated with this project
+		/// </summary>
 		public ModuleDescriptor[] Modules;
 
-		// List of plugins for this project (may be enabled/disabled)
+		/// <summary>
+		/// List of plugins for this project (may be enabled/disabled)
+		/// </summary>
 		public PluginReferenceDescriptor[] Plugins;
 
-        // List of additional plugin directories to scan for available plugins
+		/// <summary>
+        /// List of additional plugin directories to scan for available plugins
+		/// </summary>
         public List<DirectoryReference> AdditionalPluginDirectories;
 
-		// Array of platforms that this project is targeting
+		/// <summary>
+		/// Array of platforms that this project is targeting
+		/// </summary>
 		public string[] TargetPlatforms;
 
-		// A hash that is used to determine if the project was forked from a sample
+		/// <summary>
+		/// A hash that is used to determine if the project was forked from a sample
+		/// </summary>
 		public uint EpicSampleNameHash;
 
-		// Steps to execute before building targets in this project
+		/// <summary>
+		/// Steps to execute before building targets in this project
+		/// </summary>
 		public CustomBuildSteps PreBuildSteps;
 
-		// Steps to execute before building targets in this project
+		/// <summary>
+		/// Steps to execute before building targets in this project
+		/// </summary>
 		public CustomBuildSteps PostBuildSteps;
 
 		/// <summary>

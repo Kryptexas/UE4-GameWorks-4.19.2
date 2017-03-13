@@ -301,7 +301,7 @@ int32 SDataGraph::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 
 	// Rendering info.
 	const bool bEnabled  = ShouldBeEnabled( bParentEnabled );
-	ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	const FSlateBrush* TimelineAreaBrush = FEditorStyle::GetBrush("Profiler.LineGraphArea");
 	const FSlateBrush* WhiteBrush = FEditorStyle::GetBrush("WhiteTexture");
 

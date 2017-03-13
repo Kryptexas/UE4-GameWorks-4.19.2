@@ -72,6 +72,9 @@ public:
 		return INDEX_NONE;
 	}
 
+	/** Sets the submix preset. */
+	virtual void SetPreset(USoundEffectSubmixPreset* InPreset) = 0;
+
 	/** Process the input block of audio. Called on audio thread. */
 	virtual void OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData) = 0;
 

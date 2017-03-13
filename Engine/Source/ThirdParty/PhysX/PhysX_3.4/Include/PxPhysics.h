@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -311,6 +311,9 @@ public:
 
 	/**
 	\brief Creates a scene.
+
+	\note Every scene uses a Thread Local Storage slot. This imposes a platform specific limit on the
+	number of scenes that can be created.
 
 	\param[in] sceneDesc Scene descriptor. See #PxSceneDesc
 	\return The new scene object.
@@ -661,7 +664,7 @@ public:
 	/**
 	\brief Gets PxPhysics object insertion interface. 
 
-	The insertion interface is needed ie. for PxCooking::createTriangleMesh, this allows runtime mesh creation. This is not adviced to do, please 
+	The insertion interface is needed ie. for PxCooking::createTriangleMesh, this allows runtime mesh creation. This is not advised to do, please 
 	use offline cooking if possible.
 
 	@see PxCooking::createTriangleMesh PxCooking::createHeightfield

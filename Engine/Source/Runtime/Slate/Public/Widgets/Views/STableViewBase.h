@@ -262,6 +262,9 @@ protected:
 	 */
 	virtual void NotifyItemScrolledIntoView() = 0;
 
+	/** Util Function so templates classes don't need to include SlateApplication */
+	void NavigateToWidget(const uint32 UserIndex, const TSharedPtr<SWidget>& NavigationDestination, ENavigationSource NavigationSource = ENavigationSource::FocusedWidget) const;
+
 	/** The panel which holds the visible widgets in this list */
 	TSharedPtr< SListPanel > ItemsPanel;
 

@@ -59,7 +59,7 @@ public:
 	void Init( APIVariant API, uint32 MajorVersion, uint32 MinorVersion, bool bDebug);
 	void ReInit();
 	void UnBind();
-	bool SwapBuffers();
+	bool SwapBuffers(int32 SyncInterval);
 	void Terminate();
 	void InitSurface(bool bUseSmallSurface, bool bCreateWndSurface);
 

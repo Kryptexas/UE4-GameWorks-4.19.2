@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AndroidDeviceDetection : ModuleRules
 {
-	public AndroidDeviceDetection( TargetInfo Target )
+	public AndroidDeviceDetection( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		BinariesSubFolder = "Android";
 

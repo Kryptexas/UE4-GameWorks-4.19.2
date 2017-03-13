@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class LibOVRAudio : ModuleRules
 {
-	public LibOVRAudio(TargetInfo Target)
+	public LibOVRAudio(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the Oculus SDK */
 		Type = ModuleType.External;

@@ -16,6 +16,7 @@
 #include "LevelSequenceSpawnRegister.h"
 #include "Engine/Engine.h"
 #include "Engine/LevelStreaming.h"
+#include "Engine/LocalPlayer.h"
 #include "Tracks/MovieSceneCinematicShotTrack.h"
 #include "Sections/MovieSceneCinematicShotSection.h"
 #include "LevelSequenceActor.h"
@@ -58,39 +59,16 @@ ULevelSequencePlayer* ULevelSequencePlayer::CreateLevelSequencePlayer(UObject* W
 	return Actor->SequencePlayer;
 }
 
-void GetDescendantSequences(UMovieSceneSequence* InSequence, TArray<UMovieSceneSequence*> & InSequences)
+void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
 {
-	if (InSequence == nullptr)
+	// @todo: this should happen procedurally, rather than up front. The current approach will not scale well.
+	SetTickPrerequisites(MovieSceneSequenceID::Root, Sequence, bAddTickPrerequisites);
+	for (auto& Pair : RootTemplateInstance.GetHierarchy().AllSubSequenceData())
 	{
-		return;
-	}
-
-	InSequences.Add(InSequence);
-	
-	UMovieScene* MovieScene = InSequence->GetMovieScene();
-	if (MovieScene == nullptr)
-	{
-		return;
-	}
-
-	for (auto MasterTrack : MovieScene->GetMasterTracks())
-	{
-		for (auto Section : MasterTrack->GetAllSections())
-		{
-			UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Section);
-			if (SubSection != nullptr)
-			{
-				UMovieSceneSequence* SubSequence = SubSection->GetSequence();
-				if (SubSequence != nullptr)
-				{
-					GetDescendantSequences(SubSequence, InSequences);
-				}
-			}
-		}
+		SetTickPrerequisites(Pair.Key, Pair.Value.Sequence, bAddTickPrerequisites);
 	}
 }
-
-void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
+void ULevelSequencePlayer::SetTickPrerequisites(FMovieSceneSequenceID SequenceID, UMovieSceneSequence* InSequence, bool bAddTickPrerequisites)
 {
 	AActor* LevelSequenceActor = Cast<AActor>(GetOuter());
 	if (LevelSequenceActor == nullptr)
@@ -98,73 +76,68 @@ void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
 		return;
 	}
 
-	// @todo: this should happen procedurally, rather than up front. The current approach will not scale well.
-	for (auto& Pair : RootTemplateInstance.GetHierarchy().AllSubSequenceData())
+	UMovieScene* MovieScene = InSequence ? InSequence->GetMovieScene() : nullptr;
+	if (!MovieScene)
 	{
-		UMovieScene* MovieScene = Pair.Value.Sequence ? Pair.Value.Sequence->GetMovieScene() : nullptr;
-		if (!MovieScene)
+		return;
+	}
+
+	TArray<AActor*> ControlledActors;
+
+	for (int32 PossessableCount = 0; PossessableCount < MovieScene->GetPossessableCount(); ++PossessableCount)
+	{
+		FMovieScenePossessable& Possessable = MovieScene->GetPossessable(PossessableCount);
+
+		for (TWeakObjectPtr<> PossessableObject : FindBoundObjects(Possessable.GetGuid(), SequenceID))
 		{
-			continue;
-		}
-
-		TArray<AActor*> ControlledActors;
-		FMovieSceneSequenceID SequenceID = Pair.Key;
-
-		for (int32 PossessableCount = 0; PossessableCount < MovieScene->GetPossessableCount(); ++PossessableCount)
-		{
-			FMovieScenePossessable& Possessable = MovieScene->GetPossessable(PossessableCount);
-
-			for (TWeakObjectPtr<> PossessableObject : FindBoundObjects(Possessable.GetGuid(), SequenceID))
+			AActor* PossessableActor = Cast<AActor>(PossessableObject.Get());
+			if (PossessableActor != nullptr)
 			{
-				AActor* PossessableActor = Cast<AActor>(PossessableObject.Get());
-				if (PossessableActor != nullptr)
-				{
-					ControlledActors.Add(PossessableActor);
-				}
+				ControlledActors.Add(PossessableActor);
 			}
 		}
+	}
 
-		// @todo: should this happen on spawn, not here?
-		// @todo: does setting tick prerequisites on spawnable *templates* actually propagate to spawned instances?
-		for (int32 SpawnableCount = 0; SpawnableCount < MovieScene->GetSpawnableCount(); ++ SpawnableCount)
+	// @todo: should this happen on spawn, not here?
+	// @todo: does setting tick prerequisites on spawnable *templates* actually propagate to spawned instances?
+	for (int32 SpawnableCount = 0; SpawnableCount < MovieScene->GetSpawnableCount(); ++ SpawnableCount)
+	{
+		FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableCount);
+
+		UObject* SpawnableObject = Spawnable.GetObjectTemplate();
+		if (SpawnableObject != nullptr)
 		{
-			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableCount);
+			AActor* SpawnableActor = Cast<AActor>(SpawnableObject);
 
-			UObject* SpawnableObject = Spawnable.GetObjectTemplate();
-			if (SpawnableObject != nullptr)
+			if (SpawnableActor != nullptr)
 			{
-				AActor* SpawnableActor = Cast<AActor>(SpawnableObject);
-
-				if (SpawnableActor != nullptr)
-				{
-					ControlledActors.Add(SpawnableActor);
-				}
+				ControlledActors.Add(SpawnableActor);
 			}
 		}
+	}
 
 
-		for (AActor* ControlledActor : ControlledActors)
+	for (AActor* ControlledActor : ControlledActors)
+	{
+		for( UActorComponent* Component : ControlledActor->GetComponents() )
 		{
-			for( UActorComponent* Component : ControlledActor->GetComponents() )
-			{
-				if (bAddTickPrerequisites)
-				{
-					Component->PrimaryComponentTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
-				}
-				else
-				{
-					Component->PrimaryComponentTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
-				}
-			}
-
 			if (bAddTickPrerequisites)
 			{
-				ControlledActor->PrimaryActorTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+				Component->PrimaryComponentTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
 			}
 			else
 			{
-				ControlledActor->PrimaryActorTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+				Component->PrimaryComponentTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
 			}
+		}
+
+		if (bAddTickPrerequisites)
+		{
+			ControlledActor->PrimaryActorTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+		}
+		else
+		{
+			ControlledActor->PrimaryActorTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
 		}
 	}
 }
@@ -213,6 +186,10 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 	if (!LastViewTarget.IsValid())
 	{
 		LastViewTarget = ViewTarget;
+		if (PC->GetLocalPlayer())
+		{
+			LastAspectRatioAxisConstraint = PC->GetLocalPlayer()->AspectRatioAxisConstraint;
+		}
 	}
 
 	UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromRuntimeObject(CameraObject);
@@ -256,6 +233,11 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 
 	FViewTargetTransitionParams TransitionParams;
 	PC->SetViewTarget(CameraActor, TransitionParams);
+
+	if (PC->GetLocalPlayer())
+	{
+		PC->GetLocalPlayer()->AspectRatioAxisConstraint = EAspectRatioAxisConstraint::AspectRatio_MaintainXFOV;
+	}
 
 	if (CameraComponent)
 	{

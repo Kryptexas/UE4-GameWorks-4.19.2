@@ -341,7 +341,7 @@ public:
 	static void UnloadBlueprint(UBlueprint* const BlueprintObj, bool bForceFlush = false)
 	{
 		// have to grab the blueprint's package before we move it to the transient package
-		UPackage* const OldPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+		UPackage* const OldPackage = BlueprintObj->GetOutermost();
 
 		UPackage* const TransientPackage = GetTransientPackage();
 		if (OldPackage == TransientPackage)
@@ -498,14 +498,12 @@ public:
 			return false;
 		}
 
-		UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+		UPackage* const BlueprintPackage = BlueprintObj->GetOutermost();
 		// compiling the blueprint will inherently dirty the package, but if there 
 		// weren't any changes to save before, there shouldn't be after
 		bool const bStartedWithUnsavedChanges = (BlueprintPackage != nullptr) ? BlueprintPackage->IsDirty() : true;
 
-		bool bIsRegeneratingOnLoad = false;
-		bool bSkipGarbageCollection = true;
-		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, EBlueprintCompileOptions::SkipGarbageCollection);
 
 		if (BlueprintPackage != nullptr)
 		{
@@ -650,7 +648,7 @@ public:
 
 		FString SavePath = FString::Printf(TEXT("%sTemp-%u-%s"), *TempDir, GenTempUid(), *FPaths::GetCleanFilename(BlueprintObj->GetName()));
 
-		UPackage* const AssetPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+		UPackage* const AssetPackage = BlueprintObj->GetOutermost();
 		return UPackage::SavePackage(AssetPackage, NULL, RF_Standalone, *SavePath, GWarn);
 	}
 
@@ -1338,7 +1336,7 @@ bool FBlueprintRenameAndCloneTest::RunTest(const FString& BlueprintAssetPath)
 		if (!bIsAlreadyLoaded)
 		{
 			// store the original package so we can manually invalidate it after the move
-			UPackage* const OriginalPackage = Cast<UPackage>(OriginalBlueprint->GetOutermost());
+			UPackage* const OriginalPackage = OriginalBlueprint->GetOutermost();
 
 			FString const BlueprintName = OriginalBlueprint->GetName();
 			UPackage* TempPackage = FBlueprintAutomationTestUtilities::CreateTempPackage(BlueprintName);

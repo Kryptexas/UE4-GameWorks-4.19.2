@@ -75,6 +75,8 @@
 #include "IPortalServiceLocator.h"
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
+#include "UserActivityTracking.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define USE_UNIT_TESTS 0
 
@@ -262,6 +264,12 @@ void FUnrealEdMisc::OnInit()
 
 	// Register curve editor commands.
 	FRichCurveEditorCommands::Register();
+
+	// Have the User Activity Tracker reject non-editor activities for this run
+	FUserActivityTracking::SetContextFilter(EUserActivityContext::Editor);
+	OnActiveTabChangedDelegateHandle = FGlobalTabmanager::Get()->OnActiveTabChanged_Subscribe(FOnActiveTabChanged::FDelegate::CreateRaw(this, &FUnrealEdMisc::OnActiveTabChanged));
+	OnTabForegroundedDelegateHandle = FGlobalTabmanager::Get()->OnTabForegrounded_Subscribe(FOnActiveTabChanged::FDelegate::CreateRaw(this, &FUnrealEdMisc::OnTabForegrounded));
+	FUserActivityTracking::SetActivity(FUserActivity(TEXT("EditorInit"), EUserActivityContext::Editor));
 
 	FEditorModeRegistry::Initialize();
 	GLevelEditorModeTools().ActivateDefaultMode();
@@ -587,6 +595,13 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	}
 
 	static double LastHeartbeatTime = FPlatformTime::Seconds();
+
+	bool bIsDebuggerPresent = FPlatformMisc::IsDebuggerPresent();
+	static bool bWasDebuggerPresent = false;
+	if (!bWasDebuggerPresent)
+	{
+		bWasDebuggerPresent = bIsDebuggerPresent;
+	}
 	
 	double LastInteractionTime = FSlateApplication::Get().GetLastUserInteractionTime();
 	
@@ -607,7 +622,8 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	}
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsVanilla"), (GEngine && GEngine->IsVanillaProduct())));
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("IntervalSec"), UnrealEdMiscDefs::HeartbeatIntervalSeconds));
-	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), FPlatformMisc::IsDebuggerPresent()));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), bIsDebuggerPresent));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("WasDebuggerPresent"), bWasDebuggerPresent));
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();
@@ -822,6 +838,9 @@ void FUnrealEdMisc::OnExit()
 	MessageLogModule.UnregisterLogListing("PIE");
 
 	// Unregister all events
+	FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe(OnActiveTabChangedDelegateHandle);
+	FGlobalTabmanager::Get()->OnTabForegrounded_Unsubscribe(OnTabForegroundedDelegateHandle);
+	FUserActivityTracking::SetActivity(FUserActivity(TEXT("EditorExit"), EUserActivityContext::Editor));
 	FEditorDelegates::SelectedProps.RemoveAll(this);
 	FEditorDelegates::DisplayLoadErrors.RemoveAll(this);
 	FEditorDelegates::MapChange.RemoveAll(this);
@@ -1055,6 +1074,26 @@ void FUnrealEdMisc::OnEditorPostModal()
 	}
 }
 
+void FUnrealEdMisc::OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated)
+{
+	OnUserActivityTabChanged(NewlyActivated);
+}
+
+void FUnrealEdMisc::OnTabForegrounded(TSharedPtr<SDockTab> ForegroundTab, TSharedPtr<SDockTab> BackgroundTab)
+{
+	OnUserActivityTabChanged(ForegroundTab);
+}
+
+void FUnrealEdMisc::OnUserActivityTabChanged(TSharedPtr<SDockTab> InTab)
+{
+	if (InTab.IsValid())
+	{
+		FString Activity = FString::Printf(TEXT("Layout=\"%s\" Label=\"%s\" Content=%s"), *InTab->GetLayoutIdentifier().ToString(), *InTab->GetTabLabel().ToString(), *InTab->GetContent()->GetTypeAsString());
+
+		FUserActivityTracking::SetActivity(FUserActivity(Activity, EUserActivityContext::Editor));
+	}
+}
+
 void FUnrealEdMisc::OnDeferCommand( const FString& DeferredCommand )
 {
 	GUnrealEd->DeferredCommands.Add( DeferredCommand );
@@ -1166,7 +1205,7 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 						while (Blueprint == nullptr && ParentObject != nullptr)
 						{
 							Blueprint = UBlueprint::GetBlueprintFromClass(ParentObject->GetClass());
-							ParentObject = Object->GetOuter();
+							ParentObject = ParentObject->GetOuter();
 						}
 
 						if (Blueprint != nullptr)

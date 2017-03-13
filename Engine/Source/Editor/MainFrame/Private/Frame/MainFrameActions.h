@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __MainFrameActions_h__
-#define __MainFrameActions_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -266,6 +262,3 @@ private:
 	/** The notification in place while we choose packages to check in */
 	static TWeakPtr<SNotificationItem> ChoosePackagesToCheckInNotification;
 };
-
-
-#endif		// __MainFrameActions_h__

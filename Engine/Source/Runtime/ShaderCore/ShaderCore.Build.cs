@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ShaderCore : ModuleRules
 {
-	public ShaderCore(TargetInfo Target)
+	public ShaderCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore" });
 

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ActorSequence : ModuleRules
 {
-	public ActorSequence(TargetInfo Target)
+	public ActorSequence(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Runtime/ActorSequence/Private");
 

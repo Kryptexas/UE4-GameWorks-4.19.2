@@ -204,7 +204,8 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Disable verify OBB on first start/update."))
 	bool bDisableVerifyOBBOnStartUp;
 
-	// If checked, UE4Game files will be placed in ExternalFilesDir which is removed on uninstall. Only used for Distribution packages.
+	// If checked, UE4Game files will be placed in ExternalFilesDir which is removed on uninstall.
+	// You should also check this if you need to save you game progress without requesting runtime WRITE_EXTERNAL_STORAGE permission in android api 23+
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Use ExternalFilesDir for UE4Game files?"))
 	bool bUseExternalFilesDir;
 
@@ -256,10 +257,6 @@ public:
 	// Removes Oculus Signature Files (osig) from APK if GearVR APK signed for distribution and enables entitlement checker
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Remove Oculus Signature Files from Distribution APK"))
 	bool bRemoveOSIG;
-
-	// Configure AndroidManifest.xml and Resrouces for Daydream
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure for deployment to Daydream"))
-	bool bPackageForDaydream;
 
 	// Configure AndroidManifest.xml for Cardboard, Cardboard Advanced, or Daydream deployment. If running in Daydream-only mode, sustained performance and async reprojection are forced.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR Deployment Mode"))
@@ -351,6 +348,10 @@ public:
 	// The unique identifier for this application (needed for IAP)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
 	FString GooglePlayLicenseKey;
+
+	// The sender id obtained from Firebase Console, leave blank to disable (associate this with your app in Google Player Developer Console).
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices, meta = (DisplayName = "Google Cloud Messaging Sender ID"))
+	FString GCMClientSenderID;
 
 	/** Show the launch image as a startup slash screen */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = LaunchImages, meta = (DisplayName = "Show launch image"))

@@ -315,7 +315,7 @@ struct ENGINE_API FDataTableRowHandle
 };
 
 template<>
-struct TStructOpsTypeTraits< FDataTableRowHandle > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FDataTableRowHandle > : public TStructOpsTypeTraitsBase2< FDataTableRowHandle >
 {
 	enum
 	{

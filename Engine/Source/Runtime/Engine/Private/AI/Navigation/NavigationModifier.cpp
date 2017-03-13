@@ -29,9 +29,12 @@ FNavigationLinkBase::FNavigationLinkBase()
 
 void FNavigationLinkBase::SetAreaClass(UClass* InAreaClass)
 {
-	AreaClassOb = InAreaClass;
-	AreaClass = InAreaClass;
-	bAreaClassInitialized = true;
+	if (InAreaClass)
+	{
+		AreaClassOb = InAreaClass;
+		AreaClass = InAreaClass;
+		bAreaClassInitialized = true;
+	}
 }
 
 UClass* FNavigationLinkBase::GetAreaClass() const
@@ -430,7 +433,7 @@ void FAreaNavModifier::SetBox(const FBox& Box, const FTransform& LocalToWorld)
 	const float RollMod = FMath::Fmod(FMath::Abs(Rotation.Roll), 90.0f);
 	if (IsAngleMatching(PitchMod) && IsAngleMatching(YawMod) && IsAngleMatching(RollMod))
 	{
-		Bounds = FBox(0);
+		Bounds = FBox(ForceInit);
 		for (int32 i = 0; i < Corners.Num(); i++)
 		{
 			Bounds += Corners[i];
@@ -490,7 +493,7 @@ void FAreaNavModifier::SetConvex(const FVector* InPoints, const int32 FirstIndex
 	ConvexHull2D::ComputeConvexHull(HullVertices, HullIndices);
 	if (HullIndices.Num())
 	{
-		Bounds = FBox(0);
+		Bounds = FBox(ForceInit);
 		for(int32 i = 0; i < HullIndices.Num(); ++i)
 		{
 			const FVector& HullVert = HullVertices[HullIndices[i]];

@@ -643,6 +643,7 @@ public:
 	void Event_ProcessPostloadWait();
 	void Event_StartPostload();
 
+	void MarkNewObjectForLoadIfItIsAnExport(UObject *Object);
 	bool AnyImportsAndExportWorkOutstanding();
 	void ConditionalQueueProcessImportsAndExports(bool bRequeueForTimeout = false);
 	void ConditionalQueueProcessPostloadWait();

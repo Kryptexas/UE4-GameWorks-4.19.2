@@ -2,10 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "UObject/ObjectMacros.h"
-#include "UObject/Class.h"
-#include "UObject/WeakObjectPtr.h"
+#include "Engine/NetSerialization.h"
 #include "GameplayPrediction.generated.h"
 
 class UAbilitySystemComponent;
@@ -411,7 +408,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FPredictionKey> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPredictionKey> : public TStructOpsTypeTraitsBase2<FPredictionKey>
 {
 	enum
 	{
@@ -460,9 +457,6 @@ public:
 
 	static void AddDependency(FPredictionKey::KeyType ThisKey, FPredictionKey::KeyType DependsOn);
 
-private:
-
-	static void CaughtUp(FPredictionKey::KeyType Key);
 };
 
 
@@ -496,4 +490,77 @@ private:
 	bool ClearScopedPredictionKey;
 	bool SetReplicatedPredictionKey;
 	FPredictionKey RestoreKey;
+};
+
+// -----------------------------------------------------------------
+
+
+/**
+ *	This is the structure that replicates prediction keys back to clients, from the server (via property replication).
+ *	This is done via a FastArray so that each predictionkey is individually ack'd, rather than just replicating "highest numbered key".
+ *
+ *	"Highest numbered key" fails with packet loss. For example:
+ *
+ *	Pkt1: {+Tag=X, ReplicatedKey=1)
+ *	Pkt2: (ReplicatedKey=2)
+ *
+ *	If Pkt1 is dropped, after Pkt2 is already in flight, client receives ReplicatedKey=2 and will remove his predictive Tag=X.
+ *	The state in Pkt1 will be resent, after the n'ack is detected. But the damage will have been done: Client thought he was up to date
+ *	but was missing a gap.
+ *
+ */
+
+struct FReplicatedPredictionKeyMap;
+
+USTRUCT()
+struct FReplicatedPredictionKeyItem : public FFastArraySerializerItem
+{
+	GENERATED_USTRUCT_BODY()
+
+	FReplicatedPredictionKeyItem()	
+	{
+		
+	}
+
+	UPROPERTY()
+	FPredictionKey PredictionKey;
+	
+	void PostReplicatedAdd(const struct FReplicatedPredictionKeyMap &InArray) { OnRep(); }
+	void PostReplicatedChange(const struct FReplicatedPredictionKeyMap &InArray) { OnRep(); }
+
+	FString GetDebugString() { return PredictionKey.ToString(); }
+
+private:
+
+	void OnRep();
+};
+
+USTRUCT()
+struct FReplicatedPredictionKeyMap : public FFastArraySerializer
+{
+	GENERATED_USTRUCT_BODY()
+
+	FReplicatedPredictionKeyMap();
+
+	UPROPERTY()
+	TArray<FReplicatedPredictionKeyItem> PredictionKeys;
+
+	void ReplicatePredictionKey(FPredictionKey Key);
+
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms);
+
+	FString GetDebugString() const;
+
+	static const int32 KeyRingBufferSize;
+
+	
+};
+
+template<>
+struct TStructOpsTypeTraits< FReplicatedPredictionKeyMap > : public TStructOpsTypeTraitsBase2< FReplicatedPredictionKeyMap >
+{
+	enum
+	{
+		WithNetDeltaSerializer = true,
+	};
 };

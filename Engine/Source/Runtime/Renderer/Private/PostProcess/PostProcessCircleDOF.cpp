@@ -13,6 +13,7 @@
 #include "SceneRenderTargetParameters.h"
 #include "PostProcess/PostProcessing.h"
 #include "DeferredShadingRenderer.h"
+#include "ClearQuad.h"
 
 static TAutoConsoleVariable<int32> CVarDepthOfFieldFarBlur(
 	TEXT("r.DepthOfField.FarBlur"),
@@ -206,7 +207,7 @@ void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& C
 		FLinearColor(0, 0, 0, 0)
 	};
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTextures(NumRenderTargets, RenderTargets, ClearColors, DestRect);
+	DrawClearQuadMRT(Context.RHICmdList, Context.GetFeatureLevel(), true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -409,7 +410,7 @@ void FRCPassPostProcessCircleDOFDilate::Process(FRenderingCompositePassContext& 
 		FLinearColor(0, 0, 0, 0)
 	};
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTextures(NumRenderTargets, RenderTargets, ClearColors, DestRect);
+	DrawClearQuadMRT(Context.RHICmdList, Context.GetFeatureLevel(), true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -677,7 +678,7 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 	};
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTextures(NumRenderTargets, RenderTargets, ClearColors, DestRect);
+	DrawClearQuadMRT(Context.RHICmdList, Context.GetFeatureLevel(), true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -892,7 +893,7 @@ void FRCPassPostProcessCircleDOFRecombine::Process(FRenderingCompositePassContex
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, View.ViewRect);
+	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 

@@ -10,6 +10,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Framework/Docking/SDockingTabWell.h"
 #include "Framework/Docking/TabCommands.h"
+#include "Framework/Docking/SDockingArea.h"
 
 namespace SDockTabDefs
 {

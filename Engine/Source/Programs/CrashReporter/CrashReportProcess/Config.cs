@@ -333,6 +333,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public int AddCrashRequestTimeoutSeconds { get; set; }
 
 		/// <summary>
+		/// Number of times to retry AddCrash after a bad response (doesn't count timeouts that are always retried).
+		/// </summary>
+		[XmlElement]
+		public int AddCrashRejectedRetries { get; set; }
+
+		/// <summary>
 		/// Time that we wait between a failed AddCrash call and a retry.
 		/// </summary>
 		[XmlElement]

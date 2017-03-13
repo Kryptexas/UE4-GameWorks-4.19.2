@@ -31,8 +31,6 @@ class GAMEPLAYABILITIES_API UAbilityTask_WaitInputPress : public UAbilityTask
 
 protected:
 
-	virtual void OnDestroy(bool AbilityEnded) override;
-
 	float StartTime;
 	bool bTestInitialState;
 	FDelegateHandle DelegateHandle;

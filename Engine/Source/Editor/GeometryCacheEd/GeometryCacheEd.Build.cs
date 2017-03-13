@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class GeometryCacheEd : ModuleRules
 {
-	public GeometryCacheEd(TargetInfo Target)
+	public GeometryCacheEd(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicIncludePaths.Add("Runtime/GeometryCacheEd/Classes");
         PublicIncludePaths.Add("Runtime/GeometryCacheEd/Public");

@@ -68,7 +68,7 @@ int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 		
 	const bool bEnabled = ShouldBeEnabled(bParentEnabled);
 	const bool bShowDisabledEffect = ShowDisabledEffect.Get();
-	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
+	ESlateDrawEffect DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
 
 	if ( BrushResource && BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType )
 	{

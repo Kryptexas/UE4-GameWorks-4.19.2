@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class VectorVM : ModuleRules
 {
-	public VectorVM(TargetInfo Target)
+	public VectorVM(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicDependencyModuleNames.AddRange(
             new string[] {

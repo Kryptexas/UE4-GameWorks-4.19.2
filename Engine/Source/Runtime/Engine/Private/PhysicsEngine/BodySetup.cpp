@@ -19,6 +19,7 @@
 #include "Animation/AnimStats.h"
 #include "DerivedDataCacheInterface.h"
 #include "UObject/UObjectIterator.h"
+#include "UObject/PropertyPortFlags.h"
 
 #if WITH_PHYSX
 	#include "PhysXPublic.h"
@@ -371,22 +372,11 @@ PxMaterial* GetDefaultPhysMaterial()
 	return GEngine->DefaultPhysMaterial->GetPhysXMaterial();
 }
 
-/** Helper struct for adding shapes into an actor.*/
-struct FAddShapesHelper
+FBodySetupShapeIterator::FBodySetupShapeIterator(const UBodySetup& InBodySetup, FVector& InScale3D, const FTransform& InRelativeTM)
+: BodySetup(InBodySetup)
+, Scale3D(InScale3D)
+, RelativeTM(InRelativeTM)
 {
-	FAddShapesHelper(UBodySetup* InBodySetup, FBodyInstance* InOwningInstance, physx::PxRigidActor* InPDestActor, EPhysicsSceneType InSceneType, FVector& InScale3D, physx::PxMaterial* InSimpleMaterial, TArray<UPhysicalMaterial*>& InComplexMaterials, FShapeData& InShapeData, const FTransform& InRelativeTM, TArray<physx::PxShape*>* InNewShapes, const bool InShapeSharing)
-	: BodySetup(InBodySetup)
-	, OwningInstance(InOwningInstance)
-	, PDestActor(InPDestActor)
-	, SceneType(InSceneType)
-	, Scale3D(InScale3D)
-	, SimpleMaterial(InSimpleMaterial)
-	, ComplexMaterials(InComplexMaterials)
-	, ShapeData(InShapeData)
-	, RelativeTM(InRelativeTM)
-	, NewShapes(InNewShapes)
-	, bShapeSharing(InShapeSharing)
-	{
 		SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, ShapeScale3DAbs);
 		{
 			float MinScaleRelative;
@@ -408,234 +398,226 @@ struct FAddShapesHelper
 		}
 
 		GetContactOffsetParams(ContactOffsetFactor, MinContactOffset, MaxContactOffset);
-	}
+}
 
-	UBodySetup* BodySetup;
-	FBodyInstance* OwningInstance;
-	physx::PxRigidActor* PDestActor;
-	EPhysicsSceneType SceneType;
-	FVector& Scale3D;
-	physx::PxMaterial* SimpleMaterial;
-	const TArray<UPhysicalMaterial*>& ComplexMaterials;
-	const FShapeData& ShapeData;
-	const FTransform& RelativeTM;
-	TArray<physx::PxShape*>* NewShapes;
-	const bool bShapeSharing;
-
-	float MinScaleAbs;
-	float MinScale;
-	FVector ShapeScale3DAbs;
-	FVector ShapeScale3D;
-
-	float ContactOffsetFactor;
-	float MinContactOffset;
-	float MaxContactOffset;
-
-public:
-	void AddSpheresToRigidActor_AssumesLocked() const
+template <typename ElemType, typename GeomType>
+void FBodySetupShapeIterator::ForEachShape(const TArray<ElemType>& Elements, TFunctionRef<void(const ElemType& Elem, const GeomType& Geom, const PxTransform& LocalPose, float ContactOffset)> VisitorFunc) const
+{
+	for (int32 ElemIdx = 0; ElemIdx < Elements.Num(); ElemIdx++)
 	{
-		for (int32 i = 0; i < BodySetup->AggGeom.SphereElems.Num(); i++)
+		const ElemType& Elem = Elements[ElemIdx];
+		GeomType Geom;
+		PxTransform PLocalPose;
+
+		if(PopulatePhysXGeometryAndTransform(Elem, Geom, PLocalPose))
 		{
-			const FKSphereElem& SphereElem = BodySetup->AggGeom.SphereElems[i];
-			const FKSphereElem ScaledSphereElem = SphereElem.GetFinalScaled(Scale3D, RelativeTM);
-
-			PxSphereGeometry PSphereGeom;
-			PSphereGeom.radius = ScaledSphereElem.Radius;
-
-			if (ensure(PSphereGeom.isValid()))
-			{
-				PxTransform PLocalPose(U2PVector(ScaledSphereElem.Center));
-				ensure(PLocalPose.isValid());
-				{
-					const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PSphereGeom.radius, MinContactOffset, MaxContactOffset);
-					PxShape* PShape = AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset, SphereElem.GetUserData());
-				}
-			}
-			else
-			{
-				UE_LOG(LogPhysics, Warning, TEXT("AddSpheresToRigidActor: [%s] ScaledSphereElem[%d] invalid"), *GetPathNameSafe(BodySetup->GetOuter()), i);
-			}
+			const float ContactOffset = ComputeContactOffset(Geom);
+			VisitorFunc(Elem, Geom, PLocalPose, ContactOffset);
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("ForeachShape(%s): [%s] ScaledElem[%d] invalid"), *GetDebugName<ElemType>(), *GetPathNameSafe(BodySetup.GetOuter()), ElemIdx);
 		}
 	}
+}
+	
 
-	void AddBoxesToRigidActor_AssumesLocked() const
+//////////////////////// Sphere elements ////////////////////////
+template <> bool FBodySetupShapeIterator::PopulatePhysXGeometryAndTransform(const FKSphereElem& SphereElem, PxSphereGeometry& OutGeometry, PxTransform& OutTM) const
+{
+	const FKSphereElem ScaledSphereElem = SphereElem.GetFinalScaled(Scale3D, RelativeTM);
+	OutGeometry.radius = FMath::Max(ScaledSphereElem.Radius, KINDA_SMALL_NUMBER);
+
+	if (ensure(OutGeometry.isValid()))
 	{
-		for (int32 i = 0; i < BodySetup->AggGeom.BoxElems.Num(); i++)
-		{
-			const FKBoxElem& BoxElem = BodySetup->AggGeom.BoxElems[i];
-			const FKBoxElem ScaledBoxElem = BoxElem.GetFinalScaled(Scale3D, RelativeTM);
-			const FTransform& BoxTransform = ScaledBoxElem.GetTransform();
+		OutTM = PxTransform(U2PVector(ScaledSphereElem.Center));
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+template <> float FBodySetupShapeIterator::ComputeContactOffset(const PxSphereGeometry& PSphereGeom) const
+{
+	return FMath::Clamp(ContactOffsetFactor * PSphereGeom.radius, MinContactOffset, MaxContactOffset);
+}
+
+template <> FString FBodySetupShapeIterator::GetDebugName<FKSphereElem>()  const
+{
+	return TEXT("Sphere");
+}
+
+/////////////////// Box elements //////////////////////////////
+template <> bool FBodySetupShapeIterator::PopulatePhysXGeometryAndTransform(const FKBoxElem& BoxElem, PxBoxGeometry& OutGeometry, PxTransform& OutTM) const
+{
+	const FKBoxElem ScaledBoxElem = BoxElem.GetFinalScaled(Scale3D, RelativeTM);
+	const FTransform& BoxTransform = ScaledBoxElem.GetTransform();
 			
-			PxBoxGeometry PBoxGeom;
-			PBoxGeom.halfExtents.x = ScaledBoxElem.X * 0.5f;
-			PBoxGeom.halfExtents.y = ScaledBoxElem.Y * 0.5f;
-			PBoxGeom.halfExtents.z = ScaledBoxElem.Z * 0.5f;
+	OutGeometry.halfExtents.x = FMath::Max(ScaledBoxElem.X * 0.5f, KINDA_SMALL_NUMBER);
+	OutGeometry.halfExtents.y = FMath::Max(ScaledBoxElem.Y * 0.5f, KINDA_SMALL_NUMBER);
+	OutGeometry.halfExtents.z = FMath::Max(ScaledBoxElem.Z * 0.5f, KINDA_SMALL_NUMBER);
 
-			if (PBoxGeom.isValid() && BoxTransform.IsValid())
+	if (OutGeometry.isValid() && BoxTransform.IsValid())
+	{
+		OutTM = U2PTransform(BoxTransform);
+		if (ensure(OutTM.isValid()))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+template <> float FBodySetupShapeIterator::ComputeContactOffset(const PxBoxGeometry& PBoxGeom) const
+{
+	return FMath::Clamp(ContactOffsetFactor * PBoxGeom.halfExtents.minElement(), MinContactOffset, MaxContactOffset);
+}
+
+template <> FString FBodySetupShapeIterator::GetDebugName<FKBoxElem>()  const
+{
+	return TEXT("Box");
+}
+
+/////////////////////// Capsule elements /////////////////////////////
+template <> bool FBodySetupShapeIterator::PopulatePhysXGeometryAndTransform(const FKSphylElem& SphylElem, PxCapsuleGeometry& OutGeometry, PxTransform& OutTM) const
+{
+	const FKSphylElem ScaledSphylElem = SphylElem.GetFinalScaled(Scale3D, RelativeTM);
+
+	OutGeometry.halfHeight = FMath::Max(ScaledSphylElem.Length * 0.5f, KINDA_SMALL_NUMBER);
+	OutGeometry.radius = FMath::Max(ScaledSphylElem.Radius, KINDA_SMALL_NUMBER);
+
+	if (OutGeometry.isValid())
+	{
+		// The stored capsule transform assumes the capsule axis is down Z. In PhysX, it points down X, so we twiddle the matrix a bit here (swap X and Z and negate Y).
+		OutTM = PxTransform(U2PVector(ScaledSphylElem.Center), U2PQuat(ScaledSphylElem.Orientation) * U2PSphylBasis);
+
+		if (ensure(OutTM.isValid()))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+template <> float FBodySetupShapeIterator::ComputeContactOffset(const PxCapsuleGeometry& PCapsuleGeom) const
+{
+	return FMath::Clamp(ContactOffsetFactor * PCapsuleGeom.radius, MinContactOffset, MaxContactOffset);
+}
+
+template <> FString FBodySetupShapeIterator::GetDebugName<FKSphylElem>() const
+{
+	return TEXT("Capsule");
+}
+
+
+////////////////////////////// Convex elements ////////////////////////////
+template <> bool FBodySetupShapeIterator::PopulatePhysXGeometryAndTransform(const FKConvexElem& ConvexElem, PxConvexMeshGeometry& OutGeometry, PxTransform& OutTM) const
+{
+	const bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, OutTM);
+
+	PxConvexMesh* UseConvexMesh = bUseNegX ? ConvexElem.GetMirroredConvexMesh() : ConvexElem.GetConvexMesh();
+	if (UseConvexMesh)
+	{
+		OutGeometry.convexMesh = UseConvexMesh;
+		OutGeometry.scale.scale = U2PVector(ShapeScale3DAbs);	//scale shape about the origin
+
+			//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
+		PxTransform PElementTransform = U2PTransform(RelativeTM);
+		OutTM.q *= PElementTransform.q;
+		OutTM.p = PElementTransform.p;
+		OutTM.p.x *= Scale3D.X;
+		OutTM.p.y *= Scale3D.Y;
+		OutTM.p.z *= Scale3D.Z;
+
+		if (OutGeometry.isValid())
+		{
+			PxVec3 PBoundsExtents = OutGeometry.convexMesh->getLocalBounds().getExtents();
+
+			if (ensure(OutTM.isValid()))
 			{
-				PxTransform PLocalPose(U2PTransform(BoxTransform));
-				ensure(PLocalPose.isValid());
-				{
-					const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PBoxGeom.halfExtents.minElement(), MinContactOffset, MaxContactOffset);
-					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset, BoxElem.GetUserData());
-				}
+				return true;
 			}
 			else
 			{
-				UE_LOG(LogPhysics, Warning, TEXT("AddBoxesToRigidActor: [%s] BoxElems[%d] invalid or has invalid transform"), *GetPathNameSafe(BodySetup->GetOuter()), i);
+				UE_LOG(LogPhysics, Warning, TEXT("PopulatePhysXGeometryAndTransform(Convex): ConvexElem invalid"));
 			}
 		}
-	}
-
-	void AddSphylsToRigidActor_AssumesLocked() const
-	{
-		float ScaleRadius = FMath::Max(ShapeScale3DAbs.X, ShapeScale3DAbs.Y);
-		float ScaleLength = ShapeScale3DAbs.Z;
-
-		for (int32 i = 0; i < BodySetup->AggGeom.SphylElems.Num(); i++)
+		else
 		{
-			const FKSphylElem& SphylElem = BodySetup->AggGeom.SphylElems[i];
-			const FKSphylElem ScaledSphylElem = SphylElem.GetFinalScaled(Scale3D, RelativeTM);
-
-			PxCapsuleGeometry PCapsuleGeom;
-			PCapsuleGeom.halfHeight = ScaledSphylElem.Length * 0.5f;
-			PCapsuleGeom.radius = ScaledSphylElem.Radius;
-
-			if (PCapsuleGeom.isValid())
-			{
-				// The stored sphyl transform assumes the sphyl axis is down Z. In PhysX, it points down X, so we twiddle the matrix a bit here (swap X and Z and negate Y).
-				PxTransform PLocalPose(U2PVector(ScaledSphylElem.Center), U2PQuat(ScaledSphylElem.Orientation) * U2PSphylBasis);
-
-				ensure(PLocalPose.isValid());
-				{
-					const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PCapsuleGeom.radius, MinContactOffset, MaxContactOffset);
-					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset, SphylElem.GetUserData());
-				}
-			}
-			else
-			{
-				UE_LOG(LogPhysics, Warning, TEXT("AddSphylsToRigidActor: [%s] SphylElems[%d] invalid"), *GetPathNameSafe(BodySetup->GetOuter()), i);
-			}
+			UE_LOG(LogPhysics, Warning, TEXT("PopulatePhysXGeometryAndTransform(Convex): ConvexElem has invalid transform"));
 		}
 	}
-
-	void AddConvexElemsToRigidActor_AssumesLocked() const
+	else
 	{
-		for (int32 i = 0; i < BodySetup->AggGeom.ConvexElems.Num(); i++)
-		{
-			const FKConvexElem& ConvexElem = BodySetup->AggGeom.ConvexElems[i];
-
-			PxTransform PLocalPose;
-			bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, PLocalPose);
-
-			PxConvexMesh* UseConvexMesh = bUseNegX ? ConvexElem.GetMirroredConvexMesh() : ConvexElem.GetConvexMesh();
-			if (UseConvexMesh)
-			{
-				PxConvexMeshGeometry PConvexGeom;
-				PConvexGeom.convexMesh = UseConvexMesh;
-				PConvexGeom.scale.scale = U2PVector(ShapeScale3DAbs);	//scale shape about the origin
-
-				//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
-				PxTransform PElementTransform = U2PTransform(RelativeTM);
-				PLocalPose.q *= PElementTransform.q;
-				PLocalPose.p = PElementTransform.p;
-				PLocalPose.p.x *= Scale3D.X;
-				PLocalPose.p.y *= Scale3D.Y;
-				PLocalPose.p.z *= Scale3D.Z;
-
-				if (PConvexGeom.isValid())
-				{
-					PxVec3 PBoundsExtents = PConvexGeom.convexMesh->getLocalBounds().getExtents();
-
-					ensure(PLocalPose.isValid());
-					{
-						const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PBoundsExtents.minElement(), MinContactOffset, MaxContactOffset);
-						AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset, ConvexElem.GetUserData());
-					}
-				}
-				else
-				{
-					UE_LOG(LogPhysics, Warning, TEXT("AddConvexElemsToRigidActor: [%s] ConvexElem[%d] invalid"), *GetPathNameSafe(BodySetup->GetOuter()), i);
-				}
-			}
-			else
-			{
-				UE_LOG(LogPhysics, Warning, TEXT("AddConvexElemsToRigidActor: ConvexElem is missing ConvexMesh (%d: %s)"), i, *BodySetup->GetPathName());
-			}
-		}
+		UE_LOG(LogPhysics, Warning, TEXT("PopulatePhysXGeometryAndTransform(Convex): ConvexElem is missing ConvexMesh"));
 	}
 
-	void AddTriMeshToRigidActor_AssumesLocked() const
+	return false;
+}
+
+template <> float FBodySetupShapeIterator::ComputeContactOffset(const PxConvexMeshGeometry& PConvexGeom) const
+{
+	PxVec3 PBoundsExtents = PConvexGeom.convexMesh->getLocalBounds().getExtents();
+	return FMath::Clamp(ContactOffsetFactor * PBoundsExtents.minElement(), MinContactOffset, MaxContactOffset);
+}
+
+template <> FString FBodySetupShapeIterator::GetDebugName<FKConvexElem>() const
+{
+	return TEXT("Convex");
+}
+
+
+///////////////////////////////////Trimesh elements ////////////////////////////
+template <> bool FBodySetupShapeIterator::PopulatePhysXGeometryAndTransform(PxTriangleMesh* const & TriMesh, PxTriangleMeshGeometry& OutGeometry, PxTransform& OutTM) const
+{
+	OutGeometry.triangleMesh = TriMesh;
+	OutGeometry.scale.scale = U2PVector(ShapeScale3D); //scale shape about the origin
+
+	auto ClampScale = [](float& Val) -> void
 	{
-		for(PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
-		{
-		
-			PxTriangleMeshGeometry PTriMeshGeom;
-			PTriMeshGeom.triangleMesh = TriMesh;
-			PTriMeshGeom.scale.scale = U2PVector(ShapeScale3D); //scale shape about the origin
-			if (BodySetup->bDoubleSidedGeometry)
-			{
-				PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
-			}
+		Val = Val <= 0.f ? FMath::Min(Val, -KINDA_SMALL_NUMBER) : FMath::Max(KINDA_SMALL_NUMBER, Val);
+	};
 
-			if (PTriMeshGeom.isValid())
-			{
-				//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
-				PxTransform PElementTransform = U2PTransform(RelativeTM);
-				PElementTransform.p.x *= Scale3D.X;
-				PElementTransform.p.y *= Scale3D.Y;
-				PElementTransform.p.z *= Scale3D.Z;
+	ClampScale(OutGeometry.scale.scale.x);
+	ClampScale(OutGeometry.scale.scale.y);
+	ClampScale(OutGeometry.scale.scale.z);
 
-				// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
-				if (!AttachShape_AssumesLocked(PTriMeshGeom, PElementTransform, MaxContactOffset, nullptr, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
-				{
-					UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
-				}
-			}
-			else
-			{
-				UE_LOG(LogPhysics, Log, TEXT("AddTriMeshToRigidActor: TriMesh invalid"));
-			}
-		}
-	}
-
-private:
-
-	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FPhysxUserData* ShapeElemUserData, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
+	if (BodySetup.bDoubleSidedGeometry)
 	{
-		const PxMaterial* PMaterial = GetDefaultPhysMaterial(); 
-		PxShape* PNewShape = GPhysXSDK->createShape(PGeom, *PMaterial, !bShapeSharing, PShapeFlags);
-
-		if (PNewShape)
-		{
-			PNewShape->userData = (void*) ShapeElemUserData;
-			PNewShape->setLocalPose(PLocalPose);
-
-			if (NewShapes)
-			{
-				NewShapes->Add(PNewShape);
-			}
-
-			PNewShape->setContactOffset(ContactOffset);
-
-			const bool bSyncFlags = bShapeSharing || SceneType == PST_Sync;
-			const FShapeFilterData& Filters = ShapeData.FilterData;
-			const bool bComplexShape = PNewShape->getGeometryType() == PxGeometryType::eTRIANGLEMESH;
-
-			PNewShape->setQueryFilterData(bComplexShape ? Filters.QueryComplexFilter : Filters.QuerySimpleFilter);
-			PNewShape->setFlags( (bSyncFlags ? ShapeData.SyncShapeFlags : ShapeData.AsyncShapeFlags) | (bComplexShape ? ShapeData.ComplexShapeFlags : ShapeData.SimpleShapeFlags));
-			PNewShape->setSimulationFilterData(Filters.SimFilter);
-			FBodyInstance::ApplyMaterialToShape_AssumesLocked(PNewShape, SimpleMaterial, ComplexMaterials, bShapeSharing);
-
-			PDestActor->attachShape(*PNewShape);
-			PNewShape->release();
-		}
-
-		return PNewShape;
+		OutGeometry.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
 	}
 
+	if (OutGeometry.isValid())
+	{
+		//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
+		OutTM = U2PTransform(RelativeTM);
+		OutTM.p.x *= Scale3D.X;
+		OutTM.p.y *= Scale3D.Y;
+		OutTM.p.z *= Scale3D.Z;
 
-};
+		return true;
+	}
+	else
+	{
+		UE_LOG(LogPhysics, Log, TEXT("PopulatePhysXGeometryAndTransform(TriMesh): TriMesh invalid"));
+	}
+
+	return false;
+}
+
+template <> float FBodySetupShapeIterator::ComputeContactOffset(const PxTriangleMeshGeometry& PTriMeshGeom) const
+{
+	return MaxContactOffset;
+}
+
+template <> FString FBodySetupShapeIterator::GetDebugName<PxTriangleMesh*>() const
+{
+	return TEXT("Trimesh");
+}
 
 
 
@@ -654,23 +636,71 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 		Scale3D = FVector(0.1f);
 	}
 
-	FAddShapesHelper AddShapesHelper(this, OwningInstance, PDestActor, SceneType, Scale3D, SimpleMaterial, ComplexMaterials, ShapeData, RelativeTM, NewShapes, bShapeSharing);
+	auto AttachShape_AssumesLocked = [bShapeSharing, NewShapes, PDestActor, ComplexMaterials, SimpleMaterial, SceneType, &ShapeData] (const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FPhysxUserData* ShapeElemUserData, PxShapeFlags PShapeFlags)
+	{
+		const PxMaterial* PMaterial = GetDefaultPhysMaterial();
+		PxShape* PNewShape = GPhysXSDK->createShape(PGeom, *PMaterial, !bShapeSharing, PShapeFlags);
+
+		if (PNewShape)
+		{
+			PNewShape->userData = (void*)ShapeElemUserData;
+			PNewShape->setLocalPose(PLocalPose);
+
+			if (NewShapes)
+			{
+				NewShapes->Add(PNewShape);
+			}
+
+			PNewShape->setContactOffset(ContactOffset);
+
+			const bool bSyncFlags = bShapeSharing || SceneType == PST_Sync;
+			const FShapeFilterData& Filters = ShapeData.FilterData;
+			const bool bComplexShape = PNewShape->getGeometryType() == PxGeometryType::eTRIANGLEMESH;
+
+			PNewShape->setQueryFilterData(bComplexShape ? Filters.QueryComplexFilter : Filters.QuerySimpleFilter);
+			PNewShape->setFlags((bSyncFlags ? ShapeData.SyncShapeFlags : ShapeData.AsyncShapeFlags) | (bComplexShape ? ShapeData.ComplexShapeFlags : ShapeData.SimpleShapeFlags));
+			PNewShape->setSimulationFilterData(Filters.SimFilter);
+			FBodyInstance::ApplyMaterialToShape_AssumesLocked(PNewShape, SimpleMaterial, ComplexMaterials, bShapeSharing);
+
+			PDestActor->attachShape(*PNewShape);
+			PNewShape->release();
+		}
+
+		return PNewShape;
+	};
+
+	auto IterateSimpleShapes = [AttachShape_AssumesLocked](const FKShapeElem& Elem, const PxGeometry& Geom, const PxTransform& PLocalPose, float ContactOffset)
+	{
+		AttachShape_AssumesLocked(Geom, PLocalPose, ContactOffset, Elem.GetUserData(), PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE);
+	};
+
+	auto IterateTrimeshes = [AttachShape_AssumesLocked](PxTriangleMesh*, const PxGeometry& Geom, const PxTransform& PLocalPose, float ContactOffset)
+	{
+		// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
+		if (!AttachShape_AssumesLocked(Geom, PLocalPose, ContactOffset, nullptr, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
+		{
+			UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
+		}
+	};
+
+
+	FBodySetupShapeIterator AddShapesHelper(*this, Scale3D, RelativeTM);
 
 	// Create shapes for simple collision if we do not want to use the complex collision mesh 
 	// for simple queries as well
 	if (GetCollisionTraceFlag() != ECollisionTraceFlag::CTF_UseComplexAsSimple)
 	{
-		AddShapesHelper.AddSpheresToRigidActor_AssumesLocked();
-		AddShapesHelper.AddBoxesToRigidActor_AssumesLocked();
-		AddShapesHelper.AddSphylsToRigidActor_AssumesLocked();
-		AddShapesHelper.AddConvexElemsToRigidActor_AssumesLocked();
+		AddShapesHelper.ForEachShape<FKSphereElem, PxSphereGeometry>(AggGeom.SphereElems, IterateSimpleShapes);
+		AddShapesHelper.ForEachShape<FKSphylElem, PxCapsuleGeometry>(AggGeom.SphylElems, IterateSimpleShapes);
+		AddShapesHelper.ForEachShape<FKBoxElem, PxBoxGeometry>(AggGeom.BoxElems, IterateSimpleShapes);
+		AddShapesHelper.ForEachShape<FKConvexElem, PxConvexMeshGeometry>(AggGeom.ConvexElems, IterateSimpleShapes);
 	}
 
 	// Create tri-mesh shape, when we are not using simple collision shapes for 
 	// complex queries as well
 	if (GetCollisionTraceFlag() != ECollisionTraceFlag::CTF_UseSimpleAsComplex)
 	{
-		AddShapesHelper.AddTriMeshToRigidActor_AssumesLocked();
+		AddShapesHelper.ForEachShape<PxTriangleMesh*, PxTriangleMeshGeometry>(TriMeshes, IterateTrimeshes);
 	}
 
 	if (OwningInstance)
@@ -800,8 +830,10 @@ void UBodySetup::Serialize(FArchive& Ar)
 	bool bCooked = Ar.IsCooking();
 	Ar << bCooked;
 
+	bool bDuplicating = (Ar.GetPortFlags() & PPF_Duplicate) != 0;
+
 #if !WITH_RUNTIME_PHYSICS_COOKING
-	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
+	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading() && !bDuplicating)
 	{
 		UE_LOG(LogPhysics, Fatal, TEXT("This platform requires cooked packages, and physX data was not cooked into %s."), *GetFullName());
 	}
@@ -1725,3 +1757,8 @@ TEnumAsByte<enum ECollisionTraceFlag> UBodySetup::GetCollisionTraceFlag() const
 	TEnumAsByte<enum ECollisionTraceFlag> DefaultFlag = UPhysicsSettings::Get()->DefaultShapeComplexity;
 	return CollisionTraceFlag == ECollisionTraceFlag::CTF_UseDefault ? DefaultFlag : CollisionTraceFlag;
 }
+template void FBodySetupShapeIterator::ForEachShape(const TArray<FKSphereElem>&, TFunctionRef<void(const FKSphereElem&, const physx::PxSphereGeometry&, const physx::PxTransform&, float)>) const;
+template void FBodySetupShapeIterator::ForEachShape(const TArray<FKBoxElem>&, TFunctionRef<void(const FKBoxElem&, const physx::PxBoxGeometry&, const physx::PxTransform&, float)>) const;
+template void FBodySetupShapeIterator::ForEachShape(const TArray<FKSphylElem>&, TFunctionRef<void(const FKSphylElem&, const physx::PxCapsuleGeometry&, const physx::PxTransform&, float)>) const;
+template void FBodySetupShapeIterator::ForEachShape(const TArray<FKConvexElem>&, TFunctionRef<void(const FKConvexElem&, const physx::PxConvexMeshGeometry&, const physx::PxTransform&, float)>) const;
+template void FBodySetupShapeIterator::ForEachShape(const TArray<physx::PxTriangleMesh*>&, TFunctionRef<void(physx::PxTriangleMesh* const &, const physx::PxTriangleMeshGeometry&, const physx::PxTransform&, float)>) const;

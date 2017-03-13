@@ -8,6 +8,9 @@
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "Animation/WidgetAnimation.h"
 #include "Blueprint/WidgetTree.h"
+#include "Evaluation/MovieSceneSegment.h"
+#include "Evaluation/MovieSceneTrackImplementation.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 
 void FBackendHelperUMG::WidgetFunctionsInHeader(FEmitterLocalContext& Context)
 {
@@ -39,6 +42,10 @@ void FBackendHelperUMG::CreateClassSubobjects(FEmitterLocalContext& Context, boo
 		for (auto Anim : WidgetClass->Animations)
 		{
 			ensure(Anim->GetOuter() == Context.GetCurrentlyGeneratedClass());
+
+			// We need the same regeneration like for cooking. See UMovieSceneSequence::Serialize
+			Anim->EvaluationTemplate.Regenerate(Anim->TemplateParameters);
+
 			FEmitDefaultValueHelper::HandleClassSubobject(Context, Anim, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, bCreate, bInitialize);
 		}
 	}
@@ -112,3 +119,91 @@ void FBackendHelperUMG::EmitWidgetInitializationFunctions(FEmitterLocalContext& 
 	}
 }
 
+bool FBackendHelperUMG::SpecialStructureConstructorUMG(const UStruct* Struct, const uint8* ValuePtr, /*out*/ FString* OutResult)
+{
+	check(ValuePtr || !OutResult);
+
+	if (FSectionEvaluationData::StaticStruct() == Struct)
+	{
+		if (OutResult)
+		{
+			const FSectionEvaluationData* SectionEvaluationData = reinterpret_cast<const FSectionEvaluationData*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FSectionEvaluationData(%d, %s)")
+				, SectionEvaluationData->ImplIndex
+				, *FEmitHelper::FloatToString(SectionEvaluationData->ForcedTime));
+		}
+		return true;
+	}
+
+	if (FMovieSceneSegment::StaticStruct() == Struct)
+	{
+		if (OutResult)
+		{
+			const FMovieSceneSegment* MovieSceneSegment = reinterpret_cast<const FMovieSceneSegment*>(ValuePtr);
+			FString RangeStr;
+			FEmitDefaultValueHelper::SpecialStructureConstructor(TBaseStructure<FFloatRange>::Get()
+				, reinterpret_cast<const uint8*>(&MovieSceneSegment->Range)
+				, &RangeStr);
+			FString SegmentsInitializerList;
+			for (const FSectionEvaluationData& SectionEvaluationData : MovieSceneSegment->Impls)
+			{
+				if (!SegmentsInitializerList.IsEmpty())
+				{
+					SegmentsInitializerList += TEXT(", ");
+				}
+				FString SectionEvaluationDataStr;
+				FBackendHelperUMG::SpecialStructureConstructorUMG(FSectionEvaluationData::StaticStruct()
+					, reinterpret_cast<const uint8*>(&SectionEvaluationData)
+					, &SectionEvaluationDataStr);
+				SegmentsInitializerList += SectionEvaluationDataStr;
+			}
+			*OutResult = FString::Printf(TEXT("FMovieSceneSegment(%s, {%s})"), *RangeStr, *SegmentsInitializerList);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool FBackendHelperUMG::IsTInlineStruct(UScriptStruct* OuterStruct)
+{
+	return (OuterStruct == FMovieSceneTrackImplementationPtr::StaticStruct())
+		|| (OuterStruct == FMovieSceneEvalTemplatePtr::StaticStruct());
+}
+
+UScriptStruct* FBackendHelperUMG::InlineValueStruct(UScriptStruct* OuterStruct, const uint8* ValuePtr)
+{ 
+	if (OuterStruct == FMovieSceneTrackImplementationPtr::StaticStruct())
+	{
+		const FMovieSceneTrackImplementation* MovieSceneTrackImplementation = reinterpret_cast<const FMovieSceneTrackImplementationPtr*>(ValuePtr)->GetPtr();
+		if (MovieSceneTrackImplementation)
+		{
+			return &(MovieSceneTrackImplementation->GetScriptStruct());
+		}
+	}
+
+	if (OuterStruct == FMovieSceneEvalTemplatePtr::StaticStruct())
+	{
+		const FMovieSceneEvalTemplate* MovieSceneEvalTemplate = reinterpret_cast<const FMovieSceneEvalTemplatePtr*>(ValuePtr)->GetPtr();
+		if (MovieSceneEvalTemplate)
+		{
+			return &(MovieSceneEvalTemplate->GetScriptStruct());
+		}
+	}
+	return nullptr;
+}
+
+const uint8* FBackendHelperUMG::InlineValueData(UScriptStruct* OuterStruct, const uint8* ValuePtr)
+{ 
+	if (ValuePtr)
+	{
+		if (OuterStruct == FMovieSceneTrackImplementationPtr::StaticStruct())
+		{
+			return reinterpret_cast<const uint8*>(reinterpret_cast<const FMovieSceneTrackImplementationPtr*>(ValuePtr)->GetPtr());
+		}
+		if (OuterStruct == FMovieSceneEvalTemplatePtr::StaticStruct())
+		{
+			return reinterpret_cast<const uint8*>(reinterpret_cast<const FMovieSceneEvalTemplatePtr*>(ValuePtr)->GetPtr());
+		}
+	}
+	return nullptr;
+}

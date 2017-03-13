@@ -79,7 +79,6 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static void ClipboardCopy(const TCHAR* Str);
 	static void ClipboardPaste(class FString& Dest);
 
-	static const TCHAR* RootDir();
 	static void NormalizePath(FString& InPath);
 
 	static const TCHAR* GetPathVarDelimiter()
@@ -145,11 +144,6 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	 *			Bits 28-31	Reserved
 	 */
 	static uint32 GetCPUInfo();
-
-	static const TCHAR* EngineDir()
-	{
-		return TEXT("../../../Engine/");
-	}
 
 	/**
 	 * Initializes video (and not only) subsystem.

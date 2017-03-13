@@ -26,13 +26,15 @@ class AUDIOMIXER_API FSubmixEffectReverb : public FSoundEffectSubmix
 {
 public:
 	// Called on an audio effect at initialization on main thread before audio processing begins.
-	void Init(const FSoundEffectSubmixInitData& InSampleRate) override;
+	virtual void Init(const FSoundEffectSubmixInitData& InSampleRate) override;
 	
+	virtual void SetPreset(USoundEffectSubmixPreset* InPreset) override;
+
 	// We want to receive downmixed submix audio to stereo input for the reverb effect
-	uint32 GetDesiredInputChannelCountOverride() const override { return 2; }
+	virtual uint32 GetDesiredInputChannelCountOverride() const override { return 2; }
 
 	// Process the input block of audio. Called on audio thread.
-	void OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData) override;
+	virtual void OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData) override;
 
 	// Sets the reverb effect parameters based from audio thread code
 	void SetEffectParameters(const FAudioReverbEffect& InReverbEffectParameters);

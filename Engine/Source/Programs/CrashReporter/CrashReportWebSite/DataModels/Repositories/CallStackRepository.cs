@@ -1,6 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -13,7 +11,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
     /// </summary>
     public class CallStackRepository : ICallstackRepository
     {
-        private readonly CrashReportEntities _entityContext;
+        private CrashReportEntities _entityContext;
 
         /// <summary>
         /// Constructor

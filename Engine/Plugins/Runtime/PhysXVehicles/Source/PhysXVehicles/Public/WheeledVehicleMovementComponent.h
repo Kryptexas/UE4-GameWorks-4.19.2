@@ -7,7 +7,7 @@
 #include "Templates/SubclassOf.h"
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "AI/RVOAvoidanceInterface.h"
-#include "GameFramework/MovementComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "VehicleWheel.h"
 #include "WheeledVehicleMovementComponent.generated.h"
 
@@ -19,6 +19,8 @@ namespace physx
 	class PxVehicleWheels;
 	class PxVehicleWheelsSimData;
 }
+
+struct FBodyInstance;
 
 /**
  * Values passed from PhysX to generate tire forces
@@ -162,7 +164,7 @@ struct PHYSXVEHICLES_API FVehicleInputRate
  * Component to handle the vehicle simulation for an actor.
  */
 UCLASS(Abstract, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
-class PHYSXVEHICLES_API UWheeledVehicleMovementComponent : public UMovementComponent, public IRVOAvoidanceInterface
+class PHYSXVEHICLES_API UWheeledVehicleMovementComponent : public UPawnMovementComponent, public IRVOAvoidanceInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -271,6 +273,9 @@ class PHYSXVEHICLES_API UWheeledVehicleMovementComponent : public UMovementCompo
 	physx::PxVehicleWheels* PVehicle;
 	physx::PxVehicleDrive* PVehicleDrive;
 
+	/** Overridden to allow registration with components NOT owned by a Pawn. */
+	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
+	
 	/** Compute the forces generates from a spinning tire */
 	virtual void GenerateTireForces(class UVehicleWheel* Wheel, const FTireShaderInput& Input, FTireShaderOutput& Output);
 
@@ -627,6 +632,7 @@ protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
 
+	void UpdateMassProperties(FBodyInstance* BI);
 	
 
 };

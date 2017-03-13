@@ -28,7 +28,19 @@ class UAbilityTask_ApplyRootMotionConstantForce : public UAbilityTask_ApplyRootM
 
 	/** Apply force to character's movement */
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_ApplyRootMotionConstantForce* ApplyRootMotionConstantForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector WorldDirection, float Strength, float Duration, bool bIsAdditive, bool bDisableImpartingVelocityOnRemoval, UCurveFloat* StrengthOverTime);
+	static UAbilityTask_ApplyRootMotionConstantForce* ApplyRootMotionConstantForce
+	(
+		UGameplayAbility* OwningAbility, 
+		FName TaskInstanceName, 
+		FVector WorldDirection, 
+		float Strength, 
+		float Duration, 
+		bool bIsAdditive, 
+		UCurveFloat* StrengthOverTime,
+		ERootMotionFinishVelocityMode VelocityOnFinishMode,
+		FVector SetVelocityOnFinish,
+		float ClampVelocityOnFinish
+	);
 
 	/** Tick function for this task, if bTickingTask == true */
 	virtual void TickTask(float DeltaTime) override;
@@ -53,9 +65,6 @@ protected:
 
 	UPROPERTY(Replicated)
 	bool bIsAdditive;
-
-	UPROPERTY(Replicated)
-	bool bDisableImpartingVelocityOnRemoval;
 
 	/** 
 	 *  Strength of the force over time

@@ -12,7 +12,7 @@ using System.Xml.Linq;
 
 namespace UnrealBuildTool
 {
-	public class UEDeployAndroid : UEBuildDeploy
+	class UEDeployAndroid : UEBuildDeploy, IAndroidDeploy
 	{
 		/// <summary>
 		/// Internal usage for GetApiLevel
@@ -151,7 +151,12 @@ namespace UnrealBuildTool
 			return VersionString;
 		}
 
-		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigHierarchy Ini = null)
+		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk)
+		{
+			return PackageDataInsideApk(bDisallowPackagingDataInApk, null);
+		}
+
+		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigHierarchy Ini)
 		{
 			if (bDisallowPackagingDataInApk)
 			{
@@ -189,6 +194,25 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bUseExternalFilesDir", out bUseExternalFilesDir);
 
 			return bUseExternalFilesDir;
+		}
+
+		public bool IsPackagingForDaydream(ConfigHierarchy Ini = null)
+		{
+			// make a new one if one wasn't passed in
+			if (Ini == null)
+			{
+				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+			}
+
+			string GoogleVRMode = "";
+			if(Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GoogleVRMode", out GoogleVRMode))
+			{
+				return GoogleVRMode == "Daydream" || GoogleVRMode == "DaydreamAndCardboard";
+			}
+			else
+			{
+				return false;
+			}
 		}
 
 		public bool DisableVerifyOBBOnStartUp(ConfigHierarchy Ini = null)
@@ -464,14 +488,43 @@ namespace UnrealBuildTool
 			string[] DestFileContent = File.Exists(ShimFileName) ? File.ReadAllLines(ShimFileName) : null;
 
 			StringBuilder ShimFileContent = new StringBuilder("package com.epicgames.ue4;\n\n");
+
 			ShimFileContent.AppendFormat("import {0}.OBBDownloaderService;\n", replacements["$$PackageName$$"]);
 			ShimFileContent.AppendFormat("import {0}.DownloaderActivity;\n", replacements["$$PackageName$$"]);
+
+			// Workaround to do OBB file checking without using DownloadActivity to avoid transit to another activity in Daydream
+			bool bPackageForDaydream = IsPackagingForDaydream();
+			if (bPackageForDaydream)
+			{
+				ShimFileContent.Append("import android.app.Activity;\n");
+				ShimFileContent.Append("import com.google.android.vending.expansion.downloader.Helpers;\n");
+				ShimFileContent.AppendFormat("import {0}.OBBData;\n", replacements["$$PackageName$$"]);
+			}
+
 			ShimFileContent.Append("\n\npublic class DownloadShim\n{\n");
 			ShimFileContent.Append("\tpublic static OBBDownloaderService DownloaderService;\n");
 			ShimFileContent.Append("\tpublic static DownloaderActivity DownloadActivity;\n");
 			ShimFileContent.Append("\tpublic static Class<DownloaderActivity> GetDownloaderType() { return DownloaderActivity.class; }\n");
-			ShimFileContent.Append("}\n");
 
+			// Workaround to do OBB file checking without using DownloadActivity to avoid a SPM bug
+			if (bPackageForDaydream)
+			{
+				ShimFileContent.Append("\tpublic static boolean expansionFilesDelivered(Activity activity) {\n");
+				ShimFileContent.Append("\t\tfor (OBBData.XAPKFile xf : OBBData.xAPKS) {\n");
+				ShimFileContent.Append("\t\t\tString fileName = Helpers.getExpansionAPKFileName(activity, xf.mIsMain, xf.mFileVersion);\n");
+				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"Checking for file : \" + fileName);\n");
+				ShimFileContent.Append("\t\t\tString fileForNewFile = Helpers.generateSaveFileName(activity, fileName);\n");
+				ShimFileContent.Append("\t\t\tString fileForDevFile = Helpers.generateSaveFileNameDevelopment(activity, fileName);\n");
+				ShimFileContent.Append("\t\t\tGameActivity.Log.debug(\"which is really being resolved to : \" + fileForNewFile + \"\\n Or : \" + fileForDevFile);\n");
+				ShimFileContent.Append("\t\t\tif (!Helpers.doesFileExist(activity, fileName, xf.mFileSize, false) &&\n");
+				ShimFileContent.Append("\t\t\t\t!Helpers.doesFileExistDev(activity, fileName, xf.mFileSize, false))\n");
+				ShimFileContent.Append("\t\t\t\treturn false;\n");
+				ShimFileContent.Append("\t\t\t}\n");
+				ShimFileContent.Append("\t\treturn true;\n");
+				ShimFileContent.Append("\t}\n");
+			}
+
+			ShimFileContent.Append("}\n");
 			Log.TraceInformation("\n==== Writing to shim file {0} ====", ShimFileName);
 
 			// If they aren't the same then dump out the settings
@@ -639,6 +692,11 @@ namespace UnrealBuildTool
 						{
 							Directory.CreateDirectory(Path.Combine(UE4BuildPath, "libs", NDKArch));
 							string MaliLibSrcPath = Path.Combine(MaliGraphicsDebuggerPath, @"target\android-non-root\arm", NDKArch, "libMGD.so");
+							if (!File.Exists(MaliLibSrcPath))
+							{
+								// in v4.3.0 library location was changed
+								MaliLibSrcPath = Path.Combine(MaliGraphicsDebuggerPath, @"target\android\arm\unrooted", NDKArch, "libMGD.so");
+							}
 							string MaliLibDstPath = Path.Combine(UE4BuildPath, "libs", NDKArch, "libMGD.so");
 
 							Console.WriteLine("Copying {0} to {1}", MaliLibSrcPath, MaliLibDstPath);
@@ -1144,33 +1202,31 @@ namespace UnrealBuildTool
 				}
 			}
 		}
-		
+	
 		private void PackageForDaydream(string UE4BuildPath)
-        {
-            ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
-            bool bPackageForDaydream;
-            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
+		{
+			bool bPackageForDaydream = IsPackagingForDaydream();
 
-            if (!bPackageForDaydream)
-            {
-                // If this isn't a Daydream App, we need to make sure to remove
-                // Daydream specific assets.
+			if (!bPackageForDaydream)
+			{
+				// If this isn't a Daydream App, we need to make sure to remove
+				// Daydream specific assets.
 
-                // Remove the Daydream app  tile background.
-                string AppTileBackgroundPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon_background.png";
-                if (File.Exists(AppTileBackgroundPath))
-                {
-                    File.Delete(AppTileBackgroundPath);
-                }
+				// Remove the Daydream app  tile background.
+				string AppTileBackgroundPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon_background.png";
+				if (File.Exists(AppTileBackgroundPath))
+				{
+					File.Delete(AppTileBackgroundPath);
+				}
 
-                // Remove the Daydream app tile icon.
-                string AppTileIconPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon.png";
-                if (File.Exists(AppTileIconPath))
-                {
-                    File.Delete(AppTileIconPath);
-                }
-            }
-        }
+				// Remove the Daydream app tile icon.
+				string AppTileIconPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon.png";
+				if (File.Exists(AppTileIconPath))
+				{
+					File.Delete(AppTileIconPath);
+				}
+			}
+		}
 
 		private void PickSplashScreenOrientation(string UE4BuildPath, bool bNeedPortrait, bool bNeedLandscape)
 		{
@@ -1179,8 +1235,7 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
 			bool bPackageForGearVR;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
-			bool bPackageForDaydream;
-            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
+			bool bPackageForDaydream = IsPackagingForDaydream();
 			
 			//override the parameters if we are not showing a launch image or are packaging for GearVR and Daydream
 			if (bPackageForGearVR || bPackageForDaydream || !bShowLaunchImage)
@@ -1267,8 +1322,31 @@ namespace UnrealBuildTool
 
 
 
-		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch, string CookFlavor, bool bUseExternalFilesDir)
+		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, string EngineDirectory, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch, string CookFlavor, bool bUseExternalFilesDir)
 		{
+			// Read the engine version
+			string EngineMajorVersion = "4";
+			string EngineMinorVersion = "0";
+			string EnginePatchVersion = "0";
+			string EngineVersionFile = Path.Combine(EngineDirectory, "Source", "Runtime", "Launch", "Resources", "Version.h");
+			string[] EngineVersionLines = File.ReadAllLines(EngineVersionFile);
+			for (int i = 0; i < EngineVersionLines.Length; ++i)
+			{
+				if (EngineVersionLines[i].StartsWith("#define ENGINE_MAJOR_VERSION"))
+				{
+					EngineMajorVersion = EngineVersionLines[i].Split('\t')[1].Trim(' ');
+				}
+				else if (EngineVersionLines[i].StartsWith("#define ENGINE_MINOR_VERSION"))
+				{
+					EngineMinorVersion = EngineVersionLines[i].Split('\t')[1].Trim(' ');
+				}
+				else if (EngineVersionLines[i].StartsWith("#define ENGINE_PATCH_VERSION"))
+				{
+					EnginePatchVersion = EngineVersionLines[i].Split('\t')[1].Trim(' ');
+				}
+			}
+			string EngineVersion = EngineMajorVersion + "." + EngineMinorVersion + "." + EnginePatchVersion;
+
 			string Arch = GetNDKArch(UE4Arch);
 			int NDKLevelInt = ToolChain.GetNdkApiLevelInt();
 
@@ -1314,8 +1392,6 @@ namespace UnrealBuildTool
 			Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraPermissions", out ExtraPermissions);
 			bool bPackageForGearVR;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
-			bool bPackageForDaydream;
-            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
 			bool bEnableIAP = false;
 			Ini.GetBool("OnlineSubsystemGooglePlay.Store", "bSupportsInAppPurchasing", out bEnableIAP);
 			bool bShowLaunchImage = false;
@@ -1368,6 +1444,7 @@ namespace UnrealBuildTool
 				}
 			}
 
+			bool bPackageForDaydream = IsPackagingForDaydream();
 			// disable splash screen for daydream
 			if (bPackageForDaydream)
 			{
@@ -1454,6 +1531,7 @@ namespace UnrealBuildTool
 					Text.AppendLine("\t             " + Line);
 				}
 			}
+            Text.AppendLine("\t             android:hardwareAccelerated=\"true\">");
 			Text.AppendLine("\t             android:hasCode=\"true\">");
 			if (bShowLaunchImage)
 			{
@@ -1530,6 +1608,7 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t\t<activity android:name=\".DownloaderActivity\" />");
 			}
 
+			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.EngineVersion\" android:value=\"{0}\"/>", EngineVersion));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\"{0}\"/>", ConvertDepthBufferIniValue(DepthBufferPreference)));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bPackageDataInsideApk\" android:value=\"{0}\"/>", bPackageDataInsideApk ? "true" : "false"));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bVerifyOBBOnStartUp\" android:value=\"{0}\"/>", (bIsForDistribution && !bDisableVerifyOBBOnStartUp) ? "true" : "false"));
@@ -1589,11 +1668,11 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>");
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>");
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>");
-				Text.AppendLine("\t<uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>");
+			//	Text.AppendLine("\t<uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>");
 				Text.AppendLine("\t<uses-permission android:name=\"com.android.vending.CHECK_LICENSE\"/>");
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>");
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\"/>");
-				Text.AppendLine("\t<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>");
+			//	Text.AppendLine("\t<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>");
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.VIBRATE\"/>");
 				//			Text.AppendLine("\t<uses-permission android:name=\"android.permission.DISABLE_KEYGUARD\"/>");
 
@@ -2027,7 +2106,7 @@ namespace UnrealBuildTool
 			{
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
-							let manifest = GenerateManifest(ToolChain, ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir)
+							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir)
 							select Tuple.Create(Arch, GPUArch, manifest);
 			}
 			else
@@ -2035,7 +2114,7 @@ namespace UnrealBuildTool
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
 							let manifestFile = Path.Combine(IntermediateAndroidPath, Arch + "_" + GPUArch + "_AndroidManifest.xml")
-							let manifest = GenerateManifest(ToolChain, ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir)
+							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir)
 							let OldManifest = File.Exists(manifestFile) ? File.ReadAllText(manifestFile) : ""
 							where manifest != OldManifest
 							select Tuple.Create(Arch, GPUArch, manifest);
@@ -2122,7 +2201,7 @@ namespace UnrealBuildTool
 			PickSplashScreenOrientation(UE4BuildPath, bNeedPortrait, bNeedLandscape);
 			
 			//Now package the app based on Daydream packaging settings 
-            PackageForDaydream(UE4BuildPath);
+			PackageForDaydream(UE4BuildPath);
 			
 			//Similarly, keep only the downloader screen image matching the orientation requested
 			PickDownloaderScreenOrientation(UE4BuildPath, bNeedPortrait, bNeedLandscape);
@@ -2364,7 +2443,7 @@ namespace UnrealBuildTool
 		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			//Log.TraceInformation("$$$$$$$$$$$$$$ PrepTargetForDeployment $$$$$$$$$$$$$$$$$ {0}", InTarget.TargetName);
-			AndroidToolChain ToolChain = new AndroidToolChain(InTarget.ProjectFile); 
+			AndroidToolChain ToolChain = new AndroidToolChain(InTarget.ProjectFile, false, InTarget.AndroidArchitectures, InTarget.AndroidGPUArchitectures); 
 
 			// we need to strip architecture from any of the output paths
 			string BaseSoName = ToolChain.RemoveArchName(InTarget.OutputPaths[0].FullName);
@@ -2378,7 +2457,8 @@ namespace UnrealBuildTool
 			SetAndroidPluginData(ToolChain.GetAllArchitectures(), CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)));
 
 			// make an apk at the end of compiling, so that we can run without packaging (debugger, cook on the fly, etc)
-			MakeApk(ToolChain, InTarget.TargetName, InTarget.ProjectDirectory.FullName, BaseSoName, BuildConfiguration.RelativeEnginePath, bForDistribution: false, CookFlavor: "",
+			string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
+			MakeApk(ToolChain, InTarget.TargetName, InTarget.ProjectDirectory.FullName, BaseSoName, RelativeEnginePath, bForDistribution: false, CookFlavor: "",
 				bMakeSeparateApks: ShouldMakeSeparateApks(), bIncrementalPackage: true, bDisallowPackagingDataInApk: false, bDisallowExternalFilesDir: true);
 
 			// if we made any non-standard .apk files, the generated debugger settings may be wrong
@@ -2413,7 +2493,7 @@ namespace UnrealBuildTool
 
 			// note that we cannot allow the data packaged into the APK if we are doing something like Launch On that will not make an obb
 			// file and instead pushes files directly via deploy
-			AndroidToolChain ToolChain = new AndroidToolChain(ProjectFile);
+			AndroidToolChain ToolChain = new AndroidToolChain(ProjectFile, false, null, null);
 			MakeApk(ToolChain, ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution: bForDistribution, CookFlavor: CookFlavor,
 				bMakeSeparateApks: ShouldMakeSeparateApks(), bIncrementalPackage: false, bDisallowPackagingDataInApk: bIsDataDeploy, bDisallowExternalFilesDir: !bForDistribution || bIsDataDeploy );
 			return true;
@@ -2503,7 +2583,8 @@ namespace UnrealBuildTool
 				{ "//$${gameActivityOnStopAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnStopAdditions", "")},
 				{ "//$${gameActivityOnPauseAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnPauseAdditions", "")},
 				{ "//$${gameActivityOnResumeAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnResumeAdditions", "")},
-				{ "//$${gameActivityOnActivityResultAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnActivityResultAdditions", "")},
+				{ "//$${gameActivityOnNewIntentAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnNewIntentAdditions", "")},
+  				{ "//$${gameActivityOnActivityResultAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnActivityResultAdditions", "")},
 				{ "//$${soLoadLibrary}$$", UPL.ProcessPluginNode(NDKArch, "soLoadLibrary", LoadLibraryDefaults)}
 			};
 

@@ -797,7 +797,9 @@ bool SMyBlueprint::CanRequestRenameOnActionNode(TWeakPtr<FGraphActionNode> InSel
 				// Do not allow renaming of any graph actions outside of the following
 				if(Actions[i]->GetSectionID() == NodeSectionID::FUNCTION || Actions[i]->GetSectionID() == NodeSectionID::MACRO)
 				{
-					if(!FBlueprintEditorUtils::IsPaletteActionReadOnly(Actions[i], BlueprintEditorPtr.Pin()) && FBlueprintEditorUtils::FindBlueprintForGraph(GraphAction->EdGraph) == GetBlueprintObj())
+					if(!FBlueprintEditorUtils::IsPaletteActionReadOnly(Actions[i], BlueprintEditorPtr.Pin())
+						&& FBlueprintEditorUtils::FindBlueprintForGraph(GraphAction->EdGraph) == GetBlueprintObj()
+						&& FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(GetBlueprintObj(), GraphAction->EdGraph->GetFName(), nullptr, true) == nullptr)
 					{
 						bIsReadOnly = false;
 						break;

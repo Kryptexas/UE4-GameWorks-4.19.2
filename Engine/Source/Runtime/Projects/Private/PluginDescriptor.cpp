@@ -12,9 +12,11 @@
 FPluginDescriptor::FPluginDescriptor()
 	: FileVersion(EPluginDescriptorVersion::Latest)
 	, Version(0)
+	, CompatibleChangelist(0)
 	, bEnabledByDefault(false)
 	, bCanContainContent(false)
 	, bIsBetaVersion(false)
+	, bIsMod(false)
 	, bInstalled(false)
 	, bRequiresBuildPlatform(true)
 { 
@@ -95,6 +97,7 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 	Object.TryGetStringField(TEXT("DocsURL"), DocsURL);
 	Object.TryGetStringField(TEXT("MarketplaceURL"), MarketplaceURL);
 	Object.TryGetStringField(TEXT("SupportURL"), SupportURL);
+	Object.TryGetNumberField(TEXT("CompatibleChangelist"), CompatibleChangelist);
 
 	if (!FModuleDescriptor::ReadArray(Object, TEXT("Modules"), Modules, OutFailReason))
 	{
@@ -113,6 +116,7 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 
 	Object.TryGetBoolField(TEXT("CanContainContent"), bCanContainContent);
 	Object.TryGetBoolField(TEXT("IsBetaVersion"), bIsBetaVersion);
+	Object.TryGetBoolField(TEXT("IsMod"), bIsMod);
 	Object.TryGetBoolField(TEXT("Installed"), bInstalled);
 
 	if(!Object.TryGetBoolField(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform))
@@ -161,12 +165,20 @@ void FPluginDescriptor::Write(FString& Text, bool bPluginTypeEnabledByDefault) c
 	Writer.WriteValue(TEXT("DocsURL"), DocsURL);
 	Writer.WriteValue(TEXT("MarketplaceURL"), MarketplaceURL);
 	Writer.WriteValue(TEXT("SupportURL"), SupportURL);
+	if (CompatibleChangelist != 0)
+	{
+		Writer.WriteValue(TEXT("CompatibleChangelist"), CompatibleChangelist);
+	}
 	if(bEnabledByDefault != bPluginTypeEnabledByDefault)
 	{
 		Writer.WriteValue(TEXT("EnabledByDefault"), bEnabledByDefault);
 	}
 	Writer.WriteValue(TEXT("CanContainContent"), bCanContainContent);
 	Writer.WriteValue(TEXT("IsBetaVersion"), bIsBetaVersion);
+	if (bIsMod)
+	{
+		Writer.WriteValue(TEXT("IsMod"), bIsMod);
+	}
 	Writer.WriteValue(TEXT("Installed"), bInstalled);
 
 	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);

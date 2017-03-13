@@ -173,11 +173,6 @@ void UK2Node_Copy::PinTypeChanged(UEdGraphPin* Pin)
 	}
 }
 
-void UK2Node_Copy::PostPasteNode()
-{
-	Super::PostPasteNode();
-}
-
 bool UK2Node_Copy::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

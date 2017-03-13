@@ -131,10 +131,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	int32 GetOptionCount() const;
 
-	//~ Begin UWidget Interface
-	virtual void SynchronizeProperties() override;
-	//~ End UWidget Interface
-
 	//~ Begin UVisual Interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	//~ End UVisual Interface
@@ -151,10 +147,10 @@ protected:
 	/** Called by slate when it needs to generate a new item for the combobox */
 	virtual TSharedRef<SWidget> HandleGenerateWidget(TSharedPtr<FString> Item) const;
 
-	/** Called by slate when the underlying comobobox selection changes */
+	/** Called by slate when the underlying combobox selection changes */
 	virtual void HandleSelectionChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectionType);
 
-	/** Called by slate when the underlying comobobox is opening */
+	/** Called by slate when the underlying combobox is opening */
 	virtual void HandleOpening();
 
 	//~ Begin UWidget Interface
@@ -168,8 +164,8 @@ protected:
 	/** A shared pointer to the underlying slate combobox */
 	TSharedPtr< SComboBox< TSharedPtr<FString> > > MyComboBox;
 
-	/** A shared pointer to a container that holds the comobobox content that is selected */
-	TSharedPtr< SBox > ComoboBoxContent;
+	/** A shared pointer to a container that holds the combobox content that is selected */
+	TSharedPtr< SBox > ComboBoxContent;
 
 	/** A shared pointer to the current selected string */
 	TSharedPtr<FString> CurrentOptionPtr;

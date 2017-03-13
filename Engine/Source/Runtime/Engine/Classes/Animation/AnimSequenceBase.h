@@ -62,6 +62,9 @@ class UAnimSequenceBase : public UAnimationAsset
 	/** Sort the Notifies array by time, earliest first. */
 	ENGINE_API void SortNotifies();	
 
+	/** Remove the notifies specified */
+	ENGINE_API bool RemoveNotifies(const TArray<FName>& NotifiesToRemove);
+
 	/** 
 	 * Retrieves AnimNotifies given a StartTime and a DeltaTime.
 	 * Time will be advanced and support looping if bAllowLooping is true.
@@ -114,6 +117,10 @@ protected:
 public: 
 	// update cache data (notify tracks, sync markers)
 	ENGINE_API virtual void RefreshCacheData();
+
+#if WITH_EDITOR
+	ENGINE_API void RefreshCurveData();
+#endif // WITH_EDITOR
 
 	//~ Begin UAnimationAsset Interface
 	ENGINE_API virtual void TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const override;
@@ -182,6 +189,28 @@ public:
 #endif
 	// return true if anim notify is available 
 	ENGINE_API virtual bool IsNotifyAvailable() const;
+
+#if WITH_EDITOR
+private:
+	DECLARE_MULTICAST_DELEGATE(FOnAnimCurvesChangedMulticaster);
+	FOnAnimCurvesChangedMulticaster OnAnimCurvesChanged;
+
+	DECLARE_MULTICAST_DELEGATE(FOnAnimTrackCurvesChangedMulticaster);
+	FOnAnimTrackCurvesChangedMulticaster OnAnimTrackCurvesChanged;
+
+public:
+	typedef FOnAnimCurvesChangedMulticaster::FDelegate FOnAnimCurvesChanged;	
+	/** Registers a delegate to be called after anim curves have changed*/
+	ENGINE_API void RegisterOnAnimCurvesChanged(const FOnAnimCurvesChanged& Delegate);
+	ENGINE_API void UnregisterOnAnimCurvesChanged(void* Unregister);
+
+	typedef FOnAnimTrackCurvesChangedMulticaster::FDelegate FOnAnimTrackCurvesChanged;
+	/** Registers a delegate to be called after anim track curves have changed*/
+	ENGINE_API void RegisterOnAnimTrackCurvesChanged(const FOnAnimTrackCurvesChanged& Delegate);
+	ENGINE_API void UnregisterOnAnimTrackCurvesChanged(void* Unregister);
+#endif
+
+
 
 protected:
 	template <typename DataType>

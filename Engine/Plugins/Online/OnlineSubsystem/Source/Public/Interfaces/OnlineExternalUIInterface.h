@@ -165,14 +165,15 @@ public:
 	 * Displays the UI that prompts the user for their login credentials. Each
 	 * platform handles the authentication of the user's data.
 	 *
-	 * @param bShowOnlineOnly whether to only display online enabled profiles or not
 	 * @param ControllerIndex The controller that prompted showing the login UI. If the platform supports it,
 	 * it will pair the signed-in user with this controller.
+	 * @param bShowOnlineOnly whether to only display online enabled profiles or not
+	 * @param bShowSkipButton On platforms that support it, display the "Skip" button
 	 * @param Delegate The delegate to execute when the user closes the login UI.
  	 *
 	 * @return true if it was able to show the UI, false if it failed
 	 */
-	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate()) = 0;
+	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, bool bShowSkipButton, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate()) = 0;
 
 	/**
 	 * Displays the UI that shows a user's list of friends

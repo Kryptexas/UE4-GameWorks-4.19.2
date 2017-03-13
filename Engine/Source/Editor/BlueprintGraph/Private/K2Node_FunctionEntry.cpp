@@ -161,6 +161,11 @@ public:
 			GenerateSimpleThenGoto(Context, *Node);
 		}
 	}
+
+	virtual bool RequiresRegisterNetsBeforeScheduling() const override
+	{
+		return true;
+	}
 };
 
 struct FFunctionEntryHelper
@@ -314,7 +319,7 @@ void UK2Node_FunctionEntry::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<F
 
 	if(RedirectPinNames.Num() > 0)
 	{
-		const FString& OldPinName = RedirectPinNames[0];
+		const FString OldPinName = RedirectPinNames[0];
 
 		
 		// first add functionname.param

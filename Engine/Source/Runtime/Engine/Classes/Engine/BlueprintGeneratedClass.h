@@ -100,7 +100,7 @@ public:
 
 
 template<>
-struct TStructOpsTypeTraits<FPointerToUberGraphFrame> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPointerToUberGraphFrame> : public TStructOpsTypeTraitsBase2<FPointerToUberGraphFrame>
 {
 	enum
 	{
@@ -665,6 +665,10 @@ public:
 	UPROPERTY()
 	TMap<FName, struct FBlueprintCookedComponentInstancingData> CookedComponentInstancingData;
 
+	/** Flag used to indicate if this class has a nativized parent in a cooked build. */
+	UPROPERTY()
+	bool bHasNativizedParent;
+
 	/** 
 	 * Gets an array of all BPGeneratedClasses (including InClass as 0th element) parents of given generated class 
 	 *
@@ -683,11 +687,17 @@ public:
 	static void CreateComponentsForActor(const UClass* ThisClass, AActor* Actor);
 	static void CreateTimelineComponent(AActor* Actor, const UTimelineTemplate* TimelineTemplate);
 
+	/** Check for and handle manual application of default value overrides to instanced component subobjects that were inherited from a nativized parent class */
+	static void CheckAndApplyComponentTemplateOverrides(AActor* Actor);
+
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void PostInitProperties() override;
 	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForClient() const override;
 	// End UObject interface
 	
 	// UClass interface

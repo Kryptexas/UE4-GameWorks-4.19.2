@@ -6,10 +6,11 @@ using System.Collections.Generic;
 [SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class BootstrapPackagedGameTarget : TargetRules
 {
-	public BootstrapPackagedGameTarget(TargetInfo Target)
+	public BootstrapPackagedGameTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
+		LaunchModuleName = "BootstrapPackagedGame";
 
 		bUseStaticCRT = true;
 	}
@@ -17,17 +18,6 @@ public class BootstrapPackagedGameTarget : TargetRules
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable, InModuleNames: new List<string>() { "BootstrapPackagedGame" })
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,
@@ -46,10 +36,5 @@ public class BootstrapPackagedGameTarget : TargetRules
 		UEBuildConfiguration.bBuildWithEditorOnlyData = false;
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
-
-		if (Target.Platform == UnrealTargetPlatform.Win32)
-		{
-			UEBuildConfiguration.PreferredSubPlatform = "WindowsXP";
-		}
 	}
 }

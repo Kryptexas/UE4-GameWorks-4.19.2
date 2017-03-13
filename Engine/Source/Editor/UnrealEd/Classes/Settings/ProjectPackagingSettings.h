@@ -269,4 +269,11 @@ public:
 
 	/** Removes the given Blueprint asset from the exclusive nativization list. */
 	bool RemoveBlueprintAssetFromNativizationList(const class UBlueprint* InBlueprint);
+
+	/** Determines if the specified Blueprint is already saved for exclusive nativization. */
+	bool IsBlueprintAssetInNativizationList(const class UBlueprint* InBlueprint) const { return FindBlueprintInNativizationList(InBlueprint) >= 0; }
+
+private:
+	/** Returns the index of the specified Blueprint in the exclusive nativization list (otherwise INDEX_NONE) */
+	int32 FindBlueprintInNativizationList(const UBlueprint* InBlueprint) const;
 };

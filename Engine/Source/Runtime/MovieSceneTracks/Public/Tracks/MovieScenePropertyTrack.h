@@ -20,7 +20,6 @@ public:
 
 	// UMovieSceneTrack interface
 
-	virtual FName GetTrackName() const override;
 	virtual void RemoveAllAnimationData() override;
 	virtual bool HasSection(const UMovieSceneSection& Section) const override;
 	virtual void AddSection(UMovieSceneSection& Section) override;
@@ -32,7 +31,10 @@ public:
 #if WITH_EDITORONLY_DATA
 	virtual FText GetDefaultDisplayName() const override;
 	virtual bool CanRename() const override { return false; }
+	virtual FName GetTrackName() const override;
 #endif
+
+	virtual void PostLoad() override;
 
 public:
 
@@ -57,6 +59,12 @@ public:
 	 * @return The found section, or the new section.
 	 */
 	class UMovieSceneSection* FindOrAddSection(float Time, bool& bSectionAdded);
+
+#if WITH_EDITORONLY_DATA
+	/** Unique name for this track to afford multiple tracks on a given object (i.e. for array properties) */
+	UPROPERTY()
+	FName UniqueTrackName;
+#endif
 
 protected:
 

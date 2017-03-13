@@ -10,16 +10,19 @@
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/SphylElem.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PreviewScene.h"
 
 void FPhysAssetCreateParams::Initialize()
 {
-	MinBoneSize = 5.0f;
+	MinBoneSize = 20.0f;
+	MinWeldSize = KINDA_SMALL_NUMBER;
 	GeomType = EFG_Sphyl;
 	VertWeight = EVW_DominantWeight;
-	bAlignDownBone = true;
+	bAutoOrientToBone = true;
 	bCreateJoints = true;
 	bWalkPastSmall = true;
 	bBodyForAll = false;
@@ -61,7 +64,7 @@ static int32 GetChildIndex(int32 BoneIndex, USkeletalMesh* SkelMesh, const TArra
 
 static float CalcBoneInfoLength(const FBoneVertInfo& Info)
 {
-	FBox BoneBox(0);
+	FBox BoneBox(ForceInit);
 	for(int32 j=0; j<Info.Positions.Num(); j++)
 	{
 		BoneBox += Info.Positions[j];
@@ -106,6 +109,22 @@ static float GetMaximalMinSizeBelow(int32 BoneIndex, USkeletalMesh* SkelMesh, co
 	return MaximalMinBoxSize;
 }
 
+void AddInfoToParentInfo(const FTransform& LocalToParentTM, const FBoneVertInfo& ChildInfo, FBoneVertInfo& ParentInfo)
+{
+	ParentInfo.Positions.Reserve(ParentInfo.Positions.Num() + ChildInfo.Positions.Num());
+	ParentInfo.Positions.Reserve(ParentInfo.Normals.Num() + ChildInfo.Normals.Num());
+
+	for(const FVector& Pos : ChildInfo.Positions)
+	{
+		ParentInfo.Positions.Add( LocalToParentTM.TransformPosition(Pos) );
+	}
+
+	for (const FVector& Normal : ChildInfo.Normals)
+	{
+		ParentInfo.Normals.Add(LocalToParentTM.TransformVectorNoScale(Normal));
+	}
+}
+
 bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params)
 {
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
@@ -115,107 +134,206 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 	MeshUtilities.CalcBoneVertInfos(SkelMesh, Infos, (Params.VertWeight == EVW_DominantWeight));
 	check(Infos.Num() == SkelMesh->RefSkeleton.GetRawBoneNum());
 
-	bool bHitRoot = false;
+	PhysicsAsset->CollisionDisableTable.Empty();
 
-	// Iterate over each graphics bone creating body/joint.
-	for(int32 i=0; i<SkelMesh->RefSkeleton.GetRawBoneNum(); i++)
+	//Given the desired min body size we work from the children up to "merge" bones together. We go from leaves up because usually fingers, toes, etc... are small bones that should be merged
+	//The strategy is as follows:
+	//If bone is big enough, make a body
+	//If not, add bone to parent for possible merge
+
+	const TArray<FTransform> LocalPose = SkelMesh->RefSkeleton.GetRefBonePose();
+	TMap<int32, FBoneVertInfo> BoneToMergedBones;
+	TMap<FName, TArray<FName>> BoneNameToMergedParent;
+	const int32 NumBones = Infos.Num();
+
+	TArray<float> MergedSizes;
+	MergedSizes.AddZeroed(NumBones);
+	for(int32 BoneIdx = NumBones-1; BoneIdx >=0; --BoneIdx)
 	{
-		FName BoneName = SkelMesh->RefSkeleton.GetBoneName(i);
+		const float MyMergedSize = MergedSizes[BoneIdx] += CalcBoneInfoLength(Infos[BoneIdx]);
 
-		int32 ParentIndex = INDEX_NONE;
-		FName ParentName = NAME_None;
-		int32 ParentBodyIndex = INDEX_NONE;
-
-		// If we have already found the 'physics root', we expect a parent.
-		if(bHitRoot)
+		if(MyMergedSize < Params.MinBoneSize && MyMergedSize >= Params.MinWeldSize)
 		{
-			ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(i);
-			ParentName = SkelMesh->RefSkeleton.GetBoneName(ParentIndex);
-			ParentBodyIndex = PhysicsAsset->FindBodyIndex(ParentName);
-
-			// Ignore bones with no physical parent (except root)
-			if(ParentBodyIndex == INDEX_NONE)
+			//Too small to make a body for, so let's merge with parent bone. TODO: use a merge threshold
+			const int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIdx);
+			if(ParentIndex != INDEX_NONE)
 			{
-				continue;
+				MergedSizes[ParentIndex] += MyMergedSize;
+				FBoneVertInfo& ParentMergedBones = BoneToMergedBones.FindOrAdd(ParentIndex);	//Add this bone to its parent merged bones
+				const FTransform LocalTM = LocalPose[BoneIdx];
+
+				AddInfoToParentInfo(LocalTM, Infos[BoneIdx], ParentMergedBones);
+
+				if(FBoneVertInfo* MyMergedBones = BoneToMergedBones.Find(BoneIdx))
+				{
+					//make sure any bones merged to this bone get merged into the parent
+					AddInfoToParentInfo(LocalTM, *MyMergedBones, ParentMergedBones);
+					BoneToMergedBones.Remove(BoneIdx);
+				}
 			}
 		}
+	}
 
+	//We must ensure that there is a single root body no matter how small.
+	int32 ForcedRootBoneIndex = INDEX_NONE;
+	int32 FirstParentBoneIndex = INDEX_NONE;
+	for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
+	{
+		if (MergedSizes[BoneIndex] > Params.MinBoneSize)
+		{
+			const int32 ParentBoneIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIndex);
+			if(ParentBoneIndex == INDEX_NONE)
+			{
+				break;	//We already have a single root body, so don't worry about it
+			}
+			else if(FirstParentBoneIndex == INDEX_NONE)
+			{
+				FirstParentBoneIndex = ParentBoneIndex;	//record first parent to see if we have more than one root
+			}
+			else if(ParentBoneIndex == FirstParentBoneIndex)
+			{
+				ForcedRootBoneIndex = ParentBoneIndex;	//we have two "root" bodies so take their parent as the real root body
+				break;
+			}
+		}
+	}
+
+	// Finally, iterate through all the bones and create bodies when needed
+	for (int32 BoneIndex = 0; BoneIndex < NumBones; BoneIndex++)
+	{
 		// Determine if we should create a physics body for this bone
 		bool bMakeBone = false;
 
 		// If desired - make a body for EVERY bone
-		if(Params.bBodyForAll)
+		if (Params.bBodyForAll)
 		{
 			bMakeBone = true;
 		}
-		// If we have passed the physics 'root', and this bone has no physical parent, ignore it.
-		else if(!(bHitRoot && ParentBodyIndex == INDEX_NONE))
+		else if (MergedSizes[BoneIndex] > Params.MinBoneSize)
 		{
 			// If bone is big enough - create physics.
-			if(CalcBoneInfoLength(Infos[i]) > Params.MinBoneSize)
-			{
-				bMakeBone = true;
-			}
-
-			// If its too small, and we have set the option, see if it has any large children.
-			if(!bMakeBone && Params.bWalkPastSmall)
-			{
-				if(GetMaximalMinSizeBelow(i, SkelMesh, Infos) > Params.MinBoneSize)
-				{
-					bMakeBone = true;
-				}
-			}
+			bMakeBone = true;
+		}
+		else if(BoneIndex == ForcedRootBoneIndex)
+		{
+			// If the bone is a forced root body we must create they body no matter how small
+			bMakeBone = true;
 		}
 
-		if(bMakeBone)
+		if (bMakeBone)
 		{
 			// Go ahead and make this bone physical.
+			FName BoneName = SkelMesh->RefSkeleton.GetBoneName(BoneIndex);
 			int32 NewBodyIndex = CreateNewBody(PhysicsAsset, BoneName);
-			UBodySetup* bs = PhysicsAsset->SkeletalBodySetups[NewBodyIndex];
-			check(bs->BoneName == BoneName);
+			UBodySetup* NewBodySetup = PhysicsAsset->SkeletalBodySetups[NewBodyIndex];
+			check(NewBodySetup->BoneName == BoneName);
 
-			// Fill in collision info for this bone.
-			bool bSuccess = CreateCollisionFromBone(bs, SkelMesh, i, Params, Infos);
-
-			// If not root - create joint to parent body.
-			if(bHitRoot && Params.bCreateJoints && bSuccess)
+			//Construct the info - in the case of merged bones we append all the data
+			FBoneVertInfo Info = Infos[BoneIndex];
+			if(const FBoneVertInfo* MergedBones = BoneToMergedBones.Find(BoneIndex))
 			{
-				int32 NewConstraintIndex = CreateNewConstraint(PhysicsAsset, BoneName);
-				UPhysicsConstraintTemplate* CS = PhysicsAsset->ConstraintSetup[NewConstraintIndex];
-
-				// Transform of child from parent is just child ref-pose entry.
-				FMatrix RelTM = SkelMesh->GetRefPoseMatrix(i);
-
-				// set angular constraint mode
-				CS->DefaultInstance.SetAngularSwing1Motion(Params.AngularConstraintMode);
-				CS->DefaultInstance.SetAngularSwing2Motion(Params.AngularConstraintMode);
-				CS->DefaultInstance.SetAngularTwistMotion(Params.AngularConstraintMode);
-
-				// Place joint at origin of child
-				CS->DefaultInstance.ConstraintBone1 = BoneName;
-				CS->DefaultInstance.Pos1 = FVector::ZeroVector;
-				CS->DefaultInstance.PriAxis1 = FVector(1, 0, 0);
-				CS->DefaultInstance.SecAxis1 = FVector(0, 1, 0);
-
-				CS->DefaultInstance.ConstraintBone2 = ParentName;
-				CS->DefaultInstance.Pos2 = RelTM.GetOrigin();
-				CS->DefaultInstance.PriAxis2 = RelTM.GetUnitAxis(EAxis::X);
-				CS->DefaultInstance.SecAxis2 = RelTM.GetUnitAxis(EAxis::Y);
-
-				// Disable collision between constrained bodies by default.
-				PhysicsAsset->DisableCollision(NewBodyIndex, ParentBodyIndex);
+				//Don't need to convert into parent space since this was already done
+				Info.Normals.Append(MergedBones->Normals);
+				Info.Positions.Append(MergedBones->Positions);
 			}
 
-			bHitRoot = true;
+			// Fill in collision info for this bone.
+			const bool bSuccess = CreateCollisionFromBone(NewBodySetup, SkelMesh, BoneIndex, Params, Info);
+			if(bSuccess)
+			{
+				// create joint to parent body
+				if (Params.bCreateJoints)
+				{
+					// Transform of child from parent is just child ref-pose entry.
+					FTransform RelTM = FTransform::Identity;
 
-			if (bSuccess == false)
+					int32 ParentIndex = BoneIndex;
+					int32 ParentBodyIndex = INDEX_NONE;
+					FName ParentName;
+
+					do
+					{
+						// Transform of child from parent is just child ref-pose entry.
+						RelTM = RelTM * LocalPose[ParentIndex];
+
+						//Travel up the hierarchy to find a parent which has a valid body
+						ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(ParentIndex);
+						if(ParentIndex != INDEX_NONE)
+						{
+							ParentName = SkelMesh->RefSkeleton.GetBoneName(ParentIndex);
+							ParentBodyIndex = PhysicsAsset->FindBodyIndex(ParentName);
+						}
+						else
+						{
+							//no more parents so just stop
+							break;
+						}
+						
+					}while(ParentBodyIndex == INDEX_NONE);
+
+					if (ParentBodyIndex != INDEX_NONE)
+					{
+						//found valid parent body so create joint
+						int32 NewConstraintIndex = CreateNewConstraint(PhysicsAsset, BoneName);
+						UPhysicsConstraintTemplate* CS = PhysicsAsset->ConstraintSetup[NewConstraintIndex];
+						
+						// set angular constraint mode
+						CS->DefaultInstance.SetAngularSwing1Motion(Params.AngularConstraintMode);
+						CS->DefaultInstance.SetAngularSwing2Motion(Params.AngularConstraintMode);
+						CS->DefaultInstance.SetAngularTwistMotion(Params.AngularConstraintMode);
+
+						// Place joint at origin of child
+						CS->DefaultInstance.ConstraintBone1 = BoneName;
+						CS->DefaultInstance.Pos1 = FVector::ZeroVector;
+						CS->DefaultInstance.PriAxis1 = FVector(1, 0, 0);
+						CS->DefaultInstance.SecAxis1 = FVector(0, 1, 0);
+
+						CS->DefaultInstance.ConstraintBone2 = ParentName;
+						CS->DefaultInstance.Pos2 = RelTM.GetLocation();
+						CS->DefaultInstance.PriAxis2 = RelTM.GetUnitAxis(EAxis::X);
+						CS->DefaultInstance.SecAxis2 = RelTM.GetUnitAxis(EAxis::Y);
+
+						// Disable collision between constrained bodies by default.
+						PhysicsAsset->DisableCollision(NewBodyIndex, ParentBodyIndex);
+					}
+				}
+			}
+			else
 			{
 				DestroyBody(PhysicsAsset, NewBodyIndex);
 			}
 		}
 	}
 
-	return PhysicsAsset->SkeletalBodySetups.Num() > 0;
+	//Go through and ensure any overlapping bodies are marked as disable collision
+	FPreviewScene TmpScene;
+	UWorld* TmpWorld = TmpScene.GetWorld();
+	ASkeletalMeshActor* SkeletalMeshActor = TmpWorld->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), FTransform::Identity);
+	SkeletalMeshActor->GetSkeletalMeshComponent()->SetSkeletalMesh(SkelMesh);
+	USkeletalMeshComponent* SKC = SkeletalMeshActor->GetSkeletalMeshComponent();
+	SKC->SetPhysicsAsset(PhysicsAsset);
+	SkeletalMeshActor->RegisterAllComponents();
+	
+
+	const TArray<FBodyInstance*> Bodies = SKC->Bodies;
+	const int32 NumBodies = Bodies.Num();
+	for(int32 BodyIdx = 0; BodyIdx < NumBodies; ++BodyIdx)
+	{
+		FBodyInstance* BodyInstance = Bodies[BodyIdx];
+		FTransform BodyTM = BodyInstance->GetUnrealWorldTransform();
+
+		for(int32 OtherBodyIdx = BodyIdx + 1; OtherBodyIdx < NumBodies; ++OtherBodyIdx)
+		{
+			FBodyInstance* OtherBodyInstance = Bodies[OtherBodyIdx];
+
+			if(BodyInstance->OverlapTestForBody(BodyTM.GetLocation(), BodyTM.GetRotation(), OtherBodyInstance))
+			{
+				PhysicsAsset->DisableCollision(BodyIdx, OtherBodyIdx);
+			}
+		}
+	}
+
+	return NumBodies > 0;
 }
 
 bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage, bool bSetToMesh /*= true*/)
@@ -311,8 +429,7 @@ FVector ComputeEigenVector(const FMatrix& A)
 	return Bk.GetSafeNormal();
 }
 
-
-bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const TArray<FBoneVertInfo>& Infos )
+bool CreateCollisionFromBone(UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info)
 {
 #if WITH_EDITOR
 	if (Params.GeomType != EFG_MultiConvexHull)	//multi convex hull can fail so wait to clear it
@@ -323,77 +440,35 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 #endif // WITH_EDITOR
 
 	// Calculate orientation of to use for collision primitive.
-	FMatrix ElemTM;
+	FMatrix ElemTM = FMatrix::Identity;
 	bool ComputeFromVerts = false;
 
-	if(Params.bAlignDownBone)
-	{
-		int32 ChildIndex = GetChildIndex(BoneIndex, skelMesh, Infos);
-		if(ChildIndex != INDEX_NONE)
-		{
-			// Get position of child relative to parent.
-			FMatrix RelTM = skelMesh->GetRefPoseMatrix(ChildIndex);
-			FVector ChildPos = RelTM.GetOrigin();
-
-			// Check that child is not on top of parent. If it is - we can't make an orientation
-			if(ChildPos.SizeSquared() > FMath::Square(KINDA_SMALL_NUMBER))
-			{
-				// ZAxis for collision geometry lies down axis to child bone.
-				FVector ZAxis = ChildPos.GetSafeNormal();
-
-				// Then we pick X and Y randomly. 
-				// JTODO: Should project all the vertices onto ZAxis plane and fit a bounding box using calipers or something...
-				FVector XAxis, YAxis;
-				ZAxis.FindBestAxisVectors( YAxis, XAxis );
-
-				ElemTM = FMatrix( XAxis, YAxis, ZAxis, FVector(0) );	
-			}
-			else
-			{
-				ElemTM = FMatrix::Identity;
-				ComputeFromVerts = true;
-			}
-		}
-		else
-		{
-			ElemTM = FMatrix::Identity;
-			ComputeFromVerts = true;
-		}
-	}
-	else
-	{
-		ElemTM = FMatrix::Identity;
-	}
-
-	
-	if (ComputeFromVerts)
+	if (Params.bAutoOrientToBone)
 	{
 		// Compute covariance matrix for verts of this bone
 		// Then use axis with largest variance for orienting bone box
-		const FMatrix CovarianceMatrix = ComputeCovarianceMatrix(Infos[BoneIndex]);
+		const FMatrix CovarianceMatrix = ComputeCovarianceMatrix(Info);
 		FVector ZAxis = ComputeEigenVector(CovarianceMatrix);
 		FVector XAxis, YAxis;
 		ZAxis.FindBestAxisVectors(YAxis, XAxis);
 		ElemTM = FMatrix(XAxis, YAxis, ZAxis, FVector::ZeroVector);
 	}
-	
 
 	// convert to FTransform now
 	// Matrix inverse doesn't handle well when DET == 0, so 
 	// convert to FTransform and use that data
 	FTransform ElementTransform(ElemTM);
 	// Get the (Unreal scale) bounding box for this bone using the rotation.
-	const FBoneVertInfo* BoneInfo = &Infos[BoneIndex];
-	FBox BoneBox(0);
-	for(int32 j=0; j<BoneInfo->Positions.Num(); j++)
+	FBox BoneBox(ForceInit);
+	for (int32 j = 0; j < Info.Positions.Num(); j++)
 	{
-		BoneBox += ElementTransform.InverseTransformPosition( BoneInfo->Positions[j]  );
+		BoneBox += ElementTransform.InverseTransformPosition(Info.Positions[j]);
 	}
 
-	FVector BoxCenter(0,0,0), BoxExtent(0,0,0);
+	FVector BoxCenter(0, 0, 0), BoxExtent(0, 0, 0);
 
 	FBox TransformedBox = BoneBox;
-	if( BoneBox.IsValid )
+	if (BoneBox.IsValid)
 	{
 		// make sure to apply scale to the box size
 		FMatrix BoneMatrix = skelMesh->GetComposedRefPoseMatrix(BoneIndex);
@@ -405,16 +480,16 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 	float MinAllowedSize = MinPrimSize;
 
 	// If the primitive is going to be too small - just use some default numbers and let the user tweak.
-	if( MinRad < MinAllowedSize )
+	if (MinRad < MinAllowedSize)
 	{
 		// change min allowed size to be min, not DefaultPrimSize
 		BoxExtent = FVector(MinAllowedSize, MinAllowedSize, MinAllowedSize);
 	}
 
-	FVector BoneOrigin = ElementTransform.TransformPosition( BoxCenter );
-	ElementTransform.SetTranslation( BoneOrigin );
+	FVector BoneOrigin = ElementTransform.TransformPosition(BoxCenter);
+	ElementTransform.SetTranslation(BoneOrigin);
 
-	if(Params.GeomType == EFG_Box)
+	if (Params.GeomType == EFG_Box)
 	{
 		// Add a new box geometry to this body the size of the bounding box.
 		FKBoxElem BoxElem;
@@ -439,18 +514,19 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 	// Deal with creating a single convex hull
 	else if (Params.GeomType == EFG_SingleConvexHull)
 	{
-		if (BoneInfo->Positions.Num())
+		if (Info.Positions.Num())
 		{
 			FKConvexElem ConvexElem;
 
 			// Add all of the vertices for this bone to the convex element
-			for( int32 index=0; index<BoneInfo->Positions.Num(); index++ )
+			for (int32 index = 0; index < Info.Positions.Num(); index++)
 			{
-				ConvexElem.VertexData.Add(BoneInfo->Positions[index]);
+				ConvexElem.VertexData.Add(Info.Positions[index]);
 			}
 			ConvexElem.UpdateElemBox();
 			bs->AggGeom.ConvexElems.Add(ConvexElem);
-		}else
+		}
+		else
 		{
 			FMessageLog EditorErrors("EditorErrors");
 			EditorErrors.Warning(NSLOCTEXT("PhysicsAssetUtils", "ConvexNoPositions", "Unable to create a convex hull for the given bone as there are no vertices associated with the bone."));
@@ -478,7 +554,7 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 		uint32 CurrentIndex = 0;
 
 		// Add all of the verts and indices to a list I can loop over
-		for ( uint32 Index = 0; Index < IndexBufferSize; Index++ )
+		for (uint32 Index = 0; Index < IndexBufferSize; Index++)
 		{
 			LODModel.GetSectionFromVertexIndex(IndexBufferInOrder[Index], SectionIndex, VertIndex, bHasExtraInfluences);
 			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
@@ -487,7 +563,7 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			uint8 VertBone = 0;
 			bool bSoftVertex = !SoftVert.GetRigidWeightBone(VertBone);
 
-			if ( bSoftVertex )
+			if (bSoftVertex)
 			{
 				// We dont want to support soft verts, only rigid
 				FMessageLog EditorErrors("EditorErrors");
@@ -500,44 +576,65 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			const int LocalBoneIndex = Section.BoneMap[VertBone];
 			const FVector& VertPosition = skelMesh->RefBasesInvMatrix[LocalBoneIndex].TransformPosition(SoftVert.Position);
 
-			if ( LocalBoneIndex == BoneIndex )
+			if (LocalBoneIndex == BoneIndex)
 			{
-				if ( IndexMap.Contains( VertIndex ) )
+				if (IndexMap.Contains(VertIndex))
 				{
-					Indices.Add( *IndexMap.Find( VertIndex ) );
+					Indices.Add(*IndexMap.Find(VertIndex));
 				}
 				else
 				{
-					Indices.Add( CurrentIndex );
-					IndexMap.Add( VertIndex, CurrentIndex++ );
-					Verts.Add( VertPosition );					
+					Indices.Add(CurrentIndex);
+					IndexMap.Add(VertIndex, CurrentIndex++);
+					Verts.Add(VertPosition);
 				}
 			}
 		}
 
-		if ( Params.GeomType == EFG_MultiConvexHull )
+		if (Params.GeomType == EFG_MultiConvexHull)
 		{
 #if WITH_EDITOR
 			bs->RemoveSimpleCollision();
 #endif
 			// Create the convex hull from the data we got from the skeletal mesh
-			DecomposeMeshToHulls( bs, Verts, Indices, Params.HullAccuracy, Params.MaxHullVerts );
+			DecomposeMeshToHulls(bs, Verts, Indices, Params.HullAccuracy, Params.MaxHullVerts);
 		}
 		else
 		{
 			//Support triangle mesh soon
 			return false;
-		}		
+		}
 	}
-	else
+	else if (Params.GeomType == EFG_Sphyl)
 	{
-		
+
 		FKSphylElem SphylElem;
 
-		SphylElem.SetTransform(ElementTransform);
+		if(BoxExtent.X > BoxExtent.Z && BoxExtent.X > BoxExtent.Y)
+		{
+			//X is the biggest so we must rotate X-axis into Z-axis
+			SphylElem.SetTransform(FTransform(FQuat(FVector(0, 1, 0), -PI * 0.5f)) * ElementTransform);
+			SphylElem.Radius = FMath::Max(BoxExtent.Y, BoxExtent.Z) * 1.01f;
+			SphylElem.Length = BoxExtent.X * 1.01f;
 
-		SphylElem.Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
-		SphylElem.Length = BoxExtent.Z * 1.01f;
+		}
+		else if(BoxExtent.Y > BoxExtent.Z && BoxExtent.Y > BoxExtent.X)
+		{
+			//Y is the biggest so we must rotate Y-axis into Z-axis
+			SphylElem.SetTransform(FTransform(FQuat(FVector(1,0,0), PI * 0.5f)) * ElementTransform);
+			SphylElem.Radius = FMath::Max(BoxExtent.X, BoxExtent.Z) * 1.01f;
+			SphylElem.Length = BoxExtent.Y * 1.01f;
+		}
+		else
+		{
+			//Z is the biggest so use transform as is
+			SphylElem.SetTransform(ElementTransform);
+
+			SphylElem.Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
+			SphylElem.Length = BoxExtent.Z * 1.01f;
+		}
+
+		
 
 		bs->AggGeom.SphylElems.Add(SphylElem);
 	}

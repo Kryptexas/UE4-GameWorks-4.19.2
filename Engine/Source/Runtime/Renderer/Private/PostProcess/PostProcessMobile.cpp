@@ -222,7 +222,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -423,7 +423,7 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -576,7 +576,7 @@ void FRCPassPostProcessBloomDownES2::Process(FRenderingCompositePassContext& Con
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -744,7 +744,7 @@ void FRCPassPostProcessBloomUpES2::Process(FRenderingCompositePassContext& Conte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -1032,7 +1032,7 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 
 		// is optimized away if possible (RT size=view size, )
-		Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+		Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 		Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -1222,7 +1222,7 @@ void FRCPassPostProcessSunAlphaES2::Process(FRenderingCompositePassContext& Cont
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -1379,7 +1379,7 @@ void FRCPassPostProcessSunBlurES2::Process(FRenderingCompositePassContext& Conte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -1607,7 +1607,7 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -1799,7 +1799,7 @@ void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext&
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -2025,7 +2025,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -2214,7 +2214,7 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -2364,7 +2364,7 @@ void FRCPassPostProcessDofBlurES2::Process(FRenderingCompositePassContext& Conte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -2544,7 +2544,7 @@ void FRCPassPostProcessSunAvgES2::Process(FRenderingCompositePassContext& Contex
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
 
@@ -2792,7 +2792,7 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 	if (Context.View.StereoPass != eSSP_RIGHT_EYE)
 	{
 	    // is optimized away if possible (RT size=view size, )
-		Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+		Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);

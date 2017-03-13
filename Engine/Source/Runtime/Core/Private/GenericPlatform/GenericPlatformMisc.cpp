@@ -1085,3 +1085,28 @@ void FGenericPlatformMisc::RegisterForRemoteNotifications()
 {
 	// not implemented by default
 }
+
+const TArray<FString>& FGenericPlatformMisc::GetConfidentialPlatforms()
+{
+	static bool bHasSearchedForPlatforms = false;
+	static TArray<FString> FoundPlatforms;
+
+	// look on disk for special files
+	if (bHasSearchedForPlatforms == false)
+	{
+		// look for the special files in any congfig subdirectories
+		IFileManager::Get().FindFilesRecursive(FoundPlatforms, *FPaths::EngineConfigDir(), TEXT("ConfidentialPlatform.ini"), true, false);
+
+		// fix up the paths
+		for (int32 PlatformIndex = 0; PlatformIndex < FoundPlatforms.Num(); PlatformIndex++)
+		{
+			// pull the directory name out
+			FoundPlatforms[PlatformIndex] = FPaths::GetCleanFilename(FPaths::GetPath(FoundPlatforms[PlatformIndex]));
+		}
+
+		bHasSearchedForPlatforms = true;
+	}
+
+	// return whatever we have already found
+	return FoundPlatforms;
+}

@@ -831,6 +831,12 @@ void InstallSignalHandlers()
     }, TStatId(), NULL, ENamedThreads::GameThread);
 }
 
+- (NSUInteger)application:(UIApplication*)application supportedInterfaceOrientationsForWindow:(UIWindow*)window
+{
+ 	// UIImagePickerController or GameCenter might have portrait-only variant and will throw exception if portrait is not supported here
+ 	return UIInterfaceOrientationMaskAll;
+}
+
 - (void)application:(UIApplication *)application didReceiveLocalNotification:(UILocalNotification *)notification
 {
 	NSString*	activationEvent = (NSString*)[notification.userInfo objectForKey: @"ActivationEvent"];

@@ -256,6 +256,9 @@ class UK2Node : public UEdGraphNode
 	 */
 	virtual bool IsNodeSafeToIgnore() const { return false; }
 
+	/** Query if this node should be kept as part of the root set during the pruning stage of compilation. Prevents the node being pruned as isolated. */
+	virtual bool IsNodeRootSet() const { return false; }
+
 	/** Called at the end of ReconstructNode, allows node specific work to be performed */
 	BLUEPRINTGRAPH_API virtual void PostReconstructNode();
 
@@ -355,6 +358,13 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual int32 GetNodeRefreshPriority() const { return EBaseNodeRefreshPriority::Normal; }
 
 	BLUEPRINTGRAPH_API virtual bool DoesInputWildcardPinAcceptArray(const UEdGraphPin* Pin) const { return true; }
+
+	/** Handle when a variable is renamed in the Blueprint Palette */
+	virtual void HandleVariableRenamed(UBlueprint* InBlueprint, UClass* InVariableClass, UEdGraph* InGraph, const FName& InOldVarName, const FName& InNewVarName) {}
+
+	/** Return whether this node references the specified variable, give the supplied scope. Used when variable types are changed. */
+	virtual bool ReferencesVariable(const FName& InVarName, const UStruct* InScope) const { return false; }
+
 protected:
 
 	enum ERedirectType
@@ -362,7 +372,7 @@ protected:
 		ERedirectType_None,
 		ERedirectType_Name,
 		ERedirectType_Value,
-		ERedirectType_Custom
+		ERedirectType_Custom // DEPRECATED
 	};
 
 	// Handles the actual reconstruction (copying data, links, name, etc...) from two pins that have already been matched together
@@ -374,7 +384,7 @@ protected:
 	// Helper function to properly destroy a set of pins
 	BLUEPRINTGRAPH_API void DestroyPinList(TArray<UEdGraphPin*>& InPins);
 
-	/** Allows the custom transformation of a param's value when redirecting a matched pin; called only when DoPinsMatchForReconstruction returns ERedirectType_Custom **/
+	DEPRECATED(4.16, "This function is deprecated, override ReconstructSinglePin instead ")
 	BLUEPRINTGRAPH_API virtual void CustomMapParamValue(UEdGraphPin& Pin);
 
 	/** Whether or not two pins match for purposes of reconnection after reconstruction.  This allows pins that may have had their names changed via reconstruction to be matched to their old values on a node-by-node basis, if needed*/

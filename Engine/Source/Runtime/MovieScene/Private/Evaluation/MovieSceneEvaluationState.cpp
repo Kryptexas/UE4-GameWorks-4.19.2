@@ -134,8 +134,8 @@ void FMovieSceneObjectCache::SetSequence(UMovieSceneSequence& InSequence, FMovie
 
 void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlayer& Player)
 {
-	FBoundObjects& Bindings = BoundObjects.FindOrAdd(InGuid);
-	Bindings.Objects.Reset();
+	FBoundObjects* Bindings = &BoundObjects.FindOrAdd(InGuid);
+	Bindings->Objects.Reset();
 
 	if (auto* Children = ChildBindings.Find(InGuid))
 	{
@@ -167,7 +167,11 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 		{
 			ChildBindings.FindOrAdd(Possessable->GetParent()).AddUnique(InGuid);
 
-			for (TWeakObjectPtr<> Parent : FindBoundObjects(Possessable->GetParent(), Player))
+			TArrayView<TWeakObjectPtr<>> ParentBoundObjects = FindBoundObjects(Possessable->GetParent(), Player);
+
+			// Refresh bindings in case of map changes
+			Bindings = BoundObjects.Find(InGuid);
+			for (TWeakObjectPtr<> Parent : ParentBoundObjects)
 			{
 				if (bUseParentsAsContext)
 				{
@@ -182,7 +186,7 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 				Player.ResolveBoundObjects(InGuid, SequenceID, *Sequence, ResolutionContext, FoundObjects);
 				for (UObject* Object : FoundObjects)
 				{
-					Bindings.Objects.Add(Object);
+					Bindings->Objects.Add(Object);
 				}
 			}
 		}
@@ -192,7 +196,7 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 			Player.ResolveBoundObjects(InGuid, SequenceID, *Sequence, ResolutionContext, FoundObjects);
 			for (UObject* Object : FoundObjects)
 			{
-				Bindings.Objects.Add(Object);
+				Bindings->Objects.Add(Object);
 			}
 		}
 	}
@@ -202,13 +206,13 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 		UObject* SpawnedObject = Player.GetSpawnRegister().FindSpawnedObject(InGuid, SequenceID);
 		if (SpawnedObject)
 		{
-			Bindings.Objects.Add(SpawnedObject);
+			Bindings->Objects.Add(SpawnedObject);
 		}
 	}
 
-	if (Bindings.Objects.Num())
+	if (Bindings->Objects.Num())
 	{
-		Bindings.bUpToDate = true;
+		Bindings->bUpToDate = true;
 	}
 }
 

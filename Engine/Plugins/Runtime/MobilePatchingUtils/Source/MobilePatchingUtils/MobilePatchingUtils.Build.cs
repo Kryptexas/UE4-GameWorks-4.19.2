@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class MobilePatchingUtils : ModuleRules
     {
-        public MobilePatchingUtils(TargetInfo Target)
+        public MobilePatchingUtils(ReadOnlyTargetRules Target) : base(Target)
         {
             PrivateIncludePaths.Add("MobilePatchingUtils/Private");
 

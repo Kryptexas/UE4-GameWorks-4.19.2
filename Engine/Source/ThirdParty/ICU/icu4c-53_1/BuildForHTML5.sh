@@ -1,5 +1,9 @@
 #!/bin/bash
 
+
+# TODO: CONVERT to CMAKE!
+
+
 SYSTEM=$(uname)
 if [[ $SYSTEM == *'_NT-'* ]]; then
 	echo "ERROR: unable to run configure from windows"
@@ -48,7 +52,7 @@ sed -e 's/\(STATIC_O =\).*/\1 bc/' -e '/ARFLAGS/d' source/config/mh-darwin.save 
 if [ ! -e source/config/mh-linux.save ]; then
 	mv source/config/mh-linux source/config/mh-linux.save
 fi
-sed -e 's/\(STATIC_O =\).*/\1 bc/' source/config/mh-linux.save > source/config/mh-linux
+sed -e 's/\(STATIC_O =\).*/\1 bc/' -e '/ARFLAGS/d' source/config/mh-linux.save > source/config/mh-linux
 
 
 # ----------------------------------------
@@ -72,9 +76,9 @@ build_all()
 	cd html5_build$OPTIMIZATION
 
 	COMMONCOMPILERFLAGS="$OPTIMIZATION -DUCONFIG_NO_TRANSLITERATION=1 -DU_USING_ICU_NAMESPACE=0 -DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1 -DUNISTR_FROM_CHAR_EXPLICIT=explicit -DUNISTR_FROM_STRING_EXPLICIT=explicit -DU_STATIC_IMPLEMENTATION -DU_OVERRIDE_CXX_ALLOCATION=1"
-	EMFLAGS="-msse -msse2 -s FULL_ES2=1 -s USE_PTHREADS=1 -std=c++11"
+#	EMFLAGS="-msse -msse2 -s FULL_ES2=1 -s USE_PTHREADS=1"
 
-	emconfigure ./../source/configure CFLAGS="$COMMONCOMPILERFLAGS $EMFLAGS" CXXFLAGS="$COMMONCOMPILERFLAGS $EMFLAGS -std=c++11" CPPFLAGS="$COMMONCOMPILERFLAGS $EMFLAGS" LDFLAGS="$OPTIMIZATION $EMFLAGS" ICULIBSUFFIX="$LIB_SUFFIX" AR="emcc" ARFLAGS="$OPTIMIZATION $EMFLAGS -o" RANLIB="echo" --disable-debug --enable-release --enable-static --disable-shared --disable-extras --disable-samples --disable-tools --disable-tests
+	emconfigure ../source/configure CFLAGS="$COMMONCOMPILERFLAGS $EMFLAGS" CXXFLAGS="$COMMONCOMPILERFLAGS $EMFLAGS -std=c++14" CPPFLAGS="$COMMONCOMPILERFLAGS $EMFLAGS" LDFLAGS="$OPTIMIZATION $EMFLAGS" ICULIBSUFFIX="$LIB_SUFFIX" AR="emcc" ARFLAGS="$OPTIMIZATION $EMFLAGS -o" RANLIB="echo" --disable-debug --enable-release --enable-static --disable-shared --disable-extras --disable-samples --disable-tools --disable-tests
 
 	# for some reason ICULIBSUFFIX needs to be manually edited
 	mv icudefs.mk icudefs.mk.save
@@ -88,7 +92,7 @@ build_all()
 
 	# finally...
 	emmake make clean VERBOSE=1
-	emmake make VERBOSE=1 | tee log_build.txt
+	emmake make -j VERBOSE=1 | tee log_build.txt
 
 	cd ..
 }

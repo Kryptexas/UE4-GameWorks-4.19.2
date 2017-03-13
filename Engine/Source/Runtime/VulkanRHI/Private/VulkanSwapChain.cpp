@@ -86,7 +86,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 
 	//#todo-rco: Check multiple Gfx Queues?
 	VkBool32 bSupportsPresent = VK_FALSE;
-	VERIFYVULKANRESULT(VulkanRHI::vkGetPhysicalDeviceSurfaceSupportKHR(Device.GetPhysicalHandle(), Device.GetQueue()->GetFamilyIndex(), Surface, &bSupportsPresent));
+	VERIFYVULKANRESULT(VulkanRHI::vkGetPhysicalDeviceSurfaceSupportKHR(Device.GetPhysicalHandle(), Device.GetGraphicsQueue()->GetFamilyIndex(), Surface, &bSupportsPresent));
 	//#todo-rco: Find separate present queue if the gfx one doesn't support presents
 	check(bSupportsPresent);
 
@@ -136,7 +136,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	}
 	// 0 means no limit, so use the requested number
 	uint32 DesiredNumBuffers = SurfProperties.maxImageCount > 0 ? FMath::Clamp(*InOutDesiredNumBackBuffers, SurfProperties.minImageCount, SurfProperties.maxImageCount) : *InOutDesiredNumBackBuffers;
-	
+
 	VkSwapchainCreateInfoKHR SwapChainInfo;
 	FMemory::Memzero(SwapChainInfo);
 	SwapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -144,8 +144,8 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	SwapChainInfo.minImageCount = DesiredNumBuffers;
 	SwapChainInfo.imageFormat = CurrFormat.format;
 	SwapChainInfo.imageColorSpace = CurrFormat.colorSpace;
-	SwapChainInfo.imageExtent.width = PLATFORM_ANDROID ? Width : (SurfProperties.currentExtent.width == -1 ? Width : SurfProperties.currentExtent.width);
-	SwapChainInfo.imageExtent.height = PLATFORM_ANDROID ? Height : (SurfProperties.currentExtent.height == -1 ? Height : SurfProperties.currentExtent.height);
+	SwapChainInfo.imageExtent.width = PLATFORM_ANDROID ? Width : (SurfProperties.currentExtent.width == 0xFFFFFFFF ? Width : SurfProperties.currentExtent.width);
+	SwapChainInfo.imageExtent.height = PLATFORM_ANDROID ? Height : (SurfProperties.currentExtent.height == 0xFFFFFFFF ? Height : SurfProperties.currentExtent.height);
 	SwapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	SwapChainInfo.preTransform = PreTransform;
 	SwapChainInfo.imageArrayLayers = 1;
@@ -156,6 +156,22 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	SwapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 	*InOutDesiredNumBackBuffers = DesiredNumBuffers;
+
+	{
+		//#todo-rco: Crappy workaround
+		if (SwapChainInfo.imageExtent.width == 0)
+		{
+			SwapChainInfo.imageExtent.width = Width;
+		}
+		if (SwapChainInfo.imageExtent.height == 0)
+		{
+			SwapChainInfo.imageExtent.height = Height;
+		}
+	}
+
+
+	ensure(SwapChainInfo.imageExtent.width >= SurfProperties.minImageExtent.width && SwapChainInfo.imageExtent.width <= SurfProperties.maxImageExtent.width);
+	ensure(SwapChainInfo.imageExtent.height >= SurfProperties.minImageExtent.height && SwapChainInfo.imageExtent.height <= SurfProperties.maxImageExtent.height);
 
 	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateSwapchainKHR(Device.GetInstanceHandle(), &SwapChainInfo, nullptr, &SwapChain));
 

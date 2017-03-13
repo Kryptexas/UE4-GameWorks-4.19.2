@@ -2036,6 +2036,7 @@ void FInternalPlayWorldCommandCallbacks::SetNumberOfClients(int32 NumClients, ET
 	PlayInSettings->SetPlayNumberOfClients(NumClients);
 
 	PlayInSettings->PostEditChange();
+	PlayInSettings->SaveConfig();
 }
 
 
@@ -2047,6 +2048,7 @@ void FInternalPlayWorldCommandCallbacks::OnToggleDedicatedServerPIE()
 	PlayInSettings->SetPlayNetDedicated(!PlayNetDedicated);
 
 	PlayInSettings->PostEditChange();
+	PlayInSettings->SaveConfig();
 }
 
 

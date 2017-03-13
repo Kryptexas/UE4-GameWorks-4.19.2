@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -40,6 +40,7 @@
 #include "GuGeometryUnion.h"
 #include "PsVecQuat.h"
 #include "PxMeshScale.h"
+#include "PsFoundation.h"
 
 namespace physx
 {
@@ -278,6 +279,8 @@ namespace Gu
 			FloatV max = V3Dot(maxPoint, _dir);
 	
 			PxU32 initialIndex = index;
+
+			PxU32 IterationCount = 0;
 			
 			do
 			{
@@ -287,6 +290,12 @@ namespace Gu
 
 				for(PxU32 a = 0; a < numNeighbours; ++a)
 				{
+					if(IterationCount++ > 10000)
+					{
+						PxGetFoundation().getErrorCallback().reportError(PxErrorCode::eINTERNAL_ERROR, "HillClimbing in DoSupport is taking too long", __FILE__, __LINE__);
+						break;
+					}
+
 					const PxU32 neighbourIndex = adjacentVerts[offset + a];
 
 					const Vec3V vertex = V3LoadU_SafeReadW(verts[neighbourIndex]);	// PT: safe because of the way vertex memory is allocated in ConvexHullData (and 'verts' is initialized with ConvexHullData::getHullVertices())

@@ -2372,15 +2372,25 @@ namespace AutomationTool
 					var KeyEndIndex = TrimmedLine.IndexOf(':');
 					if (KeyEndIndex >= 0)
 					{
-						var Key = TrimmedLine.Substring(0, KeyEndIndex);
+						var BaseKey = TrimmedLine.Substring(0, KeyEndIndex);
+
+						// Uniquify the key before adding anything to the dictionary. P4 info can sometimes return multiple fields with identical names (eg. 'Broker address', 'Broker version')
+						DelayIndex = 0;
+						var Key = BaseKey;
+						while(Tags.ContainsKey(Key))
+						{
+							DelayIndex++;
+							Key = String.Format("{0}{1}", BaseKey, DelayIndex);
+						}
+
 						var Value = TrimmedLine.Substring(KeyEndIndex + 1).Trim();
                         if (Value == "")
                         {
-                            DelayKey = Key;
+                            DelayKey = BaseKey;
                         }
                         else
                         {
-                            Tags.Add(Key, Value);
+							Tags.Add(Key, Value);
                         }
 					}
 				}

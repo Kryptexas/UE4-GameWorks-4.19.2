@@ -26,10 +26,6 @@ public:
 	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End of UPanelWidget interface
 
-	// UWidget interface
-	virtual void SynchronizeProperties() override;
-	// End of UWidget interface
-
 	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	// End of UVisual interface

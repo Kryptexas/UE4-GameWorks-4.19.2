@@ -6,7 +6,7 @@ using System.IO;
 
 public class Core : ModuleRules
 {
-	public Core(TargetInfo Target)
+	public Core(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivatePCHHeaderFile = "Private/CorePrivatePCH.h";
 
@@ -63,6 +63,9 @@ public class Core : ModuleRules
 		if (UEBuildConfiguration.bBuildEditor == true)
 		{
 			DynamicallyLoadedModuleNames.Add("SourceCodeAccess");
+
+			PrivateIncludePathModuleNames.Add("DirectoryWatcher");
+			DynamicallyLoadedModuleNames.Add("DirectoryWatcher");
 		}
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
@@ -133,7 +136,7 @@ public class Core : ModuleRules
 			PublicAdditionalLibraries.Add("dl");
 
             // We need FreeType2 and GL for the Splash, but only in the Editor
-            if (Target.Type == TargetRules.TargetType.Editor)
+            if (Target.Type == TargetType.Editor)
             {
                 AddEngineThirdPartyPrivateStaticDependencies(Target, "FreeType2");
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
@@ -192,6 +195,10 @@ public class Core : ModuleRules
 			}
 		}
 
+		if(Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			WhitelistRestrictedFolders.Add("Private/Windows/NoRedist");
+		}
 
         if (Target.Platform == UnrealTargetPlatform.XboxOne)
         {

@@ -2070,8 +2070,7 @@ LANDSCAPE_API void ALandscapeProxy::Import(
 				);
 
 			// Assign shared properties
-			LandscapeComponent->bCastStaticShadow = bCastStaticShadow;
-			LandscapeComponent->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
+			LandscapeComponent->UpdatedSharedPropertiesFromActor();
 		}
 	}
 
@@ -2452,7 +2451,7 @@ LANDSCAPE_API void ALandscapeProxy::Import(
 			}
 			check(WeightmapTextureDataPointers.Num() == WeightValues.Num());
 
-			FBox LocalBox(0);
+			FBox LocalBox(ForceInit);
 			for (int32 SubsectionY = 0; SubsectionY < NumSubsections; SubsectionY++)
 			{
 				for (int32 SubsectionX = 0; SubsectionX < NumSubsections; SubsectionX++)
@@ -3337,6 +3336,9 @@ void ALandscape::PostDuplicate(bool bDuplicateForPIE)
 
 ULandscapeLayerInfoObject::ULandscapeLayerInfoObject(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+#if WITH_EDITORONLY_DATA
+	, IsReferencedFromLoadedData(false)
+#endif // WITH_EDITORONLY_DATA
 {
 	Hardness = 0.5f;
 #if WITH_EDITORONLY_DATA
@@ -3661,7 +3663,11 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	}
 	else if(PropertyName == FName(TEXT("bCastStaticShadow")) ||
 		PropertyName == FName(TEXT("bCastShadowAsTwoSided")) ||
-		PropertyName == FName(TEXT("bCastFarShadow")))
+		PropertyName == FName(TEXT("bCastFarShadow")) ||
+		PropertyName == FName(TEXT("bRenderCustomDepth")) ||
+		PropertyName == FName(TEXT("CustomDepthStencilValue")) ||
+		PropertyName == FName(TEXT("LightingChannels"))
+		)
 	{
 		// Replicate shared properties to all components.
 		for (int32 ComponentIndex = 0; ComponentIndex < LandscapeComponents.Num(); ComponentIndex++)
@@ -3669,9 +3675,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			ULandscapeComponent* Comp = LandscapeComponents[ComponentIndex];
 			if (Comp)
 			{
-				Comp->bCastStaticShadow = bCastStaticShadow;
-				Comp->bCastShadowAsTwoSided = bCastShadowAsTwoSided;
-				Comp->bCastFarShadow = bCastFarShadow;
+				Comp->UpdatedSharedPropertiesFromActor();
 			}
 		}
 	}

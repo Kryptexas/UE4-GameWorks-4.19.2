@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AnalyticsET : ModuleRules
 	{
-		public AnalyticsET(TargetInfo Target)
+		public AnalyticsET(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

@@ -3,6 +3,7 @@
 #include "Fonts/FontCacheHarfBuzz.h"
 #include "Fonts/FontCache.h"
 #include "Fonts/FontCacheFreeType.h"
+#include "Fonts/SlateFontRenderer.h"
 
 #if WITH_HARFBUZZ
 	#if PLATFORM_WINDOWS
@@ -166,6 +167,21 @@ FORCEINLINE int32 get_ft_flags(hb_font_t* InFont)
 	return hb_ft_font_get_load_flags(InFont->parent);
 }
 
+hb_bool_t get_nominal_glyph(hb_font_t* InFont, void* InFontData, hb_codepoint_t InUnicodeChar, hb_codepoint_t *OutGlyphIndex, void *InUserData)
+{
+	FT_Face FreeTypeFace = get_ft_face(InFont);
+
+	*OutGlyphIndex = FT_Get_Char_Index(FreeTypeFace, InUnicodeChar);
+
+	// If the given font can't render that character (as the fallback font may be missing), try again with the fallback character
+	if (InUnicodeChar != 0 && *OutGlyphIndex == 0)
+	{
+		*OutGlyphIndex = FT_Get_Char_Index(FreeTypeFace, SlateFontRendererUtils::InvalidSubChar);
+	}
+
+	return InUnicodeChar == 0 || *OutGlyphIndex != 0;
+}
+
 hb_position_t get_glyph_h_advance(hb_font_t* InFont, void* InFontData, hb_codepoint_t InGlyphIndex, void* InUserData)
 {
 	FT_Face FreeTypeFace = get_ft_face(InFont);
@@ -297,6 +313,7 @@ FHarfBuzzFontFactory::FHarfBuzzFontFactory(FFreeTypeGlyphCache* InFTGlyphCache, 
 #if WITH_HARFBUZZ
 	CustomHarfBuzzFuncs = hb_font_funcs_create();
 
+	hb_font_funcs_set_nominal_glyph_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_nominal_glyph, nullptr, nullptr);
 	hb_font_funcs_set_glyph_h_advance_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_h_advance, nullptr, nullptr);
 	hb_font_funcs_set_glyph_v_advance_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_v_advance, nullptr, nullptr);
 	hb_font_funcs_set_glyph_v_origin_func(CustomHarfBuzzFuncs, &HarfBuzzFontFunctions::Internal::get_glyph_v_origin, nullptr, nullptr);

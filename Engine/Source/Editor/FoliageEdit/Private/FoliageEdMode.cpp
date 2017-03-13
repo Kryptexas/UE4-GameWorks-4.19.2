@@ -43,10 +43,10 @@
 #include "Components/BrushComponent.h"
 
 // VR Editor
+#include "EditorWorldExtension.h"
 #include "VREditorMode.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
-#include "EditorWorldExtension.h"
 
 
 #define LOCTEXT_NAMESPACE "FoliageEdMode"
@@ -500,7 +500,6 @@ void FEdModeFoliage::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& H
 				}
 			}
 		}
-			
 		const bool bBrushMeshVisible = !(FoliageInteractor == nullptr || Interactor->GetDraggingMode() != EViewportInteractionDraggingMode::Nothing);
 		SphereBrushComponent->SetVisibility(bBrushMeshVisible);
 	}
@@ -512,7 +511,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 	if (VREditorMode != nullptr && Interactor != nullptr && Interactor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing)
 	{
 		const UVREditorInteractor* VREditorInteractor = Cast<UVREditorInteractor>(Interactor);
-		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove && ( VREditorInteractor == nullptr || !VREditorMode->IsShowingRadialMenu( VREditorInteractor )))
+		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove && (VREditorInteractor == nullptr || !VREditorMode->IsShowingRadialMenu(VREditorInteractor)))
 		{
 			if (Action.Event == IE_Pressed && !Interactor->IsHoveringOverPriorityType())
 			{
@@ -523,76 +522,80 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 				FVector LaserPointerStart, LaserPointerEnd;
 				if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 				{
-					const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
-					BrushTraceDirection = LaserPointerDirection;
-
-					// Only start painting if we're not dragging a widget handle
-					if (ViewportClient.GetCurrentWidgetAxis() == EAxisList::None)
+					// Go ahead and paint immediately
+					FVector LaserPointerStart, LaserPointerEnd;
+					if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 					{
-						if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
-						{
-							StartFoliageBrushTrace(&ViewportClient, Interactor);
-							FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
-						}
+						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
+						BrushTraceDirection = LaserPointerDirection;
 
-						// Fill a static mesh with foliage brush
-						else if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
+						// Only start painting if we're not dragging a widget handle
+						if (ViewportClient.GetCurrentWidgetAxis() == EAxisList::None)
 						{
-							FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
-
-							if (HitResult.Actor.Get() != nullptr)
+							if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 							{
+								StartFoliageBrushTrace(&ViewportClient, Interactor);
+								FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
+							}
+
+							// Fill a static mesh with foliage brush
+							else if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
+							{
+								FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
+
+								if (HitResult.Actor.Get() != nullptr)
+								{
+									GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
+
+									if (IsModifierButtonPressed(&ViewportClient))
+									{
+										ApplyPaintBucket_Remove(HitResult.Actor.Get());
+									}
+									else
+									{
+										ApplyPaintBucket_Add(HitResult.Actor.Get());
+									}
+
+									GEditor->EndTransaction();
+								}
+							}
+							// Select an instanced foliage
+							else if (UISettings.GetSelectToolSelected())
+							{
+								FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
+
 								GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
 
-								if (IsModifierButtonPressed(&ViewportClient))
+								if (HitResult.GetActor() != nullptr)
 								{
-									ApplyPaintBucket_Remove(HitResult.Actor.Get());
-								}
-								else
-								{
-									ApplyPaintBucket_Add(HitResult.Actor.Get());
+									// Clear all currently selected instances
+									SelectInstances(ViewportClient.GetWorld(), false);
+									for (auto& FoliageMeshUI : FoliageMeshList)
+									{
+										UFoliageType* Settings = FoliageMeshUI->Settings;
+										SelectInstanceAtLocation(ViewportClient.GetWorld(), Settings, HitResult.ImpactPoint, !IsModifierButtonPressed(&ViewportClient));
+									}
 								}
 
 								GEditor->EndTransaction();
+
+								// @todo vreditor: we currently don't have a key mapping scheme to snap selected instances to ground 
+								// SnapSelectedInstancesToGround(GetWorld());
+
 							}
-						}
-						// Select an instanced foliage
-						else if (UISettings.GetSelectToolSelected())
-						{
-							FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
-
-							GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
-
-							if (HitResult.GetActor() != nullptr)
-							{
-								// Clear all currently selected instances
-								SelectInstances(ViewportClient.GetWorld(), false);
-								for (auto& FoliageMeshUI : FoliageMeshList)
-								{
-									UFoliageType* Settings = FoliageMeshUI->Settings;
-									SelectInstanceAtLocation(ViewportClient.GetWorld(), Settings, HitResult.ImpactPoint, !IsModifierButtonPressed(&ViewportClient));
-								}
-							}
-
-							GEditor->EndTransaction();
-
-							// @todo vreditor: we currently don't have a key mapping scheme to snap selected instances to ground 
-							// SnapSelectedInstancesToGround(GetWorld());
-
 						}
 					}
 				}
 			}
-
 			// Stop current tracking if the user is no longer painting
 			else if (Action.Event == IE_Released && FoliageInteractor && (FoliageInteractor == Interactor))
-			{
-				EndFoliageBrushTrace();
-				FoliageInteractor = nullptr;
-				
-				bWasHandled = true;
-				bOutIsInputCaptured = false;
-			}
+				{
+					EndFoliageBrushTrace();
+					FoliageInteractor = nullptr;
+
+					bWasHandled = true;
+					bOutIsInputCaptured = false;
+				}
 		}
 	}
 }
@@ -1291,7 +1294,7 @@ void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageI
 static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const FFoliageUISettings* UISettings, const FFoliageInstance& Instance, UActorComponent* BaseComponent)
 {
 	// We always spawn instances in base component level
-	ULevel* TargetLevel = UISettings->GetIsInSpawnInCurrentLevelMode() ? InWorld->GetCurrentLevel() : BaseComponent->GetComponentLevel();
+	ULevel* TargetLevel = (UISettings != nullptr && UISettings->GetIsInSpawnInCurrentLevelMode()) ? InWorld->GetCurrentLevel() : BaseComponent->GetComponentLevel();
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(TargetLevel, true);
 
 	FFoliageMeshInfo* MeshInfo;
@@ -2895,20 +2898,37 @@ UFoliageType* FEdModeFoliage::AddFoliageAsset(UObject* InAsset)
 {
 	UFoliageType* FoliageType = nullptr;
 
-	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddTypeTransaction", "Add Foliage Type"));
-
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(InAsset);
 	if (StaticMesh)
 	{
-		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld(), true);
-		FoliageType = IFA->GetLocalFoliageTypeForMesh(StaticMesh);
-		if (!FoliageType)
+		UWorld* World = GetWorld();
+
 		{
-			IFA->AddMesh(StaticMesh, &FoliageType);
+			const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddTypeTransaction", "Add Foliage Type"));
+
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(World, true);
+			FoliageType = IFA->GetLocalFoliageTypeForMesh(StaticMesh);
+			if (!FoliageType)
+			{
+				IFA->AddMesh(StaticMesh, &FoliageType);
+			}
+		}
+
+		// If there is multiple levels for this world, save the foliage directly as an asset, so user will be able to paint over all levels by default
+		if (World->StreamingLevels.Num() > 0)
+		{
+			UFoliageType* TypeSaved = SaveFoliageTypeObject(FoliageType);
+
+			if (TypeSaved != nullptr)
+			{
+				FoliageType = TypeSaved;
+			}
 		}
 	}
 	else
 	{
+		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddTypeTransaction", "Add Foliage Type"));
+
 		FoliageType = Cast<UFoliageType>(InAsset);
 		if (FoliageType)
 		{
@@ -3065,8 +3085,6 @@ void FEdModeFoliage::ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageTy
 
 UFoliageType* FEdModeFoliage::SaveFoliageTypeObject(UFoliageType* InFoliageType)
 {
-	FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_SaveFoliageTypeObject", "Foliage Editing: Save Foliage Type Object"));
-
 	UFoliageType* TypeToSave = nullptr;
 
 	if (!InFoliageType->IsAsset())
@@ -3088,8 +3106,13 @@ UFoliageType* FEdModeFoliage::SaveFoliageTypeObject(UFoliageType* InFoliageType)
 		{
 			PackageName = SaveFoliageTypeDialog->GetFullAssetPath().ToString();
 			UPackage* Package = CreatePackage(nullptr, *PackageName);
+
+			// We should not save a copy of this duplicate into the transaction buffer as it's an asset
+			InFoliageType->ClearFlags(RF_Transactional);
 			TypeToSave = Cast<UFoliageType>(StaticDuplicateObject(InFoliageType, Package, *FPackageName::GetLongPackageAssetName(PackageName)));
-			TypeToSave->SetFlags(RF_Standalone | RF_Public);
+			InFoliageType->SetFlags(RF_Transactional);
+
+			TypeToSave->SetFlags(RF_Standalone | RF_Public | RF_Transactional);
 			TypeToSave->Modify();
 
 			// Notify the asset registry

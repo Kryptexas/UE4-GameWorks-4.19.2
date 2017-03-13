@@ -23,6 +23,8 @@ struct FCollisionShape;
 struct FConstraintInstance;
 struct FPropertyChangedEvent;
 struct FShapeData;
+class UPrimitiveComponent;
+class FPhysScene;
 
 /** Delegate for applying custom physics forces upon the body. Can be passed to "AddCustomPhysics" so 
   * custom forces and torques can be calculated individually for every physics substep.
@@ -37,6 +39,9 @@ DECLARE_DELEGATE_TwoParams(FCalculateCustomPhysics, float, FBodyInstance*);
   * e.g. the box should not penetrate the wall visually) the transformation of body must be updated to account for it.
   * Since this could be called many times by GetWorldTransform any expensive computations should be cached if possible.*/
 DECLARE_DELEGATE_TwoParams(FCalculateCustomProjection, const FBodyInstance*, FTransform&);
+
+/** Delegate for when the mass properties of a body instance have been re-calculated. This can be useful for systems that need to set specific physx settings on actors, or systems that rely on the mass information in some way*/
+DECLARE_MULTICAST_DELEGATE_OneParam(FRecalculatedMassProperties, FBodyInstance*);
 
 #if WITH_PHYSX
 struct FShapeData;
@@ -142,10 +147,9 @@ private:
 #endif
 
 	/** Types of objects that this physics objects will collide with. */
-	// @todo : make this to be transient, so that it doesn't have to save anymore
 	// we have to still load them until resave
 	UPROPERTY(transient)
-	struct FCollisionResponseContainer ResponseToChannels;
+	FCollisionResponseContainer ResponseToChannels;
 
 	/** Custom Channels for Responses */
 	UPROPERTY(EditAnywhere, Category = Custom)
@@ -468,14 +472,34 @@ public:
 #endif
 
 #if UE_WITH_PHYSICS
+
+	/** Helper struct to specify spawn behavior */
+	struct FInitBodySpawnParams
+	{
+		FInitBodySpawnParams(const UPrimitiveComponent* PrimComp);
+
+		/** Whether the created physx actor will be static */
+		bool bStaticPhysics;
+
+		/** Whether to use the BodySetup's PhysicsType to override if the instance simulates*/
+		bool bPhysicsTypeDeterminesSimulation;
+	};
+
+	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL)
+	{
+		InitBody(Setup, Transform, PrimComp, InRBScene, FInitBodySpawnParams(PrimComp), InAggregate);
+	}
+
+
 	/** Initialise a single rigid body (this FBodyInstance) for the given body setup
-	 *	@param Setup The setup to use to create the body
-	 *	@param Transform Transform of the body
-	 *	@param PrimComp The owning component
-	 *	@param InRBScene The physics scene to place the body into
-	 *	@param InAggregate An aggregate to place the body into
-	 */
-	void InitBody(UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+	*	@param Setup The setup to use to create the body
+	*	@param Transform Transform of the body
+	*	@param PrimComp The owning component
+	*	@param InRBScene The physics scene to place the body into
+	*	@param SpawnParams The parameters for determining certain spawn behavior
+	*	@param InAggregate An aggregate to place the body into
+	*/
+	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams, PhysXAggregateType InAggregate = NULL);
 
 	/** Validate a body transform, outputting debug info
 	 *	@param Transform Transform to debug
@@ -784,6 +808,9 @@ public:
 
 	/** Custom projection for physics (callback to update component transform based on physics data) */
 	FCalculateCustomProjection OnCalculateCustomProjection;
+
+	/** Called whenever mass properties have been re-calculated. */
+	FRecalculatedMassProperties OnRecalculatedMassProperties;
 
 	/** See if this body is valid. */
 	bool IsValidBodyInstance() const;
@@ -1193,7 +1220,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FBodyInstance> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FBodyInstance> : public TStructOpsTypeTraitsBase2<FBodyInstance>
 {
 	enum
 	{
@@ -1217,11 +1244,13 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // BodyInstance inlines
 
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+//~ APIDOCTOOL: Document=Off
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const FComponentQueryParams& Params, const FCollisionResponseParams& ResponseParams, const FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// Pass on to FQuat version
 	return OverlapMulti(InOutOverlaps, World, pWorldToComponent, Pos, Rot.Quaternion(), TestChannel, Params, ResponseParams, ObjectQueryParams);
 }
+//~ APIDOCTOOL: Document=On
 
 FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBodies(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const
 {
@@ -1239,3 +1268,6 @@ FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics() const
 {
 	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
 }
+
+extern template ENGINE_API bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const;
+extern template ENGINE_API bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*, TInlineAllocator<1>>& Bodies) const;

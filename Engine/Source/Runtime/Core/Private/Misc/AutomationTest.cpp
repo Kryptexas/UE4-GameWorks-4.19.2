@@ -730,7 +730,7 @@ void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 
 void FAutomationTestBase::AddError(const FString& InError, const FString& InFilename, int32 InLineNumber)
 {
-	if (!bSuppressLogs)
+	if ( !bSuppressLogs )
 	{
 		ExecutionInfo.Errors.Add(FAutomationEvent(InError, ExecutionInfo.Context, InFilename, InLineNumber));
 	}
@@ -738,17 +738,17 @@ void FAutomationTestBase::AddError(const FString& InError, const FString& InFile
 
 void FAutomationTestBase::AddWarning( const FString& InWarning )
 {
-	if( !bSuppressLogs )
+	if ( !bSuppressLogs )
 	{
-		ExecutionInfo.Warnings.Add( InWarning );
+		ExecutionInfo.Warnings.Add(InWarning);
 	}
 }
 
 void FAutomationTestBase::AddLogItem( const FString& InLogItem )
 {
-	if( !bSuppressLogs )
+	if ( !bSuppressLogs )
 	{
-		ExecutionInfo.LogItems.Add( InLogItem );
+		ExecutionInfo.LogItems.Add(InLogItem);
 	}
 }
 

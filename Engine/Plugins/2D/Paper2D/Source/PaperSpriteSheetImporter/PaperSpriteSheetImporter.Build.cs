@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PaperSpriteSheetImporter : ModuleRules
 {
-	public PaperSpriteSheetImporter(TargetInfo Target)
+	public PaperSpriteSheetImporter(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

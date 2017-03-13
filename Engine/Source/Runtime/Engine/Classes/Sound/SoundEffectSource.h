@@ -15,27 +15,23 @@ class FSoundEffectBase;
 UCLASS(config = Engine, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundEffectSourcePreset : public USoundEffectPreset
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 };
 
 /** Struct which has data needed to initialize the source effect. */
 struct FSoundEffectSourceInitData
 {
-	void* PresetSettings;
 	float SampleRate;
 	int32 NumSourceChannels;
 	float SourceDuration;
 	double AudioClock;
-	FVector SourcePosition;
-	FVector ListenerPosition;
 };
 
 /** Struct which has data to initialize the source effect. */
 struct FSoundEffectSourceInputData
 {
 	void* PresetData;
-	TArray<float> AudioBuffer;
-	int32 NumSourceChannels;
+	TArray<float> AudioFrame;
 	FVector SourcePosition;
 	FVector LeftChannelPosition;
 	FVector RightChannelPosition;
@@ -54,9 +50,7 @@ struct FSoundEffectSourceInputData
 
 struct FSoundEffectSourceOutputData
 {
-	TArray<float> AudioBuffer;
-	int32 OutputChannels;
-	uint8 bIsSpatialized:1;
+	TArray<float> AudioFrame;
 };
 
 class ENGINE_API FSoundEffectSource : public FSoundEffectBase
@@ -68,13 +62,12 @@ public:
 	/** Called on an audio effect at initialization on main thread before audio processing begins. */
 	virtual void Init(const FSoundEffectSourceInitData& InSampleRate) = 0;
 
+	/** Is called when a preset is changed. Allows subclasses to cast the preset object to the derived type and get their data. */
+	virtual void SetPreset(USoundEffectSourcePreset* InPreset) = 0;
+
 	/** Process the input block of audio. Called on audio thread. */
-	virtual void OnProcessAudio(const FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData) = 0;
-
-private:
-	/** Processes audio in the source effect. */
-	void ProcessAudio(FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData);
-
+	virtual void ProcessAudio(const FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData) = 0;
+	
 protected:
 
 	// Allow FAudioMixerSubmix to call ProcessAudio

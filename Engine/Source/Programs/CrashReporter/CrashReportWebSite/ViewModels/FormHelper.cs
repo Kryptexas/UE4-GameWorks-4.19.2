@@ -23,10 +23,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>Epic ID or Machine ID as query for filtering.</summary>
 		public string EpicIdOrMachineQuery = "";
 
-		/// <summary>Jira as query for crash filtering.</summary>
+		/// <summary>Jira as query for Crash filtering.</summary>
 		public string JiraQuery = "";
 
-        /// <summary> Jira Id for crash/bugg filtering </summary>
+        /// <summary> Jira Id for Crash/bugg filtering </summary>
 	    public string JiraId = "";
 
 		/// <summary>Message/Summary or Description as query for filtering.</summary>
@@ -47,7 +47,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>The term to sort by. e.g. Jira.</summary>
 		public string SortTerm = "";
 
-		/// <summary>The types of crashes we wish to see.</summary>
+		/// <summary>The types of Crashes we wish to see.</summary>
 		public string CrashType = "CrashesAsserts";
 
 		/// <summary>Whether to sort ascending or descending.</summary>
@@ -83,6 +83,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		private string PreviousTerm = "";
 
 	    public string EngineMode = "";
+
+        /// <summary></summary>
+	    public bool? IsVanilla;
 
 		/// <summary>
 		/// Intelligently extract parameters from a web request that could be in a form or a query string (GET vs. POST).
@@ -201,20 +204,30 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
             GetFormParameter(Request, Form, "EngineMode", EngineMode, out EngineMode);
             GetFormParameter(Request, Form, "EngineVersion", EngineVersion, out EngineVersion);
 
+		    var vanillaString = IsVanilla.ToString();
+            if(GetFormParameter(Request, Form, "IsVanilla", vanillaString, out vanillaString))
+            {
+                if (vanillaString.ToLower() == "true")
+                    IsVanilla = true;
+                else if (vanillaString.ToLower() == "false")
+                    IsVanilla = false;
+                else
+                    IsVanilla = null;
+            }
 
-			string PageString = Page.ToString();
-			if (GetFormParameter( Request, Form, "Page", PageString, out PageString ))
+			var pageString = Page.ToString();
+			if (GetFormParameter( Request, Form, "Page", pageString, out pageString ))
 			{
-				if (!int.TryParse( PageString, out Page ) || Page < 1)
+				if (!int.TryParse( pageString, out Page ) || Page < 1)
 				{
 					Page = 1;
 				}
 			}
 
-			string PageSizeString = PageSize.ToString();
-			if (GetFormParameter( Request, Form, "PageSize", PageSizeString, out PageSizeString ))
+			var pageSizeString = PageSize.ToString();
+			if (GetFormParameter( Request, Form, "PageSize", pageSizeString, out pageSizeString ))
 			{
-				if (!int.TryParse( PageSizeString, out PageSize ) || PageSize < 1)
+				if (!int.TryParse( pageSizeString, out PageSize ) || PageSize < 1)
 				{
 					PageSize = 100;
 				}

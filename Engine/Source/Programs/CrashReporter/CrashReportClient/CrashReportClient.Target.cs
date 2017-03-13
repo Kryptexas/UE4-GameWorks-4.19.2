@@ -7,34 +7,24 @@ using System.Collections.Generic;
 [SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class CrashReportClientTarget : TargetRules
 {
-	public CrashReportClientTarget(TargetInfo Target)
+	public CrashReportClientTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
 		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
+
+		LaunchModuleName = "CrashReportClient";
+
+		if (Target.Platform != UnrealTargetPlatform.Linux)
+		{
+			ExtraModuleNames.Add("EditorStyle");
+		}
 	}
 
 	//
 	// TargetRules interface.
 	//
 
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
-											InModuleNames: new List<string>() { "CrashReportClient" })
-			);
-
-		if (Target.Platform != UnrealTargetPlatform.Linux)
-		{
-			OutExtraModuleNames.Add("EditorStyle");
-		}
-	}
 
     public override void SetupGlobalEnvironment(
 		TargetInfo Target,
@@ -68,5 +58,7 @@ public class CrashReportClientTarget : TargetRules
 
 		// Epic Games Launcher needs to run on OS X 10.9, so CrashReportClient needs this as well
 		OutCPPEnvironmentConfiguration.bEnableOSX109Support = true;
+
+		OutCPPEnvironmentConfiguration.Definitions.Add("NOINITCRASHREPORTER=1");
 	}
 }

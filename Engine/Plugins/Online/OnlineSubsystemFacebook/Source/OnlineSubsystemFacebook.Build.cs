@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class OnlineSubsystemFacebook : ModuleRules
 {
-    public OnlineSubsystemFacebook(TargetInfo Target)
+    public OnlineSubsystemFacebook(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("ONLINESUBSYSTEMFACEBOOK_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;

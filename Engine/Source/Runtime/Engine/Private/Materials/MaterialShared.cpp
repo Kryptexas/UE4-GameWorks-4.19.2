@@ -761,7 +761,7 @@ void FMaterialResource::LegacySerialize(FArchive& Ar)
 
 const TArray<UTexture*>& FMaterialResource::GetReferencedTextures() const
 {
-	return Material->ExpressionTextureReferences;
+	return Material ? Material->ExpressionTextureReferences : UMaterial::GetDefaultMaterial(MD_Surface)->ExpressionTextureReferences;
 }
 
 void FMaterialResource::AddReferencedObjects(FReferenceCollector& Collector)
@@ -1150,22 +1150,9 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TMap<FName, 
 		}
 		else
 		{
-			if (IsUsedWithStaticLighting())
-			{
-				//lit materials are usually lightmapped
-				static FName TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQName = TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ");
-				ShaderTypeNamesAndDescriptions.Add(TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQName, TEXT("Base pass shader with static lighting"));
-			}
-
 			//also show a dynamically lit shader
 			static FName TBasePassPSFNoLightMapPolicyName = TEXT("TBasePassPSFNoLightMapPolicy");
-			ShaderTypeNamesAndDescriptions.Add(TBasePassPSFNoLightMapPolicyName, TEXT("Base pass shader with only dynamic lighting"));
-
-			if (IsTranslucentBlendMode(GetBlendMode()))
-			{
-				static FName TBasePassPSFSelfShadowedTranslucencyPolicyName = TEXT("TBasePassPSFSelfShadowedTranslucencyPolicy");
-				ShaderTypeNamesAndDescriptions.Add(TBasePassPSFSelfShadowedTranslucencyPolicyName, TEXT("Base pass shader for self shadowed translucency"));
-			}
+			ShaderTypeNamesAndDescriptions.Add(TBasePassPSFNoLightMapPolicyName, TEXT("Base pass shader"));
 		}
 
 		static FName TBasePassVSFNoLightMapPolicyName = TEXT("TBasePassVSFNoLightMapPolicy");
@@ -1592,8 +1579,13 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		}
 	}
 
+	UMaterialInterface* MaterialInterface = GetMaterialInterface();
+	const bool bMaterialInstance = MaterialInterface && MaterialInterface->IsA(UMaterialInstance::StaticClass());
+	const bool bSpecialEngineMaterial = !bMaterialInstance && IsSpecialEngineMaterial();
+
 	// Log which shader, pipeline or factory is missing when about to have a fatal error
-	const bool bLogShaderMapFailInfo = IsSpecialEngineMaterial() && (bContainsInlineShaders || FPlatformProperties::RequiresCookedData());
+	const bool bLogShaderMapFailInfo = bSpecialEngineMaterial && (bContainsInlineShaders || FPlatformProperties::RequiresCookedData());
+
 
 	bool bAssumeShaderMapIsComplete = false;
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
@@ -1616,10 +1608,23 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 	{
 		if (bContainsInlineShaders || FPlatformProperties::RequiresCookedData())
 		{
-			if (IsSpecialEngineMaterial())
+			if (bSpecialEngineMaterial)
 			{
+				UMaterialInterface* Interface = GetMaterialInterface();
+				FString Instance;
+				if (Interface)
+				{
+					Instance = Interface->GetPathName();
+				}
+
 				//assert if the default material's shader map was not found, since it will cause problems later
-				UE_LOG(LogMaterial, Fatal,TEXT("Failed to find shader map for default material %s!  Please make sure cooking was successful."), *GetFriendlyName());
+				UE_LOG(LogMaterial, Fatal,TEXT("Failed to find shader map for default material %s(%s)! Please make sure cooking was successful (%s inline shaders, %s GTSM%s)"),
+					*GetFriendlyName(),
+					*Instance,
+					bContainsInlineShaders ? TEXT("Contains") : TEXT("No"),
+					GameThreadShaderMap ? TEXT("has") : TEXT("null"),
+					bAssumeShaderMapIsComplete ? TEXT(" assumes map complete") : TEXT("")
+				);
 			}
 			else
 			{
@@ -1925,9 +1930,10 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 	// Register the render proxy's as a render resource so it can receive notifications to free the uniform buffer.
 	InitResource();
 
-	check(UMaterial::GetDefaultMaterial(MD_Surface));
+	bool bUsingNewLoader = EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME && GEventDrivenLoaderEnabled;
 
-	TArray<FMaterialResource*> ResourcesToCache;
+	check((bUsingNewLoader && GIsInitialLoad) || // The EDL at boot time maybe not load the default materials first; we need to intialize materials before the default materials are done
+		UMaterial::GetDefaultMaterial(MD_Surface));
 
 	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
 	{
@@ -1935,11 +1941,11 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 
 		if (MaterialNoFallback && MaterialNoFallback->GetRenderingThreadShaderMap())
 		{
-			const FMaterial* Material = GetMaterial(InFeatureLevel);
+			const FMaterial* Material = bUsingNewLoader ? MaterialNoFallback : GetMaterial(InFeatureLevel);
 
 			// Do not cache uniform expressions for fallback materials. This step could
 			// be skipped where we don't allow for asynchronous shader compiling.
-			bool bIsFallbackMaterial = (Material != MaterialNoFallback);
+			bool bIsFallbackMaterial = bUsingNewLoader ? false : (Material != MaterialNoFallback);
 
 			if (!bIsFallbackMaterial)
 			{
@@ -2119,6 +2125,17 @@ int32 FMaterialResource::GetSamplerUsage() const
 	}
 
 	return -1;
+}
+
+void FMaterialResource::GetUserInterpolatorUsage(uint32& NumUsedUVScalars, uint32& NumUsedCustomInterpolatorScalars) const
+{
+	NumUsedUVScalars = NumUsedCustomInterpolatorScalars = 0;
+
+	if (const FMaterialShaderMap* ShaderMap = GetGameThreadShaderMap())
+	{
+		NumUsedUVScalars = ShaderMap->GetNumUsedUVScalars();
+		NumUsedCustomInterpolatorScalars = ShaderMap->GetNumUsedCustomInterpolatorScalars();
+	}
 }
 
 FString FMaterialResource::GetMaterialUsageDescription() const
@@ -2966,12 +2983,12 @@ void FMaterialAttributeDefinitionMap::GetDisplayNameToIDList(TArray<TPair<FStrin
 	{
 		if (!Attribute.Value.bIsHidden)
 		{
-			NameToIDList.Add(TPairInitializer<FString, FGuid>(Attribute.Value.DisplayName, Attribute.Value.AttributeID));
+			NameToIDList.Emplace(Attribute.Value.DisplayName, Attribute.Value.AttributeID);
 		}
 	}
 
 	for (auto& Attribute : GMaterialPropertyAttributesMap.CustomAttributes)
 	{
-		NameToIDList.Add(TPairInitializer<FString, FGuid>(Attribute.DisplayName, Attribute.AttributeID));
+		NameToIDList.Emplace(Attribute.DisplayName, Attribute.AttributeID);
 	}
 }

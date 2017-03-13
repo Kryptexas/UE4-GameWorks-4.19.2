@@ -284,6 +284,25 @@ public:
 	bool bValid;
 };
 
+enum FGlobalDFCacheType
+{
+	GDF_MostlyStatic,
+	GDF_Full,
+	GDF_Num
+};
+
+class FGlobalDistanceFieldCacheTypeState
+{
+public:
+
+	FGlobalDistanceFieldCacheTypeState()
+	{
+	}
+
+	TArray<FVector4> PrimitiveModifiedBounds;
+	TRefCountPtr<IPooledRenderTarget> VolumeTexture;
+};
+
 class FGlobalDistanceFieldClipmapState
 {
 public:
@@ -294,14 +313,16 @@ public:
 		LastPartialUpdateOrigin = FIntVector::ZeroValue;
 		CachedMaxOcclusionDistance = 0;
 		CachedGlobalDistanceFieldViewDistance = 0;
+		CacheMostlyStaticSeparately = 1;
 	}
 
 	FIntVector FullUpdateOrigin;
 	FIntVector LastPartialUpdateOrigin;
-	TArray<FVector4> PrimitiveModifiedBounds;
 	float CachedMaxOcclusionDistance;
 	float CachedGlobalDistanceFieldViewDistance;
-	TRefCountPtr<IPooledRenderTarget> VolumeTexture;
+	uint32 CacheMostlyStaticSeparately;
+	
+	FGlobalDistanceFieldCacheTypeState Cache[GDF_Num];
 };
 
 /** Maps a single primitive to it's per-view fading state data */
@@ -528,7 +549,7 @@ public:
 	TMap<int32, FIndividualOcclusionHistory> PlanarReflectionOcclusionHistories;
 
 	// Array of ClipmapIndex
-	TArray<int32> DeferredGlobalDistanceFieldUpdates;
+	TArray<int32> DeferredGlobalDistanceFieldUpdates[GDF_Num];
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Are we currently in the state of freezing rendering? (1 frame where we gather what was rendered) */
@@ -657,6 +678,7 @@ public:
 	// Temporal AA result for light shafts of last frame
 	TMap<const ULightComponent*, TRefCountPtr<IPooledRenderTarget> > LightShaftBloomHistoryRTs;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOHistoryRT;
+	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOConfidenceHistoryRT;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldIrradianceHistoryRT;
 	// Mobile temporal AA surfaces.
 	TRefCountPtr<IPooledRenderTarget> MobileAaBloomSunVignette0;
@@ -897,7 +919,9 @@ public:
 	{
 		
 
-		if (CombinedLUTRenderTarget.IsValid() == false|| CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize) 
+		if (CombinedLUTRenderTarget.IsValid() == false || 
+			CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize ||
+			((CombinedLUTRenderTarget->GetDesc().Depth != 0) != bUseVolumeLUT))
 		{
 			// Create the texture needed for the tonemapping LUT
 
@@ -961,6 +985,8 @@ public:
 		LightShaftOcclusionHistoryRT.SafeRelease();
 		LightShaftBloomHistoryRTs.Empty();
 		DistanceFieldAOHistoryRT.SafeRelease();
+		DistanceFieldAOConfidenceHistoryRT.SafeRelease();
+		DistanceFieldAOConfidenceHistoryRT.SafeRelease();
 		DistanceFieldIrradianceHistoryRT.SafeRelease();
 		MobileAaBloomSunVignette0.SafeRelease();
 		MobileAaBloomSunVignette1.SafeRelease();
@@ -971,7 +997,10 @@ public:
 
 		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(GlobalDistanceFieldClipmapState); CascadeIndex++)
 		{
-			GlobalDistanceFieldClipmapState[CascadeIndex].VolumeTexture.SafeRelease();
+			for (int32 CacheType = 0; CacheType < ARRAY_COUNT(GlobalDistanceFieldClipmapState[CascadeIndex].Cache); CacheType++)
+			{
+				GlobalDistanceFieldClipmapState[CascadeIndex].Cache[CacheType].VolumeTexture.SafeRelease();
+			}
 		}
 
 		IndirectShadowCapsuleShapesVertexBuffer.SafeRelease();
@@ -1315,6 +1344,7 @@ class FPrimitiveRemoveInfo
 public:
 	FPrimitiveRemoveInfo(const FPrimitiveSceneInfo* InPrimitive) :
 		Primitive(InPrimitive),
+		bOftenMoving(InPrimitive->Proxy->IsOftenMoving()),
 		DistanceFieldInstanceIndices(Primitive->DistanceFieldInstanceIndices)
 	{}
 
@@ -1323,6 +1353,8 @@ public:
 	 * Value of the pointer is still useful for map lookups
 	 */
 	const FPrimitiveSceneInfo* Primitive;
+
+	bool bOftenMoving;
 
 	TArray<int32, TInlineAllocator<1>> DistanceFieldInstanceIndices;
 };
@@ -1381,6 +1413,11 @@ public:
 		return false;
 	}
 
+	inline bool CanUse16BitObjectIndices() const
+	{
+		return NumObjectsInBuffer < (1 << 16);
+	}
+
 	int32 NumObjectsInBuffer;
 	class FDistanceFieldObjectBuffers* ObjectBuffers;
 
@@ -1398,7 +1435,7 @@ public:
 	TArray<FPrimitiveSceneInfo*> PendingAddOperations;
 	TSet<FPrimitiveSceneInfo*> PendingUpdateOperations;
 	TArray<FPrimitiveRemoveInfo> PendingRemoveOperations;
-	TArray<FVector4> PrimitiveModifiedBounds;
+	TArray<FVector4> PrimitiveModifiedBounds[GDF_Num];
 
 	/** Used to detect atlas reallocations, since objects store UVs into the atlas and need to be updated when it changes. */
 	int32 AtlasGeneration;
@@ -1930,9 +1967,6 @@ public:
 	/** Interpolates and caches indirect lighting for dynamic objects. */
 	FIndirectLightingCache IndirectLightingCache;
 
-	/** Scene state of distance field AO.  NULL if the scene doesn't use the feature. */
-	class FSurfaceCacheResources* SurfaceCacheResources;
-
 	/** Distance field object scene data. */
 	FDistanceFieldSceneData DistanceFieldSceneData;
 	
@@ -2041,7 +2075,6 @@ public:
 	virtual void UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer) override;
 	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures) override;
 	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap) override; 
-	virtual void PreCullStaticMeshes(const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes) override;
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void UpdateLightTransform(ULightComponent* Light) override;

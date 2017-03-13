@@ -13,6 +13,7 @@
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "UObject/ReleaseObjectVersion.h"
 #include "Logging/MessageLog.h"
+#include "UObjectIterator.h"
 
 #define LOCTEXT_NAMESPACE "PhysicsAsset"
 
@@ -263,7 +264,7 @@ void UPhysicsAsset::DisableCollision(int32 BodyIndexA, int32 BodyIndexB)
 
 FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTransform& LocalToWorld) const
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	if (!MeshComp)
 	{
@@ -705,7 +706,7 @@ void UPhysicsAsset::RefreshPhysicsAssetChange() const
 		if (SkeletalMeshComponent->GetPhysicsAsset() == this)
 		{
 			// it needs to recreate IF it already has been created
-			if (SkeletalMeshComponent->IsPhysicsStateCreated())
+			if (SkeletalMeshComponent->IsPhysicsStateCreated() && SkeletalMeshComponent->Bodies.Num() > 0)
 			{
 				SkeletalMeshComponent->RecreatePhysicsState();
 				SkeletalMeshComponent->InvalidateCachedBounds();

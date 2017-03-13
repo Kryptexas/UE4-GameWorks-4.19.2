@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Profiler : ModuleRules
 {
-	public Profiler( TargetInfo Target )
+	public Profiler( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PrivateIncludePaths.AddRange
 		(

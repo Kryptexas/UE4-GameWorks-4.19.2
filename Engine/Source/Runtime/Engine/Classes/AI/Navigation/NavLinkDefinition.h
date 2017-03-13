@@ -167,7 +167,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits< FNavigationLinkBase > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FNavigationLinkBase > : public TStructOpsTypeTraitsBase2< FNavigationLinkBase >
 {
 	enum
 	{
@@ -229,7 +229,7 @@ struct ENGINE_API FNavigationLink : public FNavigationLinkBase
 };
 
 template<>
-struct TStructOpsTypeTraits< FNavigationLink > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FNavigationLink > : public TStructOpsTypeTraitsBase2< FNavigationLink >
 {
 	enum
 	{
@@ -291,7 +291,7 @@ struct ENGINE_API FNavigationSegmentLink : public FNavigationLinkBase
 };
 
 template<>
-struct TStructOpsTypeTraits< FNavigationSegmentLink > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FNavigationSegmentLink > : public TStructOpsTypeTraitsBase2< FNavigationSegmentLink >
 {
 	enum
 	{

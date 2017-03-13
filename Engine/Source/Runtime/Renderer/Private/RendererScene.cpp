@@ -42,7 +42,7 @@
 #include "RendererModule.h"
 #include "StaticMeshResources.h"
 #include "ParameterCollection.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 #include "EngineModule.h"
 #include "FXSystem.h"
 #include "DistanceFieldLightingShared.h"
@@ -302,7 +302,8 @@ void FDistanceFieldSceneData::AddPrimitive(FPrimitiveSceneInfo* InPrimitive)
 		{
 			HeightfieldPrimitives.Add(InPrimitive);
 			FBoxSphereBounds PrimitiveBounds = Proxy->GetBounds();
-			PrimitiveModifiedBounds.Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
+			FGlobalDFCacheType CacheType = Proxy->IsOftenMoving() ? GDF_Full : GDF_MostlyStatic;
+			PrimitiveModifiedBounds[CacheType].Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
 		}
 
 		if (Proxy->SupportsDistanceFieldRepresentation())
@@ -357,7 +358,8 @@ void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
 			HeightfieldPrimitives.Remove(InPrimitive);
 
 			FBoxSphereBounds PrimitiveBounds = Proxy->GetBounds();
-			PrimitiveModifiedBounds.Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
+			FGlobalDFCacheType CacheType = Proxy->IsOftenMoving() ? GDF_Full : GDF_MostlyStatic;
+			PrimitiveModifiedBounds[CacheType].Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
 		}
 	}
 }
@@ -571,7 +573,6 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	SunLight(NULL)
 ,	ReflectionSceneData(InFeatureLevel)
 ,	IndirectLightingCache(InFeatureLevel)
-,	SurfaceCacheResources(NULL)
 ,	DistanceFieldSceneData(GShaderPlatformForFeatureLevel[InFeatureLevel])
 ,	PreshadowCacheLayout(0, 0, 0, 0, false, false)
 ,	AtmosphericFog(NULL)
@@ -640,13 +641,6 @@ FScene::~FScene()
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
 	DistanceFieldSceneData.Release();
-
-	if (SurfaceCacheResources)
-	{
-		SurfaceCacheResources->ReleaseResource();
-		delete SurfaceCacheResources;
-		SurfaceCacheResources = NULL;
-	}
 
 	if (AtmosphericFog)
 	{
@@ -1586,26 +1580,26 @@ int64 FScene::GetCachedWholeSceneShadowMapsSize() const
 
 void FScene::AddPrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		AddVolumeCommand,
-		const FPrecomputedLightVolume*,Volume,Volume,
-		FScene*,Scene,this,
-	{
-		Scene->PrecomputedLightVolumes.Add(Volume);
-		Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
-	});
+	FScene* Scene = this;
+
+	ENQUEUE_RENDER_COMMAND(AddVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->PrecomputedLightVolumes.Add(Volume);
+			Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
+		});
 }
 
 void FScene::RemovePrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		RemoveVolumeCommand,
-		const FPrecomputedLightVolume*,Volume,Volume,
-		FScene*,Scene,this,
-	{
-		Scene->PrecomputedLightVolumes.Remove(Volume);
-		Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
-	});
+	FScene* Scene = this; 
+
+	ENQUEUE_RENDER_COMMAND(RemoveVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->PrecomputedLightVolumes.Remove(Volume);
+			Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
+		});
 }
 
 struct FUpdateLightTransformParameters
@@ -2457,14 +2451,14 @@ void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
 	Ar.Logf( TEXT( "Lights with unbuilt interactions: %d" ), LightsWithUnbuiltInteractions.Num() );
 	for (int Index = 0; Index < LightsWithUnbuiltInteractions.Num(); Index++)
 	{
-		Ar.Logf(*(FString(TEXT("    Light ")) + LightsWithUnbuiltInteractions[Index]));
+		Ar.Logf(TEXT("    Light %s"), *LightsWithUnbuiltInteractions[Index]);
 	}
 
 	Ar.Logf( TEXT( "" ) );
 	Ar.Logf( TEXT( "Primitives with unbuilt interactions: %d" ), PrimitivesWithUnbuiltInteractions.Num() );
 	for (int Index = 0; Index < PrimitivesWithUnbuiltInteractions.Num(); Index++)
 	{
-		Ar.Logf(*(FString(TEXT("    Primitive ")) + PrimitivesWithUnbuiltInteractions[Index]));
+		Ar.Logf(TEXT("    Primitive %s"), *PrimitivesWithUnbuiltInteractions[Index]);
 	}
 }
 
@@ -2689,6 +2683,12 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 		(*It)->SetTransform(NewTransform);
 	}
 
+	// Exponential Fog
+	for (FExponentialHeightFogSceneInfo& FogInfo : ExponentialFogs)
+	{
+		FogInfo.FogHeight+= InOffset.Z;
+	}
+	
 	// StaticMeshDrawLists
 	StaticMeshDrawListApplyWorldOffset(PositionOnlyDepthDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(DepthDrawList, InOffset);

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Party : ModuleRules
 {
-	public Party(TargetInfo Target)
+	public Party(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("PARTY_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;

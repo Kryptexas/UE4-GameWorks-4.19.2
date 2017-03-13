@@ -2,6 +2,7 @@
 
 #include "Tests/AutomationCommon.h"
 #include "Misc/Paths.h"
+#include "Misc/EngineVersion.h"
 #include "EngineGlobals.h"
 #include "Widgets/SWidget.h"
 #include "Engine/GameViewportClient.h"
@@ -17,6 +18,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "Scalability.h"
 #include "Matinee/MatineeActor.h"
+#include "IHeadMountedDisplay.h"
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 
@@ -66,11 +68,6 @@ namespace AutomationCommon
 			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + FeatureLevelString;
 		}
 
-		if ( GEngine->StereoRenderingDevice.IsValid() )
-		{
-			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + TEXT("STEREO");
-		}
-
 		if ( HardwareDetailsString.Len() > 0 )
 		{
 			//Get rid of the leading "_"
@@ -102,13 +99,14 @@ namespace AutomationCommon
 		Data.Name = TestName;
 		Data.Context = MapOrContext;
 		Data.Id = FGuid::NewGuid();
+		Data.Commit = FEngineVersion::Current().HasChangelist() ? FString::FromInt(FEngineVersion::Current().GetChangelist()) : FString(TEXT(""));
 
 		Data.Width = Width;
 		Data.Height = Height;
 		Data.Platform = FPlatformProperties::PlatformName();
 		Data.Rhi = FHardwareInfo::GetHardwareInfo(NAME_RHI);
 		GetFeatureLevelName(GMaxRHIFeatureLevel, Data.FeatureLevel);
-		Data.bIsStereo = GEngine->StereoRenderingDevice.IsValid();
+		Data.bIsStereo = GEngine->HMDDevice.IsValid() ? GEngine->HMDDevice->IsStereoEnabled() : false;
 		Data.Vendor = RHIVendorIdToString();
 		Data.AdapterName = GRHIAdapterName;
 		Data.AdapterInternalDriverVersion = GRHIAdapterInternalDriverVersion;
@@ -196,7 +194,6 @@ bool AutomationOpenMap(const FString& MapName)
 			GEngine->Exec(TestWorld, *OpenCommand);
 		}
 
-		//Wait for map to load - need a better way to determine if loaded
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand());
 	}
 
@@ -256,9 +253,6 @@ bool FRequestExitCommand::Update()
 
 bool FWaitForMapToLoadCommand::Update()
 {
-	//TODO Automation we need a better way to know when the map finished loading.
-
-	//TODO - Is there a better way to see if the map is loaded?  Are Actors Initialized isn't right in Fortnite...
 	UWorld* TestWorld = AutomationCommon::GetAnyGameWorld();
 
 	if ( TestWorld && TestWorld->AreActorsInitialized() )

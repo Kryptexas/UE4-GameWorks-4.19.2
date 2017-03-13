@@ -3981,6 +3981,11 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 			Set( "BTEditor.Graph.NewService", new IMAGE_BRUSH( "BehaviorTree/NewService_40x", Icon40x40));
 			Set( "BTEditor.Graph.NewService.Small", new IMAGE_BRUSH( "BehaviorTree/NewService_20x", Icon20x20));
 		}
+		
+		{
+			Set("EnvQueryEditor.Profiler.LoadStats", new IMAGE_BRUSH("Icons/LV_Load", Icon40x40));
+			Set("EnvQueryEditor.Profiler.SaveStats", new IMAGE_BRUSH("Icons/LV_Save", Icon40x40));
+		}
 
 		// Visible on hover button for transition node
 		{
@@ -5233,6 +5238,7 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("Persona.Tabs.AnimSlotManager", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Anim_Slot_Manager_16x"), Icon16x16));
 		Set("Persona.Tabs.SkeletonCurves", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Skeleton_Curves_16x"), Icon16x16));
 		Set("Persona.Tabs.AnimAssetDetails", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Anim_Asset_Details_16x"), Icon16x16));
+		Set("Persona.Tabs.ControlRigMappingWindow", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Skeleton_Tree_16x"), Icon16x16));
 	}
 
 	// Skeleton editor
@@ -5275,6 +5281,8 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("AnimationEditor.ApplyCompression.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Compression_40x"), Icon20x20));
 		Set("AnimationEditor.ExportToFBX", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ExportFBX_40x"), Icon40x40));
 		Set("AnimationEditor.ExportToFBX.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ExportFBX_40x"), Icon20x20));
+		Set("AnimationEditor.ReimportAnimation", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ReimportAnim_40x"), Icon40x40));
+		Set("AnimationEditor.ReimportAnimation.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ReimportAnim_40x"), Icon20x20));
 		Set("AnimationEditor.CreateAsset", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_CreateAsset_40x"), Icon40x40));
 		Set("AnimationEditor.CreateAsset.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_CreateAsset_40x"), Icon20x20));
 		Set("AnimationEditor.SetKey", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_SetKey_40x"), Icon40x40));
@@ -5731,6 +5739,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("AimOffsetBlendSpace1D"),
 			TEXT("AIPerceptionComponent"),
 			TEXT("AmbientSound"),
+			TEXT("AnimationModifier"),		
 			TEXT("AnimBlueprint"),
 			TEXT("AnimComposite"),
 			TEXT("AnimMontage"),
@@ -5847,6 +5856,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("Skeleton"),
 			TEXT("SlateBrushAsset"),
 			TEXT("SlateWidgetStyleAsset"),
+			TEXT("StringTable"),
 			TEXT("SoundAttenuation"),
 			TEXT("SoundClass"),
 			TEXT("SoundConcurrency"),
@@ -5887,13 +5897,11 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("CameraRig_Rail")
 		};
 
-		const TCHAR* Path = TEXT("Icons/AssetIcons/%s_%dx");
-		
 		for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(AssetTypes); ++TypeIndex)
 		{
 			const TCHAR* Type = AssetTypes[TypeIndex];
-			Set( *FString::Printf(TEXT("ClassIcon.%s"), Type),		new IMAGE_BRUSH(FString::Printf(Path, Type, 16), Icon16x16 ) );
-			Set( *FString::Printf(TEXT("ClassThumbnail.%s"), Type),	new IMAGE_BRUSH(FString::Printf(Path, Type, 64), Icon64x64 ) );
+			Set( *FString::Printf(TEXT("ClassIcon.%s"), Type),		new IMAGE_BRUSH(FString::Printf(TEXT("Icons/AssetIcons/%s_%dx"), Type, 16), Icon16x16 ) );
+			Set( *FString::Printf(TEXT("ClassThumbnail.%s"), Type),	new IMAGE_BRUSH(FString::Printf(TEXT("Icons/AssetIcons/%s_%dx"), Type, 64), Icon64x64 ) );
 		}
 	}
 #endif
@@ -6219,6 +6227,13 @@ void FSlateEditorStyle::FStyle::SetupLandscapeEditorStyle()
 		Set("LandscapeEditor.Target_Create",     new IMAGE_BRUSH("Icons/icon_Landscape_Target_Create_12x", Icon12x12));
 		Set("LandscapeEditor.Target_MakePublic", new IMAGE_BRUSH("Icons/assign_right_12x",                 Icon12x12));
 		Set("LandscapeEditor.Target_Delete",     new IMAGE_BRUSH("Icons/Cross_12x",                        Icon12x12));
+
+		Set("LandscapeEditor.Target_DisplayOrder.Default", new IMAGE_BRUSH("Icons/icon_landscape_sort_base", Icon16x16));
+		Set("LandscapeEditor.Target_DisplayOrder.Alphabetical", new IMAGE_BRUSH("Icons/icon_landscape_sort_alphabetical", Icon16x16));
+		Set("LandscapeEditor.Target_DisplayOrder.Custom", new IMAGE_BRUSH("Icons/icon_landscape_sort_custom", Icon16x16));
+
+		Set("LandscapeEditor.TargetList.DropZone.Above", new BOX_BRUSH("Common/VerticalBoxDropZoneIndicator_Above", FMargin(10.0f / 16.0f, 10.0f / 16.0f, 0, 0), SelectionColor_Subdued));
+		Set("LandscapeEditor.TargetList.DropZone.Below", new BOX_BRUSH("Common/VerticalBoxDropZoneIndicator_Below", FMargin(10.0f / 16.0f, 0, 0, 10.0f / 16.0f), SelectionColor_Subdued));
 	}
 #endif
 }
@@ -6314,6 +6329,11 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 			.SetTextColor( DefaultForeground )
 			.SetSelectedTextColor( DefaultForeground )
 		);
+	}
+
+	// StringTable Editor
+	{
+		Set("StringTableEditor.Tabs.Properties", new IMAGE_BRUSH("/Icons/icon_tab_SelectionDetails_16x", Icon16x16));
 	}
 
 	// DestructibleMesh Editor

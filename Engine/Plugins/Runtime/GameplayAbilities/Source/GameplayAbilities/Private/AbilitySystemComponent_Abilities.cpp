@@ -113,7 +113,16 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor*
 	AbilityActorInfo->InitFromActor(InOwnerActor, InAvatarActor, this);
 
 	OwnerActor = InOwnerActor;
+
+	// caching the previous value of the actor so we can check against it but then setting the value to the new because it may get used
+	const AActor* PrevAvatarActor = AvatarActor;
 	AvatarActor = InAvatarActor;
+
+	// if the avatar actor was null but won't be after this, we want to run the deferred gameplaycues that may not have run in NetDeltaSerialize
+	if (PrevAvatarActor == nullptr && InAvatarActor != nullptr)
+	{
+		HandleDeferredGameplayCues(&ActiveGameplayEffects);
+	}
 
 	if (AvatarChanged)
 	{
@@ -1038,14 +1047,19 @@ bool UAbilitySystemComponent::IsAbilityInputBlocked(int32 InputID) const
 bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHandle Handle, FPredictionKey InPredictionKey, UGameplayAbility** OutInstancedAbility, FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate, const FGameplayEventData* TriggerEventData)
 {
 	const FGameplayTag& NetworkFailTag = UAbilitySystemGlobals::Get().ActivateFailNetworkingTag;
+	
+	InternalTryActivateAbilityFailureTags.Reset();
 
-	static FGameplayTagContainer FailureTags;
-	FailureTags.Reset();
+	if (Handle.IsValid() == false)
+	{
+		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with invalid Handle! ASC: %s. AvatarActor: %s"), *GetPathName(), *GetNameSafe(AvatarActor));
+		return false;
+	}
 
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (!Spec)
 	{
-		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with invalid Handle"));
+		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with a valid handle but no matching ability was found. Handle: %s ASC: %s. AvatarActor: %s"), *Handle.ToString(), *GetPathName(), *GetNameSafe(AvatarActor));
 		return false;
 	}
 
@@ -1097,8 +1111,8 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 
 			if (NetworkFailTag.IsValid())
 			{
-				FailureTags.AddTag(NetworkFailTag);
-				NotifyAbilityFailed(Handle, Ability, FailureTags);
+				InternalTryActivateAbilityFailureTags.AddTag(NetworkFailTag);
+				NotifyAbilityFailed(Handle, Ability, InternalTryActivateAbilityFailureTags);
 			}
 
 			return false;
@@ -1111,8 +1125,8 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 
 		if (NetworkFailTag.IsValid())
 		{
-			FailureTags.AddTag(NetworkFailTag);
-			NotifyAbilityFailed(Handle, Ability, FailureTags);
+			InternalTryActivateAbilityFailureTags.AddTag(NetworkFailTag);
+			NotifyAbilityFailed(Handle, Ability, InternalTryActivateAbilityFailureTags);
 		}
 
 		return false;
@@ -1134,9 +1148,9 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		// Otherwise we always do a non instanced CanActivateAbility check using the CDO of the Ability.
 		UGameplayAbility* const CanActivateAbilitySource = InstancedAbility ? InstancedAbility : Ability;
 
-		if (!CanActivateAbilitySource->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
+		if (!CanActivateAbilitySource->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &InternalTryActivateAbilityFailureTags))
 		{
-			NotifyAbilityFailed(Handle, CanActivateAbilitySource, FailureTags);
+			NotifyAbilityFailed(Handle, CanActivateAbilitySource, InternalTryActivateAbilityFailureTags);
 			return false;
 		}
 	}
@@ -1381,7 +1395,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 	}
 	else
 	{
-		ABILITY_LOG(Display, TEXT("InternalServerTryActiveAbility. Rejecting ClientActivation of %s. InternalTryActivateAbility failed"), *GetNameSafe(Spec->Ability) );
+		ABILITY_LOG(Display, TEXT("InternalServerTryActiveAbility. Rejecting ClientActivation of %s. InternalTryActivateAbility failed: %s"), *GetNameSafe(Spec->Ability), *InternalTryActivateAbilityFailureTags.ToStringSimple() );
 		ClientActivateAbilityFailed(Handle, PredictionKey.Current);
 		Spec->InputPressed = false;
 	}
@@ -1517,6 +1531,13 @@ void UAbilitySystemComponent::ClientCancelAbility_Implementation(FGameplayAbilit
 
 static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilityFailed_Implementation");
 
+
+int32 ClientActivateAbilityFailedPrintDebugThreshhold = -1;
+static FAutoConsoleVariableRef CVarClientActivateAbilityFailedPrintDebugThreshhold(TEXT("AbilitySystem.ClientActivateAbilityFailedPrintDebugThreshhold"), ClientActivateAbilityFailedPrintDebugThreshhold, TEXT(""), ECVF_Default );
+
+float ClientActivateAbilityFailedPrintDebugThreshholdTime = 3.f;
+static FAutoConsoleVariableRef CVarClientActivateAbilityFailedPrintDebugThreshholdTime(TEXT("AbilitySystem.ClientActivateAbilityFailedPrintDebugThreshholdTime"), ClientActivateAbilityFailedPrintDebugThreshholdTime, TEXT(""), ECVF_Default );
+
 void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGameplayAbilitySpecHandle Handle, int16 PredictionKey)
 {
 	// Tell anything else listening that this was rejected
@@ -1529,11 +1550,30 @@ void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGamepl
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (Spec == nullptr)
 	{
-		ABILITY_LOG(Display, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey :%d Ability: Could not find!"), PredictionKey);
+		ABILITY_LOG(Display, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey: %d Ability: Could not find!"), PredictionKey);
 		return;
 	}
 
-	ABILITY_LOG(Display, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey :%d Ability:"), PredictionKey, *GetNameSafe(Spec->Ability));
+	ABILITY_LOG(Display, TEXT("ClientActivateAbilityFailed_Implementation. PredictionKey :%d Ability: %s"), PredictionKey, *GetNameSafe(Spec->Ability));
+	
+	if (ClientActivateAbilityFailedPrintDebugThreshhold > 0)
+	{
+		if ((ClientActivateAbilityFailedStartTime <= 0.f) || ((GetWorld()->GetTimeSeconds() - ClientActivateAbilityFailedStartTime) > ClientActivateAbilityFailedPrintDebugThreshholdTime))
+		{
+			ClientActivateAbilityFailedStartTime = GetWorld()->GetTimeSeconds();
+			ClientActivateAbilityFailedCountRecent = 0;
+		}
+		
+		
+		if (++ClientActivateAbilityFailedCountRecent > ClientActivateAbilityFailedPrintDebugThreshhold)
+		{
+			ABILITY_LOG(Display, TEXT("Threshold hit! Printing debug information"));
+			PrintDebug();
+			ClientActivateAbilityFailedCountRecent = 0;
+			ClientActivateAbilityFailedStartTime = 0.f;
+		}
+	}
+
 
 	// The ability should be either confirmed or rejected by the time we get here
 	if (Spec->ActivationInfo.GetActivationPredictionKey().Current == PredictionKey)
@@ -1593,6 +1633,8 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implemen
 	ensure(AbilityActorInfo.IsValid());
 
 	Spec->ActivationInfo.SetActivationConfirmed();
+
+	// ABILITY_LOG(Verbose, TEXT("ClientActivateAbilitySucceedWithEventData_Implementation. PredictionKey :%s Ability: %s"), *PredictionKey.ToString(), *GetNameSafe(Spec->Ability));
 
 	// Fixme: We need a better way to link up/reconcile predictive replicated abilities. It would be ideal if we could predictively spawn an
 	// ability and then replace/link it with the server spawned one once the server has confirmed it.
@@ -1905,7 +1947,7 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 
 	for(int32 idx=0; idx < EnumBinds->NumEnums(); ++idx)
 	{
-		FString FullStr = EnumBinds->GetEnum(idx).ToString();
+		FString FullStr = EnumBinds->GetNameStringByIndex(idx);
 		FString BindStr;
 
 		FullStr.Split(TEXT("::"), nullptr, &BindStr);

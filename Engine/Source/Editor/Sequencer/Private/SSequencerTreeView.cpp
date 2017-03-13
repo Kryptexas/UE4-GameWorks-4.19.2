@@ -148,6 +148,7 @@ void SSequencerTreeView::Construct(const FArguments& InArgs, const TSharedRef<FS
 	bUpdatingSequencerSelection = false;
 	bUpdatingTreeSelection = false;
 	bSequencerSelectionChangeBroadcastWasSupressed = false;
+	bPhysicalNodesNeedUpdate = false;
 
 	// We 'leak' these delegates (they'll get cleaned up automatically when the invocation list changes)
 	// It's not safe to attempt their removal in ~SSequencerTreeView because SequencerNodeTree->GetSequencer() may not be valid
@@ -177,12 +178,17 @@ void SSequencerTreeView::Tick(const FGeometry& AllottedGeometry, const double In
 {
 	STreeView::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	
-	PhysicalNodes.Reset();
-	CachedRowGeometry.GenerateValueArray(PhysicalNodes);
+	// These are updated in both tick and paint since both calls can cause changes to the cached rows and the data needs
+	// to be kept synchronized so that external measuring calls get correct and reliable results.
+	if (bPhysicalNodesNeedUpdate)
+	{
+		PhysicalNodes.Reset();
+		CachedRowGeometry.GenerateValueArray(PhysicalNodes);
 
-	PhysicalNodes.Sort([](const FCachedGeometry& A, const FCachedGeometry& B){
-		return A.PhysicalTop < B.PhysicalTop;
-	});
+		PhysicalNodes.Sort([](const FCachedGeometry& A, const FCachedGeometry& B) {
+			return A.PhysicalTop < B.PhysicalTop;
+		});
+	}
 
 	HighlightRegion = TOptional<FHighlightRegion>();
 
@@ -213,6 +219,18 @@ void SSequencerTreeView::Tick(const FGeometry& AllottedGeometry, const double In
 int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	LayerId = STreeView::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	// These are updated in both tick and paint since both calls can cause changes to the cached rows and the data needs
+	// to be kept synchronized so that external measuring calls get correct and reliable results.
+	if (bPhysicalNodesNeedUpdate)
+	{
+		PhysicalNodes.Reset();
+		CachedRowGeometry.GenerateValueArray(PhysicalNodes);
+
+		PhysicalNodes.Sort([](const FCachedGeometry& A, const FCachedGeometry& B) {
+			return A.PhysicalTop < B.PhysicalTop;
+		});
+	}
 
 	if (HighlightRegion.IsSet())
 	{
@@ -294,11 +312,13 @@ void SSequencerTreeView::ReportChildRowGeometry(const FDisplayNodeRef& InNode, c
 	).Y;
 
 	CachedRowGeometry.Add(InNode, FCachedGeometry(InNode, ChildOffset, InGeometry.Size.Y));
+	bPhysicalNodesNeedUpdate = true;
 }
 
 void SSequencerTreeView::OnChildRowRemoved(const FDisplayNodeRef& InNode)
 {
 	CachedRowGeometry.Remove(InNode);
+	bPhysicalNodesNeedUpdate = true;
 }
 
 TSharedPtr<FSequencerDisplayNode> SSequencerTreeView::HitTestNode(float InPhysical) const

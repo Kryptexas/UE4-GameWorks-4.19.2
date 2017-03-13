@@ -25,14 +25,14 @@ namespace Tools.CrashReporter.CrashReportWebSite
 				new { controller = "Error", action = "Index", status = UrlParameter.Optional }
 			);
 
-			// Map Crashes/Show/Id to the show crash detail page
+			// Map Crashes/Show/Id to the show Crash detail page
 			Routes.MapRoute(
 				"Crashes",														// Route name
 				"Crashes/Show/{id}",											// URL with parameters
 				new { controller = "Crashes", action = "Show", id = 0 }			// Parameter defaults
 			);
 
-			// Map Buggs/Show/Id to the show crash detail page
+			// Map Buggs/Show/Id to the show Crash detail page
 			Routes.MapRoute(
 				"Buggs",														// Route name
 				"Buggs/Show/{id}",												// URL with parameters

@@ -295,10 +295,6 @@ public:
 
 	virtual float GetUniformPenumbraSize() const PURE_VIRTUAL(ULightComponent::GetUniformPenumbraSize,return 0;);
 
-	/**
-	 * Update/reset light GUIDs.
-	 */
-	virtual void UpdateLightGUIDs() override;
 
 	/**
 	 * Check whether a given primitive will cast shadows from this light.

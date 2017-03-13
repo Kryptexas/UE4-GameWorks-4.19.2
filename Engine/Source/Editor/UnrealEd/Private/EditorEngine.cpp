@@ -747,8 +747,7 @@ void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageRel
 			{
 				CompilingBlueprintsSlowTask.EnterProgressFrame(1.0f);
 
-				//FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintToRecompile, FPropertyChangedEvent(nullptr, EPropertyChangeType::Redirected));
-				FKismetEditorUtilities::CompileBlueprint(BlueprintToRecompile, /*bIsRegeneratingOnLoad*/false, /*bSkipGarbageCollection*/true);
+				FKismetEditorUtilities::CompileBlueprint(BlueprintToRecompile, EBlueprintCompileOptions::SkipGarbageCollection);
 			}
 		}
 		BlueprintsToRecompileThisBatch.Reset();
@@ -1533,6 +1532,11 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Skip updating reflection captures on the first update as the level will not be ready to display
 	if (!bFirstTick)
 	{
+		if (UReflectionCaptureComponent::MobileReflectionCapturesNeedForcedUpdate(EditorContext.World()))
+		{
+			UpdateReflectionCaptures();
+		}
+
 		// Update sky light first because sky diffuse will be visible in reflection capture indirect specular
 		USkyLightComponent::UpdateSkyCaptureContents(EditorContext.World());
 		UReflectionCaptureComponent::UpdateReflectionCaptureContents(EditorContext.World());
@@ -2730,15 +2734,11 @@ void UEditorEngine::ApplyDeltaToComponent(USceneComponent* InComponent,
 		{
 			if ( bDelta )
 			{
-				const FScaleMatrix ScaleMatrix( FVector( InDeltaScale.X , InDeltaScale.Y, InDeltaScale.Z ) );
-
-				FVector DeltaScale3D = ScaleMatrix.TransformPosition( InComponent->RelativeScale3D );
-				InComponent->SetRelativeScale3D(InComponent->RelativeScale3D + DeltaScale3D);
-
+				InComponent->SetRelativeScale3D(InComponent->RelativeScale3D + InDeltaScale);
 
 				FVector NewCompLocation = InComponent->RelativeLocation;
 				NewCompLocation -= PivotLocation;
-				NewCompLocation += ScaleMatrix.TransformPosition( NewCompLocation );
+				NewCompLocation += FScaleMatrix( InDeltaScale ).TransformPosition( NewCompLocation );
 				NewCompLocation += PivotLocation;
 				InComponent->SetRelativeLocation(NewCompLocation);
 			}
@@ -4103,7 +4103,8 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 
 	if (bForceLoadStringAssetReferences)
 	{
-		GRedirectCollector.ResolveStringAssetReference(Filename);
+		const FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
+		GRedirectCollector.ResolveStringAssetReference(PackageName);
 	}
 
 	UObject* Base = InBase;
@@ -7005,11 +7006,9 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 		}
 	}
 
-	//should really be wait until the map is properly loaded....in PIE or gameplay....
 	if (bNeedPieStart)
 	{
-		//TODO NICKD We need a better way to determine when to start the map.
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand);
 	}
 #endif
 	return;

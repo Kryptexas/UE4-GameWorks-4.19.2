@@ -7,27 +7,17 @@ using UnrealBuildTool;
 [SupportedPlatforms(UnrealPlatformClass.Editor)]
 public class ShaderCompileWorkerTarget : TargetRules
 {
-	public ShaderCompileWorkerTarget(TargetInfo Target)
+	public ShaderCompileWorkerTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Modular;
+
+		LaunchModuleName = "ShaderCompileWorker";
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(InType: UEBuildBinaryType.Executable,
-											InModuleNames: new List<string>() { "ShaderCompileWorker" })
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,
@@ -44,6 +34,7 @@ public class ShaderCompileWorkerTarget : TargetRules
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
 		UEBuildConfiguration.bBuildWithEditorOnlyData = true;
+		UEBuildConfiguration.bCompileCEF3 = false;
 
 		// Never use malloc profiling in ShaderCompileWorker.
 		BuildConfiguration.bUseMallocProfiler = false;

@@ -78,15 +78,6 @@ class ENGINE_API ADefaultPawn : public APawn
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Pawn")
 	float BaseLookUpRate;
 
-private:
-	/** Input callback on pitch (look up) input. */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DeprecatedFunction, DeprecationMessage="Use Pawn.AddControllerPitchInput instead."))
-	virtual void LookUp(float Val);
-
-	/** Input callback on yaw (turn) input. */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DeprecatedFunction, DeprecationMessage="Use Pawn.AddControllerYawInput instead."))
-	virtual void Turn(float Val);
-
 public:
 	/** Name of the MovementComponent.  Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
 	static FName MovementComponentName;

@@ -176,6 +176,7 @@
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialExpressionVertexColor.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
 #include "Materials/MaterialExpressionViewProperty.h"
 #include "Materials/MaterialExpressionViewSize.h"
@@ -1425,8 +1426,8 @@ static bool VerifySamplerType(
 			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
-			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
-			FString TextureTypeDisplayName = SamplerTypeEnum->GetEnumText(CorrectSamplerType).ToString();
+			FString SamplerTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(SamplerType).ToString();
+			FString TextureTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(CorrectSamplerType).ToString();
 
 			Compiler->Errorf( TEXT("%s> Sampler type is %s, should be %s for %s"),
 				ExpressionDesc,
@@ -1440,7 +1441,7 @@ static bool VerifySamplerType(
 			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
-			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
+			FString SamplerTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(SamplerType).ToString();
 
 			Compiler->Errorf( TEXT("%s> To use '%s' as sampler type, SRGB must be disabled for %s"),
 				ExpressionDesc,
@@ -2007,7 +2008,7 @@ void UMaterialExpressionTextureProperty::GetCaption(TArray<FString>& OutCaptions
 	const UEnum* TexturePropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedTextureProperty"));
 	check(TexturePropertyEnum);
 
-	const FString PropertyDisplayName = TexturePropertyEnum->GetDisplayNameText(Property).ToString();
+	const FString PropertyDisplayName = TexturePropertyEnum->GetDisplayNameTextByValue(Property).ToString();
 #else
 	const FString PropertyDisplayName = TEXT("");
 #endif
@@ -2811,6 +2812,11 @@ int32 UMaterialExpressionSaturate::Compile(class FMaterialCompiler* Compiler, in
 void UMaterialExpressionSaturate::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Saturate"));
+}
+
+void UMaterialExpressionSaturate::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Clamps the value between 0 and 1. Saturate is free on most modern graphics hardware."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -3655,6 +3661,11 @@ void UMaterialExpressionArcsine::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Arcsine"));
 }
+
+void UMaterialExpressionArcsine::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse sine function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3693,6 +3704,11 @@ int32 UMaterialExpressionArcsineFast::Compile(class FMaterialCompiler* Compiler,
 void UMaterialExpressionArcsineFast::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("ArcsineFast"));
+}
+
+void UMaterialExpressionArcsineFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse sine function. Input must be between -1 and 1."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -3733,6 +3749,11 @@ void UMaterialExpressionArccosine::GetCaption(TArray<FString>& OutCaptions) cons
 {
 	OutCaptions.Add(TEXT("Arccosine"));
 }
+
+void UMaterialExpressionArccosine::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse cosine function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3771,6 +3792,11 @@ int32 UMaterialExpressionArccosineFast::Compile(class FMaterialCompiler* Compile
 void UMaterialExpressionArccosineFast::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("ArccosineFast"));
+}
+
+void UMaterialExpressionArccosineFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse cosine function. Input must be between -1 and 1."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -3811,6 +3837,11 @@ void UMaterialExpressionArctangent::GetCaption(TArray<FString>& OutCaptions) con
 {
 	OutCaptions.Add(TEXT("Arctangent"));
 }
+
+void UMaterialExpressionArctangent::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse tangent function. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3849,6 +3880,11 @@ int32 UMaterialExpressionArctangentFast::Compile(class FMaterialCompiler* Compil
 void UMaterialExpressionArctangentFast::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("ArctangentFast"));
+}
+
+void UMaterialExpressionArctangentFast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse tangent function."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -3891,6 +3927,11 @@ void UMaterialExpressionArctangent2::GetCaption(TArray<FString>& OutCaptions) co
 {
 	OutCaptions.Add(TEXT("Arctangent2"));
 }
+
+void UMaterialExpressionArctangent2::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Inverse tangent of X / Y where input signs are used to determine quadrant. This is an expensive operation not reflected by instruction count."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -3931,6 +3972,11 @@ int32 UMaterialExpressionArctangent2Fast::Compile(class FMaterialCompiler* Compi
 void UMaterialExpressionArctangent2Fast::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Arctangent2Fast"));
+}
+
+void UMaterialExpressionArctangent2Fast::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Approximate inverse tangent of X / Y where input signs are used to determine quadrant."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -4663,9 +4709,6 @@ int32 UMaterialExpressionBlendMaterialAttributes::Compile(class FMaterialCompile
 {
 	const FGuid AttributeID = Compiler->GetMaterialAttribute();
 
-	int32 ResultA = A.CompileWithDefault(Compiler, AttributeID);
-	int32 ResultB = B.CompileWithDefault(Compiler, AttributeID);
-
 	// Blending is optional, can skip on a per-node basis
 	EMaterialAttributeBlend::Type BlendType;
 	EShaderFrequency AttributeFrequency = FMaterialAttributeDefinitionMap::GetShaderFrequency(AttributeID);
@@ -4682,13 +4725,15 @@ int32 UMaterialExpressionBlendMaterialAttributes::Compile(class FMaterialCompile
 
 	switch (BlendType)
 	{
-	case EMaterialAttributeBlend::UseA: return ResultA;
-	case EMaterialAttributeBlend::UseB: return ResultB;
+	case EMaterialAttributeBlend::UseA: return A.CompileWithDefault(Compiler, AttributeID);
+	case EMaterialAttributeBlend::UseB: return B.CompileWithDefault(Compiler, AttributeID);
 	default:
 		check(BlendType == EMaterialAttributeBlend::Blend);
 	}
 
 	// Allow custom blends or fallback to standard interpolation
+	int32 ResultA = A.CompileWithDefault(Compiler, AttributeID);
+	int32 ResultB = B.CompileWithDefault(Compiler, AttributeID);
 	int32 ResultAlpha = Alpha.Compile(Compiler);
 
 	MaterialAttributeBlendFunction BlendFunction = FMaterialAttributeDefinitionMap::GetBlendFunction(AttributeID);
@@ -4859,6 +4904,11 @@ void UMaterialExpressionRound::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Round"));
 }
+
+void UMaterialExpressionRound::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Rounds the value up to the next whole number if the fractional part is greater than or equal to half, else rounds down."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 //
@@ -4896,6 +4946,11 @@ int32 UMaterialExpressionTruncate::Compile(class FMaterialCompiler* Compiler, in
 void UMaterialExpressionTruncate::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Truncate"));
+}
+
+void UMaterialExpressionTruncate::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Truncates a value by discarding the fractional part."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -5520,6 +5575,11 @@ int32 UMaterialExpressionPreviousFrameSwitch::Compile(class FMaterialCompiler* C
 void UMaterialExpressionPreviousFrameSwitch::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(FString(TEXT("PreviousFrameSwitch")));
+}
+
+void UMaterialExpressionPreviousFrameSwitch::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Used to manually provide expressions for motion vector generation caused by changes in world position offset between frames."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -6278,7 +6338,7 @@ void UMaterialExpressionScreenPosition::GetCaption(TArray<FString>& OutCaptions)
 	const UEnum* ScreenPositionMappingEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExpressionScreenPositionMapping"));
 	check(ScreenPositionMappingEnum);
 
-	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameText(Mapping).ToString();
+	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameTextByValue(Mapping).ToString();
 	OutCaptions.Add(MappingDisplayName);
 #endif
 	OutCaptions.Add(TEXT("ScreenPosition"));
@@ -6325,7 +6385,7 @@ void UMaterialExpressionViewProperty::GetCaption(TArray<FString>& OutCaptions) c
 	const UEnum* ViewPropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedViewProperty"));
 	check(ViewPropertyEnum);
 
-	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameText(Property).ToString();
+	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameTextByValue(Property).ToString();
 #else
 	const FString PropertyDisplayName = TEXT("");
 #endif
@@ -6558,7 +6618,7 @@ FString UMaterialExpressionSceneDepth::GetInputName(int32 InputIndex) const
 	{
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneDepth::StaticClass(), "InputMode" );
-		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
+		return InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
 	}
 	return TEXT("");
 }
@@ -6631,7 +6691,7 @@ int32 UMaterialExpressionSceneTexture::Compile(class FMaterialCompiler* Compiler
 		return Compiler->SceneTextureSize(SceneTextureId, OutputIndex == 2);
 	}
 
-	return Compiler->Errorf(TEXT("Invalid intput parameter"));
+	return Compiler->Errorf(TEXT("Invalid input parameter"));
 }
 
 void UMaterialExpressionSceneTexture::GetCaption(TArray<FString>& OutCaptions) const
@@ -6640,15 +6700,7 @@ void UMaterialExpressionSceneTexture::GetCaption(TArray<FString>& OutCaptions) c
 
 	check(Enum);
 
-#if WITH_EDITOR
-	FString Name = Enum->GetDisplayNameText(SceneTextureId).ToString();
-#else
-	FString Name = TEXT("");
-#endif
-	if(Name.IsEmpty())
-	{
-		Name = Enum->GetEnumName(SceneTextureId);
-	}
+	FString Name = Enum->GetDisplayNameTextByValue(SceneTextureId).ToString();
 
 	OutCaptions.Add(FString(TEXT("SceneTexture:")) + Name);
 }
@@ -6822,7 +6874,7 @@ FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
 	{
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneColor::StaticClass(), "InputMode" );
-		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
+		return InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
 	}
 	return TEXT("");
 }
@@ -7038,15 +7090,15 @@ int32 UMaterialExpressionTransform::Compile(class FMaterialCompiler* Compiler, i
 void UMaterialExpressionTransform::GetCaption(TArray<FString>& OutCaptions) const
 {
 #if WITH_EDITOR
-	const UEnum* MVCTSEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialVectorCoordTransformSource"));
-	const UEnum* MVCTEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialVectorCoordTransform"));
+	const UEnum* MVCTSEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialVectorCoordTransformSource"));
+	const UEnum* MVCTEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialVectorCoordTransform"));
 	check(MVCTSEnum);
 	check(MVCTEnum);
 	
 	FString TransformDesc;
-	TransformDesc += MVCTSEnum->GetDisplayNameText(TransformSourceType).ToString();
+	TransformDesc += MVCTSEnum->GetDisplayNameTextByValue(TransformSourceType).ToString();
 	TransformDesc += TEXT(" to ");
-	TransformDesc += MVCTEnum->GetDisplayNameText(TransformType).ToString();
+	TransformDesc += MVCTEnum->GetDisplayNameTextByValue(TransformType).ToString();
 	OutCaptions.Add(TransformDesc);
 #else
 	OutCaptions.Add(TEXT(""));
@@ -7140,13 +7192,13 @@ int32 UMaterialExpressionTransformPosition::Compile(class FMaterialCompiler* Com
 void UMaterialExpressionTransformPosition::GetCaption(TArray<FString>& OutCaptions) const
 {
 #if WITH_EDITOR
-	const UEnum* MPTSEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialPositionTransformSource"));
+	const UEnum* MPTSEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialPositionTransformSource"));
 	check(MPTSEnum);
 	
 	FString TransformDesc;
-	TransformDesc += MPTSEnum->GetDisplayNameText(TransformSourceType).ToString();
+	TransformDesc += MPTSEnum->GetDisplayNameTextByValue(TransformSourceType).ToString();
 	TransformDesc += TEXT(" to ");
-	TransformDesc += MPTSEnum->GetDisplayNameText(TransformType).ToString();
+	TransformDesc += MPTSEnum->GetDisplayNameTextByValue(TransformType).ToString();
 	OutCaptions.Add(TransformDesc);
 #else
 	OutCaptions.Add(TEXT(""));
@@ -11968,6 +12020,87 @@ void UMaterialExpressionClearCoatNormalCustomOutput::GetCaption(TArray<FString>&
 #endif // WITH_EDITOR
 
 FExpressionInput* UMaterialExpressionClearCoatNormalCustomOutput::GetInput(int32 InputIndex)
+{
+	return &Input;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Vertex to pixel interpolated data handler
+///////////////////////////////////////////////////////////////////////////////
+
+UMaterialExpressionVertexInterpolator::UMaterialExpressionVertexInterpolator(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT("PS"), 0, 0, 0, 0, 0));
+	bShowOutputNameOnPin = true;
+
+	InterpolatorIndex = INDEX_NONE;
+	InterpolatedType = MCT_Unknown;
+	InterpolatorOffset = INDEX_NONE;
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionVertexInterpolator::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if (Input.Expression)
+	{
+		if (InterpolatorIndex == INDEX_NONE || InterpolatorOffset != INDEX_NONE)
+		{
+			return Compiler->Errorf(TEXT("Failed interpolator pre-compile or recursively post-compiled."));
+		}
+		else
+		{
+			return Compiler->VertexInterpolator(InterpolatorIndex);
+		}
+	}
+	else
+	{
+		return CompilerError(Compiler, TEXT("Input missing"));
+	}
+}
+
+int32 UMaterialExpressionVertexInterpolator::CompileInput(class FMaterialCompiler* Compiler, int32 AssignedInterpolatorIndex)
+{
+	int32 Ret = INDEX_NONE;
+	InterpolatorIndex = INDEX_NONE;
+	InterpolatedType = MCT_Unknown;
+	InterpolatorOffset = INDEX_NONE;
+
+	if (Input.Expression)
+	{
+		int32 InternalCode = Input.Compile(Compiler);
+		Compiler->CustomOutput(this, AssignedInterpolatorIndex, InternalCode);
+		InterpolatorIndex = AssignedInterpolatorIndex;
+		InterpolatedType = Compiler->GetType(InternalCode);
+		Ret = InternalCode;
+	}
+
+	return Ret;
+}
+
+void UMaterialExpressionVertexInterpolator::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString(TEXT("VertexInterpolator")));
+}
+#endif // WITH_EDITOR
+
+FExpressionInput* UMaterialExpressionVertexInterpolator::GetInput(int32 InputIndex)
 {
 	return &Input;
 }

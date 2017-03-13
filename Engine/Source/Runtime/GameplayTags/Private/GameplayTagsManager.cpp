@@ -796,17 +796,45 @@ static void RecursiveRootTagSearch(const FString& InFilterString, const TArray<T
 
 void UGameplayTagsManager::GetFilteredGameplayRootTags(const FString& InFilterString, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray) const
 {
+	TArray<FString> PreRemappedFilters;
 	TArray<FString> Filters;
 	TArray<TSharedPtr<FGameplayTagNode>>& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
 
 	OutTagArray.Empty();
-	if( InFilterString.ParseIntoArray( Filters, TEXT( "," ), true ) > 0 )
+	if( InFilterString.ParseIntoArray( PreRemappedFilters, TEXT( "," ), true ) > 0 )
 	{
+		const UGameplayTagsSettings* CDO = GetDefault<UGameplayTagsSettings>();
+		for (FString& Str : PreRemappedFilters)
+		{
+			bool Remapped = false;
+			for (const FGameplayTagCategoryRemap& RemapInfo : CDO->CategoryRemapping)
+			{
+				if (RemapInfo.BaseCategory == Str)
+				{
+					Remapped = true;
+					Filters.Append(RemapInfo.RemapCategories);
+				}
+			}
+			if (Remapped == false)
+			{
+				Filters.Add(Str);
+			}
+		}		
+
 		// Check all filters in the list
 		for (int32 iFilter = 0; iFilter < Filters.Num(); ++iFilter)
 		{
 			RecursiveRootTagSearch(Filters[iFilter], GameplayRootTags, OutTagArray);
 		}
+
+		if (OutTagArray.Num() == 0)
+		{
+			// We had filters but nothing matched. Ignore the filters.
+			// This makes sense to do with engine level filters that games can optionally specify/override.
+			// We never want to impose tag structure on projects, but still give them the ability to do so for their project.
+			OutTagArray = GameplayRootTags;
+		}
+
 	}
 	else
 	{

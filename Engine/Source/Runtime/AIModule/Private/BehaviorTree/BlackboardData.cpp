@@ -134,11 +134,6 @@ void UBlackboardData::PostLoad()
 }
 
 #if WITH_EDITOR
-void UBlackboardData::PreEditChange(class FEditPropertyChain& PropertyAboutToChange)
-{
-	Super::PreEditChange(PropertyAboutToChange);
-}
-
 void UBlackboardData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	static const FName NAME_Parent = GET_MEMBER_NAME_CHECKED(UBlackboardData, Parent);

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class elftoolchain : ModuleRules
 {
-	public elftoolchain(TargetInfo Target)
+	public elftoolchain(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

@@ -31,7 +31,7 @@ namespace Audio
 		}
 	}
 
-	void FWaveTableOsc::Init(const int32 InSampleRate, const float InFrequencyHz)
+	void FWaveTableOsc::Init(const float InSampleRate, const float InFrequencyHz)
 	{
 		SampleRate = InSampleRate;
 		FrequencyHz = InFrequencyHz;
@@ -40,7 +40,7 @@ namespace Audio
 		UpdateFrequency();
 	}
 
-	void FWaveTableOsc::SetSampleRate(const int32 InSampleRate)
+	void FWaveTableOsc::SetSampleRate(const float InSampleRate)
 	{
 		SampleRate = InSampleRate;
 		UpdateFrequency();
@@ -73,7 +73,7 @@ namespace Audio
 		PhaseIncrement = (float)WaveTableBufferSize * FrequencyHz / (float)SampleRate;
 	}
 
-	void FWaveTableOsc::ProcessAudio(float* OutputNormalPhase, float* OutputQuadPhase)
+	void FWaveTableOsc::Generate(float* OutputNormalPhase, float* OutputQuadPhase)
 	{
 		const int32 NormPhaseReadIndexPrev = (int32)NormalPhaseReadIndex;
 		const float Alpha = NormalPhaseReadIndex - NormPhaseReadIndexPrev;

@@ -858,11 +858,11 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 					UAnimSequenceBase * SequenceBase = Cast<UAnimSequenceBase>(AnimAsset);
 					if (SequenceBase)
 					{
-						EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, SequenceBase, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
+						EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, SequenceBase, USkeleton::AnimCurveMappingName, ERawCurveTrackTypes::RCT_Float);
 						
 						if (UAnimSequence * Sequence = Cast<UAnimSequence>(SequenceBase))
 						{
-							EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, Sequence, USkeleton::AnimTrackCurveMappingName, FRawCurveTracks::TransformType);
+							EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, Sequence, USkeleton::AnimTrackCurveMappingName, ERawCurveTrackTypes::RCT_Transform);
 						}
 					}
 					
@@ -882,10 +882,8 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 		UAnimBlueprint * AnimBlueprint = (*AnimBPIter);
 		AnimBlueprint->TargetSkeleton = NewSkeleton;
 		
-		bool bIsRegeneratingOnLoad = false;
-		bool bSkipGarbageCollection = true;
 		FBlueprintEditorUtils::RefreshAllNodes(AnimBlueprint);
-		FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+		FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 	}
 
 	// Copy sockets IF the socket doesn't exists on target skeleton and if the joint exists

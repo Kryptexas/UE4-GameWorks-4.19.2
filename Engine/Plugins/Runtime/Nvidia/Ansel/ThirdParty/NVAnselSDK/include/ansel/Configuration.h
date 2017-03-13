@@ -28,11 +28,24 @@
 #pragma once
 #include <ansel/Defines.h>
 #include <ansel/Session.h>
+#include <ansel/Version.h>
 #include <nv/Vec3.h>
 #include <stdint.h>
 
 namespace ansel
 {
+    enum SetConfigurationStatus
+    {
+        // successfully initialized the Ansel SDK
+        kSetConfigurationSuccess,
+        // the version provided in the Configuration structure is not the same as the one stored inside the SDK binary (header/binary mismatch)
+        kSetConfigurationIncompatibleVersion,
+        // the Configuration structure supplied for the setConfiguration call is not consistent
+        kSetConfigurationIncorrectConfiguration,
+        // the Ansel SDK is delay loaded and setConfiguration is called before the SDK is actually loaded
+        kSetConfigurationSdkNotLoaded
+    };
+
     enum FovType
     {
         kHorizontalFov,
@@ -110,6 +123,8 @@ namespace ansel
         bool isFilterOutsideSessionAllowed;
         // Integration allows the game to disable EXR explicitly
         bool isExrSupported;
+        // Holds the sdk version, doesn't require modifications
+        uint64_t sdkVersion;
 
         Configuration()
         {
@@ -141,14 +156,18 @@ namespace ansel
             stopCaptureCallback = nullptr;
             isFilterOutsideSessionAllowed = true;
             isExrSupported = false;
+            sdkVersion = ANSEL_SDK_VERSION;
         }
     };
 
     // Called during startup by the game. See 'Configuration' for further documentation.
-    ANSEL_SDK_API void setConfiguration(const Configuration& cfg);
+    ANSEL_SDK_API SetConfigurationStatus setConfiguration(const Configuration& cfg);
 
-    // Can be called *after* D3D device has been  created to see if Ansel is available.
+    // Can be called *after* D3D device has been created to see if Ansel is available.
     // If called prior to D3D device creation it will always return false.
+    // Can be called *before* calling setConfiguration in which case it'll return true if Ansel is potentially available, otherwise false.
+    // If setConfiguration fails for any reason this function will return false (even if Ansel would be available otherwise)
+    // until a successfull call to setConfiguration has been made.
     ANSEL_SDK_API bool isAnselAvailable();
 }
 

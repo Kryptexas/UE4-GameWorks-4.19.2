@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Vulkan : ModuleRules
 {
-	public Vulkan(TargetInfo Target)
+	public Vulkan(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 		

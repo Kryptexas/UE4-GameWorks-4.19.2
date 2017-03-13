@@ -31,3 +31,4 @@ DEFINE_STAT(STAT_ApplyGameplayEffectToTarget);
 DEFINE_STAT(STAT_OnActiveGameplayEffectAdded);
 DEFINE_STAT(STAT_OnActiveGameplayEffectRemoved);
 DEFINE_STAT(STAT_GameplayCueInterface_HandleGameplayCue);
+DEFINE_STAT(STAT_AbilitySystem_TaskCount);

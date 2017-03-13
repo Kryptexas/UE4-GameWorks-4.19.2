@@ -24,6 +24,7 @@
 #include "HAL/PlatformFilemanager.h"
 #include "Utils.h"
 #include "Engine/CurveTable.h"
+#include "Misc/PackageName.h"
 
 #define LOCTEXT_NAMESPACE "SFacialAnimationBulkImporter"
 
@@ -188,7 +189,11 @@ FReply SFacialAnimationBulkImporter::HandleImportClicked()
 					FString PartialPath = CurrentDirectory.RightChop(FacialAnimationBulkImporterSettings->SourceImportPath.Path.Len());
 					FString TargetPackageName = FacialAnimationBulkImporterSettings->TargetImportPath.Path / PartialPath / TargetAssetName;
 
-					ItemsToImport.Add({ FbxFilename, WaveFilename, TargetPackageName, TargetAssetName });
+					FString Filename;
+					if (FPackageName::TryConvertLongPackageNameToFilename(TargetPackageName, Filename))
+					{
+						ItemsToImport.Add({ FbxFilename, WaveFilename, TargetPackageName, TargetAssetName });
+					}
 				}
 			}
 			return true;

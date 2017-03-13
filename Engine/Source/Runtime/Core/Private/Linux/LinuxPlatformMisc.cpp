@@ -86,12 +86,6 @@ bool FLinuxPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 	return true;
 }
 
-const TCHAR* FLinuxPlatformMisc::RootDir()
-{
-	const TCHAR* TrueRootDir = FGenericPlatformMisc::RootDir();
-	return TrueRootDir;
-}
-
 void FLinuxPlatformMisc::NormalizePath(FString& InPath)
 {
 	// only expand if path starts with ~, e.g. ~/ should be expanded, /~ should not

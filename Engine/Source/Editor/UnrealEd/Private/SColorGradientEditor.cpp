@@ -151,7 +151,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 		FGeometry GradientAreaGeometry = AllottedGeometry.MakeChild( FVector2D(0.0f, 16.0f), FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y - 30.0f ) );
 
 		bool bEnabled = ShouldBeEnabled( bParentEnabled );
-		ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+		ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 		// Pixel to value input converter
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, GradientAreaGeometry.Size);
@@ -689,7 +689,7 @@ void SColorGradientEditor::OnSetGradientStopTimeFromPopup( const FText& NewText,
 	}
 }
 
-void SColorGradientEditor::DrawGradientStopMark( const FGradientStopMark& Mark, const FGeometry& Geometry, float XPos, const FLinearColor& Color, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, bool bColor, const FWidgetStyle& InWidgetStyle ) const
+void SColorGradientEditor::DrawGradientStopMark( const FGradientStopMark& Mark, const FGeometry& Geometry, float XPos, const FLinearColor& Color, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FSlateRect& InClippingRect, ESlateDrawEffect DrawEffects, bool bColor, const FWidgetStyle& InWidgetStyle ) const
 {
 	static const FSlateBrush* WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
 	static const FSlateBrush* ColorStopBrush = FEditorStyle::GetBrush("Sequencer.Timeline.ScrubHandleDown");

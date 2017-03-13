@@ -8,29 +8,55 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// Exception thrown for errors parsing JSON files
+	/// </summary>
 	public class JsonParseException : Exception
 	{
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Format">Format string</param>
+		/// <param name="Args">Optional arguments</param>
 		public JsonParseException(string Format, params object[] Args)
 			: base(String.Format(Format, Args))
 		{
 		}
 	}
 
+	/// <summary>
+	/// Stores a JSON object in memory
+	/// </summary>
 	public class JsonObject
 	{
 		Dictionary<string, object> RawObject;
 
+		/// <summary>
+		/// Construct a JSON object from the raw string -> object dictionary
+		/// </summary>
+		/// <param name="InRawObject">Raw object parsed from disk</param>
 		public JsonObject(Dictionary<string, object> InRawObject)
 		{
 			RawObject = new Dictionary<string, object>(InRawObject, StringComparer.InvariantCultureIgnoreCase);
 		}
 
+		/// <summary>
+		/// Read a JSON file from disk and construct a JsonObject from it
+		/// </summary>
+		/// <param name="FileName">File to read from</param>
+		/// <returns>New JsonObject instance</returns>
 		public static JsonObject Read(string FileName)
 		{
 			string Text = File.ReadAllText(FileName);
 			return Parse(Text);
 		}
 
+		/// <summary>
+		/// Tries to read a JSON file from disk
+		/// </summary>
+		/// <param name="FileName">File to read from</param>
+		/// <param name="Result">On success, receives the parsed object</param>
+		/// <returns>True if the file was read, false otherwise</returns>
 		public static bool TryRead(string FileName, out JsonObject Result)
 		{
 			if (!File.Exists(FileName))
@@ -43,12 +69,23 @@ namespace UnrealBuildTool
 			return TryParse(Text, out Result);
 		}
 
+		/// <summary>
+		/// Parse a JsonObject from the given raw text string
+		/// </summary>
+		/// <param name="Text">The text to parse</param>
+		/// <returns>New JsonObject instance</returns>
 		public static JsonObject Parse(string Text)
 		{
 			Dictionary<string, object> CaseSensitiveRawObject = (Dictionary<string, object>)fastJSON.JSON.Instance.Parse(Text);
 			return new JsonObject(CaseSensitiveRawObject);
 		}
 
+		/// <summary>
+		/// Try to parse a JsonObject from the given raw text string
+		/// </summary>
+		/// <param name="Text">The text to parse</param>
+		/// <param name="Result">On success, receives the new JsonObject</param>
+		/// <returns>True if the object was parsed</returns>
 		public static bool TryParse(string Text, out JsonObject Result)
 		{
 			try
@@ -63,11 +100,19 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// List of key names in this object
+		/// </summary>
 		public IEnumerable<string> KeyNames
 		{
 			get { return RawObject.Keys; }
 		}
 
+		/// <summary>
+		/// Gets a string field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
 		public string GetStringField(string FieldName)
 		{
 			string StringValue;
@@ -78,6 +123,12 @@ namespace UnrealBuildTool
 			return StringValue;
 		}
 
+		/// <summary>
+		/// Tries to read a string field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetStringField(string FieldName, out string Result)
 		{
 			object RawValue;
@@ -93,6 +144,11 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Gets a string array field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
 		public string[] GetStringArrayField(string FieldName)
 		{
 			string[] StringValues;
@@ -103,6 +159,12 @@ namespace UnrealBuildTool
 			return StringValues;
 		}
 
+		/// <summary>
+		/// Tries to read a string array field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetStringArrayField(string FieldName, out string[] Result)
 		{
 			object RawValue;
@@ -118,6 +180,11 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Gets a boolean field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
 		public bool GetBoolField(string FieldName)
 		{
 			bool BoolValue;
@@ -128,6 +195,12 @@ namespace UnrealBuildTool
 			return BoolValue;
 		}
 
+		/// <summary>
+		/// Tries to read a bool field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetBoolField(string FieldName, out bool Result)
 		{
 			object RawValue;
@@ -143,6 +216,11 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Gets an integer field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
 		public int GetIntegerField(string FieldName)
 		{
 			int IntegerValue;
@@ -153,6 +231,12 @@ namespace UnrealBuildTool
 			return IntegerValue;
 		}
 
+		/// <summary>
+		/// Tries to read an integer field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetIntegerField(string FieldName, out int Result)
 		{
 			object RawValue;
@@ -164,6 +248,12 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		/// <summary>
+		/// Tries to read an unsigned integer field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetUnsignedIntegerField(string FieldName, out uint Result)
 		{
 			object RawValue;
@@ -175,6 +265,11 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		/// <summary>
+		/// Gets a double field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
 		public double GetDoubleField(string FieldName)
 		{
 			double DoubleValue;
@@ -185,6 +280,12 @@ namespace UnrealBuildTool
 			return DoubleValue;
 		}
 
+		/// <summary>
+		/// Tries to read a double field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetDoubleField(string FieldName, out double Result)
 		{
 			object RawValue;
@@ -196,6 +297,11 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		/// <summary>
+		/// Gets an enum field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
 		public T GetEnumField<T>(string FieldName) where T : struct
 		{
 			T EnumValue;
@@ -206,6 +312,12 @@ namespace UnrealBuildTool
 			return EnumValue;
 		}
 
+		/// <summary>
+		/// Tries to read an enum field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetEnumField<T>(string FieldName, out T Result) where T : struct
 		{
 			string StringValue;
@@ -217,6 +329,12 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		/// <summary>
+		/// Tries to read an enum array field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetEnumArrayField<T>(string FieldName, out T[] Result) where T : struct
 		{
 			string[] StringValues;
@@ -240,6 +358,11 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		/// <summary>
+		/// Gets an object field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
 		public JsonObject GetObjectField(string FieldName)
 		{
 			JsonObject Result;
@@ -250,6 +373,12 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
+		/// <summary>
+		/// Tries to read an object field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetObjectField(string FieldName, out JsonObject Result)
 		{
 			object RawValue;
@@ -265,6 +394,27 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Gets an object array field by the given name from the object, throwing an exception if it is not there or cannot be parsed.
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <returns>The field value</returns>
+		public JsonObject[] GetObjectArrayField(string FieldName)
+		{
+			JsonObject[] Result;
+			if (!TryGetObjectArrayField(FieldName, out Result))
+			{
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
+			}
+			return Result;
+		}
+
+		/// <summary>
+		/// Tries to read an object array field by the given name from the object
+		/// </summary>
+		/// <param name="FieldName">Name of the field to get</param>
+		/// <param name="Result">On success, receives the field value</param>
+		/// <returns>True if the field could be read, false otherwise</returns>
 		public bool TryGetObjectArrayField(string FieldName, out JsonObject[] Result)
 		{
 			object RawValue;
@@ -281,23 +431,52 @@ namespace UnrealBuildTool
 		}
 	}
 
+	/// <summary>
+	/// Writer for JSON data, which indents the output text appropriately, and adds commas and newlines between fields
+	/// </summary>
 	public class JsonWriter : IDisposable
 	{
-		StreamWriter Writer;
+		TextWriter Writer;
+		bool bLeaveOpen;
 		bool bRequiresComma;
 		string Indent;
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="FileName">File to write to</param>
 		public JsonWriter(string FileName)
+			: this(new StreamWriter(FileName))
 		{
-			Writer = new StreamWriter(FileName);
+		}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Writer">The text writer to output to</param>
+		/// <param name="bLeaveOpen">Whether to leave the writer open when the object is disposed</param>
+		public JsonWriter(TextWriter Writer, bool bLeaveOpen = false)
+		{
+			this.Writer = Writer;
+			this.bLeaveOpen = bLeaveOpen;
 			Indent = "";
 		}
 
+		/// <summary>
+		/// Dispose of any managed resources
+		/// </summary>
 		public void Dispose()
 		{
-			Writer.Dispose();
+			if(!bLeaveOpen && Writer != null)
+			{
+				Writer.Dispose();
+				Writer = null;
+			}
 		}
 
+		/// <summary>
+		/// Write the opening brace for an object
+		/// </summary>
 		public void WriteObjectStart()
 		{
 			WriteCommaNewline();
@@ -309,6 +488,10 @@ namespace UnrealBuildTool
 			bRequiresComma = false;
 		}
 
+		/// <summary>
+		/// Write the name and opening brace for an object
+		/// </summary>
+		/// <param name="ObjectName">Name of the field</param>
 		public void WriteObjectStart(string ObjectName)
 		{
 			WriteCommaNewline();
@@ -320,6 +503,9 @@ namespace UnrealBuildTool
 			WriteObjectStart();
 		}
 
+		/// <summary>
+		/// Write the closing brace for an object
+		/// </summary>
 		public void WriteObjectEnd()
 		{
 			Indent = Indent.Substring(0, Indent.Length - 1);
@@ -331,6 +517,10 @@ namespace UnrealBuildTool
 			bRequiresComma = true;
 		}
 
+		/// <summary>
+		/// Write the name and opening bracket for an array
+		/// </summary>
+		/// <param name="ArrayName">Name of the field</param>
 		public void WriteArrayStart(string ArrayName)
 		{
 			WriteCommaNewline();
@@ -342,6 +532,9 @@ namespace UnrealBuildTool
 			bRequiresComma = false;
 		}
 
+		/// <summary>
+		/// Write the closing bracket for an array
+		/// </summary>
 		public void WriteArrayEnd()
 		{
 			Indent = Indent.Substring(0, Indent.Length - 1);
@@ -352,6 +545,10 @@ namespace UnrealBuildTool
 			bRequiresComma = true;
 		}
 
+		/// <summary>
+		/// Write a value with no field name, for the contents of an array
+		/// </summary>
+		/// <param name="Value">Value to write</param>
 		public void WriteValue(string Value)
 		{
 			WriteCommaNewline();
@@ -362,6 +559,11 @@ namespace UnrealBuildTool
 			bRequiresComma = true;
 		}
 
+		/// <summary>
+		/// Write a field name and string value
+		/// </summary>
+		/// <param name="Name">Name of the field</param>
+		/// <param name="Value">Value for the field</param>
 		public void WriteValue(string Name, string Value)
 		{
 			WriteCommaNewline();
@@ -372,16 +574,31 @@ namespace UnrealBuildTool
 			bRequiresComma = true;
 		}
 
+		/// <summary>
+		/// Write a field name and integer value
+		/// </summary>
+		/// <param name="Name">Name of the field</param>
+		/// <param name="Value">Value for the field</param>
 		public void WriteValue(string Name, int Value)
 		{
 			WriteValueInternal(Name, Value.ToString());
 		}
 
+		/// <summary>
+		/// Write a field name and double value
+		/// </summary>
+		/// <param name="Name">Name of the field</param>
+		/// <param name="Value">Value for the field</param>
 		public void WriteValue(string Name, double Value)
 		{
 			WriteValueInternal(Name, Value.ToString());
 		}
 
+		/// <summary>
+		/// Write a field name and bool value
+		/// </summary>
+		/// <param name="Name">Name of the field</param>
+		/// <param name="Value">Value for the field</param>
 		public void WriteValue(string Name, bool Value)
 		{
 			WriteValueInternal(Name, Value ? "true" : "false");

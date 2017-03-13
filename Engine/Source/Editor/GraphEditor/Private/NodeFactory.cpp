@@ -84,19 +84,19 @@
 #include "AnimationPins/SGraphPinPose.h"
 
 #include "KismetPins/SGraphPinBool.h"
-#include "KismetPins/SGraphPinString.h"
+#include "SGraphPinString.h"
 #include "KismetPins/SGraphPinText.h"
-#include "KismetPins/SGraphPinObject.h"
+#include "SGraphPinObject.h"
 #include "KismetPins/SGraphPinClass.h"
 #include "KismetPins/SGraphPinExec.h"
-#include "KismetPins/SGraphPinNum.h"
-#include "KismetPins/SGraphPinInteger.h"
-#include "KismetPins/SGraphPinColor.h"
+#include "SGraphPinNum.h"
+#include "SGraphPinInteger.h"
+#include "SGraphPinColor.h"
 #include "KismetPins/SGraphPinEnum.h"
 #include "KismetPins/SGraphPinKey.h"
-#include "KismetPins/SGraphPinVector.h"
-#include "KismetPins/SGraphPinVector2D.h"
-#include "NiagaraPins/SGraphPinVector4.h"
+#include "SGraphPinVector.h"
+#include "SGraphPinVector2D.h"
+#include "SGraphPinVector4.h"
 #include "KismetPins/SGraphPinIndex.h"
 #include "KismetPins/SGraphPinCollisionProfile.h"
 
@@ -491,26 +491,3 @@ FConnectionDrawingPolicy* FNodeFactory::CreateConnectionPolicy(const UEdGraphSch
     // If we never picked a custom policy, use the uncustomized standard policy
     return ConnectionDrawingPolicy;
 }
-
-//////////////////////////////////////////////////////////////////////////
-
-class FNiagaraScriptGraphPanelPinFactory : public FGraphPanelPinFactory
-{
-	virtual TSharedPtr<class SGraphPin> CreatePin(class UEdGraphPin* InPin) const override
-	{
-		const UEdGraphSchema_Niagara* NSchema = GetDefault<UEdGraphSchema_Niagara>();
-		if (InPin->PinType.PinCategory == NSchema->GetFloatName())
-		{
-			return SNew(SGraphPinNum, InPin);
-		}
-		if (InPin->PinType.PinCategory == NSchema->GetVectorName())
-		{
-			return SNew(SGraphPinVector4, InPin);
-		}
-		if (InPin->PinType.PinCategory == NSchema->GetMatrixName())
-		{
-			return SNew(SGraphPin, InPin);
-		}
-		return NULL;
-	}
-};

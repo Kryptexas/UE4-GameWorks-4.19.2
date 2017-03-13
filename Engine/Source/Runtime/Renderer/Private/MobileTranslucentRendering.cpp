@@ -73,7 +73,7 @@ void FMobileSceneRenderer::CopySceneAlpha(FRHICommandListImmediate& RHICmdList, 
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-	SceneContext.ResolveSceneColor(RHICmdList);
+	RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 	SceneContext.BeginRenderingSceneAlphaCopy(RHICmdList);
 

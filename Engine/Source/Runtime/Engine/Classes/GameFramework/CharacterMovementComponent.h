@@ -122,6 +122,15 @@ struct FCharacterMovementComponentPostPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
+template<>
+struct TStructOpsTypeTraits<FCharacterMovementComponentPostPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FCharacterMovementComponentPostPhysicsTickFunction>
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
 /** Shared pointer for easy memory management of FSavedMove_Character, for accumulating and replaying network moves. */
 typedef TSharedPtr<class FSavedMove_Character> FSavedMovePtr;
 
@@ -2170,6 +2179,9 @@ public:
 	/** True when SimulatedProxies are simulating RootMotion */
 	UPROPERTY(Transient)
 	bool bWasSimulatingRootMotion;
+
+	UPROPERTY(Category = "RootMotion", EditAnywhere, BlueprintReadWrite)
+	uint32 bAllowPhysicsRotationDuringAnimRootMotion : 1;
 
 	/** @return true if we have Root Motion from animation to use in PerformMovement() physics. 
 		Not valid outside of the scope of that function. Since RootMotion is extracted and used in it. */

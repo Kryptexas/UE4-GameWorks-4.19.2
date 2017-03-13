@@ -19,6 +19,8 @@ class ENGINE_API USoundNodeAssetReferencer : public USoundNode
 public:
 	virtual void LoadAsset(bool bAddToRoot = false) PURE_VIRTUAL(USoundNodesAssetReferencer::LoadAsset,);
 
+	bool ShouldHardReferenceAsset() const;
+
 #if WITH_EDITOR
 	virtual void PostEditImport() override;
 #endif

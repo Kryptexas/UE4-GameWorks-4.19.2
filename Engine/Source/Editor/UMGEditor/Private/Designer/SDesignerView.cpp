@@ -933,14 +933,24 @@ void SDesignerView::PopDesignerMessage()
 
 void SDesignerView::OnEditorSelectionChanged()
 {
-	TSet<FWidgetReference> PendingSelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
+	TSet<FWidgetReference> PendingSelectedWidgets = BPEd->GetSelectedWidgets();
 
 	// Notify all widgets that are no longer selected.
 	for ( FWidgetReference& WidgetRef : SelectedWidgetsCache )
 	{
 		if ( WidgetRef.IsValid() && !PendingSelectedWidgets.Contains(WidgetRef) )
 		{
-			WidgetRef.GetPreview()->Deselect();
+			WidgetRef.GetPreview()->DeselectByDesigner();
+		}
+
+		// Find all named slot host widgets that are hierarchical ancestors of this widget and call deselect on them as well
+		TArray<FWidgetReference> AncestorSlotHostWidgets;
+		FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(AncestorSlotHostWidgets, WidgetRef.GetTemplate(), BPEd.ToSharedRef());
+
+		for (FWidgetReference SlotHostWidget : AncestorSlotHostWidgets)
+		{
+			SlotHostWidget.GetPreview()->DeselectByDesigner();
 		}
 	}
 
@@ -949,7 +959,16 @@ void SDesignerView::OnEditorSelectionChanged()
 	{
 		if ( WidgetRef.IsValid() && !SelectedWidgetsCache.Contains(WidgetRef) )
 		{
-			WidgetRef.GetPreview()->Select();
+			WidgetRef.GetPreview()->SelectByDesigner();
+
+			// Find all named slot host widgets that are hierarchical ancestors of this widget and call select on them as well
+			TArray<FWidgetReference> AncestorSlotHostWidgets;
+			FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(AncestorSlotHostWidgets, WidgetRef.GetTemplate(), BPEd.ToSharedRef());
+
+			for (FWidgetReference SlotHostWidget : AncestorSlotHostWidgets)
+			{
+				SlotHostWidget.GetPreview()->SelectByDesigner();
+			}
 		}
 	}
 
@@ -1729,7 +1748,7 @@ void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 			{
 				if ( WidgetRef.IsValid() )
 				{
-					WidgetRef.GetPreview()->Select();
+					WidgetRef.GetPreview()->SelectByDesigner();
 				}
 			}
 		}
@@ -2676,7 +2695,7 @@ void SDesignerView::CreateScreenFillEntry(FMenuBuilder& MenuBuilder, EDesignPrev
 		FCanExecuteAction(),
 		FIsActionChecked::CreateRaw(this, &SDesignerView::GetIsScreenFillRuleSelected, SizeMode));
 
-	FText EntryText = PreviewSizeEnum->GetEnumText((int32)SizeMode);
+	FText EntryText = PreviewSizeEnum->GetDisplayNameTextByValue((int64)SizeMode);
 	MenuBuilder.AddMenuEntry(EntryText, FText::GetEmpty(), FSlateIcon(), DesiredSizeAction, NAME_None, EUserInterfaceActionType::Check);
 }
 
@@ -2686,7 +2705,7 @@ FText SDesignerView::GetScreenSizingFillText() const
 
 	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
 	{
-		return PreviewSizeEnum->GetEnumText((int32)DefaultWidget->DesignSizeMode);
+		return PreviewSizeEnum->GetDisplayNameTextByValue((int64)DefaultWidget->DesignSizeMode);
 	}
 
 	return FText::GetEmpty();

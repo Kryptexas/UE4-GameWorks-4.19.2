@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CrashReportClient : ModuleRules
 {
-	public CrashReportClient(TargetInfo Target)
+	public CrashReportClient(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.AddRange
 		(
@@ -28,7 +28,6 @@ public class CrashReportClient : ModuleRules
 				"Analytics",
 				"AnalyticsET",
 				"DesktopPlatform",
-				"QoSReporter",
 			}
 			);
 
@@ -58,5 +57,7 @@ public class CrashReportClient : ModuleRules
 		}
 
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
+
+		WhitelistRestrictedFolders.Add("Private/NotForLicensees");
 	}
 }

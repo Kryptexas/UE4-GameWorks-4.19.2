@@ -5,7 +5,7 @@ using System.IO;
 
 public class OodleHandlerComponent : ModuleRules
 {
-    public OodleHandlerComponent(TargetInfo Target)
+    public OodleHandlerComponent(ReadOnlyTargetRules Target) : base(Target)
     {
 		BinariesSubFolder = "NotForLicensees";
 		

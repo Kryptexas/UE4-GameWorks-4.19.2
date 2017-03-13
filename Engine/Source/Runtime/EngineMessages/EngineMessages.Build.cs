@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class EngineMessages : ModuleRules
 	{
-		public EngineMessages(TargetInfo Target)
+		public EngineMessages(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

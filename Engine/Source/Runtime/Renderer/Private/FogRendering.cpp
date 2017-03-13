@@ -45,6 +45,7 @@ void FExponentialHeightFogShaderParameters::Bind(const FShaderParameterMap& Para
 	ExponentialFogParameters.Bind(ParameterMap,TEXT("ExponentialFogParameters"));
 	ExponentialFogColorParameter.Bind(ParameterMap,TEXT("ExponentialFogColorParameter"));
 	ExponentialFogParameters3.Bind(ParameterMap,TEXT("ExponentialFogParameters3"));
+	SinCosInscatteringColorCubemapRotation.Bind(ParameterMap,TEXT("SinCosInscatteringColorCubemapRotation"));
 	FogInscatteringColorCubemap.Bind(ParameterMap,TEXT("FogInscatteringColorCubemap"));
 	FogInscatteringColorSampler.Bind(ParameterMap,TEXT("FogInscatteringColorSampler"));
 	FogInscatteringTextureParameters.Bind(ParameterMap,TEXT("FogInscatteringTextureParameters"));
@@ -59,6 +60,7 @@ FArchive& operator<<(FArchive& Ar,FExponentialHeightFogShaderParameters& Paramet
 	Ar << Parameters.ExponentialFogParameters;
 	Ar << Parameters.ExponentialFogColorParameter;
 	Ar << Parameters.ExponentialFogParameters3;
+	Ar << Parameters.SinCosInscatteringColorCubemapRotation;
 	Ar << Parameters.FogInscatteringColorCubemap;
 	Ar << Parameters.FogInscatteringColorSampler;
 	Ar << Parameters.FogInscatteringTextureParameters;
@@ -278,6 +280,7 @@ void FSceneRenderer::InitFogConstants()
 				View.ExponentialFogColor = FVector(FogInfo.FogColor.R, FogInfo.FogColor.G, FogInfo.FogColor.B);
 				View.FogMaxOpacity = FogInfo.FogMaxOpacity;
 				View.ExponentialFogParameters3 = FVector4(FogInfo.FogDensity, FogInfo.FogHeight, FogInfo.InscatteringColorCubemap ? 1.0f : 0.0f, FogInfo.FogCutoffDistance);
+				View.SinCosInscatteringColorCubemapRotation = FVector2D(FMath::Sin(FogInfo.InscatteringColorCubemapAngle), FMath::Cos(FogInfo.InscatteringColorCubemapAngle));
 				View.FogInscatteringColorCubemap = FogInfo.InscatteringColorCubemap;
 				const float InvRange = 1.0f / FMath::Max(FogInfo.FullyDirectionalInscatteringColorDistance - FogInfo.NonDirectionalInscatteringColorDistance, .00001f);
 				float NumMips = 1.0f;

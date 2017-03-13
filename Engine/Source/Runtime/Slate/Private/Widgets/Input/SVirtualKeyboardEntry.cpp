@@ -169,7 +169,7 @@ int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& A
 	// See if a disabled effect should be used
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
 	bool bIsReadonly = IsReadOnly.Get();
-	ESlateDrawEffect::Type DrawEffects = (bEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	ESlateDrawEffect DrawEffects = (bEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	const FSlateFontInfo& FontInfo = Font.Get();
 	const FString VisibleText = GetStringToRender();

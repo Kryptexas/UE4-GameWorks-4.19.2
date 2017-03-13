@@ -63,7 +63,10 @@ void UAbilityTask_WaitAbilityActivate::OnAbilityActivate(UGameplayAbility* Activ
 		}
 	}
 
-	OnActivate.Broadcast(ActivatedAbility);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnActivate.Broadcast(ActivatedAbility);
+	}
 
 	if (TriggerOnce)
 	{

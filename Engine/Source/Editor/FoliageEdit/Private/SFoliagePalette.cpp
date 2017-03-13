@@ -162,7 +162,8 @@ void SFoliagePalette::Construct(const FArguments& InArgs)
 {
 	bItemsNeedRebuild = false;
 	bIsUneditableFoliageTypeSelected = false;
-	bIsActiveTimerRegistered = false;
+	bIsRebuildTimerRegistered = false;
+	bIsRefreshTimerRegistered = false;
 
 	FoliageEditMode = InArgs._FoliageEdMode;
 
@@ -172,7 +173,9 @@ void SFoliagePalette::Construct(const FArguments& InArgs)
 	UICommandList = MakeShareable(new FUICommandList);
 	BindCommands();
 
-	ThumbnailPool = MakeShareable(new FAssetThumbnailPool(25, TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SFoliagePalette::IsHovered))));
+	// Size of the thumbnail pool should be large enough to show a reasonable amount of foliage assets on screen at once,
+	// otherwise some thumbnail images will appear duplicated.
+	ThumbnailPool = MakeShareable(new FAssetThumbnailPool(64, TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SFoliagePalette::IsHovered))));
 
 	TypeFilter = MakeShareable(new FoliageTypeTextFilter(
 		FoliageTypeTextFilter::FItemToStringArray::CreateSP(this, &SFoliagePalette::GetPaletteItemFilterString)));
@@ -433,10 +436,20 @@ void SFoliagePalette::UpdatePalette(bool bRebuildItems)
 {
 	bItemsNeedRebuild |= bRebuildItems;
 
-	if (!bIsActiveTimerRegistered)
+	if (!bIsRebuildTimerRegistered)
 	{
-		bIsActiveTimerRegistered = true;
+		bIsRebuildTimerRegistered = true;
 		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SFoliagePalette::UpdatePaletteItems));
+	}
+}
+
+void SFoliagePalette::RefreshPalette()
+{
+	// Do not register the refresh timer if we're pending a rebuild; rebuild should cause the palette to refresh
+	if (!bIsRefreshTimerRegistered && !bIsRebuildTimerRegistered)
+	{
+		bIsRefreshTimerRegistered = true;
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SFoliagePalette::RefreshPaletteItems));
 	}
 }
 
@@ -665,7 +678,6 @@ TSharedRef<SWidget> SFoliagePalette::GetAddFoliageTypePicker()
 	ClassFilters.Add(UFoliageType_InstancedStaticMesh::StaticClass());
 
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(),
-		false,
 		false,
 		ClassFilters,
 		PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(ClassFilters),
@@ -1169,6 +1181,9 @@ bool SFoliagePalette::CanSelectInstances() const
 TSharedRef<ITableRow> SFoliagePalette::GenerateTile(FFoliagePaletteItemModelPtr Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return SNew(SFoliagePaletteItemTile, OwnerTable, Item);
+
+	// Refresh the palette to ensure that thumbnails are correct
+	RefreshPalette();
 }
 
 float SFoliagePalette::GetScaledThumbnailSize() const
@@ -1397,7 +1412,19 @@ EActiveTimerReturnType SFoliagePalette::UpdatePaletteItems(double InCurrentTime,
 	// Refresh the appropriate view
 	RefreshActivePaletteViewWidget();
 
-	bIsActiveTimerRegistered = false;
+	bIsRebuildTimerRegistered = false;
+	return EActiveTimerReturnType::Stop;
+}
+
+EActiveTimerReturnType SFoliagePalette::RefreshPaletteItems(double InCurrentTime, float InDeltaTime)
+{
+	// Do not refresh the palette if we're waiting on a rebuild
+	if (!bItemsNeedRebuild)
+	{
+		RefreshActivePaletteViewWidget();
+	}
+
+	bIsRefreshTimerRegistered = false;
 	return EActiveTimerReturnType::Stop;
 }
 

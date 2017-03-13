@@ -362,7 +362,7 @@ bool FPortableObjectHeader::FromLocPOEntry( const TSharedRef<const FPortableObje
 			const FString& Key = PotentialHeaderEntry.LeftChop( PotentialHeaderEntry.Len() - SplitIndex ).Trim().TrimTrailing();
 			FString Value = PotentialHeaderEntry.RightChop( SplitIndex+1 ).Trim().TrimTrailing();
 
-			HeaderEntries.Add( TPairInitializer<FString, FString>( Key, Value ) );
+			HeaderEntries.Emplace( Key, MoveTemp(Value) );
 		}
 	}
 	return true;
@@ -405,7 +405,7 @@ void FPortableObjectHeader::SetEntryValue( const FString& EntryKey, const FStrin
 	}
 	else
 	{
-		HeaderEntries.Add( TPairInitializer<FString, FString>( EntryKey, EntryValue ) );
+		HeaderEntries.Emplace( EntryKey, EntryValue );
 	}
 }
 

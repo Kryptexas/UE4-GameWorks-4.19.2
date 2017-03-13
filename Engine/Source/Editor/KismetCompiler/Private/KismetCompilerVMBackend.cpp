@@ -14,7 +14,6 @@
 #include "UObject/Interface.h"
 #include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
-#include "Internationalization/TextNamespaceUtil.h"
 #include "UObject/PropertyPortFlags.h"
 #include "EdGraph/EdGraphNode.h"
 #include "EdGraph/EdGraphPin.h"
@@ -36,7 +35,12 @@
 #include "Kismet2/StructureEditorUtils.h"
 #include "Kismet2/KismetDebugUtilities.h"
 
+#include "Internationalization/TextNamespaceUtil.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
+#include "Internationalization/StringTableRegistry.h"
+#include "Internationalization/StringTableCore.h"
+#include "Internationalization/StringTable.h"
+
 #include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "KismetCompilerVMBackend"
@@ -628,6 +632,19 @@ public:
 				{
 					Writer << EBlueprintTextLiteralType::Empty;
 				}
+				else if (Term->TextLiteral.IsFromStringTable())
+				{
+					FName TableId;
+					FString Key;
+					FStringTableRegistry::Get().FindTableIdAndKey(Term->TextLiteral, TableId, Key);
+
+					UStringTable* StringTableAsset = FStringTableRegistry::Get().FindStringTableAsset(TableId);
+
+					Writer << EBlueprintTextLiteralType::StringTableEntry;
+					Writer << StringTableAsset; // Not used at runtime, but exists for asset dependency gathering
+					EmitStringLiteral(TableId.ToString());
+					EmitStringLiteral(Key);
+				}
 				else if (Term->TextLiteral.IsCultureInvariant())
 				{
 					Writer << EBlueprintTextLiteralType::InvariantText;
@@ -651,7 +668,8 @@ public:
 						// We need to make sure the package namespace is correct at this point
 						// Note: We don't test GIsEditor here as we need to mimic using compile-on-load what the compile during cook would have done when running with -game
 						{
-							const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Term->Source);
+							checkf(Term->SourcePin || Term->Source, TEXT("EmitTermExpr needs a valid source to correctly emit localized text"));
+							const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Term->SourcePin ? Term->SourcePin->GetOwningNode() : Term->Source);
 							Namespace = TextNamespaceUtil::BuildFullNamespace(Namespace, PackageNamespace);
 						}
 #endif // USE_STABLE_LOCALIZATION_KEYS
@@ -835,6 +853,7 @@ public:
 							Schema->ConvertPropertyToPinType(Prop, NewTerm.Type);
 							NewTerm.bIsLiteral = true;
 							NewTerm.Source = Term->Source;
+							NewTerm.SourcePin = Term->SourcePin;
 							Prop->ExportText_InContainer(ArrayIter, NewTerm.Name, StructData, StructData, NULL, PPF_None);
 							if (Prop->IsA(UTextProperty::StaticClass()))
 							{
@@ -872,6 +891,7 @@ public:
 					Schema->ConvertPropertyToPinType(InnerProp, NewTerm.Type);
 					NewTerm.bIsLiteral = true;
 					NewTerm.Source = Term->Source;
+					NewTerm.SourcePin = Term->SourcePin;
 					uint8* RawElemData = ScriptArrayHelper.GetRawPtr(ElemIdx);
 					InnerProp->ExportText_Direct(NewTerm.Name, RawElemData, RawElemData, NULL, PPF_None);
 					if (InnerProp->IsA(UTextProperty::StaticClass()))

@@ -340,7 +340,7 @@ public:
 #if WITH_EDITOR
 			if( TargetScope != NULL &&  !GIsSavingPackage )
 			{
-				ReturnField = Cast<TFieldType>(FindRemappedField(TargetScope, MemberName, true));
+				ReturnField = FindRemappedField<TFieldType>(TargetScope, MemberName, true);
 			}
 
 			if(ReturnField != NULL)
@@ -442,25 +442,22 @@ public:
 	/**
 	 * Searches the field redirect map for the specified named field in the scope, and returns the remapped field if found
 	 *
+	 * @param	FieldClass		UClass of field type we are looking for
 	 * @param	InitialScope	The scope the field was initially defined in.  The function will search up into parent scopes to attempt to find remappings
 	 * @param	InitialName		The name of the field to attempt to find a redirector for
 	 * @param	bInitialScopeMustBeOwnerOfField		if true the InitialScope must be Child of the field's owner
 	 * @return	The remapped field, if one exists
 	 */
-	ENGINE_API static UField* FindRemappedField(UClass* InitialScope, FName InitialName, bool bInitialScopeMustBeOwnerOfField = false);
+	ENGINE_API static UField* FindRemappedField(UClass *FieldClass, UClass* InitialScope, FName InitialName, bool bInitialScopeMustBeOwnerOfField = false);
 
-	ENGINE_API static const TMap<FFieldRemapInfo, FFieldRemapInfo>& GetFieldRedirectMap() { InitFieldRedirectMap(); return FieldRedirectMap; }
-	ENGINE_API static const TMultiMap<UClass*, FParamRemapInfo>& GetParamRedirectMap() { InitFieldRedirectMap(); return ParamRedirectMap; }
+	/** Templated version of above, extracts FieldClass and Casts result */
+	template<class TFieldType>
+	static TFieldType* FindRemappedField(UClass* InitialScope, FName InitialName, bool bInitialScopeMustBeOwnerOfField = false)
+	{
+		return Cast<TFieldType>(FindRemappedField(TFieldType::StaticClass(), InitialScope, InitialName, bInitialScopeMustBeOwnerOfField));
+	}
 
 protected:
-	/** 
-	 * A mapping from old property and function names to new ones.  Get primed from INI files, and should contain entries for properties, functions, and delegates that get moved, so they can be fixed up
-	 */
-	static TMap<FFieldRemapInfo, FFieldRemapInfo> FieldRedirectMap;
-	/** 
-	 * A mapping from old pin name to new pin name for each K2 node.  Get primed from INI files, and should contain entries for node class, and old param name and new param name
-	 */
-	ENGINE_API static TMultiMap<UClass*, FParamRemapInfo> ParamRedirectMap;
 
 	/** Has the field map been initialized this run */
 	static bool bFieldRedirectMapInitialized;
@@ -468,15 +465,6 @@ protected:
 	/** Init the field redirect map (if not already done) from .ini file entries */
 	ENGINE_API static void InitFieldRedirectMap();
 
-	/** 
-	 * Searches the field replacement map for an appropriately named field in the specified scope, and returns an updated name if this property has been listed in the remapping table
-	 *
-	 * @param	Class		The class scope to search for a field remap on
-	 * @param	FieldName	The field name (function name or property name) to search for
-	 * @param	RemapInfo	(out) Struct containing updated location info for the field
-	 * @return	Whether or not a remap was found in the specified scope
-	 */
-	static bool FindReplacementFieldName(UClass* Class, FName FieldName, FFieldRemapInfo& RemapInfo);
 #endif
 
 public:

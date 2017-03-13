@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class WindowsDeviceProfileSelector : ModuleRules
 	{
-        public WindowsDeviceProfileSelector(TargetInfo Target)
+        public WindowsDeviceProfileSelector(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

@@ -485,7 +485,7 @@ struct FColorPickerArgs
 	bool bIsModal;
 
 	/** The parent for the new color picker window */
-	TSharedPtr<const SWidget> ParentWidget;
+	TSharedPtr<SWidget> ParentWidget;
 
 	/** Whether or not to enable the alpha slider. */
 	bool bUseAlpha;
@@ -498,6 +498,9 @@ struct FColorPickerArgs
 
 	/** Whether to automatically expand the Advanced section. */
 	bool bExpandAdvancedSection;
+	
+	/** Whether to open the color picker as a menu window. */
+	bool bOpenAsMenu;
 
 	/** The current display gamma used to correct colors picked from the display. */
 	TAttribute<float> DisplayGamma;
@@ -542,6 +545,7 @@ struct FColorPickerArgs
 		, bOnlyRefreshOnMouseUp(false)
 		, bOnlyRefreshOnOk(false)
 		, bExpandAdvancedSection(true)
+		, bOpenAsMenu(false)
 		, DisplayGamma(2.2f)
 		, sRGBOverride()
 		, ColorArray(nullptr)

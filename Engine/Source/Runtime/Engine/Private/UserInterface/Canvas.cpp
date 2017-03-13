@@ -131,7 +131,7 @@ bool FCanvasWordWrapper::ProcessLine(FWrappingState& WrappingState)
 
 		if(WrappingState.WrappedLineData)
 		{
-			WrappingState.WrappedLineData->Add(TPairInitializer<int32, int32>(WrappingState.StartIndex, BreakIndex));
+			WrappingState.WrappedLineData->Emplace(WrappingState.StartIndex, BreakIndex);
 		}
 
 		WrappingState.StartIndex = NextStartIndex;
@@ -723,6 +723,7 @@ void FCanvas::Flush_GameThread(bool bForce)
 	}
 
 	// Update the font cache with new text before elements are drawn
+	if (FEngineFontServices::IsInitialized())
 	{
 		FEngineFontServices::Get().UpdateCache();
 	}
@@ -908,7 +909,7 @@ void FCanvas::Clear(const FLinearColor& ClearColor)
 			{
 				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 				RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
-				RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
+				RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor);
 			}
 			else
 			{

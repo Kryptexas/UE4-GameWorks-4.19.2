@@ -75,7 +75,7 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 			DynamicRHIModule = NULL;
 		}
 	}
-	else 
+	else
 #endif
 
 	if (bForceOpenGL)

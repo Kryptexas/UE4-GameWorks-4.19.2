@@ -8,17 +8,17 @@ using Tools.CrashReporter.CrashReportWebSite.DataModels;
 namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 {
 	/// <summary>
-	/// The view model for the crashes index page.
+	/// The view model for the Crashes index page.
 	/// </summary>
 	public class CrashesViewModel
 	{
 		/// <summary>Dates are in milliseconds relative to this base (for ease of Javascript usage)</summary>
 		public static readonly DateTime Epoch = new DateTime( 1970, 1, 1 );
 
-		/// <summary>A container for all the crashes that pass the current filters.</summary>
+		/// <summary>A container for all the Crashes that pass the current filters.</summary>
 		public IEnumerable<Crash> Results { get; set; }
 
-		/// <summary>Information to properly paginate a large number of crashes.</summary>
+		/// <summary>Information to properly paginate a large number of Crashes.</summary>
 		public PagingInfo PagingInfo { get; set; }
 
 		/// <summary>Whether to sort ascending or descending.</summary>
@@ -42,7 +42,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>Epic ID or Machine ID as query for filtering.</summary>
 		public string EpicIdOrMachineQuery { get; set; }
 
-		/// <summary>Jira as query for crash filtering.</summary>
+		/// <summary>Jira as query for Crash filtering.</summary>
 		public string JiraQuery { get; set; }
 
 		/// <summary>Message/Summary or Description as query for filtering.</summary>
@@ -54,10 +54,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>BuiltFromCL as query for filtering.</summary>
 		public string BuiltFromCL { get; set; }
 
-		/// <summary>The date of the earliest crash to display.</summary>
+		/// <summary>The date of the earliest Crash to display.</summary>
 		public long DateFrom { get; set; }
 
-		/// <summary>The date of the most recent crash to display.</summary>
+		/// <summary>The date of the most recent Crash to display.</summary>
 		public long DateTo { get; set; }
 
 		/// <summary>The name of the branch to filter by.</summary>
@@ -78,7 +78,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 		/// <summary>The name of the game to filter by.</summary>
 		public string GameName { get; set; }
 
-		/// <summary>A dictionary of group names vs. crash counts.</summary>
+		/// <summary>A dictionary of group names vs. Crash counts.</summary>
 		public Dictionary<string, int> GroupCounts { get; set; }
 
 		/// <summary>The user supplied parameters.</summary>
@@ -99,7 +99,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
         /// <summary>A collection of Engine Modes used in the drop down on the main search form</summary>
         public List<SelectListItem> EngineVersions { get; set; }
 
-		/// <summary>The set of statuses a crash could have its status set to.</summary>
+		/// <summary>The set of statuses a Crash could have its status set to.</summary>
 		public IEnumerable<string> SetStatus { get { return new List<string>( new string[] { "Unset", "Reviewed", "New", "Coder", "EngineQA", "GameQA" } ); } }
 
 		/// <summary> The real user name, displayed only for searches. </summary>
@@ -107,6 +107,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 
 		/// <summary>Time spent in generating this site, formatted as a string.</summary>
 		public string GenerationTime { get; set; }
+
+        /// <summary>Engine Version Ex field is vanilla build</summary>
+        public string IsVanilla { get; set; }
 
 		/// <summary>
 		/// Default constructor, used by HomeController

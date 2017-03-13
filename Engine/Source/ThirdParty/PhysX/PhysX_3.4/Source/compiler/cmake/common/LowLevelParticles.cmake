@@ -2,24 +2,68 @@
 # Build LowLevelParticles common
 #
 
-ADD_LIBRARY(LowLevelParticles STATIC 
-	${LL_SOURCE_DIR}/PtBatcher.cpp
-	${LL_SOURCE_DIR}/PtBodyTransformVault.cpp
-	${LL_SOURCE_DIR}/PtCollision.cpp
-	${LL_SOURCE_DIR}/PtCollisionBox.cpp
-	${LL_SOURCE_DIR}/PtCollisionCapsule.cpp
-	${LL_SOURCE_DIR}/PtCollisionConvex.cpp
-	${LL_SOURCE_DIR}/PtCollisionMesh.cpp
-	${LL_SOURCE_DIR}/PtCollisionPlane.cpp
-	${LL_SOURCE_DIR}/PtCollisionSphere.cpp
-	${LL_SOURCE_DIR}/PtContextCpu.cpp
-	${LL_SOURCE_DIR}/PtDynamics.cpp
-	${LL_SOURCE_DIR}/PtParticleData.cpp
-	${LL_SOURCE_DIR}/PtParticleShapeCpu.cpp
-	${LL_SOURCE_DIR}/PtParticleSystemSimCpu.cpp
-	${LL_SOURCE_DIR}/PtSpatialHash.cpp
-	${LL_SOURCE_DIR}/PtSpatialLocalHash.cpp
-	
+SET(LLPARTICLES_BASE_DIR ${PHYSX_ROOT_DIR}/Source/LowLevelParticles)
+SET(LLPARTICLES_INCLUDES		
+	${LLPARTICLES_BASE_DIR}/include/PtBodyTransformVault.h
+	${LLPARTICLES_BASE_DIR}/include/PtContext.h
+	${LLPARTICLES_BASE_DIR}/include/PtGridCellVector.h
+	${LLPARTICLES_BASE_DIR}/include/PtParticle.h
+	${LLPARTICLES_BASE_DIR}/include/PtParticleContactManagerStream.h
+	${LLPARTICLES_BASE_DIR}/include/PtParticleData.h
+	${LLPARTICLES_BASE_DIR}/include/PtParticleShape.h
+	${LLPARTICLES_BASE_DIR}/include/PtParticleSystemCore.h
+	${LLPARTICLES_BASE_DIR}/include/PtParticleSystemFlags.h
+	${LLPARTICLES_BASE_DIR}/include/PtParticleSystemSim.h
+)
+SOURCE_GROUP("include" FILES ${LLPARTICLES_INCLUDES})
+
+SET(LLPARTICLES_SOURCE			
+	${LLPARTICLES_BASE_DIR}/src/PtBatcher.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtBatcher.h
+	${LLPARTICLES_BASE_DIR}/src/PtBodyTransformVault.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtCollision.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtCollision.h
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionBox.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionCapsule.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionConvex.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionData.h
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionHelper.h
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionMesh.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionMethods.h
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionParameters.h
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionPlane.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtCollisionSphere.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtConfig.h
+	${LLPARTICLES_BASE_DIR}/src/PtConstants.h
+	${LLPARTICLES_BASE_DIR}/src/PtContextCpu.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtContextCpu.h
+	${LLPARTICLES_BASE_DIR}/src/PtDynamicHelper.h
+	${LLPARTICLES_BASE_DIR}/src/PtDynamics.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtDynamics.h
+	${LLPARTICLES_BASE_DIR}/src/PtDynamicsKernels.h
+	${LLPARTICLES_BASE_DIR}/src/PtDynamicsParameters.h
+	${LLPARTICLES_BASE_DIR}/src/PtDynamicsTempBuffers.h
+	${LLPARTICLES_BASE_DIR}/src/PtHeightFieldAabbTest.h
+	${LLPARTICLES_BASE_DIR}/src/PtPacketSections.h
+	${LLPARTICLES_BASE_DIR}/src/PtParticleCell.h
+	${LLPARTICLES_BASE_DIR}/src/PtParticleData.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtParticleOpcodeCache.h
+	${LLPARTICLES_BASE_DIR}/src/PtParticleShapeCpu.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtParticleShapeCpu.h
+	${LLPARTICLES_BASE_DIR}/src/PtParticleSystemSimCpu.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtParticleSystemSimCpu.h
+	${LLPARTICLES_BASE_DIR}/src/PtSpatialHash.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtSpatialHash.h
+	${LLPARTICLES_BASE_DIR}/src/PtSpatialHashHelper.h
+	${LLPARTICLES_BASE_DIR}/src/PtSpatialLocalHash.cpp
+	${LLPARTICLES_BASE_DIR}/src/PtTwoWayData.h
+)
+SOURCE_GROUP("src" FILES ${LLPARTICLES_SOURCE})
+
+ADD_LIBRARY(LowLevelParticles ${LOWLEVELPARTICLES_LIBTYPE}
+	${LLPARTICLES_INCLUDES}
+	${LLPARTICLES_SOURCE}
+
 	${LOWLEVELPARTICLES_PLATFORM_SRC_FILES}
 )
 
@@ -61,9 +105,11 @@ TARGET_COMPILE_DEFINITIONS(LowLevelParticles
 	PRIVATE ${LOWLEVELPARTICLES_COMPILE_DEFS}
 )
 
-SET_TARGET_PROPERTIES(LowLevelParticles PROPERTIES 
-	COMPILE_PDB_NAME_DEBUG "LowLevelParticles${CMAKE_DEBUG_POSTFIX}"
-	COMPILE_PDB_NAME_CHECKED "LowLevelParticles${CMAKE_CHECKED_POSTFIX}"
-	COMPILE_PDB_NAME_PROFILE "LowLevelParticles${CMAKE_PROFILE_POSTFIX}"
-	COMPILE_PDB_NAME_RELEASE "LowLevelParticles${CMAKE_RELEASE_POSTFIX}"
-)
+IF(NOT ${LOWLEVELPARTICLES_LIBTYPE} STREQUAL "OBJECT")
+	SET_TARGET_PROPERTIES(LowLevelParticles PROPERTIES 
+		COMPILE_PDB_NAME_DEBUG "LowLevelParticles${CMAKE_DEBUG_POSTFIX}"
+		COMPILE_PDB_NAME_CHECKED "LowLevelParticles${CMAKE_CHECKED_POSTFIX}"
+		COMPILE_PDB_NAME_PROFILE "LowLevelParticles${CMAKE_PROFILE_POSTFIX}"
+		COMPILE_PDB_NAME_RELEASE "LowLevelParticles${CMAKE_RELEASE_POSTFIX}"
+	)
+ENDIF()

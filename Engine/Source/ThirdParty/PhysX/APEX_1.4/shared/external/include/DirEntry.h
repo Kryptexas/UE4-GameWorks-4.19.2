@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2008-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -22,6 +22,8 @@
 	#include "linux/DirEntry.h"
 #elif PX_PS4
 	#include "ps4/DirEntry.h"
+#elif PX_NX
+	#include "nx/DirEntry.h" 
 #else
 	#error "Platform not supported!"
 #endif

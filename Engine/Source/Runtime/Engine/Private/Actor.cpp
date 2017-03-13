@@ -36,6 +36,7 @@
 #include "Components/ChildActorComponent.h"
 #include "Camera/CameraComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/NetworkObjectList.h"
 
 DEFINE_LOG_CATEGORY(LogActor);
 
@@ -617,6 +618,17 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 
+	// If this is a Blueprint class, we may need to manually apply default value overrides to some inherited components in a cooked
+	// build scenario. This can occur, for example, if we have a nativized Blueprint class somewhere in the class inheritance hierarchy.
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
+		if (BPGC != nullptr && BPGC->bHasNativizedParent)
+		{
+			UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(this);
+		}
+	}
+
 	ResetOwnedComponents();
 
 	if (RootComponent && bHadRoot && OldRoot != RootComponent)
@@ -1023,6 +1035,11 @@ bool AActor::IsBasedOnActor(const AActor* Other) const
 
 bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
+	if (!CanModify())
+	{
+		return false;
+	}
+
 	// Any properties that reference a blueprint constructed component needs to avoid creating a reference to the component from the transaction
 	// buffer, so we temporarily switch the property to non-transactional while the modify occurs
 	TArray<UObjectProperty*> TemporarilyNonTransactionalProperties;
@@ -1056,14 +1073,12 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 		bSavedToTransactionBuffer = RootComponent->Modify( bAlwaysMarkDirty ) || bSavedToTransactionBuffer;
 	}
 
-	ULevel* Level = GetLevel();
-
 	return bSavedToTransactionBuffer;
 }
 
 FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	for (const UActorComponent* ActorComponent : GetComponents())
 	{
@@ -1083,7 +1098,7 @@ FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 
 FBox AActor::CalculateComponentsBoundingBoxInLocalSpace( bool bNonColliding ) const
 {
-	FBox Box( 0 );
+	FBox Box(ForceInit);
 
 	const FTransform& ActorToWorld = GetTransform();
 	const FTransform WorldToActor = ActorToWorld.Inverse();
@@ -1755,7 +1770,7 @@ void AActor::ForceNetUpdate()
 		FlushNetDormancy(); 
 	}
 
-	SetNetUpdateTime(FMath::Min(NetUpdateTime, GetWorld()->TimeSeconds - 0.01f));
+	SetNetUpdateTime(GetWorld()->TimeSeconds - 0.01f);
 }
 
 bool AActor::IsReplicationPausedForConnection(const FNetViewer& ConnectionOwnerNetViewer)
@@ -1953,7 +1968,7 @@ FVector AActor::GetPlacementExtent() const
 		TInlineComponentArray<USceneComponent*> Components;
 		GetComponents(Components);
 
-		FBox ActorBox(0.f);
+		FBox ActorBox(ForceInit);
 		for (int32 ComponentID=0; ComponentID<Components.Num(); ++ComponentID)
 		{
 			USceneComponent* SceneComp = Components[ComponentID];
@@ -1982,12 +1997,6 @@ void AActor::Destroyed()
 
 	ReceiveDestroyed();
 	OnDestroyed.Broadcast(this);
-	UWorld* ActorWorld = GetWorld();
-
-	if( ActorWorld )
-	{
-		ActorWorld->RemoveNetworkActor(this);
-	}
 }
 
 void AActor::TearOff()
@@ -2746,6 +2755,18 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 	// Call OnComponentCreated on all default (native) components
 	DispatchOnComponentsCreated(this);
 
+	// If this is a Blueprint class, we may need to manually apply default value overrides to some inherited components in a
+	// cooked build scenario. This can occur, for example, if we have a nativized Blueprint class in the inheritance hierarchy.
+	// Note: This should be done prior to executing the construction script, in case there are any dependencies on default values.
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
+		if (BPGC != nullptr && BPGC->bHasNativizedParent)
+		{
+			UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(this);
+		}
+	}
+
 	// Register the actor's default (native) components, but only if we have a native scene root. If we don't, it implies that there could be only non-scene components
 	// at the native class level. In that case, if this is a Blueprint instance, we need to defer native registration until after SCS execution can establish a scene root.
 	// Note: This API will also call PostRegisterAllComponents() on the actor instance. If deferred, PostRegisterAllComponents() won't be called until the root is set by SCS.
@@ -2927,7 +2948,7 @@ void AActor::PostActorConstruction()
 					if (AActor* ParentActor = GetParentActor())
 					{
 						// Child Actors cannot run begin play until their parent has run
-						bRunBeginPlay = ParentActor->HasActorBegunPlay();
+						bRunBeginPlay = (ParentActor->HasActorBegunPlay() || ParentActor->IsActorBeginningPlay());
 					}
 				}
 
@@ -4510,6 +4531,34 @@ float AActor::GetGameTimeSinceCreation()
 	{
 		return 0.f;
 	}
+}
+
+void AActor::SetNetUpdateTime( float NewUpdateTime )
+{
+	FNetworkObjectInfo* NetActor = GetNetworkObjectInfo();
+
+	if ( NetActor != nullptr )
+	{
+		// Only allow the next update to be sooner than the current one
+		NetActor->NextUpdateTime = FMath::Min( NetActor->NextUpdateTime, (double)NewUpdateTime );
+	}			
+}
+
+FNetworkObjectInfo* AActor::GetNetworkObjectInfo() const
+{
+	UWorld* World = GetWorld();
+
+	if ( World != nullptr )
+	{
+		UNetDriver* NetDriver = World->GetNetDriver();
+
+		if ( NetDriver != nullptr )
+		{
+			return NetDriver->GetNetworkObjectInfo( this );
+		}
+	}
+
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

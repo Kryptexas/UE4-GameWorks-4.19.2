@@ -17,7 +17,10 @@ void UAbilityTask_WaitVelocityChange::TickTask(float DeltaTime)
 
 		if (dot > MinimumMagnitude)
 		{
-			OnVelocityChage.Broadcast();
+			if (ShouldBroadcastAbilityTaskDelegates())
+			{
+				OnVelocityChage.Broadcast();
+			}
 			EndTask();
 		}
 	}

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ActorPickerMode : ModuleRules
 {
-    public ActorPickerMode(TargetInfo Target)
+    public ActorPickerMode(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

@@ -92,6 +92,10 @@ public:
 			InstancedNumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->NumCulledLightsGrid);
 			InstancedCulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->CulledLightDataGrid);
 		}
+		else if (InstancedForwardGlobalLightData.IsBound())
+		{
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
+		}
 
 		FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get(RHICmdList);
 
@@ -476,7 +480,7 @@ public:
 /**
  * The base shader type for hull shaders.
  */
-template<typename LightMapPolicyType>
+template<typename LightMapPolicyType, bool bEnableAtmosphericFog>
 class TBasePassHS : public FBaseHS
 {
 	DECLARE_SHADER_TYPE(TBasePassHS,MeshMaterial);
@@ -492,14 +496,16 @@ protected:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Re-use vertex shader gating
-		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& TBasePassVS<LightMapPolicyType,false>::ShouldCache(Platform,Material,VertexFactoryType);
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		return (bEnableAtmosphericFog == false || IsMetalPlatform(Platform))
+			&& FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
+			&& TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		// Re-use vertex shader compilation environment
-		TBasePassVS<LightMapPolicyType,false>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		TBasePassVS<LightMapPolicyType,bEnableAtmosphericFog>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 
 	// Don't implement : void SetParameters(...) or SetMesh() unless changing the shader reference in TBasePassDrawingPolicy
@@ -872,8 +878,17 @@ void GetBasePassShaders(
 {
 	if (bNeedsHSDS)
 	{
-		HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType> >(VertexFactoryType);
-		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType> >(VertexFactoryType);
+		DomainShader = Material.GetShader<TBasePassDS<LightMapPolicyType > >(VertexFactoryType);
+		
+		// Metal requires matching permutations, but no other platform should worry about this complication.
+		if (bEnableAtmosphericFog && DomainShader && IsMetalPlatform(EShaderPlatform(DomainShader->GetTarget().Platform)))
+		{
+			HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType, true > >(VertexFactoryType);
+		}
+		else
+		{
+			HullShader = Material.GetShader<TBasePassHS<LightMapPolicyType, false > >(VertexFactoryType);
+		}
 	}
 
 	if (bEnableAtmosphericFog)
@@ -917,7 +932,8 @@ public:
 		const FMaterial& InMaterialResource, 
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode,
-		bool bInEnableReceiveDecalOutput) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
+		bool bInEnableReceiveDecalOutput,
+		bool bInEnableEditorPrimitiveDepthTest) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput), bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest)
 	{}
 
 	void ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
@@ -926,6 +942,8 @@ protected:
 
 	/** Whether or not outputing the receive decal boolean */
 	uint32 bEnableReceiveDecalOutput : 1;
+	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
+	uint32 bEnableEditorPrimitiveDepthTest : 1;
 };
 
 /**
@@ -970,12 +988,11 @@ public:
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput),
+		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput, bInEnableEditorPrimitiveDepthTest),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
 		bEnableSkyLight(bInEnableSkyLight),
-		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
 		bEnableAtmosphericFog(bInEnableAtmosphericFog)
 	{
 		HullShader = NULL;
@@ -1224,8 +1241,6 @@ protected:
 
 	uint32 bEnableSkyLight : 1;
 
-	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
-	uint32 bEnableEditorPrimitiveDepthTest : 1;
 	/** Whether or not this policy enables atmospheric fog */
 	uint32 bEnableAtmosphericFog : 1;
 };
@@ -1421,116 +1436,111 @@ void ProcessBasePassMesh(
 	// This happens for example when rendering a thumbnail of an opaque post process material that uses scene textures
 	if (!(Parameters.TextureMode == ESceneRenderTargetsMode::DontSet && bNeedsSceneTextures))
 	{
+		const FLightMapInteraction LightMapInteraction = (bAllowStaticLighting && Parameters.Mesh.LCI && bIsLitMaterial) 
+			? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
+			: FLightMapInteraction();
+
+		// force LQ lightmaps based on system settings
+		const bool bPlatformAllowsHighQualityLightMaps = AllowHighQualityLightmaps(Parameters.FeatureLevel);
+		const bool bAllowHighQualityLightMaps = bPlatformAllowsHighQualityLightMaps && LightMapInteraction.AllowsHighQualityLightmaps();
+
+		if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(Parameters.FeatureLevel)))
+		{
+			// Only compiling simple lighting shaders for HQ lightmaps to save on permutations
+			check(bPlatformAllowsHighQualityLightMaps);
+			ProcessBasePassMeshForSimpleForwardShading(RHICmdList, Parameters, Action, LightMapInteraction, bIsLitMaterial, bAllowStaticLighting);
+		}
 		// Render self-shadowing only for >= SM4 and fallback to non-shadowed for lesser shader models
-		if (bIsLitMaterial && Action.UseTranslucentSelfShadowing() && Parameters.FeatureLevel >= ERHIFeatureLevel::SM4)
+		else if (bIsLitMaterial && Action.UseTranslucentSelfShadowing() && Parameters.FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 					&& Action.AllowIndirectLightingCache()
 					&& Parameters.PrimitiveSceneProxy)
-				{
-					// Apply cached point indirect lighting as well as self shadowing if needed
-					Action.template Process<FSelfShadowedCachedPointIndirectLightingPolicy>(RHICmdList, Parameters, FSelfShadowedCachedPointIndirectLightingPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
-				}
-				else
-				{
-					Action.template Process<FSelfShadowedTranslucencyPolicy>(RHICmdList, Parameters, FSelfShadowedTranslucencyPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
-				}
-			}
-		else
-		{
-			const FLightMapInteraction LightMapInteraction = (bAllowStaticLighting && Parameters.Mesh.LCI && bIsLitMaterial) 
-				? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
-				: FLightMapInteraction();
-
-			// force LQ lightmaps based on system settings
-			const bool bPlatformAllowsHighQualityLightMaps = AllowHighQualityLightmaps(Parameters.FeatureLevel);
-			const bool bAllowHighQualityLightMaps = bPlatformAllowsHighQualityLightMaps && LightMapInteraction.AllowsHighQualityLightmaps();
-
-			static const auto CVarSupportLowQualityLightmap = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
-			const bool bAllowLowQualityLightMaps = (!CVarSupportLowQualityLightmap) || (CVarSupportLowQualityLightmap->GetValueOnAnyThread() != 0);
-
-			if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(Parameters.FeatureLevel)))
 			{
-				// Only compiling simple lighting shaders for HQ lightmaps to save on permutations
-				check(bPlatformAllowsHighQualityLightMaps);
-				ProcessBasePassMeshForSimpleForwardShading(RHICmdList, Parameters, Action, LightMapInteraction, bIsLitMaterial, bAllowStaticLighting);
+				// Apply cached point indirect lighting as well as self shadowing if needed
+				Action.template Process<FSelfShadowedCachedPointIndirectLightingPolicy>(RHICmdList, Parameters, FSelfShadowedCachedPointIndirectLightingPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
 			}
 			else
 			{
-				switch(LightMapInteraction.GetType())
-				{
-					case LMIT_Texture: 
-						if( bAllowHighQualityLightMaps ) 
-						{ 
-							const FShadowMapInteraction ShadowMapInteraction = (bAllowStaticLighting && Parameters.Mesh.LCI && bIsLitMaterial) 
-								? Parameters.Mesh.LCI->GetShadowMapInteraction() 
-								: FShadowMapInteraction();
+				Action.template Process<FSelfShadowedTranslucencyPolicy>(RHICmdList, Parameters, FSelfShadowedTranslucencyPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
+			}
+		}
+		else
+		{
+			static const auto CVarSupportLowQualityLightmap = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
+			const bool bAllowLowQualityLightMaps = (!CVarSupportLowQualityLightmap) || (CVarSupportLowQualityLightmap->GetValueOnAnyThread() != 0);
 
-							if (ShadowMapInteraction.GetType() == SMIT_Texture)
-							{
-								Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP), Parameters.Mesh.LCI);
-							}
-							else
-							{
-								Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_HQ_LIGHTMAP), Parameters.Mesh.LCI);
-							}
-						} 
-						else if (bAllowLowQualityLightMaps)
-						{ 
-							Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_LQ_LIGHTMAP), Parameters.Mesh.LCI);
+			switch (LightMapInteraction.GetType())
+			{
+			case LMIT_Texture:
+				if (bAllowHighQualityLightMaps)
+				{
+					const FShadowMapInteraction ShadowMapInteraction = (bAllowStaticLighting && Parameters.Mesh.LCI && bIsLitMaterial)
+						? Parameters.Mesh.LCI->GetShadowMapInteraction()
+						: FShadowMapInteraction();
+
+					if (ShadowMapInteraction.GetType() == SMIT_Texture)
+					{
+						Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP), Parameters.Mesh.LCI);
+					}
+					else
+					{
+						Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_HQ_LIGHTMAP), Parameters.Mesh.LCI);
+					}
+				}
+				else if (bAllowLowQualityLightMaps)
+				{
+					Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_LQ_LIGHTMAP), Parameters.Mesh.LCI);
+				}
+				else
+				{
+					Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
+				}
+				break;
+			default:
+				if (bIsLitMaterial
+					&& IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
+					&& Action.AllowIndirectLightingCache()
+					&& Parameters.PrimitiveSceneProxy)
+				{
+					const FIndirectLightingCacheAllocation* IndirectLightingCacheAllocation = Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
+					const bool bPrimitiveIsMovable = Parameters.PrimitiveSceneProxy->IsMovable();
+					const bool bPrimitiveUsesILC = Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() != ILCQ_Off;
+
+					// Use the indirect lighting cache shaders if the object has a cache allocation
+					// This happens for objects with unbuilt lighting
+					if (bPrimitiveUsesILC &&
+						((IndirectLightingCacheAllocation && IndirectLightingCacheAllocation->IsValid())
+							// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
+							// And movable objects are sometimes rendered in the static draw lists
+							|| bPrimitiveIsMovable))
+					{
+						if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel)
+							// Translucency forces point sample for pixel performance
+							&& Action.AllowIndirectLightingCacheVolumeTexture()
+							&& ((IndirectLightingCacheAllocation && !IndirectLightingCacheAllocation->bPointSample)
+								|| (bPrimitiveIsMovable && Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() == ILCQ_Volume)))
+						{
+							// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
+							Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_CACHED_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
 						}
 						else
 						{
-							Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
+							// Use a lightmap policy that supports reading indirect lighting from a single SH sample
+							Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_CACHED_POINT_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
 						}
-						break;
-					default:
-						{
-							if (bIsLitMaterial
-								&& IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
-								&& Action.AllowIndirectLightingCache()
-								&& Parameters.PrimitiveSceneProxy)
-							{
-								const FIndirectLightingCacheAllocation* IndirectLightingCacheAllocation = Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation;
-								const bool bPrimitiveIsMovable = Parameters.PrimitiveSceneProxy->IsMovable();
-								const bool bPrimitiveUsesILC = Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() != ILCQ_Off;								
-
-								// Use the indirect lighting cache shaders if the object has a cache allocation
-								// This happens for objects with unbuilt lighting
-								if (bPrimitiveUsesILC &&
-									((IndirectLightingCacheAllocation && IndirectLightingCacheAllocation->IsValid())
-									// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
-									// And movable objects are sometimes rendered in the static draw lists
-									|| bPrimitiveIsMovable))
-								{
-									if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel) 
-										// Translucency forces point sample for pixel performance
-										&& Action.AllowIndirectLightingCacheVolumeTexture()
-										&& ((IndirectLightingCacheAllocation && !IndirectLightingCacheAllocation->bPointSample)
-											|| (bPrimitiveIsMovable && Parameters.PrimitiveSceneProxy->GetIndirectLightingCacheQuality() == ILCQ_Volume)))
-									{
-										// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
-										Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_CACHED_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
-									}
-									else
-									{
-										// Use a lightmap policy that supports reading indirect lighting from a single SH sample
-										Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_CACHED_POINT_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
-									}
-								}
-								else
-								{
-									Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
-								}
-							}
-							else
-							{
-								Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
-							}
-						}
-						break;
-				};
-			}
+					}
+					else
+					{
+						Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
+					}
+				}
+				else
+				{
+					Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_NO_LIGHTMAP), Parameters.Mesh.LCI);
+				}
+				break;
+			};
 		}
 	}
 }

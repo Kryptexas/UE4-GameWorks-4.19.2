@@ -31,9 +31,15 @@ TSharedRef<ISequencerSection> FColorPropertyTrackEditor::MakeSectionInterface(UM
 
 void FColorPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FColorKey>& NewGeneratedKeys, TArray<FColorKey>& DefaultGeneratedKeys )
 {
-	const UStructProperty* StructProp = Cast<const UStructProperty>( PropertyChangedParams.PropertyPath.Last() );
+	UProperty* Property = PropertyChangedParams.PropertyPath.GetLeafMostProperty().Property.Get();
+	if (!Property)
+	{
+		return;
+	}
+
+	const UStructProperty* StructProp = Cast<const UStructProperty>( Property );
 	FName StructName = StructProp->Struct->GetFName();
-	FName PropertyName = PropertyChangedParams.PropertyPath.Last()->GetFName();
+	FName PropertyName = Property->GetFName();
 
 	bool bIsFColor = StructName == NAME_Color;
 	bool bIsFLinearColor = StructName == NAME_LinearColor;

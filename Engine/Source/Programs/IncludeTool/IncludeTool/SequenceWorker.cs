@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using IncludeTool.Support;
+using System.Threading;
 
 namespace IncludeTool
 {
@@ -468,33 +469,20 @@ namespace IncludeTool
 			SetErrorMode(SetErrorMode(0) | SEM_NOGPFAULTERRORBOX);
 
 			// Increase the timeout with each attempt
-			for(int TimeoutMinutes = 10;;TimeoutMinutes += 10)
+			using (ManagedProcess NewProcess = new ManagedProcess(CompilerExe, String.Format("@\"{0}\"", ResponseFileName), null, null, null, ManagedProcessPriority.BelowNormal, 20 * 1024 * 1024 * 1024UL))
 			{
-				using (Process NewProcess = new Process())
+				const int TimeoutMinutes = 10;
+				if(NewProcess.TryReadAllLines(TimeSpan.FromMinutes(TimeoutMinutes), Output))
 				{
-					DataReceivedEventHandler OutputHandler = (x, y) => { if(!String.IsNullOrEmpty(y.Data)){ Output.Add(y.Data); } };
-
-					NewProcess.StartInfo.FileName = CompilerExe;
-					NewProcess.StartInfo.Arguments = String.Format("@\"{0}\"", ResponseFileName);
-					NewProcess.StartInfo.UseShellExecute = false;
-					NewProcess.StartInfo.RedirectStandardOutput = true;
-					NewProcess.StartInfo.RedirectStandardError = true;
-					NewProcess.OutputDataReceived += OutputHandler;
-					NewProcess.ErrorDataReceived += OutputHandler;
-					NewProcess.Start();
-					NewProcess.BeginOutputReadLine();
-					NewProcess.BeginErrorReadLine();
-					if(NewProcess.WaitForExit(TimeoutMinutes * 60 * 1000))
-					{
-						// WaitForExit with a timeout does not wait for output data to be flushed, so issue a normal WaitForExit call here too
-						NewProcess.WaitForExit();
-						return NewProcess.ExitCode == 0;
-					}
-					NewProcess.Kill();
-					NewProcess.WaitForExit();
+					return NewProcess.ExitCode == 0;
 				}
 				Console.WriteLine("Compile timeout after {0} minutes", TimeoutMinutes);
+				NewProcess.Terminate(1);
 			}
+
+			// Sometimes see errors due to terminated process still having a file open. Give it a chance to clean up.
+			Thread.Sleep(30 * 1000);
+			return false;
 		}
 
 		/// <summary>
@@ -537,8 +525,25 @@ namespace IncludeTool
 		/// <returns>The chosen precompiled header</returns>
 		static void WritePermutation(string PermutationFileName, Tuple<int, string>[] Lines, BitArray Permutation)
 		{
-			using(StreamWriter PermutationWriter = new StreamWriter(PermutationFileName))
+			StreamWriter PermutationWriter = null;
+			try
 			{
+				// Keep retrying to open the file for writing. Previous compiler instances may take a while to completely close.
+				for(;;)
+				{
+					try
+					{
+						PermutationWriter = new StreamWriter(PermutationFileName);
+						break;
+					}
+					catch(IOException)
+					{
+						Console.WriteLine("Couldn't open {0}; waiting 10s and retrying...", PermutationFileName);
+						Thread.Sleep(10 * 1000);
+					}
+				}
+
+				// Write the contents
 				int LineIdx = 0;
 				for(; LineIdx < Lines.Length; LineIdx++)
 				{
@@ -551,6 +556,13 @@ namespace IncludeTool
 					{
 						PermutationWriter.WriteLine("{0,-12} // {1}", String.Format("/* {0} */", Line.Item1), Line.Item2);
 					}
+				}
+			}
+			finally
+			{
+				if(PermutationWriter != null)
+				{
+					PermutationWriter.Dispose();
 				}
 			}
 		}

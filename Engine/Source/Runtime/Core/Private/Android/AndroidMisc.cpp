@@ -5,6 +5,11 @@
 #include "AndroidApplication.h"
 #include "HAL/PlatformStackWalk.h"
 #include "Misc/FileHelper.h"
+#include "Misc/App.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "HAL/IConsoleManager.h"
 #include <android/log.h>
 #include <cpu-features.h>
 #include "ModuleManager.h"

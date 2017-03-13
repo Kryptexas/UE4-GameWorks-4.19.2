@@ -59,19 +59,20 @@ static FAutoConsoleVariableRef CVarMetalResourceDeferDeleteNumFrames(
 	TEXT("Debug option: set to the number of frames that must have passed before resource free-lists are processed and resources disposed of. (Default: 0, Off)"));
 #endif
 
-int32 GMetalRuntimeDebugLevel = 3;
+int32 GMetalRuntimeDebugLevel = 2;
 static FAutoConsoleVariableRef CVarMetalRuntimeDebugLevel(
 	TEXT("rhi.Metal.RuntimeDebugLevel"),
 	GMetalRuntimeDebugLevel,
 	TEXT("The level of debug validation performed by MetalRHI in addition to the underlying Metal API & validation layer.\n")
 	TEXT("Each subsequent level adds more tests and reporting in addition to the previous level.\n")
-	TEXT("*IGNORED IN SHIPPING BUILDS*. (Default: 3)\n")
+	TEXT("*IGNORED IN SHIPPING AND TEST BUILDS*. (Default: 2)\n")
 	TEXT("\t0: Off,\n")
 	TEXT("\t1: Enable validation checks for encoder resets,\n")
 	TEXT("\t2: Record the debug-groups issued into a command-buffer and report them on failure,\n")
 	TEXT("\t3: Record the draw, blit & dispatch commands issued into a command-buffer and report them on failure,\n")
-	TEXT("\t4: Allow rhi.Metal.CommandBufferCommitThreshold to break command-encoders (except when MSAA is enabled),\n")
-	TEXT("\t5: Wait for each command-buffer to complete immediately after submission."));
+	TEXT("\t4: Set buffer bindings to nil prior to binding raw bytes so that the GPU tool doesn't show incorrect data,\n")
+	TEXT("\t5: Allow rhi.Metal.CommandBufferCommitThreshold to break command-encoders (except when MSAA is enabled),\n")
+	TEXT("\t6: Wait for each command-buffer to complete immediately after submission."));
 
 #if SHOULD_TRACK_OBJECTS
 TMap<id, int32> ClassCounts;
@@ -752,20 +753,9 @@ FMetalContext::FMetalContext(FMetalCommandQueue& Queue, bool const bIsImmediate)
 , StateCache(bIsImmediate)
 , RenderPass(CommandList, StateCache)
 , QueryBuffer(new FMetalQueryBufferPool(this))
-, bValidationEnabled(false)
 {
 	// create a semaphore for multi-buffering the command buffer
 	CommandBufferSemaphore = dispatch_semaphore_create(FParse::Param(FCommandLine::Get(),TEXT("gpulockstep")) ? 1 : 3);
-	
-	bValidationEnabled = false;
-	
-#if METAL_STATISTICS
-	IMetalStatisticsModule* StatsModule = FModuleManager::Get().LoadModulePtr<IMetalStatisticsModule>(TEXT("MetalStatistics"));
-	if (StatsModule)
-	{
-		bValidationEnabled = StatsModule->IsValidationEnabled();
-	}
-#endif
 }
 
 FMetalContext::~FMetalContext()
@@ -800,22 +790,11 @@ id<MTLCommandBuffer> FMetalContext::GetCurrentCommandBuffer()
 	return RenderPass.GetCurrentCommandBuffer();
 }
 
-void FMetalContext::InsertCommandBufferFence(FMetalCommandBufferFence& Fence)
+void FMetalContext::InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler)
 {
 	check(GetCurrentCommandBuffer());
 	
-	TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe>* CmdBufRef = new TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe>(new MTLCommandBufferRef([GetCurrentCommandBuffer() retain]));
-	
-	[GetCurrentCommandBuffer() addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull CommandBuffer)
-	{
-		if(CommandBuffer.status == MTLCommandBufferStatusError)
-		{
-			FMetalCommandList::HandleMetalCommandBufferFailure(CommandBuffer);
-		}
-		delete CmdBufRef;
-	}];
-	
-	Fence.CommandBufferRef = *CmdBufRef;
+	RenderPass.InsertCommandBufferFence(Fence, Handler);
 }
 
 void FMetalContext::CreateAutoreleasePool()
@@ -860,7 +839,7 @@ void FMetalContext::InitFrame(bool const bImmediateContext)
 	RenderPass.Begin(nil);
 	
 	// make sure first SetRenderTarget goes through
-	StateCache.SetHasValidRenderTarget(false);
+	StateCache.InvalidateRenderTargets();
 }
 
 void FMetalContext::FinishFrame()
@@ -869,7 +848,7 @@ void FMetalContext::FinishFrame()
 	SubmitCommandsHint(EMetalSubmitFlagsNone);
 	
 	// make sure first SetRenderTarget goes through
-	StateCache.SetHasValidRenderTarget(false);
+	StateCache.InvalidateRenderTargets();
 	
 	// Drain the auto-release pool for this context
 	DrainAutoreleasePool();
@@ -894,7 +873,7 @@ void FMetalContext::ResetRenderCommandEncoder()
 {
 	SubmitCommandsHint();
 	
-	StateCache.SetHasValidRenderTarget(false);
+	StateCache.InvalidateRenderTargets();
 	
 	SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), false);
 }
@@ -916,7 +895,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 #endif
 	
 	bool bUpdatedStrides = false;
-	uint32 StrideHash = 0;
+	uint32 StrideHash = CurrentBoundShaderState->VertexDeclaration->BaseHash;
 	
 	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout.VertexDesc;
 	if(Layout && Layout.layouts)
@@ -928,7 +907,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 			const FVertexElement& Element = CurrentBoundShaderState->VertexDeclaration->Elements[ElementIndex];
 			
 			uint32 StreamStride = StateCache.GetVertexStride(Element.StreamIndex);
-			StrideHash ^= (StreamStride << ElementIndex);
+			StrideHash = FCrc::MemCrc32(&StreamStride, sizeof(StreamStride), StrideHash);
 			
 			bool const bStrideMistmatch = (StreamStride > 0 && Element.Stride != StreamStride);
 			
@@ -962,7 +941,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 	FMetalHashedVertexDescriptor VertexDesc;
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalPrepareVertexDescTime);
-		VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout, (CurrentBoundShaderState->VertexDeclaration->BaseHash ^ StrideHash));
+		VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout, StrideHash);
 	}
 	
 	// Validate the vertex layout in debug mode, or when the validation layer is enabled for development builds.
@@ -1035,12 +1014,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 		
 		FRHISetRenderTargetsInfo Info = StateCache.GetRenderTargetsInfo();
 		
-		// Cache the fallback depth-stencil surface to reduce memory bloat - only need to recreate if size changes.
-		if (!IsValidRef(FallbackDepthStencilSurface) || FallbackDepthStencilSurface->GetSizeX() != FBSize.width || FallbackDepthStencilSurface->GetSizeY() != FBSize.height)
-		{
-			FRHIResourceCreateInfo TexInfo;
-			FallbackDepthStencilSurface = RHICreateTexture2D(FBSize.width, FBSize.height, PF_DepthStencil, 1, 1, TexCreate_DepthStencilTargetable, TexInfo);
-		}
+		FTexture2DRHIRef FallbackDepthStencilSurface = StateCache.CreateFallbackDepthStencilSurface(FBSize.width, FBSize.height);
 		check(IsValidRef(FallbackDepthStencilSurface));
 		
 		if (bNeedsDepthStencilWrite)

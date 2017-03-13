@@ -1021,7 +1021,7 @@ void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Fea
 	if (false)
 #endif
 	{
-		RHICmdList.ClearColorTextures(NumRenderTargets, RenderTargets, ClearColors, FIntRect());
+		RHICmdList.ClearColorTextures(NumRenderTargets, RenderTargets, ClearColors);
 	}
 	else
 	{

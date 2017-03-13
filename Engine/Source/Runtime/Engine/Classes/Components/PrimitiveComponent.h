@@ -1260,7 +1260,7 @@ public:
 	 * 
 	 * @param OutMaterials	The list of used materials.
 	 */
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const {}
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const {}
 
 	/**
 	 * Returns the material textures used to render this primitive for the given platform.
@@ -1795,7 +1795,7 @@ private:
 	bool ApplyRigidBodyState(const FRigidBodyState& NewState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
 
 	/** Check if mobility is set to non-static. If BodyInstanceRequiresSimulation is non-null we check that it is simulated. Triggers a PIE warning if conditions fails */
-	void WarnInvalidPhysicsOperations_Internal(const FText& ActionText, const FBodyInstance* BodyInstanceRequiresSimulation = nullptr) const;
+	void WarnInvalidPhysicsOperations_Internal(const FText& ActionText, const FBodyInstance* BodyInstanceRequiresSimulation, FName BoneName) const;
 
 public:
 

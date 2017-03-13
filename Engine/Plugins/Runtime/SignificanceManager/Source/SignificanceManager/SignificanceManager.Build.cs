@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SignificanceManager : ModuleRules
 {
-	public SignificanceManager(TargetInfo Target)
+	public SignificanceManager(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("SignificanceManager/Public");
 

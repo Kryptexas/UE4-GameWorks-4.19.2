@@ -91,8 +91,11 @@ void UMovieSceneSequencePlayer::PlayInternal()
 		UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
 		TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
-		FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
-		UpdateMovieSceneInstance(Range);
+		// Ensure we're at the current sequence position
+		PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+
+		// We pass the range of PlayTo here in order to correctly update the last evaluated time in the playposition
+		UpdateMovieSceneInstance(PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval));
 
 		if (OnPlay.IsBound())
 		{
@@ -169,7 +172,7 @@ void UMovieSceneSequencePlayer::Stop()
 		}
 
 		bIsPlaying = false;
-		TimeCursorPosition = PlaybackSettings.PlayRate < 0.f ? GetLength() : 0.f;
+		TimeCursorPosition = bReversePlayback ? GetLength() : 0.f;
 		CurrentNumLoops = 0;
 
 		if (PlaybackSettings.bRestoreState)
@@ -304,18 +307,26 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 			UpdateMovieSceneInstance(Range);
 
 			OnLooped();
-			return;
 		}
 
 		// stop playback
-		Stop();
-		return;
+		else
+		{
+			Stop();
+
+			// When playback stops naturally, the time cursor is put at the boundary that was crossed to make ping-pong playback easy
+			TimeCursorPosition = bReversePlayback ? 0.f : GetLength();
+			PlayPosition.Reset(TimeCursorPosition);
+		}
 	}
+	else
+	{
+		// Just update the time and sequence
+		TimeCursorPosition = NewPosition;
 
-	TimeCursorPosition = NewPosition;
-
-	FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(NewPosition + StartTime, FixedFrameInterval);
-	UpdateMovieSceneInstance(Range);
+		FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(NewPosition + StartTime, FixedFrameInterval);
+		UpdateMovieSceneInstance(Range);
+	}
 }
 
 void UMovieSceneSequencePlayer::UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange)

@@ -120,8 +120,6 @@ void FALSoundBuffer::CreateNativeBuffer(FALAudioDevice* AudioDevice, USoundWave*
 			Wave->AudioDecompressor = nullptr;
 		}
 
-		Wave->InitAudioResource(AudioDevice->GetRuntimeFormat(Wave));
-
 		// Create new buffer.
 		Buffer = new FALSoundBuffer(AudioDevice);
 

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class EditorStyle : ModuleRules
 {
-    public EditorStyle(TargetInfo Target)
+    public EditorStyle(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
@@ -31,7 +31,7 @@ public class EditorStyle : ModuleRules
 			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Win64
 			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac
 			|| Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Linux;
-		if (Target.Type == TargetRules.TargetType.Editor || (Target.Type == TargetRules.TargetType.Program && IsDesktopPlatformType))
+		if (Target.Type == TargetType.Editor || (Target.Type == TargetType.Program && IsDesktopPlatformType))
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

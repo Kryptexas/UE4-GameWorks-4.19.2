@@ -39,9 +39,9 @@ public:
 		{
 			return (Collections.Num() == 1)
 				? FText::FromName(Collections[0].Name)
-				: FText::Format(NSLOCTEXT("ContentBrowser", "CollectionDragDropDescription", "{0} and {1} other(s)"), FText::FromName(Collections[0].Name), FText::AsNumber(Collections.Num() - 1));
+				: FText::Format(NSLOCTEXT("ContentBrowser", "CollectionDragDropDescription", "{0} and {1} {1}|plural(one=other,other=others)"), FText::FromName(Collections[0].Name), Collections.Num() - 1);
 		}
-		
+
 		return CurrentHoverText;
 	}
 
