@@ -606,6 +606,9 @@ private:
 	/** All of the objects we're currently interacting with, such as selected actors */
 	TArray< TUniquePtr< FViewportTransformable > > Transformables;
 
+	/** The current gizmo type */ //@todo ViewportInteraction: Currently this is only used for universal gizmo.
+	TOptional<EGizmoHandleTypes> GizmoType;
+
 	//
 	// Snap grid
 	//
