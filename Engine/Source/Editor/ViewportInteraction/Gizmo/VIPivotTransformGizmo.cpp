@@ -16,6 +16,7 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/TextRenderComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Math/UnitConversion.h"
 
 namespace VREd //@todo VREditor: Duplicates of TransformGizmo

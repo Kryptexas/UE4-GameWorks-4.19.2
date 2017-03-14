@@ -51,6 +51,7 @@
 
 // UI
 #include "Components/WidgetComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "VREditorWidgetComponent.h"
 #include "VREditorStyle.h"
 #include "SUniformGridPanel.h"

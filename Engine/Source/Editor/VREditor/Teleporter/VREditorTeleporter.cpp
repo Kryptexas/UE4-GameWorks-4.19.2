@@ -7,7 +7,7 @@
 #include "VREditorInteractor.h"
 #include "VREditorMotionControllerInteractor.h"
 #include "VREditorAssetContainer.h"
-
+#include "Components/StaticMeshComponent.h"
 #include "Engine/EngineTypes.h"
 #include "HeadMountedDisplayTypes.h"
 #include "Sound/SoundCue.h"
