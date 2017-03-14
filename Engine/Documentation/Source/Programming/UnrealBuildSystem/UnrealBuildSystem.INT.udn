@@ -27,31 +27,28 @@ version:4.9
 ![Unreal Build System](build.png)
 [/REGION]
 
+UE4 is built using a small suite of custom tools designed to abstract cross-platform differences and allow engine features to be enabled, disabled, and built in a myriad different ways optimized for your game. 
+
 ### UnrealBuildTool
-**UnrealBuildTool** (or UBT) is a custom tool that manages the process of building the **Unreal Engine 4** (UE4) source code across the numerous possible build configurations.  Check out BuildConfiguration.cs to explore various 
-user-configurable build options.
+
+**UnrealBuildTool** (often abbreviated as UBT) orchestrates the process of building games and programs based on the UE4 source code. Any game or program you can build is a [target](Programming\UnrealBuildSystem\TargetFiles), and is defined by rules given in a C# source file with the .target.cs extension.
+
+The building blocks for a target are [modules](Programming\UnrealBuildSystem\ModuleFiles). A module consists of C++ source code and a C# .build.cs file declaring how to build it. A module may depend on other modules to be built, or may declare include paths and macros for other modules that depend on it. The core of the engine is a large number of modules, which are augmented by modules you define for your own game. 
+
+You can configure per-user settings for UnrealBuildTool through XML [configuration files](Programming\UnrealBuildSystem\Configuration).
 
 [REGION:note]
 If you would like to debug UnrealBuildTool or UnrealAutomationTool on Mac OS X, you must install [MonoDevelop 4.2.2](http://monodevelop.com/Download) and [Mono 3.2.7](http://www.go-mono.com/mono-downloads/download.html). 
 [/REGION]
 
 ### UnrealHeaderTool
-**UnrealHeaderTool** (or UHT) is a custom parsing and code-generation tool that supports the UObject system.  Code compilation happens in two phases:
 
-1.	UHT is invoked, which parses the C++ headers for Unreal-related class metadata and generates custom code to implement the various UObject-related features.
-1.	The normal C++ compiler is invoked to compile the results.
+**UnrealHeaderTool** (often abbreviated as UHT) parses C++ source files and generates reflection data. This reflection data is used by the engine to allow you to edit objects you create in the editor, to load and save those classes into packages, marshall those objects over the network, and so on.
 
-When compiling, it is possible for either tool to emit errors, so be sure to look carefully.
-
-### Project Files
+### Generating Project Files
 The build process happens independently of any project files for the development environment, such as .sln or .vcproj files for Visual Studio.  These files are useful to have for editing purposes though, 
 so there is a provided tool to generate them dynamically based on the contents of your project directory tree. You can run this tool with the [GenerateProjectFiles.bat](Programming\UnrealBuildSystem\ProjectFileGenerator) file located in your root /UE4 directory.
  It is generally useful to run this batch file from time to time to keep your code editor in sync with code files you have added or removed on disk.
-
-### Modular Architecture
-UE4 is split into many modules.  Each module has a .build.cs file that controls how it is built, including options for defining module dependencies, additional libraries, include paths, etc.
-
-By default, these modules are compiled into DLLs and loaded by a single executable.  You can choose to build a monolithic executable in the BuildConfiguration.cs file.
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
