@@ -151,6 +151,7 @@ public class UnrealEd : ModuleRules
 				"MovieScene",
 				"MovieSceneTracks",
                 "ViewportInteraction",
+                "VREditor",
                 "ClothingSystemEditor",
                 "ClothingSystemRuntime"
             }
@@ -238,7 +239,8 @@ public class UnrealEd : ModuleRules
                 "GraphEditor",
 				"Kismet",
 				"AudioEditor",
-                "ViewportInteraction"
+                "ViewportInteraction",
+                "VREditor"
             }
 		); 
 

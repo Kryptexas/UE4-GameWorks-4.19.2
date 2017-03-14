@@ -262,7 +262,16 @@ namespace UnrealBuildTool
 			new KeyValuePair<string, string>("HierarchicalLODOutliner", "UnrealEd"),
 			new KeyValuePair<string, string>("PixelInspectorModule", "UnrealEd"),
 			new KeyValuePair<string, string>("GameplayAbilitiesEditor", "BlueprintGraph"),
-		};
+            new KeyValuePair<string, string>("UnrealEd", "ViewportInteraction"),
+            new KeyValuePair<string, string>("UnrealEd", "VREditor"),
+            new KeyValuePair<string, string>("LandscapeEditor", "ViewportInteraction"),
+            new KeyValuePair<string, string>("LandscapeEditor", "VREditor"),
+            new KeyValuePair<string, string>("FoliageEdit", "ViewportInteraction"),
+            new KeyValuePair<string, string>("FoliageEdit", "VREditor"),
+            new KeyValuePair<string, string>("MeshPaint", "ViewportInteraction"),
+            new KeyValuePair<string, string>("MeshPaint", "VREditor"),
+            new KeyValuePair<string, string>("Sequencer", "ViewportInteraction"),
+        };
 
 
 		public UEBuildModuleCPP(
