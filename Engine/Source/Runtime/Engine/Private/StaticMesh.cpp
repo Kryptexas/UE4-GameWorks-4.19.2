@@ -1421,7 +1421,10 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			COOK_STAT(Timer.AddMiss(DerivedData.Num()));
 		}
 	}
-
+	
+	/** TEMPORARY for 4.15.1. True if LODs share static lighting data */
+	Owner->bLODsShareStaticLighting = StaticMesh_CanLODsShareStaticLighting(Owner);
+	
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 
 	if (CVar->GetValueOnGameThread() != 0 || Owner->bGenerateMeshDistanceField)

@@ -1641,7 +1641,7 @@ FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()
 		return NULL;
 	}
 
-	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this, false);
+	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this, GetStaticMesh()->bLODsShareStaticLighting);
 	return Proxy;
 }
 
