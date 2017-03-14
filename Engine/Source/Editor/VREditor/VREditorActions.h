@@ -124,7 +124,7 @@ public:
 	/**
 	 * If we are allowed to enter play.
 	 */
-	static bool CanPlay();
+	static bool CanPlay(UVREditorMode* InVRMode);
 
 	/**
 	 * Enters Simulate mode for physics and animation playback

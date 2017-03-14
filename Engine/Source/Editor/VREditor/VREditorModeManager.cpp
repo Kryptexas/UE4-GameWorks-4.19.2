@@ -6,6 +6,7 @@
 #include "Modules/ModuleManager.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/WorldSettings.h"
+#include "GameFramework/PlayerInput.h"
 #include "Editor.h"
 
 #include "EngineGlobals.h"
@@ -87,6 +88,9 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 				PlayerController->GetInputKeyTimeDown( EKeys::MotionController_Left_Trigger ) > ShutDownInputKeyTime)
 			{
 				CurrentVREditorMode->TogglePIEAndVREditor();
+				// We need to clear the input of the playercontroller when exiting PIE. 
+				// Otherwise the input will still be pressed down causing toggle between PIE and VR Editor to be called instantly whenever entering PIE a second time.
+				PlayerController->PlayerInput->FlushPressedKeys();
 				break;
 			}
 		}

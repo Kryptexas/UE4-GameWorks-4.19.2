@@ -11,7 +11,8 @@
 /************************************************************************/
 UEditorWorldExtension::UEditorWorldExtension() :
 	Super(),
-	OwningExtensionsCollection( nullptr )
+	OwningExtensionsCollection(nullptr),
+	bActive(true)
 {
 
 }
@@ -97,6 +98,16 @@ void UEditorWorldExtension::DestroyTransientActor(AActor* Actor)
 	}
 }
 
+void UEditorWorldExtension::SetActive(const bool bInActive)
+{
+	bActive = bInActive;
+}
+
+bool UEditorWorldExtension::IsActive() const
+{
+	return bActive;
+}
+
 UEditorWorldExtensionCollection* UEditorWorldExtension::GetOwningCollection()
 {
 	return OwningExtensionsCollection;
@@ -179,6 +190,7 @@ UEditorWorldExtensionCollection::UEditorWorldExtensionCollection() :
 	if( !IsTemplate() )
 	{
 		FEditorDelegates::PostPIEStarted.AddUObject( this, &UEditorWorldExtensionCollection::PostPIEStarted );
+		FEditorDelegates::PrePIEEnded.AddUObject( this, &UEditorWorldExtensionCollection::OnPreEndPIE );
 		FEditorDelegates::EndPIE.AddUObject( this, &UEditorWorldExtensionCollection::OnEndPIE );
 	}
 }
@@ -186,6 +198,7 @@ UEditorWorldExtensionCollection::UEditorWorldExtensionCollection() :
 UEditorWorldExtensionCollection::~UEditorWorldExtensionCollection()
 {
 	FEditorDelegates::PostPIEStarted.RemoveAll( this );
+	FEditorDelegates::PrePIEEnded.RemoveAll( this );
 	FEditorDelegates::EndPIE.RemoveAll( this );
 
 	EditorExtensions.Empty();
@@ -281,7 +294,10 @@ void UEditorWorldExtensionCollection::Tick( float DeltaSeconds )
 	for (FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions)
 	{
 		UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
-		EditorExtension->Tick(DeltaSeconds);
+		if (EditorExtension->IsActive())
+		{
+			EditorExtension->Tick(DeltaSeconds);
+		}
 	}
 }
 
@@ -311,6 +327,19 @@ bool UEditorWorldExtensionCollection::InputAxis( FEditorViewportClient* InViewpo
 }
 
 
+void UEditorWorldExtensionCollection::ShowAllActors(const bool bShow)
+{
+	for (FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions)
+	{
+		UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
+		for (AActor* Actor : EditorExtension->ExtensionActors)
+		{
+			Actor->SetActorHiddenInGame(!bShow);
+			Actor->SetActorEnableCollision(bShow);
+		}
+	}
+}
+
 void UEditorWorldExtensionCollection::PostPIEStarted( bool bIsSimulatingInEditor )
 {
 	if( bIsSimulatingInEditor && GEditor->EditorWorld != nullptr && GEditor->EditorWorld == WorldContext->World() )
@@ -326,6 +355,19 @@ void UEditorWorldExtensionCollection::PostPIEStarted( bool bIsSimulatingInEditor
 	}
 }
 
+
+void UEditorWorldExtensionCollection::OnPreEndPIE(bool bWasSimulatingInEditor)
+{
+	if (!bWasSimulatingInEditor && EditorWorldOnSimulate != nullptr && EditorWorldOnSimulate->World() == GEditor->EditorWorld)
+	{
+		if (!GIsRequestingExit)
+		{
+			// Revert back to the editor world before closing the play world, otherwise actors and objects will be destroyed.
+			SetWorldContext(EditorWorldOnSimulate);
+			EditorWorldOnSimulate = nullptr;
+		}
+	}
+}
 
 void UEditorWorldExtensionCollection::OnEndPIE( bool bWasSimulatingInEditor )
 {

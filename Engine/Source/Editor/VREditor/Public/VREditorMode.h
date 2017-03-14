@@ -120,9 +120,6 @@ public:
 	/** If the mode was completely initialized */
 	bool IsFullyInitialized() const;
 
-	/** If the mode is currently running */
-	bool IsActive() const;
-	
 	/** * Gets the tick handle to give external systems the change to be ticked right after the ViewportWorldInteraction is ticked */
 	DECLARE_EVENT_OneParam(UVREditorMode, FOnVRTickHandle, const float /* DeltaTime */);
 	FOnVRTickHandle& OnTickHandle()
@@ -314,12 +311,17 @@ private:
 	void PostPIEStarted( bool bIsSimulatingInEditor );
 	void PrePIEEnded( bool bWasSimulatingInEditor );
 	void OnEndPIE( bool bWasSimulatingInEditor );
+	void OnPreSwitchPIEAndSIE(bool bIsSimulatingInEditor);
+	void OnSwitchPIEAndSIE(bool bIsSimulatingInEditor);
 
 	/** Start using the viewport passed */
 	void StartViewport( TSharedPtr<SLevelViewport> Viewport );
 	
 	/** Close the current viewport */
 	void CloseViewport( const bool bShouldDisableStereo );
+
+	/** Resets all the settings when exiting PIE to VR Editor. */
+	void RestoreFromPIE();
 
 	/** Restore the world to meters to the saved one when entering VR Editor */
 	void RestoreWorldToMeters();
@@ -470,9 +472,6 @@ private:
 	/** If this is the first tick or before */
 	bool bFirstTick;
 
-	/** If this current mode is running */
-	bool bIsActive;
-
 	/** Pointer to the current Sequencer */
 	class ISequencer* CurrentSequencer;
 
@@ -481,6 +480,9 @@ private:
 
 	/** If we started play in editor from the VR Editor*/
 	bool bStartedPlayFromVREditor;	
+
+	/** If we started play in editor from the VR Editor while in simulate. */
+	bool bStartedPlayFromVREditorSimulate;
 	
 	/** Container of assets */
 	UPROPERTY()

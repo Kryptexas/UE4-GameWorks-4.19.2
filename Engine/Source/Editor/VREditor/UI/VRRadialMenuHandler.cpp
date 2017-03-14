@@ -679,7 +679,7 @@ void UVRRadialMenuHandler::ToolsMenuGenerator(FMenuBuilder MenuBuilder, TSharedP
 		FUIAction
 		(
 			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnPlayButtonClicked, VRMode),
-			FCanExecuteAction::CreateStatic(&FVREditorActionCallbacks::CanPlay)
+			FCanExecuteAction::CreateStatic(&FVREditorActionCallbacks::CanPlay, VRMode)
 			),
 		NAME_None,
 		EUserInterfaceActionType::CollapsedButton

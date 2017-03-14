@@ -296,9 +296,10 @@ void FVREditorActionCallbacks::OnPlayButtonClicked(UVREditorMode* InVRMode)
 	InVRMode->TogglePIEAndVREditor();
 }
 
-bool FVREditorActionCallbacks::CanPlay()
+bool FVREditorActionCallbacks::CanPlay(UVREditorMode* InVRMode)
 {
-	return FLevelEditorActionCallbacks::DefaultCanExecuteAction() && VREd::AllowPlay->GetInt() == 1;
+	return FLevelEditorActionCallbacks::DefaultCanExecuteAction() && VREd::AllowPlay->GetInt() == 1 &&
+		(InVRMode->GetHMDDeviceType() != EHMDDeviceType::DT_OculusRift || (InVRMode->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift && GEditor != nullptr && !GEditor->bIsSimulatingInEditor));
 }
 
 void FVREditorActionCallbacks::OnSimulateButtonClicked(UVREditorMode* InVRMode)

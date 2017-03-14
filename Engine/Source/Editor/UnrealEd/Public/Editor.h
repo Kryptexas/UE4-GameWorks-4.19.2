@@ -146,6 +146,8 @@ struct UNREALED_API FEditorDelegates
 	static FOnPIEEvent ResumePIE;
 	/** Sent when a PIE session is single-stepped */
 	static FOnPIEEvent SingleStepPIE;
+	/** Sent just before the user switches between from PIE to SIE, or vice-versa.  Passes in whether we are currently in SIE */
+	static FOnPIEEvent OnPreSwitchBeginPIEAndSIE;
 	/** Sent after the user switches between from PIE to SIE, or vice-versa.  Passes in whether we are currently in SIE */
 	static FOnPIEEvent OnSwitchBeginPIEAndSIE;
 	/** Within a property window, the currently selected item was changed.*/

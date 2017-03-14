@@ -54,9 +54,6 @@ public:
 	virtual void Shutdown() override;
 	virtual void Tick( float DeltaSeconds ) override;
 	
-	/** Returns true if this worldinteraction is currently running */
-	bool IsActive() const;
-
 	/** Adds interactor to the worldinteraction */
 	void AddInteractor( UViewportInteractor* Interactor );
 
@@ -698,9 +695,6 @@ private:
 
 	/** Event that is fired when the world scale changes */
 	FOnWorldScaleChanged OnWorldScaleChangedEvent;
-
-	/** If the world interaction is active and running the tick function */
-	bool bActive;
 
 	/** If this world interaction should get input from the input processor */
 	bool bUseInputPreprocessor;

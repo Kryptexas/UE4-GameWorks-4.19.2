@@ -38,6 +38,7 @@
 #include "SequencerSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/AudioComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "VREditorActions.h"
 #include "EditorModes.h"
 #include "VRModeSettings.h"
@@ -81,9 +82,9 @@ UVREditorMode::UVREditorMode() :
 	LeftHandInteractor( nullptr ),
 	RightHandInteractor( nullptr ),
 	bFirstTick( true ),
-	bIsActive( false ),
 	SavedWorldToMetersScaleForPIE(0.0f),
 	bStartedPlayFromVREditor(false),
+	bStartedPlayFromVREditorSimulate(false),
 	AssetContainer(nullptr)
 {
 }
@@ -170,6 +171,9 @@ void UVREditorMode::Enter()
 	FEditorDelegates::PostPIEStarted.AddUObject( this, &UVREditorMode::PostPIEStarted );
 	FEditorDelegates::PrePIEEnded.AddUObject( this, &UVREditorMode::PrePIEEnded );
 	FEditorDelegates::EndPIE.AddUObject(this, &UVREditorMode::OnEndPIE);
+	FEditorDelegates::OnPreSwitchBeginPIEAndSIE.AddUObject(this, &UVREditorMode::OnPreSwitchPIEAndSIE);
+	FEditorDelegates::OnSwitchBeginPIEAndSIE.AddUObject(this, &UVREditorMode::OnSwitchPIEAndSIE);
+
 
 	// @todo vreditor: We need to make sure the user can never switch to orthographic mode, or activate settings that
 	// would disrupt the user's ability to view the VR scene.
@@ -284,7 +288,9 @@ void UVREditorMode::Enter()
 	GEditor->OnEditorClose().AddUObject( this, &UVREditorMode::OnEditorClosed );
 
 	bFirstTick = true;
-	bIsActive = true;
+	SetActive(true);
+	bStartedPlayFromVREditor = false;
+	bStartedPlayFromVREditorSimulate = false;
 }
 
 void UVREditorMode::Exit(const bool bShouldDisableStereo)
@@ -389,17 +395,19 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 	FEditorDelegates::PostPIEStarted.RemoveAll( this );
 	FEditorDelegates::PrePIEEnded.RemoveAll( this );
 	FEditorDelegates::EndPIE.RemoveAll( this );
+	FEditorDelegates::OnPreSwitchBeginPIEAndSIE.RemoveAll(this);
+	FEditorDelegates::OnSwitchBeginPIEAndSIE.RemoveAll(this);
 
 	GEditor->OnEditorClose().RemoveAll( this );
 
 	bWantsToExitMode = false;
-	bIsActive = false;
+	SetActive(false);
 	bFirstTick = false;
 }
 
 void UVREditorMode::OnEditorClosed()
 {
-	if( bIsActive )
+	if(IsActive())
 	{
 		Exit( false );
 		Shutdown();
@@ -418,7 +426,7 @@ void UVREditorMode::OnVREditorWindowClosed( const TSharedRef<SWindow>& ClosedWin
 
 void UVREditorMode::PreTick( const float DeltaTime )
 {
-	if( !bIsFullyInitialized || !bIsActive || bWantsToExitMode )
+	if( !bIsFullyInitialized || !IsActive() || bWantsToExitMode )
 	{
 		return;
 	}
@@ -447,7 +455,7 @@ void UVREditorMode::PreTick( const float DeltaTime )
 
 void UVREditorMode::PostTick( float DeltaTime )
 {
-	if( !bIsFullyInitialized || !bIsActive || bWantsToExitMode || !VREditorLevelViewportWeakPtr.IsValid() )
+	if( !bIsFullyInitialized || !IsActive() || bWantsToExitMode || !VREditorLevelViewportWeakPtr.IsValid() )
 	{
 		return;
 	}
@@ -572,11 +580,6 @@ UViewportWorldInteraction& UVREditorMode::GetWorldInteraction()
 bool UVREditorMode::IsFullyInitialized() const
 {
 	return bIsFullyInitialized;
-}
-
-bool UVREditorMode::IsActive() const
-{
-	return bIsActive;
 }
 
 bool UVREditorMode::IsShowingRadialMenu(const UVREditorInteractor* Interactor) const
@@ -790,7 +793,40 @@ void UVREditorMode::ToggleSIEAndVREditor()
 
 void UVREditorMode::TogglePIEAndVREditor()
 {
-	if (GEditor->EditorWorld == nullptr && GEditor->PlayWorld == nullptr)
+	bool bRequestedPIE = false;
+	if (GEditor->EditorWorld == nullptr && GEditor->PlayWorld == nullptr && !GEditor->bIsSimulatingInEditor)
+	{
+		const FVector* StartLoc = NULL;
+		const FRotator* StartRot = NULL;
+		const bool bHMDIsReady = (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected());
+		GEditor->RequestPlaySession(true, VREditorLevelViewportWeakPtr.Pin(), false /*bSimulateInEditor*/, StartLoc, StartRot, -1, false, bHMDIsReady);
+		bRequestedPIE = true;
+	}
+	else if (GEditor->PlayWorld != nullptr)
+	{
+		// Since we are already in simulate, we want to toggle to PIE.
+		if (GEditor->bIsSimulatingInEditor)
+		{
+			bStartedPlayFromVREditorSimulate = true;
+			bRequestedPIE = true;
+
+			GEditor->RequestToggleBetweenPIEandSIE();
+		}
+		else
+		{
+			// If this play started while in simulate, then toggle back to simulate.
+			if (bStartedPlayFromVREditorSimulate)
+			{
+				GEditor->RequestToggleBetweenPIEandSIE();
+			}
+			else
+			{
+				GEditor->RequestEndPlayMap();
+			}
+		}
+	}
+
+	if (bRequestedPIE)
 	{
 		// Turn off input processing while in PIE.  We don't want any input events until the user comes back to the editor
 		WorldInteraction->SetUseInputPreprocessor(false);
@@ -800,17 +836,9 @@ void UVREditorMode::TogglePIEAndVREditor()
 		// Restore the world to meters before entering play
 		RestoreWorldToMeters();
 
-		bIsActive = false;
+		SetActive(false);
+		WorldInteraction->SetActive(false);
 		bStartedPlayFromVREditor = true;
-
-		const FVector* StartLoc = NULL;
-		const FRotator* StartRot = NULL;
-		const bool bHMDIsReady = (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected());
-		GEditor->RequestPlaySession(true, VREditorLevelViewportWeakPtr.Pin(), false /*bSimulateInEditor*/, StartLoc, StartRot, -1, false, bHMDIsReady);
-	}
-	else if (GEditor->PlayWorld != nullptr && !GEditor->bIsSimulatingInEditor)
-	{
-		GEditor->RequestEndPlayMap();
 	}
 }
 
@@ -1048,6 +1076,20 @@ void UVREditorMode::CloseViewport( const bool bShouldDisableStereo )
 	}
 }
 
+void UVREditorMode::RestoreFromPIE()
+{
+	SetActive(true);
+	bStartedPlayFromVREditor = false;
+	bStartedPlayFromVREditorSimulate = false;
+
+	GetWorld()->GetWorldSettings()->WorldToMeters = SavedWorldToMetersScaleForPIE;
+	WorldInteraction->SetWorldToMetersScale(SavedWorldToMetersScaleForPIE);
+
+	// Re-enable input pre-processing
+	WorldInteraction->SetUseInputPreprocessor(true);
+	WorldInteraction->SetActive(true);
+}
+
 void UVREditorMode::RestoreWorldToMeters()
 {
 	const float DefaultWorldToMeters = VREd::DefaultWorldToMeters->GetFloat();
@@ -1123,7 +1165,7 @@ const UVREditorAssetContainer& UVREditorMode::GetAssetContainer() const
 
 void UVREditorMode::PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume /*= 1.0f*/)
 {
-	if (bIsActive && bIsFullyInitialized && GEditor != nullptr && GEditor->CanPlayEditorSound())
+	if (IsActive() && bIsFullyInitialized && GEditor != nullptr && GEditor->CanPlayEditorSound())
 	{
 		const float Volume = InVolume*VREd::SFXMultiplier->GetFloat();
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundBase, InWorldLocation, Volume);
@@ -1132,7 +1174,7 @@ void UVREditorMode::PlaySound(USoundBase* SoundBase, const FVector& InWorldLocat
 
 void UVREditorMode::PostPIEStarted( bool bIsSimulatingInEditor )
 {
-	if( !bIsSimulatingInEditor )
+	if (!bIsSimulatingInEditor && bStartedPlayFromVREditor)
 	{
 		GEnableVREditorHacks = false;
 	}
@@ -1141,7 +1183,7 @@ void UVREditorMode::PostPIEStarted( bool bIsSimulatingInEditor )
 
 void UVREditorMode::PrePIEEnded( bool bWasSimulatingInEditor )
 {
-	if( !bWasSimulatingInEditor )
+	if (!bWasSimulatingInEditor && bStartedPlayFromVREditor && !bStartedPlayFromVREditorSimulate)
 	{
 		GEnableVREditorHacks = true;
 	}
@@ -1149,17 +1191,45 @@ void UVREditorMode::PrePIEEnded( bool bWasSimulatingInEditor )
 
 void UVREditorMode::OnEndPIE(bool bWasSimulatingInEditor)
 {
-	// We can not use this for leaving simulate. We need to use UEditorWorldExtension::LeftSimulateInEditor for that to be sure the world has already been transistioned.
-	if (!bWasSimulatingInEditor && bStartedPlayFromVREditor)
+	if (bStartedPlayFromVREditor && !bWasSimulatingInEditor && !bStartedPlayFromVREditorSimulate)
 	{
-		bIsActive = true;
-		bStartedPlayFromVREditor = false;
+		RestoreFromPIE();
+	}
+}
 
-		GetWorld()->GetWorldSettings()->WorldToMeters = SavedWorldToMetersScaleForPIE;
-		WorldInteraction->SetWorldToMetersScale(SavedWorldToMetersScaleForPIE);
+void UVREditorMode::OnPreSwitchPIEAndSIE(bool bIsSimulatingInEditor)
+{
+	if (bStartedPlayFromVREditorSimulate)
+	{
+		if (bIsSimulatingInEditor)
+		{
+			// Pre SIE to PIE
+			GetOwningCollection()->ShowAllActors(false);
+		}
+		else
+		{
+			// Pre PIE to SIE
+			GEnableVREditorHacks = true;
+		}
+	}
+}
 
-		// Re-enable input pre-processing
-		WorldInteraction->SetUseInputPreprocessor(true);
+void UVREditorMode::OnSwitchPIEAndSIE(bool bIsSimulatingInEditor)
+{
+	if (bStartedPlayFromVREditorSimulate)
+	{
+		if (bIsSimulatingInEditor)
+		{
+			// Post PIE to SIE
+			RestoreFromPIE();
+			GetOwningCollection()->ShowAllActors(true);
+		}
+		else
+		{
+			// Post SIE to PIE
+			GEnableVREditorHacks = false;
+			FSlateApplication::Get().SetAllUserFocusToGameViewport();
+		}
 	}
 }
 

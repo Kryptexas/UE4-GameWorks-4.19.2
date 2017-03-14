@@ -286,7 +286,6 @@ UViewportWorldInteraction::UViewportWorldInteraction():
 	DefaultMouseCursorInteractor( nullptr ),
 	DefaultMouseCursorInteractorRefCount( 0 ),
 	bIsInVR( false ),
-	bActive( false ),
 	bUseInputPreprocessor( false ),
 	bAllowWorldMovement( true ),
 	CurrentDeltaTime(0.0f),
@@ -336,7 +335,7 @@ void UViewportWorldInteraction::Init()
 	// We need a mouse cursor!
 	this->AddMouseCursorInteractor();
 
-	bActive = true;
+	SetActive(true);
 
 	CandidateActors.Reset();
 
@@ -348,7 +347,7 @@ void UViewportWorldInteraction::Init()
 
 void UViewportWorldInteraction::Shutdown()
 {
-	bActive = false;
+	SetActive(false);
 
 	if( DefaultMouseCursorInteractorRefCount == 1 )
 	{
@@ -421,7 +420,7 @@ void UViewportWorldInteraction::LeftSimulateInEditor()
 
 void UViewportWorldInteraction::OnEditorClosed()
 {
-	if( bActive )
+	if( IsActive() )
 	{
 		Shutdown();
 	}
@@ -533,11 +532,6 @@ void UViewportWorldInteraction::SetDefaultOptionalViewportClient(const TSharedPt
 	DefaultOptionalViewportClient = InEditorViewportClient.Get();
 }
 
-bool UViewportWorldInteraction::IsActive() const
-{
-	return bActive;
-}
-
 void UViewportWorldInteraction::PairInteractors( UViewportInteractor* FirstInteractor, UViewportInteractor* SecondInteractor )
 {
 	FirstInteractor->SetOtherInteractor( SecondInteractor );
@@ -548,19 +542,19 @@ bool UViewportWorldInteraction::InputKey( FEditorViewportClient* InViewportClien
 {
 	bool bWasHandled = false;
 
-	if( bActive )
+	if( IsActive() )
 	{
 		check(InViewportClient != nullptr);
 		OnKeyInputEvent.Broadcast(InViewportClient, Key, Event, bWasHandled);
 
-		if( !bWasHandled || !bActive )
+		if( !bWasHandled || !IsActive() )
 		{
 			for( UViewportInteractor* Interactor : Interactors )
 			{
 				bWasHandled = Interactor->HandleInputKey( *InViewportClient, Key, Event );
 
 				// Stop iterating if the input was handled by an Interactor
-				if( bWasHandled || !bActive )
+				if( bWasHandled || !IsActive() )
 				{
 					break;
 				}
@@ -596,19 +590,19 @@ bool UViewportWorldInteraction::InputAxis( FEditorViewportClient* InViewportClie
 {
 	bool bWasHandled = false;
 
-	if( bActive )
+	if( IsActive() )
 	{
 		check( InViewportClient != nullptr );
 		OnAxisInputEvent.Broadcast( InViewportClient, ControllerId, Key, Delta, DeltaTime, bWasHandled );
 
-		if( !bWasHandled || !bActive )
+		if( !bWasHandled || !IsActive() )
 		{
 			for( UViewportInteractor* Interactor : Interactors )
 			{
 				bWasHandled = Interactor->HandleInputAxis( *InViewportClient, Key, Delta, DeltaTime );
 
 				// Stop iterating if the input was handled by an interactor
-				if( bWasHandled || !bActive )
+				if( bWasHandled || !IsActive() )
 				{
 					break;
 				}
@@ -3084,7 +3078,7 @@ const class UViewportInteractionAssetContainer& UViewportWorldInteraction::LoadA
 
 void UViewportWorldInteraction::PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume /*= 1.0f*/)
 {
-	if (bActive && GEditor != nullptr && GEditor->CanPlayEditorSound())
+	if (IsActive() && GEditor != nullptr && GEditor->CanPlayEditorSound())
 	{
 		const float Volume = InVolume*VI::SFXMultiplier->GetFloat();
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundBase, InWorldLocation, FRotator::ZeroRotator, Volume);
