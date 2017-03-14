@@ -1630,7 +1630,7 @@ public:
 	 * @param ReferencingProperty Referencing property (if available).
 	 */
 	template<class UObjectType>
-	void AddReferencedObject(UObjectType*& Object, const UObject* ReferencingObject = NULL, const UProperty* ReferencingProperty = NULL)
+	void AddReferencedObject(UObjectType*& Object, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
 		HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
 	}
@@ -1643,7 +1643,7 @@ public:
 	* @param ReferencingProperty Referencing property (if available).
 	*/
 	template<class UObjectType>
-	void AddReferencedObjects(TArray<UObjectType*>& ObjectArray, const UObject* ReferencingObject = NULL, const UProperty* ReferencingProperty = NULL)
+	void AddReferencedObjects(TArray<UObjectType*>& ObjectArray, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
 		static_assert(TPointerIsConvertibleFromTo<UObjectType, const UObject>::Value, "'UObjectType' template parameter to AddReferencedObjects must be derived from UObject");
 		HandleObjectReferences(reinterpret_cast<UObject**>(ObjectArray.GetData()), ObjectArray.Num(), ReferencingObject, ReferencingProperty);
@@ -1657,7 +1657,7 @@ public:
 	* @param ReferencingProperty Referencing property (if available).
 	*/
 	template<class UObjectType>
-	void AddReferencedObjects(TSet<UObjectType>& ObjectSet, const UObject* ReferencingObject = NULL, const UProperty* ReferencingProperty = NULL)
+	void AddReferencedObjects(TSet<UObjectType>& ObjectSet, const UObject* ReferencingObject = nullptr, const UProperty* ReferencingProperty = nullptr)
 	{
 		for (auto& Object : ObjectSet)
 		{
@@ -1941,6 +1941,12 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 
 	// Called after garbage collection
 	static FSimpleMulticastDelegate PostGarbageCollect;
+
+	// Called before ConditionalBeginDestroy phase of garbage collection
+	static FSimpleMulticastDelegate PreGarbageCollectConditionalBeginDestroy;
+
+	// Called after ConditionalBeginDestroy phase of garbage collection
+	static FSimpleMulticastDelegate PostGarbageCollectConditionalBeginDestroy;
 
 	/** delegate type for querying whether a loaded object should replace an already existing one */
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnLoadObjectsOnTop, const FString&);

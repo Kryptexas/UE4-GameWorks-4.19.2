@@ -170,11 +170,8 @@ public:
 		FFeedbackContext* Warn,
 		UPackage* LimitOuter,
 		const FManifestModule& Module,
-		TArray<class IScriptGeneratorPluginInterface*>& ScriptPlugins
-#if WITH_HOT_RELOAD_CTORS
-		, bool bExportVTableConstructors
-#endif // WITH_HOT_RELOAD_CTORS
-		, FUHTMakefile& UHTMakefile
+		TArray<class IScriptGeneratorPluginInterface*>& ScriptPlugins,
+		FUHTMakefile& UHTMakefile
 	);
 
 	// Performs a preliminary parse of the text in the specified buffer, pulling out:
@@ -471,12 +468,9 @@ protected:
 	static void ExportNativeHeaders(
 		UPackage* CurrentPackage,
 		FClasses& AllClasses,
-		bool bAllowSaveExportedHeaders
-#if WITH_HOT_RELOAD_CTORS
-		, bool bExportVTableConstructors
-#endif // WITH_HOT_RELOAD_CTORS
-		, FUHTMakefile& UHTMakefile
-		, const FManifestModule& Module
+		bool bAllowSaveExportedHeaders,
+		FUHTMakefile& UHTMakefile,
+		const FManifestModule& Module
 	);
 
 	// FContextSupplier interface.

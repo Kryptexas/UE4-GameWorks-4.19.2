@@ -1025,10 +1025,7 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		for(UMaterialInstanceDynamic*& MID : MIDPool)
-		{
-			Collector.AddReferencedObject(MID);
-		}
+		Collector.AddReferencedObjects(MIDPool);
 	}
 
 	/** called in InitViews() */

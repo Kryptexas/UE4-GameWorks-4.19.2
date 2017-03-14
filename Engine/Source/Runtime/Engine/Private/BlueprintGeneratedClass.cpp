@@ -28,6 +28,14 @@
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
 
+int32 GBlueprintClusteringEnabled = 0;
+static FAutoConsoleVariableRef CVarUseBackgroundLevelStreaming(
+	TEXT("gc.BlueprintClusteringEnabled"),
+	GBlueprintClusteringEnabled,
+	TEXT("Whether to allow Blueprint classes to create GC clusters."),
+	ECVF_Default
+);
+
 UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -1236,6 +1244,12 @@ bool UBlueprintGeneratedClass::NeedsLoadForClient() const
 		}
 	}
 	return Super::NeedsLoadForClient();
+}
+
+bool UBlueprintGeneratedClass::CanBeClusterRoot() const
+{
+	// Clustering level BPs doesn't work yet
+	return GBlueprintClusteringEnabled && !GetOutermost()->ContainsMap();
 }
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)

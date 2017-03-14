@@ -438,6 +438,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 		ModifyLevel( LevelToSpawnIn );
 	}
 	LevelToSpawnIn->Actors.Add( Actor );
+	LevelToSpawnIn->ActorsForGC.Add(Actor);
 
 	// Add this newly spawned actor to the network actor list
 	AddNetworkActor( Actor );

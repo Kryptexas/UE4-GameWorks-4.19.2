@@ -240,7 +240,7 @@ public partial class Project : CommandUtils
             PotentialParentCultures.Add(LocaleTags[0]);
         }
 
-        string[] FoundDirectories = CommandUtils.FindDirectories(true, "*", false, new string[] { SourceDirectory });
+        string[] FoundDirectories = CommandUtils.FindDirectories(true, "*", false, SourceDirectory);
         foreach (string FoundDirectory in FoundDirectories)
         {
             string DirectoryName = CommandUtils.GetLastDirectoryName(FoundDirectory);
@@ -291,7 +291,7 @@ public partial class Project : CommandUtils
 			SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
 
 			// Stage each sub directory separately so that we can skip Engine if need be
-			string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, new string[] { PlatformCookDir });
+			string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, PlatformCookDir);
 
             foreach (string SubDir in SubDirs)
             {
@@ -352,13 +352,7 @@ public partial class Project : CommandUtils
 
 
             // Initialize internationalization preset.
-            string InternationalizationPreset = null;
-
-            // Use parameters if provided.
-            if (string.IsNullOrEmpty(InternationalizationPreset))
-            {
-                InternationalizationPreset = Params.InternationalizationPreset;
-            }
+            string InternationalizationPreset = Params.InternationalizationPreset;
 
             // Use configuration if otherwise lacking an internationalization preset.
             if (string.IsNullOrEmpty(InternationalizationPreset))
@@ -438,7 +432,7 @@ public partial class Project : CommandUtils
 				var ProjectLocRootDirectory = CombinePaths(SC.ProjectRoot, "Content/Localization");
 				if (DirectoryExists(ProjectLocRootDirectory))
 				{
-					string[] ProjectLocTargetDirectories = CommandUtils.FindDirectories(true, "*", false, new string[] { ProjectLocRootDirectory });
+					string[] ProjectLocTargetDirectories = CommandUtils.FindDirectories(true, "*", false, ProjectLocRootDirectory);
 					foreach (string ProjectLocTargetDirectory in ProjectLocTargetDirectories)
 					{
 						StageLocalizationDataForTarget(SC, CulturesToStage, ProjectLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));

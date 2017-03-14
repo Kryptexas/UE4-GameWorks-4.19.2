@@ -87,6 +87,9 @@ extern RENDERCORE_API void FlushPendingDeleteRHIResources_RenderThread();
 
 extern RENDERCORE_API void TickRenderingTickables();
 
+extern RENDERCORE_API void StartRenderCommandFenceBundler();
+extern RENDERCORE_API void StopRenderCommandFenceBundler();
+
 ////////////////////////////////////
 // Render thread suspension
 ////////////////////////////////////

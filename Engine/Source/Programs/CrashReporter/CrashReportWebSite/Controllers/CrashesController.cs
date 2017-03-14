@@ -11,6 +11,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Mvc;
+using Tools.CrashReporter.CrashReportWebSite.Classes;
 using Tools.CrashReporter.CrashReportWebSite.DataModels;
 using Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories;
 using Tools.CrashReporter.CrashReportWebSite.Properties;
@@ -18,6 +19,7 @@ using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 using Tools.DotNETCommon.XmlHandler;
 using Tools.CrashReporter.CrashReportCommon;
 using System.Data.SqlClient;
+using System.Runtime.Caching;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 {
@@ -26,9 +28,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	/// </summary>
 	[HandleError]
 	public class CrashesController : Controller
-	{
+    {
+        private static MemoryCache crashCache = MemoryCache.Default;
+
         //Ugly instantiation of Crash repository will replace with dependency injection BEFORE this gets anywhere near live.
 	    private readonly SlackWriter _slackWriter;
+
+	    private static readonly PerformanceTracker PerfTracker = new PerformanceTracker(100);
         
         /// <summary> Special user name, currently used to mark Crashes from UE4 releases. </summary>
         const string UserNameAnonymous = "Anonymous";
@@ -47,6 +53,41 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		    };
 		}
 
+        class CrashCacheItem
+        {
+            public List<Crash> Crashes { get; set; }
+            public Dictionary<string, int> GroupCount { get; set; }
+            public int ResultCount { get; set; }
+        }
+
+        private string getCacheKeyFromFormData(FormHelper formData)
+        {
+            return string.Format("{0}-{1}-{2}-{3}-{4}-{5}-{6}-{7}-{8}-{9}-{10}-{11}-{12}-{13}-{14}-{15}-{16}-{17}-{18}-{19}-{20}-{21}-{22}",
+                formData.BranchName,
+                formData.BuggId,
+                formData.BuiltFromCL,
+                formData.CrashType,
+                formData.DateFrom,
+                formData.DateTo,
+                formData.EngineMode,
+                formData.EngineVersion,
+                formData.EpicIdOrMachineQuery,
+                formData.GameName,
+                formData.JiraId,
+                formData.JiraQuery,
+                formData.MessageQuery,
+                formData.Page,
+                formData.PageSize,
+                formData.PlatformName,
+                formData.PreviousOrder,
+                formData.SearchQuery,
+                formData.SortOrder,
+                formData.SortTerm,
+                formData.UserGroup,
+                formData.UsernameQuery,
+                formData.VersionName);
+        }
+
 		/// <summary>
 		/// Display a summary list of Crashes based on the search criteria.
 		/// </summary>
@@ -54,7 +95,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>A view to display a list of Crash reports.</returns>
 		public ActionResult Index(FormCollection CrashesForm )
 		{
-            using( var logTimer = new FAutoScopedLogTimer( this.GetType().ToString(), bCreateNewLog: true ) )
+            using( var logTimer = new FAutoScopedLogTimer( this.GetType().ToString()) )
 			{
 				// Handle any edits made in the Set form fields
                 //foreach( var Entry in CrashesForm )
@@ -171,7 +212,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			        unitOfWork.Save();
 			    }
 
-			    currentCallStack = new CallStackContainer( currentCrash );
+			    currentCallStack = new CallStackContainer( currentCrash.CrashType, currentCrash.RawCallStack, currentCrash.PlatformName );
 			    currentCrash.Module = currentCallStack.GetModuleName();
 
 				//Set call stack properties
@@ -181,7 +222,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				currentCallStack.bDisplayFilePathNames = true;
 				currentCallStack.bDisplayUnformattedCallStack = false;
 
-				currentCrash.CallStackContainer = new CallStackContainer(currentCrash);
+			    currentCrash.CallStackContainer = currentCallStack;
 
 				var Model = new CrashViewModel { Crash = currentCrash, User = CrashUser, Bugg = currentBugg, UserGroup = currentUserGroup, CallStack = currentCallStack };
 				Model.GenerationTime = logTimer.GetElapsedSeconds().ToString( "F2" );
@@ -196,17 +237,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>The row id of the newly added Crash.</returns>
 		public ActionResult AddCrash(int id)
 		{
-		   
-		    var buildPatternDuration = "";
-		    var createCrashDuration = "";
-		    var userTime = "";
 		    var newCrashResult = new CrashReporterResult();
 		    CrashDescription newCrash;
 		    newCrashResult.ID = -1;
 		    string payloadString;
             
             using (var logTimer = new FAutoScopedLogTimer(this.GetType().ToString() 
-                + "(CrashId=" + id + ")", bCreateNewLog: true))
+                + "(CrashId=" + id + ")"))
             {
 		        //Read the request payload
 		        try
@@ -258,16 +295,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		        //Add Crash to database
 		        try
 		        {
-		            using (
-		                var logTimer2 = new FAutoScopedLogTimer(this.GetType().ToString() + "(CrashId=" + id + ")",
-		                    bCreateNewLog: true))
-		            {
-		                var crash = CreateCrash(newCrash, out buildPatternDuration, out userTime);
+                    var crash = CreateCrash(newCrash);
 		                newCrashResult.ID = crash.Id;
 		                newCrashResult.bSuccess = true;
-
-		                createCrashDuration = logTimer2.GetElapsedSeconds().ToString("F2");
-		            }
 		        }
 		        catch (DbEntityValidationException dbentEx)
 		        {
@@ -339,23 +369,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 		        var returnResult = XmlHandler.ToXmlString<CrashReporterResult>(newCrashResult);
 
-                _slackWriter.Write("Add Crash completed. Pattern Match Time : " + buildPatternDuration +
-                    " Find User Time :" + userTime +
-                    " Create Crash Time : " + createCrashDuration + 
-                    " Total Time : " + logTimer.GetElapsedSeconds().ToString("F2") + " Return Result = " + newCrashResult.bSuccess.ToString());
-
-		        if (logTimer.GetElapsedSeconds() > 100.0f)
-		        {
-                    var slackWriter = new SlackWriter()
-                    {
-                        WebhookUrl = Settings.Default.SlackWebhookUrl,
-                        Channel = "CrashReporterdetails",
-                        Username = Settings.Default.SlackUsername,
-                        IconEmoji = Settings.Default.SlackEmoji
-                    };
-                    slackWriter.Write("Long Duration Add Crash. Crash Result Message : " + newCrashResult.Message);
-		        }
-
+                PerfTracker.AddStat("Add Crash Complete", logTimer.GetElapsedSeconds());
+                PerfTracker.IncrementCount();
+                
 		        return Content(returnResult, "text/xml");
 		    }
 		}
@@ -370,68 +386,85 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
             List<Crash> results = null;
             IQueryable<Crash> resultsQuery = null;
 
-            var skip = (formData.Page - 1) * formData.PageSize;
-            var take = formData.PageSize;
+            var cacheKey = getCacheKeyFromFormData(formData);
+            var cachedResults = crashCache.Get(cacheKey) as CrashCacheItem;
 
-            Dictionary<string, int> groupCounts;
-            var resultCount = 0;
-            using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
+            if (cachedResults == null)
             {
-                resultsQuery = ConstructQueryForFiltering(unitOfWork, formData);
+                var skip = (formData.Page - 1) * formData.PageSize;
+                var take = formData.PageSize;
 
-                // Filter by data and get as enumerable.
-                resultsQuery = FilterByDate(resultsQuery, formData.DateFrom, formData.DateTo);
-
-                // Filter by BuggId
-                if (!string.IsNullOrEmpty(formData.BuggId))
+                Dictionary<string, int> groupCounts;
+                var resultCount = 0;
+                using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
                 {
-                    var buggId = 0;
-                    var bValid = int.TryParse(formData.BuggId, out buggId);
+                    resultsQuery = ConstructQueryForFiltering(unitOfWork, formData);
 
-                    if (bValid)
+                    // Filter by data and get as enumerable.
+                    resultsQuery = FilterByDate(resultsQuery, formData.DateFrom, formData.DateTo);
+
+                    // Filter by BuggId
+                    if (!string.IsNullOrEmpty(formData.BuggId))
                     {
-                        var newBugg = unitOfWork.BuggRepository.GetById(buggId);
+                        var buggId = 0;
+                        var bValid = int.TryParse(formData.BuggId, out buggId);
 
-                        if (newBugg != null)
+                        if (bValid)
                         {
-                            resultsQuery = resultsQuery.Where(data => data.PatternId == newBugg.PatternId);
+                            var newBugg = unitOfWork.BuggRepository.GetById(buggId);
+
+                            if (newBugg != null)
+                            {
+                                resultsQuery = resultsQuery.Where(data => data.PatternId == newBugg.PatternId);
+                            }
                         }
                     }
-                }
 
-                var countsQuery =
-                    resultsQuery.GroupBy(data => data.User.UserGroup)
-                        .Select(data => new {Key = data.Key.Name, Count = data.Count()});
-                groupCounts = countsQuery.OrderBy(data => data.Key)
-                    .ToDictionary(data => data.Key, data => data.Count);
+                    var countsQuery =
+                        resultsQuery.GroupBy(data => data.User.UserGroup)
+                            .Select(data => new { Key = data.Key.Name, Count = data.Count() });
+                    groupCounts = countsQuery.OrderBy(data => data.Key)
+                        .ToDictionary(data => data.Key, data => data.Count);
 
-                // Filter by user group if present
-                var userGroupId = !string.IsNullOrEmpty(formData.UserGroup)
-                    ? unitOfWork.UserGroupRepository.First(data => data.Name == formData.UserGroup).Id
-                    : 1;
-                resultsQuery = resultsQuery.Where(data => data.User.UserGroupId == userGroupId);
+                    // Filter by user group if present
+                    var userGroupId = !string.IsNullOrEmpty(formData.UserGroup)
+                        ? unitOfWork.UserGroupRepository.First(data => data.Name == formData.UserGroup).Id
+                        : 1;
+                    resultsQuery = resultsQuery.Where(data => data.User.UserGroupId == userGroupId);
 
-                var orderedQuery = GetSortedQuery(resultsQuery, formData.SortTerm ?? "TimeOfCrash",
-                    formData.SortOrder == "Descending");
+                    var orderedQuery = GetSortedQuery(resultsQuery, formData.SortTerm ?? "TimeOfCrash",
+                        formData.SortOrder == "Descending");
 
-                // Grab just the results we want to display on this page
-                results = orderedQuery.Skip(skip).Take(take).ToList();
+                    // Grab just the results we want to display on this page
+                    results = orderedQuery.Skip(skip).Take(take).ToList();
 
-                // Get the Count for pagination
-                resultCount = orderedQuery.Count();
+                    // Get the Count for pagination
+                    resultCount = orderedQuery.Count();
 
-                // Process call stack for display
-                foreach (var CrashInstance in results)
-                {
-                    // Put call stacks into an list so we can access them line by line in the view
-                    CrashInstance.CallStackContainer = new CallStackContainer(CrashInstance);
+                    // Process call stack for display
+                    foreach (var CrashInstance in results)
+                    {
+                        // Put call stacks into an list so we can access them line by line in the view
+                        CrashInstance.CallStackContainer = new CallStackContainer(CrashInstance.CrashType, CrashInstance.RawCallStack, CrashInstance.PlatformName);
+                    }
+
+                    cachedResults = new CrashCacheItem()
+                    {
+                        Crashes = results,
+                        GroupCount = groupCounts,
+                        ResultCount = resultCount
+                    };
+
+                    var itemCachePolicy = new CacheItemPolicy() { AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(Settings.Default.CrashesCacheInMinutes) };
+
+                    crashCache.Add(cacheKey, cachedResults, itemCachePolicy);
                 }
             }
 
             return new CrashesViewModel
             {
-                Results = results,
-                PagingInfo = new PagingInfo { CurrentPage = formData.Page, PageSize = formData.PageSize, TotalResults = resultCount },
+                Results = cachedResults.Crashes,
+                PagingInfo = new PagingInfo { CurrentPage = formData.Page, PageSize = formData.PageSize, TotalResults = cachedResults.ResultCount },
                 SortOrder = formData.SortOrder,
                 SortTerm = formData.SortTerm,
                 UserGroup = formData.UserGroup,
@@ -443,13 +476,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 BuiltFromCL = formData.BuiltFromCL,
                 BuggId = formData.BuggId,
                 JiraQuery = formData.JiraQuery,
-                DateFrom = (long)(formData.DateFrom - CrashesViewModel.Epoch).TotalMilliseconds,
-                DateTo = (long)(formData.DateTo - CrashesViewModel.Epoch).TotalMilliseconds,
+                DateFrom = (long)(formData.DateFrom.ToUniversalTime() - CrashesViewModel.Epoch).TotalMilliseconds,
+                DateTo = (long)(formData.DateTo.ToUniversalTime() - CrashesViewModel.Epoch).TotalMilliseconds,
                 BranchName = formData.BranchName,
                 VersionName = formData.VersionName,
                 PlatformName = formData.PlatformName,
                 GameName = formData.GameName,
-                GroupCounts = groupCounts
+                GroupCounts = cachedResults.GroupCount
             };
         }
 
@@ -729,55 +762,20 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    /// </summary>
 	    /// <param name="description"></param>
 	    /// <returns></returns>
-        private Crash CreateCrash(CrashDescription description, out string buildPatternDuration, out string findUserTime)
+	    private Crash CreateCrash(CrashDescription description)
 	    {
-            var newCrash = new Crash
+	        var newCrash = new Crash
 	        {
 	            Branch = description.BranchName,
 	            BaseDir = description.BaseDir,
 	            BuildVersion = description.EngineVersion,
-                EngineVersion = description.BuildVersion,
+	            EngineVersion = description.BuildVersion,
 	            ChangelistVersion = description.BuiltFromCL.ToString(),
 	            CommandLine = description.CommandLine,
 	            EngineMode = description.EngineMode,
 	            ComputerName = description.MachineGuid,
-                IsVanilla = description.EngineModeEx.ToLower() == "vanilla"
+	            IsVanilla = description.EngineModeEx.ToLower() == "vanilla"
 	        };
-
-	        using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
-	        {
-	            using (
-	                var logTimer = new FAutoScopedLogTimer(this.GetType().ToString(),
-	                    bCreateNewLog: true))
-	            {
-	                //if there's a valid username assign the associated UserNameId else use "anonymous".
-	                var userName = (!string.IsNullOrEmpty(description.UserName)) ? description.UserName : UserNameAnonymous;
-	                var user =
-	                    unitOfWork.UserRepository.First(
-	                        data => data.UserName.Equals(userName, StringComparison.InvariantCultureIgnoreCase));
-
-                    var user2 =
-                       unitOfWork.UserRepository.First(
-                           data => data.UserName.Equals(userName, StringComparison.InvariantCultureIgnoreCase));
-
-                    var user3 =
-                       unitOfWork.UserRepository.First(
-                           data => data.UserName.Equals(userName, StringComparison.InvariantCultureIgnoreCase));
-
-	                if (user != null)
-	                {
-	                    newCrash.UserId = user.Id;
-	                }
-	                else
-	                {
-	                    newCrash.User = new User() {UserName = description.UserName, UserGroupId = 5};
-	                }
-
-	                user = user2;
-
-	                findUserTime = logTimer.GetElapsedSeconds().ToString("F2");
-	            }
-	        }
 
 	        //If there's a valid EpicAccountId assign that.
 	        if (!string.IsNullOrEmpty(description.EpicAccountId))
@@ -798,8 +796,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	        newCrash.LanguageExt = description.Language; //Converted by the Crash process.
 	        newCrash.PlatformName = description.Platform;
 	        newCrash.HasLogFile = description.bHasLog;
-            newCrash.HasVideoFile = description.bHasVideo;
-            newCrash.HasMiniDumpFile = description.bHasMiniDump;
+	        newCrash.HasVideoFile = description.bHasVideo;
+	        newCrash.HasMiniDumpFile = description.bHasMiniDump;
 
 	        if (description.ErrorMessage != null)
 	        {
@@ -816,7 +814,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	            newCrash.SourceContext = string.Join("\n", description.SourceContext);
 	        }
 
-	        newCrash.TimeOfCrash = DateTime.Now;//description.TimeOfCrash;
+	        newCrash.TimeOfCrash = description.TimeofCrash;
 
 	        newCrash.Jira = "";
 	        newCrash.FixedChangeList = "";
@@ -872,34 +870,49 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	        // As we're adding it, the status is always new
 	        newCrash.Status = "New";
 	        newCrash.UserActivityHint = description.UserActivityHint;
+	        newCrash.UserName = (!string.IsNullOrEmpty(description.UserName)) ? description.UserName : UserNameAnonymous;
+            
+            //Match this crash to an existing user or create a new user if one does not exist.
+	       using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
+	        {
+	            //if there's a valid username assign the associated UserNameId else use "anonymous".
+	            var userName = (!string.IsNullOrEmpty(description.UserName)) ? description.UserName : UserNameAnonymous;
+                    
+                if (unitOfWork.UserRepository.Any(data => data.UserName.Equals(userName)))
+                {
+                    newCrash.UserId = unitOfWork.UserRepository.ListAll()
+                        .Where(data => data.UserName.Equals(userName))
+                        .Select(data => data.Id)
+                        .First();
+                }
+                else
+                {
+                    newCrash.User = new User() { UserName = description.UserName, UserGroupId = 5 };
+                }
+	        }
+
 	        try
 	        {
-	            using (
-	                var logTimer = new FAutoScopedLogTimer(this.GetType().ToString(),
-	                    bCreateNewLog: true))
-	            {
-                    BuildPattern(newCrash);
-                    buildPatternDuration = logTimer.GetElapsedSeconds().ToString("F2");
-	            }
+	            //Build the callstack pattern for this crash 
+	            BuildPattern(newCrash);
 	        }
 	        catch (Exception ex)
 	        {
-                FLogger.Global.WriteException("Error in Create Crash Build Pattern Method");
-                _slackWriter.Write("Error in Create Crash Build Pattern Method");
-                _slackWriter.Write(ex.Message);
+	            FLogger.Global.WriteException("Error in Create Crash Build Pattern Method");
+	            _slackWriter.Write("Error in Create Crash Build Pattern Method");
+	            _slackWriter.Write(ex.Message);
 	            if (ex.InnerException != null)
 	            {
-                    _slackWriter.Write(ex.InnerException.Message);
+	                _slackWriter.Write(ex.InnerException.Message);
 	            }
 	            throw;
 	        }
 
-
-            if(newCrash.CommandLine == null)
+	        if(newCrash.CommandLine == null)
                 newCrash.CommandLine = "";
 
             using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
-            {
+	        {
 	            var callStackRepository = unitOfWork.CallstackRepository;
 
 	            try
@@ -939,21 +952,21 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                var lineRegex = new Regex(@"(\[Line:).*?(])"); //Match the line no.
 
 	                /**
-                 * Regex to match ints of two characters or longer
-                 * First term ((?<=\s)|(-)) : Positive look behind, match if preceeded by whitespace or if first character is '-'
-                 * Second term (\d{3,}) match three or more decimal chracters in a row.
-                 * Third term (?=(\s|$)) positive look ahead match if followed by whitespace or end of line/file.
-                 */
+                        * * Regex to match ints of two characters or longer
+                        * * First term ((?<=\s)|(-)) : Positive look behind, match if preceeded by whitespace or if first character is '-'
+                        * Second term (\d{3,}) match three or more decimal chracters in a row.
+                        * Third term (?=(\s|$)) positive look ahead match if followed by whitespace or end of line/file.
+                        */
 	                var intRegex = new Regex(@"-?\d{3,}");
 
 	                /**
-                 * Regular expression for masking out floats
-                 */
+                        * Regular expression for masking out floats
+                        */
 	                var floatRegex = new Regex(@"-?\d+\.\d+");
 
 	                /**
-                 * Regular expression for masking out hexadecimal numbers
-                 */
+                        * Regular expression for masking out hexadecimal numbers
+                        */
 	                var hexRegex = new Regex(@"0x[\da-fA-F]+");
 
 	                //mask out terms matches by our regex's
@@ -964,22 +977,28 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                trimmedError = intRegex.Replace(trimmedError, "");
 	                if (trimmedError.Length > 450)
 	                    trimmedError = trimmedError.Substring(0, 450);
-	                    //error message is used as an index - trim to max index length
-                    
-                    //Check to see if the masked error message is unique
+	                //error message is used as an index - trim to max index length
+
+	                //Check to see if the masked error message is unique
 	                ErrorMessage errorMessage = null;
 	                if (
 	                    unitOfWork.ErrorMessageRepository.Any(
-	                        data => data.ErrorMessageText.Equals(trimmedError, StringComparison.InvariantCultureIgnoreCase)))
+	                        data =>
+	                            data.ErrorMessageText.Equals(trimmedError, StringComparison.InvariantCultureIgnoreCase)))
 	                {
 	                    errorMessage =
 	                        unitOfWork.ErrorMessageRepository.First(
-                                data => data.ErrorMessageText.Equals(trimmedError, StringComparison.InvariantCultureIgnoreCase));
+	                            data =>
+	                                data.ErrorMessageText.Equals(trimmedError,
+	                                    StringComparison.InvariantCultureIgnoreCase));
 	                }
 	                else
 	                {
 	                    //if it's a new message then add it to the database.
-                        errorMessage = new ErrorMessage() { ErrorMessageText = trimmedError.ToLower(CultureInfo.InvariantCulture) };
+	                    errorMessage = new ErrorMessage()
+	                    {
+	                        ErrorMessageText = trimmedError.ToLower(CultureInfo.InvariantCulture)
+	                    };
 	                    unitOfWork.ErrorMessageRepository.Save(errorMessage);
 	                    unitOfWork.Save();
 	                }
@@ -989,7 +1008,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                    (data.PatternId == newCrash.PatternId) &&
 	                    (data.ErrorMessageId == errorMessage.Id || data.ErrorMessageId == null)))
 	                {
-                        //if a bugg exists for this pattern update the bugg data
+	                    //if a bugg exists for this pattern update the bugg data
 	                    var bugg = unitOfWork.BuggRepository.First(data => data.PatternId == newCrash.PatternId);
 	                    bugg.PatternId = newCrash.PatternId;
 
@@ -1079,11 +1098,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                }
 
 	                FLogger.Global.WriteException("Create Crash Exception : " +
-	                                              messageBuilder.ToString());
+	                                                messageBuilder.ToString());
 	                _slackWriter.Write("Create Crash Exception : " + messageBuilder.ToString());
 	                throw;
 	            }
-	        }
+            }
+
 	        return newCrash;
 	    }
 
@@ -1094,58 +1114,64 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    /// <param name="newCrash"></param>
         private void BuildPattern(Crash newCrash)
 	    {
-	        var callstack = new CallStackContainer(newCrash);
-	        newCrash.Module = callstack.GetModuleName();
-	        if (newCrash.PatternId == null)
-	        {
-	            var patternList = new List<string>();
+	        
+            var callstack = new CallStackContainer(newCrash.CrashType, newCrash.RawCallStack, newCrash.PlatformName);
+	            newCrash.Module = callstack.GetModuleName();
+	            newCrash.Module = newCrash.Module.Length >= 127 ? newCrash.Module.Substring(0, 127) : newCrash.Module;
 
-	            try
+	            if (newCrash.PatternId == null)
 	            {
-	                using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
-	                {
-	                    foreach (var entry in callstack.CallStackEntries.Take(CallStackContainer.MaxLinesToParse))
-	                    {
-	                        FunctionCall currentFunctionCall;
+	                var patternList = new List<string>();
 
-	                        var csEntry = entry;
-	                        var functionCall = unitOfWork.FunctionRepository.First(f => f.Call == csEntry.FunctionName);
-	                        if (functionCall != null)
-	                        {
-	                            currentFunctionCall = functionCall;
-	                        }
-	                        else
-	                        {
-	                            var call = csEntry.FunctionName;
-	                            if (call.Length > 899)
-	                                call = call.Substring(0, 899);
-	                            currentFunctionCall = new FunctionCall {Call = call};
-	                            unitOfWork.FunctionRepository.Save(currentFunctionCall);
-	                            unitOfWork.Save();
-	                        }
-
-	                        patternList.Add(currentFunctionCall.Id.ToString());
-	                    }
-	                }
-
-	                newCrash.Pattern = string.Join("+", patternList);
-	            }
-	            catch (Exception ex)
-	            {
-                    var messageBuilder = new StringBuilder();
-                    FLogger.Global.WriteException("Build Pattern exception: " + ex.Message.ToString(CultureInfo.InvariantCulture));
-                    messageBuilder.AppendLine("Exception was:");
-                    messageBuilder.AppendLine(ex.ToString());
-                    while (ex.InnerException != null)
+	                try
                     {
-                        ex = ex.InnerException;
-                        messageBuilder.AppendLine(ex.ToString());
-                    }
+                        using (var unitOfWork = new UnitOfWork(new CrashReportEntities()))
+                        {
+                            foreach (var entry in callstack.CallStackEntries.Take(CallStackContainer.MaxLinesToParse))
+                            {
+                                var functionCallId = 0;
 
-                    _slackWriter.Write("Build Pattern Exception : " + ex.Message.ToString(CultureInfo.InvariantCulture));
-                    throw;
+	                            //if this function is already in the database get id
+	                            if (unitOfWork.FunctionRepository.Any(f => f.Call == entry.FunctionName))
+	                            {
+	                                functionCallId =
+	                                    unitOfWork.FunctionRepository.FirstId(f => f.Call == entry.FunctionName);
+	                            }
+	                            else
+	                            {
+	                                //else add this function to the db.
+	                                var call = entry.FunctionName;
+	                                if (call.Length > 899)
+	                                    call = call.Substring(0, 899);
+	                                var currentFunctionCall = new FunctionCall {Call = call};
+	                                unitOfWork.FunctionRepository.Save(currentFunctionCall);
+	                                unitOfWork.Save();
+	                                functionCallId = currentFunctionCall.Id;
+	                            }
+
+	                            patternList.Add(functionCallId.ToString());
+	                        }
+	                    }
+
+	                    newCrash.Pattern = string.Join("+", patternList);
+	                }
+	                catch (Exception ex)
+	                {
+	                    var messageBuilder = new StringBuilder();
+	                    FLogger.Global.WriteException("Build Pattern exception: " +
+	                                                  ex.Message.ToString(CultureInfo.InvariantCulture));
+	                    messageBuilder.AppendLine("Exception was:");
+	                    messageBuilder.AppendLine(ex.ToString());
+	                    while (ex.InnerException != null)
+	                    {
+	                        ex = ex.InnerException;
+	                        messageBuilder.AppendLine(ex.ToString());
+	                    }
+
+	                    _slackWriter.Write("Build Pattern Exception : " + ex.Message.ToString(CultureInfo.InvariantCulture));
+	                    throw;
+	                }
 	            }
-	        }
 	    }
 
         /// <summary></summary>
@@ -1161,8 +1187,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    public void TestAddCrash()
 	    {
             using (
-                var logTimer = new FAutoScopedLogTimer(this.GetType().ToString() + "()",
-                    bCreateNewLog: true))
+                var logTimer = new FAutoScopedLogTimer(this.GetType().ToString() + "()"))
             {
                 string CrashContext;
                 using (
@@ -1176,13 +1201,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
                 var Crash = XmlHandler.FromXmlString<CrashDescription>(CrashContext);
 
-                var buildPatternDuration = "";
-                var userTime = "";
-                var crash = CreateCrash(Crash, out buildPatternDuration, out userTime);
+                var crash = CreateCrash(Crash);
 
-                _slackWriter.Write("Test Add Crash completed. Pattern Match time : " + buildPatternDuration +
-                    " Find User Time : " + userTime + 
-                    " Total Time : " + logTimer.GetElapsedSeconds().ToString("F2"));
+                _slackWriter.Write("Test Add Crash completed. Total Time : " + logTimer.GetElapsedSeconds().ToString("F2"));
 
             }
 	    }

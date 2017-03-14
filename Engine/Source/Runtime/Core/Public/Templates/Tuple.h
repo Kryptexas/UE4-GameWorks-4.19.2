@@ -172,6 +172,36 @@ namespace UE4Tuple_Private
 		}
 	};
 
+	template <uint32 NumArgs, uint32 ArgToCompare = 0, bool Last = ArgToCompare + 1 == NumArgs>
+	struct TLessThanHelper
+	{
+		template <typename TupleType>
+		FORCEINLINE static bool Do(const TupleType& Lhs, const TupleType& Rhs)
+		{
+			return Lhs.template Get<ArgToCompare>() < Rhs.template Get<ArgToCompare>() || (!(Rhs.template Get<ArgToCompare>() < Lhs.template Get<ArgToCompare>()) && TLessThanHelper<NumArgs, ArgToCompare + 1>::Do(Lhs, Rhs));
+		}
+	};
+
+	template <uint32 NumArgs, uint32 ArgToCompare>
+	struct TLessThanHelper<NumArgs, ArgToCompare, true>
+	{
+		template <typename TupleType>
+		FORCEINLINE static bool Do(const TupleType& Lhs, const TupleType& Rhs)
+		{
+			return Lhs.template Get<ArgToCompare>() < Rhs.template Get<ArgToCompare>();
+		}
+	};
+
+	template <uint32 NumArgs>
+	struct TLessThanHelper<NumArgs, NumArgs, false>
+	{
+		template <typename TupleType>
+		FORCEINLINE static bool Do(const TupleType& Lhs, const TupleType& Rhs)
+		{
+			return false;
+		}
+	};
+
 	template <typename Indices, typename... Types>
 	struct TTupleStorage;
 
@@ -427,6 +457,26 @@ namespace UE4Tuple_Private
 		{
 			return !(Lhs == Rhs);
 		}
+
+		FORCEINLINE friend bool operator<(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
+		{
+			return TLessThanHelper<sizeof...(Types)>::Do(Lhs, Rhs);
+		}
+
+		FORCEINLINE friend bool operator<=(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
+		{
+			return !(Rhs < Lhs);
+		}
+
+		FORCEINLINE friend bool operator>(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
+		{
+			return Rhs < Lhs;
+		}
+
+		FORCEINLINE friend bool operator>=(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
+		{
+			return !(Lhs < Rhs);
+		}
 	};
 
 	#ifdef _MSC_VER
@@ -477,6 +527,26 @@ namespace UE4Tuple_Private
 			FORCEINLINE friend bool operator!=(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
 			{
 				return false;
+			}
+
+			FORCEINLINE friend bool operator<(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
+			{
+				return false;
+			}
+
+			FORCEINLINE friend bool operator<=(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
+			{
+				return true;
+			}
+
+			FORCEINLINE friend bool operator>(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
+			{
+				return false;
+			}
+
+			FORCEINLINE friend bool operator>=(const TTupleImpl& Lhs, const TTupleImpl& Rhs)
+			{
+				return true;
 			}
 		};
 

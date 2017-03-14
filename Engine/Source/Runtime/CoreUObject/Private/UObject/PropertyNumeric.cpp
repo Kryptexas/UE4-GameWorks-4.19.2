@@ -16,7 +16,7 @@ uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, c
 	UEnum* Enum = FindField<UEnum>(dynamic_cast<UClass*>(DefaultsStruct) ? static_cast<UClass*>(DefaultsStruct) : DefaultsStruct->GetTypedOuter<UClass>(), Tag.EnumName);
 	if (!Enum)
 	{
-		Enum = FindObject<UEnum>(ANY_PACKAGE, *Tag.EnumName.ToString(), true);
+		Enum = FindObject<UEnum>(ANY_PACKAGE, *Tag.EnumName.ToString());
 	}
 
 	if (!Enum)

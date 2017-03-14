@@ -1100,20 +1100,20 @@ void UCookOnTheFlyServer::GetDependentPackages( const TSet<FName>& RootPackages,
 		{
 			// check(PackageDependency.ToString().StartsWith(TEXT("/")));
 			FName PackageDependency = OriginalPackageDependency;
-			FString PackageDepdencyString = PackageDependency.ToString();
+			FString PackageDependencyString = PackageDependency.ToString();
 
 			FText OutReason;
 			const bool bIncludeReadOnlyRoots = true; // Dependency packages are often script packages (read-only)
-			if (!FPackageName::IsValidLongPackageName(PackageDepdencyString, bIncludeReadOnlyRoots, &OutReason))
+			if (!FPackageName::IsValidLongPackageName(PackageDependencyString, bIncludeReadOnlyRoots, &OutReason))
 			{
 				const FText FailMessage = FText::Format(LOCTEXT("UnableToGeneratePackageName", "Unable to generate long package name for {0}. {1}"),
-					FText::FromString(PackageDepdencyString), OutReason);
+					FText::FromString(PackageDependencyString), OutReason);
 
 				LogCookerMessage(FailMessage.ToString(), EMessageSeverity::Warning);
 				UE_LOG(LogCook, Warning, TEXT("%s"), *( FailMessage.ToString() ));
 				continue;
 			}
-			else if (FPackageName::IsScriptPackage(PackageDepdencyString))
+			else if (FPackageName::IsScriptPackage(PackageDependencyString) || FPackageName::IsMemoryPackage(PackageDependencyString))
 			{
 				continue;
 			}
@@ -1209,7 +1209,7 @@ void UCookOnTheFlyServer::OnStringAssetReferenceLoadedPackage(const FName& Packa
 		}
 		else
 		{
-			if (!FPackageName::IsScriptPackage(PackageFName.ToString()))
+			if (!FPackageName::IsScriptPackage(PackageFName.ToString()) && !FPackageName::IsMemoryPackage(PackageFName.ToString()))
 			{
 				UE_LOG(LogCook, Warning, TEXT("Unable to find cached package name for package %s"), *PackageFName.ToString());
 			}
@@ -2120,31 +2120,31 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		
 	OUTPUT_TIMERS();
 
-	if ( CookByTheBookOptions )
-		{
+	if (CookByTheBookOptions)
+	{
 		CookByTheBookOptions->CookTime += Timer.GetTimeTillNow();
 	}
 
-	if ( IsCookByTheBookRunning() && 
-		( CookRequests.HasItems() == false ) &&
-		(!(Result & COSR_WaitingOnChildCookers)) )
-			{
+	if (IsCookByTheBookRunning() &&
+		(CookRequests.HasItems() == false) &&
+		(!(Result & COSR_WaitingOnChildCookers)))
+	{
 		check(IsCookByTheBookMode());
 		// UE_LOG(LogCook, Display, TEXT("String asset reference resolve tried %d did %d"), bTriedToRunStringAssetReferenceResolve, bHasRunStringAssetReferenceResolve);
 		// if we are out of stuff and we are in cook by the book from the editor mode then we finish up
 		CookByTheBookFinished();
-		}
-
-	return Result;
 	}
 
+	return Result;
+}
 
-void UCookOnTheFlyServer::PostLoadPackageFixup( UPackage* Package )
-	{
+
+void UCookOnTheFlyServer::PostLoadPackageFixup(UPackage* Package)
+{
 	const FName StandardPackageName = GetCachedStandardPackageFileFName(Package);
 	const TArray<FName> EmptyTargets;
-	if ( CookedPackages.Exists(StandardPackageName, EmptyTargets) )
-		{
+	if (CookedPackages.Exists(StandardPackageName, EmptyTargets))
+	{
 		return;
 	}
 
@@ -2173,21 +2173,27 @@ void UCookOnTheFlyServer::PostLoadPackageFixup( UPackage* Package )
 
 			// Collect world composition tile packages to cook
 			if (World->WorldComposition)
-	{
+			{
 				World->WorldComposition->CollectTilesToCook(NewPackagesToCook);
-	}
+			}
 
 			for (auto PackageName : NewPackagesToCook)
 			{
+#if 0 // old way keeping for reference in case there are issues
 				FString Filename;
 				if (FPackageName::DoesPackageExist(PackageName, NULL, &Filename))
 				{
 					FString StandardFilename = FPaths::ConvertRelativePathToFull(Filename);
 					FPaths::MakeStandardFilename(StandardFilename);
 					FName StandardPackageFName = FName(*StandardFilename);
+#else
+				FName StandardPackageFName = GetCachedStandardPackageFileFName(FName(*PackageName));
+				if (StandardPackageFName != NAME_None)
+				{
+#endif
 					if (IsChildCooker())
-	{
-		check(IsCookByTheBookMode());
+					{
+						check(IsCookByTheBookMode());
 						// notify the main cooker that it should make sure this package gets cooked
 						CookByTheBookOptions->ChildUnsolicitedPackages.Add(StandardPackageFName);
 					}
@@ -2197,7 +2203,7 @@ void UCookOnTheFlyServer::PostLoadPackageFixup( UPackage* Package )
 					}
 				}
 			}
-	}
+		}
 
 	}
 }
@@ -4031,7 +4037,7 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 		FName PackageName;
 		FString PlatformSandboxPath;
 		//FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *Platform->PlatformName());
-		if (FPackageName::IsScriptPackage(RelativePath))
+		if (FPackageName::IsScriptPackage(RelativePath) || FPackageName::IsMemoryPackage(RelativePath))
 		{
 			PackageName = Package;
 		}
@@ -4039,7 +4045,7 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 		{
 			FString StringPackageName;
 			if (FPackageName::TryConvertFilenameToLongPackageName(RelativePath, StringPackageName) == false)
-		{
+			{
 				UE_LOG(LogCook, Warning, TEXT("Unable to determine extension for file %s skipping asset registry entry"), *PackageName.ToString());
 				continue;
 			}
@@ -4049,10 +4055,10 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 			PlatformSandboxPath.ReplaceInline(TEXT("[Platform]"), *PlatformName);
 		}
 
-		if ( UncookedEditorPackages.Contains( PackageName ) )
-			{
-				continue;
-			}
+		if (UncookedEditorPackages.Contains(PackageName))
+		{
+			continue;
+		}
 
 		Json->WriteObjectStart(); // unnamed package start
 
@@ -4200,7 +4206,7 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 		FName PackageName;
 		FString PlatformSandboxPath;
 		//FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *Platform->PlatformName());
-		if (FPackageName::IsScriptPackage(RelativePath))
+		if (FPackageName::IsScriptPackage(RelativePath) || FPackageName::IsMemoryPackage(RelativePath))
 		{
 			PackageName = EditorOnlyPackage;
 		}
@@ -4826,7 +4832,7 @@ void UCookOnTheFlyServer::VerifyCookedPackagesAreUptodate(const TArray<ITargetPl
 			{
 				FName DependencyPackageName = Dependencies[I];
 
-				if (FPackageName::IsScriptPackage(DependencyPackageName.ToString()))
+				if (FPackageName::IsScriptPackage(DependencyPackageName.ToString()) || FPackageName::IsMemoryPackage(DependencyPackageName.ToString()))
 				{
 					// don't care about script packages we are assuming the scripts can't be invalidated after the cooker has started
 					continue;
@@ -5152,7 +5158,7 @@ void UCookOnTheFlyServer::GenerateLongPackageNames(TArray<FName>& FilesInPath)
 
 void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const FString &InFilename ) const
 { 
-	if (!FPackageName::IsScriptPackage(InFilename))
+	if (!FPackageName::IsScriptPackage(InFilename) && !FPackageName::IsMemoryPackage(InFilename))
 	{
 		FName InFilenameName = FName(*InFilename );
 		if ( InFilenameName == NAME_None)
@@ -6087,6 +6093,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	CookByTheBookOptions->ChildCookFilename = CookByTheBookStartupOptions.ChildCookFileName;
 	CookByTheBookOptions->bDisableUnsolicitedPackages = !!(CookOptions & ECookByTheBookOptions::DisableUnsolicitedPackages);
 	CookByTheBookOptions->ChildCookIdentifier = CookByTheBookStartupOptions.ChildCookIdentifier;
+	CookByTheBookOptions->bErrorOnEngineContentUse = CookByTheBookStartupOptions.bErrorOnEngineContentUse;
 
 	GenerateAssetRegistry();
 
@@ -6171,12 +6178,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		for (const ITargetPlatform* Entry : CookByTheBookStartupOptions.TargetPlatforms)
 		{
 			FPlatformNativizationDetails PlatformNativizationDetails;
-			PlatformNativizationDetails.PlatformName = Entry->PlatformName();
-			// If you change this target path you must also update logic in CookCommand.Automation.CS. Passing a single directory around is cumbersome for testing, so I have hard coded it.
-			PlatformNativizationDetails.PlatformTargetDirectory = FString(FPaths::Combine(*FPaths::GameIntermediateDir(), *(Entry->PlatformName())));
-			PlatformNativizationDetails.CompilerNativizationOptions.ClientOnlyPlatform = Entry->IsClientOnly();
-			PlatformNativizationDetails.CompilerNativizationOptions.ServerOnlyPlatform = Entry->IsServerOnly();
-
+			IBlueprintNativeCodeGenModule::Get().FillPlatformNativizationDetails(Entry, PlatformNativizationDetails);
 			CodeGenData.CodegenTargets.Push(PlatformNativizationDetails);
 		}
 		CodeGenData.ManifestIdentifier = CookByTheBookStartupOptions.ChildCookIdentifier;
@@ -6546,7 +6548,7 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 
 		for (const auto& Dependency : UnfilteredDependencies)
 		{
-			if (FPackageName::IsScriptPackage(Dependency.ToString()) == false)
+			if ((FPackageName::IsScriptPackage(Dependency.ToString()) == false) && (FPackageName::IsMemoryPackage(Dependency.ToString()) == false))
 			{
 				if (PackageNamesSet.Contains(Dependency) == false)
 				{
@@ -6571,7 +6573,7 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 			UE_LOG(LogCook, Warning, TEXT("%s"), *(FailMessage.ToString()));
 			continue;
 		}
-		else if (FPackageName::IsScriptPackage(LongPackageName))
+		else if (FPackageName::IsScriptPackage(LongPackageName)|| FPackageName::IsMemoryPackage(LongPackageName))
 		{
 			continue;
 		}

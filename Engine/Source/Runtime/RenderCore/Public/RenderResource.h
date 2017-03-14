@@ -134,6 +134,18 @@ extern RENDERCORE_API void BeginUpdateResourceRHI(FRenderResource* Resource);
 extern RENDERCORE_API void BeginReleaseResource(FRenderResource* Resource);
 
 /**
+* Enables the batching of calls to BeginReleaseResource
+* This is called in the game thread.
+*/
+extern RENDERCORE_API void StartBatchedRelease();
+
+/**
+* Disables the batching of calls to BeginReleaseResource
+* This is called in the game thread.
+*/
+extern RENDERCORE_API void EndBatchedRelease();
+
+/**
  * Sends a message to the rendering thread to release a resource, and spins until the rendering thread has processed the message.
  * This is called in the game thread.
  */

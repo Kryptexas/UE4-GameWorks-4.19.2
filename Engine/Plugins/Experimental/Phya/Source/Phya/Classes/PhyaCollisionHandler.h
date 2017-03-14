@@ -26,6 +26,11 @@ struct FPhyaBodyInstancePair
 	{
 		return X.Body0 == Y.Body0 && X.Body1 == Y.Body1;
 	}
+
+	friend uint32 GetTypeHash( const FPhyaBodyInstancePair& Pair )
+	{
+		return GetTypeHash(Pair.Body0) ^ GetTypeHash(Pair.Body1);
+	}
 };
 
 class FPhyaPairInfo : public TSharedFromThis<FPhyaPairInfo>

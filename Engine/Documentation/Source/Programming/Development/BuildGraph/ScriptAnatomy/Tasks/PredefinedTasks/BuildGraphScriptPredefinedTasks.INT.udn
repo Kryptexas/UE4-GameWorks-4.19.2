@@ -1,9 +1,21 @@
 Availability: NoPublish
 Title: BuildGraph Predefined Tasks
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy, Programming/Development/BuildGraph/ScriptAnatomy/Tasks
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks
 Description: This is a procedurally generated markdown page.
-version: 4.13
-parent:Programming/Development/BuildGraph/ScriptAnatomy/Tasks
+version: 4.16
+parent:Programming/Development/BuildGraph/BuildGraphScriptTasks
+
+### AgeStore
+
+Task which strips symbols from a set of files. This task is named after the AGESTORE utility that comes with the Microsoft debugger tools SDK, but is actually a separate implementation. The main difference is that it uses the last modified time rather than last access time to determine which files to delete.
+
+|          |                      |          |                                                                                                                                                                                                                                                                                                                                      |
+| -------- | -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Platform | UnrealTargetPlatform | Required | The target platform to age symbols for.                                                                                                                                                                                                                                                                                              |
+| StoreDir | String               | Required | The symbol server directory.                                                                                                                                                                                                                                                                                                         |
+| Days     | Int32                | Required | Number of days worth of symbols to keep.                                                                                                                                                                                                                                                                                             |
+| Filter   | String               | Optional | A substring to match in directory file names before deleting symbols. This allows the "age store" task to avoid deleting symbols from other builds in the case where multiple builds share the same symbol server. Specific use of the filter value is determined by the symbol server structure defined by the platform tool chain. |
+| If       | Condition            | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                                                                                                                                                                                                                                    |
 
 ### Command
 
@@ -59,28 +71,28 @@ Cook a selection of maps for a certain platform
 
 Copies files from one directory to another.
 
-|         |                |          |                                                                                                                                                  |
-| ------- | -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Files   | File Spec      | Required | List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set. Relative paths are based at FromDir. |
-| FromDir | Directory Name | Required | The base directory to copy from.                                                                                                                 |
-| ToDir   | Directory Name | Required | The directory to copy to                                                                                                                         |
-| Tag     | Tag List       | Optional | Tag to be applied to build products of this task                                                                                                 |
-| If      | Condition      | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                                                |
+|       |           |          |                                                                                   |
+| ----- | --------- | -------- | --------------------------------------------------------------------------------- |
+| Files | File Spec | Optional | Filter to be applied to the list of input files. Optional.                        |
+| From  | File Spec | Required | The pattern(s) to copy from (eg. Engine/*.txt)                                    |
+| To    | File Spec | Required | The directory or to copy to                                                       |
+| Tag   | Tag List  | Optional | Tag to be applied to build products of this task                                  |
+| If    | Condition | Optional | Whether to execute this task. It is ignored if this condition evaluates to false. |
 
 ### CsCompile
 
 Compiles C# project files, and their dependencies.
 
-|               |           |          |                                                                                                                                                  |
-| ------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Project       | String    | Required | The C# project file to be compile. More than one project file can be specified by separating with semicolons.                                    |
-| Configuration | String    | Optional | The configuration to compile                                                                                                                     |
-| Platform      | String    | Optional | The platform to compile                                                                                                                          |
-| Arguments     | String    | Optional | Additional options to pass to the compiler                                                                                                       |
-| EnumerateOnly | Boolean   | Optional | Only enumerate build products; do not actually compile the projects.                                                                             |
-| Tag           | Tag List  | Optional | Tag to be applied to build products of this task                                                                                                 |
-| TagReferences | Tag List  | Optional | Tag to be applied to any non-private references the projects have (i.e. those that are external and not copied into the output dir)              |
-| If            | Condition | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                                                |
+|               |           |          |                                                                                                                                     |
+| ------------- | --------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Project       | String    | Required | The C# project file to be compile. More than one project file can be specified by separating with semicolons.                       |
+| Configuration | String    | Optional | The configuration to compile                                                                                                        |
+| Platform      | String    | Optional | The platform to compile                                                                                                             |
+| Arguments     | String    | Optional | Additional options to pass to the compiler                                                                                          |
+| EnumerateOnly | Boolean   | Optional | Only enumerate build products; do not actually compile the projects.                                                                |
+| Tag           | Tag List  | Optional | Tag to be applied to build products of this task                                                                                    |
+| TagReferences | Tag List  | Optional | Tag to be applied to any non-private references the projects have (i.e. those that are external and not copied into the output dir) |
+| If            | Condition | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                                   |
 
 ### Delete
 
@@ -102,6 +114,18 @@ Print a message (and other optional diagnostic information) to the output log
 | Files           | File Spec | Optional | If specified, causes the given list of files to be printed after the given message. |
 | IncludeContents | Boolean   | Optional | If specified, causes the contents of the given files to be printed out.             |
 | If              | Condition | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.   |
+
+### Move
+
+Moves files from one directory to another.
+
+|       |           |          |                                                                                   |
+| ----- | --------- | -------- | --------------------------------------------------------------------------------- |
+| Files | File Spec | Optional | Filter to be applied to the list of input files. Optional.                        |
+| From  | File Spec | Required | The pattern(s) to copy from (eg. Engine/*.txt)                                    |
+| To    | File Spec | Required | The directory or to copy to                                                       |
+| Tag   | Tag List  | Optional | Tag to be applied to build products of this task                                  |
+| If    | Condition | Optional | Whether to execute this task. It is ignored if this condition evaluates to false. |
 
 ### PakFile
 
@@ -143,6 +167,7 @@ Updates the local version files (Engine/Source/Runtime/Launch/Resources/Version.
 | Branch           | String    | Required | The branch string                                                                                                         |
 | Build            | String    | Optional | The build version string                                                                                                  |
 | Licensee         | Boolean   | Optional | Whether to set the IS_LICENSEE_VERSION flag to true                                                                       |
+| Promoted         | Boolean   | Optional | Whether to set the ENGINE_IS_PROMOTED_BUILD flag to true                                                                  |
 | SkipWrite        | Boolean   | Optional | If set, don't actually write to the files - just return the version files that would be updated. Useful for local builds. |
 | Tag              | Tag List  | Optional | Tag to be applied to build products of this task                                                                          |
 | If               | Condition | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                         |
@@ -193,7 +218,7 @@ Strips debugging information from a set of files.
 | Platform  | UnrealTargetPlatform | Required | The platform toolchain to strip binaries                                                             |
 | BaseDir   | Directory Name       | Optional | The directory to find files in                                                                       |
 | Files     | File Spec            | Required | List of file specifications separated by semicolons (eg. Engine/.../*.pdb), or the name of a tag set |
-| OutputDir | Directory Name       | Required | Output directory for the stripped files. Defaults to the input path (overwriting the input files).   |
+| OutputDir | Directory Name       | Optional | Output directory for the stripped files. Defaults to the input path (overwriting the input files).   |
 | Tag       | Tag List             | Optional | Tag to be applied to build products of this task                                                     |
 | If        | Condition            | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                    |
 
@@ -201,15 +226,28 @@ Strips debugging information from a set of files.
 
 Creates a new changelist and submits a set of files to a Perforce stream.
 
-|             |                |          |                                                                                                                                                                              |
-| ----------- | -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Description | String         | Required | The description for the submitted changelist                                                                                                                                 |
-| Files       | File Spec      | Required | The files to submit                                                                                                                                                          |
-| FileType    | String         | Optional | The Perforce file type for the submitted files (eg. binary+FS32)                                                                                                             |
-| Workspace   | String         | Optional | The workspace name. If specified, a new workspace will be created using the given stream and root directory to submit the files. If not, the current workspace will be used. |
-| Stream      | String         | Optional | The stream for the workspace; defaults to the current stream. Ignored unless If the Workspace attribute is also specified.                                                   |
-| RootDir     | Directory Name | Optional | Root directory for the stream. If not specified, defaults to the current root directory.                                                                                     |
-| If          | Condition      | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                                                                            |
+|                 |                |          |                                                                                                                                                                              |
+| --------------- | -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Description     | String         | Required | The description for the submitted changelist                                                                                                                                 |
+| Files           | File Spec      | Required | The files to submit                                                                                                                                                          |
+| FileType        | String         | Optional | The Perforce file type for the submitted files (eg. binary+FS32)                                                                                                             |
+| Workspace       | String         | Optional | The workspace name. If specified, a new workspace will be created using the given stream and root directory to submit the files. If not, the current workspace will be used. |
+| Stream          | String         | Optional | The stream for the workspace; defaults to the current stream. Ignored unless If the Workspace attribute is also specified.                                                   |
+| RootDir         | Directory Name | Optional | Root directory for the stream. If not specified, defaults to the current root directory.                                                                                     |
+| RevertUnchanged | Boolean        | Optional | Whether to revert unchanged files before attempting to submit                                                                                                                |
+| If              | Condition      | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                                                                            |
+
+### SymStore
+
+Task which strips symbols from a set of files
+
+|          |                      |          |                                                                                   |
+| -------- | -------------------- | -------- | --------------------------------------------------------------------------------- |
+| Platform | UnrealTargetPlatform | Required | The platform toolchain required to handle symbol files.                           |
+| Files    | String               | Required | List of output files. PDBs will be extracted from this list.                      |
+| StoreDir | String               | Required | Output directory for the compressed symbols.                                      |
+| Product  | String               | Required | Name of the product for the symbol store records.                                 |
+| If       | Condition            | Optional | Whether to execute this task. It is ignored if this condition evaluates to false. |
 
 ### Tag
 

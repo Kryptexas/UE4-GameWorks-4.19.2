@@ -323,22 +323,21 @@ namespace AutomationTool
 		/// <param name="Recursive">Recursive search</param>
 		/// <param name="Paths">Paths to search</param>
 		/// <returns>An array of files found in the specified paths</returns>
-		public static string[] FindFiles(string SearchPattern, bool Recursive, params string[] Paths)
+		public static string[] FindFiles(string SearchPattern, bool Recursive, string PathToSearch)
 		{
 			List<string> FoundFiles = new List<string>();
-			foreach (var PathToSearch in Paths)
+
+			var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
+			if (DirectoryExists(NormalizedPath))
 			{
-				var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
-				if (DirectoryExists(NormalizedPath))
+				var FoundInPath = InternalUtils.SafeFindFiles(NormalizedPath, SearchPattern, Recursive);
+				if (FoundInPath == null)
 				{
-					var FoundInPath = InternalUtils.SafeFindFiles(NormalizedPath, SearchPattern, Recursive);
-					if (FoundInPath == null)
-					{
-						throw new AutomationException(String.Format("Failed to find files in '{0}'", NormalizedPath));
-					}
-					FoundFiles.AddRange(FoundInPath);
+					throw new AutomationException(String.Format("Failed to find files in '{0}'", NormalizedPath));
 				}
+				FoundFiles.AddRange(FoundInPath);
 			}
+
 			return FoundFiles.ToArray();
 		}
 
@@ -349,21 +348,20 @@ namespace AutomationTool
 		/// <param name="Recursive">Recursive search</param>
 		/// <param name="Paths">Paths to search</param>
 		/// <returns>An array of files found in the specified paths</returns>
-		public static string[] FindFiles_NoExceptions(string SearchPattern, bool Recursive, params string[] Paths)
+		public static string[] FindFiles_NoExceptions(string SearchPattern, bool Recursive, string PathToSearch)
 		{
 			List<string> FoundFiles = new List<string>();
-			foreach (var PathToSearch in Paths)
+
+			var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
+			if (DirectoryExists(NormalizedPath))
 			{
-				var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
-				if (DirectoryExists(NormalizedPath))
+				var FoundInPath = InternalUtils.SafeFindFiles(NormalizedPath, SearchPattern, Recursive);
+				if (FoundInPath != null)
 				{
-					var FoundInPath = InternalUtils.SafeFindFiles(NormalizedPath, SearchPattern, Recursive);
-					if (FoundInPath != null)
-					{
-						FoundFiles.AddRange(FoundInPath);
-					}
+					FoundFiles.AddRange(FoundInPath);
 				}
 			}
+
 			return FoundFiles.ToArray();
 		}
         /// <summary>
@@ -374,22 +372,21 @@ namespace AutomationTool
         /// <param name="Recursive">Recursive search</param>
         /// <param name="Paths">Paths to search</param>
         /// <returns>An array of files found in the specified paths</returns>
-        public static string[] FindFiles_NoExceptions(bool bQuiet, string SearchPattern, bool Recursive, params string[] Paths)
+        public static string[] FindFiles_NoExceptions(bool bQuiet, string SearchPattern, bool Recursive, string PathToSearch)
         {
             List<string> FoundFiles = new List<string>();
-            foreach (var PathToSearch in Paths)
+
+			var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
+            if (DirectoryExists(NormalizedPath))
             {
-                var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
-                if (DirectoryExists(NormalizedPath))
+                var FoundInPath = InternalUtils.SafeFindFiles(NormalizedPath, SearchPattern, Recursive, bQuiet);
+                if (FoundInPath != null)
                 {
-                    var FoundInPath = InternalUtils.SafeFindFiles(NormalizedPath, SearchPattern, Recursive, bQuiet);
-                    if (FoundInPath != null)
-                    {
-                        FoundFiles.AddRange(FoundInPath);
-                    }
+                    FoundFiles.AddRange(FoundInPath);
                 }
             }
-            return FoundFiles.ToArray();
+
+			return FoundFiles.ToArray();
         }
 		/// <summary>
 		/// Finds files in specified paths. 
@@ -399,22 +396,21 @@ namespace AutomationTool
 		/// <param name="Recursive">Recursive search</param>
 		/// <param name="Paths">Paths to search</param>
 		/// <returns>An array of files found in the specified paths</returns>
-		public static string[] FindDirectories(bool bQuiet, string SearchPattern, bool Recursive, params string[] Paths)
+		public static string[] FindDirectories(bool bQuiet, string SearchPattern, bool Recursive, string PathToSearch)
 		{
 			List<string> FoundDirs = new List<string>();
-			foreach (var PathToSearch in Paths)
+
+			var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
+			if (DirectoryExists(NormalizedPath))
 			{
-				var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
-				if (DirectoryExists(NormalizedPath))
+				var FoundInPath = InternalUtils.SafeFindDirectories(NormalizedPath, SearchPattern, Recursive, bQuiet);
+				if (FoundInPath == null)
 				{
-					var FoundInPath = InternalUtils.SafeFindDirectories(NormalizedPath, SearchPattern, Recursive, bQuiet);
-					if (FoundInPath == null)
-					{
-						throw new AutomationException(String.Format("Failed to find directories in '{0}'", NormalizedPath));
-					}
-					FoundDirs.AddRange(FoundInPath);
+					throw new AutomationException(String.Format("Failed to find directories in '{0}'", NormalizedPath));
 				}
+				FoundDirs.AddRange(FoundInPath);
 			}
+
 			return FoundDirs.ToArray();
 		}
 		/// <summary>
@@ -425,21 +421,20 @@ namespace AutomationTool
 		/// <param name="Recursive">Recursive search</param>
 		/// <param name="Paths">Paths to search</param>
 		/// <returns>An array of files found in the specified paths</returns>
-		public static string[] FindDirectories_NoExceptions(bool bQuiet, string SearchPattern, bool Recursive, params string[] Paths)
+		public static string[] FindDirectories_NoExceptions(bool bQuiet, string SearchPattern, bool Recursive, string PathToSearch)
 		{
 			List<string> FoundDirs = new List<string>();
-			foreach (var PathToSearch in Paths)
+
+			var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
+			if (DirectoryExists(NormalizedPath))
 			{
-				var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
-				if (DirectoryExists(NormalizedPath))
+				var FoundInPath = InternalUtils.SafeFindDirectories(NormalizedPath, SearchPattern, Recursive, bQuiet);
+				if (FoundInPath != null)
 				{
-					var FoundInPath = InternalUtils.SafeFindDirectories(NormalizedPath, SearchPattern, Recursive, bQuiet);
-					if (FoundInPath != null)
-					{
-						FoundDirs.AddRange(FoundInPath);
-					}
+					FoundDirs.AddRange(FoundInPath);
 				}
 			}
+
 			return FoundDirs.ToArray();
 		}
 		/// <summary>
@@ -448,15 +443,12 @@ namespace AutomationTool
 		/// If the deletion of the file fails, this function throws an Exception.
 		/// </summary>
 		/// <param name="Filenames">Filename</param>
-		public static void DeleteFile(params string[] Filenames)
+		public static void DeleteFile(string FileName)
 		{
-			foreach (var Filename in Filenames)
+			var NormalizedFilename = ConvertSeparators(PathSeparator.Default, FileName);
+			if (!InternalUtils.SafeDeleteFile(NormalizedFilename))
 			{
-				var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-				if (!InternalUtils.SafeDeleteFile(NormalizedFilename))
-				{
-					throw new AutomationException(String.Format("Failed to delete file '{0}'", NormalizedFilename));
-				}
+				throw new AutomationException(String.Format("Failed to delete file '{0}'", NormalizedFilename));
 			}
 		}
         /// <summary>
@@ -466,15 +458,12 @@ namespace AutomationTool
         /// </summary>
         /// <param name="bQuiet">When true, logging is suppressed.</param>
         /// <param name="Filenames">Filename</param>
-        public static void DeleteFile(bool bQuiet, params string[] Filenames)
+        public static void DeleteFile(bool bQuiet, string FileName)
         {
-            foreach (var Filename in Filenames)
+            var NormalizedFilename = ConvertSeparators(PathSeparator.Default, FileName);
+            if (!InternalUtils.SafeDeleteFile(NormalizedFilename, bQuiet))
             {
-                var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-                if (!InternalUtils.SafeDeleteFile(NormalizedFilename, bQuiet))
-                {
-                    throw new AutomationException(String.Format("Failed to delete file '{0}'", NormalizedFilename));
-                }
+                throw new AutomationException(String.Format("Failed to delete file '{0}'", NormalizedFilename));
             }
         }
 
@@ -483,17 +472,15 @@ namespace AutomationTool
 		/// If the deletion of the file fails, prints a warning.
 		/// </summary>
 		/// <param name="Filenames">Filename</param>
-        public static bool DeleteFile_NoExceptions(params string[] Filenames)
+        public static bool DeleteFile_NoExceptions(string FileName)
 		{
 			bool Result = true;
-			foreach (var Filename in Filenames)
+
+			var NormalizedFilename = ConvertSeparators(PathSeparator.Default, FileName);
+			if (!InternalUtils.SafeDeleteFile(NormalizedFilename))
 			{
-				var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-				if (!InternalUtils.SafeDeleteFile(NormalizedFilename))
-				{
-					LogWarning("Failed to delete file '{0}'", NormalizedFilename);
-					Result = false;
-				}
+				LogWarning("Failed to delete file '{0}'", NormalizedFilename);
+				Result = false;
 			}
 			return Result;
 		}
@@ -521,15 +508,12 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="bQuiet">Suppresses log output if true</param>
 		/// <param name="Directories">Directories</param>
-		public static void DeleteDirectory(bool bQuiet, params string[] Directories)
+		public static void DeleteDirectory(bool bQuiet, string Directory)
 		{
-			foreach (var Directory in Directories)
+			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, Directory);
+			if (!InternalUtils.SafeDeleteDirectory(NormalizedDirectory, bQuiet))
 			{
-				var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, Directory);
-				if (!InternalUtils.SafeDeleteDirectory(NormalizedDirectory, bQuiet))
-				{
-					throw new AutomationException(String.Format("Failed to delete directory '{0}'", NormalizedDirectory));
-				}
+				throw new AutomationException(String.Format("Failed to delete directory '{0}'", NormalizedDirectory));
 			}
 		}
 
@@ -538,9 +522,9 @@ namespace AutomationTool
 		/// If the deletion of the directory fails, this function throws an Exception.
 		/// </summary>
         /// <param name="Directories">Directories</param>
-        public static void DeleteDirectory(params string[] Directories)
+        public static void DeleteDirectory(string Directory)
 		{
-			DeleteDirectory(false, Directories);
+			DeleteDirectory(false, Directory);
 		}
 
 		/// <summary>
@@ -549,31 +533,28 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="bQuiet">Suppresses log output if true</param>
         /// <param name="Directories">Directories</param>
-        public static bool DeleteDirectory_NoExceptions(bool bQuiet, params string[] Directories)
+        public static bool DeleteDirectory_NoExceptions(bool bQuiet, string Directory)
 		{
 			bool Result = true;
-            foreach (var Directory in Directories)
+
+			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, Directory);
+            try
             {
-                var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, Directory);
-                try
+                if (!InternalUtils.SafeDeleteDirectory(NormalizedDirectory, bQuiet))
                 {
-                    if (!InternalUtils.SafeDeleteDirectory(NormalizedDirectory, bQuiet))
-                    {
-                        LogWarning("Failed to delete directory '{0}'", NormalizedDirectory);
-                        Result = false;
-                    }
-                }
-                catch (Exception Ex)
-                {
-					if (!bQuiet)
-					{
-						LogWarning("Failed to delete directory, exception '{0}'", NormalizedDirectory);
-						LogWarning(Ex.Message);
-					}
+                    LogWarning("Failed to delete directory '{0}'", NormalizedDirectory);
                     Result = false;
                 }
             }
-
+            catch (Exception Ex)
+            {
+				if (!bQuiet)
+				{
+					LogWarning("Failed to delete directory, exception '{0}'", NormalizedDirectory);
+					LogWarning(Ex.Message);
+				}
+                Result = false;
+            }
 
 			return Result;
 		}
@@ -583,9 +564,9 @@ namespace AutomationTool
 		/// If the deletion of the directory fails, prints a warning.
 		/// </summary>
         /// <param name="Directories">Directories</param>
-        public static bool DeleteDirectory_NoExceptions(params string[] Directories)
+        public static bool DeleteDirectory_NoExceptions(string DirectoryName)
 		{
-			return DeleteDirectory_NoExceptions(false, Directories);
+			return DeleteDirectory_NoExceptions(false, DirectoryName);
 		}
 
 
@@ -616,15 +597,10 @@ namespace AutomationTool
 		/// </summary>
         /// <param name="Directories">Directories</param>
         /// <returns>True if the directory exists, false otherwise.</returns>
-		public static bool DirectoryExists(params string[] Directories)
+		public static bool DirectoryExists(string DirectoryName)
 		{
-			bool bExists = Directories.Length > 0;
-			foreach (var DirectoryName in Directories)
-			{
-				var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-				bExists = System.IO.Directory.Exists(NormalizedDirectory) && bExists;
-			}
-			return bExists;
+			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+			return System.IO.Directory.Exists(NormalizedDirectory);
 		}
 
 		/// <summary>
@@ -632,25 +608,19 @@ namespace AutomationTool
 		/// </summary>
         /// <param name="Directories">Directories</param>
         /// <returns>True if the directory exists, false otherwise.</returns>
-		public static bool DirectoryExists_NoExceptions(params string[] Directories)
+		public static bool DirectoryExists_NoExceptions(string DirectoryName)
 		{
-			bool bExists = Directories.Length > 0;
-			foreach (var DirectoryName in Directories)
+			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+			try
 			{
-				var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-				try
-				{
-					bExists = System.IO.Directory.Exists(NormalizedDirectory) && bExists;
-				}
-				catch (Exception Ex)
-				{
-					LogWarning("Unable to check if directory exists: {0}", NormalizedDirectory);
-					LogWarning(Ex.Message);
-					bExists = false;
-					break;
-				}
+				return System.IO.Directory.Exists(NormalizedDirectory);
 			}
-			return bExists;
+			catch (Exception Ex)
+			{
+				LogWarning("Unable to check if directory exists: {0}", NormalizedDirectory);
+				LogWarning(Ex.Message);
+				return false;
+			}
 		}
 
 		/// <summary>
@@ -658,15 +628,12 @@ namespace AutomationTool
 		/// If the creation of the directory fails, this function throws an Exception.
 		/// </summary>
         /// <param name="Directories">Directories</param>
-        public static void CreateDirectory(params string[] Directories)
+        public static void CreateDirectory(string DirectoryName)
 		{
-			foreach (var DirectoryName in Directories)
+			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+			if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
 			{
-				var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-				if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
-				{
-					throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
-				}
+				throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
 			}
 		}
 
@@ -676,15 +643,12 @@ namespace AutomationTool
         /// </summary>
         /// <param name="bQuiet">When true, logging is suppressed.</param>
         /// <param name="Directories">Directories</param>
-        public static void CreateDirectory(bool bQuiet, params string[] Directories)
+        public static void CreateDirectory(bool bQuiet, string DirectoryName)
         {
-            foreach (var DirectoryName in Directories)
+            var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+            if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory, bQuiet))
             {
-                var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-                if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory, bQuiet))
-                {
-                    throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
-                }
+                throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
             }
         }
 
@@ -693,17 +657,14 @@ namespace AutomationTool
 		/// If the creation of the directory fails, this function prints a warning.
 		/// </summary>
         /// <param name="Directories">Directories</param>
-        public static bool CreateDirectory_NoExceptions(params string[] Directories)
+        public static bool CreateDirectory_NoExceptions(string DirectoryName)
 		{
 			bool Result = true;
-			foreach (var DirectoryName in Directories)
+			var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+			if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
 			{
-				var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
-				if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory))
-				{
-					LogWarning("Failed to create directory '{0}'", NormalizedDirectory);
-					Result = false;
-				}
+				LogWarning("Failed to create directory '{0}'", NormalizedDirectory);
+				Result = false;
 			}
 			return Result;
 		}
@@ -748,15 +709,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Filenames">Filename.</param>
 		/// <returns>True if the file exists, false otherwise.</returns>
-		public static bool FileExists(params string[] Filenames)
+		public static bool FileExists(string FileName)
 		{
-			bool bExists = Filenames.Length > 0;
-			foreach (var Filename in Filenames)
-			{
-				var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-				bExists = InternalUtils.SafeFileExists(NormalizedFilename) && bExists;
-			}
-			return bExists;
+			var NormalizedFilename = ConvertSeparators(PathSeparator.Default, FileName);
+			return InternalUtils.SafeFileExists(NormalizedFilename);
 		}
 
 		/// <summary>
@@ -764,26 +720,22 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Filenames">Filename.</param>
 		/// <returns>True if the file exists, false otherwise.</returns>
-		public static bool FileExists_NoExceptions(params string[] Filenames)
+		public static bool FileExists_NoExceptions(string FileName)
 		{
 			// Standard version doesn't throw, but keep this function for consistency.
-			return FileExists(Filenames);
+			return FileExists(FileName);
 		}
+
         /// <summary>
         /// Checks if a file(s) exists.
         /// </summary>
         /// <param name="bQuiet">When true, logging is suppressed.</param>
         /// <param name="Filenames">Filename.</param>
         /// <returns>True if the file exists, false otherwise.</returns>
-        public static bool FileExists(bool bQuiet, params string[] Filenames)
+        public static bool FileExists(bool bQuiet, string FileName)
         {
-            bool bExists = Filenames.Length > 0;
-            foreach (var Filename in Filenames)
-            {
-                var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-                bExists = InternalUtils.SafeFileExists(NormalizedFilename, bQuiet) && bExists;
-            }
-            return bExists;
+			var NormalizedFilename = ConvertSeparators(PathSeparator.Default, FileName);
+			return InternalUtils.SafeFileExists(NormalizedFilename, bQuiet);
         }
 
         /// <summary>
@@ -792,10 +744,10 @@ namespace AutomationTool
         /// <param name="bQuiet">When true, logging is suppressed.</param>
         /// <param name="Filenames">Filename.</param>
         /// <returns>True if the file exists, false otherwise.</returns>
-        public static bool FileExists_NoExceptions(bool bQuiet, params string[] Filenames)
+        public static bool FileExists_NoExceptions(bool bQuiet, string FileName)
         {
             // Standard version doesn't throw, but keep this function for consistency.
-            return FileExists(bQuiet, Filenames);
+            return FileExists(bQuiet, FileName);
         }
 
 		static Stack<string> WorkingDirectoryStack = new Stack<string>();
@@ -1532,7 +1484,7 @@ namespace AutomationTool
 			{
 				string TargetFilename = CommandUtils.CombinePaths(TargetPathBase, SourceFI.Name);
 
-				if (!bIncremental || !CommandUtils.FileExists_NoExceptions(TargetFilename))
+				if (!bIncremental || !CommandUtils.FileExists(TargetFilename))
 				{
 				SourceFI.CopyTo(TargetFilename);
 
@@ -1655,7 +1607,8 @@ namespace AutomationTool
 		{
 			// Filter all the relative paths
 			Log("Applying filter to {0}...", SourceDir);
-			var RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks);
+			DirectoryReference SourceDirRef = new DirectoryReference(SourceDir);
+			var RelativePaths = Filter.ApplyToDirectory(SourceDirRef, bIgnoreSymlinks).Select(x => x.MakeRelativeTo(SourceDirRef)).ToList();
 			return ThreadedCopyFiles(SourceDir, TargetDir, RelativePaths);
 		}
 
@@ -2059,17 +2012,17 @@ namespace AutomationTool
 		/// <param name="ZipFileName">Filename for the zip</param>
 		/// <param name="Filter">Filter which selects files to be included in the zip</param>
 		/// <param name="BaseDirectory">Base directory to store relative paths in the zip file to</param>
-		public static void ZipFiles(string ZipFileName, string BaseDirectory, FileFilter Filter)
+		public static void ZipFiles(FileReference ZipFileName, DirectoryReference BaseDirectory, FileFilter Filter)
 		{
 			// Ionic.Zip.Zip64Option.Always option produces broken archives on Mono, so we use system zip tool instead
 			if (Utils.IsRunningOnMono)
 			{
-				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
-				CommandUtils.PushDir(BaseDirectory);
+				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName.FullName));
+				CommandUtils.PushDir(BaseDirectory.FullName);
 				string FilesList = "";
-				foreach (string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				foreach (FileReference FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
 				{
-					FilesList += " \"" + FilteredFile + "\"";
+					FilesList += " \"" + FilteredFile.MakeRelativeTo(BaseDirectory) + "\"";
 					if (FilesList.Length > 32000)
 					{
 						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFileName + "\"" + FilesList);
@@ -2087,12 +2040,12 @@ namespace AutomationTool
 				using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile())
 				{
 					Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
-					foreach (string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+					foreach (FileReference FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
 					{
-						Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
+						Zip.AddFile(FilteredFile.FullName, Path.GetDirectoryName(FilteredFile.MakeRelativeTo(BaseDirectory)));
 					}
-					CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
-					Zip.Save(ZipFileName);
+					CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName.FullName));
+					Zip.Save(ZipFileName.FullName);
 				}
 			}
 		}

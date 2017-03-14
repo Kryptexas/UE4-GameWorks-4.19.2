@@ -19,6 +19,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Editor/ContentBrowser/Private/AssetViewSortManager.h"
+#include "AssetViewTypes.h"
 
 class FMenuBuilder;
 class FWeakWidgetPath;
@@ -28,8 +29,6 @@ class SAssetListView;
 class SAssetTileView;
 class SComboButton;
 class UFactory;
-struct FAssetViewAsset;
-struct FAssetViewItem;
 struct FHistoryData;
 struct FPropertyChangedEvent;
 

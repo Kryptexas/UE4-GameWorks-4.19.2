@@ -11,6 +11,7 @@
 
 class UBlueprint;
 enum class ESavePackageResult;
+class ITargetPlatform;
 
 struct FPlatformNativizationDetails
 {
@@ -80,8 +81,10 @@ public:
 	virtual void FinalizeManifest() = 0;
 	virtual void GenerateStubs() = 0;
 	virtual void GenerateFullyConvertedClasses() = 0;
-	virtual void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr) = 0;
+	virtual void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions) = 0;
 	virtual const TMultiMap<FName, TAssetSubclassOf<UObject>>& GetFunctionsBoundToADelegate() = 0;
+
+	virtual void FillPlatformNativizationDetails(const ITargetPlatform* Platform, FPlatformNativizationDetails& OutDetails) = 0;
 protected:
 	virtual void Initialize(const FNativeCodeGenInitData& InitData) = 0;
 	virtual void InitializeForRerunDebugOnly(const TArray<FPlatformNativizationDetails>& CodegenTargets) = 0;

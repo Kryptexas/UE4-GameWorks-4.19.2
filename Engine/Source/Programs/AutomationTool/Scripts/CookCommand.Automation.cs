@@ -598,7 +598,10 @@ public partial class Project : CommandUtils
 		}
 
 		const bool bQuiet = true;
-		DeleteDirectory(bQuiet, CleanDirs);
+		foreach(string CleanDir in CleanDirs)
+		{
+			DeleteDirectory(bQuiet, CleanDir);
+		}
 	}
 
 	#endregion

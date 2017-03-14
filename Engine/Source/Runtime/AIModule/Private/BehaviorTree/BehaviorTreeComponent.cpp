@@ -36,14 +36,12 @@ UBehaviorTreeComponent::UBehaviorTreeComponent(const FObjectInitializer& ObjectI
 	bIsPaused = false;
 }
 
-#if WITH_HOT_RELOAD_CTORS
 UBehaviorTreeComponent::UBehaviorTreeComponent(FVTableHelper& Helper)
 	: Super(Helper)
 	, SearchData(*this)
 {
 
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 void UBehaviorTreeComponent::UninitializeComponent()
 {

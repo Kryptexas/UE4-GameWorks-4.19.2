@@ -5474,7 +5474,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 						continue;
 					}
 					FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(*It);
-					if (ObjectItem->GetOwnerIndex())
+					if (ObjectItem->GetOwnerIndex() > 0)
 					{
 						continue;
 					}
@@ -10934,6 +10934,7 @@ void UEngine::VerifyLoadMapWorldCleanup()
 				FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, World );
 				UE_LOG(LogLoad, Log, TEXT("%s"),*ErrorString);
 				// before asserting.
+
 				UE_LOG(LogLoad, Fatal, TEXT("%s not cleaned up by garbage collection!") LINE_TERMINATOR TEXT("%s") , *World->GetFullName(), *ErrorString );
 			}
 		}

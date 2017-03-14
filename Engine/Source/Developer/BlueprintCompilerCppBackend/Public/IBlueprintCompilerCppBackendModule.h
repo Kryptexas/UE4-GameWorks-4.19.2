@@ -7,6 +7,7 @@
 #include "BlueprintCompilerCppBackendInterface.h"
 
 class UBlueprint;
+struct FCompilerNativizationOptions;
 
 struct FNativizationSummary
 {
@@ -41,6 +42,8 @@ struct FNativizationSummary
 
 	TMap<FStringAssetReference, FDependencyRecord> DependenciesGlobalMap;
 
+	TMap<FString, TSet<TAssetPtr<UPackage>>> ModulesRequiredByPlatform;
+
 	FNativizationSummary() : MemberVariablesFromGraph(0) {}
 };
 
@@ -71,7 +74,7 @@ public:
 	virtual FPCHFilenameQuery& OnPCHFilenameQuery() = 0;
 
 
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FIsTargetedForConversionQuery, const UObject*);
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FIsTargetedForConversionQuery, const UObject*, const FCompilerNativizationOptions&);
 	/**
 	 * Provides a hook so that external modules can specify which assets will 
 	 * and won't be converted (so the backend knows how to handle cross asset 
@@ -89,7 +92,7 @@ public:
 	/**
 	 *	Provides a hook so that external modules can mark some unconverted blueprints as necessary for the generated native code.
 	 */
-	DECLARE_DELEGATE_OneParam(FMarkUnconvertedBlueprintAsNecessary, TAssetPtr<UBlueprint>);
+	DECLARE_DELEGATE_TwoParams(FMarkUnconvertedBlueprintAsNecessary, TAssetPtr<UBlueprint>, const FCompilerNativizationOptions&);
 	virtual FMarkUnconvertedBlueprintAsNecessary& OnIncludingUnconvertedBP() = 0;
 
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FIsFunctionUsedInADelegate, const UFunction*);

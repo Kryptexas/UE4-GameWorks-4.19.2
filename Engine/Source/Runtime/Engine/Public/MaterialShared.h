@@ -693,6 +693,7 @@ public:
 
 	/** Registers all shaders that have been loaded in Serialize */
 	virtual void RegisterSerializedShaders() override;
+	virtual void DiscardSerializedShaders() override;
 
 	/** Backs up any FShaders in this shader map to memory through serialization and clears FShader references. */
 	TArray<uint8>* BackupShadersToMemory();

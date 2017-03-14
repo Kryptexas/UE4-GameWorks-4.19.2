@@ -146,10 +146,9 @@ struct FInstancedSubObjRef
  * Contains a set of utility functions useful for searching out and identifying
  * instanced sub-objects contained within a specific outer object.
  */
-class FFindInstancedReferenceSubobjectHelper
+class ENGINE_API FFindInstancedReferenceSubobjectHelper
 {
 public:
-	//--------------------------------------------------------------------------
 	template<typename T>
 	static void GetInstancedSubObjects(const UObject* Container, T& OutObjects)
 	{
@@ -157,127 +156,12 @@ public:
 		for (UProperty* Prop = ContainerClass->RefLink; Prop; Prop = Prop->NextRef)
 		{
 			FInstancedPropertyPath RootPropertyPath(Prop);
-			GetInstancedSubObjects_Inner(RootPropertyPath, reinterpret_cast<const uint8*>(Container), OutObjects);
+			GetInstancedSubObjects_Inner(RootPropertyPath, reinterpret_cast<const uint8*>(Container), [&OutObjects](const FInstancedSubObjRef& Ref){ OutObjects.Add(Ref); });
 		}
 	}
 
-	//--------------------------------------------------------------------------
-	static void Duplicate(UObject* OldObject, UObject* NewObject, TMap<UObject*, UObject*>& ReferenceReplacementMap, TArray<UObject*>& DuplicatedObjects)
-	{
-		if (OldObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) &&
-			NewObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference))
-		{
-			TArray<FInstancedSubObjRef> OldInstancedSubObjects;
-			GetInstancedSubObjects(OldObject, OldInstancedSubObjects);
-			if (OldInstancedSubObjects.Num() > 0)
-			{
-				TArray<FInstancedSubObjRef> NewInstancedSubObjects;
-				GetInstancedSubObjects(NewObject, NewInstancedSubObjects);
-				for (const FInstancedSubObjRef& Obj : NewInstancedSubObjects)
-				{
-					const bool bNewObjectHasOldOuter = (Obj->GetOuter() == OldObject);
-					if (bNewObjectHasOldOuter)
-					{
-						const bool bKeptByOld = OldInstancedSubObjects.Contains(Obj);
-						const bool bNotHandledYet = !ReferenceReplacementMap.Contains(Obj);
-						if (bKeptByOld && bNotHandledYet)
-						{
-							UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject);
-							ReferenceReplacementMap.Add(Obj, NewEditInlineSubobject);
-
-							// NOTE: we cannot patch OldObject's linker table here, since we don't 
-							//       know the relation between the  two objects (one could be of a 
-							//       super class, and the other a child)
-
-							// We also need to make sure to fixup any properties here
-							DuplicatedObjects.Add(NewEditInlineSubobject);
-						}
-					}
-				}
-			}
-		}
-	}
+	static void Duplicate(UObject* OldObject, UObject* NewObject, TMap<UObject*, UObject*>& ReferenceReplacementMap, TArray<UObject*>& DuplicatedObjects);
 
 private:
-	//--------------------------------------------------------------------------
-	template<typename T>
-	static void GetInstancedSubObjects_Inner(FInstancedPropertyPath& PropertyPath, const uint8* ContainerAddress, T& OutObjects)
-	{
-		check(ContainerAddress);
-		const UProperty* TargetProp = PropertyPath.Head();
-
-		const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(TargetProp);
-		if (ArrayProperty && ArrayProperty->HasAnyPropertyFlags(CPF_PersistentInstance | CPF_ContainsInstancedReference))
-		{
-			const UStructProperty* InnerStructProperty = Cast<const UStructProperty>(ArrayProperty->Inner);
-			const UObjectProperty* InnerObjectProperty = Cast<const UObjectProperty>(ArrayProperty->Inner);
-			if (InnerStructProperty && InnerStructProperty->Struct)
-			{
-				FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
-				for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
-				{
-					const uint8* ValueAddress = ArrayHelper.GetRawPtr(ElementIndex);
-					if (ValueAddress)
-					{
-						for (UProperty* StructProp = InnerStructProperty->Struct->RefLink; StructProp; StructProp = StructProp->NextRef)
-						{
-							PropertyPath.Push(InnerStructProperty, ElementIndex);
-							GetInstancedSubObjects_Inner(PropertyPath, ValueAddress, OutObjects);
-							PropertyPath.Pop();
-						}
-					}
-				}
-			}
-			else if (InnerObjectProperty && InnerObjectProperty->HasAllPropertyFlags(CPF_PersistentInstance))
-			{
-				ensure(InnerObjectProperty->HasAllPropertyFlags(CPF_InstancedReference));
-				FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
-				for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
-				{
-					UObject* ObjectValue = InnerObjectProperty->GetObjectPropertyValue(ArrayHelper.GetRawPtr(ElementIndex));
-					if (ObjectValue)
-					{
-						PropertyPath.Push(InnerObjectProperty, ElementIndex);
-						OutObjects.Add(FInstancedSubObjRef(ObjectValue, PropertyPath));
-						PropertyPath.Pop();
-					}
-					
-				}
-			}
-		}
-		else if (TargetProp->HasAllPropertyFlags(CPF_PersistentInstance))
-		{
-			ensure(TargetProp->HasAllPropertyFlags(CPF_InstancedReference));
-			const UObjectProperty* ObjectProperty = Cast<const UObjectProperty>(TargetProp);
-			if (ObjectProperty)
-			{
-				for (int32 ArrayIdx = 0; ArrayIdx < ObjectProperty->ArrayDim; ++ArrayIdx)
-				{
-					UObject* ObjectValue = ObjectProperty->GetObjectPropertyValue_InContainer(ContainerAddress, ArrayIdx);
-					if (ObjectValue)
-					{
-						// don't need to push to PropertyPath, since this property is already at its head
-						OutObjects.Add(FInstancedSubObjRef(ObjectValue, PropertyPath));	
-					}
-				}
-			}
-		}
-		else if (TargetProp->HasAnyPropertyFlags(CPF_ContainsInstancedReference))
-		{
-			const UStructProperty* StructProperty = Cast<const UStructProperty>(TargetProp);
-			if (StructProperty && StructProperty->Struct)
-			{
-				for (int32 ArrayIdx = 0; ArrayIdx < StructProperty->ArrayDim; ++ArrayIdx)
-				{
-					const uint8* ValueAddress = StructProperty->ContainerPtrToValuePtr<uint8>(ContainerAddress, ArrayIdx);
-					for (UProperty* StructProp = StructProperty->Struct->RefLink; StructProp; StructProp = StructProp->NextRef)
-					{
-						PropertyPath.Push(StructProp, ArrayIdx);
-						GetInstancedSubObjects_Inner(PropertyPath, ValueAddress, OutObjects);
-						PropertyPath.Pop();
-					}
-				}
-			}
-		}
-	}
+	static void GetInstancedSubObjects_Inner(FInstancedPropertyPath& PropertyPath, const uint8* ContainerAddress, TFunctionRef<void(const FInstancedSubObjRef& Ref)> OutObjects);
 };

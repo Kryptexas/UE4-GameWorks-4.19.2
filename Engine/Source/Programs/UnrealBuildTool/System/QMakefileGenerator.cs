@@ -302,13 +302,9 @@ namespace UnrealBuildTool
 								{
 									QMakeSourceFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\" \\\n");
 								}
-								else if (!String.IsNullOrEmpty(GameProjectName))
-								{
-									QMakeSourceFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
-								}
 								else
 								{
-									System.Console.WriteLine("Error!, you should not be here.");
+									QMakeSourceFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								}
 							}
 						}
@@ -326,13 +322,9 @@ namespace UnrealBuildTool
 									// SourceFileRelativeToRoot = SourceFileRelativeToRoot.Substring (3);
 									QMakeHeaderFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\" \\\n");
 								}
-								else if (!String.IsNullOrEmpty(GameProjectName))
-								{
-									QMakeHeaderFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
-								}
 								else
 								{
-									System.Console.WriteLine("Error!, you should not be here.");
+									QMakeHeaderFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								}
 							}
 						}
@@ -351,13 +343,9 @@ namespace UnrealBuildTool
 									// SourceFileRelativeToRoot = SourceFileRelativeToRoot.Substring (3);
 									QMakeConfigFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\" \\\n");
 								}
-								else if (!String.IsNullOrEmpty(GameProjectName))
-								{
-									QMakeConfigFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
-								}
 								else
 								{
-									System.Console.WriteLine("Error!, you should not be here.");
+									QMakeConfigFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								}
 							}
 						}

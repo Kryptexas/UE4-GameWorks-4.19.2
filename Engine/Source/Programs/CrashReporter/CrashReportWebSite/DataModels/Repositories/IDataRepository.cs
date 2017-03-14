@@ -19,6 +19,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         IQueryable<T> ListAll();
 
         /// <summary>
+        /// Return the number of objects that satisfy the query filter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        int Count(Expression<Func<T, bool>> filter);
+
+        /// <summary>
         /// Return a list of data objects of type T matching our search expression
         /// </summary>
         /// <param name="filter">An expression tree defining a search filter.</param>

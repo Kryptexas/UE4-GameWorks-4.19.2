@@ -391,9 +391,7 @@ void FMainFrameActionCallbacks::CookContent(const FName InPlatformInfoName)
 
 	OptionalParams += GetCookingOptionalParams();
 
-	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-
-	if (bRunningDebug)
+	if (FApp::IsRunningDebug())
 	{
 		OptionalParams += TEXT(" -UseDebugParamForEditorExe");
 	}
@@ -683,9 +681,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += FString::Printf(TEXT(" -NumCookersToSpawn=%d"), NumCookers); 
 	}
 
-	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-
-	if (bRunningDebug)
+	if (FApp::IsRunningDebug())
 	{
 		OptionalParams += TEXT(" -UseDebugParamForEditorExe");
 	}

@@ -466,7 +466,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 
 			// Setup environment
-			Log.TraceInformation("Setting up command environment.");
+			Log.TraceLog("Setting up command environment.");
 			CommandUtils.InitCommandEnvironment();
 
 			// Determine if the engine is installed
@@ -527,7 +527,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			CommandUtils.InitP4Support(CommandsToExecute, Compiler.Commands);
 			if (CommandUtils.P4Enabled)
 			{
-				Log.TraceInformation("Setting up Perforce environment.");
+				Log.TraceLog("Setting up Perforce environment.");
 				CommandUtils.InitP4Environment();
 				CommandUtils.InitDefaultP4Connection();
 			}

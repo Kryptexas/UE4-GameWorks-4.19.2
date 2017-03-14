@@ -299,6 +299,11 @@ public:
 		static const FAIGenericID<TCounter> InvalidIDInstance;
 		return InvalidIDInstance;
 	}
+
+	friend FORCEINLINE uint32 GetTypeHash(const FAIGenericID& ID)
+	{
+		return GetTypeHash(ID.Index);
+	}
 };
 
 template<typename TCounterType>

@@ -438,6 +438,14 @@ namespace BlueprintSearchMetaDataHelpers
 
 				return false;
 			}
+
+			friend uint32 GetTypeHash(const FLookupTableItem& InObject)
+			{
+				FString Namespace = FTextInspector::GetNamespace(InObject.Text).Get(TEXT("DefaultNamespace"));
+				FString Key = FTextInspector::GetKey(InObject.Text).Get(TEXT("DefaultKey"));
+				uint32 Hash = HashCombine(GetTypeHash(InObject.Text.ToString()), HashCombine(GetTypeHash(Namespace), GetTypeHash(Key)));
+				return Hash;
+			}
 		};
 
 	protected:
@@ -493,14 +501,6 @@ namespace BlueprintSearchMetaDataHelpers
 		/** Cached mapping of all searchable properties that have been discovered while gathering searchable data for the current Blueprint */
 		TMap<UStruct*, TArray<FSearchableProperty>> CachedPropertyMapping;
 	};
-
-	static uint32 GetTypeHash(const BlueprintSearchMetaDataHelpers::TJsonFindInBlueprintStringWriter<TCondensedJsonPrintPolicy<TCHAR>>::FLookupTableItem& InObject)
-	{
-		FString Namespace = FTextInspector::GetNamespace(InObject.Text).Get(TEXT("DefaultNamespace"));
-		FString Key = FTextInspector::GetKey(InObject.Text).Get(TEXT("DefaultKey"));
-		uint32 Hash = HashCombine(GetTypeHash(InObject.Text.ToString()), HashCombine(GetTypeHash(Namespace), GetTypeHash(Key)));
-		return Hash;
-	}
 
 	typedef TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>> SearchMetaDataWriterParentClass;
 	typedef TJsonFindInBlueprintStringWriter<TCondensedJsonPrintPolicy<TCHAR>> SearchMetaDataWriter;

@@ -67,24 +67,11 @@ namespace AutomationTool
     public class AutomationException : System.Exception
 	{
         public ExitCode ErrorCode = ExitCode.Error_Unknown;
-        public string LogFileName = "";
-        public int ErrorNumber;
-
-		public AutomationException()
-		{
-		}
 
 		public AutomationException(string Msg)
 			:base(Msg)
 		{
 		}
-
-        public AutomationException(string LogFilename, int ErrorNumber, string Format, params object[] Args)
-            :base(string.Format(Format,Args))
-        {
-            this.LogFileName = LogFilename;
-            this.ErrorNumber = ErrorNumber;
-        }
 
         public AutomationException(ExitCode ErrorCode, string Msg)
             : base(Msg)
@@ -92,14 +79,8 @@ namespace AutomationTool
             this.ErrorCode = ErrorCode;
         }
 
-        [Obsolete]
-        public AutomationException(string Msg, System.Exception InnerException)
-            : base(Msg, InnerException)
-        {
-        }
-
         public AutomationException(Exception InnerException, string Format, params object[] Args)
-			:base(string.Format(Format, Args), InnerException)
+			: base(string.Format(Format, Args), InnerException)
 		{
 		}
 
@@ -110,13 +91,14 @@ namespace AutomationTool
         }
 
         public AutomationException(string Format, params object[] Args)
-			: base(string.Format(Format, Args)) { }
+			: base(string.Format(Format, Args))
+		{
+		}
 
         public AutomationException(ExitCode ErrorCode, string Format, params object[] Args)
             : base(string.Format(Format, Args)) 
         {
             this.ErrorCode = ErrorCode;
         }
-
     }
 }

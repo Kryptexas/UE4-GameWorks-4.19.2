@@ -7,13 +7,13 @@
 #include "Modules/ModuleInterface.h"
 #include "UObject/StructOnScope.h"
 #include "Toolkits/IToolkitHost.h"
+#include "IDetailsView.h"
 
 #include "PropertyEditorDelegates.h"
 #include "IPropertyTypeCustomization.h"
 
 class FAssetEditorToolkit;
 class FNotifyHook;
-class IDetailsView;
 class IPropertyHandle;
 class IPropertyTable;
 class IPropertyTableCellPresenter;

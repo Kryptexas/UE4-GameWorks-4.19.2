@@ -275,8 +275,6 @@ public:
 	/** This gets called when the player scrubs in a replay to a different level */
 	virtual void OnSeamlessTravelDuringReplay() { }
 
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-
 	inline FTimerManager& GetTimerManager() const { return *TimerManager; }
 
 	inline FLatentActionManager& GetLatentActionManager() const { return *LatentActionManager;  }

@@ -224,7 +224,7 @@ public:
 	/**
 	 * Gets generated code version for given UStruct.
 	 */
-	EGeneratedCodeVersion GetGeneratedCodeVersionForStruct(UStruct* Struct);
+	EGeneratedCodeVersion GetGeneratedCodeVersionForStruct(UStruct* Struct) const;
 
 	/**
 	 * Gets generated code versions.

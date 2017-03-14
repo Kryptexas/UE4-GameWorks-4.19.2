@@ -354,14 +354,10 @@ enum {MAX_NODES  = 65536};
 enum {MAX_POINTS = 128000};
 class UModel : public UObject
 {
-#if WITH_HOT_RELOAD_CTORS
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR(UModel, UObject, 0, TEXT("/Script/Engine"), 0, ENGINE_API)
 
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UModel(FVTableHelper& Helper);
-#else // WITH_HOT_RELOAD_CTORS
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UModel, UObject, 0, Engine, 0, ENGINE_API)
-#endif // WITH_HOT_RELOAD_CTORS
 
 #if WITH_EDITOR
 	// Arrays and subobjects.

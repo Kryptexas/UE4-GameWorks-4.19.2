@@ -1100,24 +1100,23 @@ bool UMaterialInstance::CheckMaterialUsage_Concurrent(const EMaterialUsage Usage
 					UMaterialInstance* Material;
 					EMaterialUsage Usage;
 					bool bSkipPrim;
-					bool& bUsageSetSuccessfully;
 
-					FCallSMU(UMaterialInstance* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim, bool& bInUsageSetSuccessfully)
+					FCallSMU(UMaterialInstance* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim)
 						: Material(InMaterial)
 						, Usage(InUsage)
 						, bSkipPrim(bInSkipPrim)
-						, bUsageSetSuccessfully(bInUsageSetSuccessfully)
 					{
 					}
 
 					void Task()
 					{
-						bUsageSetSuccessfully = Material->CheckMaterialUsage(Usage, bSkipPrim);
+						Material->CheckMaterialUsage(Usage, bSkipPrim);
 					}
 				};
-				UE_LOG(LogMaterial, Warning, TEXT("Has to pass SMU back to game thread. This stalls the tasks graph, but since it is editor only, is not such a big deal."));
+				UE_LOG(LogMaterial, Log, TEXT("Had to pass SMU back to game thread. Please ensure correct material usage flags."));
 
-				TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterialInstance*>(this), Usage, bSkipPrim, bUsageSetSuccessfully));
+				TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterialInstance*>(this), Usage, bSkipPrim));
+				bUsageSetSuccessfully = false;
 
 				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
 					STAT_FSimpleDelegateGraphTask_CheckMaterialUsage,

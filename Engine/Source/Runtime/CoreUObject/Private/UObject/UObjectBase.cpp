@@ -598,7 +598,8 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 	const FName CPPClassName(Name);
 #if WITH_HOT_RELOAD
 	// Check for existing classes
-	FFieldCompiledInInfo** ExistingClassInfo = GetDeferRegisterClassMap().Find(CPPClassName);
+	TMap<FName, FFieldCompiledInInfo*>& DeferMap = GetDeferRegisterClassMap();
+	FFieldCompiledInInfo** ExistingClassInfo = DeferMap.Find(CPPClassName);
 	ClassInfo->bHasChanged = !ExistingClassInfo || (*ExistingClassInfo)->Size != ClassInfo->Size || (*ExistingClassInfo)->Crc != ClassInfo->Crc;
 	if (ExistingClassInfo)
 	{
@@ -639,7 +640,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 	}
 	else
 	{
-		GetDeferRegisterClassMap().Add(CPPClassName, ClassInfo);
+		DeferMap.Add(CPPClassName, ClassInfo);
 	}
 #endif
 	// We will either create a new class or update the static class pointer of the existing one
@@ -658,7 +659,8 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 	{
 #if WITH_HOT_RELOAD
 		// Either add all classes if not hot-reloading, or those which have changed
-		if (!GIsHotReload || GetDeferRegisterClassMap().FindChecked(Name)->bHasChanged)
+		TMap<FName, FFieldCompiledInInfo*>& DeferMap = GetDeferRegisterClassMap();
+		if (!GIsHotReload || DeferMap.FindChecked(Name)->bHasChanged)
 #endif
 		{
 			FString NoPrefix(RemoveClassPrefix(Name));

@@ -1170,6 +1170,11 @@ namespace UnrealBuildTool
 					Content.Append("            isEnabled = \"YES\">" + ProjectFileGenerator.NewLine);
 					Content.Append("         </CommandLineArgument>" + ProjectFileGenerator.NewLine);
 				}
+				// Always add a configuration argument
+				Content.Append("         <CommandLineArgument" + ProjectFileGenerator.NewLine);
+				Content.Append("            argument = \"-RunConfig=$(Configuration)\"" + ProjectFileGenerator.NewLine);
+				Content.Append("            isEnabled = \"YES\">" + ProjectFileGenerator.NewLine);
+				Content.Append("         </CommandLineArgument>" + ProjectFileGenerator.NewLine);
 				Content.Append("      </CommandLineArguments>" + ProjectFileGenerator.NewLine);
 			}
 			Content.Append("      <AdditionalOptions>" + ProjectFileGenerator.NewLine);

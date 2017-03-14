@@ -1847,6 +1847,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif // !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 	
+	{
+		FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.AddStatic(StartRenderCommandFenceBundler);
+		FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.AddStatic(StopRenderCommandFenceBundler);
+	}
+
 #if WITH_EDITOR
 	// We need to mount the shared resources for templates (if there are any) before we try and load and game classes
 	FUnrealEdMisc::Get().MountTemplateSharedPaths();

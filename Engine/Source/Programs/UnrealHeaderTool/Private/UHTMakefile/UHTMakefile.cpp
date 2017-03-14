@@ -1174,7 +1174,6 @@ void FUHTMakefile::ResolvePublicClassSetEntry(int32 Index)
 {
 	UClass* Class = GetClassByIndex(PublicClassSetEntryProxies[Index]);
 	PublicClassSetEntries.Add(Class);
-	GPublicClassSet.Add(Class);
 }
 
 void FUHTMakefile::CreateTypeDefinitionInfoMapEntry(int32 Index)

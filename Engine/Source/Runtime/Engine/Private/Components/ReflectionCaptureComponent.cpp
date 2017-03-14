@@ -136,6 +136,8 @@ AReflectionCapture::AReflectionCapture(const FObjectInitializer& ObjectInitializ
 {
 	CaptureComponent = CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(TEXT("NewReflectionComponent"));
 
+	bCanBeInCluster = true;
+
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))

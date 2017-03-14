@@ -795,18 +795,6 @@ const TArray<class ULocalPlayer*>& UGameInstance::GetLocalPlayers() const
 	return LocalPlayers;
 }
 
-void UGameInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UGameInstance* This = CastChecked<UGameInstance>(InThis);
-
-	for (ULocalPlayer* LocalPlayer : This->LocalPlayers)
-	{
-		Collector.AddReferencedObject(LocalPlayer, This);
-	}
-
-	Super::AddReferencedObjects(This, Collector);
-}
-
 void UGameInstance::StartRecordingReplay(const FString& Name, const FString& FriendlyName, const TArray<FString>& AdditionalOptions)
 {
 	if ( FParse::Param( FCommandLine::Get(),TEXT( "NOREPLAYS" ) ) )

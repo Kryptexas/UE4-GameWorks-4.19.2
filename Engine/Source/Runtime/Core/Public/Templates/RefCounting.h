@@ -138,6 +138,11 @@ public:
 		return Reference;
 	}
 
+	FORCEINLINE friend uint32 GetTypeHash(const TRefCountPtr& InPtr)
+	{
+		return GetTypeHash(InPtr.Reference);
+	}
+
 	FORCEINLINE ReferencedType** GetInitReference()
 	{
 		*this = nullptr;

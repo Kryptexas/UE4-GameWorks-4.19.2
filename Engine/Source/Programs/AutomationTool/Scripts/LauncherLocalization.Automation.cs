@@ -36,8 +36,6 @@ class LauncherLocalization : BuildCommand
             P4.Sync(P4Env.BuildRootP4 + "/Portal/Config/...");
             P4.Sync(P4Env.BuildRootP4 + "/Portal/Content/...");
             P4.Sync(P4Env.BuildRootP4 + "/Portal/Source/...");
-
-			Log("Localize from label {0}", P4Env.LabelToSync);
 		}
 
 		OneSkyConfigData OneSkyConfig = OneSkyConfigHelper.Find("OneSkyConfig_EpicGames");
@@ -69,7 +67,7 @@ class LauncherLocalization : BuildCommand
 
 		// Setup commandlet arguments for SCC.
 		string CommandletSCCArguments = String.Empty;
-		if (P4Enabled) { CommandletSCCArguments += (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " ") + "-EnableSCC"; }
+		if (P4Enabled) { CommandletSCCArguments += "-EnableSCC"; }
 		if (!AllowSubmit) { CommandletSCCArguments += (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " ") + "-DisableSCCSubmit"; }
 
 		// Setup commandlet arguments with configurations.

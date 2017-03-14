@@ -82,35 +82,18 @@ static UPackage*			GObjTransientPkg								= NULL;
 UObject::UObject( EStaticConstructor, EObjectFlags InFlags )
 : UObjectBaseUtility(InFlags | (!(InFlags & RF_Dynamic) ? (RF_MarkAsNative | RF_MarkAsRootSet) : RF_NoFlags))
 {
-#if WITH_HOT_RELOAD_CTORS
 	EnsureNotRetrievingVTablePtr();
-#endif // WITH_HOT_RELOAD_CTORS
 }
 
-#if WITH_HOT_RELOAD_CTORS
 UObject::UObject(FVTableHelper& Helper)
 {
 	EnsureRetrievingVTablePtrDuringCtor(TEXT("UObject(FVTableHelper& Helper)"));
-
-	static struct FUseVTableConstructorsCache
-	{
-		FUseVTableConstructorsCache()
-		{
-			bUseVTableConstructors = false;
-			GConfig->GetBool(TEXT("Core.System"), TEXT("UseVTableConstructors"), bUseVTableConstructors, GEngineIni);
-		}
-
-		bool bUseVTableConstructors;
-	} UseVTableConstructorsCache;
-
-	UE_CLOG(!UseVTableConstructorsCache.bUseVTableConstructors, LogCore, Fatal, TEXT("This constructor is disabled."));
 }
 
 void UObject::EnsureNotRetrievingVTablePtr() const
 {
 	UE_CLOG(GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("We are currently retrieving VTable ptr. Please use FVTableHelper constructor instead."));
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 UObject* UObject::CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient)
 {
@@ -561,7 +544,7 @@ struct FClassExclusionData
 
 		auto ModuleShortNameFromClass = [](const UClass* Class) -> FName
 		{
-			return FName(*FPackageName::GetLongPackageAssetName(Class->GetOutermost()->GetName()));
+			return FName(*FPackageName::GetShortName(Class->GetOutermost()));
 		};
 
 		while (InClass != nullptr)
@@ -802,6 +785,30 @@ bool UObject::ImplementsGetWorld() const
 }
 #endif
 
+#define PROFILE_ConditionalBeginDestroy (0)
+
+#if PROFILE_ConditionalBeginDestroy
+
+struct FTimeCnt
+{
+	float TotalTime;
+	int32 Count;
+
+	FTimeCnt()
+		: TotalTime(0.0f)
+		, Count(0)
+	{
+	}
+
+	bool operator<(const FTimeCnt& Other) const 
+	{
+		return TotalTime > Other.TotalTime;
+	}
+};
+
+static TMap<FName, FTimeCnt> MyProfile;
+#endif
+
 bool UObject::ConditionalBeginDestroy()
 {
 	check(IsValidLowLevel());
@@ -812,7 +819,43 @@ bool UObject::ConditionalBeginDestroy()
 		checkSlow(!DebugBeginDestroyed.Contains(this));
 		DebugBeginDestroyed.Add(this);
 #endif
+
+#if PROFILE_ConditionalBeginDestroy
+		double StartTime = FPlatformTime::Seconds();
+#endif
+
 		BeginDestroy();
+
+#if PROFILE_ConditionalBeginDestroy
+		float ThisTime = float(FPlatformTime::Seconds() - StartTime);
+
+		FTimeCnt& TimeCnt = MyProfile.FindOrAdd(GetClass()->GetFName());
+		TimeCnt.Count++;
+		TimeCnt.TotalTime += ThisTime;
+
+		static float TotalTime = 0.0f;
+		static int32 TotalCnt = 0;
+
+		TotalTime += ThisTime;
+		if ((++TotalCnt) % 1000 == 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("ConditionalBeginDestroy %d cnt %fus"), TotalCnt, 1000.0f * 1000.0f * TotalTime / float(TotalCnt));
+
+			MyProfile.ValueSort(TLess<FTimeCnt>());
+
+			int32 NumPrint = 0;
+			for (auto& Item : MyProfile)
+			{
+				UE_LOG(LogTemp, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Count, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Count), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
+				if (NumPrint++ > 30)
+				{
+					break;
+				}
+			}
+		}
+#endif
+
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if( DebugBeginDestroyed.Contains(this) )
 		{

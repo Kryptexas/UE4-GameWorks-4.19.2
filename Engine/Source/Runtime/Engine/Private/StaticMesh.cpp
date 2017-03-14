@@ -2513,6 +2513,11 @@ void UStaticMesh::PostLoad()
 	CreateNavCollision();
 }
 
+bool UStaticMesh::CanBeClusterRoot() const
+{
+	return false;
+}
+
 //
 //	UStaticMesh::GetDesc
 //

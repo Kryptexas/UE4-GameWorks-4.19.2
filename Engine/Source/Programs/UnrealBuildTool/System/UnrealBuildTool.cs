@@ -363,7 +363,7 @@ namespace UnrealBuildTool
 		private static int GuardedMain(string[] Arguments)
 		{
 			// Do super early log init as a safeguard. We'll re-init with proper config options later.
-			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: false, bLogSources: false, bColorConsoleOutput: true, TraceListeners: new[] { new ConsoleTraceListener() });
+			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: false, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new ConsoleTraceListener() });
 
 			// ensure we can resolve any external assemblies that are not in the same folder as our assembly.
 			AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
@@ -402,7 +402,7 @@ namespace UnrealBuildTool
 			if(!XmlConfig.ReadConfigFiles())
 			{
 				return 1;
-		}
+			}
 
 			// Create the build configuration object, and read the settings
 			BuildConfiguration BuildConfiguration = new BuildConfiguration();
@@ -444,6 +444,21 @@ namespace UnrealBuildTool
 				{
 					bIsEngineInstalled = false;
 				}
+				else if(LowercaseArg.StartsWith("-buildconfigurationdoc="))
+				{
+					XmlConfig.WriteDocumentation(new FileReference(Argument.Substring("-buildconfigurationdoc=".Length)));
+					return 0;
+				}
+				else if(LowercaseArg.StartsWith("-modulerulesdoc="))
+				{
+					RulesDocumentation.WriteDocumentation(typeof(ModuleRules), new FileReference(Argument.Substring("-modulerulesdoc=".Length)));
+					return 0;
+				}
+				else if(LowercaseArg.StartsWith("-targetrulesdoc="))
+				{
+					RulesDocumentation.WriteDocumentation(typeof(TargetRules), new FileReference(Argument.Substring("-targetrulesdoc=".Length)));
+					return 0;
+				}
 			}
 
 			// If it wasn't set explicitly by a command line option, check for the installed build marker file
@@ -460,6 +475,7 @@ namespace UnrealBuildTool
 				InLogLevel: (LogEventType)Enum.Parse(typeof(LogEventType), BuildConfiguration.LogLevel),
 				bLogSeverity: false,
 				bLogSources: false,
+				bLogSourcesToConsole: false,
 				bColorConsoleOutput: true,
 				TraceListeners: new[] 
                 {
@@ -2250,10 +2266,10 @@ namespace UnrealBuildTool
 
 						// Remove "-####-Platform-Configuration" suffix in Debug configuration
 						int IndexOfSecondLastHyphen = OriginalFileNameWithoutExtension.LastIndexOf('-', IndexOfLastHyphen - 1, IndexOfLastHyphen);
-						if (IndexOfSecondLastHyphen >= 0)
+						if (IndexOfSecondLastHyphen > 0)
 						{
 							int IndexOfThirdLastHyphen = OriginalFileNameWithoutExtension.LastIndexOf('-', IndexOfSecondLastHyphen - 1, IndexOfSecondLastHyphen);
-							if (IndexOfThirdLastHyphen >= 0)
+							if (IndexOfThirdLastHyphen > 0)
 							{
 								if (int.TryParse(OriginalFileNameWithoutExtension.Substring(IndexOfThirdLastHyphen + 1, IndexOfSecondLastHyphen - IndexOfThirdLastHyphen - 1), out NumberSuffix))
 								{
@@ -2419,10 +2435,16 @@ namespace UnrealBuildTool
 		/// <returns>True if file is part of the working set</returns>
 		public static bool ShouldSourceFileBePartOfWorkingSet(string SourceFileAbsolutePath)
 		{
-			// @todo: This logic needs work.  Currently its designed for users working with Perforce, or a similar
-			// source control system that keeps source files read-only when not actively checked out for editing.
-			bool bShouldBePartOfWorkingSourceFileSet =
-				!System.IO.File.GetAttributes(SourceFileAbsolutePath).HasFlag(FileAttributes.ReadOnly);
+			bool bShouldBePartOfWorkingSourceFileSet = false;
+			try
+			{
+				// @todo: This logic needs work.  Currently its designed for users working with Perforce, or a similar
+				// source control system that keeps source files read-only when not actively checked out for editing.
+				bShouldBePartOfWorkingSourceFileSet = !System.IO.File.GetAttributes(SourceFileAbsolutePath).HasFlag(FileAttributes.ReadOnly);
+			}
+			catch (FileNotFoundException)
+			{
+			}
 			return bShouldBePartOfWorkingSourceFileSet;
 		}
 	}

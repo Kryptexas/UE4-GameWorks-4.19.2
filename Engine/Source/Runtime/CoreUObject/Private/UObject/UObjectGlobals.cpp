@@ -117,6 +117,9 @@ FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFo
 FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollect;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollect;
 
+FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy;
+FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy;
+
 FCoreUObjectDelegates::FPreLoadMapDelegate FCoreUObjectDelegates::PreLoadMap;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostDemoPlay;
@@ -851,7 +854,7 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 			))
 		{
 			Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);
-			if (Result && Result->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects))
+			if (Result && Result->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WillBeLoaded))
 			{
 				// Object needs loading so load it before returning
 				Result = nullptr;
@@ -865,6 +868,10 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 
 			// now, find the object in the package
 			Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);
+			if (GEventDrivenLoaderEnabled && Result && Result->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WillBeLoaded))
+			{
+				UE_LOG(LogUObjectGlobals, Fatal, TEXT("Return an object still needing load from StaticLoadObjectInternal %s"), *GetFullNameSafe(Result));
+			}
 
 			// If the object was not found, check for a redirector and follow it if the class matches
 			if (!Result && !(LoadFlags & LOAD_NoRedirects))
@@ -1143,17 +1150,20 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 		FName PackageFName(*InPackageName);
 
 		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-		if (!Result || !Result->IsFullyLoaded())
+		if (!Result || Result->LinkerLoad || !Result->IsFullyLoaded())
 		{
 			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
 			FlushAsyncLoading(RequestID);
 		}
 
 		if (InOuter)
-			{
+		{
 			return InOuter;
-			}
-				Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+		}
+		if (!Result)
+		{
+			Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+		}
 		return Result;
 }
 
@@ -2543,9 +2553,7 @@ void UObject::PostInitProperties()
 
 UObject::UObject()
 {
-#if WITH_HOT_RELOAD_CTORS
 	EnsureNotRetrievingVTablePtr();
-#endif // WITH_HOT_RELOAD_CTORS
 
 	FObjectInitializer* ObjectInitializerPtr = FUObjectThreadContext::Get().TopInitializer();
 	UE_CLOG(!ObjectInitializerPtr, LogUObjectGlobals, Fatal, TEXT("%s is not being constructed with either NewObject, NewNamedObject or ConstructObject."), *GetName());
@@ -2557,9 +2565,7 @@ UObject::UObject()
 
 UObject::UObject(const FObjectInitializer& ObjectInitializer)
 {
-#if WITH_HOT_RELOAD_CTORS
 	EnsureNotRetrievingVTablePtr();
-#endif // WITH_HOT_RELOAD_CTORS
 
 	UE_CLOG(ObjectInitializer.Obj != nullptr && ObjectInitializer.Obj != this, LogUObjectGlobals, Fatal, TEXT("UObject(const FObjectInitializer&) constructor called but it's not the object that's currently being constructed with NewObject. Maybe you trying to construct it on the stack which is not supported."));
 	const_cast<FObjectInitializer&>(ObjectInitializer).Obj = this;

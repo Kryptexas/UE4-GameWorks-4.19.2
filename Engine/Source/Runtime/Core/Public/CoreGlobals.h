@@ -297,10 +297,8 @@ extern CORE_API bool GEventDrivenLoaderEnabled;
 //@todoio put this in some kind of API
 extern CORE_API bool GPakCache_AcceptPrecacheRequests;
 
-#if WITH_HOT_RELOAD_CTORS
 /** true when we are retrieving VTablePtr from UClass */
 extern CORE_API bool GIsRetrievingVTablePtr;
-#endif // WITH_HOT_RELOAD_CTORS
 
 /** Steadily increasing frame counter. */
 extern CORE_API uint64 GFrameCounter;
@@ -385,7 +383,6 @@ extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
 extern CORE_API bool GEnableVREditorHacks;
 
-#if WITH_HOT_RELOAD_CTORS
 /**
  * Ensures that current thread is during retrieval of vtable ptr of some
  * UClass.
@@ -394,7 +391,6 @@ extern CORE_API bool GEnableVREditorHacks;
  *		construct proper error message.
  */
 CORE_API void EnsureRetrievingVTablePtrDuringCtor(const TCHAR* CtorSignature);
-#endif // WITH_HOT_RELOAD_CTORS
 
 /** @return True if called from the game thread. */
 FORCEINLINE bool IsInGameThread()

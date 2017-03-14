@@ -60,9 +60,6 @@ static FRawObjectIterator GObjCurrentPurgeObjectIndex;
 static bool GObjCurrentPurgeObjectIndexNeedsReset = true;
 static bool GObjCurrentPurgeObjectIndexResetPastPermanent = false;
 
-/** Currently running a parallel reachability test.											*/
-static volatile bool GIsRunningParallelReachability = false;
-
 /** Whether we are currently purging an object in the GC purge pass. */
 static bool GIsPurgingObject = false;
 
@@ -297,6 +294,7 @@ static void LogClassCountInfo( const TCHAR* LogText, TMap<const FName,uint32>& C
 /**
 * Handles UObject references found by TFastReferenceCollector
 */
+template <bool bParallel>
 class FGCReferenceProcessor
 {
 public:
@@ -308,16 +306,6 @@ public:
 	FORCEINLINE int32 GetMinDesiredObjectsPerSubTask() const
 	{
 		return GMinDesiredObjectsPerSubTask;
-	}
-
-	FORCEINLINE volatile bool IsRunningMultithreaded() const
-	{
-		return GIsRunningParallelReachability;
-	}
-
-	FORCEINLINE void SetIsRunningMultithreaded(bool bIsParallel)
-	{
-		GIsRunningParallelReachability = bIsParallel;
 	}
 
 	void UpdateDetailedStats(UObject* CurrentObject, uint32 DeltaCycles)
@@ -350,50 +338,105 @@ public:
 	}
 
 	/** Marks all objects that can't be directly in a cluster but are referenced by it as reachable */
-	template <bool bParallel>
-	static FORCEINLINE void MarkClusterMutableObjectsAsReachable(FUObjectCluster* Cluster, TArray<UObject*>& ObjectsToSerialize)
+	static FORCEINLINE bool MarkClusterMutableObjectsAsReachable(FUObjectCluster& Cluster, TArray<UObject*>& ObjectsToSerialize)
 	{
-		for (int32 ReferencedMutableObjectIndex : Cluster->MutableObjects)
+		// This is going to be the return value and basically means that we ran across some pending kill objects
+		bool bAddClusterObjectsToSerialize = false;
+		for (int32& ReferencedMutableObjectIndex : Cluster.MutableObjects)
 		{
-			FUObjectItem* ReferencedMutableObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferencedMutableObjectIndex);
-			if (bParallel)
+			if (ReferencedMutableObjectIndex >= 0) // Pending kill support
 			{
-				if (ReferencedMutableObjectItem->IsUnreachable() && ReferencedMutableObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
+				FUObjectItem* ReferencedMutableObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferencedMutableObjectIndex);
+				if (bParallel)
 				{
-					ReferencedMutableObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
-					ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
+					if (!ReferencedMutableObjectItem->IsPendingKill())
+					{
+						if (ReferencedMutableObjectItem->IsUnreachable() && ReferencedMutableObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
+						{
+							ReferencedMutableObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
+							ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
+						}
+					}
+					else
+					{
+						// Pending kill support for clusters
+						ReferencedMutableObjectIndex = -1;
+						bAddClusterObjectsToSerialize = true;
+					}
+				}
+				else if (ReferencedMutableObjectItem->IsUnreachable())
+				{
+					if (!ReferencedMutableObjectItem->IsPendingKill())
+					{
+						ReferencedMutableObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+						ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
+					}
+					else
+					{
+						// Pending kill support for clusters
+						ReferencedMutableObjectIndex = -1;
+						bAddClusterObjectsToSerialize = true;
+					}
 				}
 			}
-			else if (ReferencedMutableObjectItem->IsUnreachable())
-			{
-				ReferencedMutableObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
-				ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
-			}
 		}
+		return bAddClusterObjectsToSerialize;
 	}
 
-	/** Marks all clusters referenced by another cluster as rechable */
-	template <bool bParallel>
-	static FORCEINLINE void MarkReferencedClustersAsReachable(int32 ClusterRootIndex, TArray<UObject*>& ObjectsToSerialize)
+	/** Marks all clusters referenced by another cluster as reachable */
+	static FORCEINLINE void MarkReferencedClustersAsReachable(int32 ClusterIndex, TArray<UObject*>& ObjectsToSerialize)
 	{
-		FUObjectCluster* Cluster = GUObjectClusters.FindChecked(ClusterRootIndex);
+		// If we run across some PendingKill objects we need to add all objects from this cluster
+		// to ObjectsToSerialize so that we can properly null out all the references.
+		// It also means this cluster will have to be dissolved because we may no longer guarantee all cross-cluster references are correct.
+
+		bool bAddClusterObjectsToSerialize = false;
+		FUObjectCluster& Cluster = GUObjectClusters[ClusterIndex];
 		// Also mark all referenced objects from outside of the cluster as reachable
-		MarkClusterMutableObjectsAsReachable<bParallel>(Cluster, ObjectsToSerialize);
-		for (int32 ReferncedClusterIndex : Cluster->ReferencedClusters)
+		for (int32& ReferncedClusterIndex : Cluster.ReferencedClusters)
 		{
-			FUObjectItem* ReferencedClusterRootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferncedClusterIndex);
-			// This condition should get collapsed by the compiler based on the template argument
-			if (bParallel)
+			if (ReferncedClusterIndex >= 0) // Pending Kill support
 			{
-				ReferencedClusterRootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+				FUObjectItem* ReferencedClusterRootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferncedClusterIndex);
+				if (!ReferencedClusterRootObjectItem->IsPendingKill())
+				{
+					// This condition should get collapsed by the compiler based on the template argument
+					if (bParallel)
+					{
+						if (ReferencedClusterRootObjectItem->IsUnreachable())
+						{
+							ReferencedClusterRootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+						}
+					}
+					else
+					{
+						ReferencedClusterRootObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+					}
+				}
+				else
+				{
+					// Pending kill support for clusters
+					ReferncedClusterIndex = -1;
+					bAddClusterObjectsToSerialize = true;
+				}
 			}
-			else
+		}
+		if (MarkClusterMutableObjectsAsReachable(Cluster, ObjectsToSerialize))
+		{
+			bAddClusterObjectsToSerialize = true;
+		}
+		if (bAddClusterObjectsToSerialize)
+		{
+			// We need to process all cluster objects to handle PendingKill objects we nulled out (-1) from the cluster.
+			for (int32 ClusterObjectIndex : Cluster.Objects)
 			{
-				ReferencedClusterRootObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+				FUObjectItem* ClusterObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ClusterObjectIndex);
+				UObject* ClusterObject = static_cast<UObject*>(ClusterObjectItem->Object);
+				ObjectsToSerialize.Add(ClusterObject);
 			}
-			FUObjectCluster* ReferencedCluster = GUObjectClusters.FindChecked(ReferncedClusterIndex);
-			MarkClusterMutableObjectsAsReachable<bParallel>(ReferencedCluster, ObjectsToSerialize);
-		}		
+			Cluster.bNeedsDissolving = true;
+			GUObjectClusters.SetClustersNeedDissolving();
+		}
 	}
 
 	/**
@@ -421,25 +464,26 @@ public:
 			return;
 		}
 
-		FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(Object);
+		const int32 ObjectIndex = GUObjectArray.ObjectToIndex(Object);
+		FUObjectItem* ObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ObjectIndex);
 		// Remove references to pending kill objects if we're allowed to do so.
 		if (ObjectItem->IsPendingKill() && bAllowReferenceElimination)
 		{
-			checkSlow(ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) == false);
-			checkSlow(ObjectItem->GetOwnerIndex() == 0)
+			//checkSlow(ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) == false);
+			checkSlow(ObjectItem->GetOwnerIndex() <= 0)
 			// Null out reference.
 			Object = NULL;
 		}
 		// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
 		else if (ObjectItem->IsUnreachable())
 		{
-			if (GIsRunningParallelReachability)
+			if (bParallel)
 			{
 				// Mark it as reachable.
 				if (ObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
 				{
 					// Objects that are part of a GC cluster should never have the unreachable flag set!
-					checkSlow(ObjectItem->GetOwnerIndex() == 0);
+					checkSlow(ObjectItem->GetOwnerIndex() <= 0);
 
 					if (!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
 					{
@@ -449,8 +493,7 @@ public:
 					else
 					{
 						// This is a cluster root reference so mark all referenced clusters as reachable
-						const int32 ObjectIndex = GUObjectArray.ObjectToIndex(Object);
-						MarkReferencedClustersAsReachable<true>(ObjectIndex, ObjectsToSerialize);
+						MarkReferencedClustersAsReachable(ObjectItem->GetClusterIndex(), ObjectsToSerialize);
 					}
 				}
 			}
@@ -470,7 +513,7 @@ public:
 				ObjectItem->ClearUnreachable();
 
 				// Objects that are part of a GC cluster should never have the unreachable flag set!
-				checkSlow(ObjectItem->GetOwnerIndex() == 0);
+				checkSlow(ObjectItem->GetOwnerIndex() <= 0);
 
 				if (!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
 				{
@@ -480,15 +523,14 @@ public:
 				else
 				{
 					// This is a cluster root reference so mark all referenced clusters as reachable
-					const int32 ObjectIndex = GUObjectArray.ObjectToIndex(Object);
-					MarkReferencedClustersAsReachable<false>(ObjectIndex, ObjectsToSerialize);
+					MarkReferencedClustersAsReachable(ObjectItem->GetClusterIndex(), ObjectsToSerialize);
 				}
 			}
 		}
-		else if (ObjectItem->GetOwnerIndex() && !ObjectItem->HasAnyFlags(EInternalObjectFlags::ReachableInCluster))
+		else if (ObjectItem->GetOwnerIndex() > 0 && !ObjectItem->HasAnyFlags(EInternalObjectFlags::ReachableInCluster))
 		{
 			bool bNeedsDoing = true;
-			if (GIsRunningParallelReachability)
+			if (bParallel)
 			{
 				bNeedsDoing = ObjectItem->ThisThreadAtomicallySetFlag(EInternalObjectFlags::ReachableInCluster);
 			}
@@ -498,32 +540,32 @@ public:
 			}
 			if (bNeedsDoing)
 			{
-			    // Make sure cluster root object is reachable too
-			    const int32 OwnerIndex = ObjectItem->GetOwnerIndex();
-			    FUObjectItem* RootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(OwnerIndex);
+				// Make sure cluster root object is reachable too
+				const int32 OwnerIndex = ObjectItem->GetOwnerIndex();
+				FUObjectItem* RootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(OwnerIndex);
 				checkSlow(RootObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
-			    if (GIsRunningParallelReachability)
-			    {
-				    if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
-				    {
+				if (bParallel)
+				{
+					if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
+					{
 						if (bStrongReference)
 						{
-					    	RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
+							RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 						}
-					    // Make sure all referenced clusters are marked as reachable too
-					    MarkReferencedClustersAsReachable<true>(OwnerIndex, ObjectsToSerialize);
-				    }
-			    }
-			    else if (RootObjectItem->IsUnreachable())
-			    {
+						// Make sure all referenced clusters are marked as reachable too
+						MarkReferencedClustersAsReachable(RootObjectItem->GetClusterIndex(), ObjectsToSerialize);
+					}
+				}
+				else if (RootObjectItem->IsUnreachable())
+				{
 					RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable);
 					if (bStrongReference)
 					{
 						RootObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference);
 					}
+					// Make sure all referenced clusters are marked as reachable too
+					MarkReferencedClustersAsReachable(RootObjectItem->GetClusterIndex(), ObjectsToSerialize);
 				}
-				// Make sure all referenced clusters are marked as reachable too
-				MarkReferencedClustersAsReachable<false>(OwnerIndex, ObjectsToSerialize);
 			}
 		}
 
@@ -580,19 +622,23 @@ public:
 	}
 };
 
+typedef FGCReferenceProcessor<true> FGCReferenceProcessorMultithreaded;
+typedef FGCReferenceProcessor<false> FGCReferenceProcessorSinglethreaded;
+
 /**
 * Specialized FReferenceCollector that uses FGCReferenceProcessor to mark objects as reachable.
 */
+template <bool bParallel>
 class FGCCollector : public FReferenceCollector
 {
-	FGCReferenceProcessor& ReferenceProcessor;
+	FGCReferenceProcessor<bParallel>& ReferenceProcessor;
 	TArray<UObject*>& ObjectArray;
 	bool bAllowEliminatingReferences;
 	bool bShouldHandleAsWeakRef;
 
 public:
 
-	FGCCollector(FGCReferenceProcessor& InProcessor, TArray<UObject*>& InObjectArray)
+	FGCCollector(FGCReferenceProcessor<bParallel>& InProcessor, TArray<UObject*>& InObjectArray)
 		: ReferenceProcessor(InProcessor)
 		, ObjectArray(InObjectArray)
 		, bAllowEliminatingReferences(true)
@@ -600,7 +646,7 @@ public:
 	{
 	}
 
-	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty) override
+	FORCEINLINE void InternalHandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty)
 	{
 #if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 		if (Object && !Object->IsValidLowLevelFast())
@@ -613,21 +659,17 @@ public:
 #endif
 		ReferenceProcessor.HandleObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences, !bShouldHandleAsWeakRef);
 	}
+
+	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty) override
+	{
+		InternalHandleObjectReference(Object, ReferencingObject, ReferencingProperty);
+	}
 	virtual void HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
 	{
 		for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
 		{
 			UObject*& Object = InObjects[ObjectIndex];
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
-			if (Object && !Object->IsValidLowLevelFast())
-			{
-				UE_LOG(LogGarbage, Fatal, TEXT("Invalid object in GC: 0x%016llx, ReferencingObject: %s, ReferencingProperty: %s"),
-					(int64)(PTRINT)Object,
-					InReferencingObject ? *InReferencingObject->GetFullName() : TEXT("NULL"),
-					InReferencingProperty ? *InReferencingProperty->GetFullName() : TEXT("NULL"));
-			}
-#endif
-			ReferenceProcessor.HandleObjectReference(ObjectArray, const_cast<UObject*>(InReferencingObject), Object, bAllowEliminatingReferences, !bShouldHandleAsWeakRef);
+			InternalHandleObjectReference(Object, InReferencingObject, InReferencingProperty);
 		}
 	}
 
@@ -650,6 +692,8 @@ public:
 	}
 };
 
+typedef FGCCollector<true> FGCCollectorMultithreaded;
+typedef FGCCollector<false> FGCCollectorSinglethreaded;
 
 /*----------------------------------------------------------------------------
 	FReferenceFinder.
@@ -741,7 +785,7 @@ public:
 
 		// Iterate over all objects. Note that we iterate over the UObjectArray and usually check only internal flags which
 		// are part of the array so we don't suffer from cache misses as much as we would if we were to check ObjectFlags.
-		TArray<UObjectBase*> KeepClusterRefs;
+		TArray<FUObjectItem*> KeepClusterRefs;
 		for (FRawObjectIterator It(true); It; ++It)
 		{
 			FUObjectItem* ObjectItem = *It;
@@ -760,11 +804,13 @@ public:
 				// IsValidLowLevel is extremely slow in this loop so only do it in debug
 				checkSlow(Object->IsValidLowLevel());
 				// We cannot use RF_PendingKill on objects that are part of the root set.
+#if DO_GUARD_SLOW
 				checkCode(if (ObjectItem->IsPendingKill()) { UE_LOG(LogGarbage, Fatal, TEXT("Object %s is part of root set though has been marked RF_PendingKill!"), *Object->GetFullName()); });
+#endif
 				ObjectsToSerialize.Add(Object);
 			}
-			// Regular objects.
-			else if (ObjectItem->GetOwnerIndex() == 0)
+			// Regular objects or cluster root objects
+			else if (ObjectItem->GetOwnerIndex() <= 0)
 			{
 				bool bMarkAsUnreachable = true;
 				if (!ObjectItem->IsPendingKill())
@@ -780,6 +826,11 @@ public:
 						bMarkAsUnreachable = false;
 					}
 				}
+				else if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+				{
+					GUObjectClusters.DissolveClusterAndMarkObjectsAsUnreachable(It.GetIndex(), ObjectItem);
+					GUObjectClusters.SetClustersNeedDissolving();					
+				}
 
 				// Mark objects as unreachable unless they have any of the passed in KeepFlags set and it's not marked for elimination..
 				if (!bMarkAsUnreachable)
@@ -788,9 +839,9 @@ public:
 					checkSlow(Object->IsValidLowLevel());
 					ObjectsToSerialize.Add(Object);
 
-					if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) || ObjectItem->GetOwnerIndex())
+					if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) || ObjectItem->GetOwnerIndex() > 0)
 					{
-						KeepClusterRefs.Add(Object);
+						KeepClusterRefs.Add(ObjectItem);
 					}
 				}
 				else
@@ -799,13 +850,12 @@ public:
 				}
 			}
 		}
-		for (UObjectBase* Object : KeepClusterRefs)
+
+		for (FUObjectItem* ObjectItem : KeepClusterRefs)
 		{
-			const int32 ObjectIndex = GUObjectArray.ObjectToIndex(Object);
-			FUObjectItem* ObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ObjectIndex);
-			if (ObjectItem->GetOwnerIndex())
+			if (ObjectItem->GetOwnerIndex() > 0)
 			{
-				check(!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
+				checkSlow(!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
 				bool bNeedsDoing = !ObjectItem->HasAnyFlags(EInternalObjectFlags::ReachableInCluster);
 				if (bNeedsDoing)
 				{
@@ -813,22 +863,22 @@ public:
 					// Make sure cluster root object is reachable too
 					const int32 OwnerIndex = ObjectItem->GetOwnerIndex();
 					FUObjectItem* RootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(OwnerIndex);
-					check(RootObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
+					checkSlow(RootObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
 					// if it is reachable via keep flags we will do this below (or maybe already have)
 					if (RootObjectItem->IsUnreachable()) 
 					{
 						RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
 						// Make sure all referenced clusters are marked as reachable too
-						FGCReferenceProcessor::MarkReferencedClustersAsReachable<false>(OwnerIndex, ObjectsToSerialize);
+						FGCReferenceProcessorSinglethreaded::MarkReferencedClustersAsReachable(RootObjectItem->GetClusterIndex(), ObjectsToSerialize);
 					}
 				}
 			}
 			else
 			{
-				check(ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
+				checkSlow(ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
 				// this thing is definitely not marked unreachable, so don't test it here
 				// Make sure all referenced clusters are marked as reachable too
-				FGCReferenceProcessor::MarkReferencedClustersAsReachable<false>(ObjectIndex, ObjectsToSerialize);
+				FGCReferenceProcessorSinglethreaded::MarkReferencedClustersAsReachable(ObjectItem->GetClusterIndex(), ObjectsToSerialize);
 			}
 		}
 	}
@@ -858,12 +908,18 @@ public:
 
 		MarkObjectsAsUnreachable(ObjectsToSerialize, KeepFlags);
 
+		if (!bForceSingleThreaded)
 		{
-			FGCReferenceProcessor ReferenceProcessor;
-			TFastReferenceCollector<FGCReferenceProcessor, FGCCollector, FGCArrayPool> ReferenceCollector(ReferenceProcessor, FGCArrayPool::Get());
-			ReferenceCollector.CollectReferences(ObjectsToSerialize, bForceSingleThreaded);
+			FGCReferenceProcessorMultithreaded ReferenceProcessor;
+			TFastReferenceCollector<true, FGCReferenceProcessorMultithreaded, FGCCollectorMultithreaded, FGCArrayPool> ReferenceCollector(ReferenceProcessor, FGCArrayPool::Get());
+			ReferenceCollector.CollectReferences(ObjectsToSerialize);
 		}
-
+		else
+		{
+			FGCReferenceProcessorSinglethreaded ReferenceProcessor;
+			TFastReferenceCollector<false, FGCReferenceProcessorSinglethreaded, FGCCollectorSinglethreaded, FGCArrayPool> ReferenceCollector(ReferenceProcessor, FGCArrayPool::Get());
+			ReferenceCollector.CollectReferences(ObjectsToSerialize);
+		}
 		FGCArrayPool::Get().ReturnToPool(&ObjectsToSerialize);
 
 #if UE_BUILD_DEBUG
@@ -1259,7 +1315,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 #if VERIFY_DISREGARD_GC_ASSUMPTIONS
 		FUObjectArray& UObjectArray = GUObjectArray;
 		// Only verify assumptions if option is enabled. This avoids false positives in the Editor or commandlets.
-		if ((UObjectArray.DisregardForGCEnabled() || GUObjectClusters.Num()) && GShouldVerifyGCAssumptions)
+		if ((UObjectArray.DisregardForGCEnabled() || GUObjectClusters.GetNumAllocatedClusters()) && GShouldVerifyGCAssumptions)
 		{
 			DECLARE_SCOPE_CYCLE_COUNTER(TEXT("CollectGarbageInternal.VerifyGCAssumptions"), STAT_CollectGarbageInternal_VerifyGCAssumptions, STATGROUP_GC);
 			bool bShouldAssert = false;
@@ -1286,7 +1342,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 						if (ReferencedObject &&
 							!(ReferencedObject->IsRooted() ||
 								UObjectArray.IsDisregardForGC(ReferencedObject) ||
-								UObjectArray.ObjectToObjectItem(ReferencedObject)->GetOwnerIndex() ||
+								UObjectArray.ObjectToObjectItem(ReferencedObject)->GetOwnerIndex() > 0 ||
 								UObjectArray.ObjectToObjectItem(ReferencedObject)->HasAnyFlags(EInternalObjectFlags::ClusterRoot)))
 						{
 							UE_LOG(LogGarbage, Warning, TEXT("Disregard for GC object %s referencing %s which is not part of root set"),
@@ -1330,6 +1386,14 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 			UE_LOG(LogGarbage, Log, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000);
 		}
 
+		// Reconstruct clusters if needed
+		if (GUObjectClusters.ClustersNeedDissolving())
+		{
+			const double StartTime = FPlatformTime::Seconds();
+			GUObjectClusters.DissolveClusters();
+			UE_LOG(LogGarbage, Log, TEXT("%f ms for dissolving GC clusters"), (FPlatformTime::Seconds() - StartTime) * 1000);
+		}
+
 #if WITH_EDITOR
 		if (GIsEditor && EditorPostReachabilityAnalysisCallback)
 		{
@@ -1342,9 +1406,13 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 
 			TGuardValue<bool> GuardObjUnhashUnreachableIsInProgress(GObjUnhashUnreachableIsInProgress, true);
 
+			FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.Broadcast();
+
 			// Unhash all unreachable objects.
 			const double StartTime = FPlatformTime::Seconds();
 			int32 ClustersRemoved = 0;
+			int32 Items = 0;
+			int32 ClusterItems = 0;
 			for (FRawObjectIterator It(true); It; ++It)
 			{
 				//@todo UE4 - A prefetch was removed here. Re-add it. It wasn't right anyway, since it was ten items ahead and the consoles on have 8 prefetch slots
@@ -1353,14 +1421,14 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 				checkSlow(ObjectItem);
 				if (ObjectItem->IsUnreachable())
 				{
+					Items++;
 					if ((ObjectItem->GetFlags() & EInternalObjectFlags::ClusterRoot) == EInternalObjectFlags::ClusterRoot)
 					{
 						// Nuke the entire cluster
 						ObjectItem->ClearFlags(EInternalObjectFlags::ClusterRoot | EInternalObjectFlags::NoStrongReference);
 						const int32 ClusterRootIndex = It.GetIndex();
-						FUObjectCluster* Cluster = GUObjectClusters.FindChecked(ClusterRootIndex);
-						checkSlow(Cluster);
-						for (int32 ClusterObjectIndex : Cluster->Objects)
+						FUObjectCluster& Cluster = GUObjectClusters[ObjectItem->GetClusterIndex()];
+						for (int32 ClusterObjectIndex : Cluster.Objects)
 						{
 							FUObjectItem* ClusterObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ClusterObjectIndex);
 							ClusterObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference);
@@ -1373,11 +1441,11 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 								{
 									UObject* ClusterObject = (UObject*)ClusterObjectItem->Object;
 									ClusterObject->ConditionalBeginDestroy();
+									ClusterItems++;
 								}
 							}
 						}
-						delete Cluster;
-						GUObjectClusters.Remove(ClusterRootIndex);
+						GUObjectClusters.FreeCluster(ObjectItem->GetClusterIndex());
 						ClustersRemoved++;
 					}
 
@@ -1391,7 +1459,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 					ObjectItem->SetPendingKill();
 				}
 			}
-			UE_LOG(LogGarbage, Log, TEXT("%f ms for unhashing unreachable objects. Clusters removed: %d."), (FPlatformTime::Seconds() - StartTime) * 1000, ClustersRemoved);
+			UE_LOG(LogGarbage, Log, TEXT("%f ms for unhashing unreachable objects. Clusters removed: %d.   Items %d Cluster Items %d"), (FPlatformTime::Seconds() - StartTime) * 1000, ClustersRemoved, Items, ClusterItems);
+			FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.Broadcast();
 		}
 
 		// Set flag to indicate that we are relying on a purge to be performed.

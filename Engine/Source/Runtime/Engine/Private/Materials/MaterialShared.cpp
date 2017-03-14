@@ -627,10 +627,7 @@ void FMaterial::SetRenderingThreadShaderMap(FMaterialShaderMap* InMaterialShader
 
 void FMaterial::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	for (int32 ExpressionIndex = 0; ExpressionIndex < ErrorExpressions.Num(); ExpressionIndex++)
-	{
-		Collector.AddReferencedObject(ErrorExpressions[ExpressionIndex]);
-	}
+	Collector.AddReferencedObjects(ErrorExpressions);
 }
 
 struct FLegacyTextureLookup
@@ -731,6 +728,10 @@ void FMaterial::SerializeInlineShaderMap(FArchive& Ar)
 				if (FApp::CanEverRender())
 				{
 					GameThreadShaderMap = RenderingThreadShaderMap = LoadedShaderMap;
+				}
+				else
+				{
+					LoadedShaderMap->DiscardSerializedShaders();
 				}
 			}
 		}

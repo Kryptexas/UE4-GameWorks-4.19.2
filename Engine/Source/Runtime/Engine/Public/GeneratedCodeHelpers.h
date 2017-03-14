@@ -65,9 +65,9 @@ inline uint8 EnumToByte(TEnumAsByte<TEnum> Val)
 }
 
 template<class T>
-inline const T* GetDefaultValueSafe(UClass* Class)
+inline T* GetDefaultValueSafe(UClass* Class)
 {
-	return IsValid(Class) ? GetDefault<T>(Class) : nullptr;
+	return IsValid(Class) ? GetMutableDefault<T>(Class) : nullptr;
 }
 
 template<typename ValueType>

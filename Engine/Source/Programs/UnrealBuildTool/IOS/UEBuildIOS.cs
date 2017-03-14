@@ -157,11 +157,11 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				if(bShipForArmV7 || (!bShipForArmV7 && !bShipForArm64 && !bShipForArmV7S))
+				if(bShipForArmV7 || (!bShipForArm64 && !bShipForArmV7S))
 				{
 					yield return "armv7";
 				}
-				if(bShipForArm64 || (!bShipForArmV7 && !bShipForArm64 && !bShipForArmV7S))
+				if(bShipForArm64 || (!bShipForArmV7 && !bShipForArmV7S))
 				{
 					yield return "arm64";
 				}

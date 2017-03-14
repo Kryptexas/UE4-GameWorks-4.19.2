@@ -8,6 +8,8 @@
 #include "UObject/Class.h"
 #include "Async/TaskGraphInterfaces.h"
 #include "UObject/UnrealType.h"
+#include "Misc/ScopeLock.h"
+#include "HAL/PlatformProcess.h"
 
 struct FStackEntry;
 
@@ -29,8 +31,6 @@ struct FStackEntry;
    {
    public:
      int32 GetMinDesiredObjectsPerSubTask() const;
-     volatile bool IsRunningMultithreaded() const;
-		 void SetIsRunningMultithreaded(bool bIsParallel);
 		 void HandleTokenStreamObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, const int32 TokenIndex, bool bAllowReferenceElimination);
 		 void UpdateDetailedStats(UObject* CurrentObject, uint32 DeltaCycles);
 		 void LogDetailedStatsSummary();
@@ -48,10 +48,156 @@ struct FStackEntry;
 		 void ReturnToPool(TArray<UObject*>* Array);
 	 };
  */
-template <typename ReferenceProcessorType, typename CollectorType, typename ArrayPoolType, bool bAutoGenerateTokenStream = false>
+template <bool bParallel, typename ReferenceProcessorType, typename CollectorType, typename ArrayPoolType, bool bAutoGenerateTokenStream = false>
 class TFastReferenceCollector
 {
 private:
+
+	class FCollectorTaskQueue
+	{
+		TFastReferenceCollector*	Owner;
+		ArrayPoolType& ArrayPool;
+		TLockFreePointerListUnordered<TArray<UObject*>, PLATFORM_CACHE_LINE_SIZE> Tasks;
+
+		FCriticalSection WaitingThreadsLock;
+		TArray<FEvent*> WaitingThreads;
+		bool bDone;
+		int32 NumThreadsStarted;
+	public:
+
+		FCollectorTaskQueue(TFastReferenceCollector* InOwner, ArrayPoolType& InArrayPool)
+			: Owner(InOwner)
+			, ArrayPool(InArrayPool)
+			, bDone(false)
+			, NumThreadsStarted(0)
+		{
+		}
+
+		void CheckDone()
+		{
+			FScopeLock Lock(&WaitingThreadsLock);
+			check(bDone);
+			check(!Tasks.Pop());
+			check(!WaitingThreads.Num());
+			check(NumThreadsStarted);
+		}
+
+		FORCENOINLINE void AddTask(const TArray<UObject*>* InObjectsToSerialize, int32 StartIndex, int32 NumObjects)
+		{
+			TArray<UObject*>* ObjectsToSerialize(ArrayPool.GetArrayFromPool());
+			ObjectsToSerialize->AddUninitialized(NumObjects);
+			FMemory::Memcpy(ObjectsToSerialize->GetData(), InObjectsToSerialize->GetData() + StartIndex, NumObjects * sizeof(UObject*));
+			Tasks.Push(ObjectsToSerialize);
+
+			FEvent* WaitingThread = nullptr;
+			{
+				FScopeLock Lock(&WaitingThreadsLock);
+				check(!bDone);
+				if (WaitingThreads.Num())
+				{
+					WaitingThread = WaitingThreads.Pop();
+				}
+			}
+			if (WaitingThread)
+			{
+				WaitingThread->Trigger();
+			}
+		}
+
+		FORCENOINLINE void DoTask()
+		{
+			{
+				FScopeLock Lock(&WaitingThreadsLock);
+				if (bDone)
+				{
+					return;
+				}
+				NumThreadsStarted++;
+			}
+			while (true)
+			{
+				TArray<UObject*>* ObjectsToSerialize = Tasks.Pop();
+				while (!ObjectsToSerialize)
+				{
+					if (bDone)
+					{
+						return;
+					}
+					FEvent* WaitEvent = nullptr;
+					{
+						FScopeLock Lock(&WaitingThreadsLock);
+						if (bDone)
+						{
+							return;
+						}
+						ObjectsToSerialize = Tasks.Pop();
+						if (!ObjectsToSerialize)
+						{
+							if (WaitingThreads.Num() + 1 == NumThreadsStarted)
+							{
+								bDone = true;
+								FPlatformMisc::MemoryBarrier();
+								for (FEvent* WaitingThread : WaitingThreads)
+								{
+									WaitingThread->Trigger();
+								}
+								WaitingThreads.Empty();
+								return;
+							}
+							else
+							{
+								WaitEvent = FPlatformProcess::GetSynchEventFromPool(false);
+								WaitingThreads.Push(WaitEvent);
+							}
+						}
+					}
+					if (ObjectsToSerialize)
+					{
+						check(!WaitEvent);
+					}
+					else
+					{
+						check(WaitEvent);
+						WaitEvent->Wait();
+						FPlatformProcess::ReturnSynchEventToPool(WaitEvent);
+						ObjectsToSerialize = Tasks.Pop();
+						check(!ObjectsToSerialize || !bDone);
+					}
+				}
+				Owner->ProcessObjectArray(*ObjectsToSerialize, FGraphEventRef());
+				ArrayPool.ReturnToPool(ObjectsToSerialize);
+			}
+		}
+	};
+
+	/** Task graph task responsible for processing UObject array */
+	class FCollectorTaskProcessorTask
+	{
+		FCollectorTaskQueue& TaskQueue;
+		ENamedThreads::Type DesiredThread;
+	public:
+		FCollectorTaskProcessorTask(FCollectorTaskQueue& InTaskQueue, ENamedThreads::Type InDesiredThread)
+			: TaskQueue(InTaskQueue)
+			, DesiredThread(InDesiredThread)
+		{
+		}
+		FORCEINLINE TStatId GetStatId() const
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FCollectorTaskProcessorTask, STATGROUP_TaskGraphTasks);
+		}
+		ENamedThreads::Type GetDesiredThread()
+		{
+			return DesiredThread;
+		}
+		static ESubsequentsMode::Type GetSubsequentsMode()
+		{
+			return ESubsequentsMode::TrackSubsequents;
+		}
+		void DoTask(ENamedThreads::Type CurrentThread, FGraphEventRef& MyCompletionGraphEvent)
+		{
+			TaskQueue.DoTask();
+		}
+	};
 
 	/** Task graph task responsible for processing UObject array */
 	class FCollectorTask
@@ -79,6 +225,28 @@ private:
 		}
 		static ENamedThreads::Type GetDesiredThread()
 		{
+			if ((PLATFORM_XBOXONE || PLATFORM_PS4) && ENamedThreads::bHasHighPriorityThreads)
+			{
+				if (PLATFORM_PS4 && ENamedThreads::bHasBackgroundThreads) // on the PS4, background threads can use the 7th core, so lets put it to work.
+				{
+					int32 CoreRand = FMath::RandRange(0, 6);
+					if (CoreRand < 2)
+					{
+						return ENamedThreads::AnyBackgroundThreadNormalTask;
+					}
+					else if (CoreRand < 4)
+					{
+						return ENamedThreads::AnyHiPriThreadNormalTask;
+					}
+				}
+				else
+				{
+					if (FMath::RandRange(0, 1))
+					{
+						return ENamedThreads::AnyHiPriThreadNormalTask;
+					}
+				}
+			}
 			return ENamedThreads::AnyThread;
 		}
 		static ESubsequentsMode::Type GetSubsequentsMode()
@@ -95,6 +263,8 @@ private:
 	ReferenceProcessorType& ReferenceProcessor;
 	/** Custom TArray allocator */
 	ArrayPoolType& ArrayPool;
+
+	FCollectorTaskQueue TaskQueue;
 
 	/** Helper struct for stack based approach */
 	struct FStackEntry
@@ -116,6 +286,7 @@ public:
 	TFastReferenceCollector(ReferenceProcessorType& InReferenceProcessor, ArrayPoolType& InArrayPool)
 		: ReferenceProcessor(InReferenceProcessor)
 		, ArrayPool(InArrayPool)
+		, TaskQueue(this, InArrayPool)
 	{}
 
 	/**
@@ -124,40 +295,55 @@ public:
 	* @param ObjectsToCollectReferencesFor List of objects which references should be collected
 	* @param bForceSingleThreaded Collect references on a single thread
 	*/
-	void CollectReferences(TArray<UObject*>& ObjectsToCollectReferencesFor, bool bForceSingleThreaded = false)
+	void CollectReferences(TArray<UObject*>& ObjectsToCollectReferencesFor)
 	{
 		if (ObjectsToCollectReferencesFor.Num())
 		{
-			check(!ReferenceProcessor.IsRunningMultithreaded());
-
-			if (bForceSingleThreaded)
+			if (!bParallel)
 			{
 				FGraphEventRef InvalidRef;
-				ReferenceProcessor.SetIsRunningMultithreaded(false);
 				ProcessObjectArray(ObjectsToCollectReferencesFor, InvalidRef);
 			}
 			else
 			{
-				ReferenceProcessor.SetIsRunningMultithreaded(true);
-
-				int32 NumChunks = FMath::Min<int32>(FTaskGraphInterface::Get().GetNumWorkerThreads(), ObjectsToCollectReferencesFor.Num());
-				int32 NumPerChunk = ObjectsToCollectReferencesFor.Num() / NumChunks;
-				check(NumPerChunk > 0);
 				FGraphEventArray ChunkTasks;
-				ChunkTasks.Empty(NumChunks);
-				int32 StartIndex = 0;
-				for (int32 Chunk = 0; Chunk < NumChunks; Chunk++)
+
+				int32 NumThreads = FTaskGraphInterface::Get().GetNumWorkerThreads();
+				int32 NumBackgroundThreads = ENamedThreads::bHasBackgroundThreads ? NumThreads : 0;
+#if ((PLATFORM_PS4 && USE_7TH_CORE) || PLATFORM_XBOXONE)
+				if (NumBackgroundThreads)
 				{
-					if (Chunk + 1 == NumChunks)
+					NumBackgroundThreads = 7 - NumThreads;
+				}
+#elif PLATFORM_PS4
+				if (NumBackgroundThreads)
+				{
+					NumBackgroundThreads = 6 - NumThreads;
+				}
+#endif
+				int32 NumTasks = NumThreads + NumBackgroundThreads;
+
+				check(NumTasks > 0);
+				ChunkTasks.Empty(NumTasks);
+				int32 NumPerChunk = ObjectsToCollectReferencesFor.Num() / NumTasks;
+				int32 StartIndex = 0;
+				for (int32 Chunk = 0; Chunk < NumTasks; Chunk++)
+				{
+					if (Chunk + 1 == NumTasks)
 					{
 						NumPerChunk = ObjectsToCollectReferencesFor.Num() - StartIndex; // last chunk takes all remaining items
 					}
-					ChunkTasks.Add(TGraphTask< FCollectorTask >::CreateTask().ConstructAndDispatchWhenReady(this, &ObjectsToCollectReferencesFor, StartIndex, NumPerChunk, ArrayPool));
+					TaskQueue.AddTask(&ObjectsToCollectReferencesFor, StartIndex, NumPerChunk);
 					StartIndex += NumPerChunk;
 				}
+				for (int32 Chunk = 0; Chunk < NumTasks; Chunk++)
+				{
+					ChunkTasks.Add(TGraphTask< FCollectorTaskProcessorTask >::CreateTask().ConstructAndDispatchWhenReady(TaskQueue, Chunk >= NumThreads ? ENamedThreads::AnyBackgroundThreadNormalTask : ENamedThreads::AnyNormalThreadNormalTask));
+				}
+
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_GC_Subtask_Wait);
 				FTaskGraphInterface::Get().WaitUntilTasksComplete(ChunkTasks, ENamedThreads::GameThread_Local);
-				ReferenceProcessor.SetIsRunningMultithreaded(false);
+				TaskQueue.CheckDone();
 			}
 		}
 	}
@@ -170,7 +356,7 @@ private:
 	 * @param InObjectsToSerializeArray Objects to process
 	 * @param MyCompletionGraphEvent Task graph event
 	 */
-	void ProcessObjectArray(TArray<UObject*>& InObjectsToSerializeArray, FGraphEventRef& MyCompletionGraphEvent)
+	void ProcessObjectArray(TArray<UObject*>& InObjectsToSerializeArray, const FGraphEventRef& MyCompletionGraphEvent)
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("TFastReferenceCollector::ProcessObjectArray"), STAT_FFastReferenceCollector_ProcessObjectArray, STATGROUP_GC);
 
@@ -217,7 +403,7 @@ private:
 				//@todo rtgc: we need to handle object references in struct defaults
 
 				// Make sure that token stream has been assembled at this point as the below code relies on it.
-				if (bAutoGenerateTokenStream && !ReferenceProcessor.IsRunningMultithreaded())
+				if (!bParallel && bAutoGenerateTokenStream)
 				{
 					UClass* ObjectClass = CurrentObject->GetClass();
 					if (!ObjectClass->HasAnyClassFlags(CLASS_TokenStreamAssembled))
@@ -284,7 +470,9 @@ private:
 					TokenStreamIndex++;
 					FGCReferenceInfo ReferenceInfo = TokenStream->AccessReferenceInfo(ReferenceTokenStreamIndex);
 
-					if (ReferenceInfo.Type == GCRT_Object)
+					switch(ReferenceInfo.Type)
+					{
+					case GCRT_Object:
 					{
 						// We're dealing with an object reference.
 						UObject**	ObjectPtr = (UObject**)(StackEntryData + ReferenceInfo.Offset);
@@ -292,7 +480,8 @@ private:
 						TokenReturnCount = ReferenceInfo.ReturnCount;
 						ReferenceProcessor.HandleTokenStreamObjectReference(NewObjectsToSerialize, CurrentObject, Object, ReferenceTokenStreamIndex, true);
 					}
-					else if (ReferenceInfo.Type == GCRT_ArrayObject)
+					break;
+					case GCRT_ArrayObject:
 					{
 						// We're dealing with an array of object references.
 						TArray<UObject*>& ObjectArray = *((TArray<UObject*>*)(StackEntryData + ReferenceInfo.Offset));
@@ -302,7 +491,8 @@ private:
 							ReferenceProcessor.HandleTokenStreamObjectReference(NewObjectsToSerialize, CurrentObject, ObjectArray[ObjectIndex], ReferenceTokenStreamIndex, true);
 						}
 					}
-					else if (ReferenceInfo.Type == GCRT_ArrayStruct)
+					break;
+					case GCRT_ArrayStruct:
 					{
 						// We're dealing with a dynamic array of structs.
 						const FScriptArray& Array = *((FScriptArray*)(StackEntryData + ReferenceInfo.Offset));
@@ -328,7 +518,8 @@ private:
 							TokenReturnCount = 0;
 						}
 					}
-					else if (ReferenceInfo.Type == GCRT_PersistentObject)
+					break;
+					case GCRT_PersistentObject:
 					{
 						// We're dealing with an object reference.
 						UObject**	ObjectPtr = (UObject**)(StackEntryData + ReferenceInfo.Offset);
@@ -336,7 +527,8 @@ private:
 						TokenReturnCount = ReferenceInfo.ReturnCount;
 						ReferenceProcessor.HandleTokenStreamObjectReference(NewObjectsToSerialize, CurrentObject, Object, ReferenceTokenStreamIndex, false);
 					}
-					else if (ReferenceInfo.Type == GCRT_FixedArray)
+					break;
+					case GCRT_FixedArray:
 					{
 						// We're dealing with a fixed size array
 						uint8* PreviousData = StackEntryData;
@@ -348,7 +540,8 @@ private:
 						StackEntry->LoopStartIndex = TokenStreamIndex;
 						TokenReturnCount = 0;
 					}
-					else if (ReferenceInfo.Type == GCRT_AddStructReferencedObjects)
+					break;
+					case GCRT_AddStructReferencedObjects:
 					{
 						// We're dealing with a function call
 						void const*	StructPtr = (void*)(StackEntryData + ReferenceInfo.Offset);
@@ -356,14 +549,16 @@ private:
 						UScriptStruct::ICppStructOps::TPointerToAddStructReferencedObjects Func = (UScriptStruct::ICppStructOps::TPointerToAddStructReferencedObjects) TokenStream->ReadPointer(TokenStreamIndex);
 						Func(StructPtr, ReferenceCollector);
 					}
-					else if (ReferenceInfo.Type == GCRT_AddReferencedObjects)
+					break;
+					case GCRT_AddReferencedObjects:
 					{
 						// Static AddReferencedObjects function call.
 						void(*AddReferencedObjects)(UObject*, FReferenceCollector&) = (void(*)(UObject*, FReferenceCollector&))TokenStream->ReadPointer(TokenStreamIndex);
 						TokenReturnCount = ReferenceInfo.ReturnCount;
 						AddReferencedObjects(CurrentObject, ReferenceCollector);
 					}
-					else if (ReferenceInfo.Type == GCRT_AddTMapReferencedObjects)
+					break;
+					case GCRT_AddTMapReferencedObjects:
 					{
 						void*         Map = StackEntryData + ReferenceInfo.Offset;
 						UMapProperty* MapProperty = (UMapProperty*)TokenStream->ReadPointer(TokenStreamIndex);
@@ -371,7 +566,8 @@ private:
 						FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
 						MapProperty->SerializeItem(CollectorArchive, Map, nullptr);
 					}
-					else if (ReferenceInfo.Type == GCRT_AddTSetReferencedObjects)
+					break;
+					case GCRT_AddTSetReferencedObjects:
 					{
 						void*         Set = StackEntryData + ReferenceInfo.Offset;
 						USetProperty* SetProperty = (USetProperty*)TokenStream->ReadPointer(TokenStreamIndex);
@@ -379,23 +575,29 @@ private:
 						FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
 						SetProperty->SerializeItem(CollectorArchive, Set, nullptr);
 					}
-					else if (ReferenceInfo.Type == GCRT_EndOfPointer)
+					break;
+					case GCRT_EndOfPointer:
 					{
 						TokenReturnCount = ReferenceInfo.ReturnCount;
 					}
-					else if (ReferenceInfo.Type == GCRT_EndOfStream)
+					break;
+					case GCRT_EndOfStream:
 					{
 						// Break out of loop.
-						break;
+						goto EndLoop;
 					}
-					else
+					break;
+					default:
 					{
 						UE_LOG(LogGarbage, Fatal, TEXT("Unknown token"));
+						break;
 					}
 				}
+				}
+EndLoop:
 				check(StackEntry == Stack.GetData());
 
-				if (ReferenceProcessor.IsRunningMultithreaded() && NewObjectsToSerialize.Num() >= MinDesiredObjectsPerSubTask)
+				if (bParallel && NewObjectsToSerialize.Num() >= MinDesiredObjectsPerSubTask)
 				{
 					// This will start queueing task with objects from the end of array until there's less objects than worth to queue
 					const int32 ObjectsPerSubTask = FMath::Max<int32>(MinDesiredObjectsPerSubTask, NewObjectsToSerialize.Num() / FTaskGraphInterface::Get().GetNumWorkerThreads());
@@ -403,28 +605,40 @@ private:
 					{
 						const int32 StartIndex = FMath::Max(0, NewObjectsToSerialize.Num() - ObjectsPerSubTask);
 						const int32 NumThisTask = NewObjectsToSerialize.Num() - StartIndex;
-						MyCompletionGraphEvent->DontCompleteUntil(TGraphTask< FCollectorTask >::CreateTask().ConstructAndDispatchWhenReady(this, &NewObjectsToSerialize, StartIndex, NumThisTask, ArrayPool));
+						if (MyCompletionGraphEvent.GetReference())
+						{
+							MyCompletionGraphEvent->DontCompleteUntil(TGraphTask< FCollectorTask >::CreateTask().ConstructAndDispatchWhenReady(this, &NewObjectsToSerialize, StartIndex, NumThisTask, ArrayPool));
+						}
+						else
+						{
+							TaskQueue.AddTask(&NewObjectsToSerialize, StartIndex, NumThisTask);
+						}
 						NewObjectsToSerialize.SetNumUnsafeInternal(StartIndex);
 					}
 				}
+
 #if PERF_DETAILED_PER_CLASS_GC_STATS
 				// Detailed per class stats should not be performed when parallel GC is running
-				check(!ReferenceProcessor.IsRunningMultithreaded());
+				check(!bParallel);
 				ReferenceProcessor.UpdateDetailedStats(CurrentObject, FPlatformTime::Cycles() - StartCycles);
-			}
-			// Log summary stats.
-			ReferenceProcessor.LogDetailedStatsSummary();
-#else
-			}
 #endif
-			if (ReferenceProcessor.IsRunningMultithreaded() && NewObjectsToSerialize.Num() >= MinDesiredObjectsPerSubTask)
+			}
+
+			if (bParallel && NewObjectsToSerialize.Num() >= MinDesiredObjectsPerSubTask)
 			{
 				const int32 ObjectsPerSubTask = FMath::Max<int32>(MinDesiredObjectsPerSubTask, NewObjectsToSerialize.Num() / FTaskGraphInterface::Get().GetNumWorkerThreads());
 				int32 StartIndex = 0;
 				while (StartIndex < NewObjectsToSerialize.Num())
 				{
 					const int32 NumThisTask = FMath::Min<int32>(ObjectsPerSubTask, NewObjectsToSerialize.Num() - StartIndex);
-					MyCompletionGraphEvent->DontCompleteUntil(TGraphTask< FCollectorTask >::CreateTask().ConstructAndDispatchWhenReady(this, &NewObjectsToSerialize, StartIndex, NumThisTask, ArrayPool));
+					if (MyCompletionGraphEvent.GetReference())
+					{
+						MyCompletionGraphEvent->DontCompleteUntil(TGraphTask< FCollectorTask >::CreateTask().ConstructAndDispatchWhenReady(this, &NewObjectsToSerialize, StartIndex, NumThisTask, ArrayPool));
+					}
+					else
+					{
+						TaskQueue.AddTask(&NewObjectsToSerialize, StartIndex, NumThisTask);
+					}
 					StartIndex += NumThisTask;
 				}
 				NewObjectsToSerialize.SetNumUnsafeInternal(0);
@@ -441,6 +655,12 @@ private:
 			}
 		}
 		while (CurrentIndex < ObjectsToSerialize.Num());
+
+#if PERF_DETAILED_PER_CLASS_GC_STATS
+		// Detailed per class stats should not be performed when parallel GC is running
+		check(!bParallel);
+		ReferenceProcessor.LogDetailedStatsSummary();
+#endif
 
 		ArrayPool.ReturnToPool(&NewObjectsToSerializeArray);
 	}

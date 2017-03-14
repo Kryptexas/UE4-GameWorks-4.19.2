@@ -1317,10 +1317,6 @@ namespace UnrealBuildTool
 							{
 								DebugOptions += " -debug";
 							}
-							else if (Configuration == UnrealTargetConfiguration.Shipping)
-							{
-								DebugOptions += " -shipping";
-							}
 
 							VCUserFileContent.Append(
 								"		<LocalDebuggerCommandArguments>" + DebugOptions + "</LocalDebuggerCommandArguments>" + ProjectFileGenerator.NewLine

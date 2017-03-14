@@ -117,6 +117,9 @@ void UShapeComponent::CreateShapeBodySetupIfNeeded()
 			ShapeBodySetup->AddToRoot();
 		}
 
+		// If this component is in GC cluster, make sure we add the body setup to it to
+		ShapeBodySetup->AddToCluster(this);
+		
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		AddShapeToGeomArray<ShapeElemType>();
 		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;

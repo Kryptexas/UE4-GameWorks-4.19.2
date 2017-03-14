@@ -2176,7 +2176,7 @@ namespace AutomationTool
             {
                 throw new AutomationException("RawProjectPath {0} must end with .uproject", RawProjectPath);
             }
-            if (!CommandUtils.FileExists_NoExceptions(RawProjectPath.FullName))
+            if (!CommandUtils.FileExists(RawProjectPath.FullName))
             {
                 throw new AutomationException("RawProjectPath {0} file must exist", RawProjectPath);
             }

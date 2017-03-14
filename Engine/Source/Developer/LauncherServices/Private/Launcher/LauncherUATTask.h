@@ -73,8 +73,7 @@ protected:
 		{
 			UATCommandLine += FString::Printf(TEXT(" -ue4exe=\"%s\""), *EditorExe);
 
-			bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-			if (bRunningDebug)
+			if (FApp::IsRunningDebug())
 			{
 				UATCommandLine += TEXT(" -UseDebugParamForEditorExe");
 			}

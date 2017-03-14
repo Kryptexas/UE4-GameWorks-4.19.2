@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
+using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 
 namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 {
@@ -152,11 +153,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 		/// Construct a processed callstack.
 		/// </summary>
 		/// <param name="currentCrash"></param>
-		public CallStackContainer( Crash currentCrash )
+        public CallStackContainer(int crashType, string rawCallStack, string platformName)
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + currentCrash.Id + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId)" ) )
 			{
-				ParseCallStack( currentCrash ); 
+				ParseCallStack( crashType, rawCallStack, platformName ); 
 			}
 		}
 
@@ -237,7 +238,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 		/// Parse a raw callstack into a pattern
 		/// </summary>
 		/// <param name="currentCrash">The Crash with a raw callstack to parse.</param>
-		private void ParseCallStack( Crash currentCrash )
+		private void ParseCallStack(int crashType, string rawCallStack, string platformName)
 		{
 			// Everything is disabled by default
 			bDisplayUnformattedCallStack = false;
@@ -248,7 +249,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 
 			bool bSkipping = false;
 			string LineToSkipUpto = "";
-			switch( currentCrash.CrashType )
+            switch (crashType)
 			{
 			case 2:
 				bSkipping = false;
@@ -260,7 +261,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 				break;
 			}
 
-			if (string.IsNullOrEmpty(currentCrash.RawCallStack))
+            if (string.IsNullOrEmpty(rawCallStack))
 			{
 				return;
 			}
@@ -268,7 +269,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 			CallStackEntries.Clear();
 
 			// Store off a pre split array of call stack lines
-			string[] RawCallStackLines = currentCrash.RawCallStack.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] RawCallStackLines = rawCallStack.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
 			int Middle = RawCallStackLines.Length / 2;
 
@@ -333,9 +334,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 				int MacModuleStart = CurrentLine.IndexOf( "[in " );
 				int MacModuleEnd = MacModuleStart > 0 ? CurrentLine.IndexOf( "]", MacModuleStart ) : 0;
 
-				bool bLinux = currentCrash.PlatformName.Contains( "Linux" );
-				bool bMac = currentCrash.PlatformName.Contains( "Mac" );
-				bool bWindows = currentCrash.PlatformName.Contains( "Windows" );
+                bool bLinux = platformName.Contains("Linux");
+                bool bMac = platformName.Contains("Mac");
+                bool bWindows = platformName.Contains("Windows");
 
 
 				// Parse out the juicy info from the line of the callstack

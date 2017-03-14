@@ -590,39 +590,37 @@ namespace UnrealBuildTool
 			if (PossibleTargetNames.Count > 0)
 			{
 				// We have possible targets!
-				foreach (string PossibleTargetName in PossibleTargetNames)
+				string PossibleTargetName = PossibleTargetNames[0];
+
+				// If Engine is installed, the PossibleTargetName could contain a path
+				string TargetName = PossibleTargetName;
+
+				// If a project file was not specified see if we can find one
+				if (ProjectFile == null && UProjectInfo.TryGetProjectForTarget(TargetName, out ProjectFile))
 				{
-					// If Engine is installed, the PossibleTargetName could contain a path
-					string TargetName = PossibleTargetName;
-
-					// If a project file was not specified see if we can find one
-					if (ProjectFile == null && UProjectInfo.TryGetProjectForTarget(TargetName, out ProjectFile))
-					{
-						Log.TraceVerbose("Found project file for {0} - {1}", TargetName, ProjectFile);
-					}
-
-					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-
-					if(Architecture == null)
-					{
-						Architecture = BuildPlatform.GetDefaultArchitecture(ProjectFile);
-					}
-
-					Targets.Add(new TargetDescriptor()
-						{
-							ProjectFile = ProjectFile,
-							TargetName = TargetName,
-							Platform = Platform,
-							Configuration = Configuration,
-							Architecture = Architecture,
-							bIsEditorRecompile = bIsEditorRecompile,
-							RemoteRoot = RemoteRoot,
-							OnlyModules = OnlyModules,
-							ForeignPlugins = ForeignPlugins,
-							ForceReceiptFileName = ForceReceiptFileName
-						});
-					break;
+					Log.TraceVerbose("Found project file for {0} - {1}", TargetName, ProjectFile);
 				}
+
+				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+
+				if(Architecture == null)
+				{
+					Architecture = BuildPlatform.GetDefaultArchitecture(ProjectFile);
+				}
+
+				Targets.Add(new TargetDescriptor()
+					{
+						ProjectFile = ProjectFile,
+						TargetName = TargetName,
+						Platform = Platform,
+						Configuration = Configuration,
+						Architecture = Architecture,
+						bIsEditorRecompile = bIsEditorRecompile,
+						RemoteRoot = RemoteRoot,
+						OnlyModules = OnlyModules,
+						ForeignPlugins = ForeignPlugins,
+						ForceReceiptFileName = ForceReceiptFileName
+					});
 			}
 			if (Targets.Count == 0)
 			{
@@ -2022,6 +2020,13 @@ namespace UnrealBuildTool
 						Receipt.PrecompiledBuildDependencies.Add(VariablePath);
 					}
 				}
+
+				// Also add the Shared Build Id File if it's been specified
+				if (SharedBuildIdFile != null)
+				{
+					string VariablePath = TargetReceipt.InsertPathVariables(SharedBuildIdFile, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+					Receipt.PrecompiledBuildDependencies.Add(VariablePath);
+				}
 			}
 
 			// Prepare all the version manifests
@@ -2347,6 +2352,22 @@ namespace UnrealBuildTool
 
 				// Check for linking against modules prohibited by the EULA
 				CheckForEULAViolation();
+
+				// Check there aren't any engine binaries with dependencies on game modules. This can happen when game-specific plugins override engine plugins.
+				foreach(UEBuildModule Module in Modules.Values)
+				{
+					if(Module.Binary != null && Module.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+					{
+						foreach(UEBuildModule ReferencedModule in Module.GetDirectDependencyModules())
+						{
+							// Hard-code specific exceptions until these are properly fixed up
+							if(ReferencedModule.RulesFile != null && !ReferencedModule.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !IsLegacyEngineToGameReference(Platform, Module.Name, ReferencedModule.Name))
+							{
+								throw new BuildException("Engine module '{0}' should not depend on game module '{1}'", Module.Name, ReferencedModule.Name);
+							}
+						}
+					}
+				}
 			}
 
 			// Execute the pre-build steps
@@ -2499,6 +2520,7 @@ namespace UnrealBuildTool
 				if (Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64)
 				{
 					FileItem VersionFile = FileItem.GetExistingItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Core", "Resources", "Windows", "ModuleVersionResource.rc.inl"));
+					VersionFile.CachedIncludePaths = GlobalCompileEnvironment.IncludePaths;
 					CPPOutput VersionOutput = TargetToolChain.CompileRCFiles(GlobalCompileEnvironment, new List<FileItem> { VersionFile }, ActionGraph);
 					GlobalLinkEnvironment.CommonResourceFiles.AddRange(VersionOutput.ObjectFiles);
 
@@ -2508,6 +2530,7 @@ namespace UnrealBuildTool
 						DefaultResourceCompileEnvironment.Definitions.Add("ORIGINAL_FILE_NAME=\"UE4\"");
 
 						FileItem DefaultResourceFile = FileItem.GetExistingItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc"));
+						DefaultResourceFile.CachedIncludePaths = DefaultResourceCompileEnvironment.IncludePaths;
 						CPPOutput DefaultResourceOutput = TargetToolChain.CompileRCFiles(DefaultResourceCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
 
 						GlobalLinkEnvironment.DefaultResourceFiles.AddRange(DefaultResourceOutput.ObjectFiles);
@@ -2537,6 +2560,22 @@ namespace UnrealBuildTool
 			}
 
 			return ECompilationResult.Succeeded;
+		}
+
+		/// <summary>
+		/// Checks whether the reference from a game module
+		/// </summary>
+		/// <param name="Platform">The platform being built</param>
+		/// <param name="EngineModuleName">Name of the engine module</param>
+		/// <param name="GameModuleName">Name of the game module</param>
+		/// <returns>True if the reference is a known engine->game reference</returns>
+		static bool IsLegacyEngineToGameReference(UnrealTargetPlatform Platform, string EngineModuleName, string GameModuleName)
+		{
+			if(Platform == UnrealTargetPlatform.PS4 && EngineModuleName == "WebBrowser" && GameModuleName == "OnlineSubsystem")
+			{
+				return true;
+			}
+			return false;
 		}
 
 		/// <summary>
@@ -3656,7 +3695,7 @@ namespace UnrealBuildTool
 			// If we're compiling against the engine, add the plugins enabled for this target
 			if (Rules.bCompileAgainstEngine)
 			{
-				ProjectDescriptor Project = (Rules.bCompileAgainstEngine && ProjectFile != null) ? ProjectDescriptor.FromFile(ProjectFile.FullName) : null;
+				ProjectDescriptor Project = (ProjectFile != null) ? ProjectDescriptor.FromFile(ProjectFile.FullName) : null;
 				foreach (PluginInfo ValidPlugin in ValidPlugins)
 				{
 					if(UProjectInfo.IsPluginEnabledForProject(ValidPlugin, Project, Platform, TargetType))
@@ -4161,11 +4200,6 @@ namespace UnrealBuildTool
 			// Validate rules object
 			if (RulesObject.Type == ModuleRules.ModuleType.CPlusPlus)
 			{
-				if (RulesObject.PrivateAssemblyReferences.Count > 0)
-				{
-					throw new BuildException("Module rules for '{0}' may not specify PrivateAssemblyReferences unless it is a CPlusPlusCLR module type.", ModuleName);
-				}
-
 				List<string> InvalidDependencies = RulesObject.DynamicallyLoadedModuleNames.Intersect(RulesObject.PublicDependencyModuleNames.Concat(RulesObject.PrivateDependencyModuleNames)).ToList();
 				if (InvalidDependencies.Count != 0)
 				{
@@ -4191,8 +4225,17 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						// Game module.  Do not enable shared PCHs by default, because games usually have a large precompiled header of their own and compile times would suffer.
-						RulesObject.PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
+						PluginInfo Plugin;
+						if(RulesAssembly.TryGetPluginForModule(ModuleFileName, out Plugin))
+						{
+							// Game plugin.  Enable shared PCHs by default, since they aren't typically large enough to warrant their own PCH.
+							RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;
+						}
+						else
+						{
+							// Game module.  Do not enable shared PCHs by default, because games usually have a large precompiled header of their own and compile times would suffer.
+							RulesObject.PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
+						}
 					}
 				}
 			}

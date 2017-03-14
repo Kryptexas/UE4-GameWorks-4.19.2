@@ -206,62 +206,47 @@ namespace
 	 */
 	void ParseNetServiceIdentifiers(FFuncInfo& FuncInfo, const TArray<FString>& Identifiers)
 	{
-		FString IdTag         (TEXT("Id="));
-		FString ResponseIdTag (TEXT("ResponseId="));
-		FString MCPTag        (TEXT("MCP"));
-		FString ProtobufferTag(TEXT("Protobuffer"));
-		for (auto& Identifier : Identifiers)
+		static const TCHAR IdTag        [] = TEXT("Id");
+		static const TCHAR ResponseIdTag[] = TEXT("ResponseId");
+
+		for (const FString& Identifier : Identifiers)
 		{
-			if (Identifier == ProtobufferTag)
+			const TCHAR* IdentifierPtr = *Identifier;
+
+			if (const TCHAR* Equals = FCString::Strchr(IdentifierPtr, TEXT('=')))
 			{
-				FuncInfo.FunctionExportFlags |= FUNCEXPORT_NeedsProto;
-			}
-			else if (Identifier == MCPTag)
-			{
-				FuncInfo.FunctionExportFlags |= FUNCEXPORT_NeedsMCP;
-			}
-			else if (Identifier.StartsWith(IdTag))
-			{
-				int32 TempInt = FCString::Atoi(*Identifier.Mid(IdTag.Len()));
-				if (TempInt <= 0 || TempInt > MAX_uint16)
+				// It's a tag with an argument
+
+				if (FCString::Strnicmp(IdentifierPtr, IdTag, ARRAY_COUNT(IdTag) - 1) == 0)
 				{
-					FError::Throwf(TEXT("Invalid network identifier %s for function"), *Identifier);
+					int32 TempInt = FCString::Atoi(Equals + 1);
+					if (TempInt <= 0 || TempInt > MAX_uint16)
+					{
+						FError::Throwf(TEXT("Invalid network identifier %s for function"), IdentifierPtr);
+					}
+					FuncInfo.RPCId = TempInt;
 				}
-				FuncInfo.RPCId = TempInt;
-			}
-			else if (Identifier.StartsWith(ResponseIdTag))
-			{
-				int32 TempInt = FCString::Atoi(*Identifier.Mid(ResponseIdTag.Len()));
-				if (TempInt <= 0 || TempInt > MAX_uint16)
+				else if (FCString::Strnicmp(IdentifierPtr, ResponseIdTag, ARRAY_COUNT(ResponseIdTag) - 1) == 0)
 				{
-					FError::Throwf(TEXT("Invalid network identifier %s for function"), *Identifier);
+					int32 TempInt = FCString::Atoi(Equals + 1);
+					if (TempInt <= 0 || TempInt > MAX_uint16)
+					{
+						FError::Throwf(TEXT("Invalid network identifier %s for function"), IdentifierPtr);
+					}
+					FuncInfo.RPCResponseId = TempInt;
 				}
-				FuncInfo.RPCResponseId = TempInt;
 			}
 			else
 			{
-				FError::Throwf(TEXT("Invalid network identifier %s for function"), *Identifier);
+				// Assume it's an endpoint name
+
+				if (FuncInfo.EndpointName.Len())
+				{
+					FError::Throwf(TEXT("Function should not specify multiple endpoints - '%s' found but already using '%s'"), *Identifier);
+				}
+
+				FuncInfo.EndpointName = Identifier;
 			}
-		}
-		if (FuncInfo.FunctionExportFlags & FUNCEXPORT_NeedsProto)
-		{
-			if (FuncInfo.RPCId == 0)
-			{
-				FError::Throwf(TEXT("net service function does not have an RPCId."));
-			}
-			if (FuncInfo.RPCId == FuncInfo.RPCResponseId)
-			{
-				FError::Throwf(TEXT("Net service RPCId and ResponseRPCId cannot be the same."));
-			}
-			if ((FuncInfo.FunctionFlags & FUNC_NetResponse) && FuncInfo.RPCResponseId > 0)
-			{
-				FError::Throwf(TEXT("Net service response functions cannot have a ResponseId."));
-			}
-		}
-	
-		if (!(FuncInfo.FunctionExportFlags & FUNCEXPORT_NeedsProto) && !(FuncInfo.FunctionExportFlags & FUNCEXPORT_NeedsMCP))
-		{
-			FError::Throwf(TEXT("net service function needs to specify at least one provider type."));
 		}
 	}
 
@@ -408,6 +393,11 @@ namespace
 					FuncInfo.FunctionExportFlags |= FUNCEXPORT_CustomThunk;
 
 					ParseNetServiceIdentifiers(FuncInfo, Specifier.Values);
+
+					if (FuncInfo.EndpointName.Len() == 0)
+					{
+						FError::Throwf(TEXT("ServiceRequest needs to specify an endpoint name"));
+					}
 				}
 				break;
 
@@ -423,6 +413,11 @@ namespace
 					FuncInfo.FunctionFlags |= FUNC_NetResponse;
 
 					ParseNetServiceIdentifiers(FuncInfo, Specifier.Values);
+
+					if (FuncInfo.EndpointName.Len() == 0)
+					{
+						FError::Throwf(TEXT("ServiceResponse needs to specify an endpoint name"));
+					}
 				}
 				break;
 
@@ -2308,6 +2303,14 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 						RequireIdentifier(TEXT("endif"),TEXT("'if'"));
 					}
 				}
+			}
+		}
+		else if (Token.Matches(TEXT("#")) && MatchIdentifier(TEXT("pragma")))
+		{
+			// skip it and skip over the text, it is not recorded or processed
+			TCHAR c;
+			while (!IsEOL(c = GetChar()))
+			{
 			}
 		}
 		else if (ProbablyAnUnknownObjectLikeMacro(*this, Token))
@@ -7272,12 +7275,9 @@ TArray<FUnrealSourceFile*> GetSourceFilesWithInheritanceOrdering(UPackage* Curre
 void FHeaderParser::ExportNativeHeaders(
 	UPackage* CurrentPackage,
 	FClasses& AllClasses,
-	bool bAllowSaveExportedHeaders
-#if WITH_HOT_RELOAD_CTORS
-	, bool bExportVTableConstructors
-#endif // WITH_HOT_RELOAD_CTORS
-	, FUHTMakefile& UHTMakefile
-	, const FManifestModule& Module
+	bool bAllowSaveExportedHeaders,
+	FUHTMakefile& UHTMakefile,
+	const FManifestModule& Module
 )
 {
 	// Build a list of header filenames
@@ -7313,11 +7313,8 @@ void FHeaderParser::ExportNativeHeaders(
 				CurrentPackage,
 				SourceFiles,
 				AllClasses,
-				bAllowSaveExportedHeaders
-#if WITH_HOT_RELOAD_CTORS
-				, bExportVTableConstructors
-#endif // WITH_HOT_RELOAD_CTORS
-				, UHTMakefile
+				bAllowSaveExportedHeaders,
+				UHTMakefile
 			);
 		}
 		UHTMakefile.StopExporting();
@@ -7423,11 +7420,8 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 	FFeedbackContext* Warn,
 	UPackage* CurrentPackage,
 	const FManifestModule& Module,
-	TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins
-#if WITH_HOT_RELOAD_CTORS
-	, bool bExportVTableConstructors
-#endif // WITH_HOT_RELOAD_CTORS
-	, FUHTMakefile& UHTMakefile
+	TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins,
+	FUHTMakefile& UHTMakefile
 	)
 {
 	// Disable loading of objects outside of this package (or more exactly, objects which aren't UFields, CDO, or templates)
@@ -7498,13 +7492,10 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 				ExportNativeHeaders(
 					CurrentPackage,
 					ModuleClasses,
-					Module.SaveExportedHeaders
-#if WITH_HOT_RELOAD_CTORS
-					, bExportVTableConstructors
-#endif // WITH_HOT_RELOAD_CTORS
-					, UHTMakefile
-					, Module
-					);
+					Module.SaveExportedHeaders,
+					UHTMakefile,
+					Module
+				);
 			}
 			GHeaderCodeGenTime += ExportTime;
 
@@ -7675,12 +7666,10 @@ EBlockDirectiveType ParseCommandToBlockDirectiveType(const TCHAR** Str)
 		return EBlockDirectiveType::NotCPPBlock;
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	if (FParse::Command(Str, TEXT("WITH_HOT_RELOAD")))
 	{
 		return EBlockDirectiveType::WithHotReload;
 	}
-#endif
 
 	if (FParse::Command(Str, TEXT("WITH_EDITOR")))
 	{
@@ -8468,18 +8457,14 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 	check(ClassData);
 
 	bool bOICtor = false;
-#if WITH_HOT_RELOAD_CTORS
 	bool bVTCtor = false;
-#endif // WITH_HOT_RELOAD_CTORS
 
 	if (!ClassData->bDefaultConstructorDeclared && MatchSymbol(TEXT(")")))
 	{
 		ClassData->bDefaultConstructorDeclared = true;
 	}
 	else if (!ClassData->bObjectInitializerConstructorDeclared
-#if WITH_HOT_RELOAD_CTORS
 		|| !ClassData->bCustomVTableHelperConstructorDeclared
-#endif // WITH_HOT_RELOAD_CTORS
 	)
 	{
 		FToken ObjectInitializerParamParsingToken;
@@ -8494,9 +8479,7 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 			if (ObjectInitializerParamParsingToken.Matches(TEXT(",")) || ObjectInitializerParamParsingToken.Matches(TEXT("<")))
 			{
 				bOICtor = false;
-#if WITH_HOT_RELOAD_CTORS
 				bVTCtor = false;
-#endif // WITH_HOT_RELOAD_CTORS
 				break;
 			}
 
@@ -8531,12 +8514,10 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 				bOICtor = true;
 			}
 
-#if WITH_HOT_RELOAD_CTORS
 			if (ObjectInitializerParamParsingToken.Matches(TEXT("FVTableHelper")))
 			{
 				bVTCtor = true;
 			}
-#endif // WITH_HOT_RELOAD_CTORS
 		}
 
 		// Parse until finish.
@@ -8556,17 +8537,10 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 		}
 
 		ClassData->bObjectInitializerConstructorDeclared = ClassData->bObjectInitializerConstructorDeclared || (bOICtor && bIsRef && bIsConst);
-#if WITH_HOT_RELOAD_CTORS
 		ClassData->bCustomVTableHelperConstructorDeclared = ClassData->bCustomVTableHelperConstructorDeclared || (bVTCtor && bIsRef);
-#endif // WITH_HOT_RELOAD_CTORS
 	}
 
-	ClassData->bConstructorDeclared =
-#if WITH_HOT_RELOAD_CTORS
-		ClassData->bConstructorDeclared || !bVTCtor;
-#else // WITH_HOT_RELOAD_CTORS
-		true;
-#endif // WITH_HOT_RELOAD_CTORS
+	ClassData->bConstructorDeclared = ClassData->bConstructorDeclared || !bVTCtor;
 
 	// Optionally match semicolon.
 	if (!MatchSymbol(TEXT(";")))

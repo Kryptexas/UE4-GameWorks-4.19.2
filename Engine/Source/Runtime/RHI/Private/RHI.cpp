@@ -108,8 +108,8 @@ void FRHIResource::FlushPendingDeletes()
 	SCOPE_CYCLE_COUNTER(STAT_DeleteResources);
 
 	check(IsInRenderingThread());
-	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
 	FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
 
 	auto Delete = [](TArray<FRHIResource*>& ToDelete)
 	{

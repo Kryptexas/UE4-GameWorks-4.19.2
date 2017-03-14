@@ -48,14 +48,7 @@ namespace UnrealBuildTool
 		public static bool ReadConfigFiles()
 		{
 			// Find all the configurable types
-			List<Type> ConfigTypes = new List<Type>();
-			foreach(Type ConfigType in Assembly.GetExecutingAssembly().GetTypes())
-			{
-				if(HasXmlConfigFileAttribute(ConfigType))
-				{
-					ConfigTypes.Add(ConfigType);
-				}
-			}
+			List<Type> ConfigTypes = FindConfigurableTypes();
 
 			// Find all the input files
 			FileReference[] InputFiles = FindInputFiles().Select(x => x.Location).ToArray();
@@ -113,6 +106,23 @@ namespace UnrealBuildTool
 				}
 			}
 			return true;
+		}
+
+		/// <summary>
+		/// Find all the configurable types in the current assembly
+		/// </summary>
+		/// <returns>List of configurable types</returns>
+		static List<Type> FindConfigurableTypes()
+		{
+			List<Type> ConfigTypes = new List<Type>();
+			foreach(Type ConfigType in Assembly.GetExecutingAssembly().GetTypes())
+			{
+				if(HasXmlConfigFileAttribute(ConfigType))
+				{
+					ConfigTypes.Add(ConfigType);
+				}
+			}
+			return ConfigTypes;
 		}
 
 		/// <summary>
@@ -592,6 +602,102 @@ namespace UnrealBuildTool
 
 			// Otherwise, it's up to date
 			return true;
+		}
+
+		/// <summary>
+		/// Generates documentation files for the available settings, by merging the XML documentation from the compiler.
+		/// </summary>
+		/// <param name="OutputFile">The documentation file to write</param>
+		public static void WriteDocumentation(FileReference OutputFile)
+		{
+			// Find all the configurable types
+			List<Type> ConfigTypes = FindConfigurableTypes();
+
+			// Find all the configurable fields from the given types
+			Dictionary<string, Dictionary<string, FieldInfo>> CategoryToFields = new Dictionary<string, Dictionary<string, FieldInfo>>();
+			FindConfigurableFields(ConfigTypes, CategoryToFields);
+
+			// Get the path to the XML documentation
+			FileReference InputDocumentationFile = new FileReference(Assembly.GetExecutingAssembly().Location).ChangeExtension(".xml");
+			if(!FileReference.Exists(InputDocumentationFile))
+			{
+				throw new BuildException("Generated assembly documentation not found at {0}.", InputDocumentationFile);
+			}
+
+			// Get the current engine version for versioning the page
+			BuildVersion Version;
+			if(!BuildVersion.TryRead(out Version))
+			{
+				throw new BuildException("Unable to read the current build version");
+			}
+
+			// Read the documentation
+			XmlDocument InputDocumentation = new XmlDocument();
+			InputDocumentation.Load(InputDocumentationFile.FullName);
+
+			// Make sure we can write to the output file
+			FileReference.MakeWriteable(OutputFile);
+
+			// Generate the UDN documentation file
+			using (StreamWriter Writer = new StreamWriter(OutputFile.FullName))
+			{
+				Writer.WriteLine("Availability: NoPublish");
+				Writer.WriteLine("Title: Build Configuration Properties Page");
+				Writer.WriteLine("Crumbs:");
+				Writer.WriteLine("Description: This is a procedurally generated markdown page.");
+				Writer.WriteLine("Version: {0}.{1}", Version.MajorVersion, Version.MinorVersion);
+				Writer.WriteLine("");
+
+				foreach(KeyValuePair<string, Dictionary<string, FieldInfo>> CategoryPair in CategoryToFields)
+				{
+					string CategoryName = CategoryPair.Key;
+					Writer.WriteLine("### {0}", CategoryName);
+					Writer.WriteLine();
+
+					Dictionary<string, FieldInfo> Fields = CategoryPair.Value;
+					foreach(KeyValuePair<string, FieldInfo> FieldPair in Fields)
+					{
+						string FieldName = FieldPair.Key;
+
+						FieldInfo Field = FieldPair.Value;
+						XmlNode Node = InputDocumentation.SelectSingleNode(String.Format("//member[@name='F:{0}.{1}']/summary", Field.DeclaringType.FullName, Field.Name));
+						if(Node != null)
+						{
+							// Reflow the comments into paragraphs, assuming that each paragraph will be separated by a blank line
+							List<string> Lines = new List<string>(Node.InnerText.Trim().Split('\n').Select(x => x.Trim()));
+							for(int Idx = Lines.Count - 1; Idx > 0; Idx--)
+							{
+								if(Lines[Idx - 1].Length > 0 && !Lines[Idx].StartsWith("*") && !Lines[Idx].StartsWith("-"))
+								{
+									Lines[Idx - 1] += " " + Lines[Idx];
+									Lines.RemoveAt(Idx);
+								}
+							}
+
+							// Write the result to the .udn file
+							if(Lines.Count > 0)
+							{
+								Writer.WriteLine("$ {0} : {1}", FieldName, Lines[0]);
+								for(int Idx = 1; Idx < Lines.Count; Idx++)
+								{
+									if(Lines[Idx].StartsWith("*") || Lines[Idx].StartsWith("-"))
+									{
+										Writer.WriteLine("        * {0}", Lines[Idx].Substring(1).TrimStart());
+									}
+									else
+									{
+										Writer.WriteLine("    * {0}", Lines[Idx]);
+									}
+								}
+								Writer.WriteLine();
+							}
+						}
+					}
+				}
+			}
+
+			// Success!
+			Log.TraceInformation("Written documentation to {0}.", OutputFile);
 		}
 	}
 }

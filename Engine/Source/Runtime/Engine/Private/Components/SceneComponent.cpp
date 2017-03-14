@@ -1793,6 +1793,7 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		{
 			Parent->AttachChildren.Add(this);
 		}
+		AddToCluster(Parent, true);
 
 		if (Parent->IsNetSimulating() && !IsNetSimulating())
 		{

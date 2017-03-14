@@ -360,14 +360,12 @@ FBlueprintExceptionTracker& FBlueprintExceptionTracker::Get()
 }
 #endif // DO_BLUEPRINT_GUARD
 
-#if WITH_HOT_RELOAD_CTORS
 bool GIsRetrievingVTablePtr = false;
 
 void EnsureRetrievingVTablePtrDuringCtor(const TCHAR* CtorSignature)
 {
 	UE_CLOG(!GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("The %s constructor is for internal usage only for hot-reload purposes. Please do NOT use it."), CtorSignature);
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 /*----------------------------------------------------------------------------
 NAN Diagnostic Failure

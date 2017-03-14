@@ -478,6 +478,12 @@ void FBlueprintNativeCodeGenManifest::GatherModuleDependencies(UPackage* Package
 }
 
 //------------------------------------------------------------------------------
+void FBlueprintNativeCodeGenManifest::AddSingleModuleDependency(UPackage* Package)
+{
+	ModuleDependencies.AddUnique(Package);
+}
+
+//------------------------------------------------------------------------------
 bool FBlueprintNativeCodeGenManifest::Save(int32 Id) const
 {
 	FString FullFilename;

@@ -985,10 +985,8 @@ public:
 		SetElementSize();
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TProperty(FVTableHelper& Helper) : Super(Helper) {};
-#endif // WITH_HOT_RELOAD_CTORS
 
 	// UHT interface
 	virtual FString GetCPPType( FString* ExtendedTypeText=NULL, uint32 CPPExportFlags=0 ) const override
@@ -1095,10 +1093,8 @@ public:
 	{
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TProperty_WithEqualityAndSerializer(FVTableHelper& Helper) : Super(Helper) {};
-#endif // WITH_HOT_RELOAD_CTORS
 
 	// UProperty interface.
 	virtual bool Identical( const void* A, const void* B, uint32 PortFlags=0 ) const override
@@ -1255,10 +1251,8 @@ public:
 	{
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TProperty_Numeric(FVTableHelper& Helper) : Super(Helper) {};
-#endif // WITH_HOT_RELOAD_CTORS
 
 	virtual FString GetCPPTypeForwardDeclaration() const override
 	{
@@ -2000,10 +1994,8 @@ public:
 		this->PropertyClass = InClass;
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TUObjectPropertyBase(FVTableHelper& Helper) : Super(Helper) {};
-#endif // WITH_HOT_RELOAD_CTORS
 
 	// UProperty interface.
 	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const override

@@ -1960,16 +1960,12 @@ public:
 	friend class FRestoreClassInfo;
 
 	typedef void		(*ClassConstructorType)				(const FObjectInitializer&);
-#if WITH_HOT_RELOAD_CTORS
 	typedef UObject*	(*ClassVTableHelperCtorCallerType)	(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 	typedef void		(*ClassAddReferencedObjectsType)	(UObject*, class FReferenceCollector&);
 	typedef UClass* (*StaticClassFunctionType)();
 
 	ClassConstructorType ClassConstructor;
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 	/** Pointer to a static AddReferencedObjects method. */
 	ClassAddReferencedObjectsType ClassAddReferencedObjects;
 
@@ -2089,9 +2085,7 @@ public:
 	explicit UClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
 	UClass( EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
 		const TCHAR* InClassConfigName, EObjectFlags InFlags, ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 		ClassAddReferencedObjectsType InClassAddReferencedObjects);
 
 #if WITH_HOT_RELOAD
@@ -2111,9 +2105,7 @@ public:
 		EClassCastFlags	InClassCastFlags,
 		const TCHAR*    InConfigName,
 		ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 		ClassAddReferencedObjectsType InClassAddReferencedObjects,
 		class UClass* TClass_Super_StaticClass,
 		class UClass* TClass_WithinClass_StaticClass
@@ -2565,9 +2557,7 @@ public:
 	explicit UDynamicClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
 	UDynamicClass(EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
 		const TCHAR* InClassConfigName, EObjectFlags InFlags, ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 		ClassAddReferencedObjectsType InClassAddReferencedObjects);
 
 	// UObject interface.
@@ -2614,11 +2604,7 @@ void InternalConstructor( const FObjectInitializer& X )
 template<class T>
 UObject* InternalVTableHelperCtorCaller(FVTableHelper& Helper)
 {
-#if WITH_HOT_RELOAD_CTORS
 	return T::__VTableCtorCaller(Helper);
-#else
-	return nullptr;
-#endif // WITH_HOT_RELOAD_CTORS
 }
 
 COREUOBJECT_API void InitializePrivateStaticClass(

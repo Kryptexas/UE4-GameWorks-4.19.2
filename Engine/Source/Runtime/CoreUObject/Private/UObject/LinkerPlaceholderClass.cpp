@@ -38,9 +38,7 @@ void ULinkerPlaceholderClass::BeginDestroy()
 void ULinkerPlaceholderClass::Bind()
 {
 	ClassConstructor = InternalConstructor<ULinkerPlaceholderClass>;
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCaller = InternalVTableHelperCtorCaller<ULinkerPlaceholderClass>;
-#endif // WITH_HOT_RELOAD_CTORS
 	Super::Bind();
 
 	ClassAddReferencedObjects = &ULinkerPlaceholderClass::AddReferencedObjects;

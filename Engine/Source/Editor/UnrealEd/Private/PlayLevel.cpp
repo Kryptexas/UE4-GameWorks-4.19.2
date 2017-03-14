@@ -1415,8 +1415,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	}
 
 	FString AdditionalParameters(TEXT(" -messaging -SessionName=\"Play in Standalone Game\""));
-	bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-	if (bRunningDebug)
+	if (FApp::IsRunningDebug())
 	{
 		AdditionalParameters += TEXT(" -debug");
 	}

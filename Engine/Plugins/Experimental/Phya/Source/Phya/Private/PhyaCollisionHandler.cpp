@@ -24,11 +24,6 @@ static int SampleRate = 44100;
 static int BlockSize = 128;
 
 
-uint32 GetTypeHash( const FPhyaBodyInstancePair& Pair )
-{
-	return GetTypeHash(Pair.Body0) ^ GetTypeHash(Pair.Body1);
-}
-
 //////////////////////////////////////////////////////////////////////////
 
 UPhyaCollisionHandler::UPhyaCollisionHandler(const FObjectInitializer& ObjectInitializer)

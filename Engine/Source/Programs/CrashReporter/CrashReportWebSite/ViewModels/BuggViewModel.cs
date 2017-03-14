@@ -10,16 +10,25 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
     public class CrashDataModel
     {
         public int Id { get; set; }
+        public int CrashType { get; set; }
         public string ChangelistVersion { get; set; }
         public string BuildVersion { get; set; }
         public string UserName { get; set; }
         public string GameName { get; set; }
+        public string Summary { get; set; }
+        public string SourceContext { get; set; }
 
         public string EngineMode { get; set; }
         public string PlatformName { get; set; }
         public DateTime TimeOfCrash { get; set; }
 
         public string Description { get; set; }
+
+        public string RawCallStack { get; set; }
+
+        public string ComputerName { get; set; }
+
+        public string Branch { get; set; }
 
         /// <summary>
         /// Return a display friendly version of the time of Crash.

@@ -34,7 +34,6 @@ namespace BuildPatchServices
 		TMap<uint64, TSet<FGuid>> ChunkInventory;
 		TMap<FGuid, int64> ChunkFileSizes;
 		TMap<FGuid, FSHAHash> ChunkShaHashes;
-		TMap<FSHAHash, TSet<FGuid>> FileInventory;
 		FStatsCollectorRef StatsCollector;
 		TFuture<void> Future;
 		volatile FStatsCollector::FAtomicValue* StatManifestsLoaded;

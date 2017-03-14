@@ -57,6 +57,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>false</Prefer32Bit>
+    <DocumentationFile>..\..\..\Binaries\DotNET\UnrealBuildTool.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Ionic.Zip.Reduced">
@@ -134,8 +135,14 @@
     <Compile Include="Configuration\UEBuildModuleExternal.cs" />
     <Compile Include="Configuration\UEBuildPlatformFactory.cs" />
     <Compile Include="Configuration\UEBuildPlatformSDK.cs" />
+    <Compile Include="System\BuildVersion.cs" />
+    <Compile Include="System\DirectoryReference.cs" />
+    <Compile Include="System\RulesDocumentation.cs" />
     <Compile Include="System\FileFilter.cs" />
     <Compile Include="System\FileFilterNode.cs" />
+    <Compile Include="System\FileReference.cs" />
+    <Compile Include="System\FileSystemName.cs" />
+    <Compile Include="System\Log.cs" />
     <Compile Include="System\PrecompiledHeaderInstance.cs" />
     <Compile Include="System\PrecompiledHeaderTemplate.cs" />
     <Compile Include="Configuration\TargetInfo.cs" />
@@ -155,9 +162,12 @@
     <Compile Include="System\InstalledPlatformInfo.cs" />
     <Compile Include="System\LocalizationDescriptor.cs" />
     <Compile Include="System\ObsoleteOverrideAttribute.cs" />
+    <Compile Include="System\ProgressWriter.cs" />
     <Compile Include="System\RemoteExecutor.cs" />
     <Compile Include="System\RestrictedFolders.cs" />
     <Compile Include="System\RulesAssembly.cs" />
+    <Compile Include="System\ScopedTimer.cs" />
+    <Compile Include="System\StreamUtils.cs" />
     <Compile Include="System\SupportedConfigurationsAttribute.cs" />
     <Compile Include="System\SupportedPlatformsAttribute.cs" />
     <Compile Include="System\TargetReceipt.cs" />

@@ -68,7 +68,11 @@ void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Materia
 
 			// Set the material and invalidate things
 			OverrideMaterials[ElementIndex] = Material;
-			MarkRenderStateDirty();
+			MarkRenderStateDirty();			
+			if (Material)
+			{
+				Material->AddToCluster(this);
+			}
 
 			FBodyInstance* BodyInst = GetBodyInstance();
 			if (BodyInst && BodyInst->IsValidBodyInstance())

@@ -350,6 +350,19 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 
 }
 
+void FEmitterLocalContext::MarkUnconvertedClassAsNecessary(UField* InField)
+{
+	UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(InField);
+	UBlueprint* BP = (BPGC && !Dependencies.WillClassBeConverted(BPGC)) ? Cast<UBlueprint>(BPGC->ClassGeneratedBy) : nullptr;
+	if (ensure(BP))
+	{
+		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+		BackEndModule.OnIncludingUnconvertedBP().ExecuteIfBound(BP, NativizationOptions);
+		UsedUnconvertedWrapper.Add(InField);
+	}
+}
+
+
 FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface, bool bForceParameterNameModification)
 {
 	check(Field);
@@ -1366,10 +1379,18 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		{
 			ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
 			const FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
-			OutCastBegin = bForceReference
-				? FString(TEXT("*(uint8*)(&(")) 
-				: FString::Printf(TEXT("EnumToByte<%s>(TEnumAsByte<%s>("), *EnumCppType, *EnumCppType);
-			OutCastEnd = TEXT("))");
+
+			if (bForceReference)
+			{
+				OutCastBegin = TEXT("*static_cast<uint8*>(&(");
+				OutCastEnd = TEXT("))");
+			}
+			else
+			{
+				OutCastBegin = TEXT("static_cast<uint8>(");
+				OutCastEnd = TEXT(")");
+			}
+			
 			return true;
 		}
 	}
@@ -1537,6 +1558,17 @@ void FNativizationSummaryHelper::ReducibleFunciton(const UClass* OriginalClass)
 			FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(AnimBP));
 			AnimBlueprintDetails.ReducibleFunctions++;
 		}
+	}
+}
+
+void FNativizationSummaryHelper::RegisterRequiredModules(const FString& PlatformName, const TSet<TAssetPtr<UPackage>>& InModules)
+{
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
+	if (NativizationSummary.IsValid())
+	{
+		TSet<TAssetPtr<UPackage>>& Modules = NativizationSummary->ModulesRequiredByPlatform.FindOrAdd(PlatformName);
+		Modules.Append(InModules);
 	}
 }
 

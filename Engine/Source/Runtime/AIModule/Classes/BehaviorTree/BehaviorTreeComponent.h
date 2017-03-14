@@ -98,10 +98,8 @@ protected:
 	bool TreeHasBeenStarted() const;
 
 public:
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UBehaviorTreeComponent(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	virtual bool IsRunning() const override;
 	virtual bool IsPaused() const override;
