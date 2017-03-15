@@ -109,7 +109,7 @@ void UVREditorMode::Init()
 	// Take note of VREditor activation
 	if( FEngineAnalytics::IsAvailable() )
 	{
-		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.Usage.EnterVREditorMode" ) );
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.Usage.InitVREditorMode" ) );
 	}
 
 	// Setting up colors
@@ -139,6 +139,20 @@ void UVREditorMode::Init()
 	bIsFullyInitialized = true;
 }
 
+/*
+* @EventName Editor.Usage.EnterVRMode
+*
+* @Trigger Entering VR editing mode
+*
+* @Type Static
+*
+* @EventParam HMDDevice (string) The name of the HMD Device type
+*
+* @Source Editor
+*
+* @Owner Lauren.Ridge
+*
+*/
 void UVREditorMode::Shutdown()
 {
 	bIsFullyInitialized = false;
@@ -207,6 +221,15 @@ void UVREditorMode::Enter()
 			WorldInteraction->SetTransformGizmoScale(GetDefault<UVRModeSettings>()->GizmoScale);
 			WorldInteraction->SetShouldSuppressExistingCursor(true);
 			WorldInteraction->SetInVR(true);
+
+			// Take note of VREditor entering (only if actually in VR)
+			if (FEngineAnalytics::IsAvailable())
+			{
+				TArray< FAnalyticsEventAttribute > Attributes;
+				FString HMDName = GEditor->HMDDevice->GetDeviceName().ToString();
+				Attributes.Add(FAnalyticsEventAttribute(TEXT("HMDDevice"), HMDName));
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.EnterVRMode"), Attributes);
+			}
 		}
 	}
 
@@ -314,6 +337,12 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 				// Restore gizmo size
 				WorldInteraction->SetTransformGizmoScale( SavedEditorState.TransformGizmoScale );
 				WorldInteraction->SetShouldSuppressExistingCursor(false);
+
+				// Take note of VREditor exiting (only if actually in VR)
+				if (FEngineAnalytics::IsAvailable())
+				{
+					FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.ExitVRMode"));
+				}
 			}
 
 			CloseViewport( bShouldDisableStereo );
