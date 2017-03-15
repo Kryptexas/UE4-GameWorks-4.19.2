@@ -466,10 +466,12 @@ void UVREditorWorldInteraction::PlaceDraggedMaterialOrTexture( UViewportInteract
 				if( !bPlaced )
 				{
 					const int32 TargetMaterialSlot = -1;	// All materials
-					bool bPlaced = FComponentEditorUtils::AttemptApplyMaterialToComponent( HitComponent, DroppedObjAsMaterial, TargetMaterialSlot );
-
-					const UVREditorAssetContainer& AssetContainer = Owner->GetAssetContainer();
-					Owner->PlaySound(AssetContainer.DropFromContentBrowserSound, Interactor->GetTransform().GetLocation());
+					bool AppliedMaterial = FComponentEditorUtils::AttemptApplyMaterialToComponent( HitComponent, DroppedObjAsMaterial, TargetMaterialSlot );
+					if (AppliedMaterial)
+					{
+						const UVREditorAssetContainer& AssetContainer = Owner->GetAssetContainer();
+						Owner->PlaySound(AssetContainer.DropFromContentBrowserSound, Interactor->GetTransform().GetLocation());
+					}
 				}
 			}
 		}

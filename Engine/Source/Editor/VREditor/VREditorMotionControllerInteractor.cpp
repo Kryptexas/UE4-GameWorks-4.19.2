@@ -690,8 +690,8 @@ void UVREditorMotionControllerInteractor::PreviewInputKey( FEditorViewportClient
 	{
 		// Are we holding "up" on the trackpad?
 		const bool bIsHoldingUpOnTrackpad =
-			this->bIsTrackpadPositionValid &&
-			this->TrackpadPosition.Y >= VREd::MinTrackpadOffsetBeforeRadialMenu->GetFloat() &&
+			bIsTrackpadPositionValid[0] && bIsTrackpadPositionValid[1] &&
+			TrackpadPosition.Y >= VREd::MinTrackpadOffsetBeforeRadialMenu->GetFloat() &&
 			( GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift || bIsPressingTrackpad );
 
 		if( bIsHoldingUpOnTrackpad && Action.ActionType == ViewportWorldActionTypes::SelectAndMove && Event == IE_Pressed )

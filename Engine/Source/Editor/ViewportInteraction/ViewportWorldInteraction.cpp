@@ -2582,7 +2582,6 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 		const bool bPropagateToChildren = true;
 		TransformGizmoActor->GetRootComponent()->SetVisibility( bShouldBeVisible, bPropagateToChildren );
 
-
 		UViewportInteractor* DraggingWithInteractor = nullptr;
 		static TArray< UActorComponent* > HoveringOverHandles;
 		HoveringOverHandles.Reset();
@@ -2691,9 +2690,9 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 		SpawnGridMeshActor();
 		if ( FSnappingUtils::IsSnapToGridEnabled() )
 		{
-	        const bool bShouldBeVisible = true;
-	        const bool bPropagateToChildren = true;
-	        SnapGridActor->GetRootComponent()->SetVisibility( bShouldBeVisible, bPropagateToChildren );
+	        const bool bShouldGridBeVisible = true;
+	        const bool bPropagateToGridChildren = true;
+	        SnapGridActor->GetRootComponent()->SetVisibility( bShouldGridBeVisible, bPropagateToGridChildren );
 
 			const float GizmoAnimationAlpha = TransformGizmoActor->GetAnimationAlpha();
 
@@ -2797,9 +2796,9 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 		else
 		{
 			// Grid snap not enabled
-	        const bool bShouldBeVisible = false;
-	        const bool bPropagateToChildren = true;
-	        SnapGridActor->GetRootComponent()->SetVisibility( bShouldBeVisible, bPropagateToChildren );
+	        const bool bShouldGridBeVisible = false;
+	        const bool bPropagateToGridChildren = true;
+	        SnapGridActor->GetRootComponent()->SetVisibility( bShouldGridBeVisible, bPropagateToGridChildren );
 		}
 
 		if (bNewObjectsSelected && bPlayNextRefreshTransformGizmoSound)

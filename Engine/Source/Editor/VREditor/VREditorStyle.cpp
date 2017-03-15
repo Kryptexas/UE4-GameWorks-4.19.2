@@ -82,7 +82,7 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	// Headings will have a font outline
 	FFontOutlineSettings HeadingOutline;
 	HeadingOutline.OutlineColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.5f);
-	HeadingOutline.OutlineSize = 1.5f;
+	HeadingOutline.OutlineSize = 1;
 	FSlateFontInfo HeadlineFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 10);
 	HeadlineFont.OutlineSettings = HeadingOutline;
 
@@ -93,7 +93,7 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	// Headings will have a font outline
 	FFontOutlineSettings HelperOutline;
 	HelperOutline.OutlineColor = FLinearColor( 0.2f, 0.2f, 0.2f, 0.5f );
-	HelperOutline.OutlineSize = 3.0f;
+	HelperOutline.OutlineSize = 3;
 	FSlateFontInfo HelperFont = TTF_CORE_FONT( "Fonts/Roboto-Regular", 24 );
 	HelperFont.OutlineSettings = HelperOutline;
 
@@ -139,7 +139,7 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 
 	FFontOutlineSettings RadialOutline;
 	RadialOutline.OutlineColor = FLinearColor(0.1f, 0.1f, 0.1f, 1.0f);
-	RadialOutline.OutlineSize = 1.0f;
+	RadialOutline.OutlineSize = 1;
 
 	FSlateFontInfo RadialFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 8);
 	RadialFont.OutlineSettings = RadialOutline;
@@ -152,7 +152,7 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	FSlateFontInfo ActiveRadialFont = TTF_CORE_FONT("Fonts/Roboto-Regular", 10);
 	FFontOutlineSettings ActiveRadialOutline;
 	ActiveRadialOutline.OutlineColor = FLinearColor::Black;
-	ActiveRadialOutline.OutlineSize = 1.0f;
+	ActiveRadialOutline.OutlineSize = 1;
 	ActiveRadialFont.OutlineSettings = ActiveRadialOutline;
 	Style->Set("VRRadialStyle.ActiveFont", FSlateFontInfo(ActiveRadialFont));
 	

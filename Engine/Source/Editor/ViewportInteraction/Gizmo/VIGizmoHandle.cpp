@@ -9,8 +9,11 @@
 
 UGizmoHandleGroup::UGizmoHandleGroup()
 	: Super(),
-	bShowOnUniversalGizmo(true),
-	OwningTransformGizmoActor(nullptr)
+	GizmoMaterial(nullptr),
+	TranslucentGizmoMaterial(nullptr),
+	Handles(),
+	OwningTransformGizmoActor(nullptr),
+	bShowOnUniversalGizmo(true)
 {
 
 }
@@ -18,6 +21,8 @@ UGizmoHandleGroup::UGizmoHandleGroup()
 UGizmoHandleGroup::~UGizmoHandleGroup()
 {
 	OwningTransformGizmoActor = nullptr;
+	GizmoMaterial = nullptr;
+	TranslucentGizmoMaterial = nullptr;
 }
 
 FTransformGizmoHandlePlacement UGizmoHandleGroup::MakeHandlePlacementForIndex( const int32 HandleIndex ) const

@@ -510,8 +510,8 @@ const void AVREditorRadialFloatingUI::HighlightSlot(const FVector2D& TrackpadPos
 		{
 			if (ButtonCount != Index)
 			{
-				TSharedRef<SWidget> CurrentChild = WidgetComponents[ButtonCount]->GetSlateWidget().ToSharedRef();
-				TestWidget = UVREditorUISystem::FindWidgetOfType(CurrentChild, ButtonTypeOverride);
+				TSharedRef<SWidget> ChildWidget = WidgetComponents[ButtonCount]->GetSlateWidget().ToSharedRef();
+				TestWidget = UVREditorUISystem::FindWidgetOfType(ChildWidget, ButtonTypeOverride);
 				TSharedRef<SButton> TestButton = StaticCastSharedRef<SButton>(TestWidget);
 				if (TestButton->IsHovered())
 				{

@@ -91,6 +91,7 @@
 #include "LevelEditorActions.h"
 #include "VREditorActions.h"
 #include "GenericCommands.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "ISequencer.h"
 #include "Engine/StaticMesh.h"
@@ -338,226 +339,191 @@ void UVREditorUISystem::OnPreviewInputAction(FEditorViewportClient& ViewportClie
 
 	// Laser Interaction Preview actions
 	if (VREditorInteractor &&
-		VREditorInteractor == LaserInteractor)
+		VREditorInteractor == LaserInteractor && 
+		Action.ActionType == ViewportWorldActionTypes::SelectAndMove &&
+		VREditorInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing)
 	{
-
-		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove &&
-			VREditorInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing)
+		FVector LaserPointerStart, LaserPointerEnd;
+		// If we are clicking on an Actor but not a widget component, send a fake mouse click event to toggle focus
+		if (VREditorInteractor->GetLaserPointer(LaserPointerStart, LaserPointerEnd))
 		{
-			FVector LaserPointerStart, LaserPointerEnd;
-			// If we are clicking on an Actor but not a widget component, send a fake mouse click event to toggle focus
-			if (VREditorInteractor->GetLaserPointer(LaserPointerStart, LaserPointerEnd))
+			FHitResult HitResult = VREditorInteractor->GetHitResultFromLaserPointer();
+			if (HitResult.Actor.IsValid())
 			{
-				FHitResult HitResult = VREditorInteractor->GetHitResultFromLaserPointer();
-				if (HitResult.Actor.IsValid())
+				UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(HitResult.GetComponent());
+
+				if (WidgetComponent == nullptr)
 				{
-					UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(HitResult.GetComponent());
-
-					if (WidgetComponent == nullptr)
-					{
-						const bool bIsRightClicking =
-							(Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed()) ||
-							(Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI());
-						TSet<FKey> PressedButtons;
-						FPointerEvent PointerEvent(
-							1 + (uint8)VREditorInteractor->GetControllerSide(),
-							FVector2D::ZeroVector,
-							FVector2D::ZeroVector,
-							PressedButtons,
-							bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
-							0.0f,	// Wheel delta
-							FModifierKeysState());
-
-						FWidgetPath EmptyWidgetPath;
-						FReply Reply = FSlateApplication::Get().RoutePointerDownEvent(EmptyWidgetPath, PointerEvent);
-						if (bRadialMenuIsNumpad)
-						{
-							// If clicking somewhere outside UI so the widget loses focus
-							SwapRadialMenu();
-							if (!bRadialMenuVisibleAtSwap)
-							{
-								HideRadialMenu(VREditorInteractor);
-							}
-						}
-					}
-				}
-			}
-			// Clicking on UI
-			{
-				FVector LaserPointerStart, LaserPointerEnd;
-				if (VREditorInteractor->GetLaserPointer(LaserPointerStart, LaserPointerEnd))
-				{
-					FHitResult HitResult = VREditorInteractor->GetHitResultFromLaserPointer();
-					if (HitResult.Actor.IsValid())
-					{
-						// Only allow clicks to our own widget components
-						UVREditorWidgetComponent* WidgetComponent = Cast<UVREditorWidgetComponent>(HitResult.GetComponent());
-						if (WidgetComponent != nullptr)
-						{
-							// Always mark the event as handled so that the editor doesn't try to select the widget component
-							bWasHandled = true;
-
-							if (Action.Event != IE_Repeat)
-							{
-								// If the Modifier button is held down, treat this like a right click instead of a left click
-								const bool bIsRightClicking =
-									(Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed()) ||
-									(Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI());
-
-								FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
-
-								FVector2D LocalHitLocation;
-								WidgetComponent->GetLocalHitLocation(HitResult.ImpactPoint, LocalHitLocation);
-
-								// If we weren't already hovering over this widget, then we'll reset the last hit location
-								if (WidgetComponent != VREditorInteractor->GetLastHoveredWidgetComponent())
-								{
-									LastLocalHitLocation = LocalHitLocation;
-
-									if (UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(VREditorInteractor->GetLastHoveredWidgetComponent()))
-									{
-										VRWidgetComponent->SetIsHovering(false);
-										OnHoverEndEffect(VRWidgetComponent);
-									}
-								}
-
-								FWidgetPath WidgetPathUnderFinger = FWidgetPath(WidgetComponent->GetHitWidgetPath(HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false));
-								if (WidgetPathUnderFinger.IsValid())
-								{
-									TSet<FKey> PressedButtons;
-									if (Action.Event == IE_Pressed)
-									{
-										PressedButtons.Add(bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton);
-									}
-
-									FPointerEvent PointerEvent(
-										1 + (uint8)VREditorInteractor->GetControllerSide(),
-										LocalHitLocation,
-										LastLocalHitLocation,
-										PressedButtons,
-										bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
-										0.0f,	// Wheel delta
-										FModifierKeysState());
-
-									VREditorInteractor->SetLastHoveredWidgetComponent(WidgetComponent);
-
-									if (UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(VREditorInteractor->GetLastHoveredWidgetComponent()))
-									{
-										VRWidgetComponent->SetIsHovering(true);
-										OnHoverBeginEffect(VRWidgetComponent);
-									}
-
-									FReply Reply = FReply::Unhandled();
-									if (Action.Event == IE_Pressed)
-									{
-										const double CurrentTime = FPlatformTime::Seconds();
-										if (CurrentTime - VREditorInteractor->GetLastUIPressTime() <= GetDefault<UVRModeSettings>()->DoubleClickTime)
-										{
-											// Trigger a double click event!
-											Reply = FSlateApplication::Get().RoutePointerDoubleClickEvent(WidgetPathUnderFinger, PointerEvent);
-										}
-										else
-										{
-											// If we are clicking on an editable text field and the radial menu is not a numpad, show the numpad
-											if (WidgetPathUnderFinger.Widgets.Last().Widget->GetTypeAsString() == TEXT("SEditableText") && (bRadialMenuIsNumpad == false))
-											{
-												if (!QuickRadialMenu->bHidden)
-												{
-													bRadialMenuVisibleAtSwap = true;
-												}
-												else
-												{
-													bRadialMenuVisibleAtSwap = false;
-													// Force the radial menu to spawn even if the laser is over UI
-													const bool bForceRefresh = false;
-													TryToSpawnRadialMenu(UIInteractor, bForceRefresh);
-												}
-												SwapRadialMenu();
-											}
-											Reply = FSlateApplication::Get().RoutePointerDownEvent(WidgetPathUnderFinger, PointerEvent);
-										}
-
-										// In case of selecting a level in the content browser the VREditormode is closed, this makes sure nothing happens after that.
-										if (!IVREditorModule::Get().IsVREditorModeActive())
-										{
-											bWasHandled = true;
-											return;
-										}
-
-										VREditorInteractor->SetIsClickingOnUI(true);
-										VREditorInteractor->SetIsRightClickingOnUI(bIsRightClicking);
-										VREditorInteractor->SetLastUIPressTime(CurrentTime);
-										bOutIsInputCaptured = true;
-
-										// Play a haptic effect on press
-										VREditorInteractor->PlayHapticEffect(VREd::UIPressHapticFeedbackStrength->GetFloat());
-									}
-									else if (Action.Event == IE_Released)
-									{
-										Reply = FSlateApplication::Get().RoutePointerUpEvent(WidgetPathUnderFinger, PointerEvent);
-									}
-								}
-							}
-						}
-						else
-						{
-							// If we didn't handle the input in any other way, send an empty mouse down event so Slate focus is handled correctly
-							const bool bIsRightClicking =
-								(Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed()) ||
-								(Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI());
-							TSet<FKey> PressedButtons;
-							FPointerEvent PointerEvent(
-								1 + (uint8)VREditorInteractor->GetControllerSide(),
-								FVector2D::ZeroVector,
-								FVector2D::ZeroVector,
-								PressedButtons,
-								bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
-								0.0f,	// Wheel delta
-								FModifierKeysState());
-
-							FWidgetPath EmptyWidgetPath;
-							FReply Reply = FSlateApplication::Get().RoutePointerDownEvent(EmptyWidgetPath, PointerEvent);
-						}
-					}
-				}
-			}
-
-			if (Action.Event == IE_Released)
-			{
-				bool bWasRightClicking = false;
-				if (VREditorInteractor->IsClickingOnUI())
-				{
-					if (VREditorInteractor->IsRightClickingOnUI())
-					{
-						bWasRightClicking = true;
-					}
-					VREditorInteractor->SetIsClickingOnUI(false);
-					VREditorInteractor->SetIsRightClickingOnUI(false);
-					bOutIsInputCaptured = false;
-				}
-
-				if (!bWasHandled)
-				{
+					// If we didn't handle the input in any other way, send an empty mouse down event so Slate focus is handled correctly
+					const bool bIsRightClicking =
+						(Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed()) ||
+						(Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI());
 					TSet<FKey> PressedButtons;
 					FPointerEvent PointerEvent(
 						1 + (uint8)VREditorInteractor->GetControllerSide(),
 						FVector2D::ZeroVector,
 						FVector2D::ZeroVector,
 						PressedButtons,
-						bWasRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
+						bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
 						0.0f,	// Wheel delta
 						FModifierKeysState());
 
 					FWidgetPath EmptyWidgetPath;
+					FReply Reply = FSlateApplication::Get().RoutePointerDownEvent(EmptyWidgetPath, PointerEvent);
+					if (bRadialMenuIsNumpad)
+					{
+						// If clicking somewhere outside UI so the widget loses focus
+						SwapRadialMenu();
+						if (!bRadialMenuVisibleAtSwap)
+						{
+							HideRadialMenu(VREditorInteractor);
+						}
+					}
+				}
+				else if (WidgetComponent != nullptr)
+				{
+					// Only allow clicks to our own widget components
+					// Always mark the event as handled so that the editor doesn't try to select the widget component
+					bWasHandled = true;
 
-					VREditorInteractor->SetIsClickingOnUI(false);
-					VREditorInteractor->SetIsRightClickingOnUI(false);
-					FReply Reply = FSlateApplication::Get().RoutePointerUpEvent(EmptyWidgetPath, PointerEvent);
+					if (Action.Event != IE_Repeat)
+					{
+						// If the Modifier button is held down, treat this like a right click instead of a left click
+						const bool bIsRightClicking =
+							(Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed()) ||
+							(Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI());
+
+						FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
+
+						FVector2D LocalHitLocation;
+						WidgetComponent->GetLocalHitLocation(HitResult.ImpactPoint, LocalHitLocation);
+
+						// If we weren't already hovering over this widget, then we'll reset the last hit location
+						if (WidgetComponent != VREditorInteractor->GetLastHoveredWidgetComponent())
+						{
+							LastLocalHitLocation = LocalHitLocation;
+
+							if (UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(VREditorInteractor->GetLastHoveredWidgetComponent()))
+							{
+								VRWidgetComponent->SetIsHovering(false);
+								OnHoverEndEffect(VRWidgetComponent);
+							}
+						}
+
+						FWidgetPath WidgetPathUnderFinger = FWidgetPath(WidgetComponent->GetHitWidgetPath(HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false));
+						if (WidgetPathUnderFinger.IsValid())
+						{
+							TSet<FKey> PressedButtons;
+							if (Action.Event == IE_Pressed)
+							{
+								PressedButtons.Add(bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton);
+							}
+
+							FPointerEvent PointerEvent(
+								1 + (uint8)VREditorInteractor->GetControllerSide(),
+								LocalHitLocation,
+								LastLocalHitLocation,
+								PressedButtons,
+								bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
+								0.0f,	// Wheel delta
+								FModifierKeysState());
+
+							VREditorInteractor->SetLastHoveredWidgetComponent(WidgetComponent);
+
+							if (UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(VREditorInteractor->GetLastHoveredWidgetComponent()))
+							{
+								VRWidgetComponent->SetIsHovering(true);
+								OnHoverBeginEffect(VRWidgetComponent);
+							}
+
+							FReply Reply = FReply::Unhandled();
+							if (Action.Event == IE_Pressed)
+							{
+								const double CurrentTime = FPlatformTime::Seconds();
+								if (CurrentTime - VREditorInteractor->GetLastUIPressTime() <= GetDefault<UVRModeSettings>()->DoubleClickTime)
+								{
+									// Trigger a double click event!
+									Reply = FSlateApplication::Get().RoutePointerDoubleClickEvent(WidgetPathUnderFinger, PointerEvent);
+								}
+								else
+								{
+									// If we are clicking on an editable text field and the radial menu is not a numpad, show the numpad
+									if (WidgetPathUnderFinger.Widgets.Last().Widget->GetTypeAsString() == TEXT("SEditableText") && (bRadialMenuIsNumpad == false))
+									{
+										if (!QuickRadialMenu->bHidden)
+										{
+											bRadialMenuVisibleAtSwap = true;
+										}
+										else
+										{
+											bRadialMenuVisibleAtSwap = false;
+											// Force the radial menu to spawn even if the laser is over UI
+											const bool bForceRefresh = false;
+											TryToSpawnRadialMenu(UIInteractor, bForceRefresh);
+										}
+										SwapRadialMenu();
+									}
+									Reply = FSlateApplication::Get().RoutePointerDownEvent(WidgetPathUnderFinger, PointerEvent);
+								}
+
+								// In case of selecting a level in the content browser the VREditormode is closed, this makes sure nothing happens after that.
+								if (!IVREditorModule::Get().IsVREditorModeActive())
+								{
+									bWasHandled = true;
+									return;
+								}
+
+								VREditorInteractor->SetIsClickingOnUI(true);
+								VREditorInteractor->SetIsRightClickingOnUI(bIsRightClicking);
+								VREditorInteractor->SetLastUIPressTime(CurrentTime);
+								bOutIsInputCaptured = true;
+
+								// Play a haptic effect on press
+								VREditorInteractor->PlayHapticEffect(VREd::UIPressHapticFeedbackStrength->GetFloat());
+							}
+							else if (Action.Event == IE_Released)
+							{
+								Reply = FSlateApplication::Get().RoutePointerUpEvent(WidgetPathUnderFinger, PointerEvent);
+							}
+						}
+					}
 				}
 			}
 		}
-	}
+		if (Action.Event == IE_Released)
+		{
+			bool bWasRightClicking = false;
+			if (VREditorInteractor->IsClickingOnUI())
+			{
+				if (VREditorInteractor->IsRightClickingOnUI())
+				{
+					bWasRightClicking = true;
+				}
+				VREditorInteractor->SetIsClickingOnUI(false);
+				VREditorInteractor->SetIsRightClickingOnUI(false);
+				bOutIsInputCaptured = false;
+			}
 
+			if (!bWasHandled)
+			{
+				TSet<FKey> PressedButtons;
+				FPointerEvent PointerEvent(
+					1 + (uint8)VREditorInteractor->GetControllerSide(),
+					FVector2D::ZeroVector,
+					FVector2D::ZeroVector,
+					PressedButtons,
+					bWasRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
+					0.0f,	// Wheel delta
+					FModifierKeysState());
+
+				FWidgetPath EmptyWidgetPath;
+
+				VREditorInteractor->SetIsClickingOnUI(false);
+				VREditorInteractor->SetIsRightClickingOnUI(false);
+				FReply Reply = FSlateApplication::Get().RoutePointerUpEvent(EmptyWidgetPath, PointerEvent);
+			}
+		}
+	}
 }
 
 
@@ -959,7 +925,7 @@ void UVREditorUISystem::CreateUIs()
 			}
 
 			QuickRadialMenu->SetRelativeOffset(RelativeOffset);
-			QuickRadialMenu->ShowUI(false, 0.0f, false);
+			QuickRadialMenu->ShowUI(false, false, 0.0f, false);
 		}
 	}
 	// Make some editor UIs!
@@ -2615,7 +2581,7 @@ UVREditorMotionControllerInteractor* UVREditorUISystem::GetUIInteractor()
 	return UIInteractor;
 }
 
-void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, class UVREditorMode* VRMode, float& RadiusOverride)
+void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* InVRMode, float& RadiusOverride)
 {
 	RadiusOverride = 1.0f;
 	// First menu entry is at 90 degrees 
@@ -2625,7 +2591,7 @@ void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, T
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.SequencerPlay"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::PlaySequenceAtRate, VRMode, 1.0f),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::PlaySequenceAtRate, InVRMode, 1.0f),
 			FCanExecuteAction::CreateUObject(this->GetRadialMenuHandler(), &UVRRadialMenuHandler::IsActionMenuBound)
 		)
 		);
@@ -2635,7 +2601,7 @@ void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, T
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.SequencerReverse"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::PlaySequenceAtRate, VRMode, -1.0f),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::PlaySequenceAtRate, InVRMode, -1.0f),
 			FCanExecuteAction::CreateUObject(this->GetRadialMenuHandler(), &UVRRadialMenuHandler::IsActionMenuBound)
 		)
 		);
@@ -2645,7 +2611,7 @@ void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, T
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.SequencerStop"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::PauseSequencePlayback, VRMode),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::PauseSequencePlayback, InVRMode),
 			FCanExecuteAction::CreateUObject(this->GetRadialMenuHandler(), &UVRRadialMenuHandler::IsActionMenuBound)
 		)
 		);
@@ -2655,7 +2621,7 @@ void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, T
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.PlayFromStart"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::PlayFromBeginning, VRMode),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::PlayFromBeginning, InVRMode),
 			FCanExecuteAction::CreateUObject(this->GetRadialMenuHandler(), &UVRRadialMenuHandler::IsActionMenuBound)
 			)
 		);
@@ -2665,7 +2631,7 @@ void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, T
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.Scrub"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::ToggleSequencerScrubbing, VRMode, UIInteractor),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::ToggleSequencerScrubbing, InVRMode, UIInteractor),
 			FCanExecuteAction::CreateUObject(this->GetRadialMenuHandler(), &UVRRadialMenuHandler::IsActionMenuBound),
 			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetSequencerScrubState, UIInteractor)
 			),
@@ -2678,9 +2644,9 @@ void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, T
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.ToggleLooping"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::ToggleLooping, VRMode),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::ToggleLooping, InVRMode),
 			FCanExecuteAction::CreateUObject(this->GetRadialMenuHandler(), &UVRRadialMenuHandler::IsActionMenuBound),
-			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::IsLoopingChecked, VRMode)
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::IsLoopingChecked, InVRMode)
 			),
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton

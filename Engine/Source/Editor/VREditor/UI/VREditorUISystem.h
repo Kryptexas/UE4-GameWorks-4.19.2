@@ -63,7 +63,9 @@ struct FVRButton
 	float ScaleRate;
 
 	FVRButton()
-		: AnimationDirection(EVREditorAnimationState::None),
+		: ButtonWidget(nullptr),
+		AnimationDirection(EVREditorAnimationState::None),
+		OriginalRelativeScale(FVector::ZeroVector),
 		CurrentScale(1.0f),
 		MinScale(1.0f),
 		MaxScale(1.10f),
@@ -73,8 +75,8 @@ struct FVRButton
 	FVRButton(class UVREditorWidgetComponent* InButtonWidget, FVector InOriginalScale,
 		EVREditorAnimationState InAnimationDirection = EVREditorAnimationState::None, float InCurrentScale = 1.0f, float InMinScale = 1.0f, float InMaxScale = 1.25f, float InScaleRate = 2.0f)
 		: ButtonWidget(InButtonWidget),
-		OriginalRelativeScale(InOriginalScale),
 		AnimationDirection(InAnimationDirection),
+		OriginalRelativeScale(InOriginalScale),
 		CurrentScale(InCurrentScale),
 		MinScale(InMinScale),
 		MaxScale(InMaxScale),
@@ -301,7 +303,7 @@ protected:
 	void SwapRadialMenu();
 
 	/** Creates the sequencer radial menu to pass to the radial menu generator */
-	void SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, class UVREditorMode* VRMode, float& RadiusOverride);
+	void SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, class UVREditorMode* InVRMode, float& RadiusOverride);
 
 	/**
 	* Handles being notified when any editor mode changes to see if any VR Editor UI needs to change.
