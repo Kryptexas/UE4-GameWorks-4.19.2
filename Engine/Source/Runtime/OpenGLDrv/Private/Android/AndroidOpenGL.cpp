@@ -11,10 +11,10 @@
 #include "AndroidWindow.h"
 #include "AndroidOpenGLPrivate.h"
 
-PFNEGLGETSYSTEMTIMENVPROC eglGetSystemTimeNV;
-PFNEGLCREATESYNCKHRPROC eglCreateSyncKHR = NULL;
-PFNEGLDESTROYSYNCKHRPROC eglDestroySyncKHR = NULL;
-PFNEGLCLIENTWAITSYNCKHRPROC eglClientWaitSyncKHR = NULL;
+PFNEGLGETSYSTEMTIMENVPROC eglGetSystemTimeNV_p = NULL;
+PFNEGLCREATESYNCKHRPROC eglCreateSyncKHR_p = NULL;
+PFNEGLDESTROYSYNCKHRPROC eglDestroySyncKHR_p = NULL;
+PFNEGLCLIENTWAITSYNCKHRPROC eglClientWaitSyncKHR_p = NULL;
 
 // Occlusion Queries
 PFNGLGENQUERIESEXTPROC 					glGenQueriesEXT = NULL;
@@ -276,10 +276,10 @@ bool PlatformContextIsCurrent( uint64 QueryContext )
 
 void FPlatformOpenGLDevice::LoadEXT()
 {
-	eglGetSystemTimeNV = (PFNEGLGETSYSTEMTIMENVPROC)((void*)eglGetProcAddress("eglGetSystemTimeNV"));
-	eglCreateSyncKHR = (PFNEGLCREATESYNCKHRPROC)((void*)eglGetProcAddress("eglCreateSyncKHR"));
-	eglDestroySyncKHR = (PFNEGLDESTROYSYNCKHRPROC)((void*)eglGetProcAddress("eglDestroySyncKHR"));
-	eglClientWaitSyncKHR = (PFNEGLCLIENTWAITSYNCKHRPROC)((void*)eglGetProcAddress("eglClientWaitSyncKHR"));
+	eglGetSystemTimeNV_p = (PFNEGLGETSYSTEMTIMENVPROC)((void*)eglGetProcAddress("eglGetSystemTimeNV"));
+	eglCreateSyncKHR_p = (PFNEGLCREATESYNCKHRPROC)((void*)eglGetProcAddress("eglCreateSyncKHR"));
+	eglDestroySyncKHR_p = (PFNEGLDESTROYSYNCKHRPROC)((void*)eglGetProcAddress("eglDestroySyncKHR"));
+	eglClientWaitSyncKHR_p = (PFNEGLCLIENTWAITSYNCKHRPROC)((void*)eglGetProcAddress("eglClientWaitSyncKHR"));
 
 	glDebugMessageControlKHR = (PFNGLDEBUGMESSAGECONTROLKHRPROC)((void*)eglGetProcAddress("glDebugMessageControlKHR"));
 
