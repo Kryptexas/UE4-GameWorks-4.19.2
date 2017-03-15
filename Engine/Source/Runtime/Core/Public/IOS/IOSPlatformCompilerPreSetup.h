@@ -127,24 +127,15 @@
 // since they cannot be caught by all compilers that we support. They are deemed to be relatively safe to be ignored, at least until all SDKs/toolchains start supporting them.
 #pragma clang diagnostic warning "-Wreorder"
 #pragma clang diagnostic warning "-Wparentheses-equality"
-#pragma clang diagnostic ignored "-Winconsistent-missing-override"
-#pragma clang diagnostic ignored "-Wundefined-bool-conversion"
-#pragma clang diagnostic ignored "-Wunused-local-typedef"
 #pragma clang diagnostic ignored "-Wdelete-non-virtual-dtor"
-#pragma clang diagnostic ignored "-Wlogical-op-parentheses"
-#pragma clang diagnostic ignored "-Wconstant-logical-operand"
-
-// Apple LLVM 8.1.0 (Xcode 8.3) introduced -Wundefined-var-template
-#if (__clang_major__ > 8) || (__clang_major__ == 8 && __clang_minor__ >= 1)
-#pragma clang diagnostic ignored "-Wundefined-var-template"
-#pragma clang diagnostic ignored "-Wnullability-inferred-on-nested-type"
-#pragma clang diagnostic ignored "-Wobjc-protocol-property-synthesis"
-#pragma clang diagnostic ignored "-Wnullability-completeness-on-arrays"
-#pragma clang diagnostic ignored "-Wnull-dereference"
-#endif
 
 // We can pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
 #if __clang_major__ >= 7 && __clang_minor__ >= 3
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
 #define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
+#endif
+
+// Apple LLVM 8.1.0 (Xcode 8.3) introduced -Wnonportable-include-path, which triggers some unfortunate issues with iOS vs IOS vs ios on disk
+#if (__clang_major__ > 8) || (__clang_major__ == 8 && __clang_minor__ >= 1)
+#pragma clang diagnostic ignored "-Wnonportable-include-path"
 #endif

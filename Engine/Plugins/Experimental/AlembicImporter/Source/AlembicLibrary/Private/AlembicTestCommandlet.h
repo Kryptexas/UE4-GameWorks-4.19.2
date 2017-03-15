@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Commandlets/Commandlet.h"
-#include "AlembicTestCommandlet.generated.h"
+#include "AlembicTestCommandLet.generated.h"
 
 UCLASS()
 class UAlembicTestCommandlet : public UCommandlet

@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicTestCommandlet.h"
+#include "AlembicTestCommandLet.h"
 #include "AbcImporter.h"
 #include "AbcImportSettings.h"
 #include "Misc/Paths.h"

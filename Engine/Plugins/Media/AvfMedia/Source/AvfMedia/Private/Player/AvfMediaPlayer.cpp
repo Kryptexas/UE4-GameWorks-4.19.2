@@ -4,9 +4,7 @@
 #include "HAL/PlatformProcess.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
-#if !PLATFORM_MAC
 #include "IOS/IOSAsyncTask.h"
-#endif
 
 /**
  * Cocoa class that can help us with reading player item information.
