@@ -147,6 +147,9 @@ namespace UnrealBuildTool
 				Result += " -arch " + Token;
 			}
 
+			// Remove this in 4.16 
+			Result += " -mcpu=cortex-a9";
+
 			return Result;
 		}
 		
