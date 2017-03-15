@@ -15,6 +15,9 @@
 #include "EditorWorldExtension.h"
 #include "ViewportWorldInteraction.h"
 #include "VRModeSettings.h"
+#include "Dialogs.h"
+
+#define LOCTEXT_NAMESPACE "VREditor"
 
 FVREditorModeManager::FVREditorModeManager() :
 	CurrentVREditorMode( nullptr ),
@@ -113,7 +116,18 @@ void FVREditorModeManager::EnableVREditor( const bool bEnable, const bool bForce
 	{
 		if( bEnable && ( IsVREditorAvailable() || bForceWithoutHMD ))
 		{
-			StartVREditorMode( bForceWithoutHMD );
+			FSuppressableWarningDialog::FSetupInfo SetupInfo(LOCTEXT("VRModeEntry_Message", "VR Mode enables you to work on your project in virtual reality using motion controllers. This feature is still under development, so you may experience bugs or crashes while using it."),
+				LOCTEXT("VRModeEntry_Title", "Entering VR Mode - Experimental"), "Warning_VRModeEntry", GEditorSettingsIni);
+
+			SetupInfo.ConfirmText = LOCTEXT("VRModeEntry_ConfirmText", "Continue");
+			SetupInfo.CancelText = LOCTEXT("VRModeEntry_CancelText", "Cancel");
+			SetupInfo.bDefaultToSuppressInTheFuture = true;
+			FSuppressableWarningDialog VRModeEntryWarning(SetupInfo);
+
+			if (VRModeEntryWarning.ShowModal() != FSuppressableWarningDialog::Cancel)
+			{
+				StartVREditorMode(bForceWithoutHMD);
+			}
 		}
 		else if( !bEnable )
 		{
@@ -211,3 +225,5 @@ void FVREditorModeManager::OnMapChanged( UWorld* World, EMapChangeType MapChange
 	}
 	CurrentVREditorMode = nullptr;
 }
+
+#undef LOCTEXT_NAMESPACE
