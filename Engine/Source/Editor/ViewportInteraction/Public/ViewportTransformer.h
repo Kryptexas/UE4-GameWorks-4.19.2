@@ -5,12 +5,9 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-
-
+#include "ViewportInteractor.h"
+#include "ViewportWorldInteraction.h"
 #include "ViewportTransformer.generated.h"
-
-class UViewportWorldInteraction;
-class UViewportInteractor;
 
 UCLASS( abstract )
 class VIEWPORTINTERACTION_API UViewportTransformer : public UObject
