@@ -2025,7 +2025,7 @@ namespace UnrealBuildTool
 				if (SharedBuildIdFile != null)
 				{
 					string VariablePath = TargetReceipt.InsertPathVariables(SharedBuildIdFile, UnrealBuildTool.EngineDirectory, ProjectDirectory);
-					Receipt.PrecompiledBuildDependencies.Add(VariablePath);
+					Receipt.BuildProducts.Add(new BuildProduct(VariablePath, BuildProductType.BuildResource));
 				}
 			}
 
