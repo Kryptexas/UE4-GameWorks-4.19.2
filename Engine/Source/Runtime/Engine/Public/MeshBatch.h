@@ -150,6 +150,9 @@ struct FMeshBatch
 	// can be NULL
 	const FLightCacheInterface* LCI;
 
+	/** Whether the mesh batch should be rendered. */
+	uint32 bRenderable : 1;
+
 	/** 
 	 *	DynamicVertexData - pointer to user memory containing the vertex data.
 	 *	Used for rendering dynamic data directly.
@@ -267,6 +270,7 @@ struct FMeshBatch
 	,	DynamicVertexData(NULL)
 	,	VertexFactory(NULL)
 	,	MaterialRenderProxy(NULL)
+	,	bRenderable(true)
 	{
 		// By default always add the first element.
 		new(Elements) FMeshBatchElement;

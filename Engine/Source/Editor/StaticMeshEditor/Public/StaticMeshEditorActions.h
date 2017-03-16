@@ -39,6 +39,9 @@ public:
 	TSharedPtr< FUICommandInfo > ResetCamera;
 	TSharedPtr< FUICommandInfo > SetShowSockets;
 	TSharedPtr< FUICommandInfo > SetDrawAdditionalData;
+#if WITH_FLEX
+	TSharedPtr< FUICommandInfo > SetDrawFlexPreview;
+#endif
 
 	// View Menu Commands
 	TSharedPtr< FUICommandInfo > SetShowNormals;

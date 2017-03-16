@@ -243,6 +243,11 @@
 #define STENCIL_COMPONENT_SWIZZLE .g
 #endif
 
+#if FLEX_FLUID_SURFACE_FACTORY
+Texture2D FlexFluidSurfaceThicknessTexture;
+SamplerState FlexFluidSurfaceThicknessTextureSampler;
+#endif
+
 // Whether the platform supports independent texture and samplers
 // When enabled, different texture lookups can share samplers to allow more artist samplers in the base pass
 // Ideally this would just be enabled for all SM4 and above feature level platforms
@@ -1179,6 +1184,17 @@ float4 GetPerPixelLightAttenuation(float2 UV)
 {
 	return Square(Texture2DSampleLevel(LightAttenuationTexture, LightAttenuationTextureSampler, UV, 0));
 }
+
+// Returns thickness provided for flex fluid surface rendering
+float CalcFlexFluidSurfaceThicknessForMaterialNode(float2 ScreenUV)
+{
+#if FLEX_FLUID_SURFACE_FACTORY
+	return Texture2DSampleLevel(FlexFluidSurfaceThicknessTexture, FlexFluidSurfaceThicknessTextureSampler, ScreenUV, 0).x;
+#else
+	return 0.0f;
+#endif
+}
+
 
 // also see ConvertToDeviceZ()
 // @param DeviceZ value that is stored in the depth buffer (Z/W)

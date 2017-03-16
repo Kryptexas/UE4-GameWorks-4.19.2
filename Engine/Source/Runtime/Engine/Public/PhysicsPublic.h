@@ -131,6 +131,12 @@ namespace NvParameterized
 
 #endif // WITH_PHYSX
 
+#if WITH_FLEX
+class UFlexContainer;
+struct FFlexContainerInstance;
+extern ENGINE_API bool GFlexIsInitialized;
+#endif
+
 /** Information about a specific object involved in a rigid body collision */
 struct ENGINE_API FRigidBodyCollisionInfo
 {
@@ -468,7 +474,13 @@ private:
 	};
 
 	FPendingConstraintData PendingConstraintData[PST_MAX];
-	
+
+#if WITH_FLEX
+    /** Map from Flex container template to instances belonging to this physscene */
+    TMap<UFlexContainer*, FFlexContainerInstance*>    FlexContainerMap;
+	FGraphEventRef FlexSimulateTaskRef;
+#endif
+
 public:
 
 	/** Whether or not the results of the simulation has updated yet. This can be important for trying to set the body transform or velocity (which is double buffered during simulation) */
@@ -492,11 +504,31 @@ public:
 	/** Utility for looking up the ApexScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	nvidia::apex::Scene*				GetApexScene(uint32 SceneType);
 #endif
+
+#if WITH_FLEX
+	/** Retrive the container instance for a template, will create the instance if it doesn't already exist */
+	FFlexContainerInstance*	GetFlexContainer(UFlexContainer* Template);
+	void StartFlexRecord();
+	void StopFlexRecord();
+
+	/** Adds a radial force to all flex container instances */
+	void AddRadialForceToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff);
+
+	/** Adds a radial force to all flex container instances */
+	void AddRadialImpulseToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
+#endif
+
 	ENGINE_API FPhysScene();
 	ENGINE_API ~FPhysScene();
 
 	/** Start simulation on the physics scene of the given type */
 	ENGINE_API void TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletionEvent);
+
+#if WITH_FLEX
+	ENGINE_API void WaitFlexScenes();
+	ENGINE_API void TickFlexScenes(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, float dt);
+	ENGINE_API void TickFlexScenesTask(float dt);
+#endif
 
 	/** Set the gravity and timing of all physics scenes */
 	ENGINE_API void SetUpForFrame(const FVector* NewGrav, float InDeltaSeconds = 0.0f, float InMaxPhysicsDeltaTime = 0.0f);
@@ -883,6 +915,7 @@ ENGINE_API void LoadPhysXModules();
 void UnloadPhysXModules();
 
 ENGINE_API void	InitGamePhys();
+ENGINE_API void	InitGamePhysPostRHI();
 ENGINE_API void	TermGamePhys();
 
 

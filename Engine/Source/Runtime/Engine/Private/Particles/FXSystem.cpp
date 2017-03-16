@@ -50,7 +50,13 @@ namespace FXConsoleVariables
 	int32 bAllowAsyncTick = !WITH_EDITOR;
 	float ParticleSlackGPU = 0.02f;
 	int32 MaxParticleTilePreAllocation = 100;
+
+#if WITH_FLEX	
+	int32 MaxCPUParticlesPerEmitter = 16*1024;
+#else
 	int32 MaxCPUParticlesPerEmitter = 1000;
+#endif
+
 	int32 MaxGPUParticlesSpawnedPerFrame = 1024 * 1024;
 	int32 GPUSpawnWarningThreshold = 20000;
 	float GPUCollisionDepthBounds = 500.0f;

@@ -842,7 +842,8 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RH
 	{
 		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
-		if (MeshBatchAndRelevance.GetHasOpaqueOrMaskedMaterial() && MeshBatchAndRelevance.GetRenderInMainPass())
+		if (MeshBatchAndRelevance.GetHasOpaqueOrMaskedMaterial() && MeshBatchAndRelevance.GetRenderInMainPass() 
+			&& !MeshBatchAndRelevance.PrimitiveSceneProxy->IsFlexFluidSurface() && MeshBatchAndRelevance.Mesh->bRenderable)
 		{
 			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 			const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;

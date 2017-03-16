@@ -326,6 +326,7 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 	}
 }
 
+
 /** Render the TexturePool texture */
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 void FDeferredShadingSceneRenderer::RenderVisualizeTexturePool(FRHICommandListImmediate& RHICmdList)
@@ -758,6 +759,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 	};
 
+#if WITH_FLEX
+	GFlexFluidSurfaceRenderer.UpdateProxiesAndResources(RHICmdList, Views[0].DynamicMeshElements, SceneContext);
+#endif
+
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
 	const bool bNeedsPrePass = NeedsPrePass(this);
@@ -909,6 +914,15 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	RenderBasePass(RHICmdList);
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterBasePass));
 	ServiceLocalQueue();
+
+#if WITH_FLEX
+	GFlexFluidSurfaceRenderer.RenderParticles(RHICmdList, Views);
+	
+	//FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, ERenderTargetLoadAction::ENoAction);
+	SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, ERenderTargetLoadAction::ENoAction, ViewFamily.EngineShowFlags.ShaderComplexity);
+
+	GFlexFluidSurfaceRenderer.RenderBasePass(RHICmdList, Views);
+#endif
 
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
@@ -1237,6 +1251,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
+#if WITH_FLEX
+	GFlexFluidSurfaceRenderer.Cleanup();
+#endif
+
 	// Resolve the scene color for post processing.
 	SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
@@ -1289,6 +1307,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	ServiceLocalQueue();
 }
+
 
 /** A simple pixel shader used on PC to read scene depth from scene color alpha and write it to a downsized depth buffer. */
 class FDownsampleSceneDepthPS : public FGlobalShader

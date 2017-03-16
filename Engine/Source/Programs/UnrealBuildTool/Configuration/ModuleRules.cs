@@ -423,7 +423,29 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_APEX=0");
 			}
 
-			if (UEBuildConfiguration.bRuntimePhysicsCooking == true)
+            if (UEBuildConfiguration.bCompileFLEX_DX == true || UEBuildConfiguration.bCompileFLEX_CUDA == true)
+            {
+                AddEngineThirdPartyPrivateStaticDependencies(Target, "FLEX");
+                Definitions.Add("WITH_FLEX=1");
+
+                if (UEBuildConfiguration.bCompileFLEX_DX == true)
+                {
+                    Definitions.Add("WITH_FLEX_DX=1");
+                    Definitions.Add("WITH_FLEX_CUDA=0");
+                }
+
+                if (UEBuildConfiguration.bCompileFLEX_CUDA == true)
+                {
+                    Definitions.Add("WITH_FLEX_CUDA=1");
+                    Definitions.Add("WITH_FLEX_DX=0");
+                }
+            }
+            else
+            {
+                Definitions.Add("WITH_FLEX=0");
+            }
+
+            if (UEBuildConfiguration.bRuntimePhysicsCooking == true)
 			{
 				Definitions.Add("WITH_RUNTIME_PHYSICS_COOKING=1");
 			}

@@ -90,6 +90,66 @@ float3 SplineMeshX;
 float3 SplineMeshY;
 #endif	// USE_SPLINEDEFORM
 
+#if USE_FLEX_DEFORM
+Buffer<float4> ClusterTranslations;
+Buffer<float4> ClusterRotations;
+
+// rotate vector by quaternion (q, w)
+float3 QuatRotate(float4 Quat, float3 Pos)
+{
+	return Pos*(2.0*Quat.w*Quat.w-1.0) + cross(Quat.xyz, Pos)*Quat.w*2.0 + Quat.xyz*dot(Quat.xyz, Pos)*2.0;
+}
+
+float3 SkinPositionSingle(float3 LocalPos, float ClusterWeight, int ClusterIndex)
+{
+	if (ClusterIndex > -1)
+	{
+		return (QuatRotate(ClusterRotations[ClusterIndex], LocalPos.xyz) + ClusterTranslations[ClusterIndex].xyz)*ClusterWeight;
+	}
+	else
+	{
+		return float3(0.0, 0.0, 0.0);
+	}
+}
+
+float3 SkinPosition(float3 LocalPos, float4 ClusterWeights, int4 ClusterIndices)
+{
+	float3 Pos = float3(0.0, 0.0, 0.0);
+
+	Pos += SkinPositionSingle(LocalPos.xyz, ClusterWeights.x, ClusterIndices.x);
+	Pos += SkinPositionSingle(LocalPos.xyz, ClusterWeights.y, ClusterIndices.y);
+	Pos += SkinPositionSingle(LocalPos.xyz, ClusterWeights.z, ClusterIndices.z);
+	Pos += SkinPositionSingle(LocalPos.xyz, ClusterWeights.w, ClusterIndices.w);
+
+	return Pos;
+}
+
+half3 SkinNormalSingle(half3 LocalNormal, float ClusterWeight, int ClusterIndex)
+{
+	if (ClusterIndex > -1)
+	{
+		return QuatRotate(ClusterRotations[ClusterIndex], LocalNormal.xyz)*ClusterWeight;
+	}
+	else
+	{
+		return half3(0.0, 0.0, 0.0);
+	}
+}
+
+half3 SkinNormal(float3 LocalNormal, float4 ClusterWeights, int4 ClusterIndices)
+{
+	half3 Normal = half3(0.0, 0.0, 0.0);
+
+	Normal += SkinNormalSingle(LocalNormal.xyz, ClusterWeights.x, ClusterIndices.x);
+	Normal += SkinNormalSingle(LocalNormal.xyz, ClusterWeights.y, ClusterIndices.y);
+	Normal += SkinNormalSingle(LocalNormal.xyz, ClusterWeights.z, ClusterIndices.z);
+	Normal += SkinNormalSingle(LocalNormal.xyz, ClusterWeights.w, ClusterIndices.w);
+
+	return Normal;
+}
+
+#endif // USE_FLEX_DEFORM
+
 struct FVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
@@ -134,6 +194,11 @@ struct FVertexFactoryInput
 
 #endif //USE_INSTANCING && !USE_INSTANCING_EMULATED
 
+#if USE_FLEX_DEFORM // exclusive with instancing
+	uint4	ClusterIndices	: ATTRIBUTE8;
+	float4	ClusterWeights : ATTRIBUTE9;	
+#endif // USE_FLEX_DEFORM
+
 #if NEEDS_LIGHTMAP_COORDINATE
 	float2	LightMapCoordinate : ATTRIBUTE15;
 #endif
@@ -152,6 +217,11 @@ struct FPositionOnlyVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
 	
+#if USE_FLEX_DEFORM // exclusive with instancing	
+	uint4	ClusterIndices	: ATTRIBUTE8;
+	float4	ClusterWeights : ATTRIBUTE9;
+#endif // USE_FLEX_DEFORM
+
 #if USE_INSTANCING && !USE_INSTANCING_EMULATED
 	float4 InstanceOrigin : ATTRIBUTE8;  // per-instance random in w 
 	half4 InstanceTransform1 : ATTRIBUTE9;  // hitproxy.r + 256 * selected in .w
@@ -486,12 +556,20 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 
 #if USE_INSTANCING
 float4 CalcWorldPosition(float4 Position, float4x4 InstanceTransform)
+#elif USE_FLEX_DEFORM
+float4 CalcWorldPosition(float4 Position, float4 ClusterWeights, uint4 ClusterIndices)
 #else
 float4 CalcWorldPosition(float4 Position)
 #endif	// USE_INSTANCING
 {
 #if USE_INSTANCING
 	return TransformLocalToTranslatedWorld(mul(Position, InstanceTransform).xyz);
+#elif USE_FLEX_DEFORM
+	
+	// deformed pos
+	float3 SkinnedPos = SkinPosition(Position.xyz, ClusterWeights, ClusterIndices);
+	return TransformLocalToTranslatedWorld(SkinnedPos.xyz);
+
 #elif USE_SPLINEDEFORM
 /*
 	// Make transform for this point along spline
@@ -521,6 +599,11 @@ half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
 
 	TangentX = mul(TangentX, SliceRot);
 	TangentZ.xyz = mul(TangentZ.xyz, SliceRot);
+#elif USE_FLEX_DEFORM
+
+	TangentZ.xyz = SkinNormal(TangentZ.xyz, Input.ClusterWeights, Input.ClusterIndices);
+	TangentX = SkinNormal(TangentX.xyz, Input.ClusterWeights, Input.ClusterIndices);
+
 #endif	// USE_SPLINEDEFORM
 
 	// derive the binormal by getting the cross product of the normal and tangent
@@ -603,6 +686,8 @@ float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIn
 {
 #if USE_INSTANCING
 	return CalcWorldPosition(Input.Position, GetInstanceTransform(Input)) * Intermediates.PerInstanceParams.z;
+#elif USE_FLEX_DEFORM
+	return CalcWorldPosition(Input.Position, Input.ClusterWeights, Input.ClusterIndices);
 #else
 	return CalcWorldPosition(Input.Position);
 #endif	// USE_INSTANCING
@@ -679,6 +764,8 @@ float4 VertexFactoryGetWorldPosition(FPositionOnlyVertexFactoryInput Input)
 {
 #if USE_INSTANCING
 	return CalcWorldPosition(Input.Position, GetInstanceTransform(Input));
+#elif USE_FLEX_DEFORM
+	return CalcWorldPosition(Input.Position, Input.ClusterWeights, Input.ClusterIndices);
 #else
 	return CalcWorldPosition(Input.Position);
 #endif	// USE_INSTANCING

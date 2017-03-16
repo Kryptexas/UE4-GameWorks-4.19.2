@@ -36,6 +36,8 @@ enum EMaterialUsage
 	MATUSAGE_SplineMesh,
 	MATUSAGE_InstancedStaticMeshes,
 	MATUSAGE_Clothing,
+	MATUSAGE_FlexFluidSurfaces,
+	MATUSAGE_FlexMeshes,
 	MATUSAGE_MAX,
 };
 

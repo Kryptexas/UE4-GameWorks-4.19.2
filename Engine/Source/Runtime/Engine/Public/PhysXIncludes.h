@@ -76,6 +76,12 @@ THIRD_PARTY_INCLUDES_END
 
 #endif // #if WITH_APEX
 
+#if WITH_FLEX
+#include "NvFlex.h"
+#include "NvFlexExt.h"
+#include "NvFlexDevice.h"
+#endif // #if WITH_FLEX
+
 #pragma pack(pop)
 
 #if USING_CODE_ANALYSIS

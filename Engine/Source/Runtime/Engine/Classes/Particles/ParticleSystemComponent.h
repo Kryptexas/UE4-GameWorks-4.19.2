@@ -1247,6 +1247,11 @@ protected:
 	// @todo document
 	virtual void UpdateDynamicData();
 
+#if WITH_FLEX
+	virtual void UpdateFlexSurfaceDynamicData(FParticleEmitterInstance* EmitterInstance, FDynamicEmitterDataBase* EmitterDynamicData);
+	virtual void ClearFlexSurfaceDynamicData();
+#endif
+
 public:
 	FORCEINLINE int32 GetCurrentLODIndex() const
 	{

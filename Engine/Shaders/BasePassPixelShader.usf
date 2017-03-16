@@ -548,6 +548,7 @@ void FPixelShaderInOut_MainPS(
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
 	in FPixelShaderIn In, 
 	inout FPixelShaderOut Out)
+
 {
 #if INSTANCED_STEREO
 	ResolvedView = ResolveView(GetEyeIndex(Interpolants.PackedEyeIndex));
@@ -562,7 +563,12 @@ void FPixelShaderInOut_MainPS(
 	// PreShadowFactor
 	float4 OutGBufferE = 0;
 
+#if FLEX_FLUID_SURFACE_FACTORY
+	GetFlexFluidSurfaceCoverageAndClipping(Interpolants);
+#endif
+
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, In.SvPosition);
+
 	FPixelMaterialInputs PixelMaterialInputs;
 	
 #if HQ_TEXTURE_LIGHTMAP && USES_AO_MATERIAL_MASK && !MATERIAL_SHADINGMODEL_UNLIT
@@ -596,6 +602,9 @@ void FPixelShaderInOut_MainPS(
 	ApplyPixelDepthOffsetForBasePass(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, Out.Depth);
 #endif
 
+
+#if !FLEX_FLUID_SURFACE_FACTORY
+
 	//Clip if the blend mode requires it.
 #if !EARLY_Z_PASS_ONLY_MATERIAL_MASKING
 	if(!bEditorWeightedZBuffering)
@@ -607,6 +616,9 @@ void FPixelShaderInOut_MainPS(
 		#endif
 	}
 #endif
+
+#endif // !FLEX_FLUID_SURFACE_FACTORY
+
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
 	half  Metallic = GetMaterialMetallic(PixelMaterialInputs);
@@ -929,6 +941,7 @@ void FPixelShaderInOut_MainPS(
 			
 			Color += DirectionalLighting;
 
+
 		#endif
 	#endif
 
@@ -1016,6 +1029,10 @@ void FPixelShaderInOut_MainPS(
 		}
 	#endif
 
+	#if FLEX_FLUID_SURFACE_FACTORY
+		Out.Depth = GetFlexFluidSurfaceDepth(Interpolants);
+	#endif
+
 	#if USES_GBUFFER
 		GBuffer.IndirectIrradiance = IndirectIrradiance;
 
@@ -1062,6 +1079,7 @@ void FPixelShaderInOut_MainPS(
 	#if GBUFFER_HAS_PRECSHADOWFACTOR
 		Out.MRT[GBUFFER_HAS_VELOCITY ? 6 : 5] = OutGBufferE;
 	#endif
+
 #endif
 }
 

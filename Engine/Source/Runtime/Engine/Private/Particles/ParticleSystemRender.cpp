@@ -1207,8 +1207,8 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				BatchElement.MaxVertexIndex = (ParticleCount * NumVerticesPerParticle) - 1;
 				Mesh.CastShadow = Proxy->GetCastShadow();
 				Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
-
-				if (bIsWireframe)
+				Mesh.bRenderable = !SourceData->bFlexSurface;
+				if ( bIsWireframe )
 				{
 					Mesh.MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(ViewFamily.EngineShowFlags.Selection ? bSelected : false);
 				}

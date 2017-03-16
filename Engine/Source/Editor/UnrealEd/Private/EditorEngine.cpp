@@ -80,6 +80,8 @@
 #include "UnrealEdGlobals.h"
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "PhysicsEngine/FlexActor.h"
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "BSPOps.h"
@@ -88,6 +90,7 @@
 #include "Net/NetworkProfiler.h"
 #include "Interfaces/IPluginManager.h"
 #include "PackageReload.h"
+#include "Engine/CollisionProfile.h"
 
 // needed for the RemotePropagator
 #include "AudioDevice.h"
@@ -3573,6 +3576,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 	const bool bToInteractiveFoliage = ToClass == AInteractiveFoliageActor::StaticClass();
 	const bool bToStaticMesh = ToClass->IsChildOf( AStaticMeshActor::StaticClass() );
 	const bool bToSkeletalMesh = ToClass->IsChildOf(ASkeletalMeshActor::StaticClass());
+	const bool bToFlex = ToClass->IsChildOf(AFlexActor::StaticClass());
 
 	const bool bFoundTarget = bToInteractiveFoliage || bToStaticMesh || bToSkeletalMesh;
 
@@ -3667,6 +3671,13 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					SMActor->RegisterAllComponents();
 					GEditor->SelectActor( SMActor, true, false );
 					Actor = SMActor;
+
+					if (bToFlex)
+					{
+						// always reset collision to default for Flex actors
+						AFlexActor* FlexActor = CastChecked<AFlexActor>(SMActor);
+						FlexActor->GetStaticMeshComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+					}
 				}
 				else if(bToInteractiveFoliage)
 				{
