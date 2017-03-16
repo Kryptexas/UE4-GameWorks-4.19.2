@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "InputCoreTypes.h"
 #include "Templates/SubclassOf.h"
+#include "Templates/Casts.h"
 #include "Engine/EngineBaseTypes.h"
 #include "UObject/GCObject.h"
 #include "EditorWorldExtension.generated.h"

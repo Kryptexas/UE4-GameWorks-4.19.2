@@ -18,6 +18,10 @@ public:
 	{
 	}
 
+	virtual ~FViewportTransformable()
+	{
+	}
+
 	/** Gets the current transform of this object */
 	virtual const FTransform GetTransform() const = 0;
 

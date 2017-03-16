@@ -5,10 +5,10 @@
 #include "SlateTypes.h"
 #include "InputCoreTypes.h"
 #include "Editor.h"
+#include "UnrealWidget.h"
 
 // Forward declarations 
 class UVREditorMode;
-enum ECoordSystem;
 enum class EGizmoHandleTypes : uint8;
 
 /**
