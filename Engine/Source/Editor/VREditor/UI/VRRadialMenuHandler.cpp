@@ -485,7 +485,7 @@ void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<
 		EUserInterfaceActionType::ToggleButton
 		);
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Modes", "Modes Panel"),
+		LOCTEXT("ModesPanel", "Modes Panel"),
 		FText(),
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.ModesPanel"),
 		FUIAction
@@ -633,7 +633,7 @@ void UVRRadialMenuHandler::ToolsMenuGenerator(FMenuBuilder MenuBuilder, TSharedP
 
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("KeepSimulationChanges", "Save Actors"),
+		LOCTEXT("SaveActors", "Save Actors"),
 		FText(),
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.SaveSimulation"),
 		FUIAction

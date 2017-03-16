@@ -2075,7 +2075,7 @@ TSharedRef<SWidget> UVREditorUISystem::BuildQuickMenuWidget()
 		EUserInterfaceActionType::ToggleButton
 		);
 	InterfaceMenuBuilder.AddMenuEntry(
-		LOCTEXT("Modes", "Modes"),
+		LOCTEXT("LegacyModes", "Modes"),
 		LOCTEXT("ModesTooltip", "Modes"),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Modes"),
 		FUIAction

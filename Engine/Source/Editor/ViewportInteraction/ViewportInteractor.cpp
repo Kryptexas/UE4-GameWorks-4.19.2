@@ -310,7 +310,7 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 												// Capture undo state
 												bSelectionChanged = true;
 												TrackingTransaction.TransCount++;
-												TrackingTransaction.Begin( LOCTEXT( "UndoSelectingActors", "Select Actor" ) );
+												TrackingTransaction.Begin( LOCTEXT( "SelectActor", "Select Actor" ) );
 
 												GEditor->SelectNone( true, true );
 												GEditor->SelectActor( Actor, true, true );
@@ -318,7 +318,7 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 											else if ( SelectionModification == ESelectionModification::Toggle )
 											{
 												TrackingTransaction.TransCount++;
-												TrackingTransaction.Begin( LOCTEXT( "UndoSelectingActors", "Toggle Actor Selection" ) );
+												TrackingTransaction.Begin( LOCTEXT( "ToggleActorSelection", "Toggle Actor Selection" ) );
 
 												GEditor->SelectActor( Actor, !Actor->IsSelected(), true );
 												bSelectionChanged = true;
