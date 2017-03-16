@@ -82,7 +82,7 @@ void AVREditorTeleporter::Init(UVREditorMode* InMode)
 	{
 		UMaterialInterface* RoomSpaceMaterial = AssetContainer.TeleportMaterial;
 		check(RoomSpaceMaterial != nullptr);
-		TeleportMID = UMaterialInstanceDynamic::Create(RoomSpaceMaterial, GetTransientPackage());
+		TeleportMID = UMaterialInstanceDynamic::Create(RoomSpaceMaterial, this);
 		check(TeleportMID != nullptr);
 	}
 

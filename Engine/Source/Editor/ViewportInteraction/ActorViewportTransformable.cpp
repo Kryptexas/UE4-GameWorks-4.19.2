@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorViewportTransformable.h"
+#include "GameFramework/Actor.h"
+#include "Editor.h"
+#include "Editor/EditorEngine.h"
+#include "Components/PrimitiveComponent.h"
 
 
 void FActorViewportTransformable::ApplyTransform( const FTransform& NewTransform, const bool bSweep )

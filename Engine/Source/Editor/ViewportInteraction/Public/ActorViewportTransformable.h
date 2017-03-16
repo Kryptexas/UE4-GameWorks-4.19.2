@@ -3,6 +3,8 @@
 #pragma once
 
 #include "ViewportTransformable.h"
+#include "UObject/WeakObjectPtrTemplates.h"
+#include "UObject/WeakObjectPtr.h"
 
 /**
  * A transformable actor

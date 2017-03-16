@@ -2,8 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+
+
 #include "ViewportTransformer.generated.h"
 
+class UViewportWorldInteraction;
+class UViewportInteractor;
 
 UCLASS( abstract )
 class VIEWPORTINTERACTION_API UViewportTransformer : public UObject
@@ -13,7 +20,7 @@ class VIEWPORTINTERACTION_API UViewportTransformer : public UObject
 public:
 
 	UFUNCTION()
-	virtual void Init( class UViewportWorldInteraction* InitViewportWorldInteraction );
+	virtual void Init( UViewportWorldInteraction* InitViewportWorldInteraction );
 
 	UFUNCTION()
 	virtual void Shutdown();
@@ -34,17 +41,17 @@ public:
 
 	/** When starting to drag */
 	UFUNCTION()
-	virtual void OnStartDragging(class UViewportInteractor* Interactor) {};
+	virtual void OnStartDragging(UViewportInteractor* Interactor) {};
 
 	/** When ending drag */
 	UFUNCTION()
-	virtual void OnStopDragging(class UViewportInteractor* Interactor) {};
+	virtual void OnStopDragging(UViewportInteractor* Interactor) {};
 
 protected:
 
 	/** The viewport world interaction object we're registered with */
 	UPROPERTY()
-	class UViewportWorldInteraction* ViewportWorldInteraction;
+	UViewportWorldInteraction* ViewportWorldInteraction;
 
 };
 

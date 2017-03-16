@@ -10,6 +10,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "MovieScene3DTransformSection.h"
 #include "TimerManager.h"
+#include "Editor.h"
 
 ASequencerMeshTrail::ASequencerMeshTrail()
 	: Super()

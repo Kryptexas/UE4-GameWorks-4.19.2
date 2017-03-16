@@ -2654,7 +2654,7 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 			TransformGizmoActor->OnNewObjectsSelected();
 		}
 
-		const EGizmoHandleTypes GizmoType = GetCurrentGizmoType();
+		const EGizmoHandleTypes CurrentGizmoType = GetCurrentGizmoType();
 		const ECoordSystem GizmoCoordinateSpace = GetTransformGizmoCoordinateSpace();
 
 		GizmoLocalBounds = GizmoSpaceSelectedObjectsBounds;
@@ -2673,7 +2673,7 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 		}
 
 		TransformGizmoActor->UpdateGizmo( 
-			GizmoType, 
+			CurrentGizmoType,
 			GizmoCoordinateSpace, 
 			GizmoToWorld, 
 			GizmoSpaceSelectedObjectsBounds, 

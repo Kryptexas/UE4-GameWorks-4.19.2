@@ -3,6 +3,7 @@
 #include "VREditorMode.h"
 #include "Modules/ModuleManager.h"
 #include "Framework/Application/SlateApplication.h"
+#include "SDockTab.h"
 #include "Engine/EngineTypes.h"
 #include "Components/SceneComponent.h"
 #include "GameFramework/Actor.h"

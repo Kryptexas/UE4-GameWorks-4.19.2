@@ -13,6 +13,7 @@
 class AVREditorDockableWindow;
 class AVREditorFloatingUI;
 class FProxyTabmanager;
+struct FTabId;
 class SColorPicker;
 class SBorder;
 class SButton;

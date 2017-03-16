@@ -5,6 +5,8 @@
 #include "Editor.h"
 #include "ILevelEditor.h"
 #include "LevelEditor.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
 
 /************************************************************************/
 /* UEditorExtension		                                                */

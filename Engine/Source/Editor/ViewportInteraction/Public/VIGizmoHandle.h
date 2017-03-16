@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UnrealWidget.h"
 #include "UObject/ObjectMacros.h"
 #include "Components/SceneComponent.h"
 #include "ViewportInteractionTypes.h"
@@ -11,6 +12,7 @@
 class UMaterialInterface;
 class UStaticMesh;
 enum class EGizmoHandleTypes : uint8;
+class UActorComponent;
 
 USTRUCT()
 struct VIEWPORTINTERACTION_API FGizmoHandle

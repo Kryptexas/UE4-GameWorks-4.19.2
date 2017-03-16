@@ -19,10 +19,6 @@
 #include "GenericPlatform/ICursor.h"
 #include "ViewportWorldInteraction.generated.h"
 
-
-class IViewportInteractableInterface;
-class UViewportInteractor;
-
 namespace ViewportWorldActionTypes
 {
 	static const FName NoAction( "NoAction" );
@@ -38,7 +34,6 @@ namespace ViewportWorldActionTypes
 enum class EGizmoHandleTypes : uint8;
 class IViewportInteractableInterface;
 class UViewportInteractor;
-
 
 UCLASS()
 class VIEWPORTINTERACTION_API UViewportWorldInteraction : public UEditorWorldExtension

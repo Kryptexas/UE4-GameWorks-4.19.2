@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "GameFramework/Actor.h"
+#include "Engine/EngineBaseTypes.h"
 #include "VREditorTeleporter.generated.h"
 
 class UViewportInteractor;

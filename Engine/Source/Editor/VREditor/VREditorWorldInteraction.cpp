@@ -466,8 +466,8 @@ void UVREditorWorldInteraction::PlaceDraggedMaterialOrTexture( UViewportInteract
 				if( !bPlaced )
 				{
 					const int32 TargetMaterialSlot = -1;	// All materials
-					bool AppliedMaterial = FComponentEditorUtils::AttemptApplyMaterialToComponent( HitComponent, DroppedObjAsMaterial, TargetMaterialSlot );
-					if (AppliedMaterial)
+					bool bAppliedMaterial = FComponentEditorUtils::AttemptApplyMaterialToComponent( HitComponent, DroppedObjAsMaterial, TargetMaterialSlot );
+					if (bAppliedMaterial)
 					{
 						const UVREditorAssetContainer& AssetContainer = Owner->GetAssetContainer();
 						Owner->PlaySound(AssetContainer.DropFromContentBrowserSound, Interactor->GetTransform().GetLocation());

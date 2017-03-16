@@ -478,8 +478,8 @@ const void AVREditorRadialFloatingUI::HighlightSlot(const FVector2D& TrackpadPos
 		{
 			NewArrowScaleFactor = 1.0f;
 		}
-		const FVector Scale = FVector(NewArrowScaleFactor, NewArrowScaleFactor, 2.0f * NewArrowScaleFactor);
-		ArrowMeshComponent->SetRelativeScale3D(Scale);
+		const FVector NewArrowScale = FVector(NewArrowScaleFactor, NewArrowScaleFactor, 2.0f * NewArrowScaleFactor);
+		ArrowMeshComponent->SetRelativeScale3D(NewArrowScale);
 	}
 	else
 	{

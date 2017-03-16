@@ -21,6 +21,10 @@ class AActor;
 class FEditorViewportClient;
 class SLevelViewport;
 enum class EAutoKeyMode : uint8;
+class UStaticMesh;
+class UStaticMeshComponent;
+class USoundBase;
+class UMaterialInterface;
 
 // Forward declare the GizmoHandleTypes that is defined in VIBaseTransformGizmo.h
 enum class EGizmoHandleTypes : uint8;

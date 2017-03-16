@@ -4,6 +4,7 @@
 #include "SceneView.h"
 #include "EditorViewportClient.h"
 #include "ViewportWorldInteraction.h"
+#include "Editor.h"
 
 
 UMouseCursorInteractor::UMouseCursorInteractor( const FObjectInitializer& Initializer ) 

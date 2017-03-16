@@ -3,6 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineBaseTypes.h"
 #include "UObject/GCObject.h"
 #include "EditorWorldExtension.generated.h"
 
@@ -10,6 +13,9 @@ struct FWorldContext;
 class UEditorWorldExtensionCollection;
 class UEditorWorldExtensionManager;
 class UEditorWorldExtension;
+class FViewport;
+class AActor;
+class FEditorViewportClient;
 
 UCLASS()
 class UNREALED_API UEditorWorldExtension : public UObject

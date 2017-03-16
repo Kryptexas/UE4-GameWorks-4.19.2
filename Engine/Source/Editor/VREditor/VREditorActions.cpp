@@ -29,6 +29,8 @@
 #include "Engine/Selection.h"
 #include "VREditorMotionControllerInteractor.h"
 #include "LevelEditorActions.h"
+#include "UObjectIterator.h"
+#include "Factories/Factory.h"
 
 #define LOCTEXT_NAMESPACE "VREditorActions"
 

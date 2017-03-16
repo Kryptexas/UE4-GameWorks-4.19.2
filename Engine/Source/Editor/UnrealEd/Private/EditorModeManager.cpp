@@ -21,6 +21,8 @@
 #include "EditorWorldExtension.h"
 #include "ViewportWorldInteraction.h"
 #include "Editor/EditorEngine.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
 
 /*------------------------------------------------------------------------------
 	FEditorModeTools.

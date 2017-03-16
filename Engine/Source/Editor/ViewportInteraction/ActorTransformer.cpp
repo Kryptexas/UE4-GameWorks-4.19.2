@@ -6,6 +6,7 @@
 #include "Engine/Selection.h"
 #include "ViewportInteractionAssetContainer.h"
 #include "ViewportInteractor.h"
+#include "Editor.h"
 
 void UActorTransformer::Init( UViewportWorldInteraction* InitViewportWorldInteraction )
 {

@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GameFramework/Actor.h"
 #include "SequencerMeshTrail.generated.h"
 
 /** Stores time and actor reference for each key Actor on the trail */

@@ -10,6 +10,8 @@
 #include "EditorModeTools.h"
 #include "EditorModeManager.h"
 #include "ModuleManager.h"
+#include "EditorViewportClient.h"
+#include "UnrealClient.h"
 
 ASequencerKeyActor::ASequencerKeyActor()
 	: Super()
