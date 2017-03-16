@@ -803,6 +803,7 @@ namespace AutomationTool
 
 			// Create the output directory
 			DirectoryReference.CreateDirectory(OutputFile.Directory);
+			FileReference.MakeWriteable(OutputFile);
 			Log("Writing {0}...", OutputFile);
 
 			// Parse the engine version

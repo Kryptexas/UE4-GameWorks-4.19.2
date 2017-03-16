@@ -806,6 +806,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			ensure(!Statement.bIsParentContext); //unsupported yet
 			ensure(bCallOnDifferentObject); //unexpected
 			const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
+			EmitterContext.MarkUnconvertedClassAsNecessary(OwnerBPGC);
 			const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::UnspecifiedOrReference, false) : TEXT("this");
 			Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
 		}
@@ -1003,6 +1004,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 					, *FEmitHelper::GetCppName(MinimalBPGC)
 					, *ContextStr
 					, *UnicodeToCPPIdentifier(Term->AssociatedVarProperty->GetName(), false, nullptr));
+				EmitterContext.MarkUnconvertedClassAsNecessary(MinimalBPGC);
 			}
 			else if (!bIsAccessible)
 			{

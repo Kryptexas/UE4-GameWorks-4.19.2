@@ -735,13 +735,13 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 }
 #endif
 
-class APlayerController* UWidget::GetOwningPlayer() const
+APlayerController* UWidget::GetOwningPlayer() const
 {
 	if ( UWidgetTree* WidgetTree = Cast<UWidgetTree>(GetOuter()) )
 	{
 		if ( UUserWidget* UserWidget = Cast<UUserWidget>(WidgetTree->GetOuter()) )
 		{
-			UserWidget->GetOwningPlayer();
+			return UserWidget->GetOwningPlayer();
 		}
 	}
 
@@ -792,11 +792,6 @@ bool UWidget::IsGeneratedName() const
 FString UWidget::GetLabelMetadata() const
 {
 	return TEXT("");
-}
-
-FString UWidget::GetLabel() const
-{
-	return GetLabelText().ToString();
 }
 
 FText UWidget::GetLabelText() const

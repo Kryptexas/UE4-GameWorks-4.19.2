@@ -15,8 +15,9 @@ class IDetailGroup;
 class FCustomChildrenBuilder : public IDetailChildrenBuilder
 {
 public:
-	FCustomChildrenBuilder(TSharedRef<FDetailCategoryImpl> InParentCategory)
+	FCustomChildrenBuilder(TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<IDetailGroup> InParentGroup = nullptr)
 		: ParentCategory( InParentCategory )
+		, ParentGroup(InParentGroup)
 	{}
 	
 	virtual IDetailChildrenBuilder& AddChildCustomBuilder( TSharedRef<class IDetailCustomNodeBuilder> InCustomBuilder ) override;
@@ -25,7 +26,8 @@ public:
 	virtual IDetailPropertyRow& AddChildProperty( TSharedRef<IPropertyHandle> PropertyHandle ) override;
 	virtual TArray<TSharedPtr<IPropertyHandle>> AddChildStructure( TSharedRef<FStructOnScope> ChildStructure ) override;
 	virtual TSharedRef<SWidget> GenerateStructValueWidget( TSharedRef<IPropertyHandle> StructPropertyHandle ) override;
-	virtual IDetailCategoryBuilder& GetParentCategory() override;
+	virtual IDetailCategoryBuilder& GetParentCategory() const override;
+	virtual IDetailGroup* GetParentGroup() const override;
 
 	const TArray< FDetailLayoutCustomization >& GetChildCustomizations() const { return ChildCustomizations; }
 
@@ -35,6 +37,7 @@ public:
 private:
 	TArray< FDetailLayoutCustomization > ChildCustomizations;
 	TWeakPtr<FDetailCategoryImpl> ParentCategory;
+	TWeakPtr<IDetailGroup> ParentGroup;
 
 	/** User customized reset to default on children */
 	TOptional<FResetToDefaultOverride> CustomResetChildToDefault;

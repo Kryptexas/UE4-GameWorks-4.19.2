@@ -12,7 +12,6 @@
 #include "UObject/Linker.h"
 #include "Internationalization/InternationalizationManifest.h"
 #include "Internationalization/InternationalizationArchive.h"
-#include "Commandlets/GatherTextCommandletBase.h"
 #include "Templates/ScopedPointer.h"
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "Engine/UserDefinedStruct.h"
@@ -20,6 +19,8 @@
 #include "Serialization/JsonInternationalizationArchiveSerializer.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
 #include "UniquePtr.h"
+#include "LocalizedAssetUtil.h"
+#include "LocalizationSourceControlUtil.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStabilizeLocalizationKeys, Log, All);
 
@@ -199,11 +200,11 @@ int32 UStabilizeLocalizationKeysCommandlet::Main(const FString& Params)
 	TMap<FString, FString> Parameters;
 	UCommandlet::ParseCommandLine(*Params, Tokens, Switches, Parameters);
 
-	TSharedPtr<FGatherTextSCC> SourceControlInfo;
+	TSharedPtr<FLocalizationSCC> SourceControlInfo;
 	const bool bEnableSourceControl = Switches.Contains(TEXT("EnableSCC"));
 	if (bEnableSourceControl)
 	{
-		SourceControlInfo = MakeShareable(new FGatherTextSCC());
+		SourceControlInfo = MakeShareable(new FLocalizationSCC());
 
 		FText SCCErrorStr;
 		if (!SourceControlInfo->IsReady(SCCErrorStr))

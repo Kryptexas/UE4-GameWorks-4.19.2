@@ -92,6 +92,12 @@ public:
 		Ar << SubclassOf.Class;
 		return Ar;
 	}
+
+	friend uint32 GetTypeHash(const TSubclassOf& SubclassOf)
+	{
+		return GetTypeHash(SubclassOf.Class);
+	}
+
 private:
 	UClass* Class;
 };

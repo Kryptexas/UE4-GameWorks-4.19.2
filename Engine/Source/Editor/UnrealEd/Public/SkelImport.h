@@ -131,6 +131,17 @@ private:
 	TArray<FSavedCustomSortSectionInfo> SortSectionInfos;
 };
 
+struct ExistingMeshLodSectionData
+{
+	ExistingMeshLodSectionData(FName InImportedMaterialSlotName, bool InbCastShadow, bool InbRecomputeTangents)
+	: ImportedMaterialSlotName(InImportedMaterialSlotName)
+	, bCastShadow(InbCastShadow)
+	, bRecomputeTangents(InbRecomputeTangents)
+	{}
+	FName ImportedMaterialSlotName;
+	bool bCastShadow;
+	bool bRecomputeTangents;
+};
 
 struct ExistingSkelMeshData
 {
@@ -157,6 +168,14 @@ struct ExistingSkelMeshData
 	TWeakObjectPtr<UThumbnailInfo>			ExistingThumbnailInfo;
 
 	TArray<UClothingAssetBase*>				ExistingClothingAssets;
+
+	bool UseMaterialNameSlotWorkflow;
+	//The existing import material data (the state of sections before the reimport)
+	TArray<FName> ExistingImportMaterialOriginalNameData;
+	TArray<TArray<ExistingMeshLodSectionData>> ExistingImportMeshLodSectionMaterialData;
+	//The last import material data (fbx original data before user changes)
+	TArray<FName> LastImportMaterialOriginalNameData;
+	TArray<TArray<FName>> LastImportMeshLodSectionMaterialData;
 };
 
 /**

@@ -778,6 +778,7 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 
 	// Some simple weight figures to help find the most appropriate match	
 	const int32 WholeMatchWeightMultiplier = 2;
+	const int32 WholeMatchLocalizedWeightMultiplier = 3;
 	const int32 DescriptionWeight = 10;
 	const int32 CategoryWeight = 1;
 	const int32 NodeTitleWeight = 1;
@@ -807,8 +808,20 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		// and keywords, so we only need to use the first one for filtering.
 		const FString& SearchText = InCurrentAction.GetSearchTextForFirstAction();
 
+		// First the localized keywords
+		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetLocalizedSearchKeywordsArrayForFirstAction(), KeywordWeight));
+
+		// The localized description
+		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetLocalizedMenuDescriptionArrayForFirstAction(), DescriptionWeight));
+
+		// The node search localized title weight
+		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetLocalizedSearchTitleArrayForFirstAction(), NodeTitleWeight));
+
+		// The localized category
+		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetLocalizedSearchCategoryArrayForFirstAction(), CategoryWeight));
+
 		// First the keywords
-		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetSearchKeywordsArrayForFirstAction(), KeywordWeight));
+		int32 NonLocalizedFirstIndex = WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetSearchKeywordsArrayForFirstAction(), KeywordWeight));
 
 		// The description
 		WeightedArrayList.Add(FArrayWithWeight(&InCurrentAction.GetMenuDescriptionArrayForFirstAction(), DescriptionWeight));
@@ -841,6 +854,8 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 				const TArray<FString>& KeywordArray = *WeightedArrayList[iFindCount].Array;
 				int32 EachWeight = WeightedArrayList[iFindCount].Weight;
 				int32 WholeMatchCount = 0;
+				int32 WholeMatchMultiplier = (iFindCount < NonLocalizedFirstIndex) ? WholeMatchLocalizedWeightMultiplier : WholeMatchWeightMultiplier;
+
 				for (int32 iEachWord = 0; iEachWord < KeywordArray.Num() ; iEachWord++)
 				{
 					// If we get an exact match weight the find count to get exact matches higher priority
@@ -848,7 +863,7 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 					{
 						if (iEachWord == 0)
 						{
-							WeightPerList += EachWeight * WholeMatchWeightMultiplier;
+							WeightPerList += EachWeight * WholeMatchMultiplier;
 						}
 						else
 						{
@@ -864,7 +879,7 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 					{
 						if (iEachWord == 0)
 						{
-							WeightPerList += EachWeight * WholeMatchWeightMultiplier;
+							WeightPerList += EachWeight * WholeMatchMultiplier;
 						}
 						else
 						{

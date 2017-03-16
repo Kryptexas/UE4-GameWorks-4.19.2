@@ -189,10 +189,19 @@ void SBlueprintRevisionMenu::OnSourceControlQueryComplete(const FSourceControlOp
 
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("CheckInNumber"), FText::AsNumber(Revision->GetCheckInIdentifier(), NULL, I18N.GetInvariantCulture()));
+					Args.Add(TEXT("Revision"), FText::FromString(Revision->GetRevision()));
 					Args.Add(TEXT("UserName"), FText::FromString(Revision->GetUserName()));
 					Args.Add(TEXT("DateTime"), FText::AsDate(Revision->GetDate()));
 					Args.Add(TEXT("ChanglistDescription"), FText::FromString(Revision->GetDescription()));
-					const FText ToolTipText = FText::Format(LOCTEXT("RevisionToolTip", "CL #{CheckInNumber} {UserName} \n{DateTime} \n{ChanglistDescription}"), Args);
+					FText ToolTipText;
+					if (ISourceControlModule::Get().GetProvider().UsesChangelists())
+					{
+						ToolTipText = FText::Format(LOCTEXT("RevisionToolTip", "CL #{CheckInNumber} {UserName} \n{DateTime} \n{ChanglistDescription}"), Args);
+					}
+					else
+					{
+						ToolTipText = FText::Format(LOCTEXT("RevisionToolTip", "{Revision} {UserName} \n{DateTime} \n{ChanglistDescription}"), Args);
+					}
 
 					if (LatestRevision == Revision->GetRevisionNumber())
 					{

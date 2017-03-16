@@ -272,17 +272,10 @@ public:
 	static void AddReferencedObjects( FReferenceCollector& Collector, TArray<T*>& ItemsWithGeneratedWidgets, TSet<T*>& SelectedItems )
 	{
 		// Serialize generated items
-		const int32 NumGeneratedWidgets = ItemsWithGeneratedWidgets.Num();
-		for ( int32 ItemIndex = 0; ItemIndex < NumGeneratedWidgets; ++ItemIndex )
-		{
-			Collector.AddReferencedObject( ItemsWithGeneratedWidgets[ ItemIndex ] );
-		}
+		Collector.AddReferencedObjects(ItemsWithGeneratedWidgets);
 
 		// Serialize the selected items
-		for ( typename TSet<T*>::TIterator SelecteItemIt( SelectedItems ); SelecteItemIt; ++SelecteItemIt )
-		{
-			Collector.AddReferencedObject( *SelecteItemIt );
-		}
+		Collector.AddReferencedObjects(SelectedItems);
 	}
 
 	static bool IsPtrValid( T* InPtr ) { return InPtr != NULL; }
@@ -305,17 +298,10 @@ public:
 	static void AddReferencedObjects( FReferenceCollector& Collector, TArray<const T*>& ItemsWithGeneratedWidgets, TSet<const T*>& SelectedItems )
 	{
 		// Serialize generated items
-		const int32 NumGeneratedWidgets = ItemsWithGeneratedWidgets.Num();
-		for ( int32 ItemIndex = 0; ItemIndex < NumGeneratedWidgets; ++ItemIndex )
-		{
-			Collector.AddReferencedObject( ItemsWithGeneratedWidgets[ ItemIndex ] );
-		}
+		Collector.AddReferencedObjects(ItemsWithGeneratedWidgets);
 
 		// Serialize the selected items
-		for ( typename TSet<const T*>::TIterator SelecteItemIt( SelectedItems ); SelecteItemIt; ++SelecteItemIt )
-		{
-			Collector.AddReferencedObject( *SelecteItemIt );
-		}
+		Collector.AddReferencedObjects(SelectedItems);
 	}
 
 	static bool IsPtrValid( const T* InPtr ) { return InPtr != NULL; }

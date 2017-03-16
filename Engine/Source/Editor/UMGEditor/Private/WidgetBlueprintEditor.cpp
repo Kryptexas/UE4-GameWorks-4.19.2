@@ -470,8 +470,33 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode, UProperty* MemberProperty, bool bIsModify)
 {
 	UProperty* CurrentProperty = PropertyChainNode->GetValue();
+	FEditPropertyChain::TDoubleLinkedListNode* NextNode = PropertyChainNode->GetNextNode();
 
-	if ( PropertyChainNode->GetNextNode() == nullptr )
+	if ( !ensure(SourceObject && DestinationObject) )
+	{
+		return false;
+	}
+
+	ensure(SourceObject->GetClass() == DestinationObject->GetClass());
+
+	// If the current property is an array, map or set, short-circuit current progress so that we copy the whole container.
+	if ( Cast<UArrayProperty>(CurrentProperty) || Cast<UMapProperty>(CurrentProperty) || Cast<USetProperty>(CurrentProperty) )
+	{
+		NextNode = nullptr;
+	}
+
+	if ( UObjectProperty* CurrentObjectProperty = Cast<UObjectProperty>(CurrentProperty) )
+	{
+		UObject* NewSourceObject = CurrentObjectProperty->GetObjectPropertyValue_InContainer(SourceObject);
+		UObject* NewDestionationObject = CurrentObjectProperty->GetObjectPropertyValue_InContainer(DestinationObject);
+
+		if ( NewSourceObject == nullptr || NewDestionationObject == nullptr )
+		{
+			NextNode = nullptr;
+		}
+	}
+	
+	if ( NextNode == nullptr )
 	{
 		if (bIsModify)
 		{
@@ -494,18 +519,17 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 			return FObjectEditorUtils::MigratePropertyValue(SourceObject, MemberProperty, DestinationObject, MemberProperty);
 		}
 	}
-	
+
 	if ( UObjectProperty* CurrentObjectProperty = Cast<UObjectProperty>(CurrentProperty) )
 	{
-		// Get the property addresses for the source and destination objects.
-		UObject* SourceObjectProperty = CurrentObjectProperty->GetObjectPropertyValue(CurrentObjectProperty->ContainerPtrToValuePtr<void>(SourceObject));
-		UObject* DestionationObjectProperty = CurrentObjectProperty->GetObjectPropertyValue(CurrentObjectProperty->ContainerPtrToValuePtr<void>(DestinationObject));
+		UObject* NewSourceObject = CurrentObjectProperty->GetObjectPropertyValue_InContainer(SourceObject);
+		UObject* NewDestionationObject = CurrentObjectProperty->GetObjectPropertyValue_InContainer(DestinationObject);
 
-		return MigratePropertyValue(SourceObjectProperty, DestionationObjectProperty, PropertyChainNode->GetNextNode(), PropertyChainNode->GetNextNode()->GetValue(), bIsModify);
+		return MigratePropertyValue(NewSourceObject, NewDestionationObject, NextNode, NextNode->GetValue(), bIsModify);
 	}
 
 	// ExportText/ImportText works on all property types
-	return MigratePropertyValue(SourceObject, DestinationObject, PropertyChainNode->GetNextNode(), MemberProperty, bIsModify);
+	return MigratePropertyValue(SourceObject, DestinationObject, NextNode, MemberProperty, bIsModify);
 }
 
 void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
@@ -838,7 +862,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 
 			// Update the widget tree directly to match the blueprint tree.  That way the preview can update
 			// without needing to do a full recompile.
-			PreviewActor->WidgetTree = (UWidgetTree*)StaticDuplicateObject(LatestWidgetTree, PreviewActor, NAME_None, RF_Transactional);
+			PreviewActor->WidgetTree = (UWidgetTree*)StaticDuplicateObject(LatestWidgetTree, PreviewActor, NAME_None, RF_Transient | RF_Transactional);
 
 			if ( ULocalPlayer* Player = PreviewScene.GetWorld()->GetFirstLocalPlayerFromController() )
 			{

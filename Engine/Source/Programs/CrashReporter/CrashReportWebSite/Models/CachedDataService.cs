@@ -6,6 +6,7 @@ using System.Linq;
 using System.Web.Caching;
 using Tools.CrashReporter.CrashReportWebSite.DataModels;
 using Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories;
+using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
@@ -70,14 +71,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// </summary>
 		/// <param name="currentCrash">The Crash to retrieve the parsed callstack for.</param>
 		/// <returns>A parsed callstack.</returns>
-		public DataModels.CallStackContainer GetCallStackFast( Crash currentCrash )
+        public CallStackContainer GetCallStackFast(CrashDataModel currentCrash)
 		{
 			using( var logTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + currentCrash.Id + ")" ) )
 			{
 				var key = CacheKeyPrefix + CallstackKeyPrefix + currentCrash.Id;
 				var callStack = (CallStackContainer)CacheInstance[key];
 			    if (callStack != null) return callStack;
-			    callStack = new CallStackContainer( currentCrash );
+			    callStack = new CallStackContainer( currentCrash.CrashType, currentCrash.RawCallStack, currentCrash.PlatformName );
 			    callStack.bDisplayFunctionNames = true;
 			    CacheInstance.Insert( key, callStack );
 

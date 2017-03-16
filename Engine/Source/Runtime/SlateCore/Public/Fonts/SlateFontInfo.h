@@ -71,17 +71,13 @@ struct SLATECORE_API FFontOutlineSettings
 	bool operator==(const FFontOutlineSettings& Other) const
 	{
 		return OutlineSize == Other.OutlineSize
-			&& OutlineMaterial == Other.OutlineMaterial
-			&& OutlineColor == Other.OutlineColor
 			&& bSeparateFillAlpha == Other.bSeparateFillAlpha;
 	}
 
 	friend inline uint32 GetTypeHash(const FFontOutlineSettings& OutlineSettings)
 	{
 		uint32 Hash = 0;
-		Hash = HashCombine(Hash, GetTypeHash(OutlineSettings.OutlineMaterial));
 		Hash = HashCombine(Hash, GetTypeHash(OutlineSettings.OutlineSize));
-		Hash = HashCombine(Hash, GetTypeHash(OutlineSettings.OutlineColor));
 		Hash = HashCombine(Hash, GetTypeHash(OutlineSettings.bSeparateFillAlpha));
 		return Hash;
 	}
@@ -116,7 +112,11 @@ struct SLATECORE_API FSlateFontInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(DisplayName="Font"))
 	FName TypefaceFontName;
 
-	/** The size of the font */
+	/**
+	 * The font size is a measure in point values.  The conversion of points to Slate Units is done at 96 dpi.  So if 
+	 * you're using a tool like Photoshop to prototype layouts and UI mock ups, be sure to change the default dpi 
+	 * measurements from 72 dpi to 96 dpi.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(UIMin=1, UIMax=1000, ClampMin=1, ClampMax=1000))
 	int32 Size;
 

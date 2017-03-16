@@ -27,15 +27,22 @@
 #include "Logging/MessageLog.h"
 #endif
 
-namespace AutomationControllerConstants
-{
-	const FString HistoryConfigSectionName = TEXT("AutomationController.History");
-}
-
 FAutomationControllerManager::FAutomationControllerManager()
 {
-	FParse::Value(FCommandLine::Get(), TEXT("ReportOutputPath="), ReportOutputPathOverride, false);
 	CheckpointFile = nullptr;
+
+	if ( !FParse::Value(FCommandLine::Get(), TEXT("ReportOutputPath="), ReportOutputPath, false) )
+	{
+		if ( FParse::Value(FCommandLine::Get(), TEXT("DeveloperReportOutputPath="), ReportOutputPath, false) )
+		{
+			ReportOutputPath = ReportOutputPath / TEXT("dev") / FString(FPlatformProcess::UserName()).ToLower();
+		}
+	}
+
+	if ( FParse::Value(FCommandLine::Get(), TEXT("DeveloperReportUrl="), DeveloperReportUrl, false) )
+	{
+		DeveloperReportUrl = DeveloperReportUrl / TEXT("dev") / FString(FPlatformProcess::UserName()).ToLower() / TEXT("index.html");
+	}
 }
 
 void FAutomationControllerManager::RequestAvailableWorkers(const FGuid& SessionId)
@@ -51,6 +58,8 @@ void FAutomationControllerManager::RequestAvailableWorkers(const FGuid& SessionI
 
 	//store off active session ID to reject messages that come in from different sessions
 	ActiveSessionId = SessionId;
+
+	//EAutomationTestFlags::FilterMask
 
 	//TODO AUTOMATION - include change list, game, etc, or remove when launcher is integrated
 	int32 ChangelistNumber = 10000;
@@ -168,14 +177,6 @@ void FAutomationControllerManager::Init()
 	bTestResultsAvailable = false;
 	bScreenshotsEnabled = true;
 	bSendAnalytics = FParse::Param(FCommandLine::Get(), TEXT("SendAutomationAnalytics"));
-
-	// Update the ini with the settings
-	bTrackHistory = false;
-	GConfig->GetBool(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("bTrackHistory"), bTrackHistory, GEngineIni);
-
-	// Default num of items to track
-	NumberOfHistoryItemsTracked = 5;
-	GConfig->GetInt(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("NumberOfHistoryItemsTracked"), NumberOfHistoryItemsTracked, GEngineIni);
 }
 
 void FAutomationControllerManager::RequestLoadAsset(const FString& InAssetName)
@@ -201,34 +202,34 @@ void FAutomationControllerManager::ProcessComparisonQueue()
 
 			FImageComparisonResult Result = Entry->PendingComparison.Get();
 
-			const bool bIsNew = Result.IsNew();
-			const bool bAreSimilar = Result.AreSimilar();
-
-			// Issue tests on appropriate platforms
-			MessageEndpoint->Send(new FAutomationWorkerImageComparisonResults(bIsNew, bAreSimilar), Entry->Sender);
-
-			// Record the metadata for the test that needed the screenshots compared.
-			for ( int32 Index = 0; Index < TestRunningArray.Num(); Index++ )
+			// Send the message back to the automation worker letting it know the results of the comparison test.
 			{
-				// Find the game session instance info
-				int32 ClusterIndex;
-				int32 DeviceIndex;
-				verify(DeviceClusterManager.FindDevice(Entry->Sender, ClusterIndex, DeviceIndex));
+				FAutomationWorkerImageComparisonResults* Message = new FAutomationWorkerImageComparisonResults(
+					Result.IsNew(), Result.AreSimilar(), Result.MaxLocalDifference, Result.GlobalDifference, Result.ErrorMessage.ToString());
 
-				TSharedPtr<IAutomationReport> Report = DeviceClusterManager.GetTest(ClusterIndex, DeviceIndex);
-				check(Report.IsValid());
-
-				FString ApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
-				FString UnapprovedFolder = ScreenshotManager->GetLocalUnapprovedFolder();
-				FString ComparisonFolder = ScreenshotManager->GetLocalComparisonFolder();
-
-				TArray<FString> Files;
-				Files.Add(ApprovedFolder / Result.ApprovedFile);
-				Files.Add(UnapprovedFolder / Result.IncomingFile);
-				Files.Add(ComparisonFolder / Result.ComparisonFile);
-
-				Report->AddArtifact(ClusterIndex, CurrentTestPass, FAutomationArtifact(Entry->Name, EAutomationArtifactType::Comparison, Files));
+				MessageEndpoint->Send(Message, Entry->Sender);
 			}
+
+			// Find the game session instance info
+			int32 ClusterIndex;
+			int32 DeviceIndex;
+			verify(DeviceClusterManager.FindDevice(Entry->Sender, ClusterIndex, DeviceIndex));
+
+			// Get the current test.
+			TSharedPtr<IAutomationReport> Report = DeviceClusterManager.GetTest(ClusterIndex, DeviceIndex);
+			check(Report.IsValid());
+
+			// Record the artifacts for the test.
+			FString ApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
+			FString UnapprovedFolder = ScreenshotManager->GetLocalUnapprovedFolder();
+			FString ComparisonFolder = ScreenshotManager->GetLocalComparisonFolder();
+
+			TMap<FString, FString> LocalFiles;
+			LocalFiles.Add(TEXT("approved"), ApprovedFolder / Result.ApprovedFile);
+			LocalFiles.Add(TEXT("unapproved"), UnapprovedFolder / Result.IncomingFile);
+			LocalFiles.Add(TEXT("difference"), ComparisonFolder / Result.ComparisonFile);
+
+			Report->AddArtifact(ClusterIndex, CurrentTestPass, FAutomationArtifact(Entry->Name, EAutomationArtifactType::Comparison, LocalFiles));
 		}
 	}
 }
@@ -275,70 +276,58 @@ void FAutomationControllerManager::ProcessAvailableTasks()
 void FAutomationControllerManager::ReportTestResults()
 {
 	GLog->Logf(TEXT("Test Pass Results:"));
-	for ( int32 i = 0; i < OurPassResults.TestInformation.Num(); i++ )
+	for ( int32 i = 0; i < OurPassResults.Tests.Num(); i++ )
 	{
-		GLog->Logf(TEXT("%s: %s"), *OurPassResults.TestInformation[i].TestDisplayName, ToString(OurPassResults.TestInformation[i].State));
+		GLog->Logf(TEXT("%s: %s"), *OurPassResults.Tests[i].TestDisplayName, ToString(OurPassResults.Tests[i].State));
 	}
 }
 
 void FAutomationControllerManager::CollectTestResults(TSharedPtr<IAutomationReport> Report, const FAutomationTestResults& Results)
 {
 	// TODO This is slow, change to a map.
-	for ( int32 i = 0; i < OurPassResults.TestInformation.Num(); i++ )
+	for ( int32 i = 0; i < OurPassResults.Tests.Num(); i++ )
 	{
-		FAutomatedTestResult& ReportResult = OurPassResults.TestInformation[i];
+		FAutomatedTestResult& ReportResult = OurPassResults.Tests[i];
 		if ( ReportResult.FullTestPath == Report->GetFullTestPath() )
 		{
-			ReportResult.Logs = Results.Logs;
-			ReportResult.Warnings = Results.Warnings;
-			for ( int j = 0; j < Results.Errors.Num(); j++ )
-			{
-				ReportResult.Errors.Add(Results.Errors[j].Message);
-			}
-
+			ReportResult.SetEvents(Results.GetEvents(), Results.GetWarningTotal(), Results.GetErrorTotal());
 			ReportResult.State = Results.State;
 			ReportResult.Artifacts = Results.Artifacts;
 
 			switch ( Results.State )
 			{
 			case EAutomationState::Success:
-				OurPassResults.NumSucceeded++;
+				if ( Results.GetWarningTotal() > 0 )
+				{
+					OurPassResults.SucceededWithWarnings++;
+				}
+				else
+				{
+					OurPassResults.Succeeded++;
+				}
 				break;
 			case EAutomationState::Fail:
-				OurPassResults.NumFailed++;
+				OurPassResults.Failed++;
 				break;
 			default:
-				OurPassResults.NumNotRun++;
+				OurPassResults.NotRun++;
 				break;
 			}
+
+			OurPassResults.TotalDuration += Results.Duration;
 
 			return;
 		}
 	}
 }
 
-void FAutomationControllerManager::GenerateJsonTestPassSummary(FDateTime Timestamp)
+void FAutomationControllerManager::GenerateJsonTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp)
 {
-	if (!OurPassResults.TestInformation.Num())
+	FString Json;
+	if ( FJsonObjectConverter::UStructToJsonObjectString(SerializedPassResults, Json) )
 	{
-		return;
-	}
-
-	const FAutomatedTestPassResults SerializedPassResults = OurPassResults;
-	TSharedPtr<FJsonObject> ReportJson = FJsonObjectConverter::UStructToJsonObject(SerializedPassResults);
-	if (ReportJson.IsValid())
-	{
-		FString ReportOutputPath = GetReportPath(Timestamp);
-
 		FString ReportFileName = FString::Printf(TEXT("%s/index.json"), *ReportOutputPath);
-		FArchive* ReportFileWriter = IFileManager::Get().CreateFileWriter(*ReportFileName);
-		if (ReportFileWriter != nullptr)
-		{
-			TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(ReportFileWriter, 0);
-			FJsonSerializer::Serialize(ReportJson.ToSharedRef(), JsonWriter);
-
-			delete ReportFileWriter;
-		}
+		FFileHelper::SaveStringToFile(Json, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8);
 	}
 	else
 	{
@@ -346,167 +335,54 @@ void FAutomationControllerManager::GenerateJsonTestPassSummary(FDateTime Timesta
 	}
 }
 
-void FAutomationControllerManager::GenerateHtmlTestPassSummary(FDateTime Timestamp)
+void FAutomationControllerManager::GenerateHtmlTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp)
 {
-	if ( !OurPassResults.TestInformation.Num() )
+	FString ReportTemplate;
+	const bool bLoadedResult = FFileHelper::LoadFileToString(ReportTemplate, *( FPaths::EngineContentDir() / TEXT("Automation/Report-Template.html") ));
+
+	if ( bLoadedResult )
 	{
-		return;
-	}
-
-	FString ReportOutputPath = GetReportPath(Timestamp);
-	FScreenshotExportResults ExportResults = ScreenshotManager->ExportComparisonResultsAsync(ReportOutputPath).Get();
-
-	FAutomatedTestPassResults SerializedPassResults = OurPassResults;
-	SerializedPassResults.TestInformation.StableSort([] (const FAutomatedTestResult& A, const FAutomatedTestResult& B) {
-		if ( A.Errors.Num() > 0 )
-		{
-			if ( B.Errors.Num() > 0 )
-				return ( A.TestDisplayName < B.TestDisplayName );
-			else
-				return true;
-		}
-		else if ( B.Errors.Num() > 0 )
-		{
-			return false;
-		}
-
-		if ( A.Warnings.Num() > 0 )
-		{
-			if ( B.Warnings.Num() > 0 )
-				return ( A.TestDisplayName < B.TestDisplayName );
-			else
-				return true;
-		}
-		else if ( B.Warnings.Num() > 0 )
-		{
-			return false;
-		}
-
-		return A.TestDisplayName < B.TestDisplayName;
-	});
-
-	FString MasterTemplate, ResultTemplate, LogTemplate, ArtifactCompareTemplate, ArtifactImageTemplate;
-	const bool bLoadedMaster = FFileHelper::LoadFileToString(MasterTemplate, *( FPaths::EngineContentDir() / TEXT("Automation/Report-Master-Template.html") ));
-	const bool bLoadedResult = FFileHelper::LoadFileToString(ResultTemplate, *( FPaths::EngineContentDir() / TEXT("Automation/Report-Result-Template.html") ));
-	const bool bLoadedLog = FFileHelper::LoadFileToString(LogTemplate, *( FPaths::EngineContentDir() / TEXT("Automation/Report-Log-Template.html") ));
-	const bool bLoadedCompareArtifact = FFileHelper::LoadFileToString(ArtifactCompareTemplate, *( FPaths::EngineContentDir() / TEXT("Automation/Report-Artifact-Compare-Template.html") ));
-	const bool bLoadedImageArtifact = FFileHelper::LoadFileToString(ArtifactImageTemplate, *( FPaths::EngineContentDir() / TEXT("Automation/Report-Artifact-Image-Template.html") ));
-	check(bLoadedMaster && bLoadedResult && bLoadedLog && bLoadedCompareArtifact && bLoadedImageArtifact);
-
-	FString ReportState = TEXT("success");
-	FString ReportIcon = TEXT("heartbeat");
-	if ( SerializedPassResults.TestInformation.Num() > 0 )
-	{
-		const FAutomatedTestResult& FirstTest = SerializedPassResults.TestInformation[0];
-		if ( FirstTest.Errors.Num() > 0 )
-		{
-			ReportState = TEXT("error");
-			ReportIcon = TEXT("bomb");
-		}
-		else if ( FirstTest.Warnings.Num() > 0 )
-		{
-			ReportState = TEXT("warning");
-			ReportIcon = TEXT("exclamation-triangle");
-		}
-	}
-
-	FString HtmlResults;
-	for ( const FAutomatedTestResult& Test : SerializedPassResults.TestInformation )
-	{
-		FString TestState = Test.Errors.Num() > 0 ? TEXT("error") : Test.Warnings.Num() > 0 ? TEXT("warning") : TEXT("success");
-
-		FString Logs = TEXT("");
-
-		for ( const FString& LogItem : Test.Errors )
-		{
-			TMap<FString, FStringFormatArg> Args;
-			Args.Add(TEXT("Statement"), FPlatformHttp::HtmlEncode(LogItem));
-			Logs += FString::Format(*LogTemplate, Args);
-		}
-
-		for ( const FString& LogItem : Test.Warnings )
-		{
-			TMap<FString, FStringFormatArg> Args;
-			Args.Add(TEXT("Statement"), FPlatformHttp::HtmlEncode(LogItem));
-			Logs += FString::Format(*LogTemplate, Args);
-		}
-
-		for ( const FString& LogItem : Test.Logs )
-		{
-			TMap<FString, FStringFormatArg> Args;
-			Args.Add(TEXT("Statement"), FPlatformHttp::HtmlEncode(LogItem));
-			Logs += FString::Format(*LogTemplate, Args);
-		}
-
-		for ( const FAutomationArtifact& Artifact : Test.Artifacts )
-		{
-			if ( Artifact.Type == EAutomationArtifactType::Comparison )
-			{
-				TMap<FString, FStringFormatArg> Args;
-				Args.Add(TEXT("Name"), FPlatformHttp::HtmlEncode(Artifact.Name));
-				Args.Add(TEXT("Approved"), CopyArtifact(ReportOutputPath, Artifact.FilePaths[0]));
-				Args.Add(TEXT("Unapproved"), CopyArtifact(ReportOutputPath, Artifact.FilePaths[1]));
-				Args.Add(TEXT("Difference"), CopyArtifact(ReportOutputPath, Artifact.FilePaths[2]));
-
-				Logs += FString::Format(*ArtifactCompareTemplate, Args);
-			}
-			else if ( Artifact.Type == EAutomationArtifactType::Image )
-			{
-				TMap<FString, FStringFormatArg> Args;
-				Args.Add(TEXT("Name"), FPlatformHttp::HtmlEncode(Artifact.Name));
-				Args.Add(TEXT("File"), CopyArtifact(ReportOutputPath, Artifact.FilePaths[0]));
-
-				Logs += FString::Format(*ArtifactCompareTemplate, Args);
-			}
-			else
-			{
-				check(false);
-			}
-		}
-
-		{
-			TMap<FString, FStringFormatArg> Args;
-			Args.Add(TEXT("TestState"), TestState);
-			Args.Add(TEXT("TestName"), Test.TestDisplayName);
-			Args.Add(TEXT("TestPath"), Test.FullTestPath);
-			Args.Add(TEXT("Logs"), Logs);
-
-			HtmlResults += FString::Format(*ResultTemplate, Args);
-		}
-	}
-
-	{
-		TMap<FString, FStringFormatArg> Args;
-		Args.Add(TEXT("Title"), TEXT("Automation Test Results"));
-		Args.Add(TEXT("ReportState"), ReportState);
-		Args.Add(TEXT("ReportIcon"), ReportIcon);
-		Args.Add(TEXT("ComparisonExportDirectory"), ExportResults.ExportPath);
-		Args.Add(TEXT("Results"), HtmlResults);
-
-		FString Html = FString::Format(*MasterTemplate, Args);
-
 		FString ReportFileName = FString::Printf(TEXT("%s/index.html"), *ReportOutputPath);
-		if ( !FFileHelper::SaveStringToFile(Html, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
+		if ( !FFileHelper::SaveStringToFile(ReportTemplate, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
 		{
 			GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Html is invalid - report not generated."));
 		}
 	}
+	else
+	{
+		GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Html is invalid - report not generated."));
+	}
+}
+
+FString FAutomationControllerManager::SlugString(const FString& DisplayString) const
+{
+	FString GeneratedName = DisplayString;
+
+	// Convert the display label, which may consist of just about any possible character, into a
+	// suitable name for a UObject (remove whitespace, certain symbols, etc.)
+	{
+		for ( int32 BadCharacterIndex = 0; BadCharacterIndex < ARRAY_COUNT(INVALID_OBJECTNAME_CHARACTERS) - 1; ++BadCharacterIndex )
+		{
+			const TCHAR TestChar[2] = { INVALID_OBJECTNAME_CHARACTERS[BadCharacterIndex], 0 };
+			const int32 NumReplacedChars = GeneratedName.ReplaceInline(TestChar, TEXT(""));
+		}
+	}
+
+	return GeneratedName;
 }
 
 FString FAutomationControllerManager::CopyArtifact(const FString& DestFolder, const FString& SourceFile) const
 {
-	FString AritfactDirectory = FString::Printf(TEXT("ReportArtifacts-%d"), FEngineVersion::Current().GetChangelist());
-
-	FString ArtifactFile = AritfactDirectory / FGuid::NewGuid().ToString(EGuidFormats::Digits) + FPaths::GetExtension(SourceFile, true);
+	FString ArtifactFile = FString(TEXT("artifacts")) / FGuid::NewGuid().ToString(EGuidFormats::Digits) + FPaths::GetExtension(SourceFile, true);
 	FString ArtifactDestination = DestFolder / ArtifactFile;
 	IFileManager::Get().Copy(*ArtifactDestination, *SourceFile, true, true);
 
 	return ArtifactFile;
 }
 
-FString FAutomationControllerManager::GetReportPath(FDateTime Timestamp) const
+FString FAutomationControllerManager::GetReportOutputPath() const
 {
-	return ReportOutputPathOverride.IsEmpty() ? FString::Printf(TEXT("%s/Report-%d-%s"), *FPaths::AutomationLogDir(), FEngineVersion::Current().GetChangelist(), *Timestamp.ToString()) : ReportOutputPathOverride;
+	return ReportOutputPath;
 }
 
 void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool& bAllTestsCompleted )
@@ -539,7 +415,7 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 					tempresult.TestDisplayName = NextTest->GetDisplayName();
 					tempresult.FullTestPath = NextTest->GetFullTestPath();
 
-					OurPassResults.TestInformation.Add(tempresult);
+					OurPassResults.Tests.Add(tempresult);
 
 					// If we now have enough devices reserved for the test, run it!
 					TArray<FMessageAddress> DeviceAddresses = DeviceClusterManager.GetDevicesReservedForTest(ClusterIndex, NextTest);
@@ -591,15 +467,10 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 		{
 			if ( GetNumDevicesInCluster(ClusterIndex) < CurrentTest->GetNumParticipantsRequired() )
 			{
-				float EmptyDuration = 0.0f;
-				TArray<FString> EmptyStringArray;
-				TArray<FString> AutomationsWarnings;
-				AutomationsWarnings.Add(FString::Printf(TEXT("Needed %d devices to participate, Only had %d available."), CurrentTest->GetNumParticipantsRequired(), DeviceClusterManager.GetNumDevicesInCluster(ClusterIndex)));
-
 				FAutomationTestResults TestResults;
 				TestResults.State = EAutomationState::NotEnoughParticipants;
 				TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName(ClusterIndex, 0);
-				TestResults.Warnings.Append(AutomationsWarnings);
+				TestResults.AddEvent(FAutomationEvent(EAutomationEventType::Warning, FString::Printf(TEXT("Needed %d devices to participate, Only had %d available."), CurrentTest->GetNumParticipantsRequired(), DeviceClusterManager.GetNumDevicesInCluster(ClusterIndex))));
 
 				CurrentTest->SetResults(ClusterIndex, CurrentTestPass, TestResults);
 				DeviceClusterManager.ResetAllDevicesRunningTest(ClusterIndex, CurrentTest);
@@ -703,9 +574,6 @@ void FAutomationControllerManager::SetTestNames(const FMessageAddress& Automatio
 	if ( RefreshTestResponses == DeviceClusterManager.GetNumClusters() )
 	{
 		TestsRefreshedDelegate.Broadcast();
-
-		// Update the tests with tracking details
-		ReportManager.TrackHistory(bTrackHistory, NumberOfHistoryItemsTracked);
 	}
 }
 
@@ -727,14 +595,78 @@ void FAutomationControllerManager::ProcessResults()
 		}
 	}
 
-	if ( !ReportOutputPathOverride.IsEmpty() )
+	if ( !ReportOutputPath.IsEmpty() )
 	{
 		FDateTime Timestamp = FDateTime::Now();
 
-		// Generate Html
-		GenerateHtmlTestPassSummary(Timestamp);
+		if ( IFileManager::Get().DirectoryExists(*ReportOutputPath) )
+		{
+			// Clear the old report folder.  Why move it first?  Because RemoveDirectory
+			// is actually an async call that is not immediately carried out by the Windows OS; Moving a directory on the other hand, is sync.
+			// So we move, to a temporary location, then delete it.
+			FString TempDirectory = FPaths::GetPath(ReportOutputPath) + TEXT("\\") + FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+			IFileManager::Get().Move(*TempDirectory, *ReportOutputPath);
+			IFileManager::Get().DeleteDirectory(*TempDirectory, false, true);
+		}
+
+		FScreenshotExportResults ExportResults = ScreenshotManager->ExportComparisonResultsAsync(ReportOutputPath).Get();
+
+		FAutomatedTestPassResults SerializedPassResults = OurPassResults;
+
+		SerializedPassResults.ComparisonExported = ExportResults.Success;
+		SerializedPassResults.ComparisonExportDirectory = ExportResults.ExportPath;
+
+		{
+			SerializedPassResults.Tests.StableSort([] (const FAutomatedTestResult& A, const FAutomatedTestResult& B) {
+				if ( A.GetErrorTotal() > 0 )
+				{
+					if ( B.GetErrorTotal() > 0 )
+						return ( A.FullTestPath < B.FullTestPath );
+					else
+						return true;
+				}
+				else if ( B.GetErrorTotal() > 0 )
+				{
+					return false;
+				}
+
+				if ( A.GetWarningTotal() > 0 )
+				{
+					if ( B.GetWarningTotal() > 0 )
+						return ( A.FullTestPath < B.FullTestPath );
+					else
+						return true;
+				}
+				else if ( B.GetWarningTotal() > 0 )
+				{
+					return false;
+				}
+
+				return A.FullTestPath < B.FullTestPath;
+			});
+
+			for ( FAutomatedTestResult& Test : SerializedPassResults.Tests )
+			{
+				for ( FAutomationArtifact& Artifact : Test.Artifacts )
+				{
+					for ( const auto& Entry : Artifact.LocalFiles )
+					{
+						Artifact.Files.Add(Entry.Key, CopyArtifact(ReportOutputPath, Entry.Value));
+					}
+				}
+			}
+		}
+
 		// Generate Json
-		GenerateJsonTestPassSummary(Timestamp);
+		GenerateJsonTestPassSummary(SerializedPassResults, Timestamp);
+
+		// Generate Html
+		GenerateHtmlTestPassSummary(SerializedPassResults, Timestamp);
+
+		if ( !DeveloperReportUrl.IsEmpty() )
+		{
+			FPlatformProcess::LaunchURL(*DeveloperReportUrl, nullptr, nullptr);
+		}
 	}
 
 	// Then clean our array for the next pass.
@@ -761,15 +693,15 @@ void FAutomationControllerManager::CheckChildResult(TSharedPtr<IAutomationReport
 		{
 			FAutomationTestResults TestResults = InReport->GetResults(ClusterIndex, CurrentTestPass);
 
-			if ( TestResults.Errors.Num() )
+			if ( TestResults.GetErrorTotal() > 0 )
 			{
 				bHasErrors = true;
 			}
-			if ( TestResults.Warnings.Num() )
+			if ( TestResults.GetWarningTotal() )
 			{
 				bHasWarning = true;
 			}
-			if ( TestResults.Logs.Num() )
+			if ( TestResults.GetLogTotal() )
 			{
 				bHasLogs = true;
 			}
@@ -1022,12 +954,7 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationW
 		verify(DeviceClusterManager.FindDevice(Context->GetSender(), ClusterIndex, DeviceIndex));
 
 		TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName(ClusterIndex, DeviceIndex);
-		for ( auto& Error : Message.Errors )
-		{
-			TestResults.Errors.Add(Error.ToAutomationEvent());
-		}
-		TestResults.Logs = Message.Logs;
-		TestResults.Warnings = Message.Warnings;
+		TestResults.SetEvents(Message.Events, Message.WarningTotal, Message.ErrorTotal);
 
 		// Verify this device thought it was busy
 		TSharedPtr<IAutomationReport> Report = DeviceClusterManager.GetTest(ClusterIndex, DeviceIndex);
@@ -1045,29 +972,31 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationW
 		AutomationTestingLog.Open();
 #endif
 
-		for ( TArray<FAutomationEvent>::TConstIterator ErrorIter(TestResults.Errors); ErrorIter; ++ErrorIter )
+		for ( const FAutomationEvent& Event : TestResults.GetEvents() )
 		{
-			// 	FAutomationTestFramework::Get().LogTestMessage(**ErrorIter, ELogVerbosity::Error);
-			GLog->Logf(ELogVerbosity::Error, TEXT("%s"), *( *ErrorIter ).ToString());
+			switch ( Event.Type )
+			{
+			case EAutomationEventType::Info:
+				GLog->Logf(ELogVerbosity::Log, TEXT("%s"), *Event.ToString());
 #if WITH_EDITOR
-			AutomationTestingLog.Error(FText::FromString(( *ErrorIter ).ToString()));
+				AutomationTestingLog.Info(FText::FromString(Event.ToString()));
 #endif
-		}
-		for ( TArray<FString>::TConstIterator WarningIter(Message.Warnings); WarningIter; ++WarningIter )
-		{
-			GLog->Logf(ELogVerbosity::Warning, TEXT("%s"), **WarningIter);
+				break;
+			case EAutomationEventType::Warning:
+				GLog->Logf(ELogVerbosity::Warning, TEXT("%s"), *Event.ToString());
 #if WITH_EDITOR
-			AutomationTestingLog.Warning(FText::FromString(*WarningIter));
+				AutomationTestingLog.Warning(FText::FromString(Event.ToString()));
 #endif
-		}
-		for ( TArray<FString>::TConstIterator LogItemIter(Message.Logs); LogItemIter; ++LogItemIter )
-		{
-			GLog->Logf(ELogVerbosity::Log, TEXT("%s"), **LogItemIter);
+				break;
+			case EAutomationEventType::Error:
+				GLog->Logf(ELogVerbosity::Error, TEXT("%s"), *Event.ToString());
 #if WITH_EDITOR
-			AutomationTestingLog.Info(FText::FromString(*LogItemIter));
+				AutomationTestingLog.Error(FText::FromString(Event.ToString()));
 #endif
+				break;
+			}
 		}
-
+		
 		if ( TestResults.State == EAutomationState::Success )
 		{
 			FString SuccessString = FString::Printf(TEXT("...Automation Test Succeeded (%s)"), *Report->GetDisplayName());
@@ -1122,28 +1051,6 @@ void FAutomationControllerManager::UpdateDeviceGroups( )
 	// Update the reports in case the number of clusters changed
 	int32 NumOfClusters = DeviceClusterManager.GetNumClusters();
 	ReportManager.ClustersUpdated(NumOfClusters);
-}
-
-void FAutomationControllerManager::TrackReportHistory(const bool bShouldTrack, const int32 NumReportsToTrack)
-{
-	bTrackHistory = bShouldTrack;
-	NumberOfHistoryItemsTracked = NumReportsToTrack;
-
-	// Update the ini with the settings
-	GConfig->SetBool(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("bTrackHistory"), bTrackHistory, GEngineIni);
-	GConfig->SetInt(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("NumberOfHistoryItemsTracked"), NumberOfHistoryItemsTracked, GEngineIni);
-
-	ReportManager.TrackHistory(bTrackHistory, NumberOfHistoryItemsTracked);
-}
-
-const bool FAutomationControllerManager::IsTrackingHistory() const
-{
-	return bTrackHistory;
-}
-
-const int32 FAutomationControllerManager::GetNumberHistoryItemsTracking() const
-{
-	return NumberOfHistoryItemsTracked;
 }
 
 TArray<FString> FAutomationControllerManager::GetCheckpointFileContents()

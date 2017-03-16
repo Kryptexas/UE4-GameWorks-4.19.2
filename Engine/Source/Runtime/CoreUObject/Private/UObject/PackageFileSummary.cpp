@@ -252,16 +252,13 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 		Ar << Sum.AdditionalPackagesToCook;
 
-#if WITH_ENGINE
 		if (LegacyFileVersion > -7)
 		{
 			int32 NumTextureAllocations = 0;
 			Ar << NumTextureAllocations;
+			// We haven't used texture allocation info for ages and it's no longer supported anyway
 			check(NumTextureAllocations == 0);
 		}
-#else
-		check(!"this can't serialize successfully");
-#endif		// WITH_ENGINE
 
 		Ar << Sum.AssetRegistryDataOffset;
 		Ar << Sum.BulkDataStartOffset;

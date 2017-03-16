@@ -58,7 +58,7 @@ namespace UnrealBuildTool
 		public static bool HasDefaultBuildConfig(FileReference ProjectFile, UnrealTargetPlatform Platform)
 		{
 			UEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(Platform, true);
-			return (BuildPlat == null)? true : (BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(Platform, ProjectFile.Directory);
+			return (BuildPlat == null)? true : BuildPlat.HasDefaultBuildConfig(Platform, ProjectFile.Directory);
 		}
 
 		/// <summary>

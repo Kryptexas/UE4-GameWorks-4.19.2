@@ -83,7 +83,8 @@ public:
 	void ApplyComponentInstanceData(class FWidgetComponentInstanceData* ComponentInstanceData);
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
@@ -220,6 +221,12 @@ public:
 
 	/**  */
 	void SetDrawAtDesiredSize(bool InbDrawAtDesiredSize) { bDrawAtDesiredSize = InbDrawAtDesiredSize; }
+
+	/**  */
+	float GetRedrawTime() const { return RedrawTime; }
+
+	/**  */
+	void SetRedrawTime(float bInRedrawTime) { RedrawTime = bInRedrawTime; }
 
 	/** Get the fake window we create for widgets displayed in the world. */
 	TSharedPtr< SWindow > GetVirtualWindow() const;

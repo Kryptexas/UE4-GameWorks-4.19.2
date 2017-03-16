@@ -120,7 +120,7 @@ TSharedRef<SWidget> FCustomChildrenBuilder::GenerateStructValueWidget( TSharedRe
 	}
 }
 
-IDetailCategoryBuilder& FCustomChildrenBuilder::GetParentCategory()
+IDetailCategoryBuilder& FCustomChildrenBuilder::GetParentCategory() const
 {
 	return *ParentCategory.Pin();
 }
@@ -129,4 +129,9 @@ FCustomChildrenBuilder& FCustomChildrenBuilder::OverrideResetChildrenToDefault(c
 {
 	CustomResetChildToDefault = ResetToDefault;
 	return *this;
+}
+
+IDetailGroup* FCustomChildrenBuilder::GetParentGroup() const
+{
+	return ParentGroup.IsValid() ? ParentGroup.Pin().Get() : nullptr;
 }

@@ -333,7 +333,7 @@ public partial class Project : CommandUtils
 					ClientProcess.StopProcess();
 					Thread.Sleep(10000);
 				}
-				while (ClientLogReader != null && !ClientLogReader.EndOfStream)
+				while (!ClientLogReader.EndOfStream)
 				{
 					string ClientOutput = ClientLogReader.ReadToEnd();
 					if (!String.IsNullOrEmpty(ClientOutput))
@@ -537,7 +537,7 @@ public partial class Project : CommandUtils
 				if (ClientProcess == null && !String.IsNullOrEmpty(Output))
 				{
 					AllClientOutput += Output;
-					if (ClientProcess == null && (AllClientOutput.Contains("Game Engine Initialized") || AllClientOutput.Contains("Unreal Network File Server is ready")))
+					if (AllClientOutput.Contains("Game Engine Initialized") || AllClientOutput.Contains("Unreal Network File Server is ready"))
 					{
 						Log("Starting Client....");
 						var SC = DeployContextList[0];
@@ -843,7 +843,7 @@ public partial class Project : CommandUtils
 		if (Params.CrashIndex > 0)
 		{
 			int RealIndex = Params.CrashIndex - 1;
-			if (RealIndex < 0 || RealIndex >= CrashCommands.Count())
+			if (RealIndex >= CrashCommands.Count())
 			{
 				throw new AutomationException("CrashIndex {0} is out of range...max={1}", Params.CrashIndex, CrashCommands.Count());
 			}

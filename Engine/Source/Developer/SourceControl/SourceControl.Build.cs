@@ -16,8 +16,14 @@ public class SourceControl : ModuleRules
 			}
 		);
 
-		if (Target.Platform != UnrealTargetPlatform.Linux)
+		if (Target.Platform == UnrealTargetPlatform.Linux && Target.Type == TargetType.Program)
 		{
+			Definitions.Add("SOURCE_CONTROL_WITH_SLATE=0");
+		}
+		else
+		{
+			Definitions.Add("SOURCE_CONTROL_WITH_SLATE=1");
+
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"Slate",

@@ -42,11 +42,9 @@ void FVector4StructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> 
 
 			//Customize the childrens
 			TArray<TWeakPtr<IPropertyHandle>> WeakChildArray;
-			for (TSharedRef<IPropertyHandle> PropertyHandleRef : SortedChildHandles)
-			{
-				WeakChildArray.Add(PropertyHandleRef);
-			}
-			ColorGradingVectorCustomization->CustomizeChildren(StructPropertyHandle, StructBuilder, StructCustomizationUtils, WeakChildArray);
+			WeakChildArray.Append(SortedChildHandles);
+
+			ColorGradingVectorCustomization->CustomizeChildren(StructPropertyHandle, StructBuilder, StructCustomizationUtils, WeakChildArray, StaticCastSharedRef<FVector4StructCustomization>(AsShared()));
 			
 			// We handle the customize Children so just return here
 			return;

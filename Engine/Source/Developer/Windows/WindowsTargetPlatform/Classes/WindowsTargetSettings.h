@@ -26,7 +26,9 @@ enum class ECompilerVersion : uint8
 };
 
 /**
- * Implements the settings for the Windows target platform.
+ * Implements the settings for the Windows target platform. The first instance of this class is initialized in
+ * WindowsTargetPlatform, really early during the startup sequence before the CDO has been constructed, so its config 
+ * settings are read manually from there.
  */
 UCLASS(config=Engine, defaultconfig)
 class WINDOWSTARGETPLATFORM_API UWindowsTargetSettings

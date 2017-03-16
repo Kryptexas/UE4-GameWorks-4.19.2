@@ -31,7 +31,7 @@ class UNREALED_API UFbxSceneImportData : public UObject
 #if WITH_EDITORONLY_DATA
 public:
 	/* The path of the fbx file use for the last import */
-	UPROPERTY(VisibleAnywhere, Category = ImportSettings)
+	UPROPERTY(EditAnywhere, Category = ImportSettings)
 	FString SourceFbxFile;
 
 	/* The full name of the blueprint create at import */

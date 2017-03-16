@@ -35,6 +35,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
+        /// Count the number of objects that satisfy the filter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public int Count(Expression<Func<Bugg, bool>> filter)
+        {
+            return _entityContext.Buggs.Count(filter);
+        }
+
+        /// <summary>
         /// Get a filtered list of Buggs from data storage
         /// Calling this method returns the data directly. It will execute the data retrieval - in this case an sql transaction.
         /// </summary>
@@ -84,7 +94,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         /// <returns>Bugg data model</returns>
         public Bugg GetById(int id)
         {
-            return _entityContext.Buggs.Include(data => data.Crashes).FirstOrDefault(data => data.Id == id);
+            return _entityContext.Buggs.FirstOrDefault(data => data.Id == id);
         }
 
         /// <summary>

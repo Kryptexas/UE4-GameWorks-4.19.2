@@ -4,8 +4,8 @@
 # this script.
 
 SCRIPT_DIR=$(cd "$(dirname "$BASH_SOURCE")" ; pwd)
-TOP_DIR=$(cd $SCRIPT_DIR/../../.. ; pwd)
-cd ${TOP_DIR}
+TOP_DIR=$(cd "$SCRIPT_DIR/../../.." ; pwd)
+cd "${TOP_DIR}"
 mkdir -p Binaries/Linux/
 set -e
 

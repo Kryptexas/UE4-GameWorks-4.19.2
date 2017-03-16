@@ -427,9 +427,7 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	if( GIsEditor )
 	{
 		Collector.AddReferencedObject( This->PersistentLevel, This );
-
-		Collector.AddReferencedObjects( This->Levels, This );
-
+		Collector.AddReferencedObjects(This->Levels, This);
 		Collector.AddReferencedObject( This->CurrentLevel, This );
 		Collector.AddReferencedObject( This->NetDriver, This );
 		Collector.AddReferencedObject( This->DemoNetDriver, This );
@@ -442,10 +440,6 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( This->NetworkManager, This );
 		Collector.AddReferencedObject( This->NavigationSystem, This );
 		Collector.AddReferencedObject( This->AvoidanceManager, This );
-
-		Collector.AddReferencedObjects( This->ExtraReferencedObjects, This );
-		Collector.AddReferencedObjects( This->StreamingLevels, This );
-		Collector.AddReferencedObjects(This->PerModuleDataObjects, This);
 	}
 #endif
 
@@ -5270,6 +5264,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 					}
 					// add to new world's actor list and remove from old
 					LoadedWorld->PersistentLevel->Actors.Add(TheActor);
+					LoadedWorld->PersistentLevel->ActorsForGC.Add(TheActor);
 
 					TheActor->bActorSeamlessTraveled = true;
 				}

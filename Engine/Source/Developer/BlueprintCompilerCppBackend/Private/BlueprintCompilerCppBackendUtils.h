@@ -94,6 +94,9 @@ struct FEmitterLocalContext
 	// See TInlineValue. If the structure is initialized in constructor, then its header must be included.
 	TSet<UField*> StructsUsedAsInlineValues;
 
+	// List of wrappers that were actually used in the generated code.
+	TSet<UField*> UsedUnconvertedWrapper;
+
 	// Objects like UChildActorComponent::ChildActorTemplate. They will be stored at the beginning of MiscConvertedSubobjects.
 	TArray<UObject*> TemplateFromSubobjectsOfClass;
 
@@ -112,16 +115,22 @@ public:
 	FCodeText* DefaultTarget;
 
 	const FGatherConvertedClassDependencies& Dependencies;
+	const FCompilerNativizationOptions& NativizationOptions;
 
+public:
 	TMap<UFunction*, FString> MCDelegateSignatureToSCDelegateType;
 
-	FEmitterLocalContext(const FGatherConvertedClassDependencies& InDependencies)
+	FEmitterLocalContext(const FGatherConvertedClassDependencies& InDependencies, const FCompilerNativizationOptions& InNativizationOptions)
 		: CurrentCodeType(EGeneratedCodeType::Regular)
 		, ActiveScopeBlock(nullptr)
 		, LocalNameIndexMax(0)
 		, DefaultTarget(&Body)
 		, Dependencies(InDependencies)
+		, NativizationOptions(InNativizationOptions)
 	{}
+
+	// Call this functions to make sure the wrapper (necessary for the given field) will be included and generated.
+	void MarkUnconvertedClassAsNecessary(UField* InField);
 
 	// PROPERTIES FOR INACCESSIBLE MEMBER VARIABLES
 	TMap<const UProperty*, FString> PropertiesForInaccessibleStructs;
@@ -398,6 +407,8 @@ struct FNativizationSummaryHelper
 	static void RegisterClass(const UClass* OriginalClass);
 
 	static void ReducibleFunciton(const UClass* OriginalClass);
+
+	static void RegisterRequiredModules(const FString& PlatformName, const TSet<TAssetPtr<UPackage>>& Modules);
 };
 struct FDependenciesGlobalMapHelper
 {

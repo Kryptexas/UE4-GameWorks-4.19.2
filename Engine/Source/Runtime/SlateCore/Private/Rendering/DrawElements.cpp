@@ -76,7 +76,7 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 	if ( PixelSnapRenderRotationScaleShear == 0 )
 	{
 		// Check if theres any rotation, scale or sheer.  If so, don't pixel snap.
-		if ( !LayoutToRenderTransform.GetMatrix().IsIdentity() )
+		if ( !LayoutToRenderTransform.GetMatrix().IsNearlyIdentity() )
 		{
 			DrawEffects |= ESlateDrawEffect::NoPixelSnapping;
 		}
@@ -92,6 +92,22 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 	if ((InDrawEffects & ESlateDrawEffect::ReverseGamma) != ESlateDrawEffect::None)
 	{
 		DataPayload.BatchFlags |= ESlateBatchDrawFlag::ReverseGamma;
+	}
+}
+
+void FSlateDrawElement::ApplyPositionOffset(FSlateDrawElement& Element, const FVector2D& InOffset)
+{
+	Element.SetPosition(Element.GetPosition() + InOffset);
+	Element.SetClippingRect(Element.GetClippingRect().OffsetBy(InOffset));
+	Element.RenderTransform = Concatenate(Element.RenderTransform, InOffset);
+	// Recompute cached layout to render transform
+	const FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(Element.Scale, Element.Position)));
+	Element.LayoutToRenderTransform = Concatenate(InverseLayoutTransform, Element.RenderTransform);
+	// Update cached scissor rect
+	if (Element.ScissorRect.IsSet())
+	{	
+		extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
+		Element.ScissorRect = GSlateScissorRect;
 	}
 }
 
@@ -217,17 +233,17 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Text;
 	//fixme, alloc here 
-	DrawElt.DataPayload.SetTextPayloadProperties(  ElementList, InText.ToString(), InFontInfo, InTint );
+	DrawElt.DataPayload.SetTextPayloadProperties( ElementList, InText.ToString(), InFontInfo, InTint );
 }
 
-void FSlateDrawElement::MakeShapedText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects, const FLinearColor& InTint )
+void FSlateDrawElement::MakeShapedText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects, const FLinearColor& BaseTint, const FLinearColor& OutlineTint )
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_ShapedText;
-	DrawElt.DataPayload.SetShapedTextPayloadProperties(InShapedGlyphSequence, InTint);
+	DrawElt.DataPayload.SetShapedTextPayloadProperties(InShapedGlyphSequence, BaseTint, OutlineTint);
 }
 
 void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects )
@@ -706,10 +722,10 @@ FSlateWindowElementList::FVolatilePaint::FVolatilePaint(const TSharedRef<const S
 {
 }
 
-int32 FSlateWindowElementList::FVolatilePaint::ExecutePaint(FSlateWindowElementList& OutDrawElements) const
-{
-	static const FName InvalidationPanelName(TEXT("SInvalidationPanel"));
+static const FName InvalidationPanelName(TEXT("SInvalidationPanel"));
 
+int32 FSlateWindowElementList::FVolatilePaint::ExecutePaint(FSlateWindowElementList& OutDrawElements, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset) const
+{
 	TSharedPtr<const SWidget> WidgetToPaint = WidgetToPaintPtr.Pin();
 	if ( WidgetToPaint.IsValid() )
 	{
@@ -724,8 +740,22 @@ int32 FSlateWindowElementList::FVolatilePaint::ExecutePaint(FSlateWindowElementL
 			MutableWidget->SlatePrepass(AllottedGeometry.Scale);
 		}
 
-		const int32 NewLayer = WidgetToPaint->Paint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled);
-		
+		FPaintArgs PaintArgs = Args.WithNewTime(InCurrentTime, InDeltaTime);
+
+		int32 NewLayer = 0;
+		if (InDynamicOffset.IsZero())
+		{
+			NewLayer = WidgetToPaint->Paint(PaintArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled);
+		}
+		else
+		{
+			FSlateRect LocalRect = MyClippingRect.OffsetBy(InDynamicOffset);
+			FGeometry LocalGeometry = AllottedGeometry;
+			LocalGeometry.AppendTransform(FSlateLayoutTransform(InDynamicOffset));
+			
+			NewLayer = WidgetToPaint->Paint(PaintArgs, LocalGeometry, LocalRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled);
+		}
+				
 		//FPlatformMisc::EndNamedEvent();
 
 		return NewLayer;
@@ -744,7 +774,7 @@ void FSlateWindowElementList::QueueVolatilePainting(const FVolatilePaint& InVola
 	VolatilePaintList[NewEntryIndex]->LayerHandle = LayerHandle;
 }
 
-int32 FSlateWindowElementList::PaintVolatile(FSlateWindowElementList& OutElementList)
+int32 FSlateWindowElementList::PaintVolatile(FSlateWindowElementList& OutElementList, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset)
 {
 	int32 MaxLayerId = 0;
 
@@ -753,7 +783,7 @@ int32 FSlateWindowElementList::PaintVolatile(FSlateWindowElementList& OutElement
 		const TSharedPtr<FVolatilePaint>& Args = VolatilePaintList[VolatileIndex];
 
 		OutElementList.BeginLogicalLayer(Args->LayerHandle);
-		MaxLayerId = FMath::Max(MaxLayerId, Args->ExecutePaint(OutElementList));
+		MaxLayerId = FMath::Max(MaxLayerId, Args->ExecutePaint(OutElementList, InCurrentTime, InDeltaTime, InDynamicOffset));
 		OutElementList.EndLogicalLayer();
 	}
 

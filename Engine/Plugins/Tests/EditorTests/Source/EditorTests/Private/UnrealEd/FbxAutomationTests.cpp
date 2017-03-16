@@ -10,6 +10,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "AssetData.h"
 #include "IAssetTools.h"
 #include "AssetToolsModule.h"
@@ -104,8 +105,6 @@ FString GetFormatedMessageErrorInExpectedResult(FString FileName, FString TestPl
 */
 bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 {
-	int32 CurErrorIndex = 0, CurWarningIndex = 0, CurLogItemIndex = 0;
-
 	TArray<FString> CurFileToImport;
 	CurFileToImport.Add(*Parameters);
 	FString CleanFilename = FPaths::GetCleanFilename(CurFileToImport[0]);
@@ -114,7 +113,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 	FString FileOptionAndResult = CurFileToImport[0];
 	if(!FileOptionAndResult.RemoveFromEnd(*Ext))
 	{
-		ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s: Cannot find the information file (.json)"), *CleanFilename));
+		ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s: Cannot find the information file (.json)"), *CleanFilename)));
 		return false;
 	}
 	FileOptionAndResult += TEXT(".json");
@@ -123,7 +122,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 	
 	if (!IFileManager::Get().FileExists(*FileOptionAndResult))
 	{
-		ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s: Cannot find the information file (.json)."), *CleanFilename));
+		ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s: Cannot find the information file (.json)."), *CleanFilename)));
 		return false;
 	}
 
@@ -151,8 +150,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 	{
 		checkSlow(TestPlan->ImportUI);
 
-		int32 WarningNum = ExecutionInfo.Warnings.Num();
-		int32 ErrorNum = ExecutionInfo.Errors.Num();
+		int32 WarningNum = ExecutionInfo.GetWarningTotal();
+		int32 ErrorNum = ExecutionInfo.GetErrorTotal();
 		TArray<UObject*> ImportedObjects;
 		switch (TestPlan->Action)
 		{
@@ -249,7 +248,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (GlobalImportedObjects.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s: Cannot reimport when there is no previously imported object"), *CleanFilename));
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s: Cannot reimport when there is no previously imported object"), *CleanFilename));
 					CurTestSuccessful = false;
 					continue;
 				}
@@ -289,7 +288,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 
 					if (!FReimportManager::Instance()->Reimport(GlobalImportedObjects[0], false, false, CurFileToImport[0], FbxStaticMeshReimportFactory))
 					{
-						ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error when reimporting the staticmesh"), *CleanFilename, *(TestPlan->TestPlanName)));
+						ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error when reimporting the staticmesh"), *CleanFilename, *(TestPlan->TestPlanName)));
 						CurTestSuccessful = false;
 						continue;
 					}
@@ -324,7 +323,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 
 					if (!FReimportManager::Instance()->Reimport(GlobalImportedObjects[0], false, false, CurFileToImport[0], FbxSkeletalMeshReimportFactory))
 					{
-						ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error when reimporting the skeletal mesh"), *CleanFilename, *(TestPlan->TestPlanName)));
+						ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error when reimporting the skeletal mesh"), *CleanFilename, *(TestPlan->TestPlanName)));
 						CurTestSuccessful = false;
 						FbxSkeletalMeshReimportFactory->RemoveFromRoot();
 						continue;
@@ -338,7 +337,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (GlobalImportedObjects.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s: Cannot reimport when there is no previously imported object"), *CleanFilename));
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s: Cannot reimport when there is no previously imported object"), *CleanFilename));
 					CurTestSuccessful = false;
 					continue;
 				}
@@ -356,7 +355,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				FString LodFile = BaseLODFile.Replace(TEXT("_lod00"), *LodIndexString);
 				if (!FPaths::FileExists(LodFile))
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s: Cannot Add Lod because file %s do not exist on disk!"), *LodFile));
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s: Cannot Add Lod because file %s do not exist on disk!"), *LodFile));
 					CurTestSuccessful = false;
 					continue;
 				}
@@ -429,8 +428,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 		TestPlan->ImportUI->RemoveFromRoot();
 		TestPlan->ImportUI = nullptr;
 
-		WarningNum = ExecutionInfo.Warnings.Num() - WarningNum;
-		ErrorNum = ExecutionInfo.Errors.Num() - ErrorNum;
+		WarningNum = ExecutionInfo.GetWarningTotal() - WarningNum;
+		ErrorNum = ExecutionInfo.GetErrorTotal() - ErrorNum;
 		int32 ExpectedResultIndex = 0;
 		for (const FFbxTestPlanExpectedResult &ExpectedResult : TestPlan->ExpectedResult)
 		{
@@ -440,14 +439,14 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Error number)"),
-						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Error_Number"), ExpectedResultIndex)));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s expected result need 1 integer data (Expected Error number)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Error_Number"), ExpectedResultIndex))));
 					break;
 				}
 				if (ErrorNum != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d errors but expected %d]"),
-						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Error_Number"), ExpectedResultIndex), ErrorNum, ExpectedResult.ExpectedPresetsDataInteger[0]));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s [%d errors but expected %d]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *( TestPlan->TestPlanName ), TEXT("Error_Number"), ExpectedResultIndex), ErrorNum, ExpectedResult.ExpectedPresetsDataInteger[0])));
 				}
 			}
 			break;
@@ -455,14 +454,14 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Warning number)"),
-						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Warning_Number"), ExpectedResultIndex)));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s expected result need 1 integer data (Expected Warning number)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Warning_Number"), ExpectedResultIndex))));
 					break;
 				}
 				if (WarningNum != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d warnings but expected %d]"),
-						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Warning_Number"), ExpectedResultIndex), WarningNum, ExpectedResult.ExpectedPresetsDataInteger[0]));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s [%d warnings but expected %d]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *( TestPlan->TestPlanName ), TEXT("Warning_Number"), ExpectedResultIndex), WarningNum, ExpectedResult.ExpectedPresetsDataInteger[0])));
 				}
 			}
 			break;
@@ -470,8 +469,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Static Mesh number)"),
-						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Created_Staticmesh_Number"), ExpectedResultIndex)));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s expected result need 1 integer data (Expected Static Mesh number)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Created_Staticmesh_Number"), ExpectedResultIndex))));
 					break;
 				}
 				int32 StaticMeshImported = 0;
@@ -484,8 +483,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (StaticMeshImported != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d staticmeshes created but expected %d]"),
-						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Created_Staticmesh_Number"), ExpectedResultIndex), StaticMeshImported, ExpectedResult.ExpectedPresetsDataInteger[0]));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s [%d staticmeshes created but expected %d]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *( TestPlan->TestPlanName ), TEXT("Created_Staticmesh_Number"), ExpectedResultIndex), StaticMeshImported, ExpectedResult.ExpectedPresetsDataInteger[0])));
 				}
 			}
 			break;
@@ -493,8 +492,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Skeletal Mesh number)"),
-						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Created_Skeletalmesh_Number"), ExpectedResultIndex)));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s expected result need 1 integer data (Expected Skeletal Mesh number)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Created_Skeletalmesh_Number"), ExpectedResultIndex))));
 					break;
 				}
 				int32 SkeletalMeshImported = 0;
@@ -507,8 +506,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (SkeletalMeshImported != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d skeletalmeshes created but expected %d]"),
-						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Created_Skeletalmesh_Number"), ExpectedResultIndex), SkeletalMeshImported, ExpectedResult.ExpectedPresetsDataInteger[0]));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s [%d skeletalmeshes created but expected %d]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *( TestPlan->TestPlanName ), TEXT("Created_Skeletalmesh_Number"), ExpectedResultIndex), SkeletalMeshImported, ExpectedResult.ExpectedPresetsDataInteger[0])));
 				}
 			}
 			break;
@@ -516,8 +515,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Material number)"),
-						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Materials_Created_Number"), ExpectedResultIndex)));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s expected result need 1 integer data (Expected Material number)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Materials_Created_Number"), ExpectedResultIndex))));
 					break;
 				}
 				TArray<FAssetData> CreatedAssets;
@@ -525,15 +524,15 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				int32 MaterialNumber = 0;
 				for (FAssetData AssetData : CreatedAssets)
 				{
-					if (AssetData.AssetClass == UMaterial::StaticClass()->GetFName())
+					if (AssetData.AssetClass == UMaterial::StaticClass()->GetFName() || AssetData.AssetClass == UMaterialInstanceConstant::StaticClass()->GetFName())
 					{
 						MaterialNumber++;
 					}
 				}
 				if (MaterialNumber != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d materials created but expected %d]"),
-						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Materials_Created_Number"), ExpectedResultIndex), MaterialNumber, ExpectedResult.ExpectedPresetsDataInteger[0]));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s [%d materials created but expected %d]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *( TestPlan->TestPlanName ), TEXT("Materials_Created_Number"), ExpectedResultIndex), MaterialNumber, ExpectedResult.ExpectedPresetsDataInteger[0])));
 				}
 			}
 			break;
@@ -541,14 +540,14 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected material slot index)"),
-						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Material_Slot_Imported_Name"), ExpectedResultIndex)));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s expected result need 1 integer data (Expected material slot index)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Material_Slot_Imported_Name"), ExpectedResultIndex))));
 					break;
 				}
 				if (ExpectedResult.ExpectedPresetsDataString.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 string data (Expected material imported name for the specified slot index)"),
-						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Material_Slot_Imported_Name"), ExpectedResultIndex)));
+					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s expected result need 1 string data (Expected material imported name for the specified slot index)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Material_Slot_Imported_Name"), ExpectedResultIndex))));
 					break;
 				}
 				int32 MeshMaterialNumber = INDEX_NONE;
@@ -588,12 +587,12 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if(BadSlotIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Material_Slot_Imported_Name material slot index [%d] is invalid. Expect something smaller then %d which is the mesh material number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Material_Slot_Imported_Name material slot index [%d] is invalid. Expect something smaller then %d which is the mesh material number"),
 						*CleanFilename, *(TestPlan->TestPlanName), MaterialSlotIndex, MeshMaterialNumber));
 				}
 				else if (MaterialImportedName != ExpectedMaterialImportedName)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [Material slot index %d has a materials imported name %s but expected %s]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [Material slot index %d has a materials imported name %s but expected %s]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Material_Slot_Imported_Name"), ExpectedResultIndex), MaterialSlotIndex, *MaterialImportedName, *ExpectedMaterialImportedName));
 				}
 			}
@@ -602,7 +601,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Vertex number)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Vertex number)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Vertex_Number"), ExpectedResultIndex)));
 					break;
 				}
@@ -629,7 +628,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (GlobalVertexNumber != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d vertices but expected %d]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [%d vertices but expected %d]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Vertex_Number"), ExpectedResultIndex), GlobalVertexNumber, ExpectedResult.ExpectedPresetsDataInteger[0]));
 				}
 			}
@@ -638,7 +637,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected LOD number)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 1 integer data (Expected LOD number)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Lod_Number"), ExpectedResultIndex)));
 					break;
 				}
@@ -658,7 +657,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 					}
 					if (LodNumber != ExpectedResult.ExpectedPresetsDataInteger[0])
 					{
-						ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d LODs but expected %d]"),
+						ExecutionInfo.AddError(FString::Printf(TEXT("%s [%d LODs but expected %d]"),
 							*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Lod_Number"), ExpectedResultIndex), LodNumber, ExpectedResult.ExpectedPresetsDataInteger[0]));
 					}
 				}
@@ -669,7 +668,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 2 integer data (LOD index and Expected Vertex number for this LOD)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 2 integer data (LOD index and Expected Vertex number for this LOD)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Vertex_Number_Lod"), ExpectedResultIndex)));
 					break;
 				}
@@ -697,7 +696,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (GlobalVertexNumber != ExpectedResult.ExpectedPresetsDataInteger[1])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d vertices but expected %d]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [%d vertices but expected %d]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Vertex_Number_Lod"), ExpectedResultIndex), GlobalVertexNumber, ExpectedResult.ExpectedPresetsDataInteger[1]));
 				}
 			}
@@ -706,7 +705,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Material number)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Material number)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_Materials_Number"), ExpectedResultIndex)));
 					break;
 				}
@@ -727,7 +726,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (MaterialIndexNumber != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d materials indexes but expected %d]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [%d materials indexes but expected %d]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_Materials_Number"), ExpectedResultIndex), MaterialIndexNumber, ExpectedResult.ExpectedPresetsDataInteger[0]));
 				}
 			}
@@ -736,7 +735,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 2 integer data (LOD index and Expected sections number)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 2 integer data (LOD index and Expected sections number)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Section_Number"), ExpectedResultIndex)));
 					break;
 				}
@@ -776,12 +775,12 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (BadLodIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Number LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Number LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
 				}
 				else if (SectionNumber != ExpectedResult.ExpectedPresetsDataInteger[1])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [LOD %d contain %d sections but expected %d section]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [LOD %d contain %d sections but expected %d section]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Section_Number"), ExpectedResultIndex), LODIndex, SectionNumber, ExpectedResult.ExpectedPresetsDataInteger[1]));
 				}
 			}
@@ -790,7 +789,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 3)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 3 integer data (LOD index, section index and Expected vertex number)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 3 integer data (LOD index, section index and Expected vertex number)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Section_Vertex_Number"), ExpectedResultIndex)));
 					break;
 				}
@@ -850,17 +849,17 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (BadLodIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Vertex_Number LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Vertex_Number LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
 				}
 				else if (BadSectionIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Vertex_Number Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Vertex_Number Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, SectionNumber));
 				}
 				else if (SectionVertexNumber != ExpectedVertexNumber)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [LOD index %d Section index %d contain %d vertex but expected %d vertex]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [LOD index %d Section index %d contain %d vertex but expected %d vertex]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Section_Vertex_Number"), ExpectedResultIndex), LODIndex, SectionIndex, SectionVertexNumber, ExpectedVertexNumber));
 				}
 			}
@@ -869,7 +868,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 3)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 3 integer data (LOD index, section index and Expected triangle number)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 3 integer data (LOD index, section index and Expected triangle number)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Section_Triangle_Number"), ExpectedResultIndex)));
 					break;
 				}
@@ -929,17 +928,17 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (BadLodIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Triangle_Number LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Triangle_Number LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
 				}
 				else if (BadSectionIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Triangle_Number Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Triangle_Number Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, SectionNumber));
 				}
 				else if (SectionTriangleNumber != ExpectedTriangleNumber)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [LOD index %d Section index %d contain %d triangle but expected %d triangle]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [LOD index %d Section index %d contain %d triangle but expected %d triangle]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Section_Triangle_Number"), ExpectedResultIndex), LODIndex, SectionIndex, SectionTriangleNumber, ExpectedTriangleNumber));
 				}
 			}
@@ -948,7 +947,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2 || ExpectedResult.ExpectedPresetsDataString.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 2 integer data and 1 string(LOD index, section index and Expected material name)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 2 integer data and 1 string(LOD index, section index and Expected material name)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Section_Material_Name"), ExpectedResultIndex)));
 					break;
 				}
@@ -1016,17 +1015,17 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (BadLodIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Name LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Name LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
 				}
 				else if (BadSectionIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Name Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Name Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, SectionNumber));
 				}
 				else if (MaterialName.Compare(ExpectedMaterialName) != 0)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [LOD index %d Section index %d contain material name (%s) but expected name (%s)]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [LOD index %d Section index %d contain material name (%s) but expected name (%s)]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Section_Material_Name"), ExpectedResultIndex), LODIndex, SectionIndex, *MaterialName, *ExpectedMaterialName));
 				}
 			}
@@ -1035,7 +1034,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2 || ExpectedResult.ExpectedPresetsDataString.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 3 integer data (LOD index, section index and Expected material index)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 3 integer data (LOD index, section index and Expected material index)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Section_Material_Index"), ExpectedResultIndex)));
 					break;
 				}
@@ -1095,17 +1094,17 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (BadLodIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Index LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Index LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
 				}
 				else if (BadSectionIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Index Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Index Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, SectionNumber));
 				}
 				else if (MaterialIndex != ExpectedMaterialIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [LOD index %d Section index %d contain material index %d but expected index %d]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [LOD index %d Section index %d contain material index %d but expected index %d]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Section_Material_Index"), ExpectedResultIndex), LODIndex, SectionIndex, MaterialIndex, ExpectedMaterialIndex));
 				}
 			}
@@ -1114,7 +1113,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2 || ExpectedResult.ExpectedPresetsDataString.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 2 integer data and 1 string(LOD index, section index and Expected material name)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 2 integer data and 1 string(LOD index, section index and Expected material name)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Mesh_LOD_Section_Material_Imported_Name"), ExpectedResultIndex)));
 					break;
 				}
@@ -1182,17 +1181,17 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (BadLodIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Imported_Name LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Imported_Name LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
 				}
 				else if (BadSectionIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Imported_Name Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, Mesh_LOD_Section_Material_Imported_Name Section index [%d] is invalid. Expect Section Index between 0 and %d which is the mesh LOD section number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, SectionNumber));
 				}
 				else if (MaterialName.Compare(ExpectedMaterialName) != 0)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [LOD index %d Section index %d contain import material name (%s) but expected name (%s)]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [LOD index %d Section index %d contain import material name (%s) but expected name (%s)]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Mesh_LOD_Section_Material_Imported_Name"), ExpectedResultIndex), LODIndex, SectionIndex, *MaterialName, *ExpectedMaterialName));
 				}
 			}
@@ -1201,7 +1200,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 2)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 2 integer data (LOD index and Expected UV Channel number)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 2 integer data (LOD index and Expected UV Channel number)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("LOD_UV_Channel_Number"), ExpectedResultIndex)));
 					break;
 				}
@@ -1242,12 +1241,12 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (BadLodIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Error in the test data, LOD_UV_Channel_Number LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Error in the test data, LOD_UV_Channel_Number LOD index [%d] is invalid. Expect LODIndex between 0 and %d which is the mesh LOD number"),
 						*CleanFilename, *(TestPlan->TestPlanName), LODIndex, LODNumber));
 				}
 				else if (UVChannelNumber != ExpectedUVNumber)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d UVChannels but expected %d]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [%d UVChannels but expected %d]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("LOD_UV_Channel_Number"), ExpectedResultIndex), UVChannelNumber, ExpectedUVNumber));
 				}
 			}
@@ -1256,7 +1255,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Bone number)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Bone number)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Bone_Number"), ExpectedResultIndex)));
 					break;
 				}
@@ -1275,7 +1274,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (BoneNumber != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [%d bones but expected %d]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [%d bones but expected %d]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Bone_Number"), ExpectedResultIndex), BoneNumber, ExpectedResult.ExpectedPresetsDataInteger[0]));
 				}
 			}
@@ -1284,7 +1283,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			{
 				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1 || ExpectedResult.ExpectedPresetsDataFloat.Num() < 3)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s expected result need 1 integer data and 3 float data (Bone index and expected bone position XYZ)"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 1 integer data and 3 float data (Bone index and expected bone position XYZ)"),
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Bone_Position"), ExpectedResultIndex)));
 					break;
 				}
@@ -1314,29 +1313,29 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 				if (!FoundSkeletalMesh)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Wrong Expected Result, there is no skeletal mesh imported"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Wrong Expected Result, there is no skeletal mesh imported"),
 						*CleanFilename, *(TestPlan->TestPlanName)));
 				}
 				else if (!FoundSkeleton)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Wrong Expected Result, there is no skeleton attach to this skeletal mesh"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Wrong Expected Result, there is no skeleton attach to this skeletal mesh"),
 						*CleanFilename, *(TestPlan->TestPlanName)));
 				}
 				else if (!FoundBoneIndex)
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Wrong Expected Result, the bone index is not a valid index (bone index [%d] bone number[%d])"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Wrong Expected Result, the bone index is not a valid index (bone index [%d] bone number[%d])"),
 						*CleanFilename, *(TestPlan->TestPlanName), BoneIndex, BoneNumber));
 				}
 				if (!BoneIndexPosition.Equals(ExpectedBonePosition, Epsilon))
 				{
-					ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s [X:%f, Y:%f, Z:%f but expected X:%f, Y:%f, Z:%f]"),
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [X:%f, Y:%f, Z:%f but expected X:%f, Y:%f, Z:%f]"),
 						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Bone_Position"), ExpectedResultIndex), BoneIndexPosition.X, BoneIndexPosition.Y, BoneIndexPosition.Z, ExpectedBonePosition.X, ExpectedBonePosition.Y, ExpectedBonePosition.Z));
 				}
 			}
 			break;
 			default:
 			{
-				ExecutionInfo.Errors.Add(FString::Printf(TEXT("%s->%s: Wrong Test plan, Unknown expected result preset."),
+				ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Wrong Test plan, Unknown expected result preset."),
 					*CleanFilename, *(TestPlan->TestPlanName)));
 			}
 			break;
@@ -1386,23 +1385,6 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			}
 			ObjectTools::ForceDeleteObjects(ObjectToDelete, false);
 		}
-		// Any errors, warnings, or log items that are caught during this unit test aren't guaranteed to include the name of the file that generated them,
-		// which can be confusing when reading results. Alleviate the issue by injecting the file name for each error, warning, or log item, where appropriate.
-		for (int32 ErrorStartIndex = CurErrorIndex; ErrorStartIndex < ExecutionInfo.Errors.Num(); ++ErrorStartIndex)
-		{
-			ExecutionInfo.Errors[ErrorStartIndex] = FString::Printf(TEXT("%s: %s"), *CleanFilename, *ExecutionInfo.Errors[ErrorStartIndex].ToString());
-		}
-		for (int32 WarningStartIndex = CurWarningIndex; WarningStartIndex < ExecutionInfo.Warnings.Num(); ++WarningStartIndex)
-		{
-			ExecutionInfo.Warnings[WarningStartIndex] = FString::Printf(TEXT("%s: %s"), *CleanFilename, *ExecutionInfo.Warnings[WarningStartIndex]);
-		}
-		for (int32 LogItemStartIndex = CurLogItemIndex; LogItemStartIndex < ExecutionInfo.LogItems.Num(); ++LogItemStartIndex)
-		{
-			ExecutionInfo.LogItems[LogItemStartIndex] = FString::Printf(TEXT("%s: %s"), *CleanFilename, *ExecutionInfo.LogItems[LogItemStartIndex]);
-		}
-		CurErrorIndex = ExecutionInfo.Errors.Num();
-		CurWarningIndex = ExecutionInfo.Warnings.Num();
-		CurLogItemIndex = ExecutionInfo.LogItems.Num();
 	}
 
 	return CurTestSuccessful;

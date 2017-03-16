@@ -368,27 +368,34 @@ public class DeploymentContext //: ProjectParams
 			{
 				OutputPath = CommandUtils.CombinePaths(RelativeProjectRootForStage, InputPath.Substring(ProjectRoot.Length).TrimStart('/', '\\'));
 			}
-			else if (InputPath.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
-			{
-				OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
-			}
             else if (InputPath.EndsWith(".uplugin", StringComparison.InvariantCultureIgnoreCase))
             {
-                // This is a plugin that lives outside of the Engine/Plugins or Game/Plugins directory so needs to be remapped for staging/packaging
-                // We need to remap C:\SomePath\PluginName\PluginName.uplugin to RemappedPlugins\PluginName\PluginName.uplugin
-                int Index = InputPath.LastIndexOf(Path.DirectorySeparatorChar);
-                if (Index != -1)
-                {
-                    int PluginDirIndex = InputPath.LastIndexOf(Path.DirectorySeparatorChar, Index - 1);
-                    if (PluginDirIndex != -1)
-                    {
-                        OutputPath = CommandUtils.CombinePaths("RemappedPlugins", InputPath.Substring(PluginDirIndex));
-                    }
-                }
-                if (OutputPath == null)
-                {
-                    throw new AutomationException("Can't deploy {0} because the plugin path is non-standard, so could not be remapped", InputPath);
-                }
+                if (InputPath.StartsWith(CommandUtils.CombinePaths(LocalRoot + "/Engine"), StringComparison.InvariantCultureIgnoreCase))
+				{
+					OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
+				}
+                else
+				{
+					// This is a plugin that lives outside of the Engine/Plugins or Game/Plugins directory so needs to be remapped for staging/packaging
+					// We need to remap C:\SomePath\PluginName\PluginName.uplugin to RemappedPlugins\PluginName\PluginName.uplugin
+					int Index = InputPath.LastIndexOf(Path.DirectorySeparatorChar);
+					if (Index != -1)
+					{
+						int PluginDirIndex = InputPath.LastIndexOf(Path.DirectorySeparatorChar, Index - 1);
+						if (PluginDirIndex != -1)
+						{
+							OutputPath = CommandUtils.CombinePaths("RemappedPlugins", InputPath.Substring(PluginDirIndex));
+						}
+					}
+					if (OutputPath == null)
+					{
+						throw new AutomationException("Can't deploy {0} because the plugin path is non-standard, so could not be remapped", InputPath);
+					}
+				}
+            }
+            else if (InputPath.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
+            {
+                OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
             }
             else
             {
@@ -469,11 +476,81 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
+	/// <summary>
+	/// Correctly collapses any ../ or ./ entries in a path.
+	/// </summary>
+	/// <param name="InPath">The path to be collapsed</param>
+	/// <returns>true if the path could be collapsed, false otherwise.</returns>
+	static bool CollapseRelativeDirectories(ref string InPath)
+	{
+		string LocalString = InPath;
+		bool bHadBackSlashes = false;
+		// look to see what kind of slashes we had
+		if (LocalString.IndexOf("\\") != -1)
+		{
+			LocalString = LocalString.Replace("\\", "/");
+			bHadBackSlashes = true;
+		}
+
+		string ParentDir = "/..";
+		int ParentDirLength = ParentDir.Length;
+
+		for (; ; )
+		{
+			// An empty path is finished
+			if (string.IsNullOrEmpty(LocalString))
+				break;
+
+			// Consider empty paths or paths which start with .. or /.. as invalid
+			if (LocalString.StartsWith("..") || LocalString.StartsWith(ParentDir))
+				return false;
+
+			// If there are no "/.."s left then we're done
+			int Index = LocalString.IndexOf(ParentDir);
+			if (Index == -1)
+				break;
+
+			int PreviousSeparatorIndex = Index;
+			for (; ; )
+			{
+				// Find the previous slash
+				PreviousSeparatorIndex = Math.Max(0, LocalString.LastIndexOf("/", PreviousSeparatorIndex - 1));
+
+				// Stop if we've hit the start of the string
+				if (PreviousSeparatorIndex == 0)
+					break;
+
+				// Stop if we've found a directory that isn't "/./"
+				if ((Index - PreviousSeparatorIndex) > 1 && (LocalString[PreviousSeparatorIndex + 1] != '.' || LocalString[PreviousSeparatorIndex + 2] != '/'))
+					break;
+			}
+
+			// If we're attempting to remove the drive letter, that's illegal
+			int Colon = LocalString.IndexOf(":", PreviousSeparatorIndex);
+			if (Colon >= 0 && Colon < Index)
+				return false;
+
+			LocalString = LocalString.Substring(0, PreviousSeparatorIndex) + LocalString.Substring(Index + ParentDirLength);
+		}
+
+		LocalString = LocalString.Replace("./", "");
+
+		// restore back slashes now
+		if (bHadBackSlashes)
+		{
+			LocalString = LocalString.Replace("/", "\\");
+		}
+
+		// and pass back out
+		InPath = LocalString;
+		return true;
+	}
+
     public void StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true, bool bConvertToLower = false)
 	{
 		int FilesAdded = 0;
 		// make sure any ..'s are removed
-		Utils.CollapseRelativeDirectories(ref InPath);
+		CollapseRelativeDirectories(ref InPath);
 
 		if (CommandUtils.DirectoryExists(InPath))
 		{

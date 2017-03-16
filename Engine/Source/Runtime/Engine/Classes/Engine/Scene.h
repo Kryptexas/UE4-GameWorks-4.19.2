@@ -504,50 +504,50 @@ struct FPostProcessSettings
 	float WhiteTint;
 
 	// Color Correction controls
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "saturation", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorSaturation", DisplayName = "Saturation"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "saturation", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorSaturation", DisplayName = "Saturation"))
 	FVector4 ColorSaturation;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "contrast", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorContrast", DisplayName = "Contrast"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "contrast", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorContrast", DisplayName = "Contrast"))
 	FVector4 ColorContrast;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gamma", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorGamma", DisplayName = "Gamma"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gamma", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorGamma", DisplayName = "Gamma"))
 	FVector4 ColorGamma;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gain", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorGain", DisplayName = "Gain"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gain", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorGain", DisplayName = "Gain"))
 	FVector4 ColorGain;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "-1.0", UIMax = "1.0", Delta = "0.001", DisplayColorChannel = "true", ColorGradingMode = "offset", ShiftMouseMovePixelPerDelta = "20", editcondition = "bOverride_ColorOffset", DisplayName = "Offset"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Global", meta = (UIMin = "-1.0", UIMax = "1.0", Delta = "0.001", DisplayColorChannel = "true", ColorGradingMode = "offset", ShiftMouseMovePixelPerDelta = "20", SupportDynamicSliderMaxValue = "true", SupportDynamicSliderMinValue = "true", editcondition = "bOverride_ColorOffset", DisplayName = "Offset"))
 	FVector4 ColorOffset;
 
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "saturation", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorSaturationShadows", DisplayName = "Saturation"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "saturation", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorSaturationShadows", DisplayName = "Saturation"))
 	FVector4 ColorSaturationShadows;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "contrast", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorContrastShadows", DisplayName = "Contrast"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "contrast", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorContrastShadows", DisplayName = "Contrast"))
 	FVector4 ColorContrastShadows;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gamma", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorGammaShadows", DisplayName = "Gamma"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gamma", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorGammaShadows", DisplayName = "Gamma"))
 	FVector4 ColorGammaShadows;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gain", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorGainShadows", DisplayName = "Gain"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gain", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorGainShadows", DisplayName = "Gain"))
 	FVector4 ColorGainShadows;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "-1.0", UIMax = "1.0", Delta = "0.001", DisplayColorChannel = "true", ColorGradingMode = "offset", ShiftMouseMovePixelPerDelta = "20", editcondition = "bOverride_ColorOffsetShadows", DisplayName = "Offset"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "-1.0", UIMax = "1.0", Delta = "0.001", DisplayColorChannel = "true", ColorGradingMode = "offset", ShiftMouseMovePixelPerDelta = "20", SupportDynamicSliderMaxValue = "true", SupportDynamicSliderMinValue = "true", editcondition = "bOverride_ColorOffsetShadows", DisplayName = "Offset"))
 	FVector4 ColorOffsetShadows;
 	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Shadows", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorCorrectionShadowsMax", DisplayName = "ShadowsMax"))
 	float ColorCorrectionShadowsMax;
 
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "saturation", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorSaturationMidtones", DisplayName = "Saturation"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "saturation", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorSaturationMidtones", DisplayName = "Saturation"))
 	FVector4 ColorSaturationMidtones;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "contrast", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorContrastMidtones", DisplayName = "Contrast"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "contrast", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorContrastMidtones", DisplayName = "Contrast"))
 	FVector4 ColorContrastMidtones;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gamma", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorGammaMidtones", DisplayName = "Gamma"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gamma", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorGammaMidtones", DisplayName = "Gamma"))
 	FVector4 ColorGammaMidtones;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gain", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorGainMidtones", DisplayName = "Gain"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gain", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorGainMidtones", DisplayName = "Gain"))
 	FVector4 ColorGainMidtones;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "-1.0", UIMax = "1.0", Delta = "0.001", DisplayColorChannel = "true", ColorGradingMode = "offset", ShiftMouseMovePixelPerDelta = "20", editcondition = "bOverride_ColorOffsetMidtones", DisplayName = "Offset"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Midtones", meta = (UIMin = "-1.0", UIMax = "1.0", Delta = "0.001", DisplayColorChannel = "true", ColorGradingMode = "offset", ShiftMouseMovePixelPerDelta = "20", SupportDynamicSliderMaxValue = "true", SupportDynamicSliderMinValue = "true", editcondition = "bOverride_ColorOffsetMidtones", DisplayName = "Offset"))
 	FVector4 ColorOffsetMidtones;
 
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "saturation", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorSaturationHighlights", DisplayName = "Saturation"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "saturation", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorSaturationHighlights", DisplayName = "Saturation"))
 	FVector4 ColorSaturationHighlights;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "contrast", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorContrastHighlights", DisplayName = "Contrast"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "contrast", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorContrastHighlights", DisplayName = "Contrast"))
 	FVector4 ColorContrastHighlights;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gamma", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorGammaHighlights", DisplayName = "Gamma"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gamma", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorGammaHighlights", DisplayName = "Gamma"))
 	FVector4 ColorGammaHighlights;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gain", ShiftMouseMovePixelPerDelta = "10", editcondition = "bOverride_ColorGainHighlights", DisplayName = "Gain"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "0.0", UIMax = "2.0", Delta = "0.01", DisplayColorChannel = "true", ColorGradingMode = "gain", ShiftMouseMovePixelPerDelta = "10", SupportDynamicSliderMaxValue = "true", editcondition = "bOverride_ColorGainHighlights", DisplayName = "Gain"))
 	FVector4 ColorGainHighlights;
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "-1.0", UIMax = "1.0", Delta = "0.001", DisplayColorChannel = "true", ColorGradingMode = "offset", ShiftMouseMovePixelPerDelta = "20", editcondition = "bOverride_ColorOffsetHighlights", DisplayName = "Offset"))
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "-1.0", UIMax = "1.0", Delta = "0.001", DisplayColorChannel = "true", ColorGradingMode = "offset", ShiftMouseMovePixelPerDelta = "20", SupportDynamicSliderMaxValue = "true", SupportDynamicSliderMinValue = "true", editcondition = "bOverride_ColorOffsetHighlights", DisplayName = "Offset"))
 	FVector4 ColorOffsetHighlights;
 	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorCorrectionHighlightsMin", DisplayName = "HighlightsMin"))
 	float ColorCorrectionHighlightsMin;

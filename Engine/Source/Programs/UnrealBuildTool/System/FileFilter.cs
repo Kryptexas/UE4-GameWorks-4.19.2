@@ -201,10 +201,10 @@ namespace UnrealBuildTool
 		/// <param name="FileName"></param>
 		/// <param name="SectionName"></param>
 		/// <param name="AllowTags"></param>
-		public void ReadRulesFromFile(string FileName, string SectionName, params string[] AllowTags)
+		public void ReadRulesFromFile(FileReference FileName, string SectionName, params string[] AllowTags)
 		{
 			bool bInSection = false;
-			foreach(string Line in File.ReadAllLines(FileName))
+			foreach(string Line in File.ReadAllLines(FileName.FullName))
 			{
 				string TrimLine = Line.Trim();
 				if(!TrimLine.StartsWith(";") && TrimLine.Length > 0)
@@ -408,19 +408,6 @@ namespace UnrealBuildTool
 		/// <param name="DirectoryName">File to match</param>
 		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks in the output</param>
 		/// <returns>List of files that pass the filter</returns>
-		public List<string> ApplyToDirectory(string DirectoryName, bool bIgnoreSymlinks)
-		{
-			List<string> MatchingFileNames = new List<string>();
-			FindMatchesFromDirectory(new DirectoryInfo(DirectoryName), "", bIgnoreSymlinks, MatchingFileNames);
-			return MatchingFileNames;
-		}
-
-		/// <summary>
-		/// Finds a list of files within a given directory which match the filter.
-		/// </summary>
-		/// <param name="DirectoryName">File to match</param>
-		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks in the output</param>
-		/// <returns>List of files that pass the filter</returns>
 		public List<FileReference> ApplyToDirectory(DirectoryReference DirectoryName, bool bIgnoreSymlinks)
 		{
 			List<FileReference> MatchingFileNames = new List<FileReference>();
@@ -459,34 +446,6 @@ namespace UnrealBuildTool
 				}
 			}
 			return Result;
-		}
-
-		/// <summary>
-		/// Finds a list of files within a given directory which match the filter.
-		/// </summary>
-		/// <param name="CurrentDirectory"></param>
-		/// <param name="NamePrefix"></param>
-		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks in the output</param>
-		/// <param name="MatchingFileNames">Receives a list of matching filenames</param>
-		/// <returns>True if the file passes the filter</returns>
-		void FindMatchesFromDirectory(DirectoryInfo CurrentDirectory, string NamePrefix, bool bIgnoreSymlinks, List<string> MatchingFileNames)
-		{
-			foreach (FileInfo NextFile in CurrentDirectory.EnumerateFiles())
-			{
-				string FileName = NamePrefix + NextFile.Name;
-				if (Matches(FileName) && (!bIgnoreSymlinks || !NextFile.Attributes.HasFlag(FileAttributes.ReparsePoint)))
-				{
-					MatchingFileNames.Add(FileName);
-				}
-			}
-			foreach (DirectoryInfo NextDirectory in CurrentDirectory.EnumerateDirectories())
-			{
-				string NextNamePrefix = NamePrefix + NextDirectory.Name;
-				if (PossiblyMatches(NextNamePrefix))
-				{
-					FindMatchesFromDirectory(NextDirectory, NextNamePrefix + "/", bIgnoreSymlinks, MatchingFileNames);
-				}
-			}
 		}
 
 		/// <summary>

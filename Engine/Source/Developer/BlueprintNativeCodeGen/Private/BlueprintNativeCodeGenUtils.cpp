@@ -17,6 +17,7 @@
 #include "Misc/ScopeExit.h"
 #include "FindInBlueprintManager.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "TextPackageNamespaceUtil.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 
@@ -200,9 +201,21 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 		}
 	}
 
-	TArray<FString> AdditionalPublicDependencyModuleNames;
-	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("AdditionalPublicDependencyModuleNames"), AdditionalPublicDependencyModuleNames, GEditorIni);
-	PublicDependencies.Append(AdditionalPublicDependencyModuleNames);
+	auto IndludeAdditionalPublicDependencyModules = [&](const TCHAR* AdditionalPublicDependencyModuleSection)
+	{
+		TArray<FString> AdditionalPublicDependencyModuleNames;
+		GConfig->GetArray(TEXT("BlueprintNativizationSettings"), AdditionalPublicDependencyModuleSection, AdditionalPublicDependencyModuleNames, GEditorIni);
+		PublicDependencies.Append(AdditionalPublicDependencyModuleNames);
+	};
+	IndludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNames"));
+	if (Manifest.GetCompilerNativizationOptions().ServerOnlyPlatform) //or !ClientOnlyPlatform ?
+	{
+		IndludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNamesServer"));
+	}
+	if (Manifest.GetCompilerNativizationOptions().ClientOnlyPlatform)
+	{
+		IndludeAdditionalPublicDependencyModules(TEXT("AdditionalPublicDependencyModuleNamesClient"));
+	}
 
 	TArray<FString> PrivateDependencies;
 
@@ -214,6 +227,10 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 		const FString PkgModuleName = FPackageName::GetLongPackageAssetName(ModulePkg->GetName());
 		if (ModuleManager.ModuleExists(*PkgModuleName))
 		{
+			if (Manifest.GetCompilerNativizationOptions().ExcludedModules.Contains(FName(*PkgModuleName)))
+			{
+				continue;
+			}
 			if (!PublicDependencies.Contains(PkgModuleName))
 			{
 				PrivateDependencies.Add(PkgModuleName);
@@ -280,7 +297,7 @@ bool FBlueprintNativeCodeGenUtils::FinalizePlugin(const FBlueprintNativeCodeGenM
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource, TSharedPtr<FNativizationSummary> NativizationSummary, FCompilerNativizationOptions NativizationOptions)
+void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource, TSharedPtr<FNativizationSummary> NativizationSummary, const FCompilerNativizationOptions& NativizationOptions)
 {
 	auto UDEnum = Cast<UUserDefinedEnum>(Obj);
 	auto UDStruct = Cast<UUserDefinedStruct>(Obj);
@@ -316,6 +333,8 @@ void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FStr
 			TempPackage->RemoveFromRoot();
 			TempPackage->MarkPendingKill();
 		};
+
+		TextNamespaceUtil::ForcePackageNamespace(TempPackage, TextNamespaceUtil::GetPackageNamespace(InBlueprintObj));
 
 		UBlueprint* DuplicateBP = nullptr;
 		{
@@ -367,7 +386,7 @@ void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FStr
 		}
 		else if (UDStruct)
 		{
-			*OutHeaderSource = Compiler.GenerateCppCodeForStruct(UDStruct);
+			*OutHeaderSource = Compiler.GenerateCppCodeForStruct(UDStruct, NativizationOptions);
 		}
 	}
 	else

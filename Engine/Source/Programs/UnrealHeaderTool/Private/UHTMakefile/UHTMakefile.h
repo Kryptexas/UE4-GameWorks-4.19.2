@@ -1133,7 +1133,7 @@ public:
 	int32 GetTokenIndex(const FToken* Token) const;
 	const FToken* GetTokenByIndex(int32 Index) const;
 
-	void AddGeneratedCodeCRC(FUnrealSourceFile* SourceFile, UField* Field, uint32 CRC)
+	void AddGeneratedCodeCRC(const FUnrealSourceFile* SourceFile, UField* Field, uint32 CRC)
 	{
 		int32 Index = GeneratedCodeCRCs.Emplace(Field, CRC);
 		GetHeaderDescriptor(SourceFile).AddEntry(AddObject(ESerializedObjectType::EGeneratedCodeCRC, Index));
@@ -1325,7 +1325,7 @@ public:
 		return CurrentModule.GetHeaderDescriptor(UnrealSourceFileIndex);
 	}
 
-	FUHTMakefileHeaderDescriptor& GetHeaderDescriptor(FUnrealSourceFile* UnrealSourceFile)
+	FUHTMakefileHeaderDescriptor& GetHeaderDescriptor(const FUnrealSourceFile* UnrealSourceFile)
 	{
 		int32 UnrealSourceFileIndex = GetUnrealSourceFileIndex(UnrealSourceFile);
 		return GetHeaderDescriptorBySourceFileIndex(UnrealSourceFileIndex);

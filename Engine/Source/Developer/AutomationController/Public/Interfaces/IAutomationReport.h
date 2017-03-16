@@ -65,27 +65,47 @@ inline const TCHAR* ToString(EAutomationState InType)
 	return TEXT("Invalid");
 }
 
+UENUM()
 enum class EAutomationArtifactType : uint8
 {
+	None,
 	Image,
 	Comparison
 };
 
+USTRUCT()
 struct FAutomationArtifact
 {
+	GENERATED_BODY()
+
 public:
-	FAutomationArtifact(const FString& InName, EAutomationArtifactType InType, const TArray<FString>& InFilePaths)
+	FAutomationArtifact()
+		: Name()
+		, Type(EAutomationArtifactType::None)
+	{
+	}
+
+	FAutomationArtifact(const FString& InName, EAutomationArtifactType InType, const TMap<FString, FString>& InLocalFiles)
 		: Name(InName)
 		, Type(InType)
-		, FilePaths(InFilePaths)
+		, LocalFiles(InLocalFiles)
 	{
 	}
 
 public:
 
+	UPROPERTY()
 	FString Name;
+
+	UPROPERTY()
 	EAutomationArtifactType Type;
-	TArray<FString> FilePaths;
+
+	UPROPERTY()
+	TMap<FString, FString> Files;
+
+	// Local Files are the files generated during a testing run, once exported, the invidual file paths
+	// should be stored in the Files map.
+	TMap<FString, FString> LocalFiles;
 };
 
 /**
@@ -99,20 +119,51 @@ struct FAutomationTestResults
 	FAutomationTestResults()
 		: State( EAutomationState::NotRun ) //default to not having run yet
 		, Duration( 0.0f )
+		, WarningTotal(0)
+		, ErrorTotal(0)
 	{
 	}
 
+	void Reset()
+	{
+		State = EAutomationState::NotRun;
+		Events.Empty();
+		Artifacts.Empty();
+		WarningTotal = 0;
+		ErrorTotal = 0;
+	}
+
+	void SetEvents(const TArray<FAutomationEvent>& InEvents, int32 InWarningTotal, int32 InErrorTotal)
+	{
+		Events = InEvents;
+		WarningTotal = InWarningTotal;
+		ErrorTotal = InErrorTotal;
+	}
+
+	void AddEvent(const FAutomationEvent& Event)
+	{
+		switch ( Event.Type )
+		{
+		case EAutomationEventType::Warning:
+			WarningTotal++;
+			break;
+		case EAutomationEventType::Error:
+			WarningTotal++;
+			break;
+		}
+
+		Events.Add(Event);
+	}
+
+	const TArray<FAutomationEvent>& GetEvents() const { return Events; }
+
+	int32 GetLogTotal() const { return Events.Num() - (WarningTotal + ErrorTotal); }
+	int32 GetWarningTotal() const { return WarningTotal; }
+	int32 GetErrorTotal() const { return ErrorTotal; }
+
+public:
 	/* The current state of this test */
 	EAutomationState State;
-
-	/* All errors reported as part of this test */
-	TArray<FAutomationEvent> Errors;
-
-	/* All warnings reported as part of this test */
-	TArray<FString> Warnings;
-
-	/* All misc logs reported as part of this test */
-	TArray<FString> Logs;
 
 	/* The time this test took to complete */
 	float Duration;
@@ -122,6 +173,14 @@ struct FAutomationTestResults
 
 	/** Artifacts generated during the run of the test. */
 	TArray<FAutomationArtifact> Artifacts;
+
+private:
+	/* All events reported as part of this test */
+	TArray<FAutomationEvent> Events;
+
+	int32 WarningTotal;
+
+	int32 ErrorTotal;
 };
 
 
@@ -156,38 +215,6 @@ struct FAutomationCompleteState
 	uint32 NumDisabledTestsFailed;
 	uint32 NumDisabledTestsCouldntBeRun;
 };
-
-
-/**
- * Automation constants we wish to keep across controllers and windows.
- **/
-namespace AutomationReportConstants
-{
-	const int32 MaximumLogsToKeep = 10;
-}
-
-
-/**
- * Information for a single automation test's history.
- **/
-class FAutomationHistoryItem : public TSharedFromThis<FAutomationHistoryItem>
-{
-public:
-	/** The result of this particular test */
-	enum EAutomationHistoryResult
-	{
-		Successful = 0,
-		Warnings,
-		Errors
-	} RunResult;
-
-	/** The file name of the log file. */
-	FString LogLocation;
-
-	/** The date in which this test was completed */
-	FDateTime RunDate;
-};
-
 
 /**
  * Interface for automation test results
@@ -476,18 +503,6 @@ public:
 
 	/** Stop the test which is creating this report. */
 	virtual void StopRunningTest() = 0;
-
-	/**
-	 * Notification on whether we should, or should not, track this reports history.
-	 */
-	virtual void TrackHistory( const bool bShouldTrack, const int32 NumReportsToTrack ) = 0;
-
-	/**
-	 * Get the history items of this particular test.
-	 *
-	 * @return A reference to the items of this tests previous runs.
-	 */
-	virtual const TArray<TSharedPtr<FAutomationHistoryItem>>& GetHistory() const = 0;
 
 	// Event that allows log to refresh once a test has finished
 	DECLARE_DELEGATE_OneParam(FOnSetResultsEvent, TSharedPtr<IAutomationReport>);

@@ -1187,7 +1187,7 @@ class BuildPhysX : BuildCommand
 			case UnrealTargetPlatform.Mac:
 				return "dSYM";
 		}
-		throw new AutomationException(String.Format("No debug database extension for platform ", TargetData.Platform.ToString()));
+		throw new AutomationException(String.Format("No debug database extension for platform '{0}'", TargetData.Platform.ToString()));
 	}
 
 	private static string GetPlatformBinaryExtension(TargetPlatformData TargetData)
@@ -1200,7 +1200,7 @@ class BuildPhysX : BuildCommand
 			case UnrealTargetPlatform.Mac:
 				return "dylib";
 		}
-		throw new AutomationException(String.Format("No binary extension for platform ", TargetData.Platform.ToString()));
+		throw new AutomationException(String.Format("No binary extension for platform '{0}'", TargetData.Platform.ToString()));
 	}
 
 	private static string GetPlatformLibExtension(TargetPlatformData TargetData)
@@ -1222,7 +1222,7 @@ class BuildPhysX : BuildCommand
 			case UnrealTargetPlatform.HTML5:
 				return "bc";
 		}
-		throw new AutomationException(String.Format("No lib extension for platform ", TargetData.Platform.ToString()));
+		throw new AutomationException(String.Format("No lib extension for platform '{0}'", TargetData.Platform.ToString()));
 	}
 
     private static bool FileGeneratedByLib(string FileNameUpper, PhysXTargetLib TargetLib)

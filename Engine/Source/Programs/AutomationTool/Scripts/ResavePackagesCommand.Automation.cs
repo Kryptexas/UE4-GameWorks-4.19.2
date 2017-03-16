@@ -139,7 +139,7 @@ namespace AutomationScripts.Automation
 			catch (Exception Ex)
 			{
                 string FinalLogLines = "No log file found";
-                AutomationException AEx = Ex as AutomationException;
+                CommandletException AEx = Ex as CommandletException;
                 if ( AEx != null )
                 {
                     string LogFile = AEx.LogFileName;

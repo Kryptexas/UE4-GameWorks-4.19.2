@@ -50,6 +50,7 @@
 #include "ProfilingDebugging/CookStats.h"
 #include "UObject/DebugSerializationFlags.h"
 #include "EnumProperty.h"
+#include "BlueprintSupport.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
@@ -235,6 +236,15 @@ namespace SavePackageStats
 	});
 }
 #endif
+
+#if WITH_EDITOR
+static const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const ITargetPlatform* TargetPlatform, const IBlueprintNativeCodeGenCore* Coordinator)
+{
+	check(Coordinator);
+	const FString PlatformName = ensure(TargetPlatform) ? TargetPlatform->PlatformName() : FString();
+	return Coordinator->GetNativizationOptionsForPlatform(PlatformName);
+}
+#endif //WITH_EDITOR
 
 static bool HasUnsaveableOuter(UObject* InObj, UPackage* InSavingPackage)
 {
@@ -617,17 +627,18 @@ public:
 	/**
 	 * Names are cached before we replace objects for imports. So the names of replacements must be ealier.
 	 */
-	void AddReplacementsNames(UObject* Obj)
+	void AddReplacementsNames(UObject* Obj, const ITargetPlatform* TargetPlatform)
 	{
 		if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 		{
-			if (const UClass* ReplObjClass = Coordinator->FindReplacedClassForObject(Obj))
+			const FCompilerNativizationOptions& NativizationOptions = GetNativizationOptionsForPlatform(TargetPlatform, Coordinator);
+			if (const UClass* ReplObjClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
 			{
 				MarkNameAsReferenced(ReplObjClass->GetFName());
 			}
 
 			FName ReplacedName;
-			Coordinator->FindReplacedNameAndOuter(Obj, ReplacedName); //TODO: should we care about replaced outer ?
+			Coordinator->FindReplacedNameAndOuter(Obj, ReplacedName, NativizationOptions); //TODO: should we care about replaced outer ?
 			if (ReplacedName != NAME_None)
 			{
 				MarkNameAsReferenced(ReplacedName);
@@ -724,7 +735,7 @@ bool IsEditorOnlyObject(const UObject* InObject)
 /**
  * Marks object as not for client, not for server, or editor only. Recurses up outer/class chain as necessary
  */
-static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark ExcludedObjectMarks)
+static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark ExcludedObjectMarks, const ITargetPlatform* TargetPlatform)
 {
 #if WITH_EDITOR
 	if (!Obj || (ExcludedObjectMarks != OBJECTMARK_NOMARKS && Obj->HasAnyMarks(ExcludedObjectMarks)))
@@ -745,12 +756,13 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 	// Check for nativization replacement
 	if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 	{
+		const FCompilerNativizationOptions& NativizationOptions = GetNativizationOptionsForPlatform(TargetPlatform, Coordinator);
 		FName UnusedName;
-		if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj))
+		if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
 		{
 			ObjClass = ReplacedClass;
 		}
-		if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName))
+		if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName, NativizationOptions))
 		{
 			ObjOuter = ReplacedOuter;
 		}
@@ -768,14 +780,14 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 
 	// Recurse into parents, then compute inherited marks
 	
-	ConditionallyExcludeObjectForTarget(ObjClass, ExcludedObjectMarks);
+	ConditionallyExcludeObjectForTarget(ObjClass, ExcludedObjectMarks, TargetPlatform);
 	InheritMark(ObjClass, OBJECTMARK_EditorOnly);
 	InheritMark(ObjClass, OBJECTMARK_NotForClient);
 	InheritMark(ObjClass, OBJECTMARK_NotForServer);
 
 	if (ObjOuter)
 	{
-		ConditionallyExcludeObjectForTarget(ObjOuter, ExcludedObjectMarks);
+		ConditionallyExcludeObjectForTarget(ObjOuter, ExcludedObjectMarks, TargetPlatform);
 		InheritMark(ObjOuter, OBJECTMARK_EditorOnly);
 		InheritMark(ObjOuter, OBJECTMARK_NotForClient);
 		InheritMark(ObjOuter, OBJECTMARK_NotForServer);
@@ -786,7 +798,7 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 	if (ThisStruct && ThisStruct->GetSuperStruct())
 	{
 		UObject* SuperStruct = ThisStruct->GetSuperStruct();
-		ConditionallyExcludeObjectForTarget(SuperStruct, ExcludedObjectMarks);
+		ConditionallyExcludeObjectForTarget(SuperStruct, ExcludedObjectMarks, TargetPlatform);
 		InheritMark(SuperStruct, OBJECTMARK_EditorOnly);
 		InheritMark(SuperStruct, OBJECTMARK_NotForClient);
 		InheritMark(SuperStruct, OBJECTMARK_NotForServer);
@@ -933,7 +945,7 @@ FArchive& FArchiveSaveTagExports::operator<<(UObject*& Obj)
 
 	// Check outer chain for any exlcuded object marks
 	const EObjectMark ExcludedObjectMarks = UPackage::GetExcludedObjectMarksForTargetPlatform(CookingTarget(), IsCooking());
-	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks);
+	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks, CookingTarget());
 
 	if (Obj && Obj->IsIn(Outer) && !Obj->HasAnyFlags(RF_Transient) && !Obj->HasAnyMarks((EObjectMark)(OBJECTMARK_TagExp | ExcludedObjectMarks)))
 	{
@@ -1126,7 +1138,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 	CheckObjectPriorToSave(*this, Obj, nullptr);
 
 	const EObjectMark ExcludedObjectMarks = UPackage::GetExcludedObjectMarksForTargetPlatform( CookingTarget(), IsCooking() );
-	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks);
+	ConditionallyExcludeObjectForTarget(Obj, ExcludedObjectMarks, CookingTarget());
 	
 	// Skip PendingKill objects and objects that don't pass the platform mark filter
 	if (Obj && (ExcludedObjectMarks == OBJECTMARK_NOMARKS || !Obj->HasAnyMarks(ExcludedObjectMarks)))
@@ -1197,17 +1209,19 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 						}
 					}
 #if WITH_EDITOR
-					SavePackageState->AddReplacementsNames(Obj);
+					SavePackageState->AddReplacementsNames(Obj, CookingTarget());
 #endif //WITH_EDITOR
 				}
 
 				// Recurse into parent
 				UObject* Parent = Obj->GetOuter();
 #if WITH_EDITOR
-				const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get();
-				FName UnusedName;
-				UObject* ReplacedOuter = Coordinator ? Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName) : nullptr;
-				Parent = ReplacedOuter ? ReplacedOuter : Obj->GetOuter();
+				if(const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
+				{
+					FName UnusedName;
+					UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName, GetNativizationOptionsForPlatform(CookingTarget(), Coordinator));
+					Parent = ReplacedOuter ? ReplacedOuter : Obj->GetOuter();
+				}
 #endif //WITH_EDITOR
 				if( Parent )
 				{
@@ -3339,9 +3353,7 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, FLinkerLoad* OldL
 		if (OldClass != nullptr && NewClass != nullptr && OldClass->IsNative() && NewClass->IsNative())
 		{
 			OldClass->ClassConstructor = NewClass->ClassConstructor;
-#if WITH_HOT_RELOAD_CTORS
 			OldClass->ClassVTableHelperCtorCaller = NewClass->ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 			OldClass->ClassAddReferencedObjects = NewClass->ClassAddReferencedObjects;
 		}
 	}
@@ -4154,9 +4166,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					}
 
 #if WITH_EDITOR
-					if (IBlueprintNativeCodeGenCore::Get())
+					if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 					{
-						EReplacementResult ReplacmentResult = IBlueprintNativeCodeGenCore::Get()->IsTargetedForReplacement(InOuter);
+						EReplacementResult ReplacmentResult = Coordinator->IsTargetedForReplacement(InOuter, GetNativizationOptionsForPlatform(TargetPlatform, Coordinator));
 						if (ReplacmentResult == EReplacementResult::ReplaceCompletely)
 						{
 							if (IsEventDrivenLoaderEnabledInCookedBuilds() && TargetPlatform)
@@ -4300,7 +4312,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 						SavePackageState->MarkNameAsReferenced(Obj->GetFName());
 #if WITH_EDITOR
-						SavePackageState->AddReplacementsNames(Obj);
+						SavePackageState->AddReplacementsNames(Obj, TargetPlatform);
 #endif //WITH_EDITOR
 						if( Obj->GetOuter() )
 						{
@@ -4640,11 +4652,12 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						FName ReplacedName = NAME_None;
 						if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 						{
-							if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj))
+							const FCompilerNativizationOptions& NativizationOptions = GetNativizationOptionsForPlatform(TargetPlatform, Coordinator);
+							if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
 							{
 								ObjClass = ReplacedClass;
 							}
-							if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/ReplacedName))
+							if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/ReplacedName, NativizationOptions))
 							{
 								ReplacedImportOuters.Add(Obj, ReplacedOuter);
 							}
@@ -5560,8 +5573,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 					if (BulkArchive)
 					{
-						BulkArchive->Close();
 						COOK_STAT(TotalPackageSizeUncompressed += BulkArchive->TotalSize());
+						BulkArchive->Close();
 						if ( bSaveAsync )
 						{
 							FBufferArchive* BulkBuffer = (FBufferArchive*)(BulkArchive);

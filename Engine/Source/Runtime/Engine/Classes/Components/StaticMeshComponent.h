@@ -193,9 +193,15 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** The section currently selected in the Editor. Used for highlighting */
 	UPROPERTY(transient)
 	int32 SelectedEditorSection;
+	/** The material currently selected in the Editor. Used for highlighting */
+	UPROPERTY(transient)
+	int32 SelectedEditorMaterial;
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered. Used for isolating in Static Mesh Tool **/
 	UPROPERTY(transient)
 	int32 SectionIndexPreview;
+	/** Index of the material to preview. If set to INDEX_NONE, all section will be rendered. Used for isolating in Static Mesh Tool **/
+	UPROPERTY(transient)
+	int32 MaterialIndexPreview;
 
 	/*
 	 * The import version of the static mesh when it was assign this is update when:
@@ -530,6 +536,12 @@ public:
 	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
 	*/
 	void SetSectionPreview(int32 InSectionIndexPreview);
+
+	/**
+	*	Sets the value of the MaterialIndexPreview flag and reattaches the component as necessary.
+	*	@param	InMaterialIndexPreview		New value of MaterialIndexPreview.
+	*/
+	void SetMaterialPreview(int32 InMaterialIndexPreview);
 	
 	/** Sets the BodyInstance to use the mesh's body setup for external collision information*/
 	void UpdateCollisionFromStaticMesh();

@@ -196,7 +196,7 @@ FDetailWidgetRow FDetailPropertyRow::GetWidgetRow()
 	}
 }
 
-void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> InParentCategory, const TAttribute<bool>& InIsParentEnabled )
+void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> InParentCategory, const TAttribute<bool>& InIsParentEnabled, TSharedPtr<IDetailGroup> InParentGroup)
 {
 	IsParentEnabled = InIsParentEnabled;
 
@@ -216,7 +216,7 @@ void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> 
 
 	if( bShowCustomPropertyChildren && CustomTypeInterface.IsValid() )
 	{
-		PropertyTypeLayoutBuilder = MakeShareable(new FCustomChildrenBuilder(InParentCategory));
+		PropertyTypeLayoutBuilder = MakeShareable(new FCustomChildrenBuilder(InParentCategory, InParentGroup));
 
 		/** Does this row pass its custom reset behavior to its children? */
 		if (CustomResetToDefault.IsSet() && CustomResetToDefault->PropagatesToChildren())

@@ -333,8 +333,11 @@ public:
 	// Returns the path in front of the filename
 	static FString GetPath(FString&& InPath);
 
-	// Changes the extension of the given filename
+	/** Changes the extension of the given filename (does nothing if the file has no extension) */
 	static FString ChangeExtension(const FString& InPath, const FString& InNewExtension);
+
+	/** Sets the extension of the given filename (like ChangeExtension, but also applies the extension if the file doesn't have one) */
+	static FString SetExtension(const FString& InPath, const FString& InNewExtension);
 
 	/** @return true if this file was found, false otherwise */
 	static bool FileExists(const FString& InPath);

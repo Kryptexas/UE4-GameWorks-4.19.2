@@ -513,7 +513,7 @@ namespace VulkanRHI
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateEvent(CreateInfo=0x%016llx%s, OutEvent=0x%016llx)"), CreateInfo, Event));
 
-		VkResult Result = VULKANAPINAMESPACE::vkCreateEvent(Device, CreateInfo, Allocator,pEvent);
+		VkResult Result = VULKANAPINAMESPACE::vkCreateEvent(Device, CreateInfo, Allocator, pEvent);
 
 		PrintResultAndNamedHandle(Result, TEXT("Event"), *Fence);
 		return Result;

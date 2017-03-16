@@ -18,7 +18,10 @@ namespace UnrealBuildTool
 		ArmUnknownLinuxGnueabihf,
 
 		/** AArch64, ARM 64-bit */
-		AArch64UnknownLinuxGnueabi
+		AArch64UnknownLinuxGnueabi,
+
+		/** i686, Intel 32-bit */
+		I686UnknownLinuxGnu
 	}
 
 	class LinuxPlatform : UEBuildPlatform
@@ -90,6 +93,10 @@ namespace UnrealBuildTool
 						case LinuxArchitecture.AArch64UnknownLinuxGnueabi:
 							ActiveArchitecture = "aarch64-unknown-linux-gnueabi";
 							break;
+
+						case LinuxArchitecture.I686UnknownLinuxGnu:
+							ActiveArchitecture = "i686-unknown-linux-gnu";
+							break;
 					}
 				}
 			}
@@ -133,8 +140,8 @@ namespace UnrealBuildTool
                 Target.bCompileSimplygonSSF = false;
 			}
 
-			// At the moment ICU has not been compiled for AArch64. Also, localization isn't needed on servers by default, and ICU is pretty heavy
-			if (Target.Architecture.StartsWith("aarch64") || Target.Type == TargetType.Server)
+			// At the moment ICU has not been compiled for AArch64 and i686. Also, localization isn't needed on servers by default, and ICU is pretty heavy
+			if (Target.Architecture.StartsWith("aarch64") || Target.Architecture.StartsWith("i686") || Target.Type == TargetType.Server)
 			{
 				Target.bCompileICU = false;
 			}

@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.Caching;
 using System.Web.Mvc;
+using Tools.CrashReporter.CrashReportWebSite.Properties;
+using System.Runtime.Caching;
 
 namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
 {
@@ -13,6 +16,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
     public class CrashRepository : ICrashRepository
     {
         private CrashReportEntities _entityContext;
+        
+        private static MemoryCache cache = MemoryCache.Default;
 
         /// <summary>
         /// Constructor
@@ -33,6 +38,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public IQueryable<Crash> ListAll()
         {
             return _entityContext.Crashes;
+        }
+
+        /// <summary>
+        /// Count the number of objects that satisfy the filter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public int Count(Expression<Func<Crash, bool>> filter)
+        {
+            return _entityContext.Crashes.Count(filter);
         }
 
         /// <summary>
@@ -158,28 +173,36 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         /// <returns></returns>
         public List<SelectListItem> GetBranchesAsListItems()
         {
-            DateTime Now = DateTime.UtcNow;
-            var date = DateTime.Now.AddDays(-14);
-            if (Now - LastBranchesDate > TimeSpan.FromHours(1))
+            var branchesAsSelectList = cache["branches"] as List<SelectListItem>;
+
+            if (branchesAsSelectList == null)
             {
-                var BranchList = _entityContext.Crashes
-                    .Where(n => n.TimeOfCrash > date)
-                    .Where(c => c.CrashType != 3) // Ignore ensures
-                    // Depot - //depot/UE4* || Stream //UE4, //Something etc.
-                    .Where(n => n.Branch.StartsWith("UE4") || n.Branch.StartsWith("//"))
-                    .Select(n => n.Branch)
-                    .Distinct()
-                    .ToList();
+                using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer("CrashRepository.GetBranches"))
+                {
+                    var date = DateTime.Now.AddDays(-14);
 
-                BranchesAsSelectList = BranchList
-                    .Select(listitem => new SelectListItem {Selected = false, Text = listitem, Value = listitem})
-                    .ToList();
+                    var BranchList = _entityContext.Crashes
+                        .Where(n => n.TimeOfCrash > date)
+                        .Where(c => c.CrashType != 3) // Ignore ensures
+                        // Depot - //depot/UE4* || Stream //UE4, //Something etc.
+                        .Where(n => n.Branch.StartsWith("UE4") || n.Branch.StartsWith("//"))
+                        .Select(n => n.Branch)
+                        .Distinct()
+                        .ToList();
 
-                BranchesAsSelectList.Insert(0, new SelectListItem {Selected = true, Text = "", Value = ""});
+                    branchesAsSelectList =
+                        BranchList
+                        .Select(listItem => new SelectListItem { Selected = false, Text = listItem, Value = listItem })
+                        .ToList();
 
-                LastBranchesDate = Now;
+                    branchesAsSelectList.Insert(0, new SelectListItem { Selected = true, Text = "", Value = "" });
+                }
+                
+                var searchFilterCachePolicy = new CacheItemPolicy() { AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(Settings.Default.SearchFilterCacheInMinutes) };
+                cache.Set("branches", branchesAsSelectList, searchFilterCachePolicy);
             }
-            return BranchesAsSelectList;
+
+            return branchesAsSelectList;
         }
 
         /// <summary>
@@ -215,18 +238,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
             return engineModesAsListItems;
         }
 
-        private static DateTime LastVersionDate = DateTime.UtcNow.AddDays(-1);
-        private static List<SelectListItem> VersionsAsSelectList = null;
         private static HashSet<string> DistinctBuildVersions = null;
         /// <summary>
         /// Retrieves a list of distinct UE4 Versions from the CrashRepository
         /// </summary>
         public List<SelectListItem> GetVersionsAsListItems()
         {
-            DateTime Now = DateTime.UtcNow;
-            var date = DateTime.Now.AddDays(-14);
-            if (Now - LastVersionDate > TimeSpan.FromHours(1))
+            List<SelectListItem> versionsAsSelectList = cache["versions"] as List<SelectListItem>;
+
+            if (versionsAsSelectList == null)
             {
+                var date = DateTime.Now.AddDays(-14);
                 var BuildVersions = _entityContext.Crashes
                 .Where(c => c.TimeOfCrash > date)
                 .Where(c => c.CrashType != 3) // Ignore ensures
@@ -246,26 +268,27 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
                     }
                 }
 
-                VersionsAsSelectList = DistinctBuildVersions
+                versionsAsSelectList = DistinctBuildVersions
                     .Select(listitem => new SelectListItem { Selected = false, Text = listitem, Value = listitem })
                     .ToList();
-                VersionsAsSelectList.Insert(0, new SelectListItem { Selected = true, Text = "", Value = "" });
+                versionsAsSelectList.Insert(0, new SelectListItem { Selected = true, Text = "", Value = "" });
 
-                LastVersionDate = Now;
+                var searchFilterCachePolicy = new CacheItemPolicy() { AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(Settings.Default.SearchFilterCacheInMinutes) };
+                cache.Set("versions", versionsAsSelectList, searchFilterCachePolicy);
             }
 
-            return VersionsAsSelectList;
+            return versionsAsSelectList;
         }
 
         private static DateTime LastEngineVersionDate = DateTime.UtcNow.AddDays(-1);
-        private static List<SelectListItem> EngineVersionsAsSelectList = null;
         private static HashSet<string> DistinctEngineVersions = null;
         public List<SelectListItem> GetEngineVersionsAsListItems()
         {
-            DateTime Now = DateTime.UtcNow;
-            var date = DateTime.Now.AddDays(-14);
-            if (Now - LastEngineVersionDate > TimeSpan.FromHours(1))
+            List<SelectListItem> engineVersionsAsSelectList = cache["engineVersions"] as List<SelectListItem>;
+
+            if (engineVersionsAsSelectList == null)
             {
+                var date = DateTime.Now.AddDays(-14);
                 var engineVersions = _entityContext.Crashes
                 .Where(c => c.TimeOfCrash > date)
                 .Where(c => c.CrashType != 3) // Ignore ensures
@@ -273,7 +296,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
                 .Distinct()
                 .ToList();
 
-                DistinctEngineVersions = new HashSet<string>();
+                var DistinctEngineVersions = new HashSet<string>();
 
                 foreach (var engineVersion in engineVersions)
                 {
@@ -288,15 +311,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
                     }
                 }
 
-                EngineVersionsAsSelectList = DistinctEngineVersions
+                engineVersionsAsSelectList = DistinctEngineVersions
                     .Select(listitem => new SelectListItem { Selected = false, Text = listitem, Value = listitem })
                     .ToList();
-                EngineVersionsAsSelectList.Insert(0, new SelectListItem { Selected = true, Text = "", Value = "" });
+                engineVersionsAsSelectList.Insert(0, new SelectListItem { Selected = true, Text = "", Value = "" });
 
-                LastEngineVersionDate = Now;
+                var searchFilterCachePolicy = new CacheItemPolicy() { AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(Settings.Default.SearchFilterCacheInMinutes) };
+                cache.Set("engineVersions", engineVersionsAsSelectList, searchFilterCachePolicy);
             }
 
-            return EngineVersionsAsSelectList;
+            return engineVersionsAsSelectList;
         } 
 
 
@@ -307,6 +331,21 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         {
             GetVersionsAsListItems();
             return DistinctBuildVersions;
+        }
+
+        public void SetStatusByBuggId(int buggId, string status)
+        {
+            _entityContext.Crashes.SqlQuery("UPDATE CRASHES SET Status = '" + status + "' * WHERE Crashes.BuggId = '" + buggId.ToString("N") + "'");
+        }
+
+        public void SetFixedCLByBuggId(int buggId, string fixedCl)
+        {
+            _entityContext.Crashes.SqlQuery("UPDATE CRASHES SET FixedChangeList = '" + fixedCl + "' * WHERE Crashes.BuggId = '" + buggId.ToString("N") + "'");
+        }
+
+        public void SetJiraByBuggId(int buggId, string jira)
+        {
+            _entityContext.Crashes.SqlQuery("UPDATE CRASHES SET Jira = '" + jira + "' * WHERE Crashes.BuggId = '" + buggId.ToString("N") + "'");
         }
     }
 }

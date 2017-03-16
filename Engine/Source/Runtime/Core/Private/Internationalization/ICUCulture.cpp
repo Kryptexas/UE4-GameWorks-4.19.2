@@ -661,6 +661,17 @@ FDecimalNumberFormattingRules ExtractNumberFormattingRulesFromICUDecimalFormatte
 																		? NewUEDecimalNumberFormattingRules.PrimaryGroupingSize 
 																		: static_cast<uint8>(InICUDecimalFormat.getSecondaryGroupingSize());
 
+	NewUEDecimalNumberFormattingRules.DigitCharacters[0]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kZeroDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[1]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kOneDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[2]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kTwoDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[3]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kThreeDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[4]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kFourDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[5]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kFiveDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[6]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kSixDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[7]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kSevenDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[8]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kEightDigitSymbol);
+	NewUEDecimalNumberFormattingRules.DigitCharacters[9]			= ExtractFormattingSymbolAsCharacter(icu::DecimalFormatSymbols::kNineDigitSymbol);
+
 	return NewUEDecimalNumberFormattingRules;
 }
 
@@ -748,7 +759,7 @@ const FDecimalNumberFormattingRules& FCulture::FICUCultureImplementation::GetCur
 		}
 	}
 
-	// Create a culture percent formatter (doesn't call CreateCurrencyFormat as we need a mutable instance)
+	// Create a currency specific formatter (doesn't call CreateCurrencyFormat as we need a mutable instance)
 	TSharedPtr<icu::DecimalFormat> CurrencyFormatterForCulture;
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;

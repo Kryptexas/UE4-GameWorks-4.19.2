@@ -1199,11 +1199,15 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 		// Create the geometry
 		PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfieldEd, PxMeshGeometryFlags(), LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
 
-		FInlinePxShapeArray PShapes;
-		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *(BodyInstance.RigidActorSync));
-		if (NumShapes > 1)
 		{
-			PShapes[1]->setGeometry(LandscapeComponentGeom);
+			SCOPED_SCENE_WRITE_LOCK(BodyInstance.RigidActorSync->getScene());
+
+			FInlinePxShapeArray PShapes;
+			const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *(BodyInstance.RigidActorSync));
+			if (NumShapes > 1)
+			{
+				PShapes[1]->setGeometry(LandscapeComponentGeom);
+			}
 		}
 	}
 

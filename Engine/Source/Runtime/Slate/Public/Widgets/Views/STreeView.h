@@ -111,6 +111,7 @@ public:
 		, _OnItemToString_Debug()
 		, _OnEnteredBadState()
 		, _HandleGamepadEvents(true)
+		, _HandleDirectionalNavigation(true)
 		, _NavigateOnScrollIntoView(false)
 		{}
 
@@ -161,6 +162,8 @@ public:
 
 		SLATE_ARGUMENT(bool, HandleGamepadEvents);
 
+		SLATE_ARGUMENT(bool, HandleDirectionalNavigation);
+
 		SLATE_ARGUMENT(bool, NavigateOnScrollIntoView);
 
 	SLATE_END_ARGS()
@@ -199,7 +202,7 @@ public:
 		this->OnEnteredBadState = InArgs._OnEnteredBadState;
 
 		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
-
+		this->bHandleDirectionalNavigation = InArgs._HandleDirectionalNavigation;
 		this->bNavigateOnScrollIntoView = InArgs._NavigateOnScrollIntoView;
 
 		// Check for any parameters that the coder forgot to specify.

@@ -117,6 +117,7 @@ struct FLongPackagePathsSingleton
 	FString EngineRootPath;
 	FString GameRootPath;
 	FString ScriptRootPath;
+	FString MemoryRootPath;
 	FString TempRootPath;
 	TArray<FString> MountPointRootPaths;
 
@@ -154,6 +155,7 @@ struct FLongPackagePathsSingleton
 		{
 			OutRoots.Add(ConfigRootPath);
 			OutRoots.Add(ScriptRootPath);
+			OutRoots.Add(MemoryRootPath);
 			OutRoots.Add(TempRootPath);
 		}
 	}
@@ -210,6 +212,7 @@ private:
 		EngineRootPath = TEXT("/Engine/");
 		GameRootPath   = TEXT("/Game/");
 		ScriptRootPath = TEXT("/Script/");
+		MemoryRootPath = TEXT("/Memory/");
 		TempRootPath   = TEXT("/Temp/");
 
 		EngineContentPath      = FPaths::EngineContentDir();
@@ -238,6 +241,7 @@ private:
 		ContentPathToRoot.Emplace(EngineRootPath, EngineShadersPath);
 		ContentPathToRoot.Emplace(EngineRootPath, EngineShadersPathShort);
 		ContentPathToRoot.Emplace(GameRootPath,   GameContentPath);
+		ContentPathToRoot.Emplace(ScriptRootPath, GameScriptPath);
 		ContentPathToRoot.Emplace(ScriptRootPath, GameScriptPath);
 		ContentPathToRoot.Emplace(TempRootPath,   GameSavedPath);
 		ContentPathToRoot.Emplace(GameRootPath,   GameContentPathRebased);
@@ -676,6 +680,11 @@ bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid*
 		return false;
 	}
 
+	if (IsMemoryPackage(PackageName))
+	{
+		return false;
+	}
+
 	if ( !FPackageName::IsValidLongPackageName( PackageName, true, &Reason ) )
 	{
 		UE_LOG(LogPackageName, Error, TEXT( "DoesPackageExist: DoesPackageExist FAILED: '%s' is not a standard unreal filename or a long path name. Reason: %s"), *LongPackageName, *Reason.ToString() );
@@ -1102,6 +1111,12 @@ FString FPackageName::ObjectPathToObjectName(const FString& InObjectPath)
 bool FPackageName::IsScriptPackage(const FString& InPackageName)
 {
 	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().ScriptRootPath);
+}
+
+// Are we a package that resides in memory and not on disk
+bool FPackageName::IsMemoryPackage(const FString& InPackageName)
+{
+	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().MemoryRootPath);
 }
 
 bool FPackageName::IsLocalizedPackage(const FString& InPackageName)

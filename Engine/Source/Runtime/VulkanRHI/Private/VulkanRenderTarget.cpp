@@ -273,7 +273,7 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 		// Verify we are not setting the same render targets again
 		if (RenderTargetsInfo.DepthStencilRenderTarget.Texture ||
 			RenderTargetsInfo.NumColorRenderTargets > 1 ||
-			RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture)
+			(RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture))
 		{
 			TransitionState.BeginRenderPass(*this, PendingGfxState->CurrentKey, *Device, CmdBuffer, RenderTargetsInfo, RTLayout, RenderPass, Framebuffer);
 		}
@@ -296,7 +296,7 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 
 	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture ||
 		RenderTargetsInfo.NumColorRenderTargets > 1 ||
-		RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture)
+		(RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture))
 	{
 		FVulkanRenderTargetLayout RTLayout(RenderTargetsInfo);
 		const uint32 RTLayoutHash = RTLayout.GetHash();
@@ -307,7 +307,7 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 	}
 }
 
-void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
+void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& InResolveParams)
 {
 	//FRCLog::Printf(FString::Printf(TEXT("RHICopyToResolveTarget")));
 	if (!SourceTextureRHI || !DestTextureRHI)
@@ -318,7 +318,7 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 
 	RHITransitionResources(EResourceTransitionAccess::EReadable, &SourceTextureRHI, 1);
 
-	auto CopyImage = [](FTransitionState& InRenderPassState, FVulkanCmdBuffer* InCmdBuffer, FVulkanSurface& SrcSurface, FVulkanSurface& DstSurface, uint32 NumLayers)
+	auto CopyImage = [](FTransitionState& InRenderPassState, FVulkanCmdBuffer* InCmdBuffer, FVulkanSurface& SrcSurface, FVulkanSurface& DstSurface, uint32 NumLayers, const FResolveParams& ResolveParams)
 	{
 		VkImageLayout* SrcLayoutPtr = InRenderPassState.CurrentLayout.Find(SrcSurface.Image);
 		check(SrcLayoutPtr);
@@ -333,8 +333,21 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 
 		check(InCmdBuffer->IsOutsideRenderPass());
 		VkCommandBuffer CmdBuffer = InCmdBuffer->GetHandle();
-		VkImageSubresourceRange SrcRange ={SrcSurface.GetFullAspectMask(), 0, 1, 0, NumLayers};
-		VkImageSubresourceRange DstRange ={DstSurface.GetFullAspectMask(), 0, 1, 0, NumLayers};
+
+		VkImageSubresourceRange SrcRange;
+		SrcRange.aspectMask = SrcSurface.GetFullAspectMask();
+		SrcRange.baseMipLevel = ResolveParams.MipIndex;
+		SrcRange.levelCount = 1;
+		SrcRange.baseArrayLayer = ResolveParams.SourceArrayIndex * NumLayers + (NumLayers == 6 ? ResolveParams.CubeFace : 0);
+		SrcRange.layerCount = 1;
+
+		VkImageSubresourceRange DstRange;
+		DstRange.aspectMask = DstSurface.GetFullAspectMask();
+		DstRange.baseMipLevel = ResolveParams.MipIndex;
+		DstRange.levelCount = 1;
+		DstRange.baseArrayLayer = ResolveParams.DestArrayIndex * NumLayers + (NumLayers == 6 ? ResolveParams.CubeFace : 0);
+		DstRange.layerCount = 1;
+
 		VulkanSetImageLayout(CmdBuffer, SrcSurface.Image, SrcLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, SrcRange);
 		VulkanSetImageLayout(CmdBuffer, DstSurface.Image, DstLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, DstRange);
 
@@ -344,19 +357,17 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		Region.extent.height = FMath::Min(SrcSurface.Height, DstSurface.Height);
 		Region.extent.depth = 1;
 		Region.srcSubresource.aspectMask = SrcSurface.GetFullAspectMask();
-		Region.srcSubresource.layerCount = NumLayers;
+		Region.srcSubresource.baseArrayLayer = SrcRange.baseArrayLayer;
+		Region.srcSubresource.layerCount = 1;
+		Region.srcSubresource.mipLevel = ResolveParams.MipIndex;
 		Region.dstSubresource.aspectMask = DstSurface.GetFullAspectMask();
-		Region.dstSubresource.layerCount = NumLayers;
-		uint32 NumMips = FMath::Min(SrcSurface.GetNumMips(), DstSurface.GetNumMips());
-		for (uint32 Index = 0; Index < NumMips; ++Index)
-		{
-			Region.srcSubresource.mipLevel = Index;
-			Region.dstSubresource.mipLevel = Index;
-			VulkanRHI::vkCmdCopyImage(CmdBuffer,
-				SrcSurface.Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				DstSurface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				1, &Region);
-		}
+		Region.dstSubresource.baseArrayLayer = DstRange.baseArrayLayer;
+		Region.dstSubresource.layerCount = 1;
+		Region.dstSubresource.mipLevel = ResolveParams.MipIndex;
+		VulkanRHI::vkCmdCopyImage(CmdBuffer,
+			SrcSurface.Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			DstSurface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1, &Region);
 
 		VulkanSetImageLayout(CmdBuffer, SrcSurface.Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, SrcLayout, SrcRange);
 		VulkanSetImageLayout(CmdBuffer, DstSurface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, DstLayout, DstRange);
@@ -370,7 +381,7 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		if (VulkanSrcTexture->Surface.Image != VulkanDstTexture->Surface.Image)
 		{
 			FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-			CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 1);
+			CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 1, InResolveParams);
 		}
 	}
 	else
@@ -384,7 +395,7 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 			if (VulkanSrcTexture->Surface.Image != VulkanDstTexture->Surface.Image)
 			{
 				FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-				CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 1);
+				CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 1, InResolveParams);
 			}
 		}
 		else
@@ -397,7 +408,7 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 			if (VulkanSrcTexture->Surface.Image != VulkanDstTexture->Surface.Image)
 			{
 				FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-				CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 6);
+				CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 6, InResolveParams);
 			}
 		}
 	}
@@ -548,7 +559,8 @@ void FVulkanDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, 
 		}
 
 		VkBufferMemoryBarrier Barrier;
-		ensure(StagingBuffer->GetSize() == Size);
+		// the staging buffer size may be bigger then the size due to alignment, etc. but it must not be smaller!
+		ensure(StagingBuffer->GetSize() >= Size);
 		//#todo-rco: Change offset if reusing a buffer suballocation
 		VulkanRHI::SetupAndZeroBufferBarrier(Barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_HOST_READ_BIT, StagingBuffer->GetHandle(), 0/*StagingBuffer->GetOffset()*/, StagingBuffer->GetSize());
 		VulkanRHI::vkCmdPipelineBarrier(InCmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 1, &Barrier, 0, nullptr);
@@ -631,7 +643,7 @@ void FVulkanDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI
 
 }
 
-void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFence)
+void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI)
 {
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	ensure(CmdBuffer->IsOutsideRenderPass());
@@ -704,6 +716,12 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 	}
 
 	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), SourceStage, DestStage, 0, 0, nullptr, BufferBarriers.Num(), BufferBarriers.GetData(), ImageBarriers.Num(), ImageBarriers.GetData());
+
+	if (WriteComputeFenceRHI)
+	{
+		FVulkanComputeFence* Fence = ResourceCast(WriteComputeFenceRHI);
+		Fence->WriteCmd(CmdBuffer->GetHandle());
+	}
 }
 
 void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures)
@@ -719,7 +737,8 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 		return;
 	}
 
-	if (TransitionType == EResourceTransitionAccess::EReadable)
+	// #todo-rco - deal with ERWSubResBarrier?
+	if (TransitionType == EResourceTransitionAccess::EReadable || TransitionType == EResourceTransitionAccess::ERWSubResBarrier)
 	{
 		TArray<VkImageMemoryBarrier> ReadBarriers;
 		ReadBarriers.AddZeroed(NumTextures);
@@ -834,7 +853,10 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 			}
 		}
 	}
-	else if (TransitionType == EResourceTransitionAccess::EWritable)
+
+	
+	// #todo-rco - note the else I removed
+	if (TransitionType == EResourceTransitionAccess::EWritable || TransitionType == EResourceTransitionAccess::ERWSubResBarrier)
 	{
 		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 		check(CmdBuffer->HasBegun());
@@ -925,18 +947,21 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 			}
 		}
 	}
-	else if (TransitionType == EResourceTransitionAccess::ERWSubResBarrier)
-	{
-		//#todo-rco: Ignore for now; will be needed for SM5
-	}
-	else if (TransitionType == EResourceTransitionAccess::EMetaData)
+
+// 	if (TransitionType == EResourceTransitionAccess::ERWSubResBarrier)
+// 	{
+// 		//#todo-rco: Ignore for now; will be needed for SM5  - DONE ABOVE FOR NOW, BY DOING READ AND WRITE MODES
+// 	}
+	
+	if (TransitionType == EResourceTransitionAccess::EMetaData)
 	{
 		// Nothing to do here
 	}
-	else
-	{
-		ensure(0);
-	}
+
+// 	else
+// 	{
+// 		ensure(0);
+// 	}
 }
 
 // Need a separate struct so we can memzero/remove dependencies on reference counts

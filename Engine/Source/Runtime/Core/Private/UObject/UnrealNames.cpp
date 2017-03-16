@@ -41,7 +41,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealNames, Log, All);
 static const int32 NameEntryWithoutUnionSize = sizeof(FNameEntry) - (NAME_SIZE * sizeof(TCHAR));
 
 template<typename TCharType>
-FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index);
+FNameEntry* AllocateNameEntry( const TCharType* Name, NAME_INDEX Index);
 
 /**
 * Helper function that can be used inside the debuggers watch window. E.g. "DebugFName(Class->Name.Index)". 
@@ -850,7 +850,7 @@ bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFind
 	{
 		check(OutIndex < Names.Num());
 	}
-	FNameEntry* NewEntry = AllocateNameEntry<TCharType>(InName, OutIndex);
+	FNameEntry* NewEntry = AllocateNameEntry(InName, OutIndex);
 	if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Names[OutIndex], NewEntry, nullptr) != nullptr) // we use an atomic operation to check for unexpected concurrency, verify alignment, etc
 	{
 		UE_LOG(LogUnrealNames, Fatal, TEXT("Hardcoded name '%s' at index %i was duplicated (or unexpected concurrency). Existing entry is '%s'."), *NewEntry->GetPlainNameString(), NewEntry->GetIndex(), *Names[OutIndex]->GetPlainNameString() );
@@ -1337,15 +1337,15 @@ private:
 FNameEntryPoolAllocator GNameEntryPoolAllocator;
 
 template<typename TCharType>
-FNameEntry* AllocateNameEntry(const void* Name, NAME_INDEX Index)
+FNameEntry* AllocateNameEntry(const TCharType* Name, NAME_INDEX Index)
 {
-	const SIZE_T NameLen  = TCString<TCharType>::Strlen((TCharType*)Name);
+	const SIZE_T NameLen  = TCString<TCharType>::Strlen(Name);
 	int32 NameEntrySize	  = FNameInitHelper<TCharType>::GetSize( NameLen );
 	FNameEntry* NameEntry = GNameEntryPoolAllocator.Allocate( NameEntrySize );
 	FName::NameEntryMemorySize += NameEntrySize;
 	NameEntry->Index      = (Index << NAME_INDEX_SHIFT) | (FNameInitHelper<TCharType>::GetIndexShiftValue());
 	NameEntry->HashNext   = nullptr;
-	FNameInitHelper<TCharType>::SetNameString(NameEntry, (TCharType*)Name, NameLen);
+	FNameInitHelper<TCharType>::SetNameString(NameEntry, Name, NameLen);
 	IncrementNameCount<TCharType>();
 	return NameEntry;
 }

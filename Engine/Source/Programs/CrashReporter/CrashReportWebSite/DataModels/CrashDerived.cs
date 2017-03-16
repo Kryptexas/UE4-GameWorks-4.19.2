@@ -1,5 +1,7 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+using Amazon.Runtime;
+using Amazon.S3;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,6 +9,7 @@ using System.Linq;
 using System.Web;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.CrashReporter.CrashReportWebSite.Models;
+using Tools.CrashReporter.CrashReportWebSite.Properties;
 
 namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 {
@@ -24,6 +27,25 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 
         private string SitePath = Properties.Settings.Default.SitePath;
 
+        public static AmazonClient AmazonClient { get; private set; }
+
+        static Crash()
+        {
+            //string AWSError;
+            //AWSCredentials AWSCredentialsForOutput = new StoredProfileAWSCredentials(Settings.Default.AWSS3ProfileName, Settings.Default.AWSCredentialsFilepath);
+            //AmazonS3Config S3ConfigForOutput = new AmazonS3Config
+            //{
+            //    ServiceURL = Settings.Default.AWSS3URL
+            //};
+
+            //AmazonClient = new AmazonClient(AWSCredentialsForOutput, null, S3ConfigForOutput, out AWSError);
+
+            //if (!AmazonClient.IsS3Valid)
+            //{
+            //    System.Diagnostics.Debug.WriteLine("Failed to initailize S3");
+            //}
+        }
+
         /// <summary>If available, will read CrashContext.runtime-xml.</summary>
         public void ReadCrashContextIfAvailable()
         {
@@ -33,7 +55,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
                 bool bHasCrashContext = HasCrashContextFile();
                 if (bHasCrashContext)
                 {
-                    _CrashContext = FGenericCrashContext.FromFile(SitePath + GetCrashContextUrl());
+                    //_CrashContext = FGenericCrashContext.FromFile(SitePath + GetCrashContextUrl());
+                    _CrashContext = FGenericCrashContext.FromUrl(GetCrashContextUrl());
                     bool bTest = _CrashContext != null && !string.IsNullOrEmpty(_CrashContext.PrimaryCrashProperties.FullCrashDumpLocation);
                     if (bTest)
                     {
@@ -72,8 +95,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// <summary>Return true, if there is a Crash context file associated with the Crash</summary>
         public bool HasCrashContextFile()
         {
-            var Path = SitePath + GetCrashContextUrl();
-            return System.IO.File.Exists(Path);
+            var Path = GetCrashContextUrl();
+            return !String.IsNullOrEmpty(Path);
         }
 
         /// <summary>Whether to use the full minidump.</summary>
@@ -85,8 +108,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// <summary>Return true, if there is a metadata file associated with the Crash</summary>
         public bool HasMetaDataFile()
         {
-            var Path = SitePath + GetMetaDataUrl();
-            return System.IO.File.Exists(Path);
+            var Path = GetMetaDataUrl();
+            return !String.IsNullOrEmpty(Path);
         }
 
         /// <summary>
@@ -96,7 +119,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// <returns>A class containing the parsed callstack.</returns>
         public CallStackContainer GetCallStack()
         {
-            return new CallStackContainer(this);
+            return new CallStackContainer(this.CrashType, this.RawCallStack, this.PlatformName);
         }
 
         /// <summary>
@@ -104,7 +127,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// </summary>
         public string GetLogUrl()
         {
-            return Properties.Settings.Default.CrashReporterFiles + Id + "_Launch.log";
+            // Check compressed first. Then uncompressed
+            string fileName = GetFilePath("_Launch.log" + Settings.Default.AWSS3CompressedSuffix);
+            if (fileName == null)
+            {
+                GetFilePath("_Launch.log");
+            }
+
+            return fileName;
         }
 
         /// <summary>
@@ -112,9 +142,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// </summary>
         public string GetMiniDumpUrl()
         {
-            var WebPath = Properties.Settings.Default.CrashReporterFiles + Id + "_MiniDump.dmp";
-            var Path = UseFullMinidumpPath() ? _CrashContext.PrimaryCrashProperties.FullCrashDumpLocation : WebPath;
-            return Path;
+            // Check compressed first. Then uncompressed
+            string fileName = GetFilePath("_MiniDump.dmp" + Settings.Default.AWSS3CompressedSuffix);
+            if (fileName == null)
+            {
+                GetFilePath("_MiniDump.dmp");
+            }
+
+            return fileName;
         }
 
         /// <summary>
@@ -140,7 +175,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// </summary>
         public string GetDiagnosticsUrl()
         {
-            return Properties.Settings.Default.CrashReporterFiles + Id + "_Diagnostics.txt";
+            return GetFilePath("_Diagnostics.txt");
         }
 
         /// <summary>
@@ -148,7 +183,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// </summary>
         public string GetCrashContextUrl()
         {
-            return Properties.Settings.Default.CrashReporterFiles + Id + "_CrashContext.runtime-xml";
+            return GetFilePath("_CrashContext.runtime-xml");
         }
 
         /// <summary>
@@ -156,7 +191,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// </summary>
         public string GetMetaDataUrl()
         {
-            return Properties.Settings.Default.CrashReporterFiles + Id + "_WERMeta.xml";
+            return GetFilePath("_WERMeta.xml");
         }
 
         /// <summary>
@@ -165,7 +200,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// <returns>The Url of the Crash report video file.</returns>
         public string GetVideoUrl()
         {
-            return Properties.Settings.Default.CrashReporterVideos + Id + "_CrashVideo.avi";
+            return GetFilePath("_CrashVideo.avi");
         }
 
         /// <summary>
@@ -226,29 +261,50 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// <summary>Return true, if there is a minidump file associated with the Crash</summary>
         public bool GetHasMiniDumpFile()
         {
-            var Path = SitePath + GetMiniDumpUrl();
-            return UseFullMinidumpPath() || System.IO.File.Exists(Path);
+            var Path = GetMiniDumpUrl();
+            return !String.IsNullOrEmpty(Path);
         }
 
         /// <summary>Return true, if there is a video file associated with the Crash</summary>
         public bool GetHasVideoFile()
         {
-            var Path = SitePath + GetVideoUrl();
-            return System.IO.File.Exists(Path);
+            var Path = GetVideoUrl();
+            return !String.IsNullOrEmpty(Path);
         }
 
         /// <summary>Return true, if there is a log file associated with the Crash</summary>
         public bool GetHasLogFile()
         {
-            var Path = SitePath + GetLogUrl();
-            return System.IO.File.Exists(Path);
+            var Path = GetLogUrl();
+
+            return !String.IsNullOrEmpty(Path);
         }
 
         /// <summary>Return true, if there is a diagnostics file associated with the Crash</summary>
         public bool GetHasDiagnosticsFile()
         {
-            var Path = SitePath + GetDiagnosticsUrl();
-            return System.IO.File.Exists(Path);
+            var Path = GetDiagnosticsUrl();
+            return !String.IsNullOrEmpty(Path);
+        }
+        
+        private string GetFilePath(String FileName)
+        {
+            string Path = null;
+
+            if (Settings.Default.DownloadFromS3)
+            {
+                int ReportIDSegment = (Id / 10000) * 10000;
+
+                string reportPath = string.Format("{0}/{1}/{2}/{2}{3}", Settings.Default.AWSS3KeyPrefix, ReportIDSegment, Id, FileName);
+
+                Path = AmazonClient.GetS3SignedUrl("crashreporter", reportPath, 60);
+            }
+            else
+            {
+                Path = Properties.Settings.Default.CrashReporterFiles + Id + FileName;
+            }
+
+            return Path;
         }
     }
 }

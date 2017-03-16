@@ -154,6 +154,13 @@ public:
 	 */
 	void GatherModuleDependencies(UPackage* Package);
 
+	/**
+	 * Adds module, to dependency list
+	 * 
+	 * @param  Package    The module you want to add.
+	 */
+	void AddSingleModuleDependency(UPackage* Package);
+
 	/** 
 	 * @return A list of all known modules that this plugin will depend on. 
 	 */
@@ -172,7 +179,7 @@ public:
 	/**
 	 * @return compiler nativization options
 	 */
-	const FCompilerNativizationOptions GetCompilerNativizationOptions() const { return NativizationOptions; }
+	const FCompilerNativizationOptions& GetCompilerNativizationOptions() const { return NativizationOptions; }
 
 	/**
 	 * Saves this manifest as json, to its target destination (which it was 

@@ -78,6 +78,7 @@ public:
 		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
 		, _HandleGamepadEvents( true )
+		, _HandleDirectionalNavigation( true )
 		, _OnItemToString_Debug()
 		, _OnEnteredBadState()
 		, _NavigateOnScrollIntoView(false)
@@ -121,6 +122,8 @@ public:
 
 		SLATE_ARGUMENT( bool, HandleGamepadEvents );
 
+		SLATE_ARGUMENT( bool, HandleDirectionalNavigation );
+
 		/** Assign this to get more diagnostics from the list view. */
 		SLATE_EVENT(FOnItemToString_Debug, OnItemToString_Debug)
 
@@ -155,6 +158,7 @@ public:
 
 		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
 		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
+		this->bHandleDirectionalNavigation = InArgs._HandleDirectionalNavigation;
 		this->bNavigateOnScrollIntoView = InArgs._NavigateOnScrollIntoView;
 
 		this->OnItemToString_Debug =
@@ -355,7 +359,7 @@ public:
 
 	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override
 	{
-		if (this->ItemsSource && (this->bHandleGamepadEvents || InNavigationEvent.GetNavigationGenesis() != ENavigationGenesis::Controller))
+		if (this->ItemsSource && this->bHandleDirectionalNavigation && (this->bHandleGamepadEvents || InNavigationEvent.GetNavigationGenesis() != ENavigationGenesis::Controller))
 		{
 			const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
 
@@ -1598,6 +1602,9 @@ protected:
 
 	/** Should gamepad nav be supported */
 	bool bHandleGamepadEvents;
+
+	/** Should directional nav be supported */
+	bool bHandleDirectionalNavigation;
 
 	/** Should scrolling an item into view generate a navigation */
 	bool bNavigateOnScrollIntoView;

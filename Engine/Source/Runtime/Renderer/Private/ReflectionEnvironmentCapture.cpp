@@ -708,8 +708,9 @@ void ClearScratchCubemaps(FRHICommandList& RHICmdList, int32 TargetSize)
 		{
 			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 			{
-				SetRenderTarget(RHICmdList, RT0.TargetableTexture, MipIndex, CubeFace, nullptr, true);
-				RHICmdList.ClearColorTexture(RT0.TargetableTexture, FLinearColor(0, 10000, 0, 0));
+				FRHIRenderTargetView ColorView(RT0.TargetableTexture, MipIndex, CubeFace, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+				FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
+				RHICmdList.SetRenderTargetsAndClear(Info);
 			}
 		}
 	}
@@ -724,8 +725,9 @@ void ClearScratchCubemaps(FRHICommandList& RHICmdList, int32 TargetSize)
 		{
 			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 			{
-				SetRenderTarget(RHICmdList, RT1.TargetableTexture, MipIndex, CubeFace, nullptr, true);
-				RHICmdList.ClearColorTexture(RT1.TargetableTexture, FLinearColor(0, 10000, 0, 0));
+				FRHIRenderTargetView ColorView(RT1.TargetableTexture, MipIndex, CubeFace, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+				FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
+				RHICmdList.SetRenderTargetsAndClear(Info);
 			}
 		}
 	}

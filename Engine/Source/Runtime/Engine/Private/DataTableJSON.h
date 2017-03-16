@@ -23,9 +23,11 @@ class TJsonWriter;
 class FDataTableExporterJSON
 {
 public:
+	typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FDataTableJsonWriter;
+
 	FDataTableExporterJSON(const EDataTableExportFlags InDTExportFlags, FString& OutExportText);
 
-	FDataTableExporterJSON(const EDataTableExportFlags InDTExportFlags, TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > > InJsonWriter);
+	FDataTableExporterJSON(const EDataTableExportFlags InDTExportFlags, TSharedRef<FDataTableJsonWriter> InJsonWriter);
 
 	~FDataTableExporterJSON();
 
@@ -38,10 +40,10 @@ public:
 private:
 	bool WriteStructEntry(const void* InRowData, const UProperty* InProperty, const void* InPropertyData);
 
-	bool WriteArrayEntry(const UProperty* InProperty, const void* InPropertyData);
+	bool WriteContainerEntry(const UProperty* InProperty, const void* InPropertyData, const FString* InIdentifier = nullptr);
 
 	EDataTableExportFlags DTExportFlags;
-	TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > > JsonWriter;
+	TSharedRef<FDataTableJsonWriter> JsonWriter;
 	bool bJsonWriterNeedsClose;
 };
 
@@ -61,7 +63,7 @@ private:
 
 	bool ReadStructEntry(const TSharedRef<FJsonValue>& InParsedPropertyValue, const FName InRowName, const FString& InColumnName, const void* InRowData, UProperty* InProperty, void* InPropertyData);
 
-	bool ReadArrayEntry(const TSharedRef<FJsonValue>& InParsedPropertyValue, const FName InRowName, const FString& InColumnName, const int32 InArrayEntryIndex, UProperty* InProperty, void* InPropertyData);
+	bool ReadContainerEntry(const TSharedRef<FJsonValue>& InParsedPropertyValue, const FName InRowName, const FString& InColumnName, const int32 InArrayEntryIndex, UProperty* InProperty, void* InPropertyData);
 
 	UDataTable* DataTable;
 	const FString& JSONData;

@@ -11,6 +11,7 @@
 #include "Engine/EngineTypes.h"
 #include "EdGraph/EdGraphPin.h"
 #include "Engine/BlueprintCore.h"
+#include "Misc/StringAssetReference.h"
 #include "Blueprint.generated.h"
 
 class FCompilerResultsLog;
@@ -90,10 +91,24 @@ struct FCompilerNativizationOptions
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+	FString PlatformName;
+
+	UPROPERTY()
 	bool ServerOnlyPlatform;
 
 	UPROPERTY()
 	bool ClientOnlyPlatform;
+
+	UPROPERTY()
+	TArray<FName> ExcludedModules;
+
+	// Individually excluded assets
+	UPROPERTY()
+	TSet<FStringAssetReference> ExcludedAssets;
+
+	// Excluded folders. It excludes only BPGCs, enums and structures are still converted.
+	UPROPERTY()
+	TArray<FString> ExcludedFolderPaths;
 
 	FCompilerNativizationOptions()
 		: ServerOnlyPlatform(false)

@@ -7,6 +7,7 @@
 #include "UObject/UObjectGlobals.h"
 
 class UDynamicClass;
+struct FCompilerNativizationOptions;
 
 struct FBlueprintWarningDeclaration
 {
@@ -138,7 +139,7 @@ struct IBlueprintNativeCodeGenCore
 	 * @param Package	The package in question
 	 * @return Whether the package should be converted
 	 */
-	virtual EReplacementResult IsTargetedForReplacement(const UPackage* Package) const = 0;
+	virtual EReplacementResult IsTargetedForReplacement(const UPackage* Package, const FCompilerNativizationOptions& NativizationOptions) const = 0;
 	
 	/**
 	 * Determines whether the provided object needs to be replaced (in part or completely).
@@ -149,7 +150,7 @@ struct IBlueprintNativeCodeGenCore
 	 * @param Object	The package in question
 	 * @return Whether the object should be converted
 	 */
-	virtual EReplacementResult IsTargetedForReplacement(const UObject* Object) const = 0;
+	virtual EReplacementResult IsTargetedForReplacement(const UObject* Object, const FCompilerNativizationOptions& NativizationOptions) const = 0;
 
 	/** 
 	 * Function used to change the type of a class from, say, UBlueprintGeneratedClass to 
@@ -159,7 +160,7 @@ struct IBlueprintNativeCodeGenCore
 	 * @param Object whose class will be replaced
 	 * @return A replacement class ptr, null if none
 	 */
-	virtual UClass* FindReplacedClassForObject(const UObject* Object) const = 0;
+	virtual UClass* FindReplacedClassForObject(const UObject* Object, const FCompilerNativizationOptions& NativizationOptions) const = 0;
 	
 	/** 
 	 * Function used to change the path of subobject from a nativized class.
@@ -168,7 +169,12 @@ struct IBlueprintNativeCodeGenCore
 	 * @param OutName Referenced to name, that will be saved in import table.
 	 * @return An Outer object that should be saved in import table.
 	 */
-	virtual UObject* FindReplacedNameAndOuter(UObject* Object, FName& OutName) const = 0;
+	virtual UObject* FindReplacedNameAndOuter(UObject* Object, FName& OutName, const FCompilerNativizationOptions& NativizationOptions) const = 0;
+
+	/*
+	 * Return nativization options for given platform.
+	 */
+	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const FString& PlatformName) const = 0;
 };
 
 #endif // WITH_EDITOR

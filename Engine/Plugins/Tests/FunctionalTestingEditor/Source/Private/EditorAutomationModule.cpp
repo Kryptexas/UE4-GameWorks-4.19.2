@@ -21,29 +21,31 @@
 #include "AssetRegistryModule.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "EditorAutomation"
 
 void OpenMapAndFocusActor(const TArray<FString>& Args)
 {
-	if ( Args.Num() < 2 )
+	if ( Args.Num() != 2 )
 	{
-		UE_LOG(LogConsoleResponse, Display, TEXT("Automate.OpenMapAndFocusActor failed\n"));
+		UE_LOG(LogConsoleResponse, Display, TEXT("Automate.OpenMapAndFocusActor failed, the number of arguments is wrong.  Automate.OpenMapAndFocusActor MapObjectPath ActorName\n"));
 		return;
 	}
 
-	FString AssetPath = Args[0];
+	FString AssetPath(Args[0]);
+	FString ActorName(Args[1]);
+
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
-	TArray<FAssetData> AllAssets;
-	AssetRegistryModule.Get().GetAssetsByPackageName(*AssetPath, AllAssets);
+	FAssetData MapAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*AssetPath);
 
-	if ( AllAssets.Num() > 0 )
+	if ( MapAssetData.IsValid() )
 	{
 		bool bIsWorlAlreadyOpened = false;
 		if ( UWorld* EditorWorld = GEditor->GetEditorWorldContext().World() )
 		{
-			if ( FAssetData(EditorWorld).PackageName == AllAssets[0].PackageName )
+			if ( FAssetData(EditorWorld).PackageName == MapAssetData.PackageName )
 			{
 				bIsWorlAlreadyOpened = true;
 			}
@@ -51,7 +53,7 @@ void OpenMapAndFocusActor(const TArray<FString>& Args)
 
 		if ( !bIsWorlAlreadyOpened )
 		{
-			UObject* ObjectToEdit = AllAssets[0].GetAsset();
+			UObject* ObjectToEdit = MapAssetData.GetAsset();
 			if ( ObjectToEdit )
 			{
 				GEditor->EditObject(ObjectToEdit);
@@ -80,6 +82,13 @@ void OpenMapAndFocusActor(const TArray<FString>& Args)
 
 			const bool bActiveViewportOnly = false;
 			GEditor->MoveViewportCamerasToActor(*ActorToFocus, bActiveViewportOnly);
+
+			FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+			TSharedPtr<SDockTab> LevelEditorTab = LevelEditorModule.GetLevelEditorInstanceTab().Pin();
+			if ( LevelEditorTab.IsValid() )
+			{
+				LevelEditorTab->DrawAttention();
+			}
 		}
 	}
 }

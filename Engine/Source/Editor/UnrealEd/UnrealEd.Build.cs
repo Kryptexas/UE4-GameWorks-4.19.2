@@ -63,6 +63,8 @@ public class UnrealEd : ModuleRules
                 "PortalRpc",
                 "PortalServices",
                 "BlueprintNativeCodeGen",
+                "ViewportInteraction",
+                "VREditor",
                 "Persona",
                 "ClothingSystemEditorInterface",
             }
@@ -92,7 +94,7 @@ public class UnrealEd : ModuleRules
 				"UnrealAudio",
                 "FunctionalTesting",
 				"AutomationController",
-				"Internationalization",
+				"Localization",
 				"AudioEditor",
 			}
 		);

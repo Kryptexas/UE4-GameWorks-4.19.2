@@ -1361,7 +1361,13 @@ void UEditorEngine::PostUndo(bool bSuccess)
 			{
 				// Deselect without any notification
 				SelectComponent(Component, false, false);
-				//Actor->UpdateComponentTransforms();
+
+				AActor* Owner = Component->GetOwner();
+				if (Owner && Owner->IsSelected())
+				{
+					// Synchronize selection with owner actors
+					SelectActor(Owner, false, false, true);
+				}
 			}
 		}
 
@@ -1370,7 +1376,13 @@ void UEditorEngine::PostUndo(bool bSuccess)
 		{
 			UActorComponent* Component = SelectedComponents[SelectedComponentIndex];
 			SelectComponent(Component, true, false);	//false is to stop notify which is done below if bOpWasSuccessful
-			//Actor->UpdateComponentTransforms();
+
+			AActor* Owner = Component->GetOwner();
+			if (Owner && !Owner->IsSelected())
+			{
+				// Synchronize selection with owner actors
+				SelectActor(Owner, true, false, true);
+			}
 		}
 
 		OldSelectedComponents.Empty();

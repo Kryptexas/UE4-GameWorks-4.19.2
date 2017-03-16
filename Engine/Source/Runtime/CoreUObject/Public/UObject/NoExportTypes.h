@@ -1069,6 +1069,38 @@ struct FInt32Interval
 	int32 Max;
 };
 
+// Automation
+
+UENUM()
+enum class EAutomationEventType : uint8
+{
+	Info,
+	Warning,
+	Error
+};
+
+USTRUCT(noexport)
+struct FAutomationEvent
+{
+	UPROPERTY()
+	EAutomationEventType Type;
+
+	UPROPERTY()
+	FString Message;
+
+	UPROPERTY()
+	FString Context;
+
+	UPROPERTY()
+	FString Filename;
+
+	UPROPERTY()
+	int32 LineNumber;
+
+	UPROPERTY()
+	FDateTime Timestamp;
+};
+
 //=============================================================================
 /**
  * Object: The base class all objects.
@@ -1087,10 +1119,8 @@ public:
 	 * Default UObject constructor.
 	 */
 	UObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UObject(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	//=============================================================================
 	// K2 support functions.

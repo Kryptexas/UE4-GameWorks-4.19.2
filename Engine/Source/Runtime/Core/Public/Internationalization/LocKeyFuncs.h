@@ -24,7 +24,25 @@ struct FLocKeySetFuncs : BaseKeyFuncs<FString, FString>
 
 /** Case sensitive hashing function for TMap */
 template <typename ValueType>
-struct FLocKeyMapFuncs : BaseKeyFuncs<ValueType, FString>
+struct FLocKeyMapFuncs : BaseKeyFuncs<ValueType, FString, /*bInAllowDuplicateKeys*/false>
+{
+	static FORCEINLINE const FString& GetSetKey(const TPair<FString, ValueType>& Element)
+	{
+		return Element.Key;
+	}
+	static FORCEINLINE bool Matches(const FString& A, const FString& B)
+	{
+		return A.Equals(B, ESearchCase::CaseSensitive);
+	}
+	static FORCEINLINE uint32 GetKeyHash(const FString& Key)
+	{
+		return FCrc::StrCrc32<TCHAR>(*Key);
+	}
+};
+
+/** Case sensitive hashing function for TMultiMap */
+template <typename ValueType>
+struct FLocKeyMultiMapFuncs : BaseKeyFuncs<ValueType, FString, /*bInAllowDuplicateKeys*/true>
 {
 	static FORCEINLINE const FString& GetSetKey(const TPair<FString, ValueType>& Element)
 	{

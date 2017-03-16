@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Serialization/NameAsStringProxyArchive.h"
 
+class UObject;
+
 /**
  * Implements a proxy archive that serializes UObjects and FNames as string data.
  *
@@ -32,6 +34,7 @@ struct FObjectAndNameAsStringProxyArchive : public FNameAsStringProxyArchive
 	/** If we fail to find an object during loading, try and load it. */
 	bool bLoadIfFindFails;
 
-	COREUOBJECT_API virtual FArchive& operator<<(class UObject*& Obj);
+	COREUOBJECT_API virtual FArchive& operator<<(UObject*& Obj) override;
+	COREUOBJECT_API virtual FArchive& operator<<(FWeakObjectPtr& Obj) override;
 };
 

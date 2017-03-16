@@ -122,7 +122,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{
 			ProcessorTask = new Task(() =>
 			                         {
-				                         while (!CancelSource.IsCancellationRequested)
+										 // parse out hte list of blacklisted games.
+										 string[] GameNamesToBlacklist = (Config.Default.GameNamesToBlacklist == null ? "" : Config.Default.GameNamesToBlacklist).ToLowerInvariant().Split(',');
+
+										 while (!CancelSource.IsCancellationRequested)
 				                         {
 					                         try
 					                         {
@@ -133,7 +136,18 @@ namespace Tools.CrashReporter.CrashReportProcess
 							                         FGenericCrashContext NewContext = null;
 							                         if (Queue.TryDequeueReport(out NewContext))
 							                         {
-								                         ProcessReport(NewContext);
+														 bool bIsBlacklistedGame = GameNamesToBlacklist.Contains(NewContext.PrimaryCrashProperties.GameName.ToLowerInvariant());
+														 // if it's blacklisted, skip it, else process it.
+														 if (bIsBlacklistedGame)
+														 {
+															 CrashReporterProcessServicer.WriteEvent(string.Format("Discarding crash from blacklisted GameName '{0}'", NewContext.PrimaryCrashProperties.GameName));
+															 // delete the report from disk since we don't care about it.
+															 FinalizeReport(AddReportResult.Added, new DirectoryInfo(NewContext.CrashDirectory), NewContext);
+														 }
+														 else
+														 {
+															 ProcessReport(NewContext);
+														 }
 
 								                         // The effect of this break is to prioritize ReportQueues by their order in the list, from highest to lowest
 								                         bIdle = false;

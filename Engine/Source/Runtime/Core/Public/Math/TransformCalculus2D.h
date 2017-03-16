@@ -484,6 +484,15 @@ public:
 			&& M[1][0] == 0.0f && M[1][1] == 1.0f;
 	}
 
+	bool IsNearlyIdentity(float ErrorTolerance = KINDA_SMALL_NUMBER) const
+	{
+		return
+			FMath::IsNearlyEqual(M[0][0], 1.0f, ErrorTolerance) &&
+			FMath::IsNearlyEqual(M[0][1], 0.0f, ErrorTolerance) &&
+			FMath::IsNearlyEqual(M[1][0], 0.0f, ErrorTolerance) &&
+			FMath::IsNearlyEqual(M[1][1], 1.0f, ErrorTolerance);
+	}
+
 private:
 	float M[2][2];
 };

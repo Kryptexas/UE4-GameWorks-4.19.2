@@ -23,6 +23,7 @@ class FChunkManifestGenerator;
 class ITargetPlatform;
 struct FPropertyChangedEvent;
 enum class ESavePackageResult;
+class IPlugin;
 
 enum class ECookInitializationFlags
 {
@@ -883,6 +884,9 @@ private:
 	bool bIsInitializingSandbox; // stop recursion into callbacks when we are initializing sandbox
 	mutable bool bIgnoreMarkupPackageAlreadyLoaded; // avoid marking up packages as already loaded (want to put this around some functionality as we want to load packages fully some times)
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
+
+   /** List of additional plugin directories to remap into the sandbox as needed */
+	TArray<TSharedRef<IPlugin> > PluginsToRemap;
 
 	//////////////////////////////////////////////////////////////////////////
 	// precaching system

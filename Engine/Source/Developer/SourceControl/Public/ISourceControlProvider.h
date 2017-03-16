@@ -9,7 +9,9 @@
 #include "ISourceControlState.h"
 #include "SourceControlHelpers.h"
 
-#define SOURCE_CONTROL_WITH_SLATE			(!(PLATFORM_LINUX && IS_PROGRAM))
+#ifndef SOURCE_CONTROL_WITH_SLATE
+	#error "SOURCE_CONTROL_WITH_SLATE must be defined. Did you forget a dependency on the 'SourceControl' module?"
+#endif
 
 class ISourceControlLabel;
 

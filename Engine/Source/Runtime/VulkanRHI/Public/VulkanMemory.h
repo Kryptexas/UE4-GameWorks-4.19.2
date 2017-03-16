@@ -92,12 +92,12 @@ namespace VulkanRHI
 	{
 	public:
 		FDeviceMemoryAllocation()
-			: DeviceHandle(VK_NULL_HANDLE)
+			: Size(0)
+			, DeviceHandle(VK_NULL_HANDLE)
 			, Handle(VK_NULL_HANDLE)
-			, Size(0)
+			, MappedPointer(nullptr)
 			, MemoryTypeIndex(0)
 			, bCanBeMapped(0)
-			, MappedPointer(nullptr)
 			, bIsCoherent(0)
 			, bIsCached(0)
 			, bFreedBySystem(false)

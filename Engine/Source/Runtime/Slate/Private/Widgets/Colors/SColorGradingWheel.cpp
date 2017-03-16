@@ -46,11 +46,11 @@ FReply SColorGradingWheel::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		OnMouseCaptureBegin.ExecuteIfBound();
+		OnMouseCaptureBegin.ExecuteIfBound(SelectedColor.Get());
 
 		if (!ProcessMouseAction(MyGeometry, MouseEvent, false))
 		{
-			OnMouseCaptureEnd.ExecuteIfBound();
+			OnMouseCaptureEnd.ExecuteIfBound(SelectedColor.Get());
 			return FReply::Unhandled();
 		}
 
@@ -65,7 +65,7 @@ FReply SColorGradingWheel::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && HasMouseCapture())
 	{
-		OnMouseCaptureEnd.ExecuteIfBound();
+		OnMouseCaptureEnd.ExecuteIfBound(SelectedColor.Get());
 
 		return FReply::Handled().ReleaseMouseCapture();
 	}

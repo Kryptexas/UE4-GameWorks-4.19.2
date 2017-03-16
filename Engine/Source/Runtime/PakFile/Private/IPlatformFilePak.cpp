@@ -2626,6 +2626,7 @@ struct FCachedAsyncBlock
 	int32 ProcessedSize;
 	int32 RefCount;
 	bool bInFlight;
+	bool bCPUWorkIsComplete;
 	FCachedAsyncBlock()
 		: RawRequest(0)
 		, Raw(nullptr)
@@ -2634,6 +2635,7 @@ struct FCachedAsyncBlock
 		, ProcessedSize(0)
 		, RefCount(0)
 		, bInFlight(false)
+		, bCPUWorkIsComplete(false)
 	{
 	}
 };
@@ -2920,6 +2922,11 @@ public:
 	{
 		check(!LiveRequests.Num()); // must delete all requests before you delete the handle
 		check(!NumLiveRawRequests); // must delete all requests before you delete the handle
+		for (FCachedAsyncBlock& Block : Blocks)
+		{
+			check(Block.RefCount == 0);
+			ClearBlock(Block, true);
+		}
 	}
 
 	virtual IAsyncReadRequest* SizeRequest(FAsyncFileCallBack* CompleteCallback = nullptr) override
@@ -2990,7 +2997,7 @@ public:
 	{
 		FCachedAsyncBlock& Block = Blocks[BlockIndex];
 		Block.bInFlight = true;
-		check(!Block.RawRequest && !Block.Processed && !Block.Raw && !Block.CPUWorkGraphEvent.GetReference() && !Block.ProcessedSize && !Block.RawSize);
+		check(!Block.RawRequest && !Block.Processed && !Block.Raw && !Block.CPUWorkGraphEvent.GetReference() && !Block.ProcessedSize && !Block.RawSize && !Block.bCPUWorkIsComplete);
 		Block.RawSize = FileEntry->CompressionBlocks[BlockIndex].CompressedEnd - FileEntry->CompressionBlocks[BlockIndex].CompressedStart;
 		if (FileEntry->bEncrypted)
 		{
@@ -3027,7 +3034,7 @@ public:
 					Block.ProcessedSize = FileEntry->CompressionBlockSize; // last block was a full block
 				}
 			}
-			check(Block.ProcessedSize);
+			check(Block.ProcessedSize && !Block.bCPUWorkIsComplete);
 			Block.CPUWorkGraphEvent = TGraphTask<FAsyncIOCPUWorkTask>::CreateTask().ConstructAndDispatchWhenReady(*this, BlockIndex);
 		}
 	}
@@ -3083,16 +3090,17 @@ public:
 				Block.CPUWorkGraphEvent = nullptr;
 				Block.bInFlight = false;
 			}
+			Block.bCPUWorkIsComplete = true;
 		}
 	}
-	void ClearBlock(FCachedAsyncBlock& Block)
+	void ClearBlock(FCachedAsyncBlock& Block, bool bForDestructorShouldAlreadyBeClear = false)
 	{
 		check(!Block.RawRequest);
 		Block.RawRequest = nullptr;
-		check(!Block.CPUWorkGraphEvent.GetReference() || Block.CPUWorkGraphEvent->IsComplete());
 		Block.CPUWorkGraphEvent = nullptr;
 		if (Block.Raw)
 		{
+			check(!bForDestructorShouldAlreadyBeClear);
 			// this was a cancel, clean it up now
 			FMemory::Free(Block.Raw);
 			Block.Raw = nullptr;
@@ -3102,6 +3110,7 @@ public:
 		Block.RawSize = 0;
 		if (Block.Processed)
 		{
+			check(bForDestructorShouldAlreadyBeClear == false);
 			FMemory::Free(Block.Processed);
 			Block.Processed = nullptr;
 			check(Block.ProcessedSize);
@@ -3109,6 +3118,7 @@ public:
 		}
 		Block.ProcessedSize = 0;
 		Block.bInFlight = false;
+		Block.bCPUWorkIsComplete = false;
 	}
 
 	void RemoveRequest(FPakProcessedReadRequest* Req, int64 Offset, int64 BytesToRead)
@@ -3134,7 +3144,7 @@ public:
 					Block.RawRequest = nullptr;
 					NumLiveRawRequests--;
 				}
-				if (!Block.CPUWorkGraphEvent.GetReference() || Block.CPUWorkGraphEvent->IsComplete())
+				if (Block.bCPUWorkIsComplete)
 				{
 					ClearBlock(Block);
 				}

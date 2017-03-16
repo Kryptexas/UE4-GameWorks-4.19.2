@@ -29,8 +29,8 @@ PackageIsInstalled()
 # main
 set -e
 
-TOP_DIR=$(cd $SCRIPT_DIR/../../.. ; pwd)
-cd ${TOP_DIR}
+TOP_DIR=$(cd "$SCRIPT_DIR/../../.." ; pwd)
+cd "${TOP_DIR}"
 
 IS_GITHUB_BUILD=true
 if [ -e Build/PerforceBuild.txt ]; then

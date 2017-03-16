@@ -1035,7 +1035,7 @@ private:
 		if (LocalHashSize)
 		{
 			// Allocate the new hash.
-			checkSlow(!(LocalHashSize & (HashSize - 1)));
+			checkSlow(FMath::IsPowerOfTwo(HashSize));
 			Hash.ResizeAllocation(0, LocalHashSize, sizeof(FSetElementId));
 			for (int32 HashIndex = 0; HashIndex < LocalHashSize; ++HashIndex)
 			{

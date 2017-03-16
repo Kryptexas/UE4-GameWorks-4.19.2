@@ -141,7 +141,7 @@ FArchive& FArchiveUObject::operator<<(FWeakObjectPtr& WeakObjectPtr)
 /**
  * Serialize the given UObject* as an FString
  */
-FArchive& FObjectAndNameAsStringProxyArchive::operator<<(class UObject*& Obj)
+FArchive& FObjectAndNameAsStringProxyArchive::operator<<(UObject*& Obj)
 {
 	if (IsLoading())
 	{
@@ -162,6 +162,12 @@ FArchive& FObjectAndNameAsStringProxyArchive::operator<<(class UObject*& Obj)
 		FString SavedString(Obj->GetPathName());
 		InnerArchive << SavedString;
 	}
+	return *this;
+}
+
+FArchive& FObjectAndNameAsStringProxyArchive::operator<<(FWeakObjectPtr& Obj)
+{
+	Obj.Serialize(*this);
 	return *this;
 }
 

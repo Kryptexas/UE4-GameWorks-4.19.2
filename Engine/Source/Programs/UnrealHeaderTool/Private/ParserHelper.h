@@ -37,8 +37,8 @@ enum EFunctionExportFlags
 	FUNCEXPORT_Inline			=0x00000010,	// export as an inline static C++ function
 	FUNCEXPORT_CppStatic		=0x00000020,	// Export as a real C++ static function, causing thunks to call via ClassName::FuncName instead of this->FuncName
 	FUNCEXPORT_CustomThunk		=0x00000040,	// Export no thunk function; the user will manually define a custom one
-	FUNCEXPORT_NeedsProto		=0x00000080,	// Export a .proto file from the parameters of this function
-	FUNCEXPORT_NeedsMCP			=0x00000100,	// Export a .java file from the parameters of this function
+	//							=0x00000080,
+	//							=0x00000100,
 };
 
 enum EPropertyHeaderExportFlags
@@ -1043,6 +1043,8 @@ struct FFuncInfo
 	FString		CppValidationImplName;
 	/** Name for callback-style names **/
 	FString		UnMarshallAndCallName;
+	/** Endpoint name */
+	FString		EndpointName;
 	/** Identifier for an RPC call to a platform service */
 	int16		RPCId;
 	/** Identifier for an RPC call expecting a response */
@@ -1527,9 +1529,7 @@ public:
 		, bConstructorDeclared(false)
 		, bDefaultConstructorDeclared(false)
 		, bObjectInitializerConstructorDeclared(false)
-#if WITH_HOT_RELOAD_CTORS
 		, bCustomVTableHelperConstructorDeclared(false)
-#endif // WITH_HOT_RELOAD_CTORS
 		, GeneratedBodyMacroAccessSpecifier(ACCESS_NotAnAccessSpecifier)
 	{
 	}
@@ -1752,10 +1752,8 @@ public:
 	// Is ObjectInitializer constructor (i.e. a constructor with only one parameter of type FObjectInitializer) declared?
 	bool bObjectInitializerConstructorDeclared;
 
-#if WITH_HOT_RELOAD_CTORS
 	// Is custom VTable helper constructor declared?
 	bool bCustomVTableHelperConstructorDeclared;
-#endif // WITH_HOT_RELOAD_CTORS
 
 	// GENERATED_BODY access specifier to preserve.
 	EAccessSpecifier GeneratedBodyMacroAccessSpecifier;

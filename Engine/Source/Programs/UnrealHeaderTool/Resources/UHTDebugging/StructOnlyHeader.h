@@ -7,5 +7,9 @@
 USTRUCT()
 struct FSomeStruct
 {
+#pragma region X
+
 	GENERATED_BODY()
+
+#pragma endregion X
 };

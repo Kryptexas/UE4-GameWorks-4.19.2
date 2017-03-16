@@ -75,7 +75,8 @@ public class UElibPNG : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			if (Target.Architecture.StartsWith("aarch64"))
+			// migrate all architectures to the newer binary
+			if (Target.Architecture.StartsWith("aarch64") || Target.Architecture.StartsWith("i686"))
 			{
 				libPNGPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.27";
 			}

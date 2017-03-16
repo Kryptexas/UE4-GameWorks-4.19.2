@@ -4,6 +4,7 @@
 
 #include "CoreTypes.h"
 #include "Templates/IsEnum.h"
+#include "Templates/Tuple.h"
 #include "Misc/Crc.h"
 
 /**
@@ -126,4 +127,38 @@ template <typename EnumType>
 FORCEINLINE  typename TEnableIf<TIsEnum<EnumType>::Value, uint32>::Type GetTypeHash(EnumType E)
 {
 	return GetTypeHash((__underlying_type(EnumType))E);
+}
+
+namespace UE4TypeHash_Private
+{
+	template <uint32 ArgToCombine, uint32 ArgCount>
+	struct TGetTupleHashHelper
+	{
+		template <typename TupleType>
+		FORCEINLINE static uint32 Do(uint32 Hash, const TupleType& Tuple)
+		{
+			return TGetTupleHashHelper<ArgToCombine + 1, ArgCount>::Do(HashCombine(Hash, GetTypeHash(Tuple.template Get<ArgToCombine>())), Tuple);
+		}
+	};
+
+	template <uint32 ArgIndex>
+	struct TGetTupleHashHelper<ArgIndex, ArgIndex>
+	{
+		template <typename TupleType>
+		FORCEINLINE static uint32 Do(uint32 Hash, const TupleType& Tuple)
+		{
+			return Hash;
+		}
+	};
+}
+
+template <typename... Types>
+FORCEINLINE uint32 GetTypeHash(const TTuple<Types...>& Tuple)
+{
+	return UE4TypeHash_Private::TGetTupleHashHelper<1u, sizeof...(Types)>::Do(GetTypeHash(Tuple.template Get<0>()), Tuple);
+}
+
+FORCEINLINE uint32 GetTypeHash(const TTuple<>& Tuple)
+{
+	return 0;
 }

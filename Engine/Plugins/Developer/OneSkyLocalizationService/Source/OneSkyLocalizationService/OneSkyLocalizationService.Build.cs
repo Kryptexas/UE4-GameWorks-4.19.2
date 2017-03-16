@@ -17,21 +17,12 @@ public class OneSkyLocalizationService : ModuleRules
                 "EditorStyle",
                 "LocalizationService",
                 "Json",
-                "Internationalization",
                 "HTTP",
                 "Serialization",
 				"Localization",
+				"LocalizationCommandletExecution",
 				"MainFrame",
 			}
 		);
-
-        PrivateIncludePathModuleNames.AddRange(
-            new string[] {
-				"LocalizationService",
-				"Json",
-                "Internationalization",
-				"HTTP",
-			}
-        );
 	}
 }

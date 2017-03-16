@@ -133,6 +133,24 @@
 	#error "PLATFORM_64BITS must be defined"
 #endif
 
+// Whether the CPU is x86/x64 (i.e. both 32 and 64-bit variants)
+#ifndef PLATFORM_CPU_X86_FAMILY
+	#if (defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__amd64__) || defined(__x86_64__))
+		#define PLATFORM_CPU_X86_FAMILY	1
+	#else
+		#define PLATFORM_CPU_X86_FAMILY	0
+	#endif
+#endif
+
+// Whether the CPU is AArch32/AArch64 (i.e. both 32 and 64-bit variants)
+#ifndef PLATFORM_CPU_ARM_FAMILY
+	#if (defined(__arm__) || defined(_M_ARM) || defined(__aarch64__) || defined(_M_ARM64))
+		#define PLATFORM_CPU_ARM_FAMILY	1
+	#else
+		#define PLATFORM_CPU_ARM_FAMILY	0
+	#endif
+#endif
+
 // Base defines, these have defaults
 #ifndef PLATFORM_LITTLE_ENDIAN
 	#define PLATFORM_LITTLE_ENDIAN				0

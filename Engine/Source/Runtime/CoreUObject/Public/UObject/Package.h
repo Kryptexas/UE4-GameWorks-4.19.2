@@ -49,7 +49,6 @@ class COREUOBJECT_API UPackage : public UObject
 	// Have to unwind this macro to support the reference variable, can go back to commented declaration when removing the deprecated variable
 	// DECLARE_CASTED_CLASS_INTRINSIC(UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage)
 
-#if WITH_HOT_RELOAD_CTORS
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API )
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UPackage(FVTableHelper& Helper)
@@ -57,9 +56,6 @@ class COREUOBJECT_API UPackage : public UObject
 		, PackageFlagsPrivate(PackageFlags) 
 	{
 	};
-#else
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API)
-#endif
 
 
 public:

@@ -1067,7 +1067,7 @@ public:
 		Writer.WriteValue("nocompile", !IsBuildingUAT());
 		Writer.WriteValue("nocompileeditor", FApp::IsEngineInstalled());
 		Writer.WriteValue("ue4exe", GetEditorExe());
-		Writer.WriteValue("usedebugparamforeditorexe", FParse::Param(FCommandLine::Get(), TEXT("debug")));
+		Writer.WriteValue("usedebugparamforeditorexe", FApp::IsRunningDebug());
 		Writer.WriteValue("utf8output", true);
 
 		// client configurations

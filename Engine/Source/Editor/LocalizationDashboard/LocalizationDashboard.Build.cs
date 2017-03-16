@@ -31,7 +31,9 @@ public class LocalizationDashboard : ModuleRules
                 "SourceControl",
                 "SharedSettingsWidgets",
                 "Localization",
-                "LocalizationService"
+				"LocalizationCommandletExecution",
+				"LocalizationService",
+				"InternationalizationSettings",
 			}
 		);
 

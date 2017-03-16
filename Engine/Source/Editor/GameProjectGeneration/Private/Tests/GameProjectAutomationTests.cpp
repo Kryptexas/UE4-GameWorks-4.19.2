@@ -196,7 +196,7 @@ namespace GameProjectAutomationUtils
 /**
 * Automation test to clean up old test project files
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectCleanupTest, "System.Promotion.Project Promotion Pass.Step 1 Blank Project Creation.Cleanup Potential Project Location", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectCleanupTest, "System.Promotion.Project Promotion Pass.Step 1 Blank Project Creation.Cleanup Potential Project Location", EAutomationTestFlags::Disabled | EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter );
 bool FBuildPromotionNewProjectCleanupTest::RunTest(const FString& Parameters)
 {
 	FString DesiredProjectFilename = GameProjectAutomationUtils::GetDesiredProjectFilename();
@@ -231,7 +231,7 @@ bool FBuildPromotionNewProjectCleanupTest::RunTest(const FString& Parameters)
 /**
 * Automation test to create a new project
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectCreateTest, "System.Promotion.Project Promotion Pass.Step 1 Blank Project Creation.Create Project", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectCreateTest, "System.Promotion.Project Promotion Pass.Step 1 Blank Project Creation.Create Project", EAutomationTestFlags::Disabled | EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::RequiresUser);
 bool FBuildPromotionNewProjectCreateTest::RunTest(const FString& Parameters)
 {
 	FString DesiredProjectFilename = GameProjectAutomationUtils::GetDesiredProjectFilename();
@@ -276,7 +276,7 @@ bool FBuildPromotionNewProjectCreateTest::RunTest(const FString& Parameters)
 /**
 * Automation test to create a simple level and save it
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectMapTest, "System.Promotion.Project Promotion Pass.Step 2 Basic Level Creation.Create Basic Level", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectMapTest, "System.Promotion.Project Promotion Pass.Step 2 Basic Level Creation.Create Basic Level", EAutomationTestFlags::Disabled | EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 bool FBuildPromotionNewProjectMapTest::RunTest(const FString& Parameters)
 {
 	//New level
@@ -327,22 +327,13 @@ bool FBuildPromotionNewProjectMapTest::RunTest(const FString& Parameters)
 	FEditorFileUtils::SaveLevel(CurrentLevel, TEXT("/Game/Maps/NewProjectTest"));
 	UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Saved map"));
 
-	if (ExecutionInfo.Errors.Num() > 0)
-	{
-		UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Test failed!"));
-	}
-	else
-	{
-		UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Test successful!"));
-	}
-
 	return true;
 }
 
 /*
 * Template project creation test
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCreateBPTemplateProjectAutomationTests, "System.Promotion.Project Promotion Pass.Step 3 NewProjectCreationTests.CreateBlueprintProjects", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::Disabled)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCreateBPTemplateProjectAutomationTests, "System.Promotion.Project Promotion Pass.Step 3 NewProjectCreationTests.CreateBlueprintProjects", EAutomationTestFlags::Disabled | EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::Disabled)
 
 /** 
  * Uses the new project wizard to locate all templates available for new blueprint project creation and verifies creation succeeds.
@@ -370,7 +361,7 @@ bool FCreateBPTemplateProjectAutomationTests::RunTest(const FString& Parameters)
 /*
 * Template project creation test
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCreateCPPTemplateProjectAutomationTests, "System.Promotion.Project Promotion Pass.Step 3 NewProjectCreationTests.CreateCodeProjects", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::Disabled)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCreateCPPTemplateProjectAutomationTests, "System.Promotion.Project Promotion Pass.Step 3 NewProjectCreationTests.CreateCodeProjects", EAutomationTestFlags::Disabled | EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::Disabled)
 
 /** 
  * Uses the new project wizard to locate all templates available for new code project creation and verifies creation succeeds.

@@ -640,14 +640,6 @@ namespace BlueprintEditorPromotionTestHelper
 		/** Pointer to running automation test instance */
 		FBlueprintEditorPromotionTest* Test;
 		
-		/** Pointer to the execution info of this test */
-		FAutomationTestExecutionInfo* TestExecutionInfo;
-		
-		/** The number of existing errors, warnings, and logs when the command started */
-		int32 LastErrorCount;
-		int32 LastWarningCount;
-		int32 LastLogCount;
-
 		/** Function definition for the test stage functions */
 		typedef bool(BlueprintEditorPromotionTestHelper::FBlueprintEditorPromotionTestHelper::*TestStageFn)();
 
@@ -712,14 +704,10 @@ namespace BlueprintEditorPromotionTestHelper
 		/**
 		* Constructor
 		*/
-		FBlueprintEditorPromotionTestHelper(FAutomationTestExecutionInfo* InExecutionInfo) :
-			CurrentStage(0)
+		FBlueprintEditorPromotionTestHelper()
+			: CurrentStage(0)
 		{
-			check(InExecutionInfo);
-
 			FMemory::Memzero(this, sizeof(FBlueprintEditorPromotionTestHelper));
-
-			TestExecutionInfo = InExecutionInfo;
 
 			ADD_TEST_STAGE(Cleanup, TEXT("Pre-start cleanup"));
 			ADD_TEST_STAGE(Setup, TEXT("Setup"));
@@ -748,57 +736,19 @@ namespace BlueprintEditorPromotionTestHelper
 		*/
 		bool Update()
 		{
+			Test->PushContext(StageNames[CurrentStage]);
 			bool bStageComplete = (this->*TestStages[CurrentStage])();
+			Test->PopContext();
+
 			if (bStageComplete)
 			{
-				//Only add headers if the next section has a different name, or we are the last one
-				if ((CurrentStage + 1 < TestStages.Num() && StageNames[CurrentStage] != StageNames[CurrentStage + 1]) || (CurrentStage + 1 == TestStages.Num()))
-				{
-					TagPreviousLogs(StageNames[CurrentStage]);
-				}
-
 				CurrentStage++;
 			}
+
 			return CurrentStage >= TestStages.Num();
 		}
 
 	private:
-
-		/**
-		* Handles tagging all logs that have been created since the last time this was called
-		*
-		* @param NewLogTag - The tag to prefix the logs with
-		*/
-		void TagPreviousLogs(const FString& NewLogTag)
-		{
-			if (NewLogTag.Len() > 0)
-			{
-				for (int32 ErrorIndex = LastErrorCount; ErrorIndex < TestExecutionInfo->Errors.Num(); ++ErrorIndex)
-				{
-					TestExecutionInfo->Errors[ErrorIndex].Message = FString::Printf(TEXT("%s: %s"), *NewLogTag, *TestExecutionInfo->Errors[ErrorIndex].Message);
-				}
-				for (int32 WarningIndex = LastWarningCount; WarningIndex < TestExecutionInfo->Warnings.Num(); ++WarningIndex)
-				{
-					TestExecutionInfo->Warnings[WarningIndex] = FString::Printf(TEXT("%s: %s"), *NewLogTag, *TestExecutionInfo->Warnings[WarningIndex]);
-				}
-				for (int32 LogIndex = LastLogCount; LogIndex < TestExecutionInfo->LogItems.Num(); ++LogIndex)
-				{
-					TestExecutionInfo->LogItems[LogIndex] = FString::Printf(TEXT("%s: %s"), *NewLogTag, *TestExecutionInfo->LogItems[LogIndex]);
-				}
-			}
-
-			//This sub tests was a success if we had no new errors
-			if (LastErrorCount == TestExecutionInfo->Errors.Num())
-			{
-				SectionSuccessCount++;
-			}
-			SectionTestCount++;
-
-			LastErrorCount = TestExecutionInfo->Errors.Num();
-			LastWarningCount = TestExecutionInfo->Warnings.Num();
-			LastLogCount = TestExecutionInfo->LogItems.Num();
-
-		}
 
 		bool Cleanup()
 		{
@@ -821,7 +771,7 @@ namespace BlueprintEditorPromotionTestHelper
 			// Clear and try to delete all assets
 			for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)
 			{
-				Test->AddLogItem(*FString::Printf(TEXT("Removing asset: %s"), *AssetList[AssetIdx].AssetName.ToString()));
+				Test->AddInfo(*FString::Printf(TEXT("Removing asset: %s"), *AssetList[AssetIdx].AssetName.ToString()));
 				if (AssetList[AssetIdx].IsAssetLoaded())
 				{
 					UObject* LoadedAsset = AssetList[AssetIdx].GetAsset();
@@ -840,7 +790,7 @@ namespace BlueprintEditorPromotionTestHelper
 				}
 			}
 
-			Test->AddLogItem(*FString::Printf(TEXT("Clearing Path: %s"), *FEditorPromotionTestUtilities::GetGamePath()));
+			Test->AddInfo(*FString::Printf(TEXT("Clearing Path: %s"), *FEditorPromotionTestUtilities::GetGamePath()));
 			AssetRegistry.RemovePath(FEditorPromotionTestUtilities::GetGamePath());
 
 			//Remove the directory
@@ -848,7 +798,7 @@ namespace BlueprintEditorPromotionTestHelper
 			bool bDeleteEntireTree = true;
 			FString PackageDirectory = FPaths::GameContentDir() / TEXT("BuildPromotionTest");
 			IFileManager::Get().DeleteDirectory(*PackageDirectory, bEnsureExists, bDeleteEntireTree);
-			Test->AddLogItem(*FString::Printf(TEXT("Deleting Folder: %s"), *PackageDirectory));
+			Test->AddInfo(*FString::Printf(TEXT("Deleting Folder: %s"), *PackageDirectory));
 
 			return true;
 		}
@@ -886,7 +836,7 @@ namespace BlueprintEditorPromotionTestHelper
 				SkippedTests.Add(TEXT("All Blueprint tests. (Missing a required mesh or particle system)"));
 				if (FirstMeshPath.IsEmpty() || SecondMeshPath.IsEmpty())
 				{
-					Test->AddLogItem(TEXT("SKIPPING BLUEPRINT TESTS.  FirstMeshPath or SecondMeshPath not configured in AutomationTestSettings."));
+					Test->AddInfo(TEXT("SKIPPING BLUEPRINT TESTS.  FirstMeshPath or SecondMeshPath not configured in AutomationTestSettings."));
 				}
 				else
 				{
@@ -932,7 +882,7 @@ namespace BlueprintEditorPromotionTestHelper
 				FAssetRegistryModule::AssetCreated(BlueprintObject);
 				BlueprintPackage->MarkPackageDirty();
 
-				Test->AddLogItem(TEXT("Opening the blueprint editor for the first time"));
+				Test->AddInfo(TEXT("Opening the blueprint editor for the first time"));
 				FAssetEditorManager::Get().OpenEditorForAsset(BlueprintObject);
 			}
 
@@ -963,7 +913,7 @@ namespace BlueprintEditorPromotionTestHelper
 		{
 			if (BlueprintObject)
 			{
-				Test->AddLogItem(TEXT("Closing the blueprint editor"));
+				Test->AddInfo(TEXT("Closing the blueprint editor"));
 				FAssetEditorManager::Get().CloseAllAssetEditors();
 			}
 			return true;
@@ -977,7 +927,7 @@ namespace BlueprintEditorPromotionTestHelper
 		{
 			if (BlueprintObject)
 			{
-				Test->AddLogItem(TEXT("Opening the blueprint editor for the second time"));
+				Test->AddInfo(TEXT("Opening the blueprint editor for the second time"));
 				FAssetEditorManager::Get().OpenEditorForAsset(BlueprintObject);
 			}
 			return true;
@@ -999,7 +949,7 @@ namespace BlueprintEditorPromotionTestHelper
 
 				if (bCorrectEditorOpened)
 				{
-					Test->AddLogItem(TEXT("Switching to components mode"));
+					Test->AddInfo(TEXT("Switching to components mode"));
 					BlueprintEditor->SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
 				}
 			}
@@ -1033,19 +983,19 @@ namespace BlueprintEditorPromotionTestHelper
 				//Set Names
 				const FName MeshName(TEXT("FirstMesh"));
 				FBlueprintEditorUtils::RenameComponentMemberVariable(BlueprintObject, MeshNode, MeshName);
-				Test->AddLogItem(TEXT("Renamed the first mesh component to FirstMesh"));
+				Test->AddInfo(TEXT("Renamed the first mesh component to FirstMesh"));
 
 				const FName OtherMeshName(TEXT("SecondMesh"));
 				FBlueprintEditorUtils::RenameComponentMemberVariable(BlueprintObject, OtherMeshNode, OtherMeshName);
-				Test->AddLogItem(TEXT("Renamed the second mesh component to SecondMesh"));
+				Test->AddInfo(TEXT("Renamed the second mesh component to SecondMesh"));
 
 				const FName PSName(TEXT("ParticleSys"));
 				FBlueprintEditorUtils::RenameComponentMemberVariable(BlueprintObject, PSNode, PSName);
-				Test->AddLogItem(TEXT("Renamed the particle system component to ParticleSys"));
+				Test->AddInfo(TEXT("Renamed the particle system component to ParticleSys"));
 
 				BlueprintEditorPromotionUtils::CompileBlueprint(BlueprintObject);
 
-				Test->AddLogItem(TEXT("Switched to graph editing mode"));
+				Test->AddInfo(TEXT("Switched to graph editing mode"));
 				BlueprintEditor->SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
 			}
 			return true;
@@ -1064,7 +1014,7 @@ namespace BlueprintEditorPromotionTestHelper
 
 				//FEditorPromotionTestUtilities::TakeScreenshot(TEXT("BlueprintComponentVariables"), true);
 
-				Test->AddLogItem(TEXT("Switched to components mode"));
+				Test->AddInfo(TEXT("Switched to components mode"));
 				BlueprintEditor->SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
 
 				BlueprintEditorPromotionUtils::RemoveBlueprintComponent(BlueprintObject, MeshNode);
@@ -1078,7 +1028,7 @@ namespace BlueprintEditorPromotionTestHelper
 				OtherMeshNode = NULL;
 				PSNode = NULL;
 
-				Test->AddLogItem(TEXT("Switched to graph mode"));
+				Test->AddInfo(TEXT("Switched to graph mode"));
 				BlueprintEditor->SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
 
 				BlueprintEditorPromotionUtils::CompileBlueprint(BlueprintObject);
@@ -1165,7 +1115,7 @@ namespace BlueprintEditorPromotionTestHelper
 				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 				BlueprintEditorPromotionUtils::PromotePinToVariable(BlueprintObject, AddMeshNode, K2Schema->PN_ReturnValue);
 
-				Test->AddLogItem(TEXT("Promoted the return pin on the add mesh node to a variable"));
+				Test->AddInfo(TEXT("Promoted the return pin on the add mesh node to a variable"));
 
 				const FName OldVarName(TEXT("NewVar_0")); // Default variable name
 				const FName NewVarName(TEXT("MyMesh"));
@@ -1174,7 +1124,7 @@ namespace BlueprintEditorPromotionTestHelper
 				
 				BlueprintEditorPromotionUtils::CompileBlueprint(BlueprintObject);
 
-				Test->AddLogItem(TEXT("Switched to graph mode"));
+				Test->AddInfo(TEXT("Switched to graph mode"));
 				BlueprintEditor->SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
 			}
 			return true;
@@ -1189,7 +1139,7 @@ namespace BlueprintEditorPromotionTestHelper
 
 				//FEditorPromotionTestUtilities::TakeScreenshot(TEXT("BlueprintMeshVariable"), true);
 
-				Test->AddLogItem(TEXT("Switched to components mode"));
+				Test->AddInfo(TEXT("Switched to components mode"));
 				BlueprintEditor->SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
 
 				BlueprintEditorPromotionUtils::SendBlueprintResetViewCommand();
@@ -1223,7 +1173,7 @@ namespace BlueprintEditorPromotionTestHelper
 
 				UEdGraph* EventGraph = FBlueprintEditorUtils::FindEventGraph(BlueprintObject);
 				BlueprintEditor->OpenGraphAndBringToFront(EventGraph);
-				Test->AddLogItem(TEXT("Opened the event graph"));
+				Test->AddInfo(TEXT("Opened the event graph"));
 
 				PostBeginPlayEventNode = BlueprintEditorPromotionUtils::CreatePostBeginPlayEvent(BlueprintObject, EventGraph);
 				Test->TestNotNull(TEXT("Created EventBeginPlay node"), PostBeginPlayEventNode);
@@ -1263,7 +1213,7 @@ namespace BlueprintEditorPromotionTestHelper
 			{
 				UEdGraph* EventGraph = FBlueprintEditorUtils::FindEventGraph(BlueprintObject);
 
-				Test->AddLogItem(TEXT("Added a string member variable"));
+				Test->AddInfo(TEXT("Added a string member variable"));
 				BlueprintEditorPromotionUtils::AddStringMemberValue(BlueprintObject, BlueprintEditorPromotionUtils::BlueprintStringVariableName);
 
 				SetNode = BlueprintEditorPromotionUtils::AddGetSetNode(BlueprintObject, EventGraph, BlueprintEditorPromotionUtils::BlueprintStringVariableName.ToString(), false);
@@ -1301,7 +1251,7 @@ namespace BlueprintEditorPromotionTestHelper
 			{
 				const bool bVariableIsHidden = false;
 				FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(BlueprintObject, BlueprintEditorPromotionUtils::BlueprintStringVariableName, bVariableIsHidden);
-				Test->AddLogItem(TEXT("Exposed the blueprint string variable"));
+				Test->AddInfo(TEXT("Exposed the blueprint string variable"));
 
 				UEdGraph* EventGraph = FBlueprintEditorUtils::FindEventGraph(BlueprintObject);
 				PrintNode = BlueprintEditorPromotionUtils::AddPrintStringNode(BlueprintObject, EventGraph);
@@ -1449,7 +1399,7 @@ bool FRunPromotionTestCommand::Update()
 */
 bool FBlueprintEditorPromotionTest::RunTest(const FString& Parameters)
 {
-	TSharedPtr<BlueprintEditorPromotionTestHelper::FBlueprintEditorPromotionTestHelper> BuildPromotionTest = MakeShareable(new BlueprintEditorPromotionTestHelper::FBlueprintEditorPromotionTestHelper(&ExecutionInfo));
+	TSharedPtr<BlueprintEditorPromotionTestHelper::FBlueprintEditorPromotionTestHelper> BuildPromotionTest = MakeShareable(new BlueprintEditorPromotionTestHelper::FBlueprintEditorPromotionTestHelper());
 	BuildPromotionTest->Test = this;
 	ADD_LATENT_AUTOMATION_COMMAND(FRunPromotionTestCommand(BuildPromotionTest));
 	return true;

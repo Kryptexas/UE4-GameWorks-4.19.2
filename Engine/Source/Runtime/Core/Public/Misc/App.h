@@ -40,6 +40,11 @@ public:
 	 */
 	static EBuildConfigurations::Type GetBuildConfiguration();
 
+	/**
+	 * Gets whether the application is running with Debug game libraries (set from commandline)
+	 */
+	static bool IsRunningDebug();
+
 	/*
 	* Gets the unique version string for this build. This string is not assumed to have any particular format other being a unique identifier for the build.
 	*

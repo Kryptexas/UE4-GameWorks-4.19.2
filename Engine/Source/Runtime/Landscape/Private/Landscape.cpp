@@ -2482,16 +2482,12 @@ void ALandscapeProxy::UpdateBakedTextures()
 	struct FBakedTextureSourceInfo
 	{
 		// pointer as FMemoryWriter caches the address of the FBufferArchive, and this struct could be relocated on a realloc.
-		FBufferArchive* ComponentStateAr;
+		TUniquePtr<FBufferArchive> ComponentStateAr;
 		TArray<ULandscapeComponent*> Components;
 
 		FBakedTextureSourceInfo()
 		{
-			ComponentStateAr = new FBufferArchive();
-		}
-		~FBakedTextureSourceInfo()
-		{
-			delete ComponentStateAr;
+			ComponentStateAr = MakeUnique<FBufferArchive>();
 		}
 	};
 

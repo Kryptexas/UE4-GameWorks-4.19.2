@@ -155,7 +155,6 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
-#include "TextLocalizationResourceGenerator.h"
 
 #include "IMessageRpcClient.h"
 #include "IMessagingRpcModule.h"
@@ -181,6 +180,10 @@
 #include "Interfaces/IAutomationWorkerModule.h"
 #include "HAL/ExceptionHandling.h"
 #endif	// UE_BUILD_SHIPPING
+
+#if ENABLE_LOC_TESTING
+#include "LocalizationModule.h"
+#endif
 
 #include "GeneralProjectSettings.h"
 #include "ProfilingDebugging/LoadTimeTracker.h"
@@ -2707,7 +2710,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		FString ConfigFilePath;
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
 		{
-			FTextLocalizationResourceGenerator::GenerateAndUpdateLiveEntriesFromConfig(ConfigFilePath, /*bSkipSourceCheck*/false);
+			ILocalizationModule::Get().HandleRegenLocCommand(ConfigFilePath, /*bSkipSourceCheck*/false);
 		}
 	}
 #endif
@@ -5471,7 +5474,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 						continue;
 					}
 					FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(*It);
-					if (ObjectItem->GetOwnerIndex())
+					if (ObjectItem->GetOwnerIndex() > 0)
 					{
 						continue;
 					}
@@ -10931,6 +10934,7 @@ void UEngine::VerifyLoadMapWorldCleanup()
 				FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, World );
 				UE_LOG(LogLoad, Log, TEXT("%s"),*ErrorString);
 				// before asserting.
+
 				UE_LOG(LogLoad, Fatal, TEXT("%s not cleaned up by garbage collection!") LINE_TERMINATOR TEXT("%s") , *World->GetFullName(), *ErrorString );
 			}
 		}

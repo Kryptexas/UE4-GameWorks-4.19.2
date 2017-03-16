@@ -122,11 +122,16 @@ namespace UnrealBuildTool
 			Result += " -fexceptions";
 			Result += " -fasm-blocks";
 
-            string SanitizerMode = Environment.GetEnvironmentVariable("CLANG_ADDRESS_SANITIZER");
-            if(SanitizerMode != null && SanitizerMode == "YES")
-            {
-                Result += " -fsanitize=address";
-            }
+			string AddressSanitizer = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
+			string ThreadSanitizer = Environment.GetEnvironmentVariable("ENABLE_THREAD_SANITIZER");
+			if (AddressSanitizer != null && AddressSanitizer == "YES")
+			{
+				Result += " -fsanitize=address";
+			}
+			else if (ThreadSanitizer != null && ThreadSanitizer == "YES")
+			{
+				Result += " -fsanitize=thread";
+			}
 
 			Result += " -Wall -Werror";
 			//Result += " -Wsign-compare"; // fed up of not seeing the signed/unsigned warnings we get on Windows - lets enable them here too.
@@ -176,7 +181,7 @@ namespace UnrealBuildTool
 
 			// Optimize non- debug builds.
             // Don't optimise if using AddressSanitizer or you'll get false positive errors due to erroneous optimisation of necessary AddressSanitizer instrumentation.
-			if (CompileEnvironment.bOptimizeCode && (SanitizerMode == null || SanitizerMode != "YES"))
+			if (CompileEnvironment.bOptimizeCode && (AddressSanitizer == null || AddressSanitizer != "YES") && (ThreadSanitizer == null || ThreadSanitizer != "YES"))
 			{
 				if (CompileEnvironment.bOptimizeForSize)
 				{
@@ -298,11 +303,16 @@ namespace UnrealBuildTool
 			Result += " -mmacosx-version-min=" + Settings.MacOSVersion;
 			Result += " -dead_strip";
 
-            string SanitizerMode = Environment.GetEnvironmentVariable("CLANG_ADDRESS_SANITIZER");
-            if(SanitizerMode != null && SanitizerMode == "YES")
-            {
-                Result += " -fsanitize=address";
-            }
+			string AddressSanitizer = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
+			string ThreadSanitizer = Environment.GetEnvironmentVariable("ENABLE_THREAD_SANITIZER");
+			if (AddressSanitizer != null && AddressSanitizer == "YES")
+			{
+				Result += " -fsanitize=address";
+			}
+			else if (ThreadSanitizer != null && ThreadSanitizer == "YES")
+			{
+				Result += " -fsanitize=thread";
+			}
 
 			if (LinkEnvironment.bIsBuildingDLL)
 			{

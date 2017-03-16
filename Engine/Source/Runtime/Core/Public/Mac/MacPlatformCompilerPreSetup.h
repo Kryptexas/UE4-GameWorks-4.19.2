@@ -134,6 +134,10 @@
 // Apple LLVM 8.1.0 (Xcode 8.3) introduced -Wundefined-var-template
 #if (__clang_major__ > 8) || (__clang_major__ == 8 && __clang_minor__ >= 1)
 #pragma clang diagnostic ignored "-Wundefined-var-template"
+#pragma clang diagnostic ignored "-Wnullability-inferred-on-nested-type"
+#pragma clang diagnostic ignored "-Wobjc-protocol-property-synthesis"
+#pragma clang diagnostic ignored "-Wnullability-completeness-on-arrays"
+#pragma clang diagnostic ignored "-Wnull-dereference"
 #endif
 
 // We can use pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.

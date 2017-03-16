@@ -29,5 +29,5 @@ private:
 	TFuture<FSlateTextureDataPtr> TextureFuture;
 	TSharedPtr<FSlateDynamicImageBrush> DynamicBrush;
 
-	FSlateTextureDataPtr LoadScreenshot(FString ImagePath);
+	static FSlateTextureDataPtr LoadScreenshot(FString ImagePath);
 };

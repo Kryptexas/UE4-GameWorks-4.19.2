@@ -61,6 +61,8 @@ struct CORE_API FFbxErrors
 
 	static FName Generic_Mesh_SkinxxNameError;
 
+	static FName Generic_Mesh_TooManyLODs;
+
 	/** Static Mesh **/
 	static FName StaticMesh_TooManyMaterials;
 

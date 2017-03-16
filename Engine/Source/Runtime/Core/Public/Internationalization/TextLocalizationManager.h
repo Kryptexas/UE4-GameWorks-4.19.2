@@ -11,6 +11,10 @@
 #include "Containers/Map.h"
 #include "Templates/SharedPointer.h"
 #include "Delegates/Delegate.h"
+#include "LocTesting.h"
+#include "LocKeyFuncs.h"
+
+class FTextLocalizationResource;
 
 typedef TSharedRef<FString, ESPMode::ThreadSafe> FTextDisplayStringRef;
 typedef TSharedPtr<FString, ESPMode::ThreadSafe> FTextDisplayStringPtr;
@@ -22,68 +26,6 @@ class CORE_API FTextLocalizationManager
 	friend CORE_API void EndInitTextLocalization();
 
 private:
-	/** Utility class for loading text localizations from some number of localization resources, tracking conflicts between them. */
-	class FLocalizationEntryTracker
-	{
-	public:
-		/** Data struct for tracking a localization entry from a localization resource. */
-		struct FEntry
-		{
-			FString LocResID;
-			uint32 SourceStringHash;
-			FString LocalizedString;
-		};
-
-		typedef TArray<FEntry> FEntryArray;
-
-		struct FKeyTableKeyFuncs : BaseKeyFuncs<FEntryArray, FString, false>
-		{
-			static FORCEINLINE const FString& GetSetKey(const TPair<FString, FEntryArray>& Element)
-			{
-				return Element.Key;
-			}
-			static FORCEINLINE bool Matches(const FString& A, const FString& B)
-			{
-				return A.Equals(B, ESearchCase::CaseSensitive);
-			}
-			static FORCEINLINE uint32 GetKeyHash(const FString& Key)
-			{
-				return FCrc::StrCrc32<TCHAR>(*Key);
-			}
-		};
-		typedef TMap<FString, FEntryArray, FDefaultSetAllocator, FKeyTableKeyFuncs> FKeysTable;
-
-		struct FNamespaceTableKeyFuncs : BaseKeyFuncs<FKeysTable, FString, false>
-		{
-			static FORCEINLINE const FString& GetSetKey(const TPair<FString, FKeysTable>& Element)
-			{
-				return Element.Key;
-			}
-			static FORCEINLINE bool Matches(const FString& A, const FString& B)
-			{
-				return A.Equals(B, ESearchCase::CaseSensitive);
-			}
-			static FORCEINLINE uint32 GetKeyHash(const FString& Key)
-			{
-				return FCrc::StrCrc32<TCHAR>(*Key);
-			}
-		};
-		typedef TMap<FString, FKeysTable, FDefaultSetAllocator, FNamespaceTableKeyFuncs> FNamespacesTable;
-
-		FNamespacesTable Namespaces;
-
-	public:
-		/** Loads all text localizations from all localization resource files in the specified directory. */
-		void LoadFromDirectory(const FString& DirectoryPath);
-		/** Loads all text localizations from the specified localization resource file. */
-		bool LoadFromFile(const FString& FilePath);
-		/** Loads all text localizations from the specified localization resource archive, associating the entries with the specified identifier. */
-		void LoadFromLocalizationResource(FArchive& Archive, const FString& LocResID);
-
-		/** Detects conflicts between loaded localization resources and logs them as warnings. */
-		void DetectAndLogConflicts() const;
-	};
-
 	/** Utility class for managing the currently loaded or registered text localizations. */
 	class FDisplayStringLookupTable
 	{
@@ -95,6 +37,9 @@ private:
 			FString LocResID;
 			uint32 SourceStringHash;
 			FTextDisplayStringRef DisplayString;
+#if ENABLE_LOC_TESTING
+			FString NativeStringBackup;
+#endif
 
 			FDisplayStringEntry(const bool InIsLocalized, const FString& InLocResID, const uint32 InSourceStringHash, const FTextDisplayStringRef& InDisplayString)
 				: bIsLocalized(InIsLocalized)
@@ -105,39 +50,8 @@ private:
 			}
 		};
 
-		struct FKeyTableKeyFuncs : BaseKeyFuncs<FDisplayStringEntry, FString, false>
-		{
-			static FORCEINLINE const FString& GetSetKey(const TPair<FString, FDisplayStringEntry>& Element)
-			{
-				return Element.Key;
-			}
-			static FORCEINLINE bool Matches(const FString& A, const FString& B)
-			{
-				return A.Equals(B, ESearchCase::CaseSensitive);
-			}
-			static FORCEINLINE uint32 GetKeyHash(const FString& Key)
-			{
-				return FCrc::StrCrc32<TCHAR>(*Key);
-			}
-		};
-		typedef TMap<FString, FDisplayStringEntry, FDefaultSetAllocator, FKeyTableKeyFuncs> FKeysTable;
-
-		struct FNamespaceTableKeyFuncs : BaseKeyFuncs<FKeysTable, FString, false>
-		{
-			static FORCEINLINE const FString& GetSetKey(const TPair<FString, FKeysTable>& Element)
-			{
-				return Element.Key;
-			}
-			static FORCEINLINE bool Matches(const FString& A, const FString& B)
-			{
-				return A.Equals(B, ESearchCase::CaseSensitive);
-			}
-			static FORCEINLINE uint32 GetKeyHash(const FString& Key)
-			{
-				return FCrc::StrCrc32<TCHAR>(*Key);
-			}
-		};
-		typedef TMap<FString, FKeysTable, FDefaultSetAllocator, FNamespaceTableKeyFuncs> FNamespacesTable;
+		typedef TMap<FString, FDisplayStringEntry, FDefaultSetAllocator, FLocKeyMapFuncs<FDisplayStringEntry>> FKeysTable;
+		typedef TMap<FString, FKeysTable, FDefaultSetAllocator, FLocKeyMapFuncs<FKeysTable>> FNamespacesTable;
 
 		FNamespacesTable NamespacesTable;
 
@@ -223,8 +137,8 @@ public:
 	/** Updates display string entries and adds new display string entries based on localizations found in a specified localization resource. */
 	void UpdateFromLocalizationResource(const FString& LocalizationResourceFilePath);
 
-	/** Updates display string entries and adds new display string entries based on localizations found in a specified localization resource. */
-	void UpdateFromLocalizationResource(FArchive& LocResArchive, const FString& LocResID);
+	/** Updates display string entries and adds new display string entries based on localizations found in the specified localization resources. */
+	void UpdateFromLocalizationResources(const TArray<FTextLocalizationResource>& TextLocalizationResources);
 
 	/** Reloads resources for the current culture. */
 	void RefreshResources();
@@ -248,8 +162,11 @@ private:
 	/** Loads localization resources for the specified culture, optionally loading localization resources that are editor-specific or game-specific. */
 	void LoadLocalizationResourcesForCulture(const FString& CultureName, const bool ShouldLoadEditor, const bool ShouldLoadGame);
 
+	/** Updates display string entries and adds new display string entries based on provided native text. */
+	void UpdateFromNative(const TArray<FTextLocalizationResource>& TextLocalizationResources);
+
 	/** Updates display string entries and adds new display string entries based on provided localizations. */
-	void UpdateFromLocalizations(const TArray<FLocalizationEntryTracker>& LocalizationEntryTrackers);
+	void UpdateFromLocalizations(const TArray<FTextLocalizationResource>& TextLocalizationResources);
 
 	/** Dirties the local revision counter for the given display string by incrementing it (or adding it) */
 	void DirtyLocalRevisionForDisplayString(const FTextDisplayStringRef& InDisplayString);

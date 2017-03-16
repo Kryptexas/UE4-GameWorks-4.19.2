@@ -233,6 +233,10 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->bImportMaterials = true;
 	//TODO support T0AsRefPose
 	GlobalImportSettings->bUseT0AsRefPose = false;
+	//Make sure we do not mess with AutoComputeLodDistances when re-importing
+	GlobalImportSettings->bAutoComputeLodDistances = true;
+	GlobalImportSettings->LodNumber = 0;
+	GlobalImportSettings->MinimumLodNumber = 0;
 
 	GlobalImportSettings->ImportTranslation = FVector(0);
 	GlobalImportSettings->ImportRotation = FRotator(0);
@@ -1161,6 +1165,12 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 	else
 	{
 		NewObject = FbxImporter->ImportStaticMesh(Pkg, GeometryParentNode, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData);
+		if (NewObject != nullptr)
+		{
+			TArray<FbxNode*> AllNodeInLod;
+			AllNodeInLod.Add(GeometryParentNode);
+			FbxImporter->PostImportStaticMesh(NewObject, AllNodeInLod);
+		}
 	}
 	if (NewObject == nullptr)
 	{
@@ -1173,6 +1183,7 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 	}
 	else
 	{
+
 		//Mark any re-imported package dirty
 		NewObject->MarkPackageDirty();
 	}

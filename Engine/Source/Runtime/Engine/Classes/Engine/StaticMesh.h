@@ -250,6 +250,9 @@ struct FMeshSectionInfoMap
 	/** Get the number of section for a LOD. */
 	ENGINE_API int32 GetSectionNumber(int32 LODIndex) const;
 
+	/** Return true if the section exist, false otherwise. */
+	ENGINE_API bool IsValidSection(int32 LODIndex, int32 SectionIndex) const;
+
 	/** Gets per-section settings for the specified LOD + section. */
 	ENGINE_API FMeshSectionInfo Get(int32 LODIndex, int32 SectionIndex) const;
 
@@ -355,7 +358,7 @@ struct FStaticMaterial
 
 #if WITH_EDITORONLY_DATA
 	/*This name should be use when we re-import a skeletal mesh so we can order the Materials array like it should be*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = StaticMesh)
+	UPROPERTY(VisibleAnywhere, Category = StaticMesh)
 	FName ImportedMaterialSlotName;
 #endif //WITH_EDITORONLY_DATA
 
@@ -620,6 +623,7 @@ public:
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	ENGINE_API virtual FString GetDesc() override;
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
+	ENGINE_API virtual bool CanBeClusterRoot() const override;
 	//~ End UObject Interface.
 
 	/**

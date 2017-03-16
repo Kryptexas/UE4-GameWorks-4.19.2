@@ -78,11 +78,6 @@ public:
 	 */
 	const bool ExportReport( uint32 FileExportTypeMask, const int32 NumDeviceClusters );
 
-	/**
-	 * Notification on whether we should, or should not, track report histories.
-	 */
-	void TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack);
-
 protected:
 
 	/**

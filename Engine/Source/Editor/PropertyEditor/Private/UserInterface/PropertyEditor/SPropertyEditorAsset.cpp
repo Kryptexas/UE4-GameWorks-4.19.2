@@ -30,23 +30,7 @@ DECLARE_DELEGATE( FOnPaste );
 
 bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs )
 {
-	// Decide whether we should display the thumbnail or not
-	bool bDisplayThumbnailByDefault = false;
-	if(PropertyEditor.IsValid())
-	{
-		UProperty* NodeProperty = PropertyEditor->GetPropertyNode()->GetProperty();
-		UClass* Class = GetObjectPropertyClass(NodeProperty);
-
-		bDisplayThumbnailByDefault |= Class->IsChildOf(UMaterialInterface::StaticClass()) ||
-									  Class->IsChildOf(UTexture::StaticClass()) ||
-									  Class->IsChildOf(UStaticMesh::StaticClass()) ||
-									  Class->IsChildOf(UStaticMeshComponent::StaticClass()) ||
-									  Class->IsChildOf(USkeletalMesh::StaticClass()) ||
-									  Class->IsChildOf(USkeletalMeshComponent::StaticClass()) ||
-									  Class->IsChildOf(UParticleSystem::StaticClass());
-	}
-
-	bool bDisplayThumbnail = ( bDisplayThumbnailByDefault || InArgs._DisplayThumbnail ) && InArgs._ThumbnailPool.IsValid();
+	bool bDisplayThumbnail = InArgs._DisplayThumbnail && InArgs._ThumbnailPool.IsValid();
 
 	if(PropertyEditor.IsValid())
 	{
@@ -198,11 +182,14 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	TAttribute<bool> IsEnabledAttribute(this, &SPropertyEditorAsset::CanEdit);
 	TAttribute<FText> TooltipAttribute(this, &SPropertyEditorAsset::OnGetToolTip);
 
-	if (Property && Property->HasAllPropertyFlags(CPF_DisableEditOnTemplate))
+	if (Property && Property->HasAnyPropertyFlags(CPF_EditConst | CPF_DisableEditOnTemplate))
 	{
 		// There are some cases where editing an Actor Property is not allowed, such as when it is contained within a struct or a CDO
 		TArray<UObject*> ObjectList;
-		PropertyEditor->GetPropertyHandle()->GetOuterObjects(ObjectList);
+		if (PropertyEditor.IsValid())
+		{
+			PropertyEditor->GetPropertyHandle()->GetOuterObjects(ObjectList);
+		}
 
 		// If there is no objects, that means we must have a struct asset managing this property
 		if (ObjectList.Num() == 0)

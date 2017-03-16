@@ -10,7 +10,9 @@ namespace UnrealBuildTool
 {
 	class HTML5Platform : UEBuildPlatform
 	{
-		// use -win32 for win32 builds. ( build html5 platform as a win32 binary for debugging )
+		/// <summary>
+		/// Architecture to build for. Use -win32 for win32 builds (build html5 platform as a win32 binary for debugging).
+		/// </summary>
 		[XmlConfigFile]
 		public static string HTML5Architecture = "";
 

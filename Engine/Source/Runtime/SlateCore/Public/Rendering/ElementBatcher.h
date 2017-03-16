@@ -45,7 +45,7 @@ public:
 	void ResetBatches();
 
 private:
-	void AddElements(const FSlateWindowElementList& ElementList, FSlateDrawLayer& InDrawLayer);
+	void AddElements(const TArray<FSlateDrawElement>& DrawElements, const FVector2D& ViewportSize);
 	
 	FColor PackVertexColor(const FLinearColor& InLinearColor);
 

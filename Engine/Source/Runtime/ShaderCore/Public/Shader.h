@@ -711,6 +711,13 @@ public:
 		return this;
 	}
 
+	/** Discards the serialized resource, used when the engine is using NullRHI */
+	void DiscardSerializedResource()
+	{
+		delete SerializedResource;
+		SerializedResource = nullptr;
+	}
+
 protected:
 
 	/** Indexed the same as UniformBufferParameters.  Packed densely for coherent traversal. */
@@ -1744,6 +1751,30 @@ public:
 			FShaderPipeline* ShaderPipeline = new FShaderPipeline(SerializedPipeline->ShaderPipelineType, SerializedPipeline->ShaderStages);
 			AddShaderPipeline(SerializedPipeline->ShaderPipelineType, ShaderPipeline);
 
+			delete SerializedPipeline;
+		}
+		SerializedShaderPipelines.Empty();
+	}
+
+	/** Discards serialized shaders when they are not going to be used for anything (NullRHI) */
+	virtual void DiscardSerializedShaders()
+	{
+		for (FShader* Shader : SerializedShaders)
+		{
+			if (Shader)
+			{
+				Shader->DiscardSerializedResource();
+			}
+			delete Shader;
+		}
+		SerializedShaders.Empty();
+
+		for (FSerializedShaderPipeline* SerializedPipeline : SerializedShaderPipelines)
+		{
+			for (TRefCountPtr<FShader> Shader : SerializedPipeline->ShaderStages)
+			{
+				Shader->DiscardSerializedResource();
+			}
 			delete SerializedPipeline;
 		}
 		SerializedShaderPipelines.Empty();

@@ -17,6 +17,9 @@ class SLATE_API SColorGradingWheel
 {
 public:
 
+	DECLARE_DELEGATE_OneParam(FOnColorGradingWheelMouseCapture, const FLinearColor&);
+	DECLARE_DELEGATE_OneParam(FOnColorGradingWheelValueChanged, const FLinearColor&);
+
 	SLATE_BEGIN_ARGS(SColorGradingWheel)
 		: _SelectedColor()
 		, _DesiredWheelSize()
@@ -36,13 +39,13 @@ public:
 		SLATE_ATTRIBUTE(float, ExponentDisplacement)
 		
 		/** Invoked when the mouse is pressed and a capture begins. */
-		SLATE_EVENT(FSimpleDelegate, OnMouseCaptureBegin)
+		SLATE_EVENT(FOnColorGradingWheelMouseCapture, OnMouseCaptureBegin)
 
 		/** Invoked when the mouse is released and a capture ends. */
-		SLATE_EVENT(FSimpleDelegate, OnMouseCaptureEnd)
+		SLATE_EVENT(FOnColorGradingWheelMouseCapture, OnMouseCaptureEnd)
 
 		/** Invoked when a new value is selected on the color wheel. */
-		SLATE_EVENT(FOnLinearColorValueChanged, OnValueChanged)
+		SLATE_EVENT(FOnColorGradingWheelValueChanged, OnValueChanged)
 
 	SLATE_END_ARGS()
 	
@@ -96,11 +99,11 @@ protected:
 	const FSlateBrush* SelectorImage;
 
 	/** Invoked when the mouse is pressed and a capture begins. */
-	FSimpleDelegate OnMouseCaptureBegin;
+	FOnColorGradingWheelMouseCapture OnMouseCaptureBegin;
 
 	/** Invoked when the mouse is let up and a capture ends. */
-	FSimpleDelegate OnMouseCaptureEnd;
+	FOnColorGradingWheelMouseCapture OnMouseCaptureEnd;
 
 	/** Invoked when a new value is selected on the color wheel. */
-	FOnLinearColorValueChanged OnValueChanged;
+	FOnColorGradingWheelValueChanged OnValueChanged;
 };

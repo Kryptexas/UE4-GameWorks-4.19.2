@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
+#include "SharedPointer.h"
 
 class ILandscapeHeightmapFileFormat;
 class ILandscapeWeightmapFileFormat;
+class FUICommandList;
 
 /**
  * LandscapeEditor module interface
@@ -29,4 +31,6 @@ public:
 	// Gets the heightmap/weightmap format associated with a given extension (null if no plugin is registered for this extension)
 	virtual const ILandscapeHeightmapFileFormat* GetHeightmapFormatByExtension(const TCHAR* Extension) const = 0;
 	virtual const ILandscapeWeightmapFileFormat* GetWeightmapFormatByExtension(const TCHAR* Extension) const = 0;
+
+	virtual TSharedPtr<FUICommandList> GetLandscapeLevelViewportCommandList() const = 0;
 };

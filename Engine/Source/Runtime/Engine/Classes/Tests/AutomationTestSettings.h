@@ -15,25 +15,6 @@
 
 
 /**
- * Structure for asset opening test
- */
-USTRUCT()
-struct FOpenTestAsset
-{
-	GENERATED_USTRUCT_BODY()
-
-	/**
-	 * Asset reference
-	 */
-	UPROPERTY(EditAnywhere, Category=Automation)
-	FFilePath	AssetToOpen;
-
-	/** Perform only when attend **/
-	UPROPERTY(EditAnywhere, Category=Automation)
-	bool		bSkipTestWhenUnAttended;
-};
-
-/**
  * Structure for defining an external tool
  */
 USTRUCT()
@@ -353,12 +334,24 @@ struct FLaunchOnTestSettings
 /**
  * Implements the Editor's user settings.
  */
-UCLASS(config=Engine)
+UCLASS(config=Engine, defaultconfig)
 class ENGINE_API UAutomationTestSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	/**
+	 * Modules to load that have engine tests
+	 */
+	UPROPERTY(EditAnywhere, config, Category = Loading)
+	TArray<FString> EngineTestModules;
+
+	/**
+	 * Modules to load that have editor tests
+	 */
+	UPROPERTY(EditAnywhere, config, Category = Loading)
+	TArray<FString> EditorTestModules;
 
 	/**
 	 * The automation test map to be used for several of the automation tests.
@@ -371,6 +364,12 @@ public:
 	*/
 	UPROPERTY(config, EditAnywhere, Category = Automation)
 	TArray<FEditorMapPerformanceTestDefinition> EditorPerformanceTestMaps;
+
+	/**
+	 * Asset to test for open in automation process
+	 */
+	UPROPERTY(EditAnywhere, config, Category="Open Asset Tests")
+	TArray<FStringAssetReference> AssetsToOpen;
 
 	/**
 	* Editor build promotion test settings
@@ -397,28 +396,10 @@ public:
 	FBlueprintEditorPromotionSettings BlueprintEditorPromotionTest;
 
 	/**
-	* Modules to load that have engine tests
-	*/
-	UPROPERTY(EditAnywhere, config, Category = MiscAutomationSetups)
-	TArray<FString> EngineTestModules;
-
-	/**
-	* Modules to load that have editor tests
-	*/
-	UPROPERTY(EditAnywhere, config, Category = MiscAutomationSetups)
-	TArray<FString> EditorTestModules;
-
-	/**
 	* Folders containing levels to exclude from automated tests
 	*/
 	UPROPERTY(EditAnywhere, config, Category = MiscAutomationSetups)
 	TArray<FString> TestLevelFolders;
-
-	/**
-	 * Asset to test for open in automation process
-	 */
-	UPROPERTY(EditAnywhere, config, Category=Automation)
-	TArray<FOpenTestAsset> TestAssetsToOpen;
 	
 	/**
 	 * External executables and scripts to run as part of automation.
@@ -435,7 +416,7 @@ public:
 	/**
 	* The map and device type to be used for the editor Launch On With Map Iterations test.
 	*/
-	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "umap"))
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter="umap"))
 	TArray<FLaunchOnTestSettings> LaunchOnSettings;
 
 	/**

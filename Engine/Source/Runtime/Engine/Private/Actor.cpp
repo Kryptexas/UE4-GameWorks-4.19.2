@@ -273,6 +273,11 @@ void AActor::PostInitProperties()
 	}
 }
 
+bool AActor::CanBeInCluster() const
+{
+	return bCanBeInCluster;
+}
+
 void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	AActor* This = CastChecked<AActor>(InThis);
@@ -482,7 +487,12 @@ void AActor::RemoveControllingMatineeActor( AMatineeActor& InMatineeActor )
 
 void AActor::BeginDestroy()
 {
+	ULevel* OwnerLevel = Cast<ULevel>(GetOuter());
 	UnregisterAllComponents();
+	if (OwnerLevel)
+	{
+		OwnerLevel->Actors.Remove(this);
+	}
 	Super::BeginDestroy();
 }
 

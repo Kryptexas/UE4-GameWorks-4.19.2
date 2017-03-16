@@ -37,7 +37,8 @@ public class UMG : ModuleRules
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
 				"ImageWrapper",
-			}
+                 "TargetPlatform",
+            }
         );
 
 		if (Target.Type != TargetType.Server)

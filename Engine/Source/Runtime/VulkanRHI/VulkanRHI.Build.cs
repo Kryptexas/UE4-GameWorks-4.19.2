@@ -53,7 +53,7 @@ public class VulkanRHI : ModuleRules
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
 			}
 		}
-		else
+		else if (Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.Android || Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
 
@@ -118,6 +118,10 @@ public class VulkanRHI : ModuleRules
 			{
 				PrecompileForTargets = PrecompileTargetsType.None;
 			}
+		}
+		else
+		{
+			PrecompileForTargets = PrecompileTargetsType.None;
 		}
 	}
 }

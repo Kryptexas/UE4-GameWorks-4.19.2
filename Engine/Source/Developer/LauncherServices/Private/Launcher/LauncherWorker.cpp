@@ -716,9 +716,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 		if (InProfile->IsArchiving())
 		{
-			UATCommand += TEXT(" -archive");
-			UATCommand += TEXT(" -archivedirectory=");
-			UATCommand += Profile->GetArchiveDirectory();
+			UATCommand += FString::Printf(TEXT(" -archive -archivedirectory=\"%s\""), *Profile->GetArchiveDirectory());
 
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherArchiveDesc", "Archiving content for {0}"), FText::FromString(Platforms.RightChop(1)));

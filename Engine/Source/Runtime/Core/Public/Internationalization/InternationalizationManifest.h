@@ -9,6 +9,7 @@
 #include "Containers/Set.h"
 #include "Containers/Map.h"
 #include "Templates/SharedPointer.h"
+#include "LocKeyFuncs.h"
 
 class FLocMetadataObject;
 
@@ -104,22 +105,7 @@ public:
 };
 
 
-struct FInternationalizationManifestStringKeyFuncs : BaseKeyFuncs<TSharedRef< FManifestEntry >, FString, true>
-{
-	static FORCEINLINE const FString& GetSetKey(const TPair<FString, TSharedRef< FManifestEntry >>& Element)
-	{
-		return Element.Key;
-	}
-	static FORCEINLINE bool Matches(const FString& A, const FString& B)
-	{
-		return A.Equals( B, ESearchCase::CaseSensitive );
-	}
-	static FORCEINLINE uint32 GetKeyHash(const FString& Key)
-	{
-		return FCrc::StrCrc32<TCHAR>(*Key);
-	}
-};
-typedef TMultiMap< FString, TSharedRef< FManifestEntry >, FDefaultSetAllocator, FInternationalizationManifestStringKeyFuncs > FManifestEntryByStringContainer;
+typedef TMultiMap< FString, TSharedRef< FManifestEntry >, FDefaultSetAllocator, FLocKeyMultiMapFuncs< TSharedRef< FManifestEntry > > > FManifestEntryByStringContainer;
 
 
 class CORE_API FInternationalizationManifest 

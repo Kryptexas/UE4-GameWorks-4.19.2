@@ -32,6 +32,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         }
 
         /// <summary>
+        /// Count the number of objects that satisfy the filter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public int Count(Expression<Func<UserGroup, bool>> filter)
+        {
+            return _entityContext.UserGroups.Count(filter);
+        }
+
+        /// <summary>
         /// Get a filtered list of UserGroups from data storage
         /// Calling this method returns the data directly. It will execute the data retrieval - in this case an sql transaction.
         /// </summary>

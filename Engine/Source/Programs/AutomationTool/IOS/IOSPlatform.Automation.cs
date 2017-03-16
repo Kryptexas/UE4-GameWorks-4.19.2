@@ -927,7 +927,7 @@ public class IOSPlatform : Platform
 			string dSYMName = (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectExe) : "UE4Game") + ".dSYM";
 			string dSYMSrcPath = Path.Combine(SC.ProjectBinariesFolder, dSYMName);
 
-			if(DirectoryExists(new string[] { dSYMSrcPath } ))
+			if(DirectoryExists(dSYMSrcPath))
 			{
 				// Create the dsyms archive folder
 				CreateDirectory(Path.Combine(ArchiveName, "dSYMs"));

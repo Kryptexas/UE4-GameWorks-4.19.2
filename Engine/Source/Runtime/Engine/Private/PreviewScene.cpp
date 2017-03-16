@@ -37,7 +37,7 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 										.SetTransactional(CVS.bTransactional));
 	PreviewWorld->InitializeActorsForPlay(FURL());
 
-	DirectionalLight = NewObject<UDirectionalLightComponent>(GetTransientPackage());
+	DirectionalLight = NewObject<UDirectionalLightComponent>(GetTransientPackage(), NAME_None, RF_Transient);
 	DirectionalLight->Intensity = CVS.LightBrightness;
 	DirectionalLight->LightColor = FColor::White;
 	AddComponent(DirectionalLight, FTransform(CVS.LightRotation));

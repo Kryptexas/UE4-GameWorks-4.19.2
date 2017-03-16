@@ -264,11 +264,11 @@ namespace VulkanRHI
 		uint32 InRequestedSize, uint32 InAlignedOffset,
 		uint32 InAllocationSize, uint32 InAllocationOffset, const char* InFile, uint32 InLine)
 		: Owner(InOwner)
-		, DeviceMemoryAllocation(InDeviceMemoryAllocation)
 		, AllocationSize(InAllocationSize)
 		, AllocationOffset(InAllocationOffset)
 		, RequestedSize(InRequestedSize)
 		, AlignedOffset(InAlignedOffset)
+		, DeviceMemoryAllocation(InDeviceMemoryAllocation)
 #if VULKAN_TRACK_MEMORY_USAGE
 		, File(InFile)
 		, Line(InLine)
@@ -1429,7 +1429,8 @@ namespace VulkanRHI
 		for (int32 Index = Entries.Num() - 1; Index >= 0; --Index)
 		{
 			FEntry* Entry = &Entries[Index];
-			if (bDeleteImmediately || Entry->FenceCounter < Entry->CmdBuffer->GetFenceSignaledCounter())
+			// #todo-rco: Had to add this check, we were getting null CmdBuffers on the first frame, or before first frame maybe
+			if (bDeleteImmediately || Entry->CmdBuffer == nullptr || Entry->FenceCounter < Entry->CmdBuffer->GetFenceSignaledCounter())
 			{
 				switch (Entry->StructureType)
 				{
@@ -1458,8 +1459,8 @@ namespace VulkanRHI
 
 	FTempFrameAllocationBuffer::FTempFrameAllocationBuffer(FVulkanDevice* InDevice, uint32 InSize)
 		: FDeviceChild(InDevice)
-		, Size(InSize)
 		, BufferIndex(0)
+		, Size(InSize)
 		, PeakUsed(0)
 	{
 		for (int32 Index = 0; Index < NUM_RENDER_BUFFERS; ++Index)

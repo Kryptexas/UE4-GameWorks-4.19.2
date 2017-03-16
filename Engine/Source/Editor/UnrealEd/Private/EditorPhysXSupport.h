@@ -21,7 +21,12 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
 #endif	// USING_CODE_ANALYSIS
 
-#pragma pack(push,8)
+// different packing for Intel 32-bit on Linux
+#if (PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && !PLATFORM_64BITS)
+	#pragma pack(push,16)
+#else
+	#pragma pack(push,8)
+#endif
 THIRD_PARTY_INCLUDES_START
 
 #include "Px.h"

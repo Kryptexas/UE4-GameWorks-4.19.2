@@ -4,7 +4,6 @@
 
 #include "Engine/GameViewportClient.h"
 #include "AutomationBlueprintFunctionLibrary.h"
-#include "BufferVisualizationData.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -23,8 +22,6 @@ void AScreenshotFunctionalTest::PrepareTest()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PlayerController->SetViewTarget(this, FViewTargetTransitionParams());
-
-	SetupVisualizeBuffer();
 
 	Super::PrepareTest();
 }
@@ -48,26 +45,6 @@ void AScreenshotFunctionalTest::OnScreenshotTakenAndCompared()
 	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
 
 	FinishTest(EFunctionalTestResult::Succeeded, TEXT(""));
-}
-
-void AScreenshotFunctionalTest::SetupVisualizeBuffer()
-{
-	UWorld* World = GetWorld();
-	if ( World && World->IsGameWorld() )
-	{
-		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
-		{
-			static IConsoleVariable* ICVar = IConsoleManager::Get().FindConsoleVariable(FBufferVisualizationData::GetVisualizationTargetConsoleCommandName());
-			if ( ICVar )
-			{
-				if ( ViewportClient->GetEngineShowFlags() )
-				{
-					ViewportClient->GetEngineShowFlags()->SetVisualizeBuffer( ScreenshotOptions.VisualizeBuffer == NAME_None ? false : true);
-					ICVar->Set(*ScreenshotOptions.VisualizeBuffer.ToString());
-				}
-			}
-		}
-	}
 }
 
 #if WITH_EDITOR

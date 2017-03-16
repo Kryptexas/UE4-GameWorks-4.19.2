@@ -82,8 +82,7 @@ EBuildConfigurations::Type FApp::GetBuildConfiguration()
 		extern const bool GIsDebugGame;
 		return GIsDebugGame? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
 	#else
-		static const bool bUsingDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-		return bUsingDebugGame? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
+		return IsRunningDebug() ? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
 	#endif
 
 #elif UE_BUILD_SHIPPING
@@ -97,6 +96,14 @@ EBuildConfigurations::Type FApp::GetBuildConfiguration()
 #endif
 }
 
+bool FApp::IsRunningDebug()
+{
+	static FString RunConfig;
+	static const bool bHasRunConfig = FParse::Value(FCommandLine::Get(), TEXT("RunConfig="), RunConfig);
+	static const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"))
+	                                  || (bHasRunConfig && RunConfig.StartsWith(TEXT("Debug")));
+	return bRunningDebug;
+}
 
 FString FApp::GetBuildDate()
 {

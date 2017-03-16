@@ -13,6 +13,12 @@ enum class ETextPluralType : uint8;
 
 class CORE_API FCulture
 {
+#if UE_ENABLE_ICU
+	friend class FText;
+	friend class FTextChronoFormatter;
+	friend class FICUBreakIteratorManager;
+#endif
+
 public:
 #if UE_ENABLE_ICU
 	static FCulturePtr Create(const FString& LocaleName);
@@ -91,7 +97,7 @@ public:
 
 	void HandleCultureChanged();
 
-public:
+private:
 #if UE_ENABLE_ICU
 	class FICUCultureImplementation;
 	typedef FICUCultureImplementation FImplementation;
@@ -123,10 +129,6 @@ protected:
 #endif
 
 private:
-#if !UE_ENABLE_ICU
-	friend class FText;
-#endif
-
 	FString CachedDisplayName;
 	FString CachedEnglishName;
 	FString CachedName;

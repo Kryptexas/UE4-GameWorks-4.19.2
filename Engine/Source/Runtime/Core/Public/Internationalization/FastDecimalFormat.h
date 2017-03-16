@@ -15,6 +15,16 @@ struct FDecimalNumberFormattingRules
 		, PrimaryGroupingSize(0)
 		, SecondaryGroupingSize(0)
 	{
+		DigitCharacters[0] = '0';
+		DigitCharacters[1] = '1';
+		DigitCharacters[2] = '2';
+		DigitCharacters[3] = '3';
+		DigitCharacters[4] = '4';
+		DigitCharacters[5] = '5';
+		DigitCharacters[6] = '6';
+		DigitCharacters[7] = '7';
+		DigitCharacters[8] = '8';
+		DigitCharacters[9] = '9';
 	}
 
 	/** Number formatting rules, typically extracted from the ICU decimal formatter for a given culture */
@@ -27,6 +37,7 @@ struct FDecimalNumberFormattingRules
 	TCHAR DecimalSeparatorCharacter;
 	uint8 PrimaryGroupingSize;
 	uint8 SecondaryGroupingSize;
+	TCHAR DigitCharacters[10];
 
 	/** Default number formatting options for a given culture */
 	FNumberFormattingOptions CultureDefaultFormattingOptions;

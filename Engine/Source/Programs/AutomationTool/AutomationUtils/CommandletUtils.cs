@@ -10,6 +10,36 @@ using UnrealBuildTool;
 
 namespace AutomationTool
 {
+	/// <summary>
+	/// Exception thrown when the execution of a commandlet fails
+	/// </summary>
+	public class CommandletException : AutomationException
+	{
+		/// <summary>
+		/// The log file output by this commandlet
+		/// </summary>
+		public string LogFileName;
+
+		/// <summary>
+		/// The exit code
+		/// </summary>
+		public int ErrorNumber;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="LogFilename">File containing the error log</param>
+		/// <param name="ErrorNumber">The exit code from the commandlet</param>
+		/// <param name="Format">Formatting string for the message</param>
+		/// <param name="Args">Arguments for the formatting string</param>
+		public CommandletException(string LogFilename, int ErrorNumber, string Format, params object[] Args)
+			: base(Format,Args)
+		{
+			this.LogFileName = LogFilename;
+			this.ErrorNumber = ErrorNumber;
+		}
+	}
+
 	public partial class CommandUtils
 	{
 		#region Commandlets
@@ -370,7 +400,7 @@ namespace AutomationTool
 
 			if (RunResult.ExitCode != 0)
 			{
-				throw new AutomationException(DestLogFile, RunResult.ExitCode, "BUILD FAILED: Failed while running {0} for {1}; see log {2}", Commandlet, ProjectName, DestLogFile);
+				throw new CommandletException(DestLogFile, RunResult.ExitCode, "BUILD FAILED: Failed while running {0} for {1}; see log {2}", Commandlet, ProjectName, DestLogFile);
 			}
 		}
 		

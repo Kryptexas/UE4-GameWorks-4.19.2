@@ -58,7 +58,6 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 {
 	IDetailCategoryBuilder& LODSettingsCategory = DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings") );
 	IDetailCategoryBuilder& StaticMeshCategory = DetailBuilder.EditCategory( "StaticMesh", LOCTEXT("StaticMeshGeneralSettings", "Static Mesh Settings") );
-	IDetailCategoryBuilder& ImportCategory = DetailBuilder.EditCategory( "ImportSettings", LOCTEXT("ImportGeneralSettings", "Import Settings") );
 	IDetailCategoryBuilder& CollisionCategory = DetailBuilder.EditCategory("Collision", LOCTEXT("CollisionCategory", "Collision"));
 
 	DetailBuilder.EditCategory( "Navigation", FText::GetEmpty(), ECategoryPriority::Uncommon );
@@ -1766,6 +1765,8 @@ void FMeshSectionSettingsLayout::OnSectionHighlightedChanged(ECheckBoxState NewS
 				// Unhide all mesh sections
 				Component->SetSectionPreview(INDEX_NONE);
 			}
+			Component->SetMaterialPreview(INDEX_NONE);
+			Component->SelectedEditorMaterial = INDEX_NONE;
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
@@ -1799,6 +1800,8 @@ void FMeshSectionSettingsLayout::OnSectionIsolatedChanged(ECheckBoxState NewStat
 			{
 				Component->SelectedEditorSection = INDEX_NONE;
 			}
+			Component->SetMaterialPreview(INDEX_NONE);
+			Component->SelectedEditorMaterial = INDEX_NONE;
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
@@ -1903,6 +1906,7 @@ void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder
 	MaterialListDelegates.OnGetMaterials.BindSP(this, &FMeshMaterialsLayout::GetMaterials);
 	MaterialListDelegates.OnMaterialChanged.BindSP(this, &FMeshMaterialsLayout::OnMaterialChanged);
 	MaterialListDelegates.OnGenerateCustomMaterialWidgets.BindSP(this, &FMeshMaterialsLayout::OnGenerateWidgetsForMaterial);
+	MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FMeshMaterialsLayout::OnGenerateNameWidgetsForMaterial);
 	MaterialListDelegates.OnMaterialListDirty.BindSP(this, &FMeshMaterialsLayout::OnMaterialListDirty);
 	MaterialListDelegates.OnResetMaterialToDefaultClicked.BindSP(this, &FMeshMaterialsLayout::OnResetMaterialToDefaultClicked);
 
@@ -2070,6 +2074,16 @@ void FMeshMaterialsLayout::OnMaterialChanged(UMaterialInterface* NewMaterial, UM
 	if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex))
 	{
 		StaticMesh.StaticMaterials[MaterialIndex].MaterialInterface = NewMaterial;
+		//Set the Material slot name to a good default one
+		if (StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName == NAME_None)
+		{
+			StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName = NewMaterial->GetFName();
+		}
+		//Set the original fbx material name so we can re-import correctly
+		if (StaticMesh.StaticMaterials[MaterialIndex].ImportedMaterialSlotName == NAME_None)
+		{
+			StaticMesh.StaticMaterials[MaterialIndex].ImportedMaterialSlotName = NewMaterial->GetFName();
+		}
 	}
 
 	CallPostEditChange(ChangedProperty);
@@ -2113,6 +2127,110 @@ TSharedRef<SWidget> FMeshMaterialsLayout::OnGenerateWidgetsForMaterial(UMaterial
 		+ GetUVDensitySlot(SlotIndex, 2)
 		+ GetUVDensitySlot(SlotIndex, 3);
 #endif
+}
+
+TSharedRef<SWidget> FMeshMaterialsLayout::OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex)
+{
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshMaterialsLayout::IsMaterialHighlighted, SlotIndex)
+			.OnCheckStateChanged(this, &FMeshMaterialsLayout::OnMaterialHighlightedChanged, SlotIndex)
+			.ToolTipText(LOCTEXT("Highlight_CustomMaterialName_ToolTip", "Highlights this material in the viewport"))
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+				.Text(LOCTEXT("Highlight", "Highlight"))
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshMaterialsLayout::IsMaterialIsolatedEnabled, SlotIndex)
+			.OnCheckStateChanged(this, &FMeshMaterialsLayout::OnMaterialIsolatedChanged, SlotIndex)
+			.ToolTipText(LOCTEXT("Isolate_CustomMaterialName_ToolTip", "Isolates this material in the viewport"))
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+				.Text(LOCTEXT("Isolate", "Isolate"))
+			]
+		];
+}
+
+ECheckBoxState FMeshMaterialsLayout::IsMaterialHighlighted(int32 SlotIndex) const
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	UStaticMeshComponent* Component = StaticMeshEditor.GetStaticMeshComponent();
+	if (Component)
+	{
+		State = Component->SelectedEditorMaterial == SlotIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return State;
+}
+
+void FMeshMaterialsLayout::OnMaterialHighlightedChanged(ECheckBoxState NewState, int32 SlotIndex)
+{
+	UStaticMeshComponent* Component = StaticMeshEditor.GetStaticMeshComponent();
+	if (Component)
+	{
+		if (NewState == ECheckBoxState::Checked)
+		{
+			Component->SelectedEditorMaterial = SlotIndex;
+			if (Component->MaterialIndexPreview != SlotIndex)
+			{
+				Component->SetMaterialPreview(INDEX_NONE);
+			}
+			Component->SetSectionPreview(INDEX_NONE);
+			Component->SelectedEditorSection = INDEX_NONE;
+		}
+		else if (NewState == ECheckBoxState::Unchecked)
+		{
+			Component->SelectedEditorMaterial = INDEX_NONE;
+		}
+		Component->MarkRenderStateDirty();
+		StaticMeshEditor.RefreshViewport();
+	}
+}
+
+ECheckBoxState FMeshMaterialsLayout::IsMaterialIsolatedEnabled(int32 SlotIndex) const
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	const UStaticMeshComponent* Component = StaticMeshEditor.GetStaticMeshComponent();
+	if (Component)
+	{
+		State = Component->MaterialIndexPreview == SlotIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return State;
+}
+
+void FMeshMaterialsLayout::OnMaterialIsolatedChanged(ECheckBoxState NewState, int32 SlotIndex)
+{
+	UStaticMeshComponent* Component = StaticMeshEditor.GetStaticMeshComponent();
+	if (Component)
+	{
+		if (NewState == ECheckBoxState::Checked)
+		{
+			Component->SetMaterialPreview(SlotIndex);
+			if (Component->SelectedEditorMaterial != SlotIndex)
+			{
+				Component->SelectedEditorMaterial = INDEX_NONE;
+			}
+			Component->SetSectionPreview(INDEX_NONE);
+			Component->SelectedEditorSection = INDEX_NONE;
+		}
+		else if (NewState == ECheckBoxState::Unchecked)
+		{
+			Component->SetMaterialPreview(INDEX_NONE);
+		}
+		Component->MarkRenderStateDirty();
+		StaticMeshEditor.RefreshViewport();
+	}
 }
 
 void FMeshMaterialsLayout::OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 MaterialIndex)

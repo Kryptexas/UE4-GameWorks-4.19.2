@@ -184,7 +184,6 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	}
 }
 
-#if WITH_HOT_RELOAD_CTORS
 UGameViewportClient::UGameViewportClient(FVTableHelper& Helper)
 	: Super(Helper)
 	, EngineShowFlags(ESFIM_Game)
@@ -199,7 +198,6 @@ UGameViewportClient::UGameViewportClient(FVTableHelper& Helper)
 {
 
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 UGameViewportClient::~UGameViewportClient()
 {

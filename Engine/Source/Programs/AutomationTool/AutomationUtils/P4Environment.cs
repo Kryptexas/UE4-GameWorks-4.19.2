@@ -73,8 +73,6 @@ namespace AutomationTool
 		public string Client { get; protected set; }
 		public string BuildRootP4 { get; protected set; }
 		public string BuildRootEscaped { get; protected set; }
-		public string LabelToSync { get; protected set; }
-		public string LabelPrefix { get; protected set; }
 
 
 		internal P4Environment(P4Connection Connection, CommandEnvironment CmdEnv)
@@ -101,7 +99,6 @@ namespace AutomationTool
 				CommandUtils.SetEnvVar(EnvVarNames.BuildRootP4, BuildRootP4);
 			}
 			BuildRootEscaped = CommandUtils.GetEnvVar(EnvVarNames.BuildRootEscaped);
-			LabelToSync = CommandUtils.GetEnvVar(EnvVarNames.LabelToSync);
 
 			string CodeChangelistString = CommandUtils.GetEnvVar(EnvVarNames.CodeChangelist);
 			if(!String.IsNullOrEmpty(CodeChangelistString))
@@ -122,8 +119,6 @@ namespace AutomationTool
 				throw new AutomationException("BUILD FAILED Perforce Environment is not set up correctly. Please check your environment variables.");
 			}
 
-			LabelPrefix = BuildRootP4 + "/";
-
 			if (CommandUtils.P4Enabled)
 			{
 				if (CommandUtils.IsBuildMachine || ChangelistStringInternal != null)
@@ -141,19 +136,26 @@ namespace AutomationTool
 		{
 			// Log all vars
 			const bool bQuiet = true;
-			Log.TraceInformation("Perforce Environment settings:");
-			Log.TraceInformation("{0}={1}", EnvVarNames.P4Port, InternalUtils.GetEnvironmentVariable(EnvVarNames.P4Port, "", bQuiet));
-			Log.TraceInformation("{0}={1}", EnvVarNames.User, InternalUtils.GetEnvironmentVariable(EnvVarNames.User, "", bQuiet));
-			Log.TraceInformation("{0}={1}", EnvVarNames.Client, InternalUtils.GetEnvironmentVariable(EnvVarNames.Client, "", bQuiet));
-			Log.TraceInformation("{0}={1}", EnvVarNames.BuildRootP4, InternalUtils.GetEnvironmentVariable(EnvVarNames.BuildRootP4, "", bQuiet));
-			Log.TraceInformation("{0}={1}", EnvVarNames.BuildRootEscaped, InternalUtils.GetEnvironmentVariable(EnvVarNames.BuildRootEscaped, "", bQuiet));
-			Log.TraceInformation("{0}={1}", EnvVarNames.ClientRoot, InternalUtils.GetEnvironmentVariable(EnvVarNames.ClientRoot, "", bQuiet));
-			Log.TraceInformation("{0}={1}", EnvVarNames.Changelist, InternalUtils.GetEnvironmentVariable(EnvVarNames.Changelist, "", bQuiet));
-			Log.TraceInformation("{0}={1}", EnvVarNames.CodeChangelist, InternalUtils.GetEnvironmentVariable(EnvVarNames.CodeChangelist, "", bQuiet));
-			Log.TraceInformation("{0}={1}", EnvVarNames.LabelToSync, InternalUtils.GetEnvironmentVariable(EnvVarNames.LabelToSync, "", bQuiet));
-			Log.TraceInformation("{0}={1}", "P4USER", InternalUtils.GetEnvironmentVariable("P4USER", "", bQuiet));
-			Log.TraceInformation("{0}={1}", "P4CLIENT", InternalUtils.GetEnvironmentVariable("P4CLIENT", "", bQuiet));
-			Log.TraceInformation("LabelPrefix={0}", LabelPrefix);
+
+			Log.TraceInformation("Detected Perforce Settings:");
+			Log.TraceInformation("    Port: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.P4Port, "", bQuiet));
+			Log.TraceInformation("    User: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.User, "", bQuiet));
+			Log.TraceInformation("    Client: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.Client, "", bQuiet));
+			Log.TraceInformation("    Branch: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.BuildRootP4, "", bQuiet));
+			Log.TraceInformation("    Last Change: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.Changelist, "", bQuiet));
+			Log.TraceInformation("    Last Code Change: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.CodeChangelist, "", bQuiet));
+
+			Log.TraceLog("Perforce Environment Variables:");
+			Log.TraceLog("    {0}={1}", EnvVarNames.P4Port, InternalUtils.GetEnvironmentVariable(EnvVarNames.P4Port, "", bQuiet));
+			Log.TraceLog("    {0}={1}", EnvVarNames.User, InternalUtils.GetEnvironmentVariable(EnvVarNames.User, "", bQuiet));
+			Log.TraceLog("    {0}={1}", EnvVarNames.Client, InternalUtils.GetEnvironmentVariable(EnvVarNames.Client, "", bQuiet));
+			Log.TraceLog("    {0}={1}", EnvVarNames.BuildRootP4, InternalUtils.GetEnvironmentVariable(EnvVarNames.BuildRootP4, "", bQuiet));
+			Log.TraceLog("    {0}={1}", EnvVarNames.BuildRootEscaped, InternalUtils.GetEnvironmentVariable(EnvVarNames.BuildRootEscaped, "", bQuiet));
+			Log.TraceLog("    {0}={1}", EnvVarNames.ClientRoot, InternalUtils.GetEnvironmentVariable(EnvVarNames.ClientRoot, "", bQuiet));
+			Log.TraceLog("    {0}={1}", EnvVarNames.Changelist, InternalUtils.GetEnvironmentVariable(EnvVarNames.Changelist, "", bQuiet));
+			Log.TraceLog("    {0}={1}", EnvVarNames.CodeChangelist, InternalUtils.GetEnvironmentVariable(EnvVarNames.CodeChangelist, "", bQuiet));
+			Log.TraceLog("    {0}={1}", "P4USER", InternalUtils.GetEnvironmentVariable("P4USER", "", bQuiet));
+			Log.TraceLog("    {0}={1}", "P4CLIENT", InternalUtils.GetEnvironmentVariable("P4CLIENT", "", bQuiet));
 		}
 
 		protected void VerifyChangelistStringAndSetChangelistNumber()

@@ -1236,7 +1236,7 @@ namespace UnrealBuildTool
 						// the one that produces the PDB (as opposed to no debug info, where the above code
 						// is needed, but not the output PDB, or when multiple files share a single PDB, so
 						// only the action that generates it should count it as output directly)
-						if (CompileEnvironment.bUsePDBFiles && bActionProducesPDB)
+						if (bActionProducesPDB)
 						{
 							CompileAction.ProducedItems.Add(PDBFile);
 							Result.DebugDataFiles.Add(PDBFile);
@@ -1453,7 +1453,7 @@ namespace UnrealBuildTool
 			}
 
 			// @todo UE4 DLL: Why do I need LIBPATHs to build only export libraries with /DEF? (tbbmalloc.lib)
-			if (!LinkEnvironment.bIsBuildingLibrary || (LinkEnvironment.bIsBuildingLibrary && bIncludeDependentLibrariesInLibrary))
+			if (!LinkEnvironment.bIsBuildingLibrary || bIncludeDependentLibrariesInLibrary)
 			{
 				// Add the library paths to the argument list.
 				foreach (string LibraryPath in LinkEnvironment.LibraryPaths)

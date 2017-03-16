@@ -190,7 +190,7 @@ public class ZipProjectUp : BuildCommand
         Filter.Include("/Source/...");
         Filter.Include("*.uproject");
 
-        ZipFiles(InstallDirectory, ProjectDirectory, Filter);
+        ZipFiles(new FileReference(InstallDirectory), new DirectoryReference(ProjectDirectory), Filter);
 
 		Log("Completed zipping project up");
     }

@@ -469,7 +469,7 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 	{
 		// Get all the shapes from the actor
 		FInlinePxShapeArray PShapes;
-		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidActor);
+		const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *PRigidActor);
 
 		// calculate the test global pose of the actor
 		const PxQuat PGeomRot = U2PQuat(Quat);

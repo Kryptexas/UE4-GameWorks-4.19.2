@@ -919,7 +919,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FStrin
 
 			if (UScriptStruct* ScriptStruct = Cast<UScriptStruct>(static_cast<UObject*>(It->Object)))
 			{
-				if (Packages.ContainsByPredicate([=](UPackage* Package) { return ScriptStruct->IsIn(Package); }) && ScriptStruct->GetCppStructOps())
+				if (Packages.ContainsByPredicate([=](UPackage* Package) { return ScriptStruct->IsIn(Package); }) && !ScriptStruct->HasAnyFlags(RF_ClassDefaultObject) && ScriptStruct->GetCppStructOps())
 				{
 					ScriptStructs.Add(ScriptStruct);
 				}

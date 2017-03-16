@@ -1561,12 +1561,10 @@ FConfigCacheIni::FConfigCacheIni(EConfigCacheType InType)
 {
 }
 
-#if WITH_HOT_RELOAD_CTORS
 FConfigCacheIni::FConfigCacheIni()
 {
 	EnsureRetrievingVTablePtrDuringCtor(TEXT("FConfigCacheIni()"));
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 FConfigCacheIni::~FConfigCacheIni()
 {

@@ -402,6 +402,11 @@ TSharedRef<FTabManager> SDockTab::GetTabManager() const
 	return MyTabManager.Pin().ToSharedRef();
 }
 
+void SDockTab::DrawAttention()
+{
+	GetTabManager()->DrawAttention(SharedThis(this));
+}
+
 void SDockTab::ProvideDefaultLabel( const FText& InDefaultLabel )
 {
 	const bool UserProvidedLabel = TabLabel.IsBound() || !TabLabel.Get().IsEmpty();

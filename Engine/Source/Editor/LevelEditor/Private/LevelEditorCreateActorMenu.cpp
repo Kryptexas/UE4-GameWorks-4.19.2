@@ -467,16 +467,17 @@ void LevelEditorCreateActorMenu::FillAddReplaceActorMenu( FMenuBuilder& MenuBuil
 		}
 
 		{
-			FAssetData AssetData = FAssetData( ABlockingVolume::StaticClass() );
+			const UClass* BlockingVolumeClass = ABlockingVolume::StaticClass();
+			FAssetData AssetData = FAssetData( BlockingVolumeClass );
 
 			AssetMenuOptions.Empty();
-			UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactorySphereVolume::StaticClass() );
+			UActorFactory* Factory = GEditor->FindActorFactoryByClassForActorClass( UActorFactorySphereVolume::StaticClass(), BlockingVolumeClass );
 			AssetMenuOptions.Add( FActorFactoryAssetProxy::FMenuItem( Factory, AssetData ) );
 
-			Factory = GEditor->FindActorFactoryByClass( UActorFactoryBoxVolume::StaticClass() );
+			Factory = GEditor->FindActorFactoryByClassForActorClass( UActorFactoryBoxVolume::StaticClass(), BlockingVolumeClass );
 			AssetMenuOptions.Add( FActorFactoryAssetProxy::FMenuItem( Factory, AssetData ) );
 
-			Factory = GEditor->FindActorFactoryByClass( UActorFactoryCylinderVolume::StaticClass() );
+			Factory = GEditor->FindActorFactoryByClassForActorClass( UActorFactoryCylinderVolume::StaticClass(), BlockingVolumeClass );
 			AssetMenuOptions.Add( FActorFactoryAssetProxy::FMenuItem( Factory, AssetData ) );
 			BuildSingleAssetAddReplaceActorMenu( MenuBuilder, AssetData, AssetMenuOptions, CreateMode );
 		}

@@ -12,7 +12,7 @@ enum class EDataTableExportFlags : uint8
 	/** No specific options. */
 	None = 0,
 
-	/** Export User Defined Structs using their display name, rather than their internal name. */
+	/** Export properties using their display name, rather than their internal name. */
 	UsePrettyPropertyNames = 1<<0,
 
 	/** Export User Defined Enums using their display name, rather than their internal name. */
@@ -27,9 +27,9 @@ namespace DataTableUtils
 {
 	/**
 	 * Util to assign a value (given as a string) to a struct property.
-	 * This always assigns the given string to the given property, even if the property itself identifies as a static sized array.
+	 * This always assigns the string to the given property without adjusting the address.
 	 */
-	ENGINE_API FString AssignStringToSingleProperty(const FString& InString, const UProperty* InProp, uint8* InData);
+	ENGINE_API FString AssignStringToPropertyDirect(const FString& InString, const UProperty* InProp, uint8* InData);
 
 	/**
 	 * Util to assign a value (given as a string) to a struct property.
@@ -39,9 +39,9 @@ namespace DataTableUtils
 
 	/** 
 	 * Util to get a property as a string.
-	 * This always gets a string for only the given property, even if the property itself identifies as a static sized array.
+	 * This always gets a string for the given property without adjusting the address.
 	 */
-	ENGINE_API FString GetSinglePropertyValueAsString(const UProperty* InProp, uint8* InData, const EDataTableExportFlags InDTExportFlags);
+	ENGINE_API FString GetPropertyValueAsStringDirect(const UProperty* InProp, uint8* InData, const EDataTableExportFlags InDTExportFlags);
 
 	/** 
 	 * Util to get a property as a string.
@@ -51,9 +51,9 @@ namespace DataTableUtils
 
 	/** 
 	 * Util to get a property as text (this will use the display name of the value where available - use GetPropertyValueAsString if you need an internal identifier).
-	 * This always gets a string for only the given property, even if the property itself identifies as a static sized array.
+	 * This always gets a string for the given property without adjusting the address.
 	 */
-	ENGINE_API FText GetSinglePropertyValueAsText(const UProperty* InProp, uint8* InData);
+	ENGINE_API FText GetPropertyValueAsTextDirect(const UProperty* InProp, uint8* InData);
 
 	/** 
 	 * Util to get a property as text (this will use the display name of the value where available - use GetPropertyValueAsString if you need an internal identifier).

@@ -67,7 +67,7 @@ DECLARE_CYCLE_STAT(TEXT("BodyInstance SetCollisionProfileName"), STAT_BodyInst_S
 DECLARE_CYCLE_STAT(TEXT("Phys SetBodyTransform"), STAT_SetBodyTransform, STATGROUP_Physics);
 
 #if WITH_PHYSX
-int32 FillInlinePxShapeArray(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor)
+int32 FillInlinePxShapeArray_AssumesLocked(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor)
 {
 	const int32 NumShapes = RigidActor.getNbShapes();
 	Array.AddUninitialized(NumShapes);
@@ -3603,7 +3603,7 @@ void FBodyInstance::GetComplexPhysicalMaterials(const FBodyInstance*, TWeakObjec
 int32 GetNumSimShapes_AssumesLocked(const PxRigidBody* PRigidBody)
 {
 	FInlinePxShapeArray PShapes;
-	const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidBody);
+	const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *PRigidBody);
 
 	int32 NumSimShapes = 0;
 
@@ -4415,7 +4415,7 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, c
 
 			// Get all the shapes from the actor
 			FInlinePxShapeArray PShapes;
-			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
+			const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *RigidBody);
 
 			// Iterate over each shape
 			for (int32 ShapeIdx = 0; ShapeIdx < NumShapes; ShapeIdx++)
@@ -4539,7 +4539,7 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 
 		// Get all the shapes from the actor
 		FInlinePxShapeArray PShapes;
-		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
+		const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *RigidBody);
 
 		// Iterate over each shape
 		for(int32 ShapeIdx=0; ShapeIdx<NumShapes; ShapeIdx++)
@@ -4604,7 +4604,7 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 
 		// Get all the shapes from the actor
 		FInlinePxShapeArray PShapes;
-		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidActor);
+		const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *RigidActor);
 
 		const PxVec3 PPoint = U2PVector(Point);
 
@@ -4674,7 +4674,7 @@ bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Ro
 
 		// Get all the shapes from the actor
 		FInlinePxShapeArray PTargetShapes;
-		const int32 NumTargetShapes = FillInlinePxShapeArray(PTargetShapes, *TargetRigidActor);
+		const int32 NumTargetShapes = FillInlinePxShapeArray_AssumesLocked(PTargetShapes, *TargetRigidActor);
 
 		for (int32 TargetShapeIdx = 0; TargetShapeIdx < NumTargetShapes; ++TargetShapeIdx)
 		{
@@ -4792,7 +4792,7 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 		{
 		// Get all the shapes from the actor
 			FInlinePxShapeArray PShapes;
-			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidActor);
+			const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *PRigidActor);
 
 			// Iterate over each shape
 			TArray<struct FOverlapResult> TempOverlaps;
@@ -4870,7 +4870,7 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 
 	// Get all the shapes from the actor
 	FInlinePxShapeArray PShapes;
-	const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
+	const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *RigidBody);
 
 	// Iterate over each shape
 	for(int32 ShapeIdx=0; ShapeIdx<NumShapes; ++ShapeIdx)

@@ -107,6 +107,22 @@ void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const WIDEC
 	Class->AddNativeFunction(InName, InPointer);
 }
 
+void FNativeFunctionRegistrar::RegisterFunctions(class UClass* Class, const TNameNativePtrPair<ANSICHAR>* InArray, int32 NumFunctions)
+{
+	for (; NumFunctions; ++InArray, --NumFunctions)
+	{
+		Class->AddNativeFunction(InArray->Name, InArray->Pointer);
+	}
+}
+
+void FNativeFunctionRegistrar::RegisterFunctions(class UClass* Class, const TNameNativePtrPair<WIDECHAR>* InArray, int32 NumFunctions)
+{
+	for (; NumFunctions; ++InArray, --NumFunctions)
+	{
+		Class->AddNativeFunction(InArray->Name, InArray->Pointer);
+	}
+}
+
 /*-----------------------------------------------------------------------------
 	UField implementation.
 -----------------------------------------------------------------------------*/
@@ -2553,10 +2569,8 @@ class FRestoreClassInfo: public FRestoreForUObjectOverwrite
 	EClassCastFlags	CastFlags;
 	/** Saved ClassConstructor **/
 	UClass::ClassConstructorType Constructor;
-#if WITH_HOT_RELOAD_CTORS
 	/** Saved ClassVTableHelperCtorCaller **/
 	UClass::ClassVTableHelperCtorCallerType ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 	/** Saved ClassConstructor **/
 	UClass::ClassAddReferencedObjectsType AddReferencedObjects;
 	/** Saved NativeFunctionLookupTable. */
@@ -2576,9 +2590,7 @@ public:
 		Flags(Save->ClassFlags & CLASS_Abstract),
 		CastFlags(Save->ClassCastFlags),
 		Constructor(Save->ClassConstructor),
-#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCaller(Save->ClassVTableHelperCtorCaller),
-#endif // WITH_HOT_RELOAD_CTORS
 		AddReferencedObjects(Save->ClassAddReferencedObjects),
 		NativeFunctionLookupTable(Save->NativeFunctionLookupTable)
 	{
@@ -2593,9 +2605,7 @@ public:
 		Target->ClassFlags |= Flags;
 		Target->ClassCastFlags |= CastFlags;
 		Target->ClassConstructor = Constructor;
-#if WITH_HOT_RELOAD_CTORS
 		Target->ClassVTableHelperCtorCaller = ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 		Target->ClassAddReferencedObjects = AddReferencedObjects;
 		Target->NativeFunctionLookupTable = NativeFunctionLookupTable;
 	}
@@ -2835,9 +2845,7 @@ void UClass::Bind()
 
 	UClass* SuperClass = GetSuperClass();
 	if (SuperClass && (ClassConstructor == nullptr || ClassAddReferencedObjects == nullptr
-#if WITH_HOT_RELOAD_CTORS
 		|| ClassVTableHelperCtorCaller == nullptr
-#endif // WITH_HOT_RELOAD_CTORS
 		))
 	{
 		// Chase down constructor in parent class.
@@ -2846,12 +2854,10 @@ void UClass::Bind()
 		{
 			ClassConstructor = SuperClass->ClassConstructor;
 		}
-#if WITH_HOT_RELOAD_CTORS
 		if (!ClassVTableHelperCtorCaller)
 		{
 			ClassVTableHelperCtorCaller = SuperClass->ClassVTableHelperCtorCaller;
 		}
-#endif // WITH_HOT_RELOAD_CTORS
 		if (!ClassAddReferencedObjects)
 		{
 			ClassAddReferencedObjects = SuperClass->ClassAddReferencedObjects;
@@ -3700,9 +3706,7 @@ UObject* UClass::GetArchetypeForCDO() const
 void UClass::PurgeClass(bool bRecompilingOnLoad)
 {
 	ClassConstructor = nullptr;
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCaller = nullptr;
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassFlags = 0;
 	ClassCastFlags = 0;
 	ClassUnique = 0;
@@ -3859,16 +3863,12 @@ UClass::UClass
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,
 	ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassAddReferencedObjectsType InClassAddReferencedObjects
 )
 :	UStruct					( EC_StaticConstructor, InSize, InFlags )
 ,	ClassConstructor		( InClassConstructor )
-#if WITH_HOT_RELOAD_CTORS
 ,	ClassVTableHelperCtorCaller(InClassVTableHelperCtorCaller)
-#endif // WITH_HOT_RELOAD_CTORS
 ,	ClassAddReferencedObjects( InClassAddReferencedObjects )
 ,	ClassUnique				( 0 )
 ,	ClassFlags				( InClassFlags | CLASS_Native )
@@ -3897,9 +3897,7 @@ bool UClass::HotReloadPrivateStaticClass(
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassAddReferencedObjectsType InClassAddReferencedObjects,
 	class UClass* TClass_Super_StaticClass,
 	class UClass* TClass_WithinClass_StaticClass
@@ -3920,9 +3918,7 @@ bool UClass::HotReloadPrivateStaticClass(
 	//@todo safe? ClassConfigName = InConfigName;
 	ClassConstructorType OldClassConstructor = ClassConstructor;
 	ClassConstructor = InClassConstructor;
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCaller = InClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassAddReferencedObjects = InClassAddReferencedObjects;
 	/* No recursive ::StaticClass calls allowed. Setup extras. */
 	/* @todo safe? 
@@ -3940,7 +3936,6 @@ bool UClass::HotReloadPrivateStaticClass(
 	UE_LOG(LogClass, Verbose, TEXT("Attempting to change VTable for class %s."),*GetName());
 	ClassWithin = UPackage::StaticClass();  // We are just avoiding error checks with this...we don't care about this temp object other than to get the vtable.
 
-#if WITH_HOT_RELOAD_CTORS
 	static struct FUseVTableConstructorsCache
 	{
 		FUseVTableConstructorsCache()
@@ -3953,19 +3948,11 @@ bool UClass::HotReloadPrivateStaticClass(
 	} UseVTableConstructorsCache;
 
 	UObject* TempObjectForVTable = nullptr;
-	if (UseVTableConstructorsCache.bUseVTableConstructors)
 	{
 		TGuardValue<bool> Guard(GIsRetrievingVTablePtr, true);
-		auto Helper = FVTableHelper();
+		FVTableHelper Helper;
 		TempObjectForVTable = ClassVTableHelperCtorCaller(Helper);
 	}
-	else
-	{
-		TempObjectForVTable = StaticConstructObject_Internal(this, GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp);
-	}
-#else // WITH_HOT_RELOAD_CTORS
-	UObject* TempObjectForVTable = StaticConstructObject_Internal(this, GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	if( !TempObjectForVTable->IsRooted() )
 	{
@@ -3997,9 +3984,7 @@ bool UClass::HotReloadPrivateStaticClass(
 				if (Class->ClassConstructor == OldClassConstructor)
 				{
 					Class->ClassConstructor = ClassConstructor;
-#if WITH_HOT_RELOAD_CTORS
 					Class->ClassVTableHelperCtorCaller = ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 					Class->ClassAddReferencedObjects = ClassAddReferencedObjects;
 					CountClass++;
 				}
@@ -4341,9 +4326,7 @@ void GetPrivateStaticClassBody(
 				InClassCastFlags,
 				InConfigName,
 				InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 				InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 				InClassAddReferencedObjects,
 				InSuperClassFn(),
 				InWithinClassFn()
@@ -4375,9 +4358,7 @@ void GetPrivateStaticClassBody(
 			InConfigName,
 			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_MarkAsNative | RF_MarkAsRootSet),
 			InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 			InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 			InClassAddReferencedObjects
 			);
 		check(ReturnClass);
@@ -4396,9 +4377,7 @@ void GetPrivateStaticClassBody(
 			InConfigName,
 			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Dynamic | (GIsInitialLoad ? RF_MarkAsRootSet : RF_NoFlags)),
 			InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 			InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 			InClassAddReferencedObjects
 			);
 		check(ReturnClass);
@@ -4897,9 +4876,7 @@ UDynamicClass::UDynamicClass(
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,
 	ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassAddReferencedObjectsType InClassAddReferencedObjects)
 : UClass(
   EC_StaticConstructor
@@ -4910,9 +4887,7 @@ UDynamicClass::UDynamicClass(
 , InConfigName
 , InFlags
 , InClassConstructor
-#if WITH_HOT_RELOAD_CTORS
 , InClassVTableHelperCtorCaller
-#endif // WITH_HOT_RELOAD_CTORS
 , InClassAddReferencedObjects)
 , AnimClassImplementation(nullptr)
 {

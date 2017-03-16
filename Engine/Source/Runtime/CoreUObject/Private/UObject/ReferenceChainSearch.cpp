@@ -188,7 +188,7 @@ void FReferenceChainSearch::PrintReferencers(FReferenceChain& Referencer)
 			ObjectReachability += TEXT("(ClusterRoot) ");
 			bClusterRoot = true;
 		}
-		if (ReferencedByObjectItem->GetOwnerIndex())
+		if (ReferencedByObjectItem->GetOwnerIndex() > 0)
 		{
 			ObjectReachability += TEXT("(Clustered) ");
 		}

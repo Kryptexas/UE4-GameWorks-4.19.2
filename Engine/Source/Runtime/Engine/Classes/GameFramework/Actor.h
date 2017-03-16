@@ -426,6 +426,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Actor)
 	uint8 bGenerateOverlapEventsDuringLevelStreaming:1;
 
+protected:
+
+	/** If true, this actor can be put inside of a GC Cluster to improve Garbage Collection performance */
+	UPROPERTY(Category = Actor, EditAnywhere, AdvancedDisplay)
+	uint8 bCanBeInCluster:1;
+
+public:
+
 	/** Controls how to handle spawning this actor in a situation where it's colliding with something else. "Default" means AlwaysSpawn here. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Actor)
 	ESpawnActorCollisionHandlingMethod SpawnCollisionHandlingMethod;
@@ -1527,6 +1535,7 @@ public:
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
+	virtual bool CanBeInCluster() const override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;

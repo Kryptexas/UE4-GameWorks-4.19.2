@@ -7,8 +7,7 @@
 #include "Templates/SharedPointer.h"
 #include "Delegates/Delegate.h"
 #include "Internationalization/Text.h"
-
-#define ENABLE_LOC_TESTING ( UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
+#include "LocTesting.h"
 
 #include "Templates/UniqueObj.h"
 
@@ -20,7 +19,7 @@ class FLegacyInternationalization;
 
 class FInternationalization
 {
-	friend class FText;
+	friend class FTextChronoFormatter;
 
 public:
 	static CORE_API FInternationalization& Get();

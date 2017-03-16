@@ -160,10 +160,8 @@ class UDestructibleFractureSettings
 {
 	GENERATED_UCLASS_BODY()
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UDestructibleFractureSettings(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	/** The number of voronoi cell sites. */
 	UPROPERTY(EditAnywhere, Category = Voronoi, meta = (ClampMin = "1", UIMin = "1"))

@@ -62,4 +62,10 @@ public:
 	 * Gets the current state of expansion for the group
 	 */
 	virtual bool GetExpansionState() const = 0;
+
+
+	/**
+	* Permit resetting the properties in this group
+	*/
+	virtual void EnableReset(bool InValue) = 0;
 };

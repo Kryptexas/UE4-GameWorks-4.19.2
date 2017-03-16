@@ -189,10 +189,10 @@ void FVulkanPendingGfxState::Reset()
 
 FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	: Device(InDevice)
-	, DescriptorPool(VK_NULL_HANDLE)
 	, MaxDescriptorSets(0)
 	, NumAllocatedDescriptorSets(0)
 	, PeakAllocatedDescriptorSets(0)
+	, DescriptorPool(VK_NULL_HANDLE)
 {
 	// Increased from 8192 to prevent Protostar crashing on Mali
 	MaxDescriptorSets = 16384;

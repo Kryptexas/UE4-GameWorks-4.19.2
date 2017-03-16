@@ -42,8 +42,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexDestructibleAssetImport, Log, All);
 
 // Forward declarations and external processing functions
 struct ExistingSkelMeshData;
-extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials);
-extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh);
+extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials, int32 ReimportLODIndex);
+extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh, int32 ReimportLODIndex);
 extern void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData);
 extern void ProcessImportMeshMaterials(TArray<FSkeletalMaterial>& Materials, FSkeletalMeshImportData& ImportData);
 extern bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData);
@@ -240,7 +240,7 @@ ExistingDestMeshData* SaveExistingDestMeshData(UDestructibleMesh* ExistingDestru
 		// Only save off SkelMeshData if it's been created
 		ExistingDestMeshDataPtr->SkelMeshData = NULL;
 		
-		ExistingDestMeshDataPtr->SkelMeshData = SaveExistingSkelMeshData(ExistingDestructibleMesh, true);
+		ExistingDestMeshDataPtr->SkelMeshData = SaveExistingSkelMeshData(ExistingDestructibleMesh, true, INDEX_NONE);
 		
 		ExistingDestMeshDataPtr->BodySetup = ExistingDestructibleMesh->BodySetup;
 		ExistingDestMeshDataPtr->FractureEffects = ExistingDestructibleMesh->FractureEffects;
@@ -256,7 +256,7 @@ static void RestoreExistingDestMeshData(ExistingDestMeshData* MeshData, UDestruc
 		// Restore old settings, but resize arrays to make sense with the new NxDestructibleAsset
 		if (MeshData->SkelMeshData != NULL)
 		{
-			RestoreExistingSkelMeshData(MeshData->SkelMeshData, DestructibleMesh);
+			RestoreExistingSkelMeshData(MeshData->SkelMeshData, DestructibleMesh, INDEX_NONE);
 		}
 		DestructibleMesh->BodySetup =  MeshData->BodySetup;
 		DestructibleMesh->FractureEffects = MeshData->FractureEffects;

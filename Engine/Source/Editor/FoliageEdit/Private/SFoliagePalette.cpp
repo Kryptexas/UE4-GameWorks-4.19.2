@@ -747,7 +747,7 @@ FText SFoliagePalette::GetSearchText() const
 
 void SFoliagePalette::OnSelectionChanged(FFoliagePaletteItemModelPtr Item, ESelectInfo::Type SelectInfo)
 {
-	if (SelectInfo != ESelectInfo::Direct)
+	if (SelectInfo != ESelectInfo::Direct || !Item.IsValid())
 	{
 		// If we set the selection in code it's because we're restoring a previous selection after changing the palette.
 		// Refreshing the details palette causes problems if we're in the middle of a details change which caused a thumbnail invalidation.

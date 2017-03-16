@@ -27,7 +27,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorSettingsTests, All, All);
 
 //Latent commands
 DEFINE_LATENT_AUTOMATION_COMMAND(FSettingsCheckForPIECommand);
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLogSettingsTestResult, FAutomationTestExecutionInfo*, InExecutionInfo);
 
 //Tests
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEditorSettingsKeybindingsTest, "System.Promotion.Editor.Settings.Keybindings", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
@@ -186,22 +185,6 @@ bool FSettingsCheckForPIECommand::Update()
 }
 
 /**
-* Latent command to run the main build promotion test
-*/
-bool FLogSettingsTestResult::Update()
-{
-	if (InExecutionInfo && InExecutionInfo->Errors.Num() > 0)
-	{
-		UE_LOG(LogEditorSettingsTests, Display, TEXT("Test failed!"));
-	}
-	else
-	{
-		UE_LOG(LogEditorSettingsTests, Display, TEXT("Test successful!"));
-	}
-	return true;
-}
-
-/**
 * Automation test that handles setting keybindings
 */
 bool FEditorSettingsKeybindingsTest::RunTest(const FString& Parameters)
@@ -257,7 +240,6 @@ bool FEditorSettingsKeybindingsTest::RunTest(const FString& Parameters)
 
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(3.f));
 		ADD_LATENT_AUTOMATION_COMMAND(FSettingsCheckForPIECommand());
-		ADD_LATENT_AUTOMATION_COMMAND(FLogSettingsTestResult(&ExecutionInfo));
 	}
 
 	//Import original keybindings and set changed binds back to cached values
@@ -292,8 +274,9 @@ bool FEditorSettingsPreferencesTest::RunTest(const FString& Parameters)
 	const FString TargetPreferenceFile = FString::Printf(TEXT("%s/BuildPromotion/Preferences-%d.ini"), *FPaths::AutomationDir(), FEngineVersion::Current().GetChangelist());
 	EditorSettingsTestUtils::ExportEditorSettings(TargetPreferenceFile);
 
+	// TODO Improve this, to compare shots, and to only take images of the actual small toolbar icons.
 	//Take a screenshot of the small icons
-	FEditorPromotionTestUtilities::TakeScreenshot(TEXT("Small Toolbar Icons"));
+	//FEditorPromotionTestUtilities::TakeScreenshot(TEXT("Small Toolbar Icons"), FAutomationScreenshotOptions(EComparisonTolerance::Low));
 
 	//Change the setting back
 	FEditorPromotionTestUtilities::SetPropertyByName(EditorStyleSettings, TEXT("bUseSmallToolBarIcons"), OldStyleSetting);

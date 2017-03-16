@@ -317,11 +317,6 @@ namespace UnrealBuildTool
 		public List<string> Definitions = new List<string>();
 
 		/// <summary>
-		/// CLR modules only: The assemblies referenced by the module's private implementation.
-		/// </summary>
-		public List<string> PrivateAssemblyReferences = new List<string>();
-
-		/// <summary>
 		/// Addition modules this module may require at run-time 
 		/// </summary>
 		public List<string> DynamicallyLoadedModuleNames = new List<string>();

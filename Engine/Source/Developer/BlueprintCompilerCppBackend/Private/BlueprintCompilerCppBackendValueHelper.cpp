@@ -94,6 +94,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 
 				PathToMember = FString::Printf(TEXT("FUnconvertedWrapper__%s(%s).GetRef__%s()"), *FEmitHelper::GetCppName(PropertyOwnerAsBPGC), *ContainerStr
 					, *UnicodeToCPPIdentifier(Property->GetName(), false, nullptr));
+				Context.MarkUnconvertedClassAsNecessary(PropertyOwnerAsBPGC);
 			}
 			else if (bInaccessibleScriptStructProperty || Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
 			{
@@ -1044,7 +1045,7 @@ struct FFakeImportTableHelper
 						continue;
 					}
 					const UProperty* OwnerProperty = Property->GetOwnerProperty();
-					if (!ensure(IsValid(OwnerProperty)))
+					if (!IsValid(OwnerProperty))
 					{
 						continue;
 					}
@@ -1232,7 +1233,7 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		FakeImportTableHelper.FillDependencyData(InAsset, Result);
 		return Result;
 	};
-	const bool bBootTimeEDL = false;
+	const bool bBootTimeEDL = USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME;
 	const bool bEnableBootTimeEDLOptimization = IsEventDrivenLoaderEnabledInCookedBuilds() && bBootTimeEDL;
 	auto AddAssetArray = [&](const TArray<const UObject*>& Assets)
 	{

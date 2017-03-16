@@ -173,7 +173,7 @@ private:
 struct FShapedGlyphEntryKey
 {
 public:
-	FShapedGlyphEntryKey(const TSharedPtr<FShapedGlyphFaceData>& InFontFaceData, uint32 InGlyphIndex, const FFontOutlineSettings& InOutlineSettings);
+	FShapedGlyphEntryKey(const FShapedGlyphFaceData& InFontFaceData, uint32 InGlyphIndex, const FFontOutlineSettings& InOutlineSettings);
 
 	FORCEINLINE bool operator==(const FShapedGlyphEntryKey& Other) const
 	{
@@ -449,7 +449,7 @@ private:
 	FSourceIndicesToGlyphData SourceIndicesToGlyphData;
 };
 
-/** Information for rendering one character */
+/** Information for rendering one non-shaped character */
 struct SLATECORE_API FCharacterEntry
 {
 	/** The character this entry is for */
@@ -491,62 +491,8 @@ struct SLATECORE_API FCharacterEntry
 	}
 };
 
-struct SLATECORE_API FKerningPair
-{
-	TCHAR First;
-	TCHAR Second;
-
-	FKerningPair( TCHAR InFirst, TCHAR InSecond )
-		: First(InFirst),Second(InSecond)
-	{
-	}
-
-	bool operator==(const FKerningPair& Other ) const
-	{
-		return First == Other.First && Second == Other.Second;
-	}
-
-	friend inline uint32 GetTypeHash( const FKerningPair& Key )
-	{
-		return FCrc::MemCrc32( &Key, sizeof(Key) );
-	}
-};
-
 /**
- * A Kerning table for a single font key
- */
-class SLATECORE_API FKerningTable
-{
-public:
-	FKerningTable( const FSlateFontCache& InFontCache );
-	~FKerningTable();
-
-	/**
-	 * Gets a kerning value for a pair of characters
-	 *
-	 * @param FirstChar		The first character in the pair
-	 * @param SecondChar	The second character in the pair
-	 * @return The kerning value
-	 */
-	int8 GetKerning( const FFontData& InFontData, const int32 InSize, TCHAR FirstChar, TCHAR SecondChar, float InScale );
-
-	/**
-	 * Allocated memory for the directly indexed kerning table
-	 */
-	void CreateDirectTable();
-
-private:
-	/** Extended kerning Pairs which are mapped to save memory */
-	TMap<FKerningPair,int8> MappedKerningPairs;
-	/** Direct access kerning table for ascii chars.  Note its very important that this stays small. */
-	int8* DirectAccessTable;
-	/** Interface to freetype for accessing new kerning values */
-	const FSlateFontCache& FontCache;
-};
-
-
-/**
- * Manages a potentially large list of font characters
+ * Manages a potentially large list of non-shaped characters
  * Uses a directly indexed by TCHAR array until space runs out and then maps the rest to conserve memory
  * Every character indexed by TCHAR could potentially cost a lot of memory of a lot of empty entries are created
  * because characters being used are far apart
@@ -607,6 +553,29 @@ public:
 	int16 GetBaseline() const;
 
 private:
+	/** Maintains a fake shaped glyph for each character in the character list */
+	struct FCharacterListEntry
+	{
+		FCharacterListEntry()
+			: ShapedGlyphEntry()
+			, FontData(nullptr)
+			, FallbackLevel(EFontFallback::FF_Max)
+			, HasKerning(false)
+			, Valid(false)
+		{
+		}
+
+		/** The shaped glyph data for this character */
+		FShapedGlyphEntry ShapedGlyphEntry;
+		/** Font data this character was rendered with */
+		const FFontData* FontData;
+		/** The fallback level this character represents */
+		EFontFallback FallbackLevel;
+		/** Does this character have kerning? */
+		bool HasKerning;
+		/** Has this entry been initialized? */
+		bool Valid;
+	};
 
 	/**
 	 * Returns whether the specified character is valid for caching (i.e. whether it matches the FontFallback level)
@@ -614,24 +583,25 @@ private:
 	 * @param Character			The character to check
 	 * @param MaxFontFallback	The maximum fallback level that can be used when resolving glyphs
 	 */
-	bool CanCacheCharacter(TCHAR Character, const EFontFallback MaxFontFallback);
+	bool CanCacheCharacter(TCHAR Character, const EFontFallback MaxFontFallback) const;
 
 	/**
 	 * Caches a new character
 	 * 
 	 * @param Character	The character to cache
 	 */
-	FCharacterEntry CacheCharacter(TCHAR Character);
+	FCharacterListEntry CacheCharacter(TCHAR Character);
 
+	/**
+	 * Convert the cached internal entry to the external data for the old non-shaped API
+	 */
+	FCharacterEntry MakeCharacterEntry(TCHAR Character, const FCharacterListEntry& InternalEntry) const;
 
 private:
-
 	/** Entries for larger character sets to conserve memory */
-	TMap<TCHAR, FCharacterEntry> MappedEntries; 
+	TMap<TCHAR, FCharacterListEntry> MappedEntries; 
 	/** Directly indexed entries for fast lookup */
-	TArray<FCharacterEntry> DirectIndexEntries;
-	/** Table of kerning values for this font */
-	FKerningTable KerningTable;
+	TArray<FCharacterListEntry> DirectIndexEntries;
 	/** Font for this character list */
 	FSlateFontKey FontKey;
 	/** Reference to the font cache for accessing new unseen characters */
@@ -703,7 +673,7 @@ public:
 	FShapedGlyphSequenceRef ShapeUnidirectionalText( const TCHAR* InText, const int32 InTextStart, const int32 InTextLen, const FSlateFontInfo &InFontInfo, const float InFontScale, const TextBiDi::ETextDirection InTextDirection, const ETextShapingMethod InTextShapingMethod ) const;
 
 	/** 
-	 * Gets information for how to draw all characters in the specified string. Caches characters as they are found
+	 * Gets information for how to draw all non-shaped characters in the specified string. Caches characters as they are found
 	 * 
 	 * @param InFontInfo		Information about the font that the string is drawn with
 	 * @param FontScale			The scale to apply to the font
@@ -724,8 +694,6 @@ public:
 	 * @param FontScale		The font scale to use
 	 * @return true if the characters could be cached. false if the cache is full
 	 */
-	bool AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, FCharacterEntry& OutCharacterEntry );
-
 	bool AddNewEntry( const FShapedGlyphEntry& InShapedGlyph, const FFontOutlineSettings& InOutlineSettings, FShapedGlyphFontAtlasData& OutAtlasData );
 
 	bool AddNewEntry( const FCharacterRenderData InRenderData, uint8& OutTextureIndex, uint16& OutGlyphX, uint16& OutGlyphY, uint16& OutGlyphWidth, uint16& OutGlyphHeight );

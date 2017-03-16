@@ -61,6 +61,21 @@ namespace AutomationTool
 			// Remove changes by the build machine
 			Descriptions = Regex.Replace(Descriptions, "[^\n]*buildmachine\n(\n|\t[^\n]*\n)*", "");
 
+			// Remove all the tags we don't care about
+			Descriptions = Regex.Replace(Descriptions, "^[ \t]*#(rb|fyi|codereview|lockdown)\\s.*$", "", RegexOptions.Multiline);
+
+			// Empty out lines which just contain whitespace
+			Descriptions = Regex.Replace(Descriptions, "^[ \t]+$", "", RegexOptions.Multiline);
+
+			// Remove multiple consecutive blank lines
+			Descriptions = Regex.Replace(Descriptions, "\n\n+", "\n\n");
+
+			// Only include one newline at the end of each description
+			Descriptions = Regex.Replace(Descriptions, "\n+Change", "\n\nChange");
+
+			// Remove merge-only changelists
+			Descriptions = Regex.Replace(Descriptions, "(?<=(^|\\n))Change .*\\s*Merging .* to .*\\s*\\n(?=(Change|$))", "");
+
 			// Figure out the target stream
 			IProcessResult StreamResult = P4.P4(String.Format("stream -o {0}", Stream), AllowSpew: false);
 			if (StreamResult.ExitCode != 0)
@@ -89,11 +104,7 @@ namespace AutomationTool
 
 				foreach (string Line in Descriptions.Split('\n'))
 				{
-					string TrimLine = Line.TrimStart();
-					if(!TrimLine.StartsWith("#codereview", StringComparison.OrdinalIgnoreCase) && !TrimLine.StartsWith("#rb", StringComparison.OrdinalIgnoreCase) && !TrimLine.StartsWith("#lockdown", StringComparison.OrdinalIgnoreCase))
-					{
-						Writer.WriteLine(Line);
-					}
+					Writer.WriteLine(Line);
 				}
 			}
 			Log("Written {0}.", OutputFileName);

@@ -276,7 +276,7 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 		// Save the new archive
 		{
 			FText SaveError;
-			if (!LocTextHelper.SaveForeignArchive(CultureName, &SaveError))
+			if (!LocTextHelper.SaveArchive(CultureName, &SaveError))
 			{
 				UE_LOG(LogGenerateArchiveCommandlet, Error, TEXT("%s"), *SaveError.ToString());
 				return -1;

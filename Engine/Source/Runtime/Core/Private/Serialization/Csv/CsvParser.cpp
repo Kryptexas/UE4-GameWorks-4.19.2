@@ -30,7 +30,7 @@ FCsvParser::EParseResult FCsvParser::ParseRow()
 	if (NewLineSize)
 	{
 		ReadAt += NewLineSize;
-		return *ReadAt ? EParseResult::EndOfCell : EParseResult::EndOfString;
+		return *ReadAt ? EParseResult::EndOfRow : EParseResult::EndOfString;
 	}
 
 	EParseResult Result;
@@ -106,7 +106,10 @@ FCsvParser::EParseResult FCsvParser::ParseCell()
 				*WriteAt = '\0';
 				++ReadAt;
 
-				return *ReadAt ? EParseResult::EndOfCell : EParseResult::EndOfString;
+				// We always return EndOfCell here as we still have another (potentially empty) cell to add
+				// In the case where ReadAt now points at the string terminator, the next call to ParseCell 
+				// will add an empty cell and then return EndOfString
+				return EParseResult::EndOfCell;
 			}
 		}
 		if (WriteAt != ReadAt)

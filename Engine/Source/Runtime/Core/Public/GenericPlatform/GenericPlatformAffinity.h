@@ -73,6 +73,11 @@ public:
 		return 0xFFFFFFFFFFFFFFFF;
 	}
 
+	static const CORE_API uint64 GetTaskGraphBackgroundTaskMask()
+	{
+		return 0xFFFFFFFFFFFFFFFF;
+	}
+
 	// @todo what do we think about having this as a function in this class? Should be make a whole new one? 
 	// scrap it and force the priority like before?
 	static EThreadPriority GetRenderingThreadPriority()

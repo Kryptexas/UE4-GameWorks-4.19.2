@@ -364,14 +364,12 @@ TOctree<ElementType,OctreeSemantics>::TOctree(const FVector& InOrigin,float InEx
 {
 }
 
-#if WITH_HOT_RELOAD_CTORS
 template<typename ElementType, typename OctreeSemantics>
 TOctree<ElementType, OctreeSemantics>::TOctree()
 	: RootNode(nullptr)
 {
 	EnsureRetrievingVTablePtrDuringCtor(TEXT("TOctree()"));
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 template<typename ElementType,typename OctreeSemantics>
 void TOctree<ElementType,OctreeSemantics>::ApplyOffset(const FVector& InOffset, bool bGlobalOctree)

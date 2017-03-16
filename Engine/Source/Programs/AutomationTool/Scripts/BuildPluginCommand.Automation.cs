@@ -245,7 +245,7 @@ class BuildPlugin : BuildCommand
 		if(FileReference.Exists(FilterFile))
 		{
 			CommandUtils.Log("Reading filter rules from {0}", FilterFile);
-			Filter.ReadRulesFromFile(FilterFile.FullName, "FilterPlugin");
+			Filter.ReadRulesFromFile(FilterFile, "FilterPlugin");
 		}
 
 		// Apply the standard exclusion rules

@@ -147,14 +147,14 @@ bool FUdpMessageTransportTest::RunTest(const FString& Parameters)
 		Transport1.Publish(Context);
 	}
 
-	AddLogItem(FString::Printf(TEXT("Sent %i messages in %s"), NumTestMessages, *(FDateTime::UtcNow() - StartTime).ToString()));
+	AddInfo(FString::Printf(TEXT("Sent %i messages in %s"), NumTestMessages, *(FDateTime::UtcNow() - StartTime).ToString()));
 
 	while ((Transport2.GetNumReceivedMessages() < NumTestMessages) && ((FDateTime::UtcNow() - StartTime) < FTimespan::FromSeconds(120.0)))
 	{
 		FPlatformProcess::Sleep(0.0f);
 	}
 
-	AddLogItem(FString::Printf(TEXT("Received %i messages in %s"), Transport2.GetNumReceivedMessages(), *(FDateTime::UtcNow() - StartTime).ToString()));
+	AddInfo(FString::Printf(TEXT("Received %i messages in %s"), Transport2.GetNumReceivedMessages(), *(FDateTime::UtcNow() - StartTime).ToString()));
 	TestTrue(TEXT("All sent messages must have been received"), Transport2.GetNumReceivedMessages() == NumTestMessages);
 
 	return true;
@@ -162,5 +162,5 @@ bool FUdpMessageTransportTest::RunTest(const FString& Parameters)
 
 void EmptyLinkFunctionForStaticInitializationUdpMessageTransportTest()
 {
-	// This function exists to prevent the object file containing this test from being excluded by the linker, because it has no publically referenced symbols.
+	// This function exists to prevent the object file containing this test from being excluded by the linker, because it has no publicly referenced symbols.
 }

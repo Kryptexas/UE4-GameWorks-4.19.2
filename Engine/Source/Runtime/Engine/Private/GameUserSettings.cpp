@@ -128,12 +128,11 @@ bool UGameUserSettings::IsScreenResolutionDirty() const
 bool UGameUserSettings::IsFullscreenModeDirty() const
 {
 	bool bIsDirty = false;
-	if ( GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame )
+	if (GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 	{
-		EWindowMode::Type WindowMode = GEngine->GameViewport->IsFullScreenViewport() ? EWindowMode::Fullscreen : EWindowMode::Windowed;
-		EWindowMode::Type CurrentFullscreenMode = GetWindowModeType(WindowMode);
+		EWindowMode::Type CurrentFullscreenMode = GEngine->GameViewport->Viewport->GetWindowMode();
 		EWindowMode::Type NewFullscreenMode = GetFullscreenMode();
-		bIsDirty = (CurrentFullscreenMode != NewFullscreenMode) ? true : false;
+		bIsDirty = (CurrentFullscreenMode != NewFullscreenMode);
 	}
 	return bIsDirty;
 }

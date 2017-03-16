@@ -16,6 +16,7 @@
 #include "PropertyEditorHelpers.h"
 
 class FCustomChildrenBuilder;
+class IDetailGroup;
 
 class FDetailPropertyRow : public IDetailPropertyRow, public IPropertyTypeCustomizationUtils, public TSharedFromThis<FDetailPropertyRow>
 {
@@ -54,7 +55,7 @@ public:
 	 * @param InParentCategory	The category that this property is in
 	 * @param InIsParentEnabled	Whether or not our parent is enabled
 	 */
-	void OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> InParentCategory, const TAttribute<bool>& InIsParentEnabled );
+	void OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> InParentCategory, const TAttribute<bool>& InIsParentEnabled, TSharedPtr<IDetailGroup> InParentGroup);
 
 	/** @return The widget row that should be displayed for this property row */
 	FDetailWidgetRow GetWidgetRow();
@@ -63,6 +64,11 @@ public:
 	 * @return The property node for this row
 	 */
 	TSharedPtr<FPropertyNode> GetPropertyNode() { return PropertyNode; }
+
+	/**
+	* @return The property handle for this row
+	*/
+	TSharedPtr<IPropertyHandle> GetPropertyHandle() { return PropertyHandle;  }
 
 	/**
 	 * @return The property node for this row

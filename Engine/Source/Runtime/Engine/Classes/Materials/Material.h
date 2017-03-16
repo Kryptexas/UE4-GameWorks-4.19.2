@@ -1065,21 +1065,7 @@ public:
 	template<typename ExpressionType>
 	ExpressionType* FindExpressionByGUID(const FGuid &InGUID)
 	{
-		ExpressionType* Result = NULL;
-
-		for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
-		{
-			ExpressionType* ExpressionPtr =
-				Cast<ExpressionType>(Expressions[ExpressionIndex]);
-
-			if(ExpressionPtr && ExpressionPtr->ExpressionGUID.IsValid() && ExpressionPtr->ExpressionGUID==InGUID)
-			{
-				Result = ExpressionPtr;
-				break;
-			}
-		}
-
-		return Result;
+		return FindExpressionByGUIDRecursive<ExpressionType>(InGUID, Expressions);
 	}
 
 	/* Get all expressions of the requested type */
@@ -1474,6 +1460,32 @@ private:
 
 	// DO NOT CALL outside of FMaterialEditor!
 	ENGINE_API static void ForceNoCompilationInPostLoad(bool bForceNoCompilation);
+
+	/* Helper function to help finding expression GUID taking into account UMaterialExpressionMaterialFunctionCall */
+	template<typename ExpressionType>
+	ExpressionType* FindExpressionByGUIDRecursive(const FGuid &InGUID, const TArray<UMaterialExpression*>& InMaterialExpression)
+	{
+		for (int32 ExpressionIndex = 0; ExpressionIndex < InMaterialExpression.Num(); ++ExpressionIndex)
+		{
+			UMaterialExpression* ExpressionPtr = InMaterialExpression[ExpressionIndex];
+			UMaterialExpressionMaterialFunctionCall* MaterialFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(ExpressionPtr);
+
+			if (MaterialFunctionCall != nullptr)
+			{
+				if (MaterialFunctionCall->MaterialFunction != nullptr)
+				{
+					return FindExpressionByGUIDRecursive<ExpressionType>(InGUID, MaterialFunctionCall->MaterialFunction->FunctionExpressions);
+				}
+			}
+			else if (ExpressionPtr && ExpressionPtr->bIsParameterExpression && ExpressionPtr->GetParameterExpressionId() == InGUID)
+			{
+				return Cast<ExpressionType>(ExpressionPtr);
+			}
+		}
+
+		return nullptr;
+	}
+
 };
 
 

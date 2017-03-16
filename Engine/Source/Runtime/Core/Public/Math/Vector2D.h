@@ -41,7 +41,7 @@ public:
 	 * @param InX X coordinate.
 	 * @param InY Y coordinate.
 	 */
-	FORCEINLINE FVector2D(float InX,float InY);
+	FORCEINLINE FVector2D(float InX, float InY);
 
 	/**
 	 * Constructs a vector from an FIntPoint.
@@ -431,6 +431,13 @@ public:
 	 * @return New Int Point from this vector.
 	 */
 	FIntPoint IntPoint() const;
+
+	/**
+	 * Get this vector as a vector where each component has been rounded to the nearest int.
+	 *
+	 * @return New FVector2D from this vector that is rounded.
+	 */
+	FVector2D RoundToVector() const;
 
 	/**
 	 * Creates a copy of this vector with both axes clamped to the given range.
@@ -883,6 +890,10 @@ FORCEINLINE FIntPoint FVector2D::IntPoint() const
 	return FIntPoint(FMath::RoundToInt(X), FMath::RoundToInt(Y));
 }
 
+FORCEINLINE FVector2D FVector2D::RoundToVector() const
+{
+	return FVector2D(FMath::RoundToInt(X), FMath::RoundToInt(Y));
+}
 
 FORCEINLINE FVector2D FVector2D::ClampAxes(float MinAxisVal, float MaxAxisVal) const
 {

@@ -74,6 +74,7 @@
     <Compile Include="BuildProjectCommand.Automation.cs" />
     <Compile Include="BuildTargetCommand.Automation.cs" />
     <Compile Include="BuildThirdPartyLibs.Automation.cs" />
+    <Compile Include="CheckCsprojDotNetVersion.cs" />
     <Compile Include="CleanFormalBuilds.Automation.cs" />
     <Compile Include="CodeSurgery.Automation.cs" />
     <Compile Include="CookCommand.Automation.cs" />

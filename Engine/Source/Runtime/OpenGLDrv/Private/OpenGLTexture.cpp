@@ -531,6 +531,8 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 					}
 				}
 			}
+
+			BulkData->Discard();
 		}
 	}
 	else
@@ -1558,6 +1560,8 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 			uint32 SysMemSlicePitch =  FMath::Max<uint32>(1,SizeY >> MipIndex) * SysMemPitch;
 			MipOffset               += SizeZ * SysMemSlicePitch;
 		}
+
+		Info.BulkData->Discard();
 	}
 	
 	// Determine the attachment point for the texture.	
@@ -1668,6 +1672,8 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 			uint32 SysMemSlicePitch =  FMath::Max<uint32>(1,SizeY >> MipIndex) * SysMemPitch;
 			MipOffset               += FMath::Max<uint32>(1,SizeZ >> MipIndex) * SysMemSlicePitch;
 		}
+
+		CreateInfo.BulkData->Discard();
 	}
 	
 	// Determine the attachment point for the texture.	

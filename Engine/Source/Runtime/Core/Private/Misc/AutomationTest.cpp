@@ -10,21 +10,21 @@
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/App.h"
 #include "Modules/ModuleManager.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationTest, Warning, All);
 
 void FAutomationTestFramework::FAutomationTestFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
-	if (FAutomationTestFramework::Get().CachedContext)
-	{
-		FAutomationTestFramework::Get().CachedContext->Serialize(V, Verbosity, Category);
-	}
-	//ignore 
+	const int32 STACK_OFFSET = 7;
+	// TODO would be nice to search for the first stack frame that isn't in outputdevice or other logging files, would be more robust.
+
 	if (!IsRunningCommandlet() && (Verbosity == ELogVerbosity::SetColor))
 	{
 		return;
 	}
+
 	// Ensure there's a valid unit test associated with the context
 	if ( CurTest )
 	{
@@ -34,19 +34,24 @@ void FAutomationTestFramework::FAutomationTestFeedbackContext::Serialize( const 
 			// If warnings should be treated as errors, log the warnings as such in the current unit test
 			if ( TreatWarningsAsErrors )
 			{
-				CurTest->AddError(FString(V), 2);
+				CurTest->AddError(FString(V), STACK_OFFSET);
 			}
 			else
 			{
-				CurTest->AddWarning( FString( V ) );
+				CurTest->AddWarning(FString(V), STACK_OFFSET);
 			}
 		}
 		// Errors
 		else if ( Verbosity == ELogVerbosity::Error )
 		{
-			CurTest->AddError(FString(V), 2);
+			CurTest->AddError(FString(V), STACK_OFFSET);
 		}
-		// Log items
+		// Display
+		if ( Verbosity == ELogVerbosity::Display )
+		{
+			CurTest->AddInfo(FString(V), STACK_OFFSET);
+		}
+		// Log...etc
 		else
 		{
 			// IMPORTANT NOTE: This code will never be called in a build with NO_LOGGING defined, which means pretty much
@@ -63,10 +68,10 @@ void FAutomationTestFramework::FAutomationTestFeedbackContext::Serialize( const 
 
 				CurTest->AddAnalyticsItem(LogString);
 			}
-			else
-			{
-				CurTest->AddLogItem(LogString);
-			}
+			//else
+			//{
+			//	CurTest->AddInfo(LogString, STACK_OFFSET);
+			//}
 		}
 	}
 }
@@ -150,13 +155,16 @@ bool FAutomationTestFramework::RunSmokeTests()
 
 		if ( TestInfo.Num() > 0 )
 		{
-			double SmokeTestStartTime = FPlatformTime::Seconds();
+			const double SmokeTestStartTime = FPlatformTime::Seconds();
 
 			// Output the results of running the automation tests
 			TMap<FString, FAutomationTestExecutionInfo> OutExecutionInfoMap;
 
 			// Run each valid test
 			FScopedSlowTask SlowTask(TestInfo.Num());
+
+			// We disable capturing the stack when running smoke tests, it adds too much overhead to do it at startup.
+			FAutomationTestFramework::Get().SetCaptureStack(false);
 
 			for ( int TestIndex = 0; TestIndex < TestInfo.Num(); ++TestIndex )
 			{
@@ -165,7 +173,7 @@ bool FAutomationTestFramework::RunSmokeTests()
 				{
 					FString TestCommand = TestInfo[TestIndex].GetTestName();
 					FAutomationTestExecutionInfo& CurExecutionInfo = OutExecutionInfoMap.Add( TestCommand, FAutomationTestExecutionInfo() );
-
+					
 					int32 RoleIndex = 0;  //always default to "local" role index.  Only used for multi-participant tests
 					StartTestByName( TestCommand, RoleIndex );
 					const bool CurTestSuccessful = StopTest(CurExecutionInfo);
@@ -174,8 +182,10 @@ bool FAutomationTestFramework::RunSmokeTests()
 				}
 			}
 
-			double EndTime = FPlatformTime::Seconds();
-			double TimeForTest = static_cast<float>(EndTime - SmokeTestStartTime);
+			FAutomationTestFramework::Get().SetCaptureStack(true);
+
+			const double EndTime = FPlatformTime::Seconds();
+			const double TimeForTest = static_cast<float>(EndTime - SmokeTestStartTime);
 			if (TimeForTest > 2.0f)
 			{
 				//force a failure if a smoke test takes too long
@@ -500,9 +510,9 @@ void FAutomationTestFramework::PrepForAutomationTests()
 
 	// Cache the contents of GWarn, as unit testing is going to forcibly replace GWarn with a specialized feedback context
 	// designed for unit testing
-	CachedContext = GWarn;
 	AutomationTestFeedbackContext.TreatWarningsAsErrors = GWarn->TreatWarningsAsErrors;
-	GWarn = &AutomationTestFeedbackContext;
+	//GWarn = &AutomationTestFeedbackContext;
+	GLog->AddOutputDevice(&AutomationTestFeedbackContext);
 
 	// Mark that unit testing has begun
 	GIsAutomationTesting = true;
@@ -515,8 +525,8 @@ void FAutomationTestFramework::ConcludeAutomationTests()
 	// Mark that unit testing is over
 	GIsAutomationTesting = false;
 
-	GWarn = CachedContext;
-	CachedContext = NULL;
+	//GWarn = CachedContext;
+	GLog->RemoveOutputDevice(&AutomationTestFeedbackContext);
 
 	// Fire off callback signifying that unit testing has concluded.
 	PostTestingEvent.Broadcast();
@@ -539,35 +549,21 @@ void FAutomationTestFramework::DumpAutomationTestExecutionInfo( const TMap<FStri
 
 		UE_LOG(LogAutomationTest, Log, TEXT("%s: %s"), *CurTestName, CurExecutionInfo.bSuccessful ? *SuccessMessage : *FailMessage);
 
-		if ( CurExecutionInfo.Errors.Num() > 0 )
+		for ( const FAutomationEvent& Event : CurExecutionInfo.GetEvents() )
 		{
-			SET_WARN_COLOR(COLOR_RED);
-			CLEAR_WARN_COLOR();
-			for ( TArray<FAutomationEvent>::TConstIterator ErrorIter( CurExecutionInfo.Errors ); ErrorIter; ++ErrorIter )
+			switch ( Event.Type )
 			{
-				UE_LOG(LogAutomationTest, Error, TEXT("%s"), *(*ErrorIter).Message);
+				case EAutomationEventType::Info:
+					UE_LOG(LogAutomationTest, Display, TEXT("%s"), *Event.Message);
+					break;
+				case EAutomationEventType::Warning:
+					UE_LOG(LogAutomationTest, Warning, TEXT("%s"), *Event.Message);
+					break;
+				case EAutomationEventType::Error:
+					UE_LOG(LogAutomationTest, Error, TEXT("%s"), *Event.Message);
+					break;
 			}
 		}
-
-		if ( CurExecutionInfo.Warnings.Num() > 0 )
-		{
-			SET_WARN_COLOR(COLOR_YELLOW);
-			CLEAR_WARN_COLOR();
-			for ( TArray<FString>::TConstIterator WarningIter( CurExecutionInfo.Warnings ); WarningIter; ++WarningIter )
-			{
-				UE_LOG(LogAutomationTest, Warning, TEXT("%s"), **WarningIter );
-			}
-		}
-
-		if ( CurExecutionInfo.LogItems.Num() > 0 )
-		{
-			//InContext->Logf( *FString::Printf( TEXT("%s"), *NSLOCTEXT("UnrealEd", "AutomationTest_LogItems", "Log Items").ToString() ) );
-			for ( TArray<FString>::TConstIterator LogItemIter( CurExecutionInfo.LogItems ); LogItemIter; ++LogItemIter )
-			{
-				UE_LOG(LogAutomationTest, Log, TEXT("%s"), **LogItemIter );
-			}
-		}
-		//InContext->Logf( TEXT("") );
 	}
 }
 
@@ -662,9 +658,9 @@ void FAutomationTestFramework::SetTreatWarningsAsErrors(TOptional<bool> bTreatWa
 	AutomationTestFeedbackContext.TreatWarningsAsErrors = bTreatWarningsAsErrors.IsSet() ? bTreatWarningsAsErrors.GetValue() : GWarn->TreatWarningsAsErrors;
 }
 
-void FAutomationTestFramework::NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar)
+void FAutomationTestFramework::NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar, double MaxLocalDifference, double GlobalDifference, FString ErrorMessage)
 {
-	OnScreenshotCompared.Broadcast(bWasNew, bWasSimilar);
+	OnScreenshotCompared.Broadcast(bWasNew, bWasSimilar, MaxLocalDifference, GlobalDifference, ErrorMessage);
 }
 
 void FAutomationTestFramework::NotifyScreenshotTakenAndCompared()
@@ -673,20 +669,20 @@ void FAutomationTestFramework::NotifyScreenshotTakenAndCompared()
 }
 
 FAutomationTestFramework::FAutomationTestFramework()
-:	CachedContext( NULL )
-,	RequestedTestFilter(EAutomationTestFlags::SmokeFilter)
-,	StartTime(0.0f)
-,	bTestSuccessful(false)
-,	CurrentTest(NULL)
-,	bDeveloperDirectoryIncluded(false)
-,	bScreenshotsEnabled(true)
-,	NetworkRoleIndex(0)
-,	bForceSmokeTests(false)
-{ }
+	: RequestedTestFilter(EAutomationTestFlags::SmokeFilter)
+	, StartTime(0.0f)
+	, bTestSuccessful(false)
+	, CurrentTest(nullptr)
+	, bDeveloperDirectoryIncluded(false)
+	, bScreenshotsEnabled(true)
+	, NetworkRoleIndex(0)
+	, bForceSmokeTests(false)
+	, bCaptureStack(true)
+{
+}
 
 FAutomationTestFramework::~FAutomationTestFramework()
 {
-	CachedContext = NULL;
 	AutomationTestClassNameToInstanceMap.Empty();
 }
 
@@ -704,14 +700,91 @@ FString FAutomationEvent::ToString() const
 
 	if ( !Context.IsEmpty() )
 	{
+		ComplexString += TEXT("[");
 		ComplexString += Context;
-		ComplexString += TEXT(": ");
+		ComplexString += TEXT("] ");
 	}
 
 	ComplexString += Message;
 
 	return ComplexString;
 }
+
+//------------------------------------------------------------------------------
+
+void FAutomationTestExecutionInfo::Clear()
+{
+	ContextStack.Reset();
+
+	Events.Empty();
+	AnalyticsItems.Empty();
+
+	Errors = 0;
+	Warnings = 0;
+}
+
+int32 FAutomationTestExecutionInfo::RemoveAllEvents(EAutomationEventType EventType)
+{
+	return RemoveAllEvents([EventType] (const FAutomationEvent& Event) {
+		return Event.Type == EventType;
+	});
+}
+
+int32 FAutomationTestExecutionInfo::RemoveAllEvents(TFunctionRef<bool(FAutomationEvent&)> FilterPredicate)
+{
+	int32 TotalRemoved = Events.RemoveAll([&](FAutomationEvent& Event) {
+		if ( FilterPredicate(Event) )
+		{
+			switch ( Event.Type )
+			{
+			case EAutomationEventType::Warning:
+				Warnings--;
+				break;
+			case EAutomationEventType::Error:
+				Errors--;
+				break;
+			}
+
+			return true;
+		}
+		return false;
+	});
+
+	return TotalRemoved;
+}
+
+void FAutomationTestExecutionInfo::AddEvent(const FAutomationEvent& Event)
+{
+	switch ( Event.Type )
+	{
+	case EAutomationEventType::Warning:
+		Warnings++;
+		break;
+	case EAutomationEventType::Error:
+		Errors++;
+		break;
+	}
+
+	const int32 Index = Events.Add(Event);
+	FAutomationEvent& NewEvent = Events[Index];
+
+	if ( NewEvent.Context.IsEmpty() )
+	{
+		NewEvent.Context = GetContext();
+	}
+}
+
+void FAutomationTestExecutionInfo::AddWarning(const FString& WarningMessage)
+{
+	AddEvent(FAutomationEvent(EAutomationEventType::Warning, WarningMessage));
+}
+
+void FAutomationTestExecutionInfo::AddError(const FString& ErrorMessage)
+{
+	AddEvent(FAutomationEvent(EAutomationEventType::Error, ErrorMessage));
+}
+
+//------------------------------------------------------------------------------
 
 void FAutomationTestBase::ClearExecutionInfo()
 {
@@ -722,9 +795,15 @@ void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 {
 	if( !bSuppressLogs )
 	{
-		TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(StackOffset + 1, 1);
-
-		ExecutionInfo.Errors.Add(FAutomationEvent(InError, ExecutionInfo.Context, Stack[0].Filename, Stack[0].LineNumber));
+		if ( FAutomationTestFramework::Get().GetCaptureStack() )
+		{
+			TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(StackOffset + 1, 1);
+			ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, InError, ExecutionInfo.GetContext(), Stack[0].Filename, Stack[0].LineNumber));
+		}
+		else
+		{
+			ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, InError, ExecutionInfo.GetContext()));
+		}
 	}
 }
 
@@ -732,23 +811,47 @@ void FAutomationTestBase::AddError(const FString& InError, const FString& InFile
 {
 	if ( !bSuppressLogs )
 	{
-		ExecutionInfo.Errors.Add(FAutomationEvent(InError, ExecutionInfo.Context, InFilename, InLineNumber));
+		ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, InError, ExecutionInfo.GetContext(), InFilename, InLineNumber));
 	}
 }
 
-void FAutomationTestBase::AddWarning( const FString& InWarning )
+void FAutomationTestBase::AddWarning(const FString& InWarning, const FString& InFilename, int32 InLineNumber)
 {
 	if ( !bSuppressLogs )
 	{
-		ExecutionInfo.Warnings.Add(InWarning);
+		ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Warning, InWarning, ExecutionInfo.GetContext(), InFilename, InLineNumber));
 	}
 }
 
-void FAutomationTestBase::AddLogItem( const FString& InLogItem )
+void FAutomationTestBase::AddWarning( const FString& InWarning, int32 StackOffset )
 {
 	if ( !bSuppressLogs )
 	{
-		ExecutionInfo.LogItems.Add(InLogItem);
+		if ( FAutomationTestFramework::Get().GetCaptureStack() )
+		{
+			TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(StackOffset + 1, 1);
+			ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Warning, InWarning, ExecutionInfo.GetContext(), Stack[0].Filename, Stack[0].LineNumber));
+		}
+		else
+		{
+			ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Warning, InWarning, ExecutionInfo.GetContext()));
+		}
+	}
+}
+
+void FAutomationTestBase::AddInfo( const FString& InLogItem, int32 StackOffset )
+{
+	if ( !bSuppressLogs )
+	{
+		if ( FAutomationTestFramework::Get().GetCaptureStack() )
+		{
+			TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(StackOffset + 1, 1);
+			ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Info, InLogItem, ExecutionInfo.GetContext(), Stack[0].Filename, Stack[0].LineNumber));
+		}
+		else
+		{
+			ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Info, InLogItem, ExecutionInfo.GetContext()));
+		}
 	}
 }
 
@@ -759,7 +862,7 @@ void FAutomationTestBase::AddAnalyticsItem(const FString& InAnalyticsItem)
 
 bool FAutomationTestBase::HasAnyErrors() const
 {
-	return ExecutionInfo.Errors.Num() > 0;
+	return ExecutionInfo.GetErrorTotal() > 0;
 }
 
 void FAutomationTestBase::SetSuccessState( bool bSuccessful )
@@ -806,5 +909,91 @@ void FAutomationTestBase::GenerateTestNames(TArray<FAutomationTestInfo>& TestInf
 		);
 		
 		TestInfo.Add( NewTestInfo );
+	}
+}
+
+// --------------------------------------------------------------------------------------
+
+void FAutomationTestBase::TestEqual(const FString& What, const int32 Actual, const int32 Expected)
+{
+	if ( Actual != Expected )
+	{
+		AddError(FString::Printf(TEXT("Expected '%s' to be %d, but it was %d."), *What, Expected, Actual), 1);
+	}
+	else
+	{
+		AddInfo(FString::Printf(TEXT("Expected '%s' to be %d."), *What, Expected), 1);
+	}
+}
+
+void FAutomationTestBase::TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance)
+{
+	if ( !FMath::IsNearlyEqual(Actual, Expected, Tolerance) )
+	{
+		AddError(FString::Printf(TEXT("Expected '%s' to be %f, but it was %f within tolerance %f."), *What, Expected, Actual, Tolerance), 1);
+	}
+	else
+	{
+		AddInfo(FString::Printf(TEXT("Expected '%s' to be %f within tolerance %f."), *What, Expected, Tolerance), 1);
+	}
+}
+
+void FAutomationTestBase::TestEqual(const FString& What, const FVector Actual, const FVector Expected, float Tolerance)
+{
+	if ( !Expected.Equals(Actual, Tolerance) )
+	{
+		AddError(FString::Printf(TEXT("Expected '%s' to be %s, but it was %s within tolerance %f."), *What, *Expected.ToString(), *Actual.ToString(), Tolerance), 1);
+	}
+	else
+	{
+		AddInfo(FString::Printf(TEXT("Expected '%s' to be %s within tolerance %f."), *What, *Expected.ToString(), Tolerance), 1);
+	}
+}
+
+void FAutomationTestBase::TestEqual(const FString& What, const FColor Actual, const FColor Expected)
+{
+	if ( Expected != Actual )
+	{
+		AddError(FString::Printf(TEXT("Expected '%s' to be %s, but it was %s."), *What, *Expected.ToString(), *Actual.ToString()), 1);
+	}
+	else
+	{
+		AddInfo(FString::Printf(TEXT("Expected '%s' to be %s."), *What, *Expected.ToString()), 1);
+	}
+}
+
+void FAutomationTestBase::TestFalse(const FString& What, bool Value)
+{
+	if ( Value )
+	{
+		AddError(FString::Printf(TEXT("Expected '%s' to be false."), *What), 1);
+	}
+	else
+	{
+		AddInfo(FString::Printf(TEXT("Expected '%s' to be false."), *What), 1);
+	}
+}
+
+void FAutomationTestBase::TestTrue(const FString& What, bool Value)
+{
+	if ( !Value )
+	{
+		AddError(FString::Printf(TEXT("Expected '%s' to be true."), *What), 1);
+	}
+	else
+	{
+		AddInfo(FString::Printf(TEXT("Expected '%s' to be true."), *What), 1);
+	}
+}
+
+void FAutomationTestBase::TestNull(const FString& What, void* Pointer)
+{
+	if ( Pointer != nullptr )
+	{
+		AddError(FString::Printf(TEXT("Expected '%s' to be null."), *What), 1);
+	}
+	else
+	{
+		AddInfo(FString::Printf(TEXT("Expected '%s' to be null."), *What), 1);
 	}
 }

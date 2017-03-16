@@ -3,11 +3,12 @@
 #include "Commandlets/PopulateDialogueWaveFromCharacterSheetCommandlet.h"
 #include "Misc/FileHelper.h"
 #include "Modules/ModuleManager.h"
-#include "Commandlets/GatherTextCommandletBase.h"
 #include "AssetData.h"
 #include "Sound/SoundWave.h"
 #include "Sound/DialogueWave.h"
 #include "AssetRegistryModule.h"
+#include "LocalizedAssetUtil.h"
+#include "LocalizationSourceControlUtil.h"
 #include "Serialization/Csv/CsvParser.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPopulateDialogueWaveFromCharacterSheetCommandlet, Log, All);
@@ -57,11 +58,11 @@ int32 UPopulateDialogueWaveFromCharacterSheetCommandlet::Main(const FString& Par
 
 	UE_LOG(LogPopulateDialogueWaveFromCharacterSheetCommandlet, Log, TEXT("Using dialog text file (%s)."), *DialogTextFileName);
 
-	TSharedPtr<FGatherTextSCC> SourceControlInfo;
+	TSharedPtr<FLocalizationSCC> SourceControlInfo;
 	const bool bEnableSourceControl = Switches.Contains(TEXT("EnableSCC"));
 	if (bEnableSourceControl)
 	{
-		SourceControlInfo = MakeShareable(new FGatherTextSCC());
+		SourceControlInfo = MakeShareable(new FLocalizationSCC());
 
 		FText SCCErrorStr;
 		if (!SourceControlInfo->IsReady(SCCErrorStr))

@@ -881,10 +881,7 @@ void UNavigationSystem::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 	// don't reference NavAreaClasses in editor (unless PIE is active)
 	if (This->OperationMode != FNavigationSystemRunMode::EditorMode)
 	{
-		for (const UClass* NavAreaClass : This->NavAreaClasses)
-		{
-			Collector.AddReferencedObject(NavAreaClass, InThis);
-		}
+		Collector.AddReferencedObjects(This->NavAreaClasses, InThis);
 	}
 }
 

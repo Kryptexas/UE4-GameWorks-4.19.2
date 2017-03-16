@@ -24,6 +24,8 @@
 #include "Misc/Guid.h"
 #include "Math/Vector.h"
 #include "Math/Color.h"
+#include "PlatformProcess.h"
+#include "Misc/AutomationEvent.h"
 
 /** Flags for specifying automation test requirements/behavior */
 namespace EAutomationTestFlags
@@ -82,41 +84,16 @@ namespace EAutomationTestFlags
 	};
 };
 
-
-struct CORE_API FAutomationEvent
-{
-	FString Message;
-	FString Context;
-	FString Filename;
-	int32 LineNumber;
-
-	FAutomationEvent(FString InMessage)
-		: Message(InMessage)
-		, Context()
-		, Filename()
-		, LineNumber(-1)
-	{
-	}
-
-	FAutomationEvent(FString InMessage, FString InContext, FString InFilename, int32 InLineNumber)
-		: Message(InMessage)
-		, Context(InContext)
-		, Filename(InFilename)
-		, LineNumber(InLineNumber)
-	{
-	}
-
-	FString ToString() const;
-};
-
 /** Simple class to store the results of the execution of a automation test */
-class FAutomationTestExecutionInfo
+class CORE_API FAutomationTestExecutionInfo
 {
 public:
 	/** Constructor */
 	FAutomationTestExecutionInfo() 
 		: bSuccessful( false )
 		, Duration(0.0f)
+		, Errors(0)
+		, Warnings(0)
 	{}
 
 	/** Destructor */
@@ -126,39 +103,61 @@ public:
 	}
 
 	/** Helper method to clear out the results from a previous execution */
-	void Clear()
-	{
-		Context.Reset();
+	void Clear();
 
-		Errors.Empty();
-		Warnings.Empty();
-		LogItems.Empty();
-		AnalyticsItems.Empty();
+	int32 RemoveAllEvents(EAutomationEventType EventType);
+
+	int32 RemoveAllEvents(TFunctionRef<bool(FAutomationEvent&)> FilterPredicate);
+
+	/** Any errors that occurred during execution */
+	const TArray<FAutomationEvent>& GetEvents() const { return Events; }
+
+	void AddEvent(const FAutomationEvent& Event);
+
+	void AddWarning(const FString& WarningMessage);
+	void AddError(const FString& ErrorMessage);
+
+	int32 GetWarningTotal() const { return Warnings; }
+	int32 GetErrorTotal() const { return Errors; }
+
+	const FString& GetContext() const
+	{
+		static FString EmptyContext;
+		return ContextStack.Num() ? ContextStack.Top() : EmptyContext;
 	}
 
-	/**
-	 * Allows tests to set the current logging context set on the events, like if we're currently
-	 * importing a specific file, you might set the file as the context.
-	 */
-	FString Context;
+	void PushContext(const FString& Context)
+	{
+		ContextStack.Push(Context);
+	}
+
+	void PopContext()
+	{
+		if ( ContextStack.Num() > 0 )
+		{
+			ContextStack.Pop();
+		}
+	}
+
+public:
 
 	/** Whether the automation test completed successfully or not */
 	bool bSuccessful;
-	
-	/** Any errors that occurred during execution */
-	TArray<FAutomationEvent> Errors;
-	
-	/** Any warnings that occurred during execution */
-	TArray<FString> Warnings;
-	
-	/** Any log items that occurred during execution */
-	TArray<FString> LogItems;
 	
 	/** Any analytics items that occurred during execution */
 	TArray<FString> AnalyticsItems;
 
 	/** Time to complete the task */
 	float Duration;
+
+private:
+	/** Any errors that occurred during execution */
+	TArray<FAutomationEvent> Events;
+
+	int32 Errors;
+	int32 Warnings;
+
+	TArray<FString> ContextStack;
 };
 
 /** Simple class to store the automation test info */
@@ -570,7 +569,7 @@ struct FAutomationScreenshotData
  */
 DECLARE_DELEGATE_TwoParams(FOnTestScreenshotCaptured, const TArray<FColor>&, const FAutomationScreenshotData&);
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTestScreenshotComparisonComplete, bool /*bWasNew*/, bool /*bWasSimilar*/);
+DECLARE_MULTICAST_DELEGATE_FiveParams(FOnTestScreenshotComparisonComplete, bool /*bWasNew*/, bool /*bWasSimilar*/, double /*MaxLocalDifference*/, double /*GlobalDifference*/, FString /*ErrorMessage*/);
 
 /** Class representing the main framework for running automation tests */
 class CORE_API FAutomationTestFramework
@@ -742,6 +741,16 @@ public:
 		bForceSmokeTests = bInForceSmokeTests;
 	}
 
+	bool GetCaptureStack() const
+	{
+		return bCaptureStack;
+	}
+
+	void SetCaptureStack(bool bCapture)
+	{
+		bCaptureStack = bCapture;
+	}
+
 	/**
 	 * Adds a analytics string to the current test to be parsed later.  Must be called only when an automation test is in progress
 	 *
@@ -760,7 +769,7 @@ public:
 	bool GetTreatWarningsAsErrors() const;
 	void SetTreatWarningsAsErrors(TOptional<bool> bTreatWarningsAsErrors);
 
-	void NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar);
+	void NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar, double MaxLocalDifference, double GlobalDifference, FString ErrorMessage);
 
 	void NotifyScreenshotTakenAndCompared();
 
@@ -848,9 +857,6 @@ private:
 	FAutomationTestFramework( const FAutomationTestFramework& );
 	FAutomationTestFramework& operator=( const FAutomationTestFramework& );
 
-	/** Cached feedback context, contains the contents of GWarn at the time of automation testing, restored to GWarn when automation testing is complete */
-	FFeedbackContext* CachedContext;
-
 	/** Specialized feedback context used for automation testing */
 	FAutomationTestFeedbackContext AutomationTestFeedbackContext;
 
@@ -892,6 +898,8 @@ private:
 
 	/** Forces running smoke tests */
 	bool bForceSmokeTests;
+
+	bool bCaptureStack;
 };
 
 
@@ -954,18 +962,33 @@ public:
 	virtual void AddError(const FString& InError, const FString& InFilename, int32 InLineNumber);
 
 	/**
+	 * Adds an warning message to this test
+	 *
+	 * @param	InWarning	Warning message to add to this test
+	 * @param	InFilename	The filename the error originated in
+	 * @param	InLineNumber	The line number in the file this error originated in
+	 */
+	virtual void AddWarning(const FString& InWarning, const FString& InFilename, int32 InLineNumber);
+
+	/**
 	 * Adds a warning to this test
 	 *
 	 * @param	InWarning	Warning message to add to this test
 	 */
-	virtual void AddWarning( const FString& InWarning );
+	virtual void AddWarning( const FString& InWarning, int32 StackOffset = 0);
+
+	DEPRECATED(4.16, "Use AddInfo")
+	FORCEINLINE void AddLogItem(const FString& InLogItem)
+	{
+		AddInfo(InLogItem, 0);
+	}
 
 	/**
 	 * Adds a log item to this test
 	 *
 	 * @param	InLogItem	Log item to add to this test
 	 */
-	virtual void AddLogItem( const FString& InLogItem );
+	virtual void AddInfo( const FString& InLogItem, int32 StackOffset = 0);
 
 	/**
 	 * Adds a analytics string to parse later
@@ -1062,39 +1085,22 @@ public:
 	/** Return an exec command to open the test associated with this parameter. */
 	virtual FString GetTestOpenCommand(const FString& Parameter) const { return TEXT(""); }
 
+	void PushContext(const FString& Context)
+	{
+		ExecutionInfo.PushContext(Context);
+	}
+
+	void PopContext()
+	{
+		ExecutionInfo.PopContext();
+	}
+
 public:
 
-	void TestEqual(const FString& What, const int32 Actual, const int32 Expected)
-	{
-		if ( Actual != Expected )
-		{
-			AddError(FString::Printf(TEXT("Expected '%s' to be %d, but it was %d."), *What, Expected, Actual), 1);
-		}
-	}
-
-	void TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance = 1.e-4)
-	{
-		if ( !FMath::IsNearlyEqual(Actual, Expected, Tolerance) )
-		{
-			AddError(FString::Printf(TEXT("Expected '%s' to be %f, but it was %f within tolerance %f."), *What, Expected, Actual, Tolerance), 1);
-		}
-	}
-
-	void TestEqual(const FString& What, const FVector Actual, const FVector Expected, float Tolerance = 1.e-4)
-	{
-		if ( !Expected.Equals(Actual, Tolerance) )
-		{
-			AddError(FString::Printf(TEXT("Expected '%s' to be %s, but it was %s within tolerance %f."), *What, *Expected.ToString(), *Actual.ToString(), Tolerance), 1);
-		}
-	}
-
-	void TestEqual(const FString& What, const FColor Actual, const FColor Expected)
-	{
-		if ( Expected != Actual )
-		{
-			AddError(FString::Printf(TEXT("Expected '%s' to be %s, but it was %s."), *What, *Expected.ToString(), *Actual.ToString()), 1);
-		}
-	}
+	void TestEqual(const FString& What, const int32 Actual, const int32 Expected);
+	void TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance = KINDA_SMALL_NUMBER);
+	void TestEqual(const FString& What, const FVector Actual, const FVector Expected, float Tolerance = KINDA_SMALL_NUMBER);
+	void TestEqual(const FString& What, const FColor Actual, const FColor Expected);
 
 	/**
 	 * Logs an error if the two values are not equal.
@@ -1146,13 +1152,7 @@ public:
 	 *
 	 * @see TestFalse
 	 */
-	void TestFalse(const FString& Description, bool Value)
-	{
-		if (Value)
-		{
-			AddError(FString::Printf(TEXT("%s: The value is not false."), *Description), 1);
-		}
-	}
+	void TestFalse(const FString& What, bool Value);
 
 	/**
 	 * Logs an error if the given shared pointer is valid.
@@ -1195,11 +1195,15 @@ public:
 	 *
 	 * @see TestNull
 	 */
-	template<typename ValueType> void TestNotNull(const FString& Description, ValueType* Pointer)
+	template<typename ValueType> void TestNotNull(const FString& What, ValueType* Pointer)
 	{
-		if (Pointer == NULL)
+		if (Pointer == nullptr)
 		{
-			AddError(FString::Printf(TEXT("%s: The pointer is NULL."), *Description), 1);
+			AddError(FString::Printf(TEXT("Expected '%s' to be not null."), *What), 1);
+		}
+		else
+		{
+			AddInfo(FString::Printf(TEXT("Expected '%s' to be not null."), *What), 1);
 		}
 	}
 
@@ -1228,13 +1232,7 @@ public:
 	 *
 	 * @see TestNotNull
 	 */
-	template<typename ValueType> void TestNull(const FString& Description, ValueType* Pointer)
-	{
-		if (Pointer != NULL)
-		{
-			AddError(FString::Printf(TEXT("%s: The pointer is not NULL."), *Description), 1);
-		}
-	}
+	void TestNull(const FString& What, void* Pointer);
 
 	/**
 	 * Logs an error if the two values are not the same object in memory.
@@ -1261,13 +1259,7 @@ public:
 	 *
 	 * @see TestFalse
 	 */
-	void TestTrue(const FString& Description, bool Value)
-	{
-		if (!Value)
-		{
-			AddError(FString::Printf(TEXT("%s: The value is not true."), *Description), 1);
-		}
-	}
+	void TestTrue(const FString& What, bool Value);
 
 	/** Macro version of above, uses the passed in expression as the description as well */
 	#define TestTrueExpr(Expression) TestTrue(TEXT(#Expression), Expression)
@@ -1309,6 +1301,8 @@ protected:
 	 * Returns the beautified test name
 	 */
 	virtual FString GetBeautifiedTestName() const = 0;
+
+protected:
 
 	//Flag to indicate if this is a complex task
 	bool bComplexTask;

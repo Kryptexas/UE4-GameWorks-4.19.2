@@ -1217,11 +1217,13 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 		const IBlueprintNativeCodeGenCore* NativeCodeGenCore = IBlueprintNativeCodeGenCore::Get();
 		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets")))
 		{
+			ensure(TargetPlatform);
+			const FCompilerNativizationOptions& NativizationOptions = NativeCodeGenCore->GetNativizationOptionsForPlatform(TargetPlatform ? TargetPlatform->PlatformName() : FString{});
 			TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
 			UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GeneratedClass->GetSuperClass(), ParentBPClassStack);
 			for (const UBlueprintGeneratedClass *ParentBPClass : ParentBPClassStack)
 			{
-				if (NativeCodeGenCore->IsTargetedForReplacement(ParentBPClass) == EReplacementResult::ReplaceCompletely)
+				if (NativeCodeGenCore->IsTargetedForReplacement(ParentBPClass, NativizationOptions) == EReplacementResult::ReplaceCompletely)
 				{
 					if (UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(*GeneratedClass))
 					{
@@ -1251,7 +1253,7 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 									}
 									else
 									{
-										bool bResult = (NativeCodeGenCore->IsTargetedForReplacement(RecordIt->ComponentKey.GetComponentOwner()) == EReplacementResult::ReplaceCompletely);
+										bool bResult = (NativeCodeGenCore->IsTargetedForReplacement(RecordIt->ComponentKey.GetComponentOwner(), NativizationOptions) == EReplacementResult::ReplaceCompletely);
 										bIsOwnerClassTargetedForReplacement = ParentBPClassNativizationResultMap.Add(ComponentTemplateOwnerClass, bResult);
 									}
 

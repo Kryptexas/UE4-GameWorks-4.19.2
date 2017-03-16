@@ -13,12 +13,12 @@
 #include "Internationalization/CulturePointer.h"
 #include "Internationalization/TextLocalizationManager.h"
 #include "Internationalization/StringTableCoreFwd.h"
+#include "Internationalization/ITextData.h"
 #include "Misc/Optional.h"
 #include "Templates/UniquePtr.h"
 
 class FFormatArgumentValue;
 class FTextFormatData;
-class ITextData;
 
 class FText;
 class FTextHistory;
@@ -515,16 +515,6 @@ private:
 
 	static void SerializeText( FArchive& Ar, FText& Value );
 
-	/**
-	 * Generate an FText for a string formatted numerically.
-	 */
-	static FText CreateNumericalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData);
-
-	/**
-	 * Generate an FText for a string formatted from a date/time.
-	 */
-	static FText CreateChronologicalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData);
-
 	/** Returns the source string of the FText */
 	const FString& GetSourceString() const;
 
@@ -620,7 +610,13 @@ public:
 		DoubleValue = Value;
 	}
 
-	FFormatArgumentValue(FText Value)
+	FFormatArgumentValue(const FText& Value)
+		: Type(EFormatArgumentType::Text)
+		, TextValue(Value)
+	{
+	}
+
+	FFormatArgumentValue(FText&& Value)
 		: Type(EFormatArgumentType::Text)
 		, TextValue(MoveTemp(Value))
 	{

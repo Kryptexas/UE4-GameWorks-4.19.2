@@ -599,6 +599,8 @@ protected:
 
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
 	int32 SectionIndexPreview;
+	/** Index of the material to preview. If set to INDEX_NONE, all section will be rendered */
+	int32 MaterialIndexPreview;
 #endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

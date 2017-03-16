@@ -296,16 +296,22 @@ bool FPackageDependencyInfo::InitializeDependencyInfo( const TCHAR* InPackageNam
 		UE_LOG(LogPackageDependencyInfo, Display, TEXT("\tPackage Info not found for %s!"), InPackageName);
 		return false;
 	}
+	FPackageDependencyTrackingInfo* PkgInfo = *pPkgInfo;
+
+	if (PkgInfo->bValid == false)
+	{
+		UE_LOG(LogPackageDependencyInfo, Display, TEXT("\tPackage Info invalid for %s!"), InPackageName);
+		return false;
+	}
 
 	OutPkgInfo = *pPkgInfo;
 
-	FPackageDependencyTrackingInfo* PkgInfo = *pPkgInfo;
 	// Don't process if it was already processed
 	if (PkgInfo->bInitializedHashes)
 	{
 		return true;
 	}
-
+	
 	TSet<FPackageDependencyTrackingInfo*> PackagesToDetermineDependencies;
 	PackagesToDetermineDependencies.Add( PkgInfo );
 	TSet<FPackageDependencyTrackingInfo*> AllPackages;
@@ -338,7 +344,7 @@ bool FPackageDependencyInfo::InitializeDependencyInfo( const TCHAR* InPackageNam
 	for (FPackageDependencyTrackingInfo* DepPkgInfo : AllPackages)
 	{
 		check(DepPkgInfo->bBeingProcessed == false);
-		check(DepPkgInfo->bInitializedDependencies == true);
+		check(DepPkgInfo->bInitializedDependencies == true || DepPkgInfo->bValid == false);
 	}
 
 	for (FPackageDependencyTrackingInfo* DepPkgInfo : AllPackages)
@@ -359,7 +365,12 @@ bool FPackageDependencyInfo::InitializeDependencyInfo( const TCHAR* InPackageNam
 	for (FPackageDependencyTrackingInfo* DepPkgInfo : AllPackages)
 	{
 		check(DepPkgInfo->bBeingProcessed == false);
-		check(DepPkgInfo->bInitializedHashes == true);
+		check(DepPkgInfo->bInitializedHashes == true || DepPkgInfo->bValid == false);
+	}
+
+	if ( OutPkgInfo->bValid == false )
+	{
+		return false;
 	}
 
 	return true;
@@ -1210,6 +1221,11 @@ void FPackageDependencyInfo::RecursiveResolveDependentHash(FPackageDependencyTra
 		if ( PkgInfo->bBeingProcessed )
 		{
 			// circular reference
+			return;
+		}
+		if ( PkgInfo->bValid == false )
+		{
+			// package info is invalid so we don't care about it
 			return;
 		}
 		

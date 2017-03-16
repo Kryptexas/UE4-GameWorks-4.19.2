@@ -398,8 +398,6 @@ void SCheckBox::BuildCheckBox(TSharedRef<SWidget> InContent)
 		this->ChildSlot
 		[
 			SNew(SHorizontalBox)
-			// Make sure we aren't trying to compute the desired size when the check box is collapsed
-			.Visibility(this->Visibility)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
@@ -429,17 +427,10 @@ void SCheckBox::BuildCheckBox(TSharedRef<SWidget> InContent)
 		this->ChildSlot
 		[
 			SAssignNew(ContentContainer, SBorder)
-			// Make sure we aren't trying to compute the desired size when the check box is collapsed
-			.Visibility(this->Visibility)
-			// Bind the border background to our method that gets a slate brush for the current state of the control
 			.BorderImage(this, &SCheckBox::OnGetCheckImage)
-			// Let the user decide the padding amount
 			.Padding(this, &SCheckBox::OnGetPadding)
-			// Set the user's incoming content as the content of our border
 			.ForegroundColor(this, &SCheckBox::OnGetForegroundColor)
-			// Set the color of the border image
 			.BorderBackgroundColor(this, &SCheckBox::OnGetBorderBackgroundColor)
-			// Content alignment
 			.HAlign(HorizontalAlignment)
 			[
 				InContent

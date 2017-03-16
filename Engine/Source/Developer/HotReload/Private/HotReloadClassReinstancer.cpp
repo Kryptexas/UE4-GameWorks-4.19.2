@@ -104,7 +104,6 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 					PropertyInfo.SubobjectName = SubobjectName;
 					PropertyInfo.SerializedValueOffset = Tell();
 					PropertyInfo.SerializedValueSize = Num;
-					PropertyData.Properties.Add(SerializedProperty->GetFName(), PropertyInfo);
 				}
 				else
 				{

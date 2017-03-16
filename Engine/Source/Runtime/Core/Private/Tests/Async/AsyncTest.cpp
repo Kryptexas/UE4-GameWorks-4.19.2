@@ -89,8 +89,8 @@ bool FAsyncCompletionCallbackTest::RunTest(const FString& Parameters)
 	});
 	int Result = Future.Get();
 
-	TestEqual(TEXT("Completion callback task must return expected value"), Result, 123);
-	TestTrue(TEXT("Completion callback task must call its callback function"), Completed);
+	TestEqual(TEXT("Async Result"), Result, 123);
+	TestTrue(TEXT("Completion callack to be called"), Completed);
 
 	return true;
 }

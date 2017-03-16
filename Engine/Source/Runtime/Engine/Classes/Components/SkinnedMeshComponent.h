@@ -254,6 +254,10 @@ public:
 	UPROPERTY(transient)
 	int32 SectionIndexPreview;
 
+	/** Index of the material to preview... If set to -1, all section will be rendered */
+	UPROPERTY(transient)
+	int32 MaterialIndexPreview;
+
 #endif // WITH_EDITORONLY_DATA
 	//
 	// Physics.
@@ -564,6 +568,7 @@ public:
 	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
 	*/
 	void SetSectionPreview(int32 InSectionIndexPreview);
+	void SetMaterialPreview(int32 InMaterialIndexPreview);
 
 	/**
 	 * Function returns whether or not CPU skinning should be applied

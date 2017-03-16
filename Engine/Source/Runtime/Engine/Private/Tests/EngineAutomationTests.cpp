@@ -401,14 +401,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutomationLogAddMessage, "System.Automation.Lo
 bool FAutomationLogAddMessage::RunTest(const FString& Parameters)
 {
 	//** TEST **//
-	AddLogItem(TEXT("Test log message."));
+	AddInfo(TEXT("Test log message."));
 
 	//** VERIFY **//
-	TestEqual<FString>(TEXT("Test log message was not added to the ExecutionInfo.Log array."), ExecutionInfo.LogItems.Last(), TEXT("Test log message."));
+	TestEqual<FString>(TEXT("Test log message was not added to the ExecutionInfo.Log array."), ExecutionInfo.GetEvents().Last().Message, TEXT("Test log message."));
 	
 	//** TEARDOWN **//
 	// We have to empty this log array so that it doesn't show in the automation results window as it may cause confusion.
-	ExecutionInfo.LogItems.Empty();
+	ExecutionInfo.RemoveAllEvents(EAutomationEventType::Info);
 
 	return true;
 }
@@ -421,9 +421,9 @@ bool FAutomationLogAddWarning::RunTest(const FString& Parameters)
 	AddWarning(TEXT("Test warning message."));
 
 	//** VERIFY **//
-	FString CurrentWarningMessage = ExecutionInfo.Warnings.Last();
+	FString CurrentWarningMessage = ExecutionInfo.GetEvents().Last().Message;
 	// The warnings array is emptied so that it doesn't cause a false positive warning for this test.
-	ExecutionInfo.Warnings.Empty();
+	ExecutionInfo.RemoveAllEvents(EAutomationEventType::Warning);
 
 	TestEqual<FString>(TEXT("Test warning message was not added to the ExecutionInfo.Warning array."), CurrentWarningMessage, TEXT("Test warning message."));
 
@@ -438,11 +438,11 @@ bool FAutomationLogAddError::RunTest(const FString& Parameters)
 	AddError(TEXT("Test error message"));
 	
 	//** VERIFY **//
-	FAutomationEvent CurrentErrorMessage = ExecutionInfo.Errors.Last();
+	FString CurrentErrorMessage = ExecutionInfo.GetEvents().Last().Message;
 	// The errors array is emptied so that this doesn't cause a false positive failure for this test.
-	ExecutionInfo.Errors.Empty();
+	ExecutionInfo.RemoveAllEvents(EAutomationEventType::Error);
 
-	TestEqual<FString>(TEXT("Test error message was not added to the ExecutionInfo.Error array."), CurrentErrorMessage.Message, TEXT("Test error message"));
+	TestEqual<FString>(TEXT("Test error message was not added to the ExecutionInfo.Error array."), CurrentErrorMessage, TEXT("Test error message"));
 	
 	return true;
 }

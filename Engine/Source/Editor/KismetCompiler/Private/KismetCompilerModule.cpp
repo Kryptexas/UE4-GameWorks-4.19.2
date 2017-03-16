@@ -50,8 +50,8 @@ public:
 	virtual TArray<IBlueprintCompiler*>& GetCompilers() override { return Compilers; }
 	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const override;
 	virtual void GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FString& OutHeaderCode, FString& OutCPPCode) override;
-	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct) override;
-	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC) override;
+	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions) override;
+	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC, const FCompilerNativizationOptions& NativizationOptions) override;
 	// End implementation
 private:
 	void CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> Reinstancer, TArray<UObject*>* ObjLoaded);
@@ -185,16 +185,16 @@ void FKismet2CompilerModule::GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FS
 	Backend_CPP->GenerateCodeFromEnum(UDEnum, OutHeaderCode, OutCPPCode);
 }
 
-FString FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct)
+FString FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	return Backend_CPP->GenerateCodeFromStruct(UDStruct);
+	return Backend_CPP->GenerateCodeFromStruct(UDStruct, NativizationOptions);
 }
 
-FString FKismet2CompilerModule::GenerateCppWrapper(UBlueprintGeneratedClass* BPGC)
+FString FKismet2CompilerModule::GenerateCppWrapper(UBlueprintGeneratedClass* BPGC, const FCompilerNativizationOptions& NativizationOptions)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	return Backend_CPP->GenerateWrapperForClass(BPGC);
+	return Backend_CPP->GenerateWrapperForClass(BPGC, NativizationOptions);
 }
 
 extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;

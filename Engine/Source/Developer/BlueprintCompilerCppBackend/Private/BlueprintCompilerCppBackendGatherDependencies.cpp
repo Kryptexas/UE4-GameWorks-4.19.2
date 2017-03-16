@@ -19,6 +19,7 @@
 #include "K2Node.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "K2Node_EnumLiteral.h"
+#include "KismetCompiler.h" // For LogK2Compiler
 
 struct FGatherConvertedClassDependenciesHelperBase : public FReferenceCollector
 {
@@ -283,7 +284,17 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 				{
 					ObjAsField = ObjAsField->GetOwnerClass();
 				}
-				IncludeTheHeaderInBody(ObjAsField);
+
+				UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ObjAsField);
+				if (!BPGC || Dependencies.WillClassBeConverted(BPGC))
+				{
+					IncludeTheHeaderInBody(ObjAsField);
+				}
+				else if (BPGC)
+				{
+					IncludeTheHeaderInBody(Dependencies.GetFirstNativeOrConvertedClass(BPGC));
+					// Wrappers for unconverted BP will be included only when thay are directly used. See usage of FEmitterLocalContext::MarkUnconvertedClassAsNecessary.
+				}
 			}
 		}
 
@@ -313,12 +324,38 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 		{
 			Object = Object->GetClass();
 		}
-
+		else
+		{
+			UObject* OuterObj = Object->GetOuter();
+			if (OuterObj && !OuterObj->IsA<UPackage>())
+			{
+				FindReferencesForNewObject(OuterObj);
+			}
+		}
 		FindReferencesForNewObject(Object);
 	}
 };
 
-FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* InStruct) : OriginalStruct(InStruct)
+bool FGatherConvertedClassDependencies::IsFieldFromExcludedPackage(const UField* Field, const TSet<FName>& InExcludedModules)
+{
+	if (Field && (0 != InExcludedModules.Num()))
+	{
+		const UPackage* Package = Field->GetOutermost();
+		if (Package->HasAnyPackageFlags(PKG_CompiledIn))
+		{
+			const FName ShortPkgName = *FPackageName::GetShortName(Package);
+			if (InExcludedModules.Contains(ShortPkgName))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* InStruct, const FCompilerNativizationOptions& InNativizationOptions)
+	: OriginalStruct(InStruct)
+	, NativizationOptions(InNativizationOptions)
 {
 	check(OriginalStruct);
 
@@ -352,6 +389,39 @@ FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* In
 		RemoveFieldsFromDataOnlyBP(DeclareInHeader);
 		RemoveFieldsFromDataOnlyBP(IncludeInBody);
 	}
+
+	{
+		TSet<FName> ExcludedModules(NativizationOptions.ExcludedModules);
+		auto RemoveFieldsDependentOnExcludedModules = [&](TSet<UField*>& FieldSet)
+		{
+			for (auto Iter = FieldSet.CreateIterator(); Iter; ++Iter)
+			{
+				if (IsFieldFromExcludedPackage(*Iter, ExcludedModules))
+				{
+					UE_LOG(LogK2Compiler, Verbose, TEXT("Struct %s depends on an excluded package."), *GetPathNameSafe(InStruct));
+					Iter.RemoveCurrent();
+				}
+			}
+		};
+		RemoveFieldsDependentOnExcludedModules(IncludeInHeader);
+		RemoveFieldsDependentOnExcludedModules(DeclareInHeader);
+		RemoveFieldsDependentOnExcludedModules(IncludeInBody);
+	}
+
+	auto GatherRequiredModules = [&](const TSet<UField*>& Fields)
+	{
+		for (auto Field : Fields)
+		{
+			const UPackage* Package = Field ? Field->GetOutermost() : nullptr;
+			if (Package && Package->HasAnyPackageFlags(PKG_CompiledIn))
+			{
+				RequiredModuleNames.Add(Package);
+			}
+		}
+	};
+
+	GatherRequiredModules(IncludeInHeader);
+	GatherRequiredModules(IncludeInBody);
 }
 
 UClass* FGatherConvertedClassDependencies::GetFirstNativeOrConvertedClass(UClass* InClass, bool bExcludeBPDataOnly) const
@@ -400,7 +470,7 @@ bool FGatherConvertedClassDependencies::WillClassBeConverted(const UBlueprintGen
 
 		if (WillBeConvertedQuery.IsBound())
 		{
-			return WillBeConvertedQuery.Execute(ClassToCheck);
+			return WillBeConvertedQuery.Execute(ClassToCheck, NativizationOptions);
 		}
 		return true;
 	}
@@ -479,6 +549,10 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 			{ 
 				// HeaderReferenceFinder.FindReferences(Obj); cannot find this enum..
 				IncludeInHeader.Add(EnumProperty->GetEnum());
+			}
+			else if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
+			{
+				IncludeInHeader.Add(StructProperty->Struct);
 			}
 			else
 			{

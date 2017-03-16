@@ -161,6 +161,14 @@ static FAutoConsoleVariableRef CVarEventDrivenLoaderEnabled(
 	ECVF_Default
 );
 
+int32 GMaxReadyRequestsToStallMB = 30;
+static FAutoConsoleVariableRef CVar_MaxReadyRequestsToStallMB(
+	TEXT("s.MaxReadyRequestsToStallMB"),
+	GMaxReadyRequestsToStallMB,
+	TEXT("Controls the maximum amount memory for unhandled IO requests before we stall the pak precacher to let the CPU catch up (in megabytes).")
+);
+
+
 uint32 FAsyncLoadingThread::AsyncLoadingThreadID = 0;
 
 static void IsTimeLimitExceededPrint(double InTickStartTime, double CurrentTime, double LastTestTime, float InTimeLimit, const TCHAR* InLastTypeOfWorkPerformed = nullptr, UObject* InLastObjectWorkWasPerformedOn = nullptr)
@@ -410,11 +418,6 @@ FAsyncPackage* FAsyncLoadingThread::FindExistingPackageAndAddCompletionCallback(
 
 void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority, IAssetRegistryInterface* InAssetRegistry)
 {
-	if (!GEventDrivenLoaderEnabledInCookedBuilds)
-	{
-		return;
-	}
-
 	check(!IsInGameThread() || !IsMultithreaded());
 	if (GEventDrivenLoaderEnabled)
 	{
@@ -1550,14 +1553,14 @@ struct FPrecacheCallbackHandler
 
 	void CheckThottleIOState()
 	{
-		if (GPakCache_AcceptPrecacheRequests && UnprocessedMemUsed > 30 * 1024 * 1024)
+		if (GPakCache_AcceptPrecacheRequests && UnprocessedMemUsed > GMaxReadyRequestsToStallMB * 1024 * 1024)
 		{
-			UE_LOG(LogStreaming, Log, TEXT("Throttling off"));
+			UE_LOG(LogStreaming, Log, TEXT("Throttling off pak precacher to save memory while CPU catches up."));
 			GPakCache_AcceptPrecacheRequests = false;
 		}
-		else if (!GPakCache_AcceptPrecacheRequests && UnprocessedMemUsed <= 30 * 1024 * 1024)
+		else if (!GPakCache_AcceptPrecacheRequests && UnprocessedMemUsed <= GMaxReadyRequestsToStallMB * 1024 * 1024)
 		{
-			UE_LOG(LogStreaming, Log, TEXT("Throttling on"));
+			UE_LOG(LogStreaming, Log, TEXT("Resuming pak precacher."));
 			GPakCache_AcceptPrecacheRequests = true;
 		}
 	}
@@ -2329,8 +2332,11 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 					// this is a hack because the fake export table is missing lots
 					if (bDynamicSomethingMissingFromTheFakeExportTable)
 					{
-						check(ImportLinker->ExportMap.Num() == 2); // we assume there are two elements in the fake export table and the second one is the CDO
-						LocalExportIndex = FPackageIndex::FromExport(1);
+						check(ImportLinker->ExportMap.Num() == 1 || ImportLinker->ExportMap.Num() == 2);
+						// we assume there are two elements in the fake export table and the second one is the CDO
+						// or there is just a struct without any CDO
+						const int32 DynamicExportIndex = (ImportLinker->ExportMap.Num() == 2) ? 1 : 0;
+						LocalExportIndex = FPackageIndex::FromExport(DynamicExportIndex);
 					}
 
 					Import.bImportFailed = LocalExportIndex.IsNull();

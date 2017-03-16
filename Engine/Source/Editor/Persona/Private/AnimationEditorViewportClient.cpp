@@ -491,6 +491,34 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 		{
 			continue;
 		}
+		if ((PreviewMeshComponent->MaterialIndexPreview >= 0))
+		{
+			TArray<int32> FoundSectionIndex;
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+			{
+				if (LODModel.Sections[SectionIndex].MaterialIndex == PreviewMeshComponent->MaterialIndexPreview)
+				{
+					FoundSectionIndex.Add(SectionIndex);
+					break;
+				}
+			}
+			if (FoundSectionIndex.Num() > 0)
+			{
+				bool PreviewSectionContainBoneIndex = false;
+				for (int32 SectionIndex : FoundSectionIndex)
+				{
+					if (LODModel.Sections[SectionIndex].BoneMap.Contains(BoneIndex))
+					{
+						PreviewSectionContainBoneIndex = true;
+						break;
+					}
+				}
+				if (!PreviewSectionContainBoneIndex)
+				{
+					continue;
+				}
+			}
+		}
 
 		const FColor BoneColor = FColor::White;
 		if (BoneColor.A != 0)
@@ -841,6 +869,14 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		InfoString = LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden").ToString();
 		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
 		
+	}
+	if (PreviewMeshComponent->MaterialIndexPreview != INDEX_NONE)
+	{
+		// Notify the user if they are isolating a mesh section.
+		CurYOffset += YL + 2;
+		InfoString = FString::Printf(*LOCTEXT("MeshMaterialHiddenWarning", "Mesh Materials Hidden").ToString());
+		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+
 	}
 }
 

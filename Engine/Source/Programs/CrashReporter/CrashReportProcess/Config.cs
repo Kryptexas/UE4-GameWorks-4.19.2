@@ -363,6 +363,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public bool MonitorPerformance { get; set; }
 
 		/// <summary>
+		/// List of GameNames to blacklist. Since we take crashes from external games, we need to filter out stuff we don't want, especially high volume stuff.
+		/// </summary>
+		[XmlElement]
+		public string GameNamesToBlacklist { get; set; }
+
+		/// <summary>
 		/// Get the default config object (lazy loads it on first access)
 		/// </summary>
 		public static Config Default

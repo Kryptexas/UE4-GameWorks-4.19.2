@@ -986,6 +986,16 @@ protected:
 	uint32 VolatileLockCounter;
 };
 
+class FVulkanComputeFence : public FRHIComputeFence, public VulkanRHI::FGPUEvent
+{
+public:
+	FVulkanComputeFence(FVulkanDevice* InDevice, FName InName);
+	virtual ~FVulkanComputeFence();
+
+	void WriteCmd(VkCommandBuffer CmdBuffer);
+};
+
+
 class FVulkanVertexInputStateInfo
 {
 public:
@@ -1746,6 +1756,12 @@ template<>
 struct TVulkanResourceTraits<FRHIBlendState>
 {
 	typedef FVulkanBlendState TConcreteType;
+};
+
+template<>
+struct TVulkanResourceTraits<FRHIComputeFence>
+{
+	typedef FVulkanComputeFence TConcreteType;
 };
 
 template<typename TRHIType>

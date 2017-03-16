@@ -103,7 +103,7 @@ int32 SBackgroundBlur::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 				// extract the layout transform from the draw element
 				FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(PaintGeometry.DrawScale, PaintGeometry.DrawPosition)));
 				// The clip rect is NOT subject to the rotations specified by MakeRotatedBox.
-				FSlateRotatedClipRectType RenderClipRect = FSlateRotatedClipRectType::MakeSnappedRotatedRect(MyClippingRect, InverseLayoutTransform, AllottedGeometry.GetAccumulatedRenderTransform());
+				FSlateRotatedRect RenderClipRect = FSlateRotatedRect::MakeSnappedRotatedRect(MyClippingRect, InverseLayoutTransform, AllottedGeometry.GetAccumulatedRenderTransform());
 
 				float OffsetX = PaintGeometry.DrawPosition.X - FMath::TruncToFloat(PaintGeometry.DrawPosition.X);
 				float OffsetY = PaintGeometry.DrawPosition.Y - FMath::TruncToFloat(PaintGeometry.DrawPosition.Y);

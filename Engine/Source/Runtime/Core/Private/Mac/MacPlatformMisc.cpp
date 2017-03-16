@@ -1652,7 +1652,6 @@ bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
 
 void FMacPlatformMisc::LoadPreInitModules()
 {
-	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 	FModuleManager::Get().LoadModule(TEXT("CoreAudio"));
 }
 

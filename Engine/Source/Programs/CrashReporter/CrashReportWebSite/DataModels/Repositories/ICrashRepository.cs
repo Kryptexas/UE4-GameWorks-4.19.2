@@ -15,5 +15,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         List<SelectListItem> GetEngineModesAsListItems();
         List<SelectListItem> GetVersionsAsListItems();
         List<SelectListItem> GetEngineVersionsAsListItems();
+        void SetStatusByBuggId(int buggId, string status);
+        void SetFixedCLByBuggId(int buggId, string fixedCl);
+        void SetJiraByBuggId(int buggId, string jira);
     }
 }

@@ -65,7 +65,8 @@ struct FGeneratedCodeData
 
 	void GatherUserDefinedDependencies(UBlueprint& InBlueprint)
 	{
-		FGatherConvertedClassDependencies ClassDependencies(InBlueprint.GeneratedClass);
+		FCompilerNativizationOptions BlankOptions{};
+		FGatherConvertedClassDependencies ClassDependencies(InBlueprint.GeneratedClass, BlankOptions);
 		for (auto Iter : ClassDependencies.ConvertedClasses)
 		{
 			DependentObjects.Add(Iter);

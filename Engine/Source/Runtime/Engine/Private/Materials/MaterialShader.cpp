@@ -2162,7 +2162,7 @@ void FMaterialShaderMap::RegisterSerializedShaders()
 	{
 		if (OrderedMeshShaderMaps[VFIndex] && OrderedMeshShaderMaps[VFIndex]->IsEmpty())
 		{
-			OrderedMeshShaderMaps[VFIndex] = NULL;
+			OrderedMeshShaderMaps[VFIndex] = nullptr;
 		}
 	}
 
@@ -2173,6 +2173,22 @@ void FMaterialShaderMap::RegisterSerializedShaders()
 			MeshShaderMaps.RemoveAt(Index);
 		}
 	}
+}
+
+void FMaterialShaderMap::DiscardSerializedShaders()
+{
+	TShaderMap<FMaterialShaderType>::DiscardSerializedShaders();
+
+	for (int32 VFIndex = 0; VFIndex < OrderedMeshShaderMaps.Num(); VFIndex++)
+	{
+		OrderedMeshShaderMaps[VFIndex] = nullptr;
+	}
+
+	for (int32 Index = MeshShaderMaps.Num() - 1; Index >= 0; Index--)
+	{
+		MeshShaderMaps[Index].DiscardSerializedShaders();
+	}
+	MeshShaderMaps.Empty();
 }
 
 void FMaterialShaderMap::RemovePendingMaterial(FMaterial* Material)

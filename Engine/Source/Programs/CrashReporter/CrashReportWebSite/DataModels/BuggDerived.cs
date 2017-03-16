@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.CrashReporter.CrashReportWebSite.Properties;
+using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 
 namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 {
@@ -102,7 +103,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// Prepares Bugg for JIRA
         /// </summary>
         /// <param name="CrashesForBugg"></param>
-        public void PrepareBuggForJira(List<Crash> CrashesForBugg)
+        public void PrepareBuggForJira(List<CrashDataModel> CrashesForBugg)
         {
             var jiraConnection = JiraConnection.Get();
 
@@ -115,39 +116,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             var machineIds = new HashSet<string>();
             var firstClAffected = int.MaxValue;
 
-            foreach (var Crash in CrashesForBugg)
+            foreach (var crashDataModel in CrashesForBugg)
             {
                 // Only add machine if the number has 32 characters
-                if (Crash.ComputerName != null && Crash.ComputerName.Length == 32)
+                if (crashDataModel.ComputerName != null && crashDataModel.ComputerName.Length == 32)
                 {
-                    machineIds.Add(Crash.ComputerName);
-                    if (Crash.Description.Length > 4)
+                    machineIds.Add(crashDataModel.ComputerName);
+                    if (crashDataModel.Description.Length > 4)
                     {
-                        hashSetDescriptions.Add(Crash.Description);
+                        hashSetDescriptions.Add(crashDataModel.Description);
                     }
                 }
 
-                if (!string.IsNullOrEmpty(Crash.BuildVersion))
+                if (!string.IsNullOrEmpty(crashDataModel.BuildVersion))
                 {
-                    this.AffectedVersions.Add(Crash.BuildVersion);
+                    this.AffectedVersions.Add(crashDataModel.BuildVersion);
                 }
                 // Depot || Stream
-                if (!string.IsNullOrEmpty(Crash.Branch))
+                if (!string.IsNullOrEmpty(crashDataModel.Branch))
                 {
-                    this.BranchesFoundIn.Add(Crash.Branch);
+                    this.BranchesFoundIn.Add(crashDataModel.Branch);
                 }
 
                 var CrashBuiltFromCl = 0;
-                int.TryParse(Crash.ChangelistVersion, out CrashBuiltFromCl);
+                int.TryParse(crashDataModel.ChangelistVersion, out CrashBuiltFromCl);
                 if (CrashBuiltFromCl > 0)
                 {
                     firstClAffected = Math.Min(firstClAffected, CrashBuiltFromCl);
                 }
 
-                if (!string.IsNullOrEmpty(Crash.PlatformName))
+                if (!string.IsNullOrEmpty(crashDataModel.PlatformName))
                 {
                     // Platform = "Platform [Desc]";
-                    var platSubs = Crash.PlatformName.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                    var platSubs = crashDataModel.PlatformName.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
                     if (platSubs.Length >= 1)
                     {
                         this.AffectedPlatforms.Add(platSubs[0]);
@@ -179,7 +180,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             }
 
             var bv = this.BuildVersion;
-            this.NumberOfUniqueMachines = machineIds.Distinct().Count();// # Affected Users
             var latestClAffected = CrashesForBugg.				// CL of the latest build
                 Where(Crash => Crash.BuildVersion == bv).
                 Max(Crash => Crash.ChangelistVersion);
@@ -192,7 +192,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             this.LatestOSAffected = latestOsAffected;			// Latest Environment Affected
 
             // ToJiraSummary
-            var functionCalls = new CallStackContainer(CrashesForBugg.First()).GetFunctionCallsForJira();
+            var functionCalls = new CallStackContainer(CrashesForBugg.First().CrashType, CrashesForBugg.First().RawCallStack, CrashesForBugg.First().PlatformName).GetFunctionCallsForJira();
             if (functionCalls.Count > 0)
             {
                 this.ToJiraSummary = functionCalls[0];

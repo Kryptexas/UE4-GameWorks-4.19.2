@@ -59,6 +59,17 @@ TAutoConsoleVariable<int32> AlwaysInvalidate(
 
 #endif
 
+static int32 CacheRenderData = 1;
+static FAutoConsoleVariableRef CVarCacheRenderData(
+	TEXT("Slate.CacheRenderData"),
+	CacheRenderData,
+	TEXT("Invalidation panels will cache render data, otherwise cache only widget draw elements."));
+
+static bool ShouldCacheRenderData()
+{
+	return WITH_ENGINE && CacheRenderData != 0;
+}
+
 void SInvalidationPanel::Construct( const FArguments& InArgs )
 {
 	FSlateApplicationBase::Get().OnGlobalInvalidate().AddSP( this, &SInvalidationPanel::OnGlobalInvalidate );
@@ -76,6 +87,8 @@ void SInvalidationPanel::Construct( const FArguments& InArgs )
 	LastHitTestIndex = 0;
 
 	bCacheRelativeTransforms = InArgs._CacheRelativeTransforms;
+
+	bCacheRenderData = ShouldCacheRenderData();
 }
 
 SInvalidationPanel::~SInvalidationPanel()
@@ -105,6 +118,42 @@ bool SInvalidationPanel::IsCachingNeeded() const
 }
 #endif
 
+bool SInvalidationPanel::IsCachingNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect) const
+{
+	if (bCacheRelativeTransforms)
+	{
+		// If the container we're in has changed in either scale or the rotation matrix has changed, 
+		if ( AllottedGeometry.GetAccumulatedLayoutTransform().GetScale() != LastAllottedGeometry.GetAccumulatedLayoutTransform().GetScale() ||
+			 AllottedGeometry.GetAccumulatedRenderTransform().GetMatrix() != LastAllottedGeometry.GetAccumulatedRenderTransform().GetMatrix() )
+		{
+			return true;
+		}
+	}
+	else
+	{
+		// If the container we're in has changed in any way we need to invalidate for sure.
+		if ( AllottedGeometry.GetAccumulatedLayoutTransform() != LastAllottedGeometry.GetAccumulatedLayoutTransform() ||
+			AllottedGeometry.GetAccumulatedRenderTransform() != LastAllottedGeometry.GetAccumulatedRenderTransform() )
+		{
+			return true;
+		}
+	}
+
+	if ( AllottedGeometry.GetLocalSize() != LastAllottedGeometry.GetLocalSize() )
+	{
+		return true;
+	}
+
+	// If our clip rect changes size, we've definitely got to invalidate.
+	const FVector2D ClipRectSize = MyClippingRect.GetSize().RoundToVector();
+	if ( ClipRectSize != LastClipRectSize )
+	{
+		return true;
+	}
+	
+	return false;
+}
+
 void SInvalidationPanel::SetCanCache(bool InCanCache)
 {
 	bCanCache = InCanCache;
@@ -122,35 +171,13 @@ void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double I
 
 		const bool bWasCachingNeeded = IsCachingNeeded();
 
-		if ( bWasCachingNeeded == false )
+		bool bShouldCacheRenderData = ShouldCacheRenderData();
+		if (bCacheRenderData != bShouldCacheRenderData)
 		{
-			if ( bCacheRelativeTransforms )
-			{
-				// If the container we're in has changed in either scale or the rotation matrix has changed, 
-				if ( AllottedGeometry.GetAccumulatedLayoutTransform().GetScale() != LastAllottedGeometry.GetAccumulatedLayoutTransform().GetScale() ||
-					 AllottedGeometry.GetAccumulatedRenderTransform().GetMatrix() != LastAllottedGeometry.GetAccumulatedRenderTransform().GetMatrix() )
-				{
-					InvalidateCache();
-				}
-			}
-			else
-			{
-				// If the container we're in has changed in any way we need to invalidate for sure.
-				if ( AllottedGeometry.GetAccumulatedLayoutTransform() != LastAllottedGeometry.GetAccumulatedLayoutTransform() ||
-					AllottedGeometry.GetAccumulatedRenderTransform() != LastAllottedGeometry.GetAccumulatedRenderTransform() )
-				{
-					InvalidateCache();
-				}
-			}
-
-			if ( AllottedGeometry.GetLocalSize() != LastAllottedGeometry.GetLocalSize() )
-			{
-				InvalidateCache();
-			}
+			bCacheRenderData = bShouldCacheRenderData;
+			InvalidateCache();
 		}
-
-		LastAllottedGeometry = AllottedGeometry;
-
+		
 		// TODO We may be double pre-passing here, if the invalidation happened at the end of last frame,
 		// we'll have already done one pre-pass before getting here.
 		if ( bWasCachingNeeded )
@@ -219,19 +246,11 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 	if ( GetCanCache() )
 	{
-		// If our clip rect changes size, we've definitely got to invalidate.
-		const FVector2D ClipRectSize = MyClippingRect.GetSize();
-		if ( ClipRectSize != LastClipRectSize )
-		{
-			bNeedsCaching = true;
-			LastClipRectSize = ClipRectSize;
-		}
-
 		//SCOPE_CYCLE_COUNTER(STAT_InvalidationTime);
 
 		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::InvalidationPanel::Paint");
 
-		const bool bWasCachingNeeded = IsCachingNeeded();
+		const bool bWasCachingNeeded = IsCachingNeeded() || IsCachingNeeded(AllottedGeometry, MyClippingRect);
 
 		if ( bWasCachingNeeded )
 		{
@@ -286,22 +305,32 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 			if ( bCacheRelativeTransforms )
 			{
-				CachedAbsolutePosition = AllottedGeometry.Position;
-				AbsoluteDeltaPosition = FVector2D(0, 0);
+				CachedAbsolutePosition = AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation();
 			}
 
-#if WITH_ENGINE
-			CachedRenderData = CachedWindowElements->CacheRenderData(this);
-#endif
+			if (bCacheRenderData)
+			{
+				CachedRenderData = CachedWindowElements->CacheRenderData(this);
+			}
 
 			LastHitTestIndex = Args.GetLastHitTestIndex();
+
+			LastAllottedGeometry = AllottedGeometry;
+			LastClipRectSize = MyClippingRect.GetSize().RoundToVector();
 
 			bIsInvalidating = false;
 
 			//FPlatformMisc::EndNamedEvent();
 		}
 
+		FVector2D AbsoluteDeltaPosition = FVector2D::ZeroVector;
+		if ( bCacheRelativeTransforms )
+		{
+			AbsoluteDeltaPosition = AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() - CachedAbsolutePosition;
+		}
+
 		//FPlatformMisc::BeginNamedEvent(FColor::Yellow, "Slate::RecordHitTestGeometry");
+
 
 		// The hit test grid is actually populated during the initial cache phase, so don't bother
 		// recording the hit test geometry on the same frame that we regenerate the cache.
@@ -319,35 +348,28 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 		int32 OutMaxChildLayer = CachedMaxChildLayer;
 
-		if ( bCacheRelativeTransforms )
+		if (bCacheRenderData)
 		{
-			FVector2D NewAbsoluteDeltaPosition = AllottedGeometry.Position - CachedAbsolutePosition;
-			AbsoluteDeltaPosition = NewAbsoluteDeltaPosition;
-
-#if WITH_ENGINE
 			FSlateDrawElement::MakeCachedBuffer(OutDrawElements, LayerId, CachedRenderData, AbsoluteDeltaPosition * AllottedGeometry.Scale);
-#else
-			const TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
-			const int32 CachedElementCount = CachedElements.Num();
-			for ( int32 Index = 0; Index < CachedElementCount; Index++ )
-			{
-				const FSlateDrawElement& LocalElement = CachedElements[Index];
-				FSlateDrawElement AbsElement = LocalElement;
-
-				AbsElement.SetPosition(LocalElement.GetPosition() + AbsoluteDeltaPosition);
-				AbsElement.SetClippingRect(LocalElement.GetClippingRect().OffsetBy(AbsoluteDeltaPosition));
-
-				OutDrawElements.AddItem(AbsElement);
-			}
-#endif
 		}
 		else
 		{
-#if WITH_ENGINE
-			FSlateDrawElement::MakeCachedBuffer(OutDrawElements, LayerId, CachedRenderData, FVector2D(0, 0));
-#else
-			OutDrawElements.AppendDrawElements(CachedWindowElements->GetDrawElements());
-#endif
+			if (!bCacheRelativeTransforms || AbsoluteDeltaPosition.IsZero())
+			{
+				OutDrawElements.AppendDrawElements(CachedWindowElements->GetDrawElements());
+			}
+			else
+			{
+				const TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
+				const int32 CachedElementCount = CachedElements.Num();
+				for ( int32 Index = 0; Index < CachedElementCount; Index++ )
+				{
+					const FSlateDrawElement& LocalElement = CachedElements[Index];
+					FSlateDrawElement AbsElement = LocalElement;
+					FSlateDrawElement::ApplyPositionOffset(AbsElement, AbsoluteDeltaPosition);
+					OutDrawElements.AddItem(AbsElement);
+				}
+			}
 		}
 
 		// Paint the volatile elements
@@ -358,8 +380,8 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			const TArray<TSharedPtr<FSlateWindowElementList::FVolatilePaint>>& VolatileElements = CachedWindowElements->GetVolatileElements();
 			INC_DWORD_STAT_BY(STAT_SlateNumVolatileWidgets, VolatileElements.Num());
 
-			// TODO Offset? AbsoluteDeltaPosition
-			OutMaxChildLayer = FMath::Max(OutMaxChildLayer, CachedWindowElements->PaintVolatile(OutDrawElements));
+			int32 VolatileLayerId = CachedWindowElements->PaintVolatile(OutDrawElements, Args.GetCurrentTime(), Args.GetDeltaTime(), AbsoluteDeltaPosition);
+			OutMaxChildLayer = FMath::Max(OutMaxChildLayer, VolatileLayerId);
 
 			//FPlatformMisc::EndNamedEvent();
 		}
@@ -405,10 +427,17 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 					}
 				}
 
+				FGeometry VolatileGeometry = VolatileElement->GetGeometry();
+				if (!AbsoluteDeltaPosition.IsZero())
+				{
+					// Account for relative translation delta
+					VolatileGeometry.AppendTransform(FSlateLayoutTransform(AbsoluteDeltaPosition));
+				}
+				
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
 					++OutMaxChildLayer,
-					VolatileElement->GetGeometry().ToPaintGeometry(),
+					VolatileGeometry.ToPaintGeometry(),
 					VolatileBrush,
 					MyClippingRect,
 					ESlateDrawEffect::None,

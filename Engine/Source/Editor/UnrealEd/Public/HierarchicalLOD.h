@@ -30,11 +30,9 @@ struct UNREALED_API FHierarchicalLODBuilder
 {
 	FHierarchicalLODBuilder(UWorld* InWorld);
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	FHierarchicalLODBuilder();
-#endif // WITH_HOT_RELOAD_CTORS
-		
+
 	/**
 	* Build, Builds the clusters and spawn LODActors with their merged Static Meshes
 	*/

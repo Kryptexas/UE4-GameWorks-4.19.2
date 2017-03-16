@@ -304,7 +304,6 @@ void AFunctionalTest::FinishTest(EFunctionalTestResult TestResult, const FString
 		, *GetName()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );
-	const FString AdditionalDetails = FString::Printf(TEXT("%s %s, time %.2fs"), *GetAdditionalTestFinishedMessage(TestResult), *OnAdditionalTestFinishedMessageRequest(TestResult), TotalTime);
 
 	AutoDestroyActors.Reset();
 		
@@ -328,10 +327,11 @@ void AFunctionalTest::FinishTest(EFunctionalTestResult TestResult, const FString
 			break;
 	}
 	
-	if (AdditionalDetails.IsEmpty() == false)
-	{
-		UE_LOG(LogFunctionalTest, Log, TEXT("%s"), *AdditionalDetails);
-	}
+	//if (AdditionalDetails.IsEmpty() == false)
+	//{
+	//	const FString AdditionalDetails = FString::Printf(TEXT("%s %s, time %.2fs"), *GetAdditionalTestFinishedMessage(TestResult), *OnAdditionalTestFinishedMessageRequest(TestResult), TotalTime);
+	//	UE_LOG(LogFunctionalTest, Log, TEXT("%s"), *AdditionalDetails);
+	//}
 
 	TestFinishedObserver.ExecuteIfBound(this);
 

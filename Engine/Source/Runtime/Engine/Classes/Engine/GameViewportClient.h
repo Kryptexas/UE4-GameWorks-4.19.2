@@ -65,10 +65,8 @@ class ENGINE_API UGameViewportClient : public UScriptViewportClient, public FExe
 	GENERATED_UCLASS_BODY()
 
 public:
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UGameViewportClient(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	virtual ~UGameViewportClient();
 

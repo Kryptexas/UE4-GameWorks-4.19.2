@@ -7,6 +7,7 @@
 #include "Framework/Text/DefaultLayoutBlock.h"
 #include "Framework/Text/ShapedTextCache.h"
 #include "Framework/Text/RunUtils.h"
+#include "ShapedTextFwd.h"
 
 TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
 {
@@ -137,7 +138,8 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 			ShadowShapedText,
 			ClippingRect,
 			DrawEffects,
-			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity
+			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity,
+			InWidgetStyle.GetColorAndOpacityTint() * Style.Font.OutlineSettings.OutlineColor
 			);
 	}
 
@@ -149,7 +151,8 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 		ShapedText,
 		ClippingRect,
 		DrawEffects,
-		InWidgetStyle.GetColorAndOpacityTint() * Style.ColorAndOpacity.GetColor(InWidgetStyle)
+		InWidgetStyle.GetColorAndOpacityTint() * Style.ColorAndOpacity.GetColor(InWidgetStyle),
+		InWidgetStyle.GetColorAndOpacityTint() * Style.Font.OutlineSettings.OutlineColor
 		);
 
 	return LayerId;

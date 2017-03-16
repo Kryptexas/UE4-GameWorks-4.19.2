@@ -1824,8 +1824,15 @@ namespace UnrealGameSync
 			if(StreamName != null)
 			{
 				IReadOnlyList<string> OtherStreamNames = PerforceMonitor.OtherStreamNames;
+				IReadOnlyList<string> OtherStreamFilter = Workspace.ProjectStreamFilter;
 
 				StreamContextMenu.Items.Clear();
+
+				if(OtherStreamFilter != null && !Settings.bShowAllStreams)
+				{
+					OtherStreamNames = OtherStreamNames.Where(x => OtherStreamFilter.Any(y => y.Equals(x, StringComparison.InvariantCultureIgnoreCase)) || x.Equals(StreamName, StringComparison.InvariantCultureIgnoreCase)).ToList().AsReadOnly();
+				}
+
 				foreach(string OtherStreamName in OtherStreamNames.OrderBy(x => x).Where(x => !x.EndsWith("/Dev-Binaries")))
 				{
 					string ThisStreamName = OtherStreamName; // Local for lambda capture
@@ -1837,8 +1844,32 @@ namespace UnrealGameSync
 					}
 					StreamContextMenu.Items.Add(Item);
 				}
+
+				if(OtherStreamFilter != null)
+				{
+					StreamContextMenu.Items.Add(new ToolStripSeparator());
+					if(Settings.bShowAllStreams)
+					{
+						StreamContextMenu.Items.Add(new ToolStripMenuItem("Show Filtered Stream List...", null, new EventHandler((S, E) => SetShowAllStreamsOption(false, Bounds))));
+					}
+					else
+					{
+						StreamContextMenu.Items.Add(new ToolStripMenuItem("Show All Streams...", null, new EventHandler((S, E) => SetShowAllStreamsOption(true, Bounds))));
+					}
+				}
+
 				StreamContextMenu.Show(StatusPanel, new Point(Bounds.Left, Bounds.Bottom), ToolStripDropDownDirection.BelowRight);
 			}
+		}
+
+		private void SetShowAllStreamsOption(bool bValue, Rectangle Bounds)
+		{
+			Settings.bShowAllStreams = bValue;
+			Settings.Save();
+
+			// Showing the new context menu before the current one has closed seems to fail to display it if the new context menu is shorter (ie. the current cursor position is out of bounds).
+			// BeginInvoke() it so it won't happen until the menu has closed.
+			BeginInvoke(new MethodInvoker(() => SelectOtherStream(Bounds)));
 		}
 
 		private void SelectStream(string StreamName)

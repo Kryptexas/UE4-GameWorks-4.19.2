@@ -254,16 +254,17 @@ TSharedRef<SDetailTree> SDetailsView::ConstructTreeView( TSharedRef<SScrollBar>&
 {
 	check( !DetailTree.IsValid() || DetailTree.IsUnique() );
 
-	return 
-	SAssignNew( DetailTree, SDetailTree )
-	.Visibility( this, &SDetailsView::GetTreeVisibility )
-	.TreeItemsSource( &RootTreeNodes )
-	.OnGetChildren( this, &SDetailsView::OnGetChildrenForDetailTree )
-	.OnSetExpansionRecursive( this, &SDetailsView::SetNodeExpansionStateRecursive )
-	.OnGenerateRow( this, &SDetailsView::OnGenerateRowForDetailTree )	
-	.OnExpansionChanged( this, &SDetailsView::OnItemExpansionChanged )
-	.SelectionMode( ESelectionMode::None )
-	.ExternalScrollbar( ScrollBar );
+	return
+		SAssignNew(DetailTree, SDetailTree)
+		.Visibility(this, &SDetailsView::GetTreeVisibility)
+		.TreeItemsSource(&RootTreeNodes)
+		.OnGetChildren(this, &SDetailsView::OnGetChildrenForDetailTree)
+		.OnSetExpansionRecursive(this, &SDetailsView::SetNodeExpansionStateRecursive)
+		.OnGenerateRow(this, &SDetailsView::OnGenerateRowForDetailTree)
+		.OnExpansionChanged(this, &SDetailsView::OnItemExpansionChanged)
+		.SelectionMode(ESelectionMode::None)
+		.HandleDirectionalNavigation(false)
+		.ExternalScrollbar(ScrollBar);
 }
 
 FReply SDetailsView::OnOpenRawPropertyEditorClicked()

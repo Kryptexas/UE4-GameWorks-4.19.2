@@ -19,6 +19,8 @@ IF(NOT $ENV{LINUX_MULTIARCH_ROOT} EQUAL "")
 		SET(CMAKE_SYSROOT "$ENV{LINUX_MULTIARCH_ROOT}arm-unknown-linux-gnueabihf")
 	ELSEIF(${ARCHITECTURE_TRIPLE} MATCHES "aarch64-unknown-linux-gnueabi")
 		SET(CMAKE_SYSROOT "$ENV{LINUX_MULTIARCH_ROOT}aarch64-unknown-linux-gnueabi")
+	ELSEIF(${ARCHITECTURE_TRIPLE} MATCHES "i686-unknown-linux-gnu")
+		SET(CMAKE_SYSROOT "$ENV{LINUX_MULTIARCH_ROOT}i686-unknown-linux-gnu")
 	ENDIF(${ARCHITECTURE_TRIPLE} MATCHES "x86_64-unknown-linux-gnu")
 	
 	#SET(CMAKE_SYSROOT "${LINUX_ROOT} + ${ARCHITECTURE_TRIPLE} + arm-unknown-linux-gnueabihf + x86_64-unknown-linux-gnu + ${ARCHITECTURE_TRIPLE} | ${LINUX_ROOT} | /")

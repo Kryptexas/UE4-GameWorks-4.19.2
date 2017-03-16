@@ -29,6 +29,7 @@ class UMapBuildDataRegistry;
 class UNavigationDataChunk;
 class UTexture2D;
 struct FLevelCollection;
+class ULevelActorContainer;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -365,6 +366,9 @@ public:
 	/** Array of all actors in this level, used by FActorIteratorBase and derived classes */
 	TArray<AActor*> Actors;
 
+	/** Array of actors to be exposed to GC in this level. All other actors will be referenced through ULevelActorContainer */
+	TArray<AActor*> ActorsForGC;
+
 	/** Set before calling LoadPackage for a streaming level to ensure that OwningWorld is correct on the Level */
 	ENGINE_API static TMap<FName, TWeakObjectPtr<UWorld> > StreamedLevelsOwningWorld;
 		
@@ -383,6 +387,9 @@ public:
 	/** BSP Model components used for rendering. */
 	UPROPERTY()
 	TArray<class UModelComponent*> ModelComponents;
+
+	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
+	ULevelActorContainer* ActorCluster;
 
 #if WITH_EDITORONLY_DATA
 	/** Reference to the blueprint for level scripting */
@@ -600,13 +607,11 @@ public:
 	ENGINE_API void Initialize(const FURL& InURL);
 	ULevel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	ULevel(FVTableHelper& Helper)
 		: Super(Helper)
 		, Actors()
 	{}
-#endif // WITH_HOT_RELOAD_CTORS
 
 	~ULevel();
 
@@ -626,6 +631,8 @@ public:
 	virtual void PostLoad() override;
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual bool CanBeClusterRoot() const override;
+	virtual void CreateCluster() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End UObject Interface.
 

@@ -261,7 +261,7 @@ public:
 
 	// Friend for access to Flags.
 	template<typename TCharType>
-	friend FNameEntry* AllocateNameEntry(const void* Name, NAME_INDEX Index);
+	friend FNameEntry* AllocateNameEntry(const TCharType* Name, NAME_INDEX Index);
 };
 
 /**
@@ -1046,7 +1046,7 @@ private:
 	friend const TCHAR* DebugFName(int32, int32);
 	friend const TCHAR* DebugFName(FName&);
 	template<typename TCharType>
-	friend FNameEntry* AllocateNameEntry(const void* Name, NAME_INDEX Index);
+	friend FNameEntry* AllocateNameEntry(const TCharType* Name, NAME_INDEX Index);
 	/** Used to increment the correct counter based upon TCharType */
 	template <typename TCharType> friend void IncrementNameCount();
 

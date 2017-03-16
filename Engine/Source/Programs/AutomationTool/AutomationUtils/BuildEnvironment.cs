@@ -33,7 +33,6 @@ namespace AutomationTool
 		static public readonly string Client = "uebp_CLIENT";
 		static public readonly string BuildRootP4 = "uebp_BuildRoot_P4";
 		static public readonly string BuildRootEscaped = "uebp_BuildRoot_Escaped";		
-		static public readonly string LabelToSync = "uebp_LabelToSync";
 		static public readonly string P4Password = "uebp_PASS";
 	}
 
@@ -79,7 +78,7 @@ namespace AutomationTool
 			{
 				UATExe = Assembly.GetEntryAssembly().GetOriginalLocation();
 			}
-			if (!CommandUtils.FileExists_NoExceptions(UATExe))
+			if (!CommandUtils.FileExists(UATExe))
 			{
 				throw new AutomationException("Could not find AutomationTool.exe. Reflection indicated it was here: {0}", UATExe);
 			}

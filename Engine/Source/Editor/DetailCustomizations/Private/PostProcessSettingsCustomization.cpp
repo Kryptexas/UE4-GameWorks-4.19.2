@@ -150,6 +150,13 @@ void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 			if(PPGroup.SimplePropertyHandles.Num() > 0 || PPGroup.AdvancedPropertyHandles.Num() > 0 )
 			{
 				IDetailGroup& SimpleGroup = PPGroup.RootCategory->AddGroup(*PPGroup.RawGroupName, FText::FromString(PPGroup.DisplayName));
+
+				// Only enable group reset on color grading category groups
+				if (PPGroup.RootCategory->GetDisplayName().IdenticalTo(FText::FromString(TEXT("Color Grading"))))
+				{
+					SimpleGroup.EnableReset(true);
+				}
+
 				for(auto& SimpleProperty : PPGroup.SimplePropertyHandles)
 				{
 					SimpleGroup.AddPropertyRow(SimpleProperty.ToSharedRef());

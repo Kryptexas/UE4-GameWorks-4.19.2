@@ -155,6 +155,11 @@ EFontLoadingPolicy UFontFace::GetLoadingPolicy() const
 	return LoadingPolicy;
 }
 
+EFontLayoutMethod UFontFace::GetLayoutMethod() const
+{
+	return LayoutMethod;
+}
+
 FFontFaceDataConstRef UFontFace::GetFontFaceData() const
 {
 	return FontFaceData;

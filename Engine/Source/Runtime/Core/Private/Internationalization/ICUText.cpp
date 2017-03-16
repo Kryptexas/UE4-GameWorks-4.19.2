@@ -6,6 +6,8 @@
 #include "Logging/LogMacros.h"
 #include "Templates/SharedPointer.h"
 #include "Internationalization/Text.h"
+#include "Internationalization/TextChronoFormatter.h"
+#include "Internationalization/TextTransformer.h"
 #include "Internationalization/Internationalization.h"
 
 #if UE_ENABLE_ICU
@@ -28,103 +30,64 @@ THIRD_PARTY_INCLUDES_END
 #include "Internationalization/ICUInternationalization.h"
 #include "Internationalization/ICUTextCharacterIterator.h"
 
-bool FText::IsWhitespace( const TCHAR Char )
+FString FTextChronoFormatter::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulture& TargetCulture)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
+
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	const TSharedRef<const icu::DateFormat> ICUDateFormat( TargetCulture.Implementation->GetDateFormatter(DateStyle, TimeZone) );
+	icu::UnicodeString FormattedString;
+	ICUDateFormat->format(ICUDate, FormattedString);
+
+	return ICUUtilities::ConvertString(FormattedString);
+}
+
+FString FTextChronoFormatter::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulture& TargetCulture)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
+
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	const TSharedRef<const icu::DateFormat> ICUDateFormat( TargetCulture.Implementation->GetTimeFormatter(TimeStyle, TimeZone) );
+	icu::UnicodeString FormattedString;
+	ICUDateFormat->format(ICUDate, FormattedString);
+
+	return ICUUtilities::ConvertString(FormattedString);
+}
+
+FString FTextChronoFormatter::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulture& TargetCulture)
+{
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
+
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	const TSharedRef<const icu::DateFormat> ICUDateFormat( TargetCulture.Implementation->GetDateTimeFormatter(DateStyle, TimeStyle, TimeZone) );
+	icu::UnicodeString FormattedString;
+	ICUDateFormat->format(ICUDate, FormattedString);
+
+	return ICUUtilities::ConvertString(FormattedString);
+}
+
+FString FTextTransformer::ToLower(const FString& InStr)
+{
+	return ICUUtilities::ConvertString(ICUUtilities::ConvertString(InStr).toLower());
+}
+
+FString FTextTransformer::ToUpper(const FString& InStr)
+{
+	return ICUUtilities::ConvertString(ICUUtilities::ConvertString(InStr).toUpper());
+}
+
+bool FText::IsWhitespace(const TCHAR Char)
 {
 	// TCHAR should either be UTF-16 or UTF-32, so we should be fine to cast it to a UChar32 for the whitespace
 	// check, since whitespace is never a pair of UTF-16 characters
 	const UChar32 ICUChar = static_cast<UChar32>(Char);
 	return u_isWhitespace(ICUChar) != 0;
-}
-
-FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
-{
-	FInternationalization& I18N = FInternationalization::Get();
-	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
-
-	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
-
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	const TSharedRef<const icu::DateFormat> ICUDateFormat( Culture->Implementation->GetDateFormatter(DateStyle, TimeZone) );
-	icu::UnicodeString FormattedString;
-	ICUDateFormat->format(ICUDate, FormattedString);
-
-	FString NativeString;
-	ICUUtilities::ConvertString(FormattedString, NativeString);
-
-	return FText::CreateChronologicalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsDate>(MoveTemp(NativeString), FTextHistory_AsDate(DateTime, DateStyle, TimeZone, TargetCulture))));
-}
-
-FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
-{
-	FInternationalization& I18N = FInternationalization::Get();
-	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
-
-	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
-
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	const TSharedRef<const icu::DateFormat> ICUDateFormat( Culture->Implementation->GetTimeFormatter(TimeStyle, TimeZone) );
-	icu::UnicodeString FormattedString;
-	ICUDateFormat->format(ICUDate, FormattedString);
-
-	FString NativeString;
-	ICUUtilities::ConvertString(FormattedString, NativeString);
-
-	return FText::CreateChronologicalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsTime>(MoveTemp(NativeString), FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture))));
-}
-
-FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCulture)
-{
-	FInternationalization& I18N = FInternationalization::Get();
-	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
-
-	double TotalHours = Timespan.GetTotalHours();
-	int32 Hours = static_cast<int32>(TotalHours);
-	int32 Minutes = Timespan.GetMinutes();
-	int32 Seconds = Timespan.GetSeconds();
-
-	FNumberFormattingOptions NumberFormattingOptions;
-	NumberFormattingOptions.MinimumIntegralDigits = 2;
-	NumberFormattingOptions.MaximumIntegralDigits = 2;
-
-	if (Hours > 0)
-	{
-		FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern", "{Hours}:{Minutes}:{Seconds}");
-		FFormatNamedArguments TimeArguments;
-		TimeArguments.Add(TEXT("Hours"), Hours);
-		TimeArguments.Add(TEXT("Minutes"), FText::AsNumber(Minutes, &(NumberFormattingOptions), Culture));
-		TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &(NumberFormattingOptions), Culture));
-		return FText::Format(TimespanFormatPattern, TimeArguments);
-	}
-	else
-	{
-		FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern2", "{Minutes}:{Seconds}");
-		FFormatNamedArguments TimeArguments;
-		TimeArguments.Add(TEXT("Minutes"), Minutes);
-		TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &(NumberFormattingOptions), Culture));
-		return FText::Format(TimespanFormatPattern, TimeArguments);
-	}
-}
-
-FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
-{
-	FInternationalization& I18N = FInternationalization::Get();
-	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
-
-	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
-
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	const TSharedRef<const icu::DateFormat> ICUDateFormat( Culture->Implementation->GetDateTimeFormatter(DateStyle, TimeStyle, TimeZone) );
-	icu::UnicodeString FormattedString;
-	ICUDateFormat->format(ICUDate, FormattedString);
-
-	FString NativeString;
-	ICUUtilities::ConvertString(FormattedString, NativeString);
-
-	return FText::CreateChronologicalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsDateTime>(MoveTemp(NativeString), FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture))));
 }
 
 int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
@@ -160,30 +123,6 @@ bool FText::EqualTo( const FText& Other, const ETextComparisonLevel::Type Compar
 bool FText::EqualToCaseIgnored( const FText& Other ) const
 {
 	return EqualTo(Other, ETextComparisonLevel::Secondary);
-}
-
-FText FText::ToLower() const
-{
-	FString ResultString = ICUUtilities::ConvertString(ICUUtilities::ConvertString(ToString()).toLower());
-
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_Transform>(MoveTemp(ResultString), FTextHistory_Transform(*this, FTextHistory_Transform::ETransformType::ToLower))));
-	if (!GIsEditor)
-	{
-		Result.Flags |= ETextFlag::Transient;
-	}
-	return Result;
-}
-
-FText FText::ToUpper() const
-{
-	FString ResultString = ICUUtilities::ConvertString(ICUUtilities::ConvertString(ToString()).toUpper());
-
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_Transform>(MoveTemp(ResultString), FTextHistory_Transform(*this, FTextHistory_Transform::ETransformType::ToUpper))));
-	if (!GIsEditor)
-	{
-		Result.Flags |= ETextFlag::Transient;
-	}
-	return Result;
 }
 
 class FText::FSortPredicate::FSortPredicateImplementation
