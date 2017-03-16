@@ -52,22 +52,6 @@ static TAutoConsoleVariable<int32> CVarHiddenAreaMask(
 	TEXT("0 to disable hidden area mask, 1 to enable."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarMonoscopicFarField(
-	TEXT("vr.MonoscopicFarField"),
-	0,
-	TEXT("0 to disable (default), 1 to enable."),
-	ECVF_ReadOnly | ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarMonoscopicFarFieldMode(
-	TEXT("vr.MonoscopicFarFieldMode"),
-	1,
-	TEXT("Experimental, mobile only")
-	TEXT(", 0 to disable, 1 to enable (default)")
-	TEXT(", 2 stereo near field only")
-	TEXT(", 3 stereo near field with far field pixel depth test disabled")
-	TEXT(", 4 mono far field only"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static void SetTrackingOrigin(const TArray<FString>& Args)
 {
 	int Origin = 0;
