@@ -26,9 +26,6 @@
 
 static TAutoConsoleVariable<int32> CStartInVRVar(TEXT("vr.bStartInVR"), 0, TEXT("Start in VR flag"));
 static TAutoConsoleVariable<int32> CGracefulExitVar(TEXT("vr.bExitGracefully"), 0, TEXT("Exit gracefully when forced by Universal Menu."));
-static TAutoConsoleVariable<float> CRightEyeResolutionScaling( TEXT( "rift.RightEyeResolutionScaling" ), 1.0f, TEXT( "Scales the resolution of the right eye only" ) );
-static TAutoConsoleVariable<int32> CLeftEyeOverscan( TEXT( "rift.LeftEyeOverscan" ), 0, TEXT( "Whether to render the left eye at a larger widescreen resolution, then crop a column from the center for the HMD.  This is a presentation mode feature." ) );
-static TAutoConsoleVariable<float> CLeftEyeOverscanAspect( TEXT( "rift.LeftEyeOverscanAspect" ), 16.0f / 9.0f, TEXT( "Aspect ratio when rift.LeftEyeOverscan is enabled" ) );
 
 //---------------------------------------------------
 // Oculus Rift Plugin Implementation
@@ -2142,6 +2139,10 @@ void FOculusRiftHMD::UpdateHmdRenderInfo()
 		// Calc FOV, symmetrical, for each eye. 
 		CurrentSettings->EyeFov[0] = HmdDesc.DefaultEyeFov[0];
 		CurrentSettings->EyeFov[1] = HmdDesc.DefaultEyeFov[1];
+
+		// Calc FOV in radians
+		CurrentSettings->VFOVInRadians = GetVerticalFovRadians(CurrentSettings->EyeFov[0], CurrentSettings->EyeFov[1]);
+		CurrentSettings->HFOVInRadians = GetHorizontalFovRadians(CurrentSettings->EyeFov[0], CurrentSettings->EyeFov[1]);
 	}
 
 	const ovrSizei recommenedTex0Size = ovr_GetFovTextureSize(OvrSession, ovrEye_Left, CurrentSettings->EyeFov[0], 1.0f);
@@ -2153,27 +2154,6 @@ void FOculusRiftHMD::UpdateHmdRenderInfo()
 
 	CurrentSettings->IdealScreenPercentage = FMath::Max(float(idealRenderTargetSize.w) / float(HmdDesc.Resolution.w) * 100.f,
 														float(idealRenderTargetSize.h) / float(HmdDesc.Resolution.h) * 100.f);
-
-	if (!CurrentSettings->Flags.bOverrideFOV)
-	{
-		if( CLeftEyeOverscan->GetInt() != 0 )
-		{
-			// Compute a new FOV for the left eye that will "overscan" the HMD's viewport to allow for a
-			// much wider mirror image.  The user of the HMD will see the horizontally cropped section of
-			// view that would normally be rendered without the overscan, but viewers of the mirror display
-			// will see the entire view.
-			const ovrSizei OriginalEyeRenderTargetSize = ovr_GetFovTextureSize( OvrSession, ovrEye_Left, CurrentSettings->EyeFov[ 0 ], 1.0f );
-			const float OriginalEyeAspect = (float)OriginalEyeRenderTargetSize.w / (float)OriginalEyeRenderTargetSize.h;
-			const float NewEyeAspect = CLeftEyeOverscanAspect->GetFloat();
-
-			CurrentSettings->EyeFov[ 0 ].LeftTan *= NewEyeAspect / OriginalEyeAspect;
-			CurrentSettings->EyeFov[ 0 ].RightTan *= NewEyeAspect / OriginalEyeAspect;
-		}
-
-		// Calc FOV in radians
-		CurrentSettings->VFOVInRadians = GetVerticalFovRadians(CurrentSettings->EyeFov[0], CurrentSettings->EyeFov[1]);
-		CurrentSettings->HFOVInRadians = GetHorizontalFovRadians(CurrentSettings->EyeFov[0], CurrentSettings->EyeFov[1]);
-	}
 
 	// Override eye distance by the value from HMDInfo (stored in Profile).
 	if (!CurrentSettings->Flags.bOverrideIPD)
@@ -2264,13 +2244,7 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 
 		for(int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
 		{
-			float eyePixelDensity = pixelDensity;
-			if( eyeIndex == ovrEye_Right )
-			{
-				eyePixelDensity *= CRightEyeResolutionScaling->GetFloat();
-			}
-
-			vpSize[eyeIndex] = ovr_GetFovTextureSize(OvrSession, (ovrEyeType) eyeIndex, CurrentSettings->EyeFov[eyeIndex], eyePixelDensity);
+			vpSize[eyeIndex] = ovr_GetFovTextureSize(OvrSession, (ovrEyeType)eyeIndex, CurrentSettings->EyeFov[eyeIndex], pixelDensity);
 			vpSize[eyeIndex].w = FMath::Max(vpSize[eyeIndex].w, 1);
 			vpSize[eyeIndex].h = FMath::Max(vpSize[eyeIndex].h, 1);
 

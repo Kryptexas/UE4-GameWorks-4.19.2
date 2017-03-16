@@ -797,16 +797,13 @@ static TAutoConsoleVariable<int32> CVarCompensateForFOV(
 
 float FSceneView::GetLODDistanceFactor() const
 {
-	// With stereo rendering views may have asymmetric FOVs, so always use the left eye's view for LOD calculation
-	const FSceneView* ViewForLOD = ( this->Family != nullptr && this->StereoPass == eSSP_RIGHT_EYE ) ? Family->Views[0] : this;
-
 	bool bCompensateForFOV = bUseFieldOfViewForLOD && CVarCompensateForFOV.GetValueOnAnyThread() != 0;
-	float ScreenScaleX = bCompensateForFOV ? ViewForLOD->ViewMatrices.GetProjectionMatrix().M[0][0] : 1.0f;
-	float ScreenScaleY = bCompensateForFOV ? ViewForLOD->ViewMatrices.GetProjectionMatrix().M[1][1] : (static_cast<float>(ViewForLOD->ViewRect.Width()) / ViewForLOD->ViewRect.Height());
+	float ScreenScaleX = bCompensateForFOV ? ViewMatrices.GetProjectionMatrix().M[0][0] : 1.0f;
+	float ScreenScaleY = bCompensateForFOV ? ViewMatrices.GetProjectionMatrix().M[1][1] : (static_cast<float>(ViewRect.Width()) / ViewRect.Height());
 
-	const float ScreenMultiple = FMath::Max(ViewForLOD->ViewRect.Width() / 2.0f * ScreenScaleX,
-		ViewForLOD->ViewRect.Height() / 2.0f * ScreenScaleY);
-	float Fac = PI * ScreenMultiple * ScreenMultiple / ViewForLOD->ViewRect.Area();
+	const float ScreenMultiple = FMath::Max(ViewRect.Width() / 2.0f * ScreenScaleX,
+		ViewRect.Height() / 2.0f * ScreenScaleY);
+	float Fac = PI * ScreenMultiple * ScreenMultiple / ViewRect.Area();
 	return Fac;
 }
 

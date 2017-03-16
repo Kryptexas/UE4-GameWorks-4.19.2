@@ -1332,9 +1332,6 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 		{
 			const FSceneView* View = Views[ViewIndex];
 
-			// With stereo rendering views may have asymmetric FOVs, so always use the left eye's view for LOD calculation
-			const FSceneView* ViewForLOD = ( View->Family != nullptr && View->StereoPass == eSSP_RIGHT_EYE ) ? View->Family->Views[ 0 ] : View;
-
 			FFoliageElementParams ElementParams;
 			ElementParams.bSelectionRenderEnabled = GIsEditor && ViewFamily.EngineShowFlags.Selection;
 			ElementParams.NumSelectionGroups = (ElementParams.bSelectionRenderEnabled && bHasSelectedInstances) ? 2 : 1;
@@ -1403,7 +1400,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 					}
 					else
 					{
-						const FMatrix LocalViewProjForCulling = GetLocalToWorld() * ViewForLOD->ViewMatrices.GetViewProjectionMatrix();
+						const FMatrix LocalViewProjForCulling = GetLocalToWorld() * View->ViewMatrices.GetViewProjectionMatrix();
 						GetViewFrustumBounds(InstanceParams.ViewFrustumLocal, LocalViewProjForCulling, false);
 					}
 
