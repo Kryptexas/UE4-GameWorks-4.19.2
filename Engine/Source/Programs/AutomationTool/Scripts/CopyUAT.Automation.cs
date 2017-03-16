@@ -43,6 +43,12 @@ public class CopyUAT : BuildCommand
 			{
 				SourceFiles.Add(SourceSymbolFile);
 			}
+
+			FileReference DocumentationFile = SourceFile.ChangeExtension(".xml");
+			if(FileReference.Exists(DocumentationFile))
+			{
+				SourceFiles.Add(DocumentationFile);
+			}
 		}
 
 		// Copy all the files over

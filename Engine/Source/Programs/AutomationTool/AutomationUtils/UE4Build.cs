@@ -177,6 +177,7 @@ namespace AutomationTool
 			{
 				AddArgs += " " + CommandUtils.MakePathSafeToUseWithCommandLine(UprojectPath.FullName);
 			}
+			AddArgs += " -NoUBTMakefiles";
 			AddArgs += " " + InAddArgs;
 			if (ForceMonolithic)
 			{
@@ -283,6 +284,7 @@ namespace AutomationTool
 			{
 				AddArgs += " " + CommandUtils.MakePathSafeToUseWithCommandLine(UprojectPath.FullName);
 			}
+			AddArgs += " -NoUBTMakefiles";
 			AddArgs += " " + InAddArgs;
 			if (ForceMonolithic)
 			{
@@ -319,6 +321,7 @@ namespace AutomationTool
 			{
 				AddArgs += " " + CommandUtils.MakePathSafeToUseWithCommandLine(UprojectPath.FullName);
 			}
+			AddArgs += " -NoUBTMakefiles";
 			AddArgs += " " + InAddArgs;
 			if (ForceMonolithic)
 			{
