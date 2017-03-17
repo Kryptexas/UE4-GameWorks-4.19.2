@@ -89,6 +89,10 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 			DrawEffects |= ESlateDrawEffect::NoPixelSnapping;
 		}
 	}
+	if ((InDrawEffects & ESlateDrawEffect::ReverseGamma) != ESlateDrawEffect::None)
+	{
+		DataPayload.BatchFlags |= ESlateBatchDrawFlag::ReverseGamma;
+	}
 }
 
 void FSlateDrawElement::ApplyPositionOffset(FSlateDrawElement& Element, const FVector2D& InOffset)

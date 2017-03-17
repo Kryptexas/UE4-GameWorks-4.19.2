@@ -45,6 +45,12 @@ public:
 		return WidgetComponent;
 	}
 
+	/** Returns the mesh component for this UI, or nullptr if not spawned right now */
+	class UStaticMeshComponent* GetMeshComponent()
+	{
+		return WindowMeshComponent;
+	}
+
 	/** Returns the actual size of the UI in either axis, after scaling has been applied.  Does not take into animation or world scaling */
 	FVector2D GetSize() const;
 
@@ -52,13 +58,21 @@ public:
 	float GetScale() const;
 
 	/** Sets a new size for the UI */
-	void SetScale( const float NewSize );
+	void SetScale(const float NewSize, const bool bScaleWidget = true);
+
+	/** Set the widget scale */
+	void SetWidgetComponentScale(const FVector& InScale);
 
 	/** Sets the UI transform */
 	virtual void SetTransform( const FTransform& Transform ) override;
 
 	/** AActor overrides */
 	virtual void Destroyed() override;
+	virtual bool IsEditorOnly() const final
+	{
+		return true;
+	}
+	//~ End AActor interface
 
 	/** Returns the owner of this object */
 	UVREditorUISystem& GetOwner()
@@ -81,19 +95,22 @@ public:
 		return CastChecked<T>( UserWidget );
 	}
 
-	/** Sets if the collision is on when showing the UI*/
-	void SetCollisionOnShow( const bool bInCollisionOnShow );
+	/** Gets the current user widget of this floating UI, return nullptr if using slate widget */
+	UVREditorBaseUserWidget* GetUserWidget();
 
 	/** Gets the initial size of this UI */
 	float GetInitialScale() const;
+
+	/** Called to finish setting everything up, after a widget has been assigned */
+	virtual void SetupWidgetComponent();
 
 protected:
 
 	/** Returns a scale to use for this widget that takes into account animation */
 	FVector CalculateAnimatedScale() const;
 
-	/** Called to finish setting everything up, after a widget has been assigned */
-	virtual void SetupWidgetComponent();
+	/** Set collision on components */
+	virtual void SetCollision(const ECollisionEnabled::Type InCollisionType, const ECollisionResponse InCollisionResponse, const ECollisionChannel InCollisionChannel);
 
 private:
 
@@ -111,6 +128,10 @@ protected:
 	/** When in a spawned state, this is the widget component to represent the widget */
 	UPROPERTY()
 	class UVREditorWidgetComponent* WidgetComponent;
+
+	/** The floating window mesh */
+	UPROPERTY()
+	class UStaticMeshComponent* WindowMeshComponent;
 
 	/** Resolution we should draw this UI at, regardless of scale */
 	FIntPoint Resolution;
@@ -130,9 +151,6 @@ private:
 
 	/** Fade alpha, for visibility transitions */
 	float FadeAlpha;
-
-	/** Collision on when showing UI */
-	bool bCollisionOnShowUI;
 
 	/** Delay to fading in or out. Set on ShowUI and cleared on finish of fade in/out */
 	float FadeDelay;

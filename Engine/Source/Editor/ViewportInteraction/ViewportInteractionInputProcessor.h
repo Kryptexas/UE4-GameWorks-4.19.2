@@ -18,18 +18,11 @@ public:
 	FViewportInteractionInputProcessor ( FViewportWorldInteractionManager* InWorldInteractionManager );
 	virtual ~FViewportInteractionInputProcessor ();
 
+	// IInputProcess overrides
 	virtual void Tick( const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor ) override;
-
-	/** Key down input */
 	virtual bool HandleKeyDownEvent( FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent ) override;
-	
-	/** Key up input */
 	virtual bool HandleKeyUpEvent( FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent ) override;
-	
-	/** Analog axis input */
 	virtual bool HandleAnalogInputEvent( FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent ) override;
-
-	/** Mouse movement input */
 	virtual bool HandleMouseMoveEvent( FSlateApplication& SlateApp, const FPointerEvent& MouseEvent ) override;
 
 private:

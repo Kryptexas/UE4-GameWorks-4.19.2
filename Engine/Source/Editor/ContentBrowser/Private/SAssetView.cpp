@@ -159,12 +159,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	TileViewThumbnailSize = 128;
 	TileViewThumbnailPadding = 5;
 
-	const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
-	if( bIsVREditorDemo )
-	{
-		TileViewThumbnailPadding = 0;
-	}
-
 	TileViewNameHeight = 36;
 	ThumbnailScaleSliderValue = InArgs._ThumbnailScale; 
 
@@ -1050,12 +1044,6 @@ void SAssetView::CalculateFillScale( const FGeometry& AllottedGeometry )
 	if ( bFillEmptySpaceInTileView && CurrentViewType == EAssetViewType::Tile )
 	{
 		float ItemWidth = GetTileViewItemBaseWidth();
-
- 		const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
-		if( bIsVREditorDemo )
-		{
-			ItemWidth /= AllottedGeometry.Scale;
-		}
 
 		// Scrollbars are 16, but we add 1 to deal with half pixels.
 		const float ScrollbarWidth = 16 + 1;
@@ -3725,8 +3713,12 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 			if( InAssetData.Num() > 0 )
 			{
 				UActorFactory* FactoryToUse = nullptr;
-				FEditorDelegates::OnAssetDragStarted.Broadcast( InAssetData, FactoryToUse );
-				if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
+				if( FEditorDelegates::OnAssetDragStarted.IsBound() )
+				{
+					FEditorDelegates::OnAssetDragStarted.Broadcast( InAssetData, FactoryToUse );
+					return FReply::Handled();
+				}
+				else if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
 				{
 					return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( InAssetData ) );
 				}

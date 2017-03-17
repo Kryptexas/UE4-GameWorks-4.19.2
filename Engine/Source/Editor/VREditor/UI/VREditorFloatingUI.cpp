@@ -6,12 +6,12 @@
 #include "VREditorMode.h"
 #include "Components/WidgetComponent.h"
 #include "VREditorWidgetComponent.h"
-
+#include "Components/StaticMeshComponent.h"
+#include "VRModeSettings.h"
 
 namespace VREd
 {
 	static FAutoConsoleVariable UIFadeSpeed( TEXT( "VREd.UIFadeSpeed" ), 6.0f, TEXT( "How fast UI should fade in and out" ) );
-	static FAutoConsoleVariable UIBrightness( TEXT( "VREd.UIBrightness" ), 0.3f, TEXT( "How bright the UI should be" ) );
 }
 
 
@@ -25,7 +25,6 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 	UserWidgetClass( nullptr ),
 	bShouldBeVisible(),
 	FadeAlpha( 1.0f ),
-	bCollisionOnShowUI( true ),
 	FadeDelay( 0.0f ),
 	InitialScale( 1.0f )
 {
@@ -37,8 +36,21 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 	WidgetComponent = CreateDefaultSubobject<UVREditorWidgetComponent>( TEXT( "WidgetComponent" ), bTransient );
 	WidgetComponent->SetEditTimeUsable(true);
 	WidgetComponent->SetupAttachment( SceneComponent );
-
+	WidgetComponent->PrimaryComponentTick.bTickEvenWhenPaused = true;
 	InitialScale = Scale;
+
+	{
+		WindowMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WindowMesh"));
+		WindowMeshComponent->SetMobility(EComponentMobility::Movable);
+		WindowMeshComponent->SetupAttachment(RootComponent);
+		
+		WindowMeshComponent->bGenerateOverlapEvents = false;
+		WindowMeshComponent->SetCanEverAffectNavigation(false);
+		WindowMeshComponent->bCastDynamicShadow = false;
+		WindowMeshComponent->bCastStaticShadow = false;
+		WindowMeshComponent->bAffectDistanceFieldLighting = false;
+		WindowMeshComponent->bSelectable = false;
+	}
 }
 
 
@@ -86,13 +98,24 @@ void AVREditorFloatingUI::SetupWidgetComponent()
 	//WidgetComponent->SetMaxInteractionDistance( 10000.0f );
 
 	// Default to visible
-	ShowUI( true );
+	ShowUI( false );
 
 	// Set initial opacity
 	UpdateFadingState( 0.0f );
 
 	// Set initial transform
 	UpdateTransformIfDocked();
+
+	// Update the window border mesh
+	{
+		const float WindowMeshSize = 100.0f;	// Size of imported mesh, we need to inverse compensate for
+
+		const FVector WindowMeshScale = FVector(
+			1.0f,
+			GetSize().X / WindowMeshSize,
+			GetSize().Y / WindowMeshSize) * GetOwner().GetOwner().GetWorldScaleFactor();
+		WindowMeshComponent->SetRelativeScale3D(WindowMeshScale);
+	}
 }
 
 void AVREditorFloatingUI::SetSlateWidget( UVREditorUISystem& InitOwner, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
@@ -158,16 +181,17 @@ void AVREditorFloatingUI::Destroyed()
 
 void AVREditorFloatingUI::SetTransform( const FTransform& Transform )
 {
-	const FVector AnimatedScale = CalculateAnimatedScale();
+	if (!bHidden)
+	{
+		const FVector AnimatedScale = CalculateAnimatedScale();
+		FTransform AnimatedTransform = Transform;
+		AnimatedTransform.SetScale3D(AnimatedTransform.GetScale3D() * AnimatedScale);
 
-	FTransform AnimatedTransform = Transform;
-	AnimatedTransform.SetScale3D( AnimatedTransform.GetScale3D() * AnimatedScale );
+		RootComponent->SetWorldLocation(AnimatedTransform.GetLocation());
+		RootComponent->SetWorldRotation(AnimatedTransform.GetRotation());
 
-	const float Aspect = ( float ) Resolution.X / ( float ) Resolution.Y;
-
-	RootComponent->SetWorldLocation( AnimatedTransform.GetLocation() );
-	RootComponent->SetWorldRotation( AnimatedTransform.GetRotation() );
-	WidgetComponent->SetWorldScale3D( FVector( 1.0f / AnimatedTransform.GetScale3D().X, 1.0f / ( float ) Resolution.X, 1.0f / ( float ) Resolution.Y / Aspect ) * AnimatedTransform.GetScale3D() );
+		SetWidgetComponentScale(AnimatedTransform.GetScale3D());
+	}
 }
 
 
@@ -216,16 +240,17 @@ void AVREditorFloatingUI::UpdateFadingState( const float DeltaTime )
 		}
 
  		// Set material color
-		// NOTE: We intentionally make the UI quite dark here, so it doesn't bloom out in HDR
-		const float UIBrightness = FadeAlpha * VREd::UIBrightness->GetFloat();
+		const float UIBrightness = FadeAlpha * GetDefault<UVRModeSettings>()->UIBrightness;
 		WidgetComponent->SetTintColorAndOpacity( FLinearColor( UIBrightness, UIBrightness, UIBrightness ).CopyWithNewOpacity( FadeAlpha ) );
+
 	}
 }
 
 FVector AVREditorFloatingUI::CalculateAnimatedScale() const
 {
 	const float AnimationOvershootAmount = 0.7f;	// @todo vreditor tweak
-	const float EasedAlpha = UVREditorMode::OvershootEaseOut( FadeAlpha, AnimationOvershootAmount );
+	float EasedAlpha = UVREditorMode::OvershootEaseOut(FadeAlpha, AnimationOvershootAmount);
+	EasedAlpha = FMath::Clamp(EasedAlpha, 0.01f, 1.0f + AnimationOvershootAmount);
 
 	// Animate vertically more than horizontally; just looks a little better
 	const float ZScale = FMath::Max( 0.001f, EasedAlpha );
@@ -238,9 +263,23 @@ FVector AVREditorFloatingUI::CalculateAnimatedScale() const
 	return AnimatedScale;
 }
 
-void AVREditorFloatingUI::SetCollisionOnShow( const bool bInCollisionOnShow )
+void AVREditorFloatingUI::SetCollision(const ECollisionEnabled::Type InCollisionType, const ECollisionResponse InCollisionResponse, const ECollisionChannel InCollisionChannel)
 {
-	bCollisionOnShowUI = bInCollisionOnShow;
+	WidgetComponent->SetCollisionEnabled(InCollisionType);
+	WidgetComponent->SetCollisionResponseToAllChannels(InCollisionResponse);
+	WidgetComponent->SetCollisionObjectType(InCollisionChannel);
+
+	if (WindowMeshComponent)
+	{
+		WindowMeshComponent->SetCollisionEnabled(InCollisionType);
+		WindowMeshComponent->SetCollisionResponseToAllChannels(InCollisionResponse);
+		WindowMeshComponent->SetCollisionObjectType(InCollisionChannel);
+	}
+}
+
+UVREditorBaseUserWidget* AVREditorFloatingUI::GetUserWidget()
+{
+	return UserWidget;
 }
 
 float AVREditorFloatingUI::GetInitialScale() const
@@ -248,17 +287,11 @@ float AVREditorFloatingUI::GetInitialScale() const
 	return InitialScale;
 }
 
-
 void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, const float InitFadeDelay )
 {
 	if( !bShouldBeVisible.IsSet() || bShow != bShouldBeVisible.GetValue() )
 	{
 		bShouldBeVisible = bShow;
-
-		if( bCollisionOnShowUI )
-		{
-			SetActorEnableCollision( bShow );
-		}
 
 		if( !bAllowFading )
 		{
@@ -267,8 +300,19 @@ void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, con
 			FadeAlpha = bShow ? 1.0f : 0.0f;
 		}
 
+		// Set collision on components
+		if (bShow)
+		{
+			SetCollision(ECollisionEnabled::QueryOnly, ECollisionResponse::ECR_Block, ECollisionChannel::ECC_WorldStatic);
+		}
+		else
+		{
+			SetCollision(ECollisionEnabled::NoCollision, ECollisionResponse::ECR_Ignore, ECollisionChannel::ECC_Visibility);
+		}
+
+
 		FadeDelay = InitFadeDelay;
-	}
+	}		
 }
 
 
@@ -283,12 +327,20 @@ float AVREditorFloatingUI::GetScale() const
 	return Scale;
 }
 
-void AVREditorFloatingUI::SetScale( const float NewSize )
+void AVREditorFloatingUI::SetScale( const float NewSize, const bool bScaleWidget /*= true*/)
 {
 	Scale = NewSize;
 
-	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
-	const FVector NewScale( Scale * WorldScaleFactor );
+	if (bScaleWidget)
+	{
+		const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
+		const FVector NewScale( Scale * WorldScaleFactor );
+		SetWidgetComponentScale(NewScale);
+	}
+}
+
+void AVREditorFloatingUI::SetWidgetComponentScale(const FVector& InScale)
+{
 	const float Aspect = (float)Resolution.X / (float)Resolution.Y;
-	WidgetComponent->SetWorldScale3D( FVector( 1.0f / NewScale.X, 1.0f / (float)Resolution.X, 1.0f / (float)Resolution.Y / Aspect ) * NewScale );
+	WidgetComponent->SetWorldScale3D(FVector(1.0f / InScale.X, 1.0f / (float)Resolution.X, 1.0f / (float)Resolution.Y / Aspect) * InScale);
 }

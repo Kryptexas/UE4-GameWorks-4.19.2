@@ -143,9 +143,16 @@ public:
 	 */
 	static void StartPlayFromHere();
 
+	static void ResumePlaySession_Clicked();
+	static void PausePlaySession_Clicked();
+
 	static bool IsInSIE();
 	static bool IsInPIE();
 
 	static bool IsInSIE_AndRunning();
 	static bool IsInPIE_AndRunning();
+
+	static bool HasPlayWorld();
+	static bool HasPlayWorldAndPaused();
+	static bool HasPlayWorldAndRunning();
 };

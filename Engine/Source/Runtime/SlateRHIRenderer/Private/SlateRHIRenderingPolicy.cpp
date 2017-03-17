@@ -246,7 +246,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	static const FEngineShowFlags DefaultShowFlags(ESFIM_Game);
 
-	const float DisplayGamma = bGammaCorrect ? GEngine ? GEngine->GetDisplayGamma() : 2.2f : 1.0f;
+	const float EngineGamma = GEngine ? GEngine->GetDisplayGamma() : 2.2f;
+	const float DisplayGamma = bGammaCorrect ? EngineGamma : 1.0f;
 
 	// In order to support MaterialParameterCollections, we need to create multiple FSceneViews for 
 	// each possible Scene that we encounter. The following code creates these as separate arrays, where the first 

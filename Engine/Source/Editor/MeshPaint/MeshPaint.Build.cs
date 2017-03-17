@@ -35,6 +35,14 @@ public class MeshPaint : ModuleRules
             }
         );
 
+		CircularlyReferencedDependentModules.AddRange(
+			new string[]
+			{
+				"ViewportInteraction",
+				"VREditor"
+			}
+		);
+
 		PrivateIncludePathModuleNames.AddRange(
 			new string[]
 			{

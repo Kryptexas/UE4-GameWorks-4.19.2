@@ -44,3 +44,8 @@ void UViewportDragOperationComponent::ClearDragOperation()
 
 	DragOperation = nullptr;
 }
+
+bool UViewportDragOperationComponent::IsDragging() const
+{
+	return DragOperation != nullptr;
+}

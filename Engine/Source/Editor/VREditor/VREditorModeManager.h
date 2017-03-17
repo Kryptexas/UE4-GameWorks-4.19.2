@@ -18,7 +18,10 @@ class FVREditorModeManager : public FGCObject
 
 public:
 
+	/** Default constructor */
 	FVREditorModeManager();
+
+	/** Default destructor */
 	~FVREditorModeManager();
 
 	/** Ticks to detect entering and closing the VR Editor */
@@ -33,10 +36,12 @@ public:
 	/** If the VR Editor is currently available */
 	bool IsVREditorAvailable() const;
 
-	/** Gets the current VR Editor mode */
-	UVREditorMode* GetVREditorMode();
+	/** Gets the current VR Editor mode that was enabled */
+	UVREditorMode* GetCurrentVREditorMode();
 
+	// FGCObject
 	virtual void AddReferencedObjects( FReferenceCollector& Collector );
+	// End FGCObject
 
 private:
 
@@ -44,7 +49,7 @@ private:
 	void StartVREditorMode( const bool bForceWithoutHMD );
 
 	/** Closes the current VR Editor if any and sets the WorldToMeters to back to the one from before entering the VR mode */
-	void CloseVREditor(const bool bHMDShouldExitStereo);
+	void CloseVREditor(const bool bShouldDisableStereo );
 
 	/** Directly set the GWorld WorldToMeters */
 	void SetDirectWorldToMeters( const float NewWorldToMeters );
@@ -62,12 +67,6 @@ private:
 
 	/** If the VR Editor mode needs to be enabled next tick */
 	bool bEnableVRRequest;
-
-	/** If PIE session started from within the VR Editor, so we can go back to the VR Editor when closing PIE with the motion controllers */
-	bool bPlayStartedFromVREditor;
-
-	/** Saved last world to meters scale from last VR Editor session so we can restore it when entering the VR Editor when PIE starter from VR Editor */
-	float LastWorldToMeters;
 
 	/** True when we detect that the user is wearing the HMD */
 	EHMDWornState::Type HMDWornState;

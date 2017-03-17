@@ -134,7 +134,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "EngineModule.h"
 
-#include "EditorWorldManager.h"
+#include "EditorWorldExtension.h"
 
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -316,6 +316,8 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	bIsEndingPlay = false;
 	NumOnlinePIEInstances = 0;
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
+
+	EditorWorldExtensionsManager = nullptr;
 
 #if !UE_BUILD_SHIPPING
 	if (!AutomationCommon::OnEditorAutomationMapLoadDelegate().IsBound())
@@ -613,7 +615,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	TimerManager = MakeShareable(new FTimerManager());
 
 	// create the editor world manager
-	EditorWorldManager = MakeShareable(new FEditorWorldManager());
+	EditorWorldExtensionsManager = NewObject<UEditorWorldExtensionManager>();
 
 	// Settings.
 	FBSPOps::GFastRebuild = 0;
@@ -1703,8 +1705,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 	}
 
-	// Updates the ViewportWorldInteraction
-	EditorWorldManager->Tick( DeltaSeconds );
+	// Updates all the extensions for all the editor worlds
+	EditorWorldExtensionsManager->Tick(DeltaSeconds);
 
 	bool bIsMouseOverAnyLevelViewport = false;
 
@@ -2265,13 +2267,18 @@ void UEditorEngine::PlayEditorSound( const FString& SoundAssetName )
 void UEditorEngine::PlayEditorSound( USoundBase* InSound )
 {
 	// Only play sounds if the user has that feature enabled
-	if (!GIsSavingPackage && IsInGameThread() && GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds)
+	if (!GIsSavingPackage && CanPlayEditorSound())
 	{
 		if (InSound != nullptr)
 		{
 			GEditor->PlayPreviewSound(InSound);
 		}
 	}
+}
+
+bool UEditorEngine::CanPlayEditorSound() const
+{
+	return IsInGameThread() && GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds;
 }
 
 void UEditorEngine::ClearPreviewComponents()

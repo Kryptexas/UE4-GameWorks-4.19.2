@@ -81,6 +81,9 @@ enum class ESlateDrawEffect : uint8
 	DisabledEffect		= 1 << 5,
 	/** Advanced: Don't read from texture alpha channel */
 	IgnoreTextureAlpha	= 1 << 6,
+
+	/** Advanced: Existing Gamma correction should be reversed */
+	ReverseGamma			= 1 << 7
 };
 
 ENUM_CLASS_FLAGS(ESlateDrawEffect);
@@ -106,7 +109,9 @@ enum class ESlateBatchDrawFlag : uint8
 	/** The element should be tiled horizontally */
 	TileU				= 1 << 5,
 	/** The element should be tiled vertically */
-	TileV				= 1 << 6
+	TileV				= 1 << 6,
+	/** Reverse gamma correction */
+	ReverseGamma			 = 1 << 7
 };
 
 ENUM_CLASS_FLAGS(ESlateBatchDrawFlag);

@@ -2969,7 +2969,7 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	// are all operations that we shouldn't do if our application isn't Active (The OS ignores half of it, and we'd be in a half state)
 	// We do allow the release of capture and lock when deactivated, this is innocuous of some platforms but required on others when 
 	// the Application deactivated before the window. (Mac is an example of this)
-	if (bAppIsActive)
+	if (bAppIsActive || bIsVirtualInteraction)
 	{
 		TSharedPtr<SWidget> RequestedMouseCaptor = TheReply.GetMouseCaptor();
 		// Do not capture the mouse if we are also starting a drag and drop.
@@ -4816,6 +4816,12 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 	}
 	PressedMouseButtons.Add( MouseEvent.GetEffectingButton() );
 
+	// Input preprocessor gets first chance at the input
+	if( InputPreProcessor.IsValid() && InputPreProcessor->HandleMouseButtonDownEvent( *this, MouseEvent ) )
+	{
+		return true;
+	}
+
 	bool bInGame = false;
 
 	// Only process mouse down messages if we are not drag/dropping
@@ -4993,6 +4999,15 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 	TSharedPtr<SWindow> TopLevelWindow;
 #endif
 
+	if ( DragDetector.DetectDragForWidget.IsValid() )
+	{
+		if ( PointerEvent.GetEffectingButton() == DragDetector.DetectDragButton && PointerEvent.GetPointerIndex() == DragDetector.DetectDragPointerIndex )
+		{
+			// The user has released the button (or finger) that was supposed to start the drag; stop detecting it.
+			DragDetector = FDragDetector();
+		}
+	}
+
 	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
 	{
 		//FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath(PointerEvent.GetPointerIndex());
@@ -5101,7 +5116,14 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 
 	// User asked us to detect a drag.
 	bool bDragDetected = false;
-	if( DragDetector.DetectDragForWidget.IsValid() && !bIsSynthetic )
+	bool bShouldStartDetectingDrag = true;
+
+	//@TODO VREDITOR - Remove and move to interaction component
+	if (OnDragDropCheckOverride.IsBound())
+	{
+		bShouldStartDetectingDrag = OnDragDropCheckOverride.Execute();
+	}
+	if( DragDetector.DetectDragForWidget.IsValid() && !bIsSynthetic && bShouldStartDetectingDrag)
 	{	
 		const FVector2D DragDelta = (DragDetector.DetectDragStartLocation - PointerEvent.GetScreenSpacePosition());
 		bDragDetected = ( DragDelta.SizeSquared() > FMath::Square(FSlateApplication::Get().GetDragTriggerDistance()) );
@@ -5307,6 +5329,13 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 	if (IsDragDropping())
 	{
 		FDragDropEvent DragDropEvent( PointerEvent, DragDropContent );
+		//@TODO VREDITOR - Remove and move to interaction component
+		if (OnDragDropCheckOverride.IsBound() && DragDropEvent.GetOperation().IsValid())
+		{
+			DragDropEvent.GetOperation()->SetDecoratorVisibility(false);
+			DragDropEvent.GetOperation()->SetCursorOverride(EMouseCursor::None);
+			DragDropContent->SetCursorOverride(EMouseCursor::None);
+		}
 		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderPointer );
 		DragDropContent->OnDragged( DragDropEvent );
 
@@ -5458,13 +5487,10 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	PressedMouseButtons.Remove( MouseEvent.GetEffectingButton() );
 
-	if ( DragDetector.DetectDragForWidget.IsValid() )
+	// Input preprocessor gets first chance at the input
+	if( InputPreProcessor.IsValid() && InputPreProcessor->HandleMouseButtonUpEvent( *this, MouseEvent ) )
 	{
-		if ( MouseEvent.GetEffectingButton() == DragDetector.DetectDragButton && MouseEvent.GetPointerIndex() == DragDetector.DetectDragPointerIndex )
-		{
-			// The user has released the button (or finger) that was supposed to start the drag; stop detecting it.
-			DragDetector = FDragDetector();
-		}
+		return true;
 	}
 
 	// An empty widget path is passed in.  As an optimization, one will be generated only if a captured mouse event isn't routed

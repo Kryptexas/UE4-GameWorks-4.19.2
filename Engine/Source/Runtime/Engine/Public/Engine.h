@@ -110,7 +110,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Curves/CurveFloat.h"
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "Engine/SubsurfaceProfile.h"
-#include "Engine/SubDSurface.h"
 #include "Engine/DebugCameraController.h"
 #include "Engine/DecalActor.h"
 #include "CanvasItem.h"

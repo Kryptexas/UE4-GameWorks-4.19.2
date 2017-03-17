@@ -27,6 +27,12 @@ public:
 	/** Called by VREditorMode to update us every frame */
 	void TickManually( const float DeltaTime );
 
+	// UObject overrides
+	virtual bool IsEditorOnly() const final
+	{
+		return true;
+	}
+
 private:
 
 	/** Our avatar's head mesh */

@@ -7,11 +7,13 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Widgets/SOverlay.h"
+#include "VRRadialMenuHandler.h"
 #include "VREditorUISystem.generated.h"
 
 class AVREditorDockableWindow;
 class AVREditorFloatingUI;
 class FProxyTabmanager;
+struct FTabId;
 class SColorPicker;
 class SBorder;
 class SButton;
@@ -20,6 +22,9 @@ class SMultiBoxWidget;
 class SWidget;
 class UViewportInteractor;
 class UVREditorInteractor;
+class FMenuBuilder;
+class FUICommandList;
+class UVREditorWidgetComponent;
 
 
 /** Stores the animation playback state of a VR UI element */
@@ -31,16 +36,20 @@ enum class EVREditorAnimationState : uint8
 };
 
 /** Structure to keep track of all relevant interaction and animation elements of a VR Button */
+USTRUCT()
 struct FVRButton
 {
-	/** Pointer to button */
-	TSharedPtr<SButton> Button;
+	GENERATED_USTRUCT_BODY()
 
-	/** Pointer to button border */
-	TSharedPtr<SBorder> ButtonBorder;
+	/** Pointer to button */
+	UPROPERTY()
+	UVREditorWidgetComponent* ButtonWidget;
 
 	/** Animation playback state of the button */
 	EVREditorAnimationState AnimationDirection;
+
+	/** Original relative scale of the button element */
+	FVector OriginalRelativeScale;
 
 	/** Current scale of the button element */
 	float CurrentScale;
@@ -55,18 +64,20 @@ struct FVRButton
 	float ScaleRate;
 
 	FVRButton()
-		: AnimationDirection(EVREditorAnimationState::None),
+		: ButtonWidget(nullptr),
+		AnimationDirection(EVREditorAnimationState::None),
+		OriginalRelativeScale(FVector::ZeroVector),
 		CurrentScale(1.0f),
 		MinScale(1.0f),
 		MaxScale(1.10f),
 		ScaleRate(2.0f)
 		{}
 
-	FVRButton(TSharedPtr<SButton> InButton, TSharedPtr<SBorder> InButtonBorder,
+	FVRButton(class UVREditorWidgetComponent* InButtonWidget, FVector InOriginalScale,
 		EVREditorAnimationState InAnimationDirection = EVREditorAnimationState::None, float InCurrentScale = 1.0f, float InMinScale = 1.0f, float InMaxScale = 1.25f, float InScaleRate = 2.0f)
-		: Button(InButton),
-		ButtonBorder(InButtonBorder),
+		: ButtonWidget(InButtonWidget),
 		AnimationDirection(InAnimationDirection),
+		OriginalRelativeScale(InOriginalScale),
 		CurrentScale(InCurrentScale),
 		MinScale(InMinScale),
 		MaxScale(InMaxScale),
@@ -96,6 +107,7 @@ public:
 		AssetEditor,
 		WorldSettings,
 		ColorPicker,
+		SequencerUI,
 		// ...
 
 		TotalCount,
@@ -133,30 +145,27 @@ public:
 
 	/** Called by our owner right before a map is loaded or switching between Simulate and normal Editor, so we can clean
 	    up our spawned actors */
-	void CleanUpActorsBeforeMapChangeOrSimulate();
-
-	/** Searches to see if the specified widget component is from our editor UI */
-	bool IsWidgetAnEditorUIWidget( const class UActorComponent* WidgetComponent ) const;
+	void CleanupActorsBeforeShutdown();
 
 	/** Returns true if the specified editor UI panel is currently visible */
 	bool IsShowingEditorUIPanel( const EEditorUIPanel EditorUIPanel ) const;
 
 	/** Sets whether the specified editor UI panel should be visible.  Any other UI floating off this hand will be dismissed when showing it. */
-	void ShowEditorUIPanel( const class UWidgetComponent* WidgetComponent, UVREditorInteractor* Interactor, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true, const bool bPlaySound = true );
-	void ShowEditorUIPanel( const EEditorUIPanel EditorUIPanel, UVREditorInteractor* Interactor, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true, const bool bPlaySound = true );
-	void ShowEditorUIPanel( class AVREditorFloatingUI* Panel, UVREditorInteractor* Interactor, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true, const bool bPlaySound = true );
+	void ShowEditorUIPanel(const class UWidgetComponent* WidgetComponent, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
+	void ShowEditorUIPanel(const EEditorUIPanel EditorUIPanel, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
+	void ShowEditorUIPanel(class AVREditorFloatingUI* Panel, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
 
 	/** Returns true if the radial menu is visible on this hand */
 	bool IsShowingRadialMenu(const UVREditorInteractor* Interactor ) const;
 
 	/** Tries to spawn the radial menu (if the specified hand isn't doing anything else) */
-	void TryToSpawnRadialMenu( UVREditorInteractor* Interactor, const bool bForceOverUI );
+	void TryToSpawnRadialMenu( UVREditorInteractor* Interactor, const bool bForceRefresh, const bool bPlaySound = true );
 
 	/** Hides the radial menu if the specified hand is showing it */
-	void HideRadialMenu( UVREditorInteractor* Interactor );
+	void HideRadialMenu( const bool bPlaySound = true );
 
 	/** Start dragging a dock window on the hand */
-	void StartDraggingDockUI( class AVREditorDockableWindow* InitDraggingDockUI, UVREditorInteractor* Interactor, const float DockSelectDistance );
+	void StartDraggingDockUI( class AVREditorDockableWindow* InitDraggingDockUI, UVREditorInteractor* Interactor, const float DockSelectDistance, const bool bPlaySound = true );
 
 	/** Makes up a transform for a dockable UI when dragging it with a laser at the specified distance from the laser origin */
 	FTransform MakeDockableUITransformOnLaser( AVREditorDockableWindow* InitDraggingDockUI, UVREditorInteractor* Interactor, const float DockSelectDistance ) const;
@@ -168,12 +177,15 @@ public:
 	class AVREditorDockableWindow* GetDraggingDockUI() const;
 
 	/** Resets all values to stop dragging the current dock window */
-	void StopDraggingDockUI( UVREditorInteractor* VREditorInteractor );
+	void StopDraggingDockUI( UVREditorInteractor* VREditorInteractor, const bool bPlaySound = true );
 
 	/** Are we currently dragging a dock window */
-	bool IsDraggingDockUI();	
+	bool IsDraggingDockUI();
 
 	bool IsInteractorDraggingDockUI( const UVREditorInteractor* Interactor ) const;
+
+	/** If a panel was opened and dragged with the UI interactor */
+	bool IsDraggingPanelFromOpen() const;
 
 	/** Hides and unhides all the editor UI panels */
 	void TogglePanelsVisibility();
@@ -188,7 +200,7 @@ public:
 	void TogglePanelVisibility( const EEditorUIPanel EditorUIPanel );
 
 	/** Returns the radial widget so other classes, like the interactors, can access its functionality */
-	const TSharedPtr<SWidget>& GetRadialWidget();
+	class AVREditorRadialFloatingUI* GetRadialMenuFloatingUI() const;
 
 	/** 
 	 * Finds a widget with a given name inside the Content argument 
@@ -197,18 +209,56 @@ public:
 	 */
 	static const TSharedRef<SWidget>& FindWidgetOfType(const TSharedRef<SWidget>& Content, FName WidgetType);
 
+	/**
+	* Finds a widget with a given name inside the Content argument
+	* @param Content The widget to begin searching in
+	* @param The FName of the widget type to find.
+	*/
+	static const bool FindAllWidgetsOfType(TArray<TSharedRef<SWidget>>& FoundWidgets, const TSharedRef<SWidget>& Content, FName WidgetType);
+
+	/** Function to force an update of the Sequencer UI based on a change */
+	void UpdateSequencerUI();
+
+	/** Transition the user widgets to a new world */
+	void TransitionWorld(UWorld* NewWorld);
+
+	UVRRadialMenuHandler* GetRadialMenuHandler()
+	{
+		return RadialMenuHandler;
+	}
+
+	/** Called when a laser or simulated mouse hover enters a button */
+	void OnHoverBeginEffect(UVREditorWidgetComponent* Button);
+	/** Called when a laser or simulated mouse hover leaves a button */
+	void OnHoverEndEffect(UVREditorWidgetComponent* Button);
+
+	/** Set if sequencer was opened from the radial menu */
+	void SequencerOpenendFromRadialMenu(const bool bInOpenedFromRadialMenu = true);
+
+	/** If a dockable window can be scaled */
+	bool CanScalePanel() const;
+
+	/** Get the interactor that holds the radial menu */
+	class UVREditorMotionControllerInteractor* GetUIInteractor();
 
 protected:
+
+	/** Called to "preview" an input event to get a first chance at it. */
+	void OnPreviewInputAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
+		const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled );
 
 	/** Called when the user presses a button on their motion controller device */
 	void OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
 		const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled );
 
 	/** Called every frame to update hover state */
-	void OnVRHoverUpdate( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled );
+	void OnVRHoverUpdate( UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled );
 
 	/** Testing Slate UI */
 	void CreateUIs();
+
+	/** Called by proxy tab manager to ask us whether we support the specified tab ID.  bOutIsTabSupported defaults to true. */
+	void IsProxyTabSupported( FTabId TabId, bool& bOutIsTabSupported );
 
 	/**
 	 * Called when the injected proxy tab manager reports a new tab has been launched, 
@@ -225,9 +275,8 @@ protected:
 	/** Called when an asset editor opens an asset while in VR Editor Mode. */
 	void OnAssetEditorOpened(UObject* Asset);
 
-	/** Sets the main windows to their default transform */
-	void SetDefaultWindowLayout();
-
+	/** Can be used when the tab manager is restoring a dockable tab area */
+	void DockableAreaRestored();
 
 	/** Creates a VR-specific color picker. Gets bound to SColorPicker's creation override delegate */
 	void CreateVRColorPicker(const TSharedRef<SColorPicker>& ColorPicker);
@@ -238,27 +287,40 @@ protected:
 	/**  Makes a uniform grid widget from the menu information contained in a MultiBox and MultiBoxWidget */
 	void MakeUniformGridMenu( const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, int32 Columns);
 	/**  Makes a radial box widget from the menu information contained in a MultiBox and MultiBoxWidget */
-	void MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, float RadiusRatioOverride);
+	void MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, float RadiusRatioOverride, FName ButtonTypeOverride);
 
 	/** Adds a hoverable button of a given type to an overlay, using menu data from a BlockWidget */
 	TSharedRef<SWidget> AddHoverableButton(TSharedRef<SWidget>& BlockWidget, FName ButtonType, TSharedRef<SOverlay>& TestOverlay);
 	/** Sets the text wrap size of the text block element nested in a BlockWidget */
-	TSharedRef<SWidget> SetButtonTextWrap(TSharedRef<SWidget>& BlockWidget, float WrapSize);
+	TSharedRef<SWidget> SetButtonFormatting(TSharedRef<SWidget>& BlockWidget, float WrapSize);
 	
 	/** Builds the quick menu Slate widget */
 	TSharedRef<SWidget> BuildQuickMenuWidget();
 	/** Builds the radial menu Slate widget */
-	TSharedRef<SWidget> BuildRadialMenuWidget();
+	void BuildRadialMenuWidget();
 	/** Builds the numpad Slate widget */
-	TSharedRef<SWidget> BuildNumPadWidget();
+	void BuildNumPadWidget();
 	/** Swaps the content of the radial menu between the radial menu and the numpad */
 	void SwapRadialMenu();
 
-	/** Called when a laser or simulated mouse hover enters a button */
-	void OnHoverBeginEffect(TSharedRef<SButton> Button);
-	/** Called when a laser or simulated mouse hover leaves a button */
-	void OnHoverEndEffect(TSharedRef<SButton> Button);
+	/** Creates the sequencer radial menu to pass to the radial menu generator */
+	void SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, class UVREditorMode* InVRMode, float& RadiusOverride);
 
+	/**
+	* Handles being notified when any editor mode changes to see if any VR Editor UI needs to change.
+	* @param Mode The mode that changed.
+	* @param IsEnabled true if the mode is enabled, otherwise false.
+	*/
+	void HandleEditorModeChanged(class FEdMode* Mode, bool IsEnabled);
+
+	/** Reset function that puts you back in placement mode, closes all UIs, etc. */
+	void ResetAll();
+
+	/**The VR Editor UI System's rules for when drag drop should be checked for */
+	bool CheckForVRDragDrop();
+
+	/** Preview the UI panel's location if spawning with the UI interactor, else spawn immediately */
+	bool ShouldPreviewPanel();
 
 protected:
 
@@ -280,16 +342,10 @@ protected:
 
 	/** The Radial Menu UI */
 	UPROPERTY()
-	AVREditorFloatingUI* QuickRadialMenu;
+	class AVREditorRadialFloatingUI* QuickRadialMenu;
 
 	/** The time since the radial menu was updated */
 	float RadialMenuHideDelayTime;
-
-	/** Tutorial menu widget class */
-	UClass* TutorialWidgetClass;
-
-	/** Pointer to the radial menu widget */
-	TSharedPtr<SWidget> RadialWidget;
 
 	/** True if the radial menu was visible when the content was swapped */
 	bool bRadialMenuVisibleAtSwap;
@@ -316,6 +372,16 @@ protected:
 	class AVREditorDockableWindow* ColorPickerUI;
 
 	//
+	// Asymmetry
+	//
+	/** Interactor that has a laser and is generally interacting with the scene */
+	UPROPERTY()
+	class UVREditorMotionControllerInteractor* LaserInteractor;
+	/** Interactor that usually accesses UI and other helper functionality */
+	UPROPERTY()
+	class UVREditorMotionControllerInteractor* UIInteractor;
+
+	//
 	// Tab Manager UI
 	//
 
@@ -325,44 +391,37 @@ protected:
 	/** Set to true when we need to refocus the viewport. */
 	bool bRefocusViewport;
 
-
-	//
-	// Sounds
-	//
-
-	/** Start dragging UI sound */
-	UPROPERTY()
-	class USoundCue* StartDragUISound;
-
-	/** Stop dragging UI sound */
-	UPROPERTY()
-	class USoundCue* StopDragUISound;
-
-	/** Hide UI sound */
-	UPROPERTY()
-	class USoundCue* HideUISound;
-
-	/** Show UI sound */
-	UPROPERTY()
-	class USoundCue* ShowUISound;
-
-	/** Button press sound */
-	UPROPERTY()
-	class USoundCue* ButtonPressSound;
-
-	/** If the current dragged dock passed a certain distance if dragged from a hand */
-	bool bDraggedDockFromHandPassedThreshold;
-
 	/** The last dragged hover location by the laser */
 	FVector LastDraggingHoverLocation;
 
-	/** Default transforms */
-	TArray<FTransform> DefaultWindowTransforms;
-
 	/** All buttons created for the radial and quick menus */
+	UPROPERTY()
 	TArray<FVRButton> VRButtons;
 
-	/** If this is the first time using TogglePanelsVisibility */
-	bool bSetDefaultLayout;
+	/** The add-on that handles radial menu switching */
+	UPROPERTY()
+	UVRRadialMenuHandler* RadialMenuHandler;
+
+	/** When replacing the actions menu, store off any existing actions */
+	FOnRadialMenuGenerated ExistingActionsMenu;
+
+	/** When replacing the actions menu, store off the name of the existing actions menu */
+	FText ExistingActionsMenuLabel;
+
+	/** The time the modifier was pressed at to spawn the menu */
+	FTimespan RadialMenuModifierSpawnTime;
+
+	/** If sequenced was opened from the radial menu or somewhere else such as the content browser. */
+	bool bSequencerOpenedFromRadialMenu;
+
+	/** If started dragging from opening a UI panel */
+	bool bDragPanelFromOpen;
+
+	/** The time dragging a panel that was opened resulting in an instant drag */
+	float DragPanelFromOpenTime;
+
+	/** When started dragging from the radial menu we want the analog stick to be reset before the user is allowed to scale the panel. 
+	    Otherwise the panel will immediately start scaling because the user is using the analog stick to aim at the radial menu items. */
+	bool bPanelCanScale;
 };
 

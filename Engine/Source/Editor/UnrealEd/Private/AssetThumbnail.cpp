@@ -34,6 +34,7 @@
 #include "AssetToolsModule.h"
 #include "Styling/SlateIconFinder.h"
 #include "ClassIconFinder.h"
+#include "IVREditorModule.h"
 
 class SAssetThumbnail : public SCompoundWidget
 {
@@ -150,6 +151,9 @@ public:
 			TSharedPtr<SViewport> Viewport = 
 				SNew( SViewport )
 				.EnableGammaCorrection(false)
+				// In VR editor every widget is in the world and gamma corrected by the scene renderer.  Thumbnails will have already been gamma
+				// corrected and so they need to be reversed
+				.ReverseGammaCorrection(IVREditorModule::Get().IsVREditorModeActive())
 				.EnableBlending(true);
 
 			Viewport->SetViewportInterface( AssetThumbnail.ToSharedRef() );

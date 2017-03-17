@@ -3,23 +3,26 @@
 #include "VREditorModeManager.h"
 #include "InputCoreTypes.h"
 #include "VREditorMode.h"
-#include "Settings/EditorExperimentalSettings.h"
 #include "Modules/ModuleManager.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/WorldSettings.h"
+#include "GameFramework/PlayerInput.h"
 #include "Editor.h"
 
 #include "EngineGlobals.h"
 #include "LevelEditor.h"
 #include "IHeadMountedDisplay.h"
-#include "EditorWorldManager.h"
+#include "EditorWorldExtension.h"
+#include "ViewportWorldInteraction.h"
+#include "VRModeSettings.h"
+#include "Dialogs.h"
+
+#define LOCTEXT_NAMESPACE "VREditor"
 
 FVREditorModeManager::FVREditorModeManager() :
 	CurrentVREditorMode( nullptr ),
 	PreviousVREditorMode( nullptr ),
 	bEnableVRRequest( false ),
-	bPlayStartedFromVREditor( false ),
-	LastWorldToMeters( 100 ),
 	HMDWornState( EHMDWornState::Unknown ),
 	TimeSinceHMDChecked( 0.0f )
 {
@@ -37,7 +40,9 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 	TimeSinceHMDChecked += DeltaTime;
 
 	// You can only auto-enter VR if the setting is enabled. Other criteria are that the VR Editor is enabled in experimental settings, that you are not in PIE, and that the editor is foreground.
-	bool bCanAutoEnterVR = ( GetDefault<UEditorExperimentalSettings>()->bEnableAutoVREditMode ) && ( GetDefault<UEditorExperimentalSettings>()->bEnableVREditing ) && !( GEditor->PlayWorld ) && FPlatformProcess::IsThisApplicationForeground();
+	bool bCanAutoEnterVR = GetDefault<UVRModeSettings>()->bEnableAutoVREditMode && 
+		(GEditor->PlayWorld == nullptr || (CurrentVREditorMode != nullptr && CurrentVREditorMode->GetStartedPlayFromVREditor())) && 
+		FPlatformProcess::IsThisApplicationForeground();
 
 	if( GEngine != nullptr && GEngine->HMDDevice.IsValid() )
 	{
@@ -52,6 +57,11 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 			}
 			else if( HMDWornState == EHMDWornState::NotWorn )
 			{
+				if (GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor)
+				{
+					CurrentVREditorMode->TogglePIEAndVREditor();
+				}
+
 				EnableVREditor( false, false );
 			}
 		}
@@ -59,38 +69,15 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 
 	if( IsVREditorActive() )
 	{
-		UVREditorMode* VREditorMode = CurrentVREditorMode;
-		if( VREditorMode->WantsToExitMode() )
+		if( CurrentVREditorMode->WantsToExitMode() )
 		{
 			// For a standard exit, also take the HMD out of stereo mode
-			const bool bHMDShouldExitStereo = true;
-			CloseVREditor( bHMDShouldExitStereo );
-
-			// Start the session if that was the reason to stop the VR Editor mode
-			if( VREditorMode->GetExitType() == EVREditorExitType::PIE_VR  || 
-				VREditorMode->GetExitType() == EVREditorExitType::SIE_VR )
-			{
-				const bool bHMDIsReady = ( GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected() );
-
-				const FVector* StartLoc = NULL;
-				const FRotator* StartRot = NULL;
-
-				if( VREditorMode->GetExitType() == EVREditorExitType::PIE_VR )
-				{
-					GEditor->RequestPlaySession( true, NULL, false, StartLoc, StartRot, -1, false, bHMDIsReady, false );
-				}
-				else if( VREditorMode->GetExitType() == EVREditorExitType::SIE_VR )
-				{
-					//@todo VREditor: Where request should be to start the VR Editor in simulate mode
-					//TSharedPtr<ILevelViewport> LevelViewport = MakeShareable( &VREditorMode->GetLevelViewportPossessedForVR() ); //@todo VREditor: Must be above CloseVREditor
-					//GEditor->RequestPlaySession( true, LevelViewport, true /*bSimulateInEditor*/, StartLoc, StartRot, -1, false, bHMDIsReady, false );
-				}
-				bPlayStartedFromVREditor = true;
-			}
+			const bool bShouldDisableStereo = true;
+			CloseVREditor( bShouldDisableStereo );
 		}
 	}
 	// Only check for input if we started this play session from the VR Editor
-	else if( bPlayStartedFromVREditor && GEditor->PlayWorld && !bEnableVRRequest )
+	else if( GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor && CurrentVREditorMode != nullptr)
 	{
 		// Shutdown PIE if we came from the VR Editor and we are not already requesting to start the VR Editor and when any of the players is holding down the required input
 		const float ShutDownInputKeyTime = 1.0f;
@@ -103,8 +90,10 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 				PlayerController->GetInputKeyTimeDown( EKeys::MotionController_Right_Trigger ) > ShutDownInputKeyTime &&
 				PlayerController->GetInputKeyTimeDown( EKeys::MotionController_Left_Trigger ) > ShutDownInputKeyTime)
 			{
-				GEditor->RequestEndPlayMap();
-				bEnableVRRequest = true;
+				CurrentVREditorMode->TogglePIEAndVREditor();
+				// We need to clear the input of the playercontroller when exiting PIE. 
+				// Otherwise the input will still be pressed down causing toggle between PIE and VR Editor to be called instantly whenever entering PIE a second time.
+				PlayerController->PlayerInput->FlushPressedKeys();
 				break;
 			}
 		}
@@ -127,13 +116,24 @@ void FVREditorModeManager::EnableVREditor( const bool bEnable, const bool bForce
 	{
 		if( bEnable && ( IsVREditorAvailable() || bForceWithoutHMD ))
 		{
-			StartVREditorMode( bForceWithoutHMD );
+			FSuppressableWarningDialog::FSetupInfo SetupInfo(LOCTEXT("VRModeEntry_Message", "VR Mode enables you to work on your project in virtual reality using motion controllers. This feature is still under development, so you may experience bugs or crashes while using it."),
+				LOCTEXT("VRModeEntry_Title", "Entering VR Mode - Experimental"), "Warning_VRModeEntry", GEditorSettingsIni);
+
+			SetupInfo.ConfirmText = LOCTEXT("VRModeEntry_ConfirmText", "Continue");
+			SetupInfo.CancelText = LOCTEXT("VRModeEntry_CancelText", "Cancel");
+			SetupInfo.bDefaultToSuppressInTheFuture = true;
+			FSuppressableWarningDialog VRModeEntryWarning(SetupInfo);
+
+			if (VRModeEntryWarning.ShowModal() != FSuppressableWarningDialog::Cancel)
+			{
+				StartVREditorMode(bForceWithoutHMD);
+			}
 		}
 		else if( !bEnable )
 		{
 			// For a standard exit, take the HMD out of stereo mode
-			const bool bHMDShouldExitStereo = true;
-			CloseVREditor( bHMDShouldExitStereo );
+			const bool bShouldDisableStereo = true;
+			CloseVREditor( bShouldDisableStereo );
 		}
 	}
 }
@@ -147,11 +147,11 @@ bool FVREditorModeManager::IsVREditorActive() const
 bool FVREditorModeManager::IsVREditorAvailable() const
 {
 	const bool bHasHMDDevice = GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled();
-	return bHasHMDDevice;
+	return bHasHMDDevice && !GEditor->bIsSimulatingInEditor;
 }
 
 
-UVREditorMode* FVREditorModeManager::GetVREditorMode()
+UVREditorMode* FVREditorModeManager::GetCurrentVREditorMode()
 {
 	return CurrentVREditorMode;
 }
@@ -163,18 +163,15 @@ void FVREditorModeManager::AddReferencedObjects( FReferenceCollector& Collector 
 
 void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 {
-	bool bReenteringVREditing = false;
-	// Set the WorldToMeters scale when we stopped playing PIE that was started by the VR Editor to that VR Editor sessions latest WorldToMeters
-	if( bPlayStartedFromVREditor )
+	UVREditorMode* VRMode = nullptr;
 	{
-		SetDirectWorldToMeters( LastWorldToMeters );
-		// If we are enabling VR after a Play session started from VR, then we are re-entering VR editor mode so we need to re-enable stereo
-		bReenteringVREditing = true;
-		bPlayStartedFromVREditor = false;
+		UWorld* World = GEditor->bIsSimulatingInEditor ? GEditor->PlayWorld : GWorld;
+		UEditorWorldExtensionCollection* Collection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World);
+		check(Collection != nullptr);
+		Collection->AddExtension(UViewportWorldInteraction::StaticClass());
+		VRMode = Cast<UVREditorMode>(Collection->AddExtension(UVREditorMode::StaticClass()));
+		check(VRMode != nullptr);
 	}
-
-	TSharedPtr<FEditorWorldWrapper> EditorWorld = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper( GWorld );
-	UVREditorMode* ModeFromWorld = EditorWorld->GetVREditorMode();
 
 	// Tell the level editor we want to be notified when selection changes
 	{
@@ -182,16 +179,14 @@ void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 		LevelEditor.OnMapChanged().AddRaw( this, &FVREditorModeManager::OnMapChanged );
 	}
 	
-	CurrentVREditorMode = ModeFromWorld;
+	CurrentVREditorMode = VRMode;
 	CurrentVREditorMode->SetActuallyUsingVR( !bForceWithoutHMD );
-	CurrentVREditorMode->Enter(bReenteringVREditing);
+
+	CurrentVREditorMode->Enter();
 }
 
-void FVREditorModeManager::CloseVREditor( const bool bHMDShouldExitStereo )
+void FVREditorModeManager::CloseVREditor( const bool bShouldDisableStereo )
 {
-	//Store the current WorldToMeters before exiting the mode
-	LastWorldToMeters = GWorld->GetWorldSettings()->WorldToMeters;
-
 	FLevelEditorModule* LevelEditor = FModuleManager::GetModulePtr<FLevelEditorModule>( "LevelEditor" );
 	if( LevelEditor != nullptr )
 	{
@@ -200,8 +195,14 @@ void FVREditorModeManager::CloseVREditor( const bool bHMDShouldExitStereo )
 
 	if( CurrentVREditorMode != nullptr )
 	{
-		CurrentVREditorMode->Exit( bHMDShouldExitStereo );
+		CurrentVREditorMode->Exit( bShouldDisableStereo );
 		PreviousVREditorMode = CurrentVREditorMode;
+
+		UEditorWorldExtensionCollection* Collection = CurrentVREditorMode->GetOwningCollection();
+		check(Collection != nullptr);
+		Collection->RemoveExtension(Collection->FindExtension(UVREditorMode::StaticClass()));
+		Collection->RemoveExtension(Collection->FindExtension(UViewportWorldInteraction::StaticClass()));
+
 		CurrentVREditorMode = nullptr;
 	}
 }
@@ -218,9 +219,11 @@ void FVREditorModeManager::OnMapChanged( UWorld* World, EMapChangeType MapChange
 	if( CurrentVREditorMode && CurrentVREditorMode->IsActive() )
 	{
 		// When changing maps, we are going to close VR editor mode but then reopen it, so don't take the HMD out of stereo mode
-		const bool bHMDShouldExitStereo = false;
-		CloseVREditor( bHMDShouldExitStereo );
+		const bool bShouldDisableStereo = false;
+		CloseVREditor( bShouldDisableStereo );
 		bEnableVRRequest = true;
 	}
 	CurrentVREditorMode = nullptr;
 }
+
+#undef LOCTEXT_NAMESPACE

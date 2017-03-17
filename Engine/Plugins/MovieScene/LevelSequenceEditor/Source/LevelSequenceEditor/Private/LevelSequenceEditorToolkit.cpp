@@ -48,8 +48,14 @@
 #include "UnrealEdMisc.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
+
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
+
+// To override Sequencer editor behavior for VR Editor 
+#include "EditorWorldExtension.h"
+#include "VREditorMode.h"
+
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
@@ -157,6 +163,7 @@ FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkit(const TSharedRef<ISlate
 		FAssetEditorExtender::CreateRaw(this, &FLevelSequenceEditorToolkit::HandleMenuExtensibilityGetExtender));
 	SequencerExtenderHandle = SequencerModule.GetAddTrackMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
 
+
 	OpenToolkits.Add(this);
 }
 
@@ -254,6 +261,22 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 	LevelSequenceEditorModule.OnMasterSequenceCreated().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMasterSequenceCreated);
 
 	FLevelSequenceEditorToolkit::OnOpened().Broadcast(*this);
+
+	{
+		UWorld* World = CastChecked<UWorld>( GetLevelSequenceEditorPlaybackContext() );
+		UVREditorMode* VRMode = Cast<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
+		if (VRMode != nullptr)
+		{
+			VRMode->OnVREditingModeExit_Handler.BindSP(this, &FLevelSequenceEditorToolkit::HandleVREditorModeExit);
+			USequencerSettings& SavedSequencerSettings = *Sequencer->GetSequencerSettings();
+			VRMode->SaveSequencerSettings(Sequencer->GetKeyAllEnabled(), Sequencer->GetAutoKeyMode(), SavedSequencerSettings);
+			// Override currently set autokey behavior to always autokey all
+			Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyAll);
+			Sequencer->SetKeyAllEnabled(true);
+			// Tell the VR Editor mode that Sequencer has refreshed
+			VRMode->RefreshVREditorSequencer(Sequencer.Get());
+		}
+	}
 }
 
 
@@ -588,6 +611,17 @@ void FLevelSequenceEditorToolkit::HandleActorAddedToSequencer(AActor* Actor, con
 }
 
 
+void FLevelSequenceEditorToolkit::HandleVREditorModeExit()
+{
+	UWorld* World = Cast<UWorld>(GetLevelSequenceEditorPlaybackContext());
+	UVREditorMode* VRMode = CastChecked<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
+
+	// Reset sequencer settings
+	Sequencer->SetAutoKeyMode(VRMode->GetSavedEditorState().AutoKeyMode);
+	Sequencer->SetKeyAllEnabled(VRMode->GetSavedEditorState().bKeyAllEnabled);
+	VRMode->OnVREditingModeExit_Handler.Unbind();
+}
+
 void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
 	// @todo sequencer: We should only wipe/respawn puppets that are affected by the world that is being changed! (multi-UWorld support)
@@ -660,7 +694,6 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 		{
 			CameraGuid = GetSequencer()->CreateBinding(*NewCamera, NewCamera->GetActorLabel());
 		}
-
 		NewCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
 		NewCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
 		//pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV; //@todo set the focal length from this field of view
@@ -821,6 +854,13 @@ void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack(FMenuBuilder&
 
 bool FLevelSequenceEditorToolkit::OnRequestClose()
 {
+	UWorld* World = CastChecked<UWorld>(GetLevelSequenceEditorPlaybackContext());
+	UVREditorMode* VRMode = Cast<UVREditorMode>(GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World)->FindExtension(UVREditorMode::StaticClass()));
+	if (VRMode != nullptr)
+	{
+		// Null out the VR Mode's sequencer pointer
+		VRMode->RefreshVREditorSequencer(nullptr);
+	}
 	OpenToolkits.Remove(this);
 	OnClosedEvent.Broadcast();
 	return true;

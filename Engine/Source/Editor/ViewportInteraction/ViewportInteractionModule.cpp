@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ViewportInteractionModule.h"
+#include "ViewportWorldInteractionManager.h"
 
 FViewportInteractionModule::FViewportInteractionModule()
 {
@@ -27,9 +28,4 @@ void FViewportInteractionModule::PostLoadCallback()
 FViewportWorldInteractionManager& FViewportInteractionModule::GetWorldInteractionManager()
 {
 	return WorldInteractionManager;
-}
-
-void FViewportInteractionModule::Tick( float DeltaTime )
-{
-	WorldInteractionManager.Tick( DeltaTime );
 }

@@ -57,6 +57,21 @@ public:
 	 */
 	void GetWindows(TArray< TSharedRef<SWindow> >& OutWindows) const;
 
+	/**
+	 * Sets whether notifications should be displayed at all 
+	 * @param	bShouldAllow	Whether notifications should be enabled.  It defaults to on.
+	 */
+	void SetAllowNotifications( const bool bShouldAllow )
+	{
+		this->bAllowNotifications = bShouldAllow;
+	}
+
+	/** @return	Checks whether notifications are currently enabled */
+	bool AreNotificationsAllowed() const
+	{
+		return this->bAllowNotifications;
+	}
+
 protected:
 	/** Protect constructor as this is a singleton */
 	FSlateNotificationManager();
@@ -96,4 +111,7 @@ private:
 
 	/** Thread safe queue of notifications to display */
 	TLockFreePointerListLIFO<FNotificationInfo> PendingNotifications;
+
+	/** Whether notifications should be displayed or not.  This can be used to globally suppress notification pop-ups */
+	bool bAllowNotifications;
 };

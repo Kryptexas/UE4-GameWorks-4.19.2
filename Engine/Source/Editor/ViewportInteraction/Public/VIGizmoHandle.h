@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UnrealWidget.h"
 #include "UObject/ObjectMacros.h"
 #include "Components/SceneComponent.h"
 #include "ViewportInteractionTypes.h"
@@ -11,6 +12,7 @@
 class UMaterialInterface;
 class UStaticMesh;
 enum class EGizmoHandleTypes : uint8;
+class UActorComponent;
 
 USTRUCT()
 struct VIEWPORTINTERACTION_API FGizmoHandle
@@ -38,6 +40,9 @@ public:
 	/** Default constructor that sets up CDO properties */
 	UGizmoHandleGroup();
 	
+	/** Deconstructor */
+	virtual ~UGizmoHandleGroup();
+
 	/** Given the unique index, makes a handle */
 	FTransformGizmoHandlePlacement MakeHandlePlacementForIndex( const int32 HandleIndex ) const;
 
@@ -51,8 +56,11 @@ public:
 	static FVector GetAxisVector( const int32 AxisIndex, const ETransformGizmoHandleDirection HandleDirection );
 
 	/** Updates the Gizmo handles, needs to be implemented by derived classes */
-	virtual void UpdateGizmoHandleGroup(  const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
+	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 		float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup );
+
+	/** Default setting the visibility and collision for all the handles in this group */
+	void UpdateVisibilityAndCollision(const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, const bool bAllowRotationAndScaleHandles, UActorComponent* DraggingHandle);
 
 	/** Gets the InteractionType and the HandlePlacement for this Gizmo handle */
 	virtual void GetHandleIndexInteractionType( const int32 HandleIndex, ETransformGizmoInteractionType& OutInteractionType, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement );
@@ -87,6 +95,9 @@ public:
 	/** Gets if this handlegroup will be visible with the universal gizmo */
 	bool GetShowOnUniversalGizmo() const;
 
+	/** Sets the owning transform gizmo for this handle group*/
+	void SetOwningTransformGizmo(class ABaseTransformGizmo* TransformGizmo); 
+
 protected:
 	/** Updates the colors of the dynamic material instances for the handle passed using its axis index */	
 	void UpdateHandleColor( const int32 AxisIndex, FGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles );
@@ -114,6 +125,10 @@ protected:
 	/** All the StaticMeshes for this handle type */
 	UPROPERTY()
 	TArray< FGizmoHandle > Handles;
+
+	/** The actor transform gizmo owning this handlegroup */
+	UPROPERTY()
+	class ABaseTransformGizmo* OwningTransformGizmoActor;
 
 private:
 

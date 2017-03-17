@@ -43,7 +43,6 @@
 
 #include "IHeadMountedDisplay.h"
 #include "Editor.h"
-#include "IVREditorModule.h"
 
 //@TODO: Remove this dependency
 #include "EngineGlobals.h"
@@ -144,10 +143,8 @@ public:
 
 	static FSlateIcon GetResumePlaySessionImage();
 	static FText GetResumePlaySessionToolTip();
-	static void ResumePlaySession_Clicked();
 	static void StopPlaySession_Clicked();
 	static void LateJoinSession_Clicked();
-	static void PausePlaySession_Clicked();
 	static void SingleFrameAdvance_Clicked();
 
 	static void ShowCurrentStatement_Clicked();
@@ -166,9 +163,6 @@ public:
 	static FText GetPossessEjectTooltip();
 	static FSlateIcon GetPossessEjectImage();
 
-	static bool HasPlayWorld();
-	static bool HasPlayWorldAndPaused();
-	static bool HasPlayWorldAndRunning();
 	static bool CanLateJoin();
 	static bool CanShowLateJoinButton();
 
@@ -457,24 +451,24 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 
 	// Play, Pause, Toggle between play and pause
 	ActionList.MapAction( Commands.ResumePlaySession,
-		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::ResumePlaySession_Clicked ),
-		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorldAndPaused ),
+		FExecuteAction::CreateStatic( &FPlayWorldCommandCallbacks::ResumePlaySession_Clicked ),
+		FCanExecuteAction::CreateStatic( &FPlayWorldCommandCallbacks::HasPlayWorldAndPaused ),
 		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorldAndPaused )
+		FIsActionButtonVisible::CreateStatic( &FPlayWorldCommandCallbacks::HasPlayWorldAndPaused )
 		);
 
 	ActionList.MapAction( Commands.PausePlaySession,
-		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PausePlaySession_Clicked ),
-		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorldAndRunning ),
+		FExecuteAction::CreateStatic( &FPlayWorldCommandCallbacks::PausePlaySession_Clicked ),
+		FCanExecuteAction::CreateStatic( &FPlayWorldCommandCallbacks::HasPlayWorldAndRunning ),
 		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorldAndRunning )
+		FIsActionButtonVisible::CreateStatic( &FPlayWorldCommandCallbacks::HasPlayWorldAndRunning )
 		);
 
 	ActionList.MapAction( Commands.SingleFrameAdvance,
 		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::SingleFrameAdvance_Clicked ),
-		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorldAndPaused ),
+		FCanExecuteAction::CreateStatic( &FPlayWorldCommandCallbacks::HasPlayWorldAndPaused ),
 		FIsActionChecked(),
-		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorldAndPaused )
+		FIsActionChecked::CreateStatic( &FPlayWorldCommandCallbacks::HasPlayWorldAndPaused )
 		);
 
 	ActionList.MapAction( Commands.TogglePlayPauseOfPlaySession,
@@ -1015,6 +1009,39 @@ void FPlayWorldCommandCallbacks::StartPlayFromHere()
 }
 
 
+void FPlayWorldCommandCallbacks::ResumePlaySession_Clicked()
+{
+	if (HasPlayWorld())
+	{
+		LeaveDebuggingMode();
+		GUnrealEd->PlaySessionResumed();
+		uint32 UserIndex = 0;
+		FSlateApplication::Get().SetUserFocusToGameViewport(UserIndex);
+	}
+}
+
+
+void FPlayWorldCommandCallbacks::PausePlaySession_Clicked()
+{
+	if (HasPlayWorld())
+	{
+		GUnrealEd->PlayWorld->bDebugPauseExecution = true;
+		GUnrealEd->PlaySessionPaused();
+		if (IsInPIE()) {
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
+			FSlateApplication::Get().ResetToDefaultInputSettings();
+
+			TWeakPtr<SGlobalPlayWorldActions> ActiveGlobalPlayWorldWidget = FPlayWorldCommands::GetActiveGlobalPlayWorldActionsWidget();
+			if (ActiveGlobalPlayWorldWidget.IsValid())
+			{
+				uint32 UserIndex = 0;
+				FSlateApplication::Get().SetUserFocus(UserIndex, ActiveGlobalPlayWorldWidget.Pin());
+			}
+		}
+	}
+}
+
+
 bool FPlayWorldCommandCallbacks::IsInSIE()
 {
 	return GEditor->bIsSimulatingInEditor;
@@ -1036,6 +1063,24 @@ bool FPlayWorldCommandCallbacks::IsInSIE_AndRunning()
 bool FPlayWorldCommandCallbacks::IsInPIE_AndRunning()
 {
 	return IsInPIE() && ((GEditor->PlayWorld == NULL) || !(GEditor->PlayWorld->bDebugPauseExecution));
+}
+
+
+bool FPlayWorldCommandCallbacks::HasPlayWorld()
+{
+	return GEditor->PlayWorld != NULL;
+}
+
+
+bool FPlayWorldCommandCallbacks::HasPlayWorldAndPaused()
+{
+	return HasPlayWorld() && GUnrealEd->PlayWorld->bDebugPauseExecution;
+}
+
+
+bool FPlayWorldCommandCallbacks::HasPlayWorldAndRunning()
+{
+	return HasPlayWorld() && !GUnrealEd->PlayWorld->bDebugPauseExecution;
 }
 
 
@@ -1092,6 +1137,16 @@ FSlateIcon FInternalPlayWorldCommandCallbacks::GetPossessEjectImage()
 	}
 }
 
+
+bool FInternalPlayWorldCommandCallbacks::CanLateJoin()
+{
+	return HasPlayWorld();
+}
+
+bool FInternalPlayWorldCommandCallbacks::CanShowLateJoinButton()
+{
+	return GetDefault<UEditorExperimentalSettings>()->bAllowLateJoinInPIE && HasPlayWorld();
+}
 
 void SetLastExecutedPlayMode(EPlayModeType PlayMode)
 {
@@ -1848,39 +1903,6 @@ FText FInternalPlayWorldCommandCallbacks::GetResumePlaySessionToolTip()
 }
 
 
-void FInternalPlayWorldCommandCallbacks::ResumePlaySession_Clicked()
-{
-	if (HasPlayWorld())
-	{
-		LeaveDebuggingMode();
-		GUnrealEd->PlaySessionResumed();
-		uint32 UserIndex = 0;
-		FSlateApplication::Get().SetUserFocusToGameViewport(UserIndex);
-	}
-}
-
-
-void FInternalPlayWorldCommandCallbacks::PausePlaySession_Clicked()
-{
-	if (HasPlayWorld())
-	{
-		GUnrealEd->PlayWorld->bDebugPauseExecution = true;
-		GUnrealEd->PlaySessionPaused();
-		if (IsInPIE()) {
-			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
-			FSlateApplication::Get().ResetToDefaultInputSettings();
-
-			TWeakPtr<SGlobalPlayWorldActions> ActiveGlobalPlayWorldWidget = FPlayWorldCommands::GetActiveGlobalPlayWorldActionsWidget();
-			if (ActiveGlobalPlayWorldWidget.IsValid())
-			{
-				uint32 UserIndex = 0;
-				FSlateApplication::Get().SetUserFocus(UserIndex, ActiveGlobalPlayWorldWidget.Pin());
-			}
-		}
-	}
-}
-
-
 void FInternalPlayWorldCommandCallbacks::SingleFrameAdvance_Clicked()
 {
 	// We want to function just like Single stepping where we will stop at a breakpoint if one is encountered but we also want to stop after 1 tick if a breakpoint is not encountered.
@@ -1986,13 +2008,7 @@ void FInternalPlayWorldCommandCallbacks::TogglePlayPause_Clicked()
 
 bool FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions()
 {
-	// @todo vreditor: Don't display Simulate if we're currently in VR mode to prevent crash in blueprint (see UE-27984)
-	bool bIsInVREditor = false;
-	if (IVREditorModule::IsAvailable())
-	{
-		bIsInVREditor = IVREditorModule::Get().IsVREditorEnabled();
-	}
-	return (!HasPlayWorld() && !bIsInVREditor);
+	return !HasPlayWorld();
 }
 
 bool FInternalPlayWorldCommandCallbacks::CanShowVulkanNonPlayWorldOnlyActions()
@@ -2004,22 +2020,6 @@ bool FInternalPlayWorldCommandCallbacks::CanShowVROnlyActions()
 {
 	return !HasPlayWorld();
 }
-
-bool FInternalPlayWorldCommandCallbacks::HasPlayWorld()
-{
-	return GEditor->PlayWorld != NULL;
-}
-
-bool FInternalPlayWorldCommandCallbacks::CanLateJoin()
-{
-	return HasPlayWorld();
-}
-
-bool FInternalPlayWorldCommandCallbacks::CanShowLateJoinButton()
-{
-	return GetDefault<UEditorExperimentalSettings>()->bAllowLateJoinInPIE && HasPlayWorld();
-}
-
 
 int32 FInternalPlayWorldCommandCallbacks::GetNumberOfClients()
 {
@@ -2058,18 +2058,6 @@ bool FInternalPlayWorldCommandCallbacks::OnIsDedicatedServerPIEEnabled()
 	bool PlayNetDedicated(false);
 	PlayInSettings->GetPlayNetDedicated(PlayNetDedicated);			// Ignore 'state' of option (handled externally)
 	return PlayNetDedicated;
-}
-
-
-bool FInternalPlayWorldCommandCallbacks::HasPlayWorldAndPaused()
-{
-	return HasPlayWorld() && GUnrealEd->PlayWorld->bDebugPauseExecution;
-}
-
-
-bool FInternalPlayWorldCommandCallbacks::HasPlayWorldAndRunning()
-{
-	return HasPlayWorld() && !GUnrealEd->PlayWorld->bDebugPauseExecution;
 }
 
 

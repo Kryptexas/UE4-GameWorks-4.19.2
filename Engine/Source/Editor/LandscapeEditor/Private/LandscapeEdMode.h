@@ -424,7 +424,7 @@ public:
 	bool LandscapePlaneTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, const FPlane& Plane, FVector& OutHitLocation);
 
 	/** Trace under the specified laser start and direction and return the landscape hit and the hit location (in landscape quad space) */
-	bool LandscapeTrace(const FEditorViewportClient* ViewportClient, const FVector& InRayOrigin, const FVector& InRayEnd, FVector& OutHitLocation);
+	bool LandscapeTrace(const FVector& InRayOrigin, const FVector& InRayEnd, FVector& OutHitLocation);
 
 	void SetCurrentToolMode(FName ToolModeName, bool bRestoreCurrentTool = true);
 
@@ -466,7 +466,7 @@ public:
 	/** Called when the user presses a button on their motion controller device */
 	void OnVRAction(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled);
 
-	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
+	void OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
 	/** Handle notification that visible levels may have changed and we should update the editable landscapes list */
 	void HandleLevelsChanged(bool ShouldExitMode);

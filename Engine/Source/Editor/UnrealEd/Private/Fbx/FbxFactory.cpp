@@ -12,7 +12,6 @@
 #include "Factories/FbxTextureImportData.h"
 #include "Factories/FbxImportUI.h"
 #include "Engine/StaticMesh.h"
-#include "Engine/SubDSurface.h"
 #include "Editor.h"
 
 #include "Logging/TokenizedMessage.h"
@@ -53,7 +52,7 @@ void UFbxFactory::PostInitProperties()
 
 bool UFbxFactory::DoesSupportClass(UClass * Class)
 {
-	return (Class == UStaticMesh::StaticClass() || Class == USkeletalMesh::StaticClass() || Class == UAnimSequence::StaticClass() || Class == USubDSurface::StaticClass());
+	return (Class == UStaticMesh::StaticClass() || Class == USkeletalMesh::StaticClass() || Class == UAnimSequence::StaticClass());
 }
 
 UClass* UFbxFactory::ResolveSupportedClass()
@@ -67,10 +66,6 @@ UClass* UFbxFactory::ResolveSupportedClass()
 	else if (ImportUI->MeshTypeToImport == FBXIT_Animation)
 	{
 		ImportClass = UAnimSequence::StaticClass();
-	}
-	else if (ImportUI->MeshTypeToImport == FBXIT_SubDSurface)
-	{
-		ImportClass = USubDSurface::StaticClass();
 	}
 	else
 	{
@@ -580,31 +575,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 							FFbxErrors::SkeletalMesh_NoMeshFoundOnRoot);
 					}
 				}
-				else if ( ImportUI->MeshTypeToImport == FBXIT_SubDSurface ) // SubDSurface
-				{
-					USubDSurface* NewMesh = NULL;
-					TArray<FbxNode*> FbxMeshArray;
-					FbxImporter->FillFbxMeshArray(RootNodeToImport, FbxMeshArray, FbxImporter);
-					if (FbxMeshArray.Num() > 0)
-					{
-						NewMesh = Cast<USubDSurface>( CreateOrOverwriteAsset(USubDSurface::StaticClass(), InParent, Name, Flags) );
-						
-						bool bOk = FbxImporter->ImportSubDSurface(NewMesh, InParent, FbxMeshArray, Name, Flags, ImportUI->StaticMeshImportData);
-
-						if(!bOk)
-						{
-							FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FailedToImport_ImportSubDSurface", "Could not import subdivision surface mesh (no quad mesh?).")), 
-								FFbxErrors::SkeletalMesh_ImportSubDSurface);
-
-							ObjectTools::DeleteSingleObject(NewMesh);
-						}
-					}
-
-					ImportedMeshCount = NewMesh ? 1 : 0;
-
-					NewObject = NewMesh;
-				}
-					else if ( ImportUI->MeshTypeToImport == FBXIT_Animation )// animation
+				else if ( ImportUI->MeshTypeToImport == FBXIT_Animation )// animation
 				{
 					if (ImportOptions->SkeletonForAnimation)
 					{

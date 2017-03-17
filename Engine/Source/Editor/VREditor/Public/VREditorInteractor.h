@@ -12,6 +12,15 @@
 class AActor;
 class UWidgetComponent;
 
+enum class EControllerType : uint8
+{
+	Laser,
+	AssistingLaser,
+	UI,
+	Unknown
+};
+
+
 /**
  * VREditor default interactor
  */
@@ -41,10 +50,12 @@ public:
 
 	// ViewportInteractorInterface overrides
 	virtual void Shutdown() override;
+	virtual void Tick( const float DeltaTime ) override;
 	virtual FHitResult GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors = nullptr, const bool bIgnoreGizmos = false,
 		TArray<UClass*>* ObjectsInFrontOfGizmo = nullptr, const bool bEvenIfBlocked = false, const float LaserLengthOverride = 0.0f ) override;
-	virtual void ResetHoverState( const float DeltaTime ) override;
-	virtual void OnStartDragging( UActorComponent* ClickedComponent, const FVector& HitLocation, const bool bIsPlacingActors ) override;
+	virtual void ResetHoverState() override;
+	virtual bool IsModifierPressed() const override;
+	virtual void PreviewInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;
 
 	/** Returns the slide delta for pushing and pulling objects. Needs to be implemented by derived classes (e.g. touchpad for vive controller or scrollweel for mouse ) */
 	virtual float GetSlideDelta();
@@ -53,14 +64,17 @@ public:
 	// Getters and setters
 	//
 
+	/** Returns what controller type this is for asymmetric control schemes */
+	EControllerType GetControllerType() const
+	{
+		return ControllerType;
+	};
+
+	/** Set what controller type this is for asymmetric control schemes */
+	void SetControllerType( const EControllerType& InControllerType );
+
 	/** Gets if this interactor is hovering over UI */
 	bool IsHoveringOverUI() const;
-	
-	/** Sets if there is a docked window on this interactor */
-	void SetHasUIInFront( const bool bInHasUIInFront );
-	
-	/** Check if there is any docked window on this interactor */
-	bool HasUIInFront() const;
 
 	/** Sets if the quick menu is on this interactor */
 	void SetHasUIOnForearm( const bool bInHasUIOnForearm );
@@ -69,13 +83,10 @@ public:
 	bool HasUIOnForearm() const;
 
 	/** Gets the current hovered widget component if any */
-	UWidgetComponent* GetHoveringOverWidgetComponent() const;
+	UWidgetComponent* GetLastHoveredWidgetComponent() const;
 
 	/** Sets the current hovered widget component */
-	void SetHoveringOverWidgetComponent( UWidgetComponent* NewHoveringOverWidgetComponent );
-
-	/** If the modifier key is currently pressed */
-	bool IsModifierPressed() const;
+	void SetLastHoveredWidgetComponent( UWidgetComponent* NewHoveringOverWidgetComponent );
 
 	/** Sets if the interactor is clicking on any UI */
 	void SetIsClickingOnUI( const bool bInIsClickingOnUI );
@@ -92,11 +103,11 @@ public:
 	/** Gets if the interactor is right clicking on UI */
 	bool IsRightClickingOnUI() const;
 
-	/** Gets if the interactor is right clicking on UI */
-	void SetLastClickReleaseTime( const double InLastClickReleaseTime );
+	/** Sets the time the interactor last pressed on UI */
+	void SetLastUIPressTime( const double InLastUIPressTime );
 
-	/** Gets last time the interactor released */
-	double GetLastClickReleaseTime() const;
+	/** Gets last time the interactor pressed on UI */
+	double GetLastUIPressTime() const;
 
 	/** Sets the UI scroll velocity */
 	void SetUIScrollVelocity( const float InUIScrollVelocity );
@@ -108,7 +119,7 @@ public:
 	float GetSelectAndMoveTriggerValue() const;
 	
 	/* ViewportInteractor overrides, checks if the laser is blocked by UI */
-	virtual bool GetIsLaserBlocked() override;
+	virtual bool GetIsLaserBlocked() const override;
 	
 protected:
 
@@ -119,6 +130,9 @@ protected:
 	//
 	// General input @todo: VREditor: Should this be general (non-UI) in interactordata ?
 	//
+
+	/** For asymmetrical systems - what type of controller this is */
+	EControllerType ControllerType;
 
 	/** Is the Modifier button held down? */
 	bool bIsModifierPressed;
@@ -151,8 +165,8 @@ private:
 	/** Inertial scrolling -- how fast to scroll the mousewheel over UI */
 	float UIScrollVelocity;	
 
-	/** Last real time that we released the 'SelectAndMove' button on UI.  This is used to detect double-clicks. */
-	double LastClickReleaseTime;
+	/** Last real time that we pressed the 'SelectAndMove' button on UI.  This is used to detect double-clicks. */
+	double LastUIPressTime;
 
 protected:
 

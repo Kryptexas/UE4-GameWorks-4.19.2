@@ -14,6 +14,7 @@
 #include "UObject/RenderingObjectVersion.h"
 #include "UObject/SequencerObjectVersion.h"
 #include "UObject/VRObjectVersion.h"
+#include "UObject/GeometryObjectVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDevObjectVersion, Log, All);
 
@@ -108,3 +109,10 @@ FDevVersionRegistration GRegisterVRObjectVersion(FVRObjectVersion::GUID, FVRObje
 const FGuid FLoadTimesObjectVersion::GUID(0xC2A15278, 0xBFE74AFE, 0x6C1790FF, 0x531DF755);
 // Register LoadTimes custom version with Core
 FDevVersionRegistration GRegisterLoadTimesObjectVersion(FLoadTimesObjectVersion::GUID, FLoadTimesObjectVersion::LatestVersion, TEXT("Dev-LoadTimes"));
+
+
+// Unique Geometry Object version id
+const FGuid FGeometryObjectVersion::GUID(0x6EACA3D4, 0x40EC4CC1, 0xb7868BED, 0x9428FC5);
+// Register Geometry custom version with Core
+FDevVersionRegistration GRegisterGeometryObjectVersion(FGeometryObjectVersion::GUID, FGeometryObjectVersion::LatestVersion, TEXT("Private-Geometry"));
+

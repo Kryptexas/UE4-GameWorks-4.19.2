@@ -34,7 +34,15 @@ public class Sequencer : ModuleRules
 				"EditorWidgets", 
 				"SequencerWidgets",
 				"BlueprintGraph",
-				"LevelSequence"
+				"LevelSequence",
+                "ViewportInteraction"
+			}
+		);
+
+		CircularlyReferencedDependentModules.AddRange(
+			new string[]
+			{
+				"ViewportInteraction",
 			}
 		);
 

@@ -48,6 +48,8 @@ DECLARE_DELEGATE(FModalWindowStackEnded)
 /** Delegate for when window action occurs (ClickedNonClientArea, Maximize, Restore, WindowMenu). Return true if the OS layer should stop processing the action. */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnWindowAction, const TSharedRef<FGenericWindow>&, EWindowAction::Type);
 
+DECLARE_DELEGATE_RetVal(bool, FDragDropCheckingOverride);
+
 extern SLATE_API const FName NAME_UnrealOS;
 
 
@@ -1462,6 +1464,9 @@ public:
 	* This will first try and get the window that owns the widget (if provided), before falling back to using the MainFrame window.
 	*/
 	const void* FindBestParentWindowHandleForDialogs(const TSharedPtr<SWidget>& InWidget);
+
+public:
+	FDragDropCheckingOverride OnDragDropCheckOverride;
 
 private:
 

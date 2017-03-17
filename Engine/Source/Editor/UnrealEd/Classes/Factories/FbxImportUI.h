@@ -22,8 +22,6 @@ enum EFBXImportType
 	FBXIT_SkeletalMesh UMETA(DisplayName="Skeletal Mesh"),
 	/** Select Animation if you'd like to import only animation. */
 	FBXIT_Animation UMETA(DisplayName="Animation"),
-	/** Subdivision Surface (Experimental, Early work in progress) */
-	FBXIT_SubDSurface UMETA(DisplayName="SubDSurface"),
 
 	FBXIT_MAX,
 };
@@ -55,9 +53,6 @@ public:
 	bool bImportAsSkeletal;
 	
 	/** Whether to import the incoming FBX as a Subdivision Surface (could be made a combo box together with bImportAsSkeletal) (Experimental, Early work in progress) */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName="Subdivison Surface"))
-	bool bImportAsSubDSurface;
-
 	/** Whether to import the mesh. Allows animation only import when importing a skeletal mesh. */
 	UPROPERTY(EditAnywhere, Category=Mesh, meta=(ImportType="SkeletalMesh"))
 	bool bImportMesh;
@@ -160,11 +155,6 @@ public:
 	void SetMeshTypeToImport()
 	{
 		MeshTypeToImport = bImportAsSkeletal ? FBXIT_SkeletalMesh : FBXIT_StaticMesh;
-
-		if(bImportAsSubDSurface)
-		{
-			MeshTypeToImport = FBXIT_SubDSurface;
-		}
 	}
 };
 

@@ -2,7 +2,6 @@
 
 #pragma once
 
-
 #include "CoreMinimal.h"
 #include "Input/Reply.h"
 #include "Widgets/SWidget.h"
@@ -240,4 +239,7 @@ private:
 
 	/** Attached sequencer asset editor */
 	TWeakPtr<IAssetEditorInstance> SequencerAssetEditor;
+
+	/** Weak pointer to the level editor's Sequencer widget */
+	TWeakPtr<SWidget> SequencerWidgetPtr;
 };

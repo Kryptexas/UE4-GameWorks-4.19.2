@@ -157,11 +157,6 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 
 		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->EyeRenderPose[eyeIdx], GameEyeOrient, GameEyePosition);
 		const FQuat DeltaControlOrientation =  ViewOrientation * GameEyeOrient.Inverse();
-		// make sure we use the same viewrotation as we had on a game thread
-		if( !GEnableVREditorHacks )	// @todo vreditor: This assert goes off sometimes when dragging properties in the details pane (UE-27540)
-		{
-			check(View.ViewRotation == CurrentFrame->CachedViewRotation[eyeIdx]);
-		}
 
 		if (CurrentFrame->Flags.bOrientationChanged)
 		{
@@ -284,7 +279,15 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), SrcTextureRHI);
+	const bool bSameSize = DstRect.Size() == SrcRect.Size();
+	if( bSameSize )
+	{
+		PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), SrcTextureRHI);
+	}
+	else
+	{
+		PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), SrcTextureRHI);
+	}
 
 	RendererModule->DrawRectangle(
 		RHICmdList,
@@ -346,7 +349,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 				const float SrcRectAspect = (float)SrcViewRect.Width() / (float)SrcViewRect.Height();
 				const float DstRectAspect = (float)DstViewRect.Width() / (float)DstViewRect.Height();
 
-				if( SrcRectAspect < 1.0f )
+				if( SrcRectAspect < DstRectAspect )
 				{
 					// Source is taller than destination
 					if( bCropToFill )

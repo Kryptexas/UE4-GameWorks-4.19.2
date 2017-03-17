@@ -17,6 +17,9 @@ namespace EUserInterfaceActionType
 {
 	enum Type
 	{
+		/** An action which should not be associated with a user interface action */
+		None,
+
 		/** Momentary buttons or menu items.  These support enable state, and execute a delegate when clicked. */
 		Button,
 
@@ -27,7 +30,10 @@ namespace EUserInterfaceActionType
 		RadioButton,
 
 		/** Similar to Button but will display a readonly checkbox next to the item. */
-		Check
+		Check,
+
+		/** Similar to Button but has the checkbox area collapsed */
+		CollapsedButton
 	};
 };
 

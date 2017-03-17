@@ -15,6 +15,7 @@
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
+#include "IVREditorModule.h"
 
 
 #define LOCTEXT_NAMESPACE "FThumbnailSection"
@@ -201,7 +202,7 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 
 	static const float SectionThumbnailPadding = 4.f;
 
-	const ESlateDrawEffect DrawEffects = InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	ESlateDrawEffect DrawEffects = InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	int32 LayerId = InPainter.LayerId;
 
@@ -240,13 +241,22 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 
 		if (Fade <= 1.f)
 		{
+			DrawEffects |= ESlateDrawEffect::NoGamma;
+
+			if (IVREditorModule::Get().IsVREditorModeActive())
+			{
+				// In VR editor every widget is in the world and gamma corrected by the scene renderer.  Thumbnails will have already been gamma
+				// corrected and so they need to be reversed
+				DrawEffects |= ESlateDrawEffect::ReverseGamma;
+			}
+
 			FSlateDrawElement::MakeViewport(
 				InPainter.DrawElements,
 				LayerId,
 				PaintGeometry,
 				Thumbnail,
 				ThumbnailClipRect,
-				DrawEffects | ESlateDrawEffect::NoGamma,
+				DrawEffects,
 				FLinearColor(1.f, 1.f, 1.f, 1.f - Fade)
 				);
 		}

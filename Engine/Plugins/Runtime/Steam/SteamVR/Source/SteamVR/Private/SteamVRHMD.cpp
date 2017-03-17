@@ -833,7 +833,10 @@ bool FSteamVRHMD::IsInLowPersistenceMode() const
 
 void FSteamVRHMD::OnEndPlay(FWorldContext& InWorldContext)
 {
-	EnableStereo(false);
+	if (!GEnableVREditorHacks)
+	{
+		EnableStereo(false);
+	}
 }
 
 bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
@@ -1031,6 +1034,11 @@ bool FSteamVRHMD::IsStereoEnabled() const
 
 bool FSteamVRHMD::EnableStereo(bool bStereo)
 {
+	if( bStereoEnabled == bStereo )
+	{
+		return false;
+	}
+
 	if (bStereo && bIsQuitting)
 	{
 		// Cancel shutting down the vr subsystem if re-enabling stereo before we're done counting down

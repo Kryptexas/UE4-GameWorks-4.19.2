@@ -134,6 +134,9 @@ private:
 	/** Callback for actor added to sequencer. */
 	void HandleActorAddedToSequencer(AActor* Actor, const FGuid Binding);
 
+	/** Callback for VR Editor mode exiting */
+	void HandleVREditorModeExit();
+
 private:
 
 	/** Level sequence for our edit operation. */

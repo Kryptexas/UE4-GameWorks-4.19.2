@@ -132,8 +132,12 @@ struct UNREALED_API FEditorDelegates
 	static FOnEditorModeTransitioned EditorModeExit;
 	/** Sent when a PIE session is beginning (before we decide if PIE can run - allows clients to avoid blocking PIE) */
 	static FOnPIEEvent PreBeginPIE;
-	/** Sent when a PIE session is beginning */
+	/** Sent when a PIE session is beginning (but hasn't actually started yet) */
 	static FOnPIEEvent BeginPIE;
+	/** Sent when a PIE session has fully started and after BeginPlay() has been called */
+	static FOnPIEEvent PostPIEStarted;
+	/** Sent when a PIE session is ending, before anything else happens */
+	static FOnPIEEvent PrePIEEnded;
 	/** Sent when a PIE session is ending */
 	static FOnPIEEvent EndPIE;
 	/** Sent when a PIE session is paused */
@@ -142,6 +146,8 @@ struct UNREALED_API FEditorDelegates
 	static FOnPIEEvent ResumePIE;
 	/** Sent when a PIE session is single-stepped */
 	static FOnPIEEvent SingleStepPIE;
+	/** Sent just before the user switches between from PIE to SIE, or vice-versa.  Passes in whether we are currently in SIE */
+	static FOnPIEEvent OnPreSwitchBeginPIEAndSIE;
 	/** Sent after the user switches between from PIE to SIE, or vice-versa.  Passes in whether we are currently in SIE */
 	static FOnPIEEvent OnSwitchBeginPIEAndSIE;
 	/** Within a property window, the currently selected item was changed.*/

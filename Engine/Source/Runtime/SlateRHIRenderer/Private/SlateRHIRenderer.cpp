@@ -53,6 +53,13 @@ static TAutoConsoleVariable<int32> CVarUICompositeMode(
 	TEXT("1: Shader pass to improve HDR blending\n"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarDrawToVRRenderTarget(
+	TEXT("Slate.DrawToVRRenderTarget"),
+	1,
+	TEXT("If enabled while in VR. Slate UI will be drawn into the render target texture where the VR imagery for either eye was rendered, allow the viewer of the HMD to see the UI (for better or worse.)  This render target will then be cropped/scaled into the back buffer, if mirroring is enabled.  When disabled, Slate UI will be drawn on top of the backbuffer (not to the HMD) after the mirror texture has been cropped/scaled into the backbuffer."),
+	ECVF_RenderThreadSafe);
+
+
 void FSlateCrashReportResource::InitDynamicRHI()
 {
 	int32 Width = VirtualScreen.Width();
@@ -651,6 +658,13 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	ViewportInfo.ColorSpaceLUTOutputDevice = HDROutputDevice;
 	ViewportInfo.ColorSpaceLUTOutputGamut = HDROutputGamut;
 	
+	bool bRenderedStereo = false;
+	if( CVarDrawToVRRenderTarget->GetInt() == 0 && GEngine && IsValidRef( ViewportInfo.GetRenderTargetTexture() ) && GEngine->StereoRenderingDevice.IsValid() )
+	{
+		GEngine->StereoRenderingDevice->RenderTexture_RenderThread( RHICmdList, RHICmdList.GetViewportBackBuffer( ViewportInfo.ViewportRHI ), ViewportInfo.GetRenderTargetTexture() );
+		bRenderedStereo = true;
+	}
+
 	{
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_SlateUI);
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
@@ -674,9 +688,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
-		FTexture2DRHIRef ViewportRT = ViewportInfo.GetRenderTargetTexture();
-		FTexture2DRHIRef BackBuffer = (ViewportRT) ?
-		ViewportRT : RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
+		FTexture2DRHIRef ViewportRT = bRenderedStereo ? nullptr : ViewportInfo.GetRenderTargetTexture();
+		FTexture2DRHIRef BackBuffer = (ViewportRT) ? ViewportRT : RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
 		
 		const uint32 ViewportWidth = (ViewportRT) ? ViewportRT->GetSizeX() : ViewportInfo.Width;
 		const uint32 ViewportHeight = (ViewportRT) ? ViewportRT->GetSizeY() : ViewportInfo.Height;
@@ -833,7 +846,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		}
 	}
 
-	if (GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
+	if (!bRenderedStereo && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 	{
 		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
 	}

@@ -22,8 +22,15 @@ public:
 
 	// ViewportInteractor overrides
 	virtual void PollInput() override;
+	virtual bool IsModifierPressed() const override;
+
+protected:
+
+	virtual bool AllowLaserSmoothing() const;
 
 private:
 
-	// ...
+	/** Whether the control key was pressed the last time input was polled */
+	bool bIsControlKeyPressed;
+
 };

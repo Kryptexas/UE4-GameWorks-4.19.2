@@ -366,13 +366,15 @@ bool FEditorViewportSnapping::SnapToBSPVertex(FVector& Location, FVector GridBas
 
 void FEditorViewportSnapping::ClearSnappingHelpers( bool bClearImmediately )
 {
-	VertexSnappingImpl.ClearSnappingHelpers( bClearImmediately );
+	VertexSnappingImpl.ClearSnappingHelpers(bClearImmediately);
 }
 
-void FEditorViewportSnapping::DrawSnappingHelpers(const FSceneView* View,FPrimitiveDrawInterface* PDI)
+void FEditorViewportSnapping::DrawSnappingHelpers(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	VertexSnappingImpl.DrawSnappingHelpers( View, PDI );
 }
+
+
 
 bool FEditorViewportSnapping::SnapLocationToNearestVertex( FVector& Location, const FVector2D& MouseLocation, FLevelEditorViewportClient* ViewportClient, FVector& OutVertexNormal, bool bDrawVertHelpers )
 {

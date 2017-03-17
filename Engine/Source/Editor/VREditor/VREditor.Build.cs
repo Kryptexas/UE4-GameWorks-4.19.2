@@ -6,7 +6,6 @@ namespace UnrealBuildTool.Rules
 	{
         public VREditor(ReadOnlyTargetRules Target) : base(Target)
 		{
-
             PrivateDependencyModuleNames.AddRange(
                 new string[] {
                     "AppFramework",
@@ -21,20 +20,28 @@ namespace UnrealBuildTool.Rules
 					"UMG",
 					"LevelEditor",
 					"HeadMountedDisplay",
-                    "ViewportInteraction",
-					"Analytics"
+					"Analytics",
+                    "LevelSequence",
+                    "Sequencer"
+				}
+			);
+
+			PublicDependencyModuleNames.AddRange(
+				new string[] {
+					"ViewportInteraction"
 				}
 			);
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
-					"PlacementMode",
+					"PlacementMode"
 				}
 			);
 
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
-				}
+                    "PlacementMode"
+                }
 			);
 
             PrivateIncludePaths.AddRange(

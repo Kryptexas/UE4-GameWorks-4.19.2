@@ -21,33 +21,22 @@ void FViewportWorldInteractionManager::AddReferencedObjects( FReferenceCollector
 	Collector.AddReferencedObject( CurrentWorldInteraction );
 }
 
-void FViewportWorldInteractionManager::Tick( float DeltaTime )
-{
-	if( CurrentWorldInteraction && CurrentWorldInteraction->IsActive() )
-	{
-		// First give registered functions to tick before the world interaction is ticked
-		OnPreWorldInteractionTickEvent.Broadcast( DeltaTime );
-		CurrentWorldInteraction->Tick( DeltaTime );
-		OnPostWorldInteractionTickEvent.Broadcast( DeltaTime );
- 	}
-}
-
-bool FViewportWorldInteractionManager::HandleInputKey( const FKey Key, const EInputEvent Event )
+bool FViewportWorldInteractionManager::PreprocessedInputKey( const FKey Key, const EInputEvent Event )
 {
 	bool bResult = false;
-	if(CurrentWorldInteraction && CurrentWorldInteraction->IsActive())
+	if( CurrentWorldInteraction && CurrentWorldInteraction->IsActive() )
 	{
-		bResult = CurrentWorldInteraction->HandleInputKey( Key, Event );
+		bResult = CurrentWorldInteraction->PreprocessedInputKey( Key, Event );
 	}
 	return bResult;
 }
 
-bool FViewportWorldInteractionManager::HandleInputAxis( const int32 ControllerId, const FKey Key, const float Delta, const float DeltaTime )
+bool FViewportWorldInteractionManager::PreprocessedInputAxis( const int32 ControllerId, const FKey Key, const float Delta, const float DeltaTime )
 {
 	bool bResult = false;
-	if(CurrentWorldInteraction && CurrentWorldInteraction->IsActive())
+	if(CurrentWorldInteraction && CurrentWorldInteraction->IsActive() )
 	{
-		bResult = CurrentWorldInteraction->HandleInputAxis( ControllerId, Key, Delta, DeltaTime );
+		bResult = CurrentWorldInteraction->PreprocessedInputAxis( ControllerId, Key, Delta, DeltaTime );
 	}
 	return bResult;
 }

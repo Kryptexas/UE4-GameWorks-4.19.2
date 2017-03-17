@@ -39,6 +39,11 @@ static TAutoConsoleVariable<int32> CVarRHICmdVelocityPassDeferredContexts(
 	1,
 	TEXT("True to use deferred contexts to parallelize velocity pass command list execution."));
 
+RENDERER_API TAutoConsoleVariable<int32> CVarAllowMotionBlurInVR(
+	TEXT("vr.AllowMotionBlurInVR"),
+	0,
+	TEXT("For projects with motion blur enabled, this allows motion blur to be enabled even while in VR."));
+
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Render Velocities"), Stat_GPU_RenderVelocities, STATGROUP_GPU);
 
 bool IsParallelVelocity()
@@ -607,7 +612,7 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 		&& View.Family->bRealtimeUpdate
 		&& MotionBlurQuality > 0
 		&& !View.bIsSceneCapture
-		&& !(View.Family->Views.Num() > 1);
+		&& (CVarAllowMotionBlurInVR->GetInt() != 0 || !(View.Family->Views.Num() > 1));
 }
 
 void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, int32 FirstIndex, int32 LastIndex)

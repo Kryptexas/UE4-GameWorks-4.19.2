@@ -1782,7 +1782,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		if ( GIsEditor
 			&& View.Family->EngineShowFlags.SelectionOutline
 			&& !(View.Family->EngineShowFlags.Wireframe)
-			&& ( !GIsDemoMode || ( GIsDemoMode && !View.Family->EngineShowFlags.Game ) ) 
 			&& !bVisualizeBloom
 			&& !View.Family->EngineShowFlags.VisualizeHDR)
 		{
@@ -2410,7 +2409,6 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		if ( GIsEditor
 			&& View.Family->EngineShowFlags.SelectionOutline
 			&& !(View.Family->EngineShowFlags.Wireframe)
-			&& ( !GIsDemoMode || ( GIsDemoMode && !View.Family->EngineShowFlags.Game ) ) 
 			)
 		{
 			// Editor selection outline

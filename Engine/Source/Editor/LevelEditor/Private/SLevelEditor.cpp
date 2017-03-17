@@ -129,8 +129,7 @@ void SLevelEditor::BindCommands()
 		Actions.ToggleVR,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR ),
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_CanExecute ),
-		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_IsChecked ),
-		FIsActionButtonVisible::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_IsVisible ) );
+		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_IsChecked ) );
 
 	LevelEditorCommands->MapAction(
 		Actions.WorldProperties,
@@ -522,14 +521,24 @@ void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TShared
 			SequencerAssetEditor.Pin()->CloseWindow();
 		}
 
-		TSharedRef<SDockTab> Tab = InvokeTab("Sequencer");
-
+		TSharedRef<SDockTab> Tab = SNew(SDockTab);
+		Tab = InvokeTab("Sequencer");
+		if(!FGlobalTabmanager::Get()->OnOverrideDockableAreaRestore_Handler.IsBound())
+		{
+			// Don't allow standard tab closing behavior when the override is active
+			Tab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateStatic(&Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>(NewSequencerAssetEditor)));
+		}
 		if(SequencerWidget.IsValid() && NewSequencerAssetEditor.IsValid())
 		{
-			Tab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateStatic(&Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>(NewSequencerAssetEditor)));
 			Tab->SetContent(SequencerWidget.ToSharedRef());
-
+			SequencerWidgetPtr = SequencerWidget;
 			SequencerAssetEditor = NewSequencerAssetEditor;
+			if (FGlobalTabmanager::Get()->OnOverrideDockableAreaRestore_Handler.IsBound())
+			{
+				// @todo vreditor: more general vr editor tab manager should handle windows instead
+				// Close the original tab so we just work with the override window
+				Tab->RequestCloseTab();
+			}
 		}
 		else
 		{
@@ -740,8 +749,8 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 		{
 			// @todo sequencer: remove when world-centric mode is added
 			return SNew(SDockTab)
-				.Icon( FSlateStyleRegistry::FindSlateStyle("LevelSequenceEditorStyle")->GetBrush("LevelSequenceEditor.Tabs.Sequencer") )
-				.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
+				.Icon(FSlateStyleRegistry::FindSlateStyle("LevelSequenceEditorStyle")->GetBrush("LevelSequenceEditor.Tabs.Sequencer"))
+				.Label(NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer"))
 				[
 					SNullWidget::NullWidget
 				];
@@ -1530,3 +1539,4 @@ TSharedRef<SWidget> SLevelEditor::CreateToolBox()
 
 	return NewToolBox;
 }
+

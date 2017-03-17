@@ -30,17 +30,18 @@ struct FViewportInteractorData
 	// Hover feedback
 	//
 
-	/** Lights up when our laser pointer is close enough to something to click */
-	bool bIsHovering;
-
-	/** The widget component we are currently hovering over */
-	class UWidgetComponent* HoveringOverWidgetComponent; //@todo: ViewportInteraction: UI should not be in this module
-
+	/** The widget component we last hovered over.  This is used to detect when the laser pointer moves over or leaves a widget, and is not reset every frame */
+	class UWidgetComponent* LastHoveredWidgetComponent; //@todo: ViewportInteraction: UI should not be in this module
+		
 	/** Position the laser pointer impacted an interactive object at (UI, meshes, etc.) */
-	FVector HoverLocation;
+	TOptional<FVector> HoverLocation;
 
 	/** The current component hovered by the laser pointer of this hand */
-	TWeakObjectPtr<class UActorComponent> HoveredActorComponent;
+	TWeakObjectPtr<class UActorComponent> LastHoveredActorComponent;
+
+	/** The last location that we hovered over UI at in the world.  This is used for dragging and dropping from UI that
+	    may have already been closed, such as Content Browser */
+	FVector LastHoverLocationOverUI;
 
 	//
 	// General input
@@ -48,9 +49,6 @@ struct FViewportInteractorData
 
 	/** True if we're currently holding the 'SelectAndMove' button down after clicking on an actor */
 	TWeakObjectPtr<UActorComponent> ClickingOnComponent;
-
-	/** Last real time that we pressed the 'SelectAndMove' button on UI.  This is used to detect double-clicks. */
-	double LastClickPressTime;
 
 
 	//
@@ -63,6 +61,9 @@ struct FViewportInteractorData
 	/** What we were doing last.  Used for inertial movement. */
 	EViewportInteractionDraggingMode LastDraggingMode;
 
+	/** True if we're dragging using the grabber sphere, or false if we're using the laser (or world movement) */
+	bool bDraggingWithGrabberSphere;
+
 	/** True if this is the first update since we started dragging */
 	bool bIsFirstDragUpdate;
 
@@ -72,14 +73,17 @@ struct FViewportInteractorData
 	/** Length of the ray that's dragging */
 	float DragRayLength;
 
-	/** Laser pointer start location the last frame */
-	FVector LastLaserPointerStart;
-
 	/** Location that we dragged to last frame (end point of the ray) */
 	FVector LastDragToLocation;
 
-	/** Laser pointer impact location at the drag start */
-	FVector LaserPointerImpactAtDragStart;
+	/** The orientation of the interactor when we first started the drag */
+	FQuat InteractorRotationAtDragStart;
+
+	/** Where the grabber sphere center point was when we first started the drag */
+	FVector GrabberSphereLocationAtDragStart;
+
+	/** Grabber sphere or laser pointer impact location at the drag start */
+	FVector ImpactLocationAtDragStart;
 
 	/** How fast to move selected objects every frame for inertial translation */
 	FVector DragTranslationVelocity;
@@ -98,6 +102,18 @@ struct FViewportInteractorData
 
 	/** Where the gizmo was placed at the beginning of the current interaction */
 	FTransform GizmoStartTransform;
+
+	/** Where the gizmo was last frame.  This is used for interpolation and smooth snapping */
+	FTransform GizmoLastTransform;
+
+	/** Where the gizmo wants to be right now, with snaps applied. */
+	FTransform GizmoTargetTransform;
+
+	/** Where the gizmo wants to be right now, if no snaps were applied.  This is used for interpolation and smooth snapping */
+	FTransform GizmoUnsnappedTargetTransform;
+
+	/** A transform that we're interpolating from, toward the target transform.  This is used when placing objects, so they'll smoothly interpolate to their initial location. */
+	FTransform GizmoInterpolationSnapshotTransform;
 
 	/** Our gizmo bounds at the start of the interaction, in actor local space. */
 	FBox GizmoStartLocalBounds;
@@ -124,17 +140,6 @@ struct FViewportInteractorData
 	/** Gizmo handle that we hovered over last (used only for avoiding spamming of hover haptics!) */
 	TWeakObjectPtr<class USceneComponent> HoverHapticCheckLastHoveredGizmoComponent;
 
-	//@todo ViewportInteraction: Light press should not have to be here, ViewportInteractor needs it
-	/** True if we allow locking of the lightly pressed state for the current event.  This can be useful to
-	turn off in cases where you always want a full press to override the light press, even if it was
-	a very slow press */
-	bool bAllowTriggerLightPressLocking;
-
-	/** This can be set to false when handling SelectAndMove_LightlyPressed to prevent a full press event from
-	    being possible at all.  Useful when you're not planning to use FullyPressed for anything, but you
-		don't want a full press to cancel your light press. */
-	bool bAllowTriggerFullPress;
-
 	/** If the latest hitresult is hovering over a priority type */
 	bool bHitResultIsPriorityType;
 
@@ -145,27 +150,30 @@ struct FViewportInteractorData
 	/** Default constructor for FVirtualHand that initializes safe defaults */
 	FViewportInteractorData()
 	{
-		bIsHovering = false;
-		HoveringOverWidgetComponent = nullptr;
-		HoverLocation = FVector::ZeroVector;
-		HoveredActorComponent = nullptr;
+		LastHoveredWidgetComponent = nullptr;
+		HoverLocation = TOptional<FVector>();
+		LastHoveredActorComponent = nullptr;
+		LastHoverLocationOverUI = FVector::ZeroVector;
 
 		ClickingOnComponent = nullptr;
 
 		DraggingMode = EViewportInteractionDraggingMode::Nothing;
+		bDraggingWithGrabberSphere = false;
 		LastDraggingMode = EViewportInteractionDraggingMode::Nothing;
 		bWasAssistingDrag = false;
 		bIsFirstDragUpdate = false;
 		DragRayLength = 0.0f;
-		LastLaserPointerStart = FVector::ZeroVector;
 		LastDragToLocation = FVector::ZeroVector;
-		LaserPointerImpactAtDragStart = FVector::ZeroVector;
+		InteractorRotationAtDragStart = FQuat::Identity;
+		GrabberSphereLocationAtDragStart = FVector::ZeroVector;
+		ImpactLocationAtDragStart = FVector::ZeroVector;
 		DragTranslationVelocity = FVector::ZeroVector;
 		DragRayLengthVelocity = 0.0f;
 		bIsDrivingVelocityOfSimulatedTransformables = false;
 
 		GizmoStartTransform = FTransform::Identity;
 		GizmoStartLocalBounds = FBox(ForceInit);
+		GizmoLastTransform = GizmoTargetTransform = GizmoUnsnappedTargetTransform = GizmoInterpolationSnapshotTransform = GizmoStartTransform;
 		GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;
 		GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;
 		TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
@@ -174,8 +182,6 @@ struct FViewportInteractorData
 		HoveringOverTransformGizmoComponent = nullptr;
 		HoverHapticCheckLastHoveredGizmoComponent = nullptr;
 
-		bAllowTriggerLightPressLocking = true;
-		bAllowTriggerFullPress = true;
 		bHitResultIsPriorityType = false;
 
 		StartHitLocationToTransformableCenter = FVector::ZeroVector;

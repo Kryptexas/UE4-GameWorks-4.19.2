@@ -448,8 +448,8 @@ public:
 	uint32 TwoSided:1;
 
 	/** Whether meshes rendered with the material should support dithered LOD transitions. */
-	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay, meta = (DisplayName = "Dithered LOD Transition"))
-	uint32 DitheredLODTransition:1;
+	UPROPERTY(EditAnywhere, Category = Material, AdvancedDisplay, meta = (DisplayName = "Dithered LOD Transition"))
+	uint32 DitheredLODTransition : 1;
 
 	/** Dither opacity mask. When combined with Temporal AA this can be used as a form of limited translucency which supports all lighting features. */
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)

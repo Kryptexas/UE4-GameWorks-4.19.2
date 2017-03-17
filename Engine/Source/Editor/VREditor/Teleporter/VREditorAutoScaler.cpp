@@ -9,6 +9,11 @@
 #include "GameFramework/WorldSettings.h"
 #include "Sound/SoundCue.h"
 
+namespace VREd
+{
+	static FAutoConsoleVariable AllowResetScale(TEXT("VREd.AllowResetScale"), 1, TEXT("Allowed to reset world to meters to default world to meters"));
+}
+
 UVREditorAutoScaler::UVREditorAutoScaler( const FObjectInitializer& ObjectInitializer ) :
 	Super( ObjectInitializer ),
 	VRMode( nullptr )
@@ -35,55 +40,44 @@ void UVREditorAutoScaler::Shutdown()
 
 void UVREditorAutoScaler::Scale( const float NewWorldToMetersScale )
 {
-	UViewportWorldInteraction* WorldInteraction = &VRMode->GetWorldInteraction();
+	if (VREd::AllowResetScale->GetInt() != 0)
+	{
+		UViewportWorldInteraction* WorldInteraction = &VRMode->GetWorldInteraction();
 
-	// Set the new world to meters scale.
-	const float OldWorldToMetersScale = WorldInteraction->GetViewportWorld()->GetWorldSettings()->WorldToMeters;
-	WorldInteraction->SetWorldToMetersScale( NewWorldToMetersScale );
-	WorldInteraction->SkipInteractiveWorldMovementThisFrame();
-
-	FTransform RoomTransform = WorldInteraction->GetRoomTransform();
-
-	// Use the HMD location as pivot to scale of, this will cause the view to be unchanged. 
-	const FVector RoomSpacePivotLocation = WorldInteraction->GetRoomSpaceHeadTransform().GetLocation();
-	const FVector WorldSpacePivotLocation = WorldInteraction->GetHeadTransform().GetLocation();// *( OldWorldToMetersScale / 100.0f );
-		
-	//The rest of this calculations is a duplicate from UViewportWorldInteraction.
-	const FVector NewRoomSpacePivotLocation = ( RoomSpacePivotLocation / OldWorldToMetersScale ) * NewWorldToMetersScale;
-	const FVector NewWorldSpacePivotLocation = RoomTransform.TransformPosition( NewRoomSpacePivotLocation );
-	const FVector WorldSpacePivotDelta = NewWorldSpacePivotLocation - WorldSpacePivotLocation;
-	const FVector NewWorldSpaceRoomLocation = RoomTransform.GetLocation() - WorldSpacePivotDelta;
-	RoomTransform.SetLocation( NewWorldSpaceRoomLocation );
-
-	WorldInteraction->SetRoomTransform( RoomTransform );
-
-	UGameplayStatics::PlaySound2D( VRMode->GetWorld(), ScaleSound );
+		// Set the new world to meters scale.
+		WorldInteraction->SetWorldToMetersScale( NewWorldToMetersScale, true );
+		WorldInteraction->SkipInteractiveWorldMovementThisFrame();
+		UGameplayStatics::PlaySound2D( VRMode->GetWorld(), ScaleSound );
+	}
 }
 
 
 void UVREditorAutoScaler::OnInteractorAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
-	if( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
+	if (VREd::AllowResetScale->GetInt() != 0)
 	{
-		if( Action.Event == IE_Pressed )
+		if( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
 		{
-			const EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
-			UViewportInteractor* OtherInteractor = Interactor->GetOtherInteractor();
-
-			// Start dragging at laser impact when already dragging actors freely
-			if( DraggingMode == EViewportInteractionDraggingMode::World ||
-				( DraggingMode == EViewportInteractionDraggingMode::AssistingDrag && OtherInteractor != nullptr && OtherInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World ) )
+			if( Action.Event == IE_Pressed )
 			{
-				const float DefaultWorldToMetersScale = VRMode->GetSavedEditorState().WorldToMetersScale;
-				Scale( DefaultWorldToMetersScale );
+				const EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
+				UViewportInteractor* OtherInteractor = Interactor->GetOtherInteractor();
 
-				bWasHandled = true;
-				bOutIsInputCaptured = true;
+				// Start dragging at laser impact when already dragging actors freely
+				if( DraggingMode == EViewportInteractionDraggingMode::World ||
+					( DraggingMode == EViewportInteractionDraggingMode::AssistingDrag && OtherInteractor != nullptr && OtherInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World ) )
+				{
+					const float DefaultWorldToMetersScale = VRMode->GetSavedEditorState().WorldToMetersScale;
+					Scale( DefaultWorldToMetersScale );
+
+					bWasHandled = true;
+					bOutIsInputCaptured = true;
+				}
 			}
-		}
-		else if( Action.Event == IE_Released )
-		{
-			bOutIsInputCaptured = false;
+			else if( Action.Event == IE_Released )
+			{
+				bOutIsInputCaptured = false;
+			}
 		}
 	}
 }

@@ -372,7 +372,6 @@ public:
 	void RecordSelectedActors();
 
 	/** Functions to push on to the transport controls we use */
-	FReply OnPlay(bool bTogglePlay=true, float InPlayRate=1.f);
 	FReply OnRecord();
 	FReply OnStepForward();
 	FReply OnStepBackward();
@@ -393,6 +392,7 @@ public:
 	/** Delegate handler for recording finishing */
 	void HandleRecordingFinished(UMovieSceneSequence* Sequence);
 
+	/** Whether or not playback is looping */
 	bool IsLooping() const;
 
 	/** Set the new global time, accounting for looping options */
@@ -614,11 +614,14 @@ public:
 	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() override;
 	virtual TSharedRef<INumericTypeInterface<float>> GetZeroPadNumericTypeInterface() override;
 	virtual TSharedRef<SWidget> MakeTransportControls(bool bExtended) override;
+	virtual FReply OnPlay(bool bTogglePlay = true, float InPlayRate = 1.f) override;
+	virtual void Pause() override;
 	virtual TSharedRef<SWidget> MakeTimeRange(const TSharedRef<SWidget>& InnerContent, bool bShowWorkingRange, bool bShowViewRange, bool bShowPlaybackRange) override;
 	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) override;
 	virtual FGuid MakeNewSpawnable(UObject& SourceObject) override;
 	virtual bool IsReadOnly() const override;
 	virtual void ExternalSelectionHasChanged() override { SynchronizeSequencerSelectionWithExternalSelection(); }
+	virtual USequencerSettings* GetSequencerSettings() override { return Settings; }
 
 public:
 
@@ -745,7 +748,6 @@ protected:
 	void Rewind();
 	void ShuttleForward();
 	void ShuttleBackward();
-	void Pause();
 	void StepForward();
 	void StepBackward();
 	void StepToNextKey();

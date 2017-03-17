@@ -1541,13 +1541,14 @@ EVisibility SLevelViewport::OnGetViewportContentVisibility() const
 	{
 		return BaseVisibility;
 	}
-	return IsPlayInEditorViewportActive() && IsImmersive() ? EVisibility::Collapsed : EVisibility::Visible;
+
+	return ( ( IsPlayInEditorViewportActive() && IsImmersive() ) || GEngine->IsStereoscopic3D( ActiveViewport.Get() ) ) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 EVisibility SLevelViewport::GetToolBarVisibility() const
 {
-	// Do not show the toolbar if this viewport has a play in editor session
-	return IsPlayInEditorViewportActive() ? EVisibility::Collapsed : OnGetViewportContentVisibility();
+	// Do not show the toolbar if this viewport has a play in editor session, or we're in the VR Editor
+	return ( IsPlayInEditorViewportActive() || GEngine->IsStereoscopic3D( ActiveViewport.Get() ) ) ? EVisibility::Collapsed : OnGetViewportContentVisibility();
 }
 
 EVisibility SLevelViewport::GetMaximizeToggleVisibility() const
@@ -3494,7 +3495,7 @@ void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, c
 	bPIEHasFocus = ActiveViewport->HasMouseCapture();
 
 
-	if(EditorPlayInSettings->ShowMouseControlLabel)
+	if(EditorPlayInSettings->ShowMouseControlLabel && !GEngine->IsStereoscopic3D( ActiveViewport.Get() ) )
 	{
 		ELabelAnchorMode AnchorMode = EditorPlayInSettings->MouseControlLabelPosition.GetValue();
 
@@ -3650,30 +3651,40 @@ void SLevelViewport::EndPlayInEditorSession()
 
 	if( IsPlayInEditorViewportActive() )
 	{
-		ActiveViewport->OnPlayWorldViewportSwapped(*InactiveViewport);
+		{
+			TSharedPtr<FSceneViewport> GameViewport = ActiveViewport;
+			ActiveViewport = InactiveViewport;
+			ActiveViewport->OnPlayWorldViewportSwapped( *GameViewport );
 
-		// Play in editor viewport was active, swap back to our level editor viewport
-		ActiveViewport->SetViewportClient( nullptr );
+			// Play in editor viewport was active, swap back to our level editor viewport
+			GameViewport->SetViewportClient( nullptr );
 
-		// We should be the only thing holding on to viewports
-		check( ActiveViewport.IsUnique() );
+			// We should be the only thing holding on to viewports
+			check( GameViewport.IsUnique() );
+		}
 
-		ActiveViewport = InactiveViewport;
-	
 		// Ensure our active viewport is for level editing
 		check( ActiveViewport->GetClient() == LevelViewportClient.Get() );
 
-		// Restore camera settings that may be adversely affected by PIE
-		LevelViewportClient->RestoreCameraFromPIE();
-		RedrawViewport(true);
+		// If we're going back to VR Editor, refresh the level viewport's render target so the HMD will present frames here
+		if( GEngine->IsStereoscopic3D( ActiveViewport.Get() ) )
+		{
+			ActiveViewport->UpdateViewportRHI( false, ActiveViewport->GetSizeXY().X, ActiveViewport->GetSizeXY().Y, ActiveViewport->GetWindowMode(), PF_Unknown );
+		}
+		else
+		{
+			// Restore camera settings that may be adversely affected by PIE
+			LevelViewportClient->RestoreCameraFromPIE();
+			RedrawViewport(true);
+
+			// Remove camera roll from any PIE camera applied in this viewport. A rolled camera is hard to use for editing
+			LevelViewportClient->RemoveCameraRoll();
+		}
 	}
 	else
 	{
 		InactiveViewport->SetViewportClient( nullptr );
 	}
-
-	// Remove camera roll from any PIE camera applied in this viewport. A rolled camera is hard to use for editing
-	LevelViewportClient->RemoveCameraRoll();
 
 	// Reset the inactive viewport
 	InactiveViewport.Reset();
@@ -3747,7 +3758,7 @@ void SLevelViewport::SwapViewportsForPlayInEditor()
 	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	check(EditorPlayInSettings);
 	
-	if(EditorPlayInSettings->ShowMouseControlLabel)
+	if(EditorPlayInSettings->ShowMouseControlLabel && !GEngine->IsStereoscopic3D( ActiveViewport.Get() ) )
 	{
 		ELabelAnchorMode AnchorMode = EditorPlayInSettings->MouseControlLabelPosition.GetValue();
 		

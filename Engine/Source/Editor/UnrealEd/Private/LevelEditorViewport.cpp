@@ -68,6 +68,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Settings/EditorProjectSettings.h"
+#include "IHeadMountedDisplay.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -4134,7 +4135,19 @@ void FLevelEditorViewportClient::UpdateAudioListener(const FSceneView& View)
 	{
 		if (FAudioDevice* AudioDevice = ViewportWorld->GetAudioDevice())
 		{
-			const FVector& ViewLocation = GetViewLocation();
+			FVector ViewLocation = GetViewLocation();
+
+			const bool bStereoRendering = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D( Viewport );
+			if( bStereoRendering && GEngine->HMDDevice->IsHeadTrackingAllowed() )
+			{
+				FQuat RoomSpaceHeadOrientation;
+				FVector RoomSpaceHeadLocation;
+				GEngine->HMDDevice->GetCurrentOrientationAndPosition( /* Out */ RoomSpaceHeadOrientation, /* Out */ RoomSpaceHeadLocation );
+
+				// NOTE: The RoomSpaceHeadLocation has already been adjusted for WorldToMetersScale
+				const FVector WorldSpaceHeadLocation = GetViewLocation() + GetViewRotation().RotateVector( RoomSpaceHeadLocation );
+				ViewLocation = WorldSpaceHeadLocation;
+			}
 
 			FMatrix CameraToWorld = View.ViewMatrices.GetInvViewMatrix();
 			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));
@@ -4526,8 +4539,7 @@ UWorld* FLevelEditorViewportClient::GetWorld() const
 {
 	if (bIsSimulateInEditorViewport)
 	{
-		// TODO: Find a proper way to get this
-		return GWorld;
+		return GEditor->PlayWorld;
 	}
 	else if (World)
 	{

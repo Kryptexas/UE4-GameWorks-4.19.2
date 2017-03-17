@@ -580,17 +580,17 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 		const OVR::Vector3f newRight(CurrentSettings->EyeRenderDesc[1].HmdToEyeOffset);
 		const OVR::Vector3f prevLeft(MasterSettings->EyeRenderDesc[0].HmdToEyeOffset);
 		const OVR::Vector3f prevRight(MasterSettings->EyeRenderDesc[1].HmdToEyeOffset);
-		if (newLeft != prevLeft || newRight != prevRight)
+		// for debugging purposes only: overriding IPD
+		if( CurrentSettings->Flags.bOverrideIPD )
+		{
+			check( CurrentSettings->InterpupillaryDistance >= 0 );
+			CurrentSettings->EyeRenderDesc[ 0 ].HmdToEyeOffset.x = -CurrentSettings->InterpupillaryDistance * 0.5f;
+			CurrentSettings->EyeRenderDesc[ 1 ].HmdToEyeOffset.x = CurrentSettings->InterpupillaryDistance * 0.5f;
+		}
+		else if (newLeft != prevLeft || newRight != prevRight)
 		{
 			const float newIAD = newRight.Distance(newLeft);
 			UE_LOG(LogHMD, Log, TEXT("IAD has changed, new IAD is %.4f meters"), newIAD);
-		}
-		// for debugging purposes only: overriding IPD
-		if (CurrentSettings->Flags.bOverrideIPD)
-		{
-			check(CurrentSettings->InterpupillaryDistance >= 0);
-			CurrentSettings->EyeRenderDesc[0].HmdToEyeOffset.x = -CurrentSettings->InterpupillaryDistance * 0.5f;
-			CurrentSettings->EyeRenderDesc[1].HmdToEyeOffset.x = CurrentSettings->InterpupillaryDistance * 0.5f;
 		}
 #endif // #if !UE_BUILD_SHIPPING
 		// Save EyeRenderDesc in main settings.
@@ -1752,7 +1752,9 @@ void FOculusRiftHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 	auto frame = GetFrame();
 	check(frame);
 
-	InViewFamily.EngineShowFlags.MotionBlur = 0;
+	extern RENDERER_API TAutoConsoleVariable<int32> CVarAllowMotionBlurInVR;
+
+	InViewFamily.EngineShowFlags.MotionBlur = CVarAllowMotionBlurInVR->GetInt() != 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = false;
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
 	if (frame->Settings->Flags.bPauseRendering)
@@ -2242,7 +2244,7 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 
 		for(int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
 		{
-			vpSize[eyeIndex] = ovr_GetFovTextureSize(OvrSession, (ovrEyeType) eyeIndex, CurrentSettings->EyeFov[eyeIndex], pixelDensity);
+			vpSize[eyeIndex] = ovr_GetFovTextureSize(OvrSession, (ovrEyeType)eyeIndex, CurrentSettings->EyeFov[eyeIndex], pixelDensity);
 			vpSize[eyeIndex].w = FMath::Max(vpSize[eyeIndex].w, 1);
 			vpSize[eyeIndex].h = FMath::Max(vpSize[eyeIndex].h, 1);
 
@@ -2512,32 +2514,35 @@ void FOculusRiftHMD::OnBeginPlay(FWorldContext& InWorldContext)
 	CachedViewportWidget.Reset();
 	CachedWindow.Reset();
 
+	if( !GEnableVREditorHacks )
+	{
 #if WITH_EDITOR
-	// @TODO: add more values here.
-	// This call make sense when 'Play' is used from the Editor;
-	if (GIsEditor)
-	{
-		Settings->PositionOffset = FVector::ZeroVector;
-		Settings->BaseOrientation = FQuat::Identity;
-		Settings->BaseOffset = FVector::ZeroVector;
-		Settings->WorldToMetersScale = InWorldContext.World()->GetWorldSettings()->WorldToMeters;
-		//Settings->Flags.bWorldToMetersOverride = false;
-		InitDevice();
+		// @TODO: add more values here.
+		// This call make sense when 'Play' is used from the Editor;
+		if( GIsEditor )
+		{
+			Settings->PositionOffset = FVector::ZeroVector;
+			Settings->BaseOrientation = FQuat::Identity;
+			Settings->BaseOffset = FVector::ZeroVector;
+			Settings->WorldToMetersScale = InWorldContext.World()->GetWorldSettings()->WorldToMeters;
+			//Settings->Flags.bWorldToMetersOverride = false;
+			InitDevice();
 
-		FApp::SetUseVRFocus(true);
-		FApp::SetHasVRFocus(true);
-		OnStartGameFrame(InWorldContext);
-	}
-	else
+			FApp::SetUseVRFocus( true );
+			FApp::SetHasVRFocus( true );
+			OnStartGameFrame( InWorldContext );
+		}
+		else
 #endif
-	{
-		MakeSureValidFrameExists(InWorldContext.World()->GetWorldSettings());
+		{
+			MakeSureValidFrameExists( InWorldContext.World()->GetWorldSettings() );
+		}
 	}
 }
 
 void FOculusRiftHMD::OnEndPlay(FWorldContext& InWorldContext)
 {
-	if (GIsEditor)
+	if (GIsEditor && !GEnableVREditorHacks)
 	{
 		// @todo vreditor: If we add support for starting PIE while in VR Editor, we don't want to kill stereo mode when exiting PIE
 		EnableStereo(false);

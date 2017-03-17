@@ -91,8 +91,6 @@ struct CORE_API FFbxErrors
 
 	static FName SkeletalMesh_NoMeshFoundOnRoot;
 	
-	static FName SkeletalMesh_ImportSubDSurface;
-
 	static FName SkeletalMesh_InvalidRoot;
 
 	static FName SkeletalMesh_InvalidBone;

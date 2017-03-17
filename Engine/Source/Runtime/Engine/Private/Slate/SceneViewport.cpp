@@ -1570,6 +1570,20 @@ void FSceneViewport::Tick( const FGeometry& AllottedGeometry, double InCurrentTi
 
 void FSceneViewport::OnPlayWorldViewportSwapped( const FSceneViewport& OtherViewport )
 {
+	// We need to call WindowRenderTargetUpdate() to make sure the Slate renderer is updated to render
+	// to the viewport client we'll be using for PIE/SIE.  Otherwise if stereo rendering is enabled, Slate
+	// could render the HMD mirror to a game viewport client which is not visible on screen!
+	TSharedPtr<SWidget> PinnedViewport = ViewportWidget.Pin();
+	if( PinnedViewport.IsValid() )
+	{
+		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+
+		FWidgetPath WidgetPath;
+		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( PinnedViewport.ToSharedRef(), WidgetPath );
+
+		WindowRenderTargetUpdate( Renderer.Get(), Window.Get() );
+	}
+
 	// Play world viewports should always be the same size.  Resize to other viewports size
 	if( GetSizeXY() != OtherViewport.GetSizeXY() )
 	{

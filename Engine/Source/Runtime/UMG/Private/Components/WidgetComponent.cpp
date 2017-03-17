@@ -1240,11 +1240,14 @@ void UWidgetComponent::UpdateWidget()
 				NewSlateWidget = Widget->TakeWidget();
 			}
 
+			bool bNeededNewWindow = false;
 			if ( !SlateWindow.IsValid() )
 			{
 				SlateWindow = SNew(SVirtualWindow).Size(DrawSize);
 				SlateWindow->SetIsFocusable(bWindowFocusable);
 				RegisterWindow();
+
+				bNeededNewWindow = true;
 			}
 
 			if ( !HitTestGrid.IsValid() )
@@ -1256,7 +1259,7 @@ void UWidgetComponent::UpdateWidget()
 
 			if ( NewSlateWidget.IsValid() )
 			{
-				if ( NewSlateWidget != CurrentSlateWidget )
+				if ( NewSlateWidget != CurrentSlateWidget || bNeededNewWindow )
 				{
 					CurrentSlateWidget = NewSlateWidget;
 					SlateWindow->SetContent(NewSlateWidget.ToSharedRef());
@@ -1264,7 +1267,7 @@ void UWidgetComponent::UpdateWidget()
 			}
 			else if( SlateWidget.IsValid() )
 			{
-				if ( SlateWidget != CurrentSlateWidget )
+				if ( SlateWidget != CurrentSlateWidget || bNeededNewWindow )
 				{
 					CurrentSlateWidget = SlateWidget;
 					SlateWindow->SetContent(SlateWidget.ToSharedRef());

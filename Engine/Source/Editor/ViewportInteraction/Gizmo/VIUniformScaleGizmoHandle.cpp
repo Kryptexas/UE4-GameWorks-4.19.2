@@ -27,7 +27,7 @@ UUniformScaleGizmoHandleGroup::UUniformScaleGizmoHandleGroup()
 	NewHandle.HandleMesh = UniformScaleHandle;
 }
 
-void UUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
+void UUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 	float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	// Call parent implementation (updates hover animation)
@@ -70,16 +70,16 @@ void UUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& Lo
 			if( GizmoActor )
 			{
 				UViewportWorldInteraction* WorldInteraction = GizmoActor->GetOwnerWorldInteraction();
-				if( WorldInteraction )
+				if( WorldInteraction && WorldInteraction->IsActive() )
 				{
 					FLinearColor HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::DefaultColor );
 					if (UniformScaleHandle == DraggingHandle)
 					{
-						HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Dragging );
+						HandleColor = WorldInteraction->GetColor( UViewportWorldInteraction::EColors::GizmoDragging );
 					}
 					else if (HoveringOverHandles.Contains( UniformScaleHandle ))
 					{
-						HandleColor = FLinearColor::LerpUsingHSV( HandleColor, WorldInteraction->GetColor( UViewportWorldInteraction::EColors::Hover ), Handle.HoverAlpha );
+						HandleColor = FLinearColor::LerpUsingHSV( HandleColor, WorldInteraction->GetColor( UViewportWorldInteraction::EColors::GizmoHover ), Handle.HoverAlpha );
 					}
 
 					MID0->SetVectorParameterValue( "Color", HandleColor );

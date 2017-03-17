@@ -32,7 +32,6 @@ class UPhysicsAsset;
 class USkeletalMesh;
 class USkeleton;
 class UStaticMesh;
-class USubDSurface;
 class UTexture;
 struct FExpressionInput;
 struct FRawMesh;
@@ -626,14 +625,6 @@ public:
 
 	static void UpdateStaticMeshImportData(UStaticMesh *StaticMesh, UFbxStaticMeshImportData* StaticMeshImportData);
 	static void UpdateSkeletalMeshImportData(USkeletalMesh *SkeletalMesh, UFbxSkeletalMeshImportData* SkeletalMeshImportData, int32 SpecificLod, TArray<FName> *ImportMaterialOriginalNameData, TArray<FImportMeshLodSectionsData> *ImportMeshLodData);
-	/**
-	* Creates a SubDSurface mesh from all the meshes in FBX scene with the given name and flags.
-	*
-	* @param MeshNodeArray	Fbx Nodes to import
-	* @param InName	the Unreal Mesh name after import
-	*/
-	UNREALED_API bool ImportSubDSurface(USubDSurface* Out, UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData);
-
 	void ImportStaticMeshGlobalSockets( UStaticMesh* StaticMesh );
 	void ImportStaticMeshLocalSockets( UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
 

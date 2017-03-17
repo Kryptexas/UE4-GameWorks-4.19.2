@@ -30,11 +30,11 @@ public:
 	/** Removes registered event */
 	void Shutdown();
 
-	/** If this component is interactable by an interactor */
-	bool IsInteractableComponent( const UActorComponent* Component ) const;
-
 	/** Snaps the selected objects to the ground */
 	void SnapSelectedActorsToGround();
+
+	/** Try spawn and start placing the specified objects */
+	void StartPlacingObjects( const TArray<UObject*>& ObjectsToPlace, class UActorFactory* FactoryToUse, class UVREditorInteractor* PlacingWithInteractor, const bool bShouldInterpolateFromDragLocation );
 
 protected:
 	/** When an interactor stops dragging */
@@ -61,10 +61,6 @@ protected:
 	/** The actual ViewportWorldInteraction */
 	UPROPERTY()
 	UViewportWorldInteraction* ViewportWorldInteraction;
-
-	/** Sound for dropping materials and textures */
-	UPROPERTY()
-	class USoundCue* DropMaterialOrMaterialSound;
 
 	//
 	// Dragging object from UI

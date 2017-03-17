@@ -8,7 +8,7 @@ namespace UnrealBuildTool.Rules
     {
         public ViewportInteraction(ReadOnlyTargetRules Target) : base(Target)
         {
-            PrivateDependencyModuleNames.AddRange(
+            PublicDependencyModuleNames.AddRange(
                 new string[] {
                     "Core",
                     "CoreUObject",
@@ -17,7 +17,6 @@ namespace UnrealBuildTool.Rules
                     "UnrealEd",
                     "Slate",
                     "SlateCore",
-                    "HeadMountedDisplay"
                 }
             );
 
@@ -26,11 +25,6 @@ namespace UnrealBuildTool.Rules
 					"LevelEditor"
                 }
             );
-
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[] {
-                }
-            );
-        }
-    }
+		}
+	}
 }

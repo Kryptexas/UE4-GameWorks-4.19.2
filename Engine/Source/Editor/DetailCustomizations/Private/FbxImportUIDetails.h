@@ -36,7 +36,7 @@ public:
 	/** Called if the bImportMaterials changes */
 	void ImportMaterialsChanged();
 
-	/** Called if the mesh mode (static / skeletal / SubDSurface) changes */
+	/** Called if the mesh mode (static / skeletal) changes */
 	void MeshImportModeChanged();
 
 	/** Called if the import mesh option for skeletal meshes is changed */
