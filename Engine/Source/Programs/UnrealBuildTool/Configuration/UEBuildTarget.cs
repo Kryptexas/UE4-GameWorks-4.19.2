@@ -2197,7 +2197,7 @@ namespace UnrealBuildTool
 					Directory.CreateDirectory(Path.GetDirectoryName(ForceReceiptFileName));
 					Receipt.Write(ForceReceiptFileName);
 				}
-				if(SharedBuildIdFile != null)
+				if(SharedBuildIdFile != null && (!FileReference.Exists(SharedBuildIdFile) || File.ReadAllText(SharedBuildIdFile.FullName) != Receipt.BuildId))
 				{
 					DirectoryReference.CreateDirectory(SharedBuildIdFile.Directory);
 					File.WriteAllText(SharedBuildIdFile.FullName, Receipt.BuildId);
