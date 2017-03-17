@@ -382,6 +382,9 @@ void FEdModeFoliage::Enter()
 
 		SetBrushOpacity(VREd::FoliageOpacity->GetFloat());
 	}
+
+	// Make sure the brush is visible.
+	SphereBrushComponent->SetVisibility(true);
 }
 
 /** FEdMode: Called when the mode is exited */
