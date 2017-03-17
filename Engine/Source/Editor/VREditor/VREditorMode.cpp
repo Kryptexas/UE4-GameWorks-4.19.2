@@ -1118,6 +1118,8 @@ void UVREditorMode::RestoreFromPIE()
 	// Re-enable input pre-processing
 	WorldInteraction->SetUseInputPreprocessor(true);
 	WorldInteraction->SetActive(true);
+
+	UISystem->HideRadialMenu(false);
 }
 
 void UVREditorMode::RestoreWorldToMeters()

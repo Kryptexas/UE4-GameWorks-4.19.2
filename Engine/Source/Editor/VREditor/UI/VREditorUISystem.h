@@ -162,7 +162,7 @@ public:
 	void TryToSpawnRadialMenu( UVREditorInteractor* Interactor, const bool bForceRefresh, const bool bPlaySound = true );
 
 	/** Hides the radial menu if the specified hand is showing it */
-	void HideRadialMenu( UVREditorInteractor* Interactor, const bool bPlaySound = true );
+	void HideRadialMenu( const bool bPlaySound = true );
 
 	/** Start dragging a dock window on the hand */
 	void StartDraggingDockUI( class AVREditorDockableWindow* InitDraggingDockUI, UVREditorInteractor* Interactor, const float DockSelectDistance, const bool bPlaySound = true );
