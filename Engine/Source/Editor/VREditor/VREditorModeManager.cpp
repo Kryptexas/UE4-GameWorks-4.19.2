@@ -147,7 +147,7 @@ bool FVREditorModeManager::IsVREditorActive() const
 bool FVREditorModeManager::IsVREditorAvailable() const
 {
 	const bool bHasHMDDevice = GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled();
-	return bHasHMDDevice;
+	return bHasHMDDevice && !GEditor->bIsSimulatingInEditor;
 }
 
 
