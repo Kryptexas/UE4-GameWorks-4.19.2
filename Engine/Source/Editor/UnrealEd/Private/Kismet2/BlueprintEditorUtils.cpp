@@ -5391,6 +5391,54 @@ bool FBlueprintEditorUtils::PropagateNativizationSetting(UBlueprint* Blueprint)
 	return bSettingsChanged;
 }
 
+bool FBlueprintEditorUtils::ShouldNativizeImplicitly(const UBlueprint* Blueprint)
+{
+	if (Blueprint)
+	{
+		TArray<UK2Node_Event*> AllEventNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, AllEventNodes);
+
+		// Add all events overridden by this Blueprint.
+		TArray<FName> CheckFunctionNames;
+		for (const UK2Node_Event* EventNode : AllEventNodes)
+		{
+			if (EventNode->bOverrideFunction)
+			{
+				CheckFunctionNames.Add(EventNode->EventReference.GetMemberName());
+			}
+		}
+
+		// Add all function graphs implemented by this Blueprint.
+		for (const UEdGraph* FunctionGraph : Blueprint->FunctionGraphs)
+		{
+			CheckFunctionNames.Add(FunctionGraph->GetFName());
+		}
+
+		// Check each overridable/callable function defined by all ancestors to see if any names match an implementation found in this Blueprint.
+		UClass* ParentClass = Blueprint->SkeletonGeneratedClass ? Blueprint->SkeletonGeneratedClass->GetSuperClass() : *Blueprint->ParentClass;
+		for (TFieldIterator<UFunction> FunctionIt(ParentClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
+		{
+			const UFunction* Function = *FunctionIt;
+			if (UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && UEdGraphSchema_K2::CanUserKismetCallFunction(Function) && CheckFunctionNames.Contains(Function->GetFName()))
+			{
+				// This Blueprint overrides a callable event/function. If the function is defined in a parent BP that is flagged for nativization, OR if
+				// the parent BP has itself been implicitly flagged for nativization, then this Blueprint will also be implicitly flagged for nativization.
+				// Currently, any calls to such a function within a nativized parent hierarchy are not able to invoke an override in a non-nativized child,
+				// so the current solution is to implicitly force the child BP to also be nativized along with its parent hierarchy in this particular case.
+				const UClass* SignatureClass = CastChecked<UClass>(Function->GetOuter());
+				const UBlueprint* ParentBP = UBlueprint::GetBlueprintFromClass(SignatureClass);
+				if (ParentBP != nullptr
+					&& (ParentBP->NativizationFlag == EBlueprintNativizationFlag::ExplicitlyEnabled || ShouldNativizeImplicitly(ParentBP)))
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Interfaces
 

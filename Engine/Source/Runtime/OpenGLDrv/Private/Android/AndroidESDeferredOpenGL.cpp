@@ -32,6 +32,11 @@ ENUM_GL_ENTRYPOINTS_CORE(DEFINE_GL_ENTRYPOINTS) \
 ENUM_GL_ENTRYPOINTS_MANUAL(DEFINE_GL_ENTRYPOINTS) \
 ENUM_GL_ENTRYPOINTS_OPTIONAL(DEFINE_GL_ENTRYPOINTS)
 
+PFNEGLGETSYSTEMTIMENVPROC eglGetSystemTimeNV_p = NULL;
+PFNEGLCREATESYNCKHRPROC eglCreateSyncKHR_p = NULL;
+PFNEGLDESTROYSYNCKHRPROC eglDestroySyncKHR_p = NULL;
+PFNEGLCLIENTWAITSYNCKHRPROC eglClientWaitSyncKHR_p = NULL;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 bool FAndroidESDeferredOpenGL::bSupportsBindlessTexture = false;
@@ -166,6 +171,12 @@ void FPlatformOpenGLDevice::Init()
 	ENUM_GL_ENTRYPOINTS_CORE(GET_GL_ENTRYPOINTS);
 	ENUM_GL_ENTRYPOINTS_MANUAL(GET_GL_ENTRYPOINTS);
 	ENUM_GL_ENTRYPOINTS_OPTIONAL(GET_GL_ENTRYPOINTS);
+
+	eglGetSystemTimeNV_p = (PFNEGLGETSYSTEMTIMENVPROC)((void*)eglGetProcAddress("eglGetSystemTimeNV"));
+	eglCreateSyncKHR_p = (PFNEGLCREATESYNCKHRPROC)((void*)eglGetProcAddress("eglCreateSyncKHR"));
+	eglDestroySyncKHR_p = (PFNEGLDESTROYSYNCKHRPROC)((void*)eglGetProcAddress("eglDestroySyncKHR"));
+	eglClientWaitSyncKHR_p = (PFNEGLCLIENTWAITSYNCKHRPROC)((void*)eglGetProcAddress("eglClientWaitSyncKHR"));
+
 
 	// Check that all of the required entry points have been initialized
 	bool bFoundAllEntryPoints = true;

@@ -292,6 +292,23 @@ bool FOnlineSessionNull::NeedsToAdvertise( FNamedOnlineSession& Session )
 		);		
 }
 
+bool FOnlineSessionNull::IsSessionJoinable(const FNamedOnlineSession& Session) const
+{
+	const FOnlineSessionSettings& Settings = Session.SessionSettings;
+
+	// LAN beacons are implicitly advertised.
+	const bool bIsAdvertised = Settings.bShouldAdvertise || Settings.bIsLANMatch;
+	const bool bIsMatchInProgress = Session.SessionState == EOnlineSessionState::InProgress;
+
+	const bool bJoinableFromProgress = (!bIsMatchInProgress || Settings.bAllowJoinInProgress);
+
+	const bool bAreSpacesAvailable = Session.NumOpenPublicConnections > 0;
+
+	// LAN matches don't care about private connections / invites.
+	// LAN matches don't care about presence information.
+	return bIsAdvertised && bJoinableFromProgress && bAreSpacesAvailable;
+}
+
 uint32 FOnlineSessionNull::UpdateLANStatus()
 {
 	uint32 Result = ERROR_SUCCESS;
@@ -1011,36 +1028,25 @@ void FOnlineSessionNull::OnValidQueryPacketReceived(uint8* PacketData, int32 Pac
 	for (int32 SessionIndex = 0; SessionIndex < Sessions.Num(); SessionIndex++)
 	{
 		FNamedOnlineSession* Session = &Sessions[SessionIndex];
-							
+
 		// Don't respond to query if the session is not a joinable LAN match.
-		if (Session)
+		if (Session && IsSessionJoinable(*Session))
 		{
-			const FOnlineSessionSettings& Settings = Session->SessionSettings;
+			FNboSerializeToBufferNull Packet(LAN_BEACON_MAX_PACKET_SIZE);
+			// Create the basic header before appending additional information
+			LANSessionManager.CreateHostResponsePacket(Packet, ClientNonce);
 
-			const bool bIsMatchInProgress = Session->SessionState == EOnlineSessionState::InProgress;
+			// Add all the session details
+			AppendSessionToPacket(Packet, Session);
 
-			const bool bIsMatchJoinable = Settings.bIsLANMatch &&
-				(!bIsMatchInProgress || Settings.bAllowJoinInProgress) &&
-				Settings.NumPublicConnections > 0;
-
-			if (bIsMatchJoinable)
+			// Broadcast this response so the client can see us
+			if (!Packet.HasOverflow())
 			{
-				FNboSerializeToBufferNull Packet(LAN_BEACON_MAX_PACKET_SIZE);
-				// Create the basic header before appending additional information
-				LANSessionManager.CreateHostResponsePacket(Packet, ClientNonce);
-
-				// Add all the session details
-				AppendSessionToPacket(Packet, Session);
-
-				// Broadcast this response so the client can see us
-				if (!Packet.HasOverflow())
-				{
-					LANSessionManager.BroadcastPacket(Packet, Packet.GetByteCount());
-				}
-				else
-				{
-					UE_LOG_ONLINE(Warning, TEXT("LAN broadcast packet overflow, cannot broadcast on LAN"));
-				}
+				LANSessionManager.BroadcastPacket(Packet, Packet.GetByteCount());
+			}
+			else
+			{
+				UE_LOG_ONLINE(Warning, TEXT("LAN broadcast packet overflow, cannot broadcast on LAN"));
 			}
 		}
 	}

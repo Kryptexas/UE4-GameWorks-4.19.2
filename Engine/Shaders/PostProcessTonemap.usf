@@ -487,8 +487,10 @@ void MainPS(
 		#if NO_EYEADAPTATION_EXPOSURE_FIX == 1
 			ExposureScale = BloomDirtMask.Tint.w;
 		#endif
-
-		LinearColor *= ExposureScale;
+		
+		#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1 // On mobile ExposureScale applied in base pass PS
+			LinearColor *= ExposureScale;
+		#endif
 
 		#if USE_VIGNETTE
 			LinearColor.rgb *= ComputeVignetteMask( InExposureScaleVignette.yz, TonemapperParams.x );

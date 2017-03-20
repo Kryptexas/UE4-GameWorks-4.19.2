@@ -210,8 +210,7 @@ bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uin
 	{
 		LayerFlags |= FCustomPresent::HighQuality;
 	}
-	pCustomPresent->AllocateRenderTargetTexture(SizeX, SizeY, Format, InTexFlags, LayerFlags, OutTargetableTexture, OutShaderResourceTexture);
-	return true;
+	return pCustomPresent->AllocateRenderTargetTexture(SizeX, SizeY, Format, InTexFlags, LayerFlags, OutTargetableTexture, OutShaderResourceTexture);
 }
 
 void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY,

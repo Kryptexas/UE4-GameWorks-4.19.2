@@ -1411,7 +1411,8 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		}
 	}
 
-	if (bCanLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
+	// Hack for 4.15.1 / UE-42196. If there is lighting no data for the current LOD, try to share LOD 0's
+	if ((bCanLODsShareStaticLighting || !InComponent->LODData.IsValidIndex(LODIndex)) && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
 		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
@@ -1640,7 +1641,7 @@ FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()
 		return NULL;
 	}
 
-	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this, false);
+	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this, GetStaticMesh()->bLODsShareStaticLighting);
 	return Proxy;
 }
 

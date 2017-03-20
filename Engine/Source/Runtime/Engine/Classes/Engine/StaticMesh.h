@@ -399,6 +399,16 @@ struct FMaterialRemapIndex
 };
 
 
+#if WITH_EDITOR
+/**
+ * Returns true if LODs of this static mesh may share texture lightmaps.
+ * Removed from UStaticMesh for 4.15.1 to avoid changing API
+ *
+ * WARNING this function will be removed in 4.16.
+ */
+bool StaticMesh_CanLODsShareStaticLighting(UStaticMesh* Mesh);
+#endif
+
 /**
  * A StaticMesh is a piece of geometry that consists of a static set of polygons.
  * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
@@ -504,6 +514,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	    Set to false for distant meshes (always outside navigation bounds) to save memory on collision data. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Navigation)
 	uint32 bHasNavigationData:1;
+
+	/** TEMPORARY for 4.15.1. True if LODs share static lighting data */
+	UPROPERTY()
+	uint32 bLODsShareStaticLighting:1;
 
 	/** Bias multiplier for Light Propagation Volume lighting */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, meta=(UIMin = "0.0", UIMax = "3.0"))

@@ -2322,7 +2322,15 @@ namespace UnrealBuildTool
 			VersionManifest MainManifest;
 			if(!ExistingFileToManifest.TryGetValue(MainManifestFile, out MainManifest))
 			{
-				return false;
+				// Try to load Main Manifest directly if it wasn't part of file list (true for installed builds)
+				if (MainManifestFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && VersionManifest.TryRead(MainManifestFile.FullName, out MainManifest))
+				{
+					ExistingFileToManifest.Add(MainManifestFile, MainManifest);
+				}
+				else
+				{
+					return false;
+				}
 			}
 
 			// Check if we're modifying any files in an existing valid manifest. If the build id for a manifest doesn't match, we can behave as if it doesn't exist.
@@ -2630,6 +2638,7 @@ namespace UnrealBuildTool
 				if (Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64)
 				{
 					FileItem VersionFile = FileItem.GetExistingItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Core", "Resources", "Windows", "ModuleVersionResource.rc.inl"));
+					VersionFile.CachedCPPIncludeInfo = GlobalCompileEnvironment.Config.CPPIncludeInfo;
 					CPPOutput VersionOutput = TargetToolChain.CompileRCFiles(GlobalCompileEnvironment, new List<FileItem> { VersionFile }, ActionGraph);
 					GlobalLinkEnvironment.CommonResourceFiles.AddRange(VersionOutput.ObjectFiles);
 
@@ -2639,6 +2648,7 @@ namespace UnrealBuildTool
 						DefaultResourceCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"UE4\"");
 
 						FileItem DefaultResourceFile = FileItem.GetExistingItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc"));
+						DefaultResourceFile.CachedCPPIncludeInfo = GlobalCompileEnvironment.Config.CPPIncludeInfo;
 						CPPOutput DefaultResourceOutput = TargetToolChain.CompileRCFiles(DefaultResourceCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
 
 						GlobalLinkEnvironment.DefaultResourceFiles.AddRange(DefaultResourceOutput.ObjectFiles);

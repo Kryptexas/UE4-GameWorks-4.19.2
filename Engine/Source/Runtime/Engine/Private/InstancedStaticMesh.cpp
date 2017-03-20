@@ -23,9 +23,6 @@
 #include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "SceneManagement.h"
-#if WITH_EDITOR
-#include "RawMesh.h"
-#endif
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -1267,17 +1264,7 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "LargeStaticLightingWarning", "The total lightmap size for this InstancedStaticMeshComponent is large, consider reducing the component's lightmap resolution or number of mesh instances in this component")));
 		}
 
-		bool bHasMultipleLODModels = false;
-		for (int32 LODIndex = 1; LODIndex < GetStaticMesh()->SourceModels.Num(); ++LODIndex)
-		{
-			if (!GetStaticMesh()->SourceModels[LODIndex].RawMeshBulkData->IsEmpty())
-			{
-				bHasMultipleLODModels = true;
-				break;
-			}
-		}
-
-		if (bHasMultipleLODModels)
+		if (!StaticMesh_CanLODsShareStaticLighting(GetStaticMesh()))
 		{
 			//TODO: Detect if the UVs for all sub-LODs overlap the base LOD UVs and omit this warning if they do.
 			FMessageLog("LightingResults").Message(EMessageSeverity::Warning)

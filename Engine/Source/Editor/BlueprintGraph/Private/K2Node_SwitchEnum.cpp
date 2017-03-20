@@ -29,6 +29,8 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 	if (Enum)
 	{
 		PreloadObject(Enum);
+		Enum->ConditionalPostLoad();
+
 		for (int32 EnumIndex = 0; EnumIndex < Enum->NumEnums() - 1; ++EnumIndex)
 		{
 			bool const bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );

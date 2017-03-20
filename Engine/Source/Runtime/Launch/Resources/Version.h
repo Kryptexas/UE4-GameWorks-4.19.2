@@ -56,7 +56,7 @@
 // newer than a 4.11.* version, regardless of the changelist that it was built with)
 #define ENGINE_MAJOR_VERSION	4
 #define ENGINE_MINOR_VERSION	15
-#define ENGINE_PATCH_VERSION	0
+#define ENGINE_PATCH_VERSION	1
 
 // If set to 1, indicates that this is a licensee build of the engine. For the same major/minor/patch release of the engine, licensee changelists are always 
 // considered newer than Epic changelists for engine versions. This follows the assumption that content is developed by Epic leading up to a release, and which 
@@ -86,12 +86,12 @@
 	#if ENGINE_IS_LICENSEE_VERSION
 		#define ENGINE_COMPATIBLE_CL_VERSION ENGINE_CURRENT_CL_VERSION
 	#else
-		#define ENGINE_COMPATIBLE_CL_VERSION ENGINE_CURRENT_CL_VERSION /* Or hotfix compatibility changelist */
+		#define ENGINE_COMPATIBLE_CL_VERSION 3299760 /* Or hotfix compatibility changelist */
 	#endif
 #else
 	#define ENGINE_COMPATIBLE_CL_VERSION 0
 #endif
-#if ENGINE_IS_LICENSEE_VERSION == 0 && ENGINE_PATCH_VERSION > 0 && ENGINE_CL_VERSION > 0 && ENGINE_COMPATIBLE_CL_VERSION == ENGINE_CL_VERSION
+#if ENGINE_IS_LICENSEE_VERSION == 0 && ENGINE_PATCH_VERSION > 0 && ENGINE_CURRENT_CL_VERSION > 0 && ENGINE_COMPATIBLE_CL_VERSION == ENGINE_CURRENT_CL_VERSION
 	#error ENGINE_COMPATIBLE_CL_VERSION must be manually defined for hotfix builds
 #endif
 

@@ -256,15 +256,7 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 				{
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("ChildActorClass"), FText::FromString(ChildActorClass->GetName()));
-
-					if (IsRunningDedicatedServer())
-					{
-						MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "StrippedComponentTemplate_Error", "Unknown template referenced by '{NodeTitle}' for @@ - Please resave the blueprint to correct this."), Args).ToString(), this);
-					}
-					else
-					{
-						MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "MissingComponentTemplate_Error", "Unknown template referenced by '{NodeTitle}' for @@"), Args).ToString(), this);
-					}
+					MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "AddStaticChildActorComponent_Error", "@@ cannot add a '{ChildActorClass}' component as it has static mobility, and the ChildActorComponent does not."), Args).ToString(), this);
 				}
 			}
 		}

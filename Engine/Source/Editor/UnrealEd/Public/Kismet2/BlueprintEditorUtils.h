@@ -1090,6 +1090,9 @@ public:
 	/** Retrieves all dependencies that need to be nativized for this to work as a nativized Blueprint */
 	static void FindNativizationDependencies(UBlueprint* Blueprint, TArray<UClass*>& NativizeDependenciesOut);
 
+	/** Returns whether or not the given Blueprint should be nativized implicitly, regardless of whether or not the user has explicitly enabled it */
+	static bool ShouldNativizeImplicitly(const UBlueprint* Blueprint);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
 

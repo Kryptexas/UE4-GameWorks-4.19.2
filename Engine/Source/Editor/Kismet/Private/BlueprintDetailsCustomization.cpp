@@ -5114,7 +5114,7 @@ bool FBlueprintGlobalOptionsDetails::IsNativizeEnabled() const
 	bool bIsEnabled = false;
 	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
-		bIsEnabled = (Blueprint->BlueprintType != BPTYPE_MacroLibrary) && (Blueprint->BlueprintType != BPTYPE_LevelScript);
+		bIsEnabled = (Blueprint->BlueprintType != BPTYPE_MacroLibrary) && (Blueprint->BlueprintType != BPTYPE_LevelScript) && (!FBlueprintEditorUtils::ShouldNativizeImplicitly(Blueprint));
 	}
 	return bIsEnabled;
 }
@@ -5124,20 +5124,27 @@ ECheckBoxState FBlueprintGlobalOptionsDetails::GetNativizeState() const
 	ECheckBoxState CheckboxState = ECheckBoxState::Undetermined;
 	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
-		switch (Blueprint->NativizationFlag)
+		if (FBlueprintEditorUtils::ShouldNativizeImplicitly(Blueprint))
 		{
-		case EBlueprintNativizationFlag::Disabled:
-			CheckboxState = ECheckBoxState::Unchecked;
-			break;
-
-		case EBlueprintNativizationFlag::ExplicitlyEnabled:
 			CheckboxState = ECheckBoxState::Checked;
-			break;
+		}
+		else
+		{
+			switch (Blueprint->NativizationFlag)
+			{
+			case EBlueprintNativizationFlag::Disabled:
+				CheckboxState = ECheckBoxState::Unchecked;
+				break;
 
-		case EBlueprintNativizationFlag::Dependency:
-		default:
-			// leave "Undetermined"
-			break;
+			case EBlueprintNativizationFlag::ExplicitlyEnabled:
+				CheckboxState = ECheckBoxState::Checked;
+				break;
+
+			case EBlueprintNativizationFlag::Dependency:
+			default:
+				// leave "Undetermined"
+				break;
+			}
 		}
 	}
 	return CheckboxState;	
@@ -5147,7 +5154,14 @@ FText FBlueprintGlobalOptionsDetails::GetNativizeTooltip() const
 {
 	if (!IsNativizeEnabled())
 	{
-		return LOCTEXT("NativizeDisabledTooltip", "Macro libraries and level Blueprints cannot be nativized.");
+		if (FBlueprintEditorUtils::ShouldNativizeImplicitly(GetBlueprintObj()))
+		{
+			return LOCTEXT("NativizeImplicitlyTooltip", "This Blueprint must be nativized because it overrides one or more BlueprintCallable functions inherited from a parent Blueprint class that has also been flagged for nativization.");
+		}
+		else
+		{
+			return LOCTEXT("NativizeDisabledTooltip", "Macro libraries and level Blueprints cannot be nativized.");
+		}
 	}
 	else if (GetNativizeState() == ECheckBoxState::Undetermined)
 	{

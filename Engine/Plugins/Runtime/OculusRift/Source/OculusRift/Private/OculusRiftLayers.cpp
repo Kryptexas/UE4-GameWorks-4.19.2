@@ -373,6 +373,18 @@ ovrResult FLayerManager::SubmitFrame_RenderThread(ovrSession OvrSession, const F
 
 	// Finish the frame and let OVR do buffer swap (Present) and flush/sync.
 	const FSettings* FrameSettings = RenderFrame->GetSettings();
+	check(FrameSettings);
+
+	{
+		FScopeLock ScopeLock(&LayersLock);
+		if (bLayersChanged)
+		{
+			// While rendering is paused we skip the layer setup in PreSubmitUpdate_RenderThread.
+			// This means the layers are still setup for non-stereo, and ovr_SubmitFrame will crash if called.
+			// So lets not call it while we wait for the layers to be reset.
+			return ovrError_TextureSwapChainInvalid;
+		}
+	}
 
 	// Set up positional data.
 	ovrViewScaleDesc viewScaleDesc;

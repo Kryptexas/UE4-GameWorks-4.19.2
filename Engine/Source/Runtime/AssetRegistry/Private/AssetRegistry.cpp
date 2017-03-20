@@ -2209,6 +2209,15 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 			// Find object and package name from linker
 			for (FPackageIndex LinkerIndex = SearchableNameList.Key; !LinkerIndex.IsNull();)
 			{
+				if (LinkerIndex.IsExport())
+				{
+					// Package name has to be this package, take a guess at object name
+					PackageName = Result.PackageName;
+					ObjectName = FName(*FPackageName::GetLongPackageAssetName(Result.PackageName.ToString()));
+						
+					break;
+				}
+
 				FObjectResource& Resource = Result.ImpExp(LinkerIndex);
 				LinkerIndex = Resource.OuterIndex;
 				if (ObjectName.IsNone() && !LinkerIndex.IsNull())

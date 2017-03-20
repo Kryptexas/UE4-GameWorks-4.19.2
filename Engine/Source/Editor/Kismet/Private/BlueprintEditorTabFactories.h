@@ -33,10 +33,25 @@ struct FLocalKismetCallbacks
 
 	static FText GetGraphDisplayName(UEdGraph* Graph)
 	{
-		FGraphDisplayInfo Info;
-		Graph->GetSchema()->GetGraphDisplayInformation(*Graph, /*out*/ Info);
+		if (Graph)
+		{
+			if (const UEdGraphSchema* Schema = Graph->GetSchema())
+			{
+				FGraphDisplayInfo Info;
+				Schema->GetGraphDisplayInformation(*Graph, /*out*/ Info);
 
-		return Info.DisplayName;
+				return Info.DisplayName;
+			}
+			else
+			{
+				// if we don't have a schema, we're dealing with a malformed (or incomplete graph)...
+				// possibly in the midst of some transaction - here we return the object's outer path 
+				// so we can at least get some context as to which graph we're referring
+				return FText::FromString(Graph->GetPathName());
+			}
+		}
+
+		return LOCTEXT("UnknownGraphName", "UNKNOWN");
 	}
 
 	static void RecompileGraphEditor_OnClicked()

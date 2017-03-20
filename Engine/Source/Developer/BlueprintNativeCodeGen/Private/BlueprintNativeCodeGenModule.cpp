@@ -868,7 +868,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 				PackagingSettings->IsBlueprintAssetInNativizationList(Blueprint) :
 				(Blueprint->NativizationFlag == EBlueprintNativizationFlag::ExplicitlyEnabled);
 			// Blueprint is not selected
-			if (bNativizeOnlySelectedBPs && !bFlaggedForNativization)
+			if (bNativizeOnlySelectedBPs && !bFlaggedForNativization && !FBlueprintEditorUtils::ShouldNativizeImplicitly(Blueprint))
 			{
 				return true;
 			}

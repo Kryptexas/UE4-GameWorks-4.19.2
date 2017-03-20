@@ -413,7 +413,7 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 		ovrResult SubmitFrameResult = pCustomPresent->GetLastSubmitFrameResult();
 		if (SubmitFrameResult != LastSubmitFrameResult)
 		{
-			if (SubmitFrameResult == ovrError_DisplayLost && !OCFlags.DisplayLostDetected)
+			if ((SubmitFrameResult == ovrError_DisplayLost || SubmitFrameResult == ovrError_NoHmd) && !OCFlags.DisplayLostDetected)
 			{
 				FCoreDelegates::VRHeadsetLost.Broadcast();
 				OCFlags.DisplayLostDetected = true;
@@ -1440,9 +1440,19 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo)
 		{
 			// Set viewport size to Rift resolution
 			SceneVP->SetViewportSize(HmdDesc.Resolution.w, HmdDesc.Resolution.h);
+
+			if (Settings->Flags.bPauseRendering)
+			{
+				GEngine->SetMaxFPS(10);
+			}
 		}
 		else
 		{
+			if (Settings->Flags.bPauseRendering)
+			{
+				GEngine->SetMaxFPS(0);
+			}
+
 			// Restore viewport size to window size
 			FVector2D size = Window->GetSizeInScreen();
 			SceneVP->SetViewportSize(size.X, size.Y);

@@ -1424,7 +1424,7 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 		{
 			const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(Component);
-			if (ComponentStatePtr)
+			if (ComponentStatePtr && ComponentStatePtr->CaptureIndex != -1)
 			{
 				Scene->ReflectionSceneData.CubemapIndicesRemovedSinceLastRealloc.Add(ComponentStatePtr->CaptureIndex);
 			}

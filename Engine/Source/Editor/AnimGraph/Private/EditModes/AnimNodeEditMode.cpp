@@ -511,19 +511,34 @@ FVector FAnimNodeEditMode::ConvertCSVectorToBoneSpace(const USkeletalMeshCompone
 
 		case BCS_ParentBoneSpace:
 		{
-			const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
-			if (ParentIndex != INDEX_NONE)
+			if (BoneIndex != INDEX_NONE)
 			{
-				const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
-				OutVector = ParentTM.InverseTransformVector(InCSVector);
+				const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
+
+				if (ParentIndex != INDEX_NONE)
+				{
+					const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
+					OutVector = ParentTM.InverseTransformVector(InCSVector);
+				}
+			}
+			else
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("ConvertToComponentSpaceTransform: No Bone for BoneSpace is set for Mesh: %s"), *SkelComp->SkeletalMesh->GetFName().ToString());
 			}
 		}
 		break;
 
 		case BCS_BoneSpace:
 		{
-			const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
-			OutVector = BoneTM.InverseTransformVector(InCSVector);
+			if (BoneIndex != INDEX_NONE)
+			{
+				const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
+				OutVector = BoneTM.InverseTransformVector(InCSVector);
+			}
+			else
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("ConvertToComponentSpaceTransform: No Bone for BoneSpace is set for Mesh: %s"), *SkelComp->SkeletalMesh->GetFName().ToString());
+			}
 		}
 		break;
 		}

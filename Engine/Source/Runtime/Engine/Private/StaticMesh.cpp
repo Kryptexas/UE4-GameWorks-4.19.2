@@ -1421,7 +1421,10 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			COOK_STAT(Timer.AddMiss(DerivedData.Num()));
 		}
 	}
-
+	
+	/** TEMPORARY for 4.15.1. True if LODs share static lighting data */
+	Owner->bLODsShareStaticLighting = StaticMesh_CanLODsShareStaticLighting(Owner);
+	
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 
 	if (CVar->GetValueOnGameThread() != 0 || Owner->bGenerateMeshDistanceField)
@@ -3332,6 +3335,23 @@ const FStaticMeshLODResources& UStaticMesh::GetLODForExport(int32 LODIndex) cons
 }
 
 #if WITH_EDITOR
+bool StaticMesh_CanLODsShareStaticLighting(UStaticMesh* Mesh)
+{
+	bool bCanShareData = true;
+	for (int32 LODIndex = 1; bCanShareData && LODIndex < Mesh->SourceModels.Num(); ++LODIndex)
+	{
+		bCanShareData = bCanShareData && Mesh->SourceModels[LODIndex].RawMeshBulkData->IsEmpty();
+	}
+
+	if (Mesh->SpeedTreeWind.IsValid())
+	{
+		// SpeedTrees are set up for lighting to share between LODs
+		bCanShareData = true;
+	}
+
+	return bCanShareData;
+}
+
 void UStaticMesh::ConvertLegacyLODDistance()
 {
 	check(SourceModels.Num() > 0);

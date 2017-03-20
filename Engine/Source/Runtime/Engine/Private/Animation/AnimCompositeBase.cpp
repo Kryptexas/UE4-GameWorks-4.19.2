@@ -366,11 +366,17 @@ int32 FAnimTrack::GetTrackAdditiveType() const
 
 	if( AnimSegments.Num() > 0 )
 	{
-		const struct FAnimSegment & Segment = AnimSegments[0];
-		UAnimSequenceBase* SequenceBase = Segment.AnimReference;
-		if ( SequenceBase )
+		for (int32 SegmentIndex = 0; SegmentIndex < AnimSegments.Num(); ++SegmentIndex)
 		{
-			return SequenceBase->GetAdditiveAnimType();
+			const struct FAnimSegment & Segment = AnimSegments[SegmentIndex];
+			if (Segment.bValid)
+			{
+				UAnimSequenceBase* SequenceBase = Segment.AnimReference;
+				if (SequenceBase)
+				{
+					return SequenceBase->GetAdditiveAnimType();
+				}
+			}
 		}
 	}
 	return -1;

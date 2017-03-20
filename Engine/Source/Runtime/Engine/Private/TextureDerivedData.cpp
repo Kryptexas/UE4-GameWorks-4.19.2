@@ -755,12 +755,20 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 	/** Build the texture. This function is safe to call from any thread. */
 	void BuildTexture()
 	{
-		if (SourceMips.Num())
+		ensure(Compressor);
+		if (Compressor && SourceMips.Num())
 		{
+			// Adding some extra logs to track crash UE-42168
+			FTextureMemoryStats Stats;
+			RHIGetTextureMemoryStats(Stats);
+
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("TextureName"), FText::FromString( Texture.GetName() ) );
 			Args.Add( TEXT("TextureFormatName"), FText::FromString( BuildSettings.TextureFormatName.GetPlainNameString() ) );
-			FTextureStatusMessageContext StatusMessage( FText::Format( NSLOCTEXT("Engine", "BuildTextureStatus", "Building textures: {TextureName} ({TextureFormatName})"), Args ) );
+			Args.Add( TEXT("TextureResolutionX"), FText::FromString( FString::FromInt(SourceMips[0].SizeX) ) );
+			Args.Add( TEXT("TextureResolutionY"), FText::FromString( FString::FromInt(SourceMips[0].SizeY) ) );
+			Args.Add( TEXT("UsedVRAM"), FText::FromString( FString::FromInt(Stats.AllocatedMemorySize / 1024 / 1024 ) ) );
+			FTextureStatusMessageContext StatusMessage( FText::Format( NSLOCTEXT("Engine", "BuildTextureStatus", "Building textures: {TextureName} ({TextureFormatName}, {TextureResolutionX}X{TextureResolutionY}) - {UsedVRAM} MB total VRAM"), Args ) );
 
 			check(DerivedData->Mips.Num() == 0);
 			DerivedData->SizeX = 0;
