@@ -750,7 +750,7 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
 {
 	INC_DWORD_STAT(STAT_Flex_ContainerCount);
 
-	UE_LOG(LogFlex, Display, TEXT("Creating a FLEX system for..."));
+	UE_LOG(LogFlex, Display, TEXT("Creating FLEX container: %s"), *InTemplate->GetName());
 
 	TemplateRef = InTemplate;
 	Template = InTemplate;

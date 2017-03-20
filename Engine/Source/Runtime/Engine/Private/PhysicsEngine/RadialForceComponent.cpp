@@ -14,6 +14,7 @@
 #if WITH_FLEX
 #include "PhysicsEngine/FlexActor.h"
 #include "PhysicsEngine/FlexComponent.h"
+#include "Particles/ParticleSystemComponent.h"
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -141,6 +142,32 @@ void URadialForceComponent::BeginPlay()
 				{
 					FlexComponent->AttachToComponent(this, Radius);
 				}
+			}
+		}
+
+		// Find all ParticleSystemComponents
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		{
+			AActor* TestActor= (*It);
+			TArray<UActorComponent*> ParticleComponents = TestActor->GetComponentsByClass(UParticleSystemComponent::StaticClass());
+			for (int32 ComponentIdx = 0; ComponentIdx < ParticleComponents.Num(); ++ComponentIdx)
+			{
+				UParticleSystemComponent* ParticleSystemComponet = Cast<UParticleSystemComponent>(ParticleComponents[ComponentIdx]);
+
+				// is this a PSC with Flex?
+				if (ParticleSystemComponet && ParticleSystemComponet->GetFirstFlexContainerTemplate())
+				{
+					const FBoxSphereBounds FlexBounds = ParticleSystemComponet->CalcBounds(FTransform::Identity);
+
+					// dist of force field to flex bounds
+					const float DistSq = FlexBounds.ComputeSquaredDistanceFromBoxToPoint(Origin);
+
+					if (DistSq < Radius*Radius)
+					{
+						ParticleSystemComponet->AttachFlexToComponent(this, Radius);
+					}
+				}
+
 			}
 		}
 	}

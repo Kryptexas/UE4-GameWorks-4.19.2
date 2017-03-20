@@ -39,7 +39,7 @@ class UFlexFluidSurface : public UObject
 
 	/* Material used to render the surface*/
 	UPROPERTY(EditAnywhere, Category = Flex)
-	UMaterial* Material;
+	UMaterialInterface* Material;
 
 public:
 	// Begin UObject Interface
