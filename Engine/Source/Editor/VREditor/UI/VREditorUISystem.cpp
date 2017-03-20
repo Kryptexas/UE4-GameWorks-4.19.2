@@ -2164,7 +2164,7 @@ TSharedRef<SWidget> UVREditorUISystem::BuildQuickMenuWidget()
 
 
 	ExtrasMenuBuilder.AddMenuEntry(
-		LOCTEXT("PauseSimulation", "Pause Simulation"),
+		LOCTEXT("PauseSimulationLegacy", "Pause Simulation"),
 		LOCTEXT("PauseSimulationTooltip", "Pause Simulation"),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "PlayWorld.Simulate"),
 		FUIAction
@@ -2177,7 +2177,7 @@ TSharedRef<SWidget> UVREditorUISystem::BuildQuickMenuWidget()
 		);
 
 	ExtrasMenuBuilder.AddMenuEntry(
-		LOCTEXT("ResumeSimulation", "Resume Simulation"),
+		LOCTEXT("ResumeSimulationLegacy", "Resume Simulation"),
 		LOCTEXT("ResumeSimulationTooltip", "Resume Simulation"),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "PlayWorld.Simulate"),
 		FUIAction

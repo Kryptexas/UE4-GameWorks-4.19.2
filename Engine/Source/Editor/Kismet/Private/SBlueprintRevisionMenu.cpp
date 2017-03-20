@@ -196,7 +196,7 @@ void SBlueprintRevisionMenu::OnSourceControlQueryComplete(const FSourceControlOp
 					FText ToolTipText;
 					if (ISourceControlModule::Get().GetProvider().UsesChangelists())
 					{
-						ToolTipText = FText::Format(LOCTEXT("RevisionToolTip", "CL #{CheckInNumber} {UserName} \n{DateTime} \n{ChanglistDescription}"), Args);
+						ToolTipText = FText::Format(LOCTEXT("ChangelistToolTip", "CL #{CheckInNumber} {UserName} \n{DateTime} \n{ChanglistDescription}"), Args);
 					}
 					else
 					{
