@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreTypes.h"
+#include "TypeHash.h" 
 #include "UObject/NameTypes.h"
 #include "Delegates/DelegateSettings.h"
 
@@ -77,6 +78,11 @@ private:
 	friend bool operator!=(const FDelegateHandle& Lhs, const FDelegateHandle& Rhs)
 	{
 		return Lhs.ID != Rhs.ID;
+	}
+
+	friend FORCEINLINE uint32 GetTypeHash(const FDelegateHandle& Key)
+	{
+		return GetTypeHash(Key.ID);
 	}
 
 	/**

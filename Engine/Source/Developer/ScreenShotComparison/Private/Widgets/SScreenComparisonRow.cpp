@@ -385,7 +385,7 @@ FReply SScreenComparisonRow::OnCompareImages(const FGeometry& InGeometry, const 
 			.SupportsMaximize(true)
 			.SupportsMinimize(true)
 			.FocusWhenFirstShown(true)
-			.ActivateWhenFirstShown(true)
+			.ActivationPolicy(EWindowActivationPolicy::Always)
 			.Content()
 			[
 				SNew(SImageComparison)
@@ -412,7 +412,7 @@ FReply SScreenComparisonRow::OnImageClicked(const FGeometry& InGeometry, const F
 		.SupportsMaximize(true)
 		.SupportsMinimize(true)
 		.FocusWhenFirstShown(true)
-		.ActivateWhenFirstShown(true)
+		.ActivationPolicy(EWindowActivationPolicy::Always)
 		.Content()
 		[
 			SNew(SScreenShotImagePopup)

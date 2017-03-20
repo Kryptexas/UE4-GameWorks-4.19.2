@@ -2380,8 +2380,12 @@ public: \
 							"All AutomationTests must have exactly 1 filter type specified.  See AutomationTest.h."); \
 		} \
 		virtual uint32 GetTestFlags() const override { return TFlags; } \
+        using FAutomationSpecBase::GetTestSourceFileName; \
 		virtual FString GetTestSourceFileName() const override { return FileName; } \
+        using FAutomationSpecBase::GetTestSourceFileLine; \
 		virtual int32 GetTestSourceFileLine() const override { return LineNumber; } \
+		virtual FString GetTestSourceFileName(const FString&) const override { return GetTestSourceFileName(); } \
+		virtual int32 GetTestSourceFileLine(const FString&) const override { return GetTestSourceFileLine(); } \
 	protected: \
 		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 		virtual void Define() override; \

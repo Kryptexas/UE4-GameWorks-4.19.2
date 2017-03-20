@@ -404,6 +404,7 @@ public:
 	virtual int64 GetDownloadSize() const override;
 	virtual int64 GetDownloadSize(const TSet<FString>& Tags) const override;
 	virtual int64 GetDeltaDownloadSize(const TSet<FString>& Tags, const IBuildManifestRef& PreviousVersion) const override;
+	virtual int64 GetDeltaDownloadSize(const TSet<FString>& Tags, const IBuildManifestRef& PreviousVersion, const TSet<FString>& PreviousTags) const override;
 	virtual int64 GetBuildSize() const override;
 	virtual int64 GetBuildSize(const TSet<FString>& Tags) const override;
 	virtual TArray<FString> GetBuildFileList() const override;
@@ -471,6 +472,13 @@ public:
 	void GetChunksRequiredForFiles(const TSet<FString>&   FileList, TArray<FGuid>& RequiredChunks, bool bAddUnique = true) const;
 
 	/**
+	 * Provides the set of chunks required to produce the given files.
+	 * @param Filenames         IN      The set of files.
+	 * @param RequiredChunks    OUT     The set of chunk GUIDs needed for those files.
+	 */
+	void GetChunksRequiredForFiles(const TSet<FString>& Filenames, TSet<FGuid>& RequiredChunks) const;
+
+	/**
 	 * Get the number of times a chunks is referenced in this manifest
 	 * @param ChunkGuid		The chunk GUID
 	 * @return	The number of references to this chunk
@@ -489,7 +497,8 @@ public:
 	 * @param DataGuids		The GUID array for the data
 	 * @return		File size.
 	 */
-	int64 GetDataSize(const TArray< FGuid >& DataGuids) const;
+	int64 GetDataSize(const TArray<FGuid>& DataGuids) const;
+	int64 GetDataSize(const TSet<FGuid>&   DataGuids) const;
 
 	/**
 	 * Returns the size of a particular file in the build

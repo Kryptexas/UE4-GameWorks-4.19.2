@@ -47,7 +47,7 @@ public:
 		return !IsEnabled() || FParse::Param(FCommandLine::Get(), TEXT("EpicPortal"));
 	}
 
-	virtual bool RunLauncher(ELauncherAction Action) const override
+	virtual bool RunLauncher(ELauncherAction Action, FString Payload = FString()) const override
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if (DesktopPlatform != nullptr)
@@ -64,7 +64,16 @@ public:
 			case ELauncherAction::AppUpdateCheck:
 				LauncherOptions.LauncherRelativeUrl += TEXT("?action=updatecheck");
 				break;
+			case ELauncherAction::AppInstaller:
+				LauncherOptions.LauncherRelativeUrl += TEXT("?action=installer");
+				break;
 			};
+
+			// If our payload starts with the correct encoded character, then append the string
+			if (Payload.StartsWith(TEXT("%26")))
+			{
+				LauncherOptions.LauncherRelativeUrl.Append(MoveTemp(Payload));
+			}
 			return DesktopPlatform->OpenLauncher(LauncherOptions);
 		}
 		return false;
@@ -125,7 +134,7 @@ public:
 
 	virtual bool WasRanFromLauncher() const override { return true; }
 
-	virtual bool RunLauncher(ELauncherAction Action) const override { return false; }
+	virtual bool RunLauncher(ELauncherAction Action, FString Payload = FString()) const override { return false; }
 
 };
 

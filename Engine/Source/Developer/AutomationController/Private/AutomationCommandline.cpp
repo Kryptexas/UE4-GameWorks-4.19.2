@@ -339,7 +339,13 @@ public:
 				// Only quit if Quit is the actual last element in the array.
 				if (AutomationCommand == EAutomationCommand::Quit)
 				{
+					if (!GIsCriticalError)
+					{
+						GIsCriticalError = AutomationController->ReportsHaveErrors();
+					}
+
 					FPlatformMisc::RequestExit(true);
+
 					// We have finished the testing, and results are available
 					AutomationTestState = EAutomationTestState::Complete;
 				}

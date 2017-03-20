@@ -715,7 +715,7 @@ bool LocalizationCommandletExecution::Execute(const TSharedRef<SWindow>& ParentW
 		.SupportsMinimize(false)
 		.AutoCenter(EAutoCenter::PreferredWorkArea)
 		.ClientSize(FVector2D(600,400))
-		.ActivateWhenFirstShown(true)
+		.ActivationPolicy(EWindowActivationPolicy::Always)
 		.FocusWhenFirstShown(true);
 	const TSharedRef<SLocalizationCommandletExecutor> CommandletExecutor = SNew(SLocalizationCommandletExecutor, CommandletWindow, Tasks);
 	CommandletWindow->SetContent(CommandletExecutor);

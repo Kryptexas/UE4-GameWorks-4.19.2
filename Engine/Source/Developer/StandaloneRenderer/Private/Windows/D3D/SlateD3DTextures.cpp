@@ -28,32 +28,50 @@ void FSlateD3DTexture::Init( DXGI_FORMAT InFormat, D3D11_SUBRESOURCE_DATA* Inita
 	TexDesc.MiscFlags = 0;
 
 	HRESULT Hr = GD3DDevice->CreateTexture2D( &TexDesc, InitalData, D3DTexture.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
-
-	// Create the shader accessable view of the texture
-	D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc;
-	SrvDesc.Format = TexDesc.Format;
-	SrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	SrvDesc.Texture2D.MostDetailedMip = 0;
-	SrvDesc.Texture2D.MipLevels = 1;
-
-	// Create the shader resource view.
-	Hr = GD3DDevice->CreateShaderResourceView( D3DTexture, &SrvDesc, ShaderResource.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
-
-	// Crate a staging texture for updating
-	if (bUpdatable && bUseStagingTexture)
+	if (SUCCEEDED(Hr))
 	{
-		TexDesc.Usage = D3D11_USAGE_STAGING;
-		TexDesc.BindFlags = 0;
-		TexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
+		// Create the shader accessable view of the texture
+		D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc;
+		SrvDesc.Format = TexDesc.Format;
+		SrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		SrvDesc.Texture2D.MostDetailedMip = 0;
+		SrvDesc.Texture2D.MipLevels = 1;
 
-		Hr = GD3DDevice->CreateTexture2D(&TexDesc, InitalData, StagingTexture.GetInitReference());
-		checkf(SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr);
+		// Create the shader resource view.
+		Hr = GD3DDevice->CreateShaderResourceView(D3DTexture, &SrvDesc, ShaderResource.GetInitReference());
+		if (SUCCEEDED(Hr))
+		{
+			// Crate a staging texture for updating
+			if (bUpdatable && bUseStagingTexture)
+			{
+				TexDesc.Usage = D3D11_USAGE_STAGING;
+				TexDesc.BindFlags = 0;
+				TexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
+
+				Hr = GD3DDevice->CreateTexture2D(&TexDesc, InitalData, StagingTexture.GetInitReference());
+
+				if (FAILED(Hr))
+				{
+					LogSlateD3DRendererFailure(TEXT("FSlateD3DTexture::Init() - ID3D11Device::CreateTexture2D"), Hr);
+					GEncounteredCriticalD3DDeviceError = true;
+					StagingTexture = nullptr;
+				}
+			}
+			else
+			{
+				StagingTexture = nullptr;
+			}
+		}
+		else
+		{
+			LogSlateD3DRendererFailure(TEXT("FSlateD3DTexture::Init() - ID3D11Device::CreateShaderResourceView"), Hr);
+			GEncounteredCriticalD3DDeviceError = true;
+		}
 	}
 	else
 	{
-		StagingTexture = nullptr;
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DTexture::Init() - ID3D11Device::CreateTexture2D"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
 	}
 }
 
@@ -75,6 +93,7 @@ void FSlateD3DTexture::UpdateTextureRaw(const void* Buffer, const FIntRect& Dirt
 	D3D11_BOX Region;
 	Region.front = 0;
 	Region.back = 1;
+
 	if (bUseStagingTexture && Dirty.Area() > 0)
 	{
 		Region.left = Dirty.Min.X;
@@ -92,18 +111,30 @@ void FSlateD3DTexture::UpdateTextureRaw(const void* Buffer, const FIntRect& Dirt
 
 	D3D11_MAPPED_SUBRESOURCE Resource;
 	HRESULT Hr = GD3DDeviceContext->Map(TextureToUpdate, 0, bUseStagingTexture?D3D11_MAP_READ_WRITE:D3D11_MAP_WRITE_DISCARD, 0, &Resource);
-	uint32 SourcePitch = SizeX * BytesPerPixel;
-	uint32 CopyRowBytes = (Region.right - Region.left) * BytesPerPixel;
-	uint8* Destination = (uint8*)Resource.pData + Region.left * BytesPerPixel + Region.top * Resource.RowPitch;
-	uint8* Source = (uint8*)Buffer + Region.left * BytesPerPixel + Region.top * SourcePitch;
-	for (uint32 Row = Region.top; Row < Region.bottom; ++Row, Destination += Resource.RowPitch, Source += SourcePitch)
+
+	if (SUCCEEDED(Hr))
 	{
-		FMemory::Memcpy(Destination, Source, CopyRowBytes);
+		uint32 SourcePitch = SizeX * BytesPerPixel;
+		uint32 CopyRowBytes = (Region.right - Region.left) * BytesPerPixel;
+		uint8* Destination = (uint8*)Resource.pData + Region.left * BytesPerPixel + Region.top * Resource.RowPitch;
+		uint8* Source = (uint8*)Buffer + Region.left * BytesPerPixel + Region.top * SourcePitch;
+		for (uint32 Row = Region.top; Row < Region.bottom; ++Row, Destination += Resource.RowPitch, Source += SourcePitch)
+
+		{
+			FMemory::Memcpy(Destination, Source, CopyRowBytes);
+		}
+
+		GD3DDeviceContext->Unmap(TextureToUpdate, 0);
+
+		if (bUseStagingTexture)
+		{
+			GD3DDeviceContext->CopySubresourceRegion(D3DTexture, 0, Region.left, Region.top, Region.front, StagingTexture, 0, &Region);
+		}
 	}
-	GD3DDeviceContext->Unmap(TextureToUpdate, 0);
-	if (bUseStagingTexture)
+	else
 	{
-		GD3DDeviceContext->CopySubresourceRegion(D3DTexture, 0, Region.left, Region.top, Region.front, StagingTexture, 0, &Region);
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DTexture::UpdateTextureRaw() - ID3D11DeviceContext::Map"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
 	}
 }
 

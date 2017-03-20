@@ -169,6 +169,9 @@ namespace EpicGames.MCP.Automation
 
         /// <summary>
         /// Gets the base filename of the manifest that would be created by invoking the BuildPatchTool with the given parameters.
+		/// Note that unless ManifestFilename was provided when constructing this instance, it is strongly recommended to call RetrieveManifestFilename()
+		/// for existing builds to ensure that the correct filename is used.
+		/// The legacy behavior of constructing of a manifest filename from appname, buildversion and platform should be considered unreliable, and will emit a warning.
         /// </summary>
         public virtual string ManifestFilename
         {
@@ -178,6 +181,8 @@ namespace EpicGames.MCP.Automation
 				{
 					return _ManifestFilename;
 				}
+
+				CommandUtils.Log("Using legacy behavior of constructing manifest filename from appname, build version and platform. Update your code to specify manifest filename when constructing BuildPatchToolStagingInfo or call RetrieveManifestFilename to query it.");
 				var BaseFilename = string.Format("{0}{1}-{2}.manifest",
 					AppName,
 					BuildVersion,
@@ -196,11 +201,6 @@ namespace EpicGames.MCP.Automation
         /// </summary>
         static public MCPPlatform ToMCPPlatform(UnrealTargetPlatform TargetPlatform)
         {
-            if (TargetPlatform != UnrealTargetPlatform.Win64 && TargetPlatform != UnrealTargetPlatform.Win32 && TargetPlatform != UnrealTargetPlatform.Mac && TargetPlatform != UnrealTargetPlatform.Linux)
-            {
-                throw new AutomationException("Platform {0} is not properly supported by the MCP backend yet", TargetPlatform);
-            }
-
 			if (TargetPlatform == UnrealTargetPlatform.Win64)
 			{
 				return MCPPlatform.Windows;
@@ -213,19 +213,19 @@ namespace EpicGames.MCP.Automation
 			{
 				return MCPPlatform.Mac;
 			}
+			else if (TargetPlatform == UnrealTargetPlatform.Linux)
+			{
+				return MCPPlatform.Linux;
+			}
 
-			return MCPPlatform.Linux;
+			throw new AutomationException("Platform {0} is not properly supported by the MCP backend yet", TargetPlatform);
         }
+
         /// <summary>
 		/// Determine the platform name
         /// </summary>
         static public UnrealTargetPlatform FromMCPPlatform(MCPPlatform TargetPlatform)
         {
-			if (TargetPlatform != MCPPlatform.Windows && TargetPlatform != MCPPlatform.Win32 && TargetPlatform != MCPPlatform.Mac && TargetPlatform != MCPPlatform.Linux)
-            {
-                throw new AutomationException("Platform {0} is not properly supported by the MCP backend yet", TargetPlatform);
-            }
-
 			if (TargetPlatform == MCPPlatform.Windows)
 			{
 				return UnrealTargetPlatform.Win64;
@@ -238,9 +238,14 @@ namespace EpicGames.MCP.Automation
 			{
 				return UnrealTargetPlatform.Mac;
 			}
+			else if (TargetPlatform == MCPPlatform.Linux)
+			{
+				return UnrealTargetPlatform.Linux;
+			}
 
-			return UnrealTargetPlatform.Linux;
+			throw new AutomationException("Platform {0} is not properly supported by the MCP backend yet", TargetPlatform);
         }
+
         /// <summary>
         /// Returns the build root path (P:\Builds on build machines usually)
         /// </summary>
@@ -260,20 +265,6 @@ namespace EpicGames.MCP.Automation
         /// <param name="InBuildVersion"></param>
         /// <param name="platform"></param>
         /// <param name="stagingDirRelativePath">Relative path from the BuildRootPath where files will be staged. Commonly matches the AppName.</param>
-		/// <param name="InManifestFilename">If specifies, will override the value returned by the ManifestFilename property</param>
-        public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, UnrealTargetPlatform platform, string stagingDirRelativePath)
-            : this(InOwnerCommand, InAppName, InMcpConfigKey, InAppID, InBuildVersion, ToMCPPlatform(platform), stagingDirRelativePath)
-        {
-        }
-
-        /// <summary>
-        /// Basic constructor. 
-        /// </summary>
-        /// <param name="InAppName"></param>
-        /// <param name="InAppID"></param>
-        /// <param name="InBuildVersion"></param>
-        /// <param name="platform"></param>
-        /// <param name="stagingDirRelativePath">Relative path from the BuildRootPath where files will be staged. Commonly matches the AppName.</param>
 		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, MCPPlatform platform, string stagingDirRelativePath)
         {
             OwnerCommand = InOwnerCommand;
@@ -283,7 +274,7 @@ namespace EpicGames.MCP.Automation
             AppID = InAppID;
             BuildVersion = InBuildVersion;
             Platform = platform;
-            var BuildRootPath = GetBuildRootPath();
+			string BuildRootPath = GetBuildRootPath();
             StagingDir = CommandUtils.CombinePaths(BuildRootPath, stagingDirRelativePath, BuildVersion, Platform.ToString());
             CloudDirRelativePath = CommandUtils.CombinePaths(stagingDirRelativePath, "CloudDir");
             CloudDir = CommandUtils.CombinePaths(BuildRootPath, CloudDirRelativePath);
@@ -292,26 +283,36 @@ namespace EpicGames.MCP.Automation
 		/// <summary>
 		/// Basic constructor with staging dir suffix override, basically to avoid having platform concatenated
 		/// </summary>
-		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, UnrealTargetPlatform platform, string stagingDirRelativePath, string stagingDirSuffix, string InManifestFilename)
-			: this(InOwnerCommand, InAppName, InMcpConfigKey, InAppID, InBuildVersion, ToMCPPlatform(platform), stagingDirRelativePath, stagingDirSuffix, InManifestFilename)
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, UnrealTargetPlatform InPlatform, string StagingDirRelativePath, string StagingDirSuffix, string InManifestFilename)
+			: this(InOwnerCommand, InAppName, InMcpConfigKey, InAppID, InBuildVersion, ToMCPPlatform(InPlatform), StagingDirRelativePath, StagingDirSuffix, InManifestFilename)
 		{
 		}
 
 		/// <summary>
 		/// Basic constructor with staging dir suffix override, basically to avoid having platform concatenated
 		/// </summary>
-		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, MCPPlatform platform, string stagingDirRelativePath, string stagingDirSuffix, string InManifestFilename)
+		/// <param name="InOwnerCommand">The automation tool BuildCommand that is currently executing.</param>
+		/// <param name="InAppName">The name of the app we're working with</param>
+		/// <param name="InMcpConfigKey">An identifier for the back-end environment to allow for test deployments, QA, production etc.</param>
+		/// <param name="InAppID">An identifier for the app. This is deprecated, and can safely be set to zero for all apps.</param>
+		/// <param name="InBuildVersion">The build version for this build.</param>
+		/// <param name="InPlatform">The platform the build will be deployed to.</param>
+		/// <param name="StagingDirRelativePath">Relative path from the BuildRootPath where files will be staged. Commonly matches the AppName.</param>
+		/// <param name="StagingDirSuffix">By default, we assumed source builds are at build_root/stagingdirrelativepath/buildversion. If they're in a subfolder of this path, specify it here.</param>
+		/// <param name="InManifestFilename">If specified, will override the value returned by the ManifestFilename property</param>
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, string InMcpConfigKey, int InAppID, string InBuildVersion, MCPPlatform InPlatform, string StagingDirRelativePath, string StagingDirSuffix, string InManifestFilename)
 		{
 			OwnerCommand = InOwnerCommand;
 			AppName = InAppName;
-			_ManifestFilename = InManifestFilename;
 			McpConfigKey = InMcpConfigKey;
 			AppID = InAppID;
 			BuildVersion = InBuildVersion;
-			Platform = platform;
-			var BuildRootPath = GetBuildRootPath();
-			StagingDir = CommandUtils.CombinePaths(BuildRootPath, stagingDirRelativePath, BuildVersion, stagingDirSuffix);
-			CloudDirRelativePath = CommandUtils.CombinePaths(stagingDirRelativePath, "CloudDir");
+			Platform = InPlatform;
+			_ManifestFilename = InManifestFilename;
+
+			string BuildRootPath = GetBuildRootPath();
+			StagingDir = CommandUtils.CombinePaths(BuildRootPath, StagingDirRelativePath, BuildVersion, StagingDirSuffix);
+			CloudDirRelativePath = CommandUtils.CombinePaths(StagingDirRelativePath, "CloudDir");
 			CloudDir = CommandUtils.CombinePaths(BuildRootPath, CloudDirRelativePath);
 		}
 
@@ -331,18 +332,18 @@ namespace EpicGames.MCP.Automation
 		/// <summary>
 		/// Constructor which sets all values directly, without assuming any default paths.
 		/// </summary>
-		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, int InAppID, string InBuildVersion, MCPPlatform InPlatform, DirectoryReference InStagingDir, DirectoryReference InCloudDir)
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, int InAppID, string InBuildVersion, MCPPlatform InPlatform, DirectoryReference InStagingDir, DirectoryReference InCloudDir, string InManifestFilename = null)
 		{
 			OwnerCommand = InOwnerCommand;
 			AppName = InAppName;
 			AppID = InAppID;
 			BuildVersion = InBuildVersion;
 			Platform = InPlatform;
-			if(InStagingDir != null)
+			if (InStagingDir != null)
 			{
 				StagingDir = InStagingDir.FullName;
 			}
-			if(InCloudDir != null)
+			if (InCloudDir != null)
 			{
 				DirectoryReference BuildRootDir = new DirectoryReference(GetBuildRootPath());
 				if(!InCloudDir.IsUnderDirectory(BuildRootDir))
@@ -352,6 +353,34 @@ namespace EpicGames.MCP.Automation
 				CloudDir = InCloudDir.FullName;
 				CloudDirRelativePath = InCloudDir.MakeRelativeTo(BuildRootDir).Replace('\\', '/');
 			}
+			if (!string.IsNullOrEmpty(InManifestFilename))
+			{
+				_ManifestFilename = InManifestFilename;
+			}
+		}
+
+		/// <summary>
+		/// Returns the manifest filename, querying build info for it if necessary.
+		/// If ManifestFilename has already set (either during construction or by a previous call to this method) the cached value will be returned unless bForce is specified.
+		/// Otherwise, a query will be made to the specified build info service to retrieve the correct manifest filename.
+		/// </summary>
+		/// <param name="McpConfigName">Name of which MCP config to check against.</param>
+		/// <param name="bForce">If specified, a call will be made to build info even if we have a locally cached version.</param>
+		/// <returns>The manifest filename</returns>
+		public string RetrieveManifestFilename(string McpConfigName, bool bForce = false)
+		{
+			if (bForce || string.IsNullOrEmpty(_ManifestFilename))
+			{
+				BuildInfoPublisherBase BI = BuildInfoPublisherBase.Get();
+				string ManifestUrl = BI.GetBuildManifestUrl(this, McpConfigName);
+				if (string.IsNullOrEmpty(ManifestUrl))
+				{
+					throw new AutomationException("Could not determine manifest Url for {0} version {1} from {2} environment.", this.AppName, this.BuildVersion, McpConfigName);
+				}
+				_ManifestFilename = ManifestUrl.Split(new char[] { '/', '\\' }).Last();
+			}
+
+			return _ManifestFilename;
 		}
     }
 
@@ -360,11 +389,6 @@ namespace EpicGames.MCP.Automation
 	/// </summary>
 	public abstract class BuildPatchToolBase
 	{
-		/// <summary>
-		/// Obsolete: BuildPatchTool will now only use chunked patch generation.
-		/// </summary>
-		public enum ChunkType { Chunk }
-
 		/// <summary>
 		/// Controls which version of BPT to use when executing.
 		/// </summary>
@@ -431,13 +455,34 @@ namespace EpicGames.MCP.Automation
 			}
 
 			/// <summary>
-			/// Staging information
+			/// A unique integer for this product.
+			/// Deprecated. Can be safely left as 0.
 			/// </summary>
-			public BuildPatchToolStagingInfo StagingInfo;
+			public int AppId;
+			/// <summary>
+			/// The app name for this build, which will be embedded inside the generated manifest to identify the application.
+			/// </summary>
+			public string AppName;
+			/// <summary>
+			/// The build version being generated.
+			/// </summary>
+			public string BuildVersion;
+			/// <summary>
+			/// Used as part of the build version string.
+			/// </summary>
+			public MCPPlatform Platform;
 			/// <summary>
 			/// The directory containing the build image to be read.
 			/// </summary>
 			public string BuildRoot;
+			/// <summary>
+			/// The directory which will receive the generated manifest and chunks.
+			/// </summary>
+			public string CloudDir;
+			/// <summary>
+			/// The name of the manifest file that will be produced.
+			/// </summary>
+			public string ManifestFilename;
 			/// <summary>
 			/// A path to a text file containing BuildRoot relative files, separated by \r\n line endings, to not be included in the build.
 			/// </summary>
@@ -464,14 +509,6 @@ namespace EpicGames.MCP.Automation
 			/// </summary>
 			public string PrereqArgs;
 			/// <summary>
-			/// An override for the output manifest filename.
-			/// </summary>
-			public string OutputFilename;
-			/// <summary>
-			/// Used as part of manifest filename and build version strings.
-			/// </summary>
-			public MCPPlatform Platform;
-			/// <summary>
 			/// When identifying existing patch data to reuse in this build, only
 			/// files referenced from a manifest file modified within this number of days will be considered for reuse.
 			/// IMPORTANT: This should always be smaller than the minimum age at which manifest files can be deleted by any cleanup process, to ensure
@@ -491,11 +528,6 @@ namespace EpicGames.MCP.Automation
 			/// Contains a list of custom float arguments to be embedded in the generated manifest file.
 			/// </summary>
 			public List<KeyValuePair<string, float>> CustomFloatArgs;
-
-			/// <summary>
-			/// Obsolete: BuildPatchTool will now only use chunked patch generation.
-			/// </summary>
-			public ChunkType AppChunkType;
 		}
 
 		/// <summary>
@@ -577,9 +609,17 @@ namespace EpicGames.MCP.Automation
 			/// </summary>
 			public string ManifestA;
 			/// <summary>
+			/// The install tags to use for ManifestA.
+			/// </summary
+			public HashSet<string> InstallTagsA;
+			/// <summary>
 			/// The file path to the update manifest.
 			/// </summary>
 			public string ManifestB;
+			/// <summary>
+			/// The install tags to use for ManifestB.
+			/// </summary
+			public HashSet<string> InstallTagsB;
 		}
 
 		public class ManifestDiffOutput
@@ -606,6 +646,16 @@ namespace EpicGames.MCP.Automation
 				/// The total size of disk space required for the build.
 				/// </summary>
 				public ulong BuildSize;
+				/// <summary>
+				/// The list of download sizes for each individual install tag that was used.
+				/// Note that the sum of these can be higher than the actual total due to possibility of shares files.
+				/// </summary>
+				public Dictionary<string, ulong> IndividualTagDownloadSizes;
+				/// <summary>
+				/// The list of build sizes for each individual install tag that was used.
+				/// Note that the sum of these can be higher than the actual total due to possibility of shares files.
+				/// </summary>
+				public Dictionary<string, ulong> IndividualTagBuildSizes;
 			}
 			public class ManifestDiff
 			{
@@ -614,14 +664,14 @@ namespace EpicGames.MCP.Automation
 				/// </summary>
 				public List<string> NewChunkPaths;
 				/// <summary>
-				/// The total size chunks in the NewChunkPaths list.
-				/// </summary>
-				public ulong TotalChunkSize;
-				/// <summary>
-				/// The required download size for the patch between ManifestA and ManifestB. This can be different to TotalChunkSize
-				/// in the case of a small overhead in file boundary changes and such, which wouldn't actually need downloading.
+				/// The required download size for the patch between ManifestA and ManifestB, subject to using the tags that were provided.
 				/// </summary>
 				public ulong DeltaDownloadSize;
+				/// <summary>
+				/// The list of delta sizes for each individual install tag that was used.
+				/// Note that the sum of these can be higher than the actual total due to possibility of shares files.
+				/// </summary>
+				public Dictionary<string, ulong> IndividualTagDeltaSizes;
 			}
 			/// <summary>
 			/// The manifest detail for the source build of the differential.
@@ -964,7 +1014,18 @@ namespace EpicGames.MCP.Automation
 		abstract public bool FileExists(string Container, string Identifier, bool bQuiet = false);
 
 		/// <summary>
-		/// Retrieves a file from the cloud storage provider
+		/// Retrieves a file from the cloud storage provider and saves it to disk.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container from which to retrieve the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to retrieve.</param>
+		/// <param name="OutputFile">The full path to the name of the file to save</param>
+		/// <param name="ContentType">An OUTPUT parameter containing the content's type (null if the cloud provider does not provide this information)</param>
+		/// <param name="bOverwrite">If false, and the OutputFile already exists, an error will be thrown.</param>
+		/// <returns>The number of bytes downloaded.</returns>
+		abstract public long DownloadFile(string Container, string Identifier, string OutputFile, out string ContentType, bool bOverwrite = false);
+
+		/// <summary>
+		/// Retrieves a file from the cloud storage provider.
 		/// </summary>
 		/// <param name="Container">The name of the folder or container from which to retrieve the file.</param>
 		/// <param name="Identifier">The identifier or filename of the file to retrieve.</param>

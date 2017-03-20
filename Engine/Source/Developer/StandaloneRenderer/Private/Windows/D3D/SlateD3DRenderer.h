@@ -39,6 +39,9 @@ struct FSlateD3DViewport
 
 extern TRefCountPtr<ID3D11Device> GD3DDevice;
 extern TRefCountPtr<ID3D11DeviceContext> GD3DDeviceContext;
+extern bool GEncounteredCriticalD3DDeviceError;
+
+void LogSlateD3DRendererFailure(const FString& Description, HRESULT Hr);
 
 class FSlateD3DRenderer : public FSlateRenderer
 {
@@ -71,11 +74,17 @@ public:
 	bool CreateDevice();
 	void CreateDepthStencilBuffer( FSlateD3DViewport& Viewport );
 
+	virtual bool HasLostDevice() const override;
+
 private:
 	void Private_CreateViewport( TSharedRef<SWindow> InWindow, const FVector2D& WindowSize );
 	void Private_ResizeViewport( const TSharedRef<SWindow> InWindow, uint32 Width, uint32 Height, bool bFullscreen );
 	void CreateBackBufferResources( TRefCountPtr<IDXGISwapChain>& InSwapChain, TRefCountPtr<ID3D11Texture2D>& OutBackBuffer, TRefCountPtr<ID3D11RenderTargetView>& OutRTV );
+
 private:
+
+	bool bHasAttemptedInitialization;
+
 	FMatrix ViewMatrix;
 	TMap<const SWindow*, FSlateD3DViewport> WindowToViewportMap;
 	FSlateDrawBuffer DrawBuffer;

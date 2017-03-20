@@ -253,7 +253,7 @@ bool FSlateFileDlgWindow::OpenFileDialog(const void* ParentWindowHandle, const F
 		.CreateTitleBar(true)
 		.MinHeight(400.0f)
 		.MinWidth(600.0f)
-		.ActivateWhenFirstShown(true)
+		.ActivationPolicy(EWindowActivationPolicy::Always)
 		.ClientSize(FVector2D(800, 500));
 	
 	DialogWidget = SNew(SSlateFileOpenDlg)
@@ -299,7 +299,7 @@ bool FSlateFileDlgWindow::OpenDirectoryDialog(const void* ParentWindowHandle, co
 		.CreateTitleBar(true)
 		.MinHeight(400.0f)
 		.MinWidth(600.0f)
-		.ActivateWhenFirstShown(true)
+		.ActivationPolicy(EWindowActivationPolicy::Always)
 		.ClientSize(FVector2D(800, 500));
 
 	DialogWidget = SNew(SSlateFileOpenDlg)
@@ -346,7 +346,7 @@ bool FSlateFileDlgWindow::SaveFileDialog(const void* ParentWindowHandle, const F
 		.CreateTitleBar(true)
 		.MinHeight(400.0f)
 		.MinWidth(600.0f)
-		.ActivateWhenFirstShown(true)
+		.ActivationPolicy(EWindowActivationPolicy::Always)
 		.ClientSize(FVector2D(800, 500));
 
 	DialogWidget = SNew(SSlateFileOpenDlg)

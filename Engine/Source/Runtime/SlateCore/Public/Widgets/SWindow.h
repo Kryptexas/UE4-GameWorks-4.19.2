@@ -135,8 +135,8 @@ public:
 		, _SizingRule( ESizingRule::UserSized )
 		, _IsPopupWindow( false )
 		, _IsTopmostWindow( false )
-		, _FocusWhenFirstShown( true )
-		, _ActivateWhenFirstShown( true )
+		, _FocusWhenFirstShown(true)
+		, _ActivationPolicy( EWindowActivationPolicy::Always )
 		, _UseOSWindowBorder( false )
 		, _HasCloseButton( true )
 		, _SupportsMaximize( true )
@@ -193,9 +193,17 @@ public:
 
 		/** Should this window be focused immediately after it is shown? */
 		SLATE_ARGUMENT( bool, FocusWhenFirstShown )
-	
-		/** Should this window be activated immediately after it is shown? */
-		SLATE_ARGUMENT( bool, ActivateWhenFirstShown )
+
+		DEPRECATED(4.16, "ActivateWhenFirstShown(bool) is deprecated. Please use ActivationPolicy(EWindowActivationPolicy) instead")
+		FArguments& ActivateWhenFirstShown(bool bActivateWhenFirstShown)
+		{
+			// Previously ActivateWhenFirstShown was being used as always activating, so we use Always here to ensure same behavior.
+			_ActivationPolicy = bActivateWhenFirstShown ? EWindowActivationPolicy::Always : EWindowActivationPolicy::Never;
+			return Me();
+		}
+
+		/** When should this window be activated upon being shown? */
+		SLATE_ARGUMENT( EWindowActivationPolicy, ActivationPolicy )
 
 		/** Use the default os look for the border of the window */
 		SLATE_ARGUMENT( bool, UseOSWindowBorder )
@@ -609,8 +617,14 @@ public:
 		WidgetToFocusOnActivate = InWidget;
 	}
 
-	/** @return true if the window should be activated when first shown */
-	bool ActivateWhenFirstShown() const;
+	DEPRECATED(4.16, "ActivateWhenFirstShown() is deprecated. Please use ActivationPolicy() instead.")
+	bool ActivateWhenFirstShown() const
+	{
+		return ActivationPolicy() != EWindowActivationPolicy::Never;
+	}
+
+	/** @return the window activation policy used when showing the window */
+	EWindowActivationPolicy ActivationPolicy() const;
 
 	/** @return true if the window accepts input; false if the window is non-interactive */
 	bool AcceptsInput() const;
@@ -922,9 +936,6 @@ protected:
 	/** Focus this window immediately as it is shown */
 	bool bFocusWhenFirstShown : 1;
 
-	/** Activate this window immediately as it is shown */
-	bool bActivateWhenFirstShown : 1;
-
 	/** True if this window displays the os window border instead of drawing one in slate */
 	bool bHasOSWindowBorder : 1;
 
@@ -951,6 +962,9 @@ protected:
 
 	/** True if the window should preserve its aspect ratio when resized by user */
 	bool bShouldPreserveAspectRatio : 1;
+
+	/** When should the window be activated upon being shown */
+	EWindowActivationPolicy WindowActivationPolicy;
 
 	/** Initial desired position of the window's content in screen space */
 	FVector2D InitialDesiredScreenPosition;

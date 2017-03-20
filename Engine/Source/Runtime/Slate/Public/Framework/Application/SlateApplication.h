@@ -241,7 +241,7 @@ public:
 		return *CurrentApplication;
 	}
 
-	static void Shutdown();
+	static void Shutdown(bool bShutdownPlatform = true);
 
 	/** @return the global tab manager */
 	static TSharedRef<class FGlobalTabmanager> GetGlobalTabManager();

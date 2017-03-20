@@ -247,7 +247,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefString(&Settings.locale) = *LocaleCode;
 
 	// Append engine version to the user agent string.
-	FString ProductVersion = FString::Printf( TEXT("%s UnrealEngine/%s"), FApp::GetGameName(), *FEngineVersion::Current().ToString());
+	FString ProductVersion = FString::Printf(TEXT("%s/%s UnrealEngine/%s"), FApp::GetGameName(), FApp::GetBuildVersion(), *FEngineVersion::Current().ToString());
 	CefString(&Settings.product_version) = *ProductVersion;
 
 #if CEF3_DEFAULT_CACHE
@@ -508,8 +508,8 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 bool FWebBrowserSingleton::Tick(float DeltaTime)
 {
 #if WITH_CEF3
-	bool bIsSlateAwake = !FSlateApplication::Get().IsSlateAsleep();
-	// Remove any windows that have been deleted and check wether it's currently visible
+	bool bIsSlateAwake = FSlateApplication::IsInitialized() && !FSlateApplication::Get().IsSlateAsleep();
+	// Remove any windows that have been deleted and check whether it's currently visible
 	for (int32 Index = WindowInterfaces.Num() - 1; Index >= 0; --Index)
 	{
 		if (!WindowInterfaces[Index].IsValid())

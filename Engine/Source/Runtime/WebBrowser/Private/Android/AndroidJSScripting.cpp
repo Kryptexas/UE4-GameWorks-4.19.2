@@ -245,6 +245,7 @@ namespace
 
 void FAndroidJSScripting::BindUObject(const FString& Name, UObject* Object, bool bIsPermanent )
 {
+	const FString ExposedName = GetBindingName(Name, Object);
 	FString Converted = ConvertObject(Object);
 	if (bIsPermanent)
 	{
@@ -254,30 +255,31 @@ void FAndroidJSScripting::BindUObject(const FString& Name, UObject* Object, bool
 			return;
 		}
 		// Existing permanent objects must be removed first
-		if (PermanentUObjectsByName.Contains(Name))
+		if (PermanentUObjectsByName.Contains(ExposedName))
 		{
 			return;
 		}
 		BoundObjects[Object]={true, -1};
-		PermanentUObjectsByName.Add(Name, Object);
+		PermanentUObjectsByName.Add(ExposedName, Object);
 	}
 
 	TSharedPtr<FAndroidWebBrowserWindow> Window = WindowPtr.Pin();
 	if (Window.IsValid())
 	{
-		FString SetValueScript = FString::Printf(TEXT("window.ue['%s'] = %s;"), *Name.ReplaceCharWithEscapedChar(), *Converted);
+		FString SetValueScript = FString::Printf(TEXT("window.ue['%s'] = %s;"), *ExposedName.ReplaceCharWithEscapedChar(), *Converted);
 		Window->ExecuteJavascript(SetValueScript);
 	}
 }
 
 void FAndroidJSScripting::UnbindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
 {
+	const FString ExposedName = GetBindingName(Name, Object);
 	if (bIsPermanent)
 	{
 		// If overriding an existing permanent object, make it non-permanent
-		if (PermanentUObjectsByName.Contains(Name) && (Object == nullptr || PermanentUObjectsByName[Name] == Object))
+		if (PermanentUObjectsByName.Contains(ExposedName) && (Object == nullptr || PermanentUObjectsByName[ExposedName] == Object))
 		{
-			Object = PermanentUObjectsByName.FindAndRemoveChecked(Name);
+			Object = PermanentUObjectsByName.FindAndRemoveChecked(ExposedName);
 			BoundObjects.Remove(Object);
 			return;
 		}
@@ -290,7 +292,7 @@ void FAndroidJSScripting::UnbindUObject(const FString& Name, UObject* Object, bo
 	TSharedPtr<FAndroidWebBrowserWindow> Window = WindowPtr.Pin();
 	if (Window.IsValid())
 	{
-		FString DeleteValueScript = FString::Printf(TEXT("delete window.ue['%s'];"), *Name.ReplaceCharWithEscapedChar());
+		FString DeleteValueScript = FString::Printf(TEXT("delete window.ue['%s'];"), *ExposedName.ReplaceCharWithEscapedChar());
 		Window->ExecuteJavascript(DeleteValueScript);
 	}
 }

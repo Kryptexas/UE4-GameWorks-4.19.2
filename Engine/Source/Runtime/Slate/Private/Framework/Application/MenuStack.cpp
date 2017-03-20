@@ -177,7 +177,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 		.AutoCenter(EAutoCenter::None)
 		.ClientSize(ExpectedSize)
 		.FocusWhenFirstShown(true)
-		.ActivateWhenFirstShown(true)
+		.ActivationPolicy(EWindowActivationPolicy::Always)
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
@@ -442,7 +442,7 @@ TSharedRef<FMenuBase> FMenuStack::PushNewWindow(TSharedPtr<IMenu> InParentMenu, 
 		.InitialOpacity(InitialWindowOpacity)
 		.SupportsTransparency(Transparency)
 		.FocusWhenFirstShown(InPrePushResults.bFocusImmediately)
-		.ActivateWhenFirstShown(InPrePushResults.bFocusImmediately)
+		.ActivationPolicy(InPrePushResults.bFocusImmediately ? EWindowActivationPolicy::Always : EWindowActivationPolicy::Never)
 		[
 			InPrePushResults.WrappedContent.ToSharedRef()
 		];

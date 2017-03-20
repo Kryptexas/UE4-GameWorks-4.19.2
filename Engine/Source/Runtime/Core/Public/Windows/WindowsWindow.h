@@ -182,7 +182,16 @@ private:
 	/** Current aspect ratio of window's client area */
 	float AspectRatio;
 
+	/** Whether the window is currently shown */
 	bool bIsVisible : 1;
+
+	/** Whether the window is yet to have its first Show() call. This is set false after first Show(). */
+	bool bIsFirstTimeVisible : 1;
+
+	/** We cache the min/max state for any Minimize, Maximize, or Restore calls that were made before the first Show */
+	bool bInitiallyMinimized : 1;
+	bool bInitiallyMaximized : 1;
+
 	/**
 	 * Ratio of pixels to SlateUnits in this window.
 	 * E.g. DPIScale of 2.0 means there is a 2x2 pixel square for every 1x1 SlateUnit.

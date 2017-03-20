@@ -238,13 +238,13 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->bIsPopupWindow = InArgs._IsPopupWindow;
 	this->bIsTopmostWindow = InArgs._IsTopmostWindow;
 	this->bFocusWhenFirstShown = InArgs._FocusWhenFirstShown;
-	this->bActivateWhenFirstShown = InArgs._ActivateWhenFirstShown;
 	this->bHasOSWindowBorder = InArgs._UseOSWindowBorder;
 	this->bHasCloseButton = InArgs._HasCloseButton;
 	this->bHasMinimizeButton = InArgs._SupportsMinimize;
 	this->bHasMaximizeButton = InArgs._SupportsMaximize;
 	this->bHasSizingFrame = !InArgs._IsPopupWindow && InArgs._SizingRule == ESizingRule::UserSized;
 	this->bShouldPreserveAspectRatio = InArgs._ShouldPreserveAspectRatio;
+	this->WindowActivationPolicy = InArgs._ActivationPolicy;
 	this->LayoutBorder = InArgs._LayoutBorder;
 	this->UserResizeBorder = InArgs._UserResizeBorder;
 	this->bVirtualWindow = false;
@@ -383,7 +383,7 @@ TSharedRef<SWindow> SWindow::MakeNotificationWindow()
 		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.InitialOpacity( 0.0f )
 		.FocusWhenFirstShown( false )
-		.ActivateWhenFirstShown( false );
+		.ActivationPolicy( EWindowActivationPolicy::Never );
 
 	// Notification windows slide open so we'll mark them as resized frequently
 	NewWindow->bSizeWillChangeOften = true;
@@ -403,7 +403,7 @@ TSharedRef<SWindow> SWindow::MakeToolTipWindow()
 		.SizingRule(ESizingRule::Autosized)
 		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
-		.ActivateWhenFirstShown( false );
+		.ActivationPolicy( EWindowActivationPolicy::Never );
 	NewWindow->Opacity = 0.0f;
 
 	// NOTE: These sizes are tweaked for SToolTip widgets (text wrap width of around 400 px)
@@ -424,7 +424,7 @@ TSharedRef<SWindow> SWindow::MakeCursorDecorator()
 		.SizingRule(ESizingRule::Autosized)
 		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
-		.ActivateWhenFirstShown( false );
+		.ActivationPolicy( EWindowActivationPolicy::Never );
 	NewWindow->Opacity = 1.0f;
 
 	return NewWindow;
@@ -1348,10 +1348,10 @@ FString SWindow::ToString() const
 	return FText::Format(NSLOCTEXT("SWindow", "Window_TitleFmt", " Window : {0} "), GetTitle()).ToString();
 }
 
-/** @return true if the window should be activated when first shown */
-bool SWindow::ActivateWhenFirstShown() const
+/** @return the window activation policy used when showing the window */
+EWindowActivationPolicy SWindow::ActivationPolicy() const
 {
-	return bActivateWhenFirstShown;
+	return WindowActivationPolicy;
 }
 
 /** @return true if the window accepts input; false if the window is non-interactive */
@@ -1786,7 +1786,6 @@ SWindow::SWindow()
 	, bInitiallyMinimized(false)
 	, bHasEverBeenShown( false )
 	, bFocusWhenFirstShown( true )
-	, bActivateWhenFirstShown( true )
 	, bHasOSWindowBorder( false )
 	, bHasCloseButton( false )
 	, bHasMinimizeButton( false )
@@ -1795,6 +1794,7 @@ SWindow::SWindow()
 	, bIsModalWindow( false )
 	, bIsMirrorWindow( false )
 	, bShouldPreserveAspectRatio( false )
+	, WindowActivationPolicy( EWindowActivationPolicy::Always )
 	, InitialDesiredScreenPosition( FVector2D::ZeroVector )
 	, InitialDesiredSize( FVector2D::ZeroVector )
 	, ScreenPosition( FVector2D::ZeroVector )

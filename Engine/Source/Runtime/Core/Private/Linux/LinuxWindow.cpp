@@ -118,6 +118,8 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		}
 	}
 
+	const bool bShouldActivate = Definition->ActivationPolicy != EWindowActivationPolicy::Never;
+
 	// This is a tool tip window.
 	if (!InParent.IsValid() && !Definition->HasOSWindowBorder &&
 		!Definition->AcceptsInput && Definition->IsTopmostWindow && 
@@ -134,7 +136,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		!Definition->ActivateWhenFirstShown && Definition->SizeWillChangeOften)
+		!bShouldActivate && Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_NOTIFICATION;
 		bIsNotificationWindow = true;
@@ -145,7 +147,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_NOTIFICATION;
 		bIsNotificationWindow = true;
@@ -156,7 +158,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_POPUP_MENU;
 		bIsPopupWindow = true;
@@ -167,7 +169,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		!Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		!bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_POPUP_MENU;
 		bIsConsoleWindow = true;
@@ -179,7 +181,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		!Definition->AcceptsInput && Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		!Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		!bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		// TODO Experimental (The SDL_WINDOW_DND sets focus)
 		WindowStyle |= SDL_WINDOW_DND;
@@ -191,7 +193,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		Definition->IsModalWindow && Definition->IsRegularWindow &&
-		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_DIALOG;
 		bIsDialogWindow = true;
@@ -202,7 +204,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		Definition->AppearsInTaskbar && Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && Definition->IsRegularWindow &&
-		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_DIALOG;
 		bIsUtilityWindow = true;
@@ -730,7 +732,12 @@ bool FLinuxWindow::IsUtilityWindow() const
 
 bool FLinuxWindow::IsActivateWhenFirstShown() const
 {
-	return Definition->ActivateWhenFirstShown;
+	return GetActivationPolicy() != EWindowActivationPolicy::Never;
+}
+
+EWindowActivationPolicy FLinuxWindow::GetActivationPolicy() const
+{
+	return Definition->ActivationPolicy;
 }
 
 bool FLinuxWindow::IsFocusWhenFirstShown() const
@@ -754,7 +761,7 @@ void FLinuxWindow::LogInfo()
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("AcceptsInput: %d"), Definition->AcceptsInput);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("IsModalWindow: %d"), Definition->IsModalWindow);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("IsRegularWindow: %d"), Definition->IsRegularWindow);
-	UE_LOG(LogLinuxWindowType, Verbose, TEXT("ActivateWhenFirstShown: %d"), Definition->ActivateWhenFirstShown);
+	UE_LOG(LogLinuxWindowType, Verbose, TEXT("ActivationPolicy: %d"), Definition->ActivationPolicy);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("FocusWhenFirstShown: %d"), Definition->FocusWhenFirstShown);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("SizeWillChangeOften: %d"), Definition->SizeWillChangeOften);
 }

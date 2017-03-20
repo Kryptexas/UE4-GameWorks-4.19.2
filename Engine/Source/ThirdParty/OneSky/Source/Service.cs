@@ -248,7 +248,7 @@ namespace OneSky
                         };
                     }
                 }
-                while (response != null && response.Meta.RecordCount > 0 && !(response.Meta.RecordCount < itemsPerPage) && response.Meta.Status == 200 );
+				while (response != null && response.Data.Count() > 0 && response.Meta.RecordCount > 0 && !(response.Meta.RecordCount < itemsPerPage) && response.Meta.Status == 200);
             }
         }
 

@@ -15,7 +15,9 @@ enum class ELauncherAction : uint32
 	/** Launch the App after the launcher is started */
 	AppLaunch,
 	/** Check for an available update to the App after the launcher is started */
-	AppUpdateCheck
+	AppUpdateCheck,
+	/** Modify the Apps installation - app has to support SD and be installed */
+	AppInstaller
 };
 
 /**
@@ -47,9 +49,11 @@ public:
 	/**
 	 * Opens the launcher, appending our identifier to the cmdline
 	 *
+	 * @param Action - The Action we want the launcher to take
+	 * @param Payload - (Optional) additional information we want to supply to the action uri
 	 * @return true, if it was successful
 	 */
-	virtual bool RunLauncher(ELauncherAction Action) const = 0;
+	virtual bool RunLauncher(ELauncherAction Action, FString Payload = FString()) const = 0;
 
 public:
 

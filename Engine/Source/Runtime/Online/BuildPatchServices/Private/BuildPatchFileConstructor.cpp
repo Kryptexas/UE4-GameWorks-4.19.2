@@ -25,6 +25,29 @@ using namespace BuildPatchConstants;
 // incase of previous partial write.
 #define NUM_BYTES_RESUME_IGNORE     1024
 
+namespace BuildPatchFileConstructorHelpers
+{
+	bool CheckAndReportRemainingDiskSpaceError(const FString& InstallDirectory, uint64 RemainingBytesRequired)
+	{
+		bool bContinueConstruction = true;
+		uint64 TotalSize = 0;
+		uint64 AvailableSpace = 0;
+		if (FPlatformMisc::GetDiskTotalAndFreeSpace(InstallDirectory, TotalSize, AvailableSpace))
+		{
+			if (AvailableSpace < RemainingBytesRequired)
+			{
+				UE_LOG(LogBuildPatchServices, Error, TEXT("Out of HDD space. Needs %llu bytes, Free %llu bytes"), RemainingBytesRequired, AvailableSpace);
+				FBuildPatchInstallError::SetFatalError(
+					EBuildPatchInstallError::OutOfDiskSpace,
+					DiskSpaceErrorCodes::InitialSpaceCheck,
+					FBuildPatchInstallError::GetDiskSpaceMessage(InstallDirectory, RemainingBytesRequired, AvailableSpace));
+				bContinueConstruction = false;
+			}
+		}
+		return bContinueConstruction;
+	}
+}
+
 /**
  * This struct handles loading and saving of simple resume information, that will allow us to decide which
  * files should be resumed from. It will also check that we are creating the same version and app as we expect to be.
@@ -128,6 +151,7 @@ FBuildPatchFileConstructor::FBuildPatchFileConstructor(FBuildPatchAppManifestPtr
 	, bIsInited(false)
 	, bInitFailed(false)
 	, bIsDownloadStarted(false)
+	, bInitialDiskSizeCheck(false)
 	, ThreadLock()
 	, InstalledManifest(InInstalledManifest)
 	, BuildManifest(InBuildManifest)
@@ -351,6 +375,12 @@ bool FBuildPatchFileConstructor::GetFileToConstruct(FString& Filename)
 	return bFileAvailable;
 }
 
+int64 FBuildPatchFileConstructor::GetRemainingBytes()
+{
+	FScopeLock Lock(&ThreadLock);
+	return BuildManifest->GetFileSize(FilesToConstruct);
+}
+
 bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filename, bool bResumeExisting )
 {
 	const bool bIsFileData = BuildManifest->IsFileDataManifest();
@@ -428,6 +458,17 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 			}
 		}
 
+		// If we haven't done so yet, make the initial disk space check
+		if (!bInitialDiskSizeCheck)
+		{
+			bInitialDiskSizeCheck = true;
+			const uint64 RequiredSpace = (FileManifest->GetFileSize() - StartPosition) + GetRemainingBytes();
+			if (!BuildPatchFileConstructorHelpers::CheckAndReportRemainingDiskSpaceError(InstallDirectory, RequiredSpace))
+			{
+				return false;
+			}
+		}
+
 		// Now we can make sure the chunk cache knows to start downloading chunks
 		if( !bIsFileData && !bIsDownloadStarted && !FBuildPatchInstallError::HasFatalError() )
 		{
@@ -483,27 +524,9 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 		}
 		else
 		{
-			// Check drive space
-			bool bError = false;
-			uint64 TotalSize = 0;
-			uint64 AvailableSpace = 0;
-			if (FPlatformMisc::GetDiskTotalAndFreeSpace(InstallDirectory, TotalSize, AvailableSpace))
-			{
-				const int64 DriveSpace = AvailableSpace;
-				const int64 RequiredSpace = FileManifest->GetFileSize();
-				if (DriveSpace < RequiredSpace)
-				{
-					bError = true;
-					// Only report or log if the first error
-					if (FBuildPatchInstallError::HasFatalError() == false)
-					{
-						FBuildPatchAnalytics::RecordConstructionError(Filename, INDEX_NONE, TEXT("Not Enough Disk Space"));
-						UE_LOG(LogBuildPatchServices, Error, TEXT("FBuildPatchFileConstructor: Out of disk space. Avail:%llu bytes, Needed:%llu bytes, File:%s"), DriveSpace, RequiredSpace, *Filename);
-					}
-					// Always set
-					FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::OutOfDiskSpace, DiskSpaceErrorCodes::DuringInstallation);
-				}
-			}
+			// Check if drive space was the issue here
+			const uint64 RequiredSpace = FileManifest->GetFileSize() + GetRemainingBytes();
+			bool bError = !BuildPatchFileConstructorHelpers::CheckAndReportRemainingDiskSpaceError(InstallDirectory, RequiredSpace);
 
 			// Otherwise we just couldn't make the file
 			if (!bError)

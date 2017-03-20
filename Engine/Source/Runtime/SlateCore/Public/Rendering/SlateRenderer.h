@@ -453,6 +453,8 @@ public:
 	/** Reset the internal Scene tracking.*/
 	virtual void ClearScenes() = 0;
 
+	virtual bool HasLostDevice() const { return false; }
+
 private:
 
 	// Non-copyable

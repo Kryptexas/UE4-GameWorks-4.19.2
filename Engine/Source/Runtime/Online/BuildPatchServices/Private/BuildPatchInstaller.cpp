@@ -488,21 +488,6 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 		}
 	}
 
-	// Check drive space
-	uint64 TotalSize = 0;
-	uint64 AvailableSpace = 0;
-	if (FPlatformMisc::GetDiskTotalAndFreeSpace(Configuration.InstallDirectory, TotalSize, AvailableSpace))
-	{
-		const int64 DriveSpace = AvailableSpace;
-		const int64 RequiredSpace = NewBuildManifest->GetFileSize(FilesToConstruct);
-		if (DriveSpace < RequiredSpace)
-		{
-			GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not begin install due to their not being enough HDD space. Needs %llu bytes, Free %llu bytes"), RequiredSpace, DriveSpace);
-			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::OutOfDiskSpace, DiskSpaceErrorCodes::InitialSpaceCheck);
-			return false;
-		}
-	}
-
 	// Create the downloader
 	FBuildPatchDownloader::Create(DataStagingDir, Configuration.CloudDirectories, NewBuildManifest, &BuildProgress);
 

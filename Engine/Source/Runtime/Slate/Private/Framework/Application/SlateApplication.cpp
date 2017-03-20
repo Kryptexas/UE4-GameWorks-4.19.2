@@ -833,14 +833,19 @@ TSharedRef<FSlateApplication> FSlateApplication::Create(const TSharedRef<class G
 	return CurrentApplication.ToSharedRef();
 }
 
-void FSlateApplication::Shutdown()
+void FSlateApplication::Shutdown(bool bShutdownPlatform)
 {
 	if (FSlateApplication::IsInitialized())
 	{
 		CurrentApplication->OnShutdown();
 		CurrentApplication->DestroyRenderer();
 		CurrentApplication->Renderer.Reset();
-		PlatformApplication->DestroyApplication();
+
+		if (bShutdownPlatform)
+		{
+			PlatformApplication->DestroyApplication();
+		}
+
 		PlatformApplication.Reset();
 		CurrentApplication.Reset();
 		CurrentBaseApplication.Reset();
@@ -947,7 +952,7 @@ bool FSlateApplication::InitializeRenderer( TSharedRef<FSlateRenderer> InRendere
 	bool bResult = Renderer->Initialize();
 	if (!bResult && !bQuietMode)
 	{
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("SlateD3DRenderer", "ProblemWithGraphicsCard", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("SlateD3DRenderer", "UnsupportedVideoCardErrorTitle", "Unsupported Video Card").ToString());
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("SlateD3DRenderer", "ProblemWithGraphicsCard", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("SlateD3DRenderer", "UnsupportedVideoCardErrorTitle", "Unsupported Graphics Card").ToString());
 	}
 	return bResult;
 }
@@ -1873,7 +1878,7 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 	Definition->AppearsInTaskbar = InSlateWindow->AppearsInTaskbar();
 	Definition->IsTopmostWindow = InSlateWindow->IsTopmostWindow();
 	Definition->AcceptsInput = InSlateWindow->AcceptsInput();
-	Definition->ActivateWhenFirstShown = InSlateWindow->ActivateWhenFirstShown();
+	Definition->ActivationPolicy = InSlateWindow->ActivationPolicy();
 	Definition->FocusWhenFirstShown = InSlateWindow->IsFocusedInitially();
 
 	Definition->HasCloseButton = InSlateWindow->HasCloseBox();

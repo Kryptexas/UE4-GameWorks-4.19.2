@@ -457,7 +457,7 @@ private:
 			.AutoCenter(EAutoCenter::PrimaryWorkArea)
 			.UseOSWindowBorder(true)
 			.FocusWhenFirstShown(false)
-			.ActivateWhenFirstShown(false)
+			.ActivationPolicy(EWindowActivationPolicy::Never)
 			.HasCloseButton(true)
 			.SupportsMaximize(false)
 			.SupportsMinimize(true)

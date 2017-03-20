@@ -449,7 +449,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 								.InitialOpacity(1.0f)
 								.SupportsTransparency(Transparency)
 								.FocusWhenFirstShown(bFocusMenu)
-								.ActivateWhenFirstShown(bFocusMenu)
+								.ActivationPolicy(bFocusMenu ? EWindowActivationPolicy::Always : EWindowActivationPolicy::Never)
 								[
 									MenuContentRef
 								];

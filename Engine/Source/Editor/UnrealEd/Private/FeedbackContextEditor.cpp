@@ -413,7 +413,7 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 				.AutoCenter(EAutoCenter::PreferredWorkArea)
 				.IsPopupWindow(true)
 				.CreateTitleBar(true)
-				.ActivateWhenFirstShown(bFocusAndActivate)
+				.ActivationPolicy(bFocusAndActivate ? EWindowActivationPolicy::Always : EWindowActivationPolicy::Never)
 				.FocusWhenFirstShown(bFocusAndActivate);
 
 			SlowTaskWindowRef->SetContent(

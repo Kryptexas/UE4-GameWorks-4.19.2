@@ -379,7 +379,7 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 				.SupportsMaximize( true )
 				.SupportsMinimize( true )
 				.FocusWhenFirstShown( false )
-				.ActivateWhenFirstShown( false )
+				.ActivationPolicy( EWindowActivationPolicy::Never )
 				.SaneWindowPlacement( false );
 
 			WebCamDynamicImageBrush = MakeShareable( new FSlateDynamicImageBrush( 

@@ -35,7 +35,11 @@ void FSlateD3DVertexBuffer::CreateBuffer( uint32 InStride )
 	BufferDesc.MiscFlags = 0;
 
 	HRESULT Hr = GD3DDevice->CreateBuffer( &BufferDesc, NULL, Buffer.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DVertexBuffer::CreateBuffer() - ID3D11Device::CreateBuffer"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+	}
 }
 
 /** Releases the vertex buffers RHI resource. */
@@ -71,22 +75,27 @@ void FSlateD3DVertexBuffer::ResizeBuffer( uint32 NewSize )
 		BufferDesc.MiscFlags = 0;
 
 		HRESULT Hr = GD3DDevice->CreateBuffer( &BufferDesc, NULL, Buffer.GetInitReference() );
-		checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
-
-		if( SavedVertices )
+		if (SUCCEEDED(Hr))
 		{
-			void *Vertices = Lock(0);
+			if (SavedVertices)
+			{
+				void *Vertices = Lock(0);
 
-			FMemory::Memcpy( Vertices, SavedVertices, BufferSize );
+				FMemory::Memcpy(Vertices, SavedVertices, BufferSize);
 
-			Unlock();
+				Unlock();
 
-			delete[] SavedVertices;
+				delete[] SavedVertices;
+			}
+
+			BufferSize = NewSize;
 		}
-
-		BufferSize = NewSize;
+		else
+		{
+			LogSlateD3DRendererFailure(TEXT("FSlateD3DVertexBuffer::ResizeBuffer() - ID3D11Device::CreateBuffer"), Hr);
+			GEncounteredCriticalD3DDeviceError = true;
+		}
 	}
-
 }
 
 /** Locks the index buffer, returning a pointer to the indices */

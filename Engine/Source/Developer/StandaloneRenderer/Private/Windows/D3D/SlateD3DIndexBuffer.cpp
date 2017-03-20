@@ -32,7 +32,11 @@ void FSlateD3DIndexBuffer::CreateBuffer()
 	BufferDesc.MiscFlags = 0;
 
 	HRESULT Hr = GD3DDevice->CreateBuffer( &BufferDesc, NULL, Buffer.GetInitReference() ) ;
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (!SUCCEEDED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DIndexBuffer::CreateBuffer() - ID3D11Device::CreateBuffer"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+	}
 }
 
 /** Resizes the buffer to the passed in size.  Preserves internal data */
@@ -60,20 +64,27 @@ void FSlateD3DIndexBuffer::ResizeBuffer( uint32 NumIndices )
 		BufferDesc.MiscFlags = 0;
 
 		HRESULT Hr = GD3DDevice->CreateBuffer( &BufferDesc, NULL, Buffer.GetInitReference() ) ;
-		checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
 
-		if( SavedIndices )
+		if (SUCCEEDED(Hr))
 		{
-			void *Indices = Lock(0);
+			if (SavedIndices)
+			{
+				void *Indices = Lock(0);
 
-			FMemory::Memcpy( Indices, SavedIndices, BufferSize );
+				FMemory::Memcpy(Indices, SavedIndices, BufferSize);
 
-			Unlock();
+				Unlock();
 
-			delete[] SavedIndices;
+				delete[] SavedIndices;
+			}
+
+			MaxNumIndices = NumIndices;
 		}
-
-		MaxNumIndices = NumIndices;
+		else
+		{
+			LogSlateD3DRendererFailure(TEXT("FSlateD3DIndexBuffer::ResizeBuffer() - ID3D11Device::CreateBuffer"), Hr);
+			GEncounteredCriticalD3DDeviceError = true;
+		}
 	}
 }
 

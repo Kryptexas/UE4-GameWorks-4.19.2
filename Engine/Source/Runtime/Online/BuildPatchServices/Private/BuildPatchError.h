@@ -179,4 +179,14 @@ public:
 	 * @return A string value for the EBuildPatchInstallError enum.
 	 */
 	static const FString& EnumToString(const EBuildPatchInstallError& ErrorType);
+
+	/**
+	 * Builds and returns the localized messaging for out of disk space errors.
+	 * @param Location          The install directory used.
+	 * @param RequiredBytes     The number of bytes required for the installation.
+	 * @param AvailableBytes    The number of bytes available on the install directory.
+	 * @param FormatOptions     Optional. Override the default number format options used (default is 2 decimal places).
+	 * @return localized error message for out of disk space.
+	 */
+	static FText GetDiskSpaceMessage(const FString& Location, uint64 RequiredBytes, uint64 AvailableBytes, const FNumberFormattingOptions* FormatOptions = nullptr);
 };
