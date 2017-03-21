@@ -19,15 +19,18 @@ public class FreeType2 : ModuleRules
 		    Target.Platform == UnrealTargetPlatform.HTML5)
 		{
 			FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.6/";
+			
+			PublicSystemIncludePaths.Add(FreeType2Path + "Include");
 		}
 		else
 		{
+			
 			FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/";
+			
+			PublicSystemIncludePaths.Add(FreeType2Path + "include");
 		}
 
 		FreeType2LibPath = FreeType2Path + "Lib/";
-
-		PublicSystemIncludePaths.Add(FreeType2Path + "Include");
 
         if (Target.Platform == UnrealTargetPlatform.Win32 ||
             Target.Platform == UnrealTargetPlatform.Win64 ||
