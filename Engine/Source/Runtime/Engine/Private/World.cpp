@@ -6351,7 +6351,7 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
             SlowTask.EnterProgressFrame(10.0f);
             UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
             SlowTask.EnterProgressFrame(10.0f);
-            GetGlobalShaderMap(InFeatureLevel, false);
+            GetGlobalShaderMap(InFeatureLevel);
             SlowTask.EnterProgressFrame(10.0f);
             GShaderCompilingManager->ProcessAsyncResults(false, true);
 

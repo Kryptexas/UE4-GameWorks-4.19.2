@@ -39,6 +39,7 @@ public class EditorTests : ModuleRules
 				"InputCore",
 				"LevelEditor",
 				"CoreUObject",
+                "ShaderCore",
 				"Engine",
 				"Slate",
 				"SlateCore",

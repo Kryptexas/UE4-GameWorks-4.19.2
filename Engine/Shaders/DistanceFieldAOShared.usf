@@ -140,6 +140,13 @@ bool SphereIntersectConeWithDepthRanges(float4 SphereCenterAndRadius, float3 Con
 Buffer<float> RecordConeVisibility;
 float BentNormalNormalizeFactor;
 
+void FindBestAxisVectors2(float3 InZAxis, out float3 OutXAxis, out float3 OutYAxis )
+{
+	float3 UpVector = abs(InZAxis.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
+	OutXAxis = normalize( cross( UpVector, InZAxis ) );
+	OutYAxis = cross( InZAxis, OutXAxis );
+}
+
 float3 ComputeBentNormal(float3 RecordWorldNormal, uint RelativeRecordIndex)
 {
 	float3 TangentX;

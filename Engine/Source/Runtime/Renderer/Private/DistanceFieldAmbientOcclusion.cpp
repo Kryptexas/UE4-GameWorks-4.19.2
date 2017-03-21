@@ -16,6 +16,8 @@
 #include "FXSystem.h"
 #include "PostProcess/PostProcessSubsurface.h"
 #include "DistanceFieldGlobalIllumination.h"
+#include "RendererModule.h"
+#include "PipelineStateCache.h"
 
 int32 GDistanceFieldAO = 1;
 FAutoConsoleVariableRef CVarDistanceFieldAO(
@@ -198,6 +200,19 @@ FAutoConsoleCommandWithWorld ListMemoryConsoleCommand(
 	FConsoleCommandWithWorldDelegate::CreateStatic(OnListMemory)
 	);
 
+bool bListMeshDistanceFieldsMemoryNextFrame = false;
+
+void OnListMeshDistanceFields(UWorld* InWorld)
+{
+	bListMeshDistanceFieldsMemoryNextFrame = true;
+}
+
+FAutoConsoleCommandWithWorld ListMeshDistanceFieldsMemoryConsoleCommand(
+	TEXT("r.AOListMeshDistanceFields"),
+	TEXT(""),
+	FConsoleCommandWithWorldDelegate::CreateStatic(OnListMeshDistanceFields)
+	);
+
 class FComputeDistanceFieldNormalPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FComputeDistanceFieldNormalPS, Global);
@@ -230,7 +245,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 	}
@@ -285,7 +300,7 @@ public:
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, DistanceFieldNormalValue.UAV);
 		DistanceFieldNormal.SetTexture(RHICmdList, ShaderRHI, DistanceFieldNormalValue.ShaderResourceTexture, DistanceFieldNormalValue.UAV);
@@ -346,6 +361,13 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 	else
 	{
 		SetRenderTarget(RHICmdList, DistanceFieldNormal.TargetableTexture, NULL, true);
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -354,16 +376,15 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 			SCOPED_DRAW_EVENT(RHICmdList, ComputeNormal);
 
 			RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
 			TShaderMapRef<FComputeDistanceFieldNormalPS> PixelShader(View.ShaderMap);
 
-			static FGlobalBoundShaderState BoundShaderState;
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 
-			SetGlobalBoundShaderState(RHICmdList, View.FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			PixelShader->SetParameters(RHICmdList, View, Parameters);
 
@@ -542,38 +563,38 @@ void GenerateBestSpacedVectors()
 void ListDistanceFieldLightingMemory(const FViewInfo& View, FSceneRenderer& SceneRenderer)
 {
 	const FScene* Scene = (const FScene*)View.Family->Scene;
-	UE_LOG(LogTemp, Log, TEXT("Shared GPU memory (excluding render targets)"));
+	UE_LOG(LogRenderer, Log, TEXT("Shared GPU memory (excluding render targets)"));
 
 	if (Scene->DistanceFieldSceneData.NumObjectsInBuffer > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("   Scene Object data %.3fMb"), Scene->DistanceFieldSceneData.ObjectBuffers->GetSizeBytes() / 1024.0f / 1024.0f);
+		UE_LOG(LogRenderer, Log, TEXT("   Scene Object data %.3fMb"), Scene->DistanceFieldSceneData.ObjectBuffers->GetSizeBytes() / 1024.0f / 1024.0f);
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("   %s"), *GDistanceFieldVolumeTextureAtlas.GetSizeString());
+	UE_LOG(LogRenderer, Log, TEXT("   %s"), *GDistanceFieldVolumeTextureAtlas.GetSizeString());
 	extern FString GetObjectBufferMemoryString();
-	UE_LOG(LogTemp, Log, TEXT("   %s"), *GetObjectBufferMemoryString());
-	UE_LOG(LogTemp, Log, TEXT(""));
-	UE_LOG(LogTemp, Log, TEXT("Distance Field AO"));
+	UE_LOG(LogRenderer, Log, TEXT("   %s"), *GetObjectBufferMemoryString());
+	UE_LOG(LogRenderer, Log, TEXT(""));
+	UE_LOG(LogRenderer, Log, TEXT("Distance Field AO"));
 	
-	UE_LOG(LogTemp, Log, TEXT("   Temporary cache %.3fMb"), GTemporaryIrradianceCacheResources.GetSizeBytes() / 1024.0f / 1024.0f);
-	UE_LOG(LogTemp, Log, TEXT("   Culled objects %.3fMb"), GAOCulledObjectBuffers.Buffers.GetSizeBytes() / 1024.0f / 1024.0f);
+	UE_LOG(LogRenderer, Log, TEXT("   Temporary cache %.3fMb"), GTemporaryIrradianceCacheResources.GetSizeBytes() / 1024.0f / 1024.0f);
+	UE_LOG(LogRenderer, Log, TEXT("   Culled objects %.3fMb"), GAOCulledObjectBuffers.Buffers.GetSizeBytes() / 1024.0f / 1024.0f);
 
 	FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
 
 	if (TileIntersectionResources)
 	{
-		UE_LOG(LogTemp, Log, TEXT("   Tile Culled objects %.3fMb"), TileIntersectionResources->GetSizeBytes() / 1024.0f / 1024.0f);
+		UE_LOG(LogRenderer, Log, TEXT("   Tile Culled objects %.3fMb"), TileIntersectionResources->GetSizeBytes() / 1024.0f / 1024.0f);
 	}
 	
 	FAOScreenGridResources* ScreenGridResources = ((FSceneViewState*)View.State)->AOScreenGridResources;
 
 	if (ScreenGridResources)
 	{
-		UE_LOG(LogTemp, Log, TEXT("   Screen grid temporaries %.3fMb"), ScreenGridResources->GetSizeBytesForAO() / 1024.0f / 1024.0f);
+		UE_LOG(LogRenderer, Log, TEXT("   Screen grid temporaries %.3fMb"), ScreenGridResources->GetSizeBytesForAO() / 1024.0f / 1024.0f);
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT(""));
-	UE_LOG(LogTemp, Log, TEXT("Ray Traced Distance Field Shadows"));
+	UE_LOG(LogRenderer, Log, TEXT(""));
+	UE_LOG(LogRenderer, Log, TEXT("Ray Traced Distance Field Shadows"));
 
 	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
 	{
@@ -588,7 +609,7 @@ void ListDistanceFieldLightingMemory(const FViewInfo& View, FSceneRenderer& Scen
 
 			if (ProjectedShadowInfo->bRayTracedDistanceField && LightSceneInfo->TileIntersectionResources)
 			{
-				UE_LOG(LogTemp, Log, TEXT("   Light Tile Culled objects %.3fMb"), LightSceneInfo->TileIntersectionResources->GetSizeBytes() / 1024.0f / 1024.0f);
+				UE_LOG(LogRenderer, Log, TEXT("   Light Tile Culled objects %.3fMb"), LightSceneInfo->TileIntersectionResources->GetSizeBytes() / 1024.0f / 1024.0f);
 			}
 		}
 	}
@@ -596,22 +617,22 @@ void ListDistanceFieldLightingMemory(const FViewInfo& View, FSceneRenderer& Scen
 	extern void ListGlobalDistanceFieldMemory();
 	ListGlobalDistanceFieldMemory();
 
-	UE_LOG(LogTemp, Log, TEXT(""));
-	UE_LOG(LogTemp, Log, TEXT("Distance Field GI"));
+	UE_LOG(LogRenderer, Log, TEXT(""));
+	UE_LOG(LogRenderer, Log, TEXT("Distance Field GI"));
 
 	if (Scene->DistanceFieldSceneData.SurfelBuffers)
 	{
-		UE_LOG(LogTemp, Log, TEXT("   Scene surfel data %.3fMb"), Scene->DistanceFieldSceneData.SurfelBuffers->GetSizeBytes() / 1024.0f / 1024.0f);
+		UE_LOG(LogRenderer, Log, TEXT("   Scene surfel data %.3fMb"), Scene->DistanceFieldSceneData.SurfelBuffers->GetSizeBytes() / 1024.0f / 1024.0f);
 	}
 	
 	if (Scene->DistanceFieldSceneData.InstancedSurfelBuffers)
 	{
-		UE_LOG(LogTemp, Log, TEXT("   Instanced scene surfel data %.3fMb"), Scene->DistanceFieldSceneData.InstancedSurfelBuffers->GetSizeBytes() / 1024.0f / 1024.0f);
+		UE_LOG(LogRenderer, Log, TEXT("   Instanced scene surfel data %.3fMb"), Scene->DistanceFieldSceneData.InstancedSurfelBuffers->GetSizeBytes() / 1024.0f / 1024.0f);
 	}
 	
 	if (ScreenGridResources)
 	{
-		UE_LOG(LogTemp, Log, TEXT("   Screen grid temporaries %.3fMb"), ScreenGridResources->GetSizeBytesForGI() / 1024.0f / 1024.0f);
+		UE_LOG(LogRenderer, Log, TEXT("   Screen grid temporaries %.3fMb"), ScreenGridResources->GetSizeBytesForGI() / 1024.0f / 1024.0f);
 	}
 
 	extern void ListDistanceFieldGIMemory(const FViewInfo& View);
@@ -624,6 +645,8 @@ bool SupportsDistanceFieldAO(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatfor
 		// Pre-GCN AMD cards have a driver bug that prevents the global distance field from being generated correctly
 		// Better to disable entirely than to display garbage
 		&& !GRHIDeviceIsAMDPreGCNArchitecture
+		// Intel HD 4000 hangs in the RHICreateTexture3D call to allocate the large distance field atlas, and virtually no Intel cards can afford it anyway
+		&& !IsRHIDeviceIntel()
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
 		&& DoesPlatformSupportDistanceFieldAO(ShaderPlatform);
 }
@@ -655,6 +678,12 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFieldScene() const
 {
 	if (!ensure(Scene != nullptr))
 	{
+		return false;
+	}
+
+	if (IsRHIDeviceIntel())
+	{
+		// Intel HD 4000 hangs in the RHICreateTexture3D call to allocate the large distance field atlas, and virtually no Intel cards can afford it anyway
 		return false;
 	}
 
@@ -730,6 +759,12 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			{
 				bListMemoryNextFrame = false;
 				ListDistanceFieldLightingMemory(View, *this);
+			}
+
+			if (bListMeshDistanceFieldsMemoryNextFrame)
+			{
+				bListMeshDistanceFieldsMemoryNextFrame = false;
+				GDistanceFieldVolumeTextureAtlas.ListMeshDistanceFields();
 			}
 
 			CullObjectsToView(RHICmdList, Scene, View, Parameters, GAOCulledObjectBuffers);
@@ -870,13 +905,15 @@ public:
 		DynamicIrradianceTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceTexture"));
 		DynamicIrradianceSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceSampler"));
 		ContrastAndNormalizeMulAdd.Bind(Initializer.ParameterMap, TEXT("ContrastAndNormalizeMulAdd"));
+		OcclusionExponent.Bind(Initializer.ParameterMap, TEXT("OcclusionExponent"));
 		OcclusionTintAndMinOcclusion.Bind(Initializer.ParameterMap, TEXT("OcclusionTintAndMinOcclusion"));
+		OcclusionCombineMode.Bind(Initializer.ParameterMap, TEXT("OcclusionCombineMode"));
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FTextureRHIParamRef DynamicBentNormalAO, IPooledRenderTarget* DynamicIrradiance, const FDistanceFieldAOParameters& Parameters, const FSkyLightSceneProxy* SkyLight)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, DynamicBentNormalAOTexture, DynamicBentNormalAOSampler, TStaticSamplerState<SF_Point>::GetRHI(), DynamicBentNormalAO);
@@ -894,9 +931,13 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, ContrastAndNormalizeMulAdd, FVector(Parameters.Contrast, Mul, Add));
 
+		SetShaderValue(RHICmdList, ShaderRHI, OcclusionExponent, SkyLight->OcclusionExponent);
+
 		FVector4 OcclusionTintAndMinOcclusionValue = FVector4(SkyLight->OcclusionTint);
 		OcclusionTintAndMinOcclusionValue.W = SkyLight->MinOcclusion;
 		SetShaderValue(RHICmdList, ShaderRHI, OcclusionTintAndMinOcclusion, OcclusionTintAndMinOcclusionValue);
+
+		SetShaderValue(RHICmdList, ShaderRHI, OcclusionCombineMode, SkyLight->OcclusionCombineMode == OCM_Minimum ? 0.0f : 1.0f);
 	}
 
 	// FShader interface.
@@ -909,7 +950,9 @@ public:
 		Ar << DynamicIrradianceTexture;
 		Ar << DynamicIrradianceSampler;
 		Ar << ContrastAndNormalizeMulAdd;
+		Ar << OcclusionExponent;
 		Ar << OcclusionTintAndMinOcclusion;
+		Ar << OcclusionCombineMode;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -921,7 +964,9 @@ private:
 	FShaderResourceParameter DynamicIrradianceTexture;
 	FShaderResourceParameter DynamicIrradianceSampler;
 	FShaderParameter ContrastAndNormalizeMulAdd;
+	FShaderParameter OcclusionExponent;
 	FShaderParameter OcclusionTintAndMinOcclusion;
+	FShaderParameter OcclusionCombineMode;
 };
 
 #define IMPLEMENT_SKYLIGHT_PS_TYPE(bApplyShadowing, bSupportIrradiance) \
@@ -965,33 +1010,39 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 
 		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilRead);
 
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 		for( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 		{
 			const FViewInfo& View = Views[ViewIndex];
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 			if (GAOOverwriteSceneColor)
 			{
-				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+				GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 			}
 			else
 			{
 				const bool bCheckerboardSubsurfaceRendering = FRCPassPostProcessSubsurface::RequiresCheckerboardSubsurfaceRendering(SceneContext.GetSceneColorFormat());
 				if (bCheckerboardSubsurfaceRendering)
 				{
-					RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
+					GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI();
 				}
 				else
 				{
-					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+					GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI();
 				}
 			}
 
 			const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View) && IsValidRef(DynamicIrradiance);
 			TShaderMapRef< FPostProcessVS > VertexShader(View.ShaderMap);
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 			if (bApplyShadowing)
 			{
@@ -999,16 +1050,18 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 				{
 					TShaderMapRef<TDynamicSkyLightDiffusePS<true, true> > PixelShader(View.ShaderMap);
 
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
 					PixelShader->SetParameters(RHICmdList, View, DynamicBentNormalAO->GetRenderTargetItem().ShaderResourceTexture, DynamicIrradiance, Parameters, Scene->SkyLight);
 				}
 				else
 				{
 					TShaderMapRef<TDynamicSkyLightDiffusePS<true, false> > PixelShader(View.ShaderMap);
 
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
 					PixelShader->SetParameters(RHICmdList, View, DynamicBentNormalAO->GetRenderTargetItem().ShaderResourceTexture, DynamicIrradiance, Parameters, Scene->SkyLight);
 				}
 			}
@@ -1018,16 +1071,18 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 				{
 					TShaderMapRef<TDynamicSkyLightDiffusePS<false, true> > PixelShader(View.ShaderMap);
 
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
 					PixelShader->SetParameters(RHICmdList, View, GWhiteTexture->TextureRHI, NULL, Parameters, Scene->SkyLight);
 				}
 				else
 				{
 					TShaderMapRef<TDynamicSkyLightDiffusePS<false, false> > PixelShader(View.ShaderMap);
 
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
 					PixelShader->SetParameters(RHICmdList, View, GWhiteTexture->TextureRHI, NULL, Parameters, Scene->SkyLight);
 				}
 			}

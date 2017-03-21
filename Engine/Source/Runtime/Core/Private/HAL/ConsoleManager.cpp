@@ -2133,6 +2133,12 @@ static TAutoConsoleVariable<int32> CVarShadowMaxResolution(
 	TEXT("Max square dimensions (in texels) allowed for rendering shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarShadowMaxCSMShadowResolution(
+	TEXT("r.Shadow.MaxCSMShadowResolution"),
+	2048,
+	TEXT("Max square dimensions (in texels) allowed for rendering Cascaded Shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<float> CVarShadowCSMTransitionScale(
 	TEXT("r.Shadow.CSM.TransitionScale"),
 	1.0f,

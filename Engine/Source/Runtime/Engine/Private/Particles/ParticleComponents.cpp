@@ -59,7 +59,7 @@
 #include "Particles/Event/ParticleModuleEventReceiverBase.h"
 #include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
 #include "Particles/Lifetime/ParticleModuleLifetime.h"
-#include "Particles/Light/ParticleModuleLightBase.h"
+#include "Particles/Light/ParticleModuleLight.h"
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
 #include "Particles/Modules/Location/ParticleModulePivotOffset.h"
 #include "Particles/Orbit/ParticleModuleOrbit.h"
@@ -1613,6 +1613,7 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 	MeshMaterials.Empty();
 	DynamicParameterDataOffset = 0;
 	LightDataOffset = 0;
+	LightVolumetricScatteringIntensity = 0;
 	CameraPayloadOffset = 0;
 	ParticleSize = sizeof(FBaseParticle);
 	ReqInstanceBytes = 0;
@@ -1668,8 +1669,10 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 				{
 					DynamicParameterDataOffset = ParticleSize;
 				}
-				if (ParticleModule->IsA(UParticleModuleLightBase::StaticClass()) && (LightDataOffset == 0))
+				if (ParticleModule->IsA(UParticleModuleLight::StaticClass()) && (LightDataOffset == 0))
 				{
+					UParticleModuleLight* ParticleModuleLight = Cast<UParticleModuleLight>(ParticleModule);
+					LightVolumetricScatteringIntensity = ParticleModuleLight->VolumetricScatteringIntensity;
 					LightDataOffset = ParticleSize;
 				}
 				if (ParticleModule->IsA(UParticleModuleCameraOffset::StaticClass()) && (CameraPayloadOffset == 0))

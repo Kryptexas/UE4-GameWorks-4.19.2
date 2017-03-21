@@ -21,6 +21,9 @@ public:
 // 	UPROPERTY(EditAnywhere, Category = DataSet)
 // 	ENiagaraDataSetAccessMode AccessMode;
 	
+	//~ Begin UObject interface
+	virtual void PostLoad() override;
+	//~ End UObject Interface
 
 	//~ Begin EdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
@@ -28,5 +31,8 @@ public:
 	//~ End EdGraphNode Interface
 
 	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs)override;
+
+protected:
+	void AddConditionPin(int32 PinIndex = -1);
 };
 

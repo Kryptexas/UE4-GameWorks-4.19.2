@@ -33,7 +33,7 @@ FORCEINLINE uint32 GetTypeHash(const FNiagaraFunctionSignature& Sig)
 	{
 		Hash = HashCombine(Hash, GetTypeHash(Var));
 	}
-	Hash = HashCombine(Hash, GetTypeHash(Sig.Owner));
+	Hash = HashCombine(Hash, GetTypeHash(Sig.OwnerId));
 	return Hash;
 }
 
@@ -109,8 +109,11 @@ protected:
 	/** Array of code chunks of each different type. */
 	TArray<int32> ChunksByMode[(int32)ENiagaraCodeChunkMode::Num];
 
-	/** Map of Pins to compiled code chunks. Allows easy reuse of previously compiled pins. */
-	TMap<UEdGraphPin*, int32> PinToCodeChunks;
+	/** 
+	Map of Pins to compiled code chunks. Allows easy reuse of previously compiled pins. 
+	A stack so that we can track pin reuse within function calls but not have cached pins cross talk with subsequent calls to the same funciton.
+	*/
+	TArray<TMap<UEdGraphPin*, int32>> PinToCodeChunks;
 
 	/** The combined output of the compilation of this script. This is temporary and will be reworked soon. */
 	FNiagaraCompilationOutput CompilationOutput;
@@ -128,6 +131,7 @@ protected:
 
 	TMap<FNiagaraDataSetID, TMap<int32, FDataSetAccessInfo>> DataSetReadInfo[(int32)ENiagaraDataSetAccessMode::Num];
 	TMap<FNiagaraDataSetID, TMap<int32, FDataSetAccessInfo>> DataSetWriteInfo[(int32)ENiagaraDataSetAccessMode::Num];
+	TMap<FNiagaraDataSetID, int32> DataSetWriteConditionalInfo[(int32)ENiagaraDataSetAccessMode::Num];
 
 	FString GetDataSetAccessSymbol(FNiagaraDataSetID DataSet, int32 IndexChunk, bool bRead);
 	FORCEINLINE FNiagaraDataSetID GetInstanceDatSetID()const { return FNiagaraDataSetID(TEXT("Instance"), ENiagaraDataSetType::ParticleData); }
@@ -139,6 +143,7 @@ protected:
 
 	void RegisterFunctionCall(UNiagaraNodeFunctionCall* FunctionNode, TArray<int32>& Inputs, FNiagaraFunctionSignature& OutSignature);
 	void GenerateFunctionCall(FNiagaraFunctionSignature& FunctionSignature, TArray<int32>& Inputs, TArray<int32>& Outputs);
+	FString GetFunctionSignatureSymbol(FNiagaraFunctionSignature& Sig);
 	FString GetFunctionSignature(FNiagaraFunctionSignature& Sig);
 
 	/** Compiles an output Pin on a graph node. Caches the result for any future inputs connected to it. */
@@ -169,6 +174,9 @@ protected:
 	void EnterFunction(UNiagaraScript* InFunctionScript, FNiagaraFunctionSignature& Signature, TArray<int32>& Inputs);
 	void ExitFunction();
 	FString GetCallstack();
+
+	void EnterStatsScope(FNiagaraStatScope StatScope);
+	void ExitStatsScope();
 
 	FString GeneratedConstantString(float Constant);
 	FString GeneratedConstantString(FVector4 Constant);
@@ -207,11 +215,12 @@ public:
 	virtual void ReadDataSet(const FNiagaraDataSetID DataSet, const TArray<FNiagaraVariable>& Variable, ENiagaraDataSetAccessMode AccessMode, int32 InputChunk, TArray<int32>& Outputs)override;
 	virtual void WriteDataSet(const FNiagaraDataSetID DataSet, const TArray<FNiagaraVariable>& Variable, ENiagaraDataSetAccessMode AccessMode, const TArray<int32>& Inputs)override;
 
+	void DefineInterpolatedParametersFunction(FString &HlslOutput);
 	void DefineDataSetReadFunction(FString &HlslOutput, TArray<FNiagaraDataSetID> &ReadDataSets);
-	void DefineDataSetWriteFunction(FString &HlslOutput, TArray<FNiagaraDataSetProperties> &WriteDataSets);
+	void DefineDataSetWriteFunction(FString &HlslOutput, TArray<FNiagaraDataSetProperties> &WriteDataSets, TArray<int32>& WriteConditionVarIndices);
 	void DefineMain(FString &HLSLOutput, TArray<FNiagaraVariable> &InstanceReadVars, TArray<FNiagaraVariable> &InstanceWriteVars);
 
-	void GenerateCodeForProperties(const UScriptStruct* Struct, FString Format, FString VariableSymbol, int32& Counter, int32 DataSetIndex, FString InstanceIdxSymbol, FString &HlslOutput);
+	void GenerateCodeForProperties(const UScriptStruct* Struct, FString Format, FString VariableSymbol, int32& Counter, int32 DataSetIndex, FString InstanceIdxSymbol, bool bMatrixRoot, FString &HlslOutput);
 
 	FString CompileDataInterfaceFunction(UNiagaraDataInterface* DataInterface, FNiagaraFunctionSignature& Signature);
 
@@ -229,8 +238,11 @@ public:
 
 	virtual UNiagaraScript* GetFunctionScript() override;
 	virtual bool GetFunctionParameter(const FNiagaraVariable& Parameter, int32& OutParam)const override;
+
+	virtual bool CanReadAttributes()const override;
 	//End INiagaraCompiler Interface
 
+	static bool IsBuiltInHlslType(FNiagaraTypeDefinition Type);
 	static FString GetStructHlslTypeName(FNiagaraTypeDefinition Type);
 	static FString GetPropertyHlslTypeName(const UProperty* Property);
 	static FString BuildHLSLStructDecl(FNiagaraTypeDefinition Type);
@@ -238,9 +250,21 @@ public:
 	static bool IsHlslBuiltinVector(FNiagaraTypeDefinition Type);
 	static TArray<FName> ConditionPropertyPath(const FNiagaraTypeDefinition& Type, const TArray<FName>& InPath);
 
+
 	static FString GetSanitizedSymbolName(FString SymbolName);
+
+	bool AddStructToDefinitionSet(const FNiagaraTypeDefinition& TypeDef);
 private:
+
+	FString ComputeMatrixColumnAccess(const FString& Name);
+	FString ComputeMatrixRowAccess(const FString& Name);
+
+	FNiagaraTypeDefinition GetChildType(const FNiagaraTypeDefinition& BaseType, const FName& PropertyName);
+	FString NamePathToString(const FString& Prefix, const FNiagaraTypeDefinition& RootType, const TArray<FName>& NamePath);
+	FString GenerateAssignment(const FNiagaraTypeDefinition& SrcType, const TArray<FName>& SrcPath, const FNiagaraTypeDefinition& DestType, const TArray<FName>& DestPath);
+
 	//Generates the code for the passed chunk.
+	FString GetCode(FNiagaraCodeChunk& Chunk);
 	FString GetCode(int32 ChunkIdx);
 	//Retreives the code for this chunk being used as a source for another chunk
 	FString GetCodeAsSource(int32 ChunkIdx);
@@ -248,12 +272,26 @@ private:
 	bool ValidateTypePins(UNiagaraNode* NodeToValidate);
 	void GenerateFunctionSignature(UNiagaraScript* FunctionScript, UNiagaraGraph* FuncGraph, TArray<int32>& Inputs, FNiagaraFunctionSignature& OutSig)const;
 
+	UNiagaraGraph* CloneGraphAndPrepareForCompilation(UNiagaraScript* InScript, bool bClearErrors);
+
+	bool ShouldInterpolateParameter(const FNiagaraVariable& Parameter);
+
 	/** Map of symbol names to count of times it's been used. Used for gernerating unique symbol names. */
 	TMap<FName, uint32> SymbolCounts;
+
+	//Set of non-builtin structs we have to define in hlsl.
+	TSet<FNiagaraTypeDefinition> StructsToDefine;
 
 	// read and write data set indices
 	int32 ReadIdx;
 	int32 WriteIdx;
 
+	/** 
+	True if we're compiling the spawn section of an interpolated spawn script. 
+	This will cause us to read from interpolated parameters and write to temp outputs that are fed back into the update script as inputs.
+	*/
+	bool bInsideInterpolatedSpawnScript;
 
+	/** Stack of currently tracked stats scopes. */
+	TArray<int32> StatScopeStack;
 };

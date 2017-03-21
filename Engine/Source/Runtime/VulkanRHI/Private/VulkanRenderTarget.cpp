@@ -174,7 +174,7 @@ void FVulkanCommandListContext::FTransitionState::BeginRenderPass(FVulkanCommand
 	ensure(RTLayout.GetNumSamples() <= (1 << NUMBITS_NUM_SAMPLES_MINUS_ONE));
 	SetKeyBits(GfxKey, OFFSET_NUM_SAMPLES_MINUS_ONE, NUMBITS_NUM_SAMPLES_MINUS_ONE, RTLayout.GetNumSamples() - 1);
 
-	CmdBuffer->BeginRenderPass(RenderPass->GetLayout(), RenderPass, Framebuffer->GetHandle(), ClearValues);
+	CmdBuffer->BeginRenderPass(RenderPass->GetLayout(), RenderPass, Framebuffer, ClearValues);
 
 	{
 		const VkExtent3D& Extents = RTLayout.GetExtent3D();
@@ -472,7 +472,7 @@ void FVulkanDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntR
 	}
 
 	VkBufferMemoryBarrier Barrier;
-	ensure(StagingBuffer->GetSize() == Size);
+	ensure(StagingBuffer->GetSize() >= Size);
 		//#todo-rco: Change offset if reusing a buffer suballocation
 	VulkanRHI::SetupAndZeroBufferBarrier(Barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, StagingBuffer->GetHandle(), 0/*StagingBuffer->GetOffset()*/, Size);
 	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 1, &Barrier, 0, nullptr);
@@ -709,6 +709,10 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 	case EResourceTransitionPipeline::EComputeToGfx:
 		SourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		DestStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+		break;
+	case EResourceTransitionPipeline::EComputeToCompute:
+		SourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		DestStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		break;
 	default:
 		ensure(0);
@@ -965,57 +969,20 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 }
 
 // Need a separate struct so we can memzero/remove dependencies on reference counts
-struct FRenderTargetLayoutHashableStruct
+struct FRenderPassHashableStruct
 {
-	// Depth goes in the last slot
-	FRHITexture* Texture[MaxSimultaneousRenderTargets + 1];
-	uint32 MipIndex[MaxSimultaneousRenderTargets];
-	uint32 ArraySliceIndex[MaxSimultaneousRenderTargets];
-	ERenderTargetLoadAction LoadAction[MaxSimultaneousRenderTargets];
-	ERenderTargetStoreAction StoreAction[MaxSimultaneousRenderTargets];
-	EPixelFormat TextureFormat[MaxSimultaneousRenderTargets + 1];
+	uint8						NumAttachments;
+	uint8						NumSamples;
 
-	ERenderTargetLoadAction		DepthLoadAction;
-	ERenderTargetStoreAction	DepthStoreAction;
-	ERenderTargetLoadAction		StencilLoadAction;
-	ERenderTargetStoreAction	StencilStoreAction;
-	FExclusiveDepthStencil		DepthStencilAccess;
-
-	// Fill this outside Set() function
-	VkExtent2D					Extents;
-
-	bool bClearDepth;
-	bool bClearStencil;
-	bool bClearColor;
-	uint8 NumSamples;
-
-	void Set(const FRHISetRenderTargetsInfo& RTInfo, uint32 InNumSamples)
-	{
-		FMemory::Memzero(*this);
-		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
-		{
-			Texture[Index] = RTInfo.ColorRenderTarget[Index].Texture;
-			MipIndex[Index] = RTInfo.ColorRenderTarget[Index].MipIndex;
-			ArraySliceIndex[Index] = RTInfo.ColorRenderTarget[Index].ArraySliceIndex;
-			LoadAction[Index] = RTInfo.ColorRenderTarget[Index].LoadAction;
-			StoreAction[Index] = RTInfo.ColorRenderTarget[Index].StoreAction;
-			TextureFormat[Index] = Texture[Index] ? Texture[Index]->GetFormat() : PF_Unknown;
-		}
-
-		Texture[MaxSimultaneousRenderTargets] = RTInfo.DepthStencilRenderTarget.Texture;
-		TextureFormat[MaxSimultaneousRenderTargets] = Texture[MaxSimultaneousRenderTargets] ? Texture[MaxSimultaneousRenderTargets]->GetFormat() : PF_Unknown;
-		DepthLoadAction = RTInfo.DepthStencilRenderTarget.DepthLoadAction;
-		DepthStoreAction = RTInfo.DepthStencilRenderTarget.DepthStoreAction;
-		StencilLoadAction = RTInfo.DepthStencilRenderTarget.StencilLoadAction;
-		StencilStoreAction = RTInfo.DepthStencilRenderTarget.GetStencilStoreAction();
-		DepthStencilAccess = RTInfo.DepthStencilRenderTarget.GetDepthStencilAccess();
-
-		bClearDepth = RTInfo.bClearDepth;
-		bClearStencil = RTInfo.bClearStencil;
-		bClearColor = RTInfo.bClearColor;
-		NumSamples = InNumSamples;
-	}
+	TEnumAsByte<EPixelFormat>	Formats[MaxSimultaneousRenderTargets + 1];
+	ERenderTargetLoadAction		LoadActions[MaxSimultaneousRenderTargets];
+	ERenderTargetStoreAction	StoreActions[MaxSimultaneousRenderTargets];
+	ERenderTargetLoadAction		DepthLoad;
+	ERenderTargetStoreAction	DepthStore;
+	ERenderTargetLoadAction		StencilLoad;
+	ERenderTargetStoreAction	StencilStore;
 };
+
 
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsInfo& RTInfo)
 	: NumAttachmentDescriptions(0)
@@ -1039,32 +1006,32 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		const FRHIRenderTargetView& RTView = RTInfo.ColorRenderTarget[Index];
 		if (RTView.Texture)
 		{
-		    FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTView.Texture);
-		    check(Texture);
-    
-		    if (bSetExtent)
+			FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTView.Texture);
+			check(Texture);
+	
+			if (bSetExtent)
 			{
 				ensure(Extent.Extent3D.width == Texture->Surface.Width >> RTView.MipIndex);
 				ensure(Extent.Extent3D.height == Texture->Surface.Height >> RTView.MipIndex);
 				ensure(Extent.Extent3D.depth == Texture->Surface.Depth);
 			}
 			else
-		    {
-			    bSetExtent = true;
-			    Extent.Extent3D.width = Texture->Surface.Width >> RTView.MipIndex;
-			    Extent.Extent3D.height = Texture->Surface.Height >> RTView.MipIndex;
-			    Extent.Extent3D.depth = Texture->Surface.Depth;
-		    }
-    
+			{
+				bSetExtent = true;
+				Extent.Extent3D.width = Texture->Surface.Width >> RTView.MipIndex;
+				Extent.Extent3D.height = Texture->Surface.Height >> RTView.MipIndex;
+				Extent.Extent3D.depth = Texture->Surface.Depth;
+			}
+	
 			ensure(!NumSamples || NumSamples == RTView.Texture->GetNumSamples());
 			NumSamples = RTView.Texture->GetNumSamples();
-	    
-		    VkAttachmentDescription& CurrDesc = Desc[NumAttachmentDescriptions];
-		    
-		    //@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
-		    CurrDesc.samples = static_cast<VkSampleCountFlagBits>(NumSamples);
-		    CurrDesc.format = UEToVkFormat(RTView.Texture->GetFormat(), (Texture->Surface.UEFlags & TexCreate_SRGB) == TexCreate_SRGB);
-		    CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTView.LoadAction);
+		
+			VkAttachmentDescription& CurrDesc = Desc[NumAttachmentDescriptions];
+			
+			//@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
+			CurrDesc.samples = static_cast<VkSampleCountFlagBits>(NumSamples);
+			CurrDesc.format = UEToVkFormat(RTView.Texture->GetFormat(), (Texture->Surface.UEFlags & TexCreate_SRGB) == TexCreate_SRGB);
+			CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTView.LoadAction);
 			if (CurrDesc.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
 			{
 				if (StartClearEntry == -1)
@@ -1077,13 +1044,13 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 					NumUsedClearValues = NumAttachmentDescriptions + 1;
 				}
 			}
-		    CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTView.StoreAction);
-		    CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		    CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		    CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		    CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		    ColorReferences[NumColorAttachments].attachment = NumAttachmentDescriptions;
-		    ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_GENERAL;
+			CurrDesc.storeOp = RenderTargetStoreActionToVulkan(RTView.StoreAction);
+			CurrDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			ColorReferences[NumColorAttachments].attachment = NumAttachmentDescriptions;
+			ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_GENERAL;
 			if (CurrDesc.samples > VK_SAMPLE_COUNT_1_BIT)
 			{
 				Desc[NumAttachmentDescriptions + 1] = Desc[NumAttachmentDescriptions];
@@ -1169,9 +1136,24 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		}
 	}
 
-	FRenderTargetLayoutHashableStruct RTHash;
-	FMemory::Memzero(RTHash);
-	RTHash.Set(RTInfo, NumSamples);
-	RTHash.Extents = Extent.Extent2D;
+	// Fill up hash struct
+	FRenderPassHashableStruct RTHash;
+	{
+		FMemory::Memzero(RTHash);
+		RTHash.NumAttachments = RTInfo.NumColorRenderTargets;
+		RTHash.NumSamples = NumSamples;
+		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+		{
+			RTHash.LoadActions[Index] = RTInfo.ColorRenderTarget[Index].LoadAction;
+			RTHash.StoreActions[Index] = RTInfo.ColorRenderTarget[Index].StoreAction;
+			RTHash.Formats[Index] = RTInfo.ColorRenderTarget[Index].Texture ? RTInfo.ColorRenderTarget[Index].Texture->GetFormat() : PF_Unknown;
+		}
+
+		RTHash.Formats[MaxSimultaneousRenderTargets] = RTInfo.DepthStencilRenderTarget.Texture ? RTInfo.DepthStencilRenderTarget.Texture->GetFormat() : PF_Unknown;
+		RTHash.DepthLoad= RTInfo.DepthStencilRenderTarget.DepthLoadAction;
+		RTHash.DepthStore = RTInfo.DepthStencilRenderTarget.DepthStoreAction;
+		RTHash.StencilLoad = RTInfo.DepthStencilRenderTarget.StencilLoadAction;
+		RTHash.StencilStore = RTInfo.DepthStencilRenderTarget.GetStencilStoreAction();
+	}
 	Hash = FCrc::MemCrc32(&RTHash, sizeof(RTHash));
 }

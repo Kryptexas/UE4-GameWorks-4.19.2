@@ -12,6 +12,7 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "SceneRenderTargetParameters.h"
 #include "SceneRendering.h"
+#include "PipelineStateCache.h"
 
 /** Encapsulates the post processing down sample pixel shader. */
 template <uint32 Method>
@@ -59,7 +60,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		// filter only if needed for better performance
@@ -128,7 +129,7 @@ public:
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
 
@@ -154,13 +155,21 @@ FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverri
 template <uint32 Method>
 void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc)
 {
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
 	auto ShaderMap = Context.GetShaderMap();
 	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(ShaderMap);
 	TShaderMapRef<FPostProcessDownsamplePS<Method> > PixelShader(ShaderMap);
 
-	static FGlobalBoundShaderState BoundShaderState;
-
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 	PixelShader->SetParameters(Context, InputDesc);
 	VertexShader->SetParameters(Context);
@@ -210,11 +219,6 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);
 	}
-
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	// InflateSize increases the size of the source/dest rectangle to compensate for bilinear reads and UIBlur pass requirements.
 	int32 InflateSize;

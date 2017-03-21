@@ -11,6 +11,7 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
 #include "ScreenRendering.h"
+#include "PipelineStateCache.h"
 
 
 // CVars
@@ -558,10 +559,16 @@ IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<5>,TEXT("PostProcessCombineLUTs")
 
 static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCount, FTexture* Texture[], float Weights[], const FVolumeBounds& VolumeBounds)
 {
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
 	check(BlendCount > 0);
 
 	FShader* LocalPixelShader = 0;
-	FGlobalBoundShaderState* LocalBoundShaderState = 0;
 	const FSceneView& View = Context.View;
 
 	const auto FeatureLevel = Context.GetFeatureLevel();
@@ -572,8 +579,6 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 
 	case BlendCount: \
 	{ \
 		TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(ShaderMap); \
-		static FGlobalBoundShaderState BoundShaderState; \
-		LocalBoundShaderState = &BoundShaderState;\
 		LocalPixelShader = *PixelShader;\
 	}; \
 	break;
@@ -590,25 +595,32 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 
 		//		UE_LOG(LogRenderer, Fatal,TEXT("Invalid number of samples: %u"),BlendCount);
 	}
 #undef CASE_COUNT
-	check(LocalBoundShaderState != NULL);
 	if(UseVolumeTextureLUT(Context.View.GetShaderPlatform()))
 	{
 		TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
 		TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GScreenVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.GeometryShaderRHI = GETSAFERHISHADER_GEOMETRY(*GeometryShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(LocalPixelShader);
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
+		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, FIntVector(VolumeBounds.MaxX - VolumeBounds.MinX));
 		if(GeometryShader.IsValid())
 		{
-			GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
+			GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds.MinZ);
 		}
 	}
 	else
 	{
 		TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
 
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, *LocalBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(LocalPixelShader);
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetParameters(Context);
 	}
@@ -779,11 +791,6 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget->TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
-
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	const FVolumeBounds VolumeBounds(GLUTSize);
 

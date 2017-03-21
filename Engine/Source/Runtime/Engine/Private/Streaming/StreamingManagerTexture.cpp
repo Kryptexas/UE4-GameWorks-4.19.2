@@ -1213,6 +1213,35 @@ bool FStreamingManagerTexture::CancelStreamingRequest( FStreamingTexture& Stream
 	return StreamingTexture.Texture->CancelPendingMipChangeRequest();
 }
 
+void FStreamingManagerTexture::GetObjectReferenceBounds(const UObject* RefObject, TArray<FBox>& AssetBoxes)
+{
+	const UTexture2D* Texture2D = Cast<const UTexture2D>(RefObject);
+	if (Texture2D)
+	{
+		for (FLevelTextureManager& LevelManager : LevelTextureManagers)
+		{
+			const FTextureInstanceView* View = LevelManager.GetRawAsyncView();
+			if (View)
+			{
+				for (auto It = View->GetElementIterator(Texture2D); It; ++It)
+				{
+					AssetBoxes.Add(It.GetBounds().GetBox());
+				}
+			}
+		}
+
+		const FTextureInstanceView* View = DynamicComponentManager.GetAsyncView(false);
+		if (View)
+		{
+			for (auto It = View->GetElementIterator(Texture2D); It; ++It)
+			{
+				AssetBoxes.Add(It.GetBounds().GetBox());
+			}
+		}
+	}
+}
+
+
 #if STATS_FAST
 bool FStreamingManagerTexture::HandleDumpTextureStreamingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
@@ -1539,9 +1568,15 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 	FString InvestigateTextureName(FParse::Token(Cmd, 0));
 	if ( InvestigateTextureName.Len() )
 	{
-		// Make sure the async task is idle (also implies Update_Async is finished and that the distances are valid).
-		UpdateResourceStreaming(0, true);
+		// Finish the current update cycle. 
+		// Don't call UpdateResourceStreaming(0, true as it would remove budget limit)
+		while (ProcessingStage != 0)
+		{
+			UpdateResourceStreaming(0, false);
+		}
+		TextureInstanceAsyncWork->EnsureCompletion();
 		AsyncWork->EnsureCompletion();
+
 		FAsyncTextureStreamingData& StreamingData = AsyncWork->GetTask().StreamingData;
 		StreamingData.UpdateBoundSizes_Async(Settings);
 

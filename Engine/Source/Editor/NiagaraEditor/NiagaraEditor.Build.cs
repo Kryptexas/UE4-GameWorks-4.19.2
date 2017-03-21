@@ -10,7 +10,8 @@ public class NiagaraEditor : ModuleRules
 			"Editor/NiagaraEditor/Private",
 			"Editor/NiagaraEditor/Private/Toolkits",
 			"Editor/NiagaraEditor/Private/Widgets",
-			"Editor/NiagaraEditor/Private/Sequencer",
+			"Editor/NiagaraEditor/Private/Sequencer/NiagaraSequence",
+			"Editor/NiagaraEditor/Private/Sequencer/LevelSequence",
 			"Editor/NiagaraEditor/Private/ViewModels",
 			"Editor/NiagaraEditor/Private/TypeEditorUtilities"
 		});

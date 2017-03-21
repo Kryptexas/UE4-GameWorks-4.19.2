@@ -67,7 +67,8 @@ public class Engine : ModuleRules
 				"RenderCore",
 				"RHI",
 				"ShaderCore",
-				"AssetRegistry", // Here until FAssetData is moved to engine
+                "UtilityShaders",
+                "AssetRegistry", // Here until FAssetData is moved to engine
 				"EngineMessages",
 				"EngineSettings",
 				"SynthBenchmark",

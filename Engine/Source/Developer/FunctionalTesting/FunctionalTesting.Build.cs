@@ -11,6 +11,7 @@ public class FunctionalTesting : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+                "ShaderCore",
 				"Slate",
                 "MessageLog",
                 "AIModule",

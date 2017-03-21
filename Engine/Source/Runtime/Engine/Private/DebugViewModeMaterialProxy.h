@@ -104,11 +104,12 @@ public:
 	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override;
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override;
 
-	virtual int32 GetMaterialDomain() const override;
+	virtual EMaterialDomain GetMaterialDomain() const override;
 	virtual bool IsTwoSided() const  override;
 	virtual bool IsDitheredLODTransition() const  override;
 	virtual bool IsLightFunction() const override;
 	virtual bool IsDeferredDecal() const override;
+	virtual bool IsVolumetricPrimitive() const override { return false; }
 	virtual bool IsSpecialEngineMaterial() const override;
 	virtual bool IsWireframe() const override;
 	virtual bool IsMasked() const override;

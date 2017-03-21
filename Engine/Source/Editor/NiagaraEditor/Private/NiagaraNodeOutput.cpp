@@ -45,7 +45,11 @@ void UNiagaraNodeOutput::AllocateDefaultPins()
 
 	for (const FNiagaraVariable& Output : Outputs)
 	{
-		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName().ToString());
+		UEdGraphPin* Pin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName().ToString());
+		if (Script->Usage == ENiagaraScriptUsage::UpdateScript)
+		{
+			Pin->bDefaultValueIsIgnored = true;
+		}
 	}
 }
 
@@ -62,6 +66,29 @@ FLinearColor UNiagaraNodeOutput::GetNodeTitleColor() const
 void UNiagaraNodeOutput::NotifyOutputVariablesChanged()
 {
 	ReallocatePins();
+}
+
+int32 UNiagaraNodeOutput::CompileInputPin(INiagaraCompiler* Compiler, UEdGraphPin* Pin)
+{
+	const UNiagaraScript* Script = GetTypedOuter<UNiagaraScript>();
+	check(Script);
+
+	// If we are an update script, automatically fill in any unwired values with the previous frame's value...
+	if (Script->Usage == ENiagaraScriptUsage::UpdateScript && Pin->LinkedTo.Num() == 0)
+	{
+		FNiagaraVariable OutputVariable;
+		for (const FNiagaraVariable& Output : Outputs)
+		{
+			if (Output.GetName().ToString() == Pin->GetName())
+			{
+				OutputVariable = Output;
+				break;
+			}
+		}
+		return Compiler->GetAttribute(OutputVariable);
+	}
+
+	return Compiler->CompilePin(Pin);
 }
 
 void UNiagaraNodeOutput::Compile(class INiagaraCompiler* Compiler, TArray<int32>& OutputExpressions)

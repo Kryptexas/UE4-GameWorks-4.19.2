@@ -62,10 +62,6 @@ public:
 private:
 	// otherwise this is a down sampling pass which takes two MRT inputs from the setup pass before
 	bool IsInitialPass() const;
-
-	// @return VertexShader
-	template <uint32 bInitialSetup>
-	FShader* SetShaderSetupTempl(const FRenderingCompositePassContext& Context);
 };
 
 
@@ -91,7 +87,7 @@ private:
 	void ProcessPS(FRenderingCompositePassContext& Context, const FSceneRenderTargetItem* DestRenderTarget, const FIntRect& ViewRect, const FIntPoint& TexSize, int32 ShaderQuality, bool bDoUpsample);
 
 	template <uint32 bAOSetupAsInput, uint32 bDoUpsample, uint32 SampleSetQuality>
-	FShader* SetShaderTemplPS(const FRenderingCompositePassContext& Context);
+	FShader* SetShaderTemplPS(const FRenderingCompositePassContext& Context, FGraphicsPipelineStateInitializer& GraphicsPSOInit);
 
 	template <uint32 bAOSetupAsInput, uint32 bDoUpsample, uint32 SampleSetQuality, typename TRHICmdList>
 	void DispatchCS(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const FIntPoint& TexSize, FUnorderedAccessViewRHIParamRef OutTextureUAV);

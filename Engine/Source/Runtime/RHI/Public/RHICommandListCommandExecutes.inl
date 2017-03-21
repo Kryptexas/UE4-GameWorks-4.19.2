@@ -415,10 +415,10 @@ void FRHICommandEnableDepthBoundsTest::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(RHIEnableDepthBoundsTest)(bEnable, MinDepth, MaxDepth);
 }
 
-void FRHICommandClearUAV::Execute(FRHICommandListBase& CmdList)
+void FRHICommandClearTinyUAV::Execute(FRHICommandListBase& CmdList)
 {
-	RHISTAT(ClearUAV);
-	INTERNAL_DECORATOR(RHIClearUAV)(UnorderedAccessViewRHI, Values);
+	RHISTAT(ClearTinyUAV);
+	INTERNAL_DECORATOR(RHIClearTinyUAV)(UnorderedAccessViewRHI, Values);
 }
 
 void FRHICommandCopyToResolveTarget::Execute(FRHICommandListBase& CmdList)

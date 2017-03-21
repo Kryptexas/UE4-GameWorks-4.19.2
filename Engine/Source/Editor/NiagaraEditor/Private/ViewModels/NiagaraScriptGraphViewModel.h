@@ -86,7 +86,7 @@ private:
 private:
 
 	/** The script being view and edited by this view model. */
-	UNiagaraScript* Script;
+	TWeakObjectPtr<UNiagaraScript> Script;
 
 	/** The display name for the script graph. */
 	FText DisplayName;

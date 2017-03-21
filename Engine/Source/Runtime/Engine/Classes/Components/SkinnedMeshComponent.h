@@ -443,6 +443,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetForcedLOD(int32 InNewForcedLOD);
 
+	UFUNCTION(BlueprintCallable, Category="Lighting")
+	void SetCastCapsuleDirectShadow(bool bNewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Lighting")
+	void SetCastCapsuleIndirectShadow(bool bNewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Lighting")
+	void SetCapsuleIndirectShadowMinVisibility(float NewValue);
+
 	/**
 	*  Returns the number of bones in the skeleton.
 	*/

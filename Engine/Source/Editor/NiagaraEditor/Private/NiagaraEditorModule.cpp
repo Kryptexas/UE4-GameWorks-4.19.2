@@ -5,6 +5,7 @@
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
 #include "Misc/ConfigCacheIni.h"
+#include "ISequencerModule.h"
 
 #include "AssetTypeActions/AssetTypeActions_NiagaraEffect.h"
 #include "AssetTypeActions/AssetTypeActions_NiagaraEmitter.h"
@@ -19,19 +20,28 @@
 #include "SGraphPinVector2D.h"
 #include "SGraphPinObject.h"
 #include "SGraphPinColor.h"
+#include "SGraphPinBool.h"
 #include "SNiagaraGraphPinNumeric.h"
 #include "SNiagaraGraphPinAdd.h"
 #include "NiagaraNodeConvert.h"
 #include "EdGraphSchema_Niagara.h"
-#include "NiagaraFloatTypeEditorUtilities.h"
-#include "NiagaraIntegerTypeEditorUtilities.h"
-#include "NiagaraBoolTypeEditorUtilities.h"
-#include "NiagaraFloatTypeEditorUtilities.h"
-#include "NiagaraVectorTypeEditorUtilities.h"
-#include "NiagaraColorTypeEditorUtilities.h"
+#include "TypeEditorUtilities/NiagaraFloatTypeEditorUtilities.h"
+#include "TypeEditorUtilities/NiagaraIntegerTypeEditorUtilities.h"
+#include "TypeEditorUtilities/NiagaraBoolTypeEditorUtilities.h"
+#include "TypeEditorUtilities/NiagaraFloatTypeEditorUtilities.h"
+#include "TypeEditorUtilities/NiagaraVectorTypeEditorUtilities.h"
+#include "TypeEditorUtilities/NiagaraColorTypeEditorUtilities.h"
+#include "TypeEditorUtilities/NiagaraDataInterfaceCurveTypeEditorUtilities.h"
 #include "NiagaraEditorStyle.h"
 #include "NiagaraEditorCommands.h"
+#include "NiagaraEmitterTrackEditor.h"
 #include "PropertyEditorModule.h"
+#include "NiagaraSettings.h"
+#include "NiagaraDataInterface.h"
+#include "NiagaraScriptViewModel.h"
+#include "NiagaraEffectViewModel.h"
+#include "NiagaraEmitterViewModel.h"
+
 
 #include "Customizations/NiagaraComponentDetails.h"
 
@@ -114,6 +124,8 @@ void FNiagaraEditorModule::StartupModule()
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_NiagaraScript()));
 	}
 
+	UNiagaraSettings::OnSettingsChanged().AddRaw(this, &FNiagaraEditorModule::OnNiagaraSettingsChangedEvent);
+
 	// register details customization
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyModule.RegisterCustomClassLayout("NiagaraComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FNiagaraComponentDetails::MakeInstance));
@@ -141,6 +153,9 @@ void FNiagaraEditorModule::StartupModule()
 	GraphPanelPinFactory->RegisterTypePin(FNiagaraTypeDefinition::GetColorStruct(), FNiagaraScriptGraphPanelPinFactory::FCreateGraphPin::CreateLambda(
 		[](UEdGraphPin* GraphPin) -> TSharedRef<SGraphPin> { return SNew(SGraphPinColor, GraphPin); }));
 
+	GraphPanelPinFactory->RegisterTypePin(FNiagaraTypeDefinition::GetBoolStruct(), FNiagaraScriptGraphPanelPinFactory::FCreateGraphPin::CreateLambda(
+		[](UEdGraphPin* GraphPin) -> TSharedRef<SGraphPin> { return SNew(SGraphPinBool, GraphPin); }));
+
 	GraphPanelPinFactory->RegisterTypePin(FNiagaraTypeDefinition::GetGenericNumericStruct(), FNiagaraScriptGraphPanelPinFactory::FCreateGraphPin::CreateLambda(
 		[](UEdGraphPin* GraphPin) -> TSharedRef<SGraphPin> { return SNew(SNiagaraGraphPinNumeric, GraphPin); }));
 
@@ -156,9 +171,17 @@ void FNiagaraEditorModule::StartupModule()
 	RegisterTypeUtilities(FNiagaraTypeDefinition::GetVec4Def(), MakeShareable(new FNiagaraEditorVector4TypeUtilities()));
 	RegisterTypeUtilities(FNiagaraTypeDefinition::GetColorDef(), MakeShareable(new FNiagaraEditorColorTypeUtilities()));
 
+	RegisterTypeUtilities(FNiagaraTypeDefinition(UNiagaraDataInterfaceCurve::StaticClass()), MakeShared<FNiagaraDataInterfaceCurveTypeEditorUtilities>());
+	RegisterTypeUtilities(FNiagaraTypeDefinition(UNiagaraDataInterfaceVectorCurve::StaticClass()), MakeShared<FNiagaraDataInterfaceVectorCurveTypeEditorUtilities>());
+	RegisterTypeUtilities(FNiagaraTypeDefinition(UNiagaraDataInterfaceColorCurve::StaticClass()), MakeShared<FNiagaraDataInterfaceColorCurveTypeEditorUtilities>());
+
 	FEdGraphUtilities::RegisterVisualPinFactory(GraphPanelPinFactory);
 
 	FNiagaraOpInfo::Init();
+
+	// Register sequencer track editor
+	ISequencerModule &SequencerModule = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer");
+	CreateEmitterTrackEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FNiagaraEmitterTrackEditor::CreateTrackEditor));
 }
 
 
@@ -176,6 +199,9 @@ void FNiagaraEditorModule::ShutdownModule()
 		}
 	}
 	CreatedAssetTypeActions.Empty();
+
+	UNiagaraSettings::OnSettingsChanged().RemoveAll(this);
+
 	
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
@@ -184,8 +210,26 @@ void FNiagaraEditorModule::ShutdownModule()
 	}
 
 	FNiagaraEditorStyle::Shutdown();
+
+	ISequencerModule* SequencerModule = FModuleManager::GetModulePtr<ISequencerModule>("Sequencer");
+	if (SequencerModule != nullptr)
+	{
+		SequencerModule->UnRegisterTrackEditor(CreateEmitterTrackEditorHandle);
+	}
+
+	// Verify that we've cleaned up all the view models in the world.
+	FNiagaraScriptViewModel::CleanAll();
+	FNiagaraEffectViewModel::CleanAll();
+	FNiagaraEmitterViewModel::CleanAll();
 }
 
+void FNiagaraEditorModule::OnNiagaraSettingsChangedEvent(const FString& PropertyName, const UNiagaraSettings* Settings)
+{
+	if (PropertyName == "AdditionalParameterTypes" || PropertyName == "AdditionalPayloadTypes")
+	{
+		FNiagaraTypeDefinition::RecreateUserDefinedTypeRegistry();
+	}
+}
 
 void FNiagaraEditorModule::RegisterTypeUtilities(FNiagaraTypeDefinition Type, TSharedRef<INiagaraEditorTypeUtilities> EditorUtilities)
 {

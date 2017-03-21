@@ -24,6 +24,10 @@ public:
 	/** Gets a multicast delegate which is called whenever the parameter bindins on the effect script change. */
 	FOnParameterBindingsChanged& OnParameterBindingsChanged();
 
+	/** Called whenever a parameter value on the effect changes. */
+	void EffectParameterValueChanged(FGuid ParameterId);
+
+
 private:
 	/** Synchronizes the effect parameters, and parameter bindings with the state of the graph. */
 	void SynchronizeParametersAndBindingsWithGraph();

@@ -46,12 +46,12 @@ FText FNiagaraScriptGraphViewModel::GetDisplayName() const
 
 UNiagaraScript* FNiagaraScriptGraphViewModel::GetScript()
 {
-	return Script;
+	return Script.Get();
 }
 
 UNiagaraGraph* FNiagaraScriptGraphViewModel::GetGraph() const
 {
-	if (Script && Script->Source)
+	if (Script.IsValid() && Script->Source)
 	{
 		UNiagaraScriptSource* ScriptSource = Cast<UNiagaraScriptSource>(Script->Source);
 		if (ScriptSource != nullptr)
@@ -281,11 +281,18 @@ void FixUpPastedInputNodes(UEdGraph* Graph, TSet<UEdGraphNode*> PastedNodes)
 	TArray<UNiagaraNodeInput*> CurrentInputs;
 	Graph->GetNodesOfClass<UNiagaraNodeInput>(CurrentInputs);
 	TSet<FNiagaraVariable> ExistingInputs;
+	TMap<FNiagaraVariable, UNiagaraNodeInput*> ExistingNodes;
+	int32 HighestSortOrder = -1; // Set to -1 initially, so that in the event of no nodes, we still get zero.
 	for (UNiagaraNodeInput* CurrentInput : CurrentInputs)
 	{
 		if (PastedNodes.Contains(CurrentInput) == false && CurrentInput->Usage == ENiagaraInputNodeUsage::Parameter)
 		{
 			ExistingInputs.Add(CurrentInput->Input);
+			ExistingNodes.Add(CurrentInput->Input) = CurrentInput;
+			if (CurrentInput->CallSortPriority > HighestSortOrder)
+			{
+				HighestSortOrder = CurrentInput->CallSortPriority;
+			}
 		}
 	}
 
@@ -314,11 +321,17 @@ void FixUpPastedInputNodes(UEdGraph* Graph, TSet<UEdGraphNode*> PastedNodes)
 		// Try to find an existing input which matches the pasted input by both name and type so that the pasted nodes
 		// can be assigned the same id and value, to facilitate pasting multiple times from the same source graph.
 		FNiagaraVariable* MatchingInputByNameAndType = nullptr;
+		UNiagaraNodeInput* MatchingNode = nullptr;
 		for (FNiagaraVariable& ExistingInput : ExistingInputs)
 		{
 			if (PastedInput.GetName() == ExistingInput.GetName() && PastedInput.GetType() == ExistingInput.GetType())
 			{
 				MatchingInputByNameAndType = &ExistingInput;
+				UNiagaraNodeInput** FoundNode = ExistingNodes.Find(ExistingInput);
+				if (FoundNode != nullptr)
+				{
+					MatchingNode = *FoundNode;
+				}
 				break;
 			}
 		}
@@ -328,6 +341,8 @@ void FixUpPastedInputNodes(UEdGraph* Graph, TSet<UEdGraphNode*> PastedNodes)
 			// Update the id and value on the matching pasted nodes.
 			for (UNiagaraNodeInput* PastedNodeForInput : PastedNodesForInput)
 			{
+				PastedNodeForInput->CallSortPriority = MatchingNode->CallSortPriority;
+				PastedNodeForInput->ExposureOptions = MatchingNode->ExposureOptions;
 				PastedNodeForInput->Input.SetId(MatchingInputByNameAndType->GetId());
 				PastedNodeForInput->Input.AllocateData();
 				PastedNodeForInput->Input.SetData(MatchingInputByNameAndType->GetData());
@@ -350,11 +365,13 @@ void FixUpPastedInputNodes(UEdGraph* Graph, TSet<UEdGraphNode*> PastedNodes)
 				}
 			}
 
-			// Assign the pasted inputs the same new id.
+			// Assign the pasted inputs the same new id and add them to the end of the parameters list.
 			FGuid NewGuid = FGuid::NewGuid();
+			int32 NewSortOrder = ++HighestSortOrder;
 			for (UNiagaraNodeInput* PastedNodeForInput : PastedNodesForInput)
 			{
 				PastedNodeForInput->Input.SetId(NewGuid);
+				PastedNodeForInput->CallSortPriority = NewSortOrder;
 			}
 		}
 	}
@@ -394,7 +411,7 @@ void FNiagaraScriptGraphViewModel::PasteNodes()
 		}
 
 		Selection->SetSelectedObjects(PastedObjects);
-		Graph->NotifyGraphChanged();
+		CastChecked<UNiagaraGraph>(Graph)->NotifyGraphNeedsRecompile();
 	}
 }
 

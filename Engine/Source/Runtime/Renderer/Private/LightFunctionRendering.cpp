@@ -21,6 +21,7 @@
 #include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
 #include "LightRendering.h"
+#include "PipelineStateCache.h"
 
 /**
  * A vertex shader for projecting a light function onto the scene.
@@ -292,7 +293,12 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 		FLightFunctionVS* VertexShader = MaterialShaderMap->GetShader<FLightFunctionVS>();
 		FLightFunctionPS* PixelShader = MaterialShaderMap->GetShader<FLightFunctionPS>();
 
-		FLocalBoundShaderState LightFunctionBoundShaderState = RHICmdList.BuildLocalBoundShaderState(GetVertexDeclarationFVector4(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader->GetVertexShader();
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader->GetPixelShader();
 
 		FSphere LightBounds = LightSceneInfo->Proxy->GetBoundingSphere();
 
@@ -317,7 +323,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 					if( !bLightAttenuationCleared )
 					{
 						LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
-						RHICmdList.ClearColorTexture(FSceneRenderTargets::Get(RHICmdList).GetLightAttenuationSurface(), FLinearColor::White);
+						FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList, true);
 					}
 				}
 				else
@@ -326,18 +332,19 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 					// Set the states to modulate the light function with the render target.
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false,CF_Always>::GetRHI();
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 					if( bLightAttenuationCleared )
 					{
 						if (bRenderingPreviewShadowsIndicator)
 						{
-							RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA,BO_Max,BF_One,BF_One,BO_Max,BF_One,BF_One>::GetRHI());
+							GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA,BO_Max,BF_One,BF_One,BO_Max,BF_One,BF_One>::GetRHI();
 						}
 						else
 						{
 							FProjectedShadowInfo::SetBlendStateForProjection(
-								RHICmdList, 
+								GraphicsPSOInit,
 								LightSceneInfo->GetDynamicShadowMapChannel(), 
 								false,
 								false,
@@ -347,26 +354,26 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 					}
 					else
 					{
-						RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
+						GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA>::GetRHI();
 					}
 
 					if (((FVector)View.ViewMatrices.GetViewOrigin() - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f))
 					{
 						// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light function geometry
-						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
+						GraphicsPSOInit.RasterizerState = View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI();
 					}
 					else
 					{
 						// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light function geometry
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
-						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
+						GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI();
+						GraphicsPSOInit.RasterizerState = View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
 					}
 
 					// Set the light's scissor rectangle.
 					LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
 
 					// Render a bounding light sphere.
-					RHICmdList.SetLocalBoundShaderState(LightFunctionBoundShaderState);
+					RHICmdList.SetLocalGraphicsPipelineState(RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit));
 					VertexShader->SetParameters(RHICmdList, View, LightSceneInfo);
 					PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, bRenderingPreviewShadowsIndicator, FadeAlpha);
 

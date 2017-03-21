@@ -3,7 +3,8 @@
 #include "NiagaraScriptParameterViewModel.h"
 #include "NiagaraEditorUtilities.h"
 #include "NiagaraTypes.h"
-
+#include "NiagaraNodeInput.h"
+#include "NiagaraGraph.h"
 #include "ScopedTransaction.h"
 #include "Editor.h"
 
@@ -29,6 +30,8 @@ FNiagaraScriptParameterViewModel::FNiagaraScriptParameterViewModel(FNiagaraVaria
 	, GraphVariableOwner(InGraphVariableOwner)
 	, CompiledVariable(nullptr)
 	, CompiledVariableOwner(nullptr)
+	, ValueVariable(nullptr)
+	, ValueVariableOwner(nullptr)
 	, ValueObject(InValueObject)
 {
 	DefaultValueType = INiagaraParameterViewModel::EDefaultValueType::Object;
@@ -52,7 +55,8 @@ FText FNiagaraScriptParameterViewModel::GetTypeDisplayName() const
 void FNiagaraScriptParameterViewModel::NameTextComitted(const FText& Name, ETextCommit::Type CommitInfo)
 {
 	FName NewName = *Name.ToString();
-	if (GraphVariable.GetName() != NewName)
+
+	if (!GraphVariable.GetName().IsEqual(NewName, ENameCase::CaseSensitive))
 	{
 		FScopedTransaction ScopedTransaction(LOCTEXT("EditInputName", "Edit input name"));
 		GraphVariableOwner.Modify();
@@ -61,9 +65,43 @@ void FNiagaraScriptParameterViewModel::NameTextComitted(const FText& Name, EText
 	}
 }
 
+bool FNiagaraScriptParameterViewModel::VerifyNodeNameTextChanged(const FText& NewText, FText& OutErrorMessage)
+{
+	return UNiagaraNodeInput::VerifyNodeRenameTextCommit(NewText, Cast<UNiagaraNode>(&GraphVariableOwner), OutErrorMessage);
+}
+
 TSharedPtr<FNiagaraTypeDefinition> FNiagaraScriptParameterViewModel::GetType() const
 {
 	return MakeShareable(new FNiagaraTypeDefinition(GraphVariable.GetType()));
+}
+
+bool FNiagaraScriptParameterViewModel::CanChangeSortOrder() const
+{
+	return Cast<UNiagaraNodeInput>(&GraphVariableOwner) != nullptr && FNiagaraParameterViewModel::CanChangeSortOrder();
+}
+
+int32 FNiagaraScriptParameterViewModel::GetSortOrder() const
+{
+	UNiagaraNodeInput* InputNode = Cast<UNiagaraNodeInput>(&GraphVariableOwner);
+	if (InputNode != nullptr)
+	{
+		return InputNode->CallSortPriority;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void FNiagaraScriptParameterViewModel::SetSortOrder(int32 SortOrder)
+{
+	UNiagaraNodeInput* InputNode = Cast<UNiagaraNodeInput>(&GraphVariableOwner);
+	if (InputNode != nullptr && SortOrder != InputNode->CallSortPriority)
+	{
+		FScopedTransaction ScopedTransaction(LOCTEXT("EditInputSortPriority", "Edit input sort priority"));
+		InputNode->Modify();
+		InputNode->CallSortPriority = SortOrder;
+	}
 }
 
 void FNiagaraScriptParameterViewModel::SelectedTypeChanged(TSharedPtr<FNiagaraTypeDefinition> Item, ESelectInfo::Type SelectionType)
@@ -101,7 +139,7 @@ void FNiagaraScriptParameterViewModel::NotifyDefaultValuePropertyChanged(const F
 		ValueVariableOwner->Modify();
 		ValueVariable->SetData(ParameterValue->GetStructMemory());
 	}
-	OnDefaultValueChangedDelegate.Broadcast(&GraphVariable);
+	OnDefaultValueChangedDelegate.Broadcast();
 }
 
 void FNiagaraScriptParameterViewModel::NotifyBeginDefaultValueChange()
@@ -132,14 +170,17 @@ bool DataMatches(const uint8* DataA, const uint8* DataB, int32 Length)
 
 void FNiagaraScriptParameterViewModel::NotifyDefaultValueChanged()
 {
-	if (ValueVariable->IsDataAllocated() == false ||
-		DataMatches(ValueVariable->GetData(), ParameterValue->GetStructMemory(), ValueVariable->GetSizeInBytes()) == false)
+	if (ValueVariable != nullptr)
 	{
-		FScopedTransaction ScopedTransaction(LOCTEXT("EditParameterValue", "Edit parameter value"));
-		ValueVariableOwner->Modify();
-		ValueVariable->SetData(ParameterValue->GetStructMemory());
-		OnDefaultValueChangedDelegate.Broadcast(&GraphVariable);
+		if (ValueVariable->IsDataAllocated() == false ||
+			DataMatches(ValueVariable->GetData(), ParameterValue->GetStructMemory(), ValueVariable->GetSizeInBytes()) == false)
+		{
+			FScopedTransaction ScopedTransaction(LOCTEXT("EditParameterValue", "Edit parameter value"));
+			ValueVariableOwner->Modify();
+			ValueVariable->SetData(ParameterValue->GetStructMemory());
+		}
 	}
+	OnDefaultValueChangedDelegate.Broadcast();
 }
 
 FNiagaraScriptParameterViewModel::FOnNameChanged& FNiagaraScriptParameterViewModel::OnNameChanged()
@@ -166,7 +207,7 @@ void FNiagaraScriptParameterViewModel::RefreshParameterValue()
 	ParameterValue = MakeShareable(new FStructOnScope(GraphVariable.GetType().GetStruct()));
 	ValueVariable->AllocateData();
 	ValueVariable->CopyTo(ParameterValue->GetStructMemory());
-	OnDefaultValueChangedDelegate.Broadcast(&GraphVariable);
+	OnDefaultValueChangedDelegate.Broadcast();
 }
 
 #undef LOCTEXT_NAMESPACE // "ScriptParameterViewModel"

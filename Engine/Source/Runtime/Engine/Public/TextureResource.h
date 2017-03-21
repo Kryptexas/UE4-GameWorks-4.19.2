@@ -669,6 +669,8 @@ public:
 	virtual void ClampSize(int32 SizeX,int32 SizeY) {}
 
 	// FRenderTarget interface.
+	virtual uint32 GetSizeX() const = 0;
+	virtual uint32 GetSizeY() const = 0;
 	virtual FIntPoint GetSizeXY() const = 0;
 
 	/** 
@@ -736,6 +738,19 @@ public:
 	// FDeferredClearResource interface
 
 	// FRenderTarget interface.
+	/** 
+	 * @return width of the target
+	 */
+	virtual uint32 GetSizeX() const override;
+
+	/** 
+	 * @return height of the target
+	 */
+	virtual uint32 GetSizeY() const override;
+
+	/**
+	 * @return dimensions of the target
+	 */
 	virtual FIntPoint GetSizeXY() const override;
 
 	/** 
@@ -810,6 +825,16 @@ public:
 	virtual void ReleaseDynamicRHI() override;
 
 	// FRenderTarget interface.
+
+	/** 
+	 * @return width of the target
+	 */
+	virtual uint32 GetSizeX() const override;
+
+	/** 
+	 * @return height of the target
+	 */
+	virtual uint32 GetSizeY() const override;
 
 	/**
 	 * @return dimensions of the target

@@ -12,6 +12,7 @@
 #include "PostProcess/RenderingCompositionGraph.h"
 
 class UTexture;
+class FFinalPostProcessSettings;
 
 bool UseVolumeTextureLUT(EShaderPlatform Platform);
 

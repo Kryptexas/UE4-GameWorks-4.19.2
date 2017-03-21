@@ -6,6 +6,7 @@
 #include "IGearVRPlugin.h"
 #include "RHIStaticStates.h"
 #include "HeadMountedDisplayCommon.h"
+#include "ClearQuad.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
 
@@ -79,7 +80,7 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 	EPixelFormat InFormat,
 	uint32 InFlags,
 	bool bBuffered,
-    bool bInCubemap
+	bool bInCubemap
 	)
 {
 	GLenum Target = (InNumSamples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
@@ -91,14 +92,14 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 		InGLRHI, 0, Target, Attachment, SizeX, SizeY, 0, InNumMips, InNumSamples, InNumSamplesTileMem, 1, InFormat, bInCubemap, bAllocatedStorage, InFlags, TextureRange);
 
 	const int32 NumLevels = (InNumMips == 0) ? VRAPI_TEXTURE_SWAPCHAIN_FULL_MIP_CHAIN : int(InNumMips);
-    if (bInCubemap)
-    {
-        NewTextureSet->ColorTextureSet = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_CUBE, VRAPI_TEXTURE_FORMAT_8888, SizeX, SizeY, 0, bBuffered); // NumLevels = 0 to prevent allocation of swapchain while using vrapi_SetTextureSwapChainHandle() method
-    }
-    else
-    {
-        NewTextureSet->ColorTextureSet = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D, VRAPI_TEXTURE_FORMAT_8888, SizeX, SizeY, NumLevels, bBuffered);
-    }
+	if (bInCubemap)
+	{
+		NewTextureSet->ColorTextureSet = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_CUBE, VRAPI_TEXTURE_FORMAT_8888, SizeX, SizeY, 0, bBuffered); // NumLevels = 0 to prevent allocation of swapchain while using vrapi_SetTextureSwapChainHandle() method
+	}
+	else
+	{
+		NewTextureSet->ColorTextureSet = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D, VRAPI_TEXTURE_FORMAT_8888, SizeX, SizeY, NumLevels, bBuffered);
+	}
 	if (!NewTextureSet->ColorTextureSet)
 	{
 		// hmmm... can't allocate a texture set for some reasons.
@@ -284,8 +285,8 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 		case FHMDLayerDesc::Quad:
 		case FHMDLayerDesc::Cylinder:
 		case FHMDLayerDesc::Cubemap:
-            bool IsCubemap = (LayerDesc.GetType() == FHMDLayerDesc::Cubemap);
-                
+			bool IsCubemap = (LayerDesc.GetType() == FHMDLayerDesc::Cubemap);
+				
 			if (Texture)
 			{
 				bool JustAllocated = false;
@@ -642,7 +643,7 @@ FTexture2DSetProxyPtr FCustomPresent::CreateTextureSet(uint32 InSizeX, uint32 In
 		EPixelFormat(InFormat),
 		TexCreate_RenderTargetable | TexCreate_ShaderResource,
 		bBuffered,
-        bInCubemap);
+		bInCubemap);
 
 	if (texref.IsValid())
 	{
@@ -987,7 +988,7 @@ void FCustomPresent::BeginRendering(FHMDViewExtension& InRenderContext, const FT
 
 void FCustomPresent::FinishRendering()
 {
- 	check(IsInRenderingThread());
+	check(IsInRenderingThread());
 
 	if (!IsSubmitFrameLocked())
 	{
@@ -1136,9 +1137,9 @@ void FCustomPresent::EnterVRMode_RenderThread()
 		LoadingIconParms = vrapi_DefaultFrameParms(&JavaVM, VRAPI_FRAME_INIT_LOADING_ICON, vrapi_GetTimeInSeconds(), nullptr);
 		LoadingIconParms.MinimumVsyncs = MinimumVsyncs;
 
- 		DefaultFrameParms = vrapi_DefaultFrameParms(&JavaVM, VRAPI_FRAME_INIT_DEFAULT, vrapi_GetTimeInSeconds(), nullptr);
- 		DefaultFrameParms.MinimumVsyncs = MinimumVsyncs;
- 		DefaultFrameParms.ExtraLatencyMode = (bExtraLatencyMode) ? VRAPI_EXTRA_LATENCY_MODE_ON : VRAPI_EXTRA_LATENCY_MODE_OFF;
+		DefaultFrameParms = vrapi_DefaultFrameParms(&JavaVM, VRAPI_FRAME_INIT_DEFAULT, vrapi_GetTimeInSeconds(), nullptr);
+		DefaultFrameParms.MinimumVsyncs = MinimumVsyncs;
+		DefaultFrameParms.ExtraLatencyMode = (bExtraLatencyMode) ? VRAPI_EXTRA_LATENCY_MODE_ON : VRAPI_EXTRA_LATENCY_MODE_OFF;
 
 		ovrModeParms parms = vrapi_DefaultModeParms(&JavaVM);
 		// Reset may cause weird issues
@@ -1299,21 +1300,24 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
 	//RHICmdList.Clear(true, FLinearColor(1.0f, 0.0f, 0.0f, 1.0f), false, 0.0f, false, 0, FIntRect()); // @DBG
-	RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
+	DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
 	RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
+
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 	if (bAlphaPremultiply)
 	{
 		// for quads, write RGBA, RGB = src.rgb * src.a + dst.rgb * 0, A = src.a + dst.a * 0
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 	}
 	else
 	{
 		// for mirror window
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 	}
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 	const auto FeatureLevel = GMaxRHIFeatureLevel;
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
@@ -1321,8 +1325,12 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
 	TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
 
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), SrcTextureRHI);
 

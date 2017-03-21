@@ -15,6 +15,9 @@
 #include "Logging/MessageLog.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ImageUtils.h"
+#include "OneColorShader.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetRenderingLibrary
@@ -40,7 +43,7 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 			[RenderTargetResource, ClearColor](FRHICommandList& RHICmdList)
 			{
 				SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
-				RHICmdList.ClearColorTexture(RenderTargetResource->GetRenderTargetTexture(), ClearColor);
+				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, ClearColor);
 			});
 	}
 }

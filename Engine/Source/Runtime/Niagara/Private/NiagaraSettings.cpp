@@ -7,6 +7,21 @@ UNiagaraSettings::UNiagaraSettings(const FObjectInitializer& ObjectInitlaizer)
 {
 
 }
+#if WITH_EDITOR
+void UNiagaraSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		SettingsChangedDelegate.Broadcast(PropertyChangedEvent.Property->GetName(), this);
+	}
+}
 
+UNiagaraSettings::FOnNiagaraSettingsChanged& UNiagaraSettings::OnSettingsChanged()
+{
+	return SettingsChangedDelegate;
+}
+
+UNiagaraSettings::FOnNiagaraSettingsChanged UNiagaraSettings::SettingsChangedDelegate;
+#endif
 
 

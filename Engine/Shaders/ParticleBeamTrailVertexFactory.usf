@@ -246,3 +246,8 @@ uint VertexFactoryGetEyeIndex(uint InstanceId)
 	return InstanceId & 1;
 }
 #endif
+
+float4 VertexFactoryGetTranslatedPrimitiveVolumeBounds(FVertexFactoryInterpolantsVSToPS Interpolants)
+{
+	return 0;
+}

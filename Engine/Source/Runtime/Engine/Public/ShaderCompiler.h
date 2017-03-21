@@ -113,6 +113,23 @@ public:
 	virtual const FShaderPipelineCompileJob* GetShaderPipelineJob() const override { return this; }
 };
 
+class FGlobalShaderTypeCompiler
+{
+public:
+	/**
+	* Enqueues compilation of a shader of this type.
+	*/
+	ENGINE_API static class FShaderCompileJob* BeginCompileShader(FGlobalShaderType* ShaderType, EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, TArray<FShaderCommonCompileJob*>& NewJobs);
+
+	/**
+	* Enqueues compilation of a shader pipeline of this type.
+	*/
+	ENGINE_API static void BeginCompileShaderPipeline(EShaderPlatform Platform, const FShaderPipelineType* ShaderPipeline, const TArray<FGlobalShaderType*>& ShaderStages, TArray<FShaderCommonCompileJob*>& NewJobs);
+
+	/** Either returns an equivalent existing shader of this type, or constructs a new instance. */
+	static FShader* FinishCompileShader(FGlobalShaderType* ShaderType, const FShaderCompileJob& CompileJob, const FShaderPipelineType* ShaderPipelineType);
+};
+
 class FShaderCompileThreadRunnableBase : public FRunnable
 {
 	friend class FShaderCompilingManager;
@@ -547,3 +564,69 @@ extern bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar);
 
 /** Returns whether all global shader types containing the substring are complete and ready for rendering. if type name is null, check everything */
 extern ENGINE_API bool IsGlobalShaderMapComplete(const TCHAR* TypeNameSubstring = nullptr);
+
+/**
+* Makes sure all global shaders are loaded and/or compiled for the passed in platform.
+* Note: if compilation is needed, this only kicks off the compile.
+*
+* @param	Platform	Platform to verify global shaders for
+*/
+extern ENGINE_API void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile);
+
+/**
+* Forces a recompile of the global shaders.
+*/
+extern ENGINE_API void RecompileGlobalShaders();
+
+/**
+* Recompiles global shaders and material shaders
+* rebuilds global shaders and also
+* clears the cooked platform data for all materials if there is a global shader change detected
+* can be slow
+*/
+extern ENGINE_API bool RecompileChangedShadersForPlatform(const FString& PlatformName);
+
+/**
+* Begins recompiling the specified global shader types, and flushes their bound shader states.
+* FinishRecompileGlobalShaders must be called after this and before using the global shaders for anything.
+*/
+extern ENGINE_API void BeginRecompileGlobalShaders(const TArray<FShaderType*>& OutdatedShaderTypes, const TArray<const FShaderPipelineType*>& OutdatedShaderPipelineTypes, EShaderPlatform ShaderPlatform);
+
+/** Finishes recompiling global shaders.  Must be called after BeginRecompileGlobalShaders. */
+extern ENGINE_API void FinishRecompileGlobalShaders();
+
+/** Called by the shader compiler to process completed global shader jobs. */
+extern ENGINE_API void ProcessCompiledGlobalShaders(const TArray<FShaderCommonCompileJob*>& CompilationResults);
+
+/**
+* Saves the global shader map as a file for the target platform.
+* @return the name of the file written
+*/
+extern ENGINE_API FString SaveGlobalShaderFile(EShaderPlatform Platform, FString SavePath);
+
+/**
+* Recompiles global shaders
+*
+* @param PlatformName					Name of the Platform the shaders are compiled for
+* @param OutputDirectory				The directory the compiled data will be stored to
+* @param MaterialsToLoad				List of Materials that need to be loaded and compiled
+* @param SerializedShaderResources		Serialized shader resources
+* @param MeshMaterialMaps				Mesh material maps
+* @param ModifiedFiles					Returns the list of modified files if not NULL
+* @param bCompileChangedShaders		Whether to compile all changed shaders or the specific material that is passed
+**/
+extern ENGINE_API void RecompileShadersForRemote(
+	const FString& PlatformName,
+	EShaderPlatform ShaderPlatform,
+	const FString& OutputDirectory,
+	const TArray<FString>& MaterialsToLoad,
+	const TArray<uint8>& SerializedShaderResources,
+	TArray<uint8>* MeshMaterialMaps,
+	TArray<FString>* ModifiedFiles,
+	bool bCompileChangedShaders = true);
+
+extern ENGINE_API void CompileGlobalShaderMaps(bool bRefreshShaderMap);
+
+extern ENGINE_API FString GetGlobalShaderMapDDCKey();
+
+extern ENGINE_API FString GetMaterialShaderMapDDCKey();

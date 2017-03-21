@@ -25,6 +25,7 @@ public class WorldBrowser : ModuleRules
                 "Core", 
                 "CoreUObject",
                 "RenderCore",
+                "ShaderCore",
                 "InputCore",
                 "Engine",
 				"Landscape",

@@ -17,9 +17,9 @@
 #include "MetalCommandBuffer.h"
 #include "StaticBoundShaderState.h"
 #include "EngineGlobals.h"
+#include "PipelineStateCache.h"
 
 static const bool GUsesInvertedZ = true;
-static FGlobalBoundShaderState GClearMRTBoundShaderState[8][2];
 
 /** Vertex declaration for just one FVector4 position. */
 class FVector4VertexDeclaration : public FRenderResource
@@ -771,77 +771,6 @@ void FMetalRHICommandContext::RHIClear(bool bClearColor,const FLinearColor& Colo
 
 void FMetalDynamicRHI::SetupRecursiveResources()
 {
-	static bool bSetupResources = false;
-	if (GRHISupportsRHIThread && !bSetupResources)
-	{
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-		extern int32 GCreateShadersOnLoad;
-		TGuardValue<int32> Guard(GCreateShadersOnLoad, 1);
-		auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-		TShaderMapRef<TOneColorVS<true> > DefaultVertexShader(ShaderMap);
-		TShaderMapRef<TOneColorVS<true, true> > LayeredVertexShader(ShaderMap);
-		GVector4VertexDeclaration.InitRHI();
-		
-		for (uint32 Instanced = 0; Instanced < 2; Instanced++)
-		{
-			FShader* VertexShader = !Instanced ? (FShader*)*DefaultVertexShader : (FShader*)*LayeredVertexShader;
-			
-			for (int32 NumBuffers = 1; NumBuffers <= MaxSimultaneousRenderTargets; NumBuffers++)
-			{
-				FOneColorPS* PixelShader = NULL;
-				
-				// Set the shader to write to the appropriate number of render targets
-				// On AMD PC hardware, outputting to a color index in the shader without a matching render target set has a significant performance hit
-				if (NumBuffers <= 1)
-				{
-					TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
-					PixelShader = *MRTPixelShader;
-				}
-				else if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
-				{
-					if (NumBuffers == 2)
-					{
-						TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(ShaderMap);
-						PixelShader = *MRTPixelShader;
-					}
-					else if (NumBuffers== 3)
-					{
-						TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(ShaderMap);
-						PixelShader = *MRTPixelShader;
-					}
-					else if (NumBuffers == 4)
-					{
-						TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(ShaderMap);
-						PixelShader = *MRTPixelShader;
-					}
-					else if (NumBuffers == 5)
-					{
-						TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(ShaderMap);
-						PixelShader = *MRTPixelShader;
-					}
-					else if (NumBuffers == 6)
-					{
-						TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(ShaderMap);
-						PixelShader = *MRTPixelShader;
-					}
-					else if (NumBuffers == 7)
-					{
-						TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(ShaderMap);
-						PixelShader = *MRTPixelShader;
-					}
-					else if (NumBuffers == 8)
-					{
-						TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(ShaderMap);
-						PixelShader = *MRTPixelShader;
-					}
-				}
-				
-				SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GClearMRTBoundShaderState[NumBuffers - 1][Instanced], GVector4VertexDeclaration.VertexDeclarationRHI, VertexShader, PixelShader);
-			}
-		}
-		
-		bSetupResources = true;
-	}
 }
 
 void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil)
@@ -909,9 +838,13 @@ void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,
 	FRasterizerStateRHIRef OriginalRasterizer = StateCache.GetRasterizerState();
 	FBoundShaderStateRHIRef OriginalBoundShaderState = StateCache.GetBoundShaderState();
 	
-	RHISetBlendState(BlendStateRHI, FLinearColor::Transparent);
-	RHISetDepthStencilState(DepthStencilStateRHI, Stencil);
-	RHISetRasterizerState(RasterizerStateRHI);
+	FRHICommandList_RecursiveHazardous RHICmdList(this);
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+	GraphicsPSOInit.BlendState = BlendStateRHI;
+	GraphicsPSOInit.RasterizerState = RasterizerStateRHI;
+	GraphicsPSOInit.DepthStencilState = DepthStencilStateRHI;
 
 	// Set the new shaders
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
@@ -966,8 +899,15 @@ void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,
 	}
 
 	{
-		FRHICommandList_RecursiveHazardous RHICmdList(this);
-		SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GClearMRTBoundShaderState[FMath::Max(Context->GetCurrentState().GetNumRenderTargets() - 1, 0)][bIsLayered ? 1 : 0], GVector4VertexDeclaration.VertexDeclarationRHI, VertexShader, PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GVector4VertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+		RHICmdList.SetBlendFactor(FLinearColor::Transparent);
+		RHICmdList.SetStencilRef(Stencil);
+
 		PixelShader->SetColors(RHICmdList, ClearColorArray, NumClearColors);
 
 		{
@@ -1024,11 +964,6 @@ void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,
 		}
 		// Implicit flush. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 	}
-
-	RHISetBlendState(OriginalBlend, OriginalBlendFactor);
-	RHISetDepthStencilState(OriginalDepthStencil, Stencil);
-	RHISetRasterizerState(OriginalRasterizer);
-	RHISetBoundShaderState(OriginalBoundShaderState);
 
 	RHIPopEvent();
 }

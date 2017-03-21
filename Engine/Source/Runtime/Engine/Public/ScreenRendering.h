@@ -13,6 +13,7 @@
 #include "Shader.h"
 #include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
+#include "SceneView.h"
 
 struct FScreenVertex
 {
@@ -104,9 +105,9 @@ public:
 	FScreenVS() {}
 
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FUniformBufferRHIParamRef ViewUniformBuffer)
 	{
-		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetVertexShader(), ViewUniformBuffer);
 	}
 
 

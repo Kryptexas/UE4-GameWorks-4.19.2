@@ -7,6 +7,8 @@
 #include "NiagaraParameterEditMode.h"
 #include "EditorUndoClient.h"
 #include "GCObject.h"
+#include "NiagaraCurveOwner.h"
+#include "TNiagaraViewModelManager.h"
 
 class UNiagaraEffect;
 class UNiagaraComponent;
@@ -18,6 +20,7 @@ class FNiagaraEffectScriptViewModel;
 class FNiagaraEffectInstance;
 class ISequencer;
 class FAssetData;
+class INiagaraParameterCollectionViewModel;
 
 /** Defines options for the niagara effect view model */
 struct FNiagaraEffectViewModelOptions
@@ -33,10 +36,12 @@ struct FNiagaraEffectViewModelOptions
 };
 
 /** A view model for viewing and editing a UNiagaraEffect. */
-class FNiagaraEffectViewModel : public TSharedFromThis<FNiagaraEffectViewModel>, public FGCObject, public FEditorUndoClient
+class FNiagaraEffectViewModel : public TSharedFromThis<FNiagaraEffectViewModel>, public FGCObject, public FEditorUndoClient, public TNiagaraViewModelManager<UNiagaraEffect, FNiagaraEffectViewModel>
 {
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnEmitterHandleViewModelsChanged);
+
+	DECLARE_MULTICAST_DELEGATE(FOnCurveOwnerChanged);
 
 public:
 	/** Creates a new view model with the supplied effect and effect instance. */
@@ -56,6 +61,9 @@ public:
 	/** Gets the sequencer for this effect for displaying the timeline. */
 	TSharedPtr<ISequencer> GetSequencer();
 
+	/** Gets the curve owner for the effect represented by this view model, for use with the curve editor widget. */
+	FNiagaraCurveOwner& GetCurveOwner();
+
 	/** Adds a new emitter to the effect from an emitter asset data. */
 	void AddEmitterFromAssetData(const FAssetData& AssetData);
 
@@ -68,6 +76,9 @@ public:
 	/** Gets a multicast delegate which is called any time the array of emitter handle view models changes. */
 	FOnEmitterHandleViewModelsChanged& OnEmitterHandleViewModelsChanged();
 
+	/** Gets a delegate which is called any time the data in the curve owner is changed internally by this view model. */
+	FOnCurveOwnerChanged& OnCurveOwnerChanged();
+
 	//~ FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
@@ -75,12 +86,14 @@ public:
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 
-private:
-	/** Sets up the preview component and effect instance. */
-	void SetupPreviewComponentAndInstance();
+	void ResynchronizeAllHandles();
 
+private:
 	/** Reinitializes all effect instances, and rebuilds emitter handle view models and tracks. */
 	void RefreshAll();
+
+	/** Sets up the preview component and effect instance. */
+	void SetupPreviewComponentAndInstance();
 
 	/** Reinitializes all active effect instances using this effect. */
 	void ReinitEffectInstances();
@@ -103,6 +116,12 @@ private:
 	/** Resets the effect instance to initial conditions. */
 	void ResetEffect();
 
+	/** Reinitializes the effect instance to initial conditions - rebuilds all data sets and bindings (slow) */
+	void ReInitializeEffect();
+
+	/** Resets and rebuilds the data in the curve owner. */
+	void ResetCurveData();
+
 	/** Called whenever a property on the emitter handle changes. */
 	void EmitterHandlePropertyChanged(TSharedRef<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel);
 
@@ -110,13 +129,25 @@ private:
 	void EmitterPropertyChanged(TSharedRef<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel);
 
 	/** Called whenever a parameter value on an emitter changes. */
-	void EmitterParameterValueChanged(const FNiagaraVariable* ChangedVariable);
+	void EmitterParameterValueChanged(FGuid ParamterId);
+
+	/** Called whenever the parameter selection in one of parameter editors changes. */
+	void ParameterSelectionChanged();
 
 	/** Called whenever a parameter value on the effect changes. */
-	void EffectParameterValueChanged(const FNiagaraVariable* ChangedVariable);
+	void EffectParameterValueChanged(FGuid ParamterId);
+
+	/** Called whenever the collection of parameters changes.*/
+	void EffectParameterCollectionChanged();
 
 	/** Called when the bindings for the effect script parameters changes. */
 	void EffectParameterBindingsChanged();
+
+	/** Called when a script is compiled */
+	void ScriptCompiled();
+
+	/** Handles when a curve in the curve owner is changed by the curve editor. */
+	void CurveChanged(TSharedPtr<INiagaraParameterCollectionViewModel> CollectionViewModel, FGuid ParameterId);
 
 	/** Called whenever the data in the sequence is changed. */
 	void SequencerDataChanged();
@@ -126,6 +157,9 @@ private:
 
 	/** Called whenever the effect instance is initialized. */
 	void EffectInstanceInitialized();
+
+	/** Called whenever the effect's bindings to emitter parameters have changed and we need to synchronize the UI editability state.*/
+	void SynchronizeEffectDrivenParametersUI();
 
 private:
 	/** The effect being viewed and edited by this view model. */
@@ -139,9 +173,6 @@ private:
 
 	/** The effect instance which is simulating the effect. */
 	TSharedPtr<FNiagaraEffectInstance> EffectInstance;
-
-	/** The effect instance which is simulating the effect being viewed and edited by this view model. */
-	//FNiagaraEffectInstance& EffectInstance;
 
 	/** The view models for the emitter handles owned by the effect. */
 	TArray<TSharedRef<FNiagaraEmitterHandleViewModel>> EmitterHandleViewModels;
@@ -167,6 +198,14 @@ private:
 	/** A multicast delegate which is called any time the array of emitter handle view models changes. */
 	FOnEmitterHandleViewModelsChanged OnEmitterHandleViewModelsChangedDelegate;
 
+	/** A multicase delegate which is called when the contents of the curve owner is changed internally by this view model. */
+	FOnCurveOwnerChanged OnCurveOwnerChangedDelegate;
+
 	/** A flag for preventing reentrancy when syncrhonizing sequencer data. */
 	bool bUpdatingFromSequencerDataChange;
+
+	/** A curve owner implementation for curves in a niagara effect. */
+	FNiagaraCurveOwner CurveOwner;
+
+	TNiagaraViewModelManager<UNiagaraEffect, FNiagaraEffectViewModel>::Handle RegisteredHandle;
 };

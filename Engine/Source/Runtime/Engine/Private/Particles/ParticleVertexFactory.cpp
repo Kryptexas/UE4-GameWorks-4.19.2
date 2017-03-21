@@ -65,12 +65,14 @@ public:
 	{
 		NumCutoutVerticesPerFrame.Bind(ParameterMap, TEXT("NumCutoutVerticesPerFrame"));
 		CutoutGeometry.Bind(ParameterMap, TEXT("CutoutGeometry"));
+		UseCustomAlignmentVector.Bind(ParameterMap, TEXT("UseCustomAlignment"));
 	}
 
 	virtual void Serialize(FArchive& Ar) override
 	{
 		Ar << NumCutoutVerticesPerFrame;
 		Ar << CutoutGeometry;
+		Ar << UseCustomAlignmentVector;
 	}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
@@ -78,14 +80,16 @@ public:
 		FParticleSpriteVertexFactory* SpriteVF = (FParticleSpriteVertexFactory*)VertexFactory;
 		FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
 		SetUniformBufferParameter(RHICmdList, VertexShaderRHI, Shader->GetUniformBufferParameter<FParticleSpriteUniformParameters>(), SpriteVF->GetSpriteUniformBuffer() );
-
+		
 		SetShaderValue(RHICmdList, VertexShaderRHI, NumCutoutVerticesPerFrame, SpriteVF->GetNumCutoutVerticesPerFrame());
 		FShaderResourceViewRHIParamRef NullSRV = GFNullSubUVCutoutVertexBuffer.VertexBufferSRV;
 		SetSRVParameter(RHICmdList, VertexShaderRHI, CutoutGeometry, SpriteVF->GetCutoutGeometrySRV() ? SpriteVF->GetCutoutGeometrySRV() : NullSRV);
+		SetShaderValue(RHICmdList, VertexShaderRHI, UseCustomAlignmentVector, SpriteVF->GetCustomAlignment());
 	}
 
 private:
 	FShaderParameter NumCutoutVerticesPerFrame;
+	FShaderParameter UseCustomAlignmentVector;
 	FShaderResourceParameter CutoutGeometry;
 };
 
@@ -152,6 +156,9 @@ public:
 		/** The stream to read the color from.					*/
 		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float4, 3, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
+		/** The stream to read the custom alignment vector from. */
+		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float3, 6, Stride, bInstanced));
+		Offset += sizeof(float) * 3;
 
 		/** The per-particle dynamic parameter stream */
 

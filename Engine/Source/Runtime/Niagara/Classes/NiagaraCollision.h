@@ -43,6 +43,14 @@ public:
 		}
 	}
 
+	void Reset()
+	{
+		if (CollisionEventDataSet)
+		{
+			CollisionEventDataSet->SetNumInstances(0);
+		}
+	}
+
 	void Init(FName InOwnerEffectInstanceName, FName InEmitterName)
 	{
 		if (CollisionEventDataSet)

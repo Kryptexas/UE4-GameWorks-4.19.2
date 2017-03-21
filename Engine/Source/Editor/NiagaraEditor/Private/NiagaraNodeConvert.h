@@ -10,6 +10,41 @@
 
 class UEdGraphPin;
 
+/** Helper struct that stores the location of a socket.*/
+USTRUCT()
+struct FNiagaraConvertPinRecord
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FGuid PinId;
+
+	UPROPERTY()
+	TArray<FName> Path;
+
+	FNiagaraConvertPinRecord() {}
+
+	FNiagaraConvertPinRecord(FGuid InGuid, const TArray<FName>& InPath) : PinId(InGuid), Path(InPath)
+	{
+	}
+
+	FNiagaraConvertPinRecord GetParent() const
+	{
+		FNiagaraConvertPinRecord Record = *this;
+		if (Record.Path.Num() > 0)
+		{
+			if (Record.Path[Record.Path.Num() - 1] == FName())
+				Record.Path.RemoveAt(Record.Path.Num() - 1);
+			if (Record.Path.Num() > 0)
+				Record.Path.RemoveAt(Record.Path.Num() - 1);
+		}
+		return Record;
+	}
+};
+
+bool operator ==(const FNiagaraConvertPinRecord &, const FNiagaraConvertPinRecord &);
+
+/** Helper struct that stores a connection between two sockets.*/
 USTRUCT()
 struct FNiagaraConvertConnection
 {
@@ -48,6 +83,8 @@ class UNiagaraNodeConvert : public UNiagaraNodeWithDynamicPins
 public:
 	GENERATED_BODY()
 
+	UNiagaraNodeConvert();
+
 	//~ UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual TSharedPtr<SGraphNode> CreateVisualWidget() override;
@@ -69,7 +106,21 @@ public:
 	/** Initializes this node as a break node based on an input tye. */
 	void InitAsBreak(FNiagaraTypeDefinition Type);
 
+	/** Init as an automatic conversion between two types.*/
 	bool InitConversion(UEdGraphPin* FromPin, UEdGraphPin* ToPin);
+
+	/** Do we show the internal switchboard UI?*/
+	bool IsWiringShown() const;
+	
+	/** Show internal switchboard UI.*/
+	void SetWiringShown(bool bInShown);
+
+	/** Remove that a socket is collapsed.*/
+	void RemoveExpandedRecord(const FNiagaraConvertPinRecord& InRecord);
+	/** Store that a socket is expanded.*/
+	void AddExpandedRecord(const FNiagaraConvertPinRecord& InRecord);
+	/** Is this socket expanded?*/
+	bool HasExpandedRecord(const FNiagaraConvertPinRecord& InRecord);
 private:
 	//~ EdGraphNode interface
 	virtual void OnPinRemoved(UEdGraphPin* Pin) override;
@@ -89,4 +140,12 @@ private:
 	/** The internal connections for this node. */
 	UPROPERTY()
 	TArray<FNiagaraConvertConnection> Connections;
+
+	/** Is the switcboard UI shown?*/
+	UPROPERTY()
+	bool bIsWiringShown;
+
+	/** Store of all sockets that are expanded.*/
+	UPROPERTY()
+	TArray<FNiagaraConvertPinRecord> ExpandedItems;
 };

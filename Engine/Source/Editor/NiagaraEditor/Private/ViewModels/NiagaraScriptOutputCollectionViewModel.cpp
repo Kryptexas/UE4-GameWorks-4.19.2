@@ -31,11 +31,11 @@ FNiagaraScriptOutputCollectionViewModel::FNiagaraScriptOutputCollectionViewModel
 	, Script(InScript)
 	, DisplayName(LOCTEXT("DisplayName", "Outputs"))
 {
-	if (Script && Script->Source)
+	if (Script.IsValid() && Script->Source)
 	{
 		Graph = Cast<UNiagaraScriptSource>(Script->Source)->NodeGraph;
-		OutputNode = GetOutputNodeFromGraph(Graph);
-		bCanHaveNumericParameters = Script->Usage == ENiagaraScriptUsage::Function || Script->Usage == ENiagaraScriptUsage::Module;
+		OutputNode = GetOutputNodeFromGraph(Graph.Get());
+		bCanHaveNumericParameters = Script->IsFunctionScript() || Script->IsModuleScript();
 	}
 	else
 	{
@@ -45,7 +45,7 @@ FNiagaraScriptOutputCollectionViewModel::FNiagaraScriptOutputCollectionViewModel
 	}
 	RefreshParameterViewModels();
 
-	if (Graph)
+	if (Graph.IsValid())
 	{
 		OnGraphChangedHandle = Graph->AddOnGraphChangedHandler(
 			FOnGraphChanged::FDelegate::CreateRaw(this, &FNiagaraScriptOutputCollectionViewModel::OnGraphChanged));
@@ -54,7 +54,7 @@ FNiagaraScriptOutputCollectionViewModel::FNiagaraScriptOutputCollectionViewModel
 
 FNiagaraScriptOutputCollectionViewModel::~FNiagaraScriptOutputCollectionViewModel()
 {
-	if (Graph)
+	if (Graph.IsValid())
 	{
 		Graph->RemoveOnGraphChangedHandler(OnGraphChangedHandle);
 	}
@@ -63,20 +63,20 @@ FNiagaraScriptOutputCollectionViewModel::~FNiagaraScriptOutputCollectionViewMode
 void FNiagaraScriptOutputCollectionViewModel::SetScript(UNiagaraScript* InScript)
 {
 	// Remove callback on previously held graph.
-	if (Graph)
+	if (Graph.IsValid())
 	{
 		Graph->RemoveOnGraphChangedHandler(OnGraphChangedHandle);
 	}
 
 	Script = InScript;
 
-	if (Script && Script->Source)
+	if (Script.IsValid() && Script->Source)
 	{
 		Graph = Cast<UNiagaraScriptSource>(Script->Source)->NodeGraph;
 		OnGraphChangedHandle = Graph->AddOnGraphChangedHandler(
 			FOnGraphChanged::FDelegate::CreateRaw(this, &FNiagaraScriptOutputCollectionViewModel::OnGraphChanged));
-		OutputNode = GetOutputNodeFromGraph(Graph);
-		bCanHaveNumericParameters = Script->Usage == ENiagaraScriptUsage::Function || Script->Usage == ENiagaraScriptUsage::Module;
+		OutputNode = GetOutputNodeFromGraph(Graph.Get());
+		bCanHaveNumericParameters = Script->IsFunctionScript() || Script->IsModuleScript();
 	}
 	else
 	{
@@ -90,7 +90,7 @@ void FNiagaraScriptOutputCollectionViewModel::SetScript(UNiagaraScript* InScript
 
 UNiagaraNodeOutput* FNiagaraScriptOutputCollectionViewModel::GetOutputNode()
 {
-	return OutputNode;
+	return OutputNode.Get();
 }
 
 FText FNiagaraScriptOutputCollectionViewModel::GetDisplayName() const 
@@ -100,7 +100,7 @@ FText FNiagaraScriptOutputCollectionViewModel::GetDisplayName() const
 
 void FNiagaraScriptOutputCollectionViewModel::AddParameter(TSharedPtr<FNiagaraTypeDefinition> ParameterType)
 {
-	if (OutputNode == nullptr)
+	if (OutputNode.IsValid() == false)
 	{
 		return;
 	}
@@ -122,7 +122,7 @@ bool FNiagaraScriptOutputCollectionViewModel::CanDeleteParameters() const
 
 void FNiagaraScriptOutputCollectionViewModel::DeleteSelectedParameters()
 {
-	if (OutputNode == nullptr)
+	if (OutputNode.IsValid() == false)
 	{
 		return;
 	}
@@ -159,7 +159,7 @@ void FNiagaraScriptOutputCollectionViewModel::RefreshParameterViewModels()
 {
 	ParameterViewModels.Empty();
 
-	if (OutputNode != nullptr)
+	if (OutputNode.IsValid())
 	{
 		for (FNiagaraVariable& OutputVariable : OutputNode->Outputs)
 		{
@@ -192,7 +192,7 @@ void FNiagaraScriptOutputCollectionViewModel::OnParameterNameChanged(FNiagaraVar
 {
 	TSet<FName> CurrentNames;
 
-	if (OutputNode == nullptr)
+	if (OutputNode.IsValid() == false)
 	{
 		return;
 	}
@@ -217,7 +217,7 @@ void FNiagaraScriptOutputCollectionViewModel::OnParameterNameChanged(FNiagaraVar
 
 void FNiagaraScriptOutputCollectionViewModel::OnParameterTypeChanged(FNiagaraVariable* ParameterVariable)
 {
-	if (OutputNode == nullptr)
+	if (OutputNode.IsValid() == false)
 	{
 		return;
 	}
@@ -227,13 +227,13 @@ void FNiagaraScriptOutputCollectionViewModel::OnParameterTypeChanged(FNiagaraVar
 
 void FNiagaraScriptOutputCollectionViewModel::OnParameterValueChangedInternal(FNiagaraVariable* ParameterVariable)
 {
-	if (OutputNode == nullptr)
+	if (OutputNode.IsValid() == false)
 	{
 		return;
 	}
 	OutputNode->NotifyOutputVariablesChanged();
 	OnOutputParametersChangedDelegate.Broadcast();
-	OnParameterValueChanged().Broadcast(ParameterVariable);
+	OnParameterValueChanged().Broadcast(ParameterVariable->GetId());
 }
 
 #undef LOCTEXT_NAMESPACE // "NiagaraScriptInputCollection"

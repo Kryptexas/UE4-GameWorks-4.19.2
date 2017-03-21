@@ -100,7 +100,7 @@ class FVulkanBoundShaderState;
 class FVulkanGfxPipeline;
 class FVulkanRenderPass;
 class FVulkanCommandBufferManager;
-class FVulkanPendingGfxState;
+class FOLDVulkanPendingGfxState;
 
 inline VkShaderStageFlagBits UEFrequencyToVKStageBit(EShaderFrequency InStage)
 {
@@ -328,7 +328,7 @@ public:
 	}
 
 private:
-	friend class FVulkanPendingGfxState;
+	friend class FOLDVulkanPendingGfxState;
 	friend class FVulkanCommandListContext;
 
 	friend class FVulkanPipelineStateCache;
@@ -348,129 +348,6 @@ private:
 	VkRenderPassCreateInfo CreateInfo;
 #endif
 };
-
-class FVulkanDescriptorSetsLayout
-{
-public:
-	FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice);
-	~FVulkanDescriptorSetsLayout();
-
-	void AddDescriptor(int32 DescriptorSetIndex, const VkDescriptorSetLayoutBinding& Descriptor, int32 BindingIndex);
-
-	// Can be called only once, the idea is that the Layout remains fixed.
-	void Compile();
-
-	inline const TArray<VkDescriptorSetLayout>& GetHandles() const
-	{
-		return LayoutHandles;
-	}
-
-	inline uint32 GetTypesUsed(VkDescriptorType Type) const
-	{
-		return LayoutTypes[Type];
-	}
-
-	struct FSetLayout
-	{
-		TArray<VkDescriptorSetLayoutBinding> LayoutBindings;
-	};
-
-	const TArray<FSetLayout>& GetLayouts() const
-	{
-		return SetLayouts;
-	}
-
-private:
-	FVulkanDevice* Device;
-
-	uint32 LayoutTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
-
-	TArray<FSetLayout> SetLayouts;
-	TArray<VkDescriptorSetLayout> LayoutHandles;
-};
-
-#include "VulkanPipeline.h"
-
-class FVulkanDescriptorPool
-{
-public:
-	FVulkanDescriptorPool(FVulkanDevice* InDevice);
-	~FVulkanDescriptorPool();
-
-	inline VkDescriptorPool GetHandle() const
-	{
-		return DescriptorPool;
-	}
-
-	inline bool CanAllocate(const FVulkanDescriptorSetsLayout& Layout) const
-	{
-		for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex < VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
-		{
-			if (NumAllocatedTypes[TypeIndex] +	(int32)Layout.GetTypesUsed((VkDescriptorType)TypeIndex) > MaxAllocatedTypes[TypeIndex])
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	void TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout);
-	void TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout);
-
-	inline bool IsEmpty() const
-	{
-		return NumAllocatedDescriptorSets == 0;
-	}
-
-private:
-	FVulkanDevice* Device;
-
-	uint32 MaxDescriptorSets;
-	uint32 NumAllocatedDescriptorSets;
-	uint32 PeakAllocatedDescriptorSets;
-
-	// Tracks number of allocated types, to ensure that we are not exceeding our allocated limit
-	int32 MaxAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
-	int32 NumAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
-	int32 PeakAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
-
-	VkDescriptorPool DescriptorPool;
-};
-
-struct FVulkanDescriptorSets
-{
-	~FVulkanDescriptorSets();
-
-	inline const TArray<VkDescriptorSet>& GetHandles() const
-	{
-		return Sets;
-	}
-
-	inline void Bind(FVulkanCmdBuffer* Cmd, VkPipelineLayout PipelineLayout, VkPipelineBindPoint BindPoint)
-	{
-		VulkanRHI::vkCmdBindDescriptorSets(Cmd->GetHandle(),
-			BindPoint,
-			PipelineLayout,
-			0, Sets.Num(), Sets.GetData(),
-			0, nullptr);
-	}
-
-private:
-	friend class FVulkanDescriptorPool;
-	friend class FVulkanShaderState;
-	friend class FVulkanDescriptorSetUpdater;
-
-	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext);
-
-	FVulkanDevice* Device;
-	FVulkanDescriptorPool* Pool;
-	const FVulkanDescriptorSetsLayout& Layout;
-	TArray<VkDescriptorSet> Sets;
-
-	friend class FVulkanCommandListContext;
-};
-
 
 namespace VulkanRHI
 {
@@ -722,6 +599,55 @@ inline VkFormat UEToVkFormat(EPixelFormat UEFormat, const bool bIsSRGB)
 	return Format;
 }
 
+static inline VkFormat UEToVkFormat(EVertexElementType Type)
+{
+	switch (Type)
+	{
+	case VET_Float1:
+		return VK_FORMAT_R32_SFLOAT;
+	case VET_Float2:
+		return VK_FORMAT_R32G32_SFLOAT;
+	case VET_Float3:
+		return VK_FORMAT_R32G32B32_SFLOAT;
+	case VET_PackedNormal:
+		return VK_FORMAT_R8G8B8A8_UNORM;
+	case VET_UByte4:
+		return VK_FORMAT_R8G8B8A8_UINT;
+	case VET_UByte4N:
+		return VK_FORMAT_R8G8B8A8_UNORM;
+	case VET_Color:
+		return VK_FORMAT_B8G8R8A8_UNORM;
+	case VET_Short2:
+		return VK_FORMAT_R16G16_SINT;
+	case VET_Short4:
+		return VK_FORMAT_R16G16B16A16_SINT;
+	case VET_Short2N:
+		return VK_FORMAT_R16G16_SNORM;
+	case VET_Half2:
+		return VK_FORMAT_R16G16_SFLOAT;
+	case VET_Half4:
+		return VK_FORMAT_R16G16B16A16_SFLOAT;
+	case VET_Short4N:		// 4 X 16 bit word: normalized 
+		return VK_FORMAT_R16G16B16A16_SNORM;
+	case VET_UShort2:
+		return VK_FORMAT_R16G16_UINT;
+	case VET_UShort4:
+		return VK_FORMAT_R16G16B16A16_UINT;
+	case VET_UShort2N:		// 16 bit word normalized to (value/65535.0:value/65535.0:0:0:1)
+		return VK_FORMAT_R16G16_UNORM;
+	case VET_UShort4N:		// 4 X 16 bit word unsigned: normalized 
+		return VK_FORMAT_R16G16B16A16_UNORM;
+	case VET_Float4:
+		return VK_FORMAT_R32G32B32A32_SFLOAT;
+	case VET_URGB10A2N:
+		return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+	default:
+		break;
+	}
+
+	check(!"Undefined vertex-element format conversion");
+	return VK_FORMAT_UNDEFINED;
+}
 #if 0
 namespace FRCLog
 {

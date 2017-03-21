@@ -13,6 +13,16 @@ UNiagaraNodeWriteDataSet::UNiagaraNodeWriteDataSet(const FObjectInitializer& Obj
 {
 }
 
+void UNiagaraNodeWriteDataSet::AddConditionPin(int32 PinIndex)
+{
+	const UEdGraphSchema_Niagara* Schema = GetDefault<UEdGraphSchema_Niagara>();
+	const bool ConditionPinDefaulValue = true;
+	UEdGraphPin* ConditionPin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(FNiagaraTypeDefinition::GetBoolDef()), ConditionVarName, PinIndex);
+	ConditionPin->bDefaultValueIsIgnored = false;
+	ConditionPin->DefaultValue = ConditionPinDefaulValue ? TEXT("true") : TEXT("false");
+	ConditionPin->PinFriendlyName = LOCTEXT("UNiagaraNodeWriteDataSetConditionPin", "Condition");
+
+}
 
 
 void UNiagaraNodeWriteDataSet::AllocateDefaultPins()
@@ -25,10 +35,18 @@ void UNiagaraNodeWriteDataSet::AllocateDefaultPins()
 		//UEdGraphPin* Pin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(FNiagaraTypeDefinition::GetBoolDef()), TEXT("Valid"));
 		//Pin->bDefaultValueIsIgnored = true;
 	}
+
+	AddConditionPin();
 	
-	for (const FNiagaraVariable& Var : Variables)
+	bool useFriendlyNames = (VariableFriendlyNames.Num() == Variables.Num());
+	for (int32 i = 0; i < Variables.Num(); i++)
 	{
-		CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString());
+		FNiagaraVariable& Var = Variables[i];
+		UEdGraphPin* NewPin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString());
+		if (useFriendlyNames && VariableFriendlyNames[i].IsEmpty() == false)
+		{
+			NewPin->PinFriendlyName = FText::FromString(VariableFriendlyNames[i]);
+		}
 	}
 }
 
@@ -45,8 +63,34 @@ void UNiagaraNodeWriteDataSet::Compile(class INiagaraCompiler* Compiler, TArray<
 
 	TArray<int32> Inputs;
 	CompileInputPins(Compiler, Inputs);
+
+	FString IssuesWithStruct;
+	if (!IsSynchronizedWithStruct(true, &IssuesWithStruct,false))
+	{
+		Compiler->Error(FText::FromString(IssuesWithStruct), this, nullptr);
+	}
 	Compiler->WriteDataSet(DataSet, Variables, ENiagaraDataSetAccessMode::AppendConsume, Inputs);
 
+}
+
+void UNiagaraNodeWriteDataSet::PostLoad()
+{
+	Super::PostLoad();
+
+	bool bFoundMatchingPin = false;
+	for (int32 PinIndex = 0; PinIndex < Pins.Num(); PinIndex++)
+	{
+		if (Pins[PinIndex]->Direction == EGPD_Input && Pins[PinIndex]->PinName == ConditionVarName)
+		{
+			bFoundMatchingPin = true;
+			break;
+		}
+	}
+
+	if (!bFoundMatchingPin)
+	{
+		AddConditionPin(0);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

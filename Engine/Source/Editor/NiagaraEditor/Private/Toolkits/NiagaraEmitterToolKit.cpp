@@ -20,11 +20,26 @@
 #include "SNiagaraParameterCollection.h"
 #include "NiagaraObjectSelection.h"
 #include "NiagaraScriptGraphViewModel.h"
+#include "Widgets/SNiagaraCurveEditor.h"
+#include "NiagaraEmitterViewModel.h"
+#include "NiagaraEffect.h"
+#include "NiagaraEffectViewModel.h"
 
 #include "SDockTab.h"
 #include "ModuleManager.h"
 #include "ISequencer.h"
 #include "SScrollBox.h"
+
+#include "BusyCursor.h"
+#include "EngineGlobals.h"
+#include "FeedbackContext.h"
+#include "Editor.h"
+#include "Engine/Selection.h"
+#include "UObjectIterator.h"
+#include "NiagaraScriptSource.h"
+#include "NiagaraNode.h"
+#include "NiagaraGraph.h"
+#include "Misc/MessageDialog.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraEmitterToolkit"
 
@@ -33,27 +48,28 @@ const FName FNiagaraEmitterToolkit::PreviewViewportTabId("PreviewViewportTabId")
 const FName FNiagaraEmitterToolkit::SpawnScriptGraphTabId("SpawnScriptGraphTabId");
 const FName FNiagaraEmitterToolkit::UpdateScriptGraphTabId("UpdateScriptGraphTabId");
 const FName FNiagaraEmitterToolkit::EmitterDetailsTabId("EmitterDetailsTabId");
+const FName FNiagaraEmitterToolkit::CurveEditorTabId("CurveEditorTabId");
 const FName FNiagaraEmitterToolkit::SequencerTabId("SequencerTabId");
 
 FNiagaraEmitterToolkit::FNiagaraEmitterToolkit()
 {
 	ParameterNameColumnWidth = .3f;
 	ParameterContentColumnWidth = .7f;
-
-	PackageSavedDelegate = UPackage::PackageSavedEvent.AddRaw(this, &FNiagaraEmitterToolkit::OnExternalAssetSaved);
 }
 
 FNiagaraEmitterToolkit::~FNiagaraEmitterToolkit()
 {
-	UPackage::PackageSavedEvent.Remove(PackageSavedDelegate);
 }
 
-void FNiagaraEmitterToolkit::Initialize(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UNiagaraEmitterProperties& InEmitter)
+void FNiagaraEmitterToolkit::Initialize(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UNiagaraEmitterProperties& InputEmitter)
 {
-	NeedsRefresh = false;
 	PreviewEffect = NewObject<UNiagaraEffect>();
 	UNiagaraEffectFactoryNew::InitializeEffect(PreviewEffect);
-	EmitterHandle = PreviewEffect->AddEmitterHandleWithoutCopying(InEmitter);
+
+	OriginalEmitter = &InputEmitter;
+	EditableEmitter = (UNiagaraEmitterProperties*)StaticDuplicateObject(OriginalEmitter, GetTransientPackage(), NAME_None, ~RF_Standalone, UNiagaraEmitterProperties::StaticClass());
+
+	EmitterHandle = PreviewEffect->AddEmitterHandleWithoutCopying(*EditableEmitter);
 
 	FNiagaraEffectViewModelOptions EffectOptions;
 	EffectOptions.ParameterEditMode = ENiagaraParameterEditMode::EditAll;
@@ -137,11 +153,12 @@ void FNiagaraEmitterToolkit::Initialize(const EToolkitMode::Type Mode, const TSh
 				FTabManager::NewStack()
 				->SetSizeCoefficient(.2f)
 				->AddTab(SequencerTabId, ETabState::OpenedTab)
-				->SetHideTabWell(true)
+				->AddTab(CurveEditorTabId, ETabState::OpenedTab)
+				->SetForegroundTab(SequencerTabId)
 			)
 		);
 
-	InitAssetEditor(Mode, InitToolkitHost, FNiagaraEditorModule::NiagaraEditorAppIdentifier, StandaloneDefaultLayout, true, true, &InEmitter);
+	InitAssetEditor(Mode, InitToolkitHost, FNiagaraEditorModule::NiagaraEditorAppIdentifier, StandaloneDefaultLayout, true, true, &InputEmitter);
 
 	SetupCommands();
 	ExtendToolbar();
@@ -185,6 +202,10 @@ void FNiagaraEmitterToolkit::RegisterTabSpawners(const TSharedRef<class FTabMana
 		.SetDisplayName(LOCTEXT("EmitterDetails", "Details"))
 		.SetGroup(WorkspaceMenuCategoryRef);
 
+	InTabManager->RegisterTabSpawner(CurveEditorTabId, FOnSpawnTab::CreateSP(this, &FNiagaraEmitterToolkit::SpawnTabCurveEditor))
+		.SetDisplayName(LOCTEXT("Curves", "Curves"))
+		.SetGroup(WorkspaceMenuCategory.ToSharedRef());
+
 	InTabManager->RegisterTabSpawner(SequencerTabId, FOnSpawnTab::CreateSP(this, &FNiagaraEmitterToolkit::SpawnTabSequencer))
 		.SetDisplayName(LOCTEXT("EmitterTimeline", "Timeline"))
 		.SetGroup(WorkspaceMenuCategoryRef);
@@ -219,13 +240,12 @@ FLinearColor FNiagaraEmitterToolkit::GetWorldCentricTabColorScale() const
 	return FNiagaraEditorModule::WorldCentricTabColorScale;
 }
 
-void FNiagaraEmitterToolkit::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	Collector.AddReferencedObject(PreviewEffect);
-}
-
 void FNiagaraEmitterToolkit::SetupCommands()
 {
+	GetToolkitCommands()->MapAction(
+		FNiagaraEditorCommands::Get().Apply,
+		FExecuteAction::CreateSP(this, &FNiagaraEmitterToolkit::OnApply),
+		FCanExecuteAction::CreateSP(this, &FNiagaraEmitterToolkit::OnApplyEnabled));
 	GetToolkitCommands()->MapAction(
 		FNiagaraEditorCommands::Get().Compile,
 		FExecuteAction::CreateRaw(this, &FNiagaraEmitterToolkit::CompileScripts));
@@ -240,6 +260,13 @@ void FNiagaraEmitterToolkit::ExtendToolbar()
 	{
 		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FNiagaraEmitterToolkit* EmitterToolkit)
 		{
+			ToolbarBuilder.BeginSection("Apply");
+			ToolbarBuilder.AddToolBarButton(FNiagaraEditorCommands::Get().Apply,
+				NAME_None, TAttribute<FText>(), TAttribute<FText>(),
+				FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "NiagaraEditor.Apply"),
+				FName(TEXT("ApplyNiagaraEmitter")));
+			ToolbarBuilder.EndSection();
+
 			ToolbarBuilder.BeginSection("Compile");
 			ToolbarBuilder.AddToolBarButton(FNiagaraEditorCommands::Get().Compile,
 				NAME_None,
@@ -276,14 +303,14 @@ FSlateIcon FNiagaraEmitterToolkit::GetCompileStatusImage() const
 	switch (Status)
 	{
 	default:
-	case NCS_Unknown:
-	case NCS_Dirty:
+	case ENiagaraScriptCompileStatus::NCS_Unknown:
+	case ENiagaraScriptCompileStatus::NCS_Dirty:
 		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "Niagara.CompileStatus.Unknown");
-	case NCS_Error:												   
+	case ENiagaraScriptCompileStatus::NCS_Error:
 		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "Niagara.CompileStatus.Error");
-	case NCS_UpToDate:											   
+	case ENiagaraScriptCompileStatus::NCS_UpToDate:
 		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "Niagara.CompileStatus.Good");
-	case NCS_UpToDateWithWarnings:								   
+	case ENiagaraScriptCompileStatus::NCS_UpToDateWithWarnings:
 		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "Niagara.CompileStatus.Warning");
 	}
 }
@@ -296,35 +323,176 @@ FText FNiagaraEmitterToolkit::GetCompileStatusTooltip() const
 	switch (Status)
 	{
 	default:
-	case NCS_Unknown:
+	case ENiagaraScriptCompileStatus::NCS_Unknown:
 		return LOCTEXT("Recompile_Status", "Unknown status; should recompile");
-	case NCS_Dirty:
+	case ENiagaraScriptCompileStatus::NCS_Dirty:
 		return LOCTEXT("Dirty_Status", "Dirty; needs to be recompiled");
-	case NCS_Error:
+	case ENiagaraScriptCompileStatus::NCS_Error:
 		return LOCTEXT("CompileError_Status", "There was an error during compilation, see the log for details");
-	case NCS_UpToDate:
+	case ENiagaraScriptCompileStatus::NCS_UpToDate:
 		return LOCTEXT("GoodToGo_Status", "Good to go");
-	case NCS_UpToDateWithWarnings:
+	case ENiagaraScriptCompileStatus::NCS_UpToDateWithWarnings:
 		return LOCTEXT("GoodToGoWarning_Status", "There was a warning during compilation, see the log for details");
 	}
 }
 
 FSlateIcon FNiagaraEmitterToolkit::GetRefreshStatusImage() const
 {
-	if (NeedsRefresh)
-		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "Niagara.Asset.ReimportAsset.Needed");
-	else
-		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "Niagara.Asset.ReimportAsset.Default");
+	return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "Niagara.Asset.ReimportAsset.Default");
 }
 
 FText FNiagaraEmitterToolkit::GetRefreshStatusTooltip() const
 {
-	if (NeedsRefresh)
-		return LOCTEXT("Refresh_Needed_Status", "Changes detected in dependencies since load. Consider refreshing.");
-	else
-		return LOCTEXT("Refresh_Status", "Currently dependencies up-to-date. Consider refreshing if status isn't accurate.");
+	return LOCTEXT("Refresh_Status", "Currently dependencies up-to-date. Consider refreshing if status isn't accurate.");
 }
 
+void FNiagaraEmitterToolkit::OnApply()
+{
+	UE_LOG(LogNiagaraEditor, Log, TEXT("Applying Niagara Emitter %s"), *GetEditingObjects()[0]->GetName());
+
+	UpdateOriginalEmitter();
+}
+
+bool FNiagaraEmitterToolkit::OnApplyEnabled() const
+{
+	return EmitterViewModel->GetDirty();
+}
+
+void FNiagaraEmitterToolkit::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(OriginalEmitter);
+	Collector.AddReferencedObject(EditableEmitter);
+	Collector.AddReferencedObject(PreviewEffect);
+}
+
+void FNiagaraEmitterToolkit::GetSaveableObjects(TArray<UObject*>& OutObjects) const
+{
+	OutObjects.Add(OriginalEmitter);
+}
+
+void FNiagaraEmitterToolkit::SaveAsset_Execute()
+{
+	UE_LOG(LogNiagaraEditor, Log, TEXT("Saving and Compiling NiagaraEmitter %s"), *GetEditingObjects()[0]->GetName());
+
+	UpdateOriginalEmitter();
+
+	FAssetEditorToolkit::SaveAsset_Execute();
+}
+
+void FNiagaraEmitterToolkit::SaveAssetAs_Execute()
+{
+	UE_LOG(LogNiagaraEditor, Log, TEXT("Saving and Compiling NiagaraEmitter %s"), *GetEditingObjects()[0]->GetName());
+
+	UpdateOriginalEmitter();
+
+	FAssetEditorToolkit::SaveAssetAs_Execute();
+}
+
+void FNiagaraEmitterToolkit::UpdateExistingEmitters(const TArray<UNiagaraEmitterProperties*>& AffectedEmitters)
+{
+	// Compile the existing emitters. Also determine which effects need to be properly updated.
+	TArray<UNiagaraEffect*> AffectedEffectSystems;
+	for (UNiagaraEmitterProperties* Emitter : AffectedEmitters)
+	{
+		if (Emitter->IsPendingKillOrUnreachable())
+		{
+			continue;
+		}
+
+		TSharedPtr<FNiagaraEmitterViewModel> EmitterViewModel = FNiagaraEmitterViewModel::GetExistingViewModelForObject(Emitter);
+		if (!EmitterViewModel.IsValid())
+		{
+			EmitterViewModel = MakeShareable(new FNiagaraEmitterViewModel(Emitter, nullptr, ENiagaraParameterEditMode::EditValueOnly));
+		}
+		EmitterViewModel->CompileScripts();
+
+		for (TObjectIterator<UNiagaraEffect> It; It; ++It)
+		{
+			if (It->GetAutoImportChangedEmitters() && It->ReferencesSourceEmitter(Emitter))
+			{
+				AffectedEffectSystems.AddUnique(*It);
+			}
+		}
+	}
+
+	// Now iterate over the affected Effects.
+	for (UNiagaraEffect* Effect : AffectedEffectSystems)
+	{
+		TSharedPtr<FNiagaraEffectViewModel> EffectViewModel = FNiagaraEffectViewModel::GetExistingViewModelForObject(Effect);
+		if (!EffectViewModel.IsValid())
+		{
+			FNiagaraEffectViewModelOptions Options;
+			Options.bCanRemoveEmittersFromTimeline = false;
+			Options.bCanRenameEmittersFromTimeline = false;
+			Options.ParameterEditMode = ENiagaraParameterEditMode::EditValueOnly;
+			EffectViewModel = MakeShareable(new FNiagaraEffectViewModel(*Effect, Options));
+		}
+
+		EffectViewModel->ResynchronizeAllHandles();
+	}
+}
+
+void FNiagaraEmitterToolkit::UpdateOriginalEmitter()
+{
+	const FScopedBusyCursor BusyCursor;
+
+	const FText LocalizedScriptEditorApply = NSLOCTEXT("UnrealEd", "ToolTip_NiagaraEmitterEditorApply", "Apply changes to original emitter and its use in the world.");
+	GWarn->BeginSlowTask(LocalizedScriptEditorApply, true);
+	GWarn->StatusUpdate(1, 1, LocalizedScriptEditorApply);
+
+	if (OriginalEmitter->IsSelected())
+	{
+		GEditor->GetSelectedObjects()->Deselect(OriginalEmitter);
+	}
+
+	// overwrite the original script in place by constructing a new one with the same name
+	OriginalEmitter = (UNiagaraEmitterProperties*)StaticDuplicateObject(EditableEmitter, OriginalEmitter->GetOuter(), OriginalEmitter->GetFName(),
+		RF_AllFlags,
+		OriginalEmitter->GetClass());
+
+	// Restore RF_Standalone on the original material, as it had been removed from the preview material so that it could be GC'd.
+	OriginalEmitter->SetFlags(RF_Standalone);
+
+	TArray<UNiagaraEmitterProperties*> AffectedEmitters;
+	AffectedEmitters.Add(OriginalEmitter);
+	UpdateExistingEmitters(AffectedEmitters);
+
+	GWarn->EndSlowTask();
+	EmitterViewModel->SetDirty(false);
+}
+
+
+bool FNiagaraEmitterToolkit::OnRequestClose()
+{
+	if (EmitterViewModel->GetDirty())
+	{
+		// find out the user wants to do with this dirty NiagaraScript
+		EAppReturnType::Type YesNoCancelReply = FMessageDialog::Open(EAppMsgType::YesNoCancel,
+			FText::Format(
+				NSLOCTEXT("UnrealEd", "Prompt_NiagaraScriptEditorClose", "Would you like to apply changes to this Emitter to the original Emitter?\n{0}\n(No will lose all changes!)"),
+				FText::FromString(OriginalEmitter->GetPathName())));
+
+		// act on it
+		switch (YesNoCancelReply)
+		{
+		case EAppReturnType::Yes:
+			// update NiagaraScript and exit
+			UpdateOriginalEmitter();
+			break;
+
+		case EAppReturnType::No:
+			// exit
+			// do nothing.. bNiagaraScriptDirty = false;
+			break;
+
+		case EAppReturnType::Cancel:
+			// don't exit
+			return false;
+		}
+	}
+
+	return true;
+}
 
 
 TSharedRef<SDockTab> FNiagaraEmitterToolkit::SpawnTabPreviewViewport(const FSpawnTabArgs& Args)
@@ -441,6 +609,19 @@ TSharedRef<SDockTab> FNiagaraEmitterToolkit::SpawnTabEmitterDetails(const FSpawn
 		];
 }
 
+TSharedRef<SDockTab> FNiagaraEmitterToolkit::SpawnTabCurveEditor(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId().TabType == CurveEditorTabId);
+
+	TSharedRef<SDockTab> SpawnedTab =
+		SNew(SDockTab)
+		[
+			SNew(SNiagaraCurveEditor, PreviewEffectViewModel.ToSharedRef())
+		];
+
+	return SpawnedTab;
+}
+
 TSharedRef<SDockTab> FNiagaraEmitterToolkit::SpawnTabSequencer(const FSpawnTabArgs& Args)
 {
 	checkf(Args.GetTabId().TabType == SequencerTabId, TEXT("Wrong tab ID in NiagaraEmitterToolkit"));
@@ -462,14 +643,6 @@ void FNiagaraEmitterToolkit::RefreshNodes()
 {
 	EmitterViewModel->GetSpawnScriptViewModel()->RefreshNodes();
 	EmitterViewModel->GetUpdateScriptViewModel()->RefreshNodes();
-	NeedsRefresh = false;
-}
-
-void FNiagaraEmitterToolkit::OnExternalAssetSaved(const FString& PackagePath, UObject* PackageObject)
-{
-	NeedsRefresh = 
-		EmitterViewModel->GetSpawnScriptViewModel()->DoesAssetSavedInduceRefresh(PackagePath, PackageObject, true) ||
-		EmitterViewModel->GetUpdateScriptViewModel()->DoesAssetSavedInduceRefresh(PackagePath, PackageObject, true);
 }
 
 #undef LOCTEXT_NAMESPACE // NiagaraEmitterToolkit

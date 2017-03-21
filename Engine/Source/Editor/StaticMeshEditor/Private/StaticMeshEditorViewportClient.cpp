@@ -783,7 +783,11 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 
 			if (VolumeData.Size.GetMax() > 0)
 			{
-				float MemoryMb = (VolumeData.Size.X * VolumeData.Size.Y * VolumeData.Size.Z * sizeof(FFloat16)) / (1024.0f * 1024.0f);
+				static const auto CVarEightBit = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.EightBit"));
+				const bool bEightBitFixedPoint = CVarEightBit->GetValueOnAnyThread() != 0;
+				const int32 FormatSize = GPixelFormats[bEightBitFixedPoint ? PF_G8 : PF_R16F].BlockBytes;
+
+				float MemoryMb = (VolumeData.Size.X * VolumeData.Size.Y * VolumeData.Size.Z * FormatSize + VolumeData.CompressedDistanceFieldVolume.Num() * VolumeData.CompressedDistanceFieldVolume.GetTypeSize()) / (1024.0f * 1024.0f);
 
 				FNumberFormattingOptions NumberOptions;
 				NumberOptions.MinimumFractionalDigits = 2;

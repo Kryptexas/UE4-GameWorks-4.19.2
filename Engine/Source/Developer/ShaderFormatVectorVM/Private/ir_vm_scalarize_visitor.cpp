@@ -19,7 +19,51 @@ PRAGMA_POP
 #include "ir_expression_flattening.h"
 #include "ir.h"
 
+ECallScalarizeMode get_scalarize_mode(ir_function_signature* in_sig)
+{
+	EVectorVMOp SpecialOp = get_special_vm_opcode(in_sig);
+	if (SpecialOp != EVectorVMOp::done)
+	{
+		bool scalar_ret = in_sig->return_type->is_scalar() || in_sig->return_type->is_void();
+		bool no_structs = true;
+		bool all_scalar = true;
+		unsigned max_components = 0;
+		unsigned min_components = 999;
+		foreach_iter(exec_list_iterator, iter, in_sig->parameters)
+		{
+			ir_variable *var = (ir_variable *)iter.get();
+			all_scalar &= var->type->is_scalar();
+			no_structs &= var->type->base_type != GLSL_TYPE_STRUCT;
+			max_components = FMath::Max(max_components, var->type->components());
+			min_components = FMath::Min(min_components, var->type->components());
+		}
 
+		if (all_scalar && scalar_ret)
+		{
+			return ECallScalarizeMode::None;
+		}
+
+		if (scalar_ret)
+		{
+			//Can only split up prams into scalars, not a return type.
+			return ECallScalarizeMode::SplitParams;
+		}
+		else
+		{
+			if (no_structs /*&& max_components == min_components*/)
+			{
+				return ECallScalarizeMode::SplitCalls;
+			}
+		}
+	}
+	else
+	{
+		return ECallScalarizeMode::None;
+	}
+
+	//_mesa_glsl_error(, "Cannot scalarize call %s", in_sig->function_name());
+	return ECallScalarizeMode::Error;
+}
 
 /** splits all assignments into a separate assignment for each of it's components. Eventually down to the individual scalars. */
 class ir_scalarize_visitor2 : public ir_hierarchical_visitor
@@ -51,166 +95,257 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 	{
 		check(ir->type->is_numeric());
 
-		if (dest_component >= 0 && dest_component < ir->type->components())
+		unsigned use_component = FMath::Min(ir->type->components(), dest_component);
+
+		switch (ir->type->base_type)
 		{
-			switch (ir->type->base_type)
-			{
-			case GLSL_TYPE_FLOAT:
-				ir->value.f[0] = ir->value.f[dest_component];
-				ir->type = glsl_type::float_type;
-				break;
-			case GLSL_TYPE_INT:
-				ir->value.i[0] = ir->value.i[dest_component];
-				ir->type = glsl_type::int_type;
-				break;
-			case GLSL_TYPE_UINT:
-				ir->value.u[0] = ir->value.u[dest_component];
-				ir->type = glsl_type::uint_type;
-				break;
-			case GLSL_TYPE_BOOL:
-				ir->value.b[0] = ir->value.b[dest_component];
-				ir->type = glsl_type::bool_type;
-				break;
-			}
+		case GLSL_TYPE_FLOAT:
+			ir->value.f[0] = ir->value.f[use_component];
+			ir->type = glsl_type::float_type;
+			break;
+		case GLSL_TYPE_INT:
+			ir->value.i[0] = ir->value.i[use_component];
+			ir->type = glsl_type::int_type;
+			break;
+		case GLSL_TYPE_UINT:
+			ir->value.u[0] = ir->value.u[use_component];
+			ir->type = glsl_type::uint_type;
+			break;
+		case GLSL_TYPE_BOOL:
+			ir->value.b[0] = ir->value.b[use_component];
+			ir->type = glsl_type::bool_type;
+			break;
 		}
 		return visit_continue;
 	}
 
-	virtual ir_visitor_status visit_enter(ir_call* call)
+	ir_function_signature* FindScalarSig(ir_function_signature* in_sig, bool bCreateIfNotFound)
 	{
-		//We don't touch special calls, they're handled elsewhere.
-		EVectorVMOp special_op = get_special_vm_opcode(call->callee);
-		if (special_op != EVectorVMOp::done && special_op != EVectorVMOp::random && special_op != EVectorVMOp::select && special_op != EVectorVMOp::noise && special_op != EVectorVMOp::fmod)
-			return visit_continue_with_parent;
+		//Ugh. Make less bad.
+		ir_function* func = const_cast<ir_function*>(in_sig->function());
 
-		unsigned max_components = 0;
-		foreach_iter(exec_list_iterator, param_iter, call->actual_parameters)
+		void* parent = ralloc_parent(in_sig);
+		ECallScalarizeMode mode = get_scalarize_mode(in_sig);
+
+		ir_function_signature* new_sig = nullptr;
+		if (mode == ECallScalarizeMode::None)
 		{
-			ir_rvalue* param = (ir_rvalue *)param_iter.get();
-			check(param->type->base_type != GLSL_TYPE_STRUCT);
-			max_components = FMath::Max(max_components, param->type->components());
+			return in_sig;
+		}
+		else if (mode == ECallScalarizeMode::SplitParams)
+		{
+			new_sig = new(parent) ir_function_signature(in_sig->return_type);
+
+			TFunction<void(const ir_variable*, const glsl_type*, FString)> append_scalar_params = [&](const ir_variable* original, const glsl_type* type, FString Name)
+			{
+				const glsl_type* base_type = type->get_base_type();
+				if (type->is_scalar())
+				{
+					new_sig->parameters.push_tail(new(parent) ir_variable(type, TCHAR_TO_ANSI(*Name), original->mode));
+				}
+				else if (type->is_vector())
+				{
+					append_scalar_params(original, base_type, Name + TEXT("_x"));
+					append_scalar_params(original, base_type, Name + TEXT("_y"));
+					if (type->vector_elements > 2)
+					{
+						append_scalar_params(original, base_type, Name + TEXT("_z"));
+					}
+					if (type->vector_elements > 3)
+					{
+						append_scalar_params(original, base_type, Name + TEXT("_w"));
+					}
+				}
+				else if (type->is_matrix())
+				{
+					const char* matrix_names[4] = { "_Row0", "_Row1", "_Row2", "_Row3" };
+					unsigned rows = type->vector_elements;
+					for (unsigned r = 0; r < rows; ++r)
+					{
+						append_scalar_params(original, type->row_type(), Name + matrix_names[r]);
+					}
+				}
+				else if (type->base_type == GLSL_TYPE_STRUCT)
+				{
+					for (unsigned member_idx = 0; member_idx < type->length; ++member_idx)
+					{
+						glsl_struct_field& struct_field = type->fields.structure[member_idx];
+						append_scalar_params(original, struct_field.type, Name + TEXT("_") + struct_field.name);
+					}
+				}
+				else
+				{
+					check(0);
+				}
+			};
+
+			foreach_iter(exec_list_iterator, iter, in_sig->parameters)
+			{
+				ir_variable *var = (ir_variable *)iter.get();
+				append_scalar_params(var, var->type, FString(var->name));
+			}
+		}
+		else if (mode == ECallScalarizeMode::SplitCalls)
+		{
+			new_sig = new(parent) ir_function_signature(in_sig->return_type);
+			foreach_iter(exec_list_iterator, iter, in_sig->parameters)
+			{
+				ir_variable *var = (ir_variable *)iter.get();
+				new_sig->parameters.push_tail(new(parent) ir_variable(var->type->get_base_type(), var->name, var->mode));
+			}
 		}
 
-		if (max_components == 1)
-			return visit_continue_with_parent;
-
-		if (special_op == EVectorVMOp::noise)
+		if (new_sig)
 		{
-			//We scalarize noise slightly differently.
-			//Maybe we'll refactor this to some alternate mode for scalarization rather than specific to noise.
-
-			//Find the sig taking the right number of args.
-			ir_function* func = const_cast<ir_function*>(call->callee->function());//I'm not modifying anything here, I just don't have time to go in and write a const iterator.
-			ir_function_signature* correct_sig = nullptr;
-			foreach_iter(exec_list_iterator, iter, *func)
+			ir_function_signature* existing_sig = nullptr;
+			foreach_iter(exec_list_iterator, SigIter, *func)
 			{
-				ir_function_signature* sig = (ir_function_signature *)iter.get();
-				unsigned num_args = 0;
-				bool all_scalar = true;
-				foreach_iter(exec_list_iterator, param_iter, sig->parameters)
+				ir_function_signature* sig = (ir_function_signature *)SigIter.get();
+
+				bool bEquivelentSigs = true;//AreEquivalent(sig, new_sig);//TODO: Implement direct in hlslcc
+
+											//bEquivelentSigs &= sig->function() == new_sig->function();
+				bEquivelentSigs &= sig->return_type == new_sig->return_type;
+				exec_list_iterator sig_param_itr = sig->parameters.iterator();
+				exec_list_iterator new_sig_param_itr = new_sig->parameters.iterator();
+
+				for (; sig_param_itr.has_next() && new_sig_param_itr.has_next(); sig_param_itr.next(), new_sig_param_itr.next())
 				{
-					++num_args;
-					all_scalar &= ((ir_rvalue*)param_iter.get())->type->is_scalar();
+					ir_variable* param = (ir_variable*)sig_param_itr.get();
+					ir_variable* new_param = (ir_variable*)new_sig_param_itr.get();
+
+					bool bParamsEquiv = strcmp(param->name, new_param->name) == 0;
+					bParamsEquiv &= param->mode == new_param->mode;
+					bParamsEquiv &= param->type == new_param->type;
+					//Need more?
+					if (!bParamsEquiv)
+					{
+						bEquivelentSigs = false;
+						break;
+					}
 				}
-				if (num_args == max_components && all_scalar)
+				bEquivelentSigs &= !sig_param_itr.has_next() && !new_sig_param_itr.has_next();
+
+				//no need to check body here
+				//Other stuff would need checking for proper impl
+
+				if (bEquivelentSigs)
 				{
-					correct_sig = sig;
+					existing_sig = sig;
 					break;
 				}
 			}
 
-			if (!correct_sig)
+			if (existing_sig)
 			{
-				_mesa_glsl_error(parse_state, "could not find a correct signature for %s", func->name);
-				return visit_stop;
+				ralloc_free(new_sig);
+				return existing_sig;
+			}
+			else if (bCreateIfNotFound)
+			{
+				func->add_signature(new_sig);
+				return new_sig;
 			}
 
-			//For noise we want one call, but to split up the params to be individual components.
-			ir_variable* old_dest = call->return_deref->var;
-			void* perm_mem_ctx = ralloc_parent(call);
+			ralloc_free(new_sig);
+		}
 
-			dest_component = 0;
-			exec_list new_params;
-			for (unsigned i = 0; i < max_components; ++i)
+		return nullptr;
+	}
+	
+	virtual ir_visitor_status visit_enter(ir_call* call)
+	{
+		void* parent = ralloc_parent(call->callee);
+		ECallScalarizeMode mode = get_scalarize_mode(call->callee);
+
+		ir_function_signature* scalar_sig = FindScalarSig(call->callee, true);
+		
+		if (scalar_sig)
+		{
+			if (mode == ECallScalarizeMode::SplitParams)
 			{
-				dest_component = i;
-				curr_rval = nullptr;
-				foreach_iter(exec_list_iterator, param_iter, call->actual_parameters)
+				call->callee = scalar_sig;
+				exec_list old_params = call->actual_parameters;
+
+				call->actual_parameters.make_empty();
+
+				foreach_iter(exec_list_iterator, param_iter, old_params)
 				{
 					ir_rvalue* param = (ir_rvalue*)param_iter.get();
-					check(curr_rval == nullptr);
-					param->accept(this);
-					check(curr_rval);
-					curr_rval->remove();
-					new_params.push_tail(curr_rval);
+					dest_component = 0;
+
+					TFunction<void(ir_rvalue*)> add_scalar_param = [&](ir_rvalue* rval)
+					{
+						if (rval->type->is_scalar())
+						{
+							call->actual_parameters.push_tail(rval);
+						}
+						else
+						{
+							unsigned old_dest_comp = dest_component;
+							unsigned num_components = rval->type->base_type == GLSL_TYPE_STRUCT ? rval->type->length : rval->type->components();
+							dest_component = 0;
+							while (dest_component < num_components)
+							{
+								check(rval);
+								rval->accept(this);
+								check(curr_rval);
+
+								add_scalar_param(curr_rval);
+							}
+							dest_component = old_dest_comp;
+						}
+
+						++dest_component;//Move to next component in current context.
+					};
+
+					add_scalar_param(param);
 				}
 			}
+			else if (mode == ECallScalarizeMode::SplitCalls)
+			{
+				unsigned max_components = 0;
+				foreach_iter(exec_list_iterator, param_iter, call->actual_parameters)
+				{
+					ir_rvalue* param = (ir_rvalue *)param_iter.get();
+					check(param->type->base_type != GLSL_TYPE_STRUCT);
+					max_components = FMath::Max(max_components, param->type->components());
+				}
 
-			call->actual_parameters.make_empty();
-			call->actual_parameters.append_list(&new_params);
-			call->callee = correct_sig;
+				//Clone the call max_component times and visit each param to scalarize them to the right component.				
+				ir_variable* old_dest = call->return_deref->var;
+				void* perm_mem_ctx = ralloc_parent(call);
+				for (unsigned i = 0; i < max_components; ++i)
+				{
+					dest_component = i;
+
+					ir_variable* new_dest = new(perm_mem_ctx) ir_variable(old_dest->type->get_base_type(), old_dest->name, ir_var_temporary);
+					call->insert_before(new_dest);
+
+					exec_list new_params;
+					foreach_iter(exec_list_iterator, param_iter, call->actual_parameters)
+					{
+						ir_rvalue* param = (ir_rvalue*)param_iter.get();
+						param = param->clone(perm_mem_ctx, nullptr);
+						curr_rval = nullptr;
+						param->accept(this);
+						new_params.push_tail(curr_rval ? curr_rval : param);
+					}
+
+					call->insert_before(new(perm_mem_ctx)ir_call(scalar_sig, new(perm_mem_ctx) ir_dereference_variable(new_dest), &new_params));
+
+					ir_dereference* deref = call->return_deref->clone(perm_mem_ctx, nullptr);
+					unsigned write_mask = 1 << dest_component;
+					call->insert_before(new(perm_mem_ctx)ir_assignment(deref, new(perm_mem_ctx) ir_dereference_variable(new_dest), nullptr, write_mask));
+				}
+
+				call->remove();
+			}
 		}
 		else
 		{
-			//TODO: All this should work but in all my uses, the global funciton has been stripped as it's not technically in use in the IR at this point.
-			//TODO: I need to mark any of my intrinsics that may be scalarized as non-strippable.
-
-			//find the function signature for this function that takes only scalars.
-			ir_function* func = const_cast<ir_function*>(call->callee->function());//I'm not modifying anything here, I just don't have time to go in and write a const iterator.
-			ir_function_signature* scalar_sig = nullptr;
-			foreach_iter(exec_list_iterator, iter, *func)
-			{
-				ir_function_signature* sig = (ir_function_signature *)iter.get();
-				bool all_scalar = true;
-				foreach_iter(exec_list_iterator, param_iter, sig->parameters)
-				{
-					ir_variable *param = (ir_variable *)param_iter.get();
-					if (!param->type->is_scalar())
-					{
-						all_scalar = false;
-						break;
-					}
-				}
-				if (all_scalar)
-				{
-					scalar_sig = sig;
-				}
-			}
-
-			if (!scalar_sig)
-			{
-				_mesa_glsl_error(parse_state, "could not find a scalar signature for function %s", func->name);
-				return visit_stop;
-			}
-
-			//Clone the call max_component times and visit each param to scalarize them to the right component.
-			ir_variable* old_dest = call->return_deref->var;
-			void* perm_mem_ctx = ralloc_parent(call);
-			for (unsigned i = 0; i < max_components; ++i)
-			{
-				dest_component = i;
-
-				ir_variable* new_dest = new(perm_mem_ctx) ir_variable(old_dest->type->get_base_type(), old_dest->name, ir_var_temporary);
-				call->insert_before(new_dest);
-
-				exec_list new_params;
-				foreach_iter(exec_list_iterator, param_iter, call->actual_parameters)
-				{
-					ir_rvalue* param = (ir_rvalue*)param_iter.get();
-					param = param->clone(perm_mem_ctx, nullptr);
-					curr_rval = nullptr;
-					param->accept(this);
-					new_params.push_tail(curr_rval ? curr_rval : param);
-				}
-
-				call->insert_before(new(perm_mem_ctx)ir_call(scalar_sig, new(perm_mem_ctx) ir_dereference_variable(new_dest), &new_params));
-
-				ir_dereference* deref = call->return_deref->clone(perm_mem_ctx, nullptr);
-				unsigned write_mask = 1 << dest_component;
-				call->insert_before(new(perm_mem_ctx)ir_assignment(deref, new(perm_mem_ctx) ir_dereference_variable(new_dest), nullptr, write_mask));
-			}
-
-			call->remove();
+			_mesa_glsl_error(parse_state, "could not find a scalar signature for function %s", call->callee->function_name());
+			return visit_stop;
 		}
 
 		return visit_continue_with_parent;
@@ -276,8 +411,6 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 					comp_assign->write_mask = 1 << dest_component;
 				}
 
-				comp_assign->write_mask = is_struct ? 0 : 1 << dest_component;
-
 				curr_rval = nullptr;
 				comp_assign->rhs->accept(this);
 				if (curr_rval)
@@ -301,12 +434,14 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 	{
 		check(!is_struct);//We shouldn't be hitting a swizzle if we're splitting a struct assignment.
 
-		if (swiz->mask.num_components > 1)
+	//	if (swiz->mask.num_components > 1)
 		{
-			check(dest_component < swiz->mask.num_components);
+			//check(dest_component < swiz->mask.num_components);
+			unsigned use_component = FMath::Min(swiz->mask.num_components, dest_component);
+			check(swiz->val->as_swizzle() == nullptr);//Handling swizzles of swizzles is possible but avoid if possible.
 
 			unsigned src_comp = 0;
-			switch (dest_component)
+			switch (use_component)
 			{
 			case 0: src_comp = swiz->mask.x; break;
 			case 1: src_comp = swiz->mask.y; break;
@@ -316,26 +451,6 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 				break;
 			}
 
-			//Handle case where we're swizzling a matrix array access.
-			//Convert directly into a matrix swizzle
-			if (ir_dereference_array* array_deref = swiz->val->as_dereference_array())
-			{
-				void* perm_mem_ctx = ralloc_parent(array_deref);
-				const glsl_type* array_type = array_deref->array->type;
-				const glsl_type* type = array_deref->type;
-
-				//Only supporting array derefs for matrices atm.
-				check(array_type->is_matrix());
-
-				//Only support constant matrix indices. Not immediately clear how I'd do non-const access.
-				ir_constant* index = array_deref->array_index->as_constant();
-				check(index->type == glsl_type::uint_type && index->type->is_scalar());
-
-				src_comp = index->value.u[0] * array_type->vector_elements + src_comp;
-				ir_dereference_variable* matrix_deref = new(perm_mem_ctx)ir_dereference_variable(array_deref->variable_referenced());
-				swiz->val->replace_with(matrix_deref);
-				swiz->val = matrix_deref;
-			}
 
 			swiz->mask.num_components = 1;
 			swiz->mask.x = src_comp;
@@ -357,10 +472,13 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 
 		//Only support constant matrix indices. Not immediately clear how I'd do non-const access.
 		ir_constant* index = array_deref->array_index->as_constant();
-		check(index->type == glsl_type::uint_type && index->type->is_scalar());
+		check(index->type == glsl_type::uint_type || index->type == glsl_type::int_type);
+		check(index->type->is_scalar());
 
-		unsigned swiz_comp = index->value.u[0] * array_type->vector_elements + dest_component;
-		ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(array_deref, type->is_scalar() ? 0 : dest_component, 0, 0, 0, 1);
+		unsigned mat_comp = index->type == glsl_type::uint_type ? index->value.u[0] : index->value.i[0];
+		unsigned swiz_comp = mat_comp * array_type->vector_elements + dest_component;
+		ir_dereference_variable* new_deref = new(perm_mem_ctx) ir_dereference_variable(array_deref->variable_referenced());
+		ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(new_deref, type->is_scalar() ? 0 : swiz_comp, 0, 0, 0, 1);
 		curr_rval = swiz;
 
 		return visit_continue_with_parent;
@@ -381,9 +499,10 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 		else
 		{
 			check(deref->type->is_numeric());
-			check(type->components() >= dest_component || type->is_scalar());
+			//check(type->components() >= dest_component || type->is_scalar());
+			unsigned use_component = FMath::Min(type->components(), dest_component);
 
-			ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(deref, type->is_scalar() ? 0 : dest_component, 0, 0, 0, 1);
+			ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(deref, type->is_scalar() ? 0 : use_component, 0, 0, 0, 1);
 			curr_rval = swiz;
 		}
 
@@ -407,9 +526,10 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 			if (!type->is_scalar())
 			{
 				check(var->type->is_numeric());
-				check(type->components() > dest_component);
+				//check(type->components() > dest_component);
+				unsigned use_component = FMath::Min(type->components(), dest_component);
 
-				ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(deref, dest_component, 0, 0, 0, 1);
+				ir_swizzle* swiz = new(perm_mem_ctx) ir_swizzle(deref, use_component, 0, 0, 0, 1);
 				curr_rval = swiz;
 			}
 		}
@@ -467,8 +587,12 @@ public:
 
 		do
 		{
-			progress = do_dead_code(ir, false);
-			progress = do_dead_code_local(ir) || progress;
+			//We can now split up structures as everything is accessed by individual components. Makes subsequent visitors simpler.
+			progress = do_structure_splitting(ir, state);
+
+			progress = do_dead_code(ir, false);			
+			//This falls over on some matrix swizzles so leave it out for now.
+			//progress = do_dead_code_local(ir) || progress;
 		} while (progress);
 	}
 };

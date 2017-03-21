@@ -14,6 +14,5 @@ class INiagaraModule : public IModuleInterface
 public:
 
 	virtual void StartupModule()override;
-
 };
 

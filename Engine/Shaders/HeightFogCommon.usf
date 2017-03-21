@@ -12,6 +12,10 @@
 #define SUPPORT_FOG_DIRECTIONAL_LIGHT_INSCATTERING 1
 #endif
 
+#ifndef SUPPORT_VOLUMETRIC_FOG
+#define SUPPORT_VOLUMETRIC_FOG (FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
+#endif
+
 static const float FLT_EPSILON = 0.001f;
 static const float FLT_EPSILON2 = 0.01f;
 
@@ -29,9 +33,10 @@ TextureCube FogInscatteringColorCubemap;
 SamplerState FogInscatteringColorSampler;
 /** mip distance scale in x, bias in y, num mips in z */
 float3 FogInscatteringTextureParameters;
+float ApplyVolumetricFog;
 
 // @param WorldPositionRelativeToCamera = WorldPosition - InCameraPosition
-half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera)
+half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera, float ExcludeDistance)
 {
 	/** Color to use. */
 	const half3 ExponentialFogColor = ExponentialFogColorParameter.xyz;
@@ -46,6 +51,23 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera)
 	float RayOriginTerms = ExponentialFogParameters.x;
 	float RayLength = CameraToReceiverLength;
 	float RayDirectionZ = CameraToReceiver.z;
+
+	ExcludeDistance = max(ExcludeDistance, ExponentialFogParameters.w);
+
+	if (ExcludeDistance > 0)
+	{
+		float ExcludeIntersectionTime = ExcludeDistance * CameraToReceiverLengthInv;
+		float CameraToExclusionIntersectionZ = ExcludeIntersectionTime * CameraToReceiver.z;
+		float ExclusionIntersectionZ = View.WorldCameraOrigin.z + CameraToExclusionIntersectionZ;
+		float ExclusionIntersectionToReceiverZ = CameraToReceiver.z - CameraToExclusionIntersectionZ;
+
+		// Calculate fog off of the ray starting from the exclusion distance, instead of starting from the camera
+		RayLength = (1.0f - ExcludeIntersectionTime) * CameraToReceiverLength;
+		RayDirectionZ = ExclusionIntersectionToReceiverZ;
+
+		float Exponent = max(-127.0f, ExponentialFogParameters.y * (ExclusionIntersectionZ - ExponentialFogParameters3.y));
+		RayOriginTerms = ExponentialFogParameters3.x * exp2(-Exponent);
+	}
 
 #if USE_GLOBAL_CLIP_PLANE
 
@@ -79,7 +101,7 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera)
 	float EffectiveZ = (abs(RayDirectionZ) > FLT_EPSILON2) ? RayDirectionZ : FLT_EPSILON2;
 	float Falloff = max(-127.0f, ExponentialFogParameters.y * EffectiveZ);	// if it's lower than -127.0, then exp2() goes crazy in OpenGL's GLSL.
 	float ExponentialHeightLineIntegralShared = RayOriginTerms * (1.0f - exp2(-Falloff) ) / Falloff;
-	float ExponentialHeightLineIntegral = ExponentialHeightLineIntegralShared * max(RayLength - ExponentialFogParameters.w, 0.0f);
+	float ExponentialHeightLineIntegral = ExponentialHeightLineIntegralShared * RayLength;
 
 	half3 Inscattering = ExponentialFogColor;
 	half3 DirectionalInscattering = 0;
@@ -126,8 +148,59 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera)
 	return half4((Inscattering) * (1 - ExpFogFactor) + DirectionalInscattering, ExpFogFactor);
 }
 
-half4 CalculateVertexHeightFog(float3 WorldPositionRelativeToCamera)
+Texture3D IntegratedLightScattering;
+SamplerState IntegratedLightScatteringSampler;
+
+float4 CombineVolumetricFog(float4 GlobalFog, float3 VolumeUV)
 {
-	return GetExponentialHeightFog(WorldPositionRelativeToCamera);
+	float4 VolumetricFogLookup = float4(0, 0, 0, 1);
+
+	if (ApplyVolumetricFog > 0)
+	{
+		VolumetricFogLookup = Texture3DSampleLevel(IntegratedLightScattering, IntegratedLightScatteringSampler, VolumeUV, 0);
+	}
+
+	// Visualize depth distribution
+	//VolumetricFogLookup.rgb += .1f * frac(min(ZSlice, 1.0f) / View.VolumetricFogInvGridSize.z);
+
+	return float4(VolumetricFogLookup.rgb + GlobalFog.rgb * VolumetricFogLookup.a, VolumetricFogLookup.a * GlobalFog.a);
+}
+
+float4 CalculateCombinedFog(float3 WorldPositionRelativeToCamera, float3 VolumeUV)
+{
+	float ExcludeDistance = 0;
+
+#if SUPPORT_VOLUMETRIC_FOG
+	float InvCosAngle = length(WorldPositionRelativeToCamera) / dot(WorldPositionRelativeToCamera, View.ViewForward);
+	// Volumetric fog covers up to MaxDistance along ViewZ, exclude analytical fog from this range
+	ExcludeDistance = max(View.VolumetricFogMaxDistance * InvCosAngle, 0);
+#endif
+
+	float4 FogInscatteringAndOpacity = GetExponentialHeightFog(WorldPositionRelativeToCamera, ExcludeDistance);
+
+#if SUPPORT_VOLUMETRIC_FOG
+	FogInscatteringAndOpacity = CombineVolumetricFog(FogInscatteringAndOpacity, VolumeUV);
+#endif
+
+	return FogInscatteringAndOpacity;
+}
+
+float ComputeNormalizedZSliceFromDepth(float SceneDepth)
+{
+	return log2(SceneDepth * View.VolumetricFogGridZParams.x + View.VolumetricFogGridZParams.y) * View.VolumetricFogGridZParams.z * View.VolumetricFogInvGridSize.z;
+}
+
+float3 ComputeVolumeUV(float3 WorldPosition, float4x4 WorldToClip)
+{
+	float4 NDCPosition = mul(float4(WorldPosition, 1), WorldToClip);
+	NDCPosition.xy /= NDCPosition.w;
+	return float3(NDCPosition.xy * float2(.5f, -.5f) + .5f, ComputeNormalizedZSliceFromDepth(NDCPosition.w));
+}
+
+half4 CalculateHeightFog(float3 WorldPositionRelativeToCamera)
+{
+	float3 WorldPosition = WorldPositionRelativeToCamera + ResolvedView.TranslatedWorldCameraOrigin - ResolvedView.PreViewTranslation.xyz;
+	float3 VolumeUV = ComputeVolumeUV(WorldPosition, ResolvedView.WorldToClip);
+	return CalculateCombinedFog(WorldPositionRelativeToCamera, VolumeUV);
 }
 

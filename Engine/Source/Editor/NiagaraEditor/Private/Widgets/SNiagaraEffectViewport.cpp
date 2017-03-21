@@ -139,14 +139,16 @@ void SNiagaraEffectViewport::Tick( const FGeometry& AllottedGeometry, const doub
 
 void SNiagaraEffectViewport::SetPreviewComponent(UNiagaraComponent* NiagaraComponent)
 {
+	if (PreviewComponent != nullptr)
+	{
+		PreviewScene.RemoveComponent(PreviewComponent);
+	}
 	PreviewComponent = NiagaraComponent;
 
-	FTransform Transform = FTransform::Identity;
-	PreviewScene.RemoveComponent(PreviewComponent);
-	PreviewScene.AddComponent(PreviewComponent, Transform);
-
+	if (PreviewComponent != nullptr)
 	{
-		FComponentReregisterContext ReregisterContext(PreviewComponent);
+		FTransform Transform = FTransform::Identity;
+		PreviewScene.AddComponent(PreviewComponent, Transform);
 	}
 }
 

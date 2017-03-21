@@ -15,6 +15,8 @@
 #include "GlobalDistanceField.h"
 #include "FXSystem.h"
 #include "PostProcess/PostProcessSubsurface.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 int32 GAOScatterTileCulling = 1;
 FAutoConsoleVariableRef CVarAOScatterTileCulling(
@@ -130,7 +132,7 @@ public:
 		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, ARRAY_COUNT(OutUAVs));
 
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ObjectBufferParameters.Set(RHICmdList, ShaderRHI, *(Scene->DistanceFieldSceneData.ObjectBuffers), Scene->DistanceFieldSceneData.NumObjectsInBuffer);
 		CulledObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
@@ -194,8 +196,7 @@ void CullObjectsToView(FRHICommandListImmediate& RHICmdList, FScene* Scene, cons
 	}
 
 	{
-		uint32 ClearValues[4] = { 0 };
-		RHICmdList.ClearUAV(CulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV, ClearValues);
+		ClearUAV(RHICmdList, GMaxRHIFeatureLevel, CulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
 
 		TShaderMapRef<FCullObjectsForViewCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
 		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -248,7 +249,7 @@ public:
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 
@@ -346,7 +347,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FDistanceFieldAOParameters& Parameters)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
@@ -415,7 +416,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FVector2D NumGroupsValue, const FDistanceFieldAOParameters& Parameters)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 
@@ -495,7 +496,7 @@ public:
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
 
@@ -547,17 +548,23 @@ void ScatterTilesToObjects(FRHICommandListImmediate& RHICmdList, const FViewInfo
 	PixelShader->GetUAVs(View, UAVs);
 	RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToGfx, UAVs.GetData(), UAVs.Num());
 	RHICmdList.SetRenderTargets(0, (const FRHIRenderTargetView*)NULL, NULL, UAVs.Num(), UAVs.GetData());
+	
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 	RHICmdList.SetViewport(0, 0, 0.0f, TileListGroupSize.X, TileListGroupSize.Y, 1.0f);
 
 	// Render backfaces since camera may intersect
-	RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	GraphicsPSOInit.RasterizerState = View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-	static FGlobalBoundShaderState BoundShaderState;
-				
-	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	VertexShader->SetParameters(RHICmdList, View, Parameters);
 	PixelShader->SetParameters(RHICmdList, View, FVector2D(TileListGroupSize.X, TileListGroupSize.Y), Parameters);
@@ -619,14 +626,11 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 				ComputeShader->UnsetParameters(RHICmdList, View);
 			}
 
-			// Indicates the clear value for each channel of the UAV format
-			uint32 ZeroClearValues[4] = { 0 };
-
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, CountTileObjectIntersections);
 
 				// Start at 0 tiles per object
-				RHICmdList.ClearUAV(TileIntersectionResources->NumCulledTilesArray.UAV, ZeroClearValues);
+				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, TileIntersectionResources->NumCulledTilesArray, 0);
 
 				// Rasterize object bounding shapes and intersect with screen tiles to compute how many tiles intersect each object
 				ScatterTilesToObjects<true>(RHICmdList, View, TileListGroupSize, Parameters);
@@ -635,7 +639,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, ComputeStartOffsets);
 				// Start at 0 threadgroups
-				RHICmdList.ClearUAV(TileIntersectionResources->ObjectTilesIndirectArguments.UAV, ZeroClearValues);
+				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, TileIntersectionResources->ObjectTilesIndirectArguments, 0);
 
 				// Accumulate how many cone trace threadgroups we should dispatch, and also compute the start offset for each object's culled tile data
 				TShaderMapRef<FComputeCulledTilesStartOffsetCS> ComputeShader(View.ShaderMap);
@@ -653,7 +657,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 				SCOPED_DRAW_EVENT(RHICmdList, CullTilesToObjects);
 
 				// Start at 0 tiles per object
-				RHICmdList.ClearUAV(TileIntersectionResources->NumCulledTilesArray.UAV, ZeroClearValues);
+				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, TileIntersectionResources->NumCulledTilesArray, 0);
 
 				// Rasterize object bounding shapes and intersect with screen tiles, and write out intersecting tile indices for the cone tracing pass
 				ScatterTilesToObjects<false>(RHICmdList, View, TileListGroupSize, Parameters);

@@ -137,10 +137,11 @@ public:
 		FORCEINLINE float GetTexelFactor() const { return State.Elements[CurrElementIndex].TexelFactor; }
 		FORCEINLINE bool GetForceLoad() const { return State.Elements[CurrElementIndex].bForceLoad; }
 
+		FBoxSphereBounds GetBounds() const;
+
 	protected:
 
 		FORCEINLINE const UPrimitiveComponent* GetComponent() const { return State.Elements[CurrElementIndex].Component; }
-		FBoxSphereBounds GetBounds() const;
 
 		const FTextureInstanceView& State;
 		int32 CurrElementIndex;

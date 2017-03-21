@@ -14,6 +14,7 @@
 #include "Serialization/CustomVersion.h"
 #include "Shader.h"
 #include "Misc/EngineVersion.h"
+#include "PipelineStateCache.h"
 
 DECLARE_STATS_GROUP(TEXT("Shader Cache"),STATGROUP_ShaderCache, STATCAT_Advanced);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Shaders Cached"),STATGROUP_NumShadersCached,STATGROUP_ShaderCache);
@@ -1397,18 +1398,6 @@ void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList, float Del
 			// which means we can delete the resources without crashing MTGL.
 			RHIFlushResources();
 			
-			RHICmdList.SetBoundShaderState(CurrentShaderState);
-			
-			FBlendStateRHIRef BlendState = RHICreateBlendState(CurrentDrawKey.BlendState);
-			FDepthStencilStateRHIRef DepthStencil = RHICreateDepthStencilState(CurrentDrawKey.DepthStencilState);
-			FRasterizerStateRHIRef Rasterizer = RHICreateRasterizerState(CurrentDrawKey.RasterizerState);
-			
-			RHICmdList.SetBlendState(BlendState);
-			RHICmdList.SetDepthStencilState(DepthStencil);
-			RHICmdList.SetRasterizerState(Rasterizer);
-
-			RHICmdList.SetViewport(Viewport[0], Viewport[1], DepthRange[0], Viewport[2], Viewport[3], DepthRange[1]);
-			
 			if ( ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Num() == 0 )
 			{
 				PredrawRTs.Empty();
@@ -2110,9 +2099,10 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			
 			RHICmdList.SetRenderTargets(NewNumRenderTargets, RenderTargets, bDepthStencilTarget ? &DepthStencilTarget : nullptr, 0, nullptr);
 			
-			RHICmdList.SetBlendState(BlendState);
-			RHICmdList.SetDepthStencilState(DepthStencil);
-			RHICmdList.SetRasterizerState(Rasterizer);
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+			GraphicsPSOInit.BlendState = BlendState;
+			GraphicsPSOInit.DepthStencilState = DepthStencil;
+			GraphicsPSOInit.RasterizerState = Rasterizer;
 
 			for( auto VertexDec : Shader.VertexDeclaration )
 			{
@@ -2156,6 +2146,13 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 																	 DomainShader,
 																	 PixelShader,
 																	 GeometryShader );
+
+						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = VertexDeclaration;
+						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader;
+						GraphicsPSOInit.BoundShaderState.HullShaderRHI = HullShader;
+						GraphicsPSOInit.BoundShaderState.DomainShaderRHI = DomainShader;
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader;
+						GraphicsPSOInit.BoundShaderState.GeometryShaderRHI = GeometryShader;
 					}
 				}
 			}
@@ -2163,7 +2160,9 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			if ( IsValidRef( ShaderBoundState ) )
 			{
 				bWasBound = true;
-				RHICmdList.SetBoundShaderState(ShaderBoundState);
+				GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+				FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
+				RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
 			}
 			else
 			{

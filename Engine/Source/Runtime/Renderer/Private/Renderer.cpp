@@ -53,7 +53,7 @@ public:
 	}
 };
 
-static TGlobalResource<FMinimalDummyForwardLightingResources> GMinimalDummyForwardLightingResources;
+static TGlobalResource<FMinimalDummyForwardLightingResources>* GMinimalDummyForwardLightingResources = NULL;
 
 DEFINE_LOG_CATEGORY(LogRenderer);
 
@@ -83,7 +83,7 @@ void FRendererModule::InitializeSystemTextures(FRHICommandListImmediate& RHICmdL
 	GSystemTextures.InitializeTextures(RHICmdList, GMaxRHIFeatureLevel);
 }
 
-void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
+void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
 {
 	if (!GUsingNullRHI)
 	{
@@ -91,13 +91,15 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
 		FViewInfo View(&SceneView);
 		
+		if (!GMinimalDummyForwardLightingResources)
+		{
+			GMinimalDummyForwardLightingResources = new TGlobalResource<FMinimalDummyForwardLightingResources>();
+		}
+
 		//Apply the minimal forward lighting resources
-		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources.ForwardLightingResources;
+		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources->ForwardLightingResources;
 		
 		View.InitRHIResources();
-
-		//TODO ResetState
-		FDrawingPolicyRenderState DrawRenderState(&RHICmdList, SceneView);
 
 		const auto FeatureLevel = View.GetFeatureLevel();
 	
@@ -125,7 +127,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		else
 		{
 			// make sure we are doing opaque drawing
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
+			DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			// draw the mesh
 			if (bIsHitTesting)

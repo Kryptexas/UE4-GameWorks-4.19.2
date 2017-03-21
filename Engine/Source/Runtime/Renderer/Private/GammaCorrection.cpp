@@ -14,6 +14,8 @@
 #include "GlobalShader.h"
 #include "SceneRendering.h"
 #include "PostProcess/SceneFilterRendering.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 /** Encapsulates the gamma correction pixel shader. */
 class FGammaCorrectionPS : public FGlobalShader
@@ -91,25 +93,45 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdL
 	// Deferred the clear until here so the garbage left in the non rendered regions by the post process effects do not show up
 	if( ViewFamily.bDeferClear )
 	{
-		RHICmdList.ClearColorTexture(ViewFamily.RenderTarget->GetRenderTargetTexture(), FLinearColor::Black);
+		if (ensure(ViewFamily.RenderTarget->GetRenderTargetTexture()->GetClearColor() == FLinearColor::Black))
+		{
+			FRHIRenderTargetView RtView = FRHIRenderTargetView(ViewFamily.RenderTarget->GetRenderTargetTexture(), ERenderTargetLoadAction::EClear);
+			FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+			RHICmdList.SetRenderTargetsAndClear(Info);
+		}
+		else
+		{
+			SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+		}
 		ViewFamily.bDeferClear = false;
+	}
+	else
+	{
+		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 	}
 
 	SCOPED_DRAW_EVENT(RHICmdList, GammaCorrection);
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 	// turn off culling and blending
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
 	// turn off depth reads/writes
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 	TShaderMapRef<FGammaCorrectionVS> VertexShader(View->ShaderMap);
 	TShaderMapRef<FGammaCorrectionPS> PixelShader(View->ShaderMap);
 
-	static FGlobalBoundShaderState PostProcessBoundShaderState;
-	
-	SetGlobalBoundShaderState(RHICmdList, View->GetFeatureLevel(), PostProcessBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	float InvDisplayGamma = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 

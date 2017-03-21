@@ -288,6 +288,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenSpaceAO, SFG_LightingFeatures, LOCTEXT("ScreenS
 SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceFieldAO, SFG_LightingFeatures, LOCTEXT("DistanceFieldAOSF", "Distance Field Ambient Occlusion"))
 /** Distance field GI */
 SHOWFLAG_FIXED_IN_SHIPPING(1, DistanceFieldGI, SFG_Hidden, LOCTEXT("DistanceFieldGISF", "Distance Field Global Illumination"))
+/** SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
+SHOWFLAG_ALWAYS_ACCESSIBLE(VolumetricFog, SFG_LightingFeatures, LOCTEXT("VolumetricFogSF", "Volumetric Fog"))
 /** Visualize screen space reflections, for developer (by default off): */
 SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeSSR, SFG_Visualize, LOCTEXT("VisualizeSSR", "Screen Space Reflections"))
 /** Visualize the Shading Models, mostly or debugging and profiling */

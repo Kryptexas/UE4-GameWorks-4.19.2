@@ -322,15 +322,25 @@ void FD3D12DynamicRHI::IssueLongGPUTask()
 			FRHICommandList_RecursiveHazardous RHICmdList(RHIGetDefaultContext());
 
 			SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 			auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 			TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 			TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 
-			RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(GD3D12Vector4VertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GD3D12Vector4VertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+			RHICmdList.SetLocalGraphicsPipelineState(RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit));
+			RHICmdList.SetBlendFactor(FLinearColor::Black);
 
 			// Draw a fullscreen quad
 			FVector4 Vertices[4];

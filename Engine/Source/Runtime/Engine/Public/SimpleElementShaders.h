@@ -10,6 +10,8 @@
 #include "ShaderParameters.h"
 #include "Shader.h"
 #include "GlobalShader.h"
+#include "SceneTypes.h"
+#include "Engine/EngineTypes.h"
 
 /**
  * A vertex shader for rendering a texture on a simple element.

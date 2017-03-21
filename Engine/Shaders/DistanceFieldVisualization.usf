@@ -32,6 +32,7 @@ void RayTraceThroughTileCulledDistanceFields(float3 WorldRayStart, float3 WorldR
 		float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
 		float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
 		float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
+		float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
 
 		float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 		float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
@@ -56,7 +57,7 @@ void RayTraceThroughTileCulledDistanceFields(float3 WorldRayStart, float3 WorldR
 				float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
 				float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
 				float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-				float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x;
+				float DistanceField = SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x;
 				MinDistance = min(MinDistance, DistanceField);
 
 				float MinStepSize = 1.0f / (4 * MaxSteps);

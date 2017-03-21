@@ -8,6 +8,7 @@
 #include "Misc/NotifyHook.h"
 #include "EditorUndoClient.h"
 #include "AssetEditorToolkit.h"
+#include "UObject/GCObject.h"
 
 class IDetailsView;
 class SGraphEditor;
@@ -18,7 +19,7 @@ class FNiagaraScriptViewModel;
 class FNiagaraObjectSelection;
 
 /** Viewer/editor for a DataTable */
-class FNiagaraScriptToolkit : public FAssetEditorToolkit
+class FNiagaraScriptToolkit : public FAssetEditorToolkit, public FGCObject
 {
 public:
 	FNiagaraScriptToolkit();
@@ -38,6 +39,23 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	//~ End IToolkit Interface
+
+	/** The original NiagaraScript being edited by this editor.. */
+	UNiagaraScript* OriginalNiagaraScript;
+
+	/** The transient, duplicated script that is being edited by this editor.*/
+	UNiagaraScript* EditedNiagaraScript;
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
+
+protected:
+	//~ FAssetEditorToolkit interface
+	virtual void GetSaveableObjects(TArray<UObject*>& OutObjects) const override;
+	virtual void SaveAsset_Execute() override;
+	virtual void SaveAssetAs_Execute() override;
+	virtual bool OnRequestClose() override;
 
 private:
 
@@ -65,13 +83,15 @@ private:
 	/** Refreshes the nodes in the script graph, updating the pins to match external changes. */
 	void RefreshNodes();
 
-
-	void OnExternalAssetSaved(const FString& Path, UObject* Object);
-
 	FSlateIcon GetRefreshStatusImage() const;
 	FText GetRefreshStatusTooltip() const;
 	
 private:
+	/** Command for the apply button */
+	void OnApply();
+	bool OnApplyEnabled() const;
+
+	void UpdateOriginalNiagaraScript();
 
 	/** The Script being edited */
 	TSharedPtr<FNiagaraScriptViewModel> ScriptViewModel;
@@ -83,7 +103,4 @@ private:
 	static const FName NodeGraphTabId; 
 	static const FName DetailsTabId;
 	static const FName ParametersTabId;
-
-	FDelegateHandle PackageSavedDelegate;
-	bool NeedsRefresh;
 };

@@ -12,7 +12,6 @@
 #include "Containers/StaticArray.h"
 #include "RHI.h"
 #include "RenderResource.h"
-#include "UnrealClient.h"
 #include "Misc/ScopedEvent.h"
 
 extern RHI_API FCriticalSection StaticStateRHICriticalSection;

@@ -235,6 +235,7 @@ public:
 	int32 DynamicParameterDataOffset;
 	/** Offset to the light module data payload.						*/
 	int32 LightDataOffset;
+	float LightVolumetricScatteringIntensity;
 	/** The offset to the Orbit module payload in the particle data.	*/
 	int32 OrbitModuleOffset;
 	/** The offset to the Camera payload in the particle data.			*/

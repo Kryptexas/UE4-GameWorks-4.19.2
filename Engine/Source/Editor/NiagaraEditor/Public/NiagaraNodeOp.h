@@ -35,7 +35,7 @@ public:
 
 	//~ Begin UNiagaraNode Interface
 	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs) override;
-	virtual void RefreshFromExternalChanges() override;
+	virtual bool RefreshFromExternalChanges() override;
 	virtual ENiagaraNumericOutputTypeSelectionMode GetNumericOutputTypeSelectionMode() const override;
 	//~ End UNiagaraNode Interface
 };

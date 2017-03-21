@@ -174,9 +174,9 @@ bool FDebugViewModeMaterialProxy::GetTextureValue(const FName ParameterName,cons
 	return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterName,OutValue,Context);
 }
 
-int32 FDebugViewModeMaterialProxy::GetMaterialDomain() const
+EMaterialDomain FDebugViewModeMaterialProxy::GetMaterialDomain() const
 {
-	return Material ? (int32)Material->MaterialDomain : (int32)MD_Surface;
+	return Material ? (EMaterialDomain)(Material->MaterialDomain) : MD_Surface;
 }
 
 bool FDebugViewModeMaterialProxy::IsTwoSided() const

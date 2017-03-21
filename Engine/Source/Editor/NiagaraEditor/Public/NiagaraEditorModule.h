@@ -13,6 +13,7 @@ class IAssetTools;
 class IAssetTypeActions;
 struct FNiagaraCompileResults;
 class INiagaraEditorTypeUtilities;
+class UNiagaraSettings;
 
 /** Niagara Editor module */
 class FNiagaraEditorModule : public IModuleInterface,
@@ -50,7 +51,10 @@ public:
 
 private:
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
+	void OnNiagaraSettingsChangedEvent(const FString& PropertyName, const UNiagaraSettings* Settings);
 
+	/** Compile the specified script. */
+	ENiagaraScriptCompileStatus CompileEffectScript(class UNiagaraScript* ScriptToCompile, FString& OutGraphLevelErrorMessages);
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
@@ -61,6 +65,11 @@ private:
 	TMap<FNiagaraTypeDefinition, TSharedRef<INiagaraEditorTypeUtilities>> TypeToEditorUtilitiesMap;
 
 	static EAssetTypeCategories::Type NiagaraAssetCategory;
+
+	FDelegateHandle CreateEmitterTrackEditorHandle;
+	FDelegateHandle CreateSystemTrackEditorHandle;
+	FDelegateHandle CreateFloatParameterTrackEditorHandle;
+	FDelegateHandle CreateBoolParameterTrackEditorHandle;
 };
 
 

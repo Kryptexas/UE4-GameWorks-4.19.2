@@ -37,6 +37,7 @@ public:
 	virtual FGuid GetId() const override;
 	virtual FName GetName() const override;
 	virtual void NameTextComitted(const FText& Name, ETextCommit::Type CommitInfo) override;
+	virtual bool VerifyNodeNameTextChanged(const FText& NewText, FText& OutErrorMessage) override;
 	virtual FText GetTypeDisplayName() const override;
 	virtual TSharedPtr<FNiagaraTypeDefinition> GetType() const override;
 	virtual void SelectedTypeChanged(TSharedPtr<FNiagaraTypeDefinition> Item, ESelectInfo::Type SelectionType) override;
@@ -47,6 +48,9 @@ public:
 	virtual void NotifyBeginDefaultValueChange() override;
 	virtual void NotifyEndDefaultValueChange() override;
 	virtual void NotifyDefaultValueChanged() override;
+	virtual bool CanChangeSortOrder() const override;
+	virtual int32 GetSortOrder() const override;
+	virtual void SetSortOrder(int32 SortOrder) override;
 
 	/** Gets a multicast delegate which is called whenever the name of this parameter changes. */
 	FOnNameChanged& OnNameChanged();

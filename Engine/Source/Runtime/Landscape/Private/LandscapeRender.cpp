@@ -563,6 +563,11 @@ void ULandscapeComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMater
 		OutMaterials.Add(OverrideHoleMaterial);
 	}
 
+	if (MobileMaterialInterface)
+	{
+		OutMaterials.AddUnique(MobileMaterialInterface);
+	}
+
 #if WITH_EDITORONLY_DATA
 	if (EditToolRenderData)
 	{

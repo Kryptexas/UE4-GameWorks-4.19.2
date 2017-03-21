@@ -115,6 +115,7 @@
 #include "Materials/MaterialExpressionReroute.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
+#include "Materials/MaterialExpressionSign.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
@@ -1496,14 +1497,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				InputExpression  = RerouteInput->TraceInputsToRealExpression(ExpressionOutputIndex);
 				if (InputExpression == nullptr)
 				{
-					if (Desc.Len() > 0)
-					{
-						return Compiler->Errorf(TEXT("%s> Missing rerouted input texture"), *Desc);
-					}
-					else
-					{
-						return Compiler->Errorf(TEXT("TextureSample> Missing rerouted input texture"));
-					}
+					return CompilerError(Compiler, TEXT("Missing rerouted input texture"));
 				}
 				else if (OutputIndex >= 0)
 				{
@@ -1533,6 +1527,15 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 
 		if (EffectiveTexture && VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("TextureSample")), EffectiveTexture, EffectiveSamplerType))
 		{
+			if (TextureCodeIndex != INDEX_NONE)
+			{
+				const EMaterialValueType TextureType = Compiler->GetParameterType(TextureCodeIndex);
+				if (TextureType == MCT_TextureCube && !Coordinates.GetTracedInput().Expression)
+				{
+					return CompilerError(Compiler, TEXT("UV input required for cubemap sample"));
+				}
+			}
+
 			return Compiler->TextureSample(
 				TextureCodeIndex,
 				Coordinates.GetTracedInput().Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
@@ -1551,14 +1554,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 	}
 	else
 	{
-		if (Desc.Len() > 0)
-		{
-			return Compiler->Errorf(TEXT("%s> Missing input texture"), *Desc);
-		}
-		else
-		{
-			return Compiler->Errorf(TEXT("TextureSample> Missing input texture"));
-		}
+		return CompilerError(Compiler, TEXT("Missing input texture"));
 	}
 }
 #endif // WITH_EDITOR
@@ -4955,6 +4951,49 @@ void UMaterialExpressionTruncate::GetExpressionToolTip(TArray<FString>& OutToolT
 #endif // WITH_EDITOR
 
 //
+//	UMaterialExpressionSign
+//
+UMaterialExpressionSign::UMaterialExpressionSign(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionSign::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Sign input"));
+	}
+	return Compiler->Sign(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionSign::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Sign"));
+}
+
+void UMaterialExpressionSign::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns -1 if the input is less than 0, 1 if greater, or 0 if equal."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
 //	UMaterialExpressionFmod
 //
 
@@ -7855,7 +7894,7 @@ UMaterialExpressionActorPositionWS::UMaterialExpressionActorPositionWS(const FOb
 #if WITH_EDITOR
 int32 UMaterialExpressionActorPositionWS::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (Material != nullptr && (Material->MaterialDomain != MD_Surface) && (Material->MaterialDomain != MD_DeferredDecal))
+	if (Material != nullptr && (Material->MaterialDomain != MD_Surface) && (Material->MaterialDomain != MD_DeferredDecal) && (Material->MaterialDomain != MD_Volume))
 	{
 		return CompilerError(Compiler, TEXT("Expression only available in the Surface and Deferred Decal material domains."));
 	}
@@ -12058,11 +12097,11 @@ UMaterialExpressionVertexInterpolator::UMaterialExpressionVertexInterpolator(con
 #if WITH_EDITOR
 int32 UMaterialExpressionVertexInterpolator::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (Input.Expression)
+	if (Input.GetTracedInput().Expression)
 	{
-		if (InterpolatorIndex == INDEX_NONE || InterpolatorOffset != INDEX_NONE)
+		if (InterpolatorIndex == INDEX_NONE)
 		{
-			return Compiler->Errorf(TEXT("Failed interpolator pre-compile or recursively post-compiled."));
+			return Compiler->Errorf(TEXT("Failed to compile interpolator input."));
 		}
 		else
 		{
@@ -12082,7 +12121,7 @@ int32 UMaterialExpressionVertexInterpolator::CompileInput(class FMaterialCompile
 	InterpolatedType = MCT_Unknown;
 	InterpolatorOffset = INDEX_NONE;
 
-	if (Input.Expression)
+	if (Input.GetTracedInput().Expression)
 	{
 		int32 InternalCode = Input.Compile(Compiler);
 		Compiler->CustomOutput(this, AssignedInterpolatorIndex, InternalCode);

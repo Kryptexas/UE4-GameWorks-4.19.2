@@ -388,6 +388,9 @@ struct ITextureStreamingManager : public IStreamingManager
 
 	/** Set current pause state for texture streaming */
 	virtual void PauseTextureStreaming(bool bInShouldPause) = 0;
+
+	/** Return all bounds related to the ref object */
+	ENGINE_API virtual void GetObjectReferenceBounds(const UObject* RefObject, TArray<FBox>& AssetBoxes) = 0;
 };
 
 /**

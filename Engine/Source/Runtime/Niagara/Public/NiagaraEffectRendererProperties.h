@@ -17,6 +17,7 @@
 
 class NiagaraEffectRenderer;
 class UMaterial;
+class UMaterialInterface;
 
 UCLASS(ABSTRACT)
 class NIAGARA_API UNiagaraEffectRendererProperties : public UObject
@@ -25,6 +26,7 @@ class NIAGARA_API UNiagaraEffectRendererProperties : public UObject
 
 public:
 	virtual NiagaraEffectRenderer* CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL ( UNiagaraEffectRendererProperties::CreateEffectRenderer, return nullptr;);
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const PURE_VIRTUAL(UNiagaraEffectRendererProperties::GetUsedMaterials,);
 
 #if WITH_EDITORONLY_DATA
 	virtual bool IsMaterialValidForRenderer(UMaterial* Material, FText& InvalidMessage) { return true; }

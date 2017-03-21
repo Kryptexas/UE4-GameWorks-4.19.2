@@ -294,8 +294,6 @@ void FMetalGPUProfiler::PopEvent()
 //TGlobalResource<FVector4VertexDeclaration> GMetalVector4VertexDeclaration;
 TGlobalResource<FTexture> GMetalLongTaskRT;
 
-static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
-
 void FMetalGPUProfiler::BeginFrame()
 {
     if(!CurrentEventNodeFrame)
@@ -332,15 +330,24 @@ void FMetalGPUProfiler::BeginFrame()
 					GMetalLongTaskRT.TextureRHI = RHICreateTexture2D(1920, 1080, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable, Info);
 				}
 				SetRenderTarget(RHICmdList, GMetalLongTaskRT.TextureRHI->GetTexture2D(), FTextureRHIRef());
-				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+				FGraphicsPipelineStateInitializer GraphicsPSOInit;
+				RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+				GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
+				GraphicsPSOInit.SetBlendFactor(FLinearColor::Black);
+				GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+				GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 				
 				auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 				TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 				TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
-				
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, LongGPUTaskBoundShaderState, GMetalVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
+		
+				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =  GMetalVector4VertexDeclaration.VertexDeclarationRHI;
+				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 				
 				// Draw a fullscreen quad
 				FVector4 Vertices[4];

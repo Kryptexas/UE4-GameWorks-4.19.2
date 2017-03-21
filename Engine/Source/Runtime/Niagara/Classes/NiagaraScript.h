@@ -40,6 +40,8 @@ enum class ENiagaraScriptUsage : uint8
 	Module,
 	/** The script is an emitter spawn script. */
 	SpawnScript UMETA(Hidden),
+	/** Spawn script using interpolation. */
+	SpawnScriptInterpolated UMETA(Hidden),
 	/** The script is an emitter update script. */
 	UpdateScript UMETA(Hidden),
 	/** The script is an effect script. */
@@ -88,20 +90,68 @@ class UNiagaraScript : public UObject
 	UPROPERTY()
 	TArray<FNiagaraScriptDataInterfaceInfo> DataInterfaceInfo;
 
+	/** Array of ordered vm external functions to place in the function table. */
+	UPROPERTY()
+	TArray<FVMExternalFunctionBindingInfo> CalledVMExternalFunctions;
+
 	/** The mode to use when deducing the type of numeric output pins from the types of the input pins. */
 	UPROPERTY(EditAnywhere, Category=Script)
 	ENiagaraNumericOutputTypeSelectionMode NumericOutputTypeSelectionMode;
 
 	TArray<FNiagaraDataSetID> ReadDataSets;
 	TArray<FNiagaraDataSetProperties> WriteDataSets;
+
+	/** Scopes we'll track with stats.*/
+	UPROPERTY()
+	TArray<FNiagaraStatScope> StatScopes;
+	
 #if WITH_EDITORONLY_DATA
 	/** 'Source' data/graphs for this script */
 	UPROPERTY()
 	class UNiagaraScriptSourceBase*	Source;
+
+	UPROPERTY(EditAnywhere, Category = Script)
+	FText Description;
+
+	FText GetDescription() { return Description.IsEmpty() ? FText::FromString(GetName()) : Description; }
+
+	/** Adjusted every time that we compile this script. Lets us know that we might differ from any cached versions.*/
+	UPROPERTY()
+	FGuid ChangeId;
+
+	/** Last known compile status. Lets us determine the latest state of the script byte buffer.*/
+	UPROPERTY()
+	ENiagaraScriptCompileStatus LastCompileStatus;
+
+	/** Makes a deep copy of any script depedencies, including itself.*/
+	virtual UNiagaraScript* MakeRecursiveDeepCopy(UObject* DestOuter) const;
+
+	/** Determine if there are any external dependencies with respect to scripts and ensure that those dependencies are sucked into the existing package.*/
+	virtual void SubsumeExternalDependencies(TMap<UObject*, UObject*>& ExistingConversions);
+
+	/** Determine if the Script and its source graph are in sync.*/
+	NIAGARA_API bool AreScriptAndSourceSynchronized() const;
+	
+	/** Ensure that the Script and its source graph are marked out of sync.*/
+	NIAGARA_API void MarkScriptAndSourceDesynchronized();
 #endif
+	
+	bool IsSpawnScript() { return Usage == ENiagaraScriptUsage::SpawnScript || Usage == ENiagaraScriptUsage::SpawnScriptInterpolated; }
+	bool IsInterpolatedSpawnScript() { return Usage == ENiagaraScriptUsage::SpawnScriptInterpolated; }
+	bool IsUpdateScript() { return Usage == ENiagaraScriptUsage::UpdateScript; }
+	bool IsModuleScript() { return Usage == ENiagaraScriptUsage::Module; }
+	bool IsFunctionScript() { return Usage == ENiagaraScriptUsage::Function; }
+	bool IsEffectScript() { return Usage == ENiagaraScriptUsage::EffectScript; }
+
+	/** For spawn scripts only, returns it's companion update script. */
+	NIAGARA_API UNiagaraScript* GetCompanionUpdateScript();
+	/** For update scripts only, returns it's companion spawn script. */
+	NIAGARA_API UNiagaraScript* GetCompanionSpawnScript();
 
 	//~ Begin UObject interface
+	void Serialize(FArchive& Ar)override;
 	virtual void PostLoad() override;
 	//~ End UObject interface
 
+	virtual ~UNiagaraScript();
 };

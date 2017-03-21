@@ -171,6 +171,13 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 		bHasReversedIndices = ReversedIndexBuffer.GetNumIndices() != 0;
 		bHasReversedDepthOnlyIndices = ReversedDepthOnlyIndexBuffer.GetNumIndices() != 0;
 		DepthOnlyNumTriangles = DepthOnlyIndexBuffer.GetNumIndices() / 3;
+
+		AreaWeightedSectionSamplers.SetNum(Sections.Num());
+		for (FStaticMeshSectionAreaWeightedTriangleSampler& Sampler : AreaWeightedSectionSamplers)
+		{
+			Sampler.Serialize(Ar);
+		}
+		AreaWeightedSampler.Serialize(Ar);
 	}
 }
 
@@ -337,6 +344,71 @@ void FStaticMeshLODResources::InitVertexFactory(
 		});
 }
 
+FStaticMeshSectionAreaWeightedTriangleSampler::FStaticMeshSectionAreaWeightedTriangleSampler()
+	: Owner(nullptr)
+	, SectionIdx(INDEX_NONE)
+{
+}
+
+void FStaticMeshSectionAreaWeightedTriangleSampler::Init(FStaticMeshLODResources* InOwner, int32 InSectionIdx)
+{
+	Owner = InOwner;
+	SectionIdx = InSectionIdx;
+	Initialize();
+}
+
+float FStaticMeshSectionAreaWeightedTriangleSampler::GetWeights(TArray<float>& OutWeights)
+{
+	//If these hit, you're trying to get weights on a sampler that's not been initialized.
+	check(Owner);
+	check(SectionIdx != INDEX_NONE);
+	check(Owner->Sections.IsValidIndex(SectionIdx));
+	FIndexArrayView Indicies = Owner->IndexBuffer.GetArrayView();
+	FStaticMeshSection& Section = Owner->Sections[SectionIdx];
+
+	int32 First = Section.FirstIndex;
+	int32 Last = First + Section.NumTriangles * 3;
+	float Total = 0.0f;
+	OutWeights.Empty(Indicies.Num() / 3);
+	for (int32 i = First; i < Last; i+=3)
+	{
+		FVector V0 = Owner->PositionVertexBuffer.VertexPosition(Indicies[i]);
+		FVector V1 = Owner->PositionVertexBuffer.VertexPosition(Indicies[i + 1]);
+		FVector V2 = Owner->PositionVertexBuffer.VertexPosition(Indicies[i + 2]);
+
+		float Area = ((V1 - V0) ^ (V2 - V0)).Size() * 0.5f;
+		OutWeights.Add(Area);
+		Total += Area;
+	}
+	return Total;
+}
+
+FStaticMeshAreaWeightedSectionSampler::FStaticMeshAreaWeightedSectionSampler()
+	: Owner(nullptr)
+{
+}
+
+void FStaticMeshAreaWeightedSectionSampler::Init(FStaticMeshLODResources* InOwner)
+{
+	Owner = InOwner;
+	Initialize();
+}
+
+float FStaticMeshAreaWeightedSectionSampler::GetWeights(TArray<float>& OutWeights)
+{
+	//If this hits, you're trying to get weights on a sampler that's not been initialized.
+	check(Owner);
+	float Total = 0.0f;
+	OutWeights.Empty(Owner->Sections.Num());
+	for (int32 i = 0; i < Owner->Sections.Num(); ++i)
+	{
+		float T = Owner->AreaWeightedSectionSamplers[i].GetTotalWeight();
+		OutWeights.Add(T);
+		Total += T;
+	}
+	return Total;
+}
+
 FStaticMeshLODResources::FStaticMeshLODResources()
 	: DistanceFieldData(NULL)
 	, MaxDeviation(0.0f)
@@ -414,7 +486,7 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 
 	if (DistanceFieldData)
 	{
-		DistanceFieldData->VolumeTexture.Initialize();
+		DistanceFieldData->VolumeTexture.Initialize(Parent);
 		INC_DWORD_STAT_BY( STAT_StaticMeshDistanceFieldMemory, DistanceFieldData->GetResourceSizeBytes() );
 	}
 
@@ -996,7 +1068,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.                                       
-#define STATICMESH_DERIVEDDATA_VER TEXT("A1C08472697A4FC2B1E0A31E4B382B6E")
+#define STATICMESH_DERIVEDDATA_VER TEXT("A79406F441384B92B4EC5F4D7AB83B6C")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1077,31 +1149,13 @@ static FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMes
 		}
 	}
 
+	KeySuffix.AppendChar(Mesh->bRequiresAreaWeightedSampling ? TEXT('1') : TEXT('0'));
+
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("STATICMESH"),
 		*GetStaticMeshDerivedDataVersion(),
 		*KeySuffix
 		);
-}
-
-static FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
-{
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.MaxPerMeshResolution"));
-	const int32 PerMeshMax = CVar->GetValueOnAnyThread();
-	const FString PerMeshMaxString = PerMeshMax == 128 ? TEXT("") : FString(TEXT("_%u"), PerMeshMax);
-
-	static const auto CVarDensity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DistanceFields.DefaultVoxelDensity"));
-	const float VoxelDensity = CVarDensity->GetValueOnAnyThread();
-	const FString VoxelDensityString = VoxelDensity == .1f ? TEXT("") : FString(TEXT("_%.3f"), VoxelDensity);
-
-	static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompressMeshDistanceFields"));
-	const bool bCompress = CVarCompress->GetValueOnAnyThread() != 0;
-	const FString CompressString = bCompress ? TEXT("") : TEXT("_uc");
-
-	return FDerivedDataCacheInterface::BuildCacheKey(
-		TEXT("DIST"),
-		*FString::Printf(TEXT("%s_%s%s%s%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER, *PerMeshMaxString, *VoxelDensityString, *CompressString),
-		TEXT(""));
 }
 
 void FStaticMeshRenderData::ComputeUVDensities()
@@ -1166,6 +1220,22 @@ void FStaticMeshRenderData::ComputeUVDensities()
 #endif // WITH_EDITORONLY_DATA
 }
 
+void FStaticMeshRenderData::BuildAreaWeighedSamplingData()
+{
+	for (FStaticMeshLODResources& LODModel : LODResources)
+	{
+		for (FStaticMeshSection& SectionInfo : LODModel.Sections)
+		{
+			LODModel.AreaWeightedSectionSamplers.SetNum(LODModel.Sections.Num());
+			for (int32 i = 0; i < LODModel.Sections.Num(); ++i)
+			{
+				LODModel.AreaWeightedSectionSamplers[i].Init(&LODModel, i);
+			}
+			LODModel.AreaWeightedSampler.Init(&LODModel);
+		}
+	}
+}
+
 void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettings& LODSettings)
 {
 	if (Owner->GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
@@ -1205,6 +1275,10 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
 			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->ImportVersion);
 			ComputeUVDensities();
+			if(Owner->bRequiresAreaWeightedSampling)
+			{
+				BuildAreaWeighedSamplingData();
+			}
 			bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
 			FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
 			Serialize(Ar, Owner, /*bCooked=*/ false);
@@ -1311,6 +1385,8 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	LightMapResolution = 4;
 	LpvBiasMultiplier = 1.0f;
 	MinLOD = 0;
+
+	bRequiresAreaWeightedSampling = false;
 }
 
 void UStaticMesh::PostInitProperties()

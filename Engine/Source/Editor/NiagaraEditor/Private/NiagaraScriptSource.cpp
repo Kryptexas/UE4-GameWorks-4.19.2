@@ -35,14 +35,71 @@ void UNiagaraGraph::PostLoad()
 {
 	Super::PostLoad();
 
+	// In the past, we didn't bother setting the CallSortPriority and just used lexicographic ordering.
+	// In the event that we have multiple non-matching nodes with a zero call sort priority, this will
+	// give every node a unique order value.
 	TArray<UNiagaraNodeInput*> InputNodes;
 	GetNodesOfClass(InputNodes);
+	bool bAllZeroes = true;
+	TArray<FName> UniqueNames;
 	for (UNiagaraNodeInput* InputNode : InputNodes)
 	{
+		if (InputNode->CallSortPriority != 0)
+		{
+			bAllZeroes = false;
+		}
+
+		if (InputNode->Usage == ENiagaraInputNodeUsage::Parameter)
+		{
+			UniqueNames.AddUnique(InputNode->Input.GetName());
+		}
+
 		if (InputNode->Usage == ENiagaraInputNodeUsage::Parameter && InputNode->Input.GetId().IsValid() == false)
 		{
 			InputNode->Input.SetId(FGuid::NewGuid());
 		}
+	}
+
+	if (bAllZeroes && UniqueNames.Num() > 1)
+	{
+		// Just do the lexicographic sort and assign the call order to their ordered index value.
+		UniqueNames.Sort();
+		for (UNiagaraNodeInput* InputNode : InputNodes)
+		{
+			if (InputNode->Usage == ENiagaraInputNodeUsage::Parameter)
+			{
+				int32 FoundIndex = UniqueNames.Find(InputNode->Input.GetName());
+				check(FoundIndex != -1);
+				InputNode->CallSortPriority = FoundIndex;
+			}
+		}
+	}
+
+	// If this is from a prior version, enforce a valid Change Id!
+	if (ChangeId.IsValid() == false)
+	{
+		MarkGraphRequiresSynchronization();
+	}
+
+	// Assume that all externally referenced assets have changed, so update to match. They will return true if they have changed.
+	TArray<UNiagaraNode*> NiagaraNodes;
+	GetNodesOfClass<UNiagaraNode>(NiagaraNodes);
+	bool bAnyExternalChanges = false;
+	for (UNiagaraNode* NiagaraNode : NiagaraNodes)
+	{
+		UObject* ReferencedAsset = NiagaraNode->GetReferencedAsset();
+		if (ReferencedAsset != nullptr)
+		{
+			ReferencedAsset->ConditionalPostLoad();
+			NiagaraNode->ConditionalPostLoad();
+			bAnyExternalChanges |= (NiagaraNode->RefreshFromExternalChanges());
+		}
+	}
+
+	if (bAnyExternalChanges)
+	{
+		MarkGraphRequiresSynchronization();
+		NotifyGraphNeedsRecompile();
 	}
 
 	if (GIsEditor)
@@ -78,33 +135,51 @@ UNiagaraNodeOutput* UNiagaraGraph::FindOutputNode() const
 	return nullptr;
 }
 
-void UNiagaraGraph::FindInputNodes(TArray<class UNiagaraNodeInput*>& OutInputNodes, bool bSort) const
+void UNiagaraGraph::FindInputNodes(TArray<UNiagaraNodeInput*>& OutInputNodes, UNiagaraGraph::FFindInputNodeOptions Options) const
 {
+	TArray<UNiagaraNodeInput*> InputNodes;
 	for (UEdGraphNode* Node : Nodes)
 	{
-		if (UNiagaraNodeInput* InNode = Cast<UNiagaraNodeInput>(Node))
+		UNiagaraNodeInput* NiagaraInputNode = Cast<UNiagaraNodeInput>(Node);
+		if (NiagaraInputNode != nullptr &&
+			((NiagaraInputNode->Usage == ENiagaraInputNodeUsage::Parameter && Options.bIncludeParameters) ||
+			(NiagaraInputNode->Usage == ENiagaraInputNodeUsage::Attribute && Options.bIncludeAttributes) ||
+			(NiagaraInputNode->Usage == ENiagaraInputNodeUsage::SystemConstant && Options.bIncludeSystemConstants)))
 		{
-			OutInputNodes.Add(InNode);
+			InputNodes.Add(NiagaraInputNode);
 		}
 	}
 
-	if (bSort)
+	if (Options.bFilterDuplicates)
 	{
-		auto SortVars = [](UNiagaraNodeInput& A, UNiagaraNodeInput& B)
+		for (UNiagaraNodeInput* InputNode : InputNodes)
 		{
-			if (A.CallSortPriority < B.CallSortPriority)
+			auto NodeMatches = [=](UNiagaraNodeInput* UniqueInputNode)
 			{
-				return true;
-			}
-			else if (A.CallSortPriority > B.CallSortPriority)
-			{
-				return false;
-			}
+				if (InputNode->Usage == ENiagaraInputNodeUsage::Parameter)
+				{
+					return UniqueInputNode->Input.GetId() == InputNode->Input.GetId();
+				}
+				else
+				{
+					return UniqueInputNode->Input.IsEquivalent(InputNode->Input);
+				}
+			};
 
-			//If equal priority, sort lexicographically.
-			return A.Input.GetName().ToString() < B.Input.GetName().ToString();
-		};
-		OutInputNodes.Sort(SortVars);
+			if (OutInputNodes.ContainsByPredicate(NodeMatches) == false)
+			{
+				OutInputNodes.Add(InputNode);
+			}
+		}
+	}
+	else
+	{
+		OutInputNodes.Append(InputNodes);
+	}
+
+	if (Options.bSort)
+	{
+		UNiagaraNodeInput::SortNodes(OutInputNodes);
 	}
 }
 
@@ -114,7 +189,9 @@ void UNiagaraGraph::GetParameters(TArray<FNiagaraVariable>& Inputs, TArray<FNiag
 	Outputs.Empty();
 
 	TArray<UNiagaraNodeInput*> InputsNodes;
-	FindInputNodes(InputsNodes, true);
+	FFindInputNodeOptions Options;
+	Options.bSort = true;
+	FindInputNodes(InputsNodes, Options);
 	for (UNiagaraNodeInput* Input : InputsNodes)
 	{
 		Inputs.Add(Input->Input);
@@ -218,6 +295,16 @@ void UNiagaraGraph::NotifyGraphNeedsRecompile()
 	NotifyGraphChanged(Action);
 }
 
+void UNiagaraGraph::SubsumeExternalDependencies(TMap<UObject*, UObject*>& ExistingConversions)
+{
+	TArray<UNiagaraNode*> NiagaraNodes;
+	GetNodesOfClass<UNiagaraNode>(NiagaraNodes);
+	for (UNiagaraNode* NiagaraNode : NiagaraNodes)
+	{
+		NiagaraNode->SubsumeExternalDependencies(ExistingConversions);
+	}
+}
+
 void UNiagaraGraph::GetAllReferencedGraphs(TArray<const UNiagaraGraph*>& Graphs) const
 {
 	Graphs.AddUnique(this);
@@ -258,6 +345,28 @@ void UNiagaraGraph::GetAllReferencedGraphs(TArray<const UNiagaraGraph*>& Graphs)
 	}
 }
 
+/** Determine if another item has been synchronized with this graph.*/
+bool UNiagaraGraph::IsOtherSynchronized(const FGuid& InChangeId) const
+{
+	if (ChangeId.IsValid() && ChangeId == InChangeId)
+	{
+		return true;
+	}
+	return false;
+}
+
+/** Mark other object as having been synchronized to this graph.*/
+void UNiagaraGraph::MarkOtherSynchronized(FGuid& InChangeId) const
+{
+	InChangeId = ChangeId;
+}
+
+/** Identify that this graph has undergone changes that will require synchronization with a compiled script.*/
+void UNiagaraGraph::MarkGraphRequiresSynchronization()
+{
+	ChangeId = FGuid::NewGuid();
+}
+
 //////////////////////////////////////////////////////////////////////////
 // UNiagraScriptSource
 
@@ -266,12 +375,52 @@ UNiagaraScriptSource::UNiagaraScriptSource(const FObjectInitializer& ObjectIniti
 {
 }
 
+void UNiagaraScriptSource::PostLoad()
+{
+	Super::PostLoad();
+	// We need to make sure that the node-graph is already resolved b/c we may be asked IsSyncrhonized later...
+	if (NodeGraph)
+	{
+		NodeGraph->ConditionalPostLoad();
+	}
+}
+
+void UNiagaraScriptSource::SubsumeExternalDependencies(TMap<UObject*, UObject*>& ExistingConversions)
+{
+	if (NodeGraph)
+	{
+		NodeGraph->SubsumeExternalDependencies(ExistingConversions);
+	}
+}
+
+bool UNiagaraScriptSource::IsSynchronized(const FGuid& InChangeId)
+{
+	if (NodeGraph)
+	{
+		return NodeGraph->IsOtherSynchronized(InChangeId);
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void UNiagaraScriptSource::MarkNotSynchronized()
+{
+	if (NodeGraph)
+	{
+		NodeGraph->MarkGraphRequiresSynchronization();
+	}
+}
+
 ENiagaraScriptCompileStatus UNiagaraScriptSource::Compile(FString& OutGraphLevelErrorMessages)
 {
 	UNiagaraScript* ScriptOwner = Cast<UNiagaraScript>(GetOuter());
 	
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
-	return NiagaraEditorModule.CompileScript(ScriptOwner, OutGraphLevelErrorMessages);
+	ENiagaraScriptCompileStatus Status = NiagaraEditorModule.CompileScript(ScriptOwner, OutGraphLevelErrorMessages);
+	check(ScriptOwner != nullptr && IsSynchronized(ScriptOwner->ChangeId));
+	return Status;
 
 // 	FNiagaraConstants& ExternalConsts = ScriptOwner->ConstantData.GetExternalConstants();
 // 

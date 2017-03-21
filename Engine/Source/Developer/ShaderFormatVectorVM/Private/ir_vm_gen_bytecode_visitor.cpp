@@ -150,7 +150,8 @@ void BuildExpressionMap()
 		Info->Add(FVMExpresssionInfo(EVectorVMOp::floor, glsl_type::float_type, glsl_type::float_type));
 		Info = &VMExpressionMap.Add(ir_unop_fract);
 		Info->Add(FVMExpresssionInfo(EVectorVMOp::frac, glsl_type::float_type, glsl_type::float_type));
-		//Info = &VMExpressionMap.Add(ir_unop_round); TODO: Round impl
+		Info = &VMExpressionMap.Add(ir_unop_round);
+		Info->Add(FVMExpresssionInfo(EVectorVMOp::round, glsl_type::float_type, glsl_type::float_type));
 		/*@}*/
 
 		/**
@@ -379,6 +380,14 @@ EVectorVMOp get_special_vm_opcode(ir_function_signature* signature)
 	{
 		VVMOpCode = EVectorVMOp::exec_index;
 	}
+	else if (strcmp(signature->function_name(), "EnterStatScope") == 0)
+	{
+		VVMOpCode = EVectorVMOp::enter_stat_scope;
+	}
+	else if (strcmp(signature->function_name(), "ExitStatScope") == 0)
+	{
+		VVMOpCode = EVectorVMOp::exit_stat_scope;
+	}
 	else if (signature->body.get_head() == nullptr)
 	{
 		VVMOpCode = EVectorVMOp::external_func_call;
@@ -438,10 +447,10 @@ struct variable_info
 
 		const char* irName;
 		const glsl_type* irType;
-		if (ir_constant* constnat = ir->as_constant())
+		if (ir_constant* constant = ir->as_constant())
 		{
-			irName = "constnat";
-			irType = constnat->type;
+			irName = "constant";
+			irType = constant->type;
 		}
 		else if (ir_variable* var = ir->as_variable())
 		{
@@ -548,8 +557,10 @@ struct op_base
 	virtual FString to_string() = 0;
 	virtual void add_to_bytecode(TArray<uint8>& bytecode) = 0;
 	virtual bool finalize_temporary_allocations(const unsigned num_temp_registers, unsigned *registers, unsigned op_idx) { return true; }
+	virtual void validate(_mesa_glsl_parse_state* parse_state) = 0;
 
 	virtual struct op_standard* as_standard() { return nullptr; }
+	virtual struct op_hook* as_hook() { return nullptr; }
 	virtual struct op_input* as_input() { return nullptr; }
 	virtual struct op_output* as_output() { return nullptr; }
 	virtual struct op_index_acquire* as_index_acquire() { return nullptr; }
@@ -581,6 +592,54 @@ struct op_base
 	}
 
 	const TCHAR* get_location_string(EVectorVMOperandLocation Loc) { return Loc == EVectorVMOperandLocation::Constant ? TEXT("C") : TEXT("R"); }
+};
+
+//Simple hook ops to mark the code and hook into other systems such as stats.
+struct op_hook : public op_base
+{
+	op_hook() : source_component(nullptr)
+	{
+	}
+	variable_info_node* source_component;
+
+	virtual op_hook* as_hook() { return this; }
+
+	virtual FString to_string()
+	{
+		TArray<FStringFormatArg> Args;
+		Args.Reserve(3);
+
+		static const TCHAR* FormatStrs[4] =
+		{
+			TEXT("{0};\n"),
+			TEXT("{0}({1}[{2}]);\n"),
+		};
+
+#if WITH_EDITOR
+		Args.Add(VectorVM::GetOpName(op_code));
+#endif
+
+		if(source_component)
+		{
+			Args.Add(get_location_string(source_component->owner->location));
+			Args.Add(source_component->offset);
+		}
+
+		return source_component ? FString::Format(FormatStrs[1], Args) : FString::Format(FormatStrs[0], Args);
+	}
+
+	virtual void add_to_bytecode(TArray<uint8>& bytecode)
+	{
+		emit_byte((uint8)op_code, bytecode);
+		if (source_component)
+		{
+			emit_short(source_component->offset, bytecode);
+		}
+	}
+
+	virtual void validate(_mesa_glsl_parse_state* parse_state)override
+	{
+	}
 };
 
 struct op_standard : public op_base
@@ -657,6 +716,21 @@ struct op_standard : public op_base
 	{
 		return finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx);
 	}
+
+	virtual void validate(_mesa_glsl_parse_state* parse_state)override
+	{
+		for (unsigned operand_idx = 0; operand_idx < num_operands; ++operand_idx)
+		{
+			if (source_components[operand_idx]->offset == INDEX_NONE)
+			{
+				_mesa_glsl_error(parse_state, "unknown error");//temp cop out, we have info to produce a good error message here.
+			}
+		}
+		if(dest_component->offset == INDEX_NONE)
+		{
+			_mesa_glsl_error(parse_state, "unknown error");//temp cop out, we have info to produce a good error message here.
+		}
+	}
 };
 
 struct op_input : public op_base
@@ -705,6 +779,14 @@ struct op_input : public op_base
 	{
 		return finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx);
 	}
+
+	virtual void validate(_mesa_glsl_parse_state* parse_state)override
+	{
+		if (dest_component->offset == INDEX_NONE)
+		{
+			_mesa_glsl_error(parse_state, "unknown error");//temp cop out, we have info to produce a good error message here.
+		}
+	}
 };
 
 
@@ -747,6 +829,14 @@ struct op_input_noadvance : public op_input
 	{
 		return finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx);
 	}
+
+	virtual void validate(_mesa_glsl_parse_state* parse_state)override
+	{
+		if (dest_component->offset == INDEX_NONE)
+		{
+			_mesa_glsl_error(parse_state, "unknown error");//temp cop out, we have info to produce a good error message here.
+		}
+	}
 };
 
 
@@ -786,6 +876,15 @@ struct op_output : public op_base
 		emit_short(instance_idx_component->offset, bytecode);
 		emit_short(value_component->offset, bytecode);
 		emit_short(register_idx + VectorVM::FirstOutputRegister, bytecode);
+	}
+
+	virtual void validate(_mesa_glsl_parse_state* parse_state)override
+	{
+		//TODO: Check registers etc
+		if (value_component->offset == INDEX_NONE || instance_idx_component->offset == INDEX_NONE)
+		{
+			_mesa_glsl_error(parse_state, "unknown error");//temp cop out, we have info to produce a good error message here.
+		}
 	}
 };
 
@@ -829,6 +928,14 @@ struct op_index_acquire : public op_base
 	{
 		return finalize_component_temporary_allocation(dest_component, num_temp_registers, registers, op_idx);
 	}
+
+	virtual void validate(_mesa_glsl_parse_state* parse_state)override
+	{		
+		if (dest_component->offset == INDEX_NONE)
+		{
+			_mesa_glsl_error(parse_state, "unknown error");//temp cop out, we have info to produce a good error message here.
+		}
+	}
 };
 
 struct op_external_func : public op_base
@@ -842,33 +949,11 @@ struct op_external_func : public op_base
 	TArray<variable_info_node*> inputs;
 	TArray<variable_info_node*> outputs;
 	unsigned function_index;
-
-	static void emit_component_bytecode(variable_info_node* node, void* user_ptr)
-	{
-		TArray<uint8>* bytecode = (TArray<uint8>*)user_ptr;
-		check(node->is_scalar());
-		check(node->owner->location == EVectorVMOperandLocation::Register);
-		emit_short(VectorVM::FirstTempRegister + node->offset, *bytecode);
-	}
-
-	static void count_components(variable_info_node* node, void* user_ptr)
-	{
-		uint32* count = (uint32*)user_ptr;
-		check(node->is_scalar());
-		++(*count);
-	}
-
-	static void get_component_offset_strings(variable_info_node* node, void* user_ptr)
-	{
-		FString* Str = (FString*)user_ptr;
-		if (!Str->IsEmpty())
-			*Str += TEXT("|");
-		*Str += LexicalConversion::ToString(node->offset);
-	}
-
+	ir_function_signature* sig;
+	
 	virtual FString to_string() 
 	{ 
-		FString Str = FString::Printf(TEXT("external_func%d("), function_index);
+		FString Str = FString::Printf(TEXT("%S[func%d]("), sig->function_name(), function_index);
 		int32 param_idx = 0;
 		FString ComponentStr;
 		for (int32 i = 0; i < inputs.Num(); ++i, ++param_idx)
@@ -878,72 +963,46 @@ struct op_external_func : public op_base
 			{
 				Str += TEXT(", ");
 			}
-
+			check(input->is_scalar());
 			ComponentStr.Empty(64);
-			if (input->owner->location == EVectorVMOperandLocation::Constant)
-			{
-				ComponentStr = LexicalConversion::ToString(input->offset);
-			}
-			else
-			{
-				for_each_component(input, &get_component_offset_strings, true, &ComponentStr);
-			}	
+			ComponentStr = LexicalConversion::ToString(input->offset);
 
 			Str += FString::Printf(TEXT("%s[%s]"), get_location_string(input->owner->location), *ComponentStr);
 		}
 		
 		for (int32 i = 0; i < outputs.Num(); ++i, ++param_idx)
 		{
-			variable_info_node* output = inputs[i];
+			variable_info_node* output = outputs[i];
 			if (param_idx > 0)
 			{
 				Str += TEXT(", ");
 			}
 
 			ComponentStr.Empty(64);
-			for_each_component(output, &get_component_offset_strings, true, &ComponentStr);
+			check(output->is_scalar());
+			ComponentStr = LexicalConversion::ToString(output->offset);
 
 			Str += FString::Printf(TEXT("%s[%s]"), get_location_string(output->owner->location), *ComponentStr);
 		}
 
-		return Str += TEXT("\n");
+		return Str += TEXT(");\n");
 	}
 
 	virtual void add_to_bytecode(TArray<uint8>& bytecode)
 	{
 		emit_byte((uint8)EVectorVMOp::external_func_call, bytecode);
-		emit_byte(inputs.Num(), bytecode);
-		emit_byte(outputs.Num(), bytecode);
+
+		emit_byte(function_index, bytecode);
 
 		for (variable_info_node* input : inputs)
 		{
-			//emit location directly. Possibly should pack up like standard ops.
-			emit_byte((uint8)input->owner->location, bytecode);
-			if (input->owner->location == EVectorVMOperandLocation::Constant)
-			{
-				emit_short(input->offset, bytecode);
-			}
-			else
-			{
-				//emit the offsets for every component.
-				uint32 num_components = 0;
-				for_each_component(input, &count_components, true, &num_components);
-				emit_byte(num_components, bytecode);
-				for_each_component(input, &emit_component_bytecode, true, &bytecode);
-			}
+			emit_short(input->offset, bytecode);
 		}
 
 		for (variable_info_node* output : outputs)
 		{
-			//emit the offsets for every component.
-			uint32 num_components = 0;
-			for_each_component(output, &count_components, true, &num_components);
-			emit_byte(num_components, bytecode);
-			for_each_component(output, &emit_component_bytecode, true, &bytecode);
+			emit_short(output->offset, bytecode);
 		}
-
-		//finally we write the index of the function delegate itself.
-		emit_byte(function_index, bytecode);
 	}
 
 	struct finalize_temp_register_ctx
@@ -974,6 +1033,24 @@ struct op_external_func : public op_base
 		}
 		return ctx.success;
 	}
+
+	virtual void validate(_mesa_glsl_parse_state* parse_state)override
+	{
+		for (variable_info_node* input : inputs)
+		{
+			if (input->offset == INDEX_NONE)
+			{
+				_mesa_glsl_error(parse_state, "unknown error");//temp cop out, we have info to produce a good error message here.
+			}
+		}
+		for (variable_info_node* output : outputs)
+		{
+			if (output->offset == INDEX_NONE)
+			{
+				_mesa_glsl_error(parse_state, "unknown error");//temp cop out, we have info to produce a good error message here.
+			}
+		}
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1002,8 +1079,6 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 
 	/** ordered list of operations. Used to generate the final vm bytecode. */
 	TArray<op_base*> ordered_ops;
-
-	TArray<ir_function_signature*> ordered_functions;
 
 	unsigned dest_component;
 
@@ -1067,16 +1142,6 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		case GLSL_TYPE_BOOL: v->constant_table_size_bytes += sizeof(int32); break;
 		default: check(0);
 		}
-	}
-
-	virtual ir_visitor_status visit_enter(ir_function_signature* sig)
-	{
-		EVectorVMOp VVMOpCode = get_special_vm_opcode(sig);
-		if (!sig->is_builtin && VVMOpCode == EVectorVMOp::external_func_call)
-		{
-			ordered_functions.AddUnique(sig);
-		}
-		return visit_continue;
 	}
 
 	/** We visit each variable, decomposing it into a variable_info tree and assigning it's register or buffer locations. */
@@ -1155,7 +1220,19 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			{
 				switch (other->type->base_type)
 				{
-				case GLSL_TYPE_FLOAT: return constant->value.f[0] == other->value.f[0];
+				case GLSL_TYPE_FLOAT: 
+				{			
+					float val = constant->value.f[0];
+					float otherval = other->value.f[0];
+					if (!FMath::IsNaN(val) && FMath::IsFinite(val))
+					{
+						return val == otherval;
+					}
+					else
+					{
+						return FMath::IsNaN(val) == FMath::IsNaN(otherval) && FMath::IsFinite(val) == FMath::IsFinite(otherval);
+					}
+				}
 				case GLSL_TYPE_INT: return constant->value.i[0] == other->value.i[0];
 				case GLSL_TYPE_BOOL: return constant->value.b[0] == other->value.b[0];
 				default: check(0);
@@ -1312,14 +1389,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 	{
 		return ordered_ops.Last();
 	}
-
-	static void add_noise_param(variable_info_node* node, void* user_ptr)
-	{
-		op_standard* op = (op_standard*)user_ptr;
-		check(node->is_scalar());
-		op->source_components[op->num_operands++] = node;
-	}
-
+	
 	/** Visiting expressions, here we build ordered_ops. */
 	virtual ir_visitor_status visit_enter(ir_expression* expression)
 	{
@@ -1425,17 +1495,16 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 
 		switch (VVMOpCode)
 		{
-		case EVectorVMOp::random: allocate<op_standard>(); break;
-		case EVectorVMOp::noise: allocate<op_standard>(); break;
-		case EVectorVMOp::fmod: allocate<op_standard>(); break;
-		case EVectorVMOp::select: allocate<op_standard>(); break;
-		case EVectorVMOp::exec_index: allocate<op_standard>(); break;
 		case EVectorVMOp::inputdata_32bit: allocate<op_input>(); break;
 		case EVectorVMOp::inputdata_noadvance_32bit: allocate<op_input_noadvance>(); break;
 		case EVectorVMOp::outputdata_32bit: allocate<op_output>(); break;
 		case EVectorVMOp::acquireindex: allocate<op_index_acquire>(); break;
 		case EVectorVMOp::external_func_call: allocate<op_external_func>(); break;
-		default: check(false);
+
+		case EVectorVMOp::enter_stat_scope:
+		case EVectorVMOp::exit_stat_scope: allocate<op_hook>(); break;
+
+		default: allocate<op_standard>(); break;
 			//todo: other special ops
 		};
 
@@ -1483,6 +1552,23 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			check(curr_node && curr_node->is_scalar());
 			standard->dest_component = curr_node;
 			curr_node = nullptr;
+		}
+		else if (op_hook* hook = curr_op()->as_hook())
+		{
+			check(num_operands <= 1);
+
+			if (num_operands > 0)
+			{
+				exec_node* curr = call->actual_parameters.get_head();
+				check(curr);
+				ir_rvalue* param = (ir_rvalue*)curr;
+				param->accept(this);
+
+				check(curr_node);
+				check(curr_node->is_scalar());
+				hook->source_component = curr_node;
+				curr_node = nullptr;
+			}			
 		}
 		else if (op_input* input = curr_op()->as_input())
 		{
@@ -1583,8 +1669,11 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			unsigned num_inputs = 0;
 			unsigned num_outputs = 0;
 
-			func->function_index = ordered_functions.Find(call->callee);
+			func->function_index = CompilationOutput.CalledVMFunctionTable.AddDefaulted();
+			func->sig = call->callee;
 			check(func->function_index != INDEX_NONE);
+			FNiagaraCompilationOutput::FCalledVMFunction& CalledFunc = CompilationOutput.CalledVMFunctionTable[func->function_index];
+			CalledFunc.Name = call->callee->function_name();
 
 			exec_node* sig_param_node = call->callee->parameters.get_head();
 			foreach_iter(exec_list_iterator, iter, call->actual_parameters)
@@ -1600,9 +1689,11 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 				if (sig_param->mode == ir_var_in)
 				{
 					func->inputs.Add(curr_node);
+					CalledFunc.InputParamLocations.Add(curr_node->owner->location == EVectorVMOperandLocation::Constant);
 				}
 				else 
 				{
+					++CalledFunc.NumOutputs;
 					func->outputs.Add(curr_node);
 				}	
 				curr_node = nullptr;
@@ -1652,16 +1743,16 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		curr_node = nullptr;
 		assign->rhs->accept(this);
 
-		//If the RHS was just a dereference chain rather than an expression, curr_node will be valid and this op must be an output so generate that now.
-		if (curr_node)
-		{
-			check(op->num_operands == 0);
-			check(curr_node->is_scalar());
-			check(dest_var->mode == ir_var_out);//we must be writing to an output variable.
-			op->op_code = EVectorVMOp::output;
-			op->source_components[op->num_operands++] = curr_node;
-			curr_node = nullptr;
-		}
+// 		//If the RHS was just a dereference chain rather than an expression, curr_node will be valid and this op must be an output so generate that now.
+// 		if (curr_node)
+// 		{
+// 			check(op->num_operands == 0);
+// 			check(curr_node->is_scalar());
+// 			check(dest_var->mode == ir_var_out);//we must be writing to an output variable.
+// 			op->op_code = EVectorVMOp::output;
+// 			op->source_components[op->num_operands++] = curr_node;
+// 			curr_node = nullptr;
+// 		}
 
 		return visit_continue_with_parent;
 	}
@@ -1680,13 +1771,22 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			}
 		}
 
-		//Now emit the bytecode
-		for (int32 op_idx = 0; op_idx < ordered_ops.Num(); ++op_idx)
+		//Final error checking.
+		for (int32 i = 0; i < ordered_ops.Num(); ++i)
 		{
-			ordered_ops[op_idx]->add_to_bytecode(CompilationOutput.ByteCode);
+			ordered_ops[i]->validate(parse_state);
 		}
 
-		emit_byte((uint8)EVectorVMOp::done, CompilationOutput.ByteCode);
+		if (!parse_state->error)
+		{
+			//Now emit the bytecode
+			for (int32 op_idx = 0; op_idx < ordered_ops.Num(); ++op_idx)
+			{
+				ordered_ops[op_idx]->add_to_bytecode(CompilationOutput.ByteCode);
+			}
+
+			emit_byte((uint8)EVectorVMOp::done, CompilationOutput.ByteCode);
+		}
 	}
 
 	void DumpOps()

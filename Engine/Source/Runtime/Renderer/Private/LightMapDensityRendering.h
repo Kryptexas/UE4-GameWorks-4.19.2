@@ -314,7 +314,7 @@ public:
 		DRAWING_POLICY_MATCH_END
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType) const
 	{
 		// Set the base pass shader parameters for the material.
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
@@ -325,8 +325,6 @@ public:
 			HullShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 			DomainShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 		}
-
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 		// Set the light-map policy.
 		LightMapPolicy.Set(RHICmdList, VertexShader,PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
@@ -411,7 +409,6 @@ public:
 		// Adjust for the grid texture being 2x2 repeating pattern...
 		LMResolutionScale *= 0.5f;
 		PixelShader->SetMesh(RHICmdList, VertexFactory,PrimitiveSceneProxy, BatchElement, View, DrawRenderState, BuiltLightingAndSelectedFlags, LMResolutionScale, bTextureMapped);
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
 	/** 
@@ -419,7 +416,7 @@ public:
 	 * as well as the shaders needed to draw the mesh
 	 * @return new bound shader state object
 	 */
-	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
 		return FBoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 

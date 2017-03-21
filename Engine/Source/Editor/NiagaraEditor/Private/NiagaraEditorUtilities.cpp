@@ -8,6 +8,9 @@
 #include "NiagaraComponent.h"
 #include "ModuleManager.h"
 #include "StructOnScope.h"
+#include "NiagaraGraph.h"
+#include "NiagaraEffect.h"
+#include "NiagaraScriptSource.h"
 
 FName FNiagaraEditorUtilities::GetUniqueName(FName CandidateName, const TSet<FName>& ExistingNames)
 {
@@ -64,12 +67,18 @@ void FNiagaraEditorUtilities::ResetVariableToDefaultValue(FNiagaraVariable& Vari
 	}
 }
 
-void FNiagaraEditorUtilities::InitializeParameterInputNode(UNiagaraNodeInput& InputNode, const FNiagaraTypeDefinition& Type, const TSet<FName>& CurrentParameterNames, FName InputName)
+void FNiagaraEditorUtilities::InitializeParameterInputNode(UNiagaraNodeInput& InputNode, const FNiagaraTypeDefinition& Type, const class UNiagaraGraph* InGraph, FName InputName)
 {
 	InputNode.Usage = ENiagaraInputNodeUsage::Parameter;
+	InputNode.bCanRenameNode = true;
 	InputNode.Input.SetId(FGuid::NewGuid());
-	InputNode.Input.SetName(FNiagaraEditorUtilities::GetUniqueName(InputName, GetSystemConstantNames().Union(CurrentParameterNames)));
+	InputName = UNiagaraNodeInput::GenerateUniqueName(InGraph, InputName, ENiagaraInputNodeUsage::Parameter);
+	InputNode.Input.SetName(InputName);
 	InputNode.Input.SetType(Type);
+	if (InGraph) // Only compute sort priority if a graph was passed in, similar to the way that GenrateUniqueName works above.
+	{
+		InputNode.CallSortPriority = UNiagaraNodeInput::GenerateNewSortPriority(InGraph, InputName, ENiagaraInputNodeUsage::Parameter);
+	}
 	if (Type.GetScriptStruct() != nullptr)
 	{
 		ResetVariableToDefaultValue(InputNode.Input);
@@ -79,5 +88,38 @@ void FNiagaraEditorUtilities::InitializeParameterInputNode(UNiagaraNodeInput& In
 	{
 		InputNode.Input.AllocateData(); // Frees previously used memory if we're switching from a struct to a class type.
 		InputNode.DataInterface = NewObject<UNiagaraDataInterface>(&InputNode, const_cast<UClass*>(Type.GetClass()));
+	}
+}
+
+void FNiagaraEditorUtilities::GetParameterVariablesFromEffect(UNiagaraEffect& Effect, TArray<FNiagaraVariable>& ParameterVariables,
+	FNiagaraEditorUtilities::FGetParameterVariablesFromEffectOptions Options)
+{
+	UNiagaraScript* EffectScript = Effect.GetEffectScript();
+	if (EffectScript != nullptr)
+	{
+		UNiagaraScriptSource* ScriptSource = Cast<UNiagaraScriptSource>(EffectScript->Source);
+		if (ScriptSource != nullptr)
+		{
+			UNiagaraGraph* EffectGraph = ScriptSource->NodeGraph;
+			if (EffectGraph != nullptr)
+			{
+				UNiagaraGraph::FFindInputNodeOptions FindOptions;
+				FindOptions.bIncludeAttributes = false;
+				FindOptions.bIncludeSystemConstants = false;
+				FindOptions.bFilterDuplicates = true;
+
+				TArray<UNiagaraNodeInput*> InputNodes;
+				EffectGraph->FindInputNodes(InputNodes, FindOptions);
+				for (UNiagaraNodeInput* InputNode : InputNodes)
+				{
+					bool bIsStructParameter = InputNode->Input.GetType().GetScriptStruct() != nullptr;
+					bool bIsDataInterfaceParameter = InputNode->Input.GetType().GetClass() != nullptr;
+					if ((bIsStructParameter && Options.bIncludeStructParameters) || (bIsDataInterfaceParameter && Options.bIncludeDataInterfaceParameters))
+					{
+						ParameterVariables.Add(InputNode->Input);
+					}
+				}
+			}
+		}
 	}
 }

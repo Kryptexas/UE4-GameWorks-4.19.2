@@ -7,6 +7,7 @@
 #include "NiagaraParameterEditMode.h"
 #include "SlateEnums.h"
 #include "SlateTypes.h"
+#include "Layout/Visibility.h"
 
 class UNiagaraEffect;
 struct FNiagaraEmitterHandle;
@@ -21,6 +22,8 @@ public:
 public:
 	/** Creates a new emitter editor view model with the supplied emitter handle and simulation. */
 	FNiagaraEmitterHandleViewModel(FNiagaraEmitterHandle* InEmitterHandle, FNiagaraSimulation* InSimulation, UNiagaraEffect& InOwningEffect, ENiagaraParameterEditMode InParameterEditMode);
+	
+	~FNiagaraEmitterHandleViewModel();
 
 	/** Reuses a the emitter editor view model with the supplied emitter handle and simulation.*/
 	bool Set(FNiagaraEmitterHandle* InEmitterHandle, FNiagaraSimulation* InSimulation, UNiagaraEffect& InOwningEffect, ENiagaraParameterEditMode InParameterEditMode);
@@ -33,6 +36,7 @@ public:
 
 	/** Gets the id of the emitter handle. */
 	FGuid GetId() const;
+	FText GetIdText() const;
 
 	/** Gets the name of the emitter handle. */
 	FName GetName() const;
@@ -45,6 +49,20 @@ public:
 
 	/** Called when the contents of the name text control is committed. */
 	void OnNameTextComitted(const FText& InText, ETextCommit::Type CommitInfo);
+
+	/** Prevent invalid name being set on emitter.*/
+	bool VerifyNameTextChanged(const FText& NewText, FText& OutErrorMessage);
+
+	/** Called to get the error state of the emitter handle.*/
+	FText GetErrorText() const;
+	EVisibility GetErrorTextVisibility() const;
+	FSlateColor GetErrorTextColor() const;
+
+	/** Called to get the synch state of the emitter handle to its source.*/
+	FText GetSourceSynchronizationText() const;
+	EVisibility GetSourceSynchronizationTextVisibility() const;
+	FSlateColor GetSourceSynchronizationTextColor() const;
+	bool IsSynchronized() const;
 
 	/** Gets whether or not this emitter handle is enabled. */
 	bool GetIsEnabled() const;

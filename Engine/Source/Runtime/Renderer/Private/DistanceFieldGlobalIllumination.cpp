@@ -7,6 +7,7 @@
 #include "DistanceFieldGlobalIllumination.h"
 #include "DistanceFieldLightingShared.h"
 #include "UniquePtr.h"
+#include "ClearQuad.h"
 
 int32 GDistanceFieldGI = 0;
 FAutoConsoleVariableRef CVarDistanceFieldGI(
@@ -139,7 +140,7 @@ public:
 		FLightTileIntersectionResources* TileIntersectionResources)
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GShadowCulledObjectBuffers.Buffers);
 
 		SetShaderValue(RHICmdList, ShaderRHI, InvPlacementGridSize, InvPlacementGridSizeValue);
@@ -243,7 +244,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, GVPLResources.VPLDispatchIndirectBuffer.UAV);
 		DispatchParameters.SetBuffer(RHICmdList, ShaderRHI, GVPLResources.VPLDispatchIndirectBuffer);
@@ -308,7 +309,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FScene* Scene, const FSceneView& View, const FDistanceFieldAOParameters& Parameters)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		FUnorderedAccessViewRHIParamRef OutUAVs[2];
 		OutUAVs[0] = GCulledVPLResources.VPLParameterBuffer.UAV;
@@ -371,8 +372,7 @@ void PlaceVPLs(
 	GVPLResources.AllocateFor(GVPLGridDimension * GVPLGridDimension);
 
 	{
-		uint32 ClearValues[4] = { 0 };
-		RHICmdList.ClearUAV(GVPLResources.VPLParameterBuffer.UAV, ClearValues);
+		ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GVPLResources.VPLParameterBuffer, 0);
 	}
 
 	const FLightSceneProxy* DirectionalLightProxy = NULL;
@@ -530,8 +530,7 @@ void PlaceVPLs(
 			{
 				GCulledVPLResources.AllocateFor(GVPLGridDimension * GVPLGridDimension);
 
-				uint32 ClearValues[4] = { 0 };
-				RHICmdList.ClearUAV(GCulledVPLResources.VPLParameterBuffer.UAV, ClearValues);
+				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GCulledVPLResources.VPLParameterBuffer, 0);
 
 				TShaderMapRef<FCullVPLsForViewCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -577,7 +576,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch.UAV);
 		DispatchParameters.SetBuffer(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch);
@@ -663,7 +662,7 @@ public:
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 
 		const FScene* Scene = (const FScene*)View.Family->Scene;
@@ -864,8 +863,7 @@ void UpdateVPLs(
 			}
 			else
 			{
-				uint32 ClearValues[4] = { 0 };
-				RHICmdList.ClearUAV(Scene->DistanceFieldSceneData.InstancedSurfelBuffers->VPLFlux.UAV, ClearValues);
+				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, Scene->DistanceFieldSceneData.InstancedSurfelBuffers->VPLFlux, 0);
 			}
 		}
 		else
@@ -918,7 +916,7 @@ public:
 		const FAOScreenGridResources& ScreenGridResources)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ScreenGridParameters.Set(RHICmdList, ShaderRHI, View, DistanceFieldNormal);
 
 		FAOSampleData2 AOSampleData;
@@ -1026,7 +1024,7 @@ public:
 		const FDistanceFieldAOParameters& Parameters)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
 		extern TGlobalResource<FDistanceFieldObjectBufferResource> GAOCulledObjectBuffers;
@@ -1133,7 +1131,7 @@ public:
 		FSceneRenderTargetItem& IrradianceTextureValue)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		SetSRVParameter(RHICmdList, ShaderRHI, SurfelIrradiance, ScreenGridResources.SurfelIrradiance.SRV);
 		SetSRVParameter(RHICmdList, ShaderRHI, HeightfieldIrradiance, ScreenGridResources.HeightfieldIrradiance.SRV);
@@ -1183,9 +1181,8 @@ void ComputeIrradianceForScreenGrid(
 	const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor, GScreenGridIrradianceThreadGroupSizeX);
 	const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GScreenGridIrradianceThreadGroupSizeX);
 
-	uint32 ClearValues[4] = { 0 };
-	RHICmdList.ClearUAV(ScreenGridResources.HeightfieldIrradiance.UAV, ClearValues);
-	RHICmdList.ClearUAV(ScreenGridResources.SurfelIrradiance.UAV, ClearValues);
+	ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources.HeightfieldIrradiance, 0);
+	ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources.SurfelIrradiance, 0);
 
 	View.HeightfieldLightingViewInfo.
 		ComputeIrradianceForScreenGrid(View, RHICmdList, DistanceFieldNormal, ScreenGridResources, Parameters);

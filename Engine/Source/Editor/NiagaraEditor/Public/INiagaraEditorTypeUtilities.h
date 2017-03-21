@@ -6,6 +6,7 @@
 
 class FStructOnScope;
 class SNiagaraParameterEditor;
+class SWidget;
 
 class INiagaraEditorTypeUtilities
 {
@@ -21,9 +22,13 @@ public:
 	virtual bool CanCreateParameterEditor() const = 0;
 
 	virtual TSharedPtr<SNiagaraParameterEditor> CreateParameterEditor() const = 0;
+
+	virtual bool CanCreateDataInterfaceEditor() const = 0;
+
+	virtual TSharedPtr<SWidget> CreateDataInterfaceEditor(UObject* DataInterface, FNotifyValueChanged DataInterfaceChangedHandler) const = 0;
 };
 
-class FNiagaraEditorTypeUtilities : public INiagaraEditorTypeUtilities
+class FNiagaraEditorTypeUtilities : public INiagaraEditorTypeUtilities, public TSharedFromThis<FNiagaraEditorTypeUtilities>
 {
 public:
 	DECLARE_DELEGATE(FNotifyValueChanged);
@@ -33,4 +38,6 @@ public:
 	virtual void UpdateStructWithDefaultValue(TSharedRef<FStructOnScope> Struct) const override { }
 	virtual bool CanCreateParameterEditor() const override { return false; }
 	virtual TSharedPtr<SNiagaraParameterEditor> CreateParameterEditor() const override { return TSharedPtr<SNiagaraParameterEditor>(); }
+	virtual bool CanCreateDataInterfaceEditor() const override { return false; };
+	virtual TSharedPtr<SWidget> CreateDataInterfaceEditor(UObject* DataInterface, FNotifyValueChanged DataInterfaceChangedHandler) const override { return TSharedPtr<SWidget>(); }
 };

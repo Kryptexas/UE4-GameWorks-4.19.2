@@ -33,11 +33,12 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 
 				FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOpaque, false);
 
-				FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+				FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 				if (bWriteCustomStencilValues)
 				{
 					const uint32 CustomDepthStencilValue = PrimitiveSceneProxy->GetCustomDepthStencilValue();
-					DrawRenderStateLocal.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), CustomDepthStencilValue);
+					DrawRenderStateLocal.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI());
+					DrawRenderStateLocal.SetStencilRef(CustomDepthStencilValue);
 
 					if (View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)
 					{
@@ -71,8 +72,8 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 
 						if (View.StaticMeshVisibilityMap[StaticMesh.Id])
 						{
-							FDrawingPolicyRenderState DrawRenderStateLocal2(&RHICmdList, DrawRenderStateLocal);
-							FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(RHICmdList, DrawRenderStateLocal2, View, StaticMesh, false);
+							FDrawingPolicyRenderState DrawRenderStateLocal2(DrawRenderStateLocal);
+							FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(DrawRenderStateLocal2, View, StaticMesh, false);
 
 							bDirty |= FDepthDrawingPolicyFactory::DrawStaticMesh(
 								RHICmdList, 

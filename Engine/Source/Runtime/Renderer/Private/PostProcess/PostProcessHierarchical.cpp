@@ -10,6 +10,7 @@
 #include "PostProcess/SceneRenderTargets.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
+#include "PipelineStateCache.h"
 
 template< uint32 Stage >
 class TPostProcessBuildHCBPS : public FGlobalShader
@@ -54,7 +55,7 @@ public:
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View );
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 		
 		const FIntPoint GBufferSize = SceneContext.GetBufferSizeXY();
 		const FVector InvSizeValue( 1.0f / float(GBufferSize.X), 1.0f / float(GBufferSize.Y), 0.0 );
@@ -81,7 +82,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		
 		const FVector2D InvSizeValue( 1.0f / Size.X, 1.0f / Size.Y );
 		const FVector4 InputUvBundariesValue (
@@ -142,20 +143,28 @@ void FRCPassPostProcessBuildHCB::Process(FRenderingCompositePassContext& Context
 		float(View.ViewRect.Size().Y) / float(2 * HCBSize.Y)
 		);
 
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 	{ // mip 0
 		TShaderMapRef< FPostProcessVS > VertexShader(Context.GetShaderMap());
 		TShaderMapRef< TPostProcessBuildHCBPS<0> > PixelShader(Context.GetShaderMap());
 		
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetRenderTarget(RHICmdList, HCBRenderTarget.TargetableTexture, 0, NULL);
+		Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+		
 		VertexShader->SetParameters(Context);
 		PixelShader->SetParameters(Context);
 			
-		SetRenderTarget(RHICmdList, HCBRenderTarget.TargetableTexture, 0, NULL);
 			
 #if 0
 		const FIntPoint DstDrawSize (
@@ -207,13 +216,17 @@ void FRCPassPostProcessBuildHCB::Process(FRenderingCompositePassContext& Context
 		DstSize.Y = FMath::Max(DstSize.Y, 1);
 
 		SetRenderTarget(RHICmdList, HCBRenderTarget.TargetableTexture, MipIndex, NULL);
+		Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 		TShaderMapRef< FPostProcessVS >	VertexShader(Context.GetShaderMap());
 		TShaderMapRef< TPostProcessBuildHCBPS<1> >	PixelShader(Context.GetShaderMap());
 
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		PixelShader->SetParameters(RHICmdList, View, SrcSize, HCBRenderTarget.MipSRVs[ MipIndex - 1 ] );
 			

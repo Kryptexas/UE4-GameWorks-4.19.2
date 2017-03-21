@@ -106,25 +106,6 @@ inline bool IsDBufferDecalBlendMode(EDecalBlendMode In)
 	return false;
 }
 
-/** Defines the domain of a material. */
-UENUM()
-enum EMaterialDomain
-{
-	/** The material's attributes describe a 3d surface. */
-	MD_Surface UMETA(DisplayName="Surface"),
-	/** The material's attributes describe a deferred decal, and will be mapped onto the decal's frustum. */
-	MD_DeferredDecal UMETA(DisplayName="Deferred Decal"),
-	/** The material's attributes describe a light's distribution. */
-	MD_LightFunction UMETA(DisplayName="Light Function"),
-	/** The material will be used in a custom post process pass. */
-	MD_PostProcess UMETA(DisplayName="Post Process"),
-	/** The material will be used for UMG or Slate UI */
-	MD_UI UMETA(DisplayName="User Interface"),
-
-	MD_MAX
-};
-
-
 /** Defines how the material reacts on DBuffer decals, later we can expose more variants between None and Default. */
 UENUM()
 enum EMaterialDecalResponse
@@ -744,8 +725,12 @@ public:
 	uint32 bUseMaterialAttributes:1;
 
 	/** When true, translucent materials are fogged. Defaults to true. */
-	UPROPERTY(EditAnywhere, Category=Translucency)
+	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Apply Fogging"))
 	uint32 bUseTranslucencyVertexFog:1;
+
+	/** When true, translucent materials have fog computed for every pixel, which costs more but fixes artifacts due to low tessellation. */
+	UPROPERTY(EditAnywhere, Category=Translucency)
+	uint32 bComputeFogPerPixel:1;
 
 	/** If true the compilation environment will be changed to remove the global COMPILE_SHADERS_FOR_DEVELOPMENT flag. */
 	UPROPERTY(transient, duplicatetransient)

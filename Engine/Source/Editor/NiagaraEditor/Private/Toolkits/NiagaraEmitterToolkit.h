@@ -34,6 +34,15 @@ public:
 	//~ FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
+	static void UpdateExistingEmitters(const TArray<UNiagaraEmitterProperties*>& AffectedEmitters);
+	
+protected:
+	//~ FAssetEditorToolkit interface
+	virtual void GetSaveableObjects(TArray<UObject*>& OutObjects) const override;
+	virtual void SaveAsset_Execute() override;
+	virtual void SaveAssetAs_Execute() override;
+	virtual bool OnRequestClose() override;
+
 private:
 	void SetupCommands();
 	void ExtendToolbar();
@@ -42,6 +51,7 @@ private:
 	TSharedRef<SDockTab> SpawnTabSpawnScriptGraph(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTabUpdateScriptGraph(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTabEmitterDetails(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTabCurveEditor(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTabSequencer(const FSpawnTabArgs& Args);
 
 	FSlateIcon GetCompileStatusImage() const;
@@ -64,6 +74,12 @@ private:
 	FSlateIcon GetRefreshStatusImage() const;
 	FText GetRefreshStatusTooltip() const;
 	
+	/** Command for the apply button */
+	void OnApply();
+	bool OnApplyEnabled() const;
+
+	void UpdateOriginalEmitter();
+		
 private:
 
 	/** Emitter toolkit constants */
@@ -72,6 +88,7 @@ private:
 	static const FName SpawnScriptGraphTabId;
 	static const FName UpdateScriptGraphTabId;
 	static const FName EmitterDetailsTabId;
+	static const FName CurveEditorTabId;
 	static const FName SequencerTabId;
 
 	/** The view model for the emitter editor widget. */
@@ -85,9 +102,9 @@ private:
 
 	FNiagaraEmitterHandle EmitterHandle;
 
+	UNiagaraEmitterProperties* OriginalEmitter;
+	UNiagaraEmitterProperties* EditableEmitter;
+
 	float ParameterNameColumnWidth;
 	float ParameterContentColumnWidth;
-
-	FDelegateHandle PackageSavedDelegate;
-	bool NeedsRefresh;
 };

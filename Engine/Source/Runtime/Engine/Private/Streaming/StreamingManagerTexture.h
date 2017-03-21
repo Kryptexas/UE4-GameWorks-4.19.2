@@ -177,6 +177,9 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 		bPauseTextureStreaming = bInShouldPause;
 	}
 
+	/** Return all bounds related to the ref object */
+	virtual void GetObjectReferenceBounds(const UObject* RefObject, TArray<FBox>& AssetBoxes) override;
+
 protected:
 //BEGIN: Thread-safe functions and data
 		friend class FAsyncTextureStreamingTask;

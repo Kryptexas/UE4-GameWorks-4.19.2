@@ -718,7 +718,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 	}
 #endif
 
-	// iterate through all inputs of tghis pass and decrement the references for it's inputs
+	// iterate through all inputs of this pass and decrement the references for it's inputs
 	// this can release some intermediate RT so they can be reused
 	{
 		uint32 InputId = 0;

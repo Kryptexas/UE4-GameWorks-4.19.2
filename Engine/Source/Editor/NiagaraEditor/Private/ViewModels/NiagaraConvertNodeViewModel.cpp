@@ -110,8 +110,9 @@ void FNiagaraConvertNodeViewModel::GetConnectedSockets(TSharedRef<const FNiagara
 	}
 }
 
-bool FNiagaraConvertNodeViewModel::CanConnectSockets(TSharedRef<FNiagaraConvertPinSocketViewModel> SocketA, TSharedRef<FNiagaraConvertPinSocketViewModel> SocketB, FText& ConnectionMessage)
+bool FNiagaraConvertNodeViewModel::CanConnectSockets(TSharedRef<FNiagaraConvertPinSocketViewModel> SocketA, TSharedRef<FNiagaraConvertPinSocketViewModel> SocketB, FText& ConnectionMessage, bool& bMessageIsWarning)
 {
+	bMessageIsWarning = false;
 	if (SocketA->GetOwnerConvertNodeViewModel().Get() != this || SocketB->GetOwnerConvertNodeViewModel().Get() != this)
 	{
 		ConnectionMessage = LOCTEXT("DifferentConvertNodeConnectionMessage", "Can only connect pins from the same convert node.");
@@ -130,8 +131,66 @@ bool FNiagaraConvertNodeViewModel::CanConnectSockets(TSharedRef<FNiagaraConvertP
 		return false;
 	}
 
-	ConnectionMessage = FText::Format(LOCTEXT("ConnectFormat", "Connect {0} to {1}"), SocketA->GetPathText(), SocketB->GetPathText());
+	FNiagaraTypeDefinition TypeA = SocketA->GetTypeDefinition();
+	FNiagaraTypeDefinition TypeB = SocketB->GetTypeDefinition();
+	if (false == FNiagaraTypeDefinition::TypesAreAssignable(TypeA, TypeB))
+	{
+		ConnectionMessage = FText::Format(LOCTEXT("InvalidPinTypeConnectionMessage", "Cannot connect types: {0} to {1}"), TypeA.GetNameText(), TypeB.GetNameText());
+		return false;
+	}
+
+	if (FNiagaraTypeDefinition::IsLossyConversion(TypeA, TypeB))
+	{
+		bMessageIsWarning = true;
+		ConnectionMessage = FText::Format(LOCTEXT("ConnectFormatLossy", "Possible lossy conversion {0} to {1}. Are you sure?"), TypeA.GetNameText(), TypeB.GetNameText());
+	}
+	else
+	{
+		ConnectionMessage = FText::Format(LOCTEXT("ConnectFormat", "Connect '{0}' to '{1}'"), SocketA->GetDisplayPathText(), SocketB->GetDisplayPathText());
+	}
+
 	return true;
+}
+
+bool IsParent(const TArray<FName>& PossibleParentPath, const TArray<FName> SrcPath)
+{
+	int32 SrcIdx = 0;
+	for (int32 i = 0; i < PossibleParentPath.Num(); i++)
+	{
+		if (SrcPath.Num() > SrcIdx)
+		{
+			if (PossibleParentPath[i] == SrcPath[SrcIdx])
+			{
+				SrcIdx++;
+				continue;
+			}
+
+			if (PossibleParentPath[i] == FName())
+			{
+				continue;
+			}
+
+			if (SrcPath[SrcIdx] == FName())
+			{
+				SrcIdx++;
+				continue;
+			}
+
+			if (PossibleParentPath[i] != SrcPath[SrcIdx])
+			{
+				return false;
+			}
+		}
+	}
+
+	if (SrcPath.Num() == SrcIdx)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 void FNiagaraConvertNodeViewModel::ConnectSockets(TSharedRef<FNiagaraConvertPinSocketViewModel> SocketA, TSharedRef<FNiagaraConvertPinSocketViewModel> SocketB)
@@ -147,14 +206,33 @@ void FNiagaraConvertNodeViewModel::ConnectSockets(TSharedRef<FNiagaraConvertPinS
 
 	ConvertNode.Modify();
 
+	TArray<FNiagaraConvertConnection>& Connections = ConvertNode.GetConnections();
+
 	// Remove any existing connections to the same destination.
 	auto RemovePredicate = [&](FNiagaraConvertConnection& Connection)
 	{
 		return Connection.DestinationPinId == OutputPinId && Connection.DestinationPath == OutputPath;
 	};
+	Connections.RemoveAll(RemovePredicate);
 
-	ConvertNode.GetConnections().RemoveAll(RemovePredicate);
-	ConvertNode.GetConnections().Add(FNiagaraConvertConnection(InputPinId, InputPath, OutputPinId, OutputPath));
+	// Remove any connections higher or lower in the traversal order affecting this ooutput property.
+	// For instance, connecting the X property of a Vector3 will cause the direct Vector3->Vector3 connection one level higher to be removed.
+	// Alternately, if you only have the float->float X property connection, a higher-level vector3->vector3 connection will trump it and cause the old x connection to be removed.
+	for (int32 i = Connections.Num() - 1; i >= 0; i--)
+	{
+		FNiagaraConvertConnection& Connection = Connections[i];
+		if (Connection.DestinationPinId == OutputPinId && IsParent(Connection.DestinationPath, OutputPath))
+		{
+			Connections.RemoveAt(i);
+		}
+		else if (Connection.DestinationPinId == OutputPinId && IsParent(OutputPath, Connection.DestinationPath))
+		{
+			Connections.RemoveAt(i);
+		}
+	}
+
+	// Add this new connection
+	Connections.Add(FNiagaraConvertConnection(InputPinId, InputPath, OutputPinId, OutputPath));
 	InvalidateConnectionViewModels();
 }
 
@@ -248,6 +326,14 @@ void FNiagaraConvertNodeViewModel::RefreshConnectionViewModels()
 		{
 			ConnectionViewModels.Add(MakeShareable(new FNiagaraConvertConnectionViewModel(SourceSocket.ToSharedRef(), DestinationSocket.ToSharedRef())));
 		}
+		else
+		{
+			UE_LOG(LogNiagaraEditor, Warning, TEXT("Invalid connection!"));
+			//if (SourceSocket.IsValid() == false)
+			//	SourceSocket = GetSocket(Connection.SourcePinId, Connection.SourcePath, EGPD_Input);
+			//if (DestinationSocket.IsValid() == false)
+			//	DestinationSocket = GetSocket(Connection.DestinationPinId, Connection.DestinationPath, EGPD_Output);
+		}
 	}
 
 	bConnectionViewModelsNewRefresh = false;
@@ -255,20 +341,18 @@ void FNiagaraConvertNodeViewModel::RefreshConnectionViewModels()
 
 TSharedPtr<FNiagaraConvertPinSocketViewModel> GetSocketByPathRecursive(const TArray<TSharedRef<FNiagaraConvertPinSocketViewModel>>& SocketViewModels, const TArray<FName>& Path, int32 PathIndex)
 {
-	if (PathIndex < Path.Num())
+	for (const TSharedRef<FNiagaraConvertPinSocketViewModel>& SocketViewModel : SocketViewModels)
 	{
-		for (const TSharedRef<FNiagaraConvertPinSocketViewModel>& SocketViewModel : SocketViewModels)
+		if (SocketViewModel->GetPath() == Path)
 		{
-			if (SocketViewModel->GetName() == Path[PathIndex])
+			return SocketViewModel;
+		}
+		else
+		{
+			TSharedPtr<FNiagaraConvertPinSocketViewModel> ChildSocket = GetSocketByPathRecursive(SocketViewModel->GetChildSockets(), Path, PathIndex);
+			if (ChildSocket.IsValid())
 			{
-				if (PathIndex == Path.Num() - 1)
-				{
-					return SocketViewModel;
-				}
-				else
-				{
-					return GetSocketByPathRecursive(SocketViewModel->GetChildSockets(), Path, PathIndex + 1);
-				}
+				return ChildSocket;
 			}
 		}
 	}
@@ -300,5 +384,35 @@ TSharedPtr<FNiagaraConvertPinSocketViewModel> FNiagaraConvertNodeViewModel::GetS
 		return TSharedPtr<FNiagaraConvertPinSocketViewModel>();
 	}
 }
+
+bool FNiagaraConvertNodeViewModel::IsWiringShown() const
+{
+	return ConvertNode.IsWiringShown();
+}
+
+void FNiagaraConvertNodeViewModel::RecordChildrenShowing(bool bIsShowingChildren, FGuid PinId, const TArray<FName>& Path)
+{
+	FNiagaraConvertPinRecord Record;
+	Record.Path = Path;
+	Record.PinId = PinId;
+	if (bIsShowingChildren)
+	{
+		ConvertNode.AddExpandedRecord(Record);
+	}
+	else
+	{
+		ConvertNode.RemoveExpandedRecord(Record);
+	}
+}
+
+bool FNiagaraConvertNodeViewModel::AreChildrenShowing(FGuid PinId, const TArray<FName>& Path)
+{
+	FNiagaraConvertPinRecord Record;
+	Record.Path = Path;
+	Record.PinId = PinId;
+	return ConvertNode.HasExpandedRecord(Record);
+}
+
+
 
 #undef LOCTEXT_NAMESPACE

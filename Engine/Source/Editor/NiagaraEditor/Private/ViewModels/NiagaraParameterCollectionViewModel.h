@@ -19,7 +19,7 @@ class INiagaraParameterCollectionViewModel
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnCollectionChanged);
 	DECLARE_MULTICAST_DELEGATE(FOnExpandedChanged);
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnParameterValueChanged, const FNiagaraVariable*);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnParameterValueChanged, FGuid);
 
 public:
 	virtual ~INiagaraParameterCollectionViewModel() { }
@@ -71,6 +71,15 @@ public:
 
 	/** Gets a multicast delegate which is called whenever the value of one of the parameters in the collection changes. */
 	virtual FOnParameterValueChanged& OnParameterValueChanged() = 0;
+
+	/** Rebuilds the parameter view models. */
+	virtual void RefreshParameterViewModels()  = 0;
+
+	/** Notifies the parameter collection that a parameter was changed externally. */
+	virtual void NotifyParameterChangedExternally(FGuid ParameterId) = 0;
+
+	/** Helper function to sort view models via their name and sort order.*/
+	static void SortViewModels(TArray<TSharedRef<INiagaraParameterViewModel>>& InOutViewModels);
 };
 
 /** Base class for parameter collection view models.  Partially implements the parameter collection interface with
@@ -95,6 +104,7 @@ public:
 	virtual FOnCollectionChanged& OnCollectionChanged() override { return OnCollectionChangedDelegate; }
 	virtual FOnExpandedChanged& OnExpandedChanged() override { return OnExpandedChangedDelegate; }
 	virtual FOnParameterValueChanged& OnParameterValueChanged() override { return OnParameterValueChangedDelegate; }
+	virtual void NotifyParameterChangedExternally(FGuid ParameterId) override;
 
 protected:
 	/** Gets a set containing the names of the parameters. */

@@ -115,10 +115,13 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
 	, IndirectLightingIntensity(InLightComponent->IndirectLightingIntensity)
+	, VolumetricScatteringIntensity(FMath::Max(InLightComponent->VolumetricScatteringIntensity, 0.0f))
 	, OcclusionMaxDistance(InLightComponent->OcclusionMaxDistance)
 	, Contrast(InLightComponent->Contrast)
-	, MinOcclusion(InLightComponent->MinOcclusion)
+	, OcclusionExponent(FMath::Clamp(InLightComponent->OcclusionExponent, .1f, 10.0f))
+	, MinOcclusion(FMath::Clamp(InLightComponent->MinOcclusion, 0.0f, 1.0f))
 	, OcclusionTint(InLightComponent->OcclusionTint)
+	, OcclusionCombineMode(InLightComponent->OcclusionCombineMode)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
 		FInitSkyProxy,
@@ -159,6 +162,7 @@ USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializ
 	bHasEverCaptured = false;
 	OcclusionMaxDistance = 1000;
 	MinOcclusion = 0;
+	OcclusionExponent = 1;
 	OcclusionTint = FColor::Black;
 	CubemapResolution = 128;
 	LowerHemisphereColor = FLinearColor::Black;
@@ -276,14 +280,16 @@ void USkyLightComponent::UpdateLimitedRenderingStateFast()
 {
 	if (SceneProxy)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			FFastUpdateSkyLightCommand,
 			FSkyLightSceneProxy*,LightSceneProxy,SceneProxy,
 			FLinearColor,LightColor,FLinearColor(LightColor) * Intensity,
 			float,IndirectLightingIntensity,IndirectLightingIntensity,
+			float,VolumetricScatteringIntensity,VolumetricScatteringIntensity,
 		{
 			LightSceneProxy->LightColor = LightColor;
 			LightSceneProxy->IndirectLightingIntensity = IndirectLightingIntensity;
+			LightSceneProxy->VolumetricScatteringIntensity = VolumetricScatteringIntensity;
 		});
 	}
 }
@@ -298,11 +304,13 @@ void USkyLightComponent::PostInterpChange(UProperty* PropertyThatChanged)
 	static FName LightColorName(TEXT("LightColor"));
 	static FName IntensityName(TEXT("Intensity"));
 	static FName IndirectLightingIntensityName(TEXT("IndirectLightingIntensity"));
+	static FName VolumetricScatteringIntensityName(TEXT("VolumetricScatteringIntensity"));
 
 	FName PropertyName = PropertyThatChanged->GetFName();
 	if (PropertyName == LightColorName
 		|| PropertyName == IntensityName
-		|| PropertyName == IndirectLightingIntensityName)
+		|| PropertyName == IndirectLightingIntensityName
+		|| PropertyName == VolumetricScatteringIntensityName)
 	{
 		UpdateLimitedRenderingStateFast();
 	}
@@ -605,6 +613,17 @@ void USkyLightComponent::SetIndirectLightingIntensity(float NewIntensity)
 	}
 }
 
+void USkyLightComponent::SetVolumetricScatteringIntensity(float NewIntensity)
+{
+	// Can't set brightness on a static light
+	if (AreDynamicDataChangesAllowed()
+		&& VolumetricScatteringIntensity != NewIntensity)
+	{
+		VolumetricScatteringIntensity = NewIntensity;
+		UpdateLimitedRenderingStateFast();
+	}
+}
+
 /** Set color of the light */
 void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 {
@@ -626,7 +645,6 @@ void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
 		&& Cubemap != NewCubemap)
 	{
 		Cubemap = NewCubemap;
-		// Note: this will cause all static draw lists to be recreated, which is often 10ms in a large level
 		MarkRenderStateDirty();
 		// Note: this will cause the cubemap to be reprocessed including readback from the GPU
 		SetCaptureIsDirty();
@@ -682,7 +700,26 @@ void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
 		&& OcclusionTint != InTint)
 	{
 		OcclusionTint = InTint;
-		// Note: this will cause all static draw lists to be recreated, which is often 10ms in a large level
+		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetOcclusionContrast(float InOcclusionContrast)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& Contrast != InOcclusionContrast)
+	{
+		Contrast = InOcclusionContrast;
+		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetOcclusionExponent(float InOcclusionExponent)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& OcclusionExponent != InOcclusionExponent)
+	{
+		OcclusionExponent = InOcclusionExponent;
 		MarkRenderStateDirty();
 	}
 }
@@ -694,7 +731,6 @@ void USkyLightComponent::SetMinOcclusion(float InMinOcclusion)
 		&& MinOcclusion != InMinOcclusion)
 	{
 		MinOcclusion = InMinOcclusion;
-		// Note: this will cause all static draw lists to be recreated, which is often 10ms in a large level
 		MarkRenderStateDirty();
 	}
 }

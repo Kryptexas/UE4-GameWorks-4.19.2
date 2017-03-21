@@ -15,29 +15,6 @@ class FCompilerResultsLog;
 class UNiagaraDataInterface;
 
 
-
-
-/**
-* Enumerates states a Niagara script can be in.
-*/
-UENUM()
-enum ENiagaraScriptCompileStatus
-{
-	/** Niagara script is in an unknown state. */
-	NCS_Unknown,
-	/** Niagara script has been modified but not recompiled. */
-	NCS_Dirty,
-	/** Niagara script tried but failed to be compiled. */
-	NCS_Error,
-	/** Niagara script has been compiled since it was last modified. */
-	NCS_UpToDate,
-	/** Niagara script is in the process of being created for the first time. */
-	NCS_BeingCreated,
-	/** Niagara script has been compiled since it was last modified. There are warnings. */
-	NCS_UpToDateWithWarnings,
-	NCS_MAX,
-};
-
 /** Defines information about the results of a Niagara script compile. */
 struct FNiagaraCompileResults
 {
@@ -47,10 +24,10 @@ struct FNiagaraCompileResults
 	/** A results log with messages, warnings, and errors which occurred during the compile. */
 	FCompilerResultsLog* MessageLog;
 
-	/** A text representation of the compilation output. */
-	FText OutputAsText;
+	/** A string representation of the compilation output. */
+	FString OutputHLSL;
 
-	FNiagaraCompileResults(FCompilerResultsLog* InMessageLog)
+	FNiagaraCompileResults(FCompilerResultsLog* InMessageLog = nullptr)
 		: MessageLog(InMessageLog)
 	{
 	}
@@ -100,6 +77,14 @@ public:
 
 	/** If we are compiling a function it will return true and fill in the result of OutParam if the passed Parameter is found. Returns false if we're not compiling a function. */
 	virtual bool GetFunctionParameter(const FNiagaraVariable& Parameter, int32& OutParam)const = 0;
+
+	/** 
+	Returns whether the current script is allowed to read attributes at this point in compilation.
+	Update Scripts can always read attributes.
+	Interpolated spawn scripts can read attributes only during their partial update phase.
+	Spawn scripts can never read attributes.
+	*/
+	virtual bool CanReadAttributes()const = 0;
 };
 
 /** Data which is generated from the hlsl by the VectorVMBackend and fed back into the */
@@ -125,6 +110,16 @@ struct FNiagaraCompilationOutput
 	FNiagaraScriptDataUsageInfo DataUsage;
 
 	TArray<FNiagaraScriptDataInterfaceInfo> DataInterfaceInfo;
+
+	/** Ordered table of functions actually called by the VM script. */
+	struct FCalledVMFunction
+	{
+		FString Name;
+		TArray<bool> InputParamLocations;
+		int32 NumOutputs;
+		FCalledVMFunction():NumOutputs(0){}
+	};
+	TArray<FCalledVMFunction> CalledVMFunctionTable;
 
 	FString Errors;
 };

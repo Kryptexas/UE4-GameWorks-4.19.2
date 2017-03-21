@@ -321,7 +321,7 @@ void FNiagaraOpInfo::Init()
 		Op = &OpInfos[Idx];
 		Op->Category = CategoryText;
 		Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Ceil Name", "Ceil");
-		Op->Description = NSLOCTEXT("NiagaraOpInfo", "Ceil Desc", "Result = ceil(A)");
+		Op->Description = NSLOCTEXT("NiagaraOpInfo", "Ceil Desc", "Rounds A to the nearest integer higher than A.");
 		Op->Inputs.Add(FNiagaraOpInOutInfo(A, Type, AText, AText, DefaultStr_One));
 		Op->Outputs.Add(FNiagaraOpInOutInfo(Result, Type, ResultText, ResultText, DefaultStr_One, TEXT("ceil({0})")));
 		Op->BuildName(TEXT("Ceil"), CategoryName);
@@ -331,10 +331,20 @@ void FNiagaraOpInfo::Init()
 		Op = &OpInfos[Idx];
 		Op->Category = CategoryText;
 		Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Floor Name", "Floor");
-		Op->Description = NSLOCTEXT("NiagaraOpInfo", "Floor Desc", "Result = floor(A)");
+		Op->Description = NSLOCTEXT("NiagaraOpInfo", "Floor Desc", "Rounds A to the nearest integer lower than A.");
 		Op->Inputs.Add(FNiagaraOpInOutInfo(A, Type, AText, AText, DefaultStr_One));
 		Op->Outputs.Add(FNiagaraOpInOutInfo(Result, Type, ResultText, ResultText, DefaultStr_One, TEXT("floor({0})")));
 		Op->BuildName(TEXT("Floor"), CategoryName);
+		OpInfoMap.Add(Op->Name) = Idx;
+
+		Idx = OpInfos.AddDefaulted();
+		Op = &OpInfos[Idx];
+		Op->Category = CategoryText;
+		Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Round Name", "Round");
+		Op->Description = NSLOCTEXT("NiagaraOpInfo", "Round Desc", "Rounds A to the nearest integer.");
+		Op->Inputs.Add(FNiagaraOpInOutInfo(A, Type, AText, AText, DefaultStr_One));
+		Op->Outputs.Add(FNiagaraOpInOutInfo(Result, Type, ResultText, ResultText, DefaultStr_One, TEXT("round({0})")));
+		Op->BuildName(TEXT("Round"), CategoryName);
 		OpInfoMap.Add(Op->Name) = Idx;
 
 		Idx = OpInfos.AddDefaulted();
@@ -673,7 +683,8 @@ void FNiagaraOpInfo::Init()
 	static FName V(TEXT("V"));
 	static FText VText = NSLOCTEXT("NiagaraOpInfo", "Vector Param", "V");
 
-	FString Default_VectorOne(TEXT("1.0,1.0,1.0,1.0"));
+	FString Default_VectorOne(TEXT("1.0,1.0,1.0"));
+	FString Default_Vector4One(TEXT("1.0,1.0,1.0,1.0"));
 	FString Default_VectorX(TEXT("1.0,0.0,0.0"));
 	FString Default_VectorY(TEXT("0.0,1.0,0.0"));
 	FString Default_VectorZ(TEXT("0.0,0.0,1.0"));
@@ -684,7 +695,7 @@ void FNiagaraOpInfo::Init()
 	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Transpose Name", "Transpose");
 	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Transpose Desc", "Returns the trasnpose of the passd matrix.");
 	Op->Inputs.Add(FNiagaraOpInOutInfo(M, MatrixType, MText, MText, Default_MatrixOne));
-	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, MatrixType, ResultText, ResultText, Default_MatrixOne, TEXT("transpose{0}")));
+	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, MatrixType, ResultText, ResultText, Default_MatrixOne, TEXT("transpose({0})")));
 	Op->BuildName(TEXT("Transpose"), MatrixCategoryName);
 	OpInfoMap.Add(Op->Name) = Idx;
 
@@ -748,6 +759,39 @@ void FNiagaraOpInfo::Init()
 	Op->Inputs.Add(FNiagaraOpInOutInfo(V, FNiagaraTypeDefinition::GetVec4Def(), VText, VText, Default_VectorOne));
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, FNiagaraTypeDefinition::GetVec4Def(), ResultText, ResultText, Default_VectorOne, TEXT("mul({1},{0})")));
 	Op->BuildName(TEXT("MatrixVectorMultiply"), MatrixCategoryName);
+	OpInfoMap.Add(Op->Name) = Idx;
+
+	Idx = OpInfos.AddZeroed();
+	Op = &OpInfos[Idx];
+	Op->Category = MatrixCategory;
+	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "MatrixVector Mul Name", "Multiply (Matrix * Vector4)");
+	Op->Description = NSLOCTEXT("NiagaraOpInfo", "MatrixVector Mul Desc", "Multiplies a matrix by a vector4.");
+	Op->Inputs.Add(FNiagaraOpInOutInfo(M, MatrixType, MText, MText, Default_MatrixOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(V, FNiagaraTypeDefinition::GetVec4Def(), VText, VText, Default_Vector4One));
+	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, FNiagaraTypeDefinition::GetVec4Def(), ResultText, ResultText, Default_Vector4One, TEXT("mul({1},{0})")));
+	Op->BuildName(TEXT("MatrixVectorMultiply"), MatrixCategoryName);
+	OpInfoMap.Add(Op->Name) = Idx;
+
+	Idx = OpInfos.AddZeroed();
+	Op = &OpInfos[Idx];
+	Op->Category = MatrixCategory;
+	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "TransformPosition Name", "Transform Position");
+	Op->Description = NSLOCTEXT("NiagaraOpInfo", "TransformPosition Desc", "Transforms a Vector3 as a position.");
+	Op->Inputs.Add(FNiagaraOpInOutInfo(M, MatrixType, MText, MText, Default_MatrixOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(V, FNiagaraTypeDefinition::GetVec3Def(), VText, VText, Default_VectorOne));
+	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, FNiagaraTypeDefinition::GetVec3Def(), ResultText, ResultText, Default_VectorOne, TEXT("mul(float4({1},1.0),{0}).xyz")));
+	Op->BuildName(TEXT("TransformPosition"), MatrixCategoryName);
+	OpInfoMap.Add(Op->Name) = Idx;
+
+	Idx = OpInfos.AddZeroed();
+	Op = &OpInfos[Idx];
+	Op->Category = MatrixCategory;
+	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "TransformVector Name", "Transform Vector");
+	Op->Description = NSLOCTEXT("NiagaraOpInfo", "TransformVector Desc", "Transforms a Vector3 as a vector.");
+	Op->Inputs.Add(FNiagaraOpInOutInfo(M, MatrixType, MText, MText, Default_MatrixOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(V, FNiagaraTypeDefinition::GetVec3Def(), VText, VText, Default_VectorOne));
+	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, FNiagaraTypeDefinition::GetVec3Def(), ResultText, ResultText, Default_VectorOne, TEXT("mul(float4({1},0.0),{0}).xyz")));
+	Op->BuildName(TEXT("TransformVector"), MatrixCategoryName);
 	OpInfoMap.Add(Op->Name) = Idx;
 
 	/* Vector3 only ops **/

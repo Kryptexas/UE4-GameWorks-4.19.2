@@ -19,8 +19,10 @@
 #define SYS_PARAM_EXEC_COUNT FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Execution Count"))
 
 #define SYS_PARAM_SPAWNRATE FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Spawn Rate"))
-#define SYS_PARAM_SPAWNRATE_INVERSE FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Spawn Rate Inverse"))
-#define SYS_PARAM_SPAWNRATE_REMAINDER FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Spawn Rate Remainder"))
+#define SYS_PARAM_SPAWN_INTERVAL FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Spawn Interval"))
+#define SYS_PARAM_INTERP_SPAWN_START_DT FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Interp Spawn Start Dt"))
+
+#define SYS_PARAM_INV_DELTA_TIME FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Inv Delta Time"))
 
 //TODO: Implement emitter's own position offset from it's parent effect? Cascade has this.
 //#define SYS_PARAM_EMITTER_POSITION FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Emitter Position"));

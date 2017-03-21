@@ -92,65 +92,6 @@ float GetIndirectOcclusion(float2 ScreenUV, FGBufferData GBufferData)
 	return IndirectOcclusion;
 }
 
-struct CulledLightsGridData
-{
-	uint NumLocalLights;
-	uint DataStartIndex;
-};
-
-CulledLightsGridData GetCulledLightsGrid(uint GridIndex, uint EyeIndex)
-{
-	CulledLightsGridData Result;
-
-	BRANCH
-	if (EyeIndex == 0)
-	{
-		Result.NumLocalLights = NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0];
-		Result.DataStartIndex = NumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1];
-	}
-	else
-	{
-		Result.NumLocalLights = InstancedNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 0];
-		Result.DataStartIndex = InstancedNumCulledLightsGrid[GridIndex * NUM_CULLED_LIGHTS_GRID_STRIDE + 1];
-	}
-
-	return Result;
-}
-
-struct LocalLightData
-{
-	float4 LightPositionAndInvRadius;
-	float4 LightColorAndFalloffExponent;
-	float4 SpotAnglesAndSourceRadius;
-	float4 LightDirectionAndShadowMask;
-};
-
-LocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
-{
-	LocalLightData Result;
-
-	if (EyeIndex == 0)
-	{
-		uint LocalLightIndex = CulledLightDataGrid[GridIndex];
-		uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
-		Result.LightPositionAndInvRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 0];
-		Result.LightColorAndFalloffExponent = ForwardLocalLightBuffer[LocalLightBaseIndex + 1];
-		Result.LightDirectionAndShadowMask = ForwardLocalLightBuffer[LocalLightBaseIndex + 2];
-		Result.SpotAnglesAndSourceRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 3];
-	}
-	else
-	{
-		uint LocalLightIndex = InstancedCulledLightDataGrid[GridIndex];
-		uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
-		Result.LightPositionAndInvRadius = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 0];
-		Result.LightColorAndFalloffExponent = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 1];
-		Result.LightDirectionAndShadowMask = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 2];
-		Result.SpotAnglesAndSourceRadius = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 3];
-	}
-
-	return Result;
-}
-
 float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 CameraVector, FGBufferData GBufferData, float2 ScreenUV, uint EyeIndex)
 {
 	float4 DynamicShadowFactors = 1;
@@ -201,18 +142,19 @@ float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 Cam
 		}
 	}
 	
-	const CulledLightsGridData CulledLightsGrid = GetCulledLightsGrid(GridIndex, EyeIndex);
+	const FCulledLightsGridData CulledLightsGrid = GetCulledLightsGrid(GridIndex, EyeIndex);
 
 	LOOP
 	for (uint LocalLightListIndex = 0; LocalLightListIndex < CulledLightsGrid.NumLocalLights; LocalLightListIndex++)
 	{
-		const LocalLightData LocalLight = GetLocalLightData(CulledLightsGrid.DataStartIndex + LocalLightListIndex, EyeIndex);
+		const FLocalLightData LocalLight = GetLocalLightData(CulledLightsGrid.DataStartIndex + LocalLightListIndex, EyeIndex);
 		 
 		FDeferredLightData LightData = (FDeferredLightData)0;
 		LightData.LightPositionAndInvRadius = LocalLight.LightPositionAndInvRadius;
 		LightData.LightColorAndFalloffExponent = LocalLight.LightColorAndFalloffExponent;
 		LightData.LightDirection = LocalLight.LightDirectionAndShadowMask.xyz;
-		LightData.SpotAnglesAndSourceRadius = LocalLight.SpotAnglesAndSourceRadius;
+		float SourceLength = f16tof32(asuint(LocalLight.SpotAnglesAndSourceRadiusPacked.w));
+		LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAnglesAndSourceRadiusPacked.xyz, SourceLength);
 		LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
 		LightData.bRadialLight = true;
 		LightData.bSpotLight = LightData.SpotAnglesAndSourceRadius.x > -2.0f;
@@ -263,12 +205,12 @@ float3 GetForwardDirectLightingForVertexLighting(uint GridIndex, float3 WorldPos
 		DirectLighting += LightColor * NoL * (DiffuseLighting);
 	}
 	
-	const CulledLightsGridData CulledLightsGrid = GetCulledLightsGrid(GridIndex, EyeIndex);
+	const FCulledLightsGridData CulledLightsGrid = GetCulledLightsGrid(GridIndex, EyeIndex);
 
 	LOOP
 	for (uint LocalLightListIndex = 0; LocalLightListIndex < CulledLightsGrid.NumLocalLights; LocalLightListIndex++)
 	{
-		const LocalLightData LocalLight = GetLocalLightData(CulledLightsGrid.DataStartIndex + LocalLightListIndex, EyeIndex);
+		const FLocalLightData LocalLight = GetLocalLightData(CulledLightsGrid.DataStartIndex + LocalLightListIndex, EyeIndex);
 		 
 		FSimpleDeferredLightData LightData = (FSimpleDeferredLightData)0;
 		LightData.LightPositionAndInvRadius = LocalLight.LightPositionAndInvRadius;

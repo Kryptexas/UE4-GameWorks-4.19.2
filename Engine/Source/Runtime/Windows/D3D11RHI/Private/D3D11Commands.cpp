@@ -23,7 +23,6 @@
 #include "HideWindowsPlatformTypes.h"
 #endif
 
-FGlobalBoundShaderState GD3D11ClearMRTBoundShaderState[8];
 TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
 
 #define DECLARE_ISBOUNDSHADER(ShaderType) inline void ValidateBoundShader(FD3D11StateCache& InStateCache, F##ShaderType##RHIParamRef ShaderType##RHI) \
@@ -282,6 +281,9 @@ void FD3D11DynamicRHI::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 MinY,ui
 */
 void FD3D11DynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef BoundShaderStateRHI)
 {
+	// Non-PSO
+	PSOPrimitiveType = PT_Num;
+
 	FD3D11BoundShaderState* BoundShaderState = ResourceCast(BoundShaderStateRHI);
 
 	StateCache.SetInputLayout(BoundShaderState->InputLayout);
@@ -1273,6 +1275,10 @@ static D3D11_PRIMITIVE_TOPOLOGY GetD3D11PrimitiveType(uint32 PrimitiveType, bool
 	return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
+static inline void VerifyPrimitiveType(EPrimitiveType PSOPrimitiveType, uint32 PrimitiveType)
+{
+	ensureAlwaysMsgf(PSOPrimitiveType == PT_Num || (EPrimitiveType)PrimitiveType == PSOPrimitiveType, TEXT("PSO was created using PrimitiveType %d, but the Draw call is using %d! This will break D3D12, Metal and Vulkan"), (uint32)PSOPrimitiveType, (uint32)PrimitiveType);
+}
 
 void FD3D11DynamicRHI::CommitNonComputeShaderConstants()
 {
@@ -1565,7 +1571,7 @@ void FD3D11DynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexIn
 	uint32 VertexCount = GetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
 
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, VertexCount * NumInstances);
-
+	VerifyPrimitiveType(PSOPrimitiveType, PrimitiveType);
 	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PrimitiveType,bUsingTessellation));
 	if(NumInstances > 1)
 	{
@@ -1588,6 +1594,7 @@ void FD3D11DynamicRHI::RHIDrawPrimitiveIndirect(uint32 PrimitiveType,FVertexBuff
 	CommitGraphicsResourceTables();
 	CommitNonComputeShaderConstants();
 
+	VerifyPrimitiveType(PSOPrimitiveType, PrimitiveType);
 	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PrimitiveType,bUsingTessellation));
 	Direct3DDeviceIMContext->DrawInstancedIndirect(ArgumentBuffer->Resource,ArgumentOffset);
 }
@@ -1609,6 +1616,7 @@ void FD3D11DynamicRHI::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef IndexBuffe
 	const DXGI_FORMAT Format = (IndexBuffer->GetStride() == sizeof(uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
 
 	StateCache.SetIndexBuffer(IndexBuffer->Resource, Format, 0);
+	VerifyPrimitiveType(PSOPrimitiveType, PrimitiveType);
 	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PrimitiveType,bUsingTessellation));
 
 	if(NumInstances > 1)
@@ -1647,6 +1655,7 @@ void FD3D11DynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 		TEXT("Start %u, Count %u, Type %u, Buffer Size %u, Buffer stride %u"), StartIndex, IndexCount, PrimitiveType, IndexBuffer->GetSize(), IndexBuffer->GetStride());
 
 	StateCache.SetIndexBuffer(IndexBuffer->Resource, Format, 0);
+	VerifyPrimitiveType(PSOPrimitiveType, PrimitiveType);
 	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PrimitiveType,bUsingTessellation));
 
 	if (NumInstances > 1 || FirstInstance != 0)
@@ -1675,6 +1684,7 @@ void FD3D11DynamicRHI::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveType,FInd
 	const uint32 SizeFormat = sizeof(DXGI_FORMAT);
 	const DXGI_FORMAT Format = (IndexBuffer->GetStride() == sizeof(uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
 	StateCache.SetIndexBuffer(IndexBuffer->Resource, Format, 0);
+	VerifyPrimitiveType(PSOPrimitiveType, PrimitiveType);
 	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PrimitiveType,bUsingTessellation));
 	Direct3DDeviceIMContext->DrawIndexedInstancedIndirect(ArgumentBuffer->Resource,ArgumentOffset);
 }
@@ -1720,6 +1730,7 @@ void FD3D11DynamicRHI::RHIEndDrawPrimitiveUP()
 	CommitGraphicsResourceTables();
 	CommitNonComputeShaderConstants();
 	StateCache.SetStreamSource(D3DBuffer, 0, PendingVertexDataStride, VBOffset);
+	VerifyPrimitiveType(PSOPrimitiveType, PendingPrimitiveType);
 	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PendingPrimitiveType,bUsingTessellation));
 	Direct3DDeviceIMContext->Draw(PendingNumVertices,0);
 
@@ -1782,7 +1793,8 @@ void FD3D11DynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 	CommitNonComputeShaderConstants();
 	StateCache.SetStreamSource(VertexBuffer, 0, PendingVertexDataStride, VBOffset);
 	StateCache.SetIndexBuffer(IndexBuffer, PendingIndexDataStride == sizeof(uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, 0);
-	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PendingPrimitiveType,bUsingTessellation));
+	VerifyPrimitiveType(PSOPrimitiveType, PendingPrimitiveType);
+	StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(PendingPrimitiveType, bUsingTessellation));
 	Direct3DDeviceIMContext->DrawIndexed(PendingNumIndices,0,PendingMinVertexIndex);
 
 	// Clear these parameters.

@@ -611,6 +611,8 @@ enum ETextureCreateFlags
 	TexCreate_NoFastClearFinalize = 1 << 28,
 	// Hint to the driver that this resource is managed properly by the engine for Alternate-Frame-Rendering in mGPU usage.
 	TexCreate_AFRManual = 1 << 29,
+	// Workaround for 128^3 volume textures getting bloated 4x due to tiling mode on PS4
+	TexCreate_ReduceMemoryWithTilingMode = 1 << 30
 };
 
 enum EAsyncComputePriority
@@ -631,7 +633,7 @@ enum ETextureReallocationStatus
 /**
  * Action to take when a rendertarget is set.
  */
-enum class ERenderTargetLoadAction
+enum class ERenderTargetLoadAction : uint8
 {
 	ENoAction,
 	ELoad,
@@ -646,7 +648,7 @@ static_assert((uint32)ERenderTargetLoadAction::Num <= (1 << (uint32)ERenderTarge
 /**
  * Action to take when a rendertarget is unset or at the end of a pass. 
  */
-enum class ERenderTargetStoreAction
+enum class ERenderTargetStoreAction : uint8
 {
 	ENoAction,
 	EStore,

@@ -748,7 +748,8 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 							&& Material->WritesEveryPixel()
 							&& !Material->IsTwoSided()
 							&& !IsTranslucentBlendMode(Material->GetBlendMode())
-							&& !Material->MaterialModifiesMeshPosition_RenderThread();
+							&& !Material->MaterialModifiesMeshPosition_RenderThread()
+							&& Material->GetMaterialDomain() == MD_Surface;
 
 						bAllSectionsCastShadow &= Section.bCastShadow;
 					}
@@ -1327,11 +1328,12 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 	}
 }
 
-void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
+void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FVector2D& OutDistanceMinMax, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
 {
 	if (DistanceFieldData)
 	{
 		LocalVolumeBounds = DistanceFieldData->LocalBoundingBox;
+		OutDistanceMinMax = DistanceFieldData->DistanceMinMax;
 		OutBlockMin = DistanceFieldData->VolumeTexture.GetAllocationMin();
 		OutBlockSize = DistanceFieldData->VolumeTexture.GetAllocationSize();
 		bOutBuiltAsIfTwoSided = DistanceFieldData->bBuiltAsIfTwoSided;
@@ -1342,6 +1344,7 @@ void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, F
 	else
 	{
 		LocalVolumeBounds = FBox(ForceInit);
+		OutDistanceMinMax = FVector2D(0, 0);
 		OutBlockMin = FIntVector(-1, -1, -1);
 		OutBlockSize = FIntVector(0, 0, 0);
 		bOutBuiltAsIfTwoSided = false;

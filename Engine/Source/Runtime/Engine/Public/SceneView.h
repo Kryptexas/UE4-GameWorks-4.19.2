@@ -23,6 +23,9 @@ class FSceneViewFamily;
 class FSceneViewStateInterface;
 class FViewElementDrawer;
 class ISceneViewExtension;
+class FSceneViewFamily;
+class FForwardLightingViewResources;
+class FVolumetricFogViewResources;
 
 // Projection data for a FSceneView
 struct FSceneViewProjectionData
@@ -663,7 +666,11 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeDimension_UB) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeTexelSize_UB) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, MaxGlobalDistance_UB) \
-	VIEW_UNIFORM_BUFFER_MEMBER(float, bCheckerboardSubsurfaceProfileRendering)
+	VIEW_UNIFORM_BUFFER_MEMBER(float, bCheckerboardSubsurfaceProfileRendering) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, VolumetricFogInvGridSize) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, VolumetricFogGridZParams) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, VolumetricFogSVPosToVolumeUV) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, VolumetricFogMaxDistance)
 
 #define VIEW_UNIFORM_BUFFER_MEMBER(type, identifier) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(type, identifier)

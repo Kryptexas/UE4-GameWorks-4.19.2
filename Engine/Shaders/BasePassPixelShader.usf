@@ -21,6 +21,10 @@
 #define PREV_FRAME_COLOR	1
 #include "ScreenSpaceRayCast.usf"
 
+#if NEEDS_BASEPASS_PIXEL_FOGGING
+	#include "HeightFogCommon.usf"
+#endif
+
 float NormalCurvatureToRoughness(float3 WorldNormal)
 {
     float3 dNdx = ddx(WorldNormal);
@@ -932,10 +936,12 @@ void FPixelShaderInOut_MainPS(
 		#endif
 	#endif
 
-	#if NEEDS_BASEPASS_FOGGING
-		float4 VertexFog = BasePassInterpolants.VertexFog;
+	#if NEEDS_BASEPASS_VERTEX_FOGGING
+		float4 Fogging = BasePassInterpolants.VertexFog;
+	#elif NEEDS_BASEPASS_PIXEL_FOGGING
+		float4 Fogging = CalculateHeightFog(MaterialParameters.WorldPosition_CamRelative);
 	#else
-		float4 VertexFog = float4(0,0,0,1);
+		float4 Fogging = float4(0,0,0,1);
 	#endif
 		
 	// Volume lighting for lit translucency
@@ -972,28 +978,28 @@ void FPixelShaderInOut_MainPS(
 	Color += Emissive;
 
 	#if MATERIALBLENDING_ALPHACOMPOSITE
-		Out.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb * Opacity, Opacity);
+		Out.MRT[0] = half4(Color * Fogging.a + Fogging.rgb * Opacity, Opacity);
 		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_TRANSLUCENT
-		Out.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
+		Out.MRT[0] = half4(Color * Fogging.a + Fogging.rgb, Opacity);
 		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_ADDITIVE
-		Out.MRT[0] = half4(Color * VertexFog.a * Opacity, 0.0f);
+		Out.MRT[0] = half4(Color * Fogging.a * Opacity, 0.0f);
 		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_MODULATE
 		// RETURN_COLOR not needed with modulative blending
-		half3 FoggedColor = lerp(float3(1, 1, 1), Color, VertexFog.aaa * VertexFog.aaa);
+		half3 FoggedColor = lerp(float3(1, 1, 1), Color, Fogging.aaa * Fogging.aaa);
 		Out.MRT[0] = half4(FoggedColor, Opacity);
 	#else
 		{
 			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
 
 			// Apply vertex fog
-			Color = Color * VertexFog.a + VertexFog.rgb;
+			Color = Color * Fogging.a + Fogging.rgb;
 
 #if MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE && USES_GBUFFER
 			// Apply vertex fog to diffuse color
-			DiffuseColor = DiffuseColor * VertexFog.a + VertexFog.rgb;
+			DiffuseColor = DiffuseColor * Fogging.a + Fogging.rgb;
 
 			if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE && 
                 View.bSubsurfacePostprocessEnabled > 0 && View.bCheckerboardSubsurfaceProfileRendering > 0 )
@@ -1068,7 +1074,7 @@ void FPixelShaderInOut_MainPS(
 
 // the following needs to match to the code in FSceneRenderTargets::GetGBufferRenderTargets()
 #define PIXELSHADEROUTPUT_BASEPASS 1
-#define PIXELSHADEROUTPUT_MRT0 (!USES_GBUFFER || !SELECTIVE_BASEPASS_OUTPUTS || NEEDS_BASEPASS_FOGGING || USES_EMISSIVE_COLOR || ALLOW_STATIC_LIGHTING)
+#define PIXELSHADEROUTPUT_MRT0 (!USES_GBUFFER || !SELECTIVE_BASEPASS_OUTPUTS || NEEDS_BASEPASS_VERTEX_FOGGING || USES_EMISSIVE_COLOR || ALLOW_STATIC_LIGHTING)
 #define PIXELSHADEROUTPUT_MRT1 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
 #define PIXELSHADEROUTPUT_MRT2 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
 #define PIXELSHADEROUTPUT_MRT3 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))

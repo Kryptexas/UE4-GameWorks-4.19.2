@@ -24,6 +24,8 @@
 #include "DistanceFieldAmbientOcclusion.h"
 #include "DistanceFieldLightingPost.h"
 #include "GlobalDistanceField.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 int32 GAOUseJitter = 1;
 FAutoConsoleVariableRef CVarAOUseJitter(
@@ -125,7 +127,7 @@ public:
 		const FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
@@ -276,7 +278,7 @@ public:
 		const FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 		ObjectParameters.Set(RHICmdList, ShaderRHI, GAOCulledObjectBuffers.Buffers);
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
@@ -416,7 +418,7 @@ public:
 		FSceneRenderTargetItem& DownsampledBentNormal)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ScreenGridParameters.Set(RHICmdList, ShaderRHI, View, DistanceFieldNormal);
 
 		FAOSampleData2 AOSampleData;
@@ -524,7 +526,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 
@@ -657,32 +659,35 @@ void PostProcessBentNormalAOScreenGrid(
 
 		SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets) - (bUseDistanceFieldGI ? 0 : 1), RenderTargets, FTextureRHIParamRef(), 0, NULL);
 
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 		{
 			RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
 			TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 			if (bUseDistanceFieldGI)
 			{
 				TShaderMapRef<TGeometryAwareUpsamplePS<true, false> > PixelShader(View.ShaderMap);
-
-				static FGlobalBoundShaderState BoundShaderState;
-				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 				PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, BentNormalInterpolation, IrradianceInterpolation, Parameters);
 			}
 			else
 			{
 				TShaderMapRef<TGeometryAwareUpsamplePS<false, false> > PixelShader(View.ShaderMap);
-
-				static FGlobalBoundShaderState BoundShaderState;
-				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 				PixelShader->SetParameters(RHICmdList, View, DistanceFieldNormal, BentNormalInterpolation, IrradianceInterpolation, Parameters);
 			}
 
-			VertexShader->SetParameters(RHICmdList, View);
+			VertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer);
 
 			DrawRectangle( 
 				RHICmdList,
@@ -774,8 +779,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 		SCOPED_DRAW_EVENT(RHICmdList, ConeTraceGlobal);
 
 		float ConeVisibilityClearValue = 1.0f;
-		uint32 ConeVisibilityClearValues[4] = { *(uint32*)&ConeVisibilityClearValue };
-		RHICmdList.ClearUAV(ScreenGridResources->ScreenGridConeVisibility.UAV, ConeVisibilityClearValues);
+		ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources->ScreenGridConeVisibility, *(uint32*)&ConeVisibilityClearValue);
 
 		const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor / GConeTraceDownsampleFactor, GConeTraceGlobalDFTileSize);
 		const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor / GConeTraceDownsampleFactor, GConeTraceGlobalDFTileSize);

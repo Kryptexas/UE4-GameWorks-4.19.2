@@ -21,6 +21,16 @@ void UNiagaraNodeFunctionCall::PostLoad()
 	if (FunctionScript)
 	{
 		FunctionScript->ConditionalPostLoad();
+
+		// We need to make sure that the variables that could potentially be used in AllocateDefaultPins have been properly
+		// loaded. Otherwise, we could be out of date.
+		if (FunctionScript->Source != nullptr)
+		{
+			UNiagaraScriptSource* Source = CastChecked<UNiagaraScriptSource>(FunctionScript->Source);
+			Source->ConditionalPostLoad();
+			UNiagaraGraph* Graph = CastChecked<UNiagaraGraph>(Source->NodeGraph);
+			Graph->ConditionalPostLoad();
+		}
 	}
 }
 
@@ -60,7 +70,10 @@ void UNiagaraNodeFunctionCall::AllocateDefaultPins()
 		Graph->GetParameters(Inputs, Outputs);
 
 		TArray<UNiagaraNodeInput*> InputNodes;
-		Graph->FindInputNodes(InputNodes, true);
+		UNiagaraGraph::FFindInputNodeOptions Options;
+		Options.bSort = true;
+		Options.bFilterDuplicates = true;
+		Graph->FindInputNodes(InputNodes, Options);
 
 		bool bHasAdvancePins = false;
 		for (UNiagaraNodeInput* InputNode : InputNodes)
@@ -84,7 +97,7 @@ void UNiagaraNodeFunctionCall::AllocateDefaultPins()
 // 
 // 				}
 
-				if (InputNode->IsHidded())
+				if (InputNode->IsHidden())
 				{
 					NewPin->bAdvancedView = true;
 					bHasAdvancePins = true;
@@ -103,6 +116,9 @@ void UNiagaraNodeFunctionCall::AllocateDefaultPins()
 			UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName().ToString());
 			NewPin->bDefaultValueIsIgnored = true;
 		}
+
+		// Make sure to note that we've synchronized with the external version.
+		CachedChangeId = FunctionScript->ChangeId;
 	}
 	else
 	{
@@ -118,6 +134,9 @@ void UNiagaraNodeFunctionCall::AllocateDefaultPins()
 			UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Output.GetType()), Output.GetName().ToString());
 			NewPin->bDefaultValueIsIgnored = true;
 		}
+
+		// We don't reference an external function, so set an invalid id.
+		CachedChangeId = FGuid();
 	}
 }
 
@@ -128,7 +147,18 @@ FText UNiagaraNodeFunctionCall::GetNodeTitle(ENodeTitleType::Type TitleType) con
 
 FText UNiagaraNodeFunctionCall::GetTooltipText()const
 {
-	return FunctionScript ? FText::FromString(FunctionScript->GetName()) : FText::FromString(Signature.GetName());
+	if (FunctionScript != nullptr)
+	{
+		return FunctionScript->GetDescription();
+	}
+	else if (Signature.IsValid())
+	{
+		return Signature.Description;
+	} 
+	else
+	{
+		return LOCTEXT("NiagaraFuncCallUnknownSignatureTooltip", "Unknown function call");
+	}
 }
 
 FLinearColor UNiagaraNodeFunctionCall::GetNodeTitleColor() const
@@ -202,8 +232,13 @@ void UNiagaraNodeFunctionCall::Compile(class INiagaraCompiler* Compiler, TArray<
 
 		UNiagaraScriptSource* Source = CastChecked<UNiagaraScriptSource>(FunctionScript->Source);
 		UNiagaraGraph* FunctionGraph = CastChecked<UNiagaraGraph>(Source->NodeGraph);
+
 		TArray<UNiagaraNodeInput*> FunctionInputNodes;
-		FunctionGraph->FindInputNodes(FunctionInputNodes, true);
+		UNiagaraGraph::FFindInputNodeOptions Options;
+		Options.bSort = true;
+		Options.bFilterDuplicates = true;
+		FunctionGraph->FindInputNodes(FunctionInputNodes, Options);
+
 		for (UNiagaraNodeInput* FunctionInputNode : FunctionInputNodes)
 		{
 			//Finds the matching Pin in the caller.
@@ -226,18 +261,21 @@ void UNiagaraNodeFunctionCall::Compile(class INiagaraCompiler* Compiler, TArray<
 			FNiagaraVariable PinVar = Schema->PinToNiagaraVariable(CallerPin);
 			if (!CallerLinkedTo)
 			{
-				//Try to auto bind if we're not linked to by the caller.
-				FNiagaraVariable AutoBoundVar;
-				ENiagaraInputNodeUsage AutBoundUsage = ENiagaraInputNodeUsage::Undefined;
-				if (FindAutoBoundInput(FunctionInputNode, CallerPin, AutoBoundVar, AutBoundUsage))
-				{					
-					UNiagaraNodeInput* NewNode = NewObject<UNiagaraNodeInput>(CallerGraph);
-					NewNode->Input = PinVar;
-					NewNode->Usage = AutBoundUsage;
-					NewNode->AllocateDefaultPins();
-					CallerLinkedTo = NewNode->GetOutputPin(0);
-					CallerPin->BreakAllPinLinks();
-					CallerPin->MakeLinkTo(CallerLinkedTo);				
+				//if (Compiler->CanReadAttributes())
+				{
+					//Try to auto bind if we're not linked to by the caller.
+					FNiagaraVariable AutoBoundVar;
+					ENiagaraInputNodeUsage AutBoundUsage = ENiagaraInputNodeUsage::Undefined;
+					if (FindAutoBoundInput(FunctionInputNode, CallerPin, AutoBoundVar, AutBoundUsage))
+					{
+						UNiagaraNodeInput* NewNode = NewObject<UNiagaraNodeInput>(CallerGraph);
+						NewNode->Input = PinVar;
+						NewNode->Usage = AutBoundUsage;
+						NewNode->AllocateDefaultPins();
+						CallerLinkedTo = NewNode->GetOutputPin(0);
+						CallerPin->BreakAllPinLinks();
+						CallerPin->MakeLinkTo(CallerLinkedTo);
+					}
 				}
 			}
 
@@ -271,7 +309,7 @@ void UNiagaraNodeFunctionCall::Compile(class INiagaraCompiler* Compiler, TArray<
 					//We optional, weren't linked to anything and we couldn't auto bind so tell the compiler this input isn't provided and it should use it's local default.
 					Inputs.Add(INDEX_NONE);
 				}
-			}		
+			}
 		}
 	}
 	else
@@ -287,13 +325,72 @@ void UNiagaraNodeFunctionCall::Compile(class INiagaraCompiler* Compiler, TArray<
 
 UObject*  UNiagaraNodeFunctionCall::GetReferencedAsset() const
 {
-	return FunctionScript;
+	if (FunctionScript && FunctionScript->GetOutermost() != GetOutermost())
+	{
+		return FunctionScript;
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
-void UNiagaraNodeFunctionCall::RefreshFromExternalChanges()
+bool UNiagaraNodeFunctionCall::RefreshFromExternalChanges()
 {
-	ReallocatePins();
+	bool bReload = false;
+	if (FunctionScript)
+	{
+		bReload = CachedChangeId != FunctionScript->ChangeId;
+		if (bReload)
+		{
+			bReload = true;
+			check(FunctionScript->GetOutermost()->HasAnyFlags(RF_WasLoaded));
+			UE_LOG(LogNiagaraEditor, Log, TEXT("RefreshFromExternalChanges %s"), *(FunctionScript->GetPathName()));
+		}
+	}
+	else
+	{
+		if (Signature.IsValid())
+		{
+			bReload = true;
+		}
+	}
+
+	if (bReload)
+	{
+		// TODO - Leverage code in reallocate pins to determine if any pins have changed...
+		ReallocatePins();
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
+
+void UNiagaraNodeFunctionCall::SubsumeExternalDependencies(TMap<UObject*, UObject*>& ExistingConversions)
+{
+	if (FunctionScript && FunctionScript->GetOutermost() != this->GetOutermost())
+	{
+		if (ExistingConversions.Contains(FunctionScript))
+		{
+			FunctionScript = CastChecked<UNiagaraScript>(ExistingConversions[FunctionScript]);
+			check(FunctionScript->HasAnyFlags(RF_Standalone) == false);
+			check(FunctionScript->HasAnyFlags(RF_Public) == false);
+		}
+		else
+		{
+			UObject* Original = FunctionScript;
+			EObjectFlags Flags = RF_AllFlags & ~RF_Standalone & ~RF_Public;
+			FunctionScript = CastChecked<UNiagaraScript>(StaticDuplicateObject(FunctionScript, this, NAME_None, Flags));
+			ExistingConversions.Add(Original, FunctionScript);
+			check(FunctionScript->HasAnyFlags(RF_Standalone) == false);
+			check(FunctionScript->HasAnyFlags(RF_Public) == false);
+			FunctionScript->SubsumeExternalDependencies(ExistingConversions);
+		}
+	}
+}
+
 
 ENiagaraNumericOutputTypeSelectionMode UNiagaraNodeFunctionCall::GetNumericOutputTypeSelectionMode() const
 {
@@ -309,18 +406,18 @@ bool UNiagaraNodeFunctionCall::FindAutoBoundInput(UNiagaraNodeInput* InputNode, 
 	check(InputNode && InputNode->IsExposed());
 	if (PinToAutoBind->LinkedTo.Num() > 0 || !InputNode->CanAutoBind())
 		return false;
-	
+
+	const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
+	FNiagaraVariable PinVar = Schema->PinToNiagaraVariable(PinToAutoBind);
+
 	//See if we can auto bind this pin to something in the caller script.
 	UNiagaraGraph* CallerGraph = GetNiagaraGraph();
 	check(CallerGraph);
 	UNiagaraScript* CallerScript = CallerGraph->GetTypedOuter<UNiagaraScript>();
 	check(CallerScript);
 
-	const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
-	FNiagaraVariable PinVar = Schema->PinToNiagaraVariable(PinToAutoBind);
-
 	//First, lest see if we're an attribute of this emitter. Only valid if we're a module call off the primary script.
-	if (CallerScript->Usage == ENiagaraScriptUsage::SpawnScript || CallerScript->Usage == ENiagaraScriptUsage::UpdateScript)
+	if (CallerScript->IsSpawnScript() || CallerScript->IsUpdateScript())
 	{
 		UNiagaraNodeOutput* CallerOutputNode = CallerGraph->FindOutputNode();
 		check(CallerOutputNode);

@@ -605,6 +605,7 @@ enum Capability {
     CapabilityMultiViewport = 57,
     CapabilitySubgroupBallotKHR = 4423,
     CapabilityDrawParameters = 4427,
+    CapabilitySubgroupVoteKHR = 4431,
     CapabilityMax = 0x7fffffff,
 };
 
@@ -905,6 +906,10 @@ enum Op {
     OpImageSparseRead = 320,
     OpSubgroupBallotKHR = 4421,
     OpSubgroupFirstInvocationKHR = 4422,
+    OpSubgroupReadInvocationKHR = 4432,
+    OpSubgroupAllKHR = 4428,
+    OpSubgroupAnyKHR = 4429,
+    OpSubgroupAllEqualKHR = 4430,
     OpMax = 0x7fffffff,
 };
 

@@ -59,6 +59,7 @@ public:
 		deref = new(parent)ir_dereference_variable(var);
 
 		ir_assignment *assign = new(parent)ir_assignment(deref, rval);
+		check(assign->write_mask > 0);
 		base_ir->insert_before(assign);
 		return deref;
 	}
@@ -156,6 +157,7 @@ void ir_vec_op_to_scalar_visitor::do_dot(ir_dereference *result, ir_dereference 
 	}
 
 	assign = new(parent)ir_assignment(result, expr);
+	check(assign->write_mask > 0);
 	base_ir->insert_before(assign);
 }
 
@@ -223,6 +225,7 @@ void ir_vec_op_to_scalar_visitor::do_normalize(ir_dereference *result, ir_derefe
 	expr = new(parent)ir_expression(ir_binop_mul, a->type, a, inv_len);
 
 	assign = new(parent)ir_assignment(result, expr);
+	check(assign->write_mask > 0);
 	base_ir->insert_before(assign);
 }
 
@@ -251,6 +254,7 @@ void ir_vec_op_to_scalar_visitor::do_length(ir_dereference *result, ir_dereferen
 
 	expr = new(parent)ir_expression(ir_unop_sqrt, a->type->get_base_type(), expr);
 	assign = new(parent)ir_assignment(result, expr);
+	check(assign->write_mask > 0);
 	base_ir->insert_before(assign);
 }
 

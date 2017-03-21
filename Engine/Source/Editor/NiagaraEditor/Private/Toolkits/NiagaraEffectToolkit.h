@@ -17,7 +17,6 @@ class FNiagaraEffectInstance;
 class FNiagaraEffectViewModel;
 class SNiagaraEffectEditorViewport;
 class SNiagaraEffectEditorWidget;
-class SNiagaraTimeline;
 class SNiagaraEffectViewport;
 class SNiagaraEffectEditor;
 class UNiagaraEffect;
@@ -26,7 +25,7 @@ class FAssetData;
 
 /** Viewer/editor for a NiagaraEffect
 */
-class FNiagaraEffectToolkit : public FAssetEditorToolkit
+class FNiagaraEffectToolkit : public FAssetEditorToolkit, public FGCObject
 {
 public:
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
@@ -45,11 +44,13 @@ public:
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	//~ End IToolkit Interface
 
+	//~ FGCObject interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
 private:
 
 	TSharedPtr<SNiagaraEffectViewport>	Viewport;
 	TSharedPtr<SNiagaraEffectEditor>	EmitterEditorWidget;
-	TSharedPtr< SNiagaraTimeline > TimeLine;
 	
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_EmitterList(const FSpawnTabArgs& Args);
@@ -59,11 +60,19 @@ private:
 	TSharedRef<SDockTab> SpawnTab_EffectDetails(const FSpawnTabArgs& Args);
 
 	/** Builds the toolbar widget */
-	void ExtendToolbar();
+	void ExtendToolbar();	
+	void SetupCommands();
+
 
 	TSharedRef<SWidget> CreateAddEmitterMenuContent();
 
 	void EmitterAssetSelected(const FAssetData& AssetData);
+	void ToggleUnlockToChanges();
+	bool IsToggleUnlockToChangesChecked();
+
+	FText GetEmitterLockToChangesLabel() const;
+	FText GetEmitterLockToChangesLabelTooltip() const;
+	FSlateIcon GetEmitterLockToChangesIcon() const;
 
 private:
 	/** The effect being edited. */

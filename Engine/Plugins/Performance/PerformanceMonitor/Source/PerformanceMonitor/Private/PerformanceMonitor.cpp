@@ -19,6 +19,8 @@ FPerformanceMonitorModule::FPerformanceMonitorModule()
 {
 	bRecording = false;
 	FileToLogTo = nullptr;
+	TimeBetweenRecords = 1.0f;
+	TestTimeOut = 0.f;
 }
 
 FPerformanceMonitorModule::~FPerformanceMonitorModule()
@@ -253,14 +255,6 @@ void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, 
 			bRequiresCutsceneStart = GatheredBool;
 		}
 	}
-	if (!StatsToRecord.Num() && !DesiredStats.Num())
-	{
-		DesiredStats.Add(TEXT("STAT_AnimGameThreadTime"));
-		DesiredStats.Add(TEXT("STAT_PerformAnimEvaluation_WorkerThread"));
-		DesiredStats.Add(TEXT("STAT_ParticleComputeTickTime"));
-		DesiredStats.Add(TEXT("STAT_ParticleRenderingTime"));
-		DesiredStats.Add(TEXT("STAT_GPUParticleTickTime"));
-	}
 	FThreadStats::MasterEnableAdd(1);
 
 	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
@@ -313,7 +307,7 @@ void FPerformanceMonitorModule::RecordFrame()
 		return;
 	}
 	GetStatsBreakdown();
-	if (FPlatformTime::Seconds() - TestTimeOut > TimeOfTestStart)
+	if (TestTimeOut && (FPlatformTime::Seconds() - TestTimeOut > TimeOfTestStart))
 	{
 		StopRecordingPerformanceTimers();
 	}

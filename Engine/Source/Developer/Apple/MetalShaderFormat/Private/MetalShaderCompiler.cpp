@@ -1,5 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-// .
+// ..
 
 #include "CoreMinimal.h"
 #include "MetalShaderFormat.h"
@@ -301,13 +301,13 @@ struct FHlslccMetalHeader : public CrossCompiler::FHlslccHeader
 	uint32 TessellationOutputControlPoints;
 	uint32 TessellationDomain; // 3 = tri, 4 = quad
 	uint32 TessellationInputControlPoints;
-    uint32 TessellationPatchesPerThreadGroup;
-    uint32 TessellationPatchCountBuffer;
-    uint32 TessellationIndexBuffer;
-    uint32 TessellationHSOutBuffer;
-    uint32 TessellationHSTFOutBuffer;
-    uint32 TessellationControlPointOutBuffer;
-    uint32 TessellationControlPointIndexBuffer;
+	uint32 TessellationPatchesPerThreadGroup;
+	uint32 TessellationPatchCountBuffer;
+	uint32 TessellationIndexBuffer;
+	uint32 TessellationHSOutBuffer;
+	uint32 TessellationHSTFOutBuffer;
+	uint32 TessellationControlPointOutBuffer;
+	uint32 TessellationControlPointIndexBuffer;
 	EMetalOutputWindingMode TessellationOutputWinding;
 	EMetalPartitionMode TessellationPartitioning;
 	uint8 Version;
@@ -351,13 +351,13 @@ static const int32 Str##PrefixLen = FCStringAnsi::Strlen(Str##Prefix)
 	DEF_PREFIX_STR(TessellationMaxTessFactor);
 	DEF_PREFIX_STR(TessellationOutputWinding);
 	DEF_PREFIX_STR(TessellationPartitioning);
-    DEF_PREFIX_STR(TessellationPatchesPerThreadGroup);
-    DEF_PREFIX_STR(TessellationPatchCountBuffer);
-    DEF_PREFIX_STR(TessellationIndexBuffer);
-    DEF_PREFIX_STR(TessellationHSOutBuffer);
-    DEF_PREFIX_STR(TessellationHSTFOutBuffer);
-    DEF_PREFIX_STR(TessellationControlPointOutBuffer);
-    DEF_PREFIX_STR(TessellationControlPointIndexBuffer);
+	DEF_PREFIX_STR(TessellationPatchesPerThreadGroup);
+	DEF_PREFIX_STR(TessellationPatchCountBuffer);
+	DEF_PREFIX_STR(TessellationIndexBuffer);
+	DEF_PREFIX_STR(TessellationHSOutBuffer);
+	DEF_PREFIX_STR(TessellationHSTFOutBuffer);
+	DEF_PREFIX_STR(TessellationControlPointOutBuffer);
+	DEF_PREFIX_STR(TessellationControlPointIndexBuffer);
 #undef DEF_PREFIX_STR
 	
 	// Early out for non-tessellation...
@@ -514,23 +514,23 @@ static const int32 Str##PrefixLen = FCStringAnsi::Strlen(Str##Prefix)
 	{
 		return false;
 	}
-    
-    if (!ParseUInt32Attribute(TessellationPatchCountBufferPrefix, TessellationPatchCountBufferPrefixLen, TessellationPatchCountBuffer))
-    {
+	
+	if (!ParseUInt32Attribute(TessellationPatchCountBufferPrefix, TessellationPatchCountBufferPrefixLen, TessellationPatchCountBuffer))
+	{
 		TessellationPatchCountBuffer = UINT_MAX;
-    }
-    
-    if (!ParseUInt32Attribute(TessellationIndexBufferPrefix, TessellationIndexBufferPrefixLen, TessellationIndexBuffer))
+	}
+	
+	if (!ParseUInt32Attribute(TessellationIndexBufferPrefix, TessellationIndexBufferPrefixLen, TessellationIndexBuffer))
 	{
 		TessellationIndexBuffer = UINT_MAX;
-    }
-    
-    if (!ParseUInt32Attribute(TessellationHSOutBufferPrefix, TessellationHSOutBufferPrefixLen, TessellationHSOutBuffer))
+	}
+	
+	if (!ParseUInt32Attribute(TessellationHSOutBufferPrefix, TessellationHSOutBufferPrefixLen, TessellationHSOutBuffer))
 	{
 		TessellationHSOutBuffer = UINT_MAX;
-    }
-    
-    if (!ParseUInt32Attribute(TessellationControlPointOutBufferPrefix, TessellationControlPointOutBufferPrefixLen, TessellationControlPointOutBuffer))
+	}
+	
+	if (!ParseUInt32Attribute(TessellationControlPointOutBufferPrefix, TessellationControlPointOutBufferPrefixLen, TessellationControlPointOutBuffer))
 	{
 		TessellationControlPointOutBuffer = UINT_MAX;
 	}
@@ -540,10 +540,10 @@ static const int32 Str##PrefixLen = FCStringAnsi::Strlen(Str##Prefix)
 		TessellationHSTFOutBuffer = UINT_MAX;
 	}
 	
-    if (!ParseUInt32Attribute(TessellationControlPointIndexBufferPrefix, TessellationControlPointIndexBufferPrefixLen, TessellationControlPointIndexBuffer))
+	if (!ParseUInt32Attribute(TessellationControlPointIndexBufferPrefix, TessellationControlPointIndexBufferPrefixLen, TessellationControlPointIndexBuffer))
 	{
 		TessellationControlPointIndexBuffer = UINT_MAX;
-    }
+	}
 	
 	return true;
 }
@@ -562,7 +562,7 @@ static void BuildMetalShaderOutput(
 	uint8 Version,
 	TCHAR const* Standard,
 	TArray<FShaderCompilerError>& OutErrors,
-    FMetalTessellationOutputs const& TessOutputAttribs
+	FMetalTessellationOutputs const& TessOutputAttribs
 	)
 {
 	const ANSICHAR* USFSource = InShaderSource;
@@ -779,9 +779,9 @@ static void BuildMetalShaderOutput(
 		Header.Bindings.PackedUniformBuffers.Add(InfoArray);
 	}
 
-    uint32 NumTextures = 0;
-    
-    // Then samplers.
+	uint32 NumTextures = 0;
+	
+	// Then samplers.
 	TMap<FString, uint32> SamplerMap;
 	for (auto& Sampler : CCHeader.Samplers)
 	{
@@ -792,15 +792,15 @@ static void BuildMetalShaderOutput(
 			Sampler.Count
 			);
 
-        NumTextures += Sampler.Count;
+		NumTextures += Sampler.Count;
 
 		for (auto& SamplerState : Sampler.SamplerStates)
 		{
 			SamplerMap.Add(SamplerState, Sampler.Count);
 		}
-    }
-    
-    Header.Bindings.NumSamplers = CCHeader.SamplerStates.Num();
+	}
+	
+	Header.Bindings.NumSamplers = CCHeader.SamplerStates.Num();
 
 	// Then UAVs (images in Metal)
 	for (auto& UAV : CCHeader.UAVs)
@@ -838,13 +838,13 @@ static void BuildMetalShaderOutput(
 	Header.TessellationMaxTessFactor            = CCHeader.TessellationMaxTessFactor;
 	Header.TessellationOutputWinding			= CCHeader.TessellationOutputWinding;
 	Header.TessellationPartitioning				= CCHeader.TessellationPartitioning;
-    Header.TessellationPatchesPerThreadGroup    = CCHeader.TessellationPatchesPerThreadGroup;
-    Header.TessellationPatchCountBuffer         = CCHeader.TessellationPatchCountBuffer;
-    Header.TessellationIndexBuffer              = CCHeader.TessellationIndexBuffer;
-    Header.TessellationHSOutBuffer              = CCHeader.TessellationHSOutBuffer;
-    Header.TessellationHSTFOutBuffer            = CCHeader.TessellationHSTFOutBuffer;
-    Header.TessellationControlPointOutBuffer    = CCHeader.TessellationControlPointOutBuffer;
-    Header.TessellationControlPointIndexBuffer  = CCHeader.TessellationControlPointIndexBuffer;
+	Header.TessellationPatchesPerThreadGroup    = CCHeader.TessellationPatchesPerThreadGroup;
+	Header.TessellationPatchCountBuffer         = CCHeader.TessellationPatchCountBuffer;
+	Header.TessellationIndexBuffer              = CCHeader.TessellationIndexBuffer;
+	Header.TessellationHSOutBuffer              = CCHeader.TessellationHSOutBuffer;
+	Header.TessellationHSTFOutBuffer            = CCHeader.TessellationHSTFOutBuffer;
+	Header.TessellationControlPointOutBuffer    = CCHeader.TessellationControlPointOutBuffer;
+	Header.TessellationControlPointIndexBuffer  = CCHeader.TessellationControlPointIndexBuffer;
 	Header.TessellationOutputAttribs            = TessOutputAttribs;
 	Header.bFunctionConstants					= (FCStringAnsi::Strstr(USFSource, "[[ function_constant(") != nullptr);
 	
@@ -1247,38 +1247,38 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 	static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
 	
-    bool bIsDesktop = false;
-    TCHAR const* StandardPlatform = TEXT("ios");
-    TCHAR const* StandardVersion = nullptr;
+	bool bIsDesktop = false;
+	TCHAR const* StandardPlatform = TEXT("ios");
+	TCHAR const* StandardVersion = nullptr;
 
-    FString const* MaxVersion = Input.Environment.GetDefinitions().Find(TEXT("MAX_SHADER_LANGUAGE_VERSION"));
+	FString const* MaxVersion = Input.Environment.GetDefinitions().Find(TEXT("MAX_SHADER_LANGUAGE_VERSION"));
 	uint8 VersionEnum = 0;
 	if (MaxVersion)
-    {
-        if(MaxVersion->IsNumeric())
-        {
-            LexicalConversion::FromString(VersionEnum, *(*MaxVersion));
-            switch(VersionEnum)
-            {
-                case 2:
-                	// Enable full SM5 feature support so tessellation & fragment UAVs compile
-                    StandardVersion = TEXT("1.2");
-                    HlslCompilerTarget = HCT_FeatureLevelSM5;
-                    break;
-                case 1:
-                    StandardVersion = TEXT("1.1");
-                    break;
-                case 0:
-                default:
-                    StandardVersion = nullptr;
-                    break;
-            }
-        }
-    }
+	{
+		if(MaxVersion->IsNumeric())
+		{
+			LexicalConversion::FromString(VersionEnum, *(*MaxVersion));
+			switch(VersionEnum)
+			{
+				case 2:
+					// Enable full SM5 feature support so tessellation & fragment UAVs compile
+					StandardVersion = TEXT("1.2");
+					HlslCompilerTarget = HCT_FeatureLevelSM5;
+					break;
+				case 1:
+					StandardVersion = TEXT("1.1");
+					break;
+				case 0:
+				default:
+					StandardVersion = nullptr;
+					break;
+			}
+		}
+	}
 	
 	if (Input.ShaderFormat == NAME_SF_METAL)
 	{
-        AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 		VersionEnum = StandardVersion ? VersionEnum : 0;
 		StandardVersion = VersionEnum > 0 ? StandardVersion : TEXT("1.0"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
 		const bool bUseFullPrecisionInPS = Input.Environment.CompilerFlags.Contains(CFLAG_UseFullPrecisionInPS);
@@ -1289,7 +1289,7 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{
-        AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
 		VersionEnum = StandardVersion ? VersionEnum : 0;
 		StandardVersion = VersionEnum > 0 ? StandardVersion : TEXT("1.0"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
 	}
@@ -1298,7 +1298,7 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 		AdditionalDefines.SetDefine(TEXT("METAL_ES2_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
 		StandardPlatform = TEXT("osx");
-        StandardVersion = TEXT("1.1"); // Always standard 1.1
+		StandardVersion = TEXT("1.1"); // Always standard 1.1
 		VersionEnum = 1;
 		MetalCompilerTarget = HCT_FeatureLevelES2;
 		bIsDesktop = true;
@@ -1307,32 +1307,32 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
-        StandardPlatform = TEXT("osx");
+		StandardPlatform = TEXT("osx");
 		VersionEnum = StandardVersion ? VersionEnum : 1;
 		VersionEnum = VersionEnum > 0 ? VersionEnum : 1;
 		StandardVersion = VersionEnum > 1 ? StandardVersion : TEXT("1.1"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
-        MetalCompilerTarget = HCT_FeatureLevelES3_1;
+		MetalCompilerTarget = HCT_FeatureLevelES3_1;
 		bIsDesktop = true;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM4)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_SM4_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
-        StandardPlatform = TEXT("osx");
-        StandardVersion = TEXT("1.1");
+		StandardPlatform = TEXT("osx");
+		StandardVersion = TEXT("1.1");
 		VersionEnum = 1;
-        MetalCompilerTarget = HCT_FeatureLevelSM4;
+		MetalCompilerTarget = HCT_FeatureLevelSM4;
 		bIsDesktop = true;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM5)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_SM5_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
-        StandardPlatform = TEXT("osx");
+		StandardPlatform = TEXT("osx");
 		VersionEnum = StandardVersion ? VersionEnum : 1;
 		VersionEnum = VersionEnum > 0 ? VersionEnum : 1;
-        StandardVersion = VersionEnum > 1 ? StandardVersion : TEXT("1.1"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
-        MetalCompilerTarget = HCT_FeatureLevelSM5;
+		StandardVersion = VersionEnum > 1 ? StandardVersion : TEXT("1.1"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
+		MetalCompilerTarget = HCT_FeatureLevelSM5;
 		bIsDesktop = true;
 	}
 	else
@@ -1341,8 +1341,8 @@ void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutpu
 		new(Output.Errors) FShaderCompilerError(*FString::Printf(TEXT("Invalid shader format '%s' passed to compiler."), *Input.ShaderFormat.ToString()));
 		return;
 	}
-    
-    FString Standard = FString::Printf(TEXT("-std=%s-metal%s"), StandardPlatform, StandardVersion);
+	
+	FString Standard = FString::Printf(TEXT("-std=%s-metal%s"), StandardPlatform, StandardVersion);
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 

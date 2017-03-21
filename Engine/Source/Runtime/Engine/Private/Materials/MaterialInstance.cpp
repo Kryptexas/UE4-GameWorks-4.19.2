@@ -716,9 +716,24 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 	// Do not care if we're running dedicated server
 	if (!FPlatformProperties::IsServerOnly())
 	{
-		if (QualityLevel == EMaterialQualityLevel::Num)
+		FInt32Range QualityLevelRange(0, EMaterialQualityLevel::Num - 1);
+		if (!bAllQualityLevels)
 		{
-			QualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;
+			if (QualityLevel == EMaterialQualityLevel::Num)
+			{
+				QualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;
+			}
+			QualityLevelRange = FInt32Range(QualityLevel, QualityLevel);
+		}
+
+		FInt32Range FeatureLevelRange(0, ERHIFeatureLevel::Num - 1);
+		if (!bAllFeatureLevels)
+		{
+			if (FeatureLevel == ERHIFeatureLevel::Num)
+			{
+				FeatureLevel = GMaxRHIFeatureLevel;
+			}
+			FeatureLevelRange = FInt32Range(FeatureLevel, FeatureLevel);
 		}
 
 		const UMaterial* BaseMaterial = GetMaterial();
@@ -733,31 +748,18 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 			}
 
 			// Use the uniform expressions from the lowest material instance with static parameters in the chain, if one exists
-			if (MaterialInstanceToUse && MaterialInstanceToUse->bHasStaticPermutationResource)
-			{
-				for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
-				{
-					for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
-					{
-						const FMaterialResource* CurrentResource = MaterialInstanceToUse->StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
-						if (CurrentResource == nullptr || (FeatureLevelIndex != FeatureLevel && !bAllFeatureLevels))
-							continue;
+			const UMaterialInterface* MaterialToUse = (MaterialInstanceToUse && MaterialInstanceToUse->bHasStaticPermutationResource) ? (const UMaterialInterface*)MaterialInstanceToUse : (const UMaterialInterface*)BaseMaterial;
 
-						//@todo - GetUsedTextures is incorrect during cooking since we don't cache shaders for the current platform during cooking
-						if (QualityLevelIndex == QualityLevel || bAllQualityLevels)
-						{
-							GetTextureExpressionValues(CurrentResource, OutTextures);
-						}
-					}
-				}
-			}
-			else
+			// Parse all relevant quality and feature levels.
+			for (int32 QualityLevelIndex = QualityLevelRange.GetLowerBoundValue(); QualityLevelIndex <= QualityLevelRange.GetUpperBoundValue(); ++QualityLevelIndex)
 			{
-				// Use the uniform expressions from the base material
-				const FMaterialResource* MaterialResource = BaseMaterial->GetMaterialResource(FeatureLevel, QualityLevel);
-				if( MaterialResource )
+				for (int32 FeatureLevelIndex = FeatureLevelRange.GetLowerBoundValue(); FeatureLevelIndex <= FeatureLevelRange.GetUpperBoundValue(); ++FeatureLevelIndex)
 				{
-					GetTextureExpressionValues(MaterialResource, OutTextures);
+					const FMaterialResource* MaterialResource = MaterialToUse->GetMaterialResource((ERHIFeatureLevel::Type)FeatureLevelIndex, (EMaterialQualityLevel::Type)QualityLevelIndex);
+					if (MaterialResource)
+					{
+						GetTextureExpressionValues(MaterialResource, OutTextures);
+					}
 				}
 			}
 		}
@@ -2769,20 +2771,13 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 {
 	check(IsInGameThread());
 
-	// Always compare against the actual base material, inconsistent results comparing against instance chains
-	UMaterialInterface* BaseMaterial = Parent;
-	while (UMaterialInstance* BaseInstance = Cast<UMaterialInstance>(BaseMaterial))
-	{
-		BaseMaterial = BaseInstance->Parent;
-	}
-
 	const UMaterial* Material = GetMaterial();
-	if (BaseMaterial && Material && Material->bUsedAsSpecialEngineMaterial == false &&
-		((FMath::Abs(GetOpacityMaskClipValue() - BaseMaterial->GetOpacityMaskClipValue()) > SMALL_NUMBER) ||
-		(GetBlendMode() != BaseMaterial->GetBlendMode()) ||
-		(GetShadingModel() != BaseMaterial->GetShadingModel()) ||
-		(IsTwoSided() != BaseMaterial->IsTwoSided()) ||
-		(IsDitheredLODTransition() != BaseMaterial->IsDitheredLODTransition()))
+	if (Parent && Material && Material->bUsedAsSpecialEngineMaterial == false &&
+		((FMath::Abs(GetOpacityMaskClipValue() - Parent->GetOpacityMaskClipValue()) > SMALL_NUMBER) ||
+		(GetBlendMode() != Parent->GetBlendMode()) ||
+		(GetShadingModel() != Parent->GetShadingModel()) ||
+		(IsTwoSided() != Parent->IsTwoSided()) ||
+		(IsDitheredLODTransition() != Parent->IsDitheredLODTransition()))
 		)
 	{
 		return true;

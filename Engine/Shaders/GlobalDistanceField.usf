@@ -288,12 +288,13 @@ void CompositeObjectDistanceFieldsCS(
 		if (BoxDistance < AOGlobalMaxSphereQueryRadius)
 		{
 			float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
+			float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
 
 			float3 ClampedSamplePosition = clamp(VolumePosition, -LocalPositionExtent, LocalPositionExtent);
 			float DistanceToClamped = length(VolumePosition - ClampedSamplePosition);
 
 			float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-			float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
+			float DistanceToOccluder = (SampleMeshDistanceField(StepVolumeUV, DistanceFieldMAD).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
 
 			MinDistance = min(MinDistance, DistanceToOccluder);
 		}

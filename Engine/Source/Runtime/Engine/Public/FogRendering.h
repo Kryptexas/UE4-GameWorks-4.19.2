@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "ShaderParameters.h"
 #include "Runtime/Renderer/Private/SceneRendering.h"
+#include "Runtime/Renderer/Private/VolumetricFog.h"
 
 /** Parameters needed to render exponential height fog. */
 class FExponentialHeightFogShaderParameters
@@ -50,6 +51,8 @@ public:
 		SetShaderValue(RHICmdList, Shader, InscatteringLightDirection, FVector4(ViewInfo->InscatteringLightDirection, ViewInfo->bUseDirectionalInscattering ? 1 : 0));
 		SetShaderValue(RHICmdList, Shader, DirectionalInscatteringColor, FVector4(FVector(ViewInfo->DirectionalInscatteringColor), FMath::Clamp(ViewInfo->DirectionalInscatteringExponent, 0.000001f, 1000.0f)));
 		SetShaderValue(RHICmdList, Shader, DirectionalInscatteringStartDistance, ViewInfo->DirectionalInscatteringStartDistance);
+
+		VolumetricFogParameters.Set(RHICmdList, Shader, *ViewInfo);
 	}
 
 	/** Serializer. */
@@ -65,6 +68,7 @@ public:
 	FShaderParameter InscatteringLightDirection;
 	FShaderParameter DirectionalInscatteringColor;
 	FShaderParameter DirectionalInscatteringStartDistance;
+	FVolumetricFogParameters VolumetricFogParameters;
 };
 
 /** Encapsulates parameters needed to calculate height fog in a vertex shader. */

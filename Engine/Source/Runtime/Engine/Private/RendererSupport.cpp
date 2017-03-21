@@ -31,6 +31,8 @@
 #include "Misc/HotReloadInterface.h"
 #include "ComponentReregisterContext.h"
 #include "UniquePtr.h"
+#include "ShaderCompiler.h"
+#include "SceneInterface.h"
 
 /** Clears and optionally backs up all references to renderer module classes in other modules, particularly engine. */
 static void ClearReferencesToRendererModuleClasses(

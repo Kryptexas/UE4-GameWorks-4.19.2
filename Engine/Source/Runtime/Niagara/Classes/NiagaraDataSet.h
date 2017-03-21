@@ -131,7 +131,7 @@ public:
 	}
 
 	/** Appends the passed variable to the set of input and output registers ready for consumption by the VectorVM. */
-	bool AppendToRegisterTable(const FNiagaraVariable& VarInfo, uint8** InputRegisters, uint8* InputRegisterSizes, int32& NumInputRegisters, uint8** OutputRegisters, uint8* OutputRegisterSizes, int32& NumOutputRegisters, int32 StartInstance)
+	bool AppendToRegisterTable(const FNiagaraVariable& VarInfo, uint8** InputRegisters, uint8* InputRegisterSizes, int32& NumInputRegisters, uint8** OutputRegisters, uint8* OutputRegisterSizes, int32& NumOutputRegisters, int32 StartInstance, bool bNoOutputRegisters=false)
 	{
 		check(bFinalized);
 		if (const FNiagaraVariableLayoutInfo* VariableLayout = VariableLayoutMap.Find(VarInfo))
@@ -142,12 +142,21 @@ public:
 			{
 				InputRegisters[NumInputRegisters] = PrevData().GetInstancePtr(VarComp, StartInstance);
 				InputRegisterSizes[NumInputRegisters++] = ComponentSizes[VarComp];
-				OutputRegisters[NumOutputRegisters] = CurrData().GetInstancePtr(VarComp, StartInstance);
-				OutputRegisterSizes[NumOutputRegisters++] = ComponentSizes[VarComp];
+
+				// we won't be writing to the data set
+				if (bNoOutputRegisters)
+				{
+					OutputRegisters[NumOutputRegisters] = nullptr;
+					OutputRegisterSizes[NumOutputRegisters++] = 0;
+				}
+				else
+				{
+					OutputRegisters[NumOutputRegisters] = CurrData().GetInstancePtr(VarComp, StartInstance);
+					OutputRegisterSizes[NumOutputRegisters++] = ComponentSizes[VarComp];
+				}
 			}
 			return true;
 		}
-		check(false);
 		return false;
 	}
 
@@ -185,6 +194,12 @@ public:
 	uint32 GetNumInstances()const { return CurrData().GetNumInstances(); }
 	uint32 GetNumInstancesAllocated()const { return CurrData().GetNumInstancesAllocated(); }
 	void SetNumInstances(uint32 InNumInstances) { CurrData().SetNumInstances(InNumInstances); }
+
+	void ResetNumInstances()
+	{
+		CurrData().SetNumInstances(0);
+		PrevData().SetNumInstances(0);
+	}
 
 	uint32 GetPrevNumInstances()const { return PrevData().GetNumInstances(); }
 
@@ -364,6 +379,7 @@ struct FNiagaraDataSetIterator<int32> : public FNiagaraDataSetIteratorBase
 		}
 	}
 
+
 	FORCEINLINE int32 operator*() { return Get(); }
 	FORCEINLINE int32 Get()const
 	{
@@ -372,6 +388,14 @@ struct FNiagaraDataSetIterator<int32> : public FNiagaraDataSetIteratorBase
 		return Ret;
 	}
 	FORCEINLINE void Get(int32& OutValue)const { GetValue(&OutValue); }
+
+	FORCEINLINE int32 GetAt(int32 Idx)
+	{
+		int32 Ret;
+		GetValueAt(Idx, &Ret);
+		return Ret;
+	}
+
 	//FORCEINLINE int32* operator *(const int32& InValue) { Set(InValue); }
 
 	FORCEINLINE void Set(const int32 InValue)
@@ -384,6 +408,11 @@ private:
 	FORCEINLINE void GetValue(int32* Output)const
 	{
 		*Output = Base[CurrIdx];
+	}
+
+	FORCEINLINE void GetValueAt(int32 Idx, int32* Output)const
+	{
+		*Output = Base[Idx];
 	}
 
 	int32* Base;
@@ -414,6 +443,14 @@ struct FNiagaraDataSetIterator<float> : public FNiagaraDataSetIteratorBase
 		return Ret;
 	}
 	FORCEINLINE void Get(float& OutValue)const { GetValue(&OutValue); }
+
+	FORCEINLINE float GetAt(int32 Idx)
+	{
+		float Ret;
+		GetValueAt(Idx, &Ret);
+		return Ret;
+	}
+
 	//FORCEINLINE float* operator *(const float& InValue) { Set(InValue); }
 
 	FORCEINLINE void Set(const float& InValue)
@@ -428,6 +465,10 @@ private:
 		*Output = Base[CurrIdx];
 	}
 
+	FORCEINLINE void GetValueAt(int32 Idx, float* Output)const
+	{
+		*Output = Base[Idx];
+	}
 	float* Base;
 };
 
@@ -459,6 +500,13 @@ struct FNiagaraDataSetIterator<FVector2D> : public FNiagaraDataSetIteratorBase
 		return Ret;
 	}
 	FORCEINLINE void Get(FVector2D& OutValue)const { GetValue(&OutValue); }
+
+	FORCEINLINE FVector2D GetAt(int32 Idx)
+	{
+		FVector2D Ret;
+		GetValueAt(Idx, &Ret);
+		return Ret;
+	}
 	//FORCEINLINE FVector2D* operator *(const FVector2D& InValue) { Set(InValue); }
 
 	FORCEINLINE void Set(const FVector2D& InValue)
@@ -475,6 +523,11 @@ private:
 		Output->Y = YBase[CurrIdx];
 	}
 
+	FORCEINLINE void GetValueAt(int32 Idx, FVector2D* Output)const
+	{
+		Output->X = XBase[Idx];
+		Output->Y = YBase[Idx];
+	}
 	float* XBase;
 	float* YBase;
 };
@@ -508,6 +561,13 @@ struct FNiagaraDataSetIterator<FVector> : public FNiagaraDataSetIteratorBase
 		return Ret;
 	}
 	FORCEINLINE void Get(FVector& OutValue)const { GetValue(&OutValue); }
+
+	FORCEINLINE FVector GetAt(int32 Idx)
+	{
+		FVector Ret;
+		GetValueAt(Idx, &Ret);
+		return Ret;
+	}
 	//FORCEINLINE FVector* operator *(const FVector& InValue) { Set(InValue); }
 
 	FORCEINLINE void Set(const FVector& InValue)
@@ -525,6 +585,14 @@ private:
 		Output->Y = YBase[CurrIdx];
 		Output->Z = ZBase[CurrIdx];
 	}
+
+	FORCEINLINE void GetValueAt(int32 Idx, FVector* Output)const
+	{
+		Output->X = XBase[Idx];
+		Output->Y = YBase[Idx];
+		Output->Z = ZBase[Idx];
+	}
+
 
 	float* XBase;
 	float* YBase;
@@ -562,6 +630,13 @@ struct FNiagaraDataSetIterator<FVector4> : public FNiagaraDataSetIteratorBase
 		return Ret;
 	}
 	FORCEINLINE void Get(FVector4& OutValue)const { GetValue(&OutValue); }
+
+	FORCEINLINE FVector4 GetAt(int32 Idx)
+	{
+		FVector4 Ret;
+		GetValueAt(Idx, &Ret);
+		return Ret;
+	}
 	//FORCEINLINE FVector4* operator *(const FVector4& InValue) { Set(InValue); }
 
 	FORCEINLINE void Set(const FVector4& InValue)
@@ -580,6 +655,14 @@ private:
 		Output->Y = YBase[CurrIdx];
 		Output->Z = ZBase[CurrIdx];
 		Output->W = WBase[CurrIdx];
+	}
+
+	FORCEINLINE void GetValueAt(int32 Idx, FVector4* Output)const
+	{
+		Output->X = XBase[Idx];
+		Output->Y = YBase[Idx];
+		Output->Z = ZBase[Idx];
+		Output->W = WBase[Idx];
 	}
 
 	float* XBase;
@@ -619,6 +702,14 @@ struct FNiagaraDataSetIterator<FLinearColor> : public FNiagaraDataSetIteratorBas
 		return Ret;
 	}
 	FORCEINLINE void Get(FLinearColor& OutValue)const { GetValue(&OutValue); }
+
+	FORCEINLINE FLinearColor GetAt(int32 Idx)
+	{
+		FLinearColor Ret;
+		GetValueAt(Idx, &Ret);
+		return Ret;
+	}
+
 	//FORCEINLINE FLinearColor* operator *(const FLinearColor& InValue) { Set(InValue); }
 
 	FORCEINLINE void Set(const FLinearColor& InValue)
@@ -639,6 +730,13 @@ private:
 		Output->A = ABase[CurrIdx];
 	}
 
+	FORCEINLINE void GetValueAt(int32 Idx, FLinearColor* Output)const
+	{
+		Output->R = RBase[Idx];
+		Output->G = GBase[Idx];
+		Output->B = BBase[Idx];
+		Output->A = ABase[Idx];
+	}
 	float* RBase;
 	float* GBase;
 	float* BBase;

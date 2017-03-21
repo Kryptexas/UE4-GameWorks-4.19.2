@@ -33,6 +33,7 @@
 #include "PostProcess/PostProcessSubsurface.h"
 #include "HdrCustomResolveShaders.h"
 #include "WideCustomResolveShaders.h"
+#include "PipelineStateCache.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -241,9 +242,13 @@ static TAutoConsoleVariable<int32> CVarWideCustomResolve(
 
 static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
 
+DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer MotionBlurStartFrame"), STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame, STATGROUP_SceneRendering);
+DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer UpdateMotionBlurCache"), STAT_FDeferredShadingSceneRenderer_UpdateMotionBlurCache, STATGROUP_SceneRendering);
+
+
 FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
 	: View(InView)
-	, DrawRenderState(nullptr, InView)
+	, DrawRenderState(InView)
 	, ParentCmdList(InParentCmdList)
 	, Snapshot(nullptr)
 	, ExecuteStat(InExecuteStat)
@@ -715,7 +720,7 @@ void FViewInfo::SetupUniformBufferParameters(
 
 	SetupDefaultGlobalDistanceFieldUniformBufferParameters(ViewUniformShaderParameters);
 
-
+	SetupVolumetricFogUniformBufferParameters(ViewUniformShaderParameters);
 
 	uint32 StateFrameIndexMod8 = 0;
 
@@ -1309,7 +1314,10 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 		const bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeGlobalDistanceField || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
 
 		const bool bShowAtmosphericFogWarning = Scene->AtmosphericFog != nullptr && !Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
-		const bool bShowSkylightWarning = (Scene->ShouldRenderSkylight_Internal(BLEND_Opaque) || Scene->ShouldRenderSkylight_Internal(BLEND_Translucent)) && !Scene->ReadOnlyCVARCache.bEnableStationarySkylight;
+
+		const bool bStationarySkylight = Scene->SkyLight && Scene->SkyLight->bWantsStaticShadowing;
+		const bool bShowSkylightWarning = bStationarySkylight && !Scene->ReadOnlyCVARCache.bEnableStationarySkylight;
+
 		const bool bShowPointLightWarning = UsedWholeScenePointLightNames.Num() > 0 && !Scene->ReadOnlyCVARCache.bEnablePointLightShadows;
 		const bool bShowShadowedLightOverflowWarning = Scene->OverflowingDynamicShadowedLights.Num() > 0;
 
@@ -1542,17 +1550,17 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 
 			FViewInfo& View = Views[ViewIndex];
 
-			FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+			FDrawingPolicyRenderState DrawRenderState(View);
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
+			DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			const bool bWriteCustomStencilValues = SceneContext.IsCustomDepthPassWritingStencil();
 
 			if (!bWriteCustomStencilValues)
 			{
-				DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 			}
 
 			if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && (View.AntiAliasingMethod == AAM_TemporalAA))
@@ -1767,6 +1775,11 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 			SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds[CacheType].Reset();
 		}
 
+		{
+			SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_UpdateMotionBlurCache);
+			SceneRenderer->Scene->MotionBlurInfoData.UpdateMotionBlurCache(SceneRenderer->Scene);
+		}
+
 #if STATS
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderViewFamily_RenderThread_MemStats);
@@ -1788,11 +1801,11 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 			SET_MEMORY_STAT(STAT_LightInteractionMemory, FLightPrimitiveInteraction::GetMemoryPoolSize());
 		}
 #endif
+		
 
 		GRenderTargetPool.SetEventRecordingActive(false);
 
 		FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
-
 	}
 
 #if STATS
@@ -1906,6 +1919,15 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 	
 		// Construct the scene renderer.  This copies the view family attributes into its own structures.
 		FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily, Canvas->GetHitProxyConsumer());
+
+		bool bWorldIsPaused = ViewFamily->bWorldIsPaused;
+
+		ENQUEUE_RENDER_COMMAND(MotionBlurStartFrame)(
+			[Scene, bWorldIsPaused](FRHICommandList& RHICmdList)
+			{
+				SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame);
+				Scene->MotionBlurInfoData.StartFrame(bWorldIsPaused);
+			});
 
 		if (!SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
@@ -2065,10 +2087,6 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 
 		SetRenderTarget(RHICmdList, Family->RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
 		// further down to not intersect with "LIGHTING NEEDS TO BE REBUILT"
 		FVector2D Pos(30, 140);
 		const int32 FontSizeY = 14;
@@ -2207,9 +2225,12 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 		{
 			const FViewInfo& View = Views[ViewIndex];
 
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 			RHICmdList.SetStreamSource(0, NULL, 0, 0);
 
 			// Resolve views individually
@@ -2225,7 +2246,7 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 
 			if (ResolveWidth != 0)
 			{
-				ResolveFilterWide(RHICmdList, SceneContext.GetCurrentFeatureLevel(), CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FIntPoint(0, 0), CurrentNumSamples, ResolveWidth);
+				ResolveFilterWide(RHICmdList, GraphicsPSOInit, SceneContext.GetCurrentFeatureLevel(), CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FIntPoint(0, 0), CurrentNumSamples, ResolveWidth);
 			}
 			else
 			{
@@ -2235,24 +2256,36 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 				if (CurrentNumSamples == 2)
 				{
 					TShaderMapRef<FHdrCustomResolve2xPS> PixelShader(ShaderMap);
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, SceneContext.GetCurrentFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
 					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
 				}
 				else if (CurrentNumSamples == 4)
 				{
 					TShaderMapRef<FHdrCustomResolve4xPS> PixelShader(ShaderMap);
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, SceneContext.GetCurrentFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
 					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
 				}
 				else if (CurrentNumSamples == 8)
 				{
 					TShaderMapRef<FHdrCustomResolve8xPS> PixelShader(ShaderMap);
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, SceneContext.GetCurrentFeatureLevel(), BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
 					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
 				}

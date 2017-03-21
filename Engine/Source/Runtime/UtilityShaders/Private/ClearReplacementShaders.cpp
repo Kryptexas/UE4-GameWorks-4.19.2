@@ -8,6 +8,8 @@ IMPLEMENT_SHADER_TYPE(,FClearReplacementVS,TEXT("ClearReplacementShaders"),TEXT(
 IMPLEMENT_SHADER_TYPE(,FClearReplacementPS,TEXT("ClearReplacementShaders"),TEXT("ClearPS"),SF_Pixel);
 
 IMPLEMENT_SHADER_TYPE(,FClearTexture2DReplacementCS,TEXT("ClearReplacementShaders"),TEXT("ClearTexture2DCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FClearTexture2DArrayReplacementCS, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DArrayCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FClearVolumeReplacementCS, TEXT("ClearReplacementShaders"), TEXT("ClearVolumeCS"), SF_Compute);
 IMPLEMENT_SHADER_TYPE(,FClearTexture2DReplacementScissorCS,TEXT("ClearReplacementShaders"),TEXT("ClearTexture2DScissorCS"), SF_Compute);
 
 IMPLEMENT_SHADER_TYPE(,FClearBufferReplacementCS,TEXT("ClearReplacementShaders"),TEXT("ClearBufferCS"),SF_Compute);
@@ -22,6 +24,34 @@ void FClearTexture2DReplacementCS::SetParameters( FRHICommandList& RHICmdList, F
 }
 
 void FClearTexture2DReplacementCS::FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW)
+{
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, TextureRW);
+}
+
+void FClearTexture2DArrayReplacementCS::SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value)
+{
+	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearColor, Value);
+
+	RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, TextureRW);
+	RHICmdList.SetUAVParameter(ComputeShaderRHI, ClearTextureArrayRW.GetBaseIndex(), TextureRW);
+}
+
+void FClearTexture2DArrayReplacementCS::FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW)
+{
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, TextureRW);
+}
+
+void FClearVolumeReplacementCS::SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value)
+{
+	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearColor, Value);
+
+	RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, TextureRW);
+	RHICmdList.SetUAVParameter(ComputeShaderRHI, ClearVolumeRW.GetBaseIndex(), TextureRW);
+}
+
+void FClearVolumeReplacementCS::FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW)
 {
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, TextureRW);
 }

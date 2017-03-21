@@ -22,6 +22,14 @@ class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 	UPROPERTY()
 	class UNiagaraGraph*	FlattenedNodeGraph;
 
-	// UObject interface.
-	virtual ENiagaraScriptCompileStatus Compile(FString& OutGraphLevelErrorMessages);
+	// UObject interface
+	virtual void PostLoad() override;
+
+	// UNiagaraScriptSourceBase interface.
+	virtual ENiagaraScriptCompileStatus Compile(FString& OutGraphLevelErrorMessages) override;
+	virtual bool IsSynchronized(const FGuid& InChangeId) override;
+	virtual void MarkNotSynchronized() override;
+
+	/** Determine if there are any external dependencies wrt to scripts and ensure that those dependencies are sucked into the existing package.*/
+	virtual void SubsumeExternalDependencies(TMap<UObject*, UObject*>& ExistingConversions) override;
 };

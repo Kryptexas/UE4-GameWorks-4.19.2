@@ -7,6 +7,7 @@
 #include "RendererPrivate.h"
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
+#include "PipelineStateCache.h"
 
 /** Pixel shader to composite the monoscopic view into the stereo views. */
 class FCompositeMonoscopicFarFieldViewPS : public FGlobalShader
@@ -32,7 +33,7 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
-		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetPixelShader(), View.ViewUniformBuffer);
 		const FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 		const FSamplerStateRHIRef Filter = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 		SetTextureParameter(RHICmdList, GetPixelShader(), MonoColorTextureParameter, MonoColorTextureParameterSampler, Filter, SceneContext.GetSceneMonoColorTexture());
@@ -84,7 +85,7 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const float LeftViewWidthNDC, const float LateralOffsetNDC)
 	{
-		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetPixelShader(), View.ViewUniformBuffer);
 		const FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 		const FSamplerStateRHIRef Filter = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
@@ -119,8 +120,6 @@ public:
 
 IMPLEMENT_SHADER_TYPE(, FMonoscopicFarFieldMaskPS, TEXT("MonoscopicFarFieldRendering"), TEXT("MonoscopicFarFieldMask"), SF_Pixel);
 
-FGlobalBoundShaderState RenderMonoscopicFarFieldMaskBoundShaderState;
-
 void FSceneRenderer::RenderMonoscopicFarFieldMask(FRHICommandListImmediate& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -131,19 +130,22 @@ void FSceneRenderer::RenderMonoscopicFarFieldMask(FRHICommandListImmediate& RHIC
 	const FViewInfo& RightView = Views[1];
 	const FViewInfo& MonoView = Views[2];
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<true, CF_Always>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+
 	TShaderMapRef<FScreenVS> VertexShader(MonoView.ShaderMap);
 	TShaderMapRef<FMonoscopicFarFieldMaskPS> PixelShader(MonoView.ShaderMap);
-	SetGlobalBoundShaderState(RHICmdList, 
-		FeatureLevel, 
-		RenderMonoscopicFarFieldMaskBoundShaderState, 
-		GFilterVertexDeclaration.VertexDeclarationRHI, 
-		*VertexShader, 
-		*PixelShader);
 
-	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Always>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	const float LeftViewWidthNDC = static_cast<float>(RightView.ViewRect.Min.X - LeftView.ViewRect.Min.X) / static_cast<float>(SceneContext.GetBufferSizeXY().X);
 	const float LateralOffsetInPixels = roundf(ViewFamily.MonoParameters.LateralOffset * static_cast<float>(MonoView.ViewRect.Width()));
@@ -171,8 +173,6 @@ void FSceneRenderer::RenderMonoscopicFarFieldMask(FRHICommandListImmediate& RHIC
 		EDRF_UseTriangleOptimization);
 }
 
-FGlobalBoundShaderState CompositeMonoscopicViewNoDepthBoundShaderState;
-
 void FSceneRenderer::CompositeMonoscopicFarField(FRHICommandListImmediate& RHICmdList)
 {
 	if (ViewFamily.MonoParameters.Mode == EMonoscopicFarFieldMode::On || ViewFamily.MonoParameters.Mode == EMonoscopicFarFieldMode::MonoOnly)
@@ -185,28 +185,33 @@ void FSceneRenderer::CompositeMonoscopicFarField(FRHICommandListImmediate& RHICm
 		const FTextureRHIParamRef SceneColor = (ViewFamily.bUseSeparateRenderTarget) ? static_cast<FTextureRHIRef>(ViewFamily.RenderTarget->GetRenderTargetTexture()) : SceneContext.GetSceneColorTexture();
 		SetRenderTarget(RHICmdList, SceneColor, SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EExistingColorAndDepth);
 
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+		if (ViewFamily.MonoParameters.Mode == EMonoscopicFarFieldMode::MonoOnly)
+		{
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero>::GetRHI();
+		}
+		else
+		{
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI();
+		}
+
+		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+
 		TShaderMapRef<FScreenVS> VertexShader(MonoView.ShaderMap);
 		TShaderMapRef<FCompositeMonoscopicFarFieldViewPS> PixelShader(MonoView.ShaderMap);
 
 		extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-		SetGlobalBoundShaderState(RHICmdList,
-			FeatureLevel,
-			CompositeMonoscopicViewNoDepthBoundShaderState,
-			GFilterVertexDeclaration.VertexDeclarationRHI,
-			*VertexShader,
-			*PixelShader);
-
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
-		if (ViewFamily.MonoParameters.Mode == EMonoscopicFarFieldMode::MonoOnly)
-		{
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero>::GetRHI());
-		}
-
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		PixelShader->SetParameters(RHICmdList, MonoView);
 

@@ -126,12 +126,12 @@ void FOpenGLDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI
 	// Set the render target and viewport.
 	if( RenderTarget )
 	{
-		FRHIRenderTargetView RTV(RenderTarget);	
+		FRHIRenderTargetView RTV(RenderTarget, ERenderTargetLoadAction::ELoad);
 		RHISetRenderTargets(1, &RTV, nullptr, 0, NULL);
 	}
 	else
 	{
-		FRHIRenderTargetView RTV(DrawingViewport->GetBackBuffer());
+		FRHIRenderTargetView RTV(DrawingViewport->GetBackBuffer(), ERenderTargetLoadAction::ELoad);
 		RHISetRenderTargets(1, &RTV, nullptr, 0, NULL);
 	}
 }

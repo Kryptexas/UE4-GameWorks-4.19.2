@@ -34,9 +34,6 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 	const FTransform Transform(FRotator(0, 0, 0), FVector(0, 0, 0), FVector(1));
 
 	// Add and set up sky light using the set cube map texture
-	static const auto CVarSupportStationarySkylight = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportStationarySkylight"));
-	bUseSkylight = CVarSupportStationarySkylight->GetValueOnAnyThread() != 0;
-	if (bUseSkylight)
 	{
 		SkyLightComponent = NewObject<USkyLightComponent>();
 		SkyLightComponent->Cubemap = Profile.EnvironmentCubeMap.Get();
@@ -47,16 +44,6 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 		AddComponent(SkyLightComponent, Transform);
 		SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);
 	}
-	else
-	{
-		SphereReflectionComponent = NewObject<USphereReflectionCaptureComponent>();
-		SphereReflectionComponent->Cubemap = Profile.EnvironmentCubeMap.Get();
-		SphereReflectionComponent->ReflectionSourceType = EReflectionSourceType::SpecifiedCubemap;
-		SphereReflectionComponent->Brightness = Profile.SkyLightIntensity;
-		AddComponent(SphereReflectionComponent, Transform);
-		SphereReflectionComponent->UpdateReflectionCaptureContents(PreviewWorld);
-	}
-	
 	
 	// Large scale to prevent sphere from clipping
 	const FTransform SphereTransform(FRotator(0, 0, 0), FVector(0, 0, 0), FVector(2000));

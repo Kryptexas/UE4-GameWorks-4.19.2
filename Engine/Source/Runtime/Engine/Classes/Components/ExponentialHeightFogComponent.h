@@ -89,7 +89,37 @@ class ENGINE_API UExponentialHeightFogComponent : public USceneComponent
 	/** Scene elements past this distance will not have fog applied.  This is useful for excluding skyboxes which already have fog baked in. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ExponentialHeightFogComponent, meta=(UIMin = "100000", UIMax = "20000000"))
 	float FogCutoffDistance;
-	
+
+	/** Whether to enable volumetric fog. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Volumetric Fog"))
+	bool bEnableVolumetricFog;
+
+	/** Positive values cause more scattering in the direction of the light, negative values cause more scattering in the opposite direction of the light. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Scattering Distribution", UIMin = "-.9", UIMax = ".9"))
+	float VolumetricFogScatteringDistribution;
+
+	/** Scales the global scattering amount used by volumetric fog.  Values larger than 1 cause fog particles everywhere reflect more light. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Scattering Scale", UIMin = ".1", UIMax = "10"))
+	float VolumetricFogScatteringScale;
+
+	/** Scales the global absorption amount used by volumetric fog.  Values larger than 1 cause fog particles everywhere absorb more light. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Absorption Scale", UIMin = ".1", UIMax = "10"))
+	float VolumetricFogAbsorptionScale;
+
+	/** 
+	 * Distance over which volumetric fog should cover.  Larger values extend the effect into the distance but reduce the details that can be captured.
+	 * This should typically be tweaked along with the directional light 'Dynamic Shadow Distance' so that volumetric fog will receive shadows everywhere.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Distance", UIMin = "1000", UIMax = "10000"))
+	float VolumetricFogDistance;
+
+	/** 
+	 * Whether to use FogInscatteringColor for the Sky Light volumetric scattering color and DirectionalInscatteringColor for the Directional Light scattering color. 
+	 * Enabling this allows Volumetric fog to match Height fog in the distance, but produces non-physical volumetric lighting that may not match surface lighting.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog)
+	bool bOverrideLightColorsWithFogInscatteringColors;
+
 public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|ExponentialHeightFog")
 	void SetFogDensity(float Value);
@@ -132,6 +162,21 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|ExponentialHeightFog")
 	void SetFogCutoffDistance(float Value);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
+	void SetVolumetricFog(bool bNewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
+	void SetVolumetricFogScatteringDistribution(float NewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
+	void SetVolumetricFogAbsorptionScale(float NewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
+	void SetVolumetricFogScatteringScale(float NewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
+	void SetVolumetricFogDistance(float NewValue);
 
 protected:
 	//~ Begin UActorComponent Interface.

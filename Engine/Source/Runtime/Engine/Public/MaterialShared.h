@@ -110,6 +110,26 @@ enum EMaterialCommonBasis
 	MCB_MAX,
 };
 
+/** Defines the domain of a material. */
+UENUM()
+enum EMaterialDomain
+{
+	/** The material's attributes describe a 3d surface. */
+	MD_Surface UMETA(DisplayName = "Surface"),
+	/** The material's attributes describe a deferred decal, and will be mapped onto the decal's frustum. */
+	MD_DeferredDecal UMETA(DisplayName = "Deferred Decal"),
+	/** The material's attributes describe a light's distribution. */
+	MD_LightFunction UMETA(DisplayName = "Light Function"),
+	/** The material's attributes describe a 3d volume. */
+	MD_Volume UMETA(DisplayName = "Volume"),
+	/** The material will be used in a custom post process pass. */
+	MD_PostProcess UMETA(DisplayName = "Post Process"),
+	/** The material will be used for UMG or Slate UI */
+	MD_UI UMETA(DisplayName = "User Interface"),
+
+	MD_MAX
+};
+
 /**
  * The context of a material being rendered.
  */
@@ -980,7 +1000,7 @@ public:
 
 	// Material properties.
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const;
-	virtual int32 GetMaterialDomain() const = 0; // See EMaterialDomain.
+	virtual EMaterialDomain GetMaterialDomain() const = 0; // See EMaterialDomain.
 	virtual bool IsTwoSided() const = 0;
 	virtual bool IsDitheredLODTransition() const = 0;
 	virtual bool IsTranslucencyWritingCustomDepth() const { return false; }
@@ -994,6 +1014,7 @@ public:
 	virtual bool IsLightFunction() const = 0;
 	virtual bool IsUsedWithEditorCompositing() const { return false; }
 	virtual bool IsDeferredDecal() const = 0;
+	virtual bool IsVolumetricPrimitive() const = 0;
 	virtual bool IsWireframe() const = 0;
 	virtual bool IsUIMaterial() const { return false; }
 	virtual bool IsSpecialEngineMaterial() const = 0;
@@ -1041,7 +1062,8 @@ public:
 	virtual float GetTranslucentShadowStartOffset() const { return 0.0f; }
 	virtual float GetRefractionDepthBiasValue() const { return 0.0f; }
 	virtual float GetMaxDisplacement() const { return 0.0f; }
-	virtual bool UseTranslucencyVertexFog() const { return false; }
+	virtual bool ShouldApplyFogging() const { return false; }
+	virtual bool ComputeFogPerPixel() const { return false; }
 	virtual FString GetFriendlyName() const = 0;
 	virtual bool HasVertexPositionOffsetConnected() const { return false; }
 	virtual bool HasPixelDepthOffsetConnected() const { return false; }
@@ -1624,7 +1646,7 @@ public:
 
 	// FMaterial interface.
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const override;
-	ENGINE_API virtual int32 GetMaterialDomain() const override;
+	ENGINE_API virtual EMaterialDomain GetMaterialDomain() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
 	ENGINE_API virtual bool IsDitheredLODTransition() const override;
 	ENGINE_API virtual bool IsTranslucencyWritingCustomDepth() const override;
@@ -1638,6 +1660,7 @@ public:
 	ENGINE_API virtual bool IsLightFunction() const override;
 	ENGINE_API virtual bool IsUsedWithEditorCompositing() const override;
 	ENGINE_API virtual bool IsDeferredDecal() const override;
+	ENGINE_API virtual bool IsVolumetricPrimitive() const override;
 	ENGINE_API virtual bool IsWireframe() const override;
 	ENGINE_API virtual bool IsUIMaterial() const override;
 	ENGINE_API virtual bool IsSpecialEngineMaterial() const override;
@@ -1695,7 +1718,8 @@ public:
 	ENGINE_API virtual bool GetBlendableOutputAlpha() const override;
 	ENGINE_API virtual float GetRefractionDepthBiasValue() const override;
 	ENGINE_API virtual float GetMaxDisplacement() const override;
-	ENGINE_API virtual bool UseTranslucencyVertexFog() const override;
+	ENGINE_API virtual bool ShouldApplyFogging() const override;
+	ENGINE_API virtual bool ComputeFogPerPixel() const override;
 	ENGINE_API virtual UMaterialInterface* GetMaterialInterface() const override;
 	/**
 	 * Should shaders compiled for this material be saved to disk?

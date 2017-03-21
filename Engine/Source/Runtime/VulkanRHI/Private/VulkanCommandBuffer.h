@@ -13,6 +13,7 @@
 class FVulkanDevice;
 class FVulkanCommandBufferPool;
 class FVulkanCommandBufferManager;
+class FVulkanRenderTargetLayout;
 
 namespace VulkanRHI
 {
@@ -65,7 +66,7 @@ public:
 		return CommandBufferHandle;
 	}
 
-	void BeginRenderPass(const FVulkanRenderTargetLayout& Layout, class FVulkanRenderPass* RenderPass, VkFramebuffer Framebuffer, const VkClearValue* AttachmentClearValues);
+	void BeginRenderPass(const FVulkanRenderTargetLayout& Layout, class FVulkanRenderPass* RenderPass, class FVulkanFramebuffer* Framebuffer, const VkClearValue* AttachmentClearValues);
 
 	void EndRenderPass()
 	{

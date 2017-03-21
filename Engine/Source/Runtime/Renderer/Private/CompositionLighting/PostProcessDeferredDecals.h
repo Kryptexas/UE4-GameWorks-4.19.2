@@ -82,6 +82,6 @@ struct FDecalRenderTargetManager
 	void SetRenderTargetMode(FDecalRenderingCommon::ERenderTargetMode CurrentRenderTargetMode, bool bHasNormal);
 };
 
-extern void SetDecalBlendState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const ERHIFeatureLevel::Type SMFeatureLevel, EDecalRenderStage InDecalRenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal);
+extern FBlendStateRHIParamRef GetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, EDecalRenderStage InDecalRenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal);
 
-extern void RenderMeshDecals(FRenderingCompositePassContext& Context, const FDrawingPolicyRenderState& DrawRenderState, EDecalRenderStage CurrentDecalStage);
+extern void RenderMeshDecals(FRenderingCompositePassContext& Context, EDecalRenderStage CurrentDecalStage);

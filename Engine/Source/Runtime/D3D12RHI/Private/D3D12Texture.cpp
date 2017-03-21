@@ -779,7 +779,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 
 		if (Flags & TexCreate_CPUReadback)
 		{
-			const uint32 BlockBytes = GPixelFormats[PlatformResourceFormat].BlockBytes;
+			const uint32 BlockBytes = GPixelFormats[Format].BlockBytes;
 			const uint32 XBytesAligned = Align((uint32)SizeX * BlockBytes, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 			D3D12_SUBRESOURCE_FOOTPRINT DestSubresource;
 			DestSubresource.Depth = SizeZ;
@@ -2152,7 +2152,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 
 		if (Flags & TexCreate_CPUReadback)
 		{
-			const uint32 BlockBytes = GPixelFormats[PlatformResourceFormat].BlockBytes;
+			const uint32 BlockBytes = GPixelFormats[Format].BlockBytes;
 			const uint32 XBytesAligned = Align((uint32)SizeX * BlockBytes, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 			D3D12_SUBRESOURCE_FOOTPRINT DestSubresource;
 			DestSubresource.Depth = SizeZ;

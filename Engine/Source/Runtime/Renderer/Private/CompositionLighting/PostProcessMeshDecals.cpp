@@ -206,14 +206,14 @@ public:
 	* @param CI - The command interface to execute the draw commands on.
 	* @param View - The view of the scene being drawn.
 	*/
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
 	
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	/**
 	* Sets the render states for drawing a mesh.
@@ -279,13 +279,13 @@ FDrawingPolicyMatchResult FMeshDecalsDrawingPolicy::Matches(
 
 void FMeshDecalsDrawingPolicy::SetSharedState(
 	FRHICommandList& RHICmdList, 
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FSceneView* View,
-	const ContextDataType PolicyContext,
-	FDrawingPolicyRenderState& DrawRenderState
+	const ContextDataType PolicyContext
 	) const
 {
 	// Set shared mesh resources
-	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext, DrawRenderState);
+	FMeshDrawingPolicy::SetSharedState(RHICmdList, DrawRenderState, View, PolicyContext);
 
 	// Set the translucent shader parameters for the material instance
 	VertexShader->SetParameters(RHICmdList, VertexFactory,MaterialRenderProxy,View);
@@ -299,7 +299,7 @@ void FMeshDecalsDrawingPolicy::SetSharedState(
 	PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 }
 
-FBoundShaderStateInput FMeshDecalsDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
+FBoundShaderStateInput FMeshDecalsDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	FPixelShaderRHIParamRef PixelShaderRHIRef = NULL;
 
@@ -335,11 +335,6 @@ void FMeshDecalsDrawingPolicy::SetMeshRenderState(
 		HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 		DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	}	
-
-	const bool bReverseCulling = !!(DrawRenderState.GetViewOverrideFlags() & EDrawingPolicyOverrideFlags::ReverseCullMode);
-	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
-		(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid,
-		IsTwoSided() ? CM_None : (XOR(bReverseCulling, Mesh.ReverseCulling) ? CM_CCW : CM_CW)));
 }
 
 
@@ -385,7 +380,7 @@ public:
 				LastRenderTargetMode = RenderTargetMode;
 				RenderTargetManager.SetRenderTargetMode(RenderTargetMode, bHasNormal);
 
-				DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
 
 				Context.SetViewportAndCallRHI(View.ViewRect);
 			}
@@ -396,7 +391,7 @@ public:
 	
 				const ERHIFeatureLevel::Type FeatureLevel = View.GetFeatureLevel();
 
-				SetDecalBlendState(RHICmdList, DrawRenderState, FeatureLevel, CurrentDecalStage, DecalBlendMode, bHasNormal);
+				DrawRenderState.SetBlendState(GetDecalBlendState(FeatureLevel, CurrentDecalStage, DecalBlendMode, bHasNormal));
 			}
 		}
 	};
@@ -490,12 +485,13 @@ private:
 				// can be optimized (ranges for different decal stages or separate lists)
 				if (DrawingContext.CurrentDecalStage == LocalDecalRenderStage)
 				{
-					FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+					FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 					DrawingContext.SetState(Material, DrawRenderStateLocal);
 
 					FMeshDecalsDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *Material, View.GetFeatureLevel(), ComputeMeshOverrideSettings(Mesh));
-					RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-					DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType(bIsInstancedStereo, bNeedsInstancedStereoBias), DrawRenderStateLocal);
+					DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
+					CommitGraphicsPipelineState(RHICmdList, DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+					DrawingPolicy.SetSharedState(RHICmdList, DrawRenderStateLocal, &View, FDepthDrawingPolicy::ContextDataType(bIsInstancedStereo, bNeedsInstancedStereoBias));
 
 					int32 BatchElementIndex = 0;
 					uint64 Mask = BatchElementMask;
@@ -572,8 +568,8 @@ void RenderPrimitive(FRenderingCompositePassContext& Context, FDecalDrawingPolic
 				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
 					&& StaticMesh.IsDecal(View.FeatureLevel))
 				{
-					FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
-					FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(RHICmdList, DrawRenderStateLocal, View, StaticMesh, false);
+					FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
+					FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(DrawRenderStateLocal, View, StaticMesh, false);
 
 					FDecalDrawingPolicyFactory::DrawStaticMesh(
 						RHICmdList,
@@ -591,7 +587,7 @@ void RenderPrimitive(FRenderingCompositePassContext& Context, FDecalDrawingPolic
 	}
 }
 
-void RenderMeshDecals(FRenderingCompositePassContext& Context, const FDrawingPolicyRenderState& DrawRenderState, EDecalRenderStage CurrentDecalStage)
+void RenderMeshDecals(FRenderingCompositePassContext& Context, EDecalRenderStage CurrentDecalStage)
 {
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -602,6 +598,7 @@ void RenderMeshDecals(FRenderingCompositePassContext& Context, const FDrawingPol
 	
 	FDecalDrawingPolicyFactory::ContextType DrawContext(Context, CurrentDecalStage);
 
+	FDrawingPolicyRenderState DrawRenderState(Context.View);
 	for(int32 PrimIdx = 0, Count = View.MeshDecalPrimSet.NumPrims(); PrimIdx < Count; PrimIdx++ )
 	{
 		FPrimitiveSceneInfo* PrimitiveSceneInfo = View.MeshDecalPrimSet.Prims[PrimIdx].PrimitiveSceneInfo;

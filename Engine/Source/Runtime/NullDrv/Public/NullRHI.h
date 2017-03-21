@@ -213,7 +213,7 @@ public:
 		return new FRHIShaderResourceView(); 
 	}
 
-	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override
+	virtual void RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override
 	{
 
 	}

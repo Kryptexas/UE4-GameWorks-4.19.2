@@ -12,6 +12,7 @@
 #include "PostProcess/PostProcessCombineLUTs.h"
 #include "PostProcess/PostProcessMobile.h"
 #include "ClearQuad.h"
+#include "PipelineStateCache.h"
 
 static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("r.Tonemapper.Sharpen"),
@@ -984,7 +985,7 @@ public:
 
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		{
 			// filtering can cost performance so we use point where possible, we don't want anisotropic sampling
@@ -1201,15 +1202,24 @@ namespace PostProcessTonemapUtil
 	template <uint32 ConfigIndex, bool bDoEyeAdaptation>
 	static inline void SetShaderTempl(const FRenderingCompositePassContext& Context)
 	{
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
 		typedef TPostProcessTonemapVS<bDoEyeAdaptation> VertexShaderType;
 		typedef FPostProcessTonemapPS<ConfigIndex>      PixelShaderType;
 
 		TShaderMapRef<PixelShaderType>  PixelShader(Context.GetShaderMap());
 		TShaderMapRef<VertexShaderType> VertexShader(Context.GetShaderMap());
 
-		static FGlobalBoundShaderState BoundShaderState;
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetVS(Context);
 		PixelShader->SetPS(Context);
@@ -1273,7 +1283,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
 		{
 			// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
-			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
+			DrawClearQuad(Context.RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
 		}
 		else if (ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture)
 		{
@@ -1283,11 +1293,6 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	}
 
 	Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f );
-
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	const int32 ConfigOverride = CVarTonemapperOverride->GetInt();
 	const uint32 FinalConfigIndex = ConfigOverride == -1 ? ConfigIndexPC : (int32)ConfigOverride;
@@ -1487,7 +1492,7 @@ public:
 
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
 
@@ -1611,7 +1616,7 @@ public:
 	void SetVS(const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
@@ -1649,15 +1654,23 @@ namespace PostProcessTonemap_ES2Util
 	template <uint32 ConfigIndex>
 	static inline void SetShaderTemplES2(const FRenderingCompositePassContext& Context, bool bUsedFramebufferFetch)
 	{
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
 		TShaderMapRef<FPostProcessTonemapVS_ES2> VertexShader(Context.GetShaderMap());
 		TShaderMapRef<FPostProcessTonemapPS_ES2<ConfigIndex> > PixelShader(Context.GetShaderMap());
 
 		VertexShader->bUsedFramebufferFetch = bUsedFramebufferFetch;
 
-		static FGlobalBoundShaderState BoundShaderState;
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-
-		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetVS(Context);
 		PixelShader->SetPS(Context);
@@ -1715,16 +1728,11 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		// Full clear to avoid restore
 		if ((View.StereoPass == eSSP_FULL && bFirstView) || View.StereoPass == eSSP_LEFT_EYE)
 		{
-			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black);
+			DrawClearQuad(Context.RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
 		}
 	}
 
 	Context.SetViewportAndCallRHI(DestRect);
-
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	const int32 ConfigOverride = CVarTonemapperOverride->GetInt();
 	const uint32 FinalConfigIndex = ConfigOverride == -1 ? ConfigIndexMobile : (int32)ConfigOverride;
@@ -1799,7 +1807,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOut
 	Ret.Reset();
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
-	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
+	Ret.ClearValue = FClearValueBinding(FLinearColor::Black);
 	if (bDoScreenPercentageInTonemapper)
 	{
 		Ret.Extent = View.UnscaledViewRect.Max;

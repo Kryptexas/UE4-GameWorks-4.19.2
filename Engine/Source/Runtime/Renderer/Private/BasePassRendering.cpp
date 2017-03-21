@@ -305,7 +305,7 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShad
 	}
 }
 
-static void SetDepthStencilStateForBasePass(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View, const FMeshBatch& Mesh, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bEnableReceiveDecalOutput, bool bUseDebugViewPS, FDepthStencilStateRHIParamRef LodFadeOverrideDepthStencilState, bool bEnableEditorPrimitiveDepthTest)
+static void SetDepthStencilStateForBasePass(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View, const FMeshBatch& Mesh, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bEnableReceiveDecalOutput, bool bUseDebugViewPS, FDepthStencilStateRHIParamRef LodFadeOverrideDepthStencilState, bool bEnableEditorPrimitiveDepthTest)
 {
 	static IConsoleVariable* EarlyZPassOnlyMaterialMaskingCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPassOnlyMaterialMasking"));
 	bool bMaskInEarlyPass = (EarlyZPassOnlyMaterialMaskingCVar && Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel())->IsMasked() && EarlyZPassOnlyMaterialMaskingCVar->GetInt()) && !bEnableEditorPrimitiveDepthTest;
@@ -320,43 +320,47 @@ static void SetDepthStencilStateForBasePass(FRHICommandList& RHICmdList, FDrawin
 		if (LodFadeOverrideDepthStencilState != nullptr)
 		{
 			//@TODO: Handle bMaskInEarlyPass in this case (used when a LODTransition is specified)
-			DrawRenderState.SetDepthStencilState(RHICmdList, LodFadeOverrideDepthStencilState, StencilValue);
+			DrawRenderState.SetDepthStencilState(LodFadeOverrideDepthStencilState);
+			DrawRenderState.SetStencilRef(StencilValue);
 		}
 		else if (bMaskInEarlyPass)
 		{
-			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<
 				false, CF_Equal,
 				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
 				0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-			>::GetRHI(), StencilValue);
+			>::GetRHI());
+			DrawRenderState.SetStencilRef(StencilValue);
 		}
 		else if (DrawRenderState.GetDepthStencilAccess() & FExclusiveDepthStencil::DepthWrite)
 		{
-			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<
 				true, CF_GreaterEqual,
 				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
 				0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-			>::GetRHI(), StencilValue);
+			>::GetRHI());
+			DrawRenderState.SetStencilRef(StencilValue);
 		}
 		else
 		{
-			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<
 				false, CF_GreaterEqual,
 				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
 				0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-			>::GetRHI(), StencilValue);
+			>::GetRHI());
+			DrawRenderState.SetStencilRef(StencilValue);
 		}
 	}
 	else if (bMaskInEarlyPass)
 	{
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Equal>::GetRHI());
+		DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Equal>::GetRHI());
 	}
 }
 
-void FBasePassDrawingPolicy::ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+void FBasePassDrawingPolicy::ApplyDitheredLODTransitionState(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
 {
 	FDepthStencilStateRHIParamRef DepthStencilState = nullptr;
 	DrawRenderState.SetDitheredLODTransitionAlpha(0.0f);
@@ -397,7 +401,7 @@ void FBasePassDrawingPolicy::ApplyDitheredLODTransitionState(FRHICommandList& RH
 		}
 	}
 
-	SetDepthStencilStateForBasePass(RHICmdList, DrawRenderState, ViewInfo, Mesh, Mesh.PrimitiveSceneInfo->Proxy, bEnableReceiveDecalOutput, UseDebugViewPS(), DepthStencilState, bEnableEditorPrimitiveDepthTest);
+	SetDepthStencilStateForBasePass(DrawRenderState, ViewInfo, Mesh, Mesh.PrimitiveSceneInfo->Proxy, bEnableReceiveDecalOutput, UseDebugViewPS(), DepthStencilState, bEnableEditorPrimitiveDepthTest);
 }
 
 /** The action used to draw a base pass static mesh element. */
@@ -451,7 +455,7 @@ public:
 			TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& DrawList =
 				Scene->GetBasePassDrawList<LightMapPolicyType>(DrawType);
 
-			const bool bRenderSkylight = Scene->ShouldRenderSkylight(Parameters.BlendMode) && Parameters.ShadingModel != MSM_Unlit;
+			const bool bRenderSkylight = Scene->ShouldRenderSkylightInBasePass(Parameters.BlendMode) && Parameters.ShadingModel != MSM_Unlit;
 			const bool bRenderAtmosphericFog = IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
 
 			// Add the static mesh to the draw list.
@@ -489,7 +493,7 @@ void FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList& RHICmdL
 	const bool bEditorCompositeDepthTest = false;
 
 	// Only draw opaque materials.
-	if( !IsTranslucentBlendMode(BlendMode) )
+	if (!IsTranslucentBlendMode(BlendMode) && ShouldIncludeDomainInMeshPass(Material->GetMaterialDomain()))
 	{
 		ProcessBasePassMesh(
 			RHICmdList, 
@@ -524,7 +528,7 @@ public:
 		const FHitProxyId InHitProxyId
 		)
 		: View(InView)
-		, DrawRenderState(&InRHICmdList, InDrawRenderState)
+		, DrawRenderState(InDrawRenderState)
 		, HitProxyId(InHitProxyId)
 	{
 		DrawRenderState.SetDitheredLODTransitionAlpha(InDitheredLODTransitionAlpha);
@@ -554,6 +558,7 @@ public:
 		)
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		//TODO this codepath is probably disabled by SetDepthStencilStateForBasePass
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
 			// When rendering masked materials in the shader complexity viewmode, 
@@ -561,23 +566,23 @@ public:
 			// And accumulate complexity for pixels which get killed due to the opacity mask being below the clip value.
 			// This is accomplished by forcing the masked materials to render depths in the depth only pass, 
 			// Then rendering in the base pass with additive complexity blending, depth tests on, and depth writes off.
-			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
 		}
 		else if (View.Family->UseDebugViewPS() && View.Family->GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
 		{
 			if (Parameters.PrimitiveSceneProxy && Parameters.PrimitiveSceneProxy->IsSelected())
 			{
-				DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 			}
 			else // If not selected, use depth equal to make alpha test stand out (goes with EarlyZPassMode = DDM_AllOpaque) 
 			{
-				DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_Equal>::GetRHI());
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Equal>::GetRHI());
 			}
 		}
 #endif
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
-		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylight(Parameters.BlendMode) && Parameters.ShadingModel != MSM_Unlit;
+		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylightInBasePass(Parameters.BlendMode) && Parameters.ShadingModel != MSM_Unlit;
 		const bool bRenderAtmosphericFog = IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog) && View.Family->EngineShowFlags.AtmosphericFog;
 
 		bool bEnableReceiveDecalOutput = Scene != nullptr;
@@ -597,9 +602,10 @@ public:
 			bEnableReceiveDecalOutput
 			);
 
-		SetDepthStencilStateForBasePass(RHICmdList, DrawRenderState, View, Parameters.Mesh, Parameters.PrimitiveSceneProxy, bEnableReceiveDecalOutput, DrawingPolicy.UseDebugViewPS(), nullptr, Parameters.bEditorCompositeDepthTest);
-		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo), DrawRenderState);
+		SetDepthStencilStateForBasePass(DrawRenderState, View, Parameters.Mesh, Parameters.PrimitiveSceneProxy, bEnableReceiveDecalOutput, DrawingPolicy.UseDebugViewPS(), nullptr, Parameters.bEditorCompositeDepthTest);
+		DrawingPolicy.SetupPipelineState(DrawRenderState, View);
+		CommitGraphicsPipelineState(RHICmdList, DrawingPolicy, DrawRenderState, DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+		DrawingPolicy.SetSharedState(RHICmdList, DrawRenderState, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
 		{
@@ -628,9 +634,10 @@ public:
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		//TODO this codepath is probably disabled by SetDepthStencilStateForBasePass
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_DepthNearOrEqual>::GetRHI());
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true,CF_DepthNearOrEqual>::GetRHI());
 		}
 #endif
 	}
@@ -653,7 +660,7 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only draw opaque materials.
-	if(!IsTranslucentBlendMode(BlendMode))
+	if (!IsTranslucentBlendMode(BlendMode) && ShouldIncludeDomainInMeshPass(Material->GetMaterialDomain()))
 	{
 		ProcessBasePassMesh(
 			RHICmdList, 
@@ -1084,7 +1091,7 @@ public:
 		: ThisRenderer(InThisRenderer)
 		, RHICmdList(InRHICmdList)
 		, View(InView)
-		, DrawRenderState(nullptr, InDrawRenderState)
+		, DrawRenderState(InDrawRenderState)
 	{
 	}
 
@@ -1119,9 +1126,9 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 	if (bShaderComplexity)
 	{
 		// Additive blending when shader complexity viewmode is enabled.
-		DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
+		DrawRenderState.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 		// Disable depth writes as we have a full depth prepass.
-		DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
+		DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 	}
 	else
 	{
@@ -1129,20 +1136,20 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocityDebug"));
 		if (CVar && CVar->GetValueOnRenderThread() == 2)
 		{
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_NONE>::GetRHI());
+			DrawRenderState.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA, CW_NONE>::GetRHI());
 		}
 		else
 		{
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA>::GetRHI());
+			DrawRenderState.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA>::GetRHI());
 		}
 
 		if (DrawRenderState.GetDepthStencilAccess() & FExclusiveDepthStencil::DepthWrite)
 		{
-			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 		}
 		else
 		{
-			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 		}
 	}
 
@@ -1210,10 +1217,10 @@ void FDeferredShadingSceneRenderer::RenderBasePassViewParallel(FViewInfo& View, 
 
 void FDeferredShadingSceneRenderer::RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, bool& bOutDirty) 
 {
-	FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+	FDrawingPolicyRenderState DrawRenderState(View);
 	SetupBasePassView(RHICmdList, View, DrawRenderState, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity, true);
 
-	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::OpaqueAndMasked);
+	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::OpaqueAndMasked);
 
 	bool bDirty = false;
 	if (!View.Family->EngineShowFlags.CompositeEditorPrimitives)
@@ -1225,13 +1232,13 @@ void FDeferredShadingSceneRenderer::RenderEditorPrimitives(FRHICommandList& RHIC
 		bDirty |= DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_World, true) || bDirty;
 
 		// Draw the view's batched simple elements(lines, sprites, etc).
-		bDirty |= View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, false) || bDirty;
+		bDirty |= View.BatchedViewElements.Draw(RHICmdList, DrawRenderState, FeatureLevel, bNeedToSwitchVerticalAxis, View, false) || bDirty;
 
 		// Draw foreground objects last
 		bDirty |= DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true) || bDirty;
 
 		// Draw the view's batched simple elements(lines, sprites, etc).
-		bDirty |= View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, false) || bDirty;
+		bDirty |= View.TopBatchedViewElements.Draw(RHICmdList, DrawRenderState, FeatureLevel, bNeedToSwitchVerticalAxis, View, false) || bDirty;
 
 	}
 
@@ -1244,7 +1251,7 @@ void FDeferredShadingSceneRenderer::RenderEditorPrimitives(FRHICommandList& RHIC
 bool FDeferredShadingSceneRenderer::RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess)
 {
 	bool bDirty = false; 
-	FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+	FDrawingPolicyRenderState DrawRenderState(View);
 	SetupBasePassView(RHICmdList, View, DrawRenderState, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
 	bDirty |= RenderBasePassStaticData(RHICmdList, View, DrawRenderState);
 	RenderBasePassDynamicData(RHICmdList, View, DrawRenderState, bDirty);

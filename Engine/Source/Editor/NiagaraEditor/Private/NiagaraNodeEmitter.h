@@ -35,13 +35,26 @@ public:
 	virtual void NodeConnectionListChanged() override;
 
 	//~ UNiagaraNode Interface
-	virtual void RefreshFromExternalChanges() override;
+	virtual bool RefreshFromExternalChanges() override;
 
+	//~ UObject Interface
+	virtual void PostLoad() override;
+	virtual void PostInitProperties() override;
+
+	/** Helper to see if a given variable name is one of the internal emitter variables.*/
+	static bool IsEmitterInternalParameter(const FString& InVarName);
+	
 private:
 	/** Looks up the name of the emitter and converts it to text. */
 	FText GetNameFromEmitter();
 
+	void BuildNameList(TSet<FName>& ParameterNames, TSet<FName>& DuplicateParameterNames, class UNiagaraScript* Script);
+	void GeneratePinsForScript(const class UEdGraphSchema_Niagara* NiagaraSchema, const TSet<FName>& SystemConstantNames, TSet<FName>& ParameterNames, TSet<FName>& DuplicateParameterNames, class UNiagaraScript* Script, const FString& DuplicatePrefix);
+
 private:
+	void InitDefaultEmitterProperties();
+	void GenerateDefaultPins();
+
 	/** The effect that owns the emitter which is represented by this node. */
 	UPROPERTY()
 	UNiagaraEffect* OwnerEffect;
@@ -53,4 +66,15 @@ private:
 	/** The display name for the title bar of this node. */
 	UPROPERTY()
 	FText DisplayName;
+
+	/** Effect graph variable representing the emitter's spawn rate.*/
+	UPROPERTY()
+	FNiagaraVariable SpawnRate;
+
+	/** Effect graph variable representing the emitter enabled state.*/
+	UPROPERTY()
+	FNiagaraVariable EmitterEnabled;
+
+	UPROPERTY()
+	FGuid CachedEmitterChangeId;
 };

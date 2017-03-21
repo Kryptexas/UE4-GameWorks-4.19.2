@@ -4,13 +4,23 @@
 #include "NiagaraEffectRenderer.h"
 
 UNiagaraSpriteRendererProperties::UNiagaraSpriteRendererProperties()
-	: SubImageInfo(1.0f, 1.0f)
+	: SubImageSize(1.0f, 1.0f)
+	, Alignment(ENiagaraSpriteAlignment::Unaligned)
+	, FacingMode(ENiagaraSpriteFacingMode::FaceCamera)
+	, CustomFacingVectorMask(EForceInit::ForceInitToZero)
+	, SortMode(ENiagaraSortMode::SortNone)
 {
 }
 
 NiagaraEffectRenderer* UNiagaraSpriteRendererProperties::CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel)
 {
 	return new NiagaraEffectRendererSprites(FeatureLevel, this);
+}
+
+void UNiagaraSpriteRendererProperties::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	//OutMaterials.Add(Material);
+	//Material should live here.
 }
 
 #if WITH_EDITORONLY_DATA
@@ -33,4 +43,7 @@ void UNiagaraSpriteRendererProperties::FixMaterial(UMaterial* Material)
 }
 
 #endif // WITH_EDITORONLY_DATA
+
+
+
 

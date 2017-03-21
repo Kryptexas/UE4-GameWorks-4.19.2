@@ -14,7 +14,7 @@ void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, fl
 	ViewInfos = InViewInfos;
 	LastUpdateTime = InLastUpdateTime;
 
-	DynamicInstancesView = DynamicComponentManager.GetAsyncView();
+	DynamicInstancesView = DynamicComponentManager.GetAsyncView(true);
 
 	StaticInstancesViews.Reset();
 	for (FLevelTextureManager& LevelManager : LevelTextureManagers)

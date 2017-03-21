@@ -58,6 +58,7 @@ struct ENGINE_API FMaterialRelevance
 	uint32 bDecal : 1;
 	uint32 bTranslucentSurfaceLighting : 1;
 	uint32 bUsesSceneDepth : 1;
+	uint32 bHasVolumeMaterialDomain : 1;
 
 	/** Default constructor */
 	FMaterialRelevance()

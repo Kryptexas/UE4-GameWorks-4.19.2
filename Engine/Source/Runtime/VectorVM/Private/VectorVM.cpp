@@ -34,231 +34,6 @@ uint8 VectorVM::CreateSrcOperandMask(EVectorVMOperandLocation Type0, EVectorVMOp
 		(Type2 == EVectorVMOperandLocation::Constant ? OP2_CONST : OP_REGISTER);
 }
 
-
-
-/**
- * Context information passed around during VM execution.
- */
-struct FVectorVMContext
-{
-	/** Pointer to the next element in the byte code. */
-	uint8 const* RESTRICT Code;
-	/** Pointer to the table of vector register arrays. */
-	uint8* RESTRICT * RESTRICT RegisterTable;
-	/** Pointer to the constant table. */
-	uint8 const* RESTRICT ConstantTable;
-	/** Pointer to the data set index counter table */
-	int32* RESTRICT DataSetIndexTable;
-	int32* RESTRICT DataSetOffsetTable;
-	int32 NumSecondaryDataSets;
-	/** Pointer to the shared data table. */
-	FVMExternalFunction* RESTRICT ExternalFunctionTable;
-	/** Number of instances to process. */
-	int32 NumInstances;
-	/** Start instance of current chunk. */
-	int32 StartInstance;
-
-	/** Initialization constructor. */
-	FVectorVMContext(
-		const uint8* InCode,
-		uint8** InRegisterTable,
-		const uint8* InConstantTable,
-		int32 *InDataSetIndexTable,
-		int32 *InDataSetOffsetTable,
-		FVMExternalFunction* InExternalFunctionTable,
-		int32 InNumInstances,
-		int32 InStartInstance
-	)
-		: Code(InCode)
-		, RegisterTable(InRegisterTable)
-		, ConstantTable(InConstantTable)
-		, DataSetIndexTable(InDataSetIndexTable)
-		, DataSetOffsetTable(InDataSetOffsetTable)
-		, ExternalFunctionTable(InExternalFunctionTable)
-		, NumInstances(InNumInstances)
-		, StartInstance(InStartInstance)
-	{
-	}
-};
-
-
-static VM_FORCEINLINE uint8 DecodeU8(FVectorVMContext& Context)
-{
-	return *Context.Code++;
-}
-
-static VM_FORCEINLINE uint16 DecodeU16(FVectorVMContext& Context)
-{
-	return ((uint16)DecodeU8(Context) << 8) + DecodeU8(Context);
-}
-
-static VM_FORCEINLINE uint32 DecodeU32(FVectorVMContext& Context)
-{
-	return ((uint32)DecodeU8(Context) << 24) + (uint32)(DecodeU8(Context) << 16) + (uint32)(DecodeU8(Context) << 8) + DecodeU8(Context);
-}
-
-/** Decode the next operation contained in the bytecode. */
-static VM_FORCEINLINE EVectorVMOp DecodeOp(FVectorVMContext& Context)
-{
-	return static_cast<EVectorVMOp>(DecodeU8(Context));
-}
-
-static VM_FORCEINLINE uint8 DecodeSrcOperandTypes(FVectorVMContext& Context)
-{
-	return DecodeU8(Context);
-}
-
-//////////////////////////////////////////////////////////////////////////
-/** Constant handler. */
-
-struct FConstantHandlerBase
-{
-	uint8 ConstantIndex;
-	FConstantHandlerBase(FVectorVMContext& Context)
-		: ConstantIndex(DecodeU16(Context))
-	{}
-
-	VM_FORCEINLINE void Advance() { }
-};
-
-template<typename T>
-struct FConstantHandler : public FConstantHandlerBase
-{
-	T Constant;
-	FConstantHandler(FVectorVMContext& Context)
-		: FConstantHandlerBase(Context)
-		, Constant(*((T*)(Context.ConstantTable + ConstantIndex)))
-	{}
-	VM_FORCEINLINE const T& Get(){ return Constant; }
-};
-
-
-
-struct FDataSetOffsetHandler : FConstantHandlerBase
-{
-	uint32 Offset;
-	FDataSetOffsetHandler(FVectorVMContext& Context)
-		: FConstantHandlerBase(Context)
-		, Offset(Context.DataSetOffsetTable[ConstantIndex])
-	{}
-	VM_FORCEINLINE const uint32 Get() { return Offset; }
-};
-
-
-
-template<>
-struct FConstantHandler<VectorRegister> : public FConstantHandlerBase
-{
-	VectorRegister Constant;
-	FConstantHandler(FVectorVMContext& Context)
-		: FConstantHandlerBase(Context)
-		, Constant(VectorLoadFloat1(&Context.ConstantTable[ConstantIndex]))
-	{}
-	VM_FORCEINLINE const VectorRegister Get() { return Constant; }
-};
-
-template<>
-struct FConstantHandler<VectorRegisterInt> : public FConstantHandlerBase
-{
-	VectorRegisterInt Constant;
-	FConstantHandler(FVectorVMContext& Context)
-		: FConstantHandlerBase(Context)
-		, Constant(VectorIntLoad1(&Context.ConstantTable[ConstantIndex]))
-	{}
-	VM_FORCEINLINE const VectorRegisterInt Get() { return Constant; }
-};
-
-//////////////////////////////////////////////////////////////////////////
-// Register handlers.
-// Handle reading of a register, advancing the pointer with each read.
-
-struct FRegisterHandlerBase
-{
-	int32 RegisterIndex;
-	FRegisterHandlerBase(FVectorVMContext& Context)
-		: RegisterIndex(DecodeU16(Context))
-	{}
-};
-
-template<typename T>
-struct FRegisterHandler : public FRegisterHandlerBase
-{
-	T* RESTRICT Register;
-	FRegisterHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((T*)Context.RegisterTable[RegisterIndex])
-	{}
-	VM_FORCEINLINE const T Get() { return *Register; }
-	VM_FORCEINLINE T* GetDest() { return Register; }
-	VM_FORCEINLINE void Advance() { ++Register; }
-};
-
-template<> struct FRegisterHandler<VectorRegister> : public FRegisterHandlerBase
-{
-	VectorRegister* RESTRICT Register;
-
-	FRegisterHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((VectorRegister*)Context.RegisterTable[RegisterIndex])
-	{}
-	VM_FORCEINLINE const VectorRegister Get() { return VectorLoadAligned(Register); }
-	VM_FORCEINLINE VectorRegister* GetDest() { return Register; }
-	VM_FORCEINLINE void Advance(){ ++Register; }
-};
-
-template<> struct FRegisterHandler<VectorRegisterInt> : public FRegisterHandlerBase
-{
-	VectorRegisterInt* RESTRICT Register;
-
-	FRegisterHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((VectorRegisterInt*)Context.RegisterTable[RegisterIndex])
-	{}
-	VM_FORCEINLINE const VectorRegisterInt Get() { return VectorIntLoad(Register); }//TODO: Awkwardness with scalar buffers means we have to load unaligned until I can work out a proper solution.
-	VM_FORCEINLINE VectorRegisterInt* GetDest() { return Register; }
-	VM_FORCEINLINE void Advance() { ++Register; }
-};
-
-/** Handles writing to a register, advancing the pointer with each write. */
-template<typename T>
-struct FRegisterDestHandler : public FRegisterHandlerBase
-{
-	T* RESTRICT Register;
-	FRegisterDestHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((T*)Context.RegisterTable[RegisterIndex])
-	{}
-	VM_FORCEINLINE T* RESTRICT GetDest(){ return Register; }
-	VM_FORCEINLINE T GetValue(){ return *Register; }
-	VM_FORCEINLINE void Advance(){ ++Register; }
-};
-
-template<> struct FRegisterDestHandler<VectorRegister> : public FRegisterHandlerBase
-{
-	VectorRegister* RESTRICT Register;
-	FRegisterDestHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((VectorRegister*)Context.RegisterTable[RegisterIndex])
-	{
-	}
-
-	VM_FORCEINLINE VectorRegister* RESTRICT GetDest() { return Register; }
-	VM_FORCEINLINE void Advance(){ ++Register;	}
-};
-
-template<> struct FRegisterDestHandler<VectorRegisterInt> : public FRegisterHandlerBase
-{
-	VectorRegisterInt* RESTRICT Register;
-	FRegisterDestHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((VectorRegisterInt*)Context.RegisterTable[RegisterIndex])
-	{
-	}
-
-	VM_FORCEINLINE VectorRegisterInt* RESTRICT GetDest() { return Register; }
-	VM_FORCEINLINE void Advance(){ ++Register;	}
-};
-
 //////////////////////////////////////////////////////////////////////////
 // Kernels
 template<typename Kernel, typename DstHandler, typename Arg0Handler, uint32 NumInstancesPerOp>
@@ -624,6 +399,16 @@ struct FVectorKernelFloor : public TUnaryVectorKernel<FVectorKernelFloor>
 	}
 };
 
+struct FVectorKernelRound : public TUnaryVectorKernel<FVectorKernelRound>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
+	{
+		//TODO: >SSE4 has direct ops for this.		
+		VectorRegister Trunc = VectorTruncate(Src0);
+		*Dst = VectorAdd(Trunc, VectorTruncate(VectorMultiply(VectorSubtract(Src0, Trunc), GlobalVectorConstants::FloatAlmostTwo)));
+	}
+};
+
 struct FVectorKernelMod : public TBinaryVectorKernel<FVectorKernelMod>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
@@ -720,6 +505,29 @@ struct FVectorKernelExecutionIndex
 			Dest.Advance();
 			Index = VectorIntAdd(Index, VectorStride);
 		}
+	}
+};
+
+struct FVectorKernelEnterStatScope
+{
+	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+	{
+#if STATS
+		FConstantHandler<int32> ScopeIdx(Context);		
+		int32 CounterIdx = Context.StatCounterStack.AddDefaulted(1);
+		Context.StatCounterStack[CounterIdx].Start(Context.StatScopes[ScopeIdx.Get()]);
+#endif
+	}
+};
+
+struct FVectorKernelExitStatScope
+{
+	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+	{
+#if STATS
+		Context.StatCounterStack.Last().Stop();
+		Context.StatCounterStack.Pop();
+#endif
 	}
 };
 
@@ -1133,6 +941,10 @@ struct FScalarKernelAcquireCounterIndex
 		{
 			*Dst = (*Index)++;
 		}
+		else
+		{	
+			*Dst = INDEX_NONE;	// Subsequent DoKernal calls above will skip over INDEX_NONE register entries...
+		}
 	}
 };
 
@@ -1162,48 +974,8 @@ struct FKernelExternalFunctionCall
 {
 	static void Exec(FVectorVMContext& Context)
 	{
-		uint32 NumInputs = DecodeU8(Context);
-		uint32 NumOutputs = DecodeU8(Context);
-		FVMExternalFuncInputs Inputs;
-		Inputs.Reserve(NumInputs);
-		FVMExternalFuncOutputs Outputs;
-		Outputs.Reserve(NumOutputs);
-
-		//A bit for each of the above inputs indicating whether it's constant or not.
-		for (uint32 i = 0; i < NumInputs; ++i)
-		{
-			bool bIsConstant = ((EVectorVMOperandLocation)DecodeU8(Context)) == EVectorVMOperandLocation::Constant;
-			Inputs.AddDefaulted();
-			Inputs[i].bIsConstant = bIsConstant;
-			if (bIsConstant)
-			{
-				//Constants can just have a single ptr to the start of the data.
-				Inputs[i].ComponentPtrs.Add(&Context.ConstantTable[DecodeU16(Context)]);				
-			}
-			else
-			{
-				uint32 NumComponents = DecodeU8(Context);
-				for (uint32 CompIdx = 0; CompIdx < NumComponents; ++CompIdx)
-				{
-					uint32 CompRegIdx = DecodeU16(Context);
-					Inputs[i].ComponentPtrs.Add(Context.RegisterTable[CompRegIdx]);
-				}
-			}
-		}
-
-		for (uint32 i = 0; i < NumOutputs; ++i)
-		{
-			Outputs.AddDefaulted();
-			uint32 NumComponents = DecodeU8(Context);
-			for (uint32 CompIdx = 0; CompIdx < NumComponents; ++CompIdx)
-			{
-				uint32 CompRegIdx = DecodeU16(Context);
-				Outputs[i].ComponentPtrs.Add((uint8*)Context.RegisterTable[CompRegIdx]);
-			}
-		}
-
 		uint32 ExternalFuncIdx = DecodeU8(Context);
-		Context.ExternalFunctionTable[ExternalFuncIdx].Execute(Inputs, Outputs, Context.NumInstances);
+		Context.ExternalFunctionTable[ExternalFuncIdx].Execute(Context);
 	}
 };
 
@@ -1573,12 +1345,16 @@ void VectorVM::Exec(
 	TArray<FDataSetMeta> &DataSetMetaTable,
 	FVMExternalFunction* ExternalFunctionTable,
 	int32 NumInstances
+
+#if STATS
+	, TArray<TStatId>& StatScopes
+#endif
 	)
 {
 	uint32 TempRegisterSize = Align((InstancesPerChunk) * MaxInstanceSizeBytes, VECTOR_WIDTH_BYTES) + VECTOR_WIDTH_BYTES;
 	//TODO: Refactor this so VMs are a persistent object with growing buffers. Once spun up, there are no allocs.
 	//Can be pooled and used for threading and branching.
-	static TArray<uint8,TAlignedHeapAllocator<VECTOR_WIDTH_BYTES>> TempRegTable;
+	TArray<uint8,TAlignedHeapAllocator<VECTOR_WIDTH_BYTES>> TempRegTable;
 	TempRegTable.SetNumUninitialized(TempRegisterSize * NumTempRegisters);
 	uint8* RegisterTable[MaxRegisters] = {0};
 
@@ -1612,7 +1388,7 @@ void VectorVM::Exec(
 	{
 		uint32 DataSetOffset = DataSetMetaTable[Idx].NumVariables;
 		DataSetOffsetTable.Add(DataSetOffset);
-		DataSetIndexTable.Add(0);	// prime counter index table with the data set offset; will be incremented with every write for each instance
+		DataSetIndexTable.Add(DataSetMetaTable[Idx].DataSetAccessIndex);	// prime counter index table with the data set offset; will be incremented with every write for each instance
 	}
 
 
@@ -1623,7 +1399,12 @@ void VectorVM::Exec(
 	while (InstancesLeft > 0)
 	{
 		// Setup execution context.
-		FVectorVMContext Context(Code, RegisterTable, ConstantTable, DataSetIndexTable.GetData(), DataSetOffsetTable.GetData(), ExternalFunctionTable, FMath::Min(InstancesLeft, (int32)InstancesPerChunk), InstancesPerChunk * ChunkIdx );
+		FVectorVMContext Context(Code, RegisterTable, ConstantTable, DataSetIndexTable.GetData(), DataSetOffsetTable.GetData(), 
+			ExternalFunctionTable, FMath::Min(InstancesLeft, (int32)InstancesPerChunk), InstancesPerChunk * ChunkIdx
+#if STATS
+			, StatScopes
+#endif
+		);
 		Context.NumSecondaryDataSets = DataSetOffsetTable.Num();
 		EVectorVMOp Op = EVectorVMOp::done;
 
@@ -1658,6 +1439,7 @@ void VectorVM::Exec(
 			case EVectorVMOp::atan2: FVectorKernelATan2::Exec(Context); break;
 			case EVectorVMOp::ceil: FVectorKernelCeil::Exec(Context); break;
 			case EVectorVMOp::floor: FVectorKernelFloor::Exec(Context); break;
+			case EVectorVMOp::round: FVectorKernelRound::Exec(Context); break;
 			case EVectorVMOp::fmod: FVectorKernelMod::Exec(Context); break;
 			case EVectorVMOp::frac: FVectorKernelFrac::Exec(Context); break;
 			case EVectorVMOp::trunc: FVectorKernelTrunc::Exec(Context); break;
@@ -1719,6 +1501,9 @@ void VectorVM::Exec(
 
 			case EVectorVMOp::exec_index: FVectorKernelExecutionIndex::Exec(Context); break;
 
+			case EVectorVMOp::enter_stat_scope: FVectorKernelEnterStatScope::Exec(Context); break;
+			case EVectorVMOp::exit_stat_scope: FVectorKernelExitStatScope::Exec(Context); break;
+
 			// Execution always terminates with a "done" opcode.
 			case EVectorVMOp::done:
 				break;
@@ -1733,6 +1518,13 @@ void VectorVM::Exec(
 		InstancesLeft -= InstancesPerChunk;
 		++ChunkIdx;
 	}
+
+	// write back data set access indices, so we know how much was written to each data set
+	for (int32 Idx = 0; Idx < DataSetMetaTable.Num(); Idx++)
+	{
+		DataSetMetaTable[Idx].DataSetAccessIndex = DataSetIndexTable[Idx];	
+	}
+
 }
 
 uint8 VectorVM::GetNumOpCodes()

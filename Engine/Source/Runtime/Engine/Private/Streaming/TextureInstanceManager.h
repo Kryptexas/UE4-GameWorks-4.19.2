@@ -35,7 +35,7 @@ public:
 	virtual void PrepareAsyncView() = 0;
 
 	/** Return a view of the data that has to be 100% thread safe. The content is allowed to be updated, but not memory must be reallocated. */
-	virtual const FTextureInstanceView* GetAsyncView() = 0;
+	virtual const FTextureInstanceView* GetAsyncView(bool bCreateIfNull) = 0;
 
 	/** Return the size taken for sub-allocation. */
 	virtual uint32 GetAllocatedSize() const = 0;

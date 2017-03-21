@@ -9,6 +9,7 @@
 #include "ScreenRendering.h"
 #include "RHIStaticStates.h"
 #include "ResolveShader.h"
+#include "PipelineStateCache.h"
 
 static inline DXGI_FORMAT ConvertTypelessToUnorm(DXGI_FORMAT Format)
 {
@@ -59,10 +60,13 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	uint32 NumSavedViewports = 1;
 	StateCache.GetViewports(&NumSavedViewports,&SavedViewport);
 
-	// No alpha blending, no depth tests or writes, no stencil tests or writes, no backface culling.
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI(),FLinearColor::White);
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+	// No alpha blending, no depth tests or writes, no stencil tests or writes, no backface culling.
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 	// Make sure the destination is not bound as a shader resource.
 	if (DestTexture)
@@ -95,8 +99,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 
 		//hack this to  pass validation in SetDepthStencil state since we are directly changing targets with a call to OMSetRenderTargets later.
 		CurrentDSVAccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_Always>::GetRHI(),0);
-		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<true,CF_Always>::GetRHI();
 
 		// Write to the dest texture as a depth-stencil target.
 		ID3D11RenderTargetView* NullRTV = NULL;
@@ -113,8 +116,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 			Direct3DDeviceContext->ClearRenderTargetView(DestTextureRTV,(float*)&ClearColor);
 		}
 
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI(),0);
-		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false,CF_Always>::GetRHI();
 
 		// Write to the dest surface as a render target.
 		Direct3DDeviceContext->OMSetRenderTargets(1,&DestTextureRTV,NULL);
@@ -133,13 +135,18 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	const float MaxX = -1.f + DestRect.X2 / ((float)ResolveTargetDesc.Width * 0.5f);		
 	const float MaxY = +1.f - DestRect.Y2 / ((float)ResolveTargetDesc.Height * 0.5f);
 
-	static FGlobalBoundShaderState ResolveBoundShaderState;
-
 	// Set the vertex and pixel shader
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 	TShaderMapRef<FResolveVS> ResolveVertexShader(ShaderMap);
 	TShaderMapRef<TPixelShader> ResolvePixelShader(ShaderMap);
-	SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
+
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GScreenVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ResolveVertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ResolvePixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+	RHICmdList.SetBlendFactor(FLinearColor::White);
 
 	ResolvePixelShader->SetParameters(RHICmdList, PixelShaderParameter);
 	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.

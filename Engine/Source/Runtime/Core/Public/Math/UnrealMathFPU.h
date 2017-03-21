@@ -1503,6 +1503,37 @@ FORCEINLINE VectorRegisterInt VectorIntLoad(const void* Ptr)
 }
 
 /**
+* Stores a vector to memory (aligned).
+*
+* @param Vec	Vector to store
+* @param Ptr	Aligned Memory pointer
+*/
+FORCEINLINE void VectorIntStoreAligned(const VectorRegisterInt& A, const void* Ptr)
+{
+	int32* IntPtr = (int32*)Ptr;
+	IntPtr[0] = A.V[0];
+	IntPtr[1] = A.V[1];
+	IntPtr[2] = A.V[2];
+	IntPtr[3] = A.V[3];
+}
+
+/**
+* Loads 4 int32s from aligned memory.
+*
+* @param Ptr	Aligned memory pointer to the 4 int32s
+* @return		VectorRegisterInt(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
+*/
+FORCEINLINE VectorRegisterInt VectorIntLoadAligned(const void* Ptr)
+{
+	int32* IntPtr = (int32*)Ptr;
+	return MakeVectorRegisterInt(
+		IntPtr[0],
+		IntPtr[1],
+		IntPtr[2],
+		IntPtr[3]);
+}
+
+/**
 * Loads 1 int32 from unaligned memory into all components of a vector register.
 *
 * @param Ptr	Unaligned memory pointer to the 4 int32s

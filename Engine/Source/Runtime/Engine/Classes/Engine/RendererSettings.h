@@ -221,6 +221,13 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bGenerateMeshDistanceFields:1;
 
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		EditCondition = "bGenerateMeshDistanceFields",
+		ConsoleVariable="r.DistanceFieldBuild.EightBit",
+		ToolTip="Whether to store mesh distance fields in an 8 bit fixed point format instead of 16 bit floating point.  8 bit uses half the memory, but introduces artifacts for large meshes or thin meshes.  Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bEightBitMeshDistanceFields:1;
+
 	UPROPERTY(config, EditAnywhere, Category = Lighting, meta = (
 		EditCondition = "bGenerateMeshDistanceFields",
 		ConsoleVariable = "r.GenerateLandscapeGIData", DisplayName = "Generate Landscape Real-time GI Data",
@@ -228,7 +235,8 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	uint32 bGenerateLandscapeGIData : 1;
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
-		ConsoleVariable="r.CompressMeshDistanceFields",
+		EditCondition = "bGenerateMeshDistanceFields",
+		ConsoleVariable="r.DistanceFieldBuild.Compress",
 		ToolTip="Whether to store mesh distance fields compressed in memory, which reduces how much memory they take, but also causes serious hitches when making new levels visible.  Only enable if your project does not stream levels in-game.  Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))
 	uint32 bCompressMeshDistanceFields:1;

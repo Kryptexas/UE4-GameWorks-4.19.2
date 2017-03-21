@@ -4,6 +4,9 @@
 #include "NiagaraConvertNodeViewModel.h"
 #include "NiagaraConvertPinViewModel.h"
 #include "NiagaraConvertPinSocketViewModel.h"
+#include "ConnectionDrawingPolicy.h"
+#include "CoreStyle.h"
+#include "SButton.h"
 
 #include "SlateApplication.h"
 #include "ScopedTransaction.h"
@@ -42,22 +45,38 @@ void SNiagaraConvertPinSocket::Construct(const FArguments& InArgs, TSharedRef<FN
 	DisconnectedBrush = FEditorStyle::GetBrush("Graph.Pin.Disconnected");
 
 	bIsDraggedOver = false;
-
+	
 	if (SocketViewModel->GetDirection() == EGPD_Input)
 	{
 		ChildSlot
 		[
 			SNew(SBorder)
 			.BorderImage(this, &SNiagaraConvertPinSocket::GetBackgroundBrush)
+			.OnMouseDoubleClick(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::OnMouseDoubleClick)
 			.Padding(0)
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.AutoWidth()
 				.VAlign(VAlign_Center)
-				.Padding(0)
+				[
+					SNew(SButton)
+					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.OnClicked(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::ExpandButtonClicked)
+					.ForegroundColor(FSlateColor::UseForeground())
+					[
+						SNew(SImage)
+						.Image(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetExpansionBrush)
+						.ColorAndOpacity(FSlateColor::UseForeground())
+						.Visibility(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetExpansionBrushVisibility)
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(TAttribute<FMargin>(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetSocketPadding))
 				[
 					SNew(STextBlock)
-					.Text(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetPathText)
+					.Text(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetDisplayNameText)
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -66,7 +85,6 @@ void SNiagaraConvertPinSocket::Construct(const FArguments& InArgs, TSharedRef<FN
 				[
 					SNew(SImage)
 					.Image(this, &SNiagaraConvertPinSocket::GetSocketBrush)
-					.Visibility(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetSocketIconVisibility)
 				]
 			]
 		];
@@ -77,6 +95,7 @@ void SNiagaraConvertPinSocket::Construct(const FArguments& InArgs, TSharedRef<FN
 		[
 			SNew(SBorder)
 			.BorderImage(this, &SNiagaraConvertPinSocket::GetBackgroundBrush)
+			.OnMouseDoubleClick(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::OnMouseDoubleClick)
 			.Padding(0)
 			[
 				SNew(SHorizontalBox)
@@ -90,11 +109,27 @@ void SNiagaraConvertPinSocket::Construct(const FArguments& InArgs, TSharedRef<FN
 					.Visibility(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetSocketIconVisibility)
 				]
 				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.OnClicked(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::ExpandButtonClicked)
+					.ForegroundColor(FSlateColor::UseForeground())
+					[
+						SNew(SImage)
+						.Image(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetExpansionBrush)
+						.ColorAndOpacity(FSlateColor::UseForeground())
+						.Visibility(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetExpansionBrushVisibility)
+					]
+				]
+				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.Padding(0)
 				[
 					SNew(STextBlock)
-					.Text(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetPathText)
+					.Text(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetDisplayPathText)
+					.Visibility(SocketViewModel.ToSharedRef(), &FNiagaraConvertPinSocketViewModel::GetSocketTextVisibility)
 				]
 			]
 		];
@@ -105,11 +140,7 @@ void SNiagaraConvertPinSocket::OnArrangeChildren(const FGeometry& AllottedGeomet
 {
 	SCompoundWidget::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
 
-	FVector2D ConnectionPosition;
-	ConnectionPosition.X = SocketViewModel->GetDirection() == EGPD_Input
-		? AllottedGeometry.AbsolutePosition.X + AllottedGeometry.Size.X - (AllottedGeometry.Size.Y / 2)
-		: AllottedGeometry.AbsolutePosition.X + (AllottedGeometry.Size.Y / 2);
-	ConnectionPosition.Y = AllottedGeometry.AbsolutePosition.Y + (AllottedGeometry.Size.Y / 2);
+	FVector2D ConnectionPosition = SocketViewModel->GetDirection() == EGPD_Input ? FGeometryHelper::VerticalMiddleRightOf(AllottedGeometry): FGeometryHelper::VerticalMiddleLeftOf(AllottedGeometry);
 
 	SocketViewModel->SetAbsoluteConnectionPosition(ConnectionPosition);
 }
@@ -118,6 +149,18 @@ FReply SNiagaraConvertPinSocket::OnMouseButtonDown(const FGeometry& MyGeometry, 
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
+		if (MouseEvent.IsAltDown())
+		{
+			// Alt-Left clicking will break all existing connections to a pin
+			TArray<TSharedRef<FNiagaraConvertPinSocketViewModel>> ConnectedSockets;
+			SocketViewModel->GetConnectedSockets(ConnectedSockets);
+			if (ConnectedSockets.Num() > 0)
+			{
+				SocketViewModel->DisconnectAll();
+			}
+			return FReply::Handled();
+		}
+
 		if (SocketViewModel->CanBeConnected())
 		{
 			return FReply::Handled()
@@ -149,7 +192,7 @@ FReply SNiagaraConvertPinSocket::OnMouseButtonUp(const FGeometry& MyGeometry, co
 FReply SNiagaraConvertPinSocket::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	TSharedRef<FNiagaraConvertDragDropOp> DragDropOp = MakeShareable(new FNiagaraConvertDragDropOp(SocketViewModel.ToSharedRef()));
-	DragDropOp->CurrentHoverText = SocketViewModel->GetPathText();
+	DragDropOp->CurrentHoverText = SocketViewModel->GetDisplayPathText();
 	DragDropOp->SetupDefaults();
 	DragDropOp->Construct();
 	return FReply::Handled().BeginDragDrop(DragDropOp);
@@ -184,11 +227,20 @@ FReply SNiagaraConvertPinSocket::OnDragOver(const FGeometry& MyGeometry, const F
 		bIsDraggedOver = true;
 
 		FText ConnectionMessage;
-		bool bCanConnectSockets = SocketViewModel->CanConnect(DragDropOp->SocketViewModel, ConnectionMessage);
+		bool bWarning = false;
+		bool bCanConnectSockets = SocketViewModel->CanConnect(DragDropOp->SocketViewModel, ConnectionMessage, bWarning);
 		DragDropOp->CurrentHoverText = ConnectionMessage;
 		if (bCanConnectSockets == false)
 		{
 			DragDropOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
+		}
+		else if (bWarning)
+		{
+			DragDropOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OKWarn"));
+		}
+		else
+		{
+			DragDropOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
 		}
 
 		return FReply::Handled();
@@ -202,7 +254,8 @@ FReply SNiagaraConvertPinSocket::OnDrop(const FGeometry& MyGeometry, const FDrag
 	if (DragDropOp.IsValid() && SocketViewModel->CanBeConnected() && SocketViewModel != DragDropOp->SocketViewModel)
 	{
 		FText ConnectionMessage;
-		bool bCanConnectSockets = SocketViewModel->CanConnect(DragDropOp->SocketViewModel, ConnectionMessage);
+		bool bWarning = false;
+		bool bCanConnectSockets = SocketViewModel->CanConnect(DragDropOp->SocketViewModel, ConnectionMessage, bWarning);
 		if (bCanConnectSockets)
 		{
 			FScopedTransaction ConnectTransaction(NSLOCTEXT("NiagaraConvertPinSocket", "ConvertNodeConnectTransaction", "Connect inner convert pins"));
@@ -259,7 +312,7 @@ void SNiagaraConvertPinSocket::GenerateBreakSpecificSubMenu(FMenuBuilder& MenuBu
 		for (TSharedRef<FNiagaraConvertPinSocketViewModel> ConnectedSocket : ConnectedSockets)
 		{
 			MenuBuilder.AddMenuEntry(
-				FText::Format(LOCTEXT("BreakSpecificConnectionFormat", "Break link to {0}"), ConnectedSocket->GetPathText()),
+				FText::Format(LOCTEXT("BreakSpecificConnectionFormat", "Break link to {0}"), ConnectedSocket->GetDisplayPathText()),
 				FText(),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &SNiagaraConvertPinSocket::OnBreakConnection, ConnectedSocket)));

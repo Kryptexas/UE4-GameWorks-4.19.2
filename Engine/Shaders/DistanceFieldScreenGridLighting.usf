@@ -74,6 +74,7 @@ void HemisphereConeTraceAgainstTileCulledObjects(uint ObjectIndex, uint OutputBa
 		if (BoxDistance < AOObjectMaxDistance)
 		{
 			float4 UVAddAndSelfShadowBias = LoadObjectUVAddAndSelfShadowBias(ObjectIndex);
+			float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
 
 			float ObjectOccluderRadius = length(LocalPositionExtent) * .5f * UVScaleAndVolumeScale.w;
 			float SelfShadowScale = 1.0f / max(UVAddAndSelfShadowBias.w, .0001f);
@@ -102,7 +103,7 @@ void HemisphereConeTraceAgainstTileCulledObjects(uint ObjectIndex, uint OutputBa
 					float DistanceToClamped = lengthFast(StepSamplePosition - ClampedSamplePosition);
 
 					float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAddAndSelfShadowBias.xyz);
-					float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
+					float DistanceToOccluder = (SampleMeshDistanceField(StepVolumeUV, DistanceFieldMAD).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
 
 					float SphereRadius = WorldStepOffset * TanConeHalfAngle;
 					float InvSphereRadius = rcpFast(SphereRadius);

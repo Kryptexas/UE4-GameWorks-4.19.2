@@ -12,17 +12,18 @@ struct FNiagaraSimulation;
 struct FNiagaraVariable;
 
 /** The view model for the UNiagaraEmitterProperties objects */
-class FNiagaraEmitterViewModel : public TSharedFromThis<FNiagaraEmitterViewModel>, public FNotifyHook
+class FNiagaraEmitterViewModel : public TSharedFromThis<FNiagaraEmitterViewModel>, public FNotifyHook, public TNiagaraViewModelManager<UNiagaraEmitterProperties, FNiagaraEmitterViewModel>
 {
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnEmitterChanged);
 	DECLARE_MULTICAST_DELEGATE(FOnPropertyChanged);
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnParameterValueChanged, const FNiagaraVariable*);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnParameterValueChanged, FGuid);
+	DECLARE_MULTICAST_DELEGATE(FOnScriptCompiled);
 
 public:
 	/** Creates a new emitter editor view model with the supplied emitter handle and simulation. */
 	FNiagaraEmitterViewModel(UNiagaraEmitterProperties* InEmitter, FNiagaraSimulation* InSimulation, ENiagaraParameterEditMode ParameterEditMode);
-	virtual ~FNiagaraEmitterViewModel() {}
+	virtual ~FNiagaraEmitterViewModel();
 
 	/** Reuse this view model with new parameters.*/
 	bool Set(UNiagaraEmitterProperties* InEmitter, FNiagaraSimulation* InSimulation, ENiagaraParameterEditMode ParameterEditMode);
@@ -88,11 +89,17 @@ public:
 	/** Gets a delegate which is called one of the emitter parameter values changes. */
 	FOnParameterValueChanged& OnParameterValueChanged();
 
+	/** Gets a delegate which is called one of the emitter parameter values changes. */
+	FOnScriptCompiled& OnScriptCompiled();
+
 	//~ FNotifyHook interface
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
 
 	/** Handle external assets changing, which might cause us to need to refresh.*/
 	bool DoesAssetSavedInduceRefresh(const FString& PackagePath, UObject* Object, bool RecurseIntoDependencies);
+
+	bool GetDirty() const;
+	void SetDirty(bool bDirty);
 
 private:
 	/** Called when the script view model node selection changes. */
@@ -102,7 +109,7 @@ private:
 	void SpawnScriptOutputParametersChanged();
 
 	/** Called when a parameter value on one of the scripts changes. */
-	void ScriptParameterValueChanged(const FNiagaraVariable* ChangedVariable);
+	void ScriptParameterValueChanged(FGuid ParamterId);
 
 	/** Helper method to union two distinct compiler statuses.*/
 	static ENiagaraScriptCompileStatus UnionCompileStatus(const ENiagaraScriptCompileStatus& StatusA, const ENiagaraScriptCompileStatus& StatusB);
@@ -141,5 +148,11 @@ private:
 	/** A multicast delegate which is called whenever parameter value on the emitter changes. */
 	FOnParameterValueChanged OnParameterValueChangedDelegate;
 
+	FOnScriptCompiled OnScriptCompiledDelegate;
+
 	ENiagaraScriptCompileStatus LastEventScriptStatus;
+
+	bool bEmitterDirty;
+
+	TNiagaraViewModelManager<UNiagaraEmitterProperties, FNiagaraEmitterViewModel>::Handle RegisteredHandle;
 };

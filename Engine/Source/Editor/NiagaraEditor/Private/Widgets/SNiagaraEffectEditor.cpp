@@ -19,6 +19,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Images/SImage.h"
 #include "MultiBoxBuilder.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
@@ -69,17 +70,63 @@ void SNiagaraEffectEditor::ConstructEmittersView()
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
+					SNew(SEditableTextBox).Text(EmitterHandleViewModel, &FNiagaraEmitterHandleViewModel::GetIdText)
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
 					SNew(SNiagaraEmitterHeader, EmitterHandleViewModel)
 					.AdditionalHeaderContent()
 					[
-						SNew(SComboButton)
-						.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-						.ForegroundColor(FSlateColor::UseForeground())
-						.OnGetMenuContent(this, &SNiagaraEffectEditor::OnGetHeaderMenuContent, EmitterHandleViewModel)
-						.ContentPadding(FMargin(2))
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(EVerticalAlignment::VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(EmitterHandleViewModel, &FNiagaraEmitterHandleViewModel::GetSourceSynchronizationText)
+							.Visibility(EmitterHandleViewModel, &FNiagaraEmitterHandleViewModel::GetSourceSynchronizationTextVisibility)
+							.ColorAndOpacity(EmitterHandleViewModel, &FNiagaraEmitterHandleViewModel::GetSourceSynchronizationTextColor)
+						]	
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(EVerticalAlignment::VAlign_Center)
+						[
+							SNew(SButton)
+							.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+							.ForegroundColor(FSlateColor::UseForeground())
+							.ContentPadding(FMargin(4,0))
+							.ToolTipText(LOCTEXT("RefreshFromSource", "Refresh from source emitter"))
+							.OnClicked_Lambda([EmitterHandleViewModel]()
+								{
+									EmitterHandleViewModel->RefreshFromSource();
+									return FReply::Handled();
+								})
+							[
+								SNew(SImage)
+								.Image(FEditorStyle::GetBrush("ContentBrowser.ImportIcon"))
+							]
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[						
+							SNew(SComboButton)
+							.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+							.ForegroundColor(FSlateColor::UseForeground())
+							.OnGetMenuContent(this, &SNiagaraEffectEditor::OnGetHeaderMenuContent, EmitterHandleViewModel)
+							.ContentPadding(FMargin(2))
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
+						]
 					]
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.Text(EmitterHandleViewModel, &FNiagaraEmitterHandleViewModel::GetErrorText)
+					.Visibility(EmitterHandleViewModel, &FNiagaraEmitterHandleViewModel::GetErrorTextVisibility)
+					.ColorAndOpacity(EmitterHandleViewModel, &FNiagaraEmitterHandleViewModel::GetErrorTextColor)
 				]
 				+ SVerticalBox::Slot()
 				.Padding(0, 3, 0, 0)

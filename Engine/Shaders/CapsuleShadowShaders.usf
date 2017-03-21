@@ -626,11 +626,12 @@ bool TileBoundsIntersectDistanceFieldCaster(
 		float4x4 WorldToVolume = LoadGlobalObjectWorldToVolume(ObjectIndex);
 		float4 UVScaleAndVolumeScale = LoadGlobalObjectUVScale(ObjectIndex);
 		float3 UVAdd = LoadGlobalObjectUVAdd(ObjectIndex);
+		float2 DistanceFieldMAD = LoadGlobalObjectDistanceFieldMAD(ObjectIndex);
 		float3 VolumeSamplePosition = mul(float4(TileBoundingSphere.xyz, 1), WorldToVolume).xyz;
 		float3 ClampedSamplePosition = clamp(VolumeSamplePosition, -LocalPositionExtent, LocalPositionExtent);
 		float DistanceToClamped = length(ClampedSamplePosition - VolumeSamplePosition);
 		float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-		float WorldDistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
+		float WorldDistanceToOccluder = (SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
 
 		float ErrorTolerance = 1.1f;
 		// The tile can only be affected by the object's shadow if the closest part of the object is less than MaxOcclusionDistance from the tile bounds
@@ -767,6 +768,7 @@ float ShadowConeTraceAgainstCulledDistanceFieldCasters(
 		float4x4 WorldToVolume = LoadGlobalObjectWorldToVolume(ObjectIndex);
 		float4 UVScaleAndVolumeScale = LoadGlobalObjectUVScale(ObjectIndex);
 		float3 UVAdd = LoadGlobalObjectUVAdd(ObjectIndex);
+		float2 DistanceFieldMAD = LoadGlobalObjectDistanceFieldMAD(ObjectIndex);
 
 		float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 		float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
@@ -796,7 +798,7 @@ float ShadowConeTraceAgainstCulledDistanceFieldCasters(
 				float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
 				float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
 				float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-				float VolumeDistanceToOccluder = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+				float VolumeDistanceToOccluder = SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x + DistanceToClamped;
 
 				float SphereRadius = clamp(TanConeAngle * SampleRayTime, 0, VolumeMaxSphereRadius);
 				float StepVisibility = pow(saturate(VolumeDistanceToOccluder / SphereRadius), OcclusionExponent);
@@ -839,7 +841,7 @@ float ShadowConeTraceAgainstCulledDistanceFieldCasters(
 				float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
 				float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
 				float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-				float VolumeDistanceToOccluder = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+				float VolumeDistanceToOccluder = SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x + DistanceToClamped;
 
 				WeightDistance = VolumeDistanceToOccluder * UVScaleAndVolumeScale.w;
 				//WeightDistance = length(SphereCenterAndRadius.xyz - WorldRayStart);

@@ -10,7 +10,7 @@
 #include "BasePassCommon.usf"
 #include "VertexFactory.usf"
 
-#if NEEDS_BASEPASS_FOGGING
+#if NEEDS_BASEPASS_VERTEX_FOGGING
 	#include "HeightFogCommon.usf"
 #if BASEPASS_ATMOSPHERIC_FOG
 	#include "AtmosphereCommon.usf"

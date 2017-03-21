@@ -59,8 +59,18 @@ class ir_call;
 struct exec_list;
 struct _mesa_glsl_parse_state;
 
+enum class ECallScalarizeMode : uint8
+{
+	SplitCalls,//simple calls for things like Random(), split the call into separate scalar calls
+	SplitParams,//External function calls, split all the params up into a new function
+	None,
+	Error,
+};
+
+ECallScalarizeMode get_scalarize_mode(ir_function_signature* in_sig);
 EVectorVMOp get_special_vm_opcode(ir_function_signature* signature);
 
+void vm_matrices_to_vectors(exec_list* instructions, _mesa_glsl_parse_state *state);
 bool do_vec_op_to_scalar(exec_list *instructions);
 bool vm_flatten_branches_to_selects(exec_list *instructions, _mesa_glsl_parse_state *state);
 void vm_to_single_op(exec_list *ir, _mesa_glsl_parse_state *state);
@@ -73,12 +83,15 @@ void vm_gen_bytecode(exec_list *ir, _mesa_glsl_parse_state *state, FNiagaraCompi
 //////////////////////////////////////////////////////////////////////////
 //Enable verbose debug dumps.
 #define VM_VERBOSE_LOGGING 0
-#if VM_VERBOSE_LOGGING
+#if VM_VERBOSE_LOGGING == 2
 #define vm_debug_dump(ir, state) IRDump(ir, state)
-#define vm_debug_print(X) dprintf(X)
+#define vm_debug_print dprintf
+#elif VM_VERBOSE_LOGGING == 1
+#define vm_debug_dump(ir, state) 
+#define vm_debug_print dprintf
 #else
 #define vm_debug_dump(ir, state)
-#define vm_debug_print(X)
+#define vm_debug_print(...)
 #endif
 
 DECLARE_LOG_CATEGORY_EXTERN(LogVVMBackend, All, All);

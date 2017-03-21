@@ -36,7 +36,7 @@ FAutoConsoleVariableRef CVarAOLogObjectBufferReallocation(
 	);
 
 // Must match equivalent shader defines
-int32 FDistanceFieldObjectBuffers::ObjectDataStride = 17;
+int32 FDistanceFieldObjectBuffers::ObjectDataStride = 18;
 int32 FDistanceFieldCulledObjectBuffers::ObjectDataStride = 16;
 int32 FDistanceFieldCulledObjectBuffers::ObjectBoxBoundsStride = 5;
 
@@ -760,12 +760,13 @@ void ProcessPrimitiveUpdate(
 	ObjectLocalToWorldTransforms.Reset();
 
 	FBox LocalVolumeBounds;
+	FVector2D DistanceMinMax;
 	FIntVector BlockMin;
 	FIntVector BlockSize;
 	bool bBuiltAsIfTwoSided;
 	bool bMeshWasPlane;
 	float SelfShadowBias;
-	PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, BlockMin, BlockSize, bBuiltAsIfTwoSided, bMeshWasPlane, SelfShadowBias, ObjectLocalToWorldTransforms);
+	PrimitiveSceneInfo->Proxy->GetDistancefieldAtlasData(LocalVolumeBounds, DistanceMinMax, BlockMin, BlockSize, bBuiltAsIfTwoSided, bMeshWasPlane, SelfShadowBias, ObjectLocalToWorldTransforms);
 
 	if (BlockMin.X >= 0 
 		&& BlockMin.Y >= 0 
@@ -883,9 +884,9 @@ void ProcessPrimitiveUpdate(
 					// UVAdd
 					UploadObjectData.Add(FVector4(FVector(BlockMin) * InvTextureDim + .5f * UVScale, SelfShadowBias));
 
-					// Box bounds
-					const float OftenMovingWSign = CacheType == GDF_Full ? 1.0f : -1.0f;
-					UploadObjectData.Add(FVector4(LocalVolumeBounds.Max, OftenMovingWSign));
+					// DistanceFieldMAD
+					// [0, 1] -> [MinVolumeDistance, MaxVolumeDistance]
+					UploadObjectData.Add(FVector4(DistanceMinMax.Y - DistanceMinMax.X, DistanceMinMax.X, 0, 0));
 
 					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[0]);
 					UploadObjectData.Add(*(FVector4*)&UniformScaleVolumeToWorld.M[1]);
@@ -899,6 +900,10 @@ void ProcessPrimitiveUpdate(
 					UploadObjectData.Add(FVector4(Allocation.Offset, Allocation.NumLOD0, Allocation.NumSurfels, InstancedAllocation.Offset + InstancedAllocation.NumSurfels * TransformIndex));
 
 					UploadObjectData.Add(FVector4(LocalVolumeBounds.Min, 0));
+
+					// Box bounds
+					const float OftenMovingWSign = CacheType == GDF_Full ? 1.0f : -1.0f;
+					UploadObjectData.Add(FVector4(LocalVolumeBounds.Max, OftenMovingWSign));
 
 					checkSlow(UploadObjectData.Num() % UploadObjectDataStride == 0);
 

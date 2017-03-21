@@ -25,9 +25,15 @@ void UNiagaraNodeReadDataSet::AllocateDefaultPins()
 		//Pin->bDefaultValueIsIgnored = true;
 	}
 
-	for (const FNiagaraVariable& Var : Variables)
+	bool useFriendlyNames = (VariableFriendlyNames.Num() == Variables.Num());
+	for (int32 i = 0; i < Variables.Num(); i++)
 	{
-		CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString());
+		FNiagaraVariable& Var = Variables[i];
+		UEdGraphPin* NewPin = CreatePin(EGPD_Output, Schema->TypeDefinitionToPinType(Var.GetType()), Var.GetName().ToString());
+		if (useFriendlyNames && VariableFriendlyNames[i].IsEmpty() == false)
+		{
+			NewPin->PinFriendlyName = FText::FromString(VariableFriendlyNames[i]);
+		}
 	}
 }
 
@@ -92,6 +98,12 @@ void UNiagaraNodeReadDataSet::Compile(class INiagaraCompiler* Compiler, TArray<i
 {
 	TArray<int32> Inputs;
 	CompileInputPins(Compiler, Inputs);
+
+	FString IssuesWithStruct;
+	if (!IsSynchronizedWithStruct(false, &IssuesWithStruct, false))
+	{
+		Compiler->Error(FText::FromString(IssuesWithStruct), this, nullptr);
+	}
 	Compiler->ReadDataSet(DataSet, Variables, ENiagaraDataSetAccessMode::AppendConsume, INDEX_NONE, Outputs);
 }
 

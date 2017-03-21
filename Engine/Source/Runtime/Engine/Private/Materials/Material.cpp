@@ -134,9 +134,28 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 		default:
 			Ret = MaterialInterface->CompileProperty(Compiler, Property);
 	};
+	
+	EMaterialValueType AttributeType = FMaterialAttributeDefinitionMap::GetValueType(Property);
+	FMaterialUniformExpression* Expression = Compiler->GetParameterUniformExpression(Ret);
 
-	// output should always be the right type for this property
-	return Compiler->ForceCast(Ret, FMaterialAttributeDefinitionMap::GetValueType(Property));
+	if (Expression && Expression->IsConstant())
+	{
+		// Where possible we want to preserve constant expressions allowing default value checks
+		EMaterialValueType ResultType = Compiler->GetParameterType(Ret);
+		EMaterialValueType ExactResultType = (ResultType == MCT_Float) ? MCT_Float1 : ResultType;
+
+		if (AttributeType == ExactResultType)
+		{
+			return Ret;
+		}
+		else if (ResultType == MCT_Float || (AttributeType == MCT_Float1 && ResultType & MCT_Float))
+		{
+			return Compiler->ComponentMask(Ret, true, AttributeType >= MCT_Float2, AttributeType >= MCT_Float3, AttributeType >= MCT_Float4);
+		}
+	}
+
+	// Output should always be the right type for this property
+	return Compiler->ForceCast(Ret, AttributeType);
 #else // WITH_EDITOR
 	check(0); // This is editor-only function
 	return INDEX_NONE;
@@ -353,6 +372,9 @@ static const TCHAR* GDefaultMaterialNames[MD_MAX] =
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultDeferredDecalMaterialName"),
 	// Light Function
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultLightFunctionMaterialName"),
+	// Volume
+	//@todo - get a real MD_Volume default material
+	TEXT("engine-ini:/Script/Engine.Engine.DefaultMaterialName"),
 	// Post Process
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultPostProcessMaterialName"),
 	// User Interface 
@@ -819,6 +841,8 @@ void UMaterial::GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray
 	OutTextures.Empty();
 	OutIndices.Empty();
 
+	check(QualityLevel != EMaterialQualityLevel::Num && FeatureLevel != ERHIFeatureLevel::Num);
+
 	if (!FPlatformProperties::IsServerOnly())
 	{
 		const FMaterialResource* CurrentResource = MaterialResources[QualityLevel][FeatureLevel];
@@ -1267,7 +1291,7 @@ bool UMaterial::NeedsSetMaterialUsage_Concurrent(bool &bOutHasUsage, EMaterialUs
 {
 	bOutHasUsage = true;
 	// Material usage is only relevant for materials that can be applied onto a mesh / use with different vertex factories.
-	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal)
+	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal && MaterialDomain != MD_Volume)
 	{
 		bOutHasUsage = false;
 		return false;
@@ -1297,7 +1321,7 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 	bNeedsRecompile = false;
 
 	// Material usage is only relevant for materials that can be applied onto a mesh / use with different vertex factories.
-	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal)
+	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal && MaterialDomain != MD_Volume)
 	{
 		return false;
 	}
@@ -2394,6 +2418,8 @@ void UMaterial::RebuildExpressionTextureReferences()
 
 FMaterialResource* UMaterial::GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel)
 {
+	check(InFeatureLevel != ERHIFeatureLevel::Num);
+
 	if (QualityLevel == EMaterialQualityLevel::Num)
 	{
 		QualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;
@@ -3020,7 +3046,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendMode))
 		{
-			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface || MaterialDomain == MD_UI;
+			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface || MaterialDomain == MD_Volume || MaterialDomain == MD_UI;
 		}
 	
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, ShadingModel))
@@ -3048,7 +3074,8 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bEnableResponsiveAA)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bScreenSpaceReflections)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bDisableDepthTest)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseTranslucencyVertexFog))
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseTranslucencyVertexFog)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bComputeFogPerPixel))
 		{
 			return MaterialDomain != MD_DeferredDecal && IsTranslucentBlendMode(BlendMode);
 		}
@@ -4342,6 +4369,7 @@ EMaterialShadingModel UMaterial::GetShadingModel() const
 	switch (MaterialDomain)
 	{
 		case MD_Surface:
+		case MD_Volume:
 			return ShadingModel;
 		case MD_DeferredDecal:
 			return MSM_DefaultLit;
@@ -4487,6 +4515,12 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 				// if you create a new mode it needs to expose the right pins
 				return false;
 		}
+	}
+	else if (MaterialDomain == MD_Volume)
+	{
+		return InProperty == MP_EmissiveColor
+			|| InProperty == MP_Opacity
+			|| InProperty == MP_BaseColor;
 	}
 	else if ( MaterialDomain == MD_UI )
 	{

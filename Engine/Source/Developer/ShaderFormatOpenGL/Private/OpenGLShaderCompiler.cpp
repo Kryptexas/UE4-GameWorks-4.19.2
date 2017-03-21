@@ -1,5 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-// ..
+// .
 
 #include "CoreMinimal.h"
 #include "HAL/FileManager.h"
@@ -445,6 +445,11 @@ GLenum GLFrequencyTable[] =
 
 static_assert(ARRAY_COUNT(GLFrequencyTable) == SF_NumFrequencies, "Frequency table size mismatch.");
 
+static inline bool IsDigit(TCHAR Char)
+{
+	return Char >= '0' && Char <= '9';
+}
+
 /**
  * Parse a GLSL error.
  * @param OutErrors - Storage for shader compiler errors.
@@ -461,8 +466,8 @@ void ParseGlslError(TArray<FShaderCompilerError>& OutErrors, const FString& InLi
 		p += FCString::Strlen(ErrorPrefix);
 
 		// Skip to a number, take that to be the line number.
-		while (*p && *p < TEXT('0') && *p > TEXT('9')) { p++; }
-		while (*p && *p >= TEXT('0') && *p <= TEXT('9'))
+		while (*p && !IsDigit(*p)) { p++; }
+		while (*p && IsDigit(*p))
 		{
 			LineNumber = 10 * LineNumber + (*p++ - TEXT('0'));
 		}
@@ -502,7 +507,7 @@ static TArray<ANSICHAR> ParseIdentifierANSI(const FString& Str)
 static uint32 ParseNumber(const TCHAR* Str)
 {
 	uint32 Num = 0;
-	while (*Str && *Str >= '0' && *Str <= '9')
+	while (*Str && IsDigit(*Str))
 	{
 		Num = Num * 10 + *Str++ - '0';
 	}
@@ -644,25 +649,25 @@ void FOpenGLFrontend::BuildShaderOutput(
 	static const FString GL_FragDepth = "gl_FragDepth";
 	for (auto& Output : CCHeader.Outputs)
 	{
-        // Only targets for pixel shaders must be tracked.
-        if (Frequency == SF_Pixel && Output.Name.StartsWith(TargetPrefix))
-        {
+		// Only targets for pixel shaders must be tracked.
+		if (Frequency == SF_Pixel && Output.Name.StartsWith(TargetPrefix))
+		{
 			uint8 TargetIndex = ParseNumber(*Output.Name + TargetPrefix.Len());
-            Header.Bindings.InOutMask |= (1 << TargetIndex);
-        }
-        // Only depth writes for pixel shaders must be tracked.
-        else if (Frequency == SF_Pixel && Output.Name.Equals(GL_FragDepth))
-        {
-            Header.Bindings.InOutMask |= 0x8000;
-        }
-        // Record user-defined output varyings
-        else if (!Output.Name.StartsWith(GL_Prefix))
-        {
-            FOpenGLShaderVarying Var;
-            Var.Location = Output.Index;
-            Var.Varying = ParseIdentifierANSI(Output.Name);
-            Header.Bindings.OutputVaryings.Add(Var);
-        }
+			Header.Bindings.InOutMask |= (1 << TargetIndex);
+		}
+		// Only depth writes for pixel shaders must be tracked.
+		else if (Frequency == SF_Pixel && Output.Name.Equals(GL_FragDepth))
+		{
+			Header.Bindings.InOutMask |= 0x8000;
+		}
+		// Record user-defined output varyings
+		else if (!Output.Name.StartsWith(GL_Prefix))
+		{
+			FOpenGLShaderVarying Var;
+			Var.Location = Output.Index;
+			Var.Varying = ParseIdentifierANSI(Output.Name);
+			Header.Bindings.OutputVaryings.Add(Var);
+		}
 	}
 
 	// general purpose binding name

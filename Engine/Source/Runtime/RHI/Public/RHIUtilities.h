@@ -11,6 +11,7 @@
 #include "UObject/NameTypes.h"
 #include "Logging/LogMacros.h"
 #include "HAL/IConsoleManager.h"
+#include "RHIDefinitions.h"
 #include "RHICommandList.h"
 
 class FExclusiveDepthStencil;
@@ -18,10 +19,27 @@ class FRHIDepthRenderTargetView;
 class FRHIRenderTargetView;
 class FRHISetRenderTargetsInfo;
 struct FRHIResourceCreateInfo;
-enum class ERenderTargetLoadAction;
-enum class ERenderTargetStoreAction;
 enum class EResourceTransitionAccess;
 enum class ESimpleRenderTargetMode;
+
+
+static inline bool IsDepthOrStencilFormat(EPixelFormat Format)
+{
+	switch (Format)
+	{
+	case PF_D24:
+	case PF_DepthStencil:
+	case PF_X24_G8:
+	case PF_ShadowDepth:
+		return true;
+
+	default:
+		break;
+	}
+
+	return false;
+}
+
 
 /** Encapsulates a GPU read/write buffer with its UAV and SRV. */
 struct FRWBuffer
@@ -287,8 +305,8 @@ inline void TransitionSetRenderTargetsHelper(FRHICommandList& RHICmdList, uint32
 /** Helper for the common case of using a single color and depth render target. */
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
-	FRHIRenderTargetView RTV(NewRenderTarget);
-	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	FRHIRenderTargetView RTV(NewRenderTarget, ERenderTargetLoadAction::ELoad);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
 
 	//make these rendertargets safely writable
 	if (bWritableBarrier)
@@ -320,8 +338,8 @@ inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef New
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
-	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, -1);
-	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	FRHIRenderTargetView RTV(NewRenderTarget, ERenderTargetLoadAction::ELoad, MipIndex, -1);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
 	
 	//make these rendertargets safely writable
 	if (bWritableBarrier)
@@ -334,8 +352,8 @@ inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef New
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
-	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, ArraySliceIndex);
-	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	FRHIRenderTargetView RTV(NewRenderTarget, ERenderTargetLoadAction::ELoad, MipIndex, ArraySliceIndex);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
 
 	//make these rendertargets safely writable
 	if (bWritableBarrier)
@@ -359,7 +377,7 @@ inline void SetRenderTargets(
 	FRHIRenderTargetView RTVs[MaxSimultaneousRenderTargets];
 	for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
 	{
-		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index]);
+		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index], ERenderTargetLoadAction::ELoad);
 	
 	}
 
@@ -369,7 +387,7 @@ inline void SetRenderTargets(
 		TransitionSetRenderTargetsHelper(RHICmdList, NewNumSimultaneousRenderTargets, NewRenderTargetsRHI, NewDepthStencilTargetRHI, FExclusiveDepthStencil::DepthWrite_StencilWrite);
 	}
 
-	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTargetRHI);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTargetRHI, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
 	RHICmdList.SetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, &DepthRTV, NewNumUAVs, UAVs);
 }
 

@@ -840,10 +840,13 @@ public:
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 	float AverageBrightness;
 	float IndirectLightingIntensity;
+	float VolumetricScatteringIntensity;
 	float OcclusionMaxDistance;
 	float Contrast;
+	float OcclusionExponent;
 	float MinOcclusion;
 	FLinearColor OcclusionTint;
+	EOcclusionCombineMode OcclusionCombineMode;
 };
 
 
@@ -1001,6 +1004,7 @@ public:
 	inline FVector4 GetPosition() const { return Position; }
 	inline const FLinearColor& GetColor() const { return Color; }
 	inline float GetIndirectLightingScale() const { return IndirectLightingScale; }
+	inline float GetVolumetricScatteringIntensity() const { return VolumetricScatteringIntensity; }
 	inline float GetShadowResolutionScale() const { return ShadowResolutionScale; }
 	inline FGuid GetLightGuid() const { return LightGuid; }
 	inline float GetShadowSharpen() const { return ShadowSharpen; }
@@ -1074,6 +1078,9 @@ protected:
 
 	/** Scale for indirect lighting from this light.  When 0, indirect lighting is disabled. */
 	float IndirectLightingScale;
+
+	/** Scales this light's intensity for volumetric scattering. */
+	float VolumetricScatteringIntensity;
 
 	float ShadowResolutionScale;
 
@@ -1247,6 +1254,8 @@ public:
 	*		FadeT = saturate((AbsTime * -InvFadeDuration) + ((FadeStartDelay + AbsSpawnTime + FadeDuration) * InvFadeDuration))
 	*/
 	float FadeStartDelayNormalized;
+
+	float FadeScreenSize;
 };
 
 /** Reflection capture shapes. */
@@ -1542,7 +1551,7 @@ public:
 		return 0;
 	}
 
-	void DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& InView, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
+	void DrawBatchedElements(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView& InView, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
 
 	/** The batched simple elements. */
 	FBatchedElements BatchedElements;

@@ -35,6 +35,8 @@
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
 #include "ScreenRendering.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 uint32 GetShadowQuality();
 
@@ -195,7 +197,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (GIsEditor && !View.bIsSceneCapture)
 	{
-		RHICmdList.ClearColorTexture(SceneColor, Views[0].BackgroundColor);
+		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, Views[0].BackgroundColor);
 	}
 
 	RenderMobileBasePass(RHICmdList);
@@ -414,6 +416,12 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 
 				if(CVarMobileForceDepthResolve.GetValueOnRenderThread() != 0)
 				{
+					FGraphicsPipelineStateInitializer GraphicsPSOInit;
+					RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+					GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
 					// for devices that do not support framebuffer fetch we rely on undocumented behavior:
 					// Depth reading features will have the depth bound as an attachment AND as a sampler this means
 					// some driver implementations will ignore our attempts to resolve, here we draw with the depth texture to force a resolve.
@@ -421,10 +429,15 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 					// The results of this draw are irrelevant.
 					TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
 					TShaderMapRef<FScreenPS> PixelShader(View.ShaderMap);
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+					
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-					ScreenVertexShader->SetParameters(RHICmdList, View);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+					ScreenVertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer);
 					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), SceneContext.GetSceneDepthTexture());
 					DrawRectangle(
 						RHICmdList,
@@ -513,10 +526,10 @@ public:
 
 	FCopyMobileMultiViewSceneColorPS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FTextureRHIRef InMobileMultiViewSceneColorTexture)
+	void SetParameters(FRHICommandList& RHICmdList, const FUniformBufferRHIParamRef ViewUniformBuffer, FTextureRHIRef InMobileMultiViewSceneColorTexture)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, ViewUniformBuffer);
 		SetTextureParameter(
 			RHICmdList,
 			ShaderRHI,
@@ -552,25 +565,30 @@ void FMobileSceneRenderer::CopyMobileMultiViewSceneColor(FRHICommandListImmediat
 	// Switching from the multi-view scene color render target array to side by side scene color
 	SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop, true);
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
 	const auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 	TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
 	TShaderMapRef<FCopyMobileMultiViewSceneColorPS> PixelShader(ShaderMap);
-
-	static FGlobalBoundShaderState BoundShaderState;
 	extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 	{
 		const FViewInfo& View = Views[ViewIndex];
 
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
 		// Multi-view color target is our input texture array
-		PixelShader->SetParameters(RHICmdList, View, SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().ShaderResourceTexture);
+		PixelShader->SetParameters(RHICmdList, View.ViewUniformBuffer, SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().ShaderResourceTexture);
 
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Min.X + View.ViewRect.Width(), View.ViewRect.Min.Y + View.ViewRect.Height(), 1.0f);
 		const FIntPoint TargetSize(View.ViewRect.Width(), View.ViewRect.Height());

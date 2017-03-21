@@ -47,12 +47,12 @@ class FPostProcessVS : public FGlobalShader
 	/** to have a similar interface as all other shaders */
 	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
-		FGlobalShader::SetParameters(Context.RHICmdList, GetVertexShader(), Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, GetVertexShader(), Context.View.ViewUniformBuffer);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FUniformBufferRHIParamRef ViewUniformBuffer)
 	{
-		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetVertexShader(), ViewUniformBuffer);
 	}
 
 public:

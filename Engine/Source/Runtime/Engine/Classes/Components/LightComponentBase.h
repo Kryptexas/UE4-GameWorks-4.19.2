@@ -78,6 +78,10 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(UIMin = "0.0", UIMax = "6.0"))
 	float IndirectLightingIntensity;
 
+	/** Intensity of the volumetric scattering from this light.  This scales Intensity and LightColor. */
+	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(UIMin = "0.25", UIMax = "4.0"))
+	float VolumetricScatteringIntensity;
+
 #if WITH_EDITORONLY_DATA
 	/** Sprite for static light in the editor. */
 	UPROPERTY(transient)

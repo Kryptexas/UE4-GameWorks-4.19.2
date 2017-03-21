@@ -12,7 +12,7 @@
 #include "RHIStaticStates.h"
 #include "MediaShaders.h"
 #include "MediaAssetsPrivate.h"
-
+#include "PipelineStateCache.h"
 
 /* FMediaTextureResource structors
  *****************************************************************************/
@@ -375,7 +375,7 @@ void FMediaTextureResource::InitDynamicRHI()
 	{
 		TripleBuffer.Reset();
 
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(BufferClearColor) };
 		uint32 OutStride = 0;
 
 		// only one mip is used & textures are targetable or resolve
@@ -414,7 +414,7 @@ void FMediaTextureResource::InitDynamicRHI()
 		// In Unbuffered mode or in Buffered mode (with conversion), this
 		// resource is used as a render target for the output frame.
 
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(BufferClearColor) };
 		TRefCountPtr<FRHITexture2D> Texture2DRHI;
 
 		RHICreateTargetableShaderResource2D(
@@ -450,12 +450,13 @@ void FMediaTextureResource::InitDynamicRHI()
 	RHIUpdateTextureReference(Owner.TextureReference.TextureReferenceRHI, RenderTargetTextureRHI.GetReference());
 
 	// clear the displayed resource
-	FRHICommandListImmediate& CommandList = FRHICommandListExecutor::GetImmediateCommandList();
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 	{
-		SetRenderTarget(CommandList, RenderTargetTextureRHI, FTextureRHIRef());
-		CommandList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
-		CommandList.ClearColorTexture(RenderTargetTextureRHI, BufferClearColor);
-		CommandList.TransitionResource(EResourceTransitionAccess::EReadable, TextureRHI);
+		FRHIRenderTargetView View = FRHIRenderTargetView(RenderTargetTextureRHI, ERenderTargetLoadAction::EClear);
+		FRHISetRenderTargetsInfo Info(1, &View, FRHIDepthRenderTargetView());
+		RHICmdList.SetRenderTargetsAndClear(Info);
+		RHICmdList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, TextureRHI);
 	}
 
 	CacheResourceSize();
@@ -563,24 +564,40 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 {
 	check(IsInRenderingThread());
 
-	FRHICommandListImmediate& CommandList = FRHICommandListExecutor::GetImmediateCommandList();
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
-	SCOPED_DRAW_EVENT(CommandList, MediaTextureConvertResource);
+	SCOPED_DRAW_EVENT(RHICmdList, MediaTextureConvertResource);
+
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	FRHITexture* RenderTarget = RenderTargetTextureRHI.GetReference();
+	SetRenderTargets(RHICmdList, 1, &RenderTarget, nullptr, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop);
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+	RHICmdList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
+
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.BlendState = TStaticBlendStateWriteMask<CW_RGBA, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI();
+	GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 
 	// configure media shaders
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 	TShaderMapRef<FMediaShadersVS> VertexShader(ShaderMap);
+
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GMediaVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 
 	switch (SinkFormat)
 	{
 	case EMediaTextureSinkFormat::CharAYUV:
 		{
 			TShaderMapRef<FAYUVConvertPS> ConvertShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(CommandList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			ConvertShader->SetParameters(
-				CommandList,
+				RHICmdList,
 				Resource.ShaderResource,
 				MediaShaders::YuvToSrgbDefault,
 				Owner.SRGB
@@ -591,11 +608,12 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharNV12:
 		{
 			TShaderMapRef<FNV12ConvertPS> ConvertShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(CommandList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			ConvertShader->SetParameters(
-				CommandList,
+				RHICmdList,
 				Resource.ShaderResource,
 				OutputDimensions,
 				MediaShaders::YuvToSrgbDefault,
@@ -607,11 +625,12 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharNV21:
 		{
 			TShaderMapRef<FNV21ConvertPS> ConvertShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(CommandList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader); 
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			ConvertShader->SetParameters(
-				CommandList,
+				RHICmdList,
 				Resource.ShaderResource,
 				OutputDimensions,
 				MediaShaders::YuvToSrgbDefault,
@@ -623,11 +642,12 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharUYVY:
 		{
 			TShaderMapRef<FUYVYConvertPS> ConvertShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(CommandList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			ConvertShader->SetParameters(
-				CommandList,
+				RHICmdList,
 				Resource.ShaderResource,
 				MediaShaders::YuvToSrgbDefault,
 				Owner.SRGB
@@ -638,11 +658,12 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharYUY2:
 		{
 			TShaderMapRef<FYUY2ConvertPS> ConvertShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(CommandList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			ConvertShader->SetParameters(
-				CommandList,
+				RHICmdList,
 				Resource.ShaderResource,
 				OutputDimensions,
 				MediaShaders::YuvToSrgbDefault,
@@ -654,11 +675,12 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharYVYU:
 		{
 			TShaderMapRef<FYVYUConvertPS> ConvertShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(CommandList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			ConvertShader->SetParameters(
-				CommandList,
+				RHICmdList,
 				Resource.ShaderResource,
 				MediaShaders::YuvToSrgbDefault,
 				Owner.SRGB
@@ -671,20 +693,20 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::FloatRGBA:
 		{
 			TShaderMapRef<FRGBConvertPS> ConvertShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
 
-			SetGlobalBoundShaderState(CommandList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
-			ConvertShader->SetParameters(CommandList, Resource.ShaderResource, OutputDimensions, Owner.SRGB);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions, Owner.SRGB);
 		}
 		break;
 
 	case EMediaTextureSinkFormat::CharBMP:
 		{
 			TShaderMapRef<FBMPConvertPS> ConvertShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
 
-			SetGlobalBoundShaderState(CommandList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
-			ConvertShader->SetParameters(CommandList, Resource.ShaderResource, OutputDimensions);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions);
 		}
 		break;
 
@@ -705,16 +727,11 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 		Vertices[3].TextureCoordinate.Set(1.0f, 1.0f);
 	}
 
-	CommandList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-	CommandList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	CommandList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
-	CommandList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
+	RHICmdList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
 
-	FRHITexture* RenderTarget = RenderTargetTextureRHI.GetReference();
-	SetRenderTargets(CommandList, 1, &RenderTarget, nullptr, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop);
-	DrawPrimitiveUP(CommandList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 
-	CommandList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTargetTextureRHI);
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTargetTextureRHI);
 }
 
 

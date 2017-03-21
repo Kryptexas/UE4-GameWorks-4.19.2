@@ -74,6 +74,7 @@ char* FVectorVMCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* 
 		progress = do_vec_index_to_swizzle(ir) || progress;
 		progress = do_copy_propagation(ir) || progress;
 		progress = do_copy_propagation_elements(ir) || progress;
+		progress = do_swizzle_swizzle(ir) || progress;
 	} while (progress);
 	vm_debug_dump(ir, state);
 	if (state->error) return nullptr;
@@ -91,6 +92,13 @@ char* FVectorVMCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* 
 	vm_scalarize_ops(ir, state);
 	vm_debug_dump(ir, state);
 	if (state->error) return nullptr;
+
+	//99% complete code to remove all matrices from the code and replace them with just swizzled vectors. 
+	//For now visitors below here can handle matrices ok but we may hit some edge cases in future requiring their removal.
+	//vm_debug_print("== matrices to vectors ==\n");
+	//vm_matrices_to_vectors(ir, state);
+	//vm_debug_dump(ir, state);
+	//if (state->error) return nullptr;
 
 	vm_debug_print("== Merge Ops ==\n");
 	vm_merge_ops(ir, state);

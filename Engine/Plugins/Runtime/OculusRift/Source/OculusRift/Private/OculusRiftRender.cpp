@@ -7,6 +7,8 @@
 #include "CanvasItem.h"
 #include "Widgets/SViewport.h"
 #include "Framework/Application/SlateApplication.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 #if !PLATFORM_MAC // Mac uses 0.5/OculusRiftRender_05.cpp
 
@@ -60,8 +62,18 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 		const int ViewportSizeY = (ViewFamily.RenderTarget->GetRenderTargetTexture()) ? 
 			ViewFamily.RenderTarget->GetRenderTargetTexture()->GetSizeY() : ViewFamily.RenderTarget->GetSizeXY().Y;
 		RHICmdList.SetViewport(GapMinX, 0, 0, GapMaxX, ViewportSizeY, 1.0f);
-		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), nullptr);		
-		RHICmdList.ClearColorTexture(ViewFamily.RenderTarget->GetRenderTargetTexture(), FLinearColor::Black);
+
+		if (ensure(ViewFamily.RenderTarget->GetRenderTargetTexture()->GetClearColor() == FLinearColor::Black))
+		{
+			FRHIRenderTargetView RtView = FRHIRenderTargetView(ViewFamily.RenderTarget->GetRenderTargetTexture(), ERenderTargetLoadAction::EClear);
+			FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+			RHICmdList.SetRenderTargetsAndClear(Info);
+		}
+		else
+		{
+			SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+		}
 	}
 
 	check(ViewFamily.RenderTarget->GetRenderTargetTexture());
@@ -239,36 +251,39 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
 	RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 	if (bAlphaPremultiply)
 	{
 		if (bNoAlphaWrite)
 		{
 			// for quads, write RGB, RGB = src.rgb * 1 + dst.rgb * 0
-			RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 		}
 		else
 		{
 			// for quads, write RGBA, RGB = src.rgb * src.a + dst.rgb * 0, A = src.a + dst.a * 0
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 		}
 	}
 	else
 	{
 		if (bNoAlphaWrite)
 		{
-			RHICmdList.ClearColorTexture(DstTexture, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB>::GetRHI());
+			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB>::GetRHI();
 		}
 		else
 		{
 			// for mirror window
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 		}
 	}
 
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 	const auto FeatureLevel = GMaxRHIFeatureLevel;
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
@@ -276,8 +291,10 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
 	TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
 
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	const bool bSameSize = DstRect.Size() == SrcRect.Size();
 	if( bSameSize )

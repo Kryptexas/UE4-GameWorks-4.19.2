@@ -190,6 +190,7 @@ private:
 
 	FText GetEmissivePinName() const;
 	FText GetBaseColorPinName() const;
+	FText GetOpacityPinName() const;
 	FText GetMetallicPinName() const;
 	FText GetNormalPinName() const;
 	FText GetWorldPositionOffsetPinName() const;

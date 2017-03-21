@@ -9,14 +9,16 @@
 #include "ParticleVertexFactoryCommon.usf"
 
 // These are only enabled for SM5 due to limited interpolators elsewhere
-#define USE_PARTICLE_LIGHTING_OFFSET (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !MATERIAL_SHADINGMODEL_UNLIT)
-#define USE_PARTICLE_POSITION (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && NEEDS_PARTICLE_POSITION)
+#define USE_PARTICLE_LIGHTING_OFFSET (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !MATERIAL_SHADINGMODEL_UNLIT && MATERIAL_DOMAIN_SURFACE)
+#define USE_PARTICLE_POSITION (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && (NEEDS_PARTICLE_POSITION || PASS_NEEDS_PRIMITIVE_VOLUME_BOUNDS))
 #define USE_PARTICLE_VELOCITY (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && NEEDS_PARTICLE_VELOCITY)
 #define USE_PARTICLE_TIME (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && NEEDS_PARTICLE_TIME)
 #define USE_PARTICLE_SIZE (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && NEEDS_PARTICLE_SIZE)
 
 // We don't compute a tangent basis in ES2 to save shader instructions.
 #define NEEDS_TANGENT_BASIS (FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
+
+bool UseCustomAlignment;
 
 struct FVertexFactoryInput
 {
@@ -29,6 +31,7 @@ struct FVertexFactoryInput
 #endif	//USE_DYNAMIC_PARAMETERS
 	float2	TexCoord				: ATTRIBUTE4;
 	uint VertexId					: SV_VertexID;
+	float3 CustomAlignmentVector	: ATTRIBUTE6;
 
 /** Optional instance ID for vertex layered rendering */
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
@@ -316,7 +319,7 @@ float3 SafeNormalize(float3 V)
 	return V * rsqrt(max(dot(V,V),0.01));
 }
 
-void GetTangents(FVertexFactoryInput Input, float3 WorldPosition, float3 OldWorldPosition, out float3 OutRight, out float3 OutUp)
+void GetTangents(FVertexFactoryInput Input, float3 WorldPosition, float3 OldWorldPosition, out float3 OutRight, out float3 OutUp, float3 CustomAlignmentVector)
 {
 	// Select camera up/right vectors.
 	float3 ResolvedViewRight = lerp(ResolvedView.ViewRight, ResolvedView.HMDViewNoRollRight, SpriteVF.RemoveHMDRoll);
@@ -328,10 +331,15 @@ void GetTangents(FVertexFactoryInput Input, float3 WorldPosition, float3 OldWorl
 	// Determine the vector from the particle to the camera and the particle's movement direction.
 	float3 CameraDirection		= SafeNormalize(ResolvedView.WorldCameraOrigin - WorldPosition.xyz);
 	float3 ParticleDirection	= SafeNormalize(WorldPosition.xyz - OldWorldPosition.xyz);
+	float3 DirectionVector	= lerp(ParticleDirection, CustomAlignmentVector, UseCustomAlignment);
 
 	// Tangent vectors for PSA_Velocity.
-	float3 Right_Velocity	= SafeNormalize(cross(CameraDirection, ParticleDirection));
-	float3 Up_Velocity		= -ParticleDirection;
+	// Velocity alignment
+	float3 Right_Velocity	= SafeNormalize(cross(CameraDirection, DirectionVector));
+	float3 Up_Velocity		= -DirectionVector;
+
+
+
 
 	// Tangent vectors for rotation locked about an axis.
 	float3 Right_AxisRot = SpriteVF.AxisLockRight.xyz;
@@ -487,7 +495,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 	// Tangents.
 	float3 Right,Up;
-	GetTangents(Input,ParticleWorldPosition.xyz,ParticleOldWorldPosition.xyz,Right,Up);
+	GetTangents(Input,ParticleWorldPosition.xyz,ParticleOldWorldPosition.xyz,Right,Up, Input.CustomAlignmentVector);
 	Intermediates.TangentUp = Up;
 	Intermediates.TangentRight = Right;
 
@@ -540,8 +548,9 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 #if USE_PARTICLE_VELOCITY
 	float3 ParticleVelocity = (ParticleWorldPosition.xyz - ParticleOldWorldPosition.xyz) * SpriteVF.InvDeltaSeconds;
-	Intermediates.ParticleVelocity.xyz = normalize(ParticleVelocity);
-	Intermediates.ParticleVelocity.w = length(ParticleVelocity);
+	float3 DirectionVector = lerp(ParticleVelocity, Input.CustomAlignmentVector, UseCustomAlignment);
+	Intermediates.ParticleVelocity.xyz = normalize(DirectionVector);
+	Intermediates.ParticleVelocity.w = length(DirectionVector);
 #endif
 
 #if USE_PARTICLE_TIME
@@ -693,3 +702,11 @@ uint VertexFactoryGetEyeIndex(uint InstanceId)
 	return InstancedEyeIndex & bIsInstancedStereo;
 }
 #endif
+
+float4 VertexFactoryGetTranslatedPrimitiveVolumeBounds(FVertexFactoryInterpolantsVSToPS Interpolants)
+{
+#if USE_PARTICLE_POSITION
+	return Interpolants.ParticleTranslatedWorldPositionAndSize;
+#endif
+	return 0;
+}

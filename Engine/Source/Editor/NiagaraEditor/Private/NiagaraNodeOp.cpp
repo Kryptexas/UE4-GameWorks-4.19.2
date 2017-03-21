@@ -101,9 +101,11 @@ void UNiagaraNodeOp::Compile(class INiagaraCompiler* Compiler, TArray<int32>& Ou
 	Compiler->Operation(this, Inputs, Outputs);
 }
 
-void UNiagaraNodeOp::RefreshFromExternalChanges()
+bool UNiagaraNodeOp::RefreshFromExternalChanges()
 {
+	// TODO - Leverage code in reallocate pins to determine if any pins have changed...
 	ReallocatePins();
+	return true;
 }
 
 ENiagaraNumericOutputTypeSelectionMode UNiagaraNodeOp::GetNumericOutputTypeSelectionMode() const

@@ -34,6 +34,7 @@
 #include "PackageHelperFunctions.h"
 #include "DerivedDataCacheInterface.h"
 #include "GlobalShader.h"
+#include "ShaderCompiler.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "Developer/PackageDependencyInfo/Public/PackageDependencyInfo.h"

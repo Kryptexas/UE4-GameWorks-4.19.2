@@ -346,21 +346,16 @@ float ShadowRayCast(
 #error "Must set SUPPORT_CONTACT_SHADOWS"
 #endif
 
-/** Calculates lighting for a given position, normal, etc with a fully featured lighting model designed for quality. */
-float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferData GBuffer, float AmbientOcclusion, uint ShadingModelID, FDeferredLightData LightData, float4 LightAttenuation, uint2 Random)
-{
-	FLightAccumulator LightAccumulator = (FLightAccumulator)0;
-
-	float3 V = -CameraVector;
-	float3 N = GBuffer.WorldNormal;
-	float3 L = LightData.LightDirection;	// Already normalized
-	float3 ToLight = L * GBuffer.Depth;
-	float NoL = saturate( dot(N, L) );
-	float DistanceAttenuation = 1;
-	float LightRadiusMask = 1;
-	float SpotFalloff = 1;
-
-	if (LightData.bRadialLight)
+void GetLocalLightAttenuation(
+	float3 WorldPosition, 
+	float3 N,
+	FDeferredLightData LightData, 
+	inout float3 ToLight, 
+	inout float3 L, 
+	inout float NoL, 
+	inout float DistanceAttenuation, 
+	inout float LightRadiusMask, 
+	inout float SpotFalloff)
 	{
 		ToLight = LightData.LightPositionAndInvRadius.xyz - WorldPosition;
 		
@@ -451,6 +446,25 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 		{
 			SpotFalloff = SpotAttenuation(L, -LightData.LightDirection, LightData.SpotAnglesAndSourceRadius.xy);
 		}
+	}
+
+/** Calculates lighting for a given position, normal, etc with a fully featured lighting model designed for quality. */
+float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferData GBuffer, float AmbientOcclusion, uint ShadingModelID, FDeferredLightData LightData, float4 LightAttenuation, uint2 Random)
+{
+	FLightAccumulator LightAccumulator = (FLightAccumulator)0;
+
+	float3 V = -CameraVector;
+	float3 N = GBuffer.WorldNormal;
+	float3 L = LightData.LightDirection;	// Already normalized
+	float3 ToLight = L * GBuffer.Depth;
+	float NoL = saturate( dot(N, L) );
+	float DistanceAttenuation = 1;
+	float LightRadiusMask = 1;
+	float SpotFalloff = 1;
+
+	if (LightData.bRadialLight)
+	{
+		GetLocalLightAttenuation(WorldPosition, N, LightData, ToLight, L, NoL, DistanceAttenuation, LightRadiusMask, SpotFalloff);
 	}
 
 	LightAccumulator.EstimatedCost += 0.3f;		// running the PixelShader at all has a cost

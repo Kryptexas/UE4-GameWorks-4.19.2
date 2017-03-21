@@ -27,6 +27,7 @@
 #include "ComponentRecreateRenderStateContext.h"
 #include "EngineModule.h"
 #include "Engine/Texture.h"
+#include "SceneView.h"
 
 #include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
@@ -793,7 +794,7 @@ void FMaterial::ReleaseShaderMap()
 	}
 }
 
-int32 FMaterialResource::GetMaterialDomain() const { return Material->MaterialDomain; }
+EMaterialDomain FMaterialResource::GetMaterialDomain() const { return Material->MaterialDomain; }
 bool FMaterialResource::IsTangentSpaceNormal() const { return Material->bTangentSpaceNormal || (!Material->Normal.IsConnected() && !Material->bUseMaterialAttributes); }
 bool FMaterialResource::ShouldInjectEmissiveIntoLPV() const { return Material->bUseEmissiveForDynamicAreaLighting; }
 bool FMaterialResource::ShouldBlockGI() const { return Material->bBlockGI; }
@@ -806,6 +807,7 @@ bool FMaterialResource::IsUIMaterial() const { return Material->MaterialDomain =
 bool FMaterialResource::IsLightFunction() const { return Material->MaterialDomain == MD_LightFunction; }
 bool FMaterialResource::IsUsedWithEditorCompositing() const { return Material->bUsedWithEditorCompositing; }
 bool FMaterialResource::IsDeferredDecal() const { return Material->MaterialDomain == MD_DeferredDecal; }
+bool FMaterialResource::IsVolumetricPrimitive() const { return Material->MaterialDomain == MD_Volume; }
 bool FMaterialResource::IsSpecialEngineMaterial() const { return Material->bUsedAsSpecialEngineMaterial; }
 bool FMaterialResource::HasVertexPositionOffsetConnected() const { return HasMaterialAttributesConnected() || (!Material->bUseMaterialAttributes && Material->WorldPositionOffset.IsConnected()); }
 bool FMaterialResource::HasPixelDepthOffsetConnected() const { return HasMaterialAttributesConnected() || (!Material->bUseMaterialAttributes && Material->PixelDepthOffset.IsConnected()); }
@@ -884,12 +886,12 @@ bool FMaterialResource::IsCrackFreeDisplacementEnabled() const
 
 bool FMaterialResource::IsSeparateTranslucencyEnabled() const 
 { 
-	return Material->bEnableSeparateTranslucency && !IsUIMaterial();
+	return Material->bEnableSeparateTranslucency && !IsUIMaterial() && !IsDeferredDecal();
 }
 
 bool FMaterialResource::IsMobileSeparateTranslucencyEnabled() const
 {
-	return Material->bEnableMobileSeparateTranslucency && !IsUIMaterial();
+	return Material->bEnableMobileSeparateTranslucency && !IsUIMaterial() && !IsDeferredDecal();
 }
 
 bool FMaterialResource::IsAdaptiveTessellationEnabled() const
@@ -1012,7 +1014,8 @@ FLinearColor FMaterialResource::GetTranslucentMultipleScatteringExtinction() con
 float FMaterialResource::GetTranslucentShadowStartOffset() const { return Material->TranslucentShadowStartOffset; }
 float FMaterialResource::GetRefractionDepthBiasValue() const { return Material->RefractionDepthBias; }
 float FMaterialResource::GetMaxDisplacement() const { return Material->MaxDisplacement; }
-bool FMaterialResource::UseTranslucencyVertexFog() const {return Material->bUseTranslucencyVertexFog;}
+bool FMaterialResource::ShouldApplyFogging() const {return Material->bUseTranslucencyVertexFog;}
+bool FMaterialResource::ComputeFogPerPixel() const {return Material->bComputeFogPerPixel;}
 FString FMaterialResource::GetFriendlyName() const { return *GetNameSafe(Material); }
 
 uint32 FMaterialResource::GetDecalBlendMode() const
@@ -1478,6 +1481,19 @@ void FMaterial::SetupMaterialEnvironment(
 		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_EMISSIVE"), (uint32)DBM_Emissive);
 		OutEnvironment.SetDefine(TEXT("DECALBLENDMODEID_TRANSLUCENT"), (uint32)DBM_Translucent);
 	}
+
+	switch(GetMaterialDomain())
+	{
+		case MD_Surface:			OutEnvironment.SetDefine(TEXT("MATERIAL_DOMAIN_SURFACE"),				TEXT("1")); break;
+		case MD_DeferredDecal:		OutEnvironment.SetDefine(TEXT("MATERIAL_DOMAIN_DEFERREDDECAL"),				TEXT("1")); break;
+		case MD_LightFunction:		OutEnvironment.SetDefine(TEXT("MATERIAL_DOMAIN_LIGHTFUNCTION"),				TEXT("1")); break;
+		case MD_Volume:				OutEnvironment.SetDefine(TEXT("MATERIAL_DOMAIN_VOLUME"),				TEXT("1")); break;
+		case MD_PostProcess:		OutEnvironment.SetDefine(TEXT("MATERIAL_DOMAIN_POSTPROCESS"),				TEXT("1")); break;
+		case MD_UI:					OutEnvironment.SetDefine(TEXT("MATERIAL_DOMAIN_UI"),				TEXT("1")); break;
+		default:
+			UE_LOG(LogMaterial, Warning, TEXT("Unknown material domain: %u  Setting to MD_Surface"),(int32)GetMaterialDomain());
+			OutEnvironment.SetDefine(TEXT("MATERIAL_DOMAIN_SURFACE"),TEXT("1"));
+	};
 
 	switch(GetShadingModel())
 	{
@@ -2570,7 +2586,7 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 
 	if (UpdatedMaterials.Num() > 0)
 	{
-		UE_LOG(LogMaterial, Log,
+		UE_LOG(LogMaterial, Verbose,
 			   TEXT("%.2f seconds spent updating %d materials, %d interfaces, %d instances, %d with static permutations."),
 			   (float)(EndTime - StartTime),
 			   UpdatedMaterials.Num(),
@@ -2964,7 +2980,13 @@ void FMaterialAttributeDefinitionMap::AppendDDCKeyString(FString& String)
 void FMaterialAttributeDefinitionMap::AddCustomAttribute(const FGuid& AttributeID, const FString& DisplayName, const FString& FunctionName, EMaterialValueType ValueType, const FVector4& DefaultValue, MaterialAttributeBlendFunction BlendFunction /*= nullptr*/)
 {
 	FMaterialCustomOutputAttributeDefintion UserAttribute(AttributeID, DisplayName, FunctionName, MP_CustomOutput, ValueType, DefaultValue, SF_Pixel, BlendFunction);
-	checkf(!GMaterialPropertyAttributesMap.CustomAttributes.Contains(UserAttribute), TEXT("Tried to add duplicate custom output attribute."));
+#if DO_CHECK
+	for (auto& Attribute : GMaterialPropertyAttributesMap.AttributeMap)
+	{
+		checkf(Attribute.Value.AttributeID != AttributeID, TEXT("Tried to add duplicate custom output attribute (%s) already in base attributes (%s)."), *DisplayName, *(Attribute.Value.DisplayName));
+	}
+	checkf(!GMaterialPropertyAttributesMap.CustomAttributes.Contains(UserAttribute), TEXT("Tried to add duplicate custom output attribute (%s)."), *DisplayName);
+#endif
 	GMaterialPropertyAttributesMap.CustomAttributes.Add(UserAttribute);
 }
 

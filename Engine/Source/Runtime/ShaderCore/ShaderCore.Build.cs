@@ -6,7 +6,9 @@ public class ShaderCore : ModuleRules
 {
 	public ShaderCore(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PublicDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore" });
+        PrivateIncludePaths.AddRange( new string[] { "Developer/DerivedDataCache/Public" });
+
+        PublicDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Core" });
 

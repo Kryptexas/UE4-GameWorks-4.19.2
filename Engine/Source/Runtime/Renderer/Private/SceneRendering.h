@@ -556,7 +556,6 @@ public:
 
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList)
 	{
-		DrawRenderState.ReassignResetRHICmdList(&CmdList);
 	}
 	static void WaitForTasks();
 private:
@@ -619,6 +618,8 @@ public:
 	{}
 };
 
+const int32 GMaxForwardShadowCascades = 4;
+
 #define FORWARD_GLOBAL_LIGHT_DATA_UNIFORM_BUFFER_MEMBER_TABLE \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumLocalLights) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, NumReflectionCaptures) \
@@ -630,8 +631,16 @@ public:
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, LightGridZParams) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, DirectionalLightDirection) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, DirectionalLightColor) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DirectionalLightVolumetricScatteringIntensity) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, DirectionalLightShadowMapChannelMask) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, DirectionalLightDistanceFadeMAD) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, NumDirectionalLightCascades) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, CascadeEndDepths) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix, DirectionalLightWorldToShadowMatrix, [GMaxForwardShadowCascades]) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, DirectionalLightShadowmapMinMax, [GMaxForwardShadowCascades]) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, DirectionalLightDepthBias) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, DirectionalLightShadowmapAtlas) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, ShadowmapSampler)
 
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FForwardGlobalLightData,)
 	FORWARD_GLOBAL_LIGHT_DATA_UNIFORM_BUFFER_MEMBER_TABLE
@@ -665,6 +674,68 @@ public:
 		CulledLightLinks.Release();
 		NextCulledLightData.Release();
 	}
+};
+
+BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FVolumetricFogGlobalData,) 
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntVector, GridSizeInt)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, GridSize)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, GridPixelSizeShift)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, GridZParams)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, SVPosToVolumeUV)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntPoint, FogGridToPixelXY)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MaxDistance)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, HeightFogInscatteringColor)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, HeightFogDirectionalLightInscatteringColor)
+END_UNIFORM_BUFFER_STRUCT(FVolumetricFogGlobalData)
+
+class FVolumetricFogViewResources
+{
+public:
+	TUniformBufferRef<FVolumetricFogGlobalData> VolumetricFogGlobalData;
+	TRefCountPtr<IPooledRenderTarget> IntegratedLightScattering;
+
+	FVolumetricFogViewResources()
+	{}
+
+	void Release()
+	{
+		IntegratedLightScattering = NULL;
+	}
+};
+
+class FVolumetricPrimSet
+{
+public:
+
+	/**
+	* Adds a new primitives to the list of distortion prims
+	* @param PrimitiveSceneProxies - primitive info to add.
+	*/
+	void Append(FPrimitiveSceneProxy** PrimitiveSceneProxies, int32 NumProxies)
+	{
+		Prims.Append(PrimitiveSceneProxies, NumProxies);
+	}
+
+	/** 
+	* @return number of prims to render
+	*/
+	int32 NumPrims() const
+	{
+		return Prims.Num();
+	}
+
+	/** 
+	* @return a prim currently set to render
+	*/
+	const FPrimitiveSceneProxy* GetPrim(int32 i)const
+	{
+		check(i>=0 && i<NumPrims());
+		return Prims[i];
+	}
+
+private:
+	/** list of distortion prims added from the scene */
+	TArray<FPrimitiveSceneProxy*, SceneRenderingAllocator> Prims;
 };
 
 /** 
@@ -764,6 +835,9 @@ public:
 	
 	/** Set of CustomDepth prims for this view */
 	FCustomDepthPrimSet CustomDepthSet;
+
+	/** Primitives with a volumetric material. */
+	FVolumetricPrimSet VolumetricPrimSet;
 
 	/** A map from light ID to a boolean visibility value. */
 	TArray<FVisibleLightViewInfo,SceneRenderingAllocator> VisibleLightInfos;
@@ -866,6 +940,8 @@ public:
 	/** Used when there is no view state, buffers reallocate every frame. */
 	FForwardLightingViewResources ForwardLightingResourcesStorage;
 
+	FVolumetricFogViewResources VolumetricFogResources;
+
 	// Size of the HZB's mipmap 0
 	// NOTE: the mipmap 0 is downsampled version of the depth buffer
 	FIntPoint HZBMipmap0Size;
@@ -935,6 +1011,7 @@ public:
 
 	void SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 	void SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+	void SetupVolumetricFogUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 
 	/** Initializes the RHI resources used by this view. */
 	void InitRHIResources();
@@ -1418,7 +1495,7 @@ public:
 
 	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) override;
 
-	bool RenderInverseOpacity(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState);
+	bool RenderInverseOpacity(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 protected:
 	/** Finds the visible dynamic shadows for each view. */

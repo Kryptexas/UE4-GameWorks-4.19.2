@@ -1176,6 +1176,7 @@ private:
 	FRHIDepthRenderTargetView CurrentDepthStencilTarget;
 	FRHIRenderTargetView CurrentRenderTargets[MaxSimultaneousRenderTargets];
 	FShaderDrawKey CurrentDrawKey;
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	FBoundShaderStateRHIRef CurrentShaderState;
 	int32 BoundShaderStateIndex;
 	uint32 Viewport[4];

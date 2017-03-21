@@ -29,6 +29,8 @@
 #include "Components/PlanarReflectionComponent.h"
 #include "PlanarReflectionSceneProxy.h"
 #include "Containers/ArrayView.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 template< bool bEnablePlanarReflectionPrefilter >
 class FPrefilterPlanarReflectionPS : public FGlobalShader
@@ -65,7 +67,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FPlanarReflectionSceneProxy* ReflectionSceneProxy, FTextureRHIParamRef SceneColorInput)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View, ESceneRenderTargetsMode::SetTextures);
 		PlanarReflectionParameters.SetParameters(RHICmdList, ShaderRHI, ReflectionSceneProxy);
 
@@ -134,15 +136,21 @@ void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& 
 
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 		TShaderMapRef<TDeferredLightVS<false> > VertexShader(View.ShaderMap);
 		TShaderMapRef<FPrefilterPlanarReflectionPS<bEnablePlanarReflectionPrefilter> > PixelShader(View.ShaderMap);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		PixelShader->SetParameters(RHICmdList, View, ReflectionSceneProxy, SceneColorInput);
 		VertexShader->SetSimpleLightParameters(RHICmdList, View, FSphere(0));
@@ -250,11 +258,22 @@ static void UpdatePlanarReflectionContents_RenderThread(
 #endif
 
 				const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
-				SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
-
 				// Note: relying on GBuffer SceneColor alpha being cleared to 1 in the main scene rendering
 				check(GetSceneColorClearAlpha() == 1.0f);
-				RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor(0, 0, 0, 1));
+
+				if (ensure(Target->GetRenderTargetTexture()->GetClearColor() == FLinearColor::Black))
+				{
+					TransitionSetRenderTargetsHelper(RHICmdList, Target->GetRenderTargetTexture(), FTextureRHIParamRef(), FExclusiveDepthStencil::DepthWrite_StencilWrite);
+
+					FRHIRenderTargetView RtView = FRHIRenderTargetView(Target->GetRenderTargetTexture(), ERenderTargetLoadAction::EClear);
+					FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+					RHICmdList.SetRenderTargetsAndClear(Info);
+				}
+				else
+				{
+					SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
+					DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+				}
 
 				// Reflection view late update
 				if (SceneRenderer->Views.Num() > 1)
@@ -501,7 +520,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FPlanarReflectionSceneProxy* ReflectionSceneProxy)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 		PlanarReflectionParameters.SetParameters(RHICmdList, ShaderRHI, ReflectionSceneProxy);
 	}
@@ -566,18 +585,21 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 
 		if (!bSSRAsInput)
 		{
-			RHICmdList.ClearColorTexture(Output->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0));
+			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0, 0, 0, 0));
 		}
 
 		{
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 			// Blend over previous reflections in the output target (SSR or planar reflections that have already been rendered)
 			// Planar reflections win over SSR and reflection environment
 			//@todo - this is order dependent blending, but ordering is coming from registration order
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Max, BF_One, BF_One>::GetRHI());
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Max, BF_One, BF_One>::GetRHI();
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 			for (int32 PlanarReflectionIndex = 0; PlanarReflectionIndex < Scene->PlanarReflections.Num(); PlanarReflectionIndex++)
 			{
@@ -590,8 +612,12 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 					TShaderMapRef<TDeferredLightVS<false> > VertexShader(View.ShaderMap);
 					TShaderMapRef<FPlanarReflectionPS> PixelShader(View.ShaderMap);
 
-					static FGlobalBoundShaderState BoundShaderState;
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					PixelShader->SetParameters(RHICmdList, View, ReflectionSceneProxy);
 					VertexShader->SetSimpleLightParameters(RHICmdList, View, FSphere(0));

@@ -42,6 +42,8 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 	DXGIFactory1(InDXGIFactory1),
 	FeatureLevel(InFeatureLevel),
 	AmdAgsContext(NULL),
+	bCurrentDepthStencilStateIsReadOnly(false),
+	PSOPrimitiveType(PT_Num),
 	CurrentDepthTexture(NULL),
 	NumSimultaneousRenderTargets(0),
 	NumUAVs(0),

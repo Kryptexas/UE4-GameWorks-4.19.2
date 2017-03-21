@@ -10,6 +10,8 @@
 #include "NiagaraNodeFunctionCall.h"
 #include "EdGraphSchema_Niagara.h"
 #include "NiagaraDataInterface.h"
+#include "SNiagaraGraphNodeInput.h"
+#include "NiagaraEditorUtilities.h"
 
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeInput"
@@ -21,6 +23,7 @@ UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer
 	, Usage(ENiagaraInputNodeUsage::Undefined)	
 	, CallSortPriority(0)
 {
+	bCanRenameNode = true;
 }
 
 void UNiagaraNodeInput::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -75,7 +78,7 @@ void UNiagaraNodeInput::AllocateDefaultPins()
 	//If we're a parameter node for a funciton or a module the we allow a "default" input pin.
 	UNiagaraScript* OwnerScript = GetTypedOuter<UNiagaraScript>();
 	check(OwnerScript);
-	if ((!IsRequired() && IsExposed()) && DataInterface == nullptr && Usage == ENiagaraInputNodeUsage::Parameter && (OwnerScript->Usage == ENiagaraScriptUsage::Function || OwnerScript->Usage == ENiagaraScriptUsage::Module))
+	if ((!IsRequired() && IsExposed()) && DataInterface == nullptr && Usage == ENiagaraInputNodeUsage::Parameter && (OwnerScript->IsFunctionScript() || OwnerScript->IsModuleScript()))
 	{
 		UEdGraphPin* NewPin = CreatePin(EGPD_Input, Schema->TypeDefinitionToPinType(Input.GetType()), TEXT("Default"));
 		NewPin->bDefaultValueIsIgnored = true;
@@ -87,6 +90,174 @@ void UNiagaraNodeInput::AllocateDefaultPins()
 FText UNiagaraNodeInput::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return FText::FromName(Input.GetName());
+}
+
+int32 UNiagaraNodeInput::GenerateNewSortPriority(const UNiagaraGraph* Graph, FName& ProposedName, ENiagaraInputNodeUsage Usage)
+{
+	int32 HighestSortOrder = -1; // Set to -1 initially, so that if there are no nodes, the return value will be zero.
+	
+	if (Usage == ENiagaraInputNodeUsage::Parameter && Graph != nullptr)
+	{
+		TArray<UNiagaraNodeInput*> InputNodes;
+		Graph->GetNodesOfClass(InputNodes);
+		for (UNiagaraNodeInput* InputNode : InputNodes)
+		{
+			if (InputNode->Usage == Usage && InputNode->CallSortPriority > HighestSortOrder)
+			{
+				HighestSortOrder = InputNode->CallSortPriority;
+			}
+		}
+	}
+	return HighestSortOrder + 1;
+}
+
+FName UNiagaraNodeInput::GenerateUniqueName(const UNiagaraGraph* Graph, FName& ProposedName, ENiagaraInputNodeUsage Usage)
+{
+	check(Usage != ENiagaraInputNodeUsage::SystemConstant && Usage != ENiagaraInputNodeUsage::Undefined);
+	TSet<FName> InputNames;
+	if (Usage == ENiagaraInputNodeUsage::Parameter && Graph != nullptr)
+	{
+		TArray<UNiagaraNodeInput*> InputNodes;
+		Graph->GetNodesOfClass(InputNodes);
+		for (UNiagaraNodeInput* InputNode : InputNodes)
+		{
+			if (InputNode->Usage == Usage)
+			{
+				InputNames.Add(InputNode->Input.GetName());
+			}
+		}
+	}
+	else if (Usage == ENiagaraInputNodeUsage::Attribute && Graph != nullptr)
+	{
+		TArray<UNiagaraNodeOutput*> OutputNodes;
+		Graph->GetNodesOfClass<UNiagaraNodeOutput>(OutputNodes);
+		for (UNiagaraNodeOutput* Node : OutputNodes)
+		{
+			for (const FNiagaraVariable& Output : Node->Outputs)
+			{
+				InputNames.Add(Output.GetName());
+			}
+		}
+	}
+
+	return FNiagaraEditorUtilities::GetUniqueName(ProposedName, FNiagaraEditorUtilities::GetSystemConstantNames().Union(InputNames));
+}
+
+bool UNiagaraNodeInput::VerifyNodeRenameTextCommit(const FText& NewText, UNiagaraNode* NodeBeingChanged, FText& OutErrorMessage)
+{
+	FName NewName = *NewText.ToString();
+	TSet<FName> SystemConstantNames = FNiagaraEditorUtilities::GetSystemConstantNames();
+
+	// Disallow empty names
+	if (NewName == FName())
+	{
+		OutErrorMessage = LOCTEXT("NiagaraInputNameEmptyWarn", "Cannot have empty name!");
+		return false;
+	}
+
+	// Disallow name changes to system constants
+	if (SystemConstantNames.Contains(NewName))
+	{
+		OutErrorMessage = FText::Format(LOCTEXT("NiagaraInputNameSystemWarn", "\"{0}\" is a system constant name."), FText::FromName(NewName));
+		return false;
+	}
+
+	// @TODO: Prevent any hlsl keywords or invalid hlsl characters from being used as names!
+
+	UNiagaraNodeInput* InputNodeBeingChanged = Cast<UNiagaraNodeInput>(NodeBeingChanged);
+	UNiagaraNodeOutput* OutputNodeBeingChanged = Cast<UNiagaraNodeOutput>(NodeBeingChanged);
+
+	// Make sure that we aren't changing names to something already in the graph.
+	if (NodeBeingChanged != nullptr)
+	{
+		UNiagaraGraph* Graph = CastChecked<UNiagaraGraph>(NodeBeingChanged->GetGraph());
+
+		// If dealing with parameter, check to make sure that we don't conflict with any other parameter name.
+		if (InputNodeBeingChanged != nullptr && InputNodeBeingChanged->Usage == ENiagaraInputNodeUsage::Parameter)
+		{
+			TArray<UNiagaraNodeInput*> InputNodes;
+			Graph->GetNodesOfClass<UNiagaraNodeInput>(InputNodes);
+
+			for (UNiagaraNodeInput* Node : InputNodes)
+			{
+				if (Node == InputNodeBeingChanged || Node->Usage != InputNodeBeingChanged->Usage)
+				{
+					continue;
+				}
+
+				bool bIsSame = Node->ReferencesSameInput(InputNodeBeingChanged);
+				// This should still allow case changes b/c we test to make sure that they aren't referencing the same node.
+				if (bIsSame == false && Node->Input.GetName().IsEqual(NewName, ENameCase::IgnoreCase))
+				{
+					OutErrorMessage = FText::Format(LOCTEXT("NiagaraInputNameSameWarn", "\"{0}\" is the name of another parameter."), FText::FromName(NewName));
+					return false;
+				}
+			}
+		}
+
+		// If dealing with Attributes, check to make sure that we don't conflict with any other attribute name.
+		if ((InputNodeBeingChanged != nullptr && InputNodeBeingChanged->Usage == ENiagaraInputNodeUsage::Attribute) || OutputNodeBeingChanged != nullptr)
+		{
+			TArray<UNiagaraNodeOutput*> OutputNodes;
+			Graph->GetNodesOfClass<UNiagaraNodeOutput>(OutputNodes);
+			for (UNiagaraNodeOutput* Node : OutputNodes)
+			{
+				for (const FNiagaraVariable& Output : Node->Outputs)
+				{
+					if (InputNodeBeingChanged != nullptr && Output.GetName().IsEqual(InputNodeBeingChanged->Input.GetName(), ENameCase::IgnoreCase))
+					{
+						continue;
+					}
+
+					if (Output.GetName().IsEqual(NewName, ENameCase::IgnoreCase))
+					{
+						OutErrorMessage = FText::Format(LOCTEXT("NiagaraInputNameSameWarn", "\"{0}\" is the name of another attribute. Hit \"Escape\" to cancel edit."), FText::FromName(NewName));
+						return false;
+					}
+				}
+			}
+		}
+	}
+	return true;
+}
+
+void UNiagaraNodeInput::OnRenameNode(const FString& NewName)
+{
+	UNiagaraGraph* Graph = CastChecked<UNiagaraGraph>(GetGraph());
+	TArray<UNiagaraNodeInput*> InputNodes;
+	Graph->GetNodesOfClass<UNiagaraNodeInput>(InputNodes);
+
+	TArray<UNiagaraNodeInput*> AffectedNodes;
+	AffectedNodes.Add(this);
+	for (UNiagaraNodeInput* Node : InputNodes)
+	{
+		if (Node == this)
+		{
+			continue;
+		}
+
+		bool bNeedsSync = Node->ReferencesSameInput(this);
+		if (bNeedsSync)
+		{
+			AffectedNodes.Add(Node);
+		}
+	}
+
+	for (UNiagaraNodeInput* Node : AffectedNodes)
+	{
+		Node->Modify();
+		Node->Input.SetName(FName(*NewName));
+		if (DataInterface != nullptr)
+		{
+			Node->DataInterface->Rename(*NewName);
+		}
+		Node->ReallocatePins();
+	}
+}
+
+TSharedPtr<SGraphNode> UNiagaraNodeInput::CreateVisualWidget()
+{
+	return SNew(SNiagaraGraphNodeInput, this);
 }
 
 FLinearColor UNiagaraNodeInput::GetNodeTitleColor() const
@@ -106,6 +277,31 @@ FLinearColor UNiagaraNodeInput::GetNodeTitleColor() const
 	}
 }
 
+bool UNiagaraNodeInput::ReferencesSameInput(UNiagaraNodeInput* Other) const
+{
+	if (this == Other)
+	{
+		return true;
+	}
+
+	if (Usage == Other->Usage)
+	{
+		if (Usage == ENiagaraInputNodeUsage::Parameter && Input.GetId() == Other->Input.GetId())
+		{
+			return true;
+		}
+		else if (Usage != ENiagaraInputNodeUsage::Parameter)
+		{
+			if (Input.GetName() == Other->Input.GetName())
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
 void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
 {
 	if (FromPin != nullptr)
@@ -114,6 +310,36 @@ void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
 		check(Schema);
 		if (Usage == ENiagaraInputNodeUsage::Parameter)
 		{
+			TArray<UNiagaraNodeInput*> InputNodes;
+			GetGraph()->GetNodesOfClass(InputNodes);
+			TSet<FName> InputNames;
+			int32 NumMatches = 0;
+			int32 HighestSortPriority = -1; // Set to -1 initially, so that in the event of no nodes, we still get zero.
+			for (UNiagaraNodeInput* InputNode : InputNodes)
+			{
+				if (InputNode != this && InputNode->Usage == ENiagaraInputNodeUsage::Parameter)
+				{
+					if (this->ReferencesSameInput(InputNode))
+					{
+						NumMatches++;
+						check(InputNode->Input.GetName() == this->Input.GetName());
+						check(InputNode->Input.GetId() == this->Input.GetId());
+						check(InputNode->ExposureOptions.bCanAutoBind == this->ExposureOptions.bCanAutoBind);
+						check(InputNode->ExposureOptions.bExposed == this->ExposureOptions.bExposed);
+						check(InputNode->ExposureOptions.bHidden == this->ExposureOptions.bHidden);
+						check(InputNode->ExposureOptions.bRequired == this->ExposureOptions.bRequired);
+						check(InputNode->DataInterface == this->DataInterface);
+						check(InputNode->CallSortPriority == this->CallSortPriority);
+					}
+					InputNames.Add(InputNode->Input.GetName());
+					if (InputNode->CallSortPriority > HighestSortPriority)
+					{
+						HighestSortPriority = InputNode->CallSortPriority;
+					}
+				}
+			}
+
+			FName CandidateName = Input.GetName();
 			FNiagaraTypeDefinition Type = Input.GetType();
 			if (Type == FNiagaraTypeDefinition::GetGenericNumericDef())
 			{
@@ -121,22 +347,29 @@ void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
 				Type = Schema->PinToTypeDefinition(FromPin);
 			}
 
-			if (UNiagaraNodeOp* OpNode = Cast<UNiagaraNodeOp>(FromPin->GetOwningNode()))
+			if (NumMatches == 0)
 			{
-				const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpNode->OpName);
-				check(OpInfo);
-				Input.SetType(Type);
-				Input.SetName(*(OpInfo->FriendlyName.ToString() + TEXT(" ") + FromPin->PinName));
-			}
-			else if (UNiagaraNodeFunctionCall* FuncNode = Cast<UNiagaraNodeFunctionCall>(FromPin->GetOwningNode()))
-			{
-				Input.SetType(Type);
-				Input.SetName(*(FuncNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString() + TEXT(" ") + FromPin->PinName));
-			}
-			else
-			{
-				Input.SetType(Type);
-				Input.SetName(*FromPin->PinName);
+				FString PinName = FromPin->PinFriendlyName.IsEmpty() ? FromPin->PinName : FromPin->PinFriendlyName.ToString();
+				if (UNiagaraNodeOp* OpNode = Cast<UNiagaraNodeOp>(FromPin->GetOwningNode()))
+				{
+					const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpNode->OpName);
+					check(OpInfo);
+					Input.SetType(Type);
+					CandidateName = (*(OpInfo->FriendlyName.ToString() + TEXT(" ") + PinName));
+				}
+				else if (UNiagaraNodeFunctionCall* FuncNode = Cast<UNiagaraNodeFunctionCall>(FromPin->GetOwningNode()))
+				{
+					Input.SetType(Type);
+					CandidateName = (*(FuncNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString() + TEXT(" ") + PinName));
+				}
+				else
+				{
+					Input.SetType(Type);
+					CandidateName = (*PinName);
+				}
+
+				Input.SetName(FNiagaraEditorUtilities::GetUniqueName(CandidateName, FNiagaraEditorUtilities::GetSystemConstantNames().Union(InputNames)));
+				CallSortPriority = HighestSortPriority + 1;
 			}
 			ReallocatePins();
 		}
@@ -171,7 +404,16 @@ void UNiagaraNodeInput::Compile(class INiagaraCompiler* Compiler, TArray<int32>&
 			if (Default == INDEX_NONE)
 			{
 				//We failed to compile the default pin so just use the value of the input.
-				Default = Compiler->GetConstant(Input);
+				if (Usage == ENiagaraInputNodeUsage::Parameter && DataInterface != nullptr)
+				{
+					check(Input.GetType().GetClass());
+					Outputs.Add(Compiler->RegisterDataInterface(Input, DataInterface));
+					return;
+				}
+				else
+				{
+					Default = Compiler->GetConstant(Input);
+				}
 			}
 			Outputs.Add(Default);
 			return;
@@ -199,5 +441,23 @@ void UNiagaraNodeInput::Compile(class INiagaraCompiler* Compiler, TArray<int32>&
 	}
 }
 
+void UNiagaraNodeInput::SortNodes(TArray<UNiagaraNodeInput*>& InOutNodes)
+{
+	auto SortVars = [](UNiagaraNodeInput& A, UNiagaraNodeInput& B)
+	{
+		if (A.CallSortPriority < B.CallSortPriority)
+		{
+			return true;
+		}
+		else if (A.CallSortPriority > B.CallSortPriority)
+		{
+			return false;
+		}
+
+		//If equal priority, sort lexicographically.
+		return A.Input.GetName().ToString() < B.Input.GetName().ToString();
+	};
+	InOutNodes.Sort(SortVars);
+}
 
 #undef LOCTEXT_NAMESPACE

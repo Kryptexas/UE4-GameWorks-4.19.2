@@ -12,6 +12,7 @@
 #include "GlobalShader.h"
 #include "SkeletalRenderGPUSkin.h"
 #include "ShaderParameterUtils.h"
+#include "ClearQuad.h"
 
 DEFINE_STAT(STAT_GPUSkinCache_TotalNumChunks);
 DEFINE_STAT(STAT_GPUSkinCache_TotalNumVertices);
@@ -106,6 +107,14 @@ static TAutoConsoleVariable<float> CVarGPUSkinCacheDebug(
 	ECVF_RenderThreadSafe
 	);
 
+// max vertex count we support once the r.SkinCache.RecomputeTangents feature is used (GPU memory in bytes = n * sizeof(int) * IntermediateAccumBufferNumInts)
+// 4*1024 KB is the conservative size needed for Senua in CharDemo with NinjaTheory.
+TAutoConsoleVariable<int32> CVarGPUSkinCacheIntermediateAccumBufferSizeInKB(
+	TEXT("r.SkinCache.AccumulationBufferSizeInKB"),
+	4 * 1024,
+	TEXT("Maximum memory size of the output buffer for the computed vertices of the skin cache\n"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe
+);
 
 bool IsGPUSkinCacheAvailable()
 {
@@ -126,6 +135,14 @@ ENGINE_API bool DoRecomputeSkinTangentsOnGPU_RT()
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
 	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders != 0 && ((GEnableGPUSkinCache && CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0) || GForceRecomputeTangents != 0);
 }
+
+
+static inline uint32 ComputeRecomputeTangentMaxVertexCount()
+{
+	uint32 IntermediateAccumBufferSizeInB = CVarGPUSkinCacheIntermediateAccumBufferSizeInKB.GetValueOnAnyThread() * 1024;
+	return IntermediateAccumBufferSizeInB / (sizeof(int32) * FGPUSkinCache::IntermediateAccumBufferNumInts);
+}
+
 
 TGlobalResource<FGPUSkinCache> GGPUSkinCache;
 
@@ -365,8 +382,7 @@ void FGPUSkinCache::Initialize(FRHICommandListImmediate& RHICmdList)
 		UE_LOG(LogSkinCache, Log, TEXT("  RecomputeTangents: %.1f MB"), FMath::DivideAndRoundUp(MemInB, (uint32)1024) / 1024.0f);
 
 		// We clear once in the beginning and then each time in the PerVertexPass (this saves the clear or another Dispatch)
-		uint32 Value[4] = { 0, 0, 0, 0 };
-		RHICmdList.ClearUAV(SkinTangentIntermediate.UAV, Value);
+		RHICmdList.ClearTinyUAV(SkinTangentIntermediate.UAV, { 0, 0, 0, 0 });
 	}	
 
 	CachedElements.Reserve(MaxCachedElements);
@@ -852,7 +868,7 @@ public:
 
 		check(!GSkinCacheSafety || DispatchData.SkinCacheBuffer);
 
-//later		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+//later		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View);
 
 		SetShaderValue(RHICmdList, ShaderRHI, NumTriangles, DispatchData.NumTriangles);
 
@@ -982,7 +998,7 @@ public:
 		
 		check(!GSkinCacheSafety || DispatchData.SkinCacheBuffer);
 
-//later		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+//later		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View);
 
 		SetShaderValue(RHICmdList, ShaderRHI, SkinCacheStart, DispatchData.SkinCacheStart);
 		SetShaderValue(RHICmdList, ShaderRHI, NumVertices, DispatchData.NumVertices);

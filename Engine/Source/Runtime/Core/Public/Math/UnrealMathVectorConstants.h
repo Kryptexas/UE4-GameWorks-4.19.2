@@ -62,4 +62,8 @@ namespace GlobalVectorConstants
 	static const VectorRegister Float255 = MakeVectorRegister(255.0f, 255.0f, 255.0f, 255.0f);
 	static const VectorRegister Float360 = MakeVectorRegister(360.f, 360.f, 360.f, 360.f);
 	static const VectorRegister Float180 = MakeVectorRegister(180.f, 180.f, 180.f, 180.f);
+
+	static const VectorRegister FloatTwo = MakeVectorRegister(2.0f, 2.0f, 2.0f, 2.0f);
+	static const uint32 AlmostTwoBits = 0x3fffffff;
+	static const VectorRegister FloatAlmostTwo = MakeVectorRegister(*(float*)&AlmostTwoBits, *(float*)&AlmostTwoBits, *(float*)&AlmostTwoBits, *(float*)&AlmostTwoBits);
 }

@@ -47,6 +47,7 @@ void RayTraceThroughLightTileCulledObjectsFirstHit(
 		float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
 		float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
 		float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
+		float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
 
 		float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 		float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
@@ -82,7 +83,7 @@ void RayTraceThroughLightTileCulledObjectsFirstHit(
 				float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
 				float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
 				float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-				float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+				float DistanceField = SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x + DistanceToClamped;
 
 				MinDistance = min(MinDistance, DistanceField);
 				float SphereRadius = clamp(TanLightAngle * SampleRayTime, VolumeMinSphereRadius, VolumeMaxSphereRadius);
@@ -127,6 +128,7 @@ float3 ComputeDistanceFieldNormal(float3 WorldPosition, uint ObjectIndex)
 	float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
 	float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
 	float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
+	float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
 
 	float3x3 VolumeToWorld = LoadObjectVolumeToWorld(ObjectIndex);
 
@@ -140,12 +142,12 @@ float3 ComputeDistanceFieldNormal(float3 WorldPosition, uint ObjectIndex)
 	float3 UVMin = DistanceFieldVolumePositionToUV(-LocalPositionExtent, UVScaleAndVolumeScale.xyz, UVAdd);
 	float3 UVMax = DistanceFieldVolumePositionToUV(LocalPositionExtent, UVScaleAndVolumeScale.xyz, UVAdd);
 		
-	float R = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(min(LocalShadingUV.x + DistanceFieldAtlasTexelSize.x, UVMax.x), LocalShadingUV.y, LocalShadingUV.z), 0).x;
-	float L = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(max(LocalShadingUV.x - DistanceFieldAtlasTexelSize.x, UVMin.x), LocalShadingUV.y, LocalShadingUV.z), 0).x;
-	float F = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(LocalShadingUV.x, min(LocalShadingUV.y + DistanceFieldAtlasTexelSize.y, UVMax.y), LocalShadingUV.z), 0).x;
-	float B = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(LocalShadingUV.x, max(LocalShadingUV.y - DistanceFieldAtlasTexelSize.y, UVMin.y), LocalShadingUV.z), 0).x;
-	float U = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(LocalShadingUV.x, LocalShadingUV.y, min(LocalShadingUV.z + DistanceFieldAtlasTexelSize.z, UVMax.z)), 0).x;
-	float D = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, float3(LocalShadingUV.x, LocalShadingUV.y, max(LocalShadingUV.z - DistanceFieldAtlasTexelSize.z, UVMin.z)), 0).x;
+	float R = SampleMeshDistanceField(float3(min(LocalShadingUV.x + DistanceFieldAtlasTexelSize.x, UVMax.x), LocalShadingUV.y, LocalShadingUV.z), DistanceFieldMAD).x;
+	float L = SampleMeshDistanceField(float3(max(LocalShadingUV.x - DistanceFieldAtlasTexelSize.x, UVMin.x), LocalShadingUV.y, LocalShadingUV.z), DistanceFieldMAD).x;
+	float F = SampleMeshDistanceField(float3(LocalShadingUV.x, min(LocalShadingUV.y + DistanceFieldAtlasTexelSize.y, UVMax.y), LocalShadingUV.z), DistanceFieldMAD).x;
+	float B = SampleMeshDistanceField(float3(LocalShadingUV.x, max(LocalShadingUV.y - DistanceFieldAtlasTexelSize.y, UVMin.y), LocalShadingUV.z), DistanceFieldMAD).x;
+	float U = SampleMeshDistanceField(float3(LocalShadingUV.x, LocalShadingUV.y, min(LocalShadingUV.z + DistanceFieldAtlasTexelSize.z, UVMax.z)), DistanceFieldMAD).x;
+	float D = SampleMeshDistanceField(float3(LocalShadingUV.x, LocalShadingUV.y, max(LocalShadingUV.z - DistanceFieldAtlasTexelSize.z, UVMin.z)), DistanceFieldMAD).x;
 		
 	float3 Gradient = .5f * float3(R - L, F - B, U - D);
 	
@@ -353,7 +355,8 @@ float RayTraceThroughLightTileCulledObjects(
 			bool bGeneratedAsTwoSided;
 			float4 UVScaleAndVolumeScale = LoadObjectUVScaleFromBuffer(ObjectIndex, ShadowCulledObjectData, bGeneratedAsTwoSided);
 			float3 UVAdd = LoadObjectUVAddAndSelfShadowBiasFromBuffer(ObjectIndex, ShadowCulledObjectData).xyz;
-
+			float2 DistanceFieldMAD = LoadObjectDistanceFieldMADFromBuffer(ObjectIndex, ShadowCulledObjectData);
+	
 			float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 			float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
 			float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;
@@ -386,7 +389,7 @@ float RayTraceThroughLightTileCulledObjects(
 					float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
 					float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
 					float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-					float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+					float DistanceField = SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x + DistanceToClamped;
 
 					MinDistance = min(MinDistance, DistanceField);
 					float SphereRadius = clamp(TanLightAngle * SampleRayTime, VolumeMinSphereRadius, VolumeMaxSphereRadius);
@@ -617,6 +620,7 @@ float RayTraceThroughGlobalObjects(
 		float4x4 WorldToVolume = LoadGlobalObjectWorldToVolume(ObjectIndex);
 		float4 UVScaleAndVolumeScale = LoadGlobalObjectUVScale(ObjectIndex);
 		float3 UVAdd = LoadGlobalObjectUVAdd(ObjectIndex);
+		float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
 
 		float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 		float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
@@ -650,7 +654,7 @@ float RayTraceThroughGlobalObjects(
 				float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
 				float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
 				float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-				float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+				float DistanceField = SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x + DistanceToClamped;
 
 				float SphereRadius = clamp(TanConeAngle * SampleRayTime, 0, VolumeMaxSphereRadius);
 

@@ -47,7 +47,7 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bUsePositionOnlyVS = false;
 }
 
-void FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+void FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
 {
 	DrawRenderState.SetDitheredLODTransitionAlpha(0.0f);
 
@@ -191,7 +191,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 	}
 }
 
-void FMeshDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const
+void FMeshDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext) const
 {
 	check(VertexFactory && VertexFactory->IsInitialized());
 	VertexFactory->Set(RHICmdList);

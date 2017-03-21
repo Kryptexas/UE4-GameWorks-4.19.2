@@ -22,6 +22,7 @@ public:
 
 	virtual void RegisterCommands() override;
 
+	TSharedPtr<FUICommandInfo> Apply;
 	TSharedPtr<FUICommandInfo> Compile;
 	TSharedPtr<FUICommandInfo> RefreshNodes;
 	TSharedPtr<FUICommandInfo> ResetSimulation;
@@ -31,4 +32,7 @@ public:
 	
 	/** Toggles the preview pane's background */
 	TSharedPtr< FUICommandInfo > TogglePreviewBackground;
+
+	/** Toggles the locking/unlocking of refreshing from changes*/
+	TSharedPtr<FUICommandInfo> ToggleUnlockToChanges;
 };

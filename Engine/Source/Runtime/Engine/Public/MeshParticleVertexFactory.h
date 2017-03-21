@@ -28,7 +28,8 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FMeshParticleUniformParameters, ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( uint32, TexCoordWeightA )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( uint32, TexCoordWeightB )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( uint32, PrevTransformAvailable )
-END_UNIFORM_BUFFER_STRUCT( FMeshParticleUniformParameters )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, DeltaSeconds)
+	END_UNIFORM_BUFFER_STRUCT(FMeshParticleUniformParameters)
 typedef TUniformBufferRef<FMeshParticleUniformParameters> FMeshParticleUniformBufferRef;
 
 class FMeshParticleInstanceVertices;

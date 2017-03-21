@@ -79,6 +79,7 @@ protected:
 
 extern void ResolveFilterWide(
 	FRHICommandList& RHICmdList,
+	FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 	const ERHIFeatureLevel::Type CurrentFeatureLevel,
 	const FTextureRHIRef& SrcTexture,
 	const FIntPoint& SrcOrigin,

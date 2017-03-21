@@ -6,15 +6,55 @@
 #include "NiagaraConvertPinViewModel.h"
 #include "NiagaraConvertPinSocketViewModel.h"
 #include "SNiagaraConvertPinSocket.h"
-
+#include "SButton.h"
 #include "GraphEditorSettings.h"
 #include "DrawElements.h"
 #include "SGraphPin.h"
+
+#define LOCTEXT_NAMESPACE "SNiagaraGraphNodeConvert"
+
 
 void SNiagaraGraphNodeConvert::Construct(const FArguments& InArgs, UEdGraphNode* InGraphNode)
 {
 	GraphNode = InGraphNode;
 	UpdateGraphNode();
+}
+
+TSharedRef<SWidget> SNiagaraGraphNodeConvert::CreateTitleWidget(TSharedPtr<SNodeTitle> NodeTitle)
+{
+	return SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SGraphNode::CreateTitleWidget(NodeTitle)
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(10.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton")
+			.ToolTipText(LOCTEXT("ShowWiring_Tooltip", "Toggle visibility of the internal wiring switchboard."))
+			.OnClicked(this, &SNiagaraGraphNodeConvert::ToggleShowWiring)
+			.Content()
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Edit"))
+			]
+		];
+}
+
+FReply SNiagaraGraphNodeConvert::ToggleShowWiring()
+{
+	UNiagaraNodeConvert* ConvertNode = Cast<UNiagaraNodeConvert>(GraphNode);
+	if (ConvertNode != nullptr)
+	{
+		ConvertNode->SetWiringShown(!ConvertNode->IsWiringShown());
+	}
+
+	return FReply::Handled();
 }
 
 TSharedRef<SWidget> ConstructPinSocketsRecursive(const TArray<TSharedRef<FNiagaraConvertPinSocketViewModel>>& SocketViewModels)
@@ -26,9 +66,10 @@ TSharedRef<SWidget> ConstructPinSocketsRecursive(const TArray<TSharedRef<FNiagar
 		{
 			SocketBox->AddSlot()
 			.AutoHeight()
-			.Padding(0, 0, 0, 1)
+			.Padding(TAttribute<FMargin>(SocketViewModel, &FNiagaraConvertPinSocketViewModel::GetSlotMargin))
 			[
 				SNew(SNiagaraConvertPinSocket, SocketViewModel)
+				.Visibility(SocketViewModel, &FNiagaraConvertPinSocketViewModel::GetSocketVisibility)
 			];
 		}
 
@@ -36,7 +77,7 @@ TSharedRef<SWidget> ConstructPinSocketsRecursive(const TArray<TSharedRef<FNiagar
 		{
 			SocketBox->AddSlot()
 			.AutoHeight()
-			.Padding(0, 0, 0, 5)
+			.Padding(TAttribute<FMargin>(SocketViewModel, &FNiagaraConvertPinSocketViewModel::GetChildSlotMargin))
 			[
 				ConstructPinSocketsRecursive(SocketViewModel->GetChildSockets())
 			];
@@ -146,45 +187,78 @@ float DirectionOffset = 100;
 int32 SNiagaraGraphNodeConvert::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	int32 NewLayerId = SGraphNode::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	UNiagaraNodeConvert* ConvertNode = Cast<UNiagaraNodeConvert>(GraphNode);
+	if (ConvertNode != nullptr && ConvertNode->IsWiringShown() == false)
+	{
+		return NewLayerId;
+	}
+
 	NewLayerId++;
+
 	for (const TSharedRef<FNiagaraConvertConnectionViewModel>& ConnectionViewModel : ConvertNodeViewModel->GetConnectionViewModels())
 	{
-		FVector2D LocalStart = AllottedGeometry.AbsoluteToLocal(ConnectionViewModel->SourceSocket->GetAbsoluteConnectionPosition()) * GetContentScale().X;
+		FVector2D AbsStart = ConnectionViewModel->SourceSocket->GetAbsoluteConnectionPosition();
+		FVector2D LocalStart = AllottedGeometry.AbsoluteToLocal(AbsStart) ;
 		FVector2D StartDirection = FVector2D(DirectionOffset, 0);
 
-		FVector2D LocalEnd = AllottedGeometry.AbsoluteToLocal(ConnectionViewModel->DestinationSocket->GetAbsoluteConnectionPosition()) * (1 / GetContentScale().X);
+		FVector2D AbsEnd = ConnectionViewModel->DestinationSocket->GetAbsoluteConnectionPosition();
+		FVector2D LocalEnd = AllottedGeometry.AbsoluteToLocal(AbsEnd);
 		FVector2D EndDirection = FVector2D(DirectionOffset, 0);
 
-		FSlateDrawElement::MakeSpline(
-			OutDrawElements,
-			NewLayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			LocalStart,
-			StartDirection,
-			LocalEnd,
-			EndDirection,
-			MyClippingRect,
-			2);
+		bool bAllValuesValid = (AbsStart.X != -FLT_MAX) && (AbsStart.Y != -FLT_MAX) && (AbsEnd.X != -FLT_MAX) && (AbsEnd.Y != -FLT_MAX);
+
+		if (ConnectionViewModel->SourceSocket->GetSocketVisibility().IsVisible() &&
+			ConnectionViewModel->DestinationSocket->GetSocketVisibility().IsVisible() &&
+			bAllValuesValid)
+		{
+			FSlateDrawElement::MakeSpline(
+				OutDrawElements,
+				NewLayerId,
+				AllottedGeometry.ToPaintGeometry(),
+				LocalStart,
+				StartDirection,
+				LocalEnd,
+				EndDirection,
+				MyClippingRect,
+				2);
+		}
+		
 	}
 
 	if (ConvertNodeViewModel->GetDraggedSocketViewModel().IsValid())
 	{
-		FVector2D LocalStart = AllottedGeometry.AbsoluteToLocal(ConvertNodeViewModel->GetDraggedSocketViewModel()->GetAbsoluteConnectionPosition());
+		FVector2D AbsStart = ConvertNodeViewModel->GetDraggedSocketViewModel()->GetAbsoluteConnectionPosition();
+		FVector2D LocalStart = AllottedGeometry.AbsoluteToLocal(AbsStart);
 		FVector2D StartDirection = FVector2D(DirectionOffset, 0);
 
-		FVector2D LocalEnd = AllottedGeometry.AbsoluteToLocal(ConvertNodeViewModel->GetDraggedSocketViewModel()->GetAbsoluteDragPosition()) + Inverse(Args.GetWindowToDesktopTransform());
+		FVector2D AbsEnd = ConvertNodeViewModel->GetDraggedSocketViewModel()->GetAbsoluteDragPosition() + Inverse(Args.GetWindowToDesktopTransform());
+		FVector2D LocalEnd = AllottedGeometry.AbsoluteToLocal(AbsEnd);
 		FVector2D EndDirection = FVector2D(DirectionOffset, 0);
 
-		FSlateDrawElement::MakeSpline(
-			OutDrawElements,
-			NewLayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			LocalStart,
-			StartDirection,
-			LocalEnd,
-			EndDirection,
-			MyClippingRect,
-			2);
+		// Swap directions if going backwards
+		if (ConvertNodeViewModel->GetDraggedSocketViewModel()->GetDirection() == EGPD_Output)
+		{
+			FVector2D Temp = LocalEnd;
+			LocalEnd = LocalStart;
+			LocalStart = Temp;
+		}
+
+		bool bAllValuesValid = (AbsStart.X != -FLT_MAX) && (AbsStart.Y != -FLT_MAX) && (AbsEnd.X != -FLT_MAX) && (AbsEnd.Y != -FLT_MAX);
+
+		if (bAllValuesValid)
+		{
+			FSlateDrawElement::MakeSpline(
+				OutDrawElements,
+				NewLayerId,
+				AllottedGeometry.ToPaintGeometry(),
+				LocalStart,
+				StartDirection,
+				LocalEnd,
+				EndDirection,
+				MyClippingRect,
+				2);
+		}
 	}
 
 	return NewLayerId;
@@ -203,3 +277,5 @@ TSharedPtr<FNiagaraConvertPinViewModel> SNiagaraGraphNodeConvert::GetViewModelFo
 		? *ViewModelPtr
 		: TSharedPtr<FNiagaraConvertPinViewModel>();
 }
+
+#undef LOCTEXT_NAMESPACE

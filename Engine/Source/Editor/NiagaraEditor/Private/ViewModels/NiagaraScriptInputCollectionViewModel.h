@@ -29,7 +29,16 @@ public:
 	virtual const TArray<TSharedRef<INiagaraParameterViewModel>>& GetParameters() override;
 
 	/** Rebuilds the parameter view models. */
-	void RefreshParameterViewModels();
+	virtual void RefreshParameterViewModels() override;
+
+	/** Gets the parameter view model associated with a given Id.*/
+	TSharedPtr<INiagaraParameterViewModel> GetParameterViewModel(const FGuid& Id);
+	
+	/** Sets all parameter view models editable state to the input value.*/
+	void SetAllParametersEditingEnabled(bool bInEnabled);
+
+	/** Sets the tooltip overrides on all parameters.*/
+	void SetAllParametersTooltipOverrides(const FText& Override);
 
 protected:
 	//~ FNiagaraParameterCollectionViewModel interface.
@@ -46,17 +55,17 @@ private:
 	void OnParameterTypeChanged(FNiagaraVariable* ParameterVariable);
 
 	/** Handles when the default value on a parameter changes. */
-	void OnParameterValueChangedInternal(const FNiagaraVariable* ChangedVariable, TSharedRef<FNiagaraScriptParameterViewModel> ChangedParameter);
+	void OnParameterValueChangedInternal(TSharedRef<FNiagaraScriptParameterViewModel> ChangedParameter);
 
 private:
 	/** The parameter view models. */
 	TArray<TSharedRef<INiagaraParameterViewModel>> ParameterViewModels;
 
 	/** The script which provides the input parameters viewed and edited by this view model. */
-	UNiagaraScript* Script;
+	TWeakObjectPtr<UNiagaraScript> Script;
 
 	/** The graph which owns the non-compiled input parameters viewed and edited by this view model. */
-	UNiagaraGraph* Graph;
+	TWeakObjectPtr<UNiagaraGraph> Graph;
 
 	/** The display name for the view model. */
 	FText DisplayName;

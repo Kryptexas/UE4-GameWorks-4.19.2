@@ -92,6 +92,14 @@ enum class EScriptExecutionMode : uint8
 	SingleParticle
 };
 
+UENUM()
+enum class EScriptCompileIndices : uint8
+{
+	SpawnScript = 0,
+	UpdateScript,
+	EventScript
+};
+
 USTRUCT()
 struct FNiagaraEmitterScriptProperties
 {
@@ -165,12 +173,11 @@ class UNiagaraEmitterProperties : public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:
-	NIAGARA_API void Init();
-
 	//Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+	void Serialize(FArchive& Ar)override;
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	//End UObject Interface
@@ -205,6 +212,21 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Emitter")
 	TArray<FNiagaraEmitterBurst> Bursts;
+
+	/** When enabled, this will spawn using interpolated parameter values and perform a partial update at spawn time. This adds significant additional cost for spawning but will produce much smoother spawning for high spawn rates, erratic frame rates and fast moving emitters. */
+	UPROPERTY(EditAnywhere, Category = "Emitter")
+	uint32 bInterpolatedSpawning : 1;
+
+#if WITH_EDITORONLY_DATA
+	/** Adjusted every time that we compile this emitter. Lets us know that we might differ from any cached versions.*/
+	UPROPERTY()
+	FGuid ChangeId;
+
+	void NIAGARA_API CompileScripts(TArray<ENiagaraScriptCompileStatus>& OutScriptStatuses, TArray<FString>& OutGraphLevelErrorMessages, TArray<FString>& PathNames);
+	ENiagaraScriptCompileStatus NIAGARA_API CompileScript(EScriptCompileIndices InScriptToCompile, FString& OutGraphLevelErrorMessages);
+
+	UNiagaraEmitterProperties* MakeRecursiveDeepCopy(UObject* DestOuter) const;
+#endif
 };
 
 

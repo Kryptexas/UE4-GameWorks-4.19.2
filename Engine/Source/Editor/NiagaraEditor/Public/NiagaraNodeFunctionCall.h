@@ -41,9 +41,10 @@ public:
 	//~ Begin UNiagaraNode Interface
 	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs)override;
 	virtual UObject* GetReferencedAsset() const override;
-	virtual void RefreshFromExternalChanges() override;
+	virtual bool RefreshFromExternalChanges() override;
 	virtual ENiagaraNumericOutputTypeSelectionMode GetNumericOutputTypeSelectionMode() const override;
 	virtual bool CanAddToGraph(UNiagaraGraph* TargetGraph, FString& OutErrorMsg) const override;
+	virtual void SubsumeExternalDependencies(TMap<UObject*, UObject*>& ExistingConversions) override;
 	//End UNiagaraNode interface
 
 	//~ Begin EdGraphNode Interface
@@ -54,5 +55,11 @@ public:
 	//~ End EdGraphNode Interface
 
 	bool FindAutoBoundInput(UNiagaraNodeInput* InputNode, UEdGraphPin* PinToAutoBind, FNiagaraVariable& OutFoundVar, ENiagaraInputNodeUsage& OutNodeUsage);
+
+protected:
+
+	/** Adjusted every time that we compile this script. Lets us know that we might differ from any cached versions.*/
+	UPROPERTY()
+	FGuid CachedChangeId;
 };
 

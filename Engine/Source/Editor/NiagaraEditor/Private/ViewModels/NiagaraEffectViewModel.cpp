@@ -13,7 +13,6 @@
 #include "NiagaraSequence.h"
 #include "MovieSceneNiagaraEmitterTrack.h"
 #include "MovieSceneNiagaraEmitterSection.h"
-#include "NiagaraEmitterTrackEditor.h"
 #include "NiagaraEffectInstance.h"
 
 #include "Editor.h"
@@ -23,32 +22,64 @@
 #include "ISequencerModule.h"
 #include "EditorSupportDelegates.h"
 #include "ModuleManager.h"
+#include "TNiagaraViewModelManager.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectViewModel"
+
+TMap<UNiagaraEffect*, TArray<FNiagaraEffectViewModel*>> TNiagaraViewModelManager<UNiagaraEffect, FNiagaraEffectViewModel>::ObjectsToViewModels;
 
 FNiagaraEffectViewModel::FNiagaraEffectViewModel(UNiagaraEffect& InEffect, FNiagaraEffectViewModelOptions InOptions)
 	: Effect(InEffect)
 	, ParameterEditMode(InOptions.ParameterEditMode)
+	, PreviewComponent(nullptr)
 	, EffectScriptViewModel(MakeShareable(new FNiagaraEffectScriptViewModel(Effect)))
+	, NiagaraSequence(nullptr)
 	, bCanRemoveEmittersFromTimeline(InOptions.bCanRemoveEmittersFromTimeline)
 	, bCanRenameEmittersFromTimeline(InOptions.bCanRenameEmittersFromTimeline)
 	, bUpdatingFromSequencerDataChange(false)
 {
 	EffectScriptViewModel->GetInputCollectionViewModel()->OnParameterValueChanged().AddRaw(this, &FNiagaraEffectViewModel::EffectParameterValueChanged);
+	EffectScriptViewModel->GetInputCollectionViewModel()->OnCollectionChanged().AddRaw(this, &FNiagaraEffectViewModel::EffectParameterCollectionChanged);
 	EffectScriptViewModel->OnParameterBindingsChanged().AddRaw(this, &FNiagaraEffectViewModel::EffectParameterBindingsChanged);
+	EffectScriptViewModel->GetInputCollectionViewModel()->GetSelection().OnSelectedObjectsChanged().AddRaw(this, &FNiagaraEffectViewModel::ParameterSelectionChanged);
 	SetupPreviewComponentAndInstance();
 	SetupSequencer();
 	RefreshAll();
 	GEditor->RegisterForUndo(this);
+	RegisteredHandle = RegisterViewModelWithMap(&InEffect, this);
 }
 
 FNiagaraEffectViewModel::~FNiagaraEffectViewModel()
 {
+	CurveOwner.EmptyCurves();
 	if (EffectInstance.IsValid())
 	{
 		EffectInstance->OnInitialized().RemoveAll(this);
 	}
+
 	GEditor->UnregisterForUndo(this);
+
+	// Make sure that we clear out all of our event handlers
+	UnregisterViewModelWithMap(RegisteredHandle);
+	UE_LOG(LogNiagaraEditor, Warning, TEXT("Deleting effect view model %p"), this);
+
+	EffectScriptViewModel->GetInputCollectionViewModel()->OnParameterValueChanged().RemoveAll(this);
+	EffectScriptViewModel->GetInputCollectionViewModel()->OnCollectionChanged().RemoveAll(this);
+	EffectScriptViewModel->OnParameterBindingsChanged().RemoveAll(this);
+	
+	for (TSharedRef<FNiagaraEmitterHandleViewModel>& HandleRef : EmitterHandleViewModels)
+	{
+		HandleRef->OnPropertyChanged().RemoveAll(this);
+		HandleRef->GetEmitterViewModel()->OnPropertyChanged().RemoveAll(this);
+		HandleRef->GetEmitterViewModel()->OnParameterValueChanged().RemoveAll(this);
+		HandleRef->GetEmitterViewModel()->OnScriptCompiled().RemoveAll(this);
+		HandleRef->GetEmitterViewModel()->GetSpawnScriptViewModel()->GetInputCollectionViewModel()->
+			GetSelection().OnSelectedObjectsChanged().RemoveAll(this);
+		HandleRef->GetEmitterViewModel()->GetUpdateScriptViewModel()->GetInputCollectionViewModel()->
+			GetSelection().OnSelectedObjectsChanged().RemoveAll(this);
+	}
+	EmitterHandleViewModels.Empty();
+	EffectInstance.Reset();
 }
 
 const TArray<TSharedRef<FNiagaraEmitterHandleViewModel>>& FNiagaraEffectViewModel::GetEmitterHandleViewModels()
@@ -69,6 +100,11 @@ UNiagaraComponent* FNiagaraEffectViewModel::GetPreviewComponent()
 TSharedPtr<ISequencer> FNiagaraEffectViewModel::GetSequencer()
 {
 	return Sequencer;
+}
+
+FNiagaraCurveOwner& FNiagaraEffectViewModel::GetCurveOwner()
+{
+	return CurveOwner;
 }
 
 void FNiagaraEffectViewModel::AddEmitterFromAssetData(const FAssetData& AssetData)
@@ -142,6 +178,11 @@ FNiagaraEffectViewModel::FOnEmitterHandleViewModelsChanged& FNiagaraEffectViewMo
 	return OnEmitterHandleViewModelsChangedDelegate;
 }
 
+FNiagaraEffectViewModel::FOnCurveOwnerChanged& FNiagaraEffectViewModel::OnCurveOwnerChanged()
+{
+	return OnCurveOwnerChangedDelegate;
+}
+
 void FNiagaraEffectViewModel::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	if (PreviewComponent != nullptr)
@@ -183,8 +224,8 @@ void FNiagaraEffectViewModel::ReinitEffectInstances()
 	{
 		FNiagaraEmitterHandle& EmitterHandle = Effect.GetEmitterHandle(i);
 		FString ErrorMessages;
-		Cast<UNiagaraScriptSource>(EmitterHandle.GetInstance()->SpawnScriptProps.Script->Source)->Compile(ErrorMessages);
-		Cast<UNiagaraScriptSource>(EmitterHandle.GetInstance()->UpdateScriptProps.Script->Source)->Compile(ErrorMessages);
+		//Cast<UNiagaraScriptSource>(EmitterHandle.GetInstance()->SpawnScriptProps.Script->Source)->Compile(ErrorMessages);
+		//Cast<UNiagaraScriptSource>(EmitterHandle.GetInstance()->UpdateScriptProps.Script->Source)->Compile(ErrorMessages);
 		EmitterHandle.GetInstance()->UpdateScriptProps.InitDataSetAccess();
 	}
 
@@ -218,6 +259,11 @@ void FNiagaraEffectViewModel::RefreshEmitterHandleViewModels()
 			ViewModel->OnPropertyChanged().AddRaw(this, &FNiagaraEffectViewModel::EmitterHandlePropertyChanged, ViewModel);
 			ViewModel->GetEmitterViewModel()->OnPropertyChanged().AddRaw(this, &FNiagaraEffectViewModel::EmitterPropertyChanged, ViewModel);
 			ViewModel->GetEmitterViewModel()->OnParameterValueChanged().AddRaw(this, &FNiagaraEffectViewModel::EmitterParameterValueChanged);
+			ViewModel->GetEmitterViewModel()->OnScriptCompiled().AddRaw(this, &FNiagaraEffectViewModel::ScriptCompiled);
+			ViewModel->GetEmitterViewModel()->GetSpawnScriptViewModel()->GetInputCollectionViewModel()->
+				GetSelection().OnSelectedObjectsChanged().AddRaw(this, &FNiagaraEffectViewModel::ParameterSelectionChanged);
+			ViewModel->GetEmitterViewModel()->GetUpdateScriptViewModel()->GetInputCollectionViewModel()->
+				GetSelection().OnSelectedObjectsChanged().AddRaw(this, &FNiagaraEffectViewModel::ParameterSelectionChanged);
 			EmitterHandleViewModels.Add(ViewModel);
 		}
 		else
@@ -238,6 +284,11 @@ void FNiagaraEffectViewModel::RefreshEmitterHandleViewModels()
 		ViewModel->OnPropertyChanged().RemoveAll(this);
 		ViewModel->GetEmitterViewModel()->OnPropertyChanged().RemoveAll(this);
 		ViewModel->GetEmitterViewModel()->OnParameterValueChanged().RemoveAll(this);
+		ViewModel->GetEmitterViewModel()->OnScriptCompiled().RemoveAll(this);
+		ViewModel->GetEmitterViewModel()->GetSpawnScriptViewModel()->GetInputCollectionViewModel()->
+			GetSelection().OnSelectedObjectsChanged().RemoveAll(this);
+		ViewModel->GetEmitterViewModel()->GetUpdateScriptViewModel()->GetInputCollectionViewModel()->
+			GetSelection().OnSelectedObjectsChanged().RemoveAll(this);
 		ViewModel->Set(nullptr, nullptr, Effect, ParameterEditMode);
 	}
 
@@ -353,7 +404,7 @@ TRange<float> SequencerDefaultTimeRange(0, 10);
 
 void FNiagaraEffectViewModel::SetupSequencer()
 {
-	NiagaraSequence = NewObject<UNiagaraSequence>(&Effect);
+	NiagaraSequence = NewObject<UNiagaraSequence>(GetTransientPackage());
 	NiagaraSequence->MovieScene = NewObject<UMovieScene>(NiagaraSequence, FName("Niagara Effect MovieScene"), RF_Transactional);
 	NiagaraSequence->MovieScene->SetPlaybackRange(SequencerDefaultTimeRange.GetLowerBoundValue(), SequencerDefaultTimeRange.GetUpperBoundValue());
 	NiagaraSequence->MovieScene->GetEditorData().ViewRange =TRange<float>(
@@ -375,9 +426,8 @@ void FNiagaraEffectViewModel::SetupSequencer()
 		SequencerInitParams.ToolkitHost = nullptr;
 	}
 
-	ISequencerModule &SeqModule = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer");
-	FDelegateHandle CreateTrackEditorHandle = SeqModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FNiagaraEmitterTrackEditor::CreateTrackEditor));
-	Sequencer = SeqModule.CreateSequencer(SequencerInitParams);
+	ISequencerModule &SequencerModule = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer");
+	Sequencer = SequencerModule.CreateSequencer(SequencerInitParams);
 
 	Sequencer->OnMovieSceneDataChanged().AddRaw(this, &FNiagaraEffectViewModel::SequencerDataChanged);
 	Sequencer->OnGlobalTimeChanged().AddRaw(this, &FNiagaraEffectViewModel::SequencerTimeChanged);
@@ -388,7 +438,7 @@ void FNiagaraEffectViewModel::SetupSequencer()
 
 void FNiagaraEffectViewModel::ResetEffect()
 {
-	EffectInstance->RequestResetSimulation();
+	EffectInstance->Reset(FNiagaraEffectInstance::EResetMode::DeferredReset);
 	if (Sequencer->GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
 	{
 		Sequencer->SetGlobalTime(0.0f);
@@ -400,10 +450,121 @@ void FNiagaraEffectViewModel::ResetEffect()
 		if (Component->GetAsset() == &Effect)
 		{
 			Component->SynchronizeWithSourceEffect();
-			Component->GetEffectInstance()->RequestResetSimulation();
+			Component->GetEffectInstance()->Reset(FNiagaraEffectInstance::EResetMode::DeferredReset);
 		}
 	}
+	SynchronizeEffectDrivenParametersUI();
 	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+
+void FNiagaraEffectViewModel::ReInitializeEffect()
+{
+	if (EffectInstance.IsValid())
+	{
+		EffectInstance->Reset(FNiagaraEffectInstance::EResetMode::DeferredReInit);
+	}
+
+	if (Sequencer.IsValid() && Sequencer->GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
+	{
+		Sequencer->SetGlobalTime(0.0f);
+	}
+
+	for (TObjectIterator<UNiagaraComponent> ComponentIt; ComponentIt; ++ComponentIt)
+	{
+		UNiagaraComponent* Component = *ComponentIt;
+		if (Component->GetAsset() == &Effect)
+		{
+			Component->SynchronizeWithSourceEffect();
+			Component->GetEffectInstance()->Reset(FNiagaraEffectInstance::EResetMode::DeferredReInit);
+		}
+	}
+	SynchronizeEffectDrivenParametersUI();
+	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+struct FParameterCurveData
+{
+	FRichCurve* Curve;
+	FName Name;
+	FLinearColor Color;
+	UObject* Owner;
+	FGuid ParameterId;
+	TSharedPtr<INiagaraParameterCollectionViewModel> ParameterCollection;
+};
+
+void GetParameterCurveData(FName EmitterName, FString ScriptName, TSharedPtr<INiagaraParameterCollectionViewModel> ParameterCollection,	TArray<FParameterCurveData>& OutParameterCurveData)
+{
+	for (TSharedRef<INiagaraParameterViewModel> SelectedParameterViewModel : ParameterCollection->GetSelection().GetSelectedObjects())
+	{
+		UNiagaraDataInterfaceCurveBase* CurveDataInterface = Cast<UNiagaraDataInterfaceCurveBase>(SelectedParameterViewModel->GetDefaultValueObject());
+		if (CurveDataInterface != nullptr)
+		{
+			TArray<UNiagaraDataInterfaceCurveBase::FCurveData> CurveData;
+			CurveDataInterface->GetCurveData(CurveData);
+			for (UNiagaraDataInterfaceCurveBase::FCurveData CurveDataItem : CurveData)
+			{
+				FParameterCurveData ParameterCurveData;
+				ParameterCurveData.Curve = CurveDataItem.Curve;
+				ParameterCurveData.Color = CurveDataItem.Color;
+				ParameterCurveData.Owner = CurveDataInterface;
+				FString EmitterPrefix = EmitterName == NAME_None
+					? FString()
+					: EmitterName.ToString() + ".";
+				FString ScriptPrefix = ScriptName + ".";
+				FString ParameterName = CurveDataItem.Name == NAME_None
+					? SelectedParameterViewModel->GetName().ToString()
+					: SelectedParameterViewModel->GetName().ToString() + ".";
+				FString DataName = CurveDataItem.Name == NAME_None
+					? FString()
+					: CurveDataItem.Name.ToString();
+				ParameterCurveData.Name = *(EmitterPrefix + ScriptPrefix + ParameterName + DataName);
+				ParameterCurveData.ParameterId = SelectedParameterViewModel->GetId();
+				ParameterCurveData.ParameterCollection = ParameterCollection;
+				OutParameterCurveData.Add(ParameterCurveData);
+			}
+		}
+	}
+}
+
+void FNiagaraEffectViewModel::ResetCurveData()
+{
+	CurveOwner.EmptyCurves();
+
+	TArray<FParameterCurveData> ParameterCurveData;
+
+	GetParameterCurveData(
+		NAME_None,
+		TEXT("Effect"),
+		EffectScriptViewModel->GetInputCollectionViewModel(),
+		ParameterCurveData);
+
+	for (TSharedRef<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel : EmitterHandleViewModels)
+	{
+		GetParameterCurveData(
+			EmitterHandleViewModel->GetName(),
+			TEXT("Spawn"),
+			EmitterHandleViewModel->GetEmitterViewModel()->GetSpawnScriptViewModel()->GetInputCollectionViewModel(),
+			ParameterCurveData);
+
+		GetParameterCurveData(
+			EmitterHandleViewModel->GetName(),
+			TEXT("Update"),
+			EmitterHandleViewModel->GetEmitterViewModel()->GetUpdateScriptViewModel()->GetInputCollectionViewModel(),
+			ParameterCurveData);
+	}
+
+	for (FParameterCurveData& ParameterCurveDataItem : ParameterCurveData)
+	{
+		CurveOwner.AddCurve(
+			*ParameterCurveDataItem.Curve,
+			ParameterCurveDataItem.Name,
+			ParameterCurveDataItem.Color,
+			*ParameterCurveDataItem.Owner,
+			FNiagaraCurveOwner::FNotifyCurveChanged::CreateRaw(this, &FNiagaraEffectViewModel::CurveChanged, ParameterCurveDataItem.ParameterCollection, ParameterCurveDataItem.ParameterId));
+	}
+
+	OnCurveOwnerChangedDelegate.Broadcast();
 }
 
 void FNiagaraEffectViewModel::EmitterHandlePropertyChanged(TSharedRef<FNiagaraEmitterHandleViewModel> EmitterHandleViewModel)
@@ -415,6 +576,11 @@ void FNiagaraEffectViewModel::EmitterHandlePropertyChanged(TSharedRef<FNiagaraEm
 	{
 		RefreshSequencerTrack(GetTrackForHandleViewModel(EmitterHandleViewModel));
 	}
+	ReInitializeEffect();
+}
+
+void FNiagaraEffectViewModel::EffectParameterCollectionChanged()
+{
 	ResetEffect();
 }
 
@@ -427,19 +593,100 @@ void FNiagaraEffectViewModel::EmitterPropertyChanged(TSharedRef<FNiagaraEmitterH
 	ResetEffect();
 }
 
-void FNiagaraEffectViewModel::EmitterParameterValueChanged(const FNiagaraVariable* ChangedVariable)
+void FNiagaraEffectViewModel::EmitterParameterValueChanged(FGuid ParamterId)
 {
 	ResetEffect();
 }
 
-void FNiagaraEffectViewModel::EffectParameterValueChanged(const FNiagaraVariable* ChangedVariable)
+void FNiagaraEffectViewModel::ParameterSelectionChanged()
+{
+	ResetCurveData();
+}
+
+void FNiagaraEffectViewModel::EffectParameterValueChanged(FGuid ParamterId)
 {
 	ResetEffect();
 }
 
 void FNiagaraEffectViewModel::EffectParameterBindingsChanged()
 {
-	ResetEffect();
+	ReInitializeEffect();
+}
+
+void FNiagaraEffectViewModel::ScriptCompiled()
+{
+	ReInitializeEffect();
+}
+
+void FNiagaraEffectViewModel::CurveChanged(TSharedPtr<INiagaraParameterCollectionViewModel> CollectionViewModel, FGuid ParameterId)
+{
+	CollectionViewModel->NotifyParameterChangedExternally(ParameterId);
+}
+
+void FNiagaraEffectViewModel::SynchronizeEffectDrivenParametersUI()
+{
+	for (TSharedRef<FNiagaraEmitterHandleViewModel>& EmitterHandleVM : EmitterHandleViewModels)
+	{
+		TSharedRef<FNiagaraEmitterViewModel> EmitterVM = EmitterHandleVM->GetEmitterViewModel();
+
+		TSharedRef<FNiagaraScriptViewModel> SpawnVM = EmitterVM->GetSpawnScriptViewModel();
+		TSharedRef<FNiagaraScriptViewModel> UpdateVM = EmitterVM->GetUpdateScriptViewModel();
+
+		TSharedRef<FNiagaraScriptInputCollectionViewModel> SpawnInputCollectionVM = SpawnVM->GetInputCollectionViewModel();
+		TSharedRef<FNiagaraScriptInputCollectionViewModel> UpdateInputCollectionVM = UpdateVM->GetInputCollectionViewModel();
+
+		FNiagaraEmitterHandle* EmitterHandle = EmitterHandleVM->GetEmitterHandle();
+		if (EmitterHandle != nullptr)
+		{
+			SpawnInputCollectionVM->SetAllParametersEditingEnabled(true);
+			UpdateInputCollectionVM->SetAllParametersEditingEnabled(true);
+			SpawnInputCollectionVM->SetAllParametersTooltipOverrides(FText::FromString(FString()));
+			UpdateInputCollectionVM->SetAllParametersTooltipOverrides(FText::FromString(FString()));
+
+			FText OverrideTextFormat = LOCTEXT("NiagaraEffectTooltipOverride", "Parameter {0} is driven by the effect graph.");
+			const TArray<FNiagaraParameterBinding> Bindings = Effect.GetParameterBindings();
+			for (const FNiagaraParameterBinding& Binding : Bindings)
+			{
+				if (Binding.GetDestinationEmitterId() == EmitterHandle->GetId())
+				{
+					TSharedPtr<INiagaraParameterViewModel> ParamVM = SpawnInputCollectionVM->GetParameterViewModel(Binding.GetDestinationParameterId());
+					if (ParamVM.IsValid())
+					{
+						ParamVM->SetEditingEnabled(false);
+						ParamVM->SetTooltipOverride(FText::Format(OverrideTextFormat, FText::FromName(ParamVM->GetName())));
+					}
+
+					ParamVM = UpdateInputCollectionVM->GetParameterViewModel(Binding.GetDestinationParameterId());
+					if (ParamVM.IsValid())
+					{
+						ParamVM->SetEditingEnabled(false);
+						ParamVM->SetTooltipOverride(FText::Format(OverrideTextFormat, FText::FromName(ParamVM->GetName())));
+					}
+				}
+			}
+
+			const TArray<FNiagaraParameterBinding> DataInterfaceBindings = Effect.GetDataInterfaceBindings();
+			for (const FNiagaraParameterBinding& Binding : DataInterfaceBindings)
+			{
+				if (Binding.GetDestinationEmitterId() == EmitterHandle->GetId())
+				{
+					TSharedPtr<INiagaraParameterViewModel> ParamVM = SpawnInputCollectionVM->GetParameterViewModel(Binding.GetDestinationParameterId());
+					if (ParamVM.IsValid())
+					{
+						ParamVM->SetEditingEnabled(false);
+						ParamVM->SetTooltipOverride(FText::Format(OverrideTextFormat, FText::FromName(ParamVM->GetName())));
+					}
+
+					ParamVM = UpdateInputCollectionVM->GetParameterViewModel(Binding.GetDestinationParameterId());
+					if (ParamVM.IsValid())
+					{
+						ParamVM->SetEditingEnabled(false);
+						ParamVM->SetTooltipOverride(FText::Format(OverrideTextFormat, FText::FromName(ParamVM->GetName())));
+					}
+				}
+			}
+		}
+	}
 }
 
 void FNiagaraEffectViewModel::SequencerDataChanged()
@@ -525,7 +772,7 @@ void FNiagaraEffectViewModel::SequencerDataChanged()
 		}
 	}
 
-	EffectInstance->RequestResetSimulation();
+	EffectInstance->Reset(FNiagaraEffectInstance::EResetMode::DeferredReset);
 }
 
 void FNiagaraEffectViewModel::SequencerTimeChanged()
@@ -551,6 +798,12 @@ void FNiagaraEffectViewModel::EffectInstanceInitialized()
 			EmitterHandleViewModel->SetSimulation(EffectInstance->GetSimulationForHandle(*EmitterHandleViewModel->GetEmitterHandle()));
 		}
 	}
+}
+
+void FNiagaraEffectViewModel::ResynchronizeAllHandles()
+{
+	Effect.ResynchronizeAllHandles();
+	RefreshAll();
 }
 
 #undef LOCTEXT_NAMESPACE // NiagaraEffectViewModel

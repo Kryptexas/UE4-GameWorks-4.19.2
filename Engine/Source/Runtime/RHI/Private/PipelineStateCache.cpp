@@ -133,7 +133,12 @@ public:
 	}
 };
 
-FComputePipelineState* GetOrCreateComputePipelineState(FRHICommandList& RHICmdList, FRHIComputeShader* ComputeShader)
+static bool IsAsyncCompilationAllowed(FRHICommandList& RHICmdList)
+{
+	return GCVarAsyncPipelineCompile.GetValueOnAnyThread() && !RHICmdList.Bypass() && GRHIThread;
+}
+
+FComputePipelineState* GetAndOrCreateComputePipelineState(FRHICommandList& RHICmdList, FRHIComputeShader* ComputeShader)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetOrCreatePSO);
 
@@ -144,13 +149,17 @@ FComputePipelineState* GetOrCreateComputePipelineState(FRHICommandList& RHICmdLi
 		FComputePipelineState** Found = GComputePipelines.Find(ComputeShader);
 		if (Found)
 		{
-			RHICmdList.QueueAsyncPipelineStateCompile((*Found)->CompletionEvent);
+			if (IsAsyncCompilationAllowed(RHICmdList))
+			{
+				FGraphEventRef& CompletionEvent = (*Found)->CompletionEvent;
+				RHICmdList.QueueAsyncPipelineStateCompile(CompletionEvent);
+			}
 			return *Found;
 		}
 
 		FComputePipelineState* PipelineState = new FComputePipelineState(ComputeShader);
 
-		if (GCVarAsyncPipelineCompile.GetValueOnAnyThread() && !RHICmdList.Bypass())
+		if (IsAsyncCompilationAllowed(RHICmdList))
 		{
 			PipelineState->CompletionEvent = TGraphTask<FCompilePipelineStateTask>::CreateTask().ConstructAndDispatchWhenReady(PipelineState);
 			RHICmdList.QueueAsyncPipelineStateCompile(PipelineState->CompletionEvent);
@@ -175,34 +184,87 @@ FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* 
 	return ComputePipelineState->RHIPipeline;
 }
 
-FGraphicsPipelineState* GetOrCreateGraphicsPipelineState(FRHICommandList& RHICmdList, const FGraphicsPipelineStateInitializer& Initializer)
+FGraphicsPipelineState* GetAndOrCreateGraphicsPipelineState(FRHICommandList& RHICmdList, const FGraphicsPipelineStateInitializer& OriginalInitializer, EApplyRendertargetOption ApplyFlags)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetOrCreatePSO);
+	FGraphicsPipelineStateInitializer NewInitializer;
+	const FGraphicsPipelineStateInitializer* Initializer = &OriginalInitializer;
+
+	if (!!(ApplyFlags & EApplyRendertargetOption::ForceApply))
+	{
+		// Copy original initializer first, then apply the render targets
+		NewInitializer = OriginalInitializer;
+		RHICmdList.ApplyCachedRenderTargets(NewInitializer);
+		Initializer = &NewInitializer;
+	}
+	
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+	else if(!!(ApplyFlags & EApplyRendertargetOption::CheckApply))
+	{
+		// Catch cases where the state does not match
+		NewInitializer = OriginalInitializer;
+		RHICmdList.ApplyCachedRenderTargets(NewInitializer);
+
+		int AnyFailed = 0;
+		AnyFailed |= (NewInitializer.RenderTargetsEnabled != OriginalInitializer.RenderTargetsEnabled)			<< 0;
+
+		if (AnyFailed == 0)
+		{
+			for (int i = 0; i < (int)NewInitializer.RenderTargetsEnabled; i++)
+			{
+				AnyFailed |= (NewInitializer.RenderTargetFormats[i] != OriginalInitializer.RenderTargetFormats[i])				<< 1;
+				AnyFailed |= (NewInitializer.RenderTargetFlags[i] != OriginalInitializer.RenderTargetFlags[i])					<< 2;
+				AnyFailed |= (NewInitializer.RenderTargetLoadActions[i] != OriginalInitializer.RenderTargetLoadActions[i])		<< 3;
+				AnyFailed |= (NewInitializer.RenderTargetStoreActions[i] != OriginalInitializer.RenderTargetStoreActions[i])	<< 4;
+
+				if (AnyFailed)
+				{
+					AnyFailed |= i << 24;
+					break;
+				}
+			}
+		}
+
+		AnyFailed |= (NewInitializer.DepthStencilTargetFormat != OriginalInitializer.DepthStencilTargetFormat)	<< 5;
+		AnyFailed |= (NewInitializer.DepthStencilTargetFlag != OriginalInitializer.DepthStencilTargetFlag)		<< 6;
+		AnyFailed |= (NewInitializer.DepthTargetLoadAction != OriginalInitializer.DepthTargetLoadAction)		<< 7;
+		AnyFailed |= (NewInitializer.DepthTargetStoreAction != OriginalInitializer.DepthTargetStoreAction)		<< 8;
+		AnyFailed |= (NewInitializer.StencilTargetLoadAction != OriginalInitializer.StencilTargetLoadAction)	<< 9;
+		AnyFailed |= (NewInitializer.StencilTargetStoreAction != OriginalInitializer.StencilTargetStoreAction)	<< 10;
+
+		ensureMsgf(AnyFailed == 0, TEXT("GetAndOrCreateGraphicsPipelineState RenderTarget check failed with: %i !"), AnyFailed);
+		Initializer = (AnyFailed != 0) ? &NewInitializer : &OriginalInitializer;
+	}
+#endif
 
 	{
 		// Should be hitting this case more often once the cache is hot
 		FScopeLock ScopeLock(&GGraphicsLock);
 
-		FGraphicsPipelineState** Found = GGraphicsPipelines.Find(Initializer);
+		FGraphicsPipelineState** Found = GGraphicsPipelines.Find(*Initializer);
 		if (Found)
 		{
-			RHICmdList.QueueAsyncPipelineStateCompile((*Found)->CompletionEvent);
+			if (IsAsyncCompilationAllowed(RHICmdList))
+			{
+				FGraphEventRef& CompletionEvent = (*Found)->CompletionEvent;
+				RHICmdList.QueueAsyncPipelineStateCompile(CompletionEvent);
+			}
 			return *Found;
 		}
 
-		FGraphicsPipelineState* PipelineState = new FGraphicsPipelineState(Initializer);
+		FGraphicsPipelineState* PipelineState = new FGraphicsPipelineState(*Initializer);
 
-		if (GCVarAsyncPipelineCompile.GetValueOnAnyThread() && !RHICmdList.Bypass())
+		if (IsAsyncCompilationAllowed(RHICmdList))
 		{
 			PipelineState->CompletionEvent = TGraphTask<FCompilePipelineStateTask>::CreateTask().ConstructAndDispatchWhenReady(PipelineState);
 			RHICmdList.QueueAsyncPipelineStateCompile(PipelineState->CompletionEvent);
 		}
 		else
 		{
-			PipelineState->RHIPipeline = RHICreateGraphicsPipelineState(Initializer);
+			PipelineState->RHIPipeline = RHICreateGraphicsPipelineState(*Initializer);
 		}
 
-		GGraphicsPipelines.Add(Initializer, PipelineState);
+		GGraphicsPipelines.Add(*Initializer, PipelineState);
 
 		return PipelineState;
 	}
@@ -215,4 +277,14 @@ FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineStat
 	ensure(GraphicsPipelineState->RHIPipeline);
 	GraphicsPipelineState->CompletionEvent = nullptr;
 	return GraphicsPipelineState->RHIPipeline;
+}
+
+void SetComputePipelineState(FRHICommandList& RHICmdList, FRHIComputeShader* ComputeShader)
+{
+	RHICmdList.SetComputePipelineState(GetAndOrCreateComputePipelineState(RHICmdList, ComputeShader));
+}
+
+void SetGraphicsPipelineState(FRHICommandList& RHICmdList, const FGraphicsPipelineStateInitializer& Initializer, EApplyRendertargetOption ApplyFlags)
+{
+	RHICmdList.SetGraphicsPipelineState(GetAndOrCreateGraphicsPipelineState(RHICmdList, Initializer, ApplyFlags));
 }

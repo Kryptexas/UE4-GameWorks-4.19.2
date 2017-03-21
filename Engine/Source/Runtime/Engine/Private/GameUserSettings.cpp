@@ -767,7 +767,7 @@ void UGameUserSettings::EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits /
 			int32 ColorGamut = 0;
 
 #if PLATFORM_WINDOWS
-			if (IsRHIDeviceNVIDIA())
+			if (IsRHIDeviceNVIDIA() || IsRHIDeviceAMD())
 			{
 				// ScRGB, 1000 or 2000 nits, Rec2020
 				OutputDevice = (DisplayNitLevel == 1000) ? 5 : 6;

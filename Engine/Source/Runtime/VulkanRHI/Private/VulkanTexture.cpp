@@ -66,12 +66,12 @@ static TMap<FTextureLock, VulkanRHI::FStagingBuffer*> GPendingLockedBuffers;
 static const VkImageTiling GVulkanViewTypeTilingMode[VK_IMAGE_VIEW_TYPE_RANGE_SIZE] =
 {
 	VK_IMAGE_TILING_LINEAR,		// VK_IMAGE_VIEW_TYPE_1D
-    VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_2D
-    VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_3D
-    VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_CUBE
-    VK_IMAGE_TILING_LINEAR,		// VK_IMAGE_VIEW_TYPE_1D_ARRAY
-    VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_2D_ARRAY
-    VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+	VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_2D
+	VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_3D
+	VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_CUBE
+	VK_IMAGE_TILING_LINEAR,		// VK_IMAGE_VIEW_TYPE_1D_ARRAY
+	VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_2D_ARRAY
+	VK_IMAGE_TILING_OPTIMAL,	// VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
 };
 
 
@@ -629,6 +629,18 @@ void FVulkanSurface::GetMipSize(uint32 MipIndex, uint32& MipBytes)
 
 	// Size in bytes
 	MipBytes = NumBlocksX * NumBlocksY * BlockBytes;
+/*
+#if VULKAN_HAS_DEBUGGING_ENABLED
+	VkImageSubresource SubResource;
+	FMemory::Memzero(SubResource);
+	SubResource.aspectMask = FullAspectMask;
+	SubResource.mipLevel = MipIndex;
+	//SubResource.arrayLayer = 0;
+	VkSubresourceLayout OutLayout;
+	VulkanRHI::vkGetImageSubresourceLayout(Device->GetInstanceHandle(), Image, &SubResource, &OutLayout);
+	ensure(MipBytes >= OutLayout.size);
+#endif
+*/
 }
 
 void FVulkanSurface::InitialClear(const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable)

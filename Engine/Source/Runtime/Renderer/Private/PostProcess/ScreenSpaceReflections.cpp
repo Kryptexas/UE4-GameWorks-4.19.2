@@ -17,6 +17,7 @@
 #include "PostProcess/PostProcessTemporalAA.h"
 #include "PostProcess/PostProcessHierarchical.h"
 #include "ClearQuad.h"
+#include "PipelineStateCache.h"
 
 static TAutoConsoleVariable<int32> CVarSSRQuality(
 	TEXT("r.SSR.Quality"),
@@ -183,7 +184,7 @@ public:
 		const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
@@ -253,7 +254,7 @@ public:
 		const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
@@ -376,21 +377,30 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 
 		// Clear stencil to 0
 		DrawClearQuad(RHICmdList, Context.GetFeatureLevel(), false, FLinearColor(), false, 0, true, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
-		
-		// bind shader
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		VertexShader->SetParameters(Context);
-		PixelShader->SetParameters(Context, SSRQuality, true);
-		
+	
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 		// Clobers the stencil to pixel that should not compute SSR
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true, CF_Always, SO_Replace, SO_Replace, SO_Replace>::GetRHI(), 0x80);
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always, true, CF_Always, SO_Replace, SO_Replace, SO_Replace>::GetRHI();
 
 		// Set rasterizer state to solid
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
 
 		// disable blend mode
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+
+		// bind shader
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+		RHICmdList.SetStencilRef(0x80);
+
+		VertexShader->SetParameters(Context);
+		PixelShader->SetParameters(Context, SSRQuality, true);	
 	
 		DrawPostProcessPass(
 			Context.RHICmdList,
@@ -410,10 +420,11 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 	{ // ScreenSpaceReflections draw event
 		SCOPED_DRAW_EVENTF(Context.RHICmdList, ScreenSpaceReflections, TEXT("ScreenSpaceReflections %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
 
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
 		if (SSRStencilPrePass)
 		{
 			// set up the stencil test to match 0, meaning FPostProcessScreenSpaceReflectionsStencilPS has been discarded
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true, CF_Equal, SO_Keep, SO_Keep, SO_Keep>::GetRHI(), 0);
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always, true, CF_Equal, SO_Keep, SO_Keep, SO_Keep>::GetRHI();
 		}
 		else
 		{
@@ -421,15 +432,17 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 			SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 			Context.SetViewportAndCallRHI(View.ViewRect);
 
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 		}
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 		// clear DestRenderTarget only outside of the view's rectangle
 		DrawClearQuad(RHICmdList, SceneContext.GetCurrentFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 
 		// set the state
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 		TShaderMapRef< FPostProcessVS > VertexShader(Context.GetShaderMap());
 
@@ -437,8 +450,10 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 			case (A + 2 * (B + 3 * 0 )): \
 			{ \
 				TShaderMapRef< FPostProcessScreenSpaceReflectionsPS<A, B> > PixelShader(Context.GetShaderMap()); \
-				static FGlobalBoundShaderState BoundShaderState; \
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI; \
+				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader); \
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
+				SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit); \
 				VertexShader->SetParameters(Context); \
 				PixelShader->SetParameters(Context); \
 			}; \

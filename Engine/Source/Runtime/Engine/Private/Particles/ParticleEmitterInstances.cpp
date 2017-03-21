@@ -252,6 +252,7 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , SubUVDataOffset(0)
 	, DynamicParameterDataOffset(0)
 	, LightDataOffset(0)
+	, LightVolumetricScatteringIntensity(0)
 	, OrbitModuleOffset(0)
 	, CameraPayloadOffset(0)
 	, bEnabled(1)
@@ -360,6 +361,7 @@ void FParticleEmitterInstance::Init()
 		LockAxisFlags = SpriteTemplate->LockAxisFlags;
 		DynamicParameterDataOffset = SpriteTemplate->DynamicParameterDataOffset;
 		LightDataOffset = SpriteTemplate->LightDataOffset;
+		LightVolumetricScatteringIntensity = SpriteTemplate->LightVolumetricScatteringIntensity;
 		CameraPayloadOffset = SpriteTemplate->CameraPayloadOffset;
 		ParticleSize = SpriteTemplate->ParticleSize;
 		PivotOffset = SpriteTemplate->PivotOffset;
@@ -2565,6 +2567,7 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		NewReplayData->EmitterRenderMode = SpriteTemplate->EmitterRenderMode;
 		NewReplayData->DynamicParameterDataOffset = DynamicParameterDataOffset;
 		NewReplayData->LightDataOffset = LightDataOffset;
+		NewReplayData->LightVolumetricScatteringIntensity = LightVolumetricScatteringIntensity;
 		NewReplayData->CameraPayloadOffset = CameraPayloadOffset;
 
 		NewReplayData->SubUVDataOffset = SubUVDataOffset;
@@ -3696,6 +3699,7 @@ FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
 	, OrbitModuleOffset(0)
 	, DynamicParameterDataOffset(0)
 	, LightDataOffset(0)
+	, LightVolumetricScatteringIntensity(0)
 	, CameraPayloadOffset(0)
 	, SubUVDataOffset(0)
 	, SubImages_Horizontal(1)
@@ -3732,6 +3736,7 @@ void FDynamicSpriteEmitterReplayDataBase::Serialize( FArchive& Ar )
 	Ar << OrbitModuleOffset;
 	Ar << DynamicParameterDataOffset;
 	Ar << LightDataOffset;
+	Ar << LightVolumetricScatteringIntensity;
 	Ar << CameraPayloadOffset;
 
 	Ar << EmitterNormalsMode;

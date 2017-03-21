@@ -34,14 +34,7 @@ ENUM_CLASS_FLAGS(EDrawingPolicyOverrideFlags);
 
 struct FDrawingPolicyRenderState
 {
-	FDrawingPolicyRenderState() = delete;
-
-	//temporary tracking of the reset comandlist
-	FDrawingPolicyRenderState(FRHICommandList* InDebugResetRHICmdList, const FSceneView& SceneView) : 
-#if RHI_PSO_X_VALIDATION		
-		DebugParentState(nullptr),
-		DebugResetRHICmdList(InDebugResetRHICmdList),
-#endif
+	FDrawingPolicyRenderState(const FSceneView& SceneView) : 
 		  BlendState(nullptr)
 		, DepthStencilState(nullptr)
 		, DepthStencilAccess(FExclusiveDepthStencil::DepthRead_StencilRead)
@@ -54,15 +47,17 @@ struct FDrawingPolicyRenderState
 		ViewOverrideFlags |= SceneView.bRenderSceneTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
 	}
 
-	//temporary deletion of default copy constructor
-	FDrawingPolicyRenderState(const FDrawingPolicyRenderState& DrawRenderState) = delete;
+	FDrawingPolicyRenderState() :
+		BlendState(nullptr)
+		, DepthStencilState(nullptr)
+		, ViewUniformBuffer()
+		, StencilRef(0)
+		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
+		, DitheredLODTransitionAlpha(0.0f)
+	{
+	}
 
-	//temporary tracking of the reset comandlist
-	FORCEINLINE_DEBUGGABLE FDrawingPolicyRenderState(FRHICommandList* InDebugResetRHICmdList, const FDrawingPolicyRenderState& DrawRenderState) :
-#if RHI_PSO_X_VALIDATION
-		DebugParentState(InDebugResetRHICmdList ? &DrawRenderState : nullptr),
-		DebugResetRHICmdList(InDebugResetRHICmdList),
-#endif
+	FORCEINLINE_DEBUGGABLE FDrawingPolicyRenderState(const FDrawingPolicyRenderState& DrawRenderState) :
 		  BlendState(DrawRenderState.BlendState)
 		, DepthStencilState(DrawRenderState.DepthStencilState)
 		, DepthStencilAccess(DrawRenderState.DepthStencilAccess)
@@ -75,37 +70,12 @@ struct FDrawingPolicyRenderState
 
 	~FDrawingPolicyRenderState()
 	{
-#if RHI_PSO_X_VALIDATION
-		if (DebugParentState && DebugResetRHICmdList)
-		{
-			FScopedStrictGraphicsPipelineStateUse UsePSOOnly(*DebugResetRHICmdList, false);
-			if (DebugParentState->BlendState && BlendState != DebugParentState->BlendState)
-			{
-				DebugResetRHICmdList->SetBlendState(DebugParentState->BlendState);
-			}
-			if (DebugParentState->DepthStencilState && DepthStencilState != DebugParentState->DepthStencilState)
-			{
-				DebugResetRHICmdList->SetDepthStencilState(DebugParentState->DepthStencilState, DebugParentState->StencilRef);
-			}
-		}
-#endif
 	}
 
 public:
-	FORCEINLINE_DEBUGGABLE void SetBlendState(FRHICommandList& RHICmdList, FBlendStateRHIParamRef InBlendState)
+	FORCEINLINE_DEBUGGABLE void SetBlendState(FBlendStateRHIParamRef InBlendState)
 	{
 		BlendState = InBlendState;
-
-#if RHI_PSO_X_VALIDATION
-		checkf(&RHICmdList == DebugResetRHICmdList, TEXT("If the State has been transfered to another comandlist it should be copied or recreated"));
-		ensure(!RHICmdList.StrictGraphicsPipelineStateUse || !BlendState || RHICmdList.VerifyableBlendState == BlendState);
-		FScopedStrictGraphicsPipelineStateUse UsePSOOnly(RHICmdList, false);
-#else
-		if (!RHICmdList.StrictGraphicsPipelineStateUse)
-#endif
-		{
-			RHICmdList.SetBlendState(InBlendState);
-		}
 	}
 
 	FORCEINLINE_DEBUGGABLE const FBlendStateRHIParamRef GetBlendState() const
@@ -113,21 +83,15 @@ public:
 		return BlendState;
 	}
 
-	FORCEINLINE_DEBUGGABLE void SetDepthStencilState(FRHICommandList& RHICmdList, FDepthStencilStateRHIParamRef InDepthStencilState, uint32 InStencilRef = 0)
+	FORCEINLINE_DEBUGGABLE void SetDepthStencilState(FDepthStencilStateRHIParamRef InDepthStencilState)
 	{
 		DepthStencilState = InDepthStencilState;
-		StencilRef = InStencilRef;
+		StencilRef = 0;
+	}
 
-#if RHI_PSO_X_VALIDATION
-		checkf(&RHICmdList == DebugResetRHICmdList, TEXT("If the State has been transfered to another comandlist it should be copied or recreated"));
-		ensure(!RHICmdList.StrictGraphicsPipelineStateUse || !DepthStencilState || RHICmdList.VerifyableDepthStencilState == DepthStencilState);	
-		FScopedStrictGraphicsPipelineStateUse UsePSOOnly(RHICmdList, false);
-#else
-		if (!RHICmdList.StrictGraphicsPipelineStateUse)
-#endif
+	FORCEINLINE_DEBUGGABLE void SetStencilRef(uint32 InStencilRef)
 		{
-			RHICmdList.SetDepthStencilState(InDepthStencilState, InStencilRef);
-		}
+		StencilRef = InStencilRef;
 	}
 
 	FORCEINLINE_DEBUGGABLE const FDepthStencilStateRHIParamRef GetDepthStencilState() const
@@ -181,22 +145,13 @@ public:
 		return ViewOverrideFlags;
 	}
 
-private:
-	//start temporary code block
-	friend class FParallelCommandListSet;
-	void ReassignResetRHICmdList(FRHICommandList* InDebugResetRHICmdList)
+	FORCEINLINE_DEBUGGABLE void ApplyToPSO(FGraphicsPipelineStateInitializer& GraphicsPSOInit) const
 	{
-#if RHI_PSO_X_VALIDATION
-		DebugResetRHICmdList = InDebugResetRHICmdList;
-		DebugParentState = nullptr;
-#endif
+		GraphicsPSOInit.BlendState = BlendState;
+		GraphicsPSOInit.DepthStencilState = DepthStencilState;
 	}
 
-#if RHI_PSO_X_VALIDATION
-	const FDrawingPolicyRenderState*	DebugParentState;
-	FRHICommandList*					DebugResetRHICmdList;
-#endif
-
+private:
 	FBlendStateRHIParamRef			BlendState;
 	FDepthStencilStateRHIParamRef	DepthStencilState;
 	FExclusiveDepthStencil::Type	DepthStencilAccess;
@@ -296,29 +251,24 @@ FORCEINLINE_DEBUGGABLE FMeshDrawingPolicyOverrideSettings ComputeMeshOverrideSet
 * Creates and sets the base PSO so that resources can be set. Generally best to call during SetSharedState.
 */
 template<class DrawingPolicyType>
-void CommitGraphicsPipelineState(FRHICommandList& RHICmdList, const DrawingPolicyType& DrawingPolicy, const FDrawingPolicyRenderState& DrawRenderState, ERHIFeatureLevel::Type	FeatureLevel)
+void CommitGraphicsPipelineState(FRHICommandList& RHICmdList, const DrawingPolicyType& DrawingPolicy, const FDrawingPolicyRenderState& DrawRenderState, const FBoundShaderStateInput& BoundShaderStateInput)
 {
-#if RHI_PSO_X_VALIDATION
-	RHICmdList.ValidatePsoState(DrawRenderState.GetBlendState(), DrawRenderState.GetDepthStencilState());
-#endif
-
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+
 	GraphicsPSOInit.PrimitiveType = DrawingPolicy.GetPrimitiveType();
-	GraphicsPSOInit.BoundShaderState = DrawingPolicy.GetBoundShaderStateInput(FeatureLevel);
+	GraphicsPSOInit.BoundShaderState = BoundShaderStateInput;
 	GraphicsPSOInit.RasterizerState = DrawingPolicy.ComputeRasterizerState(DrawRenderState.GetViewOverrideFlags());
 
 	check(DrawRenderState.GetDepthStencilState());
-	GraphicsPSOInit.DepthStencilState = DrawRenderState.GetDepthStencilState();
-	GraphicsPSOInit.SetStencilRef(DrawRenderState.GetStencilRef());
-
 	check(DrawRenderState.GetBlendState());
-	GraphicsPSOInit.BlendState = DrawRenderState.GetBlendState();
-	GraphicsPSOInit.SetBlendFactor(FLinearColor(1.0f, 1.0f, 1.0f));
+	DrawRenderState.ApplyToPSO(GraphicsPSOInit);
 
 	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
+	//CreateGraphicsPipelineState
 	FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
 	RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+	RHICmdList.SetStencilRef(DrawRenderState.GetStencilRef());
 }
 
 /**
@@ -367,11 +317,11 @@ public:
 		return PointerHash(VertexFactory, PointerHash(MaterialRenderProxy));
 	}
 
-	static void OnlyApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
+	static void OnlyApplyDitheredLODTransitionState(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
 
-	void ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+	void ApplyDitheredLODTransitionState(FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
 	{
-		OnlyApplyDitheredLODTransitionState(RHICmdList, DrawRenderState, ViewInfo, Mesh, InAllowStencilDither);
+		OnlyApplyDitheredLODTransitionState(DrawRenderState, ViewInfo, Mesh, InAllowStencilDither);
 	}
 
 	FDrawingPolicyMatchResult Matches(const FMeshDrawingPolicy& OtherDrawer) const
@@ -415,7 +365,6 @@ public:
 		const ContextDataType PolicyContext
 		) const
 	{	
-		RHICmdList.SetRasterizerState(ComputeRasterizerState(DrawRenderState.GetViewOverrideFlags()));
 	}
 
 	/**
@@ -431,11 +380,18 @@ public:
 	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const { /*Empty*/ };
 
 	/**
+	* Sets the late state which can be shared between any meshes using this drawer.
+	* @param DRS - The pipelinestate to override
+	* @param View - The view of the scene being drawn.
+	*/
+	void SetupPipelineState(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View) const {}
+
+	/**
 	 * Executes the draw commands which can be shared between any meshes using this drawer.
 	 * @param CI - The command interface to execute the draw commands on.
 	 * @param View - The view of the scene being drawn.
 	 */
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext) const;
 
 	/**
 	* Get the decl for this mesh policy type and vertexfactory

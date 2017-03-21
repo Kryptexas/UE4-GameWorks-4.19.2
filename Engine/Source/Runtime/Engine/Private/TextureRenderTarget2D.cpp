@@ -450,9 +450,24 @@ void FTextureRenderTarget2DResource::UpdateDeferredResource( FRHICommandListImme
 }
 
 /** 
- * @return width of target surface
+ * @return width of target
  */
+uint32 FTextureRenderTarget2DResource::GetSizeX() const
+{
+	return TargetSizeX;
+}
 
+/** 
+ * @return height of target
+ */
+uint32 FTextureRenderTarget2DResource::GetSizeY() const
+{
+	return TargetSizeY;
+}
+
+/** 
+ * @return dimensions of target surface
+ */
 FIntPoint FTextureRenderTarget2DResource::GetSizeXY() const
 { 
 	return FIntPoint(TargetSizeX, TargetSizeY); 

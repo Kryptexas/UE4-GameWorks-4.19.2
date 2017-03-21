@@ -47,6 +47,16 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 		return MSM_MAX;
 	}
 
+	virtual EMaterialValueType GetParameterType(int32 Index) const override
+	{
+		return MCT_Unknown;
+	}
+
+	virtual FMaterialUniformExpression* GetParameterUniformExpression(int32 Index) const override
+	{
+		return nullptr;
+	}
+
 	virtual int32 ParticleMacroUV() override
 	{
 		return Compiler->ParticleMacroUV();
@@ -451,7 +461,7 @@ public:
 
 	virtual FString GetMaterialUsageDescription() const override { return FString::Printf(TEXT("%s FLightmassMaterialRenderer"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 	
-	virtual int32 GetMaterialDomain() const override
+	virtual EMaterialDomain GetMaterialDomain() const override
 	{
 		if (Material)
 		{
@@ -486,6 +496,10 @@ public:
 	virtual bool IsDeferredDecal() const override
 	{
 		return Material && Material->MaterialDomain == MD_DeferredDecal;
+	}
+	virtual bool IsVolumetricPrimitive() const override
+	{
+		return Material && Material->MaterialDomain == MD_Volume;
 	}
 	virtual bool IsSpecialEngineMaterial() const override
 	{

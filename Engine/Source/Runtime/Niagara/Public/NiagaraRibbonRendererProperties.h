@@ -15,4 +15,5 @@ public:
 
 	//~ UNiagaraEffectRendererProperties interface
 	virtual NiagaraEffectRenderer* CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel) override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 };

@@ -581,29 +581,17 @@ static bool AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDe
 		Out.bNear = false;
 	}
 
-	const bool bMobileQuality = Context.View.FeatureLevel < ERHIFeatureLevel::SM4;
-	const bool bShouldApplySepTrans = SeparateTranslucencyRef.IsValid() && !bMobileQuality;
-	const bool bCombineNearFarPass = !bShouldApplySepTrans && Out.bFar && Out.bNear;
-
-	if (bCombineNearFarPass)
+	if (Out.bFar || Out.bNear)
 	{
-		GaussianDOFPass(SeparateTranslucencyRef, FarSize, NearSize);
+		GaussianDOFPass(SeparateTranslucencyRef, Out.bFar ? FarSize : 0, Out.bNear ? NearSize : 0);
+
+		const bool bMobileQuality = Context.View.FeatureLevel < ERHIFeatureLevel::SM4;
+		return SeparateTranslucencyRef.IsValid() && !bMobileQuality;
 	}
 	else
 	{
-		FRenderingCompositeOutputRef SeparateTranslucency = SeparateTranslucencyRef;
-		if (Out.bFar)
-		{
-			GaussianDOFPass(SeparateTranslucency, FarSize, 0.0f);
-			SeparateTranslucency = FRenderingCompositeOutputRef();
-		}
-		if (Out.bNear)
-		{
-			GaussianDOFPass(SeparateTranslucency, 0.0f, NearSize);
-		}
+		return false;
 	}
-
-	return bShouldApplySepTrans && (Out.bFar || Out.bNear);
 }
 
 static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDepthOfFieldStats& Out, FRenderingCompositeOutputRef& VelocityInput)
@@ -2481,6 +2469,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			// todo: this should come from View.Family->RenderTarget
 			Desc.Format = PF_B8G8R8A8;
 			Desc.NumMips = 1;
+			Desc.DebugName = TEXT("OverriddenRendertarget");
 
 			GRenderTargetPool.CreateUntrackedElement(Desc, Temp, Item);
 

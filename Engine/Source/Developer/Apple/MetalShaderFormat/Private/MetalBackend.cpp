@@ -768,20 +768,41 @@ protected:
 				}
 				else
 				{
-					check(PtrType->inner_type->is_numeric());
-					auto* Found = strstr(PtrType->name, "image");
-					check(Found);
-					Found += 5;	//strlen("image")
-					char Temp[16];
-					char* TempPtr = Temp;
-					do
+					auto ImageToMetalType = [](const char* Src, char* Dest, SIZE_T DestLen)
 					{
-						*TempPtr++ = tolower(*Found);
-						++Found;
-					}
-					while (*Found);
-					*TempPtr = 0;
-					ralloc_asprintf_append(buffer, "texture%s<", Temp);
+						auto* Found = strstr(Src, "image");
+						check(Found);
+						Src = Found + 5;	// strlen("image")
+						FCStringAnsi::Strcpy(Dest, DestLen, "texture");
+						Dest += 7;	// strlen("texture")
+						if (Src[0] >= '1' && Src[0] <= '3')
+						{
+							*Dest++ = *Src++;
+							*Dest++ = 'd';
+							*Dest = 0;
+							check(*Src == 'D');
+							Src++;
+						}
+						else if (strncmp(Src, "Cube", 4) == 0)
+						{
+							FCStringAnsi::Strcpy(Dest, DestLen, "cube");
+							Dest += 4;
+						}
+						else
+						{
+							check(0);
+						}
+
+						if (strncmp(Src, "Array", 5) == 0)
+						{
+							FCStringAnsi::Strcpy(Dest, DestLen, "_array");
+						}
+					};
+
+					check(PtrType->inner_type->is_numeric());
+					char Temp[32];
+					ImageToMetalType(PtrType->name, Temp, sizeof(Temp) - 1);
+					ralloc_asprintf_append(buffer, "%s<", Temp);
 					// UAVs require type per channel, not including # of channels
 					print_type_pre(PtrType->inner_type->get_scalar_type());
                     
@@ -1901,6 +1922,7 @@ protected:
 		if ( deref->op == ir_image_access)
 		{
 			bool bIsRWTexture = !deref->image->type->sampler_buffer;
+			bool bIsArray = bIsRWTexture && strstr(deref->image->type->name, "Array") != nullptr;
 			if (src == nullptr)
 			{
 				if (bIsRWTexture)
@@ -2014,19 +2036,40 @@ protected:
 
 					//#todo-rco: Add language spec to know if indices need to be uint
 					ralloc_asprintf_append(buffer, ",(uint");
-					switch (deref->image_index->type->vector_elements)
+					if (bIsArray && deref->image_index->type->vector_elements == 3)
 					{
-					case 4:
-					case 3:
-					case 2:
-						ralloc_asprintf_append(buffer, "%u", deref->image_index->type->vector_elements);
-						//fallthrough
-					case 1:
-						ralloc_asprintf_append(buffer, ")(");
-						break;
+						//RWTexture2DArray
+						ralloc_asprintf_append(buffer, "2)(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ".xy), (uint(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ".z)))");
 					}
-					deref->image_index->accept(this);
-					ralloc_asprintf_append(buffer, "))");
+					else if (bIsArray && deref->image_index->type->vector_elements == 2)
+					{
+						//RWTexture1DArray
+						ralloc_asprintf_append(buffer, ")(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ".x), (uint(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ".y)))");
+					}
+					else
+					{
+						switch (deref->image_index->type->vector_elements)
+						{
+						case 4:
+						case 3:
+						case 2:
+							ralloc_asprintf_append(buffer, "%u", deref->image_index->type->vector_elements);
+							//fallthrough
+						case 1:
+							ralloc_asprintf_append(buffer, ")(");
+							break;
+						}
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, "))");
+					}
 				}
 				else
 				{

@@ -418,12 +418,13 @@ bool IntersectObjectWithConeDepthRange(
 		if (BoxDistance < TileBoundingSphereRadius + AOObjectMaxDistance)
 		{
 			float3 UVAdd = LoadObjectUVAddAndSelfShadowBias(ObjectIndex).xyz;
+			float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
 
 			float3 ClampedSamplePosition = clamp(VolumeTileBoundingSphereCenter, -LocalPositionExtent, LocalPositionExtent);
 			float DistanceToClamped = length(VolumeTileBoundingSphereCenter - ClampedSamplePosition);
 
 			float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-			float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
+			float DistanceToOccluder = (SampleMeshDistanceField(StepVolumeUV, DistanceFieldMAD).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
 
 			BRANCH
 			if (DistanceToOccluder < TileBoundingSphereRadius + AOObjectMaxDistance)

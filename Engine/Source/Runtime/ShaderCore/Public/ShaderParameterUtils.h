@@ -365,6 +365,16 @@ template<> inline void SetUAVParameterIfCS<FComputeShaderRHIRef, FRHICommandList
 	SetUAVParameter(RHICmdList, ComputeShader,UAVParameter,UAV);
 }
 
+template<> inline void SetUAVParameterIfCS<FComputeShaderRHIParamRef, FRHICommandListImmediate>(FRHICommandListImmediate& RHICmdList, FComputeShaderRHIParamRef ComputeShader,const FShaderResourceParameter& UAVParameter,FUnorderedAccessViewRHIParamRef UAV)
+{
+	SetUAVParameter(RHICmdList, ComputeShader,UAVParameter,UAV);
+}
+
+template<> inline void SetUAVParameterIfCS<FComputeShaderRHIRef, FRHICommandListImmediate>(FRHICommandListImmediate& RHICmdList, FComputeShaderRHIRef ComputeShader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
+{
+	SetUAVParameter(RHICmdList, ComputeShader,UAVParameter,UAV);
+}
+
 template<> inline void SetUAVParameterIfCS<FComputeShaderRHIParamRef, FRHIAsyncComputeCommandListImmediate>(FRHIAsyncComputeCommandListImmediate& RHICmdList, FComputeShaderRHIParamRef ComputeShader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
 {
 	SetUAVParameter(RHICmdList, ComputeShader, UAVParameter, UAV);

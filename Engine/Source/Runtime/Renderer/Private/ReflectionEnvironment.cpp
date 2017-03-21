@@ -26,6 +26,7 @@
 #include "PostProcess/ScreenSpaceReflections.h"
 #include "LightRendering.h"
 #include "LightPropagationVolumeBlendable.h"
+#include "PipelineStateCache.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Reflection Environment"), Stat_GPU_ReflectionEnvironment, STATGROUP_GPU);
 
@@ -450,7 +451,7 @@ public:
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
 		FScene* Scene = (FScene*)View.Family->Scene;
@@ -643,7 +644,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 		SkyLightParameters.SetParameters(RHICmdList, ShaderRHI, (FScene*)View.Family->Scene, true);
 		
@@ -740,7 +741,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 	}
@@ -796,7 +797,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FReflectionCaptureSortData& SortData)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 		{
@@ -857,21 +858,26 @@ private:
 IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<true>,TEXT("ReflectionEnvironmentShaders"),TEXT("StandardDeferredReflectionPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<false>,TEXT("ReflectionEnvironmentShaders"),TEXT("StandardDeferredReflectionPS"),SF_Pixel);
 
-void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList)
+void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
-	RHICmdList.SetRasterizerState(TStaticRasterizerState< FM_Solid, CM_None >::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState< CW_RGB, BO_Add, BF_One, BF_One >::GetRHI());
+
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState< FM_Solid, CM_None >::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState< false, CF_Always >::GetRHI();
+	GraphicsPSOInit.BlendState = TStaticBlendState< CW_RGB, BO_Add, BF_One, BF_One >::GetRHI();
 
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 	TShaderMapRef< FPostProcessVS > VertexShader(ShaderMap);
 	TShaderMapRef< FReflectionCaptureSpecularBouncePS > PixelShader(ShaderMap);
 
-	static FGlobalBoundShaderState BoundShaderState;
-	
-	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	for (int32 ViewIndex = 0, Num = Views.Num(); ViewIndex < Num; ViewIndex++)
 	{
@@ -1145,6 +1151,11 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 			bool bHasSphereCaptures = (View.NumSphereReflectionCaptures > 0);
 			bool bHasSkyLight = Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting;
 
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			// Note: FReflectionEnvironmentTiledDeferredCS is async compute just to test the async compute API.  
+			// It doesn't actually overlap with anything and therefore can't achieve any gains.
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 			static const FName TiledReflBeginComputeName(TEXT("ReflectionEnvBeginComputeFence"));
 			static const FName TiledReflEndComputeName(TEXT("ReflectionEnvEndComputeFence"));
 			FComputeFenceRHIRef ReflectionBeginFence = RHICmdList.CreateComputeFence(TiledReflBeginComputeName);
@@ -1195,7 +1206,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 	check(SceneContext.GetSceneColor());
 }
 
-void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	if(!ViewFamily.EngineShowFlags.Lighting)
 	{
@@ -1332,8 +1343,11 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 			// rgb accumulates reflection contribution front to back, alpha accumulates (1 - alpha0) * (1 - alpha 1)...
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_DestAlpha, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_DestAlpha, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI();
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 			for (int32 ReflectionCaptureIndex = 0; ReflectionCaptureIndex < SortData.Num(); ReflectionCaptureIndex++)
 			{
@@ -1345,14 +1359,17 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 
 					TShaderMapRef<TDeferredLightVS<true> > VertexShader(View.ShaderMap);
 
+					SetBoundingGeometryRasterizerAndDepthState(GraphicsPSOInit, View, LightBounds);
+
 					// Use the appropriate shader for the capture shape
 					if (ReflectionCapture.CaptureProperties.Z == 0)
 					{
 						TShaderMapRef<TStandardDeferredReflectionPS<true> > PixelShader(View.ShaderMap);
 
-						static FGlobalBoundShaderState BoundShaderState;
-						
-						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 						PixelShader->SetParameters(RHICmdList, View, ReflectionCapture);
 					}
@@ -1360,14 +1377,14 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 					{
 						TShaderMapRef<TStandardDeferredReflectionPS<false> > PixelShader(View.ShaderMap);
 
-						static FGlobalBoundShaderState BoundShaderState;
-						
-						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 						PixelShader->SetParameters(RHICmdList, View, ReflectionCapture);
 					}
 
-					SetBoundingGeometryRasterizerAndDepthState(RHICmdList, View, LightBounds);
 					VertexShader->SetSimpleLightParameters(RHICmdList, View, LightBounds);
 					StencilingGeometry::DrawSphere(RHICmdList);
 				}
@@ -1384,20 +1401,22 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment);
 
 			SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 			if (GetReflectionEnvironmentCVar() == 2)
 			{
 				// override scene color for debugging
-				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+				GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 			}
 			else
 			{
 				// additive to scene color
-				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI();
 			}
 
 			TShaderMapRef< FPostProcessVS >		VertexShader(View.ShaderMap);
@@ -1412,8 +1431,10 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			case ((A << 3) | (B << 2) | (C << 1) | D) : \
 			{ \
 			TShaderMapRef< FReflectionApplyPS<A, B, C, D> > PixelShader(View.ShaderMap); \
-			static FGlobalBoundShaderState BoundShaderState; \
-			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI; \
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader); \
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit); \
 			PixelShader->SetParameters(RHICmdList, View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture, SSROutput->GetRenderTargetItem().ShaderResourceTexture, DynamicBentNormalAO); \
 			}; \
 			break
@@ -1468,11 +1489,13 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 		bAnyViewIsReflectionCapture = bAnyViewIsReflectionCapture || View.bIsReflectionCapture;
 	}
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+
 	// If we're currently capturing a reflection capture, output SpecularColor * IndirectIrradiance for metals so they are not black in reflections,
 	// Since we don't have multiple bounce specular reflections
 	if (bAnyViewIsReflectionCapture)
 	{
-		RenderReflectionCaptureSpecularBounceForAllViews(RHICmdList);
+		RenderReflectionCaptureSpecularBounceForAllViews(RHICmdList, GraphicsPSOInit);
 	}
 	else
 	{
@@ -1486,7 +1509,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 		}
 		else
 		{
-			RenderStandardDeferredImageBasedReflections(RHICmdList, bReflectionEnvironment, DynamicBentNormalAO, VelocityRT);
+			RenderStandardDeferredImageBasedReflections(RHICmdList, GraphicsPSOInit, bReflectionEnvironment, DynamicBentNormalAO, VelocityRT);
 		}
 	}
 }

@@ -894,12 +894,7 @@ public:
 
 namespace D3D12RHI
 {
-	extern FGlobalBoundShaderState GD3D12ClearMRTBoundShaderState[8];
 	extern TGlobalResource<FVector4VertexDeclaration> GD3D12Vector4VertexDeclaration;
-
-	extern FGlobalBoundShaderState GD3D12ResolveBoundShaderState_Depth;
-	extern FGlobalBoundShaderState GD3D12ResolveBoundShaderState_DepthNonMS;
-	extern FGlobalBoundShaderState GD3D12ResolveBoundShaderState_SingleSamplePS;
 }
 
 /**

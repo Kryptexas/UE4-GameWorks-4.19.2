@@ -10,6 +10,8 @@
 #include "NiagaraScriptInputCollectionViewModel.h"
 #include "NiagaraNodeEmitter.h"
 #include "NiagaraNodeInput.h"
+#include "NiagaraDataInterface.h"
+#include "NiagaraScriptSourceBase.h"
 
 #include "GraphEditAction.h"
 
@@ -25,6 +27,8 @@ FNiagaraEffectScriptViewModel::FNiagaraEffectScriptViewModel(UNiagaraEffect& InE
 		
 		GetGraphViewModel()->SetErrorTextToolTip("");
 	}
+
+	GetInputCollectionViewModel()->OnParameterValueChanged().AddRaw(this, &FNiagaraEffectScriptViewModel::EffectParameterValueChanged);
 }
 
 FNiagaraEffectScriptViewModel::~FNiagaraEffectScriptViewModel()
@@ -35,11 +39,12 @@ FNiagaraEffectScriptViewModel::~FNiagaraEffectScriptViewModel()
 	}
 }
 
+
 float EmitterNodeVerticalOffset = 150.0f;
 
 FVector2D CalculateNewEmitterNodePlacementPosition(UNiagaraGraph* Graph, UNiagaraNodeEmitter* NewEmitterNode)
 {
-	FVector2D PlacementLocation;
+	FVector2D PlacementLocation(0.0f, 0.0f);
 	TArray<UNiagaraNodeEmitter*> EmitterNodes;
 	Graph->GetNodesOfClass(EmitterNodes);
 	if (EmitterNodes.Num() > 1)
@@ -131,131 +136,91 @@ FNiagaraEffectScriptViewModel::FOnParameterBindingsChanged& FNiagaraEffectScript
 	return OnParameterBindingsChangedDelegate;
 }
 
-void FNiagaraEffectScriptViewModel::SynchronizeParametersAndBindingsWithGraph()
+void FNiagaraEffectScriptViewModel::EffectParameterValueChanged(FGuid ParameterId)
 {
-	UNiagaraGraph* EffectGraph = GetGraphViewModel()->GetGraph();
-	TArray<UNiagaraNodeInput*> InputNodes;
-	if (EffectGraph)
+	if (ensureMsgf(ParameterId.IsValid(), TEXT("EffectScript: Changed parameter had an invalid id")))
 	{
-		EffectGraph->GetNodesOfClass<UNiagaraNodeInput>(InputNodes);
+		return;
 	}
-	
-	// Update existing parameters and add new parameters to the script since it's not compiled.
-	TSet<FGuid> HandledParameterIds;
-	bool bParameterAdded = false;
+
+	UNiagaraGraph* EffectGraph = GetGraphViewModel()->GetGraph();
+	FNiagaraVariable* ChangedVariable = nullptr;
+	TArray<UNiagaraNodeInput*> InputNodes;
+	EffectGraph->GetNodesOfClass<UNiagaraNodeInput>(InputNodes);
 	for (UNiagaraNodeInput* InputNode : InputNodes)
 	{
-		if (InputNode->Usage == ENiagaraInputNodeUsage::Parameter && HandledParameterIds.Contains(InputNode->Input.GetId()) == false)
+		if (InputNode->Input.GetId() == ParameterId)
 		{
-			bool ParameterFound = false;
-			// Try to find an existing parameter.
-			for (FNiagaraVariable& Parameter : Effect.GetEffectScript()->Parameters.Parameters)
-			{
-				if (Parameter.GetId() == InputNode->Input.GetId())
-				{
-					ParameterFound = true;
-					// If graph node's type has changed, update the parameter's type and value.
-					if (Parameter.GetType() != InputNode->Input.GetType())
-					{
-						Parameter.SetType(InputNode->Input.GetType());
-						Parameter.AllocateData();
-						Parameter.SetData(InputNode->Input.GetData());
-					}
-					if (Parameter.GetName() != InputNode->Input.GetName())
-					{
-						Parameter.SetName(InputNode->Input.GetName());
-					}
-				}
-			}
-			// Otherwise add a new one.
-			if (ParameterFound == false)
-			{
-				Effect.GetEffectScript()->Parameters.Parameters.Add(InputNode->Input);
-				bParameterAdded = true;
-			}
-
-			HandledParameterIds.Add(InputNode->Input.GetId());
+			ChangedVariable = &InputNode->Input;
+			break;
 		}
 	}
 
-	// Remove parameters which are no longer relevant
-	auto RemovePredicate = [&](const FNiagaraVariable& Parameter) { return HandledParameterIds.Contains(Parameter.GetId()) == false; };
-	Effect.GetEffectScript()->Parameters.Parameters.RemoveAll(RemovePredicate);
-
-	// Rebuild the parameter bindings based on the graph
-	Effect.ClearParameterBindings();
-	FString Errors = "";
-	for (UNiagaraNodeInput* InputNode : InputNodes)
+	if (ChangedVariable != nullptr)
 	{
-		TArray<UEdGraphPin*> OutputPins;
-		InputNode->GetOutputPins(OutputPins);
-		for (UEdGraphPin* OutputPin : OutputPins)
+		const UClass* InputClass = ChangedVariable->GetType().GetClass();
+		bool isDataSource = InputClass != nullptr && InputClass->IsChildOf(UNiagaraDataInterface::StaticClass());
+
+		if (isDataSource)
 		{
-			for (UEdGraphPin* LinkedPin : OutputPin->LinkedTo)
+			SynchronizeParametersAndBindingsWithGraph();
+		}
+	}
+}
+
+
+void FNiagaraEffectScriptViewModel::SynchronizeParametersAndBindingsWithGraph()
+{
+	// Do nothing if the change Id is synchronized.
+	if (Script->Source->IsSynchronized(Script->ChangeId))
+	{
+		return;
+	}
+
+	// Update existing parameters and add new parameters to the script since it's not compiled.
+	bool bParametersChanged = false;
+
+	FString Errors;
+	FNiagaraParameters OldParams = Script->Parameters;
+	TArray<FNiagaraScriptDataInterfaceInfo> OldInfo = Script->DataInterfaceInfo;
+
+	// "Compile" the effect script, which ultimately involves tracing connections between emitters and effect parameters.
+	ENiagaraScriptCompileStatus Results = Script->Source->Compile(Errors);
+
+	check(Script->Source->IsSynchronized(Script->ChangeId));
+
+	bParametersChanged = Script->Parameters.Parameters.Num() != OldParams.Parameters.Num();
+	if (!bParametersChanged)
+	{
+		for (int32 i = 0; i < OldParams.Parameters.Num(); i++)
+		{
+			if (OldParams.Parameters[i].GetId() != Script->Parameters.Parameters[i].GetId())
 			{
-				UNiagaraNodeEmitter* LinkedEmitter = Cast<UNiagaraNodeEmitter>(LinkedPin->GetOwningNode());
-				if (LinkedEmitter != nullptr)
+				bParametersChanged = true;
+				break;
+			}
+		}
+	}
+
+	if (!bParametersChanged)
+	{
+		bParametersChanged = Script->DataInterfaceInfo.Num() != OldInfo.Num();
+		if (!bParametersChanged)
+		{
+			for (int32 i = 0; i < OldInfo.Num(); i++)
+			{
+				if (OldInfo[i].Id != Script->DataInterfaceInfo[i].Id)
 				{
-					Effect.AddParameterBinding(FNiagaraParameterBinding(InputNode->Input.GetId(), LinkedEmitter->GetEmitterHandleId(), LinkedPin->PersistentGuid));
-
-					UNiagaraEmitterProperties* Emitter = nullptr;
-					UNiagaraEffect* OwnerEffect = LinkedEmitter->GetOwnerEffect();
-
-					for (int32 i = 0; i < OwnerEffect->GetNumEmitters(); ++i)
-					{
-						if (OwnerEffect->GetEmitterHandle(i).GetId() == LinkedEmitter->GetEmitterHandleId())
-						{
-							Emitter = OwnerEffect->GetEmitterHandle(i).GetInstance();
-						}
-					}
-
-					if (Emitter != nullptr)
-					{
-						TArray<UNiagaraScript*> ScriptsToValidate;
-						FNiagaraTypeDefinition TypeDefinition;
-						if (Emitter->UpdateScriptProps.Script != nullptr)
-						{
-							ScriptsToValidate.Add(Emitter->UpdateScriptProps.Script);
-						}
-						if (Emitter->SpawnScriptProps.Script != nullptr)
-						{
-							ScriptsToValidate.Add(Emitter->SpawnScriptProps.Script);
-						}
-						if (Emitter->EventHandlerScriptProps.Script != nullptr)
-						{
-							ScriptsToValidate.Add(Emitter->EventHandlerScriptProps.Script);
-						}
-
-						for (UNiagaraScript* NiagaraScript : ScriptsToValidate)
-						{
-							FNiagaraVariable* VariableToValidate = NiagaraScript->Parameters.FindParameter(LinkedPin->PersistentGuid);
-							if (VariableToValidate != nullptr)
-							{
-								TypeDefinition = VariableToValidate->GetType();
-								if (InputNode->Input.GetType() != TypeDefinition) 
-								{
-									TArray<FStringFormatArg> Args;
-									Args.Add(InputNode->Input.GetName().ToString());
-									Args.Add(InputNode->Input.GetType().GetName());
-									Args.Add(VariableToValidate->GetName().ToString());
-									Args.Add(TypeDefinition.GetName());
-									Errors += FString::Format(TEXT("Cannot convert '{0}' of type {1} to '{2}' of type {3}! The runtime will fall back to the default of the emitter.\n"), Args);
-								}
-							}
-						}
-					}
+					bParametersChanged = true;
+					break;
 				}
 			}
 		}
 	}
 
 	GetGraphViewModel()->SetErrorTextToolTip(Errors);
-	if (Errors.Len() != 0)
-	{
-		UE_LOG(LogNiagaraEditor, Warning, TEXT("Compile errors: %s"), *Errors);
-	}
 
-	if (bParameterAdded)
+	if (bParametersChanged)
 	{
 		// If a new parameter was added, we need to rebuild the parameter view models so that they are editing
 		// the correct data.

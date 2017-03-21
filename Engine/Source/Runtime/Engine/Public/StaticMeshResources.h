@@ -34,6 +34,7 @@
 #include "Rendering/PositionVertexBuffer.h"
 #include "Rendering/StaticMeshVertexDataInterface.h"
 #include "UniquePtr.h"
+#include "WeightedRandomSampler.h"
 
 class FDistanceFieldVolumeData;
 class UBodySetup;
@@ -182,7 +183,28 @@ struct FStaticMeshSection
 
 
 
+/** Creates distribution for uniformly sampling a mesh section. */
+struct ENGINE_API FStaticMeshSectionAreaWeightedTriangleSampler : FWeightedRandomSampler
+{
+	FStaticMeshSectionAreaWeightedTriangleSampler();
+	void Init(FStaticMeshLODResources* InOwner, int32 InSectionIdx);
+	virtual float GetWeights(TArray<float>& OutWeights) override;
 
+protected:
+
+	FStaticMeshLODResources* Owner;
+	int32 SectionIdx;
+};
+
+struct ENGINE_API FStaticMeshAreaWeightedSectionSampler : FWeightedRandomSampler
+{
+	FStaticMeshAreaWeightedSectionSampler();
+	void Init(FStaticMeshLODResources* InOwner);
+	virtual float GetWeights(TArray<float>& OutWeights)override;
+
+protected:
+	FStaticMeshLODResources* Owner;
+};
 
 /** Rendering resources needed to render an individual static mesh LOD. */
 struct FStaticMeshLODResources
@@ -233,7 +255,11 @@ struct FStaticMeshLODResources
 
 	/** True if the reversed index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
 	uint32 bHasReversedDepthOnlyIndices: 1;
-
+	
+	/**	Allows uniform random selection of mesh sections based on their area. */
+	FStaticMeshAreaWeightedSectionSampler AreaWeightedSampler;
+	/**	Allows uniform random selection of triangles on each mesh section based on triangle area. */
+	TArray<FStaticMeshSectionAreaWeightedTriangleSampler> AreaWeightedSectionSamplers;
 
 	uint32 DepthOnlyNumTriangles;
 
@@ -338,6 +364,8 @@ public:
 
 	/** Update LOD-SECTION uv densities. */
 	void ComputeUVDensities();
+
+	void BuildAreaWeighedSamplingData();
 
 private:
 #if WITH_EDITORONLY_DATA
@@ -470,7 +498,7 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual bool CanBeOccluded() const override;
 	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FVector2D& OutDistanceMinMax, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
 	virtual void GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const override;
 	virtual bool HasDistanceFieldRepresentation() const override;
 	virtual bool HasDynamicIndirectShadowCasterRepresentation() const override;

@@ -60,6 +60,8 @@
 
 #define MATERIALBLENDING_ANY_TRANSLUCENT (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE)
 
+#define IS_MESHPARTICLE_FACTORY (PARTICLE_MESH_FACTORY || NIAGARA_MESH_FACTORY)
+
 /**
  * Parameters used by vertex and pixel shaders to access particle properties.
  */
@@ -264,7 +266,7 @@ struct FMaterialVertexParameters
 	float4x4 InstanceLocalToWorld;
 	float3 InstanceLocalPosition;
 	float4 PerInstanceParams;
-#elif PARTICLE_MESH_FACTORY
+#elif IS_MESHPARTICLE_FACTORY 
 	/** Per-particle properties. */
 	float4x4 InstanceLocalToWorld;
 #endif
@@ -483,7 +485,7 @@ MaterialFloat3 TransformTangentVectorToView(FMaterialPixelParameters Parameters,
 /** Transforms a vector from local space to world space (VS version) */
 MaterialFloat3 TransformLocalVectorToWorld(FMaterialVertexParameters Parameters,MaterialFloat3 InLocalVector)
 {
-	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
+	#if USE_INSTANCING || IS_MESHPARTICLE_FACTORY
 		return mul(InLocalVector, (MaterialFloat3x3)Parameters.InstanceLocalToWorld);
 	#else
 		return mul(InLocalVector, GetLocalToWorld3x3());
@@ -513,7 +515,7 @@ float3 TransformLocalPositionToWorld(FMaterialPixelParameters Parameters,float3 
 /** Transforms a position from local space to absolute world space */
 float3 TransformLocalPositionToWorld(FMaterialVertexParameters Parameters,float3 InLocalPosition)
 {
-	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
+	#if USE_INSTANCING || IS_MESHPARTICLE_FACTORY
 		return mul(float4(InLocalPosition, 1), Parameters.InstanceLocalToWorld).xyz;
 	#else
 		return mul(float4(InLocalPosition, 1), Primitive.LocalToWorld).xyz;
@@ -538,7 +540,7 @@ float3 GetObjectWorldPosition(FMaterialTessellationParameters Parameters)
 /** Return the object's position in world space. For instanced meshes, this returns the instance position. */
 float3 GetObjectWorldPosition(FMaterialVertexParameters Parameters)
 {
-	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
+	#if USE_INSTANCING || IS_MESHPARTICLE_FACTORY
 		return Parameters.InstanceLocalToWorld[3].xyz;
 	#else
 		return Primitive.ObjectWorldPositionAndRadius.xyz;
@@ -875,7 +877,7 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 /** Vertex offset for SpeedTree wind and LOD */
 float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, FSpeedTreeData STData) 
 {
-	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || PARTICLE_MESH_FACTORY
+	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || IS_MESHPARTICLE_FACTORY
 		return float4(0,0,0);
 	#endif
 

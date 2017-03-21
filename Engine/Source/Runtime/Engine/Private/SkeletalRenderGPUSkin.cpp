@@ -606,7 +606,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 				NumInfluencedVerticesByMorph);
 			RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EGfxToCompute, MorphVertexBuffer.GetUAV());
 
-			RHICmdList.ClearUAV(MorphVertexBuffer.GetUAV(), {0, 0, 0, 0});
+			RHICmdList.ClearTinyUAV(MorphVertexBuffer.GetUAV(), {0, 0, 0, 0});
 
 			{
 				SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_ApplyDelta);

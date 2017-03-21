@@ -24,7 +24,5 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
-
-	template<bool bUseClearCoat>
-	void Render(FRenderingCompositePassContext& Context);
+	void Render(FRenderingCompositePassContext& Context, FGraphicsPipelineStateInitializer& GraphicsPSOInit);
 };

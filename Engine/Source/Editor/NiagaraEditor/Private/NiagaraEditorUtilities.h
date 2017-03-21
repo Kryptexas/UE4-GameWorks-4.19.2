@@ -7,6 +7,8 @@
 class UNiagaraNodeInput;
 struct FNiagaraVariable;
 struct FNiagaraTypeDefinition;
+class UNiagaraGraph;
+class UNiagaraEffect;
 
 namespace FNiagaraEditorUtilities
 {
@@ -63,5 +65,21 @@ namespace FNiagaraEditorUtilities
 	void ResetVariableToDefaultValue(FNiagaraVariable& Variable);
 
 	/** Sets up a niagara input node for parameter usage. */
-	void InitializeParameterInputNode(UNiagaraNodeInput& InputNode, const FNiagaraTypeDefinition& Type, const TSet<FName>& CurrentParameterNames, FName InputName = FName(TEXT("NewInput")));
+	void InitializeParameterInputNode(UNiagaraNodeInput& InputNode, const FNiagaraTypeDefinition& Type, const UNiagaraGraph* Graph, FName InputName = FName(TEXT("NewInput")));
+
+	/** Options for the GetParameterVariablesFromEffect function. */
+	struct FGetParameterVariablesFromEffectOptions
+	{
+		FGetParameterVariablesFromEffectOptions()
+			: bIncludeStructParameters(true)
+			, bIncludeDataInterfaceParameters(true)
+		{
+		}
+
+		bool bIncludeStructParameters;
+		bool bIncludeDataInterfaceParameters;
+	};
+
+	/** Gets the niagara variables for the input parameters on a niagara effect. */
+	void GetParameterVariablesFromEffect(UNiagaraEffect& Effect, TArray<FNiagaraVariable>& ParameterVariables, FGetParameterVariablesFromEffectOptions Options = FGetParameterVariablesFromEffectOptions());
 }

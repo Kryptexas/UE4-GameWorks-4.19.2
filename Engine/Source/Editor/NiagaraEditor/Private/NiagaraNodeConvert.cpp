@@ -10,6 +10,11 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraNodeConvert"
 
+UNiagaraNodeConvert::UNiagaraNodeConvert() : UNiagaraNodeWithDynamicPins(), bIsWiringShown(true)
+{
+
+}
+
 void UNiagaraNodeConvert::AllocateDefaultPins()
 {
 	CreateAddPin(EGPD_Input);
@@ -105,15 +110,37 @@ void UNiagaraNodeConvert::AutowireNewNode(UEdGraphPin* FromPin)
 
 				if (Dir == EGPD_Input)
 				{
-					SrcPath.Add(FNiagaraTypeDefinition::IsScalarDefinition(PropType) ? TEXT("Value") : *Property->GetName());
+					if (FNiagaraTypeDefinition::IsScalarDefinition(PropType))
+					{
+						SrcPath.Add(TEXT("Value"));
+					}
 					DestPath.Add(*Property->GetName());
 					Connections.Add(FNiagaraConvertConnection(NewPin->PinId, SrcPath, ConnectPin->PinId, DestPath));
+					if (SrcPath.Num())
+					{
+						AddExpandedRecord(FNiagaraConvertPinRecord(NewPin->PinId, SrcPath).GetParent());
+					}
+					if (DestPath.Num())
+					{
+						AddExpandedRecord(FNiagaraConvertPinRecord(ConnectPin->PinId, DestPath).GetParent());
+					}
 				}
 				else
 				{
 					SrcPath.Add(*Property->GetName());
-					DestPath.Add(FNiagaraTypeDefinition::IsScalarDefinition(PropType) ? TEXT("Value") : *Property->GetName());
+					if (FNiagaraTypeDefinition::IsScalarDefinition(PropType))
+					{
+						DestPath.Add(TEXT("Value"));
+					}
 					Connections.Add(FNiagaraConvertConnection(ConnectPin->PinId, SrcPath, NewPin->PinId, DestPath));
+					if (DestPath.Num())
+					{
+						AddExpandedRecord(FNiagaraConvertPinRecord(NewPin->PinId, DestPath).GetParent());
+					}
+					if (SrcPath.Num())
+					{
+						AddExpandedRecord(FNiagaraConvertPinRecord(ConnectPin->PinId, SrcPath).GetParent());
+					}
 				}
 			}
 		}
@@ -157,6 +184,15 @@ void UNiagaraNodeConvert::AutowireNewNode(UEdGraphPin* FromPin)
 			SrcPath.Add(*CharStr);
 			DestPath.Add(FNiagaraTypeDefinition::IsScalarDefinition(SwizType) ? TEXT("Value") : SwizComponents[i]);
 			Connections.Add(FNiagaraConvertConnection(ConnectPin->PinId, SrcPath, NewPin->PinId, DestPath));
+			if (DestPath.Num())
+			{
+				AddExpandedRecord(FNiagaraConvertPinRecord(NewPin->PinId, DestPath).GetParent());
+			}
+
+			if (SrcPath.Num())
+			{
+				AddExpandedRecord(FNiagaraConvertPinRecord(ConnectPin->PinId, SrcPath).GetParent());
+			}
 		}
 	}
 	GetGraph()->NotifyGraphChanged();
@@ -251,6 +287,8 @@ bool UNiagaraNodeConvert::InitConversion(UEdGraphPin* FromPin, UEdGraphPin* ToPi
 	UEdGraphPin* ConnectFromPin = RequestNewTypedPin(EGPD_Input, FromType);
 	FromPin->MakeLinkTo(ConnectFromPin);
 	UEdGraphPin* ConnectToPin = RequestNewTypedPin(EGPD_Output, ToType);
+	// Before we connect our new link, make sure that the old ones are gone.
+	ToPin->BreakAllPinLinks();
 	ToPin->MakeLinkTo(ConnectToPin);
 	check(ConnectFromPin);
 	check(ConnectToPin);
@@ -279,6 +317,16 @@ bool UNiagaraNodeConvert::InitConversion(UEdGraphPin* FromPin, UEdGraphPin* ToPi
 			SrcPath.Add(*FromProp->GetName());
 			DestPath.Add(*ToProp->GetName());
 			Connections.Add(FNiagaraConvertConnection(ConnectFromPin->PinId, SrcPath, ConnectToPin->PinId, DestPath));
+
+			if (SrcPath.Num())
+			{
+				AddExpandedRecord(FNiagaraConvertPinRecord(ConnectFromPin->PinId, SrcPath).GetParent());
+			}
+
+			if (DestPath.Num())
+			{
+				AddExpandedRecord(FNiagaraConvertPinRecord(ConnectToPin->PinId, DestPath).GetParent());
+			}
 		}
 			
 		//If there is no next From property, just keep with the same one and set it to all future To properties.
@@ -291,6 +339,55 @@ bool UNiagaraNodeConvert::InitConversion(UEdGraphPin* FromPin, UEdGraphPin* ToPi
 	}
 
 	return Connections.Num() > 0;
+}
+
+
+bool UNiagaraNodeConvert::IsWiringShown() const
+{
+	return bIsWiringShown;
+}
+
+void UNiagaraNodeConvert::SetWiringShown(bool bInShown)
+{
+	bIsWiringShown = bInShown;
+}
+
+void UNiagaraNodeConvert::RemoveExpandedRecord(const FNiagaraConvertPinRecord& InRecord)
+{
+	if (HasExpandedRecord(InRecord) == true)
+	{
+		FScopedTransaction ConnectTransaction(NSLOCTEXT("NiagaraConvert", "ConvertNodeCollpaseTransaction", "Collapse node."));
+		Modify();
+		ExpandedItems.Remove(InRecord);
+	}
+}
+
+
+bool UNiagaraNodeConvert::HasExpandedRecord(const FNiagaraConvertPinRecord& InRecord)
+{
+	for (const FNiagaraConvertPinRecord& ExpandedRecord : ExpandedItems)
+	{
+		if (ExpandedRecord.PinId == InRecord.PinId && ExpandedRecord.Path == InRecord.Path)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void UNiagaraNodeConvert::AddExpandedRecord(const FNiagaraConvertPinRecord& InRecord)
+{
+	if (HasExpandedRecord(InRecord) == false)
+	{
+		Modify();
+		FScopedTransaction ConnectTransaction(NSLOCTEXT("NiagaraConvert", "ConvertNodeExpandedTransaction", "Expand node."));
+		ExpandedItems.AddUnique(InRecord);
+	}
+}
+
+bool operator ==(const FNiagaraConvertPinRecord & A, const FNiagaraConvertPinRecord & B)
+{
+	return (A.PinId == B.PinId && A.Path == B.Path);
 }
 
 #undef LOCTEXT_NAMESPACE

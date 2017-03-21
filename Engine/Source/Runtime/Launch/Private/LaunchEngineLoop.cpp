@@ -1662,6 +1662,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			Commandline.Contains(TEXT("run=cook")) == false )
 		// if (FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")) == false)
 		{
+			CompileGlobalShaderMaps(false);
 			if (GetGlobalShaderMap(GMaxRHIFeatureLevel) == nullptr && GIsRequestingExit)
 			{
 				// This means we can't continue without the global shader map.

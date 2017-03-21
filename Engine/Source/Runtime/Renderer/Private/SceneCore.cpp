@@ -318,20 +318,20 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 {
 	const auto FeatureLevel = Scene->GetFeatureLevel();
 
-	if (CastShadow)
-	{
-		FShadowDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
-	}
-
-	if (!PrimitiveSceneInfo->Proxy->ShouldRenderInMainPass())
-	{
-		return;
-	}
-
 	if (bUseForMaterial && Scene->RequiresHitProxies() && PrimitiveSceneInfo->Proxy->IsSelectable())
 	{
 		// Add the static mesh to the DPG's hit proxy draw list.
 		FHitProxyDrawingPolicyFactory::AddStaticMesh(Scene, this);
+	}
+
+	if (!PrimitiveSceneInfo->Proxy->ShouldRenderInMainPass() || !ShouldIncludeDomainInMeshPass(MaterialRenderProxy->GetMaterial(FeatureLevel)->GetMaterialDomain()))
+	{
+		return;
+	}
+
+	if (CastShadow)
+	{
+		FShadowDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
 	}
 
 	if (IsTranslucent(FeatureLevel))
@@ -440,4 +440,11 @@ FExponentialHeightFogSceneInfo::FExponentialHeightFogSceneInfo(const UExponentia
 	InscatteringColorCubemapAngle = InComponent->InscatteringColorCubemapAngle * (PI / 180.f);
 	FullyDirectionalInscatteringColorDistance = InComponent->FullyDirectionalInscatteringColorDistance;
 	NonDirectionalInscatteringColorDistance = InComponent->NonDirectionalInscatteringColorDistance;
+
+	bEnableVolumetricFog = InComponent->bEnableVolumetricFog;
+	VolumetricFogScatteringDistribution = FMath::Clamp(InComponent->VolumetricFogScatteringDistribution, -.99f, .99f);
+	VolumetricFogScatteringScale = FMath::Max(InComponent->VolumetricFogScatteringScale, 0.0f);
+	VolumetricFogAbsorptionScale = FMath::Max(InComponent->VolumetricFogAbsorptionScale, 0.0f);
+	VolumetricFogDistance = FMath::Max(InComponent->VolumetricFogDistance, 0.0f);
+	bOverrideLightColorsWithFogInscatteringColors = InComponent->bOverrideLightColorsWithFogInscatteringColors;
 }

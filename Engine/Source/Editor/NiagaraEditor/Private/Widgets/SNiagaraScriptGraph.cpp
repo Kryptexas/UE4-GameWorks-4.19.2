@@ -5,7 +5,7 @@
 #include "NiagaraEditorUtilities.h"
 #include "NiagaraGraph.h"
 #include "NiagaraNode.h"
-
+#include "NiagaraNodeInput.h"
 #include "AssetEditorManager.h"
 #include "GraphEditor.h"
 #include "EditorStyleSet.h"
@@ -14,7 +14,7 @@
 #include "TextLayout.h"
 #include "SErrorText.h"
 #include "STextBlock.h"
-
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptGraph"
 
@@ -70,6 +70,8 @@ TSharedRef<SGraphEditor> SNiagaraScriptGraph::ConstructGraphEditor()
 	SGraphEditor::FGraphEditorEvents Events;
 	Events.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateSP(this, &SNiagaraScriptGraph::GraphEditorSelectedNodesChanged);
 	Events.OnNodeDoubleClicked = FSingleNodeEvent::CreateSP(this, &SNiagaraScriptGraph::OnNodeDoubleClicked);
+	Events.OnTextCommitted = FOnNodeTextCommitted::CreateSP(this, &SNiagaraScriptGraph::OnNodeTitleCommitted);
+	Events.OnVerifyTextCommit = FOnNodeVerifyTextCommit::CreateSP(this, &SNiagaraScriptGraph::OnVerifyNodeTextCommit);
 
 	return SNew(SGraphEditor)
 		.AdditionalCommands(ViewModel->GetCommands())
@@ -116,6 +118,40 @@ void SNiagaraScriptGraph::OnNodeDoubleClicked(UEdGraphNode* ClickedNode)
 			FAssetEditorManager::Get().OpenEditorForAsset(ReferencedAsset);
 		}
 	}
+}
+
+void SNiagaraScriptGraph::OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged)
+{
+	if (NodeBeingChanged)
+	{
+		// When you request rename on spawn but accept the value, we want to not add a transaction if they just hit "Enter".
+		bool bRename = true;
+		if (NodeBeingChanged->IsA(UNiagaraNodeInput::StaticClass()))
+		{
+			FName CurrentName = Cast<UNiagaraNodeInput>(NodeBeingChanged)->Input.GetName();
+			if (CurrentName.ToString().Equals(NewText.ToString(), ESearchCase::CaseSensitive))
+			{
+				bRename = false;
+			}
+		}
+
+		if (bRename)
+		{
+			const FScopedTransaction Transaction(LOCTEXT("RenameNode", "Rename Node"));
+			NodeBeingChanged->Modify();
+			NodeBeingChanged->OnRenameNode(NewText.ToString());
+		}
+	}
+}
+
+bool SNiagaraScriptGraph::OnVerifyNodeTextCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged, FText& OutErrorMessage)
+{
+	bool bValid = true;
+	if (NodeBeingChanged->IsA(UNiagaraNodeInput::StaticClass()))
+	{
+		return UNiagaraNodeInput::VerifyNodeRenameTextCommit(NewText, Cast<UNiagaraNodeInput>(NodeBeingChanged), OutErrorMessage);
+	}
+	return bValid;
 }
 
 void SNiagaraScriptGraph::NodesPasted(const TSet<UEdGraphNode*>& PastedNodes)

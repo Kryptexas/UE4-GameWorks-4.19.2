@@ -47,6 +47,8 @@ struct FPrimitiveViewRelevance
 	uint32 bRenderCustomDepth : 1;
 	/** The primitive should render to the base pass / normal depth / velocity rendering. */
 	uint32 bRenderInMainPass : 1;
+	/** The primitive has materials using the volume domain. */
+	uint32 bHasVolumeMaterialDomain : 1;
 	/** The primitive is drawn only in the editor and composited onto the scene after post processing */
 	uint32 bEditorPrimitiveRelevance : 1;
 	/** The primitive's static elements are selected and rendered again in the selection outline pass*/

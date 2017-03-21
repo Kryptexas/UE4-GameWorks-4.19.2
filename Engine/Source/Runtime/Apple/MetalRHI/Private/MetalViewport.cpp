@@ -305,12 +305,12 @@ void FMetalDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 	// Set the render target and viewport.
 	if (RenderTargetRHI)
 	{
-		FRHIRenderTargetView RTV(RenderTargetRHI);
+		FRHIRenderTargetView RTV(RenderTargetRHI, ERenderTargetLoadAction::ELoad);
 		RHISetRenderTargets(1, &RTV, nullptr, 0, NULL);
 	}
 	else
 	{
-		FRHIRenderTargetView RTV(Viewport->GetBackBuffer(EMetalViewportAccessRHI));
+		FRHIRenderTargetView RTV(Viewport->GetBackBuffer(EMetalViewportAccessRHI), ERenderTargetLoadAction::ELoad);
 		RHISetRenderTargets(1, &RTV, nullptr, 0, NULL);
 	}
 }

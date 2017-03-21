@@ -204,6 +204,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetIndirectLightingIntensity(float NewIntensity);
 
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
+	void SetVolumetricScatteringIntensity(float NewIntensity);
+
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetLightColor(FLinearColor NewLightColor, bool bSRGB = true);

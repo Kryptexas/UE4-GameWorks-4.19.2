@@ -8,6 +8,9 @@
 
 // These are only enabled for SM5 due to limited interpolators elsewhere
 #define USE_PARTICLE_NODES (FEATURE_LEVEL >= FEATURE_LEVEL_SM5)
+#define USE_PARTICLE_POSITION (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && (NEEDS_PARTICLE_POSITION || PASS_NEEDS_PRIMITIVE_VOLUME_BOUNDS))
+#define USE_PARTICLE_VELOCITY (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && NEEDS_PARTICLE_VELOCITY)
+#define USE_PARTICLE_TIME (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && NEEDS_PARTICLE_TIME)
 
 // Only support previous transform for deferred feature level
 #define USE_PREVIOUS_TRANSFORM (FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
@@ -108,14 +111,21 @@ struct FVertexFactoryInterpolantsVSToPS
 #endif
 	
 #if USE_PARTICLE_NODES
+#if USE_PARTICLE_POSITION
 	/** Particle position in camera-centered translated world space */
 	float3 ParticleTranslatedWorldPosition	: PARTICLE_POSITION;
+#endif
 
+#if USE_PARTICLE_VELOCITY
 	/** The velocity of the particle, XYZ: direction, W: speed. */
 	float4 ParticleVelocity	: PARTICLE_VELOCITY;
+#endif
 
+#if USE_PARTICLE_TIME
 	/** Relative alive time of the particle */
 	float ParticleTime : PARTICLE_TIME;
+#endif
+
 #if NEEDS_PARTICLE_TRANSFORM
 	float4 LocalToWorld[4] : PARTICLE_TRANSFORM;
 #endif
@@ -255,16 +265,23 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 #endif //USE_DYNAMIC_PARAMETERS
 
 #if USE_PARTICLE_NODES
-	Result.Particle.TranslatedWorldPositionAndSize.xyz = Interpolants.ParticleTranslatedWorldPosition.xyz;
-	Result.Particle.TranslatedWorldPositionAndSize.w = 1;
-	Result.Particle.Velocity = Interpolants.ParticleVelocity;
-	Result.Particle.RelativeTime = Interpolants.ParticleTime;
-#if NEEDS_PARTICLE_TRANSFORM
-	Result.Particle.LocalToWorld[0] = Interpolants.LocalToWorld[0];
-	Result.Particle.LocalToWorld[1] = Interpolants.LocalToWorld[1];
-	Result.Particle.LocalToWorld[2] = Interpolants.LocalToWorld[2];
-	Result.Particle.LocalToWorld[3] = Interpolants.LocalToWorld[3];
-#endif
+	#if USE_PARTICLE_POSITION
+		Result.Particle.TranslatedWorldPositionAndSize.xyz = Interpolants.ParticleTranslatedWorldPosition.xyz;
+		Result.Particle.TranslatedWorldPositionAndSize.w = 1;
+	#endif
+
+	#if USE_PARTICLE_VELOCITY
+		Result.Particle.Velocity = Interpolants.ParticleVelocity;
+	#endif
+	#if USE_PARTICLE_TIME
+		Result.Particle.RelativeTime = Interpolants.ParticleTime;
+	#endif
+	#if NEEDS_PARTICLE_TRANSFORM
+		Result.Particle.LocalToWorld[0] = Interpolants.LocalToWorld[0];
+		Result.Particle.LocalToWorld[1] = Interpolants.LocalToWorld[1];
+		Result.Particle.LocalToWorld[2] = Interpolants.LocalToWorld[2];
+		Result.Particle.LocalToWorld[3] = Interpolants.LocalToWorld[3];
+	#endif
 #endif
 
 	Result.Particle.MotionBlurFade = 1.0f;
@@ -530,12 +547,18 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 #endif	//USE_DYNAMIC_PARAMETERS
 
 #if USE_PARTICLE_NODES
-	Interpolants.ParticleTranslatedWorldPosition = Intermediates.ParticleTranslatedWorldPosition;
-	Interpolants.ParticleVelocity = Intermediates.ParticleVelocity;
-	Interpolants.ParticleTime = Intermediates.RelativeTime;
-#if NEEDS_PARTICLE_TRANSFORM
-	Interpolants.LocalToWorld = Intermediates.LocalToWorld;
-#endif
+	#if USE_PARTICLE_POSITION
+		Interpolants.ParticleTranslatedWorldPosition = Intermediates.ParticleTranslatedWorldPosition;
+	#endif
+	#if USE_PARTICLE_VELOCITY
+		Interpolants.ParticleVelocity = Intermediates.ParticleVelocity;
+	#endif
+	#if USE_PARTICLE_TIME
+		Interpolants.ParticleTime = Intermediates.RelativeTime;
+	#endif
+	#if NEEDS_PARTICLE_TRANSFORM
+		Interpolants.LocalToWorld = Intermediates.LocalToWorld;
+	#endif
 #endif
 
 #if INSTANCED_STEREO
@@ -663,3 +686,8 @@ uint VertexFactoryGetEyeIndex(uint InstanceId)
 	#endif
 }
 #endif
+
+float4 VertexFactoryGetTranslatedPrimitiveVolumeBounds(FVertexFactoryInterpolantsVSToPS Interpolants)
+{
+	return 0;
+}

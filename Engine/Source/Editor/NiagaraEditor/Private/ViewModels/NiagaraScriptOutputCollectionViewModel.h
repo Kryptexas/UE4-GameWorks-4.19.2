@@ -62,13 +62,13 @@ private:
 	TArray<TSharedRef<INiagaraParameterViewModel>> ParameterViewModels;
 
 	/** The script which provides the output node which owns the output parameters. */
-	UNiagaraScript* Script;
+	TWeakObjectPtr<UNiagaraScript> Script;
 
 	/** The graph which owns the output node which owns the output paramters. */
-	UNiagaraGraph* Graph;
+	TWeakObjectPtr<UNiagaraGraph> Graph;
 
 	/** The output node which owns the output parameters. */
-	UNiagaraNodeOutput* OutputNode;
+	TWeakObjectPtr<UNiagaraNodeOutput> OutputNode;
 
 	/** The display name for the parameter collection. */
 	FText DisplayName;

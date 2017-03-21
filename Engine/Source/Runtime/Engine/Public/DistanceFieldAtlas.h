@@ -17,9 +17,6 @@
 #include "TextureLayout3d.h"
 #include "UniquePtr.h"
 
-// DDC key for distance field data, must be changed when modifying the generation code or data format
-#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798764B445A9553C94442EA899D")
-
 class FDistanceFieldVolumeData;
 class UStaticMesh;
 
@@ -32,13 +29,14 @@ public:
 	FDistanceFieldVolumeTexture(const class FDistanceFieldVolumeData& InVolumeData) :
 		VolumeData(InVolumeData),
 		AtlasAllocationMin(FIntVector(-1, -1, -1)),
-		bReferencedByAtlas(false)
+		bReferencedByAtlas(false),
+		StaticMesh(NULL)
 	{}
 
 	~FDistanceFieldVolumeTexture();
 
 	/** Called at load time on game thread */
-	void Initialize();
+	void Initialize(UStaticMesh* InStaticMesh);
 
 	/** Called before unload on game thread */
 	void Release();
@@ -57,10 +55,16 @@ public:
 
 	bool IsValidDistanceFieldVolume() const;
 
+	UStaticMesh* GetStaticMesh() const
+	{
+		return StaticMesh;
+	}
+
 private:
 	const FDistanceFieldVolumeData& VolumeData;
 	FIntVector AtlasAllocationMin;
 	bool bReferencedByAtlas;
+	UStaticMesh* StaticMesh;
 
 	friend class FDistanceFieldVolumeTextureAtlas;
 };
@@ -69,7 +73,9 @@ private:
 class FDistanceFieldVolumeTextureAtlas : public FRenderResource
 {
 public:
-	FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat);
+	FDistanceFieldVolumeTextureAtlas();
+
+	void InitializeIfNeeded();
 
 	virtual void ReleaseRHI() override
 	{
@@ -81,6 +87,8 @@ public:
 	int32 GetSizeZ() const { return VolumeTextureRHI->GetSizeZ(); }
 
 	ENGINE_API FString GetSizeString() const;
+
+	ENGINE_API void ListMeshDistanceFields() const;
 
 	/** Add an allocation to the atlas. */
 	void AddAllocation(FDistanceFieldVolumeTexture* Texture);
@@ -108,6 +116,8 @@ private:
 
 	/** Incremented when the atlas is reallocated, so dependencies know to update. */
 	int32 Generation;
+
+	bool bInitialized;
 };
 
 extern ENGINE_API TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas;
@@ -129,6 +139,8 @@ public:
 	/** Local space bounding box of the distance field volume. */
 	FBox LocalBoundingBox;
 
+	FVector2D DistanceMinMax;
+
 	/** Whether the mesh was closed and therefore a valid distance field was supported. */
 	bool bMeshWasClosed;
 
@@ -143,6 +155,7 @@ public:
 	FDistanceFieldVolumeData() :
 		Size(FIntVector(0, 0, 0)),
 		LocalBoundingBox(ForceInit),
+		DistanceMinMax(FVector2D(0, 0)),
 		bMeshWasClosed(true),
 		bBuiltAsIfTwoSided(false),
 		bMeshWasPlane(false),
@@ -183,7 +196,7 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,FDistanceFieldVolumeData& Data)
 	{
 		// Note: this is derived data, no need for versioning (bump the DDC guid)
-		Ar << Data.CompressedDistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.bMeshWasClosed << Data.bBuiltAsIfTwoSided << Data.bMeshWasPlane;
+		Ar << Data.CompressedDistanceFieldVolume << Data.Size << Data.LocalBoundingBox << Data.DistanceMinMax << Data.bMeshWasClosed << Data.bBuiltAsIfTwoSided << Data.bMeshWasPlane;
 		return Ar;
 	}
 };
@@ -261,3 +274,5 @@ private:
 
 /** Global build queue. */
 extern ENGINE_API FDistanceFieldAsyncQueue* GDistanceFieldAsyncQueue;
+
+extern ENGINE_API FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey);

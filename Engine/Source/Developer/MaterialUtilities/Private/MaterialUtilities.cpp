@@ -455,7 +455,7 @@ public:
 	{
 		return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL"));
 	}
-	virtual int32 GetMaterialDomain() const override
+	virtual EMaterialDomain GetMaterialDomain() const override
 	{
 		if (Material)
 		{
@@ -490,6 +490,10 @@ public:
 	virtual bool IsDeferredDecal() const override
 	{
 		return Material && Material->MaterialDomain == MD_DeferredDecal;
+	}
+	virtual bool IsVolumetricPrimitive() const override
+	{
+		return Material && Material->MaterialDomain == MD_Volume;
 	}
 	virtual bool IsSpecialEngineMaterial() const override
 	{

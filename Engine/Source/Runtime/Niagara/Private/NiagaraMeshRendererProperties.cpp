@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraMeshRendererProperties.h"
-#include "NiagaraEffectRenderer.h"
+#include "NiagaraEffectRendererMeshes.h"
 
 UNiagaraMeshRendererProperties::UNiagaraMeshRendererProperties()
 	: ParticleMesh(nullptr)
@@ -11,6 +11,17 @@ UNiagaraMeshRendererProperties::UNiagaraMeshRendererProperties()
 NiagaraEffectRenderer* UNiagaraMeshRendererProperties::CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel)
 {
 	return new NiagaraEffectRendererMeshes(FeatureLevel, this);
+}
+
+void UNiagaraMeshRendererProperties::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	if (ParticleMesh)
+	{
+		for(FStaticMaterial& Mat : ParticleMesh->StaticMaterials)
+		{
+			OutMaterials.Add(Mat.MaterialInterface);
+		}
+	}
 }
 
 #if WITH_EDITORONLY_DATA
@@ -43,8 +54,11 @@ void UNiagaraMeshRendererProperties::PostEditChangeProperty(FPropertyChangedEven
 		{
 			const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 			UMaterialInterface *Material = ParticleMesh->GetMaterial(Section.MaterialIndex);
-			FMaterialRenderProxy* MaterialProxy = Material->GetRenderProxy(false, false);
-			Material->CheckMaterialUsage(MATUSAGE_MeshParticles);
+			if (Material)
+			{
+				FMaterialRenderProxy* MaterialProxy = Material->GetRenderProxy(false, false);
+				Material->CheckMaterialUsage(MATUSAGE_MeshParticles);
+			}
 		}
 	}
 }

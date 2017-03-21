@@ -703,16 +703,16 @@ int32 USkinnedMeshComponent::GetNumMaterials() const
 
 UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
-	if(MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex])
+	if(OverrideMaterials.IsValidIndex(MaterialIndex) && OverrideMaterials[MaterialIndex])
 	{
 		return OverrideMaterials[MaterialIndex];
 	}
-	else if (SkeletalMesh && MaterialIndex < SkeletalMesh->Materials.Num() && SkeletalMesh->Materials[MaterialIndex].MaterialInterface)
+	else if (SkeletalMesh && SkeletalMesh->Materials.IsValidIndex(MaterialIndex) && SkeletalMesh->Materials[MaterialIndex].MaterialInterface)
 	{
 		return SkeletalMesh->Materials[MaterialIndex].MaterialInterface;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int32 USkinnedMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
@@ -725,7 +725,7 @@ int32 USkinnedMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
 			return MaterialIndex;
 		}
 	}
-	return -1;
+	return INDEX_NONE;
 }
 
 TArray<FName> USkinnedMeshComponent::GetMaterialSlotNames() const
@@ -2161,6 +2161,33 @@ void USkinnedMeshComponent::SetMinLOD(int32 InNewMinLOD)
 	}
 
 	MinLodModel = FMath::Clamp(InNewMinLOD, 0, MaxLODIndex);
+}
+
+void USkinnedMeshComponent::SetCastCapsuleDirectShadow(bool bNewValue)
+{
+	if (bNewValue != bCastCapsuleDirectShadow)
+	{
+		bCastCapsuleDirectShadow = bNewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void USkinnedMeshComponent::SetCastCapsuleIndirectShadow(bool bNewValue)
+{
+	if (bNewValue != bCastCapsuleIndirectShadow)
+	{
+		bCastCapsuleIndirectShadow = bNewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void USkinnedMeshComponent::SetCapsuleIndirectShadowMinVisibility(float NewValue)
+{
+	if (NewValue != CapsuleIndirectShadowMinVisibility)
+	{
+		CapsuleIndirectShadowMinVisibility = NewValue;
+		MarkRenderStateDirty();
+	}
 }
 
 bool USkinnedMeshComponent::UpdateLODStatus()

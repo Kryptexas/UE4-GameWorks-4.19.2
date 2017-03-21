@@ -117,24 +117,39 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	FScopeCycleCounter Context(Element.Mesh->PrimitiveSceneInfo->Proxy->GetStatId());
 #endif // #if PER_MESH_DRAW_STATS
 
+	FDepthStencilStateRHIParamRef PreDitherDepth = DrawRenderState.GetDepthStencilState();
+	uint32 PreDitherRef = DrawRenderState.GetStencilRef();
+	DrawingPolicyLink->DrawingPolicy.ApplyDitheredLODTransitionState(DrawRenderState, View, *Element.Mesh, View.bAllowStencilDither);
+
+	if (PreDitherDepth != DrawRenderState.GetDepthStencilState())
+	{
+		bDrawnShared = false;
+	}
+	const bool bSRefChanged = PreDitherRef != DrawRenderState.GetStencilRef();
+
 	if (!bDrawnShared)
 	{
-		if (ensure(IsValidRef(DrawingPolicyLink->BoundShaderState)))
+		DrawingPolicyLink->DrawingPolicy.SetupPipelineState(DrawRenderState, View);
+		FBoundShaderStateInput BoundShaderStateInput;
+		if (ensure(DrawingPolicyLink->BoundShaderStateInput.VertexShaderRHI != nullptr))
 		{
-			RHICmdList.SetBoundShaderState(DrawingPolicyLink->BoundShaderState);
+			BoundShaderStateInput = DrawingPolicyLink->BoundShaderStateInput;
 		}
 		else
 		{
-			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicyLink->DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+			BoundShaderStateInput = DrawingPolicyLink->DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel());
 		}
-		DrawingPolicyLink->DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext, DrawRenderState);
+
+		CommitGraphicsPipelineState(RHICmdList, DrawingPolicyLink->DrawingPolicy, DrawRenderState, BoundShaderStateInput);
+		DrawingPolicyLink->DrawingPolicy.SetSharedState(RHICmdList, DrawRenderState, &View, PolicyContext);
 
 		bDrawnShared = true;
 	}
-	
-	FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
-
-	DrawingPolicyLink->DrawingPolicy.ApplyDitheredLODTransitionState(RHICmdList, DrawRenderStateLocal, View, *Element.Mesh, View.bAllowStencilDither);
+	//stencil ref is not part of the PSO and depends on the primcomponent.  may still need to be applied.
+	else if (bSRefChanged)
+	{		
+		RHICmdList.SetStencilRef(DrawRenderState.GetStencilRef());
+	}
 
 	int32 DrawCount = 0;
 
@@ -164,7 +179,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 						Proxy,
 						*Element.Mesh,
 						BatchElementIndex,
-						DrawRenderStateLocal,
+						DrawRenderState,
 						Element.PolicyData,
 						PolicyContext
 					);
@@ -185,7 +200,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 					Proxy,
 					*Element.Mesh,
 					BatchElementIndex,
-					DrawRenderStateLocal,
+					DrawRenderState,
 					Element.PolicyData,
 					PolicyContext
 				);
@@ -298,10 +313,6 @@ TStaticMeshDrawList<DrawingPolicyType>::~TStaticMeshDrawList()
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::ReleaseRHI()
 {
-	for(typename TDrawingPolicySet::TIterator DrawingPolicyIt(DrawingPolicySet);DrawingPolicyIt;++DrawingPolicyIt)
-	{
-		DrawingPolicyIt->ReleaseBoundShaderState();
-	}
 }
 
 template<typename DrawingPolicyType>
@@ -395,7 +406,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 	)
 {
 	//moved out of the inner loop and only modified if bDrawnShared
-	FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+	FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 
 	return DrawVisibleInner<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, DrawRenderStateLocal, &StaticMeshVisibilityMap, &BatchVisibilityArray, nullptr, 0, OrderedDrawingPolicies.Num() - 1, false);
 }
@@ -433,7 +444,7 @@ public:
 		: Caller(InCaller)
 		, RHICmdList(InRHICmdList)
 		, View(InView)
-		, DrawRenderState(nullptr, InDrawRenderState)
+		, DrawRenderState(InDrawRenderState)
 		, PolicyContext(InPolicyContext)
 		, StaticMeshVisibilityMap(InStaticMeshVisibilityMap)
 		, BatchVisibilityArray(InBatchVisibilityArray)

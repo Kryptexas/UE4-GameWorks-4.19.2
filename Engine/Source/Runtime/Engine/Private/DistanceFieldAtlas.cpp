@@ -39,10 +39,23 @@ static TAutoConsoleVariable<int32> CVarDistField(
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarCompressDistField(
-	TEXT("r.CompressMeshDistanceFields"),
+	TEXT("r.DistanceFieldBuild.Compress"),
 	0,	
 	TEXT("Whether to store mesh distance fields compressed in memory, which reduces how much memory they take, but also causes serious hitches when making new levels visible.  Only enable if your project does not stream levels in-game.\n")
 	TEXT("Changing this regenerates all mesh distance fields."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarEightBitDistField(
+	TEXT("r.DistanceFieldBuild.EightBit"),
+	0,	
+	TEXT("Whether to store mesh distance fields in an 8 bit fixed point format instead of 16 bit floating point.  \n")
+	TEXT("8 bit uses half the memory, but introduces artifacts for large meshes or thin meshes."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarUseEmbreeForMeshDistanceFieldGeneration(
+	TEXT("r.DistanceFieldBuild.UseEmbree"),
+	1,
+	TEXT("Whether to use embree ray tracer for mesh distance field generation."),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarDistFieldRes(
@@ -78,21 +91,35 @@ static TAutoConsoleVariable<int32> CVarLandscapeGI(
 	TEXT("This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage.\n"),
 	ECVF_Default);
 
-TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas = TGlobalResource<FDistanceFieldVolumeTextureAtlas>(PF_R16F);
+TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas = TGlobalResource<FDistanceFieldVolumeTextureAtlas>();
 
-FDistanceFieldVolumeTextureAtlas::FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat) :
-	BlockAllocator(0, 0, 0, 0, 0, 0, false, false)
+FDistanceFieldVolumeTextureAtlas::FDistanceFieldVolumeTextureAtlas() :
+	BlockAllocator(0, 0, 0, 0, 0, 0, false, false),
+	bInitialized(false)
 {
+	// Warning: can't access cvars here, this is called during global init
 	Generation = 0;
-	Format = InFormat;
+}
 
-	static const auto CVarXY = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.AtlasSizeXY"));
-	const int32 AtlasXY = CVarXY->GetValueOnAnyThread();
+void FDistanceFieldVolumeTextureAtlas::InitializeIfNeeded()
+{
+	if (!bInitialized)
+	{
+		bInitialized = true;
 
-	static const auto CVarZ = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.AtlasSizeZ"));
-	const int32 AtlasZ = CVarZ->GetValueOnAnyThread();
+		static const auto CVarEightBit = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.EightBit"));
+		const bool bEightBitFixedPoint = CVarEightBit->GetValueOnAnyThread() != 0;
 
-	BlockAllocator = FTextureLayout3d(0, 0, 0, AtlasXY, AtlasXY, AtlasZ, false, false);
+		Format = bEightBitFixedPoint ? PF_G8 : PF_R16F;
+
+		static const auto CVarXY = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.AtlasSizeXY"));
+		const int32 AtlasXY = CVarXY->GetValueOnAnyThread();
+
+		static const auto CVarZ = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.AtlasSizeZ"));
+		const int32 AtlasZ = CVarZ->GetValueOnAnyThread();
+
+		BlockAllocator = FTextureLayout3d(0, 0, 0, AtlasXY, AtlasXY, AtlasZ, false, false);
+	}
 }
 
 FString FDistanceFieldVolumeTextureAtlas::GetSizeString() const
@@ -130,13 +157,72 @@ FString FDistanceFieldVolumeTextureAtlas::GetSizeString() const
 	}
 }
 
+struct FMeshDistanceFieldStats
+{
+	size_t MemoryBytes;
+	float ResolutionScale;
+	UStaticMesh* Mesh;
+};
+
+void FDistanceFieldVolumeTextureAtlas::ListMeshDistanceFields() const
+{
+	TArray<FMeshDistanceFieldStats> GatheredStats;
+
+	const int32 FormatSize = GPixelFormats[Format].BlockBytes;
+
+	for (int32 AllocationIndex = 0; AllocationIndex < CurrentAllocations.Num(); AllocationIndex++)
+	{
+		FDistanceFieldVolumeTexture* Texture = CurrentAllocations[AllocationIndex];
+		FMeshDistanceFieldStats Stats;
+		size_t AtlasMemory = Texture->VolumeData.Size.X * Texture->VolumeData.Size.Y * Texture->VolumeData.Size.Z * FormatSize;
+		size_t BackingMemory = Texture->VolumeData.CompressedDistanceFieldVolume.Num() * Texture->VolumeData.CompressedDistanceFieldVolume.GetTypeSize();
+		Stats.MemoryBytes = AtlasMemory + BackingMemory;
+		Stats.Mesh = Texture->GetStaticMesh();
+#if WITH_EDITORONLY_DATA
+		Stats.ResolutionScale = Stats.Mesh->SourceModels[0].BuildSettings.DistanceFieldResolutionScale;
+#else
+		Stats.ResolutionScale = -1;
+#endif
+		GatheredStats.Add(Stats);
+	}
+
+	struct FMeshDistanceFieldStatsSorter
+	{
+		bool operator()( const FMeshDistanceFieldStats& A, const FMeshDistanceFieldStats& B ) const
+		{
+			return A.MemoryBytes > B.MemoryBytes;
+		}
+	};
+
+	GatheredStats.Sort(FMeshDistanceFieldStatsSorter());
+
+	size_t TotalMemory = 0;
+
+	for (int32 EntryIndex = 0; EntryIndex < GatheredStats.Num(); EntryIndex++)
+	{
+		const FMeshDistanceFieldStats& MeshStats = GatheredStats[EntryIndex];
+		TotalMemory += MeshStats.MemoryBytes;
+	}
+
+	UE_LOG(LogStaticMesh, Log, TEXT("Dumping mesh distance fields for %u meshes, total %.1fMb"), GatheredStats.Num(), TotalMemory / 1024.0f / 1024.0f);
+	UE_LOG(LogStaticMesh, Log, TEXT("   Memory Mb, Scale, Name, Path"));
+
+	for (int32 EntryIndex = 0; EntryIndex < GatheredStats.Num(); EntryIndex++)
+	{
+		const FMeshDistanceFieldStats& MeshStats = GatheredStats[EntryIndex];
+		UE_LOG(LogStaticMesh, Log, TEXT("   %.2f, %.1f, %s, %s"), MeshStats.MemoryBytes / 1024.0f / 1024.0f, MeshStats.ResolutionScale, *MeshStats.Mesh->GetName(), *MeshStats.Mesh->GetPathName());
+	}
+}
+
 void FDistanceFieldVolumeTextureAtlas::AddAllocation(FDistanceFieldVolumeTexture* Texture)
 {
+	InitializeIfNeeded();
 	PendingAllocations.AddUnique(Texture);
 }
 
 void FDistanceFieldVolumeTextureAtlas::RemoveAllocation(FDistanceFieldVolumeTexture* Texture)
 {
+	InitializeIfNeeded();
 	PendingAllocations.Remove(Texture);
 
 	if (CurrentAllocations.Contains(Texture))
@@ -220,6 +306,15 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 
 			FRHIResourceCreateInfo CreateInfo;
 
+			// Remove last ref, add to deferred delete list
+			VolumeTextureRHI = NULL;
+
+			// Flush commandlist, flush RHI thread, delete deferred resources (GNM Memblock defers further)
+			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+
+			// Flush GPU, flush GNM Memblock free
+			RHIFlushResources();
+
 			VolumeTextureRHI = RHICreateTexture3D(
 				BlockAllocator.GetSizeX(), 
 				BlockAllocator.GetSizeY(), 
@@ -232,7 +327,7 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			UE_LOG(LogStaticMesh,Log,TEXT("%s"),*GetSizeString());
 		}
 
-		static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompressMeshDistanceFields"));
+		static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.Compress"));
 		const bool bDataIsCompressed = CVarCompress->GetValueOnAnyThread() != 0;
 
 		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
@@ -256,9 +351,9 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 
 			if (bDataIsCompressed)
 			{
-				TArray<FFloat16> UncompressedData;
-				UncompressedData.Empty(Size.X * Size.Y * Size.Z);
-				UncompressedData.AddUninitialized(Size.X * Size.Y * Size.Z);
+				TArray<uint8> UncompressedData;
+				UncompressedData.Empty(UncompressedSize);
+				UncompressedData.AddUninitialized(UncompressedSize);
 
 				verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, UncompressedData.GetData(), UncompressedSize, Texture->VolumeData.CompressedDistanceFieldVolume.GetData(), Texture->VolumeData.CompressedDistanceFieldVolume.Num()));
 
@@ -295,10 +390,12 @@ FDistanceFieldVolumeTexture::~FDistanceFieldVolumeTexture()
 	}
 }
 
-void FDistanceFieldVolumeTexture::Initialize()
+void FDistanceFieldVolumeTexture::Initialize(UStaticMesh* InStaticMesh)
 {
 	if (IsValidDistanceFieldVolume())
 	{
+		StaticMesh = InStaticMesh;
+
 		bReferencedByAtlas = true;
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
@@ -315,6 +412,8 @@ void FDistanceFieldVolumeTexture::Release()
 {
 	if (bReferencedByAtlas)
 	{
+		StaticMesh = NULL;
+
 		bReferencedByAtlas = false;
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
@@ -338,6 +437,41 @@ bool FDistanceFieldVolumeTexture::IsValidDistanceFieldVolume() const
 }
 
 FDistanceFieldAsyncQueue* GDistanceFieldAsyncQueue = NULL;
+
+#if WITH_EDITOR
+
+// DDC key for distance field data, must be changed when modifying the generation code or data format
+#define DISTANCEFIELD_DERIVEDDATA_VER TEXT("E1AE9CB64EF64BA9A5EA17E72C88F9D")
+
+FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.MaxPerMeshResolution"));
+	const int32 PerMeshMax = CVar->GetValueOnAnyThread();
+	const FString PerMeshMaxString = PerMeshMax == 128 ? TEXT("") : FString(TEXT("_%u"), PerMeshMax);
+
+	static const auto CVarDensity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DistanceFields.DefaultVoxelDensity"));
+	const float VoxelDensity = CVarDensity->GetValueOnAnyThread();
+	const FString VoxelDensityString = VoxelDensity == .1f ? TEXT("") : FString(TEXT("_%.3f"), VoxelDensity);
+
+	static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.Compress"));
+	const bool bCompress = CVarCompress->GetValueOnAnyThread() != 0;
+	const FString CompressString = bCompress ? TEXT("") : TEXT("_uc");
+
+	static const auto CVarEightBit = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.EightBit"));
+	const bool bEightBitFixedPoint = CVarEightBit->GetValueOnAnyThread() != 0;
+	const FString FormatString = bEightBitFixedPoint ? TEXT("_8u") : TEXT("");
+
+	static const auto CVarEmbree = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.UseEmbree"));
+	const bool bUseEmbree = CVarEmbree->GetValueOnAnyThread() != 0;
+	const FString EmbreeString = bUseEmbree ? TEXT("_e") : TEXT("");
+
+	return FDerivedDataCacheInterface::BuildCacheKey(
+		TEXT("DIST"),
+		*FString::Printf(TEXT("%s_%s%s%s%s%s%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER, *PerMeshMaxString, *VoxelDensityString, *CompressString, *FormatString, *EmbreeString),
+		TEXT(""));
+}
+
+#endif
 
 #if WITH_EDITORONLY_DATA
 
@@ -629,7 +763,7 @@ void FDistanceFieldAsyncQueue::ProcessAsyncTasks()
 
 		ReferencedTasks.Remove(Task);
 
-		Task->GeneratedVolumeData->VolumeTexture.Initialize();
+		Task->GeneratedVolumeData->VolumeTexture.Initialize(Task->StaticMesh);
 		FDistanceFieldVolumeData* OldVolumeData = Task->StaticMesh->RenderData->LODResources[0].DistanceFieldData;
 
 		{

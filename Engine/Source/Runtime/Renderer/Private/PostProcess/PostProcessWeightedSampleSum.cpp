@@ -12,6 +12,7 @@
 #include "PostProcess/SceneRenderTargets.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
+#include "PipelineStateCache.h"
 
 // maximum number of sample using the shader that has the dynamic loop
 #define MAX_FILTER_SAMPLES	128
@@ -26,9 +27,9 @@
 static TAutoConsoleVariable<int32> CVarLoopMode(
 	TEXT("r.Filter.LoopMode"),
 	0,
-	TEXT("Controles when to use either dynamic or unrolled loops to iterates over the Gaussian filtering.\n")
+	TEXT("Controls when to use either dynamic or unrolled loops to iterates over the Gaussian filtering.\n")
 	TEXT("This passes is used for Gaussian Blur, Bloom and Depth of Field. The dynamic loop allows\n")
-	TEXT("up to 128 samples versus the 32 samples of unrolled loops, but add an additonal cost for\n")
+	TEXT("up to 128 samples versus the 32 samples of unrolled loops, but add an additional cost for\n")
 	TEXT("the loop's stop test at every iterations.\n")
 	TEXT(" 0: Unrolled loop only (default; limited to 32 samples).\n")
 	TEXT(" 1: Fall back to dynamic loop if needs more than 32 samples.\n")
@@ -38,7 +39,7 @@ static TAutoConsoleVariable<int32> CVarLoopMode(
 static TAutoConsoleVariable<float> CVarFilterSizeScale(
 	TEXT("r.Filter.SizeScale"),
 	1.0f,
-	TEXT("Allows to scale down or up the sample count used for bloom and Gaussian depth of field (scale is clampled to give reasonable results).\n")
+	TEXT("Allows to scale down or up the sample count used for bloom and Gaussian depth of field (scale is clamped to give reasonable results).\n")
 	TEXT("Values down to 0.6 are hard to notice\n")
 	TEXT(" 1 full quality (default)\n")
 	TEXT(" >1 more samples (slower)\n")
@@ -89,7 +90,7 @@ public:
 		if (CompileTimeNumSamples == 0)
 		{
 			// CompileTimeNumSamples == 0 implies the dynamic loop, but we still needs to pass the number
-			// of maximum number of samples for the uniform arraies.
+			// of maximum number of samples for the uniform arrays.
 			OutEnvironment.SetDefine(TEXT("MAX_NUM_SAMPLES"), MAX_FILTER_SAMPLES);
 		}
 	}
@@ -332,6 +333,13 @@ void SetFilterShaders(
 	check(CombineMethodInt <= 2);
 	check(NumSamples <= MAX_FILTER_SAMPLES && NumSamples > 0);
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 	const auto DynamicNumSample = CVarLoopMode.GetValueOnRenderThread();
 	
@@ -340,13 +348,16 @@ void SetFilterShaders(
 		// there is to many samples, so we use the dynamic sample count shader
 		
 		TShaderMapRef<FPostProcessVS> VertexShader(ShaderMap);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 		*OutVertexShader = *VertexShader;
+
 		if(CombineMethodInt == 0)
 		{
 			TShaderMapRef<TFilterPS<0, 0> > PixelShader(ShaderMap);
 			{
-				static FGlobalBoundShaderState BoundShaderState;
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 			}
 			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples);
 		}
@@ -354,8 +365,8 @@ void SetFilterShaders(
 		{
 			TShaderMapRef<TFilterPS<0, 1> > PixelShader(ShaderMap);
 			{
-				static FGlobalBoundShaderState BoundShaderState;
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 			}
 			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples);
 		}
@@ -363,8 +374,8 @@ void SetFilterShaders(
 		{
 			TShaderMapRef<TFilterPS<0, 2> > PixelShader(ShaderMap);
 			{
-				static FGlobalBoundShaderState BoundShaderState;
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 			}
 			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples);
 		}
@@ -376,13 +387,15 @@ void SetFilterShaders(
 	case CompileTimeNumSamples: \
 	{ \
 		TShaderMapRef<TFilterVS<CompileTimeNumSamples> > VertexShader(ShaderMap); \
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI; \
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader); \
 		*OutVertexShader = *VertexShader; \
 		if(CombineMethodInt == 0) \
 		{ \
 			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 0> > PixelShader(ShaderMap); \
 			{ \
-				static FGlobalBoundShaderState BoundShaderState; \
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit); \
 			} \
 			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples); \
 		} \
@@ -390,8 +403,8 @@ void SetFilterShaders(
 		{ \
 			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 1> > PixelShader(ShaderMap); \
 			{ \
-				static FGlobalBoundShaderState BoundShaderState; \
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit); \
 			} \
 			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples); \
 		} \
@@ -399,8 +412,8 @@ void SetFilterShaders(
 		{ \
 			TShaderMapRef<TFilterPS<CompileTimeNumSamples, 2> > PixelShader(ShaderMap); \
 			{ \
-				static FGlobalBoundShaderState BoundShaderState; \
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); \
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit); \
 			} \
 			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights, SampleOffsets, NumSamples); \
 		} \
@@ -662,11 +675,6 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		DrawClear(Context.RHICmdList, FeatureLevel, bDoFastBlur, SrcRect, DestRect, DestSize);
 	}
 
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
 	const FTextureRHIRef& FilterTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 
 	FRenderingCompositeOutputRef* NodeInput1 = GetInput(ePId_Input1);
@@ -760,7 +768,7 @@ static TAutoConsoleVariable<float> CVarFastBlurThreshold(
 	TEXT("r.FastBlurThreshold"),
 	7.0f,
 	TEXT("Defines at what radius the Gaussian blur optimization kicks in (estimated 25% - 40% faster).\n")
-	TEXT("The optimzation uses slightly less memory and has a quality loss on smallblur radius.\n")
+	TEXT("The optimization uses slightly less memory and has a quality loss on smallblur radius.\n")
 	TEXT("  0: use the optimization always (fastest, lowest quality)\n")
 	TEXT("  3: use the optimization starting at a 3 pixel radius (quite fast)\n")
 	TEXT("  7: use the optimization starting at a 7 pixel radius (default)\n")

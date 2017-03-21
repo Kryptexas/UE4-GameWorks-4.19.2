@@ -29,15 +29,20 @@
 ///
 /// The latest version of the API is publicly hosted here: https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK/.
 /// It is also worth checking http://gpuopen.com/gaming-product/amd-gpu-services-ags-library/ for any updates and articles on AGS.
+/// \internal
+/// Online documentation is publicly hosted here: http://gpuopen-librariesandsdks.github.io/ags/
+/// \endinternal
 ///
 /// What's new in AGS 5.0 since version 4.x
 /// ---------------------------------------
-/// Version 4.1 is of the library is designed to provide a much clearer view of the GPUs in the system and the displays attached to them. 
+/// Version 5.0 is a major overhaul of the library designed to provide a much clearer view of the GPUs in the system and the displays attached to them. 
+/// It also exposes the ability to query each display for HDR capabilities and put those HDR capable displays into various HDR modes.
 /// Some functions such as agsGetGPUMemorySize and agsGetEyefinityConfigInfo have been removed in favor of including this information in the device & display enumeration.
 /// Features include:
 /// * Full GPU enumeration with adapter string, device id, revision id and vendor id.
-/// * Per GPU display enumeration including information on display name and resolution.
+/// * Per GPU display enumeration including information on display name, resolution and HDR capabilities.
 /// * Optional user supplied memory allocator.
+/// * Function to set displays into HDR mode.
 /// * DirectX11 shader compiler controls.
 /// * DirectX11 multiview extension.
 /// * DirectX11 Crossfire API now supports using the API without needing a driver profile. Can also specify the transfer engine.
@@ -51,7 +56,7 @@
 /// The AGSSample application is the simplest of the three examples and demonstrates the code required to initialize AGS and use it to query the GPU and Eyefinity state. 
 /// The CrossfireSample application demonstrates the use of the new API to transfer resources on GPUs in Crossfire mode. Lastly, the EyefinitySample application provides a more 
 /// extensive example of Eyefinity setup than the basic example provided in AGSSample.
-/// There are other samples on Github that demonstrate the DirectX shader extensions, such as the Barycentrics11 sample.
+/// There are other samples on Github that demonstrate the DirectX shader extensions, such as the Barycentrics11 and Barycentrics12 samples.
 ///
 /// To add AGS support to an existing project, follow these steps:
 /// * Link your project against the correct import library. Choose from either the 32 bit or 64 bit version.
@@ -67,9 +72,9 @@
 #ifndef AMD_AGS_H
 #define AMD_AGS_H
 
-#define AMD_AGS_VERSION_MAJOR 4             ///< AGS major version
-#define AMD_AGS_VERSION_MINOR 1             ///< AGS minor version
-#define AMD_AGS_VERSION_PATCH 0             ///< AGS patch version
+#define AMD_AGS_VERSION_MAJOR 5             ///< AGS major version
+#define AMD_AGS_VERSION_MINOR 0             ///< AGS minor version
+#define AMD_AGS_VERSION_PATCH 5             ///< AGS patch version
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,6 +97,10 @@ struct D3D11_TEXTURE3D_DESC;
 struct D3D11_SUBRESOURCE_DATA;
 struct tagRECT;
 typedef tagRECT D3D11_RECT;             ///< typedef this ourselves so we don't have to drag d3d11.h in
+
+// Forward declaration of D3D12 types
+struct ID3D12Device;
+
 
 /// The return codes
 enum AGSReturnCode
@@ -123,8 +132,26 @@ enum AGSDriverExtensionDX11
     AGS_DX11_EXTENSION_INTRINSIC_BALLOT                     = 1 << 11,
     AGS_DX11_EXTENSION_INTRINSIC_MBCOUNT                    = 1 << 12,
     AGS_DX11_EXTENSION_INTRINSIC_COMPARE3                   = 1 << 13,
-    AGS_DX11_EXTENSION_INTRINSIC_BARYCENTRICS               = 1 << 14
+    AGS_DX11_EXTENSION_INTRINSIC_BARYCENTRICS               = 1 << 14,
+    AGS_DX11_EXTENSION_CREATE_SHADER_CONTROLS               = 1 << 15,
+    AGS_DX11_EXTENSION_MULTIVIEW                            = 1 << 16
 };
+
+/// The DirectX12 extension support bits
+enum AGSDriverExtensionDX12
+{
+    AGS_DX12_EXTENSION_INTRINSIC_READFIRSTLANE              = 1 << 0,
+    AGS_DX12_EXTENSION_INTRINSIC_READLANE                   = 1 << 1,
+    AGS_DX12_EXTENSION_INTRINSIC_LANEID                     = 1 << 2,
+    AGS_DX12_EXTENSION_INTRINSIC_SWIZZLE                    = 1 << 3,
+    AGS_DX12_EXTENSION_INTRINSIC_BALLOT                     = 1 << 4,
+    AGS_DX12_EXTENSION_INTRINSIC_MBCOUNT                    = 1 << 5,
+    AGS_DX12_EXTENSION_INTRINSIC_COMPARE3                   = 1 << 6,
+    AGS_DX12_EXTENSION_INTRINSIC_BARYCENTRICS               = 1 << 7,
+};
+
+/// The space id for DirectX12 intrinsic support
+const unsigned int AGS_DX12_SHADER_INSTRINSICS_SPACE_ID = 0x7FFF0ADE; // 2147420894
 
 
 /// Addtional topologies supported via extensions
@@ -153,10 +180,20 @@ enum AGSAfrTransferType
     AGS_AFR_TRANSFER_2STEP_WITH_BROADCAST                   = 4,    ///< App controlled GPU to all render GPUs transfer using intermediate system memory
 };
 
+/// The Crossfire API transfer engines
+enum AGSAfrTransferEngine
+{
+    AGS_AFR_TRANSFERENGINE_DEFAULT                          = 0,    ///< Use default engine for Crossfire API transfers
+    AGS_AFR_TRANSFERENGINE_3D_ENGINE                        = 1,    ///< Use 3D engine for Crossfire API transfers
+    AGS_AFR_TRANSFERENGINE_COPY_ENGINE                      = 2,    ///< Use Copy engine for Crossfire API transfers
+};
+
 /// The display flags describing various properties of the display.
 enum AGSDisplayFlags
 {
     AGS_DISPLAYFLAG_PRIMARY_DISPLAY                         = 1 << 0,   ///< Whether this display is marked as the primary display
+    AGS_DISPLAYFLAG_HDR10                                   = 1 << 1,   ///< HDR10 is supported on this display
+    AGS_DISPLAYFLAG_DOLBYVISION                             = 1 << 2,   ///< Dolby Vision is supported on this display
     AGS_DISPLAYFLAG_EYEFINITY_IN_GROUP                      = 1 << 4,   ///< The display is part of the Eyefinity group
     AGS_DISPLAYFLAG_EYEFINITY_PREFERRED_DISPLAY             = 1 << 5,   ///< The display is the preferred display in the Eyefinity group for displaying the UI
     AGS_DISPLAYFLAG_EYEFINITY_IN_PORTRAIT_MODE              = 1 << 6,   ///< The display is in the Eyefinity group but in portrait mode
@@ -207,6 +244,25 @@ struct AGSDisplayInfo
     int                     eyefinityGridCoordX;            ///< The X coordinate in the Eyefinity grid. -1 if not in an Eyefinity group
     int                     eyefinityGridCoordY;            ///< The Y coordinate in the Eyefinity grid. -1 if not in an Eyefinity group
 
+    double                  chromaticityRedX;               ///< Red display primary X coord
+    double                  chromaticityRedY;               ///< Red display primary Y coord
+
+    double                  chromaticityGreenX;             ///< Green display primary X coord
+    double                  chromaticityGreenY;             ///< Green display primary Y coord
+
+    double                  chromaticityBlueX;              ///< Blue display primary X coord
+    double                  chromaticityBlueY;              ///< Blue display primary Y coord
+
+    double                  chromaticityWhitePointX;        ///< White point X coord
+    double                  chromaticityWhitePointY;        ///< White point Y coord
+
+    double                  screenDiffuseReflectance;       ///< Percentage expressed between 0 - 1
+    double                  screenSpecularReflectance;      ///< Percentage expressed between 0 - 1
+
+    double                  minLuminance;                   ///< The minimum luminance of the display in nits
+    double                  maxLuminance;                   ///< The maximum luminance of the display in nits
+    double                  avgLuminance;                   ///< The average luminance of the display in nits
+
     int                     logicalDisplayIndex;            ///< The internally used index of this display
     int                     adlAdapterIndex;                ///< The internally used ADL adapter index
 };
@@ -233,7 +289,7 @@ struct AGSDeviceInfo
     int                             memoryClock;                    ///< Memory clock speed at 100% power in MHz
     float                           teraFlops;                      ///< Teraflops of GPU. Zero if not GCN. Calculated from iCoreClock * iNumCUs * 64 Pixels/clk * 2 instructions/MAD
 
-    int                             isPrimaryDevice;                ///< Whether or not this is the primary adapter in the system
+    int                             isPrimaryDevice;                ///< Whether or not this is the primary adapter in the system.
     long long                       localMemoryInBytes;             ///< The size of local memory in bytes. 0 for non AMD hardware.
 
     int                             numDisplays;                    ///< The number of active displays found to be attached to this adapter.
@@ -250,7 +306,7 @@ struct AGSDeviceInfo
 };
 
 /// \defgroup general General API functions
-/// API for initialization, cleanup, and Crossfire GPU count
+/// API for initialization, cleanup, HDR display modes and Crossfire GPU count
 /// @{
 
 typedef void* (__stdcall *AGS_ALLOC_CALLBACK)( int allocationSize );    ///< AGS user defined allocation protoype
@@ -270,6 +326,7 @@ struct AGSGPUInfo
     int                     agsVersionMajor;                ///< Major field of Major.Minor.Patch AGS version number
     int                     agsVersionMinor;                ///< Minor field of Major.Minor.Patch AGS version number
     int                     agsVersionPatch;                ///< Patch field of Major.Minor.Patch AGS version number
+    int                     isWACKCompliant;                ///< 1 if WACK compliant.
 
     const char*             driverVersion;                  ///< The AMD driver package version
     const char*             radeonSoftwareVersion;          ///< The Radeon Software Version
@@ -278,10 +335,43 @@ struct AGSGPUInfo
     AGSDeviceInfo*          devices;                        ///< List of GPUs in the system
 };
 
+/// The struct to specify the display settings to the driver.
+struct AGSDisplaySettings
+{
+    /// The display mode
+    enum Mode
+    {
+        Mode_SDR,                                           ///< SDR mode
+        Mode_scRGB,                                         ///< scRGB, requiring an FP16 swapchain. Values of 1.0 == 80 nits, 125.0 == 10000 nits. Uses REC709 primaries.
+        Mode_PQ,                                            ///< PQ encoding, requiring a 1010102 UNORM swapchain and PQ encoding in the output shader. Uses BT2020 primaries.
+        Mode_DolbyVision                                    ///< Dolby Vision, requiring an 8888 UNORM swapchain
+    };
+
+    Mode                    mode;                           ///< The display mode to set the display into
+
+    double                  chromaticityRedX;               ///< Red display primary X coord
+    double                  chromaticityRedY;               ///< Red display primary Y coord
+
+    double                  chromaticityGreenX;             ///< Green display primary X coord
+    double                  chromaticityGreenY;             ///< Green display primary Y coord
+
+    double                  chromaticityBlueX;              ///< Blue display primary X coord
+    double                  chromaticityBlueY;              ///< Blue display primary Y coord
+
+    double                  chromaticityWhitePointX;        ///< White point X coord
+    double                  chromaticityWhitePointY;        ///< White point Y coord
+
+    double                  minLuminance;                   ///< The minimum scene luminance in nits
+    double                  maxLuminance;                   ///< The maximum scene luminance in nits
+
+    double                  maxContentLightLevel;           ///< The maximum content light level in nits (MaxCLL)
+    double                  maxFrameAverageLightLevel;      ///< The maximum frame average light livel in nits (MaxFALL)
+};
+
 ///
 /// Function used to initialize the AGS library.
 /// Must be called prior to any of the subsequent AGS API calls.
-/// Must be called prior to ID3D11Device creation.
+/// Must be called prior to ID3D11Device or ID3D12Device creation.
 /// \note This function will fail with AGS_ERROR_LEGACY_DRIVER in Catalyst versions before 12.20.
 /// \note It is good practice to check the AGS version returned from AGSGPUInfo against the version defined in the header in case a mismatch between the dll and header has occurred.
 ///
@@ -307,6 +397,49 @@ AMD_AGS_API AGSReturnCode agsDeInit( AGSContext* context );
 ///
 AMD_AGS_API AGSReturnCode agsGetCrossfireGPUCount( AGSContext* context, int* numGPUs );
 
+///
+/// Function used to set a specific display into HDR mode
+/// \note Setting all of the values apart from color space and transfer function to zero will cause the display to use defaults.
+/// \note Call this function after each mode change (switch to fullscreen, any change in swapchain etc).
+/// \note HDR10 PQ mode requires a 1010102 swapchain. HDR10 linear125 mode requires an FP16 swapchain.
+/// \note Dolby Vision requires a 8888 UNORM swapchain.
+///
+/// \param [in] context                             Pointer to a context. This is generated by \ref agsInit
+/// \param [in] deviceIndex                         The index of the device listed in \ref AGSGPUInfo::devices.
+/// \param [in] displayIndex                        The index of the display listed in \ref AGSDeviceInfo::displays.
+/// \param [in] settings                            Pointer to the display settings to use.
+///
+AMD_AGS_API AGSReturnCode agsSetDisplayMode( AGSContext* context, int deviceIndex, int displayIndex, const AGSDisplaySettings* settings );
+
+/// @}
+
+/// \defgroup dx12 DirectX12 Extensions
+/// DirectX12 driver extensions
+/// @{
+
+/// \defgroup dx12init Initialization and Cleanup
+/// @{
+
+///
+/// Function used to initialize the AMD-specific driver extensions for D3D12.
+/// D3D12 extensions are supported in Radeon Software Crimson Edition 16.9.2 (driver version 16.40.2311) onwards.
+/// Newer extensions may require more recent versions of the driver. Check support with extensionsSupported.
+///
+/// \param [in] context                             Pointer to a context. This is generated by \ref agsInit
+/// \param [in] device                              The D3D12 device.
+/// \param [out] extensionsSupported                Pointer to a bit mask that this function will fill in to indicate which extensions are supported. See ::AGSDriverExtensionDX12
+///
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX12_Init( AGSContext* context, ID3D12Device* device, unsigned int* extensionsSupported );
+
+///
+/// Function used to cleanup any AMD-specific driver extensions for D3D12
+///
+/// \param [in] context                             Pointer to a context.
+///
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX12_DeInit( AGSContext* context );
+
+/// @}
+
 /// @}
 
 /// \defgroup dx11 DirectX11 Extensions
@@ -317,7 +450,10 @@ AMD_AGS_API AGSReturnCode agsGetCrossfireGPUCount( AGSContext* context, int* num
 /// @{
 
 ///
-/// Function used to initialize the AMD-specific driver extensions for D3D11
+/// Function used to initialize the AMD-specific driver extensions for D3D11.
+/// Shader intrinsics are supported in Radeon Software Crimson Edition 16.9.2 (driver version 16.40.2311) onwards.
+/// The multiview extension requires Radeon Software Crimson ReLive Edition 16.12.1 (driver version 16.50.2001) or later.
+/// Newer extensions may require more recent versions of the driver. Check support with extensionsSupported.
 ///
 /// \param [in] context                             Pointer to a context. This is generated by \ref agsInit
 /// \param [in] device                              The D3D11 device.
@@ -489,6 +625,84 @@ AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_MultiDrawIndexedInstancedIndir
 
 /// @}
 
+/// \defgroup shadercompiler Shader Compiler Controls
+/// API for controlling DirectX11 shader compilation.
+/// Check support for this feature using the AGS_DX11_EXTENSION_CREATE_SHADER_CONTROLS bit.
+/// Supported in Radeon Software Crimson Edition 16.9.2 (driver version 16.40.2311) onwards.
+/// @{
+
+///
+/// This method can be used to limit the maximum number of threads the driver uses for asynchronous shader compilation.
+/// Setting it to 0 will disable asynchronous compilation completely and force the shaders to be compiled “inline” on the threads that call Create*Shader.
+///
+/// This method can only be called before any shaders are created and being compiled by the driver.
+/// If this method is called after shaders have been created the function will return AGS_FAILURE.
+/// This function only sets an upper limit.The driver may create fewer threads than allowed by this function.
+///
+/// \param [in] context                             Pointer to a context.
+/// \param [in] numberOfThreads                     The maximum number of threads to use.
+///
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_SetMaxAsyncCompileThreadCount( AGSContext* context, unsigned int numberOfThreads );
+
+///
+/// This method can be used to determine the total number of asynchronous shader compile jobs that are either
+/// queued for waiting for compilation or being compiled by the driver’s asynchronous compilation threads.
+/// This method can be called at any during the lifetime of the driver.
+///
+/// \param [in] context                             Pointer to a context.
+/// \param [out] numberOfJobs                       Pointer to the number of jobs in flight currently.
+///
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_NumPendingAsyncCompileJobs( AGSContext* context, unsigned int* numberOfJobs );
+
+///
+/// This method can be used to enable or disable the disk based shader cache.
+/// Enabling/disabling the disk cache is not supported if is it disabled explicitly via Radeon Settings or by an app profile.
+/// Calling this method under these conditions will result in AGS_FAILURE being returned.
+/// It is recommended that this method be called before any shaders are created by the application and being compiled by the driver.
+/// Doing so at any other time may result in the cache being left in an inconsistent state.
+///
+/// \param [in] context                             Pointer to a context.
+/// \param [in] enable                              Whether to enable the disk cache. 0 to disable, 1 to enable.
+///
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_SetDiskShaderCacheEnabled( AGSContext* context, int enable );
+
+/// @}
+
+/// \defgroup multiview Multiview
+/// API for multiview broadcasting.
+/// Check support for this feature using the AGS_DX11_EXTENSION_MULTIVIEW bit.
+/// Supported in Radeon Software Crimson ReLive Edition 16.12.1 (driver version 16.50.2001) onwards.
+/// @{
+
+///
+/// Function to control draw calls replication to multiple viewports and RT slices.
+/// Setting any mask to 0 disables draw replication.
+///
+/// \param [in] context                             Pointer to a context.
+/// \param [in] vpMask                              Viewport control bit mask.
+/// \param [in] rtSliceMask                         RT slice control bit mask.
+/// \param [in] vpMaskPerRtSliceEnabled             If 0, 16 lower bits of vpMask apply to all RT slices; if 1 each 16 bits of 64-bit mask apply to corresponding 4 RT slices.
+///
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_SetViewBroadcastMasks( AGSContext* context, unsigned long long vpMask, unsigned long long rtSliceMask, int vpMaskPerRtSliceEnabled );
+
+///
+/// Function returns max number of supported clip rectangles.
+///
+/// \param [in] context                             Pointer to a context.
+/// \param [out] maxRectCount                       Returned max number of clip rectangles.
+///
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_GetMaxClipRects( AGSContext* context, unsigned int* maxRectCount );
+
+///
+/// Function sets clip rectangles.
+///
+/// \param [in] context                             Pointer to a context.
+/// \param [in] clipRectCount                       Number of specified clip rectangles. Use 0 to disable clip rectangles.
+/// \param [in] clipRects                           Array of clip rectangles.
+///
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_SetClipRects( AGSContext* context, unsigned int clipRectCount, const AGSClipRect* clipRects );
+
+/// @}
 
 /// \defgroup cfxapi Explicit Crossfire API
 /// API for explicit control over Crossfire
@@ -502,8 +716,9 @@ AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_MultiDrawIndexedInstancedIndir
 /// \param [in] initialData                         Optional pointer to the initializing data for the resource.
 /// \param [out] buffer                             Returned pointer to the resource.
 /// \param [in] transferType                        The transfer behavior.
+/// \param [in] transferEngine                      The transfer engine to use.
 ///
-AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateBuffer( AGSContext* context, const D3D11_BUFFER_DESC* desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Buffer** buffer, AGSAfrTransferType transferType );
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateBuffer( AGSContext* context, const D3D11_BUFFER_DESC* desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Buffer** buffer, AGSAfrTransferType transferType, AGSAfrTransferEngine transferEngine );
 
 ///
 /// Function to create a Direct3D11 resource with the specified AFR transfer type and specified transfer engine.
@@ -513,8 +728,9 @@ AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateBuffer( AGSContext* cont
 /// \param [in] initialData                         Optional pointer to the initializing data for the resource.
 /// \param [out] texture1D                          Returned pointer to the resource.
 /// \param [in] transferType                        The transfer behavior.
+/// \param [in] transferEngine                      The transfer engine to use.
 ///
-AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateTexture1D( AGSContext* context, const D3D11_TEXTURE1D_DESC* desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Texture1D** texture1D, AGSAfrTransferType transferType );
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateTexture1D( AGSContext* context, const D3D11_TEXTURE1D_DESC* desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Texture1D** texture1D, AGSAfrTransferType transferType, AGSAfrTransferEngine transferEngine );
 
 ///
 /// Function to create a Direct3D11 resource with the specified AFR transfer type and specified transfer engine.
@@ -524,8 +740,9 @@ AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateTexture1D( AGSContext* c
 /// \param [in] initialData                         Optional pointer to the initializing data for the resource.
 /// \param [out] texture2D                          Returned pointer to the resource.
 /// \param [in] transferType                        The transfer behavior.
+/// \param [in] transferEngine                      The transfer engine to use.
 ///
-AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateTexture2D( AGSContext* context, const D3D11_TEXTURE2D_DESC* desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Texture2D** texture2D, AGSAfrTransferType transferType );
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateTexture2D( AGSContext* context, const D3D11_TEXTURE2D_DESC* desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Texture2D** texture2D, AGSAfrTransferType transferType, AGSAfrTransferEngine transferEngine );
 
 ///
 /// Function to create a Direct3D11 resource with the specified AFR transfer type and specified transfer engine.
@@ -535,8 +752,9 @@ AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateTexture2D( AGSContext* c
 /// \param [in] initialData                         Optional pointer to the initializing data for the resource.
 /// \param [out] texture3D                          Returned pointer to the resource.
 /// \param [in] transferType                        The transfer behavior.
+/// \param [in] transferEngine                      The transfer engine to use.
 ///
-AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateTexture3D( AGSContext* context, const D3D11_TEXTURE3D_DESC* desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Texture3D** texture3D, AGSAfrTransferType transferType );
+AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_CreateTexture3D( AGSContext* context, const D3D11_TEXTURE3D_DESC* desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Texture3D** texture3D, AGSAfrTransferType transferType, AGSAfrTransferEngine transferEngine );
 
 ///
 /// Function to notify the driver that we have finished writing to the resource this frame.

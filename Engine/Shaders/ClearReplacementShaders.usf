@@ -52,4 +52,19 @@ void ClearBufferCS(uint Position : SV_DispatchThreadID)
 {
 	ClearBufferRW[Position] = ClearDword;
 }
+
+RWTexture2DArray<float4> ClearTextureArrayRW;
+[numthreads(8, 8, 1)]
+void ClearTexture2DArrayCS(uint3 Position : SV_DispatchThreadID)
+{
+	ClearTextureArrayRW[Position] = ClearColor;
+}
+
+RWTexture3D<float4> ClearVolumeRW;
+[numthreads(4, 4, 4)]
+void ClearVolumeCS(uint3 Position : SV_DispatchThreadID)
+{
+	ClearVolumeRW[Position] = ClearColor;
+}
+
 #endif

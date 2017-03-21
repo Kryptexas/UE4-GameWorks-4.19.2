@@ -2,6 +2,7 @@
 
 #include "MediaShaders.h"
 #include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 
 
 TGlobalResource<FMediaVertexDeclaration> GMediaVertexDeclaration;

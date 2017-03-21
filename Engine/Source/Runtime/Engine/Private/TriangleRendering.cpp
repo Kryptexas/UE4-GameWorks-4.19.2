@@ -18,6 +18,7 @@
 #include "RendererInterface.h"
 #include "SceneUtils.h"
 #include "EngineModule.h"
+#include "DrawingPolicy.h"
 
 /** 
  * vertex data for a screen triangle
@@ -146,7 +147,7 @@ public:
 };
 TGlobalResource<FTriangleMesh> GTriangleMesh;
 
-void FTriangleRenderer::DrawTriangle(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FCanvasUVTri& Tri, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
+void FTriangleRenderer::DrawTriangle(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FCanvasUVTri& Tri, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
 {
 	FMaterialTriangleVertex DestVertex[3];
 
@@ -174,10 +175,10 @@ void FTriangleRenderer::DrawTriangle(FRHICommandListImmediate& RHICmdList, const
 	TriMesh.DynamicVertexData = DestVertex;
 	TriMesh.MaterialRenderProxy = MaterialRenderProxy;
 	
-	GetRendererModule().DrawTileMesh(RHICmdList, View, TriMesh, bIsHitTesting, HitProxyId);
+	GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, TriMesh, bIsHitTesting, HitProxyId);
 }
 
-void FTriangleRenderer::DrawTriangleUsingVertexColor(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FCanvasUVTri& Tri, bool bIsHitTesting, const FHitProxyId HitProxyId)
+void FTriangleRenderer::DrawTriangleUsingVertexColor(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FCanvasUVTri& Tri, bool bIsHitTesting, const FHitProxyId HitProxyId)
 {
 	FMaterialTriangleVertex DestVertex[3];
 
@@ -205,10 +206,10 @@ void FTriangleRenderer::DrawTriangleUsingVertexColor(FRHICommandListImmediate& R
 	TriMesh.DynamicVertexData = DestVertex;
 	TriMesh.MaterialRenderProxy = MaterialRenderProxy;
 
-	GetRendererModule().DrawTileMesh(RHICmdList, View, TriMesh, bIsHitTesting, HitProxyId);
+	GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, TriMesh, bIsHitTesting, HitProxyId);
 }
 
-bool FCanvasTriangleRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
+bool FCanvasTriangleRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FCanvas* Canvas)
 {
 	float CurrentRealTime = 0.f;
 	float CurrentWorldTime = 0.f;
@@ -254,6 +255,7 @@ bool FCanvasTriangleRendererItem::Render_RenderThread(FRHICommandListImmediate& 
 		const FRenderData::FTriangleInst& Tri = Data->Triangles[TriIdx];
 		FTriangleRenderer::DrawTriangleUsingVertexColor(
 			RHICmdList,
+			DrawRenderState,
 			*View,
 			Data->MaterialRenderProxy,
 			bNeedsToSwitchVerticalAxis,
@@ -330,29 +332,35 @@ bool FCanvasTriangleRendererItem::Render_GameThread(const FCanvas* Canvas)
 		(uint32)bNeedsToSwitchVerticalAxis,
 		Canvas->GetAllowedModes()
 	};
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		DrawTriangleCommand,
-		FDrawTriangleParameters, Parameters, DrawTriangleParameters,
+	FDrawTriangleParameters Parameters = DrawTriangleParameters;
+	ENQUEUE_RENDER_COMMAND(DrawTriangleCommand)(
+		[Parameters](FRHICommandListImmediate& RHICmdList)	
 		{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasDrawTriangle);
-		for (int32 TriIdx = 0; TriIdx < Parameters.RenderData->Triangles.Num(); TriIdx++)
-		{
-			const FRenderData::FTriangleInst& Tri = Parameters.RenderData->Triangles[TriIdx];
-			FTriangleRenderer::DrawTriangleUsingVertexColor(
-				RHICmdList,
-				*Parameters.View,
-				Parameters.RenderData->MaterialRenderProxy,
-				Parameters.bNeedsToSwitchVerticalAxis,
-				Tri.Tri,
-				Parameters.bIsHitTesting, Tri.HitProxyId);
-		}
+			FDrawingPolicyRenderState DrawRenderState(*Parameters.View);
 
-		delete Parameters.View->Family;
-		delete Parameters.View;
-		if (Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender)
-		{
-			delete Parameters.RenderData;
-		}
+			// disable depth test & writes
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+			SCOPED_DRAW_EVENT(RHICmdList, CanvasDrawTriangle);
+			for (int32 TriIdx = 0; TriIdx < Parameters.RenderData->Triangles.Num(); TriIdx++)
+			{
+				const FRenderData::FTriangleInst& Tri = Parameters.RenderData->Triangles[TriIdx];
+				FTriangleRenderer::DrawTriangleUsingVertexColor(
+					RHICmdList,
+					DrawRenderState,
+					*Parameters.View,
+					Parameters.RenderData->MaterialRenderProxy,
+					Parameters.bNeedsToSwitchVerticalAxis,
+					Tri.Tri,
+					Parameters.bIsHitTesting, Tri.HitProxyId);
+			}
+
+			delete Parameters.View->Family;
+			delete Parameters.View;
+			if (Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender)
+			{
+				delete Parameters.RenderData;
+			}
 		});
 	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
 	{

@@ -9,7 +9,11 @@
 #include "NiagaraObjectSelection.h"
 #include "NiagaraScriptSource.h"
 #include "NiagaraNodeOutput.h"
+#include "NiagaraGraph.h"
+#include "NiagaraNodeInput.h"
 #include "NiagaraScriptOutputCollectionViewModel.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 #include "ScopedTransaction.h"
 #include "AssetEditorManager.h"
@@ -21,6 +25,10 @@ FNiagaraEmitterHandleViewModel::FNiagaraEmitterHandleViewModel(FNiagaraEmitterHa
 	, OwningEffect(InOwningEffect)
 	, ParameterEditMode(InParameterEditMode)
 	, EmitterViewModel(MakeShareable(new FNiagaraEmitterViewModel((InEmitterHandle ? InEmitterHandle->GetInstance() : nullptr), InSimulation, ParameterEditMode)))
+{
+}
+
+FNiagaraEmitterHandleViewModel::~FNiagaraEmitterHandleViewModel()
 {
 }
 
@@ -61,6 +69,83 @@ FGuid FNiagaraEmitterHandleViewModel::GetId() const
 		return EmitterHandle->GetId();
 	}
 	return FGuid();
+}
+
+FText FNiagaraEmitterHandleViewModel::GetIdText() const
+{
+	return FText::FromString( GetId().ToString() );
+}
+
+
+FText FNiagaraEmitterHandleViewModel::GetErrorText() const
+{
+	switch (EmitterViewModel->GetLatestCompileStatus())
+	{
+	case ENiagaraScriptCompileStatus::NCS_Unknown:
+	case ENiagaraScriptCompileStatus::NCS_BeingCreated:
+		return LOCTEXT("NiagaraEmitterHandleCompileStatusUnknown", "Needs compilation & refresh.");
+	case ENiagaraScriptCompileStatus::NCS_UpToDate:
+		return LOCTEXT("NiagaraEmitterHandleCompileStatusUpToDate", "Compiled");
+	default:
+		return LOCTEXT("NiagaraEmitterHandleCompileStatusError", "Error! Needs compilation & refresh.");
+	}
+}
+
+FSlateColor FNiagaraEmitterHandleViewModel::GetErrorTextColor() const
+{
+	switch (EmitterViewModel->GetLatestCompileStatus())
+	{
+	case ENiagaraScriptCompileStatus::NCS_Unknown:
+	case ENiagaraScriptCompileStatus::NCS_BeingCreated:
+		return FSlateColor(FLinearColor::Yellow);
+	case ENiagaraScriptCompileStatus::NCS_UpToDate:
+		return FSlateColor(FLinearColor::Green);
+	default:
+		return FSlateColor(FLinearColor::Red);
+	}
+}
+
+EVisibility FNiagaraEmitterHandleViewModel::GetErrorTextVisibility() const
+{
+	return EmitterViewModel->GetLatestCompileStatus() != ENiagaraScriptCompileStatus::NCS_UpToDate ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+
+FText FNiagaraEmitterHandleViewModel::GetSourceSynchronizationText() const
+{
+	
+	if (EmitterHandle->IsSynchronizedWithSource())
+	{
+		return LOCTEXT("SynchronizedWithSource", "Up-To-Date");
+	}
+	else
+	{
+		return LOCTEXT("NotSynchronizedWithSource", "Not Up-To-Date");
+	}
+}
+
+EVisibility FNiagaraEmitterHandleViewModel::GetSourceSynchronizationTextVisibility() const
+{
+	if (OwningEffect.GetAutoImportChangedEmitters())
+	{
+		return EVisibility::Collapsed;
+	}
+	else
+	{
+		return EVisibility::Visible;
+	}
+}
+
+FSlateColor FNiagaraEmitterHandleViewModel::GetSourceSynchronizationTextColor() const
+{
+	if (EmitterHandle->IsSynchronizedWithSource())
+	{
+		return FSlateColor::UseForeground();
+	}
+	else
+	{
+		return FSlateColor(FLinearColor::Yellow);
+	}
 }
 
 FName FNiagaraEmitterHandleViewModel::GetName() const
@@ -112,6 +197,17 @@ void FNiagaraEmitterHandleViewModel::OnNameTextComitted(const FText& InText, ETe
 	SetName(*InText.ToString());
 }
 
+bool FNiagaraEmitterHandleViewModel::VerifyNameTextChanged(const FText& NewText, FText& OutErrorMessage)
+{
+	FName NewName = *NewText.ToString();
+	if (NewName == FName())
+	{
+		OutErrorMessage = NSLOCTEXT("NiagaraEmitterEditor", "NiagaraInputNameEmptyWarn", "Cannot have empty name!");
+		return false;
+	}
+	return true;
+}
+
 bool FNiagaraEmitterHandleViewModel::GetIsEnabled() const
 {
 	if (EmitterHandle)
@@ -161,24 +257,7 @@ void FNiagaraEmitterHandleViewModel::CompileScripts()
 	EmitterViewModel->CompileScripts();
 }
 
-void CopyParameterValues(UNiagaraScript* Script, UNiagaraScript* PreviousScript)
-{
-	for (FNiagaraVariable& InputParameter : Script->Parameters.Parameters)
-	{
-		for (FNiagaraVariable& PreviousInputParameter : PreviousScript->Parameters.Parameters)
-		{
-			if (PreviousInputParameter.IsDataAllocated())
-			{
-				if (InputParameter.GetId() == PreviousInputParameter.GetId() &&
-					InputParameter.GetType() == PreviousInputParameter.GetType())
-				{
-					InputParameter.AllocateData();
-					PreviousInputParameter.CopyTo(InputParameter.GetData());
-				}
-			}
-		}
-	}
-}
+
 
 void FNiagaraEmitterHandleViewModel::RefreshFromSource()
 {
@@ -190,21 +269,19 @@ void FNiagaraEmitterHandleViewModel::RefreshFromSource()
 		{
 			// Pull in changes to the emitter asset by copying the source scripts, compiling and then copying over parameter values
 			// where relevant.
-			// TODO: Update this to support events.
-			UNiagaraEmitterProperties* Instance = EmitterHandle->GetInstance();
-			const UNiagaraEmitterProperties* Source = EmitterHandle->GetSource();
-			UNiagaraScript* PreviousInstanceSpawnScript = Instance->SpawnScriptProps.Script;
-			UNiagaraScript* PreviousInstanceUpdateScript = Instance->UpdateScriptProps.Script;
+			if (EmitterHandle->RefreshFromSource() == false)
+			{
+				UE_LOG(LogNiagaraEditor, Error, TEXT("Failed to compile during refresh. Refresh cancelled. %s"), *EmitterHandle->GetSource()->GetPathName());
 
-			Instance->SpawnScriptProps.Script = CastChecked<UNiagaraScript>(StaticDuplicateObject(Source->SpawnScriptProps.Script, Instance));
-			Instance->UpdateScriptProps.Script = CastChecked<UNiagaraScript>(StaticDuplicateObject(Source->UpdateScriptProps.Script, Instance));
+				const FText NotificationText = FText::Format(LOCTEXT("FailedScriptRefresh", "'{0}' failed to refresh due to compile errors. Please see log."), FText::FromString(EmitterHandle->GetSource()->GetName()));
 
-			FString ErrorMessages;
-			CastChecked<UNiagaraScriptSource>(Instance->SpawnScriptProps.Script->Source)->Compile(ErrorMessages);
-			CastChecked<UNiagaraScriptSource>(Instance->UpdateScriptProps.Script->Source)->Compile(ErrorMessages);
-
-			CopyParameterValues(Instance->SpawnScriptProps.Script, PreviousInstanceSpawnScript);
-			CopyParameterValues(Instance->UpdateScriptProps.Script, PreviousInstanceUpdateScript);
+				FNotificationInfo Info(NotificationText);
+				Info.bFireAndForget = true;
+				Info.bUseThrobber = true;
+				Info.bUseSuccessFailIcons = true;
+				Info.ExpireDuration = 10.0f;
+				FSlateNotificationManager::Get().AddNotification(Info);
+			}
 		}
 
 		EmitterViewModel->SetEmitter(EmitterHandle->GetInstance());
@@ -219,14 +296,7 @@ void FNiagaraEmitterHandleViewModel::ResetToSource()
 	
 	if (EmitterHandle)
 	{
-		{
-			UNiagaraEmitterProperties* Instance = CastChecked<UNiagaraEmitterProperties>(StaticDuplicateObject(EmitterHandle->GetSource(), EmitterHandle->GetInstance()->GetOuter()));
-			FString ErrorMsg;
-			CastChecked<UNiagaraScriptSource>(Instance->SpawnScriptProps.Script->Source)->Compile(ErrorMsg);
-			CastChecked<UNiagaraScriptSource>(Instance->UpdateScriptProps.Script->Source)->Compile(ErrorMsg);
-			EmitterHandle->SetInstance(Instance);
-		}
-
+		EmitterHandle->ResetToSource();
 		EmitterViewModel->SetEmitter(EmitterHandle->GetInstance());
 	}
 	OnPropertyChangedDelegate.Broadcast();

@@ -21,6 +21,7 @@ FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 	, DrawInEditor( InComponent->bVisible )
 	, InvFadeDuration(0.0f)
 	, FadeStartDelayNormalized(1.0f)
+	, FadeScreenSize( InComponent->FadeScreenSize )
 {
 	UMaterialInterface* EffectiveMaterial = UMaterial::GetDefaultMaterial(MD_DeferredDecal);
 

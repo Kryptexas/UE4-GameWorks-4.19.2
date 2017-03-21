@@ -18,6 +18,7 @@
 #include "RendererInterface.h"
 #include "SceneUtils.h"
 #include "EngineModule.h"
+#include "DrawingPolicy.h"
 
 #define NUM_MATERIAL_TILE_VERTS	6
 
@@ -180,7 +181,7 @@ static void CreateTileVertices(FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_
 	DestVertex[5].Color = InVertexColor.DWColor();
 }
 
-void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
+void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
 {
 	// create verts
 	FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS];
@@ -192,10 +193,10 @@ void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class F
 	Mesh.DynamicVertexData = DestVertex;
 	Mesh.MaterialRenderProxy = MaterialRenderProxy;
 
-	GetRendererModule().DrawTileMesh(RHICmdList, View, Mesh, bIsHitTesting, HitProxyId);
+	GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, Mesh, bIsHitTesting, HitProxyId);
 }
 
-void FTileRenderer::DrawRotatedTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FQuat& Rotation, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
+void FTileRenderer::DrawRotatedTile(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FQuat& Rotation, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
 {
 	// create verts
 	FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS];
@@ -217,10 +218,10 @@ void FTileRenderer::DrawRotatedTile(FRHICommandListImmediate& RHICmdList, const 
 	Mesh.DynamicVertexData = DestVertex;
 	Mesh.MaterialRenderProxy = MaterialRenderProxy;
 
-	GetRendererModule().DrawTileMesh(RHICmdList, View, Mesh, bIsHitTesting, HitProxyId);
+	GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, Mesh, bIsHitTesting, HitProxyId);
 }
 
-bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
+bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FCanvas* Canvas)
 {
 	float CurrentRealTime = 0.f;
 	float CurrentWorldTime = 0.f;
@@ -264,6 +265,7 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 		const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
 		FTileRenderer::DrawTile(
 			RHICmdList,
+			DrawRenderState,
 			*View,
 			Data->MaterialRenderProxy,
 			bNeedsToSwitchVerticalAxis,
@@ -347,11 +349,18 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 		{
 			SCOPED_DRAW_EVENTF(RHICmdList, CanvasDrawTile, *DrawTileParameters.RenderData->MaterialRenderProxy->GetMaterial(GMaxRHIFeatureLevel)->GetFriendlyName());
 			
+			
+			FDrawingPolicyRenderState DrawRenderState(*DrawTileParameters.View);
+
+			// disable depth test & writes
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
 			for (int32 TileIdx = 0; TileIdx < DrawTileParameters.RenderData->Tiles.Num(); TileIdx++)
 			{
 				const FRenderData::FTileInst& Tile = DrawTileParameters.RenderData->Tiles[TileIdx];
 				FTileRenderer::DrawTile(
 					RHICmdList,
+					DrawRenderState,
 					*DrawTileParameters.View,
 					DrawTileParameters.RenderData->MaterialRenderProxy,
 					DrawTileParameters.bNeedsToSwitchVerticalAxis,

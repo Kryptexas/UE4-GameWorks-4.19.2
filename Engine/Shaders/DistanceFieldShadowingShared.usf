@@ -95,6 +95,7 @@ float ShadowRayTraceThroughCulledObjects(
 			bool bGeneratedAsTwoSided;
 			float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex, bGeneratedAsTwoSided);
 			float4 UVAddAndSelfShadowBias = LoadObjectUVAddAndSelfShadowBias(ObjectIndex);
+			float2 DistanceFieldMAD = LoadObjectDistanceFieldMAD(ObjectIndex);
 
 			float3 VolumeRayStart = mul(float4(WorldRayStart, 1), WorldToVolume).xyz;
 			float3 VolumeRayEnd = mul(float4(WorldRayEnd, 1), WorldToVolume).xyz;
@@ -130,7 +131,7 @@ float ShadowRayTraceThroughCulledObjects(
 					float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
 					float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
 					float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAddAndSelfShadowBias.xyz);
-					float DistanceField = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+					float DistanceField = SampleMeshDistanceField(VolumeUV, DistanceFieldMAD).x + DistanceToClamped;
 					
 					FLATTEN
 					if (bGeneratedAsTwoSided)

@@ -45,6 +45,12 @@ private:
 	/** Called whenever the view model's graph changes to a different graph. */
 	void GraphChanged();
 
+	/** Called whenever a user edits the name inline of a node.*/
+	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
+
+	/** Called whenever a user is trying to edit the name inline of a node and we want to make sure that it is valid.*/
+	bool OnVerifyNodeTextCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged, FText& OutErrorMessage);
+
 private:
 	/** An attribute for the title text of the graph. */
 	TAttribute<FText> GraphTitle;

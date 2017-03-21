@@ -1393,6 +1393,22 @@ FORCEINLINE VectorRegisterInt VectorIntAbs(const VectorRegisterInt& A)
 #define VectorIntLoad( Ptr )				_mm_loadu_si128( (VectorRegisterInt*)(Ptr) )
 
 /**
+* Stores a vector to memory (aligned).
+*
+* @param Vec	Vector to store
+* @param Ptr	Aligned Memory pointer
+*/
+#define VectorIntStoreAligned( Vec, Ptr )			_mm_store_si128( (VectorRegisterInt*)(Ptr), Vec )
+
+/**
+* Loads 4 int32s from aligned memory.
+*
+* @param Ptr	Aligned memory pointer to the 4 int32s
+* @return		VectorRegisterInt(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
+*/
+#define VectorIntLoadAligned( Ptr )				_mm_load_si128( (VectorRegisterInt*)(Ptr) )
+
+/**
 * Loads 1 int32 from unaligned memory into all components of a vector register.
 *
 * @param Ptr	Unaligned memory pointer to the 4 int32s

@@ -17,7 +17,7 @@ class NIAGARAEDITOR_API UNiagaraNode : public UEdGraphNode
 	GENERATED_UCLASS_BODY()
 protected:
 
-	void ReallocatePins();
+	bool ReallocatePins();
 
 	bool CompileInputPins(INiagaraCompiler* Compiler, TArray<int32>& OutCompiledInputs);
 
@@ -44,8 +44,8 @@ public:
 	/** Gets the asset referenced by this node, or nullptr if there isn't one. */
 	virtual UObject* GetReferencedAsset() const { return nullptr; }
 
-	/** Refreshes the node due to external changes, e.g. the underlying function changed for a function call node. */
-	virtual void RefreshFromExternalChanges() { }
+	/** Refreshes the node due to external changes, e.g. the underlying function changed for a function call node. Return true if the graph changed. */
+	virtual bool RefreshFromExternalChanges() { return false; }
 
 	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs){ check(0); }
 
@@ -59,5 +59,14 @@ public:
 
 	/** Gets which mode to use when deducing the type of numeric output pins from the types of the input pins. */
 	virtual ENiagaraNumericOutputTypeSelectionMode GetNumericOutputTypeSelectionMode() const;
+
+	/** Convert the type of an existing numeric pin to a more known type.*/
+	virtual bool ConvertNumericPinToType(UEdGraphPin* InGraphPin, FNiagaraTypeDefinition TypeDef);
+
+	/** Determine if there are any external dependencies wrt to scripts and ensure that those dependencies are sucked into the existing package.*/
+	virtual void SubsumeExternalDependencies(TMap<UObject*, UObject*>& ExistingConversions) {};
+protected:
+	virtual int32 CompileInputPin(INiagaraCompiler* Compiler, UEdGraphPin* Pin);
+
 
 };

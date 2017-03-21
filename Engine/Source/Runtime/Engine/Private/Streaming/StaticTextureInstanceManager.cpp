@@ -105,9 +105,13 @@ void FStaticTextureInstanceManager::Remove(const UPrimitiveComponent* Component,
 	}
 }
 
-const FTextureInstanceView* FStaticTextureInstanceManager::GetAsyncView()
+const FTextureInstanceView* FStaticTextureInstanceManager::GetAsyncView(bool bCreateIfNull)
 {
-	AsyncView = StateSync.SyncAndGetState();
+	FTextureInstanceState* State = StateSync.SyncAndGetState();
+	if (!AsyncView && bCreateIfNull)
+	{
+		AsyncView = State;
+	}
 	DirtyIndex = 0; // Force a full refresh!
 	return AsyncView.GetReference();
 }

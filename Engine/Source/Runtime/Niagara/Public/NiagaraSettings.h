@@ -23,4 +23,23 @@ class NIAGARA_API UNiagaraSettings : public UDeveloperSettings
 	/** Niagara script to duplicate as the base of all new script assets created. */
 	UPROPERTY(config, EditAnywhere, Category = Niagara)
 	FStringAssetReference DefaultScript;
+
+	UPROPERTY(config, EditAnywhere, Category = Niagara, meta = (AllowedClasses = "ScriptStruct"))
+	TArray<FStringAssetReference> AdditionalParameterTypes;
+
+	UPROPERTY(config, EditAnywhere, Category = Niagara, meta = (AllowedClasses = "ScriptStruct"))
+	TArray<FStringAssetReference> AdditionalPayloadTypes;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
+public:
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnNiagaraSettingsChanged, const FString&, const UNiagaraSettings*);
+
+	/** Gets a multicast delegate which is called whenever one of the parameters in this settings object changes. */
+	static FOnNiagaraSettingsChanged& OnSettingsChanged();
+
+protected:
+	static FOnNiagaraSettingsChanged SettingsChangedDelegate;
+#endif
 };

@@ -295,6 +295,7 @@ FCachedSystemScalabilityCVars::FCachedSystemScalabilityCVars()
 	, DetailMode(-1)
 	, MaterialQualityLevel(EMaterialQualityLevel::Num)
 	, MaxShadowResolution(-1)
+	, MaxCSMShadowResolution(-1)
 	, ViewDistanceScale(-1)
 	, ViewDistanceScaleSquared(-1)
 	, MaxAnisotropy(-1)
@@ -321,6 +322,11 @@ void ScalabilityCVarsSinkCallback()
 	{
 		static const auto* MaxShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxResolution"));
 		LocalScalabilityCVars.MaxShadowResolution = MaxShadowResolution->GetValueOnGameThread();
+	}
+
+	{
+		static const auto* MaxCSMShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxCSMShadowResolution"));
+		LocalScalabilityCVars.MaxCSMShadowResolution = MaxCSMShadowResolution->GetValueOnGameThread();
 	}
 
 	{
@@ -2141,17 +2147,12 @@ public:
 	{
 		check(IsInRenderingThread());
 
-		//RHISetRenderTarget( BackBuffer, FTextureRHIRef() );
-		SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
+		FRHIRenderTargetView BackBufferView = FRHIRenderTargetView(BackBuffer, ERenderTargetLoadAction::EClear);
+		FRHISetRenderTargetsInfo Info(1, &BackBufferView, FRHIDepthRenderTargetView());
+		RHICmdList.SetRenderTargetsAndClear(Info);
 		const uint32 ViewportWidth = BackBuffer->GetSizeX();
 		const uint32 ViewportHeight = BackBuffer->GetSizeY();
 		RHICmdList.SetViewport( 0,0,0,ViewportWidth, ViewportHeight, 1.0f );
-
-		
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		RHICmdList.ClearColorTexture(BackBuffer, FLinearColor::Black);
 	}
 
 	float FOVInDegrees;		// max(HFOV, VFOV) in degrees of imaginable HMD

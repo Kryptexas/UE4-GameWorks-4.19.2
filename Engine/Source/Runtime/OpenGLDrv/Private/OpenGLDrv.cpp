@@ -11,6 +11,9 @@
 #include "RHIStaticStates.h"
 #include "Engine/Engine.h"
 #include "OpenGLDrvPrivate.h"
+#include "PipelineStateCache.h"
+#include "Engine/GameViewportClient.h"
+
 
 IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 
@@ -380,8 +383,6 @@ float FOpenGLEventNode::GetTiming()
 	return Result;
 }
 
-static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
-
 void FOpenGLDynamicRHI::IssueLongGPUTask()
 {
 	int32 LargestViewportIndex = INDEX_NONE;
@@ -405,16 +406,25 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
 
 		FRHICommandList_RecursiveHazardous RHICmdList(this);
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
 		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, LongGPUTaskBoundShaderState, GOpenGLVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GOpenGLVector4VertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+		RHICmdList.SetBlendFactor(FLinearColor::Black);
 
 		// Draw a fullscreen quad
 		FVector4 Vertices[4];
@@ -514,7 +524,7 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 		bAmdWorkaround = true;
 #endif
 	}
-	else if (VendorName.Contains(TEXT("Intel ")))
+	else if (VendorName.Contains(TEXT("Intel ")) || VendorName == TEXT("Intel"))
 	{
 		GRHIVendorId = 0x8086;
 #if PLATFORM_WINDOWS || PLATFORM_LINUX

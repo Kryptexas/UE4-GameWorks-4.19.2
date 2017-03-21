@@ -32,7 +32,33 @@ class UNiagaraGraph : public UEdGraph
 	ENiagaraScriptUsage GetUsage() const;
 		
 	class UNiagaraNodeOutput* FindOutputNode() const;
-	void FindInputNodes(TArray<class UNiagaraNodeInput*>& OutInputNodes, bool bSort = false) const;
+
+	/** Options for the FindInputNodes function */
+	struct FFindInputNodeOptions
+	{
+		FFindInputNodeOptions()
+			: bSort(false)
+			, bIncludeParameters(true)
+			, bIncludeAttributes(true)
+			, bIncludeSystemConstants(true)
+			, bFilterDuplicates(false)
+		{
+		}
+
+		/** Whether or not to sort the nodes, defaults to false. */
+		bool bSort;
+		/** Whether or not to include parameters, defaults to true. */
+		bool bIncludeParameters;
+		/** Whether or not to include attributes, defaults to true. */
+		bool bIncludeAttributes;
+		/** Whether or not to include system parameters, defaults to true. */
+		bool bIncludeSystemConstants;
+		/** Whether of not to filter out duplicate nodes, defaults to false. */
+		bool bFilterDuplicates;
+	};
+
+	/** Finds input nodes in the graph with. */
+	void FindInputNodes(TArray<class UNiagaraNodeInput*>& OutInputNodes, FFindInputNodeOptions Options = FFindInputNodeOptions()) const;
 
 	/** Generates a list of unique input and output parameters for when this script is used as a function. */
 	void GetParameters(TArray<FNiagaraVariable>& Inputs, TArray<FNiagaraVariable>& Outputs) const;
@@ -51,6 +77,23 @@ class UNiagaraGraph : public UEdGraph
 
 	/** Get all referenced graphs in this specified graph, including this graph. */
 	void GetAllReferencedGraphs(TArray<const UNiagaraGraph*>& Graphs) const;
+
+	/** Determine if there are any external dependencies wrt to scripts and ensure that those dependencies are sucked into the existing package.*/
+	void SubsumeExternalDependencies(TMap<UObject*, UObject*>& ExistingConversions);
+
+	/** Determine if another item has been synchronized with this graph.*/
+	bool IsOtherSynchronized(const FGuid& InChangeId) const;
+
+	/** Mark other object as having been synchronized to this graph.*/
+	void MarkOtherSynchronized(FGuid& InChangeId) const;
+
+	/** Identify that this graph has undergone changes that will require synchronization with a compiled script.*/
+	void MarkGraphRequiresSynchronization();
+
+private:
+	/** The current change identifier for this graph. Used to sync status with UNiagaraScripts.*/
+	UPROPERTY()
+	FGuid ChangeId;
 
 };
 

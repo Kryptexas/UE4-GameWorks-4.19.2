@@ -39,6 +39,10 @@ float Modulo(float x, float y);
 /** Returns the index for this particle in the current execution context. On gpu this'll likely be derived from DispatchThreadId */
 int ExecIndex();
 
+/** Hooks into the stats system. */
+void EnterStatScope(int ScopeIdx);
+void ExitStatScope();
+
 //#if VM_SIMULATION
 
 //Some functions that we use to map to special VM operations for reading in data.

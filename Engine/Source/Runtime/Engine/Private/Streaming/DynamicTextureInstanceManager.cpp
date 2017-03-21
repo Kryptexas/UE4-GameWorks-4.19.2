@@ -178,10 +178,10 @@ void FDynamicTextureInstanceManager::PrepareAsyncView()
 	AsyncView.SafeRelease();
 }
 
-const FTextureInstanceView* FDynamicTextureInstanceManager::GetAsyncView()
+const FTextureInstanceView* FDynamicTextureInstanceManager::GetAsyncView(bool bCreateIfNull)
 {
 	FTextureInstanceState* State = StateSync.SyncAndGetState();
-	if (!AsyncView)
+	if (!AsyncView && bCreateIfNull)
 	{
 		AsyncView = FTextureInstanceView::CreateView(State);
 	}

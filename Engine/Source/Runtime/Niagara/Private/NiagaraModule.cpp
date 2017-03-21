@@ -4,6 +4,8 @@
 #include "Modules/ModuleManager.h"
 #include "NiagaraTypes.h"
 #include "NiagaraEvents.h"
+#include "NiagaraSettings.h"
+#include "NiagaraDataInterfaceCurlNoise.h"
 #include "Class.h"
 #include "Package.h"
 
@@ -45,11 +47,21 @@ FNiagaraTypeDefinition FNiagaraTypeDefinition::CollisionEventDef;
 TArray<FNiagaraTypeDefinition> FNiagaraTypeRegistry::RegisteredTypes;
 TArray<FNiagaraTypeDefinition> FNiagaraTypeRegistry::RegisteredParamTypes;
 TArray<FNiagaraTypeDefinition> FNiagaraTypeRegistry::RegisteredPayloadTypes;
+TArray<FNiagaraTypeDefinition> FNiagaraTypeRegistry::RegisteredUserDefinedTypes;
 
 void INiagaraModule::StartupModule()
 {
 	FNiagaraTypeDefinition::Init();
+
+#if WITH_EDITOR	
+	// This is done so that the editor classes are available to load in the cooker on editor builds even though it doesn't load the editor directly.
+	// UMG does something similar for similar reasons.
+	// @TODO We should remove this once Niagara is fully a plug-in.
+	FModuleManager::Get().LoadModule(TEXT("NiagaraEditor"));
+#endif
+	UNiagaraDataInterfaceCurlNoise::InitNoiseLUT();
 }
+
 
 void FNiagaraTypeDefinition::Init()
 {
@@ -59,11 +71,12 @@ void FNiagaraTypeDefinition::Init()
 	FNiagaraTypeDefinition::FloatStruct = FindObjectChecked<UScriptStruct>(NiagaraPkg, TEXT("NiagaraFloat"));
 	FNiagaraTypeDefinition::BoolStruct = FindObjectChecked<UScriptStruct>(NiagaraPkg, TEXT("NiagaraBool"));
 	FNiagaraTypeDefinition::IntStruct = FindObjectChecked<UScriptStruct>(NiagaraPkg, TEXT("NiagaraInt32"));
+	FNiagaraTypeDefinition::Matrix4Struct = FindObjectChecked<UScriptStruct>(NiagaraPkg, TEXT("NiagaraMatrix"));
+
 	FNiagaraTypeDefinition::Vec2Struct = FindObjectChecked<UScriptStruct>(CoreUObjectPkg, TEXT("Vector2D"));
 	FNiagaraTypeDefinition::Vec3Struct = FindObjectChecked<UScriptStruct>(CoreUObjectPkg, TEXT("Vector"));
 	FNiagaraTypeDefinition::Vec4Struct = FindObjectChecked<UScriptStruct>(CoreUObjectPkg, TEXT("Vector4"));
 	FNiagaraTypeDefinition::ColorStruct = FindObjectChecked<UScriptStruct>(CoreUObjectPkg, TEXT("LinearColor"));
-	FNiagaraTypeDefinition::Matrix4Struct = FindObjectChecked<UScriptStruct>(CoreUObjectPkg, TEXT("Matrix"));
 	
 	NumericDef = FNiagaraTypeDefinition(NumericStruct);
 	FloatDef = FNiagaraTypeDefinition(FloatStruct);
@@ -77,22 +90,6 @@ void FNiagaraTypeDefinition::Init()
 	NumericDef = FNiagaraTypeDefinition(NumericStruct);
 
 	CollisionEventDef = FNiagaraTypeDefinition(FNiagaraCollisionEventPayload::StaticStruct());
-	FNiagaraTypeRegistry::Register(CollisionEventDef, false, true);
-
-	FNiagaraTypeRegistry::Register(NumericDef, true, false);
-	FNiagaraTypeRegistry::Register(FloatDef, true, true);
-	FNiagaraTypeRegistry::Register(IntDef, true, true);
-	FNiagaraTypeRegistry::Register(BoolDef, true, true);
-	FNiagaraTypeRegistry::Register(Vec2Def, true, true);
-	FNiagaraTypeRegistry::Register(Vec3Def, true, true);
-	FNiagaraTypeRegistry::Register(Vec4Def, true, true);
-	FNiagaraTypeRegistry::Register(ColorDef, true, true);
-	FNiagaraTypeRegistry::Register(Matrix4Def, true, false);
-
-	UScriptStruct* TestStruct = FindObjectChecked<UScriptStruct>(NiagaraPkg, TEXT("NiagaraTestStruct"));
-	FNiagaraTypeDefinition TestDefinition(TestStruct);
-	FNiagaraTypeRegistry::Register(TestDefinition, true, false);
-
 	NumericStructs.Add(NumericStruct);
 	NumericStructs.Add(FloatStruct);
 	NumericStructs.Add(IntStruct);
@@ -106,6 +103,7 @@ void FNiagaraTypeDefinition::Init()
 	FloatStructs.Add(Vec2Struct);
 	FloatStructs.Add(Vec3Struct);
 	FloatStructs.Add(Vec4Struct);
+	//FloatStructs.Add(Matrix4Struct)??
 	FloatStructs.Add(ColorStruct);
 
 	IntStructs.Add(IntStruct);
@@ -122,6 +120,67 @@ void FNiagaraTypeDefinition::Init()
 	ScalarStructs.Add(BoolStruct);
 	ScalarStructs.Add(IntStruct);
 	ScalarStructs.Add(FloatStruct);
+
+	FNiagaraTypeRegistry::Register(CollisionEventDef, false, true, false);
+
+	FNiagaraTypeRegistry::Register(NumericDef, true, false, false);
+	FNiagaraTypeRegistry::Register(FloatDef, true, true, false);
+	FNiagaraTypeRegistry::Register(IntDef, true, true, false);
+	FNiagaraTypeRegistry::Register(BoolDef, true, true, false);
+	FNiagaraTypeRegistry::Register(Vec2Def, true, true, false);
+	FNiagaraTypeRegistry::Register(Vec3Def, true, true, false);
+	FNiagaraTypeRegistry::Register(Vec4Def, true, true, false);
+	FNiagaraTypeRegistry::Register(ColorDef, true, true, false);
+	FNiagaraTypeRegistry::Register(Matrix4Def, true, false, false);
+
+	UScriptStruct* TestStruct = FindObjectChecked<UScriptStruct>(NiagaraPkg, TEXT("NiagaraTestStruct"));
+	FNiagaraTypeDefinition TestDefinition(TestStruct);
+	FNiagaraTypeRegistry::Register(TestDefinition, true, false, false);
+
+	RecreateUserDefinedTypeRegistry();
+}
+
+void FNiagaraTypeDefinition::RecreateUserDefinedTypeRegistry()
+{
+	FNiagaraTypeRegistry::ClearUserDefinedRegistry();
+
+	const UNiagaraSettings* Settings = GetDefault<UNiagaraSettings>();
+	check(Settings);
+	TArray<FStringAssetReference> TotalStructAssets;
+	for (FStringAssetReference AssetRef : Settings->AdditionalParameterTypes)
+	{
+		TotalStructAssets.AddUnique(AssetRef);
+	}
+
+	for (FStringAssetReference AssetRef : Settings->AdditionalPayloadTypes)
+	{
+		TotalStructAssets.AddUnique(AssetRef);
+	}
+
+	for (FStringAssetReference AssetRef : TotalStructAssets)
+	{
+		UObject* Obj = AssetRef.ResolveObject();
+		if (Obj == nullptr)
+		{
+			Obj = AssetRef.TryLoad();
+		}
+
+		if (Obj != nullptr)
+		{
+			const FStringAssetReference* ParamRefFound = Settings->AdditionalParameterTypes.FindByPredicate([&](const FStringAssetReference& Ref) { return Ref.ToString() == AssetRef.ToString(); });
+			const FStringAssetReference* PayloadRefFound = Settings->AdditionalPayloadTypes.FindByPredicate([&](const FStringAssetReference& Ref) { return Ref.ToString() == AssetRef.ToString(); });
+			UScriptStruct* ScriptStruct = Cast<UScriptStruct>(Obj);
+			if (ScriptStruct != nullptr)
+			{
+				FNiagaraTypeRegistry::Register(ScriptStruct, ParamRefFound != nullptr, PayloadRefFound != nullptr, true);
+			}
+		}
+		else
+		{
+			UE_LOG(LogNiagara, Warning, TEXT("Could not find additional parameter/payload type: %s"), *AssetRef.ToString());
+		}
+	}
+
 }
 
 bool FNiagaraTypeDefinition::IsScalarDefinition(const FNiagaraTypeDefinition& Type)
@@ -145,8 +204,38 @@ bool FNiagaraTypeDefinition::TypesAreAssignable(const FNiagaraTypeDefinition& Ty
 		return false;
 	}
 
+	if (const UClass* AClass = TypeA.GetClass())
+	{
+		return false;
+	}
+
+	if (TypeA.GetStruct() == TypeB.GetStruct())
+	{
+		return true;
+	}
+
+	bool bIsSupportedConversion = false;
+	if (IsScalarDefinition(TypeA) && IsScalarDefinition(TypeB))
+	{
+		bIsSupportedConversion = (TypeA == IntDef && TypeB == FloatDef) || (TypeB == IntDef && TypeA == FloatDef);
+	}
+	else
+	{
+		bIsSupportedConversion = (TypeA == ColorDef && TypeB == Vec4Def) || (TypeB == ColorDef && TypeA == Vec4Def);
+	}
+
+	if (bIsSupportedConversion)
+	{
+		return true;
+	}
+
 	return (TypeA == NumericDef && NumericStructs.Contains(TypeB.GetScriptStruct())) ||
 		(TypeB == NumericDef && NumericStructs.Contains(TypeA.GetScriptStruct()));
+}
+
+bool FNiagaraTypeDefinition::IsLossyConversion(const FNiagaraTypeDefinition& TypeA, const FNiagaraTypeDefinition& TypeB)
+{
+	return (TypeA == IntDef && TypeB == FloatDef) || (TypeB == IntDef && TypeA == FloatDef);
 }
 
 FNiagaraTypeDefinition FNiagaraTypeDefinition::GetNumericOutputType(const TArray<FNiagaraTypeDefinition> TypeDefinintions, ENiagaraNumericOutputTypeSelectionMode SelectionMode)
@@ -199,14 +288,9 @@ FNiagaraTypeDefinition FNiagaraTypeDefinition::GetNumericOutputType(const TArray
 
 //////////////////////////////////////////////////////////////////////////
 
-FString FNiagaraFunctionSignature::GetSymbol()const
+void FNiagaraScriptDataInterfaceInfo::CopyTo(FNiagaraScriptDataInterfaceInfo* Destination, UObject* Outer) const
 {
-	if (bMemberFunction)
-	{
-		return Name.ToString() + TEXT("_") + Owner.ToString();
-	}
-	else
-	{
-		return Name.ToString() + TEXT("_Global");
-	}
+	Destination->Name = Name;
+	Destination->Id = Id;
+	Destination->DataInterface = Cast<UNiagaraDataInterface>(StaticDuplicateObject(DataInterface, Outer, NAME_None, ~RF_Transient));
 }

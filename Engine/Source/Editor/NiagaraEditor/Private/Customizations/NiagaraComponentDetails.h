@@ -8,6 +8,7 @@
 #include "TickableEditorObject.h"
 #include "Reply.h"
 #include "Visibility.h"
+#include "Misc/NotifyHook.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;
@@ -17,7 +18,7 @@ class SNiagaraParameterEditor;
 class FNiagaraParameterViewModelCustomDetails;
 class UNiagaraEffect;
 
-class FNiagaraComponentDetails : public IDetailCustomization, public FEditorUndoClient, public FTickableEditorObject
+class FNiagaraComponentDetails : public IDetailCustomization, public FEditorUndoClient, public FTickableEditorObject, public FNotifyHook
 {
 public:
 	virtual ~FNiagaraComponentDetails();
@@ -38,18 +39,25 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 
+	//FNOtifyHook
+	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
+
 protected:
 	void ParameterEditorBeginValueChange(TSharedRef<FNiagaraParameterViewModelCustomDetails> Item);
 	void ParameterEditorEndValueChange(TSharedRef<FNiagaraParameterViewModelCustomDetails> Item);
 	void ParameterEditorValueChanged(TSharedRef<SNiagaraParameterEditor> ParameterEditor, TSharedRef<FNiagaraParameterViewModelCustomDetails> Item);
 	void OnEffectInstanceReset();
+	void OnEffectInstanceDestroyed();
 	FReply OnEffectOpenRequested(UNiagaraEffect* InEffect);
 	FReply OnLocationResetClicked(TSharedRef<FNiagaraParameterViewModelCustomDetails> Item);
 	EVisibility GetLocationResetVisibility(TSharedRef<FNiagaraParameterViewModelCustomDetails> Item) const;
+	void OnWorldDestroyed(class UWorld* InWorld);
+	void OnPiEEnd();
 
 	FNiagaraComponentDetails();
 private:
 	TSharedPtr<IPropertyHandle> LocalOverridesPropertyHandle;
+	TSharedPtr<IPropertyHandle> LocalDataInterfaceOverridesPropertyHandle;
 	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
 	TArray<TSharedPtr<FNiagaraParameterViewModelCustomDetails> > ViewModels;
 	IDetailLayoutBuilder* Builder;

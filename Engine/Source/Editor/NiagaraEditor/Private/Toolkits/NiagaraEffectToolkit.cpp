@@ -5,12 +5,15 @@
 #include "NiagaraEffect.h"
 #include "NiagaraEmitterProperties.h"
 #include "NiagaraEffectViewModel.h"
-#include "SNiagaraEffectTimeline.h"
+#include "SNiagaraCurveEditor.h"
 #include "SNiagaraEffectScript.h"
 #include "SNiagaraEffectViewport.h"
 #include "SNiagaraEffectEditor.h"
 #include "NiagaraObjectSelection.h"
 #include "SNiagaraSelectedObjectsDetails.h"
+#include "NiagaraEditorCommands.h"
+#include "NiagaraEditorStyle.h"
+#include "ScopedTransaction.h"
 
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
@@ -83,6 +86,10 @@ FNiagaraEffectToolkit::~FNiagaraEffectToolkit()
 {
 }
 
+void FNiagaraEffectToolkit::AddReferencedObjects(FReferenceCollector& Collector) 
+{
+	Collector.AddReferencedObject(Effect);
+}
 
 void FNiagaraEffectToolkit::Initialize(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UNiagaraEffect* InEffect)
 {
@@ -144,6 +151,7 @@ void FNiagaraEffectToolkit::Initialize(const EToolkitMode::Type Mode, const TSha
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
 	AddMenuExtender(NiagaraEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 
+	SetupCommands();
 	ExtendToolbar();
 	RegenerateMenusAndToolbars();
 }
@@ -211,7 +219,7 @@ TSharedRef<SDockTab> FNiagaraEffectToolkit::SpawnTab_CurveEd(const FSpawnTabArgs
 	TSharedRef<SDockTab> SpawnedTab =
 		SNew(SDockTab)
 		[
-			SAssignNew(TimeLine, SNiagaraTimeline)
+			SNew(SNiagaraCurveEditor, EffectViewModel.ToSharedRef())
 		];
 
 	return SpawnedTab;
@@ -262,20 +270,37 @@ TSharedRef<SDockTab> FNiagaraEffectToolkit::SpawnTab_EffectDetails(const FSpawnT
 	return SpawnedTab;
 }
 
+void FNiagaraEffectToolkit::SetupCommands()
+{
+	GetToolkitCommands()->MapAction(
+		FNiagaraEditorCommands::Get().ToggleUnlockToChanges,
+		FExecuteAction::CreateSP(this, &FNiagaraEffectToolkit::ToggleUnlockToChanges),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FNiagaraEffectToolkit::IsToggleUnlockToChangesChecked));
+}
 
 void FNiagaraEffectToolkit::ExtendToolbar()
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FOnGetContent GetEmitterMenuContent)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FOnGetContent GetEmitterMenuContent, FNiagaraEffectToolkit* Toolkit)
 		{
+			ToolbarBuilder.BeginSection("LockEmitters");
+			{
+				ToolbarBuilder.AddToolBarButton(FNiagaraEditorCommands::Get().ToggleUnlockToChanges, NAME_None,
+					TAttribute<FText>(Toolkit, &FNiagaraEffectToolkit::GetEmitterLockToChangesLabel),
+					TAttribute<FText>(Toolkit, &FNiagaraEffectToolkit::GetEmitterLockToChangesLabelTooltip),
+					TAttribute<FSlateIcon>(Toolkit, &FNiagaraEffectToolkit::GetEmitterLockToChangesIcon));
+			}
+			ToolbarBuilder.EndSection();
 			ToolbarBuilder.BeginSection("AddEmitter");
 			{
 				ToolbarBuilder.AddComboButton(
 					FUIAction(),
 					GetEmitterMenuContent,
 					LOCTEXT("AddEmitterButtonText", "Add Emitter"),
-					LOCTEXT("AddEmitterButtonTextToolTip", "Adds an emitter to the system from an existing emitter asset."));
+					LOCTEXT("AddEmitterButtonTextToolTip", "Adds an emitter to the system from an existing emitter asset."),
+					FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "NiagaraEditor.AddEmitter"));
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -289,7 +314,7 @@ void FNiagaraEffectToolkit::ExtendToolbar()
 		"Asset",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar, GetEmitterMenuContent)
+		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar, GetEmitterMenuContent, this)
 		);
 
 	AddToolbarExtender(ToolbarExtender);
@@ -323,6 +348,60 @@ void FNiagaraEffectToolkit::EmitterAssetSelected(const FAssetData& AssetData)
 {
 	FSlateApplication::Get().DismissAllMenus();
 	EffectViewModel->AddEmitterFromAssetData(AssetData);
+}
+
+void FNiagaraEffectToolkit::ToggleUnlockToChanges()
+{
+	const FScopedTransaction ToggleUnlockToChangesTransaction(LOCTEXT("ToggleUnlockToChanges", "Toggle Effect Unlock To Changes"));
+	Effect->Modify();
+
+	Effect->SetAutoImportChangedEmitters(!Effect->GetAutoImportChangedEmitters());
+
+	if (Effect->GetAutoImportChangedEmitters())
+	{
+		EffectViewModel->ResynchronizeAllHandles();
+	}
+}
+
+bool FNiagaraEffectToolkit::IsToggleUnlockToChangesChecked()
+{
+	return Effect->GetAutoImportChangedEmitters();
+}
+
+FText FNiagaraEffectToolkit::GetEmitterLockToChangesLabel() const
+{
+	if (Effect->GetAutoImportChangedEmitters())
+	{
+		return LOCTEXT("EmitterUnlockToChangesLabel", "Changes Unlocked");
+	}
+	else
+	{
+		return LOCTEXT("EmitterLockToChangesLabel", "Changes Locked");
+	}
+}
+
+FText FNiagaraEffectToolkit::GetEmitterLockToChangesLabelTooltip() const
+{
+	if (Effect->GetAutoImportChangedEmitters())
+	{
+		return LOCTEXT("EmitterUnlockToChangesLabelTooltip", "If a source emitter changes, the changes will be imported into this effect automatically.");
+	}
+	else
+	{
+		return LOCTEXT("EmitterLockToChangesLabelTooltip", "If a source emitter changes, the changes will NOT be imported into this effect automatically.");
+	}
+}
+
+FSlateIcon FNiagaraEffectToolkit::GetEmitterLockToChangesIcon() const
+{
+	if (Effect->GetAutoImportChangedEmitters())
+	{
+		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "NiagaraEditor.UnlockToChanges");
+	}
+	else
+	{
+		return FSlateIcon(FNiagaraEditorStyle::GetStyleSetName(), "NiagaraEditor.LockToChanges");
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

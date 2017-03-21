@@ -12,6 +12,7 @@
 #include "DrawDebugHelpers.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMeshActor.h"
+#include "PipelineStateCache.h"
 
 #if OCULUS_STRESS_TESTS_ENABLED
 #include "OculusStressTests.h"
@@ -2250,7 +2251,7 @@ void FHMDLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RH
 			}
 		}
 
- 		LayersToRender.SetNum(EyeLayers.Num() + QuadLayers.Num() + DebugLayers.Num() + LayersToRender.Num() - NumOfAlreadyAdded);
+		LayersToRender.SetNum(EyeLayers.Num() + QuadLayers.Num() + DebugLayers.Num() + LayersToRender.Num() - NumOfAlreadyAdded);
 
 		for (uint32 i = 0, n = EyeLayers.Num(); i < n; ++i)
 		{
@@ -2422,10 +2423,6 @@ void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHM
 		TShaderMapRef<FOculusAlphaInverseShader> PixelShader(LeftView->ShaderMap);
 		TShaderMapRef<FOculusWhiteShader> WhitePixelShader(LeftView->ShaderMap);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		static FGlobalBoundShaderState BoundWhiteShaderState;
-		static FGlobalBoundShaderState BoundBlackShaderState;
-
 		for (uint32 i = 0; i < NumLayers; ++i)
 		{
 			auto RenderLayer = static_cast<FHMDRenderLayer*>(LayersToRender[i].Get());
@@ -2440,63 +2437,78 @@ void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHM
 			bool invertCoords;
 			GetPokeAHoleMatrices(LeftView, RightView, LayerDesc, CurrentFrame, leftMat, rightMat, invertCoords);
 
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
 			if (LayerDesc.IsPokeAHole())
 			{
 				if (LayerDesc.GetType() == FHMDLayerDesc::Cubemap)
 				{
+					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0.000, RightView->ViewRect.Max.X, RightView->ViewRect.Max.Y, 0.000);
+					RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+
+					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+					GraphicsPSOInit.BlendState = TStaticBlendState<CW_ALPHA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+						false, CF_Always
+					>::GetRHI();
+
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*WhitePixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+					DrawPokeAHoleQuadMesh(RHICmdList, FMatrix::Identity, -1, -1, 0, 2, 2, 0, false);
+
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+						false, CF_Always
+					>::GetRHI();
+
 					TShaderMapRef<FOculusBlackShader> BlackPixelShader(LeftView->ShaderMap);
 
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundWhiteShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *ScreenVertexShader, *WhitePixelShader);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*BlackPixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-					RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
-					RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
-
-					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0.000, RightView->ViewRect.Max.X, RightView->ViewRect.Max.Y, 0.000);
-
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-						false, CF_Always
-					>::GetRHI());
 					DrawPokeAHoleQuadMesh(RHICmdList, FMatrix::Identity, -1, -1, 0, 2, 2, 0, false);
-
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundBlackShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *ScreenVertexShader, *BlackPixelShader);
-
-					RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-						false, CF_Always
-					>::GetRHI());
-					DrawPokeAHoleQuadMesh(RHICmdList, FMatrix::Identity, -1, -1, 0, 2, 2, 0, false);
-
 				}
 				else
 				{
-					//draw quad outlines
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundWhiteShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *ScreenVertexShader, *WhitePixelShader);
-
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0, LeftView->ViewRect.Max.X, LeftView->ViewRect.Max.Y, 1);
 					RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
 						false, CF_Always
-					>::GetRHI());
-					RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA>::GetRHI());
+					>::GetRHI();
+					GraphicsPSOInit.BlendState = TStaticBlendState<CW_ALPHA>::GetRHI();
 
-					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0, LeftView->ViewRect.Max.X, LeftView->ViewRect.Max.Y, 1);
+					//draw quad outlines
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*WhitePixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
 					DrawPokeAHoleMesh(RHICmdList, LayerDesc, leftMat, 1.00, invertCoords);
 
 					RHICmdList.SetViewport(RightView->ViewRect.Min.X, RightView->ViewRect.Min.Y, 0, RightView->ViewRect.Max.X, RightView->ViewRect.Max.Y, 1);
 
 					DrawPokeAHoleMesh(RHICmdList, LayerDesc, rightMat, 1.00, invertCoords);
 
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+						false, CF_DepthNearOrEqual
+					>::GetRHI();
+					GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_InverseSourceAlpha, BF_SourceAlpha, BO_Add, BF_One, BF_Zero>::GetRHI();
+
 					//draw inverse alpha
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), Texture);
-
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-						false, CF_DepthNearOrEqual
-					>::GetRHI());
-					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_InverseSourceAlpha, BF_SourceAlpha, BO_Add, BF_One, BF_Zero>::GetRHI());
 
 					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0, LeftView->ViewRect.Max.X, LeftView->ViewRect.Max.Y, 1);
 
@@ -2512,4 +2524,3 @@ void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHM
 		}
 	}
 }
-

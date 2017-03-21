@@ -4,6 +4,8 @@
 #include "CoreMinimal.h"
 #include "EdGraph/EdGraphNode.h"
 
+#include "NiagaraTypes.h"
+
 class UNiagaraNodeConvert;
 class FNiagaraConvertPinViewModel;
 class FNiagaraConvertPinSocketViewModel;
@@ -45,7 +47,7 @@ public:
 	void SetDraggedSocketViewModel(TSharedPtr<FNiagaraConvertPinSocketViewModel> DraggedSocket);
 
 	/** Determines whether two sockets can be connected giving a message about the connection. */
-	bool CanConnectSockets(TSharedRef<FNiagaraConvertPinSocketViewModel> SocketA, TSharedRef<FNiagaraConvertPinSocketViewModel> SocketB, FText& ConnectionMessage);
+	bool CanConnectSockets(TSharedRef<FNiagaraConvertPinSocketViewModel> SocketA, TSharedRef<FNiagaraConvertPinSocketViewModel> SocketB, FText& ConnectionMessage, bool& bIsWarningMessage);
 
 	/** Connects two socket view models. */
 	void ConnectSockets(TSharedRef<FNiagaraConvertPinSocketViewModel> SocketA, TSharedRef<FNiagaraConvertPinSocketViewModel> SocketB);
@@ -61,6 +63,15 @@ public:
 
 	/** Gets an array of sockets connected to a specific socket. */
 	void GetConnectedSockets(TSharedRef<const FNiagaraConvertPinSocketViewModel> Socket, TArray<TSharedRef<FNiagaraConvertPinSocketViewModel>>& ConnectedSockets);
+
+	/** Do we show any of the switchboard UI?*/
+	bool IsWiringShown() const;
+
+	/** Store off whether or not this socket is expanded.*/
+	void RecordChildrenShowing(bool bIsShowingChildren, FGuid PinId, const TArray<FName>& Path);
+
+	/** Query whether or not htis socket is expanded.*/
+	bool AreChildrenShowing(FGuid PinId, const TArray<FName>& Path);
 
 private:
 	/** Rebuilds the pin view models. */

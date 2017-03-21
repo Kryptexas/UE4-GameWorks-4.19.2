@@ -68,6 +68,9 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Settings/EditorProjectSettings.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentStreaming.h"
 #include "IHeadMountedDisplay.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
@@ -4219,39 +4222,36 @@ void FLevelEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& 
  */
 void FLevelEditorViewportClient::DrawTextureStreamingBounds(const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
-#if 0 //@todo
-	// Iterate each level
-	for (TObjectIterator<ULevel> It; It; ++It)
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	TArray<FAssetData> SelectedAssetData;
+	ContentBrowserModule.Get().GetSelectedAssets(SelectedAssetData);
+
+	TArray<const UTexture2D*> SelectedTextures;
+	for (auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt)
 	{
-		ULevel* Level = *It;
-		// Grab the streaming bounds entries for the level
-		UTexture2D* TargetTexture = NULL;
-		TArray<FStreamableTextureInstance>* STIA = Level->GetStreamableTextureInstances(TargetTexture);
-		if (STIA)
+		if (AssetIt->IsAssetLoaded())
 		{
-			for (int32 Index = 0; Index < STIA->Num(); Index++)
-			{
-				FStreamableTextureInstance& STI = (*STIA)[Index];
-#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
-				FVector InMin = STI.BoundingSphere.Center;
-				FVector InMax = STI.BoundingSphere.Center;
-				float Max = STI.BoundingSphere.W;
-				InMin -= FVector(Max);
-				InMax += FVector(Max);
-				FBox Box = FBox(InMin, InMax);
-				DrawWireBox(PDI, Box, FColorList::Yellow, SDPG_World);
-#else	//#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
-				// Draw bounding spheres
-				FVector Origin = STI.Bounds.Origin;
-				float Radius = STI.Bounds.SphereRadius;
-				DrawCircle(PDI, Origin, FVector(1, 0, 0), FVector(0, 1, 0), FColorList::Yellow, Radius, 32, SDPG_World);
-				DrawCircle(PDI, Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColorList::Yellow, Radius, 32, SDPG_World);
-				DrawCircle(PDI, Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColorList::Yellow, Radius, 32, SDPG_World);
-#endif	//#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
+			const UTexture2D* Texture = Cast<UTexture2D>(AssetIt->GetAsset());
+			if (Texture)
+	{
+				SelectedTextures.Add(Texture);
 			}
 		}
 	}
-#endif
+
+	TArray<FBox> AssetBoxes;
+	if (IStreamingManager::Get().IsTextureStreamingEnabled())
+		{
+		for (const UTexture2D* Texture : SelectedTextures)
+			{
+			IStreamingManager::Get().GetTextureStreamingManager().GetObjectReferenceBounds(Texture, AssetBoxes);
+			}
+		}
+
+	for (const FBox& Box : AssetBoxes)
+	{
+		DrawWireBox(PDI, Box, FColorList::Yellow, SDPG_World);
+	}
 }
 
 

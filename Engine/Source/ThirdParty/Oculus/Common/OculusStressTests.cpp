@@ -11,6 +11,7 @@
 
 #include "ShaderParameterUtils.h"
 #include "RHIStaticStates.h"
+#include "PipelineStateCache.h"
 
 
 //This buffer should contain variables that never, or rarely change
@@ -248,16 +249,23 @@ void FOculusStressTester::TickGPU_RenderThread(FRHICommandListImmediate& RHICmdL
 
 		//This is where the magic happens
 		SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-		static FGlobalBoundShaderState BoundShaderState;
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
 		TShaderMapRef<FOculusVertexShader> VertexShader(GetGlobalShaderMap(FeatureLevel));
 		TShaderMapRef<FPixelShaderDeclaration> PixelShader(GetGlobalShaderMap(FeatureLevel));
 
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GOculusTextureVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GOculusTextureVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		FShaderResourceViewRHIRef TextureParameterSRV = RHICreateShaderResourceView(SrcTexture, 0);
 		PixelShader->SetSurfaces(RHICmdList, TextureParameterSRV);

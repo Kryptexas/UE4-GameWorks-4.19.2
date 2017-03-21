@@ -326,10 +326,8 @@ bool FVelocityDrawingPolicy::SupportsVelocity() const
 	}
 }
 
-void FVelocityDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* SceneView, FVelocityDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const
+void FVelocityDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* SceneView, FVelocityDrawingPolicy::ContextDataType PolicyContext) const
 {
-	CommitGraphicsPipelineState(RHICmdList, *this, DrawRenderState, SceneView->GetFeatureLevel());
-
 	// NOTE: Assuming this cast is always safe!
 	FViewInfo* View = (FViewInfo*)SceneView;
 
@@ -343,7 +341,7 @@ void FVelocityDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const F
 	}
 
 	// Set the shared mesh resources.
-	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext, DrawRenderState);
+	FMeshDrawingPolicy::SetSharedState(RHICmdList, DrawRenderState, View, PolicyContext);
 }
 
 void FVelocityDrawingPolicy::SetMeshRenderState(
@@ -537,15 +535,13 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 	const bool bIsInstancedStereo
 	)
 {
-	FScopedStrictGraphicsPipelineStateUse UsePSOOnly(RHICmdList);
-
 	// Only draw opaque materials in the depth pass.
 	const auto FeatureLevel = View.GetFeatureLevel();
 	const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
 	const FMaterial* Material = MaterialRenderProxy->GetMaterial(FeatureLevel);
 	EBlendMode BlendMode = Material->GetBlendMode();
 
-	if(BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
+	if ((BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked) && ShouldIncludeDomainInMeshPass(Material->GetMaterialDomain()))
 	{
 		// This should be enforced at a higher level
 		//@todo - figure out why this is failing and re-enable
@@ -558,10 +554,11 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 		FVelocityDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), ComputeMeshOverrideSettings(Mesh), FeatureLevel);
 		if(DrawingPolicy.SupportsVelocity())
 		{			
-			FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+			FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 			DrawRenderStateLocal.SetDitheredLODTransitionAlpha(Mesh.DitheredLODTransitionAlpha);
-
-			DrawingPolicy.SetSharedState(RHICmdList, &View, FVelocityDrawingPolicy::ContextDataType(bIsInstancedStereo), DrawRenderStateLocal);
+			DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
+			CommitGraphicsPipelineState(RHICmdList, DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+			DrawingPolicy.SetSharedState(RHICmdList, DrawRenderStateLocal, &View, FVelocityDrawingPolicy::ContextDataType(bIsInstancedStereo));
 			for (int32 BatchElementIndex = 0, BatchElementCount = Mesh.Elements.Num(); BatchElementIndex < BatchElementCount; ++BatchElementIndex)
 			{
 				// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
@@ -653,7 +650,7 @@ public:
 		: ThisRenderer(InThisRenderer)
 		, RHICmdList(InRHICmdList)
 		, View(InView)
-		, DrawRenderState(nullptr, InDrawRenderState)
+		, DrawRenderState(InDrawRenderState)
 		, FirstIndex(InFirstIndex)
 		, LastIndex(InLastIndex)
 	{
@@ -731,9 +728,10 @@ static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& Vie
 		}
 	}
 
-	DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA>::GetRHI());
-	DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
-	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
+	DrawRenderState.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
+	DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
+	//TODO Where does this state go?
+	//RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
 }
 
 DECLARE_CYCLE_STAT(TEXT("Velocity"), STAT_CLP_Velocity, STATGROUP_ParallelCommandListMarkers);
@@ -832,7 +830,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 	{
 		const FViewInfo& View = Views[ViewIndex];
 
-		FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+		FDrawingPolicyRenderState DrawRenderState(View);
 
 		if (View.ShouldRenderView())
 		{
@@ -928,10 +926,6 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 		RHICmdList.CopyToResolveTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, VelocityRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 	}
-
-	// restore any color write state changes
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 
 	// to be able to observe results with VisualizeTexture
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, VelocityRT);

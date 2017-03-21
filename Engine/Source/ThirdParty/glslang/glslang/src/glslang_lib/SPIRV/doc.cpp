@@ -1,11 +1,11 @@
 //
-//Copyright (C) 2014-2015 LunarG, Inc.
+// Copyright (C) 2014-2015 LunarG, Inc.
 //
-//All rights reserved.
+// All rights reserved.
 //
-//Redistribution and use in source and binary forms, with or without
-//modification, are permitted provided that the following conditions
-//are met:
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
 //
 //    Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
@@ -19,18 +19,18 @@
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
-//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-//LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-//FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-//COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-//INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-//BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-//LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-//ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+// COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 
 //
 // 1) Programmatically fill in instruction/operand information.
@@ -50,6 +50,9 @@ namespace spv {
         // Include C-based headers that don't have a namespace
 #ifdef AMD_EXTENSIONS
         #include "GLSL.ext.AMD.h"
+#endif
+#ifdef NV_EXTENSIONS
+        #include "GLSL.ext.NV.h"
 #endif
     }
 }
@@ -255,6 +258,10 @@ const char* DecorationString(int decoration)
 
 #ifdef AMD_EXTENSIONS
     case 4999: return "ExplicitInterpAMD";
+#endif
+#ifdef NV_EXTENSIONS
+    case 5248: return "OverrideCoverageNV";
+    case 5250: return "PassthroughNV";
 #endif
     }
 }
@@ -812,6 +819,12 @@ const char* CapabilityString(int info)
 
     case 4423: return "SubgroupBallotKHR";
     case 4427: return "DrawParameters";
+    case 4431: return "SubgroupVoteKHR";
+
+#ifdef NV_EXTENSIONS
+    case 5251: return "GeometryShaderPassthroughNV";
+#endif
+
     }
 }
 
@@ -1146,6 +1159,10 @@ const char* OpcodeString(int op)
 
     case 4421: return "OpSubgroupBallotKHR";
     case 4422: return "OpSubgroupFirstInvocationKHR";
+    case 4428: return "OpSubgroupAnyKHR";
+    case 4429: return "OpSubgroupAllKHR";
+    case 4430: return "OpSubgroupAllEqualKHR";
+    case 4432: return "OpSubgroupReadInvocationKHR";
 
 #ifdef AMD_EXTENSIONS
     case 5000: return "OpGroupIAddNonUniformAMD";
@@ -2757,6 +2774,22 @@ void Parameterize()
     InstructionDesc[OpSubgroupBallotKHR].operands.push(OperandId, "'Predicate'");
 
     InstructionDesc[OpSubgroupFirstInvocationKHR].operands.push(OperandId, "'Value'");
+
+    InstructionDesc[OpSubgroupAnyKHR].capabilities.push_back(CapabilitySubgroupVoteKHR);
+    InstructionDesc[OpSubgroupAnyKHR].operands.push(OperandScope, "'Execution'");
+    InstructionDesc[OpSubgroupAnyKHR].operands.push(OperandId, "'Predicate'");
+
+    InstructionDesc[OpSubgroupAllKHR].capabilities.push_back(CapabilitySubgroupVoteKHR);
+    InstructionDesc[OpSubgroupAllKHR].operands.push(OperandScope, "'Execution'");
+    InstructionDesc[OpSubgroupAllKHR].operands.push(OperandId, "'Predicate'");
+
+    InstructionDesc[OpSubgroupAllEqualKHR].capabilities.push_back(CapabilitySubgroupVoteKHR);
+    InstructionDesc[OpSubgroupAllEqualKHR].operands.push(OperandScope, "'Execution'");
+    InstructionDesc[OpSubgroupAllEqualKHR].operands.push(OperandId, "'Predicate'");
+
+    InstructionDesc[OpSubgroupReadInvocationKHR].capabilities.push_back(CapabilityGroups);
+    InstructionDesc[OpSubgroupReadInvocationKHR].operands.push(OperandId, "'Value'");
+    InstructionDesc[OpSubgroupReadInvocationKHR].operands.push(OperandId, "'Index'");
 
 #ifdef AMD_EXTENSIONS
     InstructionDesc[OpGroupIAddNonUniformAMD].capabilities.push_back(CapabilityGroups);

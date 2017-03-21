@@ -73,7 +73,7 @@ private:
 	TSharedRef<SWidget> OnGenerateWidgetForTypeComboBox(TSharedPtr<FNiagaraTypeDefinition> Item);
 
 	/** Handles a change to a property by a parameter details view. */
-	void ParameterViewModelDefaultValueChanged(const FNiagaraVariable* ChangedVariable, TSharedRef<INiagaraParameterViewModel> Item, TSharedPtr<SNiagaraParameterEditor> ParameterEditor, TSharedRef<IStructureDetailsView> StructureDetailsView);
+	void ParameterViewModelDefaultValueChanged(TSharedRef<INiagaraParameterViewModel> Item, TSharedPtr<SNiagaraParameterEditor> ParameterEditor, TSharedRef<IStructureDetailsView> StructureDetailsView);
 
 	/** Called when the type of a parameter changes. */
 	void ParameterViewModelTypeChanged();
@@ -101,6 +101,13 @@ private:
 
 	//~ FNotifyHook interface
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
+
+	//~ Drag and drop interfaces for the view models 
+	FReply OnItemDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	void OnItemDragEnter(const FDragDropEvent& DragDropEvent, TSharedRef<INiagaraParameterViewModel> DropItem);
+	void OnItemDragLeave(const FDragDropEvent& DragDropEvent, TSharedRef<INiagaraParameterViewModel> DropItem);
+	TOptional<EItemDropZone> OnItemCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TSharedRef<INiagaraParameterViewModel> DropItem);
+	FReply OnItemAcceptDrop(FDragDropEvent const& DragDropEvent, EItemDropZone DropZone, TSharedRef<INiagaraParameterViewModel> DropItem);
 
 private:
 	/** The view model for the parameter collection. */

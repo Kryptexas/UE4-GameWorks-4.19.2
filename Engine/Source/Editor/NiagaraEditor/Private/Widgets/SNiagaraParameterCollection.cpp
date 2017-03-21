@@ -22,6 +22,10 @@
 #include "GenericCommands.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "IDetailsView.h"
+#include "SButton.h"
+#include "SNullWidget.h"
+#include "SSpinBox.h"
+#include "ScopedTransaction.h"
 
 
 #define LOCTEXT_NAMESPACE "NiagaraParameterCollectionEditor"
@@ -104,6 +108,122 @@ private:
 	const FSlateBrush* ExpandedImage;
 	const FSlateBrush* CollapsedImage;
 };
+
+
+	
+
+//////////////////////////////////////////////////////////////////////////
+// FParamCollectionDragDropAction
+
+class FParamCollectionDragDropAction : public FDragDropOperation
+{
+public:
+	DRAG_DROP_OPERATOR_TYPE(FParamCollectionDragDropAction, FDragDropOperation)
+
+	FText BodyText;
+	FScopedTransaction Transaction;
+
+	// FDragDropOperation interface
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
+	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) override;
+	virtual void Construct() override;
+	virtual void OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent) override;
+	// End of FDragDropOperation interface
+
+	FText GetBodyText() const { return BodyText; }
+
+	void SetHoverTargetItem(TSharedRef<INiagaraParameterViewModel> DropItem, EItemDropZone DropZone);
+
+	void SetDefaultTooltip();
+
+	void SetCanDropHere(bool bCanDropHere)
+	{
+		MouseCursor = bCanDropHere ? EMouseCursor::TextEditBeam : EMouseCursor::SlashedCircle;
+	}
+
+	static TSharedRef<FParamCollectionDragDropAction> New();
+
+protected:
+	FParamCollectionDragDropAction();
+};
+
+TSharedPtr<SWidget> FParamCollectionDragDropAction::GetDefaultDecorator() const
+{
+	return SNew(SBox)
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
+			[
+				SNew(STextBlock)
+				.ColorAndOpacity(FEditorStyle::GetColor("DefaultForeground"))
+				.Text(this, &FParamCollectionDragDropAction::GetBodyText)
+			]
+		];
+}
+
+void FParamCollectionDragDropAction::OnDragged(const class FDragDropEvent& DragDropEvent)
+{
+	if (CursorDecoratorWindow.IsValid())
+	{
+		CursorDecoratorWindow->MoveWindowTo(DragDropEvent.GetScreenSpacePosition());
+	}
+}
+
+
+void FParamCollectionDragDropAction::Construct()
+{
+	MouseCursor = EMouseCursor::GrabHandClosed;
+
+	SetDefaultTooltip();
+
+	FDragDropOperation::Construct();
+}
+
+void FParamCollectionDragDropAction::OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent)
+{
+	if (!bDropWasHandled)
+	{
+		Transaction.Cancel();
+	}
+}
+
+void FParamCollectionDragDropAction::SetDefaultTooltip()
+{
+	BodyText = LOCTEXT("DragDropHoverDefault", "Cannot drop here");
+}
+
+void FParamCollectionDragDropAction::SetHoverTargetItem(TSharedRef<INiagaraParameterViewModel> DropItem, EItemDropZone DropZone)
+{
+	switch (DropZone)
+	{
+	default:
+	case EItemDropZone::AboveItem:
+		BodyText = FText::Format(LOCTEXT("DragDropHoverTextBefore", "Place before {0}"), DropItem->GetNameText());
+		break;
+	case EItemDropZone::OntoItem:
+		BodyText = FText::Format(LOCTEXT("DragDropHoverTextOnto", "Place onto {0}"), DropItem->GetNameText());
+		break;
+	case EItemDropZone::BelowItem:
+		BodyText = FText::Format(LOCTEXT("DragDropHoverTextAfter", "Place after {0}"), DropItem->GetNameText());
+		break;
+	}
+}
+
+TSharedRef<FParamCollectionDragDropAction> FParamCollectionDragDropAction::New()
+{
+	// Create the drag-drop op containing the key
+	TSharedRef<FParamCollectionDragDropAction> Operation = MakeShareable(new FParamCollectionDragDropAction);
+	Operation->Construct();
+
+	return Operation;
+}
+
+FParamCollectionDragDropAction::FParamCollectionDragDropAction()
+: Transaction(LOCTEXT("MovedParametersInList", "Reorder parameters"))
+{
+
+}
+
 
 void SNiagaraParameterCollection::Construct(const FArguments& InArgs, TSharedRef<INiagaraParameterCollectionViewModel> InCollection)
 {
@@ -277,7 +397,7 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 		SAssignNew(NameWidget, SInlineEditableTextBlock)
 			.Style(FNiagaraEditorStyle::Get(), "NiagaraEditor.ParameterInlineEditableText")
 			.Text(Item, &INiagaraParameterViewModel::GetNameText)
-			.ToolTipText(Item, &INiagaraParameterViewModel::GetNameText)
+			.OnVerifyTextChanged(Item, &INiagaraParameterViewModel::VerifyNodeNameTextChanged)
 			.OnTextCommitted(Item, &INiagaraParameterViewModel::NameTextComitted)
 			.IsSelected(this, &SNiagaraParameterCollection::IsItemSelected, Item);
 	}
@@ -289,7 +409,6 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 				SNew(STextBlock)
 				.TextStyle(FNiagaraEditorStyle::Get(), "NiagaraEditor.ParameterText")
 				.Text(Item, &INiagaraParameterViewModel::GetNameText)
-				.ToolTipText(Item, &INiagaraParameterViewModel::GetNameText)
 			];
 	}
 
@@ -319,7 +438,7 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 			[
 				SNew(STextBlock)
 				.TextStyle(FEditorStyle::Get(), "SmallText")
-				.Text(Item, &INiagaraParameterViewModel::GetTypeDisplayName)
+			.Text(Item, &INiagaraParameterViewModel::GetTypeDisplayName)
 			];
 	}
 	else
@@ -328,13 +447,27 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 			.Text(Item, &INiagaraParameterViewModel::GetTypeDisplayName);
 	}
 
+//#define DEBUG_SORT_ORDER
+#if defined(DEBUG_SORT_ORDER)
+	TSharedPtr<SWidget> SortOrderWidget;
+	
+	SortOrderWidget = SNew(SSpinBox<int32>)
+		.Delta(1)
+		.MinValue(0)
+		.MaxValue(INT_MAX)
+		.IsEnabled(false)
+		.Value(Item, &INiagaraParameterViewModel::GetSortOrder);
+#endif
+
+
 	// Details and parameter editor widgets.
-	TSharedPtr<SNiagaraParameterEditor> ParameterEditor;
+	TSharedPtr<SWidget> CustomValueEditor;
 	TSharedPtr<SWidget> DetailsWidget;
 	if (Item->GetDefaultValueType() == INiagaraParameterViewModel::EDefaultValueType::Struct)
 	{
 		FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
 		TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(*Item->GetType().Get());
+		TSharedPtr<SNiagaraParameterEditor> ParameterEditor;
 		if (TypeEditorUtilities.IsValid() && TypeEditorUtilities->CanCreateParameterEditor())
 		{
 			ParameterEditor = TypeEditorUtilities->CreateParameterEditor();
@@ -360,16 +493,24 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 		Item->OnDefaultValueChanged().AddSP(this, &SNiagaraParameterCollection::ParameterViewModelDefaultValueChanged, Item, ParameterEditor, StructureDetailsView);
 		Item->OnTypeChanged().AddSP(this, &SNiagaraParameterCollection::ParameterViewModelTypeChanged);
 
+		CustomValueEditor = ParameterEditor;
 		DetailsWidget = StructureDetailsView->GetWidget();
 	}
 	else if (Item->GetDefaultValueType() == INiagaraParameterViewModel::EDefaultValueType::Object)
 	{
+		FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::GetModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
+		TSharedPtr<INiagaraEditorTypeUtilities> TypeEditorUtilities = NiagaraEditorModule.GetTypeUtilities(*Item->GetType().Get());
+		if (TypeEditorUtilities.IsValid() && TypeEditorUtilities->CanCreateDataInterfaceEditor())
+		{
+			CustomValueEditor = TypeEditorUtilities->CreateDataInterfaceEditor(Item->GetDefaultValueObject(),
+				INiagaraEditorTypeUtilities::FNotifyValueChanged::CreateSP(Item, &INiagaraParameterViewModel::NotifyDefaultValueChanged));
+		}
+
 		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 		TSharedRef<IDetailsView> DetailsView = PropertyEditorModule.CreateDetailView(
 			FDetailsViewArgs(false, false, false, FDetailsViewArgs::HideNameArea, true, this));
 		DetailsView->SetObject(Item->GetDefaultValueObject());
-
 		DetailsWidget = DetailsView;
 	}
 	else
@@ -377,9 +518,16 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 		DetailsWidget = SNullWidget::NullWidget;
 	}
 
-	if (ParameterEditor.IsValid())
+	if (CustomValueEditor.IsValid())
 	{
 		return SNew(STableRow<TSharedRef<INiagaraParameterViewModel>>, OwnerTable)
+		.IsEnabled(TAttribute<bool>(Item, &INiagaraParameterViewModel::IsEditingEnabled))
+		.ToolTipText(TAttribute<FText>(Item, &INiagaraParameterViewModel::GetTooltip))
+		.OnCanAcceptDrop(this, &SNiagaraParameterCollection::OnItemCanAcceptDrop)
+		.OnAcceptDrop(this, &SNiagaraParameterCollection::OnItemAcceptDrop)
+		.OnDragDetected(this, &SNiagaraParameterCollection::OnItemDragDetected)
+		.OnDragEnter(this, &SNiagaraParameterCollection::OnItemDragEnter, Item)
+		.OnDragLeave(this, &SNiagaraParameterCollection::OnItemDragLeave, Item)
 		.Padding(FMargin(2, 3, 2, 3))
 		.Content()
 		[
@@ -398,11 +546,22 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 				.Value(ContentColumnWidth)
 				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SNiagaraParameterCollection::ParameterContentColumnWidthChanged))
 				[
-					SNew(SBox)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
 					.Padding(FMargin(3, 0, 0, 0))
 					[
-						ParameterEditor.ToSharedRef()
+						CustomValueEditor.ToSharedRef()
 					]
+#if defined(DEBUG_SORT_ORDER)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Right)
+					.Padding(FMargin(3, 0, 0, 0))
+					[
+						SortOrderWidget.ToSharedRef()
+					]
+#endif
 				]
 			]
 			.Body()
@@ -426,6 +585,13 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 	else
 	{
 		return SNew(STableRow<TSharedRef<INiagaraParameterViewModel>>, OwnerTable)
+		.IsEnabled(TAttribute<bool>(Item, &INiagaraParameterViewModel::IsEditingEnabled))
+		.ToolTipText(TAttribute<FText>(Item, &INiagaraParameterViewModel::GetTooltip))
+		.OnCanAcceptDrop(this, &SNiagaraParameterCollection::OnItemCanAcceptDrop)
+		.OnAcceptDrop(this, &SNiagaraParameterCollection::OnItemAcceptDrop)
+		.OnDragDetected(this, &SNiagaraParameterCollection::OnItemDragDetected)
+		.OnDragEnter(this, &SNiagaraParameterCollection::OnItemDragEnter, Item)
+		.OnDragLeave(this, &SNiagaraParameterCollection::OnItemDragLeave, Item)
 		.Padding(FMargin(2))
 		.Content()
 		[
@@ -444,7 +610,22 @@ TSharedRef<ITableRow> SNiagaraParameterCollection::OnGenerateRowForParameter(TSh
 				.Value(ContentColumnWidth)
 				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SNiagaraParameterCollection::ParameterContentColumnWidthChanged))
 				[
-					TypeWidget.ToSharedRef()
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(FMargin(3, 0, 0, 0))
+					[
+						TypeWidget.ToSharedRef()
+					]
+#if defined(DEBUG_SORT_ORDER)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Right)
+					.Padding(FMargin(3, 0, 0, 0))
+					[
+						SortOrderWidget.ToSharedRef()
+					]
+#endif
 				]
 			]
 			.Body()
@@ -467,19 +648,147 @@ TSharedRef<SWidget> SNiagaraParameterCollection::OnGenerateWidgetForTypeComboBox
 		.Text(Collection->GetTypeDisplayName(Item));
 }
 
-void SNiagaraParameterCollection::ParameterViewModelDefaultValueChanged(const FNiagaraVariable* ChangedVariable, TSharedRef<INiagaraParameterViewModel> Item, TSharedPtr<SNiagaraParameterEditor> ParameterEditor, TSharedRef<IStructureDetailsView> StructureDetailsView)
+void SNiagaraParameterCollection::ParameterViewModelDefaultValueChanged(TSharedRef<INiagaraParameterViewModel> Item, TSharedPtr<SNiagaraParameterEditor> ParameterEditor, TSharedRef<IStructureDetailsView> StructureDetailsView)
 {
 	if (ParameterEditor.IsValid())
 	{
 		ParameterEditor->UpdateInternalValueFromStruct(Item->GetDefaultValueStruct());
-	}
-	// Only update the details view if the parameter editor isn't currently the exclusive editor.  This hack is necessary because the details 
-	// view closes all color pickers when it's changed! */
-	if (ParameterEditor->GetIsEditingExclusively() == false)
-	{
-		StructureDetailsView->SetStructureData(Item->GetDefaultValueStruct());
+
+		// Only update the details view if the parameter editor isn't currently the exclusive editor.  This hack is necessary because the details 
+		// view closes all color pickers when it's changed! */
+		if (ParameterEditor->GetIsEditingExclusively() == false)
+		{
+			StructureDetailsView->SetStructureData(Item->GetDefaultValueStruct());
+		}
 	}
 }
+
+
+FReply SNiagaraParameterCollection::OnItemDragDetected(const FGeometry& Geometry, const FPointerEvent& PointerEvent)
+{
+	const TSet<TSharedRef<INiagaraParameterViewModel>>& SelectedItems = Collection->GetSelection().GetSelectedObjects();
+	if (SelectedItems.Num() > 0)
+	{
+		bool bAllAreMovable = true;
+		for (const TSharedRef<INiagaraParameterViewModel>& ParamViewModel : SelectedItems)
+		{
+			if (ParamViewModel->CanChangeSortOrder() == false)
+			{
+				bAllAreMovable = false;
+			}
+		}
+		
+		if (bAllAreMovable)
+		{
+			TSharedRef<FParamCollectionDragDropAction> Operation = FParamCollectionDragDropAction::New();
+
+			return FReply::Handled().BeginDragDrop(Operation);
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
+void SNiagaraParameterCollection::OnItemDragEnter(const FDragDropEvent& DragDropEvent, TSharedRef<INiagaraParameterViewModel> DropItem)
+{
+	
+}
+
+void SNiagaraParameterCollection::OnItemDragLeave(const FDragDropEvent& DragDropEvent, TSharedRef<INiagaraParameterViewModel> DropItem)
+{
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return;
+	}
+
+	if (Operation->IsOfType<FParamCollectionDragDropAction>())
+	{
+		// Inform the Drag and Drop operation that we are hovering over nothing.
+		TSharedPtr<FParamCollectionDragDropAction> DragConnectionOp = StaticCastSharedPtr<FParamCollectionDragDropAction>(Operation);
+		DragConnectionOp->SetDefaultTooltip();
+	}
+}
+
+TOptional<EItemDropZone> SNiagaraParameterCollection::OnItemCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TSharedRef<INiagaraParameterViewModel> DropItem)
+{
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	
+	// In sorting order, onto doesn't make any sense so we don't support it.
+	if (DropZone == EItemDropZone::OntoItem)
+	{
+		DropZone = EItemDropZone::AboveItem;
+	}
+	
+	if (!Operation.IsValid())
+	{
+		return DropZone;
+	}
+
+	if (Operation->IsOfType<FParamCollectionDragDropAction>())
+	{
+		// Inform the Drag and Drop operation that we are hovering over this entry if it isn't a selected item.
+		TSharedPtr<FParamCollectionDragDropAction> DragConnectionOp = StaticCastSharedPtr<FParamCollectionDragDropAction>(Operation);
+		if (!IsItemSelected(DropItem))
+		{
+			DragConnectionOp->SetHoverTargetItem(DropItem, DropZone);
+		}
+		else // Otherwise, this is an invalid drop
+		{
+			DragConnectionOp->SetDefaultTooltip();
+		}
+	}
+	return DropZone;
+}
+
+FReply SNiagaraParameterCollection::OnItemAcceptDrop(FDragDropEvent const& DragDropEvent, EItemDropZone DropZone, TSharedRef<INiagaraParameterViewModel> DropItem)
+{
+	bool bWasDropHandled = false;
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (Operation.IsValid() && Operation->IsOfType<FParamCollectionDragDropAction>())
+	{
+		// Doesn't make sense to drop onto yourself, so ignore those drops
+		if (!IsItemSelected(DropItem))
+		{
+			const auto& FrameDragDropOp = StaticCastSharedPtr<FParamCollectionDragDropAction>(Operation);
+			TArray<TSharedRef<INiagaraParameterViewModel>> SelectedItems = ParameterListView->GetSelectedItems();
+			INiagaraParameterCollectionViewModel::SortViewModels(SelectedItems);
+
+			TArray<TSharedRef<INiagaraParameterViewModel>> AllItems = Collection->GetParameters();
+
+			// Remove the se;ected items...
+			for (int32 i = 0; i < SelectedItems.Num(); i++)
+			{
+				AllItems.Remove(SelectedItems[i]);
+			}
+
+			// Figure out where in the list we want to insert
+			int32 ItemIdx = AllItems.Find(DropItem);
+
+			if (DropZone == EItemDropZone::BelowItem)
+			{
+				ItemIdx++;
+			}
+
+			// Insert all the items into the list at the target location.
+			AllItems.Insert(SelectedItems, ItemIdx);
+
+			// Tell everyone their new sort order
+			for (int32 i = 0; i < AllItems.Num(); i++)
+			{
+				AllItems[i]->SetSortOrder(i);
+			}
+			// Refreshing will re-build the list, taking into account the proper sort order.
+			Collection->RefreshParameterViewModels();
+			bWasDropHandled = true;
+		}
+	}
+
+	return bWasDropHandled ? FReply::Handled() : FReply::Unhandled();
+}
+
+
 
 void SNiagaraParameterCollection::ParameterViewModelTypeChanged()
 {
@@ -559,7 +868,9 @@ void SNiagaraParameterCollection::NotifyPostChange(const FPropertyChangedEvent& 
 			}
 			if (ParameterIsInObjectChain)
 			{
+				// Calling this could lead to the entire script being recompiled and the parameters list being reset.
 				Parameter->NotifyDefaultValuePropertyChanged(PropertyChangedEvent);
+				break;
 			}
 		}
 	}

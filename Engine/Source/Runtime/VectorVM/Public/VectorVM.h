@@ -10,23 +10,7 @@
 #define VECTOR_WIDTH_BYTES (16)
 #define VECTOR_WIDTH_FLOATS (4)
 
-class FVectorVMSharedDataView;
-
-struct FVMExternalFunctionInput
-{
-	TArray<const uint8*, TInlineAllocator<64>> ComponentPtrs;
-	bool bIsConstant;
-};
-
-struct FVMExternalFunctionOutput
-{
-	TArray<uint8*, TInlineAllocator<64>> ComponentPtrs;
-};
-
-typedef TArray<FVMExternalFunctionInput, TInlineAllocator<64>> FVMExternalFuncInputs;
-typedef TArray<FVMExternalFunctionOutput, TInlineAllocator<64>> FVMExternalFuncOutputs;
-
-DECLARE_DELEGATE_ThreeParams(FVMExternalFunction, FVMExternalFuncInputs& /*Inputs*/, FVMExternalFuncOutputs& /*Outputs*/, uint32 /*NumInstances*/);
+DECLARE_DELEGATE_OneParam(FVMExternalFunction, struct FVectorVMContext& /*Context*/);
 
 UENUM()
 enum class EVectorVMBaseTypes : uint8
@@ -148,6 +132,14 @@ enum class EVectorVMOp : uint8
 	noise2D,
 	noise3D,
 
+	/** Utility ops for hooking into the stats system for performance analysis. */
+	enter_stat_scope,
+	exit_stat_scope,
+
+	//TODO: Move back to the float ops when we can auto recompile existing data.
+	round,
+
+
 	NumOpcodes
 };
 
@@ -161,7 +153,7 @@ struct FDataSetMeta
 	int32 DataSetOffset;		// offset in the register table
 
 	FDataSetMeta(uint32 DataSetSize, uint8 **Data = nullptr, uint8 InNumVariables = 0)
-		: InputRegisters(Data), NumVariables(InNumVariables), DataSetSizeInBytes(DataSetSize)
+		: InputRegisters(Data), NumVariables(InNumVariables), DataSetSizeInBytes(DataSetSize), DataSetAccessIndex(0), DataSetOffset(0)
 	{}
 
 	FDataSetMeta()
@@ -209,8 +201,251 @@ namespace VectorVM
 		TArray<FDataSetMeta> &DataSetMetaTable,
 		FVMExternalFunction* ExternalFunctionTable,
 		int32 NumInstances
+
+#if STATS
+		, TArray<TStatId>& StatScopes
+#endif
 		);
 
 	VECTORVM_API void Init();
 } // namespace VectorVM
+
+
+
+
+  /**
+  * Context information passed around during VM execution.
+  */
+struct FVectorVMContext
+{
+	/** Pointer to the next element in the byte code. */
+	uint8 const* RESTRICT Code;
+	/** Pointer to the table of vector register arrays. */
+	uint8* RESTRICT * RESTRICT RegisterTable;
+	/** Pointer to the constant table. */
+	uint8 const* RESTRICT ConstantTable;
+	/** Pointer to the data set index counter table */
+	int32* RESTRICT DataSetIndexTable;
+	int32* RESTRICT DataSetOffsetTable;
+	int32 NumSecondaryDataSets;
+	/** Pointer to the shared data table. */
+	FVMExternalFunction* RESTRICT ExternalFunctionTable;
+	/** Number of instances to process. */
+	int32 NumInstances;
+	/** Start instance of current chunk. */
+	int32 StartInstance;
+
+#if STATS
+	TArray<FCycleCounter> StatCounterStack;
+	TArray<TStatId>& StatScopes;
+#endif
+
+	/** Initialization constructor. */
+	FVectorVMContext(
+		const uint8* InCode,
+		uint8** InRegisterTable,
+		const uint8* InConstantTable,
+		int32 *InDataSetIndexTable,
+		int32 *InDataSetOffsetTable,
+		FVMExternalFunction* InExternalFunctionTable,
+		int32 InNumInstances,
+		int32 InStartInstance
+#if STATS
+		, TArray<TStatId>& InStatScopes
+#endif
+	)
+		: Code(InCode)
+		, RegisterTable(InRegisterTable)
+		, ConstantTable(InConstantTable)
+		, DataSetIndexTable(InDataSetIndexTable)
+		, DataSetOffsetTable(InDataSetOffsetTable)
+		, ExternalFunctionTable(InExternalFunctionTable)
+		, NumInstances(InNumInstances)
+		, StartInstance(InStartInstance)
+#if STATS
+		, StatScopes(InStatScopes)
+#endif
+	{
+#if STATS
+		StatCounterStack.Reserve(StatScopes.Num());
+#endif
+	}
+};
+
+static FORCEINLINE uint8 DecodeU8(FVectorVMContext& Context)
+{
+	return *Context.Code++;
+}
+
+static FORCEINLINE uint16 DecodeU16(FVectorVMContext& Context)
+{
+	return ((uint16)DecodeU8(Context) << 8) + DecodeU8(Context);
+}
+
+static FORCEINLINE uint32 DecodeU32(FVectorVMContext& Context)
+{
+	return ((uint32)DecodeU8(Context) << 24) + (uint32)(DecodeU8(Context) << 16) + (uint32)(DecodeU8(Context) << 8) + DecodeU8(Context);
+}
+
+/** Decode the next operation contained in the bytecode. */
+static FORCEINLINE EVectorVMOp DecodeOp(FVectorVMContext& Context)
+{
+	return static_cast<EVectorVMOp>(DecodeU8(Context));
+}
+
+static FORCEINLINE uint8 DecodeSrcOperandTypes(FVectorVMContext& Context)
+{
+	return DecodeU8(Context);
+}
+
+//////////////////////////////////////////////////////////////////////////
+/** Constant handler. */
+
+struct FConstantHandlerBase
+{
+	uint16 ConstantIndex;
+	FConstantHandlerBase(FVectorVMContext& Context)
+		: ConstantIndex(DecodeU16(Context))
+	{}
+
+	FORCEINLINE void Advance() { }
+};
+
+template<typename T>
+struct FConstantHandler : public FConstantHandlerBase
+{
+	T Constant;
+	FConstantHandler(FVectorVMContext& Context)
+		: FConstantHandlerBase(Context)
+		, Constant(*((T*)(Context.ConstantTable + ConstantIndex)))
+	{}
+	FORCEINLINE const T& Get() { return Constant; }
+};
+
+
+
+struct FDataSetOffsetHandler : FConstantHandlerBase
+{
+	uint32 Offset;
+	FDataSetOffsetHandler(FVectorVMContext& Context)
+		: FConstantHandlerBase(Context)
+		, Offset(Context.DataSetOffsetTable[ConstantIndex])
+	{}
+	FORCEINLINE const uint32 Get() { return Offset; }
+};
+
+
+
+template<>
+struct FConstantHandler<VectorRegister> : public FConstantHandlerBase
+{
+	VectorRegister Constant;
+	FConstantHandler(FVectorVMContext& Context)
+		: FConstantHandlerBase(Context)
+		, Constant(VectorLoadFloat1(&Context.ConstantTable[ConstantIndex]))
+	{}
+	FORCEINLINE const VectorRegister Get() { return Constant; }
+};
+
+template<>
+struct FConstantHandler<VectorRegisterInt> : public FConstantHandlerBase
+{
+	VectorRegisterInt Constant;
+	FConstantHandler(FVectorVMContext& Context)
+		: FConstantHandlerBase(Context)
+		, Constant(VectorIntLoad1(&Context.ConstantTable[ConstantIndex]))
+	{}
+	FORCEINLINE const VectorRegisterInt Get() { return Constant; }
+};
+
+//////////////////////////////////////////////////////////////////////////
+// Register handlers.
+// Handle reading of a register, advancing the pointer with each read.
+
+struct FRegisterHandlerBase
+{
+	int32 RegisterIndex;
+	FRegisterHandlerBase(FVectorVMContext& Context)
+		: RegisterIndex(DecodeU16(Context))
+	{}
+};
+
+template<typename T>
+struct FRegisterHandler : public FRegisterHandlerBase
+{
+	T* RESTRICT Register;
+	FRegisterHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((T*)Context.RegisterTable[RegisterIndex])
+	{}
+	FORCEINLINE const T Get() { return *Register; }
+	FORCEINLINE T* GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+template<> struct FRegisterHandler<VectorRegister> : public FRegisterHandlerBase
+{
+	VectorRegister* RESTRICT Register;
+
+	FRegisterHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((VectorRegister*)Context.RegisterTable[RegisterIndex])
+	{}
+	FORCEINLINE const VectorRegister Get() { return VectorLoadAligned(Register); }
+	FORCEINLINE VectorRegister* GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+template<> struct FRegisterHandler<VectorRegisterInt> : public FRegisterHandlerBase
+{
+	VectorRegisterInt* RESTRICT Register;
+
+	FRegisterHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((VectorRegisterInt*)Context.RegisterTable[RegisterIndex])
+	{}
+	FORCEINLINE const VectorRegisterInt Get() { return VectorIntLoadAligned(Register); }
+	FORCEINLINE VectorRegisterInt* GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+/** Handles writing to a register, advancing the pointer with each write. */
+template<typename T>
+struct FRegisterDestHandler : public FRegisterHandlerBase
+{
+	T* RESTRICT Register;
+	FRegisterDestHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((T*)Context.RegisterTable[RegisterIndex])
+	{}
+	FORCEINLINE T* RESTRICT GetDest() { return Register; }
+	FORCEINLINE T GetValue() { return *Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+template<> struct FRegisterDestHandler<VectorRegister> : public FRegisterHandlerBase
+{
+	VectorRegister* RESTRICT Register;
+	FRegisterDestHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((VectorRegister*)Context.RegisterTable[RegisterIndex])
+	{
+	}
+
+	FORCEINLINE VectorRegister* RESTRICT GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+template<> struct FRegisterDestHandler<VectorRegisterInt> : public FRegisterHandlerBase
+{
+	VectorRegisterInt* RESTRICT Register;
+	FRegisterDestHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((VectorRegisterInt*)Context.RegisterTable[RegisterIndex])
+	{
+	}
+
+	FORCEINLINE VectorRegisterInt* RESTRICT GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
 

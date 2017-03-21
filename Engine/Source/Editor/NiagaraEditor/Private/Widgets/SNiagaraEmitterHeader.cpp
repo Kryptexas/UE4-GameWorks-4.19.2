@@ -50,6 +50,7 @@ void SNiagaraEmitterHeader::Construct(const FArguments& InArgs, TSharedRef<FNiag
 				.WrapTextAt(150.0f)
 				.Text(ViewModel.ToSharedRef(), &FNiagaraEmitterHandleViewModel::GetNameText)
 				.OnTextCommitted(ViewModel.ToSharedRef(), &FNiagaraEmitterHandleViewModel::OnNameTextComitted)
+				.OnVerifyTextChanged(ViewModel.ToSharedRef(), &FNiagaraEmitterHandleViewModel::VerifyNameTextChanged)
 			]
 
 			//~ External controls.

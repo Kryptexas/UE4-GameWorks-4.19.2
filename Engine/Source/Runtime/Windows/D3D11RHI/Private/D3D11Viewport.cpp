@@ -540,7 +540,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 		RenderTarget = Viewport->GetBackBuffer();
 		RHITransitionResources(EResourceTransitionAccess::EWritable, &RenderTarget, 1);
 	}
-	FRHIRenderTargetView View(RenderTarget);
+	FRHIRenderTargetView View(RenderTarget, ERenderTargetLoadAction::ELoad);
 	RHISetRenderTargets(1,&View,nullptr,0,NULL);
 
 	// Set an initially disabled scissor rect.

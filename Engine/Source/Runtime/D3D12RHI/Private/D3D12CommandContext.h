@@ -180,7 +180,6 @@ public:
 	template<typename TPixelShader>
 	void ResolveTextureUsingShader(
 		FRHICommandList_RecursiveHazardous& RHICmdList,
-		FGlobalBoundShaderState& ResolveBoundShaderState,
 		FD3D12Texture2D* SourceTexture,
 		FD3D12Texture2D* DestTexture,
 		FD3D12RenderTargetView* DestSurfaceRTV,
@@ -226,7 +225,7 @@ public:
 	virtual void RHIAutomaticCacheFlushAfterComputeShader(bool bEnable) final override;
 	virtual void RHIFlushComputeShaderCache() final override;
 	virtual void RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data) final override;
-	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
+	virtual void RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
 	virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) final override;
 	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures) final override;
 	virtual void RHIBeginRenderQuery(FRenderQueryRHIParamRef RenderQuery) final override;
@@ -474,9 +473,9 @@ public:
 	{
 		ContextRedirect(RHISetMultipleViewports(Count, Data));
 	}
-	FORCEINLINE virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override
+	FORCEINLINE virtual void RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override
 	{
-		ContextRedirect(RHIClearUAV(UnorderedAccessViewRHI, Values));
+		ContextRedirect(RHIClearTinyUAV(UnorderedAccessViewRHI, Values));
 	}
 	FORCEINLINE virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) final override
 	{

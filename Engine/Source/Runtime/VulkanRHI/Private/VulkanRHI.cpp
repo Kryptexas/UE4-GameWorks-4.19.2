@@ -14,6 +14,7 @@
 #include "Misc/CommandLine.h"
 #include "GenericPlatformDriver.h"
 #include "Modules/ModuleManager.h"
+#include "VulkanPipelineState.h"
 
 #ifdef VK_API_VERSION
 // Check the SDK is least the API version we want to use
@@ -290,8 +291,8 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
-	PendingGfxState = new FVulkanPendingGfxState(InDevice);
-	PendingComputeState = new FVulkanPendingComputeState(InDevice);
+	PendingGfxState = new FOLDVulkanPendingGfxState(Device);
+	PendingComputeState = new FVulkanPendingComputeState(Device);
 
 	// Add an initial pool
 	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
@@ -1230,9 +1231,9 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 	ResolveDesc.srcSubresource.baseArrayLayer = 0;
 	ResolveDesc.srcSubresource.mipLevel = 0;
 	ResolveDesc.srcSubresource.layerCount = 1;
-    ResolveDesc.srcOffset.x = 0;
-    ResolveDesc.srcOffset.y = 0;
-    ResolveDesc.srcOffset.z = 0;
+	ResolveDesc.srcOffset.x = 0;
+	ResolveDesc.srcOffset.y = 0;
+	ResolveDesc.srcOffset.z = 0;
 	ResolveDesc.dstSubresource.aspectMask = AspectMask;
 	ResolveDesc.dstSubresource.baseArrayLayer = 0;
 	ResolveDesc.dstSubresource.mipLevel = 0;
@@ -1240,9 +1241,9 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 	ResolveDesc.dstOffset.x = 0;
 	ResolveDesc.dstOffset.y = 0;
 	ResolveDesc.dstOffset.z = 0;
-    ResolveDesc.extent.width = Src->Surface.Width;
-    ResolveDesc.extent.height = Src->Surface.Height;
-    ResolveDesc.extent.depth = 1;
+	ResolveDesc.extent.width = Src->Surface.Width;
+	ResolveDesc.extent.height = Src->Surface.Height;
+	ResolveDesc.extent.depth = 1;
 
 	VulkanRHI::vkCmdResolveImage(Cmd,
 		Src->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,

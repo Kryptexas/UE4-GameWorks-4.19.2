@@ -23,6 +23,8 @@
 #include "BasePassRendering.h"
 #include "RendererModule.h"
 #include "ScenePrivate.h"
+#include "ClearQuad.h"
+#include "VolumetricFog.h"
 
 int32 GLightGridPixelSize = 64;
 FAutoConsoleVariableRef CVarLightGridPixelSize(
@@ -63,6 +65,10 @@ FForwardGlobalLightData::FForwardGlobalLightData()
 {
 	NumLocalLights = 0;
 	HasDirectionalLight = 0;
+	NumDirectionalLightCascades = 0;
+	CascadeEndDepths = FVector4(0, 0, 0, 0);
+	DirectionalLightShadowmapAtlas = GBlackTexture->TextureRHI;
+	ShadowmapSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
 }
 
 int32 NumCulledLightsGridStride = 2;
@@ -108,22 +114,22 @@ public:
 
 		TArray<FUnorderedAccessViewRHIParamRef, TInlineAllocator<4>> OutUAVs;
 
-		if (NextCulledLightLink.IsBound())
+		if (NextCulledLightLink.IsUAVBound())
 		{
 			OutUAVs.Add(View.ForwardLightingResources->NextCulledLightLink.UAV);
 		}
 
-		if (StartOffsetGrid.IsBound())
+		if (StartOffsetGrid.IsUAVBound())
 		{
 			OutUAVs.Add(View.ForwardLightingResources->StartOffsetGrid.UAV);
 		}
 
-		if (CulledLightLinks.IsBound())
+		if (CulledLightLinks.IsUAVBound())
 		{
 			OutUAVs.Add(View.ForwardLightingResources->CulledLightLinks.UAV);
 		}
 
-		if (NextCulledLightData.IsBound())
+		if (NextCulledLightData.IsUAVBound())
 		{
 			OutUAVs.Add(View.ForwardLightingResources->NextCulledLightData.UAV);
 		}
@@ -189,7 +195,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, View);
 		ForwardCullingParameters.Set(RHICmdList, ShaderRHI, View);
 	}
@@ -250,7 +256,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, View);
 		ForwardCullingParameters.Set(RHICmdList, ShaderRHI, View);
 	}
@@ -308,15 +314,15 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
 
-		bool bAnyViewUsesTranslucentSurfaceLighting = false;
+		bool bAnyViewUsesForwardLighting = false;
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			const FViewInfo& View = Views[ViewIndex];
-			bAnyViewUsesTranslucentSurfaceLighting |= View.bTranslucentSurfaceLighting;
+			bAnyViewUsesForwardLighting |= View.bTranslucentSurfaceLighting || ShouldRenderVolumetricFog(Scene, ViewFamily);
 		}
 
-		const bool bCullLightsToGrid = (IsForwardShadingEnabled(FeatureLevel) || bAnyViewUsesTranslucentSurfaceLighting) && ViewFamily.EngineShowFlags.DirectLighting;
+		const bool bCullLightsToGrid = (IsForwardShadingEnabled(FeatureLevel) || bAnyViewUsesForwardLighting) && ViewFamily.EngineShowFlags.DirectLighting;
 
 		FSimpleLightArray SimpleLights;
 
@@ -341,6 +347,8 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 				{
 					const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 					const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+					const FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightIt.GetIndex()];
+					const FLightSceneProxy* LightProxy = LightSceneInfo->Proxy;
 
 					if (LightSceneInfo->ShouldRenderLightViewIndependent()
 						&& LightSceneInfo->ShouldRenderLight(View)
@@ -356,7 +364,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 						float MinRoughness;
 
 						// Get the light parameters
-						LightSceneInfo->Proxy->GetParameters(
+						LightProxy->GetParameters(
 							LightPositionAndInvRadius,
 							LightColorAndFalloffExponent,
 							NormalizedLightDirection,
@@ -365,7 +373,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 							SourceLength,
 							MinRoughness);
 
-						if (LightSceneInfo->Proxy->IsInverseSquared())
+						if (LightProxy->IsInverseSquared())
 						{
 							// Correction for lumen units
 							LightColorAndFalloffExponent.X *= 16.0f;
@@ -377,12 +385,12 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 						// When rendering reflection captures, the direct lighting of the light is actually the indirect specular from the main view
 						if (View.bIsReflectionCapture)
 						{
-							LightColorAndFalloffExponent.X *= LightSceneInfo->Proxy->GetIndirectLightingScale();
-							LightColorAndFalloffExponent.Y *= LightSceneInfo->Proxy->GetIndirectLightingScale();
-							LightColorAndFalloffExponent.Z *= LightSceneInfo->Proxy->GetIndirectLightingScale();
+							LightColorAndFalloffExponent.X *= LightProxy->GetIndirectLightingScale();
+							LightColorAndFalloffExponent.Y *= LightProxy->GetIndirectLightingScale();
+							LightColorAndFalloffExponent.Z *= LightProxy->GetIndirectLightingScale();
 						}
 
-						int32 ShadowMapChannel = LightSceneInfo->Proxy->GetShadowMapChannel();
+						int32 ShadowMapChannel = LightProxy->GetShadowMapChannel();
 						int32 DynamicShadowMapChannel = LightSceneInfo->GetDynamicShadowMapChannel();
 
 						if (!bAllowStaticLighting)
@@ -401,7 +409,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 							(DynamicShadowMapChannel == 2 ? 64 : 0) |
 							(DynamicShadowMapChannel == 3 ? 128 : 0);
 
-						ShadowMapChannelMaskPacked |= LightSceneInfo->Proxy->GetLightingChannelMask() << 8;
+						ShadowMapChannelMaskPacked |= LightProxy->GetLightingChannelMask() << 8;
 
 						if ((LightSceneInfoCompact.LightType == LightType_Point && ViewFamily.EngineShowFlags.PointLights)
 							|| (LightSceneInfoCompact.LightType == LightType_Spot && ViewFamily.EngineShowFlags.SpotLights))
@@ -409,7 +417,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 							ForwardLocalLightData.AddUninitialized(1);
 							FForwardLocalLightData& LightData = ForwardLocalLightData.Last();
 
-							const float LightFade = GetLightFadeFactor(View, LightSceneInfo->Proxy);
+							const float LightFade = GetLightFadeFactor(View, LightProxy);
 							LightColorAndFalloffExponent.X *= LightFade;
 							LightColorAndFalloffExponent.Y *= LightFade;
 							LightColorAndFalloffExponent.Z *= LightFade;
@@ -417,9 +425,24 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 							LightData.LightPositionAndInvRadius = LightPositionAndInvRadius;
 							LightData.LightColorAndFalloffExponent = LightColorAndFalloffExponent;
 							LightData.LightDirectionAndShadowMapChannelMask = FVector4(NormalizedLightDirection, *((float*)&ShadowMapChannelMaskPacked));
-							LightData.SpotAnglesAndSourceRadius = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, SourceLength);
 
-							const FSphere BoundingSphere = LightSceneInfo->Proxy->GetBoundingSphere();
+							LightData.SpotAnglesAndSourceRadiusPacked = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, 0);
+
+							float VolumetricScatteringIntensity = LightProxy->GetVolumetricScatteringIntensity();
+
+							if (LightNeedsSeparateInjectionIntoVolumetricFog(LightProxy, VisibleLightInfos[LightSceneInfo->Id]))
+							{
+								// Disable this lights forward shading volumetric scattering contribution
+								VolumetricScatteringIntensity = 0;
+							}
+
+							// Pack both values into a single float to keep float4 alignment
+							const FFloat16 SourceLength16f = FFloat16(SourceLength);
+							const FFloat16 VolumetricScatteringIntensity16f = FFloat16(VolumetricScatteringIntensity);
+							const uint32 PackedWInt = ((uint32)SourceLength16f.Encoded) | ((uint32)VolumetricScatteringIntensity16f.Encoded << 16);
+							LightData.SpotAnglesAndSourceRadiusPacked.W = *(float*)&PackedWInt;
+
+							const FSphere BoundingSphere = LightProxy->GetBoundingSphere();
 							const float Distance = View.ViewMatrices.GetViewMatrix().TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
 							FurthestLight = FMath::Max(FurthestLight, Distance);
 						}
@@ -427,15 +450,45 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 						{
 							GlobalLightData.HasDirectionalLight = 1;
 							GlobalLightData.DirectionalLightColor = LightColorAndFalloffExponent;
+							GlobalLightData.DirectionalLightVolumetricScatteringIntensity = LightProxy->GetVolumetricScatteringIntensity();
 							GlobalLightData.DirectionalLightDirection = NormalizedLightDirection;
 							GlobalLightData.DirectionalLightShadowMapChannelMask = ShadowMapChannelMaskPacked;
 
-							const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters(View.GetFeatureLevel(), LightSceneInfo->IsPrecomputedLightingValid());
+							const FVector2D FadeParams = LightProxy->GetDirectionalLightDistanceFadeParameters(View.GetFeatureLevel(), LightSceneInfo->IsPrecomputedLightingValid());
 
 							GlobalLightData.DirectionalLightDistanceFadeMAD = FVector2D(FadeParams.Y, -FadeParams.X * FadeParams.Y);
+
+							if (ViewFamily.EngineShowFlags.DynamicShadows && VisibleLightInfos.IsValidIndex(LightSceneInfo->Id) && VisibleLightInfos[LightSceneInfo->Id].AllProjectedShadows.Num() > 0)
+							{
+								const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& DirectionalLightShadowInfos = VisibleLightInfos[LightSceneInfo->Id].AllProjectedShadows;
+
+								GlobalLightData.NumDirectionalLightCascades = 0;
+
+								for (int32 ShadowIndex = 0; ShadowIndex < DirectionalLightShadowInfos.Num(); ShadowIndex++)
+								{
+									const FProjectedShadowInfo* ShadowInfo = DirectionalLightShadowInfos[ShadowIndex];
+									const int32 CascadeIndex = ShadowInfo->CascadeSettings.ShadowSplitIndex;
+
+									if (ShadowInfo->IsWholeSceneDirectionalShadow() && ShadowInfo->bAllocated && CascadeIndex < GMaxForwardShadowCascades)
+									{
+										GlobalLightData.NumDirectionalLightCascades++;
+										GlobalLightData.DirectionalLightWorldToShadowMatrix[CascadeIndex] = ShadowInfo->GetWorldToShadowMatrix(GlobalLightData.DirectionalLightShadowmapMinMax[CascadeIndex]);
+										GlobalLightData.CascadeEndDepths[CascadeIndex] = ShadowInfo->CascadeSettings.SplitFar;
+
+										if (CascadeIndex == 0)
+										{
+											GlobalLightData.DirectionalLightShadowmapAtlas = ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference();
+											GlobalLightData.DirectionalLightDepthBias = ShadowInfo->GetShaderDepthBias();
+										}
+									}
+								}
+							}
 						}
 					}
 				}
+
+				// Pack both values into a single float to keep float4 alignment
+				const FFloat16 SimpleLightSourceLength16f = FFloat16(0);
 
 				for (int32 SimpleLightIndex = 0; SimpleLightIndex < SimpleLights.InstanceData.Num(); SimpleLightIndex++)
 				{	
@@ -449,7 +502,12 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 					uint32 ShadowMapChannelMask = 0;
 					LightData.LightDirectionAndShadowMapChannelMask = FVector4(FVector(1, 0, 0), *((float*)&ShadowMapChannelMask));
-					LightData.SpotAnglesAndSourceRadius = FVector4(-2, 1, 0, 0);
+
+					// Pack both values into a single float to keep float4 alignment
+					const FFloat16 VolumetricScatteringIntensity16f = FFloat16(SimpleLight.VolumetricScatteringIntensity);
+					const uint32 PackedWInt = ((uint32)SimpleLightSourceLength16f.Encoded) | ((uint32)VolumetricScatteringIntensity16f.Encoded << 16);
+		
+					LightData.SpotAnglesAndSourceRadiusPacked = FVector4(-2, 1, 0, *(float*)&PackedWInt);
 
 					if( SimpleLight.Exponent == 0.0f )
 					{
@@ -548,12 +606,9 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 				if (GLightLinkedListCulling)
 				{
-					uint32 LinkClearValues[4] = { 0xFFFFFFFF };
-					RHICmdList.ClearUAV(View.ForwardLightingResources->StartOffsetGrid.UAV, LinkClearValues);
-
-					uint32 ClearValues[4] = { 0 };
-					RHICmdList.ClearUAV(View.ForwardLightingResources->NextCulledLightLink.UAV, ClearValues);
-					RHICmdList.ClearUAV(View.ForwardLightingResources->NextCulledLightData.UAV, ClearValues);
+					ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ForwardLightingResources->StartOffsetGrid, 0xFFFFFFFF);
+					ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ForwardLightingResources->NextCulledLightLink, 0);
+					ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ForwardLightingResources->NextCulledLightData, 0);
 
 					TShaderMapRef<TLightGridInjectionCS<true> > ComputeShader(View.ShaderMap);
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -563,8 +618,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 				}
 				else
 				{
-					uint32 ClearValues[4] = { 0 };
-					RHICmdList.ClearUAV(View.ForwardLightingResources->NumCulledLightsGrid.UAV, ClearValues);
+					ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ForwardLightingResources->NumCulledLightsGrid, 0);
 
 					TShaderMapRef<TLightGridInjectionCS<false> > ComputeShader(View.ShaderMap);
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());

@@ -58,7 +58,7 @@ FVulkanCmdBuffer::~FVulkanCmdBuffer()
 	CommandBufferHandle = VK_NULL_HANDLE;
 }
 
-void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, FVulkanRenderPass* RenderPass, VkFramebuffer Framebuffer, const VkClearValue* AttachmentClearValues)
+void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, FVulkanRenderPass* RenderPass, FVulkanFramebuffer* Framebuffer, const VkClearValue* AttachmentClearValues)
 {
 	check(IsOutsideRenderPass());
 
@@ -66,10 +66,11 @@ void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, 
 	FMemory::Memzero(Info);
 	Info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	Info.renderPass = RenderPass->GetHandle();
-	Info.framebuffer = Framebuffer;
+	Info.framebuffer = Framebuffer->GetHandle();
 	Info.renderArea.offset.x = 0;
 	Info.renderArea.offset.y = 0;
-	Info.renderArea.extent = Layout.GetExtent2D();
+	Info.renderArea.extent.width = Framebuffer->GetWidth();
+	Info.renderArea.extent.height = Framebuffer->GetHeight();
 	Info.clearValueCount = Layout.GetNumUsedClearValues();
 	Info.pClearValues = AttachmentClearValues;
 

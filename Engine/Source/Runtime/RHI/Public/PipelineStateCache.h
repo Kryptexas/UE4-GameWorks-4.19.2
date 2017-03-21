@@ -8,9 +8,16 @@ PipelineStateCache.h: Pipeline state cache definition.
 
 #include "CoreMinimal.h"
 #include "RHI.h"
+#include "EnumClassFlags.h"
 
-class FComputePipelineState;
-class FGraphicsPipelineState;
+enum class EApplyRendertargetOption : int
+{
+	DoNothing  = 0,
+	ForceApply = 1 << 0,
+	CheckApply = 1 << 1,
+};
 
-extern RHI_API FComputePipelineState* GetOrCreateComputePipelineState(FRHICommandList& RHICmdList, FRHIComputeShader* ComputeShader);
-extern RHI_API FGraphicsPipelineState* GetOrCreateGraphicsPipelineState(FRHICommandList& RHICmdList, const FGraphicsPipelineStateInitializer& Initializer);
+ENUM_CLASS_FLAGS(EApplyRendertargetOption);
+
+extern RHI_API void SetComputePipelineState(FRHICommandList& RHICmdList, FRHIComputeShader* ComputeShader);
+extern RHI_API void SetGraphicsPipelineState(FRHICommandList& RHICmdList, const FGraphicsPipelineStateInitializer& Initializer, EApplyRendertargetOption ApplyFlags = EApplyRendertargetOption::CheckApply);

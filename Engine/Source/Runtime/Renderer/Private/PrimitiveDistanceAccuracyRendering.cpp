@@ -33,7 +33,7 @@ void FPrimitiveDistanceAccuracyPS::SetParameters(
 	}
 
 	// Bind view params
-	FGlobalShader::SetParameters(RHICmdList, FGlobalShader::GetPixelShader(), View);
+	FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, FGlobalShader::GetPixelShader(), View.ViewUniformBuffer);
 }
 
 void FPrimitiveDistanceAccuracyPS::SetMesh(

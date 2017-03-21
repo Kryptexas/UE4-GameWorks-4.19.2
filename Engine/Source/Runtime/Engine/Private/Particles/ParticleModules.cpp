@@ -3030,6 +3030,7 @@ UParticleModuleLight::UParticleModuleLight(const FObjectInitializer& ObjectIniti
 	SpawnFraction = 1;
 	bSupported3DDrawMode = true;
 	b3DDrawMode = true;
+	VolumetricScatteringIntensity = 1.0f;
 }
 
 void UParticleModuleLight::InitializeDefaults()
@@ -3148,6 +3149,7 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 		PointLightComponent->LightingChannels = LightingChannels;
 		PointLightComponent->bUseInverseSquaredFalloff = bUseInverseSquaredFalloff;
 		PointLightComponent->bAffectTranslucentLighting = bAffectsTranslucency;
+		PointLightComponent->VolumetricScatteringIntensity = VolumetricScatteringIntensity;
 		PointLightComponent->SetCastShadows(bShadowCastingLights);
 
 		PointLightComponent->RegisterComponent();

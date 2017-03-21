@@ -1420,6 +1420,7 @@ struct FRelevancePacket
 	FRelevancePrimSet<FPrimitiveSceneInfo*> LazyUpdatePrimitives;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> DirtyPrecomputedLightingBufferPrimitives;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> VisibleEditorPrimitives;
+	FRelevancePrimSet<FPrimitiveSceneProxy*> VolumetricPrimSet;
 	uint16 CombinedShadingModelMask;
 	bool bUsesGlobalDistanceField;
 	bool bUsesLightingChannels;
@@ -1535,6 +1536,11 @@ struct FRelevancePacket
 					// Add to set of dynamic distortion primitives
 					DistortionPrimSet.AddPrim(PrimitiveSceneInfo->Proxy);
 				}
+			}
+
+			if (ViewRelevance.bHasVolumeMaterialDomain)
+			{
+				VolumetricPrimSet.AddPrim(PrimitiveSceneInfo->Proxy);
 			}
 
 			CombinedShadingModelMask |= ViewRelevance.ShadingModelMaskRelevance;
@@ -1745,6 +1751,7 @@ struct FRelevancePacket
 		MeshDecalPrimSet.AppendTo(WriteView.MeshDecalPrimSet.Prims);
 		CustomDepthSet.AppendTo(WriteView.CustomDepthSet);
 		DirtyPrecomputedLightingBufferPrimitives.AppendTo(WriteView.DirtyPrecomputedLightingBufferPrimitives);
+		VolumetricPrimSet.AppendTo(WriteView.VolumetricPrimSet);
 		for (int32 Index = 0; Index < LazyUpdatePrimitives.NumPrims; Index++)
 		{
 			LazyUpdatePrimitives.Prims[Index]->ConditionalLazyUpdateForRendering(RHICmdList);
@@ -2901,6 +2908,8 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 			View.InitRHIResources();
 		}
 	}
+
+	SetupVolumetricFog();
 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_OnStartFrame);

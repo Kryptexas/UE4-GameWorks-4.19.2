@@ -70,9 +70,11 @@ void UNiagaraNodeIf::Compile(class INiagaraCompiler* Compiler, TArray<int32>& Ou
 	Compiler->If(OutputVars, Condition, PathA, PathB, Outputs);
 }
 
-void UNiagaraNodeIf::RefreshFromExternalChanges()
+bool UNiagaraNodeIf::RefreshFromExternalChanges()
 {
+	// TODO - Leverage code in reallocate pins to determine if any pins have changed...
 	ReallocatePins();
+	return true;
 }
 
 void UNiagaraNodeIf::OnPinRemoved(UEdGraphPin* PinToRemove)

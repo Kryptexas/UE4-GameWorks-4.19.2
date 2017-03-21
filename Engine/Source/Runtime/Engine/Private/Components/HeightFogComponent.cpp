@@ -36,6 +36,11 @@ UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInit
 
 	// disabled by default
 	FogCutoffDistance = 0;
+
+	VolumetricFogScatteringDistribution = .2f;
+	VolumetricFogScatteringScale = 1.0f;
+	VolumetricFogAbsorptionScale = 1.0f;
+	VolumetricFogDistance = 4500.0f;
 }
 
 void UExponentialHeightFogComponent::AddFogIfNeeded()
@@ -238,6 +243,51 @@ void UExponentialHeightFogComponent::SetFogCutoffDistance(float Value)
 	if(FogCutoffDistance != Value)
 	{
 		FogCutoffDistance = Value;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFog(bool bNewValue)
+{
+	if(bEnableVolumetricFog != bNewValue)
+	{
+		bEnableVolumetricFog = bNewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogScatteringDistribution(float NewValue)
+{
+	if(VolumetricFogScatteringDistribution != NewValue)
+	{
+		VolumetricFogScatteringDistribution = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogAbsorptionScale(float NewValue)
+{
+	if(VolumetricFogAbsorptionScale != NewValue)
+	{
+		VolumetricFogAbsorptionScale = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogScatteringScale(float NewValue)
+{
+	if(VolumetricFogScatteringScale != NewValue)
+	{
+		VolumetricFogScatteringScale = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogDistance(float NewValue)
+{
+	if(VolumetricFogDistance != NewValue)
+	{
+		VolumetricFogDistance = NewValue;
 		MarkRenderStateDirty();
 	}
 }

@@ -358,9 +358,9 @@ int32 UModelComponent::GetNumMaterials() const
 
 UMaterialInterface* UModelComponent::GetMaterial(int32 MaterialIndex) const
 {
-	UMaterialInterface* Material = NULL;
+	UMaterialInterface* Material = nullptr;
 
-	if(MaterialIndex < Elements.Num())
+	if(Elements.IsValidIndex(MaterialIndex))
 	{
 		return  Elements[MaterialIndex].Material;
 	}

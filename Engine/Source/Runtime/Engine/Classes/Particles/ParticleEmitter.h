@@ -208,6 +208,7 @@ class UParticleEmitter : public UObject
 
 	int32 DynamicParameterDataOffset;
 	int32 LightDataOffset;
+	float LightVolumetricScatteringIntensity;
 	int32 CameraPayloadOffset;
 	int32 ParticleSize;
 	int32 ReqInstanceBytes;

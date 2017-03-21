@@ -19,10 +19,7 @@
 #include "GlobalShader.h"
 #include "SceneRendering.h"
 #include "LightPropagationVolume.h"
-
-// ----------------------------------------------------------------------------
-
-static FGlobalBoundShaderState LpvVisBoundShaderState;
+#include "PipelineStateCache.h"
 
 // ----------------------------------------------------------------------------
 
@@ -68,7 +65,7 @@ public:
 		const FSceneView& View )
 	{
 		FGeometryShaderRHIParamRef ShaderRHI = GetGeometryShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 	}
 };
 
@@ -89,7 +86,7 @@ public:
 		const FSceneView& View )
 	{
 		FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 	}
 };
 
@@ -122,7 +119,7 @@ public:
 		const FSceneView& View )
 	{
 		FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		
 		for ( int i = 0; i < 7; i++ )
 		{
@@ -205,15 +202,24 @@ void FLightPropagationVolume::Visualise(FRHICommandList& RHICmdList, const FView
 	SCOPED_DRAW_EVENT(RHICmdList, LpvVisualise);
 	check(View.GetFeatureLevel() == ERHIFeatureLevel::SM5);
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+	GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI();
+
 	TShaderMapRef<FLpvVisualiseVS> VertexShader(View.ShaderMap);
 	TShaderMapRef<FLpvVisualiseGS> GeometryShader(View.ShaderMap);
 	TShaderMapRef<FLpvVisualisePS> PixelShader(View.ShaderMap);
 
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GSimpleElementVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.GeometryShaderRHI = GETSAFERHISHADER_GEOMETRY(*GeometryShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_PointList;
 
-	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	VertexShader->SetParameters(RHICmdList, View);
 	GeometryShader->SetParameters(RHICmdList, View);

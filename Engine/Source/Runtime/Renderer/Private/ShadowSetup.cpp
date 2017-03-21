@@ -703,7 +703,7 @@ void FProjectedShadowInfo::SetupWholeSceneProjection(
 		GetViewFrustumBounds(CasterFrustum, CasterMatrix, true);
 	}
 
-	check(MaxSubjectZ > MinSubjectZ);
+	checkf(MaxSubjectZ > MinSubjectZ, TEXT("MaxSubjectZ %f MinSubjectZ %f SubjectBounds.SphereRadius %f"), MaxSubjectZ, MinSubjectZ, Initializer.SubjectBounds.SphereRadius);
 
 	const float ClampedMaxLightW = FMath::Min(MinSubjectZ + Initializer.MaxDistanceToCastInLightW, (float)HALF_WORLD_MAX);
 	MinPreSubjectZ = Initializer.MinLightW;
@@ -2635,7 +2635,10 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 
 				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, LocalIndex, LightSceneInfo.IsPrecomputedLightingValid(), ProjectedShadowInitializer))
 				{
-					const FIntPoint ShadowBufferResolution = SceneContext_ConstantsOnly.GetShadowDepthTextureResolution();
+					const FIntPoint ShadowBufferResolution(
+						FMath::Clamp(GetCachedScalabilityCVars().MaxCSMShadowResolution, 1, GMaxShadowDepthBufferSizeX),
+						FMath::Clamp(GetCachedScalabilityCVars().MaxCSMShadowResolution, 1, GMaxShadowDepthBufferSizeY));
+
 					// Create the projected shadow info.
 					FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(), 1, 16) FProjectedShadowInfo;
 

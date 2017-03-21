@@ -34,5 +34,8 @@ public:
 	void NotifyOutputVariablesChanged();
 
 	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& OutputExpressions)override;
+protected:
+	virtual int32 CompileInputPin(INiagaraCompiler* Compiler, UEdGraphPin* Pin) override;
+
 };
 

@@ -74,6 +74,24 @@ struct FNiagaraTestStruct
 	FNiagaraTestStructInner InnerStruct2;
 };
 
+USTRUCT(meta = (DisplayName = "Matrix"))
+struct FNiagaraMatrix
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FVector4 Row0;
+
+	UPROPERTY()
+	FVector4 Row1;
+
+	UPROPERTY()
+	FVector4 Row2;
+
+	UPROPERTY()
+	FVector4 Row3;
+};
+
 /** Information about how this type should be laid out in an FNiagaraDataSet */
 struct FNiagaraTypeLayoutInfo
 {
@@ -223,6 +241,7 @@ public:
 	const UStruct *Struct;
 
 	static void Init();
+	static void RecreateUserDefinedTypeRegistry();
 	static const FNiagaraTypeDefinition& GetFloatDef() { return FloatDef; }
 	static const FNiagaraTypeDefinition& GetBoolDef() { return BoolDef; }
 	static const FNiagaraTypeDefinition& GetIntDef() { return IntDef; }
@@ -254,8 +273,10 @@ public:
 	}
 
 	static bool TypesAreAssignable(const FNiagaraTypeDefinition& TypeA, const FNiagaraTypeDefinition& TypeB);
+	static bool IsLossyConversion(const FNiagaraTypeDefinition& TypeA, const FNiagaraTypeDefinition& TypeB);
 	static FNiagaraTypeDefinition GetNumericOutputType(const TArray<FNiagaraTypeDefinition> TypeDefinintions, ENiagaraNumericOutputTypeSelectionMode SelectionMode);
 
+	static const TArray<FNiagaraTypeDefinition>& GetNumericTypes() { return OrderedNumericTypes; }
 private:
 
 	static FNiagaraTypeDefinition FloatDef;
@@ -313,7 +334,24 @@ public:
 		return RegisteredPayloadTypes;
 	}
 
-	static void Register(const FNiagaraTypeDefinition &NewType, bool bCanBeParameter, bool bCanBePayload)
+	static const TArray<FNiagaraTypeDefinition>& GetUserDefinedTypes()
+	{
+		return RegisteredUserDefinedTypes;
+	}
+
+	static void ClearUserDefinedRegistry()
+	{
+		for (const FNiagaraTypeDefinition& Def : RegisteredUserDefinedTypes)
+		{
+			RegisteredTypes.Remove(Def);
+			RegisteredPayloadTypes.Remove(Def);
+			RegisteredParamTypes.Remove(Def);
+		}
+
+		RegisteredUserDefinedTypes.Empty();
+	}
+
+	static void Register(const FNiagaraTypeDefinition &NewType, bool bCanBeParameter, bool bCanBePayload, bool bIsUserDefined)
 	{
 		//TODO: Make this a map of type to a more verbose set of metadata? Such as the hlsl defs, offset table for conversions etc.
 		RegisteredTypes.AddUnique(NewType);
@@ -327,12 +365,18 @@ public:
 		{
 			RegisteredPayloadTypes.AddUnique(NewType);
 		}
+
+		if (bIsUserDefined)
+		{
+			RegisteredUserDefinedTypes.AddUnique(NewType);
+		}
 	}
 
 private:
 	static TArray<FNiagaraTypeDefinition> RegisteredTypes;
 	static TArray<FNiagaraTypeDefinition> RegisteredParamTypes;
 	static TArray<FNiagaraTypeDefinition> RegisteredPayloadTypes;
+	static TArray<FNiagaraTypeDefinition> RegisteredUserDefinedTypes;
 };
 
 FORCEINLINE uint32 GetTypeHash(const FNiagaraTypeDefinition& Type)

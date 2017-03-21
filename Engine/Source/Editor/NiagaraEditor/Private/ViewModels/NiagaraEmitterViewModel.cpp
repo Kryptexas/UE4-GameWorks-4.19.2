@@ -16,6 +16,8 @@
 
 #define LOCTEXT_NAMESPACE "EmitterEditorViewModel"
 
+TMap<UNiagaraEmitterProperties*, TArray<FNiagaraEmitterViewModel*>> TNiagaraViewModelManager<UNiagaraEmitterProperties, FNiagaraEmitterViewModel>::ObjectsToViewModels;
+
 const FText FNiagaraEmitterViewModel::StatsFormat = NSLOCTEXT("NiagaraEmitterViewModel", "StatsFormat", "{0} Particles | {1} ms | {2} MB");
 const float Megabyte = 1024.0f * 1024.0f;
 
@@ -27,7 +29,8 @@ FNiagaraEmitterViewModel::FNiagaraEmitterViewModel(UNiagaraEmitterProperties* In
 	, ParameterNameColumnWidth(.3f)
 	, ParameterContentColumnWidth(.7f)
 	, bUpdatingSelectionInternally(false)
-	, LastEventScriptStatus(NCS_Unknown)
+	, LastEventScriptStatus(ENiagaraScriptCompileStatus::NCS_Unknown)
+	, bEmitterDirty(false)
 {
 	SpawnScriptViewModel->GetGraphViewModel()->GetSelection()->OnSelectedObjectsChanged().AddRaw(
 		this, &FNiagaraEmitterViewModel::ScriptViewModelSelectedNodesChanged, UpdateScriptViewModel->GetGraphViewModel());
@@ -49,6 +52,13 @@ FNiagaraEmitterViewModel::FNiagaraEmitterViewModel(UNiagaraEmitterProperties* In
 
 	UpdateScriptViewModel->GetOutputCollectionViewModel()->OnParameterValueChanged().AddRaw(
 		this, &FNiagaraEmitterViewModel::ScriptParameterValueChanged);
+
+	if (Emitter && Emitter->EventHandlerScriptProps.Script && Emitter->EventHandlerScriptProps.Script->ByteCode.Num() != 0)
+	{
+		LastEventScriptStatus = ENiagaraScriptCompileStatus::NCS_UpToDate;
+	}
+
+	RegisteredHandle = RegisterViewModelWithMap(Emitter, this);
 }
 
 
@@ -59,10 +69,20 @@ bool FNiagaraEmitterViewModel::Set(UNiagaraEmitterProperties* InEmitter, FNiagar
 	return true;
 }
 
+FNiagaraEmitterViewModel::~FNiagaraEmitterViewModel()
+{
+	UnregisterViewModelWithMap(RegisteredHandle);
+}
+
 
 void FNiagaraEmitterViewModel::SetEmitter(UNiagaraEmitterProperties* InEmitter)
 {
+	UnregisterViewModelWithMap(RegisteredHandle);
+
 	Emitter = InEmitter;
+
+	RegisteredHandle = RegisterViewModelWithMap(Emitter, this);
+
 	UNiagaraScript* CurrentScript = nullptr;
 	if (Emitter)
 	{
@@ -77,7 +97,7 @@ void FNiagaraEmitterViewModel::SetEmitter(UNiagaraEmitterProperties* InEmitter)
 
 	OnEmitterChanged().Broadcast();
 	OnPropertyChangedDelegate.Broadcast();
-	OnParameterValueChangedDelegate.Broadcast(nullptr);
+	OnParameterValueChangedDelegate.Broadcast(FGuid());
 }
 
 
@@ -197,6 +217,19 @@ void FNiagaraEmitterViewModel::ParameterContentColumnWidthChanged(float Width)
 	ParameterContentColumnWidth = Width;
 }
 
+bool FNiagaraEmitterViewModel::GetDirty() const
+{
+	bool bDirty = SpawnScriptViewModel->GetScriptDirty() || UpdateScriptViewModel->GetScriptDirty() || bEmitterDirty;
+	return bDirty;
+}
+
+void FNiagaraEmitterViewModel::SetDirty(bool bDirty)
+{
+	SpawnScriptViewModel->SetScriptDirty(bDirty);
+	UpdateScriptViewModel->SetScriptDirty(bDirty);
+	bEmitterDirty = bDirty;
+}
+
 bool FNiagaraEmitterViewModel::DoesAssetSavedInduceRefresh(const FString& PackagePath, UObject* PackageObject, bool RecurseIntoDependencies)
 {
 	if (Emitter != nullptr)
@@ -217,55 +250,62 @@ bool FNiagaraEmitterViewModel::DoesAssetSavedInduceRefresh(const FString& Packag
 
 void FNiagaraEmitterViewModel::CompileScripts()
 {
-	SpawnScriptViewModel->Compile();
-	UpdateScriptViewModel->Compile();
 	if(Emitter)
 	{
-		Emitter->UpdateScriptProps.InitDataSetAccess();
-		if (Emitter->EventHandlerScriptProps.Script)
+		TArray<ENiagaraScriptCompileStatus> CompileStatuses;
+		TArray<FString> CompileErrors;
+		TArray<FString> CompilePaths;
+		Emitter->CompileScripts(CompileStatuses, CompileErrors, CompilePaths);
+		if (CompileStatuses.Num() > (int32)EScriptCompileIndices::UpdateScript)
+		{
+			SpawnScriptViewModel->UpdateCompileStatus(CompileStatuses[(int32)EScriptCompileIndices::SpawnScript], CompileErrors[(int32)EScriptCompileIndices::SpawnScript]);
+			UpdateScriptViewModel->UpdateCompileStatus(CompileStatuses[(int32)EScriptCompileIndices::UpdateScript], CompileErrors[(int32)EScriptCompileIndices::UpdateScript]);
+		}
+
+		if (CompileStatuses.Num() > (int32)EScriptCompileIndices::EventScript)
 		{
 			FString ErrorMsg;
-			LastEventScriptStatus = Cast<UNiagaraScriptSource>(Emitter->EventHandlerScriptProps.Script->Source)->Compile(ErrorMsg);
+			LastEventScriptStatus = CompileStatuses[(int32)EScriptCompileIndices::EventScript];
 		}
 	}
-	OnParameterValueChanged().Broadcast(nullptr);
+	OnScriptCompiled().Broadcast();
 }
 
 ENiagaraScriptCompileStatus FNiagaraEmitterViewModel::UnionCompileStatus(const ENiagaraScriptCompileStatus& StatusA, const ENiagaraScriptCompileStatus& StatusB)
 {
 	if (StatusA != StatusB)
 	{
-		if (StatusA == NCS_Unknown || StatusB == NCS_Unknown)
+		if (StatusA == ENiagaraScriptCompileStatus::NCS_Unknown || StatusB == ENiagaraScriptCompileStatus::NCS_Unknown)
 		{
-			return NCS_Unknown;
+			return ENiagaraScriptCompileStatus::NCS_Unknown;
 		}
-		else if (StatusA >= NCS_MAX || StatusB >= NCS_MAX)
+		else if (StatusA >= ENiagaraScriptCompileStatus::NCS_MAX || StatusB >= ENiagaraScriptCompileStatus::NCS_MAX)
 		{
-			return NCS_MAX;
+			return ENiagaraScriptCompileStatus::NCS_MAX;
 		}
-		else if (StatusA == NCS_Dirty || StatusB == NCS_Dirty)
+		else if (StatusA == ENiagaraScriptCompileStatus::NCS_Dirty || StatusB == ENiagaraScriptCompileStatus::NCS_Dirty)
 		{
-			return NCS_Dirty;
+			return ENiagaraScriptCompileStatus::NCS_Dirty;
 		}
-		else if (StatusA == NCS_Error || StatusB == NCS_Error)
+		else if (StatusA == ENiagaraScriptCompileStatus::NCS_Error || StatusB == ENiagaraScriptCompileStatus::NCS_Error)
 		{
-			return NCS_Error;
+			return ENiagaraScriptCompileStatus::NCS_Error;
 		}
-		else if (StatusA == NCS_UpToDateWithWarnings || StatusB == NCS_UpToDateWithWarnings)
+		else if (StatusA == ENiagaraScriptCompileStatus::NCS_UpToDateWithWarnings || StatusB == ENiagaraScriptCompileStatus::NCS_UpToDateWithWarnings)
 		{
-			return NCS_UpToDateWithWarnings;
+			return ENiagaraScriptCompileStatus::NCS_UpToDateWithWarnings;
 		}
-		else if (StatusA == NCS_BeingCreated || StatusB == NCS_BeingCreated)
+		else if (StatusA == ENiagaraScriptCompileStatus::NCS_BeingCreated || StatusB == ENiagaraScriptCompileStatus::NCS_BeingCreated)
 		{
-			return NCS_BeingCreated;
+			return ENiagaraScriptCompileStatus::NCS_BeingCreated;
 		}
-		else if (StatusA == NCS_UpToDate || StatusB == NCS_UpToDate)
+		else if (StatusA == ENiagaraScriptCompileStatus::NCS_UpToDate || StatusB == ENiagaraScriptCompileStatus::NCS_UpToDate)
 		{
-			return NCS_UpToDate;
+			return ENiagaraScriptCompileStatus::NCS_UpToDate;
 		}
 		else
 		{
-			return NCS_Unknown;
+			return ENiagaraScriptCompileStatus::NCS_Unknown;
 		}
 	}
 	else
@@ -304,8 +344,25 @@ FNiagaraEmitterViewModel::FOnParameterValueChanged& FNiagaraEmitterViewModel::On
 	return OnParameterValueChangedDelegate;
 }
 
+FNiagaraEmitterViewModel::FOnScriptCompiled& FNiagaraEmitterViewModel::OnScriptCompiled()
+{
+	return OnScriptCompiledDelegate;
+}
+
 void FNiagaraEmitterViewModel::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
 {
+	if (PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraEmitterProperties, bInterpolatedSpawning))
+	{
+		//Recompile spawn script if we've altered the interpolated spawn property.
+		Emitter->SpawnScriptProps.Script->Usage = Emitter->bInterpolatedSpawning ? ENiagaraScriptUsage::SpawnScriptInterpolated : ENiagaraScriptUsage::SpawnScript;
+
+		FString GraphLevelErrorMessages;
+		ENiagaraScriptCompileStatus CompileStatus = Emitter->CompileScript(EScriptCompileIndices::SpawnScript, GraphLevelErrorMessages);
+		SpawnScriptViewModel->UpdateCompileStatus(CompileStatus, GraphLevelErrorMessages);
+	}
+
+	bEmitterDirty = true;
+
 	OnPropertyChangedDelegate.Broadcast();
 }
 
@@ -334,16 +391,9 @@ void FNiagaraEmitterViewModel::SpawnScriptOutputParametersChanged()
 	}
 }
 
-void FNiagaraEmitterViewModel::ScriptParameterValueChanged(const FNiagaraVariable* ChangedVariable)
+void FNiagaraEmitterViewModel::ScriptParameterValueChanged(FGuid ParameterId)
 {
-	if (ChangedVariable == nullptr || ChangedVariable->GetType().GetClass() != nullptr)
-	{
-		CompileScripts();
-	}
-	else
-	{
-		OnParameterValueChangedDelegate.Broadcast(ChangedVariable);
-	}
+	OnParameterValueChangedDelegate.Broadcast(ParameterId);
 }
 
 #undef LOCTEXT_NAMESPACE

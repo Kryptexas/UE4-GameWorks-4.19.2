@@ -11,6 +11,7 @@
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "Engine/TextureCube.h"
+#include "ClearQuad.h"
 
 /*-----------------------------------------------------------------------------
 	UTextureRenderTargetCube
@@ -217,7 +218,7 @@ void FTextureRenderTargetCubeResource::InitDynamicRHI()
 		// Create the RHI texture. Only one mip is used and the texture is targetable for resolve.
 		uint32 TexCreateFlags = bIsSRGB ? TexCreate_SRGB : 0;
 		{
-			FRHIResourceCreateInfo CreateInfo;
+			FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(Owner->ClearColor) };
 			RHICreateTargetableShaderResourceCube(
 				Owner->SizeX,
 				Owner->GetFormat(), 
@@ -235,7 +236,7 @@ void FTextureRenderTargetCubeResource::InitDynamicRHI()
 
 		// Create the RHI target surface used for rendering to
 		{
-			FRHIResourceCreateInfo CreateInfo;
+			FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(Owner->ClearColor) };
 			CubeFaceSurfaceRHI = RHICreateTexture2D(
 				Owner->SizeX, 
 				Owner->SizeX, 
@@ -296,9 +297,17 @@ void FTextureRenderTargetCubeResource::UpdateDeferredResource(FRHICommandListImm
 		// clear each face of the cube target texture to ClearColor
 		if (bClearRenderTarget)
 		{
+			TransitionSetRenderTargetsHelper(RHICmdList, RenderTargetTextureRHI, FTextureRHIParamRef(), FExclusiveDepthStencil::DepthWrite_StencilWrite);
+
+			FRHIRenderTargetView RtView = FRHIRenderTargetView(RenderTargetTextureRHI, ERenderTargetLoadAction::EClear);
+			FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+			RHICmdList.SetRenderTargetsAndClear(Info);
+			RHICmdList.SetViewport(0, 0, 0.0f, Dims.X, Dims.Y, 1.0f);
+		}
+		else
+		{
 			SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIParamRef(), true);
 			RHICmdList.SetViewport(0, 0, 0.0f, Dims.X, Dims.Y, 1.0f);
-			RHICmdList.ClearColorTexture(RenderTargetTextureRHI, Owner->ClearColor);
 		}
 
 		// copy surface to the texture for use
@@ -306,6 +315,22 @@ void FTextureRenderTargetCubeResource::UpdateDeferredResource(FRHICommandListImm
 		ResolveParams.CubeFace = (ECubeFace)FaceIdx;
 		RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureCubeRHI, true, ResolveParams);
 	}
+}
+
+/** 
+ * @return width of target
+ */
+uint32 FTextureRenderTargetCubeResource::GetSizeX() const
+{
+	return Owner->SizeX;
+}
+
+/** 
+ * @return height of target
+ */
+uint32 FTextureRenderTargetCubeResource::GetSizeY() const
+{
+	return Owner->SizeX;
 }
 
 /** 

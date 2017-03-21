@@ -16,7 +16,7 @@ struct FNiagaraVariable;
 class INiagaraParameterViewModel
 {
 public:
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDefaultValueChanged, const FNiagaraVariable*);
+	DECLARE_MULTICAST_DELEGATE(FOnDefaultValueChanged);
 	DECLARE_MULTICAST_DELEGATE(FOnTypeChanged);
 
 public:
@@ -45,6 +45,9 @@ public:
 
 	/** Handles a hame text change being comitter from the UI. */
 	virtual void NameTextComitted(const FText& Name, ETextCommit::Type CommitInfo) = 0;
+
+	/** Handles verification of an in-progress variable name change in the UI.*/
+	virtual bool VerifyNodeNameTextChanged(const FText& NewText, FText& OutErrorMessage) = 0;
 
 	/** Gets the display name for the parameter's type. */
 	virtual FText GetTypeDisplayName() const = 0;
@@ -84,6 +87,31 @@ public:
 
 	/** Gets a multicast delegate which is called whenever the type of this parameter changes. */
 	virtual FOnTypeChanged& OnTypeChanged() = 0;
+
+	/** Gets whether or not this parameter is editable in this context.*/
+	virtual bool IsEditingEnabled() const = 0;
+
+	/** Sets whether or not this parameter is editible in this context.*/
+	virtual void SetEditingEnabled(bool bEnabled) = 0;
+
+	/** Gets the tooltip when hovering over this parameter.*/
+	virtual FText GetTooltip() const = 0;
+
+	/** Sets the state override tooltip text for this parameter. If this is set to empty string, we just use the name.*/
+	virtual void SetTooltipOverride(const FText& InTooltipOverride) = 0;
+
+	/** Gets the state override tooltip text for this parameter. If you want this to be invalid, set the tooltip override to empty string.*/
+	virtual const FText& GetTooltipOverride() const = 0;
+
+	/** Whether or not the sort order should be adjustable. */
+	virtual bool CanChangeSortOrder() const = 0;
+
+	/** The current sort order.*/
+	virtual int32 GetSortOrder() const = 0;
+	
+	/** Set the current sort order*/
+	virtual void SetSortOrder(int32 SortOrder) = 0;
+
 };
 
 /** Base class for parameter view models.  Partially implements the parameter interface with
@@ -97,9 +125,14 @@ public:
 	virtual bool CanRenameParameter() const override;
 	virtual FText GetNameText() const override;
 	virtual bool CanChangeParameterType() const override;
+	virtual bool CanChangeSortOrder() const override;
 	virtual FOnDefaultValueChanged& OnDefaultValueChanged() override;
 	virtual FOnTypeChanged& OnTypeChanged() override { return OnTypeChangedDelegate; }
-
+	virtual bool IsEditingEnabled() const override { return bIsEditingEnabled; }
+	virtual void SetEditingEnabled(bool bEnabled) override { bIsEditingEnabled = bEnabled; }
+	virtual FText GetTooltip() const override;
+	virtual void SetTooltipOverride(const FText& InTooltipOverride) override;
+	virtual const FText& GetTooltipOverride() const override {return TooltipOverride;}
 protected:
 	/** Defines the edit mode for this parameter. */
 	ENiagaraParameterEditMode ParameterEditMode;
@@ -109,4 +142,10 @@ protected:
 
 	/** A multicast delegate which is called whenever the type of the parameter changes. */
 	FOnTypeChanged OnTypeChangedDelegate;
+	
+	/** Whether or not editing this view model is enabled.*/
+	bool bIsEditingEnabled;
+
+	/** Override of the default tooltip specified externally.*/
+	FText TooltipOverride;
 };

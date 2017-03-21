@@ -512,6 +512,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Navigation)
 	uint32 bHasNavigationData:1;
 
+	/** If true, mesh will calculate data for fast uniform random sampling. This is approx 8 bytes per triangle so should not be enabled unless needed. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = StaticMesh)
+	uint32 bRequiresAreaWeightedSampling : 1;
+
 	/** Bias multiplier for Light Propagation Volume lighting */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, meta=(UIMin = "0.0", UIMax = "3.0"))
 	float LpvBiasMultiplier;

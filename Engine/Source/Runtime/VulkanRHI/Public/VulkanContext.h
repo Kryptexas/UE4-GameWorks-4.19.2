@@ -10,7 +10,7 @@
 
 class FVulkanDevice;
 class FVulkanCommandBufferManager;
-class FVulkanPendingGfxState;
+class FOLDVulkanPendingGfxState;
 class FVulkanPendingComputeState;
 
 class FVulkanCommandListContext : public IRHICommandContext
@@ -92,6 +92,7 @@ public:
 	virtual void RHIPopEvent() final override;
 
 	virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) final override;
+	virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState) final override;
 	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;
 	virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) final override;
 	virtual void RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
@@ -99,7 +100,7 @@ public:
 
 	virtual void RHIFlushComputeShaderCache() final override;
 	virtual void RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data) final override;
-	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
+	virtual void RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
 	virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) final override;
 	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InRenderTargets, int32 NumTextures) final override;
 	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFence) final override;
@@ -132,7 +133,7 @@ public:
 		return TempFrameAllocationBuffer;
 	}
 
-	inline FVulkanPendingGfxState* GetPendingGfxState()
+	inline FOLDVulkanPendingGfxState* GetPendingGfxState()
 	{
 		return PendingGfxState;
 	}
@@ -301,7 +302,7 @@ protected:
 	FOcclusionQueryData CurrentOcclusionQueryData;
 
 	//#todo-rco: Temp!
-	FVulkanPendingGfxState* PendingGfxState;
+	FOLDVulkanPendingGfxState* PendingGfxState;
 	FVulkanPendingComputeState* PendingComputeState;
 
 	void PrepareForCPURead();

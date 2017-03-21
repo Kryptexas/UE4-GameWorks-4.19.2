@@ -57,7 +57,7 @@ enum EMaterialVectorCoordTransform
 	TRANSFORM_MAX,
 };
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(MinimalAPI, collapsecategories, hidecategories=Object)
 class UMaterialExpressionTransform : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

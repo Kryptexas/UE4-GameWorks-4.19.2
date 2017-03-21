@@ -6,6 +6,26 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraParameterCollectionViewModel"
 
+
+void INiagaraParameterCollectionViewModel::SortViewModels(TArray<TSharedRef<INiagaraParameterViewModel>>& InOutViewModels)
+{
+	auto SortVars = [](const TSharedRef<INiagaraParameterViewModel>& A, const TSharedRef<INiagaraParameterViewModel>& B)
+	{
+		if (A->GetSortOrder() < B->GetSortOrder())
+		{
+			return true;
+		}
+		else if (A->GetSortOrder() > B->GetSortOrder())
+		{
+			return false;
+		}
+
+		//If equal priority, sort lexicographically.
+		return A->GetName().ToString() < B->GetName().ToString();
+	};
+	InOutViewModels.Sort(SortVars);
+}
+
 FNiagaraParameterCollectionViewModel::FNiagaraParameterCollectionViewModel(ENiagaraParameterEditMode InParameterEditMode)
 	: ParameterEditMode(InParameterEditMode)
 	, bIsExpanded(true)
@@ -79,6 +99,17 @@ void FNiagaraParameterCollectionViewModel::RefreshAvailableTypes()
 		if (SupportsType(RegisteredType))
 		{
 			AvailableTypes->Add(MakeShareable(new FNiagaraTypeDefinition(RegisteredType)));
+		}
+	}
+}
+
+void FNiagaraParameterCollectionViewModel::NotifyParameterChangedExternally(FGuid ParameterId)
+{
+	for (TSharedRef<INiagaraParameterViewModel> ParameterViewModel : GetParameters())
+	{
+		if (ParameterViewModel->GetId() == ParameterId)
+		{
+			ParameterViewModel->NotifyDefaultValueChanged();
 		}
 	}
 }

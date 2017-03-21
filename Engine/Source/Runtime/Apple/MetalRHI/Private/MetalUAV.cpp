@@ -334,16 +334,16 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 	return SRV;
 }
 
-void FMetalRHICommandContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
+void FMetalRHICommandContext::RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
 {
 	FMetalUnorderedAccessView* UnorderedAccessView = ResourceCast(UnorderedAccessViewRHI);
 	if (UnorderedAccessView->SourceStructuredBuffer)
 	{
-		UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHIClearUAV with FStructuredBufferRHIParamRef yet!"));
+		UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHIClearTinyUAV with FStructuredBufferRHIParamRef yet!"));
 	}
 	else if (UnorderedAccessView->SourceTexture)
 	{
-		UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHIClearUAV with FRHITexture yet!"));
+		UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHIClearTinyUAV with FRHITexture yet!"));
 	}
 	else
 	{

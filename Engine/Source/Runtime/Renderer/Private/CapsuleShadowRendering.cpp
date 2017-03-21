@@ -24,6 +24,8 @@
 #include "DistanceFieldAmbientOcclusion.h"
 #include "DistanceFieldLightingPost.h"
 #include "DistanceFieldLightingShared.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Capsule Shadows"), Stat_GPU_CapsuleShadows, STATGROUP_GPU);
 
@@ -212,7 +214,7 @@ public:
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		FUnorderedAccessViewRHIParamRef OutUAVs[2];
 		OutUAVs[0] = OutputTexture.UAV;
@@ -474,7 +476,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FIntPoint TileDimensionsValue, const FIntRect& ScissorRect, const FRWBuffer& TileIntersectionCountsBuffer)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		SetShaderValue(RHICmdList, ShaderRHI, TileDimensions, TileDimensionsValue);
 		SetShaderValue(RHICmdList, ShaderRHI, TileSize, FVector2D(
@@ -542,7 +544,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, ShadowFactorsTexture, ShadowFactorsSampler, TStaticSamplerState<SF_Bilinear>::GetRHI(), ShadowFactorsTextureValue->GetRenderTargetItem().ShaderResourceTexture);
@@ -769,8 +771,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 				
 				AllocateCapsuleTileIntersectionCountsBuffer(GroupSize, View.ViewState);
 
-				uint32 ClearValues[4] = { 0 };
-				RHICmdList.ClearUAV(View.ViewState->CapsuleTileIntersectionCountsBuffer.UAV, ClearValues);
+				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ViewState->CapsuleTileIntersectionCountsBuffer, 0);
 
 				{
 					SCOPED_DRAW_EVENT(RHICmdList, TiledCapsuleShadowing);
@@ -838,12 +839,15 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 						
 					FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
 
+					FGraphicsPipelineStateInitializer GraphicsPSOInit;
+					RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 				
 					FProjectedShadowInfo::SetBlendStateForProjection(
-						RHICmdList,
+						GraphicsPSOInit,
 						LightSceneInfo.GetDynamicShadowMapChannel(),
 						false,
 						false,
@@ -851,13 +855,17 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 						false);
 
 					TShaderMapRef<FCapsuleShadowingUpsampleVS> VertexShader(View.ShaderMap);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 					if (GCapsuleShadowsFullResolution)
 					{
 						TShaderMapRef<TCapsuleShadowingUpsamplePS<false, false> > PixelShader(View.ShaderMap);
 
-						static FGlobalBoundShaderState BoundShaderState;
-						SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GTileVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GTileVertexDeclaration.VertexDeclarationRHI;
+						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 						VertexShader->SetParameters(RHICmdList, View, GroupSize, ScissorRect, View.ViewState->CapsuleTileIntersectionCountsBuffer);
 						PixelShader->SetParameters(RHICmdList, View, ScissorRect, RayTracedShadowsRT, true);
@@ -866,8 +874,11 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 					{
 						TShaderMapRef<TCapsuleShadowingUpsamplePS<true, false> > PixelShader(View.ShaderMap);
 
-						static FGlobalBoundShaderState BoundShaderState;
-						SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GTileVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GTileVertexDeclaration.VertexDeclarationRHI;
+						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 						VertexShader->SetParameters(RHICmdList, View, GroupSize, ScissorRect, View.ViewState->CapsuleTileIntersectionCountsBuffer);
 						PixelShader->SetParameters(RHICmdList, View, ScissorRect, RayTracedShadowsRT, true);
@@ -1169,8 +1180,11 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 
 				SCOPED_DRAW_EVENT(RHICmdList, ClearIndirectOcclusion);
 				// We are the first users of the indirect occlusion texture so we must clear to unoccluded
+				FRHIRenderTargetView RtView = FRHIRenderTargetView(SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture, ERenderTargetLoadAction::EClear);
+				FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
+				RHICmdList.SetRenderTargetsAndClear(Info);
+
 				SetRenderTargets(RHICmdList, RenderTargets.Num(), RenderTargets.GetData(), FTextureRHIParamRef(), 0, NULL, true);
-				RHICmdList.ClearColorTexture(SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture, FLinearColor::White);
 			}
 							
 			check(RenderTargets.Num() > 0);
@@ -1199,8 +1213,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 				
 						AllocateCapsuleTileIntersectionCountsBuffer(GroupSize, View.ViewState);
 
-						uint32 ClearValues[4] = { 0 };
-						RHICmdList.ClearUAV(View.ViewState->CapsuleTileIntersectionCountsBuffer.UAV, ClearValues);
+						ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ViewState->CapsuleTileIntersectionCountsBuffer, 0);
 
 						{
 							SCOPED_DRAW_EVENT(RHICmdList, TiledCapsuleShadowing);
@@ -1257,44 +1270,46 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 
 							SetRenderTargets(RHICmdList, RenderTargets.Num(), RenderTargets.GetData(), FTextureRHIParamRef(), 0, NULL, true);
 
+							FGraphicsPipelineStateInitializer GraphicsPSOInit;
+							RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 							RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-							RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-							RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+							GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+							GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 				
 							// Modulative blending against scene color for application to indirect diffuse
 							// Modulative blending against SSAO occlusion value for application to indirect specular, since Reflection Environment pass masks by AO
 							if (RenderTargets.Num() > 1)
 							{
-								RHICmdList.SetBlendState(TStaticBlendState<
+								GraphicsPSOInit.BlendState = TStaticBlendState<
 									CW_RGB, BO_Add, BF_DestColor, BF_Zero, BO_Add, BF_Zero, BF_One,
-									CW_RED, BO_Add, BF_DestColor, BF_Zero, BO_Add, BF_Zero, BF_One>::GetRHI());
+									CW_RED, BO_Add, BF_DestColor, BF_Zero, BO_Add, BF_Zero, BF_One>::GetRHI();
 							}
 							else
 							{
-								RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI());
+								GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI();
 							}
 
 							TShaderMapRef<FCapsuleShadowingUpsampleVS> VertexShader(View.ShaderMap);
+							GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GTileVertexDeclaration.VertexDeclarationRHI;
+							GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+							GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 							if (RenderTargets.Num() > 1)
 							{
 								if (GCapsuleShadowsFullResolution)
 								{
 									TShaderMapRef<TCapsuleShadowingUpsamplePS<false, true> > PixelShader(View.ShaderMap);
-
-									static FGlobalBoundShaderState BoundShaderState;
-									SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GTileVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-					
+									GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader); 
+									SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 									VertexShader->SetParameters(RHICmdList, View, GroupSize, ScissorRect, View.ViewState->CapsuleTileIntersectionCountsBuffer);
 									PixelShader->SetParameters(RHICmdList, View, ScissorRect, RayTracedShadowsRT, false);
 								}
 								else
 								{
 									TShaderMapRef<TCapsuleShadowingUpsamplePS<true, true> > PixelShader(View.ShaderMap);
-
-									static FGlobalBoundShaderState BoundShaderState;
-									SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GTileVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
+									GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+									SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 									VertexShader->SetParameters(RHICmdList, View, GroupSize, ScissorRect, View.ViewState->CapsuleTileIntersectionCountsBuffer);
 									PixelShader->SetParameters(RHICmdList, View, ScissorRect, RayTracedShadowsRT, false);
 								}
@@ -1304,20 +1319,16 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 								if (GCapsuleShadowsFullResolution)
 								{
 									TShaderMapRef<TCapsuleShadowingUpsamplePS<false, false> > PixelShader(View.ShaderMap);
-
-									static FGlobalBoundShaderState BoundShaderState;
-									SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GTileVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-					
+									GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+									SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 									VertexShader->SetParameters(RHICmdList, View, GroupSize, ScissorRect, View.ViewState->CapsuleTileIntersectionCountsBuffer);
 									PixelShader->SetParameters(RHICmdList, View, ScissorRect, RayTracedShadowsRT, false);
 								}
 								else
 								{
 									TShaderMapRef<TCapsuleShadowingUpsamplePS<true, false> > PixelShader(View.ShaderMap);
-
-									static FGlobalBoundShaderState BoundShaderState;
-									SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GTileVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
+									GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+									SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 									VertexShader->SetParameters(RHICmdList, View, GroupSize, ScissorRect, View.ViewState->CapsuleTileIntersectionCountsBuffer);
 									PixelShader->SetParameters(RHICmdList, View, ScissorRect, RayTracedShadowsRT, false);
 								}

@@ -9,9 +9,8 @@ public class UtilityShaders : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"Engine",
 				"RHI",
-				"RenderCore",
+                "RenderCore",
 				"ShaderCore",
 			}
 		);

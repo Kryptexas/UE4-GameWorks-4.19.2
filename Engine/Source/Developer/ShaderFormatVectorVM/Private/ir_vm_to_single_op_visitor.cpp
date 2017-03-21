@@ -84,6 +84,7 @@ public:
 		{
 			ir_variable *tmp_var = new(parent_ctx) ir_variable(expr->type, "tmp_var", ir_var_temporary);
 			ir_assignment *tmp_assign = new(parent_ctx) ir_assignment(new(parent_ctx) ir_dereference_variable(tmp_var), expr);
+			check(tmp_assign->write_mask > 0);
 			base_ir->insert_before(tmp_var);
 			base_ir->insert_before(tmp_assign);
 			replacement = new(parent_ctx) ir_dereference_variable(tmp_var);
@@ -103,6 +104,7 @@ public:
 			void *mem_ctx = ralloc_parent(assign);
 			ir_variable *tmp_var = new(mem_ctx) ir_variable(assign->rhs->type, "output_var", ir_var_temporary);
 			ir_assignment *tmp_assign = new(mem_ctx) ir_assignment(new(mem_ctx) ir_dereference_variable(tmp_var), assign->rhs);
+			check(tmp_assign->write_mask > 0);
 			base_ir->insert_before(tmp_var);
 			base_ir->insert_before(tmp_assign);
 			assign->rhs = new(mem_ctx) ir_dereference_variable(tmp_var);
@@ -127,6 +129,7 @@ public:
 				//This param isn't just a deref so move it out to it's own variable and deref it in the call instead.	
 				ir_variable *tmp_var = new(mem_ctx) ir_variable(param->type, "call_param_temp", ir_var_temporary);
 				ir_assignment *tmp_assign = new(mem_ctx) ir_assignment(new(mem_ctx) ir_dereference_variable(tmp_var), param);
+				check(tmp_assign->write_mask > 0);
 				base_ir->insert_before(tmp_var);
 				base_ir->insert_before(tmp_assign);
 				ir_rvalue* new_param = new(mem_ctx) ir_dereference_variable(tmp_var);

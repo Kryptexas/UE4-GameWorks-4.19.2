@@ -129,10 +129,7 @@ public:
 	* @param PropertyThatChanged the property that was modified
 	*/
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-
-	/** Called after done loading to update show flags from saved data */
-	virtual void PostLoad() override;
+#endif	
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 

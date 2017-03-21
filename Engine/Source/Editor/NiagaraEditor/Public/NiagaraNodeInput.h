@@ -10,15 +10,8 @@
 #include "NiagaraNodeInput.generated.h"
 
 class UEdGraphPin;
+class UNiagaraGraph;
 
-UENUM()
-enum class ENiagaraInputNodeUsage : uint8
-{
-	Undefined = 0,
-	Parameter,
-	Attribute,
-	SystemConstant
-};
 
 USTRUCT()
 struct FNiagaraInputExposureOptions
@@ -83,6 +76,8 @@ public:
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin)override;
+	virtual TSharedPtr<SGraphNode> CreateVisualWidget() override;
+	virtual void OnRenameNode(const FString& NewName) override;
 	//~ End EdGraphNode Interface
 
 	/** Notifies the node that the type of it's input has been changed externally. */
@@ -92,10 +87,25 @@ public:
 	
 	bool IsExposed()const { return ExposureOptions.bExposed; }
 	bool IsRequired()const { return ExposureOptions.bExposed && ExposureOptions.bRequired; }
-	bool IsHidded()const { return ExposureOptions.bExposed && ExposureOptions.bHidden; }
+	bool IsHidden()const { return ExposureOptions.bExposed && ExposureOptions.bHidden; }
 	bool CanAutoBind()const { return ExposureOptions.bExposed && ExposureOptions.bCanAutoBind; }
 
+	bool ReferencesSameInput(UNiagaraNodeInput* Other) const;
 	static const FLinearColor TitleColor_Attribute;
 	static const FLinearColor TitleColor_Constant;
+
+	/** Verify that the text about to be committed will be valid and doesn't duplicate existing variables based on type.
+	Type validation is done based on the input UObject type, preferably a UNiagaraNodeInput or UNiagaraNodeOutput.*/
+	static bool VerifyNodeRenameTextCommit(const FText& NewText, UNiagaraNode* NodeBeingChanged, FText& OutErrorMessage);
+
+
+	/** Generate a unique name based off of the existing names in the system.*/
+	static FName GenerateUniqueName(const UNiagaraGraph* Graph, FName& ProposedName, ENiagaraInputNodeUsage Usage);
+
+	/** Generate a unique sort index based off the existing nodes in the system.*/
+	static int32 GenerateNewSortPriority(const UNiagaraGraph* Graph, FName& ProposedName, ENiagaraInputNodeUsage Usage);
+
+	/** Given an array of nodes, sort them in place by their sort order, then lexicographically if the same.*/
+	static void SortNodes(TArray<UNiagaraNodeInput*>& InOutNodes);
 };
 

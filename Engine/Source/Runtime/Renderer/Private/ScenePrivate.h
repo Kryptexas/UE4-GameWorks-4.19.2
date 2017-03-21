@@ -692,6 +692,8 @@ public:
 
 	FForwardLightingViewResources ForwardLightingResources;
 
+	TRefCountPtr<IPooledRenderTarget> LightScatteringHistory;
+
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
 
@@ -1013,6 +1015,7 @@ public:
 		TranslucencyTimer.Release();
 		SeparateTranslucencyTimer.Release();
 		ForwardLightingResources.Release();
+		LightScatteringHistory.SafeRelease();
 	}
 
 	// FSceneViewStateInterface
@@ -2205,26 +2208,29 @@ public:
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
 
-	bool ShouldRenderSkylight(EBlendMode BlendMode) const
-	{
-		return ShouldRenderSkylight_Internal(BlendMode) && ReadOnlyCVARCache.bEnableStationarySkylight;
+	bool ShouldRenderSkylightInBasePass(EBlendMode BlendMode) const
+	{		
+		const bool bStationarySkylight = SkyLight && SkyLight->bWantsStaticShadowing;
+		return ShouldRenderSkylightInBasePass_Internal(BlendMode) && (ReadOnlyCVARCache.bEnableStationarySkylight || !bStationarySkylight);
 	}
 
-	bool ShouldRenderSkylight_Internal(EBlendMode BlendMode) const
+	bool ShouldRenderSkylightInBasePass_Internal(EBlendMode BlendMode) const
 	{
 		if (IsTranslucentBlendMode(BlendMode))
 		{
+			//both stationary and movable skylights are applied during actual translucency render
 			return SkyLight && !SkyLight->bHasStaticLighting;
 		}
 		else
-	{
-		const bool bRenderSkylight = SkyLight
-			&& !SkyLight->bHasStaticLighting
-			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
-			&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
+		{
+			const bool bRenderSkylight = SkyLight
+				&& !SkyLight->bHasStaticLighting
+				// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+				// bWantsStaticShadowing means 'stationary skylight'
+				&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
 
-		return bRenderSkylight;
-	}
+			return bRenderSkylight;
+		}
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override
@@ -2340,6 +2346,13 @@ private:
 	/** This scene's feature level */
 	ERHIFeatureLevel::Type FeatureLevel;
 };
+
+inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)
+{
+	// Non-Surface domains can be applied to static meshes for thumbnails or material editor preview
+	// Volume domain materials however must only be rendered in the voxelization pass
+	return Domain != MD_Volume;
+}
 
 #include "BasePassRendering.inl"
 

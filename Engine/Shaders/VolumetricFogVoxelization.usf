@@ -1,0 +1,163 @@
+/*=============================================================================
+	VolumetricFogVoxelization.usf
+=============================================================================*/
+
+// So vertex factories can interpolate dependencies of VertexFactoryGetTranslatedPrimitiveVolumeBounds
+#define PASS_NEEDS_PRIMITIVE_VOLUME_BOUNDS 1
+
+#include "Common.usf"
+#include "Material.usf"
+#include "VertexFactory.usf"
+
+struct FVoxelizeVolumePrimitiveVSToGS
+{
+	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
+	float3 ViewSpacePosition : TEXCOORD6;
+};   
+
+void VoxelizeVS(
+	FVertexFactoryInput Input,
+	out FVoxelizeVolumePrimitiveVSToGS Output
+	)
+{
+	ResolvedView = ResolveView();
+
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	float4 TranslatedWorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
+
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, TranslatedWorldPosition.xyz, TangentToLocal);
+
+	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
+	Output.ViewSpacePosition = mul(TranslatedWorldPosition, View.TranslatedWorldToView).xyz;
+}
+
+struct FVoxelizeVolumePrimitiveGSToPS
+{
+	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
+	float4 OutPosition : SV_POSITION;
+	uint SliceIndex : SV_RenderTargetArrayIndex;
+};
+
+int ComputeZSliceFromDepth(float SceneDepth)
+{
+	return (int)(log2(SceneDepth * VolumetricFog.GridZParams.x + VolumetricFog.GridZParams.y) * VolumetricFog.GridZParams.z);
+}
+
+float ComputeDepthFromZSlice(float ZSlice)
+{
+	float SliceDepth = (exp2(ZSlice / VolumetricFog.GridZParams.z) - VolumetricFog.GridZParams.y) / VolumetricFog.GridZParams.x;
+	return SliceDepth;
+}
+
+float3 FrameJitterOffset;
+uint VoxelizationPassIndex;
+float4x4 ViewToVolumeClip; 
+
+#ifndef MAX_SLICES_PER_VOXELIZATION_PASS
+#define MAX_SLICES_PER_VOXELIZATION_PASS 1
+#endif
+
+[maxvertexcount(MAX_SLICES_PER_VOXELIZATION_PASS * 3)]
+void VoxelizeGS(triangle FVoxelizeVolumePrimitiveVSToGS Inputs[3], inout TriangleStream<FVoxelizeVolumePrimitiveGSToPS> OutStream)
+{ 
+	float MinDepth = 1000000.0f;
+	float MaxDepth = 0;
+
+	UNROLL
+	for (uint VertexIndex = 0; VertexIndex < 3; VertexIndex++)
+	{
+		MinDepth = min(MinDepth, Inputs[VertexIndex].ViewSpacePosition.z);
+		MaxDepth = max(MaxDepth, Inputs[VertexIndex].ViewSpacePosition.z);
+	}
+
+	int GridSizeZ = VolumetricFog.GridSize.z;
+	float4 PrimitiveVolumeBounds = VertexFactoryGetTranslatedPrimitiveVolumeBounds(Inputs[0].FactoryInterpolants);
+	float3 ViewSpacePrimitiveVolumeOrigin = mul(float4(PrimitiveVolumeBounds.xyz, 1), View.TranslatedWorldToView);
+
+	int FurthestSliceIndexUnclamped = ComputeZSliceFromDepth(MaxDepth + PrimitiveVolumeBounds.w);
+	int ClosestSliceIndexUnclamped = ComputeZSliceFromDepth(MinDepth - PrimitiveVolumeBounds.w);
+
+	// Clamp to valid range, start at first slice for the current pass
+	int ClosestSliceIndex = max(ClosestSliceIndexUnclamped, 0) + MAX_SLICES_PER_VOXELIZATION_PASS * VoxelizationPassIndex;
+	// Clamp to valid range, end at the last slice for the current pass
+	int FurthestSliceIndex = min(min(FurthestSliceIndexUnclamped, GridSizeZ - 1), ClosestSliceIndex + MAX_SLICES_PER_VOXELIZATION_PASS - 1);
+	
+	if (ClosestSliceIndexUnclamped < GridSizeZ
+		&& ClosestSliceIndex <= FurthestSliceIndexUnclamped
+		&& FurthestSliceIndexUnclamped >= 0)
+	{
+		float2 PrimitiveCenterToVertex[3];
+		float InvLengthPrimitiveCenterToVertex[3];
+
+		UNROLL
+		for (uint VertexIndex = 0; VertexIndex < 3; VertexIndex++)
+		{
+			PrimitiveCenterToVertex[VertexIndex] = Inputs[VertexIndex].ViewSpacePosition.xy - ViewSpacePrimitiveVolumeOrigin.xy;
+			InvLengthPrimitiveCenterToVertex[VertexIndex] = 1.0f / length(PrimitiveCenterToVertex[VertexIndex]);
+		}
+
+		// Clone the triangle to each slice
+		for (int SliceIndex = ClosestSliceIndex; SliceIndex <= FurthestSliceIndex; SliceIndex++)
+		{
+			float SliceDepth = ComputeDepthFromZSlice(SliceIndex + FrameJitterOffset.z);
+			float SliceDepthOffset = abs(SliceDepth - ViewSpacePrimitiveVolumeOrigin.z);
+
+			if (PrimitiveVolumeBounds.w == 0 || SliceDepthOffset <= PrimitiveVolumeBounds.w)
+			{
+				// Compute the radius of the circle from intersecting the slice plane with the primitive volume bounds
+				float SliceRadius = sqrt(PrimitiveVolumeBounds.w * PrimitiveVolumeBounds.w - SliceDepthOffset * SliceDepthOffset);
+				float SliceOffsetRatio = PrimitiveVolumeBounds.w > 0 ? SliceRadius / PrimitiveVolumeBounds.w : 1;
+
+				UNROLL
+				for (uint VertexIndex = 0; VertexIndex < 3; VertexIndex++)
+				{
+					FVoxelizeVolumePrimitiveGSToPS Output;
+					Output.SliceIndex = SliceIndex;
+
+					// Scale vertex position XY based on the slice radius so we more tightly bound the primitive volume sphere
+					float3 ViewSpaceVertexPosition = float3(ViewSpacePrimitiveVolumeOrigin.xy + SliceOffsetRatio * PrimitiveCenterToVertex[VertexIndex], SliceDepth);
+					Output.OutPosition = mul(float4(ViewSpaceVertexPosition, 1), ViewToVolumeClip);
+					Output.FactoryInterpolants = Inputs[VertexIndex].FactoryInterpolants;
+
+					OutStream.Append(Output);
+				}
+
+				OutStream.RestartStrip();
+			}
+		}
+	}
+}
+
+void VoxelizePS(
+	FVoxelizeVolumePrimitiveGSToPS Interpolants,
+	in float4 SvPosition : SV_Position,
+	out float4 OutVBufferA : SV_Target0,
+	out float4 OutVBufferB : SV_Target1
+	)
+{
+	ResolvedView = ResolveView();
+
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants.FactoryInterpolants, SvPosition);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, true);
+
+	float3 EmissiveColor = clamp(GetMaterialEmissiveRaw(PixelMaterialInputs), 0.0f, 65000.0f);
+
+	float3 Scattering = 0;
+	float Absorption = 0;
+
+#if !MATERIAL_SHADINGMODEL_UNLIT
+	Scattering = clamp(GetMaterialBaseColorRaw(PixelMaterialInputs), 0.0f, 65000.0f);
+	Absorption = clamp(GetMaterialOpacityRaw(PixelMaterialInputs), 0.0f, 65000.0f);
+#endif
+
+	float FadeStart = .6f;
+	float SliceFadeAlpha = 1 - saturate((SvPosition.w / VolumetricFog.MaxDistance - FadeStart) / (1 - FadeStart));
+
+	float UnitScale = 1.0f / 100.0f;
+	float Scale = UnitScale * SliceFadeAlpha * SliceFadeAlpha * SliceFadeAlpha;
+
+	OutVBufferA = float4(Scattering * Scale, Absorption * Scale);
+	OutVBufferB = float4(EmissiveColor * Scale, 0);
+}

@@ -23,6 +23,9 @@
 #include "PostProcess/RenderingCompositionGraph.h"
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/SceneFilterRendering.h"
+#include "Materials/Material.h"
+#include "PipelineStateCache.h"
+#include "ScenePrivate.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Distortion"), Stat_GPU_Distortion, STATGROUP_GPU);
 
@@ -72,7 +75,7 @@ public:
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		FTextureRHIParamRef DistortionTextureValue = DistortionRT.GetRenderTargetItem().TargetableTexture;
 		FTextureRHIParamRef SceneColorTextureValue = SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
@@ -179,7 +182,7 @@ public:
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		SetTextureParameter(
 			Context.RHICmdList,
@@ -437,14 +440,14 @@ public:
 	* @param CI - The command interface to execute the draw commands on.
 	* @param View - The view of the scene being drawn.
 	*/
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
 	
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	/**
 	* Sets the render states for drawing a mesh.
@@ -552,13 +555,13 @@ FDrawingPolicyMatchResult TDistortionMeshDrawingPolicy<DistortMeshPolicy>::Match
 template<class DistortMeshPolicy>
 void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetSharedState(
 	FRHICommandList& RHICmdList, 
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FSceneView* View,
-	const ContextDataType PolicyContext,
-	FDrawingPolicyRenderState& DrawRenderState
+	const ContextDataType PolicyContext
 	) const
 {
 	// Set shared mesh resources
-	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext, DrawRenderState);
+	FMeshDrawingPolicy::SetSharedState(RHICmdList, DrawRenderState, View, PolicyContext);
 
 	// Set the translucent shader parameters for the material instance
 	VertexShader->SetParameters(RHICmdList, VertexFactory,MaterialRenderProxy,View);
@@ -592,7 +595,7 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetSharedState(
 * @return new bound shader state object
 */
 template<class DistortMeshPolicy>
-FBoundShaderStateInput TDistortionMeshDrawingPolicy<DistortMeshPolicy>::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
+FBoundShaderStateInput TDistortionMeshDrawingPolicy<DistortMeshPolicy>::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	FPixelShaderRHIParamRef PixelShaderRHIRef = NULL;
 
@@ -658,12 +661,6 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetMeshRenderState(
 	{
 		DistortPixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	}
-	
-	// Set rasterizer state.
-	const bool bReverseCulling = !!(DrawRenderState.GetViewOverrideFlags() & EDrawingPolicyOverrideFlags::ReverseCullMode);
-	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
-		(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid,
-		IsTwoSided() ? CM_None : (XOR(bReverseCulling, Mesh.ReverseCulling) ? CM_CCW : CM_CW)));
 }
 
 /*-----------------------------------------------------------------------------
@@ -729,7 +726,7 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 	)
 {
 	const auto FeatureLevel = View.GetFeatureLevel();
-	bool bDistorted = Mesh.MaterialRenderProxy && Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsDistorted();
+	bool bDistorted = Mesh.MaterialRenderProxy && Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsDistorted() && ShouldIncludeDomainInMeshPass(Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetMaterialDomain());
 
 	//reconstruct bBackface from the View
 	const bool bBackFace = XOR(View.bReverseCulling, !!(DrawRenderState.GetViewOverrideFlags() & EDrawingPolicyOverrideFlags::ReverseCullMode));
@@ -745,12 +742,12 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 			View.Family->GetDebugViewShaderMode(),
 			FeatureLevel
 			);
-		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 
-		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+		FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 		DrawRenderStateLocal.SetDitheredLODTransitionAlpha(Mesh.DitheredLODTransitionAlpha);
-
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType(), DrawRenderStateLocal);
+		DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, View);
+		CommitGraphicsPipelineState(RHICmdList, DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+		DrawingPolicy.SetSharedState(RHICmdList, DrawRenderStateLocal, &View, typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType());
 		
 		for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 		{
@@ -801,12 +798,12 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 			View->Family->GetDebugViewShaderMode(),
 			FeatureLevel
 			);
-		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View->GetFeatureLevel()));
 
-		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
-		DrawingPolicy.ApplyDitheredLODTransitionState(RHICmdList, DrawRenderStateLocal, *View, StaticMesh, false);
-
-		DrawingPolicy.SetSharedState(RHICmdList, View, typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType(), DrawRenderStateLocal);
+		FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
+		DrawingPolicy.ApplyDitheredLODTransitionState(DrawRenderStateLocal, *View, StaticMesh, false);
+		DrawingPolicy.SetupPipelineState(DrawRenderStateLocal, *View);
+		CommitGraphicsPipelineState(RHICmdList, DrawingPolicy, DrawRenderStateLocal, DrawingPolicy.GetBoundShaderStateInput(View->GetFeatureLevel()));
+		DrawingPolicy.SetSharedState(RHICmdList, DrawRenderStateLocal, View, typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType());
 		int32 BatchElementIndex = 0;
 		do
 		{
@@ -935,22 +932,29 @@ static void DrawDistortionApplyScreenPass(FRHICommandListImmediate& RHICmdList, 
 	TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
 	TShaderMapRef<TDistortionApplyScreenPS<UseMSAA>> PixelShader(View.ShaderMap);
 
-	static FGlobalBoundShaderState BoundShaderState;
-
 	FRenderingCompositePassContext Context(RHICmdList, View);
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 	// test against stencil mask
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
 		false, CF_Always,
 		true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
 		false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-		kStencilMaskBit, kStencilMaskBit>::GetRHI(), kStencilMaskBit);
+		kStencilMaskBit, kStencilMaskBit>::GetRHI();
 
-	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+	RHICmdList.SetStencilRef(kStencilMaskBit);
 
 	VertexShader->SetParameters(Context);
 	PixelShader->SetParameters(Context, View, DistortionRT);
@@ -973,20 +977,29 @@ static void DrawDistortionMergePass(FRHICommandListImmediate& RHICmdList, FScene
 	TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
 	TShaderMapRef<TDistortionMergePS<UseMSAA>> PixelShader(View.ShaderMap);
 
-	static FGlobalBoundShaderState BoundShaderState;
-
 	FRenderingCompositePassContext Context(RHICmdList, View);
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 	// test against stencil mask and clear it
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
 		false, CF_Always,
 		true, CF_Equal, SO_Keep, SO_Keep, SO_Zero,
 		false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-		kStencilMaskBit, kStencilMaskBit>::GetRHI(), kStencilMaskBit);
+		kStencilMaskBit, kStencilMaskBit>::GetRHI();
 
-	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+	RHICmdList.SetStencilRef(kStencilMaskBit);
 
 	VertexShader->SetParameters(Context);
 	PixelShader->SetParameters(Context, View, PassTexture);
@@ -1071,17 +1084,18 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 				// viewport to match view size
 				RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);	
 
-				FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+				FDrawingPolicyRenderState DrawRenderState(View);
 
 				// test against depth and write stencil mask
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<
 					false, CF_DepthNearOrEqual,
 					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					kStencilMaskBit, kStencilMaskBit>::GetRHI(), kStencilMaskBit);
+					kStencilMaskBit, kStencilMaskBit>::GetRHI());
+				DrawRenderState.SetStencilRef(kStencilMaskBit);
 
 				// additive blending of offsets (or complexity if the shader complexity viewmode is enabled)
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+				DrawRenderState.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
 				// draw only distortion meshes to accumulate their offsets
 				bDirty |= View.DistortionPrimSet.DrawAccumulatedOffsets(RHICmdList, View, DrawRenderState, false);
@@ -1150,9 +1164,6 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 				DrawDistortionMergePass<true>(RHICmdList, SceneContext, View, DestRenderTarget.TargetableTexture);
 			}
 		}
-
-		// restore state
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 	}
 }
 
@@ -1192,7 +1203,9 @@ void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 		GRenderTargetPool.FindFreeElement(RHICmdList, SceneContext.GetSceneColor()->GetDesc(), SceneColorDistorted, TEXT("SceneColorDistorted"));
 		const FSceneRenderTargetItem& DistortedRenderTarget = SceneColorDistorted->GetRenderTargetItem();
 
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
 		SetRenderTarget(RHICmdList, DistortedRenderTarget.TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EClearColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 		// Copy scene color to a new render target
 		for(int32 ViewIndex = 0, Num = Views.Num(); ViewIndex < Num; ++ViewIndex)
@@ -1207,15 +1220,19 @@ void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 			// Set the view family's render target/viewport.
 			Context.SetViewportAndCallRHI(View.ViewRect);				
 
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-					
-			static FGlobalBoundShaderState BoundShaderState;
+			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 				
 			TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
 			TShaderMapRef<TDistortionMergePS<false>> PixelShader(View.ShaderMap);
-			SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			VertexShader->SetParameters(Context);
 			PixelShader->SetParameters(Context, View, SceneContext.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture);
@@ -1245,11 +1262,10 @@ void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 			// Set the view family's render target/viewport.
 			Context.SetViewportAndCallRHI(View.ViewRect);
 
-			FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+			FDrawingPolicyRenderState DrawRenderState(View);
 			// test against depth
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
+			DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 
 			// draw only distortion meshes
 			View.DistortionPrimSet.DrawAccumulatedOffsets(RHICmdList, View, DrawRenderState, false);
