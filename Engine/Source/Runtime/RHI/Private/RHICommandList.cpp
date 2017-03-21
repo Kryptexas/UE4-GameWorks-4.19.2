@@ -205,6 +205,7 @@ void FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(FRHIAsyncComputeCom
 			static_assert(sizeof(FRHICommandList) == sizeof(FRHIAsyncComputeCommandListImmediate), "We are memswapping FRHICommandList and FRHICommandListImmediate; they need to be swappable.");
 			check(RHIComputeCmdList.IsImmediateAsyncCompute());
 			SwapCmdList->ExchangeCmdList(RHIComputeCmdList);
+			RHIComputeCmdList.PSOContext = SwapCmdList->PSOContext;
 
 			//queue the execution of this async commandlist amongst other commands in the immediate gfx list.
 			//this guarantees resource update commands made on the gfx commandlist will be executed before the async compute.
@@ -383,6 +384,7 @@ void FRHICommandListExecutor::ExecuteInner(FRHICommandListBase& CmdList)
 				// we should make command lists virtual and transfer ownership rather than this devious approach
 				static_assert(sizeof(FRHICommandList) == sizeof(FRHICommandListImmediate), "We are memswapping FRHICommandList and FRHICommandListImmediate; they need to be swappable.");
 				SwapCmdList->ExchangeCmdList(CmdList);
+				CmdList.PSOContext = SwapCmdList->PSOContext;
 			}
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FRHICommandListExecutor_SubmitTasks);
 
@@ -703,7 +705,6 @@ void FRHICommandListExecutor::WaitOnRHIThreadFence(FGraphEventRef& Fence)
 
 FRHICommandListBase::FRHICommandListBase()
 	: MemManager(0)
-	, CachedNumSimultanousRenderTargets(0)
 {
 	GRHICommandList.OutstandingCmdListCount.Increment();
 	Reset();

@@ -307,11 +307,15 @@ public:
 	void *RenderThreadContexts[(int32)ERenderThreadContext::Num];
 	static int32 StateCacheEnabled;
 
-	uint32 CachedNumSimultanousRenderTargets;
-	TStaticArray<FRHIRenderTargetView, MaxSimultaneousRenderTargets> CachedRenderTargets;
-	FRHIDepthRenderTargetView CachedDepthStencilTarget;
-
 protected:
+	//the values of this struct must be copied when the commandlist is split 
+	struct FPSOContext
+	{
+		uint32 CachedNumSimultanousRenderTargets = 0;
+		TStaticArray<FRHIRenderTargetView, MaxSimultaneousRenderTargets> CachedRenderTargets;
+		FRHIDepthRenderTargetView CachedDepthStencilTarget;
+	} PSOContext;
+
 	struct FRHICommandSetRasterizerState* CachedRasterizerState;
 	struct FRHICommandSetDepthStencilState* CachedDepthStencilState;
 
@@ -321,14 +325,14 @@ protected:
 		const FRHIDepthRenderTargetView* NewDepthStencilTargetRHI
 		)
 	{
-		CachedNumSimultanousRenderTargets = NewNumSimultaneousRenderTargets;
+		PSOContext.CachedNumSimultanousRenderTargets = NewNumSimultaneousRenderTargets;
 
-		for (uint32 RTIdx = 0; RTIdx < CachedNumSimultanousRenderTargets; ++RTIdx)
+		for (uint32 RTIdx = 0; RTIdx < PSOContext.CachedNumSimultanousRenderTargets; ++RTIdx)
 		{
-			CachedRenderTargets[RTIdx] = NewRenderTargetsRHI[RTIdx];
+			PSOContext.CachedRenderTargets[RTIdx] = NewRenderTargetsRHI[RTIdx];
 		}
 
-		CachedDepthStencilTarget = (NewDepthStencilTargetRHI) ? *NewDepthStencilTargetRHI : FRHIDepthRenderTargetView();
+		PSOContext.CachedDepthStencilTarget = (NewDepthStencilTargetRHI) ? *NewDepthStencilTargetRHI : FRHIDepthRenderTargetView();
 	}
 
 public:
@@ -1976,47 +1980,47 @@ public:
 		FGraphicsPipelineStateInitializer& GraphicsPSOInit
 		)
 	{
-		GraphicsPSOInit.RenderTargetsEnabled = CachedNumSimultanousRenderTargets;
+		GraphicsPSOInit.RenderTargetsEnabled = PSOContext.CachedNumSimultanousRenderTargets;
 
 		for (uint32 i = 0; i < GraphicsPSOInit.RenderTargetsEnabled; ++i)
 		{
-			if (CachedRenderTargets[i].Texture)
+			if (PSOContext.CachedRenderTargets[i].Texture)
 			{
-				GraphicsPSOInit.RenderTargetFormats[i] = CachedRenderTargets[i].Texture->GetFormat();
-				GraphicsPSOInit.RenderTargetFlags[i] = CachedRenderTargets[i].Texture->GetFlags();
+				GraphicsPSOInit.RenderTargetFormats[i] = PSOContext.CachedRenderTargets[i].Texture->GetFormat();
+				GraphicsPSOInit.RenderTargetFlags[i] = PSOContext.CachedRenderTargets[i].Texture->GetFlags();
 			}
 			else
 			{
 				GraphicsPSOInit.RenderTargetFormats[i] = PF_Unknown;
 			}
 
-			GraphicsPSOInit.RenderTargetLoadActions[i] = CachedRenderTargets[i].LoadAction;
-			GraphicsPSOInit.RenderTargetStoreActions[i] = CachedRenderTargets[i].StoreAction;
+			GraphicsPSOInit.RenderTargetLoadActions[i] = PSOContext.CachedRenderTargets[i].LoadAction;
+			GraphicsPSOInit.RenderTargetStoreActions[i] = PSOContext.CachedRenderTargets[i].StoreAction;
 
 			if (GraphicsPSOInit.RenderTargetFormats[i] != PF_Unknown)
 			{
-				GraphicsPSOInit.NumSamples = CachedRenderTargets[i].Texture->GetNumSamples();
+				GraphicsPSOInit.NumSamples = PSOContext.CachedRenderTargets[i].Texture->GetNumSamples();
 			}
 		}
 
-		if (CachedDepthStencilTarget.Texture)
+		if (PSOContext.CachedDepthStencilTarget.Texture)
 		{
-			GraphicsPSOInit.DepthStencilTargetFormat = CachedDepthStencilTarget.Texture->GetFormat();
-			GraphicsPSOInit.DepthStencilTargetFlag = CachedDepthStencilTarget.Texture->GetFlags();
+			GraphicsPSOInit.DepthStencilTargetFormat = PSOContext.CachedDepthStencilTarget.Texture->GetFormat();
+			GraphicsPSOInit.DepthStencilTargetFlag = PSOContext.CachedDepthStencilTarget.Texture->GetFlags();
 		}
 		else
 		{
 			GraphicsPSOInit.DepthStencilTargetFormat = PF_Unknown;
 		}
 
-		GraphicsPSOInit.DepthTargetLoadAction = CachedDepthStencilTarget.DepthLoadAction;
-		GraphicsPSOInit.DepthTargetStoreAction = CachedDepthStencilTarget.DepthStoreAction;
-		GraphicsPSOInit.StencilTargetLoadAction = CachedDepthStencilTarget.StencilLoadAction;
-		GraphicsPSOInit.StencilTargetStoreAction = CachedDepthStencilTarget.GetStencilStoreAction();
+		GraphicsPSOInit.DepthTargetLoadAction = PSOContext.CachedDepthStencilTarget.DepthLoadAction;
+		GraphicsPSOInit.DepthTargetStoreAction = PSOContext.CachedDepthStencilTarget.DepthStoreAction;
+		GraphicsPSOInit.StencilTargetLoadAction = PSOContext.CachedDepthStencilTarget.StencilLoadAction;
+		GraphicsPSOInit.StencilTargetStoreAction = PSOContext.CachedDepthStencilTarget.GetStencilStoreAction();
 
 		if (GraphicsPSOInit.DepthStencilTargetFormat != PF_Unknown)
 		{
-			GraphicsPSOInit.NumSamples = CachedDepthStencilTarget.Texture->GetNumSamples();
+			GraphicsPSOInit.NumSamples = PSOContext.CachedDepthStencilTarget.Texture->GetNumSamples();
 		}
 	}
 
