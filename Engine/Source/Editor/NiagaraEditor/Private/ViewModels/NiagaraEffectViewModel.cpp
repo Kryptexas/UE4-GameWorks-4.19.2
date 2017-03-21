@@ -26,7 +26,7 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectViewModel"
 
-TMap<UNiagaraEffect*, TArray<FNiagaraEffectViewModel*>> TNiagaraViewModelManager<UNiagaraEffect, FNiagaraEffectViewModel>::ObjectsToViewModels;
+template<> TMap<UNiagaraEffect*, TArray<FNiagaraEffectViewModel*>> TNiagaraViewModelManager<UNiagaraEffect, FNiagaraEffectViewModel>::ObjectsToViewModels;
 
 FNiagaraEffectViewModel::FNiagaraEffectViewModel(UNiagaraEffect& InEffect, FNiagaraEffectViewModelOptions InOptions)
 	: Effect(InEffect)
