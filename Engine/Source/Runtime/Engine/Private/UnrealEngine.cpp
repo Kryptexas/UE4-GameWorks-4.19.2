@@ -175,6 +175,7 @@
 
 #include "Engine/LODActor.h"
 #include "Engine/AssetManager.h"
+#include "GameplayTagsManager.h"
 
 #if !UE_BUILD_SHIPPING
 #include "Interfaces/IAutomationWorkerModule.h"
@@ -1753,6 +1754,9 @@ void UEngine::InitializeObjectReferences()
 
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
 	UISettings->ForceLoadResources();
+
+	// This initializes the tag data if it hasn't been already
+	UGameplayTagsManager::Get();
 }
 
 void UEngine::InitializePortalServices()
@@ -11417,6 +11421,140 @@ static TAutoConsoleVariable<int32> CVarDumpCopyPropertiesForUnrelatedObjects(
 	TEXT("Dump the objects that are cross class copied")
 	);
 
+/* 
+ * Houses base functionality shared between CPFUO archivers (FCPFUOWriter/FCPFUOReader) 
+ * Used to track whether tagged data is being processed (and whether we should be serializing it).
+ */
+struct FCPFUOArchive
+{
+public:
+	FCPFUOArchive(bool bIncludeUntaggedDataIn)
+		: bIncludeUntaggedData(bIncludeUntaggedDataIn)
+		, TaggedDataScope(0)
+	{}
+
+	FCPFUOArchive(const FCPFUOArchive& DataSrc)
+		: bIncludeUntaggedData(DataSrc.bIncludeUntaggedData)
+		, TaggedDataScope(0)
+	{}
+
+protected:
+	FORCEINLINE void OpenTaggedDataScope()  { ++TaggedDataScope; }
+	FORCEINLINE void CloseTaggedDataScope() { --TaggedDataScope; }
+
+	FORCEINLINE bool IsSerializationEnabled()
+	{
+		return bIncludeUntaggedData || (TaggedDataScope > 0);
+	}
+
+	bool bIncludeUntaggedData;
+private:
+	int32 TaggedDataScope;
+};
+
+/* Serializes and stores property data from a specified 'source' object. Only stores data compatible with a target destination object. */
+struct FCPFUOWriter : public FObjectWriter, public FCPFUOArchive
+{
+public:
+	/* Contains the source object's serialized data */
+	TArray<uint8> SavedPropertyData;
+
+public:
+	FCPFUOWriter(UObject* SrcObject, UObject* DstObject, const UEngine::FCopyPropertiesForUnrelatedObjectsParams& Params)
+		: FObjectWriter(SavedPropertyData)
+		// if the two objects don't share a common native base class, then they may have different
+		// serialization methods, which is dangerous (the data is not guaranteed to be homogeneous)
+		// in that case, we have to stick with tagged properties only
+		, FCPFUOArchive(FindNativeSuperClass(SrcObject) == FindNativeSuperClass(DstObject))
+		, bSkipCompilerGeneratedDefaults(Params.bSkipCompilerGeneratedDefaults)
+	{
+		ArIgnoreArchetypeRef = true;
+		ArNoDelta = !Params.bDoDelta;
+		ArIgnoreClassRef = true;
+		ArPortFlags |= Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+		{
+			SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(DstObject));
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+		SrcObject->Serialize(*this);
+	}
+
+	//~ Begin FArchive Interface
+	virtual void Serialize(void* Data, int64 Num) override
+	{
+		if (IsSerializationEnabled())
+		{
+			FObjectWriter::Serialize(Data, Num);
+		}
+	}
+
+	virtual void MarkScriptSerializationStart(const UObject* Object) override { OpenTaggedDataScope(); }
+	virtual void MarkScriptSerializationEnd(const UObject* Object) override   { CloseTaggedDataScope(); }
+
+#if WITH_EDITOR
+	virtual bool ShouldSkipProperty(const class UProperty* InProperty) const override
+	{
+		static FName BlueprintCompilerGeneratedDefaultsName(TEXT("BlueprintCompilerGeneratedDefaults"));
+		return bSkipCompilerGeneratedDefaults && InProperty->HasMetaData(BlueprintCompilerGeneratedDefaultsName);
+	}
+#endif 
+	//~ End FArchive Interface
+
+private:
+	static UClass* FindNativeSuperClass(UObject* Object)
+	{
+		UClass* Class = Object->GetClass();
+		for (; Class; Class = Class->GetSuperClass())
+		{
+			if ((Class->ClassFlags & CLASS_Native) != 0)
+			{
+				break;
+			}
+		}
+		return Class;
+	}
+
+	bool bSkipCompilerGeneratedDefaults;
+};
+
+/* Responsible for applying the saved property data from a FCPFUOWriter to a specified object */
+struct FCPFUOReader : public FObjectReader, public FCPFUOArchive
+{
+public:
+	FCPFUOReader(FCPFUOWriter& DataSrc, UObject* DstObject)
+		: FObjectReader(DataSrc.SavedPropertyData)
+		, FCPFUOArchive(DataSrc)
+	{
+		ArIgnoreArchetypeRef = true;
+		ArIgnoreClassRef = true;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+		{
+			SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(DstObject));
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+		DstObject->Serialize(*this);
+	}
+
+	//~ Begin FArchive Interface
+	virtual void Serialize(void* Data, int64 Num) override
+	{
+		if (IsSerializationEnabled())
+		{
+			FObjectReader::Serialize(Data, Num);
+		}
+	}
+
+	virtual void MarkScriptSerializationStart(const UObject* Object) override { OpenTaggedDataScope(); }
+	virtual void MarkScriptSerializationEnd(const UObject* Object) override   { CloseTaggedDataScope(); }
+	// ~End FArchive Interface
+};
 
 void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject, FCopyPropertiesForUnrelatedObjectsParams Params)
 {
@@ -11448,49 +11586,10 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	}
 
 	// Serialize out the modified properties on the old default object
-	TArray<uint8> SavedProperties;
 	TIndirectArray<FInstancedObjectRecord> SavedInstances;
 	TMap<FString, int32> OldInstanceMap;
-
-	const uint32 AdditionalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
-	// Save the modified properties of the old CDO
-	{
-		class FCopyPropertiesArchiveObjectWriter : public FObjectWriter
-		{
-		public:
-			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 InAdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
-				: FObjectWriter(InSrcBytes)
-			{	
-				bSkipCompilerGeneratedDefaults = bInSkipCompilerGeneratedDefaults;
-				ArIgnoreClassRef = bIgnoreClassRef;
-				ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
-				ArNoDelta = !bDoDelta;
-				ArPortFlags |= InAdditionalPortFlags;
-
-#if USE_STABLE_LOCALIZATION_KEYS
-				if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
-				{
-					SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(InDstObject));
-				}
-#endif // USE_STABLE_LOCALIZATION_KEYS
-
-				InSrcObj->Serialize(*this);
-			}
-
-#if WITH_EDITOR
-			virtual bool ShouldSkipProperty(const class UProperty* InProperty) const override
-			{
-				static FName BlueprintCompilerGeneratedDefaultsName(TEXT("BlueprintCompilerGeneratedDefaults"));
-				return bSkipCompilerGeneratedDefaults && InProperty->HasMetaData(BlueprintCompilerGeneratedDefaultsName);
-			}
-#endif
-
-		private:
-			bool bSkipCompilerGeneratedDefaults;
-		};
-
-		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, NewObject, true, true, Params.bDoDelta, AdditionalPortFlags, Params.bSkipCompilerGeneratedDefaults);
-	}
+ 	// Save the modified properties of the old CDO
+	FCPFUOWriter Writer(OldObject, NewObject, Params);
 
 	{
 		// Find all instanced objects of the old CDO, and save off their modified properties to be later applied to the newly instanced objects of the new CDO
@@ -11503,7 +11602,8 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 			UObject* OldInstance = Components[Index];
 			pRecord->OldInstance = OldInstance;
 			OldInstanceMap.Add(OldInstance->GetPathName(OldObject), SavedInstances.Num() - 1);
-			FObjectWriter Writer(OldInstance, pRecord->SavedProperties, true, true, true, AdditionalPortFlags);
+			const uint32 AdditionalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
+			FObjectWriter SubObjWriter(OldInstance, pRecord->SavedProperties, true, true, true, AdditionalPortFlags);
 		}
 	}
 
@@ -11575,9 +11675,9 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		}
 
 		// Serialize in the modified properties from the old CDO to the new CDO
-		if (SavedProperties.Num() > 0)
+		if (Writer.SavedPropertyData.Num() > 0)
 		{
-			FObjectReader Reader(NewObject, SavedProperties, true, true);
+			FCPFUOReader Reader(Writer, NewObject);
 		}
 
 		for (int32 Index = 0; Index < ComponentsOnNewObject.Num(); Index++)

@@ -30,6 +30,7 @@
 #include "EditorWidgetsModule.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "ISizeMapModule.h"
+#include "Engine/AssetManager.h"
 
 #include "ObjectTools.h"
 
@@ -59,6 +60,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 	GraphObj = NewObject<UEdGraph_ReferenceViewer>();
 	GraphObj->Schema = UReferenceViewerSchema::StaticClass();
 	GraphObj->AddToRoot();
+	GraphObj->SetReferenceViewer(StaticCastSharedRef<SReferenceViewer>(AsShared()));
 
 	SGraphEditor::FGraphEditorEvents GraphEvents;
 	GraphEvents.OnNodeDoubleClicked = FSingleNodeEvent::CreateSP(this, &SReferenceViewer::OnNodeDoubleClicked);
@@ -290,6 +292,31 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 							SNew(SCheckBox)
 							.OnCheckStateChanged(this, &SReferenceViewer::OnShowHardReferencesChanged)
 							.IsChecked(this, &SReferenceViewer::IsShowHardReferencesChecked)
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						.Visibility(this, &SReferenceViewer::GetManagementReferencesVisibility)
+
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowHideManagementReferences", "Show Management References"))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SReferenceViewer::OnShowManagementReferencesChanged)
+							.IsChecked(this, &SReferenceViewer::IsShowManagementReferencesChecked)
 						]
 					]
 
@@ -613,6 +640,39 @@ ECheckBoxState SReferenceViewer::IsShowHardReferencesChecked() const
 	if (GraphObj)
 	{
 		return GraphObj->IsShowHardReferences() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+EVisibility SReferenceViewer::GetManagementReferencesVisibility() const
+{
+	if (UAssetManager::IsValid())
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	return EVisibility::Collapsed;
+}
+
+void SReferenceViewer::OnShowManagementReferencesChanged(ECheckBoxState NewState)
+{
+	if (GraphObj)
+	{
+		// This can take a few seconds if it isn't ready
+		UAssetManager::Get().UpdateManagementDatabase();
+
+		GraphObj->SetShowManagementReferencesEnabled(NewState == ECheckBoxState::Checked);
+		GraphObj->RebuildGraph();
+	}
+}
+
+ECheckBoxState SReferenceViewer::IsShowManagementReferencesChecked() const
+{
+	if (GraphObj)
+	{
+		return GraphObj->IsShowManagementReferences() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	else
 	{

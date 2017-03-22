@@ -204,6 +204,8 @@ public:
 	static const FName MD_BitmaskEnum;
 	/** Metadata that identifies an enum as a set of explicitly-named bitflags. */
 	static const FName MD_Bitflags;
+	/** Metadata that signals to the editor that enum values correspond to mask values instead of bitshift (index) values. */
+	static const FName MD_UseEnumValuesAsMaskValuesInEditor;
 	
 private:
 	// This class should never be instantiated
@@ -1037,6 +1039,9 @@ public:
 	 * Make links from all data pins from InOutputNode output to InInputNode input.
 	 */
 	void LinkDataPinFromOutputToInput(UEdGraphNode* InOutputNode, UEdGraphNode* InInputNode) const;
+
+	/** Moves all connections from the old node to the new one. Returns true and destroys OldNode on success. Fails if it cannot find a mapping from an old pin. */
+	bool ReplaceOldNodeWithNew(UK2Node* OldNode, UK2Node* NewNode, const TMap<FString, FString>& OldPinToNewPinMap) const;
 
 	/** Convert a deprecated node into a function call node, called from per-node ConvertDeprecatedNode */
 	UK2Node* ConvertDeprecatedNodeToFunctionCall(UK2Node* OldNode, UFunction* NewFunction, TMap<FString, FString>& OldPinToNewPinMap, UEdGraph* Graph) const;

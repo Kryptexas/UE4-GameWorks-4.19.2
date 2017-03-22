@@ -277,11 +277,6 @@ public class UnrealEd : ModuleRules
 			
 		}
 
-		if (Target.Platform == UnrealTargetPlatform.Mac)
-		{
-			PublicDependencyModuleNames.Add("UnrealAudioCoreAudio");
-		}
-
         if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
 			PublicDependencyModuleNames.Add("ALAudio");

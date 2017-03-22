@@ -56,7 +56,22 @@ enum class ESynthLFOPatchType : uint8
 };
 
 UENUM(BlueprintType)
-enum class ESynthEnvModPatch : uint8
+enum class ESynthModEnvPatch : uint8
+{
+	PatchToNone = 0,
+
+	PatchToOscFreq,
+	PatchToFilterFreq,
+	PatchToFilterQ,
+	PatchToLFO1Gain,
+	PatchToLFO2Gain,
+	PatchToLFO1Freq,
+	PatchToLFO2Freq,
+	Count UMETA(Hidden)
+};
+
+UENUM(BlueprintType)
+enum class ESynthModEnvBiasPatch : uint8
 {
 	PatchToNone = 0,
 
@@ -104,6 +119,7 @@ enum class ESynth1PatchSource : uint8
 	LFO1,
 	LFO2,
 	Envelope,
+	BiasEnvelope,
 	Count UMETA(Hidden)
 };
 

@@ -14,7 +14,7 @@ class FPrimitiveDrawInterface;
 class USkeletalMeshComponent;
 
 /**
-*	Controller which implements the FABRIK IK approximation algorithm -  see http://andreasaristidou.com/publications/FABRIK.pdf for details
+*	Controller which implements the FABRIK IK approximation algorithm -  see http://www.academia.edu/9165835/FABRIK_A_fast_iterative_solver_for_the_Inverse_Kinematics_problem for details
 */
 
 /** Transient structure for FABRIK node evaluation */

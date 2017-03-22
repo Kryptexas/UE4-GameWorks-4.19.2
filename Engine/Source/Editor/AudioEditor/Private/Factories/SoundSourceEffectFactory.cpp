@@ -7,6 +7,7 @@
 #include "ClassViewerFilter.h"
 #include "SoundFactoryUtility.h"
 #include "Kismet2/SClassPickerDialog.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "AudioEditorFactories"
 
@@ -56,6 +57,20 @@ UObject* USoundSourceEffectFactory::FactoryCreateNew(UClass* InClass, UObject* I
 		NewSoundEffectSourcePreset = NewObject<USoundEffectSourcePreset>(InParent, SoundEffectSourcepresetClass, InName, Flags);
 	}
 	return NewSoundEffectSourcePreset;
+}
+
+USoundSourceEffectChainFactory::USoundSourceEffectChainFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = USoundEffectSourcePresetChain::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* USoundSourceEffectChainFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<USoundEffectSourcePresetChain>(InParent, InName, Flags);
 }
 
 #undef LOCTEXT_NAMESPACE

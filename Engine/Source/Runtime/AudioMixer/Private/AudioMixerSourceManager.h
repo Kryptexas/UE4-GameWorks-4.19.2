@@ -56,29 +56,44 @@ namespace Audio
 
 	struct FMixerSourceSubmixSend
 	{
+		// The submix ptr
 		FMixerSubmixPtr Submix;
-		float DryLevel;
-		float WetLevel;
+
+		// The amount of audio that is to be mixed into this submix
+		float SendLevel;
+
+		// Whather or not this is the primary send (i.e. first in the send chain)
+		bool bIsMainSend;
 	};
 
 	struct FMixerSourceVoiceInitParams
 	{
 		ISourceBufferQueueListener* BufferQueueListener;
 		TArray<FMixerSourceSubmixSend> SubmixSends;
-		TArray<USoundEffectSourcePreset*> SourceEffectChain;
+		uint32 SourceEffectChainId;
+		TArray<FSourceEffectChainEntry> SourceEffectChain;
 		FMixerSourceVoice* SourceVoice;
 		int32 NumInputChannels;
 		int32 NumInputFrames;
 		FString DebugName;
+		USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
+		UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
+		UReverbPluginSourceSettingsBase* ReverbPluginSettings;
+		uint32 AudioComponentUserID;
 		bool bPlayEffectChainTails;
 		bool bUseHRTFSpatialization;
 		bool bIsDebugMode;
 
 		FMixerSourceVoiceInitParams()
 			: BufferQueueListener(nullptr)
+			, SourceEffectChainId(INDEX_NONE)
 			, SourceVoice(nullptr)
 			, NumInputChannels(0)
 			, NumInputFrames(0)
+			, SpatializationPluginSettings(nullptr)
+			, OcclusionPluginSettings(nullptr)
+			, ReverbPluginSettings(nullptr)
+			, AudioComponentUserID(INDEX_NONE)
 			, bPlayEffectChainTails(true)
 			, bUseHRTFSpatialization(false)
 			, bIsDebugMode(false)
@@ -192,28 +207,29 @@ namespace Audio
 		void SetPitch(const int32 SourceId, const float Pitch);
 		void SetVolume(const int32 SourceId, const float Volume);
 		void SetSpatializationParams(const int32 SourceId, const FSpatializationParams& InParams);
-		void SetWetLevel(const int32 SourceId, const float WetLevel);
-		void SetMasterReverbWetLevel(const int32 SourceId, const float MasterReverbWetLevel);
 		void SetChannelMap(const int32 SourceId, const TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
 		void SetLPFFrequency(const int32 SourceId, const float Frequency);
 		
-		void SubmitBuffer(const int32 SourceId, FMixerSourceBufferPtr InSourceVoiceBuffer);
-		void SubmitBufferAudioThread(const int32 SourceId, FMixerSourceBufferPtr InSourceVoiceBuffer);
+		void SubmitBuffer(const int32 SourceId, FMixerSourceBufferPtr InSourceVoiceBuffer, const bool bSubmitSynchronously);
 
 		int64 GetNumFramesPlayed(const int32 SourceId) const;
 		bool IsDone(const int32 SourceId) const;
 		bool IsEffectTailsDone(const int32 SourceId) const;
 		bool NeedsSpeakerMap(const int32 SourceId) const;
 		void ComputeNextBlockOfSamples();
-		void MixOutputBuffers(const int32 SourceId, TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer, const float DryLevel, const float WetLevel) const;
+		void MixOutputBuffers(const int32 SourceId, TArray<float>& OutWetBuffer, const float SendLevel) const;
 
-		void SetSubmixSendInfo(const int32 SourceId, FMixerSubmixPtr Submix, const float DryLevel, const float WetLevel);
+		void SetSubmixSendInfo(const int32 SourceId, FMixerSubmixPtr Submix, const float SendLevel);
 
 		void UpdateDeviceChannelCount(const int32 InNumOutputChannels);
+
+		void UpdateSourceEffectChain(const uint32 SourceEffectChainId, const TArray<FSourceEffectChainEntry>& SourceEffectChain, const bool bPlayEffectChainTails);
 
 	private:
 
 		void ReleaseSource(const int32 SourceId);
+		void BuildSourceEffectChain(const int32 SourceId, FSoundEffectSourceInitData& InitData, const TArray<FSourceEffectChainEntry>& SourceEffectChain);
+		void ResetSourceEffectChain(const int32 SourceId);
 		void ReadSourceFrame(const int32 SourceId);
 		void ComputeSourceBuffersForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd);
 		void ComputePostSourceEffectBufferForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd);
@@ -272,7 +288,6 @@ namespace Audio
 		// Raw PCM buffer data
 		TArray<TQueue<FMixerSourceBufferPtr>> BufferQueue;
 		TArray<ISourceBufferQueueListener*> BufferQueueListener;
-		TArray<FThreadSafeCounter> NumBuffersQueued;
 
 		// Debugging source generators
 #if ENABLE_AUDIO_OUTPUT_DEBUGGING
@@ -287,7 +302,6 @@ namespace Audio
 		TArray<FMixerSourceBufferPtr> CurrentPCMBuffer;
 		TArray<int32> CurrentAudioChunkNumFrames;
 		TArray<TArray<float>> SourceBuffer;
-		TArray<TArray<float>> HRTFSourceBuffer;
 		TArray<TArray<float>> CurrentFrameValues;
 		TArray<TArray<float>> NextFrameValues;
 		TArray<float> CurrentFrameAlpha;
@@ -302,11 +316,16 @@ namespace Audio
 		TArray<TArray<FOnePoleLPF>> LowPassFilters;
 
 		// Source effect instances
+		TArray<uint32> SourceEffectChainId;
 		TArray<TArray<FSoundEffectSource*>> SourceEffects;
 		TArray<TArray<USoundEffectSourcePreset*>> SourceEffectPresets;
 		TArray<bool> bEffectTailsDone;
-		FSoundEffectSourceInputData SourceEffectInputData;
-		FSoundEffectSourceOutputData SourceEffectOutputData;
+		TArray<FSoundEffectSourceInputData> SourceEffectInputData;
+		TArray<FSoundEffectSourceOutputData> SourceEffectOutputData;
+
+		// Audio plugin processing
+		FAudioPluginSourceInputData AudioPluginInputData;
+		TArray<FAudioPluginSourceOutputData> AudioPluginOutputData;
 
 		// A DSP object which tracks the amplitude envelope of a source.
 		TArray<Audio::FEnvelopeFollower> SourceEnvelopeFollower;
@@ -317,6 +336,7 @@ namespace Audio
 		TArray<TArray<float>> ScratchChannelMap;
 
 		// Output data, after computing a block of sample data, this is read back from mixers
+		TArray<TArray<float>> ReverbPluginOutputBuffer;
 		TArray<TArray<float>*> PostEffectBuffers;
 		TArray<TArray<float>> OutputBuffer;
 
@@ -329,6 +349,8 @@ namespace Audio
 		TArray<bool> bHasStarted;
 		TArray<bool> bIsBusy;
 		TArray<bool> bUseHRTFSpatializer;
+		TArray<bool> bUseOcclusionPlugin;
+		TArray<bool> bUseReverbPlugin;
 		TArray<bool> bIsDone;
 
 		// Source format info
@@ -353,10 +375,10 @@ namespace Audio
 		int32 NumActiveSources;
 		int32 NumTotalSources;
 		int32 NumSourceWorkers;
+
 		uint8 bInitialized : 1;
 
 		friend class FMixerSourceVoice;
-
 		// Set to true when the audio source manager should pump the command queue
 		FThreadSafeBool bPumpQueue;
 	};

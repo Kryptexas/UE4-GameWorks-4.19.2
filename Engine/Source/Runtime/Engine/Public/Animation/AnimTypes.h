@@ -358,7 +358,7 @@ struct FAnimSyncMarker
 
 #if WITH_EDITORONLY_DATA
 	// The editor track this marker sits on
-	UPROPERTY(BlueprintReadOnly, Category = Animation)
+	UPROPERTY()
 	int32 TrackIndex;
 #endif
 

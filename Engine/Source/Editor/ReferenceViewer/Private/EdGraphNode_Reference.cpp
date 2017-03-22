@@ -17,6 +17,7 @@ UEdGraphNode_Reference::UEdGraphNode_Reference(const FObjectInitializer& ObjectI
 	ReferencerPin = NULL;
 	bIsCollapsed = false;
 	bIsPackage = false;
+	bIsPrimaryAsset = false;
 	bUsesThumbnail = false;
 }
 
@@ -33,7 +34,15 @@ void UEdGraphNode_Reference::SetupReferenceNode(const FIntPoint& NodeLoc, const 
 
 	bIsCollapsed = false;
 	bIsPackage = true;
-	if (NewIdentifiers[0].IsValue())
+	
+	FPrimaryAssetId PrimaryAssetID = NewIdentifiers[0].GetPrimaryAssetId();
+	if (PrimaryAssetID.IsValid())
+	{
+		ShortPackageName = PrimaryAssetID.ToString();
+		bIsPackage = false;
+		bIsPrimaryAsset = true;
+	}
+	else if (NewIdentifiers[0].IsValue())
 	{
 		ShortPackageName = FString::Printf(TEXT("%s::%s"), *First.ObjectName.ToString(), *First.ValueName.ToString());
 		bIsPackage = false;
@@ -103,7 +112,7 @@ void UEdGraphNode_Reference::GetAllPackageNames(TArray<FName>& OutPackageNames) 
 {
 	for (const FAssetIdentifier& AssetId : Identifiers)
 	{
-		if (AssetId.PackageName.IsValid() && !AssetId.IsValue())
+		if (AssetId.IsPackage())
 		{
 			OutPackageNames.AddUnique(AssetId.PackageName);
 		}
@@ -122,7 +131,11 @@ FText UEdGraphNode_Reference::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FLinearColor UEdGraphNode_Reference::GetNodeTitleColor() const
 {
-	if (bIsPackage)
+	if (bIsPrimaryAsset)
+	{
+		return FLinearColor(0.2f, 0.8f, 0.2f);
+	}
+	else if (bIsPackage)
 	{
 		return FLinearColor(0.4f, 0.62f, 1.0f);
 	}

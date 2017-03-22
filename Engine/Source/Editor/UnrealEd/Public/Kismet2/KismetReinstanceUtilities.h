@@ -17,8 +17,9 @@ enum class EBlueprintCompileReinstancerFlags
 {
 	None = 0x0,
 
-	BytecodeOnly           = 0x1,
-	AutoInferSaveOnCompile = 0x2
+	BytecodeOnly			= 0x1,
+	AutoInferSaveOnCompile	= 0x2,
+	AvoidCDODuplication		= 0x4
 };
 
 ENUM_CLASS_FLAGS(EBlueprintCompileReinstancerFlags)
@@ -190,6 +191,8 @@ protected:
 
 	/** Determine whether reinstancing actors should preserve the root component of the new actor */
 	virtual bool ShouldPreserveRootComponentOfReinstancedActor() const { return true; }
+
+	static void CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject );
 
 private:
 	/**

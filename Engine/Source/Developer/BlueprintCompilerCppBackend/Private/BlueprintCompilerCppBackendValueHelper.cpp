@@ -40,24 +40,37 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	, EPropertyAccessOperator AccessOperator
 	, bool bAllowProtected)
 {
-	// Determine if the given property contains an instanced default subobject reference. We only get here if the values are not identical.
-	auto IsInstancedSubobjectLambda = [&](int32 ArrayIndex) -> bool
+	// Determine if the given property contains an instanced default subobject reference and obtain the reference value.
+	auto IsInstancedSubobjectLambda = [Property, DataContainer, OptionalDefaultDataContainer](int32 ArrayIndex, const UObject*& OutSubobject, const UObject*& OutDefaultSubobject) -> bool
 	{
+		OutSubobject = nullptr;
+		OutDefaultSubobject = nullptr;
+
 		if (auto ObjectProperty = Cast<UObjectProperty>(Property))
 		{
 			check(DataContainer);
-			check(OptionalDefaultDataContainer);
 
-			auto ObjectPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(DataContainer, ArrayIndex);
-			auto DefaultObjectPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(OptionalDefaultDataContainer, ArrayIndex);
-			if (ObjectPropertyValue && ObjectPropertyValue->IsDefaultSubobject() && DefaultObjectPropertyValue && DefaultObjectPropertyValue->IsDefaultSubobject() && ObjectPropertyValue->GetFName() == DefaultObjectPropertyValue->GetFName())
+			UObject* PropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(DataContainer, ArrayIndex);
+			if (PropertyValue && PropertyValue->IsDefaultSubobject())
 			{
+				OutSubobject = PropertyValue;
+
+				if (OptionalDefaultDataContainer)
+				{
+					UObject* DefaultPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(OptionalDefaultDataContainer, ArrayIndex);
+					if (DefaultPropertyValue && DefaultPropertyValue->IsDefaultSubobject() && PropertyValue->GetFName() == DefaultPropertyValue->GetFName())
+					{
+						OutDefaultSubobject = DefaultPropertyValue;
+					}
+				}
+
 				return true;
 			}
 		}
 
 		return false;
 	};
+
 	check(Property);
 	if (Property->HasAnyPropertyFlags(CPF_EditorOnly | CPF_Transient))
 	{
@@ -74,8 +87,8 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	for (int32 ArrayIndex = 0; ArrayIndex < Property->ArrayDim; ++ArrayIndex)
 	{
 		if (!OptionalDefaultDataContainer
-			|| ((Property->PropertyFlags & CPF_Config) != 0) 
-			|| (!Property->Identical_InContainer(DataContainer, OptionalDefaultDataContainer, ArrayIndex) && !IsInstancedSubobjectLambda(ArrayIndex)))
+			|| Property->HasAnyPropertyFlags(CPF_Config)
+			|| !Property->Identical_InContainer(DataContainer, OptionalDefaultDataContainer, ArrayIndex))
 		{
 			FNativizationSummaryHelper::PropertyUsed(Context.GetCurrentlyGeneratedClass(), Property);
 
@@ -128,6 +141,31 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				PathToMember = FString::Printf(TEXT("%s%s%s%s"), *OuterPath, *AccessOperatorStr, *FEmitHelper::GetCppName(Property), *ArrayPost);
 			}
 
+			const UObject* SubobjectInstance = nullptr;
+			const UObject* DefaultSubobjectInstance = nullptr;
+			if (IsInstancedSubobjectLambda(ArrayIndex, SubobjectInstance, DefaultSubobjectInstance))
+			{
+				// Recursively emit property values for nested default subobjects.
+				if (SubobjectInstance->HasAnyFlags(RF_DefaultSubObject) && !SubobjectInstance->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
+				{
+					check(SubobjectInstance != nullptr);
+
+					UClass* SubobjectInstanceClass = SubobjectInstance->GetClass();
+					check(DefaultSubobjectInstance == nullptr || SubobjectInstanceClass == DefaultSubobjectInstance->GetClass());
+
+					TArray<UObject*> NestedDefaultSubobjects;
+					SubobjectInstanceClass->GetDefaultObjectSubobjects(NestedDefaultSubobjects);
+
+					for (auto SubobjectProperty : TFieldRange<const UProperty>(SubobjectInstanceClass))
+					{
+						OuterGenerate(Context, SubobjectProperty, PathToMember,
+							reinterpret_cast<const uint8*>(SubobjectInstance),
+							reinterpret_cast<const uint8*>(DefaultSubobjectInstance),
+							EPropertyAccessOperator::Pointer);
+					}
+				}
+			}
+			else
 			{
 				const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
 				const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;

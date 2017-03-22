@@ -87,8 +87,17 @@ void UChildActorComponent::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITOR
+	if (ChildActorClass == nullptr)
+	{
+		// It is unknown how this state can come to be, so for now we'll simply correct the issue and record that it occurs and 
+		// and if it is occurring frequently, then investigate how the state comes to pass
+		if (!ensureAlwaysMsgf(ChildActorTemplate == nullptr, TEXT("Found unexpected ChildActorTemplate %s when ChildActorClass is null"), *ChildActorTemplate->GetFullName()))
+		{
+			ChildActorTemplate = nullptr;
+		}
+	}
 	// Since we sometimes serialize properties in instead of using duplication and we can end up pointing at the wrong template
-	if (!Ar.IsPersistent() && ChildActorTemplate)
+	else if (!Ar.IsPersistent() && ChildActorTemplate)
 	{
 		if (IsTemplate())
 		{
@@ -441,6 +450,14 @@ void UChildActorComponent::PostLoad()
 
 }
 #endif
+
+void UChildActorComponent::OnRep_ChildActor()
+{
+	if (ChildActor)
+	{
+		FActorParentComponentSetter::Set(ChildActor, this);
+	}
+}
 
 void UChildActorComponent::CreateChildActor()
 {

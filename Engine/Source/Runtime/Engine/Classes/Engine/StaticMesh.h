@@ -768,6 +768,9 @@ public:
 
 	FORCEINLINE const UNavCollision* GetNavCollision() const { return NavCollision; }
 
+	/** Configures this SM as bHasNavigationData = false and clears stored UNavCollision */
+	ENGINE_API void MarkAsNotHavingNavigationData();
+
 	const FGuid& GetLightingGuid() const
 	{
 #if WITH_EDITORONLY_DATA

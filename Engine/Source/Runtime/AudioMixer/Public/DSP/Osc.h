@@ -15,6 +15,9 @@ namespace Audio
 		// A factor which directly scales the frequency output (used for FM modulation)
 		float Scale;
 		
+		// External modulation source
+		float ExternalMod;
+
 		// The modulated frequency value
 		float Mod;
 
@@ -35,6 +38,7 @@ namespace Audio
 
 		FOscFrequencyMod()
 			: Scale(1.0f)
+			, ExternalMod(0.0f)
 			, Mod(0.0f)
 			, Detune(0.0f)
 			, PitchBend(0.0f)
@@ -82,10 +86,13 @@ namespace Audio
 		void SetGain(const float InGain) { Gain = InGain; }
 
 		// Sets the gain modulator of the oscillator
-		void SetGainMod(const float InGainMod) { GainMod = InGainMod; }
+		void SetGainMod(const float InGainMod) { ExternalGainMod = InGainMod; }
 
 		// Sets the base frequency of the oscillator
 		void SetFrequency(const float InFreqBase);
+
+		// Sets a frequency modulation value
+		void SetFrequencyMod(const float InFreqMod);
 
 		// Sets the base frequency of the oscillator from the midi note number
 		void SetNote(const float InNote);
@@ -103,8 +110,20 @@ namespace Audio
 		// Sets the LFO pulse width for square-wave type oscillators
 		void SetPulseWidth(const float InPulseWidth);
 
+		// Resets the phase of this oscillator to 0.0
+		void ResetPhase();
+
 		// Returns whether or not this oscillator is playing
 		bool IsPlaying() const { return bIsPlaying; }
+
+		// Returns if this oscillator should be synced to a master oscillator
+		bool IsSync() const { return bIsSync; }
+
+		// Sets whether or not this oscillator should be synced to a master oscillator. Master oscillator needs to have set this oscillator as its slave.
+		void SetSync(const bool bInSync) { bIsSync = bInSync; }
+
+		// Sets the input oscillator as the slave of this oscillator
+		void SetSlaveOsc(IOscBase* InSlaveOsc);
 
 		// Return patch destinations for various modulatable parameters
 		FPatchDestination GetModDestFrequency() const { return ModFrequencyDest; }
@@ -116,25 +135,32 @@ namespace Audio
 	protected:
 
 		// Updates the phase based on the phase increment
-		FORCEINLINE void UpdatePhase()
+		void UpdatePhase()
 		{
 			Phase += PhaseInc;
 		}
 
 		// Returns true if there was a phase wrap this update
-		FORCEINLINE bool WrapPhase()
+		bool WrapPhase()
 		{
+			bool Result = false;
 			if (PhaseInc > 0.0f && Phase >= 1.0f)
 			{
 				Phase = FMath::Fmod(Phase, 1.0f);
-				return true;
+				Result = true;
 			}
 			else if (PhaseInc < 0.0f && Phase <= 0.0f)
 			{
 				Phase = FMath::Fmod(Phase, 1.0f) + 1.0f;
-				return true;
+				Result = true;
 			}
-			return false;
+
+			if (Result && SlaveOsc && SlaveOsc->IsSync())
+			{
+				SlaveOsc->ResetPhase();
+			}
+
+			return Result;
 		}
 
 		// Returns the current phase of the oscillator
@@ -173,7 +199,7 @@ namespace Audio
 		float Gain;
 
 		// Linear gain modulation of the oscillator (used in amplitude modulation)
-		float GainMod;
+		float ExternalGainMod;
 
 		// The current phase of oscillator (between 0.0 and 1.0)
 		float Phase;
@@ -199,9 +225,13 @@ namespace Audio
 		FPatchDestination ModScaleDest;
 		FPatchDestination ModAddDest;
 
+		// Ptr to a slave oscillator that can be triggered to 0 phase if it is synced.
+		IOscBase* SlaveOsc;
+
 		// Whether or not the oscillator is on or off
 		bool bIsPlaying;
 		bool bChanged;
+		bool bIsSync;
 	};
 
 	namespace EOsc

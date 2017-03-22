@@ -630,7 +630,7 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 	// If this is a Blueprint class, we may need to manually apply default value overrides to some inherited components in a cooked
 	// build scenario. This can occur, for example, if we have a nativized Blueprint class somewhere in the class inheritance hierarchy.
-	if (FPlatformProperties::RequiresCookedData())
+	if (FPlatformProperties::RequiresCookedData() && !IsTemplate())
 	{
 		const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
 		if (BPGC != nullptr && BPGC->bHasNativizedParent)

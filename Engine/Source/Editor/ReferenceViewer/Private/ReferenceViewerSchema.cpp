@@ -78,7 +78,7 @@ void UReferenceViewerSchema::GetContextMenuActions(const UEdGraph* CurrentGraph,
 		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().CopyReferencingObjects);
 		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferencedObjects);
 		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferencingObjects);
-		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferenceTree);
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferenceTree, TEXT("ContextMenu"));
 	}
 	MenuBuilder->EndSection();
 }

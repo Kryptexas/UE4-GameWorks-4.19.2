@@ -925,15 +925,13 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 {
 	// Save the old visibility
 	TMap<FName, FOldOptionalPinSettings> OldPinSettings;
-	for (auto ExtraPropertyIt = Properties.CreateIterator(); ExtraPropertyIt; ++ExtraPropertyIt)
+	for (const FOptionalPinFromProperty& PropertyEntry : Properties)
 	{
-		FOptionalPinFromProperty& PropertyEntry = *ExtraPropertyIt;
-
 		OldPinSettings.Add(PropertyEntry.PropertyName, FOldOptionalPinSettings(PropertyEntry.bShowPin, PropertyEntry.bIsOverrideEnabled, PropertyEntry.bIsSetValuePinVisible, PropertyEntry.bIsOverridePinVisible));
 	}
 
 	// Rebuild the property list
-	Properties.Empty();
+	Properties.Reset();
 
 	// find all "bOverride_" properties
 	TMap<FName, UProperty*> OverridesMap;

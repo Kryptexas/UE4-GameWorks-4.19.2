@@ -871,7 +871,7 @@ struct ENGINE_API FURL
 
 /**
  * The network mode the game is currently running.
- * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Overview/
  */
 enum ENetMode
 {

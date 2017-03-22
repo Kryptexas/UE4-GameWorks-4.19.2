@@ -83,13 +83,13 @@ void FXAudio2HRTFEffect::Process(UINT32 InputProcessParameterCount, const XAPO_P
 	}
 
 	FSpatializationParams CurrentParameters;
-	AudioDevice->SpatializeProcessor->GetSpatializationParameters(VoiceId, CurrentParameters);
+	AudioDevice->SpatializationPluginInterface->GetSpatializationParameters(VoiceId, CurrentParameters);
 
 	FVector& EmitterPosition = CurrentParameters.EmitterPosition;
 
 	// We better not have default set at this point because default means "no HRTF processing". We also
 	// better thave the plugin because this XAPO code is inside the plugin
-	check(AudioDevice->SpatializationPlugin != nullptr);
+	check(AudioDevice->AudioPlugin != nullptr);
 
 	XAPO_BUFFER_FLAGS InFlags = pInputProcessParameters[0].BufferFlags;
 	XAPO_BUFFER_FLAGS OutFlags = pOutputProcessParameters[0].BufferFlags;
@@ -117,17 +117,17 @@ void FXAudio2HRTFEffect::Process(UINT32 InputProcessParameterCount, const XAPO_P
 			}
 			else
 			{
-				check(AudioDevice->SpatializeProcessor);
+				check(AudioDevice->SpatializationPluginInterface.IsValid());
 
 				// Check if for OVR audio context initialization. We do this here because there apparently isn't a way to get
 				// the effect buffer size until the actual callback. 
-				if (!AudioDevice->SpatializeProcessor->IsSpatializationEffectInitialized())
+				if (!AudioDevice->SpatializationPluginInterface->IsSpatializationEffectInitialized())
 				{
-					AudioDevice->SpatializeProcessor->InitializeSpatializationEffect(InputFrameCount);
+					AudioDevice->SpatializationPluginInterface->InitializeSpatializationEffect(InputFrameCount);
 				}
 
 				// Spatialize the audio stream with the current algorithm
-				AudioDevice->SpatializeProcessor->ProcessSpatializationForVoice(
+				AudioDevice->SpatializationPluginInterface->ProcessSpatializationForVoice(
 					VoiceId, 
 					InputSamples, 
 					OutputSamples, 

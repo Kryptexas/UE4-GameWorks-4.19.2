@@ -94,6 +94,10 @@ struct ENGINE_API FStreamableHandle : public TSharedFromThis<FStreamableHandle, 
 
 	/** Destructor */
 	~FStreamableHandle();
+
+	/** Not safe to copy or duplicate */
+	FStreamableHandle(const FStreamableHandle&) = delete;
+	FStreamableHandle& operator=(const FStreamableHandle&) = delete;
 private:
 	friend struct FStreamableManager;
 	friend struct FStreamable;
@@ -171,9 +175,6 @@ struct ENGINE_API FStreamableManager : public FGCObject
 	static const TAsyncLoadPriority DefaultAsyncLoadPriority = 0;
 	// Priority to try and load immediately
 	static const TAsyncLoadPriority AsyncLoadHighPriority = 100;
-
-	FStreamableManager();
-	~FStreamableManager();
 
 	/** 
 	 * Request streaming of one or more target objects, and call a delegate on completion. 
@@ -279,6 +280,12 @@ struct ENGINE_API FStreamableManager : public FGCObject
 	/** Add referenced objects to stop them from GCing */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
+	FStreamableManager();
+	~FStreamableManager();
+
+	/** Not safe to copy or duplicate */
+	FStreamableManager(const FStreamableManager&) = delete;
+	FStreamableManager& operator=(const FStreamableManager&) = delete;
 private:
 	friend FStreamableHandle;
 

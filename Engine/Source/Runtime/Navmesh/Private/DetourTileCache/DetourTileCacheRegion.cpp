@@ -1510,6 +1510,15 @@ static void MergeAndCompressRegions(dtTileCacheAlloc* alloc, dtTileCacheLayer& l
 		if (layer.regs[i] != 0xffff)
 			layer.regs[i] = regs[layer.regs[i]].regId;
 	}
+}
+
+static void FreeRegions(dtTileCacheAlloc* alloc, dtLayerMonotoneRegion* regs, int nregs)
+{
+	// destroy all elements to free internal rcIntArray allocations
+	for (int i = 0; i < nregs; i++)
+	{
+		regs[i].~dtLayerMonotoneRegion();
+	}
 
 	alloc->free(regs);
 }
@@ -1525,6 +1534,7 @@ dtStatus dtBuildTileCacheRegionsMonotone(dtTileCacheAlloc* alloc, const int minR
 		MergeAndCompressRegions(alloc, layer, regs, nregs, minRegionArea, mergeRegionArea);
 	}
 
+	FreeRegions(alloc, regs, nregs);
 	return status;
 }
 
@@ -1539,5 +1549,6 @@ dtStatus dtBuildTileCacheRegionsChunky(dtTileCacheAlloc* alloc, const int minReg
 		MergeAndCompressRegions(alloc, layer, regs, nregs, minRegionArea, mergeRegionArea);
 	}
 
+	FreeRegions(alloc, regs, nregs);
 	return status;
 }

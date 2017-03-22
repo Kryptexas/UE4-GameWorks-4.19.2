@@ -54,6 +54,7 @@ public:
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) override;
 	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) override;
 	virtual void LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*>& Data) const override;
+
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FPathAddedEvent, FPathAddedEvent);
 	virtual FPathAddedEvent& OnPathAdded() override { return PathAddedEvent; }
 
@@ -96,6 +97,11 @@ public:
 
 	/** True if world assets are enabled */
 	static bool IsUsingWorldAssets();
+
+protected:
+	virtual void SetManageReferences(const TMultiMap<FAssetIdentifier, FAssetIdentifier>& ManagerMap, bool bClearExisting, EAssetRegistryDependencyType::Type RecurseType, ShouldSetManagerPredicate ShouldSetManager) override;
+	virtual bool SetPrimaryAssetIdForObjectPath(const FName ObjectPath, FPrimaryAssetId PrimaryAssetId) override;
+	virtual const FAssetData* GetCachedAssetDataForObjectPath(const FName ObjectPath) const override;
 
 private:
 
@@ -166,7 +172,13 @@ private:
 
 #if WITH_EDITOR
 	/** Called when a file in a content directory changes on disk */
-	void OnDirectoryChanged (const TArray<struct FFileChangeData>& Files);
+	void OnDirectoryChanged(const TArray<struct FFileChangeData>& Files);
+
+	/** Called when an asset is loaded, it will possibly update the cache */
+	void OnAssetLoaded(UObject *AssetLoaded);
+
+	/** Process Loaded Assets to update cache */
+	void ProcessLoadedAssetsToUpdateCache(const double TickStartTime);
 #endif // WITH_EDITOR
 
 	/**
@@ -224,6 +236,9 @@ private:
 
 	/** The map of classes to their parents, and a map of parents to their classes */
 	TMap<FName, FName> CachedInheritanceMap;
+
+	/** If true, will cache AssetData loaded from in memory assets back into the disk cache */
+	bool bUpdateDiskCacheAfterLoad;
 
 	/** True if CookFilterlistTagsByClass is a whitelist. False if it is a blacklist. */
 	bool bFilterlistIsWhitelist;
@@ -306,4 +321,16 @@ private:
 
 	/** Handle to the registered OnDirectoryChanged delegate for the OnContentPathMounted handler */
 	FDelegateHandle OnContentPathMountedOnDirectoryChangedDelegateHandle;
+
+#if WITH_EDITOR
+	/** List of loaded objects that need to be processed */
+	TArray<TWeakObjectPtr<UObject>> LoadedAssetsToProcess;
+
+	/** Objects that couldn't be processed because the asset data didn't exist, reprocess these after more directories are scanned */
+	TArray<TWeakObjectPtr<UObject>> LoadedAssetsThatDidNotHaveCachedData;
+
+	/** The set of object paths that have had their disk cache updated from the in memory version */
+	TSet<FName> AssetDataObjectPathsUpdatedOnLoad;
+#endif
+
 };

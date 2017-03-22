@@ -58,8 +58,7 @@ void UBlueprintGeneratedClass::PostLoad()
 {
 	Super::PostLoad();
 
-	// Make sure the class CDO has been generated
-	UObject* ClassCDO = GetDefaultObject();
+	UObject* ClassCDO = ClassDefaultObject;
 
 	// Go through the CDO of the class, and make sure we don't have any legacy components that aren't instanced hanging on.
 	struct FCheckIfComponentChildHelper
@@ -72,15 +71,18 @@ void UBlueprintGeneratedClass::PostLoad()
 		};
 	};
 
-	ForEachObjectWithOuter(ClassCDO, [ClassCDO](UObject* CurrObj)
+	if(ClassCDO)
 	{
-		const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
-		if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
+		ForEachObjectWithOuter(ClassCDO, [ClassCDO](UObject* CurrObj)
 		{
-			CurrObj->MarkPendingKill();
-		}
-	});
-
+			const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
+			if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
+			{
+				CurrObj->MarkPendingKill();
+			}
+		});
+	}
+	
 #if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
@@ -246,11 +248,11 @@ struct FConditionalRecompileClassHepler
 };
 
 extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
-extern COREUOBJECT_API bool GMinimalCompileOnLoad;
+extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLoaded)
 {
-	if(GMinimalCompileOnLoad)
+	if(GBlueprintUseCompilationManager)
 	{
 		FBlueprintCompilationManager::FlushCompilationQueue();
 		return;
@@ -1059,9 +1061,6 @@ void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* A
 
 											// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
 											ArPortFlags |= PPF_Duplicate;
-
-											// Set this flag to ensure that we also serialize any deprecated properties.
-											ArPortFlags |= PPF_UseDeprecatedProperties;
 										}
 									};
 
@@ -1541,9 +1540,6 @@ void FBlueprintCookedComponentInstancingData::LoadCachedPropertyDataForSerializa
 
 			// Set this flag to emulate things that would normally happen in the SDO case when this flag is set. This is needed to ensure consistency with serialization during instancing.
 			ArPortFlags |= PPF_Duplicate;
-
-			// Set this flag to ensure that we also serialize any deprecated properties.
-			ArPortFlags |= PPF_UseDeprecatedProperties;
 		}
 	};
 

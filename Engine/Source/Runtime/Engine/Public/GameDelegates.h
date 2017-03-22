@@ -78,11 +78,13 @@ public:
 	DEFINE_GAME_DELEGATE(HandleDisconnectDelegate);
 
 	// Implement all delegates declared above
-	DEFINE_GAME_DELEGATE(CookModificationDelegate);
-	DEFINE_GAME_DELEGATE(AssignStreamingChunkDelegate);
-	DEFINE_GAME_DELEGATE(GetPackageDependenciesForManifestGeneratorDelegate);
 	DEFINE_GAME_DELEGATE(AssignLayerChunkDelegate);
 	DEFINE_GAME_DELEGATE(ExtendedSaveGameInfoDelegate);
 	DEFINE_GAME_DELEGATE(WebServerActionDelegate);	
+
+	// DEPRECATED, switch to subclassing AssetManager instead
+	DEFINE_GAME_DELEGATE(CookModificationDelegate);
+	DEFINE_GAME_DELEGATE(AssignStreamingChunkDelegate);
+	DEFINE_GAME_DELEGATE(GetPackageDependenciesForManifestGeneratorDelegate);
 
 };

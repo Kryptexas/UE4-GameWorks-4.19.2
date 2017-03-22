@@ -5,24 +5,24 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 
-UClass* FAssetTypeActions_EpicSynth1PresetBank::GetSupportedClass() const
+UClass* FAssetTypeActions_ModularSynthPresetBank::GetSupportedClass() const
 {
-	return UEpicSynth1PresetBank::StaticClass();
+	return UModularSynthPresetBank::StaticClass();
 }
 
-UEpicSynth1PresetBankFactory::UEpicSynth1PresetBankFactory(const FObjectInitializer& ObjectInitializer)
+UModularSynthPresetBankFactory::UModularSynthPresetBankFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	SupportedClass = UEpicSynth1PresetBank::StaticClass();
+	SupportedClass = UModularSynthPresetBank::StaticClass();
 
 	bCreateNew = true;
 	bEditorImport = false;
 	bEditAfterNew = true;
 }
 
-UObject* UEpicSynth1PresetBankFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+UObject* UModularSynthPresetBankFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UEpicSynth1PresetBank* NewPresetBank = NewObject<UEpicSynth1PresetBank>(InParent, InName, Flags);
+	UModularSynthPresetBank* NewPresetBank = NewObject<UModularSynthPresetBank>(InParent, InName, Flags);
 
 	return NewPresetBank;
 }

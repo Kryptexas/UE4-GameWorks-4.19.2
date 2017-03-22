@@ -11,13 +11,14 @@ namespace Audio
 		, Nyquist(0.5f * SampleRate)
 		, Freq(440.0f)
 		, Gain(1.0f)
-		, GainMod(1.0f)
+		, ExternalGainMod(1.0f)
 		, Phase(0.0f)
 		, PhaseInc(0.0f)
 		, PulseWidthBase(0.5f)
 		, PulseWidthMod(0.0f)
 		, PulseWidth(0.0f)
 		, ModMatrix(nullptr)
+		, SlaveOsc(nullptr)
 		, bIsPlaying(false)
 		, bChanged(false)
 	{
@@ -60,6 +61,15 @@ namespace Audio
 		if (InFreqBase != BaseFreq)
 		{
 			BaseFreq = InFreqBase;
+			bChanged = true;
+		}
+	}
+
+	void IOscBase::SetFrequencyMod(const float InFreqMod)
+	{
+		if (InFreqMod != FreqData.ExternalMod)
+		{
+			FreqData.ExternalMod = InFreqMod;
 			bChanged = true;
 		}
 	}
@@ -138,7 +148,7 @@ namespace Audio
 		{
 			bChanged = false;
 
-			float FreqModSum = FreqData.Mod + FreqData.Detune + FreqData.PitchBend + 12.0f * FreqData.Octave + FreqData.Semitones + 0.01f * FreqData.Cents;
+			float FreqModSum = FreqData.Mod + FreqData.ExternalMod + FreqData.Detune + FreqData.PitchBend + 12.0f * FreqData.Octave + FreqData.Semitones + 0.01f * FreqData.Cents;
 			float PulseWidthSum = PulseWidthBase + PulseWidthMod;
 
 			PulseWidth = FMath::Clamp(PulseWidthSum, 0.02f, 0.98f);
@@ -156,10 +166,20 @@ namespace Audio
 		PulseWidthBase = FMath::Clamp(InPulseWidth, 0.0f, 1.0f);
 	}
 
+	void IOscBase::ResetPhase()
+	{
+		Phase = 0.0f;
+	}
+
+	void IOscBase::SetSlaveOsc(IOscBase* InSlaveOsc)
+	{
+		SlaveOsc = InSlaveOsc;
+	}
+
 	void IOscBase::Reset()
 	{
 		Phase = 0.0f;
-		GainMod = 1.0f;
+		ExternalGainMod = 1.0f;
 		FreqData.PitchBend = 0.0f;
 		FreqData.Detune = 0.0f;
 	}
@@ -310,7 +330,7 @@ namespace Audio
 		UpdatePhase();
 
 		// Apply the final matrix-mod gain
-		return Output * Gain * GainMod;
+		return Output * Gain * ExternalGainMod;
 	}
 
 	float FOsc::PolySmooth(const float InPhase, const float InPhaseInc)

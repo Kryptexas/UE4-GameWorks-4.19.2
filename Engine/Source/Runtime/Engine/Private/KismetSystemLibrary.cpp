@@ -3154,6 +3154,11 @@ TArray<FString> UKismetSystemLibrary::GetPreferredLanguages()
 	return FPlatformMisc::GetPreferredLanguages();
 }
 
+FString UKismetSystemLibrary::GetDefaultLocale()
+{
+	return FPlatformMisc::GetDefaultLocale();
+}
+
 FString UKismetSystemLibrary::GetLocalCurrencyCode()
 {
 	return FPlatformMisc::GetLocalCurrencyCode();

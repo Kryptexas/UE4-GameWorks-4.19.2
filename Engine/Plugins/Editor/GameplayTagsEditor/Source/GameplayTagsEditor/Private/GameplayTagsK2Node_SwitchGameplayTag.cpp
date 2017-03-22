@@ -128,19 +128,29 @@ FString UGameplayTagsK2Node_SwitchGameplayTag::GetPinNameGivenIndex(int32 Index)
 void UGameplayTagsK2Node_SwitchGameplayTag::CreateCasePins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	for (int32 Index = 0; Index < PinNames.Num(); ++Index)
-  	{	
-		if (Index < PinTags.Num())
+
+	while (PinTags.Num() > PinNames.Num())
+	{
+		FString PinName = GetUniquePinName();
+		PinNames.Add(FName(*PinName));
+	}
+
+	if (PinNames.Num() > PinTags.Num())
+	{
+		PinNames.SetNum(PinTags.Num());
+	}
+
+	for (int32 Index = 0; Index < PinTags.Num(); ++Index)
+  	{
+		if (PinTags[Index].IsValid())
 		{
-			if (PinTags[Index].IsValid())
-			{
-				PinNames[Index] = FName(*PinTags[Index].ToString());
-			}			
-			else
-			{
-				PinNames[Index] = FName(*GetUniquePinName());
-			}
+			PinNames[Index] = FName(*PinTags[Index].ToString());
+		}			
+		else
+		{
+			PinNames[Index] = FName(*GetUniquePinName());
 		}
+
 		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, PinNames[Index].ToString());
   	}
 }
@@ -177,15 +187,15 @@ void UGameplayTagsK2Node_SwitchGameplayTag::RemovePin(UEdGraphPin* TargetPin)
 {
 	checkSlow(TargetPin);
 
-	FString TagName = TargetPin->PinName;
-
-	int32 Index = PinNames.IndexOfByKey(FName(*TagName));
-	if (Index>=0)
+	FName PinName = FName(*TargetPin->PinName);
+	// Clean-up pin name array
+	int32 Index = PinNames.IndexOfByKey(PinName);
+	if (Index >= 0)
 	{
 		if (Index < PinTags.Num())
-		{ 
+		{
 			PinTags.RemoveAt(Index);
-		}		
-		PinNames.RemoveSingle(FName(*TagName));
-	}	
+		}
+		PinNames.RemoveAt(Index);
+	}
 }

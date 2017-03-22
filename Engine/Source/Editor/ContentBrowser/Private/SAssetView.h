@@ -185,6 +185,9 @@ public:
 		/** Columns to hide by default */
 		SLATE_ARGUMENT( TArray<FString>, HiddenColumnNames )
 
+		/** Custom columns that can be use specific */
+		SLATE_ARGUMENT(TArray<FAssetViewCustomColumn>, CustomColumns)
+
 	SLATE_END_ARGS()
 
 	~SAssetView();
@@ -989,6 +992,8 @@ private:
 	TArray<FString> DefaultHiddenColumnNames;
 	TArray<FString> HiddenColumnNames;
 	int32 NumVisibleColumns;
+
+	TArray<FAssetViewCustomColumn> CustomColumns;
 public:
 	bool ShouldColumnGenerateWidget(const FString ColumnName) const;
 };

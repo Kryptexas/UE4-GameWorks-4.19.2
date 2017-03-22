@@ -2857,9 +2857,14 @@ static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& Dest
 		}
 	}
 	
-	// Regenerate the file.
-	if( bForceRegenerate )
+	if (DestConfigFile.Num() == 0 && DestConfigFile.SourceConfigFile->Num() == 0)
 	{
+		// If both are empty, don't save
+		return false;
+	}
+	else if( bForceRegenerate )
+	{
+		// Regenerate the file.
 		bResult = LoadIniFileHierarchy(SourceIniHierarchy, DestConfigFile, bUseHierarchyCache);
 		DestConfigFile.SourceConfigFile = new FConfigFile( DestConfigFile );
 

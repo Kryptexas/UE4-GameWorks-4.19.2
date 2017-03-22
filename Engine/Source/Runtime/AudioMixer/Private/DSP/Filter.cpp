@@ -99,7 +99,7 @@ namespace Audio
 
 	void FBiquadFilter::SetFrequency(const float InCutoffFrequency)
 	{
-		const float InCutoffFrequencyClamped = FMath::Max(InCutoffFrequency, 20.0f);
+		const float InCutoffFrequencyClamped = FMath::Max(InCutoffFrequency, 0.0f);
 		if (Frequency != InCutoffFrequencyClamped)
 		{
 			Frequency = InCutoffFrequencyClamped;
@@ -190,7 +190,7 @@ namespace Audio
 			{
 				a0 = 1.0f;
 				a1 = -2.0f * Cs;
-				a2 = 1.0f - Alpha;
+				a2 = 1.0f;
 				b0 = 1.0f + Alpha;
 				b1 = -2.0f * Cs;
 				b2 = 1.0f - Alpha;
@@ -208,6 +208,17 @@ namespace Audio
 				b0 = 1.0f + (Alpha / Amp);
 				b1 = -2.0f * Cs;
 				b2 = 1.0f - (Alpha / Amp);
+			}
+			break;
+
+			case EBiquadFilter::AllPass:
+			{
+				a0 = 1.0f - Alpha;
+				a1 = -2.0f * Cs;
+				a2 = 1.0f + Alpha;
+				b0 = 1.0f + Alpha;
+				b1 = -2.0f * Cs;
+				b2 = 1.0f - Alpha;
 			}
 			break;
 		}
@@ -238,9 +249,11 @@ namespace Audio
 		, Frequency(MaxFilterFreq)
 		, BaseFrequency(MaxFilterFreq)
 		, ModFrequency(0.0f)
+		, ExternalModFrequency(0.0f)
 		, Q(1.5f)
 		, ModQ(0.0f)
 		, BaseQ(1.5f)
+		, ExternalModQ(0.0f)
 		, FilterType(EFilter::LowPass)
 		, ModMatrix(nullptr)
 		, bChanged(false)
@@ -276,9 +289,9 @@ namespace Audio
 		bChanged = true;
 	}
 
-	void IFilter::SetModFrequency(const float InModFrequency)
+	void IFilter::SetFrequencyMod(const float InModFrequency)
 	{
-		ModFrequency = InModFrequency;
+		ExternalModFrequency = InModFrequency;
 		bChanged = true;
 	}
 
@@ -288,9 +301,9 @@ namespace Audio
 		bChanged = true;
 	}
 
-	void IFilter::SetModQ(const float InModQ)
+	void IFilter::SetQMod(const float InModQ)
 	{
-		ModQ = InModQ;
+		ExternalModQ = InModQ;
 		bChanged = true;
 	}
 
@@ -311,8 +324,8 @@ namespace Audio
 		{
 			bChanged = false;
 
-			Frequency = FMath::Clamp(BaseFrequency * GetFrequencyMultiplier(ModFrequency), 80.0f, 18000.0f);
-			Q = BaseQ + ModQ;
+			Frequency = FMath::Clamp(BaseFrequency * GetFrequencyMultiplier(ModFrequency + ExternalModFrequency), 80.0f, 18000.0f);
+			Q = BaseQ + ModQ + ExternalModQ;
 		}
 	}
 

@@ -20,7 +20,7 @@ class UK2Node_BitmaskLiteral : public UK2Node, public INodeDependingOnEnumInterf
 	UEnum* BitflagsEnum;
 
 	//~ Begin UObject Interface
-	virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface

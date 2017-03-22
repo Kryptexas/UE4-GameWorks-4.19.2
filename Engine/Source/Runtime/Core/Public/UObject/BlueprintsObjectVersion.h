@@ -19,6 +19,7 @@ struct CORE_API FBlueprintsObjectVersion
 		AdvancedContainerSupport,
 		SCSHasComponentTemplateClass,
 		ComponentTemplateClassSupport,
+		ArrayGetFuncsReplacedByCustomNode,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

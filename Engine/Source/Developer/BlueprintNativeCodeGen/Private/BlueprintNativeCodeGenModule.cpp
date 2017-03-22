@@ -621,22 +621,25 @@ void FBlueprintNativeCodeGenModule::FinalizeManifest()
 	for(auto& PlatformName : TargetPlatformNames)
 	{
 		FBlueprintNativeCodeGenManifest& Manifest = GetManifest(*PlatformName);
-		if (NativizationSummary.IsValid())
+		if (Manifest.GetConversionRecord().Num() > 0)
 		{
-			TSet<TAssetPtr<UPackage>>* RequiredModules = NativizationSummary->ModulesRequiredByPlatform.Find(Manifest.GetCompilerNativizationOptions().PlatformName);
-			if (RequiredModules)
+			if (NativizationSummary.IsValid())
 			{
-				for (TAssetPtr<UPackage> ItPackage : *RequiredModules)
+				TSet<TAssetPtr<UPackage>>* RequiredModules = NativizationSummary->ModulesRequiredByPlatform.Find(Manifest.GetCompilerNativizationOptions().PlatformName);
+				if (RequiredModules)
 				{
-					if (UPackage* Pkg = ItPackage.Get())
+					for (TAssetPtr<UPackage> ItPackage : *RequiredModules)
 					{
-						Manifest.AddSingleModuleDependency(Pkg);
+						if (UPackage* Pkg = ItPackage.Get())
+						{
+							Manifest.AddSingleModuleDependency(Pkg);
+						}
 					}
 				}
 			}
+			Manifest.Save(-1);
+			check(FBlueprintNativeCodeGenUtils::FinalizePlugin(Manifest));
 		}
-		Manifest.Save(-1);
-		check(FBlueprintNativeCodeGenUtils::FinalizePlugin(Manifest));
 	}
 }
 
@@ -952,7 +955,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 				PackagingSettings->IsBlueprintAssetInNativizationList(Blueprint) :
 				(Blueprint->NativizationFlag == EBlueprintNativizationFlag::ExplicitlyEnabled);
 			// Blueprint is not selected
-			if (bNativizeOnlySelectedBPs && !bFlaggedForNativization)
+			if (bNativizeOnlySelectedBPs && !bFlaggedForNativization && !FBlueprintEditorUtils::ShouldNativizeImplicitly(Blueprint))
 			{
 				return true;
 			}
@@ -989,6 +992,11 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 						}
 						return true;
 					}
+				}
+				else if (InterfaceClassIt->GetCppTypeInfo()->IsAbstract())
+				{
+					UE_LOG(LogBlueprintCodeGen, Error, TEXT("BP %s is selected for nativization, but it cannot be nativized because it currently implements an interface class (%s) that declares one or more pure virtual functions."), *GetPathNameSafe(Blueprint), *GetPathNameSafe(InterfaceClassIt));
+					return true;
 				}
 			}
 		}

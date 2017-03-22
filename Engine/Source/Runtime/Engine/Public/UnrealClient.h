@@ -39,8 +39,8 @@ public:
 	// Properties.
 	virtual FIntPoint GetSizeXY() const = 0;
 
-	/** 
-	* @return display gamma expected for rendering to this render target 
+	/**
+	* @return display gamma expected for rendering to this render target
 	*/
 	ENGINE_API virtual float GetDisplayGamma() const;
 
@@ -48,7 +48,7 @@ public:
 	* Handles freezing/unfreezing of rendering
 	*/
 	virtual void ProcessToggleFreezeCommand() {};
-	
+
 	/**
 	 * Returns if there is a command to toggle freezerendering
 	 */
@@ -77,7 +77,7 @@ public:
 	 * @return True if the read succeeded.
 	 */
 	ENGINE_API bool ReadFloat16Pixels(TArray<FFloat16Color>& OutputBuffer,ECubeFace CubeFace=CubeFace_PosX);
-	
+
 	/**
 	 * Reads the viewport's displayed pixels into the given color buffer.
 	 * @param OutputBuffer - Linear color array to store the value
@@ -156,7 +156,7 @@ struct ENGINE_API FScreenshotRequest
 	/**
 	 * @return True if a screenshot is requested
 	 */
-	static bool IsScreenshotRequested() { return bIsScreenshotRequested; } 
+	static bool IsScreenshotRequested() { return bIsScreenshotRequested; }
 
 	/**
 	 * @return True if UI should be shown in the screenshot
@@ -343,7 +343,7 @@ public:
 	/**
 	 * Sets PreCapture coordinates from the current position of the slate cursor.
 	 */
-	virtual void SetPreCaptureMousePosFromSlateCursor() {} 
+	virtual void SetPreCaptureMousePosFromSlateCursor() {}
 
 	/**
 	 *	Starts a new rendering frame. Called from the game thread thread.
@@ -373,12 +373,12 @@ public:
 	virtual bool IsMouseAvailable( int32 ControllerID ) const { return true; }
 
 
-	/** 
+	/**
 	 * @return aspect ratio that this viewport should be rendered at
 	 */
 	virtual float GetDesiredAspectRatio() const
 	{
-		FIntPoint Size = GetSizeXY(); 
+		FIntPoint Size = GetSizeXY();
 		return (float)Size.X / (float)Size.Y;
 	}
 
@@ -389,7 +389,7 @@ public:
 
 	/**
 	 * Updates the viewport's displayed pixels with the results of calling ViewportClient->Draw.
-	 * 
+	 *
 	 * @param	bShouldPresent	Whether we want this frame to be presented
 	 */
 	ENGINE_API void Draw( bool bShouldPresent = true );
@@ -402,12 +402,12 @@ public:
 	/**
 	 * Invalidates cached hit proxies
 	 */
-	ENGINE_API void InvalidateHitProxy();	
+	ENGINE_API void InvalidateHitProxy();
 
 	/**
 	 * Invalidates cached hit proxies and the display.
 	 */
-	ENGINE_API void Invalidate();	
+	ENGINE_API void Invalidate();
 
 	ENGINE_API const TArray<FColor>& GetRawHitProxyData(FIntRect InRect);
 
@@ -429,7 +429,7 @@ public:
 	 * @return The viewport's frame interface.
 	 */
 	virtual FViewportFrame* GetViewportFrame() = 0;
-	
+
 	/**
 	 * Calculates the view inside the viewport when the aspect ratio is locked.
 	 * Used for creating cinematic bars.
@@ -463,7 +463,7 @@ public:
 	 * Returns whether rendering is globally enabled or disabled.
 	 * @return	true if rendering is globally enabled, otherwise false.
 	 **/
-	bool IsGameRenderingEnabled()	{ return bIsGameRenderingEnabled; }
+	ENGINE_API static bool IsGameRenderingEnabled() { return bIsGameRenderingEnabled; }
 
 	/**
 	 * Handles freezing/unfreezing of rendering
@@ -479,9 +479,9 @@ public:
 	* Accessors for RHI resources
 	*/
 	const FViewportRHIRef& GetViewportRHI() const { return ViewportRHI; }
-	
+
 	/**
-	 * Update the render target surface RHI to the current back buffer 
+	 * Update the render target surface RHI to the current back buffer
 	 */
 	void UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
 
@@ -492,9 +492,9 @@ public:
 	 * @param InY - Starting Y for drawing
 	 * @return - Y for next stat drawing
 	 */
-	virtual int32 DrawStatsHUD (FCanvas* InCanvas, const int32 InX, const int32 InY) 
-	{ 
-		return InY; 
+	virtual int32 DrawStatsHUD (FCanvas* InCanvas, const int32 InX, const int32 InY)
+	{
+		return InY;
 	}
 
 	/**
@@ -535,7 +535,7 @@ public:
 
 	/** Causes this viewport to flush rendering commands once it has been drawn */
 	void IncrementFlushOnDraw() { ++FlushOnDrawCount; }
-	
+
 	/** Decrements a previously incremented count that caused this viewport to flush rendering commands when it was drawn */
 	void DecrementFlushOnDraw() { check(FlushOnDrawCount); --FlushOnDrawCount; }
 
@@ -588,7 +588,7 @@ protected:
 
 		const FTexture2DRHIRef& GetHitProxyTexture(void) const		{ return HitProxyTexture; }
 		const FTexture2DRHIRef& GetHitProxyCPUTexture(void) const		{ return HitProxyCPUTexture; }
-		
+
 	private:
 
 		/** The width of the hit proxy map. */
@@ -606,7 +606,7 @@ protected:
 
 	/** The viewport's hit proxy map. */
 	FHitProxyMap HitProxyMap;
-	
+
 	/** Cached hit proxy data. */
 	TArray<FColor> CachedHitProxyData;
 
@@ -748,7 +748,7 @@ public:
 	 * @return	True to consume the key event, false to pass it on.
 	 */
 	virtual bool InputTouch(FViewport* Viewport, int32 ControllerId, uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex) { return false; }
-	
+
 	/**
 	 * Check a gesture event received by the viewport.
 	 * If the viewport client uses the event, it should return true to consume it.
@@ -779,7 +779,7 @@ public:
 	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) {}
 
 	virtual void MouseLeave( FViewport* Viewport ) {}
-	 
+
 	virtual void MouseMove(FViewport* Viewport,int32 X,int32 Y) {}
 
 	/**
@@ -797,7 +797,7 @@ public:
 	 * @param	Viewport	the viewport that contains the cursor
 	 * @param	X			the x position of the cursor
 	 * @param	Y			the Y position of the cursor
-	 * 
+	 *
 	 * @return	the cursor that the OS should display
 	 */
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) { return EMouseCursor::Default; }
@@ -808,7 +808,7 @@ public:
 	 * @return	the widget that should be rendered for this cursor, return TOptional<TSharedRef<SWidget>>() if no mapping.
 	 */
 	virtual TOptional<TSharedRef<SWidget>> MapCursor(FViewport* Viewport, const FCursorReply& CursorReply) { return TOptional<TSharedRef<SWidget>>(); }
-	
+
 	/**
 	 * Called to determine if we should render the focus brush.
 	 *
@@ -827,7 +827,7 @@ public:
 	 * Called when the top level window associated with the viewport has been requested to close.
 	 * At this point, the viewport has not been closed and the operation may be canceled.
 	 * This may not called from PIE, Editor Windows, on consoles, or before the game ends
- 	 * from other methods.
+	 * from other methods.
 	 * This is only when the platform specific window is closed.
 	 *
 	 * @return True if the viewport may be closed, false otherwise.
@@ -850,30 +850,30 @@ public:
 	*/
 	virtual bool RequiresKeyboardInput() const { return true; }
 
-	/** 
+	/**
 	 * Returns true if this viewport is orthogonal.
 	 * If hit proxies are ever used in-game, this will need to be
 	 * overridden correctly in GameViewportClient.
 	 */
 	virtual bool IsOrtho() const { return false; }
 
-	/** 
+	/**
 	 * Returns true if this viewport is excluding non-game elements from its display
 	 */
 	virtual bool IsInGameView() const { return false; }
 
 	/**
- 	 * Sets GWorld to the appropriate world for this client
-	 * 
+	 * Sets GWorld to the appropriate world for this client
+	 *
 	 * @return the previous GWorld
- 	 */
+	 */
 	virtual class UWorld* ConditionalSetWorld() { return NULL; }
 
 	/**
- 	 * Restores GWorld to InWorld
+	 * Restores GWorld to InWorld
 	 *
 	 * @param InWorld	The world to restore
- 	 */
+	 */
 	virtual void ConditionalRestoreWorld( class UWorld* InWorld ) {}
 
 	/**
@@ -903,7 +903,7 @@ public:
 	 * Sets all the stats that should be enabled for the viewport
 	 */
 	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) {}
-	
+
 	/**
 	 * Check whether a specific stat is enabled for this viewport
 	 */

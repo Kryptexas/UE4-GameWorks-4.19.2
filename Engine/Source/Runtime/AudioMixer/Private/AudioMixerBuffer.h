@@ -2,12 +2,8 @@
 
 #pragma once
 
-/* Public dependencies
-*****************************************************************************/
-
 #include "CoreMinimal.h"
-
-#include "AudioDecompress.h"
+#include "AudioMixerSourceDecode.h"
 #include "AudioMixer.h"
 
 namespace Audio
@@ -27,8 +23,6 @@ namespace Audio
 	class FMixerDevice;
 	class FMixerBuffer;
 
-	typedef FAsyncTask<FAsyncRealtimeAudioTaskWorker<FMixerBuffer>> FAsyncRealtimeAudioTask;
-
 	class FMixerBuffer : public FSoundBuffer
 	{
 	public:
@@ -43,8 +37,10 @@ namespace Audio
 		bool ReadCompressedInfo(USoundWave* SoundWave) override;
 		bool ReadCompressedData(uint8* Destination, bool bLooping) override;
 		void Seek(const float SeekTime) override;
-
 		//~ End FSoundBuffer Interface
+
+		// Allows specifying the number of frames you want to read
+		bool ReadCompressedData(uint8* Destination, int32 NumFrames, bool bLooping);
 
 		static FMixerBuffer* Init(FAudioDevice* AudioDevice, USoundWave* InWave, bool bForceRealtime);
 		static FMixerBuffer* CreatePreviewBuffer(FMixerDevice* InMixer, USoundWave* InWave);
@@ -63,11 +59,12 @@ namespace Audio
 		void EnsureHeaderParseTaskFinished();
 
 		float GetSampleRate() const { return SampleRate; }
+		void InitSampleRate(const float InSampleRate) { SampleRate = InSampleRate; }
 
 	private:
 
 		/** Async task for parsing real-time decompressed compressed info headers. */
-		FAsyncRealtimeAudioTask* RealtimeAsyncHeaderParseTask;
+		IAudioTask* RealtimeAsyncHeaderParseTask;
 
 		/** Wrapper to handle the decompression of audio codecs. */
 		ICompressedAudioInfo* DecompressionState;

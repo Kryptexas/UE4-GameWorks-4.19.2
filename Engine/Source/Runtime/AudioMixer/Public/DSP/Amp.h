@@ -53,6 +53,9 @@ namespace Audio
 		// Takes stereo input and generates stereo output
 		void ProcessAudio(const float LeftIn, const float RightIn, float* LeftOutput, float* RightOutput);
 
+		// Generates a new gain value for left and right outputs. 
+		void Generate(float& OutGainLeft, float& OutGainRight);
+
 		void Reset();
 
 		// Updates the final output left and right gain based on current settings

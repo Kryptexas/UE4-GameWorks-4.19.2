@@ -72,7 +72,7 @@ void FGraphCompilerContext::ValidateNode(const UEdGraphNode* Node) const
 	{
 		if (const UEdGraphPin* Pin = Node->Pins[PinIndex])
 		{
-			auto OwningNode = Pin->GetOwningNodeUnchecked();
+			UEdGraphNode* OwningNode = Pin->GetOwningNodeUnchecked();
 			if (OwningNode != Node)
 			{
 				MessageLog.Error(*NSLOCTEXT("EdGraphCompiler", "WrongPinsOwner_Error", "The pin @@ has outer @@, but it's used in @@").ToString(), Pin, OwningNode, Node);

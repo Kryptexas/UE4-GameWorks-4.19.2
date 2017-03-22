@@ -4,12 +4,25 @@
 #include "K2Node_GetArrayItem.h"
 #include "Engine/Blueprint.h"
 #include "EdGraphSchema_K2.h"
-
+#include "BlueprintActionDatabaseRegistrar.h"
 #include "EdGraphUtilities.h"
 #include "BPTerminal.h"
 #include "BlueprintCompiledStatement.h"
 #include "KismetCompiledFunctionContext.h"
 #include "KismetCompilerMisc.h"
+#include "BlueprintNodeSpawner.h"
+#include "KismetCompiler.h" // for FKismetCompilerContext
+#include "K2Node_CallArrayFunction.h"
+#include "Kismet/KismetArrayLibrary.h" // for Array_Get()
+#include "SPinTypeSelector.h"
+#include "ScopedTransaction.h"
+#include "MultiBoxBuilder.h" // for FMenuBuilder
+#include "BlueprintActionFilter.h"
+#include "SNotificationList.h" // for FNotificationInfo
+#include "NotificationManager.h"
+#include "BlueprintEditorUtils.h" // for MarkBlueprintAsModified()
+#include "CoreStyle.h"
+
 
 #define LOCTEXT_NAMESPACE "GetArrayItem"
 
@@ -72,10 +85,35 @@ public:
 };
 
 /*******************************************************************************
-*  UK2Node_GetArrayItem
-******************************************************************************/
+ *  UK2Node_GetArrayItem
+ ******************************************************************************/
+
+namespace K2Node_GetArrayItem_Impl
+{
+	static bool SupportsReturnByRef(const FEdGraphPinType& PinType)
+	{
+		return !(PinType.PinCategory == UEdGraphSchema_K2::PC_Object ||
+			PinType.PinCategory == UEdGraphSchema_K2::PC_Class ||
+			PinType.PinCategory == UEdGraphSchema_K2::PC_Asset ||
+			PinType.PinCategory == UEdGraphSchema_K2::PC_AssetClass ||
+			PinType.PinCategory == UEdGraphSchema_K2::PC_Interface);
+	}
+
+	static bool SupportsReturnByRef(const UK2Node_GetArrayItem* Node)
+	{
+		return (Node->Pins.Num() == 0) || SupportsReturnByRef(Node->GetTargetArrayPin()->PinType);
+	}
+
+	static FText GetToggleTooltip(bool bIsOutputRef)
+	{
+		return bIsOutputRef ? LOCTEXT("ConvToValTooltip", "Changing this node to return a copy will make it so it returns a temporary duplicate of the item in the array (changes to this item will NOT be propagated back to the array)") :
+			LOCTEXT("ConvToRefTooltip", "Changing this node to return by reference will make it so it returns the same item that's in the array (meaning you can operate directly on that item, and changes will be reflected in the array)");
+	}
+}
+
 UK2Node_GetArrayItem::UK2Node_GetArrayItem(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bReturnByRefDesired(true)
 {
 }
 
@@ -87,18 +125,23 @@ void UK2Node_GetArrayItem::AllocateDefaultPins()
 	GetDefault<UEdGraphSchema_K2>()->SetPinDefaultValueBasedOnType(IndexPin);
 
 	// Create the input pins to create the arrays from
-	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, TEXT(""), NULL, false, true, TEXT("Output"));
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, TEXT(""), NULL, false, bReturnByRefDesired, TEXT("Output"));
 }
 
 void UK2Node_GetArrayItem::PostReconstructNode()
 {
-	if (GetTargetArrayPin()->LinkedTo.Num() > 0)
+	UEdGraphPin* ArrayPin = GetTargetArrayPin();
+	if (ArrayPin->LinkedTo.Num() > 0 && ArrayPin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard)
 	{
-		PropagatePinType(GetTargetArrayPin()->LinkedTo[0]->PinType);
+		PropagatePinType(ArrayPin->LinkedTo[0]->PinType);
 	}
-	else if (GetResultPin()->LinkedTo.Num() > 0)
+	else
 	{
-		PropagatePinType(GetResultPin()->LinkedTo[0]->PinType);
+		UEdGraphPin* ResultPin = GetResultPin();
+		if (ResultPin->LinkedTo.Num() > 0)
+		{
+			PropagatePinType(ResultPin->LinkedTo[0]->PinType);
+		}
 	}
 }
 
@@ -108,7 +151,14 @@ FText UK2Node_GetArrayItem::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		return LOCTEXT("GetArrayItemByRef_FullTitle", "GET");
 	}
-	return LOCTEXT("GetArrayItemByRef", "Get");
+	return IsSetToReturnRef() ? LOCTEXT("GetArrayItemByRef", "Get (a ref)") : LOCTEXT("GetArrayItemByVal", "Get (a copy)");
+}
+
+FText UK2Node_GetArrayItem::GetTooltipText() const
+{
+	return IsSetToReturnRef() 
+		? LOCTEXT("RetRefTooltip", "Given an array and an index, returns the item in the array at that index (since\nit's a direct reference, you can operate directly on the item and changes made\nto it will be reflected back in the array)")
+		: LOCTEXT("RetValTooltip", "Given an array and an index, returns a temporary copy of the item in the array\nat that index (since it's a copy, changes to this item will NOT be propagated\nback to the array)");
 }
 
 class FNodeHandlingFunctor* UK2Node_GetArrayItem::CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const
@@ -116,10 +166,88 @@ class FNodeHandlingFunctor* UK2Node_GetArrayItem::CreateNodeHandler(class FKisme
 	return new FKCHandler_GetArrayItem(CompilerContext);
 }
 
+TSharedPtr<SWidget> UK2Node_GetArrayItem::CreateNodeImage() const
+{
+	return SPinTypeSelector::ConstructPinTypeImage(GetTargetArrayPin());
+}
+
+void UK2Node_GetArrayItem::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
+{
+	Super::GetContextMenuActions(Context);
+
+	const bool bReturnIsRef = IsSetToReturnRef();
+	FText ToggleTooltip = K2Node_GetArrayItem_Impl::GetToggleTooltip(bReturnIsRef);
+
+	const bool bCannotReturnRef = !bReturnIsRef && bReturnByRefDesired;
+	if (bCannotReturnRef)
+	{
+		UEdGraphPin* OutputPin = GetResultPin();
+		ToggleTooltip = FText::Format(LOCTEXT("CannotToggleTooltip", "Cannot return by ref using '{0}' pins"), UEdGraphSchema_K2::TypeToText(OutputPin->PinType));
+	}
+
+	Context.MenuBuilder->BeginSection("Array", LOCTEXT("ArrayHeader", "Array Get Node"));
+	Context.MenuBuilder->AddMenuEntry(
+		bReturnIsRef ? LOCTEXT("ChangeNodeToRef", "Change to return a copy") : LOCTEXT("ChangeNodeToVal", "Change to return a reference"),
+		ToggleTooltip,
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateUObject(this, &UK2Node_GetArrayItem::ToggleReturnPin),
+			FCanExecuteAction::CreateLambda([bCannotReturnRef]()->bool { return !bCannotReturnRef; }))
+		);
+	Context.MenuBuilder->EndSection();
+}
+
+FSlateIcon UK2Node_GetArrayItem::GetIconAndTint(FLinearColor& OutColor) const
+{
+	// emulate the icon/color that we used when this was a UK2Node_CallArrayFunction node
+	if (UFunction* WrappedFunction = FindField<UFunction>(UKismetArrayLibrary::StaticClass(), GET_FUNCTION_NAME_CHECKED(UKismetArrayLibrary, Array_Get)))
+	{
+		return UK2Node_CallFunction::GetPaletteIconForFunction(WrappedFunction, OutColor);
+	}
+	return Super::GetIconAndTint(OutColor);
+}
+
 void UK2Node_GetArrayItem::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	// temporarily don't register this slick new node with the database, gotta figure out how to provide old
-	// (get by value) behavior alongside new (get by ref) behavior
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* RetRefNodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(RetRefNodeSpawner != nullptr);
+		ActionRegistrar.AddBlueprintAction(ActionKey, RetRefNodeSpawner);
+
+		UBlueprintNodeSpawner* RetValNodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		auto CustomizeToReturnByVal = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
+		{
+			UK2Node_GetArrayItem* ArrayGetNode = CastChecked<UK2Node_GetArrayItem>(NewNode);
+			ArrayGetNode->SetDesiredReturnType(/*bAsReference =*/false);
+		};
+		check(RetValNodeSpawner != nullptr);
+		RetValNodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeToReturnByVal);
+		ActionRegistrar.AddBlueprintAction(ActionKey, RetValNodeSpawner);
+	}
+}
+
+FBlueprintNodeSignature UK2Node_GetArrayItem::GetSignature() const
+{
+	FBlueprintNodeSignature NodeSignature = Super::GetSignature();
+
+	static const FName NodeRetByRefKey(TEXT("ReturnByRef"));
+	NodeSignature.AddNamedValue(NodeRetByRefKey, IsSetToReturnRef() ? TEXT("true") : TEXT("false"));
+
+	return NodeSignature;
+}
+
+FText UK2Node_GetArrayItem::GetMenuCategory() const
+{
+	return LOCTEXT("ArrayUtilitiesCategory", "Utilities|Array");;
 }
 
 void UK2Node_GetArrayItem::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
@@ -128,65 +256,148 @@ void UK2Node_GetArrayItem::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 
 	if (Pin != GetIndexPin() && Pin->ParentPin == nullptr)
 	{
-		UEdGraphPin* ArrayPin  = Pins[0];
-		UEdGraphPin* ResultPin = Pins[2];
+		UEdGraphPin* ArrayPin = GetTargetArrayPin();
 
-		auto ClearWildcardType = [ArrayPin, ResultPin]()
+		const bool bConnectionAdded = Pin->LinkedTo.Num() > 0;
+		if (bConnectionAdded)
 		{
-			ArrayPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
-			ArrayPin->PinType.PinSubCategory = TEXT("");
-			ArrayPin->PinType.PinSubCategoryObject = NULL;
-
-			ResultPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
-			ResultPin->PinType.PinSubCategory = TEXT("");
-			ResultPin->PinType.PinSubCategoryObject = NULL;
-			ResultPin->PinType.bIsReference = true;
-
-			ArrayPin->BreakAllPinLinks();
-			ResultPin->BreakAllPinLinks();
-		};
-
-		const int32 NewLinkCount  = Pin->LinkedTo.Num();
-		const bool  bPinsHasLinks = (NewLinkCount > 0);
-		if (ArrayPin == Pin)
-		{
-			if (bPinsHasLinks)
+			const bool bIsWildcard = (ArrayPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard);
+			if (bIsWildcard)
 			{
-				// if we had more than one input, we'd have to find the common base type
-				ensure(NewLinkCount == 1); 
-				// the input array has authority, change output types, even if they are connected
-				PropagatePinType(Pin->LinkedTo[0]->PinType);
-			}
-			// if the array pin was disconnected from everything, and...
-			else if (ResultPin->LinkedTo.Num() == 0)
-			{
-				ClearWildcardType();
+				FEdGraphPinType& NewType = Pin->LinkedTo[0]->PinType;
+				if (NewType.PinCategory != UEdGraphSchema_K2::PC_Wildcard)
+				{
+					PropagatePinType(NewType);
+				}
 			}
 		}
-		else if (ArrayPin->LinkedTo.Num() == 0)
+		else
 		{
-			// if we cleared the result pin's connections
-			if (!bPinsHasLinks)
+			const bool bIsArrayPin = (Pin == ArrayPin);
+			UEdGraphPin* ResultPin = GetResultPin();
+			UEdGraphPin* OtherPin  = bIsArrayPin ? ResultPin : ArrayPin;
+
+			if (OtherPin->LinkedTo.Num() == 0)
 			{
-				ClearWildcardType();
+				ArrayPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
+				ArrayPin->PinType.PinSubCategory.Empty();
+				ArrayPin->PinType.PinSubCategoryObject = nullptr;
+
+				ResultPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
+				ResultPin->PinType.PinSubCategory.Empty();
+				ResultPin->PinType.PinSubCategoryObject = nullptr;
+				ResultPin->PinType.bIsReference = bReturnByRefDesired;
+
+				ArrayPin->BreakAllPinLinks();
+				ResultPin->BreakAllPinLinks();
 			}
-			// if this is the first connection to the result pin...
-			else if (NewLinkCount == 1)
-			{
-				PropagatePinType(Pin->LinkedTo[0]->PinType);
-			}
-			// else, the result pin already had a connection and a type, leave 
-			// it alone, as it is what facilitated this connection as well
 		}
-		// else, leave this node alone, the array input is still connected and 
-		// it has authority over the wildcard types (the type set should already be good)
 	}
+}
+
+void UK2Node_GetArrayItem::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
+{
+	Super::ExpandNode(CompilerContext, SourceGraph);
+
+	UEdGraphPin* SrcReturnPin = GetResultPin();
+	if (!SrcReturnPin->PinType.bIsReference)
+	{
+		UK2Node_CallArrayFunction* CallArrayLibFunc = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(this, SourceGraph);
+		CallArrayLibFunc->FunctionReference.SetExternalMember(GET_FUNCTION_NAME_CHECKED(UKismetArrayLibrary, Array_Get), UKismetArrayLibrary::StaticClass());
+		CallArrayLibFunc->AllocateDefaultPins();
+
+		UEdGraphPin* SrcArrayPin = GetTargetArrayPin();
+		UEdGraphPin* DstArrayPin = CallArrayLibFunc->GetTargetArrayPin();
+		CallArrayLibFunc->PropagateArrayTypeInfo(SrcArrayPin);
+		CompilerContext.MovePinLinksToIntermediate(*SrcArrayPin, *DstArrayPin);
+
+		UEdGraphPin* SrcIndexPin = GetIndexPin();
+		for (UEdGraphPin* DestPin : CallArrayLibFunc->Pins)
+		{
+			if (DestPin->Direction == EEdGraphPinDirection::EGPD_Output)
+			{
+				CompilerContext.MovePinLinksToIntermediate(*SrcReturnPin, *DestPin);
+			}
+			else if (DestPin != DstArrayPin && DestPin->PinName != UEdGraphSchema_K2::PN_Self)
+			{
+				DestPin->DefaultValue = SrcIndexPin->DefaultValue;
+				CompilerContext.MovePinLinksToIntermediate(*SrcIndexPin, *DestPin);
+			}
+		}
+	}
+}
+
+bool UK2Node_GetArrayItem::IsActionFilteredOut(FBlueprintActionFilter const& Filter)
+{
+	bool bIsFilteredOut = false;
+	for (UEdGraphPin* Pin : Filter.Context.Pins)
+	{
+		if (bReturnByRefDesired && !K2Node_GetArrayItem_Impl::SupportsReturnByRef(Pin->PinType))
+		{
+			bIsFilteredOut = true;
+			break;
+		}
+	}
+	return bIsFilteredOut;
+}
+
+bool UK2Node_GetArrayItem::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
+{
+	if (MyPin != GetIndexPin())
+	{
+		if (OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+		{
+			OutReason = LOCTEXT("NoExecWarning", "Cannot have an array of execution pins.").ToString();
+			return true;
+		}
+		else if (IsSetToReturnRef() && !K2Node_GetArrayItem_Impl::SupportsReturnByRef(OtherPin->PinType))
+		{
+			OutReason = LOCTEXT("ConnectionWillChangeNodeToVal", "Change the Get node to return a copy").ToString();
+			// the connection is allowed, it will just change how the node behaves
+			return false;
+		}
+	}
+	return false;
+}
+
+void UK2Node_GetArrayItem::SetDesiredReturnType(bool bAsReference)
+{
+	if (bReturnByRefDesired != bAsReference)
+	{
+		bReturnByRefDesired = bAsReference;
+
+		const bool bReconstruct = (Pins.Num() > 0) && (IsSetToReturnRef() == bAsReference);
+		if (bReconstruct)
+		{
+			ReconstructNode();
+			FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
+		}
+	}
+}
+
+void UK2Node_GetArrayItem::ToggleReturnPin()
+{
+	FText TransactionTitle;
+	if (bReturnByRefDesired)
+	{
+		TransactionTitle = LOCTEXT("ToggleToVal", "Change to return a copy");
+	}
+	else
+	{
+		TransactionTitle = LOCTEXT("ToggleToRef", "Change to return a reference");
+	}
+	const FScopedTransaction Transaction(TransactionTitle);
+	Modify();
+
+	SetDesiredReturnType(!bReturnByRefDesired);
 }
 
 void UK2Node_GetArrayItem::PropagatePinType(FEdGraphPinType& InType)
 {
+	UBlueprint const* Blueprint = GetBlueprint();
+
 	UClass const* CallingContext = NULL;
-	if (UBlueprint const* Blueprint = GetBlueprint())
+	if (Blueprint)
 	{
 		CallingContext = Blueprint->GeneratedClass;
 		if (CallingContext == NULL)
@@ -203,9 +414,21 @@ void UK2Node_GetArrayItem::PropagatePinType(FEdGraphPinType& InType)
 	ArrayPin->PinType.bIsArray = true;
 	ArrayPin->PinType.bIsReference = false;
 
+	// IsSetToReturnRef() has to be called after the ArrayPin's type is set, since it uses that to determine the result
+	const bool bMakeOutputRef = IsSetToReturnRef();
+	if (!bMakeOutputRef && bReturnByRefDesired && ResultPin->PinType.bIsReference && Blueprint && !Blueprint->bIsRegeneratingOnLoad)
+	{
+		FNotificationInfo Warning(LOCTEXT("ConnectionAlteredOutput", "Array Get node altered. Now returning a copy."));
+		Warning.ExpireDuration = 2.0f;
+		Warning.bFireAndForget = true;
+		Warning.bUseLargeFont  = false;
+		Warning.Image = FCoreStyle::Get().GetBrush(TEXT("MessageLog.Warning"));
+		FSlateNotificationManager::Get().AddNotification(Warning);
+	}
+
 	ResultPin->PinType = InType;
 	ResultPin->PinType.bIsArray = false;
-	ResultPin->PinType.bIsReference = !(ResultPin->PinType.PinCategory == Schema->PC_Object || ResultPin->PinType.PinCategory == Schema->PC_Class || ResultPin->PinType.PinCategory == Schema->PC_Asset || ResultPin->PinType.PinCategory == Schema->PC_AssetClass || ResultPin->PinType.PinCategory == Schema->PC_Interface);
+	ResultPin->PinType.bIsReference = bMakeOutputRef;
 	ResultPin->PinType.bIsConst = false;
 
 
@@ -217,6 +440,13 @@ void UK2Node_GetArrayItem::PropagatePinType(FEdGraphPinType& InType)
 		{
 			ArrayPin->BreakLinkTo(ConnectedPin);
 		}
+		else if (ConnectedPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+		{
+			if (UK2Node* ConnectedNode = Cast<UK2Node>(ConnectedPin->GetOwningNode()))
+			{
+				ConnectedNode->PinConnectionListChanged(ConnectedPin);
+			}
+		}
 	}
 
 	// Verify that all previous connections to this pin are still valid with the new type
@@ -227,7 +457,19 @@ void UK2Node_GetArrayItem::PropagatePinType(FEdGraphPinType& InType)
 		{
 			ResultPin->BreakLinkTo(ConnectedPin);
 		}
+		else if (ConnectedPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+		{
+			if (UK2Node* ConnectedNode = Cast<UK2Node>(ConnectedPin->GetOwningNode()))
+			{
+				ConnectedNode->PinConnectionListChanged(ConnectedPin);
+			}
+		}
 	}
+}
+
+bool UK2Node_GetArrayItem::IsSetToReturnRef() const
+{
+	return bReturnByRefDesired && K2Node_GetArrayItem_Impl::SupportsReturnByRef(this);
 }
 
 #undef LOCTEXT_NAMESPACE

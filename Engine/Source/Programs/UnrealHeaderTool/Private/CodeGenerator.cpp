@@ -222,7 +222,7 @@ static struct FFlagAudit
 	{
 		bool bDoDiff = false;
 		FString Filename;
-		FString RefFilename = FString(FPaths::GameSavedDir()) / TEXT("ReferenceFlags.txt");
+		FString RefFilename = FPaths::GameSavedDir() / TEXT("ReferenceFlags.txt");
 		if( !FParse::Param( FCommandLine::Get(), TEXT("WRITEFLAGS") ) )
 		{
 			return;
@@ -233,7 +233,7 @@ static struct FFlagAudit
 		}
 		else if( FParse::Param( FCommandLine::Get(), TEXT("VERIFYREF") ) )
 		{
-			Filename = FString(FPaths::GameSavedDir()) / TEXT("VerifyFlags.txt");
+			Filename = FPaths::GameSavedDir() / TEXT("VerifyFlags.txt");
 			bDoDiff = true;
 		}
 
@@ -275,7 +275,7 @@ static struct FFlagAudit
 						MisMatches.Logf(TEXT("VERIFY: %s"), *VerifyLines[Index]);
 					}
 				}
-				FString DiffFilename = FString(FPaths::GameSavedDir()) / TEXT("FlagsDiff.txt");
+				FString DiffFilename = FPaths::GameSavedDir() / TEXT("FlagsDiff.txt");
 				FFileHelper::SaveStringToFile(MisMatches, *DiffFilename);
 			}
 		}
@@ -1473,6 +1473,9 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FOutputDevice& O
 			GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\tOuterClass->ClassConfigName = FName(TEXT(\"%s\"));\r\n"), *Class->ClassConfigName.ToString());
 		}
 
+		GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\tstatic TCppClassTypeInfo<TCppClassTypeTraits<%s> > StaticCppClassTypeInfo;\r\n"), NameLookupCPP.GetNameCPP(Class, Class->HasAllClassFlags(CLASS_Interface)));
+		GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\tOuterClass->SetCppTypeInfo(&StaticCppClassTypeInfo);\r\n"));
+
 		for (auto& Inter : Class->Interfaces)
 		{
 			check(Inter.Class);
@@ -2531,6 +2534,7 @@ bool FNativeClassHeaderGenerator::WriteHeader(const TCHAR* Path, const FString& 
 	GeneratedHeaderTextWithCopyright.Logf(TEXT("%s"), HeaderCopyright);
 	GeneratedHeaderTextWithCopyright.Log(LINE_TERMINATOR);
 	GeneratedHeaderTextWithCopyright.Log(TEXT("#include \"ObjectMacros.h\"\r\n"));
+	GeneratedHeaderTextWithCopyright.Log(TEXT("#include \"ScriptMacros.h\"\r\n"));
 	GeneratedHeaderTextWithCopyright.Log(LINE_TERMINATOR);
 	GeneratedHeaderTextWithCopyright.Log(TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR);
 
@@ -4600,8 +4604,8 @@ bool FNativeClassHeaderGenerator::SaveHeaderIfChanged(const TCHAR* HeaderPath, c
 	{
 		bTestedCmdLine = true;
 
-		const FString ReferenceGeneratedCodePath = FString(FPaths::GameSavedDir()) / TEXT("ReferenceGeneratedCode/");
-		const FString VerifyGeneratedCodePath = FString(FPaths::GameSavedDir()) / TEXT("VerifyGeneratedCode/");
+		const FString ReferenceGeneratedCodePath = FPaths::GameSavedDir() / TEXT("ReferenceGeneratedCode/");
+		const FString VerifyGeneratedCodePath = FPaths::GameSavedDir() / TEXT("VerifyGeneratedCode/");
 
 		if (FParse::Param(FCommandLine::Get(), TEXT("WRITEREF")))
 		{
@@ -4623,8 +4627,8 @@ bool FNativeClassHeaderGenerator::SaveHeaderIfChanged(const TCHAR* HeaderPath, c
 
 	if (bWriteContents || bVerifyContents)
 	{
-		FString Ref    = FString(FPaths::GameSavedDir()) / TEXT("ReferenceGeneratedCode") / FPaths::GetCleanFilename(HeaderPath);
-		FString Verify = FString(FPaths::GameSavedDir()) / TEXT("VerifyGeneratedCode") / FPaths::GetCleanFilename(HeaderPath);
+		FString Ref    = FPaths::GameSavedDir() / TEXT("ReferenceGeneratedCode") / FPaths::GetCleanFilename(HeaderPath);
+		FString Verify = FPaths::GameSavedDir() / TEXT("VerifyGeneratedCode") / FPaths::GetCleanFilename(HeaderPath);
 
 		if (bWriteContents)
 		{
@@ -5371,9 +5375,9 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 			UE_LOG(LogCompile, Error, TEXT("%s"), *Msg);
 		}
 		TArray<FString> RefFileNames;
-		IFileManager::Get().FindFiles( RefFileNames, *(FString(FPaths::GameSavedDir()) / TEXT("ReferenceGeneratedCode/*.*")), true, false );
+		IFileManager::Get().FindFiles( RefFileNames, *(FPaths::GameSavedDir() / TEXT("ReferenceGeneratedCode/*.*")), true, false );
 		TArray<FString> VerFileNames;
-		IFileManager::Get().FindFiles( VerFileNames, *(FString(FPaths::GameSavedDir()) / TEXT("VerifyGeneratedCode/*.*")), true, false );
+		IFileManager::Get().FindFiles( VerFileNames, *(FPaths::GameSavedDir() / TEXT("VerifyGeneratedCode/*.*")), true, false );
 		if (RefFileNames.Num() != VerFileNames.Num())
 		{
 			UE_LOG(LogCompile, Error, TEXT("Number of generated files mismatch ref=%d, ver=%d"), RefFileNames.Num(), VerFileNames.Num());

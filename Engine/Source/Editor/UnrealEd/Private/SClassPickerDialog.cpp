@@ -17,7 +17,6 @@
 #include "Components/ActorComponent.h"
 #include "Engine/Blueprint.h"
 #include "Editor/UnrealEdEngine.h"
-#include "Settings/EditorExperimentalSettings.h"
 #include "Editor.h"
 #include "UnrealEdGlobals.h"
 #include "Widgets/Views/STableViewBase.h"
@@ -39,19 +38,12 @@ void SClassPickerDialog::Construct(const FArguments& InArgs)
 
 	ClassViewer = StaticCastSharedRef<SClassViewer>(FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(InArgs._Options, FOnClassPicked::CreateSP(this,&SClassPickerDialog::OnClassPicked)));
 
-	// Determine if components are allowed
-	const UEditorExperimentalSettings* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
-	const bool bForBlueprint = (InArgs._AssetType != nullptr) && (InArgs._AssetType->IsChildOf(UBlueprint::StaticClass()));
-	const bool bAllowComponentSubclasses = !bForBlueprint || ExperimentalSettings->bBlueprintableComponents;
-
 	// Load in default settings
 	for (const FClassPickerDefaults& DefaultObj : GUnrealEd->GetUnrealEdOptions()->NewAssetDefaultClasses)
 	{
 		UClass* AssetType = LoadClass<UObject>(NULL, *DefaultObj.AssetClass, NULL, LOAD_None, NULL);
-		UClass* AssetActualClass = LoadClass<UObject>(NULL, *DefaultObj.ClassName, NULL, LOAD_None, NULL);
-		const bool bIsComponent = AssetActualClass->IsChildOf(UActorComponent::StaticClass());
 
-		if (InArgs._AssetType->IsChildOf(AssetType) && (!bIsComponent || bAllowComponentSubclasses))
+		if (InArgs._AssetType->IsChildOf(AssetType))
 		{
 			AssetDefaultClasses.Add(MakeShareable(new FClassPickerDefaults(DefaultObj)));
 		}

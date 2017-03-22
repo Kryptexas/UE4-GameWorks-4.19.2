@@ -9,15 +9,15 @@ void FSourceEffectStereoDelay::Init(const FSoundEffectSourceInitData& InitData)
 	DelayStereo.Init(InitData.SampleRate);
 }
 
-void FSourceEffectStereoDelay::SetPreset(USoundEffectSourcePreset* InPreset)
+void FSourceEffectStereoDelay::OnPresetChanged()
 {
-	USourceEffectStereoDelayPreset* StereoDelayPreset = CastChecked<USourceEffectStereoDelayPreset>(InPreset);
+	GET_EFFECT_SETTINGS(SourceEffectStereoDelay);
 
-	DelayStereo.SetDelayTimeMsec(StereoDelayPreset->Settings.DelayTimeMsec);
-	DelayStereo.SetFeedback(StereoDelayPreset->Settings.Feedback);
-	DelayStereo.SetWetLevel(StereoDelayPreset->Settings.WetLevel);
-	DelayStereo.SetDelayRatio(StereoDelayPreset->Settings.DelayRatio);
-	DelayStereo.SetMode((Audio::EStereoDelayMode::Type)StereoDelayPreset->Settings.DelayMode);
+	DelayStereo.SetDelayTimeMsec(Settings.DelayTimeMsec);
+	DelayStereo.SetFeedback(Settings.Feedback);
+	DelayStereo.SetWetLevel(Settings.WetLevel);
+	DelayStereo.SetDelayRatio(Settings.DelayRatio);
+	DelayStereo.SetMode((Audio::EStereoDelayMode::Type)Settings.DelayMode);
 }
 
 void FSourceEffectStereoDelay::ProcessAudio(const FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData)
@@ -35,3 +35,7 @@ void FSourceEffectStereoDelay::ProcessAudio(const FSoundEffectSourceInputData& I
 	}
 }
 
+void USourceEffectStereoDelayPreset::SetSettings(const FSourceEffectStereoDelaySettings& InSettings)
+{
+	UpdateSettings(InSettings);
+}

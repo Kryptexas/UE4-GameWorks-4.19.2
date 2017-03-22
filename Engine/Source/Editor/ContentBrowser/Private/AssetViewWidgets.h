@@ -638,8 +638,8 @@ private:
 	/** Gets the path to this asset */
 	FText GetAssetPathText() const;
 
-	/** Gets the value for the specified asset tag in this asset */
-	FText GetAssetTagText(FName AssetRegistryTag) const;
+	/** Gets the value for the specified tag in this asset */
+	FText GetAssetTagText(FName Tag) const;
 
 private:
 	TAttribute<FText> HighlightText;

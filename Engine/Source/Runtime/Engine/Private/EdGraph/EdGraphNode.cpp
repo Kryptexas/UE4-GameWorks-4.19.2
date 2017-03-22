@@ -414,7 +414,7 @@ void UEdGraphNode::PostLoad()
 	{
 		for (UEdGraphPin_Deprecated* LegacyPin : DeprecatedPins)
 		{
-			LegacyPin->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders);
+			LegacyPin->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders|REN_NonTransactional);
 			LegacyPin->SetFlags(RF_Transient);
 			LegacyPin->MarkPendingKill();
 		}

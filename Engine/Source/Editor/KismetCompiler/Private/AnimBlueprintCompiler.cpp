@@ -1149,7 +1149,8 @@ int32 FAnimBlueprintCompiler::ExpandGraphAndProcessNodes(UEdGraph* SourceGraph, 
 
 	// Move the cloned nodes into the consolidated event graph
 	const bool bIsLoading = Blueprint->bIsRegeneratingOnLoad || IsAsyncLoading();
-	ClonedGraph->MoveNodesToAnotherGraph(ConsolidatedEventGraph, bIsLoading);
+	const bool bIsCompiling = Blueprint->bBeingCompiled;
+	ClonedGraph->MoveNodesToAnotherGraph(ConsolidatedEventGraph, bIsLoading, bIsCompiling);
 
 	// Process any animation nodes
 	{
@@ -1681,7 +1682,8 @@ void FAnimBlueprintCompiler::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 				// Merge all the animation nodes, contents, etc... into the ubergraph
 				UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(SourceGraph, NULL, &MessageLog, true);
 				const bool bIsLoading = Blueprint->bIsRegeneratingOnLoad || IsAsyncLoading();
-				ClonedGraph->MoveNodesToAnotherGraph(ConsolidatedEventGraph, bIsLoading);
+				const bool bIsCompiling = Blueprint->bBeingCompiled;
+				ClonedGraph->MoveNodesToAnotherGraph(ConsolidatedEventGraph, bIsLoading, bIsCompiling);
 			}
 		}
 
@@ -1757,9 +1759,9 @@ void FAnimBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 	NewClass = NewAnimBlueprintClass;
 }
 
-void FAnimBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+void FAnimBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOldCDO)
 {
-	Super::CleanAndSanitizeClass(ClassToClean, OldCDO);
+	Super::CleanAndSanitizeClass(ClassToClean, InOldCDO);
 
 	// Make sure our typed pointer is set
 	check(ClassToClean == NewClass);

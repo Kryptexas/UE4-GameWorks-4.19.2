@@ -6,6 +6,8 @@
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 
+DEFINE_LOG_CATEGORY(LogSynthesis);
+
 IMPLEMENT_MODULE(FSynthesisModule, FSynthesis)
 
 void FSynthesisModule::StartupModule()

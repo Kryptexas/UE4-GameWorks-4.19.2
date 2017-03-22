@@ -6,6 +6,7 @@
 
 
 #include "KismetCompiler.h"
+#include "AnimBlueprintCompiler.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Misc/CoreMisc.h"
 #include "Components/ActorComponent.h"
@@ -85,7 +86,11 @@ namespace
 	{
 		for (UEdGraphNode* Node : Graph->Nodes)
 		{
-			const bool bRootSetByType = Node && (Node->IsA<UK2Node_FunctionEntry>() || Node->IsA<UK2Node_Event>() || Node->IsA<UK2Node_Timeline>());
+			// UK2Node_FunctionResult can't be pruned because we need it to determine function outputs. 
+			// If we prune UK2Node_FunctionResult we generate a function  that is missing user defined
+			// outputs. UK2Node_FunctionResult has no exec output so it will not bring in any extra
+			// nodes, but by keeping it we ensure that the expected output parameters are generated:
+			const bool bRootSetByType = Node && (Node->IsA<UK2Node_FunctionEntry>() || Node->IsA<UK2Node_Event>() || Node->IsA<UK2Node_Timeline>() || Node->IsA<UK2Node_FunctionResult>());
 			UK2Node* K2Node = Cast<UK2Node>(Node);
 			bool bIsRootSet = bRootSetByType || (K2Node && K2Node->IsNodeRootSet());
 
@@ -126,6 +131,13 @@ FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompil
 	, NewClass(NULL)
 	, ConsolidatedEventGraph(NULL)
 	, UbergraphContext(NULL)
+	, bIsFullCompile(false)
+	, bIsSkeletonOnly(false)
+	, OldCDO(nullptr)
+	, OldGenLinkerIdx(INDEX_NONE)
+	, OldLinker(nullptr)
+	, TargetClass(nullptr)
+	, bAssignDelegateSignatureFunction(false)
 {
 	MacroRowMaxHeight = 0;
 
@@ -207,7 +219,7 @@ bool FKismetCompilerContext::FSubobjectCollection::operator()(const UObject* con
 	return ( NULL != Collection.Find(RemovalCandidate) );
 }
 
-void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOldCDO)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CleanAndSanitizeClass);
 
@@ -235,16 +247,16 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	TransientClass->ClassFlags |= CLASS_CompiledFromBlueprint;
 
 	NewClass = ClassToClean;
-	OldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
+	InOldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
 	
 	const ERenameFlags RenFlags = REN_DontCreateRedirectors |  ((bRecompilingOnLoad) ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
 
-	if( OldCDO )
+	if( InOldCDO )
 	{
-		FString TransientCDOString = FString::Printf(TEXT("TRASH_%s"), *OldCDO->GetName());
+		FString TransientCDOString = FString::Printf(TEXT("TRASH_%s"), *InOldCDO->GetName());
 		FName TransientCDOName = MakeUniqueObjectName(GetTransientPackage(), TransientClass, FName(*TransientCDOString));
-		OldCDO->Rename(*TransientCDOName.ToString(), GetTransientPackage(), RenFlags);
-		FLinkerLoad::InvalidateExport(OldCDO);
+		InOldCDO->Rename(*TransientCDOName.ToString(), GetTransientPackage(), RenFlags);
+		FLinkerLoad::InvalidateExport(InOldCDO);
 	}
 
 	// Purge all subobjects (properties, functions, params) of the class, as they will be regenerated
@@ -254,7 +266,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	{
 		// Save subobjects, that won't be regenerated.
 		FSubobjectCollection SubObjectsToSave;
-		SaveSubObjectsFromCleanAndSanitizeClass(SubObjectsToSave, ClassToClean, OldCDO);
+		SaveSubObjectsFromCleanAndSanitizeClass(SubObjectsToSave, ClassToClean);
 
 		ClassSubObjects.RemoveAllSwap(SubObjectsToSave);
 	}
@@ -283,7 +295,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	ClassToClean->DebugData = FBlueprintDebugData();
 }
 
-void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean)
 {
 	SubObjectsToSave.AddObjects(Blueprint->ComponentTemplates);
 	SubObjectsToSave.AddObjects(Blueprint->Timelines);
@@ -454,7 +466,10 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 	{
 		if (UK2Node_FunctionResult* OwningNode = Cast<UK2Node_FunctionResult>(OwningNodeUnchecked))
 		{
-			MessageLog.Warning(*LOCTEXT("ReturnNodeExecPinUnconnected", "ReturnNode Exec pin has no connections on @@").ToString(), Pin);
+			if(OwningNode->Pins.Num() > 1)
+			{
+				MessageLog.Warning(*LOCTEXT("ReturnNodeExecPinUnconnected", "ReturnNode Exec pin has no connections on @@").ToString(), Pin);
+			}
 		}
 	}
 }
@@ -601,6 +616,15 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 		UProperty* NewProperty = CreateVariable(Variable.VarName, Variable.VarType);
 		if (NewProperty != NULL)
 		{
+			if(bAssignDelegateSignatureFunction)
+			{
+				if(UMulticastDelegateProperty* AsDelegate = Cast<UMulticastDelegateProperty>(NewProperty))
+				{
+					AsDelegate->SignatureFunction = FindField<UFunction>(NewClass, *(Variable.VarName.ToString() + HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX));
+					ensure(AsDelegate->SignatureFunction);
+				}
+			}
+
 			NewProperty->SetPropertyFlags(Variable.PropertyFlags);
 			NewProperty->SetMetaData(TEXT("DisplayName"), *Variable.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *Variable.Category.ToString());
@@ -3185,7 +3209,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 				}
 			}
 
-			ClonedGraph->MoveNodesToAnotherGraph(SourceGraph, IsAsyncLoading() || bIsLoading);
+			ClonedGraph->MoveNodesToAnotherGraph(SourceGraph, IsAsyncLoading() || bIsLoading, Blueprint && Blueprint->bBeingCompiled);
 			FEdGraphUtilities::MergeChildrenGraphsIn(SourceGraph, ClonedGraph, /*bRequireSchemaMatch=*/ true);
 
 			// When emitting intermediate products; make an effort to make them readable by preventing overlaps and adding informative comments
@@ -3436,8 +3460,10 @@ FKismetFunctionContext* FKismetCompilerContext::CreateFunctionContext()
 }
 
 /** Compile a blueprint into a class and a set of functions */
-void FKismetCompilerContext::Compile()
+void FKismetCompilerContext::CompileClassLayout()
 {
+	PreCompile();
+
 	// Interfaces only need function signatures, so we only need to perform the first phase of compilation for them
 	bIsFullCompile = CompileOptions.DoesRequireBytecodeGeneration() && (Blueprint->BlueprintType != BPTYPE_Interface);
 
@@ -3461,14 +3487,14 @@ void FKismetCompilerContext::Compile()
 	// Make sure the parent class exists and can be used
 	check(Blueprint->ParentClass && Blueprint->ParentClass->GetPropertiesSize());
 
-	const bool bIsSkeletonOnly = (CompileOptions.CompileType == EKismetCompileType::SkeletonOnly);
+	bIsSkeletonOnly = (CompileOptions.CompileType == EKismetCompileType::SkeletonOnly);
 	UClass* TargetUClass = bIsSkeletonOnly ? Blueprint->SkeletonGeneratedClass : Blueprint->GeneratedClass;
 
 	// >>> Backwards Compatibility:  Make sure this is an actual UBlueprintGeneratedClass / UAnimBlueprintGeneratedClass, as opposed to the old UClass
 	EnsureProperGeneratedClass(TargetUClass);
 	// <<< End Backwards Compatibility
 
-	UBlueprintGeneratedClass* TargetClass = Cast<UBlueprintGeneratedClass>(TargetUClass);
+	TargetClass = Cast<UBlueprintGeneratedClass>(TargetUClass);
 
 	// >>> Backwards Compatibility: Make sure that skeleton generated classes have the proper "SKEL_" naming convention
 	const FString SkeletonPrefix(TEXT("SKEL_"));
@@ -3579,9 +3605,9 @@ void FKismetCompilerContext::Compile()
 	// This validation requires CDO object.
 	ValidateVariableNames();
 
-	UObject* OldCDO = NULL;
-	int32 OldGenLinkerIdx = INDEX_NONE;
-	FLinkerLoad* OldLinker = Blueprint->GetLinker();
+	OldCDO = NULL;
+	OldGenLinkerIdx = INDEX_NONE;
+	OldLinker = Blueprint->GetLinker();
 
 	if (OldLinker)
 	{
@@ -3609,8 +3635,6 @@ void FKismetCompilerContext::Compile()
 
 
 	CleanAndSanitizeClass(TargetClass, OldCDO);
-
-	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
 
 	NewClass->ClassGeneratedBy = Blueprint;
 
@@ -3684,6 +3708,11 @@ void FKismetCompilerContext::Compile()
 		NewClass->Bind();
 		NewClass->StaticLink(true);
 	}
+}
+
+void FKismetCompilerContext::CompileFunctions()
+{
+	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
 
 	if (bIsFullCompile && !MessageLog.NumErrors)
 	{
@@ -4156,6 +4185,12 @@ void FKismetCompilerContext::Compile()
 	PostCompile();
 }
 
+void FKismetCompilerContext::Compile()
+{
+	CompileClassLayout();
+	CompileFunctions();
+}
+
 bool FKismetCompilerContext::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)
 {
 	// Our CDO should be properly constructed by this point and should always exist
@@ -4296,6 +4331,18 @@ FString FKismetCompilerContext::GetGuid(const UEdGraphNode* Node) const
 	FGuid Ret = Node->NodeGuid;
 	Ret.D = ResultCRC;
 	return Ret.ToString();
+}
+
+TUniquePtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
+{
+	if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(BP))
+	{
+		return TUniquePtr<FKismetCompilerContext>(new FAnimBlueprintCompiler(AnimBP, InMessageLog, InCompileOptions, nullptr));
+	}
+	else
+	{
+		return TUniquePtr<FKismetCompilerContext>(new FKismetCompilerContext(BP, InMessageLog, InCompileOptions, nullptr));
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -83,9 +83,9 @@ FXAudio2SoundSource::~FXAudio2SoundSource( void )
 void FXAudio2SoundSource::InitializeSourceEffects(uint32 InVoiceId)
 {
 	VoiceId = InVoiceId;
-	if (AudioDevice->SpatializeProcessor != nullptr)
+	if (AudioDevice->SpatializationPluginInterface.IsValid())
 	{
-		AudioDevice->SpatializeProcessor->CreateSpatializationEffect(VoiceId);
+		AudioDevice->SpatializationPluginInterface->CreateSpatializationEffect(VoiceId);
 	}
 }
 
@@ -413,8 +413,8 @@ bool FXAudio2SoundSource::CreateSource( void )
 
 	if (CreateWithSpatializationEffect())
 	{
-		check(AudioDevice->SpatializeProcessor != nullptr);
-		IUnknown* Effect = (IUnknown*)AudioDevice->SpatializeProcessor->GetSpatializationEffect(VoiceId);
+		check(AudioDevice->SpatializationPluginInterface.IsValid());
+		IUnknown* Effect = (IUnknown*)AudioDevice->SpatializationPluginInterface->GetSpatializationEffect(VoiceId);
 		if (Effect)
 		{
 			// Indicate that this source is currently using the 3d spatialization effect. We can't stop using it
@@ -722,9 +722,9 @@ void FXAudio2SoundSource::GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MAT
 			bEditorWarnedChangedSpatialization = true;
 			UE_LOG(LogXAudio2, Warning, TEXT("Changing the spatialization algorithm on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
 		}
-		check(AudioDevice->SpatializeProcessor != nullptr);
+		check(AudioDevice->SpatializationPluginInterface.IsValid());
 
-		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, SpatializationParams);
+		AudioDevice->SpatializationPluginInterface->SetSpatializationParameters(VoiceId, SpatializationParams);
 		GetStereoChannelVolumes(ChannelVolumes, AttenuatedVolume);
 	}
 	else // Spatialize the mono stream using the normal 3d audio algorithm
@@ -1627,7 +1627,6 @@ bool FXAudio2SoundSource::IsUsingHrtfSpatializer()
 bool FXAudio2SoundSource::CreateWithSpatializationEffect()
 {
 	return (Buffer->NumChannels == 1 &&
-			AudioDevice->SpatializationPlugin != nullptr &&
 			AudioDevice->IsSpatializationPluginEnabled() &&
 			WaveInstance->SpatializationAlgorithm != SPATIALIZATION_Default);
 }

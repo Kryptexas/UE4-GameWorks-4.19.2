@@ -555,8 +555,8 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	/** Sets from a ImportText string, used in asset registry */
 	void FromExportString(FString ExportString);
 
-	/** Returns abbreviated human readable Tag list without parens or property names */
-	FString ToStringSimple() const;
+	/** Returns abbreviated human readable Tag list without parens or property names. If bQuoted is true it will quote each tag */
+	FString ToStringSimple(bool bQuoted = false) const;
 
 	/** Returns human readable description of what match is being looked for on the readable tag list. */
 	FText ToMatchingText(EGameplayContainerMatchType MatchType, bool bInvertCondition) const;

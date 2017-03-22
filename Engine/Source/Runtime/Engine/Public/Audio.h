@@ -10,6 +10,7 @@
 #include "Stats/Stats.h"
 #include "HAL/ThreadSafeBool.h"
 #include "Sound/SoundClass.h"
+#include "Sound/SoundSubmix.h"
 #include "Sound/SoundAttenuation.h"
 #include "Sound/SoundEffectSource.h"
 #include "IAudioExtensionPlugin.h"
@@ -56,7 +57,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 
 #define DEFAULT_SUBTITLE_PRIORITY		10000.0f
 
-#define AUDIO_SAMPLE_RATE				44100
+#define AUDIO_SAMPLE_RATE				48000
 
 /**
  * Some filters don't work properly with extreme values, so these are the limits 
@@ -238,19 +239,13 @@ struct EAudioPlugin
 	enum Type
 	{
 		SPATIALIZATION,
+		REVERB,
+		OCCLUSION
 	};
 };
 
 /** Queries if a plugin of the given type is enabled. */
 ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType);
-
-/** Struct describes the submix send info for the wave instance. */
-struct ENGINE_API FSubmixSendInfo
-{
-	class USoundSubmix* SoundSubmix;
-	float DryLevel;
-	float WetLevel;
-};
 
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
@@ -262,15 +257,15 @@ struct ENGINE_API FWaveInstance
 	static uint32 TypeHashCounter;
 
 	/** Wave data */
-	class USoundWave*	WaveData;
+	class USoundWave* WaveData;
 	/** Sound class */
-	class USoundClass*  SoundClass;
+	class USoundClass* SoundClass;
+	/** Sound submix */
+	class USoundSubmix* SoundSubmix;
 	/** Sound submix sends */
-	TArray<FSubmixSendInfo> SoundSubmixSends;
+	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 	/** Sound effect chain */
-	TArray<USoundEffectSourcePreset*> SourceEffectChain;
-	/** Whether or not to play the effect chain tails when a one-shot source ends. */
-	bool bPlayEffectChainTails;
+	USoundEffectSourcePresetChain* SourceEffectChain;
 
 	/** Sound nodes to notify when the current audio buffer finishes */
 	FNotifyBufferFinishedHooks NotifyBufferFinishedHooks;
@@ -334,6 +329,12 @@ struct ENGINE_API FWaveInstance
 	uint32				bReportedSpatializationWarning:1;
 	/** Which algorithm to use to spatialize 3d sounds. */
 	ESoundSpatializationAlgorithm SpatializationAlgorithm;
+	/** The occlusion plugin settings to use for the wave instance. */
+	USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
+	/** The occlusion plugin settings to use for the wave instance. */
+	UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
+	/** The occlusion plugin settings to use for the wave instance. */
+	UReverbPluginSourceSettingsBase* ReverbPluginSettings;
 	/** Which output target the sound should play to */
 	EAudioOutputTarget::Type OutputTarget;
 	float				LowPassFilterFrequency;
@@ -780,38 +781,6 @@ public:
 	ENGINE_API bool ReadWaveHeader(uint8* RawWaveData, int32 Size, int32 Offset );
 
 	ENGINE_API void ReportImportFailure() const;
-};
-
-/** Simple class that wraps the math involved with interpolating a parameter over time based on audio device update time. */
-class ENGINE_API FDynamicParameter
-{
-public:
-	explicit FDynamicParameter(float Value);
-
-	void Set(float Value, float InDuration);
-	void Update(float DeltaTime);
-	
-	bool IsDone() const 
-	{
-		return CurrTimeSec >= DurationSec;
-	}
-	float GetValue() const
-	{
-		return CurrValue;
-	}
-	float GetTargetValue() const
-	{
-		return TargetValue;
-	}
-
-private:
-	float CurrValue;
-	float StartValue;
-	float DeltaValue;
-	float CurrTimeSec;
-	float DurationSec;
-	float LastTime;
-	float TargetValue;
 };
 
 /**

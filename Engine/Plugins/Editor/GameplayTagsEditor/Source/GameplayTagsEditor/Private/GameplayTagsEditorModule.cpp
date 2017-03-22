@@ -254,6 +254,34 @@ public:
 		}
 	}
 
+	bool DeleteTagRedirector(FString TagToDelete)
+	{
+		FName TagName = FName(*TagToDelete);
+
+		UGameplayTagsSettings* Settings = GetMutableDefault<UGameplayTagsSettings>();
+		UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
+
+		for (int32 i = 0; i < Settings->GameplayTagRedirects.Num(); i++)
+		{
+			if (Settings->GameplayTagRedirects[i].OldTagName == TagName)
+			{
+				Settings->GameplayTagRedirects.RemoveAt(i);
+
+				GameplayTagsUpdateSourceControl(Settings->GetDefaultConfigFilename());
+				Settings->UpdateDefaultConfigFile();
+				GConfig->LoadFile(Settings->GetDefaultConfigFilename());
+
+				Manager.EditorRefreshGameplayTagTree();
+
+				ShowNotification(FText::Format(LOCTEXT("RemoveTagRedirect", "Deleted tag redirect {0}"), FText::FromString(TagToDelete)), 5.0f);
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	virtual bool AddNewGameplayTagToINI(FString NewTag, FString Comment, FName TagSourceName) override
 	{
 		UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
@@ -271,8 +299,10 @@ public:
 		UGameplayTagsSettings*			Settings = GetMutableDefault<UGameplayTagsSettings>();
 		UGameplayTagsDeveloperSettings* DevSettings = GetMutableDefault<UGameplayTagsDeveloperSettings>();
 
-		// Already in the list as an explicit tag, ignore. Note we want to add if it is in implicit tag. (E.g, someone added A.B.C then someone tries to add A.B)
+		// Delete existing redirector
+		DeleteTagRedirector(NewTag);
 
+		// Already in the list as an explicit tag, ignore. Note we want to add if it is in implicit tag. (E.g, someone added A.B.C then someone tries to add A.B)
 		if (Manager.IsDictionaryTag(FName(*NewTag)))
 		{
 			ShowNotification(FText::Format(LOCTEXT("AddTagFailure", "Failed to add gameplay tag {0}, already exists!"), FText::FromString(NewTag)), 10.0f);
@@ -343,25 +373,13 @@ public:
 		FString Comment;
 		FName TagSourceName;
 
+		if (DeleteTagRedirector(TagToDelete))
+		{
+			return true;
+		}
+
 		if (!Manager.GetTagEditorData(TagName, Comment, TagSourceName))
 		{
-			// Check redirect list
-			for (int32 i = 0; i < Settings->GameplayTagRedirects.Num(); i++)
-			{
-				if (Settings->GameplayTagRedirects[i].OldTagName == TagName)
-				{
-					Settings->GameplayTagRedirects.RemoveAt(i);
-
-					GameplayTagsUpdateSourceControl(Settings->GetDefaultConfigFilename());
-					Settings->UpdateDefaultConfigFile();
-					GConfig->LoadFile(Settings->GetDefaultConfigFilename());
-
-					ShowNotification(FText::Format(LOCTEXT("RemoveTagRedirect", "Deleted tag redirect {0}"), FText::FromString(TagToDelete)), 5.0f);
-
-					return true;
-				}
-			}
-
 			ShowNotification(FText::Format(LOCTEXT("RemoveTagFailureNoTag", "Cannot delete tag {0}, does not exist!"), FText::FromString(TagToDelete)), 10.0f);
 
 			return false;
@@ -472,6 +490,9 @@ public:
 
 		FString OldComment, NewComment;
 		FName OldTagSourceName, NewTagSourceName;
+
+		// Delete existing redirector
+		DeleteTagRedirector(TagToRenameTo);
 
 		if (Manager.GetTagEditorData(OldTagName, OldComment, OldTagSourceName))
 		{

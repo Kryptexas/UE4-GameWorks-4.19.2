@@ -3,6 +3,7 @@
 #include "ReferenceViewer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Framework/Docking/TabManager.h"
+#include "EdGraph_ReferenceViewer.h"
 #include "EdGraphNode_Reference.h"
 #include "SGraphNode.h"
 #include "SReferenceNode.h"
@@ -64,6 +65,17 @@ public:
 		ReferenceViewer->SetGraphRootPackageNames(GraphRootIdentifiers);
 	}
 
+	virtual bool GetSelectedAssetsForMenuExtender(const class UEdGraph* Graph, const class UEdGraphNode* Node, TArray<FAssetIdentifier>& SelectedAssets) override
+	{
+		const UEdGraph_ReferenceViewer* ReferenceGraph = Cast<UEdGraph_ReferenceViewer>(Graph);
+
+		if (!ReferenceGraph)
+		{
+			return false;
+		}
+
+		return ReferenceGraph->GetSelectedAssetsForMenuExtender(Node, SelectedAssets);
+	}
 private:
 	TSharedRef<SDockTab> SpawnReferenceViewerTab( const FSpawnTabArgs& SpawnTabArgs )
 	{

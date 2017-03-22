@@ -99,7 +99,21 @@ public:
 			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundSubmix));
 			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectSubmixPreset));
 			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectSourcePreset));
+			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectSourcePresetChain));
 		}
+	}
+
+	virtual void AddSoundWaveActionExtender(TSharedPtr<ISoundWaveAssetActionExtensions> InSoundWaveAssetActionExtender) override
+	{
+		if (InSoundWaveAssetActionExtender.IsValid())
+		{
+			SoundWaveAssetActionExtensions.AddUnique(InSoundWaveAssetActionExtender);
+		}
+	}
+
+	virtual void GetSoundWaveActionExtenders(TArray<TSharedPtr<ISoundWaveAssetActionExtensions>>& OutSoundwaveActionExtensions) override
+	{
+		OutSoundwaveActionExtensions = SoundWaveAssetActionExtensions;
 	}
 
 	virtual void RegisterEffectPresetAssetActions() override
@@ -120,11 +134,13 @@ public:
 				}
 
 				// Look for submix or source preset classes
-				if (ChildClass->IsChildOf<USoundEffectPreset>())
+				UClass* ParentClass = ChildClass->GetSuperClass();
+				if (ParentClass->IsChildOf(USoundEffectSourcePreset::StaticClass()) || ParentClass->IsChildOf(USoundEffectSubmixPreset::StaticClass()))
 				{
 					USoundEffectPreset* EffectPreset = ChildClass->GetDefaultObject<USoundEffectPreset>();
-					if (EffectPreset->HasAssetActions())
+					if (!RegisteredActions.Contains(EffectPreset) && EffectPreset->HasAssetActions())
 					{
+						RegisteredActions.Add(EffectPreset);
 						AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectPreset(EffectPreset)));
 					}
 				}
@@ -252,7 +268,8 @@ private:
 	FExtensibilityManagers SoundCueExtensibility;
 	FExtensibilityManagers SoundClassExtensibility;
 	FExtensibilityManagers SoundSubmixExtensibility;
-
+	TArray<TSharedPtr<ISoundWaveAssetActionExtensions>> SoundWaveAssetActionExtensions;
+	TSet<USoundEffectPreset*> RegisteredActions;
 	TSharedPtr<struct FGraphPanelPinConnectionFactory> SoundCueGraphConnectionFactory;
 
 };

@@ -331,24 +331,29 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 TArray<UScriptStruct*> FDataTableEditorUtils::GetPossibleStructs()
 {
 	TArray< UScriptStruct* > RowStructs;
-	UScriptStruct* TableRowStruct = FindObjectChecked<UScriptStruct>(ANY_PACKAGE, TEXT("TableRowBase"));
-	if (TableRowStruct != NULL)
+
+	// Make combo of table rowstruct options
+	for (TObjectIterator<UScriptStruct> It; It; ++It)
 	{
-		// Make combo of table rowstruct options
-		for (TObjectIterator<UScriptStruct> It; It; ++It)
+		UScriptStruct* Struct = *It;
+		if (IsValidTableStruct(Struct))
 		{
-			UScriptStruct* Struct = *It;
-			// If a child of the table row struct base, but not itself
-			const bool bBasedOnTableRowBase = Struct->IsChildOf(TableRowStruct) && (Struct != TableRowStruct);
-			const bool bUDStruct = Struct->IsA<UUserDefinedStruct>();
-			const bool bValidStruct = (Struct->GetOutermost() != GetTransientPackage());
-			if ((bBasedOnTableRowBase || bUDStruct) && bValidStruct)
-			{
-				RowStructs.Add(Struct);
-			}
+			RowStructs.Add(Struct);
 		}
 	}
 	return RowStructs;
+}
+
+bool FDataTableEditorUtils::IsValidTableStruct(UScriptStruct* Struct)
+{
+	UScriptStruct* TableRowStruct = FindObjectChecked<UScriptStruct>(ANY_PACKAGE, TEXT("TableRowBase"));
+
+	// If a child of the table row struct base, but not itself
+	const bool bBasedOnTableRowBase = TableRowStruct && Struct->IsChildOf(TableRowStruct) && (Struct != TableRowStruct);
+	const bool bUDStruct = Struct->IsA<UUserDefinedStruct>();
+	const bool bValidStruct = (Struct->GetOutermost() != GetTransientPackage());
+
+	return (bBasedOnTableRowBase || bUDStruct) && bValidStruct;
 }
 
 #undef LOCTEXT_NAMESPACE

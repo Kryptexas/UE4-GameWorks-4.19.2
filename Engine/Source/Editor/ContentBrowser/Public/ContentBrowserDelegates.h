@@ -41,6 +41,9 @@ DECLARE_DELEGATE_RetVal( TArray< FAssetData >, FGetCurrentSelectionDelegate );
 /** Called to retrieve an array of the currently selected asset data */
 DECLARE_DELEGATE_OneParam(FSyncToAssetsDelegate, const TArray< FAssetData >& /*AssetData*/);
 
+/** Called to force the asset view to refresh */
+DECLARE_DELEGATE_OneParam(FRefreshAssetViewDelegate, bool /*UpdateSources*/);
+
 /** Called to set a new filter for an existing asset picker */
 DECLARE_DELEGATE_OneParam(FSetARFilterDelegate, const FARFilter& /*NewFilter*/);
 
@@ -91,6 +94,9 @@ DECLARE_DELEGATE_RetVal_ThreeParams(TSharedPtr<SWidget>, FOnGetFolderContextMenu
 /** Called to request a custom asset item tooltip */
 DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SToolTip>, FOnGetCustomAssetToolTip, FAssetData& /*AssetData*/);
 
+/** Called to get value for a custom column, will get converted as necesary */
+DECLARE_DELEGATE_RetVal_TwoParams(FString, FOnGetCustomAssetColumnData, FAssetData& /*AssetData*/, FName /*ColumnName*/);
+
 /** Called when an asset item visualizes its tooltip */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnVisualizeAssetToolTip, const TSharedPtr<SWidget>& /*ToolTipContent*/, FAssetData& /*AssetData*/);
 
@@ -105,7 +111,6 @@ DECLARE_DELEGATE_OneParam(FOnAssetsChosenForOpen, const TArray<FAssetData>& /*Se
 
 /** Called from the Asset Dialog when an asset name is chosen in non-modal Save dialogs */
 DECLARE_DELEGATE_OneParam(FOnObjectPathChosenForSave, const FString& /*ObjectPath*/);
-
 
 /** Contains the delegates used to handle a custom drag-and-drop in the asset view */
 struct FAssetViewDragAndDropExtender
@@ -148,4 +153,35 @@ struct FAssetViewDragAndDropExtender
 	FOnDropDelegate OnDropDelegate;
 	FOnDragOverDelegate OnDragOverDelegate;
 	FOnDragLeaveDelegate OnDragLeaveDelegate;
+};
+
+/** Struct to define a custom column for the asset view */
+struct FAssetViewCustomColumn
+{
+	/** Internal name of the column */
+	FName ColumnName;
+
+	/** Display name of the column */
+	FText DisplayName;
+
+	/** Tooltip for the column */
+	FText TooltipText;
+
+	/** Type of column, used for sorting */
+	UObject::FAssetRegistryTag::ETagType DataType;
+
+	/** Delegate to get String value for this column */
+	FOnGetCustomAssetColumnData OnGetColumnData;
+
+	FAssetViewCustomColumn()
+		: DataType(UObject::FAssetRegistryTag::TT_Alphabetical) 
+	{ }
+
+	FAssetViewCustomColumn(FName InColumnName, const FText& InDisplayName, const FText& InTooltipText, UObject::FAssetRegistryTag::ETagType InDataType, const FOnGetCustomAssetColumnData& InOnGetColumnData)
+		: ColumnName(InColumnName)
+		, DisplayName(InDisplayName)
+		, TooltipText(InTooltipText)
+		, DataType(InDataType)
+		, OnGetColumnData(InOnGetColumnData)
+	{ }
 };

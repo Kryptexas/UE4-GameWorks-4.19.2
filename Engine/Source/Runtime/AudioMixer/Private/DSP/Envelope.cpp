@@ -16,12 +16,15 @@ namespace Audio
 		, ReleaseTimeMsec(2000.0f)
 		, ShutdownTimeMsec(10.0f)
 		, ShutdownDelta(0.0f)
+		, Depth(1.0f)
+		, BiasDepth(1.0f)
 		, CurrentState(EEnvelopeState::Off)
 		, ModMatrix(nullptr)
 		, bIsSimulatingAnalog(true)
 		, bIsLegatoMode(false)
 		, bIsRetriggerMode(false)
 		, bChanged(true)
+		, bInvert(false)
 		, bBiasInvert(false)
 	{
 	}
@@ -252,6 +255,10 @@ namespace Audio
 		// Send the bias output (i.e. scale envelope by offset by sustain gain)
 		float CurrentBiasedOutput = bBiasInvert ? 1.0f - CurrentEnvelopeValue : CurrentEnvelopeValue;
 		CurrentBiasedOutput -= SustainGain;
+		CurrentBiasedOutput *= BiasDepth;
+
+		const float OutputEnvValue = bInvert ? 1.0f - CurrentEnvelopeValue : CurrentEnvelopeValue;
+		CurrentEnvelopeValue *= Depth;
 
 		if (BiasedOutput)
 		{
@@ -291,8 +298,23 @@ namespace Audio
 		bChanged = true;
 	}
 
+	void FEnvelope::SetInvert(const bool bInInvert)
+	{
+		bInvert = bInInvert;
+	}
+
 	void FEnvelope::SetBiasInvert(const bool bInBiasInvert)
 	{
 		bBiasInvert = bInBiasInvert;
+	}
+
+	void FEnvelope::SetDepth(const float InDepth)
+	{
+		Depth = InDepth;
+	}
+
+	void FEnvelope::SetBiasDepth(const float InDepth)
+	{
+		BiasDepth = InDepth;
 	}
 }

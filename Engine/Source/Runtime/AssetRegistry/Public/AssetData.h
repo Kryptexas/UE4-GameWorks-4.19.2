@@ -490,11 +490,13 @@ inline FName FAssetData::GetTagValueRef<FName>(const FName InTagName) const
 	return TmpValue;
 }
 
-/** A structure defining a thing that can be reference bt something else in the asset registry */
+/** A structure defining a thing that can be reference by something else in the asset registry. Represents either a package of a primary asset id */
 struct FAssetIdentifier
 {
-	/** The name of the package that is depended on, this is always set */
+	/** The name of the package that is depended on, this is always set unless PrimaryAssetType is */
 	FName PackageName;
+	/** The primary asset type, if valid the ObjectName is the PrimaryAssetName */
+	FPrimaryAssetType PrimaryAssetType;
 	/** Specific object within a package. If empty, assumed to be the default asset */
 	FName ObjectName;
 	/** Name of specific value being referenced, if ObjectName specifies a type such as a UStruct */
@@ -502,7 +504,12 @@ struct FAssetIdentifier
 
 	/** Can be implicitly constructed from just the package name */
 	FAssetIdentifier(FName InPackageName, FName InObjectName = NAME_None, FName InValueName = NAME_None)
-		: PackageName(InPackageName), ObjectName(InObjectName), ValueName(InValueName)
+		: PackageName(InPackageName), PrimaryAssetType(NAME_None), ObjectName(InObjectName), ValueName(InValueName)
+	{}
+
+	/** Construct from a primary asset id */
+	FAssetIdentifier(const FPrimaryAssetId& PrimaryAssetId, FName InValueName = NAME_None)
+		: PackageName(NAME_None), PrimaryAssetType(PrimaryAssetId.PrimaryAssetType), ObjectName(PrimaryAssetId.PrimaryAssetName), ValueName(InValueName)
 	{}
 
 	FAssetIdentifier(UObject* SourceObject, FName InValueName)
@@ -517,8 +524,30 @@ struct FAssetIdentifier
 	}
 
 	FAssetIdentifier()
-		: PackageName(NAME_None), ObjectName(NAME_None), ValueName(NAME_None)
+		: PackageName(NAME_None), PrimaryAssetType(NAME_None), ObjectName(NAME_None), ValueName(NAME_None)
 	{}
+
+	/** Returns primary asset id for this identifier, if valid */
+	FPrimaryAssetId GetPrimaryAssetId() const
+	{
+		if (PrimaryAssetType != NAME_None)
+		{
+			return FPrimaryAssetId(PrimaryAssetType, ObjectName);
+		}
+		return FPrimaryAssetId();
+	}
+
+	/** Returns true if this represents a package */
+	bool IsPackage() const
+	{
+		return PackageName != NAME_None && !IsObject() && IsValue();
+	}
+
+	/** Returns true if this represents an object, true for both package objects and PrimaryAssetId objects */
+	bool IsObject() const
+	{
+		return ObjectName != NAME_None && !IsValue();
+	}
 
 	/** Returns true if this represents a specific value */
 	bool IsValue() const
@@ -526,20 +555,28 @@ struct FAssetIdentifier
 		return ValueName != NAME_None;
 	}
 
-	/** Returns true if this represents a specific value */
-	bool IsObject() const
+	/** Returns true if this is a valid non-null identifier */
+	bool IsValid() const
 	{
-		return ObjectName != NAME_None && !IsValue();
+		return PackageName != NAME_None || GetPrimaryAssetId().IsValid();
 	}
 
 	/** Returns string version of this identifier in Package.Object::Name format */
 	FString ToString() const
 	{
-		FString Result = PackageName.ToString();
-		if (ObjectName != NAME_None)
+		FString Result;
+		if (PrimaryAssetType != NAME_None)
 		{
-			Result += TEXT(".");
-			Result += ObjectName.ToString();
+			Result = GetPrimaryAssetId().ToString();
+		}
+		else
+		{
+			Result = PackageName.ToString();
+			if (ObjectName != NAME_None)
+			{
+				Result += TEXT(".");
+				Result += ObjectName.ToString();
+			}
 		}
 		if (ValueName != NAME_None)
 		{
@@ -561,6 +598,14 @@ struct FAssetIdentifier
 		if (!String.Split(TEXT("::"), &PackageString, &ValueString))
 		{
 			PackageString = String;
+		}
+
+		// Check if it's a valid primary asset id
+		FPrimaryAssetId PrimaryId = FPrimaryAssetId::FromString(PackageString);
+
+		if (PrimaryId.IsValid())
+		{
+			return FAssetIdentifier(PrimaryId, *ValueString);
 		}
 
 		// Try to split on first . , if it fails PackageString will stay the same
@@ -585,6 +630,7 @@ struct FAssetIdentifier
 		}
 
 		Hash = HashCombine(Hash, GetTypeHash(Key.PackageName));
+		Hash = HashCombine(Hash, GetTypeHash(Key.PrimaryAssetType));
 		Hash = HashCombine(Hash, GetTypeHash(Key.ObjectName));
 		Hash = HashCombine(Hash, GetTypeHash(Key.ValueName));
 		return Hash;

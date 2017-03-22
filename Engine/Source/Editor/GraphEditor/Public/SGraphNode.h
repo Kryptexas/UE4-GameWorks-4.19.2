@@ -360,9 +360,9 @@ protected:
 	TWeakPtr<SGraphPanel> OwnerGraphPanelPtr;
 	/** The GraphNode being observed by this widget */
 	UEdGraphNode* GraphNode;
-	/** The area where input pins resize */
+	/** The area where input pins reside */
 	TSharedPtr<SVerticalBox> LeftNodeBox;
-	/** The area where output pins resize */
+	/** The area where output pins reside */
 	TSharedPtr<SVerticalBox> RightNodeBox;
 	/** Used to display the name of the node and allow renaming of the node */
 	TSharedPtr<SInlineEditableTextBlock> InlineEditableText;

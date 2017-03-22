@@ -1,6 +1,71 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+/**
+ * A primary asset type, represented as an FName internally and implicitly convertible back and forth
+ * This exists so the blueprint API can understand it's not a normal FName
+ */
+struct FPrimaryAssetType
+{
+	/** Convert from FName */
+	FPrimaryAssetType() {}
+	FPrimaryAssetType(FName InName) : Name(InName) {}
+	FPrimaryAssetType(EName InName) : Name(FName(InName)) {}
+	FPrimaryAssetType(const WIDECHAR* InName) : Name(FName(InName)) {}
+	FPrimaryAssetType(const ANSICHAR* InName) : Name(FName(InName)) {}
+
+	/** Convert to FName */
+	operator FName&() { return Name; }
+	operator const FName&() const { return Name; }
+
+	/** Returns internal Name explicitly, not normally needed */
+	FName GetName()
+	{
+		return Name;
+	}
+
+	bool operator==(const FPrimaryAssetType& Other) const
+	{
+		return Name == Other;
+	}
+
+	bool operator!=(const FPrimaryAssetType& Other) const
+	{
+		return Name != Other;
+	}
+
+	FPrimaryAssetType& operator=(const FPrimaryAssetType& Other)
+	{
+		Name = Other;
+		return *this;
+	}
+
+	/** Returns true if this is a valid Type */
+	bool IsValid() const
+	{
+		return Name != NAME_None;
+	}
+
+	/** Returns string version of this Type */
+	FString ToString() const
+	{
+		return Name.ToString();
+	}
+
+	/** UStruct Overrides */
+	bool ExportTextItem(FString& ValueStr, FPrimaryAssetType const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
+	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
+
+private:
+	friend COREUOBJECT_API UScriptStruct* Z_Construct_UScriptStruct_FPrimaryAssetType();
+
+	/** The FName representing this type */
+	FName Name;
+};
 
 /**
  * This identifies an object as a "primary" asset that can be searched for by the AssetManager and used in various tools
@@ -8,7 +73,7 @@
 struct FPrimaryAssetId
 {
 	/** The Type of this object, by default it's base class's name */
-	FName PrimaryAssetType;
+	FPrimaryAssetType PrimaryAssetType;
 	/** The Name of this object, by default it's short name */
 	FName PrimaryAssetName;
 
@@ -16,16 +81,16 @@ struct FPrimaryAssetId
 	static COREUOBJECT_API const FName PrimaryAssetTypeTag;
 	static COREUOBJECT_API const FName PrimaryAssetNameTag;
 
-	FPrimaryAssetId(FName InAssetType, FName InAssetName)
+	FPrimaryAssetId(FPrimaryAssetType InAssetType, FName InAssetName)
 		: PrimaryAssetType(InAssetType), PrimaryAssetName(InAssetName)
 	{}
 
-	FPrimaryAssetId(FString InString)
+	FPrimaryAssetId(const FString& InString)
 	{
 		FString TypeString;
 		FString NameString;
 
-		if (InString.Split(TEXT(":"), &TypeString, &NameString))
+		if (InString.Split(TEXT(":"), &TypeString, &NameString, ESearchCase::CaseSensitive))
 		{
 			PrimaryAssetType = *TypeString;
 			PrimaryAssetName = *NameString;
@@ -51,26 +116,30 @@ struct FPrimaryAssetId
 	/** Converts from Type:Name format */
 	static FPrimaryAssetId FromString(const FString& String)
 	{
-		// To right of :: is value
-		FString TypeString;
-		FString NameString;
-
-		if (String.Split(TEXT(":"), &TypeString, &NameString))
-		{
-			return FPrimaryAssetId(*TypeString, *NameString);
-		}
-		return FPrimaryAssetId();
+		return FPrimaryAssetId(String);
 	}
 
-	friend inline bool operator==(const FPrimaryAssetId& A, const FPrimaryAssetId& B)
+	bool operator==(const FPrimaryAssetId& Other) const
 	{
-		return A.PrimaryAssetType == B.PrimaryAssetType && A.PrimaryAssetName == B.PrimaryAssetName;
+		return PrimaryAssetType == Other.PrimaryAssetType && PrimaryAssetName == Other.PrimaryAssetName;
 	}
 
-	friend inline bool operator!=(const FPrimaryAssetId& A, const FPrimaryAssetId& B)
+	bool operator!=(const FPrimaryAssetId& Other) const
 	{
-		return !(A==B);
+		return PrimaryAssetType != Other.PrimaryAssetType || PrimaryAssetName != Other.PrimaryAssetName;
 	}
+
+	FPrimaryAssetId& operator=(const FPrimaryAssetId& Other)
+	{
+		PrimaryAssetType = Other.PrimaryAssetType;
+		PrimaryAssetName = Other.PrimaryAssetName;
+		return *this;
+	}
+
+	/** UStruct Overrides */
+	bool ExportTextItem(FString& ValueStr, FPrimaryAssetId const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
+	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
 
 	friend inline uint32 GetTypeHash(const FPrimaryAssetId& Key)
 	{
@@ -80,4 +149,6 @@ struct FPrimaryAssetId
 		Hash = HashCombine(Hash, GetTypeHash(Key.PrimaryAssetName));
 		return Hash;
 	}
+
+	friend COREUOBJECT_API UScriptStruct* Z_Construct_UScriptStruct_FPrimaryAssetId();
 };

@@ -18,6 +18,7 @@ namespace Audio
 			Bandpass,
 			Notch,
 			ParametricEQ,
+			AllPass,
 		};
 	}
 
@@ -32,7 +33,7 @@ namespace Audio
 		virtual ~FBiquadFilter();
 
 		// Initialize the filter
-		void Init(const float InSampleRate, const int32 InNumChannels, const EBiquadFilter::Type InType, const float InCutoffFrequency, const float InBandwidth, const float InGain = 0.0f);
+		void Init(const float InSampleRate, const int32 InNumChannels, const EBiquadFilter::Type InType, const float InCutoffFrequency = 20000.0f, const float InBandwidth = 2.0f, const float InGain = 0.0f);
 
 		// Resets the filter state
 		void Reset();
@@ -116,14 +117,14 @@ namespace Audio
 		// Sets the cutoff frequency of the filter.
 		virtual void SetFrequency(const float InCutoffFrequency);
 
-		// Sets the modulated frequency
-		virtual void SetModFrequency(const float InModFrequency);
+		// Sets an external modulated frequency
+		virtual void SetFrequencyMod(const float InModFrequency);
 
 		// Sets the quality/resonance of the filter
 		virtual void SetQ(const float InQ);
 
-		// Sets the modulated quality/resonance of the filter
-		virtual void SetModQ(const float InModQ);
+		// Sets an external modulated quality/resonance of the filter
+		virtual void SetQMod(const float InModQ);
 
 		// Sets the filter saturation (not used on all filters)
 		virtual void SetSaturation(const float InSaturation) {}
@@ -178,6 +179,9 @@ namespace Audio
 		// A modulated frequency
 		float ModFrequency;
 
+		// A modulatied frequency driven externally
+		float ExternalModFrequency;
+
 		// The current Q
 		float Q;
 
@@ -186,6 +190,9 @@ namespace Audio
 
 		// The base 
 		float BaseQ;
+
+		// An external modulation of Q
+		float ExternalModQ;
 
 		// The filter type of the filter
 		EFilter::Type FilterType;

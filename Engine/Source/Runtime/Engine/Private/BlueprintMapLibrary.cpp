@@ -52,8 +52,8 @@ void UBlueprintMapLibrary::GenericMap_Keys(const void* TargetMap, const UMapProp
 		{
 			if(MapHelper.IsValidIndex(I))
 			{
-				ArrayHelper.AddValue();
-				InnerProp->CopySingleValueToScriptVM(ArrayHelper.GetRawPtr(I), MapHelper.GetKeyPtr(I));
+				int32 LastIndex = ArrayHelper.AddValue();
+				InnerProp->CopySingleValueToScriptVM(ArrayHelper.GetRawPtr(LastIndex), MapHelper.GetKeyPtr(I));
 				--Size;
 			}
 		}
@@ -75,8 +75,8 @@ void UBlueprintMapLibrary::GenericMap_Values(const void* TargetMap, const UMapPr
 		{
 			if(MapHelper.IsValidIndex(I))
 			{
-				ArrayHelper.AddValue();
-				InnerProp->CopySingleValueToScriptVM(ArrayHelper.GetRawPtr(I), MapHelper.GetValuePtr(I));
+				int32 LastIndex = ArrayHelper.AddValue();
+				InnerProp->CopySingleValueToScriptVM(ArrayHelper.GetRawPtr(LastIndex), MapHelper.GetValuePtr(I));
 				--Size;
 			}
 		}

@@ -46,6 +46,7 @@ public class GameProjectGeneration : ModuleRules
 				"DesktopPlatform",
                 "HardwareTargeting",
 				"AddContentDialog",
+                "AudioMixer"
 			}
 		);
 

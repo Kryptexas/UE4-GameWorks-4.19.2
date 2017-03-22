@@ -82,8 +82,10 @@ namespace Audio
 	{
 		// Component used to get negative radians
 		const float SafeX = X < 0.0f ? FMath::Min(X, -SMALL_NUMBER) : FMath::Max(X, SMALL_NUMBER);
-		const float Sign = SafeX / FMath::Abs(SafeX);
-		return 16.0f * SafeX * (PI - SafeX * Sign) / (5.0f * PI * PI - 4.0f * SafeX * Sign * (PI - SafeX * Sign));
+		const float Temp = SafeX * SafeX / FMath::Abs(SafeX);
+		const float Numerator = 16.0f * SafeX * (PI - Temp);
+		const float Denominator = 5.0f * PI * PI - 4.0f * Temp * (PI - Temp);
+		return Numerator / Denominator;
 	}
 
 	// Fast tanh based on pade approximation
@@ -174,6 +176,34 @@ namespace Audio
 		const float Temp = FMath::Pow(2.0f, InBandwidthClamped);
 		const float OutQ = FMath::Sqrt(Temp) / (Temp - 1.0f);
 		return OutQ;
+	}
+
+	// Polynomial interpolation using lagrange polynomials. 
+	// https://en.wikipedia.org/wiki/Lagrange_polynomial
+	static FORCEINLINE float LagrangianInterpolation(const TArray<FVector2D> Points, const float Alpha)
+	{
+		float Lagrangian = 1.0f;
+		float Output = 0.0f;
+
+		const int32 NumPoints = Points.Num();
+		for (int32 i = 0; i < NumPoints; ++i)
+		{
+			Lagrangian = 1.0f;
+			for (int32 j = 0; j < NumPoints; ++j)
+			{
+				if (i != j)
+				{
+					float Denom = Points[i].X - Points[j].X;
+					if (FMath::Abs(Denom) < SMALL_NUMBER)
+					{
+						Denom = SMALL_NUMBER;
+					}
+					Lagrangian *= (Alpha - Points[j].X) / Denom;
+				}
+			}
+			Output += Lagrangian * Points[i].Y;
+		}
+		return Output;
 	}
 
 	// Simple exponential easing class. Useful for cheaply and smoothly interpolating parameters.
@@ -292,6 +322,23 @@ namespace Audio
 			return CurrentValue;
 		}
 		 
+		// Updates the target value without changing the duration or tick data.
+		// Sets the state as if the new value was the target value all along
+		void SetValueInterrupt(const float InValue)
+		{
+			if (IsDone())
+			{
+				CurrentValue = InValue;
+			}
+			else
+			{
+				DurationTicks = DurationTicks - CurrentTick;
+				CurrentTick = 0;
+				DeltaValue = InValue - CurrentValue;
+				StartValue = CurrentValue;
+			}
+		}
+
 		void SetValue(const float InValue, float InTimeSec = 0.0f)
 		{
 			DurationTicks = (int32)(SampleRate * InTimeSec);

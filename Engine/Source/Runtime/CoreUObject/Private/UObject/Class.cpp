@@ -777,19 +777,18 @@ void UStruct::InitializeStruct(void* InDest, int32 ArrayDim/* = 1*/) const
 	//@todo UE4 optimize
 	FMemory::Memzero(Dest, 1 * Stride);
 
-	bool bHitBase = false;
-	for (UProperty* Property = PropertyLink; Property && !bHitBase; Property = Property->PropertyLinkNext)
+	for (UProperty* Property = PropertyLink; Property; Property = Property->PropertyLinkNext)
 	{
-		if (!Property->IsInContainer(0))
+		if (ensure(Property->IsInContainer(Stride)))
 		{
-			for (int32 ArrayIndex = 0; ArrayIndex < 1; ArrayIndex++)
+			for (int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++)
 			{
 				Property->InitializeValue_InContainer(Dest + ArrayIndex * Stride);
 			}
 		}
 		else
 		{
-			bHitBase = true;
+			break;
 		}
 	}
 }
@@ -802,9 +801,9 @@ void UStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
 	bool bHitBase = false;
 	for (UProperty* P = DestructorLink; P  && !bHitBase; P = P->DestructorLinkNext)
 	{
-		if (!P->IsInContainer(0))
+		if (!P->HasAnyPropertyFlags(CPF_NoDestructor))
 		{
-			if (!P->HasAnyPropertyFlags(CPF_NoDestructor))
+			if (P->IsInContainer(Stride))
 			{
 				for ( int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++ )
 				{
@@ -934,7 +933,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			if( Property == nullptr || Property->GetFName() != Tag.Name )
 			{
 				// No need to check redirects on platforms where everything is cooked. Always check for save games
-				if (!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame())
+				if ((!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame()) && !Ar.HasAnyPortFlags(PPF_DuplicateForPIE|PPF_Duplicate))
 				{
 					FName EachName = GetFName();
 					FName PackageName = GetOutermost()->GetFName();
@@ -1343,7 +1342,7 @@ void UStruct::SerializeSuperStruct(FArchive& Ar)
 	Ar << SuperStruct;
 }
 
-#if WITH_EDITOR
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
 bool UStruct::GetBoolMetaDataHierarchical(const FName& Key) const
 {
 	bool bResult = false;
@@ -2478,6 +2477,9 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UScriptStruct, UStruct,
 	UClass implementation.
 -----------------------------------------------------------------------------*/
 
+/** Default C++ class type information, used for all new UClass objects. */
+static TCppClassTypeInfo<FCppClassTypeTraitsBase> DefaultCppClassTypeInfo;
+
 void UClass::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -3589,13 +3591,7 @@ void UClass::Serialize( FArchive& Ar )
 	}
 	else
 	{
-		check(GetDefaultsCount()==GetPropertiesSize());
-
-		// Ensure that we have a valid CDO if this is a non-native class
-		if( !HasAnyClassFlags(CLASS_Native) && (ClassDefaultObject == NULL) )
-		{
-			GetDefaultObject();	
-		}
+		check(!ClassDefaultObject || GetDefaultsCount()==GetPropertiesSize());
 
 		// only serialize the class default object if the archive allows serialization of ObjectArchetype
 		// otherwise, serialize the properties that the ClassDefaultObject references
@@ -3608,7 +3604,7 @@ void UClass::Serialize( FArchive& Ar )
 		{
 			Ar << ClassDefaultObject;
 		}
-		else if ( ClassDefaultObject != NULL )
+		else if( !Ar.HasAnyPortFlags(PPF_DuplicateForPIE|PPF_Duplicate) || ClassDefaultObject != nullptr )
 		{
 			ClassDefaultObject->Serialize(Ar);
 		}
@@ -3628,7 +3624,7 @@ void UClass::Serialize( FArchive& Ar )
 			// we do this later anyway, once we find it and set it in the export table. 
 			// ClassDefaultObject->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
 			}
-			else
+			else if( !Ar.HasAnyPortFlags(PPF_DuplicateForPIE|PPF_Duplicate) )
 			{
 			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName());
 			ensure(ClassDefaultObject != NULL);
@@ -3808,9 +3804,10 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
 ,	ClassWithin( UObject::StaticClass() )
-,	ClassGeneratedBy(NULL)
+,	ClassGeneratedBy(nullptr)
 ,	bCooked(false)
-,	ClassDefaultObject(NULL)
+,	ClassDefaultObject(nullptr)
+,	CppTypeInfo(&DefaultCppClassTypeInfo)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 }
@@ -3819,14 +3816,15 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
  * Create a new UClass given its superclass.
  */
 UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
-: UStruct(ObjectInitializer, InBaseClass)
+:	UStruct(ObjectInitializer, InBaseClass)
 ,	ClassUnique(0)
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
-, ClassWithin(UObject::StaticClass())
-,	ClassGeneratedBy(NULL)
+,	ClassWithin(UObject::StaticClass())
+,	ClassGeneratedBy(nullptr)
 ,	bCooked(false)
-,	ClassDefaultObject(NULL)
+,	ClassDefaultObject(nullptr)
+,	CppTypeInfo(&DefaultCppClassTypeInfo)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
@@ -3873,12 +3871,13 @@ UClass::UClass
 ,	ClassUnique				( 0 )
 ,	ClassFlags				( InClassFlags | CLASS_Native )
 ,	ClassCastFlags			( InClassCastFlags )
-,	ClassWithin				( NULL )
-,	ClassGeneratedBy		( NULL )
+,	ClassWithin				( nullptr )
+,	ClassGeneratedBy		( nullptr )
 ,	ClassConfigName			()
 ,	bCooked					( false )
 ,	NetFields				()
-,	ClassDefaultObject		( NULL )
+,	ClassDefaultObject		( nullptr )
+,	CppTypeInfo				( &DefaultCppClassTypeInfo )
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
@@ -4810,6 +4809,12 @@ UScriptStruct* TBaseStructure<FStringAssetReference>::Get()
 UScriptStruct* TBaseStructure<FStringClassReference>::Get()
 {
 	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("StringClassReference"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FPrimaryAssetType>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("PrimaryAssetType"));
 	return ScriptStruct;
 }
 

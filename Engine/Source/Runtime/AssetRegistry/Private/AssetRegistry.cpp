@@ -102,6 +102,9 @@ FAssetRegistry::FAssetRegistry()
 	// Registers the configured cooked tags whitelist to prevent non-whitelisted tags from being added to cooked builds
 	bFilterlistIsWhitelist = false;
 
+	// By default update the disk cache once on asset load, to incorporate changes made in PostLoad. This only happens in editor builds
+	bUpdateDiskCacheAfterLoad = true;
+
 	// Collect all code generator classes (currently BlueprintCore-derived ones)
 	CollectCodeGeneratorClasses();
 
@@ -154,6 +157,16 @@ FAssetRegistry::FAssetRegistry()
 				}
 			}
 		}
+	}
+
+	if (GConfig)
+	{
+		GConfig->GetBool(TEXT("AssetRegistry"), TEXT("bUpdateDiskCacheAfterLoad"), bUpdateDiskCacheAfterLoad, GEngineIni);
+	}
+
+	if (bUpdateDiskCacheAfterLoad)
+	{
+		FCoreUObjectDelegates::OnAssetLoaded.AddRaw(this, &FAssetRegistry::OnAssetLoaded);
 	}
 #endif // WITH_EDITOR
 
@@ -356,6 +369,11 @@ FAssetRegistry::~FAssetRegistry()
 				}
 			}
 		}
+	}
+
+	if (bUpdateDiskCacheAfterLoad)
+	{
+		FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
 	}
 #endif // WITH_EDITOR
 
@@ -589,7 +607,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			TArray<UObject*> InMemoryObjects;
 			for (auto ClassNameIt = FilterClassNames.CreateConstIterator(); ClassNameIt; ++ClassNameIt)
 			{
-				UClass* Class = FindObjectFast<UClass>(nullptr, *ClassNameIt->ToString(), false, true, RF_NoFlags);
+				UClass* Class = FindObjectFast<UClass>(nullptr, *ClassNameIt, false, true, RF_NoFlags);
 				if(Class != nullptr)
 				{
 					GetObjectsOfClass(Class, InMemoryObjects, false, RF_NoFlags);
@@ -877,7 +895,10 @@ bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDepend
 	{
 		for (const FAssetIdentifier& AssetId : TempDependencies)
 		{
-			OutDependencies.AddUnique(AssetId.PackageName);
+			if (AssetId.PackageName != NAME_None)
+			{
+				OutDependencies.AddUnique(AssetId.PackageName);
+			}
 		}
 		return true;
 	}
@@ -939,7 +960,10 @@ bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferen
 	{
 		for (const FAssetIdentifier& AssetId : TempReferencers)
 		{
-			OutReferencers.AddUnique(AssetId.PackageName);
+			if (AssetId.PackageName != NAME_None)
+			{
+				OutReferencers.AddUnique(AssetId.PackageName);
+			}
 		}
 		return true;
 	}
@@ -1493,7 +1517,7 @@ void FAssetRegistry::Tick(float DeltaTime)
 	}
 
 	// Process the asset results
-	const bool bHadAssetsToProcess = BackgroundAssetResults.Num() > 0;
+	const bool bHadAssetsToProcess = BackgroundAssetResults.Num() > 0 || BackgroundDependencyResults.Num() > 0;
 	if ( BackgroundAssetResults.Num() )
 	{
 		// Mark the first amortize time
@@ -1527,9 +1551,9 @@ void FAssetRegistry::Tick(float DeltaTime)
 	if (bIsSearching || bHadAssetsToProcess)
 	{
 		const FFileLoadProgressUpdateData ProgressUpdateData(
-			CachedAssetsByObjectPath.Num() + BackgroundAssetResults.Num() + NumFilesToSearch,	// NumTotalAssets
-			CachedAssetsByObjectPath.Num(),														// NumAssetsProcessedByAssetRegistry
-			NumFilesToSearch,																	// NumAssetsPendingDataLoad
+			CachedAssetsByObjectPath.Num() + BackgroundAssetResults.Num() + BackgroundDependencyResults.Num() + NumFilesToSearch,	// NumTotalAssets
+			CachedAssetsByObjectPath.Num() - BackgroundDependencyResults.Num(),					// NumAssetsProcessedByAssetRegistry
+			NumFilesToSearch + BackgroundDependencyResults.Num(),								// NumAssetsPendingDataLoad
 			bIsDiscoveringFiles																	// bIsDiscoveringAssetFiles
 			);
 		FileLoadProgressUpdatedEvent.Broadcast(ProgressUpdateData);
@@ -1547,6 +1571,12 @@ void FAssetRegistry::Tick(float DeltaTime)
 
 			FileLoadedEvent.Broadcast();
 		}
+#if WITH_EDITOR
+		else if (bUpdateDiskCacheAfterLoad)
+		{
+			ProcessLoadedAssetsToUpdateCache(TickStartTime);
+		}
+#endif
 	}
 }
 
@@ -2063,6 +2093,13 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 		DependencyDataGathered(-1, DependencyResults);
 		CookedPackageNamesWithoutAssetDataGathered(-1, CookedPackageNamesWithoutAssetDataResults);
 
+#if WITH_EDITOR
+		if (bUpdateDiskCacheAfterLoad && bInitialSearchCompleted)
+		{
+			ProcessLoadedAssetsToUpdateCache(-1);
+		}
+#endif
+
 		// Log stats
 		TArray<FString> LogPathsAndFilenames = PathsToScan;
 		LogPathsAndFilenames.Append(FilesToScan);
@@ -2078,7 +2115,7 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 			PathsString = FString::Printf(TEXT("'%s'"), *Path);
 		}
 
-		UE_LOG(LogAssetRegistry, Verbose, TEXT("ScanPathsSynchronous completed scanning %s to find %d assets in %0.4f seconds"), *PathsString, NumResults, FPlatformTime::Seconds() - SearchStartTime);
+		UE_LOG(LogAssetRegistry, Log, TEXT("ScanPathsSynchronous completed scanning %s to find %d assets in %0.4f seconds"), *PathsString, NumResults, FPlatformTime::Seconds() - SearchStartTime);
 	}
 }
 
@@ -2180,11 +2217,20 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 
 		Node->ClearDependencies();
 
+		// Don't bother registering dependencies on these packages, every package in the game will depend on them
+		static TArray<FName> ScriptPackagesToSkip = TArray<FName>{ TEXT("/Script/CoreUObject"), TEXT("/Script/Engine"), TEXT("/Script/BlueprintGraph"), TEXT("/Script/UnrealEd") };
+
 		// Determine the new package dependencies
 		TMap<FName, EAssetRegistryDependencyType::Type> PackageDependencies;
 		for (int32 ImportIdx = 0; ImportIdx < Result.ImportMap.Num(); ++ImportIdx)
 		{
 			const FName AssetReference = Result.GetImportPackageName(ImportIdx);
+
+			// Should we skip this because it's too common?
+			if (ScriptPackagesToSkip.Contains(AssetReference))
+			{
+				continue;
+			}
 
 			// Already processed?
 			if (PackageDependencies.Contains(AssetReference))
@@ -2223,6 +2269,15 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 			// Find object and package name from linker
 			for (FPackageIndex LinkerIndex = SearchableNameList.Key; !LinkerIndex.IsNull();)
 			{
+				if (LinkerIndex.IsExport())
+				{
+					// Package name has to be this package, take a guess at object name
+					PackageName = Result.PackageName;
+					ObjectName = FName(*FPackageName::GetLongPackageAssetName(Result.PackageName.ToString()));
+
+					break;
+				}
+
 				FObjectResource& Resource = Result.ImpExp(LinkerIndex);
 				LinkerIndex = Resource.OuterIndex;
 				if (ObjectName.IsNone() && !LinkerIndex.IsNull())
@@ -2761,6 +2816,84 @@ void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChan
 	}
 }
 
+void FAssetRegistry::OnAssetLoaded(UObject *AssetLoaded)
+{
+	LoadedAssetsToProcess.Add(AssetLoaded);
+}
+
+void FAssetRegistry::ProcessLoadedAssetsToUpdateCache(const double TickStartTime)
+{
+	check(bInitialSearchCompleted && bUpdateDiskCacheAfterLoad);
+
+	const bool bFlushFullBuffer = TickStartTime < 0;
+
+	if (bFlushFullBuffer)
+	{
+		// Retry the previous failures on a flush
+		LoadedAssetsToProcess.Append(LoadedAssetsThatDidNotHaveCachedData);
+		LoadedAssetsThatDidNotHaveCachedData.Reset();
+	}
+
+	// Add the found assets
+	int32 LoadedAssetIndex = 0;
+	for (LoadedAssetIndex = 0; LoadedAssetIndex < LoadedAssetsToProcess.Num(); ++LoadedAssetIndex)
+	{
+		UObject* LoadedAsset = LoadedAssetsToProcess[LoadedAssetIndex].Get();
+		
+		if (!LoadedAsset)
+		{
+			// This could be null, in which case it already got freed, ignore
+			continue;
+		}
+
+		const FName ObjectPath = FName(*LoadedAsset->GetPathName());
+		if (AssetDataObjectPathsUpdatedOnLoad.Contains(ObjectPath))
+		{
+			// Already processed once, don't process again even if it loads a second time
+			continue;
+		}
+
+		UPackage* InMemoryPackage = LoadedAsset->GetOutermost();
+		if (InMemoryPackage->IsDirty())
+		{
+			// Package is dirty, which means it has temporary changes other than just a PostLoad, ignore
+			continue;
+		}
+
+		FAssetData** CachedData = CachedAssetsByObjectPath.Find(ObjectPath);
+		if (!CachedData)
+		{
+			// Not scanned, can't process right now but try again on next synchronous scan
+			LoadedAssetsThatDidNotHaveCachedData.Add(LoadedAsset);
+			continue;
+		}
+
+		AssetDataObjectPathsUpdatedOnLoad.Add(ObjectPath);
+
+		FAssetData NewAssetData = FAssetData(LoadedAsset);
+
+		if (!NewAssetData.TagsAndValues.GetMap().OrderIndependentCompareEqual((*CachedData)->TagsAndValues.GetMap()))
+		{
+			// We need to actually update disk cache
+			UpdateAssetData(*CachedData, NewAssetData);
+		}
+
+		// Check to see if we have run out of time in this tick
+		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
+		{
+			// Increment the index to properly trim the buffer below
+			++LoadedAssetIndex;
+			break;
+		}
+	}
+
+	// Trim the results array
+	if (LoadedAssetIndex > 0)
+	{
+		LoadedAssetsToProcess.RemoveAt(0, LoadedAssetIndex);
+	}
+}
+
 #endif // WITH_EDITOR
 
 
@@ -2971,4 +3104,160 @@ void FAssetRegistry::GetSubClasses_Recursive(FName InClassName, TSet<FName>& Sub
 			}
 		}
 	}
+}
+
+void FAssetRegistry::SetManageReferences(const TMultiMap<FAssetIdentifier, FAssetIdentifier>& ManagerMap, bool bClearExisting, EAssetRegistryDependencyType::Type RecurseType, ShouldSetManagerPredicate ShouldSetManager)
+{
+	TSet<FDependsNode*> ExistingManagedNodes;
+
+	// Set default predicate if needed
+	if (!ShouldSetManager)
+	{
+		ShouldSetManager = [](const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags)
+		{
+			return EAssetSetManagerResult::SetButDoNotRecurse;
+		};
+	}
+
+	// Find all nodes with incoming manage dependencies
+	for (const TPair<FAssetIdentifier, FDependsNode*>& Pair : CachedDependsNodes)
+	{
+		Pair.Value->IterateOverDependencies([&ExistingManagedNodes](FDependsNode* TestNode, EAssetRegistryDependencyType::Type DependencyType)
+		{
+			ExistingManagedNodes.Add(TestNode);
+		}, EAssetRegistryDependencyType::Manage);
+	}
+
+	if (bClearExisting)
+	{
+		// Clear them
+		for (FDependsNode* NodeToClear : ExistingManagedNodes)
+		{
+			NodeToClear->RemoveManageReferencesToNode();
+		}
+		ExistingManagedNodes.Empty();
+	}
+
+	TMap<FDependsNode*, TArray<FDependsNode *>> ExplicitMap; // Reverse of ManagerMap, specifies what relationships to add to each node
+
+	for (const TPair<FAssetIdentifier, FAssetIdentifier>& Pair : ManagerMap)
+	{
+		FDependsNode* ManagedNode = FindDependsNode(Pair.Value);
+
+		if (!ManagedNode)
+		{
+			UE_LOG(LogAssetRegistry, Error, TEXT("Cannot set %s to manage asset %s because it does not exist!"), *Pair.Key.ToString(), *Pair.Value.ToString());
+			continue;
+		}
+
+		TArray<FDependsNode*>& ManagerList = ExplicitMap.FindOrAdd(ManagedNode);
+
+		FDependsNode* ManagerNode = CreateOrFindDependsNode(Pair.Key);
+
+		ManagerList.Add(ManagerNode);
+	}
+
+	TSet<FDependsNode*> Visited;
+	TArray<FDependsNode*> NodesToManage;
+	TArray<FDependsNode*> NodesToRecurse;
+
+	// For each explicitly set asset
+	for (const TPair<FDependsNode*, TArray<FDependsNode *>>& Pair : ExplicitMap)
+	{
+		FDependsNode* BaseManagedNode = Pair.Key;
+		const TArray<FDependsNode*>& ManagerNodes = Pair.Value;
+
+		for (FDependsNode* ManagerNode : ManagerNodes)
+		{	
+			Visited.Reset();
+			NodesToManage.Reset();
+			NodesToRecurse.Reset();
+			
+			FDependsNode* SourceNode = ManagerNode;
+
+			auto IterateFunction = [&ManagerNode, &SourceNode, &ShouldSetManager, &NodesToManage, &NodesToRecurse, &Visited, &ExplicitMap, &ExistingManagedNodes](FDependsNode* TargetNode, EAssetRegistryDependencyType::Type DependencyType)
+			{
+				// Only recurse if we haven't already visited, and this node passes recursion test
+				if (!Visited.Contains(TargetNode))
+				{
+					EAssetSetManagerFlags::Type Flags = (EAssetSetManagerFlags::Type)((SourceNode == ManagerNode ? EAssetSetManagerFlags::IsDirectSet : 0)
+						| (ExistingManagedNodes.Contains(TargetNode) ? EAssetSetManagerFlags::TargetHasExistingManager : 0)
+						| (ExplicitMap.Find(TargetNode) && SourceNode != ManagerNode ? EAssetSetManagerFlags::TargetHasDirectManager : 0));
+
+					EAssetSetManagerResult::Type Result = ShouldSetManager(ManagerNode->GetIdentifier(), SourceNode->GetIdentifier(), TargetNode->GetIdentifier(), DependencyType, Flags);
+
+					if (Result == EAssetSetManagerResult::DoNotSet)
+					{
+						return;
+					}
+
+					NodesToManage.Push(TargetNode);
+
+					if (Result == EAssetSetManagerResult::SetAndRecurse)
+					{
+						NodesToRecurse.Push(TargetNode);
+					}
+				}
+			};
+
+			// Check initial node
+			IterateFunction(BaseManagedNode, EAssetRegistryDependencyType::Manage);
+
+			// Do all recursion first, but only if we have a recurse type
+			if (RecurseType)
+			{
+				while (NodesToRecurse.Num())
+				{
+					// Pull off end of array, order doesn't matter
+					SourceNode = NodesToRecurse.Pop();
+
+					Visited.Add(SourceNode);
+
+					SourceNode->IterateOverDependencies(IterateFunction, RecurseType);
+				}
+			}
+
+			// Now set all the dependencies
+			while (NodesToManage.Num())
+			{
+				// Pull off end of array, order doesn't matter
+				FDependsNode* ManagedNode = NodesToManage.Pop();
+
+				ManagerNode->AddDependency(ManagedNode, EAssetRegistryDependencyType::Manage);
+				ManagedNode->AddReferencer(ManagerNode);
+			}
+		}
+	}
+}
+
+bool FAssetRegistry::SetPrimaryAssetIdForObjectPath(const FName ObjectPath, FPrimaryAssetId PrimaryAssetId)
+{
+	FAssetData** FoundAssetData = CachedAssetsByObjectPath.Find(ObjectPath);
+
+	if (!FoundAssetData)
+	{
+		return false;
+	}
+
+	FAssetData* AssetData = *FoundAssetData;
+
+	TMap<FName, FString> TagsAndValues = AssetData->TagsAndValues.GetMap();
+	TagsAndValues.Add(FPrimaryAssetId::PrimaryAssetTypeTag, PrimaryAssetId.PrimaryAssetType.ToString());
+	TagsAndValues.Add(FPrimaryAssetId::PrimaryAssetNameTag, PrimaryAssetId.PrimaryAssetName.ToString());
+
+	FAssetData NewAssetData = FAssetData(AssetData->PackageName, AssetData->PackagePath, AssetData->GroupNames, AssetData->AssetName, AssetData->AssetClass, TagsAndValues, AssetData->ChunkIDs, AssetData->PackageFlags);
+
+	UpdateAssetData(AssetData, NewAssetData);
+
+	return true;
+}
+
+const FAssetData* FAssetRegistry::GetCachedAssetDataForObjectPath(const FName ObjectPath) const
+{
+	const FAssetData * const * FoundAssetData = CachedAssetsByObjectPath.Find(ObjectPath);
+	if (FoundAssetData)
+	{
+		return *FoundAssetData;
+	}
+	return nullptr;
 }

@@ -43,8 +43,6 @@ namespace Audio
 		}
 	};
 
-	typedef FAsyncTask<FAsyncRealtimeAudioTaskWorker<FMixerBuffer>> FAsyncRealtimeAudioTask;
-
 	/** 
 	 * FMixerSource
 	 * Class which implements a sound source object for the audio mixer module.
@@ -102,10 +100,10 @@ namespace Audio
 		bool ReadMorePCMRTData(const int32 BufferIndex, EBufferReadMode BufferReadMode, bool* OutLooped = nullptr);
 
 		/** Called when a buffer finishes for a real-time source and more buffers need to be read and submitted. */
-		void ProcessRealTimeSource(bool bBlockForData);
+		void ProcessRealTimeSource(const bool bBlockForData, const bool bOnRenderThread);
 
 		/** Submits new real-time decoded buffers to a source voice. */
-		void SubmitRealTimeSourceData(bool bLooped);
+		void SubmitRealTimeSourceData(const bool bLooped, const bool bOnRenderThread);
 
 		/** Frees any resources for this sound source. */
 		void FreeResources();
@@ -137,14 +135,23 @@ namespace Audio
 		/** Whether or not we should create the source voice with the HRTF spatializer. */
 		bool UseHRTSpatialization() const;
 
+		/** Whether or not to use the spatialization plugin. */
+		bool UseSpatializationPlugin() const;
+
+		/** Whether or not to use the occlusion plugin. */
+		bool UseOcclusionPlugin() const;
+
+		/** Whether or not to use the reverb plugin. */
+		bool UseReverbPlugin() const;
+
 	private:
 
 		FMixerDevice* MixerDevice;
 		FMixerBuffer* MixerBuffer;
 		FMixerSourceVoice* MixerSourceVoice;
-		FAsyncRealtimeAudioTask* AsyncRealtimeAudioTask;
+		IAudioTask* AsyncRealtimeAudioTask;
 		FSoundBuffer* PendingReleaseBuffer;
-		FAsyncRealtimeAudioTask* PendingReleaseRealtimeAudioTask;
+		IAudioTask* PendingReleaseRealtimeAudioTask;
 		FCriticalSection RenderThreadCritSect;
 
 		TArray<float> ChannelMap;

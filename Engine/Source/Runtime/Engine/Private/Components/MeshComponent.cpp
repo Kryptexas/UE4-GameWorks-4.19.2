@@ -326,52 +326,55 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 
 	// not sure if this is the best way to do this
 	const UWorld* World = GetWorld();
-	// make sure it's active world
-	if (World && World->WorldType != EWorldType::Inactive)
+	// to set the default value for scalar params, we use a FMaterialResource, which means the world has to be rendering
+	const bool bHasMaterialResource = (World && World->WorldType != EWorldType::Inactive);
+	const ERHIFeatureLevel::Type FeatureLevel = bHasMaterialResource ? World->FeatureLevel : ERHIFeatureLevel::Num;
+	
+	// Retrieve all used materials
+	TArray<UMaterialInterface*> MaterialInterfaces = GetMaterials();
+	int32 MaterialIndex = 0;
+	for (UMaterialInterface* MaterialInterface : MaterialInterfaces)
 	{
-		const ERHIFeatureLevel::Type FeatureLevel = World->FeatureLevel;	
-		// Retrieve all used materials
-		TArray<UMaterialInterface*> MaterialInterfaces = GetMaterials();
-		int32 MaterialIndex = 0;
-		for (UMaterialInterface* MaterialInterface : MaterialInterfaces)
+		// If available retrieve material instance
+		UMaterial* Material = (MaterialInterface != nullptr) ? MaterialInterface->GetMaterial() : nullptr;
+		if (Material)
 		{
-			// If available retrieve material instance
-			UMaterial* Material = (MaterialInterface != nullptr) ? MaterialInterface->GetMaterial() : nullptr;
-			if (Material)
+			TArray<FName> OutParameterNames;
+			TArray<FGuid> OutParameterIds;
+
+			// Retrieve all scalar parameter names from the material
+			Material->GetAllScalarParameterNames(OutParameterNames, OutParameterIds);
+			for (FName& ParameterName : OutParameterNames)
 			{
-				TArray<FName> OutParameterNames;
-				TArray<FGuid> OutParameterIds;
-
-				// Retrieve all scalar parameter names from the material
-				Material->GetAllScalarParameterNames(OutParameterNames, OutParameterIds);
-				for (FName& ParameterName : OutParameterNames)
+				// Add or retrieve TMap entry for this scalar parameter name
+				TArray<int32>& MaterialIndices = ScalarParameterMaterialIndices.FindOrAdd(ParameterName);
+				// Add the corresponding material index
+				MaterialIndices.Add(MaterialIndex);
+				
+				// GetScalarParameterDefault() expects to use a FMaterialResource, which means the world has to be rendering
+				if (bHasMaterialResource)
 				{
-					// Add or retrieve TMap entry for this scalar parameter name
-					TArray<int32>& MaterialIndices = ScalarParameterMaterialIndices.FindOrAdd(ParameterName);
-					// Add the corresponding material index
-					MaterialIndices.Add(MaterialIndex);
-
 					// set default value to it
 					float& DefaultValue = ScalarParameterDefaultValues.FindOrAdd(ParameterName);
 					DefaultValue = Material->GetScalarParameterDefault(ParameterName, FeatureLevel);
 				}
-
-				// Empty parameter names and ids
-				OutParameterNames.Reset();
-				OutParameterIds.Reset();
-
-				// Retrieve all vector parameter names from the material
-				Material->GetAllVectorParameterNames(OutParameterNames, OutParameterIds);
-				for (FName& ParameterName : OutParameterNames)
-				{
-					// Add or retrieve TMap entry for this vector parameter name
-					TArray<int32>& MaterialIndices = VectorParameterMaterialIndices.FindOrAdd(ParameterName);
-					// Add the corresponding material index
-					MaterialIndices.Add(MaterialIndex);
-				}
 			}
-			++MaterialIndex;
-		}		
+
+			// Empty parameter names and ids
+			OutParameterNames.Reset();
+			OutParameterIds.Reset();
+
+			// Retrieve all vector parameter names from the material
+			Material->GetAllVectorParameterNames(OutParameterNames, OutParameterIds);
+			for (FName& ParameterName : OutParameterNames)
+			{
+				// Add or retrieve TMap entry for this vector parameter name
+				TArray<int32>& MaterialIndices = VectorParameterMaterialIndices.FindOrAdd(ParameterName);
+				// Add the corresponding material index
+				MaterialIndices.Add(MaterialIndex);
+			}
+		}
+		++MaterialIndex;
 	}
 
 	bCachedMaterialParameterIndicesAreDirty = false;

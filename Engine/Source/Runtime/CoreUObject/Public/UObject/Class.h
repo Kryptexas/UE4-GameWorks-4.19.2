@@ -16,6 +16,7 @@
 #include "UObject/GarbageCollection.h"
 #include "UObject/CoreNative.h"
 #include "Templates/HasGetTypeHash.h"
+#include "Templates/IsAbstract.h"
 #include "Templates/IsEnum.h"
 
 struct FCustomPropertyListNode;
@@ -429,7 +430,7 @@ public:
 		return InName.ToString();
 	}
 
-#if WITH_EDITOR
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
 	/** Try and find boolean metadata with the given key. If not found on this class, work up hierarchy looking for it. */
 	bool GetBoolMetaDataHierarchical(const FName& Key) const;
 
@@ -1078,7 +1079,7 @@ public:
 		}
 		bool IsAbstract() const override
 		{
-			return __is_abstract(CPPSTRUCT);
+			return TIsAbstract<CPPSTRUCT>::Value;
 		}
 	};
 
@@ -1837,6 +1838,43 @@ private:
 	UClass.
 -----------------------------------------------------------------------------*/
 
+/** Base definition for C++ class type traits */
+struct FCppClassTypeTraitsBase
+{
+	enum
+	{
+		IsAbstract = false
+	};
+};
+
+
+/** Defines traits for specific C++ class types */
+template<class CPPCLASS>
+struct TCppClassTypeTraits : public FCppClassTypeTraitsBase
+{
+	enum
+	{
+		IsAbstract = TIsAbstract<CPPCLASS>::Value
+	};
+};
+
+
+/** Interface for accessing attributes of the underlying C++ class, for native class types */
+struct ICppClassTypeInfo
+{
+	/** Return true if the underlying C++ class is abstract (i.e. declares at least one pure virtual function) */
+	virtual bool IsAbstract() const = 0;
+};
+
+
+/** Implements the type information interface for specific C++ class types */
+template<typename TTraits>
+struct TCppClassTypeInfo : ICppClassTypeInfo
+{
+	bool IsAbstract() const { return TTraits::IsAbstract; }
+};
+
+
 /** information about an interface a class implements */
 struct COREUOBJECT_API FImplementedInterface
 {
@@ -2041,6 +2079,9 @@ public:
 	static void AssembleReferenceTokenStreams();
 
 private:
+	/** Provides access to attributes of the underlying C++ class. Should never be NULL. */
+	ICppClassTypeInfo* CppTypeInfo;
+
 	/** Map of all functions by name contained in this class */
 	TMap<FName, UFunction*> FuncMap;
 
@@ -2203,6 +2244,19 @@ public:
 	virtual void SetSuperStruct(UStruct* NewSuperStruct) override;
 	virtual void SerializeSuperStruct(FArchive& Ar) override;
 	// End of UStruct interface.
+
+	/** Provides access to C++ type info. */
+	const ICppClassTypeInfo* GetCppTypeInfo() const
+	{
+		return CppTypeInfo;
+	}
+
+	/** Sets C++ type information. Should not be NULL. */
+	void SetCppTypeInfo(ICppClassTypeInfo* InCppTypeInfo)
+	{
+		check(InCppTypeInfo);
+		CppTypeInfo = InCppTypeInfo;
+	}
 	
 	/**
 	 * Translates the hardcoded script config names (engine, editor, input and 
@@ -3031,10 +3085,15 @@ template<> struct TBaseStructure<FStringClassReference>
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
+struct FPrimaryAssetType;
+template<> struct TBaseStructure<FPrimaryAssetType>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
 struct FPrimaryAssetId;
 template<> struct TBaseStructure<FPrimaryAssetId>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
-
 

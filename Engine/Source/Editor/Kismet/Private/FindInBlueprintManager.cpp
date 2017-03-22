@@ -1695,6 +1695,12 @@ FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlue
 
 void FFindInBlueprintSearchManager::AddOrUpdateBlueprintSearchMetadata(UBlueprint* InBlueprint, bool bInForceReCache/* = false*/)
 {
+	// Do not try to gather any info from Blueprints who are loaded for diffing. It makes search all very strange and allows you to fully open those Blueprints.
+	if (InBlueprint->GetOutermost()->HasAnyPackageFlags(PKG_ForDiffing))
+	{
+		return;
+	}
+	
 	if (!bEnableGatheringData)
 	{
 		return;
@@ -1850,27 +1856,38 @@ float FFindInBlueprintSearchManager::GetPercentComplete(const FStreamSearch* InS
 
 FString FFindInBlueprintSearchManager::QuerySingleBlueprint(UBlueprint* InBlueprint, bool bInRebuildSearchData/* = true*/)
 {
-	if(bInRebuildSearchData)
+	// AddOrUpdateBlueprintSearchMetadata would fail to cache any data for a Blueprint loaded specifically for diffing, but the bigger question
+	// here in this function is how you are doing a search specifically for data within this Blueprint. This function is limited to be called
+	// only when querying within the specific Blueprint (somehow opened a diff Blueprint) and when gathering the Blueprint's tags (usually for saving)
+	const bool bIsDiffingBlueprint = InBlueprint->GetOutermost()->HasAnyPackageFlags(PKG_ForDiffing);
+	if (!bIsDiffingBlueprint)
 	{
-		// Update the Blueprint, make sure it is fully up-to-date
-		AddOrUpdateBlueprintSearchMetadata(InBlueprint, true);
-	}
-
-	FName Key = *InBlueprint->GetPathName();
-	if (ULevel* LevelOuter = Cast<ULevel>(InBlueprint->GetOuter()))
-	{
-		if (UWorld* WorldOuter = Cast<UWorld>(LevelOuter->GetOuter()))
+		if (bInRebuildSearchData)
 		{
-			Key = *WorldOuter->GetPathName();
+			// Update the Blueprint, make sure it is fully up-to-date
+			AddOrUpdateBlueprintSearchMetadata(InBlueprint, true);
+		}
+
+		FName Key = *InBlueprint->GetPathName();
+		if (ULevel* LevelOuter = Cast<ULevel>(InBlueprint->GetOuter()))
+		{
+			if (UWorld* WorldOuter = Cast<UWorld>(LevelOuter->GetOuter()))
+			{
+				Key = *WorldOuter->GetPathName();
+			}
+		}
+		int32* ArrayIdx = SearchMap.Find(Key);
+		// This should always be true since we make sure to refresh the search data for this Blueprint when doing the search, unless we do not rebuild the searchable data
+		check((bInRebuildSearchData && ArrayIdx && *ArrayIdx < SearchArray.Num()) || !bInRebuildSearchData);
+
+		if (ArrayIdx)
+		{
+			return SearchArray[*ArrayIdx].Value;
 		}
 	}
-	int32* ArrayIdx = SearchMap.Find(Key);
-	// This should always be true since we make sure to refresh the search data for this Blueprint when doing the search, unless we do not rebuild the searchable data
-	check((bInRebuildSearchData && ArrayIdx && *ArrayIdx < SearchArray.Num()) || !bInRebuildSearchData);
-
-	if(ArrayIdx)
+	else
 	{
-		return SearchArray[*ArrayIdx].Value;
+		UE_LOG(LogBlueprint, Warning, TEXT("Attempted to query an old Blueprint package opened for diffing!"));
 	}
 	return FString();
 }

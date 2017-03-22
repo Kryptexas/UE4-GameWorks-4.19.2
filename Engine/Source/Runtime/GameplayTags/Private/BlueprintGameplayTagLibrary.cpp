@@ -200,16 +200,14 @@ void UBlueprintGameplayTagLibrary::AppendGameplayTagContainers(FGameplayTagConta
 	InOutTagContainer.AppendTags(InTagContainer);
 }
 
-void UBlueprintGameplayTagLibrary::AddGameplayTag(FGameplayTagContainer& InOutTagContainer, FGameplayTag Tag)
-{
-	InOutTagContainer.AddTag(Tag);
-}
-
-bool UBlueprintGameplayTagLibrary::AddGameplayTagToContainer(UPARAM(ref) FGameplayTagContainer& TagContainer, const FGameplayTag& Tag)
+void UBlueprintGameplayTagLibrary::AddGameplayTag(FGameplayTagContainer& TagContainer, FGameplayTag Tag)
 {
 	TagContainer.AddTag(Tag);
+}
 
-	return true;
+bool UBlueprintGameplayTagLibrary::RemoveGameplayTag(FGameplayTagContainer& TagContainer, FGameplayTag Tag)
+{
+	return TagContainer.RemoveTag(Tag);
 }
 
 bool UBlueprintGameplayTagLibrary::NotEqual_TagTag(FGameplayTag A, FString B)

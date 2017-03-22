@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////
 // AnimNode_Fabrik
 // Implementation of the FABRIK IK Algorithm
-// Please see http://andreasaristidou.com/publications/FABRIK.pdf for more details
+// Please see http://www.academia.edu/9165835/FABRIK_A_fast_iterative_solver_for_the_Inverse_Kinematics_problem for more details
 
 FAnimNode_Fabrik::FAnimNode_Fabrik()
 	: EffectorTransform(FTransform::Identity)

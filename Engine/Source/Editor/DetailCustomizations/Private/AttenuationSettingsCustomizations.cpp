@@ -8,6 +8,7 @@
 #include "IDetailChildrenBuilder.h"
 #include "DetailWidgetRow.h"
 #include "IDetailPropertyRow.h"
+#include "AudioDevice.h"
 #include "Settings/EditorExperimentalSettings.h"
 
 TSharedRef<IPropertyTypeCustomization> FSoundAttenuationSettingsCustomization::MakeInstance() 
@@ -213,6 +214,7 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 	{
 		TSharedPtr<IPropertyHandle> SpatializationAlgorithmHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationAlgorithm));
 		ChildBuilder.AddChildProperty(SpatializationAlgorithmHandle.ToSharedRef());
+		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationPluginSettings)).ToSharedRef());
 	}
 
 	FBaseAttenuationSettingsCustomization::CustomizeChildren(StructPropertyHandle, ChildBuilder, StructCustomizationUtils);
@@ -225,14 +227,20 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMin)).ToSharedRef());
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMax)).ToSharedRef());
 
-	// The reverb wet-level mapping is an audio mixer-only feature
 	if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData)
 	{
+		if (IsAudioPluginEnabled(EAudioPlugin::REVERB))
+		{
+			ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbPluginSettings)).ToSharedRef());
+		}
+
+		// The reverb wet-level mapping is an audio mixer-only feature
 		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbWetLevelMin)).ToSharedRef());
 		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbWetLevelMax)).ToSharedRef());
 		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMin)).ToSharedRef());
 		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMax)).ToSharedRef());
 	}
+
 
 	ChildBuilder.AddChildProperty(bIsFocusedHandle.ToSharedRef());
 
@@ -262,6 +270,14 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 
 	ChildBuilder.AddChildProperty(bIsOcclusionEnabledHandle.ToSharedRef());
 
+	// Hide the occlusion plugin settings slot if there's no occlusion plugin loaded. 
+	// Don't show the built-in occlusion settings if we're using 
+	if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData && IsAudioPluginEnabled(EAudioPlugin::OCCLUSION))
+	{
+		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionPluginSettings)).ToSharedRef())
+			.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
+	}
+
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionTraceChannel)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
@@ -277,7 +293,7 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bUseComplexCollisionForOcclusion)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	if (PropertyHandles.Num() != 36)
+	if (PropertyHandles.Num() != 39)
 	{
 		FString PropertyList;
 		for (auto It(PropertyHandles.CreateConstIterator()); It; ++It)

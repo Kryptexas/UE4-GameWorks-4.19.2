@@ -12,9 +12,10 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 	PropertyHandle = InPropertyHandle;
 
 	const FString& MetaClassName = PropertyHandle->GetMetaData("MetaClass");
-	const FString& RequiredInterfaceName = PropertyHandle->GetMetaData("RequiredInterface");
+	const FString& RequiredInterfaceName = PropertyHandle->GetMetaData("RequiredInterface"); // This was the old name, switch to MustImplement to synchronize with class property
+	const FString& MustImplementName = PropertyHandle->GetMetaData("MustImplement"); 
 	const bool bAllowAbstract = PropertyHandle->HasMetaData("AllowAbstract");
-	const bool bIsBlueprintBaseOnly = PropertyHandle->GetBoolMetaData("IsBlueprintBaseOnly");
+	const bool bIsBlueprintBaseOnly = PropertyHandle->HasMetaData("IsBlueprintBaseOnly") || PropertyHandle->HasMetaData("BlueprintBaseOnly");
 	const bool bAllowNone = !(PropertyHandle->GetMetaDataProperty()->PropertyFlags & CPF_NoClear);
 	const bool bShowTreeView = PropertyHandle->HasMetaData("ShowTreeView");
 	const bool bHideViewOptions = PropertyHandle->HasMetaData("HideViewOptions");
@@ -22,7 +23,9 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 	const UClass* const MetaClass = !MetaClassName.IsEmpty()
 		? FEditorClassUtils::GetClassFromString(MetaClassName)
 		: UClass::StaticClass();
-	const UClass* const RequiredInterface = FEditorClassUtils::GetClassFromString(RequiredInterfaceName);
+	const UClass* const RequiredInterface = !RequiredInterfaceName.IsEmpty()
+		? FEditorClassUtils::GetClassFromString(RequiredInterfaceName)
+		: FEditorClassUtils::GetClassFromString(MustImplementName);
 
 	HeaderRow
 	.NameContent()

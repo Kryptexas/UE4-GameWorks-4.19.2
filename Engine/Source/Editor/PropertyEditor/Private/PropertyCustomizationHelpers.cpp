@@ -22,6 +22,7 @@
 #include "UserInterface/PropertyEditor/SPropertyMenuActorPicker.h"
 #include "Presentation/PropertyEditor/PropertyEditor.h"
 #include "UserInterface/PropertyEditor/SPropertyEditorAsset.h"
+#include "UserInterface/PropertyEditor/SPropertyEditorCombo.h"
 #include "UserInterface/PropertyEditor/SPropertyEditorClass.h"
 #include "UserInterface/PropertyEditor/SPropertyEditorInteractiveActorPicker.h"
 #include "UserInterface/PropertyEditor/SPropertyEditorSceneDepthPicker.h"
@@ -430,13 +431,13 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 FString SObjectPropertyEntryBox::OnGetObjectPath() const
 {
 	FString StringReference;
-	if( PropertyHandle.IsValid() )
-	{
-		PropertyHandle->GetValueAsFormattedString( StringReference );
-	}
-	else
+	if (ObjectPath.IsSet())
 	{
 		StringReference = ObjectPath.Get();
+	}
+	else if( PropertyHandle.IsValid() )
+	{
+		PropertyHandle->GetValueAsFormattedString( StringReference );
 	}
 	
 	return StringReference;
@@ -1392,7 +1393,17 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(con
 		.OnGetMenuContent(FOnGetContent::CreateLambda(GetLocalizationMenuContent));
 }
 
+TSharedRef<SWidget> PropertyCustomizationHelpers::MakePropertyComboBox(const TSharedPtr<IPropertyHandle>& InPropertyHandle, FOnGetPropertyComboBoxStrings OnGetStrings, FOnGetPropertyComboBoxValue OnGetValue, FOnPropertyComboBoxValueSelected OnValueSelected)
+{
+	FSlateFontInfo FontStyle = FEditorStyle::GetFontStyle(PropertyEditorConstants::PropertyFontStyle);
 
+	return SNew(SPropertyEditorCombo)
+		.PropertyHandle(InPropertyHandle)
+		.OnGetComboBoxStrings(OnGetStrings)
+		.OnGetComboBoxValue(OnGetValue)
+		.OnComboBoxValueSelected(OnValueSelected)
+		.Font(FontStyle);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //

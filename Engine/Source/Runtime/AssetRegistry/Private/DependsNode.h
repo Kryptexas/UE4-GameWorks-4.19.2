@@ -24,102 +24,44 @@ public:
 	/** Gets the list of dependency names for this node */
 	void GetDependencies(TArray<FAssetIdentifier>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) const;
 	/** Gets the list of referencers to this node */
-	void GetReferencers(TArray<FDependsNode*>& OutReferencers) const;
+	void GetReferencers(TArray<FDependsNode*>& OutReferencers, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) const;
 	/** Gets the name of the package that this node represents */
 	FName GetPackageName() const { return Identifier.PackageName; }
 	/** Sets the name of the package that this node represents */
 	void SetPackageName(FName InName) { Identifier = FAssetIdentifier(InName); }
 	/** Returns the entire identifier */
-	FAssetIdentifier GetIdentifier() const { return Identifier; }
+	const FAssetIdentifier& GetIdentifier() const { return Identifier; }
 	/** Sets the entire identifier */
 	void SetIdentifier(const FAssetIdentifier& InIdentifier) { Identifier = InIdentifier;  }
 	/** Add a dependency to this node */
-	void AddDependency(FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::Hard)
-	{ 
-		if (InDependencyType == EAssetRegistryDependencyType::Hard)
-		{
-			HardDependencies.AddUnique(InDependency);
-		}
-		if (InDependencyType == EAssetRegistryDependencyType::Soft)
-		{
-			SoftDependencies.AddUnique(InDependency);
-		}
-		if (InDependencyType == EAssetRegistryDependencyType::SearchableName)
-		{
-			NameDependencies.AddUnique(InDependency);
-		}
-	}
+	void AddDependency(FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::Hard);
 	/** Add a referencer to this node */
 	void AddReferencer(FDependsNode* InReferencer) { Referencers.AddUnique(InReferencer); }
 	/** Remove a dependency from this node */
-	void RemoveDependency(FDependsNode* InDependency) { HardDependencies.Remove(InDependency); SoftDependencies.Remove(InDependency); NameDependencies.Remove(InDependency); }
+	void RemoveDependency(FDependsNode* InDependency);
 	/** Remove a referencer from this node */
 	void RemoveReferencer(FDependsNode* InReferencer) { Referencers.Remove(InReferencer); }
 	/** Clear all dependency records from this node */
-	void ClearDependencies() { HardDependencies.Empty(); SoftDependencies.Empty(); NameDependencies.Empty(); }
-
-	/** Iterate over all the dependencies of this node, filtered by the supplied type parameter, and call the supplied lambda parameter on the record */
-	template <class T>
-	void IterateOverDependencies(T InCallback, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All)
-	{
-		if (InDependencyType & EAssetRegistryDependencyType::Hard)
-		{
-			for (FDependsNode* Dependency : HardDependencies)
-			{
-				InCallback(Dependency, EAssetRegistryDependencyType::Hard);
-			}
-		}
-
-		if (InDependencyType & EAssetRegistryDependencyType::Soft)
-		{
-			for (FDependsNode* Dependency : SoftDependencies)
-			{
-				InCallback(Dependency, EAssetRegistryDependencyType::Soft);
-			}
-		}
-
-		if (InDependencyType & EAssetRegistryDependencyType::SearchableName)
-		{
-			for (FDependsNode* Dependency : NameDependencies)
-			{
-				InCallback(Dependency, EAssetRegistryDependencyType::SearchableName);
-			}
-		}
-	}
+	void ClearDependencies();
+	/** Removes Manage dependencies on this node and clean up referencers array. Manage references are the only ones safe to remove at runtime */
+	void RemoveManageReferencesToNode();
 
 	/** Iterate over all the dependencies of this node, filtered by the supplied type parameter, and call the supplied lambda parameter on the record */
 	template <class T>
 	void IterateOverDependencies(T InCallback, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) const
 	{
-		if (InDependencyType & EAssetRegistryDependencyType::Hard)
+		IterateOverDependencyArrays([&InCallback](const TArray<FDependsNode*>& InArray, EAssetRegistryDependencyType::Type CurrentType)
 		{
-			for (FDependsNode* Dependency : HardDependencies)
+			for (FDependsNode* Dependency : InArray)
 			{
-				InCallback(Dependency, EAssetRegistryDependencyType::Hard);
+				InCallback(Dependency, CurrentType);
 			}
-		}
-
-		if (InDependencyType & EAssetRegistryDependencyType::Soft)
-		{
-			for (FDependsNode* Dependency : SoftDependencies)
-			{
-				InCallback(Dependency, EAssetRegistryDependencyType::Soft);
-			}
-		}
-
-		if (InDependencyType & EAssetRegistryDependencyType::SearchableName)
-		{
-			for (FDependsNode* Dependency : NameDependencies)
-			{
-				InCallback(Dependency, EAssetRegistryDependencyType::SearchableName);
-			}
-		}
+		}, InDependencyType);
 	}
 
-	/** Iterate over all the referencers of this node and call the supplied lambda
-		parameter on the record */
+	/** Iterate over all the referencers of this node and call the supplied lambda parameter on the record */
 	template <class T>
-	void IterateOverReferencers(T InCallback)
+	void IterateOverReferencers(T InCallback) const
 	{
 		for (FDependsNode* Referencer : Referencers)
 		{
@@ -135,6 +77,32 @@ public:
 	}
 
 private:
+
+	/** Iterate over all the separate dependency arrays. Const cast to avoid duplication */
+	template <class T>
+	FORCEINLINE void IterateOverDependencyArrays(T InCallback, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) const
+	{
+		if (InDependencyType & EAssetRegistryDependencyType::Hard)
+		{
+			InCallback(const_cast<TArray<FDependsNode*>&>(HardDependencies), EAssetRegistryDependencyType::Hard);
+		}
+
+		if (InDependencyType & EAssetRegistryDependencyType::Soft)
+		{
+			InCallback(const_cast<TArray<FDependsNode*>&>(SoftDependencies), EAssetRegistryDependencyType::Soft);
+		}
+
+		if (InDependencyType & EAssetRegistryDependencyType::SearchableName)
+		{
+			InCallback(const_cast<TArray<FDependsNode*>&>(NameDependencies), EAssetRegistryDependencyType::SearchableName);
+		}
+
+		if (InDependencyType & EAssetRegistryDependencyType::Manage)
+		{
+			InCallback(const_cast<TArray<FDependsNode*>&>(ManageDependencies), EAssetRegistryDependencyType::Manage);
+		}
+	}
+
 	/** Recursively prints dependencies of the node starting with the specified indent. VisitedNodes should be an empty set at first which is populated recursively. */
 	void PrintDependenciesRecursive(const FString& Indent, TSet<const FDependsNode*>& VisitedNodes) const;
 	/** Recursively prints referencers to the node starting with the specified indent. VisitedNodes should be an empty set at first which is populated recursively. */
@@ -148,6 +116,8 @@ private:
 	TArray<FDependsNode*> SoftDependencies;
 	/** The list of searchable name dependencies for this node */
 	TArray<FDependsNode*> NameDependencies;
+	/** The list of manage dependencies for this node */
+	TArray<FDependsNode*> ManageDependencies;
 	/** The list of referencers to this node */
 	TArray<FDependsNode*> Referencers;
 };

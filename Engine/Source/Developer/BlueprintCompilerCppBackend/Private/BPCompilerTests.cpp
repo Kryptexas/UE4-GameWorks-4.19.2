@@ -16,7 +16,7 @@
 class FArchiveSkipTransientObjectCRC32 : public FArchiveObjectCrc32
 {
 public:
-	static bool CanPropertBeyDifferentInConvertedCDO(const UProperty* InProperty)
+	static bool CanPropertyBeDifferentInConvertedCDO(const UProperty* InProperty)
 	{
 		check(InProperty);
 		return InProperty->HasAllPropertyFlags(CPF_Transient)
@@ -31,7 +31,7 @@ public:
 	virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
 	{
 		return FArchiveObjectCrc32::ShouldSkipProperty(InProperty)
-			|| CanPropertBeyDifferentInConvertedCDO(InProperty);
+			|| CanPropertyBeDifferentInConvertedCDO(InProperty);
 	}
 	// End FArchive Interface
 };
@@ -41,7 +41,7 @@ void ClearNativeRecursive(UObject* OnObject)
 	OnObject->ClearInternalFlags(EInternalObjectFlags::Native);
 	TArray<UObject*> Children;
 	GetObjectsWithOuter(OnObject, Children, false);
-	for (auto Entry : Children)
+	for (UObject* Entry : Children)
 	{
 		ClearNativeRecursive(Entry);
 	}
@@ -52,7 +52,7 @@ struct FOwnedObjectsHelper
 {
 	~FOwnedObjectsHelper()
 	{
-		for (auto Entry : OwnedObjects)
+		for (UObject* Entry : OwnedObjects)
 		{
 			Entry->RemoveFromRoot();
 			Entry->ClearFlags(RF_Standalone);
@@ -94,7 +94,7 @@ static UClass* GetGeneratedClass(const TCHAR* TestFolder, const TCHAR* ClassName
 
 	TArray<UObject*> Objects;
 	GetObjectsWithOuter(Blueprint->GetOuter(), Objects, false);
-	for (auto Entry : Objects)
+	for (UObject* Entry : Objects)
 	{
 		OwnedObjects.Push(Entry);
 	}
@@ -123,7 +123,7 @@ static UClass* GetNativeClass(const TCHAR* TestFolder, const TCHAR* ClassName, F
 
 	TArray<UObject*> Objects;
 	GetObjectsWithOuter(NativePackage, Objects, false);
-	for (auto Entry : Objects)
+	for (UObject* Entry : Objects)
 	{
 		OwnedObjects.Push(Entry);
 	}
@@ -244,7 +244,7 @@ bool FBPCompilerCDOTest::RunTest(const FString& Parameters)
 
 	for (UProperty* NativeProperty : TFieldRange<UProperty>(NativeTestInstance->GetClass()))
 	{
-		if ((NativeProperty->GetOwnerClass() == UObject::StaticClass()) || (FArchiveSkipTransientObjectCRC32::CanPropertBeyDifferentInConvertedCDO(NativeProperty)))
+		if ((NativeProperty->GetOwnerClass() == UObject::StaticClass()) || (FArchiveSkipTransientObjectCRC32::CanPropertyBeDifferentInConvertedCDO(NativeProperty)))
 		{
 			continue;
 		}

@@ -10,10 +10,13 @@
 #include "Sound/SoundConcurrency.h"
 #include "Components/AudioComponent.h"
 #include "Sound/AudioVolume.h"
+#include "Sound/SoundSubmix.h"
+#include "AudioDevice.h"
 
 class FAudioDevice;
 class USoundBase;
 class USoundSubmix;
+struct FSoundSubmixSendInfo;
 class USoundWave;
 struct FListener;
 
@@ -28,9 +31,6 @@ struct FSoundParseParameters
 	// The Sound Class to use the settings of
 	USoundClass* SoundClass;
 	
-	// The sound submix to use for the wave instance
-	USoundSubmix* SoundSubmix;
-
 	// The transform of the sound (scale is not used)
 	FTransform Transform;
 
@@ -70,6 +70,12 @@ struct FSoundParseParameters
 	// The absolute azimuth angle of the sound relative to the forward listener vector (359 degrees to left, 1 degrees to right)
 	float AbsoluteAzimuth;
 
+	// The sound submix to use for the wave instance
+	USoundSubmix* SoundSubmix;
+
+	// The submix sends to use
+	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
+
 	// Reverb wet-level parameters
 	float ReverbWetLevelMin;
 	float ReverbWetLevelMax;
@@ -82,6 +88,18 @@ struct FSoundParseParameters
 
 	// Which spatialization algorithm to use
 	ESoundSpatializationAlgorithm SpatializationAlgorithm;
+
+	// What occlusion plugin source settings to use
+	USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
+
+	// What occlusion plugin source settings to use
+	UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
+
+	// What reverb plugin source settings to use
+	UReverbPluginSourceSettingsBase* ReverbPluginSettings;
+
+	// What source effect chain to use
+	USoundEffectSourcePresetChain* SourceEffectChain;
 
 	// The lowpass filter frequency to apply (if enabled)
 	float LowPassFilterFrequency;
@@ -112,7 +130,6 @@ struct FSoundParseParameters
 
 	FSoundParseParameters()
 		: SoundClass(nullptr)
-		, SoundSubmix(nullptr)
 		, Velocity(ForceInit)
 		, Volume(1.f)
 		, VolumeMultiplier(1.f)
@@ -124,6 +141,7 @@ struct FSoundParseParameters
 		, AttenuationDistance(0.0f)
 		, ListenerToSoundDistance(0.0f)
 		, AbsoluteAzimuth(0.0f)
+		, SoundSubmix(nullptr)
 		, ReverbWetLevelMin(0.0f)
 		, ReverbWetLevelMax(0.0f)
 		, ReverbDistanceMin(0.0f)
@@ -131,6 +149,10 @@ struct FSoundParseParameters
 		, DefaultMasterReverbSendAmount(0.0f)
 		, StereoSpread(0.0f)
 		, SpatializationAlgorithm(SPATIALIZATION_Default)
+		, SpatializationPluginSettings(nullptr)
+		, OcclusionPluginSettings(nullptr)
+		, ReverbPluginSettings(nullptr)
+		, SourceEffectChain(nullptr)
 		, LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
 		, AttenuationFilterFrequency(MAX_FILTER_FREQUENCY)
 		, OcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
@@ -158,6 +180,7 @@ private:
 	class USoundBase* Sound;
 
 	uint64 AudioComponentID;
+	uint64 AudioComponentUserID;
 	uint32 OwnerID;
 	
 	FName AudioComponentName;
@@ -166,6 +189,7 @@ private:
 public:
 
 	uint64 GetAudioComponentID() const { return AudioComponentID; }
+	uint64 GetAudioComponentUserID() const { return AudioComponentUserID; }
 	void SetAudioComponent(UAudioComponent* Component);
 	FString GetAudioComponentName() const;
 	FString GetOwnerName() const;
@@ -209,6 +233,9 @@ private:
 
 	/** Optional SoundSubmix to override for the sound. */
 	USoundSubmix* SoundSubmixOverride;
+
+	/** Optional override the submix sends for the sound. */
+	TArray<FSoundSubmixSendInfo> SoundSubmixSendsOverride;
 
 public:
 	/** Whether or not the sound has checked if it was occluded already. Used to initialize a sound as occluded and bypassing occlusion interpolation. */
@@ -452,6 +479,9 @@ public:
 	*/
 	USoundSubmix* GetSoundSubmix() const;
 
+	/** Gets the sound submix sends to use for this sound instance. */
+	void GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const;
+
 	/* Determines which listener is the closest to the sound */
 	int32 FindClosestListener( const TArray<struct FListener>& InListeners ) const;
 	
@@ -460,7 +490,9 @@ public:
 
 	/** Gets the sound concurrency to apply on this active sound instance */
 	const FSoundConcurrencySettings* GetSoundConcurrencySettingsToApply() const;
-	void OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum);
+
+	/** Delegate callback function when an async occlusion trace completes */
+	static void OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum);
 
 	/** Returns the sound concurrency object ID if it exists. If it doesn't exist, returns 0. */
 	uint32 GetSoundConcurrencyObjectID() const;
@@ -471,8 +503,21 @@ public:
 	/** Returns the effective priority of the active sound */
 	float GetPriority() const { return Priority * FocusPriorityScale; }
 
+	/** Sets the amount of audio from this active sound to send to the submix. */
+	void SetSubmixSend(const FSoundSubmixSendInfo& SubmixSendInfo);
+
 private:
 	
+	struct FAsyncTraceDetails
+	{
+		uint32 AudioDeviceID;
+		FActiveSound* ActiveSound;
+	};
+
+	static TMap<FTraceHandle, FAsyncTraceDetails> TraceToActiveSoundMap;
+
+	static FTraceDelegate ActiveSoundTraceDelegate;
+
 	/** Cached ptr to the closest listener. So we don't have to do the work to find it twice. */
 	const FListener* ClosestListenerPtr;
 
@@ -482,6 +527,7 @@ private:
 	/** Stops the active sound. Can only be called from the owning audio device. */
 	void Stop();
 
+	/** Sets the target volume multiplier to achieve over the specified time period */
 	void UpdateAdjustVolumeMultiplier(const float DeltaTime);
 
 	/** if OcclusionCheckInterval > 0.0, checks if the sound has become (un)occluded during playback
@@ -492,10 +538,6 @@ private:
 	 */
 	void CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FSoundAttenuationSettings* AttenuationSettingsPtr);
 	 
-	void UpdateOcclusion(const FSoundAttenuationSettings* AttenuationSettingsPtr);
-
-	FTraceDelegate OcclusionTraceDelegate;
-
 	/** Apply the interior settings to the ambient sound as appropriate */
 	void HandleInteriorVolumes( const FListener& Listener, struct FSoundParseParameters& ParseParams );
 

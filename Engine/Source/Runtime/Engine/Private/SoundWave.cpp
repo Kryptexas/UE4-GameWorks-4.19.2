@@ -412,7 +412,7 @@ void USoundWave::PostLoad()
 	}
 
 	// Log a warning after loading if the source has effect chains but has channels greater than 2.
-	if (SourceEffectChain.Num() > 0 && NumChannels > 2)
+	if (SourceEffectChain && SourceEffectChain->Chain.Num() > 0 && NumChannels > 2)
 	{
 		UE_LOG(LogAudio, Warning, TEXT("Sound Wave '%s' has defined an effect chain but is not mono or stereo."), *GetName());
 	}
@@ -665,10 +665,9 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->ListenerToSoundDistance = ParseParams.ListenerToSoundDistance;
 		WaveInstance->AbsoluteAzimuth = ParseParams.AbsoluteAzimuth;
 
-		if (NumChannels <= 2 && SourceEffectChain.Num() > 0)
+		if (NumChannels <= 2)
 		{
-			WaveInstance->SourceEffectChain = SourceEffectChain;
-			WaveInstance->bPlayEffectChainTails = bPlayEffectChainTails;
+			WaveInstance->SourceEffectChain = ParseParams.SourceEffectChain;
 		}
 
 		bool bAlwaysPlay = false;
@@ -755,6 +754,10 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			WaveInstance->ReverbWetLevelMin = ParseParams.DefaultMasterReverbSendAmount;
 		}
 
+		// Copy over the submix sends.
+		WaveInstance->SoundSubmix = ParseParams.SoundSubmix;
+		WaveInstance->SoundSubmixSends = ParseParams.SoundSubmixSends;
+
 		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationAlgorithm == SPATIALIZATION_Default)
 		{
 			WaveInstance->SpatializationAlgorithm = SPATIALIZATION_HRTF;
@@ -763,6 +766,11 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		{
 			WaveInstance->SpatializationAlgorithm = ParseParams.SpatializationAlgorithm;
 		}
+
+		// Pass along plugin settings to the wave instance
+		WaveInstance->SpatializationPluginSettings = ParseParams.SpatializationPluginSettings;
+		WaveInstance->OcclusionPluginSettings = ParseParams.OcclusionPluginSettings;
+		WaveInstance->ReverbPluginSettings = ParseParams.ReverbPluginSettings;
 
 		bool bAddedWaveInstance = false;
 		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || (bVirtualizeWhenSilent && AudioDevice->VirtualSoundsEnabled()))

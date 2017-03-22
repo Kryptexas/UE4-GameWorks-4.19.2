@@ -2632,8 +2632,11 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 
 	FSCSEditorTreeNodePtrType NodePtr = GetNode();
 
-	check(NodePtr.IsValid() && NodePtr == SceneRootNodePtr);
-	check(DroppedNodePtr.IsValid());
+	// We cannot handle the drop action if any of these conditions fail on entry.
+	if (!ensure(NodePtr.IsValid()) || !ensure(DroppedNodePtr.IsValid()) || !ensure(NodePtr == SceneRootNodePtr))
+	{
+		return;
+	}
 
 	// Create a transaction record
 	const FScopedTransaction TransactionContext(LOCTEXT("MakeNewSceneRoot", "Make New Scene Root"));

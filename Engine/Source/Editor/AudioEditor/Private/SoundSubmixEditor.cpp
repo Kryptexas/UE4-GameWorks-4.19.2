@@ -21,6 +21,10 @@
 #include "AudioEditorModule.h"
 #include "SSoundSubmixActionMenu.h"
 #include "Editor.h"
+#include "AssetToolsModule.h"
+#include "IAssetTools.h"
+#include "Factories/SoundSubmixFactory.h"
+#include "UObject/Package.h"
 
 #define LOCTEXT_NAMESPACE "SoundSubmixEditor"
 DEFINE_LOG_CATEGORY_STATIC( LogSoundSubmixEditor, Log, All );
@@ -336,14 +340,25 @@ void FSoundSubmixEditor::CreateSoundSubmix(UEdGraphPin* FromPin, const FVector2D
 	// If we have a valid name
 	if (!Name.IsEmpty() && Name != SoundSubmix->GetName())
 	{
-		FName NewClassName(*Name);
-		UPackage* Package = SoundSubmix->GetOutermost();
-		USoundSubmix* NewSoundSubmix = NewObject<USoundSubmix>(Package, NewClassName, RF_Public);
+		// Derive new package path from existing asset's path
+		FString PackagePath = SoundSubmix->GetPathName();
+		FString AssetName = FString::Printf(TEXT("/%s.%s"), *SoundSubmix->GetName(), *SoundSubmix->GetName());
+		PackagePath.RemoveFromEnd(AssetName);
 
-		CastChecked<USoundSubmixGraph>(SoundSubmix->SoundSubmixGraph)->AddNewSoundSubmix(FromPin, NewSoundSubmix, Location.X, Location.Y);
+		// Create a sound submix factory to create a new sound class
+		USoundSubmixFactory* SoundSubmixFactory = NewObject<USoundSubmixFactory>();
 
-		NewSoundSubmix->PostEditChange();
-		Package->MarkPackageDirty();
+		// Load asset tools to create the asset properly
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		USoundSubmix* NewSoundSubmix = Cast<USoundSubmix>(AssetToolsModule.Get().CreateAsset(Name, PackagePath, USoundSubmix::StaticClass(), SoundSubmixFactory, FName("SoundSubmixEditorNewAsset")));
+
+		if (NewSoundSubmix)
+		{
+			CastChecked<USoundSubmixGraph>(SoundSubmix->SoundSubmixGraph)->AddNewSoundSubmix(FromPin, NewSoundSubmix, Location.X, Location.Y);
+
+			NewSoundSubmix->PostEditChange();
+			NewSoundSubmix->MarkPackageDirty();
+		}
 	}
 }
 

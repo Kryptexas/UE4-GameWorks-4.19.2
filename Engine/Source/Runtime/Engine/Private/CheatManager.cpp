@@ -207,60 +207,38 @@ void UCheatManager::Slomo(float NewTimeDilation)
 
 void UCheatManager::DamageTarget(float DamageAmount)
 {
-	APlayerController* const MyPC = GetOuterAPlayerController();
-	if ((MyPC == NULL) || (MyPC->PlayerCameraManager == NULL))
-	{
-		return;
-	}
-
-	check(GetWorld() != NULL);
-	FVector const CamLoc = MyPC->PlayerCameraManager->GetCameraLocation();
-	FRotator const CamRot = MyPC->PlayerCameraManager->GetCameraRotation();
-
-	FCollisionQueryParams TraceParams(NAME_None, true, MyPC->GetPawn());
-	FHitResult Hit;
-	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
-	if (bHit)
-	{
-		check(Hit.GetActor() != NULL);
-		FVector ActorForward, ActorSide, ActorUp;
-		FQuatRotationMatrix(Hit.GetActor()->GetActorQuat()).GetScaledAxes(ActorForward, ActorSide, ActorUp);
-
-		FPointDamageEvent DamageEvent(DamageAmount, Hit, -ActorForward, UDamageType::StaticClass());
-		Hit.GetActor()->TakeDamage(DamageAmount, DamageEvent, MyPC, MyPC->GetPawn());
-	}
+    APlayerController* const MyPC = GetOuterAPlayerController();
+    FHitResult Hit;
+    AActor* TargetActor = GetTarget(MyPC, Hit);
+    if (TargetActor)
+    {
+        FVector ActorForward, ActorSide, ActorUp;
+        FQuatRotationMatrix(TargetActor->GetActorQuat()).GetScaledAxes(ActorForward, ActorSide, ActorUp);
+        
+        FPointDamageEvent DamageEvent(DamageAmount, Hit, -ActorForward, UDamageType::StaticClass());
+        TargetActor->TakeDamage(DamageAmount, DamageEvent, MyPC, MyPC->GetPawn());
+    }
 }
 
 void UCheatManager::DestroyTarget()
 {
-	APlayerController* const MyPC = GetOuterAPlayerController();
-	if ((MyPC == NULL) || (MyPC->PlayerCameraManager == NULL))
-	{
-		return;
-	}
-
-	check(GetWorld() != NULL);
-	FVector const CamLoc = MyPC->PlayerCameraManager->GetCameraLocation();
-	FRotator const CamRot = MyPC->PlayerCameraManager->GetCameraRotation();
-
-	FCollisionQueryParams TraceParams(NAME_None, true, MyPC->GetPawn());
-	FHitResult Hit;
-	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
-	if (bHit)
-	{
-		check(Hit.GetActor() != NULL);
-		APawn* Pawn = Cast<APawn>(Hit.GetActor());
-		if (Pawn != NULL)
-		{
-			if ((Pawn->Controller != NULL) && (Cast<APlayerController>(Pawn->Controller) == NULL))
-			{
-				// Destroy any associated controller as long as it's not a player controller.
-				Pawn->Controller->Destroy();
-			}
-		}
-
-		Hit.GetActor()->Destroy();
-	}
+    APlayerController* const MyPC = GetOuterAPlayerController();
+    FHitResult Hit;
+    AActor* TargetActor = GetTarget(MyPC, Hit);
+    if (TargetActor)
+    {
+        APawn* Pawn = Cast<APawn>(TargetActor);
+        if (Pawn != NULL)
+        {
+            if ((Pawn->Controller != NULL) && (Cast<APlayerController>(Pawn->Controller) == NULL))
+            {
+                // Destroy any associated controller as long as it's not a player controller.
+                Pawn->Controller->Destroy();
+            }
+        }
+        
+        TargetActor->Destroy();
+    }
 }
 
 void UCheatManager::DestroyAll(TSubclassOf<AActor> aClass)
@@ -286,47 +264,29 @@ void UCheatManager::DestroyAll(TSubclassOf<AActor> aClass)
 
 void UCheatManager::DestroyAllPawnsExceptTarget()
 {
-	// First do the trace to find the target
-	APlayerController* const MyPC = GetOuterAPlayerController();
-	if ((MyPC == NULL) || (MyPC->PlayerCameraManager == NULL))
-	{
-		return;
-	}
-
-	check(GetWorld() != NULL);
-	FVector const CamLoc = MyPC->PlayerCameraManager->GetCameraLocation();
-	FRotator const CamRot = MyPC->PlayerCameraManager->GetCameraRotation();
-
-	FCollisionQueryParams TraceParams(NAME_None, true, MyPC->GetPawn());
-	FHitResult Hit;
-	APawn* HitPawnTarget = NULL;
-	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
-	if (bHit)
-	{
-		check(Hit.GetActor() != NULL);
-		HitPawnTarget = Cast<APawn>(Hit.GetActor());
-	}
-
-	// if we have a pawn target, destroy all other non-players
-	if (HitPawnTarget)
-	{
-		for (TActorIterator<APawn> It(GetWorld(), APawn::StaticClass()); It; ++It)
-		{
-			APawn* Pawn = *It;
-			checkSlow(Pawn);
-			if (!Pawn->IsPendingKill())
-			{
-				if ((Pawn != HitPawnTarget) && Cast<APlayerController>(Pawn->Controller) == NULL)
-				{
-					if (Pawn->Controller != NULL)
-					{
-						Pawn->Controller->Destroy();
-					}
-					Pawn->Destroy();
-				}
-			}
-		}
-	}
+    APlayerController* const MyPC = GetOuterAPlayerController();
+    FHitResult Hit;
+    APawn* HitPawnTarget = Cast<APawn>(GetTarget(MyPC, Hit));
+    // if we have a pawn target, destroy all other non-players
+    if (HitPawnTarget)
+    {
+        for (TActorIterator<APawn> It(GetWorld(), APawn::StaticClass()); It; ++It)
+        {
+            APawn* Pawn = *It;
+            checkSlow(Pawn);
+            if (!Pawn->IsPendingKill())
+            {
+                if ((Pawn != HitPawnTarget) && Cast<APlayerController>(Pawn->Controller) == NULL)
+                {
+                    if (Pawn->Controller != NULL)
+                    {
+                        Pawn->Controller->Destroy();
+                    }
+                    Pawn->Destroy();
+                }
+            }
+        }
+    }
 }
 
 void UCheatManager::DestroyPawns(TSubclassOf<APawn> aClass)
@@ -1234,6 +1194,27 @@ void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, con
 	// so here we want to send this bad boy back to the PC
 	SendDataToPCViaUnrealConsole( TEXT("UE_PROFILER!BUGIT:"), *(FullFileName) );
 #endif // ALLOW_DEBUG_FILES
+}
+
+AActor* UCheatManager::GetTarget(APlayerController* PlayerController, struct FHitResult& OutHit)
+{
+    if ((PlayerController == NULL) || (PlayerController->PlayerCameraManager == NULL))
+    {
+        return NULL;
+    }
+    
+    check(GetWorld() != NULL);
+    FVector const CamLoc = PlayerController->PlayerCameraManager->GetCameraLocation();
+    FRotator const CamRot = PlayerController->PlayerCameraManager->GetCameraRotation();
+    
+    FCollisionQueryParams TraceParams(NAME_None, true, PlayerController->GetPawn());
+    bool bHit = GetWorld()->LineTraceSingleByChannel(OutHit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
+    if (bHit)
+    {
+        check(OutHit.GetActor() != NULL);
+        return OutHit.GetActor();
+    }
+    return NULL;
 }
 
 

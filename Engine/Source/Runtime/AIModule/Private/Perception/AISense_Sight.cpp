@@ -71,7 +71,7 @@ UAISense_Sight::FDigestedSightProperties::FDigestedSightProperties(const UAISens
 {
 	SightRadiusSq = FMath::Square(SenseConfig.SightRadius);
 	LoseSightRadiusSq = FMath::Square(SenseConfig.LoseSightRadius);
-	PeripheralVisionAngleCos = FMath::Cos(FMath::DegreesToRadians(SenseConfig.PeripheralVisionAngleDegrees));
+	PeripheralVisionAngleCos = FMath::Cos(FMath::Clamp(FMath::DegreesToRadians(SenseConfig.PeripheralVisionAngleDegrees), 0.f, PI));
 	AffiliationFlags = SenseConfig.DetectionByAffiliation.GetAsFlags();
 	// keep the special value of FAISystem::InvalidRange (-1.f) if it's set.
 	AutoSuccessRangeSqFromLastSeenLocation = (SenseConfig.AutoSuccessRangeFromLastSeenLocation == FAISystem::InvalidRange) ? FAISystem::InvalidRange : FMath::Square(SenseConfig.AutoSuccessRangeFromLastSeenLocation);

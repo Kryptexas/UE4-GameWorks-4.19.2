@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "Engine/AssetManagerTypes.h"
+#include "Engine/DeveloperSettings.h"
 #include "AssetManagerSettings.generated.h"
 
 /** Simple structure for redirecting an old asset name/path to a new one */
 USTRUCT()
 struct FAssetManagerRedirect
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = AssetRedirect)
 	FString Old;
@@ -22,13 +24,46 @@ struct FAssetManagerRedirect
 	}
 };
 
-/** Deson't subclass developer settings because the UI shouldn't be enabled until this feature is out of experimental */
-UCLASS(config = Game, defaultconfig, notplaceable)
-class ENGINE_API UAssetManagerSettings : public UObject
+/** Simple structure to allow overriding asset rules for a specific primary asset. This can be used to set chunks */
+USTRUCT()
+struct FPrimaryAssetRulesOverride
+{
+	GENERATED_BODY()
+
+	/** Which primary asset to override the rules for */
+	UPROPERTY(EditAnywhere, Category = AssetRedirect)
+	FPrimaryAssetId PrimaryAssetId;	
+
+	/** What to overrides the rules with */
+	UPROPERTY(EditAnywhere, Category = AssetRedirect, meta = (ShowOnlyInnerProperties))
+	FPrimaryAssetRules Rules;
+};
+
+/** Doesn't subclass developer settings because the UI shouldn't be enabled until this feature is out of experimental */
+UCLASS(config = Game, defaultconfig, notplaceable, meta = (DisplayName = "Asset Manager"))
+class ENGINE_API UAssetManagerSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
 public:
+	UAssetManagerSettings() : bOnlyCookProductionAssets(false) {}
+
+	/** List of asset types to scan at startup */
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
+	TArray<FPrimaryAssetTypeInfo> PrimaryAssetTypesToScan;
+
+	/** List of directories to exclude from scanning for Primary Assets, useful to exclude test assets */
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager", meta = (RelativeToGameContentDir))
+	TArray<FDirectoryPath> DirectoriesToExclude;
+
+	/** List of specific asset rule overrides */
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
+	TArray<FPrimaryAssetRulesOverride> PrimaryAssetRules;
+
+	/** If true, DevelopmentCook assets will error when they are cooked */
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
+	bool bOnlyCookProductionAssets;
+
 	/** Redirect from Type:Name to Type:NameNew */
 	UPROPERTY(config, EditAnywhere, Category = "Redirects")
 	TArray<FAssetManagerRedirect> PrimaryAssetIdRedirects;
@@ -40,5 +75,4 @@ public:
 	/** Redirect from /game/assetpath to /game/assetpathnew */
 	UPROPERTY(config, EditAnywhere, Category = "Redirects")
 	TArray<FAssetManagerRedirect> AssetPathRedirects;
-
 };

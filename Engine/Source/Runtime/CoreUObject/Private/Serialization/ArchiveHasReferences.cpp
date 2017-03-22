@@ -76,7 +76,7 @@ TArray<UObject*> FArchiveHasReferences::GetAllReferencers(const TSet<UObject*>& 
 		for (FObjectIterator It; It; ++It)
 		{
 			UObject* PotentialReferencer = *It;
-			if (ObjectsToIgnore && !ObjectsToIgnore->Contains(PotentialReferencer))
+			if (ObjectsToIgnore && ObjectsToIgnore->Contains(PotentialReferencer))
 			{
 				continue;
 			}

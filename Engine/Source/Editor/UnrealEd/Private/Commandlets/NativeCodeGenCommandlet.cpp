@@ -30,7 +30,7 @@ int32 UNativeCodeGenCommandlet::Main(const FString& Params)
 			FPlatformNativizationDetails PlatformNativizationDetails;
 			PlatformNativizationDetails.PlatformName = Platform;
 			// If you change this target path you must also update logic in CookCommand.Automation.CS. Passing a single directory around is cumbersome for testing, so I have hard coded it.
-			PlatformNativizationDetails.PlatformTargetDirectory = FString(FPaths::Combine(*FPaths::GameIntermediateDir(), *Platform));
+			PlatformNativizationDetails.PlatformTargetDirectory = FPaths::Combine(*FPaths::GameIntermediateDir(), *Platform);
 			// CompilerNativizationOptions will be serialized from saved manifest
 
 			CodeGenTargets.Push(PlatformNativizationDetails);

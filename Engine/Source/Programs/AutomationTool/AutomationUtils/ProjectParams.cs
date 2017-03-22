@@ -224,8 +224,6 @@ namespace AutomationTool
             this.DLCName = InParams.DLCName;
             this.DLCIncludeEngineContent = InParams.DLCIncludeEngineContent;
             this.DiffCookedContentPath = InParams.DiffCookedContentPath;
-            this.NewCook = InParams.NewCook;
-            this.OldCook = InParams.OldCook;
             this.AdditionalCookerOptions = InParams.AdditionalCookerOptions;
 			this.ClientCookedTargets = InParams.ClientCookedTargets;
 			this.ServerCookedTargets = InParams.ServerCookedTargets;
@@ -388,8 +386,6 @@ namespace AutomationTool
             string DLCName = null,
             string DiffCookedContentPath = null,
             bool? DLCIncludeEngineContent = null,
-            bool? NewCook = null,
-            bool? OldCook = null,
 			bool? CrashReporter = null,
 			bool? DedicatedServer = null,
 			bool? Client = null,
@@ -509,8 +505,6 @@ namespace AutomationTool
 			this.Build = GetParamValueIfNotSpecified(Command, Build, this.Build, "build");
 			this.Run = GetParamValueIfNotSpecified(Command, Run, this.Run, "run");
 			this.Cook = GetParamValueIfNotSpecified(Command, Cook, this.Cook, "cook");
-            this.NewCook = GetParamValueIfNotSpecified(Command, NewCook, this.NewCook, "NewCook");
-            this.OldCook = GetParamValueIfNotSpecified(Command, OldCook, this.OldCook, "OldCook");
 			this.CreateReleaseVersionBasePath = ParseParamValueIfNotSpecified(Command, CreateReleaseVersionBasePath, "createreleaseversionroot", String.Empty);
 			this.BasedOnReleaseVersionBasePath = ParseParamValueIfNotSpecified(Command, BasedOnReleaseVersionBasePath, "basedonreleaseversionroot", String.Empty);
             this.CreateReleaseVersion = ParseParamValueIfNotSpecified(Command, CreateReleaseVersion, "createreleaseversion", String.Empty);
@@ -1250,17 +1244,7 @@ namespace AutomationTool
         /// Cook: Create a cooked release version.  Also, the version. e.g. 1.0
         /// </summary>
         public string CreateReleaseVersion;
-
-        /// <summary>
-        /// Cook: Use new cooker (temporary cooker option until it's enabled permanently)
-        /// </summary>
-        public bool NewCook { private set; get; }
-
-        /// <summary>
-        /// Cook: Use old cooker (temporary cooker options until new cook replaces it)
-        /// </summary>
-        public bool OldCook { private set; get; }
-
+        
 		/// <summary>
 		/// Cook: While cooking clean up packages as we go along rather then cleaning everything (and potentially having to reload some of it) when we run out of space
 		/// </summary>

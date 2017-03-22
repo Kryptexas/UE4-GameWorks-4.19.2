@@ -735,13 +735,11 @@ void USkyLightComponent::SetMinOcclusion(float InMinOcclusion)
 	}
 }
 
-void USkyLightComponent::SetVisibility(bool bNewVisibility, bool bPropagateToChildren)
+void USkyLightComponent::OnVisibilityChanged()
 {
-	const bool bOldWasVisible = bVisible;
+	Super::OnVisibilityChanged();
 
-	Super::SetVisibility(bNewVisibility, bPropagateToChildren);
-
-	if (bVisible && !bOldWasVisible && !bHasEverCaptured)
+	if (bVisible && !bHasEverCaptured)
 	{
 		// Capture if we are being enabled for the first time
 		SetCaptureIsDirty();

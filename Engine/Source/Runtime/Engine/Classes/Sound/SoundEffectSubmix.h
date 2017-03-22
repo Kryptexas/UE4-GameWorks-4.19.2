@@ -5,7 +5,6 @@
 #include "UObject/ObjectMacros.h"
 #include "Sound/SoundEffectPreset.h"
 #include "Sound/SoundEffectBase.h"
-#include "AudioDevice.h"
 #include "SoundEffectSubmix.generated.h"
 
 class FSoundEffectSubmix;
@@ -23,7 +22,6 @@ struct FSoundEffectSubmixInitData
 {
 	void* PresetSettings;
 	float SampleRate;
-	int32 NumOutputChannels;
 };
 
 /** Struct which supplies audio data to submix effects on game thread. */
@@ -61,7 +59,7 @@ public:
 	virtual ~FSoundEffectSubmix() {}
 
 	/** Called on an audio effect at initialization on main thread before audio processing begins. */
-	virtual void Init(const FSoundEffectSubmixInitData& InSampleRate) = 0;
+	virtual void Init(const FSoundEffectSubmixInitData& InSampleRate) {};
 
 	/** Called on game thread to allow submix effect to query game data if needed. */
 	virtual void Tick() {}
@@ -72,11 +70,8 @@ public:
 		return INDEX_NONE;
 	}
 
-	/** Sets the submix preset. */
-	virtual void SetPreset(USoundEffectSubmixPreset* InPreset) = 0;
-
 	/** Process the input block of audio. Called on audio thread. */
-	virtual void OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData) = 0;
+	virtual void OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData) {};
 
 	/** Processes audio in the source effect. */
 	void ProcessAudio(FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData);

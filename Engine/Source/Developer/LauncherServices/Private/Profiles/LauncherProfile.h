@@ -1347,8 +1347,6 @@ public:
 		"run", "true/false"
 		"cook, "true/false"
 		"cookflavor, ""
-		"newcook", "true/false"
-		"oldcook", "true/false"
 		"createreleaseversionroot", ""
 		"basedonreleaseversionroot", ""
 		"createreleaseversion", ""

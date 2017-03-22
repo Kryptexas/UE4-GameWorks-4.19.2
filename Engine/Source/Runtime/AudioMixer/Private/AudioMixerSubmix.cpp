@@ -11,26 +11,24 @@ namespace Audio
 	// Unique IDs for mixer submixe's
 	static uint32 GSubmixMixerIDs = 0;
 
-	FMixerSubmix::FMixerSubmix(USoundSubmix* InSoundSubmix, FMixerDevice* InMixerDevice)
+	FMixerSubmix::FMixerSubmix(FMixerDevice* InMixerDevice)
 		: Id(GSubmixMixerIDs++)
 		, ParentSubmix(nullptr)
 		, MixerDevice(InMixerDevice)
-		, WetLevel(0.5f)
+	{
+	}
+
+	FMixerSubmix::~FMixerSubmix()
+	{
+		ClearSoundEffectSubmixes();
+	}
+
+	void FMixerSubmix::Init(USoundSubmix* InSoundSubmix)
 	{
 		if (InSoundSubmix != nullptr)
 		{
-			// Setup the parent and child submix instances
-
-			ParentSubmix = InMixerDevice->GetSubmixInstance(InSoundSubmix->ParentSubmix);
-
-			for (int32 i = 0; i < InSoundSubmix->ChildSubmixes.Num(); ++i)
-			{
-				FMixerSubmixPtr ChildSubmix = InMixerDevice->GetSubmixInstance(InSoundSubmix->ChildSubmixes[i]);
-				ChildSubmixes.Add(ChildSubmix->GetId(), ChildSubmix);
-			}
-
 			// Loop through the submix's presets and make new instances of effects in the same order as the presets
-			EffectSubmixChain.Reset();
+			ClearSoundEffectSubmixes();
 
 			for (USoundEffectSubmixPreset* EffectPreset : InSoundSubmix->SubmixEffectChain)
 			{
@@ -39,25 +37,27 @@ namespace Audio
 					// Create a new effect instance using the preset
 					FSoundEffectSubmix* SubmixEffect = static_cast<FSoundEffectSubmix*>(EffectPreset->CreateNewEffect());
 
+					// Register the submix effect instance with the preset so it can be updated dynamically
+					SubmixEffect->RegisterWithPreset(EffectPreset);
+
 					FSoundEffectSubmixInitData InitData;
-					InitData.NumOutputChannels = InMixerDevice->GetNumDeviceChannels();
-					InitData.SampleRate = InMixerDevice->GetSampleRate();
+					InitData.SampleRate = MixerDevice->GetSampleRate();
 					InitData.PresetSettings = nullptr;
 
 					// Now set the preset
 					SubmixEffect->Init(InitData);
 					SubmixEffect->SetPreset(EffectPreset);
-					SubmixEffect->Enable();
+					SubmixEffect->SetEnabled(true);
+
+					FSubmixEffectInfo EffectInfo;
+					EffectInfo.PresetId = EffectPreset->GetUniqueID();
+					EffectInfo.EffectInstance = MakeShareable(SubmixEffect);
 
 					// Add the effect to this submix's chain
-					EffectSubmixChain.Add(SubmixEffect);
+					EffectSubmixChain.Add(EffectInfo);
 				}
 			}
 		}
-	}
-
-	FMixerSubmix::~FMixerSubmix()
-	{
 	}
 
 	void FMixerSubmix::SetParentSubmix(TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> Submix)
@@ -85,12 +85,11 @@ namespace Audio
 		return EffectSubmixChain.Num();
 	}
 
-	void FMixerSubmix::AddOrSetSourceVoice(FMixerSourceVoice* InSourceVoice, const float InDryLevel, const float InWetLevel)
+	void FMixerSubmix::AddOrSetSourceVoice(FMixerSourceVoice* InSourceVoice, const float InSendLevel)
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-		FSubmixEffectSendInfo EffectInfo = { InDryLevel, InWetLevel };
-		MixerSourceVoices.Add(InSourceVoice, EffectInfo);
+		MixerSourceVoices.Add(InSourceVoice, InSendLevel);
 	}
 
 	void FMixerSubmix::RemoveSourceVoice(FMixerSourceVoice* InSourceVoice)
@@ -100,9 +99,45 @@ namespace Audio
 		AUDIO_MIXER_CHECK(NumRemoved == 1);
 	}
 
-	void FMixerSubmix::AddSoundEffectSubmix(FSoundEffectSubmix* InSubmixEffect)
+	void FMixerSubmix::AddSoundEffectSubmix(uint32 SubmixPresetId, FSoundEffectSubmixPtr InSoundEffectSubmix)
 	{
-		EffectSubmixChain.Add(InSubmixEffect);
+		// Look to see if the submix preset ID is already present
+		for (int32 i = 0; i < EffectSubmixChain.Num(); ++i)
+		{
+			if (EffectSubmixChain[i].PresetId == SubmixPresetId)
+			{
+				// Already added. 
+				return;
+			}
+		}
+
+		// This is now owned by FMixerSubmix
+		FSubmixEffectInfo Info;
+		Info.PresetId = SubmixPresetId;
+		Info.EffectInstance = InSoundEffectSubmix;
+
+		EffectSubmixChain.Add(Info);
+	}
+
+	void FMixerSubmix::RemoveSoundEffectSubmix(uint32 SubmixPresetId)
+	{
+		for (int32 i = 0; i < EffectSubmixChain.Num(); ++i)
+		{
+			// If the ID's match, delete and remove the effect instance but don't modify the effect submix chain array itself
+			if (EffectSubmixChain[i].PresetId == SubmixPresetId)
+			{
+				// Release the reference to the effect instance
+				EffectSubmixChain[i].EffectInstance = nullptr;
+				EffectSubmixChain[i].PresetId = INDEX_NONE;
+				return;
+			}
+		}
+
+	}
+
+	void FMixerSubmix::ClearSoundEffectSubmixes()
+	{
+		EffectSubmixChain.Reset();
 	}
 
 	void FMixerSubmix::DownmixBuffer(const int32 InputChannelCount, const TArray<float>& InBuffer, const int32 DownMixChannelCount, TArray<float>& OutDownmixedBuffer)
@@ -120,14 +155,14 @@ namespace Audio
 		// Loop through the down mix map and perform the downmix operation
 		int32 InputSampleIndex = 0;
 		int32 DownMixedBufferIndex = 0;
-		for (; InputSampleIndex < WetBuffer.Num();)
+		for (; InputSampleIndex < InBuffer.Num();)
 		{
 			for (int32 DownMixChannel = 0; DownMixChannel < DownMixChannelCount; ++DownMixChannel)
 			{
 				for (int32 InChannel = 0; InChannel < InputChannelCount; ++InChannel)
 				{
 					const int32 ChannelMapIndex = DownMixChannelCount * InChannel + DownMixChannel;
-					DownmixedBuffer[DownMixedBufferIndex + DownMixChannel] += WetBuffer[InputSampleIndex + InChannel] * DownmixChannelMap[ChannelMapIndex];
+					DownmixedBuffer[DownMixedBufferIndex + DownMixChannel] += InBuffer[InputSampleIndex + InChannel] * DownmixChannelMap[ChannelMapIndex];
 				}
 			}
 
@@ -142,12 +177,6 @@ namespace Audio
 
 		// Create a zero'd scratch buffer to get the audio from this submix's children
 		const int32 NumSamples = OutAudioBuffer.Num();
-
-		WetBuffer.Reset(NumSamples);
-		WetBuffer.AddZeroed(NumSamples);
-
-		DryBuffer.Reset(NumSamples);
-		DryBuffer.AddZeroed(NumSamples);
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixChildren);
@@ -164,15 +193,10 @@ namespace Audio
 
 				ChildSubmix->ProcessAudio(ScratchBuffer);
 
-				// Get this child submix's wet level
-				float ChildWetLevel = ChildSubmix->WetLevel;
-				float ChildDryLevel = 1.0f - ChildWetLevel;
-
-				// Mix the child's submix results into this submix's dry and wet levels
+				// Mix the output of the submix into the output buffer
 				for (int32 i = 0; i < NumSamples; ++i)
 				{
-					WetBuffer[i] += ChildDryLevel * ScratchBuffer[i];
-					DryBuffer[i] += ChildDryLevel* ScratchBuffer[i];
+					OutAudioBuffer[i] += ScratchBuffer[i];
 				}
 			}
 		}
@@ -181,12 +205,12 @@ namespace Audio
 			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixSource);
 
 			// Loop through this submix's sound sources
-			for (auto MixerSourceVoiceIter : MixerSourceVoices)
+			for (const auto MixerSourceVoiceIter : MixerSourceVoices)
 			{
 				const FMixerSourceVoice* MixerSourceVoice = MixerSourceVoiceIter.Key;
-				const FSubmixEffectSendInfo& EffectInfo = MixerSourceVoiceIter.Value;
+				const float SendLevel = MixerSourceVoiceIter.Value;
 
-				MixerSourceVoice->MixOutputBuffers(DryBuffer, WetBuffer, EffectInfo.DryLevel, EffectInfo.WetLevel);
+				MixerSourceVoice->MixOutputBuffers(OutAudioBuffer, SendLevel);
 			}
 		}
 
@@ -207,8 +231,10 @@ namespace Audio
 			OutputData.AudioBuffer = &ScratchBuffer;
 			OutputData.NumChannels = NumOutputChannels;
 
-			for (FSoundEffectSubmix* SubmixEffect : EffectSubmixChain)
+			for (FSubmixEffectInfo& SubmixEffectInfo : EffectSubmixChain)
 			{
+				FSoundEffectSubmixPtr SubmixEffect = SubmixEffectInfo.EffectInstance;
+
 				// Reset the output scratch buffer
 				ScratchBuffer.Reset(NumSamples);
 				ScratchBuffer.AddZeroed(NumSamples);
@@ -219,7 +245,7 @@ namespace Audio
 				if (ChannelCountOverride < (uint32)NumDeviceChannels)
 				{
 					// Perform the downmix operation with the downmixed scratch buffer
-					DownmixBuffer(NumDeviceChannels, WetBuffer, ChannelCountOverride, DownmixedBuffer);
+					DownmixBuffer(NumDeviceChannels, OutAudioBuffer, ChannelCountOverride, DownmixedBuffer);
 
 					InputData.NumChannels = ChannelCountOverride;
 					InputData.AudioBuffer = &DownmixedBuffer;
@@ -229,31 +255,16 @@ namespace Audio
 				{
 					// If we're not downmixing, then just pass in the current wet buffer and our channel count is the same as the output channel count
 					InputData.NumChannels = NumOutputChannels;
-					InputData.AudioBuffer = &WetBuffer;
+					InputData.AudioBuffer = &OutAudioBuffer;
 					SubmixEffect->ProcessAudio(InputData, OutputData);
 				}
 
-				// Copy the output audio buffer to the old input data to be reused for next submix effect
-				WetBuffer = ScratchBuffer;
+				for (int32 i = 0; i < OutAudioBuffer.Num(); ++i)
+				{
+					OutAudioBuffer[i] = ScratchBuffer[i];
+				}
 			}
 		}
-
-		// Mix the dry and wet buffers together for the final output
-		for (int32 i = 0; i < NumSamples; ++i)
-		{
-			OutAudioBuffer[i] = (DryBuffer[i] + WetBuffer[i]);
-		}
-	}
-
-
-	void FMixerSubmix::SetOutputWetLevel(const float InWetLevel)
-	{
-		WetLevel = InWetLevel;
-	}
-
-	float FMixerSubmix::GetOutputWetLevel() const
-	{
-		return WetLevel;
 	}
 
 	int32 FMixerSubmix::GetSampleRate() const
@@ -271,11 +282,11 @@ namespace Audio
 		return EffectSubmixChain.Num();
 	}
 
-	FSoundEffectSubmix* FMixerSubmix::GetSubmixEffect(const int32 InIndex)
+	FSoundEffectSubmixPtr FMixerSubmix::GetSubmixEffect(const int32 InIndex)
 	{
 		if (InIndex < EffectSubmixChain.Num())
 		{
-			return EffectSubmixChain[InIndex];
+			return EffectSubmixChain[InIndex].EffectInstance;
 		}
 		return nullptr;
 	}

@@ -8,6 +8,7 @@
 #include "UObject/Object.h"
 #include "UObject/Class.h"
 #include "UObject/UnrealType.h"
+#include "UObject/UObjectThreadContext.h"
 #include "Serialization/ObjectReader.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/Blueprint.h"
@@ -930,9 +931,6 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 
 			// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
 			ArPortFlags |= PPF_Duplicate;
-
-			// Set this flag to ensure that we also serialize any deprecated properties.
-			ArPortFlags |= PPF_UseDeprecatedProperties;
 		}
 	};
 
@@ -957,9 +955,19 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 			EObjectFlags(TemplateData->ComponentTemplateFlags) & ~(RF_ArchetypeObject | RF_Transactional | RF_WasLoaded | RF_Public | RF_InheritableComponentTemplate)
 		);
 
+		// Set these flags to match what SDO would otherwise do before serialization to enable post-duplication logic on the destination object.
+		NewActorComp->SetFlags(RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
+
 		// Load cached data into the new instance.
 		FBlueprintComponentInstanceDataLoader ComponentInstanceDataLoader(TemplateData->GetCachedPropertyDataForSerialization(), TemplateData->GetCachedPropertyListForSerialization());
 		NewActorComp->Serialize(ComponentInstanceDataLoader);
+
+		// Handle tasks that would normally occur post-duplication w/ SDO.
+		NewActorComp->PostDuplicate(EDuplicateMode::Normal);
+		{
+			TGuardValue<bool> GuardIsRoutingPostLoad(FUObjectThreadContext::Get().IsRoutingPostLoad, true);
+			NewActorComp->ConditionalPostLoad();
+		}
 
 		// Handle post-creation tasks.
 		PostCreateBlueprintComponent(NewActorComp);

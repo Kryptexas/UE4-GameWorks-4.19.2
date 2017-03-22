@@ -126,7 +126,7 @@ public:
 		FString ChangedId = FString(pwstrDeviceId);
 
 		// look for ids we care about!
-		if (key.fmtid == PKEY_AudioEndpoint_PhysicalSpeakers.fmtid ||
+		if (key.fmtid == PKEY_AudioEndpoint_PhysicalSpeakers.fmtid || 
 			key.fmtid == PKEY_AudioEngine_DeviceFormat.fmtid ||
 			key.fmtid == PKEY_AudioEngine_OEMFormat.fmtid)
 		{
@@ -239,6 +239,11 @@ namespace Audio
 	void FMixerPlatformXAudio2::OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState)
 	{
 		UE_LOG(LogTemp, Log, TEXT("OnDeviceStateChanged: %s"), *DeviceId);
+	}
+
+	FString FMixerPlatformXAudio2::GetDeviceId() const
+	{
+		return AudioStreamInfo.DeviceInfo.DeviceId;
 	}
 }
 

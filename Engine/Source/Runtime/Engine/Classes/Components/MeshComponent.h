@@ -109,7 +109,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
 	void SetVectorParameterValueOnMaterials(const FName ParameterName, const FVector ParameterValue);
 
-	/**  Returns default value for the parameter input */
+	/**  
+	 * Returns default value for the parameter input. 
+	 *
+	 * NOTE: This is not reliable when cooking, as initializing the default value 
+	 *       requires a render resource that only exists if the owning world is rendering.
+	 */
 	float GetScalarParameterDefaultValue(const FName ParameterName)
 	{
 		float* Value = ScalarParameterDefaultValues.Find(ParameterName);

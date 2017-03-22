@@ -9,17 +9,17 @@
 #include "AssetTypeActions_Base.h"
 #include "EpicSynth1PresetBank.generated.h"
 
-class FAssetTypeActions_EpicSynth1PresetBank : public FAssetTypeActions_Base
+class FAssetTypeActions_ModularSynthPresetBank : public FAssetTypeActions_Base
 {
 public:
-	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_EpicSynth1PresetBank", "Epic Synth 1 Preset Bank"); }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_EpicSynth1PresetBank", "Modular Synth Preset Bank"); }
 	virtual FColor GetTypeColor() const override { return FColor(175, 100, 155); }
 	virtual UClass* GetSupportedClass() const override;
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Sounds; }
 };
 
 UCLASS(MinimalAPI, hidecategories = Object)
-class UEpicSynth1PresetBankFactory : public UFactory
+class UModularSynthPresetBankFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 

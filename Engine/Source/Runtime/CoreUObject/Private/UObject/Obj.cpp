@@ -211,7 +211,25 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 	}
 	FName OldName = GetFName();
 
-	FName NewName = InName ? FName(InName) : MakeUniqueObjectName( NameScopeOuter ? NameScopeOuter : GetOuter(), GetClass() );
+	FName NewName;
+
+	if (InName == nullptr)
+	{
+		// If null, null is passed in, then we are deliberately trying to get a new name
+		// Otherwise if the outer is changing, try and maintain the name
+		if (NewOuter && StaticFindObjectFastInternal(nullptr, NewOuter, OldName) == nullptr)
+		{
+			NewName = OldName;
+		}
+		else
+		{
+			NewName = MakeUniqueObjectName( NameScopeOuter ? NameScopeOuter : GetOuter(), GetClass() );
+		}
+	}
+	else
+	{
+		NewName = FName(InName);
+	}
 
 	//UE_LOG(LogObj, Log,  TEXT("Renaming %s to %s"), *OldName.ToString(), *NewName.ToString() );
 
@@ -946,6 +964,10 @@ void UObject::ConditionalPostLoad()
 
 void UObject::PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph/*=NULL*/ )
 {
+	// if this class contains instanced object properties and a new object property has been added since this object was saved,
+	// this object won't receive its own unique instance of the object assigned to the new property, since we don't instance object during loading
+	// so go over all instanced object properties and look for cases where the value for that property still matches the default value.
+
 	check(!GEventDrivenLoaderEnabled || !HasAnyFlags(RF_NeedLoad));
 
 	if( GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) )
@@ -1011,22 +1033,9 @@ void UObject::PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph/*=N
 
 void UObject::ConditionalPostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph/*=NULL*/ )
 {
-	// if this class contains instanced object properties and a new object property has been added since this object was saved,
-	// this object won't receive its own unique instance of the object assigned to the new property, since we don't instance object during loading
-	// so go over all instanced object properties and look for cases where the value for that property still matches the default value.
 	if ( HasAnyFlags(RF_NeedPostLoadSubobjects) )
 	{
-		if ( IsTemplate(RF_ClassDefaultObject) )
-		{
-			// never instance and fixup subobject/components for CDOs and their subobjects - these are instanced during script compilation and are
-			// serialized using shallow comparison (serialize if they're different objects), rather than deep comparison.  Therefore subobjects and components
-			// inside of CDOs will always be loaded from disk and never need to be instanced at runtime.
-			ClearFlags(RF_NeedPostLoadSubobjects);
-		}
-		else
-		{
-			PostLoadSubobjects(OuterInstanceGraph);
-		}
+		PostLoadSubobjects(OuterInstanceGraph);
 	}
 	CheckDefaultSubobjects();
 }

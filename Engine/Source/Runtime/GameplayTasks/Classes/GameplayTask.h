@@ -97,7 +97,7 @@ public:
 	}
 	bool HasAllIDs(FGameplayResourceSet Other) const
 	{
-		return (Flags & Other.Flags) == Flags;
+		return (Flags & Other.Flags) == Other.Flags;
 	}
 	bool HasAnyID(FGameplayResourceSet Other) const
 	{

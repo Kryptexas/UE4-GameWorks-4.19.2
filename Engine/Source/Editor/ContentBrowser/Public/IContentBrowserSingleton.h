@@ -128,6 +128,9 @@ struct FAssetPickerConfig
 	/** A pointer to an existing delegate that, when executed, will set the filter an the asset picker after it is created. */
 	TArray<FSetARFilterDelegate*> SetFilterDelegates;
 
+	/** A pointer to an existing delegate that, when executed, will refresh the asset view. */
+	TArray<FRefreshAssetViewDelegate*> RefreshAssetViewDelegates;
+
 	/** The asset registry filter to use to cull results */
 	FARFilter Filter;
 
@@ -136,6 +139,9 @@ struct FAssetPickerConfig
 
 	/** The names of columns to hide by default in the column view */
 	TArray<FString> HiddenColumnNames;
+
+	/** List of custom columns that fill out data with a callback */
+	TArray<FAssetViewCustomColumn> CustomColumns;
 
 	/** The contents of the label on the thumbnail */
 	EThumbnailLabel::Type ThumbnailLabel;

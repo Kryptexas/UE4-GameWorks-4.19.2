@@ -26,10 +26,84 @@ namespace Audio
 	IAudioMixerPlatformInterface::IAudioMixerPlatformInterface()
 		: AudioRenderThread(nullptr)
 		, AudioRenderEvent(nullptr)
+		, AudioFadeEvent(nullptr)
 		, CurrentBufferIndex(0)
 		, LastError(TEXT("None"))
 		, bAudioDeviceChanging(false)
+		, bFadingIn(true)
+		, bFadingOut(false)
+		, bFadedOut(false)
+		, FadeEnvelopeValue(0.0f)
 	{
+	}
+
+	IAudioMixerPlatformInterface::~IAudioMixerPlatformInterface()
+	{
+		check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Closed);
+	}
+
+	void IAudioMixerPlatformInterface::FadeOut()
+	{
+		if (FadeEnvelopeValue == 0.0f)
+		{
+			return;
+		}
+
+		bFadingOut = true;
+		AudioFadeEvent->Wait();
+	}
+
+	void IAudioMixerPlatformInterface::PerformFades()
+	{
+		// Perform fade in and fade out global attenuation to avoid clicks/pops on startup/shutdown
+		if (bFadingIn)
+		{
+			if (FadeEnvelopeValue >= 1.0f)
+			{
+				bFadingIn = false;
+				FadeEnvelopeValue = 1.0f;
+			}
+			else
+			{
+				TArray<float>& Buffer = OutputBuffers[CurrentBufferIndex];
+				const float Slope = 1.0f / Buffer.Num();
+				for (int32 i = 0; i < Buffer.Num(); ++i)
+				{
+					Buffer[i] *= FadeEnvelopeValue;
+					FadeEnvelopeValue += Slope;
+				}
+			}
+		}
+
+		if (bFadingOut)
+		{
+			if (FadeEnvelopeValue <= 0.0f)
+			{
+				bFadingOut = false;
+				bFadedOut = true;
+				FadeEnvelopeValue = 0.0f;
+
+				// We're done fading out, trigger the thread waiting to fade to continue
+				AudioFadeEvent->Trigger();
+			}
+			else
+			{
+				TArray<float>& Buffer = OutputBuffers[CurrentBufferIndex];
+				const float Slope = 1.0f / Buffer.Num();
+				for (int32 i = 0; i < Buffer.Num(); ++i)
+				{
+					Buffer[i] *= FadeEnvelopeValue;
+					FadeEnvelopeValue -= Slope;
+				}
+			}
+		}
+
+		if (bFadedOut)
+		{
+			// If we're faded out, then just zero the data.
+			TArray<float>& Buffer = OutputBuffers[CurrentBufferIndex];
+			FPlatformMemory::Memzero(Buffer.GetData(), sizeof(float)*Buffer.Num());
+		}
 	}
 
 	void IAudioMixerPlatformInterface::ReadNextBuffer()
@@ -46,6 +120,8 @@ namespace Audio
 		{
 			return;
 		}
+
+		PerformFades();
 
 		{
 			FScopeLock Lock(&AudioRenderCritSect);
@@ -78,6 +154,10 @@ namespace Audio
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Running;
 		check(AudioRenderEvent == nullptr);
 		AudioRenderEvent = FPlatformProcess::GetSynchEventFromPool();
+
+		check(AudioFadeEvent == nullptr);
+		AudioFadeEvent = FPlatformProcess::GetSynchEventFromPool();
+
 		check(AudioRenderThread == nullptr);
 		AudioRenderThread = FRunnableThread::Create(this, TEXT("AudioMixerRenderThread"), 0, TPri_AboveNormal);
 	}
@@ -105,6 +185,9 @@ namespace Audio
 
 		FPlatformProcess::ReturnSynchEventToPool(AudioRenderEvent);
 		AudioRenderEvent = nullptr;
+
+		FPlatformProcess::ReturnSynchEventToPool(AudioFadeEvent);
+		AudioFadeEvent = nullptr;
 	}
 
 	uint32 IAudioMixerPlatformInterface::Run()
@@ -124,6 +207,10 @@ namespace Audio
 			// Note that this wait has to be outside the scope lock to avoid deadlocking
 			AudioRenderEvent->Wait();
 		}
+
+		// Do one more process
+		FPlatformMemory::Memzero(OutputBuffers[CurrentBufferIndex].GetData(), OutputBuffers[CurrentBufferIndex].Num() * sizeof(float));
+		AudioStreamInfo.AudioMixer->OnProcessAudioStream(OutputBuffers[CurrentBufferIndex]);
 
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopped;
 		return 0;

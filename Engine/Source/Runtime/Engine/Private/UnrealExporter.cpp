@@ -744,68 +744,74 @@ void ExportProperties
 				{
 					Out.Logf(TEXT("%s%s=\r\n"), FCString::Spc(Indent), *Property->GetName());
 				}
-
-				// If the array sizes are different, we will need to export each index so on import we maintain the size
-				bool bAnyElementDiffered = ArrayHelper.Num() != DiffArrayHelper.Num();
-				for( int32 DynamicArrayIndex = 0; DynamicArrayIndex < ArrayHelper.Num(); DynamicArrayIndex++ )
+				else
 				{
-					FString	Value;
-
-					// compare each element's value manually so that elements which match the NULL value for the array's inner property type
-					// but aren't in the diff array are still exported
-					uint8* SourceData = ArrayHelper.GetRawPtr(DynamicArrayIndex);
-					uint8* DiffData = DiffArr && DynamicArrayIndex < DiffArrayHelper.Num()
-						? DiffArrayHelper.GetRawPtr(DynamicArrayIndex)
-						: StructDefaults;
-
-					bool bExportItem = DiffData == NULL || (DiffData != SourceData && !InnerProp->Identical(SourceData, DiffData, ExportFlags));
-					if ( bExportItem )
+					// If the array sizes are different, we will need to export each index so on import we maintain the size
+					bool bAnyElementDiffered = ArrayHelper.Num() != DiffArrayHelper.Num();
+					for (int32 DynamicArrayIndex = 0; DynamicArrayIndex < ArrayHelper.Num(); DynamicArrayIndex++)
 					{
-						bAnyElementDiffered = true;
-						InnerProp->ExportTextItem(Value, SourceData, DiffData, Parent, ExportFlags, ExportRootScope);
-						if(ExportObjectProp)
-						{
-							UObject* Obj = ExportObjectProp->GetObjectPropertyValue(ArrayHelper.GetRawPtr(DynamicArrayIndex));
-							check(!Obj || Obj->IsValidLowLevel());
-							if( Obj && !Obj->HasAnyMarks(OBJECTMARK_TagImp) )
-							{
-								// only export the BEGIN OBJECT block for a component if Parent is the component's Outer....when importing subobject definitions,
-								// (i.e. BEGIN OBJECT), whichever BEGIN OBJECT block a component's BEGIN OBJECT block is located within is the object that will be
-								// used as the Outer to create the component
+						FString	Value;
 
-								// Is this an array of components?
-								if ( InnerProp->HasAnyPropertyFlags(CPF_InstancedReference) )
+						// compare each element's value manually so that elements which match the NULL value for the array's inner property type
+						// but aren't in the diff array are still exported
+						uint8* SourceData = ArrayHelper.GetRawPtr(DynamicArrayIndex);
+						uint8* DiffData = DiffArr && DynamicArrayIndex < DiffArrayHelper.Num()
+							? DiffArrayHelper.GetRawPtr(DynamicArrayIndex)
+							: StructDefaults;
+
+						bool bExportItem = DiffData == NULL || (DiffData != SourceData && !InnerProp->Identical(SourceData, DiffData, ExportFlags));
+						if (bExportItem)
+						{
+							bAnyElementDiffered = true;
+							InnerProp->ExportTextItem(Value, SourceData, DiffData, Parent, ExportFlags, ExportRootScope);
+							if (ExportObjectProp)
+							{
+								UObject* Obj = ExportObjectProp->GetObjectPropertyValue(ArrayHelper.GetRawPtr(DynamicArrayIndex));
+								check(!Obj || Obj->IsValidLowLevel());
+								if (Obj && !Obj->HasAnyMarks(OBJECTMARK_TagImp))
 								{
-									if ( Obj->GetOuter() == Parent )
+									// only export the BEGIN OBJECT block for a component if Parent is the component's Outer....when importing subobject definitions,
+									// (i.e. BEGIN OBJECT), whichever BEGIN OBJECT block a component's BEGIN OBJECT block is located within is the object that will be
+									// used as the Outer to create the component
+
+									// Is this an array of components?
+									if (InnerProp->HasAnyPropertyFlags(CPF_InstancedReference))
 									{
-										// Don't export more than once.
-										Obj->Mark(OBJECTMARK_TagImp);
-										UExporter::ExportToOutputDevice( Context, Obj, NULL, Out, TEXT("T3D"), Indent, PortFlags );
+										if (Obj->GetOuter() == Parent)
+										{
+											// Don't export more than once.
+											Obj->Mark(OBJECTMARK_TagImp);
+											UExporter::ExportToOutputDevice(Context, Obj, NULL, Out, TEXT("T3D"), Indent, PortFlags);
+										}
+										else
+										{
+											// set the OBJECTMARK_TagExp flag so that the calling code knows we wanted to export this object
+											Obj->Mark(OBJECTMARK_TagExp);
+										}
 									}
 									else
 									{
-										// set the OBJECTMARK_TagExp flag so that the calling code knows we wanted to export this object
-										Obj->Mark(OBJECTMARK_TagExp);
+										// Don't export more than once.
+										Obj->Mark(OBJECTMARK_TagImp);
+										UExporter::ExportToOutputDevice(Context, Obj, NULL, Out, TEXT("T3D"), Indent, PortFlags);
 									}
 								}
-								else
-								{
-									// Don't export more than once.
-									Obj->Mark(OBJECTMARK_TagImp);
-									UExporter::ExportToOutputDevice( Context, Obj, NULL, Out, TEXT("T3D"), Indent, PortFlags );
-								}
 							}
-						}
 
-						Out.Logf( TEXT("%s%s(%i)=%s\r\n"), FCString::Spc(Indent), *Property->GetName(), DynamicArrayIndex, *Value );
+							Out.Logf(TEXT("%s%s(%i)=%s\r\n"), FCString::Spc(Indent), *Property->GetName(), DynamicArrayIndex, *Value);
+						}
+						// if some other element has already been determined to differ from the defaults, then export this item with no data so that
+						// the different array's size is maintained on import (this item will get the default values for that index, if any)
+						// however, if no elements of the array have changed, we still don't want to export anything
+						// so that the array size will also be taken from the defaults, which won't be the case if any element is exported
+						else if (bAnyElementDiffered)
+						{
+							Out.Logf(TEXT("%s%s(%i)=()\r\n"), FCString::Spc(Indent), *Property->GetName(), DynamicArrayIndex);
+						}
 					}
-					// if some other element has already been determined to differ from the defaults, then export this item with no data so that
-					// the different array's size is maintained on import (this item will get the default values for that index, if any)
-					// however, if no elements of the array have changed, we still don't want to export anything
-					// so that the array size will also be taken from the defaults, which won't be the case if any element is exported
-					else if (bAnyElementDiffered)
+					for (int32 DynamicArrayIndex = DiffArrayHelper.Num()-1; DynamicArrayIndex >= ArrayHelper.Num(); --DynamicArrayIndex)
 					{
-						Out.Logf( TEXT("%s%s(%i)=()\r\n"), FCString::Spc(Indent), *Property->GetName(), DynamicArrayIndex );
+						Out.Logf(TEXT("%s%s.RemoveIndex(%d)\r\n"), FCString::Spc(Indent), *Property->GetName(), DynamicArrayIndex);
 					}
 				}
 			}

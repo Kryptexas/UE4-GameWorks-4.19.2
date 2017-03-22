@@ -249,6 +249,7 @@ namespace Audio
 		virtual void OnDeviceAdded(const FString& DeviceId) {}
 		virtual void OnDeviceRemoved(const FString& DeviceId) {}
 		virtual void OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState) {}
+		virtual FString GetDeviceId() const { return FString(); }
 	};
 
 
@@ -260,7 +261,7 @@ namespace Audio
 	public: // Virtual functions
 
 		/** Virtual destructor. */
-		virtual ~IAudioMixerPlatformInterface() {}
+		virtual ~IAudioMixerPlatformInterface();
 
 		/** Returns the platform API enumeration. */
 		virtual EAudioMixerPlatformApi::Type GetPlatformApi() const = 0;
@@ -333,6 +334,9 @@ namespace Audio
 		/** Retrieves the next generated buffer and feeds it to the platform mixer output stream. */
 		void ReadNextBuffer();
 
+		/** Start a fadeout. Prevents pops during shutdown. */
+		void FadeOut();
+
 		/** Returns the last error generated. */
 		FString GetLastError() const { return LastError; }
 
@@ -354,6 +358,8 @@ namespace Audio
 		/** Stops the render thread from generating audio. */
 		void StopGeneratingAudio();
 
+		void PerformFades();
+
 	protected:
 
 		/** The audio device stream info. */
@@ -369,6 +375,8 @@ namespace Audio
 		FRunnableThread* AudioRenderThread;
 		/** The render thread sync event. */
 		FEvent* AudioRenderEvent;
+		/** Event allows you to block until fadeout is complete. */
+		FEvent* AudioFadeEvent;
 		/** The render thread critical section. */
 		FCriticalSection AudioRenderCritSect;
 
@@ -380,6 +388,11 @@ namespace Audio
 
 		/** Flag if the audio device is in the process of changing. Prevents more buffers from being submitted to platform. */
 		FThreadSafeBool bAudioDeviceChanging;
+
+		FThreadSafeBool bFadingIn;
+		FThreadSafeBool bFadingOut;
+		FThreadSafeBool bFadedOut;
+		float FadeEnvelopeValue;
 	};
 
 

@@ -3,6 +3,7 @@
 #include "Blueprint/BlueprintSupport.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/CoreMisc.h"
+#include "Misc/ConfigCacheIni.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/Object.h"
 #include "UObject/GarbageCollection.h"
@@ -22,10 +23,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintSupport, Log, All);
 
-// the GMinimalCompileOnLoad flag simply means that we don't do a full compile pass while loading
-// data. This enables us to only compile when all dependencies have also been loaded, increasing
-// reliability of compiler results. This loading path does not yet function correctly:
-COREUOBJECT_API bool GMinimalCompileOnLoad = false;
+// Flag to enable the new BlueprintCompilationManager:
+COREUOBJECT_API bool GBlueprintUseCompilationManager = false;
 
 /**
  * Defined in BlueprintSupport.cpp
@@ -97,6 +96,28 @@ bool FBlueprintSupport::IsDeferredCDOInitializationDisabled()
 #else
 	return false;
 #endif
+}
+
+void FBlueprintSupport::InitializeCompilationManager()
+{
+	// 'real' initialization is done lazily because we're in a pretty tough
+	// spot in terms of dependencies:
+	GConfig->GetBool(TEXT("Blueprints"), TEXT("bUseCompilationManager"), GBlueprintUseCompilationManager, GEditorIni);
+}
+
+static FFlushReinstancingQueueFPtr FlushReinstancingQueueFPtr = nullptr;
+
+void FBlueprintSupport::FlushReinstancingQueue()
+{
+	if(FlushReinstancingQueueFPtr)
+	{
+		(*FlushReinstancingQueueFPtr)();
+	}
+}
+
+void FBlueprintSupport::SetFlushReinstancingQueueFPtr(FFlushReinstancingQueueFPtr Ptr)
+{
+	FlushReinstancingQueueFPtr = Ptr;
 }
 
 bool FBlueprintSupport::IsDeferredDependencyPlaceholder(UObject* LoadedObj)
@@ -237,7 +258,7 @@ FScopedClassDependencyGather::~FScopedClassDependencyGather()
 			}
 		};
 
-		if(!GMinimalCompileOnLoad)
+		if(!GBlueprintUseCompilationManager)
 		{
 			for( ; DependencyIter; ++DependencyIter )
 			{

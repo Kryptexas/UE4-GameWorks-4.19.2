@@ -17,10 +17,14 @@ namespace EAssetRegistryDependencyType
 		Hard = 2,
 
 		// References to specific SearchableNames inside a package
-		SearchableName = 4
+		SearchableName = 4,
+
+		// Reference that says one object manages another object, set when Primary Assets manage individual assets
+		Manage = 8,
 	};
 
-	static const Type All = (Type)(Soft | Hard | SearchableName);
+	static const Type None = (Type)(0);
+	static const Type All = (Type)(Soft | Hard | SearchableName | Manage);
 	static const Type Packages = (Type)(Soft | Hard);
 };
 

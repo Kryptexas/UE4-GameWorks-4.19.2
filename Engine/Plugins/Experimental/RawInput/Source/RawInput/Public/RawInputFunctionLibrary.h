@@ -31,6 +31,14 @@ struct RAWINPUT_API FRawInputKeyNames
 	static const FGamepadKeyNames::Type GenericUSBController_Button10;
 	static const FGamepadKeyNames::Type GenericUSBController_Button11;
 	static const FGamepadKeyNames::Type GenericUSBController_Button12;
+	static const FGamepadKeyNames::Type GenericUSBController_Button13;
+	static const FGamepadKeyNames::Type GenericUSBController_Button14;
+	static const FGamepadKeyNames::Type GenericUSBController_Button15;
+	static const FGamepadKeyNames::Type GenericUSBController_Button16;
+	static const FGamepadKeyNames::Type GenericUSBController_Button17;
+	static const FGamepadKeyNames::Type GenericUSBController_Button18;
+	static const FGamepadKeyNames::Type GenericUSBController_Button19;
+	static const FGamepadKeyNames::Type GenericUSBController_Button20;
 };
 
 struct RAWINPUT_API FRawInputKeys
@@ -56,6 +64,14 @@ struct RAWINPUT_API FRawInputKeys
 	static const FKey GenericUSBController_Button10;
 	static const FKey GenericUSBController_Button11;
 	static const FKey GenericUSBController_Button12;
+	static const FKey GenericUSBController_Button13;
+	static const FKey GenericUSBController_Button14;
+	static const FKey GenericUSBController_Button15;
+	static const FKey GenericUSBController_Button16;
+	static const FKey GenericUSBController_Button17;
+	static const FKey GenericUSBController_Button18;
+	static const FKey GenericUSBController_Button19;
+	static const FKey GenericUSBController_Button20;
 };
 
 USTRUCT(BlueprintType)

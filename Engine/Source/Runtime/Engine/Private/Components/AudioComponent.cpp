@@ -49,6 +49,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 
 	AudioDeviceHandle = INDEX_NONE;
 	AudioComponentID = ++AudioComponentIDCounter;
+	AudioComponentUserID = INDEX_NONE;
 
 	// TODO: Consider only putting played/active components in to the map
 	AudioIDToComponentMap.Add(AudioComponentID, this);
@@ -850,19 +851,22 @@ void UAudioComponent::SetVolumeMultiplier(const float NewVolumeMultiplier)
 	VolumeMultiplier = NewVolumeMultiplier;
 	VolumeModulationMin = VolumeModulationMax = 1.f;
 
-	if (FAudioDevice* AudioDevice = GetAudioDevice())
+	if (bIsActive)
 	{
-		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.SetVolumeMultiplier"), STAT_AudioSetVolumeMultiplier, STATGROUP_AudioThreadCommands);
-
-		const uint64 MyAudioComponentID = AudioComponentID;
-		FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, NewVolumeMultiplier]()
+		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
-			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
-			if (ActiveSound)
+			DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.SetVolumeMultiplier"), STAT_AudioSetVolumeMultiplier, STATGROUP_AudioThreadCommands);
+
+			const uint64 MyAudioComponentID = AudioComponentID;
+			FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, NewVolumeMultiplier]()
 			{
-				ActiveSound->VolumeMultiplier = NewVolumeMultiplier;
-			}
-		}, GET_STATID(STAT_AudioSetVolumeMultiplier));
+				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
+				if (ActiveSound)
+				{
+					ActiveSound->VolumeMultiplier = NewVolumeMultiplier;
+				}
+			}, GET_STATID(STAT_AudioSetVolumeMultiplier));
+		}
 	}
 }
 
@@ -871,19 +875,22 @@ void UAudioComponent::SetPitchMultiplier(const float NewPitchMultiplier)
 	PitchMultiplier = NewPitchMultiplier;
 	PitchModulationMin = PitchModulationMax = 1.f;
 
-	if (FAudioDevice* AudioDevice = GetAudioDevice())
+	if (bIsActive)
 	{
-		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.SetPitchMultiplier"), STAT_AudioSetPitchMultiplier, STATGROUP_AudioThreadCommands);
-
-		const uint64 MyAudioComponentID = AudioComponentID;
-		FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, NewPitchMultiplier]()
+		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
-			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
-			if (ActiveSound)
+			DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.SetPitchMultiplier"), STAT_AudioSetPitchMultiplier, STATGROUP_AudioThreadCommands);
+
+			const uint64 MyAudioComponentID = AudioComponentID;
+			FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, NewPitchMultiplier]()
 			{
-				ActiveSound->PitchMultiplier = NewPitchMultiplier;
-			}
-		}, GET_STATID(STAT_AudioSetPitchMultiplier));
+				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
+				if (ActiveSound)
+				{
+					ActiveSound->PitchMultiplier = NewPitchMultiplier;
+				}
+			}, GET_STATID(STAT_AudioSetPitchMultiplier));
+		}
 	}
 }
 
@@ -891,19 +898,22 @@ void UAudioComponent::SetUISound(const bool bInIsUISound)
 {
 	bIsUISound = bInIsUISound;
 
-	if (FAudioDevice* AudioDevice = GetAudioDevice())
+	if (bIsActive)
 	{
-		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.SetIsUISound"), STAT_AudioSetIsUISound, STATGROUP_AudioThreadCommands);
-
-		const uint64 MyAudioComponentID = AudioComponentID;
-		FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, bInIsUISound]()
+		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
-			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
-			if (ActiveSound)
+			DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.SetIsUISound"), STAT_AudioSetIsUISound, STATGROUP_AudioThreadCommands);
+
+			const uint64 MyAudioComponentID = AudioComponentID;
+			FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, bInIsUISound]()
 			{
-				ActiveSound->bIsUISound = bInIsUISound;
-			}
-		}, GET_STATID(STAT_AudioSetIsUISound));
+				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
+				if (ActiveSound)
+				{
+					ActiveSound->bIsUISound = bInIsUISound;
+				}
+			}, GET_STATID(STAT_AudioSetIsUISound));
+		}
 	}
 }
 
@@ -912,18 +922,41 @@ void UAudioComponent::AdjustAttenuation(const FSoundAttenuationSettings& InAtten
 	bOverrideAttenuation = true;
 	AttenuationOverrides = InAttenuationSettings;
 
+	if (bIsActive)
+	{
+		if (FAudioDevice* AudioDevice = GetAudioDevice())
+		{
+			DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.AdjustAttenuation"), STAT_AudioAdjustAttenuation, STATGROUP_AudioThreadCommands);
+
+			const uint64 MyAudioComponentID = AudioComponentID;
+			FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, InAttenuationSettings]()
+			{
+				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
+				if (ActiveSound)
+				{
+					ActiveSound->AttenuationSettings = InAttenuationSettings;
+				}
+			}, GET_STATID(STAT_AudioAdjustAttenuation));
+		}
+	}
+}
+
+void UAudioComponent::SetSubmixSend(USoundSubmix* Submix, float SendLevel)
+{
 	if (FAudioDevice* AudioDevice = GetAudioDevice())
 	{
-		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.AdjustAttenuation"), STAT_AudioAdjustAttenuation, STATGROUP_AudioThreadCommands);
-
 		const uint64 MyAudioComponentID = AudioComponentID;
-		FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, InAttenuationSettings]()
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, Submix, SendLevel]()
 		{
 			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
 			if (ActiveSound)
 			{
-				ActiveSound->AttenuationSettings = InAttenuationSettings;
+				FSoundSubmixSendInfo SendInfo;
+				SendInfo.SoundSubmix = Submix;
+				SendInfo.SendLevel = SendLevel;
+				ActiveSound->SetSubmixSend(SendInfo);
 			}
-		}, GET_STATID(STAT_AudioAdjustAttenuation));
+		});
 	}
 }
+

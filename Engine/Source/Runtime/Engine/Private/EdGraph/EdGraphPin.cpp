@@ -32,7 +32,7 @@ public:
 		{
 			delete Pin;
 		}
-		PinsToDelete.Empty();
+		PinsToDelete.Reset();
 	}
 
 	virtual bool IsTickable() const override
@@ -450,7 +450,7 @@ void UEdGraphPin::AssignByRefPassThroughConnection(UEdGraphPin* InTargetPin)
 const class UEdGraphSchema* UEdGraphPin::GetSchema() const
 {
 #if WITH_EDITOR
-	auto OwnerNode = GetOwningNode();
+	UEdGraphNode* OwnerNode = GetOwningNode();
 	return OwnerNode ? OwnerNode->GetSchema() : NULL;
 #else
 	return NULL;
@@ -477,7 +477,7 @@ FString UEdGraphPin::GetDefaultAsString() const
 FText UEdGraphPin::GetDisplayName() const
 {
 	FText DisplayName = FText::GetEmpty();
-	auto Schema = GetSchema();
+	const UEdGraphSchema* Schema = GetSchema();
 	if (Schema)
 	{
 		DisplayName = Schema->GetPinDisplayName(this);
@@ -1088,7 +1088,7 @@ void UEdGraphPin::ResolveAllPinReferences()
 {
 	for (auto& Entry : PinHelpers::UnresolvedPins)
 	{
-		FPinResolveId Key = Entry.Key;
+		const FPinResolveId& Key = Entry.Key;
 		UEdGraphNode* Node = Key.OwningNode.Get();
 		if (!Node)
 		{
@@ -1102,7 +1102,7 @@ void UEdGraphPin::ResolveAllPinReferences()
 			ResolveReferencesToPin(*TargetPin);
 		}
 	}
-	PinHelpers::UnresolvedPins.Empty();
+	PinHelpers::UnresolvedPins.Reset();
 }
 
 void UEdGraphPin::InitFromDeprecatedPin(class UEdGraphPin_Deprecated* DeprecatedPin)
@@ -1506,12 +1506,25 @@ bool UEdGraphPin::SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayId
 
 		Ar << LocalOwningNode;
 		Ar << PinGuid;
-		check(LocalOwningNode);
+
+		// The connected Pin may no longer exist if the node it belonged to failed to load, 
+		// treat it as if it was serialized as bNullPtr = true
+		if (ResolveType == EPinResolveType::LinkedTo && Ar.IsLoading())
+		{
+			if (LocalOwningNode == nullptr)
+			{
+				PinRef = nullptr;
+			}
+		}
+		else
+		{
+			check(LocalOwningNode);
+		}
 		check(PinGuid.IsValid());
 
 		if (ResolveType != EPinResolveType::OwningNode)
 		{
-			if (Ar.IsLoading())
+			if (LocalOwningNode && Ar.IsLoading())
 			{
 				UEdGraphPin** ExistingPin = LocalOwningNode->Pins.FindByPredicate([&PinGuid](const UEdGraphPin* Pin) { return Pin && Pin->PinId == PinGuid; });
 				if (ExistingPin

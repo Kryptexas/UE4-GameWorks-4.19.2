@@ -149,15 +149,16 @@ struct FCameraFocusSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracking Focus Settings")
 	FCameraTrackingFocusSettings TrackingFocusSettings;
 
-#if WITH_EDITORONLY_DATA
+// TODO: Make this editor only again once UE-43122 has been completed.
+//#if WITH_EDITORONLY_DATA
 	/** True to draw a translucent plane at the current focus depth, for easy tweaking. */
-	UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Focus Settings")
+	UPROPERTY(Transient, EditAnywhere, Category = "Focus Settings")
 	uint8 bDrawDebugFocusPlane : 1;
 
 	/** For customizing the focus plane color, in case the default doesn't show up well in your scene. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Focus Settings", meta = (EditCondition = "bDrawDebugFocusPlane"))
+	UPROPERTY(EditAnywhere, Category = "Focus Settings", meta = (EditCondition = "bDrawDebugFocusPlane"))
 	FColor DebugFocusPlaneColor;
-#endif 
+//#endif 
 
 	/** True to use interpolation to smooth out changes in focus distance, false for focus distance changes to be instantaneous. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Focus Settings")

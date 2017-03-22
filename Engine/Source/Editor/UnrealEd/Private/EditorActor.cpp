@@ -286,7 +286,7 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 	
 	if (GetSelectedComponentCount() > 0)
 	{
-		auto SelectedActor = CastChecked<AActor>(*GetSelectedActorIterator());
+		AActor* SelectedActor = CastChecked<AActor>(*GetSelectedActorIterator());
 
 		TArray<UActorComponent*> PastedComponents;
 		FComponentEditorUtils::PasteComponents(PastedComponents, SelectedActor, SelectedActor->GetRootComponent());
@@ -303,7 +303,7 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 			ComponentSelection->BeginBatchSelectOperation();
 			ComponentSelection->DeselectAll();
 
-			for (auto PastedComp : PastedComponents)
+			for (UActorComponent* PastedComp : PastedComponents)
 			{
 				GEditor->SelectComponent(PastedComp, true, false);
 			}
@@ -341,7 +341,7 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 		GetMutableDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate = false;
 
 		// Import the actors.
-		auto Factory = NewObject<ULevelFactory>();
+		ULevelFactory* Factory = NewObject<ULevelFactory>();
 		Factory->FactoryCreateText(ULevel::StaticClass(), InWorld->GetCurrentLevel(), InWorld->GetCurrentLevel()->GetFName(), RF_Transactional, NULL, bDuplicate ? TEXT("move") : TEXT("paste"), Paste, Paste + FCString::Strlen(Paste), GWarn);
 
 		// Reinstate old BSP update setting, and force a rebuild - any levels whose geometry has changed while pasting will be rebuilt
@@ -460,7 +460,7 @@ public:
 
 void UUnrealEdEngine::edactDuplicateSelected( ULevel* InLevel, bool bOffsetLocations )
 {
-	auto NumSelectedComponents = GetSelectedComponentCount();
+	int32 NumSelectedComponents = GetSelectedComponentCount();
 	if (NumSelectedComponents > 0)
 	{
 		TArray<UActorComponent*> NewComponentClones;
@@ -469,7 +469,7 @@ void UUnrealEdEngine::edactDuplicateSelected( ULevel* InLevel, bool bOffsetLocat
 		// Duplicate selected components if they are an Instance component
 		for (FSelectedEditableComponentIterator It(GetSelectedEditableComponentIterator()); It; ++It)
 		{
-			auto Component = CastChecked<UActorComponent>(*It);
+			UActorComponent* Component = CastChecked<UActorComponent>(*It);
 			if (Component->CreationMethod == EComponentCreationMethod::Instance)
 			{
 				UActorComponent* Clone = FComponentEditorUtils::DuplicateComponent(Component);
@@ -492,7 +492,7 @@ void UUnrealEdEngine::edactDuplicateSelected( ULevel* InLevel, bool bOffsetLocat
 			ComponentSelection->BeginBatchSelectOperation();
 			ComponentSelection->DeselectAll();
 
-			for (auto Clone : NewComponentClones)
+			for (UActorComponent* Clone : NewComponentClones)
 			{
 				GEditor->SelectComponent(Clone, true, false);
 			}

@@ -217,6 +217,9 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 					return false;
 				}
 
+				// make sure the mesh won't affect navmesh generation
+				MainMesh->MarkAsNotHavingNavigationData();
+
 				LODActor->SetStaticMesh(MainMesh);
 				LODActor->SetActorLocation(OutProxyLocation);
 				LODActor->SubObjects = OutAssets;

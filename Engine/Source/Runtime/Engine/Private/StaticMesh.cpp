@@ -2856,6 +2856,12 @@ void UStaticMesh::CreateNavCollision(const bool bIsUpdate)
 	}
 }
 
+void UStaticMesh::MarkAsNotHavingNavigationData()
+{
+	bHasNavigationData = false;
+	NavCollision = nullptr;
+}
+
 /**
  * Returns vertex color data by position.
  * For matching to reimported meshes that may have changed or copying vertex paint data from mesh to mesh.

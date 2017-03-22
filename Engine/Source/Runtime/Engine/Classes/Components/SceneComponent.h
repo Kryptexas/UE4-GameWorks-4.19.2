@@ -747,17 +747,54 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	virtual bool IsVisible() const;
 
+protected:
+
+	/**
+	 * Overridable internal function to respond to changes in the visibility of the component.
+	 */
+	virtual void OnVisibilityChanged();
+
+private:
+
+	/** 
+	 * Enum that dictates what propagation policy to follow when calling SetVisibility recursively 
+	 */
+	enum class EVisibilityPropagation : uint8
+	{
+		// Only change the visibility if needed
+		NoPropagation, 
+
+		// If the visibility changed, mark all attached component's render states as dirty
+		DirtyOnly,
+
+		// Call SetVisibility recursively on attached components and also mark their render state as dirty
+		Propagate
+	};
+
+	/**
+	 * Internal function to set visibility of the component. Enum controls propagation rules.
+	 */
+	void SetVisibility(bool bNewVisibility, EVisibilityPropagation PropagateToChildren);
+
+public:
+
 	/** 
 	 * Set visibility of the component, if during game use this to turn on/off
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
-	virtual void SetVisibility(bool bNewVisibility, bool bPropagateToChildren=false);
+	void SetVisibility(bool bNewVisibility, bool bPropagateToChildren=false)
+	{
+		SetVisibility(bNewVisibility, bPropagateToChildren ? EVisibilityPropagation::Propagate : EVisibilityPropagation::DirtyOnly);
+	}
 
 	/** 
 	 * Toggle visibility of the component
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
-	void ToggleVisibility(bool bPropagateToChildren=false);
+	void ToggleVisibility(bool bPropagateToChildren = false)
+	{
+		SetVisibility(!bVisible, bPropagateToChildren);
+	}
 
 	/**
 	 * Changes the value of HiddenGame.

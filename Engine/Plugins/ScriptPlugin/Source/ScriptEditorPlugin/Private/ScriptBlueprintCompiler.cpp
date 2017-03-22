@@ -26,9 +26,9 @@ FScriptBlueprintCompiler::~FScriptBlueprintCompiler()
 {
 }
 
-void FScriptBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+void FScriptBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOldCDO)
 {
-	Super::CleanAndSanitizeClass(ClassToClean, OldCDO);
+	Super::CleanAndSanitizeClass(ClassToClean, InOldCDO);
 
 	// Make sure our typed pointer is set
 	check(ClassToClean == NewClass);	
@@ -193,7 +193,7 @@ void FScriptBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	}
 }
 
-void FScriptBlueprintCompiler::Compile()
+void FScriptBlueprintCompiler::PreCompile()
 {
 	ScriptBlueprint()->UpdateSourceCodeIfChanged();
 	ScriptContext.Reset(FScriptContextBase::CreateContext(ScriptBlueprint()->SourceCode, NULL, NULL));
@@ -204,8 +204,6 @@ void FScriptBlueprintCompiler::Compile()
 		ScriptContext->GetScriptDefinedFields(ScriptDefinedFields);
 	}
 	ContextProperty = NULL;
-
-	Super::Compile();
 }
 
 void FScriptBlueprintCompiler::EnsureProperGeneratedClass(UClass*& TargetUClass)

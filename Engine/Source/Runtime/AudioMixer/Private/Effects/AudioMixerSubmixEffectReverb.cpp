@@ -2,8 +2,16 @@
 
 #include "SubmixEffects/AudioMixerSubmixEffectReverb.h"
 #include "AudioMixerEffectsManager.h"
+#include "Sound/ReverbEffect.h"
 #include "Audio.h"
 #include "AudioMixer.h"
+
+class UReverbEffect;
+
+FSubmixEffectReverb::FSubmixEffectReverb()
+	: bIsEnabled(false)
+{
+}
 
 void FSubmixEffectReverb::Init(const FSoundEffectSubmixInitData& InitData)
 {
@@ -29,16 +37,36 @@ void FSubmixEffectReverb::Init(const FSoundEffectSubmixInitData& InitData)
 	DecayCurve.AddKey(18.0f, 0.01f);
 	DecayCurve.AddKey(19.0f, 0.002f);
 	DecayCurve.AddKey(20.0f, 0.0001f);
+
+	bIsEnabled = false;
 }
 
-void FSubmixEffectReverb::SetPreset(USoundEffectSubmixPreset* InPreset)
+void FSubmixEffectReverb::OnPresetChanged()
 {
+	GET_EFFECT_SETTINGS(SubmixEffectReverb);
+
+	FAudioReverbEffect ReverbEffect;
+	ReverbEffect.Density = Settings.Density;
+	ReverbEffect.Diffusion = Settings.Diffusion;
+	ReverbEffect.Gain = Settings.Gain;
+	ReverbEffect.GainHF = Settings.GainHF;
+	ReverbEffect.DecayTime = Settings.DecayTime;
+	ReverbEffect.DecayHFRatio = Settings.DecayHFRatio;
+	ReverbEffect.ReflectionsGain = Settings.ReflectionsGain;
+	ReverbEffect.ReflectionsDelay = Settings.ReflectionsDelay;
+	ReverbEffect.LateGain = Settings.LateGain;
+	ReverbEffect.LateDelay = Settings.LateDelay;
+	ReverbEffect.AirAbsorptionGainHF = Settings.AirAbsorptionGainHF;
+	ReverbEffect.RoomRolloffFactor = 0.0f; // not used
+	ReverbEffect.Volume = Settings.WetLevel;
+		
+	SetEffectParameters(ReverbEffect);
 }
 
 void FSubmixEffectReverb::OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData)
 {
 	check(InData.NumChannels == 2);
-	if (OutData.NumChannels < 2)
+	if (OutData.NumChannels < 2 || !bIsEnabled) 
 	{
 		// Not supported
 		return;
@@ -101,6 +129,8 @@ void FSubmixEffectReverb::SetEffectParameters(const FAudioReverbEffect& InParams
 
 	// Apply the settings the thread safe settings object
 	Params.SetParams(NewSettings);
+
+	bIsEnabled = true;
 }
 
 void FSubmixEffectReverb::UpdateParameters()
@@ -110,4 +140,30 @@ void FSubmixEffectReverb::UpdateParameters()
 	{
 		PlateReverb.SetSettings(NewSettings);
 	}
+}
+
+void USubmixEffectReverbPreset::SetSettingsWithReverbEffect(const UReverbEffect* InReverbEffect, const float WetLevel)
+{
+	if (InReverbEffect)
+	{
+		Settings.Density = InReverbEffect->Density;
+		Settings.Diffusion = InReverbEffect->Diffusion;
+		Settings.Gain = InReverbEffect->Gain;
+		Settings.GainHF = InReverbEffect->GainHF;
+		Settings.DecayTime = InReverbEffect->DecayTime;
+		Settings.DecayHFRatio = InReverbEffect->DecayHFRatio;
+		Settings.ReflectionsGain = InReverbEffect->ReflectionsGain;
+		Settings.ReflectionsDelay = InReverbEffect->ReflectionsDelay;
+		Settings.LateGain = InReverbEffect->LateGain;
+		Settings.LateDelay = InReverbEffect->LateDelay;
+		Settings.AirAbsorptionGainHF = InReverbEffect->AirAbsorptionGainHF;
+		Settings.WetLevel = WetLevel;
+
+		Update();
+	}
+}
+
+void USubmixEffectReverbPreset::SetSettings(const FSubmixEffectReverbSettings& InSettings)
+{
+	UpdateSettings(InSettings);
 }

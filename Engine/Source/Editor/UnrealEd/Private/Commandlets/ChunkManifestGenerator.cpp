@@ -74,11 +74,11 @@ FName GetPackageNameFromDependencyPackageName(const FName RawPackageFName)
 //////////////////////////////////////////////////////////////////////////
 // FChunkManifestGenerator
 
-FChunkManifestGenerator::FChunkManifestGenerator(const TArray<ITargetPlatform*>& InPlatforms)
+FChunkManifestGenerator::FChunkManifestGenerator(const ITargetPlatform* InPlatform)
 	: AssetRegistry(FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get())
-	, Platforms(InPlatforms)
+	, TargetPlatform(InPlatform)
 	, bGenerateChunks(false)
-	, bForceGenerateChunksForAllPlatforms(false)
+	, bUseAssetManager(false)
 {
 	DependencyInfo = GetMutableDefault<UChunkDependencyInfo>();
 
@@ -91,6 +91,13 @@ FChunkManifestGenerator::FChunkManifestGenerator(const TArray<ITargetPlatform*>&
 
 	UE_LOG(LogChunkManifestGenerator, Log, TEXT("bChunkHardReferencesOnly: %i"), (int32)bOnlyHardReferences);
 	DependencyType = bOnlyHardReferences ? EAssetRegistryDependencyType::Hard : EAssetRegistryDependencyType::Packages;
+
+	if (UAssetManager::IsValid() && !FGameDelegates::Get().GetAssignStreamingChunkDelegate().IsBound() && !FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().IsBound())
+	{
+		bUseAssetManager = true;
+
+		UAssetManager::Get().UpdateManagementDatabase();
+	}
 }
 
 FChunkManifestGenerator::~FChunkManifestGenerator()
@@ -164,7 +171,7 @@ int64 FChunkManifestGenerator::GetMaxChunkSizePerPlatform(const ITargetPlatform*
 	return -1;
 }
 
-bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const ITargetPlatform* TargetPlatform)
+bool FChunkManifestGenerator::GenerateStreamingInstallManifest()
 {
 	const FString Platform = TargetPlatform->PlatformName();
 
@@ -281,7 +288,6 @@ bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const ITargetPlat
 	return true;
 }
 
-
 void FChunkManifestGenerator::GenerateChunkManifestForPackage(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* InSandboxFile)
 {
 	TArray<int32> TargetChunks;
@@ -297,32 +303,36 @@ void FChunkManifestGenerator::GenerateChunkManifestForPackage(const FName& Packa
 	{
 		// Collect all chunk IDs associated with this package from the asset registry
 		TArray<int32> RegistryChunkIDs = GetAssetRegistryChunkAssignments(PackageFName);
-		ExistingChunkIDs = GetExistingPackageChunkAssignments(PackageFName);
 
-		// Try to call game-specific delegate to determine the target chunk ID
-		// FString Name = Package->GetPathName();
-		if (FGameDelegates::Get().GetAssignStreamingChunkDelegate().IsBound())
+		ExistingChunkIDs = GetExistingPackageChunkAssignments(PackageFName);
+		if (bUseAssetManager)
 		{
-			FGameDelegates::Get().GetAssignStreamingChunkDelegate().ExecuteIfBound(PackagePathName, LastLoadedMapName, RegistryChunkIDs, ExistingChunkIDs, TargetChunks);
-		}
-		else if (UAssetManager::IsValid())
-		{
-			UAssetManager::Get().AssignStreamingChunk(PackagePathName, LastLoadedMapName, RegistryChunkIDs, ExistingChunkIDs, TargetChunks);
+			// No distinction between source of existing chunks for new flow
+			RegistryChunkIDs.Append(ExistingChunkIDs);
+
+			UAssetManager::Get().GetPackageChunkIds(PackageFName, TargetPlatform, RegistryChunkIDs, TargetChunks);
 		}
 		else
 		{
-			//Take asset registry assignments and existing assignments
-			TargetChunks.Append(RegistryChunkIDs);
-			TargetChunks.Append(ExistingChunkIDs);
+			// Try to call game-specific delegate to determine the target chunk ID
+			// FString Name = Package->GetPathName();
+			if (FGameDelegates::Get().GetAssignStreamingChunkDelegate().IsBound())
+			{
+				FGameDelegates::Get().GetAssignStreamingChunkDelegate().ExecuteIfBound(PackagePathName, LastLoadedMapName, RegistryChunkIDs, ExistingChunkIDs, TargetChunks);
+			}
+			else
+			{
+				//Take asset registry assignments and existing assignments
+				TargetChunks.Append(RegistryChunkIDs);
+				TargetChunks.Append(ExistingChunkIDs);
+			}
 		}
 	}
 
-	bool bAssignedToChunk = false;
 	// if the delegate requested a specific chunk assignment, add them package to it now.
 	for (const auto& PackageChunk : TargetChunks)
 	{
 		AddPackageToManifest(SandboxFilename, PackageFName, PackageChunk);
-		bAssignedToChunk = true;
 	}
 	// If the delegate requested to remove the package from any chunk, remove it now
 	for (const auto& PackageChunk : ExistingChunkIDs)
@@ -338,10 +348,7 @@ void FChunkManifestGenerator::GenerateChunkManifestForPackage(const FName& Packa
 
 void FChunkManifestGenerator::CleanManifestDirectories()
 {
-	for (auto Platform : Platforms)
-	{
-		CleanTempPackagingDirectory(Platform->PlatformName());
-	}
+	CleanTempPackagingDirectory(TargetPlatform->PlatformName());
 }
 
 bool FChunkManifestGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
@@ -350,110 +357,47 @@ bool FChunkManifestGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 	FixupPackageDependenciesForChunks(InSandboxFile);
 
 	if (bGenerateChunks)
-	{
-		for (auto Platform : Platforms)
+	{	
+		if (!GenerateStreamingInstallManifest())
 		{
-			if (!bForceGenerateChunksForAllPlatforms && !ShouldPlatformGenerateStreamingInstallManifest(Platform))
-			{
-				continue;
-			}
+			return false;
+		}
 
-			if (!GenerateStreamingInstallManifest(Platform))
-			{
-				return false;
-			}
+		// Generate map for the platform abstraction
+		TMultiMap<FString, int32> ChunkMap;	// asset -> ChunkIDs map
+		TSet<int32> ChunkIDsInUse;
+		const FString PlatformName = TargetPlatform->PlatformName();
 
-			// Generate map for the platform abstraction
-			TMultiMap<FString, int32> ChunkMap;	// asset -> ChunkIDs map
-			TSet<int32> ChunkIDsInUse;
-			const FString PlatformName = Platform->PlatformName();
-
-			// Collect all unique chunk indices and map all files to their chunks
-			for (int32 ChunkIndex = 0; ChunkIndex < FinalChunkManifests.Num(); ++ChunkIndex)
+		// Collect all unique chunk indices and map all files to their chunks
+		for (int32 ChunkIndex = 0; ChunkIndex < FinalChunkManifests.Num(); ++ChunkIndex)
+		{
+			if (FinalChunkManifests[ChunkIndex] && FinalChunkManifests[ChunkIndex]->Num())
 			{
-				if (FinalChunkManifests[ChunkIndex] && FinalChunkManifests[ChunkIndex]->Num())
+				ChunkIDsInUse.Add(ChunkIndex);
+				for (auto& Filename : *FinalChunkManifests[ChunkIndex])
 				{
-					ChunkIDsInUse.Add(ChunkIndex);
-					for (auto& Filename : *FinalChunkManifests[ChunkIndex])
-					{
-						FString PlatFilename = Filename.Value.Replace(TEXT("[Platform]"), *PlatformName);
-						ChunkMap.Add(PlatFilename, ChunkIndex);
-					}
+					FString PlatFilename = Filename.Value.Replace(TEXT("[Platform]"), *PlatformName);
+					ChunkMap.Add(PlatFilename, ChunkIndex);
 				}
 			}
-
-			// Sort our chunk IDs and file paths
-			ChunkMap.KeySort(TLess<FString>());
-			ChunkIDsInUse.Sort(TLess<int32>());
-
-			// Platform abstraction will generate any required platform-specific files for the chunks
-			if (!Platform->GenerateStreamingInstallManifest(ChunkMap, ChunkIDsInUse))
-			{
-				return false;
-			}
 		}
 
+		// Sort our chunk IDs and file paths
+		ChunkMap.KeySort(TLess<FString>());
+		ChunkIDsInUse.Sort(TLess<int32>());
 
-		GenerateAssetChunkInformationCSV(FPaths::Combine(*FPaths::GameLogDir(), TEXT("ChunkLists")));
+		// Platform abstraction will generate any required platform-specific files for the chunks
+		if (!TargetPlatform->GenerateStreamingInstallManifest(ChunkMap, ChunkIDsInUse))
+		{
+			return false;
+		}
+
+		if (!bUseAssetManager)
+		{
+			GenerateAssetChunkInformationCSV(FPaths::Combine(*FPaths::GameLogDir(), TEXT("ChunkLists")));
+		}
 	}
 
-	return true;
-}
-
-bool FChunkManifestGenerator::LoadAssetRegistry(const FString& SandboxPath, const TSet<FName>* PackagesToKeep)
-{
-	UE_LOG(LogChunkManifestGenerator, Display, TEXT("Loading asset registry."));
-
-	// Load generated registry for each platform
-	check(Platforms.Num() == 1);
-
-	for (auto Platform : Platforms)
-	{
-		/*FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *Platform->PlatformName());
-		FArchive* AssetRegistryReader = IFileManager::Get().CreateFileReader(*PlatformSandboxPath);*/
-
-		FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *Platform->PlatformName());
-		FArrayReader FileContents;
-		if (FFileHelper::LoadFileToArray(FileContents, *PlatformSandboxPath) == false)
-		{
-			continue;
-		}
-		FArchive* AssetRegistryReader = &FileContents;
-
-		TMap<FName, FAssetData*> SavedAssetRegistryData;
-		if (AssetRegistryReader)
-		{
-			AssetRegistry.LoadRegistryData(*AssetRegistryReader, SavedAssetRegistryData);
-		}
-		for (auto& LoadedAssetData : AssetRegistryData)
-		{
-			if (PackagesToKeep &&
-				PackagesToKeep->Contains(LoadedAssetData.PackageName) == false)
-			{
-				continue;
-			}
-
-			FAssetData* FoundAssetData = SavedAssetRegistryData.FindRef(LoadedAssetData.ObjectPath);
-			if ( FoundAssetData )
-			{
-				LoadedAssetData.ChunkIDs.Append(FoundAssetData->ChunkIDs);
-				
-				SavedAssetRegistryData.Remove(LoadedAssetData.ObjectPath);
-				delete FoundAssetData;
-			}
-		}
-
-		for (const auto& SavedAsset : SavedAssetRegistryData)
-		{
-			if (PackagesToKeep && PackagesToKeep->Contains(SavedAsset.Value->PackageName))
-			{ 
-				AssetRegistryData.Add(*SavedAsset.Value);
-			}
-			
-			delete SavedAsset.Value;
-		}
-		SavedAssetRegistryData.Empty();
-	}
 	return true;
 }
 
@@ -480,37 +424,23 @@ void FChunkManifestGenerator::Initialize(const TArray<FName> &InStartupPackages)
 
 void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPackages, FSandboxPlatformFile* InSandboxFile, bool bGenerateStreamingInstallManifest)
 {
-	// If we were asked to generate a streaming install manifest explicitly we will generate chunks for all platforms.
-	// Otherwise, we will defer to the config settings for each platform.
-	bForceGenerateChunksForAllPlatforms = bGenerateStreamingInstallManifest;
-	if (bForceGenerateChunksForAllPlatforms)
+	// If we were asked to generate a streaming install manifest explicitly we will generate chunks.
+	// Otherwise, we will defer to the config settings for the platform.
+	if (bGenerateStreamingInstallManifest)
 	{
 		bGenerateChunks = true;
 	}
 	else
 	{
-		// If at least one platform is asking for chunk manifests, we will generate them.
-		for (const ITargetPlatform* Platform : Platforms)
-		{
-			if (ShouldPlatformGenerateStreamingInstallManifest(Platform))
-			{
-				// We found one asking for chunk manifests. We can stop looking.
-				bGenerateChunks = true;
-				break;
-			}
-		}
+		bGenerateChunks = ShouldPlatformGenerateStreamingInstallManifest(TargetPlatform);
 	}
 
-	// initialize LargestChunkId, FoundIDList, PackageChunkIDMap, AssetRegistryData
-
-	// Calculate the largest chunk id used by the registry to get the indices for the default chunks
+	// initialize FoundIDList, PackageChunkIDMap, AssetRegistryData
 	AssetRegistry.GetAllAssets(AssetRegistryData, true);
-	int32 LargestChunkID = -1;
 
 	for (int32 Index = 0; Index < AssetRegistryData.Num(); ++Index)
 	{
 		auto& AssetData = AssetRegistryData[Index];
-		auto& RegistryChunkIDs = RegistryChunkIDsMap.FindOrAdd(AssetData.PackageName);
 		for (auto ChunkIt = AssetData.ChunkIDs.CreateConstIterator(); ChunkIt; ++ChunkIt)
 		{
 			int32 ChunkID = *ChunkIt;
@@ -519,14 +449,7 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 				UE_LOG(LogChunkManifestGenerator, Warning, TEXT("Out of range ChunkID: %d"), ChunkID);
 				ChunkID = 0;
 			}
-			else if (ChunkID > LargestChunkID)
-			{
-				LargestChunkID = ChunkID;
-			}
-			if (!RegistryChunkIDs.Contains(ChunkID))
-			{
-				RegistryChunkIDs.Add(ChunkID);
-			}
+			
 			auto* FoundIDList = PackageChunkIDMap.Find(AssetData.PackageName);
 			if (!FoundIDList)
 			{
@@ -541,87 +464,87 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 		PackageData.Add(Index);
 	}
 
-
 	// add all the packages to the unassigned package list
-	for (const auto& CookedPackage : CookedPackages)
+	for (FName CookedPackage : CookedPackages)
 	{
 		const FString SandboxPath = InSandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(CookedPackage.ToString()));
 
 		AllCookedPackages.Add(CookedPackage, SandboxPath);
 		UnassignedPackageSet.Add(CookedPackage, SandboxPath);
 	}
-	
-	FString StartupPackageMapName(TEXT("None"));
-	for (const auto& CookedPackage : StartupPackages)
+
+	TArray<FName> UnassignedPackageList;
+
+	// Old path has map specific code, new code doesn't care about map or load order
+	if (!bUseAssetManager)
 	{
-		const FString SandboxPath = InSandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(CookedPackage.ToString()));
-		const FString PackagePathName = CookedPackage.ToString();
-		AllCookedPackages.Add(CookedPackage, SandboxPath);
-		GenerateChunkManifestForPackage(CookedPackage, PackagePathName, SandboxPath, StartupPackageMapName, InSandboxFile);
-	}
-
-
-	// assign chunks for all the map packages
-	for (const auto& CookedPackage : UnassignedPackageSet)
-	{
-		// ignore non map packages for now
-		const FName MapFName = CookedPackage.Key;
-
-		// this package could be missing from the map because it didn't get cooked. 
-		// the reason for this might be that it's a redirector therefore we cooked the package which actually contains the asset
-		if (PackageToRegistryDataMap.Find(MapFName) == nullptr)
-			continue;
-
-		if (ContainsMap(MapFName) == false)
-			continue;
-
-		// get all the dependencies for this map
-		TArray<FName> MapDependencies;
-		ensure(GatherAllPackageDependencies(MapFName, MapDependencies));
-
-		
-		for (const auto& RawPackageFName : MapDependencies)
+		// Assign startup packages, these will generally end up in chunk 0
+		FString StartupPackageMapName(TEXT("None"));
+		for (FName CookedPackage : StartupPackages)
 		{
-			const FName PackageFName = GetPackageNameFromDependencyPackageName(RawPackageFName);
-			
-			if (PackageFName == NAME_None)
-			{
-				continue;
-			}
-			
-			const FString PackagePathName = PackageFName.ToString();
-			const FString MapName = MapFName.ToString();
-			const FString* SandboxFilenamePtr = AllCookedPackages.Find(PackageFName);
-			if (!SandboxFilenamePtr)
-			{
-				const FString SandboxPath = InSandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(PackagePathName));
-
-				AllCookedPackages.Add(PackageFName, SandboxPath);
-
-				SandboxFilenamePtr = AllCookedPackages.Find(PackageFName);
-				check(SandboxFilenamePtr);
-			}
-			const FString& SandboxFilename = *SandboxFilenamePtr;
-
-
-			GenerateChunkManifestForPackage(PackageFName, PackagePathName, SandboxFilename, MapName, InSandboxFile);
-
-
+			const FString SandboxPath = InSandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(CookedPackage.ToString()));
+			const FString PackagePathName = CookedPackage.ToString();
+			AllCookedPackages.Add(CookedPackage, SandboxPath);
+			GenerateChunkManifestForPackage(CookedPackage, PackagePathName, SandboxPath, StartupPackageMapName, InSandboxFile);
 		}
 
+		// Capture list at start as it may change during iteration
+		UnassignedPackageSet.GenerateKeyArray(UnassignedPackageList);
+
+		// assign chunks for all the map packages
+		for (FName MapFName : UnassignedPackageList)
+		{
+			// this package could be missing from the map because it didn't get cooked. 
+			// the reason for this might be that it's a redirector therefore we cooked the package which actually contains the asset
+			if (PackageToRegistryDataMap.Find(MapFName) == nullptr)
+				continue;
+
+			if (ContainsMap(MapFName) == false)
+				continue;
+
+			// get all the dependencies for this map
+			TArray<FName> MapDependencies;
+			ensure(GatherAllPackageDependencies(MapFName, MapDependencies));
+
+			for (const auto& RawPackageFName : MapDependencies)
+			{
+				const FName PackageFName = GetPackageNameFromDependencyPackageName(RawPackageFName);
+
+				if (PackageFName == NAME_None)
+				{
+					continue;
+				}
+
+				const FString PackagePathName = PackageFName.ToString();
+				const FString MapName = MapFName.ToString();
+				const FString* SandboxFilenamePtr = AllCookedPackages.Find(PackageFName);
+				if (!SandboxFilenamePtr)
+				{
+					const FString SandboxPath = InSandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*FPackageName::LongPackageNameToFilename(PackagePathName));
+
+					AllCookedPackages.Add(PackageFName, SandboxPath);
+
+					SandboxFilenamePtr = AllCookedPackages.Find(PackageFName);
+					check(SandboxFilenamePtr);
+				}
+				const FString& SandboxFilename = *SandboxFilenamePtr;
+
+				GenerateChunkManifestForPackage(PackageFName, PackagePathName, SandboxFilename, MapName, InSandboxFile);
+			}
+		}
 	}
 
-	// process the remaining unassigned packages, they don't have a map associated with them
-	// probably a good reason for it but maybe not
-	for (const auto& CookedPackage : UnassignedPackageSet)
+	// Capture list at start as it may change during iteration
+	UnassignedPackageSet.GenerateKeyArray(UnassignedPackageList);
+
+	// process the remaining unassigned packages
+	for (FName PackageFName : UnassignedPackageList)
 	{
-		const FName& PackageFName = CookedPackage.Key;
 		const FString& SandboxFilename = AllCookedPackages.FindChecked(PackageFName);
 		const FString PackagePathName = PackageFName.ToString();
 
 		GenerateChunkManifestForPackage(PackageFName, PackagePathName, SandboxFilename, FString(), InSandboxFile);
 	}
-
 
 	// anything that remains in the UnAssignedPackageSet will be put in chunk0 when we save the asset registry
 
@@ -696,17 +619,15 @@ bool FChunkManifestGenerator::SaveAssetRegistry(const FString& SandboxPath, cons
 
 	auto CookerFileOrderString = CreateCookerFileOrderString(GeneratedAssetRegistryData, MapList);
 
-	// Save the generated registry for each platform
-	for (auto Platform : Platforms)
-	{
-		FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *Platform->PlatformName());
-		FFileHelper::SaveArrayToFile(SerializedAssetRegistry, *PlatformSandboxPath);
+	// Save the generated registry
 
-		if (CookerFileOrderString.Len())
-		{
-			auto OpenOrderFilename = FString::Printf(TEXT("%sBuild/%s/FileOpenOrder/CookerOpenOrder.log"), *FPaths::GameDir(), *Platform->PlatformName());
-			FFileHelper::SaveStringToFile(CookerFileOrderString, *OpenOrderFilename);
-		}
+	FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *TargetPlatform->PlatformName());
+	FFileHelper::SaveArrayToFile(SerializedAssetRegistry, *PlatformSandboxPath);
+
+	if (CookerFileOrderString.Len())
+	{
+		auto OpenOrderFilename = FString::Printf(TEXT("%sBuild/%s/FileOpenOrder/CookerOpenOrder.log"), *FPaths::GameDir(), *TargetPlatform->PlatformName());
+		FFileHelper::SaveStringToFile(CookerFileOrderString, *OpenOrderFilename);
 	}
 
 	UE_LOG(LogChunkManifestGenerator, Display, TEXT("Done saving asset registry."));
@@ -831,60 +752,6 @@ FString FChunkManifestGenerator::CreateCookerFileOrderString(const TMap<FName, F
 	return FileOrderString;
 }
 
-typedef TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > > JsonWriter;
-typedef TSharedRef< TJsonReader<TCHAR> > JsonReader;
-
-void CopyJsonValueToWriter( JsonWriter &Json, const FString& ValueName, const TSharedPtr<FJsonValue>& JsonValue )
-{
-	if ( JsonValue->Type == EJson::String )
-	{
-		Json->WriteValue( ValueName, JsonValue->AsString() );
-	}
-	else if ( JsonValue->Type == EJson::Array )
-	{
-		if (ValueName.IsEmpty())
-		{
-			Json->WriteArrayStart();
-		}
-		else
-		{
-			Json->WriteArrayStart(ValueName);
-		}
-		
-		const TArray<TSharedPtr<FJsonValue>>& Array = JsonValue->AsArray();
-		for ( const auto& ArrayValue : Array )
-		{
-			CopyJsonValueToWriter(Json, FString(), ArrayValue);
-		}
-
-		Json->WriteArrayEnd();
-	}
-	else if ( JsonValue->Type == EJson::Object )
-	{
-		if (ValueName.IsEmpty())
-		{
-			Json->WriteObjectStart();
-		}
-		else
-		{
-			Json->WriteObjectStart(ValueName);
-		}
-
-		const TSharedPtr<FJsonObject>& Object = JsonValue->AsObject();
-		for ( const auto& ObjectProperty : Object->Values)
-		{
-			CopyJsonValueToWriter(Json, ObjectProperty.Key, ObjectProperty.Value );
-		}
-
-		Json->WriteObjectEnd();
-	}
-	else
-	{
-		
-		UE_LOG(LogChunkManifestGenerator, Warning, TEXT("Unrecognized json value type %d in object %s"), *UEnum::GetValueAsString(TEXT("Json.EJson"), JsonValue->Type), *ValueName)
-	}
-}
-
 bool FChunkManifestGenerator::GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TSet<FName>& VisitedPackages, TArray<FName>& OutDependencyChain)
 {	
 	//avoid crashing from circular dependencies.
@@ -926,10 +793,6 @@ bool FChunkManifestGenerator::GetPackageDependencies(FName PackageName, TArray<F
 	if (FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().IsBound())
 	{
 		return FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().Execute(PackageName, DependentPackageNames, InDependencyType);
-	}
-	else if (UAssetManager::IsValid())
-	{
-		return UAssetManager::Get().GetPackageDependenciesForManifestGenerator(PackageName, DependentPackageNames, InDependencyType);
 	}
 	else
 	{
@@ -1140,8 +1003,8 @@ void FChunkManifestGenerator::AddPackageAndDependenciesToChunk(FChunkPackageSet*
 	//Add this asset
 	ThisPackageSet->Add(InPkgName, InSandboxFile);
 
-	//Only gather dependencies if we're chunking
-	if (!bGenerateChunks)
+	// Only gather dependencies the slow way if we're chunking or not using asset manager
+	if (!bGenerateChunks || bUseAssetManager)
 	{
 		return;
 	}
@@ -1245,10 +1108,13 @@ void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 
 	for (int32 i = 0; i < ChunkManifests.Num(); ++i)
 	{
-		FName CollectionName(*FString::Printf(TEXT("PackagesRemovedFromChunk%i"), i));
-		if (CreateOrEmptyCollection(CollectionName))
+		if (!bUseAssetManager)
 		{
-			WriteCollection(CollectionName, PackagesRemovedFromChunks[i]);
+			FName CollectionName(*FString::Printf(TEXT("PackagesRemovedFromChunk%i"), i));
+			if (CreateOrEmptyCollection(CollectionName))
+			{
+				WriteCollection(CollectionName, PackagesRemovedFromChunks[i]);
+			}
 		}
 	}
 

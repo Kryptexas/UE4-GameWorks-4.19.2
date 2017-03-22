@@ -1947,21 +1947,18 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 
 	for(int32 idx=0; idx < EnumBinds->NumEnums(); ++idx)
 	{
-		FString FullStr = EnumBinds->GetNameStringByIndex(idx);
-		FString BindStr;
-
-		FullStr.Split(TEXT("::"), nullptr, &BindStr);
-
+		const FString FullStr = EnumBinds->GetNameStringByIndex(idx);
+		
 		// Pressed event
 		{
-			FInputActionBinding AB(FName(*BindStr), IE_Pressed);
+			FInputActionBinding AB(FName(*FullStr), IE_Pressed);
 			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityLocalInputPressed, idx);
 			InputComponent->AddActionBinding(AB);
 		}
 
 		// Released event
 		{
-			FInputActionBinding AB(FName(*BindStr), IE_Released);
+			FInputActionBinding AB(FName(*FullStr), IE_Released);
 			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityLocalInputReleased, idx);
 			InputComponent->AddActionBinding(AB);
 		}

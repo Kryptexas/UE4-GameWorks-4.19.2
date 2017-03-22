@@ -24,10 +24,8 @@ class FChunkManifestGenerator
 	typedef TMap<FName, FString> FChunkPackageSet;
 	/** Holds a reference to asset registry */
 	IAssetRegistry& AssetRegistry;
-	/** Platforms to generate the manifests for. */
-	const TArray<ITargetPlatform*> Platforms;
-	/** ChunkIDs associated with a package in the asset registry */
-	TMap<FName, TArray<int32> > RegistryChunkIDsMap;
+	/** Platform to generate the manifest for */
+	const ITargetPlatform* TargetPlatform;
 	/** List of all asset packages that were created while loading the last package in the cooker. */
 	TSet<FName> AssetsLoadedWithLastPackage;
 	/** The entire asset registry data */
@@ -38,8 +36,8 @@ class FChunkManifestGenerator
 	TMap<FName, TArray<int32> > PackageToRegistryDataMap;
 	/** Should the chunks be generated or only asset registry */
 	bool bGenerateChunks;
-	/** True when all platforms should generate chunks, regardless of config settings */
-	bool bForceGenerateChunksForAllPlatforms;
+	/** True if we should use the AssetManager, false to use the deprecated path */
+	bool bUseAssetManager;
 	/** Array of Maps with chunks<->packages assignments */
 	TArray<FChunkPackageSet*>		ChunkManifests;
 	/** Map of packages that has not been assigned to chunks */
@@ -139,29 +137,6 @@ class FChunkManifestGenerator
 	/**
 	* Returns an array of chunks IDs for a package that have been assigned in the editor.
 	*/
-	FORCEINLINE TArray<int32> GetAssetRegistryChunkAssignments(UPackage* Package)
-	{
-		TArray<int32> RegistryChunkIDs;
-		TArray<UObject*> ObjectsInPackage;
-		GetObjectsWithOuter(Package, ObjectsInPackage, false);
-		for (const auto* Object : ObjectsInPackage)
-		{
-			if (Object && Object->IsAsset())
-			{
-				FAssetData Asset(Object);
-				for (auto AssetChunk : Asset.ChunkIDs)
-				{
-					RegistryChunkIDs.AddUnique(AssetChunk);
-				}
-			}
-		}
-
-		return RegistryChunkIDs;
-	}
-
-	/**
-	* Returns an array of chunks IDs for a package that have been assigned in the editor.
-	*/
 	FORCEINLINE TArray<int32> GetAssetRegistryChunkAssignments(const FName& PackageFName)
 	{
 		TArray<int32> RegistryChunkIDs;
@@ -181,13 +156,8 @@ class FChunkManifestGenerator
 	/** Returns true if the specific platform desires a chunk manifest */
 	bool ShouldPlatformGenerateStreamingInstallManifest(const ITargetPlatform* Platform) const;
 
-	/**
-	 * Generates and saves streaming install chunk manifest.
-	 *
-	 * @param Platform Platform this manifest is going to be generated for.
-	 * @param Chunks List of chunk manifests.
-	 */
-	bool GenerateStreamingInstallManifest(const ITargetPlatform* Platform);
+	/** Generates and saves streaming install chunk manifest */
+	bool GenerateStreamingInstallManifest();
 
 	/**
 	 * Gather a list of dependencies required by to completely load this package.
@@ -244,7 +214,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	FChunkManifestGenerator(const TArray<ITargetPlatform*>& InPlatforms);
+	FChunkManifestGenerator(const ITargetPlatform* InPlatform);
 
 	/**
 	 * Destructor
@@ -257,14 +227,14 @@ public:
 	void Initialize(const TArray<FName> &StartupPackages);
 
 
-	const TArray<ITargetPlatform*>& GetTargetPlatforms() const { return Platforms; }
+	const ITargetPlatform* GetTargetPlatform() const { return TargetPlatform; }
 
 	/**
 	 * GenerateChunkManifest 
 	 * generate chunk manifest for the packages passed in using the asset registry to determine dependencies
 	 *
-	 * @param StartupPackages list of startup packages which are forced into chunk 0
 	 * @param CookedPackages list of packages which were cooked
+	 * @param InSandboxFile sandbox to load/save data
 	 * @param bGenerateStreamingInstallManifest should we build a streaming install manifest 
 	 */
 	void BuildChunkManifest(const TArray<FName>& CookedPackages, FSandboxPlatformFile* InSandboxFile, bool bGenerateStreamingInstallManifest);
@@ -315,16 +285,6 @@ public:
 	* Saves generated asset registry data for each platform.
 	*/
 	bool SaveAssetRegistry(const FString& SandboxPath, const TArray<FName>* IgnorePackageList = nullptr);
-
-
-	/**
-	 * Loads asset registry data and incorporates it into the current asset registry data
-	 * 
-	 * @param the SandboxPath to load teh asset registry from
-	 * @param PackagesToLoadMask is used to mask out any packages which we don't want to incorporate into the internal asset registry when we load
-	 */
-	bool LoadAssetRegistry(const FString& SandboxPath, const TSet<FName>* PackagesToLoadMask = nullptr);
-
 
 	/**
 	* Follows an assets dependency chain to build up a list of package names in the same order as the runtime would attempt to load them

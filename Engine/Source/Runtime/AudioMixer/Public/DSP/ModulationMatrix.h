@@ -119,6 +119,9 @@ namespace Audio
 		// Adds a new patch connection between one source and one or more destinations
 		bool AddPatch(const int32 VoiceId, FPatch* Patch);
 
+		// Removes the given patch connection between a source and one or more destinations
+		bool RemovePatch(const int32 VoiceId, FPatch* Patch);
+
 		// Clear all patch connections
 		void ClearPatches(const int32 VoiceId);
 
@@ -133,7 +136,8 @@ namespace Audio
 
 	protected:
 
-		void ResetDestinations(const int32 Voice);
+		void ResetDestinations(const int32 VoiceId);
+		bool ValidatePatch(const int32 VoiceId, FPatch* Patch);
 
 		int32 NumVoices;
 		TArray<TArray<FPatch*>> Patches;

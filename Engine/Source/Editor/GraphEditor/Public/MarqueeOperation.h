@@ -19,12 +19,14 @@ struct FMarqueeOperation
 
 	enum Type
 	{
-		/** Holding down Ctrl removes nodes */
+		/** Holding down Alt removes nodes */
 		Remove,
 		/** Holding down Shift adds to the selection */
 		Add,
 		/** When nothing is pressed, marquee replaces selection */
-		Replace
+		Replace,
+		/** Holding down Ctrl toggles the selection state of all encompassed nodes */
+		Invert,
 	} Operation;
 
 	bool IsValid() const
@@ -49,11 +51,15 @@ struct FMarqueeOperation
 	{
 		if (MouseEvent.IsControlDown())
 		{
-			return FMarqueeOperation::Remove;
+			return FMarqueeOperation::Invert;
 		}
 		else if (MouseEvent.IsShiftDown())
 		{
 			return FMarqueeOperation::Add;
+		}
+		else if (MouseEvent.IsAltDown())
+		{
+			return FMarqueeOperation::Remove;
 		}
 		else
 		{

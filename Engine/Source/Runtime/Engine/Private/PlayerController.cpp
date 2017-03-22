@@ -1685,12 +1685,13 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 		AGameModeBase* const GameMode = GetWorld()->GetAuthGameMode();
 		if (GameMode != nullptr)
 		{
-			if (bPause)
+			bool bCurrentPauseState = IsPaused();
+			if (bPause && !bCurrentPauseState)
 			{
 				// Pause gamepad rumbling too if needed
 				bResult = GameMode->SetPause(this, CanUnpauseDelegate);
 			}
-			else
+			else if (!bPause && bCurrentPauseState)
 			{
 				bResult = GameMode->ClearPause();
 			}
@@ -3251,7 +3252,7 @@ void APlayerController::ClientEndOnlineSession_Implementation()
 
 void APlayerController::ConsoleKey(FKey Key)
 {
-#if !UE_BUILD_SHIPPING
+#if ALLOW_CONSOLE
 	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
 	{
 		if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
@@ -3259,11 +3260,11 @@ void APlayerController::ConsoleKey(FKey Key)
 			LocalPlayer->ViewportClient->ViewportConsole->InputKey(0, Key, IE_Pressed);
 		}
 	}
-#endif // !UE_BUILD_SHIPPING
+#endif // ALLOW_CONSOLE
 }
 void APlayerController::SendToConsole(const FString& Command)
 {
-#if !UE_BUILD_SHIPPING
+#if ALLOW_CONSOLE
 	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
 	{
 		if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
@@ -3271,7 +3272,7 @@ void APlayerController::SendToConsole(const FString& Command)
 			LocalPlayer->ViewportClient->ViewportConsole->ConsoleCommand(Command);
 		}
 	}
-#endif // !UE_BUILD_SHIPPING
+#endif // ALLOW_CONSOLE
 }
 
 

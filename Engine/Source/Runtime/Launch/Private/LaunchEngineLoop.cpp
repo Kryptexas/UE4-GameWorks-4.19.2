@@ -59,6 +59,7 @@
 #endif
 
 #if WITH_EDITOR
+	#include "Blueprint/BlueprintSupport.h"
 	#include "EditorStyleSet.h"
 	#include "Misc/RemoteConfigIni.h"
 	#include "EditorCommandLineUtils.h"
@@ -3459,6 +3460,10 @@ bool FEngineLoop::AppInit( )
 
 	// Now that configs have been initialized, setup stack walking options
 	FPlatformStackWalk::Init();
+
+#if WITH_EDITOR
+	FBlueprintSupport::InitializeCompilationManager();
+#endif
 
 	CheckForPrintTimesOverride();
 

@@ -141,7 +141,10 @@ void SGameplayTagQueryWidget::SaveToTagQuery()
 			{
 				*TQ.TagQueryExportText = EditableQuery.Get()->GetTagQueryExportText(*TQ.TagQuery);
 			}
-			TQ.TagQueryOwner->MarkPackageDirty();
+			if (TQ.TagQueryOwner.IsValid())
+			{
+				TQ.TagQueryOwner->MarkPackageDirty();
+			}
 		}
 	}
 }

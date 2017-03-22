@@ -73,6 +73,8 @@
 #include "IDocumentation.h"
 #include "Widgets/Input/STextComboBox.h"
 
+#include "UObject/TextProperty.h"
+
 #define LOCTEXT_NAMESPACE "BlueprintDetailsCustomization"
 
 void FBlueprintDetails::AddEventsCategory(IDetailLayoutBuilder& DetailBuilder, UProperty* VariableProperty)
@@ -293,12 +295,12 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> EditableTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarEditableTooltip", "Whether this variable is publicly editable on instances of this Blueprint."), NULL, DocLink, TEXT("Editable"));
 
-	Category.AddCustomRow( LOCTEXT("IsVariableEditableLabel", "Editable") )
+	Category.AddCustomRow( LOCTEXT("IsVariableEditableLabel", "Instance Editable") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ShowEditableCheckboxVisibilty))
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Text( LOCTEXT("IsVariableEditableLabel", "Editable") )
+		.Text( LOCTEXT("IsVariableEditableLabel", "Instance Editable") )
 		.ToolTip(EditableTooltip)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 	]
@@ -309,6 +311,26 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.OnCheckStateChanged( this, &FBlueprintVarActionDetails::OnEditableChanged )
 		.IsEnabled(IsVariableInBlueprint())
 		.ToolTip(EditableTooltip)
+	];
+	
+	TSharedPtr<SToolTip> ReadOnlyTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarReadOnlyTooltip", "Whether this variable can be set by Blueprint nodes or if it is read-only."), NULL, DocLink, TEXT("ReadOnly"));
+
+	Category.AddCustomRow(LOCTEXT("IsVariableReadOnlyLabel", "Blueprint Read Only"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ShowReadOnlyCheckboxVisibilty))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("IsVariableReadOnlyLabel", "Blueprint Read Only"))
+		.ToolTip(ReadOnlyTooltip)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	[
+		SNew(SCheckBox)
+		.IsChecked(this, &FBlueprintVarActionDetails::OnReadyOnlyCheckboxState)
+		.OnCheckStateChanged(this, &FBlueprintVarActionDetails::OnReadyOnlyChanged)
+		.IsEnabled(IsVariableInBlueprint())
+		.ToolTip(ReadOnlyTooltip)
 	];
 
 	TSharedPtr<SToolTip> ToolTipTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarToolTipTooltip", "Extra information about this variable, shown when cursor is over it."), NULL, DocLink, TEXT("Tooltip"));
@@ -918,6 +940,26 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				.OnCheckStateChanged(this, &FBlueprintVarActionDetails::OnAdvancedDisplayChanged)
 				.IsEnabled(IsVariableInBlueprint())
 				.ToolTip(AdvancedDisplayTooltip)
+			];
+
+		TSharedPtr<SToolTip> MultilineTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableMultilineTooltip_Tooltip", "Allow the value of this variable to have newlines (use Ctrl+Enter to add one while editing)"), NULL, DocLink, TEXT("Multiline"));
+
+		Category.AddCustomRow(LOCTEXT("VariableMultilineTooltip", "Multi line"), true)
+			.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::GetMultilineVisibility))
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.ToolTip(MultilineTooltip)
+				.Text(LOCTEXT("VariableMultiline", "Multi line"))
+				.Font(DetailFontInfo)
+			]
+		.ValueContent()
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &FBlueprintVarActionDetails::OnGetMultilineCheckboxState)
+				.OnCheckStateChanged(this, &FBlueprintVarActionDetails::OnMultilineChanged)
+				.IsEnabled(IsVariableInBlueprint())
+				.ToolTip(MultilineTooltip)
 			];
 
 		TSharedPtr<SToolTip> PropertyFlagsTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("DefinedPropertyFlags_Tooltip", "List of defined flags for this property"), NULL, DocLink, TEXT("PropertyFlags"));
@@ -1555,6 +1597,40 @@ void FBlueprintVarActionDetails::OnEditableChanged(ECheckBoxState InNewState)
 
 	UBlueprint* BlueprintObj = MyBlueprint.Pin()->GetBlueprintObj();
 	FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(BlueprintObj, VarName, !bVariableIsExposed);
+}
+
+EVisibility FBlueprintVarActionDetails::ShowReadOnlyCheckboxVisibilty() const
+{
+	UProperty* VariableProperty = CachedVariableProperty.Get();
+	if (VariableProperty && GetPropertyOwnerBlueprint())
+	{
+		if (IsABlueprintVariable(VariableProperty) && !IsASCSVariable(VariableProperty))
+		{
+			return EVisibility::Visible;
+		}
+	}
+	return EVisibility::Collapsed;
+}
+
+ECheckBoxState FBlueprintVarActionDetails::OnReadyOnlyCheckboxState() const
+{
+	UProperty* VariableProperty = CachedVariableProperty.Get();
+	if (VariableProperty)
+	{
+		return VariableProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return ECheckBoxState::Unchecked;
+}
+
+void FBlueprintVarActionDetails::OnReadyOnlyChanged(ECheckBoxState InNewState)
+{
+	FName VarName = CachedVariableName;
+
+	// Toggle the flag on the blueprint's version of the variable description, based on state
+	const bool bVariableIsReadOnly = InNewState == ECheckBoxState::Checked;
+
+	UBlueprint* BlueprintObj = MyBlueprint.Pin()->GetBlueprintObj();
+	FBlueprintEditorUtils::SetBlueprintPropertyReadOnlyFlag(BlueprintObj, VarName, bVariableIsReadOnly);
 }
 
 ECheckBoxState FBlueprintVarActionDetails::OnCreateWidgetCheckboxState() const
@@ -2322,11 +2398,45 @@ ECheckBoxState FBlueprintVarActionDetails::OnGetAdvancedDisplayCheckboxState() c
 
 void FBlueprintVarActionDetails::OnAdvancedDisplayChanged(ECheckBoxState InNewState)
 {
-	UProperty* Property = CachedVariableProperty.Get();
-	if (Property)
+	if (UProperty* Property = CachedVariableProperty.Get())
 	{
 		const bool bAdvancedFlag = (InNewState == ECheckBoxState::Checked);
 		FBlueprintEditorUtils::SetVariableAdvancedDisplayFlag(GetBlueprintObj(), Property->GetFName(), bAdvancedFlag);
+	}
+}
+
+EVisibility FBlueprintVarActionDetails::GetMultilineVisibility() const
+{
+	if (UProperty* VariableProperty = CachedVariableProperty.Get())
+	{
+		if (IsABlueprintVariable(VariableProperty))
+		{
+			if (VariableProperty->IsA(UTextProperty::StaticClass()) || VariableProperty->IsA(UStrProperty::StaticClass()))
+			{
+				return EVisibility::Visible;
+			}
+		}
+	}
+	return EVisibility::Collapsed;
+}
+
+ECheckBoxState FBlueprintVarActionDetails::OnGetMultilineCheckboxState() const
+{
+	UProperty* Property = CachedVariableProperty.Get();
+	if (Property)
+	{
+		return (Property && Property->GetBoolMetaData(TEXT("MultiLine"))) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return ECheckBoxState::Unchecked;
+}
+
+void FBlueprintVarActionDetails::OnMultilineChanged(ECheckBoxState InNewState)
+{
+	UProperty* Property = CachedVariableProperty.Get();
+	if (Property)
+	{
+		const bool bMultiline = (InNewState == ECheckBoxState::Checked);
+		FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), Property->GetFName(), GetLocalVariableScope(CachedVariableProperty.Get()), TEXT("MultiLine"), bMultiline ? TEXT("true") : TEXT("false"));
 	}
 }
 
@@ -5136,7 +5246,7 @@ bool FBlueprintGlobalOptionsDetails::IsNativizeEnabled() const
 	bool bIsEnabled = false;
 	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
-		bIsEnabled = (Blueprint->BlueprintType != BPTYPE_MacroLibrary) && (Blueprint->BlueprintType != BPTYPE_LevelScript);
+		bIsEnabled = (Blueprint->BlueprintType != BPTYPE_MacroLibrary) && (Blueprint->BlueprintType != BPTYPE_LevelScript) && (!FBlueprintEditorUtils::ShouldNativizeImplicitly(Blueprint));
 	}
 	return bIsEnabled;
 }
@@ -5146,20 +5256,27 @@ ECheckBoxState FBlueprintGlobalOptionsDetails::GetNativizeState() const
 	ECheckBoxState CheckboxState = ECheckBoxState::Undetermined;
 	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
-		switch (Blueprint->NativizationFlag)
+		if (FBlueprintEditorUtils::ShouldNativizeImplicitly(Blueprint))
 		{
-		case EBlueprintNativizationFlag::Disabled:
-			CheckboxState = ECheckBoxState::Unchecked;
-			break;
-
-		case EBlueprintNativizationFlag::ExplicitlyEnabled:
 			CheckboxState = ECheckBoxState::Checked;
-			break;
+		}
+		else
+		{
+			switch (Blueprint->NativizationFlag)
+			{
+			case EBlueprintNativizationFlag::Disabled:
+				CheckboxState = ECheckBoxState::Unchecked;
+				break;
 
-		case EBlueprintNativizationFlag::Dependency:
-		default:
-			// leave "Undetermined"
-			break;
+			case EBlueprintNativizationFlag::ExplicitlyEnabled:
+				CheckboxState = ECheckBoxState::Checked;
+				break;
+
+			case EBlueprintNativizationFlag::Dependency:
+			default:
+				// leave "Undetermined"
+				break;
+			}
 		}
 	}
 	return CheckboxState;	
@@ -5169,7 +5286,14 @@ FText FBlueprintGlobalOptionsDetails::GetNativizeTooltip() const
 {
 	if (!IsNativizeEnabled())
 	{
-		return LOCTEXT("NativizeDisabledTooltip", "Macro libraries and level Blueprints cannot be nativized.");
+		if (FBlueprintEditorUtils::ShouldNativizeImplicitly(GetBlueprintObj()))
+		{
+			return LOCTEXT("NativizeImplicitlyTooltip", "This Blueprint must be nativized because it overrides one or more BlueprintCallable functions inherited from a parent Blueprint class that has also been flagged for nativization.");
+		}
+		else
+		{
+			return LOCTEXT("NativizeDisabledTooltip", "Macro libraries and level Blueprints cannot be nativized.");
+		}
 	}
 	else if (GetNativizeState() == ECheckBoxState::Undetermined)
 	{

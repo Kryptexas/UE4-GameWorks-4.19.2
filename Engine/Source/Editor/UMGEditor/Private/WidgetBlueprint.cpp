@@ -687,6 +687,11 @@ bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 	return Result;
 }
 
+TUniquePtr<FKismetCompilerContext> UWidgetBlueprint::GetCompilerForWidgetBP(UWidgetBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
+{
+	return TUniquePtr<FKismetCompilerContext>(new FWidgetBlueprintCompiler(BP, InMessageLog, InCompileOptions, nullptr));
+}
+
 void UWidgetBlueprint::GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const
 {
 	AllowedChildrenOfClasses.Add( UUserWidget::StaticClass() );

@@ -7,7 +7,7 @@
 #include "K2Node_IfThenElse.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "KismetCompiler.h"
-//#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "DataTableEditorUtils.h"
 #include "Kismet/DataTableFunctionLibrary.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
@@ -51,7 +51,7 @@ void UK2Node_GetDataTableRow::AllocateDefaultPins()
 	SetPinToolTip(*RowNamePin, LOCTEXT("RowNamePinDescription", "The name of the row to retrieve from the DataTable"));
 
 	// Result pin
-	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Struct, TEXT(""), FTableRowBase::StaticStruct(), false, false, K2Schema->PN_ReturnValue);
+	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Wildcard, TEXT(""), nullptr, false, false, K2Schema->PN_ReturnValue);
 	ResultPin->PinFriendlyName = LOCTEXT("GetDataTableRow Output Row", "Out Row");
 	SetPinToolTip(*ResultPin, LOCTEXT("ResultPinDescription", "The returned TableRow, if found"));
 
@@ -72,38 +72,30 @@ void UK2Node_GetDataTableRow::SetPinToolTip(UEdGraphPin& MutatablePin, const FTe
 	MutatablePin.PinToolTip += FString(TEXT("\n")) + PinDescription.ToString();
 }
 
-
-void UK2Node_GetDataTableRow::SetReturnTypeForStruct(UScriptStruct* RowStruct)
+void UK2Node_GetDataTableRow::RefreshOutputPinType()
 {
-	if (RowStruct == NULL)
-	{
-		RowStruct = FTableRowBase::StaticStruct();
-	}
+	UScriptStruct* OutputType = GetDataTableRowStructType();
+	SetReturnTypeForStruct(OutputType);
+}
 
-	UScriptStruct* NewRowStruct = RowStruct;
+void UK2Node_GetDataTableRow::RefreshRowNameOptions()
+{
+	// When the DataTable pin gets a new value assigned, we need to update the Slate UI so that SGraphNodeCallParameterCollectionFunction will update the ParameterName drop down
+	UEdGraph* Graph = GetGraph();
+	Graph->NotifyGraphChanged();
+}
+
+
+void UK2Node_GetDataTableRow::SetReturnTypeForStruct(UScriptStruct* NewRowStruct)
+{
 	UScriptStruct* OldRowStruct = GetReturnTypeForStruct();
-
-	// If new Data Table uses a different struct type for it's rows
 	if (NewRowStruct != OldRowStruct)
 	{
-		// Doing this just to force the row name drop down to refresh
-		ReconstructNode();
-
 		UEdGraphPin* ResultPin = GetResultPin();
-		// Because the Return Value struct type has changed, we break the output link
-		ResultPin->BreakAllPinLinks();
-
-		// Change class of output pin
-		ResultPin->PinType.PinSubCategoryObject = RowStruct;
-
-		// When the DataTable pin gets a new value assigned, we need to update the Slate UI so that SGraphNodeCallParameterCollectionFunction will update the ParameterName drop down
-		UEdGraph* Graph = GetGraph();
-		Graph->NotifyGraphChanged();
-
-		UEdGraphPin* OldRowNamePin = GetRowNamePin();
-
-		// Mark dirty
-		FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
+		// NOTE: purposefully not disconnecting the ResultPin (even though it changed type)... we want the user to see the old
+		//       connections, and incompatible connections will produce an error (plus, some super-struct connections may still be valid)
+		ResultPin->PinType.PinSubCategoryObject = NewRowStruct;
+		ResultPin->PinType.PinCategory = (NewRowStruct == nullptr) ? UEdGraphSchema_K2::PC_Wildcard : UEdGraphSchema_K2::PC_Struct;
 	}
 }
 
@@ -114,13 +106,12 @@ UScriptStruct* UK2Node_GetDataTableRow::GetReturnTypeForStruct()
 	return ReturnStructType;
 }
 
-UScriptStruct* UK2Node_GetDataTableRow::GetDataTableRowStructType(const TArray<UEdGraphPin*>* InPinsToSearch /*=NULL*/) const
+UScriptStruct* UK2Node_GetDataTableRow::GetDataTableRowStructType() const
 {
-	UScriptStruct* RowStructType = NULL;
-	const TArray<UEdGraphPin*>* PinsToSearch = InPinsToSearch ? InPinsToSearch : &Pins;
+	UScriptStruct* RowStructType = nullptr;
 
-	UEdGraphPin* DataTablePin = GetDataTablePin(PinsToSearch);
-	if(DataTablePin && DataTablePin->DefaultObject != NULL && DataTablePin->LinkedTo.Num() == 0)
+	UEdGraphPin* DataTablePin = GetDataTablePin();
+	if(DataTablePin && DataTablePin->DefaultObject != nullptr && DataTablePin->LinkedTo.Num() == 0)
 	{
 		if (DataTablePin->DefaultObject->IsA(UDataTable::StaticClass()))
 		{
@@ -132,6 +123,24 @@ UScriptStruct* UK2Node_GetDataTableRow::GetDataTableRowStructType(const TArray<U
 		}
 	}
 
+	if (RowStructType == nullptr)
+	{
+		UEdGraphPin* ResultPin = GetResultPin();
+		if (ResultPin && ResultPin->LinkedTo.Num() > 0)
+		{
+			RowStructType = Cast<UScriptStruct>(ResultPin->LinkedTo[0]->PinType.PinSubCategoryObject.Get());
+			for (int32 LinkIndex = 1; LinkIndex < ResultPin->LinkedTo.Num(); ++LinkIndex)
+			{
+				UEdGraphPin* Link = ResultPin->LinkedTo[LinkIndex];
+				UScriptStruct* LinkType = Cast<UScriptStruct>(Link->PinType.PinSubCategoryObject.Get());
+
+				if (RowStructType->IsChildOf(LinkType))
+				{
+					RowStructType = LinkType;
+				}
+			}
+		}
+	}
 	return RowStructType;
 }
 
@@ -166,12 +175,6 @@ void UK2Node_GetDataTableRow::ReallocatePinsDuringReconstruction(TArray<UEdGraph
 			PreloadObject(DataTable);
 		}
 	}
-
-	UScriptStruct* RowStruct = GetDataTableRowStructType(&OldPins);
-	if( RowStruct != NULL )
-	{
-		SetReturnTypeForStruct(RowStruct);
-	}
 }
 
 void UK2Node_GetDataTableRow::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
@@ -201,10 +204,26 @@ FText UK2Node_GetDataTableRow::GetMenuCategory() const
 
 bool UK2Node_GetDataTableRow::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
-	if (MyPin && MyPin->PinName == UK2Node_GetDataTableRowHelper::DataTablePinName)
+	if (MyPin == GetResultPin() && MyPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
 	{
-		OutReason = LOCTEXT("OnlyLiteralDTSupported", "Only literal data table is supported").ToString();
-		return true;
+		bool bDisallowed = true;
+		if (OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct)
+		{
+			if (UScriptStruct* ConnectionType = Cast<UScriptStruct>(OtherPin->PinType.PinSubCategoryObject.Get()))
+			{
+				bDisallowed = !FDataTableEditorUtils::IsValidTableStruct(ConnectionType);
+			}
+		}
+		else if (OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+		{
+			bDisallowed = false;
+		}
+
+		if (bDisallowed)
+		{
+			OutReason = TEXT("Must be a struct that can be used in a DataTable");
+		}
+		return bDisallowed;
 	}
 	return false;
 }
@@ -213,16 +232,21 @@ void UK2Node_GetDataTableRow::PinDefaultValueChanged(UEdGraphPin* ChangedPin)
 {
 	if (ChangedPin && ChangedPin->PinName == UK2Node_GetDataTableRowHelper::DataTablePinName)
 	{
-		UScriptStruct* RowStruct = GetDataTableRowStructType();
+		RefreshOutputPinType();
 
-		SetReturnTypeForStruct(RowStruct);
-
-		auto RowNamePin = GetRowNamePin();
-		auto DataTable = Cast<UDataTable>(ChangedPin->DefaultObject);
-		if (RowNamePin && RowNamePin->DefaultValue.IsEmpty() && DataTable)
+		UEdGraphPin* RowNamePin = GetRowNamePin();
+		UDataTable*  DataTable = Cast<UDataTable>(ChangedPin->DefaultObject);
+		if (RowNamePin)
 		{
-			auto Iterator = DataTable->RowMap.CreateConstIterator();
-			RowNamePin->DefaultValue = Iterator ? Iterator.Key().ToString() : FString();
+			if (DataTable && (RowNamePin->DefaultValue.IsEmpty() || !DataTable->RowMap.Contains(*RowNamePin->DefaultValue)))
+			{
+				if (auto Iterator = DataTable->RowMap.CreateConstIterator())
+				{
+					RowNamePin->DefaultValue = Iterator.Key().ToString();
+				}
+			}	
+
+			RefreshRowNameOptions();
 		}
 	}
 }
@@ -281,7 +305,6 @@ UEdGraphPin* UK2Node_GetDataTableRow::GetResultPin() const
 	check(Pin->Direction == EGPD_Output);
 	return Pin;
 }
-
 
 FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
@@ -386,6 +409,13 @@ FSlateIcon UK2Node_GetDataTableRow::GetIconAndTint(FLinearColor& OutColor) const
 	return Icon;
 }
 
+void UK2Node_GetDataTableRow::PostReconstructNode()
+{
+	Super::PostReconstructNode();
+
+	RefreshOutputPinType();
+}
+
 void UK2Node_GetDataTableRow::EarlyValidation(class FCompilerResultsLog& MessageLog) const
 {
 	const auto DataTablePin = GetDataTablePin();
@@ -396,24 +426,54 @@ void UK2Node_GetDataTableRow::EarlyValidation(class FCompilerResultsLog& Message
 		return;
 	}
 
-	const auto DataTable = Cast<UDataTable>(DataTablePin->DefaultObject);
-	if (!DataTable)
+	if (DataTablePin->LinkedTo.Num() == 0)
 	{
-		MessageLog.Error(*LOCTEXT("NoDataTable", "No DataTable in @@").ToString(), this);
-		return;
-	}
-
-	if (!RowNamePin->LinkedTo.Num())
-	{
-		const FName CurrentName = FName(*RowNamePin->GetDefaultAsString());
-		if (!DataTable->GetRowNames().Contains(CurrentName))
+		const auto DataTable = Cast<UDataTable>(DataTablePin->DefaultObject);
+		if (!DataTable)
 		{
-			const FString Msg = FString::Printf(
-				*LOCTEXT("WronRowName", "'%s' row name is not stored in '%s'. @@").ToString()
-				, *CurrentName.ToString()
-				, *GetFullNameSafe(DataTable));
-			MessageLog.Error(*Msg, this);
+			MessageLog.Error(*LOCTEXT("NoDataTable", "No DataTable in @@").ToString(), this);
 			return;
+		}
+
+		if (!RowNamePin->LinkedTo.Num())
+		{
+			const FName CurrentName = FName(*RowNamePin->GetDefaultAsString());
+			if (!DataTable->GetRowNames().Contains(CurrentName))
+			{
+				const FString Msg = FString::Printf(
+					*LOCTEXT("WronRowName", "'%s' row name is not stored in '%s'. @@").ToString()
+					, *CurrentName.ToString()
+					, *GetFullNameSafe(DataTable));
+				MessageLog.Error(*Msg, this);
+				return;
+			}
+		}
+	}	
+}
+
+void UK2Node_GetDataTableRow::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
+{
+	Super::NotifyPinConnectionListChanged(Pin);
+
+	if (Pin == GetResultPin())
+	{
+		UEdGraphPin* TablePin = GetDataTablePin();
+		// this connection would only change the output type if the table pin is undefined
+		const bool bIsTypeAuthority = (TablePin->LinkedTo.Num() > 0 || TablePin->DefaultObject == nullptr);
+		if (bIsTypeAuthority)
+		{
+			RefreshOutputPinType();
+		}		
+	}
+	else if (Pin == GetDataTablePin())
+	{
+		const bool bConnectionAdded = Pin->LinkedTo.Num() > 0;
+		if (bConnectionAdded)
+		{
+			// if a connection was made, then we may need to rid ourselves of the row dropdown
+			RefreshRowNameOptions();
+			// if the output connection was previously, incompatible, it now becomes the authority on this node's output type
+			RefreshOutputPinType();
 		}
 	}
 }

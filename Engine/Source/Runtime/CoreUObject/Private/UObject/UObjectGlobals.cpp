@@ -265,10 +265,9 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 
 	// Resolve the object and package name.
 	const bool bAnyPackage = InObjectPackage==ANY_PACKAGE;
-	UObject* ObjectPackage = bAnyPackage ? NULL : InObjectPackage;
-	FString InName = OrigInName;
+	UObject* ObjectPackage = bAnyPackage ? nullptr : InObjectPackage;
 
-	UObject* MatchingObject = NULL;
+	UObject* MatchingObject = nullptr;
 
 #if WITH_EDITOR
 	// If the editor is running, and T3D is being imported, ensure any packages referenced are fully loaded.
@@ -284,9 +283,9 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 				!NameCheck.Contains(TEXT(":"), ESearchCase::CaseSensitive) )
 			{
 				s_bCurrentlyLoading = true;
-				MatchingObject = StaticLoadObject(ObjectClass, NULL, OrigInName, NULL,  LOAD_NoWarn, NULL);
+				MatchingObject = StaticLoadObject(ObjectClass, nullptr, OrigInName, nullptr,  LOAD_NoWarn, nullptr);
 				s_bCurrentlyLoading = false;
-				if (MatchingObject != NULL)
+				if (MatchingObject != nullptr)
 				{
 					return MatchingObject;
 				}
@@ -295,13 +294,23 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 	}
 #endif	//#if !WITH_EDITOR
 
+	FName ObjectName;
+
 	// Don't resolve the name if we're searching in any package
-	if( !bAnyPackage && !ResolveName( ObjectPackage, InName, false, false ) )
+	if (!bAnyPackage)
 	{
-		return NULL;
+		FString InName = OrigInName;
+		if (!ResolveName(ObjectPackage, InName, false, false))
+		{
+			return nullptr;
+		}
+		ObjectName = FName(*InName, FNAME_Add);
+	}
+	else
+	{
+		ObjectName = FName(OrigInName, FNAME_Add);
 	}
 
-	FName ObjectName(*InName, FNAME_Add);
 	return StaticFindObjectFast(ObjectClass, ObjectPackage, ObjectName, ExactClass, bAnyPackage);
 }
 
@@ -717,9 +726,9 @@ bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Thro
 
 		// if the next part of InOutName ends in two dots, it indicates that the next object in the path name
 		// is not a top-level object (i.e. it's a subobject).  e.g. SomePackage.SomeGroup.SomeObject..Subobject
-		if (InOutName.Mid(DotIndex + 1, 1) == TEXT("."))
+		if (InOutName.IsValidIndex(DotIndex+1) && InOutName[DotIndex+1] == TEXT('.'))
 		{
-			InOutName = PartialName + InOutName.Mid(DotIndex + 1);
+			InOutName.RemoveAt(DotIndex, 1, false);
 			bSubobjectPath = true;
 			Create         = false;
 		}
@@ -766,7 +775,7 @@ bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Thro
 
 			check(InPackage);
 		}
-		InOutName = InOutName.Mid(DotIndex + 1);
+		InOutName.RemoveAt(0, DotIndex + 1, false);
 	}
 
 	return true;
@@ -1770,6 +1779,8 @@ void EndLoad()
 				check(Linker->Loader == nullptr);
 			}
 		}
+
+		FBlueprintSupport::FlushReinstancingQueue();
 	}
 
 	// Loaded new objects, so allow reaccessing asset ptrs

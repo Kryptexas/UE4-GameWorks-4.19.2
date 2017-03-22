@@ -143,39 +143,12 @@ struct FInteriorSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InteriorSettings)
 	float InteriorLPFTime;
 
-	FInteriorSettings()
-		: bIsWorldSettings(false)
-		, ExteriorVolume(1.0f)
-		, ExteriorTime(0.5f)
-		, ExteriorLPF(MAX_FILTER_FREQUENCY)
-		, ExteriorLPFTime(0.5f)
-		, InteriorVolume(1.0f)
-		, InteriorTime(0.5f)
-		, InteriorLPF(MAX_FILTER_FREQUENCY)
-		, InteriorLPFTime(0.5f)
-		{
-		}
+	FInteriorSettings();
 
 	bool operator==(const FInteriorSettings& Other) const;
 	bool operator!=(const FInteriorSettings& Other) const;
 
-	void PostSerialize(const FArchive& Ar)
-	{
-		if (Ar.UE4Ver() < VER_UE4_USE_LOW_PASS_FILTER_FREQ)
-		{
-			if (InteriorLPF > 0.0f && InteriorLPF < 1.0f)
-			{
-				float FilterConstant = 2.0f * FMath::Sin(PI * 6000.0f * InteriorLPF / 48000);
-				InteriorLPF = FilterConstant * MAX_FILTER_FREQUENCY;
-			}
-
-			if (ExteriorLPF > 0.0f && ExteriorLPF < 1.0f)
-			{
-				float FilterConstant = 2.0f * FMath::Sin(PI * 6000.0f * ExteriorLPF / 48000);
-				ExteriorLPF = FilterConstant * MAX_FILTER_FREQUENCY;
-			}
-		}
-	}
+	void PostSerialize(const FArchive& Ar);
 };
 
 template<>

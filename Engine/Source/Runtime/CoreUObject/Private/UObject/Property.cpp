@@ -247,10 +247,68 @@ struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase2<FTimes
 };
 IMPLEMENT_STRUCT(Timespan);
 
+
+template<>
+struct TStructOpsTypeTraits<FStringAssetReference> : public TStructOpsTypeTraitsBase2<FStringAssetReference>
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithSerializer = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+		WithSerializeFromMismatchedTag = true,
+	};
+};
 IMPLEMENT_STRUCT(StringAssetReference);
 
+template<>
+struct TStructOpsTypeTraits<FStringClassReference> : public TStructOpsTypeTraitsBase2<FStringClassReference>
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithSerializer = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+		WithSerializeFromMismatchedTag = true,
+	};
+};
 IMPLEMENT_STRUCT(StringClassReference);
 
+template<>
+struct TStructOpsTypeTraits<FPrimaryAssetType> : public TStructOpsTypeTraitsBase2<FPrimaryAssetType>
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+		WithSerializeFromMismatchedTag = true,
+	};
+};
+IMPLEMENT_STRUCT(PrimaryAssetType);
+
+template<>
+struct TStructOpsTypeTraits<FPrimaryAssetId> : public TStructOpsTypeTraitsBase2<FPrimaryAssetId>
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+		WithSerializeFromMismatchedTag = true,
+	};
+};
+IMPLEMENT_STRUCT(PrimaryAssetId);
 /*-----------------------------------------------------------------------------
 	Helpers.
 -----------------------------------------------------------------------------*/

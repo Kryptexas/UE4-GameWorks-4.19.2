@@ -294,6 +294,14 @@ void FRawInputWindows::SetupBindings(const int32 DeviceHandle, const bool bApply
 		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button10, 9);
 		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button11, 10);
 		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button12, 11);
+		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button13, 12);
+		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button14, 13);
+		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button15, 14);
+		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button16, 15);
+		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button17, 16);
+		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button18, 17);
+		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button19, 18);
+		BindButtonForDevice(DeviceHandle, FRawInputKeyNames::GenericUSBController_Button20, 19);
 	}
 }
 
@@ -449,7 +457,8 @@ bool FRawInputWindows::ProcessMessage(const HWND hwnd, const uint32 Msg, const W
 								if (DLLPointers.HidP_GetCaps((PHIDP_PREPARSED_DATA)PreParsedData.GetData(), &Caps) == HIDP_STATUS_SUCCESS)
 								{
 									FRawInputRegisteredDevice DeviceData(RawInputDataBuffer->header.dwType, Caps.Usage, Caps.UsagePage);
-									if (DeviceData == EachEntry.DeviceData)
+									// Win32 doesn't correctly report the device ID, so at least for now just trust it is from the device we want
+									//if (DeviceData == EachEntry.DeviceData)
 									{
 										bIsRegisteredDevice = true;
 										ParseInputData(DeviceEntryPair.Key, RawInputDataBuffer, (PHIDP_PREPARSED_DATA)PreParsedData.GetData(), Caps);

@@ -9,21 +9,6 @@
 ATriggerBase::ATriggerBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> TriggerTextureObject;
-		FName ID_Triggers;
-		FText NAME_Triggers;
-		FConstructorStatics()
-			: TriggerTextureObject(TEXT("/Engine/EditorResources/S_Trigger"))
-			, ID_Triggers(TEXT("Triggers"))
-			, NAME_Triggers(NSLOCTEXT( "SpriteCategory", "Triggers", "Triggers" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	bHidden = true;
 	bCanBeDamaged = false;
 
@@ -36,16 +21,31 @@ ATriggerBase::ATriggerBase(const FObjectInitializer& ObjectInitializer)
 		CollisionComponent->bHiddenInGame = false;
 	}
 
+#if WITH_EDITORONLY_DATA
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 	if (SpriteComponent)
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> TriggerTextureObject;
+			FName ID_Triggers;
+			FText NAME_Triggers;
+			FConstructorStatics()
+				: TriggerTextureObject(TEXT("/Engine/EditorResources/S_Trigger"))
+				, ID_Triggers(TEXT("Triggers"))
+				, NAME_Triggers(NSLOCTEXT( "SpriteCategory", "Triggers", "Triggers" ))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.TriggerTextureObject.Get();
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = false;
-#if WITH_EDITORONLY_DATA
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Triggers;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Triggers;
-#endif
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
+#endif
 }

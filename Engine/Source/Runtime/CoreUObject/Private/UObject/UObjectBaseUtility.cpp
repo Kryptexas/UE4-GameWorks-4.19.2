@@ -415,7 +415,7 @@ void* UObjectBaseUtility::GetNativeInterfaceAddress(UClass* InterfaceClass)
 
 bool UObjectBaseUtility::IsDefaultSubobject() const
 {
-	const bool bIsInstanced = GetOuter() && (GetOuter()->HasAnyFlags(RF_ClassDefaultObject) || ((UObject*)this)->GetArchetype() != GetClass()->GetDefaultObject());
+	const bool bIsInstanced = GetOuter() && (GetOuter()->HasAnyFlags(RF_ClassDefaultObject) || ((UObject*)this)->GetArchetype() != GetClass()->GetDefaultObject(false));
 	return bIsInstanced;
 }
 

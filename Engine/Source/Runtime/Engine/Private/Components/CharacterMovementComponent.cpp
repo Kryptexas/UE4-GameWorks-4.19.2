@@ -7554,31 +7554,16 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 	if (CharacterOwner->bReplicateMovement)
 	{
 		ClientData->SavedMoves.Push(NewMove);
+		const UWorld* MyWorld = GetWorld();
 
 		const bool bCanDelayMove = (CharacterMovementCVars::NetEnableMoveCombining != 0) && CanDelaySendingMove(NewMove);
-
+		
 		if (bCanDelayMove && ClientData->PendingMove.IsValid() == false)
 		{
 			// Decide whether to hold off on move
-			// send moves more frequently in small games where server isn't likely to be saturated
-			float NetMoveDelta;
-			UPlayer* Player = (PC ? PC->Player : nullptr);
-			AGameStateBase const* const GameState = GetWorld()->GetGameState();
+			const float NetMoveDelta = FMath::Clamp(GetClientNetSendDeltaTime(PC, ClientData, NewMove), 1.f/120.f, 1.f/15.f);
 
-			if (Player && (Player->CurrentNetSpeed > 10000) && (GameState != nullptr) && (GameState->PlayerArray.Num() <= 10))
-			{
-				NetMoveDelta = 0.011f;
-			}
-			else if (Player && CharacterOwner->GetWorldSettings()->GameNetworkManagerClass) 
-			{
-				NetMoveDelta = FMath::Max(0.0222f,2 * GetDefault<AGameNetworkManager>(CharacterOwner->GetWorldSettings()->GameNetworkManagerClass)->MoveRepSize/Player->CurrentNetSpeed);
-			}
-			else
-			{
-				NetMoveDelta = 0.011f;
-			}
-
-			if ((GetWorld()->TimeSeconds - ClientData->ClientUpdateTime) * CharacterOwner->GetWorldSettings()->GetEffectiveTimeDilation() < NetMoveDelta)
+			if ((MyWorld->TimeSeconds - ClientData->ClientUpdateTime) * MyWorld->GetWorldSettings()->GetEffectiveTimeDilation() < NetMoveDelta)
 			{
 				// Delay sending this move.
 				ClientData->PendingMove = NewMove;
@@ -7586,7 +7571,7 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 			}
 		}
 
-		ClientData->ClientUpdateTime = GetWorld()->TimeSeconds;
+		ClientData->ClientUpdateTime = MyWorld->TimeSeconds;
 
 		UE_LOG(LogNetPlayerMovement, Verbose, TEXT("Client ReplicateMove Time %f Acceleration %s Position %s DeltaTime %f"),
 			NewMove->TimeStamp, *NewMove->Acceleration.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), DeltaTime);
@@ -8103,7 +8088,7 @@ void UCharacterMovementComponent::ServerMove_Implementation(
 	}
 
 	// Perform actual movement
-	if ((CharacterOwner->GetWorldSettings()->Pauser == NULL) && (DeltaTime > 0.f))
+	if ((GetWorld()->GetWorldSettings()->Pauser == NULL) && (DeltaTime > 0.f))
 	{
 		if (PC)
 		{
@@ -9899,6 +9884,27 @@ FVector FSavedMove_Character::GetRevertedLocation() const
 bool UCharacterMovementComponent::CanDelaySendingMove(const FSavedMovePtr& NewMove)
 {
 	return true;
+}
+
+float UCharacterMovementComponent::GetClientNetSendDeltaTime(const APlayerController* PC, const FNetworkPredictionData_Client_Character* ClientData, const FSavedMovePtr& NewMove) const
+{
+	const UPlayer* Player = (PC ? PC->Player : nullptr);
+	const UWorld* MyWorld = GetWorld();
+	const AGameStateBase* const GameState = MyWorld->GetGameState();
+	const AGameNetworkManager* const GameNetworkManager = GetDefault<AGameNetworkManager>();
+	float NetMoveDelta = GameNetworkManager->ClientNetSendMoveDeltaTime;
+
+	// send moves more frequently in small games where server isn't likely to be saturated
+	if (Player && (Player->CurrentNetSpeed > GameNetworkManager->ClientNetSendMoveThrottleAtNetSpeed) && (GameState != nullptr) && (GameState->PlayerArray.Num() <= GameNetworkManager->ClientNetSendMoveThrottleOverPlayerCount))
+	{
+		NetMoveDelta = GameNetworkManager->ClientNetSendMoveDeltaTime;
+	}
+	else if (Player)
+	{
+		NetMoveDelta = FMath::Max(GameNetworkManager->ClientNetSendMoveDeltaTimeThrottled, 2 * GameNetworkManager->MoveRepSize / Player->CurrentNetSpeed);
+	}
+	
+	return NetMoveDelta;
 }
 
 bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* Character, float MaxDelta) const

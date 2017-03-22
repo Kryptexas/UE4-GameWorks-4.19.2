@@ -81,6 +81,9 @@ private:
 	/** @return The currently selected asset */
 	TArray< FAssetData > GetCurrentSelection();
 
+	/** Forces a refresh */
+	void RefreshAssetView(bool bRefreshSources);
+
 	/** @return The text to highlight on the assets  */
 	FText GetHighlightedText() const;
 

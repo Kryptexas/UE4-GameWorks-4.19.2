@@ -28,6 +28,26 @@ namespace EAssetAvailabilityProgressReportingType
 	};
 }
 
+namespace EAssetSetManagerResult
+{
+	enum Type
+	{
+		DoNotSet,			// Do not set manager
+		SetButDoNotRecurse,	// Set but do not recurse
+		SetAndRecurse		// Set and recurse into reference
+	};
+}
+
+namespace EAssetSetManagerFlags
+{
+	enum Type
+	{		
+		IsDirectSet = 1,				// This attempt is a direct set instead of a recursive set
+		TargetHasExistingManager = 2,	// Target already has a manager from previous run
+		TargetHasDirectManager = 4,		// Target has another direct manager that will be set in this run
+	};
+}
+
 class IAssetRegistry
 {
 public:
@@ -282,4 +302,36 @@ public:
 
 	/** Load FPackageRegistry data from the supplied package */
 	virtual void LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*>& Data) const =0;
+
+protected:
+	// Functions specifically for calling from the asset manager
+	friend class UAssetManager;
+	
+	/**
+	 * Predicate called to decide rather to recurse into a reference when setting manager
+	 *
+	 * @param Manager			Identifier of what manager will be set
+	 * @param Source			Identifier of the reference currently being iterated
+	 * @param Target			Identifier that will managed by manager
+	 * @param DependencyType	Type of dependencies to recurse over
+	 * @param Flags				Flags describing this particular set attempt
+	 */
+	typedef TFunction<EAssetSetManagerResult::Type(const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags)> ShouldSetManagerPredicate;
+
+	/**
+	 * Specifies a list of manager mappings, optionally recursing to dependencies. These mappings can then be queried later to see which assets "manage" other assets
+	 * This function is only meant to be called by the AssetManager, calls from anywhere else will conflict and lose data
+	 *
+	 * @param ManagerMap		Map of Managing asset to Managed asset. This will construct Manager references and clear existing 
+	 * @param bClearExisting	If true, will clear any existing manage dependencies
+	 * @param RecurseType		Dependency types to recurse into, from the value of the manager map
+	 * @param RecursePredicate	Predicate that is called on recursion if bound, return true if it should recurse into that node
+	 */
+	virtual void SetManageReferences(const TMultiMap<FAssetIdentifier, FAssetIdentifier>& ManagerMap, bool bClearExisting, EAssetRegistryDependencyType::Type RecurseType, ShouldSetManagerPredicate ShouldSetManager = nullptr) = 0;
+
+	/** Sets the PrimaryAssetId for a specific asset. This should only be called by the AssetManager, and is needed when the AssetManager is more up to date than the on disk Registry */
+	virtual bool SetPrimaryAssetIdForObjectPath(const FName ObjectPath, FPrimaryAssetId PrimaryAssetId) = 0;
+
+	/** Returns pointer to cached AssetData for an object path. This is always the on disk version. This will return null if not found, and is exposed for  */
+	virtual const FAssetData* GetCachedAssetDataForObjectPath(const FName ObjectPath) const = 0;
 };

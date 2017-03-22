@@ -49,10 +49,8 @@ namespace Audio
 		return NewDestination;
 	}
 
-	bool FModulationMatrix::AddPatch(const int32 VoiceId, FPatch* InPatch)
+	bool FModulationMatrix::ValidatePatch(const int32 VoiceId, FPatch* InPatch)
 	{
-		check(VoiceId < NumVoices);
-
 		// Validate that the patch has valid source/destinations
 		const FPatchSource& PatchSource = InPatch->Source;
 		if (PatchSource.Id >= (uint32)Sources[VoiceId].Num())
@@ -68,8 +66,30 @@ namespace Audio
 				return false;
 			}
 		}
+		return true;
+	}
+
+	bool FModulationMatrix::AddPatch(const int32 VoiceId, FPatch* InPatch)
+	{
+		check(VoiceId < NumVoices);
+		if (!ValidatePatch(VoiceId, InPatch))
+		{
+			return false;
+		}
 
 		Patches[VoiceId].Add(InPatch);
+		return true;
+	}
+
+	bool FModulationMatrix::RemovePatch(const int32 VoiceId, FPatch* InPatch)
+	{
+		check(VoiceId < NumVoices);
+		if (!ValidatePatch(VoiceId, InPatch))
+		{
+			return false;
+		}
+
+		Patches[VoiceId].Remove(InPatch);
 		return true;
 	}
 

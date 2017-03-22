@@ -307,8 +307,11 @@ void ULandscapeEditorObject::Load()
 
 	FString NewLandscapeMaterialName = (NewLandscape_Material != NULL) ? NewLandscape_Material->GetPathName() : FString();
 	GConfig->GetString(TEXT("LandscapeEdit"), TEXT("NewLandscapeMaterialName"), NewLandscapeMaterialName, GEditorPerProjectIni);
-	NewLandscape_Material = LoadObject<UMaterialInterface>(NULL, *NewLandscapeMaterialName, NULL, LOAD_NoWarn);
-
+	if(NewLandscapeMaterialName != TEXT(""))
+	{
+		NewLandscape_Material = LoadObject<UMaterialInterface>(NULL, *NewLandscapeMaterialName, NULL, LOAD_NoWarn);
+	}
+	
 	int32 AlphamapType = (uint8)ImportLandscape_AlphamapType;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ImportLandscape_AlphamapType"), AlphamapType, GEditorPerProjectIni);
 	ImportLandscape_AlphamapType = (ELandscapeImportAlphamapType)AlphamapType;

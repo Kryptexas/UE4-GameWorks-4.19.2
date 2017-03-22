@@ -88,6 +88,7 @@ FString FPathFollowingResultFlags::ToString(uint16 Value)
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, MovementStop),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, NewRequest),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, ForcedScript),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, AlreadyAtGoal),
 	};
 
 	FString CombinedDesc;

@@ -1829,13 +1829,21 @@ FText SAssetColumnItem::GetAssetPathText() const
 	}
 }
 
-FText SAssetColumnItem::GetAssetTagText(FName AssetRegistryTag) const
+FText SAssetColumnItem::GetAssetTagText(FName AssetTag) const
 {
 	if ( AssetItem.IsValid() )
 	{
 		if(AssetItem->GetType() != EAssetItemType::Folder)
 		{
-			return StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.GetTagValueRef<FText>(AssetRegistryTag);
+			const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(AssetItem);
+			// Check custom type
+			FString* FoundString = ItemAsAsset->CustomColumnData.Find(AssetTag);
+
+			if (FoundString)
+			{
+				return FText::FromString(*FoundString);
+			}
+			return ItemAsAsset->Data.GetTagValueRef<FText>(AssetTag);
 		}
 	}
 	

@@ -50,5 +50,8 @@ public:
 
 	/** Invokes a major tab with a reference viewer within it */
 	virtual void InvokeReferenceViewerTab(const TArray<FAssetIdentifier>& GraphRootIdentifiers) = 0;
+
+	/** Call from a menu extender in game/plugin to get selected asset list. If this returns false, it wasn't called on the right node */
+	virtual bool GetSelectedAssetsForMenuExtender(const class UEdGraph* Graph, const class UEdGraphNode* Node, TArray<FAssetIdentifier>& SelectedAssets) = 0;
 };
 

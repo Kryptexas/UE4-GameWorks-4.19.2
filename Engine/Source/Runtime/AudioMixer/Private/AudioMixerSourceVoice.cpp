@@ -58,18 +58,10 @@ namespace Audio
 		SourceManager->ReleaseSourceId(SourceId);
 	}
 
-	void FMixerSourceVoice::SubmitBuffer(FMixerSourceBufferPtr InSourceVoiceBuffer)
-	{
-		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
-
-		NumBuffersQueued.Increment();
-		SourceManager->SubmitBuffer(SourceId, InSourceVoiceBuffer);
-	}
-
-	void FMixerSourceVoice::SubmitBufferAudioThread(FMixerSourceBufferPtr InSourceVoiceBuffer)
+	void FMixerSourceVoice::SubmitBuffer(FMixerSourceBufferPtr InSourceVoiceBuffer, const bool bSubmitSynchronously)
 	{
 		NumBuffersQueued.Increment();
-		SourceManager->SubmitBufferAudioThread(SourceId, InSourceVoiceBuffer);
+		SourceManager->SubmitBuffer(SourceId, InSourceVoiceBuffer, bSubmitSynchronously);
 	}
 
 	int32 FMixerSourceVoice::GetNumBuffersQueued() const
@@ -203,33 +195,41 @@ namespace Audio
 		return SourceManager->GetNumFramesPlayed(SourceId);
 	}
 
-	void FMixerSourceVoice::MixOutputBuffers(TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer, const float DryLevel, const float WetLevel) const
+	void FMixerSourceVoice::MixOutputBuffers(TArray<float>& OutWetBuffer, const float SendLevel) const
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-		return SourceManager->MixOutputBuffers(SourceId, OutDryBuffer, OutWetBuffer, DryLevel, WetLevel);
+		return SourceManager->MixOutputBuffers(SourceId, OutWetBuffer, SendLevel);
 	}
 
-	void FMixerSourceVoice::SetSubmixSendInfo(FMixerSubmixPtr Submix, const float DryLevel, const float WetLevel)
+	void FMixerSourceVoice::SetSubmixSendInfo(FMixerSubmixPtr Submix, const float SendLevel)
 	{
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
 
 		FMixerSourceSubmixSend* SubmixSend = SubmixSends.Find(Submix->GetId());
+		bool bChanged = false;
 		if (!SubmixSend)
 		{
 			FMixerSourceSubmixSend NewSubmixSend;
 			NewSubmixSend.Submix = Submix;
-			NewSubmixSend.WetLevel = WetLevel;
-			NewSubmixSend.DryLevel = DryLevel;
+			NewSubmixSend.SendLevel = SendLevel;
+			NewSubmixSend.bIsMainSend = false;
 			SubmixSends.Add(Submix->GetId(), NewSubmixSend);
+			bChanged = true;
 		}
 		else
 		{
-			SubmixSend->WetLevel = WetLevel;
-			SubmixSend->DryLevel = DryLevel;
+			if (!FMath::IsNearlyEqual(SubmixSend->SendLevel, SendLevel))
+			{
+				SubmixSend->SendLevel = SendLevel;
+				bChanged = true;
+			}
 		}
 
-		SourceManager->SetSubmixSendInfo(SourceId, Submix, DryLevel, WetLevel);
+		if (bChanged)
+		{
+			SourceManager->SetSubmixSendInfo(SourceId, Submix, SendLevel);
+		}
 	}
 
 

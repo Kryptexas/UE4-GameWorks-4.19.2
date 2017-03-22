@@ -16,7 +16,7 @@ namespace Audio
 		~FEnvelope();
 
 		// Initialize the envelope with the given sample rate
-		void Init(const float InSampleRate, const int32 InVoiceId, FModulationMatrix* InModMatrix = nullptr, const bool bInSimulateAnalog = true);
+		void Init(const float InSampleRate, const int32 InVoiceId = 0, FModulationMatrix* InModMatrix = nullptr, const bool bInSimulateAnalog = true);
 
 		// Sets the envelope mode 
 		void SetSimulateAnalog(const bool bInSimulatingAnalog);
@@ -64,8 +64,17 @@ namespace Audio
 		// Sets the envelope release time in msec
 		virtual void SetReleaseTime(const float InReleaseTimeMsec);
 
+		// Inverts the value of envelope output
+		virtual void SetInvert(const bool bInInvert);
+
 		// Inverts the value of the biased envelope output
 		virtual void SetBiasInvert(const bool bInBiasInvert);
+
+		// Sets the envelope depth.
+		virtual void SetDepth(const float InDepth);
+
+		// Sets the depth of the bias output. 
+		virtual void SetBiasDepth(const float InDepth);
 
 		// Get the envelope's patch nodes
 		const FPatchSource GetModSourceEnv() const { return EnvSource; }
@@ -110,6 +119,8 @@ namespace Audio
 		float ReleaseTimeMsec;
 		float ShutdownTimeMsec;
 		float ShutdownDelta;
+		float Depth;
+		float BiasDepth;
 
 		FEnvData AttackData;
 		FEnvData DecayData;
@@ -134,6 +145,9 @@ namespace Audio
 
 		// Whether or not this envelope has changed and needs to have values recomputed
 		bool bChanged;
+
+		// Inverts the output
+		bool bInvert;
 
 		// Bias output inversions
 		bool bBiasInvert;

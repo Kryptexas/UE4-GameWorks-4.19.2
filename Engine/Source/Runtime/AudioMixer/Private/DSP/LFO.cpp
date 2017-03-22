@@ -184,7 +184,7 @@ namespace Audio
 			break;
 		}
 
-		const float MaxGain = Gain * GainMod;
+		const float MaxGain = Gain * ExternalGainMod;
 		Output = Output * MaxGain;
 		QuadOutput = QuadOutput * MaxGain;
 

@@ -54,6 +54,9 @@ struct FAssetViewAsset : public FAssetViewItem
 	/** The asset registry data associated with this item */
 	FAssetData Data;
 
+	/** Map of values for custom columns */
+	TMap<FName, FString> CustomColumnData;
+
 	explicit FAssetViewAsset(const FAssetData& AssetData)
 		: Data(AssetData)
 	{}
@@ -62,6 +65,19 @@ struct FAssetViewAsset : public FAssetViewItem
 	{
 		Data = NewData;
 		OnAssetDataChanged.Broadcast();
+	}
+
+	bool GetTagValue(FName Tag, FString& OutString) const
+	{
+		const FString* FoundString = CustomColumnData.Find(Tag);
+
+		if (FoundString)
+		{
+			OutString = *FoundString;
+			return true;
+		}
+
+		return Data.GetTagValue(Tag, OutString);
 	}
 
 	// FAssetViewItem interface

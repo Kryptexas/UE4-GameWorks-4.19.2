@@ -183,14 +183,14 @@ protected:
 	{
 		// Depending if we're sorting ascending or descending it's quicker to flip the compares incase tags are missing
 		FString Value1;
-		const bool bFoundValue1 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(A)->Data.GetTagValue(Tag, Value1) : StaticCastSharedPtr<FAssetViewAsset>(B)->Data.GetTagValue(Tag, Value1);
+		const bool bFoundValue1 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(A)->GetTagValue(Tag, Value1) : StaticCastSharedPtr<FAssetViewAsset>(B)->GetTagValue(Tag, Value1);
 		if (!bFoundValue1)
 		{
 			return true;
 		}
 
 		FString Value2;
-		const bool bFoundValue2 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(B)->Data.GetTagValue(Tag, Value2) : StaticCastSharedPtr<FAssetViewAsset>(A)->Data.GetTagValue(Tag, Value2);
+		const bool bFoundValue2 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(B)->GetTagValue(Tag, Value2) : StaticCastSharedPtr<FAssetViewAsset>(A)->GetTagValue(Tag, Value2);
 		if (!bFoundValue2)
 		{
 			return false;
@@ -219,25 +219,29 @@ protected:
 	FORCEINLINE virtual bool Compare(const TSharedPtr<FAssetViewItem>& A, const TSharedPtr<FAssetViewItem>& B) const override
 	{
 		// Depending if we're sorting ascending or descending it's quicker to flip the compares incase tags are missing
-		float Value1 = 0.0f;
-		const bool bFoundValue1 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(A)->Data.GetTagValue(Tag, Value1) : StaticCastSharedPtr<FAssetViewAsset>(B)->Data.GetTagValue(Tag, Value1);
+		FString Value1;
+		const bool bFoundValue1 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(A)->GetTagValue(Tag, Value1) : StaticCastSharedPtr<FAssetViewAsset>(B)->GetTagValue(Tag, Value1);
 		if (!bFoundValue1)
 		{
 			return true;
 		}
 
-		float Value2 = 0.0f;
-		const bool bFoundValue2 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(B)->Data.GetTagValue(Tag, Value2) : StaticCastSharedPtr<FAssetViewAsset>(A)->Data.GetTagValue(Tag, Value2);
+		FString Value2;
+		const bool bFoundValue2 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(B)->GetTagValue(Tag, Value2) : StaticCastSharedPtr<FAssetViewAsset>(A)->GetTagValue(Tag, Value2);
 		if (!bFoundValue2)
 		{
 			return false;
 		}
 
-		if (Value1 < Value2)
+		float FloatValue1 = 0.0f, FloatValue2 = 0.0f;
+		Lex::FromString(FloatValue1, *Value1);
+		Lex::FromString(FloatValue2, *Value2);
+
+		if (FloatValue1 < FloatValue2)
 		{
 			return true;
 		}
-		else if (Value1 > Value2)
+		else if (FloatValue1 > FloatValue2)
 		{
 			return false;
 		}
@@ -256,14 +260,14 @@ protected:
 	{
 		// Depending if we're sorting ascending or descending it's quicker to flip the compares incase tags are missing
 		FString Value1;
-		const bool bHasFoundValue1 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(A)->Data.GetTagValue(Tag, Value1) : StaticCastSharedPtr<FAssetViewAsset>(B)->Data.GetTagValue(Tag, Value1);
+		const bool bHasFoundValue1 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(A)->GetTagValue(Tag, Value1) : StaticCastSharedPtr<FAssetViewAsset>(B)->GetTagValue(Tag, Value1);
 		if (!bHasFoundValue1)
 		{
 			return true;
 		}
 
 		FString Value2;
-		const bool bHasFoundValue2 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(B)->Data.GetTagValue(Tag, Value2) : StaticCastSharedPtr<FAssetViewAsset>(A)->Data.GetTagValue(Tag, Value2);
+		const bool bHasFoundValue2 = bAscending ? StaticCastSharedPtr<FAssetViewAsset>(B)->GetTagValue(Tag, Value2) : StaticCastSharedPtr<FAssetViewAsset>(A)->GetTagValue(Tag, Value2);
 		if (!bHasFoundValue2)
 		{
 			return false;
@@ -319,7 +323,7 @@ void FAssetViewSortManager::ResetSort()
 	}
 }
 
-void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, const FName& MajorityAssetType) const
+void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetItems, const FName& MajorityAssetType, const TArray<FAssetViewCustomColumn>& CustomColumns) const
 {
 	//double SortListStartTime = FPlatformTime::Seconds();
 
@@ -348,9 +352,31 @@ void FAssetViewSortManager::SortList(TArray<TSharedPtr<FAssetViewItem>>& AssetIt
 		}
 		else
 		{
-			// Since this SortData.Tag is not one of preset columns, sort by asset registry tag
+			bool bFoundCustom = false;
 			UObject::FAssetRegistryTag::ETagType TagType = UObject::FAssetRegistryTag::TT_Alphabetical;
-			if (MajorityAssetType != NAME_None)
+			// Look in custom columns list
+			for (const FAssetViewCustomColumn& Column : CustomColumns)
+			{
+				if (Column.ColumnName == Tag)
+				{
+					TagType = Column.DataType;
+					bFoundCustom = true;
+
+					// Refresh the custom data now so it can sort
+					for (int32 AssetIndex = 0; AssetIndex < AssetItems.Num(); AssetIndex++)
+					{
+						FAssetViewAsset* Asset = StaticCastSharedPtr<FAssetViewAsset>(AssetItems[AssetIndex]).Get();
+
+						if (!Asset->CustomColumnData.Find(Column.ColumnName))
+						{
+							Asset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(Asset->Data, Column.ColumnName));
+						}
+					}
+				}
+			}
+
+			// Since this SortData.Tag is not one of preset columns, sort by asset registry tag	
+			if (!bFoundCustom && MajorityAssetType != NAME_None)
 			{
 				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *MajorityAssetType.ToString());
 				if (Class)

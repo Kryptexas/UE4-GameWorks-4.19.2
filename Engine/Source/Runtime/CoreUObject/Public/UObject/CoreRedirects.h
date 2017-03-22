@@ -243,8 +243,8 @@ struct COREUOBJECT_API FCoreRedirects
 	/** Goes from UClass Type to the type flag */
 	static ECoreRedirectFlags GetFlagsForTypeClass(UClass *TypeClass);
 
-	/** Runs set of redirector tests */
-	static void RunTests();
+	/** Runs set of redirector tests, returns false on failure */
+	static bool RunTests();
 
 private:
 	/** Static only class, never constructed */

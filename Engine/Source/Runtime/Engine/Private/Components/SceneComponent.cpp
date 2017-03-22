@@ -2760,21 +2760,23 @@ bool USceneComponent::IsVisible() const
 	return ( bVisible && (!CachedLevelCollection || CachedLevelCollection->IsVisible()) ); 
 }
 
-void USceneComponent::ToggleVisibility(bool bPropagateToChildren)
+void USceneComponent::OnVisibilityChanged()
 {
-	SetVisibility(!bVisible,bPropagateToChildren);
+	MarkRenderStateDirty();
 }
 
-void USceneComponent::SetVisibility(bool bNewVisibility, bool bPropagateToChildren)
+void USceneComponent::SetVisibility(const bool bNewVisibility, const USceneComponent::EVisibilityPropagation PropagateToChildren)
 {
+	bool bRecurseChildren = (PropagateToChildren == EVisibilityPropagation::Propagate);
 	if ( bNewVisibility != bVisible )
 	{
+		bRecurseChildren = bRecurseChildren || (PropagateToChildren == EVisibilityPropagation::DirtyOnly);
 		bVisible = bNewVisibility;
-		MarkRenderStateDirty();
+		OnVisibilityChanged();
 	}
 
 	const TArray<USceneComponent*>& AttachedChildren = GetAttachChildren();
-	if (bPropagateToChildren && AttachedChildren.Num() > 0)
+	if (bRecurseChildren && AttachedChildren.Num() > 0)
 	{
 		// fully traverse down the attachment tree
 		// we do it entirely inline here instead of recursing in case a primitivecomponent is a child of a non-primitivecomponent
@@ -2789,8 +2791,15 @@ void USceneComponent::SetVisibility(bool bNewVisibility, bool bPropagateToChildr
 			if (CurrentComp)
 			{
 				ComponentStack.Append(CurrentComp->GetAttachChildren());
-				// don't propagate, we are handling it already
-				CurrentComp->SetVisibility(bNewVisibility, false);
+
+				if (PropagateToChildren == EVisibilityPropagation::Propagate)
+				{
+					CurrentComp->SetVisibility(bNewVisibility, EVisibilityPropagation::NoPropagation);
+				}
+
+				// Render state must be dirtied if any parent component's visibility has changed. Since we can't easily track whether 
+				// any parent in the hierarchy was dirtied, we have to mark dirty always.
+				CurrentComp->MarkRenderStateDirty();
 			}
 		}
 	}

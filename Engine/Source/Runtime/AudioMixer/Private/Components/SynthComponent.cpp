@@ -53,6 +53,7 @@ USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	bUseAttachParentBound = true; // Avoid CalcBounds() when transform changes.
 
 	bIsSynthPlaying = false;
+	bIsInitialized = false;
 
 	// Set the default sound class
 	SoundClass = USoundBase::DefaultSoundClassObject;
@@ -92,16 +93,36 @@ void USynthComponent::OnRegister()
 {
 	Super::OnRegister();
 
+	if (!bIsInitialized)
+	{
+		bIsInitialized = true;
+
 #if SYNTH_GENERATOR_TEST_TONE
-	NumChannels = 2;
-	TestSineLeft.Init(AUDIO_SAMPLE_RATE, 440.0f, 0.5f);
-	TestSineRight.Init(AUDIO_SAMPLE_RATE, 220.0f, 0.5f);
-#else
-	NumChannels = FMath::Clamp(GetNumChannels(), 1, 2);
+		NumChannels = 2;
+		TestSineLeft.Init(AUDIO_SAMPLE_RATE, 440.0f, 0.5f);
+		TestSineRight.Init(AUDIO_SAMPLE_RATE, 220.0f, 0.5f);
+#else	
+		// Initialize the synth component
+		this->Init(AUDIO_SAMPLE_RATE);
+
+		if (NumChannels < 0 || NumChannels > 2)
+		{
+			UE_LOG(LogAudioMixer, Error, TEXT("Synthesis component '%s' has set an invalid channel count '%d' (only mono and stereo currently supported)."), *GetName(), NumChannels);
+		}
+
+		NumChannels = FMath::Clamp(NumChannels, 1, 2);
 #endif
 
-	Synth = NewObject<USynthSound>(this, TEXT("Synth"));
-	Synth->Init(this, NumChannels);
+		Synth = NewObject<USynthSound>(this, TEXT("Synth"));	
+
+		// Copy sound base data to the sound
+		Synth->SourceEffectChain = SourceEffectChain;
+		Synth->DefaultMasterReverbSendAmount = DefaultMasterReverbSendAmount;
+		Synth->SoundSubmixObject = SoundSubmix;
+		Synth->SoundSubmixSends = SoundSubmixSends;
+
+		Synth->Init(this, NumChannels);
+	}
 }
 
 void USynthComponent::OnUnregister()
@@ -261,18 +282,16 @@ bool USynthComponent::IsPlaying() const
 	return AudioComponent && AudioComponent->IsPlaying();
 }
 
-void USynthComponent::SynthCommand(TFunction<void()> ParameterChangeFunction)
+void USynthComponent::SetSubmixSend(USoundSubmix* Submix, float SendLevel)
 {
-	CommandQueue.Enqueue(MoveTemp(ParameterChangeFunction));
+	if (AudioComponent)
+	{
+		AudioComponent->SetSubmixSend(Submix, SendLevel);
+	}
 }
 
-int32 USynthComponent::GetNumChannels() const
-{
-	// Default to 2 channels
-	return 2;
-}
 
-bool USynthComponent::IsSpatialized() const
+void USynthComponent::SynthCommand(TFunction<void()> Command)
 {
-	return true;
+	CommandQueue.Enqueue(MoveTemp(Command));
 }

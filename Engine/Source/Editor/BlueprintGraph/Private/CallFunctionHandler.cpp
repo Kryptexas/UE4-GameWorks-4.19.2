@@ -6,6 +6,7 @@
 #include "K2Node_Event.h"
 #include "K2Node_CallParentFunction.h"
 #include "K2Node_ExecutionSequence.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "EdGraphUtilities.h"
 #include "Engine/BlueprintGeneratedClass.h"
@@ -604,7 +605,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 		}
 		if (Function->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 		{
-			const bool bHasIntrinsicWorldContext = !K2Schema->IsStaticFunctionGraph(Context.SourceGraph) && Context.Blueprint->ParentClass->GetDefaultObject()->ImplementsGetWorld();
+			const bool bHasIntrinsicWorldContext = !K2Schema->IsStaticFunctionGraph(Context.SourceGraph) && FBlueprintEditorUtils::ImplentsGetWorld(Context.Blueprint);
 
 			FString const WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 

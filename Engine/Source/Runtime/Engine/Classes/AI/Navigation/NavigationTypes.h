@@ -25,7 +25,6 @@
 
 class AActor;
 class ANavigationData;
-class Error;
 class INavAgentInterface;
 class INavRelevantInterface;
 class ULevel;
@@ -510,7 +509,9 @@ struct ENGINE_API FNavAgentProperties : public FMovementProperties
 
 	FVector GetExtent() const
 	{
-		return FVector(AgentRadius, AgentRadius, AgentHeight / 2);
+		return IsValid() 
+			? FVector(AgentRadius, AgentRadius, AgentHeight / 2)
+			: INVALID_NAVEXTENT;
 	}
 
 	static const FNavAgentProperties DefaultProperties;

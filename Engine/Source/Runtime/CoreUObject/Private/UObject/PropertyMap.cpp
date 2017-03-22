@@ -948,7 +948,7 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 						{
 							if(!bKeyAlreadyPresent)
 							{
-								MapHelper.RemoveAt(NextPairIndex);
+								MapHelper.EmptyValues();
 							}
 							
 							bConversionSucceeded = false;

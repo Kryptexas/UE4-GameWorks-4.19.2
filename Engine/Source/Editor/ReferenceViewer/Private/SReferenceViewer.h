@@ -32,6 +32,9 @@ public:
 	/** Sets a new root package name */
 	void SetGraphRootPackageNames(const TArray<FAssetIdentifier>& NewGraphRootIdentifiers);
 
+	/** Gets graph editor */
+	TSharedPtr<SGraphEditor> GetGraphEditor() const { return GraphEditorPtr; }
+
 private:
 
 	/** Called to create context menu when right-clicking on graph */
@@ -89,6 +92,10 @@ private:
 	ECheckBoxState IsShowSoftReferencesChecked() const;
 	void OnShowHardReferencesChanged(ECheckBoxState NewState);
 	ECheckBoxState IsShowHardReferencesChecked() const;
+
+	EVisibility GetManagementReferencesVisibility() const;
+	void OnShowManagementReferencesChanged(ECheckBoxState NewState);
+	ECheckBoxState IsShowManagementReferencesChecked() const;
 
 	void OnShowSearchableNamesChanged(ECheckBoxState NewState);
 	ECheckBoxState IsShowSearchableNamesChecked() const;

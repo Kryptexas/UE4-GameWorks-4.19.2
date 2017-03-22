@@ -1880,6 +1880,7 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 
 	FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayAddr);
 	Stack.MostRecentProperty = ArrayProperty->Inner;
+
 	// Add a little safety for Blueprints to not hard crash
 	if (ArrayHelper.IsValidIndex(ArrayIndex))
 	{
@@ -1892,6 +1893,13 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 	}
 	else
 	{
+		// clear so other methods don't try to use a stale value (depends on this method succeeding)
+		Stack.MostRecentPropertyAddress = nullptr;
+		// sometimes other exec functions guard on MostRecentProperty, and expect 
+		// MostRecentPropertyAddress to be filled out; since this was a failure
+		// clear this too (so all reliant execs can properly detect)
+		Stack.MostRecentProperty = nullptr;
+
 		FBlueprintExceptionInfo ExceptionInfo(
 			EBlueprintExceptionType::AccessViolation,
 			FText::Format(
@@ -2107,7 +2115,20 @@ IMPLEMENT_VM_FUNCTION( EX_LetMulticastDelegate, execLetMulticastDelegate );
 void UObject::execSelf( FFrame& Stack, RESULT_DECL )
 {
 	// Get Self actor for this context.
-	*(UObject**)RESULT_PARAM = this;
+	if (RESULT_PARAM != nullptr)
+	{
+		*(UObject**)RESULT_PARAM = this;
+	}
+	// likely it's expecting us to fill out Stack.MostRecentProperty, which you 
+	// cannot because 'self' is not a UProperty (it is essentially a constant)
+	else 
+	{
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation,
+			LOCTEXT("AccessSelfAddress", "Attempted to reference 'self' as an addressable property.")
+		);
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+	}
 }
 IMPLEMENT_VM_FUNCTION( EX_Self, execSelf );
 
@@ -2637,11 +2658,11 @@ void UObject::execSetSet( FFrame& Stack, RESULT_DECL )
  	SetHelper.EmptyElements(Num);
  
  	// Read in the parameters one at a time
- 	int32 i = 0;
  	while(*Stack.Code != EX_EndSet)
  	{
- 		SetHelper.AddUninitializedValue();
- 		Stack.Step(Stack.Object, SetHelper.GetElementPtr(i++));
+		// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over  
+ 		int32 Index = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
+ 		Stack.Step(Stack.Object, SetHelper.GetElementPtr(Index));
  	}
 	SetHelper.Rehash();
  
@@ -2662,12 +2683,12 @@ void UObject::execSetMap( FFrame& Stack, RESULT_DECL )
  	MapHelper.EmptyValues(Num);
  
  	// Read in the parameters one at a time
- 	int32 i = 0;
  	while(*Stack.Code != EX_EndMap)
  	{
- 		MapHelper.AddUninitializedValue();
- 		Stack.Step(Stack.Object, MapHelper.GetKeyPtr(i));
- 		Stack.Step(Stack.Object, MapHelper.GetValuePtr(i++));
+		// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over 
+		int32 Index = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
+ 		Stack.Step(Stack.Object, MapHelper.GetKeyPtr(Index));
+ 		Stack.Step(Stack.Object, MapHelper.GetValuePtr(Index));
  	}
 	MapHelper.Rehash();
  

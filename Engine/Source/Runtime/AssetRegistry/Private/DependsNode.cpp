@@ -28,7 +28,7 @@ void FDependsNode::PrintReferencers() const
 
 void FDependsNode::GetDependencies(TArray<FDependsNode*>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) const
 {
-	IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
+	IterateOverDependencies([&OutDependencies](FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
 	{
 		OutDependencies.Add(InDependency);
 	}, 
@@ -37,18 +37,94 @@ void FDependsNode::GetDependencies(TArray<FDependsNode*>& OutDependencies, EAsse
 
 void FDependsNode::GetDependencies(TArray<FAssetIdentifier>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) const
 {
-	IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
+	IterateOverDependencies([&OutDependencies](const FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
 	{
 		OutDependencies.Add(InDependency->GetIdentifier());
 	},
 	InDependencyType);
 }
 
-void FDependsNode::GetReferencers(TArray<FDependsNode*>& OutReferencers) const
+void FDependsNode::GetReferencers(TArray<FDependsNode*>& OutReferencers, EAssetRegistryDependencyType::Type InDependencyType) const
 {
-	for (auto ReferencerIt = Referencers.CreateConstIterator(); ReferencerIt; ++ReferencerIt)
+	for (FDependsNode* Referencer : Referencers)
 	{
-		OutReferencers.Add(*ReferencerIt);
+		bool bShouldAdd = false;
+		// If type specified, filter
+		if (InDependencyType != EAssetRegistryDependencyType::All)
+		{
+			IterateOverDependencies([&bShouldAdd,this](const FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
+			{
+				if (InDependency == this)
+				{
+					bShouldAdd = true;
+				}
+			}, InDependencyType);
+		}
+		else
+		{
+			bShouldAdd = true;
+		}
+
+		if (bShouldAdd)
+		{
+			OutReferencers.Add(Referencer);
+		}
+	}
+}
+
+void FDependsNode::AddDependency(FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
+{
+	IterateOverDependencyArrays([InDependency](TArray<FDependsNode*>& InArray, EAssetRegistryDependencyType::Type)
+	{
+		InArray.AddUnique(InDependency);
+	}, InDependencyType);
+}
+
+void FDependsNode::RemoveDependency(FDependsNode* InDependency)
+{
+	IterateOverDependencyArrays([InDependency](TArray<FDependsNode*>& InArray, EAssetRegistryDependencyType::Type)
+	{
+		InArray.Remove(InDependency);
+	});
+}
+
+void FDependsNode::ClearDependencies()
+{
+	IterateOverDependencyArrays([](TArray<FDependsNode*>& InArray, EAssetRegistryDependencyType::Type)
+	{
+		InArray.Empty();
+	});
+}
+
+void FDependsNode::RemoveManageReferencesToNode()
+{
+	EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::Manage;
+	// Iterate referencers array, possibly removing 
+	for (int32 i = Referencers.Num() - 1; i >= 0; i--)
+	{
+		bool bStillExists = false;
+		Referencers[i]->IterateOverDependencyArrays([InDependencyType, this, &bStillExists](TArray<FDependsNode*>& InArray, EAssetRegistryDependencyType::Type CurrentType)
+		{
+			int32 FoundIndex = InArray.Find(this);
+
+			if (FoundIndex != INDEX_NONE)
+			{
+				if (CurrentType & InDependencyType)
+				{
+					InArray.RemoveAt(FoundIndex);
+				}
+				else
+				{
+					// Reference of another type still exists
+					bStillExists = true;
+				}
+			}
+		}, EAssetRegistryDependencyType::All);
+
+		if (!bStillExists)
+		{
+			Referencers.RemoveAt(i);
+		}
 	}
 }
 
@@ -67,7 +143,7 @@ void FDependsNode::PrintDependenciesRecursive(const FString& Indent, TSet<const 
 		UE_LOG(LogAssetRegistry, Log, TEXT("%s%s"), *Indent, *Identifier.ToString());
 		VisitedNodes.Add(this);
 
-		IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
+		IterateOverDependencies([&Indent, &VisitedNodes](FDependsNode* InDependency, EAssetRegistryDependencyType::Type)
 		{
 			InDependency->PrintDependenciesRecursive(Indent + TEXT("  "), VisitedNodes);
 		},
@@ -91,9 +167,9 @@ void FDependsNode::PrintReferencersRecursive(const FString& Indent, TSet<const F
 		UE_LOG(LogAssetRegistry, Log, TEXT("%s%s"), *Indent, *Identifier.ToString());
 		VisitedNodes.Add(this);
 
-		for (auto ReferencerIt = Referencers.CreateConstIterator(); ReferencerIt; ++ReferencerIt)
+		for (FDependsNode* Node : Referencers)
 		{
-			(*ReferencerIt)->PrintReferencersRecursive(Indent + TEXT("  "), VisitedNodes);
+			Node->PrintReferencersRecursive(Indent + TEXT("  "), VisitedNodes);
 		}
 	}
 }

@@ -3108,6 +3108,10 @@ bool UParticleSystem::HasGPUEmitter() const
 {
 	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
 	{
+		if (Emitters[EmitterIndex] == nullptr)
+		{
+			continue;
+		}
 		// We can just check for the GPU type data at the highest LOD.
 		UParticleLODLevel* LODLevel = Emitters[EmitterIndex]->LODLevels[0];
 		if( LODLevel )

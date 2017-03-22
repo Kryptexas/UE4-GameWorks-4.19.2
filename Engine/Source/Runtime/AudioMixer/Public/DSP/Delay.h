@@ -20,7 +20,7 @@ namespace Audio
 
 	public:
 		// Initialization of the delay with given sample rate and max buffer size in samples.
-		void Init(const float InSampleRate, const float InBufferLengthSec);
+		void Init(const float InSampleRate, const float InBufferLengthSec = 2.0f);
 
 		// Resets the delay line state, flushes buffer and resets read/write pointers.
 		void Reset();

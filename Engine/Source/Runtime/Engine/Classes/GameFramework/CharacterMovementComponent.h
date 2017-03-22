@@ -2005,6 +2005,9 @@ protected:
 	/** Return true if it is OK to delay sending this player movement to the server, in order to conserve bandwidth. */
 	virtual bool CanDelaySendingMove(const FSavedMovePtr& NewMove);
 
+	/** Determine minimum delay between sending client updates to the server. If updates occur more frequently this than this time, moves may be combined delayed. */
+	virtual float GetClientNetSendDeltaTime(const APlayerController* PC, const FNetworkPredictionData_Client_Character* ClientData, const FSavedMovePtr& NewMove) const;
+
 	/** Ticks the characters pose and accumulates root motion */
 	void TickCharacterPose(float DeltaTime);
 

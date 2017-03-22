@@ -313,6 +313,10 @@ public:
 	/** Returns true if an an ability should be activated */
 	virtual bool ShouldActivateAbility(ENetRole Role) const;
 
+	/* Call from Blueprint to cancel the ability naturally */
+	UFUNCTION(BlueprintCallable, Category = Ability, DisplayName = "CancelAbility")
+	void K2_CancelAbility();
+
 protected:
 
 	// --------------------------------------

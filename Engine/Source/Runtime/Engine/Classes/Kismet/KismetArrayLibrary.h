@@ -128,7 +128,7 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	 *@param	Index			The index in the array to get an item from
 	 *@return	A copy of the item stored at the index
 	*/
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Get", CompactNodeTitle = "GET", ArrayParm = "TargetArray", ArrayTypeDependentParams = "Item", BlueprintThreadSafe), Category="Utilities|Array")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(BlueprintInternalUseOnly = "true", DisplayName = "Get", CompactNodeTitle = "GET", ArrayParm = "TargetArray", ArrayTypeDependentParams = "Item", BlueprintThreadSafe), Category="Utilities|Array")
 	static void Array_Get(const TArray<int32>& TargetArray, int32 Index, int32& Item);
 
 	/* 

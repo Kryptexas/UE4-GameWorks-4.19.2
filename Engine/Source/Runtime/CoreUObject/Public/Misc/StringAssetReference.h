@@ -146,17 +146,3 @@ private:
 	static TArray<FString> PackageNamesBeingDuplicatedForPIE;
 };
 
-template<>
-struct TStructOpsTypeTraits<FStringAssetReference> : public TStructOpsTypeTraitsBase2<FStringAssetReference>
-{
-	enum 
-	{
-		WithZeroConstructor = true,
-		WithSerializer = true,
-		WithCopy = true,
-		WithIdenticalViaEquality = true,
-		WithExportTextItem = true,
-		WithImportTextItem = true,
-		WithSerializeFromMismatchedTag = true,
-	};
-};

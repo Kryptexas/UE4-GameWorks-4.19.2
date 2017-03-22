@@ -26,6 +26,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	virtual FText GetTooltipText() const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
+	virtual void PostReconstructNode() override;
 	//~ End UEdGraphNode Interface.
 
 	//~ Begin UK2Node Interface
@@ -35,11 +36,9 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	virtual FText GetMenuCategory() const override;
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
 	virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const override;
+	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	//~ End UK2Node Interface
 
-
-	/** Set the return type of our struct */
-	void SetReturnTypeForStruct(UScriptStruct* InClass);
 	/** Get the return type of our struct */
 	UScriptStruct* GetReturnTypeForStruct();
 
@@ -55,7 +54,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	UEdGraphPin* GetResultPin() const;
 
 	/** Get the type of the TableRow to return */
-	UScriptStruct* GetDataTableRowStructType(const TArray<UEdGraphPin*>* InPinsToSearch = NULL) const;
+	UScriptStruct* GetDataTableRowStructType() const;
 
 	void OnDataTableRowListChanged(const UDataTable* DataTable);
 private:
@@ -67,6 +66,13 @@ private:
 	 * @param   PinDescription	A string describing the pin's purpose
 	 */
 	void SetPinToolTip(UEdGraphPin& MutatablePin, const FText& PinDescription) const;
+
+	/** Set the return type of our struct */
+	void SetReturnTypeForStruct(UScriptStruct* InClass);
+	/** Queries for the authoritative return type, then modifies the return pin to match */
+	void RefreshOutputPinType();
+	/** Triggers a refresh which will update the node's widget; aimed at updating the dropdown menu for the RowName input */
+	void RefreshRowNameOptions();
 
 	/** Tooltip text for this node. */
 	FText NodeTooltip;

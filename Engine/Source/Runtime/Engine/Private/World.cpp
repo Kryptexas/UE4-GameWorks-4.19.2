@@ -112,6 +112,7 @@
 #include "Engine/CoreSettings.h"
 #include "Net/PerfCountersHelpers.h"
 #include "InGamePerformanceTracker.h"
+#include "Engine/AssetManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
@@ -1796,7 +1797,7 @@ void UWorld::TransferBlueprintDebugReferences(UWorld* NewWorld)
 			if( NewWorldExistingBlueprintNames.Find( SourceName ) == INDEX_NONE )			
 			{
 				TWeakObjectPtr<UObject>& WeakTargetObject = It.Value();
-				UObject* NewTargetObject = NULL;
+				UObject* NewTargetObject = nullptr;
 
 				if (WeakTargetObject.IsValid())
 				{
@@ -1806,10 +1807,10 @@ void UWorld::TransferBlueprintDebugReferences(UWorld* NewWorld)
 					NewTargetObject = FindObject<UObject>(NewWorld, *OldTargetObject->GetPathName(this));
 				}
 
-				if (NewTargetObject != NULL)
+				if (NewTargetObject != nullptr)
 				{
 					// Check to see if the object we found to transfer to is of a different class.  LevelScripts are always exceptions, because a new level may have been loaded in PIE, and we have special handling for LSA debugging objects
-					if (!NewTargetObject->IsA(TargetBP->GeneratedClass) && !NewTargetObject->IsA(ALevelScriptActor::StaticClass()))
+					if (!NewTargetObject->IsA(TargetBP->GeneratedClass))
 					{
 						const FString BlueprintFullPath = TargetBP->GetPathName();
 
@@ -1819,7 +1820,7 @@ void UWorld::TransferBlueprintDebugReferences(UWorld* NewWorld)
 							// up the blueprint object being debugged reference as the whole blueprint
 							// is going away.
 						}
-						else
+						else if(!NewTargetObject->IsA(ALevelScriptActor::StaticClass()))
 						{
 							// Let the ensure fire
 							UE_LOG(LogWorld, Warning, TEXT("Found object to debug in main world that isn't the correct type"));
@@ -1835,7 +1836,7 @@ void UWorld::TransferBlueprintDebugReferences(UWorld* NewWorld)
 							ensureMsgf(false, TEXT("Failed to find an appropriate object to debug back in the editor world"));
 						}
 
-						NewTargetObject = NULL;
+						NewTargetObject = nullptr;
 					}
 				}
 
@@ -4966,12 +4967,12 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			{
 				PackageFlags |= PKG_PlayInEditor;
 			}
+			PIEInstanceID = WorldContext.PIEInstance;
 			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
 			if (EditorLevelPackage)
 			{
 				URLMapPackageName = UWorld::ConvertToPIEPackageName(URLMapPackageName, PIEInstanceID);
 			}
-			PIEInstanceID = WorldContext.PIEInstance;
 		}
 #endif
 		LoadPackageAsync(
@@ -6396,9 +6397,7 @@ void UWorld::RecreateScene(ERHIFeatureLevel::Type InFeatureLevel)
 		}
 	}
 }
-#endif // WITH_EDITOR
 
-#if WITH_EDITOR
 void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	Super::GetAssetRegistryTags(OutTags);
@@ -6429,6 +6428,19 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	FWorldDelegates::GetAssetTags.Broadcast(this, OutTags);
 }
 #endif
+
+FPrimaryAssetId UWorld::GetPrimaryAssetId() const
+{
+	UPackage* Package = GetOutermost();
+
+	if (!Package->HasAnyPackageFlags(PKG_PlayInEditor))
+	{
+		// Return Map:/path/to/map
+		return FPrimaryAssetId(UAssetManager::MapType, Package->GetFName());
+	}
+
+	return FPrimaryAssetId();
+}
 
 /**
 * Dump visible actors in current world.

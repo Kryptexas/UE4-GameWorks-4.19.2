@@ -234,7 +234,10 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
 	void SetMinOcclusion(float InMinOcclusion);
 
-	virtual void SetVisibility(bool bNewVisibility, bool bPropagateToChildren=false) override;
+protected:
+	virtual void OnVisibilityChanged() override;
+
+public:
 
 	/** Indicates that the capture needs to recapture the scene, adds it to the recapture queue. */
 	void SetCaptureIsDirty();

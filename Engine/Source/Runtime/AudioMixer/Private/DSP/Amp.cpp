@@ -153,6 +153,19 @@ namespace Audio
 		}
 	}
 
+	void FAmp::Generate(float& OutGainLeft, float& OutGainRight)
+	{
+		if (CurrentLerpSample < TargetDeltaSamples)
+		{
+			LeftGain += TargetLeftSlope;
+			RightGain += TargetRightSlope;
+			++CurrentLerpSample;
+		}
+
+		OutGainLeft *= LeftGain;
+		OutGainRight *= RightGain;
+	}
+
 	void FAmp::ProcessAudio(const float LeftIn, float* LeftOutput, float* RightOutput)
 	{
 		if (CurrentLerpSample < TargetDeltaSamples)
@@ -182,7 +195,7 @@ namespace Audio
 	void FAmp::Reset()
 	{
 		GainEnv = 0.0f;
-		GainMod = 0.0f;
+		GainMod = 1.0f;
 	}
 
 }

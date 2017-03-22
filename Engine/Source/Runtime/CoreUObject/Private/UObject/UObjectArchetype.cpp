@@ -36,7 +36,7 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 			}
 			else if (!!(ObjectFlags&RF_InheritableComponentTemplate) && Outer->IsA<UClass>())
 			{
-				for (auto SuperClassArchetype = static_cast<UClass*>(Outer)->GetSuperClass();
+				for (UClass* SuperClassArchetype = static_cast<UClass*>(Outer)->GetSuperClass();
 				SuperClassArchetype && SuperClassArchetype->HasAllClassFlags(CLASS_CompiledFromBlueprint);
 					SuperClassArchetype = SuperClassArchetype->GetSuperClass())
 				{

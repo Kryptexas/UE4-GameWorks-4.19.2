@@ -21,6 +21,8 @@ struct FBlueprintWarningDeclaration
 	FText WarningDescription;
 };
 
+typedef void (*FFlushReinstancingQueueFPtr)();
+
 /** 
  * This set of functions contains blueprint related UObject functionality.
  */
@@ -44,6 +46,13 @@ struct FBlueprintSupport
 	static bool UseDeferredDependencyLoading();
 	static bool IsDeferredExportCreationDisabled();
 	static bool IsDeferredCDOInitializationDisabled();
+
+	/** Initializes the BP Compilation Manager if it's enabled: */
+	COREUOBJECT_API static void InitializeCompilationManager();
+
+	/** Checks for any old instances and reinstances them: */
+	static void FlushReinstancingQueue();
+	COREUOBJECT_API static void SetFlushReinstancingQueueFPtr(FFlushReinstancingQueueFPtr Ptr);
 
 	/** Tells if the specified object is one of the many flavors of FLinkerPlaceholderBase that we have. */
 	COREUOBJECT_API static bool IsDeferredDependencyPlaceholder(UObject* LoadedObj);

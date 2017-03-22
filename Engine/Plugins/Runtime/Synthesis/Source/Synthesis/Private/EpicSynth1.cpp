@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "EpicSynth1.h"
+#include "SynthesisModule.h"
 
 namespace Audio
 {
@@ -21,7 +22,8 @@ namespace Audio
 		CurrentPatchType[0] = ESynthLFOPatchType::PatchToNone;
 		CurrentPatchType[1] = ESynthLFOPatchType::PatchToNone;
 
-		CurrentModPatchType = ESynthEnvModPatch::PatchToNone;
+		CurrentModPatchType = ESynthModEnvPatch::PatchToNone;
+		CurrentModBiasPatchType = ESynthModEnvBiasPatch::PatchToNone;
 	}
 
 	FEpicSynth1Voice::~FEpicSynth1Voice()
@@ -49,12 +51,17 @@ namespace Audio
 			LFO[i].Init(ControlSampleRate, VoiceId, ModMatrix);
 		}
 		GainEnv.Init(ControlSampleRate, VoiceId, ModMatrix);
+		ModEnv.Init(ControlSampleRate, VoiceId, ModMatrix);
 
 		for (int32 i = 0; i < NumOscillators; ++i)
 		{
 			Oscil[i].Init(SampleRate, VoiceId, ModMatrix);
 			OscilPan[i].Init(VoiceId, ModMatrix);
 		}
+
+		// Setup Osc1 to be a master to Osc2 
+		Oscil[0].SetSlaveOsc(&Oscil[1]);
+
 		Amp.Init(VoiceId, ModMatrix);
 
 		OnePoleFilter.Init(SampleRate, 2, VoiceId, ModMatrix);
@@ -99,60 +106,114 @@ namespace Audio
 
 		FPatch* Patch = nullptr;
 
-		FPatchSource ModEnv_ModSourceBiasEnv = GainEnv.GetModSourceBiasEnv();
+		FPatchSource ModEnv_ModSourceEnv = ModEnv.GetModSourceEnv();
+		FPatchSource ModEnv_ModSourceBiasEnv = ModEnv.GetModSourceBiasEnv();
 
-		// Setup the EnvMod patches
-		Patch = &ModEnvPatches[(int32)ESynthEnvModPatch::PatchToOscFreq];
+		// Setup the ModEnv patches
+		Patch = &ModEnvPatches[(int32)ESynthModEnvPatch::PatchToOscFreq];
+		Patch->bEnabled = false;
+		Patch->Source = ModEnv_ModSourceEnv;
+		Patch->Destinations.Add(OscilFreqDest[0]);
+		Patch->Destinations.Add(OscilFreqDest[1]);
+		Patch->SetName("ESynthModEnvPatch::PatchToOscFreq");
+		ModMatrix->AddPatch(VoiceId, Patch);
+
+		Patch = &ModEnvPatches[(int32)ESynthModEnvPatch::PatchToFilterFreq];
+		Patch->bEnabled = false;
+		Patch->Source = ModEnv_ModSourceEnv;
+		Patch->Destinations.Add(Filter_OnePole_Freq);
+		Patch->Destinations.Add(Filter_StateVar_Freq);
+		Patch->Destinations.Add(Filter_Ladder_Freq);
+		Patch->SetName("ESynthModEnvPatch::PatchToFilterFreq");
+		ModMatrix->AddPatch(VoiceId, Patch);
+
+		Patch = &ModEnvPatches[(int32)ESynthModEnvPatch::PatchToFilterQ];
+		Patch->bEnabled = false;
+		Patch->Source = ModEnv_ModSourceEnv;
+		Patch->Destinations.Add(Filter_StateVar_Q);
+		Patch->Destinations.Add(Filter_Ladder_Q);
+		Patch->SetName("ESynthModEnvPatch::PatchToFilterQ");
+		ModMatrix->AddPatch(VoiceId, Patch);
+
+		Patch = &ModEnvPatches[(int32)ESynthModEnvPatch::PatchToLFO1Gain];
+		Patch->bEnabled = false;
+		Patch->Source = ModEnv_ModSourceEnv;
+		Patch->Destinations.Add(LFO1Gain);
+		Patch->SetName("ESynthModEnvPatch::PatchToLFO1Gain");
+		ModMatrix->AddPatch(VoiceId, Patch);
+
+		Patch = &ModEnvPatches[(int32)ESynthModEnvPatch::PatchToLFO2Gain];
+		Patch->bEnabled = false;
+		Patch->Source = ModEnv_ModSourceEnv;
+		Patch->Destinations.Add(LFO2Gain);
+		Patch->SetName("ESynthModEnvPatch::PatchToLFO2Gain");
+		ModMatrix->AddPatch(VoiceId, Patch);
+
+		Patch = &ModEnvPatches[(int32)ESynthModEnvPatch::PatchToLFO1Freq];
+		Patch->bEnabled = false;
+		Patch->Source = ModEnv_ModSourceEnv;
+		Patch->Destinations.Add(LFO1Freq);
+		Patch->SetName("ESynthModEnvPatch::PatchToLFO1Freq");
+		ModMatrix->AddPatch(VoiceId, Patch);
+
+		Patch = &ModEnvPatches[(int32)ESynthModEnvPatch::PatchToLFO2Freq];
+		Patch->bEnabled = false;
+		Patch->Source = ModEnv_ModSourceEnv;
+		Patch->Destinations.Add(LFO1Freq);
+		Patch->SetName("ESynthModEnvPatch::PatchToLFO2Freq");
+		ModMatrix->AddPatch(VoiceId, Patch);
+
+		Patch = &ModEnvBiasPatches[(int32)ESynthModEnvBiasPatch::PatchToOscFreq];
 		Patch->bEnabled = false;
 		Patch->Source = ModEnv_ModSourceBiasEnv;
 		Patch->Destinations.Add(OscilFreqDest[0]);
 		Patch->Destinations.Add(OscilFreqDest[1]);
-		Patch->SetName("EEnvModPatch::PatchToOscFreq");
+		Patch->SetName("ESynthModEnvBiasPatch::PatchToOscFreq");
 		ModMatrix->AddPatch(VoiceId, Patch);
 
-		Patch = &ModEnvPatches[(int32)ESynthEnvModPatch::PatchToFilterFreq];
+		Patch = &ModEnvBiasPatches[(int32)ESynthModEnvBiasPatch::PatchToFilterFreq];
 		Patch->bEnabled = false;
 		Patch->Source = ModEnv_ModSourceBiasEnv;
 		Patch->Destinations.Add(Filter_OnePole_Freq);
 		Patch->Destinations.Add(Filter_StateVar_Freq);
 		Patch->Destinations.Add(Filter_Ladder_Freq);
-		Patch->SetName("EEnvModPatch::PatchToFilterFreq");
+		Patch->SetName("ESynthModEnvBiasPatch::PatchToFilterFreq");
 		ModMatrix->AddPatch(VoiceId, Patch);
 
-		Patch = &ModEnvPatches[(int32)ESynthEnvModPatch::PatchToFilterQ];
+		Patch = &ModEnvBiasPatches[(int32)ESynthModEnvBiasPatch::PatchToFilterQ];
 		Patch->bEnabled = false;
 		Patch->Source = ModEnv_ModSourceBiasEnv;
 		Patch->Destinations.Add(Filter_StateVar_Q);
 		Patch->Destinations.Add(Filter_Ladder_Q);
-		Patch->SetName("EEnvModPatch::PatchToFilterQ");
+		Patch->SetName("ESynthModEnvBiasPatch::PatchToFilterQ");
 		ModMatrix->AddPatch(VoiceId, Patch);
 
-		Patch = &ModEnvPatches[(int32)ESynthEnvModPatch::PatchToLFO1Gain];
+		Patch = &ModEnvBiasPatches[(int32)ESynthModEnvBiasPatch::PatchToLFO1Gain];
 		Patch->bEnabled = false;
 		Patch->Source = ModEnv_ModSourceBiasEnv;
 		Patch->Destinations.Add(LFO1Gain);
-		Patch->SetName("EEnvModPatch::PatchToLFO1Gain");
+		Patch->SetName("ESynthModEnvBiasPatch::PatchToLFO1Gain");
 		ModMatrix->AddPatch(VoiceId, Patch);
 
-		Patch = &ModEnvPatches[(int32)ESynthEnvModPatch::PatchToLFO2Gain];
+		Patch = &ModEnvBiasPatches[(int32)ESynthModEnvBiasPatch::PatchToLFO2Gain];
 		Patch->bEnabled = false;
 		Patch->Source = ModEnv_ModSourceBiasEnv;
 		Patch->Destinations.Add(LFO2Gain);
-		Patch->SetName("EEnvModPatch::PatchToLFO2Gain");
+		Patch->SetName("ESynthModEnvBiasPatch::PatchToLFO2Gain");
 		ModMatrix->AddPatch(VoiceId, Patch);
 
-		Patch = &ModEnvPatches[(int32)ESynthEnvModPatch::PatchToLFO1Freq];
+		Patch = &ModEnvBiasPatches[(int32)ESynthModEnvBiasPatch::PatchToLFO1Freq];
 		Patch->bEnabled = false;
 		Patch->Source = ModEnv_ModSourceBiasEnv;
 		Patch->Destinations.Add(LFO1Freq);
-		Patch->SetName("EEnvModPatch::PatchToLFO1Freq");
+		Patch->SetName("ESynthModEnvBiasPatch::PatchToLFO1Freq");
 		ModMatrix->AddPatch(VoiceId, Patch);
 
-		Patch = &ModEnvPatches[(int32)ESynthEnvModPatch::PatchToLFO2Freq];
+		Patch = &ModEnvBiasPatches[(int32)ESynthModEnvBiasPatch::PatchToLFO2Freq];
 		Patch->bEnabled = false;
 		Patch->Source = ModEnv_ModSourceBiasEnv;
 		Patch->Destinations.Add(LFO1Freq);
-		Patch->SetName("EEnvModPatch::PatchToLFO2Freq");
+		Patch->SetName("ESynthModEnvBiasPatch::PatchToLFO2Freq");
 		ModMatrix->AddPatch(VoiceId, Patch);
 
 		// Setup LFO patches
@@ -253,7 +314,10 @@ namespace Audio
 				return LFO[1].GetModSourceNormalPhase();
 
 			case ESynth1PatchSource::Envelope:
-				return GainEnv.GetModSourceBiasEnv();
+				return ModEnv.GetModSourceEnv();
+
+			case ESynth1PatchSource::BiasEnvelope:
+				return ModEnv.GetModSourceBiasEnv();
 
 			default:
 				return FPatchSource();
@@ -327,6 +391,19 @@ namespace Audio
 			default:
 				return;
 		}
+	}
+
+	void FEpicSynth1Voice::ClearPatches()
+	{
+
+		FModulationMatrix* ModMatrix = &ParentSynth->ModMatrix;
+		for (auto PatchEntry : DynamicPatches)
+		{
+			TSharedPtr<FPatch> NewPatch = PatchEntry.Value;
+			ModMatrix->RemovePatch(VoiceId, NewPatch.Get());
+		}
+
+		DynamicPatches.Reset();
 	}
 
 	bool FEpicSynth1Voice::CreatePatch(const FPatchId PatchId, const ESynth1PatchSource PatchSource, const TArray<FSynth1PatchCable>& PatchCables, const bool bEnableByDefault)
@@ -403,6 +480,8 @@ namespace Audio
 		// Start the oscillators playing if they're not already
 		if (!Oscil[0].IsPlaying())
 		{
+			Amp.Reset();
+
 			// Only apply the gain due to the velocity of the note if it's not already playing
 			Amp.SetVelocity(InVelocity);
 
@@ -420,23 +499,26 @@ namespace Audio
 
 		// Start the envelope
 		GainEnv.Start();
+		ModEnv.Start();
 
 		// Store the midi note
 		MidiNote = InMidiNote;
 	}
 
-	void FEpicSynth1Voice::NoteOff(const uint32 InMidiNote)
+	void FEpicSynth1Voice::NoteOff(const uint32 InMidiNote, const bool bAllNotesOff)
 	{
 		// No longer need to worry about duration
 		DurationSampleCount = -1;
 
-		if (!IsFinished() && MidiNote == InMidiNote)
+		if (!IsFinished() && (MidiNote == InMidiNote || bAllNotesOff)) 
 		{
 			GainEnv.Stop();
+			ModEnv.Stop();
 
 			if (GainEnv.IsDone())
 			{
 				bIsFinished = true;
+				Amp.Reset();
 			}
 		}
 	}
@@ -454,6 +536,8 @@ namespace Audio
 		}
 
 		GainEnv.Kill();
+		ModEnv.Kill();
+		Amp.Reset();
 		bIsActive = false;
 		bIsFinished = true;
 		VoiceGeneration = INDEX_NONE;
@@ -462,6 +546,8 @@ namespace Audio
 	void FEpicSynth1Voice::Shutdown()
 	{
 		GainEnv.Shutdown();
+		ModEnv.Shutdown();
+		Amp.Reset();
 		VoiceGeneration = INDEX_NONE;
 	}
 
@@ -479,24 +565,39 @@ namespace Audio
 		CurrentPatchType[InLFOIndex] = InPatchType;
 	}
 
-	void FEpicSynth1Voice::SetEnvModPatch(const ESynthEnvModPatch InPatchType)
+	void FEpicSynth1Voice::SetEnvModPatch(const ESynthModEnvPatch InPatchType)
 	{
-		for (int32 i = 0; i < (int32)ESynthEnvModPatch::Count; ++i)
+		for (int32 i = 0; i < (int32)ESynthModEnvPatch::Count; ++i)
 		{
 			ModEnvPatches[i].bEnabled = false;
 		}
 
-		if (InPatchType != ESynthEnvModPatch::PatchToNone)
+		if (InPatchType != ESynthModEnvPatch::PatchToNone)
 		{
 			ModEnvPatches[(int32)InPatchType].bEnabled = true;
 		}
 		CurrentModPatchType = InPatchType;
 	}
 
+	void FEpicSynth1Voice::SetEnvModBiasPatch(const ESynthModEnvBiasPatch InPatchType)
+	{
+		for (int32 i = 0; i < (int32)ESynthModEnvBiasPatch::Count; ++i)
+		{
+			ModEnvBiasPatches[i].bEnabled = false;
+		}
+
+		if (InPatchType != ESynthModEnvBiasPatch::PatchToNone)
+		{
+			ModEnvBiasPatches[(int32)InPatchType].bEnabled = true;
+		}
+		CurrentModBiasPatchType = InPatchType;
+	}
+
 	void FEpicSynth1Voice::Generate(float OutSamples[2])
 	{
 		if (GainEnv.IsDone())
 		{
+			ModEnv.Kill();
 			bIsFinished = true;
 			return;
 		}
@@ -513,6 +614,7 @@ namespace Audio
 		if (ControlSampleCount == 0)
 		{
 			GainEnv.Generate();
+			ModEnv.Generate();
 
 			ModMatrix->Update(VoiceId, 0);
 
@@ -592,6 +694,8 @@ namespace Audio
 		// Stop the oscillators if they're done
 		if (GainEnv.IsDone())
 		{
+			ModEnv.Kill();
+
 			Oscil[0].Stop();
 			Oscil[1].Stop();
 
@@ -628,12 +732,11 @@ namespace Audio
 		, LastMidiNote(0)
 		, VoiceGeneration(0)
 		, BaseFilterFreq(0.5f*SampleRate)
+		, FilterFreqMod(0.0f)
 		, BaseFilterQ(1.5f)
-		, FilterModFreq(0.0f)
+		, FilterQMod(0.0f)
 		, FilterType(EFilter::LowPass)
 		, FilterAlgorithm(ESynthFilterAlgorithm::OnePole)
-		, bIsModulatingLFOFromLFO(false)
-		, bIsModualtingLFOFromModEnv(false)
 		, bIsUnison(false)
 		, bIsStereoEnabled(true)
 		, bIsChorusEnabled(true)
@@ -680,8 +783,6 @@ namespace Audio
 
 	void FEpicSynth1::SetMonoMode(const bool bInIsMonoMode)
 	{
-		NumVoices = bInIsMonoMode ? 1 : MaxNumVoices;
-
 		if (bInIsMonoMode)
 		{
 			NumVoices = 1;
@@ -701,7 +802,7 @@ namespace Audio
 		{
 			if (Voices[VoiceId]->IsActive() && Voices[VoiceId]->GetGeneration() != LastGeneration)
 			{
-				Voices[VoiceId]->Shutdown();
+				Voices[VoiceId]->Kill();
 				FreeVoices.Push(VoiceId);
 			}
 		}
@@ -729,7 +830,11 @@ namespace Audio
 		else
 		{
 			const int32 VoicesLeft = MaxNumVoices - NumActiveVoices;
-			checkf(VoicesLeft < FreeVoices.Num(), TEXT("Not enough voices left."));
+			if (VoicesLeft >= FreeVoices.Num())
+			{
+				UE_LOG(LogSynthesis, Warning, TEXT("Not enough voices left."));
+				return;
+			}
 
 			int32 VoiceId = INDEX_NONE;
 			if (VoicesLeft > 0)
@@ -767,14 +872,18 @@ namespace Audio
 		LastMidiNote = InMidiNote;
 	}
 
-	void FEpicSynth1::NoteOff(const uint32 InMidiNote, const bool bAllNotesOff)
+	void FEpicSynth1::NoteOff(const uint32 InMidiNote, const bool bAllNotesOff, const bool bKillAllNotes)
 	{
 		// Loop through voices and call note off... only notes which match the midi note will actually turn off.
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
-			if (bAllNotesOff)
+			if (bKillAllNotes)
 			{
 				Voices[VoiceId]->Kill();
+			}
+			else if (bAllNotesOff)
+			{
+				Voices[VoiceId]->NoteOff(InMidiNote, bAllNotesOff);
 			}
 			else
 			{
@@ -790,6 +899,28 @@ namespace Audio
 			for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 			{
 				Voices[VoiceId]->Oscil[InOscIndex].SetType(InOscType);
+			}
+		}
+	}
+
+	void FEpicSynth1::SetOscGain(const int32 InOscIndex, const float InGain)
+	{
+		if (InOscIndex < FEpicSynth1Voice::NumOscillators)
+		{
+			for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+			{
+				Voices[VoiceId]->Oscil[InOscIndex].SetGain(InGain);
+			}
+		}
+	}
+
+	void FEpicSynth1::SetOscGainMod(const int32 InOscIndex, const float InGainMod)
+	{
+		if (InOscIndex < FEpicSynth1Voice::NumOscillators)
+		{
+			for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+			{
+				Voices[VoiceId]->Oscil[InOscIndex].SetGainMod(InGainMod);
 			}
 		}
 	}
@@ -880,6 +1011,14 @@ namespace Audio
 		bIsUnison = bInUnison;
 	}
 
+	void FEpicSynth1::SetOscSync(const bool bIsSync)
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->Oscil[1].SetSync(bIsSync);
+		}
+	}
+
 	void FEpicSynth1::SetLFOType(const int32 LFOIndex, const ELFO::Type InLFOType)
 	{
 		if (LFOIndex < FEpicSynth1Voice::NumLFOs)
@@ -909,16 +1048,11 @@ namespace Audio
 		{
 			if (LFOIndex == 0)
 			{
-				bIsModulatingLFOFromLFO = true;
 				bSetPatch = true;
 			}
 		}
 		else
 		{
-			if (LFOIndex == 0)
-			{
-				bIsModulatingLFOFromLFO = false;
-			}
 			bSetPatch = true;
 		}
 
@@ -945,6 +1079,17 @@ namespace Audio
 		}
 	}
 
+	void FEpicSynth1::SetLFOGainMod(const int32 LFOIndex, const float InLFOGainMod)
+	{
+		if (LFOIndex < FEpicSynth1Voice::NumLFOs)
+		{
+			for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+			{
+				Voices[VoiceId]->LFO[LFOIndex].SetGainMod(FMath::Clamp(InLFOGainMod, 0.0f, 1.0f));
+			}
+		}
+	}
+
 	void FEpicSynth1::SetLFOFrequency(const int32 LFOIndex, const float InLFOFrequency)
 	{
 		if (LFOIndex < FEpicSynth1Voice::NumLFOs)
@@ -952,6 +1097,17 @@ namespace Audio
 			for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 			{
 				Voices[VoiceId]->LFO[LFOIndex].SetFrequency(InLFOFrequency);
+			}
+		}
+	}
+
+	void FEpicSynth1::SetLFOFrequencyMod(const int32 LFOIndex, const float InLFOFrequencyMod)
+	{
+		if (LFOIndex < FEpicSynth1Voice::NumLFOs)
+		{
+			for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+			{
+				Voices[VoiceId]->LFO[LFOIndex].SetFrequencyMod(InLFOFrequencyMod);
 			}
 		}
 	}
@@ -991,12 +1147,12 @@ namespace Audio
 		}
 	}
 
-	void FEpicSynth1::SetFilterModFrequency(const float InFilterModFrequency)
+	void FEpicSynth1::SetFilterFrequencyMod(const float InFilterFrequencyMod)
 	{
-		FilterModFreq = InFilterModFrequency;
+		FilterFreqMod = InFilterFrequencyMod;
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{		
-			Voices[VoiceId]->CurrentFilter->SetModFrequency(InFilterModFrequency);
+			Voices[VoiceId]->CurrentFilter->SetFrequencyMod(InFilterFrequencyMod);
 		}
 	}
 
@@ -1006,6 +1162,15 @@ namespace Audio
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
 			Voices[VoiceId]->CurrentFilter->SetQ(InFilterQ);
+		}
+	}
+
+	void FEpicSynth1::SetFilterQMod(const float InFilterQMod)
+	{
+		FilterQMod = InFilterQMod;
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->CurrentFilter->SetQ(InFilterQMod);
 		}
 	}
 
@@ -1056,13 +1221,14 @@ namespace Audio
 
 			CurrentFilter->SetFilterType(FilterType);
 			CurrentFilter->SetFrequency(BaseFilterFreq);
+			CurrentFilter->SetFrequencyMod(FilterFreqMod);
 			CurrentFilter->SetQ(BaseFilterQ);
-			CurrentFilter->SetModFrequency(FilterModFreq);
+			CurrentFilter->SetQMod(FilterQMod);
 			Voices[VoiceId]->CurrentFilter = CurrentFilter;
 		}
 	}
 
-	void FEpicSynth1::SetEnvAttackTimeMsec(const float InAttackTimeMsec)
+	void FEpicSynth1::SetEnvAttackTime(const float InAttackTimeMsec)
 	{
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
@@ -1070,7 +1236,7 @@ namespace Audio
 		}
 	}
 
-	void FEpicSynth1::SetEnvDecayTimeMsec(const float InDecayTimeMsec)
+	void FEpicSynth1::SetEnvDecayTime(const float InDecayTimeMsec)
 	{
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
@@ -1086,7 +1252,7 @@ namespace Audio
 		}
 	}
 
-	void FEpicSynth1::SetEnvReleaseTimeMsec(const float InReleaseTimeMsec)
+	void FEpicSynth1::SetEnvReleaseTime(const float InReleaseTimeMsec)
 	{
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
@@ -1099,6 +1265,7 @@ namespace Audio
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
 			Voices[VoiceId]->GainEnv.SetLegato(bIsLegatoEnable);
+			Voices[VoiceId]->ModEnv.SetLegato(bIsLegatoEnable);
 		}
 	}
 
@@ -1107,26 +1274,23 @@ namespace Audio
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
 			Voices[VoiceId]->GainEnv.SetRetrigger(bIsRetriggerMode);
+			Voices[VoiceId]->ModEnv.SetRetrigger(bIsRetriggerMode);
 		}
 	}
 
-	void FEpicSynth1::SetModEnvPatch(const ESynthEnvModPatch InPatchType)
+	void FEpicSynth1::SetModEnvPatch(const ESynthModEnvPatch InPatchType)
 	{
-		if (InPatchType == ESynthEnvModPatch::PatchToLFO1Gain || 
-			InPatchType == ESynthEnvModPatch::PatchToLFO2Gain ||
-			InPatchType == ESynthEnvModPatch::PatchToLFO1Freq ||
-			InPatchType == ESynthEnvModPatch::PatchToLFO2Freq)
-		{
-			bIsModualtingLFOFromModEnv = true;
-		}
-		else
-		{
-			bIsModualtingLFOFromModEnv = false;
-		}
-
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
 			Voices[VoiceId]->SetEnvModPatch(InPatchType);
+		}
+	}
+
+	void FEpicSynth1::SetModEnvBiasPatch(const ESynthModEnvBiasPatch InPatchType)
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->SetEnvModBiasPatch(InPatchType);
 		}
 	}
 
@@ -1134,9 +1298,58 @@ namespace Audio
 	{
 		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
 		{
-			Voices[VoiceId]->GainEnv.SetBiasInvert(bInInvert);
+			Voices[VoiceId]->ModEnv.SetInvert(bInInvert);
 		}
 	}
+
+	void FEpicSynth1::SetModEnvBiasInvert(const bool bInInvert)
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->ModEnv.SetBiasInvert(bInInvert);
+		}
+	}
+
+	void FEpicSynth1::SetModEnvDepth(const float InDepth)
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->ModEnv.SetDepth(InDepth);
+		}
+	}
+
+	void FEpicSynth1::SetModEnvAttackTime(const float InAttackTimeMsec)
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->ModEnv.SetAttackTime(InAttackTimeMsec);
+		}
+	}
+
+	void FEpicSynth1::SetModEnvDecayTime(const float InDecayTimeMsec)
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->ModEnv.SetDecayTime(InDecayTimeMsec);
+		}
+	}
+
+	void FEpicSynth1::SetModEnvSustainGain(const float InSustainGain)
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->ModEnv.SetSustainGain(InSustainGain);
+		}
+	}
+
+	void FEpicSynth1::SetModEnvReleaseTime(const float InReleaseTimeMsec)
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->ModEnv.SetReleaseTime(InReleaseTimeMsec);
+		}
+	}
+
 
 	void FEpicSynth1::SetPan(const float InPan)
 	{
@@ -1202,6 +1415,14 @@ namespace Audio
 	void FEpicSynth1::SetChorusFrequency(const EChorusDelays::Type InType, const float InFrequency)
 	{
 		Chorus.SetFrequency(InType, InFrequency);
+	}
+
+	void FEpicSynth1::ClearPatches()
+	{
+		for (int32 VoiceId = 0; VoiceId < Voices.Num(); ++VoiceId)
+		{
+			Voices[VoiceId]->ClearPatches();
+		}
 	}
 
 	FPatchId FEpicSynth1::CreatePatch(const ESynth1PatchSource PatchSource, const TArray<FSynth1PatchCable>& PatchCables, const bool bEnableByDefault)

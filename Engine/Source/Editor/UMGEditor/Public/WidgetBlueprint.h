@@ -18,6 +18,7 @@ class UEdGraph;
 class UMovieScene;
 class UUserWidget;
 class UWidgetAnimation;
+class FKismetCompilerContext;
 
 /** */
 USTRUCT()
@@ -236,4 +237,6 @@ public:
 	bool IsWidgetFreeFromCircularReferences(UUserWidget* UserWidget) const;
 
 	static bool ValidateGeneratedClass(const UClass* InClass);
+	
+	static TUniquePtr<FKismetCompilerContext> GetCompilerForWidgetBP(UWidgetBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
 };

@@ -35,6 +35,7 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 
 	DefaultFOV = 90.0f;
 	DefaultAspectRatio = 1.33333f;
+	bDefaultConstrainAspectRatio = false;
 	DefaultOrthoWidth = 512.0f;
 	bHidden = true;
 	bReplicates = false;
@@ -170,6 +171,7 @@ void APlayerCameraManager::AssignViewTarget(AActor* NewTarget, FTViewTarget& VT,
 
 	// Use default FOV and aspect ratio.
 	VT.POV.AspectRatio = DefaultAspectRatio;
+	VT.POV.bConstrainAspectRatio = bDefaultConstrainAspectRatio;
 	VT.POV.FOV = DefaultFOV;
 
 	if (OldViewTarget)
@@ -462,7 +464,8 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 	//@TODO: CAMERA: Should probably reset the view target POV fully here
 	OutVT.POV.FOV = DefaultFOV;
 	OutVT.POV.OrthoWidth = DefaultOrthoWidth;
-	OutVT.POV.bConstrainAspectRatio = false;
+	OutVT.POV.AspectRatio = DefaultAspectRatio;
+	OutVT.POV.bConstrainAspectRatio = bDefaultConstrainAspectRatio;
 	OutVT.POV.bUseFieldOfViewForLOD = true;
 	OutVT.POV.ProjectionMode = bIsOrthographic ? ECameraProjectionMode::Orthographic : ECameraProjectionMode::Perspective;
 	OutVT.POV.PostProcessSettings.SetBaseValues();

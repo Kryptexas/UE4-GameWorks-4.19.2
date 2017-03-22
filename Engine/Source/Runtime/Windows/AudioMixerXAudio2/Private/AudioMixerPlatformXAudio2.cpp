@@ -341,10 +341,8 @@ namespace Audio
 			}
 		}
 
-		if (XAudio2System)
-		{
-			XAudio2System->StopEngine();
-		}
+		check(XAudio2System);
+		XAudio2System->StopEngine();
 
 		if (OutputAudioStreamSourceVoice)
 		{
@@ -352,11 +350,9 @@ namespace Audio
 			OutputAudioStreamSourceVoice = nullptr;
 		}
 
-		if (OutputAudioStreamMasteringVoice)
-		{
-			OutputAudioStreamMasteringVoice->DestroyVoice();
-			OutputAudioStreamMasteringVoice = nullptr;
-		}
+		check(OutputAudioStreamMasteringVoice);
+		OutputAudioStreamMasteringVoice->DestroyVoice();
+		OutputAudioStreamMasteringVoice = nullptr;
 
 		bIsDeviceOpen = false;
 
@@ -396,8 +392,8 @@ namespace Audio
 			// Signal that the thread that is running the update that we're stopping
 			if (OutputAudioStreamSourceVoice)
 			{
-				OutputAudioStreamSourceVoice->FlushSourceBuffers();
-				OutputAudioStreamSourceVoice->Stop(0);
+				OutputAudioStreamSourceVoice->DestroyVoice();
+				OutputAudioStreamSourceVoice = nullptr;
 			}
 
 			if (AudioStreamInfo.StreamState == EAudioOutputStreamState::Running)
@@ -438,10 +434,6 @@ namespace Audio
 
 		if (OutputAudioStreamSourceVoice)
 		{
-			// Fush the buffers and stop it immediately
-			OutputAudioStreamSourceVoice->FlushSourceBuffers();
-			OutputAudioStreamSourceVoice->Stop(0);
-
 			// Then destroy the current audio stream source voice
 			OutputAudioStreamSourceVoice->DestroyVoice();
 			OutputAudioStreamSourceVoice = nullptr;

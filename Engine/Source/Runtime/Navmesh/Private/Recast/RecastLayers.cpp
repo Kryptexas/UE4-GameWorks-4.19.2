@@ -36,6 +36,16 @@ struct rcLayerRegionMonotone
 	unsigned char remap : 1;
 };
 
+static void rcFreeLayerRegionMonotones(rcLayerRegionMonotone* regs, int nregs)
+{
+	// destroy all elements to free internal rcIntArray allocations
+	for (int i = 0; i < nregs; i++)
+	{
+		regs[i].~rcLayerRegionMonotone();
+	}
+
+	rcFree(regs);
+}
 
 static void addUnique(rcIntArray& a, int v)
 {
@@ -860,11 +870,13 @@ bool rcBuildHeightfieldLayersMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 	const bool bHasRegions = CollectLayerRegionsMonotone(ctx, chf, borderSize, srcReg, regs, nregs);
 	if (!bHasRegions)
 	{
+		// no allocations yet, but just to be safe...
+		rcFreeLayerRegionMonotones(regs, nregs);
 		return false;
 	}
 
 	const bool bHasSaved = SplitAndStoreLayerRegions(ctx, chf, borderSize, walkableHeight, srcReg, regs, nregs, lset);
-	rcFree(regs);
+	rcFreeLayerRegionMonotones(regs, nregs);
 
 	if (!bHasSaved)
 	{
@@ -899,11 +911,13 @@ bool rcBuildHeightfieldLayersChunky(rcContext* ctx, rcCompactHeightfield& chf,
 	const bool bHasRegions = CollectLayerRegionsChunky(ctx, chf, borderSize, chunkSize, srcReg, regs, nregs);
 	if (!bHasRegions)
 	{
+		// no allocations yet, but just to be safe...
+		rcFreeLayerRegionMonotones(regs, nregs);
 		return false;
 	}
 
 	const bool bHasSaved = SplitAndStoreLayerRegions(ctx, chf, borderSize, walkableHeight, srcReg, regs, nregs, lset);
-	rcFree(regs);
+	rcFreeLayerRegionMonotones(regs, nregs);
 
 	if (!bHasSaved)
 	{

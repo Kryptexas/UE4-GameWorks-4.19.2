@@ -14,6 +14,7 @@ public:
 
 	static const FName MD_Bitmask;
 	static const FName MD_BitmaskEnum;
+	static const FName MD_UseEnumValuesAsMaskValuesInEditor;
 
 	static const FSlateBrush* GetOverlayBrush( const TSharedRef< class FPropertyEditor > PropertyEditor );
 };

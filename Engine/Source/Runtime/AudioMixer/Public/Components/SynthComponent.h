@@ -64,9 +64,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Synth|Components|Audio")
 	void Stop();
 
-	/** @return true if this component is currently playing a SoundCue. */
+	/** Returns true if this component is currently playing. */
 	UFUNCTION(BlueprintCallable, Category = "Synth|Components|Audio")
 	bool IsPlaying() const;
+
+	/** Sets how much audio the sound should send to the given submix. */
+	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio")
+	void SetSubmixSend(USoundSubmix* Submix, float SendLevel);
 
 	/** Auto destroy this component on completion */
 	UPROPERTY()
@@ -97,13 +101,32 @@ public:
 	class USoundConcurrency* ConcurrencySettings;
 
 	/** Sound class this sound belongs to */
-	UPROPERTY(EditAnywhere, Category = SoundClass, meta = (DisplayName = "Sound Class"))
+	UPROPERTY(EditAnywhere, Category = SoundClass)
 	USoundClass* SoundClass;
+
+	/** The source effect chain to use for this sound. */
+	UPROPERTY(EditAnywhere, Category = Effects)
+	USoundEffectSourcePresetChain* SourceEffectChain;
+
+	/** The default send level to the master rerverb. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+	float DefaultMasterReverbSendAmount;
+
+	/** Submix this sound belongs to */
+	UPROPERTY(EditAnywhere, Category = Effects)
+	USoundSubmix* SoundSubmix;
+
+	/** An array of submix sends. Audio from this sound will send a portion of its audio to these effects.  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 
 protected:
 
 	// Method to execute parameter changes on game thread in audio render thread
 	void SynthCommand(TFunction<void()> Command);
+
+	// Called when synth is created.
+	virtual void Init(const int32 SampleRate) {}
 
 	// Called when synth is about to start playing
 	virtual void OnStart() {}
@@ -111,17 +134,14 @@ protected:
 	// Called when synth is about to stop playing
 	virtual void OnStop() {}
 
-	// Override to define the number channels (1 or 2) the synth uses. Called at init, can't change once playing.
-	virtual int32 GetNumChannels() const;
-
-	// Override to make synth non-spatialized
-	virtual bool IsSpatialized() const;
-
 	// Called when more audio is needed to be generated
 	virtual void OnGenerateAudio(TArray<float>& OutAudio) PURE_VIRTUAL(USynthComponent::OnGenerateAudio,);
 
 	// Called by procedural sound wave
 	void OnGeneratePCMAudio(TArray<int16>& GeneratedPCMData);
+
+	// Gets the audio device associated with this synth component
+	FAudioDevice* GetAudioDevice() { return AudioComponent->GetAudioDevice(); }
 
 	// Can be set by the derived class, defaults to 2
 	int32 NumChannels;
@@ -145,6 +165,7 @@ private:
 
 	// Whether or not synth is playing
 	bool bIsSynthPlaying;
+	bool bIsInitialized;
 
 	TQueue<TFunction<void()>> CommandQueue;
 

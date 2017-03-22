@@ -1105,7 +1105,7 @@ public:
 		else if (Ar.IsLoading())
 		{
 			// Load array.
-			int32 NewNum;
+			int32 NewNum = 0;
 			Ar << NewNum;
 			A.Empty(NewNum);
 			for (int32 i = 0; i < NewNum; i++)
@@ -1175,7 +1175,7 @@ public:
 				// Serialize the number of elements, block allocate the right amount of memory and deserialize
 				// the data as a giant memory blob in a single call to Serialize. Please see the function header
 				// for detailed documentation on limitations and implications.
-				int32 NewArrayNum;
+				int32 NewArrayNum = 0;
 				Ar << NewArrayNum;
 				Empty(NewArrayNum);
 				AddUninitialized(NewArrayNum);

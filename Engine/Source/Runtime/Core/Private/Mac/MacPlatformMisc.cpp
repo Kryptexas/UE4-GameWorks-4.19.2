@@ -1653,6 +1653,7 @@ bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
 void FMacPlatformMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("CoreAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerCoreAudio"));
 }
 
 FLinearColor FMacPlatformMisc::GetScreenPixelColor(const FVector2D& InScreenPos, float /*InGamma*/)

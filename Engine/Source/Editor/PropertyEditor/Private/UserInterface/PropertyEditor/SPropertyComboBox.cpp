@@ -70,6 +70,10 @@ void SPropertyComboBox::SetSelectedItem( const FString& InSelectedItem )
 			return;
 		}
 	}
+
+	// Clear selection in this case
+	SComboBox< TSharedPtr<FString> >::ClearSelection();
+
 }
 
 void SPropertyComboBox::SetItemList(TArray< TSharedPtr< FString > >& InItemList, TArray< TSharedPtr< SToolTip > >& InRichTooltips, TArray<bool>& InRestrictedList)
@@ -83,6 +87,12 @@ void SPropertyComboBox::SetItemList(TArray< TSharedPtr< FString > >& InItemList,
 void SPropertyComboBox::OnSelectionChangedInternal( TSharedPtr<FString> InSelectedItem, ESelectInfo::Type SelectInfo )
 {
 	bool bEnabled = true;
+
+	if (!InSelectedItem.IsValid())
+	{
+		return;
+	}
+
 	if (RestrictedList.Num() > 0)
 	{
 		int32 Index = 0;

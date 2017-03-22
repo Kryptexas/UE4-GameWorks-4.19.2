@@ -77,4 +77,6 @@ struct UNREALED_API FDataTableEditorUtils
 	static void CacheDataTableForEditing(const UDataTable* DataTable, TArray<FDataTableEditorColumnHeaderDataPtr>& OutAvailableColumns, TArray<FDataTableEditorRowListViewDataPtr>& OutAvailableRows);
 
 	static TArray<UScriptStruct*> GetPossibleStructs();
+	/** Utility function which verifies that the specified struct type is viable for data tables */
+	static bool IsValidTableStruct(UScriptStruct* Struct);
 };

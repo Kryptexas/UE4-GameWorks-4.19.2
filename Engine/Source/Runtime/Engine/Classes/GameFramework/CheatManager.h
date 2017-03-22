@@ -155,19 +155,19 @@ class ENGINE_API UCheatManager : public UObject
 
 	/** Damage the actor you're looking at (sourced from the player). */
 	UFUNCTION(exec,BlueprintCallable,Category="Cheat Manager")
-	void DamageTarget(float DamageAmount);
+	virtual void DamageTarget(float DamageAmount);
 
 	/** Destroy the actor you're looking at. */
 	UFUNCTION(exec,BlueprintCallable,Category="Cheat Manager")
 	virtual void DestroyTarget();
-
+	
 	/** Destroy all actors of class aClass */
 	UFUNCTION(exec)
 	virtual void DestroyAll(TSubclassOf<class AActor>  aClass);
 
 	/** Destroy all pawns except for the (pawn) target.  If no (pawn) target is found we don't destroy anything. */
 	UFUNCTION(exec)
-	void DestroyAllPawnsExceptTarget();
+	virtual void DestroyAllPawnsExceptTarget();
 
 	/** Destroys (by calling destroy directly) all non-player pawns of class aClass in the level */
 	UFUNCTION(exec)
@@ -395,6 +395,9 @@ protected:
 	/** Switch controller from debug camera back to normal controller */
 	UFUNCTION(BlueprintCallable,Category="Cheat Manager")
 	virtual void DisableDebugCamera();
+    
+    /** Retrieve the given PlayerContoller's current "target" AActor. */
+    virtual AActor* GetTarget(APlayerController* PlayerController, struct FHitResult& OutHit);
 };
 
 

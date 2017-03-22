@@ -7,8 +7,10 @@
 #include "K2Node_CallFunction.h"
 #include "EditorCategoryUtils.h"
 #include "KismetCompiler.h"
+#include "BlueprintEditorUtils.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "UObject/PropertyPortFlags.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_BitmaskLiteral"
 
@@ -27,21 +29,63 @@ UK2Node_BitmaskLiteral::UK2Node_BitmaskLiteral(const FObjectInitializer& ObjectI
 
 void UK2Node_BitmaskLiteral::ValidateBitflagsEnumType()
 {
-	// Reset enum type reference if it no longer has the proper meta data.
-	if (BitflagsEnum != nullptr && (BitflagsEnum->IsPendingKill() || !BitflagsEnum->HasMetaData(TEXT("Bitflags"))))
+	if (BitflagsEnum != nullptr)
 	{
-		BitflagsEnum = nullptr;
+		// Reset enum type reference if it no longer has the proper meta data.
+		const FString BitflagsMetaDataKey = FBlueprintMetadata::MD_Bitflags.ToString();
+		if (BitflagsEnum->IsPendingKill() || !BitflagsEnum->HasMetaData(*BitflagsMetaDataKey))
+		{
+			// Note: The input pin's default value is intentionally not reset here. Losing an associated enum type means the node will now expose the max
+			// number of bitflags, so this will ensure that we preserve the previous default value when the enum type representing the bitflags is removed.
+			BitflagsEnum = nullptr;
+		}
+		else
+		{
+			// Adjust the default value in case an entry was added or removed, or in case the enum/value mode was changed.
+			int32 ValidBitflagsMask = 0;
+			const int32 BitmaskBitCount = sizeof(int32) << 3;
+			UEdGraphPin* InputPin = FindPinChecked(GetBitmaskInputPinName());
+			int32 OldDefaultValue = FCString::Atoi(*InputPin->DefaultValue);
+			const bool bUseEnumValuesAsMaskValues = BitflagsEnum->GetBoolMetaData(FBlueprintMetadata::MD_UseEnumValuesAsMaskValuesInEditor);
 
-		// Note: The input pin's default value is intentionally not reset here. This ensures that we preserve the default value even if the enum type representing the bitflags is removed.
+			// Note: This loop is not inclusive of (BitflagsEnum->NumEnums() - 1) in order to exclude the implicit "MAX" value that gets added to the enum type at compile time.
+			for (int32 BitflagsEnumIndex = 0; BitflagsEnumIndex < BitflagsEnum->NumEnums() - 1; ++BitflagsEnumIndex)
+			{
+				const int64 EnumValue = BitflagsEnum->GetValueByIndex(BitflagsEnumIndex);
+				if (EnumValue >= 0)
+				{
+					if (bUseEnumValuesAsMaskValues)
+					{
+						if (EnumValue < MAX_int32 && FMath::IsPowerOfTwo(EnumValue))
+						{
+							ValidBitflagsMask |= EnumValue;
+						}
+					}
+					else if (EnumValue < BitmaskBitCount)
+					{
+						ValidBitflagsMask |= 1 << static_cast<int32>(EnumValue);
+					}
+				}
+			}
+
+			const int32 NewDefaultValue = OldDefaultValue & ValidBitflagsMask;
+			if (NewDefaultValue != OldDefaultValue)
+			{
+				InputPin->GetSchema()->TrySetDefaultValue(*InputPin, FString::FromInt(NewDefaultValue));
+			}
+		}
 	}
 }
 
-void UK2Node_BitmaskLiteral::PostLoad()
+void UK2Node_BitmaskLiteral::Serialize(FArchive& Ar)
 {
-	Super::PostLoad();
+	Super::Serialize(Ar);
 
 	// Post-load validation of the enum type.
-	ValidateBitflagsEnumType();
+	if (Ar.IsLoading() && Ar.IsPersistent() && !Ar.HasAnyPortFlags(PPF_Duplicate | PPF_DuplicateForPIE))
+	{
+		ValidateBitflagsEnumType();
+	}
 }
 
 void UK2Node_BitmaskLiteral::AllocateDefaultPins()

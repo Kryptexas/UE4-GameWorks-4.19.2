@@ -32,6 +32,12 @@ void UPrimaryDataAsset::PreSave(const class ITargetPlatform* TargetPlatform)
 	Super::PreSave(TargetPlatform);
 
 	UpdateAssetBundleData();
+
+	if (UAssetManager::IsValid())
+	{
+		// Bundles may have changed, refresh
+		UAssetManager::Get().RefreshAssetData(this);
+	}
 }
 #endif
 

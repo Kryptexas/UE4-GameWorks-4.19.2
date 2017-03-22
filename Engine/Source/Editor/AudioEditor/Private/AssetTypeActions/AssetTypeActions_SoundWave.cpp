@@ -18,6 +18,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Images/SImage.h"
+#include "AudioEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -30,7 +31,7 @@ void FAssetTypeActions_SoundWave::GetActions( const TArray<UObject*>& InObjects,
 {
 	FAssetTypeActions_SoundBase::GetActions(InObjects, MenuBuilder);
 
-	auto SoundNodes = GetTypedWeakObjectPtrs<USoundWave>(InObjects);
+	TArray<TWeakObjectPtr<USoundWave>> SoundNodes = GetTypedWeakObjectPtrs<USoundWave>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("SoundWave_CreateCue", "Create Cue"),
@@ -46,6 +47,17 @@ void FAssetTypeActions_SoundWave::GetActions( const TArray<UObject*>& InObjects,
 		LOCTEXT("SoundWave_CreateDialogue", "Create Dialogue"),
 		LOCTEXT("SoundWave_CreateDialogueTooltip", "Creates a dialogue wave using this sound wave."),
 		FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SoundWave::FillVoiceMenu, SoundNodes));
+
+	// Check for any sound wave asset action extensions
+	IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
+	TArray<TSharedPtr<ISoundWaveAssetActionExtensions>> Extensions;
+	AudioEditorModule->GetSoundWaveActionExtenders(Extensions);
+	
+	for (TSharedPtr<ISoundWaveAssetActionExtensions> Extension : Extensions)
+	{
+		Extension->GetExtendedActions(SoundNodes, MenuBuilder);
+	}
+
 }
 
 void FAssetTypeActions_SoundWave::GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const

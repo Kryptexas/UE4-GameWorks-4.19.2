@@ -20,8 +20,6 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-PRAGMA_DISABLE_OPTIMIZATION
-
 float UEnvQueryTypes::SkippedItemValue = -FLT_MAX;
 float UEnvQueryTypes::UnlimitedStepTime = -1.f;
 
@@ -550,5 +548,3 @@ namespace FEQSHelpers
 #endif // WITH_RECAST
 
 #undef LOCTEXT_NAMESPACE
-
-PRAGMA_ENABLE_OPTIMIZATION

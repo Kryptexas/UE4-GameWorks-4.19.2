@@ -46,10 +46,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Content Hot-Reloading"))
 	bool bEnableContentHotReloading;
 
-	/** Enable being able to subclass components in blueprints */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
-	bool bBlueprintableComponents;
-	
+
 	/** Device output log window (currently implemented for Android only)*/
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Device Output Log"))
 	bool bDeviceOutputLog;

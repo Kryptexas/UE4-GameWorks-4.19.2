@@ -1368,6 +1368,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static TArray<FString> GetPreferredLanguages();
+	
+	/**
+	 * Returns the user's preferred language and region
+	 * @return A language ID indicating the user's language and region
+	 */
+	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
+	static FString GetDefaultLocale();
 
 	/**
 	* Returns the currency code associated with the device's locale

@@ -66,6 +66,7 @@
 
 #include "Sound/SoundEffectSubmix.h"
 #include "Sound/SoundEffectSource.h"
+#include "Components/SynthComponent.h"
 
 #include "PlatformInfo.h"
 #include "Blueprint/BlueprintSupport.h"
@@ -366,18 +367,17 @@ FString FNewClassInfo::GetHeaderTemplateFilename() const
 				{
 					return TEXT("CharacterClass.h.template");
 				}
-
-				// Only check audio-mixer module specific classes if audio mixer is loaded
-				if (FModuleManager::Get().IsModuleLoaded("AudioMixer"))
+				else if (BaseClass == USoundEffectSourcePreset::StaticClass())
 				{
-					if (BaseClass == USoundEffectSourcePreset::StaticClass())
-					{
-						return TEXT("SoundEffectSourceClass.h.template");
-					}
-					else if (BaseClass == USoundEffectSubmixPreset::StaticClass())
-					{
-						return TEXT("SoundEffectSubmixClass.h.template");
-					}
+					return TEXT("SoundEffectSourceClass.h.template");
+				}
+				else if (BaseClass == USoundEffectSubmixPreset::StaticClass())
+				{
+					return TEXT("SoundEffectSubmixClass.h.template");
+				}
+				else if (BaseClass == USynthComponent::StaticClass())
+				{
+					return TEXT("SynthComponentClass.h.template");
 				}
 			}
 			// Some other non-actor, non-component UObject class
@@ -432,6 +432,10 @@ FString FNewClassInfo::GetSourceTemplateFilename() const
 				else if (BaseClass == USoundEffectSourcePreset::StaticClass())
 				{
 					return TEXT("SoundEffectSourceClass.cpp.template");
+				}
+				else if (BaseClass == USynthComponent::StaticClass())
+				{
+					return TEXT("SynthComponentClass.cpp.template");
 				}
 			}
 			// Some other non-actor, non-component UObject class

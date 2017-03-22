@@ -6,14 +6,19 @@ namespace UnrealBuildTool.Rules
 	{
         public Synthesis(ReadOnlyTargetRules Target) : base(Target)
 		{
-			PublicDependencyModuleNames.AddRange(
+            PublicDependencyModuleNames.AddRange(
 				new string[] {
                     "Core",
 					"CoreUObject",
 					"Engine",
 					"AudioMixer",
-				}
-			);
+                    "UMG",
+                    "Slate",
+                    "SlateCore",
+                    "InputCore",
+                    "Projects"
+                }
+            );
 		}
 	}
 }

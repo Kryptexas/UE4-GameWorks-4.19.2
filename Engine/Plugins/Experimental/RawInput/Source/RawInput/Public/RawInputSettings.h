@@ -8,7 +8,7 @@
 #include "RawInputSettings.generated.h"
 
 USTRUCT()
-struct FRawInputDeviceAxisProperties
+struct RAWINPUT_API FRawInputDeviceAxisProperties
 {
 	GENERATED_BODY()
 
@@ -37,7 +37,7 @@ struct FRawInputDeviceAxisProperties
 };
 
 USTRUCT()
-struct FRawInputDeviceButtonProperties
+struct RAWINPUT_API FRawInputDeviceButtonProperties
 {
 	GENERATED_BODY()
 
@@ -56,7 +56,7 @@ struct FRawInputDeviceButtonProperties
 };
 
 USTRUCT()
-struct FRawInputDeviceConfiguration
+struct RAWINPUT_API FRawInputDeviceConfiguration
 {
 	GENERATED_BODY()
 

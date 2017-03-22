@@ -38,6 +38,7 @@ public class Kismet : ModuleRules
 				"UnrealEd",
 				"GraphEditor",
 				"KismetWidgets",
+				"KismetCompiler",
 				"BlueprintGraph",
 				"AnimGraph",
 				"PropertyEditor",

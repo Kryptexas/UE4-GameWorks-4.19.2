@@ -49,6 +49,7 @@
 #include "Engine/DemoNetDriver.h"
 
 #include "Tickable.h"
+#include "AssetRegistryModule.h"
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -1275,6 +1276,9 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 #if WITH_EDITOR
 	BroadcastPostEditorTick(DeltaSeconds);
+
+	// Tick the asset registry
+	FAssetRegistryModule::TickAssetRegistry(DeltaSeconds);
 #endif
 }
 

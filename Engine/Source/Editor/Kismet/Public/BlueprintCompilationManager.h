@@ -14,5 +14,8 @@ struct KISMET_API FBlueprintCompilationManager
 	static void FlushCompilationQueue();
 	static void QueueForCompilation(UBlueprint* BPToCompile);
 	static void NotifyBlueprintLoaded(UBlueprint* BPLoaded);
+
+private:
+	FBlueprintCompilationManager();
 };
 

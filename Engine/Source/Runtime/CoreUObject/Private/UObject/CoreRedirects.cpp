@@ -7,6 +7,7 @@
 #include "Templates/Casts.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Serialization/DeferredMessageLog.h"
+#include "Misc/AutomationTest.h"
 
 FCoreRedirectObjectName::FCoreRedirectObjectName(const FString& InString)
 {
@@ -388,8 +389,8 @@ FCoreRedirectObjectName FCoreRedirect::RedirectName(const FCoreRedirectObjectNam
 			ModifyName.ObjectName = NewName.ObjectName;
 		}
 	}
-	// If package name is specified, copy outer as it was set to null explicitly
-	if (OldName.OuterName != NewName.OuterName || NewName.PackageName != NAME_None)
+	// If package name and object name are specified, copy outer also it was set to null explicitly
+	if (OldName.OuterName != NewName.OuterName || (NewName.PackageName != NAME_None && NewName.ObjectName != NAME_None))
 	{
 		if (IsSubstringMatch())
 		{
@@ -582,8 +583,9 @@ bool FCoreRedirects::AddKnownMissing(ECoreRedirectFlags Type, const FCoreRedirec
 	return AddRedirectList(NewRedirects, TEXT("AddKnownMissing"));
 }
 
-void FCoreRedirects::RunTests()
+bool FCoreRedirects::RunTests()
 {
+	bool bSuccess = true;
 	TMap<ECoreRedirectFlags, FRedirectNameMap > BackupMap = RedirectTypeMap;
 	RedirectTypeMap.Empty();
 
@@ -618,11 +620,13 @@ void FCoreRedirects::RunTests()
 	UE_LOG(LogLinker, Log, TEXT("Running FCoreRedirect Tests"));
 
 	// Package-specific property rename and package rename apply
-	Tests.Emplace(TEXT("/game/PackageSpecific.Class.Property"), TEXT("/game/PackageSpecific.Class.Property4"), ECoreRedirectFlags::Type_Property);
+	Tests.Emplace(TEXT("/game/PackageSpecific.Class:Property"), TEXT("/game/PackageSpecific.Class:Property4"), ECoreRedirectFlags::Type_Property);
+	// Verify . works as well
+	Tests.Emplace(TEXT("/game/PackageSpecific.Class.Property"), TEXT("/game/PackageSpecific.Class:Property4"), ECoreRedirectFlags::Type_Property);
 	// Wrong type, no replacement
-	Tests.Emplace(TEXT("/game/PackageSpecific.Class.Property"), TEXT("/game/PackageSpecific.Class.Property"), ECoreRedirectFlags::Type_Function);
+	Tests.Emplace(TEXT("/game/PackageSpecific.Class:Property"), TEXT("/game/PackageSpecific.Class:Property"), ECoreRedirectFlags::Type_Function);
 	// Class-specific property rename and package rename apply
-	Tests.Emplace(TEXT("/game/Package.Class.Property"), TEXT("/game/Package2.Class.Property3"), ECoreRedirectFlags::Type_Property);
+	Tests.Emplace(TEXT("/game/Package.Class:Property"), TEXT("/game/Package2.Class:Property3"), ECoreRedirectFlags::Type_Property);
 	// Package-Specific class rename applies
 	Tests.Emplace(TEXT("/game/Package.Class"), TEXT("/game/Package2.Class3"), ECoreRedirectFlags::Type_Class);
 	// Generic class rename applies
@@ -639,6 +643,7 @@ void FCoreRedirects::RunTests()
 
 		if (NewName.ToString() != Test.NewName)
 		{
+			bSuccess = false;
 			UE_LOG(LogLinker, Error, TEXT("FCoreRedirect Test Failed: %s to %s, should be %s!"), *OldName.ToString(), *NewName.ToString(), *Test.NewName);
 		}
 	}
@@ -650,17 +655,20 @@ void FCoreRedirects::RunTests()
 
 	if (OldNames.Num() != 1 || OldNames[0].ToString() != TEXT("/game/PackageOther.Class"))
 	{
+		bSuccess = false;
 		UE_LOG(LogLinker, Error, TEXT("FCoreRedirect Test Failed: ReverseLookup!"));
 	}
 
 	// Check removed
 	if (!IsKnownMissing(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(TEXT("/game/RemovedPackage"))))
 	{
+		bSuccess = false;
 		UE_LOG(LogLinker, Error, TEXT("FCoreRedirect Test Failed: /game/RemovedPackage should be removed!"));
 	}
 
 	if (IsKnownMissing(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(TEXT("/game/NotRemovedPackage"))))
 	{
+		bSuccess = false;
 		UE_LOG(LogLinker, Error, TEXT("FCoreRedirect Test Failed: /game/NotRemovedPackage should be removed!"));
 	}
 
@@ -668,11 +676,20 @@ void FCoreRedirects::RunTests()
 
 	if (!IsKnownMissing(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(TEXT("/game/NotRemovedPackage"))))
 	{
+		bSuccess = false;
 		UE_LOG(LogLinker, Error, TEXT("FCoreRedirect Test Failed: /game/NotRemovedPackage should be removed now!"));
 	}
 
 	// Restore old state
 	RedirectTypeMap = BackupMap;
+
+	return bSuccess;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCoreRedirectTest, "System.Core.Misc.CoreRedirects", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)
+bool FCoreRedirectTest::RunTest(const FString& Parameters)
+{
+	return FCoreRedirects::RunTests();
 }
 
 bool FCoreRedirects::ReadRedirectsFromIni(const FString& IniName)

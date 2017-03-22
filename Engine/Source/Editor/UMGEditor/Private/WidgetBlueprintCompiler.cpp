@@ -151,9 +151,9 @@ struct FCullTemplateObjectsHelper
 	}
 };
 
-void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOutOldCDO)
 {
-	Super::CleanAndSanitizeClass(ClassToClean, OldCDO);
+	Super::CleanAndSanitizeClass(ClassToClean, InOutOldCDO);
 
 	// Make sure our typed pointer is set
 	check(ClassToClean == NewClass);
@@ -175,7 +175,7 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	NewWidgetBlueprintClass->Bindings.Empty();
 }
 
-void FWidgetBlueprintCompiler::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+void FWidgetBlueprintCompiler::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean)
 {
 	// Make sure our typed pointer is set
 	check(ClassToClean == NewClass);
@@ -363,10 +363,8 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	Super::FinishCompilingClass(Class);
 }
 
-void FWidgetBlueprintCompiler::Compile()
+void FWidgetBlueprintCompiler::PostCompile()
 {
-	Super::Compile();
-
 	//TODO Once we handle multiple derived blueprint classes, we need to check parent versions of the class.
 	if ( const UFunction* ReceiveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(GET_FUNCTION_NAME_CHECKED(UUserWidget, Tick), NewWidgetBlueprintClass) )
 	{

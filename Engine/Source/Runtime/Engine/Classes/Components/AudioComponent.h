@@ -172,6 +172,10 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	/** The specific audio device to play this component on */
 	uint32 AudioDeviceHandle;
 
+	/** Configurable, serialized ID for audio plugins */
+	UPROPERTY()
+	uint64 AudioComponentUserID;
+
 	/** The lower bound to use when randomly determining a pitch multiplier */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modulation)
 	float PitchModulationMin;
@@ -236,7 +240,10 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	/** shadow delegate for non UObject subscribers */
 	FOnAudioFinishedNative OnAudioFinishedNative;
 
-	/** called when we finish playing audio, either because it played to completion or because a Stop() call turned it off early */
+	/** Called as a sound plays on the audio component to allow BP to perform actions based on playback percentage.
+	* Computed as samples played divided by total samples, taking into account pitch.
+	* Not currently implemented on all platforms.
+	*/
 	UPROPERTY(BlueprintAssignable)
 	FOnAudioPlaybackPercent OnAudioPlaybackPercent;
 
@@ -328,6 +335,10 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
 	void AdjustAttenuation(const FSoundAttenuationSettings& InAttenuationSettings);
 
+	/** Sets how much audio the sound should send to the given submix. */
+	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio")
+	void SetSubmixSend(USoundSubmix* Submix, float SendLevel);
+
 	static void PlaybackCompleted(uint64 AudioComponentID, bool bFailedToStart);
 
 private:
@@ -377,6 +388,8 @@ public:
 	FAudioDevice* GetAudioDevice() const;
 
 	uint64 GetAudioComponentID() const { return AudioComponentID; }
+
+	uint64 GetAudioComponentUserID() const { return AudioComponentUserID; }
 
 	static UAudioComponent* GetAudioComponentFromID(uint64 AudioComponentID);
 

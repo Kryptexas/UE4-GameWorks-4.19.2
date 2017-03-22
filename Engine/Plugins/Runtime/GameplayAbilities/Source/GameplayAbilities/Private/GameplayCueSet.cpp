@@ -225,12 +225,6 @@ bool UGameplayCueSet::HandleGameplayCueNotify_Internal(AActor* TargetActor, int3
 		// If object is not loaded yet
 		if (CueData.LoadedGameplayCueClass == nullptr)
 		{
-			// Ignore removed events if this wasn't already loaded (only call Removed if we handled OnActive/WhileActive)
-			if (EventType == EGameplayCueEvent::Removed)
-			{
-				return false;
-			}
-
 			// See if the object is loaded but just not hooked up here
 			CueData.LoadedGameplayCueClass = FindObject<UClass>(nullptr, *CueData.GameplayCueNotifyObj.ToString());
 			if (CueData.LoadedGameplayCueClass == nullptr)

@@ -59,10 +59,21 @@ DEFINE_STAT(STAT_AudioFindNearestLocation);
 
 bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType)
 {
-	if (PluginType == EAudioPlugin::SPATIALIZATION)
+	TArray<IAudioPlugin *> AudioPlugin = IModularFeatures::Get().GetModularFeatureImplementations<IAudioPlugin>(IAudioPlugin::GetModularFeatureName());
+	if (AudioPlugin.Num() > 0)
 	{
-		TArray<IAudioSpatializationPlugin *> SpatializationPlugins = IModularFeatures::Get().GetModularFeatureImplementations<IAudioSpatializationPlugin>(IAudioSpatializationPlugin::GetModularFeatureName());
-		return SpatializationPlugins.Num() > 0;
+		if (PluginType == EAudioPlugin::SPATIALIZATION)
+		{
+			return AudioPlugin[0]->ImplementsSpatialization();
+		}
+		else if (PluginType == EAudioPlugin::REVERB)
+		{
+			return AudioPlugin[0]->ImplementsReverb();
+		}
+		else if (PluginType == EAudioPlugin::OCCLUSION)
+		{
+			return AudioPlugin[0]->ImplementsOcclusion();
+		}
 	}
 
 	return false;
@@ -687,6 +698,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, bCenterChannelOnly(false)
 	, bReportedSpatializationWarning(false)
 	, SpatializationAlgorithm(SPATIALIZATION_Default)
+	, OcclusionPluginSettings(nullptr)
 	, OutputTarget(EAudioOutputTarget::Speaker)
 	, LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
 	, OcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
@@ -700,6 +712,10 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, AttenuationDistance(0.0f)
 	, ListenerToSoundDistance(0.0f)
 	, AbsoluteAzimuth(0.0f)
+	, ReverbWetLevelMin(0.0f)
+	, ReverbWetLevelMax(0.0f)
+	, ReverbDistanceMin(0.0f)
+	, ReverbDistanceMax(0.0f)
 	, UserIndex(0)
 {
 	TypeHash = ++TypeHashCounter;

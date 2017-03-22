@@ -2,6 +2,10 @@
 
 #include "K2Node_CallArrayFunction.h"
 #include "EdGraphSchema_K2.h"
+#include "BlueprintNodeSpawner.h"
+#include "K2Node_GetArrayItem.h"
+#include "BlueprintsObjectVersion.h"
+#include "Kismet/KismetArrayLibrary.h" // for Array_Get()
 
 UK2Node_CallArrayFunction::UK2Node_CallArrayFunction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -117,6 +121,61 @@ void UK2Node_CallArrayFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		if (bNeedToPropagate)
 		{
 			PropagateArrayTypeInfo(Pin);
+		}
+	}
+}
+
+void UK2Node_CallArrayFunction::ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges)
+{
+	if (GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::ArrayGetFuncsReplacedByCustomNode)
+	{
+		if (FunctionReference.GetMemberParentClass() == UKismetArrayLibrary::StaticClass() && 
+			FunctionReference.GetMemberName() == GET_FUNCTION_NAME_CHECKED(UKismetArrayLibrary, Array_Get))
+		{
+			UBlueprintNodeSpawner::FCustomizeNodeDelegate CustomizeToReturnByVal = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(
+				[](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/)
+				{
+					UK2Node_GetArrayItem* ArrayGetNode = CastChecked<UK2Node_GetArrayItem>(NewNode);
+					ArrayGetNode->SetDesiredReturnType(/*bAsReference =*/false);
+				}
+			);
+			UBlueprintNodeSpawner* GetItemNodeSpawner = UBlueprintNodeSpawner::Create(UK2Node_GetArrayItem::StaticClass(), /*Outer =*/nullptr, CustomizeToReturnByVal);
+
+			FVector2D NodePos(NodePosX, NodePosY);
+			IBlueprintNodeBinder::FBindingSet Bindings;
+			UK2Node_GetArrayItem* GetItemNode = Cast<UK2Node_GetArrayItem>(GetItemNodeSpawner->Invoke(Graph, Bindings, NodePos));
+
+			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(Graph->GetSchema());
+			if (K2Schema && GetItemNode)
+			{
+				TMap<FString, FString> OldToNewPinMap;
+				for (UEdGraphPin* Pin : Pins)
+				{
+					if (Pin->ParentPin != nullptr)
+					{
+						// ReplaceOldNodeWithNew() will take care of mapping split pins (as long as the parents are properly mapped)
+						continue;
+					}
+					else if (Pin->PinName == UEdGraphSchema_K2::PN_Self)
+					{
+						// there's no analogous pin, signal that we're expecting this
+						OldToNewPinMap.Add(Pin->PinName, TEXT(""));
+					}
+					else if (Pin->PinType.bIsArray)
+					{
+						OldToNewPinMap.Add(Pin->PinName, GetItemNode->GetTargetArrayPin()->PinName);
+					}
+					else if (Pin->Direction == EGPD_Output)
+					{
+						OldToNewPinMap.Add(Pin->PinName, GetItemNode->GetResultPin()->PinName);
+					}
+					else
+					{
+						OldToNewPinMap.Add(Pin->PinName, GetItemNode->GetIndexPin()->PinName);
+					}
+				}
+				K2Schema->ReplaceOldNodeWithNew(this, GetItemNode, OldToNewPinMap);
+			}
 		}
 	}
 }
