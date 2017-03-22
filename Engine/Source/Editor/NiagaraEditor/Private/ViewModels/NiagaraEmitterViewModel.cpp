@@ -16,7 +16,7 @@
 
 #define LOCTEXT_NAMESPACE "EmitterEditorViewModel"
 
-template<> TMap<UNiagaraEmitterProperties*, TArray<FNiagaraEmitterViewModel*>> TNiagaraViewModelManager<UNiagaraEmitterProperties, FNiagaraEmitterViewModel>::ObjectsToViewModels;
+template<> TMap<UNiagaraEmitterProperties*, TArray<FNiagaraEmitterViewModel*>> TNiagaraViewModelManager<UNiagaraEmitterProperties, FNiagaraEmitterViewModel>::ObjectsToViewModels{};
 
 const FText FNiagaraEmitterViewModel::StatsFormat = NSLOCTEXT("NiagaraEmitterViewModel", "StatsFormat", "{0} Particles | {1} ms | {2} MB");
 const float Megabyte = 1024.0f * 1024.0f;
