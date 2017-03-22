@@ -18,8 +18,6 @@
 // We don't compute a tangent basis in ES2 to save shader instructions.
 #define NEEDS_TANGENT_BASIS (FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
 
-bool UseCustomAlignment;
-
 struct FVertexFactoryInput
 {
 	float4	Position				: ATTRIBUTE0;
@@ -31,7 +29,6 @@ struct FVertexFactoryInput
 #endif	//USE_DYNAMIC_PARAMETERS
 	float2	TexCoord				: ATTRIBUTE4;
 	uint VertexId					: SV_VertexID;
-	float3 CustomAlignmentVector	: ATTRIBUTE6;
 
 /** Optional instance ID for vertex layered rendering */
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
@@ -319,7 +316,7 @@ float3 SafeNormalize(float3 V)
 	return V * rsqrt(max(dot(V,V),0.01));
 }
 
-void GetTangents(FVertexFactoryInput Input, float3 WorldPosition, float3 OldWorldPosition, out float3 OutRight, out float3 OutUp, float3 CustomAlignmentVector)
+void GetTangents(FVertexFactoryInput Input, float3 WorldPosition, float3 OldWorldPosition, out float3 OutRight, out float3 OutUp)
 {
 	// Select camera up/right vectors.
 	float3 ResolvedViewRight = lerp(ResolvedView.ViewRight, ResolvedView.HMDViewNoRollRight, SpriteVF.RemoveHMDRoll);
@@ -331,15 +328,10 @@ void GetTangents(FVertexFactoryInput Input, float3 WorldPosition, float3 OldWorl
 	// Determine the vector from the particle to the camera and the particle's movement direction.
 	float3 CameraDirection		= SafeNormalize(ResolvedView.WorldCameraOrigin - WorldPosition.xyz);
 	float3 ParticleDirection	= SafeNormalize(WorldPosition.xyz - OldWorldPosition.xyz);
-	float3 DirectionVector	= lerp(ParticleDirection, CustomAlignmentVector, UseCustomAlignment);
 
 	// Tangent vectors for PSA_Velocity.
-	// Velocity alignment
-	float3 Right_Velocity	= SafeNormalize(cross(CameraDirection, DirectionVector));
-	float3 Up_Velocity		= -DirectionVector;
-
-
-
+	float3 Right_Velocity	= SafeNormalize(cross(CameraDirection, ParticleDirection));
+	float3 Up_Velocity		= -ParticleDirection;
 
 	// Tangent vectors for rotation locked about an axis.
 	float3 Right_AxisRot = SpriteVF.AxisLockRight.xyz;
@@ -495,7 +487,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 	// Tangents.
 	float3 Right,Up;
-	GetTangents(Input,ParticleWorldPosition.xyz,ParticleOldWorldPosition.xyz,Right,Up, Input.CustomAlignmentVector);
+	GetTangents(Input,ParticleWorldPosition.xyz,ParticleOldWorldPosition.xyz,Right,Up);
 	Intermediates.TangentUp = Up;
 	Intermediates.TangentRight = Right;
 
@@ -548,9 +540,8 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 #if USE_PARTICLE_VELOCITY
 	float3 ParticleVelocity = (ParticleWorldPosition.xyz - ParticleOldWorldPosition.xyz) * SpriteVF.InvDeltaSeconds;
-	float3 DirectionVector = lerp(ParticleVelocity, Input.CustomAlignmentVector, UseCustomAlignment);
-	Intermediates.ParticleVelocity.xyz = normalize(DirectionVector);
-	Intermediates.ParticleVelocity.w = length(DirectionVector);
+	Intermediates.ParticleVelocity.xyz = normalize(ParticleVelocity);
+	Intermediates.ParticleVelocity.w = length(ParticleVelocity);
 #endif
 
 #if USE_PARTICLE_TIME

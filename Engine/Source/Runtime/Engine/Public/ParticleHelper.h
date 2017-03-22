@@ -369,8 +369,6 @@ struct FParticleSpriteVertexNonInstanced
 	float SubImageIndex;
 	/** The color of the particle. */
 	FLinearColor Color;
-	/* Custom Alignment vector*/
-	FVector CustomAlignmentVector;
 };
 
 

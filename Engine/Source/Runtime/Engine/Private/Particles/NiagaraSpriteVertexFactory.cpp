@@ -136,7 +136,7 @@ public:
 	virtual void FillDeclElements(FVertexDeclarationElementList& Elements, int32& Offset)
 	{
 		uint32 InitialStride = sizeof(float) * 2;
-		uint32 PerParticleStride = (sizeof(float) * 4) * NumVertsInInstanceBuffer;
+		uint32 PerParticleStride = (sizeof(float) * 4*4 + sizeof(float)*3*2);
 
 		/** The stream to read the texture coordinates from. */
 		check( Offset == 0 );
@@ -164,6 +164,7 @@ public:
 		/** The stream to read the color from.					*/
 		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float4, 3, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
+
 		/** The stream to read the custom alignment vector from. */
 		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float3, 6, Stride, bInstanced));
 		Offset += sizeof(float) * 3;
@@ -180,6 +181,7 @@ public:
 		Stride = sizeof(float) * 4;
 		Elements.Add(FVertexElement(bInstanced ? 2 : 1, Offset, VET_Float4, 5, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
+
 	}
 
 	virtual void InitDynamicRHI()
