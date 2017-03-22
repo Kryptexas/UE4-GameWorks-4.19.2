@@ -94,7 +94,7 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 	//check(DynamicDataRender)
 
 	FNiagaraDynamicDataSprites *DynamicDataSprites = static_cast<FNiagaraDynamicDataSprites*>(DynamicDataRender);
-	if (!DynamicDataSprites || DynamicDataSprites->VertexData.Num() == 0)
+	if (!DynamicDataSprites || DynamicDataSprites->VertexData.Num() == 0 || nullptr == Properties)
 	{
 		return;
 	}

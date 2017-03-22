@@ -336,11 +336,15 @@ void FixUpPastedInputNodes(UEdGraph* Graph, TSet<UEdGraphNode*> PastedNodes)
 			}
 		}
 
-		if (MatchingInputByNameAndType != nullptr)
+		if (MatchingInputByNameAndType != nullptr && MatchingNode != nullptr)
 		{
 			// Update the id and value on the matching pasted nodes.
 			for (UNiagaraNodeInput* PastedNodeForInput : PastedNodesForInput)
 			{
+				if (nullptr == PastedNodeForInput)
+				{
+					continue;
+				}
 				PastedNodeForInput->CallSortPriority = MatchingNode->CallSortPriority;
 				PastedNodeForInput->ExposureOptions = MatchingNode->ExposureOptions;
 				PastedNodeForInput->Input.SetId(MatchingInputByNameAndType->GetId());

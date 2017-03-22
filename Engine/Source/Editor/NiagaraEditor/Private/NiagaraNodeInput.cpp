@@ -180,7 +180,7 @@ bool UNiagaraNodeInput::VerifyNodeRenameTextCommit(const FText& NewText, UNiagar
 
 			for (UNiagaraNodeInput* Node : InputNodes)
 			{
-				if (Node == InputNodeBeingChanged || Node->Usage != InputNodeBeingChanged->Usage)
+				if (Node == nullptr || Node == InputNodeBeingChanged || Node->Usage != InputNodeBeingChanged->Usage)
 				{
 					continue;
 				}
@@ -231,7 +231,7 @@ void UNiagaraNodeInput::OnRenameNode(const FString& NewName)
 	AffectedNodes.Add(this);
 	for (UNiagaraNodeInput* Node : InputNodes)
 	{
-		if (Node == this)
+		if (Node == this || Node == nullptr)
 		{
 			continue;
 		}
@@ -284,6 +284,11 @@ bool UNiagaraNodeInput::ReferencesSameInput(UNiagaraNodeInput* Other) const
 		return true;
 	}
 
+	if (Other == nullptr)
+	{
+		return false;
+	}
+
 	if (Usage == Other->Usage)
 	{
 		if (Usage == ENiagaraInputNodeUsage::Parameter && Input.GetId() == Other->Input.GetId())
@@ -317,6 +322,11 @@ void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
 			int32 HighestSortPriority = -1; // Set to -1 initially, so that in the event of no nodes, we still get zero.
 			for (UNiagaraNodeInput* InputNode : InputNodes)
 			{
+				if (InputNode == nullptr)
+				{
+					continue;
+				}
+
 				if (InputNode != this && InputNode->Usage == ENiagaraInputNodeUsage::Parameter)
 				{
 					if (this->ReferencesSameInput(InputNode))

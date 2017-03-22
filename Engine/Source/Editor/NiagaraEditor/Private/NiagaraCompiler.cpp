@@ -769,6 +769,7 @@ UNiagaraGraph* FHlslNiagaraCompiler::CloneGraphAndPrepareForCompilation(UNiagara
 	if (Source == nullptr)
 	{
 		Error(LOCTEXT("NoSourceErrorMessage", "Script has no source."), nullptr, nullptr);
+		return nullptr;
 	}
 
 	if (bClearErrors)
