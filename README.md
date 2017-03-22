@@ -37,7 +37,7 @@ Special instructions for FleX branch:
 	
 2.	You should now be on the release branch. Run setup.bat. You can now run GenerateProjectFiles.bat, build UE4, run it, etc.
 	
-3.	git branch –t FleX origin/FleX
+3.	git branch –t FleX-4.15.0 origin/FleX-4.15.0
 	
 4.	git checkout FleX
 	

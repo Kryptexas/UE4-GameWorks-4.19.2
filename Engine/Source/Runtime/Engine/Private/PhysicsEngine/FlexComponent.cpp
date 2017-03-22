@@ -970,9 +970,15 @@ void UFlexComponent::SynchronizeAttachments()
 				ContainerInstance->Particles[ParticleIndex].W = Attachment.OldMass;
 				ContainerInstance->Velocities[ParticleIndex] = FVector(0.0f);
 				
-				Attachments.RemoveAt(AttachmentIndex);
+				Attachments.RemoveAtSwap(AttachmentIndex);
 			}
 		}
 	}
 }
+
+UFlexContainer* UFlexComponent::GetContainerTemplate()
+{
+	return ContainerInstance ? ContainerInstance->Template : nullptr;
+}
+
 #endif // WITH_FLEX

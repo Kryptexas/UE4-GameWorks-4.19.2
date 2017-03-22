@@ -13,6 +13,8 @@ class ENGINE_API UFlexFluidSurfaceComponent : public UPrimitiveComponent
 	GENERATED_UCLASS_BODY()
 
 public:
+	void SetEnabledReferenceCounting(bool bEnable);
+	bool GetEnabledReferenceCounting();
 	void RegisterEmitterInstance(struct FParticleEmitterInstance* EmitterInstance);
 	void UnregisterEmitterInstance(struct FParticleEmitterInstance* EmitterInstance);
 
@@ -37,6 +39,9 @@ protected:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent interface.
+
+private:
+	bool bReferenceCountingEnabled;
 };
 
 

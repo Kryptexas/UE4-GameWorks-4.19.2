@@ -34,7 +34,7 @@ class UFlexContainer : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** The radius of particles in this container. */
-	UPROPERTY(EditAnywhere, Category=Flex, meta=(UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Flex, meta=(UIMin = "0"))
 	float Radius;
 
 	/** The maximum number of particles in this solver. */
@@ -73,19 +73,19 @@ class UFlexContainer : public UObject
 	float TimeStepSmoothingFactor;
 
 	/** Constant acceleration applied to all particles */
-	UPROPERTY(EditAnywhere, Category=Simulation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Simulation)
     FVector Gravity;
 
 	/** Particles with a velocity magnitude < this threshold will be considered fixed */
-	UPROPERTY(EditAnywhere, Category=Simulation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Simulation)
 	float SleepThreshold;
     
 	/** Particle velocity will be clamped to this value at the end of each step */
-	UPROPERTY(EditAnywhere, Category=Simulation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Simulation)
 	float MaxVelocity;                 
    
 	/** Clamp the maximum bound for this container to prevent crashes if flex particles move too far away*/
-	UPROPERTY(EditAnywhere, Category=Simulation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Simulation)
 	float MaxContainerBound;  
 
 	/** The mode used for constraint relaxation */
@@ -93,11 +93,11 @@ class UFlexContainer : public UObject
 	TEnumAsByte<EFlexSolverRelaxationMode::Type> RelaxationMode;
 
 	/** Control the convergence rate of the parallel solver, for global relaxation values < 1.0 should be used, e.g: (0.25), high values will converge faster but may cause divergence */
-	UPROPERTY(EditAnywhere, Category=Simulation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Simulation)
 	float RelaxationFactor;	
 
 	/** Viscous damping applied to all particles */
-	UPROPERTY(EditAnywhere, Category = Simulation, meta = (UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Simulation, meta = (UIMin = "0"))
 	float Damping;
 
 	/** If true then particles will collide with complex collision shapes */
@@ -113,15 +113,15 @@ class UFlexContainer : public UObject
 	struct FCollisionResponseContainer	ResponseToChannels;
 	
 	/** Distance particles maintain against shapes */
-	UPROPERTY(EditAnywhere, Category=Collision)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
     float CollisionDistance;
 
 	/** Increases the radius used during neighbor finding, this is useful if particles are expected to move significantly during a single step to ensure contacts aren't missed on subsequent iterations */
-	UPROPERTY(EditAnywhere, Category = Collision, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Collision, AdvancedDisplay)
 	float CollisionMarginParticles;
 
 	/** Increases the radius used during contact finding against kinematic shapes, this is useful if particles are expected to move significantly during a single step to ensure contacts aren't missed on subsequent iterations */
-	UPROPERTY(EditAnywhere, Category = Collision, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Collision, AdvancedDisplay)
 	float CollisionMarginShapes;
 
     /** Use the merged bounds of all Flex actors to query for collision components, this can be more efficient than querying each actor's bounds if actors are typically in close proximity*/
@@ -129,39 +129,39 @@ class UFlexContainer : public UObject
     bool bUseMergedBounds;
 
 	/** Coefficient of friction used when colliding against shapes */
-	UPROPERTY(EditAnywhere, Category=Collision)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
     float ShapeFriction;
 
 	/** Multiplier for friction of particles against other particles */
-	UPROPERTY(EditAnywhere, Category=Collision)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
 	float ParticleFriction;
 	
 	/** Coefficient of restitution used when colliding against shapes */
-	UPROPERTY(EditAnywhere, Category=Collision)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
     float Restitution;                 
 
 	/** Control how strongly particles stick to surfaces they hit, affects both fluid and non-fluid particles, default 0.0, range [0.0, +inf] */
-	UPROPERTY(EditAnywhere, Category=Collision)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
 	float Adhesion;
     
 	/** Artificially decrease the mass of particles based on height from a fixed reference point, this makes stacks and piles converge faster */
-	UPROPERTY(EditAnywhere, Category = Collision, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Collision, AdvancedDisplay)
 	float ShockPropagation;
     
 	/** Damp particle velocity based on how many particle contacts it has */
-	UPROPERTY(EditAnywhere, Category=Collision)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
 	float Dissipation;
 	
     /** Constant acceleration applied to particles that belong to dynamic triangles */
-	UPROPERTY(EditAnywhere, Category=Cloth)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Cloth)
     FVector Wind;
 
 	/** Drag force applied to particles belonging to dynamic triangles, proportional to velocity^2*area in the negative velocity direction */
-	UPROPERTY(EditAnywhere, Category=Cloth)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Cloth)
     float Drag;
 
 	/** Lift force applied to particles belonging to dynamic triangles, proportional to velocity^2*area in the direction perpendicular to velocity and (if possible), parallel to the plane normal */
-	UPROPERTY(EditAnywhere, Category=Cloth)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Cloth)
     float Lift;
 
 	/** If true, particles with phase 0 are considered fluid particles and interact using the position based fluids method */
@@ -169,43 +169,43 @@ class UFlexContainer : public UObject
     bool Fluid;                        
 	
 	/** Controls the distance fluid particles are spaced at the rest density, the absolute distance is given by this value*radius, must be in the range (0, 1) */
-	UPROPERTY(EditAnywhere, Category=Fluid, meta=(editcondition="Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Fluid, meta=(editcondition="Fluid"))
 	float RestDistance;                
        
 	/** Control how strongly particles hold each other together, default: 0.025, range [0.0, +inf] */
-	UPROPERTY(EditAnywhere, Category=Fluid, meta=(editcondition="Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Fluid, meta=(editcondition="Fluid"))
 	float Cohesion;
     
 	/** Controls how strongly particles attempt to minimize surface area, default: 0.0, range: [0.0, +inf]  */
-	UPROPERTY(EditAnywhere, Category=Fluid, meta=(editcondition="Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Fluid, meta=(editcondition="Fluid"))
 	float SurfaceTension;
     
 	/** Smoothes particle velocities using XSPH viscosity */
-	UPROPERTY(EditAnywhere, Category=Fluid, meta=(editcondition="Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Fluid, meta=(editcondition="Fluid"))
 	float Viscosity;
     
 	/** Increases vorticity by applying rotational forces to particles */
-	UPROPERTY(EditAnywhere, Category=Fluid, meta=(editcondition="Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Fluid, meta=(editcondition="Fluid"))
 	float VorticityConfinement;
     
 	/** Add pressure from solid surfaces to particles */
-	UPROPERTY(EditAnywhere, Category=Fluid, meta=(editcondition="Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Fluid, meta=(editcondition="Fluid"))
 	float SolidPressure;
 	
 	/** Anisotropy scale for ellipsoid surface generation, default 0.0 disables anisotropy computation.*/
-	UPROPERTY(EditAnywhere, Category = Fluid, meta = (editcondition = "Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Fluid, meta = (editcondition = "Fluid"))
 	float AnisotropyScale;
 
 	/** Anisotropy minimum scale, this is specified as a fraction of the particle radius, the scale of the particle will be clamped to this minimum in each direction.*/
-	UPROPERTY(EditAnywhere, Category = Fluid, meta = (editcondition = "Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Fluid, meta = (editcondition = "Fluid"))
 	float AnisotropyMin;
 
 	/** Anisotropy maximum scale, this is specified as a fraction of the particle radius, the scale of the particle will be clamped to this minimum in each direction.*/
-	UPROPERTY(EditAnywhere, Category = Fluid, meta = (editcondition = "Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Fluid, meta = (editcondition = "Fluid"))
 	float AnisotropyMax;
 
 	/** Scales smoothing of particle positions for surface rendering, default 0.0 disables smoothing.*/
-	UPROPERTY(EditAnywhere, Category = Fluid, meta = (editcondition = "Fluid"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Fluid, meta = (editcondition = "Fluid"))
 	float PositionSmoothing;
 
 	/** Drag force applied to boundary fluid particles */

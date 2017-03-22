@@ -166,6 +166,12 @@ public:
 		/// Will return true if GetWorld() is null    
 	bool IsInEditorWorld() const;
 
+	/**
+	* Get the FleX container template
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|Flex")
+	virtual UFlexContainer* GetContainerTemplate();
+
 private:
 	void UpdateSimPositions();
 	void SynchronizeAttachments();

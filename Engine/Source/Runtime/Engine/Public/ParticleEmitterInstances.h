@@ -333,6 +333,10 @@ public:
 	struct FFlexParticleEmitterInstance* FlexEmitterInstance;
 	/** Registered fluid surface component								*/
 	class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent;
+	/** Replace the FlexFluidSurfaceComponent for material overrides	*/
+	void RegisterNewFlexFluidSurfaceComponent(class UFlexFluidSurface* NewFlexFluidSurface);
+	/** Attach a component to the Flex particles in this emitter instance */
+	void AttachFlexToComponent(USceneComponent* InComponent, float InRadius);
 #endif // WITH_FLEX
 
 	/** The number of triangles to render								*/
