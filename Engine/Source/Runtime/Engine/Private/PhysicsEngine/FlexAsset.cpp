@@ -775,6 +775,7 @@ public:
 {
 	bWillEverBeLit = true;
 	bNeedsUnbuiltPreviewLighting = true;
+	bVerifyUsedMaterials = false;
 
 	ViewRelevance.bDrawRelevance = true;
 	ViewRelevance.bDynamicRelevance = true;
