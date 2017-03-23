@@ -78,7 +78,7 @@ private:
 class FRCPassPostProcessTonemapES2 : public TRenderingCompositePassBase<3, 1>
 {
 public:
-	FRCPassPostProcessTonemapES2(const FViewInfo& View, bool bInUsedFramebufferFetch);
+	FRCPassPostProcessTonemapES2(const FViewInfo& View, bool bInUsedFramebufferFetch, bool bInSRGBAwareTarget);
 
 	// interface FRenderingCompositePass ---------
 
@@ -91,6 +91,7 @@ private:
 	const FViewInfo& View;
 
 	bool bUsedFramebufferFetch;
+	bool bSRGBAwareTarget;
 	// set in constructor
 	uint32 ConfigIndexMobile;
 

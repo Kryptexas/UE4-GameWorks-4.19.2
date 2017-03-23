@@ -330,8 +330,8 @@ public class IOSPlatform : Platform
 				CombinePaths(SC.LocalRoot, "Engine"),
 				Params.Distribution, 
 				"",
-				false,
-				true);
+				false, 
+				false);
 
 			// figure out where to pop in the staged files
 			string AppDirectory = string.Format("{0}/Payload/{1}.app",

@@ -279,10 +279,13 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 	}
 	else
 	{
-		uint32 BufferSize = Buffer.length;
-		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, BufferSize * 2, Offset, LastRead, GFrameCounter);
+		const uint32 BufferSize = Buffer.length;
+		uint32 NewBufferSize;
+		for(NewBufferSize = BufferSize << 1; NewBufferSize < Size; NewBufferSize <<= 1) { }
+
+		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, NewBufferSize, Offset, LastRead, GFrameCounter);
 		SafeReleaseMetalResource(Buffer);
-		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:BufferSize * 2 options:BUFFER_CACHE_MODE];
+		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:NewBufferSize options:BUFFER_CACHE_MODE];
 		TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 		Offset = 0;
 		LastRead = Size;

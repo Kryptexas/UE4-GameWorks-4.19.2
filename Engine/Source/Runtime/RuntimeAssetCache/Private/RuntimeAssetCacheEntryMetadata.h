@@ -59,17 +59,17 @@ public:
 		LastAccessTime = Value;
 	}
 
-	FDateTime GetLastAccessTime()
+	FDateTime GetLastAccessTime() const
 	{
 		return LastAccessTime;
 	}
 
-	FName GetName()
+	FName GetName() const
 	{
 		return Name;
 	}
 
-	bool IsBuilding()
+	bool IsBuilding() const
 	{
 		return bIsBuilding;
 	}

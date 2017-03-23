@@ -599,6 +599,7 @@ half2 CocBlendScaleBiasFine()
 }
 
 float4 OverlayColor;
+float SRGBAwareTarget;
 
 void MainPS_ES2(
 	in float4 UVAndScreenPos : TEXCOORD0,
@@ -724,13 +725,23 @@ void MainPS_ES2(
 		#endif
 
 		half3 FilmColor = FilmPostProcess(LinearColor.rgb);
-		#if IOS
+		half3 TonemappedColor;
+		if (SRGBAwareTarget > 0.5)
+		{
+			// skip sRGB conversion if HW conversion will take place.
+			TonemappedColor = FilmColor;
+		}
+		else
+		{
+#if IOS
 			// Note, iOS native output is raw gamma 2.2 not sRGB!
-			half3 TonemappedColor = pow(FilmColor.rgb, 1.0/2.2);
-		#else
+			TonemappedColor = pow(FilmColor.rgb, 1.0 / 2.2);
+#else
 			// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-			half3 TonemappedColor = LinearToSrgbBranchless(FilmColor);
-		#endif
+			TonemappedColor = LinearToSrgbBranchless(FilmColor);
+#endif
+		}
+
 
 		// Blend with custom LDR color, used for Fade track in Matinee.
 		// This is the 101% wrong way to do this,

@@ -1175,7 +1175,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 #else
 	bool const bAlignedStride = false; // Always Shared memory, so won't use the blit command encoder operations.
 #endif
-	const uint32 MipBytes = GetMipSize(MipIndex, &DestStride, false, bAlignedStride);
+	uint32 MipBytes = GetMipSize(MipIndex, &DestStride, false, bAlignedStride);
 	
 	// allocate some temporary memory
 	if(!LockedMemory[MipIndex])
@@ -1224,7 +1224,14 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 				//kick the current command buffer.
 				GetMetalDeviceContext().SubmitCommandBufferAndWait();
 #endif
-				[Texture getBytes:[LockedMemory[MipIndex] contents] bytesPerRow:DestStride bytesPerImage:MipBytes fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
+				uint32 BytesPerRow = DestStride;
+				if (PixelFormat == PF_PVRTC2 || PixelFormat == PF_PVRTC4)
+				{
+					// for compressed textures metal debug RT expects 0 for rowBytes and imageBytes.
+					BytesPerRow = 0;
+					MipBytes = 0;
+				}
+				[Texture getBytes:[LockedMemory[MipIndex] contents] bytesPerRow:BytesPerRow bytesPerImage:MipBytes fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
 			}
 			
 #if PLATFORM_MAC

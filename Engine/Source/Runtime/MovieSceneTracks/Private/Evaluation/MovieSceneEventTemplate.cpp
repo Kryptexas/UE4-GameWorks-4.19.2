@@ -12,10 +12,9 @@
 
 DECLARE_CYCLE_STAT(TEXT("Event Track Token Execute"), MovieSceneEval_EventTrack_TokenExecute, STATGROUP_MovieSceneEval);
 
-
-struct FEventData
+struct FMovieSceneEventData
 {
-	FEventData(const FEventPayload& InPayload, float InGlobalPosition) : Payload(InPayload), GlobalPosition(InGlobalPosition) {}
+	FMovieSceneEventData(const FEventPayload& InPayload, float InGlobalPosition) : Payload(InPayload), GlobalPosition(InGlobalPosition) {}
 
 	FEventPayload Payload;
 	float GlobalPosition;
@@ -25,7 +24,7 @@ struct FEventData
 struct FEventTrackExecutionToken
 	: IMovieSceneExecutionToken
 {
-	FEventTrackExecutionToken(TArray<FEventData> InEvents) : Events(MoveTemp(InEvents)) {}
+	FEventTrackExecutionToken(TArray<FMovieSceneEventData> InEvents) : Events(MoveTemp(InEvents)) {}
 
 	/** Execute this token, operating on all objects referenced by 'Operand' */
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
@@ -41,7 +40,7 @@ struct FEventTrackExecutionToken
 				continue;
 			}
 
-			for (FEventData& Event : Events)
+			for (FMovieSceneEventData& Event : Events)
 			{
 #if !UE_BUILD_SHIPPING
 				if (Event.Payload.EventName == NAME_PerformanceCapture)
@@ -71,7 +70,7 @@ struct FEventTrackExecutionToken
 #endif	// UE_BUILD_SHIPPING
 	}
 
-	void TriggerEvent(FEventData& Event, UObject& EventContextObject, IMovieScenePlayer& Player)
+	void TriggerEvent(FMovieSceneEventData& Event, UObject& EventContextObject, IMovieScenePlayer& Player)
 	{
 		UFunction* EventFunction = EventContextObject.FindFunction(Event.Payload.EventName);
 
@@ -128,7 +127,7 @@ struct FEventTrackExecutionToken
 		}
 	}
 
-	TArray<FEventData> Events;
+	TArray<FMovieSceneEventData> Events;
 };
 
 FMovieSceneEventSectionTemplate::FMovieSceneEventSectionTemplate(const UMovieSceneEventSection& Section, const UMovieSceneEventTrack& Track)
@@ -156,7 +155,7 @@ void FMovieSceneEventSectionTemplate::EvaluateSwept(const FMovieSceneEvaluationO
 		return;
 	}
 
-	TArray<FEventData> Events;
+	TArray<FMovieSceneEventData> Events;
 
 	TRange<float> SweptRange = Context.GetRange();
 
@@ -177,7 +176,7 @@ void FMovieSceneEventSectionTemplate::EvaluateSwept(const FMovieSceneEvaluationO
 			float Time = KeyTimes[KeyIndex];
 			if (SweptRange.Contains(Time))
 			{
-				Events.Add(FEventData(KeyValues[KeyIndex], Position));
+				Events.Add(FMovieSceneEventData(KeyValues[KeyIndex], Position));
 			}
 		}
 	}
@@ -187,7 +186,7 @@ void FMovieSceneEventSectionTemplate::EvaluateSwept(const FMovieSceneEvaluationO
 		float Time = KeyTimes[KeyIndex];
 		if (SweptRange.Contains(Time))
 		{
-			Events.Add(FEventData(KeyValues[KeyIndex], Position));
+			Events.Add(FMovieSceneEventData(KeyValues[KeyIndex], Position));
 		}
 	}
 
