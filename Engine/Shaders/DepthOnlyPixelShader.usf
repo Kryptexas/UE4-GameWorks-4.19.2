@@ -40,6 +40,10 @@ void Main(
 	GetFlexFluidSurfaceCoverageAndClipping(FactoryInterpolants);
 	OutColor = 0;
 	OutDepth = GetFlexFluidSurfaceDepth(FactoryInterpolants);
+	
+	#if MATERIALBLENDING_MASKED_USING_COVERAGE
+	OutCoverage = 0xF;
+	#endif
 
 #else
 
