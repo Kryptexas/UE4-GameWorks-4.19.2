@@ -1362,7 +1362,7 @@ namespace AutomationTool
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
 			Dest = ConvertSeparators(PathSeparator.Default, Dest);
-			Dest = Dest.TrimEnd(PathSeparator.Default.ToString().ToCharArray());
+			Dest = Dest.TrimEnd(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar });
 
 			if (InternalUtils.SafeDirectoryExists(Dest))
 			{
