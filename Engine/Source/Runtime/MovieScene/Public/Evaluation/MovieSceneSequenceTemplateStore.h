@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UObject/ObjectKey.h"
 
 class UMovieSceneSequence;
 struct FMovieSceneEvaluationTemplate;
@@ -27,6 +28,8 @@ struct FMovieSceneSequenceTemplateStore
 	}
 
 	MOVIESCENE_API virtual FMovieSceneEvaluationTemplate& GetCompiledTemplate(UMovieSceneSequence& Sequence);
+
+	MOVIESCENE_API virtual FMovieSceneEvaluationTemplate& GetCompiledTemplate(UMovieSceneSequence& Sequence, FObjectKey InSequenceKey);
 
 protected:
 

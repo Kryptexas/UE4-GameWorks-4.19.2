@@ -9,8 +9,6 @@ public class GraphEditor : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"Editor/GraphEditor/Private",
-				"Editor/GraphEditor/Private/AnimationPins",
-				"Editor/GraphEditor/Private/AnimationStateNodes",
 				"Editor/GraphEditor/Private/KismetNodes",
 				"Editor/GraphEditor/Private/KismetPins",
 				"Editor/GraphEditor/Private/MaterialNodes",
@@ -48,7 +46,6 @@ public class GraphEditor : ModuleRules
                 "Kismet",
 				"KismetWidgets",
 				"BlueprintGraph",
-				"AnimGraph",
 				"Documentation",
 				"RenderCore",
 				"RHI",

@@ -1115,11 +1115,17 @@ bool UPrimitiveComponent::ShouldCreatePhysicsState() const
 #if WITH_EDITOR
 	if (BodyInstance.bSimulatePhysics)
 	{
-		const ECollisionEnabled::Type CollisionEnabled = GetCollisionEnabled();
-		if (CollisionEnabled == ECollisionEnabled::NoCollision || CollisionEnabled == ECollisionEnabled::QueryOnly)
+		if(UWorld* World = GetWorld())
 		{
-			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidSimulateOptions", "Invalid Simulate Options: Body ({0}) is set to simulate physics but Collision Enabled is incompatible"),
-				FText::FromString(GetReadableName())));
+			if(World->IsGameWorld())
+			{
+				const ECollisionEnabled::Type CollisionEnabled = GetCollisionEnabled();
+				if (CollisionEnabled == ECollisionEnabled::NoCollision || CollisionEnabled == ECollisionEnabled::QueryOnly)
+				{
+					FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidSimulateOptions", "Invalid Simulate Options: Body ({0}) is set to simulate physics but Collision Enabled is incompatible"),
+						FText::FromString(GetReadableName())));
+				}
+			}
 		}
 	}
 
@@ -1382,6 +1388,11 @@ UMaterialInstanceDynamic* UPrimitiveComponent::CreateDynamicMaterialInstance(int
 	return MID;
 }
 
+UMaterialInterface* UPrimitiveComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+{
+	//This function should be overriden
+	return nullptr;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // MOVECOMPONENT PROFILING CODE

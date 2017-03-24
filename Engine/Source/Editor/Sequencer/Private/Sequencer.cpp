@@ -128,11 +128,9 @@ struct FSequencerTemplateStore : FMovieSceneSequenceTemplateStore
 		}
 	}
 
-	virtual FMovieSceneEvaluationTemplate& GetCompiledTemplate(UMovieSceneSequence& Sequence)
+	virtual FMovieSceneEvaluationTemplate& GetCompiledTemplate(UMovieSceneSequence& Sequence, FObjectKey InSequenceKey)
 	{
-		FObjectKey SequenceKey(&Sequence);
-
-		if (TUniquePtr<FCachedMovieSceneEvaluationTemplate>* ExistingTemplate = Templates.Find(SequenceKey))
+		if (TUniquePtr<FCachedMovieSceneEvaluationTemplate>* ExistingTemplate = Templates.Find(InSequenceKey))
 		{
 			FCachedMovieSceneEvaluationTemplate* Template = ExistingTemplate->Get();
 			Template->Regenerate(TemplateParameters);
@@ -144,7 +142,7 @@ struct FSequencerTemplateStore : FMovieSceneSequenceTemplateStore
 			NewTemplate->Initialize(Sequence, this);
 			NewTemplate->Regenerate(TemplateParameters);
 
-			Templates.Add(SequenceKey, TUniquePtr<FCachedMovieSceneEvaluationTemplate>(NewTemplate));
+			Templates.Add(InSequenceKey, TUniquePtr<FCachedMovieSceneEvaluationTemplate>(NewTemplate));
 			return *NewTemplate;
 		}
 	}
@@ -1688,6 +1686,11 @@ ISequencer::FOnActorAddedToSequencer& FSequencer::OnActorAddedToSequencer()
 ISequencer::FOnPreSave& FSequencer::OnPreSave()
 {
 	return OnPreSaveEvent;
+}
+
+ISequencer::FOnPostSave& FSequencer::OnPostSave()
+{
+	return OnPostSaveEvent;
 }
 
 ISequencer::FOnActivateSequence& FSequencer::OnActivateSequence()
@@ -3566,6 +3569,8 @@ void FSequencer::SaveCurrentMovieScene()
 	UpdateRuntimeInstances();
 	FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(ScrubPosition, GetFocusedMovieSceneSequence()->GetMovieScene()->GetOptionalFixedFrameInterval());
 	EvaluateInternal(Range);
+
+	OnPostSaveEvent.Broadcast(*this);
 }
 
 
@@ -3642,6 +3647,7 @@ void FSequencer::OnSelectedOutlinerNodesChanged()
 		SequencerEdMode->CleanUpMeshTrails();
 	}
 	OnSelectionChangedObjectGuidsDelegate.Broadcast(Selection.GetBoundObjectsGuids());
+	OnSelectionChangedTracksDelegate.Broadcast(Selection.GetSelectedTracks());
 }
 
 
@@ -3903,6 +3909,37 @@ void FSequencer::SelectObject(FGuid ObjectBinding)
 	{
 		GetSelection().Empty();
 		GetSelection().AddToSelection(Node->ToSharedRef());
+	}
+}
+
+void FSequencer::SelectByPropertyPaths(const TArray<FString>& InPropertyPaths)
+{
+	TArray<TSharedRef<FSequencerDisplayNode>> NodesToSelect;
+	for (const TSharedRef<FSequencerDisplayNode>& Node : NodeTree->GetAllNodes())
+	{
+		if (Node->GetType() == ESequencerNode::Track)
+		{
+			if (UMovieScenePropertyTrack* PropertyTrack = Cast<UMovieScenePropertyTrack>(StaticCastSharedRef<FSequencerTrackNode>(Node)->GetTrack()))
+			{
+				for (const FString& PropertyPath : InPropertyPaths)
+				{
+					if (PropertyTrack->GetPropertyPath() == PropertyPath)
+					{
+						NodesToSelect.Add(Node);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	Selection.SuspendBroadcast();
+	Selection.Empty();
+	Selection.ResumeBroadcast();
+
+	if (NodesToSelect.Num())
+	{
+		Selection.AddToSelection(NodesToSelect);
 	}
 }
 

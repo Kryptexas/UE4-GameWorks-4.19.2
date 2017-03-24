@@ -101,7 +101,7 @@ void FPhysSubstepTask::AddForce_AssumesLocked(FBodyInstance* Body, const FVector
 #endif
 }
 
-void FPhysSubstepTask::AddForceAtPosition_AssumesLocked(FBodyInstance* Body, const FVector& Force, const FVector& Position)
+void FPhysSubstepTask::AddForceAtPosition_AssumesLocked(FBodyInstance* Body, const FVector& Force, const FVector& Position, bool bIsLocalForce)
 {
 #if WITH_PHYSX
 	if (Body->IsNonKinematic())
@@ -110,6 +110,7 @@ void FPhysSubstepTask::AddForceAtPosition_AssumesLocked(FBodyInstance* Body, con
 		ForceTarget.bPosition = true;
 		ForceTarget.Force = Force;
 		ForceTarget.Position = Position;
+		ForceTarget.bIsLocalForce = bIsLocalForce;
 
 		FPhysTarget & TargetState = PhysTargetBuffers[External].FindOrAdd(Body);
 		TargetState.Forces.Add(ForceTarget);
@@ -185,7 +186,14 @@ void FPhysSubstepTask::ApplyForces_AssumesLocked(const FPhysTarget& PhysTarget, 
 
 		if (ForceTarget.bPosition)
 		{
-			PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(ForceTarget.Force), U2PVector(ForceTarget.Position), PxForceMode::eFORCE, true);
+			if (!ForceTarget.bIsLocalForce)
+			{
+				PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(ForceTarget.Force), U2PVector(ForceTarget.Position), PxForceMode::eFORCE, true);
+			}
+			else
+			{
+				PxRigidBodyExt::addLocalForceAtLocalPos(*PRigidBody, U2PVector(ForceTarget.Force), U2PVector(ForceTarget.Position), PxForceMode::eFORCE, true);
+			}
 		}
 		else
 		{

@@ -400,6 +400,9 @@ public:
 	 */
 	virtual ENGINE_API TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const;
 
+	virtual uint32 GetFrameNumber() const { return 0; }
+	virtual void IncrementFrameNumber() {}
+
 protected:
 	virtual ~FSceneInterface() {}
 };

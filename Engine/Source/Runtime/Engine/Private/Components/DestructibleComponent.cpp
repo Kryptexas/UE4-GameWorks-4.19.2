@@ -513,6 +513,14 @@ void UDestructibleComponent::AddForceAtLocation( FVector Force, FVector Location
 #endif
 }
 
+void UDestructibleComponent::AddForceAtLocationLocal(FVector Force, FVector Location, FName BoneName /*= NAME_None*/)
+{
+#if WITH_APEX
+	// AddForceAtLocation already seems to be relative for ApexDestructibles.
+	AddForceAtLocation(Force, Location, BoneName);
+#endif
+}
+
 void UDestructibleComponent::AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
 {
 #if WITH_APEX

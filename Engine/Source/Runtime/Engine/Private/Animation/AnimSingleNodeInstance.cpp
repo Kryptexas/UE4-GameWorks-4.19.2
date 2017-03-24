@@ -73,6 +73,7 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 		if ( Montage->SlotAnimTracks.Num() > 0 )
 		{
 			Proxy.RegisterSlotNodeWithAnimInstance(Montage->SlotAnimTracks[0].SlotName);
+			Proxy.SetMontagePreviewSlot(Montage->SlotAnimTracks[0].SlotName);
 		}
 		RestartMontage( Montage );
 		SetPlaying(IsPlaying());
@@ -139,6 +140,12 @@ void UAnimSingleNodeInstance::SetMontageLoop(UAnimMontage* Montage, bool bIsLoop
 		}
 		// else the default is already looping
 	}
+}
+
+void UAnimSingleNodeInstance::SetMontagePreviewSlot(FName PreviewSlot)
+{
+	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+	Proxy.SetMontagePreviewSlot(PreviewSlot);
 }
 
 void UAnimSingleNodeInstance::UpdateMontageWeightForTimeSkip(float TimeDifference)

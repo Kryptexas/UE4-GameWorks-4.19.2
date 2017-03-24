@@ -26,7 +26,7 @@ public:
 	UPROPERTY(transient)
 	TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
 
-private:
+protected:
 	/** Constraints to apply */
 	UPROPERTY(EditAnywhere, Category = "Constraints")
 	TArray<FTransformConstraint> Constraints;
@@ -110,13 +110,22 @@ public:
 	/** Check whether this manipulator is enabled */
 	virtual bool IsManipulatorEnabled(UControlManipulator* InManipulator) const { return true; }
 
+	/** Find a counterpart to this manipulator, if any */
+	virtual UControlManipulator* FindCounterpartManipulator(UControlManipulator* InManipulator) const { return nullptr; }
+
+	/** Find the main node that is driven by the node in question, if any */
+	virtual FName FindNodeDrivenByNode(FName InNodeName) const { return NAME_None; }
+
+	/** Rename current node to new node name */
+	virtual bool RenameNode(const FName& CurrentNodeName, const FName& NewNodeName);
+
 	UPROPERTY(BlueprintReadWrite, transient, Category = "Mapping")
 	UNodeMappingContainer* NodeMappingContainer;
 
 //#if WITH_EDITOR
 	// @todo shouldn't all manipulator to move to editor only?
 	// but the manipulator property is what's being animated, so this might still be needed
-	void UpdateManipulatorToNode();
+	void UpdateManipulatorToNode(bool bNotifyListeners);
 	//#endif
 public:
 	// UControlRig interface
@@ -124,6 +133,7 @@ public:
 	virtual AActor* GetHostingActor() const override;
 	virtual void BindToObject(UObject* InObject) override;
 	virtual void UnbindFromObject() override;
+	virtual bool IsBoundToObject(UObject* InObject) const override;
 	virtual	UObject* GetBoundObject() const;
 #if WITH_EDITOR
 	virtual FText GetCategory() const override;
@@ -139,6 +149,7 @@ public:
 
 	// sort the nodes
 	void Sort();
+	void UpdateNodes();
 
 private:
 	/** Create the topologically-sorted list of nodes to evaluate */
@@ -149,10 +160,12 @@ private:
 
 	// test to see if Dependent is dependent on Target
 	FTransform ResolveConstraints(const FTransform& LocalTransform, const FTransform& ParentTransform, const FConstraintNodeData& NodeData);
-	void GetDependentArray(const FName& NodeName, TArray<FName>& OutList);
+	void AddDependenciesRecursive(int32 OriginalNodeIndex, int32 NodeIndex);
 	void ApplyConstraint(const FName& NodeName);
-	void SetGlobalTransformInternal(const FName& NodeName, const FTransform& GlobalTransform);
 
+protected:
+	// for child to add more dependency list
+	virtual void GetDependentArray(const FName& NodeName, TArray<FName>& OutList) const;
 private:
 	/** Internal hierarchy data */
 	UPROPERTY()
@@ -162,18 +175,23 @@ private:
 	- @todo, we'd like to remove this but rearrange node itself? */
 	TArray<FName> SortedNodes;
 
+	/** Array of arrays giving us the nodes that need to be updated when one updates */
+	TArray<TArray<int32>> DependencyGraph;
+
 	/**  Apply Mapping Data Transform functions */
 	void ApplyMappingTransform(FName NodeName, FTransform& InOutTransform) const;
 	void ApplyInverseMappingTransform(FName NodeName, FTransform& InOutTransform) const;
 
 public:
+	/** Add a simple constraint */
+	void AddConstraint(const FTransformConstraint& TransformConstraint);
+
 #if WITH_EDITOR
 	// anything that changes hierarchy will be editor only for now
 	// BEGIN: editor only - nothing forces it but we have to make sure this works. 
 	/** Add a node to the hierarchy */
 	void AddNode(FName NodeName, FName ParentName, const FTransform& GlobalTransform, FName LinkedNode = NAME_None);
-	/** Add a simple constraint */
-	void AddConstraint(const FTransformConstraint& TransformConstraint);
+	void SetParent(FName NodeName, FName NewParentName);
 	FNodeChain MakeNodeChain(FName RootNode, FName EndNode);
 
 	/** Setter for Constraints */
@@ -181,7 +199,9 @@ public:
 	/** Setup this hierarchy ControlRig from a skeletal mesh */
 	void BuildHierarchyFromSkeletalMesh(USkeletalMesh* SkeletalMesh);
 	void DeleteNode(FName NodeName);
-	void AddManipulator(FName NodeName, FName PropertyToManipulate);
+	void DeleteConstraint(FName NodeName, FName TargetNode);
+	void UpdateConstraints();
+	UControlManipulator* AddManipulator(TSubclassOf<UControlManipulator> ManipulatorClass, FText DisplayName, FName NodeName, FName PropertyToManipulate, EIKSpaceMode KinematicSpace = EIKSpaceMode::IKMode, bool bUsesTranslation = true, bool bUsesRotation = true, bool bUsesScale = false, bool bInLocalSpace = false);
 
 	// END: editor only - nothing forces it but we have to make sure this works. 
 #endif // WITH_EDITOR

@@ -112,6 +112,8 @@ public:
 	void DebugDraw(FPrimitiveDrawInterface* PDI) const;
 #endif
 
+	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesh() const { return SkeletalMeshComponent; }
+
 private:
 	UPROPERTY()
 	USkeletalMeshComponent* SkeletalMeshComponent;

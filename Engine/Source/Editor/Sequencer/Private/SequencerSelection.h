@@ -37,6 +37,9 @@ public:
 	/** Gets a set of the outliner nodes that have selected keys or sections */
 	const TSet<TSharedRef<FSequencerDisplayNode>>& GetNodesWithSelectedKeysOrSections() const;
 
+	/** Get the currently selected tracks as UMovieSceneTracks */
+	TArray<UMovieSceneTrack*> GetSelectedTracks() const;
+
 	/** Adds a key to the selection */
 	void AddToSelection(FSequencerSelectedKey Key);
 
@@ -45,6 +48,9 @@ public:
 
 	/** Adds an outliner node to the selection */
 	void AddToSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode);
+
+	/** Adds an array of outliner nodes to the selection */
+	void AddToSelection(const TArray<TSharedRef<FSequencerDisplayNode>>& OutlinerNodes);
 
 	/** Adds an outliner node that has selected keys or sections */
 	void AddToNodesWithSelectedKeysOrSections(TSharedRef<FSequencerDisplayNode> OutlinerNode);

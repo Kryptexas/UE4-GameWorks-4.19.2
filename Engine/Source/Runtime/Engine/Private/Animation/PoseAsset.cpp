@@ -482,57 +482,57 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 			BlendedBoneTransform.AddUninitialized(TrackNum);
 			for (int32 TrackIndex = 0; TrackIndex < TrackNum; ++TrackIndex)
 			{
-				bool bValidTransform = false;
-
-				TArray<FTransform> BlendingTransform;
-				TArray<float> BlendingWeights;
-				float TotalLocalWeight = 0.f;
-				for (const TPair<const FPoseData*, float>& ActivePosePair : IndexToWeightMap)
+				// If invalid compact bone index, BlendedBoneTransform[TrackIndex] won't be used (see 'blend curves' below), so don't bother filling it in
+				const FCompactPoseBoneIndex CompactIndex = BoneIndices[TrackIndex].CompactBoneIndex;
+				if (CompactIndex != INDEX_NONE)
 				{
-					const FPoseData* Pose = ActivePosePair.Key;
-					const float Weight = ActivePosePair.Value;
-
-					if (Pose->LocalSpacePoseMask[TrackIndex])
+					TArray<FTransform> BlendingTransform;
+					TArray<float> BlendingWeights;
+					float TotalLocalWeight = 0.f;
+					for (const TPair<const FPoseData*, float>& ActivePosePair : IndexToWeightMap)
 					{
-						BlendingTransform.Add(Pose->LocalSpacePose[TrackIndex]);
-						BlendingWeights.Add(Weight);
-						TotalLocalWeight += Weight;
+						const FPoseData* Pose = ActivePosePair.Key;
+						const float Weight = ActivePosePair.Value;
+
+						if (Pose->LocalSpacePoseMask[TrackIndex])
+						{
+							BlendingTransform.Add(Pose->LocalSpacePose[TrackIndex]);
+							BlendingWeights.Add(Weight);
+							TotalLocalWeight += Weight;
+						}
 					}
-				}
 
-				const int32 StartBlendLoopIndex = (!bAdditivePose && TotalLocalWeight < 1.f) ? 0 : 1;
+					const int32 StartBlendLoopIndex = (!bAdditivePose && TotalLocalWeight < 1.f) ? 0 : 1;
 
-				if (BlendingTransform.Num() == 0)
-				{
-					// copy from out default pose
-					if (BoneIndices[TrackIndex].CompactBoneIndex != INDEX_NONE)
+					if (BlendingTransform.Num() == 0)
 					{
-						BlendedBoneTransform[TrackIndex] = OutPose[BoneIndices[TrackIndex].CompactBoneIndex];
-					}
-				}
-				else 
-				{
-					if (bAdditivePose)
-					{
-						const  FTransform AdditiveIdentity(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
-						BlendedBoneTransform[TrackIndex].Blend(AdditiveIdentity, BlendingTransform[0], BlendingWeights[0]);
+						// copy from out default pose
+						BlendedBoneTransform[TrackIndex] = OutPose[CompactIndex];
 					}
 					else
 					{
-						if (StartBlendLoopIndex == 0)
+						if (bAdditivePose)
 						{
-							BlendedBoneTransform[TrackIndex] = OutPose[BoneIndices[TrackIndex].CompactBoneIndex] * ScalarRegister(1.f - TotalLocalWeight);
+							const  FTransform AdditiveIdentity(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
+							BlendedBoneTransform[TrackIndex].Blend(AdditiveIdentity, BlendingTransform[0], BlendingWeights[0]);
 						}
 						else
 						{
-							BlendedBoneTransform[TrackIndex] = BlendingTransform[0] * ScalarRegister(BlendingWeights[0]);
+							if (StartBlendLoopIndex == 0)
+							{
+								BlendedBoneTransform[TrackIndex] = OutPose[CompactIndex] * ScalarRegister(1.f - TotalLocalWeight);
+							}
+							else
+							{
+								BlendedBoneTransform[TrackIndex] = BlendingTransform[0] * ScalarRegister(BlendingWeights[0]);
+							}
 						}
 					}
-				}
 
-				for (int32 BlendIndex = StartBlendLoopIndex; BlendIndex < BlendingTransform.Num(); ++BlendIndex)
-				{
-					BlendedBoneTransform[TrackIndex].AccumulateWithShortestRotation(BlendingTransform[BlendIndex], ScalarRegister(BlendingWeights[BlendIndex]));
+					for (int32 BlendIndex = StartBlendLoopIndex; BlendIndex < BlendingTransform.Num(); ++BlendIndex)
+					{
+						BlendedBoneTransform[TrackIndex].AccumulateWithShortestRotation(BlendingTransform[BlendIndex], ScalarRegister(BlendingWeights[BlendIndex]));
+					}
 				}
 			}
 

@@ -401,6 +401,7 @@ namespace EMaterialShaderMapUsage
 		MaterialExportAO,
 		MaterialExportEmissive,
 		MaterialExportOpacity,
+		MaterialExportOpacityMask,
 		MaterialExportSubSurfaceColor,
 		DebugViewModeTexCoordScale,
 		DebugViewModeRequiredTextureResolution

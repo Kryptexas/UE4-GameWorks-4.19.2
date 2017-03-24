@@ -11,20 +11,20 @@
 #include "Constraint.generated.h"
 
 USTRUCT(BlueprintType)
-struct ANIMATIONCORE_API FConstraintAxesOption
+struct ANIMATIONCORE_API FFilterOptionPerAxis
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FConstraintAxesOption)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FFilterOptionPerAxis)
 	bool bX;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FConstraintAxesOption)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FFilterOptionPerAxis)
 	bool bY;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FConstraintAxesOption)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FFilterOptionPerAxis)
 	bool bZ;
 
-	FConstraintAxesOption()
+	FFilterOptionPerAxis()
 		: bX(true)
 		, bY(true)
 		, bZ(true)
@@ -49,7 +49,7 @@ struct ANIMATIONCORE_API FConstraintAxesOption
 		}
 	}
 
-	friend FArchive & operator<<(FArchive & Ar, FConstraintAxesOption & D)
+	friend FArchive & operator<<(FArchive & Ar, FFilterOptionPerAxis & D)
 	{
 		Ar << D.bX;
 		Ar << D.bY;
@@ -79,18 +79,18 @@ struct ANIMATIONCORE_API FConstraintDescription
 	bool bParent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constraint")
-	FConstraintAxesOption TranslationAxes;
+	FFilterOptionPerAxis TranslationAxes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constraint")
-	FConstraintAxesOption RotationAxes;
+	FFilterOptionPerAxis RotationAxes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constraint")
-	FConstraintAxesOption ScaleAxes;
+	FFilterOptionPerAxis ScaleAxes;
 
 	FConstraintDescription()
 		: bTranslation(true)
 		, bRotation(true)
-		, bScale(true)
+		, bScale(false)
 		, bParent(false)
 	{
 	}

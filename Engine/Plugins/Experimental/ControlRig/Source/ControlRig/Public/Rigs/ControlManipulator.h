@@ -5,19 +5,22 @@
 #include "CoreMinimal.h"
 #include "ObjectMacros.h"
 #include "UObject/Object.h"
+#if WITH_EDITOR
+#include "PropertyPath.h"
+#endif
 #include "ControlManipulator.generated.h"
 
 UENUM(BlueprintType)
 enum class EIKSpaceMode : uint8
 {
-	/** Use Weight*/
-	UseWeight,
+	/** Switch To IK Mode */
+	IKMode		UMETA(DisplayName = "IK Mode"),
 
-	/** Switch to FK */
-	SwitchToFK,
+	/** Switch to FK Mode */
+	FKMode		UMETA(DisplayName = "FK Mode"),
 
-	/** Switch To IK */
-	SwitchToIK,
+	/** Use Weight */
+	UseWeight	UMETA(Hidden),
 };
 
 class UStaticMeshComponent;
@@ -47,15 +50,26 @@ class CONTROLRIG_API UControlManipulator : public UObject
 public:
 	/** The name of this manipulator */
 	UPROPERTY(EditAnywhere, Category = "Manipulator")
+	FText DisplayName;
+
+	/** The name of this manipulator's node */
+	UPROPERTY(EditAnywhere, Category = "Manipulator")
 	FName Name;
 
 	/** The name of the property that this manipulator controls (this can be a transform, vector, rotator etc.) */
 	UPROPERTY(EditAnywhere, Category = "Manipulator")
 	FName PropertyToManipulate;
 
-	/** The property that this manipulator controls (this can be a transform, vector, rotator etc.) p */
+	/** The property chain leading to the cached property */
+	UPROPERTY(Transient)
+	mutable TArray<UProperty*> CachedPropertyChain;
+
+	/** The property that this manipulator controls (this can be a transform, vector, rotator etc.) */
 	UPROPERTY(Transient)
 	mutable UProperty* CachedProperty;
+
+	/** The address for CachedProperty */
+	mutable void* CachedPropertyAddress;
 
 	/** Whether this manipulator works in Inverse or Forward kinematic space */
 	UPROPERTY(EditAnywhere, Category = "Kinematics")
@@ -79,13 +93,46 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Transform Components")
 	bool bInLocalSpace;
 
+#if WITH_EDITORONLY_DATA
+	/** The proximity of the cursor, used for editor highlighting */
+	float CurrentProximity;
+
+	/** The desired proximity of the cursor, used for editor highlighting */
+	float TargetProximity;
+
+	/** Whether to notify listeners of any property changes */
+	bool bNotifyListeners;
+
+	/** Whether we are currently manipulating */
+	bool bManipulating;
+
+	/** Position of manipulator button in picker panel */
+	UPROPERTY(EditAnywhere, Category = "Picker")
+	FVector2D PickerPos;
+	/** Size of manipulator button in picker panel */
+	UPROPERTY(EditAnywhere, Category = "Picker")
+	FVector2D PickerSize;
+
+	/** Cached property path for our property, used for keying in Sequencer */
+	mutable FPropertyPath CachedPropertyPath;
+#endif
+
 public:
 	UControlManipulator()
-		: KinematicSpace(EIKSpaceMode::UseWeight)
+		: CachedPropertyAddress(nullptr)
+		, KinematicSpace(EIKSpaceMode::UseWeight)
 		, bUsesTranslation(true)
 		, bUsesRotation(true)
 		, bUsesScale(false)
 		, bInLocalSpace(false)
+#if WITH_EDITOR
+		, CurrentProximity(0.0f)
+		, TargetProximity(1.0f)
+		, bNotifyListeners(true)
+		, bManipulating(false)
+		, PickerPos(FVector2D::ZeroVector)
+		, PickerSize(FVector2D(20,20))
+#endif
 	{}
 
 	/** Set up any internal data on initial tick */
@@ -172,7 +219,16 @@ public:
 	 * @param	InComponent		The component to check
 	 */
 	virtual bool SupportsTransformComponent(ETransformComponent InComponent) const;
+
+	/** Get the local bounds of this manipulator */
+	virtual FBox GetLocalBoundingBox() const { return FBox(FVector(-0.5f), FVector(0.5f)); }
+
+	/** Get the local bounds of this manipulator */
+	virtual FSphere GetLocalBoundingSphere() const { return FSphere(FVector::ZeroVector, 1.0f); }
 #endif
+
+	/** Let the target object know we have changed one of its properties */
+	void NotifyPostEditChangeProperty(UObject* InContainer);
 
 protected:
 	/** Cache the property this manipulator references */
@@ -180,9 +236,6 @@ protected:
 
 	/** Let the target object know we are about to change one of its properties */
 	void NotifyPreEditChangeProperty(UObject* InContainer);
-
-	/** Let the target object know we have changed one of its properties */
-	void NotifyPostEditChangeProperty(UObject* InContainer);
 };
 
 UCLASS(Abstract, editinlinenew)
@@ -201,13 +254,16 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Color")
 	FLinearColor SelectedColor;
 
-	// UControlManipulator interface
-	void Initialize(UObject* InContainer) override;
+#if WITH_EDITOR
+	virtual void Draw(const FTransform& InTransform, const FSceneView* View, FPrimitiveDrawInterface* PDI, bool bIsSelected) override;
+#endif
 
 protected:
+#if WITH_EDITORONLY_DATA
 	/** Material we use for rendering with a single color */
 	UPROPERTY(Transient)
-	UMaterialInstanceDynamic* ColorMaterial;
+	TWeakObjectPtr<UMaterialInstanceDynamic> ColorMaterial;
+#endif
 };
 
 UCLASS(editinlinenew)
@@ -224,7 +280,9 @@ public:
 
 public:
 #if WITH_EDITOR
-	virtual void Draw(const FTransform& InTransform, const FSceneView* View, FPrimitiveDrawInterface* PDI, bool bIsSelected);
+	virtual void Draw(const FTransform& InTransform, const FSceneView* View, FPrimitiveDrawInterface* PDI, bool bIsSelected) override;
+	virtual FBox GetLocalBoundingBox() const override { return FBox(FVector(-Radius), FVector(Radius)); }
+	virtual FSphere GetLocalBoundingSphere() const override { return FSphere(FVector::ZeroVector, Radius); }
 #endif
 };
 
@@ -241,6 +299,10 @@ public:
 	FVector BoxExtent;
 
 public:
-	virtual void Draw(const FTransform& InTransform, const FSceneView* View, FPrimitiveDrawInterface* PDI, bool bIsSelected);
+#if WITH_EDITOR
+	virtual void Draw(const FTransform& InTransform, const FSceneView* View, FPrimitiveDrawInterface* PDI, bool bIsSelected) override;
+	virtual FBox GetLocalBoundingBox() const override { return FBox(-BoxExtent, BoxExtent); }
+	virtual FSphere GetLocalBoundingSphere() const override { return FSphere(FVector::ZeroVector, BoxExtent.GetMax()); }
+#endif
 };
 

@@ -18,7 +18,8 @@ public class SimplygonMeshReduction : ModuleRules
                 "RawMesh",
                 "MaterialUtilities",
                 "MeshBoneReduction",
-                "RHI"
+                "RHI",
+                "AnimationModifiers"
 			}
         );
 

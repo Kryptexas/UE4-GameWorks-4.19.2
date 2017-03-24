@@ -3,6 +3,7 @@
 #include "SNiagaraCurveEditor.h"
 #include "NiagaraEffectViewModel.h"
 #include "SCurveEditor.h"
+#include "SOverlay.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "RichCurveEditorCommands.h"
 #include "Widgets/Input/SNumericDropDown.h"

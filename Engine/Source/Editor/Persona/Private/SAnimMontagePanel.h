@@ -21,7 +21,7 @@ class STextBlock;
 
 DECLARE_DELEGATE( FOnMontageLengthChange )
 DECLARE_DELEGATE( FOnMontagePropertyChanged )
-
+DECLARE_DELEGATE_OneParam( FOnMontageSetPreviewSlot, int32)
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimMontagePanel
@@ -64,6 +64,7 @@ public:
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
 	SLATE_EVENT( FOnAnimObjectChange, OnMontageChange )
 	SLATE_EVENT( FOnInvokeTab, OnInvokeTab )
+	SLATE_EVENT(FOnMontageSetPreviewSlot, OnSetMontagePreviewSlot)
 	SLATE_ARGUMENT(bool, bChildAnimMontage)
 	SLATE_END_ARGS()
 
@@ -99,6 +100,10 @@ public:
 	// get slot name from a montage editor and check the slot name whether valid or not
 	FText GetMontageSlotName(int32 SlotIndex) const;
 	
+	// Handlers for preview slot checkbox UI
+	ECheckBoxState IsSlotPreviewed(int32 SlotIndex) const;
+	void OnSlotPreviewedChanged(ECheckBoxState NewState, int32 SlotIndex);
+
 	// Context menu callback to set all elements in the montage to a given link method
 	void OnSetElementsToLinkMode(EAnimLinkMethod::Type NewLinkMethod);
 
@@ -133,6 +138,10 @@ private:
 
 	TSharedPtr<STrack> SectionNameTrack;
 	TAttribute<EVisibility> SectionTimingNodeVisibility;
+
+	/** Member data to allow use to set preview slot from editor */
+	int32					 CurrentPreviewSlot;
+	FOnMontageSetPreviewSlot OnSetMontagePreviewSlot;
 
   	/* 
 	 * Child Anim Montage: Child Anim Montage only can replace name of animations, and no other meaningful edits 

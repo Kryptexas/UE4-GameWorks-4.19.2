@@ -94,7 +94,7 @@ public:
 	*
 	* @param OutColors	The populated list of colors
 	*/
-	ENGINE_API void GetVertexColors(TArray<FColor>& OutColors);
+	ENGINE_API void GetVertexColors(TArray<FColor>& OutColors) const;
 
 	/**
 	* Load from a array of colors

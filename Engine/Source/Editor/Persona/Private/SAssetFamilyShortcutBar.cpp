@@ -161,7 +161,7 @@ public:
 				.ForegroundColor(FSlateColor::UseForeground())
 				.ButtonStyle(FEditorStyle::Get(), "Toolbar.Button")
 				.OnGetMenuContent(this, &SAssetShortcut::HandleGetMenuContent)
-				.ToolTipText(LOCTEXT("AssetComboTooltip", "Find other assets of this type and perform asset operations."))
+				.ToolTipText(LOCTEXT("AssetComboTooltip", "Find other assets of this type and perform asset operations./nShift-Click to open in new window."))
 			]
 		];
 
@@ -275,9 +275,12 @@ public:
 	{
 		FSlateApplication::Get().DismissAllMenus();
 
-		TArray<UObject*> Assets;
-		Assets.Add(InAssetData.GetAsset());
-		FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		if (InAssetData.IsValid())
+		{
+			TArray<UObject*> Assets;
+			Assets.Add(InAssetData.GetAsset());
+			FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		}
 	}
 
 	bool HandleFilterAsset(const class FAssetData& InAssetData)

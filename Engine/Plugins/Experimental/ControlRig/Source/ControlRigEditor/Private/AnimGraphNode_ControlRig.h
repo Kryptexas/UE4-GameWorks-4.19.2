@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "AnimGraphNode_SkeletalControlBase.h"
+#include "AnimGraphNode_Base.h"
 #include "AnimNode_ControlRig.h"
 #include "AnimGraphNode_ControlRig.generated.h"
 
 UCLASS(MinimalAPI)
-class UAnimGraphNode_ControlRig : public UAnimGraphNode_SkeletalControlBase
+class UAnimGraphNode_ControlRig : public UAnimGraphNode_Base
 {
 	GENERATED_UCLASS_BODY()
 
@@ -18,8 +18,5 @@ public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
-
-	// UAnimGraphNode_SkeletalControlBase interface
-	virtual FText GetControllerDescription() const override;
 };
 

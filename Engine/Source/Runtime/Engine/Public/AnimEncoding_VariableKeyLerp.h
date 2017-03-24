@@ -388,7 +388,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomScale(
  * @return					None. 
  */
 template<int32 FORMAT>
-FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseRotations(	
+void AEFVariableKeyLerp<FORMAT>::GetPoseRotations(	
 	FTransformArray& Atoms, 
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,
@@ -424,7 +424,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseRotations(
  * @return					None. 
  */
 template<int32 FORMAT>
-FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseTranslations(	
+void AEFVariableKeyLerp<FORMAT>::GetPoseTranslations(	
 	FTransformArray& Atoms, 
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,
@@ -460,7 +460,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseTranslations(
  * @return					None. 
  */
 template<int32 FORMAT>
-FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseScales(	
+void AEFVariableKeyLerp<FORMAT>::GetPoseScales(	
 	FTransformArray& Atoms, 
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,

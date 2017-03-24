@@ -5,11 +5,13 @@
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
 #include "Types/SlateEnums.h"
+#include "Layout/Visibility.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;
 class SEditableTextBox;
 class UAssetViewerSettings;
+class SSettingsEditorCheckoutNotice;
 
 class FAssetViewerSettingsCustomization : public IDetailCustomization
 {
@@ -28,11 +30,17 @@ protected:
 	
 	// Check whether or not the given profile name is valid by cross-referencing it with existing names
 	const bool IsProfileNameValid(const FString& NewName);
+	bool CanSetSharedProfile() const;
+	EVisibility ShowFileWatcherWidget() const;
+	FString SharedProfileConfigFilePath() const;
 private:
 	// Customized name edit text box used for the profile name
 	TSharedPtr<SEditableTextBox> NameEditTextBox;
 	// Cached data
 	TSharedPtr<IPropertyHandle> NameProperty;
+	/** Watcher widget for the default config file (checks file status / SCC state). */
+	TSharedPtr<SSettingsEditorCheckoutNotice> FileWatcherWidget;
+
 	int32 ProfileIndex;
 	UAssetViewerSettings* ViewerSettings;
 	bool bValidProfileName;

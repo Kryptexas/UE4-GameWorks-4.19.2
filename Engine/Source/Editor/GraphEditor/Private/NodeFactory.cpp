@@ -58,31 +58,6 @@
 #include "KismetNodes/SGraphNodeMakeStruct.h"
 #include "KismetNodes/SGraphNodeK2Copy.h"
 
-#include "Animation/AnimNodeBase.h"
-#include "AnimGraphNode_Base.h"
-#include "AnimGraphNode_Root.h"
-#include "AnimGraphNode_SequencePlayer.h"
-#include "AnimGraphNode_StateMachineBase.h"
-#include "AnimGraphNode_LayeredBoneBlend.h"
-#include "AnimStateNode.h"
-#include "AnimStateEntryNode.h"
-#include "AnimStateConduitNode.h"
-#include "AnimStateTransitionNode.h"
-
-#include "AnimationStateMachineSchema.h"
-#include "AnimationGraphSchema.h"
-
-#include "AnimationStateNodes/SGraphNodeAnimState.h"
-#include "AnimationStateNodes/SGraphNodeAnimTransition.h"
-#include "AnimationStateNodes/SGraphNodeAnimStateEntry.h"
-
-#include "AnimationNodes/SAnimationGraphNode.h"
-#include "AnimationNodes/SGraphNodeSequencePlayer.h"
-#include "AnimationNodes/SGraphNodeAnimationResult.h"
-#include "AnimationNodes/SGraphNodeStateMachineInstance.h"
-#include "AnimationNodes/SGraphNodeLayeredBoneBlend.h"
-#include "AnimationPins/SGraphPinPose.h"
-
 #include "KismetPins/SGraphPinBool.h"
 #include "SGraphPinString.h"
 #include "KismetPins/SGraphPinText.h"
@@ -109,12 +84,9 @@
 
 #include "ConnectionDrawingPolicy.h"
 #include "BlueprintConnectionDrawingPolicy.h"
-#include "AnimGraphConnectionDrawingPolicy.h"
-#include "StateMachineConnectionDrawingPolicy.h"
 #include "MaterialGraphConnectionDrawingPolicy.h"
 
 #include "EdGraphUtilities.h"
-
 #include "EdGraphSchema_Niagara.h"
 
 TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
@@ -141,31 +113,6 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 			{
 				return ResultVisualNode;
 			}
-		}
-	}
-
-	//@TODO: Fold all of this code into registered factories for the various schemas!
-	if (UAnimGraphNode_Base* BaseAnimNode = Cast<UAnimGraphNode_Base>(InNode))
-	{
-		if (UAnimGraphNode_Root* RootAnimNode = Cast<UAnimGraphNode_Root>(InNode))
-		{
-			return SNew(SGraphNodeAnimationResult, RootAnimNode);
-		}
-		else if (UAnimGraphNode_StateMachineBase* StateMachineInstance = Cast<UAnimGraphNode_StateMachineBase>(InNode))
-		{
-			return SNew(SGraphNodeStateMachineInstance, StateMachineInstance);
-		}
-		else if (UAnimGraphNode_SequencePlayer* SequencePlayer = Cast<UAnimGraphNode_SequencePlayer>(InNode))
-		{
-			return SNew(SGraphNodeSequencePlayer, SequencePlayer);
-		}
-		else if (UAnimGraphNode_LayeredBoneBlend* LayeredBlend = Cast<UAnimGraphNode_LayeredBoneBlend>(InNode))
-		{
-			return SNew(SGraphNodeLayeredBoneBlend, LayeredBlend);
-		}
-		else
-		{
-			return SNew(SAnimationGraphNode, BaseAnimNode);
 		}
 	}
 
@@ -259,22 +206,6 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		{
 			return SNew(SGraphNodeK2Default, K2Node);
 		}
-	}
-	else if (UAnimStateTransitionNode* TransitionNode = Cast<UAnimStateTransitionNode>(InNode))
-	{
-		return SNew(SGraphNodeAnimTransition, TransitionNode);
-	}
-	else if (UAnimStateNode* StateNode = Cast<UAnimStateNode>(InNode))
-	{
-		return SNew(SGraphNodeAnimState, StateNode);
-	}
-	else if (UAnimStateConduitNode* ConduitNode = Cast<UAnimStateConduitNode>(InNode))
-	{
-		return SNew(SGraphNodeAnimConduit, ConduitNode);
-	}
-	else if (UAnimStateEntryNode* EntryNode = Cast<UAnimStateEntryNode>(InNode))
-	{
-		return SNew(SGraphNodeAnimStateEntry, EntryNode);
 	}
 	else if(UEdGraphNode_Documentation* DocNode = Cast<UEdGraphNode_Documentation>(InNode))
 	{
@@ -386,10 +317,6 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 			{
 				return SNew(SGraphPinKey, InPin);
 			}
-			else if ((InPin->PinType.PinSubCategoryObject == FPoseLink::StaticStruct()) || (InPin->PinType.PinSubCategoryObject == FComponentSpacePoseLink::StaticStruct()))
-			{
-				return SNew(SGraphPinPose, InPin);
-			}
 			else if (InPin->PinType.PinSubCategoryObject == FCollisionProfileName::StaticStruct())
 			{
 				return SNew(SGraphPinCollisionProfile, InPin);
@@ -414,15 +341,6 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		else if(InPin->PinType.PinCategory == K2Schema->PC_MCDelegate)
 		{
 			return SNew(SGraphPinString, InPin);
-		}
-	}
-
-	const UAnimationStateMachineSchema* AnimStateMachineSchema = Cast<const UAnimationStateMachineSchema>(InPin->GetSchema());
-	if (AnimStateMachineSchema != NULL)
-	{
-		if (InPin->PinType.PinCategory == AnimStateMachineSchema->PC_Exec)
-		{
-			return SNew(SGraphPinExec, InPin);
 		}
 	}
 
@@ -466,15 +384,7 @@ FConnectionDrawingPolicy* FNodeFactory::CreateConnectionPolicy(const UEdGraphSch
     //@TODO: Fold all of this code into registered factories for the various schemas!
     if (!ConnectionDrawingPolicy)
     {
-        if (Schema->IsA(UAnimationGraphSchema::StaticClass()))
-        {
-            ConnectionDrawingPolicy = new FAnimGraphConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
-        }
-        else if (Schema->IsA(UAnimationStateMachineSchema::StaticClass()))
-        {
-            ConnectionDrawingPolicy = new FStateMachineConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
-        }
-        else if (Schema->IsA(UEdGraphSchema_K2::StaticClass()))
+		if (Schema->IsA(UEdGraphSchema_K2::StaticClass()))
         {
             ConnectionDrawingPolicy = new FKismetConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
         }

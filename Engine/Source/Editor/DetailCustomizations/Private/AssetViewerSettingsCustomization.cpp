@@ -7,10 +7,15 @@
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
+#include "IDetailPropertyRow.h"
 #include "DetailCategoryBuilder.h"
 #include "AssetViewerSettings.h"
 
+#include "HAL/PlatformFilemanager.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+
 #include "ScopedTransaction.h"
+#include "SSettingsEditorCheckoutNotice.h"
 
 #define LOCTEXT_NAMESPACE "AssetViewerSettingsCustomizations"
 
@@ -23,13 +28,19 @@ void FAssetViewerSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 {
 	ViewerSettings = UAssetViewerSettings::Get();
 
+	// Create the watcher widget for the default config file (checks file status / SCC state)
+	FileWatcherWidget =
+		SNew(SSettingsEditorCheckoutNotice)
+		.ConfigFilePath(this, &FAssetViewerSettingsCustomization::SharedProfileConfigFilePath)
+		.Visibility(this, &FAssetViewerSettingsCustomization::ShowFileWatcherWidget);
+
 	// Find profiles array property handle and hide it from settings view
 	TSharedPtr<IPropertyHandle> ProfileHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, Profiles));
 	check(ProfileHandle->IsValidHandle());
 	ProfileHandle->MarkHiddenByCustomization();
 
 	// Create new category
-	IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory("Settings", LOCTEXT("AssetViewerSettingsCategory", "Settings"));
+	IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory("Settings", LOCTEXT("AssetViewerSettingsCategory", "Settings"), ECategoryPriority::Important);
 
 	const UEditorPerProjectUserSettings* PerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
 	ProfileIndex = ViewerSettings->Profiles.IsValidIndex(PerProjectUserSettings->AssetViewerProfileIndex) ? PerProjectUserSettings->AssetViewerProfileIndex : 0;
@@ -43,6 +54,7 @@ void FAssetViewerSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	ProfilePropertyHandle->GetNumChildren(PropertyCount);
 
 	FName NamePropertyName = GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, ProfileName);
+	FName SharedProfilePropertyName = GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bSharedProfile);
 	for (uint32 PropertyIndex = 0; PropertyIndex < PropertyCount; ++PropertyIndex)
 	{
 		TSharedPtr<IPropertyHandle> ProfileProperty = ProfilePropertyHandle->GetChildHandle(PropertyIndex);
@@ -66,6 +78,18 @@ void FAssetViewerSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 						.OnTextCommitted(this, &FAssetViewerSettingsCustomization::OnProfileNameCommitted)
 						.Font(IDetailLayoutBuilder::GetDetailFont())
 					];
+		}
+		else if (ProfileProperty->GetProperty()->GetFName() == SharedProfilePropertyName)
+		{
+			IDetailPropertyRow& Row = CategoryBuilder.AddProperty(ProfileProperty);
+			Row.EditCondition(TAttribute<bool>(this, &FAssetViewerSettingsCustomization::CanSetSharedProfile), nullptr);
+			
+			CategoryBuilder.AddCustomRow(LOCTEXT("PreviewSceneProfileName_CheckoutRow", "Checkout Default Config"))
+			.Visibility(TAttribute<EVisibility>(this, &FAssetViewerSettingsCustomization::ShowFileWatcherWidget))
+			[
+				FileWatcherWidget->AsShared()
+			];
+			
 		}
 		else
 		{
@@ -119,6 +143,26 @@ const bool FAssetViewerSettingsCustomization::IsProfileNameValid(const FString& 
 	}
 
 	return true;
+}
+
+bool FAssetViewerSettingsCustomization::CanSetSharedProfile() const
+{
+	return !FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*SharedProfileConfigFilePath());
+}
+
+EVisibility FAssetViewerSettingsCustomization::ShowFileWatcherWidget() const
+{
+	return CanSetSharedProfile() ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+FString FAssetViewerSettingsCustomization::SharedProfileConfigFilePath() const
+{
+	if (ViewerSettings != nullptr)
+	{
+		return ViewerSettings->GetDefaultConfigFilename();
+	}
+
+	return FString();
 }
 
 #undef LOCTEXT_NAMESPACE 

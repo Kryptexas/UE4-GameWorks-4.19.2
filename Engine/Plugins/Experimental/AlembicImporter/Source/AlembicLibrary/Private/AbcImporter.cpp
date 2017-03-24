@@ -46,6 +46,8 @@ THIRD_PARTY_INCLUDES_END
 
 #include "EigenHelper.h"
 
+#include "AbcAssetImportData.h"
+
 #include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "AbcImporter"
@@ -73,6 +75,26 @@ FAbcImporter::~FAbcImporter()
 	{
 		delete ImportData;
 		ImportData = nullptr;
+	}
+}
+
+void FAbcImporter::UpdateAssetImportData(UAbcAssetImportData* AssetImportData)
+{
+	AssetImportData->TrackNames.Empty();
+	for (const TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
+	{
+		if (MeshObject->bShouldImport)
+		{
+			AssetImportData->TrackNames.Add(MeshObject->Name);
+		}
+	}
+}
+
+void FAbcImporter::RetrieveAssetImportData(UAbcAssetImportData* AssetImportData)
+{
+	for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
+	{
+		MeshObject->bShouldImport = AssetImportData->TrackNames.Contains(MeshObject->Name);
 	}
 }
 
@@ -646,8 +668,10 @@ T* FAbcImporter::CreateObjectInstance(UObject*& InParent, const FString& ObjectN
 	NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
 	Package = CreatePackage(nullptr, *NewPackageName);
 
-	T* ExistingTypedObject = FindObject<T>(Package, *ObjectName);
-	UObject* ExistingObject = FindObject<UObject>(Package, *ObjectName);
+	const FString SanitizedObjectName = ObjectTools::SanitizeObjectName(ObjectName);
+
+	T* ExistingTypedObject = FindObject<T>(Package, *SanitizedObjectName);
+	UObject* ExistingObject = FindObject<UObject>(Package, *SanitizedObjectName);
 
 	if (ExistingTypedObject != nullptr)
 	{
@@ -657,7 +681,7 @@ T* FAbcImporter::CreateObjectInstance(UObject*& InParent, const FString& ObjectN
 	{
 		// Replacing an object.  Here we go!
 		// Delete the existing object
-		bool bDeleteSucceeded = ObjectTools::DeleteSingleObject(ExistingObject);
+		const bool bDeleteSucceeded = ObjectTools::DeleteSingleObject(ExistingObject);
 
 		if (bDeleteSucceeded)
 		{
@@ -675,7 +699,7 @@ T* FAbcImporter::CreateObjectInstance(UObject*& InParent, const FString& ObjectN
 		}
 	}
 
-	return NewObject<T>(Package, FName(*ObjectName), Flags | RF_Public);
+	return NewObject<T>(Package, FName(*SanitizedObjectName), Flags | RF_Public);
 }
 
 UStaticMesh* FAbcImporter::ImportSingleAsStaticMesh(const int32 MeshTrackIndex, UObject* InParent, EObjectFlags Flags)
@@ -974,7 +998,7 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 
 		// Forced to 1
 		ImportedResource->LODModels[0].NumTexCoords = 1;
-		SkeletalMesh->bHasVertexColors = false;
+		SkeletalMesh->bHasVertexColors = true;
 
 		FAbcMeshSample* MergedMeshSample = new FAbcMeshSample();
 		for (const FCompressedAbcData& Data : ImportData->CompressedMeshData)
@@ -1435,7 +1459,18 @@ void FAbcImporter::GenerateRawMeshFromSample(FAbcMeshSample* Sample, FRawMesh& R
 	RawMesh.WedgeTangentY = Sample->TangentY;
 	RawMesh.WedgeTangentZ = Sample->Normals;
 	RawMesh.WedgeTexCoords[0] = Sample->UVs;
-	RawMesh.WedgeColors.AddDefaulted(RawMesh.WedgeIndices.Num());
+
+	if ( Sample->Colors.Num() )
+	{
+		for (const FLinearColor& LinearColor : Sample->Colors)
+		{
+			RawMesh.WedgeColors.Add(LinearColor.ToFColor(false));
+		}
+	}
+	else
+	{
+		RawMesh.WedgeColors.AddDefaulted(RawMesh.WedgeIndices.Num());
+	}
 
 	// Copy over per-face data
 	RawMesh.FaceMaterialIndices = Sample->MaterialIndices;
@@ -1535,7 +1570,7 @@ void FAbcImporter::GenerateGeometryCacheMeshDataForSample(FGeometryCacheMeshData
 			Vertex.Position = MeshSample->Vertices[Index];
 			Vertex.SetTangents(MeshSample->TangentX[CornerIndex], MeshSample->TangentY[CornerIndex], MeshSample->Normals[CornerIndex]);
 			Vertex.TextureCoordinate = MeshSample->UVs[CornerIndex];
-			Vertex.Color = FColor::White;
+			Vertex.Color = MeshSample->Colors[CornerIndex].ToFColor(false);
 
 			Section.Add(CornerIndex);
 		}
@@ -1616,7 +1651,7 @@ bool FAbcImporter::BuildSkeletalMesh(
 			Section.TangentY.Add(Sample->TangentY[FaceOffset + VertexIndex]);
 			Section.TangentZ.Add(Sample->Normals[FaceOffset + VertexIndex]);
 			Section.UVs.Add(Sample->UVs[FaceOffset + VertexIndex]);
-			Section.Colours.Add(/*Sample->Colours.Num() ? Colours[FaceOffset + VertexIndex] :*/ FColor::White);
+			Section.Colors.Add(Sample->Colors[FaceOffset + VertexIndex].ToFColor(false));
 		}
 
 		++Section.NumFaces;
@@ -1676,7 +1711,7 @@ bool FAbcImporter::BuildSkeletalMesh(
 				NewVertex.TangentY = SourceSection.TangentY[FaceOffset + VertexIndex];
 				NewVertex.TangentZ = SourceSection.TangentZ[FaceOffset + VertexIndex];
 				NewVertex.UVs[0] = SourceSection.UVs[FaceOffset + VertexIndex];
-				NewVertex.Color = SourceSection.Colours[FaceOffset + VertexIndex];
+				NewVertex.Color = SourceSection.Colors[FaceOffset + VertexIndex];
 
 				// Set up bone influence (only using one bone so maxed out weight)
 				FMemory::Memzero(NewVertex.InfluenceBones);

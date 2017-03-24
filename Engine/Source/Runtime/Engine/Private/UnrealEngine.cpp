@@ -1620,6 +1620,7 @@ void UEngine::InitializeObjectReferences()
 		LoadSpecialMaterial(GeomMaterialName.ToString(), GeomMaterial, false);
 		LoadSpecialMaterial(EditorBrushMaterialName.ToString(), EditorBrushMaterial, false);
 		LoadSpecialMaterial(BoneWeightMaterialName.ToString(), BoneWeightMaterial, false);
+		LoadSpecialMaterial(ClothPaintMaterialName.ToString(), ClothPaintMaterial, false);
 #endif
 
 		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.ToString(), PreviewShadowsIndicatorMaterial, false);

@@ -1710,7 +1710,7 @@ void FStaticLODModel::BuildVertexBuffers(uint32 BuildFlags)
 	SkinWeightVertexBuffer.Init(Vertices);
 
 	// Init the color buffer if this mesh has vertex colors.
-	if( bHasVertexColors && Vertices.Num() > 0 )
+	if( bHasVertexColors && Vertices.Num() > 0 && ColorVertexBuffer.GetAllocatedSize() == 0 )
 	{
 		ColorVertexBuffer.InitFromColorArray(&Vertices[0].Color, Vertices.Num(), sizeof(FSoftSkinVertex));
 	}
@@ -2270,6 +2270,19 @@ void FSkeletalMeshResource::SyncUVChannelData(const TArray<FSkeletalMaterial>& O
 		} );
 }
 #endif
+
+FSkeletalMeshClothBuildParams::FSkeletalMeshClothBuildParams()
+	: AssetName("Clothing")
+	, LodIndex(0)
+	, SourceSection(0)
+	, bRemoveFromMesh(false)
+	, PhysicsAsset(nullptr)
+	, bTryAutoFix(0)
+	, AutoFixThreshold(0.0f)
+	, SimulatedParticleMaxDistance(1.0f)
+{
+
+}
 
 /*-----------------------------------------------------------------------------
 	USkeletalMesh
@@ -4098,6 +4111,118 @@ int32 USkeletalMesh::ValidatePreviewAttachedObjects()
 	return NumBrokenAssets;
 }
 
+void USkeletalMesh::RemoveMeshSection(int32 InLodIndex, int32 InSectionIndex)
+{
+	// Need a mesh resource
+	if(!ImportedResource.IsValid())
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("Failed to remove skeletal mesh section, ImportedResource is invalid."));
+		return;
+	}
+
+	// Need a valid LOD
+	if(!ImportedResource->LODModels.IsValidIndex(InLodIndex))
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("Failed to remove skeletal mesh section, LOD%d does not exist in the mesh"), InLodIndex);
+		return;
+	}
+
+	FStaticLODModel& LodModel = ImportedResource->LODModels[InLodIndex];
+
+	// Need a valid section
+	if(!LodModel.Sections.IsValidIndex(InSectionIndex))
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("Failed to remove skeletal mesh section, Section %d does not exist in LOD%d."), InSectionIndex, InLodIndex);
+		return;
+	}
+
+	FSkelMeshSection& SectionToRemove = LodModel.Sections[InSectionIndex];
+
+	if(SectionToRemove.CorrespondClothSectionIndex != INDEX_NONE)
+	{
+		// Can't remove this, clothing currently relies on it
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("Failed to remove skeletal mesh section, clothing is currently bound to Lod%d Section %d, unbind clothing before removal."), InLodIndex, InSectionIndex);
+		return;
+	}
+
+	// Valid to remove, dirty the mesh
+	Modify();
+	PreEditChange(nullptr);
+
+	// Prepare reregister context to unregister all users
+	TArray<UActorComponent*> Components;
+	for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+	{
+		USkeletalMeshComponent* MeshComponent = *It;
+		if(MeshComponent && !MeshComponent->IsTemplate() && MeshComponent->SkeletalMesh == this)
+		{
+			Components.Add(MeshComponent);
+		}
+	}
+	FMultiComponentReregisterContext ReregisterContext(Components);
+
+	// Begin section removal
+	const uint32 NumVertsToRemove = SectionToRemove.GetNumVertices();
+	const uint32 BaseVertToRemove = SectionToRemove.BaseVertexIndex;
+	const uint32 NumIndicesToRemove = SectionToRemove.NumTriangles * 3;
+	const uint32 BaseIndexToRemove = SectionToRemove.BaseIndex;
+
+	FMultiSizeIndexContainerData NewIndexData;
+	LodModel.MultiSizeIndexContainer.GetIndexBufferData(NewIndexData);
+
+	// Strip indices
+	NewIndexData.Indices.RemoveAt(BaseIndexToRemove, NumIndicesToRemove);
+
+	// Fixup indices above base vert
+	for(uint32& Index : NewIndexData.Indices)
+	{
+		if(Index >= BaseVertToRemove)
+		{
+			Index -= NumVertsToRemove;
+		}
+	}
+
+	// Rebuild index data
+	int32 NumVertsAfterRemoval = LodModel.NumVertices - NumVertsToRemove;
+	if(NumVertsAfterRemoval > MAX_uint16)
+	{
+		NewIndexData.DataTypeSize = sizeof(uint32);
+	}
+	else
+	{
+		NewIndexData.DataTypeSize = sizeof(uint16);
+	}
+
+	// Push back to lod model
+	LodModel.MultiSizeIndexContainer.RebuildIndexBuffer(NewIndexData);
+	LodModel.Sections.RemoveAt(InSectionIndex);
+	LodModel.NumVertices -= NumVertsToRemove;
+
+	// Fixup anything needing section indices
+	for(FSkelMeshSection& Section : LodModel.Sections)
+	{
+		// Push back clothing indices
+		if(Section.CorrespondClothSectionIndex > InSectionIndex)
+		{
+			Section.CorrespondClothSectionIndex--;
+		}
+
+		// Removed indices, rebase further sections
+		if(Section.BaseIndex > BaseIndexToRemove)
+		{
+			Section.BaseIndex -= NumIndicesToRemove;
+		}
+
+		// Remove verts, rebase further sections
+		if(Section.BaseVertexIndex > BaseVertToRemove)
+		{
+			Section.BaseVertexIndex -= NumVertsToRemove;
+		}
+	}
+
+	PostEditChange();
+}
+
 #endif // #if WITH_EDITOR
 
 void USkeletalMesh::ReleaseCPUResources()
@@ -4919,7 +5044,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 					for (int32 CapsuleIndex = 0; CapsuleIndex < NumCapsules; CapsuleIndex++)
 					{
 						const FKSphylElem& SphylShape = BodySetup->AggGeom.SphylElems[CapsuleIndex];
-						ShadowCapsuleData.Emplace(BoneIndex, FCapsuleShape(RefBoneMatrix.TransformPosition(SphylShape.Center), SphylShape.Radius, RefBoneMatrix.TransformVector((SphylShape.Orientation * SphylBasis).Vector()), SphylShape.Length));
+						ShadowCapsuleData.Emplace(BoneIndex, FCapsuleShape(RefBoneMatrix.TransformPosition(SphylShape.Center), SphylShape.Radius, RefBoneMatrix.TransformVector((SphylShape.Rotation.Quaternion() * SphylBasis).Vector()), SphylShape.Length));
 					}
 
 					if (NumSpheres > 0 || NumCapsules > 0)
@@ -5336,6 +5461,43 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 					}
 				}
 			}
+
+			if (ViewFamily.EngineShowFlags.VertexColors && AllowDebugViewmodes())
+			{
+				// Override the mesh's material with our material that draws the vertex colors
+				UMaterial* VertexColorVisualizationMaterial = NULL;
+				switch (GVertexColorViewMode)
+				{
+				case EVertexColorViewMode::Color:
+					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_ColorOnly;
+					break;
+
+				case EVertexColorViewMode::Alpha:
+					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_AlphaAsColor;
+					break;
+
+				case EVertexColorViewMode::Red:
+					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_RedOnly;
+					break;
+
+				case EVertexColorViewMode::Green:
+					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_GreenOnly;
+					break;
+
+				case EVertexColorViewMode::Blue:
+					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_BlueOnly;
+					break;
+				}
+				check(VertexColorVisualizationMaterial != NULL);
+
+				auto VertexColorVisualizationMaterialInstance = new FColoredMaterialRenderProxy(
+					VertexColorVisualizationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
+					GetSelectionColor(FLinearColor::White, bSectionSelected, IsHovered())
+				);
+
+				Collector.RegisterOneFrameMaterialProxy(VertexColorVisualizationMaterialInstance);
+				Mesh.MaterialRenderProxy = VertexColorVisualizationMaterialInstance;
+			}
 #endif // WITH_EDITORONLY_DATA
 
 			BatchElement.MinVertexIndex = Section.BaseVertexIndex;
@@ -5606,6 +5768,46 @@ bool FSkeletalMeshSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 Sec
 }
 #endif
 
+FSkeletalMeshComponentRecreateRenderStateContext::FSkeletalMeshComponentRecreateRenderStateContext(USkeletalMesh* InSkeletalMesh, bool InRefreshBounds /*= false*/)
+	: bRefreshBounds(InRefreshBounds)
+{
+	for (TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+	{
+		if (It->SkeletalMesh == InSkeletalMesh)
+		{
+			checkf(!It->IsUnreachable(), TEXT("%s"), *It->GetFullName());
+
+			if (It->IsRenderStateCreated())
+			{
+				check(It->IsRegistered());
+				It->DestroyRenderState_Concurrent();
+				SkeletalMeshComponents.Add(*It);
+			}
+		}
+	}
+
+	// Flush the rendering commands generated by the detachments.
+	// The static mesh scene proxies reference the UStaticMesh, and this ensures that they are cleaned up before the UStaticMesh changes.
+	FlushRenderingCommands();
+}
+
+FSkeletalMeshComponentRecreateRenderStateContext::~FSkeletalMeshComponentRecreateRenderStateContext()
+{
+	const int32 ComponentCount = SkeletalMeshComponents.Num();
+	for (int32 ComponentIndex = 0; ComponentIndex < ComponentCount; ++ComponentIndex)
+	{
+		USkeletalMeshComponent* Component = SkeletalMeshComponents[ComponentIndex];
+
+		if (bRefreshBounds)
+		{
+			Component->UpdateBounds();
+		}
+
+		if (Component->IsRegistered() && !Component->IsRenderStateCreated())
+		{
+			Component->CreateRenderState_Concurrent();
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
-
-

@@ -11,6 +11,7 @@
 #include "ClothingAsset.generated.h"
 
 class UClothingAsset;
+struct FClothPhysicalMeshData;
 
 namespace nvidia
 {
@@ -22,11 +23,95 @@ namespace nvidia
 
 DECLARE_LOG_CATEGORY_EXTERN(LogClothingAsset, Log, All);
 
+/** The possible targets for a physical mesh mask */
+UENUM()
+enum class MaskTarget_PhysMesh : uint8
+{
+	None,
+	MaxDistance,
+	BackstopDistance,
+	BackstopRadius,
+};
+
+/** 
+ * A mask is simply some storage for a physical mesh parameter painted onto clothing.
+ * Used in the editor for users to paint onto and then target to a parameter, which
+ * is then later applied to a phys mesh
+ */
+USTRUCT()
+struct CLOTHINGSYSTEMRUNTIME_API FClothParameterMask_PhysMesh
+{
+	GENERATED_BODY();
+
+	/** 
+	 * Initialize the mask based on the specified mesh data
+	 * @param InMeshData the mesh to initialize against
+	 */
+	void Initialize(const FClothPhysicalMeshData& InMeshData);
+
+	/** 
+	 * Set a value in the mask
+	 * @param InVertexIndex the value/vertex index to set
+	 * @param InValue the value to set
+	 */
+	void SetValue(int32 InVertexIndex, float InValue);
+
+	/** 
+	 * Get a value from the mask
+	 * @param InVertexIndex the value/vertex index to retrieve
+	 */
+	float GetValue(int32 InVertexIndex) const;
+	
+#if WITH_EDITOR
+
+	/** Calculates Min/Max values based on values. Call before querying colors */
+	void CalcRanges();
+
+	/** 
+	 * Get a value represented as a preview color for painting
+	 * @param InVertexIndex the value/vertex index to retrieve
+	 */
+	FColor GetValueAsColor(int32 InVertexIndex) const;
+#endif
+
+	/** 
+	 * Apply the mask to the provided mesh (if compatible)
+	 * @param InTargetMesh the targeted mesh
+	 */
+	void Apply(FClothPhysicalMeshData& InTargetMesh);
+
+	/** Name of the mask, mainly for users to differentiate */
+	UPROPERTY()
+	FName MaskName;
+
+	/** The currently targeted parameter for the mask */
+	UPROPERTY()
+	MaskTarget_PhysMesh CurrentTarget;
+
+	/** The maximum value currently in the mask value array */
+	UPROPERTY()
+	float MaxValue;
+
+	/** The maximum value currently in the mask value array */
+	UPROPERTY()
+	float MinValue;
+
+	/** The actual values stored in the mask */
+	UPROPERTY()
+	TArray<float> Values;
+};
+
 // Bone data for a vertex
 USTRUCT()
 struct FClothVertBoneData
 {
 	GENERATED_BODY()
+
+	FClothVertBoneData()
+	{
+		FMemory::Memset(BoneIndices, (uint8)INDEX_NONE, sizeof(BoneIndices));
+		FMemory::Memset(BoneWeights, 0, sizeof(BoneWeights));
+	}
 
 	// Up to MAX_TOTAL_INFLUENCES bone indices that this vert is weighted to
 	UPROPERTY()
@@ -41,9 +126,11 @@ struct FClothVertBoneData
  *	Physical mesh data created during asset import or created from a skeletal mesh
  */
 USTRUCT()
-struct FClothPhysicalMeshData
+struct CLOTHINGSYSTEMRUNTIME_API FClothPhysicalMeshData
 {
 	GENERATED_BODY()
+
+	void Reset(const int32 InNumVerts);
 
 	// Positions of each simulation vertex
 	UPROPERTY(EditAnywhere, Category = SimMesh)
@@ -98,6 +185,12 @@ struct FClothLODData
 	// Collision primitive and covex data for clothing collisions
 	UPROPERTY(EditAnywhere, Category = Collision)
 	FClothCollisionData CollisionData;
+
+#if WITH_EDITORONLY_DATA
+	// Parameter masks defining the physics mesh masked data
+	UPROPERTY(EditAnywhere, Category = Masks)
+	TArray<FClothParameterMask_PhysMesh> ParameterMasks;
+#endif
 
 	// Skinning data for transitioning from a higher detail LOD to this one
 	TArray<FMeshToMeshVertData> TransitionUpSkinData;
@@ -194,8 +287,8 @@ struct FClothConfig
 		, LinearInertiaScale(1.0f)
 		, AngularInertiaScale(1.0f)
 		, CentrifugalInertiaScale(1.0f)
-		, SolverFrequency(60.0f)
-		, StiffnessFrequency(60.0f)
+		, SolverFrequency(120.0f)
+		, StiffnessFrequency(100.0f)
 		, GravityScale(1.0f)
 		, TetherStiffness(1.0f)
 		, TetherLimit(1.0f)
@@ -387,6 +480,8 @@ public:
 	virtual void UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshLodIndex) override;
 	virtual void RefreshBoneMapping(USkeletalMesh* InSkelMesh) override;
 	virtual void InvalidateCachedData() override;
+	virtual bool IsValidLod(int32 InLodIndex) override;
+	virtual int32 GetNumLods() override;
 	// End UClothingAssetBase Interface ////////////////////////////////////////
 
 	/**

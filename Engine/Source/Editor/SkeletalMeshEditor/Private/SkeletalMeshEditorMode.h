@@ -22,6 +22,10 @@ public:
 	/** FApplicationMode interface */
 	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
 
+
+	virtual void AddTabFactory(FCreateWorkflowTabFactory FactoryCreator) override;
+	virtual void RemoveTabFactory(FName TabFactoryID) override;
+
 protected:
 	/** The hosting app */
 	TWeakPtr<class FWorkflowCentricApplication> HostingAppPtr;

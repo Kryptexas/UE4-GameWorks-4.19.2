@@ -72,8 +72,10 @@ protected:
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context);
 	// use this function to evaluate for skeletal control base
 	virtual void EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context);
-	// Evaluate the new component-space transforms for the affected bones.
+	DEPRECATED(4.16, "Please use EvaluateSkeletalControl_AnyThread.")
 	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) {}
+	// Evaluate the new component-space transforms for the affected bones.
+	virtual void EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms);
 	// return true if it is valid to Evaluate
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) { return false; }
 	// initialize any bone references you have

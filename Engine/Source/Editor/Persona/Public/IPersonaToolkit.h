@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "IEditableSkeleton.h"
 
 /**
  * Reusable 'Persona' features for asset editors concerned with USkeleton-related assets

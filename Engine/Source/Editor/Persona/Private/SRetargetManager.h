@@ -7,6 +7,8 @@
 #include "Input/Reply.h"
 #include "Widgets/SCompoundWidget.h"
 #include "IPersonaPreviewScene.h"
+#include "SPoseAssetNameWidget.h"
+#include "AssetData.h"
 
 class IEditableSkeleton;
 
@@ -31,7 +33,7 @@ public:
 
 private:
 	FReply OnViewRetargetBasePose();
-	FReply OnResetRetargetBasePose();
+	FReply OnModifyPose();
 	FReply OnSaveRetargetBasePose();
 
 	/** The editable skeleton */
@@ -43,4 +45,23 @@ private:
 	/** Delegate for undo/redo transaction **/
 	void PostUndo();
 	FText GetToggleRetargetBasePose() const;	
+	void ResetRetargetBasePose();
+	void UseCurrentPose();
+	void ImportPose(const UPoseAsset* PoseAsset, const FName& PoseName);
+
+	TSharedRef<SWidget> OnModifyPoseContextMenu();
+
+	void SetSelectedPose(const FAssetData& InAssetData);
+	FString GetSelectedPose() const;
+	bool ShouldFilterAsset(const FAssetData& InAssetData);
+
+	TSharedPtr<SPoseAssetNameWidget> PoseAssetNameWidget;
+	TWeakObjectPtr<UPoseAsset> SelectedPoseAsset;
+	FString SelectedPoseName;
+
+	void SetPoseName(TSharedPtr<FString> PoseName, ESelectInfo::Type SelectionType);
+	FReply OnImportPose();
+
+	void TurnOnPreviewRetargetBasePose();
+	bool CanImportPose() const;
 };

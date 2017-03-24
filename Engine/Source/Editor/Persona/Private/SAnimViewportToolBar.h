@@ -100,15 +100,6 @@ private:
 	/** Generate the turntable menu entries */
 	void GenerateTurnTableMenu(FMenuBuilder& MenuBuilder) const;
 
-	/** Generate the scene setup menu */
-	void GenerateSceneSetupMenu(FMenuBuilder& MenuBuilder);
-
-	/** Customize the details of the scene setup object */
-	TSharedRef<class IDetailCustomization> CustomizePreviewSceneDescription();
-
-	/** Customize a preview mesh collection entry */
-	TSharedRef<class IPropertyTypeCustomization> CustomizePreviewMeshCollectionEntry();
-
 	/**
 	* Generate color of the text on the top
 	*/ 

@@ -132,25 +132,47 @@ protected:
 			NewTrack->SetPropertyNameAndPath( ChangedProperty->GetFName(), PropertyChangedParams.GetPropertyPathString() );
 #if WITH_EDITORONLY_DATA
 
-			FText DisplayText = ChangedProperty->GetDisplayNameText();
+			FText DisplayText;
 
-			// Set up the appropriate name for the track from an array index if necessary
+			// Set up the appropriate name for the track from an array/nested struct index if necessary
 			for (int32 PropertyIndex = PropertyChangedParams.PropertyPath.GetNumProperties() - 1; PropertyIndex >= 0; --PropertyIndex)
 			{
 				const FPropertyInfo& Info = PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex);
-				const UArrayProperty* ParentArrayProperty = PropertyIndex > 0 ? Cast<UArrayProperty>(PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex-1).Property.Get()) : nullptr;
+				const UArrayProperty* ParentArrayProperty = PropertyIndex > 0 ? Cast<UArrayProperty>(PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex - 1).Property.Get()) : nullptr;
 
 				UProperty* ArrayInnerProperty = Info.Property.Get();
 				if (ArrayInnerProperty && Info.ArrayIndex != INDEX_NONE)
 				{
-					DisplayText = FText::Format(NSLOCTEXT("PropertyTrackEditor", "DisplayTextFormat", "{0} ({1}[{2}])"),
+					DisplayText = FText::Format(NSLOCTEXT("PropertyTrackEditor", "DisplayTextArrayFormat", "{0} ({1}[{2}])"),
 						ChangedProperty->GetDisplayNameText(),
 						(ParentArrayProperty ? ParentArrayProperty : ArrayInnerProperty)->GetDisplayNameText(),
 						FText::AsNumber(Info.ArrayIndex)
-						);
+					);
 					break;
 				}
 			}
+
+			if (DisplayText.IsEmpty())
+			{
+				for (int32 PropertyIndex = PropertyChangedParams.PropertyPath.GetNumProperties() - 1; PropertyIndex >= 0; --PropertyIndex)
+				{
+					const UStructProperty* ParentStructProperty = PropertyIndex > 0 ? Cast<UStructProperty>(PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex - 1).Property.Get()) : nullptr;
+					if (ParentStructProperty)
+					{
+						DisplayText = FText::Format(NSLOCTEXT("PropertyTrackEditor", "DisplayTextStructFormat", "{0} ({1})"),
+							ChangedProperty->GetDisplayNameText(),
+							ParentStructProperty->GetDisplayNameText()
+						);
+						break;
+					}
+				}
+			}
+
+			if (DisplayText.IsEmpty())
+			{
+				DisplayText = ChangedProperty->GetDisplayNameText();
+			}
+
 			NewTrack->SetDisplayName(DisplayText);
 #endif
 		}

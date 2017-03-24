@@ -293,6 +293,8 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 						CS->DefaultInstance.PriAxis2 = RelTM.GetUnitAxis(EAxis::X);
 						CS->DefaultInstance.SecAxis2 = RelTM.GetUnitAxis(EAxis::Y);
 
+						CS->SetDefaultProfile(CS->DefaultInstance);
+
 						// Disable collision between constrained bodies by default.
 						PhysicsAsset->DisableCollision(NewBodyIndex, ParentBodyIndex);
 					}

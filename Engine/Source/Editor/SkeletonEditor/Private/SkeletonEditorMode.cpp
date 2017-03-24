@@ -29,7 +29,7 @@ FSkeletonEditorMode::FSkeletonEditorMode(TSharedRef<FWorkflowCentricApplication>
 	TabFactories.RegisterFactory(PersonaModule.CreateCurveViewerTabFactory(InHostingApp, InSkeletonTree->GetEditableSkeleton(), SkeletonEditor->GetPersonaToolkit()->GetPreviewScene(), SkeletonEditor->OnPostUndo, OnObjectsSelected));
 	TabFactories.RegisterFactory(PersonaModule.CreateSkeletonSlotNamesTabFactory(InHostingApp, InSkeletonTree->GetEditableSkeleton(), SkeletonEditor->OnPostUndo, OnObjectSelected));
 
-	TabLayout = FTabManager::NewLayout("Standalone_SkeletonEditor_Layout_v1.1")
+	TabLayout = FTabManager::NewLayout("Standalone_SkeletonEditor_Layout_v1.2")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -72,7 +72,8 @@ FSkeletonEditorMode::FSkeletonEditorMode(TSharedRef<FWorkflowCentricApplication>
 						->SetSizeCoefficient(0.5f)
 						->SetHideTabWell(false)
 						->AddTab(SkeletonEditorTabs::DetailsTab, ETabState::OpenedTab)
-						->AddTab(SkeletonEditorTabs::AdvancedPreviewTab, ETabState::ClosedTab)
+						->AddTab(SkeletonEditorTabs::AdvancedPreviewTab, ETabState::OpenedTab)
+						->SetForegroundTab(SkeletonEditorTabs::DetailsTab)
 					)
 					->Split
 					(

@@ -16,6 +16,10 @@ void FAnimViewportMenuCommands::RegisterCommands()
 	UI_COMMAND( SetShowBinormals, "Binormals", "Toggles display of vertex binormals (orthogonal vector to normal and tangent) in the Preview Pane.", EUserInterfaceActionType::ToggleButton, FInputChord() );
 
 	UI_COMMAND( AnimSetDrawUVs, "UV", "Toggles display of the mesh's UVs for the specified channel.", EUserInterfaceActionType::ToggleButton, FInputChord() );
+
+	UI_COMMAND(SaveCameraAsDefault, "Save Camera As Default", "Save the current camera as default for this mesh.", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(ClearDefaultCamera, "Clear Default Camera", "Clear default camera for this mesh.", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(JumpToDefaultCamera, "Jump To Default Camera", "Jump to the default camera (if set).", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift, EKeys::F));
 }
 
 #undef LOCTEXT_NAMESPACE

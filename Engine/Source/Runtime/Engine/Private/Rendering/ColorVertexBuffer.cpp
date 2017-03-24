@@ -308,7 +308,7 @@ void FColorVertexBuffer::operator=(const FColorVertexBuffer &Other)
 	VertexData = NULL;
 }
 
-void FColorVertexBuffer::GetVertexColors( TArray<FColor>& OutColors )
+void FColorVertexBuffer::GetVertexColors( TArray<FColor>& OutColors ) const
 {
 	if( VertexData != NULL && NumVertices > 0 )
 	{

@@ -14,8 +14,8 @@
 class FAssetData;
 class SWindow;
 
-UCLASS(HideCategories=Object,MinimalAPI)
-class UAnimSequenceFactory : public UFactory
+UCLASS(HideCategories=Object)
+class UNREALED_API UAnimSequenceFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 

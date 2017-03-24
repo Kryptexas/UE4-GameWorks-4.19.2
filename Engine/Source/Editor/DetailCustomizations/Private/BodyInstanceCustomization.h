@@ -151,7 +151,6 @@ private:
 	void AddBodyConstraint(IDetailCategoryBuilder& PhysicsCategory, TSharedRef<IPropertyHandle> BodyInstanceHandler);
 	void AddMaxAngularVelocity(IDetailCategoryBuilder& PhysicsCategory, TSharedRef<IPropertyHandle> BodyInstanceHandler);
 
-	bool IsAutoWeldEditable() const;
 	EVisibility IsAutoWeldVisible() const;
 
 	EVisibility IsMaxAngularVelocityVisible(bool bOverrideMaxAngularVelocity) const;
@@ -164,6 +163,7 @@ private:
 	bool bDisplayMass;
 	bool bDisplayConstraints;
 	bool bDisplayEnablePhysics;
+	bool bDisplayAsyncScene;
 
 	TSharedPtr<IPropertyHandle> MassInKgOverrideHandle;
 	TSharedPtr<IPropertyHandle> DOFModeProperty;

@@ -7,9 +7,13 @@ public class AnimGraph : ModuleRules
 {
 	public AnimGraph(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateIncludePaths.Add("Editor/AnimGraph/Private");
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                "Editor/AnimGraph/Private",
+            }
+        );
 
-		PublicDependencyModuleNames.AddRange(
+        PublicDependencyModuleNames.AddRange(
 			new string[] { 
 				"Core", 
 				"CoreUObject", 
@@ -29,7 +33,7 @@ public class AnimGraph : ModuleRules
 				"PropertyEditor",
 				"EditorStyle",
                 "ContentBrowser",
-			}
+            }
 		);
 
         CircularlyReferencedDependentModules.AddRange(

@@ -5,6 +5,8 @@
 #include "Object.h"
 #include "ObjectMacros.h"
 #include "Features/IModularFeature.h"
+#include "AssetPtr.h"
+
 #include "ClothingAssetFactoryInterface.generated.h"
 
 namespace nvidia
@@ -14,8 +16,10 @@ namespace nvidia
 		class ClothingAsset;
 	}
 }
+
 class USkeletalMesh;
 class UClothingAssetBase;
+struct FSkeletalMeshClothBuildParams;
 
 // Clothing asset factories should inherit this interface/uobject to provide functionality
 // to build clothing assets from .apx files imported to the engine
@@ -25,6 +29,15 @@ class CLOTHINGSYSTEMEDITORINTERFACE_API UClothingAssetFactoryBase : public UObje
 	GENERATED_BODY()
 
 public:
+
+	/**
+	 * Given a target mesh and parameters describing the build operation, create a clothing asset for
+	 * use on the mesh
+	 * @param TargetMesh - The mesh to target
+	 * @param Params - Extra operation params (LOD/Section index etc...)
+	 */
+	virtual UClothingAssetBase* CreateFromSkeletalMesh(USkeletalMesh* TargetMesh, FSkeletalMeshClothBuildParams& Params)
+	PURE_VIRTUAL(UClothingAssetFactoryBase::CreateFromSkeletalMesh, return nullptr;);
 
 	/**
 	 * Should return whether or not the factory can handle the incoming file (check validity etc.)

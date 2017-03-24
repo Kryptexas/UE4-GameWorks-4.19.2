@@ -165,6 +165,9 @@ public:
 	UPROPERTY()
 	FMovieSceneTrackCompilationParams TemplateParameters;
 
+	UPROPERTY()
+	TMap<UObject*, FCachedMovieSceneEvaluationTemplate> InstancedSubSequenceEvaluationTemplates;
+
 public:
 
 	/**

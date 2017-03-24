@@ -10,15 +10,18 @@ namespace ImmediatePhysics
 
 FSimulation::FSimulation()
 {
+	NumActiveSimulatedBodies = 0;
 	NumSimulatedBodies = 0;
 	NumKinematicBodies = 0;
 	NumSimulatedShapesWithCollision = 0;
 	NumContactHeaders = 0;
 	NumJointHeaders = 0;
+	NumActiveJoints = 0;
 	NumPositionIterations = 1;
 	NumVelocityIterations = 1;
 	bDirtyJointData = false;
 	bRecreateIterationCache = false;
+	SimCount = 0;
 }
 
 FSimulation::~FSimulation()
@@ -29,6 +32,12 @@ FSimulation::~FSimulation()
 	}
 
 	ActorHandles.Empty();
+}
+
+void FSimulation::SetNumActiveBodies(uint32 InNumActiveBodies)
+{
+	NumActiveSimulatedBodies = InNumActiveBodies;
+	bDirtyJointData = true;
 }
 
 #if WITH_PHYSX
@@ -90,13 +99,13 @@ void FSimulation::SetIgnoreCollisionActors(const TArray<FActorHandle*>& InIgnore
 }
 
 template <FSimulation::ECreateActorType ActorType>
-int32 FSimulation::CreateActor(PxRigidActor* RigidActor, const FTransform& WorldTM)
+uint32 FSimulation::CreateActor(PxRigidActor* RigidActor, const FTransform& WorldTM)
 {
 	bDirtyJointData = true;	//new entity potentially re-orders bodies so joint data becomes stale. TODO: can this be optimized for adding static cases that don't re-order?
 	bRecreateIterationCache = true;	//new entity potentially re-orders bodies so our iteration cache becomes stale. TODO: can this be optimized for adding static cases that don't re-order?
 
 	FActor* NewEntity = new (Actors) FActor();
-	const int32 ActorDataIndex = Actors.Num() - 1;
+	const uint32 ActorDataIndex = Actors.Num() - 1;
 
 	FActorHandle* NewActorHandle = new FActorHandle(*this, ActorDataIndex);
 	ActorHandles.Add(NewActorHandle);
@@ -162,10 +171,10 @@ int32 FSimulation::CreateActor(PxRigidActor* RigidActor, const FTransform& World
 	}
 	else if(ActorType == ECreateActorType::KinematicActor)  //then kinematics
 	{
-		const int32 NumMobileBodies = NumKinematicBodies + NumSimulatedBodies;
+		const uint32 NumMobileBodies = NumKinematicBodies + NumSimulatedBodies;
 		if (NumMobileBodies < ActorDataIndex)	//There's at least one static entity so swap
 		{
-			const int32 FirstStaticIndex = NumMobileBodies;
+			const uint32 FirstStaticIndex = NumMobileBodies;
 			SwapActorData(FirstStaticIndex, ActorDataIndex);
 		}
 
@@ -177,25 +186,28 @@ int32 FSimulation::CreateActor(PxRigidActor* RigidActor, const FTransform& World
 
 FActorHandle* FSimulation::CreateDynamicActor(PxRigidDynamic* RigidDynamic, const FTransform& TM)
 {
-	const int32 ActorDataIndex = CreateActor<ECreateActorType::DynamicActor>(RigidDynamic, TM);
+	const uint32 ActorDataIndex = CreateActor<ECreateActorType::DynamicActor>(RigidDynamic, TM);
+	NumActiveSimulatedBodies = NumSimulatedBodies;
+	bDirtyJointData = true;
+
 	return ActorHandles[ActorDataIndex];
 }
 
 FActorHandle* FSimulation::CreateKinematicActor(PxRigidBody* RigidBody, const FTransform& TM)
 {
-	const int32 ActorDataIndex = CreateActor<ECreateActorType::KinematicActor>(RigidBody, TM);
+	const uint32 ActorDataIndex = CreateActor<ECreateActorType::KinematicActor>(RigidBody, TM);
 	return ActorHandles[ActorDataIndex];
 }
 
 FActorHandle* FSimulation::CreateStaticActor(PxRigidActor* RigidActor, const FTransform& TM)
 {
-	const int32 ActorDataIndex = CreateActor<ECreateActorType::StaticActor>(RigidActor, TM);
+	const uint32 ActorDataIndex = CreateActor<ECreateActorType::StaticActor>(RigidActor, TM);
 	return ActorHandles[ActorDataIndex];
 }
 #endif
 
 
-void FSimulation::SwapActorData(int32 Actor1DataIdx, int32 Actor2DataIdx)
+void FSimulation::SwapActorData(uint32 Actor1DataIdx, uint32 Actor2DataIdx)
 {
 	check(Actors.IsValidIndex(Actor1DataIdx));
 	check(Actors.IsValidIndex(Actor2DataIdx));
@@ -213,7 +225,7 @@ void FSimulation::SwapActorData(int32 Actor1DataIdx, int32 Actor2DataIdx)
 	bRecreateIterationCache = true;	//reordering of bodies so we need to change iteration order potentially
 }
 
-void FSimulation::SwapJointData(int32 Joint1Idx, int32 Joint2Idx)
+void FSimulation::SwapJointData(uint32 Joint1Idx, uint32 Joint2Idx)
 {
 	check(JointData.IsValidIndex(Joint1Idx));
 	check(JointData.IsValidIndex(Joint2Idx));
@@ -265,15 +277,25 @@ void FSimulation::EvictCache()
 	
 }*/
 
+DECLARE_DWORD_COUNTER_STAT(TEXT("Simulated Bodies"), STAT_NumSimulatedBodies, STATGROUP_ImmediatePhysics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Active Simulated Bodies"), STAT_NumActiveSimulatedBodies, STATGROUP_ImmediatePhysics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Kinematic Bodies"), STAT_NumKinematicBodies, STATGROUP_ImmediatePhysics);
+
 DECLARE_CYCLE_STAT(TEXT("FSimulation::Simulate"), STAT_ImmediateSimulate, STATGROUP_ImmediatePhysics);
 
 void FSimulation::Simulate(float DeltaTime, const FVector& Gravity)
 {
+	SET_DWORD_STAT(STAT_NumSimulatedBodies, NumSimulatedBodies);
+	SET_DWORD_STAT(STAT_NumActiveSimulatedBodies, NumActiveSimulatedBodies);
+	SET_DWORD_STAT(STAT_NumKinematicBodies, NumKinematicBodies);
+
 	DeltaTime = FMath::Min(DeltaTime, 0.033f);
 	//Create dynamic bodies and integrate their unconstrained velocities
 	if(DeltaTime > 0)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ImmediateSimulate);
+
+		++SimCount;
 
 		ConstructSolverBodies(DeltaTime, Gravity);
 	
@@ -305,7 +327,7 @@ void FSimulation::ConstructSolverBodies(float DeltaTime, const FVector& Gravity)
 	const int32 NumBytes = Actors.Num() * sizeof(PxSolverBody);
 	SolverBodies = (PxSolverBody*)Workspace.Alloc(NumBytes);
 
-	for(int32 BodyIdx = 0; BodyIdx < NumSimulatedBodies; ++BodyIdx)
+	for(uint32 BodyIdx = 0; BodyIdx < NumActiveSimulatedBodies; ++BodyIdx)
 	{
 		RigidBodiesData[BodyIdx].linearVelocity += PendingAcceleration[BodyIdx] * DeltaTime;
 	}
@@ -313,10 +335,10 @@ void FSimulation::ConstructSolverBodies(float DeltaTime, const FVector& Gravity)
 	FMemory::Memzero(PendingAcceleration.GetData(), sizeof(PendingAcceleration[0]) * NumSimulatedBodies);
 
 	FMemory::Memzero(SolverBodies, NumBytes);
-	immediate::PxConstructSolverBodies(RigidBodiesData.GetData(), SolverBodiesData.GetData(), NumSimulatedBodies, U2PVector(Gravity), DeltaTime);
+	immediate::PxConstructSolverBodies(RigidBodiesData.GetData(), SolverBodiesData.GetData(), NumActiveSimulatedBodies, U2PVector(Gravity), DeltaTime);
 	
 	//kinematic have their velocities set directly, but we have to construct every frame because it could have changed
-	immediate::PxConstructSolverBodies(RigidBodiesData.GetData() + NumSimulatedBodies, SolverBodiesData.GetData() + NumSimulatedBodies, NumKinematicBodies, PxVec3(PxZero), DeltaTime);
+	immediate::PxConstructSolverBodies(RigidBodiesData.GetData() + NumActiveSimulatedBodies, SolverBodiesData.GetData() + NumActiveSimulatedBodies, NumKinematicBodies + (NumSimulatedBodies - NumActiveSimulatedBodies), PxVec3(PxZero), DeltaTime);
 #endif
 }
 
@@ -332,6 +354,7 @@ void FSimulation::PrepareIterationCache()
 	ShapeSOA.Geometries.Empty(NumActors);
 	ShapeSOA.Bounds.Empty(NumActors);
 	ShapeSOA.OwningActors.Empty(NumActors);
+	ShapeSOA.BoundsOffsets.Empty(NumActors);
 
 	int32 NumShapes = 0;
 	NumSimulatedShapesWithCollision = 0;
@@ -355,6 +378,7 @@ void FSimulation::PrepareIterationCache()
 			ShapeSOA.LocalTMs.Add(Shape.LocalTM);
 			ShapeSOA.Geometries.Add(Shape.Geometry);
 			ShapeSOA.Bounds.Add(Shape.BoundsMagnitude);
+			ShapeSOA.BoundsOffsets.Add(Shape.BoundsOffset);
 			ShapeSOA.OwningActors.Add(ActorIdx);
 			++NumShapes;
 		}
@@ -369,7 +393,7 @@ void FSimulation::PrepareIterationCache()
 	int32 IterationCount = 0;
 	SkipCollisionCache.Empty(NumShapes);
 
-	for(int32 SimShapeIdx = 0; SimShapeIdx < NumSimulatedShapesWithCollision; ++SimShapeIdx)
+	for(uint32 SimShapeIdx = 0; SimShapeIdx < NumSimulatedShapesWithCollision; ++SimShapeIdx)
 	{
 		const int32 SimActorIdx = ShapeSOA.OwningActors[SimShapeIdx];
 		const TSet<FActorHandle*>* IgnoreActorsForSimulated = IgnoreCollisionPairTable.Find(ActorHandles[SimActorIdx]);
@@ -426,12 +450,20 @@ void FSimulation::GenerateContacts()
 	int32 CurrentIterationCacheIdx = 0;
 	const int32* SkipCollisionCacheRaw = SkipCollisionCache.GetData();
 
-	for(int32 SimShapeIdx = 0; SimShapeIdx < NumSimulatedShapesWithCollision; ++SimShapeIdx)
+	for(uint32 SimShapeIdx = 0; SimShapeIdx < NumSimulatedShapesWithCollision; ++SimShapeIdx)
 	{
 		const float SimulatedRadius = ShapeSOA.Bounds[SimShapeIdx];
 		const PxTransform& SimulatedShapeTM = ShapeWorldTMs[SimShapeIdx];
-		const int32 SimulatedActorIdx = ShapeSOA.OwningActors[SimShapeIdx];
+		const PxVec3 SimulatedBoundsOffset = ShapeSOA.BoundsOffsets[SimShapeIdx];
+		const PxVec3 SimulatedShapeBoundsOrigin = SimulatedShapeTM.transform(SimulatedBoundsOffset);
+		
+		const uint32 SimulatedActorIdx = ShapeSOA.OwningActors[SimShapeIdx];
 		const PxGeometry* SimulatedGeometry = ShapeSOA.Geometries[SimShapeIdx];
+
+		if(SimulatedActorIdx >= NumActiveSimulatedBodies)
+		{
+			break;
+		}
 
 		for(int32 OtherShapeIdx = SimShapeIdx + 1; OtherShapeIdx < NumShapes; ++OtherShapeIdx)
 		{
@@ -441,11 +473,22 @@ void FSimulation::GenerateContacts()
 				continue;
 			}
 
+			const uint32 OtherActorIdx = ShapeSOA.OwningActors[OtherShapeIdx];
+			if(OtherActorIdx >= NumSimulatedBodies && OtherActorIdx < NumSimulatedBodies)
+			{
+				continue;
+			}
+
 			PxCache* InCache;
 			const int32 PotentialPairIdx = PotentialPairCount++;
 #if PERSISTENT_CONTACT_PAIRS
 			FPersistentContactPairData& PersistentPairData = ShapeSOA.ContactPairData[PotentialPairIdx];
 			InCache = &PersistentPairData.Cache;
+
+			if(PersistentPairData.SimCount + 1 != SimCount)	//Note: in the case where we roll over to 0 does this matter? Could use % but seems unneeded for now
+			{
+				PersistentPairData.Clear();
+			}
 #else
 			PxCache Cache;
 			InCache = &Cache;
@@ -454,9 +497,11 @@ void FSimulation::GenerateContacts()
 			const float TotalRadius = (SimulatedRadius + OtherRadius);
 			const float TotalRadius2 = TotalRadius * TotalRadius;
 			const PxTransform& OtherShapeTM = ShapeWorldTMs[OtherShapeIdx];
-			const float Distance2 = (SimulatedShapeTM.p - OtherShapeTM.p).magnitudeSquared();
+			const PxVec3 OtherShapeBoundsOrigin = OtherShapeTM.transform(ShapeSOA.BoundsOffsets[OtherShapeIdx]);
 
-			if (Distance2 > TotalRadius2)
+			const float Distance2 = (SimulatedShapeBoundsOrigin  - OtherShapeBoundsOrigin).magnitudeSquared();
+
+			if ( Distance2 > TotalRadius2)
 			{
 #if PERSISTENT_CONTACT_PAIRS
 				PersistentPairData.Clear();
@@ -464,7 +509,7 @@ void FSimulation::GenerateContacts()
 				continue;	//no intersection so skip narrow phase
 			}
 
-			FContactPointRecorder ContactRecorder(*this, SimulatedActorIdx, ShapeSOA.OwningActors[OtherShapeIdx], PotentialPairIdx);
+			FContactPointRecorder ContactRecorder(*this, SimulatedActorIdx, OtherActorIdx, PotentialPairIdx);
 			if (!immediate::PxGenerateContacts(&SimulatedGeometry, &ShapeSOA.Geometries[OtherShapeIdx], &SimulatedShapeTM, &OtherShapeTM, InCache, 1, ContactRecorder, 4.f, 1.f, 100.f, CacheAllocator))
 			{
 #if PERSISTENT_CONTACT_PAIRS
@@ -477,6 +522,8 @@ void FSimulation::GenerateContacts()
 	}
 #endif
 }
+
+bool GBatchJoints = false;	//TODO: temp hack to fix crash in immediate mode due to joint batching
 
 DECLARE_CYCLE_STAT(TEXT("BatchConstraints"), STAT_ImmediateBatchConstraints, STATGROUP_ImmediatePhysics);
 
@@ -494,17 +541,23 @@ void FSimulation::BatchConstraints()
 	// Joint constraints if needed
 	if (bDirtyJointData)
 	{
+		NumActiveJoints = 0;
 		if(NumJoints > 0)
 		{
 			PxSolverConstraintDesc* JointDescriptors = (PxSolverConstraintDesc*)Workspace.Alloc(sizeof(PxSolverConstraintDesc) * NumJoints);
 
 			for (int32 JointIdx = 0; JointIdx < NumJoints; ++JointIdx)
 			{
-				PxSolverConstraintDesc& JointDescriptor = JointDescriptors[JointIdx];
+				PxSolverConstraintDesc& JointDescriptor = JointDescriptors[NumActiveJoints];
 
 				const FJoint& Joint = Joints[JointIdx];
 				const PxU32 DynamicActorIdx = Joint.DynamicActor->ActorDataIndex;
 				const PxU32 OtherActorIdx = Joint.OtherActor != nullptr ? Joint.OtherActor->ActorDataIndex : INDEX_NONE;
+
+				if( (DynamicActorIdx >= NumActiveSimulatedBodies && DynamicActorIdx < NumSimulatedBodies) || (OtherActorIdx >= NumActiveSimulatedBodies && OtherActorIdx < NumSimulatedBodies) )
+				{
+					continue;
+				}
 
 				JointDescriptor.bodyA = &SolverBodies[DynamicActorIdx];
 				JointDescriptor.bodyB = OtherActorIdx != INDEX_NONE ? &SolverBodies[OtherActorIdx] : nullptr;
@@ -513,14 +566,35 @@ void FSimulation::BatchConstraints()
 				JointDescriptor.bodyBDataIndex = PxU16(OtherActorIdx);
 				JointDescriptor.linkIndexA = PxSolverConstraintDesc::NO_LINK;
 				JointDescriptor.linkIndexB = PxSolverConstraintDesc::NO_LINK;
+				JointDescriptor.writeBack = nullptr;
 
 				JointDescriptor.constraint = (PxU8*)JointHandles[JointIdx];
 				JointDescriptor.constraintLengthOver16 = PxSolverConstraintDesc::eJOINT_CONSTRAINT;
+
+				++NumActiveJoints;
 			}
 
-			NumJointHeaders = physx::immediate::PxBatchConstraints(JointDescriptors, NumJoints, SolverBodies, Actors.Num(), BatchHeaders.GetData(), OrderedDescriptors.GetData());
+			if(GBatchJoints)
+			{
+				NumJointHeaders = physx::immediate::PxBatchConstraints(JointDescriptors, NumActiveJoints, SolverBodies, Actors.Num(), BatchHeaders.GetData(), OrderedDescriptors.GetData());
+			}
+			else
+			{
+				NumJointHeaders = NumActiveJoints;
+				OrderedDescriptors.AddUninitialized(NumJointHeaders);
+				FMemory::Memcpy(OrderedDescriptors.GetData(), JointDescriptors, sizeof(OrderedDescriptors[0]) * NumJointHeaders);
+
+				for(uint32 Offset = 0; Offset < NumActiveJoints; ++Offset)
+				{
+					PxConstraintBatchHeader& BatchHeader = BatchHeaders[Offset];
+					BatchHeader.mStartIndex = Offset;
+					BatchHeader.mStride = 1;
+				}
+			}
+			
+
 			//ensure D6 joint data and low level joint data are matching the Ordered descriptors
-			for(int32 DescriptorIdx = 0; DescriptorIdx < NumJoints; ++DescriptorIdx)
+			for(uint32 DescriptorIdx = 0; DescriptorIdx < NumActiveJoints; ++DescriptorIdx)
 			{
 				FJointHandle* JointHandle = (FJointHandle*) OrderedDescriptors[DescriptorIdx].constraint;
 				if(JointHandle->JointDataIndex != DescriptorIdx)
@@ -559,7 +633,7 @@ void FSimulation::BatchConstraints()
 			ContactDescriptor.constraintLengthOver16 = PxSolverConstraintDesc::eCONTACT_CONSTRAINT;
 		}
 
-		NumContactHeaders = physx::immediate::PxBatchConstraints(ContactDescriptors, NumContactPairs, SolverBodies, Actors.Num(), BatchHeaders.GetData() + NumJointHeaders, OrderedDescriptors.GetData() + NumJoints);
+		NumContactHeaders = physx::immediate::PxBatchConstraints(ContactDescriptors, NumContactPairs, SolverBodies, Actors.Num(), BatchHeaders.GetData() + NumJointHeaders, OrderedDescriptors.GetData() + NumActiveJoints);
 	}
 	else
 	{
@@ -666,7 +740,7 @@ void FSimulation::PrepareConstraints(float DeltaTime)
 		PxConstraintBatchHeader& Header = BatchHeaders[HeaderIdx];
 		check(Header.mConstraintType == PxSolverConstraintDesc::eCONTACT_CONSTRAINT);
 
-		Header.mStartIndex += NumJoints;
+		Header.mStartIndex += NumActiveJoints;
 		
 		for (PxU32 BatchInnerIdx = 0; BatchInnerIdx < Header.mStride; ++BatchInnerIdx)
 		{
@@ -740,19 +814,17 @@ void FSimulation::SolveAndIntegrate(float DeltaTime)
 #if WITH_PHYSX
 	SCOPE_CYCLE_COUNTER(STAT_ImmediateSolveAndIntegrate);
 
-	const int32 NumMobileBodies = NumSimulatedBodies + NumKinematicBodies;
-
-	PxVec3* LinearMotionVelocity = (PxVec3*) Workspace.Alloc(sizeof(PxVec3) * NumMobileBodies * 2);
-	PxVec3* AngularMotionVelocity = &LinearMotionVelocity[NumMobileBodies];
+	PxVec3* LinearMotionVelocity = (PxVec3*) Workspace.Alloc(sizeof(PxVec3) * NumActiveSimulatedBodies * 2);
+	PxVec3* AngularMotionVelocity = &LinearMotionVelocity[NumActiveSimulatedBodies];
 
 	//Solve all constraints
-	immediate::PxSolveConstraints(BatchHeaders.GetData(), NumContactHeaders + NumJointHeaders, OrderedDescriptors.GetData(), SolverBodies, LinearMotionVelocity, AngularMotionVelocity, NumMobileBodies, NumPositionIterations, NumVelocityIterations);
+	immediate::PxSolveConstraints(BatchHeaders.GetData(), NumContactHeaders + NumJointHeaders, OrderedDescriptors.GetData(), SolverBodies, LinearMotionVelocity, AngularMotionVelocity, NumActiveSimulatedBodies, NumPositionIterations, NumVelocityIterations);
 
 	//Integrate velocities
-	immediate::PxIntegrateSolverBodies(SolverBodiesData.GetData(), SolverBodies, LinearMotionVelocity, AngularMotionVelocity, NumMobileBodies, DeltaTime);
+	immediate::PxIntegrateSolverBodies(SolverBodiesData.GetData(), SolverBodies, LinearMotionVelocity, AngularMotionVelocity, NumActiveSimulatedBodies, DeltaTime);
 
 	//Copy positions of dynamic bodies back into rigid body
-	for (int32 DynamicsBodyIdx = 0; DynamicsBodyIdx < NumMobileBodies; ++DynamicsBodyIdx)
+	for (uint32 DynamicsBodyIdx = 0; DynamicsBodyIdx < NumActiveSimulatedBodies; ++DynamicsBodyIdx)
 	{
 		RigidBodiesData[DynamicsBodyIdx].linearVelocity = SolverBodiesData[DynamicsBodyIdx].linearVelocity;
 		RigidBodiesData[DynamicsBodyIdx].angularVelocity = SolverBodiesData[DynamicsBodyIdx].angularVelocity;

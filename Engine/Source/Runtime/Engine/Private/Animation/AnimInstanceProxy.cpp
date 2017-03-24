@@ -261,6 +261,10 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	}
 #endif
 
+	ComponentTransform = SkeletalMeshComponent->GetComponentTransform();
+	ComponentRelativeTransform = SkeletalMeshComponent->GetRelativeTransform();
+	ActorTransform = SkeletalMeshComponent->GetOwner() ? SkeletalMeshComponent->GetOwner()->GetActorTransform() : FTransform::Identity;
+
 	// run preupdate calls
 	for (FAnimNode_Base* Node : GameThreadPreUpdateNodes)
 	{
@@ -807,6 +811,38 @@ FAnimNode_Base* FAnimInstanceProxy::GetNodeFromIndexUntyped(int32 NodeIdx, UScri
 void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, UObject* Asset)
 {
 	RequiredBones.InitializeTo(Component->RequiredBones, *Asset);
+
+	// If there is a ref pose override, we want to replace ref pose in RequiredBones
+	const FSkelMeshRefPoseOverride* RefPoseOverride = Component->GetRefPoseOverride();
+	if (RefPoseOverride)
+	{
+		// Get ref pose override info
+		// Get indices of required bones
+		const TArray<FBoneIndexType>& BoneIndicesArray = RequiredBones.GetBoneIndicesArray();
+		// Get number of required bones
+		int32 NumReqBones = BoneIndicesArray.Num();
+
+		// Build new array of ref pose transforms for required bones
+		TArray<FTransform> NewCompactRefPose;
+		NewCompactRefPose.AddUninitialized(NumReqBones);
+
+		for (int32 CompactBoneIndex = 0; CompactBoneIndex < NumReqBones; ++CompactBoneIndex)
+		{
+			FBoneIndexType MeshPoseIndex = BoneIndicesArray[CompactBoneIndex];
+
+			if (RefPoseOverride->RefBonePoses.IsValidIndex(MeshPoseIndex))
+			{
+				NewCompactRefPose[CompactBoneIndex] = RefPoseOverride->RefBonePoses[MeshPoseIndex];
+			}
+			else
+			{
+				NewCompactRefPose[CompactBoneIndex] = FTransform::Identity;
+			}
+		}
+
+		// Update ref pose in required bones structure
+		RequiredBones.SetRefPoseCompactArray(NewCompactRefPose);
+	}
 
 	// If this instance can accept input poses, initialise the input pose container
 	if(SubInstanceInputNode)

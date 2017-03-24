@@ -7127,6 +7127,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		MergedFlatMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, InSettings.MaterialSettings.bSpecularMap ? AtlasTextureSize : FIntPoint::ZeroValue);
 		MergedFlatMaterial.SetPropertySize(EFlattenMaterialProperties::Emissive, InSettings.MaterialSettings.bEmissiveMap ? AtlasTextureSize : FIntPoint::ZeroValue);
 		MergedFlatMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, InSettings.MaterialSettings.bOpacityMap ? AtlasTextureSize : FIntPoint::ZeroValue);
+		MergedFlatMaterial.SetPropertySize(EFlattenMaterialProperties::OpacityMask, InSettings.MaterialSettings.bOpacityMaskMap ? AtlasTextureSize : FIntPoint::ZeroValue);
 
 		TArray<FRawMeshUVTransform> UVTransforms;
 

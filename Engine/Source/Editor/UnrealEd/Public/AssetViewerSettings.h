@@ -22,6 +22,7 @@ struct FPreviewSceneProfile
 
 	FPreviewSceneProfile()
 	{		
+		bSharedProfile = false;
 		bShowFloor = true;
 		bShowEnvironment = true;
 		bRotateLightingRig = false;
@@ -43,6 +44,10 @@ struct FPreviewSceneProfile
 	/** Name to identify the profile */
 	UPROPERTY(EditAnywhere, config, Category=Profile)
 	FString ProfileName;
+
+	/** Whether or not this profile should be stored in the Project ini file */
+	UPROPERTY(EditAnywhere, config, Category = Profile)
+	bool bSharedProfile;
 
 	/** Manually set the directional light intensity (0.0 - 20.0) */
 	UPROPERTY(EditAnywhere, config, Category = Lighting, meta = (UIMin = "0.0", UIMax = "20.0"))
@@ -117,7 +122,7 @@ struct FPreviewSceneProfile
 /**
 * Default asset viewer settings.
 */
-UCLASS(config=Editor, defaultconfig, meta=(DisplayName = "Asset Viewer"))
+UCLASS(config=Editor, meta=(DisplayName = "Asset Viewer"))
 class UNREALED_API UAssetViewerSettings : public UObject, public FEditorUndoClient
 {
 	GENERATED_BODY()
@@ -150,12 +155,20 @@ public:
 	/** End FEditorUndoClient */
 
 	/** Collection of scene profiles */
-	UPROPERTY(EditAnywhere, config, Category = Settings, meta=(ShowOnlyInnerProperties))
+	UPROPERTY(EditAnywhere, transient, Category = Settings, meta=(ShowOnlyInnerProperties))
 	TArray<FPreviewSceneProfile> Profiles;
-protected:
+
+	/** Collection of local scene profiles */
+	UPROPERTY(config)
+	TArray<FPreviewSceneProfile> SharedProfiles;
+	
+	/** Collection of local scene profiles */
+	UPROPERTY(config)
+	TArray<FPreviewSceneProfile> LocalProfiles;
+
 	/** Cached value to determine whether or not a profile was added or removed*/
 	int32 NumProfiles;
-
+protected:
 	/** Broadcasts after an scene profile was added or deleted from the asset viewer singleton instance */
 	FOnAssetViewerSettingsChangedEvent OnAssetViewerSettingsChangedEvent;
 

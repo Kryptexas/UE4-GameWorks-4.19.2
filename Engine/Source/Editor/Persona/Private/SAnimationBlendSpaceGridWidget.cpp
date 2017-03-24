@@ -43,6 +43,7 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 	OnSampleAdded = InArgs._OnSampleAdded;
 	OnSampleMoved = InArgs._OnSampleMoved;
 	OnSampleRemoved = InArgs._OnSampleRemoved;
+	OnSampleAnimationChanged = InArgs._OnSampleAnimationChanged;
 
 	GridType = BlendSpace->IsA<UBlendSpace1D>() ? EGridType::SingleAxis : EGridType::TwoAxis;
 	BlendParametersToDraw = (GridType == EGridType::SingleAxis) ? 1 : 2;
@@ -61,6 +62,7 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 	bMouseIsOverGeometry = false;
 	bRefreshCachedData = true;
 	bStretchToFit = true;
+	bShowAnimationNames = false;
 
 	InvalidSamplePositionDragDropText = FText::FromString(TEXT("Invalid Sample Position"));
 
@@ -125,10 +127,31 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 								SNew(SButton)
 								.ToolTipText(LOCTEXT("ShowTriangulation", "Show Triangulation"))
 								.OnClicked(this, &SBlendSpaceGridWidget::ToggleTriangulationVisibility)
+								.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bShowTriangulation ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
 								.ContentPadding(1)
 								[
 									SNew(SImage)
 									.Image(FEditorStyle::GetBrush("BlendSpaceEditor.ToggleTriangulation"))
+									.ColorAndOpacity(FSlateColor::UseForeground())
+								]
+							]
+						]
+	
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+							.VAlign(VAlign_Center)
+							[
+								SNew(SButton)
+								.ToolTipText(LOCTEXT("ShowAnimationNames", "Show Animation Names"))
+								.OnClicked(this, &SBlendSpaceGridWidget::ToggleShowAnimationNames)
+								.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bShowAnimationNames ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
+								.ContentPadding(1)
+								[
+									SNew(SImage)
+									.Image(FEditorStyle::GetBrush("BlendSpaceEditor.ToggleLabels"))
 									.ColorAndOpacity(FSlateColor::UseForeground())
 								]
 							]
@@ -146,6 +169,7 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 								.ToolTipText(this, &SBlendSpaceGridWidget::GetFittingTypeButtonToolTipText)
 								.OnClicked(this, &SBlendSpaceGridWidget::ToggleFittingType)
 								.ContentPadding(1)
+								.ButtonColorAndOpacity_Lambda([this]() -> FLinearColor { return bStretchToFit ? FEditorStyle::GetSlateColor("SelectionColor").GetSpecifiedColor() : FLinearColor::White; })
 								[
 									SNew(SImage)
 									.Image(FEditorStyle::GetBrush("WidgetDesigner.ZoomToFit"))
@@ -153,7 +177,6 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 								]
 							]
 						]
-
 
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
@@ -241,6 +264,11 @@ int32 SBlendSpaceGridWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Al
 	}	
 	PaintSampleKeys(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
 	PaintAxisText(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+
+	if (bShowAnimationNames)
+	{
+		PaintAnimationNames(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+	}
 
 	return LayerId;
 }
@@ -412,7 +440,7 @@ void SBlendSpaceGridWidget::PaintTriangulation(const FGeometry& AllottedGeometry
 							Points.Add(SampleValueToGridPosition(TargetSample.SampleValue));
 
 							// Draw line from and to element
-							FSlateDrawElement::MakeLines(OutDrawElements, DrawLayerId, AllottedGeometry.ToPaintGeometry(), Points, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White, true, 0.1f);
+							FSlateDrawElement::MakeLines(OutDrawElements, DrawLayerId, AllottedGeometry.ToPaintGeometry(), Points, MyClippingRect, ESlateDrawEffect::None, bShowAnimationNames ? GridLinesColor : FLinearColor::White, true, 0.1f);
 						}
 					}
 				}
@@ -421,10 +449,38 @@ void SBlendSpaceGridWidget::PaintTriangulation(const FGeometry& AllottedGeometry
 	}
 }
 
+void SBlendSpaceGridWidget::PaintAnimationNames(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
+{
+	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	const FVector2D GridCenter = CachedGridRectangle.GetCenter();
+	const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
+	for (const FBlendSample& Sample : Samples)
+	{
+		if (Sample.Animation)
+		{
+			const FString Name = Sample.Animation->GetName();
+			const FVector2D TextSize = FontMeasure->Measure(Name, FontInfo);
+
+			FVector2D GridPosition = SampleValueToGridPosition(Sample.SampleValue);
+			// Check on which side of the sample the text should be positioned so that we don't run out of geometry space
+			if ((GridPosition + TextSize).X > AllottedGeometry.GetLocalSize().X)
+			{
+				GridPosition -= FVector2D(TextSize.X + KeySize.X, KeySize.X * .5f);
+			}
+			else
+			{
+				GridPosition += FVector2D(KeySize.X, -KeySize.X * .5f);
+			}
+
+			FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(GridPosition.X, GridPosition.Y), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Name, FontInfo, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White);
+		}
+	}
+}
+
 FReply SBlendSpaceGridWidget::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	// Check if we are in dropping state and if so snap to the grid and try to add the sample
-	if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop )
+	if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop || DragState == EDragState::DragDropOverride)
 	{
 		if (DragState == EDragState::DragDrop)
 		{
@@ -438,11 +494,25 @@ FReply SBlendSpaceGridWidget::OnDrop(const FGeometry& MyGeometry, const FDragDro
 				OnSampleAdded.ExecuteIfBound(Animation, SampleValue);
 			}	
 		}
+		else if (DragState == EDragState::DragDropOverride)
+		{
+			const FVector2D GridPosition = SnapToClosestGridPoint(LocalMousePosition);
+			const FVector SampleValue = GridPositionToSampleValue(GridPosition);
+
+			TSharedPtr<FAssetDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+			if (DragDropOperation.IsValid())
+			{
+				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->AssetData);
+				OnSampleAnimationChanged.ExecuteIfBound(Animation, SampleValue);
+			}
+		}
 
 		DragState = EDragState::None;
 	}
 
 	DragDropAnimationSequence = nullptr;
+	DragDropAnimationName = FText::GetEmpty();
+	HoveredAnimationName = FText::GetEmpty();
 
 	return FReply::Unhandled();
 }
@@ -457,7 +527,7 @@ void SBlendSpaceGridWidget::OnDragEnter(const FGeometry& MyGeometry, const FDrag
 
 FReply SBlendSpaceGridWidget::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-	if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop)
+	if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop || DragState == EDragState::DragDropOverride)
 	{		
 		LocalMousePosition = MyGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());				
 		
@@ -475,10 +545,12 @@ FReply SBlendSpaceGridWidget::OnDragOver(const FGeometry& MyGeometry, const FDra
 
 void SBlendSpaceGridWidget::OnDragLeave(const FDragDropEvent& DragDropEvent)
 {
-	if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop)
+	if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop || DragState == EDragState::DragDropOverride)
 	{
 		DragState = EDragState::None;
 		DragDropAnimationSequence = nullptr;
+		DragDropAnimationName = FText::GetEmpty();
+		HoveredAnimationName = FText::GetEmpty();
 	}
 }
 
@@ -897,6 +969,12 @@ FText SBlendSpaceGridWidget::GetToolTipAnimationName() const
 			break;
 		}
 
+		case EDragState::DragDropOverride:
+		{
+			ToolTipText = DragDropAnimationName;
+			break;
+		}
+
 		case EDragState::InvalidDragDrop:
 		{
 			break;
@@ -977,6 +1055,12 @@ FText SBlendSpaceGridWidget::GetToolTipSampleValue() const
 			break;
 		}
 
+		case EDragState::DragDropOverride:
+		{
+			const FTextFormat OverrideAnimationFormat = FTextFormat::FromString("Changing Animation from {0} to {1}");
+			ToolTipText = FText::Format(OverrideAnimationFormat, HoveredAnimationName, DragDropAnimationName);
+			break;
+		}
 		// If the drag and drop operation is invalid return the cached error message as to why it is invalid
 		case EDragState::InvalidDragDrop:
 		{
@@ -1134,6 +1218,12 @@ FReply SBlendSpaceGridWidget::ToggleFittingType()
 	return FReply::Handled();
 }
 
+FReply SBlendSpaceGridWidget::ToggleShowAnimationNames()
+{
+	bShowAnimationNames = !bShowAnimationNames;
+	return FReply::Handled();
+}
+
 void SBlendSpaceGridWidget::UpdateGridRationMargin(const FVector2D& GeometrySize)
 {
 	if (GridType == EGridType::TwoAxis)
@@ -1262,21 +1352,21 @@ void SBlendSpaceGridWidget::Tick(const FGeometry& AllottedGeometry, const double
 		{
 			ResetToolTip();
 		}
+		
+		// Determine highlighted sample
+		const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
+		for (int32 SampleIndex = 0; SampleIndex < Samples.Num(); ++SampleIndex)
+		{
+			const FBlendSample& Sample = Samples[SampleIndex];
+			if (IsSampleValueWithinMouseRange(Sample.SampleValue))
+			{
+				HighlightedSampleIndex = SampleIndex;
+				break;
+			}
+		}
 
 		if (!bHighlightPreviewPin)
 		{
-			// Determine highlighted sample
-			const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
-			for (int32 SampleIndex = 0; SampleIndex < Samples.Num(); ++SampleIndex)
-			{
-				const FBlendSample& Sample = Samples[SampleIndex];
-				if (IsSampleValueWithinMouseRange(Sample.SampleValue))
-				{
-					HighlightedSampleIndex = SampleIndex;
-					break;
-				}
-			}
-
 			// If we started selecting or selected a different sample make sure we show/hide the tooltip
 			if (PreviousSampleIndex != HighlightedSampleIndex)
 			{
@@ -1304,23 +1394,39 @@ void SBlendSpaceGridWidget::Tick(const FGeometry& AllottedGeometry, const double
 			OnSampleMoved.ExecuteIfBound(DraggedSampleIndex, SampleValue);
 		}
 	}
-	else if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop)
+	else if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop || DragState == EDragState::DragDropOverride)
 	{
 		// Validate that the sample is not overlapping with a current sample when doing a drag/drop operation and that we are dropping a valid animation for the blend space (type)
 		const FVector DropSampleValue = GridPositionToSampleValue(SnapToClosestGridPoint(LocalMousePosition));
-		const bool bValidSample = BlendSpace->ValidateSampleValue(DropSampleValue);
+		const bool bValidPosition = BlendSpace->IsSampleWithinBounds(DropSampleValue);
+		const bool bExistingSample = BlendSpace->IsTooCloseToExistingSamplePoint(DropSampleValue, INDEX_NONE);
 		const bool bValidSequence = ValidateAnimationSequence(DragDropAnimationSequence, InvalidDragDropText);
-
+		
 		if (!bValidSequence)
 		{
 			DragState = EDragState::InvalidDragDrop;
 		}
-		else if (!bValidSample)
+		else if (!bValidPosition)
 		{			
 			InvalidDragDropText = InvalidSamplePositionDragDropText;
 			DragState = EDragState::InvalidDragDrop;
 		}
-		else if (bValidSample && bValidSequence)
+		else if (bExistingSample)
+		{	
+			const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
+			for (int32 SampleIndex = 0; SampleIndex < Samples.Num(); ++SampleIndex)
+			{
+				const FBlendSample& Sample = Samples[SampleIndex];
+				if (Sample.SampleValue == DropSampleValue)
+				{
+					HoveredAnimationName = Sample.Animation ? FText::FromString(Sample.Animation->GetName()) : FText::FromString("Invalid Animation Sequence");
+					break;
+				}
+			}
+
+			DragState = EDragState::DragDropOverride;			
+		}
+		else if (bValidPosition && bValidSequence && !bExistingSample)
 		{
 			DragState = EDragState::DragDrop;
 		}
@@ -1403,6 +1509,10 @@ const bool SBlendSpaceGridWidget::IsValidDragDropOperation(const FDragDropEvent&
 	if (!bResult)
 	{
 		DragDropOperation->SetToolTip(InvalidOperationText, DragDropOperation->GetIcon());
+	}
+	else
+	{
+		DragDropAnimationName = FText::FromString(DragDropAnimationSequence->GetName());
 	}
 
 	return bResult;

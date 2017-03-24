@@ -6,6 +6,11 @@
 #include "WorkflowOrientedApp/WorkflowCentricApplication.h"
 #include "IHasPersonaToolkit.h"
 
+class UAnimationAsset;
+
 class IAnimationEditor : public FWorkflowCentricApplication, public IHasPersonaToolkit
 {
+public:
+	/** Set the animation asset of the editor. */
+	virtual void SetAnimationAsset(UAnimationAsset* AnimAsset) = 0;
 };

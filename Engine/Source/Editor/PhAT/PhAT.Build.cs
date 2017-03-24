@@ -22,13 +22,6 @@ public class PhAT : ModuleRules
 				"UnrealEd",
                 "Kismet",
                 "Persona",
-
-                //Bring these in for immediate mode physics
-                "ImmediatePhysics",
-                "AnimGraphRuntime",
-                "PhysX",
-                "APEX"
-
 			}
         );
 

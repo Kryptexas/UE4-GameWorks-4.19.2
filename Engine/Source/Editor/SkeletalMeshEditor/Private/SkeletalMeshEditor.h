@@ -15,6 +15,11 @@ class IPersonaToolkit;
 class IPersonaViewport;
 class ISkeletonTree;
 class USkeletalMesh;
+class UClothingAssetBase;
+
+struct HActor;
+struct FViewportClick;
+struct FSkeletalMeshClothBuildParams;
 
 namespace SkeletalMeshEditorModes
 {
@@ -89,6 +94,30 @@ private:
 	void HandleObjectSelected(UObject* InObject);
 
 	void HandleReimportMesh();
+
+	/** Callback for toggling UV drawing in the viewport */
+	void ToggleMeshSectionSelection();
+
+	/** Callback for checking whether the UV drawing is switched on. */
+	bool IsMeshSectionSelectionChecked() const;
+
+	void HandleMeshClick(HActor* HitProxy, const FViewportClick& Click);
+
+	// Clothing menu handlers (builds and handles clothing context menu options)
+	void FillMeshClickMenu(FMenuBuilder& MenuBuilder, HActor* HitProxy, const FViewportClick& Click);
+	void FillApplyClothingAssetMenu(FMenuBuilder& MenuBuilder, int32 InLodIndex, int32 InSectionIndex);
+	void FillCreateClothingMenu(FMenuBuilder& MenuBuilder, int32 InLodIndex, int32 InSectionIndex);
+	void OnRemoveClothingAssetMenuItemClicked(int32 InLodIndex, int32 InSectionIndex);
+	void OnCreateClothingAssetMenuItemClicked(FSkeletalMeshClothBuildParams& Params);
+	void OnApplyClothingAssetClicked(UClothingAssetBase* InAssetToApply, int32 InMeshLodIndex, int32 InMeshSectionIndex, int32 InClothLodIndex);
+
+	bool CanApplyClothing(int32 InLodIndex, int32 InSectionIndex);
+	bool CanRemoveClothing(int32 InLodIndex, int32 InSectionIndex);
+	bool CanCreateClothing(int32 InLodIndex, int32 InSectionIndex);
+
+	void ApplyClothing(UClothingAssetBase* InAsset, int32 InLodIndex, int32 InSectionIndex, int32 InClothingLod);
+	void RemoveClothing(int32 InLodIndex, int32 InSectionIndex);
+	//////////////////////////////////////////////////////////////////////////
 
 private:
 	void ExtendMenu();

@@ -2,7 +2,7 @@
 
 #include "PhATAnimInstanceProxy.h"
 #include "PhATAnimInstance.h"
-#include "AnimNode_Ragdoll.h"
+//#include "AnimNode_RigidBody.h"
 
 void FPhATAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 {
@@ -15,10 +15,9 @@ void FPhATAnimInstanceProxy::ConstructNodes()
 	LocalToComponentSpace.LocalPose.SetLinkNode(&SequencePlayerNode);
 	//RagdollNode.ComponentPose.SetLinkNode(&LocalToComponentSpace);
 	//ComponentToLocalSpace.ComponentPose.SetLinkNode(&RagdollNode);
-	//HACK: temp turn off phat preview of immediate mode
 	ComponentToLocalSpace.ComponentPose.SetLinkNode(&LocalToComponentSpace);
 	
-	RagdollNode.bComponentSpaceSimulation = false;
+	//RagdollNode.bComponentSpaceSimulation = false;
 }
 
 void FPhATAnimInstanceProxy::GetCustomNodes(TArray<FAnimNode_Base*>& OutNodes)

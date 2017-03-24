@@ -52,7 +52,12 @@ struct FNodeHierarchyData
 	TMap<FName, int32> NodeNameToIndexMapping;
 
 public:
-	FTransform GetTransform(int32 Index) const
+	const FTransform& GetTransform(int32 Index) const
+	{
+		return Transforms[Index];
+	}
+
+	FTransform& GetTransform(int32 Index)
 	{
 		return Transforms[Index];
 	}
@@ -60,6 +65,7 @@ public:
 	void SetTransform(int32 Index, const FTransform& NewTransform)
 	{
 		Transforms[Index] = NewTransform;
+		Transforms[Index].NormalizeRotation();
 	}
 
 	int32 GetParentIndex(int32 Index) const
@@ -86,6 +92,23 @@ public:
 	FName GetNodeName(int32 Index) const
 	{
 		return Nodes[Index].Name;
+	}
+
+	void SetNodeName(int32 Index, const FName& NewNodeName)
+	{
+		FName OldName = Nodes[Index].Name;
+		Nodes[Index].Name = NewNodeName;
+
+		// now find all the nodes with this as parent
+		for (int32 NodeIndex = 0; NodeIndex < Nodes.Num(); ++NodeIndex)
+		{
+			if (Nodes[NodeIndex].ParentName == OldName)
+			{
+				Nodes[NodeIndex].ParentName = NewNodeName;
+			}
+		}
+
+		BuildNodeNameToIndexMapping();
 	}
 
 	int32 Add(const FName& InNodeName, const FName& InParentName, const FTransform& InTransform)
@@ -185,6 +208,7 @@ public:
 
 	const FNodeHierarchyData& GetHierarchy() const { return Hierarchy; }
 	const TArray<FTransform>& GetTransforms() const { return Hierarchy.Transforms; }
+	TArray<FTransform>& GetTransforms() { return Hierarchy.Transforms; }
 	const TArray<FNodeObject>& GetNodes() const { return Hierarchy.Nodes; }
 
 	template<typename DataType>
@@ -194,8 +218,10 @@ public:
 	DataType& GetNodeData(int32 Index) { return *reinterpret_cast<DataType*>(GetUserDataImpl(Index)); }
 
 	// it's up to your hierarchy to decide what to do with this
-	virtual FTransform GetLocalTransform(int32 Index) const { return FTransform::Identity; }
-	virtual FTransform GetGlobalTransform(int32 Index) const { return FTransform::Identity; }
+	virtual const FTransform& GetLocalTransform(int32 Index) const PURE_VIRTUAL(FNodeHierarchyWithUserData::GetLocalTransform, return Hierarchy.Transforms[Index];)
+	virtual const FTransform& GetGlobalTransform(int32 Index) const PURE_VIRTUAL(FNodeHierarchyWithUserData::GetGlobalTransform, return Hierarchy.Transforms[Index];)
+	virtual FTransform& GetLocalTransform(int32 Index) PURE_VIRTUAL(FNodeHierarchyWithUserData::GetLocalTransform, return Hierarchy.Transforms[Index];)
+	virtual FTransform& GetGlobalTransform(int32 Index) PURE_VIRTUAL(FNodeHierarchyWithUserData::GetGlobalTransform, return Hierarchy.Transforms[Index];)
 	virtual void SetLocalTransform(int32 Index, const FTransform& NewTransform) { }
 	virtual void SetGlobalTransform(int32 Index, const FTransform& NewTransform) { }
 
@@ -270,6 +296,17 @@ public:
 		return Hierarchy.GetParentName(Index);
 	}
 
+	FName GetParentName(const FName& NodeName) const
+	{
+		int32 Index = GetNodeIndex(NodeName);
+		if (IsValidIndex(Index))
+		{
+			return Hierarchy.GetParentName(Index);
+		}
+
+		return NAME_None;
+	}
+
 	void SetParentName(int32 Index, FName NewParent) 
 	{
 		// if no parent or if exist - reject typos
@@ -287,6 +324,11 @@ public:
 	FName GetNodeName(int32 Index) const
 	{
 		return Hierarchy.GetNodeName(Index);
+	}
+
+	void SetNodeName(int32 Index, const FName& NewNode)
+	{
+		Hierarchy.SetNodeName(Index, NewNode);
 	}
 
 	int32 Add(const FName& InNodeName, const FName& InParentName, const FTransform& InTransform)

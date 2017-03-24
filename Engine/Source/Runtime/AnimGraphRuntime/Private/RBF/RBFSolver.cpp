@@ -3,37 +3,40 @@
 #include "RBFSolver.h"
 #include "EngineLogs.h"
 
-FQuat FRBFEntry::AsQuat() const
+FQuat FRBFEntry::AsQuat(int32 Index) const
 {
 	FQuat Result = FQuat::Identity;
 
-	if (Values.Num() >= 3)
+	const int32 BaseIndex = Index * 3;
+
+	if (Values.Num() >= BaseIndex + 3)
 	{
-		const FRotator Rot = FRotator(Values[1], Values[2], Values[0]); // Pitch, Yaw, Roll (see SetFromRotator)
+		FRotator Rot;
+		Rot.Roll	= Values[BaseIndex + 0];
+		Rot.Pitch	= Values[BaseIndex + 1];
+		Rot.Yaw		= Values[BaseIndex + 2];
 		Result = FQuat(Rot);
 	}
 
 	return Result;
 }
 
-void FRBFEntry::SetFromRotator(const FRotator& InRot)
+void FRBFEntry::AddFromRotator(const FRotator& InRot)
 {
-	Values.Empty();
-	Values.SetNum(3);
+	const int32 BaseIndex = Values.AddUninitialized(3);
 
-	Values[0] = InRot.Roll;
-	Values[1] = InRot.Pitch;
-	Values[2] = InRot.Yaw;
+	Values[BaseIndex + 0] = InRot.Roll;
+	Values[BaseIndex + 1] = InRot.Pitch;
+	Values[BaseIndex + 2] = InRot.Yaw;
 }
 
-void FRBFEntry::SetFromVector(const FVector& InVector)
+void FRBFEntry::AddFromVector(const FVector& InVector)
 {
-	Values.Empty();
-	Values.SetNum(3);
+	const int32 BaseIndex = Values.AddUninitialized(3);
 
-	Values[0] = InVector.X;
-	Values[1] = InVector.Y;
-	Values[2] = InVector.Z;
+	Values[BaseIndex + 0] = InVector.X;
+	Values[BaseIndex + 1] = InVector.Y;
+	Values[BaseIndex + 2] = InVector.Z;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -69,6 +72,7 @@ float FRBFSolver::FindDistanceBetweenEntries(const FRBFEntry& A, const FRBFEntry
 {
 	check(A.GetDimensions() == B.GetDimensions());
 
+	// Simple n-dimensional distance
 	if (Params.DistanceMethod == ERBFDistanceMethod::Euclidean)
 	{
 		float DistSqr = 0.f;
@@ -80,20 +84,38 @@ float FRBFSolver::FindDistanceBetweenEntries(const FRBFEntry& A, const FRBFEntry
 
 		return FMath::Sqrt(DistSqr);
 	}
+	// Treat values as sequence of eulers - find quat distance between each pair, then sqrt-sum-of-squares of those
 	else if (Params.DistanceMethod == ERBFDistanceMethod::Quaternion)
 	{
-		float RadDist = A.AsQuat().AngularDistance(B.AsQuat());
-		return FMath::RadiansToDegrees(RadDist);
+		float DistSqr = 0.f;
+
+		const int32 NumRots = A.GetDimensions() / 3;
+		for (int32 RotIdx = 0; RotIdx < NumRots; RotIdx++)
+		{
+			float RadDist = A.AsQuat(RotIdx).AngularDistance(B.AsQuat(RotIdx));
+			DistSqr += FMath::Square(FMath::RadiansToDegrees(RadDist));
+		}
+
+		return FMath::Sqrt(DistSqr);
 	}
+	// Treat values as sequence of eulers - find 'swing' distance between each pair, then sqrt-sum-of-squares of those
 	else if(Params.DistanceMethod == ERBFDistanceMethod::SwingAngle)
 	{
-		FVector TwistVector = Params.GetTwistAxisVector();
-		FVector VecA = A.AsQuat().RotateVector(TwistVector);
-		FVector VecB = B.AsQuat().RotateVector(TwistVector);
+		float DistSqr = 0.f;
 
-		const float Dot = FVector::DotProduct(VecA, VecB);
-		const float RadDist = FMath::Acos(Dot);
-		return FMath::RadiansToDegrees(RadDist);
+		const int32 NumRots = A.GetDimensions() / 3;
+		for (int32 RotIdx = 0; RotIdx < NumRots; RotIdx++)
+		{
+			FVector TwistVector = Params.GetTwistAxisVector();
+			FVector VecA = A.AsQuat(RotIdx).RotateVector(TwistVector);
+			FVector VecB = B.AsQuat(RotIdx).RotateVector(TwistVector);
+
+			const float Dot = FVector::DotProduct(VecA, VecB);
+			const float RadDist = FMath::Acos(Dot);
+			DistSqr += FMath::Square(FMath::RadiansToDegrees(RadDist));
+		}
+
+		return FMath::Sqrt(DistSqr);
 	}
 	else
 	{
@@ -146,6 +168,12 @@ void FRBFSolver::Solve(const FRBFParams& Params, const TArray<FRBFTarget>& Targe
 		else if (Params.Function == ERBFFunctionType::Quintic)
 		{
 			Weight = FMath::Max(1.f - (X * X * X * X * X), 0.f);
+		}
+
+		// Apply custom curve if desired
+		if (Target.bApplyCustomCurve)
+		{
+			Weight = Target.CustomCurve.Eval(Weight, Weight); // default is un-mapped Weight
 		}
 
 		// Add to array of all weights. Don't threshold yet, wait for normalization step.

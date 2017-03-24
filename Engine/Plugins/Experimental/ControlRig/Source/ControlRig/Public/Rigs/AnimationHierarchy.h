@@ -4,11 +4,10 @@
 #pragma once
 
 #include "NodeHierarchy.h"
-#include "BoneContainer.h"
 #include "AnimationHierarchy.generated.h"
 
 USTRUCT()
-struct FConstraintNodeData
+struct CONTROLRIG_API FConstraintNodeData
 {
 	GENERATED_BODY()
 
@@ -16,16 +15,22 @@ struct FConstraintNodeData
 	FTransform RelativeParent;
 
 	UPROPERTY()
-	FBoneReference BoneReference;
-
-	UPROPERTY()
 	FConstraintOffset ConstraintOffset;
 
 	UPROPERTY()
 	FName	LinkedNode;
 
+private:
 	UPROPERTY()
 	TArray<FTransformConstraint> Constraints;
+
+public:
+	// returns constraint ptr if found
+	const TArray<FTransformConstraint> GetConstraints() const { return Constraints;  }
+	FTransformConstraint* FindConstraint(const FName& TargetNode);
+	void AddConstraint(const FTransformConstraint& TransformConstraint);
+	void DeleteConstraint(const FName& TargetNode);
+	bool DoesHaveConstraint() const { return Constraints.Num() > 0; }
 };
 
 USTRUCT()
@@ -46,24 +51,28 @@ struct FAnimationHierarchy : public FNodeHierarchyWithUserData
 	virtual void RemoveUserData(int32 Index) { UserData.RemoveAt(Index); }
 	virtual bool HasUserData() const { return true; }
 
-	virtual FTransform GetLocalTransform(int32 Index) const override
+	virtual const FTransform& GetLocalTransform(int32 Index) const override
 	{
-		if (IsValidIndex(Index))
-		{
-			return GetNodeData<FConstraintNodeData>(Index).RelativeParent;
-		}
-
-		return FTransform::Identity;
+		check(IsValidIndex(Index));
+		return GetNodeData<FConstraintNodeData>(Index).RelativeParent;
 	}
 
-	virtual FTransform GetGlobalTransform(int32 Index) const override
+	virtual FTransform& GetLocalTransform(int32 Index) override
 	{
-		if (IsValidIndex(Index))
-		{
-			return Hierarchy.GetTransform(Index);
-		}
+		check(IsValidIndex(Index));
+		return GetNodeData<FConstraintNodeData>(Index).RelativeParent;
+	}
 
-		return FTransform::Identity;
+	virtual const FTransform& GetGlobalTransform(int32 Index) const override
+	{
+		check(IsValidIndex(Index));
+		return Hierarchy.GetTransform(Index);
+	}
+
+	virtual FTransform& GetGlobalTransform(int32 Index) override
+	{
+		check(IsValidIndex(Index));
+		return Hierarchy.GetTransform(Index);
 	}
 
 	virtual void SetLocalTransform(int32 Index, const FTransform& NewTransform) override

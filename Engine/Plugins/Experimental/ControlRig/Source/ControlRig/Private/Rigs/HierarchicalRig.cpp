@@ -40,12 +40,15 @@ void UHierarchicalRig::BuildHierarchyFromSkeletalMesh(USkeletalMesh* SkeletalMes
 		FName ParentName;
 
 		FConstraintNodeData NodeData;
-		NodeData.BoneReference.BoneName = MeshBoneInfo.Name;
 		if (MeshBoneInfo.ParentIndex != INDEX_NONE)
 		{
 			ParentName = MeshBoneInfos[MeshBoneInfo.ParentIndex].Name;
 			const FTransform& GlobalParentTransform = GlobalTransforms[MeshBoneInfo.ParentIndex];
 			NodeData.RelativeParent = GlobalTransform.GetRelativeTransform(GlobalParentTransform);
+		}
+		else
+		{
+			NodeData.RelativeParent = GlobalTransform;
 		}
 
 		Hierarchy.Add(MeshBoneInfo.Name, ParentName, GlobalTransform, NodeData);
@@ -105,6 +108,7 @@ FTransform UHierarchicalRig::GetMappedLocalTransform(FName NodeName) const
 			GlobalTransform = GlobalTransform.GetRelativeTransform(ParentGlobalTransform);
 		}
 
+		GlobalTransform.NormalizeRotation();
 		return GlobalTransform;
 	}
 
@@ -133,15 +137,25 @@ void UHierarchicalRig::SetLocalTransform(FName NodeName, const FTransform& Trans
 
 void UHierarchicalRig::SetGlobalTransform(FName NodeName, const FTransform& Transform)
 {
-	FTransform NewTransform = Transform;
-	Hierarchy.SetGlobalTransformByName(NodeName, NewTransform);
-	// we still have to call evaluate node to update all hierarchy and so on
-	EvaluateNode(NodeName);
+	int32 NodeIndex = Hierarchy.GetNodeIndex(NodeName);
+	if (Hierarchy.IsValidIndex(NodeIndex))
+	{
+		const FTransform& OldTransform = Hierarchy.GetGlobalTransform(NodeIndex);
+		if (!OldTransform.Equals(Transform))
+		{
+			Hierarchy.SetGlobalTransform(NodeIndex, Transform);
+		}
+
+		// we still have to call evaluate node to update all dependency even if this node didn't change
+		// because constraints might have to update
+		EvaluateNode(NodeName);
+	}
 }
 
 void UHierarchicalRig::SetMappedGlobalTransform(FName NodeName, const FTransform& Transform)
 {
 	FTransform NewTransform = Transform;
+	NewTransform.NormalizeRotation();
 	ApplyInverseMappingTransform(NodeName, NewTransform);
 	SetGlobalTransform(NodeName, NewTransform);
 }
@@ -262,6 +276,9 @@ void UHierarchicalRig::Initialize()
 	{
 		if (Manipulator)
 		{
+#if WITH_EDITOR
+			TGuardValue<bool> ScopeGuard(Manipulator->bNotifyListeners, false);
+#endif		
 			Manipulator->Initialize(this);
 			if (Hierarchy.Contains(Manipulator->Name))
 			{
@@ -279,19 +296,6 @@ void UHierarchicalRig::Initialize()
 		}
 	}
 
-	// @todo: I don't think this would work because we might not have all nodes we need here
-	// @fixme: we need post initialize, but also we have to think about what serialize and what not
-	// @fixme: constraints have to be fixed later
-// 	if (Constraints.Num() > 0)
-// 	{
-// 		for (const FTransformConstraint& Constraint : Constraints)
-// 		{
-// 			AddConstraint(Constraint);
-// 		}
-// 
-// //		CreateSortedNodes();
-// 	}
-
 	Sort();
 }
 
@@ -307,9 +311,6 @@ AActor* UHierarchicalRig::GetHostingActor() const
 
 void UHierarchicalRig::BindToObject(UObject* InObject)
 {
-	// check we aren't already bound
-	check(SkeletalMeshComponent.Get() == nullptr);
-
 	// If we are binding to an actor, find the first skeletal mesh component
 	if (AActor* Actor = Cast<AActor>(InObject))
 	{
@@ -327,6 +328,23 @@ void UHierarchicalRig::BindToObject(UObject* InObject)
 void UHierarchicalRig::UnbindFromObject()
 {
 	SkeletalMeshComponent = nullptr;
+}
+
+bool UHierarchicalRig::IsBoundToObject(UObject* InObject) const
+{
+	if (AActor* Actor = Cast<AActor>(InObject))
+	{
+		if (USkeletalMeshComponent* Component = Actor->FindComponentByClass<USkeletalMeshComponent>())
+		{
+			return SkeletalMeshComponent.Get() == Component;
+		}
+	}
+	else if (USkeletalMeshComponent* Component = Cast<USkeletalMeshComponent>(InObject))
+	{
+		return SkeletalMeshComponent.Get() == Component;
+	}
+
+	return false;
 }
 
 UObject* UHierarchicalRig::GetBoundObject() const
@@ -359,16 +377,17 @@ void UHierarchicalRig::PreEvaluate()
 void UHierarchicalRig::Evaluate()
 {
 	Super::Evaluate();
+}
 
-	// If we have no constraints then we dont need to do any of the heavy work here
-	if (Constraints.Num() > 0)
+// we don't really have to update nodes as they're updated by manipulator anyway if input
+// but I'm leaving here as a function just in case in the future this came up again
+void UHierarchicalRig::UpdateNodes()
+{
+	// Calculate each node
+	for (const FName& NodeName : SortedNodes)
 	{
-		// Calculate each node
-		for (const FName& NodeName : SortedNodes)
-		{
-			const FTransform& GlobalTransfrom = GetGlobalTransform(NodeName);
-			SetGlobalTransform(NodeName, GlobalTransfrom);
-		}
+		const FTransform& GlobalTransfrom = GetGlobalTransform(NodeName);
+		SetGlobalTransform(NodeName, GlobalTransfrom);
 	}
 }
 
@@ -376,16 +395,20 @@ void UHierarchicalRig::PostEvaluate()
 {
 	Super::PostEvaluate();
 
-	UpdateManipulatorToNode();
+	UpdateManipulatorToNode(false);
 }
 
-void UHierarchicalRig::UpdateManipulatorToNode()
+void UHierarchicalRig::UpdateManipulatorToNode(bool bNotifyListeners)
 {
 	// Propagate back to manipulators after evaluation
 	for (UControlManipulator* Manipulator : Manipulators)
 	{
 		if (Manipulator)
 		{
+#if WITH_EDITOR
+			TGuardValue<bool> ScopeGuard(Manipulator->bNotifyListeners, bNotifyListeners);
+#endif
+
 			if (Manipulator->bInLocalSpace)
 			{
 				// do not add node in initialize, that is only for editor purpose and to serialize
@@ -411,8 +434,45 @@ void UHierarchicalRig::AddNode(FName NodeName, FName ParentName, const FTransfor
 		FTransform ParentTransform = Hierarchy.GetGlobalTransformByName(ParentName);
 		NewNodeData.RelativeParent = GlobalTransform.GetRelativeTransform(ParentTransform);
 	}
+	else
+	{
+		NewNodeData.RelativeParent = GlobalTransform;
+	}
 
 	Hierarchy.Add(NodeName, ParentName, GlobalTransform, NewNodeData);
+}
+
+void UHierarchicalRig::SetParent(FName NodeName, FName NewParentName)
+{
+	if (Hierarchy.Contains(NodeName) && (NewParentName == NAME_None || Hierarchy.Contains(NewParentName)))
+	{
+		const int32 NodeIndex = Hierarchy.GetNodeIndex(NodeName);
+		check(NodeIndex != INDEX_NONE);
+		const FTransform NodeTransform = Hierarchy.GetGlobalTransform(NodeIndex);
+
+		Hierarchy.SetParentName(NodeIndex, NewParentName);
+
+		FConstraintNodeData& MyNodeData = Hierarchy.GetNodeData<FConstraintNodeData>(NodeIndex);
+		if (NewParentName != NAME_None)
+		{
+			FTransform ParentTransform = Hierarchy.GetGlobalTransformByName(NewParentName);
+			MyNodeData.RelativeParent = NodeTransform.GetRelativeTransform(ParentTransform);
+		}
+		else
+		{
+			MyNodeData.RelativeParent = NodeTransform;
+		}
+	}
+}
+
+void UHierarchicalRig::DeleteConstraint(FName NodeName, FName TargetNode)
+{
+	int32 NodeIndex = Hierarchy.GetNodeIndex(NodeName);
+	if (Hierarchy.IsValidIndex(NodeIndex))
+	{
+		FConstraintNodeData& NodeData = Hierarchy.GetNodeData<FConstraintNodeData>(NodeIndex);
+		NodeData.DeleteConstraint(TargetNode);
+	}
 }
 
 void UHierarchicalRig::DeleteNode(FName NodeName)
@@ -422,12 +482,19 @@ void UHierarchicalRig::DeleteNode(FName NodeName)
 	{
 		TArray<FName> Children = Hierarchy.GetChildren(NodeIndex);
 		FName ParentName = Hierarchy.GetParentName(NodeIndex);
+		int32 ParentIndex = Hierarchy.GetNodeIndex(ParentName);
+		FTransform ParentTransform = (ParentIndex != INDEX_NONE)? Hierarchy.GetGlobalTransform(ParentIndex) : FTransform::Identity;
 
 		// now reparent the children
 		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
 		{
 			int32 ChildNodeIndex = Hierarchy.GetNodeIndex(Children[ChildIndex]);
 			Hierarchy.SetParentName(ChildNodeIndex, ParentName);
+
+			// when delete, we have to re-adjust relative transform
+			FTransform ChildTransform = Hierarchy.GetGlobalTransform(ChildNodeIndex);
+			FConstraintNodeData& ChildNodeData = Hierarchy.GetNodeData<FConstraintNodeData>(ChildNodeIndex);
+			ChildNodeData.RelativeParent = ChildTransform.GetRelativeTransform(ParentTransform);
 		}
 
 		Hierarchy.Remove(NodeName);
@@ -464,6 +531,48 @@ FNodeChain UHierarchicalRig::MakeNodeChain(FName RootNode, FName EndNode)
 	return NodeChain;
 }
 
+UControlManipulator* UHierarchicalRig::AddManipulator(TSubclassOf<UControlManipulator> ManipulatorClass, FText DisplayName, FName NodeName, FName PropertyToManipulate, EIKSpaceMode KinematicSpace, bool bUsesTranslation, bool bUsesRotation, bool bUsesScale, bool bInLocalSpace)
+{
+	// make sure manipulator doesn't exists already
+	for (int32 ManipulatorIndex = 0; ManipulatorIndex < Manipulators.Num(); ++ManipulatorIndex)
+	{
+		if (UControlManipulator* Manipulator = Manipulators[ManipulatorIndex])
+		{
+			if (Manipulator->Name == NodeName)
+			{
+				// same name exists, failed, return
+				return Manipulator;
+			}
+		}
+	}
+
+	UControlManipulator* NewManipulator = NewObject<UControlManipulator>(this, ManipulatorClass.Get(), NAME_None, RF_Public | RF_Transactional | RF_ArchetypeObject);
+	NewManipulator->DisplayName = DisplayName;
+	NewManipulator->Name = NodeName;
+	NewManipulator->PropertyToManipulate = PropertyToManipulate;
+	NewManipulator->KinematicSpace = KinematicSpace;
+	NewManipulator->bUsesTranslation = bUsesTranslation;
+	NewManipulator->bUsesRotation = bUsesRotation;
+	NewManipulator->bUsesScale = bUsesScale;
+	NewManipulator->bInLocalSpace = bInLocalSpace;
+
+	Manipulators.Add(NewManipulator);
+
+	return NewManipulator;
+}
+
+void UHierarchicalRig::UpdateConstraints()
+{
+	if (Constraints.Num() > 0)
+	{
+		for (const FTransformConstraint& Constraint : Constraints)
+		{
+			AddConstraint(Constraint);
+		}
+	}
+}
+#endif // WITH_EDITOR
+
 void UHierarchicalRig::AddConstraint(const FTransformConstraint& TransformConstraint)
 {
 	int32 NodeIndex = Hierarchy.GetNodeIndex(TransformConstraint.SourceNode);
@@ -472,47 +581,24 @@ void UHierarchicalRig::AddConstraint(const FTransformConstraint& TransformConstr
 	if (NodeIndex != INDEX_NONE && ConstraintNodeIndex != INDEX_NONE)
 	{
 		FConstraintNodeData& NodeData = Hierarchy.GetNodeData<FConstraintNodeData>(NodeIndex);
-		NodeData.Constraints.Add(TransformConstraint);
+		NodeData.AddConstraint(TransformConstraint);
 
 		// recalculate main offset for all constraint
 		if (TransformConstraint.bMaintainOffset)
 		{
 			int32 ParentIndex = Hierarchy.GetParentIndex(NodeIndex);
-			FTransform ParentTransform = Hierarchy.GetGlobalTransform(ParentIndex);
+			FTransform ParentTransform = (ParentIndex != INDEX_NONE) ? Hierarchy.GetGlobalTransform(ParentIndex) : FTransform::Identity;
 			FTransform LocalTransform = Hierarchy.GetLocalTransform(NodeIndex);
 			FTransform TargetTransform = ResolveConstraints(LocalTransform, ParentTransform, NodeData);
 			NodeData.ConstraintOffset.SaveInverseOffset(LocalTransform, TargetTransform, TransformConstraint.Operator);
 		}
-	}
-}
-
-void UHierarchicalRig::AddManipulator(FName NodeName, FName PropertyToManipulate)
-{
-	for (int32 ManipulatorIndex = 0; ManipulatorIndex < Manipulators.Num(); ++ManipulatorIndex)
-	{
-		if (UControlManipulator* Manipulator = Manipulators[ManipulatorIndex])
+		else
 		{
-			if (Manipulator->Name == NodeName)
-			{
-				// same name exists, failed, return
-				return;
-			}
+			NodeData.ConstraintOffset.Reset();
 		}
 	}
-
-	// make sure manipulator doesn't exists already
-	if (Hierarchy.Contains(NodeName))
-	{
-		// @fixme: for now sphere by default
-		USphereManipulator* NewManipulator = NewObject<USphereManipulator>(this, NAME_None, RF_Public | RF_Transactional | RF_ArchetypeObject);
-		NewManipulator->Name = NodeName;
-		NewManipulator->PropertyToManipulate = PropertyToManipulate;
-
-		Manipulators.Add(NewManipulator);
-	}
 }
 
-#endif // WITH_EDITOR
 static int32& EnsureNodeExists(TMap<FName, int32>& InGraph, FName Name)
 {
 	int32* Value = InGraph.Find(Name);
@@ -531,8 +617,45 @@ static void IncreaseEdgeCount(TMap<FName, int32>& InGraph, FName Name)
 	++EdgeCount;
 }
 
+void UHierarchicalRig::AddDependenciesRecursive(int32 OriginalNodeIndex, int32 NodeIndex)
+{
+	const FName& NodeName = Hierarchy.GetNodeName(NodeIndex);
+
+	TArray<FName> Neighbors;
+	GetDependentArray(NodeName, Neighbors);
+
+	for (const FName& Neighbor : Neighbors)
+	{
+		int32 NeighborNodeIndex = Hierarchy.GetNodeIndex(Neighbor);
+		if (NeighborNodeIndex != INDEX_NONE)
+		{
+			TArray<int32>& NodeDependencies = DependencyGraph[NeighborNodeIndex];
+			NodeDependencies.AddUnique(OriginalNodeIndex);
+			AddDependenciesRecursive(OriginalNodeIndex, NeighborNodeIndex);
+		}
+	}
+}
+
 void UHierarchicalRig::CreateSortedNodes()
 {
+	// Comparison Operator for Sorting.
+	struct FSortDependencyGraph
+	{
+	private:
+		TArray<int32>* SortedNodeIndices;
+
+	public:
+		FSortDependencyGraph(TArray<int32>* InSortedNodeIndices)
+			: SortedNodeIndices(InSortedNodeIndices)
+		{
+		}
+
+		FORCEINLINE bool operator()(const int32& A, const int32& B) const
+		{
+			return SortedNodeIndices->Find(A) > SortedNodeIndices->Find(B);
+		}
+	};
+
 	SortedNodes.Reset();
 
 	// name to incoming edge
@@ -555,6 +678,7 @@ void UHierarchicalRig::CreateSortedNodes()
 
 	// do run Kahn
 	TArray<FName> SortingQueue;
+	TArray<int32> SortedNodeIndices;
 	// first remove 0 in-degree vertices
 	for (const TPair<FName, int32>& GraphPair : Graph)
 	{
@@ -578,6 +702,7 @@ void UHierarchicalRig::CreateSortedNodes()
 			// move the element
 			SortingQueue.Remove(Name);
 			SortedNodes.Add(Name);
+			SortedNodeIndices.Add(Hierarchy.GetNodeIndex(Name));
 
 			TArray<FName> Neighbors;
 
@@ -594,10 +719,22 @@ void UHierarchicalRig::CreateSortedNodes()
 			}
 		}
 
-		if (SortedNodes.Num() != Hierarchy.GetNum())
+		DependencyGraph.Reset();
+		if (SortedNodes.Num() == Hierarchy.GetNum())
 		{
-			// if not same, we have cycle
-			check(false);
+			// If the sorted node count is different to the hierarchy we have a cycle, so we dont regenerate the graph in that case
+			// Now generate a path through the DAG for each node to evaluate
+			DependencyGraph.SetNum(Hierarchy.GetNum());
+			for (int32 NodeIndex = 0; NodeIndex < Hierarchy.GetNum(); ++NodeIndex)
+			{
+				AddDependenciesRecursive(NodeIndex, NodeIndex);
+			}
+
+			// after this, we should sort using SortedNodes.
+			for (int32 NodeIndex = 0; NodeIndex < Hierarchy.GetNum(); ++NodeIndex)
+			{
+				DependencyGraph[NodeIndex].Sort(FSortDependencyGraph(&SortedNodeIndices));
+			}
 		}
 	}
 }
@@ -608,17 +745,14 @@ void UHierarchicalRig::ApplyConstraint(const FName& NodeName)
 	if (NodeIndex != INDEX_NONE)
 	{
 		FConstraintNodeData& NodeData = Hierarchy.GetNodeData<FConstraintNodeData>(NodeIndex);
-		if (NodeData.Constraints.Num() > 0)
+		if (NodeData.DoesHaveConstraint())
 		{
 			FTransform LocalTransform = Hierarchy.GetLocalTransform(NodeIndex);
 			int32 ParentIndex = Hierarchy.GetParentIndex(NodeIndex);
-			FTransform ParentTransform = Hierarchy.GetGlobalTransform(ParentIndex);
+			FTransform ParentTransform = (ParentIndex != INDEX_NONE)? Hierarchy.GetGlobalTransform(ParentIndex) : FTransform::Identity;
 			FTransform ConstraintTransform = ResolveConstraints(LocalTransform, ParentTransform, NodeData);
 			NodeData.ConstraintOffset.ApplyInverseOffset(ConstraintTransform, LocalTransform);
-			if (ParentIndex != INDEX_NONE)
-			{
-				Hierarchy.SetGlobalTransform(NodeIndex, LocalTransform * ParentTransform);
-			}
+			Hierarchy.SetGlobalTransform(NodeIndex, LocalTransform * ParentTransform);
 		}
 	}
 }
@@ -628,27 +762,27 @@ void UHierarchicalRig::EvaluateNode(const FName& NodeName)
 	// constraints have to update when current transform changes - I think that should happen before here
 	ApplyConstraint(NodeName);
 
-	int32 FoundIndex = SortedNodes.Find(NodeName);
-	if (FoundIndex != INDEX_NONE)
+	int32 NodeIndex = Hierarchy.GetNodeIndex(NodeName);
+	if (NodeIndex != INDEX_NONE && NodeIndex < DependencyGraph.Num())
 	{
-		int32 ChildIndex = FoundIndex - 1;
-		while (ChildIndex >= 0)
+		for(int32 ChildNodeIndex : DependencyGraph[NodeIndex])
 		{
-			FName ChildNodeName = SortedNodes[ChildIndex];
-			int32 ChildNodeIndex = Hierarchy.GetNodeIndex(ChildNodeName);
+			FName ChildNodeName = Hierarchy.GetNodeName(ChildNodeIndex);
 			int32 ParentIndex = Hierarchy.GetParentIndex(ChildNodeIndex);
 			if (ParentIndex != INDEX_NONE)
 			{
 				FTransform ParentTransform = Hierarchy.GetGlobalTransform(ParentIndex);
-				Hierarchy.SetGlobalTransform(ChildNodeIndex, Hierarchy.GetLocalTransform(ChildNodeIndex) * ParentTransform);
+
+				// Note we don't call SetGlobalTransform here as the local transform has not changed, 
+				// so we dont want to introduce error
+				Hierarchy.GetTransforms()[ChildNodeIndex] = Hierarchy.GetLocalTransform(ChildNodeIndex) * ParentTransform;
 			}
 			ApplyConstraint(ChildNodeName);
-			--ChildIndex;
 		}
 	}
 }
 
-void UHierarchicalRig::GetDependentArray(const FName& Name, TArray<FName>& OutList)
+void UHierarchicalRig::GetDependentArray(const FName& Name, TArray<FName>& OutList) const
 {
 	int32 NodeIndex = Hierarchy.GetNodeIndex(Name);
 
@@ -662,12 +796,13 @@ void UHierarchicalRig::GetDependentArray(const FName& Name, TArray<FName>& OutLi
 			OutList.AddUnique(ParentName);
 		}
 
-		FConstraintNodeData& NodeData = Hierarchy.GetNodeData<FConstraintNodeData>(NodeIndex);
-		for (int32 ConstraintsIndex = 0; ConstraintsIndex < NodeData.Constraints.Num(); ++ConstraintsIndex)
+		const FConstraintNodeData& NodeData = Hierarchy.GetNodeData<FConstraintNodeData>(NodeIndex);
+		const TArray<FTransformConstraint>& NodeConstraints = NodeData.GetConstraints();
+		for (int32 ConstraintsIndex = 0; ConstraintsIndex < NodeConstraints.Num(); ++ConstraintsIndex)
 		{
-			if (NodeData.Constraints[ConstraintsIndex].TargetNode != NAME_None)
+			if (NodeConstraints[ConstraintsIndex].TargetNode != NAME_None)
 			{
-				OutList.AddUnique(NodeData.Constraints[ConstraintsIndex].TargetNode);
+				OutList.AddUnique(NodeConstraints[ConstraintsIndex].TargetNode);
 			}
 		}
 	}
@@ -678,7 +813,7 @@ FTransform UHierarchicalRig::ResolveConstraints(const FTransform& LocalTransform
 	FTransform CurrentLocalTransform = LocalTransform;
 	FGetGlobalTransform OnGetGlobalTransform;
 	OnGetGlobalTransform.BindUObject(this, &UHierarchicalRig::GetGlobalTransform);
-	return AnimationCore::SolveConstraints(CurrentLocalTransform, ParentTransform, NodeData.Constraints, OnGetGlobalTransform);
+	return AnimationCore::SolveConstraints(CurrentLocalTransform, ParentTransform, NodeData.GetConstraints(), OnGetGlobalTransform);
 }
 
 void UHierarchicalRig::Sort()
@@ -718,6 +853,68 @@ void UHierarchicalRig::GetMappableNodeData(TArray<FName>& OutNames, TArray<FTran
 			OutTransforms.Add(Transforms[Index]);
 		}
 	}
+}
+
+bool UHierarchicalRig::RenameNode(const FName& CurrentNodeName, const FName& NewNodeName)
+{
+	if (Hierarchy.Contains(NewNodeName))
+	{
+		// the name is already used
+		return false;
+	}
+
+	if (Hierarchy.Contains(CurrentNodeName))
+	{
+		const int32 NodeIndex = Hierarchy.GetNodeIndex(CurrentNodeName);
+		Hierarchy.SetNodeName(NodeIndex, NewNodeName);
+
+		// now updates Constraints as well as data Constraints
+		for (int32 Index = 0; Index < Hierarchy.UserData.Num(); ++Index)
+		{
+			FConstraintNodeData& ConstraintNodeData = Hierarchy.UserData[Index];
+
+			if (ConstraintNodeData.LinkedNode == CurrentNodeName)
+			{
+				ConstraintNodeData.LinkedNode = NewNodeName;
+			}
+
+			FTransformConstraint* Constraint = ConstraintNodeData.FindConstraint(CurrentNodeName);
+			if (Constraint)
+			{
+				Constraint->TargetNode = NewNodeName;
+			}
+		}
+
+		for (int32 Index = 0; Index < Constraints.Num(); ++Index)
+		{
+			FTransformConstraint& Constraint = Constraints[Index];
+			if (Constraint.SourceNode == CurrentNodeName)
+			{
+				Constraint.SourceNode = NewNodeName;
+			}
+
+			if (Constraint.TargetNode == CurrentNodeName)
+			{
+				Constraint.TargetNode = NewNodeName;
+			}
+		}
+
+		for (int32 Index = 0; Index < Manipulators.Num(); ++Index)
+		{
+			UControlManipulator* Manipulator = Manipulators[Index];
+			if (Manipulator)
+			{
+				if (Manipulator->Name == CurrentNodeName)
+				{
+					Manipulator->Name = NewNodeName;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 void UHierarchicalRig::Setup()

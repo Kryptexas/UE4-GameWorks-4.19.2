@@ -559,7 +559,7 @@ int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh)
 
 	FKSphylElem SphylElem;
 	SphylElem.Center = sphere.Center;
-	SphylElem.Orientation = rotation.Quaternion();
+	SphylElem.Rotation = rotation;
 	SphylElem.Radius = sphere.W;
 	SphylElem.Length = length;
 	bs->AggGeom.SphylElems.Add(SphylElem);

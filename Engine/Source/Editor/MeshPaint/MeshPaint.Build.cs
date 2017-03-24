@@ -31,7 +31,9 @@ public class MeshPaint : ModuleRules
                 "RawMesh",
                 "SourceControl",
                 "ViewportInteraction",
-                "VREditor"
+                "VREditor",
+                "PropertyEditor",
+                "MainFrame",
             }
         );
 

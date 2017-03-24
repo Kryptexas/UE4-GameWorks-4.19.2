@@ -36,6 +36,7 @@ struct FMovieSceneSubSequenceData
 #endif
 		)
 		: Sequence(&InSequence)
+		, SequenceKeyObject(nullptr)
 		, DeterministicSequenceID(InDeterministicSequenceID)
 #if WITH_EDITORONLY_DATA
 		, SectionPath(InSectionPath)
@@ -46,6 +47,10 @@ struct FMovieSceneSubSequenceData
 	/** The sequence that the sub section references */
 	UPROPERTY()
 	UMovieSceneSequence* Sequence;
+
+	/** The key object that the sub section uses. Usually either the sequence or the section. */
+	UPROPERTY()
+	const UObject* SequenceKeyObject;
 
 	/** Transform that transforms a given time from the sequences outer space, to its authored space. */
 	UPROPERTY()

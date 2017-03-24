@@ -256,9 +256,10 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		const bool bIsDuplicating = Ar.HasAnyPortFlags(PPF_DuplicateForPIE) || Ar.HasAnyPortFlags(PPF_Duplicate);
 		const bool bIsTransacting = Ar.IsTransacting();
 		const bool bIsCookingForDedicatedServer = bIsCooking && Ar.CookingTarget()->IsServerOnly();
+		const bool bIsCountingMemory = Ar.IsCountingMemory();
 		const bool bCookingTargetNeedsCompressedData = bIsCooking && (!UAnimationSettings::Get()->bStripAnimationDataOnDedicatedServer || !bIsCookingForDedicatedServer);
 
-		bool bSerializeCompressedData = bCookingTargetNeedsCompressedData || bIsDuplicating || bIsTransacting;
+		bool bSerializeCompressedData = bCookingTargetNeedsCompressedData || bIsDuplicating || bIsTransacting || bIsCountingMemory;
 		Ar << bSerializeCompressedData;
 
 		if (bCookingTargetNeedsCompressedData)
@@ -2378,6 +2379,29 @@ void UAnimSequence::BakeOutVirtualBoneTracks()
 	CompressRawAnimData();
 }
 
+bool IsIdentity(const FVector& Pos)
+{
+	return Pos.Equals(FVector::ZeroVector);
+}
+
+bool IsIdentity(const FQuat& Rot)
+{
+	return Rot.Equals(FQuat::Identity);
+}
+
+template<class KeyType>
+bool IsKeyArrayValidForRemoval(const TArray<KeyType>& Keys)
+{
+	return Keys.Num() == 0 || (Keys.Num() == 1 && IsIdentity(Keys[0]));
+}
+
+bool IsRawTrackValidForRemoval(const FRawAnimSequenceTrack& Track)
+{
+	return	IsKeyArrayValidForRemoval(Track.PosKeys) &&
+			IsKeyArrayValidForRemoval(Track.RotKeys) &&
+			IsKeyArrayValidForRemoval(Track.ScaleKeys);
+}
+
 void UAnimSequence::BakeOutAdditiveIntoRawData()
 {
 	if (!CanBakeAdditive())
@@ -2509,6 +2533,19 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 #endif
 
 	CompressRawAnimData();
+
+	// Note on (TrackIndex > 0) below : deliberately stop before track 0, compression code doesn't like getting a completely empty animation
+	for (int32 TrackIndex = RawAnimationData.Num() - 1; TrackIndex > 0; --TrackIndex)
+	{
+		const FRawAnimSequenceTrack& Track = RawAnimationData[TrackIndex];
+		if (IsRawTrackValidForRemoval(Track))
+		{
+			RawAnimationData.RemoveAtSwap(TrackIndex, 1, false);
+			AnimationTrackNames.RemoveAtSwap(TrackIndex, 1, false);
+			TrackToSkeletonMapTable.RemoveAtSwap(TrackIndex, 1, false);
+		}
+	}
+
 }
 
 void UAnimSequence::FlagDependentAnimationsAsRawDataOnly() const
@@ -2536,6 +2573,7 @@ void UAnimSequence::RecycleAnimSequence()
 	CompressedTrackOffsets.Empty(0);
 	CompressedByteStream.Empty(0);
 	CompressedScaleOffsets.Empty(0);
+	SourceRawAnimationData.Reset();
 
 #endif // WITH_EDITORONLY_DATA
 }

@@ -152,6 +152,10 @@ FName FFbxErrors::Animation_InvalidData(TEXT("Animation_InvalidData"));
 
 FName FFbxErrors::Animation_TransformError(TEXT("Animation_TransformError"));
 
+FName FFbxErrors::Animation_DifferentLength(TEXT("Animation_DifferentLength"));
+
+FName FFbxErrors::Animation_CurveNotFound(TEXT("Animation_CurveNotFound"));
+
 static const FString FbxErrorsPath = TEXT("Shared/Editor/FbxErrors");
 
 FFbxErrorToken::FFbxErrorToken(const FName& InErrorName)

@@ -46,9 +46,8 @@ struct FAbcMeshSample
 		TangentX = InSample.TangentX;
 		TangentY = InSample.TangentY;
 		UVs = InSample.UVs;
-		/*Colours = InSample.Colours;
-		ColourIndices = InSample.ColourIndices;
-		Visibility = InSample.Visibility;
+		Colors = InSample.Colors;
+		/*Visibility = InSample.Visibility;
 		VisibilityIndices = InSample.VisibilityIndices;*/
 		MaterialIndices = InSample.MaterialIndices;
 		SmoothingGroupIndices = InSample.SmoothingGroupIndices;
@@ -66,9 +65,8 @@ struct FAbcMeshSample
 	TArray<FVector> TangentY;
 	TArray<FVector2D> UVs;
 
-	/*TArray<FVector2D> Colours;
-	TArray<uint32> ColourIndices;
-	TArray<FVector2D> Visibility;
+	TArray<FLinearColor> Colors;
+	/*TArray<FVector2D> Visibility;
 	TArray<uint32> VisibilityIndices;*/
 
 	// Per Face material and smoothing group index
@@ -217,7 +215,7 @@ struct FMeshSection
 	TArray<FVector> TangentY;
 	TArray<FVector> TangentZ;
 	TArray<FVector2D> UVs;
-	TArray<FColor> Colours;
+	TArray<FColor> Colors;
 	uint32 NumFaces;
 };
 

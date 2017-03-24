@@ -46,11 +46,11 @@ struct FSplineIKScratchArea : public TThreadSingleton<FSplineIKScratchArea>
 	TArray<FCompactPoseBoneIndex> CompactPoseBoneIndices;
 };
 
-void FAnimNode_SplineIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_SplineIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	if (CachedBoneReferences.Num() > 0)
 	{
-		const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+		const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 
 		TransformSpline();
 
@@ -75,7 +75,7 @@ void FAnimNode_SplineIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp
 			}
 
 			int32 CompactPoseIndexIndex = CompactPoseBoneIndices.Add(BoneData.Bone.GetCompactPoseIndex(BoneContainer));
-			InTransforms.Add(MeshBases.GetComponentSpaceTransform(CompactPoseBoneIndices[CompactPoseIndexIndex]));
+			InTransforms.Add(Output.Pose.GetComponentSpaceTransform(CompactPoseBoneIndices[CompactPoseIndexIndex]));
 		}
 
 		AnimationCore::SolveSplineIK(InTransforms, TransformedSpline.Position, TransformedSpline.Rotation, TransformedSpline.Scale, TotalSplineAlpha, TotalSplineLength, FFloatMapping::CreateRaw(this, &FAnimNode_SplineIK::GetTwist, TotalSplineAlpha), Roll, Stretch, Offset, BoneAxis, FFindParamAtFirstSphereIntersection::CreateRaw(this, &FAnimNode_SplineIK::FindParamAtFirstSphereIntersection), CachedOffsetRotations, CachedBoneLengths, OriginalSplineLength, OutTransforms);

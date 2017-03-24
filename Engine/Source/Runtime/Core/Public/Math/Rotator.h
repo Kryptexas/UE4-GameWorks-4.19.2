@@ -287,6 +287,12 @@ public:
 	 */
 	FRotator GetDenormalized() const;
 
+	/** Get a specific component of the vector, given a specific axis by enum */
+	float GetComponentForAxis(EAxis::Type Axis) const;
+
+	/** Set a specified componet of the vector, given a specific axis by enum */
+	void SetComponentForAxis(EAxis::Type Axis, float Component);
+
 	/**
 	 * In-place normalize, removes all winding and creates the "shortest route" rotation.
 	 */
@@ -402,6 +408,7 @@ public:
 	 * @return A rotator from a Euler angle.
 	 */
 	static CORE_API FRotator MakeFromEuler( const FVector& Euler );
+
 
 public:
 
@@ -674,6 +681,37 @@ FORCEINLINE void FRotator::Normalize()
 	Roll = NormalizeAxis(Roll);
 #endif
 	DiagnosticCheckNaN();
+}
+
+FORCEINLINE float FRotator::GetComponentForAxis(EAxis::Type Axis) const
+{
+	switch (Axis)
+	{
+	case EAxis::X:
+		return Roll;
+	case EAxis::Y:
+		return Pitch;
+	case EAxis::Z:
+		return Yaw;
+	default:
+		return 0.f;
+	}
+}
+
+FORCEINLINE void FRotator::SetComponentForAxis(EAxis::Type Axis, float Component)
+{
+	switch (Axis)
+	{
+	case EAxis::X:
+		Roll = Component;
+		break;
+	case EAxis::Y:
+		Pitch = Component;
+		break;
+	case EAxis::Z:
+		Yaw = Component;
+		break;
+	}
 }
 
 FORCEINLINE FString FRotator::ToString() const

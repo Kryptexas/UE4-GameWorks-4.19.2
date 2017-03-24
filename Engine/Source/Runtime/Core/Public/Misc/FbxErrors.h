@@ -163,6 +163,10 @@ struct CORE_API FFbxErrors
 	static FName Animation_InvalidData;
 
 	static FName Animation_TransformError;
+
+	static FName Animation_DifferentLength;
+
+	static FName Animation_CurveNotFound;
 };
 
 /**

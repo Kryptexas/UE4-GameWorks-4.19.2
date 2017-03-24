@@ -241,6 +241,7 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 				HeightFieldShapeSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 				HeightFieldActorSync->attachShape(*HeightFieldShapeSync);
+				HeightFieldShapeSync->release();
 
 				if (bCreateSimpleCollision)
 				{
@@ -261,6 +262,7 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 					HeightFieldShapeSimpleSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 					HeightFieldActorSync->attachShape(*HeightFieldShapeSimpleSync);
+					HeightFieldShapeSimpleSync->release();
 				}
 
 #if WITH_EDITOR
@@ -285,6 +287,7 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 						HeightFieldEdShapeSync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 
 						HeightFieldActorSync->attachShape(*HeightFieldEdShapeSync);
+						HeightFieldEdShapeSync->release();
 					}
 				}
 #endif// WITH_EDITOR
@@ -307,6 +310,7 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 					HeightFieldShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 					HeightFieldActorAsync->attachShape(*HeightFieldShapeAsync);
+					HeightFieldShapeAsync->release();
 
 					if (bCreateSimpleCollision)
 					{
@@ -328,6 +332,7 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 						HeightFieldShapeSimpleAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 						HeightFieldActorAsync->attachShape(*HeightFieldShapeSimpleAsync);
+						HeightFieldShapeSimpleAsync->release();
 					}
 				}
 
@@ -1014,6 +1019,7 @@ void ULandscapeMeshCollisionComponent::OnCreatePhysicsState()
 				MeshShapeSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 				MeshActorSync->attachShape(*MeshShapeSync);
+				MeshShapeSync->release();
 
 				FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 
@@ -1034,6 +1040,7 @@ void ULandscapeMeshCollisionComponent::OnCreatePhysicsState()
 					MeshShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);	// Setting visualization flag, in case we visualize only the async scene
 
 					MeshActorAsync->attachShape(*MeshShapeAsync);
+					MeshShapeAsync->release();
 				}
 
 #if WITH_EDITOR
@@ -1062,6 +1069,7 @@ void ULandscapeMeshCollisionComponent::OnCreatePhysicsState()
 						MeshShapeEdSync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 
 						MeshActorSync->attachShape(*MeshShapeEdSync);
+						MeshShapeEdSync->release();
 					}
 				}
 #endif// WITH_EDITOR

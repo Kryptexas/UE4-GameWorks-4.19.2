@@ -33,6 +33,8 @@ void FConstraintOffset::ApplyInverseOffset(const FTransform& InTarget, FTransfor
 
 void FConstraintOffset::SaveInverseOffset(const FTransform& Source, const FTransform& Target, const FConstraintDescription& Operator)
 {
+	Reset();
+
 	// override previous value, this is rule
 	if (Operator.bParent)
 	{

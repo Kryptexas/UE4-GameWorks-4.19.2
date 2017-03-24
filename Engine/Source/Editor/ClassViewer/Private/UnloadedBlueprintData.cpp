@@ -62,6 +62,24 @@ bool FUnloadedBlueprintData::IsA(const UClass* InClass) const
 	return ((UObject*)UBlueprintGeneratedClass::StaticClass())->IsA(InClass);
 }
 
+const UClass* FUnloadedBlueprintData::GetClassWithin() const
+{
+	TSharedPtr< FClassViewerNode > CurrentNode = ClassViewerNode.Pin()->ParentNode.Pin();
+
+	while (CurrentNode.IsValid())
+	{
+		// The class field will be invalid for unloaded classes.
+		// However, it should be valid once we've hit a loaded class or a Native class.
+		// Assuming BP cannot change ClassWithin data, this should be safe.
+		if (CurrentNode->Class.IsValid())
+		{
+			return CurrentNode->Class->ClassWithin;
+		}
+	}
+
+	return nullptr;
+}
+
 const TWeakPtr< class FClassViewerNode > FUnloadedBlueprintData::GetClassViewerNode() const
 {
 	return ClassViewerNode;

@@ -2,6 +2,8 @@
 
 #include "ControlRigBindingTrackEditor.h"
 #include "ControlRigBindingTrack.h"
+#include "ControlRigEditMode.h"
+#include "EditorModeManager.h"
 
 #define LOCTEXT_NAMESPACE "ControlRigBindingTrackEditor"
 
@@ -49,6 +51,11 @@ void FControlRigBindingTrackEditor::HandleAddBindingTrackMenuEntryExecute(FGuid 
 	FScopedTransaction AddSpawnTrackTransaction(LOCTEXT("AddBindingTrack_Transaction", "Add Binding Track"));
 	AddTrack(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), ObjectBinding, UControlRigBindingTrack::StaticClass(), NAME_None);
 	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
+
+	if (FControlRigEditMode* ControlRigEditMode = static_cast<FControlRigEditMode*>(GLevelEditorModeTools().GetActiveMode(FControlRigEditMode::ModeName)))
+	{
+		ControlRigEditMode->ReBindToActor();
+	}
 }
 
 bool FControlRigBindingTrackEditor::CanAddBindingTrack(FGuid ObjectBinding) const

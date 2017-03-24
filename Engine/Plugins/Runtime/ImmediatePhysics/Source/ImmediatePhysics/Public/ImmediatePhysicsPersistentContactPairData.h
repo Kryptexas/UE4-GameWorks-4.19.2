@@ -19,6 +19,8 @@ struct FPersistentContactPairData
 	PxU32 NumFrictions;
 #endif
 
+	uint32 SimCount;
+
 	void Clear()
 	{
 		FPlatformMemory::Memzero(this, sizeof(FPersistentContactPairData));

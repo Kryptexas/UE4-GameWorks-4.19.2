@@ -96,6 +96,16 @@ public:
 	}
 
 	/**
+	 * Get this track's child templates
+	 * NOTE that this is intended for use during the compilation phase in-editor.
+	 * Beware of using this to modify templates afterwards as it will almost certainly break evaluation.
+	 */
+	FORCEINLINE TArrayView<FMovieSceneEvalTemplatePtr> GetChildTemplates()
+	{
+		return TArrayView<FMovieSceneEvalTemplatePtr>(ChildTemplates.GetData(), ChildTemplates.Num());
+	}
+
+	/**
 	 * Get the template from the given template index
 	 */
 	FORCEINLINE const FMovieSceneEvalTemplate& GetChildTemplate(int32 TemplateIndex) const

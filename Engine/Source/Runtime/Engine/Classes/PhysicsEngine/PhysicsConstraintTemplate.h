@@ -100,6 +100,13 @@ class UPhysicsConstraintTemplate : public UObject
 	}
 
 #if WITH_EDITOR
+	/** Copy constraint instance into default profile.*/
+	ENGINE_API void SetDefaultProfile(FConstraintInstance& CI)
+	{
+		DefaultProfile = CI.ProfileInstance;
+	}
+
+
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	ENGINE_API FName GetCurrentConstraintProfileName() const;

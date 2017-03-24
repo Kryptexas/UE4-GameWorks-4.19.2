@@ -42,6 +42,11 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "PersonaCommonCommands.h"
+#include "Sound/SoundWave.h"
+#include "Engine/CurveTable.h"
+#include "Developer/AssetTools/Public/IAssetTools.h"
+#include "Developer/AssetTools/Public/AssetToolsModule.h"
+#include "SequenceRecorderUtils.h"
 
 const FName AnimationEditorAppIdentifier = FName(TEXT("AnimationEditorApp"));
 
@@ -189,8 +194,12 @@ void FAnimationEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnApplyRawAnimChanges),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::CanApplyRawAnimChanges));
 
-	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ExportToFBX,
-		FExecuteAction::CreateSP(this, &FAnimationEditor::OnExportToFBX),
+	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ExportToFBX_Source,
+		FExecuteAction::CreateSP(this, &FAnimationEditor::OnExportToFBX, EPoseSourceOption::CurrentAnimation_Source),
+		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
+
+	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ExportToFBX_Play,
+		FExecuteAction::CreateSP(this, &FAnimationEditor::OnExportToFBX, EPoseSourceOption::CurrentAnimation_Play),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
 
 	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().AddLoopingInterpolation,
@@ -228,9 +237,11 @@ void FAnimationEditor::ExtendToolbar()
 	}
 
 	// extend extra menu/toolbars
-	struct Local
-	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FAnimationEditor* InAnimationEditor)
+	ToolbarExtender->AddToolBarExtension(
+		"Asset",
+		EExtensionHook::After,
+		GetToolkitCommands(),
+		FToolBarExtensionDelegate::CreateLambda([this](FToolBarBuilder& ToolbarBuilder)
 		{
 			ToolbarBuilder.BeginSection("Animation");
 			{
@@ -238,16 +249,25 @@ void FAnimationEditor::ExtendToolbar()
 				{
 					ToolbarBuilder.AddComboButton(
 						FUIAction(),
-						FOnGetContent::CreateSP(InAnimationEditor, &FAnimationEditor::GenerateCreateAssetMenu),
+						FOnGetContent::CreateSP(this, &FAnimationEditor::GenerateCreateAssetMenu),
 						LOCTEXT("CreateAsset_Label", "Create Asset"),
 						LOCTEXT("CreateAsset_ToolTip", "Create Assets for this skeleton."),
 						FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.CreateAsset")
-						);
+					);
 				}
 
 				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ReimportAnimation);
 				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ApplyCompression, NAME_None, LOCTEXT("Toolbar_ApplyCompression", "Compression"));
-				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ExportToFBX);
+
+				{
+					ToolbarBuilder.AddComboButton(
+						FUIAction(),
+						FOnGetContent::CreateSP(this, &FAnimationEditor::GenerateExportAssetMenu),
+						LOCTEXT("ExportAsset_Label", "Export Asset"),
+						LOCTEXT("ExportAsset_ToolTip", "Export Assets for this skeleton."),
+						FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.ExportToFBX")
+					);
+				}
 			}
 			ToolbarBuilder.EndSection();
 
@@ -257,23 +277,10 @@ void FAnimationEditor::ExtendToolbar()
 				ToolbarBuilder.AddToolBarButton(FAnimationEditorCommands::Get().ApplyAnimation, NAME_None, LOCTEXT("Toolbar_ApplyAnimation", "Apply"));
 			}
 			ToolbarBuilder.EndSection();
-		}
-	};
 
-	ToolbarExtender->AddToolBarExtension(
-		"Asset",
-		EExtensionHook::After,
-		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar, this)
-		);
-
-	ToolbarExtender->AddToolBarExtension(
-		"Asset",
-		EExtensionHook::After,
-		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateLambda([this](FToolBarBuilder& ParentToolbarBuilder)
-		{
 			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+			PersonaModule.AddCommonToolbarExtensions(ToolbarBuilder, PersonaToolkit.ToSharedRef());
+
 			TSharedRef<class IAssetFamily> AssetFamily = PersonaModule.CreatePersonaAssetFamily(AnimationAsset);
 			AddToolbarWidget(PersonaModule.CreateAssetFamilyShortcutWidget(SharedThis(this), AssetFamily));
 		}	
@@ -286,13 +293,29 @@ void FAnimationEditor::ExtendMenu()
 
 	struct Local
 	{
-		static void AddAssetMenu(FMenuBuilder& MenuBuilder)
+		static void AddAssetMenu(FMenuBuilder& MenuBuilder, FAnimationEditor* InAnimationEditor)
 		{
 			MenuBuilder.BeginSection("AnimationEditor", LOCTEXT("AnimationEditorAssetMenu_Animation", "Animation"));
 			{
 				MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().ApplyCompression);
-				MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().ExportToFBX);
+
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("ExportToFBX", "Export to FBX"),
+					LOCTEXT("ExportToFBX_ToolTip", "Export current animation to FBX"),
+					FNewMenuDelegate::CreateSP(InAnimationEditor, &FAnimationEditor::FillExportAssetMenu),
+					false,
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.")
+				);
+
 				MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().AddLoopingInterpolation);
+
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("CopyCurvesToSoundWave", "Copy Curves To SoundWave"),
+					LOCTEXT("CopyCurvesToSoundWave_ToolTip", "Copy curves from this animation to the selected SoundWave"),
+					FNewMenuDelegate::CreateSP(InAnimationEditor, &FAnimationEditor::FillCopyToSoundWaveMenu),
+					false,
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.")
+				);
 			}
 			MenuBuilder.EndSection();
 		}
@@ -302,7 +325,7 @@ void FAnimationEditor::ExtendMenu()
 		"AssetEditorActions",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FMenuExtensionDelegate::CreateStatic(&Local::AddAssetMenu)
+		FMenuExtensionDelegate::CreateStatic(&Local::AddAssetMenu, this)
 		);
 
 	AddMenuExtender(MenuExtender);
@@ -408,10 +431,10 @@ TSharedPtr<SDockTab> FAnimationEditor::OpenNewAnimationDocumentTab(UAnimationAss
 			SharedAnimDocumentTab = OpenedTab;
 		}
 
- 		if (SequenceBrowser.IsValid())
- 		{
- 			SequenceBrowser.Pin()->SelectAsset(InAnimAsset);
- 		}
+		if (SequenceBrowser.IsValid())
+		{
+			SequenceBrowser.Pin()->SelectAsset(InAnimAsset);
+		}
 
 		// let the asset family know too
 		TSharedRef<IAssetFamily> AssetFamily = PersonaModule.CreatePersonaAssetFamily(InAnimAsset);
@@ -429,6 +452,11 @@ void FAnimationEditor::HandleAnimNotifiesChanged()
 void FAnimationEditor::HandleSectionsChanged()
 {
 	OnSectionsChanged.Broadcast();
+}
+
+void FAnimationEditor::SetAnimationAsset(UAnimationAsset* AnimAsset)
+{
+	HandleOpenNewAsset(AnimAsset);
 }
 
 void FAnimationEditor::HandleOpenNewAsset(UObject* InNewAsset)
@@ -517,13 +545,48 @@ void FAnimationEditor::OnApplyCompression()
 	}
 }
 
-void FAnimationEditor::OnExportToFBX()
+void FAnimationEditor::OnExportToFBX(const EPoseSourceOption Option)
 {
-	UAnimSequence* AnimSequence = Cast<UAnimSequence>(AnimationAsset);
-	if (AnimSequence)
+	UAnimSequence* AnimSequenceToRecord = nullptr;
+	if (Option == EPoseSourceOption::CurrentAnimation_Source)
 	{
-		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-		AnimSequences.Add(AnimSequence);
+		TArray<UObject*> AssetsToExport;
+		AssetsToExport.Add(AnimationAsset);
+		ExportToFBX(AssetsToExport, false);
+	}
+	else if (Option == EPoseSourceOption::CurrentAnimation_Play)
+	{
+		TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+		Skeletons.Add(PersonaToolkit->GetSkeleton());
+
+		AnimationEditorUtils::CreateAnimationAssets(Skeletons, UAnimSequence::StaticClass(), FString("_Play"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::ExportToFBX, true), AnimationAsset, true);
+	}
+	else
+	{
+		ensure(false);
+	}
+}
+
+void FAnimationEditor::ExportToFBX(const TArray<UObject*> AssetsToExport, bool bRecordAnimation)
+{
+	TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+	if (AssetsToExport.Num() > 0)
+	{
+		UAnimSequence* AnimationToRecord = Cast<UAnimSequence>(AssetsToExport[0]);
+		if (AnimationToRecord)
+		{
+			if (bRecordAnimation)
+			{
+				USkeletalMeshComponent* MeshComponent = PersonaToolkit->GetPreviewMeshComponent();
+				RecordMeshToAnimation(MeshComponent, AnimationToRecord);
+			}
+
+			AnimSequences.Add(AnimationToRecord);
+		}
+	}
+
+	if (AnimSequences.Num() > 0)
+	{
 		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
 		PersonaModule.ExportToFBX(AnimSequences, GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh);
 	}
@@ -539,6 +602,14 @@ void FAnimationEditor::OnAddLoopingInterpolation()
 		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
 		PersonaModule.AddLoopingInterpolation(AnimSequences);
 	}
+}
+
+TSharedRef< SWidget > FAnimationEditor::GenerateExportAssetMenu() const
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, GetToolkitCommands());
+	FillExportAssetMenu(MenuBuilder);
+	return MenuBuilder.MakeWidget();
 }
 
 TSharedRef< SWidget > FAnimationEditor::GenerateCreateAssetMenu() const
@@ -587,38 +658,70 @@ void FAnimationEditor::FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const
 	MenuBuilder.BeginSection("CreateAnimationSubMenu", LOCTEXT("CreateAnimationSubMenuHeading", "Create Animation"));
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("CreateAnimation_RefPose", "From Reference Pose"),
+			LOCTEXT("CreateAnimation_RefPose", "Reference Pose"),
 			LOCTEXT("CreateAnimation_RefPose_Tooltip", "Create Animation from reference pose."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, 0), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::ReferencePose), false),
 				FCanExecuteAction()
 				)
 			);
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("CreateAnimation_CurrentPose", "From Current Pose"),
+			LOCTEXT("CreateAnimation_CurrentPose", "Current Pose"),
 			LOCTEXT("CreateAnimation_CurrentPose_Tooltip", "Create Animation from current pose."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, 1), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentPose), false),
 				FCanExecuteAction()
 				)
 			);
 
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("CreateAnimation_CurrentAnimation", "From Current Animation"),
-			LOCTEXT("CreateAnimation_CurrentAnimation_Tooltip", "Create Animation from current animation."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, 2), false),
-				FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence)
-				)
-			);
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("CreateAnimation_CurrenAnimationSubMenu", "Current Animation"),
+			LOCTEXT("CreateAnimation_CurrenAnimationSubMenu_ToolTip", "Create Animation from current animation"),
+			FNewMenuDelegate::CreateSP(this, &FAnimationEditor::FillCreateAnimationFromCurrentAnimationMenu),
+			false,
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.AssetActions.CreateAnimAsset")
+		);
 	}
 	MenuBuilder.EndSection();
 }
 
+void FAnimationEditor::FillCreateAnimationFromCurrentAnimationMenu(FMenuBuilder& MenuBuilder) const
+{
+	{
+		TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+
+		Skeletons.Add(PersonaToolkit->GetSkeleton());
+
+		// create rig
+		MenuBuilder.BeginSection("CreateAnimationSubMenu", LOCTEXT("CreateAnimationFromCurrentAnimationSubmenuHeading", "Create Animation"));
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("CreateAnimation_CurrentAnimation_Source", "Source"),
+				LOCTEXT("CreateAnimation_CurrentAnimation_Source_Tooltip", "Create Animation from Source Data."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_Source), false),
+					FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence)
+				)
+			);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("CreateAnimation_CurrentAnimation_Play", "Play"),
+				LOCTEXT("CreateAnimation_CurrentAnimation_Play_Tooltip", "Create Animation from Play on the Current Preview Mesh, including Retargeting, Post Process Graph, or anything you see on the preview mesh."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_Play), false),
+					FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence)
+				)
+			);
+		}
+		MenuBuilder.EndSection();
+	}
+
+}
 void FAnimationEditor::FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const
 {
 	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
@@ -629,21 +732,21 @@ void FAnimationEditor::FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const
 	MenuBuilder.BeginSection("CreatePoseAssetSubMenu", LOCTEXT("CreatePoseAssetSubMenuHeading", "Create PoseAsset"));
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("CreatePoseAsset_CurrentPose", "From Current Pose"),
+			LOCTEXT("CreatePoseAsset_CurrentPose", "Current Pose"),
 			LOCTEXT("CreatePoseAsset_CurrentPose_Tooltip", "Create PoseAsset from current pose."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Skeletons, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, 0), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Skeletons, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, EPoseSourceOption::CurrentPose), false),
 				FCanExecuteAction()
 			)
 		);
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("CreatePoseAsset_CurrentAnimation", "From Current Animation"),
+			LOCTEXT("CreatePoseAsset_CurrentAnimation", "Current Animation"),
 			LOCTEXT("CreatePoseAsset_CurrentAnimation_Tooltip", "Create Animation from current animation."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Skeletons, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, 1), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Skeletons, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, EPoseSourceOption::CurrentAnimation_Source), false),
 				FCanExecuteAction()
 			)
 		);
@@ -740,7 +843,105 @@ void FAnimationEditor::InsertCurrentPoseToAsset(const FAssetData& NewPoseAssetDa
 	FSlateApplication::Get().DismissAllMenus();
 }
 
-void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, int32 Option)
+
+void FAnimationEditor::FillCopyToSoundWaveMenu(FMenuBuilder& MenuBuilder) const
+{
+	FAssetPickerConfig AssetPickerConfig;
+	AssetPickerConfig.Filter.ClassNames.Add(*USoundWave::StaticClass()->GetName());
+	AssetPickerConfig.bAllowNullSelection = false;
+	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw(this, &FAnimationEditor::CopyCurveToSoundWave);
+	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+	MenuBuilder.AddWidget(
+		ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig),
+		LOCTEXT("Select_Label", "")
+	);
+
+}
+
+void FAnimationEditor::FillExportAssetMenu(FMenuBuilder& MenuBuilder) const
+{
+	MenuBuilder.BeginSection("AnimationExport", LOCTEXT("ExportAssetMenuHeading", "Export"));
+	{
+		MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().ExportToFBX_Source);
+		MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().ExportToFBX_Play);
+	}
+	MenuBuilder.EndSection();
+}
+
+FRichCurve* FindOrAddCurve(UCurveTable* CurveTable, FName CurveName)
+{
+	FRichCurve* Curve = nullptr;
+
+	// Grab existing curve (if present)
+	FRichCurve** ExistingCurvePtr = CurveTable->RowMap.Find(CurveName);
+	if (ExistingCurvePtr)
+	{
+		check(*ExistingCurvePtr);
+		Curve = *ExistingCurvePtr;
+	}
+	// Or allocate new curve
+	else
+	{
+		Curve = new FRichCurve();
+		CurveTable->RowMap.Add(CurveName, Curve);
+	}
+
+	return Curve;
+}
+
+void FAnimationEditor::CopyCurveToSoundWave(const FAssetData& SoundWaveAssetData) const
+{
+	USoundWave* SoundWave = Cast<USoundWave>(SoundWaveAssetData.GetAsset());
+	UAnimSequence* Sequence = Cast<UAnimSequence>(AnimationAsset);
+
+	if (!SoundWave || !Sequence)
+	{
+		return;
+	}
+
+	// If no internal table, create one now
+	if (!SoundWave->InternalCurves)
+	{
+		static const FName InternalCurveTableName("InternalCurveTable");
+		SoundWave->Curves = NewObject<UCurveTable>(SoundWave, InternalCurveTableName);
+		SoundWave->Curves->ClearFlags(RF_Public);
+		SoundWave->Curves->SetFlags(SoundWave->Curves->GetFlags() | RF_Standalone | RF_Transactional);
+		SoundWave->InternalCurves = SoundWave->Curves;
+	}
+
+	UCurveTable* CurveTable = SoundWave->InternalCurves;
+
+	// iterate over curves in anim data
+	const int32 NumCurves = Sequence->RawCurveData.FloatCurves.Num();
+	for (int32 CurveIdx = 0; CurveIdx < NumCurves; CurveIdx++)
+	{
+		FFloatCurve& AnimCurve = Sequence->RawCurveData.FloatCurves[CurveIdx];
+
+		FRichCurve* Curve = FindOrAddCurve(CurveTable, AnimCurve.Name.DisplayName);
+		*Curve = AnimCurve.FloatCurve; // copy data
+	}
+
+	// we will need to add a curve to tell us the time we want to start playing audio
+	float PreRollTime = 0.f;
+	static const FName AudioCurveName("Audio");
+	FRichCurve* AudioCurve = FindOrAddCurve(CurveTable, AudioCurveName);
+	AudioCurve->Reset();
+	AudioCurve->AddKey(PreRollTime, 1.0f);
+
+	// Mark dirty after 
+	SoundWave->MarkPackageDirty();
+
+	FNotificationInfo Notification(FText::Format(LOCTEXT("AddedClassSuccessNotification", "Copied curves to {0}"),  FText::FromString(SoundWave->GetName())));
+	FSlateNotificationManager::Get().AddNotification(Notification);
+
+	// Close menu after picking sound
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
 {
 	bool bResult = true;
 	if (NewAssets.Num() > 0)
@@ -755,14 +956,20 @@ void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, int32 O
 			{
 				switch (Option)
 				{
-				case 0:
+				case EPoseSourceOption::ReferencePose:
 					bResult &= NewAnimSequence->CreateAnimation(MeshComponent->SkeletalMesh);
 					break;
-				case 1:
+				case EPoseSourceOption::CurrentPose:
 					bResult &= NewAnimSequence->CreateAnimation(MeshComponent);
 					break;
-				case 2:
+				case EPoseSourceOption::CurrentAnimation_Source:
 					bResult &= NewAnimSequence->CreateAnimation(Sequence);
+					break;
+				case EPoseSourceOption::CurrentAnimation_Play:
+					bResult &= RecordMeshToAnimation(MeshComponent, NewAnimSequence);
+					break;
+				default: 
+					ensure(false);
 					break;
 				}
 			}
@@ -773,7 +980,7 @@ void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, int32 O
 			HandleAssetCreated(NewAssets);
 
 			// if it created based on current mesh component, 
-			if (Option == 1)
+			if (Option == EPoseSourceOption::CurrentPose)
 			{
 				UDebugSkelMeshComponent* PreviewMeshComponent = PersonaToolkit->GetPreviewMeshComponent();
 				if (PreviewMeshComponent && PreviewMeshComponent->PreviewInstance)
@@ -785,7 +992,7 @@ void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, int32 O
 	}
 }
 
-void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, int32 Option)
+void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, const EPoseSourceOption Option)
 {
 	bool bResult = false;
 	if (NewAssets.Num() > 0)
@@ -800,15 +1007,20 @@ void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, int32 O
 			{
 				switch (Option)
 				{
-				case 0:
+				case EPoseSourceOption::CurrentPose:
 					NewPoseAsset->AddOrUpdatePoseWithUniqueName(PreviewComponent);
+					bResult = true;
 					break;
-				case 1:
+				case EPoseSourceOption::CurrentAnimation_Source:
 					NewPoseAsset->CreatePoseFromAnimation(Sequence);
+					bResult = true;
+					break;
+				default:
+					ensure(false);
+					bResult = false; 
 					break;
 				}
 
-				bResult = true;
 			}
 		}
 
@@ -818,7 +1030,7 @@ void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, int32 O
 			HandleAssetCreated(NewAssets);
 
 			// if it created based on current mesh component, 
-			if (Option == 0)
+			if (Option == EPoseSourceOption::CurrentPose)
 			{
 				PreviewComponent->PreviewInstance->ResetModifiedBone();
 			}
@@ -835,7 +1047,22 @@ void FAnimationEditor::HandleAssetCreated(const TArray<UObject*> NewAssets)
 	if (NewAssets.Num() > 0)
 	{
 		FAssetRegistryModule::AssetCreated(NewAssets[0]);
-		OpenNewAnimationDocumentTab(CastChecked<UAnimationAsset>(NewAssets[0]));
+
+		if (UAnimationAsset* NewAnimAsset = Cast<UAnimationAsset>(NewAssets[0]))
+		{
+			OpenNewAnimationDocumentTab(NewAnimAsset);
+		}
+		else
+		{
+			// if not, we forward to asset manager to open the asset for us
+			// this is path for animation blueprint
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+			TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(NewAssets[0]->GetClass());
+			if (AssetTypeActions.IsValid())
+			{
+				AssetTypeActions.Pin()->OpenAssetEditor(NewAssets);
+			}
+		}
 	}
 }
 
@@ -892,6 +1119,11 @@ void FAnimationEditor::HandlePostImport(UFactory* InFactory, UObject* InObject)
 void FAnimationEditor::HandleAnimationSequenceBrowserCreated(const TSharedRef<IAnimationSequenceBrowser>& InSequenceBrowser)
 {
 	SequenceBrowser = InSequenceBrowser;
+}
+
+bool FAnimationEditor::RecordMeshToAnimation(USkeletalMeshComponent* PreviewComponent, UAnimSequence* NewAsset) const
+{
+	return SequenceRecorderUtils::RecordSingleNodeInstanceToAnimation(PreviewComponent, NewAsset);
 }
 
 #undef LOCTEXT_NAMESPACE

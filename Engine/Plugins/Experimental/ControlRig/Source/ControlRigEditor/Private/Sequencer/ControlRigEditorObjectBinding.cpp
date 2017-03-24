@@ -8,6 +8,8 @@
 #include "MultiBoxBuilder.h"
 #include "ModuleManager.h"
 #include "SlateApplication.h"
+#include "ControlRigEditMode.h"
+#include "EditorModeManager.h"
 
 #define LOCTEXT_NAMESPACE "ControlRigEditorObjectBinding"
 
@@ -77,8 +79,13 @@ void FControlRigEditorObjectBinding::HandleControlRigClassPicked(UClass* InClass
 	if (InClass && InClass->IsChildOf(UControlRig::StaticClass()) && Sequencer.IsValid())
 	{
 		FGuid NewGuid = Sequencer.Pin()->MakeNewSpawnable(*InClass);
-		Sequencer.Pin()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
+		Sequencer.Pin()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
 		Sequencer.Pin()->SelectObject(NewGuid);
+
+		if (FControlRigEditMode* ControlRigEditMode = static_cast<FControlRigEditMode*>(GLevelEditorModeTools().GetActiveMode(FControlRigEditMode::ModeName)))
+		{
+			ControlRigEditMode->ReBindToActor();
+		}
 	}
 }
 

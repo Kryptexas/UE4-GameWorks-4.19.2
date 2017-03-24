@@ -3,6 +3,7 @@
 #include "BoneControllers/AnimNode_CopyBoneDelta.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "AnimationRuntime.h"
+#include "Animation/AnimInstanceProxy.h"
 
 FAnimNode_CopyBoneDelta::FAnimNode_CopyBoneDelta()
 	: bCopyTranslation(false)
@@ -25,26 +26,26 @@ void FAnimNode_CopyBoneDelta::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_CopyBoneDelta::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_CopyBoneDelta::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	if(!bCopyTranslation && !bCopyRotation && !bCopyScale)
 	{
 		return;
 	}
 
-	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 	FCompactPoseBoneIndex SourceBoneIndex = SourceBone.GetCompactPoseIndex(BoneContainer);
 	FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
 
-	FTransform SourceTM = MeshBases.GetComponentSpaceTransform(SourceBoneIndex);
-	FTransform TargetTM = MeshBases.GetComponentSpaceTransform(TargetBoneIndex);
+	FTransform SourceTM = Output.Pose.GetComponentSpaceTransform(SourceBoneIndex);
+	FTransform TargetTM = Output.Pose.GetComponentSpaceTransform(TargetBoneIndex);
 
 	// Convert to parent space
-	FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, SourceTM, SourceBoneIndex, BCS_ParentBoneSpace);
-	FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, TargetTM, TargetBoneIndex, BCS_ParentBoneSpace);
+	FAnimationRuntime::ConvertCSTransformToBoneSpace(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, SourceTM, SourceBoneIndex, BCS_ParentBoneSpace);
+	FAnimationRuntime::ConvertCSTransformToBoneSpace(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, TargetTM, TargetBoneIndex, BCS_ParentBoneSpace);
 
 	// Ref pose transform
-	FTransform RefLSTransform = SkelComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[SourceBone.GetMeshPoseIndex(BoneContainer).GetInt()];
+	FTransform RefLSTransform = BoneContainer.GetReferenceSkeleton().GetRefBonePose()[SourceBone.GetMeshPoseIndex(BoneContainer).GetInt()];
 
 	// Get transform relative to ref pose
 	SourceTM.SetToRelativeTransform(RefLSTransform);
@@ -91,7 +92,7 @@ void FAnimNode_CopyBoneDelta::EvaluateBoneTransforms(USkeletalMeshComponent* Ske
 	}
 
 	// Back out to component space
-	FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, TargetTM, TargetBoneIndex, BCS_ParentBoneSpace);
+	FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, TargetTM, TargetBoneIndex, BCS_ParentBoneSpace);
 
 	OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, TargetTM));
 }

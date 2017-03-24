@@ -19,13 +19,12 @@
 
 #include "Components/SkeletalMeshComponent.h"
 
-
 #if WITH_EDITOR
 #include "SceneManagement.h"
+#include "DynamicMeshBuilder.h"
 #endif
 
 DECLARE_CYCLE_STAT(TEXT("Compute Clothing Normals"), STAT_NvClothComputeNormals, STATGROUP_Physics);
-DECLARE_CYCLE_STAT(TEXT("Skin Physics Mesh"), STAT_NvClothSkinPhysMesh, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Internal Solve"), STAT_NvClothInternalSolve, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Update Collisions"), STAT_NvClothUpdateCollisions, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Fill Context"), STAT_NvClothFillContext, STATGROUP_Physics);
@@ -94,7 +93,7 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 
 		// We need to skin the vert positions to the current pose, or we'll end
 		// up with clothing placed incorrectly on already posed meshes.
-		FClothingActorNv::SkinPhysicsMesh(Asset, PhysMesh, RefToLocals.GetData(), RefToLocals.Num(), SkinnedVerts, SkinnedNormals);
+		FClothingSimulationBase::SkinPhysicsMesh(Asset, PhysMesh, RefToLocals.GetData(), RefToLocals.Num(), SkinnedVerts, SkinnedNormals);
 
 		Tris.AddDefaulted(NumTriangles);
 
@@ -127,7 +126,7 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 		Quadifier->quadify(MeshDesc);
 
 		nv::cloth::Vector<int32>::Type NvPhaseInfo;
-		nv::cloth::Fabric* Fabric = NvClothCookFabricFromMesh(CachedFactory, MeshDesc, physx::PxVec3(0.0f, 0.0f, -981.0f), &NvPhaseInfo, false);
+		nv::cloth::Fabric* Fabric = NvClothCookFabricFromMesh(CachedFactory, Quadifier->getDescriptor(), physx::PxVec3(0.0f, 0.0f, -981.0f), &NvPhaseInfo, true);
 
 		// Pack the inv mass of each vert to build the starting frame for the cloth
 		ActorLodData.Px_RestPositions.Empty();
@@ -369,7 +368,7 @@ void FClothingSimulationNv::Simulate(IClothingSimulationContext* InContext)
 		// this call also updates our fixed particles to avoid iterating the particle list a second time
 
 		const FClothPhysicalMeshData& PhysMesh = Actor.AssetCreatedFrom->LodData[Actor.CurrentLodIndex].PhysicalMeshData;
-		FClothingActorNv::SkinPhysicsMesh(Actor.AssetCreatedFrom, PhysMesh, NvContext->RefToLocals.GetData(), NvContext->RefToLocals.Num(), Actor.SkinnedPhysicsMeshPositions, Actor.SkinnedPhysicsMeshNormals);
+		FClothingSimulationBase::SkinPhysicsMesh(Actor.AssetCreatedFrom, PhysMesh, NvContext->RefToLocals.GetData(), NvContext->RefToLocals.Num(), Actor.SkinnedPhysicsMeshPositions, Actor.SkinnedPhysicsMeshNormals);
 
 		Actor.UpdateMotionConstraints(NvContext);
 
@@ -905,7 +904,7 @@ void FClothingSimulationNv::DebugDraw_PhysMesh(USkeletalMeshComponent* OwnerComp
 
 				const FLinearColor LineColor = MaxDist0 < SMALL_NUMBER && MaxDist1 < SMALL_NUMBER ? FColor::Magenta : FColor::White;
 
-				PDI->DrawLine(Start, End, LineColor, SDPG_World, 0.2f, 0.5f);
+				PDI->DrawLine(Start, End, LineColor, SDPG_World, 0.05f, 0.5f);
 			}
 		}
 	}
@@ -967,7 +966,7 @@ void FClothingSimulationNv::DebugDraw_Collision(USkeletalMeshComponent* OwnerCom
 				float Distance = Separation.Size();
 				if(Separation.IsNearlyZero() || Distance <= FMath::Abs(Sphere0.Radius - Sphere1.Radius))
 				{
-					return;
+					continue;
 				}
 				FQuat CapsuleOrientation = FQuat::FindBetween(FVector(0, 0, 1), Separation.GetSafeNormal());
 				float OffsetZ = true ? -(Sphere1.Radius - Sphere0.Radius) / Distance : 0.0f;
@@ -1153,122 +1152,7 @@ FClothingActorNv::FClothingActorNv()
 void FClothingActorNv::SkinPhysicsMesh(FClothingSimulationContextNv* InContext)
 {
 	const FClothPhysicalMeshData& PhysMesh = AssetCreatedFrom->LodData[CurrentLodIndex].PhysicalMeshData;
-	SkinPhysicsMesh(AssetCreatedFrom, PhysMesh, InContext->RefToLocals.GetData(), InContext->RefToLocals.Num(), SkinnedPhysicsMeshPositions, SkinnedPhysicsMeshNormals);
-}
-
-void FClothingActorNv::SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals)
-{
-	SCOPE_CYCLE_COUNTER(STAT_NvClothSkinPhysMesh);
-
-	const uint32 NumVerts = InMesh.Vertices.Num();
-
-	OutPositions.Empty(NumVerts);
-	OutNormals.Empty(NumVerts);
-	OutPositions.AddZeroed(NumVerts);
-	OutNormals.AddZeroed(NumVerts);
-
-	const int32 MaxInfluences = InMesh.MaxBoneWeights;
-	const FMatrix* RESTRICT BoneMatrices = InBoneMatrices;
-	const TArray<int32>& BoneMap = InAsset->UsedBoneIndices;
-
-	for(uint32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
-	{
-		// Fixed particle, needs to be skinned
-		const uint16* RESTRICT BoneIndices = InMesh.BoneData[VertIndex].BoneIndices;
-		const float* RESTRICT BoneWeights = InMesh.BoneData[VertIndex].BoneWeights;
-
-		int32 ActualNumInfluences = 0;
-
-		// MaxInflunces is the max of any particle, need to calculate the number for us
-		// #TODOCLOTH: Move this to precalc?
-		for(int32 InfluenceIndex = 0; InfluenceIndex < MaxInfluences; ++InfluenceIndex)
-		{
-			if(BoneWeights[InfluenceIndex] == 0.0f || BoneIndices[InfluenceIndex] == INDEX_NONE)
-			{
-				break;
-			}
-			++ActualNumInfluences;
-		}
-
-		// WARNING - HORRIBLE UNROLLED LOOP + JUMP TABLE BELOW
-		// done this way because this is a pretty tight and perf critical loop. essentially
-		// rather than checking each influence we can just jump into this switch and fall through
-		// everything to compose the final skinned data
-		const FVector& RefParticle = InMesh.Vertices[VertIndex];
-		const FVector& RefNormal = InMesh.Normals[VertIndex];
-		FVector& OutPosition = OutPositions[VertIndex];
-		FVector& OutNormal = OutNormals[VertIndex];
-		switch(ActualNumInfluences)
-		{
-			default: break;
-			case 8:
-			{
-				const FMatrix& BoneMatrix = BoneMatrices[BoneMap[BoneIndices[7]]];
-				const float Weight = BoneWeights[7];
-
-				OutPosition += BoneMatrix.TransformPosition(RefParticle) * Weight;
-				OutNormal += BoneMatrix.TransformVector(RefNormal) * Weight;
-			}
-			case 7:
-			{
-				const FMatrix& BoneMatrix = BoneMatrices[BoneMap[BoneIndices[6]]];
-				const float Weight = BoneWeights[6];
-
-				OutPosition += BoneMatrix.TransformPosition(RefParticle) * Weight;
-				OutNormal += BoneMatrix.TransformVector(RefNormal) * Weight;
-			}
-			case 6:
-			{
-				const FMatrix& BoneMatrix = BoneMatrices[BoneMap[BoneIndices[5]]];
-				const float Weight = BoneWeights[5];
-
-				OutPosition += BoneMatrix.TransformPosition(RefParticle) * Weight;
-				OutNormal += BoneMatrix.TransformVector(RefNormal) * Weight;
-			}
-			case 5:
-			{
-				const FMatrix& BoneMatrix = BoneMatrices[BoneMap[BoneIndices[4]]];
-				const float Weight = BoneWeights[4];
-
-				OutPosition += BoneMatrix.TransformPosition(RefParticle) * Weight;
-				OutNormal += BoneMatrix.TransformVector(RefNormal) * Weight;
-			}
-			case 4:
-			{
-				const FMatrix& BoneMatrix = BoneMatrices[BoneMap[BoneIndices[3]]];
-				const float Weight = BoneWeights[3];
-
-				OutPosition += BoneMatrix.TransformPosition(RefParticle) * Weight;
-				OutNormal += BoneMatrix.TransformVector(RefNormal) * Weight;
-			}
-			case 3:
-			{
-				const FMatrix& BoneMatrix = BoneMatrices[BoneMap[BoneIndices[2]]];
-				const float Weight = BoneWeights[2];
-
-				OutPosition += BoneMatrix.TransformPosition(RefParticle) * Weight;
-				OutNormal += BoneMatrix.TransformVector(RefNormal) * Weight;
-			}
-			case 2:
-			{
-				const FMatrix& BoneMatrix = BoneMatrices[BoneMap[BoneIndices[1]]];
-				const float Weight = BoneWeights[1];
-
-				OutPosition += BoneMatrix.TransformPosition(RefParticle) * Weight;
-				OutNormal += BoneMatrix.TransformVector(RefNormal) * Weight;
-			}
-			case 1:
-			{
-				const FMatrix& BoneMatrix = BoneMatrices[BoneMap[BoneIndices[0]]];
-				const float Weight = BoneWeights[0];
-
-				OutPosition += BoneMatrix.TransformPosition(RefParticle) * Weight;
-				OutNormal += BoneMatrix.TransformVector(RefNormal) * Weight;
-			}
-		}
-
-		OutNormal = OutNormal.GetUnsafeNormal();
-	}
+	FClothingSimulationBase::SkinPhysicsMesh(AssetCreatedFrom, PhysMesh, InContext->RefToLocals.GetData(), InContext->RefToLocals.Num(), SkinnedPhysicsMeshPositions, SkinnedPhysicsMeshNormals);
 }
 
 void FClothingActorNv::UpdateMotionConstraints(FClothingSimulationContextNv* InContext)

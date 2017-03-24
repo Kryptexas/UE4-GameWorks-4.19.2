@@ -251,7 +251,7 @@ void FSkeletalMeshObjectGPUSkin::ReleaseMorphResources()
 void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights)
 {
 	// make sure morph data has been initialized for each LOD
-	if( !bMorphResourcesInitialized && ActiveMorphTargets.Num() > 0 )
+	if(InMeshComponent && !bMorphResourcesInitialized && ActiveMorphTargets.Num() > 0 )
 	{
 		// initialized on-the-fly in order to avoid creating extra vertex streams for each skel mesh instance
 		InitMorphResources(InMeshComponent->bPerBoneMotionBlur, MorphTargetWeights);		
@@ -265,6 +265,12 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	// We prepare the next frame but still have the value from the last one
 	uint32 FrameNumberToPrepare = GFrameNumber + 1;
 
+	if (InMeshComponent && InMeshComponent->SceneProxy)
+	{
+		// We allow caching of per-frame, per-scene data
+		FrameNumberToPrepare = InMeshComponent->SceneProxy->GetScene().GetFrameNumber() + 1;
+	}
+
 	// queue a call to update this data
 	FSkeletalMeshObjectGPUSkin* MeshObject = this;
 	ENQUEUE_RENDER_COMMAND(SkelMeshObjectUpdateDataCommand)(
@@ -275,7 +281,7 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 		}
 	);
 
-	if( GIsEditor )
+	if( GIsEditor && InMeshComponent)
 	{
 		// this does not need thread-safe update
 #if WITH_EDITORONLY_DATA

@@ -35,6 +35,7 @@ enum class EFlattenMaterialProperties : uint8
 	Opacity,
 	Emissive,
 	SubSurface,
+	OpacityMask,
 	NumFlattenMaterialProperties
 };
 

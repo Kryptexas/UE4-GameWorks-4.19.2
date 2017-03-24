@@ -271,10 +271,11 @@ void SSkeletalLODActions::Construct(const FArguments& InArgs)
 	RegisterActiveTimer(1.0f + LODTimeOffset * LODIndex, FWidgetActiveTimerDelegate::CreateSP(this, &SSkeletalLODActions::RefreshExistFlag));
 }
 
-FSkelMeshReductionSettingsLayout::FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty)
+FSkelMeshReductionSettingsLayout::FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty, const USkeleton* InSkeleton)
 : LODIndex(InLODIndex)
 , ParentLODSettings(InParentLODSettings)
 , BoneToRemoveProperty(InBoneToRemoveProperty)
+, Skeleton(InSkeleton)
 {
 	FillEnumOptions(SimplificationOptions, GetFeatureSimpificationEnum());
 	FillEnumOptions(ImportanceOptions, GetFeatureImportanceEnum());
@@ -510,7 +511,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.Text(LOCTEXT("BaseLODTitle", "Base LOD"))
 			]
-		.ValueContent()
+			.ValueContent()
 			[
 				SNew(SSpinBox<int32>)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
@@ -519,6 +520,26 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 				.OnValueChanged(this, &FSkelMeshReductionSettingsLayout::OnBaseLODChanged)
 			];
 
+	}
+
+	{
+
+
+		ChildrenBuilder.AddChildContent(LOCTEXT("BakePose", "Bake Pose"))
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("BakePoseTitle", "Bake Pose"))
+			]
+		.ValueContent()
+			[
+				SNew(SObjectPropertyEntryBox)
+				.ObjectPath(this, &FSkelMeshReductionSettingsLayout::GetBakePosePath)
+				.AllowedClass(UAnimSequence::StaticClass())
+				.OnShouldFilterAsset(this, &FSkelMeshReductionSettingsLayout::FilterOutBakePose)
+				.OnObjectChanged(this, &FSkelMeshReductionSettingsLayout::SetBakePose)
+			];
 	}
 
 	{
@@ -632,6 +653,27 @@ void FSkelMeshReductionSettingsLayout::OnMaxBonesPerVertexChanged(int32 NewValue
 void FSkelMeshReductionSettingsLayout::OnBaseLODChanged(int32 NewLOD)
 {
 	ReductionSettings.BaseLOD = NewLOD;
+}
+
+FString FSkelMeshReductionSettingsLayout::GetBakePosePath() const
+{
+	return FAssetData(ReductionSettings.BakePose).ObjectPath.ToString();
+}
+
+bool FSkelMeshReductionSettingsLayout::FilterOutBakePose(const FAssetData& AssetData) const
+{
+	UAnimSequence* AnimationSequence = Cast<UAnimSequence>(AssetData.GetAsset());
+	if (AnimationSequence)
+	{
+		return !(AnimationSequence->GetSkeleton() == Skeleton);
+	}
+
+	return true;
+}
+
+void FSkelMeshReductionSettingsLayout::SetBakePose(const FAssetData& AssetData)
+{
+	ReductionSettings.BakePose = Cast<UAnimSequence>(AssetData.GetAsset());
 }
 
 void FSkelMeshReductionSettingsLayout::OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)
@@ -1115,7 +1157,8 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 				TSharedPtr<IPropertyHandle> ReductionHandle = ChildHandle->GetChildHandle(FName("ReductionSettings"));
 				check(ReductionHandle.IsValid());
 				TSharedPtr<IPropertyHandle> BonesToRemoveHandle = ReductionHandle->GetChildHandle(FName("BonesToRemove"));
-				ReductionSettingsWidgets[LODIndex] = MakeShareable(new FSkelMeshReductionSettingsLayout(LODIndex, SharedThis(this), BonesToRemoveHandle));
+
+				ReductionSettingsWidgets[LODIndex] = MakeShareable(new FSkelMeshReductionSettingsLayout(LODIndex, SharedThis(this), BonesToRemoveHandle, SkelMesh->Skeleton));
 			}
 
 			FSkeletalMeshLODInfo& LODInfo = SkelMesh->LODInfo[LODIndex];

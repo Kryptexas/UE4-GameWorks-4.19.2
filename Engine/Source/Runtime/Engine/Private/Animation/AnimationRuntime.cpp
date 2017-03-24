@@ -851,7 +851,7 @@ struct FEnsureParentsPresentScratchArea : public TThreadSingleton<FEnsureParents
  *	(ie. all bones between those in the array and the root are present). 
  *	Note that this must ensure the invariant that parent occur before children in BoneIndices.
  */
-void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, USkeletalMesh * SkelMesh )
+void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, const USkeletalMesh * SkelMesh )
 {
 	const int32 NumBones = SkelMesh->RefSkeleton.GetNum();
 	// Iterate through existing array.
@@ -1208,21 +1208,18 @@ void FAnimationRuntime::CreateMaskWeights(TArray<FPerBoneBlendWeight>& BoneBlend
 	}
 }
 
-/** Convert a ComponentSpace FTransform to given BoneSpace. */
-void FAnimationRuntime::ConvertCSTransformToBoneSpace
-(
-	USkeletalMeshComponent* SkelComp,  
-	FCSPose<FCompactPose>& MeshBases,
-	/**inout*/ FTransform& CSBoneTM, 
-	FCompactPoseBoneIndex BoneIndex,
-	uint8 Space
-)
+void FAnimationRuntime::ConvertCSTransformToBoneSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, FTransform& InOutCSBoneTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space)
+{
+	ConvertCSTransformToBoneSpace(SkelComp->GetComponentTransform(), MeshBases, InOutCSBoneTM, BoneIndex, Space);
+}
+
+void FAnimationRuntime::ConvertCSTransformToBoneSpace(const FTransform& ComponentTransform, FCSPose<FCompactPose>& MeshBases, FTransform& InOutCSBoneTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space)
 {
 	switch( Space )
 	{
 		case BCS_WorldSpace : 
 			// world space, so component space * component to world
-			CSBoneTM *= SkelComp->ComponentToWorld;
+			InOutCSBoneTM *= ComponentTransform;
 			break;
 
 		case BCS_ComponentSpace :
@@ -1235,7 +1232,7 @@ void FAnimationRuntime::ConvertCSTransformToBoneSpace
 				if (ParentIndex != INDEX_NONE)
 				{
 					const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
-					CSBoneTM.SetToRelativeTransform(ParentTM);
+					InOutCSBoneTM.SetToRelativeTransform(ParentTM);
 				}
 			}
 			break;
@@ -1243,30 +1240,27 @@ void FAnimationRuntime::ConvertCSTransformToBoneSpace
 		case BCS_BoneSpace :
 			{
 				const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
-				CSBoneTM.SetToRelativeTransform(BoneTM);
+				InOutCSBoneTM.SetToRelativeTransform(BoneTM);
 			}
 			break;
 
 		default:
-			UE_LOG(LogAnimation, Warning, TEXT("ConvertCSTransformToBoneSpace: Unknown BoneSpace %d  for Mesh: %s"), Space, *GetNameSafe(SkelComp->SkeletalMesh));
+			UE_LOG(LogAnimation, Warning, TEXT("ConvertCSTransformToBoneSpace: Unknown BoneSpace %d"), (int32)Space);
 			break;
 	}
 }
 
-/** Convert a BoneSpace FTransform to ComponentSpace. */
-void FAnimationRuntime::ConvertBoneSpaceTransformToCS
-(
-	USkeletalMeshComponent* SkelComp,  
-	FCSPose<FCompactPose>& MeshBases,
-	/*inout*/ FTransform& BoneSpaceTM, 
-	FCompactPoseBoneIndex BoneIndex,
-	uint8 Space
-)
+void FAnimationRuntime::ConvertBoneSpaceTransformToCS(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, FTransform& InOutBoneSpaceTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space)
+{
+	ConvertBoneSpaceTransformToCS(SkelComp->GetComponentTransform(), MeshBases, InOutBoneSpaceTM, BoneIndex, Space);
+}
+
+void FAnimationRuntime::ConvertBoneSpaceTransformToCS(const FTransform& ComponentTransform, FCSPose<FCompactPose>& MeshBases, FTransform& InOutBoneSpaceTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space)
 {
 	switch( Space )
 	{
 		case BCS_WorldSpace : 
-			BoneSpaceTM.SetToRelativeTransform(SkelComp->ComponentToWorld);
+			InOutBoneSpaceTM.SetToRelativeTransform(ComponentTransform);
 			break;
 
 		case BCS_ComponentSpace :
@@ -1280,7 +1274,7 @@ void FAnimationRuntime::ConvertBoneSpaceTransformToCS
 				if( ParentIndex != INDEX_NONE )
 				{
 					const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
-					BoneSpaceTM *= ParentTM;
+					InOutBoneSpaceTM *= ParentTM;
 				}
 			}
 			break;
@@ -1289,12 +1283,12 @@ void FAnimationRuntime::ConvertBoneSpaceTransformToCS
 			if( BoneIndex != INDEX_NONE )
 			{
 				const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
-				BoneSpaceTM *= BoneTM;
+				InOutBoneSpaceTM *= BoneTM;
 			}
 			break;
 
 		default:
-			UE_LOG(LogAnimation, Warning, TEXT("ConvertBoneSpaceTransformToCS: Unknown BoneSpace %d  for Mesh: %s"), Space, *GetNameSafe(SkelComp->SkeletalMesh));
+			UE_LOG(LogAnimation, Warning, TEXT("ConvertBoneSpaceTransformToCS: Unknown BoneSpace %d"), (int32)Space);
 			break;
 	}
 }
@@ -1370,21 +1364,20 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType>& RequiredBoneIndices,
 }
 #endif
 
-FTransform FAnimationRuntime::GetComponentSpaceTransformRefPose(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex)
+FTransform FAnimationRuntime::GetComponentSpaceTransform(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, int32 BoneIndex)
 {
 	if (RefSkeleton.IsValidIndex(BoneIndex))
 	{
 		// initialize to identity since some of them don't have tracks
 		int32 IterBoneIndex = BoneIndex;
-		const TArray<FTransform>& RefSkeletonPose = RefSkeleton.GetRefBonePose();
-		FTransform CompTransform = RefSkeletonPose[BoneIndex];
+		FTransform CompTransform = BoneSpaceTransforms[BoneIndex];
 
 		do
 		{
 			int32 ParentIndex = RefSkeleton.GetParentIndex(IterBoneIndex);
 			if (ParentIndex != INDEX_NONE)
 			{
-				CompTransform = CompTransform * RefSkeletonPose[ParentIndex];
+				CompTransform = CompTransform * BoneSpaceTransforms[ParentIndex];
 			}
 
 			IterBoneIndex = ParentIndex;
@@ -1394,6 +1387,11 @@ FTransform FAnimationRuntime::GetComponentSpaceTransformRefPose(const FReference
 	}
 
 	return FTransform::Identity;
+}
+
+FTransform FAnimationRuntime::GetComponentSpaceTransformRefPose(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex)
+{
+	return GetComponentSpaceTransform(RefSkeleton, RefSkeleton.GetRefBonePose(), BoneIndex);
 }
 
 void FAnimationRuntime::FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms)

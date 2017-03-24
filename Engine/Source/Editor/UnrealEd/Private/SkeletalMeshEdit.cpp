@@ -26,6 +26,7 @@
 #include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
 #include "Misc/FbxErrors.h"
+#include "Editor/EditorPerProjectUserSettings.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshEdit"
 
@@ -1222,6 +1223,26 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		DestSeq->RawCurveData.FloatCurves.Shrink();
 	}
 
+	// Store float curve tracks which use to exist on the animation
+	TArray<FString> ExistingCurveNames;
+	for (int32 CurveIdx = 0; CurveIdx < DestSeq->RawCurveData.FloatCurves.Num(); ++CurveIdx)
+	{
+		auto& Curve = DestSeq->RawCurveData.FloatCurves[CurveIdx];
+		const FCurveMetaData* MetaData = MySkeleton->GetCurveMetaData(Curve.Name);
+		
+		if (MetaData && !MetaData->Type.bMorphtarget)
+		{
+			ExistingCurveNames.Add(Curve.Name.DisplayName.ToString());
+		}
+	}
+
+	const bool bReimportWarnings = GetDefault<UEditorPerProjectUserSettings>()->bAnimationReimportWarnings;
+	
+	if (bReimportWarnings && !FMath::IsNearlyZero(PreviousSequenceLength) && !FMath::IsNearlyEqual(DestSeq->SequenceLength, PreviousSequenceLength))
+	{
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Warning_SequenceLengthChanged", "Animation Sequence ({0}) length {1} is different from previous {2}."), FText::FromName(DestSeq->GetFName()), DestSeq->SequenceLength, PreviousSequenceLength)), FFbxErrors::Animation_DifferentLength);
+	}
+
 	FbxNode *SkeletalMeshRootNode = NodeArray.Num() > 0 ? NodeArray[0] : nullptr;
 	//
 	// import blend shape curves
@@ -1351,6 +1372,8 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 										}
 									}
 								}
+
+								ExistingCurveNames.Remove(FinalCurveName);
 							}
 						}
 						else
@@ -1369,8 +1392,16 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		GWarn->EndSlowTask();
 	}
 
-	// importing custom attribute END
+	if (bReimportWarnings && ExistingCurveNames.Num())
+	{
+		for (const FString CurveName : ExistingCurveNames)
+		{
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Warning_NonExistingCurve", "Curve ({0}) was not found in the new Animation."), FText::FromString(CurveName))), FFbxErrors::Animation_CurveNotFound);
+		}
+	}
 
+	// importing custom attribute END
+	
 	const bool bSourceDataExists = DestSeq->HasSourceRawData();
 	TArray<AnimationTransformDebug::FAnimationTransformDebugData> TransformDebugData;
 	int32 TotalNumKeys = 0;

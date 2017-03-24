@@ -248,7 +248,7 @@ public class NvCloth : ModuleRules
 			// This MUST be defined for XboxOne!
 			Definitions.Add("PX_HAS_SECURE_STRCPY=1");
 
-			NvClothLibDir += "/XboxOne/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			NvClothLibDir += "/XboxOne/VS2015";
 			PublicLibraryPaths.Add(NvClothLibDir);
 
             NvClothLibraries.Add("NvCloth{0}");

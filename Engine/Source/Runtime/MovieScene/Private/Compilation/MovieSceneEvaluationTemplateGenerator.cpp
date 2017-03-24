@@ -3,6 +3,7 @@
 #include "Compilation/MovieSceneEvaluationTemplateGenerator.h"
 #include "MovieSceneSequence.h"
 #include "MovieScene.h"
+#include "UObject/ObjectKey.h"
 
 namespace 
 {
@@ -195,7 +196,7 @@ void FMovieSceneEvaluationTemplateGenerator::Generate(FMovieSceneTrackCompilatio
 	{
 		if (UMovieSceneSequence* Sequence = Pair.Value.Sequence)
 		{
-			SequenceIdToTemplate.Add(Pair.Key, &TransientArgs.SubSequenceStore.GetCompiledTemplate(*Sequence));
+			SequenceIdToTemplate.Add(Pair.Key, &TransientArgs.SubSequenceStore.GetCompiledTemplate(*Sequence, FObjectKey(Pair.Value.SequenceKeyObject)));
 		}
 	}
 

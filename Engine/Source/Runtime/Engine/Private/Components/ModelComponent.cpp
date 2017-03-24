@@ -368,6 +368,28 @@ UMaterialInterface* UModelComponent::GetMaterial(int32 MaterialIndex) const
 	return Material;
 }
 
+UMaterialInterface* UModelComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+{
+	UMaterialInterface* Result = nullptr;
+
+	// Look for element that corresponds to the supplied face
+	int32 TotalFaceCount = 0;
+	for (int32 ElementIdx = 0; ElementIdx < Elements.Num(); ElementIdx++)
+	{
+		const FModelElement& Element = Elements[ElementIdx];
+		TotalFaceCount += Element.NumTriangles;
+
+		if (FaceIndex < TotalFaceCount)
+		{
+			// Grab the material
+			Result = Element.Material;
+			break;
+		}
+	}
+
+	return Result;
+}
+
 bool UModelComponent::IsPrecomputedLightingValid() const
 {
 	for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ++ElementIndex)

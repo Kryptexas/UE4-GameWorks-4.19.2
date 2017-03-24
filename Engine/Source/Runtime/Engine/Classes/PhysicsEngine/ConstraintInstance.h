@@ -590,6 +590,7 @@ private:
 public:
 
 	///////////////////////////// DEPRECATED
+	// Most of these properties have moved inside the ProfileInstance member (FConstraintProfileProperties struct)
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	uint32 bDisableCollision_DEPRECATED : 1;

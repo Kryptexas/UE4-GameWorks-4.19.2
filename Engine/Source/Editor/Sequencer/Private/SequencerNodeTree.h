@@ -59,6 +59,11 @@ public:
 	 */
 	void FilterNodes( const FString& InFilter );
 
+	/**
+	 * @return All nodes in a flat array
+	 */
+	TArray< TSharedRef<FSequencerDisplayNode> > GetAllNodes() const;
+
 	/** Gets the parent sequencer of this tree */
 	FSequencer& GetSequencer() {return Sequencer;}
 

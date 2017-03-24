@@ -17,6 +17,7 @@
 #include "Internationalization/Text.h"
 #include "Internationalization/Internationalization.h"
 #include "Math/IntVector.h"
+#include "Math/Axis.h"
 
 /**
  * A vector in 3-D space composed of components (X, Y, Z) with floating point precision.
@@ -370,6 +371,13 @@ public:
 	* @return Copy of the specified component.
 	*/
 	float Component(int32 Index) const;
+
+
+	/** Get a specific component of the vector, given a specific axis by enum */
+	float GetComponentForAxis(EAxis::Type Axis) const;
+
+	/** Set a specified componet of the vector, given a specific axis by enum */
+	void SetComponentForAxis(EAxis::Type Axis, float Component);
 
 public:
 
@@ -1680,6 +1688,37 @@ FORCEINLINE float FVector::Component(int32 Index) const
 	return (&X)[Index];
 }
 
+FORCEINLINE float FVector::GetComponentForAxis(EAxis::Type Axis) const
+{
+	switch (Axis)
+	{
+	case EAxis::X:
+		return X;
+	case EAxis::Y:
+		return Y;
+	case EAxis::Z:
+		return Z;
+	default:
+		return 0.f;
+	}
+}
+
+FORCEINLINE void FVector::SetComponentForAxis(EAxis::Type Axis, float Component)
+{
+	switch (Axis)
+	{
+	case EAxis::X:
+		X = Component;
+		break;
+	case EAxis::Y:
+		Y = Component;
+		break;
+	case EAxis::Z:
+		Z = Component;
+		break;
+	}
+}
+
 FORCEINLINE FVector FVector::Reciprocal() const
 {
 	FVector RecVector;
@@ -1710,6 +1749,9 @@ FORCEINLINE FVector FVector::Reciprocal() const
 
 	return RecVector;
 }
+
+
+
 
 FORCEINLINE bool FVector::IsUniform(float Tolerance) const
 {

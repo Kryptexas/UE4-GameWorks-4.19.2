@@ -41,6 +41,7 @@ protected:
 	void OnSampleMoved(const int32 SampleIndex, const FVector& NewValue);
 	void OnSampleRemoved(const int32 SampleIndex);
 	void OnSampleAdded(UAnimSequence* Animation, const FVector& Value);
+	void OnUpdateAnimation(UAnimSequence* Animation, const FVector& Value);
 	
 	// Begin SAnimEditorBase overrides
 	virtual UAnimationAsset* GetEditorObject() const override { return BlendSpace; }

@@ -478,13 +478,15 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 			static_cast<FAnimationViewportClient*>(InViewportClient)->GetSkeletonTree()->SetSelectedBone(static_cast<HPersonaBoneProxy*>(HitProxy)->BoneName);
 			bHandled = true;
 		}
-		else if ( HitProxy->IsA( HActor::StaticGetType() ) )
+		else if ( HitProxy->IsA( HActor::StaticGetType() ) && GetAnimPreviewScene().AllowMeshHitProxies())
 		{
-			GetAnimPreviewScene().SetSelectedActor(static_cast<HActor*>(HitProxy)->Actor);
+			HActor* ActorHitProxy = static_cast<HActor*>(HitProxy);
+			GetAnimPreviewScene().BroadcastMeshClick(ActorHitProxy, Click);
 			bHandled = true;
 		}
 	}
-	else
+
+	if (!bHandled)
 	{
 		// Cast for phys bodies if we didn't get any hit proxies
 		FHitResult Result(1.0f);
@@ -500,6 +502,18 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 		{
 			// We didn't hit a proxy or a physics object, so deselect all objects
 			static_cast<FAnimationViewportClient*>(InViewportClient)->GetSkeletonTree()->DeselectAll();
+		}
+	}
+
+	if(!HitProxy || !HitProxy->IsA(HActor::StaticGetType()))
+	{
+		// Deselect mesh sections
+		if(USkeletalMeshComponent* MeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent())
+		{
+			if(USkeletalMesh* SkelMesh = MeshComponent->SkeletalMesh)
+			{
+				SkelMesh->SelectedEditorSection = INDEX_NONE;
+			}
 		}
 	}
 

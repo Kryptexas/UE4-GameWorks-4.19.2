@@ -23,6 +23,7 @@ class UBlendSpaceBase;
 DECLARE_DELEGATE_TwoParams(FOnSampleMoved, const int32, const FVector&);
 DECLARE_DELEGATE_OneParam(FOnSampleRemoved, const int32 );
 DECLARE_DELEGATE_TwoParams(FOnSampleAdded, UAnimSequence*, const FVector&);
+DECLARE_DELEGATE_TwoParams(FOnSampleAnimationChanged, UAnimSequence*, const FVector&);
 
 class SBlendSpaceGridWidget : public SCompoundWidget, public FNotifyHook
 {
@@ -37,6 +38,7 @@ public:
 		SLATE_EVENT(FOnSampleMoved, OnSampleMoved)
 		SLATE_EVENT(FOnSampleRemoved, OnSampleRemoved)
 		SLATE_EVENT(FOnSampleAdded, OnSampleAdded)
+		SLATE_EVENT(FOnSampleAnimationChanged, OnSampleAnimationChanged)
 		SLATE_END_ARGS()
 
 protected:
@@ -57,6 +59,8 @@ protected:
 		Preview,
 		/** The user is dropping a new sample onto the grid */
 		DragDrop,
+		/** The user is dropping a new animation to an existing sample on the grid */
+		DragDropOverride,
 		/** The user is dropping an invalid animation sequence onto the grid */
 		InvalidDragDrop,
 		/** There is no active drag operation. */
@@ -103,6 +107,7 @@ protected:
 	void PaintSampleKeys(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const;
 	void PaintAxisText(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const;
 	void PaintTriangulation(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const;
+	void PaintAnimationNames(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const;
 
 	/** Validation for drag and drop operation, will populate InvalidOperationText and return false in case it is invalid */
 	const bool IsValidDragDropOperation(const FDragDropEvent& DragDropEvent, FText& InvalidOperationText);
@@ -133,6 +138,8 @@ protected:
 	/** Calcaultes a margin offset according to whether or not we should take into account the largest axis when creating the grid area*/
 	void UpdateGridRationMargin(const FVector2D& GeometrySize);
 	FText GetFittingTypeButtonToolTipText() const;
+	/** Toggles the animation labels being shown */
+	FReply ToggleShowAnimationNames();
 
 	/** Calculates the screen space grid points */
 	void CalculateGridPoints();
@@ -208,6 +215,7 @@ private:
 	FText InvalidDragDropText;
 	FText InvalidSamplePositionDragDropText;
 	FText DragDropAnimationName;
+	FText HoveredAnimationName;
 	UAnimSequence* DragDropAnimationSequence;
 
 	/** Cached values for the grid input boxes */
@@ -238,6 +246,7 @@ private:
 	FOnSampleAdded OnSampleAdded;
 	FOnSampleMoved OnSampleMoved;
 	FOnSampleRemoved OnSampleRemoved;
+	FOnSampleAnimationChanged OnSampleAnimationChanged;
 
 	/** Thresshold values for hovering, click and dragging samples */
 	float DragThreshold;
@@ -265,6 +274,7 @@ private:
 	FSlateFontInfo FontInfo;
 	float TextMargin;
 	bool bShowTriangulation;
+	bool bShowAnimationNames;
 
 	bool bStretchToFit;
 	FMargin GridRatioMargin;

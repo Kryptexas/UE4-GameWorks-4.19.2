@@ -20,6 +20,8 @@ class ANIMGRAPH_API UAnimGraphNode_PoseDriver : public UAnimGraphNode_PoseHandle
 
 	/** Used to indicate selected target to edit mode drawing */
 	int32 SelectedTargetIndex;
+	/** Delegate to call when selection changes */
+	FSimpleMulticastDelegate SelectedTargetChangeDelegate;
 
 public:
 

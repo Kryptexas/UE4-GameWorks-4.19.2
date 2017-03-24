@@ -2035,35 +2035,4 @@ PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceCompl
 		return CreateTraceQueryFilterData(MyChannel, bTraceComplex, InCollisionResponseContainer, QueryParam);
 	}
 }
-
-PxGeometry * GetGeometryFromShape(GeometryFromShapeStorage & LocalStorage, const PxShape * PShape, bool bTriangleMeshAllowed /*= false*/)
-{
-	switch (PShape->getGeometryType())
-	{
-	case PxGeometryType::eSPHERE:
-		PShape->getSphereGeometry(LocalStorage.SphereGeom);
-		return &LocalStorage.SphereGeom;
-	case PxGeometryType::eBOX:
-		PShape->getBoxGeometry(LocalStorage.BoxGeom);
-		return &LocalStorage.BoxGeom;
-	case PxGeometryType::eCAPSULE:
-		PShape->getCapsuleGeometry(LocalStorage.CapsuleGeom);
-		return &LocalStorage.CapsuleGeom;
-	case PxGeometryType::eCONVEXMESH:
-		PShape->getConvexMeshGeometry(LocalStorage.ConvexGeom);
-		return &LocalStorage.ConvexGeom;
-	case PxGeometryType::eTRIANGLEMESH:
-		if (bTriangleMeshAllowed)
-		{
-			PShape->getTriangleMeshGeometry(LocalStorage.TriangleGeom);
-			return &LocalStorage.TriangleGeom;
-		}
-	case PxGeometryType::eHEIGHTFIELD:
-		PShape->getHeightFieldGeometry(LocalStorage.HeightFieldGeom);
-		return &LocalStorage.HeightFieldGeom;
-	default:
-		return NULL;
-	}
-}
-
 #endif // WITH_PHYSX

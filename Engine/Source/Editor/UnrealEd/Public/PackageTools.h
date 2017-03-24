@@ -141,6 +141,9 @@ namespace PackageTools
 	 */
 	UNREALED_API bool CheckForReferencesToExternalPackages(const TArray<UPackage*>* PackagesToCheck, TArray<UPackage*>* OutPackagesWithExternalRefs, ULevel* LevelToCheck=NULL, TArray<UObject*>* OutObjectsWithExternalRefs=NULL );
 
+	/** Saves all the dirty packages for the specified objects*/
+	UNREALED_API bool SavePackagesForObjects(const TArray<UObject*>& ObjectsToSave);
+
 	/**
 	 * Checks if the package has only one asset which shares its name
 	 *

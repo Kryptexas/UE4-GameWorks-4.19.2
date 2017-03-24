@@ -11,6 +11,9 @@ UAudioCurveSourceComponent::UAudioCurveSourceComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 
+	static FName DefaultSourceBindingName(TEXT("Default"));
+	CurveSourceBindingName = DefaultSourceBindingName;
+
 	CachedCurveEvalTime = 0.0f;
 	CachedSyncPreRoll = 0.0f;
 	CachedStartTime = 0.0f;
@@ -142,7 +145,7 @@ void UAudioCurveSourceComponent::HandlePlaybackPercent(const UAudioComponent* In
 {
 	CachedCurveTable = InSoundWave->Curves;
 	CachedDuration = InSoundWave->Duration;
-	CachedCurveEvalTime = Delay + (InPlaybackPercentage * InSoundWave->Duration);
+	CachedCurveEvalTime = CurveSyncOffset + Delay + (InPlaybackPercentage * InSoundWave->Duration);
 	bCachedLooping = const_cast<USoundWave*>(InSoundWave)->IsLooping();
 }
 

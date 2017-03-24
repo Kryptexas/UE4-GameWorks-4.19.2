@@ -911,6 +911,14 @@ public:
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FStringAssetReference BoneWeightMaterialName;
+
+	/** Material used to render cloth properties on skeletal meshes */
+	UPROPERTY()
+	class UMaterial* ClothPaintMaterial;
+
+	/** @todo document */
+	UPROPERTY(globalconfig)
+	FStringAssetReference ClothPaintMaterialName;
 #endif
 
 	/** Material used to render constraint limits */

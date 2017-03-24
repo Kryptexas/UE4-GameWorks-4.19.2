@@ -433,6 +433,16 @@ UGeometryCache* UGeometryCacheComponent::GetGeometryCache() const
 	return GeometryCache;
 }
 
+float UGeometryCacheComponent::GetStartTimeOffset() const
+{
+	return StartTimeOffset;
+}
+
+void UGeometryCacheComponent::SetStartTimeOffset(const float NewStartTimeOffset)
+{
+	StartTimeOffset = NewStartTimeOffset;
+}
+
 void UGeometryCacheComponent::PlayReversedFromEnd()
 {
 	ElapsedTime = Duration;

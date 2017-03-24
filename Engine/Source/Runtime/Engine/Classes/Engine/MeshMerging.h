@@ -318,7 +318,7 @@ struct FMeshMergingSettings
 	UPROPERTY(EditAnywhere, Category = MeshSettings)
 	bool bMergePhysicsData;
 
-	/** Whether to merge source materials into one flat material */
+	/** Whether to merge source materials into one flat material, ONLY available when merging a single LOD level, see LODSelectionType */
 	UPROPERTY(EditAnywhere, Category = MaterialSettings)
 	bool bMergeMaterials;
 

@@ -13,7 +13,8 @@ public class ImmediatePhysicsEditor: ModuleRules
                 "Engine",
                 "AnimGraph",
                 "BlueprintGraph",
-                "ImmediatePhysics"
+                "ImmediatePhysics",
+                "UnrealEd"
 			}
 		);
 

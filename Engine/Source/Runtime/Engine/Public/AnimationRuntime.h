@@ -347,29 +347,35 @@ public:
 	 *	(ie. all bones between those in the array and the root are present). 
 	 *	Note that this must ensure the invariant that parent occur before children in BoneIndices.
 	 */
-	static void EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, USkeletalMesh* SkelMesh);
+	static void EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, const USkeletalMesh* SkelMesh);
 
 	static void ExcludeBonesWithNoParents(const TArray<int32>& BoneIndices, const FReferenceSkeleton& RefSkeleton, TArray<int32>& FilteredRequiredBones);
 
-	/** Convert a ComponentSpace FTransform to given BoneSpace. */
-	static void ConvertCSTransformToBoneSpace
-	(
-		USkeletalMeshComponent* SkelComp,  
-		FCSPose<FCompactPose>& MeshBases,
-		/*inout*/ FTransform& CSBoneTM, 
-		FCompactPoseBoneIndex BoneIndex,
-		uint8 Space
-	);
+	/** 
+	 * Convert a ComponentSpace FTransform to specified bone space. 
+	 * @param	ComponentTransform	The transform of the component. Only used if Space == BCS_WorldSpace
+	 * @param	MeshBases			The pose to use when transforming
+	 * @param	InOutCSBoneTM		The component space transform to convert
+	 * @param	BoneIndex			The bone index of the transform
+	 * @param	Space				The space to convert the input transform into.
+	 */
+	static void ConvertCSTransformToBoneSpace(const FTransform& ComponentTransform, FCSPose<FCompactPose>& MeshBases, FTransform& InOutCSBoneTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space);
 
-	/** Convert a BoneSpace FTransform to ComponentSpace. */
-	static void ConvertBoneSpaceTransformToCS
-	(
-		USkeletalMeshComponent * SkelComp,  
-		FCSPose<FCompactPose>& MeshBases,
-		/*inout*/ FTransform& BoneSpaceTM, 
-		FCompactPoseBoneIndex BoneIndex,
-		uint8 Space
-	);
+	DEPRECATED(4.16, "Please use the ConvertCSTransformToBoneSpace with a transform as the first argument")
+	static void ConvertCSTransformToBoneSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, FTransform& InOutCSBoneTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space);
+
+	/** 
+	 * Convert a FTransform in a specified bone space to ComponentSpace.
+	 * @param	ComponentTransform	The transform of the component. Only used if Space == BCS_WorldSpace
+	 * @param	MeshBases			The pose to use when transforming
+	 * @param	InOutBoneSpaceTM	The bone transform to convert
+	 * @param	BoneIndex			The bone index of the transform
+	 * @param	Space				The space that the transform is in.
+	 */
+	static void ConvertBoneSpaceTransformToCS(const FTransform& ComponentTransform, FCSPose<FCompactPose>& MeshBases, FTransform& InOutBoneSpaceTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space);
+
+	DEPRECATED(4.16, "Please use the ConvertBoneSpaceTransformToCS with a transform as the first argument")
+	static void ConvertBoneSpaceTransformToCS(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, FTransform& InOutBoneSpaceTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space);
 
 	// FA2Pose/FA2CSPose Interfaces for template functions
 	static FTransform GetSpaceTransform(FA2Pose& Pose, int32 Index);
@@ -378,6 +384,7 @@ public:
 	static void SetSpaceTransform(FA2CSPose& Pose, int32 Index, FTransform& NewTransform);
 	// space bases
 	static FTransform GetComponentSpaceTransformRefPose(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex);
+	static FTransform GetComponentSpaceTransform(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, int32 BoneIndex);
 	static void FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms);
 #if WITH_EDITOR
 	static void FillUpComponentSpaceTransformsRefPose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms);

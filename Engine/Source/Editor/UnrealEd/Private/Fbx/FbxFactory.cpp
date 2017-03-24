@@ -113,7 +113,7 @@ UObject* UFbxFactory::ImportANode(void* VoidFbxImporter, TArray<void*> VoidNodes
 		// skip collision models
 		FbxString NodeName(Nodes[0]->GetName());
 		if ( NodeName.Find("UCX") != -1 || NodeName.Find("MCDCX") != -1 ||
-			 NodeName.Find("UBX") != -1 || NodeName.Find("USP") != -1 )
+			 NodeName.Find("UBX") != -1 || NodeName.Find("USP") != -1 || NodeName.Find("UCP") != -1 )
 		{
 			return NULL;
 		}

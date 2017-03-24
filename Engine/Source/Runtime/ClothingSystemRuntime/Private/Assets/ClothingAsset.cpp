@@ -13,8 +13,13 @@
 #include "PhysicsPublic.h"
 #include "UObjectIterator.h"
 #include "ModuleManager.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY(LogClothingAsset)
+
+#define LOCTEXT_NAMESPACE "ClothingAsset"
 
 UClothingAsset::UClothingAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -106,6 +111,13 @@ bool UClothingAsset::BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshL
 													  ClothLodData.PhysicalMeshData.Normals,
 													  ClothLodData.PhysicalMeshData.Indices);
 
+	if(MeshToMeshData.Num() == 0)
+	{
+		// Failed to generate skinning data, the function above will have notified
+		// with the cause of the failure, so just exit
+		return false;
+	}
+
 	// Calculate fixed verts
 	for(FMeshToMeshVertData& VertData : MeshToMeshData)
 	{
@@ -132,6 +144,17 @@ bool UClothingAsset::BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshL
 		if(BoneIndex != INDEX_NONE)
 		{
 			NewClothSection.BoneMap.AddUnique(BoneIndex);
+		}
+	}
+
+	// Array of re-import contexts for components using this mesh
+	TIndirectArray<FComponentReregisterContext> ComponentContexts;
+	for (TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+	{
+		USkeletalMeshComponent* Component = *It;
+		if (Component && !Component->IsTemplate() && Component->SkeletalMesh == InSkelMesh)
+		{
+			new(ComponentContexts) FComponentReregisterContext(Component);
 		}
 	}
 
@@ -250,15 +273,6 @@ bool UClothingAsset::BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshL
 		SkelLod.ActiveBoneIndices.Sort();
 	}
 
-	for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
-	{
-		USkeletalMeshComponent* Component = *It;
-		if(Component && !Component->IsTemplate() && Component->SkeletalMesh == InSkelMesh)
-		{
-			Component->ReregisterComponent();
-		}
-	}
-
 	if(CustomData)
 	{
 		CustomData->BindToSkeletalMesh(InSkelMesh, InMeshLodIndex, InSectionIndex, InAssetLodIndex);
@@ -276,6 +290,8 @@ bool UClothingAsset::BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshL
 	InSkelMesh->PostEditChange();
 
 	return true;
+
+	// ComponentContexts goes out of scope, causing components to be re-registered
 }
 
 void UClothingAsset::UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh)
@@ -485,6 +501,7 @@ void UClothingAsset::InvalidateCachedData()
 			InvMasses[Index2] += TriArea;
 		}
 
+		PhysMesh.NumFixedVerts = 0;
 		float MassSum = 0.0f;
 		for(int32 CurrVertIndex = 0; CurrVertIndex < NumVerts; ++CurrVertIndex)
 		{
@@ -494,6 +511,7 @@ void UClothingAsset::InvalidateCachedData()
 			if(MaxDistance < SMALL_NUMBER)
 			{
 				InvMass = 0.0f;
+				++PhysMesh.NumFixedVerts;
 			}
 			else
 			{
@@ -552,6 +570,17 @@ void UClothingAsset::BuildLodTransitionData()
 		}
 	}
 }
+
+bool UClothingAsset::IsValidLod(int32 InLodIndex)
+{
+	return LodData.IsValidIndex(InLodIndex);
+}
+
+int32 UClothingAsset::GetNumLods()
+{
+	return LodData.Num();
+}
+
 #endif
 
 void ClothingAssetUtils::GetMeshClothingAssetBindings(USkeletalMesh* InSkelMesh, TArray<FClothingAssetMeshBinding>& OutBindings)
@@ -690,6 +719,27 @@ void ClothingAssetUtils::GenerateMeshToMeshSkinningData(TArray<FMeshToMeshVertDa
 		const FVector& NB = Mesh1Normals[Mesh1Indices[ClosestTriangleBaseIdx + 1]];
 		const FVector& NC = Mesh1Normals[Mesh1Indices[ClosestTriangleBaseIdx + 2]];
 
+		// Before generating the skinning data we need to check for a degenerate triangle.
+		// If we find _any_ degenerate triangles we will notify and fail to generate the skinning data
+		const FVector TriNormal = FVector::CrossProduct(B - A, C - A);
+		if(TriNormal.SizeSquared() < SMALL_NUMBER)
+		{
+			// Failed, we have 2 identical vertices
+			OutSkinningData.Reset();
+
+			// Log and toast
+			FText Error = FText::Format(LOCTEXT("DegenerateTriangleError", "Failed to generate skinning data, found conincident vertices in triangle A={0} B={1} C={2}"), FText::FromString(A.ToString()), FText::FromString(B.ToString()), FText::FromString(C.ToString()));
+
+			UE_LOG(LogClothingAsset, Warning, TEXT("%s"), *Error.ToString());
+
+#if WITH_EDITOR
+			FNotificationInfo Info(Error);
+			Info.ExpireDuration = 5.0f;
+			FSlateNotificationManager::Get().AddNotification(Info);
+#endif
+			return;
+		}
+
 		SkinningData.PositionBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition);
 		SkinningData.NormalBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition + VertNormal);
 		SkinningData.TangentBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition + VertTangent);
@@ -750,3 +800,141 @@ void FClothCollisionData::Append(const FClothCollisionData& InOther)
 
 	Convexes.Append(InOther.Convexes);
 }
+
+void FClothPhysicalMeshData::Reset(const int32 InNumVerts)
+{
+	Vertices.Reset();
+	Normals.Reset();
+	MaxDistances.Reset();
+	BackstopDistances.Reset();
+	BackstopRadiuses.Reset();
+	InverseMasses.Reset();
+	BoneData.Reset();
+
+	Vertices.AddDefaulted(InNumVerts);
+	Normals.AddDefaulted(InNumVerts);
+	MaxDistances.AddDefaulted(InNumVerts);
+	BackstopDistances.AddDefaulted(InNumVerts);
+	BackstopRadiuses.AddDefaulted(InNumVerts);
+	InverseMasses.AddDefaulted(InNumVerts);
+	BoneData.AddDefaulted(InNumVerts);
+
+	MaxBoneWeights = 0;
+	NumFixedVerts = 0;
+}
+
+void FClothParameterMask_PhysMesh::Initialize(const FClothPhysicalMeshData& InMeshData)
+{
+	const int32 NumVerts = InMeshData.Vertices.Num();
+
+	// Set up value array
+	Values.Reset(NumVerts);
+	Values.AddZeroed(NumVerts);
+}
+
+void FClothParameterMask_PhysMesh::SetValue(int32 InVertexIndex, float InValue)
+{
+	if(InVertexIndex < Values.Num())
+	{
+		Values[InVertexIndex] = InValue;
+
+		float TempMax = 0.0f;
+		for(const float& Value : Values)
+		{
+			TempMax = FMath::Max(TempMax, Value);
+		}
+
+		MaxValue = TempMax;
+	}
+}
+
+float FClothParameterMask_PhysMesh::GetValue(int32 InVertexIndex) const
+{
+	return InVertexIndex < Values.Num() ? Values[InVertexIndex] : 0.0f;
+}
+
+#if WITH_EDITOR
+
+void FClothParameterMask_PhysMesh::CalcRanges()
+{
+	MinValue = MAX_flt;
+	MaxValue = -MinValue;
+
+	for(const float& Value : Values)
+	{
+		MaxValue = FMath::Max(Value, MaxValue);
+
+		if(Value > 0.0f)
+		{
+			MinValue = FMath::Min(Value, MinValue);
+		}
+	}
+}
+
+FColor FClothParameterMask_PhysMesh::GetValueAsColor(int32 InVertexIndex) const
+{
+	if(InVertexIndex < Values.Num())
+	{
+		const float& Value = Values[InVertexIndex];
+
+		if(Value == 0.0f)
+		{
+			return FColor::Magenta;
+		}
+
+		uint8 ScaledValue = uint8(((Value - MinValue) / (MaxValue - MinValue)) * 255.0f);
+		return FColor(ScaledValue, ScaledValue, ScaledValue);
+	}
+
+	return FColor::Red;
+}
+#endif
+
+void FClothParameterMask_PhysMesh::Apply(FClothPhysicalMeshData& InTargetMesh)
+{
+	if(CurrentTarget == MaskTarget_PhysMesh::None)
+	{
+		// Nothing to do here, just return
+		return;
+	}
+
+	const int32 NumValues = Values.Num();
+	const int32 NumTargetMeshVerts = InTargetMesh.Vertices.Num();
+
+	if(NumTargetMeshVerts == NumValues)
+	{
+		TArray<float>* TargetArray = nullptr;
+		switch(CurrentTarget)
+		{
+			case MaskTarget_PhysMesh::MaxDistance:
+				TargetArray = &InTargetMesh.MaxDistances;
+				break;
+			case MaskTarget_PhysMesh::BackstopDistance:
+				TargetArray = &InTargetMesh.BackstopDistances;
+				break;
+			case MaskTarget_PhysMesh::BackstopRadius:
+				TargetArray = &InTargetMesh.BackstopRadiuses;
+				break;
+			default:
+				break;
+		}
+
+		if(!TargetArray)
+		{
+			return;
+		}
+
+		check((*TargetArray).Num() == NumValues);
+
+		for(int32 Index = 0; Index < NumTargetMeshVerts; ++Index)
+		{
+			(*TargetArray)[Index] = Values[Index];
+		}
+	}
+	else
+	{
+		UE_LOG(LogClothingAsset, Warning, TEXT("Aborted applying mask to physical mesh at %p, value mismatch (NumValues: %d, NumVerts: %d)."), &InTargetMesh, NumValues, NumTargetMeshVerts);
+	}
+}
+
+#undef LOCTEXT_NAMESPACE

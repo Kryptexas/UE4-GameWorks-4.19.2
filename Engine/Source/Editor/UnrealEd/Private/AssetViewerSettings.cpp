@@ -8,10 +8,6 @@
 
 UAssetViewerSettings::UAssetViewerSettings()
 {
-	// Make sure there always is one profile as default
-	Profiles.AddDefaulted(1);
-	Profiles[0].ProfileName = TEXT("Profile_0");
-	NumProfiles = 1;
 }
 
 UAssetViewerSettings::~UAssetViewerSettings()
@@ -37,7 +33,6 @@ UAssetViewerSettings* UAssetViewerSettings::Get()
 		{
 			Profile.LoadEnvironmentMap();
 		}
-
 		bInitialized = true;
 
 		if (GEditor)
@@ -51,8 +46,45 @@ UAssetViewerSettings* UAssetViewerSettings::Get()
 
 void UAssetViewerSettings::Save()
 {
-	SaveConfig();
-	UpdateDefaultConfigFile();
+	LocalProfiles.Empty();
+	SharedProfiles.Empty();
+
+	// Divide profiles up in corresponding arrays
+	for (FPreviewSceneProfile& Profile : Profiles)
+	{
+		if (Profile.bSharedProfile)
+		{
+			SharedProfiles.Add(Profile);
+		}
+		else
+		{
+			LocalProfiles.Add(Profile);
+		}
+	}
+
+	UClass* Class = GetClass();
+	UField* Child = Class->Children;
+	const FString LocalFilename = GetConfigFilename(this);
+	const FString SharedFilename = GetDefaultConfigFilename();	
+
+	// Store name for last selected profile
+	GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileName = Profiles[GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex].ProfileName;
+
+	UProperty* PropertyLink = Class->PropertyLink;
+	for (UProperty* Property = GetClass()->PropertyLink; Property; Property = Property->PropertyLinkNext)
+	{
+		const FName PropertyName = Property->GetFName();
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, LocalProfiles))
+		{
+			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
+			UpdateSinglePropertyInConfigFile(ArrayProperty->Inner, LocalFilename);
+		}
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, SharedProfiles))
+		{
+			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
+			UpdateSinglePropertyInConfigFile(ArrayProperty->Inner, SharedFilename);
+		}
+	}
 }
 
 void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -83,12 +115,43 @@ void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 void UAssetViewerSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
+
+	Profiles.Empty();
+	for (FPreviewSceneProfile& Profile : SharedProfiles)
+	{
+		Profiles.Add(Profile);
+	}
+
+	for (FPreviewSceneProfile& Profile : LocalProfiles)
+	{
+		Profiles.Add(Profile);
+	}
+
+	if (Profiles.Num() == 0)
+	{
+		// Make sure there always is one profile as default
+		Profiles.AddDefaulted(1);
+		Profiles[0].ProfileName = TEXT("Profile_0");
+	}
 	NumProfiles = Profiles.Num();
 
 	UEditorPerProjectUserSettings* ProjectSettings = GetMutableDefault<UEditorPerProjectUserSettings>();
-	if (!Profiles.IsValidIndex(ProjectSettings->AssetViewerProfileIndex))
+
+	// Find last saved profile index
+	int32 SelectedProfileIndex = INDEX_NONE;
+	for (int32 ProfileIndex = 0; ProfileIndex < Profiles.Num(); ++ProfileIndex)
 	{
-		ProjectSettings->AssetViewerProfileIndex = 0;
+		if (Profiles[ProfileIndex].ProfileName == ProjectSettings->AssetViewerProfileName)
+		{
+			SelectedProfileIndex = ProfileIndex;
+			break;
+		}
+	}
+
+	// Only need to set profile index if we found a correct value since it defaults to 0
+	if (SelectedProfileIndex != INDEX_NONE)
+	{
+		ProjectSettings->AssetViewerProfileIndex = SelectedProfileIndex;
 	}
 }
 

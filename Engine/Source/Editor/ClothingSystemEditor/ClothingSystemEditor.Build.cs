@@ -16,7 +16,8 @@ public class ClothingSystemEditor : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "Engine"
+                "Engine",
+                "RenderCore"
             }
         );
 

@@ -688,10 +688,10 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 		SharedData->EditorSkelComp->bUpdateJointsFromAnimation = SharedData->EditorSimOptions->bUpdateJointsFromAnimation;
 		SharedData->EditorSkelComp->PhysicsTransformUpdateMode = SharedData->EditorSimOptions->PhysicsUpdateMode;
 
-		if((SharedData->EditorSkelComp->GetCollisionEnabled() != ECollisionEnabled::NoCollision) == SharedData->EditorSimOptions->bImmediatePhysics)
+		/*if((SharedData->EditorSkelComp->GetCollisionEnabled() != ECollisionEnabled::NoCollision) == SharedData->EditorSimOptions->bImmediatePhysics)
 		{
 			SharedData->EditorSkelComp->SetCollisionEnabled(SharedData->EditorSimOptions->bImmediatePhysics ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryAndPhysics);
-		}
+		}*/
 
 		static FPhysicalAnimationData EmptyProfile;
 

@@ -45,4 +45,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Additional Meshes")
 	TAssetPtr<UPreviewMeshCollection> AdditionalMeshes;
+
+	UPROPERTY()
+	UPreviewMeshCollection* DefaultAdditionalMeshes;
 };

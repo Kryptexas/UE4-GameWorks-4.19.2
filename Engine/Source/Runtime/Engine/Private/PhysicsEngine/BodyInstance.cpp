@@ -478,6 +478,7 @@ FBodyInstance::FBodyInstance()
 	, WeldParent(NULL)
 	, PhysMaterialOverride(NULL)
 	, CustomSleepThresholdMultiplier(1.f)
+	, StabilizationThresholdMultiplier(1.f)
 	, PhysicsBlendWeight(0.f)
 	, PositionSolverIterationCount(8)
 #if WITH_PHYSX
@@ -1381,7 +1382,17 @@ struct FInitBodiesHelper
 		else
 		{
 			PNewDynamic = GPhysXSDK->createRigidDynamic(PTransform);
-			if (Instance->UseAsyncScene(PhysScene))
+			bool bWantsAsyncScene = false;
+			if(SpawnParams.DynamicActorScene == EDynamicActorScene::Default)
+			{
+				bWantsAsyncScene = Instance->bUseAsyncScene;
+			}
+			else
+			{
+				bWantsAsyncScene = SpawnParams.DynamicActorScene == EDynamicActorScene::UseAsyncScene;
+			}
+			
+			if(bWantsAsyncScene && PhysScene && PhysScene->HasAsyncScene())
 			{
 				Instance->RigidActorAsync = PNewDynamic;
 			}
@@ -1938,6 +1949,7 @@ FBodyInstance::FInitBodySpawnParams::FInitBodySpawnParams(const UPrimitiveCompon
 {
 	bStaticPhysics = PrimComp == nullptr || PrimComp->Mobility != EComponentMobility::Movable;
 	bPhysicsTypeDeterminesSimulation = PrimComp && PrimComp->IsA<USkeletalMeshComponent>();
+	DynamicActorScene = EDynamicActorScene::Default;
 }
 
 void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams, PhysXAggregateType InAggregate /*= NULL*/)
@@ -2625,7 +2637,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 					PCapsuleGeom.halfHeight = FMath::Max(HalfHeight, KINDA_SMALL_NUMBER);
 					PCapsuleGeom.radius = FMath::Max(Radius, KINDA_SMALL_NUMBER);
 
-					PLocalPose = PxTransform(U2PVector(RelativeTM.TransformPosition(SphylElem->Center)), U2PQuat(SphylElem->Orientation) * U2PSphylBasis);
+					PLocalPose = PxTransform(U2PVector(RelativeTM.TransformPosition(SphylElem->Center)), U2PQuat(SphylElem->Rotation.Quaternion()) * U2PSphylBasis);
 					PLocalPose.p.x *= AdjustedScale3D.X;
 					PLocalPose.p.y *= AdjustedScale3D.Y;
 					PLocalPose.p.z *= AdjustedScale3D.Z;
@@ -4103,7 +4115,7 @@ void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping, bool 
 #endif
 }
 
-void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping)
+void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping, bool bIsLocalForce)
 {
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
@@ -4112,7 +4124,7 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 		{
 			if(FPhysScene* PhysScene = GetPhysicsScene(this))
 			{
-				PhysScene->AddForceAtPosition_AssumesLocked(this, Force, Position, bAllowSubstepping);
+				PhysScene->AddForceAtPosition_AssumesLocked(this, Force, Position, bAllowSubstepping, bIsLocalForce);
 			}
 		}
 	});
@@ -4124,8 +4136,21 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 	{
 		if (!Force.IsNearlyZero())
 		{
-			const b2Vec2 Force2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Force);
-			const b2Vec2 Position2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Position);
+			FVector ActualPosition = Position;
+			FVector ActualForce = Force;
+
+			if (bIsLocalForce)
+			{
+				if (UPrimitiveComponent* Owner = OwnerComponent.Get())
+				{
+					FTransform CTW = Owner->GetComponentToWorld();
+					ActualPosition = CTW.TransformVector(ActualPosition);
+					ActualForce = CTW.TransformVector(ActualForce);
+				}
+			}
+
+			const b2Vec2 Force2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(ActualForce);
+			const b2Vec2 Position2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(ActualPosition);
 			BodyInstancePtr->ApplyForce(Force2D, Position2D, /*wake=*/ true);
 		}
 	}
@@ -4555,27 +4580,21 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 			const bool bShapeIsSimple = (ShapeFilter.word3 & EPDF_SimpleCollision) != 0;
 			if((bTraceComplex && bShapeIsComplex) || (!bTraceComplex && bShapeIsSimple))
 			{
-				GeometryFromShapeStorage GeomStorage;
-				PxGeometry* PGeom = GetGeometryFromShape(GeomStorage, PShape, true);
 				PxTransform PGlobalPose = PCompTM.transform(PShape->getLocalPose());
-
-				if (PGeom)
+                const PxGeometry& Geometry = ShapeAdaptor.GetGeometry();
+				if(PxGeometryQuery::sweep(PDir, DeltaMag, Geometry, PStartTM, PShape->getGeometry().any(), PGlobalPose, PHit, POutputFlags))
 				{
-                    const PxGeometry& Geometry = ShapeAdaptor.GetGeometry();
-					if(PxGeometryQuery::sweep(PDir, DeltaMag, Geometry, PStartTM, *PGeom, PGlobalPose, PHit, POutputFlags))
-					{
-						// we just like to make sure if the hit is made
-						PxFilterData QueryFilter;
-						QueryFilter.word2 = 0xFFFFF;
+					// we just like to make sure if the hit is made
+					PxFilterData QueryFilter;
+					QueryFilter.word2 = 0xFFFFF;
 
-						// we don't get Shape information when we access via PShape, so I filled it up
-						PHit.shape = PShape;
-						PHit.actor = HasSharedShapes() ? RigidActorSync : PShape->getActor();	//in the case of shared shapes getActor will return null. Since the shape is shared we just return the sync actor
-						PxTransform PStartTransform(U2PVector(Start));
-						PHit.faceIndex = FindFaceIndex(PHit, PDir);
-						ConvertQueryImpactHit(OwnerComponentInst->GetWorld(), PHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTransform, false, false);
-						return true;
-					}
+					// we don't get Shape information when we access via PShape, so I filled it up
+					PHit.shape = PShape;
+					PHit.actor = HasSharedShapes() ? RigidActorSync : PShape->getActor();	//in the case of shared shapes getActor will return null. Since the shape is shared we just return the sync actor
+					PxTransform PStartTransform(U2PVector(Start));
+					PHit.faceIndex = FindFaceIndex(PHit, PDir);
+					ConvertQueryImpactHit(OwnerComponentInst->GetWorld(), PHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTransform, false, false);
+					return true;
 				}
 			}
 		}
@@ -4679,21 +4698,21 @@ bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Ro
 		for (int32 TargetShapeIdx = 0; TargetShapeIdx < NumTargetShapes; ++TargetShapeIdx)
 		{
 			const PxShape * PTargetShape = PTargetShapes[TargetShapeIdx];
+			const PxGeometryType::Enum ShapeType = PTargetShape->getGeometryType();
+			if(ShapeType == PxGeometryType::eHEIGHTFIELD || ShapeType == PxGeometryType::eTRIANGLEMESH)
+			{
+				continue;	//we skip complex shapes - should this respect ComplexAsSimple?
+			}
 
 			// Calc shape global pose
+			const PxGeometry& PGeom = PTargetShape->getGeometry().any();
 			PxTransform PShapeGlobalPose = PTestGlobalPose.transform(PTargetShape->getLocalPose());
-
-			GET_GEOMETRY_FROM_SHAPE(PGeom, PTargetShape);
-
-			if (PGeom)
+			for (const FBodyInstance* BodyInstance : Bodies)
 			{
-				for (const FBodyInstance* BodyInstance : Bodies)
+				bHaveOverlap = BodyInstance->OverlapPhysX_AssumesLocked(PGeom, PShapeGlobalPose);
+				if (bHaveOverlap)
 				{
-					bHaveOverlap = BodyInstance->OverlapPhysX_AssumesLocked(*PGeom, PShapeGlobalPose);
-					if (bHaveOverlap)
-					{
-						return;
-					}
+					return;
 				}
 			}
 		}
@@ -4806,21 +4825,22 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 					continue;
 				}
 
+				const PxGeometryType::Enum ShapeType = PShape->getGeometryType();
+				if (ShapeType == PxGeometryType::eHEIGHTFIELD || ShapeType == PxGeometryType::eTRIANGLEMESH)
+				{
+					continue;	//we skip complex shapes - should this respect ComplexAsSimple?
+				}
+
 				// Calc shape global pose
 				const PxTransform PLocalPose = PShape->getLocalPose();
 				const PxTransform PShapeGlobalPose = PBodyInstanceSpaceToTestSpace.transform(PLocalPose);
-
-				GET_GEOMETRY_FROM_SHAPE(PGeom, PShape);
-
-				if (PGeom != NULL)
+			
+				TempOverlaps.Reset();
+				if (GeomOverlapMulti_PhysX(World, PShape->getGeometry().any(), PShapeGlobalPose, TempOverlaps, TestChannel, Params, ResponseParams, ObjectQueryParams))
 				{
-					TempOverlaps.Reset();
-					if (GeomOverlapMulti_PhysX(World, *PGeom, PShapeGlobalPose, TempOverlaps, TestChannel, Params, ResponseParams, ObjectQueryParams))
-					{
-						bHaveBlockingHit = true;
-					}
-					InOutOverlaps.Append(TempOverlaps);
+					bHaveBlockingHit = true;
 				}
+				InOutOverlaps.Append(TempOverlaps);
 			}
 		});
 	}
@@ -5229,6 +5249,9 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 		float SleepEnergyThresh = RigidActor->getSleepThreshold();
 		SleepEnergyThresh *= GetSleepThresholdMultiplier();
 		RigidActor->setSleepThreshold(SleepEnergyThresh);
+		float StabilizationThreshold = RigidActor->getStabilizationThreshold();
+		StabilizationThreshold *= StabilizationThresholdMultiplier;
+		RigidActor->setStabilizationThreshold(StabilizationThreshold);
 		// set solver iteration count 
 		int32 PositionIterCount = FMath::Clamp(PositionSolverIterationCount, 1, 255);
 		int32 VelocityIterCount = FMath::Clamp(VelocitySolverIterationCount, 1, 255);

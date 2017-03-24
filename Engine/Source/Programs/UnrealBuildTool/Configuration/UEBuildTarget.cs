@@ -1424,7 +1424,9 @@ namespace UnrealBuildTool
 			{
 				OutputDirectory = UnrealBuildTool.EngineDirectory;
 			}
-			OutputPaths = MakeExecutablePaths(OutputDirectory, bCompileMonolithic ? TargetName : AppName, Platform, Configuration, TargetInfo.Architecture, Rules.UndecoratedConfiguration, bCompileMonolithic && ProjectFile != null, Rules.ExeBinariesSubFolder, ProjectFile, Rules);
+
+            bool bCompileAsDLL = Rules.bShouldCompileAsDLL && bCompileMonolithic;
+            OutputPaths = MakeBinaryPaths(OutputDirectory, bCompileMonolithic ? TargetName : AppName, Platform, Configuration, bCompileAsDLL ? UEBuildBinaryType.DynamicLinkLibrary : UEBuildBinaryType.Executable, TargetInfo.Architecture, Rules.UndecoratedConfiguration, bCompileMonolithic && ProjectFile != null, Rules.ExeBinariesSubFolder, Rules.OverrideExecutableFileExtension, ProjectFile, Rules);
 		}
 
 		/// <summary>
@@ -3562,8 +3564,8 @@ namespace UnrealBuildTool
 				IntermediateDirectory = DirectoryReference.Combine(IntermediateDirectory, Module.Rules.BinariesSubFolder);
 			}
 
-			// Get the output filenames
-			FileReference BaseBinaryPath = FileReference.Combine(OutputDirectory, MakeBinaryFileName(AppName + "-" + Module.Name, Platform, ModuleConfiguration, Architecture, Rules.UndecoratedConfiguration, BinaryType));
+            // Get the output filenames
+            FileReference BaseBinaryPath = FileReference.Combine(OutputDirectory, MakeBinaryFileName(AppName + "-" + Module.Name, Platform, ModuleConfiguration, Architecture, Rules.UndecoratedConfiguration, BinaryType, Rules.OverrideExecutableFileExtension));
 			List<FileReference> OutputFilePaths = UEBuildPlatform.GetBuildPlatform(Platform).FinalizeBinaryPaths(BaseBinaryPath, ProjectFile, Rules);
 
 			// Prepare the configuration object
@@ -3586,17 +3588,18 @@ namespace UnrealBuildTool
 			return Binary;
 		}
 
-		/// <summary>
-		/// Makes a filename (without path) for a compiled binary (e.g. "Core-Win64-Debug.lib") */
-		/// </summary>
-		/// <param name="BinaryName">The name of this binary</param>
-		/// <param name="Platform">The platform being built for</param>
-		/// <param name="Configuration">The configuration being built</param>
+        /// <summary>
+        /// Makes a filename (without path) for a compiled binary (e.g. "Core-Win64-Debug.lib") */
+        /// </summary>
+        /// <param name="BinaryName">The name of this binary</param>
+        /// <param name="Platform">The platform being built for</param>
+        /// <param name="Configuration">The configuration being built</param>
 		/// <param name="Architecture">The target architecture being built</param>
-		/// <param name="UndecoratedConfiguration">The target configuration which doesn't require a platform and configuration suffix. Development by default.</param>
-		/// <param name="BinaryType">Type of binary</param>
-		/// <returns>Name of the binary</returns>
-		public static string MakeBinaryFileName(string BinaryName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, UnrealTargetConfiguration UndecoratedConfiguration, UEBuildBinaryType BinaryType)
+        /// <param name="UndecoratedConfiguration">The target configuration which doesn't require a platform and configuration suffix. Development by default.</param>
+        /// <param name="BinaryType">Type of binary</param>
+        /// /// <param name="OverrideExecutableFileExtension">If not empty, will override the file extension of the executable</param>
+        /// <returns>Name of the binary</returns>
+        public static string MakeBinaryFileName(string BinaryName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, UnrealTargetConfiguration UndecoratedConfiguration, UEBuildBinaryType BinaryType, string OverrideExecutableFileExtension)
 		{
 			StringBuilder Result = new StringBuilder();
 
@@ -3618,26 +3621,35 @@ namespace UnrealBuildTool
 				Result.Append(Architecture);
 			}
 
-			Result.Append(BuildPlatform.GetBinaryExtension(BinaryType));
+			if (!String.IsNullOrEmpty(OverrideExecutableFileExtension))
+			{
+				Result.Append(OverrideExecutableFileExtension);
+			}
+			else
+			{
+				Result.Append(BuildPlatform.GetBinaryExtension(BinaryType));
+			}
 
-			return Result.ToString();
+            return Result.ToString();
 		}
 
-		/// <summary>
-		/// Determine the output path for a target's executable
-		/// </summary>
-		/// <param name="BaseDirectory">The base directory for the executable; typically either the engine directory or project directory.</param>
-		/// <param name="BinaryName">Name of the binary</param>
-		/// <param name="Platform">Target platform to build for</param>
-		/// <param name="Configuration">Target configuration being built</param>
+        /// <summary>
+        /// Determine the output path for a target's executable
+        /// </summary>
+        /// <param name="BaseDirectory">The base directory for the executable; typically either the engine directory or project directory.</param>
+        /// <param name="BinaryName">Name of the binary</param>
+        /// <param name="Platform">Target platform to build for</param>
+        /// <param name="Configuration">Target configuration being built</param>
 		/// <param name="Architecture">Architecture being built</param>
-		/// <param name="UndecoratedConfiguration">The configuration which doesn't have a "-{Platform}-{Configuration}" suffix added to the binary</param>
-		/// <param name="bIncludesGameModules">Whether this executable contains game modules</param>
-		/// <param name="ExeSubFolder">Subfolder for executables. May be null.</param>
+        /// <param name="BinaryType">The type of binary we're compiling</param>
+        /// <param name="UndecoratedConfiguration">The configuration which doesn't have a "-{Platform}-{Configuration}" suffix added to the binary</param>
+        /// <param name="bIncludesGameModules">Whether this executable contains game modules</param>
+        /// <param name="ExeSubFolder">Subfolder for executables. May be null.</param>
+		/// <param name="OverrideExecutableFileExtension">Override for the executable file extension</param>
 		/// <param name="ProjectFile">The project file containing the target being built</param>
 		/// <param name="Rules">Rules for the target being built</param>
-		/// <returns>List of executable paths for this target</returns>
-		public static List<FileReference> MakeExecutablePaths(DirectoryReference BaseDirectory, string BinaryName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string Architecture, UnrealTargetConfiguration UndecoratedConfiguration, bool bIncludesGameModules, string ExeSubFolder, FileReference ProjectFile, ReadOnlyTargetRules Rules)
+        /// <returns>List of executable paths for this target</returns>
+        public static List<FileReference> MakeBinaryPaths(DirectoryReference BaseDirectory, string BinaryName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, string Architecture, UnrealTargetConfiguration UndecoratedConfiguration, bool bIncludesGameModules, string ExeSubFolder, string OverrideExecutableFileExtension, FileReference ProjectFile, ReadOnlyTargetRules Rules)
 		{
 			// Get the configuration for the executable. If we're building DebugGame, and this executable only contains engine modules, use the same name as development.
 			UnrealTargetConfiguration ExeConfiguration = Configuration;
@@ -3652,7 +3664,7 @@ namespace UnrealBuildTool
 			{
 				BinaryDirectory = DirectoryReference.Combine(BinaryDirectory, ExeSubFolder);
 			}
-			FileReference BinaryFile = FileReference.Combine(BinaryDirectory, MakeBinaryFileName(BinaryName, Platform, ExeConfiguration, Architecture, UndecoratedConfiguration, UEBuildBinaryType.Executable));
+			FileReference BinaryFile = FileReference.Combine(BinaryDirectory, MakeBinaryFileName(BinaryName, Platform, ExeConfiguration, Architecture, UndecoratedConfiguration, BinaryType, OverrideExecutableFileExtension));
 
 			// Allow the platform to customize the output path (and output several executables at once if necessary)
 			return UEBuildPlatform.GetBuildPlatform(Platform).FinalizeBinaryPaths(BinaryFile, ProjectFile, Rules);
@@ -3817,7 +3829,7 @@ namespace UnrealBuildTool
 						AppBinaries.Add(
 							new UEBuildBinaryCPP(
 								new UEBuildBinaryConfiguration(	
-									InType: UEBuildBinaryType.Executable,
+									InType: Rules.bShouldCompileAsDLL? UEBuildBinaryType.DynamicLinkLibrary : UEBuildBinaryType.Executable,
 									InOutputFilePaths: OutputPaths,
 									InIntermediateDirectory: ProjectIntermediateDirectory,
 									InModuleNames: new List<string>() { Rules.LaunchModuleName } )

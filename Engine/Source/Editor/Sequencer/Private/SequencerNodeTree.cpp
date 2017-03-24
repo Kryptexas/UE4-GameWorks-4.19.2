@@ -617,3 +617,19 @@ void FSequencerNodeTree::FilterNodes(const FString& InFilter)
 		}
 	}
 }
+
+TArray< TSharedRef<FSequencerDisplayNode> > FSequencerNodeTree::GetAllNodes() const
+{
+	TArray< TSharedRef<FSequencerDisplayNode> > AllNodes;
+
+	for (const TSharedRef<FSequencerDisplayNode>& Node : RootNodes)
+	{
+		Node->Traverse_ParentFirst([&](FSequencerDisplayNode& InNode) 
+		{
+			AllNodes.Add(InNode.AsShared());
+			return true;
+		});
+	}
+
+	return AllNodes;
+}

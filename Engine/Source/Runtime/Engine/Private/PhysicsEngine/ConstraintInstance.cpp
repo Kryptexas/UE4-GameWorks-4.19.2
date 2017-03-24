@@ -286,10 +286,9 @@ bool GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Body2, 
 
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesStart", "Constraint")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("JointBetweenScenesOwner", "'{0}'"), FText::FromString(GetPathNameSafe(DebugOwner)))))
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesMid", "attempting to create a joint between two actors in different scenes (")))
-			->AddToken(FUObjectToken::Create(PrimComp1))
-			->AddToken(FUObjectToken::Create(PrimComp2))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("JointBetweenScenesArgs", "'{0}' and '{1}'"), FText::FromString(GetPathNameSafe(PrimComp1)), FText::FromString(GetPathNameSafe(PrimComp2)))))
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesEnd", ").  No joint created.")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		return false;
@@ -310,9 +309,9 @@ bool CanActorSimulate(const FBodyInstance* BI, const PxRigidActor* PActor, UObje
 		const UPrimitiveComponent* PrimComp = BI->OwnerComponent.Get();
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyStart", "Attempting to create a joint")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("InvalidBodyOwner", "'{0}'"), FText::FromString(GetPathNameSafe(DebugOwner)))))
 			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyMid", "to body")))
-			->AddToken(FUObjectToken::Create(PrimComp))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("InvalidBodyComponent", "'{0}'"), FText::FromString(GetPathNameSafe(PrimComp)))))
 			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyEnd", "which is not eligible for simulation. Is it marked QueryOnly?")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -335,7 +334,7 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("TwoStaticBodiesWarningStart", "Constraint in")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("TwoStaticBodiesWarningOwner", "'{0}'"), FText::FromString(GetPathNameSafe(DebugOwner)))))
 			->AddToken(FTextToken::Create(LOCTEXT("TwoStaticBodiesWarningEnd", "attempting to create a joint between objects that are both static.  No joint created.")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		return false;
@@ -347,7 +346,7 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 		const UPrimitiveComponent* PrimComp = Body1->OwnerComponent.Get();
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("SameBodyWarningStart", "Constraint in")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("SameBodyWarningOwner", "'{0}'"), FText::FromString(GetPathNameSafe(DebugOwner)))))
 			->AddToken(FTextToken::Create(LOCTEXT("SameBodyWarningMid", "attempting to create a joint to the same body")))
 			->AddToken(FUObjectToken::Create(PrimComp));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

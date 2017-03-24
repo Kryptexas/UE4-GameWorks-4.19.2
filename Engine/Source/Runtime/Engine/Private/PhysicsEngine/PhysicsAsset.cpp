@@ -332,7 +332,7 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTrans
 		Box = FBox( LocalToWorld.GetLocation(), LocalToWorld.GetLocation() );
 	}
 
-	const float MinBoundSize = 30.f;
+	const float MinBoundSize = 1.f;
 	const FVector BoxSize = Box.GetSize();
 
 	if(BoxSize.GetMin() < MinBoundSize)

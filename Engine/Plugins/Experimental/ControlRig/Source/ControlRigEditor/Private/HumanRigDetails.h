@@ -10,6 +10,7 @@
 #include "UObject/WeakObjectPtr.h"
 #include "Styling/CoreStyle.h"
 #include "STreeView.h"
+#include "Constraint.h"
 
 class ITableRow;
 class UHumanRig;
@@ -27,11 +28,16 @@ public:
 
 	virtual void RegisterCommands() override;
 
-	TSharedPtr<FUICommandInfo> AddNode;
 	TSharedPtr<FUICommandInfo> AddManipulator;
-	TSharedPtr<FUICommandInfo> AddLeg;
-	TSharedPtr<FUICommandInfo> DefineSpine;
+	TSharedPtr<FUICommandInfo> SetupLimb;
+	TSharedPtr<FUICommandInfo> SetupSpine;
+	TSharedPtr<FUICommandInfo> SetupFingers;
+	TSharedPtr<FUICommandInfo> AddNode;
+	TSharedPtr<FUICommandInfo> AddFKNode;
+	TSharedPtr<FUICommandInfo> Reparent;
 	TSharedPtr<FUICommandInfo> ClearRotation;
+	TSharedPtr<FUICommandInfo> SetTranslation;
+	TSharedPtr<FUICommandInfo> RenameNode;
 };
 //////////////////////////////////////////
 
@@ -41,6 +47,8 @@ class FHumanRigDetails : public IDetailCustomization
 public:
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
 	static TSharedRef<IDetailCustomization> MakeInstance();
+
+	~FHumanRigDetails();
 
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
@@ -71,11 +79,14 @@ private:
 	// Storage object for bone hierarchy
 	struct FNodeNameInfo
 	{
-		FNodeNameInfo(FName InName) : NodeName(InName) {}
+		FNodeNameInfo(FName InName, const FText& InDisplayName) : NodeName(InName), DisplayName(InDisplayName), bIsConstraint(false) {}
+		FNodeNameInfo(FName InName, const struct FTransformConstraint& InCachedConstraint);
 
 		FName NodeName;
-		// this is not used yet, but meant to display icon or so, so you can tell you can do something with it
-		bool bHasManipulator;
+		FText DisplayName;
+		// this is better to be enum later? For now, it just marks constraint or not
+		bool bIsConstraint;
+		struct FTransformConstraint CachedConstraint;
 		// select node?
 		TArray<TSharedPtr<FNodeNameInfo>> Children;
 	};
@@ -113,25 +124,42 @@ private:
 	void CreateCommandList();
 
 	void OnDeleteNodeSelected();
-	void OnAddLeg();
-	void OnAddSpline();
+	void OnSetupLimb();
+	void OnSetupSpine();
+	void OnSetupFingers();
 	void OnAddManipulator();
 	void OnClearRotation();
 	void OnAddNode();
+	void OnAddFKNode();
+	void OnReparent();
+	void OnSetTranslation();
+	void OnRenameNode();
 	FName GetFirstSelectedNodeName() const;
 
+	FReply UpdateConstraintsClicked();
 	FReply AddNodeButtonClicked();
-	FReply AddLegButtonClicked();
-	FReply DefineSpineButtonClicked();
+	FReply SetupLimbButtonClicked();
+	FReply SetupSpineButtonClicked();
+	FReply ReparentButtonClicked();
+	FReply SetTranslationButtonClicked();
+	FReply RenameNodeButtonClicked();
 
 	void AddNode(FName ParentName, FName NewNodeName, const FVector& Translation);
-	void AddLeg(FName Upper, FName Middle, FName Lower);
-	void DefineSpine(FName TopNode, FName EndNode);
+	void SetupLimb(FName PropertyName, FName Upper, FName Middle, FName Lower);
+	void SetupSpine(FName TopNode, FName EndNode);
+	void SetTranslation(FName NodeName, const FVector& Translation);
+	void RenameNode(const FName& OldName, const FName& NewName);
+
+	void HandleNodesSelected(const TArray<FName>& NodeNames);
 
 	// brute force text boxes and inputs
 	TSharedRef<SWidget> CreateAddNodeMenu() const;
-	TSharedRef<SWidget> CreateAddLegMenu() const;
-	TSharedRef<SWidget> CreateDefineSpineMenu() const;
+	TSharedRef<SWidget> CreateSetupLimbMenu() const;
+	TSharedRef<SWidget> CreateSetupSpineMenu() const;
+	TSharedRef<SWidget> CreateAddFKNodeMenu() const;
+	TSharedRef<SWidget> CreateReparentMenu() const;
+	TSharedRef<SWidget> CreateSetTranslation() const;
+	TSharedRef<SWidget> CreateRenameNode() const;
 
 	// node inputs
 	TArray<FText> NodeInputs;
@@ -142,6 +170,16 @@ private:
 	void OnNodeInputTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit, int32 Index)
 	{
 		NodeInputs[Index] = NewText;
+	}
+
+	FText LimbProperty;
+	FText OnGetLimbPropertyText() const
+	{
+		return LimbProperty;
+	}
+	void OnLimbPropertyTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
+	{
+		LimbProperty = NewText;
 	}
 
 	FVector InputTranslation;

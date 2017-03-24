@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimationBlueprintEditorModule.h"
+#include "AnimationGraphFactory.h"
 #include "Animation/AnimInstance.h"
 #include "AnimationBlueprintEditor.h"
 #include "EdGraphSchema_K2.h"
@@ -16,12 +17,25 @@ void FAnimationBlueprintEditorModule::StartupModule()
 	MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 	ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
+	AnimGraphNodeFactory = MakeShareable(new FAnimationGraphNodeFactory());
+	FEdGraphUtilities::RegisterVisualNodeFactory(AnimGraphNodeFactory);
+
+	AnimGraphPinFactory = MakeShareable(new FAnimationGraphPinFactory());
+	FEdGraphUtilities::RegisterVisualPinFactory(AnimGraphPinFactory);
+
+	AnimGraphPinConnectionFactory = MakeShareable(new FAnimationGraphPinConnectionFactory());
+	FEdGraphUtilities::RegisterVisualPinConnectionFactory(AnimGraphPinConnectionFactory);
+
 	FKismetEditorUtilities::RegisterOnBlueprintCreatedCallback(this, UAnimInstance::StaticClass(), FKismetEditorUtilities::FOnBlueprintCreated::CreateRaw(this, &FAnimationBlueprintEditorModule::OnNewBlueprintCreated));
 }
 
 void FAnimationBlueprintEditorModule::ShutdownModule()
 {
 	FKismetEditorUtilities::UnregisterAutoBlueprintNodeCreation(this);
+
+	FEdGraphUtilities::UnregisterVisualNodeFactory(AnimGraphNodeFactory);
+	FEdGraphUtilities::UnregisterVisualPinFactory(AnimGraphPinFactory);
+	FEdGraphUtilities::UnregisterVisualPinConnectionFactory(AnimGraphPinConnectionFactory);
 
 	MenuExtensibilityManager.Reset();
 	ToolBarExtensibilityManager.Reset();

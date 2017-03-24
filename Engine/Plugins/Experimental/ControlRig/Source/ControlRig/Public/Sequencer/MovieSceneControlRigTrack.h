@@ -28,7 +28,6 @@ public:
 	// UMovieSceneTrack interface
 
 	virtual UMovieSceneSection* CreateNewSection() override;
-	virtual void GenerateTemplate(const FMovieSceneTrackCompilerArgs& Args) const;
 
 #if WITH_EDITORONLY_DATA
 	virtual FText GetDefaultDisplayName() const override;

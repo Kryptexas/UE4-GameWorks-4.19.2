@@ -756,9 +756,8 @@ bool FSectionContextMenu::CanPrimeForRecording() const
 	if(SelectedSections.Num() > 0)
 	{
 		const FSectionHandle& Handle = SelectedSections[0];
-		UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Handle.GetSectionObject());
-		UMovieSceneCinematicShotSection* CinematicShotSection = Cast<UMovieSceneCinematicShotSection>(Handle.GetSectionObject());
-		if (SubSection && !CinematicShotSection)
+		UMovieSceneSubSection* SubSection = ExactCast<UMovieSceneSubSection>(Handle.GetSectionObject());
+		if (SubSection)
 		{
 			return true;
 		}	

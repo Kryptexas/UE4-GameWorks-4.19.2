@@ -601,14 +601,17 @@ public:
 	virtual FSequencerSelection& GetSelection() override;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
 	virtual void SelectObject(FGuid ObjectBinding) override;
+	virtual void SelectByPropertyPaths(const TArray<FString>& InPropertyPaths) override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() override { return OnMovieSceneDataChangedDelegate; }
 	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() override { return OnSelectionChangedObjectGuidsDelegate; }
+	virtual FOnSelectionChangedTracks& GetSelectionChangedTracks() override { return OnSelectionChangedTracksDelegate; }
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
 	virtual UObject* GetPlaybackContext() const override;
 	virtual TArray<UObject*> GetEventContexts() const override;
 	virtual FOnActorAddedToSequencer& OnActorAddedToSequencer() override;
 	virtual FOnPreSave& OnPreSave() override;
+	virtual FOnPostSave& OnPostSave() override;
 	virtual FOnActivateSequence& OnActivateSequence() override;
 	virtual FOnCameraCut& OnCameraCut() override;
 	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() override;
@@ -950,9 +953,13 @@ private:
 	/** A delegate which is called any time the sequencer selection changes. */
 	FOnSelectionChangedObjectGuids OnSelectionChangedObjectGuidsDelegate;
 
+	/** A delegate which is called any time the sequencer selection changes. */
+	FOnSelectionChangedTracks OnSelectionChangedTracksDelegate;
+
 	FOnActorAddedToSequencer OnActorAddedToSequencerEvent;
 	FOnCameraCut OnCameraCutEvent;
 	FOnPreSave OnPreSaveEvent;
+	FOnPostSave OnPostSaveEvent;
 	FOnActivateSequence OnActivateSequenceEvent;
 
 	int32 SilentModeCount;

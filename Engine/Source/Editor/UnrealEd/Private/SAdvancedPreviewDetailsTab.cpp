@@ -14,6 +14,7 @@
 #include "AssetViewerSettings.h"
 
 #include "AdvancedPreviewScene.h"
+#include "IDetailRootObjectCustomization.h"
 
 #define LOCTEXT_NAMESPACE "SPrettyPreview"
 
@@ -49,24 +50,26 @@ void SAdvancedPreviewDetailsTab::Construct(const FArguments& InArgs, const TShar
 {
 	PreviewScenePtr = InPreviewScene;
 	DefaultSettings = UAssetViewerSettings::Get();
+	AdditionalSettings = InArgs._AdditionalSettings;
 	ProfileIndex = PerProjectSettings->AssetViewerProfileIndex;
-		
+	DetailCustomizations = MoveTemp(InArgs._DetailCustomizations);
+	PropertyTypeCustomizations = MoveTemp(InArgs._PropertyTypeCustomizations);
+
 	CreateSettingsView();
 
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
-		.Padding(2.0f, 1.0f, 2.0f, 1.0f )
-		.AutoHeight()
+		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
 		[
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("SceneProfileSettingsLabel", "Scene Profile Settings"))				
+				SettingsView->AsShared()
 			]
 		]
+
 		+SVerticalBox::Slot()		
 		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
 		.AutoHeight()
@@ -75,14 +78,27 @@ void SAdvancedPreviewDetailsTab::Construct(const FArguments& InArgs, const TShar
 			+SHorizontalBox::Slot()
 			.Padding(2.0f)
 			[
-				SAssignNew(ProfileComboBox, STextComboBox)
-				.OptionsSource(&ProfileNames)
-				.OnSelectionChanged(this, &SAdvancedPreviewDetailsTab::ComboBoxSelectionChanged)				
-				.ToolTipText(LOCTEXT("SceneProfileComboBoxToolTip", "Allows for switching between scene profiles."))
-				.IsEnabled_Lambda([this]() -> bool
-				{
-					return ProfileNames.Num() > 1;
-				})
+				SNew(SHorizontalBox)
+				.ToolTipText(LOCTEXT("SceneProfileComboBoxToolTip", "Allows for switching between scene environment and lighting profiles."))
+				+ SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("SceneProfileSettingsLabel", "Profile"))
+				]
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Fill)
+				[
+					SAssignNew(ProfileComboBox, STextComboBox)
+					.OptionsSource(&ProfileNames)
+					.OnSelectionChanged(this, &SAdvancedPreviewDetailsTab::ComboBoxSelectionChanged)				
+					.IsEnabled_Lambda([this]() -> bool
+					{
+						return ProfileNames.Num() > 1;
+					})
+				]
 			]
 			+ SHorizontalBox::Slot()
 			.Padding(2.0f)
@@ -107,16 +123,6 @@ void SAdvancedPreviewDetailsTab::Construct(const FArguments& InArgs, const TShar
 				})
 			]
 		]
-
-		+ SVerticalBox::Slot()
-		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			[
-				SettingsView->AsShared()
-			]
-		]
 	];
 
 	UpdateProfileNames();
@@ -138,7 +144,14 @@ void SAdvancedPreviewDetailsTab::ComboBoxSelectionChanged(TSharedPtr<FString> Ne
 
 void SAdvancedPreviewDetailsTab::UpdateSettingsView()
 {	
-	SettingsView->SetObject(DefaultSettings, true);
+	TArray<UObject*> Objects;
+	if (AdditionalSettings)
+	{
+		Objects.Add(AdditionalSettings);
+	}
+	Objects.Add(DefaultSettings);
+
+	SettingsView->SetObjects(Objects, true);
 }
 
 void SAdvancedPreviewDetailsTab::UpdateProfileNames()
@@ -147,7 +160,7 @@ void SAdvancedPreviewDetailsTab::UpdateProfileNames()
 	ProfileNames.Empty();
 	for (FPreviewSceneProfile& Profile : DefaultSettings->Profiles)
 	{
-		ProfileNames.Add(TSharedPtr<FString>(new FString(Profile.ProfileName)));
+		ProfileNames.Add(TSharedPtr<FString>(new FString(Profile.ProfileName + (Profile.bSharedProfile ? TEXT(" (Shared)") : TEXT("") ))));
 	}
 
 	ProfileComboBox->RefreshOptions();
@@ -222,7 +235,7 @@ void SAdvancedPreviewDetailsTab::OnAssetViewerSettingsRefresh(const FName& InPro
 	const bool bUpdateDirectionalLight = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, DirectionalLightIntensity)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, DirectionalLightColor));
 	const bool bUpdatePostProcessing = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, PostProcessingSettings)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled));
 
-	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, ProfileName))
+	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, ProfileName) || InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bSharedProfile))
 	{
 		UpdateProfileNames();
 	}
@@ -246,8 +259,29 @@ void SAdvancedPreviewDetailsTab::CreateSettingsView()
 		/*InViewIdentifier=*/ NAME_None);
 	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
 	DetailsViewArgs.bShowOptions = false;
+	DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
 
 	SettingsView = EditModule.CreateDetailView(DetailsViewArgs);
+
+	for (const FDetailCustomizationInfo& DetailCustomizationInfo : DetailCustomizations)
+	{
+		SettingsView->RegisterInstancedCustomPropertyLayout(DetailCustomizationInfo.Struct, DetailCustomizationInfo.OnGetDetailCustomizationInstance);
+	}
+
+	for (const FPropertyTypeCustomizationInfo& PropertyTypeCustomizationInfo : PropertyTypeCustomizations)
+	{
+		EditModule.RegisterCustomPropertyTypeLayout(PropertyTypeCustomizationInfo.StructName, PropertyTypeCustomizationInfo.OnGetPropertyTypeCustomizationInstance, nullptr, SettingsView);
+	}
+
+	class FDetailRootObjectCustomization : public IDetailRootObjectCustomization
+	{
+		virtual TSharedPtr<SWidget> CustomizeObjectHeader(const UObject* InRootObject) { return SNullWidget::NullWidget; }
+		virtual bool IsObjectVisible(const UObject* InRootObject) const { return true; }
+		virtual bool ShouldDisplayHeader(const UObject* InRootObject) const { return false; }
+	};
+
+	SettingsView->SetRootObjectCustomizationInstance(MakeShareable(new FDetailRootObjectCustomization));
+
 	UpdateSettingsView();
 }
 

@@ -57,6 +57,14 @@ public:
 	virtual void InvalidateCachedData()
 	PURE_VIRTUAL(UClothingAssetBase::InvalidateCachedData(), );
 
+	/** Check the validity of a LOD index */
+	virtual bool IsValidLod(int32 InLodIndex)
+	PURE_VIRTUAL(UClothingAssetBase::IsValidLod(), return false;);
+
+	/** Get the number of LODs defined in the clothing asset */
+	virtual int32 GetNumLods()
+	PURE_VIRTUAL(UClothingAssetBase::GetNumLods(), return 0;);
+
 	/** Get the guid identifying this asset */
 	const FGuid& GetAssetGuid()
 	{

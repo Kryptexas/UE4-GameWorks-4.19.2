@@ -36,21 +36,6 @@ UMovieSceneSection* UMovieSceneControlRigTrack::CreateNewSection()
 	return NewObject<UMovieSceneControlRigSection>(this);
 }
 
-void UMovieSceneControlRigTrack::GenerateTemplate(const FMovieSceneTrackCompilerArgs& Args) const
-{
-	// find our object binding & apply it so any binding tracks know what to bind to
-	if (Args.ObjectBindingId.IsValid())
-	{
-		// @TODO: is there any way for us to get the level we are at here, or is root always valid to use as the sequence ID?
-		UControlRigBindingTrack::PushObjectBindingId(Args.ObjectBindingId, MovieSceneSequenceID::Root);
-	}
-
-	// Call super to expand our subsequence 
-	Super::GenerateTemplate(Args);
-
-	UControlRigBindingTrack::PopObjectBindingId();
-}
-
 #if WITH_EDITORONLY_DATA
 
 FText UMovieSceneControlRigTrack::GetDefaultDisplayName() const

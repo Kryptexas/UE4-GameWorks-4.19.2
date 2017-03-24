@@ -23,7 +23,6 @@ namespace UnrealBuildTool.Rules
                     "UnrealEd",
                     "KismetCompiler",
                     "BlueprintGraph",
-                    "ComponentVisualizers",
                     "ControlRig",
                     "Kismet",
                     "EditorStyle",

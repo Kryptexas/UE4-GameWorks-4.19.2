@@ -20,6 +20,8 @@
 #include "Components/SkinnedMeshComponent.h"
 #include "UniquePtr.h"
 
+#include "AnimationBlueprintLibrary.h"
+
 #include "MeshMergeData.h"
 
 // Standard Simplygon channels have some issues with extracting color data back from simplification, 
@@ -221,7 +223,8 @@ public:
 		const FBoxSphereBounds & Bounds, 
 		float &MaxDeviation, 
 		const FReferenceSkeleton& RefSkeleton, 
-		const FSkeletalMeshOptimizationSettings& Settings
+		const FSkeletalMeshOptimizationSettings& Settings,
+		const TArray<FTransform>& BoneTransforms = TArray<FTransform>()
 		)
 	{
 		const bool bUsingMaxDeviation = (Settings.ReductionMethod == SMOT_MaxDeviation && Settings.MaxDeviationPercentage > 0.0f);
@@ -244,7 +247,7 @@ public:
 			CreateSkeletalHierarchy(Scene, RefSkeleton, BoneTableIDs);
 
 			// Create a new scene mesh object
-			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromSkeletalLODModel( Scene, *SrcModel, BoneTableIDs );
+			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromSkeletalLODModel( Scene, *SrcModel, BoneTableIDs, BoneTransforms);
 
 			FDefaultEventHandler SimplygonEventHandler;
 			SimplygonSDK::spReductionProcessor ReductionProcessor = SDK->CreateReductionProcessor();
@@ -318,6 +321,70 @@ public:
 		IMeshBoneReductionModule& MeshBoneReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshBoneReductionModule>("MeshBoneReduction");
 		IMeshBoneReduction * MeshBoneReductionInterface = MeshBoneReductionModule.GetMeshBoneReductionInterface();
 
+		TArray<FName> BoneNames;
+		const int32 NumBones = SkeletalMesh->RefSkeleton.GetNum();
+		for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
+		{
+			BoneNames.Add(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
+		}
+
+		TArray<FTransform> MultipliedBonePoses;
+		if (Settings.BakePose)
+		{
+			TArray<FTransform> BonePoses;
+			UAnimationBlueprintLibrary::GetBonePosesForFrame(Settings.BakePose, BoneNames, 0, true, BonePoses);			
+			MultipliedBonePoses.AddDefaulted(BonePoses.Num());
+
+			TArray<FTransform> RefBonePoses = SkeletalMesh->RefSkeleton.GetRawRefBonePose();
+			TArray<FTransform> MultipliedRefBonePoses;
+			MultipliedRefBonePoses.AddDefaulted(RefBonePoses.Num());
+
+			TArray<int32> Processed;
+			Processed.SetNumZeroed(RefBonePoses.Num());
+
+			for (int32 i = 1; i < RefBonePoses.Num(); i++)
+			{
+				const int32 BoneIndex = SkeletalMesh->RefSkeleton.FindRawBoneIndex(BoneNames[i]);
+				const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+				check(ParentIndex == 0 || Processed[ParentIndex] == 1);
+				MultipliedRefBonePoses[BoneIndex] = RefBonePoses[BoneIndex] * MultipliedRefBonePoses[ParentIndex];
+				MultipliedRefBonePoses[BoneIndex].NormalizeRotation();
+
+				checkSlow(MultipliedRefBonePoses[BoneIndex].IsRotationNormalized());
+				checkSlow(!MultipliedRefBonePoses[BoneIndex].ContainsNaN());
+
+				Processed[BoneIndex] = 1;
+			}
+
+			Processed.Empty();
+			Processed.SetNumZeroed(BonePoses.Num());
+
+			for (int32 i = 1; i < BonePoses.Num(); i++)
+			{
+				const int32 BoneIndex = SkeletalMesh->RefSkeleton.FindRawBoneIndex(BoneNames[i]);
+				const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+				check(ParentIndex == 0 || Processed[ParentIndex] == 1);
+				MultipliedBonePoses[BoneIndex] = BonePoses[BoneIndex] * MultipliedBonePoses[ParentIndex];
+
+				MultipliedBonePoses[BoneIndex].NormalizeRotation();
+
+				checkSlow(MultipliedBonePoses[BoneIndex].IsRotationNormalized());
+				checkSlow(!MultipliedBonePoses[BoneIndex].ContainsNaN());
+				Processed[BoneIndex] = 1;
+			}
+
+			for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
+			{
+				MultipliedBonePoses[BoneIndex] = MultipliedRefBonePoses[BoneIndex].Inverse() * MultipliedBonePoses[BoneIndex];
+			}
+		}
+		else
+		{
+			MultipliedBonePoses.AddDefaulted(BoneNames.Num());
+		}
+		
+
+
 		// See if we'd like to remove extra bones first
 		if (MeshBoneReductionInterface->GetBoneReductionData(SkeletalMesh, LODIndex, BonesToRemove))
 		{
@@ -340,19 +407,13 @@ public:
 			// now fix up SrcModel to NewSrcModel
 			SrcModel = NewSrcModel;
 			//todo: check - memory leak here - SrcModel is not released?
-
-			// fix up chunks to remove the bones that set to be removed
-			for (int32 SectionIndex = 0; SectionIndex < NewSrcModel->Sections.Num(); ++SectionIndex)
-			{
-				MeshBoneReductionInterface->FixUpSectionBoneMaps(NewSrcModel->Sections[SectionIndex], BonesToRemove);
-			}
 		}
 
 		FStaticLODModel * NewModel = new FStaticLODModel();
 		LODModels[LODIndex] = NewModel;
-
+		
 		// Reduce LOD model with SrcMesh
-		if (ReduceLODModel(SrcModel, NewModel, SkeletalMesh->GetImportedBounds(), MaxDeviation, SkeletalMesh->RefSkeleton, Settings))
+		if (ReduceLODModel(SrcModel, NewModel, SkeletalMesh->GetImportedBounds(), MaxDeviation, SkeletalMesh->RefSkeleton, Settings, MultipliedBonePoses))
 		{
 			if (bCalcLODDistance)
 			{
@@ -384,6 +445,12 @@ public:
 					// Something went wrong during the reduce step during regenerate 					
 					check(SkeletalMesh->LODInfo[BaseLOD].LODMaterialMap.Num() == TotalSectionCount);
 				}
+			}
+
+			// fix up chunks to remove the bones that set to be removed
+			for (int32 SectionIndex = 0; SectionIndex < NewModel->Sections.Num(); ++SectionIndex)
+			{
+				MeshBoneReductionInterface->FixUpSectionBoneMaps(NewModel->Sections[SectionIndex], BonesToRemove);
 			}
 
 			// Flag this LOD as having been simplified.
@@ -1543,7 +1610,7 @@ private:
 	 * @param BoneIDs A maps of Bone IDs from RefSkeleton to Simplygon BoneTable IDs
 	 * @returns a Simplygon geometry data representation of the skeletal mesh LOD.
 	 */
-	SimplygonSDK::spGeometryData CreateGeometryFromSkeletalLODModel( SimplygonSDK::spScene& Scene, const FStaticLODModel& LODModel, const TArray<SimplygonSDK::rid>& BoneIDs )
+	SimplygonSDK::spGeometryData CreateGeometryFromSkeletalLODModel( SimplygonSDK::spScene& Scene, const FStaticLODModel& LODModel, const TArray<SimplygonSDK::rid>& BoneIDs, const TArray<FTransform>& BoneTransforms)
 	{
 		TArray<FSoftSkinVertex> Vertices;
 		FMultiSizeIndexContainerData IndexData;
@@ -1616,6 +1683,8 @@ private:
 				SimplygonSDK::rid VertexBoneIds[MAX_TOTAL_INFLUENCES];
 				SimplygonSDK::real VertexBoneWeights[MAX_TOTAL_INFLUENCES];
 
+				FVector WeightedVertex(EForceInit::ForceInitToZero);
+				
 				uint32 TotalInfluence = 0;
 				for ( uint32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex )
 				{
@@ -1629,6 +1698,12 @@ private:
 						uint32 BoneID = BoneIDs[Section.BoneMap[ BoneIndex ] ];
 						VertexBoneIds[InfluenceIndex] = BoneID;
 						VertexBoneWeights[InfluenceIndex] = BoneInfluence / 255.0f;
+												
+						if (BoneTransforms.IsValidIndex(Section.BoneMap[BoneIndex]))
+						{
+							const FTransform Transform = BoneTransforms[Section.BoneMap[BoneIndex]];
+							WeightedVertex += (Transform.TransformPosition(Vertex.Position) * VertexBoneWeights[InfluenceIndex]);
+						}
 					}
 					else
 					{
@@ -1639,10 +1714,10 @@ private:
 				}
 				check( TotalInfluence == 255 );
 
-				Vertex.Position = GetConversionMatrix().TransformPosition(Vertex.Position);
+				FVector FinalVert = GetConversionMatrix().TransformPosition(WeightedVertex);
 
 				//Vertex.Position.Z = -Vertex.Position.Z;
-				Positions->SetTuple( VertexIndex, (float*)&Vertex.Position );
+				Positions->SetTuple( VertexIndex, (float*)&FinalVert);
 				BoneIds->SetTuple( VertexIndex, VertexBoneIds );
 				BoneWeights->SetTuple( VertexIndex, VertexBoneWeights );
 			}
@@ -1990,11 +2065,7 @@ private:
 				Face.TangentY[CornerIndex] = GetConversionMatrix().TransformPosition(Face.TangentY[CornerIndex]);
 				Face.TangentZ[CornerIndex] = GetConversionMatrix().TransformPosition(Face.TangentZ[CornerIndex]);
 			}
-
-			
 		}
-		 
-
 
 		// Create dummy map of 'point to original'
 		TArray<int32> DummyMap;
@@ -2320,6 +2391,15 @@ private:
 #endif
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 
+		// Opacity mask
+		Size = FIntPoint::ZeroValue;
+#if USE_USER_OPACITY_CHANNEL
+		GetMaterialChannelData(SGMaterial, TextureTable, USER_MATERIAL_CHANNEL_OPACITY_MASK, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask), Size);
+#else
+		GetMaterialChannelData(SGMaterial, TextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask), Size);
+#endif
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::OpacityMask, Size);
+
 		// Emissive
 		Size = FIntPoint::ZeroValue;
 		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), Size);
@@ -2365,6 +2445,9 @@ private:
 #if USE_USER_OPACITY_CHANNEL
 			if (!SGMaterial->HasUserChannel(USER_MATERIAL_CHANNEL_OPACITY))
 				SGMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_OPACITY);
+
+			if (!SGMaterial->HasUserChannel(USER_MATERIAL_CHANNEL_OPACITY_MASK))
+				SGMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_OPACITY_MASK);
 #endif
 			SGMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR);
 
@@ -2410,6 +2493,15 @@ private:
 				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity), SGMaterial, OutTextureTable, USER_MATERIAL_CHANNEL_OPACITY);
 #else
 				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY);
+#endif
+			}
+
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::OpacityMask))
+			{
+#if USE_USER_OPACITY_CHANNEL
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask), SGMaterial, OutTextureTable, USER_MATERIAL_CHANNEL_OPACITY_MASK);
+#else
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY);
 #endif
 			}
 
@@ -2650,7 +2742,14 @@ private:
 		SimplygonSDK::spMaterial OutMaterial = SDK->CreateMaterial();
 #if USE_USER_OPACITY_CHANNEL
 		if(!OutMaterial->HasUserChannel(USER_MATERIAL_CHANNEL_OPACITY))
+		{
 			OutMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_OPACITY);
+		}
+
+		if (!OutMaterial->HasUserChannel(USER_MATERIAL_CHANNEL_OPACITY_MASK))
+		{
+			OutMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_OPACITY_MASK);
+		}
 #endif
 		OutMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR);
 

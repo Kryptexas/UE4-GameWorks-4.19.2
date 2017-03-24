@@ -34,6 +34,11 @@ void UControlRig::UnbindFromObject()
 
 }
 
+bool UControlRig::IsBoundToObject(UObject* InObject) const
+{
+	return false;
+}
+
 UObject* UControlRig::GetBoundObject() const
 {
 	return nullptr;

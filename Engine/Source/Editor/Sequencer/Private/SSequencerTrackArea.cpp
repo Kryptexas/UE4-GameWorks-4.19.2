@@ -282,11 +282,11 @@ void SSequencerTrackArea::UpdateHoverStates( const FGeometry& MyGeometry, const 
 				}
 				else
 				{
-					// Activate selection mode if the section has keys, otherwise just move it
+					// Activate selection mode if the section has keys or is infinite, otherwise just move it
 					TSet<FKeyHandle> KeyHandles;
 					Section->GetKeyHandles(KeyHandles, Section->GetRange());
 
-					if (KeyHandles.Num())
+					if (KeyHandles.Num() || Section->IsInfinite())
 					{
 						AttemptToActivateTool<FSequencerEditTool_Selection>();
 					}

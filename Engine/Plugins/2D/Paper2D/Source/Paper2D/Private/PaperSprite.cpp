@@ -2119,7 +2119,7 @@ void FSpriteGeometryCollisionBuilderBase::AddBoxCollisionShapesToBodySetup(const
 						// Create a new box primitive
 						FKBoxElem& Box = *new (MyBodySetup->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
 						Box.Center = BoxPos3D;
-						Box.Orientation = FQuat(FRotator(Shape.Rotation, 0.0f, 0.0f));
+						Box.Rotation = FRotator(Shape.Rotation, 0.0f, 0.0f);
 					}
 					break;
 				case ESpriteCollisionMode::Use2DPhysics:

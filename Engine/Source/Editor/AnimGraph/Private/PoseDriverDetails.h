@@ -6,15 +6,19 @@
 #include "Input/Reply.h"
 #include "IDetailCustomization.h"
 #include "Widgets/Views/SListView.h"
+#include "Widgets/Views/STableRow.h"
+#include "Curves/CurveOwnerInterface.h"
 
 class IDetailLayoutBuilder;
 class UAnimGraphNode_PoseDriver;
 class IPropertyHandle;
 class FPoseDriverDetails;
+class SExpandableArea;
+class SCurveEditor;
 struct FPoseDriverTarget;
 
 /** Entry in backing list for target list widget */
-struct FPDD_TargetInfo
+struct FPDD_TargetInfo 
 {
 	int32 TargetIndex;
 
@@ -23,6 +27,9 @@ struct FPDD_TargetInfo
 	{
 		return MakeShareable(new FPDD_TargetInfo(InTargetIndex));
 	}
+
+	/** Executed when we want to expand this target info UI */
+	FSimpleMulticastDelegate ExpandTargetDelegate;
 
 protected:
 	/** Hidden constructor, always use Make above */
@@ -36,12 +43,13 @@ typedef SListView< TSharedPtr<FPDD_TargetInfo> > SPDD_TargetListType;
 
 
 /** Widget for displaying info on a paricular target */
-class SPDD_TargetRow : public SMultiColumnTableRow< TSharedPtr<FPDD_TargetInfo> >
+class SPDD_TargetRow : public SMultiColumnTableRow< TSharedPtr<FPDD_TargetInfo> > ,
+	public FCurveOwnerInterface
 {
 public:
 
 	SLATE_BEGIN_ARGS(SPDD_TargetRow) {}
-		SLATE_ARGUMENT(int32, TargetIndex)
+		SLATE_ARGUMENT(TWeakPtr<FPDD_TargetInfo>, TargetInfo)
 		SLATE_ARGUMENT(TWeakPtr<FPoseDriverDetails>, PoseDriverDetails)
 	SLATE_END_ARGS()
 
@@ -50,48 +58,63 @@ public:
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 
 	/** Return underlying FPoseDriverTarget this widget represents */
-	FPoseDriverTarget& GetTarget() const;
+	FPoseDriverTarget* GetTarget() const;
+	/** Get the pose drive node we are editing */
+	UAnimGraphNode_PoseDriver* GetPoseDriverGraphNode() const;
 	/** If we are editing rotation or translation */
 	bool IsEditingRotation() const;
 	/** Call when target is modified, so change is propagated to preview instance */
 	void NotifyTargetChanged();
 	/** Get current weight of this target in preview */
 	float GetTargetWeight() const;
+	/** Get index of target this represents on pose driver */
+	int32 GetTargetIndex() const;
 
 	int32 GetTransRotWidgetIndex() const;
-	TOptional<float> GetTranslationX() const;
-	TOptional<float> GetTranslationY() const;
-	TOptional<float> GetTranslationZ() const;
-	TOptional<float> GetRotationRoll() const;
-	TOptional<float> GetRotationPitch() const;
-	TOptional<float> GetRotationYaw() const;
+	TOptional<float> GetTranslation(int32 BoneIndex, EAxis::Type Axis) const;
+	TOptional<float> GetRotation(int32 BoneIndex, EAxis::Type Axis) const;
 	TOptional<float> GetScale() const;
 	FText GetTargetTitleText() const;
 	FText GetTargetWeightText() const;
 	FSlateColor GetWeightBarColor() const;
 
-	void SetTranslationX(float NewX);
-	void SetTranslationY(float NewY);
-	void SetTranslationZ(float NewZ);
-	void SetRotationRoll(float NewRoll);
-	void SetRotationPitch(float NewPitch);
-	void SetRotationYaw(float NewYaw);
+	void SetTranslation(float NewTrans, int32 BoneIndex, EAxis::Type Axis);
+	void SetRotation(float NewRot, int32 BoneIndex, EAxis::Type Axis);
 	void SetScale(float NewScale);
 	void SetDrivenNameText(const FText& NewText, ETextCommit::Type CommitType);
 
+	void ExpandTargetInfo();
 	void OnTargetExpansionChanged(bool bExpanded);
 	FText GetDrivenNameText() const;
 	void OnDrivenNameChanged(TSharedPtr<FName> NewName, ESelectInfo::Type SelectInfo);
 	TSharedRef<SWidget> MakeDrivenNameWidget(TSharedPtr<FName> InItem);
 
+	bool IsCustomCurveEnabled() const;
+	void OnApplyCustomCurveChanged(const ECheckBoxState NewCheckState);
+
 	/** Remove this target from  */
 	void RemoveTarget();
+
+	/** FCurveOwnerInterface interface */
+	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+	virtual TArray<FRichCurveEditInfo> GetCurves() override;
+	virtual void ModifyOwner() override;
+	virtual TArray<const UObject*> GetOwners() const override;
+	virtual void MakeTransactional() override;
+	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
+	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) override;
+
+	/** Expandable area used for this widget */
+	TSharedPtr<SExpandableArea> ExpandArea;
+
+	/** Curve editor for custom curves */
+	TSharedPtr<SCurveEditor> CurveEditor;
 
 	/** Pointer back to owning customization */
 	TWeakPtr<FPoseDriverDetails> PoseDriverDetailsPtr;
 
-	/** Index in the nodes PoseTargets array that we are drawing */
-	int32 TargetIndex;
+	/** Info that this widget represents */
+	TWeakPtr<FPDD_TargetInfo> TargetInfoPtr;
 };
 
 
@@ -114,12 +137,13 @@ public:
 	TSharedRef<ITableRow> GenerateTargetRow(TSharedPtr<FPDD_TargetInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnTargetSelectionChanged(TSharedPtr<FPDD_TargetInfo> InInfo, ESelectInfo::Type SelectInfo);
 	void OnPoseAssetChanged();
+	void SelectedTargetChanged();
 
 	/** Remove a target from node */
 	void RemoveTarget(int32 TargetIndex);
 
 	/** Set the currently selected Target */
-	void SelectTarget(int32 TargetIndex);
+	void SelectTarget(int32 TargetIndex, bool bExpandTarget);
 
 	/** Util to get the first selected PoseDriver node */
 	UAnimGraphNode_PoseDriver* GetFirstSelectedPoseDriver() const;

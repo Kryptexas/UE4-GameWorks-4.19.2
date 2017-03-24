@@ -24,6 +24,7 @@ class UGeometryCacheTrack_FlipbookAnimation;
 class UGeometryCacheTrack_TransformAnimation;
 class UAbcImportSettings;
 class FSkeletalMeshImportData;
+class UAbcAssetImportData;
 
 struct FAbcImportData;
 struct FGeometryCacheMeshData;
@@ -123,6 +124,10 @@ public:
 
 	/** Returns the number of tracks found in the imported Alembic file */
 	const uint32 GetNumMeshTracks() const;
+
+
+	void UpdateAssetImportData(UAbcAssetImportData* AssetImportData);
+	void RetrieveAssetImportData(UAbcAssetImportData* ImportData);
 private:
 	/**
 	* Creates an template object instance taking into account existing Instances and Objects (on reimporting)

@@ -429,15 +429,22 @@ namespace physx
 					allocator, maxRows);
 			}
 
+			bool skipBatch = false;	//TODO: temp hack fix that only works because we are not using batching
+
 			if (state == Dy::SolverConstraintPrepState::eUNBATCHABLE)
 			{
 				for (PxU32 a = 0; a < batchHeader.mStride; ++a)
 				{
+					if(jointDescs[currentDescIdx + a].numRows == 0)
+					{
+						skipBatch = true;
+					}
+
 					Dy::ConstraintHelper::setupSolverConstraint(jointDescs[currentDescIdx + a], allocator, dt, invDt);
 				}
 			}
 
-			batchHeader.mConstraintType = *jointDescs[currentDescIdx].desc->constraint;
+			batchHeader.mConstraintType = skipBatch ? 0 : *jointDescs[currentDescIdx].desc->constraint;
 			currentDescIdx += batchHeader.mStride;
 		}
 

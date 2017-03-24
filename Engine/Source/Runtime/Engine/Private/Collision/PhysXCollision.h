@@ -27,58 +27,6 @@
 static_assert(HIT_BUFFER_SIZE > 0, "Invalid PhysX hit buffer size.");
 static_assert(HIT_BUFFER_MAX_SYNC_QUERIES < HIT_BUFFER_SIZE, "Invalid PhysX sync buffer size.");
 
-
-
-/** 
- *	Macro for obtaining a specific geometry from the shape passed in
- *	NB. this macro is bad in terms of hiding the variable names, so made variable name to use Macro, so it does not overlap with the ones used outside 
- **/
-#define GET_GEOMETRY_FROM_SHAPE( OutGeom, Shape ) \
-	PxGeometry*				OutGeom = NULL; \
-	PxSphereGeometry		PMacroSphereGeom;	\
-	PxBoxGeometry			PMacroBoxGeom;		\
-	PxCapsuleGeometry		PMacroCapsuleGeom;	\
-	PxConvexMeshGeometry	PMacroConvexGeom;	\
-	\
-	if(Shape->getGeometryType() == PxGeometryType::eSPHERE)\
-	{\
-		Shape->getSphereGeometry(PMacroSphereGeom);\
-		OutGeom = &PMacroSphereGeom;\
-	}\
-	else if(Shape->getGeometryType() == PxGeometryType::eBOX)\
-	{\
-		Shape->getBoxGeometry(PMacroBoxGeom);\
-		OutGeom = &PMacroBoxGeom;\
-	}\
-	else if(Shape->getGeometryType() == PxGeometryType::eCAPSULE)\
-	{\
-		Shape->getCapsuleGeometry(PMacroCapsuleGeom);\
-		OutGeom = &PMacroCapsuleGeom;\
-	}\
-	else if(Shape->getGeometryType() == PxGeometryType::eCONVEXMESH)\
-	{\
-		Shape->getConvexMeshGeometry(PMacroConvexGeom);\
-		OutGeom = &PMacroConvexGeom;\
-	}\
-	else \
-	{\
-		OutGeom = NULL; \
-	}
-
-
-//TODO: update places that use macro with this function
-struct GeometryFromShapeStorage
-{
-	PxSphereGeometry SphereGeom;
-	PxBoxGeometry BoxGeom;
-	PxCapsuleGeometry CapsuleGeom;
-	PxConvexMeshGeometry ConvexGeom;
-	PxTriangleMeshGeometry TriangleGeom;
-	PxHeightFieldGeometry HeightFieldGeom;
-};
-
-PxGeometry * GetGeometryFromShape(GeometryFromShapeStorage & LocalStorage, const PxShape * PShape, bool bTriangleMeshAllowed = false);
-
 // FILTER
 
 /** TArray typedef of components to ignore. */

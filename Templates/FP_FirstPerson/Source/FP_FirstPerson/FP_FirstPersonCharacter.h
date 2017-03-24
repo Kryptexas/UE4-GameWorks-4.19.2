@@ -18,6 +18,7 @@ class AFP_FirstPersonCharacter : public ACharacter
 	UPROPERTY(VisibleDefaultsOnly, Category=Mesh)
 	USkeletalMeshComponent* Mesh1P;
 
+	/** Gun mesh */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 	USkeletalMeshComponent* FP_Gun;
 
@@ -95,7 +96,7 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	// End of APawn interface
 
-	// Structure that handles touch data so we can process the various stages of touch
+	/** Structure that handles touch data so we can process the various stages of touch. */
 	struct TouchData
 	{
 		TouchData() { bIsPressed = false; Location = FVector::ZeroVector; }

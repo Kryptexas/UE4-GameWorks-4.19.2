@@ -44,13 +44,13 @@ void FAnimNode_WheelHandler::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_WheelHandler::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
 	const TArray<FWheelAnimData>& WheelAnimData = AnimInstanceProxy->GetWheelAnimData();
 
-	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 	for(const FWheelLookupData& Wheel : Wheels)
 	{
 		if (Wheel.BoneReference.IsValid(BoneContainer))
@@ -60,9 +60,9 @@ void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 			// the way we apply transform is same as FMatrix or FTransform
 			// we apply scale first, and rotation, and translation
 			// if you'd like to translate first, you'll need two nodes that first node does translate and second nodes to rotate. 
-			FTransform NewBoneTM = MeshBases.GetComponentSpaceTransform(WheelSimBoneIndex);
+			FTransform NewBoneTM = Output.Pose.GetComponentSpaceTransform(WheelSimBoneIndex);
 
-			FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, WheelSimBoneIndex, BCS_ComponentSpace);
+			FAnimationRuntime::ConvertCSTransformToBoneSpace(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, NewBoneTM, WheelSimBoneIndex, BCS_ComponentSpace);
 
 			// Apply rotation offset
 			const FQuat BoneQuat(WheelAnimData[Wheel.WheelIndex].RotOffset);
@@ -72,7 +72,7 @@ void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 			NewBoneTM.AddToTranslation(WheelAnimData[Wheel.WheelIndex].LocOffset);
 
 			// Convert back to Component Space.
-			FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, WheelSimBoneIndex, BCS_ComponentSpace);
+			FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, NewBoneTM, WheelSimBoneIndex, BCS_ComponentSpace);
 
 			// add back to it
 			OutBoneTransforms.Add(FBoneTransform(WheelSimBoneIndex, NewBoneTM));

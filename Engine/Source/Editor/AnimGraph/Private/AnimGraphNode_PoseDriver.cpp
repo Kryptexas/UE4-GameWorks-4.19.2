@@ -17,6 +17,8 @@ struct FPoseDriverCustomVersion
 		BeforeCustomVersionWasAdded = 0,
 		// Add RBFData
 		AddRBFData = 1,
+		// Add multi-bone input support
+		MultiBoneInput = 2,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
@@ -60,9 +62,24 @@ FText UAnimGraphNode_PoseDriver::GetMenuCategory() const
 
 void UAnimGraphNode_PoseDriver::ValidateAnimNodeDuringCompilation(USkeleton* ForSkeleton, FCompilerResultsLog& MessageLog)
 {
-	if (ForSkeleton->GetReferenceSkeleton().FindBoneIndex(Node.SourceBone.BoneName) == INDEX_NONE)
+	if (Node.SourceBones.Num() == 0)
 	{
-		MessageLog.Warning(*LOCTEXT("NoSourceBone", "@@ - You must pick a source bone as the Driver joint").ToString(), this);
+		MessageLog.Warning(*LOCTEXT("NoSourceBone", "@@ - You must specify at least one Source Bone").ToString(), this);
+	}
+
+	FName MissingBoneName = NAME_None;
+	for (const FBoneReference& BoneRef : Node.SourceBones)
+	{
+		if (ForSkeleton->GetReferenceSkeleton().FindBoneIndex(BoneRef.BoneName) == INDEX_NONE)
+		{
+			MissingBoneName = BoneRef.BoneName;
+			break;
+		}
+	}
+
+	if(MissingBoneName != NAME_None)
+	{
+		MessageLog.Warning(*LOCTEXT("NoSourceBone", "@@ - Entry in SourceBones not found").ToString(), this);
 	}
 
 	Super::ValidateAnimNodeDuringCompilation(ForSkeleton, MessageLog);
@@ -88,6 +105,14 @@ EAnimAssetHandlerType UAnimGraphNode_PoseDriver::SupportsAssetClass(const UClass
 void UAnimGraphNode_PoseDriver::PostLoad()
 {
 	Super::PostLoad();
+
+	if (GetLinkerCustomVersion(FPoseDriverCustomVersion::GUID) < FPoseDriverCustomVersion::MultiBoneInput)
+	{
+		if (Node.SourceBone_DEPRECATED.BoneName != NAME_None)
+		{
+			Node.SourceBones.Add(Node.SourceBone_DEPRECATED);
+		}
+	}
 
 	if (GetLinkerCustomVersion(FPoseDriverCustomVersion::GUID) < FPoseDriverCustomVersion::AddRBFData)
 	{
@@ -201,58 +226,60 @@ void UAnimGraphNode_PoseDriver::CopyTargetsFromPoseAsset()
 	{
 		Node.PoseTargets.Empty();
 
-		// Get track index in PoseAsset for bone of interest
-		const int32 TrackIndex = PoseAsset->GetTrackIndexByName(Node.SourceBone.BoneName);
-		if (TrackIndex != INDEX_NONE)
+		// For each pose we create a target
+		const TArray<FSmartName> PoseNames = PoseAsset->GetPoseNames();
+		for (int32 PoseIdx = 0; PoseIdx < PoseAsset->GetNumPoses(); PoseIdx++)
 		{
-			const TArray<FSmartName> PoseNames = PoseAsset->GetPoseNames();
+			FPoseDriverTarget PoseTarget;
+			PoseTarget.DrivenName = PoseNames[PoseIdx].DisplayName;
 
-			// Cache target info for source bone for each pose
-			for (int32 PoseIdx = 0; PoseIdx < PoseAsset->GetNumPoses(); PoseIdx++)
+			// Create entry for each bone
+			for (const FBoneReference& SourceBoneRef : Node.SourceBones)
 			{
-				FTransform SourceBoneTransform;
-				bool bHaveTransform = false;
+				// Get track index in PoseAsset for bone of interest
+				const int32 TrackIndex = PoseAsset->GetTrackIndexByName(SourceBoneRef.BoneName);
+				if (TrackIndex != INDEX_NONE)
+				{		
+					FTransform SourceBoneTransform = FTransform::Identity;
 
-				// Don't want to create target for base pose in additive case
-				bool bIsBasePose = (PoseAsset->IsValidAdditive() && PoseIdx == PoseAsset->GetBasePoseIndex());
-				if (!bIsBasePose)
-				{
-					// Get transforms from pose (this also converts from additive if necessary)
-					TArray<FTransform> PoseTransforms;
-					if (PoseAsset->GetFullPose(PoseIdx, PoseTransforms))
+					// Don't want to create target for base pose in additive case
+					bool bIsBasePose = (PoseAsset->IsValidAdditive() && PoseIdx == PoseAsset->GetBasePoseIndex());
+					if (!bIsBasePose)
 					{
-						// If eval'ing in different space (and that space is valid)
-						if (Node.EvalSpaceBone.BoneName != NAME_None)
+						// Get transforms from pose (this also converts from additive if necessary)
+						TArray<FTransform> PoseTransforms;
+						if (PoseAsset->GetFullPose(PoseIdx, PoseTransforms))
 						{
-							FTransform SourceCompSpace = GetComponentSpaceTransform(Node.SourceBone.BoneName, PoseTransforms, PoseAsset);
-							FTransform EvalCompSpace = GetComponentSpaceTransform(Node.EvalSpaceBone.BoneName, PoseTransforms, PoseAsset);
-
-							SourceBoneTransform = SourceCompSpace.GetRelativeTransform(EvalCompSpace);
-							bHaveTransform = true;
-						}
-						else
-						{
-							// Check we have a track for the source bone
-							int32 SourceTrackIndex = PoseAsset->GetTrackIndexByName(Node.SourceBone.BoneName);
-							if (SourceTrackIndex != INDEX_NONE)
+							// If eval'ing in different space (and that space is valid)
+							if (Node.EvalSpaceBone.BoneName != NAME_None)
 							{
-								SourceBoneTransform = PoseTransforms[SourceTrackIndex];
-								bHaveTransform = true;
+								FTransform SourceCompSpace = GetComponentSpaceTransform(SourceBoneRef.BoneName, PoseTransforms, PoseAsset);
+								FTransform EvalCompSpace = GetComponentSpaceTransform(Node.EvalSpaceBone.BoneName, PoseTransforms, PoseAsset);
+
+								SourceBoneTransform = SourceCompSpace.GetRelativeTransform(EvalCompSpace);
+							}
+							else
+							{
+								// Check we have a track for the source bone
+								int32 SourceTrackIndex = PoseAsset->GetTrackIndexByName(SourceBoneRef.BoneName);
+								if (SourceTrackIndex != INDEX_NONE)
+								{
+									SourceBoneTransform = PoseTransforms[SourceTrackIndex];
+								}
 							}
 						}
 					}
-				}
 
-				// If we got a valid transform, add a pose target now
-				if (bHaveTransform)
-				{
-					FPoseDriverTarget PoseTarget;
-					PoseTarget.TargetTranslation = SourceBoneTransform.GetTranslation();
-					PoseTarget.TargetRotation = SourceBoneTransform.Rotator();
-					PoseTarget.DrivenName = PoseNames[PoseIdx].DisplayName;
-					Node.PoseTargets.Add(PoseTarget);
+					// If we got a valid transform, add a pose target now
+					FPoseDriverTransform PoseTransform;
+					PoseTransform.TargetTranslation = SourceBoneTransform.GetTranslation();
+					PoseTransform.TargetRotation = SourceBoneTransform.Rotator();
+
+					PoseTarget.BoneTransforms.Add(PoseTransform);
 				}
 			}
+
+			Node.PoseTargets.Add(PoseTarget);
 		}
 
 		Node.bCachedDrivenIDsAreDirty = true;

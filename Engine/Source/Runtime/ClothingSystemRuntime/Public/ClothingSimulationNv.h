@@ -62,9 +62,6 @@ public:
 	// Stores the results internally (see below)
 	void SkinPhysicsMesh(FClothingSimulationContextNv* InContext);
 
-	// Static method for calculating a skinned mesh result from source data
-	static void SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals);
-
 	// Updates the motion constraints for this actor (needs a skinned physics mesh)
 	void UpdateMotionConstraints(FClothingSimulationContextNv* InContext);
 
@@ -176,7 +173,6 @@ private:
 
 #if WITH_EDITOR
 public:
-
 	CLOTHINGSYSTEMRUNTIME_API void DebugDraw_PhysMesh(USkeletalMeshComponent* OwnerComponent, FPrimitiveDrawInterface* PDI) const;
 	CLOTHINGSYSTEMRUNTIME_API void DebugDraw_Normals(USkeletalMeshComponent* OwnerComponent, FPrimitiveDrawInterface* PDI) const;
 	CLOTHINGSYSTEMRUNTIME_API void DebugDraw_Collision(USkeletalMeshComponent* OwnerComponent, FPrimitiveDrawInterface* PDI) const;

@@ -10,23 +10,24 @@
 class FMaterialRenderProxy;
 class FMeshElementCollector;
 
-/** Capsule shape used for collision */
+/** Capsule shape used for collision. Z axis is capsule axis. */
 USTRUCT()
 struct FKSphylElem : public FKShapeElem
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** The transform assumes the sphyl axis points down Z. */
 	UPROPERTY()
 	FMatrix TM_DEPRECATED;
+	UPROPERTY()
+	FQuat Orientation_DEPRECATED;
 
 	/** Position of the capsule's origin */
 	UPROPERTY(Category=Capsule, EditAnywhere)
 	FVector Center;
 
-	/** Orientation of the capsule */
-	UPROPERTY(Category= Capsule, EditAnywhere)
-	FQuat Orientation;
+	/** Rotation of the capsule */
+	UPROPERTY(Category = Capsule, EditAnywhere, meta = (ClampMin = "-360", ClampMax = "360"))
+	FRotator Rotation;
 
 	/** Radius of the capsule */
 	UPROPERTY(Category= Capsule, EditAnywhere)
@@ -38,8 +39,9 @@ struct FKSphylElem : public FKShapeElem
 
 	FKSphylElem()
 	: FKShapeElem(EAggCollisionShape::Sphyl)
+	, Orientation_DEPRECATED( FQuat::Identity )
 	, Center( FVector::ZeroVector )
-	, Orientation( FQuat::Identity )
+	, Rotation(FRotator::ZeroRotator)
 	, Radius(1), Length(1)
 
 	{
@@ -48,19 +50,20 @@ struct FKSphylElem : public FKShapeElem
 
 	FKSphylElem( float InRadius, float InLength )
 	: FKShapeElem(EAggCollisionShape::Sphyl)
+	, Orientation_DEPRECATED( FQuat::Identity )
 	, Center( FVector::ZeroVector )
-	, Orientation( FQuat::Identity )
+	, Rotation(FRotator::ZeroRotator)
 	, Radius(InRadius), Length(InLength)
 	{
 
 	}
 
-	void Serialize( const FArchive& Ar );
+	void FixupDeprecated( FArchive& Ar );
 
 	friend bool operator==( const FKSphylElem& LHS, const FKSphylElem& RHS )
 	{
 		return ( LHS.Center == RHS.Center &&
-			LHS.Orientation == RHS.Orientation &&
+			LHS.Rotation == RHS.Rotation &&
 			LHS.Radius == RHS.Radius &&
 			LHS.Length == RHS.Length );
 	};
@@ -68,13 +71,13 @@ struct FKSphylElem : public FKShapeElem
 	// Utility function that builds an FTransform from the current data
 	FTransform GetTransform() const
 	{
-		return FTransform( Orientation, Center );
+		return FTransform(Rotation, Center );
 	};
 
 	void SetTransform( const FTransform& InTransform )
 	{
 		ensure(InTransform.IsValid());
-		Orientation = InTransform.GetRotation();
+		Rotation = InTransform.Rotator();
 		Center = InTransform.GetLocation();
 	}
 

@@ -12,10 +12,10 @@ struct FContactPair
 	int32 DynamicActorDataIndex;
 
 	/** Index of the other actor that we generated the contact pair for. This could be either dynamic or static */
-	int32 OtherActorDataIndex;
+	uint32 OtherActorDataIndex;
 
 	/** Index into the first contact point associated with this pair*/
-	int32 StartContactIndex;
+	uint32 StartContactIndex;
 
 	/** Number of contacts associated with this pair. */
 	uint32 NumContacts;

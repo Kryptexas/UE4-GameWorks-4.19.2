@@ -89,6 +89,10 @@ class UAnimCompress : public UObject
 	UPROPERTY()
 	TEnumAsByte<AnimationCompressionFormat> ScaleCompressionFormat;
 
+	/** Max error for compression of curves using remove redundant keys */
+	UPROPERTY(Category = Compression, EditAnywhere)
+	float MaxCurveError;
+
 #if WITH_EDITOR
 public:
 	/**

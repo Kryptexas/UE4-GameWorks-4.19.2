@@ -14,11 +14,13 @@ struct FShape
 #if WITH_PHYSX
 	const PxTransform LocalTM;
 	const PxGeometry* Geometry;
+	const PxVec3 BoundsOffset;
 	const float BoundsMagnitude;
 
-	FShape(const PxTransform& InLocalTM, const PxGeometry* InGeometry, const float InBoundsMagnitude)
+	FShape(const PxTransform& InLocalTM, const PxVec3& InBoundsOffset, const float InBoundsMagnitude, const PxGeometry* InGeometry)
 		: LocalTM(InLocalTM)
 		, Geometry(InGeometry)
+		, BoundsOffset(InBoundsOffset)
 		, BoundsMagnitude(InBoundsMagnitude)
 	{
 	}

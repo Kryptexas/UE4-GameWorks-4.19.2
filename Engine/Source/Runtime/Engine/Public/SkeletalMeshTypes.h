@@ -1702,3 +1702,23 @@ protected:
 
 	void GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bInSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const;
 };
+
+/** Used to recreate all skeletal mesh components for a given skeletal mesh */
+class ENGINE_API FSkeletalMeshComponentRecreateRenderStateContext
+{
+public:
+
+	/** Initialization constructor. */
+	FSkeletalMeshComponentRecreateRenderStateContext(USkeletalMesh* InSkeletalMesh, bool InRefreshBounds = false);
+
+
+	/** Destructor: recreates render state for all components that had their render states destroyed in the constructor. */
+	~FSkeletalMeshComponentRecreateRenderStateContext();
+	
+
+private:
+
+	TArray< class USkeletalMeshComponent*> SkeletalMeshComponents;
+	bool bRefreshBounds;
+};
+

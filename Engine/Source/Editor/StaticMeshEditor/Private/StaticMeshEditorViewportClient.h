@@ -136,7 +136,7 @@ protected:
 	/** Call back for when the user changes preview scene settings in the UI */
 	void OnAssetViewerSettingsChanged(const FName& InPropertyName);
 	/** Used to (re)-set the viewport show flags related to post processing*/
-	void SetAdvancedShowFlagsForScene();
+	void SetAdvancedShowFlagsForScene(const bool bAdvancedShowFlags);
 private:
 	/** The Simplygon logo to be drawn when Simplygon has been used on the static mesh. */
 	UTexture2D* SimplygonLogo;

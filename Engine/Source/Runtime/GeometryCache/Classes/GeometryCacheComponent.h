@@ -172,20 +172,29 @@ class GEOMETRYCACHE_API UGeometryCacheComponent : public UMeshComponent
 	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
 	void SetLooping( const bool bNewLooping);
 
-	/** Get whether this GeometryCache is playing or not. */
+	/** Get current playback speed for GeometryCache. */
 	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
 	float GetPlaybackSpeed() const;
 
-	/** Get whether this GeometryCache is playing or not. */
+	/** Set new playback speed for GeometryCache. */
 	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
 	void SetPlaybackSpeed(const float NewPlaybackSpeed);
 
 	/** Change the Geometry Cache used by this instance. */
 	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
 	virtual bool SetGeometryCache( UGeometryCache* NewGeomCache );
-
+	
 	/** Getter for Geometry cache instance referred by the component */
 	UGeometryCache* GetGeometryCache() const;
+
+	/** Get current start time offset for GeometryCache. */
+	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
+	float GetStartTimeOffset() const;
+
+	/** Set current start time offset for GeometryCache. */
+	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
+	void SetStartTimeOffset(const float NewStartTimeOffset);
+
 
 	/** Geometry Cache instance referenced by the component */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = GeometryCache)

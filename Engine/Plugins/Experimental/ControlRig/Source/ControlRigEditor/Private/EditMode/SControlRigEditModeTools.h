@@ -9,6 +9,8 @@
 
 class IDetailsView;
 class ISequencer;
+class SControlManipulatorPicker;
+class SExpandableArea;
 
 class SControlRigEditModeTools : public SCompoundWidget, public IDetailKeyframeHandler
 {
@@ -36,7 +38,17 @@ private:
 	/** The details view we do most of our work within */
 	TSharedPtr<IDetailsView> DetailsView;
 
+	/** Special picker for controls */
+	TSharedPtr<SControlManipulatorPicker> ControlPicker;
+
+	TSharedPtr<SExpandableArea> PickerExpander;
+
 	/** Display or edit set up for property */
 	bool ShouldShowPropertyOnDetailCustomization(const struct FPropertyAndParent& InPropertyAndParent) const;
 	bool IsReadOnlyPropertyOnDetailCustomization(const struct FPropertyAndParent& InPropertyAndParent) const;
+
+	/** Called when a manipulator is selected in the picker */
+	void OnManipulatorsPicked(const TArray<FName>& Manipulators);
+	/** Called when edit mode selection set changes */
+	void OnSelectionSetChanged(const TArray<FName>& SelectedManipulators);
 };

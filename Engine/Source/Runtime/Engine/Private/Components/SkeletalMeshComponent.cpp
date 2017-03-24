@@ -446,9 +446,26 @@ void USkeletalMeshComponent::OnRegister()
 	}
 
 #if WITH_APEX_CLOTHING
+	
+	// If we don't have a valid simulation factory - check to see if we have an available default to use instead
+	if(*ClothingSimulationFactory == nullptr)
+	{
+		TArray<IClothingSimulationFactoryClassProvider*> ClassProviders = IModularFeatures::Get().GetModularFeatureImplementations<IClothingSimulationFactoryClassProvider>(IClothingSimulationFactoryClassProvider::FeatureName);
+		if(ClassProviders.Num() > 0)
+		{
+			// We use the last provider in the list so plugins/modules can override ours
+			IClothingSimulationFactoryClassProvider* Provider = ClassProviders.Last();
+			check(Provider);
+
+			ClothingSimulationFactory = Provider->GetDefaultSimulationFactoryClass();
+		}
+	}
+
 	RecreateClothingActors();
 
-	if(UClass* SimFactoryClass = *ClothingSimulationFactory)
+	UClass* SimFactoryClass = *ClothingSimulationFactory;
+
+	if(SimFactoryClass)
 	{
 		UClothingSimulationFactory* SimFactory = SimFactoryClass->GetDefaultObject<UClothingSimulationFactory>();
 		ClothingSimulation = SimFactory->CreateSimulation();
@@ -471,7 +488,12 @@ void USkeletalMeshComponent::OnUnregister()
 {
 	const bool bBlockOnTask = true; // wait on evaluation task so we complete any work before this component goes away
 	const bool bPerformPostAnimEvaluation = false; // Skip post evaluation, it would be wasted work
+
+	// Wait for any in flight animation evaluation to complete
 	HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+
+	// Wait for any in flight clothing simulation to complete
+	HandleExistingParallelClothSimulation();
 
 	//clothing actors will be re-created in TickClothing
 	ReleaseAllClothingResources();
@@ -1034,14 +1056,17 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	const bool bDoLateEnd = CVarAnimationDelaysEndGroup.GetValueOnGameThread() > 0;
 	const bool bRequiresPhysics = EndPhysicsTickFunction.IsTickFunctionRegistered();
 	const ETickingGroup EndTickGroup = bDoLateEnd && !bRequiresPhysics ? TG_PostPhysics : TG_PrePhysics;
-	ThisTickFunction->EndTickGroup = EndTickGroup;
-
-	// Note that if animation is so long that we are blocked in EndPhysics we may want to reduce the priority. However, there is a risk that this function will not go wide early enough.
-	// This requires profiling and is very game dependent so cvar for now makes sense
-	bool bDoHiPri = CVarHiPriSkinnedMeshesTicks.GetValueOnGameThread() > 0;
-	if (ThisTickFunction->bHighPriority != bDoHiPri)
+	if (ThisTickFunction)
 	{
-		ThisTickFunction->SetPriorityIncludingPrerequisites(bDoHiPri);
+		ThisTickFunction->EndTickGroup = EndTickGroup;
+
+		// Note that if animation is so long that we are blocked in EndPhysics we may want to reduce the priority. However, there is a risk that this function will not go wide early enough.
+		// This requires profiling and is very game dependent so cvar for now makes sense
+		bool bDoHiPri = CVarHiPriSkinnedMeshesTicks.GetValueOnGameThread() > 0;
+		if (ThisTickFunction->bHighPriority != bDoHiPri)
+		{
+			ThisTickFunction->SetPriorityIncludingPrerequisites(bDoHiPri);
+		}
 	}
 }
 
@@ -1223,8 +1248,11 @@ void USkeletalMeshComponent::RecalcRequiredCurves()
 	MarkRequiredCurveUpToDate();
 }
 
-void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
+void USkeletalMeshComponent::ComputeRequiredBones(TArray<FBoneIndexType>& OutRequiredBones, TArray<FBoneIndexType>& OutFillComponentSpaceTransformsRequiredBones, int32 LODIndex, bool bIgnorePhysicsAsset) const
 {
+	OutRequiredBones.Reset();
+	OutFillComponentSpaceTransformsRequiredBones.Reset();
+
 	if (!SkeletalMesh)
 	{
 		return;
@@ -1238,40 +1266,39 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	if (SkelMeshResource->LODModels.Num() == 0)
 	{
 		//No LODS?
-		RequiredBones.Reset();
-		FillComponentSpaceTransformsRequiredBones.Reset();
 		UE_LOG(LogAnimation, Warning, TEXT("Skeletal Mesh asset '%s' has no LODs"), *SkeletalMesh->GetName());
 		return;
 	}
-	LODIndex = FMath::Clamp(LODIndex, 0, SkelMeshResource->LODModels.Num()-1);
+
+	LODIndex = FMath::Clamp(LODIndex, 0, SkelMeshResource->LODModels.Num() - 1);
 
 	// The list of bones we want is taken from the predicted LOD level.
 	FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
-	RequiredBones = LODModel.RequiredBones;
+	OutRequiredBones = LODModel.RequiredBones;
 
 	// Add virtual bones
-	MergeInBoneIndexArrays(RequiredBones, SkeletalMesh->RefSkeleton.GetRequiredVirtualBones());
+	MergeInBoneIndexArrays(OutRequiredBones, SkeletalMesh->RefSkeleton.GetRequiredVirtualBones());
 
 	const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 	// If we have a PhysicsAsset, we also need to make sure that all the bones used by it are always updated, as its used
 	// by line checks etc. We might also want to kick in the physics, which means having valid bone transforms.
-	if(PhysicsAsset)
+	if (!bIgnorePhysicsAsset && PhysicsAsset)
 	{
 		TArray<FBoneIndexType> PhysAssetBones;
-		for(int32 i=0; i<PhysicsAsset->SkeletalBodySetups.Num(); i++ )
+		for (int32 i = 0; i<PhysicsAsset->SkeletalBodySetups.Num(); i++)
 		{
-			int32 PhysBoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex( PhysicsAsset->SkeletalBodySetups[i]->BoneName );
-			if(PhysBoneIndex != INDEX_NONE)
+			int32 PhysBoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(PhysicsAsset->SkeletalBodySetups[i]->BoneName);
+			if (PhysBoneIndex != INDEX_NONE)
 			{
 				PhysAssetBones.Add(PhysBoneIndex);
-			}	
+			}
 		}
 
 		// Then sort array of required bones in hierarchy order
 		PhysAssetBones.Sort();
 
 		// Make sure all of these are in RequiredBones.
-		MergeInBoneIndexArrays(RequiredBones, PhysAssetBones);
+		MergeInBoneIndexArrays(OutRequiredBones, PhysAssetBones);
 	}
 
 	// Make sure that bones with per-poly collision are also always updated.
@@ -1285,44 +1312,44 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 		check(BoneVisibilityStates.Num() == GetNumComponentSpaceTransforms());
 
 		int32 VisibleBoneWriteIndex = 0;
-		for (int32 i = 0; i < RequiredBones.Num(); ++i)
+		for (int32 i = 0; i < OutRequiredBones.Num(); ++i)
 		{
-			FBoneIndexType CurBoneIndex = RequiredBones[i];
+			FBoneIndexType CurBoneIndex = OutRequiredBones[i];
 
 			// Current bone visible?
 			if (BoneVisibilityStates[CurBoneIndex] == BVS_Visible)
 			{
-				RequiredBones[VisibleBoneWriteIndex++] = CurBoneIndex;
+				OutRequiredBones[VisibleBoneWriteIndex++] = CurBoneIndex;
 			}
 		}
 
-		// Remove any trailing junk in the RequiredBones array
-		const int32 NumBonesHidden = RequiredBones.Num() - VisibleBoneWriteIndex;
+		// Remove any trailing junk in the OutRequiredBones array
+		const int32 NumBonesHidden = OutRequiredBones.Num() - VisibleBoneWriteIndex;
 		if (NumBonesHidden > 0)
 		{
-			RequiredBones.RemoveAt(VisibleBoneWriteIndex, NumBonesHidden);
+			OutRequiredBones.RemoveAt(VisibleBoneWriteIndex, NumBonesHidden);
 		}
 	}
 
 	// Add in any bones that may be required when mirroring.
 	// JTODO: This is only required if there are mirroring nodes in the tree, but hard to know...
-	if(SkeletalMesh->SkelMirrorTable.Num() > 0 && 
+	if (SkeletalMesh->SkelMirrorTable.Num() > 0 &&
 		SkeletalMesh->SkelMirrorTable.Num() == BoneSpaceTransforms.Num())
 	{
 		TArray<FBoneIndexType> MirroredDesiredBones;
 		MirroredDesiredBones.AddUninitialized(RequiredBones.Num());
 
 		// Look up each bone in the mirroring table.
-		for(int32 i=0; i<RequiredBones.Num(); i++)
+		for (int32 i = 0; i<OutRequiredBones.Num(); i++)
 		{
-			MirroredDesiredBones[i] = SkeletalMesh->SkelMirrorTable[RequiredBones[i]].SourceIndex;
+			MirroredDesiredBones[i] = SkeletalMesh->SkelMirrorTable[OutRequiredBones[i]].SourceIndex;
 		}
 
 		// Sort to ensure strictly increasing order.
 		MirroredDesiredBones.Sort();
 
-		// Make sure all of these are in RequiredBones, and 
-		MergeInBoneIndexArrays(RequiredBones, MirroredDesiredBones);
+		// Make sure all of these are in OutRequiredBones, and 
+		MergeInBoneIndexArrays(OutRequiredBones, MirroredDesiredBones);
 	}
 
 	TArray<FBoneIndexType> NeededBonesForFillComponentSpaceTransforms;
@@ -1348,8 +1375,8 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 		// Then sort array of required bones in hierarchy order
 		ForceAnimatedSocketBones.Sort();
 
-		// Make sure all of these are in RequiredBones.
-		MergeInBoneIndexArrays(RequiredBones, ForceAnimatedSocketBones);
+		// Make sure all of these are in OutRequiredBones.
+		MergeInBoneIndexArrays(OutRequiredBones, ForceAnimatedSocketBones);
 	}
 
 	// Gather any bones referenced by shadow shapes
@@ -1360,19 +1387,29 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 		if (ShadowShapeBones.Num())
 		{
 			// Sort in hierarchy order then merge to required bones array
-			MergeInBoneIndexArrays(RequiredBones, ShadowShapeBones);
+			MergeInBoneIndexArrays(OutRequiredBones, ShadowShapeBones);
 		}
 	}
 
 	// Ensure that we have a complete hierarchy down to those bones.
-	FAnimationRuntime::EnsureParentsPresent(RequiredBones, SkeletalMesh);
+	FAnimationRuntime::EnsureParentsPresent(OutRequiredBones, SkeletalMesh);
 
-	FillComponentSpaceTransformsRequiredBones.Reset(RequiredBones.Num() + NeededBonesForFillComponentSpaceTransforms.Num());
-	FillComponentSpaceTransformsRequiredBones = RequiredBones;
-	
+	OutFillComponentSpaceTransformsRequiredBones.Reset(OutRequiredBones.Num() + NeededBonesForFillComponentSpaceTransforms.Num());
+	OutFillComponentSpaceTransformsRequiredBones = OutRequiredBones;
+
 	NeededBonesForFillComponentSpaceTransforms.Sort();
-	MergeInBoneIndexArrays(FillComponentSpaceTransformsRequiredBones, NeededBonesForFillComponentSpaceTransforms);
-	FAnimationRuntime::EnsureParentsPresent(FillComponentSpaceTransformsRequiredBones, SkeletalMesh);
+	MergeInBoneIndexArrays(OutFillComponentSpaceTransformsRequiredBones, NeededBonesForFillComponentSpaceTransforms);
+	FAnimationRuntime::EnsureParentsPresent(OutFillComponentSpaceTransformsRequiredBones, SkeletalMesh);
+}
+
+void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
+{
+	if (!SkeletalMesh)
+	{
+		return;
+	}
+
+	ComputeRequiredBones(RequiredBones, FillComponentSpaceTransformsRequiredBones, LODIndex, /*bIgnorePhysicsAsset=*/ false);
 
 	BoneSpaceTransforms = SkeletalMesh->RefSkeleton.GetRefBonePose();
 
@@ -1382,12 +1419,12 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 		AnimScriptInstance->RecalcRequiredBones();
 	}
 
-	for(UAnimInstance* SubInstance : SubInstances)
+	for (UAnimInstance* SubInstance : SubInstances)
 	{
 		SubInstance->RecalcRequiredBones();
 	}
 
-	if(PostProcessAnimInstance)
+	if (PostProcessAnimInstance)
 	{
 		PostProcessAnimInstance->RecalcRequiredBones();
 	}
@@ -1428,7 +1465,6 @@ void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMe
 	// We can only evaluate animation if RequiredBones is properly setup for the right mesh!
 	if( InSkeletalMesh->Skeleton && 
 		InAnimInstance &&
-		ensure(bRequiredBonesUpToDate) &&
 		InAnimInstance->ParallelCanEvaluate(InSkeletalMesh))
 	{
 		InAnimInstance->ParallelEvaluateAnimation(bForceRefpose, InSkeletalMesh, OutBoneSpaceTransforms, OutCurve);
@@ -1538,6 +1574,18 @@ const IClothingSimulation* USkeletalMeshComponent::GetClothingSimulation() const
 	return ClothingSimulation;
 }
 
+void USkeletalMeshComponent::CompleteParallelClothSimulation()
+{
+	if(IsValidRef(ParallelClothTask))
+	{
+		// No longer need this task, it has completed
+		ParallelClothTask.SafeRelease();
+
+		// Write back to the GT cache
+		WritebackClothingSimulationData();
+	}
+}
+
 void USkeletalMeshComponent::UpdateClothSimulationContext()
 {
 	//Do the teleport cloth test here on the game thread
@@ -1561,6 +1609,17 @@ void USkeletalMeshComponent::UpdateClothSimulationContext()
 	}
 
 	ClothTeleportMode = EClothingTeleportMode::None;
+}
+
+void USkeletalMeshComponent::HandleExistingParallelClothSimulation()
+{
+	if(IsValidRef(ParallelClothTask))
+	{
+		// There's a simulation in flight
+		check(IsInGameThread());
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(ParallelClothTask, ENamedThreads::GameThread);
+		CompleteParallelClothSimulation();
+	}
 }
 
 void USkeletalMeshComponent::WritebackClothingSimulationData()
@@ -2951,6 +3010,18 @@ void USkeletalMeshComponent::FinalizeBoneTransform()
 void USkeletalMeshComponent::GetCurrentRefToLocalMatrices(TArray<FMatrix>& OutRefToLocals, int32 InLodIdx)
 {
 	UpdateRefToLocalMatrices(OutRefToLocals, this, SkeletalMesh->GetImportedResource(), InLodIdx, nullptr);
+}
+
+void USkeletalMeshComponent::SetRefPoseOverride(const TArray<FTransform>& NewRefPoseTransforms)
+{
+	Super::SetRefPoseOverride(NewRefPoseTransforms);
+	bRequiredBonesUpToDate = false;
+}
+
+void USkeletalMeshComponent::ClearRefPoseOverride()
+{
+	Super::ClearRefPoseOverride();
+	bRequiredBonesUpToDate = false;
 }
 
 FDelegateHandle USkeletalMeshComponent::RegisterOnPhysicsCreatedDelegate(const FOnSkelMeshPhysicsCreated& Delegate)

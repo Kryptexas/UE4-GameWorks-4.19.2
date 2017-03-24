@@ -271,6 +271,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 					PxConvexMesh* ConvexMesh = WheelBodySetup->AggGeom.ConvexElems[0].GetConvexMesh();
 					PWheelShape = GPhysXSDK->createShape(PxConvexMeshGeometry(ConvexMesh, MeshScale), *WheelMaterial, /*bIsExclusive=*/true);
 					PVehicleActor->attachShape(*PWheelShape);
+					PWheelShape->release();
 				}
 				else if (WheelBodySetup->TriMeshes.Num())
 				{
@@ -280,6 +281,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 					PWheelShape = GPhysXSDK->createShape(PxTriangleMeshGeometry(TriMesh, MeshScale), *WheelMaterial, /*bIsExclusive=*/true, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION);
 					PWheelShape->setLocalPose(PLocalPose);
 					PVehicleActor->attachShape(*PWheelShape);
+					PWheelShape->release();
 				}
 			}
 			
@@ -289,6 +291,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 				PWheelShape = GPhysXSDK->createShape(PxSphereGeometry(Wheel->ShapeRadius), *WheelMaterial, /*bIsExclusive=*/true);
 				PWheelShape->setLocalPose(PLocalPose);
 				PVehicleActor->attachShape(*PWheelShape);
+				PWheelShape->release();
 			}
 
 			// Init filter data
@@ -324,6 +327,12 @@ void UWheeledVehicleMovementComponent::UpdateMassProperties(FBodyInstance* BI)
 
 		const PxVec3 PCOMOffset = U2PVector(GetLocalCOM());
 		PVehicleActor->setCMassLocalPose(PxTransform(PCOMOffset, PxQuat(physx::PxIdentity)));	//ignore the mass reference frame. TODO: expose this to the user
+
+		if (PVehicle)
+		{
+			PxVehicleWheelsSimData& WheelData = PVehicle->mWheelsSimData;
+			SetupWheelMassProperties_AssumesLocked(WheelData.getNbWheels(), &WheelData, PVehicleActor);
+		}
 	});
 }
 
@@ -341,7 +350,61 @@ void UWheeledVehicleMovementComponent::SetupVehicleMass()
 	UpdateMassProperties(UpdatedPrimitive->GetBodyInstance());
 }
 
-void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWheelsSimData )
+void UWheeledVehicleMovementComponent::SetupWheelMassProperties_AssumesLocked(const uint32 NumWheels, PxVehicleWheelsSimData* PWheelsSimData, PxRigidBody* PVehicleActor)
+{
+	if (!ensure(PWheelsSimData) ||
+		!ensure(PVehicleActor) ||
+		!ensure(NumWheels > 0 && NumWheels <= 32))
+	{
+		return;
+	}
+
+	// Prealloc data for the sprung masses
+	TArray<PxVec3> WheelOffsets;
+	WheelOffsets.Init(PxVec3(), NumWheels);
+
+	TArray<float> SprungMasses;
+	SprungMasses.Init(0.f, NumWheels);
+
+	// Calculate wheel offsets first, necessary for sprung masses
+	for (uint32 WheelIdx = 0; WheelIdx < NumWheels; ++WheelIdx)
+	{
+		WheelOffsets[WheelIdx] = U2PVector(GetWheelRestingPosition(WheelSetups[WheelIdx]));
+	}
+
+	// Now that we have all the wheel offsets, calculate the sprung masses
+	const PxTransform PLocalCOM = PVehicleActor->getCMassLocalPose();
+	PxVehicleComputeSprungMasses(NumWheels, WheelOffsets.GetData(), PLocalCOM.p, PVehicleActor->getMass(), /*gravityDirection=*/2, SprungMasses.GetData());
+
+	for (uint32 WheelIdx = 0; WheelIdx < NumWheels; WheelIdx++)
+	{
+		UVehicleWheel* Wheel = WheelSetups[WheelIdx].WheelClass.GetDefaultObject();
+
+		// init suspension data
+		PxVehicleSuspensionData PSuspensionData;
+		PSuspensionData.mSprungMass = SprungMasses[WheelIdx];
+		PSuspensionData.mMaxCompression = Wheel->SuspensionMaxRaise;
+		PSuspensionData.mMaxDroop = Wheel->SuspensionMaxDrop;
+		PSuspensionData.mSpringStrength = FMath::Square(Wheel->SuspensionNaturalFrequency) * PSuspensionData.mSprungMass;
+		PSuspensionData.mSpringDamperRate = Wheel->SuspensionDampingRatio * 2.0f * FMath::Sqrt(PSuspensionData.mSpringStrength * PSuspensionData.mSprungMass);
+
+		const PxVec3 PWheelOffset = WheelOffsets[WheelIdx];
+
+		PxVec3 PSuspTravelDirection = PLocalCOM.rotate(PxVec3(0.0f, 0.0f, -1.0f));
+		PxVec3 PWheelCentreCMOffset = PLocalCOM.transformInv(PWheelOffset);
+		PxVec3 PSuspForceAppCMOffset = !bDeprecatedSpringOffsetMode ? PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset + PWheelCentreCMOffset.z)
+			: PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset);
+		PxVec3 PTireForceAppCMOffset = PSuspForceAppCMOffset;
+
+		PWheelsSimData->setSuspensionData(WheelIdx, PSuspensionData);
+		PWheelsSimData->setSuspTravelDirection(WheelIdx, PSuspTravelDirection);
+		PWheelsSimData->setWheelCentreOffset(WheelIdx, PWheelCentreCMOffset);
+		PWheelsSimData->setSuspForceAppPointOffset(WheelIdx, PSuspForceAppCMOffset);
+		PWheelsSimData->setTireForceAppPointOffset(WheelIdx, PTireForceAppCMOffset);
+	}
+}
+
+void UWheeledVehicleMovementComponent::SetupWheels(PxVehicleWheelsSimData* PWheelsSimData)
 {
 	if (!UpdatedPrimitive)
 	{
@@ -356,21 +419,7 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		PWheelsSimData->setSubStepCount(ThresholdLongitudinalSpeed * LengthScale, LowForwardSpeedSubStepCount, HighForwardSpeedSubStepCount);
 		PWheelsSimData->setMinLongSlipDenominator(4.f * LengthScale);
 
-		// Prealloc data for the sprung masses
-		PxVec3 WheelOffsets[32];
-		float SprungMasses[32];
-		
 		const int32 NumWheels = FMath::Min(32, WheelSetups.Num());
-
-		// Calculate wheel offsets first, necessary for sprung masses
-		for (int32 WheelIdx = 0; WheelIdx < NumWheels; ++WheelIdx)
-		{
-			WheelOffsets[WheelIdx] = U2PVector(GetWheelRestingPosition(WheelSetups[WheelIdx]));
-		}
-
-		// Now that we have all the wheel offsets, calculate the sprung masses
-		const PxTransform PLocalCOM = PVehicleActor->getCMassLocalPose();
-		PxVehicleComputeSprungMasses(NumWheels, WheelOffsets, PLocalCOM.p, PVehicleActor->getMass(), /*gravityDirection=*/2, SprungMasses);
 
 		for (int32 WheelIdx = 0; WheelIdx < NumWheels; ++WheelIdx)
 		{
@@ -396,32 +445,12 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 			PTireData.mLatStiffY = Wheel->LatStiffValue;
 			PTireData.mLongitudinalStiffnessPerUnitGravity = Wheel->LongStiffValue;
 
-			// init suspension data
-			PxVehicleSuspensionData PSuspensionData;
-			PSuspensionData.mSprungMass = SprungMasses[WheelIdx];
-			PSuspensionData.mMaxCompression = Wheel->SuspensionMaxRaise;
-			PSuspensionData.mMaxDroop = Wheel->SuspensionMaxDrop;
-			PSuspensionData.mSpringStrength = FMath::Square(Wheel->SuspensionNaturalFrequency) * PSuspensionData.mSprungMass;
-			PSuspensionData.mSpringDamperRate = Wheel->SuspensionDampingRatio * 2.0f * FMath::Sqrt(PSuspensionData.mSpringStrength * PSuspensionData.mSprungMass);
-
-			// init offsets
-			const PxVec3 PWheelOffset = WheelOffsets[WheelIdx];
-
-			PxVec3 PSuspTravelDirection = PLocalCOM.rotate(PxVec3(0.0f, 0.0f, -1.0f));
-			PxVec3 PWheelCentreCMOffset = PLocalCOM.transformInv(PWheelOffset);
-			PxVec3 PSuspForceAppCMOffset = !bDeprecatedSpringOffsetMode ? PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset + PWheelCentreCMOffset.z)
-																							 : PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset);
-			PxVec3 PTireForceAppCMOffset = PSuspForceAppCMOffset;
-
 			// finalize sim data
 			PWheelsSimData->setWheelData(WheelIdx, PWheelData);
 			PWheelsSimData->setTireData(WheelIdx, PTireData);
-			PWheelsSimData->setSuspensionData(WheelIdx, PSuspensionData);
-			PWheelsSimData->setSuspTravelDirection(WheelIdx, PSuspTravelDirection);
-			PWheelsSimData->setWheelCentreOffset(WheelIdx, PWheelCentreCMOffset);
-			PWheelsSimData->setSuspForceAppPointOffset(WheelIdx, PSuspForceAppCMOffset);
-			PWheelsSimData->setTireForceAppPointOffset(WheelIdx, PTireForceAppCMOffset);
 		}
+
+		SetupWheelMassProperties_AssumesLocked(NumWheels, PWheelsSimData, PVehicleActor);
 
 		const int32 NumShapes = PVehicleActor->getNbShapes();
 		const int32 NumChassisShapes = NumShapes - NumWheels;
@@ -942,22 +971,25 @@ void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 {
 	// update input values
 	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
+	
+	// TODO: IsLocallyControlled will fail if the owner is unpossessed (i.e. MyOwner->GetController() == nullptr);
+	// Should we remove input instead of relying on replicated state in that case?
 	if (MyOwner && MyOwner->IsLocallyControlled())
 	{
 		if(bReverseAsBrake)
 		{
 			//for reverse as state we want to automatically shift between reverse and first gear
-		if (FMath::Abs(GetForwardSpeed()) < WrongDirectionThreshold)	//we only shift between reverse and first if the car is slow enough. This isn't 100% correct since we really only care about engine speed, but good enough
-		{
-			if (RawThrottleInput < 0.f && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
+			if (FMath::Abs(GetForwardSpeed()) < WrongDirectionThreshold)	//we only shift between reverse and first if the car is slow enough. This isn't 100% correct since we really only care about engine speed, but good enough
 			{
-				SetTargetGear(-1, true);
+				if (RawThrottleInput < 0.f && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
+				{
+					SetTargetGear(-1, true);
+				}
+				else if (RawThrottleInput > 0.f && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
+				{
+					SetTargetGear(1, true);
+				}
 			}
-			else if (RawThrottleInput > 0.f && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
-			{
-				SetTargetGear(1, true);
-			}
-		}
 		}
 		
 		
@@ -1106,12 +1138,18 @@ float UWheeledVehicleMovementComponent::CalcThrottleInput()
 	{
 	//If the user is changing direction we should really be braking first and not applying any gas, so wait until they've changed gears
 		if ((RawThrottleInput > 0.f && GetTargetGear() < 0) || (RawThrottleInput < 0.f && GetTargetGear() > 0))
-	{
-		return 0.f;
-	}
+		{
+			return 0.f;
+		}
 	}
 
 	return FMath::Abs(RawThrottleInput);
+}
+
+void UWheeledVehicleMovementComponent::StopMovementImmediately()
+{
+	Super::StopMovementImmediately();
+	ClearAllInput();
 }
 
 void UWheeledVehicleMovementComponent::ClearInput()
@@ -1120,6 +1158,19 @@ void UWheeledVehicleMovementComponent::ClearInput()
 	ThrottleInput = 0.0f;
 	BrakeInput = 0.0f;
 	HandbrakeInput = 0.0f;
+
+	// Send this immediately.
+	ServerUpdateState(SteeringInput, ThrottleInput, BrakeInput, HandbrakeInput, GetCurrentGear());
+}
+
+void UWheeledVehicleMovementComponent::ClearRawInput()
+{
+	RawBrakeInput = 0.0f;
+	RawSteeringInput = 0.0f;
+	RawThrottleInput = 0.0f;
+	bRawGearDownInput = false;
+	bRawGearUpInput = false;
+	bRawHandbrakeInput = false;
 }
 
 void UWheeledVehicleMovementComponent::SetThrottleInput( float Throttle )

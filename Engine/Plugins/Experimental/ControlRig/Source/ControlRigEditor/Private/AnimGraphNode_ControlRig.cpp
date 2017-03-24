@@ -10,19 +10,14 @@ UAnimGraphNode_ControlRig::UAnimGraphNode_ControlRig(const FObjectInitializer& O
 {
 }
 
-FText UAnimGraphNode_ControlRig::GetControllerDescription() const
-{
-	return LOCTEXT("AnimGraphNode_ControlRig_Title", "ControlRig");
-}
-
 FText UAnimGraphNode_ControlRig::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return GetControllerDescription();
+	return LOCTEXT("AnimGraphNode_ControlRig_Title", "Control Rig");
 }
 
 FText UAnimGraphNode_ControlRig::GetTooltipText() const
 {
-	return LOCTEXT("AnimGraphNode_ControlRig_Tooltip", "Uses output from the actor's ControlRig.");
+	return LOCTEXT("AnimGraphNode_ControlRig_Tooltip", "Evaluates a control rig");
 }
 
 #undef LOCTEXT_NAMESPACE

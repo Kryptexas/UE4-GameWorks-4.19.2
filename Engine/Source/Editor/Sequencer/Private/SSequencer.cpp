@@ -59,6 +59,7 @@
 #include "SSequencerGotoBox.h"
 #include "SSequencerTransformBox.h"
 #include "SSequencerDebugVisualizer.h"
+#include "ISequencerModule.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -722,7 +723,14 @@ TSharedRef<SWidget> SSequencer::MakeAddButton()
 
 TSharedRef<SWidget> SSequencer::MakeToolBar()
 {
-	FToolBarBuilder ToolBarBuilder( SequencerPtr.Pin()->GetCommandBindings(), FMultiBoxCustomization::None, ToolbarExtender, Orient_Horizontal, true);
+	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>("Sequencer");
+	TSharedPtr<FExtender> Extender = SequencerModule.GetToolBarExtensibilityManager()->GetAllExtenders();
+	if (ToolbarExtender.IsValid())
+	{
+		Extender = FExtender::Combine({ Extender, ToolbarExtender });
+	}
+
+	FToolBarBuilder ToolBarBuilder( SequencerPtr.Pin()->GetCommandBindings(), FMultiBoxCustomization::None, Extender, Orient_Horizontal, true);
 
 	const bool bIsReadOnly = SequencerPtr.Pin()->IsReadOnly();
 
@@ -752,7 +760,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().FindInContentBrowser );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().CreateCamera );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
-			ToolBarBuilder.AddSeparator();
+			ToolBarBuilder.AddSeparator("Level Sequence Separator");
 		}
 
 		ToolBarBuilder.AddComboButton(

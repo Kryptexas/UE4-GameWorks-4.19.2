@@ -69,7 +69,7 @@ struct ENGINE_API FKAggregateGeom
 
 
 
-	void Serialize(const FArchive& Ar);
+	void FixupDeprecated(FArchive& Ar);
 
 	void GetAggGeom(const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid, bool bUseEditorDepthTest, int32 ViewIndex, class FMeshElementCollector& Collector) const;
 

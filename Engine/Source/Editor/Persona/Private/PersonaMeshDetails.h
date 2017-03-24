@@ -81,7 +81,7 @@ struct FSectionLocalizer
 class FSkelMeshReductionSettingsLayout : public IDetailCustomNodeBuilder, public TSharedFromThis<FSkelMeshReductionSettingsLayout>
 {
 public:
-	FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<class FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty);
+	FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<class FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty, const USkeleton* InSkeleton);
 	virtual ~FSkelMeshReductionSettingsLayout();
 
 	const FSkeletalMeshOptimizationSettings& GetSettings() const;
@@ -114,6 +114,10 @@ private:
 	void OnMaxBonesPerVertexChanged(int32 NewValue);
 	void OnBaseLODChanged(int32 NewBasedLOD);
 
+	FString GetBakePosePath() const;
+	bool FilterOutBakePose(const FAssetData& AssetData) const;
+	void SetBakePose(const FAssetData& AssetData);
+
 	void OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 	void OnTextureImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 	void OnShadingImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
@@ -127,6 +131,8 @@ private:
 	TWeakPtr<class FPersonaMeshDetails> ParentLODSettings;
 	TSharedPtr<IPropertyHandle>	BoneToRemoveProperty;
 	FSkeletalMeshOptimizationSettings ReductionSettings;
+
+	const USkeleton* Skeleton;
 
 	TArray<TSharedPtr<FString> > ImportanceOptions;
 	TArray<TSharedPtr<FString> > SimplificationOptions;

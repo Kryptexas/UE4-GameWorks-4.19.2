@@ -20,6 +20,7 @@ class UAnimGraphNode_Base;
 class UBlendProfile;
 class UEditorParentPlayerListObj;
 class USkeleton;
+class IEditableSkeleton;
 struct FAnimParentNodeAssetOverride;
 
 /////////////////////////////////////////////////////
@@ -97,7 +98,7 @@ private:
 	// Property to change after bone has been picked
 	TSharedPtr<IPropertyHandle> BoneRefProperty;
 	// Target Skeleton this widget is referencing
-	TWeakObjectPtr<USkeleton> TargetSkeleton;
+	TSharedPtr<IEditableSkeleton> TargetEditableSkeleton;
 };
 
 //////////////////////////////////////////////////////////////////////////

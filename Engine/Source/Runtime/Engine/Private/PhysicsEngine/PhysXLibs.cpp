@@ -3,7 +3,6 @@
 /*=============================================================================
 	PhysXLibs.cpp: PhysX library imports
 =============================================================================*/
-
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
 #include "EngineDefines.h"
@@ -14,7 +13,6 @@
 #if WITH_PHYSX 
 
 // PhysX library imports
-
 
 #if PLATFORM_WINDOWS || PLATFORM_MAC
 	void* PxFoundationHandle = nullptr;

@@ -32,14 +32,14 @@ void FAnimNode_CurveSource::PreUpdate(const UAnimInstance* AnimInstance)
 			}
 			else
 			{
-				// then check each compoennt on the actor
-				const TSet<UActorComponent*>& ActorOwnedComponents = Actor->GetComponents();
-				for (UActorComponent* OwnedComponent : ActorOwnedComponents)
+				for (TFieldIterator<UObjectProperty> PropertyIt(Actor->GetClass(), EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 				{
-					PotentialCurveSource = Cast<ICurveSourceInterface>(OwnedComponent);
-					if (PotentialCurveSource && PotentialCurveSource->Execute_GetBindingName(OwnedComponent) == SourceBinding)
+					UObjectProperty* ObjProp = *PropertyIt;
+					UActorComponent* ActorComponent = Cast<UActorComponent>(ObjProp->GetObjectPropertyValue(ObjProp->ContainerPtrToValuePtr<void>(Actor)));
+					PotentialCurveSource = Cast<ICurveSourceInterface>(ActorComponent);
+					if (PotentialCurveSource && PotentialCurveSource->Execute_GetBindingName(ActorComponent) == SourceBinding)
 					{
-						CurveSource.SetObject(OwnedComponent);
+						CurveSource.SetObject(ActorComponent);
 						CurveSource.SetInterface(PotentialCurveSource);
 					}
 				}

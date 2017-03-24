@@ -905,4 +905,25 @@ UBodySetup* UProceduralMeshComponent::GetBodySetup()
 	return ProcMeshBodySetup;
 }
 
+UMaterialInterface* UProceduralMeshComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+{
+	UMaterialInterface* Result = nullptr;
 
+	// Look for element that corresponds to the supplied face
+	int32 TotalFaceCount = 0;
+	for (int32 SectionIdx = 0; SectionIdx < ProcMeshSections.Num(); SectionIdx++)
+	{
+		const FProcMeshSection& Section = ProcMeshSections[SectionIdx];
+		int32 NumFaces = Section.ProcIndexBuffer.Num()/3;
+		TotalFaceCount += NumFaces;
+
+		if (FaceIndex < TotalFaceCount)
+		{
+			// Grab the material
+			Result = GetMaterial(SectionIdx);
+			break;
+		}
+	}
+
+	return Result;
+}

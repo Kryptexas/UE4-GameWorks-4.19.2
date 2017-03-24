@@ -10,6 +10,8 @@
 #include "ControlRigSequence.generated.h"
 
 class UMovieScene;
+class UAnimSequence;
+class USkeletalMesh;
 
 UCLASS(BlueprintType, Experimental)
 class CONTROLRIG_API UControlRigSequence : public ULevelSequence
@@ -31,9 +33,16 @@ public:
 	virtual UObject* MakeSpawnableTemplateFromInstance(UObject& InSourceObject, FName ObjectName) override;
 	virtual bool CanAnimateObject(UObject& InObject) const override;
 
-private:
-
-	/** Whether this sequence is used additively */
+public:
+	/** The last animation sequence this control rig sequence was exported to */
 	UPROPERTY(AssetRegistrySearchable)
-	bool bAdditive;
+	TAssetPtr<UAnimSequence> LastExportedToAnimationSequence;
+
+	/** The skeletal mesh that was used the last time we exported this sequence */
+	UPROPERTY(AssetRegistrySearchable)
+	TAssetPtr<USkeletalMesh> LastExportedUsingSkeletalMesh;
+
+	/** The frame rate that was used the last time we exported this sequence */
+	UPROPERTY(AssetRegistrySearchable)
+	float LastExportedFrameRate;
 };

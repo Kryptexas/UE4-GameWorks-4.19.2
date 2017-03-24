@@ -278,6 +278,13 @@ void SAnimCurveListRow::OnAnimCurveWeightChanged( float NewWeight )
 	TSharedPtr<SAnimCurveViewer> AnimCurveViewer = AnimCurveViewerPtr.Pin();
 	if (AnimCurveViewer.IsValid())
 	{
+		// If we try to slide an entry that is not selected, we select just it
+		bool bItemIsSelected = AnimCurveViewer->AnimCurveListView->IsItemSelected(Item);
+		if (!bItemIsSelected)
+		{
+			AnimCurveViewer->AnimCurveListView->SetSelection(Item, ESelectInfo::Direct);
+		}
+
 		// Add override
 		AnimCurveViewer->AddAnimCurveOverride(Item->SmartName.DisplayName, Item->Weight);
 

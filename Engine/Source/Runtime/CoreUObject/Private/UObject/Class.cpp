@@ -1086,7 +1086,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 	}
 	else
 	{
-		check(Ar.IsSaving());
+		check(Ar.IsSaving() || Ar.IsCountingMemory());
 
 		UScriptStruct* DefaultsScriptStruct = dynamic_cast<UScriptStruct*>(DefaultsStruct);
 

@@ -30,7 +30,7 @@ FAnimationEditorMode::FAnimationEditorMode(TSharedRef<FWorkflowCentricApplicatio
 	TabFactories.RegisterFactory(PersonaModule.CreateSkeletonSlotNamesTabFactory(InHostingApp, InSkeletonTree->GetEditableSkeleton(), AnimationEditor->OnPostUndo, FOnObjectSelected::CreateSP(&AnimationEditor.Get(), &FAnimationEditor::HandleObjectSelected)));
 	TabFactories.RegisterFactory(PersonaModule.CreateAnimNotifiesTabFactory(InHostingApp, InSkeletonTree->GetEditableSkeleton(), AnimationEditor->OnChangeAnimNotifies, AnimationEditor->OnPostUndo, OnObjectsSelected));
 
-	TabLayout = FTabManager::NewLayout("Standalone_AnimationEditor_Layout_v1.1")
+	TabLayout = FTabManager::NewLayout("Standalone_AnimationEditor_Layout_v1.2")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -91,7 +91,8 @@ FAnimationEditorMode::FAnimationEditorMode(TSharedRef<FWorkflowCentricApplicatio
 						->SetSizeCoefficient(0.6f)
 						->SetHideTabWell(false)
 						->AddTab(AnimationEditorTabs::DetailsTab, ETabState::OpenedTab)
-						->AddTab(AnimationEditorTabs::AdvancedPreviewTab, ETabState::ClosedTab)
+						->AddTab(AnimationEditorTabs::AdvancedPreviewTab, ETabState::OpenedTab)
+						->SetForegroundTab(AnimationEditorTabs::DetailsTab)
 					)
 					->Split
 					(

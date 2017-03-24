@@ -4,6 +4,7 @@
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
 #include "MovieSceneSequence.h"
+#include "Evaluation/MovieSceneEvaluationTemplate.h"
 
 TWeakObjectPtr<UMovieSceneSubSection> UMovieSceneSubSection::TheRecordingSection;
 
@@ -186,4 +187,33 @@ void UMovieSceneSubSection::TrimSection( float TrimTime, bool bTrimLeft )
 		// Ensure start offset is not less than 0
 		Parameters.StartOffset = FMath::Max( NewStartOffset, 0.f );
 	}
+}
+
+FMovieSceneEvaluationTemplate& UMovieSceneSubSection::GenerateTemplateForSubSequence(const FMovieSceneTrackCompilerArgs& InArgs) const
+{
+	return InArgs.SubSequenceStore.GetCompiledTemplate(*SubSequence);
+}
+
+FMovieSceneSubSequenceData UMovieSceneSubSection::GenerateSubSequenceData() const
+{
+	FMovieSceneSequenceTransform RootToSequenceTransform =
+	FMovieSceneSequenceTransform(SubSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() + Parameters.StartOffset) *		// Inner play offset
+	FMovieSceneSequenceTransform(0.f, Parameters.TimeScale) *		// Inner play rate
+	FMovieSceneSequenceTransform(-GetStartTime());					// Outer section start time
+
+#if WITH_EDITORONLY_DATA
+	TRange<float> InnerSectionRange(
+		GetStartTime() * RootToSequenceTransform,
+		GetEndTime() * RootToSequenceTransform
+	);
+	FMovieSceneSubSequenceData SubData(*SubSequence, GetSequenceID(), *GetPathNameInMovieScene(), InnerSectionRange);
+#else
+	FMovieSceneSubSequenceData SubData(*SubSequence, GetSequenceID());
+#endif
+
+	// Construct the sub sequence data for this sub section
+	SubData.RootToSequenceTransform = RootToSequenceTransform;
+	SubData.SequenceKeyObject = SubSequence;
+
+	return SubData;
 }

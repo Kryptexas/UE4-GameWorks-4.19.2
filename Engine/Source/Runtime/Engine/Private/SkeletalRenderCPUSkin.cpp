@@ -219,32 +219,41 @@ void FSkeletalMeshObjectCPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, int
 
 void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights)
 {
-	// create the new dynamic data for use by the rendering thread
-	// this data is only deleted when another update is sent
-	FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveMorphTargets, MorphTargetWeights);
-
-	// We prepare the next frame but still have the value from the last one
-	uint32 FrameNumberToPrepare = GFrameNumber + 1;
-
-	// queue a call to update this data
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		SkelMeshObjectUpdateDataCommand,
-		FSkeletalMeshObjectCPUSkin*, MeshObject, this,
-		uint32, FrameNumberToPrepare, FrameNumberToPrepare,
-		FDynamicSkelMeshObjectDataCPUSkin*, NewDynamicData, NewDynamicData,
+	if (InMeshComponent)
 	{
-		FScopeCycleCounter Context(MeshObject->GetStatId());
-		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
-	}
-	);
+		// create the new dynamic data for use by the rendering thread
+		// this data is only deleted when another update is sent
+		FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveMorphTargets, MorphTargetWeights);
 
-	if( GIsEditor )
-	{
-		// this does not need thread-safe update
+		// We prepare the next frame but still have the value from the last one
+		uint32 FrameNumberToPrepare = GFrameNumber + 1;
+
+		if (InMeshComponent->SceneProxy)
+		{
+			// We allow caching of per-frame, per-scene data
+			FrameNumberToPrepare = InMeshComponent->SceneProxy->GetScene().GetFrameNumber() + 1;
+		}
+
+		// queue a call to update this data
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			SkelMeshObjectUpdateDataCommand,
+			FSkeletalMeshObjectCPUSkin*, MeshObject, this,
+			uint32, FrameNumberToPrepare, FrameNumberToPrepare,
+			FDynamicSkelMeshObjectDataCPUSkin*, NewDynamicData, NewDynamicData,
+		{
+			FScopeCycleCounter Context(MeshObject->GetStatId());
+			MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
+		}
+		);
+
+		if( GIsEditor )
+		{
+			// this does not need thread-safe update
 #if WITH_EDITORONLY_DATA
-		ProgressiveDrawingFraction = InMeshComponent->ProgressiveDrawingFraction;
+			ProgressiveDrawingFraction = InMeshComponent->ProgressiveDrawingFraction;
 #endif // #if WITH_EDITORONLY_DATA
-		CustomSortAlternateIndexMode = (ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode;
+			CustomSortAlternateIndexMode = (ECustomSortAlternateIndexMode)InMeshComponent->CustomSortAlternateIndexMode;
+		}
 	}
 }
 
@@ -443,11 +452,11 @@ const FTwoVectors& FSkeletalMeshObjectCPUSkin::GetCustomLeftRightVectors(int32 S
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const
+void FSkeletalMeshObjectCPUSkin::DrawVertexElements(FPrimitiveDrawInterface* PDI, const FMatrix& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const
 {
 	uint32 NumIndices = CachedFinalVertices.Num();
 
-	FMatrix LocalToWorldInverseTranspose = ToWorldSpace.ToMatrixWithScale().InverseFast().GetTransposed();
+	FMatrix LocalToWorldInverseTranspose = ToWorldSpace.InverseFast().GetTransposed();
 
 	for (uint32 i = 0; i < NumIndices; i++)
 	{

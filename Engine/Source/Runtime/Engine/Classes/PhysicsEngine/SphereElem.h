@@ -42,7 +42,7 @@ struct FKSphereElem : public FKShapeElem
 
 	}
 
-	void Serialize( const FArchive& Ar );
+	void FixupDeprecated( FArchive& Ar );
 
 	friend bool operator==( const FKSphereElem& LHS, const FKSphereElem& RHS )
 	{

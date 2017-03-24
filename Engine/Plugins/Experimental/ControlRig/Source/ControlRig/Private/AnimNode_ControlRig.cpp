@@ -6,9 +6,11 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "AnimInstanceProxy.h"
 #include "GameFramework/Actor.h"
+#include "AnimationRuntime.h"
 
 FAnimNode_ControlRig::FAnimNode_ControlRig()
 	: CachedControlRig(nullptr)
+	, bAdditive(false)
 {
 }
 
@@ -24,12 +26,8 @@ UControlRig* FAnimNode_ControlRig::GetControlRig() const
 
 void FAnimNode_ControlRig::RootInitialize(const FAnimInstanceProxy* InProxy)
 {
-	FAnimNode_SkeletalControlBase::RootInitialize(InProxy);
-
 	if (UControlRig* ControlRig = CachedControlRig.Get())
 	{
-		ControlRig->Initialize();
-
 		if (UHierarchicalRig* HierControlRig = Cast<UHierarchicalRig>(ControlRig))
 		{
 			USkeletalMeshComponent* Component = Cast<USkeletalMeshComponent>(HierControlRig->GetBoundObject());
@@ -43,6 +41,10 @@ void FAnimNode_ControlRig::RootInitialize(const FAnimInstanceProxy* InProxy)
 				}
 			}
 		}
+
+		// Initialize AFTER setting node mapping, so that we can cache correct mapped transform values
+		// i.e. IK limb lengths. 
+		ControlRig->Initialize();
 	}
 }
 
@@ -51,7 +53,7 @@ void FAnimNode_ControlRig::GatherDebugData(FNodeDebugData& DebugData)
 
 }
 
-void FAnimNode_ControlRig::UpdateInternal(const FAnimationUpdateContext& Context)
+void FAnimNode_ControlRig::Update(const FAnimationUpdateContext& Context)
 {
 	if (UControlRig* ControlRig = CachedControlRig.Get())
 	{
@@ -61,24 +63,72 @@ void FAnimNode_ControlRig::UpdateInternal(const FAnimationUpdateContext& Context
 	}
 }
 
-void FAnimNode_ControlRig::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_ControlRig::Evaluate(FPoseContext& Output)
 {
 	if (UHierarchicalRig* HierarchicalRig = Cast<UHierarchicalRig>(CachedControlRig.Get()))
 	{
-		for (int32 Index = 0; Index < NodeNames.Num(); ++Index)
+		USkeletalMeshComponent* SkelComp = Output.AnimInstanceProxy->GetSkelMeshComponent();
+		const FBoneContainer& RequiredBones = Output.Pose.GetBoneContainer();
+
+		// we initialize to ref pose for MeshPose
+		Output.ResetToRefPose();
+		// get component pose from control rig
+		FCSPose<FCompactPose> MeshPoses;
+		MeshPoses.InitPose(Output.Pose);
+
+		const int32 NumNodes = NodeNames.Num();
+		for (int32 Index = 0; Index < NumNodes; ++Index)
 		{
 			if (NodeNames[Index] != NAME_None)
 			{
-				FBoneTransform NewTransform;
-				NewTransform.BoneIndex = FCompactPoseBoneIndex(Index);
-				NewTransform.Transform = HierarchicalRig->GetMappedGlobalTransform(NodeNames[Index]);
-				OutBoneTransforms.Add(NewTransform);
+				FCompactPoseBoneIndex CompactPoseIndex(Index);
+				FTransform ComponentTransform = HierarchicalRig->GetMappedGlobalTransform(NodeNames[Index]);
+				MeshPoses.SetComponentSpaceTransform(CompactPoseIndex, ComponentTransform);
+			}
+		}
+
+		// now convert to what you'd like
+		if (bAdditive)
+		{
+			// for additive, initialize with identity
+			Output.ResetToAdditiveIdentity();
+
+			for (int32 Index = 0; Index < NumNodes; ++Index)
+			{
+				if (NodeNames[Index] != NAME_None)
+				{
+					FCompactPoseBoneIndex CompactPoseIndex(Index);
+					FTransform LocalTransform = MeshPoses.GetLocalSpaceTransform(CompactPoseIndex);
+
+					// use refpose for now
+					const FTransform& RefTransform = SkelComp->SkeletalMesh->RefSkeleton.GetRawRefBonePose()[Index];
+					FAnimationRuntime::ConvertTransformToAdditive(LocalTransform, RefTransform);
+					Output.Pose[CompactPoseIndex] = LocalTransform;
+				}
+			}
+		}
+		else
+		{
+			// initialize with refpose
+			Output.ResetToRefPose();
+			for (int32 Index = 0; Index < NumNodes; ++Index)
+			{
+				if (NodeNames[Index] != NAME_None)
+				{
+					FCompactPoseBoneIndex CompactPoseIndex(Index);
+					Output.Pose[CompactPoseIndex] = MeshPoses.GetLocalSpaceTransform(CompactPoseIndex);
+				}
 			}
 		}
 	}
+	else
+	{
+		// apply refpose
+		Output.ResetToRefPose();
+	}
 }
 
-void FAnimNode_ControlRig::InitializeBoneReferences(const FBoneContainer& RequiredBones)
+void FAnimNode_ControlRig::CacheBones(const FAnimationCacheBonesContext& Context)
 {
 	if (UHierarchicalRig* HierarchicalRig = Cast<UHierarchicalRig>(CachedControlRig.Get()))
 	{
@@ -86,6 +136,7 @@ void FAnimNode_ControlRig::InitializeBoneReferences(const FBoneContainer& Requir
 		const UNodeMappingContainer* Mapper = HierarchicalRig->NodeMappingContainer;
 
 		// fill up node names
+		FBoneContainer& RequiredBones = Context.AnimInstanceProxy->GetRequiredBones();
 		const TArray<FBoneIndexType>& RequiredBonesArray = RequiredBones.GetBoneIndicesArray();
 		const int32 NumBones = RequiredBonesArray.Num();
 		NodeNames.Reset(NumBones);
@@ -113,9 +164,4 @@ void FAnimNode_ControlRig::InitializeBoneReferences(const FBoneContainer& Requir
 	}
 
 	UE_LOG(LogAnimation, Log, TEXT("%s : %d"), *GetNameSafe(CachedControlRig.Get()), NodeNames.Num())
-}
-
-bool FAnimNode_ControlRig::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
-{
-	return CachedControlRig.IsValid();
 }

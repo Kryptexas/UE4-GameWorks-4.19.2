@@ -144,6 +144,13 @@ public:
 	MOVIESCENE_API const TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& GetTracks() const;
 
 	/**
+	 * Iterate this template's tracks (non-const).
+	 * NOTE that this is intended for use during the compilation phase in-editor. 
+	 * Beware of using this to modify tracks afterwards as it will almost certainly break evaluation.
+	 */
+	MOVIESCENE_API TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& GetTracks();
+
+	/**
 	 * Find tracks within this template that relate to the specified signature
 	 */
 	MOVIESCENE_API TArrayView<FMovieSceneTrackIdentifier> FindTracks(const FGuid& InSignature);

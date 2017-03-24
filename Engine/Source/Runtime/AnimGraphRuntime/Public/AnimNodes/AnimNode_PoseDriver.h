@@ -41,6 +41,25 @@ enum class EPoseDriverOutput : uint8
 	DriveCurves
 };
 
+/** Translation and rotation for a particular bone at a particular target */
+USTRUCT()
+struct FPoseDriverTransform
+{
+	GENERATED_BODY()
+
+	/** Translation of this target */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	FVector TargetTranslation;
+
+	/** Rotation of this target */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	FRotator TargetRotation;
+
+	FPoseDriverTransform()
+	: TargetTranslation(FVector::ZeroVector)
+	, TargetRotation(FRotator::ZeroRotator)
+	{}
+};
 
 /** Information about each target in the PoseDriver */
 USTRUCT()
@@ -50,7 +69,7 @@ struct ANIMGRAPHRUNTIME_API FPoseDriverTarget
 		
 	/** Translation of this target */
 	UPROPERTY(EditAnywhere, Category = PoseDriver)
-	FVector TargetTranslation;
+	TArray<FPoseDriverTransform> BoneTransforms;
 
 	/** Rotation of this target */
 	UPROPERTY(EditAnywhere, Category = PoseDriver)
@@ -59,6 +78,14 @@ struct ANIMGRAPHRUNTIME_API FPoseDriverTarget
 	/** Scale applied to this target's function - a larger value will activate this target sooner */
 	UPROPERTY(EditAnywhere, Category = PoseDriver)
 	float TargetScale;
+
+	/** If we should apply a custom curve mapping to how this target activates */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	bool bApplyCustomCurve;
+
+	/** Custom curve mapping to apply if bApplyCustomCurve is true */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	FRichCurve CustomCurve;
 
 	/** 
 	 *	Name of item to drive - depends on DriveOutput setting.  
@@ -72,9 +99,8 @@ struct ANIMGRAPHRUNTIME_API FPoseDriverTarget
 	int32 DrivenUID;
 
 	FPoseDriverTarget()
-		: TargetTranslation(FVector::ZeroVector)
-		, TargetRotation(FRotator::ZeroRotator)
-		, TargetScale(1.f)
+		: TargetScale(1.f)
+		, bApplyCustomCurve(false)
 		, DrivenName(NAME_None)
 		, DrivenUID(INDEX_NONE)
 	{}
@@ -86,12 +112,21 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_PoseDriver : public FAnimNode_PoseHandler
 {
 	GENERATED_BODY()
 
+	/** Bones to use for driving parameters based on their transform */
 	UPROPERTY(EditAnywhere, EditFixedSize, BlueprintReadWrite, Category = Links)
 	FPoseLink SourcePose;
 
 	/** Bone to use for driving parameters based on its orientation */
 	UPROPERTY(EditAnywhere, Category = PoseDriver)
-	FBoneReference SourceBone;
+	TArray<FBoneReference> SourceBones;
+
+	/** If we should filter bones to be driven using the DrivenBonesFilter array */
+	UPROPERTY(EditAnywhere, Category = PoseDriver)
+	bool bOnlyDriveSelectedBones;
+
+	/** If bFilterDrivenBones is specified, only these bones will be modified by this node */
+	UPROPERTY(EditAnywhere, Category = PoseDriver, meta = (EditCondition = "bOnlyDriveSelectedBones"))
+	TArray<FBoneReference> OnlyDriveBones;
 
 	/** 
 	 *	Optional other bone space to use when reading SourceBone transform.
@@ -118,6 +153,8 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_PoseDriver : public FAnimNode_PoseHandler
 
 	// Deprecated
 	UPROPERTY()
+	FBoneReference SourceBone_DEPRECATED;
+	UPROPERTY()
 	TEnumAsByte<EBoneAxis> TwistAxis_DEPRECATED;
 	UPROPERTY()
 	EPoseDriverType Type_DEPRECATED;
@@ -125,12 +162,14 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_PoseDriver : public FAnimNode_PoseHandler
 	float RadialScaling_DEPRECATED;
 	//
 
-
 	/** Last set of output weights from RBF solve */
 	TArray<FRBFOutputWeight> OutputWeights;
 
 	/** Input source bone TM, used for debug drawing */
-	FTransform SourceBoneTM;
+	TArray<FTransform> SourceBoneTMs;
+
+	/** If bFilterDrivenBones, this array lists bones that we should filter out (ie have a track in the PoseAsset, but are not listed in OnlyDriveBones */
+	TArray<FCompactPoseBoneIndex> BonesToFilter;
 
 	/** If true, will recalculate DrivenUID values in PoseTargets array on next eval */
 	bool bCachedDrivenIDsAreDirty;
@@ -145,7 +184,8 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_PoseDriver : public FAnimNode_PoseHandler
 
 	FAnimNode_PoseDriver();
 
-
+	/** Util for seeing if BoneName is in the list of driven bones (and bFilterDrivenBones is true) */
+	bool IsBoneDriven(FName BoneName) const;
 
 	/** Return array of FRBFTarget structs, derived from PoseTargets array and DriveSource setting */
 	void GetRBFTargets(TArray<FRBFTarget>& OutTargets) const;

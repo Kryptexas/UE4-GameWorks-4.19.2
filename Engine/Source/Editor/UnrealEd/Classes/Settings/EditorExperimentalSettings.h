@@ -130,6 +130,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools)
 	bool bFacialAnimationImporter;
 
+	/** Enable experimental clothing tools (parameter painting and simulation configuration) found in the skeletal mesh editor */
+	UPROPERTY(EditAnywhere, config, Category = Tools)
+	bool bClothingTools;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

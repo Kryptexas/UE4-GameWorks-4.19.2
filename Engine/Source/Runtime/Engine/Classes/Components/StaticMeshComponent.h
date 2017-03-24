@@ -426,6 +426,7 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual int32 GetMaterialIndex(FName MaterialSlotName) const override;
+	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const override;
 	virtual TArray<FName> GetMaterialSlotNames() const override;
 	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const override;
 

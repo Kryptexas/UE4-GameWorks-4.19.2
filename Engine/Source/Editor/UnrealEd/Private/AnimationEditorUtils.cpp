@@ -252,7 +252,7 @@ namespace AnimationEditorUtils
 		AssetToolsModule.Get().CreateUniqueAssetName(InBasePackageName, InSuffix, OutPackageName, OutAssetName);
 	}
 
-	void CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeleton>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix, FAnimAssetCreated AssetCreated )
+	void CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeleton>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix, FAnimAssetCreated AssetCreated, UObject* NameBaseObject /*= nullptr*/, bool bDoNotShowNameDialog /*= false*/)
 	{
 		TArray<UObject*> ObjectsToSync;
 		for(auto SkelIt = Skeletons.CreateConstIterator(); SkelIt; ++SkelIt)
@@ -262,23 +262,26 @@ namespace AnimationEditorUtils
 			{
 				FString Name;
 				FString PackageName;
-				FString AssetPath = Skeleton->GetOutermost()->GetName();
+				FString AssetPath = (NameBaseObject)? NameBaseObject->GetOutermost()->GetName(): Skeleton->GetOutermost()->GetName();
 				// Determine an appropriate name
 				CreateUniqueAssetName(AssetPath, InPrefix, PackageName, Name);
 
-				// set the unique asset as a default name
-				TSharedRef<SCreateAnimationAssetDlg> NewAnimDlg =
-					SNew(SCreateAnimationAssetDlg)
-					.DefaultAssetPath(FText::FromString(PackageName));
-
-				// show a dialog to determine a new asset name
-				if (NewAnimDlg->ShowModal() == EAppReturnType::Cancel)
+				if (bDoNotShowNameDialog == false)
 				{
-					return;
-				}
+					// set the unique asset as a default name
+					TSharedRef<SCreateAnimationAssetDlg> NewAnimDlg =
+						SNew(SCreateAnimationAssetDlg)
+						.DefaultAssetPath(FText::FromString(PackageName));
 
-				PackageName = NewAnimDlg->GetFullAssetPath();
-				Name = NewAnimDlg->GetAssetName();
+					// show a dialog to determine a new asset name
+					if (NewAnimDlg->ShowModal() == EAppReturnType::Cancel)
+					{
+						return;
+					}
+
+					PackageName = NewAnimDlg->GetFullAssetPath();
+					Name = NewAnimDlg->GetAssetName();
+				}
 
 				// Create the asset, and assign its skeleton
 				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
@@ -300,7 +303,7 @@ namespace AnimationEditorUtils
 		}
 	}
 
-	void CreateNewAnimBlueprint(TArray<TWeakObjectPtr<USkeleton>> Skeletons, FAnimAssetCreated AssetCreated)
+	void CreateNewAnimBlueprint(TArray<TWeakObjectPtr<USkeleton>> Skeletons, FAnimAssetCreated AssetCreated, bool bInContentBrowser)
 	{
 		const FString DefaultSuffix = TEXT("_AnimBlueprint");
 
@@ -318,13 +321,28 @@ namespace AnimationEditorUtils
 				UAnimBlueprintFactory* Factory = NewObject<UAnimBlueprintFactory>();
 				Factory->TargetSkeleton = Object;
 
-				FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-				ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), UAnimBlueprint::StaticClass(), Factory);
+				if (bInContentBrowser)
+				{
+					FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+					ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), UAnimBlueprint::StaticClass(), Factory);
+				}
+				else
+				{
+					FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+					UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, FPackageName::GetLongPackagePath(PackageName), UAnimBlueprint::StaticClass(), Factory);
+
+					if (NewAsset && AssetCreated.IsBound())
+					{
+						TArray<UObject*> NewObjects;
+						NewObjects.Add(NewAsset);
+						AssetCreated.Execute(NewObjects);
+					}
+				}
 			}
 		}
 		else
 		{
-			TArray<UObject*> SkeletonsToSync;
+			TArray<UObject*> AssetsToSync;
 			for (auto ObjIt = Skeletons.CreateConstIterator(); ObjIt; ++ObjIt)
 			{
 				auto Object = (*ObjIt).Get();
@@ -344,14 +362,14 @@ namespace AnimationEditorUtils
 
 					if (NewAsset)
 					{
-						SkeletonsToSync.Add(NewAsset);
+						AssetsToSync.Add(NewAsset);
 					}
 				}
 			}
 
 			if (AssetCreated.IsBound())
 			{
-				AssetCreated.Execute(SkeletonsToSync);
+				AssetCreated.Execute(AssetsToSync);
 			}
 		}
 	}
@@ -361,18 +379,15 @@ namespace AnimationEditorUtils
 		MenuBuilder.BeginSection("CreateAnimAssets", LOCTEXT("CreateAnimAssetsMenuHeading", "Anim Assets"));
 		{
 			// only allow for content browser until we support multi assets so we can open new persona with this BP
-			if (bInContentBrowser)
-			{
-				MenuBuilder.AddMenuEntry(
-					LOCTEXT("Skeleton_NewAnimBlueprint", "Anim Blueprint"),
-					LOCTEXT("Skeleton_NewAnimBlueprintTooltip", "Creates an Anim Blueprint using the selected skeleton."),
-					FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.AnimBlueprint"),
-					FUIAction(
-						FExecuteAction::CreateStatic(&CreateNewAnimBlueprint, Skeletons, AssetCreated),
-						FCanExecuteAction()
-						)
-					);
-			}
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("Skeleton_NewAnimBlueprint", "Anim Blueprint"),
+				LOCTEXT("Skeleton_NewAnimBlueprintTooltip", "Creates an Anim Blueprint using the selected skeleton."),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.AnimBlueprint"),
+				FUIAction(
+					FExecuteAction::CreateStatic(&CreateNewAnimBlueprint, Skeletons, AssetCreated, bInContentBrowser),
+					FCanExecuteAction()
+					)
+				);
 
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("Skeleton_NewAnimComposite", "Anim Composite"),

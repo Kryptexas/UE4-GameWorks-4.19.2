@@ -35,6 +35,7 @@
 #include "EdGraph/EdGraph.h"
 #include "BlueprintEditor.h"
 #include "Animation/EditorAnimCurveBoneLinks.h"
+#include "IEditableSkeleton.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -485,6 +486,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	UAnimationAsset * AnimationAsset = nullptr;
 
 	TSharedPtr<IEditableSkeleton> EditableSkeleton; 
+	USkeleton* TargetSkeleton = nullptr;
 
 	for (auto OuterIter = Objects.CreateIterator() ; OuterIter ; ++OuterIter)
 	{
@@ -529,11 +531,13 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 		}
 	}
 
-	if (TargetSkeleton.IsValid())
+	if (TargetSkeleton != nullptr)
 	{
 		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-		EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton.Get());
+		EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton);
 	}
+
+	TargetEditableSkeleton = EditableSkeleton;
 
 	if (EditableSkeleton.IsValid())
 	{
@@ -585,7 +589,7 @@ const struct FReferenceSkeleton&  FBoneReferenceCustomization::GetReferenceSkele
 	// retruning dummy skeleton if any reason, it is invalid
 	static FReferenceSkeleton DummySkeleton;
 
-	return (TargetSkeleton.IsValid()) ? TargetSkeleton.Get()->GetReferenceSkeleton() : DummySkeleton;
+	return (TargetEditableSkeleton.IsValid()) ? TargetEditableSkeleton.Get()->GetSkeleton().GetReferenceSkeleton() : DummySkeleton;
 }
 
 TSharedRef<IDetailCustomization> FAnimGraphParentPlayerDetails::MakeInstance(TSharedRef<FBlueprintEditor> InBlueprintEditor)

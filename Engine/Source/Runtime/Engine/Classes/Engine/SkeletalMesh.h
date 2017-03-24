@@ -20,6 +20,8 @@
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "EngineTypes.h"
+
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
@@ -200,6 +202,9 @@ struct FSkeletalMeshOptimizationSettings
 	UPROPERTY()
 	int32 BaseLOD;
 
+	UPROPERTY()
+	class UAnimSequence* BakePose;
+
 	FSkeletalMeshOptimizationSettings()
 		: ReductionMethod(SMOT_MaxDeviation)
 		, NumOfTrianglesPercentage(1.0f)
@@ -214,6 +219,7 @@ struct FSkeletalMeshOptimizationSettings
 		, BoneReductionRatio(100.0f)
 		, MaxBonesPerVertex(4)
 		, BaseLOD(0)
+		, BakePose(nullptr)
 	{
 	}
 
@@ -232,7 +238,8 @@ struct FSkeletalMeshOptimizationSettings
 			&& bRecalcNormals == Other.bRecalcNormals
 			&& BoneReductionRatio == Other.BoneReductionRatio
 			&& MaxBonesPerVertex == Other.MaxBonesPerVertex
-			&& BaseLOD == Other.BaseLOD;
+			&& BaseLOD == Other.BaseLOD
+			&& BakePose == Other.BakePose;
 	}
 
 	/** Inequality. */
@@ -240,6 +247,43 @@ struct FSkeletalMeshOptimizationSettings
 	{
 		return !(*this == Other);
 	}
+};
+
+USTRUCT()
+struct ENGINE_API FSkeletalMeshClothBuildParams
+{
+	GENERATED_BODY()
+
+	FSkeletalMeshClothBuildParams();
+
+	// Name of the clothing asset 
+	UPROPERTY(EditAnywhere, Category = Basic)
+	FString AssetName;
+
+	// LOD to extract the section from
+	UPROPERTY(EditAnywhere, Category = Basic)
+	int32 LodIndex;
+
+	// Section within the specified LOD to extract
+	UPROPERTY(EditAnywhere, Category = Basic)
+	int32 SourceSection;
+
+	// Whether or not to leave this section behind (if driving a mesh with itself). Enable this if driving a high poly mesh with a low poly
+	UPROPERTY(EditAnywhere, Category = Basic)
+	bool bRemoveFromMesh;
+
+	// Physics asset to extract collisions from, note this will only extract spheres and Sphyls, as that is what the simulation supports.
+	UPROPERTY(EditAnywhere, Category = Collision)
+	TAssetPtr<UPhysicsAsset> PhysicsAsset;
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = AutoFix)
+	bool bTryAutoFix;
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = AutoFix, meta = (EditCondition = "bTryAutoFix"))
+	float AutoFixThreshold;
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = AutoFix, meta = (EditCondition = "bTryAutoFix"))
+	float SimulatedParticleMaxDistance;
 };
 
 /** Struct containing information for a particular LOD level, such as materials and info for when to use it. */
@@ -287,10 +331,14 @@ struct FSkeletalMeshLODInfo
 	UPROPERTY(VisibleAnywhere, Category= SkeletalMeshLODInfo, AdvancedDisplay)
 	FString SourceImportFilename;
 
+	UPROPERTY()
+	uint32 bHasPerLODVertexColors : 1;
+
 	FSkeletalMeshLODInfo()
 		: ScreenSize(0)
 		, LODHysteresis(0)
 		, bHasBeenSimplified(false)
+		, bHasPerLODVertexColors(false)
 	{
 	}
 
@@ -596,6 +644,23 @@ public:
 	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
+	/** Should we use a custom camera transform when viewing this mesh in the tools */
+	UPROPERTY()
+	bool bHasCustomDefaultEditorCamera;
+	/** Default camera location */
+	UPROPERTY()
+	FVector DefaultEditorCameraLocation;
+	/** Default camera rotation */
+	UPROPERTY()
+	FRotator DefaultEditorCameraRotation;
+	/** Default camera look at */
+	UPROPERTY()
+	FVector DefaultEditorCameraLookAt;
+	/** Default camera ortho zoom */
+	UPROPERTY()
+	float DefaultEditorCameraOrthoZoom;
+
+
 	/** Optimization settings used to simplify LODs of this mesh. */
 	UPROPERTY()
 	TArray<struct FSkeletalMeshOptimizationSettings> OptimizationSettings;
@@ -868,6 +933,14 @@ public:
 	* @return		NumberOfBrokenAssets
 	*/
 	ENGINE_API int32 ValidatePreviewAttachedObjects();
+
+	/**
+	 * Removes a specified section from the skeletal mesh, this is a destructive action
+	 *
+	 * @param InLodIndex Lod index to remove section from
+	 * @param InSectionIndex Section index to remove
+	 */
+	ENGINE_API void RemoveMeshSection(int32 InLodIndex, int32 InSectionIndex);
 
 #endif // #if WITH_EDITOR
 

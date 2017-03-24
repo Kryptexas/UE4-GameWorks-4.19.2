@@ -824,6 +824,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Material")
 	virtual class UMaterialInstanceDynamic* CreateDynamicMaterialInstance(int32 ElementIndex, class UMaterialInterface* SourceMaterial = NULL);
 
+	/** Try and retrieve the material applied to a particular collision face of mesh. Used with face index returned from collision trace. */
+	UFUNCTION(BlueprintCallable, Category = "Components|Mesh")
+	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const;
+
 	/** Returns the slope override struct for this component. */
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	const struct FWalkableSlopeOverride& GetWalkableSlopeOverride() const;
@@ -914,7 +918,7 @@ public:
 	virtual void AddForce(FVector Force, FName BoneName = NAME_None, bool bAccelChange = false);
 
 	/**
-	 *	Add a force to a single rigid body at a particular location.
+	 *	Add a force to a single rigid body at a particular location in world space.
 	 *  This is like a 'thruster'. Good for adding a burst over some (non zero) time. Should be called every frame for the duration of the force.
 	 *
 	 *	@param Force		Force vector to apply. Magnitude indicates strength of force.
@@ -923,6 +927,17 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddForceAtLocation(FVector Force, FVector Location, FName BoneName = NAME_None);
+
+	/**
+	 *	Add a force to a single rigid body at a particular location. Both Force and Location should be in body space.
+	 *  This is like a 'thruster'. Good for adding a burst over some (non zero) time. Should be called every frame for the duration of the force.
+	 *
+	 *	@param Force		Force vector to apply. Magnitude indicates strength of force.
+	 *	@param Location		Location to apply force, in component space.
+	 *	@param BoneName		If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
+	virtual void AddForceAtLocationLocal(FVector Force, FVector Location, FName BoneName = NAME_None);
 
 	/**
 	 *	Add a force to all bodies in this component, originating from the supplied world-space location.
@@ -1417,7 +1432,7 @@ public:
 	*	Adds the bodies that are currently welded to the OutWeldedBodies array 
 	*/
 	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels, bool bIncludingAutoWeld = false);
-	
+
 	/** Whether the component has been welded to another simulating component */
 	bool IsWelded() const;
 

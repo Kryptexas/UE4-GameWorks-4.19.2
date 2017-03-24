@@ -14,11 +14,6 @@ public class Sockets : ModuleRules
 
 		Definitions.Add("SOCKETS_PACKAGE=1");
 
-		if (!UEBuildConfiguration.bBuildRequiresCookedData)
-		{
-			DynamicallyLoadedModuleNames.Add("DerivedDataCache");
-		}
-
         if ( Target.Platform ==  UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
         {
             PrivateDependencyModuleNames.Add("HTML5Win32");

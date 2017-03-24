@@ -311,6 +311,11 @@ namespace UnrealBuildTool
 		public bool bOutputToEngineBinaries = false;
 
 		/// <summary>
+		/// Whether this target should be compiled as a DLL.  Requires LinkType to be set to TargetLinkType.Monolithic.
+		/// </summary>
+		public bool bShouldCompileAsDLL = false;
+		
+		/// <summary>
 		/// Subfolder to place executables in, relative to the default location.
 		/// </summary>
 		public string ExeBinariesSubFolder = String.Empty;
@@ -1155,6 +1160,11 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Can be set to override the file extension of the executable file (normally .exe or .dll on Windows, for example)
+		/// </summary>
+		public string OverrideExecutableFileExtension = String.Empty;
+
+		/// <summary>
 		/// Whether this target should be compiled in monolithic mode
 		/// </summary>
 		/// <param name="InPlatform">The platform being built</param>
@@ -1960,6 +1970,16 @@ namespace UnrealBuildTool
 		}
 
 		#pragma warning restore C1591
+
+		public string OverrideExecutableFileExtension
+		{
+			get { return Inner.OverrideExecutableFileExtension; }
+		}
+		
+		public bool bShouldCompileAsDLL
+		{
+			get { return Inner.bShouldCompileAsDLL; }
+		}
 		#endregion
 
 		/// <summary>

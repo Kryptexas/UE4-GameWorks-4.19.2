@@ -1112,7 +1112,9 @@ private:
 ENGINE_API void RemapPaintedVertexColors(
 	const TArray<FPaintedVertex>& InPaintedVertices,
 	const FColorVertexBuffer& InOverrideColors,
-	const FPositionVertexBuffer& NewPositions,
+	const FPositionVertexBuffer& OldPositions,
+	const FStaticMeshVertexBuffer& OldVertexBuffer,
+	const FPositionVertexBuffer& NewPositions,	
 	const FStaticMeshVertexBuffer* OptionalVertexBuffer,
 	TArray<FColor>& OutOverrideColors
 	);

@@ -2,14 +2,53 @@
 
 #include "Evaluation/MovieSceneSequenceTemplateStore.h"
 #include "MovieSceneSequence.h"
+#include "UObject/ObjectKey.h"
 
 FMovieSceneEvaluationTemplate& FMovieSceneSequenceTemplateStore::GetCompiledTemplate(UMovieSceneSequence& Sequence)
 {
+	return GetCompiledTemplate(Sequence, FObjectKey(&Sequence));
+}
+
+FMovieSceneEvaluationTemplate& FMovieSceneSequenceTemplateStore::GetCompiledTemplate(UMovieSceneSequence& Sequence, FObjectKey InSequenceKey)
+{
+	UObject* ObjectKey = InSequenceKey.ResolveObjectPtr();
 #if WITH_EDITORONLY_DATA
-	if (AreTemplatesVolatile() && Sequence.EvaluationTemplate.IsOutOfDate(Sequence.TemplateParameters))
+	if (AreTemplatesVolatile())
 	{
-		Sequence.EvaluationTemplate.ForceRegenerate(Sequence.TemplateParameters);
+		// Lookup into map here if we have a key that is not the sequence
+		if (ObjectKey == &Sequence)
+		{
+			if (Sequence.EvaluationTemplate.IsOutOfDate(Sequence.TemplateParameters))
+			{
+				Sequence.EvaluationTemplate.ForceRegenerate(Sequence.TemplateParameters);
+			}
+		}
+		else
+		{
+			// assume this is an instanced subsequence
+			FCachedMovieSceneEvaluationTemplate* EvaluationTemplatePtr = Sequence.InstancedSubSequenceEvaluationTemplates.Find(ObjectKey);
+			if (EvaluationTemplatePtr == nullptr)
+			{
+				EvaluationTemplatePtr = &Sequence.InstancedSubSequenceEvaluationTemplates.Add(ObjectKey);
+				EvaluationTemplatePtr->Initialize(Sequence, this);
+				EvaluationTemplatePtr->Regenerate(Sequence.TemplateParameters);
+			}
+			else if(EvaluationTemplatePtr->IsOutOfDate(Sequence.TemplateParameters))
+			{
+				EvaluationTemplatePtr->ForceRegenerate(Sequence.TemplateParameters);
+			}
+		}
 	}
 #endif
-	return Sequence.EvaluationTemplate;
+
+	// Lookup into map here if we have a key that is not the sequence
+	if (ObjectKey == &Sequence)
+	{
+		return Sequence.EvaluationTemplate;
+	}
+	else
+	{
+		// assume this is an instanced subsequence
+		return Sequence.InstancedSubSequenceEvaluationTemplates.FindChecked(ObjectKey);
+	}
 }

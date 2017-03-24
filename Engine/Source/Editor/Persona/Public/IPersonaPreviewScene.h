@@ -9,6 +9,9 @@ class UAnimationAsset;
 class UDebugSkelMeshComponent;
 class USkeletalMesh;
 struct FSelectedSocketInfo;
+struct HActor;
+struct FViewportClick;
+
 
 // called when animation asset has been changed
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnAnimChangedMulticaster, UAnimationAsset*);
@@ -21,6 +24,10 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreviewMeshChangedMulticaster, USkeletal
 
 // preview mesh changed 
 typedef FOnPreviewMeshChangedMulticaster::FDelegate FOnPreviewMeshChanged;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMeshClickMulticaster, HActor*, const FViewportClick&);
+
+typedef FOnMeshClickMulticaster::FDelegate FOnMeshClick;
 
 /** Modes that the preview scene defaults to (usually depending on asset editor context) */
 enum class EPreviewSceneDefaultAnimationMode : int32
@@ -130,6 +137,15 @@ public:
 	/** Unregisters a delegate to be called when the view should be focused */
 	virtual void UnregisterOnFocusViews(void* Thing) = 0;
 
+	/** Registers a delegate to be called when the preview mesh is clicked */
+	virtual void RegisterOnMeshClick(const FOnMeshClick& Delegate) = 0;
+
+	/** Unregisters a delegate to be called when the preview mesh is clicked */
+	virtual void UnregisterOnMeshClick(void* Thing) = 0;
+
+	/** Broadcasts that the preview mesh was clicked */
+	virtual bool BroadcastMeshClick(HActor* HitProxy, const FViewportClick& Click) = 0;
+
 	/** Set the default mode this preview scene appears in. Optionally show the default mode. */
 	virtual void SetDefaultAnimationMode(EPreviewSceneDefaultAnimationMode Mode, bool bShowNow = true) = 0;
 
@@ -168,4 +184,10 @@ public:
 
 	/** Get the main actor */
 	virtual AActor* GetActor() const = 0;
+
+	/** Get whether or not to ignore mesh hit proxies */
+	virtual bool AllowMeshHitProxies() const = 0;
+
+	/** Set whether or not to ignore mesh hit proxies */
+	virtual void SetAllowMeshHitProxies(bool bState) = 0;
 };

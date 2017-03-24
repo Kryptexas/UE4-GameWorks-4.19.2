@@ -962,6 +962,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("LogVisualizer"));
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
 
+		FModuleManager::Get().LoadModuleChecked(TEXT("ClothPainter"));
+
 		// Load VR Editor support
 		FModuleManager::Get().LoadModuleChecked( TEXT( "ViewportInteraction" ) );
 		FModuleManager::Get().LoadModuleChecked( TEXT( "VREditor" ) );
@@ -1795,6 +1797,9 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				}
 			}
 		}
+
+		// Some tasks can only be done once we finish all scenes/viewports
+		GetRendererModule().PostRenderAllViewports();
 	}
 
 	ISourceControlModule::Get().Tick();

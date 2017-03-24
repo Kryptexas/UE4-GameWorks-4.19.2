@@ -27,7 +27,7 @@ UPhATSimOptions::UPhATSimOptions(const FObjectInitializer& ObjectInitializer)
 {
 	PhysicsBlend = 1.0f;
 	bUpdateJointsFromAnimation = false;
-	bImmediatePhysics = false;
+	//bImmediatePhysics = false;
 	MaxFPS = -1;
 	TimeDilation = 1.f;
 }

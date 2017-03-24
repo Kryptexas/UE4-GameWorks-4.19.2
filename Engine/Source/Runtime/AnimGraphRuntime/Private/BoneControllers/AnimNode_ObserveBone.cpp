@@ -2,6 +2,7 @@
 
 #include "BoneControllers/AnimNode_ObserveBone.h"
 #include "AnimationRuntime.h"
+#include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_ObserveBone
@@ -24,15 +25,15 @@ void FAnimNode_ObserveBone::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_ObserveBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_ObserveBone::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
-	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 
 	const FCompactPoseBoneIndex BoneIndex = BoneToObserve.GetCompactPoseIndex(BoneContainer);
-	FTransform BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
+	FTransform BoneTM = Output.Pose.GetComponentSpaceTransform(BoneIndex);
 	
 	// Convert to the specific display space if necessary
-	FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, BoneTM, BoneIndex, DisplaySpace);
+	FAnimationRuntime::ConvertCSTransformToBoneSpace(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, BoneTM, BoneIndex, DisplaySpace);
 
 	// Convert to be relative to the ref pose if necessary
 	if (bRelativeToRefPose)

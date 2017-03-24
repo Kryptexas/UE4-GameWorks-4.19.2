@@ -1642,7 +1642,7 @@ void FSplinePositionLinearApproximation::Build(const FSplineCurves& InCurves, TA
 	OutPoints.Reset();
 
 	const float SplineLength = InCurves.GetSplineLength();
-	int32 NumLinearPoints = FMath::Min((int32)(SplineLength * InDensity), 2);
+	int32 NumLinearPoints = FMath::Max((int32)(SplineLength * InDensity), 2);
 
 	for (int32 LinearPointIndex = 0; LinearPointIndex < NumLinearPoints; ++LinearPointIndex)
 	{

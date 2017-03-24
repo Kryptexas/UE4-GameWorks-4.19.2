@@ -13,7 +13,7 @@ class UCurveFloat;
 class USkeletalMeshComponent;
 
 // Evaluation of the bone transforms relies on the size and ordering of this
-// enum, if this needs to change make sure EvaluateBoneTransforms is updated.
+// enum, if this needs to change make sure EvaluateSkeletalControl_AnyThread is updated.
 
 // The transform component (attribute) to read from
 UENUM()
@@ -167,7 +167,7 @@ public:
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface
-	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) override;	
+	virtual void EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms) override;
 	virtual void EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context);
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface

@@ -526,7 +526,7 @@ public:
 	void SyncComponentsToBodies_AssumesLocked(uint32 SceneType);
 
 	/** Call after WaitPhysScene on the synchronous scene to make deferred OnRigidBodyCollision calls.  */
-	void DispatchPhysNotifications_AssumesLocked();
+	ENGINE_API void DispatchPhysNotifications_AssumesLocked();
 
 	/** Add any debug lines from the physics scene of the given type to the supplied line batcher. */
 	ENGINE_API void AddDebugLines(uint32 SceneType, class ULineBatchComponent* LineBatcherToUse);
@@ -580,7 +580,7 @@ public:
 	}
 
 	/** Adds a force to a body at a specific position - We need to go through scene to support substepping */
-	void AddForceAtPosition_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping);
+	void AddForceAtPosition_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping, bool bIsLocalForce=false);
 
 	/** Adds a radial force to a body - We need to go through scene to support substepping */
 	DEPRECATED(4.8, "Please call AddRadialForceToBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")

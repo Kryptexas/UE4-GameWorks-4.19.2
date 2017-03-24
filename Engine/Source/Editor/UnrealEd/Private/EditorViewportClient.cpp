@@ -26,7 +26,7 @@
 #include "Editor/Matinee/Public/MatineeConstants.h"
 #include "HighResScreenshot.h"
 #include "EditorDragTools.h"
-#include "Editor/MeshPaint/Public/MeshPaintEdMode.h"
+#include "Editor/MeshPaintMode/Public/MeshPaintEdMode.h"
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"
@@ -333,6 +333,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, PreviewScene(InPreviewScene)
 	, MovingPreviewLightSavedScreenPos(ForceInitToZero)
 	, MovingPreviewLightTimer(0.0f)
+	, bLockFlightCamera(false)
 	, PerspViewModeIndex(DefaultPerspectiveViewMode)
 	, OrthoViewModeIndex(DefaultOrthoViewMode)
 	, ViewModeParam(-1)
@@ -2154,6 +2155,9 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 	{
 		bool bInvert = GetDefault<ULevelEditorViewportSettings>()->bInvertMiddleMousePan;
 
+		const float CameraSpeed = GetCameraSpeed();
+		Drag *= CameraSpeed;
+
 		FVector DeltaLocation = bInvert ? FVector(Drag.X, 0, -Drag.Z ) : FVector(-Drag.X, 0, Drag.Z);
 
 		FVector LookAt = ViewTransform.GetLookAt();
@@ -2173,6 +2177,9 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 	else if ( IsOrbitZoomMode( InViewport ) )
 	{
 		FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix().InverseFast();
+
+		const float CameraSpeed = GetCameraSpeed();
+		Drag *= CameraSpeed;
 
 		FVector DeltaLocation = FVector(0, Drag.X+ -Drag.Y, 0);
 
@@ -4153,10 +4160,7 @@ bool FEditorViewportClient::IsFlightCameraInputModeActive() const
 	{
 		if( CameraController != NULL )
 		{
-			// Also check that we're not currently using a ModeWidget (for Vertex Paint etc)
-			const FEdMode* Mode = ModeTools->GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
-			const bool bIsPaintingMesh = ( Mode ) ? ((FEdModeMeshPaint*)Mode)->IsPainting() : false;
-			const bool bLeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton) && !bIsPaintingMesh;
+			const bool bLeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton) && !bLockFlightCamera;
 			const bool bMiddleMouseButtonDown = Viewport->KeyState( EKeys::MiddleMouseButton );
 			const bool bRightMouseButtonDown = Viewport->KeyState( EKeys::RightMouseButton );
 			const bool bIsUsingTrackpad = FSlateApplication::Get().IsUsingTrackpad();

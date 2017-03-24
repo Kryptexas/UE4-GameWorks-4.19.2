@@ -10,6 +10,8 @@ class UClothingAsset;
 class USkeletalMeshComponent;
 struct FClothCollisionData;
 struct FClothSimulData;
+struct FMatrix;
+struct FClothPhysicalMeshData;
 
 // Base clothing actor just needs a link back to its parent asset, everything else defined by derived simulation
 class FClothingActorBase
@@ -69,6 +71,9 @@ public:
 
 	virtual ~FClothingSimulationBase()
 	{}
+
+	// Static method for calculating a skinned mesh result from source data
+	static CLOTHINGSYSTEMRUNTIME_API void SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals);
 
 protected:
 

@@ -3,6 +3,7 @@
 #include "BoneControllers/AnimNode_TwoBoneIK.h"
 #include "AnimationRuntime.h"
 #include "TwoBoneIK.h"
+#include "Animation/AnimInstanceProxy.h"
 
 DECLARE_CYCLE_STAT(TEXT("TwoBoneIK Eval"), STAT_TwoBoneIK_Eval, STATGROUP_Anim);
 
@@ -36,13 +37,13 @@ void FAnimNode_TwoBoneIK::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TwoBoneIK_Eval);
 
 	check(OutBoneTransforms.Num() == 0);
 
-	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 
 	// Get indices of the lower and upper limb bones and check validity.
 	bool bInvalidLimb = false;
@@ -79,12 +80,12 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 	// Get Local Space transforms for our bones. We do this first in case they already are local.
 	// As right after we get them in component space. (And that does the auto conversion).
 	// We might save one transform by doing local first...
-	const FTransform EndBoneLocalTransform = MeshBases.GetLocalSpaceTransform(IKBoneCompactPoseIndex);
+	const FTransform EndBoneLocalTransform = Output.Pose.GetLocalSpaceTransform(IKBoneCompactPoseIndex);
 
 	// Now get those in component space...
-	FTransform LowerLimbCSTransform = MeshBases.GetComponentSpaceTransform(LowerLimbIndex);
-	FTransform UpperLimbCSTransform = MeshBases.GetComponentSpaceTransform(UpperLimbIndex);
-	FTransform EndBoneCSTransform = MeshBases.GetComponentSpaceTransform(IKBoneCompactPoseIndex);
+	FTransform LowerLimbCSTransform = Output.Pose.GetComponentSpaceTransform(LowerLimbIndex);
+	FTransform UpperLimbCSTransform = Output.Pose.GetComponentSpaceTransform(UpperLimbIndex);
+	FTransform EndBoneCSTransform = Output.Pose.GetComponentSpaceTransform(IKBoneCompactPoseIndex);
 
 	// Get current position of root of limb.
 	// All position are in Component space.
@@ -94,7 +95,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 
 	// Transform EffectorLocation from EffectorLocationSpace to ComponentSpace.
 	FTransform EffectorTransform(EffectorLocation);
-	FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, EffectorTransform, EffectorSpaceBoneIndex, EffectorLocationSpace);
+	FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, EffectorTransform, EffectorSpaceBoneIndex, EffectorLocationSpace);
 
 	// Get joint target (used for defining plane that joint should be in).
 	FTransform JointTargetTransform(JointTargetLocation);
@@ -106,7 +107,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 		JointTargetSpaceBoneIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(Index));
 	}
 
-	FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, JointTargetTransform, JointTargetSpaceBoneIndex, JointTargetLocationSpace);
+	FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, JointTargetTransform, JointTargetSpaceBoneIndex, JointTargetLocationSpace);
 
 	FVector	JointTargetPos = JointTargetTransform.GetTranslation();
 

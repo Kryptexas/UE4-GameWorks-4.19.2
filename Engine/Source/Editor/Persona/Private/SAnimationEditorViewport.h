@@ -118,6 +118,10 @@ public:
 	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) override;
 	virtual FEditorViewportClient& GetViewportClient() const override;
 	
+	/** SWidget interface */
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+
+
 	void RefreshViewport();
 
 	/**
@@ -339,6 +343,11 @@ private:
 	/** Called to toggle camera lock for naviagating **/
 	void ToggleCameraFollow();
 	bool IsCameraFollowEnabled() const;
+
+	void SaveCameraAsDefault();
+	void ClearDefaultCamera();
+	void JumpToDefaultCamera();
+	bool HasDefaultCameraSet() const;
 
 	/** Focus the viewport on the preview mesh */
 	void HandleFocusCamera();

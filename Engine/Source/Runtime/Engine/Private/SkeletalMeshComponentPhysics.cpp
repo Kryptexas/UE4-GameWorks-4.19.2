@@ -642,6 +642,8 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset(const UPhysicsAsset& PhysAs
 			// Create physics body instance.
 			FTransform BoneTransform = GetBoneTransform(BoneIndex);
 			FBodyInstance::FInitBodySpawnParams SpawnParams(OwningComponent);
+			SpawnParams.DynamicActorScene = UseAsyncScene;
+
 			if(OwningComponent == nullptr)
 			{
 				//special case where we don't use the skel mesh, but we still want to do certain logic like skeletal mesh
@@ -660,7 +662,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset(const UPhysicsAsset& PhysAs
 	if (PhysScene && Aggregate)
 	{
 		// Get the scene type from the SkeletalMeshComponent's BodyInstance
-		const uint32 SceneType = GetPhysicsSceneType(PhysAsset, *PhysScene);
+		const uint32 SceneType = GetPhysicsSceneType(PhysAsset, *PhysScene, UseAsyncScene);
 		PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
 		SCOPED_SCENE_WRITE_LOCK(PScene);
 		// add Aggregate into the scene
@@ -792,9 +794,10 @@ void USkeletalMeshComponent::TermArticulated()
 #endif //WITH_PHYSX
 }
 
-uint32 USkeletalMeshComponent::GetPhysicsSceneType(const UPhysicsAsset& PhysAsset, const FPhysScene& PhysScene)
+uint32 USkeletalMeshComponent::GetPhysicsSceneType(const UPhysicsAsset& PhysAsset, const FPhysScene& PhysScene, EDynamicActorScene SimulationScene)
 {
-	return (PhysAsset.bUseAsyncScene && PhysScene.HasAsyncScene()) ? PST_Async : PST_Sync;
+	bool bUseAsync = SimulationScene == EDynamicActorScene::Default ? PhysAsset.bUseAsyncScene : (SimulationScene == EDynamicActorScene::UseAsyncScene);
+	return (bUseAsync && PhysScene.HasAsyncScene()) ? PST_Async : PST_Sync;
 }
 
 void USkeletalMeshComponent::TermBodiesBelow(FName ParentBoneName)
@@ -2103,11 +2106,11 @@ bool USkeletalMeshComponent::ComponentOverlapMultiImpl(TArray<struct FOverlapRes
 
 void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds, const FTransform& LocalToWorld) const
 {
-	if(ClothingSimulation)
+	if(ClothingSimulation && ClothingSimulation->ShouldSimulate())
 	{
 		InOutBounds = InOutBounds + ClothingSimulation->GetBounds().TransformBy(LocalToWorld);
-		}
 	}
+}
 
 void USkeletalMeshComponent::RecreateClothingActors()
 {
@@ -2147,6 +2150,9 @@ void USkeletalMeshComponent::RemoveAllClothingActors()
 {
 	if(ClothingSimulation)
 	{
+		// Can't destroy our actors if we're still simulating
+		HandleExistingParallelClothSimulation();
+
 		ClothingSimulation->DestroyActors();
 	}
 }
@@ -2156,6 +2162,9 @@ void USkeletalMeshComponent::ReleaseAllClothingResources()
 #if WITH_CLOTH_COLLISION_DETECTION
 	if(ClothingSimulation)
 	{
+		// Ensure no running simulation first
+		HandleExistingParallelClothSimulation();
+
 		ClothingSimulation->ClearExternalCollisions();
 	}
 #endif // #if WITH_CLOTH_COLLISION_DETECTION
@@ -2682,7 +2691,7 @@ public:
 		// Perform the data writeback
 		if(USkeletalMeshComponent* MeshComp = SkeletalMeshComponent.Get())
 		{
-			MeshComp->WritebackClothingSimulationData();
+			MeshComp->CompleteParallelClothSimulation();
 		}
 	}
 };
@@ -2705,6 +2714,9 @@ void USkeletalMeshComponent::UpdateClothStateAndSimulate(float DeltaTime, FTickF
 		return;
 	}
 
+	// Make sure we aren't already in flight from previous frame
+	HandleExistingParallelClothSimulation();
+
 #if WITH_CLOTH_COLLISION_DETECTION
 	if (bCollideWithAttachedChildren)
 	{
@@ -2722,10 +2734,10 @@ void USkeletalMeshComponent::UpdateClothStateAndSimulate(float DeltaTime, FTickF
 
 	if(ClothingSimulation)
 	{
-		FGraphEventRef ClothTickEvent = TGraphTask<FParallelClothTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(*this, DeltaTime);
+		ParallelClothTask = TGraphTask<FParallelClothTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(*this, DeltaTime);
 			
 		FGraphEventArray Prerequisites;
-		Prerequisites.Add(ClothTickEvent);
+		Prerequisites.Add(ParallelClothTask);
 		FGraphEventRef ClothCompletionEvent = TGraphTask<FParallelClothCompletionTask>::CreateTask(&Prerequisites, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
 
 		ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(ClothCompletionEvent);

@@ -52,9 +52,56 @@ void FAnimNode_PoseDriver::CacheBones(const FAnimationCacheBonesContext& Context
 	FAnimNode_PoseHandler::CacheBones(Context);
 	// Init pose input
 	SourcePose.CacheBones(Context);
-	// Init bone ref
-	SourceBone.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
-	EvalSpaceBone.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
+
+	const FBoneContainer& BoneContainer = Context.AnimInstanceProxy->GetRequiredBones();
+
+	// Init bone refs
+	for (FBoneReference& SourceBoneRef : SourceBones)
+	{
+		SourceBoneRef.Initialize(BoneContainer);
+	}
+
+	for (FBoneReference& OnlyDriveBoneRef : OnlyDriveBones)
+	{
+		OnlyDriveBoneRef.Initialize(BoneContainer);
+	}
+
+	EvalSpaceBone.Initialize(BoneContainer);
+
+	// Don't want to modify SourceBones, set weight to zero (if weight array is allocated)
+	for (FBoneReference& SourceBoneRef : SourceBones)
+	{
+		const FCompactPoseBoneIndex SourceCompactIndex = SourceBoneRef.GetCompactPoseIndex(BoneContainer);
+		if (BoneBlendWeights.IsValidIndex(SourceCompactIndex.GetInt()))
+		{
+			BoneBlendWeights[SourceCompactIndex.GetInt()] = 0.f;
+		}
+	}
+
+
+	// If we are filtering for only specific bones, set blend weight to zero for unwanted bones, and remember which bones to filter
+	BonesToFilter.Reset();
+	if (bOnlyDriveSelectedBones && CurrentPoseAsset.IsValid())
+	{
+		// Super call above should init BoneBlendWeights to compact pose size if CurrentPoseAsset is valid
+		check(BoneBlendWeights.Num() == BoneContainer.GetBoneIndicesArray().Num());
+
+		const TArray<FName> TrackNames = CurrentPoseAsset.Get()->GetTrackNames();
+		for (const auto& TrackName : TrackNames)
+		{
+			// See if bone is in select list
+			if (!IsBoneDriven(TrackName))
+			{
+				int32 MeshBoneIndex = BoneContainer.GetPoseBoneIndexForBoneName(TrackName);
+				FCompactPoseBoneIndex CompactBoneIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(MeshBoneIndex));
+				if (CompactBoneIndex != INDEX_NONE)
+				{
+					BoneBlendWeights[CompactBoneIndex.GetInt()] = 0.f; // Set blend weight for non-additive 
+					BonesToFilter.Add(CompactBoneIndex); // Remember bones to filter out for additive
+				}
+			}
+		}
+	}
 }
 
 void FAnimNode_PoseDriver::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
@@ -69,6 +116,26 @@ void FAnimNode_PoseDriver::GatherDebugData(FNodeDebugData& DebugData)
 	SourcePose.GatherDebugData(DebugData.BranchFlow(1.f));
 }
 
+bool FAnimNode_PoseDriver::IsBoneDriven(FName BoneName) const
+{
+	// If not filtering, drive all the bones
+	if (!bOnlyDriveSelectedBones)
+	{
+		return true;
+	}
+
+	bool bIsDriven = false;
+	for (const FBoneReference& BoneRef : OnlyDriveBones)
+	{
+		if (BoneRef.BoneName == BoneName)
+		{
+			bIsDriven = true;
+			break;
+		}
+	}
+
+	return bIsDriven;
+}
 
 
 void FAnimNode_PoseDriver::GetRBFTargets(TArray<FRBFTarget>& OutTargets) const
@@ -76,21 +143,37 @@ void FAnimNode_PoseDriver::GetRBFTargets(TArray<FRBFTarget>& OutTargets) const
 	OutTargets.Empty();
 	OutTargets.AddZeroed(PoseTargets.Num());
 
+	// Create entry for each target
 	for (int32 TargetIdx = 0; TargetIdx < PoseTargets.Num(); TargetIdx++)
 	{
 		FRBFTarget& RBFTarget = OutTargets[TargetIdx];
 		const FPoseDriverTarget& PoseTarget = PoseTargets[TargetIdx];
 
-		if (DriveSource == EPoseDriverSource::Translation)
+		// We want to make sure we always have the right number of Values in our RBFTarget. 
+		// If bone entries are missing, we fill with zeroes
+		for (int32 SourceIdx = 0; SourceIdx < SourceBones.Num(); SourceIdx++)
 		{
-			RBFTarget.SetFromVector(PoseTarget.TargetTranslation);
-		}
-		else
-		{
-			RBFTarget.SetFromRotator(PoseTarget.TargetRotation);
+			if (PoseTarget.BoneTransforms.IsValidIndex(SourceIdx))
+			{
+				const FPoseDriverTransform& BoneTransform = PoseTarget.BoneTransforms[SourceIdx];
+				if (DriveSource == EPoseDriverSource::Translation)
+				{
+					RBFTarget.AddFromVector(BoneTransform.TargetTranslation);
+				}
+				else
+				{
+					RBFTarget.AddFromRotator(BoneTransform.TargetRotation);
+				}
+			}
+			else
+			{
+				RBFTarget.AddFromVector(FVector::ZeroVector);
+			}
 		}
 
 		RBFTarget.ScaleFactor = PoseTarget.TargetScale;
+		RBFTarget.bApplyCustomCurve = PoseTarget.bApplyCustomCurve;
+		RBFTarget.CustomCurve = PoseTarget.CustomCurve;
 	}
 }
 
@@ -108,45 +191,63 @@ void FAnimNode_PoseDriver::Evaluate(FPoseContext& Output)
 
 	// Get the index of the source bone
 	const FBoneContainer& BoneContainer = SourceData.Pose.GetBoneContainer();
-	const FCompactPoseBoneIndex SourceCompactIndex = SourceBone.GetCompactPoseIndex(BoneContainer);
 
-	// Do nothing if bone is not found/LOD-ed out
-	if (SourceCompactIndex == INDEX_NONE)
+	FRBFEntry Input;
+
+	SourceBoneTMs.Reset();
+	bool bFoundAnyBone = false;
+	for (const FBoneReference& SourceBoneRef : SourceBones)
+	{
+		FTransform SourceBoneTM = FTransform::Identity;
+
+		const FCompactPoseBoneIndex SourceCompactIndex = SourceBoneRef.GetCompactPoseIndex(BoneContainer);
+		if (SourceCompactIndex.GetInt() != INDEX_NONE)
+		{
+			// If evaluating in alternative bone space, have to build component space pose
+			if (EvalSpaceBone.IsValid(BoneContainer))
+			{
+				FCSPose<FCompactPose> CSPose;
+				CSPose.InitPose(SourceData.Pose);
+
+				const FCompactPoseBoneIndex EvalSpaceCompactIndex = EvalSpaceBone.GetCompactPoseIndex(BoneContainer);
+				FTransform EvalSpaceCompSpace = CSPose.GetComponentSpaceTransform(EvalSpaceCompactIndex);
+				FTransform SourceBoneCompSpace = CSPose.GetComponentSpaceTransform(SourceCompactIndex);
+
+				SourceBoneTM = SourceBoneCompSpace.GetRelativeTransform(EvalSpaceCompSpace);
+			}
+			// If just evaluating in local space, just grab from local space pose
+			else
+			{
+				SourceBoneTM = SourceData.Pose[SourceCompactIndex];
+			}
+
+			bFoundAnyBone = true;
+		}
+
+
+		// Build RBFInput entry
+		if (DriveSource == EPoseDriverSource::Translation)
+		{
+			Input.AddFromVector(SourceBoneTM.GetTranslation());
+		}
+		else
+		{
+			Input.AddFromRotator(SourceBoneTM.Rotator());
+		}
+
+		// Record this so we can use it for drawing in edit mode
+		SourceBoneTMs.Add(SourceBoneTM);
+	}
+
+	// Do nothing if bone is no bones are found/all LOD-ed out
+	if (!bFoundAnyBone)
 	{
 		Output = SourceData;
 		return;
 	}
 
-	// If evaluating in alternative bone space, have to build component space pose
-	if (EvalSpaceBone.IsValid(BoneContainer))
-	{
-		FCSPose<FCompactPose> CSPose;
-		CSPose.InitPose(SourceData.Pose);
 
-		const FCompactPoseBoneIndex EvalSpaceCompactIndex = EvalSpaceBone.GetCompactPoseIndex(BoneContainer);
-		FTransform EvalSpaceCompSpace = CSPose.GetComponentSpaceTransform(EvalSpaceCompactIndex);
-		FTransform SourceBoneCompSpace = CSPose.GetComponentSpaceTransform(SourceCompactIndex);
-
-		SourceBoneTM = SourceBoneCompSpace.GetRelativeTransform(EvalSpaceCompSpace);
-	}
-	// If just evaluating in local space, just grab from local space pose
-	else
-	{
-		SourceBoneTM = SourceData.Pose[SourceCompactIndex];
-	}
-
-	// Build RBFInput entry
-	FRBFEntry Input;
-	if (DriveSource == EPoseDriverSource::Translation)
-	{
-		Input.SetFromVector(SourceBoneTM.GetTranslation());
-	}
-	else
-	{
-		Input.SetFromRotator(SourceBoneTM.Rotator());
-	}
-
-	RBFParams.TargetDimensions = 3;
+	RBFParams.TargetDimensions = SourceBones.Num() * 3;
 
 	// Get target array as RBF types
 	TArray<FRBFTarget> RBFTargets;
@@ -189,17 +290,29 @@ void FAnimNode_PoseDriver::Evaluate(FPoseContext& Output)
 				// blend by weight
 				if (CurrentPoseAsset->IsValidAdditive())
 				{
-					// Don't want to modify SourceBone, set additive offset to zero (not identity transform, as need zero scale)
-					CurrentPose.Pose[SourceCompactIndex] = FTransform(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
+					const FTransform AdditiveIdentity(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
+
+					// Don't want to modify SourceBones, set additive offset to zero (not identity transform, as need zero scale)
+					for (const FBoneReference& SourceBoneRef : SourceBones)
+					{
+						const FCompactPoseBoneIndex SourceCompactIndex = SourceBoneRef.GetCompactPoseIndex(BoneContainer);
+						CurrentPose.Pose[SourceCompactIndex] = AdditiveIdentity;
+					}
+
+					// If filtering for specific bones, filter out bones using BonesToFilter array
+					if (bOnlyDriveSelectedBones)
+					{
+						for (FCompactPoseBoneIndex BoneIndex : BonesToFilter)
+						{
+							CurrentPose.Pose[BoneIndex] = AdditiveIdentity;
+						}
+					}
 
 					Output = SourceData;
 					FAnimationRuntime::AccumulateAdditivePose(Output.Pose, CurrentPose.Pose, Output.Curve, CurrentPose.Curve, 1.f, EAdditiveAnimationType::AAT_LocalSpaceBase);
 				}
 				else
 				{
-					// Don't want to modify SourceBone, set weight to zero
-					BoneBlendWeights[SourceCompactIndex.GetInt()] = 0.f;
-
 					FAnimationRuntime::BlendTwoPosesTogetherPerBone(SourceData.Pose, CurrentPose.Pose, SourceData.Curve, CurrentPose.Curve, BoneBlendWeights, Output.Pose, Output.Curve);
 				}
 

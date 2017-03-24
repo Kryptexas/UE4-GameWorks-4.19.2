@@ -557,3 +557,58 @@ private:
 	int32 NumKeys;
 };
 
+UENUM()
+namespace EAxisOption
+{
+	enum Type
+	{
+		X,
+		Y,
+		Z,
+		X_Neg,
+		Y_Neg,
+		Z_Neg,
+		Custom
+	};
+}
+
+/** Axis to represent direction */
+USTRUCT()
+struct FAxis
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "FAxis")
+	FVector Axis;
+
+	UPROPERTY(EditAnywhere, Category = "FAxis")
+	bool bInLocalSpace;
+
+	FAxis(const FVector& InAxis = FVector::ForwardVector)
+		: Axis(InAxis)
+		, bInLocalSpace(true) {};
+
+	/** return transformed axis based on ComponentSpaceTransform */
+	FVector GetTransformedAxis(const FTransform& ComponentSpaceTransform) const
+	{
+		if (bInLocalSpace)
+		{
+			return ComponentSpaceTransform.TransformVectorNoScale(Axis);
+		}
+
+		// if world transform, we don't have to transform
+		return Axis;
+	}
+
+	/** Initialize the set up */
+	void Initialize()
+	{
+		Axis = Axis.GetSafeNormal();
+	}
+
+	/** return true if Valid data */
+	bool IsValid() const
+	{
+		return Axis.IsNormalized();
+	}
+};

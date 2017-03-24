@@ -299,12 +299,12 @@ void FPhATSharedData::Mirror()
 			FQuat ArtistMirrorConvention(0,0,1,0);   // how Epic Maya artists rig the right and left orientation differently.  todo: perhaps move to cvar 
 			for (FKSphylElem& Sphyl : DestBody->AggGeom.SphylElems)
 			{
-				Sphyl.Orientation = ArtistMirrorConvention*Sphyl.Orientation;
-				Sphyl.Center = ArtistMirrorConvention.RotateVector(Sphyl.Center);
+				Sphyl.Rotation	= (ArtistMirrorConvention*Sphyl.Rotation.Quaternion()).Rotator();
+				Sphyl.Center	= ArtistMirrorConvention.RotateVector(Sphyl.Center);
 			}
 			for (FKBoxElem& Box : DestBody->AggGeom.BoxElems)
 			{
-				Box.Orientation = ArtistMirrorConvention*Box.Orientation;
+				Box.Rotation	= (ArtistMirrorConvention*Box.Rotation.Quaternion()).Rotator();
 				Box.Center      = ArtistMirrorConvention.RotateVector(Box.Center);
 			}
 			for (FKSphereElem& Sphere : DestBody->AggGeom.SphereElems)
@@ -931,6 +931,8 @@ void FPhATSharedData::InitConstraintSetup(UPhysicsConstraintTemplate* Constraint
 	ConstraintSetup->DefaultInstance.Pos2 = RelTM.GetOrigin();
 	ConstraintSetup->DefaultInstance.PriAxis2 = RelTM.GetUnitAxis( EAxis::X );
 	ConstraintSetup->DefaultInstance.SecAxis2 = RelTM.GetUnitAxis( EAxis::Y );
+
+	ConstraintSetup->SetDefaultProfile(ConstraintSetup->DefaultInstance);
 
 	// Disable collision between constrained bodies by default.
 	SetCollisionBetween(ChildBodyIndex, ParentBodyIndex, false);

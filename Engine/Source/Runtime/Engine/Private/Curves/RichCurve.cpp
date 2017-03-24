@@ -438,10 +438,9 @@ float FRichCurve::GetKeyValue(FKeyHandle KeyHandle) const
 void FRichCurve::ShiftCurve(float DeltaTime)
 {
 	TSet<FKeyHandle> KeyHandles;
-	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
+	for (auto It = GetKeyHandleIterator(); It; ++It)
 	{
-		FKeyHandle& KeyHandle = It.Key();
-		KeyHandles.Add(KeyHandle);
+		KeyHandles.Add(It.Key());
 	}
 
 	ShiftCurve(DeltaTime, KeyHandles);
@@ -450,7 +449,7 @@ void FRichCurve::ShiftCurve(float DeltaTime)
 
 void FRichCurve::ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles)
 {
-	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
+	for (auto It = GetKeyHandleIterator(); It; ++It)
 	{
 		const FKeyHandle& KeyHandle = It.Key();
 		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
@@ -464,10 +463,9 @@ void FRichCurve::ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles)
 void FRichCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor)
 {
 	TSet<FKeyHandle> KeyHandles;
-	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
+	for (auto It = GetKeyHandleIterator(); It; ++It)
 	{
-		FKeyHandle& KeyHandle = It.Key();
-		KeyHandles.Add(KeyHandle);
+		KeyHandles.Add(It.Key());
 	}
 
 	ScaleCurve(ScaleOrigin, ScaleFactor, KeyHandles);
@@ -476,7 +474,7 @@ void FRichCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor)
 
 void FRichCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles)
 {
-	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
+	for (auto It = GetKeyHandleIterator(); It; ++It)
 	{
 		const FKeyHandle& KeyHandle = It.Key();
 		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))

@@ -12,6 +12,11 @@
 #include "Misc/FileHelper.h"
 #include "Engine/SkeletalMesh.h"
 #include "MessageDialog.h"
+#include "ObjectTools.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "ComponentReregisterContext.h"
+#include "Components/SkeletalMeshComponent.h"
 
 #define LOCTEXT_NAMESPACE "ClothingAssetFactory"
 DEFINE_LOG_CATEGORY(LogClothingAssetFactory)
@@ -113,6 +118,20 @@ UClothingAssetBase* UClothingAssetFactory::Reimport(const FString& Filename, USk
 	int32 OldIndex = INDEX_NONE;
 	if(TargetMesh->MeshClothingAssets.Find(OriginalAsset, OldIndex))
 	{
+		TArray<UActorComponent*> ComponentsToReregister;
+		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+		{
+			if(USkeletalMesh* UsedMesh = (*It)->SkeletalMesh)
+			{
+				if(UsedMesh == TargetMesh)
+				{
+					ComponentsToReregister.Add(*It);
+				}
+			}
+		}
+	
+		FMultiComponentReregisterContext ReregisterContext(ComponentsToReregister);
+
 		UClothingAsset* OldClothingAsset = Cast<UClothingAsset>(TargetMesh->MeshClothingAssets[OldIndex]);
 		UClothingAsset* NewClothingAsset = nullptr;
 		FName AssetName = NAME_None;
@@ -129,6 +148,46 @@ UClothingAssetBase* UClothingAssetFactory::Reimport(const FString& Filename, USk
 			ApexAsset = ConvertApexAssetCoordSystem(ApexAsset);
 			AssetName = *FPaths::GetBaseFilename(Filename);
 
+			// Work out the bindings to the old asset so we can reproduce them for the new asset
+			struct Local_BindingInfo
+			{
+				int32 MeshLodIndex;
+				int32 MeshLodSectionIndex;
+				int32 AssetLodIndex;
+			};
+			TArray<Local_BindingInfo> AssetBindings;
+
+			FSkeletalMeshResource* MeshResource = TargetMesh->GetImportedResource();
+			if(MeshResource)
+			{
+				const int32 NumLods = MeshResource->LODModels.Num();
+
+				for(int32 LodIndex = 0; LodIndex < NumLods; ++LodIndex)
+				{
+					FStaticLODModel& LodModel = MeshResource->LODModels[LodIndex];
+
+					const int32 NumSections = LodModel.Sections.Num();
+
+					for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+					{
+						FSkelMeshSection& Section = LodModel.Sections[SectionIndex];
+
+						if(Section.ClothingData.AssetGuid == OldClothingAsset->AssetGuid && Section.bDisabled == true)
+						{
+							// Found a binding
+							AssetBindings.AddDefaulted();
+
+							Local_BindingInfo& Binding = AssetBindings.Last();
+							Binding.MeshLodIndex = LodIndex;
+							Binding.MeshLodSectionIndex = SectionIndex;
+							Binding.AssetLodIndex = Section.ClothingData.AssetLodIndex;
+						}
+					}
+				}
+			}
+
+			OldClothingAsset->UnbindFromSkeletalMesh(TargetMesh);
+
 			// Create an unreal clothing asset
 			NewClothingAsset = Cast<UClothingAsset>(CreateFromApexAsset(ApexAsset, TargetMesh, AssetName));
 
@@ -138,6 +197,12 @@ UClothingAssetBase* UClothingAssetFactory::Reimport(const FString& Filename, USk
 				NewClothingAsset->ImportedFilePath = Filename;
 
 				TargetMesh->MeshClothingAssets[OldIndex] = NewClothingAsset;
+
+				for(Local_BindingInfo& Binding : AssetBindings)
+				{
+					NewClothingAsset->BindToSkeletalMesh(TargetMesh, Binding.MeshLodIndex, Binding.MeshLodSectionIndex, Binding.AssetLodIndex);
+				}
+
 			}
 		}
 
@@ -146,6 +211,196 @@ UClothingAssetBase* UClothingAssetFactory::Reimport(const FString& Filename, USk
 #endif
 
 	return nullptr;
+}
+
+UClothingAssetBase* UClothingAssetFactory::CreateFromSkeletalMesh(USkeletalMesh* TargetMesh, FSkeletalMeshClothBuildParams& Params)
+{
+	// Need a valid skel mesh
+	if(!TargetMesh)
+	{
+		return nullptr;
+	}
+
+	FSkeletalMeshResource* Mesh = TargetMesh->GetImportedResource();
+
+	// Need a valid resource
+	if(!Mesh)
+	{
+		return nullptr;
+	}
+
+	// Need a valid LOD model
+	if(!Mesh->LODModels.IsValidIndex(Params.LodIndex))
+	{
+		return nullptr;
+	}
+
+	FStaticLODModel& LodModel = Mesh->LODModels[Params.LodIndex];
+
+	// Need a valid section
+	if(!LodModel.Sections.IsValidIndex(Params.SourceSection))
+	{
+		return nullptr;
+	}
+
+	// Ok, we have a valid mesh and section, we can now extract it as a sim mesh
+	FSkelMeshSection& SourceSection = LodModel.Sections[Params.SourceSection];
+
+	// Can't convert to a clothing asset if bound to clothing
+	if(SourceSection.CorrespondClothSectionIndex != INDEX_NONE)
+	{
+		return nullptr;
+	}
+
+	FString SanitizedName = ObjectTools::SanitizeObjectName(Params.AssetName);
+	FName ObjectName = MakeUniqueObjectName(TargetMesh, UClothingAsset::StaticClass(), FName(*SanitizedName));
+	UClothingAsset* NewAsset = NewObject<UClothingAsset>(TargetMesh, ObjectName);
+
+	// Adding a new LOD from this skeletal mesh
+	NewAsset->LodData.AddDefaulted();
+	FClothLODData& LodData = NewAsset->LodData.Last();
+
+	const int32 NumVerts = SourceSection.SoftVertices.Num();
+	const int32 NumIndices = SourceSection.NumTriangles * 3;
+	const int32 BaseIndex = SourceSection.BaseIndex;
+	const int32 BaseVertexIndex = SourceSection.BaseVertexIndex;
+
+	// We need to weld the mesh verts to get rid of duplicates (happens for smoothing groups)
+	TArray<FVector> UniqueVerts;
+	TArray<uint32> OriginalIndexes;
+
+	TArray<uint32> IndexRemap;
+	IndexRemap.AddDefaulted(NumVerts);
+	{
+		float ThreshSq = SMALL_NUMBER * SMALL_NUMBER;
+
+		for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+		{
+			const FSoftSkinVertex& SourceVert = SourceSection.SoftVertices[VertIndex];
+
+			bool bUnique = true;
+			int32 RemapIndex = INDEX_NONE;
+
+			const int32 NumUniqueVerts = UniqueVerts.Num();
+			for(int32 UniqueVertIndex = 0; UniqueVertIndex < NumUniqueVerts; ++UniqueVertIndex)
+			{
+				FVector& UniqueVert = UniqueVerts[UniqueVertIndex];
+
+				if((UniqueVert - SourceVert.Position).SizeSquared() <= ThreshSq)
+				{
+					// Not unique
+					bUnique = false;
+					RemapIndex = UniqueVertIndex;
+
+					break;
+				}
+			}
+
+			if(bUnique)
+			{
+				// Unique
+				UniqueVerts.Add(SourceVert.Position);
+				OriginalIndexes.Add(VertIndex);
+				IndexRemap[VertIndex] = UniqueVerts.Num() - 1;
+			}
+			else
+			{
+				IndexRemap[VertIndex] = RemapIndex;
+			}
+		}
+	}
+
+	const int32 NumUniqueVerts = UniqueVerts.Num();
+
+	FClothPhysicalMeshData& PhysMesh = LodData.PhysicalMeshData;
+	PhysMesh.Reset(NumUniqueVerts);
+	PhysMesh.Indices.AddZeroed(NumIndices);
+	for(int32 VertexIndex = 0; VertexIndex < NumUniqueVerts; ++VertexIndex)
+	{
+		const FSoftSkinVertex& SourceVert = SourceSection.SoftVertices[OriginalIndexes[VertexIndex]];
+
+		PhysMesh.Vertices[VertexIndex] = SourceVert.Position;
+		PhysMesh.Normals[VertexIndex] = SourceVert.TangentZ;
+		PhysMesh.MaxDistances[VertexIndex] = Params.bTryAutoFix ? Params.SimulatedParticleMaxDistance : 0.0f;
+
+		PhysMesh.BackstopRadiuses[VertexIndex] = 0.0f;
+		PhysMesh.BackstopDistances[VertexIndex] = 0.0f;
+
+		FClothVertBoneData& BoneData = PhysMesh.BoneData[VertexIndex];
+		for(int32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex)
+		{
+			const uint16 SourceIndex = SourceSection.BoneMap[SourceVert.InfluenceBones[InfluenceIndex]];
+			
+			if(SourceIndex != INDEX_NONE)
+			{
+				FName BoneName = TargetMesh->RefSkeleton.GetBoneName(SourceIndex);
+				BoneData.BoneIndices[InfluenceIndex] = NewAsset->UsedBoneNames.AddUnique(BoneName);
+				BoneData.BoneWeights[InfluenceIndex] = (float)SourceVert.InfluenceWeights[InfluenceIndex] / 255.0f;
+			}
+		}
+	}
+
+	if(Params.bTryAutoFix && Params.AutoFixThreshold > 0.0f)
+	{
+		FBoxSphereBounds MeshBounds = TargetMesh->GetBounds();
+		FQueryTriOctree Octree(MeshBounds.Origin, MeshBounds.BoxExtent.GetAbsMax());
+
+		PopulateAutoFixOctree(Octree, LodModel, Params.SourceSection);
+
+		// Query each simulation vert against the octree
+		float SquaredQueryDist = Params.AutoFixThreshold * Params.AutoFixThreshold;
+		for(int32 VertexIndex = 0; VertexIndex < NumVerts; ++VertexIndex)
+		{
+			FVector Position = PhysMesh.Vertices[VertexIndex];
+
+			FQueryTriOctree::TConstElementBoxIterator<> OctreeIt(Octree, FBoxCenterAndExtent(Position, FVector(Params.AutoFixThreshold)));
+			for(; OctreeIt.HasPendingElements(); OctreeIt.Advance())
+			{
+				const FQueryTri& CurrentTri = OctreeIt.GetCurrentElement();
+				FVector ClosestTriPoint = FMath::ClosestPointOnTriangleToPoint(Position, CurrentTri.Vertices[0], CurrentTri.Vertices[1], CurrentTri.Vertices[2]);
+				float ActualDistSq = (ClosestTriPoint - Position).SizeSquared();
+
+				if(ActualDistSq <= SquaredQueryDist)
+				{
+					PhysMesh.MaxDistances[VertexIndex] = 0.0f;
+				}
+			}
+		}
+	}
+
+	PhysMesh.MaxBoneWeights = SourceSection.MaxBoneInfluences;
+
+	FMultiSizeIndexContainerData IndexData;
+	LodModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
+	for(int32 IndexIndex = 0; IndexIndex < NumIndices; ++IndexIndex)
+	{
+		PhysMesh.Indices[IndexIndex] = IndexData.Indices[BaseIndex + IndexIndex] - BaseVertexIndex;
+		PhysMesh.Indices[IndexIndex] = IndexRemap[PhysMesh.Indices[IndexIndex]];
+	}
+
+	// Set asset guid
+	NewAsset->AssetGuid = FGuid::NewGuid();
+
+	if(Params.bRemoveFromMesh)
+	{
+		// User doesn't want the section anymore as a renderable, get rid of it
+		TargetMesh->RemoveMeshSection(Params.LodIndex, Params.SourceSection);
+	}
+
+	if(UPhysicsAsset* PhysAsset = Params.PhysicsAsset.LoadSynchronous())
+	{
+		FClothCollisionData& CollisionData = LodData.CollisionData;
+
+		ExtractPhysicsAssetBodies(PhysAsset, TargetMesh, NewAsset, CollisionData);
+	}
+
+	// Build the final bone map
+	NewAsset->RefreshBoneMapping(TargetMesh);
+
+	// Invalidate cached data as the mesh has changed
+	NewAsset->InvalidateCachedData();
+
+	return NewAsset;
 }
 
 UClothingAssetBase* UClothingAssetFactory::CreateFromApexAsset(nvidia::apex::ClothingAsset* InApexAsset, USkeletalMesh* TargetMesh, FName InName)
@@ -213,6 +468,7 @@ UClothingAssetBase* UClothingAssetFactory::CreateFromApexAsset(nvidia::apex::Clo
 	NewClothingAsset->AssetGuid = FGuid::NewGuid();
 	NewClothingAsset->InvalidateCachedData();
 	NewClothingAsset->BuildLodTransitionData();
+	NewClothingAsset->InvalidateCachedData();
 
 	return NewClothingAsset;
 #endif
@@ -829,6 +1085,108 @@ void UClothingAssetFactory::ExtractMaterialParameters(UClothingAsset* NewAsset, 
 		Config.ShearConstraintConfig.StretchLimit = Config.VerticalConstraintConfig.StretchLimit;
 		Config.ShearConstraintConfig.StiffnessMultiplier = Config.VerticalConstraintConfig.StiffnessMultiplier;
 
+	}
+}
+
+void UClothingAssetFactory::ExtractPhysicsAssetBodies(UPhysicsAsset* InPhysicsAsset, USkeletalMesh* TargetMesh, UClothingAsset* TargetClothingAsset, FClothCollisionData& OutCollisionData)
+{
+	if(InPhysicsAsset && TargetClothingAsset && TargetMesh)
+	{
+		USkeletalMesh* PhysAssetMesh = InPhysicsAsset->PreviewSkeletalMesh.LoadSynchronous();
+
+		// Validate compatibility. If we don't have a mesh for the physics asset
+		// We'll continue and just trust it.
+		if(PhysAssetMesh && PhysAssetMesh->Skeleton != TargetMesh->Skeleton)
+		{
+			UE_LOG(LogClothingAssetFactory, Warning, TEXT("Physics Asset %s is incompatible with target skeletal mesh %s, aborting physics data extraction."), *InPhysicsAsset->GetName(), *TargetMesh->GetName());
+			return;
+		}
+
+		// A physics asset was specified, extract compatible bodies
+		for(const USkeletalBodySetup* BodySetup : InPhysicsAsset->SkeletalBodySetups)
+		{
+			int32 MeshBoneIndex = TargetMesh->RefSkeleton.FindBoneIndex(BodySetup->BoneName);
+			int32 MappedBoneIndex = INDEX_NONE;
+
+			if(MeshBoneIndex != INDEX_NONE)
+			{
+				MappedBoneIndex = TargetClothingAsset->UsedBoneNames.AddUnique(BodySetup->BoneName);
+			}
+
+			for(const FKSphereElem& Sphere : BodySetup->AggGeom.SphereElems)
+			{
+				FClothCollisionPrim_Sphere NewSphere;
+				NewSphere.LocalPosition = Sphere.Center;
+				NewSphere.Radius = Sphere.Radius;
+				NewSphere.BoneIndex = MappedBoneIndex;
+
+				OutCollisionData.Spheres.Add(NewSphere);
+			}
+
+			for(const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
+			{
+				FClothCollisionPrim_Sphere Sphere0;
+				FClothCollisionPrim_Sphere Sphere1;
+				FVector OrientedDirection = Sphyl.Rotation.RotateVector(FVector(0.0f, 0.0f, 1.0f));
+				FVector HalfDim = OrientedDirection * (Sphyl.Length / 2.0f);
+				Sphere0.LocalPosition = Sphyl.Center - HalfDim;
+				Sphere1.LocalPosition = Sphyl.Center + HalfDim;
+				Sphere0.Radius = Sphyl.Radius;
+				Sphere1.Radius = Sphyl.Radius;
+				Sphere0.BoneIndex = MappedBoneIndex;
+				Sphere1.BoneIndex = MappedBoneIndex;
+
+				OutCollisionData.Spheres.Add(Sphere0);
+				OutCollisionData.Spheres.Add(Sphere1);
+
+				FClothCollisionPrim_SphereConnection Connection;
+				Connection.SphereIndices[0] = OutCollisionData.Spheres.Num() - 2;
+				Connection.SphereIndices[1] = OutCollisionData.Spheres.Num() - 1;
+
+				OutCollisionData.SphereConnections.Add(Connection);
+			}
+		}
+	}
+}
+
+void UClothingAssetFactory::PopulateAutoFixOctree(FQueryTriOctree& OutOctree, const FStaticLODModel& InLodModel, int32 InExcludeSectionIndex /*= INDEX_NONE*/)
+{
+	TArray<FSoftSkinVertex> LodVerts;
+	InLodModel.GetVertices(LodVerts);
+
+	FMultiSizeIndexContainerData IndexData;
+	InLodModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
+
+	// Attempt to auto fix verts by looking for neighboring verts in other sections
+	for(int32 SectionIndex = 0; SectionIndex < InLodModel.Sections.Num(); ++SectionIndex)
+	{
+		// don't look at our own verts
+		if(SectionIndex == InExcludeSectionIndex)
+		{
+			continue;
+		}
+
+		const FSkelMeshSection& CurrSection = InLodModel.Sections[SectionIndex];
+
+		const int32 NumIndices = CurrSection.NumTriangles * 3;
+		for(int32 CurrIndex = 0; CurrIndex < NumIndices; CurrIndex += 3)
+		{
+			FQueryTri Tri;
+
+			Tri.Id = CurrIndex / 3; // triangle index
+			Tri.SectionIndex = SectionIndex;
+			Tri.Vertices[0] = LodVerts[IndexData.Indices[CurrSection.BaseIndex + CurrIndex]].Position;
+			Tri.Vertices[1] = LodVerts[IndexData.Indices[CurrSection.BaseIndex + CurrIndex + 1]].Position;
+			Tri.Vertices[2] = LodVerts[IndexData.Indices[CurrSection.BaseIndex + CurrIndex + 2]].Position;
+
+			FBox TriBox;
+			TriBox.Min = Tri.Vertices[0].ComponentMin(Tri.Vertices[1].ComponentMin(Tri.Vertices[2]));
+			TriBox.Max = Tri.Vertices[0].ComponentMax(Tri.Vertices[1].ComponentMax(Tri.Vertices[2]));
+
+			Tri.Bounds = FBoxCenterAndExtent(TriBox);
+
+			OutOctree.AddElement(Tri);
+		}
 	}
 }
 

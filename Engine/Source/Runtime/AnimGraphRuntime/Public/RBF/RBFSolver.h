@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "AnimTypes.h"
+#include "Curves/RichCurve.h"
 #include "RBFSolver.generated.h"
 
 /** Function to use for each target falloff */
@@ -46,12 +47,12 @@ struct ANIMGRAPHRUNTIME_API FRBFEntry
 	UPROPERTY(EditAnywhere, Category = RBFData)
 	TArray<float> Values;
 
-	/** Return this target as a quaternion */
-	FQuat AsQuat() const;
+	/** Return a target as a quaternion, assuming Values is a sequence of Euler entries. Index is which Euler to convert. */
+	FQuat AsQuat(int32 Index) const;
 	/** Set this entry to 3 floats from supplied rotator */
-	void SetFromRotator(const FRotator& InRot);
+	void AddFromRotator(const FRotator& InRot);
 	/** Set this entry to 3 floats from supplied vector */
-	void SetFromVector(const FVector& InVector);
+	void AddFromVector(const FVector& InVector);
 
 	/** Return dimensionality of this target */
 	int32 GetDimensions() const
@@ -69,6 +70,19 @@ struct ANIMGRAPHRUNTIME_API FRBFTarget : public FRBFEntry
 	/** How large to scale */
 	UPROPERTY(EditAnywhere, Category = RBFData)
 	float ScaleFactor;
+
+	/** Whether we want to apply an additional custom curve when activating this target */
+	UPROPERTY(EditAnywhere, Category = RBFData)
+	bool bApplyCustomCurve;
+
+	/** Custom curve to apply to activation of this target, if bApplyCustomCurve is true */
+	UPROPERTY(EditAnywhere, Category = RBFData)
+	FRichCurve CustomCurve;
+
+	FRBFTarget()
+		: ScaleFactor(1.f)
+		, bApplyCustomCurve(false)
+	{}
 };
 
 /** Struct for storing RBF results - target index and corresponding weight */

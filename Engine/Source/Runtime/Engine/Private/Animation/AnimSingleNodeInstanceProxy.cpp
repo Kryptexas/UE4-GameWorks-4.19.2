@@ -139,6 +139,11 @@ void FAnimSingleNodeInstanceProxy::UpdateMontageWeightForSlot(const FName Curren
 	UpdateSlotNodeWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight, InGlobalNodeWeight);
 }
 
+void FAnimSingleNodeInstanceProxy::SetMontagePreviewSlot(FName PreviewSlot)
+{
+	SingleNode.ActiveMontageSlot = PreviewSlot;
+}
+
 void FAnimSingleNodeInstanceProxy::InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext)
 {
 	if (BlendSpace->IsValidAdditive())
@@ -332,7 +337,8 @@ void FAnimNode_SingleNode::Evaluate(FPoseContext& Output)
 				LocalSourcePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
 				LocalSourceCurve.InitFrom(Output.Curve);
 			
-				if (Montage->IsValidAdditive())
+				FAnimTrack const* const AnimTrack = Montage->GetAnimationData(ActiveMontageSlot);
+				if (AnimTrack->IsAdditive())
 				{
 #if WITH_EDITORONLY_DATA
 					// if montage is additive, we need to have base pose for the slot pose evaluate
@@ -351,7 +357,7 @@ void FAnimNode_SingleNode::Evaluate(FPoseContext& Output)
 					LocalSourcePose.ResetToRefPose();
 				}
 
-				Proxy->SlotEvaluatePose(Montage->SlotAnimTracks[0].SlotName, LocalSourcePose, LocalSourceCurve, Proxy->WeightInfo.SourceWeight, Output.Pose, Output.Curve, Proxy->WeightInfo.SlotNodeWeight, Proxy->WeightInfo.TotalNodeWeight);
+				Proxy->SlotEvaluatePose(ActiveMontageSlot, LocalSourcePose, LocalSourceCurve, Proxy->WeightInfo.SourceWeight, Output.Pose, Output.Curve, Proxy->WeightInfo.SlotNodeWeight, Proxy->WeightInfo.TotalNodeWeight);
 			}
 		}
 		else
@@ -482,9 +488,7 @@ void FAnimNode_SingleNode::Update(const FAnimationUpdateContext& Context)
 			// Full weight , if you don't have slot track, you won't be able to see animation playing
 			if ( Montage->SlotAnimTracks.Num() > 0 )
 			{
-				// in the future, maybe we can support which slot
-				const FName CurrentSlotNodeName = Montage->SlotAnimTracks[0].SlotName;
-				Proxy->UpdateMontageWeightForSlot(CurrentSlotNodeName, 1.f);
+				Proxy->UpdateMontageWeightForSlot(ActiveMontageSlot, 1.f);
 			}
 			// get the montage position
 			// @todo anim: temporarily just choose first slot and show the location

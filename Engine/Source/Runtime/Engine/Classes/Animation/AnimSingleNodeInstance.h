@@ -80,6 +80,9 @@ public:
 	virtual void RestartMontage(UAnimMontage * Montage, FName FromSection = FName());
 	void SetMontageLoop(UAnimMontage* Montage, bool bIsLooping, FName StartingSection = FName());
 
+	/** Set the montage slot to preview */
+	void SetMontagePreviewSlot(FName PreviewSlot);
+
 	/** Updates montage weights based on a jump in time (as this wont be handled by SetPosition) */
 	void UpdateMontageWeightForTimeSkip(float TimeDifference);
 

@@ -148,7 +148,7 @@ void FSequencerObjectChangeListener::ReportObjectDestroyed(UObject& Object)
 	ObjectToPropertyChangedEvent.Remove(&Object);
 }
 
-bool FSequencerObjectChangeListener::FindPropertySetter( const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const FString& InPropertyVarName, const UStructProperty* StructProperty ) const
+bool FSequencerObjectChangeListener::FindPropertySetter( const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const FString& InPropertyVarName, const UStructProperty* StructProperty, const UArrayProperty* ArrayProperty) const
 {
 	if (!PropertyChangedEventMap.Contains( PropertyKey ))
 	{
@@ -185,7 +185,22 @@ bool FSequencerObjectChangeListener::FindPropertySetter( const UStruct& Property
 	bool bFoundValidInterp = false;
 	bool bFoundEditDefaultsOnly = false;
 	bool bFoundEdit = false;
-	if (StructProperty != 0)
+	if (ArrayProperty != nullptr)
+	{
+		if (ArrayProperty->HasAnyPropertyFlags(CPF_Interp))
+		{
+			bFoundValidInterp = true;
+		}
+		if (ArrayProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
+		{
+			bFoundEditDefaultsOnly = true;
+		}
+		if (ArrayProperty->HasAnyPropertyFlags(CPF_Edit))
+		{
+			bFoundEdit = true;
+		}
+	}
+	else if (StructProperty != nullptr)
 	{
 		if (StructProperty->HasAnyPropertyFlags(CPF_Interp))
 		{
@@ -238,6 +253,12 @@ bool FSequencerObjectChangeListener::CanKeyProperty(FCanKeyPropertyParams CanKey
 		ParentStructProperty = Cast<const UStructProperty>(CanKeyPropertyParams.PropertyPath.GetPropertyInfo(CanKeyPropertyParams.PropertyPath.GetNumProperties() - 2).Property.Get());
 	}
 
+	const UArrayProperty* ParentArrayProperty = nullptr;
+	if (CanKeyPropertyParams.PropertyPath.GetNumProperties() > 2)
+	{
+		ParentArrayProperty = Cast<const UArrayProperty>(CanKeyPropertyParams.PropertyPath.GetPropertyInfo(CanKeyPropertyParams.PropertyPath.GetNumProperties() - 3).Property.Get());
+	}
+
 	bool bFound = false;
 	if ( StructProperty )
 	{
@@ -250,6 +271,13 @@ bool FSequencerObjectChangeListener::CanKeyProperty(FCanKeyPropertyParams CanKey
 		// If the property parent is a struct, see if this property parent can be keyed.
 		const UStruct* PropertyContainer = CanKeyPropertyParams.FindPropertyContainer(ParentStructProperty);
 		bFound = FindPropertySetter(*PropertyContainer, FAnimatedPropertyKey::FromStructType(ParentStructProperty->Struct), ParentStructProperty->GetName(), ParentStructProperty );
+
+		if (!bFound && ParentArrayProperty)
+		{
+			// If the property parent is a struct contained in an array, see if this property parent can be keyed.
+			PropertyContainer = CanKeyPropertyParams.FindPropertyContainer(ParentStructProperty);
+			bFound = FindPropertySetter(*PropertyContainer, FAnimatedPropertyKey::FromStructType(ParentStructProperty->Struct), ParentStructProperty->GetName(), ParentStructProperty, ParentArrayProperty);
+		}
 	}
 
 	UProperty* Property = CanKeyPropertyParams.PropertyPath.GetLeafMostProperty().Property.Get();

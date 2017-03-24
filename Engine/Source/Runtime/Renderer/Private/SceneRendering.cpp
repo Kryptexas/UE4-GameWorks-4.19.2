@@ -34,6 +34,7 @@
 #include "HdrCustomResolveShaders.h"
 #include "WideCustomResolveShaders.h"
 #include "PipelineStateCache.h"
+#include "GPUSkinCache.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -1158,7 +1159,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 	check(Scene != NULL);
 
 	check(IsInGameThread());
-	ViewFamily.FrameNumber = GFrameNumber;
+	ViewFamily.FrameNumber = Scene ? Scene->GetFrameNumber() : GFrameNumber;
 
 	// Copy the individual views.
 	bool bAnyViewIsLocked = false;
@@ -1886,12 +1887,17 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 	// Flush the canvas first.
 	Canvas->Flush_GameThread();
 
-	// Increment FrameNumber before render the scene. Wrapping around is no problem.
-	// This is the only spot we change GFrameNumber, other places can only read.
-	++GFrameNumber;
-
-	// this is passes to the render thread, better access that than GFrameNumberRenderThread
-	ViewFamily->FrameNumber = GFrameNumber;
+	if (Scene)
+	{
+		// We allow caching of per-frame, per-scene data
+		Scene->IncrementFrameNumber();
+		ViewFamily->FrameNumber = Scene->GetFrameNumber();
+	}
+	else
+	{
+		// this is passes to the render thread, better access that than GFrameNumberRenderThread
+		ViewFamily->FrameNumber = GFrameNumber;
+	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
@@ -1963,6 +1969,27 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 			FlushPendingDeleteRHIResources_RenderThread();
 		});
 	}
+}
+
+static void PostRenderAllViewports_RenderThread(FRHICommandListImmediate& RHICmdList)
+{
+	if (GEnableGPUSkinCache)
+	{
+		GGPUSkinCache.AdvanceFrameUpdate(RHICmdList);
+	}
+}
+
+void FRendererModule::PostRenderAllViewports()
+{
+	// Increment FrameNumber before render the scene. Wrapping around is no problem.
+	// This is the only spot we change GFrameNumber, other places can only read.
+	++GFrameNumber;
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND(
+		PostRenderAllViewports_RT,
+		{
+			PostRenderAllViewports_RenderThread(RHICmdList);
+		});
 }
 
 void FRendererModule::UpdateMapNeedsLightingFullyRebuiltState(UWorld* World)

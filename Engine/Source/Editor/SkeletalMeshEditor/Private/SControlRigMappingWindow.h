@@ -54,6 +54,7 @@ private:
 	/** Button handler **/
 	FReply OnAddNodeMappingButtonClicked();
 	FReply OnDeleteNodeMappingButtonClicked();
+	FReply OnRefreshNodeMappingButtonClicked();
 	/**
 	* Handler for adding new retarget source. It displays the asset picker
 	*/

@@ -106,6 +106,17 @@ void SControlRigMappingWindow::Construct(const FArguments& InArgs, const TWeakOb
 				.VAlign(VAlign_Center)
 				.Text(LOCTEXT("DeleteNodeMappingButton_Label", "Delete Current"))
 			]
+
+			+SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.OnClicked(FOnClicked::CreateSP(this, &SControlRigMappingWindow::OnRefreshNodeMappingButtonClicked))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Text(LOCTEXT("RefreshNodeMappingButton_Label", "Refresh Mapping"))
+			]
 		]
 
 		+SVerticalBox::Slot()
@@ -225,6 +236,40 @@ FReply SControlRigMappingWindow::OnDeleteNodeMappingButtonClicked()
 	return FReply::Handled();
 }
 
+FReply SControlRigMappingWindow::OnRefreshNodeMappingButtonClicked()
+{
+	// create new mapper object
+	USkeletalMesh* SkeletalMesh = EditableSkeletalMeshPtr.Get();
+	if (SkeletalMesh->NodeMappingData.IsValidIndex(CurrentlySelectedIndex))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ControlRigMapping_Refresh", "Refresh Node Mapping"));
+
+		UNodeMappingContainer* Container = GetCurrentBoneMappingContainer();
+		if (SkeletalMesh && Container)
+		{
+			TArray<FName> Nodes;
+			TArray<FTransform> Transforms;
+			if (GetNodeData(Container, Nodes, Transforms) > 0)
+			{
+				SkeletalMesh->Modify();
+
+				for (int32 NodeIndex = 0; NodeIndex < Nodes.Num(); ++NodeIndex)
+				{
+					const FTransform SourceTransform = Transforms[NodeIndex];
+					const FNodeMap* NodeMap = Container->GetNodeMapping(Nodes[NodeIndex]);
+					if (NodeMap)
+					{
+						int32 BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(NodeMap->TargetNodeName);
+						const FTransform TargetTransform = FAnimationRuntime::GetComponentSpaceTransform(SkeletalMesh->RefSkeleton, SkeletalMesh->RetargetBasePose, BoneIndex);
+						Container->SetNodeMapping(Nodes[NodeIndex], NodeMap->TargetNodeName, SourceTransform, TargetTransform);
+					}
+				}
+			}
+		}
+	}
+
+	return FReply::Handled();
+}
 void SControlRigMappingWindow::OnAddNodeMapping()
 {
 	// show list of skeletalmeshes that they can choose from
@@ -377,7 +422,7 @@ void SControlRigMappingWindow::OnBoneMappingChanged(FName NodeName, FName BoneNa
 
 				const FTransform SourceTransform = Transforms[NodeIndex];
 				int32 BoneIndex = Mesh->RefSkeleton.FindBoneIndex(BoneName);
-				const FTransform TargetTransform = FAnimationRuntime::GetComponentSpaceTransformRefPose(Mesh->RefSkeleton, BoneIndex);
+				const FTransform TargetTransform = FAnimationRuntime::GetComponentSpaceTransform(Mesh->RefSkeleton, Mesh->RetargetBasePose, BoneIndex);
 				Container->SetNodeMapping(NodeName, BoneName, SourceTransform, TargetTransform);
 			}
 		}

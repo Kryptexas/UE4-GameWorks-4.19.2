@@ -52,8 +52,8 @@ void FMaterialProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropert
 	RoughnessTextureSizeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, RoughnessTextureSize));
 	SpecularTextureSizeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, SpecularTextureSize));
 	EmissiveTextureSizeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, EmissiveTextureSize));
-	// Opacity is disabled for now
-	//OpacityTextureSizeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, OpacityTextureSize));
+	OpacityTextureSizeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, OpacityTextureSize));
+	OpacityMaskTextureSizeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, OpacityMaskTextureSize));
 	if (PropertyHandles.Contains(GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, MaterialMergeType)))
 	{
 		MergeTypeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, MaterialMergeType));
@@ -73,7 +73,8 @@ void FMaterialProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropert
 			|| Iter.Value() == RoughnessTextureSizeHandle
 			|| Iter.Value() == SpecularTextureSizeHandle
 			|| Iter.Value() == EmissiveTextureSizeHandle
-			// Disabled for now || Iter.Value() == OpacityTextureSizeHandle
+			|| Iter.Value() == OpacityTextureSizeHandle
+			|| Iter.Value() == OpacityMaskTextureSizeHandle
 			)
 		{
 			IDetailPropertyRow& SizeRow = ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());

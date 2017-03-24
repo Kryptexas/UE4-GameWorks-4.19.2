@@ -25,14 +25,9 @@ private_subobject:
 	class UPhysicsThrusterComponent* ThrusterComponent;
 
 #if WITH_EDITORONLY_DATA
-
 	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
-
-	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
-	UPROPERTY()
-	class UBillboardComponent* SpriteComponent;
 #endif
 
 public:
@@ -41,8 +36,6 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** Returns ArrowComponent subobject **/
 	ENGINE_API class UArrowComponent* GetArrowComponent() const;
-	/** Returns SpriteComponent subobject **/
-	ENGINE_API class UBillboardComponent* GetSpriteComponent() const;
 #endif
 };
 

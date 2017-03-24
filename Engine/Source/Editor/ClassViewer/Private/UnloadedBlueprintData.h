@@ -24,6 +24,8 @@ public:
 
 	virtual bool IsA(const UClass* InClass) const override;
 
+	virtual const UClass* GetClassWithin() const override;
+
 	/** Retrieves the Class Viewer node this data is associated with. */
 	const TWeakPtr< class FClassViewerNode > GetClassViewerNode() const;
 

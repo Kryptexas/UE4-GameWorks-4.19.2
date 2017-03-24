@@ -1842,72 +1842,82 @@ void FAnimBlueprintCompiler::PostCompile()
 
 		if (FunctionList.Num() > 0)
 		{
-			// check the assumption that the ubergraph is the first function
-			check(FunctionList[0].Function->GetName().StartsWith(TEXT("ExecuteUbergraph")));
-			FKismetFunctionContext& UbergraphFunctionContext = FunctionList[0];
-
-			// run through the per-node compiled statements looking for struct-sets used by anim nodes
-			for (auto& StatementPair : UbergraphFunctionContext.StatementsPerNode)
+			// find the ubergraph in the function list
+			FKismetFunctionContext* UbergraphFunctionContext = nullptr;
+			for (FKismetFunctionContext& FunctionContext : FunctionList)
 			{
-				if (UK2Node_StructMemberSet* StructMemberSetNode = Cast<UK2Node_StructMemberSet>(StatementPair.Key))
+				if (FunctionList[0].Function->GetName().StartsWith(TEXT("ExecuteUbergraph")))
 				{
-					UObject* SourceNode = MessageLog.FindSourceObject(StructMemberSetNode);
+					UbergraphFunctionContext = &FunctionContext;
+					break;
+				}
+			}
 
-					if (SourceNode && StructMemberSetNode->StructType->IsChildOf(FAnimNode_Base::StaticStruct()))
+			if (UbergraphFunctionContext)
+			{
+				// run through the per-node compiled statements looking for struct-sets used by anim nodes
+				for (auto& StatementPair : UbergraphFunctionContext->StatementsPerNode)
+				{
+					if (UK2Node_StructMemberSet* StructMemberSetNode = Cast<UK2Node_StructMemberSet>(StatementPair.Key))
 					{
-						for (FBlueprintCompiledStatement* Statement : StatementPair.Value)
+						UObject* SourceNode = MessageLog.FindSourceObject(StructMemberSetNode);
+
+						if (SourceNode && StructMemberSetNode->StructType->IsChildOf(FAnimNode_Base::StaticStruct()))
 						{
-							if (Statement->Type == KCST_CallFunction && Statement->FunctionToCall)
+							for (FBlueprintCompiledStatement* Statement : StatementPair.Value)
 							{
-								// pure function?
-								const bool bPureFunctionCall = Statement->FunctionToCall->HasAnyFunctionFlags(FUNC_BlueprintPure);
-
-								// function called on something other than function library or anim instance?
-								UClass* FunctionClass = CastChecked<UClass>(Statement->FunctionToCall->GetOuter());
-								const bool bFunctionLibraryCall = FunctionClass->IsChildOf<UBlueprintFunctionLibrary>();
-								const bool bAnimInstanceCall = FunctionClass->IsChildOf<UAnimInstance>();
-
-								// Whitelisted/blacklisted? Some functions are not really 'pure', so we give people the opportunity to mark them up.
-								// Mark up the class if it is generally thread safe, then unsafe functions can be marked up individually. We assume
-								// that classes are unsafe by default, as well as if they are marked up NotBlueprintThreadSafe.
-								const bool bClassThreadSafe = FunctionClass->HasMetaData(TEXT("BlueprintThreadSafe"));
-								const bool bClassNotThreadSafe = FunctionClass->HasMetaData(TEXT("NotBlueprintThreadSafe")) || !FunctionClass->HasMetaData(TEXT("BlueprintThreadSafe"));
-								const bool bFunctionThreadSafe = Statement->FunctionToCall->HasMetaData(TEXT("BlueprintThreadSafe"));
-								const bool bFunctionNotThreadSafe = Statement->FunctionToCall->HasMetaData(TEXT("NotBlueprintThreadSafe"));
-
-								const bool bThreadSafe = (bClassThreadSafe && !bFunctionNotThreadSafe) || (bClassNotThreadSafe && bFunctionThreadSafe);
-
-								const bool bValidForUsage = bPureFunctionCall && bThreadSafe && (bFunctionLibraryCall || bAnimInstanceCall);
-
-								if (!bValidForUsage)
+								if (Statement->Type == KCST_CallFunction && Statement->FunctionToCall)
 								{
-									UEdGraphNode* FunctionNode = nullptr;
-									if (Statement->FunctionContext && Statement->FunctionContext->SourcePin)
-									{
-										FunctionNode = Statement->FunctionContext->SourcePin->GetOwningNode();
-									}
-									else if (Statement->LHS && Statement->LHS->SourcePin)
-									{
-										FunctionNode = Statement->LHS->SourcePin->GetOwningNode();
-									}
+									// pure function?
+									const bool bPureFunctionCall = Statement->FunctionToCall->HasAnyFunctionFlags(FUNC_BlueprintPure);
 
-									if (FunctionNode)
-									{
-										MessageLog.Warning(*LOCTEXT("NotThreadSafeWarningNodeContext", "Node @@ uses potentially thread-unsafe call @@. Disable threaded update or use a thread-safe call. Function may need BlueprintThreadSafe metadata adding.").ToString(), SourceNode, FunctionNode)
-											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
-									}
-									else if(Statement->FunctionToCall)
-									{
-										MessageLog.Warning(*FText::Format(LOCTEXT("NotThreadSafeWarningFunctionContext", "Node @@ uses potentially thread-unsafe call {0}. Disable threaded update or use a thread-safe call. Function may need BlueprintThreadSafe metadata adding."), Statement->FunctionToCall->GetDisplayNameText()).ToString(), SourceNode)
-											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
-									}
-									else
-									{
-										MessageLog.Warning(*LOCTEXT("NotThreadSafeWarningUnknownContext", "Node @@ uses potentially thread-unsafe call. Disable threaded update or use a thread-safe call.").ToString(), SourceNode)
-											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
-									}
+									// function called on something other than function library or anim instance?
+									UClass* FunctionClass = CastChecked<UClass>(Statement->FunctionToCall->GetOuter());
+									const bool bFunctionLibraryCall = FunctionClass->IsChildOf<UBlueprintFunctionLibrary>();
+									const bool bAnimInstanceCall = FunctionClass->IsChildOf<UAnimInstance>();
 
-									DefaultAnimInstance->bUseMultiThreadedAnimationUpdate = false;
+									// Whitelisted/blacklisted? Some functions are not really 'pure', so we give people the opportunity to mark them up.
+									// Mark up the class if it is generally thread safe, then unsafe functions can be marked up individually. We assume
+									// that classes are unsafe by default, as well as if they are marked up NotBlueprintThreadSafe.
+									const bool bClassThreadSafe = FunctionClass->HasMetaData(TEXT("BlueprintThreadSafe"));
+									const bool bClassNotThreadSafe = FunctionClass->HasMetaData(TEXT("NotBlueprintThreadSafe")) || !FunctionClass->HasMetaData(TEXT("BlueprintThreadSafe"));
+									const bool bFunctionThreadSafe = Statement->FunctionToCall->HasMetaData(TEXT("BlueprintThreadSafe"));
+									const bool bFunctionNotThreadSafe = Statement->FunctionToCall->HasMetaData(TEXT("NotBlueprintThreadSafe"));
+
+									const bool bThreadSafe = (bClassThreadSafe && !bFunctionNotThreadSafe) || (bClassNotThreadSafe && bFunctionThreadSafe);
+
+									const bool bValidForUsage = bPureFunctionCall && bThreadSafe && (bFunctionLibraryCall || bAnimInstanceCall);
+
+									if (!bValidForUsage)
+									{
+										UEdGraphNode* FunctionNode = nullptr;
+										if (Statement->FunctionContext && Statement->FunctionContext->SourcePin)
+										{
+											FunctionNode = Statement->FunctionContext->SourcePin->GetOwningNode();
+										}
+										else if (Statement->LHS && Statement->LHS->SourcePin)
+										{
+											FunctionNode = Statement->LHS->SourcePin->GetOwningNode();
+										}
+
+										if (FunctionNode)
+										{
+											MessageLog.Warning(*LOCTEXT("NotThreadSafeWarningNodeContext", "Node @@ uses potentially thread-unsafe call @@. Disable threaded update or use a thread-safe call. Function may need BlueprintThreadSafe metadata adding.").ToString(), SourceNode, FunctionNode)
+												->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+										}
+										else if (Statement->FunctionToCall)
+										{
+											MessageLog.Warning(*FText::Format(LOCTEXT("NotThreadSafeWarningFunctionContext", "Node @@ uses potentially thread-unsafe call {0}. Disable threaded update or use a thread-safe call. Function may need BlueprintThreadSafe metadata adding."), Statement->FunctionToCall->GetDisplayNameText()).ToString(), SourceNode)
+												->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+										}
+										else
+										{
+											MessageLog.Warning(*LOCTEXT("NotThreadSafeWarningUnknownContext", "Node @@ uses potentially thread-unsafe call. Disable threaded update or use a thread-safe call.").ToString(), SourceNode)
+												->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+										}
+
+										DefaultAnimInstance->bUseMultiThreadedAnimationUpdate = false;
+									}
 								}
 							}
 						}

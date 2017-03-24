@@ -2244,6 +2244,16 @@ public:
 	virtual bool AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest) override;
 #endif //WITH_EDITOR
 
+	virtual uint32 GetFrameNumber() const override
+	{
+		return SceneFrameNumber;
+	}
+
+	virtual void IncrementFrameNumber() override
+	{
+		++SceneFrameNumber;
+	}
+
 private:
 
 	/**
@@ -2345,6 +2355,9 @@ private:
 
 	/** This scene's feature level */
 	ERHIFeatureLevel::Type FeatureLevel;
+
+	/** Frame number incremented per-family viewing this scene. */
+	uint32 SceneFrameNumber;
 };
 
 inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)

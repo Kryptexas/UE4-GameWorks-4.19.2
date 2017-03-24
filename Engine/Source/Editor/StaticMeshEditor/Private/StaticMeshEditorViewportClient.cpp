@@ -28,6 +28,7 @@
 
 #include "Engine/AssetUserData.h"
 
+#include "Editor/EditorPerProjectUserSettings.h"
 #include "AssetViewerSettings.h"
 
 #define LOCTEXT_NAMESPACE "FStaticMeshEditorViewportClient"
@@ -92,7 +93,7 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	// Register delegate to update the show flags when the post processing is turned on or off
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FStaticMeshEditorViewportClient::OnAssetViewerSettingsChanged);
 	// Set correct flags according to current profile settings
-	SetAdvancedShowFlagsForScene();
+	SetAdvancedShowFlagsForScene(UAssetViewerSettings::Get()->Profiles[GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex].bPostProcessingEnabled);
 }
 
 FStaticMeshEditorViewportClient::~FStaticMeshEditorViewportClient()
@@ -1214,15 +1215,14 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 
 void FStaticMeshEditorViewportClient::OnAssetViewerSettingsChanged(const FName& InPropertyName)
 {
-	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled))
+	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled) || InPropertyName == NAME_None)
 	{
-		SetAdvancedShowFlagsForScene();
+		SetAdvancedShowFlagsForScene(UAssetViewerSettings::Get()->Profiles[AdvancedPreviewScene->GetCurrentProfileIndex()].bPostProcessingEnabled);
 	}
 }
 
-void FStaticMeshEditorViewportClient::SetAdvancedShowFlagsForScene()
-{
-	const bool bAdvancedShowFlags = UAssetViewerSettings::Get()->Profiles[AdvancedPreviewScene->GetCurrentProfileIndex()].bPostProcessingEnabled;
+void FStaticMeshEditorViewportClient::SetAdvancedShowFlagsForScene(const bool bAdvancedShowFlags)
+{	
 	if (bAdvancedShowFlags)
 	{
 		EngineShowFlags.EnableAdvancedFeatures();

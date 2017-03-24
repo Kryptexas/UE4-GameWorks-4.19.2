@@ -1477,7 +1477,9 @@ public:
 
 	/* Default view mode for orthographic viewports */
 	static const EViewModeIndex DefaultOrthoViewMode;
-
+	
+	/** Flag to lock the viewport fly camera */
+	bool bLockFlightCamera;
 protected:
 	/** Data needed to display per-frame stat tracking when STAT UNIT is enabled */
 	mutable FStatUnitData StatUnitData;

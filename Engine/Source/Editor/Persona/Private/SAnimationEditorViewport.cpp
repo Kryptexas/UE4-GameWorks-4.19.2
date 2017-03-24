@@ -76,7 +76,7 @@ void SAnimationEditorViewport::OnUndoRedo()
 void SAnimationEditorViewport::OnFocusViewportToSelection()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->FocusViewportOnPreviewMesh();
+	AnimViewportClient->FocusViewportOnPreviewMesh(false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -288,6 +288,15 @@ bool SAnimationEditorViewportTabBody::IsVisible() const
 	return ViewportWidget.IsValid();
 }
 
+FReply SAnimationEditorViewportTabBody::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (UICommandList.IsValid() && UICommandList->ProcessCommandBindings(InKeyEvent))
+	{
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
+
 
 void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, FSimpleMulticastDelegate& InOnUndoRedo)
 {
@@ -408,6 +417,20 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ToggleCameraFollow),
 		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanChangeCameraMode),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsCameraFollowEnabled));
+
+	CommandList.MapAction(
+		MenuActions.JumpToDefaultCamera,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::JumpToDefaultCamera),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::HasDefaultCameraSet));
+
+	CommandList.MapAction(
+		MenuActions.SaveCameraAsDefault,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::SaveCameraAsDefault));
+
+	CommandList.MapAction(
+		MenuActions.ClearDefaultCamera,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ClearDefaultCamera),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::HasDefaultCameraSet));
 
 	CommandList.MapAction(
 		MenuActions.PreviewSceneSettings,
@@ -1368,6 +1391,30 @@ bool SAnimationEditorViewportTabBody::IsCameraFollowEnabled() const
 	return (AnimViewportClient->IsSetCameraFollowChecked());
 }
 
+void SAnimationEditorViewportTabBody::SaveCameraAsDefault()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->SaveCameraAsDefault();
+}
+
+void SAnimationEditorViewportTabBody::ClearDefaultCamera()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->ClearDefaultCamera();
+}
+
+void SAnimationEditorViewportTabBody::JumpToDefaultCamera()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->JumpToDefaultCamera();
+}
+
+bool SAnimationEditorViewportTabBody::HasDefaultCameraSet() const
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	return (AnimViewportClient->HasDefaultCameraSet());
+}
+
 bool SAnimationEditorViewportTabBody::CanChangeCameraMode() const
 {
 	//Not allowed to change camera type when we are in an ortho camera
@@ -1679,7 +1726,7 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 void SAnimationEditorViewportTabBody::HandleFocusCamera()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->FocusViewportOnPreviewMesh();
+	AnimViewportClient->FocusViewportOnPreviewMesh(false);
 }
 
 #undef LOCTEXT_NAMESPACE

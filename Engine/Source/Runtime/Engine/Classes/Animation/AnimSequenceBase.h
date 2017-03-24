@@ -112,7 +112,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	ENGINE_API uint8* FindArrayProperty(const TCHAR* PropName, UArrayProperty*& ArrayProperty, int32 ArrayIndex);
 
 protected:
-	virtual void RefreshParentAssetData() override;
+	ENGINE_API virtual void RefreshParentAssetData() override;
 #endif	//WITH_EDITORONLY_DATA
 public: 
 	// update cache data (notify tracks, sync markers)

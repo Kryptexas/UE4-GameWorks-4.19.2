@@ -8,6 +8,8 @@
 #include "Engine/Texture2D.h"
 #include "PhysicsEngine/PhysicsThrusterComponent.h"
 
+#define LOCTEXT_NAMESPACE "PhysicsThrusterComponent"
+
 
 UPhysicsThrusterComponent::UPhysicsThrusterComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -15,7 +17,26 @@ UPhysicsThrusterComponent::UPhysicsThrusterComponent(const FObjectInitializer& O
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	ThrustStrength = 100.0;
+#if WITH_EDITORONLY_DATA
+	bVisualizeComponent = true;
+#endif
 }
+
+#if WITH_EDITORONLY_DATA
+void UPhysicsThrusterComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	if (SpriteComponent != nullptr)
+	{
+		SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/S_Thruster.S_Thruster")));
+		SpriteComponent->SetRelativeScale3D(FVector(0.5f));
+		SpriteComponent->SpriteInfo.Category = TEXT("Physics");
+		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Physics", "Physics");
+		SpriteComponent->bIsScreenSizeScaled = true;
+	}
+}
+#endif // WITH_EDITORONLY_DATA
 
 void UPhysicsThrusterComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
@@ -44,45 +65,19 @@ APhysicsThruster::APhysicsThruster(const FObjectInitializer& ObjectInitializer)
 
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("ArrowComponent0"));
-	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 
 	if (!IsRunningCommandlet())
 	{
-		// Structure to hold one-time initialization
-		struct FConstructorStatics
-		{
-			ConstructorHelpers::FObjectFinderOptional<UTexture2D> ThrusterTexture;
-			FName ID_Physics;
-			FText NAME_Physics;
-			FConstructorStatics()
-				: ThrusterTexture(TEXT("/Engine/EditorResources/S_Thruster"))
-				, ID_Physics(TEXT("Physics"))
-				, NAME_Physics(NSLOCTEXT("SpriteCategory", "Physics", "Physics"))
-			{
-			}
-		};
-		static FConstructorStatics ConstructorStatics;
-
 		if (ArrowComponent)
 		{
 			ArrowComponent->ArrowSize = 1.7f;
 			ArrowComponent->ArrowColor = FColor(255, 180, 0);
 
 			ArrowComponent->bTreatAsASprite = true;
-			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
-			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
+			ArrowComponent->SpriteInfo.Category = TEXT("Physics");
+			ArrowComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Physics", "Physics");
 			ArrowComponent->SetupAttachment(ThrusterComponent);
 			ArrowComponent->bIsScreenSizeScaled = true;
-		}
-
-		if (SpriteComponent)
-		{
-			SpriteComponent->Sprite = ConstructorStatics.ThrusterTexture.Get();
-			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
-			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
-			SpriteComponent->SetupAttachment(ThrusterComponent);
-			SpriteComponent->bIsScreenSizeScaled = true;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -93,6 +88,6 @@ UPhysicsThrusterComponent* APhysicsThruster::GetThrusterComponent() const { retu
 #if WITH_EDITORONLY_DATA
 /** Returns ArrowComponent subobject **/
 UArrowComponent* APhysicsThruster::GetArrowComponent() const { return ArrowComponent; }
-/** Returns SpriteComponent subobject **/
-UBillboardComponent* APhysicsThruster::GetSpriteComponent() const { return SpriteComponent; }
 #endif
+
+#undef LOCTEXT_NAMESPACE

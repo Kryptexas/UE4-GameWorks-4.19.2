@@ -160,6 +160,18 @@ public:
 	/** Callback for checking the camera lock flag. */
 	bool IsSetCameraFollowChecked() const;
 
+	/** Jump to the meshes default camera */
+	void JumpToDefaultCamera();
+
+	/** Save current camera as default for mesh */
+	void SaveCameraAsDefault();
+
+	/** Clear any default camera for mesh */
+	void ClearDefaultCamera();
+
+	/** Returns whether we have a default camera set for this mesh */
+	bool HasDefaultCameraSet() const;
+
 	/** Handle the skeletal mesh mesh component being used for preview changing */
 	void HandleSkeletalMeshChanged(class USkeletalMesh* OldSkeletalMesh, class USkeletalMesh* NewSkeletalMesh);
 
@@ -221,7 +233,7 @@ public:
 	void FocusViewportOnSphere( FSphere& Sphere, bool bInstant = true );
 
 	/* Places the viewport camera at a good location to view the preview target */
-	void FocusViewportOnPreviewMesh(bool bInstant = true);
+	void FocusViewportOnPreviewMesh(bool bUseCustomCamera);
 
 	/** Callback for toggling the normals show flag. */
 	void ToggleCPUSkinning();
@@ -346,7 +358,7 @@ private:
 
 	/** Focus on the preview component the next time we draw the viewport */
 	bool bFocusOnDraw;
-	bool bInstantFocusOnDraw;
+	bool bFocusUsingCustomCamera;
 
 	/** Handle additive anim scale validation */
 	bool bDoesAdditiveRefPoseHaveZeroScale;
@@ -398,7 +410,7 @@ private:
 	void OnAssetViewerSettingsChanged(const FName& InPropertyName);
 
 	/** Sets up the ShowFlag according to the current preview scene profile */
-	void SetAdvancedShowFlagsForScene();
+	void SetAdvancedShowFlagsForScene(const bool bAdvancedShowFlags);
 
 private:
 	/** Allow mesh stats to be disabled for specific viewport instances */

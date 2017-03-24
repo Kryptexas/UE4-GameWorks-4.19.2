@@ -434,7 +434,7 @@ struct FRootMotionMovementParams
 	GENERATED_USTRUCT_BODY()
 
 private:
-	static FVector RootMotionScale;
+	ENGINE_API static FVector RootMotionScale;
 
 	// TODO: Remove when we make RootMotionTransform private
 	FORCEINLINE FTransform& GetRootMotionTransformInternal()

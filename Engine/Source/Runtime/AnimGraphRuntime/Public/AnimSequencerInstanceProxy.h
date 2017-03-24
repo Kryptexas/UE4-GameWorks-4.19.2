@@ -84,7 +84,7 @@ public:
 	void UpdateAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId, float InPosition, float Weight, bool bFireNotifies);
 
 	/** Reset all nodes in this instance */
-	void ResetNodes();
+	virtual void ResetNodes();
 
 protected:
 	/** Find a player of a specified type */

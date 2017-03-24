@@ -26,6 +26,9 @@ struct FAnimNode_SingleNode : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Links)
 	FPoseLink SourcePose;
 
+	// Slot to use if we are evaluating a montage
+	FName ActiveMontageSlot;
+
 	// FAnimNode_Base interface
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void Update(const FAnimationUpdateContext& Context) override;
@@ -158,6 +161,9 @@ public:
 
 	// Update internal weight structures for supplied slot name
 	void UpdateMontageWeightForSlot(const FName CurrentSlotNodeName, float InGlobalNodeWeight);
+
+	// Set the montage slot to preview
+	void SetMontagePreviewSlot(FName PreviewSlot);
 
 private:
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);

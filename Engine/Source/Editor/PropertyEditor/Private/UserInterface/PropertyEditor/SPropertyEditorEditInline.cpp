@@ -24,22 +24,23 @@ public:
 	/** Whether or not abstract classes are allowed. */
 	bool bAllowAbstract;
 
-	/** Limits the visible classes to meeting IsA relationships with all the objects. */
-	TSet< const UObject* > LimitToIsAOfAllObjects;
+	/** Hierarchy of objects that own this property. Used to check against ClassWithin. */
+	TSet< const UObject* > OwningObjects;
 
 	bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{
 		const bool bChildOfObjectClass = ObjProperty && InClass->IsChildOf(ObjProperty->PropertyClass);
 		const bool bDerivedInterfaceClass = IntProperty && InClass->ImplementsInterface(IntProperty->InterfaceClass);
 
-		bool bMatchesFlags = InClass->HasAnyClassFlags(CLASS_EditInlineNew) && 
-			!InClass->HasAnyClassFlags(CLASS_Hidden|CLASS_HideDropDown|CLASS_Deprecated) &&
+		const bool bMatchesFlags = InClass->HasAnyClassFlags(CLASS_EditInlineNew) && 
+			!InClass->HasAnyClassFlags(CLASS_Hidden | CLASS_HideDropDown | CLASS_Deprecated) &&
 			(bAllowAbstract || !InClass->HasAnyClassFlags(CLASS_Abstract));
 
 		if( (bChildOfObjectClass || bDerivedInterfaceClass) && bMatchesFlags )
 		{
-			// The class must satisfy a Is-A relationship with all the objects in this set.
-			return InFilterFuncs->IfMatchesAll_ObjectsSetIsAClass(LimitToIsAOfAllObjects, InClass->ClassWithin) != EFilterReturn::Failed;
+			// Verify that the Owners of the property satisfy the ClassWithin constraint of the given class.
+			// When ClassWithin is null, assume it can be owned by anything.
+			return InClass->ClassWithin == nullptr || InFilterFuncs->IfMatchesAll_ObjectsSetIsAClass(OwningObjects, InClass->ClassWithin) != EFilterReturn::Failed;
 		}
 
 		return false;
@@ -49,14 +50,17 @@ public:
 	{
 		const bool bChildOfObjectClass = InUnloadedClassData->IsChildOf(ObjProperty->PropertyClass);
 
-		bool bMatchesFlags = InUnloadedClassData->HasAnyClassFlags(CLASS_EditInlineNew) && 
-			!InUnloadedClassData->HasAnyClassFlags(CLASS_Hidden|CLASS_HideDropDown|CLASS_Deprecated) && 
+		const bool bMatchesFlags = InUnloadedClassData->HasAnyClassFlags(CLASS_EditInlineNew) && 
+			!InUnloadedClassData->HasAnyClassFlags(CLASS_Hidden | CLASS_HideDropDown | CLASS_Deprecated) &&
 			(bAllowAbstract || !InUnloadedClassData->HasAnyClassFlags((CLASS_Abstract)));
 
-		if(bChildOfObjectClass && bMatchesFlags)
+		if (bChildOfObjectClass && bMatchesFlags)
 		{
-			// The class must satisfy a Is-A relationship with all the objects in this set.
-			return InFilterFuncs->IfMatchesAll_ObjectsSetIsAClass(LimitToIsAOfAllObjects, InUnloadedClassData) != EFilterReturn::Failed;
+			const UClass* ClassWithin = InUnloadedClassData->GetClassWithin();
+
+			// Verify that the Owners of the property satisfy the ClassWithin constraint of the given class.
+			// When ClassWithin is null, assume it can be owned by anything.
+			return ClassWithin == nullptr || InFilterFuncs->IfMatchesAll_ObjectsSetIsAClass(OwningObjects, ClassWithin) != EFilterReturn::Failed;
 		}
 
 		return false;
@@ -170,7 +174,7 @@ TSharedRef<SWidget> SPropertyEditorEditInline::GenerateClassPicker()
 		for ( TPropObjectIterator Itor( ObjectPropertyNode->ObjectIterator() ); Itor; ++Itor )
 		{
 			UObject* OwnerObject = Itor->Get();
-			ClassFilter->LimitToIsAOfAllObjects.Add( OwnerObject );
+			ClassFilter->OwningObjects.Add( OwnerObject );
 		}
 	}
 

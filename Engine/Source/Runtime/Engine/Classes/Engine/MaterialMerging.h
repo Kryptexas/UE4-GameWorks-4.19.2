@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "EngineTypes.h"
 #include "MaterialMerging.generated.h"
 
 // Use FMaterialProxySettings instead
@@ -127,39 +128,48 @@ struct FMaterialProxySettings
 
 	// Whether to generate normal map
 	UPROPERTY(Category = Material, EditAnywhere)
-		bool bNormalMap;
+	bool bNormalMap;
 
 	// Whether to generate metallic map
 	UPROPERTY(Category = Material, EditAnywhere)
-		bool bMetallicMap;
+	bool bMetallicMap;
 
 	// Metallic constant
 	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bMetallicMap"))
-		float MetallicConstant;
+	float MetallicConstant;
 
 	// Whether to generate roughness map
 	UPROPERTY(Category = Material, EditAnywhere)
-		bool bRoughnessMap;
+	bool bRoughnessMap;
 
 	// Roughness constant
 	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bRoughnessMap"))
-		float RoughnessConstant;
+	float RoughnessConstant;
 
 	// Whether to generate specular map
 	UPROPERTY(Category = Material, EditAnywhere)
-		bool bSpecularMap;
+	bool bSpecularMap;
 
 	// Specular constant
 	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bSpecularMap"))
-		float SpecularConstant;
+	float SpecularConstant;
 
 	// Whether to generate emissive map
 	UPROPERTY(Category = Material, EditAnywhere)
-		bool bEmissiveMap;
+	bool bEmissiveMap;
 
 	// Whether to generate opacity map
-	UPROPERTY()
+	UPROPERTY(Category = Material, EditAnywhere)
 	bool bOpacityMap;
+
+	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bOpacityMap"))
+	float OpacityConstant;
+
+	UPROPERTY(Category = Material, EditAnywhere)
+	bool bOpacityMaskMap;
+
+	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bOpacityMaskMap"))
+	float OpacityMaskConstant;
 
 	// Override diffuse map size
 	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
@@ -186,11 +196,18 @@ struct FMaterialProxySettings
 	FIntPoint EmissiveTextureSize;
 
 	// Override opacity map size
-	UPROPERTY()
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
 	FIntPoint OpacityTextureSize;
+	
+	// Override opacity map size
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	FIntPoint OpacityMaskTextureSize;
 
 	UPROPERTY()
 	TEnumAsByte<EMaterialMergeType> MaterialMergeType;
+
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	TEnumAsByte<EBlendMode> BlendMode;
 
 	FMaterialProxySettings()
 		: TextureSize(1024, 1024)
@@ -205,13 +222,16 @@ struct FMaterialProxySettings
 		, SpecularConstant(0.5f)
 		, bEmissiveMap(false)
 		, bOpacityMap(false)
+		, bOpacityMaskMap(false)
 		, DiffuseTextureSize(1024, 1024)
 		, NormalTextureSize(1024, 1024)
 		, MetallicTextureSize(1024, 1024)
 		, RoughnessTextureSize(1024, 1024)
 		, EmissiveTextureSize(1024, 1024)
 		, OpacityTextureSize(1024, 1024)
+		, OpacityMaskTextureSize(1024, 1024)
 		, MaterialMergeType( EMaterialMergeType::MaterialMergeType_Default )
+		, BlendMode(BLEND_Opaque)
 	{
 	}
 
@@ -229,11 +249,13 @@ struct FMaterialProxySettings
 			&& bSpecularMap == Other.bSpecularMap
 			&& bEmissiveMap == Other.bEmissiveMap
 			&& bOpacityMap == Other.bOpacityMap
+			&& bOpacityMaskMap == Other.bOpacityMaskMap
 			&& DiffuseTextureSize == Other.DiffuseTextureSize
 			&& NormalTextureSize == Other.NormalTextureSize
 			&& MetallicTextureSize == Other.MetallicTextureSize
 			&& RoughnessTextureSize == Other.RoughnessTextureSize
 			&& EmissiveTextureSize == Other.EmissiveTextureSize
-			&& OpacityTextureSize == Other.OpacityTextureSize;
+			&& OpacityTextureSize == Other.OpacityTextureSize
+			&& OpacityMaskTextureSize == Other.OpacityMaskTextureSize;
 	}
 };

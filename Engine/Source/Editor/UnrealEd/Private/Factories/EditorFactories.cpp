@@ -5430,7 +5430,7 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	UnFbx::FFbxImporter* Importer = UnFbx::FFbxImporter::GetInstance();
 
 	//Pop the message log in case of error
-	UnFbx::FFbxLoggerSetter Logger(Importer, true);
+	UnFbx::FFbxLoggerSetter Logger(Importer, false);
 
 	CurrentFilename = Filename;
 

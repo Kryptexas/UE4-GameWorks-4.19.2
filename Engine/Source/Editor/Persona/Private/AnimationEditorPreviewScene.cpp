@@ -21,6 +21,7 @@
 #include "PersonaModule.h"
 #include "GameFramework/WorldSettings.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Factories/PreviewMeshCollectionFactory.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorPreviewScene"
 
@@ -37,6 +38,7 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 	, PrevWindStrength(0.2f)
 	, GravityScale(0.25f)
 	, SelectedBoneIndex(INDEX_NONE)
+	, bEnableMeshHitProxies(false)
 {
 	if (GEditor)
 	{
@@ -62,6 +64,16 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 	PreviewSceneDescription->Animation = InPersonaToolkit->GetAnimationAsset();
 	PreviewSceneDescription->PreviewMesh = InPersonaToolkit->GetPreviewMesh();
 	PreviewSceneDescription->AdditionalMeshes = InEditableSkeleton->GetSkeleton().GetAdditionalPreviewSkeletalMeshes();
+
+	// create a default additional mesh collection so we dont always have to create an asset to edit additional meshes
+	UPreviewMeshCollectionFactory* FactoryToUse = NewObject<UPreviewMeshCollectionFactory>();
+	FactoryToUse->CurrentSkeleton = &InEditableSkeleton->GetSkeleton();
+	PreviewSceneDescription->DefaultAdditionalMeshes = CastChecked<UPreviewMeshCollection>(FactoryToUse->FactoryCreateNew(UPreviewMeshCollection::StaticClass(), GetTransientPackage(), "UnsavedCollection", RF_Transient, nullptr, nullptr));
+
+	if (!PreviewSceneDescription->AdditionalMeshes.IsValid())
+	{
+		PreviewSceneDescription->AdditionalMeshes = PreviewSceneDescription->DefaultAdditionalMeshes;
+	}
 
 	// Force validation of preview attached assets (catch case of never doing it if we dont have a valid preview mesh)
 	ValidatePreviewAttachedAssets(nullptr);
@@ -121,6 +133,9 @@ void FAnimationEditorPreviewScene::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh)
 {
 	USkeletalMesh* OldPreviewMesh = SkeletalMeshComponent->SkeletalMesh;
+
+	// Make sure the desc is up to date as this may have not come from a call to set the value in the desc
+	PreviewSceneDescription->PreviewMesh = NewPreviewMesh;
 
 	//Persona skeletal mesh component is the only component that can highlight a particular section
 	SkeletalMeshComponent->bCanHighlightSelectedSections = true;
@@ -226,8 +241,6 @@ void FAnimationEditorPreviewScene::SetAdditionalMeshes(class UPreviewMeshCollect
 
 void FAnimationEditorPreviewScene::RefreshAdditionalMeshes()
 {
-	UPreviewMeshCollection* SkeletonAdditionalMeshes = GetEditableSkeleton()->GetSkeleton().GetAdditionalPreviewSkeletalMeshes();
-
 	// remove all components
 	for (USkeletalMeshComponent* Component : AdditionalMeshes)
 	{
@@ -237,16 +250,22 @@ void FAnimationEditorPreviewScene::RefreshAdditionalMeshes()
 	AdditionalMeshes.Empty();
 
 	// add new components
-	if (SkeletonAdditionalMeshes != nullptr)
+	UPreviewMeshCollection* PreviewSceneAdditionalMeshes = GetEditableSkeleton()->GetSkeleton().GetAdditionalPreviewSkeletalMeshes();
+	if (PreviewSceneAdditionalMeshes == nullptr)
+	{
+		PreviewSceneAdditionalMeshes = PreviewSceneDescription->DefaultAdditionalMeshes;
+	}
+
+	if (PreviewSceneAdditionalMeshes != nullptr)
 	{
 		// While loading our meshes, look for the one with the 'best' bone count.
 		// We will use this in lieu of a master if we have none set
 		int32 BestBoneCount = 0;
 		int32 BestMasterIndex = 0;
 		TArray<USkeletalMesh*> ValidMeshes;
-		for (int32 MeshIndex = 0; MeshIndex < SkeletonAdditionalMeshes->SkeletalMeshes.Num(); ++MeshIndex)
+		for (int32 MeshIndex = 0; MeshIndex < PreviewSceneAdditionalMeshes->SkeletalMeshes.Num(); ++MeshIndex)
 		{
-			FPreviewMeshCollectionEntry& Entry = SkeletonAdditionalMeshes->SkeletalMeshes[MeshIndex];
+			FPreviewMeshCollectionEntry& Entry = PreviewSceneAdditionalMeshes->SkeletalMeshes[MeshIndex];
 
 			// Load up our valid skeletal meshes
 			if (Entry.SkeletalMesh.LoadSynchronous())
@@ -922,6 +941,16 @@ void FAnimationEditorPreviewScene::TogglePlayback()
 AActor* FAnimationEditorPreviewScene::GetActor() const
 {
 	return Actor;
+}
+
+bool FAnimationEditorPreviewScene::AllowMeshHitProxies() const
+{
+	return bEnableMeshHitProxies;
+}
+
+void FAnimationEditorPreviewScene::SetAllowMeshHitProxies(bool bState)
+{
+	bEnableMeshHitProxies = bState;
 }
 
 void FAnimationEditorPreviewScene::Tick(float InDeltaTime)

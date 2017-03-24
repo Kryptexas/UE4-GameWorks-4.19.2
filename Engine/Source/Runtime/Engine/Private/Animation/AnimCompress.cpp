@@ -10,6 +10,7 @@
 #include "Misc/FeedbackContext.h"
 #include "AnimationCompression.h"
 #include "AnimEncoding.h"
+#include "Animation/AnimationSettings.h"
 
 DEFINE_LOG_CATEGORY(LogAnimationCompression);
 
@@ -224,6 +225,9 @@ UAnimCompress::UAnimCompress(const FObjectInitializer& ObjectInitializer)
 	Description = TEXT("None");
 	TranslationCompressionFormat = ACF_None;
 	RotationCompressionFormat = ACF_Float96NoW;
+
+	UAnimationSettings* AnimationSettings = UAnimationSettings::Get();
+	MaxCurveError = AnimationSettings->MaxCurveError;
 }
 
 
@@ -638,6 +642,8 @@ void UAnimCompress::PopulateDDCKey(FArchive& Ar)
 	SCF = (uint8)ScaleCompressionFormat.GetValue();
 
 	Ar << TCF << RCF << SCF;
+
+	Ar << MaxCurveError;
 }
 
 /**

@@ -27,3 +27,5 @@ FPhysicsFilterBuilder::FPhysicsFilterBuilder(TEnumAsByte<enum ECollisionChannel>
 
 	Word3 = CreateChannelAndFilter(InObjectType, MaskFilter);
 }
+
+PxSimulationFilterShader GSimulationFilterShader = nullptr;

@@ -501,6 +501,61 @@ void AddSphereGeomFromVerts( const TArray<FVector>& Verts, FKAggregateGeom* AggG
 	AggGeom->SphereElems.Add(SphereElem);
 }
 
+void AddCapsuleGeomFromVerts(const TArray<FVector>& Verts, FKAggregateGeom* AggGeom, const TCHAR* ObjName)
+{
+	if (Verts.Num() < 3)
+	{
+		return;
+	}
+
+	FVector AxisStart, AxisEnd;
+	float MaxDistSqr = 0.f;
+
+	for (int32 IndexA = 0; IndexA < Verts.Num() - 1; IndexA++)
+	{
+		for (int32 IndexB = IndexA + 1; IndexB < Verts.Num(); IndexB++)
+		{
+			float DistSqr = (Verts[IndexA] - Verts[IndexB]).SizeSquared();
+			if (DistSqr > MaxDistSqr)
+			{
+				AxisStart = Verts[IndexA];
+				AxisEnd = Verts[IndexB];
+				MaxDistSqr = DistSqr;
+			}
+		}
+	}
+
+	// If we got a valid axis, find vertex furthest from it
+	if (MaxDistSqr > SMALL_NUMBER)
+	{
+		float MaxRadius = 0.f;
+
+		const FVector LineOrigin = AxisStart;
+		const FVector LineDir = (AxisEnd - AxisStart).GetSafeNormal();
+
+		for (int32 IndexA = 0; IndexA < Verts.Num() - 1; IndexA++)
+		{
+			float DistToAxis = FMath::PointDistToLine(Verts[IndexA], LineDir, LineOrigin);
+			if (DistToAxis > MaxRadius)
+			{
+				MaxRadius = DistToAxis;
+			}
+		}
+
+		if (MaxRadius > SMALL_NUMBER)
+		{
+			// Allocate capsule in array
+			FKSphylElem SphylElem;
+			SphylElem.Center = 0.5f * (AxisStart + AxisEnd);
+			SphylElem.Rotation = FQuat::FindBetweenVectors(FVector(0,0,1), LineDir).Rotator(); // Get quat that takes you from z axis to desired axis
+			SphylElem.Radius = MaxRadius;
+			SphylElem.Length = FMath::Max(FMath::Sqrt(MaxDistSqr) - (2.f * MaxRadius), 0.f); // subtract two radii from total length to get segment length (ensure > 0)
+			AggGeom->SphylElems.Add(SphylElem);
+		}
+	}
+}
+
+
 /** Utility for adding one convex hull from the given verts */
 void AddConvexGeomFromVertices( const TArray<FVector>& Verts, FKAggregateGeom* AggGeom, const TCHAR* ObjName )
 {

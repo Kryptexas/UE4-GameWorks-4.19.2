@@ -6,6 +6,6 @@
 
 ATP_2DSideScrollerGameMode::ATP_2DSideScrollerGameMode()
 {
-	// set default pawn class to our character
+	// Set default pawn class to our character
 	DefaultPawnClass = ATP_2DSideScrollerCharacter::StaticClass();	
 }

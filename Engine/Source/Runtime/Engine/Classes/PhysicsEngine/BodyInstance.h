@@ -174,6 +174,19 @@ enum class BodyInstanceSceneState
 	Removed
 };
 
+
+/** Whether to override the sync/async scene used by a dynamic actor*/
+UENUM(BlueprintType)
+enum class EDynamicActorScene : uint8
+{
+	//Use whatever the body instance wants
+	Default,	
+	//use sync scene
+	UseSyncScene,	
+	//use async scene
+	UseAsyncScene	
+};
+
 /** Container for a physics representation of an object */
 USTRUCT()
 struct ENGINE_API FBodyInstance
@@ -250,7 +263,7 @@ public:
 	uint32 bEnableGravity : 1;
 
 	/** If true and is attached to a parent, the two bodies will be joined into a single rigid body. Physical settings like collision profile and body settings are determined by the root */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics, meta = (editcondition = "!bSimulatePhysics"))
 	uint32 bAutoWeld : 1;
 
 	/** determines if the body is currently welded */
@@ -411,8 +424,12 @@ public:
 
 
 	/** If the SleepFamily is set to custom, multiply the natural sleep threshold by this amount. A higher number will cause the body to sleep sooner. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics)
 	float CustomSleepThresholdMultiplier;
+
+	/** Stabilization factor for this body if Physics stabilization is enabled. A higher number will cause more aggressive stabilization at the risk of loss of momentum at low speeds. A value of 0 will disable stabilization for this body.*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	float StabilizationThresholdMultiplier;
 
 	/**	Influence of rigid body physics (blending) on the mesh's pose (0.0 == use only animation, 1.0 == use only physics) */
 	/** Provide appropriate interface for doing this instead of allowing BlueprintReadWrite **/
@@ -490,6 +507,9 @@ public:
 
 		/** Whether to use the BodySetup's PhysicsType to override if the instance simulates*/
 		bool bPhysicsTypeDeterminesSimulation;
+
+		/** Whether to override the physics scene used for simulation */
+		EDynamicActorScene DynamicActorScene;
 	};
 
 	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL)
@@ -787,8 +807,8 @@ public:
 	void AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhysics);
 	/** Add a force to this body */
 	void AddForce(const FVector& Force, bool bAllowSubstepping = true, bool bAccelChange = false);
-	/** Add a force at a particular world position to this body */
-	void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true);
+	/** Add a force at a particular position (world space when bIsLocalForce = false, body space otherwise) */
+	void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true, bool bIsLocalForce = false);
 	/** Add a torque to this body */
 	void AddTorque(const FVector& Torque, bool bAllowSubstepping = true, bool bAccelChange = false);
 	/** Add a rotational impulse to this body */

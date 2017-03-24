@@ -50,9 +50,9 @@ void FAnimNode_BoneDrivenController::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutCSBoneTransforms)
+void FAnimNode_BoneDrivenController::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
-	check(OutCSBoneTransforms.Num() == 0);
+	check(OutBoneTransforms.Num() == 0);
 
 	// Early out if we're not driving from or to anything
 	if (SourceComponent == EComponentType::None || DestinationMode != EDrivenDestinationMode::Bone)
@@ -61,9 +61,9 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	}
 
 	// Get the Local space transform and the ref pose transform to see how the transform for the source bone has changed
-	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 	const FTransform& SourceRefPoseBoneTransform = BoneContainer.GetRefPoseArray()[SourceBone.BoneIndex];
-	const FTransform SourceCurrentBoneTransform = MeshBases.GetLocalSpaceTransform(SourceBone.GetCompactPoseIndex(BoneContainer));
+	const FTransform SourceCurrentBoneTransform = Output.Pose.GetLocalSpaceTransform(SourceBone.GetCompactPoseIndex(BoneContainer));
 
 	const float FinalDriverValue = ExtractSourceValue(SourceCurrentBoneTransform, SourceRefPoseBoneTransform);
 	
@@ -71,7 +71,7 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	// Calculate a new local-space bone position by adding or replacing target components in the current local space position
 	const FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
 
-	const FTransform OriginalLocalTM = MeshBases.GetLocalSpaceTransform(TargetBoneIndex);
+	const FTransform OriginalLocalTM = Output.Pose.GetLocalSpaceTransform(TargetBoneIndex);
 	FVector NewTrans(OriginalLocalTM.GetTranslation());
 	FVector NewScale(OriginalLocalTM.GetScale3D());
 	FQuat NewRot(OriginalLocalTM.GetRotation());
@@ -118,7 +118,7 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	}
 	else if (ModificationMode == EDrivenBoneModificationMode::AddToRefPose)
 	{
-		const FTransform RefPoseTransform = MeshBases.GetPose().GetRefPose(TargetBoneIndex);
+		const FTransform RefPoseTransform = Output.Pose.GetPose().GetRefPose(TargetBoneIndex);
 
 		// Add the mapped value to the ref pose components
 		if (bAffectTargetTranslationX) { NewTrans.X = RefPoseTransform.GetTranslation().X + FinalDriverValue; }
@@ -152,17 +152,17 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	const FTransform ModifiedLocalTM(NewRot, NewTrans, NewScale);
 
 	// If we have a parent, concatenate the transform, otherwise just take the new transform
-	const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(TargetBoneIndex);
+	const FCompactPoseBoneIndex ParentIndex = Output.Pose.GetPose().GetParentBoneIndex(TargetBoneIndex);
 
 	if (ParentIndex != INDEX_NONE)
 	{
-		const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
+		const FTransform& ParentTM = Output.Pose.GetComponentSpaceTransform(ParentIndex);
 
-		OutCSBoneTransforms.Add(FBoneTransform(TargetBoneIndex, ModifiedLocalTM * ParentTM));
+		OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, ModifiedLocalTM * ParentTM));
 	}
 	else
 	{
-		OutCSBoneTransforms.Add(FBoneTransform(TargetBoneIndex, ModifiedLocalTM));
+		OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, ModifiedLocalTM));
 	}
 }
 

@@ -60,7 +60,10 @@ The primary use of this is for vehicles or large Physics Bodies that encompass a
 
 ![](PhAT_COM.png)
 
-Currently there is no way to view where the Center of Mass is actually located, but by increasing Linear Damping on the body you are adjusting, the body will swing from its Center of Mass while slowly falling. You may need to place the Skeletal Mesh in a level and enable Physics on it to really get a feeling for it.
+The Mass Properties showflag will visualize the Center of Mass and Inertia Frame for movable and simulated bodies. You will need to turn wireframe rendering on for this since the Center of Mass is typically embedded in the geometry.
+
+![](COM_Geom.png)
+
 [VAR:ToolTipFullLink]
 Engine/Physics/PhysicsBodies#physics
 [/VAR]

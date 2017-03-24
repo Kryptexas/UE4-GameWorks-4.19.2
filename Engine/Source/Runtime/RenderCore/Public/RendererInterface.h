@@ -689,5 +689,7 @@ public:
 
 	/** Calls registered post resolve delegates, if any */
 	virtual void RenderPostResolvedSceneColorExtension(FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext) = 0;
+
+	virtual void PostRenderAllViewports() = 0;
 };
 

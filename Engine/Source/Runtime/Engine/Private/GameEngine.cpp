@@ -1240,6 +1240,9 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	{
 		// Render everything.
 		RedrawViewports();
+
+		// Some tasks can only be done once we finish all scenes/viewports
+		GetRendererModule().PostRenderAllViewports();
 	}
 
 	if( GIsClient )

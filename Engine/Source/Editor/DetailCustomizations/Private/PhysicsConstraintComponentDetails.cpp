@@ -76,29 +76,37 @@ namespace ConstraintDetails
 	{
 		auto GetMultipleFloats = [Prop1, Prop2, Prop3]()
 		{
-			float Val1, Val2, Val3;
-			ensure(Prop1->GetValue(Val1) != FPropertyAccess::Fail);
-			ensure(Prop2->GetValue(Val2) != FPropertyAccess::Fail);
-			ensure(Prop3->GetValue(Val3) != FPropertyAccess::Fail);
-
-			if (Val1 == Val2 && Val2 == Val3)
+			// RerunConstructionScripts gets run when the new value is set (if the component
+			// is part of a blueprint). This causes the Objects being edited to be cleared,
+			// and will cause GetValue to fail. Skip checking the values in that case.
+			if (Prop1->GetNumPerObjectValues())
 			{
-				return TOptional<float>(Val1);
+				UE_LOG(LogTemp, Warning, TEXT("Running Get"));
+				float Val1, Val2, Val3;
+
+				ensure(Prop1->GetValue(Val1) != FPropertyAccess::Fail);
+				ensure(Prop2->GetValue(Val2) != FPropertyAccess::Fail);
+				ensure(Prop3->GetValue(Val3) != FPropertyAccess::Fail);
+			
+				if (Val1 == Val2 && Val2 == Val3)
+				{
+					return TOptional<float>(Val1);
+				}
 			}
 
 			return TOptional<float>();
 		};
 
-		auto SetMultipleFloatsCommitted = [Prop1, Prop2, Prop3, TransactionName, GetMultipleFloats](float NewValue, ETextCommit::Type)
+		auto SetMultipleFloatsCommitted = [Prop1, TransactionName, GetMultipleFloats](float NewValue, ETextCommit::Type)
 		{
 			TOptional<float> CommonFloat = GetMultipleFloats();
 			if(!CommonFloat.IsSet() || CommonFloat.GetValue() != NewValue)	//don't bother doing it twice
 			{
+				// Only set the first property. Others should be handled in PostEditChangeChainProperty.
+				// This prevents an issue where multiple sets fail when using BlueprintComponents
+				// due to RerunConstructionScripts destroying the edit list.
 				FScopedTransaction Transaction(TransactionName);
-
-				ensure(Prop1->SetValue(NewValue) == FPropertyAccess::Success);
-				ensure(Prop2->SetValue(NewValue) == FPropertyAccess::Success);
-				ensure(Prop3->SetValue(NewValue) == FPropertyAccess::Success);
+				ensure(Prop1->SetValue(NewValue));
 			}
 		};
 

@@ -270,6 +270,8 @@ namespace UnrealBuildTool
             new KeyValuePair<string, string>("FoliageEdit", "VREditor"),
             new KeyValuePair<string, string>("MeshPaint", "ViewportInteraction"),
             new KeyValuePair<string, string>("MeshPaint", "VREditor"),
+            new KeyValuePair<string, string>("MeshPaintMode", "ViewportInteraction"),
+            new KeyValuePair<string, string>("MeshPaintMode", "VREditor"),
             new KeyValuePair<string, string>("Sequencer", "ViewportInteraction"),
         };
 

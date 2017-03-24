@@ -1056,7 +1056,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			}
 	    }
 
-		if (InstanceBodiesSanitized.Num() > 0 && Mobility == EComponentMobility::Static)
+		if (InstanceBodiesSanitized.Num() > 0 && Mobility != EComponentMobility::Movable)
 		{
 			TArray<UBodySetup*> BodySetups;
 			TArray<UPhysicalMaterial*> PhysicalMaterials;

@@ -44,6 +44,8 @@ bool FBoneReference::Initialize(const FBoneContainer& RequiredBones)
 		}
 	}
 
+	CachedCompactPoseIndex = RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex(RequiredBones));
+	
 	return (BoneIndex != INDEX_NONE);
 }
 
@@ -59,6 +61,8 @@ bool FBoneReference::Initialize(const USkeleton* Skeleton)
 	{
 		BoneIndex = INDEX_NONE;
 	}
+
+	CachedCompactPoseIndex = FCompactPoseBoneIndex(INDEX_NONE);
 
 	return (BoneIndex != INDEX_NONE);
 }

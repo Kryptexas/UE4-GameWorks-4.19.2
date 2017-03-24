@@ -11,6 +11,7 @@
 
 class AActor;
 class Error;
+class UAnimSequence;
 
 namespace SequenceRecorderUtils
 {
@@ -89,4 +90,11 @@ static FString MakeNewAssetName(const FString& BaseAssetPath, const FString& Bas
 /** Helper function - check whether our component hierarchy has some attachment outside of its owned components */
 SEQUENCERECORDER_API AActor* GetAttachment(AActor* InActor, FName& SocketName, FName& ComponentName);
 
+/** 
+ * Play the current single node instance on the PreviewComponent from time [0, GetLength()], and record to NewAsset
+ * 
+ * @param: PreviewComponent - this component should contains SingleNodeInstance with time-line based asset, currently support AnimSequence or AnimComposite
+ * @param: NewAsset - this is the asset that should be recorded. This will reset all animation data internally
+ */
+SEQUENCERECORDER_API bool RecordSingleNodeInstanceToAnimation(USkeletalMeshComponent* PreviewComponent, UAnimSequence* NewAsset);
 }

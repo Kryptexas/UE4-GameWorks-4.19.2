@@ -26,7 +26,7 @@ UObject* FControlRigEditorObjectSpawner::SpawnObject(FMovieSceneSpawnable& Spawn
 		// Let the edit mode know about a re-spawned Guid, as we may need to re-display the object
 		if (FControlRigEditMode* ControlRigEditMode = static_cast<FControlRigEditMode*>(GLevelEditorModeTools().GetActiveMode(FControlRigEditMode::ModeName)))
 		{
-			ControlRigEditMode->HandleObjectSpawned(Spawnable.GetGuid(), SpawnedObject);
+			ControlRigEditMode->HandleObjectSpawned(Spawnable.GetGuid(), SpawnedObject, Player);
 		}
 	}
 	return SpawnedObject;
@@ -36,13 +36,6 @@ UObject* FControlRigEditorObjectSpawner::SpawnObject(FMovieSceneSpawnable& Spawn
 
 TValueOrError<FNewSpawnable, FText> FControlRigEditorObjectSpawner::CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene)
 {
-	FString ObjectName = SourceObject.GetName();
-	ObjectName.RemoveFromEnd(TEXT("_C"));
-
-	FNewSpawnable NewSpawnable(nullptr, FName::NameToDisplayString(ObjectName, false));
-
-	const FName TemplateName = MakeUniqueObjectName(&OwnerMovieScene, UObject::StaticClass(), SourceObject.GetFName());
-
 	// Right now we only support creating a spawnable for classes
 	if (UClass* InClass = Cast<UClass>(&SourceObject))
 	{
@@ -52,10 +45,19 @@ TValueOrError<FNewSpawnable, FText> FControlRigEditorObjectSpawner::CreateNewSpa
 			return MakeError(ErrorText);
 		}
 
+		FString ObjectName = SourceObject.GetName();
+		ObjectName.RemoveFromEnd(TEXT("_C"));
+
+		FNewSpawnable NewSpawnable(nullptr, FName::NameToDisplayString(ObjectName, false));
+
+		const FName TemplateName = MakeUniqueObjectName(&OwnerMovieScene, UObject::StaticClass(), SourceObject.GetFName());
+
 		NewSpawnable.ObjectTemplate = NewObject<UObject>(&OwnerMovieScene, InClass, TemplateName);
+
+		return MakeValue(NewSpawnable);
 	}
 
-	return MakeValue(NewSpawnable);
+	return MakeError(FText());
 }
 
 void FControlRigEditorObjectSpawner::SetupDefaultsForSpawnable(UObject* SpawnedObject, const FGuid& Guid, const FTransformData& TransformData, TSharedRef<ISequencer> Sequencer, USequencerSettings* Settings)

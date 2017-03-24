@@ -39,7 +39,7 @@ void FAnimNodeEditMode::GetOnScreenDebugInfo(TArray<FText>& OutDebugInfo) const
 {
 	if (AnimNode != nullptr)
 	{
-		AnimNode->GetOnScreenDebugInfo(OutDebugInfo, GetAnimPreviewScene().GetPreviewMeshComponent());
+		AnimNode->GetOnScreenDebugInfo(OutDebugInfo, RuntimeAnimNode, GetAnimPreviewScene().GetPreviewMeshComponent());
 	}
 }
 

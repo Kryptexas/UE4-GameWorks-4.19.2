@@ -5,6 +5,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
+#include "Animation/AnimInstanceProxy.h"
 
 #if ENABLE_ANIM_DEBUG
 TAutoConsoleVariable<int32> CVarAnimNodeLegIKDebug(TEXT("a.AnimNode.LegIK.Debug"), 0, TEXT("Turn on debug for FAnimNode_LegIK"));
@@ -79,29 +80,31 @@ void FAnimLegIKData::InitializeTransforms(USkeletalMeshComponent* SkelComp, FCSP
 #endif // ENABLE_ANIM_DEBUG && ENABLE_DRAW_DEBUG
 }
 
-void FAnimNode_LegIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_LegIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	SCOPE_CYCLE_COUNTER(STAT_LegIK_Eval);
 
-	check(SkelComp);
+#if ENABLE_ANIM_DEBUG
+	check(Output.AnimInstanceProxy->GetSkelMeshComponent());
+#endif
 	check(OutBoneTransforms.Num() == 0);
 
 	// Get transforms for each leg.
 	{
 		for (FAnimLegIKData& LegData : LegsData)
 		{
-			LegData.InitializeTransforms(SkelComp, MeshBases);
+			LegData.InitializeTransforms(Output.AnimInstanceProxy->GetSkelMeshComponent(), Output.Pose);
 
 			// rotate hips so foot aligns with effector.
-			OrientLegTowardsIK(LegData, SkelComp);
+			OrientLegTowardsIK(LegData, Output.AnimInstanceProxy->GetSkelMeshComponent());
 
 			// expand/compress leg, so foot reaches effector.
-			DoLegReachIK(LegData, SkelComp);
+			DoLegReachIK(LegData, Output.AnimInstanceProxy->GetSkelMeshComponent());
 
 			if (LegData.LegDefPtr->bEnableKneeTwistCorrection)
 			{
 				// Adjust knee twist orientation
-				AdjustKneeTwist(LegData, SkelComp);
+				AdjustKneeTwist(LegData, Output.AnimInstanceProxy->GetSkelMeshComponent());
 			}
 
 			// Override Foot FK, with IK.
@@ -681,8 +684,8 @@ void FAnimNode_LegIK::InitializeBoneReferences(const FBoneContainer& RequiredBon
 		LegDef.FKFootBone.Initialize(RequiredBones);
 
 		FAnimLegIKData LegData;
-		LegData.IKFootBoneIndex = LegDef.IKFootBone.IsValid(RequiredBones) ? LegDef.IKFootBone.GetCompactPoseIndex(RequiredBones) : FCompactPoseBoneIndex(INDEX_NONE);
-		const FCompactPoseBoneIndex FKFootBoneIndex = LegDef.FKFootBone.IsValid(RequiredBones) ? LegDef.FKFootBone.GetCompactPoseIndex(RequiredBones) : FCompactPoseBoneIndex(INDEX_NONE);
+		LegData.IKFootBoneIndex = LegDef.IKFootBone.GetCompactPoseIndex(RequiredBones);
+		const FCompactPoseBoneIndex FKFootBoneIndex = LegDef.FKFootBone.GetCompactPoseIndex(RequiredBones);
 
 		if ((LegData.IKFootBoneIndex != INDEX_NONE) && (FKFootBoneIndex != INDEX_NONE))
 		{

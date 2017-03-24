@@ -19,6 +19,8 @@ class IPersonaToolkit;
 class IPersonaViewport;
 class ISkeletonTree;
 class UAnimationAsset;
+class USkeletalMeshComponent;
+class UAnimSequence;
 
 namespace AnimationEditorModes
 {
@@ -49,6 +51,9 @@ public:
 
 	/** Edits the specified Skeleton object */
 	void InitAnimationEditor(const EToolkitMode::Type Mode, const TSharedPtr<class IToolkitHost>& InitToolkitHost, class UAnimationAsset* InAnimationAsset);
+
+	/** IAnimationEditor interface */
+	virtual void SetAnimationAsset(UAnimationAsset* AnimAsset) override;
 
 	/** IHasPersonaToolkit interface */
 	virtual TSharedRef<class IPersonaToolkit> GetPersonaToolkit() const override { return PersonaToolkit.ToSharedRef(); }
@@ -96,6 +101,15 @@ public:
 
 private:
 
+	enum class EPoseSourceOption : uint8
+	{
+		ReferencePose,
+		CurrentPose,
+		CurrentAnimation_Source,
+		CurrentAnimation_Play,
+		Max
+	};
+
 	void HandleAnimNotifiesChanged();
 
 	void HandleSectionsChanged();
@@ -114,13 +128,17 @@ private:
 
 	void OnApplyCompression();
 
-	void OnExportToFBX();
+	void OnExportToFBX(const EPoseSourceOption Option);
+	void ExportToFBX(const TArray<UObject*> NewAssets, bool bRecordAnimation);
 
 	void OnAddLoopingInterpolation();
 
 	TSharedRef< SWidget > GenerateCreateAssetMenu() const;
+	TSharedRef< SWidget > GenerateExportAssetMenu() const;
 
 	void FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const;
+
+	void FillCreateAnimationFromCurrentAnimationMenu(FMenuBuilder& MenuBuilder) const;
 
 	void FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const;
 
@@ -128,9 +146,15 @@ private:
 
 	void InsertCurrentPoseToAsset(const FAssetData& NewPoseAssetData);
 
-	void CreateAnimation(const TArray<UObject*> NewAssets, int32 Option);
+	void FillCopyToSoundWaveMenu(FMenuBuilder& MenuBuilder) const;
 
-	void CreatePoseAsset(const TArray<UObject*> NewAssets, int32 Option);
+	void FillExportAssetMenu(FMenuBuilder& MenuBuilder) const;
+
+	void CopyCurveToSoundWave(const FAssetData& SoundWaveAssetData) const;
+
+	void CreateAnimation(const TArray<UObject*> NewAssets, const EPoseSourceOption Option);
+
+	void CreatePoseAsset(const TArray<UObject*> NewAssets, const EPoseSourceOption Option);
 
 	void HandleAssetCreated(const TArray<UObject*> NewAssets);
 
@@ -149,6 +173,7 @@ private:
 
 	TSharedPtr<SDockTab> OpenNewAnimationDocumentTab(UAnimationAsset* InAnimAsset);
 
+	bool RecordMeshToAnimation(USkeletalMeshComponent* PreviewComponent, UAnimSequence* NewAsset) const;
 public:
 	/** Multicast delegate fired on anim notifies changing */
 	FSimpleMulticastDelegate OnChangeAnimNotifies;

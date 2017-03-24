@@ -283,6 +283,15 @@ void UPrimitiveComponent::AddForceAtLocation(FVector Force, FVector Location, FN
 	}
 }
 
+void UPrimitiveComponent::AddForceAtLocationLocal(FVector Force, FVector Location, FName BoneName)
+{
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
+	{
+		WarnInvalidPhysicsOperations(LOCTEXT("AddForceAtLocationLocal", "AddForceAtLocationLocal"), BI, BoneName);
+		BI->AddForceAtPosition(Force, Location, /* bAllowSubstepping = */ true, /* bIsForceLocal = */ true);
+	}
+}
+
 void UPrimitiveComponent::AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bAccelChange)
 {
 	if(bIgnoreRadialForce)
@@ -699,7 +708,7 @@ UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent* PrimComponent, FN
 
 	return Result;
 }
-
+ 
 void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels, bool bIncludingAutoWeld)
 {
 	OutWeldedBodies.Add(&BodyInstance);

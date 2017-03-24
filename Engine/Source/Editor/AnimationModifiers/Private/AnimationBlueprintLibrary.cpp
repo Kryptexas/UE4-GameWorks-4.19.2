@@ -10,6 +10,8 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "BonePose.h" 
 
+#include "AnimationRuntime.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogAnimationBlueprintLibrary, Verbose, All);
 
 const FName UAnimationBlueprintLibrary::SmartContainerNames[(int32)ESmartNameContainerType::SNCT_MAX] = { USkeleton::AnimCurveMappingName, USkeleton::AnimTrackCurveMappingName };
@@ -1532,6 +1534,7 @@ void UAnimationBlueprintLibrary::GetBonePosesForTime(const UAnimSequence* Animat
 			{
 				FBoneContainer BoneContainer(RequiredBones, *AnimationSequence->GetSkeleton());
 				BoneContainer.SetUseSourceData(true);
+				BoneContainer.SetDisableRetargeting(true);
 				FCompactPose Pose;
 				Pose.SetBoneContainer(&BoneContainer);
 

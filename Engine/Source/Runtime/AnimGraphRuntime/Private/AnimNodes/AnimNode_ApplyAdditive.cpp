@@ -46,7 +46,7 @@ void FAnimNode_ApplyAdditive::Evaluate(FPoseContext& Output)
 		FPoseContext AdditiveEvalContext(Output);
 
 		Base.Evaluate(Output);
-		Additive.Evaluate(AdditiveEvalContext);
+		Additive.Evaluate(AdditiveEvalContext,true);
 
 		FAnimationRuntime::AccumulateAdditivePose(Output.Pose, AdditiveEvalContext.Pose, Output.Curve, AdditiveEvalContext.Curve, ActualAlpha, AAT_LocalSpaceBase);
 		Output.Pose.NormalizeRotations();

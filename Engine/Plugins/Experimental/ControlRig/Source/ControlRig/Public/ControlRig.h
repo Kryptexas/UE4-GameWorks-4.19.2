@@ -69,6 +69,13 @@ public:
 	/** Unbind from the current bound runtime object */
 	virtual void UnbindFromObject();
 
+	/** 
+	 * Check whether we are bound to the supplied object. 
+	 * This can be distinct from a direct pointer comparison (e.g. in the case of an actor passed
+	 * to BindToObject, we may actually bind to one of its components).
+	 */
+	virtual bool IsBoundToObject(UObject* InObject) const;
+
 	/** Get the current object we are bound to */
 	virtual UObject* GetBoundObject() const;
 

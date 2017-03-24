@@ -72,7 +72,7 @@ private:
 	bool IsObjectValidForListening( UObject* Object ) const;
 
 	/** @return Whether or not a property setter could be found for a property on a class */
-	bool FindPropertySetter( const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const FString& PropertyVarName, const UStructProperty* StructProperty = 0 ) const;
+	bool FindPropertySetter( const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const FString& PropertyVarName, const UStructProperty* StructProperty = nullptr, const UArrayProperty* ArrayProperty = nullptr) const;
 private:
 	/** Mapping of object to a listener used to check for property changes */
 	TMap< TWeakObjectPtr<UObject>, TSharedPtr<class IPropertyChangeListener> > ActivePropertyChangeListeners;

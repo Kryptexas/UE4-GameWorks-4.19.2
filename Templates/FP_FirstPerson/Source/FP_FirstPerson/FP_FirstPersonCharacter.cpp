@@ -17,7 +17,7 @@ AFP_FirstPersonCharacter::AFP_FirstPersonCharacter()
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
-	// set our turn rates for input
+	// Set our turn rates for input
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
 
@@ -29,18 +29,19 @@ AFP_FirstPersonCharacter::AFP_FirstPersonCharacter()
 	
 	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
 	Mesh1P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh1P"));
-	Mesh1P->SetOnlyOwnerSee(true);
-	Mesh1P->SetupAttachment(FirstPersonCameraComponent);
-	Mesh1P->bCastDynamicShadow = false;
-	Mesh1P->CastShadow = false;
+	Mesh1P->SetOnlyOwnerSee(true);				// Set so only owner can see mesh
+	Mesh1P->SetupAttachment(FirstPersonCameraComponent);	// Attach mesh to FirstPersonCameraComponent
+	Mesh1P->bCastDynamicShadow = false;			// Disallow mesh to cast dynamic shadows
+	Mesh1P->CastShadow = false;				// Disallow mesh to cast other shadows
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
-	FP_Gun->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
-	FP_Gun->bCastDynamicShadow = false;
-	FP_Gun->CastShadow = false;
+	FP_Gun->SetOnlyOwnerSee(true);			// Only the owning player will see this mesh
+	FP_Gun->bCastDynamicShadow = false;		// Disallow mesh to cast dynamic shadows
+	FP_Gun->CastShadow = false;			// Disallow mesh to cast other shadows
 	FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
 
+	// Set weapon damage and range
 	WeaponRange = 5000.0f;
 	WeaponDamage = 500000.0f;
 
@@ -58,12 +59,17 @@ void AFP_FirstPersonCharacter::SetupPlayerInputComponent(class UInputComponent* 
 {
 	// set up gameplay key bindings
 	check(PlayerInputComponent);
+	
+	// Set up gameplay key bindings
 
 	// Bind jump events
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 	
+	// Bind fire event
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFP_FirstPersonCharacter::OnFire);
+	
+	// Attempt to enable touch screen movement
 	TryEnableTouchscreenMovement(PlayerInputComponent);
 
 	// Bind movement events
@@ -87,7 +93,7 @@ void AFP_FirstPersonCharacter::OnFire()
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
 	}
 
-	// try and play a firing animation if specified
+	// Try and play a firing animation if specified
 	if(FireAnimation != NULL)
 	{
 		// Get the animation object for the arms mesh
@@ -157,7 +163,7 @@ void AFP_FirstPersonCharacter::BeginTouch(const ETouchIndex::Type FingerIndex, c
 
 void AFP_FirstPersonCharacter::EndTouch(const ETouchIndex::Type FingerIndex, const FVector Location)
 {
-	// If we didnt record the start event do nothing, or this is a different index
+	// If we didn't record the start event do nothing, or this is a different index
 	if((TouchItem.bIsPressed == false) || ( TouchItem.FingerIndex != FingerIndex) )
 	{
 		return;

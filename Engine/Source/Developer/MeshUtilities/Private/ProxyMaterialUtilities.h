@@ -111,6 +111,12 @@ namespace ProxyMaterialUtilities
 		OutMaterial->BasePropertyOverrides.bOverride_TwoSided = true;
 		OutMaterial->BasePropertyOverrides.DitheredLODTransition = FlattenMaterial.bDitheredLODTransition;
 		OutMaterial->BasePropertyOverrides.bOverride_DitheredLODTransition = true;
+		
+		if (InMaterialProxySettings.BlendMode != BLEND_Opaque)
+		{
+			OutMaterial->BasePropertyOverrides.bOverride_BlendMode = true;
+			OutMaterial->BasePropertyOverrides.BlendMode = InMaterialProxySettings.BlendMode;
+		}
 
 		bool bPackMetallic, bPackSpecular, bPackRoughness;
 		int32 NumSamples = 0;
@@ -147,6 +153,18 @@ namespace ProxyMaterialUtilities
 		if (!bPackSpecular && (FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Specular).Num() > 0 || !InMaterialProxySettings.bSpecularMap))
 		{
 			TEXTURE_MACRO_SCALAR(Specular, TC_Default, bSRGB);
+		}
+
+		const bool bNonSRGB = false;
+
+		if (FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity).Num() > 0 || !InMaterialProxySettings.bOpacityMap)
+		{
+			TEXTURE_MACRO_SCALAR(Opacity, TC_Grayscale, bNonSRGB);
+		}
+
+		if (FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask).Num() > 0 || !InMaterialProxySettings.bOpacityMaskMap)
+		{
+			TEXTURE_MACRO_SCALAR(OpacityMask, TC_Grayscale, bNonSRGB);
 		}
 
 		// Handle the packed texture if applicable

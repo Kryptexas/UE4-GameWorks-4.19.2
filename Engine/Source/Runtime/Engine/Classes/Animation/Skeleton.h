@@ -307,7 +307,7 @@ protected:
 public:
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
-	virtual void PostEditUndo() override;
+	ENGINE_API virtual void PostEditUndo() override;
 #endif
 
 	/** Accessor to Reference Skeleton to make data read only */

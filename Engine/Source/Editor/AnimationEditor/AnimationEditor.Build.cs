@@ -20,6 +20,7 @@ public class AnimationEditor : ModuleRules
                 "SkeletonEditor",
                 "Kismet",
                 "AnimGraph",
+                "SequenceRecorder",
             }
 		);
 

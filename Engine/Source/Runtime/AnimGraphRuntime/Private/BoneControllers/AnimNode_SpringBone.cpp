@@ -2,7 +2,7 @@
 
 #include "BoneControllers/AnimNode_SpringBone.h"
 #include "GameFramework/WorldSettings.h"
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_SpringBone
@@ -24,6 +24,7 @@ FAnimNode_SpringBone::FAnimNode_SpringBone()
 	, bHadValidStrength(false)
 	, BoneLocation(FVector::ZeroVector)
 	, BoneVelocity(FVector::ZeroVector)
+	, OwnerVelocity(FVector::ZeroVector)
 {
 }
 
@@ -77,9 +78,8 @@ FORCEINLINE void CopyToVectorByFlags(FVector& DestVec, const FVector& SrcVec, bo
 	}
 }
 
-void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_SpringBone::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
-	check(SkelComp);
 	check(OutBoneTransforms.Num() == 0);
 
 	const bool bNoOffset = !bTranslateX && !bTranslateY && !bTranslateZ;
@@ -89,19 +89,13 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 	}
 
 	// Location of our bone in world space
-	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 
 	const FCompactPoseBoneIndex SpringBoneIndex = SpringBone.GetCompactPoseIndex(BoneContainer);
-	const FTransform& SpaceBase = MeshBases.GetComponentSpaceTransform(SpringBoneIndex);
-	FTransform BoneTransformInWorldSpace = SpaceBase * SkelComp->GetComponentToWorld();
+	const FTransform& SpaceBase = Output.Pose.GetComponentSpaceTransform(SpringBoneIndex);
+	FTransform BoneTransformInWorldSpace = SpaceBase * Output.AnimInstanceProxy->GetComponentTransform();
 
 	FVector const TargetPos = BoneTransformInWorldSpace.GetLocation();
-
-	AActor* SkelOwner = SkelComp->GetOwner();
-	if (SkelComp->GetAttachParent() != NULL && (SkelOwner == NULL))
-	{
-		SkelOwner = SkelComp->GetAttachParent()->GetOwner();
-	}
 
 	// Init values first time
 	if (RemainingTime == 0.0f)
@@ -113,7 +107,7 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 	while (RemainingTime > FixedTimeStep)
 	{
 		// Update location of our base by how much our base moved this frame.
-		FVector const BaseTranslation = SkelOwner ? (SkelOwner->GetVelocity() * FixedTimeStep) : FVector::ZeroVector;
+		FVector const BaseTranslation = (OwnerVelocity * FixedTimeStep);
 		BoneLocation += BaseTranslation;
 
 		// Reinit values if outside reset threshold
@@ -183,13 +177,13 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 
 	// Now convert back into component space and output - rotation is unchanged.
 	FTransform OutBoneTM = SpaceBase;
-	OutBoneTM.SetLocation( SkelComp->GetComponentToWorld().InverseTransformPosition(BoneLocation) );
+	OutBoneTM.SetLocation(Output.AnimInstanceProxy->GetComponentTransform().InverseTransformPosition(BoneLocation));
 
 	const bool bUseRotation = bRotateX || bRotateY || bRotateZ;
 	if (bUseRotation)
 	{
-		FCompactPoseBoneIndex ParentBoneIndex = MeshBases.GetPose().GetParentBoneIndex(SpringBoneIndex);
-		const FTransform& ParentSpaceBase = MeshBases.GetComponentSpaceTransform(ParentBoneIndex);
+		FCompactPoseBoneIndex ParentBoneIndex = Output.Pose.GetPose().GetParentBoneIndex(SpringBoneIndex);
+		const FTransform& ParentSpaceBase = Output.Pose.GetComponentSpaceTransform(ParentBoneIndex);
 
 		FVector ParentToTarget = (TargetPos - ParentSpaceBase.GetLocation()).GetSafeNormal();
 		FVector ParentToCurrent = (BoneLocation - ParentSpaceBase.GetLocation()).GetSafeNormal();
@@ -224,4 +218,15 @@ void FAnimNode_SpringBone::PreUpdate(const UAnimInstance* InAnimInstance)
 	const UWorld* World = SkelComp->GetWorld();
 	check(World->GetWorldSettings());
 	TimeDilation = World->GetWorldSettings()->GetEffectiveTimeDilation();
+
+	AActor* SkelOwner = SkelComp->GetOwner();
+	if (SkelComp->GetAttachParent() != NULL && (SkelOwner == NULL))
+	{
+		SkelOwner = SkelComp->GetAttachParent()->GetOwner();
+		OwnerVelocity = SkelOwner->GetVelocity();
+	}
+	else
+	{
+		OwnerVelocity = FVector::ZeroVector;
+	}	
 }

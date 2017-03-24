@@ -38,6 +38,12 @@ void SMontageEditor::Construct(const FArguments& InArgs, const FMontageEditorReq
 	OnSectionsChanged = InArgs._OnSectionsChanged;
 	MontageObj->RegisterOnMontageChanged(UAnimMontage::FOnMontageChanged::CreateSP(this, &SMontageEditor::RebuildMontagePanel, false));
 		
+	if (MontageObj)
+	{
+		EnsureStartingSection();
+		EnsureSlotNode();
+	}
+
 	// set child montage if montage has parent
 	bChildAnimMontage = MontageObj->HasParentAsset();
 
@@ -152,6 +158,7 @@ void SMontageEditor::Construct(const FArguments& InArgs, const FMontageEditorReq
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 		.SectionTimingNodeVisibility(SectionVisibility)
 		.OnInvokeTab(InArgs._OnInvokeTab)
+		.OnSetMontagePreviewSlot(this, &SMontageEditor::OnSetMontagePreviewSlot)
 	];
 
 	EditorPanels->AddSlot()
@@ -208,12 +215,6 @@ void SMontageEditor::Construct(const FArguments& InArgs, const FMontageEditorReq
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 		.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
 	];
-
-	if (MontageObj)
-	{
-		EnsureStartingSection();
-		EnsureSlotNode();
-	}
 
 	CollapseMontage();
 }
@@ -281,6 +282,16 @@ void SMontageEditor::SetMontageObj(UAnimMontage * NewMontage)
 	AnimCurvePanel->SetSequence(NewMontage);
 	// sequence editor locks the sequence, so it doesn't get replaced by clicking 
 	AnimMontageScrubPanel->ReplaceLockedSequence(NewMontage);
+}
+
+void SMontageEditor::OnSetMontagePreviewSlot(int32 SlotIndex)
+{
+	UAnimSingleNodeInstance * PreviewInstance = GetPreviewInstance();
+	if (PreviewInstance)
+	{
+		const FName SlotName = MontageObj->SlotAnimTracks[SlotIndex].SlotName;
+		PreviewInstance->SetMontagePreviewSlot(SlotName);
+	}
 }
 
 bool SMontageEditor::ValidIndexes(int32 AnimSlotIndex, int32 AnimSegmentIndex) const
@@ -747,7 +758,10 @@ void SMontageEditor::AddNewMontageSlot( FString NewSlotName )
 		MontageObj->SlotAnimTracks.Add( NewTrack );
 		OnMontageModified();
 
-		AnimMontagePanel->Update();
+		if (AnimMontagePanel.IsValid())
+		{
+			AnimMontagePanel->Update();
+		}
 	}
 }
 

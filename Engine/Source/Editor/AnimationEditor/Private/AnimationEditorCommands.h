@@ -24,7 +24,9 @@ public:
 	// apply compression
 	TSharedPtr<FUICommandInfo> ApplyCompression;
 	// export to FBX
-	TSharedPtr<FUICommandInfo> ExportToFBX;
+	TSharedPtr<FUICommandInfo> ExportToFBX_Source;
+	// export to FBX
+	TSharedPtr<FUICommandInfo> ExportToFBX_Play;
 	// Add looping interpolation
 	TSharedPtr<FUICommandInfo> AddLoopingInterpolation;
 	// set key for bone track

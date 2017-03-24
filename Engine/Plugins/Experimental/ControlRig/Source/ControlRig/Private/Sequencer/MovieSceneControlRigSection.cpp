@@ -5,6 +5,7 @@
 #include "MessageLog.h"
 #include "MovieScene.h"
 #include "ControlRigSequence.h"
+#include "ControlRigBindingTemplate.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneControlRigSection"
 
@@ -49,6 +50,41 @@ void UMovieSceneControlRigSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles
 			OutKeyHandles.Add(It.Key());
 		}
 	}
+}
+
+FMovieSceneEvaluationTemplate& UMovieSceneControlRigSection::GenerateTemplateForSubSequence(const FMovieSceneTrackCompilerArgs& InArgs) const
+{
+	// Use our section as the object key here
+	FMovieSceneEvaluationTemplate& Template = InArgs.SubSequenceStore.GetCompiledTemplate(*SubSequence, FObjectKey(this));
+
+	for (TPair<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& TrackPair : Template.GetTracks())
+	{
+		// iterate child templates
+		for (FMovieSceneEvalTemplatePtr& ChildTemplate : TrackPair.Value.GetChildTemplates())
+		{
+			if (&(*ChildTemplate).GetScriptStruct() == FControlRigBindingTemplate::StaticStruct())
+			{
+				// set section curves into binding track
+				FControlRigBindingTemplate& BindingTemplate = *static_cast<FControlRigBindingTemplate*>(&(*ChildTemplate));
+
+				BindingTemplate.SetObjectBindingId(InArgs.ObjectBindingId, MovieSceneSequenceID::Root);
+				BindingTemplate.SetWeightCurve(Weight, -GetStartTime(), Parameters.TimeScale == 0.0f ? 0.0f : 1.0f / Parameters.TimeScale);
+				BindingTemplate.SetPerBoneBlendFilter(bApplyBoneFilter, BoneFilter);
+				BindingTemplate.SetAdditive(bAdditive);
+			}
+		}
+	}
+
+	return Template;
+}
+
+FMovieSceneSubSequenceData UMovieSceneControlRigSection::GenerateSubSequenceData() const
+{
+	FMovieSceneSubSequenceData SubData = UMovieSceneSubSection::GenerateSubSequenceData();
+
+	SubData.SequenceKeyObject = this;
+
+	return SubData;
 }
 
 #undef LOCTEXT_NAMESPACE 

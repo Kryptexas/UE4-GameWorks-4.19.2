@@ -349,25 +349,9 @@ struct FSubTrackRemapper
 			return false;
 		}
 
-		FMovieSceneEvaluationTemplate& Template = Args.SubSequenceStore.GetCompiledTemplate(*SubSequence);
-		
-		FMovieSceneSequenceTransform RootToSequenceTransform =
-			FMovieSceneSequenceTransform(SubSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() + SubSection->Parameters.StartOffset) *		// Inner play offset
-			FMovieSceneSequenceTransform(0.f, SubSection->Parameters.TimeScale) *		// Inner play rate
-			FMovieSceneSequenceTransform(-SubSection->GetStartTime());					// Outer section start time
+		FMovieSceneEvaluationTemplate& Template = SubSection->GenerateTemplateForSubSequence(Args);
 
-#if WITH_EDITORONLY_DATA
-		TRange<float> InnerSectionRange(
-			SubSection->GetStartTime() * RootToSequenceTransform,
-			SubSection->GetEndTime() * RootToSequenceTransform
-			);
-		FMovieSceneSubSequenceData SubData(*SubSequence, SubSection->GetSequenceID(), *SubSection->GetPathNameInMovieScene(), InnerSectionRange);
-#else
-		FMovieSceneSubSequenceData SubData(*SubSequence, SubSection->GetSequenceID());
-#endif
-
-		// Construct the sub sequence data for this sub section
-		SubData.RootToSequenceTransform = RootToSequenceTransform;
+		FMovieSceneSubSequenceData SubData = SubSection->GenerateSubSequenceData();
 
 		// Remap it into the template generator
 		FMovieSceneSequenceID RemappedID = Args.Generator.GenerateSequenceID(SubData, MovieSceneSequenceID::Root);

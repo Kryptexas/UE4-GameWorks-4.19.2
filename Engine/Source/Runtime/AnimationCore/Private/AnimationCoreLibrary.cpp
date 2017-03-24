@@ -14,28 +14,35 @@ namespace AnimationCore
 static void AccumulateConstraintTransform(const FTransform& TargetTransform, const FConstraintDescription& Operator, float Weight, FComponentBlendHelper& BlendHelper)
 {
 	// now filter by operation
-	if (Operator.bTranslation)
+	if (Operator.bParent)
 	{
-		FVector4 Translation = TargetTransform.GetTranslation();
-		Operator.TranslationAxes.FilterVector(Translation);
-		BlendHelper.AddTranslation(FVector(Translation.X, Translation.Y, Translation.Z), Weight);
+		BlendHelper.AddParent(TargetTransform, Weight);
 	}
-
-	if (Operator.bRotation)
+	else
 	{
-		FQuat DeltaRotation = TargetTransform.GetRotation();
-		FVector4 DeltaRotationVector(DeltaRotation.X, DeltaRotation.Y, DeltaRotation.Z, DeltaRotation.W);
-		Operator.RotationAxes.FilterVector(DeltaRotationVector);
-		DeltaRotation = FQuat(DeltaRotationVector.X, DeltaRotationVector.Y, DeltaRotationVector.Z, DeltaRotationVector.W);
-		DeltaRotation.Normalize();
-		BlendHelper.AddRotation(DeltaRotation, Weight);
-	}
+		if (Operator.bTranslation)
+		{
+			FVector4 Translation = TargetTransform.GetTranslation();
+			Operator.TranslationAxes.FilterVector(Translation);
+			BlendHelper.AddTranslation(FVector(Translation.X, Translation.Y, Translation.Z), Weight);
+		}
 
-	if (Operator.bScale)
-	{
-		FVector4 Scale = TargetTransform.GetScale3D();
-		Operator.ScaleAxes.FilterVector(Scale);
-		BlendHelper.AddScale(FVector(Scale.X, Scale.Y, Scale.Z), Weight);
+		if (Operator.bRotation)
+		{
+			FQuat DeltaRotation = TargetTransform.GetRotation();
+			FVector4 DeltaRotationVector(DeltaRotation.X, DeltaRotation.Y, DeltaRotation.Z, DeltaRotation.W);
+			Operator.RotationAxes.FilterVector(DeltaRotationVector);
+			DeltaRotation = FQuat(DeltaRotationVector.X, DeltaRotationVector.Y, DeltaRotationVector.Z, DeltaRotationVector.W);
+			DeltaRotation.Normalize();
+			BlendHelper.AddRotation(DeltaRotation, Weight);
+		}
+
+		if (Operator.bScale)
+		{
+			FVector4 Scale = TargetTransform.GetScale3D();
+			Operator.ScaleAxes.FilterVector(Scale);
+			BlendHelper.AddScale(FVector(Scale.X, Scale.Y, Scale.Z), Weight);
+		}
 	}
 }
 
@@ -63,21 +70,30 @@ FTransform SolveConstraints(const FTransform& CurrentTransform, const FTransform
 		}
 	}
 
-	FVector BlendedTranslation;
-	if (BlendHelper.GetBlendedTranslation(BlendedTranslation))
+	// @note : parent and any other combination of constraints won't work
+	FTransform ParentTransform;
+	if (BlendHelper.GetBlendedParent(ParentTransform))
 	{
-		// if any result
-		BlendedTransform.SetTranslation(BlendedTranslation);
+		BlendedTransform = ParentTransform;
 	}
-	FQuat BlendedRotation;
-	if (BlendHelper.GetBlendedRotation(BlendedRotation))
+	else
 	{
-		BlendedTransform.SetRotation(BlendedRotation);
-	}
-	FVector BlendedScale;
-	if (BlendHelper.GetBlendedScale(BlendedScale))
-	{
-		BlendedTransform.SetScale3D(BlendedScale);
+		FVector BlendedTranslation;
+		if (BlendHelper.GetBlendedTranslation(BlendedTranslation))
+		{
+			// if any result
+			BlendedTransform.SetTranslation(BlendedTranslation);
+		}
+		FQuat BlendedRotation;
+		if (BlendHelper.GetBlendedRotation(BlendedRotation))
+		{
+			BlendedTransform.SetRotation(BlendedRotation);
+		}
+		FVector BlendedScale;
+		if (BlendHelper.GetBlendedScale(BlendedScale))
+		{
+			BlendedTransform.SetScale3D(BlendedScale);
+		}
 	}
 
 	return BlendedTransform;

@@ -198,9 +198,12 @@ public:
 	/** Delegate broadcast when a preview scene is created */
 	virtual FOnPreviewSceneCreated& OnPreviewSceneCreated() { return OnPreviewSceneCreatedDelegate; }
 
+	/** Add common toobar extensions */
+	virtual void AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilder, TSharedRef<IPersonaToolkit> PersonaToolkit);
+
 private:
-	/** When a new AnimBlueprint is created, this will handle post creation work such as adding non-event default nodes */
-	void OnNewBlueprintCreated(UBlueprint* InBlueprint);
+	/** When a new anim notify blueprint is created, this will handle post creation work such as adding non-event default nodes */
+	void HandleNewBlueprintCreated(UBlueprint* InBlueprint);
 
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;

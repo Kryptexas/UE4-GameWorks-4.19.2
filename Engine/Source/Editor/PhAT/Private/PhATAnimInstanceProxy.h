@@ -3,8 +3,7 @@
 #pragma once
 
 #include "AnimInstanceProxy.h"
-#include "AnimNode_Ragdoll.h"
-#include "AnimNode_Root.h"
+//#include "AnimNode_RigidBody.h"
 #include "Animation/AnimNodeSpaceConversions.h"
 #include "Animation/AnimNode_SequencePlayer.h"
 #include "PhATAnimInstanceProxy.generated.h"
@@ -43,7 +42,7 @@ public:
 private:
 	void ConstructNodes();
 
-	FAnimNode_Ragdoll RagdollNode;
+	//FAnimNode_RigidBody RagdollNode;
 	FAnimNode_ConvertComponentToLocalSpace ComponentToLocalSpace;
 	FAnimNode_SequencePlayer SequencePlayerNode;
 	FAnimNode_ConvertLocalToComponentSpace LocalToComponentSpace;

@@ -194,11 +194,22 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 
 	const TArray<int32>& MasterBoneMap = InMeshComponent->GetMasterBoneMap();
 
-	check( ThisMesh->RefBasesInvMatrix.Num() != 0 );
-	if(ReferenceToLocal.Num() != ThisMesh->RefBasesInvMatrix.Num())
+	// Get inv ref pose matrices
+	const TArray<FMatrix>* RefBasesInvMatrix = &ThisMesh->RefBasesInvMatrix;
+
+	// Check if there is an override (and it's the right size)
+	if( InMeshComponent->GetRefPoseOverride() && 
+		InMeshComponent->GetRefPoseOverride()->RefBasesInvMatrix.Num() == RefBasesInvMatrix->Num() )
+	{
+		RefBasesInvMatrix = &InMeshComponent->GetRefPoseOverride()->RefBasesInvMatrix;
+	}
+
+	check( RefBasesInvMatrix->Num() != 0 );
+
+	if(ReferenceToLocal.Num() != RefBasesInvMatrix->Num())
 	{
 		ReferenceToLocal.Reset();
-		ReferenceToLocal.AddUninitialized(ThisMesh->RefBasesInvMatrix.Num());
+		ReferenceToLocal.AddUninitialized(RefBasesInvMatrix->Num());
 	}
 
 	const bool bIsMasterCompValid = MasterComp && MasterBoneMap.Num() == ThisMesh->RefSkeleton.GetNum();
@@ -217,7 +228,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 		{
 			const int32 ThisBoneIndex = RequiredBoneIndices[BoneIndex];
 
-			if ( ThisMesh->RefBasesInvMatrix.IsValidIndex(ThisBoneIndex) )
+			if ( RefBasesInvMatrix->IsValidIndex(ThisBoneIndex) )
 			{
 				// On the off chance the parent matrix isn't valid, revert to identity.
 				ReferenceToLocal[ThisBoneIndex] = FMatrix::Identity;
@@ -277,7 +288,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 
 	for (int32 ThisBoneIndex = 0; ThisBoneIndex < ReferenceToLocal.Num(); ++ThisBoneIndex)
 	{
-		ReferenceToLocal[ThisBoneIndex] = ThisMesh->RefBasesInvMatrix[ThisBoneIndex] * ReferenceToLocal[ThisBoneIndex];
+		ReferenceToLocal[ThisBoneIndex] = (*RefBasesInvMatrix)[ThisBoneIndex] * ReferenceToLocal[ThisBoneIndex];
 	}
 }
 

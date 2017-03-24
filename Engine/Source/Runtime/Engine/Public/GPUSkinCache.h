@@ -259,7 +259,7 @@ public:
 
 	ENGINE_API void TransitionToReadable(FRHICommandList& RHICmdList);
 	ENGINE_API void TransitionToWriteable(FRHICommandList& RHICmdList);
-
+	ENGINE_API void AdvanceFrameUpdate(FRHICommandList& RHICmdList);
 
 private:
 	// @param FrameNumber from GFrameNumber or better ViewFamily.FrameNumber
@@ -282,10 +282,10 @@ private:
 	bool InternalIsElementProcessed(uint32 FrameNumber, int32 Key) const;
 
 
-	// from GFrameNumber or better ViewFamily.FrameNumber
 	bool bInitialized : 1;
 
-	uint32	SkinCacheFrameNumber;
+	// Used internally to manage resource transitions
+	uint32	InternalUpdateCount;
 
 	int		CacheMaxVectorCount;
 	int		CacheCurrentFloatOffset;

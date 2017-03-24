@@ -10,6 +10,7 @@
 
 UControlRigSequence::UControlRigSequence(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, LastExportedFrameRate(30.0f)
 {
 	bParentContextsAreSignificant = false;
 }

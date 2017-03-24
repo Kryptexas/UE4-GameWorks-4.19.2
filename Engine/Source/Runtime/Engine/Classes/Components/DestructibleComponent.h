@@ -101,11 +101,11 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 
 	// Take damage
 	UFUNCTION(BlueprintCallable, Category="Components|Destructible")
-	void ApplyDamage(float DamageAmount, const FVector& HitLocation, const FVector& ImpulseDir, float ImpulseStrength);
+	virtual void ApplyDamage(float DamageAmount, const FVector& HitLocation, const FVector& ImpulseDir, float ImpulseStrength);
 
 	// Take radius damage
 	UFUNCTION(BlueprintCallable, Category="Components|Destructible")
-	void ApplyRadiusDamage(float BaseDamage, const FVector& HurtOrigin, float DamageRadius, float ImpulseStrength, bool bFullDamage);
+	virtual void ApplyRadiusDamage(float BaseDamage, const FVector& HurtOrigin, float DamageRadius, float ImpulseStrength, bool bFullDamage);
 
 	UFUNCTION(BlueprintCallable, Category="Components|Destructible")
 	void SetDestructibleMesh(class UDestructibleMesh* NewMesh);
@@ -147,6 +147,7 @@ public:
 	virtual void AddImpulseAtLocation(FVector Impulse, FVector Position, FName BoneName = NAME_None) override;
 	virtual void AddForce(FVector Force, FName BoneName = NAME_None, bool bAccelChange = false) override;
 	virtual void AddForceAtLocation(FVector Force, FVector Location, FName BoneName = NAME_None) override;
+	virtual void AddForceAtLocationLocal(FVector Force, FVector Location, FName BoneName = NAME_None) override;
 	virtual void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange=false) override;
 	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bAccelChange = false) override;
 	virtual void ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
@@ -221,7 +222,7 @@ public:
 
 #if WITH_APEX
 	/** Trigger any fracture effects after a damage event is received */
-	void SpawnFractureEffectsFromDamageEvent(const nvidia::apex::DamageEventReportData& InDamageEvent);
+	virtual void SpawnFractureEffectsFromDamageEvent(const nvidia::apex::DamageEventReportData& InDamageEvent);
 
 	/** Callback from physics system to notify the actor that it has been damaged */
 	void OnDamageEvent(const nvidia::apex::DamageEventReportData& InDamageEvent);

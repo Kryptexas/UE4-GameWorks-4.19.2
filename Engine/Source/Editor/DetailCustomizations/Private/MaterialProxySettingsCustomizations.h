@@ -34,6 +34,7 @@ protected:
 	TSharedPtr< IPropertyHandle > SpecularTextureSizeHandle;
 	TSharedPtr< IPropertyHandle > EmissiveTextureSizeHandle;
 	TSharedPtr< IPropertyHandle > OpacityTextureSizeHandle;
+	TSharedPtr< IPropertyHandle > OpacityMaskTextureSizeHandle;
 
 	TSharedPtr< IPropertyHandle > MergeTypeHandle;
 	TSharedPtr< IPropertyHandle > GutterSpaceHandle;

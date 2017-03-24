@@ -30,7 +30,7 @@ FSkeletalMeshEditorMode::FSkeletalMeshEditorMode(TSharedRef<FWorkflowCentricAppl
 
 	TabFactories.RegisterFactory(CreateMeshControllerMappingTabFactory(InHostingApp, Cast<USkeletalMesh> (SkeletalMeshEditor->HandleGetAsset()), SkeletalMeshEditor->OnPostUndo));
 
-	TabLayout = FTabManager::NewLayout("Standalone_SkeletalMeshEditor_Layout_v3")
+	TabLayout = FTabManager::NewLayout("Standalone_SkeletalMeshEditor_Layout_v3.1")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -69,7 +69,8 @@ FSkeletalMeshEditorMode::FSkeletalMeshEditorMode(TSharedRef<FWorkflowCentricAppl
 					->SetHideTabWell(false)
 					->AddTab(SkeletalMeshEditorTabs::MorphTargetsTab, ETabState::OpenedTab)
 					->AddTab(SkeletalMeshEditorTabs::DetailsTab, ETabState::ClosedTab)
-					->AddTab(SkeletalMeshEditorTabs::AdvancedPreviewTab, ETabState::ClosedTab)
+					->AddTab(SkeletalMeshEditorTabs::AdvancedPreviewTab, ETabState::OpenedTab)
+					->SetForegroundTab(SkeletalMeshEditorTabs::MorphTargetsTab)
 				)
 			)
 		);
@@ -82,6 +83,20 @@ void FSkeletalMeshEditorMode::RegisterTabFactories(TSharedPtr<FTabManager> InTab
 	HostingApp->PushTabFactories(TabFactories);
 
 	FApplicationMode::RegisterTabFactories(InTabManager);
+}
+
+
+void FSkeletalMeshEditorMode::AddTabFactory(FCreateWorkflowTabFactory FactoryCreator)
+{
+	if (FactoryCreator.IsBound())
+	{
+		TabFactories.RegisterFactory(FactoryCreator.Execute(HostingAppPtr.Pin()));
+	}
+}
+
+void FSkeletalMeshEditorMode::RemoveTabFactory(FName TabFactoryID)
+{
+	TabFactories.UnregisterFactory(TabFactoryID);
 }
 
 TSharedRef<class FWorkflowTabFactory> FSkeletalMeshEditorMode::CreateMeshControllerMappingTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TWeakObjectPtr<class USkeletalMesh>& InEditingMesh, FSimpleMulticastDelegate& OnPostUndo) const

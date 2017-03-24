@@ -5,15 +5,16 @@
 #include "PaperCharacter.h"
 #include "TP_2DSideScrollerCharacter.generated.h"
 
-// This class is the default character for TP_2DSideScroller, and it is responsible for all
-// physical interaction between the player and the world.
-//
-//   The capsule component (inherited from ACharacter) handles collision with the world
-//   The CharacterMovementComponent (inherited from ACharacter) handles movement of the collision capsule
-//   The Sprite component (inherited from APaperCharacter) handles the visuals
-
 class UTextRenderComponent;
 
+/**
+ * This class is the default character for TP_2DSideScroller, and it is responsible for all
+ * physical interaction between the player and the world.
+ *
+ * The capsule component (inherited from ACharacter) handles collision with the world
+ * The CharacterMovementComponent (inherited from ACharacter) handles movement of the collision capsule
+ * The Sprite component (inherited from APaperCharacter) handles the visuals
+ */
 UCLASS(config=Game)
 class ATP_2DSideScrollerCharacter : public APaperCharacter
 {
