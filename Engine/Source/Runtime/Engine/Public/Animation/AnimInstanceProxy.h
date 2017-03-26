@@ -264,6 +264,18 @@ public:
 		return LODLevel;
 	}
 
+	// Cached SkeletalMeshComponent LocalToWorld Transform.
+	const FTransform& GetSkelMeshCompLocalToWorld() const
+	{
+		return SkelMeshCompLocalToWorld;
+	}
+
+	// Cached SkeletalMeshComponent Owner Transform.
+	const FTransform& GetSkelMeshCompOwnerTransform() const
+	{
+		return SkelMeshCompOwnerTransform;
+	}
+
 	/** Get the current skeleton we are using. Note that this will return nullptr outside of pre/post update */
 	USkeleton* GetSkeleton() 
 	{ 
@@ -740,7 +752,14 @@ private:
 	/** LODLevel used by RequiredBones */
 	int32 LODLevel;
 
+	/** Cached SkeletalMeshComponent LocalToWorld transform. */
+	FTransform SkelMeshCompLocalToWorld;
+
+	/** Cached SkeletalMeshComponent Owner Transform */
+	FTransform SkelMeshCompOwnerTransform;
+
 protected:
+
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	bool bBoneCachesInvalidated;
 

@@ -197,6 +197,14 @@ public:
 		}
 	}
 
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override
+	{
+		if (!IS_DEDICATED_SERVER)
+		{
+			GetAllDefaultTextureFormats(this, OutFormats, bSupportDX11TextureFormats);
+		}
+	}
+
 	virtual const UTextureLODSettings& GetTextureLODSettings() const override
 	{
 		return *TextureLODSettings;
@@ -218,6 +226,14 @@ public:
 		}
 
 		return NAME_OGG;
+	}
+
+	virtual void GetAllWaveFormats(TArray<FName>& OutFormats) const override
+	{
+		static FName NAME_OGG(TEXT("OGG"));
+		static FName NAME_OPUS(TEXT("OPUS"));
+		OutFormats.Add(NAME_OGG);
+		OutFormats.Add(NAME_OPUS);
 	}
 
 #endif //WITH_ENGINE

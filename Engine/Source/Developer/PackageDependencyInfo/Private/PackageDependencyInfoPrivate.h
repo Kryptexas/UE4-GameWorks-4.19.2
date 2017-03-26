@@ -140,8 +140,9 @@ protected:
 	 * @param PkgInfo package we want to generate the dependent hash for
 	 * @param OutHash generated dependent hash
 	 */
-	void RecursiveResolveDependentHash(FPackageDependencyTrackingInfo* PkgInfo, FMD5 &OutHash, FDateTime& EarliestTime);
+	void RecursiveResolveDependentHash(FPackageDependencyTrackingInfo* PkgInfo, TSet<FPackageDependencyTrackingInfo*>& ReferencedPkgInfo, FMD5 &OutHash, FDateTime& EarliestTime);
 
+	void ResolveDependentHashes(bool Async, TSet<FPackageDependencyTrackingInfo*> PackageInfoSet, int32 NumAsyncDependencyTasks);
 
 
 	/** The newest time stamp of the shader source files. Used when a package contains a material */

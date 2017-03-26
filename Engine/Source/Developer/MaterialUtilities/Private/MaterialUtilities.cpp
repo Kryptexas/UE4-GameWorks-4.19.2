@@ -2365,25 +2365,6 @@ void FMaterialUtilities::ClearRenderTargetPool()
 	RenderTargetPool.Empty();
 }
 
-void FMaterialUtilities::FullyLoadMaterialStatic(UMaterialInterface* Material)
-{
-	FLinkerLoad* Linker = Material->GetLinker();
-	if (Linker == nullptr)
-	{
-		return;
-	}
-	// Load material and all expressions.
-	Linker->LoadAllObjects(true);
-	Material->ConditionalPostLoad();
-	// Now load all used textures.
-	TArray<UTexture*> Textures;
-	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, ERHIFeatureLevel::SM5, true);
-	for (UTexture* Texture : Textures)
-	{
-		Linker->Preload(Texture);
-	}
-}
-
 void FMaterialUtilities::OptimizeSampleArray(TArray<FColor>& InSamples, FIntPoint& InSampleSize)
 {
 	if (InSamples.Num() > 1)

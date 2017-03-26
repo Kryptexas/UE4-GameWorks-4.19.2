@@ -346,6 +346,11 @@ public:
 	virtual TSharedPtr<IPropertyHandle> GetParentHandle() const = 0;
 
 	/**
+	 * @return The property handle to the key element for this value if this is a map element
+	 */
+	virtual TSharedPtr<IPropertyHandle> GetKeyHandle() const = 0;
+
+	/**
 	 * @return The number of children the property handle has
 	 */
 	virtual FPropertyAccess::Result GetNumChildren( uint32& OutNumChildren ) const = 0;

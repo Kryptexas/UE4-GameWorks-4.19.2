@@ -699,6 +699,13 @@ bool FArchiveFileReaderGeneric::InternalPrecache( int64 PrecacheOffset, int64 Pr
 
 void FArchiveFileReaderGeneric::Serialize( void* V, int64 Length )
 {
+	if (Pos + Length > Size)
+	{
+		ArIsError = true;
+		UE_LOG(LogFileManager, Error, TEXT("Requested read of %d bytes when %d bytes remain (file=%s, size=%d)"), Length, Size-Pos, *Filename, Size);
+		return;
+	}
+
 	while( Length>0 )
 	{
 		int64 Copy = FMath::Min( Length, BufferBase+BufferCount-Pos );

@@ -392,9 +392,21 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
-	if (bUseHDRDisplayOutput)
+	bool bWithEditor = false;
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		bWithEditor = true;
+	}
+#endif
+
+	if (bUseHDRDisplayOutput && !bWithEditor)
 	{
 		EnableHDRDisplayOutput(true, HDRDisplayOutputNits);
+	}
+	else
+	{
+		EnableHDRDisplayOutput(false, HDRDisplayOutputNits);
 	}
 }
 
@@ -494,6 +506,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 	int32 ResolutionY = GetDefaultResolution().Y;
 	EWindowMode::Type WindowMode = GetDefaultWindowMode();
 	bool bUseDesktopResolution = false;
+	bool bUseHDR = false;
 
 	int32 Version=0;
 	if( GConfig->GetInt(*GameUserSettingsCategory, TEXT("Version"), Version, GGameUserSettingsIni ) && Version == UE_GAMEUSERSETTINGS_VERSION )
@@ -518,6 +531,15 @@ void UGameUserSettings::PreloadResolutionSettings()
 			ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
 		}
 #endif
+
+		if (GConfig->GetBool(*GameUserSettingsCategory, TEXT("bUseHDRDisplayOutput"), bUseHDR, GGameUserSettingsIni))
+		{
+			static auto CVarHDROutputEnabled = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.EnableHDROutput"));
+			if (CVarHDROutputEnabled)
+			{
+				CVarHDROutputEnabled->Set(bUseHDR ? 1 : 0, ECVF_SetByGameSetting);
+			}
+		}
 	}
 
 	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);

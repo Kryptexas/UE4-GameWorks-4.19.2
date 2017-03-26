@@ -281,6 +281,42 @@ private:
 	void EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TSharedPtr< TArray<FAnalyticsEventEntry> > FlushedEvents);
 };
 
+class FAnalyticsProviderETNULL :
+	public IAnalyticsProviderET,
+	public TSharedFromThis<FAnalyticsProviderETNULL>
+{
+public:
+	FAnalyticsProviderETNULL(const FAnalyticsET::Config& ConfigValues) {};
+
+	// IAnalyticsProvider
+
+	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) override { return true; }
+	virtual bool StartSession(TArray<FAnalyticsEventAttribute>&& Attributes) override { return true; }
+	virtual void EndSession() override { }
+	virtual void FlushEvents() override { }
+
+	virtual void SetAppID(const FString&& AppID) override { APIKey = AppID; }
+	virtual const FString& GetAppID() const override { return APIKey; }
+	virtual void SetUserID(const FString& InUserID) override { UserID = InUserID; }
+	virtual FString GetUserID() const override { return UserID; }
+
+	virtual FString GetSessionID() const override { return SessionID; }
+	virtual bool SetSessionID(const FString& InSessionID) override { SessionID = InSessionID; return true; }
+
+	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override {}
+	virtual void RecordEvent(FString EventName, TArray<FAnalyticsEventAttribute>&& Attributes) override {}
+	virtual void RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson) override {}
+	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) override {}
+
+	virtual ~FAnalyticsProviderETNULL() {};
+
+	FString GetAPIKey() const { return APIKey; }
+
+	FString APIKey;
+	FString UserID;
+	FString SessionID;
+};
+
 TSharedPtr<IAnalyticsProviderET> FAnalyticsET::CreateAnalyticsProvider(const Config& ConfigValues) const
 {
 	// If we didn't have a proper APIKey, return NULL
@@ -289,7 +325,12 @@ TSharedPtr<IAnalyticsProviderET> FAnalyticsET::CreateAnalyticsProvider(const Con
 		UE_LOG(LogAnalytics, Warning, TEXT("CreateAnalyticsProvider config not contain required parameter %s"), *Config::GetKeyNameForAPIKey());
 		return NULL;
 	}
+	//@todo sz
+#if 0
+	return TSharedPtr<IAnalyticsProviderET>(new FAnalyticsProviderETNULL(ConfigValues));
+#else
 	return TSharedPtr<IAnalyticsProviderET>(new FAnalyticsProviderET(ConfigValues));
+#endif
 }
 
 /**
@@ -671,12 +712,8 @@ void FAnalyticsProviderET::SetUserID(const FString& InUserID)
 	if (!FParse::Value(FCommandLine::Get(), TEXT("ANALYTICSUSERID="), UserID, false))
 	{
 		UE_LOG(LogAnalytics, Log, TEXT("[%s] SetUserId %s"), *APIKey, *InUserID);
-		// Deliberately DO NOT Flush any cached events that would be using the old UserID.
-		// There are cases in our games where we create a provider before we've logged into the backend, so we can't set the final UserID in advance.
-		// Once the login is complete (generally before the first flush), we can set the UserID such that when the flush finally happens, all the 
-		// events come in with the correct UserID.
-		// It's kind of a hack, and subject to incorrect behavior.
-		// @todo add an overload of this method that explicitly avoids the flush and have the game code call that instead.
+		// Flush any cached events that would be using the old UserID.
+		FlushEvents();
 		UserID = InUserID;
 	}
 	else if (UserID != InUserID)

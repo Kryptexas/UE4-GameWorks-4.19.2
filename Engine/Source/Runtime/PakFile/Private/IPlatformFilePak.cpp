@@ -2822,7 +2822,7 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 	const uint8* Data = nullptr;
 	int64 RequestSize = 0;
 	int64 RequestOffset = 0;
-	FPakData* PakData = nullptr;
+	uint16 PakIndex;
 
 	{
 		// Try and keep lock for as short a time as possible. Find our request and copy out the data we need
@@ -2838,8 +2838,7 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 		RequestOffset = GetRequestOffset(Block.OffsetAndPakIndex);
 		check((RequestOffset % FPakInfo::MaxChunkDataSize) == 0);
 		RequestSize = RequestToLower.RequestSize;
-		int64 PakIndex = GetRequestPakIndex(Block.OffsetAndPakIndex);
-		PakData = &CachedPakData[PakIndex];
+		PakIndex = GetRequestPakIndex(Block.OffsetAndPakIndex);
 		Data = RequestToLower.Memory;
 		SignatureIndex = RequestOffset / FPakInfo::MaxChunkDataSize;
 	}
@@ -2848,7 +2847,6 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 	check(NumSignaturesToCheck > 0);
 	check(RequestSize > 0);
 	check(RequestOffset >= 0);
-	check(PakData != nullptr);
 
 	// Hash the contents of the incoming buffer and check that it matches what we expected
 	for (int64 SignedChunkIndex = 0; SignedChunkIndex < NumSignaturesToCheck; ++SignedChunkIndex, ++SignatureIndex)
@@ -2857,7 +2855,14 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 
 		{
 			SCOPE_SECONDS_ACCUMULATOR(STAT_PakCache_SigningChunkHashTime);
-			bool bChunkHashesMatch = ComputePakChunkHash(Data, Size) == PakData->ChunkHashes[SignatureIndex];
+
+			TPakChunkHash ThisHash = ComputePakChunkHash(Data, Size);
+			bool bChunkHashesMatch;
+			{
+				FScopeLock Lock(&CachedFilesScopeLock);
+				FPakData* PakData = &CachedPakData[PakIndex];
+				bChunkHashesMatch = ThisHash == PakData->ChunkHashes[SignatureIndex];
+			}
 			ensure(bChunkHashesMatch);
 			if (!ensure(bChunkHashesMatch))
 			{

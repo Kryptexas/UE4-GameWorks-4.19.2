@@ -257,7 +257,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		const bool bIsTransacting = Ar.IsTransacting();
 		const bool bIsCookingForDedicatedServer = bIsCooking && Ar.CookingTarget()->IsServerOnly();
 		const bool bIsCountingMemory = Ar.IsCountingMemory();
-		const bool bCookingTargetNeedsCompressedData = bIsCooking && (!UAnimationSettings::Get()->bStripAnimationDataOnDedicatedServer || !bIsCookingForDedicatedServer);
+		const bool bCookingTargetNeedsCompressedData = bIsCooking && (!UAnimationSettings::Get()->bStripAnimationDataOnDedicatedServer || !bIsCookingForDedicatedServer || bEnableRootMotion);
 
 		bool bSerializeCompressedData = bCookingTargetNeedsCompressedData || bIsDuplicating || bIsTransacting || bIsCountingMemory;
 		Ar << bSerializeCompressedData;
@@ -2573,8 +2573,7 @@ void UAnimSequence::RecycleAnimSequence()
 	CompressedTrackOffsets.Empty(0);
 	CompressedByteStream.Empty(0);
 	CompressedScaleOffsets.Empty(0);
-	SourceRawAnimationData.Reset();
-
+	SourceRawAnimationData.Empty(0);
 #endif // WITH_EDITORONLY_DATA
 }
 bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq, bool bSkipCopyingNotifies)

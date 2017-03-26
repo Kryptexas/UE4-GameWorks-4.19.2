@@ -275,7 +275,13 @@ public abstract class BaseWinPlatform : Platform
 
 	public void StageAppLocalDependencies(ProjectParams Params, DeploymentContext SC, string PlatformDir)
 	{
-		string BaseAppLocalDependenciesPath = Path.IsPathRooted(Params.AppLocalDirectory) ? CombinePaths(Params.AppLocalDirectory, PlatformDir) : CombinePaths(SC.ProjectRoot, Params.AppLocalDirectory, PlatformDir);
+		Dictionary<string, string> PathVariables = new Dictionary<string, string>();
+		PathVariables["EngineDir"] = Path.Combine(SC.LocalRoot, "Engine");
+		PathVariables["ProjectDir"] = SC.ProjectRoot;
+
+		string ExpandedAppLocalDir = Utils.ExpandVariables(Params.AppLocalDirectory, PathVariables);
+
+		string BaseAppLocalDependenciesPath = Path.IsPathRooted(ExpandedAppLocalDir) ? CombinePaths(ExpandedAppLocalDir, PlatformDir) : CombinePaths(SC.ProjectRoot, ExpandedAppLocalDir, PlatformDir);
 		if (Directory.Exists(BaseAppLocalDependenciesPath))
 		{
 			string ProjectBinaryPath = new DirectoryReference(SC.ProjectBinariesFolder).MakeRelativeTo(new DirectoryReference(CombinePaths(SC.ProjectRoot, "..")));

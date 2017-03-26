@@ -28,6 +28,7 @@
 #include "HAL/PlatformFile.h"
 #include "HAL/PlatformFilemanager.h"
 #include "Stats/StatsMisc.h"
+#include "GameplayTagReferenceHelperDetails.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagEditor"
 
@@ -49,6 +50,8 @@ public:
 			PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagQuery", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagQueryCustomization::MakeInstance));
 
 			PropertyModule.RegisterCustomClassLayout(UGameplayTagsList::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FGameplayTagsSettingsCustomization::MakeInstance));
+
+			PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagReferenceHelper", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagReferenceHelperDetails::MakeInstance));
 
 			PropertyModule.NotifyCustomizationModuleChanged();
 		}

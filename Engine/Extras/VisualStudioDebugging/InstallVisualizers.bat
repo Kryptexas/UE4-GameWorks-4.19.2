@@ -25,10 +25,16 @@ if "%VS110COMNTOOLS%" neq "" (
   echo Installed visualizers for Visual Studio 2012
 )
 
+if "%SCE_ORBIS_SDK_DIR%" neq "" (
+  mkdir "%USERPROFILE%\Documents\SCE\orbis-debugger"
+  copy PS4UE4.natvis "%USERPROFILE%\Documents\SCE\orbis-debugger"
+  echo Installed Visualizers for Orbis
+)
+
 if "%FoundVSInstance%" equ "0" (
   echo ERROR: Could not find a valid version of Visual Studio installed (2012, 2013, 2015)
 )
 
 popd
 pause
-exit
+exit /b

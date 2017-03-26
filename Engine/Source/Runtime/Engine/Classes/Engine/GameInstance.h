@@ -346,7 +346,6 @@ public:
 	 *
 	 * @return true if able or attempting to travel, false otherwise
 	 */
-#define ADDED_CLIENTTRAVELTOSESSION 1
 	virtual bool ClientTravelToSession(int32 ControllerId, FName InSessionName);
 
 	/** Broadcast a notification that travel is occurring */

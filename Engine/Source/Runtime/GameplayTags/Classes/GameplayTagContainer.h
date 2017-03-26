@@ -855,6 +855,31 @@ struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraits
 	};
 };
 
+/**
+ *	Helper struct for viewing tag references (assets that reference a tag). Drop this into a struct and set the OnGetgameplayStatName. A details customization
+ *	will display a tree view of assets referencing the tag
+ */
+USTRUCT()
+struct FGameplayTagReferenceHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayTagReferenceHelper()
+	{
+	}
+
+	/** 
+	 *	Delegate to be called to get the tag we want to inspect. The void* is a raw pointer to the outer struct's data. You can do a static cast to access it. Eg:
+	 *	
+	 *	ReferenceHelper.OnGetGameplayTagName.BindLambda([this](void* RawData) {
+	 *		FMyStructType* ThisData = static_cast<FMyStructType*>(RawData);
+	 *		return ThisData->MyTag.GetTagName();
+	 *	});
+	 *
+	*/
+	DECLARE_DELEGATE_RetVal_OneParam(FName, FOnGetGameplayTagName, void* /**RawOuterStructData*/);
+	FOnGetGameplayTagName OnGetGameplayTagName;
+};
 
 /** Enumerates the list of supported query expression types. */
 UENUM()

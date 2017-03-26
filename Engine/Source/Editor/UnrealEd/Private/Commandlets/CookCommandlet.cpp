@@ -599,14 +599,14 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	bool bTestCook = FParse::Param(*Params, TEXT("Testcook"));
 	CookFlags |= bTestCook ? ECookInitializationFlags::TestCook : ECookInitializationFlags::None;
 	CookFlags |= FParse::Param(*Params, TEXT("iteratehash")) ? ECookInitializationFlags::IterateOnHash : ECookInitializationFlags::None;
-	CookFlags |= FParse::Param(*Params, TEXT("iteratesharedbuild")) ? ECookInitializationFlags::IterateSharedBuild : ECookInitializationFlags::None;
 	CookFlags |= FParse::Param(*Params, TEXT("logdebuginfo")) ? ECookInitializationFlags::LogDebugInfo : ECookInitializationFlags::None;
 
 	// shared cooked build flags
 	bool bIterateSharedCookedBuild = Switches.Contains(TEXT("iteratesharedcookedbuild"));
-	ECookInitializationFlags IterateSharedCookedBuildFlags = ECookInitializationFlags::IterateOnHash | ECookInitializationFlags::Iterative;
+	ECookInitializationFlags IterateSharedCookedBuildFlags = ECookInitializationFlags::IterateOnHash | ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateSharedBuild;
 	CookFlags |= bIterateSharedCookedBuild ? IterateSharedCookedBuildFlags : ECookInitializationFlags::None;
-	
+
+	CookFlags |= FParse::Param(*Params, TEXT("Ignoreinisettingsoutofdate")) ? ECookInitializationFlags::IgnoreIniSettingsOutOfDate : ECookInitializationFlags::None;
 
 	TArray<UClass*> FullGCAssetClasses;
 	if (FullGCAssetClassNames.Num())

@@ -50,6 +50,7 @@ public:
 	FXmppServer() 
 		: ServerPort(5222) 
 		, bUseSSL(true)
+		, bUsePlainTextAuth(false)
 		, PingInterval(60.0f)
 		, PingTimeout(30.0f)
 		, MaxPingRetries(1)
@@ -70,6 +71,8 @@ public:
 	FString Platform;
 	/** true to enable SSL handshake for connection */
 	bool bUseSSL;
+	/** true to allow the usage of plain text authentication */
+	bool bUsePlainTextAuth;
 	/** seconds between sending server ping requests */
 	float PingInterval;
 	/** seconds before a server ping request is treated as a timeout */

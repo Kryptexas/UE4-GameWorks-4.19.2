@@ -18,6 +18,7 @@
 #include "OneColorShader.h"
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
+#include "Engine/Texture2D.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetRenderingLibrary
@@ -171,6 +172,56 @@ void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UT
 	{
 		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_InvalidFileName", "ExportRenderTarget: FileName must be non-empty."));
 	}
+}
+/*
+
+void UKismetRenderingLibrary::CreateTexture2DFromRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, const FString &TextureAssetName)
+{
+	if (RenderTarget && Texture)
+	{
+
+		//FImageUtils::CreateTexture2D
+
+		UTexture2D* NewTexture = RenderTarget->ConstructTexture2D(Texture->GetOuter(), Texture->GetName(), RenderTarget->GetMaskedFlags(), CTF_Default, NULL);
+
+		check(NewTexture == Texture);
+		NewTexture->UpdateResource();
+	}
+	else if (!RenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidRenderTarget", "ExportRenderTarget: RenderTarget must be non-null."));
+	}
+	else if (!Texture)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidTexture", "ExportRenderTarget: Texture must be non-null."));
+	}
+
+}*/
+
+
+void UKismetRenderingLibrary::ConvertRenderTargetToTexture2DEditorOnly( UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, UTexture2D* Texture )
+{
+#if WITH_EDITOR
+	if (RenderTarget && Texture)
+	{
+		UTexture2D* NewTexture = RenderTarget->ConstructTexture2D(Texture->GetOuter(), Texture->GetName(), RenderTarget->GetMaskedFlags(), CTF_Default, NULL);
+
+		check(NewTexture == Texture);
+		NewTexture->UpdateResource();
+		NewTexture->Modify();
+	}
+	else if (!RenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidRenderTarget", "ExportRenderTarget: RenderTarget must be non-null."));
+	}
+	else if (!Texture)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidTexture", "ExportRenderTarget: Texture must be non-null."));
+	}
+#else
+	FMessageLog("Blueprint").Error(LOCTEXT("Convert to render target can't be used at run time.", "ConvertRenderTarget: Can't convert render target to texture2d at run time. "));
+#endif
+
 }
 
 void UKismetRenderingLibrary::ExportTexture2D(UObject* WorldContextObject, UTexture2D* Texture, const FString& FilePath, const FString& FileName)

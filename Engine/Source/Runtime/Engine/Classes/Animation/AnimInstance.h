@@ -13,6 +13,7 @@
 #include "BonePose.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimNotifyQueue.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
 #include "AnimInstance.generated.h"
 
 class FDebugDisplayInfo;
@@ -80,6 +81,8 @@ DECLARE_DELEGATE_ThreeParams(FOnGraphStateChanged, const struct FAnimNode_StateM
 /** Delegate that allows users to insert custom animation curve values - for now, it's only single, not sure how to make this to multi delegate and retrieve value sequentially, so */
 DECLARE_DELEGATE_OneParam(FOnAddCustomAnimationCurves, UAnimInstance*)
 
+/** Delegate called by 'PlayMontageNotify' and 'PlayMontageNotifyWindow' **/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPlayMontageAnimNotifyDelegate, FName, NotifyName, const FBranchingPointNotifyPayload&, BranchingPointPayload);
 
 
 USTRUCT()
@@ -1242,4 +1245,11 @@ protected:
 protected:
 	/** Proxy object, nothing should access this from an externally-callable API as it is used as a scratch area on worker threads */
 	mutable FAnimInstanceProxy* AnimInstanceProxy;
+
+public:
+	/** Called when a montage hits a 'PlayMontageNotify' or 'PlayMontageNotifyWindow' begin */
+	FPlayMontageAnimNotifyDelegate OnPlayMontageNotifyBegin;
+
+	/** Called when a montage hits a 'PlayMontageNotify' or 'PlayMontageNotifyWindow' end */
+	FPlayMontageAnimNotifyDelegate OnPlayMontageNotifyEnd;
 };

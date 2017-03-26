@@ -846,12 +846,6 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 
 		UE_LOG( LogNetFastTArray, Log, TEXT( "Read NumChanged: %d NumDeletes: %d." ), NumChanged, NumDeletes );
 
-		// Increment keys so that a client can re-serialize the array if needed, such as for client replay recording
-		if ( NumDeletes > 0 || NumChanged > 0 )
-		{
-			ArraySerializer.IncrementArrayReplicationKey();
-		}
-
 		TArray<int32, TInlineAllocator<8> > DeleteIndices;
 		TArray<int32, TInlineAllocator<8> > AddedIndices;
 		TArray<int32, TInlineAllocator<8> > ChangedIndices;
@@ -1003,6 +997,13 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 					DeleteIndices.Add(idx);
 				}
 			}
+		}
+
+		// Increment keys so that a client can re-serialize the array if needed, such as for client replay recording.
+		// Must check the size of DeleteIndices instead of NumDeletes to handle implicit deletes.
+		if ( DeleteIndices.Num() > 0 || NumChanged > 0 )
+		{
+			ArraySerializer.IncrementArrayReplicationKey();
 		}
 
 		// ---------------------------------------------------------

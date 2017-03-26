@@ -361,6 +361,8 @@ void UTexture2D::UnlinkStreaming()
 
 void UTexture2D::CancelPendingTextureStreaming()
 {
+	FlushRenderingCommands();
+
 	for( TObjectIterator<UTexture2D> It; It; ++It )
 	{
 		UTexture2D* CurrentTexture = *It;
@@ -426,6 +428,8 @@ void UTexture2D::UpdateResource()
 #if WITH_EDITOR
 	// Recache platform data if the source has changed.
 	CachePlatformData();
+	// clear all the cooked cached platform data if the source could have changed... 
+	ClearAllCachedCookedPlatformData();
 #endif // #if WITH_EDITOR
 
 	// Route to super.
@@ -599,6 +603,12 @@ bool UTexture2D::UpdateStreamingStatus( bool bWaitForMipFading /*= false*/ )
 				}
 			}
 #endif // #if WITH_EDITOR
+		}
+		else if (RequestStatus > TexState_InProgress_Upload && RequestStatus < TexState_ReadyFor_Upload)
+		{
+			// Bogus state. Got here by canceling a texture upload at a strange time. Recover by changing to TexState_ReadyFor_Upload.
+			UE_LOG(LogTexture, Warning, TEXT("UpdateStreamingStatus for %s got into a bad state (TexState_InProgress_Upload < RequestStatus < TexState_ReadyFor_Upload). Recovering by changing to TexState_ReadyFor_Upload."), *GetPathName());
+			PendingMipChangeRequestStatus.Set(TexState_ReadyFor_Upload);
 		}
 	}
 	return bHasPendingRequestInFlight;

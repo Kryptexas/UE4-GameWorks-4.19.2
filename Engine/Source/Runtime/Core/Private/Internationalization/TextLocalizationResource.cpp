@@ -115,6 +115,7 @@ bool FTextLocalizationResource::LoadFromArchive(FArchive& Archive, const FString
 
 	// Read magic number
 	FGuid MagicNumber;
+	
 	if (Archive.TotalSize() >= sizeof(FGuid))
 	{
 		Archive << MagicNumber;

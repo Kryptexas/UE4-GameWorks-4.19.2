@@ -15,6 +15,7 @@
 #include "Templates/UnrealTemplate.h"
 #include "Math/NumericLimits.h"
 #include "Containers/Array.h"
+#include "Containers/Set.h"
 #include "Misc/CString.h"
 #include "Misc/Crc.h"
 #include "Math/UnrealMathUtility.h"
@@ -1682,6 +1683,36 @@ public:
 		FString Result;
 		bool    First = true;
 		for (const T& Element : Array)
+		{
+			if (First)
+			{
+				First = false;
+			}
+			else
+			{
+				Result += Separator;
+			}
+
+			Result += Element;
+		}
+
+		return Result;
+	}
+
+	/**
+	* Joins a Set of 'something that can be concatentated to strings with +=' together into a single string with separators.
+	*
+	* @param	Set		The Set of 'things' to concatenate.
+	* @param	Separator	The string used to separate each element.
+	*
+	* @return	The final, joined, separated string.
+	*/
+	template <typename T, typename Allocator>
+	static FString Join(const TSet<T, Allocator>& Set, const TCHAR* Separator)
+	{
+		FString Result;
+		bool    First = true;
+		for (const T& Element : Set)
 		{
 			if (First)
 			{

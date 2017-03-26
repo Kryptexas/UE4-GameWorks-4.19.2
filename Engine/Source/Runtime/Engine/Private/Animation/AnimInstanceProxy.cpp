@@ -220,8 +220,18 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 
 	InitializeObjects(InAnimInstance);
 
-	// Save off LOD level that we're currently using.
-	LODLevel = InAnimInstance->GetSkelMeshComponent()->PredictedLODLevel;
+	if (USkeletalMeshComponent* SkelMeshComp = InAnimInstance->GetSkelMeshComponent())
+	{
+		// Save off LOD level that we're currently using.
+		LODLevel = SkelMeshComp->PredictedLODLevel;
+
+		// Cache these transforms, so nodes don't have to pull it off the gamethread manually.
+		SkelMeshCompLocalToWorld = SkelMeshComp->ComponentToWorld;
+		if (const AActor* Owner = SkelMeshComp->GetOwner())
+		{
+			SkelMeshCompOwnerTransform = Owner->GetTransform();
+		}
+	}
 
 	NotifyQueue.Reset(InAnimInstance->GetSkelMeshComponent());
 

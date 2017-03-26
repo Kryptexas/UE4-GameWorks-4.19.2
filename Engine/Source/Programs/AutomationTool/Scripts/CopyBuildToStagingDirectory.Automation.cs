@@ -269,7 +269,7 @@ public partial class Project : CommandUtils
 			//check( Params.HasDLCName == false );
 
 			// stage all the previously staged files
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Saved", "SharedIterativeBuild", SC.CookPlatform, "StagedBuild"), "*", true, null, "", true); // remap to the root directory
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Saved", "SharedIterativeBuild", SC.CookPlatform, "Staged"), "*", true, null, "", true); // remap to the root directory
 		}
         if (Params.HasDLCName)
         {
@@ -284,7 +284,7 @@ public partial class Project : CommandUtils
 
             // Put all of the cooked dir into the staged dir
             string PlatformCookDir = CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform);
-            string[] ExcludeWildCards = {"AssetRegistry.bin"};
+			string[] ExcludeWildCards = null; //{"AssetRegistry.bin"};
 
             // Stage any loose files in the root folder
 			// TODO: not sure if we should stage the loose files if we have pak files enabled... 

@@ -30,10 +30,14 @@
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "TickableAttributeSetInterface.h"
 #include "GameplayTagResponseTable.h"
+#include "Engine/DemoNetDriver.h"
+
 #define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
+
+static TAutoConsoleVariable<float> CVarReplayMontageErrorThreshold(TEXT("replay.MontageErrorThreshold"), 0.5f, TEXT("Tolerance level for when montage playback position correction occurs in replays"));
 
 void UAbilitySystemComponent::InitializeComponent()
 {
@@ -2355,7 +2359,11 @@ bool UAbilitySystemComponent::IsReadyForReplicatedMontage()
 /**	Replicated Event for AnimMontages */
 void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 {
-	static const float MONTAGE_REP_POS_ERR_THRESH = 0.1f;
+	UWorld* World = GetWorld();
+
+	const bool bIsPlayingReplay = World && World->DemoNetDriver && World->DemoNetDriver->IsPlaying();
+
+	const float MONTAGE_REP_POS_ERR_THRESH = bIsPlayingReplay ? CVarReplayMontageErrorThreshold.GetValueOnGameThread() : 0.1f;
 
 	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
 	if (AnimInstance == nullptr || !IsReadyForReplicatedMontage())

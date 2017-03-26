@@ -135,7 +135,7 @@ void FRedirectCollector::LogTimers() const
 	LOG_REDIRECT_TIMERS();
 }
 
-void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
+void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage, bool bProcessAlreadyResolvedPackages)
 {
 	SCOPE_REDIRECT_TIMER(ResolveTimeTotal);
 	
@@ -180,7 +180,15 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 					continue;
 				}
 			}
-			
+#if WITH_EDITOR
+			if ( (bProcessAlreadyResolvedPackages == false) && 
+				AlreadyRemapped.Contains(ToLoadFName) )
+			{
+				// don't load this package again because we already did it once before
+				// once is enough for somethings.
+				continue;
+			}
+#endif
 			if (ToLoad.Len() > 0 )
 			{
 				SCOPE_REDIRECT_TIMER(ResolveTimeLoad);
@@ -189,6 +197,9 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 				UE_CLOG(RefFilenameAndProperty.GetProperty().ToString().Len(), LogRedirectors, Verbose, TEXT("    Referenced by '%s'"), *RefFilenameAndProperty.GetProperty().ToString());
 
 				StringAssetRefFilenameStack.Push(RefFilenameAndProperty.GetPackage().ToString());
+
+				// LoadObject will mark any failed loads as "KnownMissing", so since we want to print out the referencer if it was missing and not-known-missing
+				// then check here before attempting to load (TODO: Can we just not even do the load? Seems like we should be able to...)
 
 				int32 DotIndex = ToLoad.Find(TEXT("."));
 				FString PackageName = DotIndex != INDEX_NONE ? ToLoad.Left(DotIndex) : ToLoad;
@@ -227,6 +238,9 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 					{
 						StringAssetRemap.Add(ToLoad, Dest);
 					}
+#if WITH_EDITOR
+					AlreadyRemapped.Add(ToLoadFName);
+#endif
 				}
 				else
 				{

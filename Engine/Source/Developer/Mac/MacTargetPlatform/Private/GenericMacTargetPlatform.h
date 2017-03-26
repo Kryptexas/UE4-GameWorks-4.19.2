@@ -202,6 +202,17 @@ return TSuper::SupportsFeature(Feature);
 	}
 
 
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override
+	{
+		if (!IS_DEDICATED_SERVER)
+		{
+			// just use the standard texture format name for this texture (with no DX11 support)
+			GetAllDefaultTextureFormats(this, OutFormats, false);
+		}
+	}
+
+
+
 	virtual const UTextureLODSettings& GetTextureLODSettings() const override
 	{
 		return *TextureLODSettings;
@@ -224,6 +235,14 @@ return TSuper::SupportsFeature(Feature);
 		}
 
 		return NAME_OGG;
+	}
+
+	virtual void GetAllWaveFormats(TArray<FName>& OutFormats) const override
+	{
+		static FName NAME_OGG(TEXT("OGG"));
+		static FName NAME_OPUS(TEXT("OPUS"));
+		OutFormats.Add(NAME_OGG);
+		OutFormats.Add(NAME_OPUS);
 	}
 #endif //WITH_ENGINE
 

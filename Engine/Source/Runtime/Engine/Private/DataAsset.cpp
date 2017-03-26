@@ -4,6 +4,11 @@
 #include "Misc/PackageName.h"
 #include "UObject/Package.h"
 #include "Engine/AssetManager.h"
+UDataAsset::UDataAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	NativeClass = GetClass();
+}
 
 #if WITH_EDITORONLY_DATA
 void UDataAsset::Serialize(FArchive& Ar)

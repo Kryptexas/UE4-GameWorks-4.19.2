@@ -552,6 +552,7 @@ void FEnvQueryInstance::FItemIterator::StoreTestResult()
 	if (Instance.IsInSingleItemFinalSearch())
 	{
 		// handle SingleResult mode
+		// this also implies we're not in 'score-only' mode
 		if (bPassed)
 		{
 			if (bForced)
@@ -570,7 +571,7 @@ void FEnvQueryInstance::FItemIterator::StoreTestResult()
 	}
 	else
 	{
-		if (!bPassed)
+		if (!bPassed && bIsFiltering)
 		{
 			HandleFailedTestResult();
 		}

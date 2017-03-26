@@ -244,7 +244,7 @@ void UDataTable::PostLoad()
 }
 #endif
 
-void UDataTable::EmptyTable()
+UScriptStruct& UDataTable::GetEmptyUsingStruct() const
 {
 	UScriptStruct* EmptyUsingStruct = RowStruct;
 	if (!EmptyUsingStruct)
@@ -256,16 +256,53 @@ void UDataTable::EmptyTable()
 		EmptyUsingStruct = FTableRowBase::StaticStruct();
 	}
 
+	return *EmptyUsingStruct;
+}
+
+void UDataTable::EmptyTable()
+{
+	UScriptStruct& EmptyUsingStruct = GetEmptyUsingStruct();
+
 	// Iterate over all rows in table and free mem
 	for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
 	{
 		uint8* RowData = RowIt.Value();
-		EmptyUsingStruct->DestroyStruct(RowData);
+		EmptyUsingStruct.DestroyStruct(RowData);
 		FMemory::Free(RowData);
 	}
 
 	// Finally empty the map
 	RowMap.Empty();
+}
+
+void UDataTable::RemoveRow(FName RowName)
+{
+	UScriptStruct& EmptyUsingStruct = GetEmptyUsingStruct();
+
+	uint8* RowData = nullptr;
+	RowMap.RemoveAndCopyValue(RowName, RowData);
+		
+	if (RowData)
+	{
+		EmptyUsingStruct.DestroyStruct(RowData);
+		FMemory::Free(RowData);
+	}
+}
+
+	
+void UDataTable::AddRow(FName RowName, const FTableRowBase& RowData)
+{
+	UScriptStruct& EmptyUsingStruct = GetEmptyUsingStruct();
+	RemoveRow(RowName);
+		
+	uint8* NewRawRowData = (uint8*)FMemory::Malloc(EmptyUsingStruct.GetStructureSize());
+	
+	EmptyUsingStruct.InitializeStruct(NewRawRowData);
+	EmptyUsingStruct.CopyScriptStruct(NewRawRowData, &RowData);
+
+	// Add to map
+	RowMap.Add(RowName, NewRawRowData);
+
 }
 
 /** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */

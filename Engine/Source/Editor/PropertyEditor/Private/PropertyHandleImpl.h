@@ -441,6 +441,7 @@ public:
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( uint32 ChildIndex ) const override;
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName, bool bRecurse = true ) const override;
 	virtual TSharedPtr<IPropertyHandle> GetParentHandle() const override;
+	virtual TSharedPtr<IPropertyHandle> GetKeyHandle() const override;
 	virtual void EnumerateRawData( const EnumerateRawDataFuncRef& InRawDataCallback ) override;
 	virtual void EnumerateConstRawData( const EnumerateConstRawDataFuncRef& InRawDataCallback ) const override;
 	virtual void AccessRawData( TArray<void*>& RawData ) override;

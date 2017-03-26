@@ -761,6 +761,7 @@ UCookOnTheFlyServer::UCookOnTheFlyServer(const FObjectInitializer& ObjectInitial
 	CookByTheBookOptions(NULL),
 	CookFlags(ECookInitializationFlags::None),
 	bIsInitializingSandbox(false),
+	bIgnoreMarkupPackageAlreadyLoaded(false),
 	bIsSavingPackage(false)
 {
 }
@@ -2797,7 +2798,7 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 
 		SCOPE_TIMER(ResolveRedirectors);
 		COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
-		GRedirectCollector.ResolveStringAssetReference(Package->GetPathName());
+		GRedirectCollector.ResolveStringAssetReference(Package->GetPathName(), false);
 
 		GIsCookerLoadingPackage = false;
 	}
@@ -3244,7 +3245,19 @@ FString UCookOnTheFlyServer::GetOutputDirectoryOverride() const
 	else if (!OutputDirectory.Contains(TEXT("[Platform]"), ESearchCase::IgnoreCase, ESearchDir::FromEnd) )
 	{
 		// Output directory needs to contain [Platform] token to be able to cook for multiple targets.
-		OutputDirectory = FPaths::Combine(*OutputDirectory, TEXT("[Platform]"));
+		if ( IsCookByTheBookMode() )
+		{
+			ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+			const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetCookingTargetPlatforms();
+
+			// more then one target platform specified append "[platform]" to output directory so that multiple platforms can be cooked
+			check( TargetPlatforms.Num() == 1 );
+		}
+		else
+		{
+			// cook on the fly we have to platform because we don't know which platforms we are cooking for up front
+			OutputDirectory = FPaths::Combine(*OutputDirectory, TEXT("[Platform]"));
+		}
 	}
 	FPaths::NormalizeDirectoryName(OutputDirectory);
 
@@ -3252,7 +3265,7 @@ FString UCookOnTheFlyServer::GetOutputDirectoryOverride() const
 }
 
 template<class T>
-void GetVersionFormatNumbersForIniVersionStrings( TArray<FString>& IniVersionStrings, const FString& FormatName, const TArray<T> &FormatArray )
+void GetVersionFormatNumbersForIniVersionStrings( TArray<FString>& IniVersionStrings, const FString& FormatName, const TArray<const T> &FormatArray )
 {
 	for ( const T& Format : FormatArray )
 	{
@@ -3303,7 +3316,8 @@ void GetAdditionalCurrentIniVersionStrings( const ITargetPlatform* TargetPlatfor
 	}
 
 
-	const UTextureLODSettings& LodSettings = TargetPlatform->GetTextureLODSettings();
+	// these settings are covered by the general search through accessed ini settings 
+	/*const UTextureLODSettings& LodSettings = TargetPlatform->GetTextureLODSettings();
 
 	UEnum* TextureGroupEnum = FindObject<UEnum>(NULL, TEXT("Engine.TextureGroup"));
 	UEnum* TextureMipGenSettingsEnum = FindObject<UEnum>(NULL, TEXT("Engine.TextureMipGenSettings"));
@@ -3325,15 +3339,73 @@ void GetAdditionalCurrentIniVersionStrings( const ITargetPlatform* TargetPlatfor
 		// FString MaxMipVersionString = FString::Printf(TEXT("TextureLODGroupMaxMipCount:%s#%d"), *TextureGroupEnum->GetNameStringByIndex(I), MaxMipCount);
 		//IniVersionStrings.Emplace(MoveTemp(MaxMipVersionString));
 		IniVersionMap.Add(FString::Printf(TEXT("TextureLODGroupMaxMipCount:%s"), *TextureGroupString), FString::Printf(TEXT("%d"), MaxMipCount));
-	}
+	}*/
 
 	// save off the ddc version numbers also
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 	check(TPM);
 
-	GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("AudioFormat"), TPM->GetAudioFormats());
-	GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("TextureFormat"), TPM->GetTextureFormats());
-	GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("ShaderFormat"), TPM->GetShaderFormats());
+	{
+		TArray<FName> AllWaveFormatNames;
+		TargetPlatform->GetAllWaveFormats(AllWaveFormatNames);
+		TArray<const IAudioFormat*> SupportedWaveFormats;
+		for ( const auto& WaveName : AllWaveFormatNames )
+		{
+			const IAudioFormat* AudioFormat = TPM->FindAudioFormat(WaveName);
+			if (AudioFormat)
+			{
+				SupportedWaveFormats.Add(AudioFormat);
+			}
+			else
+			{
+				UE_LOG(LogCook, Warning, TEXT("Unable to find audio format \"%s\" which is required by \"%s\""), *WaveName.ToString(), *TargetPlatform->PlatformName());
+			}
+			
+		}
+		GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("AudioFormat"), SupportedWaveFormats);
+	}
+
+	{
+		TArray<FName> AllTextureFormats;
+		TargetPlatform->GetAllTextureFormats(AllTextureFormats);
+		TArray<const ITextureFormat*> SupportedTextureFormats;
+		for (const auto& TextureName : AllTextureFormats)
+		{
+			const ITextureFormat* TextureFormat = TPM->FindTextureFormat(TextureName);
+			if ( TextureFormat )
+			{
+				SupportedTextureFormats.Add(TextureFormat);
+			}
+			else
+			{
+				UE_LOG(LogCook, Warning, TEXT("Unable to find texture format \"%s\" which is required by \"%s\""), *TextureName.ToString(), *TargetPlatform->PlatformName());
+			}
+		}
+		GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("TextureFormat"), SupportedTextureFormats);
+	}
+
+	{
+		TArray<FName> AllFormatNames;
+		TargetPlatform->GetAllTargetedShaderFormats(AllFormatNames);
+		TArray<const IShaderFormat*> SupportedFormats;
+		for (const auto& FormatName : AllFormatNames)
+		{
+			const IShaderFormat* Format = TPM->FindShaderFormat(FormatName);
+			if ( Format )
+			{
+				SupportedFormats.Add(Format);
+			}
+			else
+			{
+				UE_LOG(LogCook, Warning, TEXT("Unable to find shader \"%s\" which is required by format \"%s\""), *FormatName.ToString(), *TargetPlatform->PlatformName());
+			}
+		}
+		GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("ShaderFormat"), SupportedFormats);
+	}
+
+
+	// TODO: Add support for physx version tracking, currently this happens so infrequently that invalidating a cook based on it is not essentual
+	//GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("PhysXFormat"), TPM->GetPhysXFormats());
 
 
 	if ( FParse::Param( FCommandLine::Get(), TEXT("fastcook") ) )
@@ -3354,9 +3426,13 @@ void GetAdditionalCurrentIniVersionStrings( const ITargetPlatform* TargetPlatfor
 	FString UE4Value = FString::Printf(TEXT("%d"), GPackageFileLicenseeUE4Version);
 	IniVersionMap.Add(UE4Ver, UE4Value);
 
-	FString UE4NetVer = TEXT("NetworkCompatibleCL");
-	FString UE4NetValue = FString::Printf(TEXT("%u"), FNetworkVersion::GetNetworkCompatibleChangelist());
-	IniVersionMap.Add(UE4NetVer, UE4NetValue);
+	FString UE4EngineVersionCompatibleName = TEXT("EngineVersionCompatibleWith");
+	FString UE4EngineVersionCompatible = FEngineVersion::CompatibleWith().ToString();
+	
+	if (UE4EngineVersionCompatible.Len())
+	{
+		IniVersionMap.Add(UE4EngineVersionCompatibleName, UE4EngineVersionCompatible);
+	}
 
 	IniVersionMap.Add(TEXT("MaterialShaderMapDDCVersion"), *GetMaterialShaderMapDDCKey());
 	IniVersionMap.Add(TEXT("GlobalDDCVersion"), *GetGlobalShaderMapDDCKey());
@@ -3594,13 +3670,27 @@ void UCookOnTheFlyServer::ProcessAccessedIniSettings(const FConfigFile* Config, 
 		TSet<FName> ProcessedValues; 
 		const FName SectionName = FName(*ConfigSection.Key);
 
+		if ( SectionName.GetPlainNameString().Contains(TEXT(":")) )
+		{
+			UE_LOG(LogCook, Verbose, TEXT("Ignoring ini section checking for section name %s because it contains ':'"), *SectionName.ToString() );
+			continue;
+		}
+
 		for ( auto& ConfigValue : ConfigSection.Value )
 		{
 			const FName& ValueName = ConfigValue.Key;
 			if ( ProcessedValues.Contains(ValueName) )
 				continue;
 
-			ProcessedValues.Add( ValueName );
+			ProcessedValues.Add(ValueName);
+
+			if (ValueName.GetPlainNameString().Contains(TEXT(":")))
+			{
+				UE_LOG(LogCook, Verbose, TEXT("Ignoring ini section checking for section name %s because it contains ':'"), *ValueName.ToString());
+				continue;
+			}
+
+			
 			TArray<FConfigValue> ValueArray;
 			ConfigSection.Value.MultiFind( ValueName, ValueArray, true );
 
@@ -3655,7 +3745,7 @@ bool UCookOnTheFlyServer::IniSettingsOutOfDate(const ITargetPlatform* TargetPlat
 		const FString* CurrentValue = CurrentAdditionalSettings.Find(OldIniSetting.Key);
 		if ( !CurrentValue )
 		{
-			UE_LOG(LogCook, Display, TEXT("Missing Additional Setting from previous cook %s"), *OldIniSetting.Key);
+			UE_LOG(LogCook, Display, TEXT("Previous cook had additional ini setting: %s current cook is missing this setting."), *OldIniSetting.Key);
 			return true;
 		}
 
@@ -3725,9 +3815,12 @@ bool UCookOnTheFlyServer::IniSettingsOutOfDate(const ITargetPlatform* TargetPlat
 			const FName& SectionName = OldIniSection.Key;
 			const FConfigSection* IniSection = ConfigFile->Find( SectionName.ToString() );
 
+			const FString BlackListSetting = *FString::Printf(TEXT("%s.%s:%s"), *PlatformName, *Filename, *SectionName.ToString());
+
 			if ( IniSection == nullptr )
 			{
 				UE_LOG(LogCook, Display, TEXT("Inisetting is different for %s, Current section doesn't exist"), *FString::Printf(TEXT("%s %s %s"), *PlatformName, *Filename, *SectionName.ToString()));
+				UE_LOG(LogCook, Display, TEXT("To avoid this add blacklist setting to DefaultEditor.ini [CookSettings] %s"), *BlackListSetting);
 				return true;
 			}
 
@@ -3741,6 +3834,7 @@ bool UCookOnTheFlyServer::IniSettingsOutOfDate(const ITargetPlatform* TargetPlat
 				if ( CurrentValues.Num() != OldIniValue.Value.Num() )
 				{
 					UE_LOG(LogCook, Display, TEXT("Inisetting is different for %s, missmatched num array elements %d != %d "), *FString::Printf(TEXT("%s %s %s %s"), *PlatformName, *Filename, *SectionName.ToString(), *ValueName.ToString()), CurrentValues.Num(), OldIniValue.Value.Num());
+					UE_LOG(LogCook, Display, TEXT("To avoid this add blacklist setting to DefaultEditor.ini [CookSettings] %s"), *BlackListSetting);
 					return true;
 				}
 				for ( int Index = 0; Index < CurrentValues.Num(); ++Index )
@@ -3749,6 +3843,7 @@ bool UCookOnTheFlyServer::IniSettingsOutOfDate(const ITargetPlatform* TargetPlat
 					if ( FilteredCurrentValue != OldIniValue.Value[Index] )
 					{
 						UE_LOG(LogCook, Display, TEXT("Inisetting is different for %s, value %s != %s invalidating cook"),  *FString::Printf(TEXT("%s %s %s %s %d"),*PlatformName, *Filename, *SectionName.ToString(), *ValueName.ToString(), Index), *CurrentValues[Index].GetSavedValue(), *OldIniValue.Value[Index] );
+						UE_LOG(LogCook, Display, TEXT("To avoid this add blacklist setting to DefaultEditor.ini [CookSettings] %s"), *BlackListSetting);
 						return true;
 					}
 				}
@@ -4042,7 +4137,24 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 		AllCookedPackages.Add(FailedStandardName );
 		FailedToSavePackagesSet.Add(FailedStandardName);
 	}
+
+	{
+		SCOPE_TIMER(AsyncDetermineAllDependentPackageInfo);
 		
+		TArray<FString> RelativePaths;
+		for ( const auto& FNamePath : AllCookedPackages )
+		{
+			RelativePaths.Add(FNamePath.ToString());
+		}
+		// resolving dependencies for packages
+		int32 NumThreadsToDeterminePackageInfo = FMath::Max(GLargeThreadPool->GetNumThreads() - 2, 1);
+		check(bIgnoreMarkupPackageAlreadyLoaded==false);
+		bIgnoreMarkupPackageAlreadyLoaded = true;
+		PDInfoModule.AsyncDetermineAllDependentPackageInfo(RelativePaths, NumThreadsToDeterminePackageInfo);
+		bIgnoreMarkupPackageAlreadyLoaded = false;
+	}
+
+
 	TSet<FName> ProcessedCookedPackages; // keep track of which packages are processed
 	for (const FName& Package : AllCookedPackages)
 	{
@@ -4417,16 +4529,59 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			const FString SandboxCookedAssetRegistryFilename = ConvertToFullSandboxPath(*CookedAssetRegistry, true, Target->PlatformName());
 
 			bool bIsIterateSharedBuild = IsCookFlagSet(ECookInitializationFlags::IterateSharedBuild);
+
+
 			TArray<FCookedAssetPackageInfo> CookedPackagesInfo;
-			if ( ReadCookedAssetRegistry(SandboxCookedAssetRegistryFilename, CookedPackagesInfo) == false )
+			if ( bIsIterateSharedBuild )
 			{
-				if ( IsCookFlagSet(ECookInitializationFlags::IterateSharedBuild) )
+				// see if the shared build is newer then the current cooked content in the local directory
+				FDateTime CurrentLocalCookedBuild = IFileManager::Get().GetTimeStamp(*SandboxCookedAssetRegistryFilename);
+
+				// iterate on the shared build if the option is set
+				FString SharedCookedAssetRegistry = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), TEXT("CookedAssetRegistry.json"));
+
+				FDateTime CurrentIterativeCookedBuild = IFileManager::Get().GetTimeStamp(*SharedCookedAssetRegistry);
+
+				if ( CurrentIterativeCookedBuild > CurrentLocalCookedBuild )
 				{
-					// iterate on the shared build if the option is set
-					FString SharedCookedAssetRegistry = FPaths::Combine( *FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("CookedAssetRegistry.json"));
-					ReadCookedAssetRegistry( SharedCookedAssetRegistry, CookedPackagesInfo );
+					// clean the sandbox 
+					ClearPlatformCookedData(FName(*Target->PlatformName()));
+					FString SandboxDirectory = GetSandboxDirectory(Target->PlatformName());
+					IFileManager::Get().DeleteDirectory(*SandboxDirectory, false, true);
+
+					// SaveCurrentIniSettings(Target); // use this if we don't care about ini safty.
+					// copy the ini settings from the shared cooked build. 
+					const FString SharedCookedIniFile = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), TEXT("CookedIniVersion.txt"));
+					const FString SandboxCookedIniFile = ConvertToFullSandboxPath(*(FPaths::GameDir() / TEXT("CookedIniVersion.txt")), true).Replace(TEXT("[Platform]"), *Target->PlatformName());
+					
+					IFileManager::Get().Copy(*SandboxCookedIniFile, *SharedCookedIniFile );
+
+					bool bIniSettingsOutOfDate = IniSettingsOutOfDate(Target);
+					if ( bIniSettingsOutOfDate && !IsCookFlagSet(ECookInitializationFlags::IgnoreIniSettingsOutOfDate) )
+					{
+						UE_LOG(LogCook, Display, TEXT("Shared iterative build ini settings out of date, not using shared cooked build"));
+					}
+					else
+					{
+						if ( bIniSettingsOutOfDate )
+						{
+							UE_LOG(LogCook, Display, TEXT("Shared iterative build ini settings out of date, but we don't care"));
+						}
+
+						UE_LOG(LogCook, Display, TEXT("Shared iterative build is newer then local cooked build, iteratively cooking from shared build "));
+						ReadCookedAssetRegistry(SharedCookedAssetRegistry, CookedPackagesInfo);
+					}
 				}
+				else
+				{
+					UE_LOG(LogCook, Display, TEXT("Local cook is newer then shared cooked build, iterativly cooking from local build"));
+				}
+
 			}
+
+			// if shared builds are enabled this will silently fail and no bad things will come of it
+			ReadCookedAssetRegistry(SandboxCookedAssetRegistryFilename, CookedPackagesInfo);
+
 			TMap<FName, FCookedAssetPackageInfo*> CookedPackageInfoLookup;
 			for (FCookedAssetPackageInfo& PackageInfo : CookedPackagesInfo)
 			{
@@ -4468,8 +4623,11 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 #endif
 					//AllUncookedFilenames.Empty();
 
-					int32 NumThreadsToDeterminePackageInfo = GLargeThreadPool->GetNumThreads() - 2;
+					int32 NumThreadsToDeterminePackageInfo = FMath::Max(GLargeThreadPool->GetNumThreads() - 2,1);
+					check(bIgnoreMarkupPackageAlreadyLoaded == false);
+					bIgnoreMarkupPackageAlreadyLoaded = true;
 					PDInfoModule.AsyncDetermineAllDependentPackageInfo(AllUncookedFilenames, NumThreadsToDeterminePackageInfo);
+					bIgnoreMarkupPackageAlreadyLoaded = false;
 				}
 			}
 #if OUTPUT_TIMING
@@ -4537,16 +4695,23 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 					if (UE_LOG_ACTIVE(LogCook, Verbose) )
 					// if (IsCookFlagSet(ECookInitializationFlags::LogDebugInfo))
 					{
-						UE_LOG(LogCook, Verbose, TEXT("Tracing package dependency which caused iterative cook to fail for: %s could be slow"), *UncookedFilenameString);
+						UE_LOG(LogCook, Display, TEXT("Tracing package dependency which caused iterative cook to fail for: %s could be slow Dependent package hashes %s != %s"), *UncookedFilenameString, *Lex::ToString(CookedPackageInfo->DependentPackageHash), *Lex::ToString(PackageDependentHash));
 						TMap<FString, FMD5Hash> CurrentPackageHashes;
 						PDInfoModule.RecursiveGetDependentPackageHashes(*UncookedFilenameString, CurrentPackageHashes);
 						for (const auto& CurrentPackageHash : CurrentPackageHashes)
 						{
 							const FName PackageName(*CurrentPackageHash.Key);
 							FCookedAssetPackageInfo* CurrentCookedPackageInfo = CookedPackageInfoLookup.FindRef(PackageName);
-							if (CurrentCookedPackageInfo && CurrentCookedPackageInfo->FullPackageHash != CurrentPackageHash.Value)
+							if (CurrentCookedPackageInfo )
 							{
-								UE_LOG(LogCook, Verbose, TEXT("\tinvalidated because full package hash for package: %s doesn't match"), *CurrentPackageHash.Key);
+								if ( CurrentCookedPackageInfo->FullPackageHash != CurrentPackageHash.Value )
+								{
+									UE_LOG(LogCook, Display, TEXT("\tinvalidated because full package hash for package: %s doesn't match"), *CurrentPackageHash.Key);
+								}
+							}
+							else
+							{
+								UE_LOG(LogCook, Display, TEXT("\tUnable to find cooked package info for: %s"), *CurrentPackageHash.Key);
 							}
 						}
 
@@ -4559,17 +4724,17 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 							DependencyString += TEXT("\n");
 							DependencyString += Dependency;
 						}
-						DependencyString += TEXT("\nCurrentPackageInfo");
+						DependencyString += TEXT("\nCurrentPackageInfo:");
 						for (const FString& Dependency : CurrentPackageDependencies)
 						{
 							DependencyString += TEXT("\n");
 							DependencyString += Dependency;
 						}
 
-						UE_LOG(LogCook, Verbose, TEXT("Verifing package dependency count and order %d != %d %s"), CookedPackageInfo->DependentPackages.Num(), CurrentPackageDependencies.Num(), *DependencyString);
+						UE_LOG(LogCook, Display, TEXT("Verifing package dependency count and order %d != %d %s"), CookedPackageInfo->DependentPackages.Num(), CurrentPackageDependencies.Num(), *DependencyString);
 
 						
-						UE_LOG(LogCook, Verbose, TEXT("Finish trace of: %s"), *UncookedFilenameString);
+						UE_LOG(LogCook, Display, TEXT("Finish trace of: %s"), *UncookedFilenameString);
 					}
 					bShouldKeep = false;
 				}
@@ -5036,7 +5201,10 @@ void UCookOnTheFlyServer::CleanSandbox(const bool bIterative)
 		{
 			for (const ITargetPlatform* Target : Platforms)
 			{
-				if (IniSettingsOutOfDate(Target))
+				bool bIniSettingsOutOfDate = IniSettingsOutOfDate(Target);
+				if (bIniSettingsOutOfDate)
+				{
+					if ( !IsCookFlagSet(ECookInitializationFlags::IgnoreIniSettingsOutOfDate) )
 				{
 					UE_LOG(LogCook, Display, TEXT("Cook invalidated for platform %s ini settings don't match from last cook, clearing all cooked content"), *Target->PlatformName());
 
@@ -5047,6 +5215,11 @@ void UCookOnTheFlyServer::CleanSandbox(const bool bIterative)
 
 
 					SaveCurrentIniSettings(Target);
+				}
+					else
+					{
+						UE_LOG(LogCook, Display, TEXT("Inisettings were out of date for platform %s but we are going with it anyway because IgnoreIniSettingsOutOfDate is set"), *Target->PlatformName());
+					}
 				}
 			}
 
@@ -5068,7 +5241,10 @@ void UCookOnTheFlyServer::CleanSandbox(const bool bIterative)
 
 
 			// Collect garbage to ensure we don't have any packages hanging around from dependent time stamp determination
-			CollectGarbage(RF_NoFlags);
+			if ( IsCookingInEditor() )
+			{
+				CollectGarbage(RF_NoFlags);
+			}
 		}
 	}
 #if OUTPUT_TIMING
@@ -5187,7 +5363,7 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const 
 void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const TArray<FString>& CookMaps, const TArray<FString>& InCookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections, ECookByTheBookOptions FilesToCookFlags)
 {
 #if OUTPUT_TIMING
-	SCOPE_TIMER(StartupPackagesResolveStringAssetReferences);
+	SCOPE_TIMER(CollectFilesToCook);
 #endif
 	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
 
@@ -5288,7 +5464,7 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 	if (!(FilesToCookFlags & ECookByTheBookOptions::NoGameAlwaysCookPackages))
 	{
 		COOK_STAT(FScopedDurationTimer TickTimer(DetailedCookStats::GameCookModificationDelegateTimeSec));
-
+		SCOPE_TIMER(CookModificationDelegate);
 #define DEBUG_COOKMODIFICATIONDELEGATE 0
 #if DEBUG_COOKMODIFICATIONDELEGATE
 		TSet<UPackage*> LoadedPackages;
@@ -5332,6 +5508,7 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 
 	for ( const FString& CurrEntry : CookMaps )
 	{
+		SCOPE_TIMER(SearchForPackageOnDisk);
 		if (FPackageName::IsShortPackageName(CurrEntry))
 		{
 			FString OutFilename;
@@ -5672,6 +5849,14 @@ FString UCookOnTheFlyServer::ConvertToFullSandboxPath( const FString &FileName, 
 const FString UCookOnTheFlyServer::GetSandboxAssetRegistryFilename()
 {
 	static const FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
+
+	if (IsCookingDLC())
+	{
+		check(IsCookByTheBookMode());
+		const FString DLCRegistryFilename = FPaths::Combine(*FPaths::GamePluginsDir(), *CookByTheBookOptions->DlcName, TEXT("AssetRegistry.bin"));
+		return ConvertToFullSandboxPath(*DLCRegistryFilename, true);
+	}
+
 	const FString SandboxRegistryFilename = ConvertToFullSandboxPath(*RegistryFilename, true);
 	return SandboxRegistryFilename;
 }
@@ -5782,6 +5967,20 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 					FString LongPackageName;
 					verify(FPackageName::TryConvertFilenameToLongPackageName(CookedPackageFileName.ToString(), LongPackageName));
 					LongCookedPackageNames.Add(FName(*LongPackageName));
+				}
+				if ( IsCookingDLC() )
+				{
+					SCOPE_TIMER(RemovingOldManifestEntries);
+					// remove the previous release cooked packages from the new asset registry
+
+					const TArray<FName>* PreviousReleaseCookedPackages = CookByTheBookOptions->BasedOnReleaseCookedPackages.Find(Manifest.Key);
+					if ( PreviousReleaseCookedPackages ) 
+					{
+						for ( const auto& PreviousReleaseCookedPackage : *PreviousReleaseCookedPackages )
+						{
+							LongCookedPackageNames.Remove(PreviousReleaseCookedPackage);
+						}
+					}
 				}
 				{
 					SCOPE_TIMER(BuildChunkManifest);
@@ -6082,6 +6281,8 @@ void UCookOnTheFlyServer::ValidateCookByTheBookSettings() const
 
 void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions& CookByTheBookStartupOptions )
 {
+	SCOPE_TIMER(StartCookByTheBookTime);
+
 	const TArray<ITargetPlatform*>& TargetPlatforms = CookByTheBookStartupOptions.TargetPlatforms;
 	const TArray<FString>& CookMaps = CookByTheBookStartupOptions.CookMaps;
 	const TArray<FString>& CookDirectories = CookByTheBookStartupOptions.CookDirectories;
@@ -6173,7 +6374,6 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	{
 		// we are going to change the state of dlc we need to clean out our package filename cache (the generated filename cache is dependent on this key)
 		CookByTheBookOptions->DlcName = DLCName;
-		check( OutputDirectoryOverride.Len() == 0 );
 
 		TermSandbox();
 	}
@@ -6317,7 +6517,11 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	
 	TArray<FName> FilesInPath;
 
-	if (!CookByTheBookOptions->bDisableUnsolicitedPackages)
+	if (IsCookFlagSet(ECookInitializationFlags::IterateOnHash))
+	{
+		// if we are iterative cooking we don't need to resolve startup packages  they will get resolved if they are saved
+	}
+	else if (!CookByTheBookOptions->bDisableUnsolicitedPackages)
 	{
 		GIsCookerLoadingPackage = true;
 #if OUTPUT_TIMING
@@ -6325,7 +6529,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 #endif
 		for (const FName& StartupPackage : CookByTheBookOptions->StartupPackages)
 		{
-			GRedirectCollector.ResolveStringAssetReference(StartupPackage.ToString());
+			GRedirectCollector.ResolveStringAssetReference(StartupPackage.ToString(), false);
 		}
 		GIsCookerLoadingPackage = false;
 	}
@@ -6727,6 +6931,11 @@ void UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 	// can't use this optimization while cooking in editor
 	check(IsCookingInEditor()==false);
 	check(IsCookByTheBookMode());
+
+	if (bIgnoreMarkupPackageAlreadyLoaded == true)
+	{
+		return;
+	}
 
 	if (bIsInitializingSandbox)
 	{

@@ -233,6 +233,33 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 	OutFormats.Add( TextureFormatName);
 }
 
+void FHTML5TargetPlatform::GetAllTextureFormats(TArray<FName>& OutFormats) const
+{
+
+#if WITH_EDITOR
+	// Supported texture format names.
+	static FName NameDXT1(TEXT("DXT1"));
+	static FName NameDXT3(TEXT("DXT3"));
+	static FName NameDXT5(TEXT("DXT5"));
+	static FName NameDXT5n(TEXT("DXT5n"));
+	static FName NameAutoDXT(TEXT("AutoDXT"));
+	static FName NameBGRA8(TEXT("BGRA8"));
+	static FName NameG8(TEXT("G8"));
+	static FName NameRGBA16F(TEXT("RGBA16F"));
+	static FName NameRGBA8(TEXT("RGBA8"));
+
+	// Supported texture format names.
+	OutFormats.Add(NameDXT1);
+	OutFormats.Add(NameDXT3);
+	OutFormats.Add(NameDXT5);
+	OutFormats.Add(NameDXT5n);
+	OutFormats.Add(NameAutoDXT);
+	OutFormats.Add(NameBGRA8);
+	OutFormats.Add(NameG8);
+	OutFormats.Add(NameRGBA16F);
+	OutFormats.Add(NameRGBA8);
+#endif
+}
 
 const UTextureLODSettings& FHTML5TargetPlatform::GetTextureLODSettings() const
 {
@@ -244,6 +271,14 @@ FName FHTML5TargetPlatform::GetWaveFormat( const USoundWave* Wave ) const
 {
 	static FName NAME_OGG(TEXT("OGG"));
 	return NAME_OGG;
+}
+
+
+
+void FHTML5TargetPlatform::GetAllWaveFormats(TArray<FName>& OutFormats) const
+{
+	static FName NAME_OGG(TEXT("OGG"));
+	OutFormats.Add(NAME_OGG);
 }
 
 #endif // WITH_ENGINE

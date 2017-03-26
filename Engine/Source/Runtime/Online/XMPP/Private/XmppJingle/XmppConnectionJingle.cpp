@@ -672,6 +672,7 @@ void FXmppConnectionJingle::Login(const FString& UserId, const FString& Password
 	buzz::XmppClientSettings Settings;
 	Settings.set_host(TCHAR_TO_UTF8(*ServerConfig.Domain));
 	Settings.set_use_tls(ServerConfig.bUseSSL ? buzz::TLS_ENABLED : buzz::TLS_DISABLED);
+	Settings.set_allow_plain(ServerConfig.bUsePlainTextAuth);
 	Settings.set_resource(TCHAR_TO_UTF8(*ServerConfig.ClientResource));
 	Settings.set_server(rtc::SocketAddress(TCHAR_TO_UTF8(*ServerConfig.ServerAddr), ServerConfig.ServerPort));
 

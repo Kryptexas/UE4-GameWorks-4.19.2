@@ -20,44 +20,28 @@ void FAnimNode_AimOffsetLookAt::Initialize(const FAnimationInitializeContext& Co
 {
 	FAnimNode_BlendSpacePlayer::Initialize(Context);
 	BasePose.Initialize(Context);
-
-	// SkeletalMesh possibly changed, update cached socket info.
-	bCachedSocketInfo = false;
 }
 
-void FAnimNode_AimOffsetLookAt::PreUpdate(const UAnimInstance* InAnimInstance)
+void FAnimNode_AimOffsetLookAt::RootInitialize(const FAnimInstanceProxy* InProxy)
 {
-	FAnimNode_BlendSpacePlayer::PreUpdate(InAnimInstance);
+	FAnimNode_BlendSpacePlayer::RootInitialize(InProxy);
 
-	if (!bCachedSocketInfo)
+	SocketBoneReference.BoneName = NAME_None;
+	if (USkeletalMeshComponent* SkelMeshComp = InProxy->GetSkelMeshComponent())
 	{
-		bCachedSocketInfo = true;
-		SocketBoneReference.BoneName = NAME_None;
-		if (USkeletalMeshComponent* SkelMeshComp = InAnimInstance->GetSkelMeshComponent())
+		if (USkeletalMesh* SkelMesh = SkelMeshComp->SkeletalMesh)
 		{
-			if (USkeletalMesh* SkelMesh = SkelMeshComp->SkeletalMesh)
+			if (const USkeletalMeshSocket* Socket = SkelMesh->FindSocket(SourceSocketName))
 			{
-				if (const USkeletalMeshSocket* Socket = SkelMesh->FindSocket(SourceSocketName))
-				{
-					SocketLocalTransform = Socket->GetSocketLocalTransform();
-					SocketBoneReference.BoneName = Socket->BoneName;
-				}
-
-				if (const USkeletalMeshSocket* Socket = SkelMesh->FindSocket(PivotSocketName))
-				{
-					PivotSocketLocalTransform = Socket->GetSocketLocalTransform();
-					PivotSocketBoneReference.BoneName = Socket->BoneName;
-				}
+				SocketLocalTransform = Socket->GetSocketLocalTransform();
+				SocketBoneReference.BoneName = Socket->BoneName;
 			}
-		}
-	}
 
-	if (USkeletalMeshComponent* SkelMeshComp = InAnimInstance->GetSkelMeshComponent())
-	{
-		ComponentToWorld = SkelMeshComp->ComponentToWorld;
-		if (const AActor* Owner = SkelMeshComp->GetOwner())
-		{
-			ActorTransform = Owner->GetTransform();
+			if (const USkeletalMeshSocket* Socket = SkelMesh->FindSocket(PivotSocketName))
+			{
+				PivotSocketLocalTransform = Socket->GetSocketLocalTransform();
+				PivotSocketBoneReference.BoneName = Socket->BoneName;
+			}
 		}
 	}
 }
@@ -85,11 +69,8 @@ void FAnimNode_AimOffsetLookAt::CacheBones(const FAnimationCacheBonesContext& Co
 	FAnimNode_BlendSpacePlayer::CacheBones(Context);
 	BasePose.CacheBones(Context);
 
-	if (bCachedSocketInfo)
-	{
-		SocketBoneReference.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
-		PivotSocketBoneReference.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
-	}
+	SocketBoneReference.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
+	PivotSocketBoneReference.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
 }
 
 void FAnimNode_AimOffsetLookAt::Evaluate(FPoseContext& Context)
@@ -118,7 +99,7 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 	FVector BlendInput(X, Y, Z);
 
 	const FBoneContainer& RequiredBones = LocalPoseContext.Pose.GetBoneContainer();
-	if (bCachedSocketInfo && BlendSpace && SocketBoneReference.IsValid(RequiredBones))
+	if (BlendSpace && SocketBoneReference.IsValid(RequiredBones))
 	{
 		FCSPose<FCompactPose> GlobalPose;
 		GlobalPose.InitPose(LocalPoseContext.Pose);
@@ -135,7 +116,10 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 			SourceComponentTransform.SetTranslation(PivotBoneComponentTransform.GetTranslation());
 		}
 
-		const FTransform SourceWorldTransform = SourceComponentTransform * ComponentToWorld;
+		FAnimInstanceProxy* AnimProxy = LocalPoseContext.AnimInstanceProxy;
+		check(AnimProxy);
+		const FTransform SourceWorldTransform = SourceComponentTransform * AnimProxy->GetSkelMeshCompLocalToWorld();
+		const FTransform ActorTransform = AnimProxy->GetSkelMeshCompOwnerTransform();
 
 		// Convert Target to Actor Space
 		const FTransform TargetWorldTransform(LookAtLocation);
@@ -155,7 +139,6 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 #if ENABLE_DRAW_DEBUG
 		if (CVarAimOffsetLookAtDebug.GetValueOnAnyThread() == 1)
 		{
-			FAnimInstanceProxy* AnimProxy = LocalPoseContext.AnimInstanceProxy;
 			AnimProxy->AnimDrawDebugLine(SourceWorldTransform.GetLocation(), TargetWorldTransform.GetLocation(), FColor::Green);
 			AnimProxy->AnimDrawDebugLine(SourceWorldTransform.GetLocation(), SourceWorldTransform.GetLocation() + SourceWorldTransform.GetUnitAxis(EAxis::X) * (TargetWorldTransform.GetLocation() - SourceWorldTransform.GetLocation()).Size(), FColor::Red);
 			AnimProxy->AnimDrawDebugCoordinateSystem(ActorTransform.GetLocation(), ActorTransform.GetRotation().Rotator(), 100.f);

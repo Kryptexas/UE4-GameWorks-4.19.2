@@ -216,6 +216,10 @@ void SGameLayerManager::ClearWidgets()
 		}
 	}
 	PlayerLayers.Reset();
+
+	WindowTitleBarContentStack.Empty();
+	bIsWindowTitleBarVisible = false;
+	SetDefaultWindowTitleBarContentAsCurrent();
 }
 
 void SGameLayerManager::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)

@@ -30,6 +30,9 @@ public:
 	virtual void ToggleExpansion( bool bExpand ) override;
 	virtual bool GetExpansionState() const override;
 
+	TSharedPtr<FDetailPropertyRow> GetHeaderPropertyRow() const;
+	TSharedPtr<FPropertyNode> GetHeaderPropertyNode() const;
+
 	/** @return The name of the group */
 	FName GetGroupName() const { return GroupName; }
 

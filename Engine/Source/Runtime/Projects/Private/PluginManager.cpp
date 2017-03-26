@@ -3,6 +3,7 @@
 #include "PluginManager.h"
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
@@ -11,6 +12,7 @@
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
 #include "Misc/EngineVersion.h"
+#include "Misc/FileHelper.h"
 #include "ProjectDescriptor.h"
 #include "Interfaces/IProjectManager.h"
 #include "Modules/ModuleManager.h"
@@ -247,7 +249,7 @@ void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, con
 			if ( Descriptor.Load(FileName, LoadedFrom == EPluginLoadedFrom::GameProject, FailureReason) )
 			{
 				TSharedRef<FPlugin> Plugin = MakeShareable(new FPlugin(FileName, Descriptor, LoadedFrom));
-
+				
 				FString FullPath = FPaths::ConvertRelativePathToFull(FileName);
 				UE_LOG(LogPluginManager, Verbose, TEXT("Read plugin descriptor for %s, from %s"), *Plugin->GetName(), *FullPath);
 
@@ -435,13 +437,13 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						Plugin->bEnabled = false;
 						AllEnabledPlugins.Remove(Plugin->Name);
 						UE_LOG(LogPluginManager, Log, TEXT("Disabled plugin '%s' due to incompatibility"), *Plugin->FileName);
-					}
+			}
 					else
 					{
 						UE_LOG(LogPluginManager, Log, TEXT("Enabled plugin '%s' despite being built for CL %d"), *Plugin->FileName, Plugin->Descriptor.CompatibleChangelist);
 					}
 				}
-			}
+		}
 		}
 
 		if (bHasProjectFile)
@@ -566,6 +568,30 @@ bool FPluginManager::ConfigureEnabledPlugins()
 					// Nothing to add, remove from map
 					GConfig->Remove(PluginConfigFilename);
 				}
+
+				if (!GIsEditor)
+				{
+					// override config cache entries with plugin configs (Engine.ini, Game.ini, etc in <PluginDir>\Config\)
+					TArray<FString> PluginConfigs;
+					IFileManager::Get().FindFiles(PluginConfigs, *PluginConfigDir, TEXT("ini"));
+					for (const FString& ConfigFile : PluginConfigs)
+					{
+						FString PlaformName = FPlatformProperties::PlatformName();
+						PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), *PlaformName, *FPaths::GetBaseFilename(ConfigFile));
+						FConfigFile* FoundConfig = GConfig->Find(PluginConfigFilename, false);
+						if (FoundConfig != nullptr)
+						{
+							FString PluginConfigContent;
+							if (FFileHelper::LoadFileToString(PluginConfigContent, *FPaths::Combine(PluginConfigDir, ConfigFile)))
+							{
+								FoundConfig->CombineFromBuffer(PluginConfigContent);
+								// if plugin config overrides are applied then don't save
+								FoundConfig->NoSave = true;
+							}
+						}
+					}
+				}
+
 			}
 		}
 
@@ -619,56 +645,56 @@ TSharedPtr<FPlugin> FPluginManager::FindPluginInstance(const FString& Name)
 
 
 static bool TryLoadModulesForPlugin( const FPlugin& Plugin, const ELoadingPhase::Type LoadingPhase )
-{
-	TMap<FName, EModuleLoadResult> ModuleLoadFailures;
+		{
+			TMap<FName, EModuleLoadResult> ModuleLoadFailures;
 	FModuleDescriptor::LoadModulesForPhase(LoadingPhase, Plugin.Descriptor.Modules, ModuleLoadFailures);
 
-	FText FailureMessage;
-	for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
-	{
-		const FName ModuleNameThatFailedToLoad = FailureIt.Key();
-		const EModuleLoadResult FailureReason = FailureIt.Value();
+			FText FailureMessage;
+			for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
+			{
+				const FName ModuleNameThatFailedToLoad = FailureIt.Key();
+				const EModuleLoadResult FailureReason = FailureIt.Value();
 
-		if( FailureReason != EModuleLoadResult::Success )
-		{
+				if( FailureReason != EModuleLoadResult::Success )
+				{
 			const FText PluginNameText = FText::FromString(Plugin.Name);
-			const FText TextModuleName = FText::FromName(FailureIt.Key());
+					const FText TextModuleName = FText::FromName(FailureIt.Key());
 
-			if ( FailureReason == EModuleLoadResult::FileNotFound )
-			{
-				FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
-			}
-			else if ( FailureReason == EModuleLoadResult::FileIncompatible )
-			{
-				FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
-			}
-			else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
-			{
-				FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
-			}
-			else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
-			{
-				FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could not be initialized successfully after it was loaded."), PluginNameText, TextModuleName );
-			}
-			else 
-			{
-				ensure(0);	// If this goes off, the error handling code should be updated for the new enum values!
-				FailureMessage = FText::Format( LOCTEXT("PluginGenericLoadFailure", "Plugin '{0}' failed to load because module '{1}' could not be loaded for an unspecified reason.  This plugin's functionality will not be available.  Please report this error."), PluginNameText, TextModuleName );
+					if ( FailureReason == EModuleLoadResult::FileNotFound )
+					{
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
+					}
+					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
+					{
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
+					}
+					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
+					{
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
+					}
+					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
+					{
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could not be initialized successfully after it was loaded."), PluginNameText, TextModuleName );
+					}
+					else 
+					{
+						ensure(0);	// If this goes off, the error handling code should be updated for the new enum values!
+						FailureMessage = FText::Format( LOCTEXT("PluginGenericLoadFailure", "Plugin '{0}' failed to load because module '{1}' could not be loaded for an unspecified reason.  This plugin's functionality will not be available.  Please report this error."), PluginNameText, TextModuleName );
+					}
+
+					// Don't need to display more than one module load error per plugin that failed to load
+					break;
+				}
 			}
 
-			// Don't need to display more than one module load error per plugin that failed to load
-			break;
-		}
-	}
-
-	if( !FailureMessage.IsEmpty() )
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
-		return false;
-	}
+			if( !FailureMessage.IsEmpty() )
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
+				return false;
+			}
 
 	return true;
-}
+		}
 
 bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
 {

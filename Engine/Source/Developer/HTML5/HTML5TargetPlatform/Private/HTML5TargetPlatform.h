@@ -81,6 +81,8 @@ public:
 
 	virtual void GetTextureFormats( const UTexture* InTexture, TArray<FName>& OutFormats ) const override;
 
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override;
+
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const override
 	{
 		OutFormats.Add(FName(TEXT("EncodedHDR")));
@@ -94,6 +96,7 @@ public:
 	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
+	virtual void GetAllWaveFormats(TArray<FName>& OutFormats) const override;
 #endif // WITH_ENGINE
 
 	DECLARE_DERIVED_EVENT(FHTML5TargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);

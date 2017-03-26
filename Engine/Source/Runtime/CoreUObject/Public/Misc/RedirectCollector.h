@@ -136,8 +136,10 @@ public:
 	/**
 	 * Load the string asset references to resolve them, add that to the remap table, and empty the array
 	 * @param FilterPackage If set, only fixup references that were created by FilterPackage. If empty, clear all of them
+	 * @param bProcessAlreadyResolvedPackages If a package has already been resolved in a previous call of this function, should we process this package again and resolve it again?  
+	 *             True = process it again, False = don't process it again
 	 */
-	void ResolveStringAssetReference(FString FilterPackage = FString());
+	void ResolveStringAssetReference(FString FilterPackage = FString(), bool bProcessAlreadyResolvedPackages=true);
 
 	/**
 	 * Do we have any references to resolve.
@@ -169,6 +171,9 @@ private:
 
 	/** When saving, apply this remapping to all string asset references */
 	TMap<FString, FString> StringAssetRemap;
+#if WITH_EDITOR
+	TSet<FName> AlreadyRemapped;
+#endif
 };
 
 // global redirect collector callback structure

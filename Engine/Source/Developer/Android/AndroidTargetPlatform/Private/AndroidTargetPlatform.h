@@ -162,6 +162,8 @@ public:
 
 	virtual void GetTextureFormats( const UTexture* InTexture, TArray<FName>& OutFormats ) const override;
 
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override;
+
 	virtual const UTextureLODSettings& GetTextureLODSettings() const override;
 
 	virtual void RegisterTextureLODSettings(const UTextureLODSettings* InTextureLODSettings) override
@@ -170,6 +172,7 @@ public:
 	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
+	virtual void GetAllWaveFormats( TArray<FName>& OutFormats) const override;
 #endif //WITH_ENGINE
 
 	virtual bool SupportsVariants() const override;

@@ -204,6 +204,17 @@ public:
 		return State.Velocity;
 	}
 
+	void SetVelocity(const T& NewVelocity)
+	{
+		State.Velocity = NewVelocity;
+		bIsInMotion = bIsInMotion || !IsVelocityZero();
+	}
+
+	void OffsetVelocity(const T& Offset)
+	{
+		SetVelocity(State.Velocity + Offset);
+	}
+
 	bool IsPositionEqualTo(const T& OtherPosition) const
 	{
 		return FRK4SpringInterpolatorUtils::AreEqual(GetPosition(), OtherPosition, RK4_SPRING_INTERPOLATOR_POSITION_TOLERANCE);

@@ -277,12 +277,14 @@ namespace AutomationScripts.Automation
 				Message.To.Add(new MailAddress(NextStakeHolder));
 			}
 
-			Message.CC.Add(new MailAddress("Daniel.Lamb@epicgames.com"));
-            Message.CC.Add(new MailAddress("Andrew.Grant@epicgames.com"));
-			Message.CC.Add(new MailAddress("jordan.walker@epicgames.com"));
-			Message.CC.Add(new MailAddress("benjamin.crocker@epicgames.com"));
-			Message.CC.Add(new MailAddress("tony.oliva@epicgames.com"));
-			Message.CC.Add(new MailAddress("Jaymee.Stanford@epicgames.com"));
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.EditorPerProjectUserSettings, DirectoryReference.FromFile(ProjectFullPath), UnrealTargetPlatform.Win64);
+			List<string> Emails;
+			Ini.GetArray("RebuildlightingSettings", "EmailNotification", out Emails);
+			foreach (var Email in Emails)
+			{
+				Message.CC.Add(new MailAddress(Email));
+			}
+
 			Message.Subject = String.Format("Nightly lightmap rebuild {0} for {1}", bWasSuccessful ? "[SUCCESS]" : "[FAILED]", Branch);
 			Message.Body = MessageBody;
             /*Attachment Attach = new Attachment();

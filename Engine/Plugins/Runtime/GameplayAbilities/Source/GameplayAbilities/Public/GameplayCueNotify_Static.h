@@ -54,6 +54,9 @@ class GAMEPLAYABILITIES_API UGameplayCueNotify_Static : public UObject
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue, meta=(Categories="GameplayCue"))
 	FGameplayTag	GameplayCueTag;
 
+	UPROPERTY(EditAnywhere, Category="GameplayCue")
+	FGameplayTagReferenceHelper ReferenceHelper;
+
 	/** Mirrors GameplayCueTag in order to be asset registry searchable */
 	UPROPERTY(AssetRegistrySearchable)
 	FName GameplayCueName;

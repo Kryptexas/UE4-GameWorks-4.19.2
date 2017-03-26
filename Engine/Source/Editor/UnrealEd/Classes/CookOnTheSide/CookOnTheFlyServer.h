@@ -43,7 +43,8 @@ enum class ECookInitializationFlags
 	TestCook =									0x00002000, // test the cooker garbage collection process and cooking (cooker will never end just keep testing).
 	IterateOnHash =								0x00004000, // when using iterative cooking use hashes of original files instead of timestamps
 	LogDebugInfo =								0x00008000, // enables additional debug log information
-	IterateSharedBuild =								0x00010000,
+	IterateSharedBuild =						0x00010000, // iterate from a build in teh SharedIterativeBuild directory 
+	IgnoreIniSettingsOutOfDate =				0x00020000, // if the inisettings say the cook is out of date keep using the previously cooked build
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 

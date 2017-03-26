@@ -89,6 +89,16 @@ bool FDetailGroup::GetExpansionState() const
 	return false;
 }
 
+TSharedPtr<FDetailPropertyRow> FDetailGroup::GetHeaderPropertyRow() const
+{
+	return HeaderCustomization.IsValid() ? HeaderCustomization->PropertyRow : nullptr;
+}
+
+TSharedPtr<FPropertyNode> FDetailGroup::GetHeaderPropertyNode() const
+{
+	return HeaderCustomization.IsValid() ? HeaderCustomization->GetPropertyNode() : nullptr;
+}
+
 bool FDetailGroup::HasColumns() const
 {
 	if( HeaderCustomization.IsValid() && HeaderCustomization->HasPropertyNode() && HeaderCustomization->PropertyRow->HasColumns() )

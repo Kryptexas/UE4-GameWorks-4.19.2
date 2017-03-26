@@ -1108,13 +1108,20 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 						{
 							if (IFileManager::Get().FileExists(*MapBuildDataFilename))
 							{
-								CheckoutFile(MapBuildDataFilename, true);
+								if ( CheckoutFile(MapBuildDataFilename, true) )
+								{
+									SublevelFilenames.Add(MapBuildDataFilename);
+								}
+
 								SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename); 
 							}
 							else
 							{
 								SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename);
-								CheckoutFile(MapBuildDataFilename, true);
+								if (CheckoutFile(MapBuildDataFilename, true))
+								{
+									SublevelFilenames.Add(MapBuildDataFilename);
+								}
 							}
 						}
 					}

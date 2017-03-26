@@ -449,15 +449,7 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 		if(MeshObject)
 		{
 			// Identify current LOD
-			int32 UseLOD;
-			if(MasterPoseComponent.IsValid())
-			{
-				UseLOD = FMath::Clamp(MasterPoseComponent->PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
-			}
-			else
-			{
-				UseLOD = FMath::Clamp(PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
-			}
+			const int32 UseLOD = FMath::Clamp(PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
 
 			// If we have a valid LOD, set up required data, during reimport we may try to create data before we have all the LODs
 			// imported, in that case we skip until we have all the LODs
@@ -2293,11 +2285,16 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 		}
 		else
 		{
-			// If no MeshObject - just assume lowest LOD.
-			if (MeshObject)
+			// Match LOD of MasterPoseComponent if it exists.
+			if (MasterPoseComponent.IsValid())
+			{
+				PredictedLODLevel = FMath::Clamp(MasterPoseComponent->PredictedLODLevel, 0, MaxLODIndex);
+			}
+			else if (MeshObject)
 			{
 				PredictedLODLevel = FMath::Clamp(MeshObject->MinDesiredLODLevel + GSkeletalMeshLODBias, 0, MaxLODIndex);
 			}
+			// If no MeshObject - just assume lowest LOD.
 			else
 			{
 				PredictedLODLevel = MaxLODIndex;

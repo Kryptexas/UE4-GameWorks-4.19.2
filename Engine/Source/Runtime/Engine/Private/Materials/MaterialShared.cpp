@@ -1804,6 +1804,11 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 	FShader* Shader = MeshShaderMap ? MeshShaderMap->GetShader(ShaderType) : nullptr;
 	if (!Shader)
 	{
+		// we don't care about thread safety because we are about to crash 
+		const auto CachedGameThreadShaderMap = GameThreadShaderMap;
+		const auto CachedGameMeshShaderMap = CachedGameThreadShaderMap ? CachedGameThreadShaderMap->GetMeshShaderMap(VertexFactoryType) : nullptr;
+		bool bShaderWasFoundInGameShaderMap = CachedGameMeshShaderMap && CachedGameMeshShaderMap->GetShader(ShaderType) != nullptr;
+
 		// Get the ShouldCache results that determine whether the shader should be compiled
 		auto ShaderPlatform = GShaderPlatformForFeatureLevel[GetFeatureLevel()];
 		bool bMaterialShouldCache = ShouldCache(ShaderPlatform, ShaderType, VertexFactoryType);
@@ -1817,10 +1822,14 @@ FShader* FMaterial::GetShader(FMeshMaterialShaderType* ShaderType, FVertexFactor
 		// This is usually the result of an incorrect ShouldCache function.
 		UE_LOG(LogMaterial, Fatal,
 			TEXT("Couldn't find Shader %s for Material Resource %s!\n")
+			TEXT("		RenderMeshShaderMap %d, RenderThreadShaderMap %d\n")
+			TEXT("		GameMeshShaderMap %d, GameThreadShaderMap %d, bShaderWasFoundInGameShaderMap %d\n")
 			TEXT("		With VF=%s, Platform=%s\n")
 			TEXT("		ShouldCache: Mat=%u, VF=%u, Shader=%u \n")
 			TEXT("		MaterialUsageDesc: %s"),
 			ShaderType->GetName(),  *GetFriendlyName(),
+			MeshShaderMap != nullptr, RenderingThreadShaderMap != nullptr,
+			CachedGameMeshShaderMap != nullptr, CachedGameThreadShaderMap != nullptr, bShaderWasFoundInGameShaderMap,
 			VertexFactoryType->GetName(), *LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString(),
 			bMaterialShouldCache, bVFShouldCache, bShaderShouldCache,
 			*MaterialUsage

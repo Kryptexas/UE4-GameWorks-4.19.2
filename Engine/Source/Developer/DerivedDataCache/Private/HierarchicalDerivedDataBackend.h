@@ -27,6 +27,12 @@ public:
 		, bIsWritable(false)
 	{
 		check(InnerBackends.Num() > 1); // if it is just one, then you don't need this wrapper
+		UpdateAsyncInnerBackends();
+	}
+
+	void UpdateAsyncInnerBackends()
+	{
+		bIsWritable = false;
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->IsWritable())
@@ -48,12 +54,16 @@ public:
 	void AddInnerBackend(FDerivedDataBackendInterface* InInner) 
 	{
 		InnerBackends.Add(InInner);
+		AsyncPutInnerBackends.Empty();
+		UpdateAsyncInnerBackends();
 	}
 
 	/** Removes inner backend. */
 	bool RemoveInnerBackend(FDerivedDataBackendInterface* InInner) 
 	{
-		const int32 NumRemoved = InnerBackends.Remove(InInner);
+		int32 NumRemoved = InnerBackends.Remove(InInner);
+		AsyncPutInnerBackends.Empty();
+		UpdateAsyncInnerBackends();
 		return NumRemoved != 0;
 	}
 

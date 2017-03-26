@@ -57,9 +57,10 @@ public class WebBrowser : ModuleRules
 			}
 		}
 
-		if (Target.Platform == UnrealTargetPlatform.PS4)
+		if (Target.Platform == UnrealTargetPlatform.PS4 &&
+			UEBuildConfiguration.bCompileAgainstEngine)
 		{
-			PrivateDependencyModuleNames.Add("OnlineSubsystem");
+			PrivateDependencyModuleNames.Add("Engine");
 		}
 
 		bEnableShadowVariableWarnings = false;

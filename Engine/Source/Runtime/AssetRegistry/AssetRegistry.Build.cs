@@ -9,7 +9,8 @@ public class AssetRegistry : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"CoreUObject"
+				"CoreUObject",
+				"Projects",
 			}
 			);
 

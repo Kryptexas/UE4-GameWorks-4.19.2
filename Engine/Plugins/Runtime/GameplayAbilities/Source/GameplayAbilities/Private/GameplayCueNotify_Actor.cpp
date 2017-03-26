@@ -31,6 +31,12 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 
 	WarnIfLatentActionIsStillRunning = true;
 	WarnIfTimelineIsStillRunning = true;
+
+	ReferenceHelper.OnGetGameplayTagName.BindLambda([](void* RawData)
+	{
+		AGameplayCueNotify_Actor* ThisData = static_cast<AGameplayCueNotify_Actor*>(RawData);
+		return ThisData->GameplayCueTag.GetTagName();
+	});
 }
 
 void AGameplayCueNotify_Actor::EndPlay(const EEndPlayReason::Type EndPlayReason)

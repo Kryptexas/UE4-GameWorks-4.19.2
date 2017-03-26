@@ -1033,7 +1033,7 @@ void UGameplayTagsManager::RequestAllGameplayTags(FGameplayTagContainer& TagCont
 	for (const TSharedPtr<FGameplayTagNode>& TagNode : ValueArray)
 	{
 #if WITH_EDITOR
-		bool DictTag = IsDictionaryTag(TagNode->GetSimpleTagName());
+		bool DictTag = IsDictionaryTag(TagNode->GetCompleteTagName());
 #else
 		bool DictTag = false;
 #endif 

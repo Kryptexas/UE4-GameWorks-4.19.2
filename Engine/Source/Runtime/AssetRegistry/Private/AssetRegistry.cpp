@@ -15,6 +15,7 @@
 #include "DependsNode.h"
 #include "PackageReader.h"
 #include "GenericPlatform/GenericPlatformChunkInstall.h"
+#include "IPluginManager.h"
 
 #if WITH_EDITOR
 #include "IDirectoryWatcher.h"
@@ -125,6 +126,15 @@ FAssetRegistry::FAssetRegistry()
 		{
 			// serialize the data with the memory reader (will convert FStrings to FNames, etc)
 			Serialize(SerializedAssetData);
+		}
+		TArray<TSharedRef<IPlugin>> PakPlugins = IPluginManager::Get().GetPluginsWithPakFile();
+		for (TSharedRef<IPlugin> PakPlugin : PakPlugins)
+		{
+			if (FFileHelper::LoadFileToArray(SerializedAssetData, *(PakPlugin->GetBaseDir() / TEXT("AssetRegistry.bin"))))
+			{
+				SerializedAssetData.Seek(0);
+				Serialize(SerializedAssetData);
+			}
 		}
 	}
 

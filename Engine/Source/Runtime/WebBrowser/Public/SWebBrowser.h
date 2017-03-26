@@ -206,8 +206,6 @@ public:
 
 	void UnbindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter);
 
-private:
-
 	/** Returns true if the browser can navigate backwards. */
 	bool CanGoBack() const;
 

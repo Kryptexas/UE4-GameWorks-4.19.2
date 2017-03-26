@@ -339,6 +339,47 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 }
 
 
+
+template<class TPlatformProperties>
+inline void FAndroidTargetPlatform<TPlatformProperties>::GetAllTextureFormats(TArray<FName>& OutFormats) const
+{
+
+
+	OutFormats.Add(AndroidTexFormat::NameG8);
+	OutFormats.Add(AndroidTexFormat::NameRGBA16F);
+	OutFormats.Add(AndroidTexFormat::NameBGRA8);
+	OutFormats.Add(AndroidTexFormat::NameRGBA16F);
+	OutFormats.Add(AndroidTexFormat::NameRGBA16F);
+	OutFormats.Add(AndroidTexFormat::NameBGRA8);
+	OutFormats.Add(AndroidTexFormat::NameG8);
+	OutFormats.Add(AndroidTexFormat::NameG8);
+	OutFormats.Add(AndroidTexFormat::NameG8);
+
+	auto AddAllTextureFormatIfSupports = [=, &OutFormats](bool bIsNonPOT) 
+	{
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoPVRTC, OutFormats, bIsNonPOT); 
+		AddTextureFormatIfSupports(AndroidTexFormat::NamePVRTC2, OutFormats, bIsNonPOT);
+		AddTextureFormatIfSupports(AndroidTexFormat::NamePVRTC4, OutFormats, bIsNonPOT);
+	
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoDXT, OutFormats, bIsNonPOT);
+		AddTextureFormatIfSupports(AndroidTexFormat::NameDXT1, OutFormats, bIsNonPOT);
+		AddTextureFormatIfSupports(AndroidTexFormat::NameDXT5, OutFormats, bIsNonPOT);
+	
+		AddTextureFormatIfSupports(AndroidTexFormat::NameATC_RGB, OutFormats, bIsNonPOT); 
+		AddTextureFormatIfSupports(AndroidTexFormat::NameATC_RGBA_I, OutFormats, bIsNonPOT);
+	
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC1, OutFormats, bIsNonPOT); 
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoETC2, OutFormats, bIsNonPOT);
+	
+		AddTextureFormatIfSupports(AndroidTexFormat::NameAutoATC, OutFormats, bIsNonPOT);
+	};
+
+	AddAllTextureFormatIfSupports(true);
+	AddAllTextureFormatIfSupports(false);
+
+}
+
+
 template<class TPlatformProperties>
 void FAndroidTargetPlatform<TPlatformProperties>::GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const
 {
@@ -397,6 +438,17 @@ FName FAndroidTargetPlatform<TPlatformProperties>::GetWaveFormat( const class US
 		}
 	}
 	return NAME_FORMAT;
+}
+
+
+template<class TPlatformProperties>
+void FAndroidTargetPlatform<TPlatformProperties>::GetAllWaveFormats(TArray<FName>& OutFormats) const
+{
+	static FName NAME_OGG(TEXT("OGG"));
+	static FName NAME_ADPCM(TEXT("ADPCM"));
+
+	OutFormats.Add(NAME_OGG); 
+	OutFormats.Add(NAME_ADPCM);
 }
 
 #endif //WITH_ENGINE

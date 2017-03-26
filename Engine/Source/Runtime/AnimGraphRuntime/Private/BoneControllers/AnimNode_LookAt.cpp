@@ -146,6 +146,23 @@ void FAnimNode_LookAt::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCont
 #endif
 }
 
+void FAnimNode_LookAt::EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context)
+{
+	Super::EvaluateComponentSpaceInternal(Context);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/*if (bEnableDebug)
+	{
+		const FTransform LocalToWorld = Context.AnimInstanceProxy->GetSkelMeshCompLocalToWorld();
+		FVector TargetWorldLoc = LocalToWorld.TransformPosition(CachedCurrentTargetLocation);
+		FVector SourceWorldLoc = LocalToWorld.TransformPosition(CachedComponentBoneLocation);
+
+		Context.AnimInstanceProxy->AnimDrawDebugLine(SourceWorldLoc, TargetWorldLoc, FColor::Green);
+	}*/
+
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
 bool FAnimNode_LookAt::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid

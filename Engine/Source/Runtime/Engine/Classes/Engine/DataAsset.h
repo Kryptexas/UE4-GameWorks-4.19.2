@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "AssetBundleData.h"
+#include "SubclassOf.h"
 #include "DataAsset.generated.h"
 
 /**
@@ -14,12 +15,16 @@
 UCLASS(abstract, MinimalAPI)
 class UDataAsset : public UObject
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 public:
 	// UObject interface
 #if WITH_EDITORONLY_DATA
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 #endif
+
+private:
+	UPROPERTY(AssetRegistrySearchable)
+	TSubclassOf<UDataAsset> NativeClass;
 };
 
 /**

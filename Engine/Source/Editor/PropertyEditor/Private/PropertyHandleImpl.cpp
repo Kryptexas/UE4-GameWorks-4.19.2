@@ -2073,7 +2073,18 @@ TSharedPtr<IPropertyHandle> FPropertyHandleBase::GetParentHandle() const
 	TSharedPtr<FPropertyNode> ParentNode = Implementation->GetPropertyNode()->GetParentNodeSharedPtr();
 	if( ParentNode.IsValid() )
 	{
-		return PropertyEditorHelpers::GetPropertyHandle( ParentNode.ToSharedRef(), Implementation->GetNotifyHook(), Implementation->GetPropertyUtilities() ).ToSharedRef();
+		return PropertyEditorHelpers::GetPropertyHandle( ParentNode.ToSharedRef(), Implementation->GetNotifyHook(), Implementation->GetPropertyUtilities() );
+	}
+
+	return nullptr;
+}
+
+TSharedPtr<IPropertyHandle> FPropertyHandleBase::GetKeyHandle() const
+{
+	TSharedPtr<FPropertyNode> KeyNode = Implementation->GetPropertyNode()->GetPropertyKeyNode();
+	if (KeyNode.IsValid())
+	{
+		return PropertyEditorHelpers::GetPropertyHandle(KeyNode.ToSharedRef(), Implementation->GetNotifyHook(), Implementation->GetPropertyUtilities());
 	}
 
 	return nullptr;

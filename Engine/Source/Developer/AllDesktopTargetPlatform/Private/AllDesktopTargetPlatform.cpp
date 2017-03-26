@@ -70,6 +70,11 @@ void FAllDesktopTargetPlatform::GetTextureFormats( const UTexture* Texture, TArr
 	OutFormats.Add(GetDefaultTextureFormatName(this, Texture, EngineSettings, false));
 }
 
+void FAllDesktopTargetPlatform::GetAllTextureFormats(TArray<FName>& OutFormats) const
+{
+	GetAllDefaultTextureFormats(this, OutFormats, false);
+}
+
 
 FName FAllDesktopTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
 {
@@ -83,6 +88,16 @@ FName FAllDesktopTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) c
 	}
 	
 	return NAME_OGG;
+}
+
+
+void FAllDesktopTargetPlatform::GetAllWaveFormats(TArray<FName>& OutFormats) const
+{
+	static FName NAME_OGG(TEXT("OGG"));
+	static FName NAME_OPUS(TEXT("OPUS"));
+	OutFormats.Add(NAME_OGG);
+	OutFormats.Add(NAME_OPUS);
+
 }
 
 #endif // WITH_ENGINE

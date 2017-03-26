@@ -35,6 +35,133 @@ public partial class Project : CommandUtils
         }
     }
 
+	static void CopySharedCookedBuildForTarget(ProjectParams Params,TargetPlatformDescriptor TargetPlatform, string CookPlatform)
+	{
+
+		string ProjectPath = Params.RawProjectPath.FullName;
+		var LocalPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "SharedIterativeBuild", CookPlatform);
+
+		// get network location 
+		ConfigHierarchy Hierarchy = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), TargetPlatform.Type);
+		string CookedBuildPath;
+		if (Hierarchy.GetString("SharedCookedBuildSettings", "SharedCookedBuildPath", out CookedBuildPath) == false)
+		{
+			Log("Unable to copy shared cooked build: SharedCookedBuildPath not set in Engine.ini SharedCookedBuildSettings");
+			return ;
+		}
+
+		string BuildRoot = P4Enabled ? P4Env.BuildRootP4.Replace("/", "+") : "";
+		int RecentCL = P4Enabled ? P4Env.Changelist : 0;
+
+		BuildVersion Version;
+		if (BuildVersion.TryRead(out Version))
+		{
+			RecentCL = Version.Changelist;
+			BuildRoot = Version.BranchName;
+		}
+
+		// check to see if we have already synced this build ;)
+		var SyncedBuildFile = CombinePaths(LocalPath, "SyncedBuild.txt");
+		string BuildCL = "Invalid";
+		if ( File.Exists(SyncedBuildFile))
+		{
+			BuildCL = File.ReadAllText(SyncedBuildFile);
+		}
+
+		if (RecentCL == 0 && CookedBuildPath.Contains("[CL]") )
+		{
+			Log("Unable to copy shared cooked build: Unable to determine CL number from P4 or UGS, and is required by SharedCookedBuildPath");
+			return;
+		}
+
+		if (RecentCL == 0 && CookedBuildPath.Contains("[BRANCHNAME]"))
+		{
+			Log("Unable to copy shared cooked build: Unable to determine BRANCHNAME number from P4 or UGS, and is required by SharedCookedBuildPath");
+			return;
+		}
+
+
+		CookedBuildPath = CookedBuildPath.Replace("[CL]", RecentCL.ToString());
+		CookedBuildPath = CookedBuildPath.Replace("[BRANCHNAME]", BuildRoot);
+		CookedBuildPath = CookedBuildPath.Replace("[PLATFORM]", CookPlatform);
+
+		if ( Directory.Exists(CookedBuildPath) == false )
+		{
+			Log("Unable to copy shared cooked build: Unable to find shared build at location {0} check SharedCookedBuildPath in Engine.ini SharedCookedBuildSettings is correct", CookedBuildPath);
+			return;
+		}
+
+		Log("Attempting download of latest shared build CL {0} from location {1}", RecentCL, CookedBuildPath);
+
+		if (BuildCL == RecentCL.ToString())
+		{
+			Log("Already downloaded latest shared build at CL {0}", RecentCL);
+			return;
+		}
+		// delete all the stuff
+		Log("Deleting previous shared build because it was out of date");
+		CommandUtils.DeleteDirectory(LocalPath);
+		Directory.CreateDirectory(LocalPath);
+
+
+		// find all the files in the staged directory
+		string CookedBuildStagedDirectory = Path.GetFullPath(Path.Combine( CookedBuildPath, "Staged" ));
+		string LocalBuildStagedDirectory = Path.GetFullPath(Path.Combine(LocalPath, "Staged"));
+		if (Directory.Exists(CookedBuildStagedDirectory))
+		{
+			foreach (string FileName in Directory.EnumerateFiles(CookedBuildStagedDirectory, "*.*", SearchOption.AllDirectories))
+			{
+				string SourceFileName = Path.GetFullPath(FileName);
+				string DestFileName = SourceFileName.Replace(CookedBuildStagedDirectory, LocalBuildStagedDirectory);
+				Directory.CreateDirectory(Path.GetDirectoryName(DestFileName));
+				File.Copy(SourceFileName, DestFileName);
+			}
+		}
+
+
+		string CookedBuildCookedDirectory = Path.Combine(CookedBuildPath, "Cooked");
+		CookedBuildCookedDirectory = Path.GetFullPath(CookedBuildCookedDirectory);
+		string LocalBuildCookedDirectory = Path.Combine(LocalPath, "Cooked");
+		LocalBuildCookedDirectory = Path.GetFullPath(LocalBuildCookedDirectory);
+		if (Directory.Exists(CookedBuildCookedDirectory))
+		{
+			foreach (string FileName in Directory.EnumerateFiles(CookedBuildCookedDirectory, "*.*", SearchOption.AllDirectories))
+			{
+				string SourceFileName = Path.GetFullPath(FileName);
+				string DestFileName = SourceFileName.Replace(CookedBuildCookedDirectory, LocalBuildCookedDirectory);
+				Directory.CreateDirectory(Path.GetDirectoryName(DestFileName));
+				File.Copy(SourceFileName, DestFileName);
+			}
+		}
+		File.WriteAllText(SyncedBuildFile, RecentCL.ToString());
+		return;
+	}
+
+	static void CopySharedCookedBuild(ProjectParams Params)
+	{
+
+		if (!Params.NoClient)
+		{ 
+			foreach (var ClientPlatform in Params.ClientTargetPlatforms)
+			{
+				// Use the data platform, sometimes we will copy another platform's data
+				var DataPlatformDesc = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
+				string PlatformToCook = Platform.Platforms[DataPlatformDesc].GetCookPlatform(false, Params.Client);
+				CopySharedCookedBuildForTarget(Params, ClientPlatform, PlatformToCook);
+			}
+		}
+		if (Params.DedicatedServer)
+		{
+			foreach (var ServerPlatform in Params.ServerTargetPlatforms)
+			{
+				// Use the data platform, sometimes we will copy another platform's data
+				var DataPlatformDesc = Params.GetCookedDataPlatformForServerTarget(ServerPlatform);
+				string PlatformToCook = Platform.Platforms[DataPlatformDesc].GetCookPlatform(true, false);
+				CopySharedCookedBuildForTarget(Params, ServerPlatform, PlatformToCook);
+			}
+		}
+	}
+
     public static void Cook(ProjectParams Params)
 	{
 		if ((!Params.Cook && !(Params.CookOnTheFly && !Params.SkipServer)) || Params.SkipCook)
@@ -70,7 +197,7 @@ public partial class Project : CommandUtils
 				String COTFCommandLine = Params.RunCommandline;
 				if (Params.IterativeCooking)
 				{
-					COTFCommandLine += " -iterate";
+					COTFCommandLine += " -iterate -iteratehash";
 				}
 				if (Params.UseDebugParamForEditorExe)
 				{
@@ -179,11 +306,12 @@ public partial class Project : CommandUtils
                 }
                 if (Params.IterativeCooking)
                 {
-                    CommandletParams += " -iterate";
+                    CommandletParams += " -iterate -iterateshash";
                 }
 				if ( Params.IterateSharedCookedBuild)
 				{
-					CommandletParams += " -iteratesharedcookedbuild";
+					CopySharedCookedBuild(Params);
+					CommandletParams += " -iteratesharedcookedbuild";					
 				}
 
 				if (Params.CookMapsOnly)

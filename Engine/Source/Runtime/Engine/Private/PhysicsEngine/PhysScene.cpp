@@ -201,6 +201,7 @@ public:
 
 	FORCEINLINE TStatId FindOrCreateStatId(const char* StatName)
 	{
+#if STATS
 		for (int StatIdx = 0; StatIdx < NumStats; ++StatIdx)
 		{
 			FStatLookup& Lookup = Stats[StatIdx];
@@ -232,7 +233,7 @@ public:
 			return NewStat.Stat;
 		}
 		
-
+#endif // STATS
 		return TStatId();
 	}
 
