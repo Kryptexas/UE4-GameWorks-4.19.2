@@ -2,6 +2,7 @@
 
 #include "KismetTraceUtils.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "GameFramework/Actor.h"
 
 static const float KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE = 16.f;
 
