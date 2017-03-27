@@ -31,7 +31,6 @@ namespace UnrealBuildTool.Rules
             PrivateIncludePathModuleNames.AddRange(
                 new string[] {
                     "TargetPlatform",
-                    "ComponentVisualizers"
                 }
             );
 
@@ -44,7 +43,6 @@ namespace UnrealBuildTool.Rules
                     "Projects",
                     "AudioMixer",
                     "XAudio2",
-                    "ComponentVisualizers"
                 }
             );
 
