@@ -8,7 +8,7 @@ using EnvDTE;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Diagnostics;
 
 namespace UnrealVS
 {
@@ -41,7 +41,7 @@ namespace UnrealVS
 			}
 		}
 
-		public StartupProjectSelector()
+        public StartupProjectSelector()
 		{
 			_bIsSolutionOpened = UnrealVSPackage.Instance.DTE.Solution.IsOpen;
 
@@ -153,9 +153,10 @@ namespace UnrealVS
 
 		private void SortCachedStartupProjects()
 		{
-			// Sort projects by game y/n then alphabetically
-			_CachedStartupProjects = (_CachedStartupProjects.OrderBy(ProjectRef => Utils.IsGameProject(ProjectRef.Project) ? 0 : 1)
-				.ThenBy(ProjectRef => ProjectRef.Name)).ToList();
+            // Sort projects by game y/n then alphabetically
+            _CachedStartupProjects = (_CachedStartupProjects.OrderBy(ProjectRef => ProjectRef.Name == "UE4" ? 0 : 1)
+                .ThenBy(ProjectRef => Utils.IsGameProject(ProjectRef.Project) ? 0 : 1)
+                .ThenBy(ProjectRef => ProjectRef.Name)).ToList();
 		}
 
 		private bool ProjectPredicate(Project Project)
@@ -177,7 +178,7 @@ namespace UnrealVS
 			}
 
 			// Always filter out non-executable projects
-			if (!Utils.IsProjectSuitable(Project))
+			if (!Utils.IsProjectBuildable(Project))
 			{
 				Logging.WriteLine("StartupProjectSelector: Not listing project " + Project.Name + " because it is not executable");
 				return false;
