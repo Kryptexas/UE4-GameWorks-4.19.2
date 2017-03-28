@@ -486,6 +486,9 @@ void UNavigationSystem::PostInitProperties()
 
 bool UNavigationSystem::ConditionalPopulateNavOctree()
 {
+	// Discard all navigation updates caused by octree construction
+	TGuardValue<TArray<FNavigationDirtyArea>> DirtyGuard(DirtyAreas, TArray<FNavigationDirtyArea>());
+
 	// We are going to fully re-populate NavOctree so all pending update request are outdated
 	PendingOctreeUpdates.Empty(32);
 	
@@ -538,17 +541,11 @@ bool UNavigationSystem::ConditionalPopulateNavOctree()
 	// Add all found elements to octree, this will not add new dirty areas to navigation
 	if (PendingOctreeUpdates.Num())
 	{
-		TArray<FNavigationDirtyArea> SavedDirtyAreas; 
-		Exchange(SavedDirtyAreas, DirtyAreas);
-
 		for (TSet<FNavigationDirtyElement>::TIterator It(PendingOctreeUpdates); It; ++It)
 		{
 			AddElementToNavOctree(*It);
 		}
 		PendingOctreeUpdates.Empty(32);
-
-		// Discard all navigation updates caused by octree construction
-		Exchange(SavedDirtyAreas, DirtyAreas);
 	}
 
 	return bSupportRebuilding;

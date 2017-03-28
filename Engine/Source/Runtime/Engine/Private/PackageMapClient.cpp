@@ -19,6 +19,7 @@
 #include "Engine/ActorChannel.h"
 #include "Net/RepLayout.h"
 #include "ProfilingDebugging/ScopedTimers.h"
+#include "GameFramework/GameStateBase.h"
 
 // ( OutPacketId == GUID_PACKET_NOT_ACKED ) == NAK'd		(this GUID is not acked, and is not pending either, so sort of waiting)
 // ( OutPacketId == GUID_PACKET_ACKED )		== FULLY ACK'd	(this GUID is fully acked, and we no longer need to send full path)
@@ -2228,7 +2229,7 @@ void FNetGUIDCache::AsyncPackageCallback(const FName& PackageName, UPackage * Pa
 	check( Package == NULL || Package->IsFullyLoaded() );
 
 	FNetworkGUID NetGUID = PendingAsyncPackages.FindRef(PackageName);
-
+	
 	PendingAsyncPackages.Remove(PackageName);
 
 	if ( !NetGUID.IsValid() )
@@ -2256,6 +2257,15 @@ void FNetGUIDCache::AsyncPackageCallback(const FName& PackageName, UPackage * Pa
 	{
 		CacheObject->bIsBroken = true;
 		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package FAILED to load. Path: %s, NetGUID: %s" ), *PackageName.ToString(), *NetGUID.ToString() );
+	}
+
+	if (CacheObject->Object.IsValid() && CacheObject->Object->GetWorld())
+	{
+		AGameStateBase* GS = CacheObject->Object->GetWorld()->GetGameState();
+		if (GS)
+		{
+			GS->AsyncPackageLoaded(CacheObject->Object.Get());
+		}
 	}
 }
 

@@ -37,6 +37,7 @@ public:
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforeBrowse, const FString& /*Url*/, const FWebNavigationRequest& /*Request*/)
 	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnLoadUrl, const FString& /*Method*/, const FString& /*Url*/, FString& /* Response */)
 	DECLARE_DELEGATE_RetVal_OneParam(EWebBrowserDialogEventResponse, FOnShowDialog, const TWeakPtr<IWebBrowserDialog>&);
+	DECLARE_DELEGATE_RetVal(bool, FOnSuppressContextMenu);
 
 	SLATE_BEGIN_ARGS(SWebBrowserView)
 		: _InitialURL(TEXT("https://www.google.com"))
@@ -114,6 +115,8 @@ public:
 
 		/** Called to dismiss any dialogs shown via OnShowDialog. */
 		SLATE_EVENT(FSimpleDelegate, OnDismissAllDialogs)
+
+		SLATE_EVENT(FOnSuppressContextMenu, OnSuppressContextMenu);
 
 	SLATE_END_ARGS()
 
@@ -361,4 +364,10 @@ private:
 	FSimpleDelegate OnDismissAllDialogs;
 
 	FDelegateHandle SlateParentWindowSetupTickHandle;
+
+	FOnSuppressContextMenu OnSuppressContextMenu;
+
+protected:
+	bool HandleSuppressContextMenu();
+
 };

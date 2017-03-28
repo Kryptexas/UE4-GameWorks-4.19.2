@@ -27,6 +27,7 @@
 #include "Engine/LevelStreamingKismet.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Net/UnrealNetwork.h"
+#include "UnrealEngine.h"
 #include "Net/NetworkProfiler.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
@@ -3203,7 +3204,21 @@ void UDemoNetConnection::HandleClientPlayer( APlayerController* PC, UNetConnecti
 		return;
 	}
 
+	ULocalPlayer* LocalPlayer = NULL;
+	for (FLocalPlayerIterator It(GEngine, Driver->GetWorld()); It; ++It)
+	{
+		LocalPlayer = *It;
+		break;
+	}
+	int32 SavedNetSpeed = LocalPlayer ? LocalPlayer->CurrentNetSpeed : 0;
+
 	Super::HandleClientPlayer( PC, NetConnection );
+	
+	// Restore the netspeed if we're a local replay
+	if (GetDriver()->bIsLocalReplay && LocalPlayer)
+	{
+		LocalPlayer->CurrentNetSpeed = SavedNetSpeed;
+	}
 
 	// Assume this is our special spectator controller
 	GetDriver()->SpectatorController = PC;

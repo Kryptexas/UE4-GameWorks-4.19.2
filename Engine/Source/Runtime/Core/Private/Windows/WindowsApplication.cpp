@@ -1260,6 +1260,12 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 						}
 					}
 					break;
+				case SC_CLOSE:
+					{
+						DeferMessage(CurrentNativeEventWindowPtr, hwnd, WM_CLOSE, 0, 0);
+						return 1;
+					}
+					break;
 				default:
 					if( !( MessageHandler->ShouldProcessUserInputMessages( CurrentNativeEventWindow ) && IsInputMessage( msg ) ) )
 					{

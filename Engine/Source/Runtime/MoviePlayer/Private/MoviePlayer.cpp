@@ -68,6 +68,8 @@ TSharedRef<SWidget> FLoadingScreenAttributes::NewTestLoadingScreenWidget()
 
 TSharedPtr<IGameMoviePlayer> GetMoviePlayer()
 {
+	ensureMsgf(!IsInSlateThread(), TEXT("GetMoviePlayer() is not safe to be called from the Slate Thread"));
+
 	if (!IsMoviePlayerEnabled() || GUsingNullRHI)
 	{
 		return FNullGameMoviePlayer::Get();

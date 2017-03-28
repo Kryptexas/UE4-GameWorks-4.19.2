@@ -206,6 +206,12 @@ public:
 		return DismissAllDialogsDelegate;
 	}
 
+	virtual FOnSuppressContextMenu& OnSuppressContextMenu() override
+	{
+		return SuppressContextMenuDelgate;
+	}
+
+
 public:
 
 private:
@@ -261,6 +267,9 @@ private:
 
 	/** Delegate for dismissing all dialogs. */
 	FOnDismissAllDialogs DismissAllDialogsDelegate;
+
+	/** Delegate for suppressing context menu */
+	FOnSuppressContextMenu SuppressContextMenuDelgate;
 
 	TSharedPtr<SWindow> ParentWindow;
 

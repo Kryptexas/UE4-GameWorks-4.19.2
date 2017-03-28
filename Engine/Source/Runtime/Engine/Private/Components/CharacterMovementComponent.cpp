@@ -3518,6 +3518,10 @@ void UCharacterMovementComponent::ApplyRootMotionToVelocity(float deltaTime)
 	}
 }
 
+void UCharacterMovementComponent::HandleSwimmingWallHit(const FHitResult& Hit, float DeltaTime)
+{
+}
+
 void UCharacterMovementComponent::PhysSwimming(float deltaTime, int32 Iterations)
 {
 	if (deltaTime < MIN_TICK_TIME)
@@ -3569,6 +3573,7 @@ void UCharacterMovementComponent::PhysSwimming(float deltaTime, int32 Iterations
 
 	if ( Hit.Time < 1.f && CharacterOwner)
 	{
+		HandleSwimmingWallHit(Hit, deltaTime);
 		if (bLimitedUpAccel && (Velocity.Z >= 0.f))
 		{
 			// allow upward velocity at surface if against obstacle
