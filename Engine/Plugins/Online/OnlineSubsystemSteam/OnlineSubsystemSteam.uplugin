@@ -24,5 +24,11 @@
                 "Linux"
 			]
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemSteam",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

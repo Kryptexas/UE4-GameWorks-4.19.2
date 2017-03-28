@@ -812,6 +812,7 @@ public:
 	FString UniqueNetIdStr;
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	// Define these to increase visibility to public (from parent's protected)
 	FUniqueNetIdString() = default;
 	virtual ~FUniqueNetIdString() = default;
 	FUniqueNetIdString(const FUniqueNetIdString&) = default;
@@ -834,7 +835,7 @@ public:
 	 *
 	 * @param Src the id to copy
 	 */
-	explicit FUniqueNetIdString(const FUniqueNetIdString& Src)
+	FUniqueNetIdString(const FUniqueNetIdString& Src)
 		: UniqueNetIdStr(Src.UniqueNetIdStr)
 	{
 	}
@@ -844,7 +845,7 @@ public:
 	 *
 	 * @param Src the id to copy
 	 */
-	explicit FUniqueNetIdString(FUniqueNetIdString&& Src)
+	FUniqueNetIdString(FUniqueNetIdString&& Src)
 		: UniqueNetIdStr(MoveTemp(Src.UniqueNetIdStr))
 	{
 	}
@@ -1069,29 +1070,33 @@ public:
 
 /** Holds metadata about a given downloadable file */
 struct FCloudFileHeader
-{	
+{
 	/** Hash value, if applicable, of the given file contents */
-    FString Hash;
+	FString Hash;
 	/** The hash algorithm used to sign this file */
 	FName HashType;
 	/** Filename as downloaded */
-    FString DLName;
+	FString DLName;
 	/** Logical filename, maps to the downloaded filename */
-    FString FileName;
+	FString FileName;
 	/** File size */
-    int32 FileSize;
+	int32 FileSize;
 	/** The full URL to download the file if it is stored in a CDN or separate host site */
 	FString URL;
+	/** The chunk id this file represents */
+	uint32 ChunkID;
 
-    /** Constructors */
-    FCloudFileHeader() :
-		FileSize(0)
+	/** Constructors */
+	FCloudFileHeader() :
+		FileSize(0) ,
+		ChunkID(0)
 	{}
 
 	FCloudFileHeader(const FString& InFileName, const FString& InDLName, int32 InFileSize) :
 		DLName(InDLName),
 		FileName(InFileName),
-		FileSize(InFileSize)
+		FileSize(InFileSize) ,
+		ChunkID(0)
 	{}
 
 	bool operator==(const FCloudFileHeader& Other) const
@@ -1101,7 +1106,8 @@ struct FCloudFileHeader
 			HashType == Other.HashType &&
 			DLName == Other.DLName &&
 			FileName == Other.FileName &&
-			URL == Other.URL;
+			URL == Other.URL &&
+			ChunkID == Other.ChunkID;
 	}
 
 	bool operator<(const FCloudFileHeader& Other) const
@@ -1273,151 +1279,141 @@ class FOnlineBlockedPlayer : public FOnlineUser
 {
 };
 
-/** The possible permission categories we can choose from to read from the server */
-namespace EOnlineSharingReadCategory
+/** Valid states for user facing permissions */
+enum class EOnlineSharingPermissionState : uint8
 {
-	enum Type
-	{
-		None			= 0x00,
-		// Read access to posts on the users feeds
-		Posts			= 0x01,
-		// Read access for a users friend information, and all data about those friends. e.g. Friends List and Individual Friends Birthday
-		Friends			= 0x02,
-		// Read access to a users mailbox
-		Mailbox			= 0x04,
-		// Read the current online status of a user
-		OnlineStatus	= 0x08,
-		// Read a users profile information, e.g. Users Birthday
-		ProfileInfo		= 0x10,	
-		// Read information about the users locations and location history
-		LocationInfo	= 0x20,
+	/** Permission has not been requested yet */
+	Unknown = 0,
+	/** Permission has been requested but declined by the user */
+	Declined = 1,
+	/** Permission has been granted by the user */
+	Granted = 2,
+};
 
-		Default			= ProfileInfo|LocationInfo,
-	};
-
-
-
-	/** @return the stringified version of the enum passed in */
-	inline const TCHAR* ToString(EOnlineSharingReadCategory::Type CategoryType)
-	{
-		switch (CategoryType)
-		{
-		case None:
-			{
-				return TEXT("Category undefined");
-			}
-		case Posts:
-			{
-				return TEXT("Posts");
-			}
-		case Friends:
-			{
-				return TEXT("Friends");
-			}
-		case Mailbox:
-			{
-				return TEXT("Mailbox");
-			}
-		case OnlineStatus:
-			{
-				return TEXT("Online Status");
-			}
-		case ProfileInfo:
-			{
-				return TEXT("Profile Information");
-			}
-		case LocationInfo:
-			{
-				return TEXT("Location Information");
-			}
-		}
-		return TEXT("");
-	}
-}
-
-
-/** The possible permission categories we can choose from to publish to the server */
-namespace EOnlineSharingPublishingCategory
+/**
+ * First 16 bits are reading permissions
+ * Second 16 bits are writing/publishing permissions
+ */
+enum class EOnlineSharingCategory : uint32
 {
-	enum Type
+	None = 0x00,
+	// Read access to posts on the users feeds
+	ReadPosts = 0x01,
+	// Read access for a users friend information, and all data about those friends. e.g. Friends List and Individual Friends Birthday
+	Friends = 0x02,
+	// Read access to a user's email address
+	Email = 0x04,
+	// Read access to a users mailbox
+	Mailbox = 0x08,
+	// Read the current online status of a user
+	OnlineStatus = 0x10,
+	// Read a users profile information, e.g. Users Birthday
+	ProfileInfo = 0x20,
+	// Read information about the users locations and location history
+	LocationInfo = 0x40,
+
+	ReadPermissionMask = 0x0000FFFF,
+	DefaultRead = ProfileInfo | LocationInfo,
+
+	// Permission to post to a users news feed
+	SubmitPosts = 0x010000,
+	// Permission to manage a users friends list. Add/Remove contacts
+	ManageFriends = 0x020000,
+	// Manage a users account settings, such as pages they subscribe to, or which notifications they receive
+	AccountAdmin = 0x040000,
+	// Manage a users events. This features the capacity to create events as well as respond to events.
+	Events = 0x080000,
+	
+	PublishPermissionMask = 0xFFFF0000,
+	DefaultPublish = None
+};
+
+ENUM_CLASS_FLAGS(EOnlineSharingCategory);
+
+inline const TCHAR* ToString(EOnlineSharingCategory CategoryType)
+{
+	switch (CategoryType)
 	{
-		None			= 0x00,
-		// Permission to post to a users news feed
-		Posts			= 0x01,
-		// Permission to manage a users friends list. Add/Remove contacts
-		Friends			= 0x02,
-		// Manage a users account settings, such as pages they subscribe to, or which notifications they receive
-		AccountAdmin	= 0x04,
-		// Manage a users events. This features the capacity to create events as well as respond to events.
-		Events			= 0x08,
-
-		Default			= None,
-	};
-
-
-	/** @return the stringified version of the enum passed in */
-	inline const TCHAR* ToString(EOnlineSharingPublishingCategory::Type CategoryType)
-	{
-		switch (CategoryType)
+		case EOnlineSharingCategory::None:
 		{
-		case None:
-			{
-				return TEXT("Category undefined");
-			}
-		case Posts:
-			{
-				return TEXT("Posts");
-			}
-		case Friends:
-			{
-				return TEXT("Friends");
-			}
-		case AccountAdmin:
-			{
-				return TEXT("Account Admin");
-			}
-		case Events:
-			{
-				return TEXT("Events");
-			}
+			return TEXT("Category undefined");
 		}
-		return TEXT("");
+		case EOnlineSharingCategory::ReadPosts:
+		{
+			return TEXT("ReadPosts");
+		}
+		case EOnlineSharingCategory::Friends:
+		{
+			return TEXT("Friends");
+		}
+		case EOnlineSharingCategory::Mailbox:
+		{
+			return TEXT("Mailbox");
+		}
+		case EOnlineSharingCategory::OnlineStatus:
+		{
+			return TEXT("Online Status");
+		}
+		case EOnlineSharingCategory::ProfileInfo:
+		{
+			return TEXT("Profile Information");
+		}
+		case EOnlineSharingCategory::LocationInfo:
+		{
+			return TEXT("Location Information");
+		}
+		case EOnlineSharingCategory::SubmitPosts:
+		{
+			return TEXT("SubmitPosts");
+		}
+		case EOnlineSharingCategory::ManageFriends:
+		{
+			return TEXT("ManageFriends");
+		}
+		case EOnlineSharingCategory::AccountAdmin:
+		{
+			return TEXT("Account Admin");
+		}
+		case EOnlineSharingCategory::Events:
+		{
+			return TEXT("Events");
+		}
 	}
+	return TEXT("");
 }
-
 
 /** Privacy permissions used for Online Status updates */
-namespace EOnlineStatusUpdatePrivacy
+enum class EOnlineStatusUpdatePrivacy : uint8
 {
-	enum Type
-	{
-		OnlyMe,			// Post will only be visible to the user alone
-		OnlyFriends,	// Post will only be visible to the user and the users friends
-		Everyone,		// Post will be visible to everyone
-	};
+	// Post will only be visible to the user alone
+	OnlyMe,
+	// Post will only be visible to the user and the users friends
+	OnlyFriends,
+	// Post will be visible to everyone
+	Everyone,
+};
 
-	inline const TCHAR* ToString(EOnlineStatusUpdatePrivacy::Type PrivacyType)
+inline const TCHAR* ToString(EOnlineStatusUpdatePrivacy PrivacyType)
+{
+	switch (PrivacyType)
 	{
-		switch (PrivacyType)
-		{
-		case OnlyMe:
+		case EOnlineStatusUpdatePrivacy::OnlyMe:
 			return TEXT("Only Me");
-		case OnlyFriends:
+		case EOnlineStatusUpdatePrivacy::OnlyFriends:
 			return TEXT("Only Friends");
-		case Everyone:
+		case EOnlineStatusUpdatePrivacy::Everyone:
 			return TEXT("Everyone");
-		}
 	}
 }
 
 /**
-* unique identifier for notification transports
-*/
+ * unique identifier for notification transports
+ */
 typedef FString FNotificationTransportId;
 
 /**
-* Id of a party instance
-*/
+ * Id of a party instance
+ */
 class FOnlinePartyId : public IOnlinePlatformData, public TSharedFromThis<FOnlinePartyId>
 {
 protected:
@@ -1442,8 +1438,8 @@ public:
 };
 
 /**
-* Id of a party's type
-*/
+ * Id of a party's type
+ */
 class FOnlinePartyTypeId
 {
 public:

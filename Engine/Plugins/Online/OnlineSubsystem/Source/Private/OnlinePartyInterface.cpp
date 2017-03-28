@@ -10,6 +10,17 @@
 
 DEFINE_LOG_CATEGORY(LogOnlineParty);
 
+bool FOnlinePartyData::operator==(const FOnlinePartyData& Other) const
+{
+	// Only compare KeyValAttrs, other fields are optimization details
+	return KeyValAttrs.OrderIndependentCompareEqual(Other.KeyValAttrs);
+}
+
+bool FOnlinePartyData::operator!=(const FOnlinePartyData& Other) const
+{
+	return !operator==(Other);
+}
+
 void FOnlinePartyData::ToJsonFull(FString& JsonString) const
 {
 	JsonString.Empty();
@@ -98,4 +109,26 @@ void FOnlinePartyData::FromJson(const FString& JsonString)
 			RevisionCount = NewRevisionCount;
 		}
 	}
+}
+
+bool FPartyConfiguration::operator==(const FPartyConfiguration& Other) const
+{
+	return JoinRequestAction == Other.JoinRequestAction &&
+		PresencePermissions == Other.PresencePermissions && 
+		JoinRequestAction == Other.JoinRequestAction &&
+		PresencePermissions == Other.PresencePermissions &&
+		InvitePermissions == Other.InvitePermissions &&
+		bChatEnabled == Other.bChatEnabled &&
+		bIsAcceptingMembers == Other.bIsAcceptingMembers &&
+		NotAcceptingMembersReason == Other.NotAcceptingMembersReason &&
+		MaxMembers == Other.MaxMembers &&
+		Nickname == Other.Nickname &&
+		Description == Other.Description &&
+		Password == Other.Password &&
+		ClientConfigData == Other.ClientConfigData;
+}
+
+bool FPartyConfiguration::operator!=(const FPartyConfiguration& Other) const
+{
+	return !operator==(Other);
 }

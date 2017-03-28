@@ -24,6 +24,7 @@ namespace OSSConsoleVariables
 const FName FOnlineSubsystemImpl::DefaultInstanceName(TEXT("DefaultInstance"));
 
 FOnlineSubsystemImpl::FOnlineSubsystemImpl() :
+	SubsystemName(NAME_None),
 	InstanceName(DefaultInstanceName),
 	bForceDedicated(false),
 	NamedInterfaces(nullptr)
@@ -31,7 +32,8 @@ FOnlineSubsystemImpl::FOnlineSubsystemImpl() :
 	StartTicker();
 }
 
-FOnlineSubsystemImpl::FOnlineSubsystemImpl(FName InInstanceName) :
+FOnlineSubsystemImpl::FOnlineSubsystemImpl(FName InSubsystemName, FName InInstanceName) :
+	SubsystemName(InSubsystemName),
 	InstanceName(InInstanceName),
 	bForceDedicated(false),
 	NamedInterfaces(nullptr)
@@ -53,6 +55,38 @@ bool FOnlineSubsystemImpl::Shutdown()
 	OnNamedInterfaceCleanup();
 	StopTicker();
 	return true;
+}
+
+FString FOnlineSubsystemImpl::FilterResponseStr(const FString& ResponseStr, const TArray<FString>& RedactFields)
+{
+#if UE_BUILD_SHIPPING
+	const FString Redacted = TEXT("[REDACTED]");
+	if (RedactFields.Num() > 0)
+	{
+		TSharedPtr< FJsonObject > JsonObject;
+		TSharedRef< TJsonReader<> > JsonReader = TJsonReaderFactory<>::Create(ResponseStr);
+		if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
+		{
+			for (const auto& RedactField : RedactFields)
+			{
+				// @todo support redacting other types - issues with GetHashKey using TMultiMap<EJson, FString>
+				if (JsonObject->HasTypedField<EJson::String>(RedactField))
+				{
+					JsonObject->SetStringField(RedactField, Redacted);
+				}
+			}
+			FString NewResponseStr;
+			TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&NewResponseStr);
+			if (FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer))
+			{
+				return NewResponseStr;
+			}
+		}
+	}
+	return Redacted;
+#else
+	return ResponseStr;
+#endif
 }
 
 void FOnlineSubsystemImpl::ExecuteDelegateNextTick(const FNextTickDelegate& Callback)

@@ -46,6 +46,12 @@ FString FQosInterface::GetRegionId() const
 	return RegionManager->GetRegionId();
 }
 
+bool FQosInterface::AllRegionsFound() const
+{
+	check(RegionManager);
+	return RegionManager->AllRegionsFound();
+}
+
 const TArray<FQosRegionInfo>& FQosInterface::GetRegionOptions() const
 {
 	check(RegionManager);

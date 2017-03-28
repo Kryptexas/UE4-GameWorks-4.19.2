@@ -660,10 +660,11 @@ public:
 	 *
 	 * @param SessionName the name of the session to resolve
 	 * @param ConnectInfo the string containing the platform specific connection information
+	 * @param PortType type of port to append to result (Game, Beacon, etc)
 	 *
 	 * @return true if the call was successful, false otherwise
 	 */
-	virtual bool GetResolvedConnectString(FName SessionName, FString& ConnectInfo) = 0;
+	virtual bool GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType = GamePort) = 0;
 
 	/**
 	 * Returns the platform specific connection information for joining a search result.

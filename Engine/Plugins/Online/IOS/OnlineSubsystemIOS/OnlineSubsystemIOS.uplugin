@@ -22,5 +22,11 @@
                 "TVOS"
 			]
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemIOS",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

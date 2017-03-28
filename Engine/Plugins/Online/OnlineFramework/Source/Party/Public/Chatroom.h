@@ -52,10 +52,10 @@ public:
 	 * @param LocalUserId local user that will be joining the room
 	 * @param ChatRoomId chat room id to connect with
 	 * @param CompletionDelegate delegate fired when operation completes
-	 * @param Password optional password for the room
+	 * @param RoomConfig optional room configuration
      * NOTE: All parameters are by value because ClearTimer/SetTimer can destroy the internal lambda function
 	 */
-	void CreateOrJoinChatRoom(FUniqueNetIdRepl LocalUserId, FChatRoomId ChatRoomId, FOnChatRoomCreatedOrJoined CompletionDelegate, FString Password = FString());
+	void CreateOrJoinChatRoom(FUniqueNetIdRepl LocalUserId, FChatRoomId ChatRoomId, FOnChatRoomCreatedOrJoined CompletionDelegate, FChatRoomConfig RoomConfig = FChatRoomConfig());
 
 	/**
 	 * Leave the joined chat room
@@ -75,9 +75,9 @@ private:
 	 * @param bWasSuccessful was the join successful
 	 * @param Error error string if not successful
 	 * @param CompletionDelegate user passed in delegate
-	 * @param Password password from previously call if needed on retry
+	 * @param RoomConfig room configuration from previous call if needed on retry
 	 */
-	void OnChatRoomCreatedOrJoined(const FUniqueNetId& LocalUserId, const FChatRoomId& RoomId, bool bWasSuccessful, const FString& Error, FOnChatRoomCreatedOrJoined CompletionDelegate, FString Password);
+	void OnChatRoomCreatedOrJoined(const FUniqueNetId& LocalUserId, const FChatRoomId& RoomId, bool bWasSuccessful, const FString& Error, FOnChatRoomCreatedOrJoined CompletionDelegate, FChatRoomConfig RoomConfig);
 
 	/**
 	 * Delegate fired after LeaveChatRoom completes

@@ -94,6 +94,16 @@ bool IsPlayerInSessionImpl(IOnlineSession* SessionInt, FName SessionName, const 
 	return bFound;
 }
 
+int32 GetBeaconPortFromSessionSettings(const FOnlineSessionSettings& SessionSettings)
+{
+	int32 BeaconListenPort = DEFAULT_BEACON_PORT;
+	if (!SessionSettings.Get(SETTING_BEACONPORT, BeaconListenPort) || BeaconListenPort <= 0)
+	{
+		// Reset the default BeaconListenPort back to DEFAULT_BEACON_PORT because the SessionSettings value does not exist or was not valid
+		BeaconListenPort = DEFAULT_BEACON_PORT;
+	}
+	return BeaconListenPort;
+}
 
 #if !UE_BUILD_SHIPPING
 

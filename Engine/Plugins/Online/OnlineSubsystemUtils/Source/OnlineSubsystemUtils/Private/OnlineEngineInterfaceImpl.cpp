@@ -384,7 +384,7 @@ int32 UOnlineEngineInterfaceImpl::GetNumLocalTalkers(UWorld* World)
 
 void UOnlineEngineInterfaceImpl::ShowLeaderboardUI(UWorld* World, const FString& CategoryName)
 {
-	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
+	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface(World);
 	if(ExternalUI.IsValid())
 	{
 		ExternalUI->ShowLeaderboardUI(CategoryName);
@@ -393,12 +393,52 @@ void UOnlineEngineInterfaceImpl::ShowLeaderboardUI(UWorld* World, const FString&
 
 void UOnlineEngineInterfaceImpl::ShowAchievementsUI(UWorld* World, int32 LocalUserNum)
 {
-	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
+	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface(World);
 	if (ExternalUI.IsValid())
 	{
 		ExternalUI->ShowAchievementsUI(LocalUserNum);
 	}
 }
+
+#ifdef OSS_ADDED_SHOW_WEB
+void UOnlineEngineInterfaceImpl::ShowWebURL(const FString& CurrentURL, const UOnlineEngineInterface::FShowWebUrlParams& ShowParams, const FOnlineShowWebUrlClosed& CompletionDelegate)
+{
+	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub)
+	{
+		IOnlineExternalUIPtr ExternalUI = OnlineSub->GetExternalUIInterface();
+		if (ExternalUI.IsValid())
+		{
+			::FShowWebUrlParams Params;
+			Params.bEmbedded = ShowParams.bEmbedded;
+			Params.bShowBackground = ShowParams.bShowBackground;
+			Params.bShowCloseButton = ShowParams.bShowCloseButton;
+			Params.bHideCursor = ShowParams.bHideCursor;
+			Params.OffsetX = ShowParams.OffsetX;
+			Params.OffsetY = ShowParams.OffsetY;
+			Params.SizeX = ShowParams.SizeX;
+			Params.SizeY = ShowParams.SizeY;
+
+			ExternalUI->ShowWebURL(CurrentURL, Params, CompletionDelegate);
+		}
+	}
+}
+
+bool UOnlineEngineInterfaceImpl::CloseWebURL()
+{
+	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub)
+	{
+		IOnlineExternalUIPtr ExternalUI = OnlineSub->GetExternalUIInterface();
+		if (ExternalUI.IsValid())
+		{
+			return ExternalUI->CloseWebURL();
+		}
+	}
+
+	return false;
+}
+#endif
 
 void UOnlineEngineInterfaceImpl::BindToExternalUIOpening(const FOnlineExternalUIChanged& Delegate)
 {
@@ -437,7 +477,7 @@ void UOnlineEngineInterfaceImpl::OnExternalUIChange(bool bInIsOpening, FOnlineEx
 
 void UOnlineEngineInterfaceImpl::DumpSessionState(UWorld* World)
 {
-	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
 	if (SessionInt.IsValid())
 	{
 		SessionInt->DumpSessionState();

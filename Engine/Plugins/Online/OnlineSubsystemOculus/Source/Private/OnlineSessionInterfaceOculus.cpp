@@ -788,7 +788,7 @@ bool FOnlineSessionOculus::PingSearchResults(const FOnlineSessionSearchResult& S
 	return false;
 }
 
-bool FOnlineSessionOculus::GetResolvedConnectString(FName SessionName, FString& ConnectInfo)
+bool FOnlineSessionOculus::GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType)
 {
 	// Find the session
 	auto Session = GetNamedSession(SessionName);

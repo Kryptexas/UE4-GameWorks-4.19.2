@@ -38,6 +38,9 @@ public:
 	 */
 	FString GetRegionId() const;
 
+	/** @return true if a reasonable enough number of results were returned from all known regions, false otherwise */
+	bool AllRegionsFound() const;
+
 	/**
 	 * Get the list of regions that the client can choose from (returned from search and must meet min ping requirements)
 	 *

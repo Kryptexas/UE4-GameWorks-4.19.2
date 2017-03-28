@@ -3,7 +3,12 @@
 
 #include "Engine/EngineTypes.h"
 #include "OnlineSessionSettings.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "RejoinCheck.generated.h"
+
+class FTimerManager;
 
 /**
  * Possible states that a rejoin check can be in at any given time

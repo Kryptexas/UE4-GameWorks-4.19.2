@@ -39,7 +39,18 @@ FOnlineSubsystemGooglePlay::FOnlineSubsystemGooglePlay()
 	, CurrentShowLoginUITask(nullptr)
 	, CurrentLogoutTask(nullptr)
 {
+}
 
+FOnlineSubsystemGooglePlay::FOnlineSubsystemGooglePlay(FName InInstanceName)
+	: FOnlineSubsystemImpl(GOOGLEPLAY_SUBSYSTEM, InInstanceName)
+	, IdentityInterface(nullptr)
+	, LeaderboardsInterface(nullptr)
+	, AchievementsInterface(nullptr)
+	, StoreInterface(nullptr)
+	, CurrentLoginTask(nullptr)
+	, CurrentShowLoginUITask(nullptr)
+	, CurrentLogoutTask(nullptr)
+{
 }
 
 IOnlineIdentityPtr FOnlineSubsystemGooglePlay::GetIdentityInterface() const
@@ -197,8 +208,8 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 #define DESTRUCT_INTERFACE(Interface) \
 	if (Interface.IsValid()) \
 	{ \
-	ensure(Interface.IsUnique()); \
-	Interface = NULL; \
+		ensure(Interface.IsUnique()); \
+		Interface = NULL; \
 	}
 
 	// Destruct the interfaces
@@ -262,6 +273,8 @@ bool FOnlineSubsystemGooglePlay::IsInAppPurchasingEnabled()
 
 void FOnlineSubsystemGooglePlay::StartShowLoginUITask(int PlayerId, const FOnLoginUIClosedDelegate& Delegate)
 {
+	UE_LOG(LogOnline, Log, TEXT("StartShowLoginUITask PlayerId: %d"), PlayerId);
+
 	if (AreAnyAsyncLoginTasksRunning())
 	{
 		UE_LOG(LogOnline, Log, TEXT("FOnlineSubsystemGooglePlay::StartShowLoginUITask: An asynchronous login task is already running."));
@@ -271,6 +284,7 @@ void FOnlineSubsystemGooglePlay::StartShowLoginUITask(int PlayerId, const FOnLog
 
 	if (GameServicesPtr.get() == nullptr)
 	{
+		UE_LOG(LogOnline, Log, TEXT("StartShowLoginUITask Game Services was null"));
 		// This is likely the first login attempt during this run. Attempt to create the
 		// GameServices object, which will automatically start a "silent" login attempt.
 		// If that succeeds, there's no need to show the login UI explicitly. If it fails,
@@ -278,6 +292,7 @@ void FOnlineSubsystemGooglePlay::StartShowLoginUITask(int PlayerId, const FOnLog
 		
 		auto TheDelegate = FOnlineAsyncTaskGooglePlayLogin::FOnCompletedDelegate::CreateLambda([this, PlayerId, Delegate]()
 		{
+			UE_LOG(LogOnline, Log, TEXT("StartShowLoginUITask starting ShowLoginUITask_Internal"));
 			 StartShowLoginUITask_Internal(PlayerId, Delegate);
 		});
 
@@ -286,6 +301,7 @@ void FOnlineSubsystemGooglePlay::StartShowLoginUITask(int PlayerId, const FOnLog
 	}
 	else
 	{
+		UE_LOG(LogOnline, Log, TEXT("StartShowLoginUITask GameServicesPtr valid"));
 		// We already have a GameServices object, so we can directly go to ShowAuthorizationUI.
 		StartShowLoginUITask_Internal(PlayerId, Delegate);
 	}
@@ -319,6 +335,7 @@ void FOnlineSubsystemGooglePlay::StartShowLoginUITask_Internal(int PlayerId, con
 {
 	check(!AreAnyAsyncLoginTasksRunning());
 
+	UE_LOG(LogOnline, Log, TEXT("StartShowLoginUITask_Internal"));
 	CurrentShowLoginUITask = new FOnlineAsyncTaskGooglePlayShowLoginUI(this, PlayerId, Delegate);
 	QueueAsyncTask(CurrentShowLoginUITask);
 }
@@ -333,6 +350,7 @@ void FOnlineSubsystemGooglePlay::OnAuthActionFinished(AuthOperation Op, AuthStat
 {
 	if (Op == AuthOperation::SIGN_IN)
 	{
+		UE_LOG(LogOnline, Log, TEXT("OnAuthActionFinished SIGN IN %d"), (int32)Status);
 		if (CurrentLoginTask != nullptr)
 		{
 			// Only one login task should be active at a time
@@ -350,6 +368,7 @@ void FOnlineSubsystemGooglePlay::OnAuthActionFinished(AuthOperation Op, AuthStat
 	}
 	else if (Op == AuthOperation::SIGN_OUT)
 	{
+		UE_LOG(LogOnline, Log, TEXT("OnAuthActionFinished SIGN OUT %d"), (int32)Status);
 		if (CurrentLogoutTask != nullptr)
 		{
 			CurrentLogoutTask->OnAuthActionFinished(Op, Status);
@@ -375,7 +394,7 @@ void FOnlineSubsystemGooglePlay::OnActivityResult(JNIEnv *env, jobject thiz, job
 	AndroidSupport::OnActivityResult(env, activity, requestCode, resultCode, data);
 }
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeGoogleClientConnectCompleted(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jstring accessToken)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGoogleClientConnectCompleted(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jstring accessToken)
 {
 	FString AccessToken;
 	if (bSuccess)

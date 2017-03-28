@@ -93,23 +93,23 @@ PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
 	FOnlineSubsystemSteam(FName InInstanceName) :
-		FOnlineSubsystemImpl(InInstanceName),
+		FOnlineSubsystemImpl(STEAM_SUBSYSTEM, InInstanceName),
 		bSteamworksClientInitialized(false),
 		bSteamworksGameServerInitialized(false),
 		SteamAppID(0),
 		GameServerSteamPort(0),
 		GameServerGamePort(0),
 		GameServerQueryPort(0),
-		SessionInterface(NULL),
-		IdentityInterface(NULL),
-		FriendInterface(NULL),
-		SharedCloudInterface(NULL),
-		UserCloudInterface(NULL),
-		LeaderboardsInterface(NULL),
-		VoiceInterface(NULL),
-		ExternalUIInterface(NULL),
-		OnlineAsyncTaskThreadRunnable(NULL),
-		OnlineAsyncTaskThread(NULL)
+		SessionInterface(nullptr),
+		IdentityInterface(nullptr),
+		FriendInterface(nullptr),
+		SharedCloudInterface(nullptr),
+		UserCloudInterface(nullptr),
+		LeaderboardsInterface(nullptr),
+		VoiceInterface(nullptr),
+		ExternalUIInterface(nullptr),
+		OnlineAsyncTaskThreadRunnable(nullptr),
+		OnlineAsyncTaskThread(nullptr)
 	{}
 
 	FOnlineSubsystemSteam() : 
@@ -119,16 +119,16 @@ PACKAGE_SCOPE:
 		GameServerSteamPort(0),
 		GameServerGamePort(0),
 		GameServerQueryPort(0),
-		SessionInterface(NULL),
-		IdentityInterface(NULL),
-		FriendInterface(NULL),
-		SharedCloudInterface(NULL),
-		UserCloudInterface(NULL),
-		LeaderboardsInterface(NULL),
-		VoiceInterface(NULL),
-		ExternalUIInterface(NULL),
-		OnlineAsyncTaskThreadRunnable(NULL),
-		OnlineAsyncTaskThread(NULL)
+		SessionInterface(nullptr),
+		IdentityInterface(nullptr),
+		FriendInterface(nullptr),
+		SharedCloudInterface(nullptr),
+		UserCloudInterface(nullptr),
+		LeaderboardsInterface(nullptr),
+		VoiceInterface(nullptr),
+		ExternalUIInterface(nullptr),
+		OnlineAsyncTaskThreadRunnable(nullptr),
+		OnlineAsyncTaskThread(nullptr)
 	{}
 
 	/** Critical sections for thread safe operation of the cloud files */
@@ -169,28 +169,28 @@ PACKAGE_SCOPE:
 	 */
 	void QueueAsyncOutgoingItem(class FOnlineAsyncItem* AsyncItem);
 
-    /** 
-     * **INTERNAL**
-     * Get the metadata related to a given user
-     * This information is only available after calling EnumerateUserFiles
-     *
-     * @param UserId the UserId to search for
-     * @return the struct with the metadata about the requested user, will always return a valid struct, creating one if necessary
-     *
-     */
+	/** 
+	 * **INTERNAL**
+	 * Get the metadata related to a given user
+	 * This information is only available after calling EnumerateUserFiles
+	 *
+	 * @param UserId the UserId to search for
+	 * @return the struct with the metadata about the requested user, will always return a valid struct, creating one if necessary
+	 *
+	 */
 	struct FSteamUserCloudData* GetUserCloudEntry(const FUniqueNetId& UserId);
 
 	/** 
-     * **INTERNAL**
-     * Clear the metadata related to a given user's file on Steam
-     * This information is only available after calling EnumerateUserFiles
-     * It doesn't actually delete any of the actual data on disk
-     *
-     * @param UserId the UserId for the file to search for
-     * @param Filename the file to get metadata about
-     * @return the true if the delete was successful, false otherwise
-     *
-     */
+	 * **INTERNAL**
+	 * Clear the metadata related to a given user's file on Steam
+	 * This information is only available after calling EnumerateUserFiles
+	 * It doesn't actually delete any of the actual data on disk
+	 *
+	 * @param UserId the UserId for the file to search for
+	 * @param Filename the file to get metadata about
+	 * @return the true if the delete was successful, false otherwise
+	 *
+	 */
 	bool ClearUserCloudMetadata(const FUniqueNetId& UserId, const FString& Filename);
 
 	/**

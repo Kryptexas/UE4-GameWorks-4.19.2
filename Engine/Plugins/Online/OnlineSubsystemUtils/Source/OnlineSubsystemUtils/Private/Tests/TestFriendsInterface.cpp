@@ -3,6 +3,7 @@
 #include "Tests/TestFriendsInterface.h"
 #include "OnlineSubsystemNames.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSharingInterface.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -45,19 +46,38 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 	}
 	else
 	{
-		UE_LOG(LogOnline, Warning,
-			TEXT("Failed to get friends interface for %s"), *SubsystemName);
-		
+		UE_LOG(LogOnline, Warning, TEXT("Failed to get friends interface for %s"), *SubsystemName);
 		FinishTest();
 	}
+}
+
+void FTestFriendsInterface::OnRequestNewPermissionsComplete(int32 LocalUserNum, bool bWasSuccessful)
+{
+	IOnlineSharingPtr SharingInt = OnlineSub->GetSharingInterface();
+	if (SharingInt.IsValid())
+	{
+		SharingInt->ClearOnRequestNewReadPermissionsCompleteDelegate_Handle(0, OnRequestNewReadPermissionsDelegateHandle);
+	}
+
+	FOnReadFriendsListComplete Delegate = FOnReadFriendsListComplete::CreateRaw(this, &FTestFriendsInterface::OnReadFriendsComplete);
+	OnlineSub->GetFriendsInterface()->ReadFriendsList(LocalUserNum, FriendsListName, Delegate);
 }
 
 void FTestFriendsInterface::StartNextTest()
 {
 	if (bReadFriendsList)
 	{
-		FOnReadFriendsListComplete Delegate = FOnReadFriendsListComplete::CreateRaw(this, &FTestFriendsInterface::OnReadFriendsComplete);
-		OnlineSub->GetFriendsInterface()->ReadFriendsList(0, FriendsListName, Delegate);
+		IOnlineSharingPtr SharingInt = OnlineSub->GetSharingInterface();
+		if (SharingInt.IsValid())
+		{
+			FOnRequestNewReadPermissionsCompleteDelegate Delegate = FOnRequestNewReadPermissionsCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnRequestNewPermissionsComplete);
+			OnRequestNewReadPermissionsDelegateHandle = SharingInt->AddOnRequestNewReadPermissionsCompleteDelegate_Handle(0, Delegate);
+			SharingInt->RequestNewReadPermissions(0, EOnlineSharingCategory::Friends);
+		}
+		else
+		{
+			OnRequestNewPermissionsComplete(0, true);
+		}
 	}
 	else if (bQueryRecentPlayers)
 	{
@@ -103,7 +123,6 @@ void FTestFriendsInterface::StartNextTest()
 	{
 		FinishTest();
 	}
-
 }
 
 void FTestFriendsInterface::FinishTest()
@@ -219,7 +238,11 @@ void FTestFriendsInterface::OnAcceptInviteComplete(int32 LocalPlayer, bool bWasS
 		LocalPlayer, *FriendId.ToDebugString(), bWasSuccessful, *ErrorStr);
 
 	// done with this part of the test if no more invites to accept
-	InvitesToAccept.RemoveAt(0);
+	if (InvitesToAccept.Num() > 0)
+	{
+		InvitesToAccept.RemoveAt(0);
+	}
+
 	if (InvitesToAccept.Num() == 0)
 	{
 		bAcceptInvites = false;
@@ -235,7 +258,11 @@ void FTestFriendsInterface::OnSendInviteComplete(int32 LocalPlayer, bool bWasSuc
 		LocalPlayer, *FriendId.ToDebugString(), bWasSuccessful, *ErrorStr);
 
 	// done with this part of the test if no more invites to send
-	InvitesToSend.RemoveAt(0);
+	if (InvitesToSend.Num() > 0)
+	{
+		InvitesToSend.RemoveAt(0);
+	}
+
 	if (InvitesToSend.Num() == 0)
 	{
 		bSendInvites = false;
@@ -251,7 +278,11 @@ void FTestFriendsInterface::OnDeleteFriendComplete(int32 LocalPlayer, bool bWasS
 		LocalPlayer, *FriendId.ToDebugString(), bWasSuccessful, *ErrorStr);
 
 	// done with this part of the test if no more friends to delete
-	FriendsToDelete.RemoveAt(0);
+	if (FriendsToDelete.Num() > 0)
+	{
+		FriendsToDelete.RemoveAt(0);
+	}
+
 	if (bWasSuccessful && FriendsToDelete.Num() == 0)
 	{
 		bDeleteFriends = false;

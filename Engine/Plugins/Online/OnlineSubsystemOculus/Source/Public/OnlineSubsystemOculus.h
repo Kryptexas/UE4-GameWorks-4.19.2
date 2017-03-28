@@ -92,7 +92,7 @@ PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
 	FOnlineSubsystemOculus(FName InInstanceName) :
-		FOnlineSubsystemImpl(InInstanceName)
+		FOnlineSubsystemImpl(OCULUS_SUBSYSTEM, InInstanceName)
 	{}
 
 	FOnlineSubsystemOculus()

@@ -1,66 +1,60 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
  
-
 // Module includes
-#include "CoreMinimal.h"
-#include "Interfaces/OnlineSharingInterface.h"
-#include "Interfaces/OnlineIdentityInterface.h"
+#include "OnlineSharingFacebookCommon.h"
 #include "OnlineSubsystemFacebookPackage.h"
+
+class FOnlineSubsystemFacebook;
 
 /**
  * Facebook implementation of the Online Sharing Interface
  */
-class FOnlineSharingFacebook : public IOnlineSharing
+class FOnlineSharingFacebook : public FOnlineSharingFacebookCommon
 {
 
 public:
 
 	//~ Begin IOnlineSharing Interface
 	virtual bool ReadNewsFeed(int32 LocalUserNum, int32 NumPostsToRead) override;
-	virtual bool RequestNewReadPermissions(int32 LocalUserNum, EOnlineSharingReadCategory::Type NewPermissions) override;
+	virtual bool RequestNewReadPermissions(int32 LocalUserNum, EOnlineSharingCategory NewPermissions) override;
 	virtual bool ShareStatusUpdate(int32 LocalUserNum, const FOnlineStatusUpdate& StatusUpdate) override;
-	virtual bool RequestNewPublishPermissions(int32 LocalUserNum, EOnlineSharingPublishingCategory::Type NewPermissions, EOnlineStatusUpdatePrivacy::Type Privacy) override;
-	virtual EOnlineCachedResult::Type GetCachedNewsFeed(int32 LocalUserNum, int32 NewsFeedIdx, FOnlineStatusUpdate& OutNewsFeed) override;
-	virtual EOnlineCachedResult::Type GetCachedNewsFeeds(int32 LocalUserNum, TArray<FOnlineStatusUpdate>& OutNewsFeeds) override;
+	virtual bool RequestNewPublishPermissions(int32 LocalUserNum, EOnlineSharingCategory NewPermissions, EOnlineStatusUpdatePrivacy Privacy) override;
 	//~ End IOnlineSharing Interface
 
-	
 public:
 
 	/**
 	 * Constructor used to indicate which OSS we are a part of
 	 */
-	FOnlineSharingFacebook(class FOnlineSubsystemFacebook* InSubsystem);
+	FOnlineSharingFacebook(FOnlineSubsystemFacebook* InSubsystem);
 	
 	/**
 	 * Default destructor
 	 */
 	virtual ~FOnlineSharingFacebook();
 
-
 private:
-	
+
 	/**
-	 * Setup the permission categories with the relevant Facebook entries
+	 * Delegate fired when current permissions have been updated after a read permissions request
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true permission query was successful
+	 * @param Permissions set of all known permissions
 	 */
-	void SetupPermissionMaps();
+	void OnRequestCurrentReadPermissionsComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FSharingPermission>& Permissions);
 
-	// The read permissions map which sets up the facebook permissions in their correct category
-	typedef TMap< EOnlineSharingReadCategory::Type, NSArray* > FReadPermissionsMap;
-	FReadPermissionsMap ReadPermissionsMap;
+	/**
+	 * Delegate fired when current permissions have been updated after a publish permissions request
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true permission query was successful
+	 * @param Permissions set of all known permissions
+	 */
+	void OnRequestCurrentPublishPermissionsComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FSharingPermission>& Permissions);
 
-	// The publish permissions map which sets up the facebook permissions in their correct category
-	typedef TMap< EOnlineSharingPublishingCategory::Type, NSArray* > FPublishPermissionsMap;
-	FPublishPermissionsMap PublishPermissionsMap;
-
-
-private:
-
-	/** Reference to the main Facebook identity */
-	IOnlineIdentityPtr IdentityInterface;
 };
 
 

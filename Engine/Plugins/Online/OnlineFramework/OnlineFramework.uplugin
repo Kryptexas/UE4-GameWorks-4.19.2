@@ -32,5 +32,11 @@
             "Name": "Rejoin",
             "Type": "Runtime"
         }
+    ],
+    "LocalizationTargets": [
+        {
+            "Name": "OnlineFramework",
+            "LoadingPolicy": "Always"
+        }
     ]
 }

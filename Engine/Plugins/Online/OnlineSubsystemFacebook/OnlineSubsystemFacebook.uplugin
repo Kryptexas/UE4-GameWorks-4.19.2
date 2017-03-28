@@ -19,8 +19,15 @@
 			"WhitelistPlatforms" :
 			[
 				"IOS",
+				"Android",
 				"Win64","Win32"
 			]
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemFacebook",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

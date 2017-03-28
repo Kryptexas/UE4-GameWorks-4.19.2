@@ -65,7 +65,7 @@ bool FOnlineStoreGameCircle::QueryForAvailablePurchases(const TArray<FString>& P
 }
 
 
-extern "C" void Java_com_epicgames_ue4_AmazonStoreHelper_nativeQueryComplete(JNIEnv* jenv, jobject thiz, jint responseStatus, jobjectArray productIDs, jobjectArray titles, jobjectArray descriptions, jobjectArray prices)
+JNI_METHOD void Java_com_epicgames_ue4_AmazonStoreHelper_nativeQueryComplete(JNIEnv* jenv, jobject thiz, jint responseStatus, jobjectArray productIDs, jobjectArray titles, jobjectArray descriptions, jobjectArray prices)
 {
 	TArray<FInAppPurchaseProductInfo> ProvidedProductInformation;
 	EInAppPurchaseState::Type Result = GetInAppPurchaseStateFromAmazonResponseStatus(jenv, responseStatus);
@@ -198,7 +198,7 @@ bool FOnlineStoreGameCircle::BeginPurchase(const FInAppPurchaseProductRequest& P
 }
 
 
-extern "C" void Java_com_epicgames_ue4_AmazonStoreHelper_nativePurchaseComplete(JNIEnv* jenv, jobject thiz, jint responseStatus, jstring productId, jstring receiptData, jstring signature)
+JNI_METHOD void Java_com_epicgames_ue4_AmazonStoreHelper_nativePurchaseComplete(JNIEnv* jenv, jobject thiz, jint responseStatus, jstring productId, jstring receiptData, jstring signature)
 {
 	FString ProductId, ReceiptData, Signature;
 	EInAppPurchaseState::Type Result = GetInAppPurchaseStateFromAmazonResponseStatus(jenv, responseStatus);
@@ -288,7 +288,7 @@ bool FOnlineStoreGameCircle::RestorePurchases(const TArray<FInAppPurchaseProduct
 	return bSentAQueryRequest;
 }
 
-extern "C" void Java_com_epicgames_ue4_AmazonStoreHelper_nativeRestorePurchasesComplete(JNIEnv* jenv, jobject thiz, jint responseStatus, jobjectArray ProductIDs, jobjectArray ReceiptsData)
+JNI_METHOD void Java_com_epicgames_ue4_AmazonStoreHelper_nativeRestorePurchasesComplete(JNIEnv* jenv, jobject thiz, jint responseStatus, jobjectArray ProductIDs, jobjectArray ReceiptsData)
 {
 	TArray<FInAppPurchaseRestoreInfo> RestoredPurchaseInfo;
 	EInAppPurchaseState::Type Result = GetInAppPurchaseStateFromAmazonResponseStatus(jenv, responseStatus);

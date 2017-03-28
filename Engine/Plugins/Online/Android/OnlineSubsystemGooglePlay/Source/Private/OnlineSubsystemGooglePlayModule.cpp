@@ -37,7 +37,7 @@ public:
 	{
 		if (!GooglePlaySingleton.IsValid())
 		{
-			GooglePlaySingleton = MakeShareable(new FOnlineSubsystemGooglePlay());
+			GooglePlaySingleton = MakeShareable(new FOnlineSubsystemGooglePlay(InstanceName));
 			if (GooglePlaySingleton->IsEnabled())
 			{
 				if(!GooglePlaySingleton->Init())

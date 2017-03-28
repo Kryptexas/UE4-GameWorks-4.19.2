@@ -208,7 +208,7 @@ bool FOnlineSubsystemNull::Shutdown()
 		VoiceInterface->Shutdown();
 	}
 	
- 	#define DESTRUCT_INTERFACE(Interface) \
+#define DESTRUCT_INTERFACE(Interface) \
  	if (Interface.IsValid()) \
  	{ \
  		ensure(Interface.IsUnique()); \
@@ -222,7 +222,7 @@ bool FOnlineSubsystemNull::Shutdown()
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
  	DESTRUCT_INTERFACE(SessionInterface);
 	
-	#undef DESTRUCT_INTERFACE
+#undef DESTRUCT_INTERFACE
 	
 	return true;
 }

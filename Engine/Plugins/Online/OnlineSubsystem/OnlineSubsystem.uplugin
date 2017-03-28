@@ -17,5 +17,11 @@
             "Type": "Runtime",
             "LoadingPhase" : "PostConfigInit"
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystem",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

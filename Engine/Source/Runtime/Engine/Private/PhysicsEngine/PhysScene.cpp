@@ -211,6 +211,7 @@ public:
 			}
 		}
 
+#if STATS
 		if (ensureMsgf(NumStats < sizeof(Stats) / sizeof(Stats[0]), TEXT("Too many different physx task stats. This will make the stat search slow")))
 		{
 			FScopeLock ScopeLock(&CS);
@@ -232,7 +233,7 @@ public:
 			++NumStats;	//make sure to do this at the end in case another thread is currently iterating
 			return NewStat.Stat;
 		}
-		
+#endif
 #endif // STATS
 		return TStatId();
 	}

@@ -37,7 +37,7 @@ public:
 	{
 		if (!IOSSingleton.IsValid())
 		{
-			IOSSingleton = MakeShareable(new FOnlineSubsystemIOS());
+			IOSSingleton = MakeShareable(new FOnlineSubsystemIOS(InstanceName));
 			if (IOSSingleton->IsEnabled())
 			{
 				if(!IOSSingleton->Init())

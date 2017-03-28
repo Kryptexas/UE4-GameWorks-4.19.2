@@ -5,7 +5,7 @@ using UnrealBuildTool;
 public class GameCircleRuntimeSettings : ModuleRules
 {
 	public GameCircleRuntimeSettings(ReadOnlyTargetRules Target) : base(Target)
-	{
+    {
 		BinariesSubFolder = "Android";
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 

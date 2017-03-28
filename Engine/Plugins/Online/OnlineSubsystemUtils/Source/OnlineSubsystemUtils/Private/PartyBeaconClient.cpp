@@ -185,20 +185,27 @@ bool APartyBeaconClient::RequestReservationUpdate(const FString& ConnectInfoStr,
 {
 	bool bWasStarted = false;
 
-	EBeaconConnectionState MyConnectionState = GetConnectionState();
-	if (MyConnectionState != EBeaconConnectionState::Open)
+	if (!ConnectInfoStr.IsEmpty() && !InSessionId.IsEmpty())
 	{
-		// create a new pending reservation for these players in the same way as a new reservation request
-		bWasStarted = RequestReservation(ConnectInfoStr, InSessionId, RequestingPartyLeader, PlayersToAdd);
-		if (bWasStarted)
+		EBeaconConnectionState MyConnectionState = GetConnectionState();
+		if (MyConnectionState != EBeaconConnectionState::Open)
 		{
-			// Treat this reservation as an update to an existing reservation on the host
-			RequestType = EClientRequestType::ReservationUpdate;
+			// create a new pending reservation for these players in the same way as a new reservation request
+			bWasStarted = RequestReservation(ConnectInfoStr, InSessionId, RequestingPartyLeader, PlayersToAdd);
+			if (bWasStarted)
+			{
+				// Treat this reservation as an update to an existing reservation on the host
+				RequestType = EClientRequestType::ReservationUpdate;
+			}
+		}
+		else if (MyConnectionState == EBeaconConnectionState::Open)
+		{
+			bWasStarted = RequestReservationUpdate(RequestingPartyLeader, PlayersToAdd);
 		}
 	}
-	else if (MyConnectionState == EBeaconConnectionState::Open)
+	else
 	{
-		RequestReservationUpdate(RequestingPartyLeader, PlayersToAdd);
+		UE_LOG(LogBeacon, Warning, TEXT("APartyBeaconClient::RequestReservationUpdate: Missing ConnectInfoStr ('%s') or SessionId ('%s')."), *ConnectInfoStr, *InSessionId);
 	}
 
 	return bWasStarted;

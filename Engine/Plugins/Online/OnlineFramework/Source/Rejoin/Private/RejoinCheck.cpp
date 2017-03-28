@@ -2,9 +2,9 @@
 
 #include "RejoinCheck.h"
 #include "Engine/GameInstance.h"
+#include "OnlineSubsystemUtils.h"
 #include "Engine/LocalPlayer.h"
 #include "TimerManager.h"
-#include "OnlineSubsystemUtils.h"
 
 #define REJOIN_CHECK_TIMER 30.0f
 
@@ -292,12 +292,8 @@ void URejoinCheck::TravelToSession()
 	// TODO: What should we do if this fails? Will need to destroy session, etc.
 	UGameInstance* GameInstance = GetGameInstance<UGameInstance>();
 	check(GameInstance);
-#ifdef ADDED_CLIENTTRAVELTOSESSION
-	bool bResult = GameInstance->ClientTravelToSession(0, GameSessionName);
-#else
-	bool bResult = false;
-#endif
 
+	bool bResult = GameInstance->ClientTravelToSession(0, GameSessionName);
 	if (bResult)
 	{
 		// Record the result of the attempt to rejoin

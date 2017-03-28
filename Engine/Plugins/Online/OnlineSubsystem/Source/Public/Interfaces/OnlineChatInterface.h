@@ -26,6 +26,7 @@ public:
 	virtual bool IsJoined() const = 0;
 	virtual const class FChatRoomConfig& GetRoomConfig() const = 0;
 	virtual FString ToDebugString() const = 0;
+	virtual void SetChatInfo(const TSharedRef<class FJsonObject>& JsonInfo) = 0;
 };
 
 /**

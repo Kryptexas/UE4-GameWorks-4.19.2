@@ -1,46 +1,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 // Module includes
 #include "OnlineUserFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
+#include "OnlineIdentityFacebook.h"
 
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 
-// FOnlineUserInfoFacebook
-
-TSharedRef<const FUniqueNetId> FOnlineUserInfoFacebook::GetUserId() const
-{
-	return UserId;
-}
-
-FString FOnlineUserInfoFacebook::GetRealName() const
-{
-	FString Result;
-	GetAccountData(TEXT("name"), Result);
-	return Result;
-}
-
-FString FOnlineUserInfoFacebook::GetDisplayName(const FString& Platform) const
-{
-	FString Result;
-	GetAccountData(TEXT("username"), Result);
-	return Result;
-}
-
-bool FOnlineUserInfoFacebook::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
-{
-	return GetAccountData(AttrName, OutAttrValue);
-}
-
 // FOnlineUserFacebook
 
-FOnlineUserFacebook::FOnlineUserFacebook(class FOnlineSubsystemFacebook* InSubsystem)
+FOnlineUserFacebook::FOnlineUserFacebook(FOnlineSubsystemFacebook* InSubsystem)
+	: FOnlineUserFacebookCommon(InSubsystem)
 {
-	// Get our handle to the identity interface
-	IdentityInterface = (FOnlineIdentityFacebook*)InSubsystem->GetIdentityInterface().Get();
 }
-
 
 FOnlineUserFacebook::~FOnlineUserFacebook()
 {
@@ -51,7 +23,8 @@ bool FOnlineUserFacebook::QueryUserInfo(int32 LocalUserNum, const TArray<TShared
 {
 	bool bTriggeredRequest = false;
 	
-	if(UserIds.Num() > 0 && IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
+	IOnlineIdentityPtr IdentityInt = Subsystem->GetIdentityInterface();
+	if(UserIds.Num() > 0 && IdentityInt->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 	{
 		bTriggeredRequest = true;
 		CachedUsers.Empty();
@@ -176,53 +149,3 @@ bool FOnlineUserFacebook::QueryUserInfo(int32 LocalUserNum, const TArray<TShared
 	return bTriggeredRequest;
 }
 
-bool FOnlineUserFacebook::GetAllUserInfo(int32 LocalUserNum, TArray< TSharedRef<class FOnlineUser> >& OutUsers)
-{
-	UE_LOG(LogOnline, Verbose, TEXT("FOnlineUserFacebook::GetAllUserInfo()"));
-
-	for (int32 Idx=0; Idx < CachedUsers.Num(); Idx++)
-	{
-		OutUsers.Add(CachedUsers[Idx]);
-	}
-	return true;
-}
-
-TSharedPtr<FOnlineUser> FOnlineUserFacebook::GetUserInfo(int32 LocalUserNum, const class FUniqueNetId& UserId)
-{
-	TSharedPtr<FOnlineUser> Result;
-
-	UE_LOG(LogOnline, Verbose, TEXT("FOnlineUserFacebook::GetUserInfo()"));
-
-	for (int32 Idx=0; Idx < CachedUsers.Num(); Idx++)
-	{
-		if (*(CachedUsers[Idx]->GetUserId()) == UserId)
-		{
-			Result = CachedUsers[Idx];
-			break;
-		}
-	}
-	return Result;
-}
-
-bool FOnlineUserFacebook::QueryUserIdMapping(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FOnQueryUserMappingComplete& Delegate)
-{
-	Delegate.ExecuteIfBound(false, UserId, DisplayNameOrEmail, FUniqueNetIdString(), TEXT("not implemented"));
-	return false;
-}
-
-bool FOnlineUserFacebook::QueryExternalIdMappings(const FUniqueNetId& LocalUserId, const FExternalIdQueryOptions& QueryOptions, const TArray<FString>& ExternalIds, const FOnQueryExternalIdMappingsComplete& Delegate)
-{
-	Delegate.ExecuteIfBound(false, LocalUserId, QueryOptions, ExternalIds, TEXT("not implemented"));
-	return false;
-}
-
-void FOnlineUserFacebook::GetExternalIdMappings(const FExternalIdQueryOptions& QueryOptions, const TArray<FString>& ExternalIds, TArray<TSharedPtr<const FUniqueNetId>>& OutIds)
-{
-	// Not implemented for PS4 - return an array full of empty values
-	OutIds.SetNum(ExternalIds.Num());
-}
-
-TSharedPtr<const FUniqueNetId> FOnlineUserFacebook::GetExternalIdMapping(const FExternalIdQueryOptions& QueryOptions, const FString& ExternalId)
-{
-	return TSharedPtr<FUniqueNetId>();
-}

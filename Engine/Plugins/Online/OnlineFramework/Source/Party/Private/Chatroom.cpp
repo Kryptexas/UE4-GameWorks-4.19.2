@@ -39,7 +39,7 @@ void UChatroom::UnregisterDelegates()
 	}
 }
 
-void UChatroom::CreateOrJoinChatRoom(FUniqueNetIdRepl LocalUserId, FChatRoomId ChatRoomId, FOnChatRoomCreatedOrJoined CompletionDelegate, FString Password)
+void UChatroom::CreateOrJoinChatRoom(FUniqueNetIdRepl LocalUserId, FChatRoomId ChatRoomId, FOnChatRoomCreatedOrJoined CompletionDelegate, FChatRoomConfig RoomConfig)
 {
 	bool bShouldFireDelegate = false;
 	if (!ChatRoomId.IsEmpty())
@@ -64,15 +64,11 @@ void UChatroom::CreateOrJoinChatRoom(FUniqueNetIdRepl LocalUserId, FChatRoomId C
 						}
 
 						FOnChatRoomJoinPublicDelegate ChatRoomDelegate;
-						ChatRoomDelegate.BindUObject(this, &ThisClass::OnChatRoomCreatedOrJoined, CompletionDelegate, Password);
-
-						FChatRoomConfig ChatRoomConfig;
-						ChatRoomConfig.bPasswordRequired = !Password.IsEmpty();
-						ChatRoomConfig.Password = Password;
+						ChatRoomDelegate.BindUObject(this, &ThisClass::OnChatRoomCreatedOrJoined, CompletionDelegate, RoomConfig);
 
 						// Try to create the room first (it will create if it doesn't exist, or just join if it does)
 						ChatRoomCreatedDelegateHandle = ChatInt->AddOnChatRoomCreatedDelegate_Handle(ChatRoomDelegate);
-						ChatInt->CreateRoom(*LocalUserId, ChatRoomId, GetLocalUserNickName(World, *LocalUserId), ChatRoomConfig);
+						ChatInt->CreateRoom(*LocalUserId, ChatRoomId, GetLocalUserNickName(World, *LocalUserId), RoomConfig);
 					}
 					else
 					{
@@ -111,7 +107,7 @@ void UChatroom::CreateOrJoinChatRoom(FUniqueNetIdRepl LocalUserId, FChatRoomId C
 	}
 }
 
-void UChatroom::OnChatRoomCreatedOrJoined(const FUniqueNetId& LocalUserId, const FChatRoomId& RoomId, bool bWasSuccessful, const FString& Error, FOnChatRoomCreatedOrJoined CompletionDelegate, FString Password)
+void UChatroom::OnChatRoomCreatedOrJoined(const FUniqueNetId& LocalUserId, const FChatRoomId& RoomId, bool bWasSuccessful, const FString& Error, FOnChatRoomCreatedOrJoined CompletionDelegate, FChatRoomConfig RoomConfig)
 {
 	if (CurrentChatRoomId == RoomId)
 	{
@@ -146,10 +142,10 @@ void UChatroom::OnChatRoomCreatedOrJoined(const FUniqueNetId& LocalUserId, const
 
 					FUniqueNetIdRepl StrongUserId(LocalUserId.AsShared());
 
-					auto RetryDelegate = FTimerDelegate::CreateLambda([this, StrongUserId, RoomId, CompletionDelegate, Password]()
+					auto RetryDelegate = FTimerDelegate::CreateLambda([this, StrongUserId, RoomId, CompletionDelegate, RoomConfig] ()
 					{
 						// Attempt to rejoin room shortly
-						CreateOrJoinChatRoom(StrongUserId, RoomId, CompletionDelegate, Password);
+						CreateOrJoinChatRoom(StrongUserId, RoomId, CompletionDelegate, RoomConfig);
 					});
 
 					GetTimerManager().SetTimer(ChatRoomRetryTimerHandle, RetryDelegate, .3f, false);

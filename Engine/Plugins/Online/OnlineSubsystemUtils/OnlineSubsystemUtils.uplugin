@@ -22,5 +22,11 @@
             "Type": "Developer",
             "LoadingPhase": "PostConfigInit"
         }
+    ],
+    "LocalizationTargets": [
+        {
+            "Name": "OnlineSubsystemUtils",
+            "LoadingPolicy": "Always"
+        }
     ]
 }

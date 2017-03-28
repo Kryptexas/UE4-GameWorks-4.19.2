@@ -42,8 +42,10 @@ protected:
 
 	/** Hidden on purpose */
 	FOnlineSubsystemImpl();
-	FOnlineSubsystemImpl(FName InInstanceName);
+	FOnlineSubsystemImpl(FName InSubsystemName, FName InInstanceName);
 
+	/** Name of the subsystem @see OnlineSubsystemNames.h */
+	FName SubsystemName;
 	/** Instance name (disambiguates PIE instances for example) */
 	FName InstanceName;
 
@@ -91,6 +93,8 @@ public:
 	virtual EOnlineEnvironment::Type GetOnlineEnvironment() const override { return EOnlineEnvironment::Unknown; }
 	virtual IMessageSanitizerPtr GetMessageSanitizer(int32 LocalUserNum, FString& OutAuthTypeToExclude) const override;
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+	virtual FName GetSubsystemName() const override { return SubsystemName; }
+	virtual FName GetInstanceName() const override { return InstanceName; }
 
 	/**
 	 * Tick function
@@ -101,9 +105,13 @@ public:
 	virtual bool Tick(float DeltaTime);
 
 	/**
-	 * @return the name of the online subsystem instance
+	 * Modify a response string so that it can be logged cleanly
+	 *
+	 * @param ResponseStr - The JSONObject string we want to sanitize
+	 * @param RedactFields - The fields we want to specifically omit (optional, only supports EJson::String), if nothing specified everything is redacted
+	 * @return the modified version of the response string
 	 */
-	virtual FName GetInstanceName() const override { return InstanceName; }
+	FString FilterResponseStr(const FString& ResponseStr, const TArray<FString>& RedactFields = TArray<FString>());
 
 	/**
 	 * Queue a delegate to be executed on the next tick
@@ -116,7 +124,7 @@ public:
 	template<typename LAMBDA_TYPE>
 	FORCEINLINE void ExecuteNextTick(LAMBDA_TYPE&& Callback)
 	{
-		ExecuteDelegateNextTick(FNextTickDelegate::CreateLambda(Callback));
+		ExecuteDelegateNextTick(FNextTickDelegate::CreateLambda(Forward<LAMBDA_TYPE>(Callback)));
 	}
 
 	/** Name given to default OSS instances (disambiguates for PIE) */

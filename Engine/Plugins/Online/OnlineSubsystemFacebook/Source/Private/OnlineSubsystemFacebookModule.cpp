@@ -3,8 +3,6 @@
 #include "OnlineSubsystemFacebookModule.h"
 #include "OnlineSubsystemFacebookPrivate.h"
 
-// FOnlineSubsystemFacebookModule
-
 IMPLEMENT_MODULE(FOnlineSubsystemFacebookModule, OnlineSubsystemFacebook);
 
 /**
@@ -19,7 +17,7 @@ public:
 
 	virtual IOnlineSubsystemPtr CreateSubsystem(FName InstanceName)
 	{
-		FOnlineSubsystemFacebookPtr OnlineSub = MakeShareable(new FOnlineSubsystemFacebook());
+		FOnlineSubsystemFacebookPtr OnlineSub = MakeShared<FOnlineSubsystemFacebook, ESPMode::ThreadSafe>(InstanceName);
 		if (OnlineSub->IsEnabled())
 		{
 			if(!OnlineSub->Init())

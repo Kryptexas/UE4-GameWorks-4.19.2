@@ -197,7 +197,7 @@ void UQosRegionManager::OnQosEvaluationComplete(EQosCompletionResult Result, con
 
 	LastCheckTimestamp = FDateTime::UtcNow();
 
-	if (!SelectedRegionId.IsEmpty() && SelectedRegionId == TEXT("NONE"))
+	if (!SelectedRegionId.IsEmpty() && SelectedRegionId == NO_REGION)
 	{
 		// Put the dev region back into the list and select it
 		ForceSelectRegion(SelectedRegionId);
@@ -274,7 +274,7 @@ void UQosRegionManager::ForceSelectRegion(const FString& InRegionId)
 		RegionInfo.Region.bEnabled = true;
 		RegionInfo.Region.bVisible = true;
 		RegionInfo.Region.bBeta = false;
-		RegionInfo.Result = EQosCompletionResult::Success;
+		RegionInfo.Result = EQosRegionResult::Success;
 		RegionInfo.AvgPingMs = 0;
 		RegionOptions.Add(RegionInfo);
 		verify(SetSelectedRegion(RegionId));
@@ -293,7 +293,8 @@ void UQosRegionManager::TrySetDefaultRegion()
 			FString BestRegionId;
 			for (const FQosRegionInfo& Region : RegionOptions)
 			{
-				if (Region.IsUsable() && (Region.Result == EQosCompletionResult::Success) &&
+				bool bValidResults = (Region.Result == EQosRegionResult::Success) || (Region.Result == EQosRegionResult::Incomplete);
+				if (Region.IsUsable() && bValidResults &&
 					!Region.Region.bBeta && Region.AvgPingMs < BestPing)
 				{
 					BestPing = Region.AvgPingMs;
@@ -341,6 +342,35 @@ bool UQosRegionManager::SetSelectedRegion(const FString& InRegionId)
 	return false;
 }
 
+bool UQosRegionManager::AllRegionsFound() const
+{
+	int32 NumRegions = 0;
+	for (const FQosDatacenterInfo& Datacenter : Datacenters)
+	{
+		if (Datacenter.IsPingable())
+		{
+			++NumRegions;
+		}
+	}
+
+	if (NumRegions == RegionOptions.Num())
+	{
+		for (const FQosRegionInfo& Region : RegionOptions)
+		{
+			// All regions need to have a good amount of data to be consider viable
+			bool bGoodPercentage = (((float)Region.NumResponses / (float)NumTestsPerRegion) >= 0.5f);
+			if (!bGoodPercentage)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
 void UQosRegionManager::DumpRegionStats()
 {
 	UE_LOG(LogQos, Display, TEXT("Region Info:"));
@@ -350,6 +380,7 @@ void UQosRegionManager::DumpRegionStats()
 		UE_LOG(LogQos, Display, TEXT("Forced: %s "), *ForceRegionId);
 	}
 	
+	UE_LOG(LogQos, Display, TEXT("Overall Result: %s"), ToString(QosEvalResult));
 	for (const FQosRegionInfo& Region : RegionOptions)
 	{
 		UE_LOG(LogQos, Display, TEXT("Region: %s [%s] Ping: %d"), *Region.Region.DisplayName.ToString(), *Region.Region.RegionId, Region.AvgPingMs);

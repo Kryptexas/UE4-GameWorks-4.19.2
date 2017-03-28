@@ -3,8 +3,6 @@
 #include "OnlineSubsystemGameCircleModule.h"
 #include "OnlineSubsystemGameCircle.h"
 
-#define GAMECIRCLE_SUBSYSTEM FName(TEXT("GAMECIRCLE"))
-
 IMPLEMENT_MODULE( FOnlineSubsystemGameCircleModule, OnlineSubsystemGameCircle );
 
 /**
@@ -39,7 +37,7 @@ public:
 	{
 		if (!GameCircleSingleton.IsValid())
 		{
-			GameCircleSingleton = MakeShareable(new FOnlineSubsystemGameCircle());
+			GameCircleSingleton = MakeShareable(new FOnlineSubsystemGameCircle(InInstanceName));
 			if (GameCircleSingleton->IsEnabled())
 			{
 				if(!GameCircleSingleton->Init())

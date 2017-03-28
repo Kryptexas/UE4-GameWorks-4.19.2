@@ -22,5 +22,11 @@
                 "Android",
 			]
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemOculus",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

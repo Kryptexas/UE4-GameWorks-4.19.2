@@ -43,14 +43,21 @@ public:
 
 	virtual ~IOnlineSubsystemUtils() {}
 
-	/** @return the proper online subsystem identifier for the real online subsystem */
-	virtual FName GetOnlineIdentifier(const FWorldContext& WorldContext) = 0;
+	/**
+	 * Gets an FName that uniquely identifies an instance of OSS
+	 *
+	 * @param WorldContext the worldcontext associated with a particular subsystem
+	 * @param Subsystem the name of the subsystem
+	 * @return an FName of format Subsystem:Context_Id in PlayInEditor or Subsystem everywhere else
+	 */
+	virtual FName GetOnlineIdentifier(const FWorldContext& WorldContext, const FName Subsystem = NAME_None) = 0;
+
 	/**
 	 * Gets an FName that uniquely identifies an instance of OSS
 	 *
 	 * @param World the world to use for context
 	 * @param Subsystem the name of the subsystem
-	 * @return an FName of format Subsystem:Context_Id
+	 * @return an FName of format Subsystem:Context_Id in PlayInEditor or Subsystem everywhere else
 	 */
 	virtual FName GetOnlineIdentifier(UWorld* World, const FName Subsystem = NAME_None) = 0;
 
@@ -82,6 +89,19 @@ static IOnline##InterfaceType##Ptr Get##InterfaceType##Interface(class UWorld* W
 
 namespace Online
 {
+	/** @return the single instance of the online subsystem utils interface */
+	static IOnlineSubsystemUtils* GetUtils()
+	{
+		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystemUtils");
+		FOnlineSubsystemUtilsModule* OSSUtilsModule = FModuleManager::GetModulePtr<FOnlineSubsystemUtilsModule>(OnlineSubsystemModuleName);
+		if (OSSUtilsModule != nullptr)
+		{
+			return OSSUtilsModule->GetUtils();
+		}
+
+		return nullptr;
+	}
+
 	/** 
 	 * Get the online subsystem for a given service
 	 *
@@ -96,11 +116,8 @@ namespace Online
 		FName Identifier = SubsystemName; 
 		if (World != NULL)
 		{
-			FWorldContext& CurrentContext = GEngine->GetWorldContextFromWorldChecked(World);
-			if (CurrentContext.WorldType == EWorldType::PIE)
-			{ 
-				Identifier = FName(*FString::Printf(TEXT("%s:%s"), SubsystemName != NAME_None ? *SubsystemName.ToString() : TEXT(""), *CurrentContext.ContextHandle.ToString()));
-			} 
+			IOnlineSubsystemUtils* Utils = GetUtils();
+			Identifier = Utils->GetOnlineIdentifier(World, SubsystemName);
 		}
 
 		return IOnlineSubsystem::Get(Identifier); 
@@ -134,19 +151,6 @@ namespace Online
 #else
 		return IOnlineSubsystem::IsLoaded(SubsystemName);
 #endif
-	}
-
-	/** @return the single instance of the online subsystem utils interface */
-	static IOnlineSubsystemUtils* GetUtils()
-	{
-		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystemUtils");
-		FOnlineSubsystemUtilsModule* OSSUtilsModule = FModuleManager::GetModulePtr<FOnlineSubsystemUtilsModule>(OnlineSubsystemModuleName);
-		if (OSSUtilsModule != nullptr)
-		{
-			return OSSUtilsModule->GetUtils();
-		}
-
-		return nullptr;
 	}
 
 	/** Reimplement all the interfaces of Online.h with support for UWorld accessors */

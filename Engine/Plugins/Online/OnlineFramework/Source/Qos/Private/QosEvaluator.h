@@ -300,6 +300,27 @@ private:
 	void DestroyClientBeacons();
 };
 
+inline const TCHAR* ToString(EQosRegionResult Result)
+{
+	switch (Result)
+	{
+		case EQosRegionResult::Invalid:
+		{
+			return TEXT("Invalid");
+		}
+		case EQosRegionResult::Success:
+		{
+			return TEXT("Success");
+		}
+		case EQosRegionResult::Incomplete:
+		{
+			return TEXT("Incomplete");
+		}
+	}
+
+	return TEXT("");
+}
+
 inline const TCHAR* ToString(EQosCompletionResult Result)
 {
 	switch (Result)

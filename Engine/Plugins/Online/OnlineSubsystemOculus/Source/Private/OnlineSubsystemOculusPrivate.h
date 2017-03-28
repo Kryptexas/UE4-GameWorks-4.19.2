@@ -13,8 +13,6 @@
 
 #define INVALID_INDEX -1
 
-/** FName declaration of Oculus subsystem */
-#define OCULUS_SUBSYSTEM FName(TEXT("Oculus"))
 /** URL suffix when using Oculus NetDriver */
 #define OCULUS_URL_SUFFIX TEXT(".oculus")
 

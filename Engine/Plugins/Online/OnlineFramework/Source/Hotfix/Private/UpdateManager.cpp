@@ -27,7 +27,15 @@ struct FLoadingScreenConfig
 {
 public:
 	// Do we check for hotfixes in this build?
-	static bool CheckForHotfixes() { return true; }
+	static bool CheckForHotfixes() 
+	{ 
+#if UE_BUILD_SHIPPING
+		return true;
+#else
+		static bool bCheckHotfixes = !FParse::Param(FCommandLine::Get(), TEXT("SkipHotfixCheck"));
+		return bCheckHotfixes;
+#endif
+	}
 
 	// Do we block waiting for pending async loads to complete during the initial loading screen state?
 	static bool ShouldBlockOnInitialLoad() { return (FPlatformProperties::IsServerOnly() || true); }

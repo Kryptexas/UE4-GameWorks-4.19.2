@@ -33,5 +33,11 @@
 				"Android"
 			]
 		}
-	]
+	],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemGameCircle",
+			"LoadingPolicy": "Always"
+		}
+	]	
 }

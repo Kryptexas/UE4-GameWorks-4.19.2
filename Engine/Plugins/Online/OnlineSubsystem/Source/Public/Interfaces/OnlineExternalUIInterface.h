@@ -6,6 +6,7 @@
 #include "UObject/CoreOnline.h"
 #include "OnlineDelegateMacros.h"
 #include "Interfaces/OnlineMessageInterface.h"
+#include "OnlineError.h"
 
 /**
  * Delegate called when the external UI is opened or closed
@@ -15,13 +16,63 @@
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnExternalUIChange, bool);
 typedef FOnExternalUIChange::FDelegate FOnExternalUIChangeDelegate;
 
+
+/**
+ * A single login flow result
+ */
+struct FLoginFlowResult
+{
+	/** Token returned by the login flow (platform dependent) */
+	FString Token;
+	/** Errors generated during login flow */
+	FOnlineError Error;
+
+	/** @return true if this result is usable for further login steps */
+	bool IsValid() const { return !Token.IsEmpty(); }
+
+	/** @return true if this result has reached a finished state */
+	bool IsComplete() const
+	{ 
+		const bool bSuccess = Error.bSucceeded && !Token.IsEmpty();
+		const bool bError = !Error.bSucceeded && Error.NumericErrorCode;
+		return bSuccess || bError;
+	}
+};
+
+/**
+ * Delegate executed with a login flow has completed
+ *
+ * @Param Result the result of the login process
+ */
+DECLARE_DELEGATE_OneParam(FOnLoginFlowComplete, const FLoginFlowResult& /*Result*/);
+
+/**
+ * Delegate executed when a redirect URL request has been received by the internal browser window
+ *
+ * @param URL location of the next page
+ *
+ * @return the result of processing this URL.  Result.IsComplete() should return true if the login flow is expected to terminate 
+ */
+DECLARE_DELEGATE_RetVal_OneParam(FLoginFlowResult, FOnLoginRedirectURL, const FString& /*URL*/);
+
+/**
+ * Delegate executed by the requesting system when a supporting login flow browser window is asked to handle the request
+ *
+ * @param RequestedURL destination to fulfill the login request
+ * @param OnLoginRedirect delegate to fire when URL redirects are detected
+ * @param OnLoginFlowComplete delegate to fire when the login flow code has reached flow conclusion
+ * @param bOutShouldContinueLogin true if the login flow code can proceed with the information given, false the caller should handle login failure
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnLoginFlowUIRequired, const FString& /*RequestedURL*/, const FOnLoginRedirectURL& /*OnLoginRedirect*/, const FOnLoginFlowComplete& /*OnLoginFlowComplete*/, bool& /*bOutShouldContinueLogin*/);
+typedef FOnLoginFlowUIRequired::FDelegate FOnLoginFlowUIRequiredDelegate;
+
 /**
  * Delegate executed when the external login UI has been closed.
  *
  * @param UniqueId The unique id of the user who signed in. Null if no user signed in.
  * @param ControllerIndex The controller index of the controller that activated the login UI.
  */
-DECLARE_DELEGATE_TwoParams(FOnLoginUIClosedDelegate, TSharedPtr<const FUniqueNetId>, const int);
+DECLARE_DELEGATE_TwoParams(FOnLoginUIClosedDelegate, TSharedPtr<const FUniqueNetId> /*UniqueId*/, const int /*ControllerIndex*/);
 
 /**
  * Delegate executed when the web url UI has been closed
@@ -33,7 +84,7 @@ DECLARE_DELEGATE_OneParam(FOnShowWebUrlClosedDelegate, const FString& /*FinalUrl
 /**
  * Delegate executed when the store UI has been closed
  *
- * @param bPurchased true if a purchase occured via the store ui
+ * @param bPurchased true if a purchase occurred via the store ui
  */
 DECLARE_DELEGATE_OneParam(FOnShowStoreUIClosedDelegate, bool /*bPurchased*/);
 
@@ -170,7 +221,7 @@ public:
 	 * @param bShowOnlineOnly whether to only display online enabled profiles or not
 	 * @param bShowSkipButton On platforms that support it, display the "Skip" button
 	 * @param Delegate The delegate to execute when the user closes the login UI.
- 	 *
+	 *
 	 * @return true if it was able to show the UI, false if it failed
 	 */
 	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, bool bShowSkipButton, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate()) = 0;
@@ -292,6 +343,11 @@ public:
 	 * @param bIsOpening state of the external UI
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnExternalUIChange, bool);
+
+	/**
+	 * Delegate called when the online subsystem requires an external UI to handle login flow
+	 */
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnLoginFlowUIRequired, const FString& /*RequestedURL*/, const FOnLoginRedirectURL& /*OnRedirectURL*/, const FOnLoginFlowComplete& /*OnLoginFlowComplete*/, bool& /*bOutShouldContinueLogin*/);
 };
 
 typedef TSharedPtr<IOnlineExternalUI, ESPMode::ThreadSafe> IOnlineExternalUIPtr;

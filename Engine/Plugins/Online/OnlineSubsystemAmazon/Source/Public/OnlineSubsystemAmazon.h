@@ -16,7 +16,6 @@ typedef TSharedPtr<class FOnlineIdentityAmazon, ESPMode::ThreadSafe> FOnlineIden
  */
 class ONLINESUBSYSTEMAMAZON_API FOnlineSubsystemAmazon :
 	public FOnlineSubsystemImpl
-
 {
 	class FOnlineFactoryAmazon* AmazonFactory;
 
@@ -30,6 +29,7 @@ PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
 	FOnlineSubsystemAmazon();
+	FOnlineSubsystemAmazon(FName InInstanceName);
 
 public:
 	// IOnlineSubsystem

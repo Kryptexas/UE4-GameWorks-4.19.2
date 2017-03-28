@@ -1,158 +1,208 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 // Module includes
 #include "OnlineIdentityFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
+#include "OnlineSharingInterface.h"
 
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 #import <FBSDKLoginKit/FBSDKLoginKit.h>
+#import "FacebookHelper.h"
 
 // Other UE4 includes
 #include "IOSAppDelegate.h"
-
+#include "IOS/IOSAsyncTask.h"
+#include "Misc/ConfigCacheIni.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FUserOnlineAccountFacebook implementation
 
-
-FUserOnlineAccountFacebook::FUserOnlineAccountFacebook(const FString& InUserId, const FString& InAuthTicket) 
-		: AuthTicket(InAuthTicket)
-		, UserId(new FUniqueNetIdString(InUserId))
+void FUserOnlineAccountFacebook::Parse(const FBSDKAccessToken* AccessToken)
 {
-	GConfig->GetString(TEXT("OnlineSubsystemFacebook.Login"), TEXT("AuthToken"), AuthTicket, GEngineIni);
+	const FString UserIdStr(AccessToken.userID);
+
+	if (UserIdPtr->ToString().IsEmpty() ||
+		UserIdPtr->ToString() != UserIdStr)
+	{
+		UserIdPtr = MakeShared<const FUniqueNetIdString>(UserIdStr);
+	}
+
+	const FString Token(AccessToken.tokenString);
+	AuthTicket = Token;
 }
 
-TSharedRef<const FUniqueNetId> FUserOnlineAccountFacebook::GetUserId() const
+void FUserOnlineAccountFacebook::Parse(const FBSDKProfile* NewProfile)
 {
-	return UserId;
-}
+	ensure(NewProfile != nil);
 
-FString FUserOnlineAccountFacebook::GetRealName() const
-{
-	//@todo samz - implement
-	return FString();
-}
+	const FString NewProfileUserId(NewProfile.userID);
+	if (UserIdPtr->ToString().IsEmpty() ||
+		UserIdPtr->ToString() == NewProfileUserId)
+	{
+		UserIdPtr = MakeShared<const FUniqueNetIdString>(NewProfileUserId);
 
-FString FUserOnlineAccountFacebook::GetDisplayName(const FString& Platform) const
-{
-	//@todo samz - implement
-	return FString();
-}
+		RealName = FString(NewProfile.name);
 
-bool FUserOnlineAccountFacebook::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
-{
-	return false;
-}
+		FirstName = FString(NewProfile.firstName);
+		LastName = FString(NewProfile.lastName);
+		
+		SetAccountData(TEXT(ME_FIELD_ID), UserId);
+		SetAccountData(TEXT(ME_FIELD_NAME), RealName);
+		SetAccountData(TEXT(ME_FIELD_FIRSTNAME), FirstName);
+		SetAccountData(TEXT(ME_FIELD_LASTNAME), LastName);
 
-bool FUserOnlineAccountFacebook::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
-{
-	return false;
-}
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0
+		NSISO8601DateFormatter* dateFormatter = [[NSISO8601DateFormatter alloc] init];
+		dateFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithDashSeparatorInDate | NSISO8601DateFormatWithColonSeparatorInTime | NSISO8601DateFormatWithTimeZone;
+#else
+		// see https://developer.apple.com/library/content/qa/qa1480/_index.html
+		NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
+		NSLocale* enUSPOSIXLocale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+		[dateFormatter setLocale:enUSPOSIXLocale];
+		[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZZZZZ"];
+#endif
 
-FString FUserOnlineAccountFacebook::GetAccessToken() const
-{
-	return AuthTicket;
-}
+		NSString* iso8601String = [dateFormatter stringFromDate: NewProfile.refreshDate];
+		[dateFormatter release];
 
-bool FUserOnlineAccountFacebook::GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const
-{
-	return false;
+		SetAccountData(TEXT("refreshdate"), FString(iso8601String));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FOnlineIdentityFacebook implementation
 
-
-FOnlineIdentityFacebook::FOnlineIdentityFacebook()
-	: UserAccount( MakeShareable(new FUserOnlineAccountFacebook()) )
-	, LoginStatus( ELoginStatus::NotLoggedIn )
+FOnlineIdentityFacebook::FOnlineIdentityFacebook(FOnlineSubsystemFacebook* InSubsystem)
+	: FOnlineIdentityFacebookCommon(InSubsystem)
+	, LoginStatus(ELoginStatus::NotLoggedIn)
 {
-
+	// Setup permission scope fields
+	GConfig->GetArray(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("ScopeFields"), ScopeFields, GEngineIni);
+	// always required fields
+	ScopeFields.AddUnique(TEXT(PERM_PUBLIC_PROFILE));
 }
 
-
-TSharedPtr<FUserOnlineAccount> FOnlineIdentityFacebook::GetUserAccount(const FUniqueNetId& UserId) const
+bool FOnlineIdentityFacebook::Init()
 {
-	return UserAccount;
+	FacebookHelper = [[FFacebookHelper alloc] init];
+	[FacebookHelper retain];
+
+	FOnFacebookTokenChangeDelegate OnFacebookTokenChangeDelegate;
+	OnFacebookTokenChangeDelegate.BindRaw(this, &FOnlineIdentityFacebook::OnFacebookTokenChange);
+	[FacebookHelper AddOnFacebookTokenChange: OnFacebookTokenChangeDelegate];
+
+	FOnFacebookUserIdChangeDelegate OnFacebookUserIdChangeDelegate;
+	OnFacebookUserIdChangeDelegate.BindRaw(this, &FOnlineIdentityFacebook::OnFacebookUserIdChange);
+	[FacebookHelper AddOnFacebookUserIdChange: OnFacebookUserIdChangeDelegate];
+
+	FOnFacebookProfileChangeDelegate OnFacebookProfileChangeDelegate;
+	OnFacebookProfileChangeDelegate.BindRaw(this, &FOnlineIdentityFacebook::OnFacebookProfileChange);
+	[FacebookHelper AddOnFacebookProfileChange: OnFacebookProfileChangeDelegate];
+
+	return true;
 }
 
-
-TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityFacebook::GetAllUserAccounts() const
+void FOnlineIdentityFacebook::Shutdown()
 {
-	TArray<TSharedPtr<FUserOnlineAccount> > Result;
-
-	Result.Add( UserAccount );
-
-	return Result;
+	[FacebookHelper release];
 }
 
-
-TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::GetUniquePlayerId(int32 LocalUserNum) const
+void FOnlineIdentityFacebook::OnFacebookTokenChange(FBSDKAccessToken* OldToken, FBSDKAccessToken* NewToken)
 {
-	return UserAccount->GetUserId();
+	UE_LOG(LogOnline, Warning, TEXT("FOnlineIdentityFacebook::OnFacebookTokenChange Old: %p New: %p"), OldToken, NewToken);
 }
 
+void FOnlineIdentityFacebook::OnFacebookUserIdChange()
+{
+	UE_LOG(LogOnline, Warning, TEXT("FOnlineIdentityFacebook::OnFacebookUserIdChange"));
+}
+
+void FOnlineIdentityFacebook::OnFacebookProfileChange(FBSDKProfile* OldProfile, FBSDKProfile* NewProfile)
+{
+	UE_LOG(LogOnline, Warning, TEXT("FOnlineIdentityFacebook::OnFacebookProfileChange Old: %p New: %p"), OldProfile, NewProfile);
+}
 
 bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
 {
 	bool bTriggeredLogin = true;
 
-	dispatch_async(dispatch_get_main_queue(),^ 
+	if (GetLoginStatus(LocalUserNum) != ELoginStatus::NotLoggedIn)
+	{
+		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *GetUniquePlayerId(LocalUserNum), TEXT("Already logged in"));
+		return false;
+	}
+
+	ensure(LoginStatus == ELoginStatus::NotLoggedIn);
+
+	dispatch_async(dispatch_get_main_queue(),^
 		{
 			FBSDKAccessToken *accessToken = [FBSDKAccessToken currentAccessToken];
 			if (accessToken == nil)
 			{
 				FBSDKLoginManager* loginManager = [[FBSDKLoginManager alloc] init];
-				[loginManager logInWithReadPermissions:nil
+				// Start with iOS level account information, falls back to Native app, then web
+				//loginManager.loginBehavior = FBSDKLoginBehaviorSystemAccount;
+				NSMutableArray* Permissions = [[NSMutableArray alloc] initWithCapacity:ScopeFields.Num()];
+				for (int32 ScopeIdx = 0; ScopeIdx < ScopeFields.Num(); ScopeIdx++)
+				{
+					NSString* ScopeStr = [NSString stringWithFString:ScopeFields[ScopeIdx]];
+					[Permissions addObject: ScopeStr];
+				}
+
+				[loginManager logInWithReadPermissions:Permissions
+					fromViewController:nil
 					handler: ^(FBSDKLoginManagerLoginResult* result, NSError* error)
 					{
 						UE_LOG(LogOnline, Display, TEXT("[FBSDKLoginManager logInWithReadPermissions]"));
 						bool bSuccessfulLogin = false;
-				 
+
+						FString ErrorStr;
 						if(error)
 						{
-							UE_LOG(LogOnline, Display, TEXT("[FBSDKLoginManager logInWithReadPermissions = error[%d]]"), [error code]);
+							ErrorStr = FString::Printf(TEXT("[%d] %s"), [error code], [error localizedDescription]);
+							UE_LOG(LogOnline, Display, TEXT("[FBSDKLoginManager logInWithReadPermissions = %s]"), *ErrorStr);
+
 						}
 						else if(result.isCancelled)
 						{
+							ErrorStr = FB_AUTH_CANCELED;
 							UE_LOG(LogOnline, Display, TEXT("[FBSDKLoginManager logInWithReadPermissions = cancelled"));
-						}
+						}						
 						else
 						{
 							UE_LOG(LogOnline, Display, TEXT("[FBSDKLoginManager logInWithReadPermissions = true]"));
-				 
-							FString Token([result token].tokenString);
-							UserAccount->AuthTicket = Token;
-							GConfig->SetString(TEXT("OnlineSubsystemFacebook.Login"), TEXT("AuthToken"), *Token, GEngineIni);
-				 
-							const FString UserId([result token].userID);
-							UserAccount->UserId = MakeShareable(new FUniqueNetIdString(UserId));
-				 
 							bSuccessfulLogin = true;
 						}
-				 
-						LoginStatus = bSuccessfulLogin ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn;
-						FUniqueNetIdString TempId;
-						TriggerOnLoginCompleteDelegates(LocalUserNum, bSuccessfulLogin, (bSuccessfulLogin ? UserAccount->UserId.Get() : TempId), TEXT(""));
-				 
-						UE_LOG(LogOnline, Display, TEXT("Facebook login was successful? - %d"), bSuccessfulLogin);
+
+						const FString AccessToken([[result token] tokenString]);
+						[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+						{
+							// Trigger this on the game thread
+							if (bSuccessfulLogin)
+							{
+								Login(LocalUserNum, AccessToken);
+							}
+							else
+							{
+								OnLoginAttemptComplete(LocalUserNum, ErrorStr);
+							}
+
+							return true;
+						 }];
 					}
 				];
 			}
 			else
 			{
-				LoginStatus = ELoginStatus::LoggedIn;
-				const FString UserId([accessToken userID]);
-				UserAccount->UserId = MakeShareable(new FUniqueNetIdString(UserId));
+				// Skip right to attempting to use the token to query user profile
+				// Could fail with an expired auth token (eg. user revoked app)
 
-				FString Token([accessToken tokenString]);
-				UserAccount->AuthTicket = Token;
-				GConfig->SetString(TEXT("OnlineSubsystemFacebook.Login"), TEXT("AuthToken"), *Token, GEngineIni);
-
-				TriggerOnLoginCompleteDelegates(LocalUserNum, true, UserAccount->UserId.Get(), TEXT(""));
-				
-				UE_LOG(LogOnline, Display, TEXT("Facebook login was successful? - Already had token!"));
+				const FString AccessToken([accessToken tokenString]);
+				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+				{
+					Login(LocalUserNum, AccessToken);
+					return true;
+				 }];
 			}
 		}
 	);
@@ -160,96 +210,131 @@ bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCred
 	return bTriggeredLogin;	
 }
 
-
-TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(uint8* Bytes, int32 Size)
+void FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FString& AccessToken)
 {
-	if (Bytes != NULL && Size > 0)
+	FOnProfileRequestComplete CompletionDelegate = FOnProfileRequestComplete::CreateLambda([this](int32 LocalUserNumFromRequest, bool bWasProfileRequestSuccessful, const FString& ErrorStr)
 	{
-		FString StrId(Size, (TCHAR*)Bytes);
-		return MakeShareable(new FUniqueNetIdString(StrId));
-	}
-	return NULL;
+		FOnRequestCurrentPermissionsComplete NextCompletionDelegate = FOnRequestCurrentPermissionsComplete::CreateLambda([this](int32 LocalUserNumFromPerms, bool bWerePermsSuccessful, const TArray<FSharingPermission>& Permissions)
+		{
+			OnRequestCurrentPermissionsComplete(LocalUserNumFromPerms, bWerePermsSuccessful, Permissions);
+		});
+
+		if (bWasProfileRequestSuccessful)
+		{
+			RequestCurrentPermissions(LocalUserNumFromRequest, NextCompletionDelegate);
+		}
+		else
+		{
+			OnLoginAttemptComplete(LocalUserNumFromRequest, ErrorStr);
+		}
+	});
+
+	ProfileRequest(LocalUserNum, AccessToken, ProfileFields, CompletionDelegate);
 }
 
-
-TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(const FString& Str)
+void FOnlineIdentityFacebook::OnRequestCurrentPermissionsComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FSharingPermission>& NewPermissions)
 {
-	return MakeShareable(new FUniqueNetIdString(Str));
+	FString ErrorStr;
+	if (!bWasSuccessful)
+	{
+		ErrorStr = TEXT("Failure to request current sharing permissions");
+	}
+
+	LoginStatus = bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn;
+	OnLoginAttemptComplete(LocalUserNum, ErrorStr);
 }
 
+void FOnlineIdentityFacebook::OnLoginAttemptComplete(int32 LocalUserNum, const FString& ErrorStr)
+{
+	if (LoginStatus == ELoginStatus::LoggedIn)
+	{
+		UE_LOG(LogOnline, Display, TEXT("Facebook login was successful"));
+		TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
+		check(UserId.IsValid());
+		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserId, ErrorStr);
+		TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::LoggedIn, *UserId);
+	}
+	else
+	{
+		const FString NewErrorStr(ErrorStr);
+		// Clean up anything left behind from cached access tokens
+		dispatch_async(dispatch_get_main_queue(),^
+		{
+			FBSDKLoginManager* loginManager = [[FBSDKLoginManager alloc] init];
+			[loginManager logOut];
+
+			[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+			 {
+				// Trigger this on the game thread
+				UE_LOG(LogOnline, Display, TEXT("Facebook login failed: %s"), *NewErrorStr);
+
+				TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
+				if (UserId.IsValid())
+				{
+					// remove cached user account
+					UserAccounts.Remove(UserId->ToString());
+				}
+				else
+				{
+					UserId = GetEmptyUniqueId().AsShared();
+				}
+				// remove cached user id
+				UserIds.Remove(LocalUserNum);
+
+				TriggerOnLoginCompleteDelegates(LocalUserNum, false, *UserId, NewErrorStr);
+				return true;
+			 }];
+		});
+	}
+}
 
 bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 {
-	//@todo samz - login status change delegate
-	dispatch_async(dispatch_get_main_queue(),^ 
+	if ([FBSDKAccessToken currentAccessToken])
+	{
+		ensure(LoginStatus == ELoginStatus::LoggedIn);
+
+		dispatch_async(dispatch_get_main_queue(),^
 		{
-			if ([FBSDKAccessToken currentAccessToken])
+			FBSDKLoginManager* loginManager = [[FBSDKLoginManager alloc] init];
+			[loginManager logOut];
+
+			[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 			{
-				FBSDKLoginManager *loginManager = [[FBSDKLoginManager alloc] init];
-				[loginManager logOut];
-				
-				LoginStatus = ELoginStatus::NotLoggedIn;
-			}
-		}
-	);
+				// Trigger this on the game thread
+				TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
+				if (UserId.IsValid())
+				{
+					// remove cached user account
+					UserAccounts.Remove(UserId->ToString());
+				}
+				else
+				{
+					UserId = GetEmptyUniqueId().AsShared();
+				}
+				// remove cached user id
+				UserIds.Remove(LocalUserNum);
+
+				FacebookSubsystem->ExecuteNextTick([this, UserId, LocalUserNum]() {
+					LoginStatus = ELoginStatus::NotLoggedIn;
+					TriggerOnLogoutCompleteDelegates(LocalUserNum, true);
+					TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::LoggedIn, ELoginStatus::NotLoggedIn, *UserId);
+				});
+				return true;
+			 }];
+		});
+	}
+	else
+	{
+		ensure(LoginStatus == ELoginStatus::NotLoggedIn);
+
+		UE_LOG(LogOnline, Warning, TEXT("No logged in user found for LocalUserNum=%d."), LocalUserNum);
+		FacebookSubsystem->ExecuteNextTick([this, LocalUserNum](){
+			TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
+		});
+	}
 
 	return true;
 }
 
 
-bool FOnlineIdentityFacebook::AutoLogin(int32 LocalUserNum)
-{
-	return false;
-}
-
-
-ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(int32 LocalUserNum) const
-{
-	return LoginStatus;
-}
-
-ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(const FUniqueNetId& UserId) const 
-{
-	return LoginStatus;
-}
-
-
-FString FOnlineIdentityFacebook::GetPlayerNickname(int32 LocalUserNum) const
-{
-	return TEXT("FacebookUser");
-}
-
-FString FOnlineIdentityFacebook::GetPlayerNickname(const FUniqueNetId& UserId) const 
-{
-	return TEXT("FacebookUser");
-}
-
-
-FString FOnlineIdentityFacebook::GetAuthToken(int32 LocalUserNum) const
-{
-	return UserAccount->GetAccessToken();
-}
-
-void FOnlineIdentityFacebook::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
-{
-	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
-}
-
-FPlatformUserId FOnlineIdentityFacebook::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
-{
-	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
-	{
-		auto CurrentUniqueId = GetUniquePlayerId(i);
-		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == UniqueNetId))
-		{
-			return i;
-		}
-	}
-
-	return PLATFORMUSERID_NONE;
-}
-
-FString FOnlineIdentityFacebook::GetAuthType() const
-{
-	return TEXT("");
-}

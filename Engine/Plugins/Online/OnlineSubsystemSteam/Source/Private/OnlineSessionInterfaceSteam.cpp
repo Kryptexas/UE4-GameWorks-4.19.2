@@ -1207,7 +1207,7 @@ static bool GetConnectStringFromSessionInfo(TSharedPtr<FOnlineSessionInfoSteam>&
 	return bSuccess;
 }
 
-bool FOnlineSessionSteam::GetResolvedConnectString(FName SessionName, FString& ConnectInfo)
+bool FOnlineSessionSteam::GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType)
 {
 	bool bSuccess = false;
 	// Find the session
@@ -1215,7 +1215,16 @@ bool FOnlineSessionSteam::GetResolvedConnectString(FName SessionName, FString& C
 	if (Session != NULL)
 	{
 		TSharedPtr<FOnlineSessionInfoSteam> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoSteam>(Session->SessionInfo);
-		bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo);
+		if (PortType == BeaconPort)
+		{
+			int32 BeaconListenPort = GetBeaconPortFromSessionSettings(Session->SessionSettings);
+			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
+		}
+		else if (PortType == GamePort)
+		{
+			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo);
+		}
+
 		if (!bSuccess)
 		{
 			UE_LOG_ONLINE(Warning, TEXT("Invalid session info for session %s in GetResolvedConnectString()"), *SessionName.ToString());
@@ -1240,12 +1249,7 @@ bool FOnlineSessionSteam::GetResolvedConnectString(const FOnlineSessionSearchRes
 
 		if (PortType == BeaconPort)
 		{
-			int32 BeaconListenPort = DEFAULT_BEACON_PORT;
-			if (!SearchResult.Session.SessionSettings.Get(SETTING_BEACONPORT, BeaconListenPort) || BeaconListenPort <= 0)
-			{
-				// Reset the default BeaconListenPort back to DEFAULT_BEACON_PORT because the SessionSettings value does not exist or was not valid
-				BeaconListenPort = DEFAULT_BEACON_PORT;
-			}
+			int32 BeaconListenPort = GetBeaconPortFromSessionSettings(SearchResult.Session.SessionSettings);
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
 		}
 		else if (PortType == GamePort)

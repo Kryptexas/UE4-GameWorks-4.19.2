@@ -11,6 +11,7 @@
 #include "UObject/Package.h"
 #include "Misc/PackageName.h"
 #include "OnlineSubsystemUtils.h"
+#include "Logging/LogSuppressionInterface.h"
 
 DEFINE_LOG_CATEGORY(LogHotfixManager);
 
@@ -647,6 +648,7 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 	TArray<UObject*> PerObjectConfigObjects;
 	int32 StartIndex = 0;
 	int32 EndIndex = 0;
+	bool bUpdateLogSuppression = false;
 	// Find the set of object classes that were affected
 	while (StartIndex >= 0 && StartIndex < IniData.Len() && EndIndex >= StartIndex)
 	{
@@ -674,6 +676,14 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 						{
 							// Add this to the list to check against
 							Classes.Add(Class);
+						}
+					}
+					else if (FileName.Contains(TEXT("Engine.ini")))
+					{
+						const TCHAR* LogConfigSection = TEXT("[Core.Log]");
+						if (FCString::Strnicmp(*IniData + StartIndex, LogConfigSection, FCString::Strlen(LogConfigSection)) == 0)
+						{
+							bUpdateLogSuppression = true;
 						}
 					}
 				}
@@ -738,6 +748,13 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 		ReloadObject->ReloadConfig();
 		NumObjectsReloaded++;
 	}
+
+	// Reload log suppression if configs changed
+	if (bUpdateLogSuppression)
+	{
+		FLogSuppressionInterface::Get().ProcessConfigAndCommandLine();
+	}
+
 	UE_LOG(LogHotfixManager, Log, TEXT("Updating config from %s took %f seconds and reloaded %d objects"),
 		*FileName, FPlatformTime::Seconds() - StartTime, NumObjectsReloaded);
 	return true;

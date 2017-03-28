@@ -16,7 +16,7 @@ UShowLoginUICallbackProxy::UShowLoginUICallbackProxy(const FObjectInitializer& O
 {
 }
 
-UShowLoginUICallbackProxy* UShowLoginUICallbackProxy::ShowExternalLoginUI(UObject* WorldContextObject, class APlayerController* InPlayerController)
+UShowLoginUICallbackProxy* UShowLoginUICallbackProxy::ShowExternalLoginUI(UObject* WorldContextObject, APlayerController* InPlayerController)
 {
 	UShowLoginUICallbackProxy* Proxy = NewObject<UShowLoginUICallbackProxy>();
 	Proxy->PlayerControllerWeakPtr = InPlayerController;
@@ -26,73 +26,72 @@ UShowLoginUICallbackProxy* UShowLoginUICallbackProxy::ShowExternalLoginUI(UObjec
 
 void UShowLoginUICallbackProxy::Activate()
 {
-	if (!PlayerControllerWeakPtr.IsValid())
+	APlayerController* MyPlayerController = PlayerControllerWeakPtr.Get();
+	if (!MyPlayerController)
 	{
 		FFrame::KismetExecutionMessage(TEXT("A player controller must be provided in order to show the external login UI."), ELogVerbosity::Warning);
-		OnFailure.Broadcast(PlayerControllerWeakPtr.Get());
+		OnFailure.Broadcast(MyPlayerController);
 		return;
 	}
 
-	FOnlineSubsystemBPCallHelper Helper(TEXT("ShowLoginUI"), GEngine->GetWorldFromContextObject(WorldContextObject));
-
+	const FOnlineSubsystemBPCallHelper Helper(TEXT("ShowLoginUI"), GEngine->GetWorldFromContextObject(WorldContextObject));
 	if (Helper.OnlineSub == nullptr)
 	{
-		OnFailure.Broadcast(PlayerControllerWeakPtr.Get());
+		OnFailure.Broadcast(MyPlayerController);
 		return;
 	}
-		
+
 	IOnlineExternalUIPtr OnlineExternalUI = Helper.OnlineSub->GetExternalUIInterface();
 	if (!OnlineExternalUI.IsValid())
 	{
 		FFrame::KismetExecutionMessage(TEXT("External UI not supported by the current online subsystem"), ELogVerbosity::Warning);
-		OnFailure.Broadcast(PlayerControllerWeakPtr.Get());
+		OnFailure.Broadcast(MyPlayerController);
 		return;
 	}
 
-	const ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(PlayerControllerWeakPtr->Player);
-
+	const ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(MyPlayerController->Player);
 	if (LocalPlayer == nullptr)
 	{
 		FFrame::KismetExecutionMessage(TEXT("Can only show login UI for local players"), ELogVerbosity::Warning);
-		OnFailure.Broadcast(PlayerControllerWeakPtr.Get());
+		OnFailure.Broadcast(MyPlayerController);
 		return;
 	}
-		
+
 	const bool bWaitForDelegate = OnlineExternalUI->ShowLoginUI(LocalPlayer->GetControllerId(), false, false,
 		FOnLoginUIClosedDelegate::CreateUObject(this, &UShowLoginUICallbackProxy::OnShowLoginUICompleted));
 
 	if (!bWaitForDelegate)
 	{
 		FFrame::KismetExecutionMessage(TEXT("The online subsystem couldn't show its login UI"), ELogVerbosity::Log);
-		OnFailure.Broadcast(PlayerControllerWeakPtr.Get());
+		OnFailure.Broadcast(MyPlayerController);
 	}
 }
 
 void UShowLoginUICallbackProxy::OnShowLoginUICompleted(TSharedPtr<const FUniqueNetId> UniqueId, int LocalPlayerNum)
 {
 	// Update the cached unique ID for the local player and the player state.
-	APlayerController* PlayerController = PlayerControllerWeakPtr.Get();
-	
-	if (PlayerController != nullptr)
+	APlayerController* MyPlayerController = PlayerControllerWeakPtr.Get();
+
+	if (MyPlayerController != nullptr)
 	{
-		ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
+		ULocalPlayer* LocalPlayer = MyPlayerController->GetLocalPlayer();
 		if (LocalPlayer != nullptr)
 		{
 			LocalPlayer->SetCachedUniqueNetId(UniqueId);
 		}
-		
-		if (PlayerController->PlayerState != nullptr)
+
+		if (MyPlayerController->PlayerState != nullptr)
 		{
-			PlayerController->PlayerState->SetUniqueId(UniqueId);
+			MyPlayerController->PlayerState->SetUniqueId(UniqueId);
 		}
 	}
 
 	if (UniqueId.IsValid())
 	{
-		OnSuccess.Broadcast(PlayerControllerWeakPtr.Get());
+		OnSuccess.Broadcast(MyPlayerController);
 	}
 	else
 	{
-		OnFailure.Broadcast(PlayerControllerWeakPtr.Get());
+		OnFailure.Broadcast(MyPlayerController);
 	}
 }

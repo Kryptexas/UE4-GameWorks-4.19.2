@@ -85,7 +85,7 @@ PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
 	FOnlineSubsystemNull(FName InInstanceName) :
-		FOnlineSubsystemImpl(InInstanceName),
+		FOnlineSubsystemImpl(NULL_SUBSYSTEM, InInstanceName),
 		SessionInterface(nullptr),
 		VoiceInterface(nullptr),
 		bVoiceInterfaceInitialized(false),

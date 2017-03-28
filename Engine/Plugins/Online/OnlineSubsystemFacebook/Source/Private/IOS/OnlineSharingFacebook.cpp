@@ -4,70 +4,31 @@
 // Module includes
 #include "OnlineSharingFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
+
+#include "IOS/IOSAsyncTask.h"
 #include "ImageCore.h"
 
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 #import <FBSDKShareKit/FBSDKShareKit.h>
 #import <FBSDKLoginKit/FBSDKLoginKit.h>
 
-FOnlineSharingFacebook::FOnlineSharingFacebook(class FOnlineSubsystemFacebook* InSubsystem)
+FOnlineSharingFacebook::FOnlineSharingFacebook(FOnlineSubsystemFacebook* InSubsystem)
+	: FOnlineSharingFacebookCommon(InSubsystem)
 {
-	// Get our handle to the identity interface
-	IdentityInterface = InSubsystem->GetIdentityInterface();
-	SetupPermissionMaps();
 }
-
 
 FOnlineSharingFacebook::~FOnlineSharingFacebook()
 {
-	IdentityInterface = NULL;
 }
 
-
-void FOnlineSharingFacebook::SetupPermissionMaps()
-{
-	///////////////////////////////////////////////
-	// Read Permissions
-
-	ReadPermissionsMap.Add( EOnlineSharingReadCategory::Posts, [[NSArray alloc] 
-		initWithObjects:@"read_stream", nil] );
-
-	ReadPermissionsMap.Add( EOnlineSharingReadCategory::Friends, [[NSArray alloc]
-        initWithObjects:@"user_friends", nil] );
-
-	ReadPermissionsMap.Add( EOnlineSharingReadCategory::Mailbox, [[NSArray alloc] 
-		initWithObjects:@"read_mailbox", nil] );
-
-	ReadPermissionsMap.Add( EOnlineSharingReadCategory::OnlineStatus, [[NSArray alloc] 
-		initWithObjects:@"user_status", @"user_online_presence", nil] );
-    
-	ReadPermissionsMap.Add( EOnlineSharingReadCategory::ProfileInfo, [[NSArray alloc]
-        initWithObjects:@"public_profile", nil] );
-
-	ReadPermissionsMap.Add( EOnlineSharingReadCategory::LocationInfo, [[NSArray alloc] 
-		initWithObjects:@"user_checkins", @"user_hometown", nil] );
-
-
-	///////////////////////////////////////////////
-	// Publish Permissions
-	PublishPermissionsMap.Add( EOnlineSharingPublishingCategory::Posts, [[NSArray alloc] 
-		initWithObjects:@"publish_actions", nil] );
-	
-	PublishPermissionsMap.Add( EOnlineSharingPublishingCategory::Friends, [[NSArray alloc] 
-		initWithObjects:@"manage_friendlists", nil] );
-	
-	PublishPermissionsMap.Add( EOnlineSharingPublishingCategory::AccountAdmin, [[NSArray alloc] 
-		initWithObjects:@"manage_notifications", @"manage_pages", nil] );
-	
-	PublishPermissionsMap.Add( EOnlineSharingPublishingCategory::Events, [[NSArray alloc] 
-		initWithObjects:@"create_event", @"rsvp_event", nil ] );
-}
-
-
-bool FOnlineSharingFacebook::RequestNewReadPermissions(int32 LocalUserNum, EOnlineSharingReadCategory::Type NewPermissions)
+bool FOnlineSharingFacebook::RequestNewReadPermissions(int32 LocalUserNum, EOnlineSharingCategory NewPermissions)
 {
 	bool bTriggeredRequest = false;
-	if( IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn )
+
+	ensure((NewPermissions & ~EOnlineSharingCategory::ReadPermissionMask) == EOnlineSharingCategory::None);
+
+	IOnlineIdentityPtr IdentityInt = Subsystem->GetIdentityInterface();
+	if (IdentityInt.IsValid() && IdentityInt->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 	{
 		bTriggeredRequest = true;
 
@@ -75,37 +36,40 @@ bool FOnlineSharingFacebook::RequestNewReadPermissions(int32 LocalUserNum, EOnli
 			{
 				// Fill in an nsarray with the permissions which match those that the user has set,
 				// Here we iterate over each category, adding each individual permission linked with it in the ::SetupPermissionMaps
-				NSMutableArray* Permissions = [[NSMutableArray alloc] init];
+				NSMutableArray* PermissionsRequested = nil;
 
-                
-                // Flag that dictates whether we need to reauthorize for permissions
-                bool bRequiresPermissionRequest = false;
-                
-				for(FReadPermissionsMap::TIterator It(ReadPermissionsMap); It; ++It)
+				TArray<FSharingPermission> PermissionsNeeded;
+				const bool bHasPermission = CurrentPermissions.HasPermission(NewPermissions, PermissionsNeeded);
+				if (!bHasPermission)
 				{
-					if((NewPermissions & It.Key()) != 0)
+					PermissionsRequested = [[NSMutableArray alloc] init];
+					for (const FSharingPermission& Permission : PermissionsNeeded)
 					{
-                        UE_LOG(LogOnline, Display, TEXT("ReadPermissionsMap[%i] - [%i]"), (int32)It.Key(), [It.Value() count]);
-                        for( NSString* RequestPermission in It.Value() )
-                        {
-							FBSDKAccessToken *accessToken = [FBSDKAccessToken currentAccessToken];
-							if (![accessToken.permissions containsObject:RequestPermission])
-							{
-                                bRequiresPermissionRequest = true;
-                                [Permissions addObject:RequestPermission];
-                            }
-                        }
+						[PermissionsRequested addObject:[NSString stringWithFString:Permission.Name]];
 					}
 				}
-                
-                if( bRequiresPermissionRequest )
+
+				if (PermissionsRequested)
                 {
 					FBSDKLoginManager *loginManager = [[FBSDKLoginManager alloc] init];
-					[loginManager logInWithReadPermissions:Permissions
-												   handler:^(FBSDKLoginManagerLoginResult *result, NSError *error)
+					[loginManager logInWithReadPermissions:PermissionsRequested
+										fromViewController:nil
+										handler: ^(FBSDKLoginManagerLoginResult* result, NSError* error)
 						{
 							UE_LOG(LogOnline, Display, TEXT("logInWithReadPermissions : Success - %d"), error == nil);
-							TriggerOnRequestNewReadPermissionsCompleteDelegates(LocalUserNum, error==nil);
+							[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+							{
+								if (error == nil)
+								{
+									FOnRequestCurrentPermissionsComplete PermsDelegate = FOnRequestCurrentPermissionsComplete::CreateRaw(this, &FOnlineSharingFacebook::OnRequestCurrentReadPermissionsComplete);
+									RequestCurrentPermissions(LocalUserNum, PermsDelegate);
+								}
+								else
+								{
+									TriggerOnRequestNewReadPermissionsCompleteDelegates(LocalUserNum, false);
+								}
+								return true;
+							}];
 						}
 					];
                 }
@@ -120,18 +84,26 @@ bool FOnlineSharingFacebook::RequestNewReadPermissions(int32 LocalUserNum, EOnli
 	else
 	{
 		// If we weren't logged into Facebook we cannot do this action
-		TriggerOnRequestNewReadPermissionsCompleteDelegates( LocalUserNum, false );
+		TriggerOnRequestNewReadPermissionsCompleteDelegates(LocalUserNum, false);
 	}
 
 	// We did kick off a request
 	return bTriggeredRequest;
 }
 
+void FOnlineSharingFacebook::OnRequestCurrentReadPermissionsComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FSharingPermission>& Permissions)
+{
+	TriggerOnRequestNewReadPermissionsCompleteDelegates(LocalUserNum, bWasSuccessful);
+}
 
-bool FOnlineSharingFacebook::RequestNewPublishPermissions(int32 LocalUserNum, EOnlineSharingPublishingCategory::Type NewPermissions, EOnlineStatusUpdatePrivacy::Type Privacy)
+bool FOnlineSharingFacebook::RequestNewPublishPermissions(int32 LocalUserNum, EOnlineSharingCategory NewPermissions, EOnlineStatusUpdatePrivacy Privacy)
 {
 	bool bTriggeredRequest = false;
-	if( IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn )
+
+	ensure((NewPermissions & ~EOnlineSharingCategory::PublishPermissionMask) == EOnlineSharingCategory::None);
+	
+	IOnlineIdentityPtr IdentityInt = Subsystem->GetIdentityInterface();
+	if (IdentityInt.IsValid() && IdentityInt->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 	{
 		bTriggeredRequest = true;
 
@@ -139,29 +111,21 @@ bool FOnlineSharingFacebook::RequestNewPublishPermissions(int32 LocalUserNum, EO
 			{
 				// Fill in an nsarray with the permissions which match those that the user has set,
 				// Here we iterate over each category, adding each individual permission linked with it in the ::SetupPermissionMaps
-				NSMutableArray* Permissions = [[NSMutableArray alloc] init];
 
-                // Flag that dictates whether we need to reauthorize for permissions
-                bool bRequiresPermissionRequest = false;
-                
-				for(FPublishPermissionsMap::TIterator It(PublishPermissionsMap); It; ++It)
+				NSMutableArray* PermissionsRequested = nil;
+
+				TArray<FSharingPermission> PermissionsNeeded;
+				const bool bHasPermission = CurrentPermissions.HasPermission(NewPermissions, PermissionsNeeded);
+				if (!bHasPermission)
 				{
-					if((NewPermissions & It.Key()) != 0)
+					PermissionsRequested = [[NSMutableArray alloc] init];
+					for (const FSharingPermission& Permission : PermissionsNeeded)
 					{
-						UE_LOG(LogOnline, Verbose, TEXT("PublishPermissionsMap[%i] - [%i]"), (int32)It.Key(), [It.Value() count]);
-						for( NSString* RequestPermission in It.Value() )
-						{
-							FBSDKAccessToken *accessToken = [FBSDKAccessToken currentAccessToken];
-							if (![accessToken.permissions containsObject:RequestPermission])
-							{
-                                [Permissions addObject:RequestPermission];
-                                bRequiresPermissionRequest = true;
-                            }
-						}
+						[PermissionsRequested addObject:[NSString stringWithFString:Permission.Name]];
 					}
 				}
 
-                if( bRequiresPermissionRequest )
+				if (PermissionsRequested)
 				{
 					FBSDKLoginManager *loginManager = [[FBSDKLoginManager alloc] init];
                     FBSDKDefaultAudience DefaultAudience = FBSDKDefaultAudienceOnlyMe;
@@ -177,12 +141,25 @@ bool FOnlineSharingFacebook::RequestNewPublishPermissions(int32 LocalUserNum, EO
                             DefaultAudience = FBSDKDefaultAudienceEveryone;
                             break;
                     }
-					
-					[loginManager logInWithPublishPermissions:Permissions
-												   handler:^(FBSDKLoginManagerLoginResult *result, NSError *error)
+
+					[loginManager logInWithPublishPermissions:PermissionsRequested
+										fromViewController:nil
+										handler: ^(FBSDKLoginManagerLoginResult* result, NSError* error)
 						{
 							UE_LOG(LogOnline, Display, TEXT("logInWithPublishPermissions : Success - %d"), error == nil);
-							TriggerOnRequestNewPublishPermissionsCompleteDelegates(LocalUserNum, error==nil);
+							[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+							{
+								if (error == nil)
+								{
+									FOnRequestCurrentPermissionsComplete PermsDelegate = FOnRequestCurrentPermissionsComplete::CreateRaw(this, &FOnlineSharingFacebook::OnRequestCurrentPublishPermissionsComplete);
+									RequestCurrentPermissions(LocalUserNum, PermsDelegate);
+								}
+								else
+								{
+									TriggerOnRequestNewPublishPermissionsCompleteDelegates(LocalUserNum, false);
+								}
+								return true;
+							}];
 						}
 					 ];
                 }
@@ -197,18 +174,24 @@ bool FOnlineSharingFacebook::RequestNewPublishPermissions(int32 LocalUserNum, EO
 	else
 	{
 		// If we weren't logged into Facebook we cannot do this action
-		TriggerOnRequestNewPublishPermissionsCompleteDelegates( LocalUserNum, false );
+		TriggerOnRequestNewPublishPermissionsCompleteDelegates(LocalUserNum, false);
 	}
 
 	// We did kick off a request
 	return bTriggeredRequest;
 }
 
+void FOnlineSharingFacebook::OnRequestCurrentPublishPermissionsComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FSharingPermission>& Permissions)
+{
+	TriggerOnRequestNewPublishPermissionsCompleteDelegates(LocalUserNum, bWasSuccessful);
+}
 
 bool FOnlineSharingFacebook::ShareStatusUpdate(int32 LocalUserNum, const FOnlineStatusUpdate& StatusUpdate)
 {
 	bool bTriggeredRequest = false;
-	if( IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn )
+
+	IOnlineIdentityPtr IdentityInt = Subsystem->GetIdentityInterface();
+	if (IdentityInt.IsValid() && IdentityInt->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 	{
 		bTriggeredRequest = true;
 
@@ -287,25 +270,24 @@ bool FOnlineSharingFacebook::ShareStatusUpdate(int32 LocalUserNum, const FOnline
 	else
 	{
 		// If we weren't logged into Facebook we cannot do this action
-		TriggerOnSharePostCompleteDelegates( LocalUserNum, false );
+		TriggerOnSharePostCompleteDelegates(LocalUserNum, false);
 	}
 
 	return bTriggeredRequest;
 }
 
-
 bool FOnlineSharingFacebook::ReadNewsFeed(int32 LocalUserNum, int32 NumPostsToRead)
 {
 	bool bTriggeredRequest = false;
-	if( IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn )
+
+	IOnlineIdentityPtr IdentityInt = Subsystem->GetIdentityInterface();
+	if (IdentityInt.IsValid() && IdentityInt->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 	{
 		bTriggeredRequest = true;
 		
 		dispatch_async(dispatch_get_main_queue(),^ 
 			{
-
 				// The current read permissions for this OSS.
-				EOnlineSharingReadCategory::Type ReadPermissions;
 				NSString *fqlQuery = 
 					[NSString stringWithFormat:@"SELECT post_id, created_time, type, attachment \
 												FROM stream WHERE filter_key in (SELECT filter_key \
@@ -320,7 +302,7 @@ bool FOnlineSharingFacebook::ReadNewsFeed(int32 LocalUserNum, int32 NumPostsToRe
 					{
 						if( error )
 						{
-							UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface::ReadStatusFeed - error[%s]"), *FString([error localizedDescription]));
+							UE_LOG(LogOnline, Display, TEXT("FOnlineSharingFacebook::ReadStatusFeed - error[%s]"), *FString([error localizedDescription]));
 						}
 
 						TriggerOnReadNewsFeedCompleteDelegates(LocalUserNum, error==nil);
@@ -332,22 +314,9 @@ bool FOnlineSharingFacebook::ReadNewsFeed(int32 LocalUserNum, int32 NumPostsToRe
 	else
 	{
 		// If we weren't logged into Facebook we cannot do this action
-		TriggerOnReadNewsFeedCompleteDelegates( LocalUserNum, false );
+		TriggerOnReadNewsFeedCompleteDelegates(LocalUserNum, false);
 	}
 
 	return bTriggeredRequest;
 }
 
-
-EOnlineCachedResult::Type FOnlineSharingFacebook::GetCachedNewsFeed(int32 LocalUserNum, int32 NewsFeedIdx, FOnlineStatusUpdate& OutNewsFeed)
-{
-	check(NewsFeedIdx >= 0);
-	UE_LOG(LogOnline, Error, TEXT("FOnlineSharingFacebook::GetCachedNewsFeed not yet implemented"));
-	return EOnlineCachedResult::NotFound;
-}
-
-EOnlineCachedResult::Type FOnlineSharingFacebook::GetCachedNewsFeeds(int32 LocalUserNum, TArray<FOnlineStatusUpdate>& OutNewsFeeds)
-{
-	UE_LOG(LogOnline, Error, TEXT("FOnlineSharingFacebook::GetCachedNewsFeeds not yet implemented"));
-	return EOnlineCachedResult::NotFound;
-}

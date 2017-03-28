@@ -17,5 +17,11 @@
             "Type": "Runtime",
             "LoadingPhase" : "Default"
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemAmazon",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

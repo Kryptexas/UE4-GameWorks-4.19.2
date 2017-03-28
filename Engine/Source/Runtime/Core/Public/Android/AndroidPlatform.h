@@ -63,6 +63,11 @@ typedef FAndroidTypes FPlatformTypes;
 
 #define ABSTRACT abstract
 
+// DLL export and import definitions
+#define DLLEXPORT			__attribute__((visibility("default")))
+#define DLLIMPORT			__attribute__((visibility("default")))
+#define JNI_METHOD			__attribute__ ((visibility ("default"))) extern "C"
+
 // Alignment.
 #define GCC_PACK(n)			__attribute__((packed,aligned(n)))
 #define GCC_ALIGN(n)		__attribute__((aligned(n)))

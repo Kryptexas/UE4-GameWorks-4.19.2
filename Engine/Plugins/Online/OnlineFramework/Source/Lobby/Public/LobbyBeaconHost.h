@@ -140,8 +140,10 @@ protected:
 	 * @param Instigator player making the request
 	 * @param PlayerToKick id of the player to kick
 	 * @param Reason reason for the kick
+	 *
+	 * @return true if the player was kicked, false if not
 	 */
-	void ProcessKickPlayer(ALobbyBeaconClient* Instigator, const FUniqueNetIdRepl& PlayerToKick, const FText& Reason);
+	virtual bool ProcessKickPlayer(ALobbyBeaconClient* Instigator, const FUniqueNetIdRepl& PlayerToKick, const FText& Reason);
 
 	/**
 	 * Handle a player logging in via the host beacon

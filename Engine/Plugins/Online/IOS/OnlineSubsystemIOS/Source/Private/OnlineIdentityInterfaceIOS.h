@@ -15,14 +15,16 @@ class FOnlineIdentityIOS :
 private:
 	/** UID for this identity */
 	TSharedPtr< FUniqueNetIdString > UniqueNetId;
+	FOnlineSubsystemIOS* Subsystem;
 
+	FOnlineIdentityIOS();
 
 PACKAGE_SCOPE:
 
 	/**
 	 * Default Constructor
 	 */
-	FOnlineIdentityIOS();	
+	FOnlineIdentityIOS(FOnlineSubsystemIOS* InSubsystem);
 
 	TSharedPtr<FUniqueNetIdString> GetLocalPlayerUniqueId() const;
 

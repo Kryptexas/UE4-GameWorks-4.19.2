@@ -672,7 +672,7 @@ bool FOnlineSessionIOS::SendSessionInviteToFriends(const FUniqueNetId& LocalUser
 }
 
 
-bool FOnlineSessionIOS::GetResolvedConnectString(FName SessionName, FString& ConnectInfo)
+bool FOnlineSessionIOS::GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType)
 {
 	bool bSuccessfullyGotResolvedConnectString = false;
 	

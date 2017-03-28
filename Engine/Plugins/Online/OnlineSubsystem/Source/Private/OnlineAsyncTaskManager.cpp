@@ -30,7 +30,7 @@ FOnlineAsyncTaskManager::FOnlineAsyncTaskManager() :
 	ActiveTask(nullptr),
 	WorkEvent(nullptr),
 	PollingInterval(POLLING_INTERVAL_MS),
-	bRequestingExit(0),
+	bRequestingExit(false),
 	OnlineThreadId(0)
 {
 }
@@ -57,90 +57,11 @@ uint32 FOnlineAsyncTaskManager::Run(void)
 
 	do 
 	{
-		FOnlineAsyncTask* Task = NULL;
-
 		// Wait for a trigger event to start work
 		WorkEvent->Wait(PollingInterval);
 		if (!bRequestingExit)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_Online_Async);
-			
-			double TimeElapsed = 0;
-
-			// Chance for services to do work
-			OnlineTick();
-
-			TArray<FOnlineAsyncTask*> CopyParallelTasks;
-
-			// Grab a copy of the parallel list
-			{
-				FScopeLock LockParallelTasks(&ParallelTasksLock);
-
-				CopyParallelTasks = ParallelTasks;
-			}
-
-			// Tick all the parallel tasks
-			for ( auto it = CopyParallelTasks.CreateIterator(); it; ++it )
-			{
-				Task = *it;
-
-				Task->Tick();
-
-				if (Task->IsDone())
-				{
-					if (Task->WasSuccessful())
-					{
-						UE_LOG(LogOnline, Verbose, TEXT("Async task '%s' succeeded in %f seconds (Parallel)"),
-							*Task->ToString(),
-							Task->GetElapsedTime());
-					}
-					else
-					{
-						UE_LOG(LogOnline, Log, TEXT("Async task '%s' failed in %f seconds (Parallel)"),
-							*Task->ToString(),
-							Task->GetElapsedTime());
-					}
-
-					// Task is done, remove from the incoming queue and add to the outgoing queue
-					RemoveFromParallelTasks( Task );
-
-					AddToOutQueue( Task );
-				}
-			}
-
-			// Now process the serial "In" queue
-			{
-				FScopeLock LockActiveTask(&ActiveTaskLock);
-				Task = ActiveTask;
-			}
-			if (Task)
-			{
-				Task->Tick();
-	
-				if (Task->IsDone())
-				{
-					if (Task->WasSuccessful())
-					{
-						UE_LOG(LogOnline, Verbose, TEXT("Async task '%s' succeeded in %f seconds"),
-							*Task->ToString(),
-							Task->GetElapsedTime());
-					}
-					else
-					{
-						UE_LOG(LogOnline, Warning, TEXT("Async task '%s' failed in %f seconds"),
-							*Task->ToString(),
-							Task->GetElapsedTime());
-					}
-						
-					// Task is done, add to the outgoing queue
-					AddToOutQueue(Task);
-					
-					{
-						FScopeLock LockActiveTask(&ActiveTaskLock);
-						ActiveTask = nullptr;
-					}
-				}
-			}
+			Tick();
 		}
 	} 
 	while (!bRequestingExit);
@@ -150,17 +71,36 @@ uint32 FOnlineAsyncTaskManager::Run(void)
 
 void FOnlineAsyncTaskManager::Stop(void)
 {
+	int32 NumInTasks = 0;
+	{
+		FScopeLock Lock(&InQueueLock);
+		NumInTasks = InQueue.Num();
+	}
+
+	int32 NumOutTasks = 0;
+	{
+		FScopeLock Lock(&OutQueueLock);
+		NumOutTasks = OutQueue.Num();
+	}
+
+	UE_LOG_ONLINE(Display, TEXT("FOnlineAsyncTaskManager::Stop() ActiveTask:%p Tasks[%d/%d]"), ActiveTask, NumInTasks, NumOutTasks);
+
+	// Set the variable to requesting exit before we trigger the event
+	bRequestingExit = true;
 	WorkEvent->Trigger();
-	FPlatformAtomics::InterlockedExchange(&bRequestingExit, 1);
 }
 
 void FOnlineAsyncTaskManager::Exit(void)
 {
+	UE_LOG_ONLINE(Display, TEXT("FOnlineAsyncTaskManager::Exit() started"));
+
 	FPlatformProcess::ReturnSynchEventToPool(WorkEvent);
 	WorkEvent = nullptr;
 
 	OnlineThreadId = 0;
 	InvocationCount--;
+
+	UE_LOG_ONLINE(Display, TEXT("FOnlineAsyncTaskManager::Exit() finished"));
 }
 
 void FOnlineAsyncTaskManager::AddToInQueue(FOnlineAsyncTask* NewTask)
@@ -247,7 +187,7 @@ void FOnlineAsyncTaskManager::GameTick()
 			Item = nullptr;
 		}
 	}
-	while (Item != NULL);
+	while (Item != nullptr);
 
 	int32 QueueSize = 0;
 	bool bHasActiveTask = false;
@@ -274,11 +214,15 @@ void FOnlineAsyncTaskManager::GameTick()
 				Task = InQueue[0];
 				InQueue.RemoveAt(0);
 			}
+
+			// Initialize the task before giving it away to the online thread
+			Task->Initialize();
 			{
 				FScopeLock LockActiveTask(&ActiveTaskLock);
 				ActiveTask = Task;
-				ActiveTask->Initialize();
 			}
+
+			// Wake up the online thread
 			WorkEvent->Trigger();
 		}
 	}
@@ -288,53 +232,84 @@ void FOnlineAsyncTaskManager::GameTick()
 
 void FOnlineAsyncTaskManager::Tick()
 {
-	// Tick Online services ( possibly callbacks ). 
+	SCOPE_CYCLE_COUNTER(STAT_Online_Async);
+
+	// Tick Online services (possibly callbacks). 
 	OnlineTick();
 
 	{
 		// Tick all the parallel tasks - Tick unrelated tasks together. 
+		TArray<FOnlineAsyncTask*> CopyParallelTasks;
 
-		// Create a copy of existing tasks. 
-		TArray<FOnlineAsyncTask*> CopyParallelTasks = ParallelTasks;
-
-		// parallel Q.
-		FOnlineAsyncTask* Task = NULL;
-
-		// Iterate. 
-		for (auto it = CopyParallelTasks.CreateIterator(); it; ++it)
+		// Grab a copy of the parallel list
 		{
-			Task = *it;
+			FScopeLock LockParallelTasks(&ParallelTasksLock);
+			CopyParallelTasks = ParallelTasks;
+		}
+
+		FOnlineAsyncTask* Task = nullptr;
+		for (auto It = CopyParallelTasks.CreateIterator(); It; ++It)
+		{
+			Task = *It;
 			Task->Tick();
 
 			if (Task->IsDone())
 			{
-				UE_LOG(LogOnline, Log, TEXT("Async parallel Task '%s' completed in %f seconds with %d (Parallel)"),
-					*Task->ToString(),
-					Task->GetElapsedTime(),
-					Task->WasSuccessful());
+				if (Task->WasSuccessful())
+				{
+					UE_LOG(LogOnline, Verbose, TEXT("Async task '%s' succeeded in %f seconds (Parallel)"),
+						*Task->ToString(),
+						Task->GetElapsedTime());
+				}
+				else
+				{
+					UE_LOG(LogOnline, Warning, TEXT("Async task '%s' failed in %f seconds (Parallel)"),
+						*Task->ToString(),
+						Task->GetElapsedTime());
+				}
 
-				// Task is done, fixup the original parallel task queue. 
+				// Task is done, remove from the incoming queue and add to the outgoing queue, fixing up the original parallel task queue. 
 				RemoveFromParallelTasks(Task);
 				AddToOutQueue(Task);
 			}
 		}
 	}
 
-	// Serial Q.
-	if (ActiveTask == nullptr)
-		return;
-
-	ActiveTask->Tick();
-
-	if (ActiveTask->IsDone())
 	{
-		UE_LOG(LogOnline, Log, TEXT("Async serial task '%s' completed in %f seconds with %d"),
-			*ActiveTask->ToString(),
-			ActiveTask->GetElapsedTime(),
-			ActiveTask->WasSuccessful());
+		// Now process the serial "In" queue
+		FOnlineAsyncTask* Task = nullptr;
+		{
+			FScopeLock LockActiveTask(&ActiveTaskLock);
+			Task = ActiveTask;
+		}
 
-		// Task is done, add to the outgoing queue
-		AddToOutQueue(ActiveTask);
-		ActiveTask = nullptr;
+		if (Task)
+		{
+			Task->Tick();
+
+			if (Task->IsDone())
+			{
+				if (Task->WasSuccessful())
+				{
+					UE_LOG(LogOnline, Verbose, TEXT("Async task '%s' succeeded in %f seconds"),
+						*Task->ToString(),
+						Task->GetElapsedTime());
+				}
+				else
+				{
+					UE_LOG(LogOnline, Warning, TEXT("Async task '%s' failed in %f seconds"),
+						*Task->ToString(),
+						Task->GetElapsedTime());
+				}
+
+				// Task is done, add to the outgoing queue
+				AddToOutQueue(Task);
+
+				{
+					FScopeLock LockActiveTask(&ActiveTaskLock);
+					ActiveTask = nullptr;
+				}
+			}
+		}
 	}
 }

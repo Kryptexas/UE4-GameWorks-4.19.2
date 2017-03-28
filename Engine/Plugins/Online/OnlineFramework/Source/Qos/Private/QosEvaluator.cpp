@@ -100,7 +100,7 @@ void UQosEvaluator::FindDatacenters(const FQosParams& InParams, TArray<FQosDatac
 		Datacenters.Empty(InDatacenters.Num());
 		for (const FQosDatacenterInfo& Datacenter : InDatacenters)
 		{
-			if (Datacenter.IsUsable())
+			if (Datacenter.IsPingable())
 			{
 				new (Datacenters) FQosRegionInfo(Datacenter);
 			}
@@ -170,7 +170,7 @@ void UQosEvaluator::PingRegionServers(const FQosParams& InParams, const FOnQosSe
 	const int32 NumTestsPerRegion = InParams.NumTestsPerRegion;
 
 	TWeakObjectPtr<UQosEvaluator> WeakThisCap(this);
- 	for (FQosRegionInfo& Region : Datacenters)
+	for (FQosRegionInfo& Region : Datacenters)
 	{
 		if (Region.Region.bEnabled)
 		{
@@ -178,7 +178,7 @@ void UQosEvaluator::PingRegionServers(const FQosParams& InParams, const FOnQosSe
 			const int32 NumServers = Region.Region.Servers.Num();
 			int32 ServerIdx = FMath::RandHelper(NumServers);
 			// Default to invalid ping tests and set it to something else later
-			Region.Result = EQosCompletionResult::Invalid;
+			Region.Result = EQosRegionResult::Invalid;
 			if (NumServers > 0)
 			{
 				for (int32 PingIdx = 0; PingIdx < NumTestsPerRegion; PingIdx++)
@@ -194,10 +194,10 @@ void UQosEvaluator::PingRegionServers(const FQosParams& InParams, const FOnQosSe
 							StrongThis->OnPingResultComplete(RegionId, NumTestsPerRegion, InResult);
 							if (StrongThis->AreAllRegionsComplete())
 							{
-								EQosCompletionResult Result = EQosCompletionResult::Success;
+								EQosCompletionResult TotalResult = EQosCompletionResult::Success;
 								StrongThis->CalculatePingAverages();
-								StrongThis->EndAnalytics(Result);
-								InCompletionDelegate.ExecuteIfBound(Result, StrongThis->Datacenters);
+								StrongThis->EndAnalytics(TotalResult);
+								InCompletionDelegate.ExecuteIfBound(TotalResult, StrongThis->Datacenters);
 								StrongThis->bInProgress = false;
 							}
 						}
@@ -286,7 +286,7 @@ void UQosEvaluator::OnFindQosServersByRegionComplete(bool bWasSuccessful, int32 
 	if (!bCancelOperation)
 	{
 		FQosRegionInfo& Datacenter = Datacenters[RegionIdx];
-		Datacenter.Result = bWasSuccessful ? EQosCompletionResult::Success : EQosCompletionResult::Failure;
+		Datacenter.Result = bWasSuccessful ? EQosRegionResult::Success : EQosRegionResult::Invalid;
 		
 		// Copy the search results for later evaluation
 		Datacenter.SearchResults = QosSearchQuery->SearchResults;
@@ -338,10 +338,10 @@ void UQosEvaluator::OnFindQosServersByRegionComplete(bool bWasSuccessful, int32 
 	{
 		QosSearchQuery = nullptr;
 
-		// Mark all remaining datacenters as canceled
+		// Mark all remaining datacenters as invalid
 		for (int32 Idx = RegionIdx; Idx < Datacenters.Num(); Idx++)
 		{
-			Datacenters[Idx].Result = EQosCompletionResult::Canceled;
+			Datacenters[Idx].Result = EQosRegionResult::Invalid;
 		}
 
 		FinalizeDatacenterResult(InCompletionDelegate, EQosCompletionResult::Canceled, Datacenters);
@@ -453,7 +453,7 @@ void UQosEvaluator::ContinuePingRegion()
 		{
 			FQosRegionInfo& Datacenter = Datacenters[CurrentSearchPass.RegionIdx];
 			CurrentSearchPass.CurrentSessionIdx++;
-			if (Datacenter.Result == EQosCompletionResult::Success)
+			if (Datacenter.Result != EQosRegionResult::Invalid)
 			{
 				if (Datacenter.SearchResults.IsValidIndex(CurrentSearchPass.CurrentSessionIdx))
 				{
@@ -559,7 +559,7 @@ bool UQosEvaluator::AreAllRegionsComplete()
 {
 	for (FQosRegionInfo& Region : Datacenters)
 	{
-		if (Region.Region.bEnabled && Region.Result == EQosCompletionResult::Invalid)
+		if (Region.Region.bEnabled && Region.Result == EQosRegionResult::Invalid)
 		{
 			return false;
 		}
@@ -579,6 +579,7 @@ void UQosEvaluator::OnPingResultComplete(const FString& RegionId, int32 NumTests
 			const bool bSuccess = (Result.Status == EIcmpResponseStatus::Success);
 			int32 PingInMs = bSuccess ? (int32)(Result.Time * 1000.0f) : UNREACHABLE_PING;
 			Region.PingResults.Add(PingInMs);
+			Region.NumResponses = bSuccess ? (Region.NumResponses + 1) : Region.NumResponses;
 
 			if (QosStats.IsValid())
 			{
@@ -588,7 +589,7 @@ void UQosEvaluator::OnPingResultComplete(const FString& RegionId, int32 NumTests
 			if (Region.PingResults.Num() == NumTests)
 			{
 				Region.LastCheckTimestamp = FDateTime::UtcNow();
-				Region.Result = EQosCompletionResult::Success;
+				Region.Result = (Region.NumResponses == NumTests) ? EQosRegionResult::Success : EQosRegionResult::Incomplete;
 			}
 			break;
 		}

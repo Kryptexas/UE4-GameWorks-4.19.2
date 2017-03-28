@@ -24,7 +24,7 @@ class ONLINESUBSYSTEMGAMECIRCLE_API FOnlineSubsystemGameCircle :
 	public FOnlineSubsystemImpl
 {
 public:
-	FOnlineSubsystemGameCircle();
+	
 	virtual ~FOnlineSubsystemGameCircle() {}
 
 	//~ Begin IOnlineSubsystem Interface
@@ -69,6 +69,9 @@ public:
 	virtual bool Tick(float DeltaTime) override;
 	
 PACKAGE_SCOPE:
+
+	FOnlineSubsystemGameCircle();
+	FOnlineSubsystemGameCircle(FName InInstanceName);
 
 	/**
 	 * Is Online Subsystem Android available for use
