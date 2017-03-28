@@ -10,6 +10,7 @@
 
 #if WITH_EDITOR
 #include "Editor.h"
+#include "LevelEditorViewport.h"
 #endif
 
 #include <algorithm>
