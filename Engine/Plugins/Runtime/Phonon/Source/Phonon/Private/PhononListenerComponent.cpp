@@ -3,9 +3,6 @@
 //
 
 #include "PhononListenerComponent.h"
-#include "LevelEditorViewport.h"
-#include "Settings/LevelEditorPlaySettings.h"
-#include "Settings/LevelEditorViewportSettings.h"
 #include "PhononModule.h"
 #include "PhononOcclusion.h"
 #include "PhononReverb.h"
