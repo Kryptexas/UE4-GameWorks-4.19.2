@@ -33,7 +33,7 @@ public:
 		DestroySubsystem();
 	}
 
-	virtual IOnlineSubsystemPtr CreateSubsystem(FName InstanceName)
+	virtual IOnlineSubsystemPtr CreateSubsystem(FName InInstanceName)
 	{
 		if (!GameCircleSingleton.IsValid())
 		{
