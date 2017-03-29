@@ -5,11 +5,11 @@
   <Date>2016-06-10T17:43:42.9209106-04:00</Date>
   <Function>Allows the display of 3D images from Nvidia graphics cards on capable monitors</Function>
   <Justification />
-  <Eula>http://developer.nvidia.com/object/nvapi.html</Eula>
+  <Eula>Custom agreement between NVIDIA/Epic</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/NVAPI_License.txt</LicenseFolder>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/Aftermath_NVAPI_License.txt</LicenseFolder>
 </TpsData>
