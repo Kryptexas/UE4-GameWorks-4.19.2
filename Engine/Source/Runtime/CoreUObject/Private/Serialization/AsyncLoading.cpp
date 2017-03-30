@@ -798,6 +798,7 @@ struct FEDLBootNotificationManager
 			FFixedBootOrder()
 			{
 				// add these in reverse order of when we want them processed
+				Array.Add("/Script/Engine/Default__SoundBase");
 				Array.Add("/Script/Engine/Default__MaterialInterface");
 				Array.Add("/Script/Engine/Default__DeviceProfileManager");
 			}
