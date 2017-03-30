@@ -2360,12 +2360,15 @@ namespace UnrealBuildTool
 				{
 					if(Module.Binary != null && Module.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 					{
-						foreach(UEBuildModule ReferencedModule in Module.GetDirectDependencyModules())
+						HashSet<UEBuildModule> ReferencedModules = Module.GetDependencies(bWithIncludePathModules: true, bWithDynamicallyLoadedModules: true);
+						foreach(UEBuildModule ReferencedModule in ReferencedModules)
 						{
 							// Hard-code specific exceptions until these are properly fixed up
-							if(ReferencedModule.RulesFile != null && !ReferencedModule.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !IsLegacyEngineToGameReference(Platform, Module.Name, ReferencedModule.Name))
+							if(ReferencedModule.RulesFile != null && !ReferencedModule.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 							{
-								throw new BuildException("Engine module '{0}' should not depend on game module '{1}'", Module.Name, ReferencedModule.Name);
+								string EngineModuleRelativePath = Module.RulesFile.MakeRelativeTo(UnrealBuildTool.EngineDirectory.ParentDirectory);
+								string ReferencedModuleRelativePath = ReferencedModule.RulesFile.IsUnderDirectory(ProjectFile.Directory)? ReferencedModule.RulesFile.MakeRelativeTo(ProjectFile.Directory.ParentDirectory) : ReferencedModule.RulesFile.FullName;
+								throw new BuildException("Engine module '{0}' should not depend on game module '{1}'", EngineModuleRelativePath, ReferencedModuleRelativePath);
 							}
 						}
 					}
@@ -2562,22 +2565,6 @@ namespace UnrealBuildTool
 			}
 
 			return ECompilationResult.Succeeded;
-		}
-
-		/// <summary>
-		/// Checks whether the reference from a game module
-		/// </summary>
-		/// <param name="Platform">The platform being built</param>
-		/// <param name="EngineModuleName">Name of the engine module</param>
-		/// <param name="GameModuleName">Name of the game module</param>
-		/// <returns>True if the reference is a known engine->game reference</returns>
-		static bool IsLegacyEngineToGameReference(UnrealTargetPlatform Platform, string EngineModuleName, string GameModuleName)
-		{
-			if(Platform == UnrealTargetPlatform.PS4 && EngineModuleName == "WebBrowser" && GameModuleName == "OnlineSubsystem")
-			{
-				return true;
-			}
-			return false;
 		}
 
 		/// <summary>
