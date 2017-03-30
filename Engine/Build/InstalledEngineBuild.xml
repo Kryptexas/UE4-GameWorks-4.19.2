@@ -113,7 +113,7 @@
 			</Do>
 
 			<!-- Tag the generated includes for this target -->
-			<Tag Files="Engine/Intermediate/Build/Win64/UE4Editor/Inc/...;Engine/Plugins/.../Intermediate/Build/Win64/UE4Editor/Inc/..." With="#UE4Editor Win64 Includes"/>
+			<Tag Files="Engine/Intermediate/Build/Win64/UE4Editor/Inc/...;Engine/Plugins/.../Intermediate/Build/Win64/UE4Editor/Inc/..." Except=".../Timestamp" With="#UE4Editor Win64 Includes"/>
 		</Node>
 	</Agent>
 	
