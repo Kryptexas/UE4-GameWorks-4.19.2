@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3038415
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:ウェブ ブラウザ
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
 Description:Web Browser ウィジェットを使った、インゲームのウェブ ブラウズ機能作成の概要。
 version:4.10
+tags:UMG UI Designer
 
 
 [REGION:warning]

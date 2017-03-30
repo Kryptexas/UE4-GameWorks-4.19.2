@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:0
-Title: Blueprint Node Reference
+﻿INTSourceChangeList:3108692
+Title:ブループリント ノード リファレンス
 Crumbs:
-Description:Comprehensive reference covering all function calls, events, and other Blueprint nodes
+Description:関数コール、イベント、その他のブループリント ノードを全部網羅して総括的なリファレンス
 Availability:Public
 parent:Engine/Blueprints
 order:5
@@ -43,5 +43,5 @@ type:reference
 
 
 [PUBLISH:Licensee]
-The Blueprint API reference can be found at `//depot/UE4/Engine/Documentation/Builds/BlueprintAPI-HTML.tgz`. You can extract the contents of that into your documentation folder to have it integrated with the engine documentation.
+Blueprint API リファレンスは `//depot/UE4/Engine/Documentation/Builds/BlueprintAPI-HTML.tgz` を参照してください。エンジン ドキュメントと統合するために、自身のドキュメントフォルダへ API リファレンスのコンテンツを抽出することができます。
 [/PUBLISH]

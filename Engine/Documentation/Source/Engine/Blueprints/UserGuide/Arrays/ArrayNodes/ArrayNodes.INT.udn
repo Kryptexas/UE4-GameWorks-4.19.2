@@ -5,6 +5,7 @@ Description: Nodes designed to aid in working with Blueprint arrays.
 version: 4.9
 parent:Engine/Blueprints/Scripting
 tags:Arrays and Structures
+tags:Blueprints
 order:2
 
 [VAR:Topic]

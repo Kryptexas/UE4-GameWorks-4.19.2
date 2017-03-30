@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3064728
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:スクリプト処理の基礎
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:ブループリント ビジュアル スクリプティング システムの変数と実行フローの概要
 version:4.12
 parent:Engine/Blueprints
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

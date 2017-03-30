@@ -2,6 +2,7 @@
 Title:运行虚幻引擎
 Crumbs: %ROOT%, GettingStarted
 Description:将引擎作为游戏或编辑器来运行，包括如何启动一个特定地图及有用的游戏内命令。
+version: 4.9
 
 %Globals:OSSelect%
 
@@ -164,7 +165,7 @@ Description:将引擎作为游戏或编辑器来运行，包括如何启动一�
 
 ## 运行未烘焙游戏
 
-当一个项目在虚幻编辑器内载入后，您可以从 **Play In** 菜单中的未烘焙游戏模式中[测试游戏](Engine/UI/LevelEditor/InEditorTesting#模式)。 如需在相应窗口游玩未烘焙游戏，请使用关卡编辑器工具栏内的[**Play In** 下拉菜单](Engine/UI/LevelEditor/InEditorTesting#工具栏)来选择 [**新建窗口位置** > **默认玩家起始位置** 模式](Engine/UI/LevelEditor/InEditorTesting#模式) 。
+当一个项目在虚幻编辑器内载入后，您可以从 **Play In** 菜单中的未烘焙游戏模式中[测试游戏](Engine/UI/LevelEditor/InEditorTesting)。 如需在相应窗口游玩未烘焙游戏，请使用关卡编辑器工具栏内的[**Play In** 下拉菜单](Engine/UI/LevelEditor/InEditorTesting)来选择 [**新建窗口位置** > **默认玩家起始位置** 模式](Engine/UI/LevelEditor/InEditorTesting) 。
 
 **点击以查看完整尺寸图片:**
 

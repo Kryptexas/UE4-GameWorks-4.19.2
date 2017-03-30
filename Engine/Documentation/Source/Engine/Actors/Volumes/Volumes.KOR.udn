@@ -1,29 +1,8 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3283566
 Availability: Public
 Title:볼륨 사용 안내서
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:레벨의 작동방식이나 구성법 강화를 위한 볼륨 배치 및 작업방식 안내서입니다.
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 주제](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 주제](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-%playlistnav%
 
 
 [TOC(start:2 end:2)]
@@ -184,7 +163,7 @@ Level Streaming Volume 관련 상세 정보는 [](Engine/LevelStreaming/Streamin
 
 ### Cull Distance Volume
 
-컬 디스턴스 볼륨(Cull Distance Volume)은 카메라와의 거리에 따라 일정 크기 이하의 오브젝트는 컬링(, 다른 말로 화면에 그릴 때 생략)하는 데 쓰이는 일종의 최적화 도구입니다. 일정한 크기의 오브젝트는 그리지 않는 식으로 씬을 최적화시키는 데 도움이 되며, 그 크기는 바운딩 박스 중 치수가 가장 긴 것으로 계산합니다. 
+컬 디스턴스 볼륨(Cull Distance Volume)은 카메라에서 오브젝트까지의 거리 및 그 크기에 따라 컬링(, 다른 말로 화면에 그릴 때 생략)하는 데 쓰이는 일종의 최적화 도구입니다. 오브젝트가 일정 이하로 작아 중요하지 않은 것으로 간주되면 그리지 않는 식으로 씬을 최적화시키는 데 도움이 됩니다. 크기는 바운딩 박스 중 치수가 가장 긴 것으로 계산하며, 선택된 컬링 거리는 그 크기에 가장 가까운 것이 됩니다.
 
 컬 디스턴스 볼륨 셋업은 아래 디테일 패널에 표시되는 **Cull Distances** (컬 디스턴스) 프로퍼티에 따라 달라집니다.
 
@@ -192,9 +171,9 @@ Level Streaming Volume 관련 상세 정보는 [](Engine/LevelStreaming/Streamin
 
 위 그림의 프로퍼티에서 정의되는 작동방식은 다음과 같습니다:
 
-* 볼륨 내 오브젝트 중 크기가 50 유닛 미만인 것은 카메라와의 거리가 500 유닛 이상일 때 컬링됩(사라집)니다.
-* 볼륨 내 오브젝트 중 크기가 120 유닛 미만인 것은 카메라와의 거리가 1000 유닛 이상일 때 컬링됩(사라집)니다.
-* 볼륨 내 오브젝트 중 크기가 300 유닛 미만인 것은 **컬링되지 않습니다**. 여기서 0 은 무한으로 간주되기에, 카메라가 그만큼 멀어질 수 없습니다.
+* 볼륨 내 오브젝트 중 크기가 (85 유닛 이하) 50 유닛에 가장 가까운 것은 카메라와의 거리가 500 유닛 이상일 때 컬링됩(사라집)니다.
+* 볼륨 내 오브젝트 중 크기가 (85 에서 210 유닛 사이) 120 유닛에 가장 가까운 것은 카메라와의 거리가 1000 유닛 이상일 때 컬링됩(사라집)니다.
+* 볼륨 내 오브젝트 중 크기가 (210 유닛 이상) 300 유닛에 가장 가까운 것은 컬링되지 않습니다. 여기서 0 은 무한으로 간주되기에, 카메라가 그만큼 멀어질 수 없습니다.
 
 셋업은 Cull Distances 배열에 새 항목을 추가, 즉 ![](button_Plus.png) 버튼을 클릭하는 것으로 시작합니다. 그 다음, 오브젝트의 크기, 그리고 해당 크기 이하의 오브젝트가 컬링되었으면 하는 위치를 입력합니다. 프로퍼티를 입력하는 데 있어 정해진 순서는 없습니다.
 

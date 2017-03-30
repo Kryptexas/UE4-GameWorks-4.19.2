@@ -1,288 +1,529 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: HTTP Streamer REST API
+﻿INTSourceChangelist:3260683
+Availability:Public
+Title:HTTP Streamer REST API
 Crumbs: %ROOT%, Engine, Engine/Replay, Engine/Replay/Streamers
-Description:Overview of the REST API for the HTTP Streamer
-Version: 4.14
+Description:HTTP Streamer の REST API の概要
+Version:4.14
 parent:Engine/Replay/Streamers
 topic-image:replay_topic.png
 tags:Replays
 
 [TOC (start:2 end:3)]
 
-## HTTP REST API Implementation
+以下は HTTP Streamer によってのリクエストされ、リプレイ サーバーによって処理されなければなりません。ほとんどの場合、適切な場所に与えられた情報を単に記録したり、リクエストに応じてビューアにその情報を戻して提示したりするだけで十分です。リプレイは一般的に単一ファイルとしては保存されないことに注意してください。リプレイの個々のチャンクは独自のファイルになります。リプレイに関連はしますがイベント データは別個に保存されます。イベントはどのリプレイに属しているかがわからなくても検索可能だからです。イベント グループも、そのグループに属するすべてのイベント (すべてのリプレイに対して) のリストと合わせて別個のファイルとして保存されます。
 
-The following requests will be made by the HTTP Streamer and must be handled by your replay server. In most cases, simply recording the information given in the appropriate location, or providing that information back to a viewer upon request, will be sufficient. It is good to note at this point that replays are not generally stored as a single file. Each individual chunk of a replay generally occupies its own file. Event data, although associated with a replay, is stored separately, since events can be searched without knowing what replay they belong to. Even event groups should be stored as separate files with lists of all events (across all replays) belonging to that group.
+HTTP Streamer の REST API には、ゲーム サーバーからリプレイ サーバーへのリプレイのストリーミング (アップロード) 、リプレイ サーバーからゲーム、ビューア、サーバーにライブまたは事前録画したリプレイのストリーミング (ダウンロード)、またはサーバーで利用可能なリプレイに関する情報を照会 (検索) するための機能があります。独自にリプレイ サーバーを実装するには、以下の HTTP リクエストへの応答およびゲーム固有の追加のリクエストに応答する必要があります。
 
-The HTTP Streamer's REST API provides functionality for streaming replays from the game server to the replay server (uploading), for streaming live or pre-recorded replays from the replay server to the game, or viewer, server (downloading), or for querying information about the replays available on the server (searching). To implement your own replay server, you will need to respond to the following HTTP requests, as well as any additional requests specific to your game.
+## アップロード リクエスト
 
-### Upload Requests
+### Start Streaming
 
----
+リプレイ ストリームのアップロードを開始するリクエストを送信します。
+
+#### Syntax
 
 <!-- From StartStreaming(): -->
-* **(Server URL)**replay/**(Session Name Override)**?app=**(Replay Version AppString)**&version=**(Replay Network Version)**&cl=**(Replay CL)**&friendlyName=**(Platform Friendly Name)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name Override | (Optional, including the leading "/".) Any name for the replay. Usually includes a GUID. | The replay server is expected to recognize this name when a replay is being requested. It should be returned as the session name, although it can be ignored and the streamer will respect the returned name. |
-| Replay Version AppString | A user-defined string that describes the game being played. | This value is expected to be used for filtering when the HTTP Streamer requests a list of replays. |
-| Replay Network Version | A user-defined string that describes the version of the game being played. | This value is also used for filtering lists of replays, so it should be stored with the replay data. |
-| Replay CL | The changelist of the build being played. | This value is used for filtering lists of replays. |
-| Platform Friendly Name | The platform on which the game is being played. | This value might be displayed to users, and is expected to be returned when lists of replays are requested. However, it will not be sent to the game server with requests for lists of replays and therefore is not expected to be used as a filter. |
-Uses POST. "Content-Type" is "application/json".
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| Users | String Array | List of users present in the game. Should be stored as tags on the replay. |
-Expects a response of type `FNetworkReplayStartUploadingResponse`, which contains JSON data with the string "sessionId" defined. This value will be used as the **Session Name** in future communication from the HTTP Streamer. If the optional **(Session Name Override)** was provided, the returned "sessionId", and thus the ultimate <Session Name>, should be the same value. This is the game's way of demanding the session name.
 
----
+	<Server URL>replay/<Session Name Override>?app=<Replay Version AppString>&version=<Replay Network Version>&cl=<Replay CL>&friendlyName=<Platform Friendly Name>
+
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | POST | 
+| コンテンツ タイプ | アプリケーション/json |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
+| --- | --- | --- |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name Override | (オプション、先頭の "/" も含む) リプレイの任意の名前です。通常 GUID (グローバル一意識別子) を含む。 | リプレイ サーバーは、リプレイのリクエスト中にこの名前を認識します。これは無視されることがありますが、セッション名として戻され、ストリーマーは戻された名前に従います。
+| Replay Version AppString | プレイ中のゲームを表すユーザー定義の文字列 | この値は、HTTP Streamer がリプレイのリストをリクエストする場合にフィルタリングのために使われます。 |
+| Replay Network Version | プレイ中のゲームのバージョンを表すユーザー定義の文字列 | この値はリプレイのリストをフィルタリングするためにも使用されます。従ってリプレイ データと共に保存します。 |
+| Replay CL | プレイ中のビルドのチェンジリスト | この値はリプレイのリストをフィルタリングするために使われます。 |
+| Platform Friendly Name | ゲームをプレイ中のプラットフォーム | この値はユーザーに表示されることがあり、リプレイ リストがリクエストされた場合に戻されることを求められます。ただし、リプレイのリストに対するリクエストではゲーム サーバーには送られません。従ってフィルタとして使われることは想定していません。 |
+
+#### Response
+
+文字列 "sessionId" が定義された JSON データを含む `FNetworkReplayStartUploadingResponse` を求めています。将来、HTTP Streamer からの通信で **Session Name** として使用されます。オプションの <Session Name Override> を指定すると戻される "sessionId" および最終的な <Session Name> は同じ値になります。これはセッション名を要求するゲームのやり方です。
+
+| 名前 | 種類 | 内容 |
+| --- | --- | --- |
+| Users | String Array | ゲームに存在しているユーザーのリストです。リプレイでタグとして保存するようにします。 |
+
+### Upload Header
+
+アーカイブ ヘッダーを構成するバイナリ データをアップロードするためにリクエストを送信します。これは、**Session Name** に関連するヘッダー ファイルに記録されるようにします。
+
+#### Syntax
 
 <!-- From UploadHeader(): -->
-* **(Server URL)**replay/**(Session Name)**/file/replay.header?numChunks=**(Stream Chunk Index)**&time=**(Total Demo Time In MS)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/file/replay.header?numChunks=<Stream Chunk Index>&time=<Total Demo Time In MS>
+
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | POST | 
+| コンテンツ タイプ | アプリケーション/json |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Stream Chunk Index | The index of the current chunk of replay data being sent. | Stream chunks are not uniform in size, but they are strictly ordered by this value. |
-| Total Demo Time In MS | The total running time of the demo up to the end of the current stream chunk. | Tells how much replay data, in milliseconds, has been uploaded so far without having to interpret binary replay data. |
-Uses POST. "Content-Type" is "application/octet-stream".
-The content sent will be the binary data constituting the archive header, which should be recorded in a header file associated with **Session Name**.
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name | アップロード中のリプレイの名前 | この名前は最初のアップロード リクエストに応答してリプレイ サーバーが提供した値に一致します。 |
+| Stream Chunk Index | 送信されているリプレイの現在のチャンクのインデックス | ストリーム チャンクのサイズは均一ではありませんが、この値によって厳密に順序付けされています。 |
+| Total Demo Time In MS | 現在のストリーム チャンクの終わりまでのデモのトータル実行時間 | バイナリ リプレイ データを解釈する必要なしに、どれくらいのリプレイ データがアップロードされたかをミリ秒単位で示します。 |
+
+### Flush Stream
+
+ストリームをフラッシュするためのリクエストを送信します。コンテンツはバイナリ リプレイ データで圧縮可能です。このデータは **Stream Chunk Index** で示されるチャンクを表します。チャンクのデータ サイズやカバーする時間は様々であるため、各チャンクを別個のファイルに保存することをお勧めします。HTTP Streamer は現在のストリーム データをこのシステムで 10 秒毎にフラッシュしようとします。フラッシュの間隔は、コンソール変数、"httpReplay.ChunkUploadDelayInSeconds" を変更することで調整可能です。
+
+[REGION:note]
+圧縮を有効にするには、`FHttpNetworkReplayStreamer`: の子クラスで 3 つの関数をオーバーライドしなければなりません。
+
+* `SupportsCompression` は `true` を戻さなければなりません。
+* `CompressBuffer` はエラーの場合を除いて圧縮を実行し、 `true` を戻さなければなりません。
+* `DecompressBuffer` はエラーの場合を除いて解凍を実行し、 `true` を戻さなければなりません。
+[/REGION:note]
+
+#### Syntax
 
 <!-- From FlushStream(): -->
-* **(Server URL)**replay/**(Session Name)**/file/stream.**(Stream Chunk Index)**?numChunks=**(Total Chunks)**&time=**(Total Demo Time In MS)**&mTime1=**(Start Time In MS)**&mTime2=**(End Time In MS)**&absSize=**(Total Uploaded Bytes)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/file/stream.<Stream Chunk Index>?numChunks=<Total Chunks>&time=<Total Demo Time In MS>&mTime1=<Start Time In MS>&mTime2=<End Time In MS>&absSize=<Total Uploaded Bytes>
+
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | POST | 
+| コンテンツ タイプ | アプリケーション/json |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Stream Chunk Index | The index of the current chunk of replay data being sent. | Stream chunks are not uniform in size, but they are strictly ordered by this value. |
-| Total Chunks | The total number of chunks sent so far. | This is always one greater than **Stream Chunk Index.** |
-| Total Demo Time In MS | The total running time of the demo up to the end of the current stream chunk. | Tells how much replay data, in seconds, has been uploaded so far without having to interpret binary replay data. |
-| Start Time In MS | The total running time as of the point where this stream chunk begins. | Time is in milliseconds. For streaming replays, can be used to identify which chunk a scrubbing viewer needs. |
-| End Time In MS | The total running time as of the point where this stream chunk ends. | Time is in milliseconds. For streaming replays, can be used to identify which chunk a scrubbing viewer needs. |
-| Total Uploaded Bytes | The total size of the demo up to the end of the current stream chunk. | Tells how much replay data, in bytes, has been uploaded so far. |
-Uses POST. "Content-Type" is "application/octet-stream".
-The content is binary replay data, which can be compressed. This data represents the chunk indicated by **Stream Chunk Index**. Since chunks can vary in data size as well as the length of time they cover, it is recommended that each chunk be stored in a separate file. The HTTP Streamer will attempt to flush its current stream data via this system every ten seconds. The interval between flushes can be adjusted by changing the console variable "httpReplay.ChunkUploadDelayInSeconds"
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name | アップロード中のリプレイの名前 | この名前は最初のアップロード リクエストに応答してリプレイ サーバーが提供した値に一致します。 |
+| Stream Chunk Index | 送信されているリプレイの現在のチャンクのインデックス | ストリーム チャンクのサイズは均一ではありませんが、この値によって厳密に順序付けされています。 |
+| Total Chunks | これまでに送信されたチャンクの合計数。 | 常に **Stream Chunk Index** よりもひとつ大きくなります。 |
+| Total Demo Time In MS | 現在のストリーム チャンクの終わりまでのデモの合計実行時間 | バイナリ リプレイ データを解釈する必要なしに、どれくらいのリプレイ データがこれまでにアップロードされたかを秒単位で示します。 |
+| Start Time In MS | このストリーム チャンクの開始時点での合計実行時間 | ミリ秒単位の時間です。リプレイのストリーミングでは、スクラブしているビューアがどのチャンクを必要としているかを特定するために使用することができます。 |
+| End Time In MS | このストリーム チャンクの終了時点での合計実行時間 | ミリ秒単位の時間です。リプレイのストリーミングでは、スクラブしているビューアがどのチャンクを必要としているかを特定するために使用することができます。 |
+| Total Uploaded Bytes | 現在のストリーム チャンクの終わりまでのデモの合計サイズ | どれくらいのリプレイ データがこれまでにアップロードされたかをバイト単位で示します。 
+
+### Add/Update Event
+
+リプレイ イベントの追加または更新のリクエストを送信します。コンテンツには記録するバイナリ イベント データを含みます。このデータは DemoNetDriver 経由で送信可能であり、ユーザー定義可能です。この HTTP リクエストの 2 つめのバージョンを使って既存のイベントを修正したり更新することができます。1 つめのバージョンは新規イベントを作成するために使用することができます。
+
 [REGION:note]
-To enable compression, three functions must be overridden in a child class of `FHttpNetworkReplayStreamer`:
-`SupportsCompression` must return `true`.
-`CompressBuffer` must perform compression and return `true`, except in the case of an error.
-`DecompressBuffer` must perform decompression and return `true`, except in the case of an error.
+イベントはリプレイとは別個に保存されるため、イベント名で GUID を使用します。各イベントはそれぞれが属するリプレイを認識しています。これがリプレイ自体にイベントが埋め込まれていない理由です。
 [/REGION:note]
 
----
+#### Syntax
 
 <!-- From AddOrUpdateEvent(): -->
-* **(Server URL)**replay/**(Session Name)**/event?group=**(Group Name)**&time1=**(Event Time In MS)**&time2=**(Event Time In MS)**&meta=**(Meta Tag)**&incrementSize=false
-* **(Server URL)**replay/**(Session Name)**/event/**(Session Name**)`_`**(Event Name)**?group=**(Group Name)**&time1=**(Event Time In MS)**&time2=**(Event Time In MS)**&meta=**(Meta Tag)**&incrementSize=false
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Group Name | The name of the event group containing this event. | Events can be put into groups for filtering lists, such as grouping all penalty calls in a sports title. |
-| Event Name | The GUID of the event being added or updated. | (Optional.) Information about specific, named events may be requested by viewers. If not specified, the event can still be found by listing the events in its group. |
-| Event Time In MS | The time in the replay when this event takes place. | Time is in milliseconds. Although "time1" and "time2" can be used as a begin time and an end time respectively, they are always the same value in the default HTTP Streamer. |
-| Meta Tag | Meta tag associated with this event. | Replay lists can be filtered by meta tag, if the request specifies any. **Meta Tag** will be URL-encoded by the HTTP Streamer during transmission. |
-Uses POST. "Content-Type" is "application/octet-stream" and contains binary event data to be recorded. This data can be sent through DemoNetDriver and is be user-defined. The second version of this HTTP request can be used to modify or update an existing event, whereas the first version is used to create a new event.
-[REGION:note]
-Note that events are meant to be stored separately from replays, which is why event names use GUIDs. Each event knows what replay it belongs to, which is why events are not embedded in the replays themselves.
-[/REGION:note]
 
----
+	<Server URL>replay/<Session Name>/event?group=<Group Name>&time1=<Event Time In MS>&time2=<Event Time In MS>&meta=<Meta Tag>&incrementSize=false
+~~~
+	<Server URL>replay/<Session Name>/event/<Session Name>_<Event Name>?group=<Group Name>&time1=<Event Time In MS>&time2=<Event Time In MS>&meta=<Meta Tag>&incrementSize=false
+
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | POST | 
+| コンテンツ タイプ | アプリケーション/json |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
+| --- | --- | --- |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name | アップロード中のリプレイの名前 | この名前は最初のアップロード リクエストに応答してリプレイ サーバーが提供した値に一致します。 |
+| Group Name | このイベントを含むイベント グループの名前 | イベントはリストをフィルタリングするためにグループにまとめて入れることができます。例えば、スポーツ タイトルですべてのペナルティ コールをグルーピングすることができます。 |
+| Event Name | 追加中、または更新中のイベントの GUID | (オプション) 特定の名前付きのイベントに関する情報はビューアによってリクエスト可能です。指定しなくても、グループ内でイベントをリッスンすることでイベントを見つけることができます。 |
+| Event Time In MS | このイベントが起こるリプレイ内の時間 | 時間はミリ秒単位です。"time1" は開始時間、 "time2" は終了時間として使用可能ですが、デフォルトの HTTP Streamer では常に同じ値になります。 |
+| Meta Tag | イベントに関連したメタ タグ | リプレイ リストはリクエストで指定があればメタ タグでフィルタリングすることができます。**Meta Tag** は伝送中に HTTP Streamer によって URL- エンコードされます。 |
+
+### Stop Streaming
+
+リプレイがアップロードを終了していることを示すリクエストを送信します。
+
+#### Syntax
 
 <!-- From StopUploading(): -->
-* **(Server URL)**replay/**(Session Name)**/stopUploading?numChunks=**(Total Num Chunks)**&time=**(Total Time In MS)**&absSize=**(Total Bytes Uploaded)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/stopUploading?numChunks=<Total Num Chunks>&time=<Total Time In MS>&absSize=<Total Bytes Uploaded>
+
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | POST | 
+| Content Type | application/octet-stream (no content is sent) |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Total Num Chunks | The number of chunks in the finished replay. | |
-| Total Time In MS | The total running time, in milliseconds, of the replay. | |
-| Total Bytes Uploaded | The total size, in bytes, of the replay. | |
-Uses POST. "Content-Type" is "application/octet-stream", but no content is sent with this type of request. The request itself indicates that the replay is done uploading.
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name | アップロード中のリプレイの名前 | この名前は最初のアップロード リクエストに応答してリプレイ サーバーが提供した値に一致します。 |
+| Total Num Chunks | 終了したリプレイのチャンクの数 | |
+| Total Time In MS | リプレイのミリ秒単位の合計実行時間 | |
+| Total Bytes Uploaded | リプレイのバイト単位の合計サイズ | |
 
----
+##ダウンロード リクエスト
 
-### Download Requests
+### Request Start Download
 
----
+このリクエストの目的は、ユーザー名に基づき接続を確立することでリプレイ サーバーからリプレイのダウンロードを開始することです。このリクエストが成功するとただちに HTTP Streamer はリプレイのヘッダーをダウンロードするためのリクエストを送信し、次にリプレイのすべてのチェックポイントを列挙するようにさらにリクエストを送信します。 
+
+#### Syntax
 
 <!-- From StartStreaming(): -->
-* **(Server URL)**replay/**(Session Name)**?shouldKeep=**(Should Keep)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Should Keep | "true" or "false" | Indicates whether or not the replay being sent should be saved. |
-Uses POST. "Content-Type" is "application/json" but is empty. This request is intended for debug purposes, and is not called in the existing code.
 
----
+	<Server URL>replay/<Session Name>/startDownloading?user=<User Name>
 
-<!-- From StartStreaming(): -->
-* **(Server URL)**replay/**(Session Name)**/startDownloading?user=**(User Name)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being downloaded. | This name will match the value that the server provided when the replay was originally uploaded. |
-| User Name | Unique Net Id (GUID) | The preferred network GUID that is logged into the client machine. This value comes from the engine and is not intended to be user-supplied. |
-Uses POST. Does not send content. The purpose of this request is to start downloading a replay from the replay server by establishing a connection based on the user name. Immediately after this request goes through successfully, the HTTP Streamer will send a request to download the replay's header, and then another to enumerate all checkpoints in the replay. The expected response to this request is of type `FNetworkReplayStartDownloadingResponse`, which contains JSON data.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| State | String | The word "Live", to indicate that the game being viewed is happening live. Otherwise, the replay is assumed to be pre-recorded. |
-| NumChunks | Integer | This is expected to be nonzero, and can be updated as streaming continues (used for live replays). |
-| Time | Integer | The total time (in MS) of the replay. Subject to change if **State** indicated that this is a live stream. |
-| ViewerId | String | A unique, name assigned by the replay server that the game server will use when requesting further chunks of replay data. Often referred to as **Viewer Name** in this document. |
+#### Details
 
----
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | POST | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
+| --- | --- | --- |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name | ダウンロード中のリプレイの名前。 | この名前はリプレイが当初アップロードされたときのサーバーの値に一致します。 |
+| User Name | Unique Net Id (GUID) | クライアント マシンにログインする望ましいネットワークの GUID。この値はエンジンからのものであり、ユーザーが指定するものではありません。 |
+
+#### Response
+
+このリクエストに対して求められる応答のタイプは、`FNetworkReplayStartDownloadingResponse` であり JSON データを含みます。
+
+| 名前 | 種類 | 内容 |
+| --- | --- | --- |
+| State | String | "Live" という言葉は、視聴中のゲームがライブであることを示しています。そうでなければ、リプレイは事前録画されています。 |
+| NumChunks | Integer | ゼロ以外になり、ストリーミングの継続にともない更新されます (ライブのリプレイで使用)。 |
+| Time | Integer | リプレイの合計時間 (ミリ秒単位)。**State** がライブ ストリームであることを示していれば変更される可能性があります。 |
+| ViewerId | String | リプレイ サーバーによって割り当てられる一意の名前です。この名前は、ゲーム サーバーがさらにリプレイ データのチャンクをリクエストする場合に使用します。このドキュメントでは多くの場合 **Viewer Name** と呼びます。 |
+
+### Request Header
+
+#### Syntax
 
 <!-- From DownloadHeader(): -->
-* **(Server URL)**replay/**(Session Name)**/file/replay.header
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being downloaded. | This name will match the value that the replay server provided when the replay was originally uploaded. |
-Uses GET. Expects a response with the replay's header in the content portion, as binary data.
 
----
+	<Server URL>replay/<Session Name>/file/replay.header
+
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | GET | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
+| --- | --- | --- |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name | ダウンロード中のリプレイの名前 | この名前はリプレイが当初アップロードされたときにリプレイ サーバーが提供した値に一致します。 |
+
+#### Response
+
+コンテンツ部分のリプレイのヘッダーをバイナリデータとして応答することが求められます。
+
+### Request Checkpoint Data
+
+#### Syntax
 
 <!-- From EnumerateCheckpoints(): -->
-* **(Server URL)**replay/**(Session Name)**/event?group=checkpoint
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/event?group=checkpoint
+
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | GET | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being downloaded. | This name will match the value that the replay server provided when the replay was originally uploaded. |
-Uses GET. Expects a response of type `FHttpResponsePtr` containing checkpoint data as a JSON-formatted string.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name | ダウンロード中のリプレイの名前 | この名前はリプレイが当初アップロードされたときにリプレイ サーバーが提供した値に一致します。 |
+
+#### Response
+
+チェックポイント データを含む `FHttpResponsePtr` タイプの JSON 形式の文字列の応答が求められます。
+
+| 名前 | 種類 | 内容 |
 | --- | --- | --- |
-| events | Array | Contains array entries which consist of all the other fields in this table. |
-| id | String | The name (a GUID) of the checkpoint. |
-| group | String | The group to which the event belongs, if any. |
-| meta | String | Meta Tag string associated with this event, if any. |
-| time1 | Integer | Start time (in MS) of the event. |
-| time2 | Integer | End time (in MS) of the event. Often the same as the start time. |
+| events | Array | この表の他のすべてのフィールドからなる配列エントリを含みます。 |
+| id | String | チェックポイント (GUID) の名前。 |
+| group | String | イベントが属するグループがあればそのグループ。 |
+| meta | String | イベントに関連する Meta Tag 文字列があればその文字列 |
+| time1 | Integer | イベントの開始時間 (ミリ秒単位)。 |
+| time2 | Integer | イベントの終了時間 (ミリ秒単位)。多くの場合、開始時間と同じ。 |
+
 [REGION:note]
-Note that this is technically a generic request for a group of events. While "checkpoint" is explicitly specified here, the replay server should be able to handle other values for "group" and report all events for any given group.
+これは技術的にはイベントのグループに対する汎用的なリクエストです。「チェックポイント」はここで明示的に指定しますが、リプレイ サーバーはグループに対して他の値を処理することが可能であり、任意のグループに対してすべてのイベントを報告します。
 [/REGION:note]
 
----
+### Request Stream Chunk
+
+これはビューアによって名前が付けられた特定のストリーム チャンクに対するリクエストです。既にダウンロード中のチャンクがある場合は、このリクエストは送信されません。 
+
+#### Syntax
 
 <!-- From ConditionallyDownloadNextChunk(): -->
-* **(Server URL)**replay/**(Session Name)**/file/stream.**(Stream Chunk Index)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/file/stream.<Stream Chunk Index>
+
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | GET | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being downloaded. | This name will match the value that the replay server provided when the replay was originally uploaded. |
-| Stream Chunk Index | The index of the current chunk of replay data being requested. | Stream chunks are not uniform in size, but they are strictly ordered by this value. |
-Uses GET. This is a request for a specific stream chunk, named by the viewer. This request will not be sent while there is a chunk already being downloaded. The expected response has a header with some information about the chunk, and its content is a binary chunk of replay data. The binary data can be compressed, if compression is supported. The following fields are expected in the header:
-| Header Field Name | Description |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Session Name | ダウンロード中のリプレイの名前 | この名前はリプレイが当初アップロードされたときにリプレイ サーバーが提供した値に一致します。 |
+| Stream Chunk Index | リクエスト中のリプレイ データの現在のチャンクのインデックス。 | ストリーム チャンクのサイズは均一ではありませんが、この値によって厳密に順序付けされています。 |
+
+#### Response
+
+求められる応答はチャンクに関する情報を含むヘッダーであり、その内容はリプレイ データのバイナリ チャンクです。圧縮がサポートされている場合はバイナリ データは圧縮可能です。ヘッダーでは以下のフィールドが求められます。
+
+| ヘッダー フィールド名| 説明 |
 | --- | --- |
-| NumChunks | The total number of chunks in the stream. This can be useful with streamed games, as it lets the user know about new chunks that have been created while viewing. |
-| Time | The total length of the replay (in MS). As with NumChunks, this value can change during the viewing session if the replay is live. |
-| State | This variable has one recognized value, "Live". If this variable is missing or is a different value, the streamer will switch to non-live streaming mode. |
-| MTime1 | The start time of the stream, in MS. Can be non-zero for live replay streams. This variable will only be checked if a chunk of data sent, and either this is the first chunk the streamer has downloaded, or the stream is live. |
-| MTime2 | The end time of the stream, in MS. Can change as more chunks come in. This variable will always be checked if a chunk of data is sent, or if the replay is live. |
+| NumChunks | ストリームのチャンクの合計数。これはストリーミングしたゲームで役立ちます。視聴中に作成された新しいチャンクに関する情報をユーザーが知ることができるからです。 |
+| Time | リプレイの合計時間 (ミリ秒単位)。NumChunks の値はリプレイがライブの場合に視聴しているセッション中に変わることがあります。 |
+| State | この変数には "Live" という認められた値があります。この変数が欠落しているか、異なる値の場合は、ストリーマーはライブ以外のストリーミング モードに切り替わります。
+| MTime1 | ストリームの開始時間 (ミリ秒単位)。ライブ リプレイのストリームではゼロ以外です。この変数はデータのチャンクが送信される場合にのみチェックされ、これがストリーマーがダウンロードした最初のチャンクであるか、このストリームがライブであるかのいずれかです。 |
+| MTime2 | ストリームの終了時間 (ミリ秒単位)。さらに多くのチャンクが入ってくると変わることがあります。この変数はデータのチャンクが送信されるか、リプレイがライブの場合に常にチェックされます。 |
+
 [REGION:note]
-To enable compression, three functions must be overridden in a child class of `FHttpNetworkReplayStreamer`:
-`SupportsCompression` must return `true`.
-`CompressBuffer` must perform compression and return `true`, except in the case of an error.
-`DecompressBuffer` must perform decompression and return `true`, except in the case of an error.
+圧縮を有効にするには、`FHttpNetworkReplayStreamer`: の子クラスで 3 つの関数をオーバーライドしなければなりません。
+
+* `SupportsCompression` は `true` を戻さなければなりません。
+* `CompressBuffer` はエラーの場合を除いて圧縮を実行し、 `true` を戻さなければなりません。
+* `DecompressBuffer` はエラーの場合を除いて解凍を実行し、 `true` を戻さなければなりません。
 [/REGION:note]
 
----
+### Enumerate Events for Replay
+
+DemoNetDriver から直接呼び出すことができまるため、ゲーム プロジェクトがいつでもこれを行うことができます。このリクエストでは、リプレイ サーバーに対して特定のリプレイ (**Session Name** で特定) に関するすべてのイベントのリストを送信することを求め、特定のイベント グループによってフィルタリングされます。空のグループ名および "group" の引数の欠如をサポートすることをお勧めします。 
+
+#### Syntax
 
 <!-- From EnumerateEvents(): -->
-* **(Server URL)**replay/**(Session Name)**/event?group=**(Group Name)**"
-Uses GET. Can be called directly from DemoNetDriver, meaning your game project can do this at any time. This request asks the replay server to send a list of all events pertaining to a specific replay (identified by **Session Name**) and filtered by a certain event group. It is recommended that empty group names, as well as a lack of the "group" argument, be supported. Content received in response to this request is expected to be a JSON-formatted string corresponding to `FReplayEventList` and `FReplayEventListItem`.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| events | Array | Contains elements which consist of all the other fields in this table. |
-| id | String | The name (a GUID) of the checkpoint. |
-| group | String | The group to which the event belongs, if any. |
-| meta | String | Meta Tag string associated with this event, if any. |
-| time1 | Integer | Start time (in MS) of the event. |
-| time2 | Integer | End time (in MS) of the event. Often the same as the start time. |
+	
+	<Server URL>replay/<Session Name>/event?group=<Group Name>"
+						
+#### Details
 
----
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | GET | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### Response
+
+このリクエストに応答して受け取ったコンテンツは`FReplayEventList` と `FReplayEventListItem` に対応する JSON- 形式の文字列になることを求められます。
+
+| 名前 | 種類 | 内容 |
+| --- | --- | --- |
+| events | Array | この表の他のすべてのフィールドからなるエレメントを含みます。 |
+| id | String | チェックポイント (GUID) の名前。 |
+| group | String | イベントが属するグループがあればそのグループ。 |
+| meta | String | イベントに関連する Meta Tag 文字列があればその文字列 |
+| time1 | Integer | イベントの開始時間 (ミリ秒単位)。 |
+| time2 | Integer | イベントの終了時間 (ミリ秒単位)。多くの場合、開始時間と同じ。 |
+
+### Refresh Viewer
+
+このリクエストは 10 秒毎に送信されるハートビートです。この頻度は現在ハード コーディングされていますが、将来的にはコード変更なしにユーザー設定可能になりそうです。ビューアがこのリクエストの送信に長時間失敗すると (例えば 1 分間)、ビューアの接続は予期せず切断される可能性が高くなり、この切断は妥当なものといえます。"final=true" バージョンが送信されると、これが最後のハートビートであることを示しており、ユーザーはリプレイの視聴を停止しています。
+
+#### Syntax
 
 <!-- From RefreshViewer(): -->
-* **(Server URL)**replay/**(Session Name)**/viewer/**(Viewer Name)**
-* **(Server URL)**replay/**(Session Name)**/viewer/**(Viewer Name)**?final=**(Final Heartbeat)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/viewer/<Viewer Name>
+~~~
+	<Server URL>replay/<Session Name>/viewer/<Viewer Name>?final=<Final Heartbeat>
+
+
+#### Details
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | POST | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Final Heartbeat | "true" or "false" | By default, "final" will not be sent unless **Final Heartbeat** is true. If true, the viewer has stopped watching and no further data should be sent. |
-Uses POST. Does not send content.
-This request is a heartbeat, sent every ten seconds. This frequency is currently hard-coded, but will likely be made user-configurable without code changes in the future. If a viewer fails to send this request for a long period of time (perhaps one minute), then the viewer has most likely disconnected unexpectedly and it would be reasonable to disconnect them. If the "final=true" version is sent, the user is indicating that this is the final heartbeat, and the user has stopped watching the replay.
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Final Heartbeat | "true" または "false" | デフォルトで "final" は、**Final Heartbeat** が true でない限り送信されません。true の場合、ビューアは視聴を停止し、それ以上データは送信されません。 |
 
----
+## 検索リクエスト
 
-### Search Requests
+### Search Replays
 
----
+リプレイ サーバーが送信可能な全リプレイのリストをリクエストします。こうしたリプレイは、URL でユーザーのクライテリアによって事前にフィルタリングされます。リプレイ サーバーは空または欠落しているフィルター フィールドの一部を処理できます。
+
+#### Syntax
 
 <!-- From EnumerateStreams(): -->
-* **(Server URL)**replay?app=**(Replay Version AppString)**&cl=**(Replay CL)**&version=**(Replay Network Version)**&meta=**(Meta Tag)**&user=**(User Name)**&recent=**(In Recent Viewer)**"
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Replay Version AppString | A user-defined string that describes the game being played. | This value was sent when the user began uploading the replay, and is now being used for filtering the list of replays sent to the potential viewer. |
-| Replay CL | The changelist of the build being played. | This value is used for filtering lists of replays. |
-| Replay Network Version | A user-defined string that describes the version of the game being played. | This value should reflect changes in your game's data formats as they affect replay. It is also used for filtering lists of replays. |
-| Meta | Tags applied to this replay. | User-applied meta tags can be used for filtering games that have certain features. This could be anything from "all Capture The Flag matches" to to "games that went into double-overtime". |
-| User | Unique Net Id (GUID) | This is used to filter games based on their inclusion of a specific player. |
-| Recent | "true" or "false" | If true, only recently-uploaded replays should be shown. What defines "recent" is up to the replay server. |
-Uses GET. Expects a response with content in the form of a JSON-formatted string, containing a list of replays that the replay server can send. These replays are expected to be pre-filtered by the user's criteria in the URL. The replay server should be able to handle some of the filter fields being empty or missing.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| replays | Array | Contains elements which consist of all the other fields in this table. |
-| AppName | String | The **Replay Version AppString** that was sent when the replay was uploaded. Should match the parameter you sent with the request. |
-| SessionName | String | The name (GUID) of the replay. |
-| FriendlyName | String | The **(Platform Friendly Name)** that was provided when the replay was uploaded. |
-| Timestamp | DateTime | The time and date associated with the replay (i.e. when this game happened). |
-| SizeInBytes | Integer | Total size, in bytes, of the replay. |
-| DemoTimeInMs | Integer | Running length, in MS, of the replay. |
-| NumViewers | Integer | Number of users currently watching this replay. |
-| bIsLive | Boolean | True if the game in the replay is still being played. |
-| Changelist | Integer | The changelist (CL) of the engine running the game when this replay was recorded. Corresponds to the **Replay CL** argument sent when uploading the replay. Should match the parameter you sent with the request. |
-| shouldKeep | Boolean | True if the debug "shouldKeep" request was made. |
 
----
+	<Server URL>replay?app=<Replay Version AppString>&cl=<Replay CL>&version=<Replay Network Version>&meta=<Meta Tag>&user=<User Name>&recent=<In Recent Viewer>"
+								
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | GET | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
+| --- | --- | --- |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Replay Version AppString | プレイ中のゲームを表すユーザー定義の文字列です。 | この値は、ユーザーがリプレイのアップロードを開始すると送信され、潜在的ビューアに送るリプレイのリストをフィルタリングするために使用されています。 |
+| Replay CL | プレイ中のビルドのチェンジリスト | この値はリプレイのリストをフィルタリングするために使われます。 |
+| Replay Network Version | プレイ中のゲームのバージョンを示すユーザー定義の文字列です。 | この値はリプレイに影響を及ぼすため、ゲームのデータ形式の変更を反映するようにします。リプレイのリストをフィルタリングするためにも使用されます。 |
+| Meta | このリプレイに適用されるタグです。 | ユーザーが適用したメタ タグは、特定の機能を持つゲームをフィルタリングするために使用することができます。これは "all Capture The Flag matches" から "games that went into double-overtime" まで何でも可能です。 |
+| User | Unique Net Id (GUID) | 特定のプレイヤーを含むことに基づきゲームをフィルタリングするために使用します。 |
+| Recent | "true" または "false" | true の場合、最近アップロードしたリプレイだけが表示されます。最近が何を意味するかはリプレイ サーバー次第です。 |
+
+#### Response
+
+JSON-形式の文字列のコンテンツでの応答が求められます。
+
+| 名前 | 種類 | 内容 |
+| --- | --- | --- |
+| replays | Array | この表の他のすべてのフィールドからなるエレメントを含みます。 |
+| AppName | String | リプレイがアップロードされたときに送信された **Replay Version AppString**。リクエストと共に送信したパラメータと一致します。 |
+| SessionName | String | リプレイの名前 (GUID) |
+| FriendlyName | String | リプレイのアップロード時に与えられた <Platform Friendly Name> |
+| Timestamp | DateTime | リプレイに関連付けられた日時 (すなわち、このゲームが行われたとき) |
+| SizeInBytes | Integer | リプレイのバイト単位の合計サイズ |
+| DemoTimeInMs | Integer | リプレイのミリ秒単位の実行の長さ |
+| NumViewers | Integer | このリプレイを現在視聴しているユーザー数 |
+| bIsLive | Boolean | リプレイのゲームがプレイ中であれば true になります。 |
+| Changelist | Integer | リプレイが記録されたときにゲームを実行していたエンジンのチェンジリスト (CL) です。リプレイのアップロード時に送信された **Replay CL** 引数に対応します。リクエストと共に送信したパラメータと一致します。 |
+| shouldKeep | Boolean | デバッグの "shouldKeep" リクエストがあった場合に true になります。 |
+
+### Search Replays by Event
+
+サーバーからのリプレイのリストのリクエストを送信します。こうしたリプレイは名前を付けた **Event Group** に少なくともひとつのイベントがあるものだけが対象になるようにプリフィルタリングされます。
+
+#### Syntax
 
 <!-- From SearchEvents(): -->
-* **(ServerURL)**event?group=**(Event Group)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Group Name | The name of the event group containing this event. | Events can be put into groups for filtering lists, such as grouping all penalty calls in a sports title. |
-Uses GET. Expects a response with content as a JSON-formatted string containing a list of replays from the server. These replays are expected to be pre-filtered to include only those that contain at least one event in the named **Event Group**.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| replays | Array | Contains elements which consist of all the other fields in this table. |
-| AppName | String | The **Replay Version AppString** that was sent when the replay was uploaded. |
-| SessionName | String | The name (GUID) of the replay. |
-| FriendlyName | String | The **(Platform Friendly Name)** that was provided when the replay was uploaded. |
-| Timestamp | DateTime | The time and date associated with the replay (i.e. when this game happened). |
-| SizeInBytes | Integer | Total size, in bytes, of the replay. |
-| DemoTimeInMs | Integer | Running length, in MS, of the replay. |
-| NumViewers | Integer | Number of users currently watching this replay. |
-| bIsLive | Boolean | True if the game in the replay is still being played. |
-| Changelist | Integer | The changelist (CL) of the engine running the game when this replay was recorded. Corresponds to the **Replay CL** argument sent when uploading the replay. |
-| shouldKeep | Boolean | True if the debug "shouldKeep" request was made. |
 
----
+	<ServerURL>event?group=<Event Group>
+								
+#### Details
+
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | GET | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
+| --- | --- | --- |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Event Group | このイベントを含むイベント グループの名前 | イベントはリストをフィルタリングするためにグループにまとめて入れることができます。例えば、スポーツ タイトルですべてのペナルティ コールをグルーピングすることができます。 |
+
+#### Response
+
+サーバーからのリプレイのリストを含む JSON 形式の文字列としてのコンテンツの応答が求められます。
+
+| 名前 | 種類 | 内容 |
+| --- | --- | --- |
+| replays | Array | この表の他のすべてのフィールドからなるエレメントを含みます。 |
+| AppName | String | リプレイがアップロードされたときに送信された **Replay Version AppString** です。 |
+| SessionName | String | リプレイの名前 (GUID) |
+| FriendlyName | String | リプレイのアップロード時に与えられた <Platform Friendly Name> |
+| Timestamp | DateTime | リプレイに関連付けられた日時 (すなわち、このゲームが行われたとき) |
+| SizeInBytes | Integer | リプレイのバイト単位の合計サイズ |
+| DemoTimeInMs | Integer | リプレイのミリ秒単位の実行の長さ |
+| NumViewers | Integer | このリプレイを現在視聴しているユーザー数 |
+| bIsLive | Boolean | リプレイのゲームがプレイ中であれば true になります。 |
+| Changelist | Integer | リプレイが記録されたときにゲームを実行していたエンジンのチェンジリスト (CL) です。リプレイのアップロード時に送信された **Replay CL** 引数に対応します。 |
+| shouldKeep | Boolean | デバッグの "shouldKeep" リクエストがあった場合に true になります。 |
+
+### Request Replay
+
+これは DemoNetDriver から直接呼び出されます。そのため、いつでもゲーム プロジェクトから行うことができます。しかし、通常は前のリクエストで提供されたリストからの **Event Name** を使ってリプレイを視聴中に呼び出されます。
+
+#### Syntax
 
 <!-- From RequestEventData(): -->
-* **(Server URL)**event/**(Event Name)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Event Name | The GUID of the event requested. | Since events are identified by GUID, the event can be from any replay on file. Make sure that the event you request is from a list of events pertaining to the replay you are currently watching. |
-Uses GET. Expects a response with Content as a binary stream from the replay server. This is called directly from the DemoNetDriver, so it can be done from the game project at any time, but will usually be called while viewing a replay with an **Event Name** retrieved from a list provided by a previous request.
+	
+	<Server URL>event/<Event Name>
+								
+#### Details
 
----
+[REGION:simpletable]
+| アイテム | 値 |
+| ---- | ----- |
+| リクエスト メソッド | GET | 
+| コンテンツ タイプ | None |
+[/REGION]
+
+#### パラメータ
+
+|エレメント | 値 | 用途 / 注意事項|
+| --- | --- | --- |
+| Server URL | リプレイ サーバーの URLです。DefaultEngine.Ini からのものを無修正で使用 | URL の最後の "/" は、必ず含めるようにします。自動的には追加されません。 |
+| Event Name | リクエストされたイベントの GUID です。 | イベントは GUID によって特定されるため、イベントはファイル上のどのリプレイからでも可能です。リクエストするイベントが現在視聴中のリプレイに関するイベント リストからのものであるようにしてください。
+
+#### Response
+
+リプレイ サーバーからのバイナリ ストリームとしてのコンテンツでの応答が求められます。

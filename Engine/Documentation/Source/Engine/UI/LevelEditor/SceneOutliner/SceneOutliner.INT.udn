@@ -4,26 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:Hierarchical tree-view of all Actors within the current level used for selection, attachment, and more.
 Version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/Details "%Engine/UI/LevelEditor/Details:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [TOC(start:2)]
 
 
@@ -62,6 +42,3 @@ Double quotes can be placed around the search term to force an exact match of th
 ![Scene Outliner Search - Verbatim Match](outliner_search_verbatim.png)
 
 When the **Info** columns are shown, the data within them can be searched as well. This is really useful if you want to display Actors in a certain level; just turn on the Level display and type "+[LevelName]" in the search box.
-
-
-%playlistnav%

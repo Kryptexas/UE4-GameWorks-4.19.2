@@ -1,6 +1,6 @@
-Availability:Docs
+Availability:Public
 Title: Forward Shading Renderer for VR
-Crumbs: %ROOT%, Engine, Engine/Performance
+Crumbs:
 Description:Describes the advantages of using the Forward Shading Renderer for increased VR performance.
 type: overview
 version: 4.14
@@ -14,26 +14,32 @@ related: Engine/Performance
 related: Engine/Performance/GPU
 related: Engine/Rendering
 
-[REGION:banner]
-![](ForwardRenderingBanner.png)
-[/REGION]
-
 [REGION:warning]
 This feature is currently considered experimental and some aspects may not work as expected or may be altered in future updates. 
 [/REGION]
 
-[EXCERPT:intro]
-By default, Unreal Engine 4 uses a Deferred Renderer as it provides the most versatility and grants access to more rendering features. 
-However, there are some trade-offs in using the Deferred Render that might not be right for all VR experiences. 
-**Forward Rendering** provides a faster baseline with faster rendering passes which may lead to better performance on VR platforms. 
-Not only is Forward Rendering faster, it also provides better anti-aliasing options than the Deferred Render which may lead to more crisp visuals. 
-[/EXCERPT]
+[REGION:banner]
+![](ForwardRenderingBanner.png)
+[/REGION]
 
 [TOC(start:2 end:2)]
 
+[EXCERPT:intro]
+By default, Unreal Engine 4 uses a Deferred Renderer as it provides the most versatility and grants access to more rendering features. 
+However, there are some trade-offs in using the Deferred Renderer that might not be right for all VR experiences. 
+**Forward Rendering** provides a faster baseline, with faster rendering passes, which may lead to better performance on VR platforms. 
+Not only is Forward Rendering faster, it also provides better anti-aliasing options than the Deferred Renderer, which may lead to better visuals. 
+[/EXCERPT]
+
 ## Enabling Forward Shading
 
-To enable the Forward Shading Renderer, open your **Project Settings** then under **Rendering**, enable **Forward Shading**. 
+To enable the Forward Shading Renderer:
+
+1. In the **Edit** menu, open the **Project Settings**.
+
+1. Select the **Rendering** tab on the left and locate the **Forward Shading** category.
+
+1. Enable **Forward Shading**.
 
 ![](EnableForwardShading.png)
 
@@ -41,7 +47,13 @@ You will be prompted to restart the editor where after the restart, you can begi
 
 ## Enabling Multisample Anti-Aliasing
 
-To use Multisample Anti-Aliasing (MSAA), open your **Project Settings** then under **Rendering** and **Default Settings**, change the **Anti-Aliasing Method** to **MSAA**.
+To use Multisample Anti-Aliasing (MSAA):
+
+1. In the **Edit** menu, open the **Project Settings**.
+
+1. Select the **Rendering** tab on the left and locate the **Default Settings** category.
+
+1. Set the **Anti-Aliasing Method** property to **MSAA**.
 
 ![](EnableMSAA.png)
 
@@ -96,22 +108,23 @@ This list comprises the currently supported features of the Forward Renderer:
 * Planar Reflections of a partial scene composited into Reflection Captures
 * DBuffer Decals
 * Precomputed Lighting and Sky Lights
-* Unshadowed Movable Lights
+* Any number of unshadowed Movable Lights
 * Capsule Shadows
 * Alpha-to-coverage for Masked Materials
 * Instanced Stereo Compatible
+* Up to 4 overlapping Shadow Casting Movable Lights
+* Light Functions on shadow casting lights
 
 ## Known Issues & Common Questions
 
 The following features are **not yet supported** while using the Forward Renderer: 
 
 * Screen Space Techniques (SSR, SSAO, Contact Shadows)
-* Shadow Casting Movable Lights
 * Dynamically Shadowed Translucency
 * Translucency receiving environment shadows from a Stationary Light
-* Light Functions and IES Profiles
-* Alpha-to-coverage
-* MSAA on D-Buffer Decals, Motion Blur, Dynamic Shadows and Capsule Shadows
+* MSAA on D-Buffer Decals and Motion Blur
+
+
 
 Below are some common questions/issues that may arise when using the experimental version of the Forward Renderer. 
 
@@ -120,8 +133,6 @@ Below are some common questions/issues that may arise when using the experimenta
 * **Does the Forward Renderer allow fewer texture samples than the Deferred Render?** 
 	* The Forward Renderer packs all features into one shader so there are fewer texture samplers available for your material. 
 	* You can usually solve this by using Shared Samplers. 
-* **Does Forward Rendering MSAA support alpha to coverage for alpha masked materials?** 
-	* This is on our radar, however, in this experimental release, MSAA does not support alpha to coverage in 4.14.
 * **How come I have issues with MSAA not being able to find samples against Atmospheric Fog?** 
 	* Atmospheric Fog does not handle MSAA correctly yet. 
 	* For Height Fog, you can get around with Vertex Fogging (which is enabled by default when enabling Forward Shading). 

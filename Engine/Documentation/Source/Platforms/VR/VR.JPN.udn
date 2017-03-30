@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3340158
 Availability:Public
-Title:バーチャル リアリティの開発
+Title:VR を開発する
 Crumbs:%ROOT%, Platforms
-Description:バーチャル リアリティの開発に関する情報
+Description:VR 用プラットフォームの開発に関する情報
 Navigation:platform
 Version:4.9
-type:landing
+Type:landing
 parent:Platforms
 order:2
 
@@ -43,7 +43,7 @@ order:2
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-vr
+VR
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -51,15 +51,15 @@ vr
 
 ## はじめよう
 
-[DIR(output:"listbutton" type:"quickstart" tags:"vr")]
+[DIR(output:"topic" type:"quick start" tags:"vr")]
 
-バーチャル リアリティ プラットフォーム
+## VR 用プラットフォーム
 
-[DIR(end:"1" output:"listbutton" type:"landing" parent:"Platforms/VR")]
+[DIR(end:"1" output:"listbutton" type:"landing" tags:"platform" parent:"Platforms/VR")]
 
-バーチャル リアリティのトピックス
+## VR に関するトピックス
 
-[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/VR")]
+[DIR(end:"1" output:"listbutton" parent:"Platforms/VR" tags:"!platform")]
 
 ## トレーニング ストリーム
 

@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3206329
 Availability:Public
-TItle:Ansel Capture Testing
-Description:Overview of the Unreal Engine 4 integration of Nvidia's Ansel in-game photography tool that enables capturing and sharing enhanced images from games
+TItle:Ansel 캡처 테스팅
+Description:게임에서 향상된 이미지를 캡처하고 공유할 수 있도록 해주는 Nvidia Ansel 인게임 포토그라피 툴의 언리얼 엔진 4 통합에 대한 개요입니다.
 Crumbs:
 Parent:Engine/Plugins/Ansel
 Order:1
@@ -11,105 +11,54 @@ tags:Ansel
 version:4.14
 topic-image:Ansel_Testing_Topic.png
 
-**To test the Nvidia Ansel Photography Plugin with your game:**
+**게임에 Nvidia Ansel Photography 플러그인을 테스트하는 방법은 다음과 같습니다:**
 
-1. Run the NvCameraConfiguration.exe application and ensure that **NvCamera Status** is set to _Enable_, which is the default.
+1. NvCameraConfiguration.exe 어플리케이션을 실행시키고 **NvCamera Status** 가 _Enable_ (기본값) 설정되어 있는지 확인합니다.
 
 		C:\Program Files\NVIDIA Corporation\Ansel\Tools\NvCameraConfiguration.exe
 
-1. Run the CameraEnable.exe application passing it `whitelisting-everything` to allow your game to use Ansel. This persists across reboots and may be reset by typing `whitelisting-default` in place of `whitelisting-everything`.
+1. NvCameraEnable.exe 에 `whitelisting-everything` 을 붙이고 실행시켜 게임에서 Ansel 을 사용할 수 있도록 합니다. 이 옵션은 리부팅해도 계속 유지되며, `whitelisting-everything` 대신 `whitelisting-default` 를 붙여 리셋시킬 수 있습니다.
 
-		"C:\Program Files\NVIDIA Corporation\Ansel\Tools\CameraEnable.exe" whitelisting-everything
+		"C:\Program Files\NVIDIA Corporation\Ansel\Tools\NvCameraEnable.exe" whitelisting-everything
 
-1. In Unreal Editor, select **Play > Standalone Game** in the Level Editor toolbar to run as a Standalone Game. Ansel will not activate when playing in the Editor.
+1. 언리얼 에디터의 레벨 에디터 툴바에서 **플레이 > 독립형 게임** 을 선택하여 독립형 게임으로 실행시킵니다. 에디터에서 플레이할 때 Ansel 은 활성화되지 않을 것입니다.
 
-1. Press **Alt + F2** to activate Ansel photography in the game. When a Session has been successfully started, the game world pauses and the Ansel UI will appear over the game view.
+1. **Alt + F2** 키를 눌러 게임에서 Ansel 포토그라피를 활성화시킵니다. 세션이 성공적으로 시작되면, 게임 월드는 일시정지되고 Ansel UI 가 게임 뷰 위에 나타납니다.
 
 	![](Engine/Plugins/Ansel/Testing/unlit.png)(w:640)
 
 	[REGION:note]
-	Ansel will not activate while VR or Split-screen are active in the game
+	게임이 VR 또는 분할화면 모드일 때 Ansel 은 활성화되지 않습니다.
 	[/REGION]
 
 	[REGION:note]
-	In Editor builds, **F2** is the keybinding that switches to Unlit rendering mode.  To restore the more photo-friendly Lit mode, press **F3**.
+	에디터 빌드에서, **F2** 키를 누르면 라이팅제외 렌더링 모드로 전환됩니다. 보다 실사에 적합한 라이팅포함 모드로 돌아가는 키는 **F3** 입니다.
 	[/REGION]
 
-1. Select a capture type using the **Capture type** slider. 
+1. **Capture type** 슬라이더로 캡처 유형을 선택합니다.
 
-1. Press the **Snap** button. 
+1. **스냅** 버튼을 누릅니다.
 
 	[REGION:note]
-	Some pictures may take significant time to produce, especially highres shots of large dimensions. If the game uses streaming the streaming performance may be affected when shots involving many parts are being stitched together.
+	어떤 스크린 샷, 특히 크기가 큰 고해상도 샷의 경우, 만드는 데 시간이 매우 오래 걸릴 수 있습니다. 게임에서 스트리밍을 사용하는 경우, 여러 부분을 이어 붙여야 하는 샷의 스트리밍 퍼포먼스에 영향을 끼칠 수 있습니다.
 	[/REGION]
 
 
-## In-Game Controls
+## 게임 내 조작법
 
-| Keyboard / Mouse | Gamepad | Description |
+| 키보드 / 마우스 | 게임패드 | 설명 |
 | --- | --- | --- |
-| [REGION:tablesection]Camera Movement[/REGION] |||
-| W | Left Analog Stick Up | Moves the Camera forward |
-| A | Left Joystick Left | Moves the Camera left |
-| S | Left Joystick Down | Moves the Camera backward |
-| D | Left Joystick Right | Moves the Camera right |
-| X | Left Trigger | Moves the Camera up |
-| Y | Right Trigger | Moves the Camera down |
-| Shift (Hold) | Right Analog Stick (Press) | Accelerates Camera movement speed |
-| [REGION:tablesection]Camera Movement[/REGION] |||
-| Left-Click + Move Mouse | Right Analog Stick | Rotates the Camera (yaw and pitch) |
+| [REGION:tablesection]Camera Movement (카메라 이동)[/REGION] |||
+| W | 왼쪽 아날로그 스틱 위 | 카메라를 앞으로 이동합니다. |
+| A | 왼쪽 조이스틱 왼쪽 | 카메라를 왼쪽으로 이동합니다. |
+| S | 왼쪽 조이스틱 아래 | 카메라를 뒤로 이동합니다. |
+| D | 왼쪽 조이스틱 오른쪽 - 카메라를 오른쪽으로 이동합니다 |
+| X | 왼쪽 트리거 | 카메라를 위로 이동합니다. |
+| Y | 오른쪽 트리거 | 카메라를 아래로 이동합니다. |
+| Shift (유지) | 오른쪽 아날로그 스틱 (누름) | 카메라 이동 속도를 가속합니다. |
+| [REGION:tablesection]카메라 이동[/REGION] |||
+| 좌클릭 + 마우스 이동 | 오른쪽 아날로그 스틱 - 카메라를 회전시킵니다 (yaw, pitch) |
 
-## Capture Types
-
-Ansel offers the following capture types:
-
-| Capture Type | Example | Description |
-| --- | --- | --- |
-| **Screenshot** | [REGION:lightbox][![](capture_normal.png)(w:320)](capture_normal.png)[/REGION] | A standard screenshot using the current viewport resolution |
-| **Superresolution** | [REGION:lightbox][![](capture_super.jpg)(w:320)](capture_super.jpg)[/REGION] | A high resolution screenshot using a configurable multiple of the current viewport resolution |
-| **360** | [REGION:lightbox][![](capture_360.jpg)(w:320)](capture_360.jpg)[/REGION] | A 360 degree view screenshot using a configurable resolution |
-| **Stereo** | [REGION:lightbox][![](capture_stereo.jpg)(w:320)](capture_stereo.jpg)[/REGION] | A stereo screenshot using the current viewport resolution for each viewpoint |
-| **360 Stereo** | [REGION:lightbox][![](capture_360stereo.jpg)(w:320)](capture_360stereo.jpg)[/REGION] | A 360 degree view stereo screenshot using a configurable resolution  |
-
-
-[REGION:note]
-Not all filters are valid with multipart Capture types, e.g. 360 and Highres. You may therefore see filters, or aspects of a filter, removed in the final picture.
-
-Similarly, not all UE4 postprocessing effects are valid with multipart Capture types.  Standard UE4 postprocessing effects which are problematic in this case are automatically removed in the final picture.
-[/REGION]
-
-## Filters
-
-A number of filters can be applied using the **Filter** slider.
-
-[REGION:fullwidth]
-[OBJECT:SliderSequence]
-	[PARAMLITERAL:id]
-	filter_slider
-	[/PARAMLITERAL]
-	[PARAMLITERAL:max]
-	8
-	[/PARAMLITERAL]
-	[PARAMLITERAL:ext]
-	jpg
-	[/PARAMLITERAL]
-	[PARAM:caption]
-	Drag to see the available filters in action
-	[/PARAM]
-	[PARAM:image_list]
-	![](filter_slider_1.png)
-	![](filter_slider_2.png)
-	![](filter_slider_3.png)
-	![](filter_slider_4.png)
-	![](filter_slider_5.png)
-	![](filter_slider_6.png)
-	![](filter_slider_7.png)
-	![](filter_slider_8.png)
-	[/PARAM]
-[/OBJECT]
-[/REGION]
-
-Some filters, such as the **Custom** filter, have additional settings that can be used to adjust the filter even further.
 
 
 

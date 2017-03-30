@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2692204
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:Blueprint クラスを開く
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
 Description:コンテンツブラウザおよびレベルエディタから編集用に Blueprint クラスを開くためのガイド
 version:4.9
+tags:Blueprints
 
 アセットと直接インタラクションするか、またはレベルにおかれている Blueprint クラスのインスタンスとインタラクションすることで、
 **ブループリント エディタ** で **Blueprint クラス** を開くことができます。
 
-##コンテンツ ブラウザ
+## コンテンツ ブラウザ
 * **コンテンツ ブラウザ** でアイコンを **ダブルクリック** します。
 
 	![](Content_browser_blueprints.png)
@@ -18,7 +19,7 @@ version:4.9
 	![](Content_browser_open_bp.png)
 
 
-##レベル ビューポート
+## レベル ビューポート
 * レベルのブループリントのインスタンスを **右クリック** し、**[Asset (アセット)]** の **[Edit _Blueprint name_(ブループリント名を編集)]** を選びます。
 
 	![](level_editor_open_blueprint.png)
@@ -28,6 +29,6 @@ version:4.9
 	![](details_panel_edit_blueprint.png)
 
 [REGION:warning]
-上記の 2 通りの方法はブループリントの個別のインスタンスにアタッチされたメニューが関係しますが、**ブループリント エディタ**で行った変更はブループリントアセットに対して行われることにご注意ください。 
+上記の 2 通りの方法はブループリントの個別のインスタンスにアタッチされたメニューが関係しますが、**ブループリント エディタ** で行った変更はブループリント アセットに対して行われることにご注意ください。 
 結果として、変更はブループリントの全てのインスタンスに適用されることになります。
 [/REGION]

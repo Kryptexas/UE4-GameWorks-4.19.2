@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3097920
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:UMG UI デザイナ ユーザーガイド
 Crumbs:%ROOT%, Engine, Engine/UMG
 Description:UMG を使用して UI エレメントを作成するためのガイド 
 version:4.9
+tags:UMG UI Designer
 
 
 [VAR:Topic]
@@ -59,7 +60,7 @@ version:4.9
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		入門編
+		はじめよう
 	[/PARAM]
 	[PARAM:links]
 		[REGION:topics fourth]

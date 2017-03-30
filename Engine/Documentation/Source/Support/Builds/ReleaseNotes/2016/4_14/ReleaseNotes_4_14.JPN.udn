@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3200320
+﻿INTSourceChangelist:3223841
 Availability:Public
 Title:アンリアル エンジン 4.14 リリース ノート
 Description:Unreal Engine 4.14 リリース ノート
@@ -642,13 +642,9 @@ Pose Driver ノードは、サンプル ポーズに応じてボーンが別の�
 ![image alt text](image_65.gif)(w:566 h:624)
 [/REGION]
 
-## 新規：MIDI Device プラグイン
+## 新規：MIDI Device プラグイン 
 
-今回のリリースでは、音楽用ハードウェアとのインタラクション用 "MIDI Device" が追加されています。
-
-![image alt text](image_66.png)(w:400 h:300 convert:false)
-
-このシンプルな MIDI インターフェースを使うと、コンピューターに接続されているデバイスから MIDI イベントを受け取ることができます。現時点では入力のみサポートされています。
+今回のリリースでは、音楽用ハードウェアとのインタラクション用 "MIDI Device" が追加されています。このシンプルな MIDI インターフェースを使うと、コンピューターに接続されているデバイスから MIDI イベントを受け取ることができます。現時点では入力のみサポートされています。
 
 ブループリントでの使用方法を説明します。
 

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability: Public
 Title:Orbit 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Orbit, 선회는 실제 파티클 중심에서 오프셋/로테이션을 적용하여 파티클 스프라이트를 렌더링하는 모듈입니다.
 Version: 4.9
+tags:Particles
 
 
 Orbit (선회)는 실제 파티클 중심에서 오프셋/로테이션을 적용하여 파티클 스프라이트를 렌더링하는 모듈입니다.
@@ -28,7 +29,7 @@ sdpZ2_8GUp4
 | 프로퍼티 | 설명 |
 | ---- | ---- |
 |[REGION:tablesection]Chaining[/REGION]||
-|**Chain Mode** | 체인 모드 - 이 모듈이 이미터의 다른 모듈과 어떤 식으로 체인화할 지를 나타내는 열거형입니다. 그 전 모듈과의 결합 방식은 이 값의 설정을 통해 정의됩니다. 다음 중 하나가 가능합니다:[INCLUDE:#ChainMode]|
+|**Chain Mode** | 체인 모드 - 이 모듈이 이미터의 다른 모듈과 어떤 식으로 체인화할 지를 나타내는 Enum 입니다. 그 전 모듈과의 결합 방식은 이 값의 설정을 통해 정의됩니다. 다음 중 하나가 가능합니다:[INCLUDE:#ChainMode]|
 |[REGION:tablesection]Offset[/REGION]||
 | **Offset Amount** | 오프셋 양 - 파티클 '중심'으로부터 스프라이트의 오프셋을 내는 벡터 분포입니다. |
 | **Offset Options** | 오프셋 옵션 - _Offset Amount_ (오프셋 양)에 관련된 옵션입니다. 가능한 옵션은:[INCLUDE:#OffsetOptions]|

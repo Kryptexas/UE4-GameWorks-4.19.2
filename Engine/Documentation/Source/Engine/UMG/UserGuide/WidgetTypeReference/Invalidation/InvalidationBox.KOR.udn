@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title: 인밸리데이션 박스
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
 Description:UI 위젯 최적화를 위한 인밸리데이션 박스를 사용법 개요입니다.
 version: 4.9
-
+tags:UMG UI Designer
 
 [REGION:warning]
 이 기능은 현재 개발중으로, **실험단계** 기능입니다. 그렇기에 특정 기능이 예상대로 작동하지 않을 수 있습니다.

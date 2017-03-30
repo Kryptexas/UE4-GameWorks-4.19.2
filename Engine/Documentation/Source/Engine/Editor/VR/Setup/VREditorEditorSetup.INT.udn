@@ -4,45 +4,12 @@ Crumbs:
 Availability: public
 parent: Engine/Editor/VR
 type:how-to
-order: 1
+order: 2
 tags: VR
 tags: GitHub
-version: 4.11
+version: 4.15
 skilllevel: intermediate
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/Setup:title%](Engine/Editor/VR/Setup/vreditor_setup.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/Setup:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/Setup]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/Setup:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/Setup:title%](Engine/Editor/VR/Setup/vreditor_setup.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/Setup:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/Setup]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/Setup:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:vreditor_setup.png
 
 [EXCERPT:main]
 

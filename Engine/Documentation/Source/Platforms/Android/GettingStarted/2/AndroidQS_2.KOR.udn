@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3298293
 Availability:Public
 Title:2. 안드로이드 디바이스 셋업
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -18,7 +18,7 @@ Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 �
 
 ## 단계
 
-%Globals:OSSelect%
+%Globals:osselect_linux%
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -49,6 +49,19 @@ Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 �
 	[/PARAM]
 [/OBJECT]
 
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#LinuxSetup]
+	[/PARAM]
+[/OBJECT]
 
 <!--
 [EXCERPT:WindowsSetup]
@@ -195,6 +208,11 @@ Android Works 가 설치되었으니 안드로이드 디바이스를 개발에 �
 
 [/EXCERPT:MacOSSetup]
 
+[EXCERPT:LinuxSetup]
+이 문서는 현재 작업중입니다. 현재 공개된 문서를 확인하려면 [New and Updated Resources](https://docs.unrealengine.com/latest/INT/Updates/index.html) 페이지를 
+참고해 주세요.
+<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/2#AndroidLinux_2]-->
+[/EXCERPT:LinuxSetup]
 -->
 
 ## 최종 결과

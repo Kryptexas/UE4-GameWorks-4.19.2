@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3350329
 Title: VR 모드에서의 에디터 창
 Description: VR 모드 작업시 에디터 패널과 창을 띄우고 작업하는 방법입니다.
 Crumbs:
@@ -9,44 +9,17 @@ order: 5
 tags: VR
 version: 4.13
 skilllevel: intermediate
+topic-image:editorui_topic.png
+prereq:Engine/Editor/VR/ActivateVRMode
+prereq:Engine/Editor/VR/Setup
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/EditorUI:title%](Engine/Editor/VR/EditorUI/editorui_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/EditorUI:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/EditorUI]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/EditorUI:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/EditorUI:title%](Engine/Editor/VR/EditorUI/editorui_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/EditorUI:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/EditorUI]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/EditorUI:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:1 end:4)]
 
 [EXCERPT:main]
 
-VR 에디터에서 띄워 붙일 수 있는 여러가지 패널과 창은 다음과 같습니다:
+VR 에디터에서는 여러가지 패널과 창을 띄워 붙일 수 있습니다.
+
+## 패널 및 창
 
 [REGION:imagetable]
 | ![](window_content.png)(w:225) | ![](window_details.png)(w:225) | ![](window_modes.png)(w:225) | ![](window_outliner.png)(w:225) |
@@ -54,6 +27,8 @@ VR 에디터에서 띄워 붙일 수 있는 여러가지 패널과 창은 다음
 | 콘텐츠 브라우저 | 디테일 패널 | 모드 패널 | 아웃라이너 패널 | 
 |![](window_tutorials.png)(w:225) | ![](window_asset.png)(w:225) | ![](colorPicker.png)(w:225)| ![](worldSettings.png)(w:225)|
 | 튜토리얼 | 애셋 패널 | 색 선택기 | 월드 세팅 |
+|![](window_Landscape.png)(w:225) | ![](window_Foliage.png)(w:225) | | |
+|랜드스케이프 | 폴리지|   ||||
 [/REGION]
 
 ## VR 모드에서 창 열기

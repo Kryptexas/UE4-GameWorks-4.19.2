@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:3175152
+﻿INTSourceChangelist:3345705
 Availability:Public
 Title:모바일 플랫폼에서의 포스트 프로세스 이펙트
-Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Crumbs:
 Description:모바일 게임에서 포스트 프로세스 이펙트 사용하기 입니다.
 Platform:Mobile
-Version: 4.13
+Version: 4.14
 parent:Platforms/Mobile
 order:5
 type:overview
+skilllevel:Intermediate
 tags:mobile
 reference-image:Mobile_PostProcessEffect.gif
 
@@ -17,14 +18,12 @@ reference-image:Mobile_PostProcessEffect.gif
 모바일 어플리케이션에 포스트 프로세싱을 켜려면, **프로젝트 세팅** 의 **Mobile HDR** 을 켜야 합니다. 아래 대부분의 세팅은 Mobile HDR 을 켜야 작동하는 기능입니다.
 
 [region: lightbox]
-[![](MobileHDR_Enabled.png)(w:400 h:200)](MobileHDR_Enabled.png)
+[![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
 [/region]
 
 [region:caption]
 클릭하면 이미지 원본을 확인합니다.
 [/region]
-
-포스트 프로세스 볼륨 (또는 카메라 액터)에서 찾을 수 있는 카테고리는 다음과 같습니다.
 
 ## 모바일 디바이스용 톤매퍼 켜기
 모바일 디바이스에서 톤매퍼 포스트 프로세싱 옵션을 사용하려면, **r.tonemapperfilm** 기본값 **0** 을 **1** 로 설정해야 합니다. 언리얼 엔진 4 (UE4) 에디터 안에서 톤매퍼를 변경하거나 켜고 끄는 방법은 다음과 같습니다:
@@ -216,14 +215,6 @@ UE4 에디터에서 톤매퍼를 켜는 방법은, 먼저 **물결표** (`) 키�
 AA 메소드는 "None" (가장 빠름) 및 "TemporalAA" 를 지원하며, 여기에는 모션이 약간 떨리긴 하지만 2xSGSSAA 정도의 특수한 모바일 템포럴 AA 가 제공됩니다.
 [/region]
 
-### 스크린 스페이스 리플렉션
-|포스트 프로세스 프로퍼티| 지원|R.tonemapperfilm 값| 
-|--------------------|-----------|--------------|
-|Intensity|예|0 & 1|
-|Quality|예|0 & 1|
-|Max Roughness|예|0 & 1|
-
-
 ## 커스텀 포스트 프로세스 머티리얼
 
 언리얼 엔진에는 모바일 어플리케이션의 모양과 느낌을 마음껏 조정할 수 있는 포스트 프로세스 이펙트가 다양하게 내장되어 있습니다. 하지만 (VCR 고정 화면 등) 독특한 이펙트 제작을 위해 별도의 
@@ -243,8 +234,27 @@ AA 메소드는 "None" (가장 빠름) 및 "TemporalAA" 를 지원하며, 여기
 **블렌더블 위치** 관련 상세 정보는, [](Engine/Rendering/PostProcessEffects/PostProcessMaterials) 문서를 참고하세요.
 현재 HDr 렌더링에 '모자익' 모드가 필요한 구형 안드로이드 디바이스에서는 커스텀 포스트 프로세스 머티리얼을 만들 수 없습니다. 마지막으로, 픽셀 뎁스 정보는 아직 지원되지 않습니다.
 
+### 커스텀 뎁스
 
-## 일반적인 퍼포먼스 꼼수
+이제 모바일 렌더링 패스에서도 **Custom Depth** (커스텀 뎁스) 포스트 프로세스 옵션을 사용할 수 있습니다. 커스텀 포스트 프로세스 머티리얼은 이제 **Scene Depth**, **Custom Depth** 는 물론 **Scene Color** 에서도 샘플링 가능합니다. 
+
+![](Custom_Scene_Depth.png)
+
+이 기능의 정상 작동을 위해서는 포스트 프로세싱이 필요하므로, **Mobile HDR** 옵션을 켜야 합니다. **프로젝트 세팅** > **엔진** > **렌더링** > **모바일** 에서 **Mobile HDR** 옵션이 체크되어 있는지 확인하세요.
+
+[region: lightbox]
+[![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
+[/region]
+
+[region:caption]
+클릭하면 원본 이미지를 확인합니다.
+[/region]
+
+[region:warning]
+참고로 현재 이 기능은 **Mobile MSAA** 기능이 켜진 상태에서는 정상 작동하지 않으므로, 디바이스에서 이 기능을 확인하려면 **Mobile MSAA** 옵션을 꺼야 합니다.
+[/region]
+
+## 일반적인 포스트 프로세스 퍼포먼스 팁
 
 * 최적의 퍼포먼스와 퀄리티를 위해서는, 블룸과 템포럴 AA 만 사용하도록 해야합니다.
 

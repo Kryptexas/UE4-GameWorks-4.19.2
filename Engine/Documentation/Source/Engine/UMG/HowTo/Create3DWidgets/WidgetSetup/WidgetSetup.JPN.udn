@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2816279
-Availability:Public
+﻿INTSourceChangelist:3343833
+Availability:Docs
 Title:1.Widget ブループリントの設定
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
 Description:3D ゲームワールドで表示する Widget ブループリントを作成します。 
@@ -8,7 +8,8 @@ Related:Engine/UMG/UserGuide
 Related:Engine/Blueprints
 Version:4.10
 SkillLevel:Intermediate
-checkpoint: editorqs
+checkpoint: umg_create_3d_howto
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -42,7 +43,7 @@ checkpoint: editorqs
 
 	![](3DWidgets_1.png)
 
-1.	**Widget ブループリント** に _MainMenu_ と名前を付け **[Save All]** ボタンをクリックします。 
+1.	**Widget ブループリント** に _MainMenu_ と名前を付け **[Save All (すべて保存)]** ボタンをクリックします。 
 
 	![](3DWidgets_2.png)
 
@@ -57,11 +58,12 @@ checkpoint: editorqs
 	![](3DWidgets_4.png)
 
 	**Vertical Box** を上の画像のように **Root** に **ドラッグ＆ドロップ** することができます。 
+
 1.	**[パレット]** ウィンドウの **[Common]** で **Text** ウィジェットを **Vertical Box** にドラッグします。 
 
 	![](3DWidgets_5.png)
 
-1.	**[Hierarchy]** ウィンドウで **Text** ウィジェットをクリックします。次に **[詳細]** パネルでそれを **Fill** に設定し、水平および垂直に **センタリング** します。
+1.	**[Hierarchy]** ウィンドウで **Text** ウィジェットをクリックします。次に **[Details (詳細)]** パネルでそれを **[Fill]** に設定し、水平および垂直に **センタリング** します。
 
 	![](3DWidgets_6.png)
 
@@ -119,7 +121,7 @@ checkpoint: editorqs
 
 ## 最終結果
 
-Widget ブループリントのセットアップが完成し、これを Actor ブループリント内の **Widget コンポーネント** として使用することができます。この後で設定します。このチュートリアルではクリックしたときのボタンの機能は設定しませんが、少なくともこれは 3D ワールド空間でナビゲーションできるマウスの操作に反応するメニューになり、作業開始の考え方を示しています。
+Widget ブループリントのセットアップが完成し、これを Actor ブループリント内の **Widget コンポーネント** として使用することができますが、この後で設定します。このチュートリアルではクリックしたときのボタンの機能は設定しませんが、少なくともこれは 3D ワールド空間でナビゲーションできるマウスの操作に反応するメニューになり、作業開始の考え方を示しています。
 
 %Steps%
 

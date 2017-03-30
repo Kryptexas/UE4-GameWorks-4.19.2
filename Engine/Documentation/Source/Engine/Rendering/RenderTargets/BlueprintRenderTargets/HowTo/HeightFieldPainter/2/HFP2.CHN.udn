@@ -1,86 +1,86 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:2. Required Asset Creation & Setup
-description:Going over creating and setting up the required assets.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:2.所需资源的创建和设置
+description:了解所需资源的创建和设置。
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Intermediate
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/HeightFieldPainter
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:2
 checkpoint:HFP
 
 [NAV]
 
 
-Before we can create the Height Field Painter Blueprint, we will need to create and setup the following asset types inside of the UE4 Content Browser. In the following sections, we will go over how each of the assets needs to be setup as well as any special properties that you will need to be aware of.
+创建高度场绘制器蓝图之前，我们需要在 UE4 Content Browser 中创建并设置以下资源类型。在以下部分中，我们将了解到需要进行设置的每个资源，以及需要注意的特殊属性。
 
 [region:note]
-Please note that the following is not specific to any UE4 project type. The following can be accomplished in any project that uses UE4 version 4.13 or later. 
+请注意：以下内容并非特定于任何 UE4 项目类型。以下内容可在使用 UE4 4.13 或更新版本的任意项目中完成。 
 [/region]
 
-* **Render Target**
-* **Material**
-* **Blueprint** (Based off Actor)
+* **渲染目标**
+* **材质**
+* **蓝图**（基于 Actor）
 
-### Render Target Creation & Setup
+### 渲染目标创建和设置
 
-1. Right-click inside of the **Content Browser** and from the displayed menu, go to **Create Advanced Asset** > **Materials & Textures** and then select the **Render Target** option.
+1. 在 **Content Browser** 中点击右键，在出现的菜单中选择 **Create Advanced Asset** > **Materials & Textures**，然后选择 **Render Target** 选项。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_00.png)
 
-1. Name the newly created Render Target, `RT_Height_Filed_Painter`, and then press the **Save All** button to save your work.
+1. 将新建的渲染目标命名为 `RT_Height_Filed_Painter`，然后按下 **Save All** 按钮保存。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_01.png)
 
-### Material Creation & Setup
+### 材质创建和设置
 
-1. Right-click inside of the Content Browser and from the **Create Basic Asset** list, select the **Material** option to create a new Material, naming it `MAT_HeighfieldPainter`.
+1. 在 Content Browser 中点击右键，从 **Create Basic Asset** 列表中选择 **Material** 选项新建材质，将其命名为 `MAT_HeighfieldPainter`。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_00.png)
 
-1. Select the **MAT_HeightfieldPainter** Material in the Content Browser and then right-click on it. From the displayed menu, under the **Common** section, select the **Duplicate** option to create a copy of the Material, naming it `MAT_ForceSplat`.
+1. 选中 Content Browser 中的 **MAT_HeightfieldPainter** 材质，然后对其单击右键。从出现菜单的 **Common** 部分中选择 **Duplicate** 选项创建材质拷贝，将其命名为 `MAT_ForceSplat`。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_01.png)
 
-1. Double-click on the MAT_HeighfieldPainter Material to open it up and then select the **Main Material Node**. In the **Details** panel under the **Material** section, setup the following parameters.
+1. 双击 MAT_HeighfieldPainter 材质将其打开并选择 **Main Material Node**。在 **Details** 面板的 **Material** 部分设置以下参数。
 
-	* **Shading Model:** Unlit
+	* **Shading Model:**Unlit
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_04.png)
 
-1. The MAT_HeighfieldPainter Material is going to use the **World Position Offset** input to increase the Z-height of the Static Mesh vertices it is applied to. You can copy it into your Material by hovering your mouse over the image below and then clicking on the **Copy Expression Graph** option, copying-and-pasting the provided Material code into `MAT_HeighfieldPainter`.
+1. MAT_HeighfieldPainter 材质将使用 **World Position Offset** 输出增加其所应用的静态网格体顶点的 Z 轴高度。将其复制到材质中的方法：将鼠标放置在下图上并点击 **Copy Expression Graph** 选项，将提供的材质代码复制粘贴到 `MAT_HeighfieldPainter` 中。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\2\#HFP]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Apply and Save your Material so that it can be used.
+	点击应用和保存，以便使用材质。
 	[/region]
 
-1. Open up the MAT_ForceSplat Material and then select the **Main Material Node**. In the **Details** panel under the **Material** section set up the following parameters.
+1. 打开 MAT_ForceSplat 材质，然后选择 **Main Material Node**。在 **Details** 面板的 **Material** 部分设置以下参数。
 
-	* **Blend Mode:** Additive
-	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** Checked
+	* **Blend Mode:**Additive
+	* **Shading Model:**Unlit
+	* **Allow Negative Emissive Color:**Checked
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_02.png)
 
-1. Since the MAT_ForceSplat Material is going to act as our paint brush for raising the surface of our height field, it will need to have a few options that will allow you to control its size and intensity. You can copy the completed Material into your Material by hovering your mouse over the image below and then clicking on the  **Copy Expression Graph** option, copying-and-pasting the provided Material code into MAT_ForceSplat.
+1. MAT_ForceSplat 材质将用作材质笔刷，升高高度场的表面。因此它需要一些选项，以便控制尺寸和强度。将完成的材质复制到材质中的方法：将鼠标放置在下图上并点击 **Copy Expression Graph** 选项，将提供的材质代码复制粘贴到 MAT_ForceSplat 中。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\2\#ForceSplat]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Apply and Save your Material when done so that it can be used.
+	完成后点击应用和保存，以便使用材质。
 	[/region]
 
 
-With the required assets now setup, in the next section, we will take a look at creating a Blueprint that will link all of the assets together to create the height map painter.
+完成必备的资源设置后，下一部分我们将学习创建蓝图，将所有资源链接起来，用以创建高度图绘制器。
 
 <!--
 [EXCERPT:HFP]

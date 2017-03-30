@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:블루프린트에 게임플레이 요소 노출시키기
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:게임플레이 요소를 블루프린트에 노출시키는 게임플레이 프로그래머를 위한 기술 안내서입니다.
 Related: Engine/Blueprints/TechnicalGuide/Guidelines
+tags:Blueprints
 
 [TOC(start:2)]
 

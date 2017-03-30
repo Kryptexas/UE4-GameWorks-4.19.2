@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
 Title:UPrimitiveComponent
 Crumbs:
-Description:Overview of the primitive component class.
+Description:基元组件类总览
 
 [EXCERPT:K2_LineTraceComponent]
 
-When executed, this node performs a ray-cast along a line (defined by the 'Trace Start' and 'Trace End' inputs). If the line intersects with the specified 'Target' component, then the hit's location and normal are returned via the 'Hit Location' and 'Hit Normal' pins.
+执行时，此节点沿一条线进行光线投射（由“Trace Start”和“Trace End”输入定义）。如线条与特定的“对象”组件相交，则命中的位置和法线将通过“Hit Location”和“Hit Normal”引脚返回。
 
-You can opt to test against either complex or simplified collision (with the 'Trace Complex' input). Using complex collision is more precise, but slower and more performance intensive.
+可选择对复杂或简单碰撞进行测试（使用“Trace Complex”输入）。使用复杂碰撞更为精确，但耗时教程且性能效果更大。
 
-You can easily check if the trace turned up a hit by checking the 'Return Value' output (_True_ if anything was hit, _False_ if not). If the 'Return Value' is _false_, then 'Hit Location' and 'Hit Normal' are zero vectors.
+勾选“Return Value”输出即可简单确定追踪是否形成命中。如“返回值”为 _false_，则“Hit Location”和“Hit Normal”为零矢量。
 [/EXCERPT:K2_LineTraceComponent]
 

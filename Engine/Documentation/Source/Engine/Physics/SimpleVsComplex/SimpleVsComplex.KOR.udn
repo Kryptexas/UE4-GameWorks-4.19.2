@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:3108692
 Availability: Public
-Title:단순 대 복합 콜리전
+Title:단순 vs 복합 콜리전
 Crumbs: %ROOT%, Engine
 Description:UseSimpleAsComplex 와 UseComplexAsSimple 플래그의 역할과 적당한 사용 시기에 대해서입니다.
 Version: 4.11

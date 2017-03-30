@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title: 애니메이션
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 에서 애니메이팅되는 UI 요소 제작법입니다.
 version: 4.9
+tags:UMG UI Designer
 
 
 [REGION:fullwidth raw]

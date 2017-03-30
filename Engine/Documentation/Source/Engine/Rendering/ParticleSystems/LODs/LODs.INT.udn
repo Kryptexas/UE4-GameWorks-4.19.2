@@ -3,6 +3,7 @@ Title: Particle System Level of Detail (LOD)
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:GPU-simulation of particles that allows for hundreds of thousands of particles at any time.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

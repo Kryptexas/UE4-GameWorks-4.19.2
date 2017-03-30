@@ -11,13 +11,13 @@ parent:Platforms/Android/GettingStarted
 order:2
 Checkpoint:AndroidQS
 
-Now that Android Works has been installed it is now time to setup your Android device so that it can be used in development. In the following section we will go over all you need to know to setup your Android device so that it can be used to run your UE4 project.
+Now that Android Works has been installed it is now time to set up your Android device so that it can be used in development. In the following section we will go over all you need to know to set up your Android device so that it can be used to run your UE4 project.
 
 [nav]
 
 ## Steps
 
-%Globals:OSSelect%
+%Globals:osselect_linux%
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -48,6 +48,19 @@ Now that Android Works has been installed it is now time to setup your Android d
 	[/PARAM]
 [/OBJECT]
 
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#LinuxSetup]
+	[/PARAM]
+[/OBJECT]
 
 <!--
 [EXCERPT:WindowsSetup]
@@ -194,6 +207,11 @@ If you do not see your device after you input the adb devices command, here are 
 
 [/EXCERPT:MacOSSetup]
 
+[EXCERPT:LinuxSetup]
+We're currently in the process of writing this documentation. Please refer to our [New and Updated Resources](https://docs.unrealengine.com/latest/INT/Updates/index.html) page to see 
+which documentation is being published at this time.
+<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/2#AndroidLinux_2]-->
+[/EXCERPT:LinuxSetup]
 -->
 
 ## End Result

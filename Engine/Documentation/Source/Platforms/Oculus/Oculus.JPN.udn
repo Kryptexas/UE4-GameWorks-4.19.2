@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3235148
 Title:Oculus Rift の開発
 Crumbs:%ROOT%, Platforms
 Description:
@@ -10,11 +10,12 @@ type:landing
 parent:Platforms/VR
 tags:VR
 tags:Oculus Rift
+tags:Platform
 
 
 ## はじめよう
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/Oculus")]
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/Oculus")]
 
 ## Oculus Rift のトピックス
 
@@ -45,6 +46,7 @@ UE4 VR プロジェクトの開発中は、**[Unknown Sources (提供元不明�
 	![](Rift_UKS_03.png)
 
 1. 完了すると、ボタンの中の **X** がチェックマークになっています。デフォルト設定に戻すには、ボタンを再度クリックすると、チェックマークが X に変わります。
+
 	![](Rift_UKS_04.png)
 
 

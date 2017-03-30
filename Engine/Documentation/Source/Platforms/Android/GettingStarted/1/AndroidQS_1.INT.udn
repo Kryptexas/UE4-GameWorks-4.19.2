@@ -19,7 +19,7 @@ ensure that you have all the required programs and code needed to deploy to Andr
 In the following section, we will cover how you can get CodeWorks for Android 1R4 installed on your development PC.
 
 
-%Globals:OSSelect%
+%Globals:osselect_linux%
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -47,6 +47,20 @@ In the following section, we will cover how you can get CodeWorks for Android 1R
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[INCLUDE:#MacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#LinuxSetup]
 	[/PARAM]
 [/OBJECT]
 
@@ -114,7 +128,7 @@ It is highly recommended that you install CodeWorks for Android 1R4 while the ed
 
 1.	A new window will be displayed that will show you the download and install progress of the required CodeWorks for Android 1R4 tools. 
 	[region:note]
-	You will need an internet connection to complete this portion. Depending on the speed of your internet connection, this could take a few minute to a few hours to complete.
+	You will need an Internet connection to complete this portion. Depending on the speed of your Internet connection, this could take a few minute to a few hours to complete.
 	[/region]
 	
 	![](AndroidWorks_06.png)
@@ -206,7 +220,7 @@ Use the links provide below to download and install the correct versions of Java
 
 1. The CodeWorks for Android 1R4 Component Manager will now begin to download and install the required tools. 
 	[region:note]
-	You will need an internet connection to complete this portion. Depending on the speed of your internet connection, this could take a few minute to a few hours to complete.
+	You will need an Internet connection to complete this portion. Depending on the speed of your Internet connection, this could take a few minute to a few hours to complete.
 	[/region]
 	![](AndroidWorks_Mac_07.png)
 
@@ -223,6 +237,12 @@ Use the links provide below to download and install the correct versions of Java
 	[/region]
 
 [/EXCERPT:MacOSSetup]
+
+[EXCERPT:LinuxSetup]
+We're currently in the process of writing this documentation. Please refer to our [New and Updated Resources](https://docs.unrealengine.com/latest/INT/Updates/index.html) page to see 
+which documentation is being published at this time.
+<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/1#AndroidLinux_1]-->
+[/EXCERPT:LinuxSetup]
 -->
 
 ## End Result

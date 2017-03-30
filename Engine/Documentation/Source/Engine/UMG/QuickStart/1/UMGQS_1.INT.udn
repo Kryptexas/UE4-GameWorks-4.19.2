@@ -3,6 +3,7 @@ Title:1. Required Project Setup
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:Here we will create a Widget Blueprint used for the HUD and set our character up to pass information to the HUD. 
 version: 4.9
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]

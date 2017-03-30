@@ -1,34 +1,54 @@
-﻿INTSourceChangelist:2463144
+﻿INTSourceChangelist:3150518
 Availability:Public
-Title:Title: HTML5 ゲームの開発
+Title:HTML5 ゲームの開発
 Crumbs:%ROOT%, Platforms
 Description:HTML5 プラットフォーム向けゲームの開発
 Platform:HTML5
 Navigation:platform
+Version:4.9
+type:landing
+parent:Platforms
+tags:HTML5
 
+HTML5 は、[Mozilla](https://www.mozilla.org/en-US/) から Emscripten ツールチェーンを使用して、C++ を Javascript にクロスコンパイルします。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
+## はじめよう
+
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/HTML5")]
+
+## サンプル
+
+[REGION:topics third]
+
+%TopicCompact%
+[/REGION]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](TappyChicken.png)
 	[/PARAM]
 	[PARAM:title]
-		HTML5 Essentials
+		Tappy Chicken in HTML5
 	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/HTML5/GettingStarted "%Platforms/HTML5/GettingStarted:description%")
-	[PUBLISH:Docs]
-	* [](Platforms/HTML5/BuildingEmscripten "%Platforms/HTML5/BuildingEmscripten:description%")
-	[/PUBLISH:Docs]
-	[/PARAM]
+	[PARAMLITERAL:path]
+		https://www.unrealengine.com/html5/
+	[/PARAMLITERAL]
 [/OBJECT]
-
-				      
-
+[/VAR]
 
 
+## コンテンツ開発
 
+HTML5 は WebGL を使用します。HTML5 プラットフォーム用のコンテンツのビルドには、モバイル用コンテンツの作成のためのガイドラインも適用できます。 
+
+[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Mobile")]
+
+
+
+
+
+	      
 
 	       
 

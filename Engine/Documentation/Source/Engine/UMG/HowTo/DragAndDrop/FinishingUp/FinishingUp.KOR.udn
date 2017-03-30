@@ -1,22 +1,22 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3343774
 Availability: Docs
-Title:5. Finishing Up
+Title:5. 마무리
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:We finish by configuring our drag widget, adding our Health Bar to our Main HUD for display and testing everything out.
+Description:드래그 위젯 환경설정, 메인 HUD 에 표시 및 테스트용 Health Bar 를 추가하여 마무리하도록 합니다.
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-Version: 4.12
 SkillLevel: Intermediate
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine\UMG\HowTo\DragAndDrop\OnDrop "%Engine\UMG\HowTo\DragAndDrop\OnDrop:title%")
+		[예전 단계](Engine\UMG\HowTo\DragAndDrop\OnDrop "%Engine\UMG\HowTo\DragAndDrop\OnDrop:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Drag and Drop Widgets](Engine\UMG\HowTo\DragAndDrop)
+		[드래그 앤 드롭 위젯](Engine\UMG\HowTo\DragAndDrop)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -25,51 +25,51 @@ SkillLevel: Intermediate
 
 %Steps%
 
-In this final step we configure our **DragWidget** (which is the visual widget we are dragging). 
-We then tell our Character Blueprint to add the **HUD** Widget Blueprint to the viewport as well as enable the Mouse Cursor so we can see where we are dragging. 
+이번 최종 단계에서는, (드래그중인 비주얼 위젯) **DragWidget** 구성을 하겠습니다.
+그리고 캐릭터 블루프린트에게 **HUD** 위젯 블루프린트를 뷰포트에 추가하고 마우스 커서를 활성화시켜 드래그 위치를 확인할 수 있도록 해주겠습니다.
 
-## Steps
+## 단계
 
-1.	Open the **DragWidget** Widget Blueprint and replace the **Canvas Panel** with a **Size Box** with a child **Border**. 
+1.	**DragWidget** 위젯 블루프린트를 열고 **Canvas Panel** 을 **Size Box** 로 대체하고 자손 **Border** 설정을 합니다. 
 
-1.	Rename the **SizeBox** to **WidgetSize** and set **isVariable** to true, then check both **Width Override** and **Height Override**. 
+1.	**SizeBox** 이름을 **WidgetSize** 로 변경하고 **isVariable** 을 true 로 설정한 뒤, **Width Override** 와 **Height Override** 를 체크합니다.
 
 	![](UpdateDragDrop3.png)
 
-	We are going to set the Width and Height of the Size Box to reflect the size of our Health Bar widget. 
+	Size Box 의 Width 와 Height 를 Health Bar 위젯의 크기에 맞게 설정하도록 하겠습니다.
 
-1.	For the **Border**, set the **Brush Color** to **Black** with an **Alpha** of **0.5** for some transparency. 
+1.	**Border** 의 경우, **Brush Color** 를 **Black** 으로, **Alpha** 를 **0.5** 로 하여 약간 반투명하게 만듭니다.
 
 	![](UpdateDragDrop4.png)
 
-	In our example we will have a silhouette of our Health Bar as the drag visual while keeping the actual Health Bar in the same location. 
+	우리 예제에서 드래그 비주얼로는 Health Bar 의 실루엣을 사용하면서 실제 Health Bar 는 같은 위치에 유지합니다.
 
-1.	On the **Graph**, drag in **Widget Reference** and cast to the **HealthBar** to get the **Desired Size** then **Break Vector**. 
+1.	**그래프** 에서 **Widget Reference** 를 끌어 놓고 **Event Construct** 에서 **HealthBar** 에 형변환한 뒤 **Desired Size** 와 **Break Vector** 를 구합니다. 
 
 	![](UpdateDragDrop5.png)
 
-	This will give us the size of our Health Bar which we can then set our Size Box to. 
-	We could have manually entered the overrides, however if we change the size of our Health Bar we would then have to also change it here. 
+	그러면 Size Box 에 설정할 수 있는 Health Bar 크기가 나옵니다.
+	오버라이드를 수동 입력할 수도 있지만, 그랬다면 Health Bar 크기 변경 시 여기서도 변경해 줘야 할 것입니다.
 
-1.	Drag in the **Widget Size** and off is **Set Height Override** and **Set Width Override** and connect as shown below. 
+1.	**Widget Size** 를 끌어 놓은 뒤 거기서 **Set Height Override** 및 **Set Width Override** 를 추가하고 아래와 같이 연결합니다.
 
 	[REGION:lightbox]
 	[![](UpdateDragDrop6.png)](UpdateDragDrop6.png)
 	[/REGION:lightbox]
 
-	_Click for full view._
+	_클릭하면 원본을 확인합니다._
 	
-1.	In the **Content Browser** under **Content/ThirdPersonBP/Blueprints**, open the **ThirdPersonCharacter** Blueprint.
+1.	**콘텐츠 브라우저** 에서 **Content/ThirdPersonBP/Blueprints** 아래 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
-1.	Off an **Event Begin Play**, **Create Widget** (set to **HUD**) then **Add to Viewport** and **Get Player Controller** to **Show Mouse Cursor**. 
+1.	**Event Begin Play** 에서 **Create Widget** 를 추가( 및 **HUD** 로 설정)한 뒤, **Add to Viewport** 하고, **Get Player Controller** 을 **Show Mouse Cursor** 로 설정합니다. 
 	![](DragDrop19.png)
 
-1.	**Compile**, **Save** then click the **Play** button to play in the Editor. 
+1.	**컴파일**, **저장** 후 **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
 
 
-## End Result
+## 최종 결과
 
-When you play in the Editor, you can **Left-click** and drag the health bar on screen then drop it in a new location. 
+에디터에서 플레이 후, 화면에서 Health Bar 를 **좌클릭** 드래그 후 새 위치에 드롭합니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -83,8 +83,9 @@ kYkhxuJsVs4
 [/PARAMLITERAL]
 [/OBJECT]
 
-This is just an example of the elements you will need to start the Drag and Drop process. 
-Additional checking may be needed to ensure that players do not drag the widget outside of Safe Zones or potentially on top of other widgets. 
+이는 드래그 앤 드롭 프로세스를 시작하는 데 필요한 엘리먼트 예제일 뿐입니다.
+플레이어가 위젯을 세이프 존 외부 혹은 다른 위젯 위에 드래그하지는 않았나 추가적인 확인이 필요할 수 있습니다.
 
 %Steps%
+
 

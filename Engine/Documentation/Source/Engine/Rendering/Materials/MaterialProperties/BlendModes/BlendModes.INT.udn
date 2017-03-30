@@ -3,6 +3,7 @@ Title:Material Blend Modes
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials,  Engine/Rendering/Materials/MaterialProperties
 Description:A look at Material Blend Modes and how they affect the rendering of a Material.
 Version: 4.9
+tags:Materials
 
 
 [TOC(start:2 end:2)]

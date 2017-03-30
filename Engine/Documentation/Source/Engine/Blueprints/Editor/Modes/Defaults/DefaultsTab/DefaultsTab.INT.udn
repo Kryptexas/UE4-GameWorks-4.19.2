@@ -3,6 +3,7 @@ Title: Blueprint Editor Defaults Tab
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes
 Description:An overview of the Blueprints Defaults tab
 version: 4.9
+tags:Blueprints
 
 
 The **Class Defaults** tab contains information about the Blueprint's default settings and properties, and about any variables the Blueprint contains. You can modify these settings to suit your needs.

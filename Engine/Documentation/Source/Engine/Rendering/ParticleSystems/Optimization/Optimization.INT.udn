@@ -3,7 +3,7 @@ Title:VFX Optimization Guide
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:Solving performance issues by optimizing Particle Systems.
 Version: 4.9
-
+tags:Particles
 
 [TOC (start:2 end:3)]
 

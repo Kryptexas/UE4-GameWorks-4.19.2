@@ -4,9 +4,8 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this step, we create some script inside our Character Blueprint to allow us to simulate firing a weapon. 
 version: 4.14
 skilllevel: Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 
 [VAR:Steps]
 [OBJECT:Navigation]

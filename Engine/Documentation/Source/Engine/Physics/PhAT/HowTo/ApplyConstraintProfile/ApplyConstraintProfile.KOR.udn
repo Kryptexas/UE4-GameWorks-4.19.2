@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3163633
-Availability:Docs
-Title:How-To Apply a Physics Constraint Profile
+﻿INTSourceChangelist:3260662
+Availability:Public
+Title:피직스 컨스트레인트 프로파일 적용 방법
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to apply a Physics Constraint Profile to a Skeletal Mesh Component using Blueprints.
+Description:여기서는 스켈레탈 메시 컴포넌트에 피직스 컨스트레인트 프로파일을 적용하는 법을 보여드립니다.
 parent:Engine/Physics/PhAT/HowTo
 order:1
 Version: 4.13
@@ -11,80 +11,72 @@ prereq: Engine/Blueprints/QuickStart
 prereq: Engine/Physics/PhAT/HowTo/CreateConstraintProfile
 related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
 related: Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile
+topic-image:Engine/Physics/physics_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-Below, you will find the steps for creating a simple graph to enable a **Constraint Profile** on a **Skeletal Mesh Component** in a **Pawn**. 
+여기서는 **폰** 의 **스켈레탈 메시 컴포넌트** 에 **컨스트레인트 프로파일** 을 켜는 단순한 그래프를 만드는 법을 단계별로 살펴봅니다.
 
-## Steps
-1. Open or create a Blueprint with a **Skeletal Mesh Component**.
-	* If your Blueprint doesn't contain a **Skeletal Mesh Component**, add one using the **Components Panel**.
-1. Adjust the **Skeletal Mesh Component** Collision settings.
-	* The Collision Preset needs to be changed so that that **Skeletal Mesh Component** has **Collision Enabled**, but also so it doesn't interact with Pawns:
+## 단계
+1. **스켈레탈 메시 컴포넌트** 포함 블루프린트를 열거나 만듭니다.
+	* 블루프린트에 **스켈레탈 메시 컴포넌트** 가 없는 경우, **컴포넌트 패널** 에서 하나 추가하면 됩니다.
+
+	![](addSkelMeshComp.png)
+
+1. **스켈레탈 메시 컴포넌트** 콜리전 세팅을 조절합니다.
+	* 콜리전 프리셋을 변경하여 **스켈레탈 메시 컴포넌트** 에 **Collision Enabled** (콜리전 켜짐)이 되도록, **폰** 캡슐 (또는 기타 지오메트리)가 존재하는 경우 콜리전 세팅이 호환되는지 확인하세요. 예를 들어 **폰** 캡슐로는 **폰** 콜리전을 무시하도록 하세요:
 
 		![](Engine\Physics\PhAT\HowTo\ApplyPhysicalAnimationProfile\collisionSettings.png)
 
 		[REGION:note]
-		You'll notice that the **Object Type** is set to **Pawn** and that we're ignoring **Pawns** in our collision channels. This fixes the issue of the **Skeletal Mesh** trying to eject itself from 
-		the collision capsule. However, if you want the **Skeletal Mesh** to collide with other **Pawns** you'll need to adjust what **Object Type** your **Skeletal Mesh** is and then change 
-		how the **Capsule** interacts with that **Object Type**. See: **[](Engine/Physics/Collision/HowTo/AddCustomCollisionType)**, for more information on creating **Custom Collision Channels**.
+		**Object Type** (오브젝트 유형)이 **폰** 으로 설정되어 있으며, 콜리전 채널에서 **폰** 무시하는 것이 보입니다. 그러면 **스켈레탈 메시** 자체가 콜리전 캡슐에 밀려나는 문제가 해결됩니다.
+		하지만 **스켈레탈 메시** 가 다른 **폰** 과 충돌하도록 하려면, 자기 **스켈레탈 메시** 의 **오브젝트 유형** 을 조절한 뒤, 그 **오브젝트 유형** 과 **캡슐** 이 상호작용하는 방식을 변경해 주면 됩니다.
+		**커스텀 콜리전 채널** 생성 관련 상세 정보는 **[](Engine/Physics/Collision/HowTo/AddCustomCollisionType)** 문서를 참고하세요.
 		[/REGION]
 
-1. Add a **Physical Animation Component** to your Blueprint using the **Components Panel**.
-1. Add a Name Variable and call it **Bone Name**.
-1. Compile so we can set the value of the **Bone Name** variable.
-1. Change **Bone Name**'s Default Value to the desired target **Bone**, in this case `spine_01`.
-1. Switch to the **Event Graph**.
-1. Locate or create the **Event BeginPlay** event node.
-1. Add a reference to your **Skeletal Mesh Component**
-1. Pull off the blue pin on your **Skeletal Mesh Component** and search for _Set Constraint_.
-1. Add a **Set Constraint Profile for All** node.
-	* **Target** is your **Skeletal Mesh Component**.
-	* **Profile Name** is the name of the **Constraint Profile** that you created (or will create) in the **Physics Asset Tool**.
-	* (optional) **Default if Not Found** if a bone doesn't exist in the Profile, it will keep its current settings.
-1. Set All Bodies Below Simulate Physics Node connected to the **Apply Physcial Animation Profile Below** Node.
-	* **Target** is your **Skeletal Mesh Component**.
-	* **In Bone Name** will take the **Bone Name** variable as input.
-	* **New Simulate** should be set to **True**.
-	* Again, since we are using `spine_01` as the target bone, **Include Self** should be checked.
-1. Final Graph:
+1. 블루프린트의 **컴포넌트 패널** 을 통해 **Physical Animation Component** 를 추가합니다.
+
+	![](addPhysAnimComp.png)
+
+1. Name 변수를 추가하고 **Bone Name** 이라 합니다.
+
+	[REGION:raw]
+	![](variableName.png)
+	[/REGION]
+
+1. **Bone Name** 변수 값을 설정할 수 있도록 컴파일합니다.
+
+	![](compile.png)
+
+1. **Bone Name** 기본값을 원하는 타겟 **본** 으로 변경합니다. 이 경우 `spine_01` 입니다.
+
+	![](boneName.png)
+
+1. **이벤트 그래프** 로 전환합니다.
+1. **Event BeginPlay** 이벤트 노드를 찾거나 생성합니다.
+
+	![](eventBP.png)
+
+1. **스켈레탈 메시 컴포넌트** 로의 레퍼런스를 추가합니다.
+
+	![](addSKMPref.png)
+
+1. **스켈레탈 메시 컴포넌트** 의 파랑 핀을 끌어놓고 _Set Constraint_ 를 검색합니다.
+
+	![](createSetAll.png)
+
+1. **Set Constraint Profile for All** 노드를 추가합니다.
+	* **Target** (타겟)은 **스켈레탈 메시 컴포넌트** 입니다.
+	* **Profile Name** (프로파일 이름)은 **피직스 애셋 툴** 에서 생성한 (또는 생성할) **컨스트레인트 프로파일** 이름입니다.
+	* (옵션) **Default if Not Found** (없는 경우 기본값) 프로파일에 본이 존재하지 않는 경우, 현재 세팅을 유지합니다.
+
+	![](constraintProfNodeSettings.png)
+
+1. **Apply Physcial Animation Profile Below** 노드에 연결된 Set All Bodies Below Simulate Physics 노드입니다.
+	* **Target** (타겟)은 **스켈레탈 메시 컴포넌트** 입니다.
+	* **In Bone Name** (입력 본 이름)은 **Bone Name** 변수를 입력으로 받습니다.
+	* **New Simulate** (새로운 시뮬레이션)은 **True** 로 설정합니다.
+	* 여기도 `spine_01` 을 타겟 본으로 사용하고 있으므로, **Include Self** (자신 포함) 옵션을 체크해야 합니다.
+1. 최종 그래프:
 
 	[OBJECT:Snippet]
 		[PARAMLITERAL:id]
@@ -101,25 +93,25 @@ Below, you will find the steps for creating a simple graph to enable a **Constra
 		[/PARAM]
 	[/OBJECT]
 
-	**Hidden Graph Information**
+	**숨겨진 그래프 정보**
 
 	[REGION:raw]
-	| Variable | Value | Description |
+	| 변수 | 값 | 설명 |
 	| --- | :--- | :--- |
-	| **Bone Name** %spacer2% | `spine_01` | We use it in the **Set All Bodies Below Simulate Physics** to define what parts of the Skeletal Mesh are simulating. |
+	| **Bone Name** %spacer2% | `spine_01` | **Set All Bodies Below Simulate Physics** 에서 시뮬레이션이 적용되는 스켈레탈 메시 파트를 정의하는 데 사용합니다. |
 	[/REGION]
 
-	| Component || Description |
+	| 컴포넌트 || 설명 |
 	| --- | :---: | :--- |
-	| **Skeletal Mesh Component** || The **Skeletal Mesh Component** that will be have the **Constraint Profile** applied to it. |
+	| **Skeletal Mesh Component** || **컨스트레인트 프로파일** 을 적용시킬 **스켈레탈 메시 컴포넌트** 입니다. **Character** 에서 상속하는 경우, 이름은 그냥 `Mesh` 가 됩니다.  |
 
-## Result
+## 결과
 
-Now when you play your game, the **Constraint Profile** will take over. Depending on your settings, this could mean that your character falls apart, or has motors engaged to make their arms flail around.
+이제 게임을 플레이하면, **컨스트레인트 프로파일** 이 우선합니다. 세팅에 따라 캐릭터가 떨어질 수도, 모터가 발동되어 팔이 마구 흔들릴 수도 있습니다.
 
 ![](result.png)
 
-This effect was achieved by setting the **Linear Limits** on the upper arm constraints to **Free**.
+상박 컨스트레인트의 **Linear Limits** (선형 한계)를 **Free** (자유)로 설정한 결과입니다.
 
 ![](achievedBy.png)
 

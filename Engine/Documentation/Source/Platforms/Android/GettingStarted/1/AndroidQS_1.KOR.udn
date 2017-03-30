@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151861
+﻿INTSourceChangelist:3298293
 Availability:Public
 Title:1. 필수 안드로이드 셋업
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -20,7 +20,7 @@ CodeWorks for Android 1R4 는 안드로이드 디바이스에 디플로이하기
 여기서는 개발 PC 에 CodeWorks for Android 1R4 를 설치하는 법에 대해 다루겠습니다.
 
 
-%Globals:OSSelect%
+%Globals:osselect_linux%
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -48,6 +48,20 @@ CodeWorks for Android 1R4 는 안드로이드 디바이스에 디플로이하기
 	[/PARAMLITERAL]
 	[PARAM:content]
 	[INCLUDE:#MacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#LinuxSetup]
 	[/PARAM]
 [/OBJECT]
 
@@ -224,6 +238,12 @@ CodeWorks for Android 1R4 는 에디터와 런처 둘 다 닫힌 상태로 설�
 	[/region]
 
 [/EXCERPT:MacOSSetup]
+
+[EXCERPT:LinuxSetup]
+이 문서는 현재 작업중입니다. 현재 공개된 문서를 확인하려면 [New and Updated Resources](https://docs.unrealengine.com/latest/INT/Updates/index.html) 
+페이지를 참고하세요.
+<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/1#AndroidLinux_1]-->
+[/EXCERPT:LinuxSetup]
 -->
 
 ## 최종 결과

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3169659
+﻿INTSourceChangelist:3169600
 Availability: Public
-Title: Online Beacons
+Title: 온라인 비컨
 Crumbs: %ROOT%, Engine
-Description:Overview of the Online Beacon system
+Description:Online Beacon, 온라인 비컨 시스템 개요입니다.
 Version: 4.13
 parent:Engine
 Related: Gameplay/Networking/Actors/RPCs
@@ -10,30 +10,30 @@ Related: Gameplay/Networking/Actors/Properties
 
 [TOC (start:2 end:3)]
 
-**Online Beacons** are a special type of **Actor** that provide a lightweight way to contact a server and interact with it (via RPCs) without committing to a normal game connection. While the built-in classes can be used as they are in some cases, they are intended to be extended into custom classes that perform project-specific interactions, logic, and information requests.
+**Online Beacon** (온라인 비컨)이란, 일반 게임 접속을 통하지 않고도 서버와 접촉하여 (RPC 를 통해) 상호작용이 가능한 가벼운 방식을 제공해 주는 특수 유형 **액터** 입니다. 특수한 경우 내장 클래스를 그대로 사용할 수는 있지만, 프로젝트에 맞는 상호작용, 로직, 정보 요청 처리를 위한 커스텀 클래스 확장에 더욱 적합합니다.
 
-## Online Beacon Base Classes
-Common actions performed by beacon classes are to request quality-of-service information, reserve a slot in a game that the client wishes to join, receive a list of the names of players in a game, find out the score and running time of a game in progress, and so on. The following classes are provided with the engine, and lay the foundation for the Online Beacon system:
+## 온라인 비컨 베이스 클래스
+비컨 클래스로 이루어지는 일반적인 작업은 서비스 품질 정보 요청, 클라이언트가 참여하고자 하는 게임의 슬롯 예약, 게임의 플레이어 이름 목록, 진행중인 게임의 진행 시간 및 점수 찾기 등입니다. 엔진에 제공되는 클래스는 다음과 같으며, 온라인 비컨 시스템의 근간을 이룹니다:
 
 ### AOnlineBeacon
-This is the base class for `AOnlineBeaconClient` and `AOnlineBeaconHost`. It derives from `AActor` directly.
+`AOnlineBeaconClient` 및 `AOnlineBeaconHost` 의 베이스 클래스입니다. `AActor` 에서 직접 파생됩니다.
 
 ### AOnlineBeaconHost
-This class uses its own `UNetDriver` to listen for incoming Online Beacon connections from remote client machines. When it receives one, it looks through its list of registered `AOnlineBeaconHostObject` instances to find the one that matches the incoming client and hands the connection off to it. This class will not usually need to be derived, since it only manages the initial connection between the client and the registered `AOnlineBeaconHostObject`.
+이 클래스는 별도의 `UNetDriver` 를 사용하여 원격 클라이언트 머신에서 들어오는 온라인 비컨 접속을 리스닝합니다. 하나 받으면 등록된 `AOnlineBeaconHostObject` 인스턴스를 대상으로 들어오는 클라이언트에 일치하는 것을 찾은 뒤, 그 쪽에 접속을 넘겨줍니다. 이 클래스는 보통 파생시킬 필요가 없는데, 클라이언트와 등록된 `AOnlineBeaconHostObject` 사이 초기 접속만 관리하기 때문입니다.
 
 ### AOnlineBeaconClient
-Children of this class connect to hosts and make the actual RPCs. One of these will be spawned on the client machine, and one will be spawned on the server by the appropriate `AOnlineBeaconHostObject` that is registered with the server's `AOnlineBeaconHost`.  By default, the output of the `GetBeaconType` function (which will be the class name) will be used to match instances of this class to the registered instance of the appropriate host object class. Note that this is different from how Actor spawning usually works, where the server spawns the Actor and then replicates it to the client. However, once the connection between the client's and server's copy of the object has been made, replication of the object behaves as normal, with either side able to make RPCs to the other, and the server's version of the object being authoritative with regard to property replication.
-The base class implements `OnConnected` and `OnFailure` functions that can be overridden by child classes to perform RPCs when connected, or to handle failures to connect. This class is the workhorse of the Online Beacon system, and will do the client-side work that your Beacon requires. Since a second instance, synced with the original, will be spawned on the server in the event of a successful connection, this class can also do server-side work, coordinating and communicating through client and server RPCs, or server-to-client replicated properties.
+이 클래스의 자손은 호스트에 접속하여 실제 RPC 를 만듭니다. 이들 중 하나가 클라이언트 머신에서 스폰되며, 하나는 서버의 `AOnlineBeaconHost` 로 등록된 적합한 `AOnlineBeaconHostObject` 에 의해 서버에서 스폰됩니다. 기본적으로, (클래스 이름이 될) `GetBeaconType` 함수 출력을 사용하여 이 클래스의 인스턴스를 적합한 호스트 오브젝트 클래스의 등록 인스턴스에 일치시킵니다. 참고로 이 방식은 서버가 액터를 스폰한 뒤 클라이언트에 리플리케이트하는 일반적인 액터 스포닝 방식과 다릅니다. 하지만 오브젝트의 클라이언트 사본과 서버 사본 사이 접속이 이루어진 후에는, 어느 한 쪽이 다른 쪽에 RPC 를 할 수 있게 되면서 오브젝트 리플리케이션이 정상적으로 이루어지게 되며, 오브젝트의 서버 버전은 프로퍼티 리플리케이션 관련해서 오쏘리티를 갖게 됩니다.
+베이스 클래스는 `OnConnected` 와 `OnFailure` 함수를 구현하며, 이를 자손 클래스에서 오버라이드하여 접속 시 RPC 를 호출하거나, 접속 실패 처리를 할 수 있습니다. 이 클래스가 온라인 비컨 시스템의 역꾼이며, 비컨에서 요하는 클라이언트측 작업을 하게 됩니다. 접속이 성공적으로 이루어진 경우 서버에서 두 번째 인스턴스가 원본과 동기화된 상태로 스폰되는데, 이 클래스 역시 클라이언트와 서버 RPC, 또는 서버에서 클라이언트로 리플리케이트되는 프로퍼티를 조정하고 통신해 가며 서버 측 작업을 할 수 있습니다.
 
 ### AOnlineBeaconHostObject
-This class should also be overridden so that it can be paired with an overridden `AOnlineBeaconClient` class. Pairing is accomplished by matching the return value of the client's `GetBeaconType` with the value stored in the `BeaconTypeName` member variable. When the server's `AOnlineBeaconHost` detects a paired `AOnlineBeaconHostObject` for an incoming `AOnlineBeaconClient`, it will instruct the `AOnlineBeaconHostObject` to spawn a local copy of the `AOnlineBeaconClient` via the virtual `SpawnBeaconActor` function. By default, this function uses the `ClientBeaconActorClass` member variable to determine the class of actor to spawn, which should be set to the paired `AOnlineBeaconClient` class. It also calls `SetBeaconOwner` on the server's copy of the spawned object, so that the server-side instance of the client object can communicate with the host object. Most of this setup is established in the base class, and does not need to be overridden.
+이 클래스를 오버라이드하여 오버라이드된 `AOnlineBeaconClient` 클래스와 짝을 이루도록 만들 수도 있습니다. 클라이언트의 `GetBeaconType` 반환 값을 `BeaconTypeName` 멤버 변수에 저장된 값과 일치시키는 것으로 짝을 이룰 수 있습니다. 서버의 `AOnlineBeaconHost` 가 들어오는 `AOnlineBeaconClient` 에 대해 짝을 이룬 `AOnlineBeaconHostObject` 를 감지하면, `AOnlineBeaconHostObject` 더러 `SpawnBeaconActor` 함수를 통해 `AOnlineBeaconClient` 로컬 사본을 스폰시키도록 합니다. 기본적으로 이 함수는 `ClientBeaconActorClass` 멤버 변수를 사용하여 스폰시킬 액터 클래스를 결정하며, 이는 짝을 이룬 `AOnlineBeaconClient` 클래스로 설정되어야 할 것입니다. 스폰된 오브젝트의 서버측 사본에서 `SetBeaconOwner` 도 호출해야, 클라이언트 오브젝트의 서버측 인스턴스가 호스트 오브젝트와 통신을 할 수 있을 것입니다. 이 구성 대부분은 베이스 클래스에서 이루어지며, 오버라이드할 필요가 없습니다.
 
-## Online Beacon Example
-There are a variety of premade Beacon class pairs already in the engine, but the Test Beacon is a good, simple example of how to build your own. `ATestBeaconClient` is derived from `AOnlineBeaconClient`, and `ATestBeaconHost` is derived from `AOnlineBeaconHostObject`. The Test Beacon simply makes repeated function calls back and forth between the client and server. Here is how the classes work together:
-1. In `ATestBeaconHost`'s constructor, `ClientBeaconActorClass` is set to the class of `ATestBeaconClient`, and `BeaconTypeName` is set to the name (obtained by calling the `GetName` function) of `ClientBeaconActorClass`. This ensures that the `AOnlineBeaconHost` will pair the two Test Beacon classes correctly.
-1. When the client's `ATestBeaconClient` successfully contacts the server, the server's `AOnlineBeaconHost` instance will direct the registered `ATestBeaconHost` to spawn its own `ATestBeaconClient` and associate it with the `ATestBeaconClient` on the client. This is important because it allows client and server RPCs to pass between the two `ATestBeaconClient` instances.
-1. The server's `ATestBeaconHost` will then call `OnClientConnected`, a client RPC, on its `ATestBeaconClient` instance. Since this function is a client RPC, the command to call the function will be passed to the client machine rather than calling the function on the server.
-1. On the client's `ATestBeaconClient` instance, the RPC will run the virtual `OnConnected` function, which has been overridden to call `ClientPing`.
-1. `ClientPing` will output some text to the debug log and then call `ServerPong`, a server RPC, which will then be sent across the network connection and executed on the server's `ATestBeaconClient` instance.
-1. `ServerPong` will output debug text and then call `ClientPing`, again triggering a networked RPC call to the client.
-1. This process will continue indefinitely. While this is usually not desirable, especially since these RPCs aren't really doing anything, it could be used to keep track of a server's ping time by recording the time between two subsequent runs of the same RPC. There could also be a delay, so that this ping check is not done as frequently as the computer and network will allow, or the client or server could simply stop pinging back after a certain number of pings. Other use cases might involve only a single RPC call back to the client, rather than a continuing loop, such as asking a question along the lines of "What map is being used for this server's game?" or "Is this a Capture The Flag server?" depending on what information might be relevant to your specific game or project.
+## 온라인 비컨 예제
+엔진에는 이미 미리 만들어진 비컨 클래스 짝이 다양하게 있는데, 직접 만들기에 참고하기 좋은 간단한 예제로는 Test Beacon (테스트 비컨)이 좋습니다. `ATestBeaconClient` 는 `AOnlineBeaconClient` 에서 파생되며, `ATestBeaconHost` 는 `AOnlineBeaconHostObject` 에서 파생됩니다. 테스트 비컨은 단순히 클라이언트와 서버 사이에서 반복 함수 콜백을 할 뿐입니다. 그 클래스들이 서로 작동하는 방식은 이렇습니다:
+1. `ATestBeaconHost` 의 생성자에서, `ClientBeaconActorClass` 는 `ATestBeaconClient` 의 클래스로 설정되며, `BeaconTypeName` 는 (`GetName` 함수를 호출하여 얻은) `ClientBeaconActorClass` 이름으로 설정됩니다. 그러면 `AOnlineBeaconHost` 가 두 개의 Test Beacon 클래스에 제대로 짝지어 집니다.
+1. 클라이언트의 `ATestBeaconClient` 가 서버 접촉에 성공하면, 서버의 `AOnlineBeaconHost` 인스턴스는 등록된 `ATestBeaconHost` 더러 자신의 `ATestBeaconClient` 를 스폰시켜 클라이언트의 `ATestBeaconClient` 에 연관시키도록 합니다. 이 작업은 중요한데, 클라이언트와 서버 RPC 가 두 `ATestBeaconClient` 인스턴스를 오갈 수 있도록 해주기 때문입니다.
+1. 그 후 서버의 `ATestBeaconHost` 는 자체 `ATestBeaconClient` 인스턴스에서 클라이언트 RPC 인 `OnClientConnected` 를 호출합니다. 이 함수는 클라이언트 RPC 이므로, 함수 호출 명령은 서버측 함수를 호출하기 보다는 클라이언트 머신에 전달됩니다.
+1. 클라이언트의 `ATestBeaconClient` 인스턴스에서 RPC 는 `ClientPing` 를 호출하도록 오버라이드된 가상 `OnConnected` 함수를 실행시킵니다.
+1. `ClientPing` 은 디버그 로그에 약간의 텍스트를 출력한 뒤 서버 RPC 인 `ServerPong` 를 호출하고, 이를 접속된 네트워크를 통해 전송하고 서버의 `ATestBeaconClient` 인스턴스에서 실행시킵니다.
+1. `ServerPong` 은 디버그 텍스트를 출력한 뒤 `ClientPing` 를 호출, 다시 클라이언트로의 네트워크 RPC 호출을 발동시킵니다.
+1. 이 프로세스가 무한히 계속됩니다. 특히나 RPC 가 어떤 작업도 하지 않고 있으니 바람직한 작업은 아니지만, 같은 RPC 를 두 번 연달아 호출했을 때 걸리는 시간을 기록하는 것으로 서버의 핑 시간 기록을 유지하는 데 쓸 수 있습니다. 딜레이를 둬서 컴퓨터나 네트워크의 핑 검사 빈도를 줄이거나, 핑을 몇 번 한 이후에는 클라이언트와 서버에서 핑을 주고 받는 것을 그냥 멈추도록 할 수도 있습니다. 다른 사용법이라면 클라이언트에 RPC 콜백을 루프가 아닌 한 번만 하는 것으로, 예를 들면 게임이나 프로젝트에 관련이 있을 수 있는 정보에 따라 "이 서버의 게임에 사용되는 맵이 뭐지?" 라거나 "깃발 뺏기 서버인가?" 와 같은 질문을 하는 것입니다.

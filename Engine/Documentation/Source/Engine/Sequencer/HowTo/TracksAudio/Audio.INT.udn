@@ -1,23 +1,20 @@
 Availability: Public
-Title:Adding Audio	
+Title:Working with Audio Tracks
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Example of how to add audio to your scenes.
-Version: 4.12
+Description:Illustrates how to add Audio Tracks and adjust volume/pitch values through keyframes. 
+Version: 4.15
 SkillLevel: Beginner
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
-Whether your are looking to score your cinematic with a musical track or want to add sound effects such as impact sounds, voice overs, or others, you'll need to do so with an **Audio Track** inside Sequencer. 
+Whether you are looking to score your cinematic with a musical track or want to add sound effects such as impact sounds, voice overs, or others, you'll need to do so with an **Audio Track** inside Sequencer. 
+Sequencer's Audio Track also allows you to adjust the Volume or Pitch of your audio assets at any point during your cinematic through keyframed value changes. 
 
-In this how-to, we add a music track to a sample scene and show how you can fade in/out an audio track with a **Sound Cue**.
-
-[REGION:warning]
-Currently **Audio Tracks** have limited editing capabilities. Additional support will come online in future engine updates. 
-[/REGION]
-
+In this how-to, we add a music track to a sample scene and fade it in over time as well as adjust the pitch during the cinematic. 
 
 ## Steps
 
@@ -29,68 +26,50 @@ For this how-to, we are using the **Blueprint Third Person Template** with **Sta
 
 	![](Audio01.png)
 
-1.	Inside the Level Sequence, click the **Add** button and select the **Audio Track**. 
+1.	In the **Save Asset As** window, choose a save location and save name then click **Save**. 
 
-	![](Audio02.png)
+	![](Audio02.png)	
 
-1.	Click the **+ Audio** button then select the **Starter_Music_Cue** asset. 
+1.	In the **Level Sequence**, click the **Add** button then select **Audio Track**. 
 
 	![](Audio03.png)
 
-1.	Click the **+ Audio** button and select additional audio assets and arrange on the timeline as desired. 
+1.	On the **Audio Track**, click the **+** button then search for and add the **Starter_Music_Cue** asset. 
 
 	![](Audio04.png)
 
-	You can layer sounds by arranging one audio asset on top of another. 
-
-1.	**Right-click** on the **Starter_Music_Cue** asset to reveal the **Properties**, then click the magnifying glass icon. 
+	You can click the **Expand** icon to expand out and see your audio sub-tracks. 
 
 	![](Audio05.png)
 
-	Along with the properties that you can change for the asset, you can browse to and find the asset in the **Content Browser** by clicking the **Browse To** button. 
-
-1.	**Double-click** and open the **Starter_Music_Cue** Sound Cue asset. 
-
-1.	In the **Sound Cue Editor**, drag an **Enveloper** into the graph. 
+	You can add additional sub-tracks to the Audio Track by clicking the **+** button and can drag them along the timeline to reposition them where you want in your sequence. 
 
 	![](Audio06.png)
 
-	Inside the Sound Cue Editor we can alter and mix sound assets. For this example we want to fade in the sound which we can do with the **Enveloper** node. 
-
-	[REGION:note]
-	In future engine releases, the ability to edit Audio Tracks within Sequencer will come online and this guide will be updated. 
-	[/REGION]
-
-1.	**Left-click** and connect the nodes as shown below. 
+1.	Expand the **Starter_Music_Cue** track, then change the **Volume** and **Pitch Multiplier** values to **0.0** and add keys for both. 
 
 	![](Audio07.png)
 
-	The Starter_Music01 asset will get passed through the Enveloper before outputting the final sound. 
+	This will turn the Volume to off and the Pitch to low. 
 
-1.	In the **Details** panel of the **Enveloper**, click the key in the **Volume Curve** and change the **Value** to **0.0**. 
+1.	Scrub the Timeline marker ahead to frame **50**, change the **Volume** and **Pitch Multiplier** values to **1.0** and add keys for both. 
 
 	![](Audio08.png)
 
-	Here we are stating that at time 0.0 (the start), the value of Volume should be 0.0 (or off). 
+	This will turn the Volume up to its default value (on) and the Pitch to its default value (not affecting the sound asset). 
 
-1.	Hold **Shift** and **Left-click** in the curve window to create a new key. 
-
-1.	Select the key, then change the **Time** to **4.0** and **Value** to **1.0**. 
+1.	You can delete sub-tracks within the Audio Track by clicking on them in the Timeline window, then pressing **Delete** or **Right-click** and **Delete**. 
 
 	![](Audio09.png)
 
-	Here we are stating that at 4 seconds, the value of the Volume should be 1.0 (or full volume) giving us a fade in. You can also click the two buttons next to the **Time** and **Value** properties to adjust the size of the curve window to display the curve. 
+1.	Return the Timeline to **0** then click the **Play** button inside Sequencer to play your sequence. 
 
-	[REGION:tip]
-	If you wanted to fade out for example starting at 10 seconds, you would add a key and set the **Time** to **10.0** with **Value** being **1.0**. If you wanted the fade duration to last 5 seconds, you would add another key with the **Time** being **15.0** and the **Value** being **0.0**. 
-	[/REGION]
-
-1.	Return to **Sequencer** and click the **Preview Play** button. 
+	![](Audio10.png)
 
 
 ## End Result
 
-You should now hear all your sounds that you've placed in the **Audio Track** and the music should fade in over time. 
+When you play the Level Sequence, you will hear the audio fade in and the pitch adjusts as the sequence begins. 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -100,12 +79,13 @@ You should now hear all your sounds that you've placed in the **Audio Track** an
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-1STSDGBc5KM
+Tt_fKZnk8I4
 [/PARAMLITERAL]
 [/OBJECT]
 
-
+While this example is fairly simplified, you can add more keyframes to fade in/out audio at any point during your sequence or adjust the pitch of audio assets as desired. 
 Audio Tracks support either **Sound Cue** or **Sound Wave** assets and can be added by dragging-and-dropping from the **Content Browser** into a Level Sequence or by adding through the **Add** option of an Audio Track. 
+
 
 
 

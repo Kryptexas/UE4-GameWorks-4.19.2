@@ -7,6 +7,7 @@ parent:%ROOT%
 order:5
 social-image:bp_social_image.png
 type:landing
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

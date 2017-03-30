@@ -4,6 +4,7 @@ Description: Guide for using dual Normal Maps in your Clear Coat Material.
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
 Version: 4.12
 SkillLevel: Intermediate
+tags:Materials
 
 [TOC(start:2)]
 

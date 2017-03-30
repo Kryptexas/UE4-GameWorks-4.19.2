@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2697061
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:ビューポートの [Show Flag] 機能
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
-Description:ビューポートで利用できる全ての Show Flags の説明
+Description:ビューポートで利用できる Show Flag の説明
 Version:4.9
 
 
@@ -58,7 +58,7 @@ Version:4.9
 Show Flags (表示フラグ) はビューポートの**[Show (表示)]** メニューの下にあります。Show Flags はビューポート内に表示できる色々なアセットを表示/非表示にするための手段です。例えば、全パーティクルやランドスケープ オブジェクトを非表示にしたり、スプライトのアイコンを全て非表示にするなど少し高度な設定もできます。
 
 
-## 共通
+## 一般
 
 | **共通** ||
 |---|---|
@@ -74,7 +74,7 @@ Show Flags (表示フラグ) はビューポートの**[Show (表示)]** メニ�
 |**Particles Sprite**|シーンのパーティクルを表示 / 非表示にします。|
 |**Skeletal Meshes**|シーンのスケルタル メッシュを表示 / 非表示にします。|
 |**Static Meshes**|シーンのスタティック メッシュを表示 / 非表示にします。_(**Alt + W**)_|
-|**Translucency**|半透明マテリアルのオブジェクトを全て表示 / 非表示にします。ちなみに全ビルボード アイコンを含みます。|
+|**Translucency**|半透明マテリアルのオブジェクトを全て表示 / 非表示にします。これには全ビルボード アイコンが含まれます。|
 
 
 ## ポストプロセス
@@ -131,9 +131,9 @@ Show Flags (表示フラグ) はビューポートの**[Show (表示)]** メニ�
 |**Light Functions**|ライト関数マテリアルのライトへの結果を表示 / 非表示にします。|
 |**Light Shafts**|ライト シャフトの結果を表示 / 非表示にします。|
 |**Reflection Environment**|反射環境の結果を表示 / 非表示にします。|
-|**Screen Space Ambient Occlusion**|スクリーン空間のアンビエント オクルージョンの結果を表示 / 非表示にします。|
-|**Screen Space Reflections**|スクリーン空間反射の結果を表示 / 非表示にします。|
-|**Subsurface Scattering**| スクリーン空間内のサブサーフェス スキャタリングの結果を表示 / 非表示にします。|
+|**Screen Space Ambient Occlusion**|スクリーン スペースのアンビエント オクルージョンの結果を表示 / 非表示にします。|
+|**Screen Space Reflections**|スクリーン スペース反射の結果を表示 / 非表示にします。|
+|**Subsurface Scattering**| スクリーン スペース内のサブサーフェス スキャタリングの結果を表示 / 非表示にします。|
 |**Textured Light Profiles (IES Textures)**|IES ライティングのプロファイル結果を表示 / 非表示にします。|
 
 
@@ -145,7 +145,7 @@ Show Flags (表示フラグ) はビューポートの**[Show (表示)]** メニ�
 |**AI Debug**|AI 駆動型ポーンがナビゲーション メッシュに沿って移動するパスを表示します。|
 |**Composite Editor Primitives**|シーンのエディタ プリミティブを表示 / 非表示にします。|
 |**Gameplay Debug**|ゲームプレイのデバッグ|
-|**GBuffer Hints (material attributes)**|不適切なマテリアルを持つオブジェクトに色付けします。極端に反射のないオブジェクトは黄色、受け取る分よりも多くライトをエミットするオブジェクトには赤です。|
+|**GBuffer Hints (material attributes)**|不適切なマテリアルを持つオブジェクトを色付けします。極端に反射のないオブジェクトは黄色、受け取る分よりも多くライトをエミットするオブジェクトには赤です。|
 |**Hit Proxies**|ヒット検知に使うプロキシ形状を表示 / 非表示にします。|
 |**Log Visualizer**|Log Visualizer システムが必要とする画面に任意のデータを描画します。|
 |**On Screen Debug**| VisualizeTexture や統計情報の印刷などを非表示にします。 |
@@ -153,7 +153,7 @@ Show Flags (表示フラグ) はビューポートの**[Show (表示)]** メニ�
 |**Shadows of Editor-Hidden Actors**|**H** キーの押下で非表示になっているなど、エディタで非表示になっているオブジェクトの動的シャドウを表示します。|
 |**Test Image**|モニターの設定とグラフィック設定用テスト画像を表示します。|
 |**Vector Fields**|シーンのベクター フィールドを表示 / 非表示にします。|
-|**Blur GBuffer**|Post Process ボリューム上にあるプロパティの Blur GBuffer Intensity の結果を表示 / 非表示にします。この機能は GBuffer 法線をぼかし、GBuffer ラフネスを調整してスペキュラ エイリアシングを減らします。ただし、結果に対してパフォーマンス負荷が高いので、Temporal AA の使用のみを検討するのが一般的です。  |
+
 
 ## 視覚化
 
@@ -172,13 +172,13 @@ Show Flags (表示フラグ) はビューポートの**[Show (表示)]** メニ�
 | [Out of Bounds Pixels](Engine/Performance/Visualizers/OutOfBoundsPixels) | オブジェクトのピクセルが該当オブジェクトの境界ボリュームの外側に存在する場合、境界ボリューム (メッシュではなく) がカメラが回っていない位置にある時、フリッカが発生またはオブジェクトが消滅してしまいます。このビジュアライザは、ピクセルを青、黄、白に色付けします。|
 |**Precomputed Visibility Cells**|Precomputed Visibility (事前計算されたビジビリティ) ボリュームと合わせて使用する場合、事前計算されたビジビリティ セルを視覚化したものを表示します。 |
 |**Preview Shadows Indicator**| ライティングが静的/固定ライトのためにビルドされていない場合、ビルドされていないシャドウで "Preview" というテキストが表示されます。|
-|**Screen Space Reflections**|スクリーン空間反射を視覚化します。|
-|**Subsurface Scattering (Screen Space)**| スクリーン空間内でサブサーフェス スキャタリングを確認できる視覚化モードです。 |
+|**Screen Space Reflections**|スクリーン スペースの反射を視覚化します。|
+|**Subsurface Scattering (Screen Space)**| スクリーン スペース内でサブサーフェス スキャタリングを確認できる視覚化モードです。 |
 |**Volume Lighting Samples**| 静的ライトをビルドする場合に、Lightmass Importance ボリューム内に配置されるボリューム ライティング サンプルを視覚化して表示します。 |
 
 
 
-##高度なオプション
+## 上級者向け
 
 |詳細設定||
 |---|---|
@@ -270,9 +270,9 @@ Show Flags (表示フラグ) はビューポートの**[Show (表示)]** メニ�
 |**Characters**|キャラクターのビルボード スプライトを表示 / 非表示にします。|
 |**Decals**|デカール ビルボード スプライトを表示 / 非表示にします。|
 |**Effects**|Emitter アクタの位置を表す Effect ビルボード スプライトを表示 / 非表示にします。|
-|**Fog**|Fog アクタ ビルボード スプライトを表示 / 非表示にします。|
+|**Fog**|Fog アクタのビルボード スプライトを表示 / 非表示にします。|
 |**FTests**|FTest ビルボード スプライトを表示 / 非表示にします。|
-|**Info**|Info ビルボード スプライトを表示 / 非表示にします。|
+|**Info**|Info スプライトを表示 / 非表示にします。|
 |**Lighting**|Light アクタ ビルボード スプライトを表示 / 非表示にします。|
 |**Materials**|Materials ビルボード スプライトを表示 / 非表示にします。|
 |**Matinee**|Matinee ビルボード スプライトを表示 / 非表示にします。|

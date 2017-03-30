@@ -8,6 +8,7 @@ order:1
 Version: 4.13
 Related: Engine\Sequencer\Overview
 Related: Engine/Sequencer/HowTo
+tags:Sequencer
 
 The **Sequence Recorder** allows you to record Actor(s) from gameplay or level editing into Skeletal Animation, Transform, Event and Audio Tracks inside a Level Sequence. 
 You can then edit the Level Sequence inside the **Sequencer Editor** to create a cinematic based around your recording. 

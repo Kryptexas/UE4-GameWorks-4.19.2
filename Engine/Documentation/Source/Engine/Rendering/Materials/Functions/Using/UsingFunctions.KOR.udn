@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:머티리얼 함수 사용하기
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:머티리얼 안에서 머티리얼 함수를 사용하는 방법입니다.
 Version: 4.9
 SkillLevel: Beginner
+tags:Materials
 
 이 글은 머티리얼 함수의 개념에 익숙한 분들을 대상으로 합니다. 자세한 정보는 [](Engine/Rendering/Materials/Functions/Overview) 페이지를 확인해 주시기 바랍니다.
 

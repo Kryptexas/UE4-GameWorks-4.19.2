@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3232646
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:4 - ブレンド設定を確定する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:ブレンドしたアニメーションをレイヤー化し、どのボーンからブレンドを開始するかの方法を定義します。 
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 
 [VAR:Steps]
 [OBJECT:Navigation]

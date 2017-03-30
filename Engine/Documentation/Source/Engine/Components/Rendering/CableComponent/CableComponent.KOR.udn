@@ -1,0 +1,165 @@
+﻿INTSourceChangelist:3352412
+Availability:Public
+Title:케이블 컴포넌트
+Crumbs:%ROOT%, Engine
+Description: 케이블 컴포넌트에 대한 분석입니다.
+version: 4.15
+parent:Engine/Editor
+
+![](CC_InGame.png)
+
+[TOC(start:1 end:2)]
+
+바람에 앞뒤로 흔들리는 듯한 케이블, 밧줄, 체인을 저렴한 비용으로 추가할 수 있다면 언리얼 엔진 4 (UE4) 프로젝트에 멋지게 생동감을 불어넣을 수 있을 것입니다. 여기서는 Cable Component (케이블 컴포넌트) 플러그인을 사용하여 레벨의 오브젝트에 반응하고 심지어 충돌도 하는 케이블을 만들고 구성하여 제어하는 법을 알아보겠습니다.
+
+
+## 시뮬레이션 & 렌더링
+
+실제 케이블 시뮬레이션을 위해 게임 개발에는 아주 잘 알려진 **Verlet Integration** 이라는 기법이 사용됩니다. 케이블을 **distance constraints** (거리 제약)을 사이에 둔 파티클 시리즈로 표현한다는 개념입니다. 끝부분의 파티클은 **fixed** (고정)되어 붙은 것과 함께 움직입니다. 중간의 것들은 **free** (자유)롭게 중력의 영향을 받습니다. 각 단계마다, 각 파티클의 속도와 위치를 업데이트한 뒤, 제약에 만족하도록 이동시킵니다. 케이블 **stiffness** (강성)은 각 단계마다 제약 강화를 위한 반복처리 횟수로 제어합니다.
+
+[REGION:lightbox]
+[![](CC_ParticleRope.png)(w:600)](CC_ParticleRope.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 원본 이미지를 확인합니다.
+[/REGION]
+
+이리저리 튕기는 멋진 연결 파티클 체인이 생겼으니, 이제 렌더링을 해 줘야 합니다. 케이블 렌더링을 위해 **FCableSceneProxy** 라는 클래스를 새로 만들어 케이블 렌더링을 표현합니다. 그 후 (TickComponent 내 메인 스레드에서 이루어지는) 시뮬레이션을 통한 새 파티클 각각의 위치가 **SendRenderDynamicData_Concurrent** 함수를 통해 이 프록시로 전달됩니다. 다음 렌더 스레드에서 업데이트를 잠근 뒤 인덱스 및 버텍스 버퍼를 업데이트하여 **튜브** 메시를 만듭니다. 이 튜브 메시의 각 버텍스에 대해 위치, 텍스처 UV, 세 개의 탄젠트 기저 벡터를 계산해 줘야 합니다. 이 작업을 할 때 **X** 는 케이블 방향을 가리키고, **Z** 는 케이블에서 반대로 나가는(노멀) 방향을 가리키며, **Y** 는 **X** 와 **Z** 에 수직 방향을 나타냅니다. 이 프로퍼티는 컴포넌트에 노출되어 있어 면의 수, 튜브인 경우 반경, UV 가 케이블을 몇 번이나 휘감을지 등을 제어할 수 있습니다.
+
+[REGION:lightbox]
+[![](CC_RenderingGeo.png)(w:600)](CC_RenderingGeo.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 원본 이미지를 확인합니다.
+[/REGION]
+
+
+## 플러그인 활성화
+
+케이블 컴포넌트 플러그인은 기본적으로 활성화됩니다. 하지만 활성화되어 있지 않은 경우, 먼저 메인 툴바의 **편집** > **플러그인** 으로 갑니다. 플러그인 목록에서 **Rendering** 으로 간 뒤 **Cable Component** 부분의 **Enabled** 여페 박스가 체크되어 있는지 확인합니다.
+
+[REGION:lightbox]
+[![](CC_PluginEnable.png)(w:505)](CC_PluginEnable.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 원본 이미지를 확인합니다.
+[/REGION]
+
+## 케이블 컴포넌트 사용
+
+블루프린트에서 케이블 컴포넌트를 사용하는 방법은 다음과 같습니다:
+
+1. 먼저 **BP_Cable** 이라는 블루프린트를 새로 만들고 **Actor** 를 부모 클래스로 사용하는지 확인합니다.
+
+    ![](CC_MakeNewBP.png)
+
+1. BP_Cable 블루프린트의 **컴포넌트** 섹션에서 **컴포넌트 추가** 버튼을 누르고 목록에서 **Cable** 컴포넌트를 찾습니다. 클릭하여 컴포넌트 목록에 추가합니다.
+
+    ![](CC_Add_CC.png)
+
+1. 케이블 컴포넌트를 추가한 뒤 컴포넌트 목록에서 **Cable** 컴포넌트를 선택하면 **디테일** 패널에서 프로퍼티를 조정할 수 있습니다.
+
+    ![](CC_Cable_Options.png)
+
+1. **Enable Stiffness** 및 **Enable Collision** 옵션 양쪽 다 체크하여 케이블에 강성을 주고 월드와 충돌하도록 한 뒤, **컴파일** 버튼을 누릅니다.
+
+    [REGION:lightbox]
+    [![](CC_Added_CC.png)(w:700)](CC_Added_CC.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+	[region:note]
+	작은 흰색 삼각형을 눌러 고급 옵션을 펼쳐야 이 기능을 확인하고 사용할 수 있을 것입니다.
+	[/region]
+
+1. 콘텐츠 브라우저에서 BP_Cable 블루프린트를 끌어 레벨에 놓은 뒤 케이블이 레벨에 배치된 오브젝트와 충돌하도록 위치를 잡습니다.
+
+    [REGION:lightbox]
+    [![](CC_Add_CC_To_Level.png)(w:700)](CC_Add_CC_To_Level.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. 레벨에 배치된 BP_Cable 블루프린트를 선택하고 끌어봅니다. 아래 비디오처럼 끌려다니는 케이블이 닿은 메시와 충돌하는 것이 보일 것입니다.
+
+    [OBJECT:EmbeddedVideo]
+        [PARAMLITERAL:width]
+        640
+        [/PARAMLITERAL]
+        [PARAMLITERAL:height]
+        360
+        [/PARAMLITERAL]
+        [PARAMLITERAL:videoid]
+        e18Kr8v-nNI
+        [/PARAMLITERAL]
+    [/OBJECT]
+
+	[region:note]
+	케이블 한쪽 끝이 떨어지게 만들려면, 케이블 컴포넌트의 디테일 패널에서 **Attach Start** 또는 **Attach End** 옵션 체크를 해제하면 됩니다.
+	[/region]
+
+## 프로퍼티 분석
+
+케이블 컴포넌트의 각 프로퍼티가 하는 역할에 대한 분석은 다음 표와 같습니다:
+
+### Cable
+
+![](CC_Cable_Properties.png)
+
+|-------------|----------------|
+|**프로퍼티 이름**| **설명**|
+|Attach Start| 붙이기 시작 - 시작 부분을 무언가에 고정시킬지 자유롭게 놔둘지 입니다. false 면, 초기 케이블 시작 위치는 그냥 컴포넌트 트랜스폼을 사용합니다. |
+|Attach End|붙이기 끝 - 끝 부분을 (AttachEndTo 와 EndLocation 을 사용하여) 무언가에 고정시킬지 자유롭게 놔둘지 입니다. false 면 초기 케이블 끝 위치는 그냥 AttachEndTo 와 EndLocation 을 사용합니다. |
+|Attach End To| 끝 붙이기 - 케이블 끝 위치를 정의하는 액터 또는 컴포넌트입니다. |
+|Component Property| 컴포넌트 프로퍼티 - 케이블을 붙일 컴포넌트 프로퍼티 이름입니다. |
+|Attach End To Socket Name| 끝을 소켓 이름에 붙이기 - 붙일 AttachEndTo 컴포넌트 상의 소켓 이름입니다. |
+|End Location| 끝 위치 - 케이블 끝 위치로, 지정된 경우 AttachEndTo (또는 AttachEndToSocketName) 기준이며, 지정되지 않은 경우 케이블 컴포넌트 기준입니다. |
+|Cable Length| 케이블 길이 - 케이블 나머지 길이입니다. |
+|Num Segments| 선분 수 - 케이블의 선분 갯수입니다. |
+|Solver Iterations| 솔버 반복처리 수 - 케이블 강성을 나타내는 솔버 반복처리 횟수입니다. |
+|Substep Time| 서브스텝 시간 - 케이블의 시뮬레이션 서브스텝 시간을 제어합니다. |
+|Enable Stiffness| 강성 활성화 - 케이블에 강성 제약을 추가합니다. |
+|Enable Collision| 콜리전 활성화 - 실험단계 입니다. 각 케이블 파티클, 각 서브스텝 마다 스윕 검사를 실시하여 월드와의 충돌을 피합니다. 컴포넌트에 콜리전 프리셋을 사용하여 콜리전 대상을 결정합니다. 케이블 시뮬레이션 비용이 크게 늘어납니다. |
+
+### Cable Forces
+
+![](CC_CableForces_Properties.png)
+
+|-------------|----------------|
+|**프로퍼티 이름**| **설명**|
+|Cable Forces|케이블 포스 - 케이블의 모든 파티클게 적용되는 (월드 스페이스) 포스 벡터입니다. |
+|Cable Gravity Scale|케이블 중력 스케일 - 이 케이블에 영향을 끼치는 월드 중력에 적용되는 스케일입니다. |
+
+### Cable Rendering
+
+![](CC_CableRendering_Options.png)
+
+|-------------|----------------|
+|**프로퍼티 이름**| **설명**|
+|Cable Width|케이블 폭 - 케이블 지오메트리 폭입니다. |
+|Num Sides|면 수 - 케이블 지오메트리 면 수입니다. |
+|Tile Material|타일 머티리얼 - 케이블 길이상에서 머티리얼을 몇 번이나 반복시킬지 입니다. |
+
+
+## 참고서
+
+케이블 컴포넌트의 기반이 되는 논문에 대해 자세히 알아볼 수 있는 여러가지 참고 문헌에 대한 링크입니다.
+
+* **Verlet Integration** 관련 자세한 내용은 Thomas Jakobsen 의 논문을 참고하세요.
+
+    * [http://graphics.cs.cmu.edu/nsp/course/15-869/2006/papers/jakobsen.htm](http://graphics.cs.cmu.edu/nsp/course/15-869/2006/papers/jakobsen.htm)
+
+
+
+
+
+
+

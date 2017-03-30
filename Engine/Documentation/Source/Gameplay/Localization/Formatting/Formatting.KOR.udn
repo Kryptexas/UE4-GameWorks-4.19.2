@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3124628
+﻿INTSourceChangelist:3124629
 Availability:Public
 Title:사용자에 맞는 텍스트 포맷
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
@@ -70,32 +70,33 @@ Format 변수의 인수에 일치할 때마다, 제공된 정보를 사용할 �
 
 복수/성별 형태 지원에 필요한 숫자/성별 값을 전달하기 위해, 모든 `FText::Format(...)` 군 함수는 이제 그 값을 FText 가 아닌 FFormatArgumentValue 값으로 받습니다. 이는 묵시적으로 어떠한 숫자 유형, ETextGender, FText 로 구성할 수 있습니다.
 
-The ability to set these value types in Blueprints has been exposed using wildcard pins on the **Format Text** node.
+블루프린트에서 이와같은 값 유형을 설정하는 기능이, **Format Text** 노드의 와일드카드 핀으로 노출되어 있습니다.
 
-Following from the examples above, these format patterns can be supplied as arguments to `FText::Format` or to **Format Text**. 
+위 예제에 이어 다음과 같은 포맷 패턴을 `FText::Format` 나 **Format Text** 에 인수로 제공할 수 있습니다. 
 
-### Plural Forms
+### 복수 형태
 
-Plural forms allow you to use different text based upon a numeric variable given to your text format. Plural forms may be cardinal, such as "There is 1 cat" or "There are 4 cats", or ordinal, such as "You came 1st!" or "You came 2nd!".
+복수(Plural) 형태는 텍스트 포맷에 주어진 수치 값에 따라 다양한 텍스트를 사용할 수 있습니다. 복수 형태는 "There is 1 cat" 이나 "There are 4 cats" 처럼 기수(cardinal)가 될 수도, "You came 1st!" 나 "You came 2nd!" 처럼 서수(ordinal)가 될 수도 있습니다.
 
-Plural forms are specified as key->value pairs, and support any of the following keywords (as defined for your culture by the [CLDR data](http://www.unicode.org/cldr/charts/29/supplemental/language_plural_rules.html)): zero, one, two, few, many, other. Values are an optionally quoted string 
-that may also contain format markers.
+복수 형태는 키->값 짝으로 지정되며, (컬처 별로 [CLDR data](http://www.unicode.org/cldr/charts/29/supplemental/language_plural_rules.html) 에 지정된 대로) zero, one, two, few, many, other 와 같은 키워드를 지원합니다. 이 값은 선택적으로 따옴표에 묶인 스트링이 될 수 있으며, 여기에는 포맷 마커가 포함될 수도 있습니다.
 
-Cardinal Format Example: `"There {NumCats}|plural(one=is,other=are) {NumCats} {NumCats}|plural(one=cat,other=cats)"`
+기수 포맷 예제: `"There {NumCats}|plural(one=is,other=are) {NumCats} {NumCats}|plural(one=cat,other=cats)"`
 
-Ordinal Format Example: `"You came {Place}{Place}|ordinal(one=st,two=nd,few=rd,other=th)!"`
+서수 포맷 예제: `"You came {Place}{Place}|ordinal(one=st,two=nd,few=rd,other=th)!"`
 
 
-### Gender Forms
+### 성별 형태
 
-Gender forms allow you to use different text based upon an ETextGender value given to your text format, such as "Le guerrier est fort" or "La guerrière est forte".
-Gender forms are specified as a list of values in the order of [masculine, feminine, neuter], where neuter is optional. Values are an optionally quoted string that may also contain format markers.
+성별(Gender) 형태는 텍스트 포맷에 주어진 ETextGender 값에 따라 다른 텍스트를 사용할 수 있도록 해줍니다. 예: "Le guerrier est fort" 또는 "La guerrière est forte".
+성별 형태는 값의 목록으로 지정되며, [남성, 여성, 중성] 순이고, 중성은 옵션입니다. 이 값은 선택적으로 따옴표에 묶인 스트링이 될 수 있으며, 여기에는 포맷 마커가 포함될 수도 있습니다.
 
-Format Example: `"{Gender}|gender(Le,La) {Gender}|gender(guerrier,guerrière) est {Gender}|gender(fort,forte)"`
+포맷 예제: `"{Gender}|gender(Le,La) {Gender}|gender(guerrier,guerrière) est {Gender}|gender(fort,forte)"`
 
-### Hangul Post-Positions
+### 한글 조사
 
-Hangul post-positions help you deal with the grammar rules present in Korean, and will insert the correct glyph(s) based upon whether the value being inserted ends in a consonant or a verb, such as "사람은" or "사자는".
-Hangul post-positions are specified as a list of values in the order of [consonant, verb]. Values are an optionally quoted string.
+hpp(Hangul Post-Positions)는 한국어에서 선행하는 낱말 끝 글자의 종성 유무에 따라 바뀌는 조사를 자동으로 처리해 줍니다.  
+문법: {변수}|hpp(은,는) - {변수}가 종성으로 끝나면 조사는 "은", 아니면 "는" 이 됩니다. 지원되는 조사 목록은 다음과 같습니다: (은,는) (이,가) (을,를) (과,와) (아,야) (이어,여) (이에,예) (이었,였) (으로,로)
 
-Format Example: `"{Arg}|hpp(은,는)"`
+포맷 예제: "{Arg}|hpp(은,는)"  
+{Arg}="사람" 이면 결과는 "사람은"  
+{Arg}="사자" 면 결과는 "사자는"

@@ -32,7 +32,7 @@ Dedicated servers are headless by default. If you don't use -log, you won't see 
 
 ## Server Gameplay Flow
 
-The server is in charge is driving the flow of gameplay. It is the server's job to notify clients that it is time to travel to a new map, when gameplay starts and ends, along with actor replication updates, etc.
+The server is in charge of driving the flow of gameplay. It is the server's job to notify clients that it is time to travel to a new map, when gameplay starts and ends, along with actor replication updates, etc.
 
 The [major framework portions](Gameplay/Framework) are mostly out of the scope of this document, but we can talk about some of the additional multiplayer nuances introduced when dealing working with certain classes.
 

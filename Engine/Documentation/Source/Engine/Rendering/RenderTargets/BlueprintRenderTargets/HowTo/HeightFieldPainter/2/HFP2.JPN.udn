@@ -1,86 +1,86 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:2. Required Asset Creation & Setup
-description:Going over creating and setting up the required assets.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:2.必要なアセットの作成と設定
+description:必要なアセットの作成と設定の説明
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Intermediate
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/HeightFieldPainter
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:2
-checkpoint:HFP
+checkpoint: animpropertyblend
 
 [NAV]
 
 
-Before we can create the Height Field Painter Blueprint, we will need to create and setup the following asset types inside of the UE4 Content Browser. In the following sections, we will go over how each of the assets needs to be setup as well as any special properties that you will need to be aware of.
+Height Field Painter ブループリントを作成する前に、UE4 コンテンツ ブラウザで以下のアセット タイプを作成する必要があります。次のセクションでは、これらのアセットの設定方法と、認識しておく必要のある特別なプロパティについて説明します。
 
 [region:note]
-Please note that the following is not specific to any UE4 project type. The following can be accomplished in any project that uses UE4 version 4.13 or later. 
+ここから先の手順は UE4 プロジェクトの特定のタイプに限定されず、4.13 以降の UE4 を使ったすべてのプロジェクトで使用できます。 
 [/region]
 
 * **Render Target**
 * **Material**
-* **Blueprint** (Based off Actor)
+* **Blueprint** (アクタのベース)
 
-### Render Target Creation & Setup
+### レンダー ターゲットの作成と設定
 
-1. Right-click inside of the **Content Browser** and from the displayed menu, go to **Create Advanced Asset** > **Materials & Textures** and then select the **Render Target** option.
+1. 手順は、**コンテンツ ブラウザ** の右クリックで表示されるメニューから **[Create Advanced Asset (詳細アセットの作成)]** > **[Materials & Textures (マテリアルとテクスチャ)]** を選んで **[Render Target]** オプションを選択します。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_00.png)
 
-1. Name the newly created Render Target, `RT_Height_Filed_Painter`, and then press the **Save All** button to save your work.
+1. 新規作成したレンダー ターゲットに `RT_Height_Filed_Painter` という名前を付けて **[Save All (すべて保存)]** ボタンを押して保存します。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_01.png)
 
-### Material Creation & Setup
+### マテリアルの作成と設定
 
-1. Right-click inside of the Content Browser and from the **Create Basic Asset** list, select the **Material** option to create a new Material, naming it `MAT_HeighfieldPainter`.
+1. コンテンツ ブラウザを右クリックして **[Create Basic Asset (基本アセットを作成)]** リストから **[Material]** オプションから新規マテリアルを作成し、`MAT_HeighfieldPainter` という名前を付けます。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_00.png)
 
-1. Select the **MAT_HeightfieldPainter** Material in the Content Browser and then right-click on it. From the displayed menu, under the **Common** section, select the **Duplicate** option to create a copy of the Material, naming it `MAT_ForceSplat`.
+1. コンテンツ ブラウザで **MAT_HeightfieldPainter** マテリアルを選択して右クリックします。表示されたメニューの **[Common (共通)]** セクションで **[Duplicate (複製)]** オプションを選択してマテリアルのコピーを作成し、それに `MAT_ForceSplat` という名前をつけます。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_01.png)
 
-1. Double-click on the MAT_HeighfieldPainter Material to open it up and then select the **Main Material Node**. In the **Details** panel under the **Material** section, setup the following parameters.
+1. MAT_HeighfieldPainter マテリアルをダブルクリックして開き、**Main Material Node** を選択します。**[Details (詳細)]** パネルの **[Material]** セクションで以下のパラメータを設定します。
 
-	* **Shading Model:** Unlit
+	* **[Shading Model]:** Unlit (ライティング無し)
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_04.png)
 
-1. The MAT_HeighfieldPainter Material is going to use the **World Position Offset** input to increase the Z-height of the Static Mesh vertices it is applied to. You can copy it into your Material by hovering your mouse over the image below and then clicking on the **Copy Expression Graph** option, copying-and-pasting the provided Material code into `MAT_HeighfieldPainter`.
+1. MAT_HeighfieldPainter マテリアルは **World Position Offset** 入力を使って、適用しているスタティックメッシュ頂点の Z の高さを上げます。以下の画像の上にマウスを当てて、**[Copy Expression Graph]** オプションをクリックし、与えられたマテリアル コードを`MAT_HeighfieldPainter` に貼り付ければ、自分のマテリアルへコピーすることができます。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\2\#HFP]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Apply and Save your Material so that it can be used.
+	完了したら、必ずマテリアルを適用および保存して、使えるようにしてください。
 	[/region]
 
-1. Open up the MAT_ForceSplat Material and then select the **Main Material Node**. In the **Details** panel under the **Material** section set up the following parameters.
+1. MAT_ForceSplat マテリアルを開いて **Main Material Node** を選択します。**[Details (詳細)]** パネルの **[Material]** セクションで以下のパラメータを設定します。
 
 	* **Blend Mode:** Additive
-	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** Checked
+	* **[Shading Model]:** Unlit (ライティング無し)
+	* **Allow Negative Emissive Color:** チェックを入れる
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_02.png)
 
-1. Since the MAT_ForceSplat Material is going to act as our paint brush for raising the surface of our height field, it will need to have a few options that will allow you to control its size and intensity. You can copy the completed Material into your Material by hovering your mouse over the image below and then clicking on the  **Copy Expression Graph** option, copying-and-pasting the provided Material code into MAT_ForceSplat.
+1. MAT_ForceSplat マテリアルはハイト フィールドのサーフェスを高くするためのペイント ブラシの役割をするので、サイズと強度を制御するオプションが必要になります。以下の画像の上にマウスを当てて、**[Copy Expression Graph]** オプションをクリックし、与えられたマテリアル コードを MAT_ForceSplat に貼り付ければ、自分のマテリアルへコピーすることができます。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\2\#ForceSplat]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Apply and Save your Material when done so that it can be used.
+	完了したら、必ずマテリアルを適用および保存して、使えるようにしてください。
 	[/region]
 
 
-With the required assets now setup, in the next section, we will take a look at creating a Blueprint that will link all of the assets together to create the height map painter.
+必要なアセットの作成はこれで完了です。次のセクションでは、ハイトマップ ペインターを作成するために、これらのアセットをすべてリンクさせるブループリントの作成方法を説明します。
 
 <!--
 [EXCERPT:HFP]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3085384
+﻿INTSourceChangelist:3150518
 Title:Android でアプリ内課金を使用する
 Description:アプリ内課金を使って Android ゲームに有料コンテンツを追加する
 Crumbs:
@@ -7,7 +7,7 @@ version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 Related:Platforms/Mobile/InAppPurchases/
 
 ## コンフィギュレーション
@@ -32,7 +32,7 @@ Related:Platforms/Mobile/InAppPurchases/
 
 1. **[Project Settings (プロジェクト設定)]> [Platforms] > [Android]** の [Advanced APKPackaging] セクションを開きます。
 
-1. ExtraPermissions に"：com.android.vending.BILLING" というエレメントを追加します。
+1. ExtraPermissions に "：com.android.vending.BILLING" というエレメントを追加します。
 
 	![image alt text](image_2.png)
 

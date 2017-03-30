@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3158602
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title:서브서피스 셰이딩 모델
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ parent:Engine/Rendering/Materials/LightingModels
 order:1
 topic-image:sss_topic.png
 type:overview
+tags:Materials
 
 머티리얼에 **_MLM_Subsurface_** 이라는 서브서피스 셰이딩 모델이 새로 생겼습니다. 겉은 불투명해 보이지만 그 안에 스며든 빛이 이리저리 산란하다 반대편 표면으로 빛의 일부가 빠져나오는, 왁스나 비취같은 재질에 사용됩니다.
 

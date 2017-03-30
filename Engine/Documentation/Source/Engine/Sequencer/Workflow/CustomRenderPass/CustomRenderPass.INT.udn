@@ -8,6 +8,7 @@ order:1
 Version: 4.13
 Related: Engine\Sequencer\Overview
 Related: Engine/Sequencer/HowTo
+tags:Sequencer
 
 This page describes how you can render out custom passes from the **Render Movie Settings** window inside **Sequencer**. 
 Using a Custom Render Pass will output your sequence into a series of image files based on the Render Pass you specify. 

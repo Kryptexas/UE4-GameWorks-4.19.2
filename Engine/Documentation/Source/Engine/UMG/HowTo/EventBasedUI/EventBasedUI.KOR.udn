@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability: Public
 Title:이벤트로 UI 업데이트 구동
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -9,7 +9,7 @@ Related: Engine/Blueprints
 Related: Resources\SampleGames\UnrealMatch3
 Version: 4.10
 SkillLevel: Advanced
-
+tags:UMG UI Designer
 
 
 [VAR:Topic]

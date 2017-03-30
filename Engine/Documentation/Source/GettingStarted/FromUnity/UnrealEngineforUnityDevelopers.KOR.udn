@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3317931
 Availability: Public
 Title:유니티 개발자를 위한 언리얼 엔진 4
 Crumbs: %ROOT%, GettingStarted
@@ -49,7 +49,7 @@ version: 4.9
 | **2D**             | Sprite Editor | [Paper2D](Engine/Paper2D) 페이퍼 2D |
 | **프로그래밍**    | C# | [C++](Programming) C++ |
 |                    | Script | [Blueprint](Engine/Blueprints) 블루프린트 |
-| **피직스**        | Raycast | [Line Trace, Shape Trace](Gameplay/HowTo/UseRaycasts/Blueprints) 라인 트레이스, 셰이프 트레이스 |
+| **피직스**        | Raycast | [Line Trace, Shape Trace](Engine/Physics/Tracing) 라인 트레이스, 셰이프 트레이스 |
 |                    | Rigid Body | [Collision, Physics](Engine/Physics) 콜리전, 피직스 |
 | **런타임 플랫폼** | iOS Player, Web Player | [Platforms](Platforms) 플랫폼 |
 
@@ -898,28 +898,9 @@ UE4 C++:
 			Trigger.SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		}
 
-		void BeginPlay()
-		{
-			// 오버랩 발생시기를 알아내기 위해 등록합니다.
-			OnActorBeginOverlap.AddDynamic(this, &AMyActor::OnTriggerEnter);
-			OnActorEndOverlap.AddDynamic(this, &AMyActor::OnTriggerExit);
+		virtual void NotifyActorBeginOverlap(AActor* Other) override;
 
-			Super::BeginPlay();
-		}
-
-		void EndPlay(const EEndPlayReason::Type EndPlayReason)
-		{
-			OnActorBeginOverlap.RemoveDynamic(this, &AMyActor::OnTriggerEnter);
-			OnActorEndOverlap.RemoveDynamic(this, &AMyActor::OnTriggerExit);
-
-			Super:EndPlay(EndPlayReason);
-		}
-
-		UFUNCTION()
-		void OnTriggerEnter(AActor* Other);
-
-		UFUNCTION()
-		void OnTriggerExit(AActor* Other);
+		virtual void NotifyActorEndOverlap(AActor* Other) override;
 	};
 
 UE4 블루프린트:

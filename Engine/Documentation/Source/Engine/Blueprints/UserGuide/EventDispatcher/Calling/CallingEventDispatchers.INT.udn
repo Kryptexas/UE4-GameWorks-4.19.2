@@ -3,6 +3,7 @@ Title:Calling Event Dispatchers
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/EventDispatcher
 Description: Calling the Event Dispatcher executes all of the currently bound events in the events list.
 version: 4.9
+tags:Blueprints
 
 
 

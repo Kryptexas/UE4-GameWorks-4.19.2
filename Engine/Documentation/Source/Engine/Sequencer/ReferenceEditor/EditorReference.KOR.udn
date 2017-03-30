@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title: 시퀀서 에디터 참고서
 Crumbs: %ROOT%, Engine
@@ -10,6 +10,7 @@ order:1
 Version: 4.12
 Related: Engine\Sequencer\Overview
 Related: Engine/Sequencer/HowTo
+tags:Sequencer
 
 여기서는 시퀀서 에디터 각각의 창, 옵션, 조작법을 간략히 설명합니다.
 

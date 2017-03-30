@@ -4,27 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Setting that controls whether an Actor will be allowed to move or change in some way during gameplay.
 version: 4.9
 
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Transform "%Engine/Actors/Transform:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Grouping "%Engine/Actors/Grouping:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [EXCERPT:Intro]
 ![](TransformMobility.png)
 
@@ -62,6 +41,3 @@ Stationary is used for **Light Actors** that do not move, but may update in some
 [/EXCERPT:Movable]
 
 -->
-
-
-%playlistnav%

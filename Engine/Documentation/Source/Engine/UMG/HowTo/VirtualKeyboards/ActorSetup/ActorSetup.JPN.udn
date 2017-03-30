@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:3102822
-Availability: Public
+﻿INTSourceChangelist:3343902
+Availability:Public
 Title:3.アクタのセットアップとテスト
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:UMG で 3D 仮想キーボードを作成し、インタラクションする方法を説明します。 
 Related:Engine\UMG\UserGuide\WidgetInteraction\
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
-Version:4.13
 SkillLevel:Advanced
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -48,12 +48,9 @@ SkillLevel:Advanced
 
 1.	**Keypad** 内で、**Enable Hit Testing** を false に設定した **WidgetInteraction** コンポーネントを追加します。 
 
-	![](Keypad17.png)
+	![](Keypad17.png) 
 
-	この WidgetInteraction コンポーネントを追加したのは、プレイヤー キャラクターでこの WidgetInteraction コンポーネントを参照する必要をなくすためです。Hit Testing を無効にしたのは、ホーバー エフェクトを生成しないようにするためです。 
-
-	デフォルトでは、WidgetInteraction コンポーネントは、作成時に **Virtual User Index 0** に設定されており、すべてのコンポーネントは Virtual User Index ID を使用して通信します。 
-	プレイヤー キャラクターの WidgetInteraction コンポーネントも、Virtaul User Index 0 を使用しているため、それを参照することと同じです。 
+	この WidgetInteraction コンポーネントを追加したのは、プレイヤー キャラクターでこの WidgetInteraction コンポーネントを参照する必要をなくすためです。Hit Testing を無効にしたのは、ホーバー エフェクトを生成しないようにするためです。デフォルトでは、WidgetInteraction コンポーネントは、作成時に **Virtual User Index 0** に設定されており、すべてのコンポーネントは Virtual User Index ID を使用して通信します。プレイヤー キャラクターの WidgetInteraction コンポーネントも、Virtual User Index 0 を使用しているため、それを参照することと同じです。
 
 1.	**Keypad** のグラフで、**Event Begin Play** から、**Widget** コンポーネントと **Get User Widget Object**、そして **Cast to KeypadWB** を取ります。 
 
@@ -113,5 +110,6 @@ N2Fo4izRgh0
 [/OBJECT]
 
 この例では、正しいコードが入力されたか否かを単に画面に表示していますが、ドアを開く何らかのイベントを発行したり、敵や他のゲームプレイ関連のイベントをスポーンさせることもできます。 
+
 
 

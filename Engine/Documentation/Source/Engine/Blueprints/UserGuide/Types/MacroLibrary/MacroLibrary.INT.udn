@@ -5,6 +5,7 @@ Description:Blueprints that declare and define macros for reuse in other Bluepri
 version: 4.9
 Parent:Engine/Blueprints
 type:overview
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

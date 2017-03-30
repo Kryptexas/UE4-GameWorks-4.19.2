@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3126630
+﻿INTSourceChangelist:3356804
 Availability:Public
 Title:BuildGraph の使用方法
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
@@ -7,6 +7,7 @@ version:4.13
 parent:Programming/Development/BuildGraph
 type:Overview
 related:Programming/Development/InstalledBuildReference
+tags:Programming
 tags:BuildGraph
 
 [VAR:TopicCompact]

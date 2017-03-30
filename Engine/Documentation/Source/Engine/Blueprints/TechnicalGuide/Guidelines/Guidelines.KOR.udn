@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:블루프린트 프로그래밍 지침
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:블루프린트 친화적인 API 를 제대로 작성하는 팁과 꼼수입니다.
+Description:블루프린트 친화적인 API 를 제대로 작성하는 법에 대한 팁과 정보입니다.
 Related:Engine/Blueprints/TechnicalGuide/ExtendingBlueprints 
 version: 4.9
+tags:Blueprints
 
 [TOC (start:2 end:2)]
 
@@ -51,7 +52,7 @@ ShooterGame 샘플 프로젝트에서 플레이어 캐릭터와 적 봇을 통�
 StrategyGame 양쪽 다 픽업은 이런 식으로 만들었습니다.
 
 
-## 블루프린트 API 만들기: 팁과 꼼수
+## 블루프린트 API 만들기: 팁과 정보
 
 블루프린트 노출 API 를 만드는 프로그래머가 몇 가지 고려할 사항은 이렇습니다:
 

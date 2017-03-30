@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability: Public
 Title:3. 쏠 수 있는 바위 스폰하기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:이번 단계에서는 플레이어가 버튼을 누르면 스폰 위치 중 하나에서 쏠 수 있는 바위를 스폰시키도록 하겠습니다.
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

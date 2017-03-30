@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3124629
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:シーケンス レコーダー
 Crumbs: %ROOT%, Engine
@@ -9,6 +9,7 @@ order:1
 Version:4.13
 Related:Engine\Sequencer\Overview
 Related:Engine/Sequencer/HowTo
+tags:Sequencer
 
 **シーケンス レコーダー** を使って、ゲームプレイやレベル編集からアクタをレベル シーケンス内のスケルタル アニメーション、トランスフォーム、イベント、オーディオトラックに記録することができます。 
 その後、**シーケンス エディタ** 内のレベル シーケンスで編集して、記録したものに基づきシネマティックスを作成することができます。 

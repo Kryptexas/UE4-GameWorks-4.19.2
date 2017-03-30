@@ -4,6 +4,7 @@ Crumbs:%ROOT%, Engine/Blueprints
 Description:Tips and tricks to help you make decisions about when to use Blueprints and how best to set them up.
 version: 4.9
 parent:Engine/Blueprints
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

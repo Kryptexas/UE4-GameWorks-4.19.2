@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3237210
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:ブレンドスペースを作成する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アニメーションの歩行 / ジョギング間で滑らかにキャラクターを切り替えるために使うブレンドスペースの例。 
 version:4.14
 skilllevel:Intermediate
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 tags:Blend Space
 Related:Engine/Animation/Blendspaces
 Related:Engine/Animation/AimOffset

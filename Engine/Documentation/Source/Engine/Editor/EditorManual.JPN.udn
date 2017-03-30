@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title:アンリアル エディタのマニュアル
 Crumbs:%ROOT%, Engine
@@ -6,6 +6,7 @@ Description:アンリアル エディタのツールセットを使用し設定�
 Navigation:topic
 parent:%ROOT%
 order:2
+type:landing
 
 [VAR:Params]
 [PARAM:image]

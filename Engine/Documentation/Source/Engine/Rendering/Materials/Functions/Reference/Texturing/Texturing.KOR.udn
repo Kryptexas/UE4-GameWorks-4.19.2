@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability: Public
 title:텍스처링
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Texturing, 텍스처링 카테고리 아래 있는 머티리얼 함수에 대한 설명과 예제입니다.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 
-The Texturing functions provide for specialized handling of texture-based actions, such as adjusting UVs of a texture, cropping textures, and many others.
+Texturing (텍스처링) 함수는 텍스처의 UV 조절, 텍스처 잘라내기(crop) 등의 전문 처리 기능을 제공합니다.
 
 ## 텍스처링 함수
 

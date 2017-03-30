@@ -1,9 +1,9 @@
-availability:docs
+availability:Docs
 title:Blueprint and Render Target Best Practices
 description: A collection of Best Practices to follow when using Blueprints and Render Targets.
 crumbs:
 version:4.13
-Type:topic
+Type:overview
 SkillLevel:Intermediate
 parent:Engine
 order:2

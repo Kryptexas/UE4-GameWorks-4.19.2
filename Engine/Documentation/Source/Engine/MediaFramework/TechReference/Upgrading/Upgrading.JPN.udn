@@ -1,45 +1,65 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Upgrading Media Framework Content to 4.13
+﻿INTSourceChangeList:3108692
+Availability:Public
+Title:Media Framework コンテンツを 4.13 にアップグレードする
 Crumbs:%ROOT%, Engine
-Description:Updating projects containing Media Framework assets and playback logic to Unreal Engine 4.13
+Description:Media Framework アセットと再生ロジックが含まれるプロジェクトをアンリアル エンジン 4.13 にアップグレードする
 Navigation:topic
 parent:Engine/MediaFramework
 order:3
-Version: 4.13
-Related: Engine\MediaFramework\Overview
-Related: Engine\MediaFramework\HowTo
-Related: Engine\MediaFramework\TechReference
+Version:4.13
+Related:Engine\MediaFramework\Overview
+Related:Engine\MediaFramework\HowTo
+Related:Engine\MediaFramework\TechReference
 
-In Unreal Engine 4.13, the Media Framework system received an update to the asset types and playback methods. This means that if you have existing Media Framework content in your project, you have to update your content. 
-Your project will still load, but playback will no longer work with existing 4.12 content until you have performed the updates, as the workflow is slightly different now. 
+アンリアル エンジン 4.13 では、Media Framework システムがアセットタイプと再生メソッドへのアップデートを受け取ります。つまり、プロジェクトに Media Framework コンテンツが含まれている場合、コンテンツのアップデートが必要になります。 
+プロジェクトは引き続きロードできますが、お持ちの 4.12 コンテンツはワークフローアップデートを完了するまで使用できません。 
 
-As you transition your project, keep the following items in mind:
+プロジェクトを変更する際は、以下の点にご注意ください。
 
-* **Media Player** assets no longer store a URL for the media. Instead there are now new asset types called 'media sources' that describe the media. For more information on these new asset types, see [](Engine/MediaFramework/Overview).
+* **Media Player** アセットは、メディアの URL を格納しなくなります。その代わり、メディアの詳細は 'media sources' という新しいアセットタイプに含まれます。 
 
 	![](MediaTypes.png)
 
-* **File Media Source** assets are used for media files stored on your device or in local network file shares. For an example of how to use a **File Media Source** asset, see [](Engine/MediaFramework/HowTo/FileMediaSource).
+	[REGION:tip]
+	新しいアセットタイプについては、[](Engine/MediaFramework/Overview) をご覧ください。
+	[/REGION]
+
+* **File Media Source** アセットは、デバイスまたはローカルネットワークの共有ファイルに格納されたメディア ファイルに使用されます。 
 
 	![](FileMediaSource.png)
-* **Stream Media Source** assets are used for streaming media over the internet. For an example of how to use a **Stream Media Source** asset, see [](Engine/MediaFramework/HowTo/StreamMediaSource).
+
+	[REGION:tip]
+	**File Media Source** アセットの使用例は、[](Engine/MediaFramework/HowTo/FileMediaSource) を参照してください。
+	[/REGION]
+
+* **Stream Media Source** アセットは、インターネット上でのメディアのストリーミングに使用します。 
 
 	![](StreamMediaSource.png)
-* **Media Playlist** assets are used to combine multiple media sources and play them one after another. Playlists will automatically cycle back to the beginning. For an example of working with playlists, see [](Engine/MediaFramework/HowTo/MediaPlaylists).
+
+	[REGION:tip]
+	**Stream Media Source** アセットの使用例は、[](Engine/MediaFramework/HowTo/StreamMediaSource) を参照してください。
+	[/REGION]
+
+* **Media Playlist** アセットは、複数のメディア ソースを結合して、順番にプレイします。プレイリストは自動的に冒頭に戻ります。 
 
 	![](MediaPlaylist.png)
 
-* **Media Texture** and **Media Sound Wave** assets no longer hold a reference to the **Media Player**. Instead, the Media Player now references the texture and the sound assets. Additionally, there is no longer a many-to-one relationship between **Media Texture** / **Media Sound Wave** and 
-**Media Player** assets. Every **Media Player** now references at most one of each.
+	[REGION:tip]
+	プレイリストの操作方法は、[](Engine/MediaFramework/HowTo/MediaPlaylists) をご覧ください。
+	[/REGION]
+
+* **Media Texture** アセットと **Media Sound Wave** アセットには **Media Player** への参照は含まれなくなります。その代わり、Media Player がテクスチャ アセットとサウンド アセットを参照するようになります。また、**Media Texture** / **Media Sound Wave** と **Media Player** アセット間の 
+多対一関係もなくなります。**Media Player** はすべて、1 つまでしか参照しません。
 
 	![](Upgrading_MediaLinks.png)
 
-* There is no longer an option for automatically starting media playback in Media Player assets. Instead you must open a media source via Blueprint. For convenience, Media Player assets have a **Play On Open** option that will begin playback after a media source opened successfully. 
-If you do not set this option, you must initiate playback via Blueprints or C++.
+* Media Player アセットでメディアを自動再生するオプションはなくなりました。その代わり、ブループリントからメディア ソースを開かなければなりません。便宜上、Media Player アセットには、メディア ソースが正常に開いた後に再生を開始する [**Play On Open**] オプションが付いています。 
+このオプションを設定しないと、ブループリントあるいは C++ で再生を開始しなければなりません。
 
 	![](PlayOnOpen.png)
 
-* The **Loop** option will loop the currently opened media source. Please note that, while looping is enabled, playlists do not advance.
+* **[Loop]** オプションは、現在開いているメディア ソースをループします。ループが有効にされているとプレイリストは進みませんので、ご注意ください。
 
 	![](Loop.png)
+
+* アップデート後の Medai Framework システムがサポートしているコンテンツと URL の詳細については、[](Engine/MediaFramework/TechReference) を参照してください。

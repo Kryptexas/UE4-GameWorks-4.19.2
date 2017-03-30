@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3347993
 Availability: Public
 Title:랜드스케이프 만들기
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -53,8 +53,8 @@ order:2
 랜드스케이프 시스템의 유연성 덕에 다음 방법 중 하나로 랜드스케이프를 만들 수 있습니다.
 
 * 엔진내 랜드스케이프 툴을 사용하여 처음서부터 랜드스케이프 하이트맵을 새로 만들 수 있습니다.
-* 기존에 언리얼 에디터나 외부 툴에서 만든 랜드스케이프 하이트맵을 임포트할 수 있습니다. 이에 대한 상세 정보는 
-	[](Engine/Landscape/Custom) 문서를 참고하시기 바랍니다.
+* 기존에 언리얼 에디터나 외부 툴에서 만든 랜드스케이프 하이트맵을 임포트할 수 있습니다. 이에 대한 상세 정보는 [](Engine/Landscape/Custom) 문서를 참고하시기 바랍니다.
+* 랜드스케이프 임포트를 위한 별도의 포맷을 만드는 방법은, [](Engine/Landscape/Creation/Plugin) 문서를 참고하세요.
 
 [REGION:note]
 랜드스케이프 툴 실전 예제는 [](Resources\ContentExamples\Landscapes) 콘텐츠 예제를 살펴보세요.
@@ -172,10 +172,3 @@ og7fnKaqYdI
 ![Landscape_NewTerrain.png](Landscape_NewTerrain.png)(w:600)
 
 랜드스케이프가 새로 생성되었으니, 이제 [조각](Engine/Landscape/Editing/SculptMode) 또는 [페인트](Engine/Landscape/Editing/PaintMode) 작업을 입맛대로 해 주면 됩니다.
-
-
-
-
-
-
-

@@ -9,6 +9,7 @@ order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 Once you have created your cinematic sequence, you may want to have it called and played during gameplay as part of a cutscene. 
 Perhaps a character walks into a room and you initiate a cutscene or maybe there is an ending cinematic you want to play when a character kills an enemy. 

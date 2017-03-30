@@ -3,6 +3,7 @@ Title:Exposing Gameplay Elements to Blueprints
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
 Related: Engine/Blueprints/TechnicalGuide/Guidelines
+tags:Blueprints
 
 [TOC(start:2)]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3235148
 Title:SteamVR の開発
 Crumbs:%ROOT%, Platforms
 Description:SteamVR 入門
@@ -9,12 +9,13 @@ type:landing
 parent:Platforms/VR
 tags:VR
 tags:SteamVR
+tags:Platform
 
 ![](T_Vive_HMD.png)
 
 ## はじめよう
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/SteamVR")]
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/SteamVR")]
 
 ## SteamVR のトピックス
 

@@ -7,34 +7,6 @@ Version: 4.9
 parent:Engine/Editor
 order:3
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		关卡设计_初学者
-	[/PARAMLITERAL]
-	[PARAM:next]
-		[下一主题](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		Programming_Beginner
-	[/PARAMLITERAL]
-	[PARAM:next]
-		[下一主题](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/Programming/Beginner)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -215,4 +187,3 @@ order:3
 
 请参照[](Engine/UI/LevelEditor/Layers) 页面获得关于使用 **图层** 面板的详细内容。
 
-%playlistnav%

@@ -1,13 +1,14 @@
-Availability:docs
+Availability:Public
 Title: Mesh Preview Scenes
 Crumbs: %ROOT%, Engine
 Description: How to setup and use Mesh Preview Scene Profiles in Unreal Engine 4.
 Version: 4.13
+parent:Engine/UI
+type:overview
+tags:User Interface
 
 
-
-In the editor various editor windows used for your Static and Skeletal Meshes you can now setup preview scenes to be used when inspecting your assets. This allows you to quickly assess what your assets would look like in multiple different 
-environments and lighting scenarios without having to set up these scenes within the game viewport. 
+Across the various editor windows for your Static and Skeletal Meshes, you can now setup your own preview scenes to be used when inspecting your assets. This enables you to quickly assess what your assets would look like in multiple environments and lighting scenarios without having to set up these scenes within your level.
 
 ![](6.png)(w:950)
 

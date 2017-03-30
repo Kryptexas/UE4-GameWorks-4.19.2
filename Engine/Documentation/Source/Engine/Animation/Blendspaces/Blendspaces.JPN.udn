@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3074002
+﻿INTSourceChangelist:3358386
 Availability:Public
 Title:Blend Spaces
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -6,12 +6,11 @@ Description:ブレンドスペースは複数入力値に基づいていくつ�
 Related:Engine/Animation/AnimBlueprints
 Related:Engine/Content/FBX/Animations
 Related:Engine/Animation/AnimMontage
-Related:Engine/Animation/PhysicallyDrivenAnimation
+Related:Engine\Animation\AnimHowTo\BlendSpace
 Related:Engine/Animation/NodeReference/Blend
 Related:Engine/Animation/StateMachines
 Related:Engine/Animation/AnimBlueprints/AnimGraph
-Related:Engine/Content/Tools/MayaRiggingTool
-version:4.9
+version:4.15
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -33,14 +32,10 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-[TOC (start:2 end:2)]
-
-
-
 [EXCERPT:Intro]
 **ブレンドスペース** は 2 つの入力値に基づいたアニメーションのブレンドを可能にする 
-AnimGraphs でサンプリングされる特別なアセットです。単一入力に基づいた 2 つのアニメーション間の簡単なブレンドは、 
-Animation ブループリントで利用可能な標準の [Blend ノード](Engine/Animation/NodeReference/Blend) のひとつを使用して 
+AnimGraphs でサンプリングできる特別なアセットです。単一入力に基づいた 2 つのアニメーション間の簡単なブレンドは、 
+[Animation ブループリント](Engine/Animation/AnimBlueprints)で利用可能な標準の [Blend ノード](Engine/Animation/NodeReference/Blend) のひとつを使用して 
 行うことができます。ブレンドスペースは多値 (現時点では 2 値に制限) に基づいた複数アニメーションの 
 複雑なブレンドを可能にします。
 
@@ -50,154 +45,10 @@ Animation ブループリントで利用可能な標準の [Blend ノード](Eng
 汎用ブレンドスペースを使用して実行することができます。
 [/EXCERPT:Intro]
 
-
-
-
-[REGION:topics third]
+[REGION:topics half]
+%Engine\Animation\Blendspaces\Overview:topic%
 %Engine/Animation/Blendspaces/Creation:topic%
 %Engine/Animation/Blendspaces/Editor:topic%
 %Engine/Animation/Blendspaces/UserGuide:topic%
 [/REGION]
 
-[REGION:tip]
-Locomotion **Blendspace** の例は、セクション 1.3 の [アニメーションのコンテンツ サンプル](Resources\ContentExamples\Animation) ページにもあります。
-[/REGION]
-
-## ブレンドスペースはどのように機能するか
-
-ブレンドスペースの目的は、特定のプロパティや条件に基づいたブレンディングの実行に、 
-個別にハードコード化したノードを作成する必要性を減らすことです。アニメーターやプログラマーが入力、アニメーション、およびアニメーションのブレンドに使用する入力値の使用法を指定できるようにすることで、 
-事実上、いかなるタイプのブレンドも 
-汎用ブレンドスペースを使用して実行することができます。これはアンリアル エンジン 3 の 
-AnimTree で同タスクの処理方法と全く正反対です。複雑なブレンドを処理するためには 
-新規ノードの作成が必要になります。ブレンドスペースは完全に汎用的であり、 
-ブレンドを決定する係数を各ブレンドスペースで指定することができます。各ブレンドスペースは 
-入力値を受け取ります。これらの値は Animation ブループリント (**EventGraph** 経由) の更新サイクル中に演算され、 
-ゲームプレイ コードやその他の方法で操作されます。非常に柔軟な手法により、AnimGraph の作成者は 
-さまざまな方法でアニメーションを適切に見えるようにブレンドすることができます。
-
-![Input Flow](bs_flow.png)
-
-ブレンドスペースは2D グラフのようなものと捉えることができます。 
-ひとつの軸に沿った各入力値とグラフの様々な点に描画されているアニメーションがあります。ブレンドされたアニメーションは、現在の入力値によって指定される位置に基づき 
-グラフ上のアニメーション間をブレンドすることで計算されます。
-
-![](BlendSpaceLayout_2.png)
-
-1. アニメーション シーケンス 1
-1. アニメーション シーケンス 2
-1. アニメーション シーケンス 3
-1. Input 1 Axis (X-Axis)
-1. Input 2 Axis (Y-Axis)
-
-
-例として、プレイヤーの動きの方向と速さに基づいた「方向性のある走りアニメーション」と「待機アニメーション」 
-を考えます。
-
-アンリアル エンジン 3 は、SpeedBlending ノードと一緒に 
-DirectionalBlending ノードを使用することによってこのブレンドを実行していました。こうした各ノードは、特定のブレンドを行うためだけにハード コーディングされていました。ブレンドを行うために使われた値は、 
-コードでは隠されています。そのため、プログラマ以外はブレンドを微調整する修正を加えることはできません。 
-コード内の値を修正したら、それを使用するすべての AnimTree でノードのあらゆるインスタンスに 
-影響を与えます。これは理想とは程遠い方法です。
-
-ブレンドスペースを使用すれば、単一のブレンドスペースで上述と同じブレンドを実行することができます。プレイヤーの方向 (例、-180 度から 180 度)  
-と速度 (例、 0 から 250 単位 / 秒) は、 
-入力としてブレンドスペースに渡され、アニメーションはこれらの入力値に基づいて適切に 
-セットアップされます。 
-
-![](BlendSpaceDirection.png)(w:720)
-
-単一ノードのみを必要とするだけではなく、入力値はアニメーション ブループリントの **EventGraph** で直接計算されて、 
-その後 **AminGraph** のブレンドスペースに渡されます。入力値は 
-簡単に微調整することができます。アニメーション ブレンドの閾値はグラフィカルなエディタを使用して 
-迅速かつ直観的に調整することができます。柔軟性と使い勝手の良さの点で旧システムよりも圧倒的に勝っています。
-
-## 1D ブレンドスペース
-
-ブレンドスペースは、**ブレンドスペース 1D** という 1D 形式でも作成できます。ブレンドスペースでは、ポーズやアニメーションをいくつでもブレンドできますが、単一の入力値に基づき、ブレンドしてください。使用する例は、全速力で走る場合にキャラクターを傾けるものです。2 つのポーズがあります。ひとつは左に傾き、もうひとつは右に傾きます。全速力で走っている間にプレイヤーがどれくらいキャラクターをターンさせるかに応じた入力を使います。加算した傾きのポーズにブレンドすることによって、急なターンでキャラクタが傾くように見えるため、走っているアニメーションがより生き生きとしたものになります。
-
-2 つの軸ではなく 1 つの軸だけを持つこと以外は、Blend Space 1D は標準の2 つの軸のブレンドスペースと全く同じです。そのため、このドキュメントでは 2D バージョンに焦点をあてますが、すべてのルールとプロパティは引き継がれます。
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-2mkn8FZL2KA
-[/PARAMLITERAL]
-[/OBJECT]
-
-## アーキテクチャ
-
-ブレンドスペースの基本的なアーキテクチャは大変シンプルです。入力値やサンプリングされたアニメーションなど 
-主な部分についてはこれまでに説明しました。
-
-### スケルトン
-
-他のアニメーション アセットタイプ同様に、各ブレンドスペースは特定の **スケルトン** をターゲットにします。ブレンドスペースと関連があるスケルトンは、ブレンドスペース作成時に設定され、 
-ブレンドスペース内でサンプリングする 
-アニメーションを決定します。同じスケルトンをターゲットとしなくてはいけないため、ブレンドスペースで 
-サンプリングできる Animation ブループリントを確定します。
-
-### ブレンドのパラメータ
-
-[EXCERPT:BlendParameters]
-ブレンドスペースの **ブレンド パラメータ** は、サンプル ポーズ間のブレンドを操作する 
-入力値を表します。各ブレンドスペースは **X** と **Y** の 2 つのブレンドパラメータを持ち、 
-各ブレンドパラメータには以下のプロパティがあります。
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| **Label** | 入力値の軸に沿った **BlendSpace Editor** と、 Animation ブループリントの AnimGraph の BlendSpace ノード上の入力値のデータピンに表示される読み取り可能な名前です。 |
-| **Range** | 入力データがクランプされる最低値および最高値です。 |
-| **Divisions** | 補間に使用したアニメーション データからのサンプリング点です。値が高いほど正確な結果となります。**BlendSpace Editor** でこの入力値の軸に沿ってグリッド線として表示されます。 |
-[/EXCERPT:BlendParameters]
-
-### サンプル データ
-
-[EXCERPT:SampleData]
-ブレンドスペースの **サンプル データ** は、アニメーションとサンプル値のコレクションです。サンプル値は、 
-特定アニメーションのウェイトの決定に使用します。上記の方向を持った動作を例に説明すると、 
-サンプル値 a(0.0, 250.0, 0.0) の **_Run_Fwd_** アニメーションは 
-方向の入力が 0.0 で、速度の入力が 250.0 の場合に十分にブレンドします。
-[/EXCERPT:SampleData]
-
-Sample Data 配列にある各アイテムには以下のプロパティがあります。
-
-| プロパティ | 説明 |
-| -------- | ----------- |
-| **Animation** | ブレンドする AnimationSequence アセットです。 |
-| **Sample Value** | アニメーションが完全な影響力を持つ入力値 (ブレンドパラメータに対応するX、Y値) です。 |
-
-
-## Anim アセットの詳細
-
-Blend Space アセットをセットアップする場合、 **ペルソナ** の **Anim Asset Details (Anim アセットの詳細)** で設定可能なオプションがさらにあります。デフォルト設定では、ペルソナ エディタの **Animation** タブの左下隅に位置し、以下のプロパティがあります。 
-
-![](BlendSpaceDetails.png)
-
-| プロパティ | 説明 |
-|---|---|
-| [REGION:tablesection]ブレンドスペース[/REGION] ||
-|**Display Editor Vertically**| 1D Blend Space アセットのみで利用可能であり、ブレンド スペースのグラフ表示を垂直または水平の表示モードに切り替えます。|
-| [REGION:tablesection]入力の補間[/REGION] ||
-|**Axis to Scale Animation**| 	1D Blend Space アセットでは利用できません。これを使用すると (入力補間がある場合)、アニメーション速度 (スケーリング) を操作する軸を決めることができます。例えば、ロコモーション アニメーションではスピード軸がアニメーション速度 (スケーリング) を操作します。|
-|**Interpolation Params**| 3 つの軸すべての入力補間パラメータ。それぞれの軸入力で、補間時間とタイプを設定することで入力を補間する方法を決定します。 |
-| [REGION:tablesection] サンプル補間[/REGION] ||
-|**Target Weight Interpolation Speed Per Sec**| ターゲット サンプルが設定された時にターゲットを捉える速さです。ターゲット ブレンディングを向上します。例えば、入力を補間する場合、左から右へ素早く移動する場合、前方補間しますが、ターゲット ウェイト補間を使用する場合、前方にスキップしますが、左右間を補間します。 |
-|**Per Bone Blend**| ボーン単位でターゲット ウェイト補間を定義します。各ボーン設定ごとに異なる速度をブレンドインします。
-| [REGION:tablesection]アニメーション通知[/REGION] ||
-|**Notify Trigger Mode**| ブレンドスペースがどのアニメーション通知を発行するかを決めるために使用する現在のモードを割り当てます。All Animations (全ての通知イベントを発行)、HighestWeightedAnimation (Notify イベントは重み付けが最も高いアニメーションからのみ発行)、None (アニメーションから発行される通知イベントはありません) |
-| [REGION:tablesection]加算設定[/REGION] ||
-|**Preview Base Pose**| 加算ブレンドスペースのためのベース ポーズをプレビューします。|
-| [REGION:tablesection]アニメーション[/REGION] ||
-|**Skeleton**| アセットを再生できるスケルトンへのポインタ (調整不可)|
-| [REGION:tablesection]メタデータ[/REGION] ||
-|**Meta Data**| アセットと共に保存可能なメタデータです。このメタデータは Anim Meta Data クラスから派生したブループリントで利用可能なクラスです。カスタムのメタデータを Animation アセットに追加できます (Anim Sequence、 Anim Montage、 Anim Composite、 および Blendspace はすべてサポートされます)。C++ で Animation アセットからこうしたデータをクエリーできます。`GetMetaData()` メソッドを呼び出すか、Anim Montages で `GetSectionMetaData()` を使用します。
-| [REGION:tablesection]サムネイル[/REGION] ||
-| **Orbit Pitch** | アセット周囲の軌道カメラのピッチ |
-| **Orbit Yaw** | アセット周囲の軌道カメラのヨー (左右回転) |
-| **Orbit Zoom** | アセットから境界の球体の距離のオフセット |

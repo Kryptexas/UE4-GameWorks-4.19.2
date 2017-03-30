@@ -11,7 +11,7 @@ version:4.9
 
 ## Player Start アクタを配置する
 
-Player Start アクタは、**[Mode (モード)]** パネルの **[Basic (基本)]** カテゴリにあります。ワールドにこのアクタを配置するには、 **[Modes (モード)]** パネルからゲーム ワールドにドラッグします。
+Player Start アクタは、**[Modes (モード)]** パネルの **[Basic (基本)]** カテゴリにあります。Camera アクタをワールドに配置するには、**[Modes]** パネルからゲームワールドにドラッグします。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -27,7 +27,7 @@ fXX07XG5qW8
 
 ## Player Start アクタを使用する
 
-Player Start は、**[Mode]** パネルから選択して、ワールドにドラッグして簡単に使用できます。ワールドに Player Start を配置したら、ブループリントと組み合わせて使用してワールド内の任意の場所でプレイヤーをスポーンすることができます。 
+Player Start は、**[Modes]** パネルから選択して、ワールドにドラッグして簡単に使用できます。ワールドに Player Start を配置したら、ブループリントと組み合わせて使用してワールド内の任意の場所でプレイヤーをスポーンすることができます。 
 
 [region:tip]
 Player Start を使用してプレイヤーをスポーンする場合、使用時に Player Start 位置と回転は考慮されます。スポーン時にプレイヤーに特定のものを見せたい場合、スポーンするために使用した Player Start が、プレイヤーに向いてほしい方向をポイントするようにします。 
@@ -39,11 +39,11 @@ Player Start の使用は非常に単純ですが、開発中に役立ついく�
 
  **Player Start なし:** Player Start をワールドに追加せずにゲームをプレイしようとすると、プレイヤーはワールドの 0,0,0 から開始します。従って、必ずワールドに Player Start を配置するようにします。
 
- ** Play From Here (ここからプレイ):** Player Start からではなく任意の場所からプレイしたい場合もあることでしょう。これを行うには、エディタ ビューポートで **右クリック** して **[Play From Here]** オプションを選択します。 
+ **Play From Here:** Player Start からではなく任意の場所からプレイしたい場合もあることでしょう。これは、エディタ ビューポートで **右クリック** して利用可能な **Play From Here** オプションを選択し、**右クリック** して行います。 
 
 ![](Right_Click_Play.png)
 
-** Bad Size:** Player Start が、コントローラのアイコンから "BADsize" というアイコンに変わる場合があります。その場合、シーン内にあるものと交差しないようになるまで、Player Start をワールド内で移動します。
+** Bad Size:** Player Start が、コントローラのアイコンから "BADsize" というアイコンに変わる場合があります。その場合、Player Start をワールド内で移動し、シーン内にあるものと交差しないようにします。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

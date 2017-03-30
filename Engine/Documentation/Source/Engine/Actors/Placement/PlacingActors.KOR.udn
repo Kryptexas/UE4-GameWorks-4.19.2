@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275878
 Availability:Public
 Title:액터 배치하기
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -6,24 +6,7 @@ Description:레벨에 소품, 라이트, 카메라와 같은 액터를 배치하
 Related: Engine/UI/ClassViewer
 Related: GettingStarted\HowTo
 version: 4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/Actors/Selection "%Engine/Actors/Selection:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+track:LevelDesign_Beginner|8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -64,8 +47,6 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 가장 근본적인 수준에서 **Actor**, 액터란 레벨에 배치할 수 있는 오브젝트를 말하며, 여기서는 레벨에 그러한 액터를 배치할 수 있는 여러가지 방법을 보여드리겠습니다.
 
@@ -165,11 +146,3 @@ version: 4.9
 	![](Place8.png)
 
 클래스 뷰어 작업 관련 상세 정보는, [](Engine/UI/ClassViewer) 문서를 참고하세요.
-
-
-%playlistnav%
-
-
-
-
-

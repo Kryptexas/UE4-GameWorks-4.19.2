@@ -6,6 +6,7 @@ Description: Get up and running by creating your first Blueprint
 parent:Engine/Blueprints
 order:1
 type:quick start
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

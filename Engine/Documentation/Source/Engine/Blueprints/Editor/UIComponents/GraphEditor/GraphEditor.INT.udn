@@ -3,6 +3,7 @@ Title: Graph Editor Tab
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:Editable, visual representation of a network of nodes within a Blueprint.
 version: 4.9
+tags:Blueprints
 
 
 [EXCERPT:Intro]

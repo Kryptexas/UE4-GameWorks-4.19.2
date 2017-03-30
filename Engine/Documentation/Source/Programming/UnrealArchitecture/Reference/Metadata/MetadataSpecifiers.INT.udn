@@ -8,7 +8,7 @@ When declaring classes, functions, and interfaces, metadata specifiers can be ad
 aspects of the engine and editor.
 
 [EXCERPT:MetadataUsage]
-The usage of metadata specifiers differs from regular class, function, and interface specifiers.
+The usage of metadata specifiers differs between regular classes, functions, and interfaces.
 [/EXCERPT:MetadataUsage]
 
 To use metadata specifies, use the meta specifier in a `UCLASS`, `UINTERFACE`, or `UFUNCTION` macro:
@@ -17,12 +17,14 @@ To use metadata specifies, use the meta specifier in a `UCLASS`, `UINTERFACE`, o
 
 ## Class Metadata Specifiers
 [EXCERPT:ClassMetadata]
+Classes can use the following metatag specifier:
 * [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintSpawnableComponent)
 [/EXCERPT:ClassMetadata]
 
 
 ## Function Metadata Specifiers
 [EXCERPT:FunctionMetadata]
+Functions can use the following metatag specifiers:
 * [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintInternalUseOnly)
 * [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintProtected)
 * [](Programming\UnrealArchitecture\Reference\Metadata\DeprecatedFunction)
@@ -33,5 +35,6 @@ To use metadata specifies, use the meta specifier in a `UCLASS`, `UINTERFACE`, o
 
 ## Interface Metadata Specifiers
 [EXCERPT:InterfaceMetadata]
+Interfaces can use the following metatag specifier:
 * [](Programming\UnrealArchitecture\Reference\Metadata\CannotImplementInterfaceBlueprint)
 [/EXCERPT:InterfaceMetadata]

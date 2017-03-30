@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3238697
 Availability: Public
 Title:3. 게임 액션 프로그래밍 및 바인딩
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -134,9 +134,11 @@ version:4.9
 				// Sets default values
 				AMyPawn();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-
+			
+			public:
 				// Called every frame
 				virtual void Tick(float DeltaSeconds) override;
 

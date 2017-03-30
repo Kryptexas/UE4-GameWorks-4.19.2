@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3046164
-Availability:Docs
+﻿INTSourceChangelist:3150518
+Availability:Public
 Title:ブループリントを使ってレベルをロード / アンロードする
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:ブループリントで作成したカスタム ストリーミング アクタでレベルをストリームする方法
 parent:Engine/LevelStreaming/HowTo
-type:howto
+type:how-to
 order:2
 tags:Level Streaming
 
@@ -23,7 +23,7 @@ tags:Level Streaming
 
 このシナリオの場合、**Character** がBox コンポーネントをオーバーラップしたら、2 つ目のレベルをストリーミングします。 
 
-1. **[Components]** タブの **[Add Component (コンポーネントを追加する)]** ボタンを使って**Box Collision** コンポーネントを追加します。 
+1. **[Components]** タブの **[Add Component (コンポーネントを追加する)]** ボタンを使って **Box Collision** コンポーネントを追加します。 
 
 1. ブループリントの **イベント グラフ** を開きます。**[Components]** タブで **Box** コンポーネントを選択して、グラフを **右クリックして** コンテキスト メニューを呼び出します。
 
@@ -37,9 +37,9 @@ tags:Level Streaming
 
 1. **OnComponentBeginOverlap** ノードの出力ピンを **Branch** ノードの実行入力ピンに接続します。 
 
-1. グラフ エリアで **右クリック** して、コンテキスト メニュー で「level」を検索します。メニューで **[Load Stream Level (ストリーム レベルをロード)]** を選択します。 
+1. グラフ エリアで **右クリック** して、コンテキスト メニューで「level」を検索します。メニューから **[Load Stream Level (ストリーム レベルをロード)]** を選択します。 
 
-1. **Level Name** ピンを **右クリック** して変数に昇格し、その変数に「LevelToStream」と名前を付け**[Details (詳細)]** パネルで **[Editable (編集可能)]** にします。  
+1. **Level Name** ピンを **右クリック** して変数に昇格し、その変数に「LevelToStream」と名前を付け、**[Details (詳細)]** パネルで **[Editable (編集可能)]** にします。  
 
 	![](LevelToStreamVar.png)
 
@@ -52,7 +52,7 @@ tags:Level Streaming
 	![](FinalLoadBP.png)
 
 1. **LevelStreamer** ブループリントをレベル内に配置して、 
-**Character** にストリームを開始させたいパーシスタント ワールドの部分を囲むように配置とスケールを調節します。
+およびストリーミング レベルとなる歩行可能なボリューム全体を囲むように配置とスケールを調節します。
 
 1. **Level to Stream** として **「SunTemple_Streaming」** と入力します。 
 

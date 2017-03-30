@@ -3,6 +3,7 @@ Title:Ribbon Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Reference for the Ribbon Type Data module, which allows for the creation of particles with streaming tails.
 Version: 4.9
+tags:Particles
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3038334
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:シーケンサー虎の巻
 Crumbs: %ROOT%, Engine
@@ -6,10 +6,11 @@ Description:シーケンサーでの作業効率を高めるために使用で�
 Navigation:topic
 parent:Engine\Sequencer\Workflow
 order:1
-Version: 4.12
-Related: Engine\Sequencer\Overview
-Related: Engine\Sequencer\ReferenceEditor
-Related: Engine\Sequencer\HowTo
+Version:4.12
+Related:Engine\Sequencer\Overview
+Related:Engine\Sequencer\ReferenceEditor
+Related:Engine\Sequencer\HowTo
+tags:Sequencer
 
 [TOC(start:2 end:2)]
 

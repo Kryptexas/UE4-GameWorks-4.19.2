@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3238697
 Availability: Public
 Title:3 - C++ 코드 작성 및 컴파일
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -133,10 +133,12 @@ Version: 4.9
 				// 이 액터 프로퍼티의 기본값을 설정합니다
 				AFloatingActor();
 
-				// 게임 시작시 또는 스폰시 호출됩니다
+			protected:
+				// 게임 시작 또는 스폰시 호출됩니다
 				virtual void BeginPlay() override;
 	
-				// 모든 프레임마다 호출됩니다
+			public:
+				// 매 프레임 호출됩니다
 				virtual void Tick( float DeltaSeconds ) override;
 	
 				float RunningTime;

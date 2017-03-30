@@ -10,7 +10,7 @@ Description:
 
 3D 뷰포트에 회전 모드를 켭니다. 뷰포트에 있는 액터를 선택하고 회전시킬 수 있습니다.
 
-꼼수: (Shift + 클릭으로) 다수의 액터를 선택할 때, 마지막으로 선택되는 액터가 모든 선택 액터의 회전 중심점이 됩니다:
+팁: (Shift + 클릭으로) 다수의 액터를 선택할 때, 마지막으로 선택되는 액터가 모든 선택 액터의 회전 중심점이 됩니다:
 
 ![](EVP_rotateTip.png)
 
@@ -29,7 +29,7 @@ Engine/UI/LevelEditor/Viewports/ViewportControls#transformcontrols
 
 3D 뷰포트에 이동 모드를 켭니다. 뷰포트의 액터를 선택하고 이동시킬 수 있습니다.
 
-꼼수: 축을 따라 액터를 움직일 때는, 이동 툴을 조작할 필요 없이 Ctrl + 좌클릭(X 축) 또는 우클릭(Y 축) 또는 양쪽클릭(Z 축) 드래그로 바로 이동시킬 수 있습니다.
+팁: 축을 따라 액터를 움직일 때는, 이동 툴을 조작할 필요 없이 Ctrl + 좌클릭(X 축) 또는 우클릭(Y 축) 또는 양쪽클릭(Z 축) 드래그로 바로 이동시킬 수 있습니다.
 
 * Ctrl + 좌클릭 드래그는 X 축으로만 이동됩니다.
 * Ctrl + 우클릭 드래그는 Y 축으로만 이동됩니다.
@@ -54,7 +54,8 @@ Engine/UI/LevelEditor/Viewports/ViewportControls#transformcontrols
 Engine/UI/LevelEditor/Viewports/ViewportControls#transformcontrols
 [/VAR]
 
-[/EXCERPT:ScaleMode]
+[/EXCERPT:ScaleMode]
+
 
 
 

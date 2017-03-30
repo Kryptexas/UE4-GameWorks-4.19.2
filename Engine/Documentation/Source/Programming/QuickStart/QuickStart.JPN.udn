@@ -1,26 +1,25 @@
-﻿Availability:Docs
-Title:ブループリントの操作
-Crumbs: %ROOT%, Engine/Blueprints
-Description:ブループリントのサンプルのガイド
-
-本ページは、ブループリントで最も使用される 2 つのタイプ、Level ブループリントと Class ブループリントの設定から始めるクイック スタート ガイドです。
+﻿Availability:Public
+Title:プログラマ向けクイックスタート
+Crumbs:%ROOT%, Programming
+Description:最初のコード プロジェクトを作成し、新規 C++ クラスを追加します。
+prereq:GettingStarted/Installation
+prereq:Engine/Basics/Projects/Browser
+SkillLevel:Beginner
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
+		![](newclass_topic.png)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Actors/Placement:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Placement:description%
+		%Programming\QuickStart:title%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/Actors/Placement]
+		[RELATIVE:Programming\QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Programming\QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -28,19 +27,51 @@ Description:ブループリントのサンプルのガイド
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
+		![](newclass_topic.png)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Actors/Placement:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Placement:description%
+		%Programming\QuickStart:title%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Engine/Actors/Placement]
+		[RELATIVE:Programming\QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Programming\QuickStart:description%
 	[/PARAM]
 [/OBJECT]
 [/VAR]
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	dS1f71pS-5I
+	[/PARAMLITERAL]
+[/OBJECT]
+
+このクイックスタート ガイドの目的は、アンリアル エンジン 4 (UE4) の開発環境を紹介することです。完了すると、UE4 で C++ プロジェクトの設定および開発方法を理解できるようになっています。アンリアル エンジン のプロジェクトの新規作成、新規 C++ クラスのプロジェクトへの追加、プロジェクトのコンパイル、新規クラスのインスタンスのレベルへの追加を行います。一通り終わると、プログラミングした **アクタ** がレベル内のテーブルの上を飛ぶようになります。
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ステップ
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming\QuickStart\1 "%Programming\QuickStart\1:description%")
+	* [](Programming\QuickStart\2 "%Programming\QuickStart\2:description%")
+	* [](Programming\QuickStart\3 "%Programming\QuickStart\3:description%")
+	* [](Programming\QuickStart\4 "%Programming\QuickStart\4:description%")
+	* [](Programming\QuickStart\5 "%Programming\QuickStart\5:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

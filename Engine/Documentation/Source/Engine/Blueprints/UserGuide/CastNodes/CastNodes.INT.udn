@@ -7,6 +7,7 @@ Related: Engine/Blueprints/HowTo
 version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Data Types
+tags:Blueprints
 order:2
 
 [VAR:Topic]

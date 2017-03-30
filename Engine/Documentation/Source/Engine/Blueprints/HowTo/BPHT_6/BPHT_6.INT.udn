@@ -3,7 +3,7 @@ Title:6. Communicating with the HUD
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:In this step we will update our HUD based on values stored in our Character Blueprint. 
 version: 4.9
-
+tags:Blueprints
 
 [VAR:Steps]
 [OBJECT:Navigation]

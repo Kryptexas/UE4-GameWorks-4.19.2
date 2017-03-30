@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3215476
-Availability: Docs
-Title: Contact Shadows
+﻿INTSourceChangelist:3275206
+Availability: Public
+Title: 컨택트 섀도
 Crumbs: 
-Description: This page provides an overview of Contact Shadows in UE4.
+Description: UE4 의 Contact Shadow, 컨택트 섀도에 대한 개요입니다.
 Version: 4.14
 Parent: Engine/Rendering/LightingAndShadows
 Order: 6
@@ -10,106 +10,92 @@ Tags: Rendering
 Type: Reference
 reference-image: ContactShadow.gif
 Related: Engine/Rendering/LightingAndShadows/LightTypes/Point
-
-[VAR:Params]
-[PARAM:image]
-	![%Engine/Rendering/LightingAndShadows/ContactShadows:title%](ContactShadow_Topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/ContactShadows:title%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine/Rendering/LightingAndShadows/ContactShadows]
-[/PARAM]
-[/VAR]
+topic-image:ContactShadow_Topic.png
 
 [TOC(start:1 end:4)]
 
 ![](ContactShadow_Banner.png)
 
-When creating scenery and characters for your application, there are times when you'll want to add visual depth to 
-the rendering. Adding **Contact Shadows** is a great way to improve the visual depth and fidelity of your scene 
-because they provide a more accurate approximation of shadowing, allowing you to add a contoured shadow that 
-might not be achieved with other shadowing algorithms.
+어플리케이션에서 씬과 캐릭터를 만들 때, 렌더링에 시각적 깊이를 더하고 싶을 때가 있습니다.
+**Contact Shadows** (컨택트 섀도)를 더하면 씬의 시각적 깊이와 정확도를 높이기에 좋습니다.
+그림자 추정을 보다 정확히 해 주어, 다른 그림자 알고리즘으로는 낼 수 없는 
+윤곽 그림자를 더할 수 있기 때문입니다.
 
-##Adding Detail to your Characters
+##캐릭터에 디테일 추가
 
-One use case for enabling Contact Shadows for a given [Point Light](Engine/Rendering/LightingAndShadows/LightTypes/Point) 
-is to render an additional Level of Detail (LOD) for your characters. The following images should give you a good idea of 
-what Contact Shadows can add to a character. As you drag the comparison slider from right to left, you'll notice that the 
-character located within the radius of a Point Light with enabled Contact Shadows exhibits additional details that aren't 
-present when Contact Shadows are turned off.
+컨택트 섀도를 켠 [포인트 라이트](Engine/Rendering/LightingAndShadows/LightTypes/Point) 가 쓰이는 곳 하나 예를 들면, 
+캐릭터에 추가 레벨 오브 디테일 (LOD) 을 렌더링할 때입니다. 다음 그림에서 컨택트 섀도우를 쓰면 
+캐릭터에 어떤 것이 추가되는지 살펴볼 수 있을 것입니다. 비교 슬라이더를 오른쪽에서 왼쪽으로 끌면
+컨택트 섀도가 켜진 포인트 라이트 반경 안에 위치한 캐릭터에 꺼졌을 때는 없던 
+디테일이 추가되는 것이 보일 것입니다.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Contact Shadow Off](ContactShadow_Off.png)(w:900)
+	![컨택트 섀도 꺼짐](ContactShadow_Off.png)(w:900)
 	[/PARAM]
 	[PARAM:after]
-	![Light's Contact Shadow Length = 0.1](ContactShadow_On.png)(w:900)
+	![라이트의 컨택트 섀도 길이 = 0.1](ContactShadow_On.png)(w:900)
 	[/PARAM]
 [/OBJECT]
 
-When you turn on Contact Shadows, you're directing the renderer to execute a per-pixel screen space algorithm on a 
-per-light basis. This means that the Contact Shadow algorithm is executing a light computation pass, 
-performing scene depth buffer ray marching so as to determine whether the queried pixel is to be occluded from the 
-Point Light source that has Contact Shadows enabled.
+컨택트 섀도를 켜면, 렌더러에게 라이트 별로 픽셀 단위 스크린 스페이스 알고리즘을 실행하라 명령을 내립니다.
+즉 컨택트 섀도 알고리즘이 라이트 계산 패스를 실행하여, 
+씬 뎁스 버퍼 광선 검사를 통해 어떤 픽셀이 컨택트 섀도를 켠 
+포인트 라이트 위치에서 가려지는지 결정한다는 뜻입니다.
 
-##Scenes with Contact Shadows
+##컨택트 섀도가 있는 씬
 
-Another use case for enabling Contact Shadows is to eliminate the need for computing parallax occlusion mapping shadows 
-within a material's pixel shader that only supports one light. The following image provides a comparison of parallax 
-occlusion mapping materials with and without Contact Shadows enabled.
+또 한가지 컨택트 섀도 사용 예라면, 라이트를 하나만 지원하는 머티리얼의 픽셀 셰이더 안에서 
+패럴랙스 오클루전 매핑 섀도 계산을 하지 않아도 되도록 만드는 경우입니다. 다음 그림은 
+컨택트 섀도를 켜고 끈 상태에서 패럴랙스 오클루전 매핑 머티리얼을 비교한 것입니다.
 
 ![](ContactShadow_Comparison.png)(w:900)
 
 [REGION:note]
-It's important to note that your parallax occlusion mapping materials should output the pixel depth offset.
+참고로 패럴랙스 오클루전 매핑 머티리얼은 픽셀 뎁스 오프셋을 출력해야 한다는 점이 중요합니다.
 [/REGION]
 
-The following is an example of Contact Shadows interacting with a parallax occlusion mapping material.
+다음은 패럴랙스 오클루전 매핑 머티리얼과 상호작용하는 컨택트 섀도 예제입니다.
 
 [REGION:asyncgif]
 ![image alt text](ContactShadow.gif)(w:900)
 [/REGION]
 
 [REGION:caption]
-Contact shadow length = 0.1 on both lights.
+양쪽 라이트에 컨택트 섀도 길이 = 0.1 입니다.
 [/REGION]
 
-##Enabling Contact Shadows
+##컨택트 섀도 켜기
 
-By default, Contact Shadows are disabled on Point Lights, whereby the Point Light's Contact Shadow length is initialized to 0. 
-To enable Contact Shadows, perform the following steps:
+기본적으로 컨택트 섀도는 포인트 라이트에 꺼져있습니다. 즉 포인트 라이트의 컨택트 섀도 길이 초기값은 0 입니다.
+컨택트 섀도를 켜는 방법은 다음과 같습니다:
 
-1.	First, drag a **Point Light** into your scene.
+1.	먼저 **포인트 라이트** 를 씬에 놓습니다.
 
 	![](CastShadows_Step1.png)(w:1007)
 
-1.	Now, expand the **Light** section of the **Details** panel for your newly created Point Light Component by clicking on the expansion arrow.
+1.	새로 만든 포인트 라이트 컴포넌트의 **디테일** 패널에서 **Light** 섹션의 확장 화살표를 클릭하여 펼칩니다.
 
 	[REGION:lightbox]
 	[![](CastShadows_Step2.png)(w:360 h:640)](CastShadows_Step2.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-1.	To enable contact shadows, set the **Contact Shadow Length** to a value greater than 0.
+1.	컨택트 섀도를 켜려면, **Contact Shadow Length** (컨택트 섀도 길이) 값을 0 보다 큰 값으로 설정합니다.
 
 	[REGION:lightbox]
 	[![](CastShadows_Step3.png)(w:360 h:640)](CastShadows_Step3.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-By setting the Contact Shadow's length to a value greater than 0, you're directing the renderer to trace rays from a pixel's position toward the 
-light source through the scene's depth buffer. Typically, you'll want to set the Contact Shadow's length to a maximum value of 1, where 1 means 
-that the ray traverses the entire screen. Whereas, setting the Contact Shadow's length to a value of 0.5 means that the ray traverses 
-only half of the screen. Note that the number of samples taken in the scene depth buffer remain constant, which means that you'll see more noise 
-(artifacts) as you increase the Contact Shadow's length. Basically, a Contact Shadow length of 0.75 generates more noise than a length of 0.1.
+컨택트 섀도 길이 값을 0 보다 큰 값으로 설정하면, 씬의 뎁스 버퍼를 통해 픽셀의 위치에서 라이트 소스 쪽으로 레이 트레이싱을 하도록 
+렌더러에게 지시하는 것입니다. 전형적으로 컨택트 섀도 길이 최대값은 1 로 하는 것이 좋은데, 1 은 광선이 화면 전체를 가로지른다는 뜻입니다. 
+반면 컨택트 섀도 길이 값을 0.5 로 설정하면, 광선이 화면 절반만 가로지른다는 뜻입니다. 참고로 씬 뎁스 버퍼에서 취하는 샘플 수는 고정되어 있어, 
+컨택트 섀도 길이 값을 높이면 노이즈 부작용이 심해진다는 뜻입니다. 
+기본적으로 컨택트 섀도 길이 0.75 는 0.1 보다 노이즈가 많이 생깁니다.

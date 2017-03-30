@@ -9,6 +9,7 @@ Version: 4.9
 parent:Engine/Editor
 order:1
 checkpoint: editorqs
+type:quick start
 
 [VAR:Topic]
 [OBJECT:Topic]

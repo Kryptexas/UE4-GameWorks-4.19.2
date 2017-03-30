@@ -1,19 +1,19 @@
-﻿INTSourceChangelist:2664676
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:FABRIK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:前方後方到達インバース キネマティクス用の Animation ノード
-バージョン：4.9
+version:4.9
 
 [REGION:banner]
 ![FABRIK](FABRIK.png)(convert:false)
 [/REGION]
 
 [EXCERPT:Intro]
-**Forward And Backward Reaching Inverse Kinematics (前方後方到達インバース キネマティクス)** (または **FABRIK**) は、ボーンのチェーンがどんな長さであっても機能する IK ソルバです (最低リンク数が 2)。 
+**Forward And Backward Reaching Inverse Kinematics (前方後方到達インバース キネマティクス)** (すなわち **FABRIK**) は、任意の長さのボーンのチェーンで機能する IK ソルバです (最低リンク数が 2)。 
 [/EXCERPT:Intro]
 
-FABRIK を使用するには、まず **FABRIK** ノードを Animation ブループリント の **AnimGraph** へ追加します (上図参照)。 
+FABRIK を使用するには、まず **FABRIK** ノードを **Animation ブループリント** の AnimGraph へ追加します (上図参照)。 
 
 一度追加すると、**Component Pose** に加えて、このノードは **Effector Transform** を取り込みます。これは、絶対または相対の(同じスケルトンの別のボーンに基づきます) Transform です。**End Effector** の設定は **TwoBone_IK** ノードの設定と非常に似ています。 
 
@@ -42,7 +42,7 @@ FABRIK を使用するには、まず **FABRIK** ノードを Animation ブル�
 | **Max Iterations**| パフォーマンスを制御し、エッジケースでフレームレートが低下しないようにする許容可能なイタレーションの最大数。 |
 | **Enable Debug Draw**| ジョイントの回転をデバッグするために軸の描画を切り替えます。 |
 
-**Settings** セクションで、適用する強度を設定します。 
+**[Settings]** セクションで、適用する強度を設定します。 
 
 | プロパティ | 説明 |
 | --- | ----------- |

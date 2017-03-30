@@ -3,6 +3,7 @@ Title:Opening Blueprint Classes
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
 Description:Guide to opening Blueprint Classes for editing from the Content Browser and the Level Editor
 version: 4.9
+tags:Blueprints
 
 You can open a **Blueprint Class** in the **Blueprint Editor** either by interacting with the asset directly in the **Content Browser**, or by interacting with an
 instance of the Blueprint Class that has been placed in your level.

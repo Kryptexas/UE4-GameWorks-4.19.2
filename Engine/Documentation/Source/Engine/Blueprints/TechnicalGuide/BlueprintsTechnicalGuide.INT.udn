@@ -5,6 +5,7 @@ Description:Technical guide for programmers working with Blueprints.
 version: 4.9
 Parent:Engine/Blueprints
 type:overview
+tags:Blueprints
 
 Blueprints are a powerful new feature introduced in Unreal Engine 4.  
 

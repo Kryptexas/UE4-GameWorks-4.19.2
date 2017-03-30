@@ -7,6 +7,8 @@ parent:Engine/Rendering/Materials
 order:5
 topic-image:Engine/Rendering/Materials/MaterialInputsTopic.png
 type:reference
+tags:Materials
+
 
 Here we take a look at the available inputs when making a Material. By feeding values (by way of constants, parameters, and textures) into these inputs, you can define just about any physical surface you can imagine.
 

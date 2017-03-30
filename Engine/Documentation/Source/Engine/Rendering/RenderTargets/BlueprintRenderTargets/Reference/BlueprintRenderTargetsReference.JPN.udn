@@ -1,89 +1,96 @@
-﻿INTSourceChangelist:0
-availability:docs
-title: Blueprint & Render Target Reference
-description: A listing of properties and descriptions for using Blueprints & Render Targets.
-crumbs:
+﻿INTSourceChangelist:3264165
+availability:Public
+title:ブループリントとレンダー ターゲットのリファレンス
+description:ブループリントとレンダー ターゲットのプロパティと説明の一覧
+crumbs:%ROOT%, Engine, Engine/Rendering, Engine/Rendering/RenderTargets, Engine/Rendering/RenderTargets/BlueprintRenderTargets
 version:4.13
-Type:Landing
-SkillLevel:Intermediate
-parent:Engine
+type:reference
+parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
 order:2
 Navigation:Reference
+tags:Render Targets
+tags:Blueprints
+topic-image:Engine/Rendering/RenderTargets/Render_Targets_Reference.png
 
-## Overview
-This page contains a reference listing of properties you will find with the Render Target Blueprint nodes.
+[TOC (start:2 end:3)]
 
+レンダー ターゲットのブループリント ノードに付いているプロパティを紹介します。
 
 ## Begin Draw Canvas to Render Target
 
 ![](Begin_Draw_Canvas_To_Render_Target.png)
 
-* Returns a Canvas object that can be used to draw to the specified render target. Be sure to call **EndDrawCanvasToRenderTarget** to complete the rendering!
+指定したレンダー ターゲットの描画に使用可能な Canvas オブジェクトを返します。レンダリングを完了するために、必ず **EndDrawCanvasToRenderTarget** を呼び出してください！
 
-|Property| Description|
+[region:note]
+DrawMaterialtoRenderTarget は簡素化版なので、可能な限り Begin/EndDrawCanvasToRT の代わりに使用してください。
+[/region]
+
+| プロパティ | 説明 |
 |----------|-----------------|
-|Texture Render Target| Texture Render Target 2D reference.|
-|Canvas| Reference to canvas.|
-|Size| Size of the render target.|
-|Context| Draw to Render Target Context Structure.|
+|Texture Render Target| Texture render target 2D のリファレンス|
+|Canvas| キャンバスへのリファレンス|
+|Size| レンダー ターゲットのサイズ|
+|Context| レンダー ターゲットの Context Structure を描画|
 
 ## End Draw Canvas to Render Target
 
 ![](End_Draw_Canvas_to_Render_Target.png)
 
-* Must be paired with a **BeginDrawCanvasToRenderTarget** to complete rendering to a Render Target.
+**BeginDrawCanvasToRenderTarget** と対となってレンダー ターゲットのレンダリングを完了します。
 
-|Property| Description|
+| プロパティ | 説明 |
 |----------|-----------------|
-|Context| Draw to Render Target Context Structure.|
+|Context| レンダー ターゲットの Context Structure を描画|
 
 
 ## Clear Render Target 2D
 
 ![](Clear_Render_Target_2D.png)
 
-* Clears the specified Render Target with the given Clear Color.
+所定の Clear Color で指定されたレンダー ターゲットをクリアします。
 
-|Property| Description|
+| プロパティ | 説明 |
 |----------|-----------------|
-|Texture Render Target| Texture Render Target 2D reference.|
-|Clear Color| Clears the specified Render Target with the given Clear Color.|
+|Texture Render Target| Texture render target 2D のリファレンス|
+|Clear Color|所定の Clear Color で指定されたレンダー ターゲットをクリアします。|
 
 
 ## Create Render Target 2D
 
 ![](Create_Render_Target_2D.png)
 
-* Creates a new Render Target and initializes it to the specified dimensions.
+レンダー ターゲットを新規作成して、指定されたディメンションに初期化します。
 
-|Property| Description|
+| プロパティ | 説明 |
 |----------|-----------------|
-|Width| Render Targets width size.|
-|Height| Render Targets height size.|
-|Return Value| Texture Render Target 2D reference.|
+|Width| レンダー ターゲットの幅|
+|Height| レンダー ターゲットの高さ|
+|Return Value| Texture render target 2D のリファレンス|
 
 ## Draw Material to Render Target
 
 ![](Draw_Material_To_Render_Target.png)
 
-* Renders a quad with the Material applied to the specified Render Target. This set the Render Target even if it is already set, which is an expensive operation. Use **BeginDrawCanvasToRenderTarget / EndDrawCanvasToRenderTarget** instead if rendering multiple primitives to the same same Render Target.
+指定されたレンダー ターゲットに適用されたマテリアルでクワッドをレンダリングします。既に設定されていても、レンダー ターゲットを設定するノードで、負荷が大きいです。 
+同じターゲット領域で複数のプリミティブをレンダリングする場合、**BeginDrawCanvasToRenderTarget / EndDrawCanvasToRenderTarget** を使います。
 
-|Property| Description|
+| プロパティ | 説明 |
 |----------|-----------------|
-|Texture Render Target| Texture Render Target 2D reference.|
-|Material| Material that the Render Target results will be saved to.|
+|Texture Render Target| Texture render target 2D のリファレンス|
+|Material| レンダー ターゲットの結果の格納先となるマテリアル|
 
 ## Export Render Target
 
 ![](Export_Render_Target.png)
 
-* Exports a Render Target as an HDR image onto the disk.
+レンダー ターゲットを HDR としてディスクにエクスポートします。
 
-|Property| Description|
+| プロパティ | 説明 |
 |----------|-----------------|
-|Texture Render Target| Texture Render Target 2D reference.|
-|File Path| Path to where the Render Target will be saved.|
-|File Name| Name to give the saved Render Target.|
+|Texture Render Target| Texture render target 2D のリファレンス|
+|File Path| レンダー ターゲットの保存先へのパス|
+|File Name| 保存されたレンダー ターゲットに付ける名前|
 
 
 

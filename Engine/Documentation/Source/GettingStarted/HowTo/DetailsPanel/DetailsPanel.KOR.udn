@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275293
 Availability:Public
 Title:액터 프로퍼티 조정
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
 Description:디테일 패널을 통한 머티리얼, 피직스, 스케일 적용과 같은 액터 프로퍼티 편집하기 입니다.
 Version: 4.10
 SkillLevel: Beginner
-parent:Engine/Editor
+parent:GettingStarted/HowTo
 order:1
-checkpoint: editorqs
 
 레벨에 [액터](Engine/Actors) 를 배치하고 나면, 레벨에서의 모양이나 기능을 변경하고 싶을 것입니다. 레벨에 액터를 선택한 후 [디테일](Engine/UI/LevelEditor/Details) 패널을 보면 액터에 대한 정보가 저장되어 변경 가능합니다. 이 페이지에서는 디테일 패널에 접근하고 액터의 프로퍼티를 변경하는 데 대한 샘플 용례를 보여드리겠습니다.
 

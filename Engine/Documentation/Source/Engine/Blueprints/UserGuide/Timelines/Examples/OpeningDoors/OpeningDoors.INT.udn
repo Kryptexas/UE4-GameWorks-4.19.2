@@ -3,6 +3,7 @@ Title:Opening Doors
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: An example use of a timeline in which we set up a classic proximity-based opening door.
 version: 4.9
+tags:Blueprints
 
 %Description%
 

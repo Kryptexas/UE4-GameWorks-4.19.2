@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:3072583
-INTSourceChangelist:3102822
-Availability: Public
+﻿INTSourceChangelist:3343902
+Availability:Public
 Title:1.キャラクターのセットアップ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Widget Interaction コンポーネントをキャラクターに追加して、必要となる他のアセットを作成します。 
-Version:4.13
 SkillLevel:Advanced
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -44,17 +43,16 @@ SkillLevel:Advanced
 
 1.	**Widget Interaction** から、両方とも **Left Mouse Button** に設定されている **Press Pointer Key** と **Release Pointer Key** を追加し、以下のように接続します。 
 
-	![](Keypad02.png)
+	![](Keypad02.png) 
 
-	ウィジェットは、左マウスボタンのクリックまたはタッチ コントロールを介してマウス / タッチのインタラクションに反応し、**Press Pointer Key** 関数を使ってこれをシミュレートすることができます。 
-	この例では、**Right Mouse Button** を使って左マウスボタンのクリックをシミュレートします。ただし、ゲームパッド ボタンの押下または、Motion Controller Trigger を押して、Press Pointer Key 関数を発行することができます。 
+	ウィジェットは、左マウスボタンのクリックまたはタッチ コントロールを介してマウス / タッチのインタラクションに反応し、**Press Pointer Key** 関数を使ってこれをシミュレートすることができます。この例では、**Right Mouse Button** を使って左マウスボタンのクリックをシミュレートします。ただし、ゲームパッド ボタンの押下または、Motion Controller Trigger を押して、Press Pointer Key 関数を発行することができます。
 
 1.	**コンテンツ ブラウザ** で、**Actor** および 2 つの **Widget ブループリント** に基づき 2 つの **Class ブループリント** を作成します。 
 
-	![](Keypad03.png)
+	![](Keypad03.png) 
 
 	この 2 つの Actor ブループリントに対してひとつの **Keypad** (キーパッドのエントリを表すため) を呼び出し、もうひとつの **KeypadDisplay** (キーパッドから入力した値を表すため) を呼び出します。 
-	この Widget ブループリントに対しては、Actor ブループリントと同じ名前を使ってください。ただし、区別するために、**WB** という接尾辞を (Widget ブループリント) に付けてください。 
+	この Widget ブループリントに対しては、Actor ブループリントと同じ名前を使ってください。ただし、区別するために、**WB** という接尾辞を (Widget ブループリント) に付けてください。
 
 
 ## 最終結果
@@ -62,4 +60,5 @@ SkillLevel:Advanced
 プロジェクトの用意ができて、キャラクターがワールドのウィジェットとインタラクションすることができます。次に、インタラクティブなウィジェットをセットアップします。 
 
 %Steps%
+
 

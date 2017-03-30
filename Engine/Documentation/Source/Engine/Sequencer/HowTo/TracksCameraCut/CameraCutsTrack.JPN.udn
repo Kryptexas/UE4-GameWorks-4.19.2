@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3009005
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:カメラ カットの作業
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -10,6 +10,7 @@ order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 シネマティックスでコンテンツの用意ができたら、異なるカメラ視点からそのコンテンツを撮影することがあります。 
 シーケンサーでこれを行うには、 **Camera Cuts トラック** を使用し、シーン内の任意の時間にどのカメラを使用するかを選択します。 
@@ -26,7 +27,7 @@ Related:Engine\Sequencer\ReferenceEditor\
 
 	![](cameras01.png)
 
-	これはこのサンプルでは不要ですが、ゲームをプレイする場合にプレイ可能なキャラクターです。 
+	このサンプルでは不要ですが、ゲームをプレイする場合にプレイ可能なキャラクターです。 
 
 1.	**コンテンツ ブラウザ** の **Content/Mannequin/Character/Mesh** で **SK_Mannequin** をレベルにドラッグします。
 
@@ -111,7 +112,6 @@ Related:Engine\Sequencer\ReferenceEditor\
 	これでシネマティックスに対して、このトラックとカメラを使用してシーンを表示するように指示します。
 
 1.	ビューポートで **[Play]** ボタンをクリックし、シーンをプレビューします。 
-
 
 ## 最終結果
 

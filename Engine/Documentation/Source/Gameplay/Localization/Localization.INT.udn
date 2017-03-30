@@ -11,7 +11,7 @@ version: 4.13
 
 ## Localizing Audio
 
-Spoken text is now gathered from [**Dialogue Wave**](Engine/Audio/Overview#dialoguevoiceanddialoguewave) assets and included in your PO files for translation along with your other asset based text.
+Spoken text is now gathered from [Dialogue Wave](Engine/Audio/Overview#dialoguevoiceanddialoguewave) assets and included in your PO files for translation along with your other asset based text.
 
 Several new [commandlets](Gameplay/Localization/Commandlets) have been added to facilitate the recording and importing of audio for your **Dialogue Wave** assets.
 * ExportDialogueScript - Exports a per-culture CSV file containing each line of dialogue and its associated filename.

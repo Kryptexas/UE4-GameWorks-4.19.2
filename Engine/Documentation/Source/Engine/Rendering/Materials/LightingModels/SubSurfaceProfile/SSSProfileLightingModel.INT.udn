@@ -7,6 +7,8 @@ parent:Engine/Rendering/Materials/LightingModels
 order:1
 topic-image:sss_profile_topic.png
 type:overview
+tags:Materials
+
 
 [TOC(start:2)]
 

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3063666
+﻿INTSourceChangelist:3343774
 Availability:Docs
 Title:2.ウィジェットのセットアップ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:左マウスボタンを押したときに何がおこるかをスクリプティングします。 
-Version:4.12
 SkillLevel:Intermediate
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,7 +24,7 @@ SkillLevel:Intermediate
 
 %Steps%
 
-左マウスボタンが押されたことを判断し、スクリーン空間で押された場所を保存します。 
+左マウスボタンが押されたことを判断し、スクリーン スペースで押された場所を保存します。 
 **DetectDragIfPressed** を使って、プレイヤーが指定されたキーでドラッグしているかを判断します。 
 
 ## ステップ
@@ -36,9 +36,10 @@ SkillLevel:Intermediate
 	![](DragDrop4a.png)
 
 	任意で、進捗バーをスタイライズすることができます。以下は、調整したプレビューを **Desired on Screen** に設定し、**Percent** を **1.0** にして、進捗バーが充たされて、色が緑に変わるようにしました。 
+
 	![](DragDrop4b.png)
 
-	このチュートリアルでは、機能するヘルスバーは作成せず、デモ目的に限ったものです。 
+	このチュートリアルで作成するヘルスバーは機能せず、デモ目的に限ったものです。 
 
 1.	**Graph** モードに切り替えて、**My Blueprint** パネルで、 **OnMouseButtonDown** のオーバーライドと **OnDragDetected** のオーバーライドを追加します。 
 
@@ -74,3 +75,4 @@ SkillLevel:Intermediate
 プレイヤーが所定の位置をドラッグしているかを検知する機能を使って、次にドラッグが検知されると何が起こるかを設定して完成させます。 
 
 %Steps%
+

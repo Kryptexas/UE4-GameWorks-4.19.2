@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:3108692
 Availability:Public
-Title: 퍼포먼스 및 대역폭 꼼수
+Title: 퍼포먼스 및 대역폭 팁
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
-Description:액터 리플리케이션의 퍼포먼스와 대역폭 사용량 최적화 관련 꼼수입니다.
+Description:액터 리플리케이션의 퍼포먼스와 대역폭 사용량 최적화 관련 팁입니다.
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/Relevancy
 Related: Gameplay/Networking/Actors/ReplicationFlow

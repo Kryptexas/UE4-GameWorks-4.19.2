@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3158648
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title:물리 기반 머티리얼
 Crumbs: %ROOT%, Engine
@@ -10,6 +10,7 @@ topic-image:physically_based_topic.png
 type:overview
 tags:Physically Based Shading
 tags:PBR
+tags:Materials
 
 [REGION:fullwidth]
 ![](PhysMatHeader.png)

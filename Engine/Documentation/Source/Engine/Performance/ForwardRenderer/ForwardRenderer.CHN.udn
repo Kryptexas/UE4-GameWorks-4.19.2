@@ -1,140 +1,146 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Forward Shading Renderer for VR
+﻿INTSourceChangelist:3277377
+Availability:Public
+Title:VR 前向着色渲染器
 Crumbs: %ROOT%, Engine, Engine/Performance
-Description:Describes the advantages of using the Forward Shading Renderer for increased VR performance.
+Description:说明使用前向着色渲染器提升 VR 性能的优势。
 type: overview
-version: 4.14
+version:4.14
 parent:Engine/Performance
 tags:Performance and Profiling
-tags: Rendering
-tags: VR
-topic-image: ForwardRenderingTopic.png
-social-image: ForwardRenderingSocial.png
-related: Engine/Performance
-related: Engine/Performance/GPU
-related: Engine/Rendering
+tags:Rendering
+tags:VR
+topic-image:ForwardRenderingTopic.png
+social-image:ForwardRenderingSocial.png
+related:Engine/Performance
+related:Engine/Performance/GPU
+related:Engine/Rendering
+
+[REGION:warning]
+此功能当前仍在实验阶段，一些部分可能无法正常工作，在未来更新中也可能被修改。 
+[/REGION]
 
 [REGION:banner]
 ![](ForwardRenderingBanner.png)
 [/REGION]
 
-[REGION:warning]
-This feature is currently considered experimental and some aspects may not work as expected or may be altered in future updates. 
-[/REGION]
-
-[EXCERPT:intro]
-By default, Unreal Engine 4 uses a Deferred Renderer as it provides the most versatility and grants access to more rendering features. 
-However, there are some trade-offs in using the Deferred Render that might not be right for all VR experiences. 
-**Forward Rendering** provides a faster baseline with faster rendering passes which may lead to better performance on VR platforms. 
-Not only is Forward Rendering faster, it also provides better anti-aliasing options than the Deferred Render which may lead to more crisp visuals. 
-[/EXCERPT]
-
 [TOC(start:2 end:2)]
 
-## Enabling Forward Shading
+[EXCERPT:intro]
+虚幻引擎 4 默认使用延迟渲染器，因为它的功能最全面，渲染功能更多。 
+然而，延迟渲染器存在一些权衡，可能不适用于所有 VR 项目。 
+**前向渲染** 提供更快的基线和更快的渲染通道，可在 VR 平台拥有更好的性能。 
+前向渲染不仅速度更快，相较于延迟渲染器它还拥有更多抗锯齿选项，带来更为清晰明快的显示效果。 
+[/EXCERPT]
 
-To enable the Forward Shading Renderer, open your **Project Settings** then under **Rendering**, enable **Forward Shading**. 
+## 启用前向着色
+
+启用前向着色渲染器的步骤：
+
+1. 在 **Edit** 菜单中打开 **Project Settings**。
+
+1. 选择左边的 **Rendering** 标签并找到 **Forward Shading** 类目。
+
+1. 启用 **Forward Shading**。
 
 ![](EnableForwardShading.png)
 
-You will be prompted to restart the editor where after the restart, you can begin using the Forward Renderer options and features. 
+此时将弹出重启编辑器的提示。完成重启后，即可开始使用前向渲染器的选项和功能。 
 
-## Enabling Multisample Anti-Aliasing
+## 启用多重采样抗锯齿
 
-To use Multisample Anti-Aliasing (MSAA), open your **Project Settings** then under **Rendering** and **Default Settings**, change the **Anti-Aliasing Method** to **MSAA**.
+使用多重采样抗锯齿（MSAA）的步骤：
+
+1. 在 **Edit** 菜单中打开 **Project Settings**。
+
+1. 选择左边的 **Rendering** 标签并找到 **Default Settings** 类目。
+
+1. 将 **Anti-Aliasing Method** 属性设为 **MSAA**。
 
 ![](EnableMSAA.png)
 
-With the Deferred Renderer, Temporal AA works well at reducing flickering and jaggy edges on 2D monitors but introduces unwanted blurriness with VR headsets due to the low effective resolution, and the constant sub-pixel movement introduced by head tracking. 
-MSAA gives much sharper results but requires all shading to be done in one forward pass to be performant. 
+前向渲染器支持 MSAA 和临时抗锯齿（TAA）。在多数情况下，TAA 更为实用，因为它可移除几何体锯齿和镜面锯齿。 
+然而在 VR 项目中，头部追踪引起的恒定亚像素运动会造成不必要的模糊。MSAA 方为更佳选择。 
+选择使用 MSAA 的项目将需要编译内容，以减轻反射锯齿。 
+此外，**Normal to Roughness** 功能有助于减少静态网格体自动 LOD 生成和细节法线贴图（可使远距离模型特征变平）引起的镜面锯齿，从而减少小三角面引起锯齿。 
 
-Below an example is given with Temporal AA enabled versus 2X MSAA enabled. 
+在我们的测试中，使用 MSAA（替代 TAA）提高了约 25% 的 GPU 帧时（实际开销根据内容而定）。 
+
+下例为启用临时抗锯齿（TAA）和启用 4 倍 MSAA 的对比。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
 	![With Temporal AA](TemporalAA.png)(w:1020)
 	[/PARAM]
 	[PARAM:after]
-	![With 2X MSAA](MSAA.png)(w:1020)
+	![With 4X MSAA](MSAA.png)(w:1020)
 	[/PARAM]
 [/OBJECT]
 
 [REGION:note]
-You can use the console variable `r.MSAACount` to control how many MSAA samples are computed for every pixel. 
-Assigning `r.MSAACount 1` will fall back to using Temporal AA, which allows for convenient toggling between Anti-Aliasing methods. 
+可使用控制台变量 `r.MSAACount` 控制每个像素计算的 MSAA 采样数。 
+指定 `r.MSAACount 1` 将退回使用 TAA，可在抗锯齿方法之间便利地进行切换。 
 [/REGION]
 
-## Performance and Features
+## 性能与功能
 
-Switching from the Deferred Renderer to the Forward Renderer may provide you with an increase in performance for your project. 
+从延迟渲染器切换至前向渲染器后，项目性能可能有所提升。 
 
-Most of the performance improvement comes from features that are disabled by default in the Forward Renderer.
-Only the nearest Reflection Capture will be applied without parallax correction unless the material opts-in to High-Quality Reflections. 
-Similarly, Planar Reflection receiving must be enabled on materials and Height Fog is computed per-vertex. 
+进行一些渲染时，前向渲染器的速度比延迟渲染器更快。可在每个材质上禁用的功能可以实现最大的性能提升。 
+默认情况如下：只有最近的反射捕捉应用时不带视差矫正，除非材质使用高精度反射、高度雾按每个顶点计算、平面反射只应用到启用的材质上。 
+
+![](ForwardShading.png)
+
+在 Epic 最新的 VR 游戏《Robo Recall》上平衡这些选项。在使用 NVIDIA 970 GTX 显卡的情况下，前向渲染器比延迟渲染器的速度快约 22%。 
 
 ![](ExampleImage.png)
 
-The Forward Renderer works by culling lights and Reflection Captures to a frustum-space grid. Each pixel in the forward pass then iterates over the lights and Reflection Captures affecting it, sharing the material with them. 
-Dynamic Shadows for Stationary Lights are computed beforehand and packed into channels of a screen-space shadow mask, leveraging the existing limit of 4 overlapping Stationary Lights. 
+前向渲染器的工作原理是将灯光和反射捕捉剔除到一个视锥空间网格。前向通道中的每个像素在对其产生影响的灯光和反射捕捉上迭代，与它们共享材质。 
+静态光照的动态阴影为提前计算，并被打包到屏幕空间阴影遮罩的通道中，利用现有的 4 个重叠静态光照限制。 
 
-Be sure to use Unreal Engine's [](Engine/Performance) Tools to gauge the performance of your game when switching from the Deferred Renderer to the Forward Renderer. 
-You will want to pay special attention to [](Engine/Performance/GPU) to see where GPU cost is going, as well as using the [](Engine/Performance/StatCommands) to aid with your profiling efforts.
-Another tool you may want to use is [Shader Complexity View Mode](https://docs.unrealengine.com/latest/INT/Engine/UI/LevelEditor/Viewports/ViewModes/#shadercomplexity) to visualize the number of shader instructions being used to calculate each pixel of your scene. 
+从延迟渲染器切换到前向渲染器时，必须使用虚幻引擎的 [](Engine/Performance) 工具测量游戏的性能。 
+需要对 [](Engine/Performance/GPU) 多加关注，了解 GPU 开销的来龙去脉；并使用 [](Engine/Performance/StatCommands) 协助分析。
 
-### Currently Supported Features
+### 当前支持的功能
 
-This list comprises the currently supported features of the Forward Renderer: 
+此列表中包含前向渲染器当前支持的功能： 
 
-* Full support for Stationary Lights, including Dynamic Shadows from Movable objects which blend together with precomputed environment shadows. 
-* Multiple Reflection Captures blended together with parallax correction. 
-* Planar Reflections of a partial scene composited into Reflection Captures. 
-* DBuffer Decals
-* Precomputed Lighting and Sky Lights. 
-* Unshadowed Movable Lights.
-* Capsule Shadows
-* Instanced Stereo Compatible. 
+* 完全支持静态光照。包括来自可移动物体的动态阴影（此阴影将和预计算环境阴影混合）
+* 混合多个反射捕捉（带视差矫正）
+* 部分场景的平面反射（合成到反射捕捉中）
+* DBuffer 贴图
+* 预计算的光照和天空光照
+* 无阴影的可移动光照（任意数量）
+* 胶囊体阴影
+* 遮罩材质的透明覆盖
+* 兼容实例化立体
+* 最多 4 个重阴影投射可移动光照
+* 阴影投射光照上的光照函数
 
-In the Deferred Renderer, **Surface Forward Shading** can be used on translucent surfaces (like glass or water) to get specular highlights from multiple lights and image-based reflections from parallax-corrected Reflection Captures. 
-This is implemented with forward shading so specular highlights from local lights are supported, however, many deferred-only features are not. 
+## 已知问题和常见问题
 
-You can enable this in the **Translucency** section of your **Material** under the **Lighting Mode** section: 
+**尚不支持** 前向渲染器的以下功能： 
 
-![](LightingModeFowardShading.png)
-
-[REGION:warning]
-This is the most expensive translucency lighting method as each light's contribution is computed per-pixel. 
-[/REGION]
+* 屏幕空间技术（SSR、SSAO、接触阴影）
+* 动态阴影半透明度
+* 从静态光照获取环境阴影的半透明度
+* D-Buffer 贴图和动态模糊上的 MSAA
 
 
-## Known Issues & Common Questions
 
-The following features are **not yet supported** while using the Forward Renderer: 
+以下是使用前向渲染器实验版本时的常见问题。 
 
-* Screen Space Techniques (SSR, SSAO, Contact Shadows). 
-* Shadow Casting Movable Lights. 
-* Dynamically Shadowed Translucency. 
-* Translucency receiving environment shadows from a Stationary Light. 
-* Light Functions and IES Profiles. 
-* DBuffer Decals, Dynamic Shadows, Capsule Shadows and Atmospheric Fog do not handle MSAA correctly with this experimental release and may exhibit artifacts along object edges. 
-
-Below are some common questions/issues that may arise when using the experimental version of the Forward Renderer. 
-
-* **My Material is broken when switching to the Forward Renderer, something about GBuffer scene textures?** 
-	* Access to the GBuffer is not available for texture sampling in the Forward Renderer and is only available with the Deferred Renderer. 
-* **Does the Forward Renderer allow fewer texture samples than the Deferred Render?** 
-	* The Forward Renderer packs all features into one shader so there are fewer texture samplers available for your material. 
-	* You can usually solve this by using Shared Samplers. 
-* **Does Forward Rendering MSAA support alpha to coverage for alpha masked materials?** 
-	* Yes, any masked materials automatically use **OpacityMaskToCoverage** as the opacity mask input gets turned into MSAA coverage. 
-	* You can use it to do Dithered Transparency with 4 levels for 4x MSAA (which is very useful for foliage). 
-	* Since it is cheap, it is enabled by default rather than it being a material option. 
-* **How come I have issues with MSAA not being able to find samples against Atmospheric Fog?** 
-	* Atmospheric Fog does not handle MSAA correctly yet. 
-	* For Height Fog, you can get around this by defaulting to Vertex Fogging in your **Project Settings**. 
-	* This means it is computed in the Forward BasePass and therefore anti-aliased correctly. 
-	* Atmosphere is still computed in a Deferred Pass off of resolved scene depths so it does not anti-alias correctly (which we hope to fix in future updates). 
+* **切换到前向渲染器时材质出错，是不是 GBuffer 场景纹理存在问题？** 
+	* 前向渲染器中，纹理采样无法访问 GBuffer（只能在延迟渲染器中访问）。 
+* **前向渲染器允许的纹理样本数量是否比延迟渲染器少？** 
+	* 前向渲染器将所有功能打包到一个着色器中，因此材质可用的纹理采样器更少。 
+	* 通常使用共享采样器即可解决此问题。 
+* **为什么 MSAA 出现问题，无法找到大气层雾的样本？** 
+	* 大气层雾暂时无法处理 MSAA。 
+	* 对高度雾而言，可使用顶点雾生成（Vertex Fogging）解决问题（启用前向着色后将自动启用该项）。 
+	* 这意味着它将在前向基础通道中进行计算，并获得正确的抗锯齿。 
+	* 大气仍在尚未测试的场景深度的延迟通道中计算，因此无法正确进行抗锯齿（有望在之后的版本中得到修复）。 
 
 
 
 	
+

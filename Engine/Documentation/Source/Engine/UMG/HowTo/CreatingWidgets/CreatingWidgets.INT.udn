@@ -6,6 +6,7 @@ Related: Engine/UMG
 Related: Engine/UMG/UserGuide
 Version: 4.12
 SkillLevel: Beginner
+tags:UMG UI Designer
 
 Typically in most games you will want to communicate some information to your players through your game's User Interface. 
 This can range from things like Main Menus, in-game Pause Menus, Health or Experience, Inventory Items, or help text to instruct players what to do in a given situation. 

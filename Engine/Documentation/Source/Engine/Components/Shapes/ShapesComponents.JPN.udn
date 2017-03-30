@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2659195
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:Shape コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -8,7 +8,7 @@ Related:Engine/Physics/PhysicsBodies
 Related:Engine/Landscape/Editing/Splines
 Related:Resources/ContentExamples/Blueprint_Splines
 Related:Engine/Blueprints/UserGuide/Components
-SkillLevel:初心者向け
+SkillLevel:Beginner
 Version:4.9
 
 Shape コンポーネントを使用して他のオブジェクト周囲にコリジョン、トリガーを作成したり、方向を示したり、パスを作ることができます。 
@@ -27,7 +27,7 @@ Shape コンポーネントを使用して他のオブジェクト周囲にコ�
 
 ![](box_trigger.png)
 
-**Box コンポーネント** は炎のパーティクル エフェクトの周囲に追加され、コリジョン設定は **Generate Overlap Event** に設定されています。何かがボックスにオーバーラップするとイベントが発行し、オーバーラップしたアクタに損傷を与えるスクリプトが実行されます。[コリジョン反応](Engine/Physics/Collision) を **BlockAll** に設定します。これにより、すべてのアクタがボックスに入らないようにします (炎の中に物が入らないようにしたい場合)。 
+**Box コンポーネント** は炎のパーティクル エフェクトの周囲に追加され、コリジョン設定は **Generate Overlap Event** に設定されています。何かがボックスにオーバーラップすると、イベントが発行し、ボックスにオーバーラップするアクタにダメージを与えるスクリプトを実行します。[コリジョン反応](Engine/Physics/Collision) を **BlockAll** に設定することもできます。これにより、すべてのアクタがボックスに入らないようにします (炎の中に物が入らないようにしたい場合)。 
 
 
 ## Capsule コンポーネント
@@ -36,7 +36,7 @@ Shape コンポーネントを使用して他のオブジェクト周囲にコ�
 
 ![](capsule_component.png)
 
-上の画面では、新規 **Character ブループリント** 作成時に **Capsule コンポーネント** が自動的に作成され、キャラクターのコリジョン設定を提供し、ワールド内のオブジェクトと交差するのを防ぎます。**Capsule コンポーネント** は、**Overlap Event** または **Hit Event** を生成して、こうしたイベントのいずれかが起こった場合にスクリプトを提供することもできます。 
+上の画面では、新規 **Character ブループリント** 作成時に **Capsule コンポーネント** が自動的に作成され、キャラクターのコリジョンを設定し、ワールド内のオブジェクトと交差するのを防ぎます。**Capsule コンポーネント** は、**Overlap Event** または **Hit Event** を生成して、こうしたイベントのいずれかが起こった場合のスクリプトを提供することもできます。 
 
 
 ## Sphere コンポーネント

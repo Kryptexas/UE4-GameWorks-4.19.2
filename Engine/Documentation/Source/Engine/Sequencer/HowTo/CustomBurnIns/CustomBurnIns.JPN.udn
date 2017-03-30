@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3075228
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:カスタムの Burn In を適用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -10,6 +10,7 @@ order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 シネマティックスを出力する場合、時刻、ショット、フレーム情報などを含む [デフォルトのバーンイン](Engine\Sequencer\HowTo\BurnIns) の設定の範囲を超えて追加の情報や機能を与えることができます。 
 [UMG](Engine/UMG) と [](Engine/Blueprints) を使うと、カスタム バーンインとオーバーレイの機能を作成することができます。 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3160346
+﻿INTSourceChangelist:3309591
 Availability:NoPublish
 Title:
 Crumbs:
@@ -235,6 +235,41 @@ Description:
 		[/PARAMLITERAL]
 		[PARAM:label]
 		iOS
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
+
+[VAR:MethodSelect]
+[REGION:section]
+	[REGION:titlesection]
+	実装方法を選んでください。
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		Method
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		method01
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Method 1
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		Method
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		method02
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Method 2
 		[/PARAM]
 	[/OBJECT]
 [/REGION]

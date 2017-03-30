@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability: Public
 Title:결과 구하기
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:파티클 시스템 관련 흔히 발생하는 문제를 프로파일링하는 법입니다.
 Version: 4.9
+tags:Particles
 
 
 [TOC]
@@ -194,7 +195,7 @@ Activate Automatic (능동형 자동) - 이펙트가 스폰될 때 LOD 에 정�
 
 Spawn Per Unit 은 파티클 시스템이 움직일 때 갭을 메꾸는 데 좋은 캐스케이드 기능입니다. 이 기능이 괜찮아 보이는 파티클 트레일을 만들기에 좋기는 합니다만, 사용할 때는 비주얼양과 퍼포먼스군의 밀땅이 중요합니다!
 
-방출 제어를 위한 꼼수가 몇 가지 있습니다:
+방출 제어를 위한 팁이 몇 가지 있습니다:
 
 * Unit Scalar 값을 가급적 높게 유지하되 방출 속도(emission rate) 와 보조를 맞추어, 이펙트를 너무 무겁게 만들지 않는 선에서 원하는 필(fill)을 얻어냅니다.
 * Spawn Per Unit 을 사용하여 방출 속도가 높을 것으로 예상되는 경우, 인스트럭션 카운트가 낮은 머티리얼을 사용해 보십시오.

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3336763
 Availability:Public
 Title:프로젝트 패키징
-Crumbs: %ROOT%, Engine, Engine/Basics/Projects
+Crumbs:
 Description:언리얼 게임 프로젝트의 배포용 패키지 만들기입니다.
 version: 4.9
+parent:Engine/Basics/Projects
 
 [TOC(start:2)]
 
@@ -79,7 +80,7 @@ TappyChicken/Final/IOS 에 들어가게 되고, 안드로이드 빌드는 TappyC
 	| 환경설정      | EXE 이름                             | EXE 위치                                                        |
 	| ------------- | ------------------------------------ | --------------------------------------------------------------- |
 	| Development   | [ProjectName].exe                    | [PackageDirectory]\WindowsNoEditor |
-	| Shipping      | [ProjectName]-Win32-Shipping.exe.exe | [PackageDirectory]\WindowsNoEditor |
+	| Shipping      | [ProjectName]-Win32-Shipping.exe     | [PackageDirectory]\WindowsNoEditor |
 
 1. 실행파일을 **더블클릭** 하면 게임이 실행됩니다.
 [/EXCERPT:RunCooked]

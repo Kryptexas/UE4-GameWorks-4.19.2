@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3216146
-availability:docs
-title:2. Required Asset Creation & Setup
-description:Going over creating and setting up the required assets for the Fluid Surface Blueprint.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:2. 필수 애셋 생성 & 구성
+description:플루이드 서피스 블루프린트의 필수 애셋 생성과 구성에 대해 다룹니다.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
@@ -14,14 +14,14 @@ checkpoint:FSB
 
 [NAV]
 
-For the fluid surface to function correctly, we are going to need to create some new assets. We'll also use some assets created for the Height Field Painter. In the following section, we will go over how each of these assets needs to be setup and any special properties that you will need to use. 
+플루이드 서피스의 정상 작동을 위해서, 새 애셋을 조금 만들어줘야 할 것입니다. 하이트 필드 페인터용으로 생성된 애셋을 조금 사용하기도 할 것입니다. 다음 섹션에서는 이 애셋을 어떻게 구성해 줘야 하는지, 어떤 특수 프로퍼티를 사용해야 하는지 다뤄보겠습니다.
 
-## Render Target Creation & Setup
-For the fluid surface to function correctly, we will need to create four new Render Targets by right-clicking in the **Content Browser** and from the menu that is displayed, go to **Create Advanced Asset** > **Materials & Textures** to select the **Render Target** option.
+## 렌더 타겟 생성 & 셋업
+플루이드 서피스의 정상 작동을 위해서는, **콘텐츠 브라우저** 우클릭 맥락 메뉴에서 **고급 애셋 생성** > **머티리얼 & 텍스처** 부분의 **렌더 타겟** 옵션을 선택하여 네 개의 렌더 타겟을 새로 만들어줄 필요가 있습니다.
 
 ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_00.png)
 
-Once you have created four new Render Targets, give them the following names:
+네 개의 렌더 타겟을 새로 만들고나서, 이름을 다음과 같이 지어줍니다:
 
 * `Height0`
 * `Height1`
@@ -30,56 +30,56 @@ Once you have created four new Render Targets, give them the following names:
 
 ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\FS_Render_Targets.png)
 
-## Material Creation & Setup
-For the fluid simulation to work, we are going to need to create two new Materials; one Material for the water, and one Material for the heightmap simulation. To create these Materials, right-click in the **Content Browser** and from the **Create Basic Assets** list, select the Material option.
+## 머티리얼 생성 & 구성
+플루이드 시뮬레이션의 작동을 위해서는, 두 개의 머티리얼을 새로 만들어야 합니다. 하나는 물에 쓸 것, 또 하나는 하이트맵 시뮬레이션에 쓸 것입니다. 머티리얼 생성을 위해서는, **콘텐츠 브라우저** 우클릭 메뉴에서 **기본 애셋 생성** 부분의 **머티리얼** 옵션을 선택합니다.
 
 [region:note]
-Do not forget to Compile and Save your Blueprint so that it can be used.
+블루프린트를 컴파일하고 저장해야 사용할 수 있다는 점, 잊지 마세요.
 [/region]
 
-* **WaterMaterial** is what makes the surface look and act like water. Before you start to build WaterMaterial, make sure the following options have been set in the **Details** panel for the WaterMaterial.
-	* **Blend Mode:** Translucent
-	* **Lighting Mode:** Surface Translucency Volume
-	* **Used with Static Lighting:** True
-	* **Uses Distortion:** True
-	* **Refraction Mode:** Pixel Normal Offset
+* **WaterMaterial** 은 표면이 물과 같아 보이고 작용하도록 만드는 것입니다. WaterMaterial 제작을 시작하기 전, **디테일** 패널에 다음과 같은 옵션이 설정되어 있는지 확인하시기 바랍니다.
+	* **Blend Mode:** 블렌드 모드: Translucent
+	* **Lighting Mode:** 라이팅 모드: Surface Translucency Volume
+	* **Used with Static Lighting:** 스태틱 라이팅과 함께 사용: True
+	* **Uses Distortion:** 디스토션 사용: True
+	* **Refraction Mode:** 굴절 모드: Pixel Normal Offset
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#WaterMaterial]
 	[/REGION]
 
-* The **HeightSim** Material is used to propagate the various waves that happen when you shoot at the surface of the fluid simulation. Before you start to build the HeightSim Material, make sure the following options have been set in the **Details** panel for the HeightSim Material.
-	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** True
+* **HeightSim** 머티리얼은 유체 시뮬레이션 표면에 총을 쏠 때 일어나는 다양한 물결을 전파하는 데 사용됩니다. HeightSim 머티리얼 제작을 시작하기 전, HeightSim 머티리얼의 **디테일** 패널에 옵션이 다음과 같이 설정되었는지 확인하세요.
+	* **Shading Model:** 셰이딩 모델: Unlit
+	* **Allow Negative Emissive Color:** 음수 이미시브 컬러 허용: True
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#HeightSim]
 	[/REGION]
 
-* The **ComputeNormal** Material is used to create the normals that are needed for the water surface. Before you start to build the ComputeNormal Material, make sure the following options have been set in the **Details** panel for the ComputeNormal Material.
-	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** True
+* **ComputeNormal** 머티리얼은 물 표면에 필요한 노멀을 만드는 데 쓰입니다. ComputeNormal 머티리얼 제작을 시작하기 전, ComputeNormal 머티리얼의 **디테일 패널** 에 다음과 같은 옵션이 설정되어 있는지 확인하세요.
+	* **Shading Model:** 셰이딩 모델: Unlit
+	* **Allow Negative Emissive Color:** 음수 이미시비 컬러 허용: True
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#CompNormal]
 	[/REGION]
 
-* The **MAT_ForceSplat** is used to determine where the impact happened and how big the impact was. Before you start to build the MAT_ForceSplat Material, make sure the following options have been set in the **Details** panel for the MAT_ForceSplat Material. 
+* **MAT_ForceSplat** 는 충격 지점과 충격 세기를 결정하는 데 사용됩니다. MAT_ForceSplat 머티리얼 제작을 시작하기 전, MAT_ForceSplat 머티리얼의 **디테일** 패널에 다음과 같은 옵션이 설정되어 있는지 확인하세요.
 	
-	* **Blend Mode:** Additive
-	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** Checked
+	* **Blend Mode:** 블렌드 모드: Additive
+	* **Shading Model:** 셰이딩 모델: Unlit
+	* **Allow Negative Emissive Color:** 음수 이미시브 컬러: 체크
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#ForceSplat]
 	[/REGION]
 
 	[region:note]
-	The MAT_ForceSplat Material is the same Material that was used in the [Height Field Painter](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter). If you have already created this Material, feel free to use that one. 
+	MAT_ForceSplat 머티리얼은 [하이트 필드 파라미터](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter) 에 사용된 머티리얼과 같습니다. 이 머티리얼을 이미 만든 적이 있다면, 그것을 사용해도 됩니다.
 	[/region]
 
 
-With the necessary assets now setup, in the next section, we will take a look at how each piece fits togther to create the Fluid Surface Blueprint.
+이제 필수 애셋 구성이 완료되었으니, 다음에는 각 부분이 어떻게 어우러져 플루이드 서피스 블루프린트를 만드는지 살펴보겠습니다.
 [NAV]
 
 <!--

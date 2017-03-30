@@ -3,6 +3,7 @@ Title: Toolbar
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description: A bar at the top of the editor that contains buttons that control multiple functions.
 version: 4.9
+tags:Blueprints
 
 
 [EXCERPT:Intro]

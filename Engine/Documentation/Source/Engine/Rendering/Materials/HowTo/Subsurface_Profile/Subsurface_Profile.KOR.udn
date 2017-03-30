@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title: 머티리얼에 서브서피스 프로파일 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -9,6 +9,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_13
 Related: Resources/ContentExamples/MaterialNodes/1_7
 Version: 4.9
 SkillLevel: Intermediate
+tags:Materials
 
 [TOC(start:2)]
 
@@ -265,8 +266,8 @@ SkillLevel: Intermediate
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-## 팁과 꼼수
-서브서피스 프로파일 렌더링 방식으로 인해 최대한의 활용을 위한 몇 가지 팁과 꼼수가 있습니다.
+## 팁과 정보
+서브서피스 프로파일 렌더링 방식으로 인해 최대한의 활용을 위한 몇 가지 팁과 정보가 있습니다.
 
 ### 산란 반경
 서브서피스 프로파일의 **Scatter Radius** 수치를 정말 크게 설정하면 다음 그림에서와 같은 렌더링 오류가 생깁니다.

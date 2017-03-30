@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:이미시브 머티리얼 입력 사용
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials/HowTo
@@ -9,6 +9,7 @@ Related: Engine/Rendering/PostProcessEffects/Bloom
 Related: Resources/ContentExamples/MaterialNodes/1_5
 Version: 4.9
 SkillLevel: Intermediate
+tags:Materials
 
 
 [TOC(start:2 end:3)]

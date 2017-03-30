@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2734140
+﻿INTSourceChangelist:3224907
 Availability:Public
 Title:物理ボディ
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -53,7 +53,7 @@ Description:ほとんどの物理相互作用の基礎: 物理ボディ [ボデ�
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Essentials
+		基本
 	[/PARAM]
 	[PARAM:links]
 		[PUBLISH:Docs]
@@ -64,18 +64,6 @@ Description:ほとんどの物理相互作用の基礎: 物理ボディ [ボデ�
 	[/PARAM]
 [/OBJECT]
 
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related
-	[/PARAM]
-	[PARAM:links]
-
-	[/PARAM]
-[/OBJECT]
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3238697
 Availability: Public
 Title:3. 폰 무브먼트 컴포넌트의 작동방식 코딩
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -91,9 +91,11 @@ version:4.9
 				// Sets default values for this pawn's properties
 				ACollidingPawn();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 

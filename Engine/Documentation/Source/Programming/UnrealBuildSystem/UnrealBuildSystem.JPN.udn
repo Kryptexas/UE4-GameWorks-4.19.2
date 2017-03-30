@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2624288
+﻿INTSourceChangelist:3336766
 Availability:Public
 Title:アンリアル ビルド システムの設定
-Crumbs: %ROOT%, Programming
-Description:エンジンとゲーム プロジェクトをコンパイルするためのアンリアル・エンジンのカスタムビルドシステム
+Crumbs:
+Description:エンジンとゲーム プロジェクトをコンパイルするアンリアル・エンジンのカスタムビルドシステム
 version:4.9
+parent:Programming
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -29,15 +30,15 @@ version:4.9
 [/REGION]
 
 ### UnrealBuildTool
-**UnrealBuildTool** (UBT) は、多数のビルド コンフィギュレーションの **Unreal Engine 4** (UE4) ソース コードのビルド プロセスを管理するカスタム ツールです。ユーザー設定可能な様々なビルド オプションについては、 
-BuildConfiguration.cs を調べてください。
+**UnrealBuildTool** (UBT) は、多数の可能なビルド コンフィギュレーションにおいて **アンリアル エンジン 4** (UE4) ソース コードのビルド プロセスを管理するカスタム ツールです。ユーザー設定可能な様々なビルド オプションについては、 
+BuildConfiguration.cs で確認してください。
 
 [REGION:note]
 Mac OS X で UnrealBuildTool や UnrealAutomationTool をデバッグする場合は、以下を必ずインストールしてください。[MonoDevelop 4.2.2](http://monodevelop.com/Download) および [Mono 3.2.7](http://www.go-mono.com/mono-downloads/download.html)  
 [/REGION]
 
 ### UnrealHeaderTool
-**UnrealHeaderTool** (UHT) は、UObject システムをサポートするカスタムのパースおよびコード生成のツールです。コードのコンパイルは以下の 2 つのフェーズで行われます。
+**UnrealHeaderTool** (UHT) は、UObject システムをサポートするカスタム パー寝具およびコード生成のツールです。コードのコンパイルは以下の 2 つのフェーズで行われます。
 
 1.	UHT が呼び出されると、Unreal 関連のクラスのメタデータの C++ ヘッダーをパースし、様々な UObject 関連の機能を実装するためのカスタム コードを生成します。
 1.	結果をコンパイルするために通常の C++ コンパイラが呼び出されます。
@@ -46,13 +47,13 @@ Mac OS X で UnrealBuildTool や UnrealAutomationTool をデバッグする場�
 
 ### Project Files
 ビルド プロセスは、Visual Studio の .sln や .vcproj などの開発環境のプロジェクト ファイルとは関係なく起こります。しかし、こうしたファイルは編集目的には役立ちます。 
-そのため、プロジェクトのディレクトリ ツリーの内容に基づき、こうしたファイルを動的に生成するためのツールがあります。root /UE4 ディレクトリにある [GenerateProjectFiles.bat](Programming\UnrealBuildSystem\ProjectFileGenerator) ファイルでこのツールを実行できます。
- ディスクに追加またはディスクから削除したコード ファイルと、コード エディタとの同期を保つために、時々、このバッチファイルを実行することは一般的に有用です。
+そのため、プロジェクトのディレクトリ ツリーの内容に基づき、こうしたファイルを動的に生成するためのツールがあります。このツールは `[Root UE4]` ディレクトリにある [GenerateProjectFiles](Programming\UnrealBuildSystem\ProjectFileGenerator) バッチ ファイルで実行することができます。
+ ディスクに追加またはディスクから削除したコード ファイルと、コード エディタとの同期を保つために、時々、このバッチファイルを実行するといろいろと便利です。
 
 ### モジュール アーキテクチャ
 UE4 は多くのモジュールに分かれています。各モジュールには、.build.cs ファイルがあり、モジュールの従属関係、追加のライブラリ、インクルード パスなどを定義するためのオプションなど、ビルド方法を制御します。
 
-デフォルトで、こうしたモジュールは ダイナミック リンクライブラリ (DLL) にコンパイルされ、単一の実行可能ファイルによってロードされます。BuildConfiguration.cs ファイルでモノリシック (単一) 実行ファイルをビルドするように選択できます。
+デフォルトで、こうしたモジュールはダイナミック リンクライブラリ (DLL) にコンパイルされ、単一の実行可能ファイルによってロードされます。BuildConfiguration.cs ファイルでモノリシック (単一) 実行ファイルをビルドするように選択できます。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -64,7 +65,7 @@ UE4 は多くのモジュールに分かれています。各モジュールに�
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/UnrealBuildSystem) - %Programming/UnrealBuildSystem/ProjectFileGenerator:description%
+		* [](Programming/UnrealBuildSystem/ProjectFileGenerator "%Programming/UnrealBuildSystem/ProjectFileGenerator:description%")
 		* [](Programming/Development/BuildingUnrealEngine "%Programming/Development/BuildingUnrealEngine:description%")
 	[/PARAM]
 [/OBJECT]
@@ -74,13 +75,13 @@ UE4 は多くのモジュールに分かれています。各モジュールに�
 		![](%ROOT%/profile_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		プロジェクト設定とコンフィギュレーション
+		セットアップとコンフィギュレーション
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/UnrealBuildSystem/Configuration) - %Programming/UnrealBuildSystem/Configuration:description%
-		* [](Programming/UnrealBuildSystem/TargetFiles) - %Programming/UnrealBuildSystem/TargetFiles:description%
+		* [](Programming/UnrealBuildSystem/Configuration "%Programming/UnrealBuildSystem/Configuration:description%")
+		* [](Programming/UnrealBuildSystem/TargetFiles "%Programming/UnrealBuildSystem/TargetFiles:description%")
 	[/PARAM]
 [/OBJECT]
 

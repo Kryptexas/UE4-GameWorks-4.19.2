@@ -1,25 +1,8 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3275202
+Availability:Public
 Title:アクタのトランスフォーム
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:レベルに配置されたアクタの位置、回転、スケーリングを修正します。
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[前のトピック](Engine/Actors/Selection "%Engine/Actors/Selection:title%")
-	[/PARAM]
-	[PARAM:next]
-		[次のトピック](Engine/Actors/Mobility "%Engine/Actors/Mobility:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -60,8 +43,6 @@ Description:レベルに配置されたアクタの位置、回転、スケー�
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 
 [TOC(start:2)]
@@ -128,7 +109,7 @@ Description:レベルに配置されたアクタの位置、回転、スケー�
 
 ![Scaling Widget](LE_Trans_ScaleWidget.png)
 
-**平行移動ウィジェット** を使用して同時に 2 本の軸で定義されたプレーンに沿ってアクタを動かすことができるように、 2 本の軸に同時に合わせてアクタをスケーリングすることができます。**Scaling Widget** の各ハンドルからは線が延びていて、それぞれが別の軸の線とつながります。3 つのプレーン (XY、XZ、YZ) の 1 つに沿って三角形を作ります。そのうちの 1 つの三角形をドラッグすると、そのプレーンを定義している両方の軸でアクタがスケーリングされます。いずれかの三角形上にカーソルを当てると、関連するハンドルが黄色になります。
+**平行移動ウィジェット** を使用して同時に 2 本の軸で定義されたプレーンに沿ってアクタを動かすことができるように、 2 本の軸に同時に合わせてアクタをスケーリングすることができます。**Scaling Widget** の各ハンドルからは線が延びていて、それぞれが別の軸の線とつながります。3 つのプレーン (XY、XZ、YZ) の 1 つに沿って三角形を作ります。そのうちの 1 つの三角形をドラッグすると、プレーンを定義している両方の軸でアクタがスケーリングされます。いずれかの三角形上にカーソルを当てると、関連するハンドルが黄色になります。
 
 ![Scaling Widget - Plane](LE_Trans_Scale2Axes.png)
 
@@ -168,7 +149,7 @@ Description:レベルに配置されたアクタの位置、回転、スケー�
 [Cube] アイコンをクリックすると、ワールド トランスフォーム モードに戻ります。
 
 
-## スナッピング
+## スナップ
 
 3 種類の各手動トランスフォーム ツールには、その値を一定の増分でスナップする機能があります。レベル内にオブジェクトを正確に配置する場合に便利です。スナッピングの方法は 4 通りあります。
 
@@ -199,7 +180,7 @@ w:300
 
 ### スナッピングの環境設定
 
-Drag Grid、Rotation Grid、Scale Grid の全ての設定は [Editor Preferences (エディタの環境設定)] パネルから行います。スナップ動作もいくつか設定できあす。 
+Drag Grid、Rotation Grid、Scale Grid の全ての設定は [Editor Preferences (エディタの環境設定)] パネルから行います。スナップ動作もいくつか設定できます。 
 
 これらの環境設定は、メインのメニューバーから **[Edit] > [Editor Preferences] > [Viewports]** を選択してから **[Snap(スナップ)]** カテゴリまでスクロールします。
 
@@ -243,11 +224,6 @@ Drag Grid、Rotation Grid、Scale Grid を使用する場合、各ツールの�
 これを繰り返すと、メッシュをきれいに配置することができます。通路、壁、ドアなど、別のメッシュやオブジェクトに対して正確な配置を要する場合に役立つテクニックです。
 
 ![](snappedMeshes.png)(w:500)
-
-
-
-%playlistnav%
-
 
 
 

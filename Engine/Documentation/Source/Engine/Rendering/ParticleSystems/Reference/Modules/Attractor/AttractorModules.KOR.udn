@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability: Public
 Title:Attractor 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:파티클을 공간의 한 점으로 끌어당기는 모듈입니다.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

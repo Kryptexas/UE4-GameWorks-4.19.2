@@ -1,10 +1,10 @@
 Availability: Public
 Title: Linux Game Development
-Crumbs:%ROOT%, Platforms
+Crumbs:
 Description:Developing games for the Linux platform.
 Platform:Linux
 Navigation:platform
-Version: 4.13
+Version: 4.14
 type:landing
 parent:Platforms
 tags:Linux
@@ -16,9 +16,13 @@ you'll want to work your way through the Quick Start Guide before moving onto mo
 
 ## Getting Started
 
-%Platforms/Linux/GettingStarted:topic%
 %Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:topic%
-<!--%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:topic%-->
+%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:topic%
+
+## Advanced Topics
+
+%Platforms/Linux/GettingStarted:topic%
+%Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy:topic%
 
 ## Reference
 

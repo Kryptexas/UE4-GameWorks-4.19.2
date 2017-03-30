@@ -1,7 +1,8 @@
-﻿Availability:NoPublish
+﻿Availability:Licensee
 Title:Downloading Unreal Engine with Perforce
-Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
+Crumbs:
 Description:Instructions for downloading Unreal Engine source code with Perforce.
+Parent:GettingStarted/DownloadingUnrealEngine/Perforce
 
 <!--
 ## Connect to Epic's VPN
@@ -34,9 +35,20 @@ Connecting to Epic perforce requires utilizing the SSL feature, and you must be 
 
 	* **User**: Perforce username provided by Epic Games.
 	* **Password**: Perforce password provided by Epic Games.
-	* **Workspace**: _UE4_Sample_TeamName_ (This is a recommendation. You can choose any workspace name you like as long as it ends with your team name.)
 
 1.	Press OK to connect to the Perforce Server.
+	
+1. In P4V, choose **Connection > New Workspace** to create a new workspace for the engine. Enter the information below and click **OK** to create the workspace:
+
+	* **Workspace name**: _UE4_TeamName_ (This is a recommendation. You can choose any workspace name you like as long as it ends with your team name.)
+	* **Stream**: Click **Browse** and select _//UE4/Release-Latest_ from the list of available streams.
+
+	![](new_workspace.png)
+
+1. In the Depot pane, click the **Filter Depot** button and select **Tree Restricted to Workspace View**.
+
+	![](filter_depot.png)
+
 
 [REGION:note]
 Epic maintains a consistent certificate fingerprint for all broker and proxy SSL endpoints, however Perforce requires a trust per IP address + fingerprint pair. When connecting to an endpoint for the first time, you must explicitly trust that endpoint. The Epic fingerprint is 45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43.
@@ -70,28 +82,22 @@ If you are running a local proxy, you  must connect through a broker instead of 
 
 ## Download Unreal Engine 4
 
-We distribute Unreal Engine 4 to licensees via the _UE4-QA_ branch in the Perforce depot. This contains the entire 
+We distribute Unreal Engine 4 to licensees via the _//UE4/Release-Latest_ stream in the Perforce depot. This contains the entire 
 engine along with several additional projects in the form of example games, samples, and demos. You have the option 
 of downloading everything or picking and choosing only the parts you want or need. In order to get set up as quickly 
 as possible, we recommend you only download the bare minimum to start with and then download other parts on an as-needed 
 basis. This can dramatically reduce idle time spent waiting for the download to finish.
 
 [REGION:warning]
-	There are a large number of files in the _UE4-QA_ branch and the total download size is many gigabytes so the 
+	There are a large number of files in the _//UE4/Release-Latest_ stream and the total download size is many gigabytes so the 
 	download can take quite a while when syncing the entire branch.
 [/REGION]
 
-1.	**Right-click** on the _UE4-QA_ branch and choose **Get Revision**.
+1.	**Right-click** on the _UE4_ stream and choose **Get Latest Revision**.
 
-	![Perforce - Get Revision Option](get_revision_menu.png)
+	![Perforce - Get Latest Revision](get_latest_menu.png)
 
-1.	Select the **Specify revision using** radio button and choose Label from the combobox.
-
-	![Perforce - Specify Label](specify_label.png)
-
-1.	Press the **Browse** button and select either *QA_APPROVED_UE4_BUILD_MINIMUM* (minimum files needed to run the engine) or *QA_APPROVED_UE4_BUILD_CURRENT* (includes sample projects and is much larger) in the dialog that opens. Press **OK**.
-
-1.	Press **Get Revision** to begin downloading Unreal Engine 4. 
+1.	The latest version of all files will be downloaded.
 
 [/EXCERPT:main]
 

@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2590930
 Title:
 Crumbs:
 Description:
 Availability:
 
 [EXCERPT:bHighlightWithBrackets]
-If enabled, selected objects will be highlighted by brackets in viewports rather than the default transparent overlay highlight.
+启用后，选中的对象将由视口中的括号，而非默认的透明覆层进行高亮显示。
 
 ![](selection_brackets.png)
 
@@ -13,7 +13,7 @@ If enabled, selected objects will be highlighted by brackets in viewports rather
 [/EXCERPT:bHighlightWithBrackets]
 
 [EXCERPT:bUseSelectionOutline]
-Controls the intensity of the overlay selection highlight.
+控制覆层选择高亮的强度。
 
 ![](selection_outline.png)
 
@@ -25,7 +25,7 @@ Engine/UI/EditorSettings#viewportlookandfeel
 [/EXCERPT:bUseSelectionOutline]
 
 [EXCERPT:SelectionHighlightIntensity]
-Controls the intensity of the overlay selection highlight.
+控制覆层选择高亮的强度。
 
 ![](selection_highlight.png)
 
@@ -37,7 +37,7 @@ Engine/UI/EditorSettings#viewportlookandfeel
 [/EXCERPT:SelectionHighlightIntensity]
 
 [EXCERPT:bAllowTranslateRotateZWidget]
-If enabled, the combined Translation and Rotate-Z tool is made available. 
+启用后，组合的平移和 Rotate-Z 工具可用。 
 
 ![](transrotation_widget.png)
 [/EXCERPT:bAllowTranslateRotateZWidget]

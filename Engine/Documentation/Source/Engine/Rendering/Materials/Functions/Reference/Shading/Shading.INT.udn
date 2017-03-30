@@ -3,6 +3,7 @@ title:Shading
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions for handling special shading types, such as Fuzzy Shading networks.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

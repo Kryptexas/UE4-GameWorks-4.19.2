@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -6,6 +6,7 @@ Description: 키즈멧에서 사용할 수 있는 Event 노드에 대한 문서�
 version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -288,7 +289,7 @@ _이 액터가 더이상 월드에 존재하지 않게 되면, 이벤트 호출 
 | 항목 | 설명 |
 | -------- | ----------- |
 | [REGION:tablesection]출력 핀[/REGION] ||
-| **End Play Reason** | **enum** `EEndPlayReason` - Event End Play 가 호출된 이유를 나타내는 열거형입니다. |
+| **End Play Reason** | **enum** `EEndPlayReason` - Event End Play 가 호출된 이유를 나타내는 Enum 입니다. |
 [/EXCERPT:EventEnd]
 
 ## Event Destroyed

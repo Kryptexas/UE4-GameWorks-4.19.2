@@ -21,7 +21,7 @@ This page contains a reference listing of properties you will find while working
 | Property |  Description |
 | --- |  :--- |
 |**Mesh** | Defines which Static Mesh will be used. |
-|**Component Glass** |The component class to use for foliage instances. You can make a Blueprint subclass of FoliagedInstancedStaticMeshComponent to implement custom behavior and assign that class here.|
+|**Component Class** |The component class to use for foliage instances. You can make a Blueprint subclass of FoliagedInstancedStaticMeshComponent to implement custom behavior and assign that class here.|
 |**Override Materials** | Material overrides for foliage instances. |
 
 ### Placement
@@ -43,7 +43,7 @@ This page contains a reference listing of properties you will find while working
 
 | Property |  Description |
 | --- |  :--- |
-|**Collision Radius** | The CollisionTadius determines when two instances overlap. When two instances overlap a winner will be picked based on rules and priority.|
+|**Collision Radius** | The CollisionRadius determines when two instances overlap. When two instances overlap a winner will be picked based on rules and priority.|
 |**Shade Radius** | The ShadeRadius determines when two instances overlap. If an instance can grow in the shade this radius is ignored.|
 |**Num Steps** | The number of times we age the species and spread its seeds.|
 |**Initial Seed Density** | Specifies the number of seeds to populate along 10 meters. The number is implicitly squared to cover a 10m x 10m area.|
@@ -55,7 +55,6 @@ This page contains a reference listing of properties you will find while working
 |**Spawns in Shade** | Whether new seeds are spawned exclusively in shade. Occurs in a second pass after all types that do not spawn in shade have been simulated. Only valid when CanGrowInShade is true.|
 |**Max Initial Age** | Allows a new seed to be older than 0 when created. New seed will be randomly assigned an age in the range[0,MaxInitialAge].|
 |**Max Age** | Specifies the oldest a seed can be. After reaching this age the instance will still spread seeds, but will not get any older.|
-|**Overlap Priority** | When two instances overlap we must determine which instance to remove. The instance with a lower OverlapPriority will be removed. In the case where OverlapPriority is the same regular simulation rules apply.|
 |**Overlap Priority** | When two instances overlap we must determine which instance to remove. The instance with a lower OverlapPriority will be removed. In the case where OverlapPriority is the same regular simulation rules apply.|
 |**Procedural Scale** | The scale range of this type when being procedurally generated. Configured with the Scale Curve.|
 |**Scale Curve** | Instance scale factor as a function of normalized age(i.e. Current Age / Max Age). X = 0 corresponds to Age = 0, X = 1 corresponds to Age = Max Age. Y = 0 corresponds to Min Scale, Y = 1 corresponds to Max Scale.|
@@ -70,7 +69,7 @@ This page contains a reference listing of properties you will find while working
 |**Cull Distance** | The distance where instances will begin to fade out if using a PerInstanceFadeAmount Material node. 0 disables. When the entire cluster is beyond this distance, the cluster is completely culled and not rendered at all.|
 |**Cast Shadow** | Controls whether the foliage should cast a shadow or not.|
 |**Affect Dynamic Indirect Lighting** | Controls whether the foliage should inject light into the Light Propagation Volume. This flag is only used if CastShadow is true. |
-|**Affect Distance Field Lighting** | Controls whether the primitive should affect dynamic distance field lighting methods. This flag is only used if CasrShadow is true. |
+|**Affect Distance Field Lighting** | Controls whether the primitive should affect dynamic distance field lighting methods. This flag is only used if CastShadow is true. |
 |**Cast Dynamic Shadow** | Controls whether the foliage should cast shadows in the case of non precomputed shadowing. This flag is only used if CastShadow is true. |
 |**Cast Static Shadow** | Whether the foliage should cast a static shadow from shadow casting lights. This flag is only used if CastShadow is true. |
 |**Light Map Resolution** | Overrides the lightmap resolution defined in the static mesh. |

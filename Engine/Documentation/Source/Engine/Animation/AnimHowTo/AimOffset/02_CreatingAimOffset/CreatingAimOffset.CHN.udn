@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:2 - Creating the Aim Offset
+﻿INTSourceChangelist:3255885
+Availability:Public
+Title:2 - 创建瞄准偏移（Aim Offset）
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:In this step, we take each of our aim poses and create our Aim Offset which will blend between each of the poses. 
-version: 4.14
-skilllevel: Advanced
-type:howto
+Description:在这步中，我们将获取每个动画动作并创建在每个动作之间进行混合的瞄准偏移。 
+version:4.14
+skilllevel:Advanced
+type:how-to
 tags:Animation
-tags:How-To
 tags:Aim Offset
 
 [VAR:Steps]
@@ -28,51 +27,51 @@ tags:Aim Offset
 
 %Steps%
 
-In this step, we take each of our aim poses and create our Aim Offset which will blend between each of the poses. 
+在这步中，我们将获取每个动画动作并创建在每个动作之间进行混合的瞄准偏移。 
 
-## Steps
+## 步骤
 
-1.	In the **Content/AnimStarterPack/UE4_Mannequin/Mesh** folder, **Right-click** on the **UE4_Mannequin** and select **Create Aim Offset**. 
+1.	在 **Content/AnimStarterPack/UE4_Mannequin/Mesh** 文件夹中，**右键点击** **UE4_Mannequin** 并选择 **Create Aim Offset**。 
 
 	![](AimOffset23.png)
 
-	This will create the Aim Offset asset based on this Skeleton. 
+	这将基于此骨架创建瞄准偏移资源。 
 
-1.	In the Aim Offset window (center window), under **Parameters**, enter the parameters shown below. 
+1.	在瞄准偏移窗口（中间的窗口）中，在 **Parameters** 下输入以下所示的参数。 
 
 	![](AimOffset26.png)
 
-	Set the **X Axis Label** to **Yaw** and **Y Axis Label** to **Pitch**, then set both Axis Ranges to **-90 to 90** and click **Apply Parameter Changes**. 
+	将 **X Axis Label** 设为 **Yaw**、**Y Axis Label** 设为 **Pitch**，将两个轴范围设为 **-90 到 90**，然后点击 **Apply Parameter Changes**。 
 
 	[REGION:note]
-	Aim Offsets work very similar to [Blend Spaces](Engine/Animation/Blendspaces) and will allow us to blend between our poses based on our parameters. 
+	瞄准偏移的工作原理与 [混合空间](Engine/Animation/Blendspaces) 十分相似，可基于参数在动作之间进行混合。 
 	[/REGION]
 
-1.	In the **Asset Browser**, search for **Aim**, then drag the **Aim_Center** animation onto the graph in the center position as shown below. 
+1.	在 **Asset Browser** 中搜索 **Aim**，然后如下所示将 **Aim_Center** 动画拖到图表的中央位置上。 
 	
 	![](AimOffset27.png)
 
-1.	Drag the **Aim_Center_Up** to position **1** and **Aim_Center_Down** to position **2** as shown below. 
+1.	如下所示将 **Aim_Center_Up** 拖到位置 **1**、**Aim_Center_Down** 拖到位置 **2**。 
 	
 	![](AimOffset28.png)
 
-	Optionally, you can turn off the tooltip in the grid by unchecking the **Enable Tooltip Display** option. 
+	取消勾选 **Enable Tooltip Display** 选项即可在网格中关闭提示文本。 
 
-1.	Drag the **Aim_Left_Center** to position **1** and **Aim_Right_Center** to position **2** as shown below. 
+1.	如下所示将 **Aim_Left_Center** 拖到位置 **1**、**Aim_Right_Center** 拖到位置 **2**。 
 
 	![](AimOffset29.png)
 
-1.	Add the **Aim_Left_Up** (1), **Aim_Right_Up** (2), **Aim_Left_Down** (3) and **Aim_Right_Down** (4) poses to finish the Aim Offset. 
+1.	添加 **Aim_Left_Up**（1）、**Aim_Right_Up**（2）、**Aim_Left_Down**（3）和 **Aim_Right_Down**（4）动作完成瞄准偏移。 
 
 	![](AimOffset30.png)
 
-1.	In the **Asset Details** panel, set the **Preview Base Pose** option under **Additive Settings** to **Idle_Rifle_Hip**. 
+1.	在 **Asset Details** 面板中的 **Additive Settings** 下将 **Preview Base Pose** 选项设为 **Idle_Rifle_Hip**。 
 
 	![](Add01.png)
 
-	You can preview the blending of poses by moving your mouse within the grid, the viewport mesh will update its pose based on your mouse position. 
+	可在网格中移动鼠标预览动作的混合，视口网格体将基于鼠标位置更新其动作。 
 	
-The Aim Offset is now setup, in the next step we will hook it up for use within our **Animation Blueprint** so that gameplay can drive the blending. 
+瞄准偏移先已设置完成，在下一步中，我们将把使其挂钩，以便在 **动画蓝图** 中使用，使游戏进程驱动混合。 
 
 %Steps%
 

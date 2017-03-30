@@ -281,6 +281,8 @@ gettingstarted
 		or artists to use.
 	[/PARAM]
 	[PARAM:links]
+		* [](Programming "%Programming:description%")
+		* [](Programming/Development/VisualStudioSetup "%Programming/Development/VisualStudioSetup:description%")
 		* [](Programming/QuickStart "%Programming/QuickStart:description%")
 		* [](Programming/Basics "%Programming/Basics:description%")
 		* [Learn About the Game Framework](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")

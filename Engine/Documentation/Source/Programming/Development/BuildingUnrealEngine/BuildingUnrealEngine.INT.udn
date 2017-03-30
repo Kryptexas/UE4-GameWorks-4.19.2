@@ -7,9 +7,12 @@ Related: GettingStarted
 Related: Engine/Content/QuickStart
 Related: Programming/QuickStart
 Related: Engine/QuickStart
-Related: Support/Builds
+Related: Programming/UnrealBuildSystem
 Version: 4.11
 SkillLevel: Advanced
+topic-image:topic_buildingUE.png
+tags:Programming
+tags:Unreal Build System
 
 %Globals:osselect_linux%
 

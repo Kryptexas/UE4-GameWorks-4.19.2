@@ -1,28 +1,26 @@
 Availability:Public
 Title:Configuring Unreal Build System
-Crumbs: %ROOT%, Programming, Programming/UnrealBuildSystem
-Description:Configuring Unreal Build System to control how the engine is built.
+Crumbs:
+Description:Configure Unreal Build System to control how the engine is built.
 Version: 4.14
+tags:Programming
+tags:Unreal Build System
+level:Intermediate
+parent:Programming/UnrealBuildSystem
+topic-image:topic_buildConfigProps.png
+
+[TOC(start:2 end:4)]
 
 UnrealBuildTool reads settings from XML configuration files in the following locations:
 
 	* Engine/Saved/UnrealBuildTool/BuildConfiguration.xml
-	* (User Folder)/AppData/Roaming/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml
-	* (Documents Folder)/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml
+	* *User Folder/AppData*/Roaming/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml
+	* *My Documents*/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml
 
-These files are added to the generated UE4 project under the Config/UnrealBuildTool folder. An XML schema is also generated, giving IntelliSense information when editing in Visual Studio.
+These files are added to the generated UE4 project under the Config/UnrealBuildTool folder.
 
-## Categories
+## UnrealBuildTool Configuration Properties
 
-Settings are grouped into categories, and are represented by nested XML elements. In the example below, the bUseUnityBuild setting in the BuildConfiguration category is set to false.
-
-    <?xml version="1.0" encoding="utf-8" ?>
-    <Configuration xmlns="https://www.unrealengine.com/BuildConfiguration">
-	    <BuildConfiguration>
-			<bUseUnityBuild>false</bUseUnityBuild>
-	    </BuildConfiguration>
-    </Configuration>
-
-The available categories and their settings are listed below.
+These properties will help you set and customize your build configuration(s).
 
 [INCLUDE:Programming/UnrealBuildSystem/Configuration/BuildConfigProperties]

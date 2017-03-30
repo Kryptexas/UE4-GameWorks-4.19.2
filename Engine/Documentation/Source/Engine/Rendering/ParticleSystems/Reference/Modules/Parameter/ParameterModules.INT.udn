@@ -3,6 +3,7 @@ Title:Parameter Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Modules that pass data out of a particle system to other aspects, such as materials.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

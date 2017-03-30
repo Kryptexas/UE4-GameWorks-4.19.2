@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3238697
 Availability:Public
 Title: 코딩 표준
 Crumbs:%ROOT%, Programming, Programming\Development
@@ -467,9 +467,9 @@ auto 를 사용해도 괜찮다고 확실히 알고 있는 경우, 항상 해당
 자동 캡처와 묵시적 반환형은 Sort 호출처럼 시맨틱이 명확해서 명시해 줘도 과잉 친절일 뿐인 사소한 람다에는 사용이 가능합니다.
 
 
-### 강 유형 열거형
+### 강 유형 Enum
 
-Enum 클래스는 항상 일반 열거형이든 UENUM 이든 구식 네임스페이스 열거형을 대체하여 사용해야 합니다. 예:
+Enum 클래스는 항상 일반 Enum 이든 UENUM 이든 구식 네임스페이스 Enum 을 대체하여 사용해야 합니다. 예:
 
 		// Old enum
 		UENUM()
@@ -512,7 +512,7 @@ Enum 클래스는 항상 일반 열거형이든 UENUM 이든 구식 네임스페
 
 		ENUM_CLASS_FLAGS(EFlags)
 
-여기에 한 가지 예외라면, 'truth' 맥락에서 플래그를 사용하는 것인데, 이는 언어상의 한계입니다. 그 대신, 모든 플래그 열거형에 비교용으로 0 설정된 None 열거형을 넣도록 합니다:
+여기에 한 가지 예외라면, 'truth' 맥락에서 플래그를 사용하는 것인데, 이는 언어상의 한계입니다. 그 대신, 모든 플래그 Enum 에 비교용으로 0 설정된 None Enum 을 넣도록 합니다:
 
 		// Old
 		if (Flags & EFlags::Flag1)

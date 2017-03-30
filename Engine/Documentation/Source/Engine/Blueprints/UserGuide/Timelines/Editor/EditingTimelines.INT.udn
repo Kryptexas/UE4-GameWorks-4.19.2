@@ -3,6 +3,7 @@ Title: Editing Timelines
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: This document contains an overview of how to edit Timeline nodes in Blueprints.
 version: 4.9
+tags:Blueprints
 
 **Timelines** can be edited by **Double-clicking** on the Timeline node in the **Graph** tab or on the Timeline in the **My Blueprint** tab. This opens the **Timeline Editor** in a new tab.
 

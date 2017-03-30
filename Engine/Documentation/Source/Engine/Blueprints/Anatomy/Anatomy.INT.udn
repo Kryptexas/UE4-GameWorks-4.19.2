@@ -5,6 +5,7 @@ Description: The User Guide is the go-to source to learn the different parts of 
 version: 4.9
 parent:Engine/Blueprints
 order:3
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -3,6 +3,7 @@ Title: Property Binding
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:A guide to binding properties inside UMG. 
 Version: 4.9
+tags:UMG UI Designer
 
 [TOC(start:2 end:2)]
 

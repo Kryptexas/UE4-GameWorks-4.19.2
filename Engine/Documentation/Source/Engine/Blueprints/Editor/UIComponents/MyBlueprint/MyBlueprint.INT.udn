@@ -3,6 +3,7 @@ Title: My Blueprint
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:Hierarchical breakdown of the nodes within a Blueprint.
 version: 4.9
+tags:Blueprints
 
 [EXCERPT:Intro]
 The **My Blueprint** tab displays a tree list of the graphs, scripts, functions, macros, etc. contained within the Blueprint. This is essentially an outline of the Blueprint that lets you easily view existing elements of the Blueprint, as well as create new ones.

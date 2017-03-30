@@ -1,30 +1,44 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:Blueprint & Render Targets Overview
-description:Taking a high level look at how to use Blueprints and Render Targets togther in UE4.
-crumbs:
+﻿INTSourceChangelist:3264165
+availability:Public
+title:ブループリントとレンダリング ターゲットの概要
+description:UE4 でブループリントとレンダー ターゲットを一緒に使用する方法の概要
+crumbs:%ROOT%, Engine, Engine/Rendering, Engine/Rendering/RenderTargets, Engine/Rendering/RenderTargets/BlueprintRenderTargets
 version:4.13
-Type:topic
+Type:overview
 SkillLevel:Intermediate
-parent:Engine
-order:2
+parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
+order:1
 Navigation:topic
+tags:Render Targets
+tags:Blueprints
+topic-image:Engine/Rendering/RenderTargets/Render_Targets_Overview.png
 
 ![](BP_RT_Overview.png)
 
-## Overview
-Using Blueprints to interact with render targets opens up a an entirely new way to create and use assets inside Unreal Engine 4 (UE4).  From creating fluid like surfaces to creating Textures that can be used with visual effects and Materials there is almost no limit to the amount of creative freedom that this will offer your UE4 projects. In the following document we will go over some of the things that you need to be aware of when using Blueprints and render targets.  
+## 概要
+ブループリントとレンダー ターゲットを一緒に使うと、アンリアル エンジン (UE4) 内のアセットの作成および使用を全く新しい方法で行うことができます。サーフェスなどの流体の作成から、ビジュアル エフェクトとマテリアルと一緒に使うことができるテクスチャの作成まで、ブループリントとレンダー ターゲットは多用途です。次のセクションでは、ブループリントとレンダー ターゲットの使用時に注意することを説明します。
 
-## Know Limitations
-When using Blueprints and render targets there are few limitations and restrictions that you need to be aware of in order to get the most out of this tool. In the following section we will cover what these limitations are and what can be done to accommodate them in your workflow.
+## 可能な使用方法 
+ブループリントとレンダー ターゲットを使って、様々なレンダリング エフェクトを作成するｋとおができます。以下の表を見ると、ブループリントとレンダー ターゲットを使って作成できるアイテムの種類が分かります。ただし、これらはブループリントとレンダー ターゲットで作成できる内容の提案に過ぎないことをご了承ください。 
 
-* You cannot draw to a render target that is being sampled as a Texture by the Material that is input inot the Material input. If you want to accomplish this you will need to either use alpha blending to modify a render target in-place, or ping-pong between two different render targets.
+* ハイトマップ ペインターの作成
+* 流体サーフェス シミュレーションの作成
+* ランタイム ペイント プログラムの作成
+* 一定のオブジェクトの通過時にサーフェスを変形
 
-* Only the **Emissive Color** and **Opacity** outputs of the Material are valid when drawing to a render target. 
 
-* Lighting is not supported when using render targets and Material Expression nodes like **World Position** may return unexpected values.
+## 周知の制限事項
+ブループリントとレンダー ターゲットを使用する際には、 
+ツールを最大限に活かすために覚えておくべき制限事項があります。次のセクションでは、これらの制限事項、および 
+ワークフローの中での対処方法について説明します。
 
-* Emissive Color is clamped to be positive by default, but you can output negative values by enabling the material property **AllowNegativeEmissiveColor**.
+* 指定したマテリアルによって Texture としてサンプリングされたレンダー ターゲットは描画できません。アルファ ブレンディングを使用してレンダー ターゲットをインプレースで修正する、あるいは異なる 2 つのレンダー ターゲット間を行き来します。
+
+* レンダー ターゲットへ描画する際マテリアルの **Emissive Color** 出力と **Opacity** 出力のみ有効です。 
+
+* ライティングはサポートされず、**World Position** のようなノードは期待しない値になる場合があります。
+
+* Emissive Color はデフォルトで正の値にクランプされていますが、マテリアル プロパティ **AllowNegativeEmissiveColor** を有効にすれば負の値を出力することができます。
 
 	![](Allow_Neg_Emissive_Color.png)
 

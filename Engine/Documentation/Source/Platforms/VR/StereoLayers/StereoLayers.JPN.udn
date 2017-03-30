@@ -1,4 +1,4 @@
-﻿INTSourceChangeList:3227669
+﻿INTSourceChangelist:3238275
 Availability:Docs
 Title:VR ステレオ レイヤー
 Crumbs:%ROOT%, Platforms, Platforms/VR
@@ -8,6 +8,11 @@ Version:4.14
 parent:Platforms/VR
 type:overview
 Skilllevel:Intermediate
+tags:VR
+tags:Oculus Rift
+tags:GearVR
+tags:SteamVR
+tags:PSVR
 
 [TOC(start:2)]
 
@@ -25,9 +30,9 @@ VR Stereo Layers 以下の VR と使用した場合のみ機能します。
 
 ## ステレオ レイヤーの設定
 
-プロジェクトでこの機能を使用するには、以下の手順を行います。
+**VR Pawn** でこの機能を使用するには、以下の手順を行います。
 
-1. Stereo Layers を使いたいポーンを開いて **[Viewport]** パネルを開きます。
+1. Stereo Layers を使いたい **ポーン** を開いて **[Viewport]** パネルを開きます。
 
     [REGION:lightbox]
     [![](VRSL_Pawn_Setup_01.png)(w:667)](VRSL_Pawn_Setup_01.png)
@@ -37,7 +42,7 @@ VR Stereo Layers 以下の VR と使用した場合のみ機能します。
     クリックしてフルサイズで表示
     [/REGION]
 
-1. **[Add Components (コンポーネントを追加)]** ボタンをクリックして、表示されたドロップダウン リストの中で **Stereo Layer** コンポーネントを探します。クリックしてポーンに追加します。
+1. **[Add Components (コンポーネントを追加)]** ボタンをクリックして、表示されたドロップダウン リストの中で **Stereo Layer** コンポーネントを探します。クリックして **ポーン** に追加します。
 
     [REGION:lightbox]
     [![](VRSL_Pawn_Setup_02.png)(w:667)](VRSL_Pawn_Setup_02.png)
@@ -47,17 +52,11 @@ VR Stereo Layers 以下の VR と使用した場合のみ機能します。
     クリックしてフルサイズで表示
     [/REGION]
 
-1. Stereo Layer コンポーネントをポーンのカメラ上にドラッグして、カメラの子アクタを作成します。
+1. **Stereo Layer** コンポーネントを **ポーン** のカメラ上にドラッグして、カメラの子アクタを作成します。
+    
+    ![](VRSL_Pawn_Setup_03.png)(convert:false)
 
-    [REGION:lightbox]
-    [![](VRSL_Pawn_Setup_03.png)](VRSL_Pawn_Setup_03.png)
-    [/REGION]
-
-    [REGION:caption]
-    クリックしてフルサイズで表示
-    [/REGION]
-
-1. コンポーネント リストから Stereo Layer コンポーネントを選択し、**[Details (詳細)]** パネルの **[Transform]** セクションで、**[Location]** の **[X]** 値を **「100」** にして VR で見やすいようにします。
+1. **コンポーネント リスト** から Stereo Layer コンポーネントを選択し、**[Details (詳細)]** パネルの **[Transform]** セクションで、**[Location]** の **[X]** 値を **「100」** にして VR で見やすいようにします。
 
     [REGION:lightbox]
     [![](VRSL_Pawn_Setup_04.png)(w:667)](VRSL_Pawn_Setup_04.png)
@@ -77,10 +76,10 @@ VR Stereo Layers 以下の VR と使用した場合のみ機能します。
     クリックしてフルサイズで表示
     [/REGION]
 
-1. **コンテンツ ブラウザ** で、表示したいテクスチャをクリックして選択します。Pawn ブループリントの [Stereo Layers] セクションに戻って、**Texture** 入力の横の **白い三角** を押して Stereo Layer が表示するテクスチャの使用を指定します。
+1. **コンテンツ ブラウザ** で、表示したいテクスチャをクリックして選択します。**Pawn** ブループリントの [Stereo Layers] セクションに戻って、**Texture** 入力の横の **白い三角** を押して Stereo Layer が表示するテクスチャの使用を指定します。
 
     [REGION:lightbox]
-    [![](VRSL_Pawn_Setup_06.png)(w:522)](VRSL_Pawn_Setup_06.png)
+    [![](VRSL_Pawn_Setup_06.png)(w:667)](VRSL_Pawn_Setup_06.png)
     [/REGION]
 
     [REGION:caption]
@@ -146,16 +145,3 @@ Stereo Layer にはレンダリング方法を設定するプロパティが数�
 |Cylinder Radius|レンダリングされたステレオ レイヤー シリンダーの半径です。|
 |Cylinder Overly Arc|ステレオ レイヤー シリンダーの円弧の角度です。|
 |Cylinder Height|ステレオ レイヤー シリンダーの高さです。|
-
-
-
-
-
-
-
-
-
-
-
-
-

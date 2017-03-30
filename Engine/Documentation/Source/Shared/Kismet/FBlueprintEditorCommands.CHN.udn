@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2574069
 Availability:NoPublish
 Title:FBlueprintEditorCommands RTTs
 Crumbs:
@@ -6,9 +6,9 @@ Crumbs:
 [EXCERPT:CompileBlueprint]
 
 
-This will compile the current Blueprint (default keyboard short cut of F7). Any errors or warnings will be flagged in the "Compiler Results" pane, and also any applicable node will have a red warning placed on it.
+此操作将编译当前蓝图（默认键盘快捷键为 F7。）错误或警告将显示在“Compiler Results”窗格中；可应用的节点上方拥有一个红色警告。
 
-Performs the same function as the Compile button on the tool bar:
+执行工具栏上 Compile 按钮的相同功能：
 
 ![](k2_compileButton.png)
 
@@ -18,9 +18,9 @@ Performs the same function as the Compile button on the tool bar:
 [EXCERPT:RefreshAllNodes]
 
 
-If you are making edits to other Blueprints, and trying to interact or call functions on external Blueprints, the input and output pins for these can change in number and type. This will refresh all the nodes in the current Blueprint, accounting for external changes.
+如对其他蓝图进行编辑，并在外部蓝图上尝试进行互动或调用函数。这些蓝图输入和输出引脚的数量和类型都可能变化。这会刷新当前蓝图中的所有节点，构成了外部变化。
 
-You can do this to an individual node in the graph by right-clicking it and selecting "Refresh Nodes."
+对其单击右键并选择“Refresh Nodes”即可在图表中的个体节点上执行此操作。
 
 [/EXCERPT:RefreshAllNodes]
 
@@ -28,9 +28,9 @@ You can do this to an individual node in the graph by right-clicking it and sele
 [EXCERPT:DeleteUnusedVariables]
 
 
-This will go through the Blueprint and find any variable that is not used and remove it.
+此操作将通过蓝图，找到不使用的变量并将其移除。
 
-This process can be undone.
+此过程可被撤销。
 
 [/EXCERPT:DeleteUnusedVariables]
 
@@ -38,9 +38,9 @@ This process can be undone.
 [EXCERPT:FindInBlueprints]
 
 
-This will open the "Find Results" pane and set it to search all Blueprints in the project for the given search term.
+此操作将打开“Find Results”面板，并设置其在项目中的全部蓝图里以给定条件进行搜索。
 
-You can also search all Blueprints by opening the "Find Results" tab (Window -> Find Results) and disabling "Find in Current Blueprint Only."
+打开“Find Results”标签（窗口 -> Find Results）并禁用“Find in Current Blueprint Only”也可搜索全部蓝图。
 
 ![](k2_findAll.png)
 
@@ -68,9 +68,9 @@ You can also search all Blueprints by opening the "Find Results" tab (Window -> 
 [EXCERPT:FindInBlueprint]
 
 
-This will open the "Find Results" pane and set it to search the current Blueprint for the given search term.
+此操作将打开“Find Results”面板，并设置其在当前蓝图中以给定条件进行搜索。
 
-You can also search the current Blueprint by opening the "Find Results" tab (Window -> Find Results) and enabling "Find in Current Blueprint Only."
+打开“Find Results”标签（窗口 -> Find Results）并启用“Find in Current Blueprint Only”也可搜索当前蓝图。
 
 ![](k2_findCurrent.png)
 
@@ -80,7 +80,7 @@ You can also search the current Blueprint by opening the "Find Results" tab (Win
 [EXCERPT:ReparentBlueprint]
 
 
-This will pop up a dialog enabling you to change the class that the Blueprint inherits from. Really useful if you realize you needed a Character Movement Component, but you started your Blueprint from Actor (that does not contain that component). In this example, you can use this tool to change the parent class of your Blueprint from Actor to Character or Pawn.
+此操作将弹出一个对话，可用于变更蓝图所继承的类。如果需要一个 Character Movement 组件，但却从 Actor（不包含该组件）开始蓝图时，此操作十分实用。在此例中，可使用此工具将蓝图的父类从 Actor 改为 Character 或 Pawn。
 
 ![](k2_reparent.png)
 
@@ -132,7 +132,7 @@ This will pop up a dialog enabling you to change the class that the Blueprint in
 [EXCERPT:ShowFloor]
 
 
-This will enable or disable the floor in the Viewport of the Component view of the Blueprint Editor.
+此操作将在蓝图编辑器 Component 视图的视口中启用或禁用地面。
 
 ![](k2_showFloor.png)
 
@@ -144,7 +144,7 @@ This will enable or disable the floor in the Viewport of the Component view of t
 [EXCERPT:ShowGrid]
 
 
-This will enable or disable the grid in the Viewport of the Component view of the Blueprint Editor.
+此操作将在蓝图编辑器 Component 视图的视口中启用或禁用网格。
 
 ![](k2_showGrid.png)
 
@@ -158,9 +158,9 @@ This will enable or disable the grid in the Viewport of the Component view of th
 
 
 
-This will enable all disabled breakpoints within the current Blueprint.
+此操作将启用当前蓝图中全部被禁用的断点。
 
-Breakpoints can be set on any node in the graph that gets executed, such as "Function Calls" and "Flow Control" operations, by right-clicking on the node and choosing "Add breakpoint." When a breakpoint has been set on a node, a graphic is displayed in the upper-left corner of the node.
+断点可在图表中被执行的节点上设置，如“函数调用”和“流程控制”操作，操作方法是在节点上点击右键并选择“Add breakpoint”。当断点已在节点上设置后，节点左上角将显示一个图形。
 
 ![](k2_breakpoint.png)
 
@@ -172,9 +172,9 @@ Breakpoints can be set on any node in the graph that gets executed, such as "Fun
 [EXCERPT:DisableAllBreakpoints]
 
 
-This will disable all breakpoints in the current Blueprint, but will keep their locations for future use.
+此操作将禁用当前蓝图中的所有断点，但保留其位置以便之后使用。
 
-Individual breakpoints can be disabled by right-clicking on the node that has a breakpoint and choosing "Disable breakpoint."
+在带有断点的节点上点击右键并选择“Disable breakpoint”即可禁用单个断点。
 
 ![](k2_breakpoint_disabled.png)
 
@@ -188,11 +188,11 @@ Engine/Blueprints/UserGuide/Debugging
 [EXCERPT:ClearAllBreakpoints]
 
 
-This will delete all breakpoints in the current Blueprint.
+此操作将删除当前蓝图中的全部断点。
 
-This cannot be undone.
+此操作无法撤销。
 
-Individual breakpoints can be removed by right-clicking the node with a breakpoint and choosing "Remove breakpoint."
+在带有断点的节点上点击右键并选择“Remove breakpoint”即可移除个体断点。
 
 [/EXCERPT:ClearAllBreakpoints]
 
@@ -200,13 +200,13 @@ Individual breakpoints can be removed by right-clicking the node with a breakpoi
 [EXCERPT:ClearAllWatches]
 
 
-This will delete all watches in the current Blueprint.
+此操作将删除当前蓝图中的全部观察。
 
-"Watches" are set on non-executing pins, such as the pins on an addition node:
+“观察”在非执行引脚上进行设置，如加法节点上的引脚。
 
 ![](k2_watch.png)
 
-They display the value of the pin while the Blueprint is running, say in Play in Editor or Simulate in Editor.
+它们显示蓝图运行时引脚的值，在 Play in Editor 或 Simulate in Editor 中说明。
 
 [/EXCERPT:ClearAllWatches]
 
@@ -214,9 +214,9 @@ They display the value of the pin while the Blueprint is running, say in Play in
 [EXCERPT:AddNewVariable]
 
 
-Creates a new variable when clicked. The properties of that variable immediately appear in the Details tab. There, you can change the name, type, and other properties.
+点击时将新建一个变量。该变量的属性将立即出现在 Details 标签中。可在此处修改命名、类型和其他属性。
 
-By default, the data type of the variable will be the same data type as the last variable created, or if no other variable had been created during the currently running instance of Unreal Editor 4, it will default to the type of Bool.
+变量的数据类型默认与上一个创建的变量相同。如果当前运行的虚幻编辑器 4 实例中没有其他变量被创建，其将默认为布尔类型。
 
 [/EXCERPT:AddNewVariable]
 
@@ -224,7 +224,7 @@ By default, the data type of the variable will be the same data type as the last
 [EXCERPT:AddNewFunction]
 
 
-Creates a new function, then immediately puts focus on the Name field of the Details tab so that it can be named. A new graph view will also be opened where you can define the node network for the function.
+新建一个函数，然后立即关注 Details 标签的 Name 域，使其可被命名。一个新图表视图也将被打开，可在此定义函数的节点网络。
 
 [/EXCERPT:AddNewFunction]
 
@@ -232,7 +232,7 @@ Creates a new function, then immediately puts focus on the Name field of the Det
 [EXCERPT:AddNewMacroDeclaration]
 
 
-Creates a new macro, then immediately puts focus on the Name field of the Details tab so that it can be named. A new graph view will also be opened where you can define the node network for the macro.
+新建一个宏，然后立即关注 Details 标签的 Name 域，使其可被命名。一个新图表视图也将被打开，可在此定义宏的节点网络。
 
 [/EXCERPT:AddNewMacroDeclaration]
 
@@ -240,7 +240,7 @@ Creates a new macro, then immediately puts focus on the Name field of the Detail
 [EXCERPT:AddNewEventGraph]
 
 
-Creates a new Event Graph, then immediately puts focus on the Name field of the Details tab so that it can be named. The new graph appears and is ready to have a node network defined within it.
+新建一个事件图表，然后立即关注 Details 标签的 Name 域，使其可被命名。新图表出现，可在其中定义节点网络。
 
 [/EXCERPT:AddNewEventGraph]
 
@@ -248,7 +248,7 @@ Creates a new Event Graph, then immediately puts focus on the Name field of the 
 [EXCERPT:AddNewDelegate]
 
 
-Creates a new event dispatcher, then immediately puts focus on the Name field of the Details tab so that it can be named.
+新建一个事件调度器，然后立即关注 Details 标签的 Name 域，使其可被命名。
 
 [/EXCERPT:AddNewDelegate]
 

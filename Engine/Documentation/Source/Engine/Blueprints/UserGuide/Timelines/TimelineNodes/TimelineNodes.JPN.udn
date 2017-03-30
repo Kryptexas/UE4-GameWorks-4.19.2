@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2692110
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:Timeline ノード
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description:ブループリント タイムラインの特定の機能処理に使用するノード
 version:4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -112,7 +113,7 @@ version:4.9
 
 ## Is Reversing
 
-**Is Reversing** ノードは、入力 Timeline が現在リバース中の場合 (つまり逆再生中) は True、そうでない場合は False の Boolean 値を返します。
+**Is Reversing** ノードは、入力 Timeline が現在リバース中の場合 (つまり逆再生中) は true、そうでない場合は false の Boolean 値を返します。
 
 ![](Is_Reversing.png)
 
@@ -172,7 +173,7 @@ version:4.9
 
 ![](Set_Looping.png)
 
-**Set Looping** ノードは、入力 Timeline と boolean 値を受け取ります。このノードは、 Timeline の Looping プロパティを Boolean 値に設定します。
+**Set Looping** ノードは、入力 Timeline と boolean 値を受け取ります。このノードは、Timeline の Looping プロパティを Boolean 値に設定します。
 
 | **名前** | **種類** | **説明** |
 | --- | --- |---|
@@ -184,7 +185,7 @@ version:4.9
 
 ![](Set_New_Time.png)
 
-**Set New Time** ノードは、入力 Timeline と小数浮動値を受け取ります。このノードは、 Timeline の New Time プロパティを小数浮動値に設定します。
+**Set New Time** ノードは、入力 Timeline と小数浮動値を受け取ります。このノードは、Timeline の New Time プロパティを小数浮動値に設定します。
 
 | **名前** | **種類** | **説明** |
 | --- | --- |---|
@@ -196,7 +197,7 @@ version:4.9
 
 ![](Set_Play_Rate.png)
 
-**Set New Time** ノードは、入力 Timeline と小数浮動値を受け取ります。このノードは、 Timeline の Play Rate プロパティを小数浮動値に設定します。
+**Set Play Rate** ノードは、入力 Timeline と小数浮動値を受け取ります。このノードは、Timeline の Play Rate プロパティを小数浮動値に設定します。
 
 | **名前** | **種類** | **説明** |
 | --- | --- |---|
@@ -208,7 +209,7 @@ version:4.9
 
 ![](Set_Playback_Position.png)
 
-**Set Playback Position** ノードは、入力 Timeline 、小数浮動値、そして Boolean 値を受け取ります。このノードは、 Timeline の Playback Position プロパティを小数浮動値へジャンプさせます。Timeline 内に 1 つでもイベントトラックがある場合、 Boolean 値を使用してイベント発行の有無を判断します。
+**Set Playback Position** ノードは、入力 Timeline、小数浮動値、そして Boolean 値を受け取ります。このノードは、Timeline の Playback Position プロパティを小数浮動値へジャンプさせます。Timeline 内に 1 つでもイベントトラックがある場合、Boolean 値を使用してイベント発行の有無を判断します。
 
 | **名前** | **種類** | **説明** |
 | --- | --- |---|
@@ -221,7 +222,7 @@ version:4.9
 
 ![](Set_Timeline_Length.png)
 
-**Set Timeline Length** ノードは、 Timeline の合計再生時間の長さを設定します。
+**Set Timeline Length** ノードは、Timeline の合計再生時間の長さを設定します。
 
 | **名前** | **種類** | **説明** |
 | --- | --- |---|

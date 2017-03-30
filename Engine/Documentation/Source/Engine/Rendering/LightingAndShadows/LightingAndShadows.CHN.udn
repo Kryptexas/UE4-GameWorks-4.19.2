@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2683483
+﻿INTSourceChangelist:3275207
 Availability:Public
 Title: 照亮环境
 Crumbs: %ROOT%, Engine
@@ -6,6 +6,9 @@ Description:使用光照和阴影几何体、使用全局光照，并设置反�
 Navigation:topic
 Related:Engine/Rendering/ParticleSystems/ParticleLights
 Version: 4.9
+parent:Engine/Rendering
+order:3
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -65,6 +68,7 @@ Version: 4.9
 %Engine/Rendering/LightingAndShadows/IndirectLightingCache:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:Topic%
+<!--%Engine/Rendering/LightingAndShadows/PrecomputedLightingScenarios:Topic%-->
 [/REGION]
 
 
@@ -76,6 +80,7 @@ Version: 4.9
 %Engine/Rendering/LightingAndShadows/LightPropagationVolumes:Topic%
 %Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:Topic%
 %Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:Topic%
+%Engine/Rendering/LightingAndShadows/ContactShadows:Topic%
 [/REGION]
 
 ## 综述

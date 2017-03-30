@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3275208
 Availability:Public
 Title:Android ゲームの開発
 Crumbs:%ROOT%, Platforms
@@ -11,46 +11,16 @@ tags:Mobile
 parent:Platforms/Mobile
 type:landing
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		はじめよう
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(output:"topiccompact" parent:"Platforms/Android" type:"quick start")]
-	[/PARAM]
-[/OBJECT]
+## はじめよう
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		アンドロイドの操作方法
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/Android")]
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topiccompact" parent:"Platforms/Android" type:"quick start")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/platform_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Android ゲームの開発全般
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Android")]
-		[DIR(end:"1" output:"listbutton" type:"reference" parent:"Platforms/Android")]
-	[/PARAM]
-[/OBJECT]
+## アンドロイドの操作方法
+
+[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/Android")]
+
+## Android ゲームの開発全般
+
+[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Android")]
+[DIR(end:"1" output:"listbutton" type:"reference" parent:"Platforms/Android")]
 

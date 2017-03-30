@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3102822
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:Widget Interaction コンポーネント
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -7,6 +7,7 @@ Version:4.13
 Related:Engine/UMG/UserGuide
 Related:Engine/Blueprints
 Related:Engine/Components/Widget
+tags:UMG UI Designer
 
 [REGION:warning]
 この機能は実験的なものであり、一部の機能は期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。 
@@ -37,9 +38,9 @@ Widget Interaction コンポーネントは、[Raycast](Gameplay/HowTo/UseRaycas
 ## Widget Interaction のプロパティ リファレンス
 
 Widget Interaction コンポーネントを追加したら **[Details (詳細)]** パネルからいくつかのプロパティを変更して、どのように機能するかを定義することができます。 
-**Transform**、**Rendering**、または **Sockets** のようなコンポーネントの共通プロパティ以外に、以下のプロパティは特に Widget Interaction コンポーネントで使用されます。 
+**Transform**、**Rendering**、または **Sockets** のようなコンポーネントの共通プロパティ以外に、以下のプロパティは特に Widget Interaction コンポーネントで使用されるものです。 
 
-| オプション| 説明 |
+| オプション | 説明 |
 | --- | ----------- |
 | [REGION:tablesection]**インタラクション**[/REGION] ||
 | **Virtual User Index** | Virtual User Index を表します。Widget Interaction コンポーネントは、この Virtual User Index を使って機能します。Virtual User Indexは、フォーカスのステートを個別にキャプチャーし、処理します。各 Virtual User は、異なる Index で表され、別個のキャプチャーとフォーカスのステートを維持するようにします。各 Widget Interaction コンポーネントがオンラインになると、割り当てられた Virtual User Index のスレートに通知し、実際のスレート ユーザーであるかのようにイベントを送ることができます。 |
@@ -64,7 +65,7 @@ Widget Interaction コンポーネントによって登録される最後のヒ�
 | ノード | 説明 |
 | --- | ----------- |
 | **Get Hovered Widget Component** | 現在、カーソルが乗っている Widget コンポーネントを取得します。 |
-| **Get Last Hit Result** | コンポーネントが生成した最終ヒット結果を取得します。設定されている場合、カスタム ヒット結果を戻します。
+| **Get Last Hit Result** | コンポーネントが生成した最終ヒット結果を取得します。設定されている場合、カスタム ヒット結果を戻します。 |
 | **Is Over Focusable Widget** | ヒット結果にあるウィジェットがフォーカス可能であれば、 true を戻します。`SupportsKeyboardFocus()` に対して true を戻す Slate ウィジェットです。 |
 | **Is Over Hit Test Visible Widget** | ヒット結果にあるウィジェットがヒット テストを可視にする可視設定であれば、 true を戻します。`GetVisibility().IsHitTestVisible()` に対して true を戻す Slate ウィジェットです。 |
 | **Is Over Interactable Widget** | ヒット結果にあるウィジェットがインタラクティブであれば、 true を戻します。`IsInteractble()` に対して true を戻す Slate ウィジェットです。 |

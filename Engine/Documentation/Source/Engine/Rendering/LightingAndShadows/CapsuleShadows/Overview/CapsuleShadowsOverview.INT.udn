@@ -1,208 +1,174 @@
 ﻿Availability: Docs
 Title: Capsule Shadows Overview
-Crumbs: %ROOT%, Engine, 
-Description: Capsule Shadows Overview
-Version: 4.13
-
-
-[REGION:center]
-![](image_9.png)(w:900)
-[/REGION]
+Crumbs:  
+Description: An overview of Capsules Shadows used in Unreal Engine 4.
+Version: 4.15
+Type: overview
+Parent: Engine/Rendering/LightingAndShadows/CapsuleShadows
+topic-image:cs_overview_topic.png
+tags: Lighting
 
 [TOC(start:2 end:3)]
 
+In Unreal Engine 4 (UE4), we now support soft shadowing for characters in lit areas with **Capsule Shadows** which is a capsule representation of your character with a Physics Asset. 
+This shadowing method can make a character feel grounded in these indirectly lit areas and have soft shadows in directly lit areas, which is not possible when using traditional
+shadow mapping techniques.
 
-**Capsule Shadows** are used to generate soft shadows in lit areas by using a capsule representation of a character with a Physics Asset.
-This feature can make a character feel grounded in both direct and indirect lighting by producing consistent soft shadows.
 
+## Character Capsule Representation
 
-## How do they work?
+A [Physics Asset](Engine/Physics/PhAT/) is used to create an appoximate representation of the character to support very soft shadowing. Since the capsules are attached to the bones of the character, this 
+allows for the shadow to move and cast accurately within the scene. 
 
-Capsule Shadows start by using a unique Physics Asset that can be assigned to any Skeletal Mesh as a **Shadow Physics Asset**. This asset represents an approximation of the Skeletal Mesh 
-with respect to the shadows it should cast. Once this information is known, the [Indirect Lighting Samples](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) that are 
-generated after a light build can be used to cast a cone towards the direction of the light source. As the character nears this point, the cone is checked against the capsules to 
-see if there are any overlaps. If there are, then all the capsule shadows can be accumulated to build soft shadows for the character.
-
-[REGION:imagetable]
-| ![](CS_Without.png)(w:370) | ![](CS_With.png)(w:370) |
-| ---- | ---- |
-| Without Capsule Shadows | With Capsule Shadows |
-[/REGION]
-
-[REGION:left]
-[INCLUDE:Engine/Rendering/LightingAndShadows/CapsuleShadows\Overview#CapsuleShadowSlider]
-[/REGION]
-
-<!---
-[EXCERPT:CapsuleShadowSlider]
-[OBJECT:SliderSequence]
-	[PARAMLITERAL:max]
-	5
-	[/PARAMLITERAL]
-	[PARAMLITERAL:ext]
-	jpg
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	FS
-	[/PARAMLITERAL]
-	[PARAM:caption]
-	**Drag the slider to see what it takes to render the Capsule Shadows for a character.**
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Character with Capsule Representation](CapsuleShadowPA.png)(w:500)
 	[/PARAM]
-	[PARAM:image_list]
-	![](CS_1.png)(w:750)
-	![](CS_2.png)(w:750)
-	![](CS_3.png)(w:750)
-	![](CS_4.png)(w:750)
-	![](CS_6.png)(w:750)
+	[PARAM:after]
+	![Capsule Representation Only](CapsuleShadowPA1.png)(w:500)
 	[/PARAM]
 [/OBJECT]
-[/EXCERPT:CapsuleShadowSlider]
--->
-
-The Physics asset that is created for Capsule Shadows and assigned to the Skeletal Mesh is used to represent the character in these indirectly-lit areas. Note that this is a mock-up representation of the capsules for the character. 
-
-1. Once lighting has been built for the scene, the character will have no shadowing in areas that have indirect lighting. 
-2. The Physics asset that is created for Capsule Shadows and assigned to the Skeletal Mesh is used to represent the character in these indirectly-lit areas. Note that this is a mock-up representation of the capsules for the character.
-3. With lighting built, the precomputed [volume lighting samples](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) are placed so that Skeletal Actors can blend in with the indirectly-lit environment by referencing the 
-lighting information stored in the placed samples.
-4. These light samples are used to draw a cone towards the capsule representaiton of the character based on the directional intensity of the light. The cone can be used to mask out shadowed areas to get a soft shadow representation for 
-the character.  
-5. The intesnity and directionality of the capsule shadow representation can be computed to ground the character in the environment giving us the final render with soft shadowing for movable actors in indirectly-lit areas. 
 
 [REGION:note]
-Capsule Shadows can also work in Dynamic lights, when **Capsule Direct Shadow** is enabled, to produce a soft shadow in directly-lit areas. See the [Capsule Direct Shadowing](Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview#CapsulesforDirectShadowing) section of this page.
+The shadows on the ground are not representative of Capsule Shadows.
 [/REGION]
 
-#### Capsule Representation of Character
 
-A Physics Asset is used to create a accurate representation of the character. Since the capsules are attached to the bones of the character this allows for the shadows to move with the character.
+## Usage
 
-For steps to setup your Phsyics Asset see the [How to Create a Shadow Phsyics Assets](Engine/Rendering/LightingAndShadows/CapsuleShadows/HowTo/CreateShadowAsset) page.
+![](ShadowPhysicsAsset.png)(w:400)
 
-For tips on setting up your Shadow Physics Asset see the [Best Practices](Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices) page for Capsule Shadows.
-
-[REGION:lightbox]
-[![](PA_WithoutArms.png)(w:500)](PA_withoutArms.png)
-[/REGION]
-
-[REGION:caption]
-_Capsule representation of a Skeletal Mesh character_
-[/REGION]
-
-[REGION:note]
-The shadows on the ground are not representative Capsule Shadows. 
-[/REGION]
+Open your Skeletal Mesh, and in the **Asset Details** panel, use the **Shadow Physics Asset** selection to assign your Physics Asset that will be used for Capsule Shadows.
 
 
 ## Capsule Shadow Settings
 
-You can enable Capsule Shadows for each Skeletal Mesh in your level by enabling the option for **Capsule Direct Shadows** and/or **Capsule Indirect Shadows** in its **Detail's** panel.
-
-![](EnableCapsuleShadows.png)(w:350)
-
-
-#### Capsules Direct Shadowing
-
-**Capsule Direct Shadows** enables soft shadowing for your character when in areas that are directly lit by any **Movable** or **Stationary** light source. 
-
-[REGION:lightbox]
-[![](DirectCapsuleShadows.png)(w:500)](DirectCapsuleShadows.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
+![](CapsuleShadowSettings.png)(w:400)
+[REGION:simpletable]
+| Property | Description |
+| -------- | ----------- |
+| **Capsule Direct Shadow** | This will enable soft shadowing from direct (movable) lights when the capsule representation is assigned to the Skeletal Mesh's Shadow Physics Asset slot. |
+| **Capsule Indirect Shadow** | This will enable soft shadowing from precomputed lighting (lightmaps and skylight) when the capsule representation is assigned to the Skeletal Mesh's Shadow Physics Asset slot. |
+| **Capsule Indirect Shadow Min Visibility** | This will allow artists to control how dark the capsule shadow, in indirectly lit areas, can be. |
 [/REGION]
 
-##### Light Source Angle
 
-For directly lit Capsule Shadows you can adjust the **Light Source Angle** of the Directional Light to soften the shadows. 
+### Capsule Indirect Shadows
+
+![](CapsuleShadowsSetting2.png)(w:400)
+
+When you enable **Capsule Indirect Shadow**, the capsule representation of the character will be used to cast a directional soft shadow based on the [volume lighting samples](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/IndirectLightingCache/)
+placed and computed by Lightmass during a lighting build. Capsule Indirect Shadows enables your characters to feel grounded in these areas where traditional shadow mapping will not work very well.
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Light Source Angle: 1.0 (Default)](DirectLightSourceAngle1.png)(w:500)
+	![Capsule Indirect Shadow Enabled](CSEnabled.png)(w:500)
 	[/PARAM]
 	[PARAM:after]
-	![Light Source Angle: 2.0](DirectLightSourceAngle2.png)(w:500)
+	![Capsule Indirect Shadow Disabled](CSDisabled.png)(w:500)
 	[/PARAM]
 [/OBJECT]
 
-#### Capsules Indirect Shadowing
+When Capsule Indirect Shadow is enabled, your character will cast a soft shadow that can ground them in areas with only bounce lighting. 
 
-**Capsule Indirect Shadows** enables soft shadowing for your character in areas that are indirectly lit by any **Static** or **Stationary** light source. Capsule shadowing is created using the 
-[Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) that is generated during a light build. 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Capsule Shadows Enabled](SkylightCS1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Indirect Capsule Shadows Disabled](SkylightCS2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
-[REGION:lightbox]
-[![](IndirectDefault.png)(w:500)](IndirectDefault.png)
+In an open area with only a Sky Light as the light source, there will be little directionality, since light is coming from all around. This produces a subtle soft "blob" shadow below
+the character when using precomputed lighting. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	ns4QW1BFSHg
+	[/PARAMLITERAL]
+[/OBJECT]
+
+In an enclosed area where light is coming through an opening, the [indirect lighting cache](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/IndirectLightingCache/) is used to 
+give directionality and softness to the capsule shadow by interpolating between the placed volume lighting samples as the character moves through the space. At the doorway, the character's shadow will be
+less intense with little directionality, but as the character moves further away from the doorway, the shadow's intensity and directionality will increase.
+
+
+#### Indirect Minimum Shadow Visibility
+
+Artists are afforded additional control by adjusting the **Capsule Indirect Shadow Min Visibility**. This enables you to adjust how dark the capsule shadow will be in indirectly lit areas, using precomputed lighting. 
+This can be be useful to reduce any self-shadowing from a capsule in these areas, or to soften the shadow's intensity, so that it blends nicely with surrounding shadows.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Capsule Shadow Indirect Min Visibility: 0.1 (Default)](CSEnabled.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Capsule Shadow Indirect Min Visibility: 0.45](CSMinVisibility_45.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+
+### Capsule Direct Shadows
+
+![](CapsuleShadowsSetting1.png)(w:400)
+
+When **Direct Capsule Shadow** is enabled, the **Light Source Angle** for Directional Lights and **Source Radius** for Spot or Point Lights is used to define how soft the shadows will be from its receiving surface. 
+This enables you to directly control the softness of your Capsule Shadows when directly lit.
+
+#### Light Source Angle 
+
+The **Light Source Angle** property of a Directional Light is used for dynamic shadowing methods to create soft area shadows. When adjusting this property, the shadow will soften the further it is from the 
+surface it's casting onto. 
+
+[REGION:imagetable]
+| ![](CS_LSA1.png)(w:400) | ![](CS_LSA2.png)(w:400) |
+| --- | --- |
+| Light Source Angle: 1.0 (Default) | Light Source Angle: 2.0 |
 [/REGION]
-[REGION:caption]
-_Click the image for full size_
+
+#### Source Radius
+
+Similarly to how the Light Source Angle of a Directional Light works, the **Source Radius** of a Stationary Spot or Point Light can be used to give your character soft shadows. When you use a larger Source Radius, the light will soften the further the shadow caster is from the surface.
+
+[REGION:imagetable]
+| ![](CS_SR1.png)(w:400) | ![](CS_SR2.png)(w:400) |
+| --- | --- |
+| Source Radius: 5.0 | Source Radius: 15.0 |
 [/REGION]
 
-
-## Directionality and Intensity of Indirect Shadows
-
-The directionality and intensity of the capsule shadowing is determined by the light samples generated after a light build. The brighter intensity of the lighting sample the less intense and softer the shadow will be since light is coming from many directions. 
-
-### Closed Area Shadowing
-
-When you have a opening for light to pour through, the intensity of the light will be brighter at the opening and dimmer at the back part of this area. 
-
-[REGION:lightbox]
-[![](CS_CaveFront.png)(w:500)](CS_CaveFront.png)
+[REGION:note]
+Once lighting has been built for your scene, you can adjust the **Source Radius** property without having to rebuild lighting. This property only affects movable actors with Capsule Shadows or Mesh Distance Fields enabled.
 [/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-In the front of this area the character's shadow is much softer since there is more light and the shadow has less directionality since more light is coming from above. 
-
-[REGION:lightbox]
-[![](CS_CaveBack.png)(w:500)](CS_CaveBack.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-However, at the back of this area the shadow is more intense, since it is more dimly lit and has more directionality. The majority of the light is coming from a single opening towards the front which means there will be
-less light traveling to the back of this area, and the character is lit more strongly from one direction.
-
-### Open Area Shadowing
-
-In open areas that receive indirect shadowing, Capsule Shadows will appear much softer, since the light can come from all around.
-
-[REGION:lightbox]
-[![](CS_openarea.png)(w:500)](CS_openarea.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-
-
 
 ## Performance
 
-Capsule Shadows are more efficient than standard shadow mapping techniques because of tile deferred culling which cull the capsule influences to only the tiles that could possibly 
-receive shadows from that capsule. This means that most of the areas on the screen were unaffected and did not require additional rendering work. The tiles that are potentially 
-receiving shadows will have to compute, for each pixel, the number of capsules that directly affect that pixel. Capsule Shadows perform better when there are fewer affected tiles on 
-the screen, as well as when there are fewer capsules.
+The GPU performance cost of Capsule Shadows is proportional to the number of capsules used, the number of characters, and the screen size that their shadow affects. 
 
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Standard Shdow Mapping](DirectShadowMapping.png)(w:500)
-	[/PARAM]
-	[PARAM:after]
-	![Capsule Direct Shadows Enabled](DirectCapsuleShadows.png)(w:500)
-	[/PARAM]
-[/OBJECT]
+Using a Radeon 7870 at 1080p, for example: 
+ 
+[REGION:simpletable]
+| GPU Cost with 10 Capsules | Time in milliseconds (ms) |
+| ---- | --- |
+| **A single character on screen** | 0.29 ms |
+| **Each additional character on screen** | 0.05 ms |
+[/REGION]
 
-The performance benefit of Capsule Shadows is determined by the number of capsule bodies that are being used and the tiles influenced. Whereas, standard shadow mapping is more expensive because
-it needs to consider all the triangles in the shadow map, which means you can only get sharp shadows that have a little bit of blur to them.
-
+This implementation is very efficient, since it computes shadowing at half resolution with a depth-aware upsample, while using screen tile culling to reduce the amount of shadowing
+work to only happen where it is needed. 
 
 ## Limitations
 
-* Requires DX 11 due to tiled deferred implementation using compute shaders.
+* Requires DirectX 11, due to tiled deferred implementation using compute shaders.
 * Self-shadowing artifacts can exist for arbitrary mesh shapes.
-* Can only use Spheres and Sphylls for capsule representation.
-* Only support for Skeletal Meshes, but could be made to work with static meshes.
+* Can only use Sphyls and Spheres for capsule representation.
 * When capsule shadows get so soft that they become ambient occlusion, there's an artifact in the shadowing that causes a hard line. 
+
+
+

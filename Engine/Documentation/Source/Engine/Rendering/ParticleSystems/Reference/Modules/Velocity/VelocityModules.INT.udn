@@ -3,6 +3,7 @@ Title:Velocity Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Velocity modules exist to make adjustments to particle velocity in a variety of ways.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

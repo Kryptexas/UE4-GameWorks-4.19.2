@@ -1,15 +1,17 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3298293
 Availability:Public
 Title:Android クイックスタート
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Android プラットフォーム開発の設定
-Version:4.9
-SkillLevel:Intermediate
+Version:4.12
+Skilllevel:Intermediate
 tags:Android
 tags:Mobile
+type:quick start
 parent:Platforms/Android
-order:2
-type:quickstart
+order:1
+Checkpoint:AndroidQS
+
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,41 +47,34 @@ type:quickstart
 [/OBJECT]
 [/VAR]
 
-Android クイックスタートでは、コンピュータと Android デバイスをデプロイ用に設定し、起動機能およびパッケージ機能の両方を使ってデバイス上にテンプレート ゲームを配置する方法を説明します。
+![](AndroidTopic.jpg)
+
+アンリアル エンジン (UE4) は **CodeWorks for Android 1R4** という Android ソフトウェア開発キット (SDK) の特別バージョンを採用しています。 
+CodeWorks for Android  の特別バージョンを使うと、 
+UE4 での Android プロジェクト開発に必要な SDK および Native Development Kit (NDK) の設定が最も楽になります。現在使用しているバージョンは 1R4 ですが、CodeWorks の次のバージョンを使用する予定です。 
+違うバージョンの Android SDK (あるいは、CodeWorks for Android の古いバージョン) をインストールしている場合は、 
+一旦それをアンインストールして、UE4 が配布している CodeWorks for Android インストーラーを使って CodeWorks for Android をインストールすることを推奨します。 
+
+[region:note]
+UE4 に付いている CodeWorks for Android インストーラーを使うことで、必ずアンリアル エンジンと互換性のある Android SDK がインストールされます。 
+[/region]
 
 ## 目標
 
-Android クイックスタートでは、UE4 を使った Android 開発用に PC もしくは Mac の基本的な設定を一通り説明します。
+Android クイックスタートでは、UE4 で Android を開発するための PC もしくは Mac の基本的な設定を一通り説明します。
+さらに、アンリアル エディタの起動およびパッケージ化機能を使って、Android デバイスにテンプレート ゲームを入れる方法も説明します。
 
 ## 目的
 
-* Android SDK をインストールする
+* Android SDK をインストールおよび設定する
 * Android Device を開発用に設定する
 * Android モバイル開発をターゲットにしたプロジェクトを作成する
-* Android デバイスにレベルをデプロイする方法
-* ゲームをリリース用にパッケージする方法
+* Android デバイスにレベルをデプロイする
+* ゲームをリリース用にパッケージする
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/Android/GettingStarted/1 "%Platforms/Android/GettingStarted/1:description%")
-	* [](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:description%")
-	* [](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:description%")
-	* [](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:description%")
-	* [](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:description%")
-	* [](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:description%")
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"checkpoint" parent:"Platforms/Android/GettingStarted")]
 
-[region:note]
-アンリアル エンジン (UE4) は **Android Works** という Android SDK の特別バージョンを採用しています。Android works のこのバージョンは、Android ベースの UE4 プロジェクト用に特別に作成されました。他のバージョンの Android SDK をインストールしている場合は、そのバージョンはアンインストールして、UE4 とセットになっている Android Works インストーラーをインストールすることを **強く推奨します**。使用している Android SDK が 確実に UE4 と互換性もてるからです。
-[/region]
-
+[REGION:call_to_action]
+ [クリックしてスタート](Platforms/Android/GettingStarted/1 "%Platforms/Android/GettingStarted/1:title%")
+[/REGION]
 

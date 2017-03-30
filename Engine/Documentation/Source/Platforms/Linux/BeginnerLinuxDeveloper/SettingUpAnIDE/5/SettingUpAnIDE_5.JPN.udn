@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3191803
-Availability:Docs
+﻿INTSourceChangelist:3262227
+Availability:Public
 Title:5 - IDE からブループリント プロジェクトを作成する
 Crumbs:
 Description:IDE からブループリント プロジェクトを作成および設定する方法の説明
@@ -10,23 +10,7 @@ order:5
 tags:Linux
 SkillLevel:Beginner 
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/4 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[ホーム](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/6 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 UE4 の [](Engine/Basics/Projects/Browser) からは、Blueprint プロジェクトあるいは CPP プロジェクトのいずれかを作成することができます。このセクションでは、UE4 から Blueprint プロジェクトを新規作成する方法を説明します。 
 この操作ガイドの目標は、 
@@ -66,7 +50,7 @@ UE4 の [](Engine/Basics/Projects/Browser) からは、Blueprint プロジェク
 	システム仕様によっては、Blueprint プロジェクトの新規作成に数分かかることがあります。
 	[/REGION]
 
-	## 最終結果
+## 最終結果
 
 [REGION:lightbox]
 	[![](SetupIDE_Step22.png)(w:720)](SetupIDE_Step22.png)
@@ -91,4 +75,4 @@ UE4 の [](Engine/Basics/Projects/Browser) からは、Blueprint プロジェク
 場合によっては、 
 ゲームを操作するソースコードの作成および修正が必要なことがあります。次のセクションでは、UE4 から CPP プロジェクトを新規作成する方法を説明します。
 
-%Steps%
+[NAV]

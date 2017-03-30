@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2708208
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:アンカー
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -7,6 +7,7 @@ Related:Engine/UMG
 Related:Engine/UMG/UserGuide/DPIScaling
 Related:Engine/Blueprints
 version:4.9
+tags:UMG UI Designer
 
 
 [TOC(start:2 end:2)]

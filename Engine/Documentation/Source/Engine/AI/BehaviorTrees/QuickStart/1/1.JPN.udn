@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2755911
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:1. 基本設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -25,7 +25,7 @@ version:4.9
 
 %Steps%
 
-このクイックスタートでは、プロジェクト内にあるものについて考えます。そのため、即座に実証や問題解決がやりづらい場合は、プロジェクトを以下のように設定します。
+このクイックスタートでは、プロジェクトで利用できるものを前提にしています。そのため、それに代わるものを作成したり、ただちに対処が難しい場合は、プロジェクトを以下のように設定します。
 
 ## ステップ
 
@@ -38,7 +38,7 @@ version:4.9
 	このクイック スタート ガイドでは **Starter Content** を使うこともできます。
 
 
-新規プロジェクトの開始について詳細が必要な場合は、[プロジェクト ブラウザ](Engine/Basics/Projects/Browser) ユーザーガイドをご覧ください。
+新規プロジェクトの開始についての詳細情報が必要な場合は、[プロジェクト ブラウザ](Engine/Basics/Projects/Browser) ユーザーガイドをご覧ください。
 
 [/EXCERPT:AIProjectStart]
 %Steps%

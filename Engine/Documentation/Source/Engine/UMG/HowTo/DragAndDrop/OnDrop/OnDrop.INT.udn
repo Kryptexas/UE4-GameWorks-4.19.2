@@ -1,11 +1,11 @@
 Availability: Docs
 Title:4. On Drop
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:In this step we configure what happens when the player drops the dragged widget.
+Description:In this step, we configure what happens when the player drops the dragged widget.
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-Version: 4.12
 SkillLevel: Intermediate
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -33,14 +33,14 @@ Here we set up our main **HUD** Widget Blueprint and override what happens when 
 
 	![](DragDrop13.png)
 
-	We are doing our drag detection inside the Health Bar widget, however when we release the Left Mouse Button we want to drop it in our HUD Widget Blueprint.
+	We are doing our drag detection inside the Health Bar widget, however, when we release the Left Mouse Button we want to drop it in our HUD Widget Blueprint.
 	In order for our HUD to receive hit detection, we need to set its **Visibility** setting to **Visible**. 
 
 1.	From the **Palette** window, add the **Health Bar** widget to the graph in your desired location. 
 
 	![](DragDrop14.png)
 
-1.	Go to the **Graph** Mode, then add an **OnDrop** function override from the **My Blueprint** panel. 
+1.	Go to the **Graph** Mode, then add a **OnDrop** function override from the **My Blueprint** panel. 
 
 	![](DragDrop15.png)
 
@@ -73,10 +73,11 @@ Here we set up our main **HUD** Widget Blueprint and override what happens when 
 	_Click for full view._
 	
 	We uncheck **Remove DPIScale** and check the **Return Value** checkboxes as we do not need to remove the [](Engine/UMG/UserGuide/DPIScaling) and we have handled this function so we return as true. 
-	With this script we first remove the existing Health Bar widget before re-adding it to the screen in the new location relative to our Drag Offset. 
+	With this script, we first remove the existing Health Bar widget before re-adding it to the screen in the new location relative to our Drag Offset. 
 
-Our HUD is setup to handle dropping our dragged widget and it displays our Health Bar. 
-In the next and final step in this tutorial we set up our Dragged Widget to mimic the shape of our Health Bar as well as instruct our Character Blueprint to add the HUD to the viewport. 
+Our HUD is set up to handle dropping our dragged widget and it displays our Health Bar. 
+In the next and final step in this tutorial, we set up our Dragged Widget to mimic the shape of our Health Bar as well as instruct our Character Blueprint to add the HUD to the viewport. 
 
 %Steps%
+
 

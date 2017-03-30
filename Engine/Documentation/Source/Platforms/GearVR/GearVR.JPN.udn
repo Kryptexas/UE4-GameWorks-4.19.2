@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:3076265
+﻿INTSourceChangelist:3235148
 Title:Samsung Gear VR の開発
-Description:Samsung Gear VR ヘッドセットを UE4 と使用する方法。
+Description:Samsung Gear VR ヘッドセットを UE4 で使用する方法。
 Availability:Public
 Navigation:platform
 Platform:Gear VR
@@ -12,10 +12,11 @@ type:landing
 parent:Platforms/VR
 tags:VR
 tags:GearVR
+tags:Platform
 
 ## はじめよう
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GearVR")]
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/GearVR")]
 
 ## GearVR のトピックス
 

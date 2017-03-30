@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title: 시퀀서 일람표
 Crumbs: %ROOT%, Engine
@@ -10,6 +10,7 @@ Version: 4.12
 Related: Engine\Sequencer\Overview
 Related: Engine\Sequencer\ReferenceEditor
 Related: Engine\Sequencer\HowTo
+tags:Sequencer
 
 [TOC(start:2 end:2)]
 

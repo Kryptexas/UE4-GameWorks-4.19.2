@@ -1,71 +1,78 @@
-﻿INTSourceChangelist:3211856
+﻿INTSourceChangelist:3230896
 Availability: Docs
-Title: Precomputed Lighting Scenarios
+Title: 프리컴퓨티드 라이팅 시나리오
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description: This page provides an overview of Precomputed Lighting Scenarios in UE4.
+Description: UE4 의 프리컴퓨티드 라이팅 시나리오에 대한 개요입니다.
 Version: 4.14
 Parent: Engine/Rendering/LightingAndShadows
 Tags: Rendering
 Type: Reference
 topic-image:PCLS_Header.png
 
-Unreal Engine 4 (UE4) has support for using different Precomputed Lighting Scenarios in levels. This allows a single level to store and display multiple lighting setups giving you the flexibility of dynamic lighting but at the fixed cost of Precomputed lighting. Having the ability to change between different Precomputed Lighting Scenarios is of particular importance for VR or Architectural Visualizations projects that need the highest possibly quality and fastest possible performance. In the following document, we will take a look at how you can use Precomputed lighting in your UE4 projects.
+[TOC(start:1 end:4)]
+
+언리얼 엔진 4 (UE4) 에는 레벨에 다양한 **Precomputed Lighting Scenarios** (프리컴퓨티드 라이팅 시나리오)가 지원됩니다. 하나의 레벨에서 다수의 라이팅 셋업을 저장하고 표시하도록 하여, 다이내믹 라이팅의 유연함과 프리컴퓨티드 라이팅의 고정비를 동시에 누릴 수 있습니다.
+다양한 프리컴퓨티드 라이팅 시나리오를 변경할 수 있는 기능은 가상 현실(VR) 또는 건축 시각화 프로젝트에 특히나 중요한데, 빠른 퍼포먼스 이점을 누리면서 높은 퀄리티의 렌더링이 필요하기 때문입니다.
+이 레퍼런스를 통해 UE4 프로젝트의 프리컴퓨티드 라이팅에 대해 배우실 수 있을 것입니다.
 
 ![](PCLS_Comp_Image_00.png)
 
 [REGION:caption]
-In the above image the Directional Light, Sky Light, and Skybox have been placed in a Lighting Scenario level called Day Scenario. The Spotlights for the streetlights have been placed in a different Lighting Scenario level called Night Scenario.
+위 그림에서 디렉셔널 라이트, 스카이 라이트, 스카이박스가 `Day Scenario` 라는 라이팅 시나리오 레벨에 배치되었습니다. 가로수의 스포트라이트는 `Night Scenario` 라는 다른 라이팅 시나리오에 배치되었습니다.
 [/REGION]
 
+## 프리컴퓨티드 라이팅 시나리오 한계
+프리컴퓨티드 라이팅 시나리오에는 장점이 많지만, 사용 시 주의해야 하는 단점과 한계점이 몇 가지 있습니다.
+여기서는 그 한계점 몇 가지와 해결( 또는 우회)법을 알아보겠습니다.
 
-##  Lighting Scenarios
+* 게임의 특정 시점에 하나의 라이팅 시나리오반 보여야 합니다.
+* 라이팅 시나리오 레벨이 존재하면, 모든 서브레벨에서의 라이트맵이 그 안에 놓여 낮일 때는 Day Scenario 라이트맵만 사용됩니다. 그 결과 라이트맵을 더이상 서브레벨에서 스트리밍할 필요가 없는 것입니다.
+* 라이팅 시나리오 레벨을 보이게 만들 때 리플렉션 캡처가 강제 업데이트되는데, 레벨 로드 시간이 늘어날 수 있습니다.
 
-To use Lighting Scenarios in your UE4 projects you will need to do the following:
+##  라이팅 시나리오 사용
 
-1. First go to **Window** > **Levels** to open up the Levels manager.
+UE4 프로젝트에서 라이팅 시나리오를 사용하는 방법은 다음과 같습니다:
+
+1. 먼저 **창** > **레벨** 로 **레벨 매니저** 를 엽니다.
 
     ![](PCLS_Open_Levels.png)
 
-1. With the Levels manager open, Right- click on a Sublevel in the Levels windows and go to **Lighting Scenario** and then select the **Change to Lighting Scenario** option to make the level a Lighting Scenario level.
+1. **레벨 매니저** 를 연 상태로 **레벨** 메뉴의 서브레벨에 우클릭, **라이팅 시나리오** 로 가 **라이팅 시나리오로 변경** 옵션을 선택하여 레벨을 **라이팅 시나리오** 레벨로 만듭니다.
 
     ![](PCLS_LS_Level_Option.png)
 
     [region:note]
-    When a Lighting Scenario level is made visible, its Lightmaps will be applied to the world.
+    **라이팅 시나리오** 레벨이 보이면, 그 라이트맵이 월드에 적용됩니다.
     [/region]
 
-1. Make sure the Level Streaming method is set to Blueprint by Right-clicking on the Sublevel and going to **Change Streaming Method** and then selecting **Blueprint** if not already selected.
+1. 레벨 스트리밍 메소드가 블루프린트로 설정되어 있는지 확인합니다. 서브레벨에 우클릭한 후, **스트리밍 메소드 변경** 후 (이미 선택되어 있지 않다면) **블루프린트** 를 선택하면 됩니다.
 
     ![](PCLS_Level_Streaming_Method.png)
     
-1. Now place any light or Static Meshes your project needs into either of the lighting levels and then build each level's lighting as you would with any other level.
+1. 이제 프로젝트에 필요한 라이트나 [](Engine/Content/Types/StaticMeshes) 를 배치한 뒤 다른 레벨과 마찬가지로 각 레벨의 라이팅을 빌드합니다.
 
     ![](PCLS_Build_Lighting.png)
 
-1. Once the lighting has finished building, open up the **Persistent Level's** Blueprint and add a **Load Stream Level** node and connect it to the **Event Begin Play** node. 
+1. 라이팅 빌드가 완료되었으면, **퍼시스턴트 레벨** 의 블루프린트를 열어 **Load Stream Level** 노드를 추가하고 **Event Begin Play** 노드에 연결합니다.
 
     ![](PCLS_Level_Load_Nodes.png)
 
-1. Connect the Event Begin Play to the Load Stream Level node and then input the name of the Level you want to load. Also, make sure to check both **Make Visible After Load** and **Should Block on Load** to make sure you can see the newly loaded level.
+1. **Event Begin Play** 노드를 **Load Stream Level** 노드에 연결한 뒤 로드하고자 하는 레벨 이름을 입력합니다. 또, **Make Visible After Load** 와 **Should Block on Load** 도 체크하여 새로 로드된 레벨이 보이도록 합니다.
 
     ![](PCLS_Steam_Setup.png)
 
-1. Press the **Play** button to launch the project and when the first level loads, it should now be using the Day level lighting. To use the Night level lighting, you can use the same setup but change the level name to your night time level instead of the day time one.
+1. **플레이** 버튼을 눌러 프로젝트를 실행시키고 첫 레벨이 로드되면, 이제 Day 레벨 라이팅을 사용할 것입니다. Night 레벨 라이팅을 사용하려면, 같은 구성을 사용하지만 레벨 이름을 밤 레벨 이름으로 바꿔줘야 할 것입니다.
 
     [OBJECT:ComparisonSlider]
         [PARAM:before]
-        ![Day Lighting](PCLS_Day.png)
+        ![낮 라이팅](PCLS_Day.png)
         [/PARAM]
         [PARAM:after]
-        ![Night Lighting](PCLS_Night.png)
+        ![밤 라이팅](PCLS_Night.png)
         [/PARAM]
     [/OBJECT]
 
-## Limitations
-While Precomputed Lighting scenarios have a lot of advantages, there some disadvantages and limitations that you will need to be aware of while using them. In the following section, we will go over what these are and how you can avoid or work around them.
 
-* Only **One** Lighting Scenario level should be visible at any time in a game.
-* When a Lighting Scenario level is present, Lightmap data from all Sublevels will be placed inside it so that only the Day Scenario Lightmaps are loaded when it�s daytime. As a result, Lightmaps will no longer be streamed by sublevels.
-* A Reflection Capture updated is forced when making a Lighting Scenario level visible, which can increase the level load time.
+눈에 띄는 한계가 몇 가지 있지만, UE4 에서 프리컴퓨티드 라이팅 시나리오를 사용하면 프로젝트에 여러가지 장점이 생깁니다. (프로젝트의 요구에 따라) 구은 라이팅을 바꿀 수 있으면서 퍼포먼스도 향상되는 것입니다.
 
-
+ 

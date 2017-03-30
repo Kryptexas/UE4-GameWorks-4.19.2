@@ -1,13 +1,26 @@
-Availability:Docs
+Availability:Public
 Title:Stereo Panoramic Capture Reference
 Crumbs:%ROOT%, Platforms, Platforms/VR
 Description:An in-depth look at what each property for the Stereo Panoramic does
 Navigation:platform
 Version: 4.13
 parent:Platforms/VR/StereoPanoramicCapture
+order:3
 type:reference
 related: Gameplay/HowTo/UsingCameras/
 related: Engine/Performance/Scalability/ScalabilityReference/
+Topic-Image:SPE_Topic_Image_00.png
+tags:VR
+Tags:Cinematics
+Tags:GearVR
+Tags:Google VR	
+Tags:SteamVR
+Tags:Oculus Rift
+Tags:Virtual Reality
+Tags:Plugins
+Tags:Sequencer
+
+[TOC(start:2)]
 
 On the following page, you will find a detailed description of what options and controls are available for the Stereo Panoramic Capture plugin and what those options do to the image that is output. The options have been broken up into groups based on what those options do. To input a command press the backtick or tilde key (`) to open up the UE4 console and then type **SP.** followed by the command you want to enter.
 

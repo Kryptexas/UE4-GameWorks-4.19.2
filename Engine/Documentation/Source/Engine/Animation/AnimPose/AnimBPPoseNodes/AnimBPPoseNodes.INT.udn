@@ -71,8 +71,8 @@ If you are using a **Pose Asset** with **Additive** enabled, you will also need 
 
 ## Pose Driver Node
 
-Available within the AnimGraph of an Animation Blueprint is the **Pose Driver** node which lets you drive a curve value based on a bone's movement. 
-One use for this node would be to create a pose space deformer to drive corrective blend shapes based on a bone's orientation. 
+Available within the AnimGraph of an Animation Blueprint is the **Pose Driver** node which allows a bone to drive other aspects of animation, based on a set of 'example poses' or lets you drive a curve value based on a bone's movement. 
+One use for this node would be to create a pose space deformer to drive corrective blend shapes based on a bone's orientation or translation. 
 For example, in the clip below, clavicle bone poses are being used to move the shoulder relative to the arm bone's movement. 
 
 [OBJECT:EmbeddedVideo]
@@ -87,7 +87,7 @@ tJSYgPmzoKc
 [/PARAMLITERAL]
 [/OBJECT]
 
-To achieve this, an RBF (Radial Basis Function) interpolates driven values based on the orientation of a target bone. 
+To achieve this, an **RBF (Radial Basis Function)** interpolates driven values based on the orientation of a target bone. 
 You will need to create a **Pose Asset** and define the target poses for the bone and the desired curve values at each pose. 
 
 On the **Pose Driver** node itself, you have the following options: 
@@ -100,8 +100,18 @@ On the **Pose Driver** node itself, you have the following options:
 | **Radial Scaling** | Scaling of radial basis, applied to max distance between poses.| 
 | **Pose Source** | The **Pose Asset** used as the source of pose data. | 
 | **Include Ref Pose as Neutral Pose** | Should the mesh ref pose of Source Bone be considered as a "neutral pose" (zero curves). | 
-| **Type** | **Swing and Twist** (Consider full rotation for interpolation) or **Swing Only** (Consider only swing for interpolation). | 
+| **Type** | [INCLUDE:Engine\Animation\AnimPose\AnimBPPoseNodes\#typetable] | 
 | **Twist Axis** | The axis to use when **Type** is set to **SwingOnly** (X, Y or Z). | 
+
+<!--
+[EXCERPT:typetable]
+| Option | Description |
+| ----------- |------|
+| **Swing and Twist** | Consider full rotation for interpolation. | 
+| **Swing Only** | Consider only swing for interpolation. | 
+| **Translation** | Consider translation relative to parent. | 
+[/EXCERPT:typetable]
+-->
 
 For additional information see the Unreal Engine Live Stream on Animation Topics which include a **Pose Driver** example:
  

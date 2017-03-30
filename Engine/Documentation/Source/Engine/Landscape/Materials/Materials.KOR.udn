@@ -97,7 +97,7 @@ LandscapeLayerCoords (랜드스케이프 레이어 좌표) 노드는 랜드스�
 
 | Number | Property | Description |
 |--------| -------- | ----------- |
-|1:| **Mapping Type** | 매핑 유형 - 랜드스케이프에 머티리얼( 망)을 매핑시킬 때 사용할 기준을 지정하는 `ELandscapeCoordMappingType` (열거형 랜드스케이프 좌표 매핑 유형) 입니다. |
+|1:| **Mapping Type** | 매핑 유형 - 랜드스케이프에 머티리얼( 망)을 매핑시킬 때 사용할 기준을 지정하는 `ELandscapeCoordMappingType` (E 랜드스케이프 좌표 매핑 유형) 입니다. |
 |2:| **Custom UVType** | 커스텀 UV 유형 - 터레인에 사용할 매핑 장소입니다. **CustomUVType** 은 주어진 프로퍼티 값에 따라 머티리얼을 랜드스케이프에 매핑시킬 UV 좌표를 출력합니다. |
 |3:| **Mapping Scale** | 매핑 스케일 - UV 좌표에 적용할 균등 스케일입니다. |
 |4:| **Mapping Rotation** | 매핑 회전 - UV 좌표에 적용할 회전 값으로, 도 단위입니다. |

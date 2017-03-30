@@ -6,33 +6,6 @@ Version: 4.9
 parent:Engine/Editor
 order:3
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		Programming_Beginner
-	[/PARAMLITERAL]
-	[PARAM:next]
-		[Next Topic](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/Programming/Beginner)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -213,5 +186,3 @@ See the [**World Outliner**](Engine/UI/LevelEditor/SceneOutliner) page for detai
 [INCLUDE:Engine/UI/LevelEditor/Layers#Overview]
 
 See the **[](Engine/UI/LevelEditor/Layers)** page for details on using the **Layers** panel.
-
-%playlistnav%

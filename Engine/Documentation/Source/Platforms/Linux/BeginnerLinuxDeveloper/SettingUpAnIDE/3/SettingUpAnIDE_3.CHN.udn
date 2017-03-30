@@ -1,66 +1,67 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 3 - Building UE4 from your IDE
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
-Description:Learn how to build Unreal Engine from your IDE.
-Version: 4.13
+﻿INTSourceChangelist:3262227
+Availability:Public
+Title:3 - 从 IDE 编译 UE4
+Crumbs:
+Description:学习如何从 IDE 编译虚幻引擎。
+Version:4.14
 type:how to
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
-order: 3
+order:3
 tags:Linux
 SkillLevel:Beginner
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/4 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+配置 Qt Creator 编译并运行 UE4 后，即可从 IDE 运行 UE4。从 IDE 运行 UE4 之前，需要打开一些输出窗口，以便看到工作中的虚幻编译系统。
 
-Now that you've configured Qt Creator to build and run UE4, you're ready to run UE4 from the IDE. Before you run UE4 from the IDE, you'll want to open some output windows so that you can see 
-the Unreal Build Tool at work.
+1.	点击 **Edit** 按钮进入 Edit 模式，打开 Qt Creator 编辑器。
 
-1.	Click the **Edit** button to enter into Edit mode, opening Qt Creator's editor.
-
-	![](SetupIDE_Step15.png)
-
-	[REGION:note]
-	While in Edit mode, you can view, debug, and edit the CPP source code powering UE4.
+	[REGION:lightbox]
+		[![](SetupIDE_Step15.png)(w:720)](SetupIDE_Step15.png)
 	[/REGION]
-
-1.	By default, Qt Creator hides the main toolbar. Hover your mouse cursor over the top of the screen, touching the top edge to reveal the toolbar.
-
-1.	Now, open the **Window** menu, hovering over the **Output Panes** sub-menu, clicking **Compile Output**. Alternatively, you can press the **Alt+4** keyboard combination to open the **Compile Output** window.
-
-	[REGION:note]
-	Opening the **Compile Output** window allows you to watch for any errors while building UE4 from source.
-	[/REGION]
-
-	You're now ready to build UE4 from inside of the IDE!
 	
-1.	Hover your mouse cursor over the top of the screen, touching the top edge to reveal the toolbar.
+	[REGION:caption]
+		点击查看全图。
+	[/REGION]
 
-1.	To build UE4, open the **Build** menu and click the **Build project "UE4"** button. Alternatively, you can press the **Ctrl+B** keyboard combination to build UE4.
+	[REGION:note]
+	可在编辑模式中查看、调试和编辑助力 UE4的 CPP 源代码。
+	[/REGION]
 
-## End Result
+1.	Qt Creator 默认隐藏主工具栏。将鼠标指针悬停在屏幕顶部，触及顶部边缘即可显示工具栏。
 
-![](SetupIDE_Step16.png)
+	![](SetupIDE_Step15A.png)
 
-At this point, you should see the compiler flushing messages to the **Compile Output** window inside of the IDE. 
-Depending on your system's specifications, it may take anywhere from ten minutes to over an hour to compile the engine. 
-If you want to shorten the time it takes to compile the engine from source, we recommend compiling the source code on a 
-machine that has at least eight (8) gigabytes of RAM with a multi-core processor having at least eight (8) cores (including 
-hyperthreading).
+1.	打开 **Window** 菜单，鼠标悬停在 **Output Panes** 子菜单上，点击 **Compile Output**。此外，也可按下 **Alt+4** 组合键打开 **Compile Output** 窗口面板。
 
-%Steps%
+	![](SetupIDE_Step15B.png)
+
+	[REGION:note]
+	从源代码编译 UE4 时打开 **Compile Output** 窗口面板可了解是否出现错误。
+	[/REGION]
+
+## 编译 UE4
+	
+1.	将鼠标指针悬停在屏幕顶部，触及顶部边缘即可显示工具栏。
+
+	![](SetupIDE_Step15A.png)
+
+1.	如需编译 UE4，打开 **Build** 菜单并点击 **Build Project "UE4”** 按钮。此外，按下 **Ctrl+B** 组合键也可编译 UE4。
+
+	![](SetupIDE_Step15C.png)
+
+## 最终结果
+
+[REGION:lightbox]
+	[![](SetupIDE_Step16.png)(w:720)](SetupIDE_Step16.png)
+[/REGION]
+
+[REGION:caption]
+	点击查看全图。
+[/REGION]
+
+此时您便会看到 IDE 中编译器刷新消息到 **Compile Output** 窗口。 
+编译引擎的时间从四分钟到一个多小时不等，取决于系统配置。 
+如果希望缩短从源代码编译引擎的时间，建议使用至少拥有 8G RAM 和 8 核处理器（包括超线程）的电脑进行源代码编译。
+
+[NAV]

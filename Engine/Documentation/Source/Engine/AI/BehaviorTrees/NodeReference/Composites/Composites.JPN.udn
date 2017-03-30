@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2652873
-Title:Behavior Tree ノードのリファレンス:Composites
+﻿INTSourceChangelist:3108692
+Title:Behavior Tree ノードのリファレンス：Composites
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree Composite ノードの説明です。
 Availability:Public
@@ -12,11 +12,11 @@ Availability:Public
 
 ![](Selector.png)
 
-**Selector** ノードは子ノードを左から右へ評価し、そのうちの 1 つが成功すると実行を終了します。Selector の子ノードのどれかが成功を返した時点で、制御が Selector ノードに戻ります。Selector の子ノードがすべて失敗すると、 Selector は失敗します。
+**Selector** ノードは子ノードを左から右へ評価し、そのうちの 1 つが成功すると実行を終了します。Selector の子ノードのどれかが成功を返した時点で、 Selector は成功します。Selector の子ノードがすべて失敗すると、 Selector は失敗します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Sequence
 
@@ -26,18 +26,18 @@ Availability:Public
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Simple Parallel
 
 ![](SimpleParallel.png)
 
-**Simple Parallel** ノードにより、 1 つのメインタスクのノードがツリー全体に沿って実行できるようになります。メインタスクが終了すると、セカンダリ ツリーを中止するためにノードを **すぐに** 終了するか、またはセカンダリ ツリーの終了を **遅らせる** かを Finish Mode の設定で指示されます。
+**Simple Parallel** ノードにより、 1 つのメインタスクのノードがツリー全体に沿って実行できるようになります。メインタスクが終了すると、セカンダリ ツリーを中止するためにノードをすぐに終了する、セカンダリ ツリーを終了する、またはセカンダリ ツリーの終了を遅らせるかを Finish Mode の設定で指示します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Finish Mode** | [INCLUDE:#subprop1] |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 <!--
 [EXCERPT:subprop1]

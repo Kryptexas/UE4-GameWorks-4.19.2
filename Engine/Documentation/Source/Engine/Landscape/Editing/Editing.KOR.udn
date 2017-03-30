@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3260884
 Availability: Public
 Title:랜드스케이프 편집하기
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -63,6 +63,10 @@ order:3
 여러가지 랜드스케이프 툴 모드와 옵션에 대한 간략 안내서는 [](Engine/Landscape/UI) 문서를 참고하세요.
 
 랜드스케이프 툴 실전 예제는 [](Resources\ContentExamples\Landscapes) 에서 확인할 수 있습니다.
+
+[REGION:tip]
+랜드스케이프 툴은 VR 에디터에서도 작동합니다. VR 에서 랜드스케이프 사용을 위한 조작법은 [](Engine/Editor/VR/Controls) 문서를 참고하세요.
+[/REGION]
 
 
 [REGION:topics third]

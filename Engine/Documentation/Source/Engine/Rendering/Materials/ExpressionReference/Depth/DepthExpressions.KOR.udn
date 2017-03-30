@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title:Depth 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:렌더링되는 픽셀의 깊이를 다루는 표현식입니다.
 Version: 4.9
+tags:Materials
 
 [EXCERPT:TOC]
 [TOC(start:2)]

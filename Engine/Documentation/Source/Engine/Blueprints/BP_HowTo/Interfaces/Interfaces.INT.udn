@@ -7,6 +7,7 @@ Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
 version:4.8
 skilllevel:Advanced
+tags:Blueprints
 
 In this How To, we will set up a [Blueprint Interface](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) which will execute different scripts in multiple Blueprints when called. 
 

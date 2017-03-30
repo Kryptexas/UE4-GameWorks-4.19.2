@@ -1,6 +1,6 @@
 Availability: Public
-Title:Creating Shots & Takes
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Title:Creating Shots and Takes
+Crumbs:
 Description:Shows a form of non-linear editing by arranging Shots and variations of Shots with Takes. 
 Version: 4.12
 SkillLevel: Intermediate
@@ -8,7 +8,8 @@ parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related: Engine/Sequencer/ReferenceEditor
+tags:Sequencer
 
 Similar to traditional film editors, the **Shot Track** allows you to add, arrange and re-arrange Level Sequences that will be played back in the order you arrange them.
 Each Level Sequence you add is referred to as a **Shot** and each Shot can have multiple **Takes**. With Takes, you can quickly swap the shot out with an alternate version giving you the ability to quickly experiment with different looks for your cinematic. 

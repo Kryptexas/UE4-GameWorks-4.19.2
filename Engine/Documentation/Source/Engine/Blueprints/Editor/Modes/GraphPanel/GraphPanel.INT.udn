@@ -1,7 +1,8 @@
 Availability:Public
 Title: Graph Mode
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description: Graph Mode allows you visually layout the network of nodes within a Blueprint, providing its functionality. 
+Description: Graph Mode allows you visually layout the network of nodes within a Blueprint, providing its functionality.
+tags:Blueprints
 
 
 [VAR:Topic]

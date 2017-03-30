@@ -3,6 +3,7 @@ Title:Editing Material Functions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:A look at the process of editing and making changes to material functions.
 Version: 4.9
+tags:Materials
 
 
 This document assumes a working knowledge of the concept of material functions. For more information, see the [Material Function Overview page](Engine/Rendering/Materials/Functions/Overview).

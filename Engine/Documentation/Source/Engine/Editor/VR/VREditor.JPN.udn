@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2939982
+﻿INTSourceChangelist:3150518
 Title:アンリアル エンジン VR エディタ
-Description:VR 専用のインタラクションを備えたエディタ ツールセットの機能を活用して、仮想現実環境でワールドをビルドする
+Description:VR 専用のインタラクションを備えたエディタ ツールセット機能を使って、仮想現実環境にワールドをビルドする
 Crumbs:
-Availability:Public
+Availability:public
 parent:Engine/Editor
 type:overview
 order:10
 tags:VR
-version:4.11
+version:4.12
 skilllevel:intermediate
+social-image:vreditor_social.png
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,7 +46,7 @@ skilllevel:intermediate
 [/VAR]
 
 [EXCERPT:main]
-VR エディタは、VR ワールドのビルド専用のインタラクション モデルを備えたエディタ ツールセットの機能を活用して、仮想現実環境におけるワールドのビルドを可能にします。
+VR エディタは、VR ワールドのビルド専用のインタラクション モデルを備えたエディタ ツールセット機能を使って、仮想現実環境にワールドのビルドが可能になります。
 
 VR で直接作業をすると、現実的で信憑性のあるワールドの作成に必要とされる正しいスケールを感じることができますし、モーション コントローラを使うことで自然な動きとインタラクションのある環境をビルドできます。
 
@@ -65,11 +66,11 @@ VR で直接作業をすると、現実的で信憑性のあるワールドの�
 
 ## 要件
 
-VR モードでアンリアル エディタを使用するためには、開発環境を以下の仕様にしなければなりません。
+VR モードでアンリアル エディタを使用するためには、以下の仕様の開発環境が必要になります。
 
 | ハードウェア要件 ||
 | --- | --- |
-| **PC ハードウェア** | VR ハードウェアの必要最低限のもの |
+| **PC ハードウェア** | VR ハードウェアの最小要件を満たすもの |
 | **Supported VR Hardware** | [INCLUDE:#VRHardware] |
 
 | ソフトウェア要件 ||
@@ -81,15 +82,16 @@ VR モードでアンリアル エディタを使用するためには、開発�
 
 ## はじめよう
 
-[DIR(end:"1" output:"topic" type:"howto" tags:"Getting Started" parent:"Engine/Editor/VR")]
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Getting Started" parent:"Engine/Editor/VR")]
 
 ## ガイド
 
-[DIR(end:"1" output:"topic" type:"howto" tags:"Level Editing" parent:"Engine/Editor/VR")]
+[DIR(end:"1" output:"topic" type:"how-to" tags:"Level Editing, GitHub" parent:"Engine/Editor/VR")]
 
 ## リファレンス
 
 [DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Editor/VR")]
+
 
 <!--
 [EXCERPT:VRHardware]

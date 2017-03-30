@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3275566
 Availability:Public
 Title:Google VR と Daydream デバイス
 Crumbs:%ROOT%, Platforms/GoogleVR
@@ -12,86 +12,118 @@ tags:VR
 tags:Google VR
 tags:Daydream
 
+[TOC(start:2)]
 
-## 概要
+[region:note]
+Google では、Daydream の使用方法を詳しく説明しているマニュアルを提供しています。[Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) のヘルプサイトをご覧ください。
+[/region]
+
+
 Google VR はほとんどの Android ベースのデバイスで使用できますが、Daydream デバイスのみに有効な機能もいくつかあります。これらの機能とプロジェクトでの使用方法について、次のセクションで説明します。
 
-### Android NDK 11c
-Daydream が提供しているすべての機能を使うためには、Android NDK version 11c のダウンロードおよびインストールが必要となります。NDK 11c の最新版は以下のリンクからダウンロードできます。
+## Google VR UE4 Branch をダウンロードする
+Google Daydream VR が提供するすべてのビルド済み機能を取得するために、以下のリンクにある UE4 の特別バージョンをダウンロードおよびコンパイルする必要があります。このバージョンには、Google が好む方法で Daydream Motion Controller を表示するために必要なコードとアセットが含まれています。 
 
-* [https://developer.android.com/ndk/downloads/index.html](https://developer.android.com/ndk/downloads/index.html)
+* [Google VR Github Pull](https://github.com/googlevr-unreal/UnrealEngine/tree/4.13-googlevr)
 
-ダウンロードおよびインストールが完了したら、**[Android SDK]** > **[SDKConfig]** セクションで NDK パスを NDK 11c のインストール先に変更して、UE4 をNDK ファイルに指定する必要があります。 
+このバージョンのダウンロードが完了したら、[Github からアンリアルをZipでダウンロードする方法](GettingStarted/DownloadingUnrealEngine/DownloadZip) の説明に従って、残りのセットアップを完了させます。
+
+## Android NDK 11c
+Daydream の機能にフルアクセスするためには、Android NDK version 11c のダウンロードおよびインストールが必要となります。 
+
+* [NDK 11c Downlaod](https://developer.android.com/ndk/downloads/index.html)
+
+ダウンロードおよびインストールが完了したら、**[Android SDK]** > **[SDKConfig]** セクションで NDK パスを NDK 11c のインストール先に変更し、SDK API level を **matchndk** に、NDK API Level を **android-24** にそれぞれ設定して、UE4 をNDK ファイルに指定する必要があります。
 
 ![](GDaydream_New_NDK_00.png)
 
-### Scanline Racing
-Scanline Racing は、VR プロジェクトでのレイテンシーを減らすことができる Daydream 固有の機能です。Daydream デバイス向け Google VR プロジェクトで Scanline Racing を有効にするには、以下の操作を行います。
+## Scanline Racing
+**Scanline Racing** は、VR プロジェクトでのレイテンシーを減らすことができる Daydream 固有の機能です。Daydream デバイス向け Google VR プロジェクトで Scanline Racing を有効にするには、以下の操作を行います。
 
 1. **[Project Settings (プロジェクト設定)]** の **[Platforms]** > **[Android]** を選択します。
 
-	![](GDaydream_Arm64_Support_00.png)
+    ![](GDaydream_Arm64_Support_00.png)
 
-1. **[Build]** セクションの **[Support arm64[aka arm64-v8a]]** のチェックボックスにチェックを入れて有効にします。
+1. **[Build]** セクションの **[Support arm64[aka arm64-v8a]]** のチェックボックスにチェックを入れて有効にして、**Support arm7[aka armebi-v7a]** を無効にします。
 
-	![](Platforms\GoogleVR\QuickStart\2\GVRQS_Build_arm64_Support_00.png)
+    ![](Platforms\GoogleVR\QuickStart\2\GVRQS_Build_arm64_Support_00.png)
 
-	[region:note]
+    [region:note]
     これを有効にすることで、arm64 ライブラリのコンパイルが必要な場合、最初のクックに大幅に時間が追加されます。
     [/region]
 
-1. 次に **[Advanced APKPackaging (APKPackaging の詳細設定)]** セクションで **[Configure GoogleVR for low-latency rendering mode (scanline racing)(低レイテンシー レンダリングモードに設定する)]** のチェックボックスにチェックを入れて有効にします。
+1. 次に、**[Advanced APKPackaging]** セクションの以下のオプションを有効にします。
+	* **[Configure for deployment to Daydream]**
+	* **[Configure GoogleVR Deployment Mode]**
+	* **[Configure GoogleVR for low-latency rendering mode (scanline racing)]**
 
-	![](GDaydream_Scanline_Racing_Support_00.png)
+    ![](GDaydream_Scanline_Racing_Support_00.png)
 
 そして UE プロジェクトをクックし、それを低レイテンシー レンダリング設定を有効にした Daydream デバイスにデプロイします。
 
-### モーション コントローラー
-Daydream デバイス用モーション コントローラの操作は、HtC Vive や Oculus Rift のモーション コントローラーの操作とほぼ同じです。この機能を追加するには、以下の手順に従います。
+## モーション コントローラー
+Daydream デバイス用モーション コントローラの操作は、HTC Vive や Oculus Rift のモーション コントローラーの操作とほぼ同じです。この機能を追加するには、以下の手順に従います。
 
 [region:note]
-UE4 のモーション コントローラーに関する詳細を知りたい方は、[モーション コントローラー公式文書](https://docs.unrealengine.com/latest/INT/Platforms/VR/MotionController/) ページを参照してください。
+UE4 で Google Daydream Controller のモーション コントローラーを使用する方法の詳細については、[Google Arm Model 公式文書](https://developers.google.com/vr/unreal/arm-model) を参照してください。
 [/region]
 
-1. プレイヤー ポーンを開いて、**[Add Components (コンポーネントを追加)]** リストから Motion Controller コンポーネントを検索して以下の項目を追加します。
+1. まず、プロジェクトの [Plugins] メニューを開き、[Input] セクションで **[Google VR Motion Controller]** を有効にします。
 
-	* Motion Controller コンポーネント
-	* スタティクメッシュのある Static Mesh コンポーネント
+    ![](GDaydream_Plugins.png)
 
-	[region:lightbox] 
-	[![](GVRQS_Daydream_MC_Setup_00.png)(w:700)](GVRQS_Daydream_MC_Setup_00.png)
+    [region:note]
+    プラグインを使用するためには、UE4 エディタを再起動する必要があります。再起動しないと、Google VR モーション コントローラーを使用することができません。 
+    [/region]
+
+1. 次に、プロジェクトの Pawn を開いて **GoogleVRMotionController** コンポーネントをコンポーネント リストに追加します。完了すると、Pawn の設定はこのようになります。 
+
+    ![](GDaydream_MC_Addation.png)
+
+    [region:tip]
+    Motion Controller コンポーネントには、VR カメラと同じ位置と高さを使います。
+    [/region]
+
+1. プロジェクトを実行すると、モーション コントローラーはこのようになります。
+
+	[REGION:lightbox]
+	[![](unreal-controller-model.png)(w:724)](unreal-controller-model.png)
+	[/REGION]
+
+	[region:note]
+	UE4 の 4.14 バイナリ ビルドを使用している場合、上のコンテンツはなくなるので、代わりに標準の Motion Controller コンポーネントを使用します。この機能のすべては、UE4 のリリース 4.15 に入る予定です。この機能がすぐに必要な場合、[UE4.13 Google VR version](https://github.com/googlevr-unreal/UnrealEngine/tree/4.13-googlevr) のダウンロードおよびコンパイルが必要になります。
 	[/region]
 
-1. 次に、イベントグラフで Motion Contorler ブループリント関数を使って、モーションコントローラー上のボタンとインタラクトさせます。
-
-	![](Platforms\VR\MotionController\Working_With_MC.png)
+Google VR Motion Controller コンポーネントをポーンに設定したので、ブループリント エディタで **Google VR** を検索して見つけたノードを使用して、Motion Controller の機能の編集および調整をすることができます。 
 
 ## トレーニング ストリーム
 
+これらのトレーニング ストリームでは、Motion Controller の設定、Motion Controller を使った VR でのインタラクション作成に関する追加リソースです。 
+
 [REGION:topics third]
 [OBJECT:TopicCompactVideo]
-	[PARAMLITERAL:title]
-	モーション コントローラーの設定
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	6ALnsdQnkVQ
-	[/PARAMLITERAL]
+    [PARAMLITERAL:title]
+    モーション コントローラーの設定
+    [/PARAMLITERAL]
+    [PARAMLITERAL:videoid]
+    6ALnsdQnkVQ
+    [/PARAMLITERAL]
 [/OBJECT]
 [OBJECT:TopicCompactVideo]
-	[PARAMLITERAL:title]
-	モーション コントローラーと VR のインタラクションの作成 (パート 1)
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	eRNtgFo6iU0
-	[/PARAMLITERAL]
+    [PARAMLITERAL:title]
+    モーション コントローラーと VR のインタラクションの作成 (パート 1)
+    [/PARAMLITERAL]
+    [PARAMLITERAL:videoid]
+    eRNtgFo6iU0
+    [/PARAMLITERAL]
 [/OBJECT]
 [OBJECT:TopicCompactVideo]
-	[PARAMLITERAL:title]
-		モーション コントローラーと VR のインタラクションの作成 (パート 2)
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	utOahIZgKgc
-	[/PARAMLITERAL]
+    [PARAMLITERAL:title]
+        モーション コントローラーと VR のインタラクションの作成 (パート 2)
+    [/PARAMLITERAL]
+    [PARAMLITERAL:videoid]
+    utOahIZgKgc
+    [/PARAMLITERAL]
 [/OBJECT]
 [/REGION]
 

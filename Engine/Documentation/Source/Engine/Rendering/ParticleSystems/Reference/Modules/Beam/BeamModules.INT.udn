@@ -3,6 +3,7 @@ Title:Beam Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules are used to configure the behavior of emitters using the Beam TypeData module.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

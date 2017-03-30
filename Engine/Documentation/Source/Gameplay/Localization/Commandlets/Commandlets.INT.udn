@@ -1,10 +1,12 @@
 Availability:Public
-Title: Commandlets
+Title: Localization Commandlets
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:Descriptions and arguments for the commandlets used when localizing your project. 
 version: 4.9
 Parent:Gameplay/Localization
 Order:4
+Tags:Localization
+Type:Reference
 
 
 [TOC (start:2)]

@@ -3,6 +3,7 @@ Title:Coordinates Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Expressions that perform actions on texture coordinates or output values that can be used as, or to modify, texture coordinates.
 Version:4.9
+tags:Materials
 
 [EXCERPT:TOC]
 [TOC(start:2)]

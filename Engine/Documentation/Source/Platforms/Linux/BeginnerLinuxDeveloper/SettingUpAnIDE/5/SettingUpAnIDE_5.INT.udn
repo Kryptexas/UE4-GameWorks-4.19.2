@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: 5 - Creating a Blueprint Project from your IDE
 Crumbs:
 Description:Learn how to create and configure a Blueprint project from your IDE.
@@ -9,23 +9,7 @@ order: 5
 tags:Linux
 SkillLevel:Beginner 
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/4 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/6 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 You can create either Blueprint or CPP projects from the [](Engine/Basics/Projects/Browser) in UE4. In this section, we'll show you how to create a new Blueprint project from UE4. 
 For the purposes of this guide, let's suppose that you want to 
@@ -90,4 +74,4 @@ Creating any type of Blueprint project, with or without a project template, is n
 however, when you'll want to create and modify the source code driving 
 your game. In the next section, we'll show you how to create a new CPP project from UE4.
 
-%Steps%
+[NAV]

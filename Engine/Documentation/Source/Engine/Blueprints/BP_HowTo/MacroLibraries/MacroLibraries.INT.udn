@@ -7,6 +7,7 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Blueprints
 version:4.8
 skilllevel:Advanced
+tags:Blueprints
 
 A **Macro Library** is a container that holds a collection of Macros or self-contained graphs that can be placed as nodes in other Blueprints. These can be time-savers as they can store commonly used sequences of nodes complete with inputs and outputs for both execution and data transfer.
 

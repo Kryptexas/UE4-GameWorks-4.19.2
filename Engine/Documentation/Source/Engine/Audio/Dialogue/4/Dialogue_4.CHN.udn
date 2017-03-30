@@ -1,50 +1,35 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:4. Displaying Subtitles
+﻿INTSourceChangelist:3218993
+Availability:Public
+Title:4.显示字幕
 Crumbs: %ROOT%, Engine, Engine/Audio
-Description:Enabling subtitles to display for your project
-version: 4.13
+Description:在项目中启用字幕显示
+version:4.13
 parent:Engine/Audio/Dialogue
 order:4
+type:quick start
 checkpoint:dialogueqs
-prereq: Engine/Blueprints/QuickStart
+prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[Previous Step](Engine/Audio/Dialogue/3 "%Engine/Audio/Dialogue/3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/Audio/Dialogue)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/Audio/Dialogue/5 "%Engine/Audio/Dialogue/5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+字幕应为默认启用。**Project Settings** 中有一个勾选框可确定其是否为开启状态。
 
-Subtitles should be enabled by default, but if you need to check that they are on, there is a checkbox in **Project Settings**.
+1. 打开 **Project Settings**。
 
-1. Open **Project Settings**.
-
-1. Under **General Settings**, locate the **Subtitles** section, then make sure the **Subtitles Enabled** box is checked. 
+1. 在 **General Settings** 下找到 **Subtitles** 部分，确定 **Subtitles Enabled** 框已勾选。 
 
 	![](SubtitlesOn.png)
 
-Now, when you trigger the Quest NPC's dialogue, the accompanying subtitle text shows at the bottom of the screen.
+现在触发任务 NPC 的对话后，对应的字幕文本将显示在屏幕下方。
 
 ![](SubtitlesPlaying.png)
 
 [REGION:note]
-Subtitles will not display unless there is a **Sound Wave** set in your **Dialogue Wave** for the context that is currently happening.
+**Sound Wave** 在当前发生语境的 **Dialogue Wave** 中被设定时才会显示字幕。
 [/REGION]
 
-%Steps%
+[NAV]

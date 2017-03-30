@@ -1,53 +1,94 @@
 Availability:Public
 Title:Advanced Blueprint Nativization
-Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
+Crumbs:
+Description:Technical guide for programmers exposing gameplay elements to Blueprints.
 Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints
 Parent: Engine/Blueprints/TechnicalGuide
-Version:4.12
+Version:4.15
 type:reference
+tags:Blueprints
+SkillLevel:Advanced
+prereq:Engine/Blueprints/TechnicalGuide/NativizingBlueprints
 
 [TOC(start:2)]
 
-
 ## Building with Unreal Automation Tool
-To nativize Blueprints while building with Unreal Automation too, add the `-nativizeAssets` switch to your BuildCookRun command line.
 
-## C++ Cooperation
+To nativize Blueprints while building with Unreal Automation Tool from the commandline, add the `-nativizeAssets` switch to your `BuildCookRun` command.
 
-Nativized blueprints are stored in a new, separate module, which means that the headers from gameplay module are now used outside their module. 
-You should check that all headers have declared all classes and all structs that are used, either as a included header, or as a forward declaration.
+##Header Declaration
 
-Many projects have an "aggregate" header `[GameName]/[GameName].h` or `[GameName]/Public/[GameName].h`. If you add the path to this header to 
-`FilesToIncludeInModuleHeader` under `[BlueprintNativizationSettings]` in `DefaultEditor.ini`, it can fix many issues related to missing headers.
+Nativized Blueprints are stored in a new, separate module, which means that headers from the gameplay module are now used outside of their original module. 
+You should check that all of your headers have declared all of the classes, and all of the structs, being used; either as an included header or as a forward declaration.
 
-There are some rules/restrictions that help make cooperation between manually written code and the nativized code more reliable and efficient. 
+###Fixing Missing Headers
 
-The following implementations are not supported: 
-- private/protected variables with `BlueprintVisible` or `Editable` tags
-- private/protected functions that are marked as `BlueprintPure` or `BlueprintCallable`
-- `noexport` structures/classes
-- bitfield variables with `BlueprintVisible` or `Editable` tags
-- private bitfield variables
-- `UBlueprintGeneratedClass`, `UUserDefinedStruct`, `UUserDefinedEnum` variables, or any type based on them
+Many projects have an "aggregate" header: either `[GameName]/[GameName].h`, or `[GameName]/Public/[GameName].h`. 
+* If you add the path of this header to `FilesToIncludeInModuleHeader`, under `[BlueprintNativizationSettings]` in `DefaultEditor.ini`, you can fix many 
+  issues related to missing headers.
+
+##Fostering Code Cooperation
+
+There are some restrictions that help make cooperation between manually written code and nativized code, reliable and efficient. With this in mind, 
+the following implementations aren't supported: 
+
+* Private and Protected Functions Marked as `BlueprintPure` or `BlueprintCallable`
+* `noexport` Structures and Classes
+* Bitfield Variables with `BlueprintVisible` or `Editable` Tags
+* Private Bitfield Variables
+* `UBlueprintGeneratedClass`, `UUserDefinedStruct`, and `UUserDefinedEnum` Variables (or any type based on these variables)
 
 ## Technical Details
 
-Nativizing Blueprints should work with Visual Studio 2013 and Visual Studio 2015, however 2015 is strongly recommended as it handles larger projects better.
-If there is a strange compiler/linker error like LNK1000, LNK1248, then try to reduce the amount of nativized Blueprints by excluding types or specific Blueprints.
+Nativizing Blueprints should work with Visual Studio 2013 and Visual Studio 2015; however, Visual Studio 2015 is strongly recommended because it was developed 
+to handle large projects. If you encounter a compiler or linker error (such as LNK1000 or LNK1248), try reducing the amount of nativized Blueprints from your project,
+by excluding Blueprint types, or specific Blueprints, in the `DefaultEngine.ini` configuration settings file. For more information about excluding Blueprints 
+from nativization, refer to our [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints) documentation.
 
-The `BlueprintCompilerCppBackend` module (found here: `Engine\Source\Developer\BlueprintCompilerCppBackend\`) converts the Blueprint syntax tree into C++. 
-The `BlueprintNativeCodeGen` module (found here: `Engine\Source\Developer\BlueprintNativeCodeGen\`) does a lot of magic while cooking and packaging. 
+If you want to learn how the Blueprint Nativization process works "under-the-hood", read through the following modules:
 
+* The `BlueprintCompilerCppBackend` module (found in `Engine\Source\Developer\BlueprintCompilerCppBackend\`) converts the Blueprint syntax tree into C++. 
+* The `BlueprintNativeCodeGen` module (found in `Engine\Source\Developer\BlueprintNativeCodeGen\`) does a lot of "magic" while cooking and packaging. 
 
 [PUBLISH:Licensee]
+
 ## Debugging Converted Code on Windows
 
-If you are working with a project that already includes some C++ code, you can debug using the existing project solution.
-However, if your project originally contained only Blueprints, you need to execute `GenerateProjectFiles.bat` so that your project will have a solution.  
-Do not use this solution (or the new project under the main UE4 solution) to compile your project or to build an Editor version of your project. 
+If you are working with a project that already includes some C++ code, you can use the existing project solution to debug the code. However, if your project originally contained only Blueprints, you'll need to run the `GenerateProjectFiles` batch file so that your project will have a Visual Studio solution.
 
-To build a debug .exe file:
+[REGION:warning]
+Do not use this solution (or a new project under the main UE4 solution) to compile your project or to build an Editor version of your project. 
+[/REGION]
+
+###Steps
+
+The following steps assume that you've already cooked, built, and staged your project. 
+
+1.	Navigate to the NativizedAssets plugin folder, which should be located in your game's Intermediate folder (for example, `[GameDirectory]\Intermediate\WindowsNoEditor\NativizedAssets`).
+
+	![](NativizedAssetsFolder_Loc.png)(w:863)
+
+1.	Move the NativizedAssets plugin folder into your game's Plugins folder (for example, `[GameDirectory]\Plugins`).
+
+	[REGION:lightbox]
+		[![](NativizedAssetsMove_Loc.png)(w:863)](NativizedAssetsMove_Loc.png)
+	[/REGION]
+	
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+
+1.	Now, compile UE4 into a Development (or Development-Client, Development-Server) executable configuration, passing `-basedir="[Path to Cooked Game]\Binaries\Win64"` as a command line parameter.
+
+	[REGION:note]
+	Passing `-basedir=""` as a command line parameter points UE4 to your game's cooked build.
+	[/REGION]
+
+At this point, you should be able to debug and modify the Nativized code at your discretion.
+
+[/PUBLISH:Licensee]
+
+<!--Commented out per SME; however, it's being preserved for future review.
 
 1. Run the following lines. They can be found in your output log when your nativized build is packaged, so it's easiest to copy them out to verify that the switches 
 are correct for your environment. Just change the `Development` switch to `Debug`. 
@@ -60,4 +101,4 @@ are correct for your environment. Just change the `Development` switch to `Debug
 
 3. Run debug in Visual Studio, but do not recompile the project from Visual Studio.
 
-[/PUBLISH:Licensee]
+-->

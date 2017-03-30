@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 툴바
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description: 에디터 상단의 여러가지 기능을 하는 버튼이 모여있는 바입니다.
 version: 4.9
+tags:Blueprints
 
 
 [EXCERPT:Intro]

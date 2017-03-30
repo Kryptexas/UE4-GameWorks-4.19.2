@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 블루프린트 해부도
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,6 +6,7 @@ Description: 블루프린트 그래프 안에서 사용할 수 있는 블루프�
 version: 4.9
 parent:Engine/Blueprints
 order:3
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

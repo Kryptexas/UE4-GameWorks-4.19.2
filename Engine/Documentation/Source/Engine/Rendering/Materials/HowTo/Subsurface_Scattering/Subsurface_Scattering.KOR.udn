@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title: 머티리얼에서 서브서피스 스캐터링 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -9,6 +9,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_13
 Related: Resources/ContentExamples/MaterialNodes/1_7
 Version:4.9
 SkillLevel:Intermediate
+tags:Materials
 
 [TOC(start:2)]
 

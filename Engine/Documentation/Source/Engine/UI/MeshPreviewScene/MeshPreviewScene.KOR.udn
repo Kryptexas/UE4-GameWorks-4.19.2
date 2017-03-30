@@ -1,41 +1,42 @@
-﻿INTSourceChangelist:3195190
-Availability:docs
-Title: Mesh Preview Scenes
+﻿INTSourceChangelist:3277768
+Availability:Public
+Title: 메시 프리뷰 씬
 Crumbs: %ROOT%, Engine
-Description:Mesh Preview Scenes
+Description: 언리얼 엔진 4 의 메시 프리뷰 씬 프로파일 구성 및 사용법입니다.
 Version: 4.13
+parent:Engine/UI
+type:overview
+tags:User Interface
 
 
-
-In the **Static Mesh Editor** and **Persona** you can now set up preview scenes when inspecting your assets. This allows you to quickly assess what your assets would look like in multiple different 
-environments and lighting scenarios without having to set up these scenes within the game viewport. 
+여러 개의 스태틱 / 스켈레탈 메시용 에디터 창에서 이제 애셋을 조사할 때 사용할 프리뷰 씬을 별도로 구성할 수 있습니다. 이를 통해 레벨 안에서 씬을 별도로 구성할 필요 없이 여러가지 배경 및 라이팅 시나리오에서 애셋이 어때 보이는지 빠르게 가늠해볼 수 있습니다.
 
 ![](6.png)(w:950)
 
-The **Preview Scene Settings** panel enables you to adjust the following in your preview scene:
+**프리뷰 씬 세팅** 패널에서는 프리뷰 씬의 다음과 같은 부분을 조절할 수 있습니다:
 
-* Directional Lights: Color, Intensity, and Rotation
-* Sky Lights: HDRI Environment Map, Intensity, and Rotation
-* Post Process Volumes: All Settings
+* 디렉셔널 라이트: 색, 강도, 회전
+* 스카이 라이트: HDRI 인바이언먼트 맵, 강도, 회전
+* 포스트 프로세스 볼륨: 모든 세팅
 
-## Using Scene Profiles
+## 씬 프로파일 사용
 
-The **Preview Scene Settings** enable you to set up any number of environments and lighting scenarios to emulate your game levels. These scenes can be saved as any number of separate 
-profiles that can be shared between the **Static Mesh Editor** and **Persona**. 
+**프리뷰 씬 세팅** 에서는 배경과 라이팅 시나리오를 몇이든 구성하여 게임 레벨 에뮬레이션이 가능합니다. 이 씬들은 별도의 프로파일로 몇 개든 나누어 저장한 뒤 
+여러 에디터 창에서 공유할 수 있습니다.
 
 
-### Adding Profiles
+### 프로파일 추가
 
-1. When you open the **Static Mesh Editor** or **Persona**, locate the panel on the right for **Preview Scene Settings**. 
+1. 콘텐츠 브라우저에서 스태틱 또는 스켈레탈 메시를 열면, 오른편에서 에디터의 **프리뷰 씬 세팅** 패널을 찾습니다.
 	
 	[REGION:imagetable]
 	| [INCLUDE:#staticmesheditor] | [INCLUDE:#skeletalmesheditor] |
 	| --- | --- |
-	|Static Mesh Editor| Persona |
-	| _Click for Full Image_ | _Click for Full Image_ |
+	|스태틱 메시 에디터| 스켈레탈 메시 에디터|
+	| _클릭하면 원본을 확인합니다_ | _클릭하면 원본을 확인합니다_ |
 	[/REGION]
 
-2. Adjust the various settings until you have something that emulates the environment lighting and Post Processing settings you would like to use.
+2. 여러가지 세팅을 조절하여 원하는 하는 배경 라이팅 및 포스트 프로세스 세팅 에뮬레이션을 만듭니다.
 	
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -49,59 +50,59 @@ profiles that can be shared between the **Static Mesh Editor** and **Persona**.
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-3. In the text box for **Profile Name**, give it a name that will be useful, like "Nighttime Environment" or "Daytime Environment".
+3. **Profile Name** (프로파일 이름) 텍스트 박스에 "Nighttime Environment" (밤 배경) 또는 "Daytime Environment" (낮 배경) 등 적당한 이름을 짓습니다.
 
 	[REGION:lightbox]
 	[![](ProfileName.png)(w:350)](ProfileName.png) 
 	[/REGION]
 
-4. Click on the button for **Add Profile**. 
+4. **프로파일 추가** 버튼을 클릭합니다. 
 
 	[REGION:lightbox]
 	[![](AddingProfile.png)(w:350)](AddingProfile.png) 
 	[/REGION]
 
-5. You have now created and saved your profile and can select it from the drop-down next to **Scene Profile Settings**. 
+5. 이제 프로파일을 생성하고 저장했으니 **씬 프로파일 세팅** 옆 드롭다운에서 선택할 수 있습니다.
 
 	[REGION:lightbox]
 	[![](ProfileSelection.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
 
-#### Removing Profiles
+#### 프로파일 제거
 
-1. Select a profile from the drop-down menu next to **Scene Profile Settings**.
+1. **씬 프로파일 세팅** 옆 드롭다운 메뉴에서 프로파일을 선택합니다.
 
 	[REGION:lightbox]
 	[![](RemoveProfileSelection.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
-2. Click on the button for **Remove Profile** to permanently delete the currently selected profile.
+2. **프로파일 제거** 버튼을 클릭하여 현재 선택된 프로파일을 영구 삭제합니다.
 
 	[REGION:lightbox]
 	[![](RemoveProfileButton.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
-3. You will now see that profile has been removed leaving only the default profile and any other previously set up profiles. 
+3. 이제 그 프로파일이 제거되어 기본 프로파일과 기존에 구성해 둔 다른 프로파일만 남은 것이 보일 것입니다.
 
 	[REGION:lightbox]
 	[![](RemoveProfileSelection1.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
 
-### Rotating the Environment
+### 배경 회전
 
-In this section, you will adjust the environment rotation which will rotate the skybox and the Directional Light around the mesh. This setting can be used to simply rotate the environment
-around the mesh manually or to set a speed for the environment to rotate continually.
+여기서는 스카이 박스와 디렉셔널 라이트를 메시 중심으로 회전시키는 environment rotation(배경 회전)을 조절합니다. 이 세팅을 사용하여 단순히 배경을 메시 주변으로 수동 회전시키거나 
+배경이 지속적으로 회전하도록 속도를 설정할 수도 있습니다.
 
 
-1. Enable environment rotation by placing a checkbox next to **Rotate Sky and Directional Lighting**.
+1. **Rotate Sky and Directional Lighting** (스카이 및 디렉셔널 라이팅 회전) 옆 박스를 체크하면 배경 회전이 켜집니다.
 
 	[REGION:lightbox]
 	[![](RotatingEnvironment.png)(w:350)](RotatingEnvironment.png) 
 	[/REGION]
 
-2. Next, set a value for **Rotation Speed** for the environment to start rotating.
+2. 다음, 배경에 **Rotation Speed** (회전 속도) 값을 설정하면 회전이 시작됩니다.
 
 	![](RotationSpeed.png)(w:350)
 	[OBJECT:EmbeddedVideo]
@@ -117,15 +118,15 @@ around the mesh manually or to set a speed for the environment to rotate continu
 	[/OBJECT]
 
 	[REGION:note]
-	You can manually rotate the environment by holding down the **K** key and left-click drag and the Directional Light by holding down the **L** key and left-click drag to rotate.
+	**K** 키를 누른 상태에서 좌클릭 드래그하면 배경을, **L** 키는 디렉셔널 라이트를 수동 회전시킬 수 있습니다.
 	[/REGION]
 
 
-### Toggle Environment and Floor Visibility
+### 배경 및 바닥 표시여부 토글
 
-In this section, you will learn how to hide and show the Environment and Floor mesh for your preview scene. 
+여기서는 프리뷰 씬의 배경 및 바닥 메시를 숨기고 표시하는 법을 알아봅니다.
 
-1. Click the check box next to **Show Environment** and **Show Floor** to hide/show these features. 
+1. **Show Environment** (배경 표시) 및 **Show Floor** (바닥 표시) 옆 박스를 체크하여 표시/숨김 설정을 합니다.
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -140,11 +141,11 @@ In this section, you will learn how to hide and show the Environment and Floor m
 	[/OBJECT]
 
 
-### Assigning an Environment Cube Map
+### 인바이언먼트 큐브 맵 할당
 
-In this section, you will learn how to assign a skybox for the environment for your preview scene.
+여기서는 프리뷰 씬의 배경에 대한 스카이 박스 할당법을 알아봅니다.
 
-1. Click the selection drop-down next to **Environment Cube Map** to select from the available HDRI cube maps. 
+1. **Environment Cube Map** (인바이언먼트 큐브 맵) 옆의 드롭다운 박스를 클릭하여 가능한 HDRI 큐브 맵 중 하나를 선택합니다.
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -160,7 +161,7 @@ In this section, you will learn how to assign a skybox for the environment for y
 
 
 [REGION:tip]
-Use the View Options for **Show Engine Content** to see additional cube maps that are included in the **Engine Content** folder.
+**Show Engine Content** (엔진 콘텐츠 표시)의 뷰 옵션으로 **엔진 콘텐츠** 폴더에 포함된 부가 큐브 맵을 확인할 수 있습니다.
 
 [REGION:lightbox]
 [![](ViewOptions.png)(w:600)](ViewOptions.png)
@@ -168,16 +169,16 @@ Use the View Options for **Show Engine Content** to see additional cube maps tha
 [/REGION]
 
 
-### Post Process Settings
+### 포스트 프로세스 세팅
 
-Like the Post Process Volume settings available in your game viewport, you have full control over all available Post Process settings for your preview scenes under the advanced rollout. 
-You can toggle the post processing on and off for the Preview Scene by using the checkbox for **Post Processing Enabled**. 
+게임 뷰포트에 있는 Post Process Volume 세팅과 마찬가지로, 프리뷰 씬의 고급 선택창 아래서도 포스트 프로세스 세팅 전체를 사용할 수 있습니다.
+프리뷰 씬에 대한 포스트 프로세싱은 **Post Processing Enabled** (포스트 프로세싱 활성화) 박스를 통해 켜고 끌 수 있습니다.
 
 [REGION:lightbox]
 [![](ScenePostProcess.png)(w:350)](ScenePostProcess.png)
 [/REGION]
 
-For a full breakdown of the various settings you can check out the [Post Process Effects](https://docs.unrealengine.com/latest/INT/Engine/Rendering/PostProcessEffects/) page. 
+여러가지 세팅 관련 자세한 분석은 [](Engine/Rendering/PostProcessEffects/) 문서를 참고하세요.
 
 
 

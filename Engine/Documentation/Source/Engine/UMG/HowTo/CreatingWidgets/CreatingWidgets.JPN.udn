@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:3097683
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:UI を作成し、表示する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:ゲームプレイ中に画面に UI エレメントを作成、表示、取り除く方法の例です。 
+Description:ゲームプレイ中に画面に UI エレメントを作成、表示、削除する方法の例です。 
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
 Version:4.12
 SkillLevel:Beginner
+tags:UMG UI Designer
 
 通常、ほとんどのゲームでは、ユーザー インターフェース (UI) を通してプレイヤーに何らかの情報を伝えます。 
 UI には、メイン メニュー、インゲームの一時停止メニュー、ヘルス、経験値、インベントリ アイテム、または任意の状況でプレイヤーに何をすべきか指示するヘルプ テキストがあります。 

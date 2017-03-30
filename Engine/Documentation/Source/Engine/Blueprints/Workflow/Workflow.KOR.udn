@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 블루프린트 작업방식 툴
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,6 +6,7 @@ Description: 코멘트나 중단점과 같은 툴을 사용하면 코드 흐름�
 version: 4.9
 parent:Engine/Blueprints
 order:3
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

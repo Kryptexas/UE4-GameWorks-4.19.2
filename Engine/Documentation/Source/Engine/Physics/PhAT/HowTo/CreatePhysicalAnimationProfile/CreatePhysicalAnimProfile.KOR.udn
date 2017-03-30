@@ -1,111 +1,73 @@
-﻿INTSourceChangelist:3163633
-Availability:Docs
-Title:How-To Create a Physical Animation Profile
+﻿INTSourceChangelist:3260663
+Availability:Public
+Title:피지컬 애니메이션 프로파일 생성 방법
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to create a Physical Animation Profile using the Physics Asset Tool.
+Description:피직스 애셋 툴을 사용하여 피지컬 애니메이션 프로파일을 만드는 법을 안내해 드립니다.
 parent:Engine/Physics/PhAT/HowTo
 order:1
 Version: 4.13
 skilllevel:Intermediate
 related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
 related:Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile
+topic-image:Engine/Physics/physics_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+여기서는 **피지컬 애니메이션 프로파일** 생성 기초 및 **피직스 바디** 를 추가하는 법에 대해 다룹니다.
 
-In this How-To, we'll cover the basics of creating a **Physical Animation Profile** and adding **Physics Bodies** to it.
+## 단계
 
-## Steps
-
-1. Open or [Create](Engine/Physics/PhAT/HowTo/CreatePhysicsAsset) a **Physics Asset** for your **Skeletal Mesh** using the **Content Browser**.
+1. **콘텐츠 브라우저** 에서 **스켈레탈 메시** 에 대한 **피직스 애셋** 을 열거나 [생성](Engine/Physics/PhAT/HowTo/CreatePhysicsAsset) 합니다.
 
 	![](openPhATAsset.png)
 
 	[REGION:note]
-	If opting to create a new **Physics Asset** you'll need to set it up before continuing.
+	**피직스 애셋** 을 새로 생성하려면, 계속 진행하기 전 먼저 구성을 해 줘야 합니다.
 	[/REGION]
 
-1. Open the Physics Asset window by using the **Window Menu** -> **Physics Asset** option.
+1. **창 메뉴** -> **피직스 애셋** 옵션으로 피직스 애셋 창을 엽니다.
 
 	[REGION:raw]
 	![](openPhATPhysicsAssetWindow.png)(convert:false)
 	[/REGION]
 
-1. Add Profile using the **+** button on the **Physical Animation Profiles** entry, and set its name (in the image below we've named it `DocsProfile`).
+1. **피지컬 애니메이션 프로파일** 칸의 **+** 버튼으로 프로파일을 추가하고, 그 이름을 설정합니다 (아래 그림에서는 `DocsProfile` 로 설정했습니다).
 
 	![](physAnimSetProfileName.png)
 
-1. **Close** the Physics Assset Window.
+1. 피직스 애셋 창을 **닫습니다**.
 
-1. Using the **Profile Button** select the desired **Physical Animation Profile** to edit (again, we've chosen `DocsProfile`).
+1. **프로파일 버튼** 을 사용하여 편집을 원하는 **피지컬 애니메이션 프로파일** 을 선택합니다 (여기서도 `DocsProfile` 를 선택했습니다).
 
 	![](physAnimSetUsedProfile.png)
 
-1. Switch the Physics Asset Editor to **Physics Body Mode** using the **Bodies** ![](physAnimBodyButton.png) button.
+1. **바디** ![](physAnimBodyButton.png) 버튼으로 피직스 애셋 에디터를 **피직스 바디 모드** 로 전환합니다.
 
-1. Select the **Physics Bodies** you wish to include in the **Physical Animation Profile**.
+1. **피지컬 애니메이션 프로파일** 에서 포함시키고자 하는 **피직스 바디** 를 선택합니다.
 
-1. Press the **Add to Profile: YourProfileName** button in the **Details Panel**.
+1. **디테일 패널** 에서 **프로파일에 추가: 프로파일이름** 버튼을 누릅니다.
 
 	![](physAnimAddToProfile.png)
 
-1. Adjust the settings for the selected **Physics Bodies**.
+1. 선택된 **피직스 바디** 에 대한 세팅을 조절합니다.
 
 	![](physAnimDetailsAdjust.png)
 
 	[REGION:tip]
-	A solid place to start for these values is 1000, 100, 1000, 100, 0, 0
+	이 값을 시작하기 좋은 곳은 1000, 100, 1000, 100, 0, 0 입니다.
 
 	![](PhysAnimStartValues.png)
 	[/REGION]
 
-1. Repeat steps 7-9 for the **Physics Bodies** you desire to have in the **Physical Animation Profile**.
+1. **피지컬 애니메이션 프오파일** 에 있었으면 하는 **피직스 바디** 에 대해 7-9 단계를 반복합니다.
 
-1. Save your **Physics Asset** using the **Save** button in the **Physics Asset Tool**.
+1. **피직스 애셋 툴** 에서 **저장** 버튼으로 **피직스 애셋** 을 저장합니다.
 
 	[REGION:raw]
 	![](saveButton.png)(convert:false)
 	[/REGION]
 
-## Result
+## 결과
 
-The **Physics Asset** will have a profile that can be called upon from Blueprint or C++ to change the **Physical Animation** properties of its **Physics Bodies**.
+**피직스 애셋** 에 프로파일이 생겨있을 것입니다. 이것을 블루프린트나 C++ 에서 호출하여 그 **피직스 바디** 의 **피지컬 애니메이션** 프로퍼티를 변경할 수 있습니다.
 
 
 

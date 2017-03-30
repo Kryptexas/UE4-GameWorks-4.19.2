@@ -3,6 +3,7 @@ Title:Material Attributes Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:These expression nodes serve as a way to separate or combine various Material attributes, which is particularly useful when creating Layered Materials.
 Version: 4.9
+tags:Materials
 
 [EXCERPT:TOC]
 [TOC(start:2)]

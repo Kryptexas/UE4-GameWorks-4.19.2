@@ -1,52 +1,44 @@
-﻿INTSourceChangelist:2663261
+﻿INTSourceChangelist:3358386
 Availability:Public
 Title:ブレンド スペースの作成
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
-Description:Animation Blueprint アセットの AnimGraph に使用するためのマルチ入力のアニメーション ブレンディング アセットである Blendspace の新規作成ガイド
-version: 4.9
+Description:Animation ブループリントで使用するための Blend Space と Blend Space 1D アセット作成の概要。 
+Related:Engine\Animation\AnimHowTo\BlendSpace
+Related:Engine/Animation/Blendspaces/Editor
+Related:Engine/Animation/StateMachines
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Animation/AnimBlueprints/AnimGraph
+version:4.15
+type:how-to
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+topic-image:createblendspacetopic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Blendspaces/Creation:title%](Engine/Animation/Blendspaces/create.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Blendspaces/Creation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Blendspaces/Creation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Blendspaces/Creation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+このページでは、**Blend Space** アセットと **Blend Space 1D** アセットの作成方法を説明します。ブレンドスペースを関連付ける [スケルトン](Engine/Animation/Skeleton) を選択する必要があるからです。
 
+[REGION:note]
+Blend Space と Blend Space 1D の作成は一般的に同じですが、どのアセットで作業するかに応じて、[](Engine/Animation/Blendspaces/Editor) が若干異なります。 
+[/REGION]
 
-Blend Space は通常のアセットで、他のアセット同様コンテンツ ブラウザで作成しなければいけません。
-
-Blend Space は以下の手順で作成します。
-
-1. **コンテンツ ブラウザ** で Blend Space を作成したいフォルダへ移動し、![](Shared/EditorButtons/button_NewAsset.png) をクリック、または **右クリック** して **[Animation]** > **[BlendSpace]** を選択します。
+1. **コンテンツ ブラウザ** で、 **[Add New (新規追加)]** ボタンをクリックします (またはコンテンツブラウザで **右クリック**)。次に **[Animation ]** > **[Blend Space]** の順に選択します。
 
 	![](NewBlendSpace.png)
+
+	**Blend Space 1D** を作成する場合は、代わりに Blend Space 1D のオプションを選択します。 
+
+	![](blendspace1dcreate.png)
 
 1. **[Pick Skeleton (スケルトンを選択)]** ダイアログで Blend Space がターゲットとするスケルトンを選択します。
 
 	![](SkeletonList.png)
 
-1. Blend Space アセットが **コンテンツ ブラウザ** の指定場所に表示されます。
+	**Skeleton Assets** のリストの内容は、プロジェクトに Skeleton アセットがいくつあるかに応じて異なります。 
+
+1. 新しい Blend Space アセットの名前を入力します。 
 
 	![Create Blueprint - Asset Created](bs_create_asset.png)
 
-	Blend Space は、その Blend Space と同じスケルトンをターゲットとして、アニメーション ブループリントの **AnimGraphs** でも利用が可能です。
+	ブレンドスペースは、そのブレンドスペースと同じスケルトンをターゲットとする Animation ブループリントの **AnimGraphs** でも利用可能です。
 
-	[REGION:imagetable]
-	| ![](AssetBrowserBlendList.png)(h:400) | ![](ContextMenuBlendList.png)(h:400) |
-	| :---: | :---: |
-	| **アセット ブラウザ** | **コンテキスト メニュー** |
-	[/REGION]
-
+	![](AssetBrowserBlendList.png)

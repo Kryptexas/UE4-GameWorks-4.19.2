@@ -109,4 +109,4 @@ Version: 4.9
 | **2.19 CreateThirdOrthogonalVector** | 삼차 직교 벡터 생성 - **CreateThirdOrthogonalVector** 머티리얼 함수는 직교(직각) 벡터 풀 세트 생성에 얼마나 유용한지를 보여줍니다. |
 | **2.20 Camera Facing math** | 카메라 방향 계산 - **CameraPosition - ObjectPosition** 으로 오브젝트가 플레이어를 향하도록 회전시키는 방법을 보여줍니다 (예: 이 예제에서 여러 오브젝트 앞에 서 있을 때, 플레이어 바로 앞에 있는 오브젝트는 회전하지 않는 반면, 플레이어 왼쪽이나 오른쪽에 있는 오브젝트는 안쪽으로 회전됩니다). |
 | **2.21 Camera Facing math 2** | 카메라 방향 계산 2 - **Camera Left Vector** 와 **Camera Up Vector** 를 사용하여 오브젝트가 플레이어를 향하도록 회전시키는 효과를 만들어내고 있습니다 (이 예제는 2.20 과는 달리 바깥의 오브젝트는 전부 일제히 회전하기에 안쪽으로 회전하지 않습니다). |
-| **2.22 Trig tips** | 삼각법 꼼수 - 직각삼각형에서 두 변을 알고 있을 때 X 각을 구하는 해법에 관련된 사인, 코사인, 탄젠트 관련 꼼수입니다 (OH AH OA 는 기억하기 좋으라고 만들어 둔 연상법으로, O 는 Opposite (세로 변), H 는 Hypotenuse (빗변), A 는 Adjacent (밑변)을 나타내며, sin = o / h, cos = a / h, tan = o / a 를 나타냅니다.) |
+| **2.22 Trig tips** | 삼각법 팁 - 직각삼각형에서 두 변을 알고 있을 때 X 각을 구하는 해법에 관련된 사인, 코사인, 탄젠트 관련 팁입니다 (OH AH OA 는 기억하기 좋으라고 만들어 둔 연상법으로, O 는 Opposite (세로 변), H 는 Hypotenuse (빗변), A 는 Adjacent (밑변)을 나타내며, sin = o / h, cos = a / h, tan = o / a 를 나타냅니다.) |

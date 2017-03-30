@@ -3,7 +3,7 @@ Title: Invalidiation Box
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
 Description:Overview of using the Invalidation Box for optimizing UI Widgets. 
 version: 4.9
-
+tags:UMG UI Designer
 
 [REGION:warning]
 This feature is still in development and is considered **Experimental**. As such, some features may or may not work as expected. 

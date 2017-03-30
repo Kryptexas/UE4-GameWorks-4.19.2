@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 컴파일러 결과
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:블루프린트 에디터의 컴파일러 결과 패널에 대한 인터페이스입니다.
 version: 4.9
+tags:Blueprints
 
 
 [REGION:fullwidth]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3238697
 Availability: Public
 Title: 3.1 - 게임에 발사체 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -85,9 +85,11 @@ Version: 4.11
 			// 이 액터 프로퍼티의 기본값을 설정합니다.
 			AFPSProjectile();
 		
-			// 게임 시작시 또는 스폰시 호출됩니다.
+		protected:
+			// 게임 시작 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
+		public:
 			// 매 프레임 호출됩니다.
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -174,9 +176,11 @@ Version: 4.11
 			// 이 액터 프로퍼티의 기본값을 설정합니다.
 			AFPSProjectile();
 		
-			// 게임 시작시 또는 스폰시 호출됩니다.
+		protected:
+			// 게임 시작 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
+		public:
 			// 매 프레임 호출됩니다.
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -275,9 +279,11 @@ Version: 4.11
 			// 이 액터 프로퍼티의 기본값을 설정합니다.
 			AFPSProjectile();
 		
-			// 게임 시작시 또는 스폰시 호출됩니다.
+		protected:
+			// 게임 시작 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
+		public:
 			// 매 프레임 호출됩니다.
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -385,9 +391,11 @@ Version: 4.11
 			// 이 캐릭터 프로퍼티에 대한 기본값을 설정합니다.
 			AFPSCharacter();
 		
-			// 게임 시작시 또는 스폰시 호출됩니다.
+		protected:
+			// 게임 시작 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
+		public:
 			// 매 프레임 호출됩니다.
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -591,9 +599,11 @@ Version: 4.11
 			// 이 캐릭터 프로퍼티에 대한 기본값을 설정합니다.
 			AFPSCharacter();
 		
-			// 게임 시작시 또는 스폰시 호출됩니다.
+		protected:
+			// 게임 시작 또는 스폰시 호출됩니다.
 			virtual void BeginPlay() override;
 			
+		public:
 			// 매 프레임 호출됩니다.
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -635,7 +645,6 @@ Version: 4.11
 			// 스폰시킬 프로젝타일 클래스
 			UPROPERTY(EditDefaultsOnly, Category = Projectile)
 			TSubclassOf<class AFPSProjectile> ProjectileClass;
-		
 		};
 
 ## 코드 컴파일 및 검사

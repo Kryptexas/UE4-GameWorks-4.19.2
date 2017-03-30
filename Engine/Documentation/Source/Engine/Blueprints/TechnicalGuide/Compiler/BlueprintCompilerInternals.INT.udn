@@ -3,6 +3,7 @@ Title:Blueprint Compiler Overview
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:The steps of the Blueprint compilation process
 version: 4.9
+tags:Blueprints
 
 [TOC(start:2 end:2)]
 

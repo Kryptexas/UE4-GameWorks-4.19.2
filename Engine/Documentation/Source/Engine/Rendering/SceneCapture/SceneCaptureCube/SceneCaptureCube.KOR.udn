@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3225648
 availability:Docs
-title:Scene Capture Cube
-description: Using the Scene Capture Cube Actor in Unreal Engine 4.
+title:씬 캡처 큐브
+description: 언리얼 엔진 4 의 씬 캡처 큐브 액터 사용법입니다.
 crumbs:%ROOT%, Engine, Engine/Rendering, Engine/Rendering/SceneCapture
 version:4.14
 Type:topic

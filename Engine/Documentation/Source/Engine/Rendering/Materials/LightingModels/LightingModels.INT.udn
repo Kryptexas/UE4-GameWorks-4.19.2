@@ -7,6 +7,7 @@ parent:Engine/Rendering/Materials
 order:7
 type:landing
 topic-image:shadingmodels_topic.png
+tags:Materials
 
 
 [DIR(output:"topiccompact" parent:"Engine/Rendering/Materials/LightingModels")]

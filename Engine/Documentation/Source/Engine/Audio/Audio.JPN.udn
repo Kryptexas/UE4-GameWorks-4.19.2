@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3178047
+﻿INTSourceChangelist:3219004
 Availability:Public
 Title:オーディオとサウンド
 Crumbs: %ROOT%, Engine
@@ -54,7 +54,8 @@ order:5
 [EXCERPT:Intro]
 サウンドは、リアルな没入感のある環境をつくるうえで極めて重要です。レベル内の環境音や、ビークル (乗り物) や武器から発するインタラクティブなサウンド、 
 キャラクターの会話などといったゲーム内のオーディオによって、ユーザー体験が形成されたり損なわれたりするものです。ゲーム内のオーディを現実の音と同じように聞こえるようにするのは、
- 大変な仕事です。アンリアル エンジン 4 (UE4) のオーディオ システムには、ゲーム内のサウンドを望ましいものにするツールと機能があります。これは、重要なことです。なぜなら、外部アプリケーションで一度クリーンバージョンのサウンドを作成して、それをインポートし、さらに望ましい結果となるようにエンジン内で調整して適切な結果を生み出すことができるからです。
+ 大変な仕事です。アンリアル エンジン 4 (UE4) のオーディオ システムには、ゲーム内のサウンドを望ましいものにするツールと機能があります。これは、 
+ 重要なことです。なぜなら、外部アプリケーションで一度クリーンバージョンのサウンドを作成して、それをインポートし、さらに望ましい結果となるようにエンジン内で調整して適切な結果を生み出すことができるからです。
 [/EXCERPT:Intro]
 
 [OBJECT:TopicButtonList]
@@ -70,6 +71,7 @@ order:5
 		* [](Engine/Audio/SoundCues/NodeReference "%Engine/Audio/SoundCues/NodeReference:description%")
 		* [](Engine/Audio/SoundActors "%Engine/Audio/SoundActors:description%")
 		* [](Engine/Audio/DistanceModelAttenuation "%Engine/Audio/DistanceModelAttenuation:description%")
+		* [](Engine/Audio/Dialogue "%Engine/Audio/Dialogue:description%")
 	[/PARAM]
 [/OBJECT]
 

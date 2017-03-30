@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244370
 Availability: Public
 Title:노드 배치하기
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -11,7 +11,7 @@ skilllevel:Beginner
 parent:Engine/Blueprints/BP_HowTo
 type:how-to
 order:2
-
+tags:Blueprints
 
 여기서는 블루프린트의 그래프에 노드를 배치하는 방법에 대해 배워보겠습니다.
 

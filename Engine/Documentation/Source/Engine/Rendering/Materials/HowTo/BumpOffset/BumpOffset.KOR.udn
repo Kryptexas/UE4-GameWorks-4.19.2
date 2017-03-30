@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:범프 오프셋 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -8,6 +8,7 @@ Related: Engine/Rendering/Materials/ExpressionReference/Utility
 Related: Engine/Rendering/Materials
 Version: 4.9
 SkillLevel: Intermediate
+tags:Materials
 
 [TOC(start:2)]
 

@@ -1,51 +1,20 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3350329
 Title: VR 모드 가동
 Description: 언리얼 에디터의 VR 모드 활성화 방법을 배워봅니다.
 Crumbs:
 Availability: public
 parent: Engine/Editor/VR
 type:how-to
-order: 2
+order: 1
 tags: VR
 tags: Getting Started
-version: 4.13
+version: 4.15
 skilllevel: intermediate
+topic-image:activate_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/ActivateVRMode:title%](Engine/Editor/VR/ActivateVRMode/activate_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/ActivateVRMode:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/ActivateVRMode]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/ActivateVRMode:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:1 end:4)]
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/ActivateVRMode:title%](Engine/Editor/VR/ActivateVRMode/activate_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/ActivateVRMode:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/ActivateVRMode]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/ActivateVRMode:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-언리얼 엔진 4.12 버전 이후부터 에픽 게임스 런처를 통해 실행되는 엔진에서도 VR 편집 모드가 지원됩니다. [GitHub](Engine/Editor/VR/Setup) 에서 최신 업데이트 빌드를 받으실 수도 있습니다.
+언리얼 엔진 4.12 (가상 현실) 버전 이후부터 에픽 게임즈 런처를 통해 실행되는 엔진에서도 VR 편집 모드가 지원됩니다. [GitHub](Engine/Editor/VR/Setup) 에서 최신 업데이트 빌드를 받으실 수도 있습니다.
 
 [EXCERPT:main]
 
@@ -84,7 +53,8 @@ cZJmh881FCo
 [/PARAMLITERAL]
 [/OBJECT]
 
-**VR 편집 모드 자동 전환 켜고/끄기:**
+### VR 편집 모드 자동 전환 켜고 끄기
+
 1. **편집** 메뉴에서 **에디터 개인설정** 을 클릭하고 언리얼 에디터 옵션을 확인합니다.
 	
 	![](EditorPref.png)
@@ -95,3 +65,21 @@ cZJmh881FCo
 
 	![](AutoEntryMenu_Highlight.png)
 
+
+## VR 에디터 튜토리얼 창
+
+4.14 버전 이후 VR 편집 모드에 들어가서 새로운 세션을 시작할 때마다 VR 에디터 튜토리얼 창이 표시되는 기능을 켜고 끌 수 있습니다.
+
+![](VRTutorialWindow.png)(w:500)
+
+### VR 에디터내 튜토리얼 창 켜고 끄기
+
+1. **편집** 메뉴에서 **에디터 개인설정** 을 선택하여 언리얼 에디터 옵션을 확인합니다.
+	
+	![](EditorPref.png)
+1. **일반** 제목줄 아래 **실험단계** 부분을 클릭하고 **VR** 카테고리의 VR 에디터 옵션을 확인합니다.
+
+	![](ExperimentalVR.png)
+1.	**Always Show VR Tutorial at Start** (시작 시 VR 튜토리얼 항상 표시) 옵션으로 VR 튜토리얼 창 표시를 켜고 끌 수 있습니다.
+
+	![](InEditorTutorial.png)

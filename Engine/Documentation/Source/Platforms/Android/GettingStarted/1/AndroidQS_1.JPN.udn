@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3151861
+﻿INTSourceChangelist:3298293
 Availability:Public
 Title:1.必要な Android の設定
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:CodeWorks for Android 1R4 SDK をインストールします。
 Version:4.12
 Skilllevel:Intermediate
-Tags:Android
+tags:Android
 type:multi-step
 parent:Platforms/Android/GettingStarted
 order:1
@@ -20,7 +20,7 @@ Android 用の開発でまず最初にすることは、CodeWorks for Android 1R
 以下のセクションでは、開発用の PC に CodeWorks for Android 1R4 をインストールする方法を説明します。
 
 
-%Globals:OSSelect%
+%Globals:osselect_linux%
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -51,12 +51,26 @@ Android 用の開発でまず最初にすることは、CodeWorks for Android 1R
 	[/PARAM]
 [/OBJECT]
 
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#LinuxSetup]
+	[/PARAM]
+[/OBJECT]
+
 
 <!--
 [EXCERPT:WindowsSetup]
 
 [REGION:note]
-CodeWorks for Android 1R4 はインストール済みで環境変数が設定されていない場合は、以下の手順をすべて飛ばして、エディタで **[Edit Menu (メニューの編集)]** -> **[Project Settings (プロジェクト設定)]** -> **[Android SDK]** プロパティを使って、エディタをインストール場所に指定してください。
+CodeWorks for Android 1R4 はインストールして、環境変数の設定がまだの場合は、以下の手順はすべて抜かして、エディタから **[Edit Menu (メニューの編集)]** -> **[Project Settings (プロジェクト設定)]** -> **[Android SDK]** プロパティを使って、エディタをインストール場所に指定してください。
 [/REGION]
 
 [region:warning]
@@ -144,7 +158,7 @@ CodeWorks for Android 1R4 のインストール中は、インストールに問
 [EXCERPT:MacOSSetup]
 
 [REGION:note]
-CodeWorks for Android 1R4 はインストール済みで環境変数が設定されていない場合は、以下の手順をすべて飛ばして、エディタで **[Edit Menu (メニューの編集)]** -> **[Project Settings (プロジェクト設定)]** -> **[Android SDK]** プロパティを使って、エディタをインストール場所に指定してください。
+CodeWorks for Android 1R4 はインストール済みで環境変数の設定がまだの場合、以下の手順はすべて抜かして、エディタから **[Edit Menu (メニューの編集)]** -> **[Project Settings (プロジェクト設定)]** -> **[Android SDK]** プロパティを使って、エディタをインストール場所に指定してください。
 [/REGION]
 
 [region:warning]
@@ -165,7 +179,7 @@ CodeWorks for Android 1R4 を Mac にインストールするには、Java 6 と
 	[region:note]
 	**Github** から UE4 をダウンロードする場合は、まず次のステップを完了しないと CodeWorks for Android 1R4 インストーラーを実行できません。 
 	以下は、UE4 ソースコードを Githum からダウンロードした Windows と Mac の入った PC 向けの手順になりますのでご注意ください。
-	ランチャーからダウンロードしたバイナリ ビルドを使用する場合は、このステップを飛ばして CodeWorks for Android 1R4 をすぐにインストールできます。 
+	ランチャーからダウンロードしたバイナリ ビルドを使用する場合は、このステップを抜かして CodeWorks for Android 1R4 をすぐにインストールできます。 
 
 	1. UE4 を Github からダウンロードして展開したら、**Setup.command** ファイルを実行して、必要なファイルおよび CodeWorks for Android 1R4 インストーラーをダウンロードします。
 
@@ -217,17 +231,23 @@ CodeWorks for Android 1R4 を Mac にインストールするには、Java 6 と
 
 1. **[Finish (終了)]** ボタンを押して、CodeWorks for Android 1R4 のインストールを完了します。
 
-	![](AndroidWorks_Mac_08.png)
+	![](AndroidWorks_Mac_09.png)
 
 	[region:note]
 	UE4 を Github からダウンロードした場合は、CodeWorks for Android 1R4 のインストールが終了した際に、Mac を再起動して環境変数が設定されてから **Setup.command** ファイルをもう一度実行して、必要な Android 開発ファイルをダウンロードしてください。
 	[/region]
 
 [/EXCERPT:MacOSSetup]
+
+[EXCERPT:LinuxSetup]
+本文書は現在作成中です。現在公開されている文書については、 
+[新規および更新リソース](https://docs.unrealengine.com/latest/INT/Updates/index.html) を参照してください。
+<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/1#AndroidLinux_1]-->
+[/EXCERPT:LinuxSetup]
 -->
 
-## 最終結果
-ダウンロードが完了すれば、必要な Android SDK のインストールがすべて終了し、Android デバイスで使える UE4 プロジェクトのビルドで使用できる状態になります。
+## 結果
+ダウンロードが完了すれば、必要な Android SDK のインストールはすべて完了し、Android デバイス向けに UE4 プロジェクトのビルドが可能な状態です。
 
 [nav]
 

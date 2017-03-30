@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2709468
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:プロパティのバインディング
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 内でプロパティをバインドする方法 
 Version:4.9
+tags:UMG UI Designer
 
 [TOC(start:2 end:2)]
 
@@ -23,7 +24,7 @@ UMG で最も便利なのは、ウィジェットのプロパティをブルー�
 
 ![](PlayerHealth.png)(w:820)
 
-上の画像では、関数は Character ブループリント内から Player Health と呼ばれる変数を get します。Player Health 変数が更新されるたびに、進捗バーのパーセント値に自動的に渡され、値として反映されます。 
+上の画像では、関数は Character ブループリント内から Player Health と呼ばれる変数を取得します。Player Health 変数が更新されるたびに、進捗バーのパーセント値に自動的に渡され、値として反映されます。 
 
 ## プロパティのバインディング
 

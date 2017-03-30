@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability: Public
 Title:UI 생성 및 표시
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -7,6 +7,7 @@ Related: Engine/UMG
 Related: Engine/UMG/UserGuide
 Version: 4.12
 SkillLevel: Beginner
+tags:UMG UI Designer
 
 보통 대부분의 게임에서 게임의 유저 인터페이스(UI)를 통해 플레이어에게 어떤 정보를 전해주곤 합니다.
 UI 에는 메인 메뉴, 게임내 일시정지 메뉴, 생명력 또는 경험치, 인벤토리 아이템, 플레이어에게 주어진 상황에서 무엇을 해야 하는지 알려주는 도움말 등 다양합니다.

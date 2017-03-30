@@ -3,6 +3,7 @@ title:Image Adjustment
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions for making adjustments to existing image textures, such as shifting contrast or hue.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

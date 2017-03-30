@@ -1,59 +1,79 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 2 - Configuring your IDE to Run UE4
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
-Description:Learn how to configure your IDE to run UE4 in Debug and Release mode.
-Version: 4.13
+﻿INTSourceChangelist:3262227
+Availability:Public
+Title:2 - 配置 IDE 运行 UE4
+Crumbs:
+Description:学习如何配置 IDE，在调试和发布模式下运行 UE4。
+Version:4.14
 type:how to
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
-order: 2
+order:2
 tags:Linux
 SkillLevel:Beginner
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+此时您已完成了 UE4 在 Debug 和 Release 模式中编译的配置。可以开始配置 Qt Creator 运行 UE4。
 
-At this point, you've configured UE4 to build in both Debug and Release mode. Now, you're ready to configure Qt Creator to run UE4.
+1.	点击 **Run** 按钮打开 **Run Settings** 菜单。
 
-## Configuring your IDE to Run UE4 in Debug and Release Mode
+	[REGION:lightbox]
+		[![](SetupIDE_Step10.png)(w:720)](SetupIDE_Step10.png)
+	[/REGION]
+	
+	[REGION:caption]
+		点击查看全图。
+	[/REGION]
 
-1.	Click the **Run** button to open the **Run Settings** menu.
+1.	在 **Run** 部分下，点击 **Executable:** 文本域末端的 **Browse** 按钮。
 
-	![](SetupIDE_Step10.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step11.png)(w:720)](SetupIDE_Step11.png)
+	[/REGION]
+	
+	[REGION:caption]
+		点击查看全图。
+	[/REGION]
 
-1.	Under the **Run** section, click the **Browse** button that is located at the end of the **Executable:** text field.
+1.	前往编辑器二进制版本路径所在的目录，选择 **UE4Editor**，然后点击 **Open** 按钮。
 
-	![](SetupIDE_Step11.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step12.png)(w:720)](SetupIDE_Step12.png)
+	[/REGION]
+	
+	[REGION:caption]
+		点击查看全图。
+	[/REGION]
 
-1.	Navigate to the directory where the Editor's binary path is located, select **UE4Editor**, and click the **Open** button.
+1.	点击 **Working directory:** 文本域末端的 **Browse** 按钮。
 
-	![](SetupIDE_Step12.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step13.png)(w:720)](SetupIDE_Step13.png)
+	[/REGION]
+	
+	[REGION:caption]
+		点击查看全图。
+	[/REGION]
 
-1.	Now, click the **Browse** button that is located at the end of the **Working directory:** text field.
+1.	前往编辑器二进制版本路径所在的目录，选择 `[UE4ROOT]\Engine\Binaries\Linux`，然后点击 **Choose** 按钮。
 
-	![](SetupIDE_Step13.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step14.png)(w:720)](SetupIDE_Step14.png)
+	[/REGION]
+	
+	[REGION:caption]
+		点击查看全图。
+	[/REGION]
 
-1.	Navigate to the directory where the Editor's binary path is located, select `[UE4ROOT]\Engine\Binaries\Linux`, and click the **Choose** button.
+## 最终结果
 
-	![](SetupIDE_Step14.png)
+[REGION:lightbox]
+	[![](QtRunSettings_UE4.png)(w:720)](QtRunSettings_UE4.png)
+[/REGION]
 
-## End Result
+[REGION:caption]
+	点击查看全图。
+[/REGION]
 
-You're now ready to build and run UE4 with Qt Creator in both Debug and Release mode. 
+现在您即可在 Debug 和 Release 模式中结合 Qt Creator 编译和运行 UE4。 
 
-%Steps%
+[NAV]

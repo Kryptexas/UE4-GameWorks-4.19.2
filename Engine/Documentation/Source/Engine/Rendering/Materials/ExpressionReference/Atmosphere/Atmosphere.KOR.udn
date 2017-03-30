@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title:Atmosphere 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:포그, 기타 대기성 레벨 이펙트에 영향을 끼치는 표현식입니다.
 Version:4.9
+tags:Materials
 
 [EXCERPT:contents]
 [TOC(start:2 end:2)]

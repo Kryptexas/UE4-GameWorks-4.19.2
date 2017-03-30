@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description: Get a general overview of the variables and execution flow of the BLueprints visual scripting system.
 version: 4.12
 parent:Engine/Blueprints
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -4,26 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:Set of tools used to control the mode the Level Editor is currently in, reshape the builder brush, and create new Brush geometry and volumes.
 Version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [EXCERPT:main]
 [INCLUDE:Shared/Glossary/M#glossary_modes_panel]
 
@@ -41,5 +21,3 @@ The **Modes** represent different editing modes the Level Editor can be put into
 | ![](LE_Tools_Foliage.png) | Toggles [**Foliage** mode](Engine/Foliage) for painting instanced foliage. | **Shift + 4**|
 | ![](LE_Tools_Brush.png) | Toggles [**Geometry Editing** mode](Engine/Actors/Brushes) for modifying Brushes to geometry. | **Shift + 5**|
 [/EXCERPT:main]
-
-%playlistnav%

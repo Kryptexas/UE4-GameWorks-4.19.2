@@ -3,6 +3,7 @@ Title:Timeline Nodes
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: Nodes that are used to handle specific functionality of Blueprint Timelines.
 version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

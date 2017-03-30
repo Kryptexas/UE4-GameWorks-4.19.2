@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3004548
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:Bitmask ブループリント変数
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -6,7 +6,8 @@ Description:ブループリントの integer を bitmasks として宣言すれ�
 version:4.12
 skilllevel:Intermediate
 Parent:Engine/Blueprints
-type:guide
+type:overview
+tags:Blueprints
 
 [TOC (start:2)]
 
@@ -60,7 +61,7 @@ type:guide
 ## ビットマスクの使用方法
 
 ブループリントでビットマスクは integer 値と同様に扱われます。ビットマスクの integer 出力ピンは、integer 値に合う入力とすべて接続することができます。 
-通常は、ビット幅のOR、AND、XOR、NOT 演算子になります。
+通常は、ビット幅の OR、AND、XOR、NOT 演算子になります。
 
 最初の例では、**Target Color Flags** に格納されている **Red** フラグを切り替えるために、**Make Bitmask** ノードが 1 つ **Bitwise XOR** ノードにパスされています。カラー値を格納している enum の **Bitmask Flags** も
 切り替わります。 

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2743168
+﻿INTSourceChangelist:3243860
 Availability:Public
 Title:画面分割
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description: 詳細モードとプロファイル コマンドを使用して、画面分割用にエフェクトを最適化する
 Version:4.9
+tags:Particles
 
 [TOC]
 
@@ -37,7 +38,7 @@ Play in Editor あるいはゲームで Split Screen モードを切り替える
 
 特定の領域のための描画コールを表示するには、 `DumpParticleFrameRenderingStats` (パーティクルフレーム レンダリング統計のダンプ) コマンドを使用します。このコマンドはアクションが発生する場所のスプレッドシートとスクリーンショットをダンプします。このスクリーンショットはデータがダンプされた後に取られたもので視覚的なリファレンスにすぎないので、概算になります。
 
-統計情報はスプレッドシートで簡単に見ることができます。以下のようになります。
+統計情報はスプレッドシートで簡単に見ることができます。下記のようになるはずです。
 
 ![particlestats.jpg](particlestats.jpg)(w:960)
 

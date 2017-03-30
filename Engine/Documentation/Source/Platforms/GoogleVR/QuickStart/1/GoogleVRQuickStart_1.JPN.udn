@@ -1,48 +1,52 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3275566
 Availability:Public
-Title:1. Google VR Project Creation
+Title:1.Google VR プロジェクトを作成する
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:Creating a UE4 project that can be used with Google VR.
+Description:Google VR 向け UE4 プロジェクトの作成
 Navigation:platform
-Skilllevel: Intermediate
-Version: 4.12
+Skilllevel:Intermediate
+Version:4.12
 Parent:Platforms/GoogleVR/QuickStart
 order:1
-type:step
+type:multi-step
 tags:VR
 tags:Google VR
 
 [NAV]
 
- In this part of the Google VR Quick Start, we will go over how to create a new UE4 project that has the best settings for Google VR development.
+[region:note]
+Google のマニュアルで、Daydream の使用方法が詳しく説明されています。[Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) のヘルプサイトをご覧ください。
+[/region]
 
-1. From the UE4 Launcher make sure that you have UE4 version **4.12** or later downloaded and installed then press the **Launch** button to open the **Unreal Project Browser**.
+ このセクションでは、Google VR 開発に最も適した設定で新規に UE4 プロジェクトを作成する方法を説明します。
+
+1. UE ランチャーから UE4 のバージョン **4.12** 以上がダウンロードおよびインストールされていることを確認して、**[Launch]** ボタンを押して **[Unreal Project Browser]** を開きます。
 
 	![](GVRQS_Launcher_00.png)
 
-1. In the Unreal Project Browser, go to the **New Project** section and select the **Blueprint** base project option.
-	
+1. [Unreal Project Browser] の **[New Project]** セクションから **[Blueprint]**ベース プロジェクト オプションを選択します。
+
 	![](GVRQS_New_Project_Options_00.png)
 
-1. Due to the demanding rendering requirements of VR in general, it is best to start out any new UE4 VR project with the following settings to ensure that your project will run at the correct frame rate right from the start. 
+1. 一般的に VR のレンダリング要件は厳しいので、プロジェクトが最初から正しいフレームレートで動作するように、新規の UE4 プロジェクトには以下の設定をお勧めします。 
 
 	![](GVRQS_New_Project_Options_01.png)
-	* **Blank Project**
+	* **Blank プロジェクト**
 	* **Mobile / Tablet**
 	* **Scalable 3D / 2D**
-	* **No Starter Content**
+	* **No Starter Content** (スターター コンテンツなし) 
 
-1. Set the location where the project will be created and also give the project a name. 
+1. プロジェクトの作成先を設定し、プロジェクト名を付けます。 
 
 	![](GVRQS_New_Project_Options_02.png)
 
-	* For this example the project name will be **GVR_QS**. 
+	* この例ではプロジェクトに **「GVR_QS」** という名前を付けます。 
 
-1. Finally, press the **Create Project** button that is located in the lower right-hand corner to create the project.
+1. 最後に、右下隅にある **[Create Project (プロジェクトを作成)]** ボタンを押してプロジェクトを作成します。
 
 	![](GVRQS_New_Project_Options_03.png)
 
-In the next section of the Google VR Quick Start, we will go over all the needed project settings to ensure that your UE4 project will work with Google VR.
+次のセクションでは、UE4 プロジェクトが Google VR で確実に動くようにプロジェクト設定を行います。
 
 [NAV]
 

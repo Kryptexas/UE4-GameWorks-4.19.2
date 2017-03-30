@@ -3,6 +3,7 @@ Title:Flickering Lights
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: An example use of a timeline in which we set up a flickering light that also changes color.
 version: 4.9
+tags:Blueprints
 
 %Description%
 

@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: 1 - Configuring your IDE to Build UE4
 Crumbs:
 Description:Learn how to configure your IDE to build UE4 in Debug and Release mode.
@@ -9,34 +9,19 @@ order: 1
 tags:Linux
 SkillLevel:Beginner
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-While some developers prefer to use text editors and command line debuggers to modify their game's source code, most developers 
-prefer to use an Integrated Development Environment (IDE) to edit, debug, and compile their code. If you're a game developer looking to setup 
+While some developers like to use text editors and command line debuggers to modify their game's source code, most developers 
+prefer to use an Integrated Development Environment (IDE) to edit, debug, and compile their code. If you're a game developer looking to set up 
 an IDE to work with Unreal Engine 4 (UE4) in a Linux environment, this guide is for you. 
 
 Although we recognize that chosing an IDE is a matter of individual preference, we've configured UE4 to interface with three IDEs in Linux; 
 specifically, Qt Creator, KDevelop, and Codelite. We don't endorse one IDE over another; however, as an example for learning purposes, we've chosen to 
 show you how to configure Qt Creator to build and run UE4. By the end of this guide, you'll know how to configure your IDE to build and run UE4. Finally, 
-you'll also learn how to setup the IDE to build and run new C++ (CPP) projects that you create from the Unreal Editor.
+you'll also learn how to set up the IDE to build and run new C++ (CPP) projects that you create from the Unreal Editor.
 
 [REGION:note]
-Before we begin, please make sure that you've already setup your workflow using our [](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow). Also, please make sure that [Qt Creator](https://wiki.qt.io/Install_Qt_5_on_Ubuntu) is
+Before we begin, please make sure that you've already set up your workflow using our [](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow). Also, please make sure that [Qt Creator](https://wiki.qt.io/Install_Qt_5_on_Ubuntu) is
  installed on your machine.
 [/REGION]
 
@@ -129,7 +114,7 @@ Before we begin, please make sure that you've already setup your workflow using 
 
 	![](SetupIDE_Step8.png)
 
-1.	Enter `UE4Editor` into the **Make arguments:** text field.
+1.	Enter `UE4Editor-Linux-Debug` into the **Make arguments:** text field.
 
 	![](SetupIDE_Step9.png)
 
@@ -137,7 +122,7 @@ Before we begin, please make sure that you've already setup your workflow using 
 
 	![](SetupIDE_Step10.png)
 
-1.	Replace `clean` by entering `UE4Editor ARGS="-clean"` into the text field.
+1.	Replace `clean` by entering `UE4Editor-Linux-Debug ARGS="-clean"` into the **Make arguments:** text field.
 
 	![](SetupIDE_Step11.png)
 
@@ -151,12 +136,13 @@ Before we begin, please make sure that you've already setup your workflow using 
 		Click for full image.
 	[/REGION]
 
-1.	Repeat Steps 6 through 11 to edit the build configuration settings for Release mode.
+1.	Repeat Steps 6 through 11 to edit the build configuration settings for Release mode. Please make sure that your settings match the following image:
 
 	![](SetupIDE_Step13.png)
 
 	[REGION:note]
-	Read through our [](Programming/Development/BuildConfigurations) to learn more about the different configurations you can set your build environment to.
+	If you'd like to set up additional build configurations for your project, please refer to the Qt Creator [Build Settings Documentation](http://doc.qt.io/qtcreator/creator-build-settings.html),
+	where they show you how to add as many build configurations as you might need.
 	[/REGION]
 
 ## End Result
@@ -169,6 +155,8 @@ Before we begin, please make sure that you've already setup your workflow using 
 	Click for full image.
 [/REGION]
 
-At this point, you've configured UE4 to build in both Debug and Release mode. Now, you're ready to configure Qt Creator to run UE4.
+At this point, you've configured UE4 to build in both Debug and Release mode. Depending on your system's specifications, you may notice that UE4 runs slower while in Debug mode. For more information 
+on the performance characteristics of available build configurations, please read through our [](Programming/Development/BuildConfigurations) page. With this in 
+mind, you're ready to configure Qt Creator to run UE4.
 
-%Steps%
+[NAV]

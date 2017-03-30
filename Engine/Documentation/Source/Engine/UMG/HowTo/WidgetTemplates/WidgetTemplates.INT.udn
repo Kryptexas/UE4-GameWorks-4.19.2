@@ -6,6 +6,7 @@ Related: Engine/UMG
 Related: Engine/UMG/UserGuide
 Version: 4.13
 SkillLevel: Intermediate
+tags:UMG UI Designer
 
 Every **Widget Blueprint** that you create with UMG is considered a **User Widget** that can be reused and placed within other Widget Blueprints. 
 This allows you to essentially create templates for pieces of your UI that can be used within other Widget Blueprints. 

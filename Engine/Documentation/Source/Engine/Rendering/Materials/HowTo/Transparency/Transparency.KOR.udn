@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:투명도 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ Related: Engine/Rendering/Materials/Functions/Reference/Opacity
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 Version:4.9
 SkillLevel: Intermediate
+tags:Materials
 
 [TOC(start:2 end:3)]
 

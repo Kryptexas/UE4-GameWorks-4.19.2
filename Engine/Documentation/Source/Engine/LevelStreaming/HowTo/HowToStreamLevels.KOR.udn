@@ -11,8 +11,8 @@ tags:Level Streaming
 [TOC]
 
 
-여기 비법 시리즈는 모두 각기 해당하는 상황에 대한 해법을 제공하는 것으로, 작업할 두 개의 레벨을 로드하는 단계는 공유됩니다. 이 공유 단계를 따르다가, 계속하고자 하는 비법을 선택하세요.
-you want to continue with.
+여기 비법 시리즈는 모두 각기 해당하는 상황에 대한 해법을 제공하는 것으로, 작업할 두 개의 레벨을 로드하는 단계는 공유됩니다. 이 공유 단계를 따르다가, 
+계속하고자 하는 비법을 선택하세요.
 
 [EXCERPT:LevelStreamScenario]
 ## 레벨 스트리밍 시나리오
@@ -60,3 +60,4 @@ _Character_ 로 표현되고 있습니다.
 ## 비법
 
 [DIR(output:"listbutton" parent:"Engine/LevelStreaming/HowTo")]
+

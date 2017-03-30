@@ -1,185 +1,51 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3226913
 Availability:Public
-Title:애니메이션 블루프린트 UI
+Title:애니메이션 블루프린트 에디터
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
-Description:애니메이션 블루프린트 UI 에 대한 개요입니다.
-version: 4.12
+Description:언리얼 엔진 4 의 애니메이션 블루프린트 에디터 핵심 기능에 대한 개요입니다.
 related:Engine\Animation\AnimBlueprints
 related:Engine\Animation\AnimBlueprints\Creation
 related:Engine\Animation\AnimBlueprints\EventGraph
 related:Engine\Animation\AnimBlueprints\AnimGraph
+version: 4.14
+type:reference
+topic-image:AnimBPUITopic.png
+tags:Animation
+tags:Animation Blueprint
+tags:Blueprints
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine\Animation\AnimBlueprints\Interface:title%](AnimBPUITopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimBlueprints\Interface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimBlueprints\Interface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimBlueprints\Interface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine\Animation\AnimBlueprints\Interface:title%](AnimBPUITopic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Animation\AnimBlueprints\Interface:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Animation\AnimBlueprints\Interface:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Animation\AnimBlueprints\Interface]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-애니메이션 블루프린트 UI 의 각 영역에 대한 설명은 다음과 같습니다:
+**애니메이션 블루프린트 에디터** 는 일반 [블루프린트 에디터](Engine/Blueprints) 와 비슷한 함수 기능을 공유하나, 보다 캐릭터 애니메이션 스크립트에 집중되어 있습니다.
 
 ![](AnimGraphUI.png)
 
-1. [메뉴 바](#메뉴바)
-1. [툴바](#툴바)
-1. [뷰포트](#뷰포트)
-1. [그래프](#그래프)
-1. [애님 프리뷰 에디터](#애님프리뷰에디터)
-1. [애셋 오버라이드 에디터](#애셋오버라이드에디터)
-1. [애셋 브라우저 탭](#애셋브라우저탭)
-1. [내 블루프린트 탭](#내블루프린트탭)
-1. [디테일 패널](#디테일패널)
-1. [팔레트](#팔레트)
+애니메이션 블루프린트 에디터 유저 인터페이스에 대한 상세 분석은 아래 각 섹션을 참고하세요:
 
-## 메뉴 바
+## 1. 툴바
 
-**메뉴 바** 에서는 저장, 되돌리기와 다시하기, 여러가지 페르소나 전용 메뉴 등 자주 쓰이는 에디터 기능을 접할 수 있습니다. 예를 들어 **애셋 브라우저** 탭에서는 
-기본 프리뷰 메시 변경, 스켈레톤에서 미사용 본 제거, 애니메이션 녹화가 가능합니다.
+애니메이션 블루프린트 에디터 안의 **툴바** 에서는 블루프린트 컴파일, 저장 및 **콘텐츠 브라우저** 에서 애니메이션 블루프린트 애셋 위치 찾기는 물론 [블루프린트 에디터 툴바](Engine/Blueprints/Editor/UIComponents/Toolbar) 처럼 **클래스 세팅** 및 **클래스 디폴트** 세팅 정의가 가능합니다.
+툴바 오른쪽 끝의 [에디터 툴바](Engine/Animation/Persona/Toolbar) 에서는 언리얼 엔진 4 의 다양한 애니메이션 툴을 전환할 수 있습니다.
 
+## 2. 뷰포트
 
-## 툴바
+[뷰포트](Engine/Animation/Persona/Viewport) 창에서는 선택된 스켈레탈 메시에서 애니메이션 애샛 재생을 미리보거나 애셋 관련 정보를 제공할 수 있습니다. 라이팅 모드 변경, 스켈레톤의 본 표시 또는 숨김, 애니메이션 재생 속도 조절, 심지어 스켈레탈 메시를 턴 테이블에 올려놓고 회전시키며 모든 각도에서 확인하는 것도 가능합니다.
 
-애니메이션 블루프린트 툴바에는 다른 블루프린트 툴바와 동일한 옵션이 다수 들어있습니다.
+## 3. 그래프
 
-![](AnimGraphUI_Toolbar.png)
+**그래프** 패널은 크게 두 개의 그래프 유형이 포함됩니다. [이벤트 그래프](Engine/Animation/AnimBlueprints/EventGraph) 는 스켈레탈 메시 포즈의 업데이트를 발동시키는 데 사용되는 애니메이션 이벤트 노드를 포함하며, [애님 그래프](Engine/Animation/AnimBlueprints/AnimGraph) 는 스켈레탈 메시가 현재 프레임에 실제로 들어갈 최종 포즈를 구하는 데 사용됩니다.
+이 두 개의 그래프가 조합되어 로직 및 캐릭터가 게임플레이 도중에 취할 포즈가 구동됩니다.
 
-[EXCERPT:Toolbar]
-| 항목 | 설명 |
-| ---- | ----------- |
-| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | 블루프린트를 컴파일합니다. | 
-| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Save] |
-| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#FindInCB] | 
-| ![](PoseButtons.png) | 뷰포트에 프리뷰 또는 레퍼런스 포즈를 표시하도록 업데이트합니다. | 
-|  ![](Record.png)| 현재 프리뷰 포즈 애니메이션을 기반으로 새 애니메이션을 녹화할 수 있도록 합니다. |
-| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Search] | 
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#BlueprintProps] | 
-| ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | 게임을 시뮬레이션 모드에서 시작합니다. |
-| ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png) | 게임을 레벨 에디터에서 보통 플레이 모드로 시작합니다. 화살표 모양을 클릭하면 **실행 옵션** 메뉴가 표시됩니다. |
-| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#DebugObject]  | 
-[/EXCERPT:Toolbar]
+## 4. 디테일
 
-[REGION:note]
-블루프린트 툴바 관련 상세 정보는 [](Engine/Blueprints\Editor/UIComponents\Toolbar) 문서를 참고해 주시기 바랍니다.
-[/REGION]
-
-이 옵션에 추가로 애니메이션 블루프린트 툴바에는 페르소나의 다양한 모드에 대한 탭도 들어있습니다.
-
-| 항목 | 설명 |
-| ---- | ----------- |
-|  ![](button_AnimGraphUI_Skeleton.png) | 스켈레톤 프로퍼티가 들어있는 페르소나 탭을 엽니다. |
-|  ![](button_AnimGraphUI_Mesh.png) | 스켈레탈 메시 프로퍼티가 들어있는 페르소나 탭을 엽니다. |
-|  ![](button_AnimGraphUI_Animation.png) | 애니메이션 애셋 프로퍼티가 들어있는 페르소나 탭을 엽니다. |
-|  ![](button_AnimGraphUI_Graph.png) | 애니메이션 블루프린트 탭을 엽니다. |
+애니메이션 블루프린트 에디터의 **디테일** 패널은 블루프린트 에디터의 [](Engine/Blueprints/Editor/UIComponents/Details) 와 같으며, 그래프에 배치한 노드 및 생성한 변수 관련 프로퍼티도 여기서 접근하여 편집할 수 있습니다.
 
 
+## 5. 내 블루프린트
 
-## 뷰포트
-뷰포트에는 스켈레탈 메시에 현재 변수 값으로 활성화된 애니메이션이 적용되어 표시됩니다.
+[내 블루프린트](Engine/Blueprints/Editor/UIComponents/MyBlueprint) 패널은 블루프린트 에디터에도 있는 것으로, 여기에는 애니메이션 블루프린트 안에 들어있는 그래프, 함수, 변수, 기타 관련 프로퍼티 목록이 들어있습니다.
 
-![](AnimGraphUI_Viewport.png)(w:500)
+## 6. 애님 프리뷰 에디터 / 애셋 브라우저
 
-## 그래프
+[](Engine/Animation/Persona/BlueprintDefaults) 에서는 변수를 변경하여 뷰포트의 스켈레탈 메시를 업데이트할 수 있습니다.
+**디폴트 편집** 모드로 전환하여 변수를 변경한 뒤 기본 값에 바로 적용할 수도 있습니다.
+별도의 탭에 도킹되어 있는 [](Engine\Animation\Persona\AssetBrowser) 에서는 스켈레톤 애셋에 연관되어 거기서 사용할 수 있는 모든 애니메이션 애셋을 볼 수 있습니다.
 
-탭으로 된 그래프 패널에는 현재 선택된 그래프가 표시됩니다.
-
-
-### 이벤트 그래프 탭
-
-**EventGraph** (이벤트 그래프) 탭에는 스켈레탈 메시 포즈가 업데이트되도록 만드는 애니메이션 이벤트 노드가 들어있습니다. 어떤 애니메이션 애셋을 언제 재생할지 결정하기 위한 변수 값을 설정하는 애니메이션 노드도 들어있습니다.
-
-![](AnimGraphUI_Graph.png)(w:900)
-
-### 애님 그래프 탭
-
-**AnimGraph** (애님 그래프) 탭에는 스테이트와 모든 실제 애니메이션이 연결되는 스테이트 머신과 아울러, 원하는 다른 애니메이션 노드가 들어있습니다.
-
-![](AnimGraphUI_AnimGraph.png)
-
-모든 애니메이션 노드를 **애님 그래프** 탭에 직접 넣을 수도 있지만, 유지보수의 편의와 간단명료함을 위해서는 스테이트 머신, 스테이트, 트랜지션 (룰)에 정리해 넣는 편이 더욱 효율적입니다.
-
-[REGION:note]
-스테이트 머신 관련 상세 정보는 [](Engine/Animation\StateMachines) 문서를 참고해 주시기 바랍니다.
-[/REGION]
-
-
-
-## 애님 프리뷰 에디터
-
-**애님 프리뷰 에디터** 패널에는 애니메이션 블루프린트의 변수 전부가 할당된 카테고리별로 표시됩니다. 여기서 변수 값을 수동 변경하여 뷰포트에서 다양한 애니메이션을 미리보고 테스트할 수 있습니다.
-
-![](AnimGraphUI_BPDefaults.png)
-
-[REGION:note]
-보다 자세한 정보는 **[](Engine/Animation/Persona\BlueprintDefaults)** 문서를 참고하세요.
-[/REGION]
-
-
-## 애셋 오버라이드 에디터
-
-**애셋 오버라이드 에디터** 패널에는 부모 애니메이션 그래프에 레퍼런싱된 애니메이션 애셋을 전부 표시합니다. 부모 클래스에 애셋을 레퍼런싱하는 노드가 없거나 파생된 블루프린트가 아닌 경우 이 패널에는 아무것도 표시되지 않습니다.
-
-## 애셋 브라우저 탭
-
-**Asset Browser** (애셋 브라우저) 탭에는 애니메이션 블루프린트에 있는 애니메이션 애셋이 전부 나열됩니다.
-
-![](AnimGraphUI_AssetBrowser.png)
-
-기본적으로 **애셋 브라우저** 탭은 그래프 아래 **내 블루프린트** 탭 옆에 있습니다.
-
-
-## 내 블루프린트 탭
-
-**My Blueprint** (내 블루프린트) 탭에는 애니메이션 블루프린트에 있는 그래프와 변수가 전부 나열됩니다.
-
-![](AnimGraphUI_MyBP.png)
-
-기본적으로 **내 블루프린트** 탭은 그래프 아래 **애셋 브라우저** 탭 옆에 있습니다.
-
-
-## 디테일 패널
-
-**Details** (디테일) 패널에는 선택된 요소의 프로퍼티가 표시됩니다.
-
-![](AnimGraphUI_Details.png)
-
-## 팔레트
-
-**Palette** (팔레트 패널)에는 애니메이션 블루프린트의 다양한 그래프에서 사용할 수 있는 노드가 전부 표시됩니다. 상단 패널에 "즐겨찾기" 마킹된 노드가 여기 표시됩니다.
-
-![](AnimGraphUI_Palette.png)
-
-[REGION:note]
-**팔레트** 는 기본적으로 보이지 않을 수도 있습니다. 보이지 않는 경우, **창** 메뉴의 **팔레트** 를 클릭하면 됩니다.
-[/REGION]

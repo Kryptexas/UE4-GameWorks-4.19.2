@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3152403
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title: 폰트
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -7,6 +7,7 @@ Related: Engine/UMG
 Related: Engine/UMG/UserGuide/WidgetBlueprints
 Related: Engine/UMG/UserGuide/WidgetTypeReference
 Version: 4.14
+tags:UMG UI Designer
 
 [TOC(start:2 end:2)]
 

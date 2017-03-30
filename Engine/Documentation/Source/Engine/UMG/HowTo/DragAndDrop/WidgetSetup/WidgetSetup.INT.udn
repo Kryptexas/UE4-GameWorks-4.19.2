@@ -2,8 +2,8 @@ Availability: Docs
 Title:2. Widget Setup
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:In this step we script what happens when the Left Mouse Button is pressed. 
-Version: 4.12
 SkillLevel: Intermediate
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,7 +23,7 @@ SkillLevel: Intermediate
 
 %Steps%
 
-In this step we determine when the Left Mouse Button is pressed and store the location where it was pressed in screen space. 
+In this step, we determine when the Left Mouse Button is pressed and store the location where it was pressed in screen space. 
 We also use the **DetectDragIfPressed** to determine if the player is dragging with a specified key. 
 
 ## Steps
@@ -38,7 +38,7 @@ We also use the **DetectDragIfPressed** to determine if the player is dragging w
 	
 	![](DragDrop4b.png)
 
-	In this tutorial we will not be creating a functional Health Bar and this is intended for demonstration purposes only. 
+	In this tutorial, we will not be creating a functional Health Bar and this is intended for demonstration purposes only. 
 
 1.	Switch to the **Graph** Mode, then in the **My Blueprint** panel add the **OnMouseButtonDown** and **OnDragDetected** overrides. 
 
@@ -71,6 +71,7 @@ We also use the **DetectDragIfPressed** to determine if the player is dragging w
 
 	Here we are determining if the player is dragging the Left Mouse Button before which will start the On Drag Detected script. 
 
-With the ability to detect if the player is dragging in place, next we will finish off what happens when drag is detected. 
+With the ability to detect if the player is dragging in place, next we will finish off what happens when the drag is detected. 
 
 %Steps%
+

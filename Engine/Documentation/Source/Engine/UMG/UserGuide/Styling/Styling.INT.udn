@@ -4,6 +4,7 @@ Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:A guide to stylizing Widget Blueprints in UMG. 
 Related: Engine\UMG\UserGuide\Slots
 Related: Engine\UMG\UserGuide\WidgetTypeReference
+tags:UMG UI Designer
 
 
 [REGION:fullwidth raw]

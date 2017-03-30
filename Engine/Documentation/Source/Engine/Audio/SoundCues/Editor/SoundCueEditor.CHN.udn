@@ -1,8 +1,8 @@
-Availability: Public
+﻿Availability: Public
 Title:音效编辑器
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description: 关于应用设置及编辑基于SoundCue节点的音频资源的工具的指南。
-
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3227381
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:Sub Anim Instance を使用する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -8,7 +8,7 @@ Related:Engine\Animation\Skeleton
 Related:Engine\Animation\Overview
 version:4.14
 skilllevel:Intermediate
-type:howto
+type:how-to
 tags:Animation
 tags:Animation Blueprint
 tags:Skeletal Controls
@@ -83,7 +83,6 @@ tags:Skeletal Controls
 1. **AnimGraph** で、**右クリック** し、**Sub Anim Instance** ノードを追加します。 
 
 	![](SubAnimBP07.png)
-
 	これは作成した Animation ブループリントにアクセスするために使用するノードです。
 
 1. **Sub Anim Instance** ノードの **[Details]** パネルで、**Instance Class** を **AltAnimBP** に設定します。 

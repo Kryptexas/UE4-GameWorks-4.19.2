@@ -3,6 +3,7 @@ Title:Level Blueprint UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:A breakdown of the UI elements of the Blueprint Editor when working on Level Blueprints.
 version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

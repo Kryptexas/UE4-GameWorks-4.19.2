@@ -12,6 +12,7 @@ parent:Engine/Rendering/Materials
 order:11
 topic-image:Engine/Rendering/Materials/ParamCollectTopic.png
 type:overview
+tags:Materials
 
 [TOC(start:2)]
 

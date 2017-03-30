@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2664659
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:アニメーション イベント
+Title:Animation Events
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:Animation ブループリントを初期化し、更新するためにアニメーション システムによって呼び出されるイベント
-バージョン：4.9
+version:4.9
 
 [REGION:banner]
 ![Animation Events](animationevent_banner.png)(convert:false)
@@ -18,7 +18,7 @@ Description:Animation ブループリントを初期化し、更新するため�
 ## Blueprint Initialize Animation
 
 [EXCERPT:Initialize]
-**Blueprint Initialize Animation** Eventは、初期化処理を行うために Animation Blueprint インスタンスが作成されると一度だけ実行されます。
+**Blueprint Initialize Animation** event は、初期化処理を行うために Animation Blueprint インスタンスが作成されると一度だけ実行されます。
 
 ![Initialize Anim Event](event_initializeanim.png)
 
@@ -32,7 +32,7 @@ Description:Animation ブループリントを初期化し、更新するため�
 ## Blueprint Update Animation
 
 [EXCERPT:Update]
-**Blueprint Update Animation** Event は、フレーム毎に実行され、 Animation ブループリントが必要な値の計算と更新をできるようにします。このイベントは EventGraph の更新ループへのエントリ ポイントです。最終更新されてからの経過時間は **DeltaTimeX** ピンから利用可能であり、時間依存の補間や増分更新を実行することができます。
+**Blueprint Update Animation** event は、フレーム毎に実行され、 Animation ブループリントが必要な値の計算と更新をできるようにします。このイベントは EventGraph の更新ループへのエントリ ポイントです。最終更新されてからの経過時間は **DeltaTimeX** ピンから入手可能であり、時間依存の補間や増分更新を実行することができます。
 
 ![Update Anim Event](event_updateanim.png)
 

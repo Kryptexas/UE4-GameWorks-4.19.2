@@ -4,24 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Overview of methods available for selecting Actors in the Level Editor viewports.
 version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Transform "%Engine/Actors/Transform:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -61,8 +43,6 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 
 [TOC(start:2)]
@@ -128,8 +108,4 @@ In addition to selecting related Actors, you can also do the following with the 
 
 * Invert your current selection (in other words, deselect everything that is selected and instead select everything that was not selected) by clicking **Invert Selection**.
 * Select lights that affect your Actor by clicking **Select Relevant Lights**.
-
-
-%playlistnav%
-
 

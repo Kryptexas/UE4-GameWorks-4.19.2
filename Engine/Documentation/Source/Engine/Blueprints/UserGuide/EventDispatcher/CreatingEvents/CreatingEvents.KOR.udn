@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:디스패처 이벤트 만들기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/EventDispatcher
 Description: 이벤트 디스패처의 이벤트 목록에 바인딩하여 추가시킬 수 있는 이벤트 만들기 입니다.
 version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

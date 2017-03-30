@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2690845
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:Timelines の編集
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description:ブループリント内での Timeline ノードの編集方法の概要です。
 version:4.9
+tags:Blueprints
 
 **Timelines** は、**[Graph]** タブの Timeline ノード上、または **My Blueprint** 内の Timeline ノード上を **ダブルクリック** すれば編集可能になります。上の操作により、新規タブ内で **タイムライン エディタ** が開きます。
 
@@ -26,17 +27,17 @@ version:4.9
 
 ## トラックの追加
 
-Timelines は **トラック** を使って 1 つのデータ構成要素にアニメーションを定義します。浮動小数点値、ベクター値、カラー値、イベントなどです。トラックは、 **[Add Track (トラックを追加)]** ボタンをどれか 1 つクリックすると Timeline に追加することができます。例えば、![Blueprint Timeline - Add Float Track Button](add_float_track_button.png) ボタンをクリックして、新規トラックの名前を入力します。
+Timelines は **トラック** を使って 1 つのデータ構成要素にアニメーションを定義します。浮動小数点値、ベクター値、カラー値、イベントなどです。トラックは、**[Add Track (トラックを追加)]** ボタンをどれか 1 つクリックすると Timeline に追加することができます。例えば、![Blueprint Timeline - Add Float Track Button](add_float_track_button.png) ボタンをクリックして、新規トラックの名前を入力します。
 **[Enter]** を押して浮動トラックの名前を保存します。
 
 ![Blueprint Timeline - Add Float Track](k2_timeline_track_float.png)
 
 1. **トラック名** - この欄にいつでも新規トラック名を入力することができます。
-2. **外部カーブ グループ** - 自分のカーブを作成する代わりに、 **コンテンツ ブラウザ** から外部カーブ アセットを選択することができます。
+2. **外部カーブ グループ** - 自分のカーブを作成する代わりに、**コンテンツ ブラウザ** から外部カーブ アセットを選択することができます。
 3. **トラック タイムライン** - このトラック用のキーフレームのグラフです。ここにキーフレームを置いて、補間曲線の結果を確認します。
 
 
-##キーの追加
+## キーの追加
 
 トラックの用意ができたら、アニメーションを定義するためにキーの追加を開始できます。 
 

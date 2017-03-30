@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3350329
 Title: 언리얼 엔진 VR 에디터
 Description: 에디터 툴세트의 모든 기능을 VR 에 특화된 방식으로 사용하여, 가상현실 안에서 가상현실 월드를 제작합니다.
 Crumbs:
@@ -82,11 +82,14 @@ VR 에서 바로 작업하면 사실적인 월드를 만드는 데 필요한 적
 
 ## 시작하기
 
-[DIR(end:"1" output:"topic" type:"how-to" tags:"Getting Started" parent:"Engine/Editor/VR")]
+%Engine/Editor/VR/ActivateVRMode:topic%
+%Engine/Editor/VR/Setup:topic%
+%Engine/Editor/VR/Controls:topic%
 
 ## 가이드
 
-[DIR(end:"1" output:"topic" type:"how-to" tags:"Level Editing, GitHub" parent:"Engine/Editor/VR")]
+%Engine/Editor/VR/WorldInteraction:topic%
+%Engine/Editor/VR/ActorInteraction:topic%
 
 ## 참고서
 

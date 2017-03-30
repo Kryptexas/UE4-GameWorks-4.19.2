@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2987515
-Availability:NoPublish
+﻿INTSourceChangelist:3351642
+Availability:Licensee
 Title:使用 Perforce 下载虚幻引擎
-Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
+Crumbs:
 Description:使用 Perforce 下载虚幻引擎源代码的说明。
+Parent:GettingStarted/DownloadingUnrealEngine/Perforce
 
 <!--
 ## 连接到 Epic 的 VPN
@@ -35,9 +36,20 @@ Description:使用 Perforce 下载虚幻引擎源代码的说明。
 
 	* **User**: Epic Games 提供的 Perforce 用户名。
 	* **Password**: Epic Games 提供的 Perforce 密码。
-	* **Workspace**: _UE4_示例团队名称_ （这只是个建议。你可以使用任何 workspace 的名称，但必须要用你的团队名称作为结尾）
 
 1.	点击 OK 来连接 Perforce 服务器。
+
+1. 在 P4V 中，选择 **Connection > New Workspace** 来创建一个给引擎使用的新的工作空间，按照以下方式填入信息，并点击 **OK** 来创建工作空间：
+
+	* **Workspace name**: _UE4_TeamName_ （这里的名字也只是建议，你可以自行命名以你团队名字结尾的任何工作空间名称。）
+	* **Stream**: 点击 **Browse** 并从可选的 Stream 中选择 _//UE4/Release-Latest_ 。
+
+	![](new_workspace.png)
+
+1. 在 Depot 面板上，点击 **Filter Depot** 按钮并选额 **Tree Restricted to Workspace View**。
+
+	![](filter_depot.png)
+
 
 [REGION:note]
 Epic 为每个 Broker 和 Proxy 的服务器维护了统一的指纹验证信息，而 Perforce 要求一个 IP 和 指纹配对的信任关系。当第一次连接到某个终端的时候，你必须显式的来同意信任该终端。Epic 的指纹信息提供如下：45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43。
@@ -71,24 +83,18 @@ p4 命令行需要使用 p4 trust 命令。
 
 ## 下载 虚幻引擎 4
 
-我们在 Perforce 的目录里，使用 _UE4_QA_ 的分支目录来向各位授权用户发放虚幻引擎 4 的版本。其中提供了一个完整的引擎版本，还有额外的几个项目，用于范例游戏、演示等用途。大家可以自行选择全部下载或者仅挑选需要的内容下载。为了便于更快的开始工作，我们的建议是先下载一个最小的内容来开启工作，然后再挑选其他部分按需下载。这样可以极大的减少由于下载过程而浪费的大量等待时间。
+我们在 Perforce 的目录里，使用 _//UE4/Release-Latest_ 目录来向各位授权用户发放虚幻引擎 4 的版本。其中提供了一个完整的引擎版本，还有额外的几个项目，用于范例游戏、演示等用途。大家可以自行选择全部下载或者仅挑选需要的内容下载。为了便于更快的开始工作，我们的建议是先下载一个最小的内容来开启工作，然后再挑选其他部分按需下载。这样可以极大的减少由于下载过程而浪费的大量等待时间。
 
 [REGION:warning]
-	在 _UE4-QA_ 分支目录有很多文件，总共大小有很多 GB，
+	在 _//UE4/Release-Latest_ 目录有很多文件，总共大小有很多 GB，
 	因此如果同步更新整个目录的话可能会需要相当长的时间。
 [/REGION]
 
-1.	在 _UE4-QA_ 的分支上点击**右键**，选择 **Get Revision**。
+1.	在 _//UE4/Release-Latest_ 的目录上点击**右键**，选择 **Get Latest Revision**。
 
-	![Perforce - Get Revision Option](get_revision_menu.png)
+	![Perforce - Get Latest Revision](get_latest_menu.png)
 
-1.	选择 **Specify revision using** 选项并选择相应的 Label。
-
-	![Perforce - Specify Label](specify_label.png)
-
-1.	点击 **Browse** 按钮并在打开的对话框中选择 *QA_APPROVED_UE4_BUILD_MINIMUM* （运行引擎所需要的最小文件集合） 或 *QA_APPROVED_UE4_BUILD_CURRENT* （包含了一些示例项目文件，并且数据比较大），再点击 **OK**。
-
-1.	点击 **Get Revision** 开始下载虚幻引擎 4。
+1.	最新版本中的所有文件将会开始下载。
 
 [/EXCERPT:main]
 

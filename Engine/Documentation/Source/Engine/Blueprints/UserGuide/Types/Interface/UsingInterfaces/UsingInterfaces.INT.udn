@@ -3,6 +3,7 @@ Title:Implementing Blueprint Interfaces
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/Interface
 Description:Blueprint Interfaces allow Blueprints to call functions in different types of targets, if they also implement the interface.
 Version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

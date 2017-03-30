@@ -1,0 +1,71 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:2 - Your Character - Creating a Shadow Physics Asset
+Crumbs:%ROOT%, Engine
+Description:In this step we will create a new Physics Asset for our Skeletal Mesh that will be used for shadow representation of our character. 
+SkillLevel:Intermediate
+Version:4.14
+checkpoint: capsuleshadowsqs
+parent:Engine/Rendering/LightingAndShadows/CapsuleShadows/QuickStart
+Prereq: Engine/Physics/PhAT/HowTo/
+type:multi-step
+order:2
+
+
+[NAV]
+
+With our project ready to go, in this step we will create a new Physics Asset for our Third Person Character's Skeletal Mesh that will be used for shadow representation.
+
+**Steps:**
+
+1. Inside the **Content Browser**, navigate to the folder named **Mannequin**, then **Character**, and finally to the **Mesh** folder. Here you will find the asset named **SK_Mannequin**. Select it and right-click to open
+	the context menu. From there select **Create**, then **Physics Asset**, and then **Create**.
+
+	[REGION:raw]
+	![](ContextMenuCreatePA.png)(w:960)
+	[/REGION]
+
+1. Now the **New Asset** window will open. Set the **Minimum Bone Size** to 15 and then click **OK**.
+
+	![](NewPhysicsAsset.png)
+
+	[REGION:note]
+	Only use Sphyl bodies for the best result. Sphere bodies will also work, but they are not as flexible.
+	[/REGION]
+
+1. Next the Physics Asset Tool (PhAT) will open with your new Physics Asset for your SK_Mannequin. 
+
+	![](PA_Character.png)(w:500)
+
+	Before moving forward, minimize the PhAT window and in the **Content Browser** locate your newly created Physics Asset in the **Mannequin > Mesh** folder. We will give it a name so that we can 
+	easily locate it later, like "SPA_Mannequin." Once you have named your asset you can maximize the PhAT window again.
+
+4. You'll want to now adjust the various Physics Bodies so that the capsule represents our character more accurately for shadow casting purposes. This will require deleting the extraneous bodies, along with
+scaling and rotating the other bodies to better fit our character. Below is a list of things to keep in mind when adjusting and removing your capsules: 
+	
+	* Limit the number of bodies by removing unnecessary capsules, like hands, arms, multiple capsules for the torso and neck, etc.
+	* Foot capsule placement is the most important to make your character look grounded and may need to tweak later to look more accurate.
+	* Use a little bit of overlap between the capsules joints to avoid gaps in the shadow.
+	* Capsules for the arms are not necessary for this Quick Start and can be removed. 
+
+5. When you are finished with your adjustments you should have something that looks similar to this. The placement does not have to be perfect and can be tweaked later to refine any shadowing issues 
+	that you may have.
+	
+	![](PA_CharacterAdjusted.png)(w:500)
+
+
+**End Result:**
+
+The Physics Asset for our character's capsule shadow is now complete! We selected our Skeletal Mesh for our character and created a new Physics Asset. We then adjusted the capsules to accurately 
+represent our character with as few capsule bodies as possible. Originally, there were 21 capsule bodies that we reduced down to 10 capsule bodies. 
+
+[REGION:imagetable]
+| ![](Before.png)(w:325) | ![](After.png)(w:325)  |
+| --- | --- |
+| Before | After |
+[/REGION]
+
+In the next step, we will assign our new Physics Asset to our Skeletal Mesh. 
+
+
+[NAV]

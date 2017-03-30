@@ -3,6 +3,7 @@ Title:Parameter Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions that expose properties to Material Instances to be overridden in child instances or modified at runtime.
 Version: 4.9
+tags:Materials
 
 [EXCERPT:TOC]
 [TOC(start:2)]

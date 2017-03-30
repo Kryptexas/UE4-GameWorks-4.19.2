@@ -7,6 +7,7 @@ parent:Engine/Rendering/Materials
 order:9
 topic-image:exp_ref_topic.png
 type:overview
+tags:Materials
 
 [REGION:banner]
 ![Materials Compendium](compendium.png)

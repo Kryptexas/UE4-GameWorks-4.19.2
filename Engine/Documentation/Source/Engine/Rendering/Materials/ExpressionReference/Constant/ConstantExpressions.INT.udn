@@ -3,6 +3,7 @@ Title:Constant Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions where the values of the outputs generally do not change once set in the editor or when play begins.
 Version: 4.9
+tags:Materials
 
 [EXCERPT:TOC]
 [TOC(start:2)]

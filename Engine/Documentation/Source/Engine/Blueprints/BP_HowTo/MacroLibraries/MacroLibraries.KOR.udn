@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability: Public
 Title:매크로 라이브러리 사용법
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -8,6 +8,7 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Blueprints
 version:4.8
 skilllevel:Advanced
+tags:Blueprints
 
 **매크로 라이브러리** 는 매크로, 다른 말로 타 블루프린트에 노드로 배치할 수 있는 자체 독립적 그래프 모음을 저장하는 컨테이너입니다. 실행은 물론 데이터 전송도 가능한 입출력이 완비되어 있어 자주 사용되는 노드 시퀀스를 저장할 수 있으므로 시간을 절약시켜 줍니다.
 

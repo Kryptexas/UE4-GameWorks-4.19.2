@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3275878
 Availability:Public
 Title:アクタとジオメトリ
 Crumbs:%ROOT%, Engine
@@ -6,35 +6,8 @@ Description:アクタの定義および配置と操作テクニックを含む�
 Navigation:topic
 parent:Engine/Editor
 order:5
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[次のトピック](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
-	[/PARAM]
-	[PARAM:next]
-		[次のトピック](Engine/Actors/Placement "%Engine/Actors/Placement:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		Programming_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[前のトピック](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/Programming/Beginner)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+type:landing
+track:LevelDesign_Beginner|7
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -75,21 +48,19 @@ order:5
 [/OBJECT]
 [/VAR]
 
-%playlistnav%
-
 [REGION:banner]
 ![](actorBanner.png)
 [/REGION]
 
-<!-- 最も基本的なレベルでは、[**アクタ**](Gameplay/UnrealTerminology) はレベルに配置可能、または [スポーン/インスタンス化](Gameplay/HowTo/SpawnAndDestroyActors) できるゲームプレイ オブジェクトです。アンリアル エンジン 4 は、非常に一般的に使用されるケースを自動的に処理します。例えば、**コンテンツ ブラウザ** からスタティックメッシュをレベルにドラッグすると、**Static Mesh アクタ** が得られます。
+<!-- 最も基本的なレベルでは、[**アクタ**](Gameplay/UnrealTerminology) はレベルに配置可能、または [スポーン/インスタンス化](Gameplay/HowTo/SpawnAndDestroyActors) できるゲームプレイ オブジェクトです。アンリアル エンジン 4 は一般的に使用されるケースを自動的に処理します。例えば、**コンテンツ ブラウザ** からスタティックメッシュをレベルにドラッグすると、**Static Mesh アクタ** が得られます。
 -->
 
 [INCLUDE:Shared/Glossary/A#glossary_actor]
 
-Light、Static Mesh、Particle System Emitter アクタやその他、どのアクタのタイプをレベルで使用しても、作成方法とシーンでの操作方法に関する基礎が少々必要になります。
+Light、Static Mesh、Particle System Emitter のアクタやその他、どのアクタのタイプをレベルで使用しても、作成方法とシーンでの操作方法に関する基礎が必要になります。
 
-このプロセスには、アクタの配置、選択、位置決め、修正など必要不可欠な作業がいくつかあります。つまり、 
-レベルを作成するには、アクタをマップへ配置および移動して背景を作成します。 
+このプロセスには、アクタの配置、選択、位置決め、修正など必要不可欠な作業がいくつかあります。言い換えると、 
+レベルを作成するには、アクタをマップへ配置、移動して背景を作成します。 
 そして適切な外観や動きになるようにアクタのプロパティを修正します。
 
 ## アクタの作業
@@ -110,9 +81,9 @@ Light、Static Mesh、Particle System Emitter アクタやその他、どのア�
 	[](Engine/Actors/Types "%Engine/Actors/Types:description%")
 	[/PARAM]
 	[PARAM:links]	
-	* [スタティックメッシュ アクタ](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
+	* [StaticMesh アクタ](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
 	* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
-	* [ジオメトリ ブラシ アクタ](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+	* [Geometry Brush アクタ](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
 	* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
 	* [](Engine/Actors/Triggers "%Engine/Actors/Triggers:description%")
 	* [](Engine/Actors/DecalActor "%Engine/Actors/DecalActor:description%")
@@ -123,11 +94,3 @@ Light、Static Mesh、Particle System Emitter アクタやその他、どのア�
 	* [](Engine/Actors/CameraActors "%Engine/Actors/CameraActors:description%")
 	[/PARAM]
 [/OBJECT]
-
-
-%playlistnav%
-
-
-
-
-

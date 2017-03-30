@@ -1,6 +1,6 @@
 Availability: Public
 Title: 4 - Running UE4 on Linux
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+Crumbs:
 Description:Learn how to run Unreal Engine on Linux.
 Version: 4.13
 type:quick start

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 블루프린트 소개
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,6 +6,7 @@ Description:블루프린트가 처음이신 분들에게 블루프린트란 무�
 version: 4.9
 parent:Engine/Blueprints
 order:1
+tags:Blueprints
 
 
 [VAR:Topic]

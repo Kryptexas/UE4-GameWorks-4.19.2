@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3260884
 Availability: Public
 Title:관리 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -31,6 +31,11 @@ version: 4.9
 **Manage** (관리) 모드에서는 새 랜드스케이프를 만들고, 컴포넌트 툴을 사용하여 기존 랜드스케이프의 컴포넌트를 변경할 수 있습니다. 컴포넌트를 선택하고 레벨 에디터의 **디테일** 패널에서 그 프로퍼티를 변경할 수도 있습니다.
 
 랜드스케이프 생성 관련 정보는 [](Engine/Landscape\Creation) 문서를 참고하세요.
+
+[REGION:tip]
+랜드스케이프 관리 모드는 VR 에디터에서도 작동합니다. VR 에서 랜드스케이프 사용을 위한 조작법은 [](Engine/Editor/VR/Controls) 문서를 참고하세요.
+[/REGION]
+
 
 ## 랜드스케이프 선택
 
@@ -188,6 +193,6 @@ Move Level (레벨 이동) 툴은, 선택 툴을 사용해서 선택된 컴포�
 	![](Landscape_ComponentMaterial.png)
 
 
- 
+
 [INCLUDE:Engine/Landscape#landscape002]
 

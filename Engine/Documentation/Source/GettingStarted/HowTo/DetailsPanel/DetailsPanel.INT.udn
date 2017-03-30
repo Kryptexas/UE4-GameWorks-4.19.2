@@ -4,9 +4,8 @@ Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
 Description:Modifying properties of an Actor such as applying Materials, Physics, Scale through the **Details** panel. 
 Version: 4.10
 SkillLevel: Beginner
-parent:Engine/Editor
+parent:GettingStarted/HowTo
 order:1
-checkpoint: editorqs
 
 Once you place an [Actor](Engine/Actors) in your level, you may want to modify the way it looks or functions in your level. With the Actor selected in the level, inside the [Details](Engine/UI/LevelEditor/Details) panel you will find information about the Actor that can be modified. This How to will show you some sample use cases for accessing the Details panel and modifying an Actor's properties.
 

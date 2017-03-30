@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2099361
 Availability:NoPublish
 Title:
 Crumbs:
 Description:
 
 [EXCERPT:ActionMappings]
-Allows you to map discrete button or key presses to a "friendly name" that will later be used to trigger events.
+便于将离散按钮或按键映射到之后用于触发事件的“友好名称”上。
 
 [VAR:ToolTipFullLink]
 Gameplay/Input
@@ -14,7 +14,7 @@ Gameplay/Input
 [/EXCERPT:ActionMappings]
 
 [EXCERPT:AxisMappings]
-Allows you to map keyboard, controller, or mouse inputs to a "friendly name" that will later be used for continuous game behavior (eg. movement).
+便于将键盘、控制器、或鼠标输入映射到之后用于持续性游戏行为（如运动）的“友好名称”上。
 
 [VAR:ToolTipFullLink]
 Gameplay/Input
@@ -23,7 +23,7 @@ Gameplay/Input
 [/EXCERPT:AxisMappings]
 
 [EXCERPT:AxisConfig]
-Allows you to set up the properties of (hardware) input axis.
+便于设置（硬件）输入轴的属性。
 
 [VAR:ToolTipFullLink]
 Gameplay/Input

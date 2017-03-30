@@ -5,6 +5,7 @@ Description: Nodes that are called from gameplay code to begin execution of an i
 version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

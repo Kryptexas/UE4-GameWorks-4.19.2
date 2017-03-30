@@ -1,288 +1,529 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: HTTP Streamer REST API
+﻿INTSourceChangelist:3260683
+Availability:Public
+Title:HTTP 流送器 REST API
 Crumbs: %ROOT%, Engine, Engine/Replay, Engine/Replay/Streamers
-Description:Overview of the REST API for the HTTP Streamer
-Version: 4.14
+Description:HTTP 流送器 REST API 总览
+Version:4.14
 parent:Engine/Replay/Streamers
 topic-image:replay_topic.png
 tags:Replays
 
 [TOC (start:2 end:3)]
 
-## HTTP REST API Implementation
+以下请求由 HTTP 流送器提出，必须由回放服务器进行处理。多数情况下，录制特定位置的给定信息，或根据请求为查看器返回信息即可。注意：回放通常不会被存储为一个单独的文件。回放的每个单独数据块通常会占用其自身的文件。事件数据为单独保存（即使其与回放相关），因为无需知晓事件所属的回放即可对其进行搜索。事件群组也应保存为单独文件，其中包含所有属于该群组的事件（来自各个回放）。
 
-The following requests will be made by the HTTP Streamer and must be handled by your replay server. In most cases, simply recording the information given in the appropriate location, or providing that information back to a viewer upon request, will be sufficient. It is good to note at this point that replays are not generally stored as a single file. Each individual chunk of a replay generally occupies its own file. Event data, although associated with a replay, is stored separately, since events can be searched without knowing what replay they belong to. Even event groups should be stored as separate files with lists of all events (across all replays) belonging to that group.
+HTTP 流送器 REST API 的功能是将回放从游戏服务器流送到回放服务器（上传）；进行从回放服务器到游戏、查看器、服务器的流送实时回放或预录制回放（下载）；或进行服务器上回放的相关信息查询（搜索）。要实现自有的回放服务器，需要响应以下 HTTP 请求，以及游戏特定的其他额外请求。
 
-The HTTP Streamer's REST API provides functionality for streaming replays from the game server to the replay server (uploading), for streaming live or pre-recorded replays from the replay server to the game, or viewer, server (downloading), or for querying information about the replays available on the server (searching). To implement your own replay server, you will need to respond to the following HTTP requests, as well as any additional requests specific to your game.
+## 上传请求
 
-### Upload Requests
+### 开始流送
 
----
+发送请求，开始上传回放流送。
+
+#### 语法
 
 <!-- From StartStreaming(): -->
-* **(Server URL)**replay/**(Session Name Override)**?app=**(Replay Version AppString)**&version=**(Replay Network Version)**&cl=**(Replay CL)**&friendlyName=**(Platform Friendly Name)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name Override | (Optional, including the leading "/".) Any name for the replay. Usually includes a GUID. | The replay server is expected to recognize this name when a replay is being requested. It should be returned as the session name, although it can be ignored and the streamer will respect the returned name. |
-| Replay Version AppString | A user-defined string that describes the game being played. | This value is expected to be used for filtering when the HTTP Streamer requests a list of replays. |
-| Replay Network Version | A user-defined string that describes the version of the game being played. | This value is also used for filtering lists of replays, so it should be stored with the replay data. |
-| Replay CL | The changelist of the build being played. | This value is used for filtering lists of replays. |
-| Platform Friendly Name | The platform on which the game is being played. | This value might be displayed to users, and is expected to be returned when lists of replays are requested. However, it will not be sent to the game server with requests for lists of replays and therefore is not expected to be used as a filter. |
-Uses POST. "Content-Type" is "application/json".
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| Users | String Array | List of users present in the game. Should be stored as tags on the replay. |
-Expects a response of type `FNetworkReplayStartUploadingResponse`, which contains JSON data with the string "sessionId" defined. This value will be used as the **Session Name** in future communication from the HTTP Streamer. If the optional **(Session Name Override)** was provided, the returned "sessionId", and thus the ultimate <Session Name>, should be the same value. This is the game's way of demanding the session name.
 
----
+	<Server URL>replay/<Session Name Override>?app=<Replay Version AppString>&version=<Replay Network Version>&cl=<Replay CL>&friendlyName=<Platform Friendly Name>
+	
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | POST | 
+| 内容类型 | 应用程序/json |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
+| --- | --- | --- |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name Override | （任选，包括前面的“/”。）回放的任意命名。通常包含一个 GUID。| 但回放被请求时，回放服务器需要识别此命名。它应该作为会话命名返回，但是它可被无视（流送器将采纳返回的命名）。|
+| Replay Version AppString | 用户定义的字符串，用于描述播放的游戏。| HTTP 流送器请求回放列表时，此值可用于过滤。|
+| Replay Network Version | 用户定义的字符串，用于描述播放中游戏的版本。| 此值也用于过滤回放列表，因此应该和回放数据保存在一起。|
+| Replay CL | 播放中版本的变更列表。| 此值用于过滤回放列表。|
+| Platform Friendly Name | 游戏播放的平台。| 此值可能对用户显示，并应在请求回放列表时被返回。然而它不会和回放列表的请求一同被发送至游戏服务器，因此无法用作过滤器。|
+
+#### 响应
+
+响应为 `FNetworkReplayStartUploadingResponse` 类型，包含 JSON 数据（已定义字符串“sessionId”）。此值将在之后来自 HTTP 流送器的通信中被用作 **Session Name**。如提供了任选的 <Session Name Override>，返回的“sessionId”和最终的 <Session Name> 值应相同。这是游戏请求会话名的方式。
+
+| 名称 | 类型 | 内容 |
+| --- | --- | --- |
+| 用户 | 字符串阵列 | 出现在游戏中的用户列表。应被存储为回放上的标签。|
+
+### 更新标头
+
+发送请求上传构成档案标头的二进制数据。数据应被录制到与 **Session Name** 关联的头文件中。
+
+#### 语法
 
 <!-- From UploadHeader(): -->
-* **(Server URL)**replay/**(Session Name)**/file/replay.header?numChunks=**(Stream Chunk Index)**&time=**(Total Demo Time In MS)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/file/replay.header?numChunks=<Stream Chunk Index>&time=<Total Demo Time In MS>
+	
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | POST | 
+| 内容类型 | 应用程序/八位字节流送 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Stream Chunk Index | The index of the current chunk of replay data being sent. | Stream chunks are not uniform in size, but they are strictly ordered by this value. |
-| Total Demo Time In MS | The total running time of the demo up to the end of the current stream chunk. | Tells how much replay data, in milliseconds, has been uploaded so far without having to interpret binary replay data. |
-Uses POST. "Content-Type" is "application/octet-stream".
-The content sent will be the binary data constituting the archive header, which should be recorded in a header file associated with **Session Name**.
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name | 被上传的回放名称。| 此名称将匹配回放服务器提供的值，以响应最初的上传请求。|
+| Stream Chunk Index | 当前被发送回放数据块的索引。| 流送数据块的大小并不统一，但会严格按此值进行排序。|
+| Total Demo Time In MS | 截止当前流送数据块结束的 demo 总运行时间。| 说明已上传的回放数据量（以毫秒为单位），无需解译二进制回放数据。|
+
+### 清空流送
+
+发送清空流送的请求。内容为二进制回放数据，可对其进行压缩。此数据代表 **Stream Chunk Index** 指出的数据块。数据块的数据大小和其包含的时间长度有所不同，因此建议将每个数据块保存在单独的文件中。HTTP 流送器每 10 秒将尝试通过此系统清空其当前的流送数据。修改控制台变量“httpReplay.ChunkUploadDelayInSeconds”即可调整清空操作的间隔。
+
+[REGION:note]
+如要启用压缩，必须在 `FHttpNetworkReplayStreamer` 的子类中覆盖 3 个函数：
+
+* `SupportsCompression` 必须返回 `true`。
+* `CompressBuffer` 必须执行压缩并返回 `true`，除非出现错误。
+* `DecompressBuffer` 必须执行解压缩并返回 `true`，除非出现错误。
+[/REGION:note]
+
+#### 语法
 
 <!-- From FlushStream(): -->
-* **(Server URL)**replay/**(Session Name)**/file/stream.**(Stream Chunk Index)**?numChunks=**(Total Chunks)**&time=**(Total Demo Time In MS)**&mTime1=**(Start Time In MS)**&mTime2=**(End Time In MS)**&absSize=**(Total Uploaded Bytes)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/file/stream.<Stream Chunk Index>?numChunks=<Total Chunks>&time=<Total Demo Time In MS>&mTime1=<Start Time In MS>&mTime2=<End Time In MS>&absSize=<Total Uploaded Bytes>
+
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | POST | 
+| 内容类型 | 应用程序/八位字节流送 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Stream Chunk Index | The index of the current chunk of replay data being sent. | Stream chunks are not uniform in size, but they are strictly ordered by this value. |
-| Total Chunks | The total number of chunks sent so far. | This is always one greater than **Stream Chunk Index.** |
-| Total Demo Time In MS | The total running time of the demo up to the end of the current stream chunk. | Tells how much replay data, in seconds, has been uploaded so far without having to interpret binary replay data. |
-| Start Time In MS | The total running time as of the point where this stream chunk begins. | Time is in milliseconds. For streaming replays, can be used to identify which chunk a scrubbing viewer needs. |
-| End Time In MS | The total running time as of the point where this stream chunk ends. | Time is in milliseconds. For streaming replays, can be used to identify which chunk a scrubbing viewer needs. |
-| Total Uploaded Bytes | The total size of the demo up to the end of the current stream chunk. | Tells how much replay data, in bytes, has been uploaded so far. |
-Uses POST. "Content-Type" is "application/octet-stream".
-The content is binary replay data, which can be compressed. This data represents the chunk indicated by **Stream Chunk Index**. Since chunks can vary in data size as well as the length of time they cover, it is recommended that each chunk be stored in a separate file. The HTTP Streamer will attempt to flush its current stream data via this system every ten seconds. The interval between flushes can be adjusted by changing the console variable "httpReplay.ChunkUploadDelayInSeconds"
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name | 被上传的回放名称。| 此名称将匹配回放服务器提供的值，以响应最初的上传请求。|
+| Stream Chunk Index | 被请求的回放当前数据块的索引。| 流送数据块的大小并不统一，但会严格按此值进行排序。|
+| Total Chunks | 已发送数据块的总数。| 这将固定比 **Stream Chunk Index** 多 1。|
+| Total Demo Time In MS | 截止当前流送数据块结束的 demo 总运行时间。| 说明已上传的回放数据量（以秒为单位），无需解译二进制回放数据。|
+| Start Time In MS | 自此流送数据块开始的总运行时间。| 时间以毫秒为单位。可用于确认查看器在流送回放中需要跳至的数据块。|
+| End Time In MS | 自此流送数据块结束的总运行时间。| 时间以毫秒为单位。可用于确认查看器在流送回放中需要跳至的数据块。|
+| Total Uploaded Bytes | 截止当前流送数据块结束的 demo 总大小。| 说明当前已上传的回放数据量（以字节为单位）。|
+
+### 添加/更新事件
+
+发送请求添加或更新回放事件。内容包含需要被记录的二进制事件数据。此数据可通过 DemoNetDriver 发送，用户可对其进行定义。此 HTTP 请求的第二个版本可用于修改或更新现有的事件，而第一个版本则用于创建新事件。
+
 [REGION:note]
-To enable compression, three functions must be overridden in a child class of `FHttpNetworkReplayStreamer`:
-`SupportsCompression` must return `true`.
-`CompressBuffer` must perform compression and return `true`, except in the case of an error.
-`DecompressBuffer` must perform decompression and return `true`, except in the case of an error.
+注意：事件将在回放外单独保存，因此事件名使用 GUID。每个事件均了解其所属的回放，因此事件并未嵌入回放。
 [/REGION:note]
 
----
+#### 语法
 
 <!-- From AddOrUpdateEvent(): -->
-* **(Server URL)**replay/**(Session Name)**/event?group=**(Group Name)**&time1=**(Event Time In MS)**&time2=**(Event Time In MS)**&meta=**(Meta Tag)**&incrementSize=false
-* **(Server URL)**replay/**(Session Name)**/event/**(Session Name**)`_`**(Event Name)**?group=**(Group Name)**&time1=**(Event Time In MS)**&time2=**(Event Time In MS)**&meta=**(Meta Tag)**&incrementSize=false
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Group Name | The name of the event group containing this event. | Events can be put into groups for filtering lists, such as grouping all penalty calls in a sports title. |
-| Event Name | The GUID of the event being added or updated. | (Optional.) Information about specific, named events may be requested by viewers. If not specified, the event can still be found by listing the events in its group. |
-| Event Time In MS | The time in the replay when this event takes place. | Time is in milliseconds. Although "time1" and "time2" can be used as a begin time and an end time respectively, they are always the same value in the default HTTP Streamer. |
-| Meta Tag | Meta tag associated with this event. | Replay lists can be filtered by meta tag, if the request specifies any. **Meta Tag** will be URL-encoded by the HTTP Streamer during transmission. |
-Uses POST. "Content-Type" is "application/octet-stream" and contains binary event data to be recorded. This data can be sent through DemoNetDriver and is be user-defined. The second version of this HTTP request can be used to modify or update an existing event, whereas the first version is used to create a new event.
-[REGION:note]
-Note that events are meant to be stored separately from replays, which is why event names use GUIDs. Each event knows what replay it belongs to, which is why events are not embedded in the replays themselves.
-[/REGION:note]
 
----
+	<Server URL>replay/<Session Name>/event?group=<Group Name>&time1=<Event Time In MS>&time2=<Event Time In MS>&meta=<Meta Tag>&incrementSize=false
+~~~
+	<Server URL>replay/<Session Name>/event/<Session Name>_<Event Name>?group=<Group Name>&time1=<Event Time In MS>&time2=<Event Time In MS>&meta=<Meta Tag>&incrementSize=false
+
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | POST | 
+| 内容类型 | 应用程序/八位字节流送 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
+| --- | --- | --- |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name | 被上传的回放名称。| 此名称将匹配回放服务器提供的值，以响应最初的上传请求。|
+| Group Name | 包含此事件的事件组名称。| 事件可被放入组中以便进行列表过滤（如将体育游戏中的所有判罚分组）。|
+| Event Name | 被添加或更新的事件 GUID。| （任选。）查看器可请求的特定命名事件的相关信息。如未指定，列出事件群组中的事件后仍然可以找到此事件。|
+| Event Time In MS | 此事件发生时回放中的时间。| 时间以毫秒为单位。虽然“time1”和“time2”可分别用作开始时间和结束时间，但在默认的 HTTP 流送器中它们的值固定相同。|
+| Meta Tag | 与此事件相关的元标签。| 如请求进行了指定，则可通过元标签过滤回放列表。**Meta Tag** 在传输中将由 HTTP 流送器进行 URL 编码。|
+
+### 停止流送
+
+发送请求说明回放上传已完成。
+
+#### 语法
 
 <!-- From StopUploading(): -->
-* **(Server URL)**replay/**(Session Name)**/stopUploading?numChunks=**(Total Num Chunks)**&time=**(Total Time In MS)**&absSize=**(Total Bytes Uploaded)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/stopUploading?numChunks=<Total Num Chunks>&time=<Total Time In MS>&absSize=<Total Bytes Uploaded>
+	
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | POST | 
+| 内容类型 | 应用程序/八位字节流送（无发送内容） |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Total Num Chunks | The number of chunks in the finished replay. | |
-| Total Time In MS | The total running time, in milliseconds, of the replay. | |
-| Total Bytes Uploaded | The total size, in bytes, of the replay. | |
-Uses POST. "Content-Type" is "application/octet-stream", but no content is sent with this type of request. The request itself indicates that the replay is done uploading.
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name | 被上传的回放名称。| 此名称将匹配回放服务器提供的值，以响应最初的上传请求。|
+| Total Num Chunks | 完成回放中的数据块数量。| |
+| Total Time In MS | 回放的总运行时间（以毫秒为单位）。| |
+| Total Bytes Uploaded | 回放的总大小（以字节为单位）。| |
 
----
+## 下载请求
 
-### Download Requests
+### 请求开始下载
 
----
+此请求将基于用户名建立连接，从回放服务器开始下载回放。此请求成功送达后，HTTP 流送器将立即发送请求下载回放的标头，然后再发送另一个请求列举回放中的所有检查点。 
+
+#### 语法
 
 <!-- From StartStreaming(): -->
-* **(Server URL)**replay/**(Session Name)**?shouldKeep=**(Should Keep)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being uploaded. | This name will match the value that the replay server provided in response to the initial upload request. |
-| Should Keep | "true" or "false" | Indicates whether or not the replay being sent should be saved. |
-Uses POST. "Content-Type" is "application/json" but is empty. This request is intended for debug purposes, and is not called in the existing code.
 
----
+	<Server URL>replay/<Session Name>/startDownloading?user=<User Name>
+			
+#### 详情
 
-<!-- From StartStreaming(): -->
-* **(Server URL)**replay/**(Session Name)**/startDownloading?user=**(User Name)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being downloaded. | This name will match the value that the server provided when the replay was originally uploaded. |
-| User Name | Unique Net Id (GUID) | The preferred network GUID that is logged into the client machine. This value comes from the engine and is not intended to be user-supplied. |
-Uses POST. Does not send content. The purpose of this request is to start downloading a replay from the replay server by establishing a connection based on the user name. Immediately after this request goes through successfully, the HTTP Streamer will send a request to download the replay's header, and then another to enumerate all checkpoints in the replay. The expected response to this request is of type `FNetworkReplayStartDownloadingResponse`, which contains JSON data.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| State | String | The word "Live", to indicate that the game being viewed is happening live. Otherwise, the replay is assumed to be pre-recorded. |
-| NumChunks | Integer | This is expected to be nonzero, and can be updated as streaming continues (used for live replays). |
-| Time | Integer | The total time (in MS) of the replay. Subject to change if **State** indicated that this is a live stream. |
-| ViewerId | String | A unique, name assigned by the replay server that the game server will use when requesting further chunks of replay data. Often referred to as **Viewer Name** in this document. |
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | POST | 
+| 内容类型 | 无 |
+[/REGION]
 
----
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
+| --- | --- | --- |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name | 被下载的回放名称。| 此名称将匹配回放最初上传时服务器提供的值。|
+| User Name | 专有网络 ID（GUID） | 登录到客户端机器中的首选网络 GUID。此值来自引擎，并未规定为用户提供。|
+
+#### 响应
+
+对此请求的预期响应为 `FNetworkReplayStartDownloadingResponse` 类型（包含 JSON 数据）。
+
+| 名称 | 类型 | 内容 |
+| --- | --- | --- |
+| State | 字符串 | 单词“Live”，说明正在观看实时进行中的游戏。否则回放将被假定为预录制。|
+| NumChunks | 整数 | 这应为非零，可随流送进行更新（用于实时回放）。|
+| Time | 整数 | 回放的总时间（以毫秒为单位）。如 **State** 指出这是实时流送，则会发生改变。|
+| ViewerId | 字符串 | 回放服务器指定的独有命名，请求更多回放数据块时游戏服务器将使用此命名。在此文档中常被称作 **Viewer Name**。|
+
+### 请求标头
+
+#### 语法
 
 <!-- From DownloadHeader(): -->
-* **(Server URL)**replay/**(Session Name)**/file/replay.header
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being downloaded. | This name will match the value that the replay server provided when the replay was originally uploaded. |
-Uses GET. Expects a response with the replay's header in the content portion, as binary data.
 
----
+	<Server URL>replay/<Session Name>/file/replay.header
+				
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | GET | 
+| 内容类型 | 无 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
+| --- | --- | --- |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name | 被下载的回放名称。| 此名称将匹配回放最初上传时回放服务器提供的值。|
+
+#### 响应
+
+响应为内容部分中回放的标头（为二进制数据）。
+
+### 请求检查点数据
+
+#### 语法
 
 <!-- From EnumerateCheckpoints(): -->
-* **(Server URL)**replay/**(Session Name)**/event?group=checkpoint
-| Element | Value | Intended Use / Notes |
+	
+	<Server URL>replay/<Session Name>/event?group=checkpoint
+				
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | GET | 
+| 内容类型 | 无 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being downloaded. | This name will match the value that the replay server provided when the replay was originally uploaded. |
-Uses GET. Expects a response of type `FHttpResponsePtr` containing checkpoint data as a JSON-formatted string.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name | 被下载的回放名称。| 此名称将匹配回放最初上传时回放服务器提供的值。|
+
+#### 响应
+
+响应为包含检查点数据的 `FHttpResponsePtr` 类型（为 JSON 格式的字符串）。
+
+| 名称 | 类型 | 内容 |
 | --- | --- | --- |
-| events | Array | Contains array entries which consist of all the other fields in this table. |
-| id | String | The name (a GUID) of the checkpoint. |
-| group | String | The group to which the event belongs, if any. |
-| meta | String | Meta Tag string associated with this event, if any. |
-| time1 | Integer | Start time (in MS) of the event. |
-| time2 | Integer | End time (in MS) of the event. Often the same as the start time. |
+| events | 阵列 | 包含各个阵列条目，由此表中所有其他的域组成。|
+| id | 字符串 | 检查点的命名（GUID）。|
+| group | 字符串 | 事件所属的群组（如有）。|
+| meta | 字符串 | 与此事件相关的元标签（如有）。|
+| time1 | 整数 | 事件的开始时间（以毫秒为单位）。|
+| time2 | 整数 | 事件的结束时间（以毫秒为单位）。通常与开始时间相同。|
+
 [REGION:note]
-Note that this is technically a generic request for a group of events. While "checkpoint" is explicitly specified here, the replay server should be able to handle other values for "group" and report all events for any given group.
+注意：从技术上而言这是事件群组的一个泛型请求。“检查点”在此显式指定后，回放服务器应能够处理“群组”的其他数值并报告任意特定群组的全部事件。
 [/REGION:note]
 
----
+### 请求流送数据块
+
+这是针对特定流送数据块的请求，由查看器进行命名。已有数据块下载时将不会发送此请求。 
+
+#### 语法
 
 <!-- From ConditionallyDownloadNextChunk(): -->
-* **(Server URL)**replay/**(Session Name)**/file/stream.**(Stream Chunk Index)**
-| Element | Value | Intended Use / Notes |
+
+	<Server URL>replay/<Session Name>/file/stream.<Stream Chunk Index>
+					
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | GET | 
+| 内容类型 | 无 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Session Name | Name of the replay being downloaded. | This name will match the value that the replay server provided when the replay was originally uploaded. |
-| Stream Chunk Index | The index of the current chunk of replay data being requested. | Stream chunks are not uniform in size, but they are strictly ordered by this value. |
-Uses GET. This is a request for a specific stream chunk, named by the viewer. This request will not be sent while there is a chunk already being downloaded. The expected response has a header with some information about the chunk, and its content is a binary chunk of replay data. The binary data can be compressed, if compression is supported. The following fields are expected in the header:
-| Header Field Name | Description |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Session Name | 被下载的回放名称。| 此名称将匹配回放最初上传时回放服务器提供的值。|
+| Stream Chunk Index | 被请求的回放当前数据块的索引。| 流送数据块的大小并不统一，但会严格按此值进行排序。|
+
+#### 响应
+
+预期响应为包含数据块相关信息的一个标头，其内容为回放数据的一个二进制数据块。如支持压缩，可对二进制数据进行压缩。标头中有以下域：
+
+| 标头域名称 | 描述 |
 | --- | --- |
-| NumChunks | The total number of chunks in the stream. This can be useful with streamed games, as it lets the user know about new chunks that have been created while viewing. |
-| Time | The total length of the replay (in MS). As with NumChunks, this value can change during the viewing session if the replay is live. |
-| State | This variable has one recognized value, "Live". If this variable is missing or is a different value, the streamer will switch to non-live streaming mode. |
-| MTime1 | The start time of the stream, in MS. Can be non-zero for live replay streams. This variable will only be checked if a chunk of data sent, and either this is the first chunk the streamer has downloaded, or the stream is live. |
-| MTime2 | The end time of the stream, in MS. Can change as more chunks come in. This variable will always be checked if a chunk of data is sent, or if the replay is live. |
+| NumChunks | 流送中的数据块总数。这在流送游戏时十分实用，因为它能让用户在观看时了解新建的数据块。|
+| Time | 回放的总长度（以毫秒为单位）。和 NumChunks 一样，此值可在查看会话中进行修改（如回放实时进行）。|
+| State | 此变量拥有一个确认值“Live”。如此变量缺失，或为一个不同的值，流送器将切换至非实时流送模式。|
+| MTime1 | 流送的开始时间（以毫秒为单位）。在实时回放流送中可为零。只有在数据块被发送后（流送器下载的第一个数据块，或流送为实时进行）才会检查此变量。|
+| MTime2 | 流送的结束时间（以毫秒为单位）。更多数据块传入后，它将发生变化。如数据块被发送或回放为实时进行，此变量将固定被检查。|
+
 [REGION:note]
-To enable compression, three functions must be overridden in a child class of `FHttpNetworkReplayStreamer`:
-`SupportsCompression` must return `true`.
-`CompressBuffer` must perform compression and return `true`, except in the case of an error.
-`DecompressBuffer` must perform decompression and return `true`, except in the case of an error.
+如要启用压缩，必须在 `FHttpNetworkReplayStreamer` 的子类中覆盖 3 个函数：
+
+* `SupportsCompression` 必须返回 `true`。
+* `CompressBuffer` 必须执行压缩并返回 `true`，除非出现错误。
+* `DecompressBuffer` 必须执行解压缩并返回 `true`，除非出现错误。
 [/REGION:note]
 
----
+### 列举回放事件
+
+可从 DemoNetDriver 直接调用，意味着游戏项目可随时进行此操作。此请求要求回放服务器发送包含特定回放（由 **Session Name** 确认）的所有事件列表，并通过特定事件群组进行过滤。建议支持空群组名和空“群组”参数。 
+
+#### 语法
 
 <!-- From EnumerateEvents(): -->
-* **(Server URL)**replay/**(Session Name)**/event?group=**(Group Name)**"
-Uses GET. Can be called directly from DemoNetDriver, meaning your game project can do this at any time. This request asks the replay server to send a list of all events pertaining to a specific replay (identified by **Session Name**) and filtered by a certain event group. It is recommended that empty group names, as well as a lack of the "group" argument, be supported. Content received in response to this request is expected to be a JSON-formatted string corresponding to `FReplayEventList` and `FReplayEventListItem`.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| events | Array | Contains elements which consist of all the other fields in this table. |
-| id | String | The name (a GUID) of the checkpoint. |
-| group | String | The group to which the event belongs, if any. |
-| meta | String | Meta Tag string associated with this event, if any. |
-| time1 | Integer | Start time (in MS) of the event. |
-| time2 | Integer | End time (in MS) of the event. Often the same as the start time. |
+	
+	<Server URL>replay/<Session Name>/event?group=<Group Name>"
+						
+#### 详情
 
----
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | GET | 
+| 内容类型 | 无 |
+[/REGION]
+
+#### 响应
+
+此请求响应接收的内容为一条 JSON 格式字符串，和 `FReplayEventList` 以及 `FReplayEventListItem` 相一致。
+
+| 名称 | 类型 | 内容 |
+| --- | --- | --- |
+| events | 阵列 | 包含各个元素，由此表中所有其他的域组成。|
+| id | 字符串 | 检查点的命名（GUID）。|
+| group | 字符串 | 事件所属的群组（如有）。|
+| meta | 字符串 | 与此事件相关的元标签（如有）。|
+| time1 | 整数 | 事件的开始时间（以毫秒为单位）。|
+| time2 | 整数 | 事件的结束时间（以毫秒为单位）。通常与开始时间相同。|
+
+### 刷新查看器
+
+该请求是一个 heartbeat，每 10 秒钟发送。此频率在当前版本中为硬编码，但在未来的版本中用户可对其进行配置（无需修改代码）。如查看器长时间未发送此请求（如一分钟），则查看器连接很可能已经意外断开，将其断开较为合理。如“final=true”版本已发送，则意味着用户说明这是最终的 heartbeat，用户已停止观看回放。
+
+#### 语法
 
 <!-- From RefreshViewer(): -->
-* **(Server URL)**replay/**(Session Name)**/viewer/**(Viewer Name)**
-* **(Server URL)**replay/**(Session Name)**/viewer/**(Viewer Name)**?final=**(Final Heartbeat)**
-| Element | Value | Intended Use / Notes |
+	
+	<Server URL>replay/<Session Name>/viewer/<Viewer Name>
+~~~
+	<Server URL>replay/<Session Name>/viewer/<Viewer Name>?final=<Final Heartbeat>
+							
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | POST | 
+| 内容类型 | 无 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
 | --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Final Heartbeat | "true" or "false" | By default, "final" will not be sent unless **Final Heartbeat** is true. If true, the viewer has stopped watching and no further data should be sent. |
-Uses POST. Does not send content.
-This request is a heartbeat, sent every ten seconds. This frequency is currently hard-coded, but will likely be made user-configurable without code changes in the future. If a viewer fails to send this request for a long period of time (perhaps one minute), then the viewer has most likely disconnected unexpectedly and it would be reasonable to disconnect them. If the "final=true" version is sent, the user is indicating that this is the final heartbeat, and the user has stopped watching the replay.
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Final Heartbeat | “true”或“false” | “final”不会默认发送，除非 **Final Heartbeat** 为 true。如为 true，则查看器已停止观看，不需要再发送数据。|
 
----
+## 搜索请求
 
-### Search Requests
+### 搜索回放
 
----
+请求回放服务器能发送的所有回放的列表。这些回放应该由 URL 中用户的标准进行预过滤。回放服务器应该能够处理部分过滤域为空或缺失。
+
+#### 语法
 
 <!-- From EnumerateStreams(): -->
-* **(Server URL)**replay?app=**(Replay Version AppString)**&cl=**(Replay CL)**&version=**(Replay Network Version)**&meta=**(Meta Tag)**&user=**(User Name)**&recent=**(In Recent Viewer)**"
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Replay Version AppString | A user-defined string that describes the game being played. | This value was sent when the user began uploading the replay, and is now being used for filtering the list of replays sent to the potential viewer. |
-| Replay CL | The changelist of the build being played. | This value is used for filtering lists of replays. |
-| Replay Network Version | A user-defined string that describes the version of the game being played. | This value should reflect changes in your game's data formats as they affect replay. It is also used for filtering lists of replays. |
-| Meta | Tags applied to this replay. | User-applied meta tags can be used for filtering games that have certain features. This could be anything from "all Capture The Flag matches" to to "games that went into double-overtime". |
-| User | Unique Net Id (GUID) | This is used to filter games based on their inclusion of a specific player. |
-| Recent | "true" or "false" | If true, only recently-uploaded replays should be shown. What defines "recent" is up to the replay server. |
-Uses GET. Expects a response with content in the form of a JSON-formatted string, containing a list of replays that the replay server can send. These replays are expected to be pre-filtered by the user's criteria in the URL. The replay server should be able to handle some of the filter fields being empty or missing.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| replays | Array | Contains elements which consist of all the other fields in this table. |
-| AppName | String | The **Replay Version AppString** that was sent when the replay was uploaded. Should match the parameter you sent with the request. |
-| SessionName | String | The name (GUID) of the replay. |
-| FriendlyName | String | The **(Platform Friendly Name)** that was provided when the replay was uploaded. |
-| Timestamp | DateTime | The time and date associated with the replay (i.e. when this game happened). |
-| SizeInBytes | Integer | Total size, in bytes, of the replay. |
-| DemoTimeInMs | Integer | Running length, in MS, of the replay. |
-| NumViewers | Integer | Number of users currently watching this replay. |
-| bIsLive | Boolean | True if the game in the replay is still being played. |
-| Changelist | Integer | The changelist (CL) of the engine running the game when this replay was recorded. Corresponds to the **Replay CL** argument sent when uploading the replay. Should match the parameter you sent with the request. |
-| shouldKeep | Boolean | True if the debug "shouldKeep" request was made. |
 
----
+	<Server URL>replay?app=<Replay Version AppString>&cl=<Replay CL>&version=<Replay Network Version>&meta=<Meta Tag>&user=<User Name>&recent=<In Recent Viewer>"
+								
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | GET | 
+| 内容类型 | 无 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
+| --- | --- | --- |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Replay Version AppString | 用户定义的字符串，用于描述播放的游戏。| 此值在用户开始上传回放时发送，现在用于过滤发送到潜在查看器的回放列表。|
+| Replay CL | 播放中版本的变更列表。| 此值用于过滤回放列表。|
+| Replay Network Version | 用户定义的字符串，用于描述播放中游戏的版本。| 此值应反映游戏数据格式的变化（因为会影响回放）。此值也用于过滤回放列表。|
+| Meta | 应用到此回放的标签。| 用户应用的元标签可用于过滤拥有特定功能的游戏。这些游戏可以是“夺旗游戏”或“进入双重加时的游戏”。|
+| User | 专有网络 ID（GUID） | 用于过滤包含特定玩家的游戏。|
+| Recent | “true”或“false” | 如为 true，则只会显示最近上传的回放。而回放服务器将对“最近”进行定义。|
+
+#### 响应
+
+响应内容为 JSON 格式的字符串。
+
+| 名称 | 类型 | 内容 |
+| --- | --- | --- |
+| replays | 阵列 | 包含各个元素，由此表中所有其他的域组成。|
+| AppName | 字符串 | 上传回放时发送的 **Replay Version AppString**。应与随请求发送的参数相匹配。|
+| SessionName | 字符串 | 回放的命名（GUID）。|
+| FriendlyName | 字符串 | 上传回放时提供的 <Platform Friendly Name>。|
+| Timestamp | 日期时间 | 回放相关的时间和日期（即游戏何时进行）。|
+| SizeInBytes | 整数 | 回放的总大小（以字节为单位）。|
+| DemoTimeInMs | 整数 | 回放的运行长度（以毫秒为单位）。|
+| NumViewers | 整数 | 当前观看此回放的用户数量。|
+| bIsLive | 布尔 | 如回放中的游戏仍在进行中，则为 True。|
+| Changelist | 整数 | 此回放被录制时运行游戏的引擎的变更列表（CL）。和上传回放时的 **Replay CL** 参数相同。应与随请求发送的参数相匹配。|
+| shouldKeep | 布尔 | 如“shouldKeep”调试请求发出，则为 True。|
+
+### 按事件搜索回放
+
+发送从服务器获取回放列表的请求。这些回放将被预过滤，只包括在命名 **Event Group** 中拥有至少一个事件的回放。
+
+#### 语法
 
 <!-- From SearchEvents(): -->
-* **(ServerURL)**event?group=**(Event Group)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Group Name | The name of the event group containing this event. | Events can be put into groups for filtering lists, such as grouping all penalty calls in a sports title. |
-Uses GET. Expects a response with content as a JSON-formatted string containing a list of replays from the server. These replays are expected to be pre-filtered to include only those that contain at least one event in the named **Event Group**.
-<br>JSON format:
-| Variable Name | Variable Type | Content |
-| --- | --- | --- |
-| replays | Array | Contains elements which consist of all the other fields in this table. |
-| AppName | String | The **Replay Version AppString** that was sent when the replay was uploaded. |
-| SessionName | String | The name (GUID) of the replay. |
-| FriendlyName | String | The **(Platform Friendly Name)** that was provided when the replay was uploaded. |
-| Timestamp | DateTime | The time and date associated with the replay (i.e. when this game happened). |
-| SizeInBytes | Integer | Total size, in bytes, of the replay. |
-| DemoTimeInMs | Integer | Running length, in MS, of the replay. |
-| NumViewers | Integer | Number of users currently watching this replay. |
-| bIsLive | Boolean | True if the game in the replay is still being played. |
-| Changelist | Integer | The changelist (CL) of the engine running the game when this replay was recorded. Corresponds to the **Replay CL** argument sent when uploading the replay. |
-| shouldKeep | Boolean | True if the debug "shouldKeep" request was made. |
 
----
+	<ServerURL>event?group=<Event Group>
+								
+#### 详情
+
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | GET | 
+| 内容类型 | 无 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
+| --- | --- | --- |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Event Group | 包含此事件的事件组名称。| 事件可被放入组中以便进行列表过滤（如将体育游戏中的所有判罚分组）。|
+
+#### 响应
+
+响应内容为 JSON 格式字符串，包含从服务器获取的回放列表。
+
+| 名称 | 类型 | 内容 |
+| --- | --- | --- |
+| replays | 阵列 | 包含各个元素，由此表中所有其他的域组成。|
+| AppName | 字符串 | 上传回放时发送的 **Replay Version AppString**。|
+| SessionName | 字符串 | 回放的命名（GUID）。|
+| FriendlyName | 字符串 | 上传回放时提供的 <Platform Friendly Name>。|
+| Timestamp | 日期时间 | 回放相关的时间和日期（即游戏何时进行）。|
+| SizeInBytes | 整数 | 回放的总大小（以字节为单位）。|
+| DemoTimeInMs | 整数 | 回放的运行长度（以毫秒为单位）。|
+| NumViewers | 整数 | 当前观看此回放的用户数量。|
+| bIsLive | 布尔 | 如回放中的游戏仍在进行中，则为 True。|
+| Changelist | 整数 | 此回放被录制时运行游戏的引擎的变更列表（CL）。和上传回放时的 **Replay CL** 参数相同。|
+| shouldKeep | 布尔 | 如“shouldKeep”调试请求发出，则为 True。|
+
+### 请求回放
+
+这将从 DemoNetDriver 直接调用，因此可随时在游戏项目中执行。但通常会在查看回放 （回放中的 **Event Name** 从之前请求提供的列表中获取）时调用。
+
+#### 语法
 
 <!-- From RequestEventData(): -->
-* **(Server URL)**event/**(Event Name)**
-| Element | Value | Intended Use / Notes |
-| --- | --- | --- |
-| Server URL | Replay server URL. Drawn from DefaultEngine.Ini, unmodified. | The final "/" in the URL must be included - it will not be added automatically. |
-| Event Name | The GUID of the event requested. | Since events are identified by GUID, the event can be from any replay on file. Make sure that the event you request is from a list of events pertaining to the replay you are currently watching. |
-Uses GET. Expects a response with Content as a binary stream from the replay server. This is called directly from the DemoNetDriver, so it can be done from the game project at any time, but will usually be called while viewing a replay with an **Event Name** retrieved from a list provided by a previous request.
+	
+	<Server URL>event/<Event Name>
+								
+#### 详情
 
----
+[REGION:simpletable]
+| 项目 | 值 |
+| ---- | ----- |
+| 请求方法 | GET | 
+| 内容类型 | 无 |
+[/REGION]
+
+#### 参数
+
+| 元素 | 值 | 预计用途 / 注释 |
+| --- | --- | --- |
+| Server URL | 回放服务器 URL。从 DefaultEngine.Ini 进行绘制，未修改。| 必须包含 URL 最后的“/”，因为它不会自动添加。|
+| Event Name | 所请求事件的 GUID。| 事件由 GUID 识别，因此其可来自任意归档的回放。请求的事件必须来自当前观看回放所包含的事件列表。|
+
+#### 响应
+
+响应内容应为来自回放服务器的二进制流送。

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability: Public
 Title:ParticleSystem 클래스
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:ParticleSystem 베이스 클래스에 대한 프로퍼티가 포함 기술 참고서입니다.
 Version: 4.9
+tags:Particles
 
 ParticleSystem (파티클 시스템)은 ParticleEmitter (파티클 이미터)로 구성되는 파티클 이펙트 완전체입니다. 디자이너는 한 시스템에 이미터를 여럿 꾸려넣는 식으로 다양한 파티클 이펙트를 조합해낼 수 있습니다. 일단 캐스케이드를 통해 파티클 시스템을 만들고 난 후에는 레벨에 놓거나 스크립트로 만들어 쓸 수 있습니다.
 
@@ -12,7 +13,7 @@ ParticleSystem 클래스에는 다음과 같은 공용 변수가 포함됩니다
 | 프로퍼티 | 설명 |
 | -------- | ---- |
 | [REGION:tablesection]ParticleSystem (파티클 시스템)[/REGION] ||
-| **SystemUpdateMode** | 시스템 업데이트 모드 - 시스템에서 이미터 업데이트에 사용할 메소드를 나타내는 열거형입니다. 두 가지 모드가 가능합니다: [INCLUDE:#SystemUpdate] |
+| **SystemUpdateMode** | 시스템 업데이트 모드 - 시스템에서 이미터 업데이트에 사용할 메소드를 나타내는 Enum 입니다. 두 가지 모드가 가능합니다: [INCLUDE:#SystemUpdate] |
 | **UpdateTime_FPS** | 업데이트 시간 FPS - EPSUM_FixedTime 에서의 연산시 사용할 시간 단위입니다. |
 | **WarmupTime** | 워밍업 시간 - 시동시 시스템 워밍업 시간입니다. 이를 통해 이미터가 만개한 상태에서 시작할 수 있습니다. 퍼포먼스가 저하될 수 있으니, 특히나 값이 클 때는 조심해서 사용해야 합니다. 연기나는 기둥이나 환경 효과처럼 레벨 초기 로드시 시작되게 하고픈 시스템에 좋습니다. |
 | **Warmup Tick Rate** | 워밍업 틱 시간 - 시스템 워밍업 도중 한 틱의 시간 단위를 좌우합니다. 이 값을 올리면 퍼포먼스가 향상되는 반면 낮추면 정확도가 향상됩니다. 값이 0 이면 기본 틱 시간을 나타냅니다. |
@@ -23,7 +24,7 @@ ParticleSystem 클래스에는 다음과 같은 공용 변수가 포함됩니다
 | **Use Realtime Thumbnail** | (실시간 썸네일 사용) - _True_ 면 콘텐츠 브라우저에 표시되는 파티클 시스템 썸네일을 저장된 것을 사용하지 않고, 기본 카메라 위치와 파티클 시스템의 현재 세팅 및 모양을 반영해서 자동으로 캡처한 것을 사용합니다. [REGION:note]이 _실시간 썸네일 사용_ 옵션을 켜면 콘텐츠 브라우저의 퍼포먼스가 느려질 수 있습니다.[/REGION] |
 | [REGION:tablesection]LOD (레벨 오브 디테일)[/REGION] ||
 | **LOD Distance Check Time** | LOD 거리 검사 시간 - 활용할 LOD 레벨을 정하기 위해 시스템이 거리 검사를 수행할 (초 단위) 주기입니다. (LODMethod 가 자동으로 설정되었을 때만 사용됩니다.) |
-| **LOD Method** | LOD 메소드 - 시스템이 적절한 LOD 레벨을 선택하는 데 활용하는 열거형을 가리킵니다. 두 가지 메소드가 가능합니다: [INCLUDE:#LODMethod] |
+| **LOD Method** | LOD 메소드 - 시스템이 적절한 LOD 레벨을 선택하는 데 활용하는 Enum 을 가리킵니다. 두 가지 메소드가 가능합니다: [INCLUDE:#LODMethod] |
 | **LODDistances** | LOD 거리 - 거리에 따라 어느 LOD 레벨을 활용할 지 정하기 위한 배열입니다. (LODMethod 가 자동으로 설정되었을 때만 사용됩니다.) 이 수치가 LOD 레벨 선택을 위해 떨어져 있어야 하는 최소 추천 거리입니다. LOD 레벨이 셋 있는 시스템의 경우: [INCLUDE:#LODDistance] |
 | **LODSettings** | LOD 세팅 - 개별 LOD마다 사용할 구체적인 세팅을 정하는 구조체 배열입니다. 현재 유일한 세팅 _Lit_ 은 지정된 LOD가 사용중일 때 파티클 시스템이 빛을 받을지 여부를 조절합니다. |
 | [REGION:tablesection]Bounds (바운드)[/REGION] ||

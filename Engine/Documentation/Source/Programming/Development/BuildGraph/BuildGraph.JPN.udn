@@ -1,12 +1,15 @@
-﻿INTSourceChangelist:3126630
+﻿INTSourceChangelist:3356804
 Availability:Public
 Title:BuildGraph
 Crumbs: %ROOT%, Programming, Programming/Development
-Description:BuildGraph スクリプティング システムを使って、インストールしたビルドをカスタマイズしましょう。
+Description:BuildGraph スクリプティング システムでビルドをカスタマイズしましょう。
 Version:4.13
 type:landing
 parent:Programming/Development
+tags:Programming
 tags:BuildGraph
+topic-image:buildgraph_topic.png
+related:Programming/UnrealBuildSystem
 
 **BuildGraph** はスクリプト ベースのビルド自動化システムです。アンリアル エンジン 4 (UE4) のプロジェクトに共通のビルディング ブロックのグラフを特徴とします。 
 BuildGraph は UnrealBuildTool、 AutomationTool、およびエディタと統合し、プロジェクトに応じて拡張したり、カスタマイズすることができます。
@@ -37,8 +40,8 @@ Visual Studio でスクリプトを開くと、`[UE4Root]Engine/Build/Graph/Sche
 グラフは以下のエレメントで作成されます。
 
 * Tasks:ビルド プロセスの一部として実行されるアクション (コンパイル、クックなど) です。
-* Nodes:出力を生成するために実行される順序付けされたタスクに対して名前付けされたシーケンスです。実行前に、ノードは 
-先にタスクを実行している他のノードに依存する場合があります。
+* Nodes:出力を生成するために実行される順序付けされたタスクに対して名前付けされたシーケンスです。他のノードが先にタスクを実行して初めて 
+このノードが実行可能になることがあります。
 * Agents:同じマシンで実行される (ビルド システムの一部として実行している場合) 複数のノードのグループです。ローカルでビルドする場合、 
 エージェントは何も効果を及ぼしません。 
 * Triggers:手動で介入後に限り実行するグループのためのコンテナです。 
@@ -58,7 +61,7 @@ Perforce スタイルのワイルドカード (どの場所でも "..."、 "*"�
 プレフィックスを付けて表します。`<Tag>` タスクを使ってタグ セットにファイルを追加することができます。これにより、結合 / 差分スタイルの演算を 
 行うことができます。各ノードは、名前付けされたタグの一覧という形式で複数の出力を宣言することができます。こうしたタグに、他のノードが依存することができます。
 
-ビルド システムの一部としてグラフを平行して実行することができます。これを行うには、最初のグラフ設定は、 
+ビルド システムの一部としてグラフを並行して実行することができます。これを行うには、最初のグラフ設定は、 
 `-Export=<Filename>` 引数を実行することによって生成されます (実行するノードと従属関係を一覧表示する JSON ファイルを生成します)。参加する各エージェントは、 
 同じチェンジリストに同期し、AutomationTool (UAT) は適切な`-SingleNode=<Name>` 引数で 
 再実行するようにします。様々なノードからの出力は共有ストレージを介して (通常は、ネットワークで共有)  

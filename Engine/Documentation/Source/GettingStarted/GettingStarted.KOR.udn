@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3351664
 Availability:Public
 Title: UE4 시작하기
 Crumbs: %ROOT%
@@ -282,6 +282,8 @@ gettingstarted
 		추가할 수도 있습니다.
 	[/PARAM]
 	[PARAM:links]
+		* [](Programming "%Programming:description%")
+		* [](Programming/Development/VisualStudioSetup "%Programming/Development/VisualStudioSetup:description%")
 		* [](Programming/QuickStart "%Programming/QuickStart:description%")
 		* [](Programming/Basics "%Programming/Basics:description%")
 		* [](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")

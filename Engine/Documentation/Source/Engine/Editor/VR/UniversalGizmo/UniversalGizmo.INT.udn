@@ -6,45 +6,18 @@ parent: Engine/Editor/VR
 type: reference
 order: 4
 tags: VR
-version: 4.13
+version: 4.15
 skilllevel: intermediate
+topic-image:universalgizmo_topic.png
+prereq:Engine/Editor/VR/ActivateVRMode
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/UniversalGizmo:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/UniversalGizmo:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/UniversalGizmo:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/UniversalGizmo:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:1 end:4)]
 
 The **Universal Gizmo** is a transform widget designed for moving, rotating, and scaling Actors when working in VR mode. There are both local and world space versions available, which can be swapped between using the [](Engine/Editor/VR/QuickSelect). 
 The elements of the Universal Gizmo are colored red, green, and blue representing the X, Y, and Z axes, respectively. Much like in the standard editor, there are gizmos which can be used specifically for translating, rotating, and scaling your Actors. Local and world space versions of these are accessible from the [](Engine/Editor/VR/QuickSelect). 
+
+##Gizmos
 
 | Gizmo | World | Local |
 | ---- |-------| -----|

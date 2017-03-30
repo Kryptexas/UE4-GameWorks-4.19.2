@@ -3,6 +3,7 @@ Title:Atmosphere Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions that affect fog and other atmospheric level effects.
 Version:4.9
+tags:Materials
 
 [EXCERPT:contents]
 [TOC(start:2 end:2)]

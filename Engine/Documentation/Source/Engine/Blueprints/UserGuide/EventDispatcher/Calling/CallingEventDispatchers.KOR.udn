@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:이벤트 디스패처 호출하기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/EventDispatcher
 Description: 이벤트 디스패처를 호출하면 현재 이벤트 목록에 바인딩된 이벤트를 전부 실행합니다.
 version: 4.9
+tags:Blueprints
 
 
 

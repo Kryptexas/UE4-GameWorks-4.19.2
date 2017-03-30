@@ -3,6 +3,7 @@ Title:1. Required Asset Setup
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:In this step we will set up the assets we will use in the project. 
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

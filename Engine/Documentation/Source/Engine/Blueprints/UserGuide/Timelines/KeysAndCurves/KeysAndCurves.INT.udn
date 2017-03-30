@@ -3,6 +3,7 @@ Title: Keys and Curves
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: This document contains an overview of how to work with keys and curves within the Timeline editor in Blueprints.
 version: 4.9
+tags:Blueprints
 
 
 %Description%

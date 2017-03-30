@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3224907
 Availability: Public
 Title:피직스 바디
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -64,18 +64,6 @@ Description:대부분의 물리 상호작용의 기반, 피직스 바디 [BodyIn
 	[/PARAM]
 [/OBJECT]
 
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		관련
-	[/PARAM]
-	[PARAM:links]
-
-	[/PARAM]
-[/OBJECT]
 
 
 

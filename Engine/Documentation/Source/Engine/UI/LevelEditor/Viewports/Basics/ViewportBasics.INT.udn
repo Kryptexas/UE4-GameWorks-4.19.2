@@ -4,26 +4,8 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:Basic concepts and features of the Viewports in Unreal Editor.
 Version: 4.9
 SkillLevel: Beginner
+track:LevelDesign_Beginner|6
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor/Details "%Engine/UI/LevelEditor/Details:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -206,5 +188,3 @@ button located at the top right of the Viewport when in Immersive Mode.
 	![](immersive_5.png)
 	[/PARAM]
 [/OBJECT]
-
-%playlistnav%

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3035989
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 蓝图 - 可视化脚本
 Crumbs: %ROOT%, Engine
@@ -7,6 +7,8 @@ version: 4.9
 parent:%ROOT%
 order:5
 social-image:bp_social_image.png
+type:landing
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -195,7 +197,7 @@ social-image:bp_social_image.png
 [/OBJECT]
 [/REGION]
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"guide")]
+[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
 
 
 <!--

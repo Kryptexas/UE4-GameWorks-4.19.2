@@ -17,7 +17,7 @@ In the following section we will be taking a look at how you can deploy a single
 [nav]
 
 [region:note]
-For this section to work you will need to make sure that your Android device is plugged into your development PC via USB. If you have not done this already please do this before going any further.
+For this section to work you will need to make sure that your Android device is plugged into your computer via USB. If you have not done this already please do this before going any further.
 [/region]
 
 To deploy your level to your Android device you need to determine which type of Texture format your Android Device supports.

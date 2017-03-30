@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 타임라인
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -6,6 +6,7 @@ Description: 언리얼 엔진 4 블루프린트의 타임라인에 대한 개요
 version: 4.9
 Parent:Engine/Blueprints
 type:overview
+tags:Blueprints
 
 ![k2_timeline_demo.png](k2_timeline_demo.png)
 
@@ -95,7 +96,7 @@ type:overview
 | [REGION:tablesection]출력 핀[/REGION] ||
 | **Update** | 타임라인이 호출되자 마자 실행 신호를 출력합니다. |
 | **Finished** | 재생이 끝날 때 실행 신호를 출력합니다. Stop 함수로는 발동되지 않습니다. |
-| **Direction** | 타임라인 재생 방향을 나타내는 열거형 데이터를 출력합니다. |
+| **Direction** | 타임라인 재생 방향을 나타내는 Enum 데이터를 출력합니다. |
 
 [REGION:note]
 	타임라인에는 그 안에 생성된 트랙 유형을 반영하여 추가적인 출력 데이터 핀이 얼마든지 있을 수 있습니다. 여기에는 Float, Vector, Event 트랙이 포함됩니다.

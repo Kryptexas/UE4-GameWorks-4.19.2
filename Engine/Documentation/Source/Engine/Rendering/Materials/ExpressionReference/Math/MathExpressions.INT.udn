@@ -3,6 +3,7 @@ Title:Math Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions that perform mathematical operations on one or more inputs.
 Version: 4.9
+tags:Materials
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -67,7 +68,7 @@ The **Clamp** expression takes in value(s) and constrains them to a specified ra
 | **Max** | Takes in the value to use as the maximum when clamping. |
 
 
-**Examples:** Clamping 0.3 with Min 0.0 and Max 1.0 yields 0.3; Clamping 1.3 with Min 0.0 and Max 1.0 yields 1.0.
+**Examples:** Clamping an input range of (0.0) to (1.0) 0.3 with Min 0.0 and Max 1.0 yields 0.3; Clamping 1.3 with Min 0.0 and Max 1.0 yields 1.0.
 
 ![ClampExample.png](ClampExample.png)(w:900)
 
@@ -77,7 +78,7 @@ The **Clamp** expression takes in value(s) and constrains them to a specified ra
 
 ## Cosine
 
-The **Cosine** expression outputs the value of a sine wave over the range of [0, 1], repeating. Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input. The output value will cycle back and forth between -1 and 1. A visual representation of the wave is shown below:
+The **Cosine** expression outputs the value of a cosine wave over the input range of [0, 1] and the output range of [-1, 1], both repeating. Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input, but it can also be used to create ripples in worldspace or screenspace, or any other application where a continuous, smooth cycle is needed. A visual representation of the wave is shown below, scaled to the [0, 1] output range:
 
 ![CosineWave.png](CosineWave.png)
 
@@ -115,7 +116,7 @@ The **CrossProduct** expression computes the cross product of two three-channel 
 
 ## Divide
 
-The **Divide** expression takes two inputs and outputs the result of the first divided by the second.  The division happens per channel, meaning that the R channel of the first is divided by the second, the G channel of the first is divided by the second, and so on. Both inputs must have the same number of values unless the divisor is a single float value. _Never divide by zero._
+The **Divide** expression takes two inputs and outputs the result of the first divided by the second. The division happens per channel, meaning that the R channel of the first is divided by the second, the G channel of the first is divided by the second, and so on. Both inputs must have the same number of values unless the divisor is a single float value. Division by zero in any channel will result in that channel containing the local hardware's "infinity" implementation, which is usually a very large, positive value.
 
 | Item | Description |
 | -------- | ----------- |
@@ -127,7 +128,7 @@ The **Divide** expression takes two inputs and outputs the result of the first d
 | **B** | Takes in the value(s) to divide by, the divisor. |
 
 
-**Examples:** The output of a Divide with A=(1.0,0.5,-0.4) and B=(2.0,2.0,4.0) is (0.5,0.25,-0.1)
+**Examples:** Using Divide with A=(1.0) and B=(5.0) outputs (0.2), which appears as a dark gray.
 
 ![DivideExample.png](DivideExample.png)
 
@@ -135,13 +136,13 @@ The **Divide** expression takes two inputs and outputs the result of the first d
 [EXCERPT:DotProduct]
 ## DotProduct
 
-The **DotProduct** expression computes the dot product, or the length of one vector projected onto the other. This calculation is used by many techniques for computing falloff.  DotProduct requires both vector inputs to have the same number of channels.
+The **DotProduct** expression computes the dot product, which can be described as the length of one vector projected onto the other, or as the cosine between the two vectors multiplied by their magnitudes. This calculation is used by many techniques for computing falloff.  DotProduct requires both vector inputs to have the same number of channels.
 
 | Item | Description |
 | -------- | ----------- |
 | [REGION:tablesection]Inputs[/REGION] ||
 | **A** | Takes in a value or vector of any length. |
-| **B** | Takes in a value or vector of any length. |
+| **B** | Takes in a value or vector of the same length as **A**. |
 
 
 ![DotProductExample.png](DotProductExample.png)(w:900)
@@ -159,17 +160,17 @@ The **Floor** expression takes in value(s), rounds them **down** to the previous
 
 ## FMod
 
-The **FMod** expression returns the floating-point remainder of the division operation of the two inputs.
+The **FMod** expression returns the floating-point remainder of the division operation of the two inputs. The Dividend (input "A") can be any value, but negative Dividends will result in negative results. The Divisor (second input) should not be zero as this implies a division by zero, but whether the Divisor is negative or positive will not affect the result. A common use case is to make a material that brightens up to a maximum value, then immediately drops back to the minimum value on the next frame, only to begin climbing toward the maximum again.
 
 ![FModExample.png](FModExample.png)
 
-In this example, FMod is returning a repeating value that ramps up from 0 to 1 every second. Once 1 is reached, the value snaps back to 0 and repeats indefinitely.
+In this example, FMod takes a zero-to-one UV progression and converts it into a repeating cycle every 0.2 UV units on the X axis in the green channel.
 
 ## Frac
 
-The **Frac** expression takes in value(s) and outputs the decimal part of those values.  See also [Ceil](#Ceil) and [Floor](#Floor).
+The **Frac** expression takes in values and outputs the fractional portion of those values. In other words, for an input value "X", the result is "X minus Floor of X". The output value will range from zero to one, inclusive on the low end, but not the high end. See also [Ceil](#Ceil) and [Floor](#Floor).
 
-**Examples:** Frac of 0.2 is 0.2; Frac of (0.0,1.6) is (0.0, 0.6).
+**Examples:** Frac of (0.2) is (0.2). Frac of (-0.2) is (0.8). Frac of (0.0,1.6,1.0) is (0.0,0.6,0.0).
 
 ![FracExample.png](FracExample.png)(w:900)
 
@@ -202,7 +203,7 @@ In this example, the If expression takes in a heightmap and outputs either red o
 
 ## Max
 
-The **Max** expression takes in two inputs and then outputs the maximum of the two. 
+The **Max** expression takes in two inputs and outputs the higher of the two.
 
 This node is similar to Photoshop's Lighten. 
 
@@ -222,7 +223,7 @@ In the example above, A is "0" and B is "1"; therefore, "1" (white) is the resul
 
 ## Min
 
-The **Min** expression takes in two inputs then outputs the minimum of the two. 
+The **Min** expression takes in two inputs and outputs the lower of the two.
 
 This node is similar to Photoshop's Darken. 
 
@@ -244,7 +245,7 @@ In the example above, A is "0" and B is "1"; therefore, "0" (black) is the resul
 
 ## Multiply
 
-The **Multiply** expression takes two inputs, multiplies them together, and outputs the result. Similar to Photoshop's multiply layer blend.  Multiplication happens per channel, meaning that the R channel of the first is multiplied by the second; the G channel of the first is multiplied by the second, and so on. Both inputs must have the same number of values unless one of the values is a single float value.
+The **Multiply** expression takes two inputs, multiplies them together, and outputs the result. Similar to Photoshop's multiply layer blend.  Multiplication happens per channel, meaning that the R channel of the first is multiplied by the R channel of the second; the G chanWnel of the first is multiplied by the G channel of the second, and so on. Both inputs must have the same number of values unless one of the values is a single float value.
 
 | Item | Description |
 | -------- | ----------- |
@@ -268,9 +269,18 @@ Do not forget that materials in UE4 are not limited to [0,1].  If colors/values 
 [EXCERPT:Normalize]
 ## Normalize
 
-The **Normalize** expression calculates and outputs the normalized value of its input. This means each component of the input is divided by the L-2 norm (length) of the vector.
+The **Normalize** expression calculates and outputs the normalized value of its input. Normalized vectors (also called "unit vectors") have an overall length of 1.0. This means each component of the input is divided by the total magnitude (length) of the vector.
 
-![NormalizeExample.png](NormalizeExample.png)(w:900)
+**Examples:** Passing either (0,2,0) or (0,0.2,0) through Normalize will output (0,1,0). Passing (0,1,-1) through Normalize will output (0, 0.707, -0.707). The only special case is an all-zero vector, which will be unchanged.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Normalized Input Vector](NormalizeExample.png)(w:900)
+	[/PARAM]
+	[PARAM:after]
+	![Non-Normalized Input Vector](NormalizeExample2.png)(w:900)
+	[/PARAM]
+[/OBJECT]
 
 [REGION:note]
 It is not necessary to normalize an expression that plugs into the Normal material output.
@@ -280,7 +290,7 @@ It is not necessary to normalize an expression that plugs into the Normal materi
 
 ## OneMinus
 
-The **OneMinus** expression takes an input value and outputs 'one-minus-that-value'. This operation is performed per channel.
+The **OneMinus** expression takes an input value "X" and outputs "One Minus X". This operation is performed per channel.
 
 **Examples:** OneMinus of 0.4 is 0.6; OneMinus of (0.2,0.5,1.0) is (0.8,0.5,0.0); OneMinus of (0.0,-0.4,1.6) is (1.0,1.4,-0.6).
 
@@ -304,14 +314,14 @@ The **Power** expression takes two inputs, raises Base to the Exp power, and out
 
 **Examples:** Power of Base 0.5, Exp 2.0 is 0.25.
 
-**Example Usage:** If the colors you pass to Power are in [0,1], Power can behave as a contrast adjustment, where only brighter values remain.
+**Example Usage:** If the colors you pass to Power are in [0,1], Power can behave as a sort of contrast adjustment, where very bright values are dimmed slightly, but darker values are decreased drastically.
 
 ![PowerExample.png](PowerExample.png)
 
 
 ## Sine
 
-The **Sine** expression outputs the value of a sine wave over the range of [0, 1], repeating. Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input. The output value will cycle back and forth between -1 and 1. The difference between this and the output of the [Cosine](#Cosine) expression is the output waveform is offset half the period. A visual representation of the wave is shown below:
+The **Sine** expression outputs the value of a Sine wave over the input range of [0, 1] and the output range of [-1, 1], both repeating. The difference between this and the output of the [Cosine](#Cosine) expression is the output waveform is offset by one-quarter of the period, meaning that `Cos(X)` is equal to `Sin(X + 0.25)`. Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input, but it can also be used to create ripples in worldspace or screenspace, or any other application where a continuous, smooth cycle is needed. A visual representation of the wave is shown below, scaled to the [0, 1] output range:
 
 ![SineWave.png](SineWave.png)
 
@@ -328,7 +338,7 @@ The **Sine** expression outputs the value of a sine wave over the range of [0, 1
 
 ## SquareRoot
 
-The **SquareRoot** expression outputs the square root of the input value.  SquareRoot can operate only on a single float input value.
+The **SquareRoot** expression outputs the square root of the input value. If applied to a vector, each component will be handled individually.
 
 ![SqrtExample.png](SqrtExample.png)(w:900)
 

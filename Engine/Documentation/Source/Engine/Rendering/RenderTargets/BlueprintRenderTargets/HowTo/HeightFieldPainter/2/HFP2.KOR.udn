@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3216146
-availability:docs
-title:2. Required Asset Creation & Setup
-description:Going over creating and setting up the required assets.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:2. 필수 애셋 생성 & 구성
+description:필수 애셋 생성 및 구성 방법입니다.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
@@ -15,72 +15,72 @@ checkpoint:HFP
 [NAV]
 
 
-Before we can create the Height Field Painter Blueprint, we will need to create and setup the following asset types inside of the UE4 Content Browser. In the following sections, we will go over how each of the assets needs to be setup as well as any special properties that you will need to be aware of.
+하이트 필드 페인터 블루프린트를 만들기 전, UE4 콘텐츠 브라주어 안에서 다음과 같은 애셋 유형을 만들고 구성해줘야 합니다. 여기서는 각 애셋을 어떻게 구성해야 하는지와 아울러 유의해야 하는 특수 프로퍼티에 대해서 살펴보도록 하겠습니다.
 
 [region:note]
-Please note that the following is not specific to any UE4 project type. The following can be accomplished in any project that uses UE4 version 4.13 or later. 
+참고로 다음 내용은 어떤 UE4 프로젝트 유형에 국한된 것이 아닙니다. UE4 버전 4.13 이상을 사용하는 어떤 프로젝트에서도 따라할 수 있는 내용입니다.
 [/region]
 
-* **Render Target**
-* **Material**
-* **Blueprint** (Based off Actor)
+* **렌더 타겟**
+* **머티리얼**
+* **블루프린트** (Actor 기반)
 
-### Render Target Creation & Setup
+### 렌더 타겟 생성 & 구성
 
-1. Right-click inside of the **Content Browser** and from the displayed menu, go to **Create Advanced Asset** > **Materials & Textures** and then select the **Render Target** option.
+1. **콘텐츠 브라우저** 안에 우클릭하여 표시되는 메뉴에서 **고급 애셋 생성** > **머티리얼 & 텍스처** > **렌더 타겟** 옵션을 선택합니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_00.png)
 
-1. Name the newly created Render Target, `RT_Height_Filed_Painter`, and then press the **Save All** button to save your work.
+1. 새로 생성된 렌더 타겟 이름을 `RT_Height_Filed_Painter` 라 한 뒤 **모두 저장** 버튼을 눌러 저장합니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_01.png)
 
-### Material Creation & Setup
+### 머티리얼 생성 & 구성
 
-1. Right-click inside of the Content Browser and from the **Create Basic Asset** list, select the **Material** option to create a new Material, naming it `MAT_HeighfieldPainter`.
+1. 콘텐츠 브라우저 안에서 우클릭한 뒤 **기본 애셋 생성** 목록에서 **머티리얼** 옵션을 선택하여 새 머티리얼을 만들고, 이름을 `MAT_HeighfieldPainter` 라 합니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_00.png)
 
-1. Select the **MAT_HeightfieldPainter** Material in the Content Browser and then right-click on it. From the displayed menu, under the **Common** section, select the **Duplicate** option to create a copy of the Material, naming it `MAT_ForceSplat`.
+1. 콘텐츠 브라우저에서 **MAT_HeightfieldPainter** 머티리얼을 선택한 뒤 우클릭합니다. 표시되는 메뉴에서 **일반** 섹션 아래 **복제** 옵션을 클릭하여 머티리얼 사본을 만들고, 이름을 `MAT_ForceSplat` 이라 합니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_01.png)
 
-1. Double-click on the MAT_HeighfieldPainter Material to open it up and then select the **Main Material Node**. In the **Details** panel under the **Material** section, setup the following parameters.
+1. MAT_HeighfieldPainter 머티리얼을 더블클릭하여 연 뒤 **메인 머티리얼 노드** 를 선택합니다. **디테일** 패널에서 **머티리얼** 섹션 아래 파라미터를 다음과 같이 구성합니다.
 
 	* **Shading Model:** Unlit
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_04.png)
 
-1. The MAT_HeighfieldPainter Material is going to use the **World Position Offset** input to increase the Z-height of the Static Mesh vertices it is applied to. You can copy it into your Material by hovering your mouse over the image below and then clicking on the **Copy Expression Graph** option, copying-and-pasting the provided Material code into `MAT_HeighfieldPainter`.
+1. MAT_HeighfieldPainter 머티리얼은 **World Position Offset** 입력을 사용하여 그것이 적용된 스태틱 메시 버텍스의 Z 높이를 올립니다. 아래 그림에 마우스 커서를 올린 뒤 **Copy Expression Graph** (표현식 그래프 복사) 옵션을 선택, 제공된 머티리얼 코드를 `MAT_HeighfieldPainter` 안에 복사 붙여넣기 하면 머티리얼 안에 복사할 수 있습니다.
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\2\#HFP]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Apply and Save your Material so that it can be used.
+	머티리얼을 적용하고 저장해야 사용할 수 있다는 점, 잊지 마세요.
 	[/region]
 
-1. Open up the MAT_ForceSplat Material and then select the **Main Material Node**. In the **Details** panel under the **Material** section set up the following parameters.
+1. MAT_ForceSplat 머티리얼을 연 뒤 **메인 머티리얼 노드** 를 선택합니다. **디테일** 패널에서 **Material** (머티리얼) 섹션 아래 다음과 같이 파라미터를 구성합니다.
 
 	* **Blend Mode:** Additive
 	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** Checked
+	* **Allow Negative Emissive Color:** (음수 이미시브 컬러 허용) 체크
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_Material_Creation_02.png)
 
-1. Since the MAT_ForceSplat Material is going to act as our paint brush for raising the surface of our height field, it will need to have a few options that will allow you to control its size and intensity. You can copy the completed Material into your Material by hovering your mouse over the image below and then clicking on the  **Copy Expression Graph** option, copying-and-pasting the provided Material code into MAT_ForceSplat.
+1. MAT_ForceSplat 머티리얼이 하이트 필드 표면을 올리기 위한 페인트 브러시 역할을 할 것이라, 그 크기와 강도 제어를 위한 옵션이 몇 가지 있어야 할 것입니다. 아래 그림에 마우스 커서를 올린 뒤 **Copy Expression Graph** (표현식 그래프 복사) 옵션을 선택, 제공된 머티리얼 코드를 MAT_ForceSplat 안에 복사 붙여넣기 하면 머티리얼 안에 복사할 수 있습니다.
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\2\#ForceSplat]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Apply and Save your Material when done so that it can be used.
+	머티리얼을 적용하고 저장해야 사용할 수 있다는 점, 잊지 마세요.
 	[/region]
 
 
-With the required assets now setup, in the next section, we will take a look at creating a Blueprint that will link all of the assets together to create the height map painter.
+이제 필수 애셋 구성이 완료되었으니, 다음에는 하이트 맵 페인터 제작을 위해 모든 애셋을 한 데 묶어주는 블루프린트를 만드는 법을 살펴보겠습니다.
 
 <!--
 [EXCERPT:HFP]

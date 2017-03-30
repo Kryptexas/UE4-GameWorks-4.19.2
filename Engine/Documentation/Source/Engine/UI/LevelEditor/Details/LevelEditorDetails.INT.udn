@@ -4,26 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:Panel providing information and customized editing tools for selected Actors in the Level Editor.
 Version: 4.12
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [TOC(start:2 end:3)]
 
 [EXCERPT:DetailsOverview]
@@ -317,6 +297,3 @@ properties to be displayed.
 [/OBJECT]
 [/REGION]
 [/EXCERPT:CustomCategories]
-
-
-%playlistnav%

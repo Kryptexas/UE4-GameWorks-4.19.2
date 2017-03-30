@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3124629
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title: FBX 파일 임포트와 익스포트
 Crumbs: %ROOT%, Engine
@@ -9,6 +9,7 @@ order:1
 Version: 4.13
 Related: Engine\Sequencer\Overview
 Related: Engine/Sequencer/HowTo
+tags:Sequencer
 
 여기서는 시퀀서에서 하나의 씬을 FBX 파일로 익스포트하고, 3dsMax 나 Maya (마야)같은 써드 파티 프로그램에서 파일을 변경한 뒤, 그 FBX 파일을 (변경된 내용과 함께) 언리얼 엔진으로 다시 임포트하여 기존 씬의 일부로 합치는 법을 알아봅니다.
 

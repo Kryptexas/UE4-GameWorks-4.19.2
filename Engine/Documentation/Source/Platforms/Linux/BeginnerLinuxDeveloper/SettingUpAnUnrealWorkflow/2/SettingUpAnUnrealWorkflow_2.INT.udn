@@ -1,6 +1,6 @@
 Availability: Public
 Title: 2 - Downloading UE4 on Linux
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+Crumbs:
 Description:Learn how to fork and clone Unreal Engine source code.
 Version: 4.13
 type:quick start

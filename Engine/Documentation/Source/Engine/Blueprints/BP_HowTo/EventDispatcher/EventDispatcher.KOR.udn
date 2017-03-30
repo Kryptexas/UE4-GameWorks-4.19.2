@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability: Public
 Title:이벤트 디스패처
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -8,6 +8,7 @@ Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
 version:4.9
 skilllevel:Advanced
+tags:Blueprints
 
 [Event Dispatcher](Engine/Blueprints/UserGuide/EventDispatcher) (이벤트 디스패처)가 호출되면, 그 이벤트 디스패처를 구현한 블루프린트 내 바인딩된 이벤트 역시도 같이 실행됩니다. 다른 말로 이벤트 디스패처가 호출될 때마다, 거기에 바인딩된 이벤트 역시 호출되어 하나의 소스로 다수의 이벤트를 한꺼번에 실행시킬 수 있다는 뜻입니다.
 

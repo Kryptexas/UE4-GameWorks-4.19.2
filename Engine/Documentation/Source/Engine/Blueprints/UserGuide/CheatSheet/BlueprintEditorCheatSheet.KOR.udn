@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:블루프린트 에디터 단축키 일람
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:블루프린트의 단축키와 유용한 꼼수에 대한 참고서입니다.
+Description:블루프린트의 단축키와 유용한 팁에 대한 참고서입니다.
 version: 4.9
 order:1
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -4,6 +4,8 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/M
 Description:Guide to using the Material Instance Editor for modifying MaterialInstanceConstants.
 Version: 4.9
 Skilllevel: Intermediate
+tags:Materials
+
 [TOC(start:2)]
 
 The Material Instance Editor is used for modifying parameters for Material Instances. 

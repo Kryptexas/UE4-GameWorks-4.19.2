@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2704594
+﻿INTSourceChangelist:3155346
 Availability:Public
 Title:レンダリング ビジュアライザ
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:様々なレンダリング機能の結果をチェックするためのオプションとビューモードを表示します。
+Parent:Engine/Performance
+tags:Performance and Profiling
 
 [VAR:Topic]
 [OBJECT:Topic]

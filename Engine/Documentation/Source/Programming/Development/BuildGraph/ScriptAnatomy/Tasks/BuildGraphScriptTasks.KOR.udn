@@ -1,59 +1,39 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: BuildGraph Script Tasks
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
-Description: Learn how BuildGraph can help you create custom tasks.
+﻿INTSourceChangelist:3356804
+Availability: Public
+Title: BuildGraph 스크립트 태스크
+Crumbs:
+Description: BuildGraph 로 커스텀 태스크를 쉽게 만드는 법을 배워봅니다.
 version: 4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
+tags:Programming
 tags:BuildGraph
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Programming/Development/BuildGraph/BuildGraphScriptTasks%](tasks_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Development/BuildGraph/BuildGraphScriptTasks:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Development/BuildGraph/BuildGraphScriptTasks:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/BuildGraphScriptTasks]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:1 end:3)]
 
 [EXCERPT:BuildGraphScriptTasks]
 
-Typically, project-specific utility scripts are implemented as AutomationTool BuildCommand classes. There are times; however, when you'll want 
-to automate custom tasks for your project. This is where BuildGraph can help. BuildGraph can be extended with any number of tasks, enabling you 
-to customize your build automation tasks in ways that suit your specific needs. The following section goes over ways of creating custom 
-tasks using BuildGraph, including a listing of predefined tasks that'll give you a great starting point for creating custom tasks.
+보통 프로젝트 전용 유틸리티 스크립트는 AutomationTool BuildCommand 클래스로 구현됩니다. 하지만 가끔은 프로젝트의 커스텀 태스크를 
+자동화하고 싶을 때가 있습니다. 그럴 때 BuildGraph 가 도움이 될 수 있습니다. BuildGraph 는 몇 개의 태스크로도 확장시킬 수 있어,
+요구에 딱 맞도록 빌드 자동화 태스크를 커스터마이징할 수 있습니다. 여기서는 BuildGraph 를 사용하여 커스텀 태스크를 만드는 방법과 아울러, 
+별도의 커스텀 태스크 제작에 참고가 되는 미리정의된 태스크 목록을 포함해서 알아보도록 하겠습니다.
 
-## Custom Tasks
+## 커스텀 태스크
 
-To create a new custom task, implement a class derived from the `CustomTask` class and apply the `[TaskElement]` attribute to it. 
-The `TaskElement` constructor takes two arguments; the name of the XML element that it's represented by, and the type of class 
-containing its parameters (which is passed to the constructor at load time).
+커스텀 태스크를 새로 만들려면, `CustomTask` 클래스에서 파생된 클래스를 구현하고 `[TaskElement]` 어트리뷰트를 적용합니다.
+`TaskElement` 생성자는 인수를 둘 받습니다. 하나는 그것이 표현하는 XML 요소 이름, 다른 하나는 그 파라미터가 들어있는 
+클래스 유형입니다 (이것이 로드 시간에 생성자에 전달됩니다).
 
-If you want to read parameter class fields from an XML file, attach the `[TaskParameter]` attribute to the task. Attaching the 
-`TaskParameter` attribute indicates if the parameter is required or optional, including additional validation that should be 
-applied to the argument.
+XML 파일에서 파라미터 클래스 필드를 읽으려면, 태스크에 `[TaskParameter]` 어트리뷰트를 붙입니다. `TaskParameter` 어트리뷰트를 
+붙이면 파라미터가 필수인지 옵션인지를 나타내며, 여기에는 인수에 적용시킬 추가 인증까지 
+포함됩니다.
 
-## Predefined Tasks
+## 미리정의된 태스크
 
-If you'd like to have a starting point for creating tasks, we're providing a variety of predefined tasks as templates for you to work from. 
-If you're looking for a simple predefined task to start from, we recommend using `LogTask` as a good starting point. If you want to keep up with 
-our latest improvements to BuildGraph; bookmark this page, because the following list of predefined tasks will be updated periodically. 
+별도의 태스크 제작을 위한 시작점으로, 미리 정의된 태스크를 템플릿으로 다양하게 제공하고 있으니, 여기서부터 작업을 하시면 됩니다.
+미리 정의된 태스크 견본 간단한 것을 찾는 경우, `LogTask` 부터 시작해 보면 좋습니다. BuildGraph 최신 개선 사항 소식을 
+받아보시려는 경우, 이 페이지를 북마크 등록하세요. 주기적으로 미리 정의된 태스크 목록을 업데이트하겠습니다.
 
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptTasks/BuildGraphScriptPredefinedTasks]
+[INCLUDE:Programming/Development/BuildGraph/ScriptAnatomy/Tasks/PredefinedTasks]
 
 [/EXCERPT:BuildGraphScriptTasks]

@@ -9,131 +9,72 @@ topic-image:Engine/Physics/physics_topic.png
 tags:Physics
 SkillLevel: Beginner
 
-[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+[TOC(end:2)]
 
-[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+This page contains a reference listing of properties for Physics Constraints separated by major category.
 
-This page contains a reference listing of properties in the Physics Constraints. 
+## Constraint
 
-## Properties
-
-Below are the properties for Physics Constraints separated by major category.
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		cons
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Constraint
-	[/PARAM]
-	[PARAM:content]
-		%p1%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:p1]
-
+[EXCERPT:p1]
 ![](propConstraint.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Constraint Actor 1** || When a **Physics Constraint** is placed into the level editor you must specify **Actors** to constrain. This is the first of 2 **Actors**. |
-| **Component Name 1** || The first target component that will be constrained. This can be specified when using **Actors** to constrain only a specific component and not the **Actor** root. |
-| **Constraint Actor 2** || When a **Physics Constraint** is placed into the level editor you must specify **Actors** to constrain. This is the second of 2 **Actors**. |
-| **Component Name 2** || The second target component that will be constrained. This can be specified when using **Actors** to constrain only a specific component and not the **Actor** root.  |
-| **Joint Name** || When constraining in the **Physics Asset Tool**, this is the name of the Bone that is initially constrained. |
-| **Constraint Bone 1** || When constraining in the **Physics Asset Tool**, this is the name of the first joint to constrain. |
-| **Constraint Bone 2** || When constraining in the **Physics Asset Tool**, this is the name of the second joint to constrain. |
+| Property  | Description |
+| ---  | :--- |
+| **Constraint Actor 1** | When a **Physics Constraint** is placed into the level editor you must specify **Actors** to constrain. This is the first of 2 **Actors**. |
+| **Component Name 1** | The first target component that will be constrained. This can be specified when using **Actors** to constrain only a specific component and not the **Actor** root. |
+| **Constraint Actor 2** | When a **Physics Constraint** is placed into the level editor you must specify **Actors** to constrain. This is the second of 2 **Actors**. |
+| **Component Name 2** | The second target component that will be constrained. This can be specified when using **Actors** to constrain only a specific component and not the **Actor** root.  |
+| **Joint Name** | When constraining in the **Physics Asset Tool**, this is the name of the Bone that is initially constrained. |
+| **Constraint Bone 1** | When constraining in the **Physics Asset Tool**, this is the name of the first joint to constrain. |
+| **Constraint Bone 2** | When constraining in the **Physics Asset Tool**, this is the name of the second joint to constrain. |
 [/REGION]
+[/EXCERPT:p1]
 
-[/VAR]
+## Constraint Behavior
 
-
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		proj
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Constraint Behavior
-	[/PARAM]
-	[PARAM:content]
-		%p2%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:p2]
-
+[EXCERPT:p2]
 ![](propProjection.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Disable Collision** || This disables collision between the constrained components. |
-| **Enable Projection** || If the distance error between bodies exceeds **Projection Linear Tolerance** value, or rotational error exceeds **Projection Angular Tolerance**, the Physics Body will be projected to fix this. This fixes cases where the visuals look disconnected, such as individual chain links breaking away from each other. |
-| **Projection Linear Tolerance** || If the distance error exceeds this value, in world units, the body will be projected. |
-| **Projection Angular Tolerance** || If the rotational error exceeds this value, in degrees, the body will be projected. |
+| Property  | Description |
+| ---  | :--- |
+| **Disable Collision** | This disables collision between the constrained components. |
+| **Enable Projection** | If the distance error between bodies exceeds **Projection Linear Tolerance** value, or rotational error exceeds **Projection Angular Tolerance**, the Physics Body will be projected to fix this. This fixes cases where the visuals look disconnected, such as individual chain links breaking away from each other. |
+| **Projection Linear Tolerance** | If the distance error exceeds this value, in world units, the body will be projected. |
+| **Projection Angular Tolerance** | If the rotational error exceeds this value, in degrees, the body will be projected. |
 [/REGION]
-
-[/VAR]
-
-
+[/EXCERPT]
 
 <!--
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		join
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Joint Presets
-	[/PARAM]
-	[PARAM:content]
-		%p3%
-	[/PARAM]
-[/OBJECT]
+## Joint Presets
 
-[VAR:p3]
-
+[EXCERPT:p3]
 ![](propJointPresets.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Hinge** || Setup joint as hinge. A hinge joint allows motion only in one plane. |
-| **Prismatic** || Setup joint as prismatic. A prismatic joint allows only linear sliding movement. |
-| **Ball and Socket** || Setup joint as ball and socket. A Ball and Socket joint allows motion around an indefinite number of axes, which have one common center. |
+| Property  | Description |
+| ---  | :--- |
+| **Hinge** | Setup joint as hinge. A hinge joint allows motion only in one plane. |
+| **Prismatic** | Setup joint as prismatic. A prismatic joint allows only linear sliding movement. |
+| **Ball and Socket** | Setup joint as ball and socket. A Ball and Socket joint allows motion around an indefinite number of axes, which have one common center. |
 [/REGION]
-
-[/VAR]
+[/EXCERPT:p3]
 -->
 
+## Linear Limits
 
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		linlim
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Linear Limits
-	[/PARAM]
-	[PARAM:content]
-		%p4%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:p4]
-
+[EXCERPT:p4]
 ![](propLinearLimits.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **XMotion** || Indicates the linear constraint applied along the X-axis. [INCLUDE:#linearMotionEnum] |
-| **YMotion** || Indicates the linear constraint applied along the Y-axis. [INCLUDE:#linearMotionEnum] |
-| **ZMotion** || Indicates the linear constraint applied along the Z-axis. [INCLUDE:#linearMotionEnum] |
-| **Limit** || The distance allowed between the two joint reference frames. |
-| **Scale Linear Limits** || If true, linear limits scale using the absolute min of the 3D scale of the owning component. |
+| Property  | Description |
+| ---  | :--- |
+| **XMotion** | Indicates the linear constraint applied along the X-axis. [INCLUDE:#linearMotionEnum] |
+| **YMotion** | Indicates the linear constraint applied along the Y-axis. [INCLUDE:#linearMotionEnum] |
+| **ZMotion** | Indicates the linear constraint applied along the Z-axis. [INCLUDE:#linearMotionEnum] |
+| **Limit** | The distance allowed between the two joint reference frames. |
+| **Scale Linear Limits** | If true, linear limits scale using the absolute min of the 3D scale of the owning component. |
 [/REGION]
 
 ### Advanced
@@ -141,50 +82,34 @@ Below are the properties for Physics Constraints separated by major category.
 ![](propLinearLimitsADV.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Soft Constraint** || Whether we want to use a soft constraint (spring). |
-| **Stiffness** || Stiffness of the soft constraint. Only used when Soft Constraint is on. |
-| **Damping** || Damping of the soft constraint. |
-| **Restitution** || Controls the amount of bounce when the constraint is violated. |
-| **Contact Distance** || Determines how close to the limit we have to get before turning the joint on. |
-| **Linear Breakable** || Whether it is possible to break the joint with linear force. |
-| **Linear Break Threshold** || Force needed to break the distance constraint.  |
+| Property  | Description |
+| ---  | :--- |
+| **Soft Constraint** | Whether we want to use a soft constraint (spring). |
+| **Stiffness** | Stiffness of the soft constraint. Only used when Soft Constraint is on. |
+| **Damping** | Damping of the soft constraint. |
+| **Restitution** | Controls the amount of bounce when the constraint is violated. |
+| **Contact Distance** | Determines how close to the limit we have to get before turning the joint on. |
+| **Linear Breakable** | Whether it is possible to break the joint with linear force. |
+| **Linear Break Threshold** | Force needed to break the distance constraint.  |
 [/REGION]
+[/EXCERPT:p4]
 
-[/VAR]
+## Angular Limits
 
-
-
-
-
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		anglim
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Angular Limits
-	[/PARAM]
-	[PARAM:content]
-		%p5%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:p5]
+[EXCERPT:p5]
 
 ![](propsAngularLimits.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Swing 1Motion** || Indicates whether the Swing1 limit is used. [INCLUDE:#angularMotionEnum]  |
-| **Swing 2Motion** || Indicates whether the Swing2 limit is used. [INCLUDE:#angularMotionEnum] |
-| **Twist Motion** || Indicates whether the Twist limit is used. [INCLUDE:#angularMotionEnum] |
-| **Swing 1Limit Angle** || Angle of movement along the **XY** Plane. |
-| **Twist Limit Angle** || Angle of movement along the **XZ** Plane. |
-| **Swing 2Limit Angle** || Symmetric angle of roll along the X-axis. |
-| **Angular Rotation Offset** || Specifies the angular offset between the two frames of reference. By default this limit goes from (-Angle, +Angle). |
+| Property  | Description |
+| ---  | :--- |
+| **Swing 1Motion** | Indicates whether the Swing1 limit is used. [INCLUDE:#angularMotionEnum]  |
+| **Swing 2Motion** | Indicates whether the Swing2 limit is used. [INCLUDE:#angularMotionEnum] |
+| **Twist Motion** | Indicates whether the Twist limit is used. [INCLUDE:#angularMotionEnum] |
+| **Swing 1Limit Angle** | Angle of movement along the **XY** Plane. |
+| **Twist Limit Angle** | Angle of movement along the **XZ** Plane. |
+| **Swing 2Limit Angle** | Symmetric angle of roll along the X-axis. |
+| **Angular Rotation Offset** | Specifies the angular offset between the two frames of reference. By default this limit goes from (-Angle, +Angle). |
 [/REGION]
 
 ### Advanced
@@ -192,53 +117,40 @@ Below are the properties for Physics Constraints separated by major category.
 ![](propsAngularLimitsADV.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| [REGION:tablesection]**Swing Limits**[/REGION] |||
-| **Soft Constraint** || Whether we want to use a soft constraint (spring). |
-| **Stiffness** || Stiffness of the soft constraint. Only used when Soft Constraint is on. |
-| **Damping** || Damping of the soft constraint. |
-| **Restitution** || Controls the amount of bounce when the constraint is violated. |
-| **Contact Distance** || Determines how close to the limit we have to get before turning the joint on. |
-| [REGION:tablesection]**Twist Limits**[/REGION] |||
-| **Soft Constraint** || Whether we want to use a soft constraint (spring). |
-| **Stiffness** || Stiffness of the soft constraint. Only used when Soft Constraint is on. |
-| **Damping** || Damping of the soft constraint. |
-| **Restitution** || Controls the amount of bounce when the constraint is violated. |
-| **Contact Distance** || Determines how close to the limit we have to get before turning the joint on. |
-| [REGION:tablesection]**Breakable**[/REGION] |||
-| **Angular Breakable** || Whether it is possible to break the joint with angular force. |
-| **Angular Break Threshold** || Torque needed to break the joint. |
+| Property  | Description |
+| ---  | :--- |
+| [REGION:tablesection]**Swing Limits**[/REGION] ||
+| **Soft Constraint** | Whether we want to use a soft constraint (spring). |
+| **Stiffness** | Stiffness of the soft constraint. Only used when Soft Constraint is on. |
+| **Damping** | Damping of the soft constraint. |
+| **Restitution** | Controls the amount of bounce when the constraint is violated. |
+| **Contact Distance** | Determines how close to the limit we have to get before turning the joint on. |
+| [REGION:tablesection]**Twist Limits**[/REGION] ||
+| **Soft Constraint** | Whether we want to use a soft constraint (spring). |
+| **Stiffness** | Stiffness of the soft constraint. Only used when Soft Constraint is on. |
+| **Damping** | Damping of the soft constraint. |
+| **Restitution** | Controls the amount of bounce when the constraint is violated. |
+| **Contact Distance** | Determines how close to the limit we have to get before turning the joint on. |
+| [REGION:tablesection]**Breakable**[/REGION] ||
+| **Angular Breakable** | Whether it is possible to break the joint with angular force. |
+| **Angular Break Threshold** | Torque needed to break the joint. |
 [/REGION]
 
-[/VAR]
+[/EXCERPT:p5]
 
+## Linear Motor
 
-
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		linmot
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Linear Motor
-	[/PARAM]
-	[PARAM:content]
-		%p6%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:p6]
+[EXCERPT:p6]
 
 ![](propLinearMotor.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Position Target** || Enables the position linear motor on one or more axes and sets the local position desired. |
-| **Strength** || How much force to apply to reach the desired position. |
-| **Velocity Target** || Enables the velocity linear motor on one or more axes and sets the desired velocity. |
-| **Strength** || How much force to apply to reach the desired velocity. |
+| Property  | Description |
+| ---  | :--- |
+| **Position Target** | Enables the position linear motor on one or more axes and sets the local position desired. |
+| **Strength** | How much force to apply to reach the desired position. |
+| **Velocity Target** | Enables the velocity linear motor on one or more axes and sets the desired velocity. |
+| **Strength** | How much force to apply to reach the desired velocity. |
 [/REGION]
 
 
@@ -247,42 +159,27 @@ Below are the properties for Physics Constraints separated by major category.
 ![](PhysCon_MotorADV.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Max Force** || The force limit of the drive.|
+| Property  | Description |
+| ---  | :--- |
+| **Max Force** | The force limit of the drive.|
 [/REGION]
 
-[/VAR]
+[/EXCERPT:p6]
 
-
-
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		angmot
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Angular Motor
-	[/PARAM]
-	[PARAM:content]
-		%p7%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:p7]
+## Angular Motor
 
 ![](propsAngularMotor.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Angular Drive Mode** || [INCLUDE:#AngMotorMode] |
-| **Target Orientation** || Target proemtatopm relative to the body reference frame. |
-| **Drives** || Depending on the Angular Drive Mode setting, you can enable or disable the different motors for that mode. |
-| **Strength** || The force applied to reach the target orientation. |
-| **Target Velocity** || Target angular velocity relative to the body reference frame |
-| **Drives** || Depending on the Angular Drive Mode setting, you can enable or disable the different motors for that mode. |
-| **Stength** || The force applied to reach the target velocity. |
+| Property  | Description |
+| ---  | :--- |
+| **Angular Drive Mode** | [INCLUDE:#AngMotorMode] |
+| **Target Orientation** | Target proemtatopm relative to the body reference frame. |
+| **Drives** | Depending on the Angular Drive Mode setting, you can enable or disable the different motors for that mode. |
+| **Strength** | The force applied to reach the target orientation. |
+| **Target Velocity** | Target angular velocity relative to the body reference frame |
+| **Drives** | Depending on the Angular Drive Mode setting, you can enable or disable the different motors for that mode. |
+| **Stength** | The force applied to reach the target velocity. |
 [/REGION]
 
 
@@ -291,13 +188,10 @@ Below are the properties for Physics Constraints separated by major category.
 ![](PhysCon_MotorADV.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Max Force** || The force limit of the drive.|
+| Property  | Description |
+| ---  | :--- |
+| **Max Force** | The force limit of the drive.|
 [/REGION]
-
-[/VAR]
-
 
 
 <!--
@@ -306,10 +200,10 @@ Below are the properties for Physics Constraints separated by major category.
 
 Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decompose into a Swing Motor and a Twist Motor (cone and roll constraints). SLERP will not work if any of the angular constraints are locked.
 
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **SLERP** || Sets the motor to SLERP (Sphereical Linear Interpolation) mode. SLERP mode will not work if any of axis of the angular constraint is locked. |
-| **Twist and Swing** || Sets the motor to **Twist and Swing** (cone and roll constraints) mode.|
+| Property  | Description |
+| ---  | :--- |
+| **SLERP** | Sets the motor to SLERP (Sphereical Linear Interpolation) mode. SLERP mode will not work if any of axis of the angular constraint is locked. |
+| **Twist and Swing** | Sets the motor to **Twist and Swing** (cone and roll constraints) mode.|
 
 [/EXCERPT]
 
@@ -332,7 +226,7 @@ Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decom
 
 | Property | Description |
 | -------- | ----------- |
-|[REGION:tablesection]Constraint[/REGION]||
+|[REGION:tablesection]Constraint[/REGION]|
 | **Component Name 1** |  |
 | **Component Name 2** |   |
 | **Joint Name** |  |
@@ -346,7 +240,7 @@ Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decom
 
 | Property | Description |
 | -------- | ----------- |
-|[REGION:tablesection]Constraint[/REGION]||
+|[REGION:tablesection]Constraint[/REGION]|
 | **Joint Name** |  |
 | **Constraint Bone 1** |  |
 | **Constraint Bone 2** |  |
@@ -362,7 +256,7 @@ Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decom
 
 | Property | Description |
 | -------- | ----------- |
-|[REGION:tablesection]Linear Limits[/REGION]||
+|[REGION:tablesection]Linear Limits[/REGION]|
 | **Linear XMotion** |  |
 | **Linear YMotion** |  |
 | **Linear ZMotion** |  |
@@ -373,11 +267,11 @@ Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decom
 | **Linear Limit Damping** |  |
 | **Linear Breakable** |  |
 | **Linear Break Threshold** |  |
-|[REGION:tablesection]Projection[/REGION]||
+|[REGION:tablesection]Projection[/REGION]|
 | **Enable Projection** |  |
 | **Projection Linear Tolerance** |  |
 | **Projection Angular Tolerance** |  |
-|[REGION:tablesection]Angular Limits[/REGION]||
+|[REGION:tablesection]Angular Limits[/REGION]|
 | **Angular Swing 1Motion** |  |
 | **Angular Swing 2Motion** |  |
 | **Angular Twist Motion** |  |
@@ -393,7 +287,7 @@ Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decom
 | **Twist Limit Damping** |  |
 | **Angular Breakable** |  |
 | **Angular Break Threshold** |  |
-|[REGION:tablesection]Linear Motor[/REGION]||
+|[REGION:tablesection]Linear Motor[/REGION]|
 | **Linear Position Drive** |  |
 | **Linear XPosition Drive** |  |
 | **Linear YPosition Drive** |  |
@@ -404,7 +298,7 @@ Whether this angular motor uses SLERP (Sphereical Linear Interpolation) or decom
 | **Linear Velocity Target** |  |
 | **Linear Velocity Strength** | Damping to apply to the linear drive. |
 | **Max Linear Force** | Limit to the force the linear drive can apply. |
-|[REGION:tablesection]Angular Motor[/REGION]||
+|[REGION:tablesection]Angular Motor[/REGION]|
 | **Angular Orientation Drive** |  |
 | **Angular Orientation Target** |  |
 | **Angular Position Strength** | Spring value to apply for the angular drive. |

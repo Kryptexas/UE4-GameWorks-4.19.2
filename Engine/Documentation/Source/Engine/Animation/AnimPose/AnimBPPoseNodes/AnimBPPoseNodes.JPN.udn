@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3200922
+﻿INTSourceChangelist:3273300
 Availability:Public
 Title:AnimGraph Pose ノード
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -72,8 +72,8 @@ Pose Blender (以下) を使わずに、AnimSequence を直接 Final Animation P
 
 ## Pose Driver ノード
 
-Animation ブループリントの AnimGraph 内にボーンの移動に基づいたカーブ値を操作できる **Pose Driver** ノードがあります。 
-このノードは、ボーンの方向に基づいた補正ブレンド形状を操作するための Pose Space Deformer (ポーズの空間デフォーマー) を作成するためにも使用できます。 
+Animation ブループリントの AnimGraph 内には、サンプル ポーズのセットに基づきアニメーションの他の部分を操作したり、ボーンの移動に基づきカーブ値を操作できる **Pose Driver** ノードがあります。 
+このノードは、ボーンの方向や平行移動に基づいた補正ブレンド形状を操作するための Pose Space Deformer (ポーズの空間デフォーマー) を作成するためにも使用できます。 
 例えば、以下のクリップでは、肩を腕のボーンの動きに相対的に動かすために鎖骨のポーズが使われています。 
 
 [OBJECT:EmbeddedVideo]
@@ -88,7 +88,7 @@ tJSYgPmzoKc
 [/PARAMLITERAL]
 [/OBJECT]
 
-これを達成するために、RBF (Radial Basis Function) がターゲット ボーンの方向に基づいた操作値を補間します。 
+これを達成するために、**RBF (Radial Basis Function)** がターゲット ボーンの方向に基づいた操作値を補間します。 
 **Pose アセット** を作成し、ボーンのターゲット ポーズ、およびそれぞれのポーズでの望ましいカーブ値を定義する必要があります。 
 
 **Pose Driver** ノード自体に以下のオプションがあります。 
@@ -101,8 +101,18 @@ tJSYgPmzoKc
 | **Radial Scaling** | 放射ベースのスケーリングで、ポーズ間の最長距離に適用されます。| 
 | **Pose Source** | ポーズ データのソースとして使われる **Pose アセット** です。 | 
 | **Include Ref Pose as Neutral Pose** | ソース ボーンのメッシュの参照ポーズを中間のポーズ (ゼロ カーブ) と考えるかどうかを指定します。 | 
-| **Type** | **Swing and Twist** (補間に対してフル回転と考える) または **Swing Only** (補間に対してスイングのみを考える)。 | 
+| **Type** | [INCLUDE:Engine\Animation\AnimPose\AnimBPPoseNodes\#typetable] | 
 | **Twist Axis** | **Type** が **SwingOnly** (X、 Y、または Z) に設定されている場合に使用する軸です。 | 
+
+<!--
+[EXCERPT:typetable]
+| オプション | 説明 |
+| ----------- |------|
+| **Swing and Twist** | 補間に対してフル回転を考えます。 | 
+| **Swing Only** | 補間に対してスイングのみを考えます。 | 
+| **Translation** | 親に対して相対的に考えます。 | 
+[/EXCERPT:typetable]
+-->
 
 以下のアンリアル エンジンのライブストリームのアニメーションのトピックで **Pose Driver** のサンプルをご覧いただくこともできます。
  

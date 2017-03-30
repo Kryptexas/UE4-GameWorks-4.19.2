@@ -2,7 +2,7 @@
 Title:音效编辑器用户界面
 Crumbs: %ROOT%, Engine, Engine/Audio, Engine/Audio/SoundCues/Editor
 Description: 关于应用设置及编辑基于SoundCue节点的音频资源的工具的指南。
-
+version: 4.9
 [TOC (start:2)]
 
 
@@ -27,31 +27,31 @@ Description: 关于应用设置及编辑基于SoundCue节点的音频资源的�
 
 ### 文件
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuFileSave]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuFileSaveOptions]
+%Shared/Editors/Common/EditorMenuItems:MenuFileSave%
+%Shared/Editors/Common/EditorMenuItems:MenuFileSaveOptions%
 
 
 ### 编辑
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuEditUndo]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuEditSettings]
+%Shared/Editors/Common/EditorMenuItems:MenuEditUndo%
+%Shared/Editors/Common/EditorMenuItems:MenuEditSettings%
 
 ### 资源
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuAssetContentBrowser]
+%Shared/Editors/Common/EditorMenuItems:MenuAssetContentBrowser%
 
 ### 窗口
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowToolbar]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowViewport]
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindowDetails]
+%Shared/Editors/Common/EditorMenuItems:MenuWindowToolbar%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowViewport%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowDetails%
 * **Palette（控制板）** -切换 **Palette（控制板）** 面板的可见性。
-[Include:Shared/Editors/Common/EditorMenuItems#MenuWindow]
+%Shared/Editors/Common/EditorMenuItems:MenuWindow%
 
 
 ### 帮助
 
-[Include:Shared/Editors/Common/EditorMenuItems#MenuHelp]
+%Shared/Editors/Common/EditorMenuItems:MenuHelp%
 
 ## 工具栏
 

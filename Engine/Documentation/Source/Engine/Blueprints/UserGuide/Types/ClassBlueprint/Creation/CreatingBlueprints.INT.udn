@@ -11,6 +11,7 @@ skilllevel:Beginner
 parent:Engine/Blueprints/BP_HowTo
 type:how-to
 order:1
+tags:Blueprints
 
 
 [TOC(start:2 end:2)]

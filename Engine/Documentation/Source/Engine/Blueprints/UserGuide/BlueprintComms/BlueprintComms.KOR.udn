@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:블루프린트 직접 통신
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -8,6 +8,7 @@ related:Engine/Blueprints/BP_HowTo/DirectBlueprintComs
 related:Engine/Blueprints/UserGuide/Variables
 related:Engine/Blueprints/UserGuide/Functions
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Topic]

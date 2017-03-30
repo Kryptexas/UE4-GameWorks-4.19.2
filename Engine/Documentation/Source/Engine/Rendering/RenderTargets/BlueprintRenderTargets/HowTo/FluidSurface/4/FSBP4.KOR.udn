@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3216146
-availability:docs
-title:4. End Result
-description:Going over using the Fluid Surface Blueprint.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:4. 최종 결과
+description:플루이드 서피스 블루프린트 사용법을 다룹니다.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
@@ -14,9 +14,9 @@ checkpoint:FSB
 
 [NAV]
 
-When all of the various pieces of the fluid surface Blueprint have been connected, and the fluid surface Blueprint has been compiled and saved, add it to a level. Once placed in a level, you can play the level and then interact with the fluid surface Blueprint by holding down the left mouse button to shoot at it or by walking over it with your character. Below are some videos that show both these types of interaction.
+플루이드 서피스 블루프린트의 여러 부품들을 전부 연결하고, 플루이드 서피스 블루프린트 컴파일과 저장을 마쳤으면, 레벨에 추가합니다. 레벨에 배치한 후에는, 레벨을 플레이하고 플루이드 서피스 액터를 마우스 왼쪽 버튼을 눌러 쏘거나 캐릭터로 그 위에 걸어가게 하는 식으로 상호작용할 수 있습니다. 아래 비디오에서 이러한 두 가지 유형의 상호작용을 확인할 수 있습니다.
 
-* This video shows what happens when you shoot at the fluid surface Blueprint.
+* 이 비디오는 플루이드 서피스 블루프린트를 쐈을 때 어떤 일이 벌어지는지 보여줍니다.
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -30,7 +30,7 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-* This video shows what happens when you walk over the fluid surface Blueprint with a Pawn-based character.
+* 이 비디오는 폰 기반 캐릭터로 플루이드 서피스 블루프린트 위를 걸어갈 때 어떤 일이 벌어지는지 보여줍니다.
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -44,7 +44,7 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-* Here is a copy of the entire completed fluid surface Blueprint.
+* 완성된 플루이드 서피스 블루프린트 전체 사본입니다.
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\4\#CompBP]

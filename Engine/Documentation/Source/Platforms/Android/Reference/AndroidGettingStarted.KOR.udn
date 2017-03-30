@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3298293
 Availability:Public
 Title: 안드로이드 개발 참고서
 Crumbs:%ROOT%, Platforms, Platforms/Android
@@ -266,7 +266,7 @@ CodeWorks for Android 1R4 를 설치한 것이 아니라면, 일부 환경 변�
 
 -->
 
-## 안드로이드 꼼수
+## 안드로이드 팁
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -344,12 +344,12 @@ CodeWorks for Android 1R4 를 설치한 것이 아니라면, 일부 환경 변�
 [EXCERPT:AndroidFormats]
 |포맷 | 설명 |
 |-------|------------|
-|ETC1 |모든 안드로이드 기반 디바이스에 지원되지만 알파 텍스처는 압축되지 않습니다 (그대로 저장됩니다). 압축률을 높이려면 RGB 와 알파 텍스처를 별도로 사용하는 것이 좋습니다. |
-|ETC2 |모든 OpenGL 3.x 클래스 디바이스에 지원되며, 알파 압축도 지원됩니다. |
-|ATC |Qualcomm Adreno GPU 에 지원되며, 알파 압축도 지원됩니다. |
-|DXT |NVIDIA Tegra GPU 에 지원되며, 알파 압축도 지원됩니다. |
-|PVRTC |PowerVR GPU 에 지원되며, 알파 압축도 지원됩니다. |
-|ASTC  |최신 텍스처 압축 포맷으로, 블록 크기 지정과 같은 퀄리티 제어는 물론 알파 압축도 지원합니다. 현재 일부 디바이스에서만 지원되며, Vulkan Level 1 이 필요합니다.
+|**ETC1** |모든 안드로이드 기반 디바이스에 지원되지만 알파 텍스처는 압축되지 않습니다 (그대로 저장됩니다). 압축률을 높이려면 RGB 와 알파 텍스처를 별도로 사용하는 것이 좋습니다. |
+|**ETC2** |모든 OpenGL 3.x 클래스 디바이스에 지원되며, 알파 압축도 지원됩니다. |
+|**ATC** |Qualcomm Adreno GPU 에 지원되며, 알파 압축도 지원됩니다. |
+|**DXT** |NVIDIA Tegra GPU 에 지원되며, 알파 압축도 지원됩니다. |
+|**PVRTC** |PowerVR GPU 에 지원되며, 알파 압축도 지원됩니다. |
+|**ASTC** |최신 텍스처 압축 포맷으로, 블록 크기 지정과 같은 퀄리티 제어는 물론 알파 압축도 지원합니다. 현재 일부 디바이스에서만 지원되며, Vulkan Level 1 이 필요합니다.
 |
 [/EXCERPT:AndroidFormats]
 

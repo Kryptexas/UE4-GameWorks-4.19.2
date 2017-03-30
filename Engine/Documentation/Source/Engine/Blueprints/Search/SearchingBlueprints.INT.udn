@@ -5,6 +5,7 @@ Description:Getting the most out of searching in Blueprints, from indexing all B
 version: 4.11
 parent:Engine/Blueprints/Workflow
 order:2
+tags:Blueprints
 
 
 ## Searching Blueprints

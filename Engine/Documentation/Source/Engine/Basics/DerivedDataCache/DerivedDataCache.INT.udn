@@ -24,22 +24,61 @@ not do any harm, but it is a waste of time as it generally takes longer to trans
 in the DDC than it would to simply generate it from scratch locally.
 [/REGION]
 
-To set up a shared DDC, override the paths for the [DerivedDataBackendGraph] by declaring this 
+To set up a shared DDC, override the paths for the `[InstalledDerivedDataBackendGraph]` or `[DerivedDataBackendGraph]` (depending on whether you use the binary install from the Epic Game Launcher or compile from source) by declaring this 
 section in your game's **DefaultEngine.ini**. This section is originally declared in the **BaseEngine.ini** 
 where the paths are set to Epic's internal DDC share. Re-declare the section and change the paths to point 
 to a share on your network (e.g. `Path=\\mystudio.net\DDC`):
 
-	[InstalledDerivedDataBackendGraph]
-	MinimumDaysToKeepFile=7
-	Root=(Type=KeyLength, Length=120, Inner=AsyncPut)
-	AsyncPut=(Type=AsyncPut, Inner=Hierarchy)
-	Hierarchy=(Type=Hierarchical, Inner=Boot, Inner=Pak, Inner=EnginePak, Inner=Local, Inner=Shared)
-	Boot=(Type=Boot, Filename=\%GAMEDIR\%DerivedDataCache/Boot.ddc, MaxCacheSize=256)
-	Local=(Type=FileSystem, ReadOnly=false, Clean=false, Flush=false, PurgeTransient=true, DeleteUnused=true, UnusedFileAge=17, FoldersToClean=-1, Path=../../../Engine/DerivedDataCache)
-	Shared=(Type=FileSystem, ReadOnly=false, Clean=false, Flush=false, DeleteUnused=true, UnusedFileAge=19, FoldersToClean=-1, Path=\\mystudio.net\DDC, EnvPathOverride=UE-SharedDataCachePath)
-	AltShared=(Type=FileSystem, ReadOnly=true, Clean=false, Flush=false, DeleteUnused=true, UnusedFileAge=19, FoldersToClean=-1, Path=\\mystudio.net\DDC2, EnvPathOverride=UE-SharedDataCachePath2)
-	Pak=(Type=ReadPak, Filename=\%GAMEDIR\%DerivedDataCache/DDC.ddp)
-	EnginePak=(Type=ReadPak, Filename=../../../Engine/DerivedDataCache/DDC.ddp)
+%Globals:BinarySourceSelectVar%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	binaryinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+			[InstalledDerivedDataBackendGraph]
+			MinimumDaysToKeepFile=7
+			Root=(Type=KeyLength, Length=120, Inner=AsyncPut)
+			AsyncPut=(Type=AsyncPut, Inner=Hierarchy)
+			Hierarchy=(Type=Hierarchical, Inner=Boot, Inner=Pak, Inner=EnginePak, Inner=Local, Inner=Shared)
+			Boot=(Type=Boot, Filename=\%GAMEDIR\%DerivedDataCache/Boot.ddc, MaxCacheSize=256)
+			Local=(Type=FileSystem, ReadOnly=false, Clean=false, Flush=false, PurgeTransient=true, DeleteUnused=true, UnusedFileAge=17, FoldersToClean=-1, Path=../../../Engine/DerivedDataCache)
+			Shared=(Type=FileSystem, ReadOnly=false, Clean=false, Flush=false, DeleteUnused=true, UnusedFileAge=19, FoldersToClean=-1, Path=\\mystudio.net\DDC, EnvPathOverride=UE-SharedDataCachePath)
+			AltShared=(Type=FileSystem, ReadOnly=true, Clean=false, Flush=false, DeleteUnused=true, UnusedFileAge=19, FoldersToClean=-1, Path=\\mystudio.net\DDC2, EnvPathOverride=UE-SharedDataCachePath2)
+			Pak=(Type=ReadPak, Filename=\%GAMEDIR\%DerivedDataCache/DDC.ddp)
+			EnginePak=(Type=ReadPak, Filename=../../../Engine/DerivedDataCache/DDC.ddp)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	sourceinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+			[DerivedDataBackendGraph]
+			MinimumDaysToKeepFile=7
+			Root=(Type=KeyLength, Length=120, Inner=AsyncPut)
+			AsyncPut=(Type=AsyncPut, Inner=Hierarchy)
+			Hierarchy=(Type=Hierarchical, Inner=Boot, Inner=Pak, Inner=EnginePak, Inner=Local, Inner=Shared)
+			Boot=(Type=Boot, Filename=\%GAMEDIR\%DerivedDataCache/Boot.ddc, MaxCacheSize=256)
+			Local=(Type=FileSystem, ReadOnly=false, Clean=false, Flush=false, PurgeTransient=true, DeleteUnused=true, UnusedFileAge=17, FoldersToClean=-1, Path=../../../Engine/DerivedDataCache)
+			Shared=(Type=FileSystem, ReadOnly=false, Clean=false, Flush=false, DeleteUnused=true, UnusedFileAge=19, FoldersToClean=-1, Path=\\mystudio.net\DDC, EnvPathOverride=UE-SharedDataCachePath)
+			AltShared=(Type=FileSystem, ReadOnly=true, Clean=false, Flush=false, DeleteUnused=true, UnusedFileAge=19, FoldersToClean=-1, Path=\\mystudio.net\DDC2, EnvPathOverride=UE-SharedDataCachePath2)
+			Pak=(Type=ReadPak, Filename=\%GAMEDIR\%DerivedDataCache/DDC.ddp)
+			EnginePak=(Type=ReadPak, Filename=../../../Engine/DerivedDataCache/DDC.ddp)
+	[/PARAM]
+[/OBJECT]
+
 
 
 Satellite studios working out of a single shared code base can set the **UE-SharedDataCachePath** environment 

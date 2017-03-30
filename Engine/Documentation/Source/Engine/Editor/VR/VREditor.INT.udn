@@ -6,7 +6,7 @@ parent:Engine/Editor
 type:overview
 order:10
 tags:VR
-version:4.12
+version:4.15
 skilllevel:intermediate
 social-image:vreditor_social.png
 
@@ -79,15 +79,18 @@ In order to use Unreal Editor in VR mode, your development environment must meet
 | **Video Drivers** | Make sure you have the very latest video drivers installed.  Some HMD features require latest drivers. |
 [/EXCERPT:main]
 
-## Starting Out
+## Getting Started
 
-[DIR(end:"1" output:"topic" type:"how-to" tags:"Getting Started" parent:"Engine/Editor/VR")]
+%Engine/Editor/VR/ActivateVRMode:topic%
+%Engine/Editor/VR/Setup:topic%
+%Engine/Editor/VR/Controls:topic%
 
 ## Guides
 
-[DIR(end:"1" output:"topic" type:"how-to" tags:"Level Editing, GitHub" parent:"Engine/Editor/VR")]
+%Engine/Editor/VR/WorldInteraction:topic%
+%Engine/Editor/VR/ActorInteraction:topic%
 
-## Reference
+## References
 
 [DIR(end:"1" output:"topic" type:"reference" parent:"Engine/Editor/VR")]
 

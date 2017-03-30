@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3075953
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:Burn In を適用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -10,6 +10,7 @@ order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine/Sequencer/ReferenceEditor
+tags:Sequencer
 
 [EXCERPT:intro]
 シネマティックス ムービーを作成し、出力する場合、ショット名、日付、時刻、フレーム情報などの表示しているシーンに関する情報を持ったオーバーレイを含めることができます。 

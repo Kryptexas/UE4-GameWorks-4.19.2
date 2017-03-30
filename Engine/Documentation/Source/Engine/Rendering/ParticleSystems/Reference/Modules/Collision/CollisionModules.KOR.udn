@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability: Public
 Title:Collision 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:파티클과 액터의 충돌 처리를 담당하는 모듈입니다.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 
@@ -33,7 +34,7 @@ uD7MQf6sZZU
 | **Damping Factor** | 감쇠 인수 - 충돌 이후의 파티클을 얼마나 '느리게' 할 지를 나타내는 벡터 분포입니다. 파티클 스폰시의 EmitterTime(이미터 시간)에 따라 값을 구하며, 파티클 내에 저장합니다.|
 | **Damping Factor Rotation** | 쇠 인수 회전 - 충돌 이후의 파티클 회전을 얼마나 '느리게' 할 지를 나타내는 벡터 분포입니다. 파티클 스폰시의 이미터 시간에 따라 값을 구하며, 파티클 내에 저장합니다.|
 | **Max Collisions** | 최대 콜리전 - 파티클이 가질 수 있는 콜리전의 최대 갯수를 나타내는 실수 분포입니다. 파티클 스폰시의 이미터 시간에 따라 값을 구합니다. |
-| **Collision Completion Option** | 콜리전 완료 옵션 - MaxCollision(최대 콜리전)에 도달했을 때 파티클을 어찌할까를 나타내는 열거형입니다. 다음 중 하나입니다: [INCLUDE:#CollisionCompletionOption]|
+| **Collision Completion Option** | 콜리전 완료 옵션 - MaxCollision(최대 콜리전)에 도달했을 때 파티클을 어찌할까를 나타내는 Enum 입니다. 다음 중 하나입니다: [INCLUDE:#CollisionCompletionOption]|
 | **Apply Physics** | 피직스 적용 - 파티클과 충돌하는 오브젝트에 물리를 적용할 지 여부를 나타내는 불리언입니다. [INCLUDE:#ApplyPhysicsNote] |
 | **Particle Mass** | 파티클 질량 - bApplyPhysics(피직스 적용)이 _True_ 일때 사용할 파티클의 질량을 나타내는 실수 분포입니다. 파티클의 스폰시 이미터 시간에 따라 값을 구합니다.|
 | **Dir Scalar** | 방향 스칼라 - 상호관통이나 큰 틈을 피하기 위해 '지원할' 파티클의 경계를 스케일하는 데 사용되는 플로트 값입니다. |

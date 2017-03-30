@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3340410
 Availability:Public
-Title: 포스 피드백
-Crumbs:
+Title: 포스 피드백 및 포스 피드백 컴포넌트
+Crumbs:%ROOT%, Gameplay
 Description: 모바일 디바이스와 콘트롤러의 진동 기능을 사용하여 플레이어에게 게임의 포스를 전달하는 방법입니다.
 Parent:Gameplay
+Related: Engine/Blueprints/UserGuide/Components
+version: 4.15
+
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -41,7 +44,9 @@ Parent:Gameplay
 
 [TOC]
 
+[EXCERPT:WhatIsForceFeedback]
 **Force Feedback** (가끔은 진동 또는 햅틱 피드백이라고도 하는 포스 피드백)은 게임에서 사용되는 디바이스 또는 콘트롤러의 진동을 통해 게임에서 일어나는 힘의 느낌을 플레이어에게 전달하는 것을 말합니다. 간단한 예제라면, 게임에서 폭발이 일어났을 때 포스 피드백을 사용하여 충격파 시뮬레이션을 하면, 한 층 더 높은 몰입감을 낼 수 있습니다.
+[/EXCERPT:WhatIsForceFeedback]
 
 구현하고 나면, 포스 피드백은 지원되는 모든 플랫폼에서 작동합니다. (4.10 이후로) iOS, 안드로이드, 콘트롤러가 포함됩니다.
 
@@ -87,6 +92,8 @@ Parent:Gameplay
 
 ## 포스 피드백 재생
 
+### 플레이어에 바로
+
 포스 피드백은 베이스 PlayerController 클래스에서 구현됩니다. 타겟 디바이스나 콘트롤러에서 포스 피드백을 재생하려면, 로컬 플레이어 콘트롤러에 접근할 수 있어야 합니다.
 
 **블루프린트에서 포스 피드백 재생:**
@@ -117,6 +124,10 @@ Parent:Gameplay
 
 **C++ 에서 포스 피드백 재생:**
 
-로컬 플레이어 콘트롤러에서 [](API:APlayerController::ClientPlayForceFeedback) 를 호출하되, 사용할 포스 피드백 이펙트 뿐 아니라 이펙트의 루핑 여부, 태그 옵션까지도 전달해 줍니다. 태그를 통해 같은 태그의 이펙트가 이미 재생중인 경우, 먼저 것을 중지시키고 새로운 이펙트를 대신 재생시킬 수 있습니다.
+로컬 플레이어 콘트롤러에서 [](API:APlayerController::ClientPlayForceFeedback) 를 호출하되, 사용할 포스 피드백 이펙트 뿐 아니라 이펙트의 루핑 여부, 태그 옵션까지도 전달해 줍니다. 태그가 제공되고, 원래 이펙트가 끝나기 전 태그가 같은 포스 피드백 이펙트가 추가 재생되면, 원본은 즉시 중지하고 새로운 이펙트를 대신 재생합니다.
 
+### 월드 위치에서
 
+관찰하는 플레이어와의 거리에 따라 강도가 변하는 포스 피드백 이펙트를 재생하려면, 이펙트 진원지 역할을 할 월드 위치에 **Force Feedback Component** (포스 피드백 컴포넌트)를 배치합니다. 포스 피드백 컴포넌트는 명령 시 포스 피드백 이펙트를 재생하지만, 월드에 물리적 위치를 갖고 있습니다. 사운드나 라이트처럼, 플레이어가 느끼는 포스의 강도가 진원지와의 거리에 따라 데이터로 정의된 감쇠 세팅대로 변할 것입니다.
+
+포스 피드백 컴포넌트는 일반 코드나 블루프린트 에디터 메소드를 통해 어느 액터에도 붙일 수 있지만, 라이브 게임플레이 도중에도 추가시킬 수 있습니다. (주어진 월드 위치에서 스폰하기 위해서는) `UGameplayStatics::SpawnForceFeedbackAtLocation`,  라는 유틸리티 함수를 호출하는 것으로 가능한데, (기존의 특정 컴포넌트에 붙이기 위해서는) `UGameplayStatics::SpawnForceFeedbackAttached` 유틸리티 함수를 호출하면 됩니다. 이 함수는 스폰된 포스 피드백 컴포넌트를 반환하여, 원하는 대로 조작을 계속할 수 있습니다. 하지만 이펙트 재생을 마친 후 컴포넌트 쓸모가 없는 경우, "Auto Destroy" (자동 소멸) 옵션을 사용하여 이펙트가 끝나면 자체 소멸되도록 할 수 있습니다.

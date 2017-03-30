@@ -3,6 +3,7 @@ Title: DPI Scaling
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:How to access and adjust DPI Scaling Rules. 
 version: 4.9
+tags:UMG UI Designer
 
 [REGION:banner]
 ![](DPIscaling.png)(convert:false)

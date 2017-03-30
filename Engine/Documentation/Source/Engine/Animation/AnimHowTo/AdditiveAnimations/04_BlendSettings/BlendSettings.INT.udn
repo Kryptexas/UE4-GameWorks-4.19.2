@@ -4,9 +4,8 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this final step, we define the method in which to layer our blended animation and which bone to start the blend from. 
 version: 4.14
 skilllevel: Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 블루프린트 유형
 Crumbs: %ROOT%, Engine/Blueprints
 Description:여러가지 블루프린트 유형 관련 정보에 대한 첫 페이지입니다.
 version: 4.9
+tags:Blueprints
 
 
 가끔은 어떤 유형의 **블루프린트** 를 사용해야 할지 단번에 알기가 힘이 듭니다. 

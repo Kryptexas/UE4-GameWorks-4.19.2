@@ -3,6 +3,7 @@ Title: Blueprint Editor Viewport
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:Overview of the viewport in the Components mode of Blueprint Classes
 version: 4.9
+tags:Blueprints
 
 
 In the **Viewport**, in the Blueprint Editor, you can view and manipulate your Blueprint's components. 

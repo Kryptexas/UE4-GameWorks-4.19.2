@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3178047
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title: 시퀀스 에디터
 Crumbs: %ROOT%, Engine
@@ -8,6 +8,7 @@ parent:Engine
 order:4
 social-image:sequencer_social.png
 related: Engine/Matinee
+tags:Sequencer
 
 [VAR:Topic]
 [OBJECT:Topic]

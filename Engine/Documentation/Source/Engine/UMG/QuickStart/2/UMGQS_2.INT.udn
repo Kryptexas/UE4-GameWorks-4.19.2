@@ -3,6 +3,7 @@ Title:2. Displaying Health, Energy and Ammo
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:In this step we will hook up and display the Health, Energy and Ammo of the player on our HUD. 
 version: 4.9
+tags:UMG UI Designer
 
 
 [VAR:Steps]

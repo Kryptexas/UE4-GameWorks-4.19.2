@@ -10,6 +10,7 @@ version:4.9
 skilllevel:Beginner
 parent:Engine/Blueprints/Scripting
 tags:Execution Flow
+tags:Blueprints
 order:5
 
 This page covers the various methods in which you can connect nodes together on your graphs in Blueprints. 

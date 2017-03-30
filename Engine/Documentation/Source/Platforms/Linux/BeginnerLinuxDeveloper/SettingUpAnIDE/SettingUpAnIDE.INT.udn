@@ -1,36 +1,17 @@
-Availability: Docs
-Title: How to Setup an IDE for UE4
+Availability: Public
+Title: How to Set up an IDE for UE4
 Crumbs:
-Description:Learn how to setup your IDE to build and run UE4 on Linux.
+Description:Learn how to set up your IDE to build and run UE4 on Linux.
 Platform:Linux
 Version: 4.14
 type:how to
-parent:Platforms/Linux/BeginnerLinuxDeveloper
+parent:Platforms/Linux
 order: 3
 tags:Linux
 SkillLevel:Beginner
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+topic-image:IDE_HowToTopic.png
 
-[VAR:Params]
-[PARAM:image]
-	![%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:title%](IDE_HowToTopic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:title%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
 
 [REGION:imagetable]
 ![](CompiledEditor_LinuxIDE.png)(w:1280)  
@@ -39,7 +20,7 @@ At the end of this tutorial, you'll have an **Integrated Development Environment
 
 ## Goal
 
-The focus of this guide is to show you how to setup an IDE to build and run UE4. 
+The focus of this guide is to show you how to set up an IDE to build and run UE4. 
 
 ## Objectives
 

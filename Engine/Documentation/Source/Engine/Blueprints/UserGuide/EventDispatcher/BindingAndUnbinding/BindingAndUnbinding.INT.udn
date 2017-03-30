@@ -3,6 +3,7 @@ Title:Binding and Unbinding Events
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/EventDispatcher
 Description: Adding and removing events from an Event Dispatcher's events list.
 version: 4.9
+tags:Blueprints
 
 [TOC(start:2 end:3)]
 

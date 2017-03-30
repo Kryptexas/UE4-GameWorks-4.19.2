@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:1 - Creating Aim Poses
+﻿INTSourceChangelist:3255885
+Availability:Public
+Title:1 - 创建瞄准动作（Aim Pose）
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:In this step, we update our default playable character and create all the poses that will be needed for the Aim Offset. 
-version: 4.14
-skilllevel: Advanced
-type:howto
+Description:在这步中，我们将更新默认可操作角色，并创建瞄准偏移所需的全部动作。 
+version:4.14
+skilllevel:Advanced
+type:how-to
 tags:Animation
-tags:How-To
 tags:Aim Offset
 
 [VAR:Steps]
@@ -27,75 +26,75 @@ tags:Aim Offset
 
 %Steps%
 
-In this step, we update our default playable character and create all the poses that will be needed for the Aim Offset. 
+在这步中，我们将更新默认可操作角色，并创建瞄准偏移所需的全部动作。 
 
 [INCLUDE:Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup#intro]
 
-## Steps
+## 步骤
 
-1.  In the **Content Browser** under the **Content/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonGameMode**.
+1. 在 **Content Browser** 中的 **Content/ThirdPersonBP/Blueprints** 文件夹下，打开 **ThirdPersonGameMode**。
 
-1.	Under **Default Pawn Class**, click the drop-down menu and select the **Ue4ASP_Character** then **Save** and close the Blueprint. 
+1.	在 **Default Pawn Class** 点击下拉菜单并选择 **Ue4ASP_Character**，然后 **保存** 并关闭蓝图。 
 
 	![](Animations1.png)
 
-	We are changing the default playable character to use the one provided with the Animation Starter Pack. 
+	我们将修改默认的可操作角色，使用 Animation Starter Pack 中的角色。 
 
-1.	In the **Content Browser** open the **Content/AnimStarterPack** folder, then click **Add New** and create a folder called **AimPoses**.  
+1.	在 **Content Browser** 中打开 **Content/AnimStarterPack** 文件夹，然后点击 **Add New** 并创建一个名为 **AimPoses** 的文件夹。  
 
 	![](AimOffset1.png)
 
-1.	Drag the **Aim_Space_Hip** asset onto the **AimPoses** folder and select **Copy**. 
+1.	将 **Aim_Space_Hip** 资源拖到 **AimPoses** 文件夹上并选择 **Copy**。 
 
 	![](AimOffset2.png)
 
-	This is the animation sequence that contains a range of motions for aiming a weapon that we will chop up into poses. 
+	这是包含一系列武器瞄准运动（我们将把这些运动切分为动作）的动画序列。 
 
-1.	Inside the **AimPoses** folder, with **Aim_Space_Hip** selected, press **Ctrl+W** to duplicate it and name it **Aim_Center**. 
+1.	在 **AimPoses** 文件夹中，选中 **Aim_Space_Hip**，按下 **Ctrl+W** 进行复制并将其命名为 **Aim_Center**。 
 
 	![](AimOffset3.png)
 
-1.	Open the **Aim_Center** asset, click the **Pause** button from the playback controls, then click the **ToFront** button. 
+1.	打开 **Aim_Center** 资源，点击播放功能按钮中的 **Pause** 按钮，然后点击 **ToFront** 按钮。 
 
 	![](AimOffset4.png)
 
-1.	**Right-click** on the scrub bar in the timeline, then choose the **Remove from frame 1 to frame 87** option. 
+1.	在时间轴中的整理条上 **点击右键**，然后选择 **Remove from frame 1 to frame 87** 选项。 
 
 	![](AimOffset5.png)
 
-	With this, we now have a single frame containing a pose we can use in our Aim Offset. 
+	进行此操作后，我们现在就拥有了一个单帧，它包含一个可在瞄准偏移中使用的动作。 
 
-1.	In the **AimPoses** folder with **Aim_Space_Hip** selected, press **Ctrl+W** to duplicate it and name it **Aim_Center_Down**.  
+1.	在 **AimPoses** 文件夹中，选中 **Aim_Space_Hip**，按下 **Ctrl+W** 进行复制并将其命名为 **Aim_Center_Down**。  
 
-1.	Open **Aim_Center_Down**, make sure it is on frame **0**, then click the **ToNext** button and go to frame **20**. 
+1.	打开 **Aim_Center_Down**，确保其处于第 **0** 帧，然后点击 **ToNext** 按钮并前往第 **20** 帧。 
 
 	![](AimOffset9.png)
 
-	The character will now be aiming downward in the viewport, which is the pose we want to use for aiming down. 
+	现在角色在视口中将向下瞄准，即为需要用于向下瞄准的动作。 
 
-1.	**Right-click** on the scrub bar in the timeline, then choose the **Remove frame 0 to frame 20** option. 
+1.	在时间轴中的整理条上 **点击右键**，然后选择 **Remove frame 0 to frame 20** 选项。 
 
 	![](AimOffset10.png)
 
-	Depending on where you **Right-click** on the scrub bar, the frame range may be off by a frame or two, just make sure the character is aiming down. 
+	取决在整理条上 **点击右键** 的位置，帧范围可能偏移一到两帧，只为确保角色向下瞄准。 
 	
-1.	**Right-click** on the scrub bar in the timeline again, then choose the **Remove from frame 1 to frame 68** option. 
+1.	再次在时间轴中的整理条上 **点击右键**，然后选择 **Remove from frame 1 to frame 68** 选项。 
 
 	![](AimOffset11.png)
 
-1.	In the **AimPoses** folder with **Aim_Space_Hip** selected, press **Ctrl+W** to duplicate it and name it **Aim_Center_Up**.  
+1.	在 **AimPoses** 文件夹中，选中 **Aim_Space_Hip**，按下 **Ctrl+W** 进行复制并将其命名为 **Aim_Center_Up**。  
 
-1.	Open **Aim_Center_Up**, make sure it is on frame **0**, then click the **ToNext** button and go to frame **10**. 
+1.	打开 **Aim_Center_Up**，确保其处于第 **0** 帧，然后点击 **ToNext** 按钮并前往第 **10** 帧。 
 
-1.	**Right-click** on the scrub bar in the timeline, then choose the **Remove frame 0 to frame 10** option. 
+1.	在时间轴中的整理条上 **点击右键**，然后选择 **Remove frame 0 to frame 10** 选项。 
 
 	![](AimOffset14.png)
 
-1.	**Right-click** on the scrub bar in the timeline again, then choose the **Remove from frame 1 to frame 78** option. 
+1.	再次在时间轴中的整理条上 **点击右键**，然后选择 **Remove from frame 1 to frame 78** 选项。 
 
 	![](AimOffset15.png)
 
-1.	**Duplicate** the **Aim_Space_Hip** asset each time and create each of the remaining poses based on the table below.
+1.	每次 **复制** **Aim_Space_Hip** 资源，然后基于下表创建每个剩余动作。
 	
 	| Anim Name | Start At Keyframe | Remove Frames 1 | Remove Frames 2 |
 	| ------- | ------ | ------ | ------ |
@@ -106,37 +105,37 @@ In this step, we update our default playable character and create all the poses 
 	| **Aim_Right_Up** | 70 | 0 - 70 | 1 - 17 |
 	| **Aim_Right_Down** | 80 | 0 - 80 | 1 - 8 |
 
-	For each animation, be sure to start at the suggested **Start At Keyframe** frame, then **Right-click** on the scrub bar and **Remove Frames 1**, **Right-click** on the scrub bar again and **Remove Frames 2**. Each of your animations should be a single frame with the character aiming in the direction of its corresponding name. 
-	When you have created each, your **AimPoses** folder should have several poses in it for each aiming direction. 
+	确保每个动画从建议的 **Start At Keyframe** 帧开始，然后在整理条上 **点击右键** 并选择 **Remove Frames 1**，然后再次在整理条上 **点击右键** 并选择 **Remove Frames 2**。每个动画都应该是角色瞄准其相应名称方向的一个单帧。 
+	创建每个动画后，**AimPoses** 文件夹中应包含每个瞄准方向的数个动作。 
 
 	![](AimOffset17.png)
 
-1.	In the **Content Browser**, **Shift** and select each of the aim poses. 
+1.	在 **Content Browser** 中，按住 **Shift** 并选择每个动画动作。 
 
 	![](AimOffset18.png)
 
-1.	**Right-click** and under **Asset Actions**, select the **Bulk Edit via Property Matrix** option. 
+1.	**点击右键** 并在 **Asset Actions** 下选中 **Bulk Edit via Property Matrix** 选项。 
 
 	![](AimOffset19.png)
 
-1.	In the **Property Matrix**, under **Additive Settings**, change the **Additive Anim Type** to **Mesh Space**. 
+1.	在 **Additive Settings** 下的 **Property Matrix** 中将 **Additive Anim Type** 改为 **Mesh Space**。 
 
 	![](AimOffset20.png)
 
 	[REGION:note]
-	For an animation to be compatible with an Aim Offset, it must be set to use an Additive Anim Type of **Mesh Space**. 
+	兼容瞄准偏移的动画必须设为使用 **Mesh Space** 的附加动画类型。 
 	[/REGION:note]
 
-1.	Change the **Base Pose Type** to **Selected animation frame**, then under **Base Pose Animation**, click the pick asset icon and choose **Idle_Rifle_Hip**. 
+1.	将 **Base Pose Type** 改为 **Selected animation frame**，然后在 **Base Pose Animation** 下点击选取资源图标并选择 **Idle_Rifle_Hip**。 
 
 	![](add_01.png)
 
-	This Base Pose Type will define how the additive delta is to be calculated. 
+	此基础动作类型将定义附加增量的计算方式。 
 
-1.	Once you have done so, return to the **Content Browser** and click the **Save All** button. 
+1.	执行此操作后，返回 **Content Browser** 并点击 **Save All** 按钮。 
 
 	![](AimOffset22.png)
 
-With each of our pose assets created, in the next step, we will the poses to create our Aim Offset. 
+每个动作资源创建完成后，下一步我们将使用动作创建瞄准偏移。 
 
 %Steps%

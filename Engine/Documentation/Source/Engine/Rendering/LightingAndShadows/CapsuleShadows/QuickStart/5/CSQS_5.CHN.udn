@@ -1,0 +1,31 @@
+﻿INTSourceChangelist:0
+Availability:docs
+Title:5 - On Your Own!
+Crumbs:%ROOT%, Engine
+Description:
+SkillLevel:Intermediate
+Version:4.14
+checkpoint: capsuleshadowsqs
+parent:Engine/Rendering/LightingAndShadows/CapsuleShadows/QuickStart
+type:multi-step
+order:5
+ 
+[NAV]
+
+Now that you have created a sample Shadow Phsyics Asset for Capsule Shadowing you can try some of the following on your own: 
+
+* Try using some different lighting angles or time-of-day setups for mid-day, dusk, or evening. 
+* Adjust the **Light Source Angle** of your Directional Light to soften your Capsule Shadow in areas that are directly lit. 
+* Add some closed off areas with doorways and windows or similar to a cave opening to get contrasting light that gives some directionality for the light source for use with Capsule Indirect Shadows.
+* Use the setting for **Capsule Indirect Shadow Min Visibility** in your Character's Details Panel to blend the soft shadow's intensity with your environment.
+* Add some additional capsule bodies for the arms of your character for shadowing when near wall surfaces, like with a cover system.
+
+For more information on topics covered in this quick start guide and across the entire editor, see the [Unreal Enditor Manual](https://docs.unrealengine.com/latest/INT/Engine/index.html).
+
+* For more information about Capsule Shadows, see [Capsule Shadows Overview](Engine/Rendering/LightingAndShadows/CapsuleShadows/Overview).
+* For more information on the Physics Asset Tool, see [Physics Asset Tool (PhAT)](https://docs.unrealengine.com/latest/INT/Engine/Physics/PhAT/).
+* For more information on Lighting, see [Lighting the Environment](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/).
+
+
+
+[NAV]

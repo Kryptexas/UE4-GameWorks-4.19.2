@@ -49,7 +49,7 @@ version: 4.9
 | **2D**             | Sprite Editor | [Paper2D](Engine/Paper2D) |
 | **编程**           | C# | [C++](Programming) |
 |                    | Script | [蓝图](Engine/Blueprints) |
-| **物理**           | Raycast | [Line Trace, Shape Trace](Gameplay/HowTo/UseRaycasts/Blueprints) |
+| **物理**           | Raycast | [Line Trace, Shape Trace](Engine/Physics/Tracing) |
 |                    | Rigid Body | [碰撞，物理](Engine/Physics) |
 | **运行平台**       | iOS Player, Web Player | [支持的平台](Platforms) |
 

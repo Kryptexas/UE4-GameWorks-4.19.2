@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3260884
 Availability: Public
 Title:페인트 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -30,6 +30,10 @@ Version: 4.9
 Paint (페인트) 모드의 툴로는 랜드스케이프 부분에 머티리얼 레이어를 선택 적용하여 랜드스케이프의 겉모습을 바꿀 수 있습니다.
 
 랜드스케이프 머티리얼 관련 상세 정보는 [](Engine/Landscape\Materials) 문서를 참고하세요.
+
+[REGION:tip]
+랜드스케이프 페인트 모드는 VR 에디터에서도 작동합니다. VR 에서 랜드스케이프 사용을 위한 조작법은 [](Engine/Editor/VR/Controls) 문서를 참고하세요.
+[/REGION]
 
 
 ## 페인트 툴
@@ -216,6 +220,7 @@ Layer Info (레이어 인포) 오브젝트는 랜드스케이프 레이어에 �
 
 
 [INCLUDE:Engine/Landscape#landscape002]
+
 
 
 

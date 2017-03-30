@@ -1,111 +1,73 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:How-To Create a Physical Animation Profile
+﻿INTSourceChangelist:3260663
+Availability:Public
+Title:如何创建物理动画配置文件
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to create a Physical Animation Profile using the Physics Asset Tool.
+Description:此指南说明如何使用物理资源工具创建物理动画配置文件。
 parent:Engine/Physics/PhAT/HowTo
 order:1
-Version: 4.13
+Version:4.13
 skilllevel:Intermediate
-related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
+
 related:Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile
+topic-image:Engine/Physics/physics_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+此指南将说明创建 **物理动画配置文件** 和添加 **物理形体** 的基本要点。
 
-In this How-To we'll cover the basics of creating a **Physical Animation Profile** and adding **Physics Bodies** to it.
+## 步骤
 
-## Steps
-
-1. Open or [Create](Engine/Physics/PhAT/HowTo/CreatePhysicsAsset) a **Physics Asset** for your **Skeletal Mesh** using the **Content Browser**.
+1. 使用 **Content Browser** 为 **骨架网格体** 打开或 [创建](Engine/Physics/PhAT/HowTo/CreatePhysicsAsset) 一个 **物理资源**。
 
 	![](openPhATAsset.png)
 
 	[REGION:note]
-	If opting to create a new **Physics Asset** you'll need to set it up before continuing.
+	如选择新建 **物理资源**，则需要先行设置。
 	[/REGION]
 
-1. Open the Physics Asset window by using the **Window Menu** -> **Physics Asset** option.
+1. 使用 **Window Menu** -> **Physics Asset** 选项打开物理资源窗口。
 
 	[REGION:raw]
 	![](openPhATPhysicsAssetWindow.png)(convert:false)
 	[/REGION]
 
-1. Add Profile using the **+** button on the **Physical Animation Profiles** entry, and set its name (in the image below we've named it `DocsProfile`).
+1. 使用 **Physical Animation Profiles** 条目上的 **+** 按钮添加配置文件并设置其命名（在下图中我们已将其命名为 `DocsProfile`）。
 
 	![](physAnimSetProfileName.png)
 
-1. **Close** the Physics Assset Window.
+1. **关闭** 物理资源窗口。
 
-1. Using the **Profile Button** select the desired **Physical Animation Profile** to edit (again, we've chosen `DocsProfile`).
+1. 使用 **Profile 按钮**，选择需要进行编辑的 **物理动画配置文件**（此处我们选择的是 `DocsProfile`）。
 
 	![](physAnimSetUsedProfile.png)
 
-1. Switch the Physics Asset Editor to **Physics Body Mode** using the **Bodies** ![](physAnimBodyButton.png) button.
+1. 使用 **Bodies** 按钮将物理资源编辑器切换至 **物理形体模式**。 
 
-1. Select the **Physics Bodies** you wish to include in the **Physical Animation Profile**.
+1. 选择 **物理动画配置文件** 中需要包含的 **物理形体**。
 
-1. Press the **Add to Profile: YourProfileName** button in the **Details Panel**.
+1. 按下 **Details 面板** 中的 **Add to Profile: YourProfileName** 按钮。
 
 	![](physAnimAddToProfile.png)
 
-1. Adjust the settings for the selected **Physics Bodies**.
+1. 调整所选 **物理形体** 的设置。
 
 	![](physAnimDetailsAdjust.png)
 
 	[REGION:tip]
-	A solid place to start for these values is 1000, 100, 1000, 100, 0, 0
+	可用数值 1000、100、1000、100、0、0 作为开始。
 
 	![](PhysAnimStartValues.png)
 	[/REGION]
 
-1. Repeat steps 7-9 for **Physics Bodies** you desire to have in the **Physical Animation Profile**.
+1. 为需要添加到 **物理动画配置文件** 中的 **物理形体** 重复步骤 7-9。
 
-1. Save your **Physics Asset** using the **Save** button in the **Physics Asset Tool**.
+1. 使用 **物理资源工具** 中的 **Save** 按钮保存 **物理资源**。
 
 	[REGION:raw]
 	![](saveButton.png)(convert:false)
 	[/REGION]
 
-## Result
+## 结果
 
-The **Physics Asset** will have a profile that can be called upon from Blueprint or C++ to change the **Physical Animation** properties of its **Physics Bodies**.
+**物理资源** 将拥有一个可从蓝图或 C++ 进行调用的配置文件，用以改变其 **物理形体** 的 **物理动画** 属性。
 
 
 

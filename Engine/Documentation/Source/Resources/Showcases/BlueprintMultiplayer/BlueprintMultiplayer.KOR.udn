@@ -172,7 +172,7 @@ Version: 4.9
 | **MyPlayerController** | (플레이어콘트롤러 블루프린트) 게임내 UI 를 구성하고 플레이어가 게임내 일시정지 메뉴를 열 수 있도록 합니다.|
 | **MyPlayerState** | (플레이어스테이트 블루프린트) 각 플레이어의 점수를 처리합니다. |
 | **ProjectileBP** | (액터 블루프린트) 플레이어끼리 서로 발사할 수 있는 프로젝타일이 대미지를 입힐 것인가 입니다. |
-| **State** | (열거형) 게임이 처해있을 수 있는 모든 상태 목록입니다. |
+| **State** | (Enum) 게임이 처해있을 수 있는 모든 상태 목록입니다. |
 
 **Game/Gunslinger**
 
@@ -263,7 +263,7 @@ Steam 을 사용한다면, [부가 SDK 및 INI 구성](Programming/Online/Steam)
 
 ![](Startup4.png)
 
-**IsCurrentState** 는 (매크로 노드에 지정된) **In State** 가 (게임의 현재 상태를 저장하는 변수인) **Current State** 라는 변수와 동일한지 검사합니다. **Current State** 변수는 **State** 라는 이름의 열거형을 사용하여 게임이 속할 수 있는 각 상태를 저장합니다.
+**IsCurrentState** 는 (매크로 노드에 지정된) **In State** 가 (게임의 현재 상태를 저장하는 변수인) **Current State** 라는 변수와 동일한지 검사합니다. **Current State** 변수는 **State** 라는 이름의 Enum 을 사용하여 게임이 속할 수 있는 각 상태를 저장합니다.
 [/REGION:note]
 
 **Current State** 는 **In State** 와 같기에, **ShowMainMenuEvent** 커스텀 이벤트가 호출됩니다.

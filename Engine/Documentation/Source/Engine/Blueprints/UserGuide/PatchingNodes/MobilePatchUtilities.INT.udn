@@ -1,6 +1,6 @@
-Availability:Docs
+Availability:Public
 Title:Mobile Patch Utility Nodes
-Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs:
 Description:Describes the different kinds of Mobile Patch Utility Blueprint nodes.
 Related: Engine/Blueprints
 Related: Platforms/Mobile
@@ -8,6 +8,9 @@ Related: Platforms/Mobile/MobilePackagingWizard
 version: 4.14
 Parent:Engine/Blueprints
 type:overview
+tags:Blueprints
+skilllevel:Intermediate
+topic-image:Patching_Topic.png
 
 [TOC (start:2 end:2)]
 
@@ -53,7 +56,7 @@ If the required disk space is less than the disk free space, then a custom event
 [![](Patching_3.png)(convert:false)](Patching_3.png)
 [/REGION]
 
-Although there is a lot going on in this graph, the only Mobile Patch Utility function is **Start Install**, which actually attempts to download and install the remote content. Just like **Request Content**, **Start Install** has
+Although there is a lot going on in this graph, the only Mobile Patch Utility function is **Start Install**, which attempts to download and install the remote content. Just like **Request Content**, **Start Install** has
 event parameters for success and failure. If the install succeeds, the **Mount Content** custom event is used to trigger the final stage of the patching process. Another custom event, **Display Download State** is fired off here
 with a timer. Using the timer and the **Update Download State** function, the download state can be shown to the user at regular intervals. More on that logic is in the next Blueprint graph.
 
@@ -65,9 +68,9 @@ with a timer. Using the timer and the **Update Download State** function, the do
 ![](Patching_4.png)
 [/REGION]
 
-While the **Display Download State** custom event is connected to a **Format Text** node here, this could also be the stage of the patching process where you fill a progress bar on the UI, or other methods of
+While the **Display Download State** custom event is connected to a **Format Text** node here, this could also be the stage of the patching process where you fill a progress bar on the UI (User Interface), or other methods of
 displaying progress to the user. Here, the outputs of **Get Download Size**, **Get Download Speed**, **Get Download Status Text**, **Get Install Progress**, and **Get Total Downloaded Size** nodes are 
-put together in a simple text block to present to the user. This script is called at regular intervals with the timer, but does not call back to any of the other example graphs.
+combined into a simple text block to present to the user. This script is called at regular intervals with the timer, but does not call back to any of the other example graphs.
 
 | Node | Description | 
 | --- | --- |
@@ -95,11 +98,11 @@ does not have success and failure event callbacks.
 ## Other Mobile Patching Functions
 
 The above graphs are a simple example of how to set up patching on a mobile device, but there are other, more complex, behaviors you could set up as well. For example, you could have your game warn users when they don't have
-an active WIFI connection, or provide different content for iOS and Android devices. For these use cases and others, the below functions would be useful additions to your Blueprints.
+an active WiFi connection, or provide different content for iOS and Android devices. For these use cases and others, the below functions would be useful additions to your Blueprints.
 
 | Node | Description | 
 | --- | --- |
-| Get Active Device Profile Name | Gets the name of currently selected device profile name. |
+| Get Active Device Profile Name | Gets the name of the currently selected device profile name. |
 | Get Installed Content Size | Gets the installed content size in megabytes  |
 | Get Supported Platform Names | Gets the list of supported platform names on this device. Example: Android_ETC2, Android_ASTC |
 | Has Active WiFi Connection | Returns whether or not a WiFi connection is currently available. |

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:머티리얼 파라미터 제작
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -9,6 +9,7 @@ Related: Engine/Rendering/Materials/ParameterCollections
 Related: Engine/Matinee/HowTo/MHT_6
 Version: 4.9
 SkillLevel: Intermediate
+tags:Materials
 
 [TOC(start:2)]
 

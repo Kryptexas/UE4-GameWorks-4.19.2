@@ -1,18 +1,18 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
 Title:UKismetSystemLibrary
 Crumbs:
-Description:Overview of the blueprint system library.
+Description:蓝图系统库总览。
 
 [EXCERPT:CapsuleTraceMulti_NEW]
 
-This node is designed to return multiple hits resulting from a trace (filtered by Trace Channel).
+此节点用于从追踪返回多个命中（由追踪通道过滤）。
 
-When executed, this node constructs a capsule (from the 'Radius' and 'Half-Height' inputs) and sweeps it along a line (defined by the 'Start' and 'End' inputs). If the capsule hits any objects **(ones that specifically respond to the specified 'Trace Channel')**, then those are recorded and output together in an array (from the 'Out Hits' pin).
+执行时，此节点将构造一个胶囊体（从“Radius”和“Half-Height”输入）并沿一条线对其进行扫描（由“Start”和“End”输入定义）。如胶囊体命中对象 **（对特定“追踪通道”进行特定响应）**，之后这些物理将被记录并一同在一个阵列中输出（从“Out Hits”引脚）。
 
-By default, the capsule ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+胶囊体默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-You can easily check if the trace turned up any results by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hits' output generates an array of 'HitResult' structs. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪出现结果（命中则为 True；未命中为 False）。“Out Hits”输出生成一个“HitResult”结构体阵列。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:CapsuleTraceMulti_NEW]
 
 
@@ -20,15 +20,15 @@ You can easily check if the trace turned up any results by checking the 'Return 
 
 [EXCERPT:CapsuleTraceMultiForObjects]
 
-This node is designed to return multiple hits resulting from a trace (filtered by Object Type).
+此节点用于从追踪返回多个命中（由对象类型过滤）。
 
-When executed, this node constructs a capsule (from the 'Radius' and 'Half-Height' inputs) and sweeps it along a line (defined by the 'Start' and 'End' inputs). If the capsule hits any objects, then those are recorded and output together in an array (from the 'Out Hits' pin).
+执行时，此节点将构造一个胶囊体（从“Radius”和“Half-Height”输入）并沿一条线对其进行扫描（由“Start”和“End”输入定义）。如胶囊体命中对象，之后这些物理将被记录并一同在一个阵列中输出（从“Out Hits”引脚）。
 
-By default, the capsule ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). 
+胶囊体默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。 
 
-This node is specifically setup to limit your search to certain object types (Pawns, Characters, etc.). To do so, you add the desired types to an array and plug that array into the 'Object Types' input. The results will only contain objects that match these types. Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+该节点经特殊设置，限制对特定对象类型的搜索（Pawn、角色等）。如要执行此操作，将所需要的类型添加到阵列并将该阵列插入“Object Types”输入。结果只包含匹配这些类型的对象。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-You can easily check if the trace turned up any results by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hits' output generates an array of 'HitResult' structs. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪出现结果（命中则为 True；未命中为 False）。“Out Hits”输出生成一个“HitResult”结构体阵列。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:CapsuleTraceMultiForObjects]
 
 
@@ -36,13 +36,13 @@ You can easily check if the trace turned up any results by checking the 'Return 
 
 [EXCERPT:LineTraceMulti_NEW]
 
-This node is designed to return multiple hits resulting from a trace (filtered by Trace Channel).
+此节点用于从追踪返回多个命中（由追踪通道过滤）。
 
-When executed, this node performs a ray-cast along a line (defined by the 'Start' and 'End' inputs). If the line intersects any object **(one that specifically responds to the specified 'Trace Channel')**, then it is recorded and output in an array (from the 'Out Hits' pin).
+执行时，此节点沿一条线进行光线投射（由“Start”和“End”输入定义）。如果线与对象发生交集 **（对特定“追踪通道”进行特定响应）**，之后它将被记录并在一个阵列中输出（从“Out Hits”引脚）。
 
-By default, the line ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+线默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-You can easily check if the trace turned up any results by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hits' output generates an array of 'HitResult' structs. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪出现结果（命中则为 True；未命中为 False）。“Out Hits”输出生成一个“HitResult”结构体阵列。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:LineTraceMulti_NEW]
 
 
@@ -51,15 +51,15 @@ You can easily check if the trace turned up any results by checking the 'Return 
 
 [EXCERPT:LineTraceMultiForObjects]
 
-This node is designed to return multiple hits resulting from a trace (filtered by Object Type).
+此节点用于从追踪返回多个命中（由对象类型过滤）。
 
-When executed, this node performs a ray-cast along a line (defined by the 'Start' and 'End' inputs). If the line intersects any object, then it is recorded and output in an array (from the 'Out Hits' pin).
+执行时，此节点沿一条线进行光线投射（由“Start”和“End”输入定义）。如果线与对象发生交集，之后它将被记录并在一个阵列中输出（从“Out Hits”引脚）。
 
-By default, the line ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+线默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-This node is specifically setup to limit your search to certain object types (Pawns, Characters, etc.). To do so, you add the desired types to an array and plug that array into the 'Object Types' input. The results will only contain objects that match these types.
+该节点经特殊设置，限制对特定对象类型的搜索（Pawn、角色等）。如要执行此操作，将所需要的类型添加到阵列并将该阵列插入“Object Types”输入。结果只包含匹配这些类型的对象。
 
-You can easily check if the trace turned up any results by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hits' output generates an array of 'HitResult' structs. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪出现结果（命中则为 True；未命中为 False）。“Out Hits”输出生成一个“HitResult”结构体阵列。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:LineTraceMultiForObjects]
 
 
@@ -67,13 +67,13 @@ You can easily check if the trace turned up any results by checking the 'Return 
 
 [EXCERPT:SphereTraceMulti_NEW]
 
-This node is designed to return multiple hits resulting from a trace (filtered by Trace Channel).
+此节点用于从追踪返回多个命中（由追踪通道过滤）。
 
-When executed, this node constructs a sphere (from the 'Radius' input) and sweeps it along a line (defined by the 'Start' and 'End' inputs). If the sphere hits any objects **(ones that specifically respond to the specified 'Trace Channel')**, then those are recorded and output together in an array (from the 'Out Hits' pin).
+执行时，此节点将构造一个球体（从“Radius”输入）并沿一条线对其进行扫描（由“Start”和“End”输入定义）。如球体命中对象 **（对特定“追踪通道”进行特定响应）**，之后这些物理将被记录并一同在一个阵列中输出（从“Out Hits”引脚）。
 
-By default, the sphere ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+球体默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-You can easily check if the trace turned up any results by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hits' output generates an array of 'HitResult' structs. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪出现结果（命中则为 True；未命中为 False）。“Out Hits”输出生成一个“HitResult”结构体阵列。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:SphereTraceMulti_NEW]
 
 
@@ -81,15 +81,15 @@ You can easily check if the trace turned up any results by checking the 'Return 
 
 [EXCERPT:SphereTraceMultiForObjects]
 
-This node is designed to return multiple hits resulting from a trace (filtered by Object Type).
+此节点用于从追踪返回多个命中（由对象类型过滤）。
 
-When executed, this node constructs a sphere (from the 'Radius' input) and sweeps it along a line (defined by the 'Start' and 'End' inputs). If the sphere hits any objects, then those are recorded and output together in an array (from the 'Out Hits' pin).
+执行时，此节点将构造一个球体（从“Radius”输入）并沿一条线对其进行扫描（由“Start”和“End”输入定义）。如球体命中对象，之后这些物理将被记录并一同在一个阵列中输出（从“Out Hits”引脚）。
 
-By default, the sphere ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+球体默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-This node is specifically setup to limit your search to certain object types (Pawns, Characters, etc.). To do so, you add the desired types to an array and plug that array into the 'Object Types' input. The results will only contain objects that match these types.
+该节点经特殊设置，限制对特定对象类型的搜索（Pawn、角色等）。如要执行此操作，将所需要的类型添加到阵列并将该阵列插入“Object Types”输入。结果只包含匹配这些类型的对象。
 
-You can easily check if the trace turned up any results by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hits' output generates an array of 'HitResult' structs. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪出现结果（命中则为 True；未命中为 False）。“Out Hits”输出生成一个“HitResult”结构体阵列。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:SphereTraceMultiForObjects]
 
 
@@ -97,13 +97,13 @@ You can easily check if the trace turned up any results by checking the 'Return 
 
 [EXCERPT:CapsuleTraceSingle_NEW]
 
-This node is designed to return a single hit resulting from a trace (filtered by Trace Channel).
+此节点用于从追踪返回一个单一命中（由追踪通道过滤）。
 
-When executed, this node constructs a capsule (from the 'Radius' and 'Half-Height' inputs) and sweeps it along a line (defined by the 'Start' and 'End' inputs). If the capsule hits an object **(one that specifically responds to the specified 'Trace Channel')**, then it is output via the 'Out Hit' pin.
+执行时，此节点将构造一个胶囊体（从“Radius”和“Half-Height”输入）并沿一条线对其进行扫描（由“Start”和“End”输入定义）。如果胶囊体命中一个对象 **（对特定“追踪通道”进行特定响应）**，之后它将通过“Out Hits”引脚输出。
 
-By default, the capsule ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test agaisnt complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+胶囊体默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-You can easily check if the trace turned up a hit by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hit' output is a 'HitResult' struct. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪是否形成命中（命中则为 True；未命中则为 False）。“Out Hits”输出是一个“HitResult”结构体。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:CapsuleTraceSingle_NEW]
 
 
@@ -111,15 +111,15 @@ You can easily check if the trace turned up a hit by checking the 'Return Value'
 
 [EXCERPT:CapsuleTraceSingleForObjects]
 
-This node is designed to return a single hit resulting from a trace (filtered by Object Type).
+此节点用于从追踪返回一个单一命中（由对象类型过滤）。
 
-When executed, this node constructs a capsule (from the 'Radius' and 'Half-Height' inputs) and sweeps it along a line (defined by the 'Start' and 'End' inputs). If the capsule hits an object, then it is output via the 'Out Hit' pin.
+执行时，此节点将构造一个胶囊体（从“Radius”和“Half-Height”输入）并沿一条线对其进行扫描（由“Start”和“End”输入定义）。如果胶囊体命中对象，则它将通过“Out Hit”引脚输出。
 
-By default, the capsule ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+胶囊体默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-This node is specifically setup to limit your search to certain object types (Pawns, Characters, etc.). To do so, you add the desired types to an array and plug that array into the 'Object Types' input. The results will be an object that matches one of these types.
+该节点经特殊设置，限制对特定对象类型的搜索（Pawn、角色等）。如要执行此操作，将所需要的类型添加到阵列并将该阵列插入“Object Types”输入。结果是和这些类型之一相匹配的对象。
 
-You can easily check if the trace turned up a hit by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hit' output is a 'HitResult' struct. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪是否形成命中（命中则为 True；未命中则为 False）。“Out Hits”输出是一个“HitResult”结构体。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:CapsuleTraceSingleForObjects]
 
 
@@ -127,13 +127,13 @@ You can easily check if the trace turned up a hit by checking the 'Return Value'
 
 [EXCERPT:LineTraceSingle_NEW]
 
-This node is designed to return a single hit resulting from a trace (filtered by Trace Channel).
+此节点用于从追踪返回一个单一命中（由追踪通道过滤）。
 
-When executed, this node performs a ray-cast along a line (defined by the 'Start' and 'End' inputs). If the line intersects any object **(one that specifically responds to the specified 'Trace Channel')**, then it is output via the 'Out Hit' pin.
+执行时，此节点沿一条线进行光线投射（由“Start”和“End”输入定义）。如果线与对象发生交集 **（对特定“追踪通道”进行特定响应）**，之后它将通过“Out Hits”引脚输出。
 
-By default, the line ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+线默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-You can easily check if the trace turned up a hit by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hit' output is a 'HitResult' struct. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪是否形成命中（命中则为 True；未命中则为 False）。“Out Hits”输出是一个“HitResult”结构体。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:LineTraceSingle_NEW]
 
 
@@ -141,15 +141,15 @@ You can easily check if the trace turned up a hit by checking the 'Return Value'
 
 [EXCERPT:LineTraceSingleForObjects]
 
-This node is designed to return a single hit resulting from a trace (filtered by Object Type).
+此节点用于从追踪返回一个单一命中（由对象类型过滤）。
 
-When executed, this node performs a ray-cast along a line (defined by the 'Start' and 'End' inputs). If the line intersects any object, then it is output via the 'Out Hit' pin.
+执行时，此节点沿一条线进行光线投射（由“Start”和“End”输入定义）。如果线与对象发生交集，则它将通过“Out Hit”引脚输出。
 
-By default, the line ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+线默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-This node is specifically setup to limit your search to certain object types (Pawns, Characters, etc.). To do so, you add the desired types to an array and plug that array into the 'Object Types' input. The results will only contain objects that match these types.
+该节点经特殊设置，限制对特定对象类型的搜索（Pawn、角色等）。如要执行此操作，将所需要的类型添加到阵列并将该阵列插入“Object Types”输入。结果只包含匹配这些类型的对象。
 
-You can easily check if the trace turned up a hit by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hit' output is a 'HitResult' struct. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪是否形成命中（命中则为 True；未命中则为 False）。“Out Hits”输出是一个“HitResult”结构体。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:LineTraceSingleForObjects]
 
 
@@ -157,13 +157,13 @@ You can easily check if the trace turned up a hit by checking the 'Return Value'
 
 [EXCERPT:SphereTraceSingle_NEW]
 
-This node is designed to return a single hit resulting from a trace (filtered by Trace Channel).
+此节点用于从追踪返回一个单一命中（由追踪通道过滤）。
 
-When executed, this node constructs a sphere (from the 'Radius' input) and sweeps it along a line (defined by the 'Start' and 'End' inputs). If the sphere hits an object **(one that specifically responds to the specified 'Trace Channel')**, then it is output via the 'Out Hit' pin.
+执行时，此节点将构造一个球体（从“Radius”输入）并沿一条线对其进行扫描（由“Start”和“End”输入定义）。如果球体命中一个对象 **（对特定“追踪通道”进行特定响应）**，之后它将通过“Out Hits”引脚输出。
 
-By default, the sphere ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+球体默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-You can easily check if the trace turned up a hit by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hit' output is a 'HitResult' struct. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪是否形成命中（命中则为 True；未命中则为 False）。“Out Hits”输出是一个“HitResult”结构体。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:SphereTraceSingle_NEW]
 
 
@@ -171,15 +171,15 @@ You can easily check if the trace turned up a hit by checking the 'Return Value'
 
 [EXCERPT:SphereTraceSingleForObjects]
 
-This node is designed to return a single hit resulting from a trace (filtered by Object Type).
+此节点用于从追踪返回一个单一命中（由对象类型过滤）。
 
-When executed, this node constructs a sphere (from the 'Radius' input) and sweeps it along a line (defined by the 'Start' and 'End' inputs). If the sphere hits an object, then it is output via the 'Out Hit' pin.
+执行时，此节点将构造一个球体（从“Radius”输入）并沿一条线对其进行扫描（由“Start”和“End”输入定义）。如果球体命中对象，则它将通过“Out Hit”引脚输出。
 
-By default, the sphere ignores collisions with the containing blueprint (denoted by the 'Ignore Self' input), and you can opt to exclude other specific Actors as well (by utilizing the 'Actors to Ignore' input). Opting to test against complex collision (with the 'Trace Complex' input) can be slow and is more performance intensive (but yields more precise results).
+球体默认忽略和包含蓝图的碰撞（由“Ignore Self”输入指示），也可选择将其他特定的 Actor 排除在外（通过应用“Actors to Ignore”输入实现）。选择对复杂碰撞进行测试（用“Trace Complex”输入）速度较慢，性能开销更大（但可达到更精确的结果）。
 
-This node is specifically setup to limit your search to certain object types (Pawns, Characters, etc.). To do so, you add the desired types to an array and plug that array into the 'Object Types' input. The results will be an object that matches one of these types.
+该节点经特殊设置，限制对特定对象类型的搜索（Pawn、角色等）。如要执行此操作，将所需要的类型添加到阵列并将该阵列插入“Object Types”输入。结果是和这些类型之一相匹配的对象。
 
-You can easily check if the trace turned up a hit by checking the 'Return Value' output (True if anything was hit, False if not). The 'Out Hit' output is a 'HitResult' struct. A 'HitResult' contains fields like the specific Actor hit, the component inside that Actor, the location of the hit, etc. You can get at these individual fields by using a Break node.
+勾选“Return Value”输出即可简单确定追踪是否形成命中（命中则为 True；未命中则为 False）。“Out Hits”输出是一个“HitResult”结构体。“HitResult”包含特定 Actor 命中、该 Actor 中的组件、命中的位置等之类的域。使用 Break 节点可获得这些单个的域。
 [/EXCERPT:SphereTraceSingleForObjects]
 
 

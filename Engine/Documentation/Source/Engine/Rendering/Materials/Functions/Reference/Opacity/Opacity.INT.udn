@@ -3,6 +3,7 @@ title:Opacity
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions to handle opacity values within a material network.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

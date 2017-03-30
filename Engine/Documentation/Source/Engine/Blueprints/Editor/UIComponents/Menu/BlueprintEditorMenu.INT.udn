@@ -3,6 +3,7 @@ Title: Menu
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description: Menu that is used to do multiple actions, such as saving, loading and opening windows.
 version: 4.9
+tags:Blueprints
 
 
 

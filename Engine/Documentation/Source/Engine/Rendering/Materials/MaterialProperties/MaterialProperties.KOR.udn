@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:머티리얼 프로퍼티
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
@@ -8,6 +8,7 @@ topic-image:Engine/Rendering/Materials/MatProps.png
 parent:Engine/Rendering/Materials
 order:4
 type:reference
+tags:Materials
 
 [TOC(start:2 end:2)]
 
@@ -82,6 +83,7 @@ type:reference
 | **Disable Depth Test** |  깊이 테스트 끄기 - 머티리얼에 깊이 테스트를 끄는 것으로, 반투명 블렌드 모드에만 의미가 있습니다. 깊이 테스트를 끄면 가려진 픽셀이 Z-컬링되지 않기에 렌더링이 현저히 느려집니다. |
 | **Use Translucency Vertex Fog** | 반투명 버텍스 포그 사용 - _True_ 면 반투명 머티리얼은 포그가 적용됩니다. 기본값은 _True_ 입니다. |
 
+
 ## 반투명 셀프 섀도잉
 
 ![](TransSelfShadowingProperties.png) ![](PerPixNonDirectional.png)(h:189)
@@ -135,7 +137,7 @@ type:reference
 
 | 프로퍼티 | 설명  |
 | -------- | ----------- |
-| **Fully Rough** | 최대 거칠기 - 머티리얼을 강제로 최대 거칠기로 만들어 텍스처 샘플러 하나와 다수의 셰이더 인스트럭션을 절약합니다. |
+| **Fully Rough** | 최대 러프니스 - 머티리얼을 최대 러프니스로 강제시켜 텍스처 샘플러 하나와 다수의 셰이더 인스트럭션을 절약합니다. |
 | **Use Lightmap Directionality** | 라이트맵 방향성 사용 - 라이트맵 방향성과 픽셀별 노멀을 사용합니다. 끄면 라이트맵의 라이팅이 평이해 지지만 싸집니다. |
 
 ## 테셀레이션
@@ -264,9 +266,12 @@ type:reference
 [REGION:simpletable]
 | 모드 | 설명 |
 | ---- | ----------- |
-| **TLM_VolumetricNonDirectional** | 볼륨에 대한 라이팅을 방향성 없이 계산합니다. 연기나 먼지같은 파티클 이펙트에 사용하세요. 가장 싼 라이팅 메소드지만, 머티리얼 노멀을 고려하지 않습니다. |
-| **TLM_VolumetricDirectional** | 볼륨에 대한 라이팅을 머티리얼의 노멀이 고려되도록 방향성 포함 계산합니다. 참고로 기본 파티클 탄젠트 스페이스는 카메라를 향하기에, bGenerateSphericalParticleNormals 플래그를 켜면 좀 더 유용한 탄젠트 스페이스를 구할 수 있습니다. |
-| **TLM_Surface** | 표면에 대한 라이팅을 계산합니다. 유리나 물과 같은 반투명 표면에 사용하세요. |
+| **Volumetric NonDirectional** | 볼륨에 대한 라이팅을 방향성 없이 계산합니다. 연기나 먼지같은 파티클 이펙트에 사용하세요. 가장 싼 라이팅 메소드지만, 머티리얼 노멀을 고려하지 않습니다. |
+| **Volumetric Directional** | 볼륨에 대한 라이팅을 머티리얼의 노멀이 고려되도록 방향성 포함 계산합니다. 참고로 기본 파티클 탄젠트 스페이스는 카메라를 향하기에, **bGenerateSphericalParticleNormals** 옵션을 켜면 좀 더 유용한 탄젠트 스페이스를 구할 수 있습니다. |
+| **Volumetric PerVertex NonDirectional** | Volumetric NonDirectional 과 동일하나, 버텍스에서만 라이팅을 계산하여 픽셀 셰이더 비용이 크게 줄어듭니다. 참고로 라이팅은 여전히 볼륨 텍스처에서 오므로, 범위 내로 제한됩니다. 디렉셔널 라이트는 원거리에서 그림자를 받지 않습니다. |
+| **Volumetric PerVertex Directional** | Volumetric Directional 과 동일하나, 버텍스에서만 라이팅을 계산하여 픽셀 셰이더 비용이 크게 줄어듭니다. 참고로 라이팅은 여전히 볼륨 텍스처에서 오므로, 범위 내로 제한됩니다. 디렉셔널 라이트는 원거리에서 그림자를 받지 않습니다. |
+| **Surface Translucency Volume** | 표면에 대해 라이팅을 계산합니다. 라이트는 볼륨에 누적되므로 결과가 뿌옇고 거리가 제한되나, 픽셀당 비용은 매우 낮습니다. 유리나 물과 같은 반투명 표면에 사용하세요. 디퓨즈 라이팅만 지원합니다. |
+| **Surface Forward Shading** | 표면에 대해 라이팅을 계산합니다. 유리나 물과 같은 반투명 표면에 사용하세요. 포워드 셰이딩으로 구현되므로 로컬 라이트에서의 스페큘러 하이라이트는 지원되나, 다수의 디퍼드 전용 기능은 지원되지 않습니다. 각 라이트의 공헌이 픽셀 단위로 계산되므로 **가장 비싼** 반투명 라이팅 메소드입니다. |
 [/REGION]
 [/EXCERPT:TransLightingMode]
 

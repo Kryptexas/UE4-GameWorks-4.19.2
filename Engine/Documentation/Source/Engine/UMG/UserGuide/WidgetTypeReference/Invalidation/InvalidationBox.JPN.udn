@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2828862
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:Invalidiation Box
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
 Description:UI ウィジェットを最適化するための Invalidation Box 使用についての概要。 
 version:4.9
-
+tags:UMG UI Designer
 
 [REGION:warning]
 この機能はまだ開発途中であり、**実験的なものです。**そのため、一部の機能は期待通りの動作をしない場合があります。 
@@ -30,7 +30,7 @@ Invalidation Box (無効化ボックス) でラップされているウィジェ
 
 ![](InvalidationBox.png)
 
-| オプション| 説明 |
+| オプション | 説明 |
 | -------- | ----------- |
 | **Cache Relative Transforms** | Invalidation box に相対的に子の描画エレメントの位置をキャッシュし、フレーム毎にそれらを描画する余分なオーバーヘッドを加えます。ただし、Invalidation box の位置がフレーム毎に変化する場合は、このオプションを使用すると大きな節約につながります。 |
 | **Is Volatile** | true の場合は、ウィジェットやその子のジオメトリまたはレイアウトの情報がキャッシュされないようにします。このウィジェットがフレーム毎に変化するが、それでも Invalidation panel に入れたい場合は、フレーム毎に無効化する代わりに volatile にします。これにより、Invalidation panel が実際に何かをキャッシュするのを防ぎます。  |
@@ -48,7 +48,7 @@ Invalidation Box (無効化ボックス) でラップされているウィジェ
 [/REGION]
 
 
-##デバッグ
+##デバッグ作業
 
 ウィジェット リフレクタ (**CTRL+Shift+W**) を使用して、**Invalidation Debugging** トグルをクリックして Invalidation Box をデバッグすることができます。 
 

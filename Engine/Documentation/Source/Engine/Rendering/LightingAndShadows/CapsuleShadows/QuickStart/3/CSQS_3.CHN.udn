@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:3 - Your Character - Assigning the Physics Asset
+Crumbs:%ROOT%, Engine
+Description:In this step we will assign our newly created Physics Asset to our Skeletal Mesh Character. 
+SkillLevel:Intermediate
+Version:4.14
+checkpoint: capsuleshadowsqs
+parent:Engine/Rendering/LightingAndShadows/CapsuleShadows/QuickStart
+type:multi-step
+order:3
+ 
+
+
+[NAV]
+
+In the previous step, we created a new Physics Asset for our Skeletal Mesh character. In this step, we will take the Physics Asset and assign it to our Skeletal Mesh Actor. 
+
+**Steps:**
+
+1. Inside the **Content Browser**, navigate to the folder named **Mannequin**, then the **Mesh** folder. Select and double-click to open **SK_Mannequin**.
+	
+	![](CB_Mannequin.png)
+
+1. In the **Asset Details** Panel, scroll down and locate the tab for **Lighting**. Click the drop-down next to **Shadow Physics Asset** and select the Physics Asset you previously created and named "SPA_Mannequin". Take note, that you will see
+any Physics Assets in the project listed here and these can all be assigned to your character, but the one that we specifically made will work the best. This is why it is helpful to name the Shadow Physics Asset something we can 
+easily locate later.
+
+	[REGION:raw]
+	![](AssetDetailsLighting2.png)(w:850)
+	[/REGION]
+
+1. You can now **Save** & **Close** the Skeletal Mesh Tool window. 
+
+**End Result:**
+
+We assigned our previously created Physics Asset named "SPA_SK_Mannequin" to our Skeletal Mesh in the Shadow Physics Asset slot. This will allow our character to use this specially setup Physics Asset
+for shadowing purposes. 
+
+In the next step, we will take the steps to add our character to the level and then enable Capsule Shadowing for our level!
+
+
+
+
+
+[NAV]

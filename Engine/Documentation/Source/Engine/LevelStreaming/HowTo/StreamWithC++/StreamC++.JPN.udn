@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3138899
+﻿INTSourceChangelist:3238697
 Availability:Public
 Title:C++ を使ってレベルをロード / アンロードする
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:C++ で作成したカスタム ストリーミング アクタでレベルをストリームする方法
 parent:Engine/LevelStreaming/HowTo
-type:howto
+type:how-to
 order:3
 tags:Level Streaming
 
@@ -35,8 +35,8 @@ tags:Level Streaming
 OverlapBegins は UFUNCTION マクロでタグ付けされなければならず、OnComponentBeginOverlap と同じシグネチャを持たなければならないという意味です。
 		protected:
 
-	UFUNCTION()
-	void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+		UFUNCTION()
+		void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 
 1. `LevelStreamerActor.h` で、LevelToLoad を呼び出す EditAnywhere である protected の FName 変数も作成します。これにより、インスタンスごとに LevelToLoad を変更できるようになります。
 
@@ -82,13 +82,13 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定します)
 			ALevelStreamerActor();
 
-			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
-			virtual void BeginPlay() override;
-
 			// Called every frame (フレームごとに呼ばれます) 
 			virtual void Tick( float DeltaSeconds ) override;
 
 		protected:
+
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+			virtual void BeginPlay() override;
 
 			UFUNCTION()
 			void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
@@ -101,7 +101,7 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 			UBoxComponent* OverlapVolume;
 
-			};
+		};
 
 		`LevelStreamerActor.cpp` は最終的にこのようになります。
 
@@ -134,7 +134,7 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 
 		}
 
-		void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+		void ALevelStreamerActor::OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 		{
 				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
 				if (OtherActor == MyCharacter && LevelToLoad != "")

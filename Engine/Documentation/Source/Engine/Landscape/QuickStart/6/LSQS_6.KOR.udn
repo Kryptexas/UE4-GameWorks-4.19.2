@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:3108692
 Availability: Public
-Title:6. 랜드스케이프 팁과 꼼수
+Title:6. 랜드스케이프 팁과 정보
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
-Description:랜드스케이프 팁과 꼼수입니다.
+Description:랜드스케이프 팁과 정보입니다.
 version: 4.9
 
 
@@ -24,9 +24,9 @@ version: 4.9
 %Steps%
 
 
-이전까지의 랜드스케이프 퀵스타트 튜토리얼로 랜드스케이프를 가동시킬 수야 있겠지만, 랜드스케이프 툴로 실제 할 수 있는 작업에 비하면 수박 겉핥기 수준입니다. 여기서는 랜드스케이프 툴 사용에 있어서의 팁과 꼼수는 물론 랜드스케이프 생성시 사용할 수 있는 외부 툴에 대해서도 다뤄보겠습니다.
+이전까지의 랜드스케이프 퀵스타트 튜토리얼로 랜드스케이프를 가동시킬 수야 있겠지만, 랜드스케이프 툴로 실제 할 수 있는 작업에 비하면 수박 겉핥기 수준입니다. 여기서는 랜드스케이프 툴 사용에 있어서의 팁과 정보는 물론 랜드스케이프 생성시 사용할 수 있는 외부 툴에 대해서도 다뤄보겠습니다.
 
-##팁과 꼼수
+##팁과 정보
 
 <!--Before choosing the size of your Landscape there are many things that you need to consider first like target platform and performance impact. To make things a little easier for you, here is a chart of recommended Landscape component counts and sizes that might help in choosing the best size for your Landscape. 
 

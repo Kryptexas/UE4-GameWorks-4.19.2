@@ -6,6 +6,7 @@ Version: 4.13
 Related: Engine/UMG/UserGuide
 Related: Engine/Blueprints
 Related: Engine/Components/Widget
+tags:UMG UI Designer
 
 [REGION:warning]
 This feature is considered experimental and some aspects may not work as expected and may change in future updates. 

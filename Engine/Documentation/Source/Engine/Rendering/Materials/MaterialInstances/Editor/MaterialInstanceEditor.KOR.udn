@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:머티리얼 인스턴스 에디터 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/MaterialInstances
 Description:MaterialInstanceConstant 변경을 위한 머티리얼 인스턴스 에디터 사용 안내서입니다.
 Version: 4.9
 Skilllevel: Intermediate
+tags:Materials
+
 [TOC(start:2)]
 
 머티리얼 인스턴스 에디터는 머티리얼 인스턴스에 대한 파라미터를 변경하는 데 사용됩니다. 

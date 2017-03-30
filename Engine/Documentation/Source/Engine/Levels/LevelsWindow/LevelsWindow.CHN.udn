@@ -137,7 +137,7 @@ order:2
 
 ![](LevelDetails_Persistent.png)(w:500)
 
-对关卡分段而言，可设置关卡的偏移 **位置** 和 **旋转**，以及使用的 **流送体积域** 和调试 **关卡颜色**。还可在此访问一些用于增强性能的高级设置，如 [卸载请求间的最短时间](Engine/LevelStreaming/StreamingVolumes#addinghysteresistounloadingrequests)。
+对关卡分段而言，可设置关卡的偏移 **位置** 和 **旋转**，以及使用的 **流送体积域** 和调试 **关卡颜色**。还可在此访问一些用于增强性能的高级设置，如 [卸载请求间的最短时间](Engine/LevelStreaming/StreamingVolumes)。
 
 ![](LevelDetails_Streaming.png)
 

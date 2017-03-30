@@ -8,6 +8,7 @@ order:1
 Version: 4.13
 Related: Engine\Sequencer\Overview
 Related: Engine/Sequencer/HowTo
+tags:Sequencer
 
 This page describes how you can export a scene from Sequencer as an FBX file, make alterations to that file inside a 3rd party application like 3dsMax or Maya, then import that FBX file (along with your changes) back into Unreal Engine into Sequencer as part of your existing scene. 
 

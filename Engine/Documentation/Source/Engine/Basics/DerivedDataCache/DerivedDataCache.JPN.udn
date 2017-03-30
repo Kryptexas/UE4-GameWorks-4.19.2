@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3175238
 Availability:Public
 Title:派生データのキャッシュ
 Crumbs:%ROOT%, Engine
-Description:派生データのキャッシュ (DDC) 、UE4 およびターゲット プラットフォームで使われるフォーマットでのアセット格納の概要。 
+Description:派生データのキャッシュ (DDC)、UE4 およびターゲット プラットフォームで使われるフォーマットでのアセット格納の概要。 
 version:4.9
 
 エディタへインポートされて「.uasset」ファイルに保存されるアーティストが作成するソース フォーマットとは対照的に、 
@@ -17,7 +17,7 @@ version:4.9
 スタジオは、特定場所の全ユーザーがアクセス可能な共有 DDC を使用するべきです。この方法で、 
 派生したアセット フォーマットのビルドはユーザー 1 人のみが実行し、その後自動的に全ユーザー間で 
 利用可能となります。時には、アセットの処理が必要な時に遅延が生じる場合もあります。 
-ただし、結果は記憶され共有されます。少人数の開発者の場合、ほとんどの開発者は影響を受けていることに気づきません。
+ただし、結果は記憶され共有されます。デベロッパーが少ない場合、デベロッパーはこの影響には気づかないでしょう。
 
 [REGION:warning]
 DDC 全体をインターネット上へ絶対にコピーしないでください。 DDC をバックアップ、またはバックアップから DDC を復元してください。これは特に問題は生じませんが、 
@@ -30,7 +30,7 @@ DDC に保存されたデータ量の移行は、ローカルでゼロから生�
 パスが Epic の内部 DDC 共有に設定される場所です。セクションを再び宣言して、パスを 
 ネットワーク上の共有 DDC へポイントさせるため変更します (例： `Path=\\mystudio.net\DDC`) ：
 
-	[DerivedDataBackendGraph]
+	[InstalledDerivedDataBackendGraph]
 	MinimumDaysToKeepFile=7
 	Root=(Type=KeyLength, Length=120, Inner=AsyncPut)
 	AsyncPut=(Type=AsyncPut, Inner=Hierarchy)

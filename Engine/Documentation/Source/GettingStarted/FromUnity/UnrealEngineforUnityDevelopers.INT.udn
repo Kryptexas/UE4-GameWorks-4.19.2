@@ -48,7 +48,7 @@ The following section contains common Unity terms on the left and their UE4 equi
 | **2D**             | Sprite Editor | [Paper2D](Engine/Paper2D) |
 | **Programming**    | C# | [C++](Programming) |
 |                    | Script | [Blueprint](Engine/Blueprints) |
-| **Physics**        | Raycast | [Line Trace, Shape Trace](Gameplay/HowTo/UseRaycasts/Blueprints) |
+| **Physics**        | Raycast | [Line Trace, Shape Trace](Engine/Physics/Tracing) |
 |                    | Rigid Body | [Collision, Physics](Engine/Physics) |
 | **Runtime Platforms** | iOS Player, Web Player | [Platforms](Platforms) |
 

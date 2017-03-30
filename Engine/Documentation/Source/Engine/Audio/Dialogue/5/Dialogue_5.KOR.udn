@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:5. Next Steps: Sound Cues and Dialogue
+﻿INTSourceChangelist:3218993
+Availability: Public
+Title:5. 다음 단계: 사운드 큐와 다이얼로그
 Crumbs: %ROOT%, Engine, Engine/Audio
-Description:A jumping off point to build a more complex dialogue manager system
+Description:보다 복잡한 대화 관리 시스템을 만들어보는 분기점입니다.
 version: 4.13
 parent:Engine/Audio/Dialogue
 order:5
+type:quick start
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
 related:Engine/Audio
@@ -13,39 +14,26 @@ related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[Previous Step](Engine/Audio/Dialogue/4 "%Engine/Audio/Dialogue/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/Audio/Dialogue)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-For a more complex conversation, you will likely want to use Sound Cues and Audio Components. Audio Components enable you to bind some functionality to when audio is finished playing, using the 
-**On Audio Finished** delegate.  
+보다 복잡한 대화를 만들기 위해서는, Sound Cue (사운드 큐) 및 Audio Component (오디오 컴포넌트)를 사용하는 것이 좋습니다. 오디오 컴포넌트는 **On Audio Finished** 델리게이트를 사용하여 
+오디오 재생 종료시 특정 함수 기능을 묶어주는 것이 가능합니다.
 
 [REGION:note]
-One thing to consider, however, is that you cannot dynamically change the **Dialogue Context** when using Sound Cues, so your Blueprints or C++ logic will look 
-different than the above example. 
+여기서 한 가지 고려할 점은, 사운드 큐를 사용하면 **다이얼로그 텍스트** 를 동적으로 변경할 수 없기에, 블루프린트 또는 C++ 로직은 
+위 예제와 다를 것입니다.
 [/REGION]
 
-To play **Dialogue Waves** using **Sound Cues**, there is a **Dialogue Player** node in the **Sound Cue Editor**.
+**사운드 큐** 를 사용하여 **다이얼로그 웨이브** 를 재생하는 방법으로, **사운드 큐 에디터** 의 **Dialogue Player** 노드가 있습니다.
 
 ![](DialoguePlayerNode.png)
 
-Select the **Dialogue Player** node and look at the **Details** panel. Here is where you can set the **Dialogue Wave** to use, as well as the **Speaker** and **Directed At** entries for the **Context**.
+**Dialogue Player** 노드를 선택하고 **디테일** 패널을 확인합니다. 여기서 사용할 **다이얼로그 웨이브** 와 아울러 **컨텍스트** 에 대한 **지시 대상** 및 **화자** 항목을 설정할 수 있습니다.
 
 ![](DialogueNodeDetails.png)
 
-Here is some example Blueprint logic that shows how you could bind events to play the next piece of dialogue after the previous audio finishes playing.
+기존 오디오 재생 완료 후 다음 대화 재생을 위한 이벤트를 묶는 방법을 확인할 수 있는 예제 블루프린트입니다.
 
 ![](AudioNextSteps.png)
 
-%Steps%
+[NAV]

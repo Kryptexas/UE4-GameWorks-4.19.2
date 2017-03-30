@@ -439,7 +439,7 @@ Description:
 
 	#### 내장 Region
 
-	주(note), 꼼수(tip), 경고(warning), 인용(quote)과 같이 자주 쓰이는 region 에 대한 스타일은 이미 내장되어 있습니다.
+	주(note), 팁(tip), 경고(warning), 인용(quote)과 같이 자주 쓰이는 region 에 대한 스타일은 이미 내장되어 있습니다.
 
 		[REGION:note]
 		주 입니다. 노랑 박스 안에 있으며, 좌상단에 주 아이콘을 볼 수 있습니다.
@@ -450,11 +450,11 @@ Description:
 	[/REGION]
 
 		[REGION:tip]
-		꼼수 입니다. 초록 박스 안에 있으며, 좌상단에 꼼수 아이콘을 볼 수 있습니다.
+		팁 입니다. 초록 박스 안에 있으며, 좌상단에 팁 아이콘을 볼 수 있습니다.
 		[/REGION]
 
 	[REGION:tip]
-	꼼수 입니다. 초록 박스 안에 있으며, 좌상단에 꼼수 아이콘을 볼 수 있습니다.
+	팁 입니다. 초록 박스 안에 있으며, 좌상단에 팁 아이콘을 볼 수 있습니다.
 	[/REGION]
 
 		[REGION:warning]

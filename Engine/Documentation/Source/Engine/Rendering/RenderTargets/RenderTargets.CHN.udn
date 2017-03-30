@@ -1,41 +1,20 @@
-﻿INTSourceChangelist:0
-availability:docs
-title: Render Targets
-description:Using Render Targets in Unreal Engine 4
-crumbs:
+﻿INTSourceChangelist:3264165
+availability:Public
+title:渲染目标（Render Target）
+description:在虚幻引擎 4 中使用渲染目标。
+crumbs:%ROOT%, Engine, Engine/Rendering
 version:4.13
 Type:landing
-SkillLevel:Intermediate
-parent:Engine
-order:1
+parent:Engine/Rendering
+order:7
 Navigation:topic
+tags:Render Targets
 
 ![](BlueprintRenderTarget.png)
 
-A render target is a buffer where the video card draws pixels for a scene that is being rendered. render targets are used extensively throughout Unreal Engine 4 (UE4) and in the following set of documents we will take a look at how to use and manipulate render targets inside UE4.
+渲染目标（Render Target）可广泛应用于虚幻引擎 4（UE4）中的大量不同任务。渲染目标可用于执行各种有趣而实用的效果，如保存延迟渲染器所需的诸多缓存、在玩家投掷物体到水塘中时形成各种复杂效果（如涟漪），等等。在以下文档中，我们将了解如何在 UE4 中使用并操作渲染目标。
 
-
-
-
-[REGION:topics third]
-[OBJECT:Topic]
-	[PARAM:image]
-		![Engine\Rendering\RenderTargets\BlueprintRenderTargets:description%](Engine/Rendering/RenderTargets/Render_Targets_Overview.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Rendering\RenderTargets\BlueprintRenderTargets/:description%
-	[/PARAM]
-	[PARAM:description]
-		%Engine\Rendering\RenderTargets\BlueprintRenderTargets:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Rendering\RenderTargets\BlueprintRenderTargets/]
-	[/PARAM]
-[/OBJECT]
-[/REGION]
+[DIR(output:"topic" parent:"Engine/Rendering/RenderTargets")]
 
 
 

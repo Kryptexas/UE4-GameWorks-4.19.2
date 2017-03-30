@@ -1,66 +1,70 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 3 - Building UE4 from your IDE
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
-Description:Learn how to build Unreal Engine from your IDE.
-Version: 4.13
+﻿INTSourceChangelist:3262227
+Availability: Public
+Title: 3 - IDE 에서 UE4 빌드
+Crumbs:
+Description:IDE 에서 언리얼 엔진을 빌드하는 법을 알아봅니다.
+Version: 4.14
 type:how to
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
 order: 3
 tags:Linux
 SkillLevel:Beginner
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/4 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+Qt Creator 로 UE4 를 빌드하고 실행할 수 있도록 환경설정을 했으니, 이제 IDE 에서 UE4 를 실행할 준비가 되었습니다. IDE 에서 UE4 를 실행하기에 앞서, 언리얼 빌드 시스템 작업을 확인할 수 있도록 
+출력 창을 열어두는 것이 좋습니다.
 
-Now that you've configured Qt Creator to build and run UE4, you're ready to run UE4 from the IDE. Before you run UE4 from the IDE, you'll want to open some output windows so that you can see 
-the Unreal Build Tool at work.
+1.	**Edit** 버튼을 눌러 편집 모드로 들어가 Qt Creator 에디터를 엽니다.
 
-1.	Click the **Edit** button to enter into Edit mode, opening Qt Creator's editor.
-
-	![](SetupIDE_Step15.png)
-
-	[REGION:note]
-	While in Edit mode, you can view, debug, and edit the CPP source code powering UE4.
+	[REGION:lightbox]
+		[![](SetupIDE_Step15.png)(w:720)](SetupIDE_Step15.png)
 	[/REGION]
-
-1.	By default, Qt Creator hides the main toolbar. Hover your mouse cursor over the top of the screen, touching the top edge to reveal the toolbar.
-
-1.	Now, open the **Window** menu, hovering over the **Output Panes** sub-menu, clicking **Compile Output**. Alternatively, you can press the **Alt+4** keyboard combination to open the **Compile Output** window.
-
-	[REGION:note]
-	Opening the **Compile Output** window allows you to watch for any errors while building UE4 from source.
-	[/REGION]
-
-	You're now ready to build UE4 from inside of the IDE!
 	
-1.	Hover your mouse cursor over the top of the screen, touching the top edge to reveal the toolbar.
+	[REGION:caption]
+		클릭하면 원본 이미지를 확인합니다.
+	[/REGION]
 
-1.	To build UE4, open the **Build** menu and click the **Build project "UE4"** button. Alternatively, you can press the **Ctrl+B** keyboard combination to build UE4.
+	[REGION:note]
+	편집 모드에서는 UE4 에 탑재된 CPP 소스 코드를 확인, 디버깅, 편집할 수 있습니다.
+	[/REGION]
 
-## End Result
+1.	기본적으로 Qt Creator 에는 메인 툴바가 숨겨져 있습니다. 마우스 커서를 화면 상단 위에 올리면 툴바가 드러납니다.
 
-![](SetupIDE_Step16.png)
+	![](SetupIDE_Step15A.png)
 
-At this point, you should see the compiler flushing messages to the **Compile Output** window inside of the IDE. 
-Depending on your system's specifications, it may take anywhere from ten minutes to over an hour to compile the engine. 
-If you want to shorten the time it takes to compile the engine from source, we recommend compiling the source code on a 
-machine that has at least eight (8) gigabytes of RAM with a multi-core processor having at least eight (8) cores (including 
-hyperthreading).
+1.	이제 **Window** 메뉴를 열고, **Output Panes** 서브 메뉴에 커서를 올린 뒤, **Compile Output** 메뉴를 엽니다. 다른 방법으로는 **Alt+4** 단축키로 **Compile Output** 창을 열 수 있습니다.
 
-%Steps%
+	![](SetupIDE_Step15B.png)
+
+	[REGION:note]
+	**Compile Output** 창 패널을 열면 소스에서 UE4 빌드 도중 발생하는 오류를 감시할 수 있습니다.
+	[/REGION]
+
+## UE4 빌드하기
+	
+1.	커서를 화면 상단 위에 올리면 툴바가 드러납니다.
+
+	![](SetupIDE_Step15A.png)
+
+1.	UE4 를 빌드하려면 **Build** 메뉴를 열고 **Build Project "UE4"** 버튼을 클릭합니다. 다른 방법으로는, **Ctrl+B** 단축키를 누르면 UE4 를 빌드합니다.
+
+	![](SetupIDE_Step15C.png)
+
+## 최종 결과
+
+[REGION:lightbox]
+	[![](SetupIDE_Step16.png)(w:720)](SetupIDE_Step16.png)
+[/REGION]
+
+[REGION:caption]
+	클릭하면 원본 이미지를 확인합니다.
+[/REGION]
+
+이제 IDE 내 **Compile Output** 창에 컴파일러가 메시지를 채우는 것이 보일 것입니다.
+시스템 사양에 따라 엔진을 컴파일하는 데 10 분에서 1 시간 이상 걸릴 수 있습니다.
+소스에서 엔진을 컴파일하는 데 걸리는 시간을 단축시키려면, 램이 최소 8 기가에 코어가 최소 
+(하이퍼스레드 포함) 8 개는 되는 CPU 장착 머신에서 소스 코드를 컴파일하실 것을 
+추천합니다.
+
+[NAV]

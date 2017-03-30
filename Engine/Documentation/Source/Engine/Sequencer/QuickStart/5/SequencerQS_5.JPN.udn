@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:5 - ショットとテイクの仕上げ
 Crumbs:%ROOT%
@@ -11,6 +11,7 @@ checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
 type:multi-step
 order:5
+tags:Sequencer
  
 [NAV]
 

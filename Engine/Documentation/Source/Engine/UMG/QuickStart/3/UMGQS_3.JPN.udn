@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3160114
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:3.メインメニューを作成する
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:このステップではメインメニューの視覚的レイアウトを行います。
 version:4.13
+tags:UMG UI Designer
 
 
 [VAR:Steps]

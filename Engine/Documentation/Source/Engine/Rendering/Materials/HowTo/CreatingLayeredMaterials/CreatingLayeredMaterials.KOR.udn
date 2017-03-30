@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title:레이어드 머티리얼 만들기
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/LayeredMaterials
 Description:UE4 의 레이어드 머티리얼 기법에 대한 입문서입니다.
 Version: 4.9
 SkillLevel: Intermediate
+tags:Materials
 
 [VAR:Topic]
 [OBJECT:Topic]

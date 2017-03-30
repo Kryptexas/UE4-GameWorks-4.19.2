@@ -1,4 +1,4 @@
-availability:docs
+availability:Public
 title:4. Texture Creation & End Result
 description:Taking a look at how to create and save a Texture.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2828862
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:メニュー アンカー
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -7,6 +7,7 @@ Related:Engine/UMG/UserGuide
 Related:Engine/UMG/UserGuide/Styling
 Related:Engine/UMG/UserGuide/Slots
 version:4.9
+tags:UMG UI Designer
 
 [TOC(start:2 end:2)]
 
@@ -16,13 +17,13 @@ version:4.9
 このウィジェットは、ポップアップメニューを固定する位置、およびポップアップメニューを呼び出す場所を指定することができます。
 [/EXCERPT:desc]
 
-## 詳細
+## Details (詳細) パネル
 
-配置した **メニュー アンカー** の詳細パネルには、ウィジェットに関連して設定可能な以下のような特定のオプションがいくつかあります。 
+配置した **メニュー アンカー** の詳細パネルには、ウィジェットに関連して設定可能な以下のオプションがあります。 
 
 ![](DetailsPanel.png)
 
-| オプション| 説明 |
+| オプション | 説明 |
 | -------- | ----------- |
 | **Menu Class** | メニューが呼び出された場合にスポーンする Widget ブループリント (ポップアップ)。毎回ウィジェットを新たに作成します。 |
 | **Placement** | 作成したウィジェットの位置を決めるために使用するいくつかの配置オプション。 |
@@ -39,7 +40,7 @@ Menu Anchor ウィジェットには以下で説明するスクリプトを介�
 
 ![](MenuAnchorNodes.png)
 
-| オプション| 説明 |
+| オプション | 説明 |
 | -------- | ----------- |
 | **Close** | 現在開いていればメニューを閉じます。 |
 | **Get Menu Position** | ワールド空間でメニューの位置を戻します。 |
@@ -83,7 +84,7 @@ t0yMkviWKUk
 
 ![](PlacedAnchor.png)
 
-メニュー アンカーの **[詳細]** パネルで **Menu Class** (またはスポーンする Widget ブループリント) とその配置オプションを設定します。
+メニュー アンカーの **[Details (詳細)]** パネルで **Menu Class** (またはスポーンする Widget ブループリント) とその配置オプションを設定します。
 
 ![](MenuAnchorDetails.png)
 

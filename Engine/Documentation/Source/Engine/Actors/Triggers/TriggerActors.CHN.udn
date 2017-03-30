@@ -3,25 +3,6 @@ Title: 触发器Actors
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:可以激活且可以在关卡中产生事件的Actor。
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[前一个主题](Engine/Actors/Volumes "%Engine/Actors/Volumes:title%")
-	[/PARAM]
-	[PARAM:next]
-		[下一个主题](Engine/Rendering/Materials/IntroductionToMaterials "%Engine/Rendering/Materials/IntroductionToMaterials:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [TOC(start:2)]
 
@@ -60,4 +41,4 @@ Description:可以激活且可以在关卡中产生事件的Actor。
 
 <!-- 添加显示运行及激活引脚过程中的重叠部分的 GIF/滑块-->
 
-%playlistnav%
+

@@ -1,21 +1,23 @@
-﻿INTSourceChangelist:2678576
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:物理コンストレイント
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:複数の物理オブジェクトに対して、およびワールドに対して制約（constraint）する方法
-バージョン：4.9
+Description:複数の物理オブジェクトを一緒に、およびワールドに対して制約する方法
+Version:4.9
 
-[OBJECT:TopicList]
+
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
+		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		コンストレイントに関するトピック
+		基本
 	[/PARAM]
 	[PARAM:links]
-		* [物理コンストレイントのユーザー ガイド](Engine/Physics/Constraints/ConstraintsUserGuide) - ボーン間のジョイントにコンストレイントを適用するためのガイド。
-		* [](Engine/Physics/Constraints/ConstraintsBlueprints) - ブループリントでの物理コンストレイント コンポーネントの使用に関するユーザー ガイド。
-		* [](Engine/Physics/Constraints/ConstraintsReference) - アンリアル エディタの物理コンストレイントで利用可能なすべてのプロパティに関するリファレンス。
-		* [ダンピングと摩擦](Engine/Physics/Constraints/DampingAndFriction) - ダンピングと摩擦の特性についての解説。
+		* [物理コンストレイントのユーザーガイド](Engine/Physics/Constraints/ConstraintsUserGuide "%Engine/Physics/Constraints/ConstraintsUserGuide:description%")
+		* [](Engine/Physics/Constraints/ConstraintsBlueprints "%Engine/Physics/Constraints/ConstraintsBlueprints:description%")
+		* [](Engine/Physics/Constraints/ConstraintsReference "%Engine/Physics/Constraints/ConstraintsReference:description%")
+		* [](Engine/Physics/FrictionRestitutionAndDamping "%Engine/Physics/FrictionRestitutionAndDamping:description%")
 	[/PARAM]
 [/OBJECT]
+

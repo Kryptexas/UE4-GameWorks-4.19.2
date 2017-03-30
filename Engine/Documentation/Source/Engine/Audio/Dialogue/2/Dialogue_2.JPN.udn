@@ -1,10 +1,12 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:3255731
+Availability:Public
 Title:2.Dialogue Waves のビルド
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:ダイアログ データを保存するための Dialogue Waves をビルドします。
 version:4.13
 parent:Engine/Audio/Dialogue
 order:2
+type:quick start
 checkpoint:dialogueqs
 prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
@@ -12,26 +14,10 @@ related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[前のステップ](Engine/Audio/Dialogue/1 "%Engine/Audio/Dialogue/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/Audio/Dialogue)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/Audio/Dialogue/3 "%Engine/Audio/Dialogue/3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 
-このサンプルでは、Quest NPC から Adam と Zoe にあいさつをします。複雑なダイアログに関する情報は、 [サウンドキューとダイアログのセクション] をご覧ください。
+このサンプルでは、Quest NPC から Adam と Zoe にあいさつをします。複雑なダイアログに関する情報は、 [サウンドキューとダイアログのセクション](Engine/Audio/Dialogue/2) をご覧ください。
 ダイアログの各行は、それに関連付けられた **Dialogue Wave** アセットが必要です。
 
 1. **コンテンツ ブラウザ** に戻り、**[Dialogue Wave]** を新規作成します。 
@@ -74,4 +60,4 @@ Zoe に対しては共通の軍隊の経歴があるため、フレンドリー�
 **Dialogue Wave** でも **Subtitle Override** を設定できます。これは、キャラクターがプレイヤーがわからない外国語で話しかける場合などに便利です。
 [/REGION]
 
-%Steps%
+[NAV]

@@ -68,7 +68,7 @@ Related: Engine/Audio/DistanceModelAttenuation
 | **1.4 AmbientSound Attenuation** | 앰비언트 사운드 감쇠 - 사운드 위치에서 재생되며, 거리에 따라 소리가 커지거나 작아지는 오디오입니다. |
 | **1.5 Attenuation with Low Pass Filter (LPF)** | 로우 패스 필터(LPF) 감쇠 - 사운드 위치에서 재생되다가 플레이어가 사운드 위치에서 멀어질 수록 더욱 사그라드는 오디오입니다. |
 | **1.6 Attenuation Shapes** | 정의된 (구체, 캡슐, 박스, 원뿔 등의) 모양 내 사운드 위치에서 재생되는 오디오입니다. |
-| **1.7 Shared Attenuation Settings** | 다수 **사운드 액터** 의 **감쇠** 에 영향을 끼치는 **Sound Attenuation** (사운드 감쇠) 애셋 데모입니다. |
+| **1.7 Shared Attenuation Settings** | 다수 **사운드 액터** 의 **감쇠** 에 영향을 끼치는 **Sound Attenuation** (사운드 어테뉴에이션) 애셋 데모입니다. |
 | **1.8 AmbientSound Actor using SoundCues** | 사운드 큐를 사용하는 앰비언트 사운드 액터 - **사운드 웨이브** 대신 **사운드 큐** 를 사용하여 복잡한 사운드를 만들거나 다수의 사운드를 하나로 합치는 법에 대한 데모입니다. |
 | **1.9 Audio Volume** | 오디오 볼륨 - **Audio Volume** 에 영향받은 오디오는 플레이어가 그 볼륨 안에 있을 때만 그 이펙트가 들리게 됩니다 (예: 볼륨 안에 있을 때는 대화 소리가 강당에 있는 것처럼 들리다가, 밖에 나오면 정상적으로 재생됩니다). |
 | **1.10 Audio Volume using Ambient Zone** | 앰비언트 존을 사용하는 오디오 볼륨 - **앰비언트 존** 의 영향을 받는 두 개의 사운드가, 하나는 **Audio Volume** 안에, 다른 하나는 밖에 있습니다. 안쪽 사운드는 **Audio Volume** 밖에 있을 때는 조용하다가 안에 들어가면 커지는 반면, 바깥의 사운드는 **Audio Volume** 안에 있을 때는 조용하다가 그 밖에 서 있으면 커집니다 (예: 야간에 실내에서 야외 환경으로 이동할 때의 오디오). |

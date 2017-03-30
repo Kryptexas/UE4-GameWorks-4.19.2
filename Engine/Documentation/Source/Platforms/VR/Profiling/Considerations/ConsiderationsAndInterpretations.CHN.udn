@@ -1,33 +1,35 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: VR Profiling Interpretations and Considerations
+﻿INTSourceChangelist:3260598
+Availability:Public
+Title:VR 分析解译与注意事项
 Crumbs:%ROOT%, Platforms
-Description: Things to keep in mind when interpreting the data from profiling tools.
+Description:从分析工具解译数据的注意事项。
 Version:4.14
 Skilllevel:Advanced
 Parent:Platforms/VR/Profiling
 order:3
+related:Engine/Performance/Profiler
+related:Engine/Performance/GPU
+related:Platforms/VR/Profiling/Overview
+related:Platforms/VR/Profiling/Tools
 
-While [profiling tools](Platforms/VR/Profiling/Tools) can provide data about how your project is performing in VR, there are some points to consider when interpreting those values.
 
-It's worth bearing in mind that in certain CPU-bound cases on DX12 and Vulcan, the GPU timings can be affected by CPU waits (bubbles), so please consider that if you see unexpected results in cases where draw thread time is high. 
+[分析工具](Platforms/VR/Profiling/Tools) 可提供项目如何在 VR 中执行的数据，而解译这些数据时有一些注意事项。
 
-Additionally, often when profiling, you'll notice that you pop between 90 Hz and 45 Hz.  The difference is accounted for because the Compositor acts much like a vsync.  If you miss framerate, it delays you until the next frame entirely.  So, you 
-tend to go down in brackets of 90 / n, where n is a whole number.  Because the fps reporting is an average, it won't always report as a whole number, unless the drop is sustained.  If you're bouncing back and forth between making 
-framerate and not, you may see some fraction of a jump.
+在 GPU 和 CPU 分析工具中奇数的地方可能出现延迟，在遮蔽或场景图表遍历时间时最容易发生。如果数字奇高，则有可能为误报。
 
-Note that these delays can appear in odd places in the GPU and CPU profilers, most often as occlusion or scene graph traversal time. If those numbers are abnormally high, it's possible that it's a false positive.
+[REGION:tip]
+进行分析时，通常会在 90 Hz 和 45 Hz 之间跳动。出现这种差异的解释是因为合成器的作用与垂直同步相似。如果失去帧率，则会完全延迟到下一帧。因此通常会下降到括号中的 90 / n，此处的 n 为一个整数。因为每秒帧率报告为一个平均数，所以它不会固定报告为整数，除非帧率持续下降。如果在获取帧率之间摇摆不定，则可能会看到部分跳动。
+[/REGION]
 
-If you'd like to remove this for testing, sometimes it's useful to run the game emulating stereo rendering, instead of running in the device itself.  To do so:
+如希望将此从测试中移除，较为实用的方法是运行游戏模拟立体渲染，而不在设备自身中运行。操作方法：
 
-* Launch the game with `-game -emulatestereo -res=2160x1200` on the commandline
-* Ensure vsync is off with `r.vsync 0` in the console
-* Update the screen percentage to emulate the oversampling we have to do for VR with `r.screenpercentage 137` in the console
+* 在命令行上输入 `-game -emulatestereo -res=2160x1200`，然后运行游戏
+* 在控制台中输入 `r.vsync 0`，将垂直同步关闭。
+* 在控制台中输入 `r.screenpercentage 137` 更新屏幕百分比，模拟必须为 VR 进行的过度采样。
 
-This will emulate the GPU and CPU performance characteristics without the annoyances of the variable framerate.
+这可模拟 GPU 和 CPU 性能特征，不会有帧率变化的烦恼。
 
-It's worth explicitly noting that if you're hitting 90 frames a second most of the time, and then make a change and notice a drastic drop, you're probably falling prey to the Compositor "vsync" issue noted above.  As soon as 
-you tip over the cliff, you'll see drastic changes in numbers.
+值得一提的是，如果多数时间均为 90 fps，而进行修改后帧数大跌，则很可能是遇到了上文所述的合成器“垂直同步”问题。问题解决后，帧数则会大大改善。
 
 
 

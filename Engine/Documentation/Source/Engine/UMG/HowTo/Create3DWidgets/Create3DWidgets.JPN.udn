@@ -1,19 +1,20 @@
-﻿INTSourceChangelist:2816279
-Availability:Public
+﻿INTSourceChangelist:3343833
+Availability:Docs
 Title:3D ウィジェットの作成
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:2D スクリーン空間の代わりにゲームワールドに表示されるインタラクティブな 3D メニューを作成します。 
+Description:2D スクリーン スペースの代わりにゲームワールドに表示されるインタラクティブな 3D メニューを作成します。 
 Version:4.10
 SkillLevel:Intermediate
-parent:Engine/Editor
+parent:Engine/UMG/HowTo
 order:1
-checkpoint: editorqs
+checkpoint: umg_create_3d_howto
+tags:UMG UI Designer
 
 [REGION:warning]
 これは現在、開発進行中の実験的な機能です。一部の機能は期待どおりに機能しなかったり、将来のリビジョンで変更される可能性があります。
 [/REGION]
 
-ほとんどの UI エレメントは 2D スクリーン空間でレンダリングできますが、オンスクリーンでオーバーレイする代わりにゲームワールド内で何かを表示させたい場合もあるでしょう。 
+ほとんどの UI エレメントは 2D スクリーン スペースでレンダリングできますが、オンスクリーンでオーバーレイする代わりにゲームワールド内で何かを表示させたい場合もあるでしょう。 
 これはプレイヤーがインタラクションしなければならないコンピュータ端末やキーパッド、敵やプレイヤーのヘルスバーの表示、場合によっては 3D 空間のゲームワールドで表示するメニューである場合もあります。 
 
 この操作ガイドでは、3D ウィジェットの作成方法について説明します。 
@@ -37,7 +38,7 @@ _このガイドの最後まで進むと、オンスクリーンでオーバー�
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

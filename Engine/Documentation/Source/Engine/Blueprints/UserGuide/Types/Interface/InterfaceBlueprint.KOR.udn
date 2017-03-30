@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:블루프린트 인터페이스
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -8,6 +8,7 @@ related: Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo
 related: Engine\Blueprints\UserGuide\EventDispatcher
 related: Engine\Blueprints\UserGuide\BlueprintComms
 version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

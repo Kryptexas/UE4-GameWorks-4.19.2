@@ -21,7 +21,6 @@ type:overview
 
 如需启用蓝图原生化，使用 **Edit 菜单** 打开 **Project Settings**。在 **Packaging** 下启用 **Nativize Blueprint Assets** 复选框。
 
-![](BlueprintNativizeCheckbox.png)
 
 之后打包项目时，以下蓝图资源将被原生化： 
 
@@ -44,4 +43,4 @@ type:overview
 
 资源只有在被制成后才可进行原生化。如果未指定制作器制作资源/地图，它将对项目 **Content** 目录下的所有内容进行制作。如发现部分未使用的蓝图正被原生化，也可使用地图列表进行打包，排除资源。 
 
-![](AdditionalMaps.png)
+

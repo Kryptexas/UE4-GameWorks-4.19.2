@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:3151855
-Availability:Public
+﻿Availability:Public
 Title:フォグ エフェクト
 Crumbs: %ROOT%, Engine
-Description:フォグを使用してワールドにアンビエンスを加えて背景の雰囲気を作ります。
-Engine/Rendering
+Description:フォグを使用してワールドの周囲の環境を加えて背景の雰囲気を作ります。
+parent:Engine/Rendering
 order:6
 type:landing
 
@@ -51,7 +50,7 @@ type:landing
 ![Fog Effects](fog_landing_banner.png)
 [/REGION]
 
-フォグ エフェクトを使用して、ワールドにアンビエンスを加えて背景の雰囲気を作ることができます。たとえば、グラウンド フォグを使用して、不気味な設定の外観にすることができます。
+フォグ エフェクトを使用して、ワールドの周囲の環境を加えて背景の雰囲気を作ることができます。たとえば、グラウンド フォグを使用して、不気味な設定の外観にすることができます。
 
 [REGION:topics half]
 %Engine/Actors/FogEffects/AtmosphericFog:topic%

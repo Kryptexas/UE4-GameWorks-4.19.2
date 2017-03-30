@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability: Public
 Title:4. 레벨에서 캐릭터로 정보 전달하기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:이번 단계에서는 레벨 블루프린트를 사용해서 스폰 지점 위치를 구하여 캐릭터 블루프린트로 넘겨주도록 하겠습니다.
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

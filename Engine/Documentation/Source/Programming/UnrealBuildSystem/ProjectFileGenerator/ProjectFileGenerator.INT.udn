@@ -1,8 +1,19 @@
 Availability:Public
 Title:Automatic Project File Generation
-Crumbs:%ROOT%, Programming, Programming/UnrealBuildSystem
+Crumbs:
+Parent:Programming/UnrealBuildSystem
 Description:Process for automatically generating project files for games and modules in the current workspace.
 Version: 4.9
+prereq:Programming/Development/BuildingUnrealEngine
+topic-image:topic_prjFileGen.png
+tags:Programming
+tags:Unreal Build System
+
+[TOC(start:1 end:2)]
+
+[REGION:warning]
+The following guide is meant for users who've downloaded and built UE4 from its source code, which we've made available on GitHub.
+[/REGION]
 
 If you download the latest Unreal Engine 4 (UE4) code, you might notice that there are no Visual Studio (VS) or Xcode project files included for compiling and running the engine or example games.  You will need to run a script that generates project files for you to load:
 

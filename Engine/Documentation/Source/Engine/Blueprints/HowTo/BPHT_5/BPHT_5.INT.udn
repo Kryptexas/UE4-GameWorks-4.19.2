@@ -3,6 +3,7 @@ Title:5. Destroying the Rock
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:In this section we will use a Bind Event which is bound to OnHit to destroy our rock when it is hit.
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

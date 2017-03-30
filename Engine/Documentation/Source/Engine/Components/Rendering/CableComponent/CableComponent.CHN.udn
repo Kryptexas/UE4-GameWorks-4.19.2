@@ -1,0 +1,165 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Cable Component
+Crumbs:%ROOT%, Engine
+Description: A break down of the Cable Component.
+version: 4.15
+parent:Engine/Editor
+
+![](CC_InGame.png)
+
+[TOC(start:1 end:2)]
+
+Having the ability to cheaply add cables, ropes or chains that can sway back and forth as if being gently blown by the wind can add a nice bit of life to your Unreal Engine 4 (UE4) projects. In the following document, we will take a look at how you can use the Cable component plugin to create, setup and control how the cables look, react and even collided with objects in your levels.
+
+
+## Simulation & Rendering
+
+To perform the actual cable simulation, a technique very well known to game development called **Verlet Integration** is used. The idea is to represent the cable as a series of particles, with **distance constraints** between them. The particles at the ends are **fixed** and move with whatever they are attached to. The ones in the middle are **free** and fall under gravity. Each step, you update the velocity and position of each particle, and then move them to satisfy the constraints. The **stiffness** of the cable is controlled by the number of times we iterate to enforce the constraints, each step.
+
+[REGION:lightbox]
+[![](CC_ParticleRope.png)(w:600)](CC_ParticleRope.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+Now that there is a nice chain of connected particles bouncing around, they now need to be rendered. To render the cable, a new class called **FCableSceneProxy** was created to represent the render of the cable. Then at each from the new particles positions from the simulation (which is done on the main thread inside TickComponent) are passed to this proxy via the **SendRenderDynamicData_Concurrent** function. Next, on the render thread, the update is locked, and then index and vertex buffers are updated to make a **tube** mesh. For each vertex on this tube mesh, we need to calculate a position, a Texture UV and three Tangent Basis vectors. When doing this, **X** will point along the cable, **Z** will point straight out from the cable (the normal) and **Y** is perpendicular to **X** and **Z**. These properties have been exposed to the components giving you the ability to control the number of sides, radius if the tube and how many times the UV's can title along the cable.
+
+[REGION:lightbox]
+[![](CC_RenderingGeo.png)(w:600)](CC_RenderingGeo.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+
+## Enabling the Plug-in
+
+By default, the Cable Component plugin should be enabled. However, if it is not, you can enable it by first going to the main toolbar and selecting **Edit** > **Plugins**. Then from the plugins list, go to **Rendering** and make sure the **Cable Component** has a checkmark in the box next to **Enabled**. 
+
+[REGION:lightbox]
+[![](CC_PluginEnable.png)(w:505)](CC_PluginEnable.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+## Using the Cable Component
+
+To use the Cable Component in your Blueprints you will need to do the following:
+
+1. First, create a new Blueprint called **BP_Cable** and make sure that it uses **Actor** as the parent class.
+
+    ![](CC_MakeNewBP.png)
+
+1. Next, from the **Components** section of the BP_Cable Blueprint, click on the **Add Component** button and then locate the **Cable** component in the list. When located, click on it to add it to the Components list.
+
+    ![](CC_Add_CC.png)
+
+1. With the Cable Component now added, select the **Cable** component in the components list so that you can adjust its properties via the **Details** panel.
+
+    ![](CC_Cable_Options.png)
+
+1. Check both the **Enable Stiffness** and **Enable Collision** options so that the cable will have some stiffness and collide with the world and then press the **Compile** button.
+
+    [REGION:lightbox]
+    [![](CC_Added_CC.png)(w:700)](CC_Added_CC.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+    [region:note]
+    You will need to press the small white triangle to expand the advanced rollout option to see and use these features.
+    [/region]
+
+1. Drag the BP_Cable Blueprint from the Content Browser into your level and position it so that the cable will collide with an object that has been placed in the level.
+
+    [REGION:lightbox]
+    [![](CC_Add_CC_To_Level.png)(w:700)](CC_Add_CC_To_Level.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
+
+1. Select the BP_Cable Blueprint that was placed in the level and drag it around. While doing this, you should notice that the cable will collide with any mesh that it touches like in the video below.
+
+    [OBJECT:EmbeddedVideo]
+        [PARAMLITERAL:width]
+        640
+        [/PARAMLITERAL]
+        [PARAMLITERAL:height]
+        360
+        [/PARAMLITERAL]
+        [PARAMLITERAL:videoid]
+        e18Kr8v-nNI
+        [/PARAMLITERAL]
+    [/OBJECT]
+
+	[region:note]
+	To make either side of the cable fall un-check the **Attach Start** or **Attach End** option the Details panel of the Cable Component.
+	[/region]
+
+## Property Breakdown
+
+The following table breaks down of what each of the properties on the Cable component does:
+
+#### Cable
+
+![](CC_Cable_Properties.png)
+
+|-------------|----------------|
+|**Property Name**| **Description**|
+|Attach Start| Should we fix the start to something, or leave it free. If false, component transform is just used for initial location of the start of cable.|
+|Attach End|Should we fix the end to something (using AttachEndTo and EndLocation), or leave it free. If false, AttachEndTo and EndLocation are just used for initial location of end of cable.|
+|Attach End To| Actor or Component that the defines the end position of the cable.|
+|Component Property| Name of component property to attach the cable to.|
+|Attach End To Socket Name| Socket name on the AttachEndTo component to attach to.|
+|End Location| End location of cable, relative to AttachEndTo (or AttachEndToSocketName) if specified, otherwise relative to cable component.|
+|Cable Length| Rest length of the cable.|
+|Num Segments| How many segments the cable has.|
+|Solver Iterations| The number of solver iterations controls how 'stiff' the cable is.|
+|Substep Time| Controls the simulation substep time for the cable.|
+|Enable Stiffness| Add stiffness constraints to cable.|
+|Enable Collision| EXPERIMENTAL. Perform sweeps for each cable particle, each substep, to avoid collisions with the world. Uses the Collision Preset on the component to determine what is collided with.This greatly increases the cost of the cable simulation.|
+
+### Cable Forces
+
+![](CC_CableForces_Properties.png)
+
+|-------------|----------------|
+|**Property Name**| **Description**|
+|Cable Forces|Force vector (world space) applied to all particles in cable.|
+|Cable Gravity Scale|Scaling applied to world gravity affecting this cable.|
+
+### Cable Rendering
+
+![](CC_CableRendering_Options.png)
+
+|-------------|----------------|
+|**Property Name**| **Description**|
+|Cable Width|How wide the cable geometry is.|
+|Num Sides|Number of sides of the cable geometry.|
+|Tile Material|How many times to repeat the material along the length of the cable.|
+
+
+## Reference 
+
+The following section contains links to various reference documents where you can read more about the papers used to power the cable components. 
+
+* To read more about **Verlet Integration** check out the following paper from Thomas Jakobsen.
+
+    * [http://graphics.cs.cmu.edu/nsp/course/15-869/2006/papers/jakobsen.htm](http://graphics.cs.cmu.edu/nsp/course/15-869/2006/papers/jakobsen.htm)
+
+
+
+
+
+
+

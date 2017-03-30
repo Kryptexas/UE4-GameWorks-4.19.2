@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3343902
 Availability: Public
 Title:가상 키보드 상호작용 생성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:UMG 로 3D 가상 키보드를 만들고 상호작용하는 법에 대한 설명입니다.
-Version: 4.13
+Version: 4.15
 SkillLevel: Advanced
 parent:Engine/UMG/HowTo
 order:4
 checkpoint: editorqs
+tags:UMG UI Designer
 
 3D 키패드 또는 가상 키보드를 만들어 플레이어가 지정한 글자를 입력할 수 있도록 하려는 경우, [Widget Interaction](Engine\UMG\UserGuide\WidgetInteraction) 컴포넌트와 [Widget](Engine/Components/Widget) 컴포넌트를 조합하면 됩니다.
 Widget Interaction 컴포넌트는 어떤 버튼을 클릭했는지 알아내고, 표시를 담당하는 액터의 Widget 컴포넌트에 글자 전송 처리를 할 수 있도록 합니다.
@@ -51,3 +52,5 @@ _이 안내서를 마칠 때 즈음이면, 3D 게임 월드에 나타나 상호�
 [REGION:call_to_action]
 	[클릭하면 시작합니다.](Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup "%Engine\UMG\HowTo\VirtualKeyboards\CharacterSetup:title%")
 [/REGION]
+
+

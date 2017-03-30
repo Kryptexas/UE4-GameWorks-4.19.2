@@ -3,6 +3,7 @@ title:Misc
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Miscellaneous functions that do not fall into existing categories.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

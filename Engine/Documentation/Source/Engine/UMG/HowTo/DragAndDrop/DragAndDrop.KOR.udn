@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:3108692
-Availability: Docs
-Title:Creating Drag and Drop UI
+﻿INTSourceChangelist:3343774
+Availability:Docs
+Title:드래그 앤 드롭 UI 제작
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Shows how you can create draggable and droppable UI widgets with UMG. 
-Version: 4.12
+Description:UMG 로 드래그 앤 드롭 가능한 UI 위젯을 만드는 법을 보여드립니다.
+Version: 4.15
 SkillLevel: Intermediate
+tags:UMG UI Designer
 
-There may be instances in your project where you want your players to be able to interact with UI elements by dragging and dropping them onscreen. 
-This could be to customize interface layouts (positioning health bars or unit frames) or interacting with gameplay systems like inventory screens (adding/removing items around). 
-With UMG you can create these types of interactions with the **DragAndDropOperation** node and overriding some of the inherited Blueprint Functions based on your method of interaction. 
+프로젝트에서 플레이어가 UI 엘리먼트를 화면상에서 드래그 앤 드롭으로 상호작용할 수 있도록 했으면 싶은 때가 있습니다.
+인터페이스 레이아웃 커스터마이징 (헬스 바 또는 유닛 프레임 위치 이동) 또는 인벤토리 화면같은 게임플레이 시스템 상호작용 (아이템 추가/제거) 등이 될 수 있습니다.
+UMG 에서 **DragAndDropOperation** 노드로 이러한 상호작용 유형을 생성하여 원하는 상호작용 방식에 맞게 상속된 블루프린트 함수 일부를 오버라이드하면 됩니다.
 
-In this example, we take a look at how a player can drag and reposition a health bar on screen with the Left Mouse Button.
+이 예제에서는 플레이어가 왼쪽 마우스 버튼으로 화면상의 헬스 바를 끌어 위치를 조정할 수 있도록 만드는 방법을 살펴봅니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -24,14 +25,14 @@ kYkhxuJsVs4
 [/PARAMLITERAL]
 [/OBJECT]
 
-_At the end of this guide, you will have a UI widget that you can drag around inside the viewport and drop at a new location._
+_이 가이드를 마칠 즈음엔 뷰포트 안에서 드래그하여 새 위치에 드롭할 수 있는 UI 위젯이 생길 것입니다._
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		단계
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -45,5 +46,6 @@ _At the end of this guide, you will have a UI widget that you can drag around in
 [/OBJECT]
 
 [REGION:call_to_action]
-	[Click to Start](Engine\UMG\HowTo\DragAndDrop\ProjectSetup "%Engine\UMG\HowTo\DragAndDrop\ProjectSetup:title%")
+	[클릭하면 시작합니다.](Engine\UMG\HowTo\DragAndDrop\ProjectSetup "%Engine\UMG\HowTo\DragAndDrop\ProjectSetup:title%")
 [/REGION]
+

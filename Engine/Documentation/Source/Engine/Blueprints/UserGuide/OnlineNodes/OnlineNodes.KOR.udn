@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:온라인 세션 노드
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -10,6 +10,7 @@ Related: Resources/ContentExamples/Networking
 version: 4.9
 Parent:Engine/Blueprints
 type:overview
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -103,7 +104,7 @@ type:overview
 
 ![](EventNetworkError.png)
 
-**Network Error** 이벤트는 게임이 이벤트에 반응하여 오류 유형을 나타내는 열거형 값을 받아 적절히 반응하도록 하는 것이 가능합니다. 예를 들면 사용자에게 대화창을 띄울 수가 있겠지요.
+**Network Error** 이벤트는 게임이 이벤트에 반응하여 오류 유형을 나타내는 Enum 값을 받아 적절히 반응하도록 하는 것이 가능합니다. 예를 들면 사용자에게 대화창을 띄울 수가 있겠지요.
 
 ### Event Travel Error
 

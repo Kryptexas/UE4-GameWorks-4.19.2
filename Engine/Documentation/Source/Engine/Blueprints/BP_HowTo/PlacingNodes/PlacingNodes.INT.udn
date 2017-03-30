@@ -10,7 +10,7 @@ skilllevel:Beginner
 parent:Engine/Blueprints/BP_HowTo
 type:how-to
 order:2
-
+tags:Blueprints
 
 On this page, you will learn how you can place nodes on your graphs in Blueprints. 
 

@@ -253,10 +253,11 @@ This method is intended for network games which is the reason for its more restr
 **点击进行播放**
 
 
-
+<!----
 ## 警告和注意事项
 
 
 [INCLUDE:Engine/Animation/AnimMontage#MontageReplication]
 
 在根骨骼运动过程中考虑了角色的物理状态。比如，如果角色物理是 _Walking(步行)_ 或 _Falling（下降）_ ，那么将忽略根骨骼运动的Z-轴，并应用重力。角色将会下落、沿着斜坡或楼梯下滑。如果角色物理是 _Flying（飞行）_ ，那么将应用完整的根骨骼运动，并忽略重力。
+---->

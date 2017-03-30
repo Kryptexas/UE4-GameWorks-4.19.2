@@ -3,27 +3,6 @@ Title: Common Actor Types
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Listing and descriptions of common types of Actors used in levels.
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Grouping "%Engine/Actors/Grouping:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
-
 Below is a quick rundown of some of the Actors you will most commonly use or come across while developing games with 
 Unreal Engine to familiarize you with what they are and why you would use them.
 
@@ -57,6 +36,3 @@ Unreal Engine to familiarize you with what they are and why you would use them.
 [/REGION]
 [/EXCERPT:Trigger]
 -->
-
-
-%playlistnav%

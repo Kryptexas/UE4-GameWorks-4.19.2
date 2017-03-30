@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:3 - 첫 번째 샷 - 캐릭터 애니메이션
 Crumbs:%ROOT%
@@ -11,6 +11,7 @@ checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
 type:multi-step
 order:3
+tags:Sequencer
  
 [NAV]
 

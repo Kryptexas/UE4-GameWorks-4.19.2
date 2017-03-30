@@ -5,6 +5,7 @@ Description:Learn about valid data types for BuildGraph attributes.
 version: 4.13
 parent:Programming/Development/BuildGraph
 type:Reference
+tags:Programming
 tags:BuildGraph
 
 [VAR:TopicCompact]

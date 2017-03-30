@@ -1,5 +1,5 @@
-﻿INTSourceChangeList:3112568
-Availability:Docs
+﻿INTSourceChangelist:3155346
+Availability:Public
 Title:ブループリント スプラインの使用方法
 Crumbs: %ROOT%, Engine
 Description:Blueprint Spline コンポーネントおよび Blueprint Spline Mesh コンポーネントの操作ガイド
@@ -8,6 +8,8 @@ parent:Engine/BlueprintSplines
 order:3
 social-image:Splines_social.png
 version:4.13
+type:landing
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,7 +54,7 @@ version:4.13
 
 ## 操作ガイド
 
-[DIR(output:"listbutton" parent:"Engine/BlueprintSplines/HowTo" org:"hierarchy" end:"1")]
+[DIR(output:"fancy" parent:"Engine/BlueprintSplines/HowTo" org:"hierarchy" end:"1")]
 
 
 

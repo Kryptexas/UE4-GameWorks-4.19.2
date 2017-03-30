@@ -11,86 +11,118 @@ tags:VR
 tags:Google VR
 tags:Daydream
 
+[TOC(start:2)]
 
-## Overview
+[region:note]
+Google has a provided a very detailed document that goes over everything you need to know to get the most out of Daydream. You can find the documents by going to the [Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) help site.
+[/region]
+
+
 While Google VR can work for almost any Android based device, there are certain features that will only work with Daydream devices. In the following section, we will take a look at these features and what you have to do to use them in your projects.
 
-### Android NDK 11c
-In Order to access the full functionality, Daydream offers you need to download, install Android NDK version 11c. You can download the appropriate version of NDK 11c using the following link.
+## Downloading Google VR UE4 Branch
+To get all of the pre-built functionality Google Daydream VR offers you will need to download and compile a special version of UE4 that you will find linked below. This version of UE4 contains the needed code and assets that are required to display the Daydream Motion Controller in the manner Google wants it. 
 
-* [https://developer.android.com/ndk/downloads/index.html](https://developer.android.com/ndk/downloads/index.html)
+* [Google VR Github Pull](https://github.com/googlevr-unreal/UnrealEngine/tree/4.13-googlevr)
 
-Once downloaded and installed you will need to point UE4 to the new NDK files by going to the **Android SDK** > **SDKConfig** section and changing the NDK path to the new NDK 11c install location. 
+Once you have downloaded this version of UE4, follow the directions for the [Downloading Unreal as a Zip from Github](GettingStarted/DownloadingUnrealEngine/DownloadZip) page to complete the rest of the setup process.
+
+## Android NDK 11c
+In order to access the full functionality of Daydream, you will need to download and install the Android NDK version 11c. 
+
+* [NDK 11c Downlaod](https://developer.android.com/ndk/downloads/index.html)
+
+Once downloaded and installed you will need to point UE4 to the new NDK files by going to the **Android SDK** > **SDKConfig** section and changing the NDK path to the new NDK 11c install location and set the SDK API level to **matchndk** and the NDK API Level to **android-24**.
 
 ![](GDaydream_New_NDK_00.png)
 
-### Scanline Racing
-Scanline Racing is a feature specific to Daydream devices that when enabled helps to reduce latency in your VR project. To enable Scanline Racing in your Google VR project for Daydream devices you will need to do the following.
+## Scanline Racing
+**Scanline Racing** is a feature specific to Daydream devices that when enabled helps to reduce latency in your VR project. To enable Scanline Racing in your Google VR project for Daydream devices you will need to do the following.
 
 1. Open up your **Project Settings** and go to **Platforms** > **Android**.
 
-	![](GDaydream_Arm64_Support_00.png)
+    ![](GDaydream_Arm64_Support_00.png)
 
-1. Under the **Build** section enable **Support arm64[aka arm64-v8a]** by clicking on the checkmark box next to its name.
+1. Under the **Build** section enable **Support arm64[aka arm64-v8a]** by clicking on the checkmark box next to its name and disable **Support arm7[aka armebi-v7a]**.
 
-	![](Platforms\GoogleVR\QuickStart\2\GVRQS_Build_arm64_Support_00.png)
+    ![](Platforms\GoogleVR\QuickStart\2\GVRQS_Build_arm64_Support_00.png)
 
-	[region:note]
+    [region:note]
     Enabling this will add significant time to your first cook as the arm64 libraries need to be compiled.
     [/region]
 
-1. Then under the **Advanced APKPackaging** section and enable the **Configure GoogleVR for low-latency rendering mode (scanline racing)** by clicking on the checkmark box next to its name.
+1. Then under the **Advanced APKPackaging** section and enable the following options.
+	* **Configure for deployment to Daydream**
+	* **Configure GoogleVR Deployment Mode**
+	* **Configure GoogleVR for low-latency rendering mode (scanline racing)**
 
-	![](GDaydream_Scanline_Racing_Support_00.png)
+    ![](GDaydream_Scanline_Racing_Support_00.png)
 
 Then next time you cook your UE4 project and deploy it to your Daydream device low latency rendering will be enabled.
 
-### Motion Controllers
-Working with Motion Controllers for Daydream devices is much like working with Motion Controllers for the HtC Vive or Oculus Rift. To quickly add Motion Controller functionality to your UE4 Daydream project you need to do the following.
+## Motion Controllers
+Working with Motion Controllers for Daydream devices is much like working with Motion Controllers for the HTC Vive or Oculus Rift. To quickly add Motion Controller functionality to your UE4 Daydream project you need to do the following.
 
 [region:note]
-For a more in-depth look at how to use Motion Controllers in UE4, make sure to check out the [Offical Motion Controller Documents](https://docs.unrealengine.com/latest/INT/Platforms/VR/MotionController/) page for more information.
+For a more in-depth look at how to use the Google Daydream Controller Motion Controllers in UE4, make sure to check out the [Offical Google Arm Model Documents](https://developers.google.com/vr/unreal/arm-model) page for more information on how to use the Arm Model.
 [/region]
 
-1. Open up your Player Pawn and search for Motion Controller Component from the **Add Components** list add the following items.
+1. First, open up your project's Plugins menu and under the Input section, enable the **Google VR Motion Controller** plugin.
 
-	* Motion Controller Component
-	* Static Mesh Component with Static Mesh
-	
-	[region:lightbox] 
-	[![](GVRQS_Daydream_MC_Setup_00.png)(w:700)](GVRQS_Daydream_MC_Setup_00.png)
+    ![](GDaydream_Plugins.png)
+
+    [region:note]
+    Please note that to use the Plugin you will need to re-start your UE4 Editor. Failing to do so will result in you not being able to use the Google VR Motion Controller. 
+    [/region]
+
+1. Next, open up your projects Pawn and add the **GoogleVRMotionController** Component to the Components list. When completed your Pawn's setup should match the following image. 
+
+    ![](GDaydream_MC_Addation.png)
+
+    [region:tip]
+    The Motion Controller component should use the same position and height of the VR Camera.
+    [/region]
+
+1. Now when you run your project your motion controllers should look similar to the following image.
+
+	[REGION:lightbox]
+	[![](unreal-controller-model.png)(w:724)](unreal-controller-model.png)
+	[/REGION]
+
+	[region:note]
+	If you are using the 4.14 binary build of UE4 the above content will be missing and you should instead use the standard Motion Controller component. All of this functionality is slated to be in the 4.15 release of UE4. If you need to this functionality now, you will have to download and compile the, [UE4.13 Google VR version](https://github.com/googlevr-unreal/UnrealEngine/tree/4.13-googlevr).
 	[/region]
 
-1. Next in the Event Graph use the Motion Contorler Blueprint functions to interact with the buttons on the Motion Controllers.
-	
-	![](Platforms\VR\MotionController\Working_With_MC.png)
+Now that you have a Google VR Motion Controller component on your Pawn, you can edit and adjust how the Motion Controller's function by searching for **Google VR** in the Blueprint Editor and using the nodes that you find. 
 
 ## Training Streams
 
+These Training Streams help to provide some additional resources on setting up your Motion Controllers and creating interactions in VR using Motion Controllers. 
+
 [REGION:topics third]
 [OBJECT:TopicCompactVideo]
-	[PARAMLITERAL:title]
-	Setting Up Motion Controllers
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	6ALnsdQnkVQ
-	[/PARAMLITERAL]
+    [PARAMLITERAL:title]
+    Setting Up Motion Controllers
+    [/PARAMLITERAL]
+    [PARAMLITERAL:videoid]
+    6ALnsdQnkVQ
+    [/PARAMLITERAL]
 [/OBJECT]
 [OBJECT:TopicCompactVideo]
-	[PARAMLITERAL:title]
-	Creating Interactions in VR With Motion Controllers Part 1
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	eRNtgFo6iU0
-	[/PARAMLITERAL]
+    [PARAMLITERAL:title]
+    Creating Interactions in VR With Motion Controllers Part 1
+    [/PARAMLITERAL]
+    [PARAMLITERAL:videoid]
+    eRNtgFo6iU0
+    [/PARAMLITERAL]
 [/OBJECT]
 [OBJECT:TopicCompactVideo]
-	[PARAMLITERAL:title]
-		Creating Interactions in VR With Motion Controllers Part 2
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	utOahIZgKgc
-	[/PARAMLITERAL]
+    [PARAMLITERAL:title]
+        Creating Interactions in VR With Motion Controllers Part 2
+    [/PARAMLITERAL]
+    [PARAMLITERAL:videoid]
+    utOahIZgKgc
+    [/PARAMLITERAL]
 [/OBJECT]
 [/REGION]
 
