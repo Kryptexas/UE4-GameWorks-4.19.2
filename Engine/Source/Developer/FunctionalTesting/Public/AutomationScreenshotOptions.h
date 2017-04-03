@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "AutomationScreenshotOptions.generated.h"
 
-UENUM()
+UENUM(BlueprintType)
 enum class EComparisonTolerance : uint8
 {
 	Zero,
@@ -16,7 +16,7 @@ enum class EComparisonTolerance : uint8
 	Custom
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FComparisonToleranceAmount
 {
 	GENERATED_BODY()

@@ -307,16 +307,9 @@ private:
 	
 	/** Returns if analytics should be sent to the back end*/
 	ECheckBoxState IsSendAnalyticsCheckBoxChecked() const;
+
 	/** Toggles if we are sending analytics results from the tests*/
 	void HandleSendAnalyticsBoxCheckStateChanged(ECheckBoxState CheckBoxState);
-
-	/** Returns if screen shots are enabled */
-	ECheckBoxState IsEnableScreenshotsCheckBoxChecked() const;
-	/** Toggles if we are taking screenshots */
-	void HandleEnableScreenshotsBoxCheckStateChanged(ECheckBoxState CheckBoxState);
-
-	/** Returns if the full size screenshots option is enabled */
-	bool IsFullSizeScreenshotsOptionEnabled() const;
 
 	/** Returns if a device group is enabled */
 	ECheckBoxState IsDeviceGroupCheckBoxIsChecked(const int32 DeviceGroupFlag) const;

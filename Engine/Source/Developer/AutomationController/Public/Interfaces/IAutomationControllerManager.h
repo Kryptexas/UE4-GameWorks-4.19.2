@@ -218,16 +218,6 @@ public:
 	virtual void SetSendAnalytics(const bool bNewValue) = 0;
 
 	/**
-	 * Returns if screenshots are allowed.
-	 */
-	virtual bool IsScreenshotAllowed() const = 0;
-
-	/**
-	 * Sets if screenshots are enabled.
-	 */
-	virtual void SetScreenshotsEnabled( const bool bNewValue ) = 0;
-
-	/**
 	 * Filters the visible list of tests.
 	 */
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) = 0;

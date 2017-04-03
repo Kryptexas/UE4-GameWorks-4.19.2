@@ -13,33 +13,28 @@
 #include "FileManager.h"
 #include "Paths.h"
 #include "FileHelper.h"
+#include "AssetRegistryModule.h"
 
 
 /** States for running the automation process */
-namespace EAutomationTestState
+enum class EAutomationTestState : uint8
 {
-	enum Type
-	{
-		Idle,				// Automation process is not running
-		FindWorkers,		// Find workers to run the tests
-		RequestTests,		// Find the tests that can be run on the workers
-		DoingRequestedWork,	// Do whatever was requested from the commandline
-		Complete			// The process is finished
-	};
+	Initializing,		// 
+	Idle,				// Automation process is not running
+	FindWorkers,		// Find workers to run the tests
+	RequestTests,		// Find the tests that can be run on the workers
+	DoingRequestedWork,	// Do whatever was requested from the commandline
+	Complete			// The process is finished
 };
 
-namespace EAutomationCommand
+enum class EAutomationCommand : uint8
 {
-	enum Type
-	{
-		ListAllTests,				//List all tests for the session
-		//RunSingleTest,			//Run one test specified by the commandline
-		RunCommandLineTests,		//Run only tests that are listed on the commandline
-		RunCheckpointTests,			// Run only tests listed on the commandline with checkpoints in case of a crash.
-		RunAll,						//Run all the tests that are supported
-		RunFilter,                  //
-		Quit						//quit the app when tests are done
-	};
+	ListAllTests,			//List all tests for the session
+	RunCommandLineTests,	//Run only tests that are listed on the commandline
+	RunCheckpointTests,		// Run only tests listed on the commandline with checkpoints in case of a crash.
+	RunAll,					//Run all the tests that are supported
+	RunFilter,              //
+	Quit					//quit the app when tests are done
 };
 
 
@@ -56,7 +51,7 @@ public:
 		SessionID = FApp::GetSessionId();
 
 		// Set state to FindWorkers to kick off the testing process
-		AutomationTestState = EAutomationTestState::Idle;
+		AutomationTestState = EAutomationTestState::Initializing;
 		DelayTimer = 5.0f;
 
 		// Load the automation controller
@@ -65,11 +60,9 @@ public:
 
 		AutomationController->Init();
 
-		const bool bSkipScreenshots = FParse::Param(FCommandLine::Get(), TEXT("NoScreenshots"));
 		//TODO AUTOMATION Always use fullsize screenshots.
 		const bool bFullSizeScreenshots = FParse::Param(FCommandLine::Get(), TEXT("FullSizeScreenshots"));
 		const bool bSendAnalytics = FParse::Param(FCommandLine::Get(), TEXT("SendAutomationAnalytics"));
-		AutomationController->SetScreenshotsEnabled(!bSkipScreenshots);
 
 		// Register for the callback that tells us there are tests available
 		AutomationController->OnTestsRefreshed().AddRaw(this, &FAutomationExecCmd::HandleRefreshTestCallback);
@@ -301,6 +294,16 @@ public:
 		// Update the automation process
 		switch (AutomationTestState)
 		{
+			case EAutomationTestState::Initializing:
+			{
+				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+				if ( AssetRegistryModule.Get().IsLoadingAssets() == false )
+				{
+					AutomationTestState = EAutomationTestState::Idle;
+				}
+
+				break;
+			}
 			case EAutomationTestState::FindWorkers:
 			{
 				FindWorkers(DeltaTime);
@@ -520,16 +523,16 @@ private:
 	IAutomationControllerManagerPtr AutomationController;
 
 	/** The current state of the automation process */
-	EAutomationTestState::Type AutomationTestState;
+	EAutomationTestState AutomationTestState;
 
 	/** The priority flags we would like to run */
 	EAutomationTestFlags::Type AutomationPriority;
 
 	/** What work was requested */
-	TArray<EAutomationCommand::Type> AutomationCommandQueue;
+	TArray<EAutomationCommand> AutomationCommandQueue;
 
 	/** What work was requested */
-	EAutomationCommand::Type AutomationCommand;
+	EAutomationCommand AutomationCommand;
 
 	/** Delay used before finding workers on game instances. Just to ensure they have started up */
 	float DelayTimer;

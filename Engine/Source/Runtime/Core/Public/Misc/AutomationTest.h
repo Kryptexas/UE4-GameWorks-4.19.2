@@ -723,17 +723,6 @@ public:
 	FOnTestScreenshotCaptured& OnScreenshotCaptured();
 
 	/**
-	 * Sets screenshot options
-	 * @param bInScreenshotsEnabled - If screenshots are enabled
-	 */
-	void SetScreenshotOptions( const bool bInScreenshotsEnabled );
-
-	/**
-	 * Gets if screenshots are allowed
-	 */
-	bool IsScreenshotAllowed() const;
-
-	/**
 	 * Sets forcing smoke tests.
 	 */
 	void SetForceSmokeTests(const bool bInForceSmokeTests)
@@ -886,9 +875,6 @@ private:
 
 	/** Whether we want to run automation tests on content within the Developer Directories */
 	bool bDeveloperDirectoryIncluded;
-
-	/** Wheather screenshots are enabled */
-	bool bScreenshotsEnabled;
 
 	/** Participation role as given by the automation controller */
 	uint32 NetworkRoleIndex;

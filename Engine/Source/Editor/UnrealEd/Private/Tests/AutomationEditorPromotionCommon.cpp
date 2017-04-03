@@ -246,65 +246,61 @@ void FEditorPromotionTestUtilities::EndPIE()
 */
 void FEditorPromotionTestUtilities::TakeScreenshot(const FString& ScreenshotName, const FAutomationScreenshotOptions& Options, bool bUseTopWindow)
 {
-	//Update the screenshot name, then take a screenshot.
-	if (FAutomationTestFramework::Get().IsScreenshotAllowed())
+	TSharedPtr<SWindow> Window;
+
+	if (bUseTopWindow)
 	{
-		TSharedPtr<SWindow> Window;
-
-		if (bUseTopWindow)
+		Window = FSlateApplication::Get().GetActiveTopLevelWindow();
+	}
+	else
+	{
+		//Find the main editor window
+		TArray<TSharedRef<SWindow> > AllWindows;
+		FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
+		if (AllWindows.Num() == 0)
 		{
-			Window = FSlateApplication::Get().GetActiveTopLevelWindow();
-		}
-		else
-		{
-			//Find the main editor window
-			TArray<TSharedRef<SWindow> > AllWindows;
-			FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
-			if (AllWindows.Num() == 0)
-			{
-				UE_LOG(LogEditorPromotionTests, Error, TEXT("ERROR: Could not find the main editor window."));
-				return;
-			}
-
-			Window = AllWindows[0];
+			UE_LOG(LogEditorPromotionTests, Error, TEXT("ERROR: Could not find the main editor window."));
+			return;
 		}
 
-		if (Window.IsValid())
+		Window = AllWindows[0];
+	}
+
+	if (Window.IsValid())
+	{
+		TSharedRef<SWidget> WindowRef = Window.ToSharedRef();
+
+		TArray<FColor> OutImageData;
+		FIntVector OutImageSize;
+		if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
 		{
-			TSharedRef<SWidget> WindowRef = Window.ToSharedRef();
+			FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(TEXT("Editor"), ScreenshotName, OutImageSize.X, OutImageSize.Y);
 
-			TArray<FColor> OutImageData;
-			FIntVector OutImageSize;
-			if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
+			// Copy the relevant data into the metadata for the screenshot.
+			Data.bHasComparisonRules = true;
+			Data.ToleranceRed = Options.ToleranceAmount.Red;
+			Data.ToleranceGreen = Options.ToleranceAmount.Green;
+			Data.ToleranceBlue = Options.ToleranceAmount.Blue;
+			Data.ToleranceAlpha = Options.ToleranceAmount.Alpha;
+			Data.ToleranceMinBrightness = Options.ToleranceAmount.MinBrightness;
+			Data.ToleranceMaxBrightness = Options.ToleranceAmount.MaxBrightness;
+			Data.bIgnoreAntiAliasing = Options.bIgnoreAntiAliasing;
+			Data.bIgnoreColors = Options.bIgnoreColors;
+			Data.MaximumLocalError = Options.MaximumLocalError;
+			Data.MaximumGlobalError = Options.MaximumGlobalError;
+
+			FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound(OutImageData, Data);
+
+			// TODO Add comparison support.
+			if ( GIsAutomationTesting )
 			{
-				FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(TEXT("Editor"), ScreenshotName, OutImageSize.X, OutImageSize.Y);
-
-				// Copy the relevant data into the metadata for the screenshot.
-				Data.bHasComparisonRules = true;
-				Data.ToleranceRed = Options.ToleranceAmount.Red;
-				Data.ToleranceGreen = Options.ToleranceAmount.Green;
-				Data.ToleranceBlue = Options.ToleranceAmount.Blue;
-				Data.ToleranceAlpha = Options.ToleranceAmount.Alpha;
-				Data.ToleranceMinBrightness = Options.ToleranceAmount.MinBrightness;
-				Data.ToleranceMaxBrightness = Options.ToleranceAmount.MaxBrightness;
-				Data.bIgnoreAntiAliasing = Options.bIgnoreAntiAliasing;
-				Data.bIgnoreColors = Options.bIgnoreColors;
-				Data.MaximumLocalError = Options.MaximumLocalError;
-				Data.MaximumGlobalError = Options.MaximumGlobalError;
-
-				FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound(OutImageData, Data);
-
-				// TODO Add comparison support.
-				if ( GIsAutomationTesting )
-				{
-					//FAutomationTestFramework::Get().OnScreenshotCompared.AddRaw(this, &FAutomationScreenshotTaker::OnComparisonComplete);
-				}
+				//FAutomationTestFramework::Get().OnScreenshotCompared.AddRaw(this, &FAutomationScreenshotTaker::OnComparisonComplete);
 			}
 		}
-		else
-		{
-			UE_LOG(LogEditorPromotionTests, Error, TEXT("Failed to find editor window for screenshot (%s)"), *ScreenshotName);
-		}
+	}
+	else
+	{
+		UE_LOG(LogEditorPromotionTests, Error, TEXT("Failed to find editor window for screenshot (%s)"), *ScreenshotName);
 	}
 }
 

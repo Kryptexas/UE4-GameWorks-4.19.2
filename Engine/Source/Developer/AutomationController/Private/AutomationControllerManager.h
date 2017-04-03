@@ -160,16 +160,6 @@ public:
 		bSendAnalytics = bNewValue;
 	}
 
-	virtual bool IsScreenshotAllowed() const override
-	{
-		return bScreenshotsEnabled;
-	}
-
-	virtual void SetScreenshotsEnabled( const bool bNewValue ) override
-	{
-		bScreenshotsEnabled = bNewValue;
-	}
-
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) override
 	{
 		ReportManager.SetFilter( InFilter );
@@ -512,9 +502,6 @@ private:
 
 	/** The current test pass we are on. */
 	int32 CurrentTestPass;
-
-	/** If screenshots are enabled. */
-	bool bScreenshotsEnabled;
 
 	/** If we should send result to analytics */
 	bool bSendAnalytics;

@@ -489,16 +489,6 @@ FOnTestScreenshotCaptured& FAutomationTestFramework::OnScreenshotCaptured()
 	return TestScreenshotCapturedDelegate;
 }
 
-void FAutomationTestFramework::SetScreenshotOptions( const bool bInScreenshotsEnabled )
-{
-	bScreenshotsEnabled = bInScreenshotsEnabled;
-}
-
-bool FAutomationTestFramework::IsScreenshotAllowed() const
-{
-	return bScreenshotsEnabled;
-}
-
 void FAutomationTestFramework::PrepForAutomationTests()
 {
 	check(!GIsAutomationTesting);
@@ -674,7 +664,6 @@ FAutomationTestFramework::FAutomationTestFramework()
 	, bTestSuccessful(false)
 	, CurrentTest(nullptr)
 	, bDeveloperDirectoryIncluded(false)
-	, bScreenshotsEnabled(true)
 	, NetworkRoleIndex(0)
 	, bForceSmokeTests(false)
 	, bCaptureStack(true)

@@ -32,14 +32,19 @@ void AScreenshotFunctionalTest::PrepareTest()
 
 bool AScreenshotFunctionalTest::IsReady_Implementation()
 {
-	return (GFrameNumber - RunFrame) > 2;
+	if ( (GetWorld()->GetTimeSeconds() - StartTime) > ScreenshotOptions.Delay )
+	{
+		return ( GFrameNumber - RunFrame ) > 5;
+	}
+	
+	return false;
 }
 
 void AScreenshotFunctionalTest::StartTest()
 {
 	Super::StartTest();
 
-	UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(GetName(), ScreenshotOptions);
+	UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(this, GetName(), ScreenshotOptions);
 
 	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddUObject(this, &AScreenshotFunctionalTest::OnScreenshotTakenAndCompared);
 }

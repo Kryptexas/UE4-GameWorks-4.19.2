@@ -165,11 +165,19 @@ bool FScreenComparisonModel::RemoveExistingApproved(IScreenShotManagerPtr Screen
 
 		FString DestFilePath = LocalApprovedFolder / RelativeFile;
 		SourceControlFiles.Add(DestFilePath);
-
-		IFileManager::Get().Delete(*DestFilePath, false, true, false);
 	}
 
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlFiles) == ECommandResult::Failed )
+	{
+		//TODO Error
+	}
+
+	for ( const FString& File : SourceControlFiles )
+	{
+		IFileManager::Get().Delete(*File, false, true, false);
+	}
+
 	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), SourceControlFiles) == ECommandResult::Failed )
 	{
 		//TODO Error

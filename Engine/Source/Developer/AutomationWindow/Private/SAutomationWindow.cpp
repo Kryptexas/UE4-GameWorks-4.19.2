@@ -1183,29 +1183,11 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 			.Text(LOCTEXT("AutomationSendAnalyticsText", "Enable analytics"))
 		];
 
-	TSharedRef<SWidget> EnableScreenshotsWidget =
-		SNew(SCheckBox)
-		.IsChecked(this, &SAutomationWindow::IsEnableScreenshotsCheckBoxChecked)
-		.OnCheckStateChanged(this, &SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged)
-		.Padding(FMargin(4.0f, 0.0f))
-		.ToolTipText(LOCTEXT("AutomationEnableScreenshotsTip", "If checked, tests that support it will save screenshots"))
-		.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
-		.Content()
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("AutomationNoScreenshotText", "Enable screenshots"))
-		];
-
 
 	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
 	{
 		MenuBuilder.AddWidget(NumTests, FText::GetEmpty());
 		MenuBuilder.AddWidget(SendAnalyticsWidget, FText::GetEmpty());
-	}
-	MenuBuilder.EndSection();
-	MenuBuilder.BeginSection("AutomationWindowScreenshots", LOCTEXT("ScreenshotOptions", "Screenshot Settings"));
-	{
-		MenuBuilder.AddWidget(EnableScreenshotsWidget, FText::GetEmpty());
 	}
 	MenuBuilder.EndSection();
 
@@ -1220,21 +1202,6 @@ ECheckBoxState SAutomationWindow::IsSendAnalyticsCheckBoxChecked() const
 void SAutomationWindow::HandleSendAnalyticsBoxCheckStateChanged(ECheckBoxState CheckBoxState)
 {
 	AutomationController->SetSendAnalytics(CheckBoxState == ECheckBoxState::Checked);
-}
-
-ECheckBoxState SAutomationWindow::IsEnableScreenshotsCheckBoxChecked() const
-{
-	return AutomationController->IsScreenshotAllowed() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-void SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged(ECheckBoxState CheckBoxState)
-{
-	AutomationController->SetScreenshotsEnabled(CheckBoxState == ECheckBoxState::Checked);
-}
-
-bool SAutomationWindow::IsFullSizeScreenshotsOptionEnabled() const
-{
-	return AutomationController->IsScreenshotAllowed() && IsAutomationControllerIdle();
 }
 
 TArray<FString> SAutomationWindow::SaveExpandedTestNames(TSet<TSharedPtr<IAutomationReport>> ExpandedItems)

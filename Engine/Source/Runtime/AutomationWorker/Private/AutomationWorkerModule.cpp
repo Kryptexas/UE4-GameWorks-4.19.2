@@ -405,40 +405,37 @@ void FAutomationWorkerModule::HandleScreenShotCaptured(int32 Width, int32 Height
 
 void FAutomationWorkerModule::HandleScreenShotCapturedWithName(const TArray<FColor>& RawImageData, const FAutomationScreenshotData& Data)
 {
-	if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
-	{
-		int32 NewHeight = Data.Height;
-		int32 NewWidth = Data.Width;
+	int32 NewHeight = Data.Height;
+	int32 NewWidth = Data.Width;
 
-		TArray<uint8> CompressedBitmap;
-		FImageUtils::CompressImageArray(NewWidth, NewHeight, RawImageData, CompressedBitmap);
+	TArray<uint8> CompressedBitmap;
+	FImageUtils::CompressImageArray(NewWidth, NewHeight, RawImageData, CompressedBitmap);
 
-		FAutomationScreenshotMetadata Metadata(Data);
+	FAutomationScreenshotMetadata Metadata(Data);
 		
-		// Send the screen shot if we have a target
-		if( TestRequesterAddress.IsValid() )
-		{
-			FAutomationWorkerScreenImage* Message = new FAutomationWorkerScreenImage();
+	// Send the screen shot if we have a target
+	if( TestRequesterAddress.IsValid() )
+	{
+		FAutomationWorkerScreenImage* Message = new FAutomationWorkerScreenImage();
 
-			Message->ScreenShotName = FPaths::RootDir() / Data.Path;
-			FPaths::MakePathRelativeTo(Message->ScreenShotName, *FPaths::AutomationDir());
-			Message->ScreenImage = CompressedBitmap;
-			Message->Metadata = Metadata;
-			MessageEndpoint->Send(Message, TestRequesterAddress);
-		}
-		else
-		{
-			//Save locally
-			const bool bTree = true;
-			IFileManager::Get().MakeDirectory(*FPaths::GetPath(Data.Path), bTree);
-			FFileHelper::SaveArrayToFile(CompressedBitmap, *Data.Path);
+		Message->ScreenShotName = FPaths::RootDir() / Data.Path;
+		FPaths::MakePathRelativeTo(Message->ScreenShotName, *FPaths::AutomationDir());
+		Message->ScreenImage = CompressedBitmap;
+		Message->Metadata = Metadata;
+		MessageEndpoint->Send(Message, TestRequesterAddress);
+	}
+	else
+	{
+		//Save locally
+		const bool bTree = true;
+		IFileManager::Get().MakeDirectory(*FPaths::GetPath(Data.Path), bTree);
+		FFileHelper::SaveArrayToFile(CompressedBitmap, *Data.Path);
 
-			FString Json;
-			if ( FJsonObjectConverter::UStructToJsonObjectString(Metadata, Json) )
-			{
-				FString MetadataPath = FPaths::ChangeExtension(Data.Path, TEXT("json"));
-				FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
-			}
+		FString Json;
+		if ( FJsonObjectConverter::UStructToJsonObjectString(Metadata, Json) )
+		{
+			FString MetadataPath = FPaths::ChangeExtension(Data.Path, TEXT("json"));
+			FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 		}
 	}
 }
@@ -452,7 +449,6 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 	BeautifiedTestName = Message.BeautifiedTestName;
 	bSendAnalytics = Message.bSendAnalytics;
 	TestRequesterAddress = Context->GetSender();
-	FAutomationTestFramework::Get().SetScreenshotOptions(Message.bScreenshotsEnabled);
 
 	// Always allow the first network command to execute
 	bExecuteNextNetworkCommand = true;

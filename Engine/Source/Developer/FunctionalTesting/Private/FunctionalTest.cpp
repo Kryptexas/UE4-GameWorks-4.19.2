@@ -94,6 +94,7 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	, TotalTime(0.f)
 	, RunFrame(0)
 	, StartFrame(0)
+	, StartTime(0.0f)
 	, bIsReady(false)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -154,7 +155,6 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	{
 		TestName->bHiddenInGame = true;
 		TestName->SetHorizontalAlignment(EHTA_Center);
-		TestName->SetTextRenderColor(FColor(11, 255, 0));
 		TestName->SetRelativeLocation(FVector(0, 0, 80));
 		TestName->SetRelativeRotation(FRotator(0, 0, 0));
 		TestName->PostPhysicsComponentTick.bCanEverTick = false;
@@ -170,7 +170,16 @@ void AFunctionalTest::OnConstruction(const FTransform& Transform)
 #if WITH_EDITOR
 	if ( TestName )
 	{
-		TestName->SetText(FText::FromString(GetActorLabel()));
+		if ( bIsEnabled )
+		{
+			TestName->SetTextRenderColor(FColor(11, 255, 0));
+			TestName->SetText(FText::FromString(GetActorLabel()));
+		}
+		else
+		{
+			TestName->SetTextRenderColor(FColor(55, 55, 55));
+			TestName->SetText(FText::FromString(GetActorLabel() + TEXT("\n") + TEXT("# Disabled #")));
+		}
 	}
 #endif
 }
@@ -214,6 +223,7 @@ void AFunctionalTest::StartTest()
 {
 	TotalTime = 0.f;
 	StartFrame = GFrameNumber;
+	StartTime = GetWorld()->GetTimeSeconds();
 
 	ReceiveStartTest();
 	OnTestStart.Broadcast();

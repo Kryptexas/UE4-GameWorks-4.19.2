@@ -263,8 +263,6 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 	}
 	
 
-	const bool bTakeScreenshots = FAutomationTestFramework::Get().IsScreenshotAllowed();
-	if( bTakeScreenshots )
 	{
 		//Find the main editor window
 		TArray<TSharedRef<SWindow> > AllWindows;
@@ -299,15 +297,6 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 			//Give the contents some time to load
 			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.5f));
 		}
-	}
-	else
-	{
-		//Get the current number of seconds.  This will be used to track how long it took to load the map.
-		MapLoadStartTime = FPlatformTime::Seconds();
-				//Load the map
-		FAutomationEditorCommonUtils::LoadMap(MapName);
-		//Log how long it took to launch the map.
-		UE_LOG(LogEditorAutomationTests, Display, TEXT("Map '%s' took %.3f to load"), *MapName, FPlatformTime::Seconds() - MapLoadStartTime);
 	}
 
 	return true;

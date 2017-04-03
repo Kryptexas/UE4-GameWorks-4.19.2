@@ -23,7 +23,8 @@ namespace UnrealBuildTool.Rules
                     "Json",
                     "JsonUtilities",
 					"ScreenShotComparisonTools",
-					"HTTP"
+					"HTTP",
+                    "AssetRegistry"
                 }
 			);
 

@@ -277,10 +277,6 @@ struct FAutomationWorkerRunTests
 	UPROPERTY()
 	FString BeautifiedTestName;
 
-	/** If true, we will save out screenshots for tests that support them. */
-	UPROPERTY(EditAnywhere, Category="Message")
-	bool bScreenshotsEnabled;
-
 	/** If true, send results to analytics when complete */
 	UPROPERTY()
 	bool bSendAnalytics;
@@ -289,12 +285,11 @@ struct FAutomationWorkerRunTests
 	FAutomationWorkerRunTests( ) { }
 
 	/** Creates and initializes a new instance. */
-	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, FString InBeautifiedTestName, bool InScreenshotsEnabled, bool InSendAnalytics)
+	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, FString InBeautifiedTestName, bool InSendAnalytics)
 		: ExecutionCount(InExecutionCount)
 		, RoleIndex(InRoleIndex)
 		, TestName(InTestName)
 		, BeautifiedTestName(InBeautifiedTestName)
-		, bScreenshotsEnabled(InScreenshotsEnabled)
 		, bSendAnalytics(InSendAnalytics)
 	{ }
 };
