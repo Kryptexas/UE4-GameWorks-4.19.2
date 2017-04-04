@@ -1085,6 +1085,15 @@ public:
 	 */
 	static const TArray<FString>& GetConfidentialPlatforms();
 
+	
+	/**
+	 * Returns true if the platform allows network traffic for anonymous end user usage data
+	 */
+	static bool AllowSendAnonymousGameUsageDataToEpic()
+	{
+		return true;
+	}
+
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */

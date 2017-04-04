@@ -10677,7 +10677,7 @@ UGameViewportClient* UEngine::GameViewportForWorld(const UWorld *InWorld) const
 
 bool UEngine::AreGameAnalyticsEnabled() const
 { 
-	return GetDefault<UEndUserSettings>()->bSendAnonymousUsageDataToEpic;
+	return FPlatformMisc::AllowSendAnonymousGameUsageDataToEpic() && GetDefault<UEndUserSettings>()->bSendAnonymousUsageDataToEpic;
 }
 
 bool UEngine::AreGameAnalyticsAnonymous() const

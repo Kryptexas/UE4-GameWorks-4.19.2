@@ -1007,6 +1007,7 @@ FParticleVertexFactoryBase *FDynamicSpriteEmitterData::CreateVertexFactory()
 	FParticleSpriteVertexFactory *VertexFactory = new FParticleSpriteVertexFactory();
 	VertexFactory->SetParticleFactoryType(PVFT_Sprite);
 	const UParticleModuleRequired* RequiredModule = GetSourceData()->RequiredModule;
+	// this check needs to match the code inside FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter()
 	VertexFactory->SetNumVertsInInstanceBuffer(RequiredModule->IsBoundingGeometryValid() && RequiredModule->AlphaThreshold ? RequiredModule->GetNumBoundingVertices() : 4);
 	VertexFactory->InitResource();
 	return VertexFactory;
@@ -1034,7 +1035,8 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 			int32 NumVerticesPerParticle = 4;
 			int32 NumTrianglesPerParticle = 2;
 
-			if (SourceData->RequiredModule->IsBoundingGeometryValid())
+			// this check needs to match the code inside FDynamicSpriteEmitterData::CreateVertexFactory()
+			if (SourceData->RequiredModule->IsBoundingGeometryValid() && SourceData->RequiredModule->AlphaThreshold)
 			{
 				NumVerticesPerParticle = SourceData->RequiredModule->GetNumBoundingVertices();
 				NumTrianglesPerParticle = SourceData->RequiredModule->GetNumBoundingTriangles();
@@ -1151,7 +1153,13 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 					// Set the sprite uniform buffer for this view.
 					SpriteVertexFactory->SetSpriteUniformBuffer(CollectorResources.UniformBuffer);
-					SpriteVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, VertexSize, bInstanced);
+#if PLATFORM_SWITCH
+					// use the full vertex for non-instancing case, and the "4 float" instance data for the instanced case
+					uint32 InstanceBufferStride = bInstanced ? ((sizeof(float) * 4) * NumVerticesPerParticle) : VertexSize;
+#else
+					uint32 InstanceBufferStride = VertexSize;
+#endif
+					SpriteVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, InstanceBufferStride, bInstanced);
 					SpriteVertexFactory->SetDynamicParameterBuffer(DynamicParameterAllocation.VertexBuffer, DynamicParameterAllocation.VertexOffset, GetDynamicParameterVertexStride(), bInstanced);
 
 					if (SourceData->RequiredModule->IsBoundingGeometryValid() && SourceData->RequiredModule->AlphaThreshold)

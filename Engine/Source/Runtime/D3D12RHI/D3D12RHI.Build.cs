@@ -16,7 +16,7 @@ public class D3D12RHI : ModuleRules
 				"RenderCore",
 				"ShaderCore",
 				"UtilityShaders",
-				}
+			    }
 			);
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
@@ -25,15 +25,15 @@ public class D3D12RHI : ModuleRules
 		}
 
 		///////////////////////////////////////////////////////////////
-		// Platform specific defines
-		///////////////////////////////////////////////////////////////
+        // Platform specific defines
+        ///////////////////////////////////////////////////////////////
 
-		if (Target.Platform != UnrealTargetPlatform.Win64 && Target.Platform != UnrealTargetPlatform.XboxOne)
-		{
-			PrecompileForTargets = PrecompileTargetsType.None;
-		}
+        if (Target.Platform != UnrealTargetPlatform.Win64 && Target.Platform != UnrealTargetPlatform.XboxOne)
+        {
+            PrecompileForTargets = PrecompileTargetsType.None;
+        }
 
-		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+        if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");

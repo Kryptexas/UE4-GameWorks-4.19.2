@@ -894,6 +894,94 @@ public:
 	}
 };
 
+#if USE_STATIC_ROOT_SIGNATURE
+class FD3D12ConstantBufferView : /*public FD3D12ViewGeneric, */public FD3D12DeviceChild
+{
+			public:
+//protected:
+	/** The handle to the descriptor in the offline descriptor heap */
+	CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineDescriptorHandle;
+
+	/** Index of the descriptor in the offline heap */
+	uint32 OfflineHeapIndex;
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC Desc;
+
+//protected:
+
+	explicit FD3D12ConstantBufferView(FD3D12Device* InParent, const D3D12_CONSTANT_BUFFER_VIEW_DESC* InDesc)
+		: FD3D12DeviceChild(InParent)
+		, OfflineHeapIndex(UINT_MAX)
+	{
+		OfflineDescriptorHandle.ptr = 0;
+		Init(InDesc);
+	}
+
+	virtual ~FD3D12ConstantBufferView()
+	{
+		FreeHeapSlot();
+	}
+
+	void Init(const D3D12_CONSTANT_BUFFER_VIEW_DESC* InDesc)
+	{
+		if (InDesc)
+		{
+			Desc = *InDesc;
+		}
+		else
+		{
+			FMemory::Memzero(&Desc, sizeof(Desc));
+		}
+		AllocateHeapSlot();
+	}
+
+	void AllocateHeapSlot();
+
+	void FreeHeapSlot();
+
+	void Create(D3D12_GPU_VIRTUAL_ADDRESS GPUAddress, const uint32 AlignedSize);
+
+public:
+/*
+	void CreateView(FD3D12Resource* InResource = nullptr, FD3D12Resource* InCounterResource = nullptr)
+	{
+		if (!InResource)
+		{
+			InResource = GetResource();
+		}
+		else
+		{
+			// Only need to update the view's subresource subset if a new resource is used
+			UpdateViewSubresourceSubset(InResource);
+		}
+
+		check(Descriptor.ptr != 0);
+		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
+			InResource ? InResource->GetResource() : nullptr, &Desc, Descriptor);
+	}
+
+	void CreateViewWithCounter(FD3D12Resource* InResource, FD3D12Resource* InCounterResource)
+	{
+		if (!InResource)
+		{
+			InResource = GetResource();
+		}
+		else
+		{
+			// Only need to update the view's subresource subset if a new resource is used
+			UpdateViewSubresourceSubset(InResource);
+		}
+
+		check(Descriptor.ptr != 0);
+		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
+			InResource ? InResource->GetResource() : nullptr,
+			InCounterResource ? InCounterResource->GetResource() : nullptr, &Desc, Descriptor);
+	}*/
+
+	const D3D12_CONSTANT_BUFFER_VIEW_DESC& GetDesc() const { return Desc; }
+};
+#endif
+
 class FD3D12RenderTargetView : public FD3D12View<D3D12_RENDER_TARGET_VIEW_DESC>, public FRHIResource, public FD3D12LinkedAdapterObject<FD3D12RenderTargetView>
 {
 public:

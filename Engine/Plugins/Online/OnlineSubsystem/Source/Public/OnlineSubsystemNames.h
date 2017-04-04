@@ -60,6 +60,10 @@
 #define WECHAT_SUBSYSTEM FName(TEXT("WeChat"))
 #endif
 
+#ifndef SWITCH_SUBSYSTEM
+#define SWITCH_SUBSYSTEM FName(TEXT("SWITCH"))
+#endif
+
 #ifndef OCULUS_SUBSYSTEM
 #define OCULUS_SUBSYSTEM FName(TEXT("Oculus"))
 #endif

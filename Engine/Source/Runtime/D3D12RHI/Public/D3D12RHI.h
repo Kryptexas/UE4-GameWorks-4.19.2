@@ -6,9 +6,6 @@
 
 #pragma once
 
-DECLARE_STATS_GROUP(TEXT("D3D12RHI"), STATGROUP_D3D12RHI, STATCAT_Advanced);
-
-
 ///////////////////////////////////////////////////////////////
 // Platform agnostic defines
 ///////////////////////////////////////////////////////////////
@@ -29,8 +26,11 @@ DECLARE_STATS_GROUP(TEXT("D3D12RHI"), STATGROUP_D3D12RHI, STATCAT_Advanced);
 // Note: Using root descriptors significantly increases the size of root signatures (each root descriptor is 2 DWORDs).
 #define MAX_ROOT_CBVS	MAX_CBS
 
-// PC uses a multiple root signatures that are optimized for a particular draw/dispatch.
-#define USE_STATIC_ROOT_SIGNATURE	0
+// So outside callers can override this
+#ifndef USE_STATIC_ROOT_SIGNATURE
+	// Make sure this is in sync with the overrides!
+	#define USE_STATIC_ROOT_SIGNATURE	PLATFORM_XBOXONE
+#endif
 
 // How many residency packets can be in flight before the rendering thread
 // blocks for them to drain. Should be ~ NumBufferedFrames * AvgNumSubmissionsPerFrame i.e.
@@ -69,6 +69,7 @@ DECLARE_STATS_GROUP(TEXT("D3D12RHI"), STATGROUP_D3D12RHI, STATCAT_Advanced);
 typedef uint16 CBVSlotMask;
 static_assert(MAX_ROOT_CBVS <= MAX_CBS, "MAX_ROOT_CBVS must be <= MAX_CBS.");
 static_assert((8 * sizeof(CBVSlotMask)) >= MAX_CBS, "CBVSlotMask isn't large enough to cover all CBs. Please increase the size.");
+static_assert((8 * sizeof(CBVSlotMask)) >= MAX_ROOT_CBVS, "CBVSlotMask isn't large enough to cover all CBs. Please increase the size.");
 static const CBVSlotMask GRootCBVSlotMask = (1 << MAX_ROOT_CBVS) - 1; // Mask for all slots that are used by root descriptors.
 static const CBVSlotMask GDescriptorTableCBVSlotMask = static_cast<CBVSlotMask>(-1) & ~(GRootCBVSlotMask); // Mask for all slots that are used by a root descriptor table.
 

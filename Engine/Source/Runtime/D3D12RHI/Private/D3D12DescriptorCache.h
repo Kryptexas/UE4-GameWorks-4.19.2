@@ -315,8 +315,8 @@ class FD3D12OnlineHeap : public FD3D12DeviceChild, public FD3D12SingleNodeGPUObj
 public:
 	FD3D12OnlineHeap(FD3D12Device* Device, GPUNodeMask Node, bool CanLoopAround, FD3D12DescriptorCache* _Parent = nullptr);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) const { return{ CPUBase.ptr + Slot * DescriptorSize }; }
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) const { return{ GPUBase.ptr + Slot * DescriptorSize }; }
+	FORCEINLINE D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) const { return{ CPUBase.ptr + Slot * DescriptorSize }; }
+	FORCEINLINE D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) const { return{ GPUBase.ptr + Slot * DescriptorSize }; }
 
 	inline const uint32 GetDescriptorSize() const { return DescriptorSize; }
 
@@ -339,7 +339,11 @@ public:
 	// Roll over behavior depends on the heap type
 	virtual bool RollOver() = 0;
 	virtual void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
-	virtual uint32 GetTotalSize();
+
+	virtual uint32 GetTotalSize()
+	{
+		return Desc.NumDescriptors;
+	}
 
 	static const uint32 HeapExhaustedValue = uint32(-1);
 
@@ -430,7 +434,12 @@ public:
 	// Specializations
 	bool RollOver();
 	void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
-	uint32 GetTotalSize();
+
+	virtual uint32 GetTotalSize() final override
+	{
+		return CurrentSubAllocation.Size;
+	}
+
 
 private:
 
@@ -545,6 +554,9 @@ public:
 	TRefCountPtr<FD3D12ShaderResourceView> pNullSRV;
 	TRefCountPtr<FD3D12UnorderedAccessView> pNullUAV;
 	TRefCountPtr<FD3D12RenderTargetView> pNullRTV;
+#if USE_STATIC_ROOT_SIGNATURE
+	FD3D12ConstantBufferView* pNullCBV;
+#endif
 	TRefCountPtr<FD3D12SamplerState> pDefaultSampler;
 
 	void SetIndexBuffer(FD3D12IndexBufferCache& Cache);
@@ -561,7 +573,11 @@ public:
 	void SetSRVs(FD3D12ShaderResourceViewCache& Cache, const SRVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
 
 	template <EShaderFrequency ShaderStage> 
+#if USE_STATIC_ROOT_SIGNATURE
+	void SetConstantBuffers(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
+#else
 	void SetConstantBuffers(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask);
+#endif
 
 	void SetStreamOutTargets(FD3D12Resource **Buffers, uint32 Count, const uint32* Offsets);
 

@@ -1403,6 +1403,7 @@ void FScene::UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Compo
 
 void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureComponent)
 {
+	bool bRemoved = false;
 	for (TSparseArray<UReflectionCaptureComponent*>::TIterator It(ReflectionSceneData.AllocatedReflectionCapturesGameThread); It; ++It)
 	{
 		UReflectionCaptureComponent* CurrentCapture = *It;
@@ -1410,27 +1411,28 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 		if (CurrentCapture == CaptureComponent)
 		{
 			It.RemoveCurrent();
+			bRemoved = true;
 			break;
 		}
 	}
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		RemoveCaptureCommand,
-		UReflectionCaptureComponent*,Component,CaptureComponent,
-		FScene*,Scene,this,
+	if (bRemoved)
 	{
-		// In SM5 we track removed captures so we can remap them when reallocating the cubemap array
-		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5)
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			RemoveCaptureCommand,
+			UReflectionCaptureComponent*, Component, CaptureComponent,
+			FScene*, Scene, this,
 		{
 			const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(Component);
 			if (ComponentStatePtr)
 			{
-				Scene->ReflectionSceneData.CubemapIndicesRemovedSinceLastRealloc.Add(ComponentStatePtr->CaptureIndex);
+				// We track removed captures so we can remap them when reallocating the cubemap array
+				check(ComponentStatePtr->CaptureIndex != -1);
+				Scene->ReflectionSceneData.CubemapArraySlotsUsed[ComponentStatePtr->CaptureIndex] = false;
 			}
-		}
-
-		Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Remove(Component);
-	});
+			Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Remove(Component);
+		});
+	}
 }
 
 const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Position) const

@@ -809,8 +809,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.
-	bool bOcclusionBeforeBasePass = ((CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass) || IsForwardShadingEnabled(FeatureLevel);	
-	bool bHZBBeforeBasePass = bOcclusionBeforeBasePass && (EarlyZPassMode == EDepthDrawingMode::DDM_AllOccluders);
+	bool bOcclusionBeforeBasePass = ((CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass) || IsForwardShadingEnabled(FeatureLevel);
+	bool bHZBBeforeBasePass = bOcclusionBeforeBasePass && (EarlyZPassMode == EDepthDrawingMode::DDM_AllOccluders || EarlyZPassMode == EDepthDrawingMode::DDM_AllOpaque);
 
 	RenderOcclusion(RHICmdList, bOcclusionBeforeBasePass, bHZBBeforeBasePass);
 	ServiceLocalQueue();

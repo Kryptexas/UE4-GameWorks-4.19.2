@@ -1068,7 +1068,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.                                       
-#define STATICMESH_DERIVEDDATA_VER TEXT("A79406F441384B92B4EC5F4D7AB83B6C")
+#define STATICMESH_DERIVEDDATA_VER TEXT("BA08C66E86EF48C993A163FC0A9ADF67")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {

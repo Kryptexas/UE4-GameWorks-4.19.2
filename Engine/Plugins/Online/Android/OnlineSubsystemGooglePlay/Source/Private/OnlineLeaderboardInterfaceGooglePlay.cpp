@@ -136,6 +136,17 @@ bool FOnlineLeaderboardsGooglePlay::FlushLeaderboards(const FName& SessionName)
 	return true;
 }
 
+bool FOnlineLeaderboardsGooglePlay::ReadLeaderboardsAroundRank(int32 Rank, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardsGooglePlay::ReadLeaderboardsAroundRank is currently not supported."));
+	return false;
+}
+bool FOnlineLeaderboardsGooglePlay::ReadLeaderboardsAroundUser(TSharedRef<const FUniqueNetId> Player, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardsGooglePlay::ReadLeaderboardsAroundUser is currently not supported."));
+	return false;
+}
+
 bool FOnlineLeaderboardsGooglePlay::WriteOnlinePlayerRatings(const FName& SessionName, int32 LeaderboardId, const TArray<FOnlinePlayerScore>& PlayerScores)
 {
 	//iOS doesn't support this, and there is no Google Play functionality for this either

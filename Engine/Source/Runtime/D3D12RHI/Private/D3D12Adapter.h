@@ -131,12 +131,11 @@ public:
 	{
 		return RootSignatureManager.GetRootSignature(QBSS);
 	}
-
+#endif
 	inline FD3D12RootSignatureManager* GetRootSignatureManager()
 	{
 		return &RootSignatureManager;
 	}
-#endif
 
 	inline FD3D12DeferredDeletionQueue& GetDeferredDeletionQueue() { return DeferredDeletionQueue; }
 

@@ -427,4 +427,7 @@
 	<Property Name="CopySwitchExceptions">
 	</Property>
 
+	<!-- Additional Binaries(.nspd directories) -->
+	<Property Name="CopySwitchFilter" Value="$(CopySwitchFilter);Engine/Binaries/Switch/*.nspd/..."/>
+
 </BuildGraph>

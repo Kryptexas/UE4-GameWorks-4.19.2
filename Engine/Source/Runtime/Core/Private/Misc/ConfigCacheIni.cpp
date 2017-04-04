@@ -1350,6 +1350,28 @@ bool FConfigFile::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value 
 	return FTextStringHelper::ReadFromString( *PairString->GetValue(), Value, Section );
 }
 
+bool FConfigFile::GetInt(const TCHAR* Section, const TCHAR* Key, int& Value) const
+{
+	FString Text;
+	if (GetString(Section, Key, Text))
+	{
+		Value = FCString::Atoi(*Text);
+		return true;
+	}
+	return false;
+}
+
+bool FConfigFile::GetFloat(const TCHAR* Section, const TCHAR* Key, float& Value) const
+{
+	FString Text;
+	if (GetString(Section, Key, Text))
+	{
+		Value = FCString::Atof(*Text);
+		return true;
+	}
+	return false;
+}
+
 bool FConfigFile::GetInt64( const TCHAR* Section, const TCHAR* Key, int64& Value ) const
 {
 	FString Text; 

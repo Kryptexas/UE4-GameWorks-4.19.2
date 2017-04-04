@@ -201,6 +201,9 @@ protected:
 			ThreadInitSyncEvent->Wait(INFINITE);
 			ThreadName = InThreadName ? InThreadName : TEXT("Unnamed UE4");
 			SetThreadName( ThreadID, TCHAR_TO_ANSI( *ThreadName ) );
+#if PLATFORM_XBOXONE
+			::SetThreadName( Thread, *ThreadName );
+#endif
 			SetThreadPriority(InThreadPri);
 		}
 

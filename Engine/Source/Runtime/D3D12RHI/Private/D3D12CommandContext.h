@@ -21,7 +21,6 @@ THIRD_PARTY_INCLUDES_START
 #include <delayimp.h>
 
 #if USE_PIX
-	static_assert(WITH_PROFILEGPU == 1, "PIX profiling is requested/enabled, however the engine is compiling out draw events. See Build.h.");
 	#include "pix3.h"
 #endif
 #include "HideWindowsPlatformTypes.h"
@@ -94,6 +93,7 @@ public:
 
 	/** Track the currently bound uniform buffers. */
 	FD3D12UniformBuffer* BoundUniformBuffers[SF_NumFrequencies][MAX_CBS];
+	FUniformBufferRHIRef BoundUniformBufferRefs[SF_NumFrequencies][MAX_CBS];
 
 	/** Bit array to track which uniform buffers have changed since the last draw call. */
 	uint16 DirtyUniformBuffers[SF_NumFrequencies];

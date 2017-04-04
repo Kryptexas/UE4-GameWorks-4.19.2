@@ -15,12 +15,22 @@ FD3D12ConstantBuffer::FD3D12ConstantBuffer(FD3D12Device* InParent, FD3D12FastCon
 	Allocator(InAllocator),
 	bIsDirty(false),
 	FD3D12DeviceChild(InParent)
+#if USE_STATIC_ROOT_SIGNATURE
+	, View(nullptr)
+#endif
 {
 	FMemory::Memset(ShadowData, 0);
+#if USE_STATIC_ROOT_SIGNATURE
+	View = new FD3D12ConstantBufferView(InParent, nullptr);
+#endif
 }
 
 FD3D12ConstantBuffer::~FD3D12ConstantBuffer()
-{}
+{
+#if USE_STATIC_ROOT_SIGNATURE
+	delete View;
+#endif
+}
 
 bool FD3D12ConstantBuffer::Version(FD3D12ResourceLocation& BufferOut, bool bDiscardSharedConstants)
 {
@@ -43,8 +53,16 @@ bool FD3D12ConstantBuffer::Version(FD3D12ResourceLocation& BufferOut, bool bDisc
 		TotalUpdateSize = FMath::Max(CurrentUpdateSize, TotalUpdateSize);
 	}
 
+#if USE_STATIC_ROOT_SIGNATURE
+	View->AllocateHeapSlot();
+#endif
+
 	// Get the next constant buffer
+#if USE_STATIC_ROOT_SIGNATURE
+	void* Data = Allocator.Allocate(TotalUpdateSize, BufferOut, View);
+#else
 	void* Data = Allocator.Allocate(TotalUpdateSize, BufferOut);
+#endif
 
 	check(TotalUpdateSize <= sizeof(ShadowData));
 	FMemory::Memcpy(Data, ShadowData, TotalUpdateSize);

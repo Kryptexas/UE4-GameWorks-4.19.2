@@ -353,7 +353,7 @@ public:
 		return lhs != rhs.CommandListData;
 	}
 
-	ID3D12GraphicsCommandList* operator->() const
+	FORCEINLINE ID3D12GraphicsCommandList* operator->() const
 	{
 		check(CommandListData && !CommandListData->IsClosed);
 	

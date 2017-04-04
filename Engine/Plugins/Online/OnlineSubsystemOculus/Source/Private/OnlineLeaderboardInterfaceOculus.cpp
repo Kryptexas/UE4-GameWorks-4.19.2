@@ -24,6 +24,17 @@ bool FOnlineLeaderboardOculus::ReadLeaderboardsForFriends(int32 LocalUserNum, FO
 	return ReadOculusLeaderboards(/* Only Friends */ true, ReadObject);
 }
 
+bool FOnlineLeaderboardOculus::ReadLeaderboardsAroundRank(int32 Rank, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardOculus::ReadLeaderboardsAroundRank is currently not supported."));
+	return false;
+}
+bool FOnlineLeaderboardOculus::ReadLeaderboardsAroundUser(TSharedRef<const FUniqueNetId> Player, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardOculus::ReadLeaderboardsAroundUser is currently not supported."));
+	return false;
+}
+
 bool FOnlineLeaderboardOculus::ReadOculusLeaderboards(bool OnlyFriends, FOnlineLeaderboardReadRef& ReadObject) 
 {
 	auto FilterType = (OnlyFriends) ? ovrLeaderboard_FilterFriends : ovrLeaderboard_FilterNone;

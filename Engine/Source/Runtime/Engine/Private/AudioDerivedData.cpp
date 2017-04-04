@@ -798,6 +798,13 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 	TArray<int32>			RequiredChannels;
 
 	uint8* RawWaveData = ( uint8* )SoundWave->RawData.Lock( LOCK_READ_ONLY );
+	if (RawWaveData == nullptr)
+	{
+		SoundWave->RawData.Unlock();
+
+		UE_LOG(LogAudioDerivedData, Warning, TEXT("No raw wave data for: %s"), *SoundWave->GetFullName());
+		return;
+	}
 
 	// Front left channel is the master
 	static_assert(SPEAKER_FrontLeft == 0, "Front-left speaker must be first.");
@@ -912,6 +919,10 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 					UE_LOG(LogAudioDerivedData, Warning, TEXT( "Updated SoundWave->Duration during cooking %s." ), *SoundWave->GetFullName() );
 					SoundWave->Duration = ( float )SampleDataSize / (SoundWave->SampleRate * sizeof( int16 ));
 				}			
+			}
+			else
+			{
+				UE_LOG(LogAudioDerivedData, Warning, TEXT("Cooking surround sound failed: %s"), *SoundWave->GetPathName());
 			}
 		}
 		else

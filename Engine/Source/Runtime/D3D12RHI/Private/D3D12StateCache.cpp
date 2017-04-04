@@ -475,6 +475,9 @@ void FD3D12StateCacheBase::ApplyState()
 	UAVSlotMask CurrentShaderDirtyUAVSlots = 0;
 	uint32 NumUAVs = 0;
 	uint32 NumSRVs[SF_NumFrequencies] = {};
+#if USE_STATIC_ROOT_SIGNATURE
+	uint32 NumCBVs[SF_NumFrequencies] ={};
+#endif
 	uint32 NumViews = 0;
 	for (uint32 iTries = 0; iTries < 2; ++iTries)
 	{
@@ -519,6 +522,23 @@ void FD3D12StateCacheBase::ApplyState()
 
 			const CBVSlotMask CurrentShaderCBVRegisterMask = (1 << PipelineState.Common.CurrentShaderCBCounts[Stage]) - 1;
 			CurrentShaderDirtyCBVSlots[Stage] = CurrentShaderCBVRegisterMask & PipelineState.Common.CBVCache.DirtySlotMask[Stage];
+#if USE_STATIC_ROOT_SIGNATURE
+			if (CurrentShaderDirtyCBVSlots[Stage])
+			{
+				if (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
+				{
+					// Tier 1 HW requires the full number of SRV descriptors defined in the root signature's descriptor table.
+					NumCBVs[Stage] = pRootSignature->MaxCBVCount(Stage);
+				}
+				else
+				{
+					NumCBVs[Stage] = PipelineState.Common.CurrentShaderCBCounts[Stage];
+				}
+
+				check(NumCBVs[Stage] > 0 && NumCBVs[Stage] <= MAX_SRVS);
+				NumViews += NumCBVs[Stage];
+			}
+#endif
 			// Note: CBVs don't currently use descriptor tables but we still need to know what resource point slots are dirty.
 		}
 
@@ -578,11 +598,19 @@ void FD3D12StateCacheBase::ApplyState()
 		SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetConstantBufferTime);
 		FD3D12ConstantBufferCache& CBVCache = PipelineState.Common.CBVCache;
 
-#define CONDITIONAL_SET_CBVS(Shader) \
+#if USE_STATIC_ROOT_SIGNATURE
+	#define CONDITIONAL_SET_CBVS(Shader) \
+		if (CurrentShaderDirtyCBVSlots[##Shader]) \
+		{ \
+			DescriptorCache.SetConstantBuffers<##Shader>(CBVCache, CurrentShaderDirtyCBVSlots[##Shader], NumCBVs[##Shader], ViewHeapSlot); \
+		}
+#else
+	#define CONDITIONAL_SET_CBVS(Shader) \
 		if (CurrentShaderDirtyCBVSlots[##Shader]) \
 		{ \
 			DescriptorCache.SetConstantBuffers<##Shader>(CBVCache, CurrentShaderDirtyCBVSlots[##Shader]); \
 		}
+#endif
 
 		if (IsCompute)
 		{
@@ -936,7 +964,11 @@ void FD3D12StateCacheBase::SetUAVs(uint32 UAVStartSlot, uint32 NumSimultaneousUA
 			if (UAV->CounterResource && (!UAV->CounterResourceInitialized || UAVInitialCountArray[i] != -1))
 			{
 				FD3D12ResourceLocation UploadBufferLocation(GetParentDevice());
+#if USE_STATIC_ROOT_SIGNATURE
+				uint32* CounterUploadHeapData = static_cast<uint32*>(CmdContext->ConstantsAllocator.Allocate(sizeof(uint32), UploadBufferLocation, nullptr));
+#else
 				uint32* CounterUploadHeapData = static_cast<uint32*>(CmdContext->ConstantsAllocator.Allocate(sizeof(uint32), UploadBufferLocation));
+#endif
 
 				// Initialize the counter to 0 if it's not been previously initialized and the UAVInitialCount is -1, if not use the value that was passed.
 				*CounterUploadHeapData = (!UAV->CounterResourceInitialized && UAVInitialCountArray[i] == -1) ? 0 : UAVInitialCountArray[i];

@@ -322,3 +322,32 @@ FD3D12DepthStencilView* FD3D12DepthStencilView::CreateDepthStencilView(FD3D12Dev
 {
 	return new FD3D12DepthStencilView(Parent, &Desc, ResourceLocation, HasStencil);
 }
+
+#if USE_STATIC_ROOT_SIGNATURE
+void FD3D12ConstantBufferView::AllocateHeapSlot()
+{
+	if (!OfflineDescriptorHandle.ptr)
+	{
+	    FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<D3D12_CONSTANT_BUFFER_VIEW_DESC>();
+	    OfflineDescriptorHandle = DescriptorAllocator.AllocateHeapSlot(OfflineHeapIndex);
+	    check(OfflineDescriptorHandle.ptr != 0);
+	}
+}
+
+void FD3D12ConstantBufferView::FreeHeapSlot()
+{
+	if (OfflineDescriptorHandle.ptr)
+	{
+		FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<D3D12_CONSTANT_BUFFER_VIEW_DESC>();
+		DescriptorAllocator.FreeHeapSlot(OfflineDescriptorHandle, OfflineHeapIndex);
+		OfflineDescriptorHandle.ptr = 0;
+	}
+}
+
+void FD3D12ConstantBufferView::Create(D3D12_GPU_VIRTUAL_ADDRESS GPUAddress, const uint32 AlignedSize)
+{
+	Desc.BufferLocation = GPUAddress;
+	Desc.SizeInBytes = AlignedSize;
+	GetParentDevice()->GetDevice()->CreateConstantBufferView(&Desc, OfflineDescriptorHandle);
+}
+#endif

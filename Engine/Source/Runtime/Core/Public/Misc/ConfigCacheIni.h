@@ -322,6 +322,8 @@ public:
 
 	CORE_API bool GetString( const TCHAR* Section, const TCHAR* Key, FString& Value ) const;
 	CORE_API bool GetText( const TCHAR* Section, const TCHAR* Key, FText& Value ) const;
+	CORE_API bool GetInt(const TCHAR* Section, const TCHAR* Key, int& Value) const;
+	CORE_API bool GetFloat(const TCHAR* Section, const TCHAR* Key, float& Value) const;
 	CORE_API bool GetInt64( const TCHAR* Section, const TCHAR* Key, int64& Value ) const;
 	CORE_API bool GetBool( const TCHAR* Section, const TCHAR* Key, bool& Value ) const;
 	CORE_API int32 GetArray(const TCHAR* Section, const TCHAR* Key, TArray<FString>& Value) const;

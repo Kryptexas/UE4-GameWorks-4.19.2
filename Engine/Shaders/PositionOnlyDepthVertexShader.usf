@@ -54,7 +54,7 @@ void Main(
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input);
 	ISOLATE
 	{
-		OutPosition = mul(WorldPos, ResolvedView.TranslatedWorldToClip);
+		OutPosition = INVARIANT(mul(WorldPos, ResolvedView.TranslatedWorldToClip));
 	}
 
 	#if INSTANCED_STEREO && !MULTI_VIEW

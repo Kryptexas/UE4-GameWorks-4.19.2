@@ -194,8 +194,8 @@ void MainVertexShader(
 		OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(TranslatedWorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, 1));
 #endif
 
-		Output.Interps.PackedVelocityA = ScreenPos;
-		Output.Interps.PackedVelocityC = PrevScreenPosObj;
+		Output.Interps.PackedVelocityA = INVARIANT(ScreenPos);
+		Output.Interps.PackedVelocityC = INVARIANT(PrevScreenPosObj);
 	}
 
 // Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).

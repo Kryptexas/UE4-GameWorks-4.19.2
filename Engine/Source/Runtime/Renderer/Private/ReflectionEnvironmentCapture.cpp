@@ -683,7 +683,7 @@ int32 FindOrAllocateCubemapIndex(FScene* Scene, const UReflectionCaptureComponen
 	int32 CaptureIndex = -1;
 
 	// Try to find an existing capture index for this component
-	FCaptureComponentSceneState* CaptureSceneStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(Component);
+	const FCaptureComponentSceneState* CaptureSceneStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(Component);
 
 	if (CaptureSceneStatePtr)
 	{
@@ -692,19 +692,12 @@ int32 FindOrAllocateCubemapIndex(FScene* Scene, const UReflectionCaptureComponen
 	else
 	{
 		// Reuse a freed index if possible
-		for (int32 PotentialIndex = 0; PotentialIndex < Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Num(); PotentialIndex++)
+		CaptureIndex = Scene->ReflectionSceneData.CubemapArraySlotsUsed.FindAndSetFirstZeroBit();
+		if (CaptureIndex == INDEX_NONE)
 		{
-			if (!Scene->ReflectionSceneData.AllocatedReflectionCaptureState.FindKey(FCaptureComponentSceneState(PotentialIndex)))
-			{
-				CaptureIndex = PotentialIndex;
-				break;
-			}
-		}
-
-		// Allocate a new index if needed
-		if (CaptureIndex == -1)
-		{
-			CaptureIndex = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Num();
+			// If we didn't find a free index, allocate a new one from the CubemapArraySlotsUsed bitfield
+			CaptureIndex = Scene->ReflectionSceneData.CubemapArraySlotsUsed.Num();
+			Scene->ReflectionSceneData.CubemapArraySlotsUsed.Add(true);
 		}
 
 		Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Add(Component, FCaptureComponentSceneState(CaptureIndex));
@@ -1032,7 +1025,7 @@ void FScene::UpdateAllReflectionCaptures()
 			FScene*, Scene, this,
 		{
 			Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Empty();
-			Scene->ReflectionSceneData.CubemapIndicesRemovedSinceLastRealloc.Empty();
+			Scene->ReflectionSceneData.CubemapArraySlotsUsed.Reset();
 		});
 
 		const int32 UpdateDivisor = FMath::Max(ReflectionSceneData.AllocatedReflectionCapturesGameThread.Num() / 20, 1);

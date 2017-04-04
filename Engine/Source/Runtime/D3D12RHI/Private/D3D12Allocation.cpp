@@ -1389,7 +1389,11 @@ void FD3D12FastConstantAllocator::ReallocBuffer()
 	UnderlyingResource.AsStandAlone(NewBuffer, PageSize);
 }
 
+#if USE_STATIC_ROOT_SIGNATURE
+void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation& OutLocation, FD3D12ConstantBufferView* OutCBView)
+#else
 void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation& OutLocation)
+#endif
 {
 	check(Bytes <= PageSize);
 
@@ -1407,7 +1411,11 @@ void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation
 
 		UE_LOG(LogD3D12RHI, Warning, TEXT("Constant Allocator had to grow! Consider making it larger to begin with. New size: %d bytes"), PageSize);
 
+#if USE_STATIC_ROOT_SIGNATURE
+		return Allocate(Bytes, OutLocation, OutCBView);
+#else
 		return Allocate(Bytes, OutLocation);
+#endif
 	}
 
 	// Useful when trying to tweak initial size
@@ -1421,6 +1429,12 @@ void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation
 		UnderlyingResource.GetMappedBaseAddress(),
 		Offset);
 
+#if USE_STATIC_ROOT_SIGNATURE
+	if (OutCBView)
+	{
+		OutCBView->Create(UnderlyingResource.GetGPUVirtualAddress() + Offset, AlignedSize);
+	}
+#endif
 	return OutLocation.GetMappedBaseAddress();
 }
 

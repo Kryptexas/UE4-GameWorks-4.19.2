@@ -465,21 +465,21 @@ void USkeletalMeshComponent::OnRegister()
 
 	UClass* SimFactoryClass = *ClothingSimulationFactory;
 
-	if(SimFactoryClass)
+	if (SimFactoryClass)
 	{
 		UClothingSimulationFactory* SimFactory = SimFactoryClass->GetDefaultObject<UClothingSimulationFactory>();
 		ClothingSimulation = SimFactory->CreateSimulation();
 
-		if(ClothingSimulation)
+		if (ClothingSimulation)
 		{
-			ClothingSimulation->Initialize();
-			ClothingSimulationContext = ClothingSimulation->CreateContext();
+		    ClothingSimulation->Initialize();
+		    ClothingSimulationContext = ClothingSimulation->CreateContext();
 
-			if(SkeletalMesh)
-			{
-				RecreateClothingActors();
-			}
-		}
+			if (SkeletalMesh)
+		    {
+			    RecreateClothingActors();
+		    }
+	    }
 	}
 #endif
 }

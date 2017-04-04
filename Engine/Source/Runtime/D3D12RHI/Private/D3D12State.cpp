@@ -305,17 +305,17 @@ FGraphicsPipelineStateRHIRef FD3D12DynamicRHI::RHICreateGraphicsPipelineState(co
 {
 	FD3D12PipelineStateCache& PSOCache = GetAdapter().GetPSOCache();
 
+	FBoundShaderStateRHIRef BoundShaderState = RHICreateBoundShaderState(
+		Initializer.BoundShaderState.VertexDeclarationRHI,
+		Initializer.BoundShaderState.VertexShaderRHI,
+		Initializer.BoundShaderState.HullShaderRHI,
+		Initializer.BoundShaderState.DomainShaderRHI,
+		Initializer.BoundShaderState.PixelShaderRHI,
+		Initializer.BoundShaderState.GeometryShaderRHI);
+
 	FD3D12HighLevelGraphicsPipelineStateDesc GraphicsDesc = {};
-	GraphicsDesc.BoundShaderState = FD3D12DynamicRHI::ResourceCast(
-		RHICreateBoundShaderState(
-			Initializer.BoundShaderState.VertexDeclarationRHI,
-			Initializer.BoundShaderState.VertexShaderRHI,
-			Initializer.BoundShaderState.HullShaderRHI,
-			Initializer.BoundShaderState.DomainShaderRHI,
-			Initializer.BoundShaderState.PixelShaderRHI,
-			Initializer.BoundShaderState.GeometryShaderRHI
-		).GetReference()
-	);
+
+	GraphicsDesc.BoundShaderState = FD3D12DynamicRHI::ResourceCast(BoundShaderState.GetReference());
 	GraphicsDesc.BlendState = &FD3D12DynamicRHI::ResourceCast(Initializer.BlendState)->Desc;
 	GraphicsDesc.RasterizerState = &FD3D12DynamicRHI::ResourceCast(Initializer.RasterizerState)->Desc;
 	GraphicsDesc.DepthStencilState = &FD3D12DynamicRHI::ResourceCast(Initializer.DepthStencilState)->Desc;
@@ -338,7 +338,8 @@ FD3D12SamplerState::FD3D12SamplerState(FD3D12Device* InParent, const D3D12_SAMPL
 	Descriptor.ptr = 0;
 	FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->GetSamplerDescriptorAllocator();
 	Descriptor = DescriptorAllocator.AllocateHeapSlot(DescriptorHeapIndex);
-	GetParentDevice()->GetDevice()->CreateSampler(&Desc, Descriptor);
+
+	GetParentDevice()->CreateSamplerInternal(Desc, Descriptor);
 }
 
 FD3D12SamplerState::~FD3D12SamplerState()

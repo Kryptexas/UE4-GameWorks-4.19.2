@@ -339,6 +339,75 @@ namespace ADPCM
 		GenerateWaveFile(RiffDataChunks, CompressedDataStore);
 		FMemory::Free(EncodedADPCMData);
 	}
+
+	void Encode(const TArray<TArray<uint8> >& InputPCMData, TArray<uint8>& CompressedDataStore, const FSoundQualityInfo& QualityInfo)
+	{
+		check(InputPCMData.Num() == QualityInfo.NumChannels);
+
+		const int32 SourceSampleStride = 1;
+
+		// Input source samples are 2-bytes
+		const int32 SourceNumSamples = QualityInfo.SampleDataSize / 2;
+		const int32 SourceNumSamplesPerChannel = SourceNumSamples / QualityInfo.NumChannels;
+
+		// Output samples are 4-bits
+		const int32 CompressedNumSamplesPerByte = 2;
+		const int32 PreambleSamples = 2;
+		const int32 BlockSize = 512;
+		const int32 PreambleSize = 2 * PreambleSamples + 3;
+		const int32 CompressedSamplesPerBlock = (BlockSize - PreambleSize) * CompressedNumSamplesPerByte + PreambleSamples;
+		int32 NumBlocksPerChannel = (SourceNumSamplesPerChannel + CompressedSamplesPerBlock - 1) / CompressedSamplesPerBlock;
+
+		const uint32 EncodedADPCMDataSize = NumBlocksPerChannel * BlockSize * QualityInfo.NumChannels;
+		uint8* EncodedADPCMData = static_cast<uint8*>(FMemory::Malloc(EncodedADPCMDataSize));
+		FMemory::Memzero(EncodedADPCMData, EncodedADPCMDataSize);
+
+		uint8* EncodedADPCMChannelData = EncodedADPCMData;
+
+		// Encode each channel, appending channel output as we go.
+		for (uint32 ChannelIndex = 0; ChannelIndex < QualityInfo.NumChannels; ++ChannelIndex)
+		{
+			const int16* ChannelPCMSamples = reinterpret_cast<const int16*>(InputPCMData[ChannelIndex].GetData());
+
+			int32 SourceSampleOffset = 0;
+			int32 DestDataOffset = 0;
+
+			for (int32 BlockIndex = 0; BlockIndex < NumBlocksPerChannel; ++BlockIndex)
+			{
+				EncodeBlock(ChannelPCMSamples + SourceSampleOffset, SourceSampleStride, SourceNumSamples - SourceSampleOffset, BlockSize, EncodedADPCMChannelData + DestDataOffset);
+
+				SourceSampleOffset += CompressedSamplesPerBlock * SourceSampleStride;
+				DestDataOffset += BlockSize;
+			}
+
+			EncodedADPCMChannelData += DestDataOffset;
+		}
+
+		ADPCMFormatHeader Format;
+		Format.BaseFormat.nChannels = static_cast<uint16>(QualityInfo.NumChannels);
+		Format.BaseFormat.nSamplesPerSec = QualityInfo.SampleRate;
+		Format.BaseFormat.nBlockAlign = static_cast<uint16>(BlockSize);
+		Format.BaseFormat.wBitsPerSample = 4;
+		Format.BaseFormat.wFormatTag = WAVE_FORMAT_ADPCM;
+		Format.wSamplesPerBlock = static_cast<uint16>(CompressedSamplesPerBlock);
+		Format.BaseFormat.nAvgBytesPerSec = ((Format.BaseFormat.nSamplesPerSec / Format.wSamplesPerBlock) * Format.BaseFormat.nBlockAlign);
+		Format.wNumCoef = NUM_ADAPTATION_COEFF;
+		Format.SamplesPerChannel = SourceNumSamplesPerChannel;
+		Format.BaseFormat.cbSize = sizeof(Format) - sizeof(Format.BaseFormat);
+
+		RiffDataChunk RiffDataChunks[2];
+		RiffDataChunks[0].ID = UE_MAKEFOURCC('f', 'm', 't', ' ');
+		RiffDataChunks[0].DataSize = sizeof(Format);
+		RiffDataChunks[0].Data = reinterpret_cast<uint8*>(&Format);
+
+		RiffDataChunks[1].ID = UE_MAKEFOURCC('d', 'a', 't', 'a');
+		RiffDataChunks[1].DataSize = EncodedADPCMDataSize;
+		RiffDataChunks[1].Data = EncodedADPCMData;
+
+		GenerateWaveFile(RiffDataChunks, CompressedDataStore);
+		FMemory::Free(EncodedADPCMData);
+	}
+
 } // end namespace ADPCM
 
 class FAudioFormatADPCM : public IAudioFormat
@@ -346,8 +415,31 @@ class FAudioFormatADPCM : public IAudioFormat
 	enum
 	{
 		/** Version for ADPCM format, this becomes part of the DDC key. */
-		UE_AUDIO_ADPCM_VER = 0,
+		UE_AUDIO_ADPCM_VER = 1,
 	};
+
+	void InterleaveBuffers(const TArray<TArray<uint8> >& SrcBuffers, TArray<uint8> & InterleavedBuffer) const
+	{
+		int32 Channels = SrcBuffers.Num();
+		int32 Bytes = SrcBuffers[0].Num();
+
+		InterleavedBuffer.Reserve(Bytes * Channels);
+
+		// Interleave the buffers into one buffer
+		int32 CurrentByte = 0;
+
+		while (CurrentByte < Bytes)
+		{
+			for (auto SrcBuffer : SrcBuffers)
+			{
+				// our data is int16 
+				InterleavedBuffer.Push(SrcBuffer[CurrentByte]);
+				InterleavedBuffer.Push(SrcBuffer[CurrentByte + 1]);
+			}
+
+			CurrentByte += 2;
+		}
+	}
 
 public:
 	virtual bool AllowParallelBuild() const
@@ -385,10 +477,28 @@ public:
 
 	virtual bool CookSurround(FName Format, const TArray<TArray<uint8> >& SrcBuffers, FSoundQualityInfo& QualityInfo, TArray<uint8>& CompressedDataStore) const
 	{
+		// Ensure the right format
 		check(Format == NAME_ADPCM);
+		// Ensure at least two channel
+		check(SrcBuffers.Num() > 1);
+		// Ensure one buffer per channel
+		check(SrcBuffers.Num() == QualityInfo.NumChannels);
+		// Ensure even number of bytes (data is int16)
+		check((SrcBuffers[0].Num() % 1) == 0);
 
-		// Unsupported for iOS devices
-		return false;
+		if (QualityInfo.Quality == 100)
+		{
+			TArray<uint8> InterleavedSrc;
+			
+			InterleaveBuffers(SrcBuffers, InterleavedSrc);
+			LPCM::Encode(InterleavedSrc, CompressedDataStore, QualityInfo);
+		}
+		else
+		{
+			ADPCM::Encode(SrcBuffers, CompressedDataStore, QualityInfo);
+		}
+		
+		return true;
 	}
 
 	virtual int32 Recompress(FName Format, const TArray<uint8>& SrcBuffer, FSoundQualityInfo& QualityInfo, TArray<uint8>& OutBuffer) const

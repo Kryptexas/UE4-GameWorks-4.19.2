@@ -149,7 +149,6 @@ TSharedRef<SWidget> SNiagaraCurveEditor::MakeCurveEditorViewOptionsMenu(TSharedP
 
 	return MenuBuilder.MakeWidget();
 }
-
 TSharedRef<SWidget> SNiagaraCurveEditor::MakeCurveEditorCurveOptionsMenu(TSharedPtr<FUICommandList> CurveEditorCommandList)
 {
 	struct FExtrapolationMenus

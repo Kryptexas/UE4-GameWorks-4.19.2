@@ -75,6 +75,7 @@ void FD3DGPUProfiler::EndFrame(FD3D12DynamicRHI* InRHI)
 	if (GEmitDrawEvents)
 	{
 		PopEvent();
+		check(StackDepth == 0);
 	}
 
 	FrameTiming.EndTiming();
@@ -109,8 +110,8 @@ void FD3DGPUProfiler::EndFrame(FD3D12DynamicRHI* InRHI)
 		if (bTrackingEvents)
 		{
 			GEmitDrawEvents = bOriginalGEmitDrawEvents;
-			UE_LOG(LogD3D12RHI, Warning, TEXT(""));
-			UE_LOG(LogD3D12RHI, Warning, TEXT(""));
+			UE_LOG(LogD3D12RHI, Log, TEXT(""));
+			UE_LOG(LogD3D12RHI, Log, TEXT(""));
 			CurrentEventNodeFrame->DumpEventTree();
 			GTriggerGPUProfile = false;
 			bLatchedGProfilingGPU = false;

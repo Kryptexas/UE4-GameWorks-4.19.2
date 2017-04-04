@@ -453,9 +453,9 @@ void FD3D12CommandContext::RHISetGraphicsPipelineState(FGraphicsPipelineStateRHI
 					PsoInit.BoundShaderState.DomainShaderRHI,
 					PsoInit.BoundShaderState.PixelShaderRHI,
 					PsoInit.BoundShaderState.GeometryShaderRHI
-					).GetReference()
-				)
-			);
+				).GetReference()
+			)
+		);
 
 		RHISetBlendState(PsoInit.BlendState, FLinearColor(1.0f, 1.0f, 1.0f));
 		RHISetRasterizerState(PsoInit.RasterizerState);
@@ -635,6 +635,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Ve
 
 	StateCache.SetConstantsFromUniformBuffer<SF_Vertex>(BufferIndex, Buffer);
 
+	BoundUniformBufferRefs[SF_Vertex][BufferIndex] = BufferRHI;
 	BoundUniformBuffers[SF_Vertex][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Vertex] |= (1 << BufferIndex);
 }
@@ -647,6 +648,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FHullShaderRHIParamRef Hull
 
 	StateCache.SetConstantsFromUniformBuffer<SF_Hull>(BufferIndex, Buffer);
 
+	BoundUniformBufferRefs[SF_Hull][BufferIndex] = BufferRHI;
 	BoundUniformBuffers[SF_Hull][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Hull] |= (1 << BufferIndex);
 }
@@ -659,6 +661,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef Do
 	
 	StateCache.SetConstantsFromUniformBuffer<SF_Domain>(BufferIndex, Buffer);
 
+	BoundUniformBufferRefs[SF_Domain][BufferIndex] = BufferRHI;
 	BoundUniformBuffers[SF_Domain][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Domain] |= (1 << BufferIndex);
 }
@@ -671,6 +674,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef 
 
 	StateCache.SetConstantsFromUniformBuffer<SF_Geometry>(BufferIndex, Buffer);
 
+	BoundUniformBufferRefs[SF_Geometry][BufferIndex] = BufferRHI;
 	BoundUniformBuffers[SF_Geometry][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Geometry] |= (1 << BufferIndex);
 }
@@ -683,6 +687,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef Pix
 
 	StateCache.SetConstantsFromUniformBuffer<SF_Pixel>(BufferIndex, Buffer);
 
+	BoundUniformBufferRefs[SF_Pixel][BufferIndex] = BufferRHI;
 	BoundUniformBuffers[SF_Pixel][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Pixel] |= (1 << BufferIndex);
 }
@@ -695,6 +700,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef C
 
 	StateCache.SetConstantsFromUniformBuffer<SF_Compute>(BufferIndex, Buffer);
 
+	BoundUniformBufferRefs[SF_Compute][BufferIndex] = BufferRHI;
 	BoundUniformBuffers[SF_Compute][BufferIndex] = Buffer;
 	DirtyUniformBuffers[SF_Compute] |= (1 << BufferIndex);
 }

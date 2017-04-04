@@ -286,11 +286,12 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 					Found = Element;
 					FoundIndex = i;
 					bReusingExistingTarget = true;
-					break;
+					goto Done;
 				}
 			}
 		}		
 	}
+Done:
 
 	if(!Found)
 	{		

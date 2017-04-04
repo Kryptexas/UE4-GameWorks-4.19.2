@@ -3640,7 +3640,7 @@ int32 FShaderCompileXGEThreadRunnable::CompilingLoop()
 
 			// Use stop on errors so we can respond to shader compile worker crashes immediately.
 			// Regular shader compilation errors are not returned as worker errors.
-			FString XGConsoleArgs = TEXT("/STOPONERRORS /BUILD \"") + ScriptFilename + TEXT("\"");
+			FString XGConsoleArgs = TEXT("/VIRTUALIZEDIRECTX /STOPONERRORS /BUILD \"") + ScriptFilename + TEXT("\"");
 
 			// Kick off the XGE process...
 			BuildProcessHandle = FPlatformProcess::CreateProc(*XGE_ConsolePath, *XGConsoleArgs, false, false, true, &BuildProcessID, 0, nullptr, nullptr);

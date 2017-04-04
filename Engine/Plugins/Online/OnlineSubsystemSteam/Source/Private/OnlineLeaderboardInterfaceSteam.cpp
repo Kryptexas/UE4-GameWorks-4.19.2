@@ -1289,6 +1289,17 @@ bool FOnlineLeaderboardsSteam::ReadLeaderboards(const TArray< TSharedRef<const F
 	return true;
 }
 
+bool FOnlineLeaderboardsSteam::ReadLeaderboardsAroundRank(int32 Rank, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardsSteam::ReadLeaderboardsAroundRank is currently not supported."));
+	return false;
+}
+bool FOnlineLeaderboardsSteam::ReadLeaderboardsAroundUser(TSharedRef<const FUniqueNetId> Player, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardsSteam::ReadLeaderboardsAroundUser is currently not supported."));
+	return false;
+}
+
 void FOnlineLeaderboardsSteam::QueryAchievementsInternal(const FUniqueNetIdSteam& UserId, const FOnQueryAchievementsCompleteDelegate& AchievementDelegate)
 {
 	FOnlineAsyncTaskSteamGetAchievements* NewStatsTask = new FOnlineAsyncTaskSteamGetAchievements( SteamSubsystem, UserId, AchievementDelegate );

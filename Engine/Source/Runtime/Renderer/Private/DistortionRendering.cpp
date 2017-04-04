@@ -37,6 +37,12 @@ static TAutoConsoleVariable<int32> CVarDisableDistortion(
 														 TEXT("Prevents distortion effects from rendering.  Saves a full-screen framebuffer's worth of memory."),
 														 ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarFastVRamDistortion(
+	TEXT("r.FastVRamDistortion"),
+	0,
+	TEXT("Whether to store distortion in fast VRAM"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 /**
 * A pixel shader for rendering the full screen refraction pass
 */
@@ -1056,7 +1062,10 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 		// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
-			Desc.Flags |= TexCreate_FastVRAM;
+		    if (CVarFastVRamDistortion.GetValueOnRenderThread() >= 1)
+		    {
+			    Desc.Flags |= TexCreate_FastVRAM;
+		    }
 			Desc.NumSamples = MSAACount;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistortionRT, TEXT("Distortion"));
 

@@ -548,6 +548,9 @@ void FGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
 	if (bTrackingEvents)
 	{
+		check(StackDepth >= 0);
+		StackDepth++;
+
 		check(IsInRenderingThread() || IsInRHIThread());
 		if (CurrentEventNode)
 		{
@@ -572,6 +575,9 @@ void FGPUProfiler::PopEvent()
 {
 	if (bTrackingEvents)
 	{
+		check(StackDepth >= 1);
+		StackDepth--;
+
 		check(CurrentEventNode && (IsInRenderingThread() || IsInRHIThread()));
 		// Stop timing the current node and move one level up the tree
 		CurrentEventNode->StopTiming();

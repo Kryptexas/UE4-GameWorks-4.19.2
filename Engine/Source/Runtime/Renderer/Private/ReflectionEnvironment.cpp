@@ -199,36 +199,29 @@ void FReflectionEnvironmentSceneData::ResizeCubemapArrayGPU(uint32 InMaxCubemaps
 	// If the cubemap array isn't setup yet then no copying/reallocation is necessary. Just go through the old path
 	if (!CubemapArray.IsInitialized())
 	{
+		CubemapArraySlotsUsed.Init(false, InMaxCubemaps);
 		CubemapArray.UpdateMaxCubemaps(InMaxCubemaps, InCubemapSize);
 		return;
 	}
 
 	// Generate a remapping table for the elements
-	TArray<bool> ArrayIndicesRemoved;
-	ArrayIndicesRemoved.Empty(CubemapArray.GetMaxCubemaps());
-	for (int i = 0; i < CubemapArray.GetMaxCubemaps(); i++)
-	{
-		ArrayIndicesRemoved.Add(false);
-	}
-	for (int i = 0; i < CubemapIndicesRemovedSinceLastRealloc.Num(); i++)
-	{
-		uint32 CubemapIndex = CubemapIndicesRemovedSinceLastRealloc[i];
-		ArrayIndicesRemoved[CubemapIndex] = true;
-	}
 	TArray<int32> IndexRemapping;
 	int32 Count = 0;
 	for (int i = 0; i < CubemapArray.GetMaxCubemaps(); i++)
 	{
-		if (ArrayIndicesRemoved[i])
-		{
-			IndexRemapping.Add(-1);
-		}
-		else
+		if (CubemapArraySlotsUsed[i] )
 		{
 			IndexRemapping.Add(Count);
 			Count++;
 		}
+		else
+		{
+			IndexRemapping.Add(-1);
+		}
 	}
+
+	// Reset the CubemapArraySlotsUsed array (we'll recompute it below)
+	CubemapArraySlotsUsed.Init(false, InMaxCubemaps);
 
 	// Spin through the AllocatedReflectionCaptureState map and remap the indices based on the LUT
 	TArray<const UReflectionCaptureComponent*> Components;
@@ -238,7 +231,10 @@ void FReflectionEnvironmentSceneData::ResizeCubemapArrayGPU(uint32 InMaxCubemaps
 	{
 		FCaptureComponentSceneState* ComponentStatePtr = AllocatedReflectionCaptureState.Find(Components[i]);
 		check(ComponentStatePtr->CaptureIndex < IndexRemapping.Num());
-		ComponentStatePtr->CaptureIndex = IndexRemapping[ComponentStatePtr->CaptureIndex];
+		int32 NewIndex = IndexRemapping[ComponentStatePtr->CaptureIndex];
+		CubemapArraySlotsUsed[NewIndex] = true; 
+		ComponentStatePtr->CaptureIndex = NewIndex;
+		check(ComponentStatePtr->CaptureIndex > -1);
 		UsedCubemapCount = FMath::Max(UsedCubemapCount, ComponentStatePtr->CaptureIndex + 1);
 	}
 
@@ -252,7 +248,6 @@ void FReflectionEnvironmentSceneData::ResizeCubemapArrayGPU(uint32 InMaxCubemaps
 	}
 
 	CubemapArray.ResizeCubemapArrayGPU(InMaxCubemaps, InCubemapSize, IndexRemapping);
-	CubemapIndicesRemovedSinceLastRealloc.Empty();
 }
 
 void FReflectionEnvironmentCubemapArray::ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 InCubemapSize, const TArray<int32>& IndexRemapping)

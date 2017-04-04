@@ -978,6 +978,7 @@ namespace UnrealBuildTool
 				case "OpenGLDrv":
 				case "MetalRHI":
 				case "PS4RHI":
+                case "Gnmx":
 				case "OnlineSubsystemIOS":
 				case "OnlineSubsystemLive":
 					return true;

@@ -1254,11 +1254,12 @@ public:
 	 */
 	FReflectionEnvironmentCubemapArray CubemapArray;
 
-	/** We track the cubemaps removed since the last reallocation to allow us to remap them reallocating the array */
-	TArray<uint32> CubemapIndicesRemovedSinceLastRealloc;
-
 	/** Rendering thread map from component to scene state.  This allows storage of RT state that needs to persist through a component re-register. */
 	TMap<const UReflectionCaptureComponent*, FCaptureComponentSceneState> AllocatedReflectionCaptureState;
+
+	/** Rendering bitfield to track cubemap slots used. Needs to kept in sync with AllocatedReflectionCaptureState */
+	TBitArray<> CubemapArraySlotsUsed;
+
 
 	/** 
 	 * Game thread list of reflection components that have been allocated in the cubemap array. 

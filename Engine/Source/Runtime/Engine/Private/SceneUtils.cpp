@@ -4,10 +4,10 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogSceneUtils,All,All);
 
-#if HAS_GPU_STATS
-
 // Only exposed for debugging. Disabling this carries a severe performance penalty
 #define RENDER_QUERY_POOLING_ENABLED 1
+
+#if HAS_GPU_STATS
 
 // If this is enabled, the child stat timings will be included in their parents' times.
 // This presents problems for non-hierarchical stats if we're expecting them to add up
@@ -28,10 +28,6 @@ static TAutoConsoleVariable<int> CVarGPUStatsMaxQueriesPerFrame(
 
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("[TOTAL]"), Stat_GPU_Total, STATGROUP_GPU);
-
-#else //HAS_GPU_STATS
-
-#define RENDER_QUERY_POOLING_ENABLED 0
 
 #endif //HAS_GPU_STATS
 

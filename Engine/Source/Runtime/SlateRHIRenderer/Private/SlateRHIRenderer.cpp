@@ -632,7 +632,10 @@ SHADER_VARIATION(0)  SHADER_VARIATION(1)
 /** Draws windows from a FSlateDrawBuffer on the render thread */
 void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
+#if WANTS_DRAW_MESH_EVENTS
+	TDrawEvent<FRHICommandList> DrawEvent;
+	BEGIN_DRAW_EVENTF(RHICmdList, SlateUI, DrawEvent, TEXT("SlateUI"));
+#endif
 
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
@@ -876,6 +879,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	{
 		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
 	}
+
+	STOP_DRAW_EVENT(DrawEvent);
 
 	// Calculate renderthread time (excluding idle time).	
 	uint32 StartTime		= FPlatformTime::Cycles();

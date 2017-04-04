@@ -57,6 +57,17 @@ bool FOnlineLeaderboardsGameCircle::ReadLeaderboardsForFriends(int32 LocalUserNu
 	return true;
 }
 
+bool FOnlineLeaderboardsGameCircle::ReadLeaderboardsAroundRank(int32 Rank, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardsGameCircle::ReadLeaderboardsAroundRank is currently not supported."));
+	return false;
+}
+bool FOnlineLeaderboardsGameCircle::ReadLeaderboardsAroundUser(TSharedRef<const FUniqueNetId> Player, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardsGameCircle::ReadLeaderboardsAroundUser is currently not supported."));
+	return false;
+}
+
 void FOnlineLeaderboardsGameCircle::FreeStats(FOnlineLeaderboardRead& ReadObject)
 {
 	// Game Circle has no functionality supporting this

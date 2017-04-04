@@ -2750,7 +2750,7 @@ static void BuildDepthOnlyIndexBuffer(
 				break; // can't be any more dups
 
 			uint32 OtherIndex = VertIndexAndZ[j].Index;
-			if (PointsEqual(InVertices[SrcIndex].Position, InVertices[OtherIndex].Position,/*bUseEpsilonCompare=*/ true))
+			if (PointsEqual(InVertices[SrcIndex].Position, InVertices[OtherIndex].Position,/*bUseEpsilonCompare=*/ false))
 			{
 				IndexMap[SrcIndex] = FMath::Min(IndexMap[SrcIndex], OtherIndex);
 				IndexMap[OtherIndex] = FMath::Min(IndexMap[OtherIndex], SrcIndex);

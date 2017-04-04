@@ -80,7 +80,7 @@ void Main(
 	{
 		float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPosition);
 		ClipSpacePosition = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
-		Output.Position = ClipSpacePosition;
+		Output.Position = INVARIANT(ClipSpacePosition);
 	}
 
 	#if INSTANCED_STEREO && !MULTI_VIEW

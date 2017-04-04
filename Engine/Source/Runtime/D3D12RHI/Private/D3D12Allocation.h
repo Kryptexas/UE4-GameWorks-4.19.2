@@ -573,7 +573,12 @@ public:
 
 	void Init();
 
+#if USE_STATIC_ROOT_SIGNATURE
+	void* Allocate(uint32 Bytes, class FD3D12ResourceLocation& OutLocation, FD3D12ConstantBufferView* OutCBView);
+#else
 	void* Allocate(uint32 Bytes, class FD3D12ResourceLocation& OutLocation);
+#endif
+
 
 private:
 	void ReallocBuffer();
