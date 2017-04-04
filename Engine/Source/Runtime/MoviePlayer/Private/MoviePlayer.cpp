@@ -84,15 +84,19 @@ void CreateMoviePlayer()
 
 void DestroyMoviePlayer()
 {
-	GetMoviePlayer()->Shutdown();
+	IGameMoviePlayer* MoviePlayer = GetMoviePlayer();
 
-	if (!IsMoviePlayerEnabled() || GUsingNullRHI)
+	if(MoviePlayer)
 	{
-		return FNullGameMoviePlayer::Destroy();
-	}
-	else
-	{
-		return FDefaultGameMoviePlayer::Destroy();
+
+		if (!IsMoviePlayerEnabled() || GUsingNullRHI)
+		{
+			return FNullGameMoviePlayer::Destroy();
+		}
+		else
+		{
+			return FDefaultGameMoviePlayer::Destroy();
+		}
 	}
 }
 
