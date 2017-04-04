@@ -35,6 +35,34 @@ struct FMovieSceneExecutionTokens
 	}
 
 	/**
+	* Add a new shared execution token to the sorted array of tokens
+	*/
+	template<typename T>
+	FORCEINLINE typename TEnableIf<TPointerIsConvertibleFromTo<typename TRemoveReference<T>::Type, const IMovieSceneSharedExecutionToken>::Value>::Type AddShared(FMovieSceneSharedDataId ID, T&& InToken)
+	{
+		checkf(!SharedTokens.Contains(ID), TEXT("Already added a shared token of this type"));
+		SharedTokens.Add(ID, MoveTemp(InToken));
+	}
+
+	/**
+	* Attempt to locate an existing shared execution token by its ID
+	*/
+	const IMovieSceneSharedExecutionToken* FindShared(FMovieSceneSharedDataId ID) const
+	{
+		const auto* Existing = SharedTokens.Find(ID);
+		return Existing ? Existing->GetPtr() : nullptr;
+	}
+
+	/**
+	 * Attempt to locate an existing shared execution token by its ID
+	 */
+	IMovieSceneSharedExecutionToken* FindShared(FMovieSceneSharedDataId ID)
+	{
+		auto* Existing = SharedTokens.Find(ID);
+		return Existing ? Existing->GetPtr() : nullptr;
+	}
+
+	/**
 	 * Internal: Set the operand we're currently operating on
 	 */
 	FORCEINLINE void SetOperand(const FMovieSceneEvaluationOperand& InOperand)
@@ -73,6 +101,11 @@ struct FMovieSceneExecutionTokens
 	{
 		CompletionMode = InCompletionMode;
 	}
+
+	/** Apply all execution tokens in order */
+	MOVIESCENE_API void Apply(IMovieScenePlayer& Player);
+
+private:
 
 	struct FEntry
 	{
@@ -125,12 +158,11 @@ struct FMovieSceneExecutionTokens
 		TInlineValue<IMovieSceneExecutionToken, 32> Token;
 	};
 
-	MOVIESCENE_API void Apply(IMovieScenePlayer& Player);
-
 	/** Ordered array of tokens */
 	TArray<FEntry> Tokens;
 
-private:
+	/** Sortable, shared array of identifyable tokens */
+	TMap<FMovieSceneSharedDataId, TInlineValue<IMovieSceneSharedExecutionToken, 32>> SharedTokens;
 
 	/** The operand we're currently operating on */
 	FMovieSceneEvaluationOperand Operand;

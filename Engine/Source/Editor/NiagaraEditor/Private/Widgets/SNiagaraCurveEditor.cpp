@@ -7,6 +7,8 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "RichCurveEditorCommands.h"
 #include "Widgets/Input/SNumericDropDown.h"
+#include "SCurveEditor.h"
+#include "SOverlay.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraCurveEditor"
 

@@ -126,7 +126,8 @@ protected:
 	 */
 	virtual UScriptStruct& GetScriptStructImpl() const
 	{
-		checkf(false, TEXT("GetScriptStructImpl has not been implemented")); return *StaticStruct();
+		ensureMsgf(false, TEXT("GetScriptStructImpl has not been implemented. This type will not serialize correctly."));
+		return *StaticStruct();
 	}
 
 protected:

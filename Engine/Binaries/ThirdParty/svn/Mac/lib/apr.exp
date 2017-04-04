@@ -183,7 +183,6 @@ apr_socket_send
 apr_socket_sendv
 apr_socket_sendto
 apr_socket_recvfrom
-apr_socket_sendfile
 apr_socket_recv
 apr_socket_opt_set
 apr_socket_timeout_set

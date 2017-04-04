@@ -25,16 +25,22 @@ public:
 	/** Constructs this widget with InArgs */
 	void Construct( const FArguments& InArgs );
 
-private:
+	/** Sets the selected paths in this picker */
+	void SetPaths(const TArray<FString>& NewPaths);
 
-	/** Handler for the context menu for folder items */
-	TSharedPtr<SWidget> GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder InOnCreateNewFolder);
+	/** Return the selected paths in this picker */
+	TArray<FString> GetPaths() const;
+
+	/** Return the associated SPathView */
+	const TSharedPtr<SPathView>& GetPathView() const;
 
 	/** Handler for creating a new folder in the path picker */
 	void CreateNewFolder(FString FolderPath, FOnCreateNewFolder InOnCreateNewFolder);
 
-	/** Sets the selected paths in this picker */
-	void SetPaths(const TArray<FString>& NewPaths);
+private:
+
+	/** Handler for the context menu for folder items */
+	TSharedPtr<SWidget> GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder InOnCreateNewFolder);
 
 private:
 

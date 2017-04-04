@@ -583,6 +583,13 @@ bool FCoreRedirects::AddKnownMissing(ECoreRedirectFlags Type, const FCoreRedirec
 	return AddRedirectList(NewRedirects, TEXT("AddKnownMissing"));
 }
 
+bool FCoreRedirects::RemoveKnownMissing(ECoreRedirectFlags Type, const FCoreRedirectObjectName& ObjectName)
+{
+	TArray<FCoreRedirect> RedirectsToRemove;
+	RedirectsToRemove.Emplace(Type | ECoreRedirectFlags::Option_Removed, ObjectName, FCoreRedirectObjectName());
+	return RemoveRedirectList(RedirectsToRemove, TEXT("RemoveKnownMissing"));
+}
+
 bool FCoreRedirects::RunTests()
 {
 	bool bSuccess = true;
@@ -678,6 +685,13 @@ bool FCoreRedirects::RunTests()
 	{
 		bSuccess = false;
 		UE_LOG(LogLinker, Error, TEXT("FCoreRedirect Test Failed: /game/NotRemovedPackage should be removed now!"));
+	}
+
+	RemoveKnownMissing(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(TEXT("/game/NotRemovedPackage")));
+
+	if (IsKnownMissing(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(TEXT("/game/NotRemovedPackage"))))
+	{
+		UE_LOG(LogLinker, Error, TEXT("FCoreRedirect Test Failed: /game/NotRemovedPackage should be removed!"));
 	}
 
 	// Restore old state
@@ -823,7 +837,6 @@ bool FCoreRedirects::AddRedirectList(const TArray<FCoreRedirect>& Redirects, con
 			continue;
 		}
 
-
 		if (NewRedirect.NewName.PackageName != NewRedirect.OldName.PackageName && NewRedirect.OldName.OuterName != NAME_None)
 		{
 			UE_LOG(LogLinker, Error, TEXT("AddRedirectList(%s) failed to add redirector, it's not valid to modify package from %s to %s while specifying outer!"), *SourceString, *NewRedirect.OldName.ToString(), *NewRedirect.NewName.ToString());
@@ -891,6 +904,74 @@ bool FCoreRedirects::AddSingleRedirect(const FCoreRedirect& NewRedirect, const F
 
 	ExistingRedirects.Add(NewRedirect);
 	return true;
+}
+
+bool FCoreRedirects::RemoveRedirectList(const TArray<FCoreRedirect>& Redirects, const FString& SourceString)
+{
+	bool bRemovedAny = false;
+	for (const FCoreRedirect& RedirectToRemove : Redirects)
+	{
+		if (!RedirectToRemove.OldName.IsValid() || !RedirectToRemove.NewName.IsValid())
+		{
+			UE_LOG(LogLinker, Error, TEXT("RemoveRedirectList(%s) failed to remove redirector from %s to %s with empty name!"), *SourceString, *RedirectToRemove.OldName.ToString(), *RedirectToRemove.NewName.ToString());
+			continue;
+		}
+
+		if (RedirectToRemove.HasValueChanges())
+		{
+			UE_LOG(LogLinker, Error, TEXT("RemoveRedirectList(%s) failed to remove redirector from %s to %s as it contains value changes!"), *SourceString, *RedirectToRemove.OldName.ToString(), *RedirectToRemove.NewName.ToString());
+			continue;
+		}
+
+		if (!RedirectToRemove.OldName.HasValidCharacters() || !RedirectToRemove.NewName.HasValidCharacters())
+		{
+			UE_LOG(LogLinker, Error, TEXT("RemoveRedirectList(%s) failed to remove redirector from %s to %s with invalid characters!"), *SourceString, *RedirectToRemove.OldName.ToString(), *RedirectToRemove.NewName.ToString());
+			continue;
+		}
+
+		if (RedirectToRemove.NewName.PackageName != RedirectToRemove.OldName.PackageName && RedirectToRemove.OldName.OuterName != NAME_None)
+		{
+			UE_LOG(LogLinker, Error, TEXT("RemoveRedirectList(%s) failed to remove redirector, it's not valid to modify package from %s to %s while specifying outer!"), *SourceString, *RedirectToRemove.OldName.ToString(), *RedirectToRemove.NewName.ToString());
+			continue;
+		}
+
+		if (RedirectToRemove.IsSubstringMatch())
+		{
+			UE_LOG(LogLinker, Log, TEXT("RemoveRedirectList(%s) has substring redirect %s, these are very slow and should be resolved as soon as possible!"), *SourceString, *RedirectToRemove.OldName.ToString());
+		}
+
+		bRemovedAny |= RemoveSingleRedirect(RedirectToRemove, SourceString);
+	}
+
+	return bRemovedAny;
+}
+
+bool FCoreRedirects::RemoveSingleRedirect(const FCoreRedirect& RedirectToRemove, const FString& SourceString)
+{
+	FRedirectNameMap& ExistingNameMap = RedirectTypeMap.FindOrAdd(RedirectToRemove.RedirectFlags);
+	TArray<FCoreRedirect>& ExistingRedirects = ExistingNameMap.RedirectMap.FindOrAdd(RedirectToRemove.GetSearchKey());
+
+	bool bRemovedRedirect = false;
+
+	for (int32 ExistingRedirectIndex = 0; ExistingRedirectIndex < ExistingRedirects.Num(); ++ExistingRedirectIndex)
+	{
+		FCoreRedirect& ExistingRedirect = ExistingRedirects[ExistingRedirectIndex];
+
+		if (ExistingRedirect.IdenticalMatchRules(RedirectToRemove))
+		{
+			if (ExistingRedirect.NewName != RedirectToRemove.NewName)
+			{
+				// This isn't the redirector we were looking for... move on in case there's another match for our old name
+				continue;
+			}
+
+			bRemovedRedirect = true;
+			ExistingRedirects.RemoveAt(ExistingRedirectIndex);
+			break;
+		}
+	}
+
+	return bRemovedRedirect;
 }
 
 ECoreRedirectFlags FCoreRedirects::GetFlagsForTypeName(FName PackageName, FName TypeName)

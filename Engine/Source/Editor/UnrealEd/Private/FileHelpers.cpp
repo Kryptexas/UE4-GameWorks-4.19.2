@@ -1086,7 +1086,7 @@ void FEditorFileUtils::Import(const FString& InFilename)
 	const FScopedBusyCursor BusyCursor;
 
 	USceneImportFactory *SceneFactory = nullptr;
-	for (UClass* Class : TObjectRange<UClass>() )
+	for (UClass* Class : TObjectRange<UClass>())
 	{
 		if (Class->IsChildOf<USceneImportFactory>())
 		{
@@ -1100,7 +1100,7 @@ void FEditorFileUtils::Import(const FString& InFilename)
 		}
 
 	}
-	
+
 	if (SceneFactory)
 	{
 		FString Path = "";
@@ -1111,7 +1111,8 @@ void FEditorFileUtils::Import(const FString& InFilename)
 			TSharedRef<SDlgPickPath> PickContentPathDlg =
 				SNew(SDlgPickPath)
 				.Title(LOCTEXT("ChooseImportRootContentPath", "Choose Location for importing the scene content"));
-		
+
+
 			if (PickContentPathDlg->ShowModal() == EAppReturnType::Cancel)
 			{
 				return;

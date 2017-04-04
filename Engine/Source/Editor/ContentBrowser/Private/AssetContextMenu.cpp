@@ -450,28 +450,20 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 	}
 	MenuBuilder.EndSection();
 
-	if (GetDefault<UEditorExperimentalSettings>()->bEnableContentHotReloading)
-	{
-		// EXPERIMENTAL ACTIONS
-		MenuBuilder.BeginSection("AssetContextExperimental", LOCTEXT("AssetContextAdvancedExperimentalMenuHeading", "Experimental"));
-		{
-			// Reload
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("Reload", "Reload"),
-				LOCTEXT("ReloadTooltip", "Reload the selected assets."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteReload),
-					FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteReload)
-				)
-			);
-		}
-		MenuBuilder.EndSection();
-	}
-
 	// ADVANCED ACTIONS
 	MenuBuilder.BeginSection("AssetContextAdvancedActions", LOCTEXT("AssetContextAdvancedActionsMenuHeading", "Advanced"));
 	{
+		// Reload
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("Reload", "Reload"),
+			LOCTEXT("ReloadTooltip", "Reload the selected assets from their file on disk."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteReload),
+				FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteReload)
+			)
+		);
+
 		// Replace References
 		if (CanExecuteConsolidate())
 		{
@@ -2372,41 +2364,12 @@ bool FAssetContextMenu::CanExecuteDuplicate() const
 
 bool FAssetContextMenu::CanExecuteRename() const
 {
-	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
-	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
-
-	const bool bOneAssetSelected = AssetViewSelectedAssets.Num() == 1 && SelectedFolders.Num() == 0		// A single asset
-		&& ContentBrowserUtils::CanRenameAsset(AssetViewSelectedAssets[0]);								// Which can be renamed
-
-	const bool bOneFolderSelected = AssetViewSelectedAssets.Num() == 0 && SelectedFolders.Num() == 1	// A single folder
-		&& ContentBrowserUtils::CanRenameFolder(SelectedFolders[0]);									// Which can be renamed
-	
-	return (bOneAssetSelected || bOneFolderSelected) && !AssetView.Pin()->IsThumbnailEditMode();
+	return ContentBrowserUtils::CanRenameFromAssetView(AssetView);
 }
 
 bool FAssetContextMenu::CanExecuteDelete() const
 {
-	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
-	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
-
-	int32 NumAssetItems, NumClassItems;
-	ContentBrowserUtils::CountItemTypes(AssetViewSelectedAssets, NumAssetItems, NumClassItems);
-
-	int32 NumAssetPaths, NumClassPaths;
-	ContentBrowserUtils::CountPathTypes(SelectedFolders, NumAssetPaths, NumClassPaths);
-
-	bool bHasSelectedCollections = false;
-	for (const FString& SelectedFolder : SelectedFolders)
-	{
-		if (ContentBrowserUtils::IsCollectionPath(SelectedFolder))
-		{
-			bHasSelectedCollections = true;
-			break;
-		}
-	}
-
-	// We can't delete classes, or folders containing classes, or any collection folders
-	return ((NumAssetItems > 0 && NumClassItems == 0) || (NumAssetPaths > 0 && NumClassPaths == 0)) && !bHasSelectedCollections;
+	return ContentBrowserUtils::CanDeleteFromAssetView(AssetView);
 }
 
 bool FAssetContextMenu::CanExecuteRemoveFromCollection() const 

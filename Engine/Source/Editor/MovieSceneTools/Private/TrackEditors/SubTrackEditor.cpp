@@ -9,6 +9,8 @@
 #include "Modules/ModuleManager.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Layout/SBox.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "EditorStyleSet.h"
 #include "GameFramework/PlayerController.h"
 #include "Sections/MovieSceneSubSection.h"
@@ -550,6 +552,10 @@ bool FSubTrackEditor::AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovie
 
 		return true;
 	}
+
+	FNotificationInfo Info(FText::Format( LOCTEXT("InvalidSequence", "Invalid level sequence {0}. There could be a circular dependency."), InMovieSceneSequence->GetDisplayName()));
+	Info.bUseLargeFont = false;
+	FSlateNotificationManager::Get().AddNotification(Info);
 
 	return false;
 }

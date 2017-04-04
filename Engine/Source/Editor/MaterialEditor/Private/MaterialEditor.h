@@ -181,8 +181,8 @@ struct FMaterialExpression
 {
 	FString Name;
 	UClass* MaterialClass;
-	FString CreationDescription;
-	FString CreationName;
+	FText CreationDescription;
+	FText CreationName;
 
 	friend bool operator==(const FMaterialExpression& A,const FMaterialExpression& B)
 	{

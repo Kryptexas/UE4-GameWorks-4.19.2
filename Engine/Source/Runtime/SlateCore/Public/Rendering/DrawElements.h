@@ -1181,23 +1181,32 @@ public:
 	/** 
 	 * Construct a new list of elements with which to paint a window.
 	 *
-	 * @param InWindow   The window that we will be painting
+	 * @param InPaintWindow		The window that owns the widgets being painted.  This is almost most always the same window that is being rendered to
+	 * @param InRenderWindow	The window that we will be rendering to.
 	 */
-	explicit FSlateWindowElementList( TSharedPtr<SWindow> InWindow = TSharedPtr<SWindow>() )
-		: TopLevelWindow( InWindow )
+	explicit FSlateWindowElementList( TSharedPtr<SWindow> InPaintWindow = nullptr )
+		: PaintWindow(InPaintWindow)
+		, RenderTargetWindow(nullptr)
 		, bNeedsDeferredResolve( false )
 		, ResolveToDeferredIndex()
 		, MemManager(0)
 	{
 		DrawStack.Push(&RootDrawLayer);
 	}
-	
+
+
 	/** @return Get the window that we will be painting */
 	FORCEINLINE TSharedPtr<SWindow> GetWindow() const
 	{
-		return TopLevelWindow.Pin();
+		return PaintWindow.Pin();
 	}
 
+	/** @return Get the window that we will be rendering to */
+	FORCEINLINE SWindow* GetRenderWindow() const
+	{
+		// Note: This assumes that the PaintWindow is safe to pin and is not accessed by another thread
+		return RenderTargetWindow != nullptr ? RenderTargetWindow : PaintWindow.Pin().Get();
+	}
 
 	/** @return Get the draw elements that we want to render into this window */
 	FORCEINLINE const TArray<FSlateDrawElement>& GetDrawElements() const
@@ -1358,10 +1367,20 @@ public:
 
 	SLATECORE_API void PostDraw_ParallelThread();
 
+	SLATECORE_API void SetRenderTargetWindow(SWindow* InRenderTargetWindow);
 private:
+	/** 
+	 * Window which owns the widgets that are being painted but not necessarily rendered to
+	 * Widgets are always rendered to the RenderTargetWindow
+	 */
+	TWeakPtr<SWindow> PaintWindow;
 
-	/** The top level window which these elements are being drawn on */
-	TWeakPtr<SWindow> TopLevelWindow;
+	/**
+	 * The window to render to.  This may be different from the paint window if we are displaying the contents of a window (or virtual window) onto another window
+	 * The primary use case of this is thread safe rendering of widgets during times when the main thread is blocked (e.g loading movies)
+	 * If this is null, the paint window is used
+ 	 */
+	SWindow* RenderTargetWindow;
 
 	/** Batched data used for rendering */
 	FSlateBatchData BatchData;

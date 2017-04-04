@@ -862,7 +862,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 
 			// Update the widget tree directly to match the blueprint tree.  That way the preview can update
 			// without needing to do a full recompile.
-			PreviewActor->WidgetTree = (UWidgetTree*)StaticDuplicateObject(LatestWidgetTree, PreviewActor, NAME_None, RF_Transient | RF_Transactional);
+			PreviewActor->DuplicateAndInitializeFromWidgetTree(LatestWidgetTree);
 
 			if ( ULocalPlayer* Player = PreviewScene.GetWorld()->GetFirstLocalPlayerFromController() )
 			{

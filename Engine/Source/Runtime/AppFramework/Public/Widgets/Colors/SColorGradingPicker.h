@@ -23,7 +23,8 @@ enum class EColorGradingModes
 	Contrast,
 	Gamma,
 	Gain,
-	Offset
+	Offset,
+	Invalid
 };
 
 
@@ -37,8 +38,7 @@ class APPFRAMEWORK_API SColorGradingPicker
 {
 public:
 	/** Notification when the max/min spinner values are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
-	DECLARE_MULTICAST_DELEGATE_FourParams(FOnNumericEntryBoxDynamicSliderMaxValueChanged, float, TWeakPtr<SWidget>, bool, bool);
-	DECLARE_MULTICAST_DELEGATE_FourParams(FOnNumericEntryBoxDynamicSliderMinValueChanged, float, TWeakPtr<SWidget>, bool, bool);
+	DECLARE_MULTICAST_DELEGATE_FourParams(FOnNumericEntryBoxDynamicSliderMinMaxValueChanged, float, TWeakPtr<SWidget>, bool, bool);
 
 	// Delegate called when the widget Color Data changed
 	DECLARE_DELEGATE_TwoParams(FOnColorGradingPickerValueChanged, FVector4&, bool);
@@ -90,8 +90,8 @@ public:
 	 */
 	void Construct(const FArguments& InArgs );
 
-	FOnNumericEntryBoxDynamicSliderMaxValueChanged& GetOnNumericEntryBoxDynamicSliderMaxValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMaxValueChanged; }
-	FOnNumericEntryBoxDynamicSliderMinValueChanged& GetOnNumericEntryBoxDynamicSliderMinValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMinValueChanged; }
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged& GetOnNumericEntryBoxDynamicSliderMaxValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMaxValueChanged; }
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged& GetOnNumericEntryBoxDynamicSliderMinValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMinValueChanged; }
 
 	/** Callback when the max/min spinner value are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
 	void OnDynamicSliderMaxValueChanged(float NewMaxSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfHigher);
@@ -130,6 +130,6 @@ protected:
 	FOnColorGradingPickerValueChanged OnColorCommitted;
 
 	FOnGetCurrentVector4Value OnQueryCurrentColor;
-	FOnNumericEntryBoxDynamicSliderMaxValueChanged OnNumericEntryBoxDynamicSliderMaxValueChanged;
-	FOnNumericEntryBoxDynamicSliderMinValueChanged OnNumericEntryBoxDynamicSliderMinValueChanged;
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged OnNumericEntryBoxDynamicSliderMaxValueChanged;
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged OnNumericEntryBoxDynamicSliderMinValueChanged;
 };

@@ -445,8 +445,11 @@ public:
 
 	static void GetFormatPatternParameters(const FTextFormat& Fmt, TArray<FString>& ParameterNames);
 
-	static FText Format(FTextFormat Fmt, FFormatNamedArguments InArguments);
-	static FText Format(FTextFormat Fmt, FFormatOrderedArguments InArguments);
+	static FText Format(FTextFormat Fmt, const FFormatNamedArguments& InArguments);
+	static FText Format(FTextFormat Fmt, FFormatNamedArguments&& InArguments);
+
+	static FText Format(FTextFormat Fmt, const FFormatOrderedArguments& InArguments);
+	static FText Format(FTextFormat Fmt, FFormatOrderedArguments&& InArguments);
 
 	DEPRECATED(4.13, "The version of FText::Format taking FFormatArgumentData was internal to Blueprints and has been deprecated for C++ usage. Please use one of the other FText::Format(...) functions.")
 	static FText Format(FTextFormat Fmt, TArray< struct FFormatArgumentData > InArguments);

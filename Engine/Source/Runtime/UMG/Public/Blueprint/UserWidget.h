@@ -19,6 +19,11 @@
 #include "Engine/LocalPlayer.h"
 #include "Widgets/Layout/Anchors.h"
 #include "Logging/MessageLog.h"
+#include "Stats/Stats.h"
+#include "Stats/SlateStats.h"
+#include "EngineStats.h"
+#include "SlateGlobals.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
 
 #include "UserWidget.generated.h"
 
@@ -28,6 +33,9 @@ class UDragDropOperation;
 class UTexture2D;
 class UUMGSequencePlayer;
 class UWidgetAnimation;
+class UWidgetTree;
+class UNamedSlot;
+
 
 /**
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to
@@ -94,7 +102,7 @@ public:
 	UPROPERTY()
 	FName Name;
 
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	UWidget* Content;
 };
 
@@ -138,7 +146,7 @@ DECLARE_DYNAMIC_DELEGATE( FOnInputAction );
 /**
  * The user widget is extensible by users through the WidgetBlueprint.
  */
-UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( Category="User Controls", DontUseGenericSpawnObject="True" ) )
+UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( DontUseGenericSpawnObject="True" ) )
 class UMG_API UUserWidget : public UWidget, public INamedSlotInterface
 {
 	GENERATED_BODY()
@@ -155,11 +163,24 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	//~ End UObject Interface
 
+	void TemplateInit();
+	bool VerifyTemplateIntegrity(TArray<FText>& OutErrors);
+
+	void DuplicateAndInitializeFromWidgetTree(UWidgetTree* InWidgetTree);
+
+	bool CanInitialize() const;
 	virtual bool Initialize();
 
 protected:
-	/** THe function is implemented only in nativized widgets (automatically converted from BP to c++) */
+	UWidgetBlueprintGeneratedClass* GetWidgetTreeOwningClass();
+	virtual void TemplateInitInner();
+
+	bool VerifyTemplateIntegrity(UUserWidget* TemplateRoot, TArray<FText>& OutErrors);
+
+	/** The function is implemented only in nativized widgets (automatically converted from BP to c++) */
 	virtual void InitializeNativeClassData() {}
+
+	void InitializeNamedSlots(bool bReparentToWidgetTree);
 
 public:
 	//UVisual interface
@@ -230,11 +251,11 @@ public:
 
 	/*  */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Viewport")
-		FAnchors GetAnchorsInViewport() const;
+	FAnchors GetAnchorsInViewport() const;
 
 	/*  */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Viewport")
-		FVector2D GetAlignmentInViewport() const;
+	FVector2D GetAlignmentInViewport() const;
 
 	/*  */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Appearance", meta=( DeprecatedFunction, DeprecationMessage="Use IsInViewport instead" ))
@@ -307,9 +328,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="User Interface", meta=( Keywords="Begin Play" ))
 	void Construct();
 
-	DEPRECATED(4.8, "Use NativeConstruct")
-	virtual void Construct_Implementation();
-
 	/**
 	 * Called when a widget is no longer referenced causing the slate resource to destroyed.  Just like
 	 * Construct this event can be called multiple times.
@@ -326,14 +344,8 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);
 
-	DEPRECATED(4.8, "Use NativeTick")
-	virtual void Tick_Implementation(FGeometry MyGeometry, float InDeltaTime);
-
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="User Interface | Painting")
 	void OnPaint(UPARAM(ref) FPaintContext& Context) const;
-
-	DEPRECATED(4.8, "Use NativePaint")
-	virtual void OnPaint_Implementation(FPaintContext& Context) const;
 
 	/**
 	 * Gets a value indicating if the widget is interactive.
@@ -351,9 +363,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnFocusReceived(FGeometry MyGeometry, FFocusEvent InFocusEvent);
 
-	DEPRECATED(4.8, "Use NativeOnFocusReceived")
-	FEventReply OnFocusReceived_Implementation(FGeometry MyGeometry, FFocusEvent InFocusEvent);
-
 	/**
 	 * Called when this widget loses focus.  This event does not bubble.
 	 *
@@ -361,9 +370,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Input")
 	void OnFocusLost(FFocusEvent InFocusEvent);
-
-	DEPRECATED(4.8, "Use NativeOnFocusLost")
-	virtual void OnFocusLost_Implementation(FFocusEvent InFocusEvent);
 
 	/**
 	 * Called after a character is entered while this widget has focus
@@ -374,9 +380,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
-
-	DEPRECATED(4.8, "Use NativeOnKeyChar")
-	virtual FEventReply OnKeyChar_Implementation(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
 
 	/**
 	 * Called after a key (keyboard, controller, ...) is pressed when this widget or a child of this widget has focus
@@ -392,9 +395,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category="Input")
 	FEventReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyEvent InKeyEvent);
 
-	DEPRECATED(4.8, "Use NativeOnPreviewKeyDown")
-	virtual FEventReply OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent);
-
 	/**
 	 * Called after a key (keyboard, controller, ...) is pressed when this widget has focus (this event bubbles if not handled)
 	 *
@@ -404,9 +404,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnKeyDown(FGeometry MyGeometry, FKeyEvent InKeyEvent);
-
-	DEPRECATED(4.8, "Use NativeOnKeyDown")
-	virtual FEventReply OnKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent);
 
 	/**
 	 * Called after a key (keyboard, controller, ...) is released when this widget has focus
@@ -418,9 +415,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnKeyUp(FGeometry MyGeometry, FKeyEvent InKeyEvent);
 
-	DEPRECATED(4.8, "Use NativeOnKeyUp")
-	virtual FEventReply OnKeyUp_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent);
-
 	/**
 	* Called when an analog value changes on a button that supports analog
 	*
@@ -431,9 +425,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Input")
 	FEventReply OnAnalogValueChanged(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent);
 
-	DEPRECATED(4.8, "Use NativeOnAnalogValueChanged")
-	virtual FEventReply OnAnalogValueChanged_Implementation(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent);
-
 	/**
 	 * The system calls this method to notify the widget that a mouse button was pressed within it. This event is bubbled.
 	 *
@@ -443,9 +434,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-
-	DEPRECATED(4.8, "Use NativeOnMouseButtonDown")
-	virtual FEventReply OnMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * Just like OnMouseButtonDown, but tunnels instead of bubbling.
@@ -461,9 +449,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
-	DEPRECATED(4.8, "Use NativeOnPreviewMouseButtonDown")
-	virtual FEventReply OnPreviewMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-
 	/**
 	 * The system calls this method to notify the widget that a mouse button was release within it. This event is bubbled.
 	 *
@@ -473,9 +458,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-
-	DEPRECATED(4.8, "Use NativeOnMouseButtonUp")
-	virtual FEventReply OnMouseButtonUp_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * The system calls this method to notify the widget that a mouse moved within it. This event is bubbled.
@@ -487,9 +469,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
-	DEPRECATED(4.8, "Use NativeOnMouseMove")
-	virtual FEventReply OnMouseMove_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-
 	/**
 	 * The system will use this event to notify a widget that the cursor has entered it. This event is NOT bubbled.
 	 *
@@ -499,9 +478,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Mouse")
 	void OnMouseEnter(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
-	DEPRECATED(4.8, "Use NativeOnMouseEnter")
-	virtual void OnMouseEnter_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-
 	/**
 	 * The system will use this event to notify a widget that the cursor has left it. This event is NOT bubbled.
 	 *
@@ -509,9 +485,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Mouse")
 	void OnMouseLeave(const FPointerEvent& MouseEvent);
-
-	DEPRECATED(4.8, "Use NativeOnMouseLeave")
-	virtual void OnMouseLeave_Implementation(const FPointerEvent& MouseEvent);
 
 	/**
 	 * Called when the mouse wheel is spun. This event is bubbled.
@@ -522,9 +495,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
-	DEPRECATED(4.8, "Use NativeOnMouseWheel")
-	virtual FEventReply OnMouseWheel_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
-
 	/**
 	 * Called when a mouse button is double clicked.  Override this in derived classes.
 	 *
@@ -534,9 +504,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
-
-	DEPRECATED(4.8, "Use NativeOnMouseButtonDoubleClick")
-	virtual FEventReply OnMouseButtonDoubleClick_Implementation(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	// TODO
 	//UFUNCTION(BlueprintImplementableEvent, Category="Mouse")
@@ -555,9 +522,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Drag and Drop")
 	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation);
 
-	DEPRECATED(4.8, "Use NativeOnDragDetected")
-	virtual void OnDragDetected_Implementation(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation);
-
 	/**
 	 * Called when the user cancels the drag operation, typically when they simply release the mouse button after
 	 * beginning a drag operation, but failing to complete the drag.
@@ -567,9 +531,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Drag and Drop")
 	void OnDragCancelled(const FPointerEvent& PointerEvent, UDragDropOperation* Operation);
-
-	DEPRECATED(4.8, "Use NativeOnDragCancelled")
-	virtual void OnDragCancelled_Implementation(const FPointerEvent& PointerEvent, UDragDropOperation* Operation);
 	
 	/**
 	 * Called during drag and drop when the drag enters the widget.
@@ -581,9 +542,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Drag and Drop")
 	void OnDragEnter(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
-	DEPRECATED(4.8, "Use NativeOnDragEnter")
-	virtual void OnDragEnter_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
-
 	/**
 	 * Called during drag and drop when the drag leaves the widget.
 	 *
@@ -592,9 +550,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Drag and Drop")
 	void OnDragLeave(FPointerEvent PointerEvent, UDragDropOperation* Operation);
-
-	DEPRECATED(4.8, "Use NativeOnDragLeave")
-	void OnDragLeave_Implementation(FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
 	/**
 	 * Called during drag and drop when the the mouse is being dragged over a widget.
@@ -608,9 +563,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Drag and Drop")
 	bool OnDragOver(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
-	DEPRECATED(4.8, "Use NativeOnDragOver")
-	virtual bool OnDragOver_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
-
 	/**
 	 * Called when the user is dropping something onto a widget.  Ends the drag and drop operation, even if no widget handles this.
 	 *
@@ -622,9 +574,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Drag and Drop")
 	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
-
-	DEPRECATED(4.8, "Use NativeOnDrop")
-	virtual bool OnDrop_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = ( DeprecatedFunction, DeprecationMessage = "Use OnKeyDown() instead" ), Category = "Gamepad Input")
 	FEventReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
@@ -645,9 +594,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
 
-	DEPRECATED(4.8, "Use NativeOnTouchGesture")
-	virtual FEventReply OnTouchGesture_Implementation(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
-
 	/**
 	 * Called when a touchpad touch is started (finger down)
 	 * 
@@ -656,9 +602,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-
-	DEPRECATED(4.8, "Use NativeOnTouchStarted")
-	virtual FEventReply OnTouchStarted_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 	
 	/**
 	 * Called when a touchpad touch is moved  (finger moved)
@@ -669,9 +612,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 
-	DEPRECATED(4.8, "Use NativeOnTouchMoved")
-	virtual FEventReply OnTouchMoved_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-
 	/**
 	 * Called when a touchpad touch is ended (finger lifted)
 	 * 
@@ -680,9 +620,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
-
-	DEPRECATED(4.8, "Use NativeOnTouchEnded")
-	virtual FEventReply OnTouchEnded_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 	
 	/**
 	 * Called when motion is detected (controller or device)
@@ -693,9 +630,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
-
-	DEPRECATED(4.8, "Use NativeOnMotionDetected")
-	virtual FEventReply OnMotionDetected_Implementation(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
 public:
 
@@ -857,6 +791,7 @@ public:
 	UWidget* GetWidgetFromName(const FName& Name) const;
 
 	//~ Begin UObject Interface
+	virtual bool IsAsset() const;
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	//~ End UObject Interface
 
@@ -871,8 +806,14 @@ public:
 
 	void SetDesignerFlags(EWidgetDesignFlags::Type NewFlags);
 
+	void OnDesignerChanged(const FDesignerChangedEventArgs& EventArgs) override;
+
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+
+	static UUserWidget* NewWidgetObject(UObject* Outer, UClass* UserWidgetClass, FName WidgetName = NAME_None, EObjectFlags Flags = RF_NoFlags);
+	
+	static UUserWidget* CreateWidgetOfClass(UClass* UserWidgetClass, UGameInstance* InGameInstance, UWorld* InWorld, APlayerController* InOwningPlayer);
 
 public:
 	/** The color and opacity of this widget.  Tints all child widgets. */
@@ -903,10 +844,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction")
 	bool bIsFocusable;
 
-	/** The widget tree contained inside this user widget initialized by the blueprint */
-	UPROPERTY(Transient)
-	class UWidgetTree* WidgetTree;
-
 	/** All the sequence players currently playing */
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> ActiveSequencePlayers;
@@ -915,29 +852,29 @@ public:
 	UPROPERTY(Transient)
 	TArray<UUMGSequencePlayer*> StoppedSequencePlayers;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bStopAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	int32 Priority;
+
+private:
 	/** Stores the widgets being assigned to named slots */
 	UPROPERTY()
 	TArray<FNamedSlotBinding> NamedSlotBindings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	bool bStopAction;
+public:
+	/** The widget tree contained inside this user widget initialized by the blueprint */
+	UPROPERTY(Instanced)
+	UWidgetTree* WidgetTree;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Input" )
-	int32 Priority;
+public:
 
 #if WITH_EDITORONLY_DATA
 
 	/** Stores the design time desired size of the user widget */
 	UPROPERTY()
 	FVector2D DesignTimeSize;
-
-	/** A flag that determines if the design time size is used for previewing the widget in the designer. */
-	UPROPERTY()
-	bool bUseDesignTimeSize_DEPRECATED;
-
-	/** A flag that determines if the widget's desired size is used for previewing the widget in the designer. */
-	UPROPERTY()
-	bool bUseDesiredSizeAtDesignTime_DEPRECATED;
 
 	UPROPERTY()
 	EDesignPreviewSizeMode DesignSizeMode;
@@ -956,15 +893,25 @@ public:
 #endif
 
 	/** If a widget doesn't ever need to tick the blueprint, setting this to false is an optimization. */
-	bool bCanEverTick : 1;
+	UPROPERTY()
+	uint32 bCanEverTick : 1;
 
 	/** If a widget doesn't ever need to do custom painting in the blueprint, setting this to false is an optimization. */
-	bool bCanEverPaint : 1;
+	UPROPERTY()
+	uint32 bCanEverPaint : 1;
 
 protected:
 
 	/** Has this widget been initialized by its class yet? */
-	bool bInitialized : 1;
+	uint32 bInitialized : 1;
+
+public:
+	/**
+	 * If this user widget was created using a cooked widget tree.  If that's true, we want to skip a lot of the normal
+	 * initialization logic for widgets, because these widgets have already been initialized.
+	 */
+	UPROPERTY()
+	uint32 bCookedWidgetTree : 1;
 
 protected:
 
@@ -997,6 +944,8 @@ protected:
 
 	virtual FReply NativeOnFocusReceived( const FGeometry& InGeometry, const FFocusEvent& InFocusEvent );
 	virtual void NativeOnFocusLost( const FFocusEvent& InFocusEvent );
+	virtual void NativeOnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent);
+	virtual FNavigationReply NativeOnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent, const FNavigationReply& InDefaultReply);
 	virtual FReply NativeOnKeyChar( const FGeometry& InGeometry, const FCharacterEvent& InCharEvent );
 	virtual FReply NativeOnPreviewKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent );
 	virtual FReply NativeOnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent );
@@ -1010,7 +959,7 @@ protected:
 	virtual void NativeOnMouseLeave( const FPointerEvent& InMouseEvent );
 	virtual FReply NativeOnMouseWheel( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent );
 	virtual FReply NativeOnMouseButtonDoubleClick( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent );
-	virtual void NativeOnDragDetected( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& InOperation );
+	virtual void NativeOnDragDetected( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation );
 	virtual void NativeOnDragEnter( const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation );
 	virtual void NativeOnDragLeave( const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation );
 	virtual bool NativeOnDragOver( const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation );
@@ -1024,6 +973,8 @@ protected:
 	virtual FCursorReply NativeOnCursorQuery( const FGeometry& InGeometry, const FPointerEvent& InCursorEvent );
 
 protected:
+	bool ShouldSerializeWidgetTree(const class ITargetPlatform* TargetPlatform) const;
+
 	/**
 	 * Ticks the active sequences and latent actions that have been scheduled for this Widget.
 	 */
@@ -1099,6 +1050,9 @@ private:
 
 	/** Get World calls can be expensive for Widgets, we speed them up by caching the last found world until it goes away. */
 	mutable TWeakObjectPtr<UWorld> CachedWorld;
+
+	static bool bTemplateInitializing;
+	static uint32 bInitializingFromWidgetTree;
 };
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -1109,100 +1063,21 @@ namespace CreateWidgetHelpers
 }
 
 template< class T >
-T* CreateWidget(UWorld* World, UClass* UserWidgetClass  = T::StaticClass() )
+T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass = T::StaticClass())
 {
-	if ( World == nullptr )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("WorldNull", "Unable to create a widget outered to a null world."));
-		return nullptr;
-	}
-
-	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
-	{
-		return nullptr;
-	}
-
-	// Assign the outer to the game instance if it exists, otherwise use the world
-	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
-	UUserWidget* NewWidget = NewObject<UUserWidget>(Outer, UserWidgetClass);
-
-	if ( ULocalPlayer* Player = World->GetFirstLocalPlayerFromController() )
-	{
-		NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
-	}
-
-	NewWidget->Initialize();
-
-	return Cast<T>(NewWidget);
+	return Cast<T>(UUserWidget::CreateWidgetOfClass(UserWidgetClass, nullptr, nullptr, OwningPlayer));
 }
 
 template< class T >
-T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass = T::StaticClass() )
+T* CreateWidget(UWorld* World, UClass* UserWidgetClass = T::StaticClass() )
 {
-	if ( OwningPlayer == nullptr )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("PlayerNull", "Unable to create a widget outered to a null player controller."));
-		return nullptr;
-	}
-
-	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
-	{
-		return nullptr;
-	}
-
-	if ( !OwningPlayer->IsLocalPlayerController() )
-	{
-		const FText FormatPattern = LOCTEXT("NotLocalPlayer", "Only Local Player Controllers can be assigned to widgets. {PlayerController} is not a Local Player Controller.");
-		FFormatNamedArguments FormatPatternArgs;
-		FormatPatternArgs.Add(TEXT("PlayerController"), FText::FromName(OwningPlayer->GetFName()));
-		FMessageLog("PIE").Error(FText::Format(FormatPattern, FormatPatternArgs));
-		return nullptr;
-	}
-
-	if (!OwningPlayer->Player)
-	{
-		const FText FormatPattern = LOCTEXT("NoPlayer", "CreateWidget cannot be used on Player Controller with no attached player. {PlayerController} has no Player attached.");
-		FFormatNamedArguments FormatPatternArgs;
-		FormatPatternArgs.Add(TEXT("PlayerController"), FText::FromName(OwningPlayer->GetFName()));
-		FMessageLog("PIE").Error(FText::Format(FormatPattern, FormatPatternArgs));
-		return nullptr;
-	}
-
-	// Assign the outer to the game instance if it exists, otherwise use the player controller's world
-	UWorld* World = OwningPlayer->GetWorld();
-	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
-	UUserWidget* NewWidget = NewObject<UUserWidget>(Outer, UserWidgetClass);
-	
-	NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
-	NewWidget->Initialize();
-
-	return Cast<T>(NewWidget);
+	return Cast<T>(UUserWidget::CreateWidgetOfClass(UserWidgetClass, nullptr, World, nullptr));
 }
 
 template< class T >
 T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass = T::StaticClass() )
 {
-	if ( OwningGame == nullptr )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("GameNull", "Unable to create a widget outered to a null game instance."));
-		return nullptr;
-	}
-	
-	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
-	{
-		return nullptr;
-	}
-
-	UUserWidget* NewWidget = NewObject<UUserWidget>(OwningGame, UserWidgetClass);
-
-	if ( ULocalPlayer* Player = OwningGame->GetFirstGamePlayer() )
-	{
-		NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
-	}
-	
-	NewWidget->Initialize();
-
-	return Cast<T>(NewWidget);
+	return Cast<T>(UUserWidget::CreateWidgetOfClass(UserWidgetClass, OwningGame, nullptr, nullptr));
 }
 
 #undef LOCTEXT_NAMESPACE

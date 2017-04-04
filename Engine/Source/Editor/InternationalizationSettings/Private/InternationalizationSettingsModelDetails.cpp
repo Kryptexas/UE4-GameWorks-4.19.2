@@ -42,9 +42,9 @@ namespace
 		}
 	};
 
-	class SEditorCultureComboButton : public SCompoundWidget
+	class SEditorLanguageComboButton : public SCompoundWidget
 	{
-		SLATE_BEGIN_ARGS(SEditorCultureComboButton){}
+		SLATE_BEGIN_ARGS(SEditorLanguageComboButton){}
 		SLATE_END_ARGS()
 
 	public:
@@ -59,10 +59,10 @@ namespace
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-						.Text(this, &SEditorCultureComboButton::GetContentText)
+						.Text(this, &SEditorLanguageComboButton::GetContentText)
 					]
 				];
-			EditorCultureComboButton->SetOnGetMenuContent(FOnGetContent::CreateSP(this, &SEditorCultureComboButton::GetMenuContent));
+			EditorCultureComboButton->SetOnGetMenuContent(FOnGetContent::CreateSP(this, &SEditorLanguageComboButton::GetMenuContent));
 		}
 
 	private:
@@ -73,40 +73,37 @@ namespace
 	private:
 		FText GetContentText() const
 		{
-			bool IsConfigured = false;
-			FString EditorCultureName;
-			if (SettingsModel.IsValid())
-			{
-				IsConfigured = SettingsModel->GetEditorCultureName(EditorCultureName);
-			}
-			FInternationalization& I18N = FInternationalization::Get();
-			const FCulturePtr Culture = IsConfigured ? I18N.GetCulture(EditorCultureName) : I18N.GetCurrentCulture();
-			return Culture.IsValid() ? FText::FromString(Culture->GetNativeName()) : LOCTEXT("None", "None");
+			FCulturePtr EditorLanguage = FInternationalization::Get().GetCurrentLanguage();
+			return EditorLanguage.IsValid() ? FText::FromString(EditorLanguage->GetNativeName()) : LOCTEXT("None", "None");
 		}
 
 		TSharedRef<SWidget> GetMenuContent()
 		{
-			FCulturePtr EditorCulture;
-			{
-				FInternationalization& I18N = FInternationalization::Get();
-				bool IsConfigured = false;
-				FString EditorCultureName;
-				if (SettingsModel.IsValid())
-				{
-					IsConfigured = SettingsModel->GetEditorCultureName(EditorCultureName);
-				}
-				EditorCulture = IsConfigured ? I18N.GetCulture(EditorCultureName) : I18N.GetCurrentCulture();
-			}
+			FCulturePtr EditorLanguage = FInternationalization::Get().GetCurrentLanguage();
 
 			const auto& OnSelectionChangedLambda = [=](FCulturePtr& SelectedCulture, ESelectInfo::Type SelectInfo)
 			{
 				if (SettingsModel.IsValid())
 				{
-					SettingsModel->SetEditorCultureName(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
+					FInternationalization& I18N = FInternationalization::Get();
+					const bool bSetLanguageAndLocale = I18N.GetCurrentLanguage() == I18N.GetCurrentLocale();
+
+					SettingsModel->SetEditorLanguage(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
+					if (bSetLanguageAndLocale)
+					{
+						SettingsModel->SetEditorLocale(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
+					}
+
 					if (SelectedCulture.IsValid())
 					{
-						FInternationalization& I18N = FInternationalization::Get();
-						I18N.SetCurrentCulture(SelectedCulture->GetName());
+						if (bSetLanguageAndLocale)
+						{
+							I18N.SetCurrentLanguageAndLocale(SelectedCulture->GetName());
+						}
+						else
+						{
+							I18N.SetCurrentLanguage(SelectedCulture->GetName());
+						}
 
 						// Find all Schemas and force a visualization cache clear
 						for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
@@ -140,7 +137,7 @@ namespace
 			};
 
 			const auto& CulturePicker = SNew(SCulturePicker)
-				.InitialSelection(EditorCulture)
+				.InitialSelection(EditorLanguage)
 				.OnSelectionChanged_Lambda(OnSelectionChangedLambda)
 				.IsCulturePickable_Lambda(IsCulturePickableLambda)
 				.DisplayNameFormat(SCulturePicker::ECultureDisplayFormat::ActiveAndNativeCultureDisplayName);
@@ -154,9 +151,104 @@ namespace
 		}
 	};
 
-	class SNativeGameCultureComboButton : public SCompoundWidget
+	class SEditorLocaleComboButton : public SCompoundWidget
 	{
-		SLATE_BEGIN_ARGS(SNativeGameCultureComboButton){}
+		SLATE_BEGIN_ARGS(SEditorLocaleComboButton){}
+		SLATE_END_ARGS()
+
+	public:
+		void Construct(const FArguments& InArgs, const TWeakObjectPtr<UInternationalizationSettingsModel>& InSettingsModel, const TSharedRef<FLocalizedCulturesFlyweight>& InLocalizedCulturesFlyweight)
+		{
+			SettingsModel = InSettingsModel;
+			LocalizedCulturesFlyweight = InLocalizedCulturesFlyweight;
+
+			ChildSlot
+				[
+					SAssignNew(EditorCultureComboButton, SComboButton)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Text(this, &SEditorLocaleComboButton::GetContentText)
+					]
+				];
+			EditorCultureComboButton->SetOnGetMenuContent(FOnGetContent::CreateSP(this, &SEditorLocaleComboButton::GetMenuContent));
+		}
+
+	private:
+		TWeakObjectPtr<UInternationalizationSettingsModel> SettingsModel;
+		TSharedPtr<FLocalizedCulturesFlyweight> LocalizedCulturesFlyweight;
+		TSharedPtr<SComboButton> EditorCultureComboButton;
+
+	private:
+		FText GetContentText() const
+		{
+			FCulturePtr EditorLocale = FInternationalization::Get().GetCurrentLocale();
+			return EditorLocale.IsValid() ? FText::FromString(EditorLocale->GetNativeName()) : LOCTEXT("None", "None");
+		}
+
+		TSharedRef<SWidget> GetMenuContent()
+		{
+			FCulturePtr EditorLocale = FInternationalization::Get().GetCurrentLocale();
+
+			const auto& OnSelectionChangedLambda = [=](FCulturePtr& SelectedCulture, ESelectInfo::Type SelectInfo)
+			{
+				if (SettingsModel.IsValid())
+				{
+					SettingsModel->SetEditorLocale(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
+					if (SelectedCulture.IsValid())
+					{
+						FInternationalization& I18N = FInternationalization::Get();
+						I18N.SetCurrentLocale(SelectedCulture->GetName());
+
+						// Find all Schemas and force a visualization cache clear
+						for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+						{
+							UClass* CurrentClass = *ClassIt;
+
+							if (UEdGraphSchema* Schema = Cast<UEdGraphSchema>(CurrentClass->GetDefaultObject()))
+							{
+								Schema->ForceVisualizationCacheClear();
+							}
+						}
+					}
+				}
+				if (EditorCultureComboButton.IsValid())
+				{
+					EditorCultureComboButton->SetIsOpen(false);
+				}
+			};
+
+			const auto& IsCulturePickableLambda = [=](FCulturePtr Culture) -> bool
+			{
+				TArray<FString> CultureNames = Culture->GetPrioritizedParentCultureNames();
+				for (const FString& CultureName : CultureNames)
+				{
+					if (LocalizedCulturesFlyweight->LocalizedCulturesForEditor.Contains(Culture))
+					{
+						return true;
+					}
+				}
+				return false;
+			};
+
+			const auto& CulturePicker = SNew(SCulturePicker)
+				.InitialSelection(EditorLocale)
+				.OnSelectionChanged_Lambda(OnSelectionChangedLambda)
+				.IsCulturePickable_Lambda(IsCulturePickableLambda)
+				.DisplayNameFormat(SCulturePicker::ECultureDisplayFormat::ActiveAndNativeCultureDisplayName);
+
+			return SNew(SBox)
+				.MaxDesiredHeight(300.0f)
+				.WidthOverride(300.0f)
+				[
+					CulturePicker
+				];
+		}
+	};
+
+	class SNativeGameLanguageComboButton : public SCompoundWidget
+	{
+		SLATE_BEGIN_ARGS(SNativeGameLanguageComboButton){}
 		SLATE_END_ARGS()
 
 	public:
@@ -171,10 +263,10 @@ namespace
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-						.Text(this, &SNativeGameCultureComboButton::GetContentText)
+						.Text(this, &SNativeGameLanguageComboButton::GetContentText)
 					]
 				];
-			NativeGameCultureComboButton->SetOnGetMenuContent(FOnGetContent::CreateSP(this, &SNativeGameCultureComboButton::GetMenuContent));
+			NativeGameCultureComboButton->SetOnGetMenuContent(FOnGetContent::CreateSP(this, &SNativeGameLanguageComboButton::GetMenuContent));
 		}
 
 	private:
@@ -186,16 +278,16 @@ namespace
 		FText GetContentText() const
 		{
 			bool IsConfigured = false;
-			FString NativeGameCultureName;
+			FString NativeGameLanguage;
 			if (SettingsModel.IsValid())
 			{
-				IsConfigured = SettingsModel->GetNativeGameCultureName(NativeGameCultureName);
+				IsConfigured = SettingsModel->GetNativeGameLanguage(NativeGameLanguage);
 			}
 			FCulturePtr Culture;
-			if (!NativeGameCultureName.IsEmpty())
+			if (!NativeGameLanguage.IsEmpty())
 			{
 				FInternationalization& I18N = FInternationalization::Get();
-				Culture = I18N.GetCulture(NativeGameCultureName);
+				Culture = I18N.GetCulture(NativeGameLanguage);
 			}
 			return Culture.IsValid() ? FText::FromString(Culture->GetDisplayName()) : LOCTEXT("None", "None");
 		}
@@ -205,15 +297,15 @@ namespace
 			FCulturePtr NativeGameCulture;
 			{
 				bool IsConfigured = false;
-				FString NativeGameCultureName;
+				FString NativeGameLanguage;
 				if (SettingsModel.IsValid())
 				{
-					IsConfigured = SettingsModel->GetNativeGameCultureName(NativeGameCultureName);
+					IsConfigured = SettingsModel->GetNativeGameLanguage(NativeGameLanguage);
 				}
-				if (!NativeGameCultureName.IsEmpty())
+				if (!NativeGameLanguage.IsEmpty())
 				{
 					FInternationalization& I18N = FInternationalization::Get();
-					NativeGameCulture = I18N.GetCulture(NativeGameCultureName);
+					NativeGameCulture = I18N.GetCulture(NativeGameLanguage);
 				}
 			}
 
@@ -221,7 +313,7 @@ namespace
 			{
 				if (SettingsModel.IsValid())
 				{
-					SettingsModel->SetNativeGameCultureName(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
+					SettingsModel->SetNativeGameLanguage(SelectedCulture.IsValid() ? SelectedCulture->GetName() : TEXT(""));
 					FTextLocalizationManager::Get().RefreshResources();
 				}
 				if (NativeGameCultureComboButton.IsValid())
@@ -269,50 +361,66 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails(IDetailLayoutBu
 
 	const TSharedRef<FLocalizedCulturesFlyweight> LocalizedCulturesFlyweight = MakeShareable(new FLocalizedCulturesFlyweight());
 
-	// Editor Culture Setting
-	const FText EditorCultureSettingDisplayName = LOCTEXT("EditorCultureSettingDisplayName", "Editor Culture");
-	const FText EditorCultureSettingToolTip = LOCTEXT("EditorCultureSettingToolTip", "The culture in which the editor should be displayed.");
-	FDetailWidgetRow& EditorCultureRow = DetailCategoryBuilder.AddCustomRow(EditorCultureSettingDisplayName);
-	EditorCultureRow.NameContent()
+	// Editor Language Setting
+	const FText EditorLanguageSettingDisplayName = LOCTEXT("EditorLanguageSettingDisplayName", "Editor Language");
+	const FText EditorLanguageSettingToolTip = LOCTEXT("EditorLanguageSettingToolTip", "The language that the Editor should use for localization (the display language).");
+	DetailCategoryBuilder.AddCustomRow(EditorLanguageSettingDisplayName)
+		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(EditorCultureSettingDisplayName)
-			.ToolTipText(EditorCultureSettingToolTip)
+			.Text(EditorLanguageSettingDisplayName)
+			.ToolTipText(EditorLanguageSettingToolTip)
 			.Font(DetailLayout.GetDetailFont())
-		];
-	EditorCultureRow.ValueContent()
+		]
+		.ValueContent()
 		[
-			SNew(SEditorCultureComboButton, SettingsModel, LocalizedCulturesFlyweight)
+			SNew(SEditorLanguageComboButton, SettingsModel, LocalizedCulturesFlyweight)
 		];
 
-	// Native Game Culture Setting
-	const FText GameCultureSettingDisplayName = LOCTEXT("NativeGameCultureSettingDisplayName", "Native Game Culture");
-	const FText GameCultureSettingToolTip = LOCTEXT("NativeGameCultureSettingToolTip", "The culture in which game content is specified and localized from. WARNING: If this is not set to the culture the game is initially made in, modifying and saving assets may mix localized data in as native data!");
-	FDetailWidgetRow& GameCultureRow = DetailCategoryBuilder.AddCustomRow(GameCultureSettingDisplayName);
-	GameCultureRow.NameContent()
+	// Editor Locale Setting
+	const FText EditorLocaleSettingDisplayName = LOCTEXT("EditorLocaleSettingDisplayName", "Editor Locale");
+	const FText EditorLocaleSettingToolTip = LOCTEXT("EditorLocaleSettingToolTip", "The locale that the Editor should use for internationalization (numbers, dates, times, etc).");
+	DetailCategoryBuilder.AddCustomRow(EditorLocaleSettingDisplayName)
+		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(GameCultureSettingDisplayName)
-			.ToolTipText(GameCultureSettingToolTip)
+			.Text(EditorLocaleSettingDisplayName)
+			.ToolTipText(EditorLocaleSettingToolTip)
 			.Font(DetailLayout.GetDetailFont())
-		];
-	GameCultureRow.ValueContent()
+		]
+		.ValueContent()
 		[
-			SNew(SNativeGameCultureComboButton, SettingsModel, LocalizedCulturesFlyweight)
+			SNew(SEditorLocaleComboButton, SettingsModel, LocalizedCulturesFlyweight)
+		];
+
+	// Native Game Language Setting
+	const FText NativeGameLanguageSettingDisplayName = LOCTEXT("NativeGameLanguageSettingDisplayName", "Native Game Language");
+	const FText NativeGameLanguageSettingToolTip = LOCTEXT("NativeGameLanguageSettingToolTip", "The language that game content is authored in and localized from.\nWARNING: If this is not set to the culture the game is initially made in, modifying and saving assets may mix localized data in as native data!");
+	DetailCategoryBuilder.AddCustomRow(NativeGameLanguageSettingDisplayName)
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(NativeGameLanguageSettingDisplayName)
+			.ToolTipText(NativeGameLanguageSettingToolTip)
+			.Font(DetailLayout.GetDetailFont())
+		]
+		.ValueContent()
+		[
+			SNew(SNativeGameLanguageComboButton, SettingsModel, LocalizedCulturesFlyweight)
 		];
 
 	// Localized Field Names
 	const FText FieldNamesSettingDisplayName = LOCTEXT("EditorFieldNamesLabel", "Use Localized Field Names");
 	const FText FieldNamesSettingToolTip = LOCTEXT("EditorFieldNamesTooltip", "Toggle showing localized field names. NOTE: Requires restart to take effect.");
-	FDetailWidgetRow& FieldNamesRow = DetailCategoryBuilder.AddCustomRow(FieldNamesSettingDisplayName);
-	FieldNamesRow.NameContent()
+	DetailCategoryBuilder.AddCustomRow(FieldNamesSettingDisplayName)
+		.NameContent()
 		[
 			SNew(STextBlock)
 			.Text(FieldNamesSettingDisplayName)
 			.ToolTipText(FieldNamesSettingToolTip)
 			.Font(DetailLayout.GetDetailFont())
-		];
-	FieldNamesRow.ValueContent()
+		]
+		.ValueContent()
 		.MaxDesiredWidth(300.0f)
 		[
 			SNew(SCheckBox)
@@ -334,15 +442,15 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails(IDetailLayoutBu
 	// Localized Node and Pin Names
 	const FText NodeAndPinsNamesSettingDisplayName = LOCTEXT("GraphEditorNodesAndPinsLocalized", "Use Localized Graph Editor Nodes and Pins");
 	const FText NodeAndPinsNamesSettingToolTip = LOCTEXT("GraphEditorNodesAndPinsLocalized_Tooltip", "Toggle localized node and pin titles in all graph editors.");
-	FDetailWidgetRow& NodesAndPinsNameRow = DetailCategoryBuilder.AddCustomRow(NodeAndPinsNamesSettingDisplayName);
-	NodesAndPinsNameRow.NameContent()
+	DetailCategoryBuilder.AddCustomRow(NodeAndPinsNamesSettingDisplayName)
+		.NameContent()
 		[
 			SNew(STextBlock)
 			.Text(NodeAndPinsNamesSettingDisplayName)
 			.ToolTipText(NodeAndPinsNamesSettingToolTip)
 			.Font(DetailLayout.GetDetailFont())
-		];
-	NodesAndPinsNameRow.ValueContent()
+		]
+		.ValueContent()
 		.MaxDesiredWidth(300.0f)
 		[
 			SNew(SCheckBox)

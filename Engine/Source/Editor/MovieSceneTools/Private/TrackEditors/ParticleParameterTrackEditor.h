@@ -15,6 +15,7 @@
 
 class FMenuBuilder;
 class UMovieSceneParticleParameterTrack;
+class UParticleSystemComponent;
 struct FParameterNameAndAction;
 
 /**
@@ -96,4 +97,8 @@ private:
 	* @param ParameterName The name of the parameter to add an initial key for.
 	*/
 	void AddColorParameter( FGuid ObjectBinding, UMovieSceneParticleParameterTrack* ParticleParameterTrack, FName ParameterName );
+
+	/** Gets the particle system component for the supplied object binding.  This works for emitter actors and
+		directly bound particle components. */
+	UParticleSystemComponent* GetParticleSystemComponentForBinding(FGuid ObjectBinding);
 };

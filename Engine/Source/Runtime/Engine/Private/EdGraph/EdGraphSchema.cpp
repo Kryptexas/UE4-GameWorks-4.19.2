@@ -82,7 +82,7 @@ void FEdGraphSchemaAction::UpdateSearchText()
 	}
 }
 
-void FEdGraphSchemaAction::UpdateSearchData(FText NewMenuDescription, FString NewToolTipDescription, FText NewCategory, FText NewKeywords)
+void FEdGraphSchemaAction::UpdateSearchData(FText NewMenuDescription, FText NewToolTipDescription, FText NewCategory, FText NewKeywords)
 {
 	MenuDescription = MoveTemp(NewMenuDescription);
 	TooltipDescription = MoveTemp(NewToolTipDescription);

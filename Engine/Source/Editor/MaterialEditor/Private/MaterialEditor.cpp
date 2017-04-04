@@ -3889,6 +3889,17 @@ void FMaterialEditor::RefreshExpressionPreviews()
 
 		// Refresh all expression previews.
 		ExpressionPreviews.Empty();
+
+		for (int32 ExpressionIndex = 0; ExpressionIndex < Material->Expressions.Num(); ++ExpressionIndex)
+		{
+			UMaterialExpression* MaterialExpression = Material->Expressions[ExpressionIndex];
+
+			UMaterialGraphNode* GraphNode = Cast<UMaterialGraphNode>(MaterialExpression->GraphNode);
+			if (GraphNode)
+			{
+				GraphNode->InvalidatePreviewMaterialDelegate.ExecuteIfBound();
+			}
+		}
 	}
 	else
 	{
@@ -3932,11 +3943,19 @@ void FMaterialEditor::RefreshExpressionPreview(UMaterialExpression* MaterialExpr
 				SCOPED_SUSPEND_RENDERING_THREAD(true);
 				ExpressionPreviews.RemoveAt( PreviewIndex );
 				MaterialExpression->bNeedToUpdatePreview = false;
+
 				if (bRecompile)
 				{
 					bool bNewlyCreated;
 					GetExpressionPreview(MaterialExpression, bNewlyCreated);
 				}
+
+				UMaterialGraphNode* GraphNode = Cast<UMaterialGraphNode>(MaterialExpression->GraphNode);
+				if (GraphNode)
+				{
+					GraphNode->InvalidatePreviewMaterialDelegate.ExecuteIfBound();
+				}
+
 				break;
 			}
 		}

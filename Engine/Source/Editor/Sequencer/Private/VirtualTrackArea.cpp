@@ -75,11 +75,32 @@ TOptional<FSectionHandle> FVirtualTrackArea::HitTestSection(FVector2D InPhysical
 			float Time = PixelToTime(InPhysicalPosition.X);
 
 			const auto& Sections = TrackNode->GetSections();
+
+			if (Sections.Num() == 0)
+			{
+				return TOptional<FSectionHandle>();
+			}
+
+			int32 NumRows = 1;
+			for (const TSharedRef<ISequencerSection>& Section : Sections)
+			{
+				NumRows = FMath::Max(NumRows, Section->GetSectionObject()->GetRowIndex() + 1);
+			}
+			float VirtualRowHeight = (TrackNode->GetVirtualBottom() - TrackNode->GetVirtualTop()) / float(NumRows);
+			float VirtualMousePosY = PixelToVerticalOffset(InPhysicalPosition.Y);
+			int32 HoveredRow = FMath::TruncToInt((VirtualMousePosY - TrackNode->GetVirtualTop()) / VirtualRowHeight);
+
 			for (int32 Index = 0; Index < Sections.Num(); ++Index)
 			{
 				UMovieSceneSection* Section = Sections[Index]->GetSectionObject();
 				if (Section->IsTimeWithinSection(Time))
 				{
+					// Test for the correct row
+					if (Section->GetRowIndex() != HoveredRow)
+					{
+						continue;
+					}
+
 					return FSectionHandle(TrackNode.ToSharedRef(), Index);
 				}
 			}

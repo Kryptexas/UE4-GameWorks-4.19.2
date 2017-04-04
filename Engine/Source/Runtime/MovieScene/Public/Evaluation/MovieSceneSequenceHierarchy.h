@@ -38,6 +38,9 @@ struct FMovieSceneSubSequenceData
 		: Sequence(&InSequence)
 		, SequenceKeyObject(nullptr)
 		, DeterministicSequenceID(InDeterministicSequenceID)
+		, PreRollRange(TRange<float>::Empty())
+		, PostRollRange(TRange<float>::Empty())
+		, HierarchicalBias(0)
 #if WITH_EDITORONLY_DATA
 		, SectionPath(InSectionPath)
 		, ValidPlayRange(InValidPlayRange)
@@ -63,6 +66,19 @@ struct FMovieSceneSubSequenceData
 	/** This sequence's deterministic sequence ID. Used in editor to reduce the risk of collisions on recompilation */ 
 	UPROPERTY()
 	FMovieSceneSequenceID DeterministicSequenceID;
+
+
+	/** The sequence preroll range considering the start offset */
+	UPROPERTY()
+	FFloatRange PreRollRange;
+
+	/** The sequence postroll range considering the start offset */
+	UPROPERTY()
+	FFloatRange PostRollRange;
+
+	/** The accumulated hierarchical bias of this sequence. Higher bias will take precedence */
+	UPROPERTY()
+	int32 HierarchicalBias;
 
 #if WITH_EDITORONLY_DATA
 

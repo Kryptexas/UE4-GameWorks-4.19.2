@@ -85,6 +85,9 @@ public:
 	/** Handler for when "Save" is selected */
 	void ExecuteSaveFolder();
 
+	/** Handler for when "Resave" is selected */
+	void ExecuteResaveFolder();
+
 	/** Handler for when "ReferenceViewer" is selected */
 	void ExecuteReferenceViewer();
 

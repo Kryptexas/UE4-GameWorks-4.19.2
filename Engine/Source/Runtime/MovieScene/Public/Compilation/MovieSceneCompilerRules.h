@@ -46,20 +46,26 @@ namespace MovieSceneSegmentCompiler
 			return;
 		}
 
-		Segment.Impls.Sort(
-			[&](const FSectionEvaluationData& A, const FSectionEvaluationData& B)
-			{
-				return SourceData[A.ImplIndex].Priority > SourceData[B.ImplIndex].Priority;
-			}
-		);
-
-		const int32 HighestPriority = SourceData[Segment.Impls[0].ImplIndex].Priority;
-		for (int32 RemoveAtIndex = 1; RemoveAtIndex < Segment.Impls.Num(); ++RemoveAtIndex)
+		int32 HighestPriority = TNumericLimits<int32>::Lowest();
+		for (const FSectionEvaluationData& Impl : Segment.Impls)
 		{
-			if (SourceData[Segment.Impls[RemoveAtIndex].ImplIndex].Priority != HighestPriority)
+			const FMovieSceneSectionData& SectionData = SourceData[Impl.ImplIndex];
+			if (!SectionData.EvalData.IsPreRoll() &&
+				!SectionData.EvalData.IsPostRoll())
 			{
-				Segment.Impls.RemoveAt(RemoveAtIndex, Segment.Impls.Num() - RemoveAtIndex, false);
-				break;
+				HighestPriority = FMath::Max(HighestPriority, SectionData.Priority);
+			}
+		}
+
+		// Remove anything that's not the highest priority, (excluding pre/postroll sections)
+		for (int32 RemoveAtIndex = Segment.Impls.Num() - 1; RemoveAtIndex >= 0; --RemoveAtIndex)
+		{
+			const FMovieSceneSectionData& SectionData = SourceData[Segment.Impls[RemoveAtIndex].ImplIndex];
+			if (SectionData.Priority != HighestPriority &&
+				!SectionData.EvalData.IsPreRoll() && 
+				!SectionData.EvalData.IsPostRoll())
+			{
+				Segment.Impls.RemoveAtSwap(RemoveAtIndex, 1, false);
 			}
 		}
 	}
@@ -95,7 +101,9 @@ public:
 		// sort by start time to match application order of player camera
 		Segment.Impls.Sort(
 			[&](FSectionEvaluationData A, FSectionEvaluationData B){
-				return Sections[SourceData[A.ImplIndex].SourceIndex]->GetStartTime() < Sections[SourceData[B.ImplIndex].SourceIndex]->GetStartTime();
+				const int32 SectionIndexA = SourceData[A.ImplIndex].EvalData.ImplIndex;
+				const int32 SectionIndexB = SourceData[B.ImplIndex].EvalData.ImplIndex;
+				return Sections[SectionIndexA]->GetStartTime() < Sections[SectionIndexB]->GetStartTime();
 			}
 		);
 	}

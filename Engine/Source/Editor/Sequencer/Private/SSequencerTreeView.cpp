@@ -4,6 +4,8 @@
 #include "SSequencerTrackLane.h"
 #include "EditorStyleSet.h"
 #include "SequencerDisplayNodeDragDropOp.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 static FName TrackAreaName = "TrackArea";
 
@@ -89,10 +91,9 @@ FReply SSequencerTreeViewRow::OnDragDetected( const FGeometry& InGeometry, const
 				}
 			}
 
-			TSharedRef<FSequencerDisplayNodeDragDropOp> DragDropOp = MakeShareable( new FSequencerDisplayNodeDragDropOp( DraggableNodes ) );
-			DragDropOp->CurrentHoverText = FText::Format( NSLOCTEXT( "SequencerTreeViewRow", "DefaultDragDropFormat", "Move {0} item(s)" ), FText::AsNumber( DraggableNodes.Num() ) );
-			DragDropOp->SetupDefaults();
-			DragDropOp->Construct();
+			FText DefaultText = FText::Format( NSLOCTEXT( "SequencerTreeViewRow", "DefaultDragDropFormat", "Move {0} item(s)" ), FText::AsNumber( DraggableNodes.Num() ) );
+			TSharedRef<FSequencerDisplayNodeDragDropOp> DragDropOp = FSequencerDisplayNodeDragDropOp::New( DraggableNodes, DefaultText, nullptr );
+
 			return FReply::Handled().BeginDragDrop( DragDropOp );
 		}
 	}
@@ -156,6 +157,7 @@ void SSequencerTreeView::Construct(const FArguments& InArgs, const TSharedRef<FS
 	Sequencer.GetSelection().GetOnOutlinerNodeSelectionChanged().AddSP(this, &SSequencerTreeView::SynchronizeTreeSelectionWithSequencerSelection);
 
 	HeaderRow = SNew(SHeaderRow).Visibility(EVisibility::Collapsed);
+	OnGetContextMenuContent = InArgs._OnGetContextMenuContent;
 
 	SetupColumns(InArgs);
 
@@ -573,7 +575,18 @@ TSharedPtr<SWidget> SSequencerTreeView::OnContextMenuOpening()
 	{
 		return SelectedNodes.Array()[0]->OnSummonContextMenu();
 	}
-	return TSharedPtr<SWidget>();
+
+	// Otherwise, add a general menu for options
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, SequencerNodeTree->GetSequencer().GetCommandBindings());
+
+	OnGetContextMenuContent.ExecuteIfBound(MenuBuilder);
+	
+	MenuBuilder.BeginSection("Edit");
+	MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
 }
 
 void SSequencerTreeView::Refresh()

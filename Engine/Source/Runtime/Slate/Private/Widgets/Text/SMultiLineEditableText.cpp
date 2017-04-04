@@ -173,6 +173,11 @@ void SMultiLineEditableText::SetAllowContextMenu(const TAttribute< bool >& InAll
 	bAllowContextMenu = InAllowContextMenu;
 }
 
+void SMultiLineEditableText::SetIsReadOnly(const TAttribute<bool>& InIsReadOnly)
+{
+	bIsReadOnly = InIsReadOnly;
+}
+
 void SMultiLineEditableText::OnHScrollBarMoved(const float InScrollOffsetFraction)
 {
 	EditableTextLayout->SetHorizontalScrollFraction(InScrollOffsetFraction);

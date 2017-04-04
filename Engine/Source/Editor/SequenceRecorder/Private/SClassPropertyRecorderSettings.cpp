@@ -52,13 +52,13 @@ FText SClassPropertyRecorderSettings::GetText() const
 {
 	if (PropertiesHandle.IsValid())
 	{
-		TArray<FName>& PropertiesToRecord = GetPropertyNameArray();
-		if (PropertiesToRecord.Num() > 0)
+		TArray<FName>* PropertiesToRecord = GetPropertyNameArray();
+		if (PropertiesToRecord != nullptr && PropertiesToRecord->Num() > 0)
 		{
-			FText Text = FText::Format(LOCTEXT("SinglePropertyToRecordFormat", "{0}"), FText::FromName(PropertiesToRecord[0]));
-			for (int32 PropertyIndex = 1; PropertyIndex < PropertiesToRecord.Num(); ++PropertyIndex)
+			FText Text = FText::Format(LOCTEXT("SinglePropertyToRecordFormat", "{0}"), FText::FromName((*PropertiesToRecord)[0]));
+			for (int32 PropertyIndex = 1; PropertyIndex < PropertiesToRecord->Num(); ++PropertyIndex)
 			{
-				Text = FText::Format(LOCTEXT("PropertiesToRecordFormat", "{0}, {1}"), Text, FText::FromName(PropertiesToRecord[PropertyIndex]));
+				Text = FText::Format(LOCTEXT("PropertiesToRecordFormat", "{0}, {1}"), Text, FText::FromName((*PropertiesToRecord)[PropertyIndex]));
 			}
 			return Text;
 		}
@@ -148,8 +148,11 @@ TSharedRef<SWidget> SClassPropertyRecorderSettings::GenerateExtensionWidget(cons
 	ECheckBoxState InitialState = ECheckBoxState::Unchecked;
 	FName PropertyName = *PropertyHandle->GeneratePathToProperty();
 
-	TArray<FName>& PropertiesToRecord = GetPropertyNameArray();
-	InitialState = PropertiesToRecord.Contains(PropertyName) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	TArray<FName>* PropertiesToRecord = GetPropertyNameArray();
+	if (PropertiesToRecord != nullptr)
+	{
+		InitialState = PropertiesToRecord->Contains(PropertyName) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
 
 	return SNew(SCheckBox)
 		.OnCheckStateChanged(this, &SClassPropertyRecorderSettings::HandlePropertyCheckStateChanged, PropertyHandle)
@@ -160,30 +163,38 @@ void SClassPropertyRecorderSettings::HandlePropertyCheckStateChanged(ECheckBoxSt
 {
 	if (PropertyHandle.IsValid() && PropertiesHandle.IsValid())
 	{
-		TArray<FName>& PropertiesToRecord = GetPropertyNameArray();
+		TArray<FName>* PropertiesToRecord = GetPropertyNameArray();
 
-		FName PropertyPath = *PropertyHandle->GeneratePathToProperty();
-		if (InState == ECheckBoxState::Checked)
+		if (PropertiesToRecord != nullptr)
 		{
-			PropertiesToRecord.AddUnique(PropertyPath);
-		}
-		else
-		{
-			PropertiesToRecord.Remove(PropertyPath);
-		}
+			FName PropertyPath = *PropertyHandle->GeneratePathToProperty();
+			if (InState == ECheckBoxState::Checked)
+			{
+				PropertiesToRecord->AddUnique(PropertyPath);
+			}
+			else
+			{
+				PropertiesToRecord->Remove(PropertyPath);
+			}
 
-		PropertiesHandle->NotifyPostChange();
+			PropertiesHandle->NotifyPostChange();
+		}
 	}
 }
 
-TArray<FName>& SClassPropertyRecorderSettings::GetPropertyNameArray() const
+TArray<FName>* SClassPropertyRecorderSettings::GetPropertyNameArray() const
 {
 	check(PropertiesHandle.IsValid());
 
 	TArray<void*> RawData;
 	PropertiesHandle->AccessRawData(RawData);
 	check(RawData.Num() > 0);
-	return *reinterpret_cast<TArray<FName>*>(RawData[0]);
+	if (RawData[0] != nullptr)
+	{
+		return reinterpret_cast<TArray<FName>*>(RawData[0]);
+	}
+
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

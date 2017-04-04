@@ -132,6 +132,8 @@ SHOWFLAG_FIXED_IN_SHIPPING(1, Tessellation, SFG_Advanced, LOCTEXT("TessellationS
 SHOWFLAG_ALWAYS_ACCESSIBLE(InstancedStaticMeshes, SFG_Advanced, LOCTEXT("InstancedStaticMeshesSF", "Instanced Static Meshes"))
 /** Draws instanced foliage, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
 SHOWFLAG_ALWAYS_ACCESSIBLE(InstancedFoliage, SFG_Advanced, LOCTEXT("InstancedFoliageSF", "Foliage"))
+/** Allow to see the foliage bounds used in the occlusion test */
+SHOWFLAG_FIXED_IN_SHIPPING(0, FoliageOcclusionBounds, SFG_Advanced, LOCTEXT("FoliageOcclusionBoundsSF", "Foliage Occlusion Bounds"))
 /** Draws instanced grass, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
 SHOWFLAG_ALWAYS_ACCESSIBLE(InstancedGrass, SFG_Advanced, LOCTEXT("InstancedGrassSF", "Grass"))
 /** non baked shadows, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */

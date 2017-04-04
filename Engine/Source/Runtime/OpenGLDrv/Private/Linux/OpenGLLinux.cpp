@@ -424,9 +424,12 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 		if (Viewport.GetCustomPresent())
 		{
 			glDisable(GL_FRAMEBUFFER_SRGB);
-			Viewport.GetCustomPresent()->Present(SyncInterval);
+			bool bShouldPresent = Viewport.GetCustomPresent()->Present(SyncInterval);
 			glEnable(GL_FRAMEBUFFER_SRGB);
-			return false;
+			if (!bShouldPresent)
+			{
+				return false;
+			}
 		}
 
 		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );

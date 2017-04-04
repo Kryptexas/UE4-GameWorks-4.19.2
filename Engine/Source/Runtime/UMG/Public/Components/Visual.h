@@ -8,7 +8,7 @@
 #include "Visual.generated.h"
 
 /** The base class for elements in UMG: slots and widgets. */
-UCLASS()
+UCLASS(DefaultToInstanced)
 class UMG_API UVisual : public UObject
 {
 	GENERATED_UCLASS_BODY()

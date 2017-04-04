@@ -61,6 +61,29 @@ void FEnginePackageLocalizationCache::FindLocalizedPackages(const FString& InSou
 	}
 }
 
+void FEnginePackageLocalizationCache::FindAssetGroupPackages(const FName InAssetGroupName, const FName InAssetClassName)
+{
+	// We only support finding asset groups paths in cooked games, as the asset registry scan time can take too long otherwise
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		return;
+	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+	TArray<FAssetData> AssetsOfClass;
+	AssetRegistry.GetAssetsByClass(InAssetClassName, AssetsOfClass);
+
+	for (const FAssetData& AssetOfClass : AssetsOfClass)
+	{
+		if (!FPackageName::IsLocalizedPackage(AssetOfClass.PackageName.ToString()))
+		{
+			PackageNameToAssetGroup.Add(AssetOfClass.PackageName, InAssetGroupName);
+		}
+	}
+}
+
 void FEnginePackageLocalizationCache::HandleAssetAdded(const FAssetData& InAssetData)
 {
 	if (bIsScanningPath)
@@ -75,6 +98,8 @@ void FEnginePackageLocalizationCache::HandleAssetAdded(const FAssetData& InAsset
 	{
 		CultureCachePair.Value->AddPackage(InAssetData.PackageName.ToString());
 	}
+
+	bPackageNameToAssetGroupDirty = true;
 }
 
 void FEnginePackageLocalizationCache::HandleAssetRemoved(const FAssetData& InAssetData)
@@ -85,6 +110,8 @@ void FEnginePackageLocalizationCache::HandleAssetRemoved(const FAssetData& InAss
 	{
 		CultureCachePair.Value->RemovePackage(InAssetData.PackageName.ToString());
 	}
+
+	bPackageNameToAssetGroupDirty = true;
 }
 
 void FEnginePackageLocalizationCache::HandleAssetRenamed(const FAssetData& InAssetData, const FString& InOldObjectPath)
@@ -98,4 +125,6 @@ void FEnginePackageLocalizationCache::HandleAssetRenamed(const FAssetData& InAss
 		CultureCachePair.Value->RemovePackage(OldPackagePath);
 		CultureCachePair.Value->AddPackage(InAssetData.PackageName.ToString());
 	}
+
+	bPackageNameToAssetGroupDirty = true;
 }

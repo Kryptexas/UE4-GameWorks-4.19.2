@@ -23,12 +23,12 @@ public:
 	/** FMathStructCustomization interface */
 
 	virtual void MakeHeaderRow(TSharedRef<IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row) override;
-	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
-	
-	// We specialize the detail display of color grading vector property. The color grading mode is specified inside the metadata of the UProperty
-	TSharedPtr<FColorGradingVectorCustomization> ColorGradingVectorCustomization;
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;	
 
 private:
-	FLinearColor OnGetHeaderColorBlock(TWeakPtr<IPropertyHandle> WeakHandlePtr) const;
+	// We specialize the detail display of color grading vector property. The color grading mode is specified inside the metadata of the UProperty
+	TSharedPtr<FColorGradingVectorCustomization> GetOrCreateColorGradingVectorCustomization(TSharedRef<IPropertyHandle>& StructPropertyHandle);
+
+	TSharedPtr<FColorGradingVectorCustomization> ColorGradingVectorCustomization;
 };
 

@@ -212,8 +212,8 @@ private:
 	void OnBeginSliderMovement();
 
 	/** Called when a value stops being changed by a slider */
-	template<typename NumericType>
-	void OnEndSliderMovement( NumericType NewValue );
+	template<typename ProxyType, typename NumericType>
+	void OnEndSliderMovement( NumericType NewValue, TWeakPtr<IPropertyHandle> WeakHandlePtr, TSharedRef< TProxyProperty<ProxyType, NumericType> > ProxyValue );
 
 protected:
 	/** Cached property utilities */

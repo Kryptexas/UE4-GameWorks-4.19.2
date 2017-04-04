@@ -163,7 +163,15 @@ void FSequencerEdMode::DrawMeshTransformTrailFromKey(const class ASequencerKeyAc
 			AActor* TrailActor = KeyActor->GetAssociatedActor();
 			KeyObjects.Add(TrailActor);
 			FPrimitiveDrawInterface* PDI = nullptr;
-			DrawTransformTrack(PDI, Track, KeyObjects, true);
+
+			for (TWeakPtr<FSequencer> WeakSequencer : Sequencers)
+			{
+				TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+				if (Sequencer.IsValid())
+				{
+					DrawTransformTrack(Sequencer, PDI, Track, KeyObjects, true);
+				}
+			}
 		}
 	}
 }
@@ -188,11 +196,32 @@ static const float	DrawTrackTimeRes = 0.1f;
 static const float	CurveHandleScale = 0.5f;
 }
 
-FTransform GetRefFrame(const UObject* InObject)
+FTransform FSequencerEdMode::GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const UObject* InObject, float KeyTime)
 {
 	FTransform RefTM = FTransform::Identity;
 
 	const AActor* Actor = Cast<AActor>(InObject);
+	if (Actor != nullptr)
+	{
+		RefTM = GetRefFrame(Sequencer, Actor, KeyTime);
+	}
+	else
+	{
+		const USceneComponent* SceneComponent = Cast<USceneComponent>(InObject);
+
+		if (SceneComponent != nullptr)
+		{
+			RefTM = GetRefFrame(Sequencer, SceneComponent, KeyTime);
+		}
+	}
+
+	return RefTM;
+}
+
+FTransform FSequencerEdMode::GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const AActor* Actor, float KeyTime)
+{
+	FTransform RefTM = FTransform::Identity;
+
 	if (Actor != nullptr && Actor->GetRootComponent() != nullptr && Actor->GetRootComponent()->GetAttachParent() != nullptr)
 	{
 		RefTM = Actor->GetRootComponent()->GetAttachParent()->GetSocketTransform(Actor->GetRootComponent()->GetAttachSocketName());
@@ -201,13 +230,91 @@ FTransform GetRefFrame(const UObject* InObject)
 	return RefTM;
 }
 
-void GetLocationAtTime(UMovieScene3DTransformSection* TransformSection, float KeyTime, FVector& KeyPos, FRotator& KeyRot)
+FTransform FSequencerEdMode::GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const USceneComponent* SceneComponent, float KeyTime)
+{
+	FTransform RefTM = FTransform::Identity;
+
+	if (SceneComponent != nullptr && SceneComponent->GetAttachParent() != nullptr)
+	{
+		FTransform ParentRefTM = GetRefFrame(Sequencer, SceneComponent->GetAttachParent(), KeyTime);
+
+		// If our parent is the root component, get the RefFrame from the Actor
+		if (SceneComponent->GetAttachParent() == SceneComponent->GetOwner()->GetRootComponent())
+		{
+			ParentRefTM = GetRefFrame(Sequencer, SceneComponent->GetAttachParent()->GetOwner(), KeyTime);
+		}
+		else
+		{
+			ParentRefTM = GetRefFrame(Sequencer, SceneComponent->GetAttachParent(), KeyTime);
+		}
+		
+		FTransform CurrentRefTM = SceneComponent->GetAttachParent()->GetRelativeTransform();
+
+		// Check if our parent is animated in this Sequencer
+
+		FGuid ObjectBinding;
+		if (SceneComponent->GetAttachParent() == SceneComponent->GetOwner()->GetRootComponent())
+		{
+			ObjectBinding = Sequencer->FindObjectId(*SceneComponent->GetOwner(), Sequencer->GetFocusedTemplateID());
+		}
+		else
+		{
+			ObjectBinding = Sequencer->FindObjectId(*SceneComponent->GetAttachParent(), Sequencer->GetFocusedTemplateID());
+		}
+
+		if (ObjectBinding.IsValid())
+		{
+			const TSharedPtr< FSequencerDisplayNode >& ObjectNode = Sequencer->GetNodeTree()->GetObjectBindingMap()[ObjectBinding];
+
+			for (const TSharedRef< FSequencerDisplayNode >& ChildNode : ObjectNode->GetChildNodes())
+			{
+				if (ChildNode->GetType() == ESequencerNode::Track)
+				{
+					const TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(ChildNode);
+					const UMovieSceneTrack* TrackNodeTrack = TrackNode->GetTrack();
+					const UMovieScene3DTransformTrack* TransformTrack = Cast<UMovieScene3DTransformTrack>(TrackNodeTrack);
+
+					if (TransformTrack != nullptr)
+					{
+						for (const UMovieSceneSection* Section : TransformTrack->GetAllSections())
+						{
+							if (Section->IsTimeWithinSection(KeyTime))
+							{
+								const UMovieScene3DTransformSection* ParentSection = Cast<UMovieScene3DTransformSection>(Section);
+
+								if (ParentSection != nullptr)
+								{
+									FVector ParentKeyPos;
+									FRotator ParentKeyRot;
+
+									GetLocationAtTime(ParentSection, KeyTime, ParentKeyPos, ParentKeyRot);
+
+									CurrentRefTM = FTransform(ParentKeyRot, ParentKeyPos);
+
+									break; // Found the right section, early out
+								}
+							}
+						}
+						break; // Found the transform track, early out
+					}
+				}
+			}
+		}
+
+		RefTM = CurrentRefTM * ParentRefTM;
+	}
+
+	return RefTM;
+}
+
+void FSequencerEdMode::GetLocationAtTime(const UMovieScene3DTransformSection* TransformSection, float KeyTime, FVector& KeyPos, FRotator& KeyRot)
 {
 	TransformSection->EvalTranslation(KeyTime, KeyPos);
 	TransformSection->EvalRotation(KeyTime, KeyRot);
 }
 
-void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieScene3DTransformTrack* TransformTrack, const TArray<TWeakObjectPtr<UObject>>& BoundObjects, const bool& bIsSelected)
+void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequencer, FPrimitiveDrawInterface* PDI,
+											UMovieScene3DTransformTrack* TransformTrack, const TArray<TWeakObjectPtr<UObject>>& BoundObjects, const bool bIsSelected)
 {
 	FLinearColor TrackColor = FLinearColor::Yellow; //@todo - customizable per track
 	bool bHitTesting = true;
@@ -313,10 +420,12 @@ void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieSc
 
 				for (auto BoundObject : BoundObjects)
 				{
-					FTransform RefTM = GetRefFrame(BoundObject.Get());
+					FTransform OldPosRefTM = GetRefFrame(Sequencer, BoundObject.Get(), OldKeyTime);
+					FTransform NewPosRefTM = GetRefFrame(Sequencer, BoundObject.Get(), NewKeyTime);
 
-					FVector OldPos_G = RefTM.TransformPosition(OldPos);
-					FVector NewKeyPos_G = RefTM.TransformPosition(NewKeyPos);
+					FVector OldPos_G = OldPosRefTM.TransformPosition(OldPos);
+					FVector NewKeyPos_G = NewPosRefTM.TransformPosition(NewKeyPos);
+
 					// For constant interpolation - don't draw ticks - just draw dotted line.
 					if (bIsConstantKey)
 					{
@@ -336,6 +445,7 @@ void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieSc
 							FRotator NewRot(0,0,0);
 							GetLocationAtTime(TransformSection, NewTime, NewPos, NewRot);
 
+							FTransform RefTM = GetRefFrame(Sequencer, BoundObject.Get(), NewTime);
 							FVector NewPos_G = RefTM.TransformPosition(NewPos);
 							if (PDI != nullptr)
 							{
@@ -388,7 +498,7 @@ void FSequencerEdMode::DrawTransformTrack(FPrimitiveDrawInterface* PDI, UMovieSc
 
 			for (auto BoundObject : BoundObjects)
 			{
-				FTransform RefTM = GetRefFrame(BoundObject.Get());
+				FTransform RefTM = GetRefFrame(Sequencer, BoundObject.Get(), NewKeyTime);
 
 				FColor KeyColor = bKeySelected ? SequencerEdMode_Draw3D::KeySelectedColor : TrackColor.ToFColor(true);
 
@@ -505,26 +615,42 @@ void FSequencerEdMode::DrawTracks3D(FPrimitiveDrawInterface* PDI)
 			TSet<TSharedRef<FSequencerDisplayNode> > DescendantNodes;
 			SequencerHelpers::GetDescendantNodes(ObjectBindingNode, DescendantNodes);
 
-			bool bSelected = false;
-			for (auto DescendantNode : DescendantNodes)
+			bool bSelected = Sequencer->GetSelection().IsSelected(ObjectBindingNode);
+
+			if (!bSelected)
 			{
-				if (Sequencer->GetSelection().IsSelected(ObjectBindingNode) || 
-					Sequencer->GetSelection().IsSelected(DescendantNode) || 
-					Sequencer->GetSelection().NodeHasSelectedKeysOrSections(DescendantNode))
+				// If one of our child is selected, we're considered selected
+				for (auto& DescendantNode : DescendantNodes)
+				{
+					if (Sequencer->GetSelection().IsSelected(DescendantNode) ||
+						Sequencer->GetSelection().NodeHasSelectedKeysOrSections(DescendantNode))
+					{
+						bSelected = true;
+						break;
+					}
+				}
+			}
+
+			// If one of our parent is selected, we're considered selected
+			TSharedPtr<FSequencerDisplayNode> ParentNode = ObjectBindingNode->GetParent();
+
+			while (!bSelected && ParentNode.IsValid())
+			{
+				if (Sequencer->GetSelection().IsSelected(ParentNode.ToSharedRef()) ||
+					Sequencer->GetSelection().NodeHasSelectedKeysOrSections(ParentNode.ToSharedRef()))
 				{
 					bSelected = true;
-					break;
 				}
+
+				ParentNode = ParentNode->GetParent();
 			}
 
 			ObjectBindingNodesSelectionMap.Add(ObjectBindingNode, bSelected);
 		}
 
 		// Gather up the transform track nodes from the object binding nodes
-		for (auto ObjectBindingNode : ObjectBindingNodesSelectionMap)
+		for (auto& ObjectBindingNode : ObjectBindingNodesSelectionMap)
 		{
-			TSet<TSharedRef<FSequencerDisplayNode> > AllNodes;
-			SequencerHelpers::GetDescendantNodes(ObjectBindingNode.Key, AllNodes);
 			FGuid ObjectBinding = StaticCastSharedRef<FSequencerObjectBindingNode>(ObjectBindingNode.Key)->GetObjectBinding();
 
 			TArray<TWeakObjectPtr<UObject>> BoundObjects;
@@ -533,7 +659,7 @@ void FSequencerEdMode::DrawTracks3D(FPrimitiveDrawInterface* PDI)
 				BoundObjects.Add(Ptr);
 			}
 
-			for (auto DisplayNode : AllNodes)
+			for (auto& DisplayNode : ObjectBindingNode.Key.Get().GetChildNodes())
 			{
 				if (DisplayNode->GetType() == ESequencerNode::Track)
 				{
@@ -560,7 +686,8 @@ void FSequencerEdMode::DrawTracks3D(FPrimitiveDrawInterface* PDI)
 								}
 							}
 						}
-						DrawTransformTrack(PDI, TransformTrack, BoundObjects, ObjectBindingNode.Value);
+
+						DrawTransformTrack(Sequencer, PDI, TransformTrack, BoundObjects, ObjectBindingNode.Value);
 					}
 				}
 			}

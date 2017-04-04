@@ -7,6 +7,7 @@
 #include "Components/ArrowComponent.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 
 #include "Components/WidgetComponent.h"
 
@@ -220,7 +221,7 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 			else
 			{
 				ensure(TraceResult.HitWidgetComponent->GetGeometryMode() == EWidgetGeometryMode::Plane);
-				TraceResult.HitWidgetComponent->GetLocalHitLocation(LastHitResult.ImpactPoint, TraceResult.LocalHitLocation);
+				TraceResult.HitWidgetComponent->GetLocalHitLocation(TraceResult.HitResult.ImpactPoint, TraceResult.LocalHitLocation);
 			}
 			TraceResult.HitWidgetPath = FindHoveredWidgetPath(TraceResult);
 		}
@@ -291,6 +292,7 @@ FWidgetPath UWidgetInteractionComponent::DetermineWidgetUnderPointer()
 		: LastLocalHitLocation;
 	WidgetPathUnderPointer = TraceResult.HitWidgetPath;
 
+#if ENABLE_DRAW_DEBUG
 	if ( bShowDebug )
 	{
 		if ( HoveredWidgetComponent )
@@ -310,6 +312,7 @@ FWidgetPath UWidgetInteractionComponent::DetermineWidgetUnderPointer()
 			}
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 
 	if ( HoveredWidgetComponent )
 	{

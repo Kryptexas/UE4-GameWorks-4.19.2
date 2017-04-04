@@ -148,6 +148,41 @@ void FSequencerObjectChangeListener::ReportObjectDestroyed(UObject& Object)
 	ObjectToPropertyChangedEvent.Remove(&Object);
 }
 
+FName GetFunctionName(FAnimatedPropertyKey PropertyKey, const FString& InPropertyVarName)
+{
+	FString PropertyVarName = InPropertyVarName;
+
+	// If this is a bool property, strip off the 'b' so that the "Set" functions to be 
+	// found are, for example, "SetHidden" instead of "SetbHidden"
+	if (PropertyKey.PropertyTypeName == "BoolProperty")
+	{
+		PropertyVarName.RemoveFromStart("b", ESearchCase::CaseSensitive);
+	}
+
+	static const FString Set(TEXT("Set"));
+
+	const FString FunctionString = Set + PropertyVarName;
+
+	FName FunctionName = FName(*FunctionString);
+
+	return FunctionName;
+}
+
+bool IsHiddenFunction(const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const FString& InPropertyVarName)
+{
+	FName FunctionName = GetFunctionName(PropertyKey, InPropertyVarName);
+
+	static const FName HideFunctionsName(TEXT("HideFunctions"));
+	bool bIsHiddenFunction = false;
+	TArray<FString> HideFunctions;
+	if (const UClass* Class = Cast<const UClass>(&PropertyStructure))
+	{
+		Class->GetHideFunctions(HideFunctions);
+	}
+
+	return HideFunctions.Contains(FunctionName.ToString());
+}
+
 bool FSequencerObjectChangeListener::FindPropertySetter( const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const FString& InPropertyVarName, const UStructProperty* StructProperty, const UArrayProperty* ArrayProperty) const
 {
 	if (!PropertyChangedEventMap.Contains( PropertyKey ))
@@ -286,6 +321,11 @@ bool FSequencerObjectChangeListener::CanKeyProperty(FCanKeyPropertyParams CanKey
 		// the property in question is not a struct or an inner of the struct. See if it is directly keyable
 		const UStruct* PropertyContainer = CanKeyPropertyParams.FindPropertyContainer(Property);
 		bFound = FindPropertySetter(*PropertyContainer, FAnimatedPropertyKey::FromProperty(Property), Property->GetName());
+
+		if (IsHiddenFunction(*PropertyContainer, FAnimatedPropertyKey::FromProperty(Property), Property->GetName()))
+		{
+			return false;
+		}
 	}
 
 	if ( !bFound && Property )

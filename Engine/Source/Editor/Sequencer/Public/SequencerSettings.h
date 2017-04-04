@@ -32,6 +32,41 @@ enum ESequencerZoomPosition
 	SZP_MousePosition UMETA(DisplayName="Mouse Position"),
 };
 
+UENUM()
+enum ESequencerLoopMode
+{
+	/** No Looping. */
+	SLM_NoLoop UMETA(DisplayName="No Looping"),
+
+	/** Loop Playback Range. */
+	SLM_Loop UMETA(DisplayName="Loop"),
+
+	/** Loop Selection Range. */
+	SLM_LoopSelectionRange UMETA(DisplayName="Loop Selection Range"),
+};
+
+UENUM()
+enum ESequencerTimeSnapInterval
+{
+	STSI_0_001		UMETA(DisplayName="0.001s"),
+	STSI_0_01		UMETA(DisplayName="0.01s"),
+	STSI_0_1		UMETA(DisplayName="0.1s"),
+	STSI_1			UMETA(DisplayName="1s"),
+	STSI_10			UMETA(DisplayName="10s"),
+	STSI_100		UMETA(DisplayName="100s"),
+	STSI_15Fps		UMETA(DisplayName="15 fps"),
+	STSI_24Fps		UMETA(DisplayName="24 fps (film)"),
+	STSI_25Fps		UMETA(DisplayName="25 fps (PAL/25)"),
+	STSI_29_97Fps	UMETA(DisplayName="29.97 fps (NTSC/30)"),
+	STSI_30Fps		UMETA(DisplayName="30 fps"),
+	STSI_48Fps		UMETA(DisplayName="48 fps"),
+	STSI_50Fps		UMETA(DisplayName="50 fps (PAL/50)"),
+	STSI_59_94Fps	UMETA(DisplayName="59.94 fps (NTSC/60)"),
+	STSI_60Fps		UMETA(DisplayName="60 fps"),
+	STSI_120Fps		UMETA(DisplayName="120 fps"),
+	STSI_Custom		UMETA(DisplayName="Custom")
+};
+
 /** Empty class used to house multiple named USequencerSettings */
 UCLASS()
 class USequencerSettingsContainer
@@ -73,7 +108,6 @@ class SEQUENCER_API USequencerSettings
 public:
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_MULTICAST_DELEGATE( FOnTimeSnapIntervalChanged );
 	DECLARE_MULTICAST_DELEGATE( FOnEvaluateSubSequencesInIsolationChanged );
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnLockPlaybackToAudioClockChanged, bool );
 
@@ -126,8 +160,11 @@ public:
 
 	/** Gets the time in seconds used for interval snapping. */
 	float GetTimeSnapInterval() const;
-	/** Sets the time in seconds used for interval snapping. */
-	void SetTimeSnapInterval(float InTimeSnapInterval);
+
+	/** Gets the custom time in seconds used for interval snapping. */
+	float GetCustomTimeSnapInterval() const;
+	/** Sets the custom time in seconds used for interval snapping. */
+	void SetCustomTimeSnapInterval(float InCustomTimeSnapInterval);
 
 	/** Gets whether or not to snap key times to the interval. */
 	bool GetSnapKeyTimesToInterval() const;
@@ -158,6 +195,11 @@ public:
 	bool GetSnapPlayTimeToInterval() const;
 	/** Sets whether or not to snap the play time to the interval while scrubbing. */
 	void SetSnapPlayTimeToInterval(bool InbSnapPlayTimeToInterval);
+
+	/** Gets whether or not to snap the play time to the pressed key. */
+	bool GetSnapPlayTimeToPressedKey() const;
+	/** Sets whether or not to snap the play time to the pressed key. */
+	void SetSnapPlayTimeToPressedKey(bool InbSnapPlayTimeToPressedKey);
 
 	/** Gets whether or not to snap the play time to the dragged key. */
 	bool GetSnapPlayTimeToDraggedKey() const;
@@ -205,9 +247,9 @@ public:
 	void SetLinkCurveEditorTimeRange(bool InbLinkCurveEditorTimeRange);
 
 	/** Gets the loop mode. */
-	bool IsLooping() const;
+	ESequencerLoopMode GetLoopMode() const;
 	/** Sets the loop mode. */
-	void SetLooping(bool bInLooping);
+	void SetLoopMode(ESequencerLoopMode InLoopMode);
 
 	/** @return true if the cursor should be kept within the playback range during playback in sequencer, false otherwise */
 	bool ShouldKeepCursorInPlayRange() const;
@@ -269,13 +311,15 @@ public:
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
-	/** Gets the multicast delegate which is run whenever the time snap interval is changed. */
-	FOnTimeSnapIntervalChanged& GetOnTimeSnapIntervalChanged();
-
 	/** @return true we're locking playback to the audio clock */
 	bool ShouldLockPlaybackToAudioClock() const;
 	/** Toggle whether to lock playback to the audio clock */
 	void SetLockPlaybackToAudioClock(bool bInLockPlaybackToAudioClock);
+
+	/** Check whether to show pre and post roll in sequencer */
+	bool ShouldShowPrePostRoll() const;
+	/** Toggle whether to show pre and post roll in sequencer */
+	void SetShouldShowPrePostRoll(bool bInVisualizePreAndPostRoll);
 
 	/** Gets the multicast delegate which is invoked whenevcer the bLockPlaybackToAudioClock setting is changed. */
 	FOnLockPlaybackToAudioClockChanged& GetOnLockPlaybackToAudioClockChanged() { return OnLockPlaybackToAudioClockChanged; }
@@ -322,9 +366,13 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bIsSnapEnabled;
 
-	/** The time snapping interval in the timeline. */
+	/** The time snap interval mode */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
-	float TimeSnapInterval;
+	TEnumAsByte<ESequencerTimeSnapInterval> TimeSnapIntervalMode;
+
+	/** The custom time snapping interval in the timeline. Used if the time snap interval mode is set to Custom */
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
+	float CustomTimeSnapInterval;
 
 	/** Enable or disable snapping keys to the time snapping interval. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
@@ -350,7 +398,11 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapPlayTimeToInterval;
 
-	/** Enable or disable snapping the current time to the dragged or pressed key. */
+	/** Enable or disable snapping the current time to the pressed key. */
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
+	bool bSnapPlayTimeToPressedKey;
+
+	/** Enable or disable snapping the current time to the dragged key. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapPlayTimeToDraggedKey;
 
@@ -385,9 +437,9 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
 	bool bLinkCurveEditorTimeRange;
 
-	/** Enable or disable looping playback in the timeline. */
+	/** The loop mode of the playback in timeline. */
 	UPROPERTY( config )
-	bool bLooping;
+	TEnumAsByte<ESequencerLoopMode> LoopMode;
 
 	/** Enable or disable keeping the cursor in the current playback range during playback. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
@@ -435,6 +487,9 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bShowDebugVisualization;
 
-	FOnTimeSnapIntervalChanged OnTimeSnapIntervalChanged;
+	/** Enable or disable showing of pre and post roll visualization. */
+	UPROPERTY( config, EditAnywhere, Category=General )
+	bool bVisualizePreAndPostRoll;
+
 	FOnEvaluateSubSequencesInIsolationChanged OnEvaluateSubSequencesInIsolationChangedEvent;
 };

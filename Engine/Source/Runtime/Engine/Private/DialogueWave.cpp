@@ -454,28 +454,33 @@ void UDialogueSoundWaveProxy::Parse(class FAudioDevice* AudioDevice, const UPTRI
 	SoundWave->Parse(AudioDevice, NodeWaveInstanceHash, ActiveSound, ParseParams, WaveInstances);
 	int NewWaveInstanceCount = WaveInstances.Num();
 
-	FWaveInstance* WaveInstance = nullptr;
+	FWaveInstance* NewWaveInstance = nullptr;
 	if (NewWaveInstanceCount == OldWaveInstanceCount + 1)
 	{
-		WaveInstance = WaveInstances[WaveInstances.Num() - 1];
+		NewWaveInstance = WaveInstances[WaveInstances.Num() - 1];
 	}
 
-	// Add in the subtitle if they exist
-	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
+	// Only Queue subtitles once per each playback of a wave instance
+	if (NewWaveInstance != nullptr && NewWaveInstance != CurrentWaveInstance)
 	{
-		FQueueSubtitleParams QueueSubtitleParams(Subtitles);
+		CurrentWaveInstance = NewWaveInstance;
+		// Add in the subtitle if they exist
+		if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
 		{
-			QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
-			QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
-			QueueSubtitleParams.WaveInstance = (PTRINT)WaveInstance;
-			QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
-			QueueSubtitleParams.Duration = GetDuration();
-			QueueSubtitleParams.bManualWordWrap = false;
-			QueueSubtitleParams.bSingleLine = false;
-			QueueSubtitleParams.RequestedStartTime = ActiveSound.RequestedStartTime;
-		}
+			FQueueSubtitleParams QueueSubtitleParams(Subtitles);
+			{
+				QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
+				QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
+				QueueSubtitleParams.WaveInstance = (PTRINT)CurrentWaveInstance;
+				QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
+				QueueSubtitleParams.Duration = GetDuration();
+				QueueSubtitleParams.bManualWordWrap = false;
+				QueueSubtitleParams.bSingleLine = false;
+				QueueSubtitleParams.RequestedStartTime = ActiveSound.RequestedStartTime;
+			}
 
-		FSubtitleManager::QueueSubtitles(QueueSubtitleParams);
+			FSubtitleManager::QueueSubtitles(QueueSubtitleParams);
+		}
 	}
 }
 

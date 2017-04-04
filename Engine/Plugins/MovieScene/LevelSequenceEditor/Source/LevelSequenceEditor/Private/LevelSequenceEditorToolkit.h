@@ -103,7 +103,7 @@ protected:
 	void AddDefaultTracksForActor(AActor& Actor, const FGuid Binding);
 	
 	/** Add a shot to a master sequence */
-	void AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate);
+	void AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate, const FString& FirstShotAssetName);
 
 	/** Called whenever sequencer has received focus */
 	void OnSequencerReceivedFocus();

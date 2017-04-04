@@ -10,6 +10,10 @@
 class FNiagaraEffectViewModel;
 class SCurveEditor;
 class FUICommandList;
+struct FNiagaraSimulation;
+class FNiagaraEffectInstance;
+class UNiagaraEffect;
+class UCurveBase;
 
 /** A curve editor control for curves in a niagara effect. */
 class SNiagaraCurveEditor : public SCompoundWidget

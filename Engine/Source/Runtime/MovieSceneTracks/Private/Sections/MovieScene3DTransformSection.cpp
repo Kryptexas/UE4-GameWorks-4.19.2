@@ -3,6 +3,8 @@
 #include "Sections/MovieScene3DTransformSection.h"
 #include "UObject/StructOnScope.h"
 #include "Evaluation/MovieScene3DTransformTemplate.h"
+#include "SequencerObjectVersion.h"
+
 
 /* FMovieScene3DLocationKeyStruct interface
  *****************************************************************************/
@@ -95,7 +97,7 @@ UMovieScene3DTransformSection::UMovieScene3DTransformSection(const FObjectInitia
 	, Show3DTrajectory(EShow3DTrajectory::EST_OnlyWhenSelected)
 #endif
 {
-	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::KeepState);
+	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
 }
 
 

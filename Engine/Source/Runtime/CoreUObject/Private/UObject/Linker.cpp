@@ -16,6 +16,7 @@
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
+#include "UObject/CoreRedirects.h"
 #include "UObject/LinkerManager.h"
 #include "UObject/UObjectThreadContext.h"
 #include "UObject/DebugSerializationFlags.h"
@@ -539,6 +540,12 @@ FLinkerLoad* GetPackageLinker
 		// Allow delegates to resolve this package
 		FString PackageNameToCreate = InOuter->GetName();
 
+		// Process any package redirects
+		{
+			const FCoreRedirectObjectName NewPackageName = FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(NAME_None, NAME_None, *PackageNameToCreate));
+			PackageNameToCreate = NewPackageName.PackageName.ToString();
+		}
+
 		// Do not resolve packages that are in memory
 		if (!InOuter->HasAnyPackageFlags(PKG_InMemoryOnly))
 		{
@@ -582,6 +589,12 @@ FLinkerLoad* GetPackageLinker
 			FText ErrorText(LOCTEXT("PackageResolveFailed", "Can't resolve asset name"));
 			LogGetPackageLinkerError(Result, InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
 			return nullptr;
+		}
+
+		// Process any package redirects
+		{
+			const FCoreRedirectObjectName NewPackageName = FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(NAME_None, NAME_None, *PackageNameToCreate));
+			PackageNameToCreate = NewPackageName.PackageName.ToString();
 		}
 
 		// Allow delegates to resolve this path

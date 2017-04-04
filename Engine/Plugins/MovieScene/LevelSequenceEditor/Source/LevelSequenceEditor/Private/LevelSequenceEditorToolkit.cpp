@@ -16,6 +16,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Engine/Selection.h"
 #include "LevelSequenceEditorModule.h"
+#include "Settings/LevelEditorPlaySettings.h"
 #include "Misc/LevelSequenceEditorSettings.h"
 #include "Misc/LevelSequenceEditorSpawnRegister.h"
 #include "Misc/LevelSequenceEditorHelpers.h"
@@ -110,13 +111,17 @@ UObject* GetLevelSequenceEditorPlaybackContext()
 	IMovieSceneCaptureDialogModule* CaptureDialogModule = FModuleManager::GetModulePtr<IMovieSceneCaptureDialogModule>("MovieSceneCaptureDialog");
 	UWorld* RecordingWorld = CaptureDialogModule ? CaptureDialogModule->GetCurrentlyRecordingWorld() : nullptr;
 
+	bool bIsSimulatingInEditor = GEditor && GEditor->bIsSimulatingInEditor;
+	bool bUsePIEWorld = (!bIsSimulatingInEditor && GetDefault<ULevelEditorPlaySettings>()->bBindSequencerToPIE)
+					|| (bIsSimulatingInEditor && GetDefault<ULevelEditorPlaySettings>()->bBindSequencerToSimulate);
+
 	// Return PIE worlds if there are any
 	for (const FWorldContext& Context : GEngine->GetWorldContexts())
 	{
 		if (Context.WorldType == EWorldType::PIE)
 		{
 			UWorld* ThisWorld = Context.World();
-			if (RecordingWorld != ThisWorld)
+			if (bUsePIEWorld && RecordingWorld != ThisWorld)
 			{
 				PIEWorld = ThisWorld;
 			}
@@ -125,6 +130,10 @@ UObject* GetLevelSequenceEditorPlaybackContext()
 		{
 			// We can always animate PIE worlds
 			EditorWorld = Context.World();
+			if (!bUsePIEWorld)
+			{
+				return EditorWorld;
+			}
 		}
 	}
 
@@ -632,7 +641,7 @@ void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapC
 	}
 }
 
-void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate)
+void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate, const FString& FirstShotAssetName)
 {
 	// Create a level sequence asset for the shot
 	UObject* ShotAsset = LevelSequenceEditorHelpers::CreateLevelSequenceAsset(ShotAssetName, ShotPackagePath, AssetToDuplicate);
@@ -660,11 +669,39 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 		for (auto SubSequenceName : MasterSequenceSettings->SubSequenceNames)
 		{
 			FString SubSequenceAssetName = ShotAssetName + ProjectSettings->SubSequenceSeparator + SubSequenceName.ToString();
-			UObject* SubSequenceAsset = LevelSequenceEditorHelpers::CreateLevelSequenceAsset(SubSequenceAssetName, ShotPackagePath);
-			UMovieSceneSequence* SubSequence = Cast<UMovieSceneSequence>(SubSequenceAsset);
-			UMovieSceneSubSection* SubSection = SubTrack->AddSequence(SubSequence, ShotStartTime, ShotEndTime-ShotStartTime);
-			SubSection->SetRowIndex(RowIndex++);
-			SubSection->SetStartTime(ShotStartTime);
+
+			UMovieSceneSequence* SubSequence = nullptr;
+			if (!MasterSequenceSettings->bInstanceSubSequences || ShotTrack->GetAllSections().Num() == 1)
+			{
+				UObject* SubSequenceAsset = LevelSequenceEditorHelpers::CreateLevelSequenceAsset(SubSequenceAssetName, ShotPackagePath);
+				SubSequence = Cast<UMovieSceneSequence>(SubSequenceAsset);
+			}
+			else
+			{
+				// Get the corresponding sequence from the first shot
+				UMovieSceneSubSection* FirstShotSubSection = Cast<UMovieSceneSubSection>(ShotTrack->GetAllSections()[0]);
+				UMovieSceneSequence* FirstShotSequence = FirstShotSubSection->GetSequence();
+				UMovieSceneSubTrack* FirstShotSubTrack = Cast<UMovieSceneSubTrack>(FirstShotSequence->GetMovieScene()->FindMasterTrack(UMovieSceneSubTrack::StaticClass()));
+			
+				FString FirstShotSubSequenceAssetName = FirstShotAssetName + ProjectSettings->SubSequenceSeparator + SubSequenceName.ToString();
+
+				for (auto Section : FirstShotSubTrack->GetAllSections())
+				{
+					UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Section);
+					if (SubSection->GetSequence()->GetDisplayName().ToString() == FirstShotSubSequenceAssetName)
+					{
+						SubSequence = SubSection->GetSequence();
+						break;
+					}
+				}
+			}
+
+			if (SubSequence != nullptr)
+			{
+				UMovieSceneSubSection* SubSection = SubTrack->AddSequence(SubSequence, 0.f, ShotEndTime-ShotStartTime);
+				SubSection->SetRowIndex(RowIndex++);
+				SubSection->SetStartTime(0.f);
+			}
 		}
 	}
 
@@ -727,6 +764,7 @@ void FLevelSequenceEditorToolkit::HandleMasterSequenceCreated(UObject* MasterSeq
 	float SequenceStartTime = ProjectSettings->DefaultStartTime;
 	float ShotStartTime = SequenceStartTime;
 	float ShotEndTime = ShotStartTime;
+	FString FirstShotName; 
 	for (uint32 ShotIndex = 0; ShotIndex < NumShots; ++ShotIndex)
 	{
 		ShotEndTime += ProjectSettings->DefaultDuration;
@@ -734,7 +772,12 @@ void FLevelSequenceEditorToolkit::HandleMasterSequenceCreated(UObject* MasterSeq
 		FString ShotName = MovieSceneToolHelpers::GenerateNewShotName(ShotTrack->GetAllSections(), ShotStartTime);
 		FString ShotPackagePath = MovieSceneToolHelpers::GenerateNewShotPath(MasterSequence->GetMovieScene(), ShotName);
 
-		AddShot(ShotTrack, ShotName, ShotPackagePath, ShotStartTime, ShotEndTime, AssetToDuplicate);
+		if (ShotIndex == 0)
+		{
+			FirstShotName = ShotName;
+		}
+
+		AddShot(ShotTrack, ShotName, ShotPackagePath, ShotStartTime, ShotEndTime, AssetToDuplicate, FirstShotName);
 		GetSequencer()->ResetToNewRootSequence(*MasterSequence);
 
 		ShotStartTime = ShotEndTime;

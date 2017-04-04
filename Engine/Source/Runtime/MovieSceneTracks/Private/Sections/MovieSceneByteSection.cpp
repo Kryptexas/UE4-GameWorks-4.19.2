@@ -2,11 +2,13 @@
 
 #include "Sections/MovieSceneByteSection.h"
 #include "Evaluation/MovieScenePropertyTemplates.h"
-
+#include "SequencerObjectVersion.h"
 
 UMovieSceneByteSection::UMovieSceneByteSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{ }
+{ 
+	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
+}
 
 
 void UMovieSceneByteSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles )

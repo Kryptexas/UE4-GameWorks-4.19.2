@@ -264,7 +264,8 @@ void FMaterialThumbnailScene::SetMaterialInterface(UMaterialInterface* InMateria
 	check(PreviewActor);
 	check(PreviewActor->GetStaticMeshComponent());
 
-	bIsUIMaterial = false;
+	bForcePlaneThumbnail = false;
+
 	if ( InMaterial )
 	{
 		// Transform the preview mesh as necessary
@@ -278,10 +279,13 @@ void FMaterialThumbnailScene::SetMaterialInterface(UMaterialInterface* InMateria
 
 		UMaterial* BaseMaterial = InMaterial->GetBaseMaterial();
 
-		// UI material thumbnails always get a 2D plane centered at the camera which is a better representation of the
-		// what the material will look like on UI
-		bIsUIMaterial = BaseMaterial && BaseMaterial->IsUIMaterial();
-		EThumbnailPrimType PrimitiveType = bIsUIMaterial ? TPT_Plane : ThumbnailInfo->PrimitiveType.GetValue();
+		if(BaseMaterial)
+		{
+			// UI and particle sprite material thumbnails always get a 2D plane centered at the camera which is a better representation of the what the material will look like
+			bForcePlaneThumbnail = BaseMaterial->IsUIMaterial() || (BaseMaterial->bUsedWithParticleSprites && !ThumbnailInfo->bUserModifiedShape);
+		}
+
+		EThumbnailPrimType PrimitiveType = bForcePlaneThumbnail ? TPT_Plane : ThumbnailInfo->PrimitiveType.GetValue();
 
 		switch( PrimitiveType )
 		{
@@ -375,7 +379,7 @@ void FMaterialThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, 
 	}
 
 	OutOrigin = FVector(0, 0, -BoundsZOffset);
-	OutOrbitPitch = bIsUIMaterial ? 0.0f : ThumbnailInfo->OrbitPitch;
+	OutOrbitPitch = bForcePlaneThumbnail ? 0.0f : ThumbnailInfo->OrbitPitch;
 	OutOrbitYaw = ThumbnailInfo->OrbitYaw;
 	OutOrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
 }

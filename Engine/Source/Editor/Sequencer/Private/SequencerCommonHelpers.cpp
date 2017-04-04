@@ -87,9 +87,12 @@ void SequencerHelpers::GetAllSections(TSharedRef<FSequencerDisplayNode> DisplayN
 			UMovieSceneTrack* Track = TrackNode->GetTrack();
 			if (Track != nullptr)
 			{
-				for (auto Section : Track->GetAllSections())
+				for (TSharedRef<ISequencerSection> TrackSection : TrackNode->GetSections())
 				{
-					Sections.Add(Section);
+					if (UMovieSceneSection* Section = TrackSection->GetSectionObject())
+					{
+						Sections.Add(Section);
+					}
 				}
 			}
 		}
@@ -128,6 +131,13 @@ int32 SequencerHelpers::TimeToFrame(float Time, float FrameRate)
 float SequencerHelpers::FrameToTime(int32 Frame, float FrameRate)
 {
 	return Frame / FrameRate;
+}
+
+float SequencerHelpers::SnapTimeToInterval(float InTime, float InFrameRate)
+{
+	return InFrameRate > 0
+		? FMath::RoundToInt( InTime / InFrameRate ) * InFrameRate
+		: InTime;
 }
 
 bool IsSectionSelectedInNode(FSequencer& Sequencer, TSharedRef<FSequencerDisplayNode> InNode)

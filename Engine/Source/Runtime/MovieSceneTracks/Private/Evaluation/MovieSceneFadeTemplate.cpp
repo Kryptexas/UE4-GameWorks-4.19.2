@@ -41,7 +41,8 @@ struct FFadeTrackToken
 		Player.SetViewportSettings(ViewportParamsMap);
 
 		// Set runtime fade
-		UWorld* World = Cast<UWorld>(Player.GetPlaybackContext());
+		UObject* Context = Player.GetPlaybackContext();
+		UWorld* World = Context ? Context->GetWorld() : nullptr;
 		if (World && (World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE))
 		{
 			APlayerController* PlayerController = World->GetGameInstance()->GetFirstLocalPlayerController();
@@ -67,10 +68,33 @@ struct FFadePreAnimatedGlobalToken : FFadeTrackToken, IMovieScenePreAnimatedGlob
 
 struct FFadePreAnimatedGlobalTokenProducer : IMovieScenePreAnimatedGlobalTokenProducer
 {
+	FFadePreAnimatedGlobalTokenProducer(IMovieScenePlayer& InPlayer) 
+		: Player(InPlayer)
+	{}
+
 	virtual IMovieScenePreAnimatedGlobalTokenPtr CacheExistingState() const override
 	{
-		return FFadePreAnimatedGlobalToken(0.f, FLinearColor::Black, false);
+		float FadeAmount = 0.f;
+		FLinearColor FadeColor = FLinearColor::Black;
+		bool bFadeAudio = false;
+
+		UObject* Context = Player.GetPlaybackContext();
+		UWorld* World = Context ? Context->GetWorld() : nullptr;
+		if (World && (World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE))
+		{
+			APlayerController* PlayerController = World->GetGameInstance()->GetFirstLocalPlayerController();
+			if (PlayerController != nullptr && PlayerController->PlayerCameraManager && !PlayerController->PlayerCameraManager->IsPendingKill())
+			{
+				FadeAmount = PlayerController->PlayerCameraManager->FadeAmount;
+				FadeColor = PlayerController->PlayerCameraManager->FadeColor;
+				bFadeAudio = PlayerController->PlayerCameraManager->bFadeAudio;
+			}
+		}
+
+		return FFadePreAnimatedGlobalToken(FadeAmount, FadeColor, bFadeAudio);
 	}
+
+	IMovieScenePlayer& Player;
 };
 
 /** A movie scene execution token that applies fades */
@@ -90,7 +114,7 @@ struct FFadeExecutionToken : IMovieSceneExecutionToken, FFadeTrackToken
 	{
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_FadeTrack_TokenExecute)
 
-		Player.SavePreAnimatedState(GetAnimTypeID(), FFadePreAnimatedGlobalTokenProducer());
+		Player.SavePreAnimatedState(GetAnimTypeID(), FFadePreAnimatedGlobalTokenProducer(Player));
 
 		Apply(Player);
 	}

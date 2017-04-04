@@ -27,7 +27,7 @@ protected:
 	FAssetData AssetInfo;
 public:
 	FNewSequencePlayerAction(const FAssetData& InAssetInfo, FText Title)
-		: FEdGraphSchemaAction_K2NewNode(LOCTEXT("Animation", "Animations"), Title, TEXT("Evaluates an animation sequence to produce a pose"), 0, FText::FromName(InAssetInfo.ObjectPath))
+		: FEdGraphSchemaAction_K2NewNode(LOCTEXT("Animation", "Animations"), Title, LOCTEXT("EvalAnimSequenceToMakePose", "Evaluates an animation sequence to produce a pose"), 0, FText::FromName(InAssetInfo.ObjectPath))
 	{
 		AssetInfo = InAssetInfo;
 

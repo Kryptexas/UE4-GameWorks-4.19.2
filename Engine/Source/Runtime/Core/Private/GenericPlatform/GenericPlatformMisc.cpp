@@ -970,6 +970,11 @@ bool FGenericPlatformMisc::GetSHA256Signature(const void* Data, uint32 ByteSize,
 	return false;
 }
 
+FString FGenericPlatformMisc::GetDefaultLanguage()
+{
+	return FPlatformMisc::GetDefaultLocale();
+}
+
 FString FGenericPlatformMisc::GetDefaultLocale()
 {
 #if UE_ENABLE_ICU

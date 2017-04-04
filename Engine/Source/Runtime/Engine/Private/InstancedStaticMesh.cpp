@@ -1556,6 +1556,8 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 		return false;
 	}
 
+	Modify();
+
 	// Request navigation update
 	PartialNavigationUpdate(InstanceIndex);
 

@@ -159,7 +159,7 @@ UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const FObjectInitializer& ObjectI
 {
 }
 
-TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FText& Category, const FText& MenuDesc, const FString& Tooltip)
+TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FText& Category, const FText& MenuDesc, const FText& Tooltip)
 {
 	TSharedPtr<FNiagaraSchemaAction_NewNode> NewAction = TSharedPtr<FNiagaraSchemaAction_NewNode>(new FNiagaraSchemaAction_NewNode(Category, MenuDesc, Tooltip, 0));
 	ContextMenuBuilder.AddAction( NewAction );
@@ -236,7 +236,7 @@ void AddParametersForGraph(FGraphContextMenuBuilder& ContextMenuBuilder, const U
 				MenuDesc = FText::Format(LOCTEXT("Parameter Menu Copy Param","Copy \"{0}\" to this Graph"), FText::FromName(Name));
 			}
 
-			TSharedPtr<FNiagaraSchemaAction_NewNode> ExistingInputAction = AddNewNodeAction(ContextMenuBuilder, GraphParameterCategory, MenuDesc, TEXT(""));
+			TSharedPtr<FNiagaraSchemaAction_NewNode> ExistingInputAction = AddNewNodeAction(ContextMenuBuilder, GraphParameterCategory, MenuDesc, FText::GetEmpty());
 
 			UNiagaraNodeInput* InputNodeTemplate = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 			InputNodeTemplate->Input = InputNode->Input;
@@ -301,7 +301,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 				}
 
 				const FText MenuDesc = FText::Format(MenuDescFmt, Type.GetStruct()->GetDisplayNameText());
-				TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, TEXT(""));
+				TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, FText::GetEmpty());
 				UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 				FNiagaraEditorUtilities::InitializeParameterInputNode(*InputNode, Type, NiagaraGraph);
 				InputAction->NodeTemplate = InputNode;
@@ -319,7 +319,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 				const FText MenuDescFmt = LOCTEXT("Add ParameterFmt", "Add {0} Parameter");
 				//For correctly typed pins, offer the correct type at the top level.				
 				const FText MenuDesc = FText::Format(MenuDescFmt, PinType.GetStruct()->GetDisplayNameText());
-				TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, TEXT(""));
+				TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, FText::GetEmpty());
 				UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 				FNiagaraEditorUtilities::InitializeParameterInputNode(*InputNode, PinType, NiagaraGraph);
 				InputAction->NodeTemplate = InputNode;
@@ -333,7 +333,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		const TArray<FNiagaraOpInfo>& OpInfos = FNiagaraOpInfo::GetOpInfoArray();
 		for (const FNiagaraOpInfo& OpInfo : OpInfos)
 		{
-			TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, OpInfo.Category, OpInfo.FriendlyName, TEXT(""));
+			TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, OpInfo.Category, OpInfo.FriendlyName, FText::GetEmpty());
 			UNiagaraNodeOp* OpNode = NewObject<UNiagaraNodeOp>(ContextMenuBuilder.OwnerOfTemporaries);
 			OpNode->OpName = OpInfo.Name;
 			AddOpAction->NodeTemplate = OpNode;
@@ -361,7 +361,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 					FString DisplayNameString = FName::NameToDisplayString(ScriptAsset.AssetName.ToString(), false);
 					const FText MenuDesc = FText::FromString(DisplayNameString);
 
-					TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Function Menu Title", "Functions"), MenuDesc, ScriptAsset.ObjectPath.ToString());
+					TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Function Menu Title", "Functions"), MenuDesc, FText::FromString(ScriptAsset.ObjectPath.ToString()));
 
 					UNiagaraNodeFunctionCall* FunctionCallNode = NewObject<UNiagaraNodeFunctionCall>(ContextMenuBuilder.OwnerOfTemporaries);
 					FunctionCallNode->FunctionScriptAssetObjectPath = ScriptAsset.ObjectPath;
@@ -388,7 +388,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 					FString DisplayNameString = FName::NameToDisplayString(ScriptAsset.AssetName.ToString(), false);
 					const FText MenuDesc = FText::FromString(DisplayNameString);
 
-					TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Module Menu Title", "Modules"), MenuDesc, ScriptAsset.ObjectPath.ToString());
+					TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Module Menu Title", "Modules"), MenuDesc, FText::FromString(ScriptAsset.ObjectPath.ToString()));
 
 					UNiagaraNodeFunctionCall* FunctionCallNode = NewObject<UNiagaraNodeFunctionCall>(ContextMenuBuilder.OwnerOfTemporaries);
 					FunctionCallNode->FunctionScriptAssetObjectPath = ScriptAsset.ObjectPath;
@@ -410,7 +410,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 					const FText MenuDescFmt = LOCTEXT("AddEventReadFmt", "Add {0} Event Read");
 					const FText MenuDesc = FText::Format(MenuDescFmt, Type.GetStruct()->GetDisplayNameText());
 
-					TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, TEXT(""));
+					TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, FText::GetEmpty());
 
 					UNiagaraNodeReadDataSet* EventReadNode = NewObject<UNiagaraNodeReadDataSet>(ContextMenuBuilder.OwnerOfTemporaries);
 					EventReadNode->InitializeFromStruct(Type.GetStruct());
@@ -420,7 +420,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 					const FText MenuDescFmt = LOCTEXT("AddEventWriteFmt", "Add {0} Event Write");
 					const FText MenuDesc = FText::Format(MenuDescFmt, Type.GetStruct()->GetDisplayNameText());
 
-					TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, TEXT(""));
+					TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, FText::GetEmpty());
 
 					UNiagaraNodeWriteDataSet* EventWriteNode = NewObject<UNiagaraNodeWriteDataSet>(ContextMenuBuilder.OwnerOfTemporaries);
 					EventWriteNode->InitializeFromStruct(Type.GetStruct());
@@ -457,7 +457,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 			auto MakeBreakType = [&](FNiagaraTypeDefinition Type, bool bMake)
 			{
 				FText Desc = FText::Format(DescFmt, Type.GetStruct()->GetDisplayNameText());
-				TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, bMake ? MakeCat : BreakCat, Desc, TEXT(""));
+				TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, bMake ? MakeCat : BreakCat, Desc, FText::GetEmpty());
 				UNiagaraNodeConvert* ConvertNode = NewObject<UNiagaraNodeConvert>(ContextMenuBuilder.OwnerOfTemporaries);
 				if (bMake)
 				{
@@ -504,7 +504,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 				//If we have a valid type then add it as a convenience at the top level.
 				FText TypedMakeBreakFmt = LOCTEXT("NiagaraTypedMakeBreakFmt", "{0} {1}");
 				FText Desc = FText::Format(TypedMakeBreakFmt, bAddMakes ? MakeCat : BreakCat, PinType.GetStruct()->GetDisplayNameText());
-				TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), Desc, TEXT(""));
+				TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), Desc, FText::GetEmpty());
 				UNiagaraNodeConvert* ConvertNode = NewObject<UNiagaraNodeConvert>(ContextMenuBuilder.OwnerOfTemporaries);
 				if (bAddMakes)
 				{
@@ -519,7 +519,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 
 			//Always add generic convert as an option.
 			FText Desc = LOCTEXT("NiagaraConvert", "Convert");
-			TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), Desc, TEXT(""));
+			TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), Desc, FText::GetEmpty());
 			UNiagaraNodeConvert* ConvertNode = NewObject<UNiagaraNodeConvert>(ContextMenuBuilder.OwnerOfTemporaries);
 			Action->NodeTemplate = ConvertNode;
 		}
@@ -540,7 +540,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 				DataInterface->GetFunctions(Functions);
 				for (FNiagaraFunctionSignature& Sig : Functions)
 				{
-					TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, MenuCat, FText::FromString(Sig.GetName()), TEXT(""));
+					TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, MenuCat, FText::FromString(Sig.GetName()), FText::GetEmpty());
 					UNiagaraNodeFunctionCall* FuncNode = NewObject<UNiagaraNodeFunctionCall>(ContextMenuBuilder.OwnerOfTemporaries);
 					Action->NodeTemplate = FuncNode;
 					FuncNode->Signature = Sig;
@@ -577,7 +577,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 				{
 					const FText Category = LOCTEXT("NiagaraSwizzles", "Swizzles");
 
-					TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, Category, FText::FromString(Swiz), TEXT(""));
+					TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, Category, FText::FromString(Swiz), FText::GetEmpty());
 
 					UNiagaraNodeConvert* ConvertNode = NewObject<UNiagaraNodeConvert>(ContextMenuBuilder.OwnerOfTemporaries);
 					Action->NodeTemplate = ConvertNode;
@@ -601,7 +601,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 			Args.Add(TEXT("Constant"), FText::FromName(SysConst.GetName()));
 			const FText MenuDesc = FText::Format(LOCTEXT("GetSystemConstant", "Get {Constant}"), Args);
 
-			TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("System Parameters Menu Title", "System Parameters"), MenuDesc, TEXT(""));
+			TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("System Parameters Menu Title", "System Parameters"), MenuDesc, FText::GetEmpty());
 
 			UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 			InputNode->Usage = ENiagaraInputNodeUsage::SystemConstant;
@@ -622,7 +622,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 					Args.Add(TEXT("Attribute"), FText::FromName(Attr.GetName()));
 					const FText MenuDesc = FText::Format(LOCTEXT("GetAttribute", "Get {Attribute}"), Args);
 
-					TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Attributes Menu Title", "Attributes"), MenuDesc, TEXT(""));
+					TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Attributes Menu Title", "Attributes"), MenuDesc, FText::GetEmpty());
 
 					UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 					InputNode->Usage = ENiagaraInputNodeUsage::Attribute;
@@ -659,7 +659,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 					}
 						
 					const FText MenuDesc = FText::Format(MenuDescFmt, Type.GetStruct()->GetDisplayNameText());
-					TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, TEXT(""));
+					TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, FText::GetEmpty());
 					UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 					FNiagaraEditorUtilities::InitializeParameterInputNode(*InputNode, Type, NiagaraGraph);
 					InputAction->NodeTemplate = InputNode;
@@ -669,7 +669,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 				{
 					//For correctly typed pins, offer the correct type at the top level.				
 					const FText MenuDesc = FText::Format(MenuDescFmt, PinType.GetStruct()->GetDisplayNameText());
-					TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, TEXT(""));
+					TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, FText::GetEmpty());
 					UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 					FNiagaraEditorUtilities::InitializeParameterInputNode(*InputNode, PinType, NiagaraGraph);
 					InputAction->NodeTemplate = InputNode;
@@ -682,7 +682,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 	{
 		const FText MenuDesc = LOCTEXT("If", "If");
 
-		TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, TEXT(""));
+		TSharedPtr<FNiagaraSchemaAction_NewNode> Action = AddNewNodeAction(ContextMenuBuilder, MenuCat, MenuDesc, FText::GetEmpty());
 
 		UNiagaraNodeIf* IfNode = NewObject<UNiagaraNodeIf>(ContextMenuBuilder.OwnerOfTemporaries);
 		Action->NodeTemplate = IfNode;

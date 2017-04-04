@@ -313,8 +313,6 @@ void FD3D12CommandContext::ClearAllShaderResources()
 
 void FD3D12CommandContext::RHIEndFrame()
 {
-	// Note: RHIEndFrame is not called consistently when a movie is playing but asset loading is done.
-	// This can result in not cleaning up resources as quickly as desired.
 	FD3D12Device* Device = GetParentDevice();
 	FD3D12Adapter* Adapter = Device->GetParentAdapter();
 	{

@@ -3408,6 +3408,8 @@ void FBlueprintEditor::DeleteUnusedVariables_OnClicked()
 
 void FBlueprintEditor::FindInBlueprints_OnClicked()
 {
+	SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+
 	TabManager->InvokeTab(FBlueprintEditorTabs::FindResultsID);
 	FindResults->FocusForUse(false);
 }

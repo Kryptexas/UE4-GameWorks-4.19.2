@@ -4969,11 +4969,11 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 		{
 			// localized name for the first event graph
 			DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_EventGraph", "EventGraph");
-			DisplayInfo.Tooltip = DisplayInfo.PlainName.ToString();
+			DisplayInfo.Tooltip = DisplayInfo.PlainName;
 		}
 		else
 		{
-			DisplayInfo.Tooltip = Graph.GetName();
+			DisplayInfo.Tooltip = FText::FromString(Graph.GetName());
 		}
 	}
 	else if (GraphType == GT_Function)
@@ -4982,7 +4982,7 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 		{
 			DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_ConstructionScript", "ConstructionScript");
 
-			DisplayInfo.Tooltip = LOCTEXT("GraphTooltip_ConstructionScript", "Function executed when Blueprint is placed or modified.").ToString();
+			DisplayInfo.Tooltip = LOCTEXT("GraphTooltip_ConstructionScript", "Function executed when Blueprint is placed or modified.");
 			DisplayInfo.DocExcerptName = TEXT("ConstructionScript");
 		}
 		else
@@ -4991,11 +4991,11 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 			if (Function)
 			{
 				DisplayInfo.PlainName = FText::FromString(Function->GetName());
-				DisplayInfo.Tooltip = UK2Node_CallFunction::GetDefaultTooltipForFunction(Function); // grab its tooltip
+				DisplayInfo.Tooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function)); // grab its tooltip
 			}
 			else
 			{
-				DisplayInfo.Tooltip = Graph.GetName();
+				DisplayInfo.Tooltip = FText::FromString(Graph.GetName());
 			}
 
 			DisplayInfo.DocExcerptName = TEXT("FunctionGraph");
@@ -5005,7 +5005,7 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 	{
 		// Show macro description if set
 		FKismetUserDeclaredFunctionMetadata* MetaData = UK2Node_MacroInstance::GetAssociatedGraphMetadata(&Graph);
-		DisplayInfo.Tooltip = (MetaData && MetaData->ToolTip.Len() > 0) ? MetaData->ToolTip : Graph.GetName();
+		DisplayInfo.Tooltip = (MetaData && !MetaData->ToolTip.IsEmpty()) ? MetaData->ToolTip : FText::FromString(Graph.GetName());
 
 		DisplayInfo.DocExcerptName = TEXT("MacroGraph");
 	}
@@ -5013,12 +5013,12 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 	{
 		DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_AnimGraph", "AnimGraph");
 
-		DisplayInfo.Tooltip = LOCTEXT("GraphTooltip_AnimGraph", "Graph used to blend together different animations.").ToString();
+		DisplayInfo.Tooltip = LOCTEXT("GraphTooltip_AnimGraph", "Graph used to blend together different animations.");
 		DisplayInfo.DocExcerptName = TEXT("AnimGraph");
 	}
 	else if (GraphType == GT_StateMachine)
 	{
-		DisplayInfo.Tooltip = Graph.GetName();
+		DisplayInfo.Tooltip = FText::FromString(Graph.GetName());
 		DisplayInfo.DocExcerptName = TEXT("StateMachine");
 	}
 

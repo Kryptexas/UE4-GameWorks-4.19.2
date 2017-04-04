@@ -93,7 +93,7 @@ struct FVRButton
 UCLASS()
 class UVREditorUISystem : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
 
@@ -113,23 +113,20 @@ public:
 		TotalCount,
 	};
 
-	/** Shuts down the UISystem whenever the mode is exited */
-	void Shutdown();
+	/** Default constructor */
+	UVREditorUISystem();
 
 	/** Initializes default values for the UISystem and creates the UI panels */
-	void Init();
+	void Init(class UVREditorMode* InVRMode);
+	
+	/** Shuts down the UISystem whenever the mode is exited */
+	void Shutdown();
 
 	/** Called by VREditorMode to update us every frame */
 	void Tick( class FEditorViewportClient* ViewportClient, const float DeltaTime );
 
 	/** Called by VREditorMode to draw debug graphics every frame */
 	void Render( const class FSceneView* SceneView, class FViewport* Viewport, class FPrimitiveDrawInterface* PDI );
-
-	/** Sets the owner of this system */
-	void SetOwner( class UVREditorMode* NewOwner )
-	{
-		VRMode = NewOwner;
-	}
 
 	/** Gets the owner of this system */
 	class UVREditorMode& GetOwner()
@@ -142,10 +139,6 @@ public:
 	{
 		return *VRMode;
 	}
-
-	/** Called by our owner right before a map is loaded or switching between Simulate and normal Editor, so we can clean
-	    up our spawned actors */
-	void CleanupActorsBeforeShutdown();
 
 	/** Returns true if the specified editor UI panel is currently visible */
 	bool IsShowingEditorUIPanel( const EEditorUIPanel EditorUIPanel ) const;
@@ -162,7 +155,7 @@ public:
 	void TryToSpawnRadialMenu( UVREditorInteractor* Interactor, const bool bForceRefresh, const bool bPlaySound = true );
 
 	/** Hides the radial menu if the specified hand is showing it */
-	void HideRadialMenu( const bool bPlaySound = true );
+	void HideRadialMenu(const bool bPlaySound = true, const bool bAllowFading = true);
 
 	/** Start dragging a dock window on the hand */
 	void StartDraggingDockUI( class AVREditorDockableWindow* InitDraggingDockUI, UVREditorInteractor* Interactor, const float DockSelectDistance, const bool bPlaySound = true );
@@ -304,7 +297,7 @@ protected:
 	void SwapRadialMenu();
 
 	/** Creates the sequencer radial menu to pass to the radial menu generator */
-	void SequencerRadialMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, class UVREditorMode* InVRMode, float& RadiusOverride);
+	void SequencerRadialMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, class UVREditorMode* InVRMode, float& RadiusOverride);
 
 	/**
 	* Handles being notified when any editor mode changes to see if any VR Editor UI needs to change.

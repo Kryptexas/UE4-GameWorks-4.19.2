@@ -41,6 +41,10 @@ struct CORE_API FEditorObjectVersion
 		AddedInlineFontFaceAssets,
 		// Fix a serialization issue with static mesh FMeshSectionInfoMap UProperty
 		UPropertryForMeshSectionSerialize,
+		// Adding a version bump for the new fast widget construction in case of problems.
+		FastWidgetTemplates,
+		// Update material thumbnails to be more intelligent on default primitive shape for certian material types
+		MaterialThumbnailRenderingChanges,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

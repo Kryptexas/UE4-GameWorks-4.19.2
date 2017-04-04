@@ -496,12 +496,6 @@ public:
 
 	virtual void DestroyApplication() { }
 
-	/** Function to return the current implementation of the ForceFeedback system */
-	DEPRECATED(4.7, "Please use GetInputInterface()  ForceFeedbackSystem not accessible.")
-	virtual IForceFeedbackSystem* GetForceFeedbackSystem() { return nullptr; }
-
-	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() { return nullptr; }
-
 	virtual IInputInterface* GetInputInterface() { return nullptr; }	
 
 	/** Function to return the current implementation of the Text Input Method System */

@@ -153,6 +153,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 
+	static FString GetDefaultLanguage();
 	static FString GetDefaultLocale();
 
 	/** @return Get the name of the platform specific file manager (Finder) */

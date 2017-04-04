@@ -217,13 +217,6 @@ FWorldContext* UEditorWorldExtensionCollection::GetWorldContext() const
 	return WorldContext;
 }
 
-UEditorWorldExtension* UEditorWorldExtensionCollection::AddExtension( TSubclassOf<UEditorWorldExtension> EditorExtensionClass )
-{
-	UEditorWorldExtension* CreatedExtension = EditorExtensionClass.GetDefaultObject();
-	AddExtension( CreatedExtension );
-	return CreatedExtension;
-}
-
 void UEditorWorldExtensionCollection::AddExtension( UEditorWorldExtension* EditorExtension )
 {
 	check( EditorExtension != nullptr );

@@ -4840,6 +4840,11 @@ void FLinkerLoad::AddKnownMissingPackage(FName PackageName)
 	FCoreRedirects::AddKnownMissing(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(NAME_None, NAME_None, PackageName));
 }
 
+bool FLinkerLoad::RemoveKnownMissingPackage(FName PackageName)
+{
+	return FCoreRedirects::RemoveKnownMissing(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(NAME_None, NAME_None, PackageName));
+}
+
 void FLinkerLoad::AddGameNameRedirect(const FName OldName, const FName NewName)
 {
 	TArray<FCoreRedirect> NewRedirects;

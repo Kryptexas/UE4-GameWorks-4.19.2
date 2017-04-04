@@ -199,6 +199,16 @@ public:
 
 public:
 
+	/** Whether to automatically bind any active level sequences to a PIE world */
+	UPROPERTY(config, EditAnywhere, Category=Sequencer)
+	uint32 bBindSequencerToPIE:1;
+
+	/** Whether to automatically bind any active level sequences to a Simulate world */
+	UPROPERTY(config, EditAnywhere, Category=Sequencer)
+	uint32 bBindSequencerToSimulate:1;
+
+public:
+
 	/** Whether to always have the PIE window on top of the parent windows. */
 	UPROPERTY(config, EditAnywhere, Category = PlayInNewWindow, meta = (ToolTip="Always have the PIE window on top of the parent windows."))
 	bool PIEAlwaysOnTop;

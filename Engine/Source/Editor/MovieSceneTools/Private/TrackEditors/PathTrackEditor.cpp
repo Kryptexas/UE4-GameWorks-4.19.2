@@ -38,7 +38,27 @@ public:
 		return LOCTEXT("DisplayName", "Path");
 	}
 	
-	virtual FText GetSectionTitle() const override { return FText::GetEmpty(); }
+	virtual FText GetSectionTitle() const override 
+	{ 
+		UMovieScene3DPathSection* PathSection = Cast<UMovieScene3DPathSection>(&Section);
+		if (PathSection)
+		{
+			TSharedPtr<ISequencer> Sequencer = PathTrackEditor->GetSequencer();
+			if (Sequencer.IsValid())
+			{
+				TArrayView<TWeakObjectPtr<UObject>> RuntimeObjects = Sequencer->FindBoundObjects(PathSection->GetConstraintId(), Sequencer->GetFocusedTemplateID());
+				if (RuntimeObjects.Num() == 1 && RuntimeObjects[0].IsValid())
+				{
+					if (AActor* Actor = Cast<AActor>(RuntimeObjects[0].Get()))
+					{
+						return FText::FromString(Actor->GetActorLabel());
+					}
+				}
+			}
+		}
+
+		return FText::GetEmpty(); 
+	}
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{

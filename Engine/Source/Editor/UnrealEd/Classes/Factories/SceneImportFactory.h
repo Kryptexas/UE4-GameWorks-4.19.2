@@ -7,7 +7,7 @@
 #include "Factory.h"
 #include "SceneImportFactory.generated.h"
 
-/**
+/*
  * Base class for all factories that import objects into a scene (e.g in a level)
  */
 UCLASS(abstract, MinimalAPI)
@@ -17,8 +17,8 @@ class USceneImportFactory : public UFactory
 
 public:
 	/**
-	 * @returns whether or not this scene importer can also create assets and thus must ask the user where they want to place content
-	 */
+	* @returns whether or not this scene importer can also create assets and thus must ask the user where they want to place content
+	*/
 	virtual bool ImportsAssets() const
 	{
 		return false;

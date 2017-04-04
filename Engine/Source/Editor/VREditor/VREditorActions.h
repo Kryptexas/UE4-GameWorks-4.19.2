@@ -212,9 +212,6 @@ public:
 	/** Checks whether the editor mode for the given ID is active*/
 	static ECheckBoxState EditorModeActive(FEditorModeID InMode);
 
-	/** True if a specialized menu is available */
-	static bool ModeActionsMenuActive(class UVREditorMode* VRMode);
-
 	/** Deselects everything currently selected */
 	static void DeselectAll();
 

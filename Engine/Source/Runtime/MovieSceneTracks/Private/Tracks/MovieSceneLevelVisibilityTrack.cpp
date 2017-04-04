@@ -20,14 +20,6 @@ void UMovieSceneLevelVisibilityTrack::PostCompile(FMovieSceneEvaluationTrack& Ou
 {
 	// Set priority to highest possible
 	OutTrack.SetEvaluationPriority(GetEvaluationPriority());
-
-	FMovieSceneSharedDataId UniqueId = FMovieSceneLevelVisibilitySharedTrack::GetSharedDataKey().UniqueId;
-
-	FMovieSceneEvaluationTrack ActuatorTemplate(Args.ObjectBindingId);
-	ActuatorTemplate.DefineAsSingleTemplate(FMovieSceneLevelVisibilitySharedTrack());
-	ActuatorTemplate.SetEvaluationPriority(GetEvaluationPriority() - 1);
-	
-	Args.Generator.AddSharedTrack(MoveTemp(ActuatorTemplate), UniqueId, *this);
 }
 
 

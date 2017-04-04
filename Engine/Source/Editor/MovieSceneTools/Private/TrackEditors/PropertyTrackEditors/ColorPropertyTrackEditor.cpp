@@ -13,7 +13,7 @@ FName FColorPropertyTrackEditor::RedName( "R" );
 FName FColorPropertyTrackEditor::GreenName( "G" );
 FName FColorPropertyTrackEditor::BlueName( "B" );
 FName FColorPropertyTrackEditor::AlphaName( "A" );
-
+FName FColorPropertyTrackEditor::SpecifiedColorName( "SpecifiedColor" );
 
 TSharedRef<ISequencerTrackEditor> FColorPropertyTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 {
@@ -63,16 +63,16 @@ void FColorPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FProperty
 
 	FName ChannelName = PropertyChangedParams.StructPropertyNameToKey;
 
-	TArray<FColorKey>& RedKeys = ChannelName == NAME_None || ChannelName == RedName ? NewGeneratedKeys : DefaultGeneratedKeys;
+	TArray<FColorKey>& RedKeys = ChannelName == NAME_None || ChannelName == RedName || ChannelName == SpecifiedColorName ? NewGeneratedKeys : DefaultGeneratedKeys;
 	RedKeys.Add( FColorKey( EKeyColorChannel::Red, ColorValue.R, bIsSlateColor ) );
 
-	TArray<FColorKey>& GreenKeys = ChannelName == NAME_None || ChannelName == GreenName ? NewGeneratedKeys : DefaultGeneratedKeys;
+	TArray<FColorKey>& GreenKeys = ChannelName == NAME_None || ChannelName == GreenName || ChannelName == SpecifiedColorName ? NewGeneratedKeys : DefaultGeneratedKeys;
 	GreenKeys.Add( FColorKey( EKeyColorChannel::Green, ColorValue.G, bIsSlateColor ) );
 
-	TArray<FColorKey>& BlueKeys =  ChannelName == NAME_None || ChannelName == BlueName ? NewGeneratedKeys : DefaultGeneratedKeys;
+	TArray<FColorKey>& BlueKeys =  ChannelName == NAME_None || ChannelName == BlueName || ChannelName == SpecifiedColorName ? NewGeneratedKeys : DefaultGeneratedKeys;
 	BlueKeys.Add( FColorKey( EKeyColorChannel::Blue, ColorValue.B, bIsSlateColor ) );
 
-	TArray<FColorKey>& AlphaKeys = ChannelName == NAME_None || ChannelName == AlphaName ? NewGeneratedKeys : DefaultGeneratedKeys;
+	TArray<FColorKey>& AlphaKeys = ChannelName == NAME_None || ChannelName == AlphaName || ChannelName == SpecifiedColorName ? NewGeneratedKeys : DefaultGeneratedKeys;
 	AlphaKeys.Add( FColorKey( EKeyColorChannel::Alpha, ColorValue.A, bIsSlateColor ) );
 }
 

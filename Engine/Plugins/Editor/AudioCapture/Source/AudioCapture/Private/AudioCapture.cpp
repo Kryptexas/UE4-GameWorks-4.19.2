@@ -6,7 +6,7 @@
 #include "ModuleManager.h"
 #include "AudioRecordingManager.h"
 
-class FAudioRecorder : ISequenceAudioRecorder
+class FAudioRecorder : public ISequenceAudioRecorder
 {
 public:
 

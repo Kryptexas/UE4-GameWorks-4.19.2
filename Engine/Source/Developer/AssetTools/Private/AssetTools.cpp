@@ -1092,11 +1092,10 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 	TArray<UObject*> ReturnObjects;
 	TMap< FString, TArray<UFactory*> > ExtensionToFactoriesMap;
 
-	FScopedSlowTask SlowTask(Files.Num() + 3, LOCTEXT("ImportSlowTask", "Importing"));
+	FScopedSlowTask SlowTask(Files.Num(), LOCTEXT("ImportSlowTask", "Importing"));
 	SlowTask.MakeDialog();
 
 
-	SlowTask.EnterProgressFrame();
 	TArray<TPair<FString, FString>> FilesAndDestinations;
 	if (FilesAndDestinationsPtr == nullptr)
 	{
@@ -1106,9 +1105,6 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 	{
 		FilesAndDestinations = (*FilesAndDestinationsPtr);
 	}
-
-	SlowTask.EnterProgressFrame(1, LOCTEXT("Import_DeterminingImportTypes", "Determining asset types"));
-
 
 	if(SpecifiedFactory == nullptr)
 	{
@@ -1301,7 +1297,7 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 			FDateTime ImportStartTime = FDateTime::UtcNow();
 
 			FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Filename));
-			FString PackageName = DestinationPath + TEXT("/") + Name;
+			FString PackageName = FPaths::Combine(*DestinationPath, *Name);
 
 			// We can not create assets that share the name of a map file in the same location
 			if(FEditorFileUtils::IsMapPackageAsset(PackageName))
@@ -1501,8 +1497,6 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 			// A factory or extension was not found. The extension warning is above. If a factory was not found, the user likely canceled a factory configuration dialog.
 		}
 	}
-
-	SlowTask.EnterProgressFrame(1);
 
 	// Clean up and remove the factories we created from the root set
 	for(auto ExtensionIt = ExtensionToFactoriesMap.CreateConstIterator(); ExtensionIt; ++ExtensionIt)

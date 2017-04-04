@@ -1555,40 +1555,6 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &
 
 	if(ImportSkeletalMeshArgs.LodIndex == 0)
 	{
-		// Create PhysicsAsset if requested and if physics asset is null
-		if (ImportOptions->bCreatePhysicsAsset )
-		{
-			if (SkeletalMesh->PhysicsAsset == NULL)
-			{
-				FString ObjectName = FString::Printf(TEXT("%s_PhysicsAsset"), *SkeletalMesh->GetName());
-				UPhysicsAsset * NewPhysicsAsset = CreateAsset<UPhysicsAsset>(ImportSkeletalMeshArgs.InParent->GetName(), ObjectName, true);
-				if (!NewPhysicsAsset)
-				{
-					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_CouldNotCreatePhysicsAsset", "Could not create Physics Asset ('{0}') for '{1}'"), FText::FromString(ObjectName), FText::FromString(SkeletalMesh->GetName()))), FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset);
-				}
-				else
-				{
-					FPhysAssetCreateParams NewBodyData;
-					NewBodyData.Initialize();
-					FText CreationErrorMessage;
-					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, CreationErrorMessage);
-					if (!bSuccess)
-					{
-						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, CreationErrorMessage), FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset);
-						// delete the asset since we could not have create physics asset
-						TArray<UObject*> ObjectsToDelete;
-						ObjectsToDelete.Add(NewPhysicsAsset);
-						ObjectTools::DeleteObjects(ObjectsToDelete, false);
-					}
-				}
-			}
-		}
-		// if physics asset is selected
-		else if (ImportOptions->PhysicsAsset)
-		{
-			SkeletalMesh->PhysicsAsset = ImportOptions->PhysicsAsset;
-		}
-
 		// see if we have skeleton set up
 		// if creating skeleton, create skeleeton
 		USkeleton* Skeleton = ImportOptions->SkeletonForAnimation;
@@ -1693,6 +1659,40 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &
 		{
 			SkeletalMesh->Skeleton = Skeleton;
 			SkeletalMesh->MarkPackageDirty();
+		}
+		// Create PhysicsAsset if requested and if physics asset is null
+		// We create the physic asset after we create the skeleton since we need the skeleton to correctly build it
+		if (ImportOptions->bCreatePhysicsAsset)
+		{
+			if (SkeletalMesh->PhysicsAsset == NULL)
+			{
+				FString ObjectName = FString::Printf(TEXT("%s_PhysicsAsset"), *SkeletalMesh->GetName());
+				UPhysicsAsset * NewPhysicsAsset = CreateAsset<UPhysicsAsset>(ImportSkeletalMeshArgs.InParent->GetName(), ObjectName, true);
+				if (!NewPhysicsAsset)
+				{
+					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_CouldNotCreatePhysicsAsset", "Could not create Physics Asset ('{0}') for '{1}'"), FText::FromString(ObjectName), FText::FromString(SkeletalMesh->GetName()))), FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset);
+				}
+				else
+				{
+					FPhysAssetCreateParams NewBodyData;
+					NewBodyData.Initialize();
+					FText CreationErrorMessage;
+					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, CreationErrorMessage);
+					if (!bSuccess)
+					{
+						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, CreationErrorMessage), FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset);
+						// delete the asset since we could not have create physics asset
+						TArray<UObject*> ObjectsToDelete;
+						ObjectsToDelete.Add(NewPhysicsAsset);
+						ObjectTools::DeleteObjects(ObjectsToDelete, false);
+					}
+				}
+			}
+		}
+		// if physics asset is selected
+		else if (ImportOptions->PhysicsAsset)
+		{
+			SkeletalMesh->PhysicsAsset = ImportOptions->PhysicsAsset;
 		}
 	}
 

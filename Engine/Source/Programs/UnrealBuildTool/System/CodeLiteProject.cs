@@ -227,7 +227,7 @@ namespace UnrealBuildTool
 				CodeLiteProject.Add(CodeLiteSettings);
 
 				XElement CodeLiteGlobalSettings = new XElement("GlobalSettings");
-				CodeLiteProject.Add(CodeLiteSettings);
+				CodeLiteProject.Add(CodeLiteGlobalSettings);
 
 				foreach (var CurConf in InConfigurations)
 				{

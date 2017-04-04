@@ -14,7 +14,7 @@ static TAutoConsoleVariable<float> StaticToolTipWrapWidth(
 
 float SToolTip::GetToolTipWrapWidth()
 {
-	return StaticToolTipWrapWidth.GetValueOnGameThread();
+	return StaticToolTipWrapWidth.GetValueOnAnyThread();
 }
 
 

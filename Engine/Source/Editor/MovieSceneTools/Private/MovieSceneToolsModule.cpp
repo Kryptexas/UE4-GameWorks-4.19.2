@@ -35,6 +35,7 @@
 #include "TrackEditors/LevelVisibilityTrackEditor.h"
 #include "TrackEditors/CameraAnimTrackEditor.h"
 #include "TrackEditors/CameraShakeTrackEditor.h"
+#include "TrackEditors/MaterialParameterCollectionTrackEditor.h"
 
 #include "SequencerClipboardReconciler.h"
 #include "ClipboardTypes.h"
@@ -101,6 +102,7 @@ public:
 		LevelVisibilityTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FLevelVisibilityTrackEditor::CreateTrackEditor ) );
 		CameraAnimTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FCameraAnimTrackEditor::CreateTrackEditor));
 		CameraShakeTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FCameraShakeTrackEditor::CreateTrackEditor));
+		MPCTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FMaterialParameterCollectionTrackEditor::CreateTrackEditor));
 
 		RegisterClipboardConversions();
 
@@ -152,6 +154,7 @@ public:
 		SequencerModule.UnRegisterTrackEditor( SpawnTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( CameraAnimTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor( CameraShakeTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( MPCTrackCreateEditorHandle );
 
 		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 		{	
@@ -226,6 +229,7 @@ private:
 	FDelegateHandle LevelVisibilityTrackCreateEditorHandle;
 	FDelegateHandle CameraAnimTrackCreateEditorHandle;
 	FDelegateHandle CameraShakeTrackCreateEditorHandle;
+	FDelegateHandle MPCTrackCreateEditorHandle;
 };
 
 

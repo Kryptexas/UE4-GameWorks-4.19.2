@@ -1507,6 +1507,12 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_CompactNodeTitle, *FunctionMetaData.CompactNodeTitle.ToString());
 		}
 
+		// Set up the function tooltip
+		if (!FunctionMetaData.ToolTip.IsEmpty())
+		{
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *FunctionMetaData.ToolTip.ToString());
+		}
+
 		// Set as blutility function
 		if (FunctionMetaData.bCallInEditor)
 		{
@@ -1979,7 +1985,7 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	UK2Node_FunctionEntry* EntryNode = CastChecked<UK2Node_FunctionEntry>(Context.EntryPoint);
 	if (!EntryNode->MetaData.ToolTip.IsEmpty())
 	{
-		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip);
+		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip.ToString());
 	}
 	if (EntryNode->MetaData.bCallInEditor)
 	{

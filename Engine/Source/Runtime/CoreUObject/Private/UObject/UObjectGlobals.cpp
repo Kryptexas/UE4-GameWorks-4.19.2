@@ -25,6 +25,7 @@
 #include "UObject/Object.h"
 #include "UObject/GarbageCollection.h"
 #include "UObject/Class.h"
+#include "UObject/CoreRedirects.h"
 #include "UObject/UObjectIterator.h"
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
@@ -744,6 +745,12 @@ bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Thro
 			}
 		}
 
+		// Process any package redirects before calling CreatePackage/FindObject
+		{
+			const FCoreRedirectObjectName NewPackageName = FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(NAME_None, NAME_None, *PartialName));
+			PartialName = NewPackageName.PackageName.ToString();
+		}
+
 		// Only long package names are allowed so don't even attempt to create one because whatever the name represents
 		// it's not a valid package name anyway.
 		
@@ -1158,23 +1165,14 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 
 		FName PackageFName(*InPackageName);
 
-		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-		if (!Result || Result->LinkerLoad || !Result->IsFullyLoaded())
 		{
 			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
 			FlushAsyncLoading(RequestID);
 		}
 
-		if (InOuter)
-		{
-			return InOuter;
-		}
-		if (!Result)
-		{
-			Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-		}
+		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
 		return Result;
-}
+	}
 
 	FString FileToLoad;
 #if WITH_EDITOR

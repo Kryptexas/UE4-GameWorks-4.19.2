@@ -15,8 +15,6 @@
 #include "Widgets/LayerManager/STooltipPresenter.h"
 #include "Widgets/Layout/SPopup.h"
 
-extern SLATECORE_API int32 bFoldTick;
-
 FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection, bool bInClearTarget)
 	: bPrepassNeeded(true)
 	, bUseGammaSpace(bUseGammaCorrection)
@@ -116,11 +114,6 @@ void FWidgetRenderer::DrawWindow(
 #if !UE_SERVER
 	if ( LIKELY(FApp::CanEverRender()) )
 	{
-	    if ( !bFoldTick )
-	    {
-		    Window->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
-	    }
-    
 	    if ( bPrepassNeeded )
 	    {
 		    // Ticking can cause geometry changes.  Recompute
@@ -201,11 +194,6 @@ void FWidgetRenderer::DrawWindowAndChildren(
 	FSlateRect WindowClipRect,
 	float DeltaTime)
 {
-	if ( !bFoldTick )
-	{
-		Window->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
-	}
-
 	// Prepare the test grid 
 	HitTestGrid->ClearGridForNewFrame(WindowClipRect);
 

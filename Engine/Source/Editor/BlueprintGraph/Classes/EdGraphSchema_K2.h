@@ -50,7 +50,7 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaA
 		, Struct(nullptr)
 	{}
 
-	FEdGraphSchemaAction_K2Struct (FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_K2Struct(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, Struct(nullptr)
 	{}

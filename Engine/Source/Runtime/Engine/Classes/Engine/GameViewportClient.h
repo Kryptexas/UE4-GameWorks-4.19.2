@@ -30,6 +30,7 @@ class UGameInstance;
 class ULocalPlayer;
 class UNetDriver;
 struct FStringClassReference;
+class FHardwareCursor;
 
 /**
  * Stereoscopic rendering passes.  FULL implies stereoscopic rendering isn't enabled for this pass
@@ -558,6 +559,8 @@ public:
 		return &EngineShowFlags; 
 	}
 
+	bool SetHardwareCursor(EMouseCursor::Type CursorShape, FName GameContentPath, FVector2D HotSpot);
+
 public:
 	/** The show flags used by the viewport's players. */
 	FEngineShowFlags EngineShowFlags;
@@ -801,7 +804,7 @@ private:
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
 	
 	/** Adds a cursor to the set based on the enum and the class reference to it. */
-	void AddCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass);
+	void AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass);
 
 private:
 	/** Slate window associated with this viewport client.  The same window may host more than one viewport client. */
@@ -818,6 +821,12 @@ private:
 
 	/** Weak pointer to the highres screenshot dialog if it's open */
 	TWeakPtr<SWindow> HighResScreenshotDialog;
+
+	/** Hardware Cursor Cache */
+	TMap<FName, TSharedPtr<FHardwareCursor>> HardwareCursorCache;
+
+	/** Hardware cursor mapping for default cursor shapes. */
+	TMap<EMouseCursor::Type, TSharedPtr<FHardwareCursor>> HardwareCursors;
 
 	/** Map of Software Cursor Widgets*/
 	TMap<EMouseCursor::Type, TSharedRef<SWidget>> CursorWidgets;
@@ -908,6 +917,8 @@ private:
 
 	/** Whether or not this audio device is in audio-focus */
 	bool bHasAudioFocus;
+
+	bool bMouseEnter;
 };
 
 

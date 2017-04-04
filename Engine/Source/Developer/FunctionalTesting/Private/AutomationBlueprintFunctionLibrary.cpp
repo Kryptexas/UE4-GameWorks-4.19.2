@@ -45,6 +45,18 @@ static TAutoConsoleVariable<int32> CVarAutomationScreenshotResolutionHeight(
 	ECVF_Default);
 
 
+void FinishLoadingBeforeScreenshot()
+{
+	// Force all shader compiling to finish.
+	GShaderCompilingManager->FinishAllCompilation();
+
+	// Force all mip maps to load before taking the screenshot.
+	UTexture::ForceUpdateTextureStreaming();
+
+	IStreamingManager::Get().StreamAllResources(0.0f);
+}
+
+
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 
 class FConsoleVariableSwapper
@@ -108,14 +120,6 @@ public:
 		, EyeAdaptationQuality(TEXT("r.EyeAdaptationQuality"))
 		, ContactShadows(TEXT("r.ContactShadows"))
 	{
-		// Force all mip maps to load before taking the screenshot.
-		UTexture::ForceUpdateTextureStreaming();
-
-		// Force all shader compiling to finish.
-		GShaderCompilingManager->FinishAllCompilation();
-
-		IStreamingManager::Get().StreamAllResources(0.0f);
-
 		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationScreenshotTaker::GrabScreenShot);
 
 		check(IsInGameThread());
@@ -270,6 +274,8 @@ UAutomationBlueprintFunctionLibrary::UAutomationBlueprintFunctionLibrary(const c
 
 bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(UObject* WorldContextObject, const FString& Name, FAutomationScreenshotOptions Options)
 {
+	FinishLoadingBeforeScreenshot();
+
 	// Fallback resolution if all else fails for screenshots.
 	uint32 ResolutionX = 1280;
 	uint32 ResolutionY = 720;
@@ -400,6 +406,8 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotAtCamera(UObje
 
 void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options)
 {
+	FinishLoadingBeforeScreenshot();
+
 	if ( UWorld* World = WorldContextObject->GetWorld() )
 	{
 		if ( UGameViewportClient* GameViewport = WorldContextObject->GetWorld()->GetGameViewport() )
@@ -412,7 +420,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 				if ( FSlateApplication::Get().TakeScreenshot(Viewport.ToSharedRef(), OutColorData, OutSize) )
 				{
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
-					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(WorldContextObject->GetWorld(), Name, Options);
+					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(GEngine->GetWorldFromContextObject(WorldContextObject), Name, Options);
 
 					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GWorld->GetName(), Name, OutSize.X, OutSize.Y);
 

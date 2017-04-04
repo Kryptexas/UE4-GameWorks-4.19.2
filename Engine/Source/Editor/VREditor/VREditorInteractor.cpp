@@ -7,7 +7,6 @@
 #include "Engine/Selection.h"
 #include "VREditorMode.h"
 #include "VREditorFloatingText.h"
-#include "VREditorWorldInteraction.h"
 #include "VREditorButton.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorDockableWindow.h"

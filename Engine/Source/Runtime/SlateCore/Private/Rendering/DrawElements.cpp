@@ -888,6 +888,12 @@ void FSlateWindowElementList::PostDraw_ParallelThread()
 	CachedRenderHandlesInUse.Reset();
 }
 
+SLATECORE_API void FSlateWindowElementList::SetRenderTargetWindow(SWindow* InRenderTargetWindow)
+{
+	check(IsThreadSafeForSlateRendering());
+	RenderTargetWindow = InRenderTargetWindow;
+}
+
 DECLARE_MEMORY_STAT(TEXT("FSlateWindowElementList MemManager"), STAT_FSlateWindowElementListMemManager, STATGROUP_SlateVerbose);
 DECLARE_DWORD_COUNTER_STAT(TEXT("FSlateWindowElementList MemManager Count"), STAT_FSlateWindowElementListMemManagerCount, STATGROUP_SlateVerbose);
 
@@ -895,6 +901,7 @@ void FSlateWindowElementList::ResetBuffers()
 {
 	// Don't attempt to use this slate window element list if the cache is still being used.
 	checkSlow(!IsCachedRenderDataInUse());
+	check(IsThreadSafeForSlateRendering());
 
 	DeferredPaintList.Reset();
 	VolatilePaintList.Reset();
@@ -921,4 +928,6 @@ void FSlateWindowElementList::ResetBuffers()
 	INC_MEMORY_STAT_BY(STAT_FSlateWindowElementListMemManager, MemManager.GetByteCount());
 
 	MemManager.Flush();
+
+	RenderTargetWindow = nullptr;
 }

@@ -31,5 +31,5 @@ public:
 	virtual void DestroySpawnedObject(UObject& Object) override;
 
 private:
-	UControlRigObjectHolder* ObjectHolder;
+	TWeakObjectPtr<UControlRigObjectHolder> ObjectHolderPtr;
 };

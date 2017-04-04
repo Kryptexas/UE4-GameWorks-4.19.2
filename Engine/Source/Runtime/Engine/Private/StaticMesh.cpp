@@ -1124,6 +1124,12 @@ static FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMes
 	TArray<uint8> TempBytes;
 	TempBytes.Reserve(64);
 
+	// Add LightmapUVVersion to key going forward
+	if ( (ELightmapUVVersion)Mesh->LightmapUVVersion > ELightmapUVVersion::BitByBit )
+	{
+		KeySuffix += Lex::ToString(Mesh->LightmapUVVersion);
+	}
+
 	int32 NumLODs = Mesh->SourceModels.Num();
 	for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 	{
@@ -1273,7 +1279,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
 
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->ImportVersion);
+			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->LightmapUVVersion, Owner->ImportVersion);
 			ComputeUVDensities();
 			if(Owner->bRequiresAreaWeightedSampling)
 			{
@@ -2421,11 +2427,18 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 	else if (Ar.IsLoading())
 	{
+		TArray<UMaterialInterface*> Unique_Materials_DEPRECATED;
 		for (UMaterialInterface *MaterialInterface : Materials_DEPRECATED)
 		{
 			StaticMaterials.Add(FStaticMaterial(MaterialInterface, MaterialInterface != nullptr ? MaterialInterface->GetFName() : NAME_None));
+			int32 UniqueIndex = Unique_Materials_DEPRECATED.AddUnique(MaterialInterface);
+#if WITH_EDITOR
+			//We must cleanup the material list since we have a new way to build static mesh
+			CleanUpRedondantMaterialPostLoad.Add(UniqueIndex);
+#endif
 		}
 		Materials_DEPRECATED.Empty();
+
 	}
 
 
@@ -2543,6 +2556,58 @@ void UStaticMesh::PostLoad()
 		if (RenderData && GStaticMeshesThatNeedMaterialFixup.Get(this))
 		{
 			FixupZeroTriangleSections();
+		}
+		
+		//Fix up the material to remove redundant material, this is needed since the material refactor where we do not have anymore copy of the materials
+		//in the materials list
+		if (RenderData && CleanUpRedondantMaterialPostLoad.Num() > 1)
+		{
+			for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
+			{
+				if (RenderData->LODResources.IsValidIndex(LODIndex))
+				{
+					FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
+					const int32 NumSections = LOD.Sections.Num();
+					for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+					{
+						const int32 MaterialIndex = LOD.Sections[SectionIndex].MaterialIndex;
+						if (StaticMaterials.IsValidIndex(MaterialIndex))
+						{
+							FMeshSectionInfo MeshSectionInfo = SectionInfoMap.Get(LODIndex, SectionIndex);
+							if (CleanUpRedondantMaterialPostLoad.IsValidIndex(MeshSectionInfo.MaterialIndex))
+							{
+								MeshSectionInfo.MaterialIndex = CleanUpRedondantMaterialPostLoad[MeshSectionInfo.MaterialIndex];
+								SectionInfoMap.Set(LODIndex, SectionIndex, MeshSectionInfo);
+							}
+						}
+					}
+				}
+			}
+
+			//Remove the redundant materials from the array
+			TArray<int32> UniqueMaterials;
+			TArray<int32> ToRemoveMaterials;
+			for (int32 StaticMaterialIndex = 0; StaticMaterialIndex < CleanUpRedondantMaterialPostLoad.Num(); ++StaticMaterialIndex)
+			{
+				if (UniqueMaterials.Contains(CleanUpRedondantMaterialPostLoad[StaticMaterialIndex]))
+				{
+					ToRemoveMaterials.Add(StaticMaterialIndex);
+				}
+				else
+				{
+					UniqueMaterials.AddUnique(CleanUpRedondantMaterialPostLoad[StaticMaterialIndex]);
+				}
+			}
+			//Sort the remove material list so we can remove from the end to ensure index are valid during remove operation
+			ToRemoveMaterials.Sort();
+			for (int32 RemoveIndex = ToRemoveMaterials.Num() - 1; RemoveIndex >= 0; --RemoveIndex)
+			{
+				if (StaticMaterials.IsValidIndex(RemoveIndex))
+				{
+					StaticMaterials.RemoveAt(ToRemoveMaterials[RemoveIndex]);
+				}
+			}
+			CleanUpRedondantMaterialPostLoad.Reset();
 		}
 	}
 #endif // #if WITH_EDITOR
@@ -3384,7 +3449,7 @@ void UStaticMesh::GenerateLodsInPackage()
 
 	// Generate the reduced models
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-	if (MeshUtilities.GenerateStaticMeshLODs(SourceModels, LODSettings.GetLODGroup(LODGroup)))
+	if (MeshUtilities.GenerateStaticMeshLODs(SourceModels, LODSettings.GetLODGroup(LODGroup), LightmapUVVersion))
 	{
 		// Clear LOD settings
 		LODGroup = NAME_None;
@@ -3429,6 +3494,9 @@ UStaticMeshSocket::UStaticMeshSocket(const FObjectInitializer& ObjectInitializer
 	: Super(ObjectInitializer)
 {
 	RelativeScale = FVector(1.0f, 1.0f, 1.0f);
+#if WITH_EDITORONLY_DATA
+	bSocketCreatedAtImport = false;
+#endif
 }
 
 /** Utility that returns the current matrix for this socket. */

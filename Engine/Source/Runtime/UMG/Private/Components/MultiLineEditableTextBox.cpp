@@ -19,6 +19,7 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FObjectInitializer& O
 	ReadOnlyForegroundColor_DEPRECATED = FLinearColor::Black;
 
 	SMultiLineEditableTextBox::FArguments Defaults;
+	bIsReadOnly = Defaults._IsReadOnly.Get();
 	WidgetStyle = *Defaults._Style;
 	TextStyle = *Defaults._TextStyle;
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
@@ -49,6 +50,7 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 		.Style(&WidgetStyle)
 		.TextStyle(&TextStyle)
 		.AllowContextMenu(AllowContextMenu)
+		.IsReadOnly(bIsReadOnly)
 //		.MinDesiredWidth(MinimumDesiredWidth)
 //		.Padding(Padding)
 //		.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
@@ -73,8 +75,8 @@ void UMultiLineEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetText(Text);
 	MyEditableTextBlock->SetHintText(HintTextBinding);
 	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
+	MyEditableTextBlock->SetIsReadOnly(bIsReadOnly);
 
-//	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
 //	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);
 
@@ -107,6 +109,16 @@ void UMultiLineEditableTextBox::SetError(FText InError)
 	if ( MyEditableTextBlock.IsValid() )
 	{
 		MyEditableTextBlock->SetError(InError);
+	}
+}
+
+void UMultiLineEditableTextBox::SetIsReadOnly(bool bReadOnly)
+{
+	bIsReadOnly = bReadOnly;
+
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		MyEditableTextBlock->SetIsReadOnly(bIsReadOnly);
 	}
 }
 

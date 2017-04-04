@@ -171,7 +171,7 @@ public:
 				break;
 			}
 
-			if (FCString::Strcmp(FilterExt, Extension) == 0)
+			if (FCString::Stricmp(FilterExt, Extension) == 0)
 			{
 				// positive hit.
 				RC = true;

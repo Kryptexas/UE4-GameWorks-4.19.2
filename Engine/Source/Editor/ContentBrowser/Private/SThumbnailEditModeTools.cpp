@@ -44,38 +44,35 @@ void SThumbnailEditModeTools::Construct( const FArguments& InArgs, const TShared
 		// Primitive tools
 		+SHorizontalBox::Slot()
 		.AutoWidth()
+		.VAlign(VAlign_Top)
 		.Padding(1)
 		[
-			SNew(SVerticalBox)
-			.Visibility( this, &SThumbnailEditModeTools::GetPrimitiveToolsVisibility )
-
-			+SVerticalBox::Slot()
-			.AutoHeight()
+			SNew(SButton)
+			.Visibility(this, &SThumbnailEditModeTools::GetPrimitiveToolsVisibility)
+			.ContentPadding(0)
+			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+			.OnClicked(this, &SThumbnailEditModeTools::ChangePrimitive)
+			.ToolTipText(LOCTEXT("CyclePrimitiveThumbnailShapes", "Cycle through primitive shape for this thumbnail"))
+			.Content()
 			[
-				SNew(SButton)
-				.ContentPadding(0)
-				.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
-				.OnClicked( this, &SThumbnailEditModeTools::ChangePrimitive )
-				.Content()
-				[
-					SNew(SImage).Image( this, &SThumbnailEditModeTools::GetCurrentPrimitiveBrush )
-				]
+				SNew(SImage).Image(this, &SThumbnailEditModeTools::GetCurrentPrimitiveBrush)
 			]
 		]
-
-		// Middle spacer, takes up all the space in the middle
 		+SHorizontalBox::Slot()
-		.FillWidth(1.f)
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Top)
 		[
-			SNullWidget::NullWidget
-		]
-
-		// @TODO: Scene Tools
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(1)
-		[
-			SNullWidget::NullWidget
+			SNew(SButton)
+			.Visibility(this, &SThumbnailEditModeTools::GetPrimitiveToolsResetToDefaultVisibility)
+			.ContentPadding(0)
+			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+			.OnClicked(this, &SThumbnailEditModeTools::ResetToDefault)
+			.ToolTipText(LOCTEXT("ResetThumbnailToDefault", "Resets thumbnail to the default"))
+			.Content()
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("ContentBrowser.ResetPrimitiveToDefault"))
+			]
 		]
 	];
 }
@@ -86,21 +83,36 @@ EVisibility SThumbnailEditModeTools::GetPrimitiveToolsVisibility() const
 	return bIsVisible ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+EVisibility SThumbnailEditModeTools::GetPrimitiveToolsResetToDefaultVisibility() const
+{
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(SceneThumbnailInfo.Get());
+	
+	EVisibility ResetToDefaultVisibility = EVisibility::Collapsed;
+	if (ThumbnailInfo)
+	{
+		ResetToDefaultVisibility = ThumbnailInfo && ThumbnailInfo->DiffersFromDefault() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	return ResetToDefaultVisibility;
+}
+
 const FSlateBrush* SThumbnailEditModeTools::GetCurrentPrimitiveBrush() const
 {
 	USceneThumbnailInfoWithPrimitive* ThumbnailInfo = ConstGetSceneThumbnailInfoWithPrimitive();
 	if ( ThumbnailInfo )
 	{
-		switch(ThumbnailInfo->PrimitiveType)
+		// Note this is for the icon only.  we are assuming the thumbnail renderer does the right thing when rendering
+		EThumbnailPrimType PrimType = ThumbnailInfo->bUserModifiedShape ? ThumbnailInfo->PrimitiveType.GetValue() : GetDefaultThumbnailType();
+		switch (PrimType)
 		{
-			case TPT_None: return FEditorStyle::GetBrush( "ContentBrowser.PrimitiveCustom" );
-			case TPT_Sphere: return FEditorStyle::GetBrush( "ContentBrowser.PrimitiveSphere" );
-			case TPT_Cube: return FEditorStyle::GetBrush( "ContentBrowser.PrimitiveCube" );
-			case TPT_Cylinder: return FEditorStyle::GetBrush( "ContentBrowser.PrimitiveCylinder" );
-			case TPT_Plane:
-			default:
-				// Fall through and return a plane
-				break;
+		case TPT_None: return FEditorStyle::GetBrush("ContentBrowser.PrimitiveCustom");
+		case TPT_Sphere: return FEditorStyle::GetBrush("ContentBrowser.PrimitiveSphere");
+		case TPT_Cube: return FEditorStyle::GetBrush("ContentBrowser.PrimitiveCube");
+		case TPT_Cylinder: return FEditorStyle::GetBrush("ContentBrowser.PrimitiveCylinder");
+		case TPT_Plane:
+		default:
+			// Fall through and return a plane
+			break;
 		}
 	}
 
@@ -126,13 +138,33 @@ FReply SThumbnailEditModeTools::ChangePrimitive()
 		}
 
 		ThumbnailInfo->PrimitiveType = TEnumAsByte<EThumbnailPrimType>(PrimitiveIdx);
-		
+		ThumbnailInfo->bUserModifiedShape = true;
+
 		if ( AssetThumbnail.IsValid() )
 		{
 			AssetThumbnail.Pin()->RefreshThumbnail();
 		}
 
 		ThumbnailInfo->MarkPackageDirty();
+	}
+
+	return FReply::Handled();
+}
+
+FReply SThumbnailEditModeTools::ResetToDefault()
+{
+	USceneThumbnailInfo* ThumbnailInfo = GetSceneThumbnailInfo();
+	if (ThumbnailInfo)
+	{
+		ThumbnailInfo->ResetToDefault();
+
+		if (AssetThumbnail.IsValid())
+		{
+			AssetThumbnail.Pin()->RefreshThumbnail();
+		}
+
+		ThumbnailInfo->MarkPackageDirty();
+
 	}
 
 	return FReply::Handled();
@@ -267,7 +299,8 @@ USceneThumbnailInfo* SThumbnailEditModeTools::GetSceneThumbnailInfo()
 
 			if ( Asset )
 			{
-				FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+				static const FName AssetToolsName("AssetTools");
+				FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(AssetToolsName);
 				TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass( Asset->GetClass() );
 				if ( AssetTypeActions.IsValid() )
 				{
@@ -294,6 +327,30 @@ USceneThumbnailInfoWithPrimitive* SThumbnailEditModeTools::GetSceneThumbnailInfo
 USceneThumbnailInfoWithPrimitive* SThumbnailEditModeTools::ConstGetSceneThumbnailInfoWithPrimitive() const
 {
 	return Cast<USceneThumbnailInfoWithPrimitive>( SceneThumbnailInfo.Get() );
+}
+
+EThumbnailPrimType SThumbnailEditModeTools::GetDefaultThumbnailType() const 
+{
+	EThumbnailPrimType DefaultPrimitiveType = TPT_Sphere;
+
+	if (AssetThumbnail.IsValid())
+	{
+		UObject* Asset = AssetThumbnail.Pin()->GetAsset();
+
+		if (Asset)
+		{
+			static const FName AssetToolsName("AssetTools");
+
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(AssetToolsName);
+			TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Asset->GetClass());
+			if (AssetTypeActions.IsValid())
+			{
+				DefaultPrimitiveType = AssetTypeActions.Pin()->GetDefaultThumbnailPrimitiveType(Asset);
+			}
+		}
+	}
+
+	return DefaultPrimitiveType;
 }
 
 void SThumbnailEditModeTools::OnAssetDataChanged()

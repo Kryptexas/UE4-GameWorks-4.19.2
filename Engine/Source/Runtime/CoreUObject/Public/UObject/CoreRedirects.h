@@ -219,6 +219,9 @@ struct COREUOBJECT_API FCoreRedirects
 	/** Adds this as a missing name */
 	static bool AddKnownMissing(ECoreRedirectFlags Type, const FCoreRedirectObjectName& ObjectName);
 
+	/** Removes this as a missing name */
+	static bool RemoveKnownMissing(ECoreRedirectFlags Type, const FCoreRedirectObjectName& ObjectName);
+
 	/** Returns list of names it may have been before */
 	static bool FindPreviousNames(ECoreRedirectFlags Type, const FCoreRedirectObjectName& NewObjectName, TArray<FCoreRedirectObjectName>& PreviousNames);
 
@@ -252,6 +255,12 @@ private:
 
 	/** Add a single redirect to a type map */
 	static bool AddSingleRedirect(const FCoreRedirect& NewRedirect, const FString& SourceString);
+
+	/** Removes an array of redirects from global list */
+	static bool RemoveRedirectList(const TArray<FCoreRedirect>& Redirects, const FString& SourceString);
+
+	/** Remove a single redirect from a type map */
+	static bool RemoveSingleRedirect(const FCoreRedirect& OldRedirect, const FString& SourceString);
 
 	/** Add native redirects, called before ini is parsed for the first time */
 	static void RegisterNativeRedirects();

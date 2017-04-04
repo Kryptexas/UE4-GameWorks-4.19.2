@@ -413,10 +413,12 @@ void ULandscapeComponent::PostEditUndo()
 
 	Super::PostEditUndo();
 
-	if (EditToolRenderData && !IsPendingKill())
+	if (!IsPendingKill())
 	{
-		EditToolRenderData->UpdateDebugColorMaterial();
-		EditToolRenderData->UpdateSelectionMaterial(EditToolRenderData->SelectedType);
+		EditToolRenderData.UpdateDebugColorMaterial(this);
+
+		EditToolRenderData.UpdateSelectionMaterial(EditToolRenderData.SelectedType, this);
+		UpdateEditToolRenderData();
 	}
 
 	TSet<ULandscapeComponent*> Components;
@@ -4071,12 +4073,13 @@ void ULandscapeInfo::UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewCom
 		for (TSet<ULandscapeComponent*>::TIterator It(NewComponents); It; ++It)
 		{
 			ULandscapeComponent* Comp = *It;
-			if (Comp->EditToolRenderData != nullptr && (Comp->EditToolRenderData->SelectedType & InSelectType) == 0)
+			if ((Comp->EditToolRenderData.SelectedType & InSelectType) == 0)
 			{
 				Comp->Modify();
-				int32 SelectedType = Comp->EditToolRenderData->SelectedType;
+				int32 SelectedType = Comp->EditToolRenderData.SelectedType;
 				SelectedType |= InSelectType;
-				Comp->EditToolRenderData->UpdateSelectionMaterial(SelectedType);
+				Comp->EditToolRenderData.UpdateSelectionMaterial(SelectedType, Comp);
+				Comp->UpdateEditToolRenderData();
 			}
 		}
 
@@ -4085,13 +4088,11 @@ void ULandscapeInfo::UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewCom
 		for (TSet<ULandscapeComponent*>::TIterator It(RemovedComponents); It; ++It)
 		{
 			ULandscapeComponent* Comp = *It;
-			if (Comp->EditToolRenderData != nullptr)
-			{
-				Comp->Modify();
-				int32 SelectedType = Comp->EditToolRenderData->SelectedType;
-				SelectedType &= ~InSelectType;
-				Comp->EditToolRenderData->UpdateSelectionMaterial(SelectedType);
-			}
+			Comp->Modify();
+			int32 SelectedType = Comp->EditToolRenderData.SelectedType;
+			SelectedType &= ~InSelectType;
+			Comp->EditToolRenderData.UpdateSelectionMaterial(SelectedType, Comp);
+			Comp->UpdateEditToolRenderData();
 		}
 		SelectedComponents = NewComponents;
 	}
@@ -4103,12 +4104,13 @@ void ULandscapeInfo::UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewCom
 			for (TSet<ULandscapeComponent*>::TIterator It(NewComponents); It; ++It)
 			{
 				ULandscapeComponent* Comp = *It;
-				if (Comp->EditToolRenderData != nullptr && (Comp->EditToolRenderData->SelectedType & InSelectType) == 0)
+				if ((Comp->EditToolRenderData.SelectedType & InSelectType) == 0)
 				{
 					Comp->Modify();
-					int32 SelectedType = Comp->EditToolRenderData->SelectedType;
+					int32 SelectedType = Comp->EditToolRenderData.SelectedType;
 					SelectedType |= InSelectType;
-					Comp->EditToolRenderData->UpdateSelectionMaterial(SelectedType);
+					Comp->EditToolRenderData.UpdateSelectionMaterial(SelectedType, Comp);
+					Comp->UpdateEditToolRenderData();
 				}
 
 				SelectedRegionComponents.Add(*It);
@@ -4120,13 +4122,11 @@ void ULandscapeInfo::UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewCom
 			for (TSet<ULandscapeComponent*>::TIterator It(SelectedRegionComponents); It; ++It)
 			{
 				ULandscapeComponent* Comp = *It;
-				if (Comp->EditToolRenderData != nullptr)
-				{
-					Comp->Modify();
-					int32 SelectedType = Comp->EditToolRenderData->SelectedType;
-					SelectedType &= ~InSelectType;
-					Comp->EditToolRenderData->UpdateSelectionMaterial(SelectedType);
-				}
+				Comp->Modify();
+				int32 SelectedType = Comp->EditToolRenderData.SelectedType;
+				SelectedType &= ~InSelectType;
+				Comp->EditToolRenderData.UpdateSelectionMaterial(SelectedType, Comp);
+				Comp->UpdateEditToolRenderData();
 			}
 			SelectedRegionComponents = NewComponents;
 		}

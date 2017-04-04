@@ -63,8 +63,7 @@ public:
 	DECLARE_DELEGATE_TwoParams( FOnValueCommitted, NumericType, ETextCommit::Type);
 
 	/** Notification when the max/min spinner values are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
-	DECLARE_DELEGATE_FourParams(FOnDynamicSliderMaxValueChanged, NumericType, TWeakPtr<SWidget>, bool, bool);
-	DECLARE_DELEGATE_FourParams(FOnDynamicSliderMinValueChanged, NumericType, TWeakPtr<SWidget>, bool, bool);
+	DECLARE_DELEGATE_FourParams(FOnDynamicSliderMinMaxValueChanged, NumericType, TWeakPtr<SWidget>, bool, bool);
 
 	SLATE_BEGIN_ARGS(SSpinBox<NumericType>)
 		: _Style(&FCoreStyle::Get().GetWidgetStyle<FSpinBoxStyle>("SpinBox"))
@@ -107,9 +106,9 @@ public:
 		/** Tell us if we want to support dynamically changing of the min value using ctrl */
 		SLATE_ATTRIBUTE(bool, SupportDynamicSliderMinValue)
 		/** Called right after the max slider value is changed (only relevant if SupportDynamicSliderMaxValue is true) */
-		SLATE_EVENT(FOnDynamicSliderMaxValueChanged, OnDynamicSliderMaxValueChanged)
+		SLATE_EVENT(FOnDynamicSliderMinMaxValueChanged, OnDynamicSliderMaxValueChanged)
 		/** Called right after the min slider value is changed (only relevant if SupportDynamicSliderMinValue is true) */
-		SLATE_EVENT(FOnDynamicSliderMinValueChanged, OnDynamicSliderMinValueChanged)
+		SLATE_EVENT(FOnDynamicSliderMinMaxValueChanged, OnDynamicSliderMinValueChanged)
 		/** Use exponential scale for the slider */
 		SLATE_ATTRIBUTE( float, SliderExponent )
 		/** When use exponential scale for the slider which is the neutral value */
@@ -167,8 +166,8 @@ public:
 		MinSliderValue = (InArgs._MinSliderValue.Get().IsSet()) ? InArgs._MinSliderValue : MinValue;
 		MaxSliderValue = (InArgs._MaxSliderValue.Get().IsSet()) ? InArgs._MaxSliderValue : MaxValue;
 
-		SupportDynamicSliderMaxValue = InArgs._SupportDynamicSliderMaxValue.Get();
-		SupportDynamicSliderMinValue = InArgs._SupportDynamicSliderMinValue.Get();
+		SupportDynamicSliderMaxValue = InArgs._SupportDynamicSliderMaxValue;
+		SupportDynamicSliderMinValue = InArgs._SupportDynamicSliderMinValue;
 		OnDynamicSliderMaxValueChanged = InArgs._OnDynamicSliderMaxValueChanged;
 		OnDynamicSliderMinValueChanged = InArgs._OnDynamicSliderMinValueChanged;
 
@@ -176,11 +175,11 @@ public:
 		NumericType CurrentMaxValue = GetMaxValue();
 		NumericType CurrentMinValue = GetMinValue();
 
-		if (SupportDynamicSliderMaxValue && ValueAttribute.Get() > GetMaxSliderValue())
+		if (SupportDynamicSliderMaxValue.Get() && ValueAttribute.Get() > GetMaxSliderValue())
 		{			
 			ApplySliderMaxValueChanged(ValueAttribute.Get() - GetMaxSliderValue(), true);
 		}
-		else if (SupportDynamicSliderMinValue && ValueAttribute.Get() < GetMinSliderValue())
+		else if (SupportDynamicSliderMinValue.Get() && ValueAttribute.Get() < GetMinSliderValue())
 		{
 			ApplySliderMinValueChanged(ValueAttribute.Get() - GetMinSliderValue(), true);
 		}
@@ -405,7 +404,7 @@ public:
 
 	void ApplySliderMaxValueChanged(float SliderDeltaToAdd, bool UpdateOnlyIfHigher)
 	{
-		check(SupportDynamicSliderMaxValue);
+		check(SupportDynamicSliderMaxValue.Get());
 
 		NumericType NewMaxSliderValue = TNumericLimits<NumericType>::Min();
 		
@@ -416,7 +415,11 @@ public:
 			if ((NewMaxSliderValue + SliderDeltaToAdd > GetMaxSliderValue() && UpdateOnlyIfHigher) || !UpdateOnlyIfHigher)
 			{
 				NewMaxSliderValue += SliderDeltaToAdd;
-				SetMaxSliderValue(NewMaxSliderValue);
+
+				if (!MaxSliderValue.IsBound()) // simple value so we can update it without breaking the mechanic otherwise it must be handle by the callback implementer
+				{
+					SetMaxSliderValue(NewMaxSliderValue);
+				}
 			}
 		}
 
@@ -428,7 +431,7 @@ public:
 
 	void ApplySliderMinValueChanged(float SliderDeltaToAdd, bool UpdateOnlyIfLower)
 	{
-		check(SupportDynamicSliderMaxValue);
+		check(SupportDynamicSliderMaxValue.Get());
 
 		NumericType NewMinSliderValue = TNumericLimits<NumericType>::Min();
 		
@@ -439,7 +442,11 @@ public:
 			if ((NewMinSliderValue + SliderDeltaToAdd < GetMinSliderValue() && UpdateOnlyIfLower) || !UpdateOnlyIfLower)
 			{
 				NewMinSliderValue += SliderDeltaToAdd;
-				SetMinSliderValue(NewMinSliderValue);
+
+				if (!MinSliderValue.IsBound()) // simple value so we can update it without breaking the mechanic otherwise it must be handle by the callback implementer
+				{
+					SetMinSliderValue(NewMinSliderValue);
+				}
 			}
 		}		
 
@@ -493,11 +500,11 @@ public:
 				{
 					float DeltaToAdd = MouseEvent.GetCursorDelta().X / SliderWidthInSlateUnits;
 
-					if (SupportDynamicSliderMaxValue && InternalValue == GetMaxSliderValue())
+					if (SupportDynamicSliderMaxValue.Get() && InternalValue == GetMaxSliderValue())
 					{
 						ApplySliderMaxValueChanged(DeltaToAdd, false);
 					}
-					else if (SupportDynamicSliderMinValue && InternalValue == GetMinSliderValue())
+					else if (SupportDynamicSliderMinValue.Get() && InternalValue == GetMinSliderValue())
 					{
 						ApplySliderMinValueChanged(DeltaToAdd, false);
 					}
@@ -642,6 +649,9 @@ public:
 		return SCompoundWidget::HasKeyboardFocus() || (EditableText.IsValid() && EditableText->HasKeyboardFocus());
 	}
 
+	/** Return the Value attribute */
+	TAttribute<NumericType> GetValueAttribute() const { return ValueAttribute; }
+
 	/** See the Value attribute */
 	float GetValue() const { return ValueAttribute.Get(); }
 	void SetValue(const TAttribute<NumericType>& InValueAttribute) 
@@ -667,6 +677,8 @@ public:
 	}
 
 	/** See the MinSliderValue attribute */
+	bool IsMinSliderValueBound() const { return MinSliderValue.IsBound(); }
+
 	NumericType GetMinSliderValue() const { return MinSliderValue.Get().Get(TNumericLimits<NumericType>::Lowest()); }
 	void SetMinSliderValue(const TAttribute<TOptional<NumericType>>& InMinSliderValue) 
 	{ 
@@ -675,6 +687,8 @@ public:
 	}
 
 	/** See the MaxSliderValue attribute */
+	bool IsMaxSliderValueBound() const { return MaxSliderValue.IsBound(); }
+
 	NumericType GetMaxSliderValue() const { return MaxSliderValue.Get().Get(TNumericLimits<NumericType>::Max()); }
 	void SetMaxSliderValue(const TAttribute<TOptional<NumericType>>& InMaxSliderValue) 
 	{ 
@@ -829,11 +843,11 @@ protected:
 		}		
 
 		// Update the max slider value based on the current value if we're in dynamic mode
-		if (SupportDynamicSliderMaxValue && ValueAttribute.Get() > GetMaxSliderValue())
+		if (SupportDynamicSliderMaxValue.Get() && ValueAttribute.Get() > GetMaxSliderValue())
 		{
 			ApplySliderMaxValueChanged(ValueAttribute.Get() - GetMaxSliderValue(), true);
 		}
-		else if (SupportDynamicSliderMinValue && ValueAttribute.Get() < GetMinSliderValue())
+		else if (SupportDynamicSliderMinValue.Get() && ValueAttribute.Get() < GetMinSliderValue())
 		{
 			ApplySliderMinValueChanged(ValueAttribute.Get() - GetMinSliderValue(), true);
 		}
@@ -922,10 +936,10 @@ private:
 	TAttribute< TOptional<NumericType> > MaxValue;
 	TAttribute< TOptional<NumericType> > MinSliderValue;
 	TAttribute< TOptional<NumericType> > MaxSliderValue;
-	bool SupportDynamicSliderMaxValue;
-	bool SupportDynamicSliderMinValue;
-	FOnDynamicSliderMaxValueChanged OnDynamicSliderMaxValueChanged;
-	FOnDynamicSliderMinValueChanged OnDynamicSliderMinValueChanged;
+	TAttribute<bool> SupportDynamicSliderMaxValue;
+	TAttribute<bool> SupportDynamicSliderMinValue;
+	FOnDynamicSliderMinMaxValueChanged OnDynamicSliderMaxValueChanged;
+	FOnDynamicSliderMinMaxValueChanged OnDynamicSliderMinValueChanged;
 
 	/** Prevents the spinbox from being smaller than desired in certain cases (e.g. when it is empty) */
 	TAttribute<float> MinDesiredWidth;

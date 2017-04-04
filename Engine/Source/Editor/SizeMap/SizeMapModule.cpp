@@ -10,6 +10,7 @@
 #include "ISizeMapModule.h"
 #include "SSizeMap.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "SizeMap"
 
@@ -38,6 +39,23 @@ public:
 		TSharedRef<SDockTab> NewTab = FGlobalTabmanager::Get()->InvokeTab( SizeMapTabId );
 		TSharedRef<SSizeMap> SizeMap = StaticCastSharedRef<SSizeMap>( NewTab->GetContent() );
 		SizeMap->SetRootAssetPackageNames( AssetPackageNames );
+	}
+
+	virtual void InvokeSizeMapModalDialog(const TArray<FName>& AssetPackageNames, TSharedPtr<SWindow> ParentWindow) override
+	{
+		TSharedRef<SWindow> Window = SNew(SWindow)
+			.Title(NSLOCTEXT("UnrealEd", "SizeMapTitle", "Size Map"))
+			.SizingRule(ESizingRule::UserSized)
+			.ClientSize(FVector2D(800,600))
+			.AutoCenter(EAutoCenter::PreferredWorkArea);
+
+		TSharedPtr<SSizeMap> SizeMap = SNew(SSizeMap)
+			.SelectAssetOnDoubleClick(false);
+
+		Window->SetContent(SizeMap.ToSharedRef());
+		SizeMap->SetRootAssetPackageNames(AssetPackageNames);
+
+		FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
 	}
 
 private:

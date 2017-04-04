@@ -124,10 +124,12 @@ class INTERNATIONALIZATIONSETTINGS_API UInternationalizationSettingsModel
 
 public:
 	void ResetToDefault();
-	bool GetEditorCultureName(FString& OutEditorCultureName) const;
-	void SetEditorCultureName(const FString& CultureName);
-	bool GetNativeGameCultureName(FString& OutNativeGameCultureName) const;
-	void SetNativeGameCultureName(const FString& CultureName);
+	bool GetEditorLanguage(FString& OutEditorLanguage) const;
+	void SetEditorLanguage(const FString& InEditorLanguage);
+	bool GetEditorLocale(FString& OutEditorLocale) const;
+	void SetEditorLocale(const FString& InEditorLocale);
+	bool GetNativeGameLanguage(FString& OutNativeGameLanguage) const;
+	void SetNativeGameLanguage(const FString& InNativeGameLanguage);
 	bool ShouldLoadLocalizedPropertyNames() const;
 	void ShouldLoadLocalizedPropertyNames(const bool Value);
 	bool ShouldShowNodesAndPinsUnlocalized() const;

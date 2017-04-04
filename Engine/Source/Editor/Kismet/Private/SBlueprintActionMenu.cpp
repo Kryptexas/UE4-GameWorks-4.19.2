@@ -34,7 +34,7 @@ struct FBlueprintAction_PromoteVariable : public FEdGraphSchemaAction
 	FBlueprintAction_PromoteVariable(bool bInToMemberVariable)
 		: FEdGraphSchemaAction(	FText(), 
 								bInToMemberVariable? LOCTEXT("PromoteToVariable", "Promote to variable") : LOCTEXT("PromoteToLocalVariable", "Promote to local variable"),
-								bInToMemberVariable ? LOCTEXT("PromoteToVariable", "Promote to variable").ToString() : LOCTEXT("PromoteToLocalVariable", "Promote to local variable").ToString(),
+								bInToMemberVariable ? LOCTEXT("PromoteToVariable", "Promote to variable") : LOCTEXT("PromoteToLocalVariable", "Promote to local variable"),
 								1)
 		, bToMemberVariable(bInToMemberVariable)
 	{

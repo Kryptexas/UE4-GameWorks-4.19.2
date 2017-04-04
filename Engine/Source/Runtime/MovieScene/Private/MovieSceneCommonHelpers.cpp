@@ -282,8 +282,9 @@ void MovieSceneHelpers::SetKeyInterpolation(FRichCurve& InCurve, FKeyHandle InKe
 	}
 }
 
-FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName )
+FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName, const FName& InNotifyFunctionName )
     : PropertyPath( InPropertyPath )
+	, NotifyFunctionName(InNotifyFunctionName)
 	, PropertyName( InPropertyName )
 {
 	if (InFunctionName != FName())
@@ -408,17 +409,24 @@ FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings:
 void FTrackInstancePropertyBindings::CallFunctionForEnum( UObject& InRuntimeObject, int64 PropertyValue )
 {
 	FPropertyAndFunction PropAndFunction = FindOrAdd(InRuntimeObject);
-	if (PropAndFunction.Function)
+	if (UFunction* Setter = PropAndFunction.SetterFunction.Get())
 	{
 		// ProcessEvent should really be taking const void*
-		InRuntimeObject.ProcessEvent(PropAndFunction.Function, (void*)&PropertyValue);
+		InRuntimeObject.ProcessEvent(Setter, (void*)&PropertyValue);
 	}
-	else if (PropAndFunction.PropertyAddress.Address)
+	else if (UProperty* Property = PropAndFunction.PropertyAddress.GetProperty())
 	{
-		UEnumProperty* EnumProperty = CastChecked<UEnumProperty>(PropAndFunction.PropertyAddress.Property);
-		UNumericProperty* UnderlyingProperty = EnumProperty->GetUnderlyingProperty();
-		void* ValueAddr = EnumProperty->ContainerPtrToValuePtr<void>(PropAndFunction.PropertyAddress.Address);
-		UnderlyingProperty->SetIntPropertyValue(ValueAddr, PropertyValue);
+		if (UEnumProperty* EnumProperty = CastChecked<UEnumProperty>(Property))
+		{
+			UNumericProperty* UnderlyingProperty = EnumProperty->GetUnderlyingProperty();
+			void* ValueAddr = EnumProperty->ContainerPtrToValuePtr<void>(PropAndFunction.PropertyAddress.Address);
+			UnderlyingProperty->SetIntPropertyValue(ValueAddr, PropertyValue);
+		}
+	}
+
+	if (UFunction* NotifyFunction = PropAndFunction.NotifyFunction.Get())
+	{
+		InRuntimeObject.ProcessEvent(NotifyFunction, nullptr);
 	}
 }
 
@@ -426,8 +434,12 @@ void FTrackInstancePropertyBindings::CacheBinding(const UObject& Object)
 {
 	FPropertyAndFunction PropAndFunction;
 	{
-		PropAndFunction.Function = Object.FindFunction(FunctionName);
+		PropAndFunction.SetterFunction = Object.FindFunction(FunctionName);
 		PropAndFunction.PropertyAddress = FindProperty(Object, PropertyPath);
+		if (NotifyFunctionName != NAME_None)
+		{
+			PropAndFunction.NotifyFunction = Object.FindFunction(NotifyFunctionName);
+		}
 	}
 
 	RuntimeObjectToFunctionMap.Add(FObjectKey(&Object), PropAndFunction);
@@ -435,33 +447,28 @@ void FTrackInstancePropertyBindings::CacheBinding(const UObject& Object)
 
 UProperty* FTrackInstancePropertyBindings::GetProperty(const UObject& Object) const
 {
-	UProperty* Prop = nullptr;
-
 	FPropertyAndFunction PropAndFunction = RuntimeObjectToFunctionMap.FindRef(&Object);
-	if( PropAndFunction.PropertyAddress.Property ) 
+	if (UProperty* Property = PropAndFunction.PropertyAddress.GetProperty())
 	{
-		Prop = PropAndFunction.PropertyAddress.Property;
-	}
-	else
-	{
-		FPropertyAddress PropertyAddress = FindProperty( Object, PropertyPath );
-		Prop = PropertyAddress.Property;
+		return Property;
 	}
 
-	return Prop;
+	return FindProperty(Object, PropertyPath).GetProperty();
 }
 
 int64 FTrackInstancePropertyBindings::GetCurrentValueForEnum(const UObject& Object)
 {
 	FPropertyAndFunction PropAndFunction = FindOrAdd(Object);
 
-	if(PropAndFunction.PropertyAddress.Address)
+	if (UProperty* Property = PropAndFunction.PropertyAddress.GetProperty())
 	{
-		UEnumProperty* EnumProperty = CastChecked<UEnumProperty>(PropAndFunction.PropertyAddress.Property);
-		UNumericProperty* UnderlyingProperty = EnumProperty->GetUnderlyingProperty();
-		void* ValueAddr = EnumProperty->ContainerPtrToValuePtr<void>(PropAndFunction.PropertyAddress.Address);
-		int64 Result = UnderlyingProperty->GetSignedIntPropertyValue(ValueAddr);
-		return Result;
+		if(UEnumProperty* EnumProperty = CastChecked<UEnumProperty>(Property))
+		{
+			UNumericProperty* UnderlyingProperty = EnumProperty->GetUnderlyingProperty();
+			void* ValueAddr = EnumProperty->ContainerPtrToValuePtr<void>(PropAndFunction.PropertyAddress.Address);
+			int64 Result = UnderlyingProperty->GetSignedIntPropertyValue(ValueAddr);
+			return Result;
+		}
 	}
 
 	return 0;
@@ -470,27 +477,32 @@ int64 FTrackInstancePropertyBindings::GetCurrentValueForEnum(const UObject& Obje
 template<> void FTrackInstancePropertyBindings::CallFunction<bool>(UObject& InRuntimeObject, TCallTraits<bool>::ParamType PropertyValue)
 {
 	FPropertyAndFunction PropAndFunction = FindOrAdd(InRuntimeObject);
-	if (PropAndFunction.Function)
+	if (UFunction* SetterFunction = PropAndFunction.SetterFunction.Get())
 	{
 		// ProcessEvent should really be taking const void*
-		InRuntimeObject.ProcessEvent(PropAndFunction.Function, (void*)&PropertyValue);
+		InRuntimeObject.ProcessEvent(SetterFunction, (void*)&PropertyValue);
 	}
-	else if (PropAndFunction.PropertyAddress.Property != nullptr)
+	else if (UProperty* Property = PropAndFunction.PropertyAddress.GetProperty())
 	{
-		if (UBoolProperty* BoolProperty = CastChecked<UBoolProperty>(PropAndFunction.PropertyAddress.Property))
+		if (UBoolProperty* BoolProperty = CastChecked<UBoolProperty>(Property))
 		{
 			uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(PropAndFunction.PropertyAddress.Address);
 			BoolProperty->SetPropertyValue(ValuePtr, PropertyValue);
 		}
+	}
+
+	if (UFunction* NotifyFunction = PropAndFunction.NotifyFunction.Get())
+	{
+		InRuntimeObject.ProcessEvent(NotifyFunction, nullptr);
 	}
 }
 
 template<> bool FTrackInstancePropertyBindings::GetCurrentValue<bool>(const UObject& Object)
 {
 	FPropertyAndFunction PropAndFunction = FindOrAdd(Object);
-	if (PropAndFunction.PropertyAddress.Property != nullptr)
+	if (UProperty* Property = PropAndFunction.PropertyAddress.GetProperty())
 	{
-		if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropAndFunction.PropertyAddress.Property))
+		if (UBoolProperty* BoolProperty = CastChecked<UBoolProperty>(Property))
 		{
 			const uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(PropAndFunction.PropertyAddress.Address);
 			return BoolProperty->GetPropertyValue(ValuePtr);
@@ -503,12 +515,17 @@ template<> bool FTrackInstancePropertyBindings::GetCurrentValue<bool>(const UObj
 template<> void FTrackInstancePropertyBindings::SetCurrentValue<bool>(UObject& Object, TCallTraits<bool>::ParamType InValue)
 {
 	FPropertyAndFunction PropAndFunction = FindOrAdd(Object);
-	if (PropAndFunction.PropertyAddress.Property != nullptr)
+	if (UProperty* Property = PropAndFunction.PropertyAddress.GetProperty())
 	{
-		if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropAndFunction.PropertyAddress.Property))
+		if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(Property))
 		{
-			uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(&PropAndFunction.PropertyAddress.Address);
+			uint8* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint8>(PropAndFunction.PropertyAddress.Address);
 			BoolProperty->SetPropertyValue(ValuePtr, InValue);
 		}
+	}
+
+	if (UFunction* NotifyFunction = PropAndFunction.NotifyFunction.Get())
+	{
+		Object.ProcessEvent(NotifyFunction, nullptr);
 	}
 }

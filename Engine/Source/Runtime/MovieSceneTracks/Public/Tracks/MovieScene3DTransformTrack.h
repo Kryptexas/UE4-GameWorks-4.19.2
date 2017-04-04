@@ -7,6 +7,8 @@
 #include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieScene3DTransformTrack.generated.h"
 
+struct FMovieSceneInterrogationKey;
+
 /**
  * Handles manipulation of component transforms in a movie scene
  */
@@ -21,4 +23,9 @@ public:
 	// UMovieSceneTrack interface
 
 	virtual UMovieSceneSection* CreateNewSection() override;
+
+	/**
+	 * Access the interrogation key for transform data - any interrgation data stored with this key is guaranteed to be of type 'FTransform'
+	 */
+	MOVIESCENETRACKS_API static FMovieSceneInterrogationKey GetInterrogationKey();
 };

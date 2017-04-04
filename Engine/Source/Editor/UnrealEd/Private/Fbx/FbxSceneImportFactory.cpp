@@ -709,7 +709,11 @@ UObject *FFbxAttributeInfo::GetContentObject()
 	ContentObject = nullptr;
 	FString ImportPath = PackageTools::SanitizePackageName(GetImportPath());
 	FString AssetName = GetFullImportName();
-	ContentPackage = LoadPackage(nullptr, *ImportPath, LOAD_Verify | LOAD_NoWarn);
+	if (!ImportPath.IsEmpty())
+	{
+		ContentPackage = LoadPackage(nullptr, *ImportPath, LOAD_Verify | LOAD_NoWarn);
+	}
+
 	if (ContentPackage != nullptr)
 	{
 		ContentPackage->FullyLoad();
@@ -845,6 +849,7 @@ bool UFbxSceneImportFactory::FactoryCanImport(const FString& Filename)
 	}
 	return false;
 }
+
 
 TSharedPtr<FFbxNodeInfo> GetNodeInfoPtrById(TArray<TSharedPtr<FFbxNodeInfo>> &HierarchyInfo, uint64 SearchId)
 {

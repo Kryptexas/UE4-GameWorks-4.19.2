@@ -27,8 +27,8 @@ struct FGetSequenceBindingGuidMapping
 };
 
 
-UCLASS(MinimalAPI)
-class UK2Node_GetSequenceBindings
+UCLASS(MinimalAPI, deprecated)
+class UDEPRECATED_K2Node_GetSequenceBindings
 	: public UK2Node
 {
 public:
@@ -45,7 +45,6 @@ public:
 public:
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
-	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual bool IsNodePure() const override { return true; }
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;

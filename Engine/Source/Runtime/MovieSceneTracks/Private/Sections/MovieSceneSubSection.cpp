@@ -53,7 +53,18 @@ void UMovieSceneSubSection::PostLoad()
 
 	if (PrerollTime_DEPRECATED != DeprecatedMagicNumber)
 	{
-		Parameters.PrerollTime = PrerollTime_DEPRECATED;
+		Parameters.PrerollTime_DEPRECATED = PrerollTime_DEPRECATED;
+	}
+
+	// Pre and post roll is now supported generically
+	if (Parameters.PrerollTime_DEPRECATED > 0.f)
+	{
+		SetPreRollTime(Parameters.PrerollTime_DEPRECATED);
+	}
+
+	if (Parameters.PostrollTime_DEPRECATED > 0.f)
+	{
+		SetPostRollTime(Parameters.PostrollTime_DEPRECATED);
 	}
 
 	Super::PostLoad();
@@ -211,9 +222,21 @@ FMovieSceneSubSequenceData UMovieSceneSubSection::GenerateSubSequenceData() cons
 	FMovieSceneSubSequenceData SubData(*SubSequence, GetSequenceID());
 #endif
 
+	// Make sure pre/postroll ranges are in the inner sequence's time space
+	if (GetPreRollTime() > 0)
+	{
+		SubData.PreRollRange = TRange<float>(GetStartTime() - GetPreRollTime(), TRangeBound<float>::Exclusive(GetStartTime())) * RootToSequenceTransform;
+	}
+	if (GetPostRollTime() > 0)
+	{
+		SubData.PostRollRange = TRange<float>(TRangeBound<float>::Exclusive(GetEndTime()), GetEndTime() + GetPostRollTime()) * RootToSequenceTransform;
+	}
+
 	// Construct the sub sequence data for this sub section
 	SubData.RootToSequenceTransform = RootToSequenceTransform;
 	SubData.SequenceKeyObject = SubSequence;
+
+	SubData.HierarchicalBias = Parameters.HierarchicalBias;
 
 	return SubData;
 }

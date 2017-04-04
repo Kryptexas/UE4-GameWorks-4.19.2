@@ -747,12 +747,7 @@ FText SFoliagePalette::GetSearchText() const
 
 void SFoliagePalette::OnSelectionChanged(FFoliagePaletteItemModelPtr Item, ESelectInfo::Type SelectInfo)
 {
-	if (SelectInfo != ESelectInfo::Direct || !Item.IsValid())
-	{
-		// If we set the selection in code it's because we're restoring a previous selection after changing the palette.
-		// Refreshing the details palette causes problems if we're in the middle of a details change which caused a thumbnail invalidation.
-		RefreshDetailsWidget();
-	}
+	RefreshDetailsWidget();
 
 	bIsUneditableFoliageTypeSelected = false;
 	for (FFoliagePaletteItemModelPtr& PaletteItem : GetActiveViewWidget()->GetSelectedItems())
@@ -1373,8 +1368,6 @@ EActiveTimerReturnType SFoliagePalette::UpdatePaletteItems(double InCurrentTime,
 		// Cache the currently selected items
 		auto ActiveViewWidget = GetActiveViewWidget();
 		TArray<FFoliagePaletteItemModelPtr> PreviouslySelectedItems = ActiveViewWidget->GetSelectedItems();
-
-		ActiveViewWidget->ClearSelection();
 
 		// Rebuild the list of palette items
 		const auto& AllTypesList = FoliageEditMode->GetFoliageMeshList();

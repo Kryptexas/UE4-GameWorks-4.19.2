@@ -14,9 +14,6 @@ UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& Obje
 	AudioVolume_DEPRECATED = 1.f;
 	SoundVolume.SetDefaultValue(1.f);
 	PitchMultiplier.SetDefaultValue(1.f);
-#if WITH_EDITORONLY_DATA
-	bShowIntensity = false;
-#endif
 	bSuppressSubtitles = false;
 
 	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);

@@ -15,6 +15,7 @@
 #include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
+#include "MeshUtilities.h"
 #include "Misc/FeedbackContext.h"
 #include "Misc/App.h"
 #endif // #if WITH_EDITOR
@@ -92,6 +93,9 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 
 	// Remember the derived data key of our current render data if any.
 	FString ExistingDerivedDataKey = RenderData ? RenderData->DerivedDataKey : TEXT("");
+
+	// Regenerating UVs for lightmaps, use the latest version
+	LightmapUVVersion = (int32)ELightmapUVVersion::Latest;
 
 	// Free existing render data and recache.
 	CacheDerivedData();

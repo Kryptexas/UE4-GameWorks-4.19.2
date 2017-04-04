@@ -24,6 +24,7 @@
 
 FCameraCutSection::FCameraCutSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection) : FViewportThumbnailSection(InSequencer, InThumbnailPool, InSection)
 {
+	AdditionalDrawEffect = ESlateDrawEffect::NoGamma;
 }
 
 FCameraCutSection::~FCameraCutSection()

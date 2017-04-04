@@ -249,8 +249,8 @@ class ENGINE_API UMaterialExpression : public UObject
 	virtual uint32 GetInputType(int32 InputIndex);
 	virtual uint32 GetOutputType(int32 OutputIndex);
 
-	virtual FString GetCreationDescription() const;
-	virtual FString GetCreationName() const;
+	virtual FText GetCreationDescription() const;
+	virtual FText GetCreationName() const;
 #endif
 
 	/**

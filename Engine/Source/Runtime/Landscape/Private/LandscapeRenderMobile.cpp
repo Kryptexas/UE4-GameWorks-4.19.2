@@ -211,8 +211,8 @@ void FLandscapeVertexBufferMobile::InitRHI()
 	RHIUnlockVertexBuffer(VertexBufferRHI);
 }
 
-FLandscapeComponentSceneProxyMobile::FLandscapeComponentSceneProxyMobile(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData)
-	: FLandscapeComponentSceneProxy(InComponent, {InComponent->MobileMaterialInterface}, InEditToolRenderData)
+FLandscapeComponentSceneProxyMobile::FLandscapeComponentSceneProxyMobile(ULandscapeComponent* InComponent)
+	: FLandscapeComponentSceneProxy(InComponent, {InComponent->MobileMaterialInterface})
 {
 	check(InComponent && InComponent->PlatformData.HasValidPlatformData());
 	InComponent->PlatformData.GetUncompressedData(PlatformData);

@@ -28,7 +28,7 @@ namespace VREd
 	static FAutoConsoleVariable TeleportDragSpeed(TEXT("VREd.TeleportDragSpeed"), 0.3f, TEXT("How fast the teleporter should drag behind the laser aiming location"));
 	static FAutoConsoleVariable TeleportAllowScaleBackToDefault(TEXT("VREd.TeleportAllowScaleBackToDefault"), 1, TEXT("Scale back to default world to meters scale"));
 	static FAutoConsoleVariable TeleportAllowPushPull(TEXT("VREd.TeleportAllowPushPull"), 1, TEXT("Allow being able to push and pull the teleporter along the laser."));
-	static FAutoConsoleVariable TeleportSlideBuffer(TEXT("VREd.TeleportSlideBuffer"), 0.3f, TEXT("The minimum slide on trackpad to push/pull or change scale."));
+	static FAutoConsoleVariable TeleportSlideBuffer(TEXT("VREd.TeleportSlideBuffer"), 0.01f, TEXT("The minimum slide on trackpad to push/pull or change scale."));
 }
 
 AVREditorTeleporter::AVREditorTeleporter():
@@ -122,6 +122,11 @@ void AVREditorTeleporter::Shutdown()
 	VRMode->OnTickHandle().RemoveAll(this);
 	VRMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll(this);
 	VRMode = nullptr;
+}
+
+bool AVREditorTeleporter::IsAiming() const
+{
+	return TeleportingState == EState::Aiming;
 }
 
 void AVREditorTeleporter::Tick(const float DeltaTime)
@@ -257,7 +262,7 @@ void AVREditorTeleporter::UpdateTeleportAim(const float DeltaTime)
 		FVector LaserPointerStart, LaserPointerEnd, EndLocation;
 		if (VREditorInteractor->GetLaserPointer(LaserPointerStart, LaserPointerEnd) && TeleportingState == EState::Aiming)
 		{
-			const bool bAllowPushPull = VREd::TeleportAllowPushPull->GetInt() == 0 ? false : true;
+			bool bAllowPushPull = VREd::TeleportAllowPushPull->GetInt() == 0 ? false : true;
 
 			if (VREd::TeleportEnableChangeScale->GetInt() != 0)
 			{
@@ -272,6 +277,7 @@ void AVREditorTeleporter::UpdateTeleportAim(const float DeltaTime)
 
 					// The scale must be in the limits of the worldinteraction minimum and maximum scale
 					TeleportGoalScale = FMath::Clamp(TeleportGoalScale, MinScale, MaxScale);
+					bAllowPushPull = false;
 				}
 			}
 			else if (VREd::TeleportAllowScaleBackToDefault->GetInt() != 0)
@@ -445,14 +451,15 @@ float AVREditorTeleporter::CalculateAnimatedScaleFactor() const
 	const float EasedAlpha = UVREditorMode::OvershootEaseOut(FadeAlpha, AnimationOvershootAmount);
 
 	// Animate vertically more than horizontally; just looks a little better
-	const float Scale = FMath::Max(0.001f, EasedAlpha);
+	const float Scale = FMath::Max(0.1f, EasedAlpha);
 	return Scale * Scale;
 }
 
 float AVREditorTeleporter::GetSlideDelta(UVREditorMotionControllerInteractor* Interactor, const bool Axis)
 {
-	FVector2D SlideDelta = FVector2D::ZeroVector;
-	if (VRMode->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR)
+	FVector2D SlideDelta = FVector2D::ZeroVector; 
+	const bool bIsAbsolute = (VRMode->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR);
+	if (bIsAbsolute)
 	{
 		SlideDelta = FVector2D(Interactor->GetTrackpadSlideDelta(0), Interactor->GetTrackpadSlideDelta(1));
 	}
@@ -460,14 +467,12 @@ float AVREditorTeleporter::GetSlideDelta(UVREditorMotionControllerInteractor* In
 	{
 		SlideDelta = Interactor->GetTrackpadPosition();
 	}
-	SlideDelta.Normalize();
 
-	const bool OtherAxis = !Axis;
 	float Result = 0.0f;
-	if (!FMath::IsNearlyZero(SlideDelta[Axis], VREd::TeleportSlideBuffer->GetFloat()) && 
-		 FMath::IsNearlyZero(SlideDelta[OtherAxis], VREd::TeleportSlideBuffer->GetFloat()))
+	if (FMath::Abs(SlideDelta[Axis]) > FMath::Abs(SlideDelta[!Axis]))
 	{
-		Result = SlideDelta.X;
+		Result = SlideDelta[Axis];
 	}
+
 	return Result;
 }

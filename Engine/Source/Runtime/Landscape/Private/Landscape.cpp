@@ -130,7 +130,7 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 	Mobility = EComponentMobility::Static;
 
 #if WITH_EDITORONLY_DATA
-	EditToolRenderData = nullptr;
+	EditToolRenderData = FLandscapeEditToolRenderData();
 #endif
 
 	LpvBiasMultiplier = 0.0f; // Bias is 0 for landscape, since it's single sided
@@ -301,15 +301,7 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 	if (Ar.IsTransacting())
 	{
-		if (EditToolRenderData)
-		{
-			Ar << EditToolRenderData->SelectedType;
-		}
-		else
-		{
-			int32 TempV = 0;
-			Ar << TempV;
-		}
+		Ar << EditToolRenderData.SelectedType;
 	}
 #endif
 
@@ -506,9 +498,10 @@ void ULandscapeInfo::UpdateDebugColorMaterial()
 	for (auto It = XYtoComponentMap.CreateIterator(); It; ++It)
 	{
 		ULandscapeComponent* Comp = It.Value();
-		if (Comp && Comp->EditToolRenderData)
+		if (Comp)
 		{
-			Comp->EditToolRenderData->UpdateDebugColorMaterial();
+			Comp->EditToolRenderData.UpdateDebugColorMaterial(Comp);
+			Comp->UpdateEditToolRenderData();
 		}
 	}
 	FlushRenderingCommands();
@@ -927,12 +920,9 @@ void ULandscapeComponent::BeginDestroy()
 	Super::BeginDestroy();
 
 #if WITH_EDITOR
-	if (EditToolRenderData != nullptr)
-	{
-		// Ask render thread to destroy EditToolRenderData
-		EditToolRenderData->Cleanup();
-		EditToolRenderData = nullptr;
-	}
+	// Ask render thread to destroy EditToolRenderData
+	EditToolRenderData = FLandscapeEditToolRenderData();
+	UpdateEditToolRenderData();
 
 	if (GIsEditor && !HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -968,13 +958,9 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 #if WITH_EDITOR
-		if (EditToolRenderData == nullptr)
-		{
-			EditToolRenderData = new FLandscapeEditToolRenderData(this);
-		}
-		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()), EditToolRenderData);
+		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()));
 #else
-		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()), nullptr);
+		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()));
 #endif
 	}
 	else // i.e. (FeatureLevel <= ERHIFeatureLevel::ES3_1)
@@ -982,17 +968,12 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 #if WITH_EDITOR 
 		if (PlatformData.HasValidPlatformData())
 		{
-			if (EditToolRenderData == nullptr)
-			{
-				EditToolRenderData = new FLandscapeEditToolRenderData(this);
-			}
-
-			Proxy = new FLandscapeComponentSceneProxyMobile(this, EditToolRenderData);
+			Proxy = new FLandscapeComponentSceneProxyMobile(this);
 		}
 #else
 		if (PlatformData.HasValidPlatformData())
 		{
-			Proxy = new FLandscapeComponentSceneProxyMobile(this, nullptr);
+			Proxy = new FLandscapeComponentSceneProxyMobile(this);
 		}
 #endif
 	}
@@ -2033,13 +2014,13 @@ void ULandscapeInfo::RegisterActorComponent(ULandscapeComponent* Component, bool
 	}
 
 	// Update Selected Components/Regions
-	if (Component->EditToolRenderData != nullptr && Component->EditToolRenderData->SelectedType)
+	if (Component->EditToolRenderData.SelectedType)
 	{
-		if (Component->EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_COMPONENT)
+		if (Component->EditToolRenderData.SelectedType & FLandscapeEditToolRenderData::ST_COMPONENT)
 		{
 			SelectedComponents.Add(Component);
 		}
-		else if (Component->EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_REGION)
+		else if (Component->EditToolRenderData.SelectedType & FLandscapeEditToolRenderData::ST_REGION)
 		{
 			SelectedRegionComponents.Add(Component);
 		}

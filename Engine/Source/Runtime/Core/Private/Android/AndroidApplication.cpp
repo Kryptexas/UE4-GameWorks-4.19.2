@@ -78,18 +78,6 @@ FPlatformRect FAndroidApplication::GetWorkArea( const FPlatformRect& CurrentWind
 	return FAndroidWindow::GetScreenRect();
 }
 
-IForceFeedbackSystem *FAndroidApplication::GetForceFeedbackSystem()
-{
-	// NOTE: This does not increase the reference count, so don't cache the result
-	return InputInterface.Get();
-}
-
-IForceFeedbackSystem *FAndroidApplication::DEPRECATED_GetForceFeedbackSystem()
-{
-	// NOTE: This does not increase the reference count, so don't cache the result
-	return InputInterface.Get();
-}
-
 IInputInterface* FAndroidApplication::GetInputInterface()
 {
 	// NOTE: This does not increase the reference count, so don't cache the result

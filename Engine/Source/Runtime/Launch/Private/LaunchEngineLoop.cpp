@@ -1674,7 +1674,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		{
 			GetDerivedDataCacheRef();
 		}
-
+		
+		CreateMoviePlayer();
 
 		// If platforms support early movie playback we have to start the rendering thread much earlier
 #if PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
@@ -1714,15 +1715,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			// Create the engine font services now that the Slate renderer is ready
 			FEngineFontServices::Create();
 
-			GetMoviePlayer()->SetSlateRenderer(SlateRenderer);
-
 			// allow the movie player to load a sequence from the .inis (a PreLoadingScreen module could have already initialized a sequence, in which case
 			// it wouldn't have anything in it's .ini file)
 			GetMoviePlayer()->SetupLoadingScreenFromIni();
 
 			if(GetMoviePlayer()->HasEarlyStartupMovie())
 			{
-				GetMoviePlayer()->Initialize();
+				GetMoviePlayer()->Initialize(SlateRenderer);
 
 				// hide splash screen now
 				FPlatformMisc::PlatformPostInit(false);
@@ -1803,13 +1802,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 
 #if !UE_SERVER// && !UE_EDITOR
-	if(!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
+	if (!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
 	{
-		GetMoviePlayer()->Initialize();
-
-		// Play any non-early startup loading movies.
-		GetMoviePlayer()->PlayMovie();
-	
+		GetMoviePlayer()->Initialize(FSlateApplication::Get().GetRenderer());
 	}
 #endif
 
@@ -1849,6 +1844,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif // !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 	
+
+	// Playing a movie can only happen after the rendering thread is started.
+#if !UE_SERVER// && !UE_EDITOR
+	if (!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
+	{
+		// Play any non-early startup loading movies.
+		GetMoviePlayer()->PlayMovie();
+
+	}
+#endif
+
 	{
 		FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.AddStatic(StartRenderCommandFenceBundler);
 		FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.AddStatic(StopRenderCommandFenceBundler);
@@ -2632,7 +2638,6 @@ void FEngineLoop::Exit()
 	FVisualLogger::Get().Shutdown();
 #endif
 
-	GetMoviePlayer()->Shutdown();
 
 	// Make sure we're not in the middle of loading something.
 	FlushAsyncLoading();
@@ -2713,6 +2718,8 @@ void FEngineLoop::Exit()
 	// order they were loaded in, so that systems can unregister and perform general clean up.
 	FModuleManager::Get().UnloadModulesAtShutdown();
 #endif // !ANDROID
+
+	DestroyMoviePlayer();
 
 	// Move earlier?
 #if STATS
@@ -3718,6 +3725,13 @@ void FEngineLoop::AppPreExit( )
 #endif
 
 	FCoreDelegates::OnExit.Broadcast();
+
+#if WITH_EDITOR
+	if (GLargeThreadPool != nullptr)
+	{
+		GLargeThreadPool->Destroy();
+	}
+#endif // WITH_EDITOR
 
 	// Clean up the thread pool
 	if (GThreadPool != nullptr)

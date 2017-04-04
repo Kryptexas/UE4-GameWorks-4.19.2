@@ -13,13 +13,16 @@ TSharedRef<IMovieSceneObjectSpawner> FControlRigObjectSpawner::CreateObjectSpawn
 
 FControlRigObjectSpawner::FControlRigObjectSpawner()
 {
-	ObjectHolder = NewObject<UControlRigObjectHolder>();
-	ObjectHolder->AddToRoot();
+	ObjectHolderPtr = NewObject<UControlRigObjectHolder>();
+	ObjectHolderPtr->AddToRoot();
 }
 
 FControlRigObjectSpawner::~FControlRigObjectSpawner()
 {
-	ObjectHolder->RemoveFromRoot();
+	if (ObjectHolderPtr.IsValid())
+	{
+		ObjectHolderPtr->RemoveFromRoot();
+	}
 }
 
 UClass* FControlRigObjectSpawner::GetSupportedTemplateType() const
@@ -34,8 +37,8 @@ UObject* FControlRigObjectSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable, 
 	if (UControlRig* ControlRig = Cast<UControlRig>(ObjectTemplate))
 	{
 		FName ObjectName = *(ControlRig->GetClass()->GetName() + Spawnable.GetGuid().ToString() + FString::FromInt(TemplateID.GetInternalValue()));
-		UControlRig* SpawnedObject = NewObject<UControlRig>(ObjectHolder, ControlRig->GetClass(), ObjectName, RF_Transient);
-		ObjectHolder->Objects.Add(SpawnedObject);
+		UControlRig* SpawnedObject = NewObject<UControlRig>(ObjectHolderPtr.Get(), ControlRig->GetClass(), ObjectName, RF_Transient);
+		ObjectHolderPtr->Objects.Add(SpawnedObject);
 		SpawnedObject->Initialize();
 
 		return SpawnedObject;
@@ -50,6 +53,6 @@ void FControlRigObjectSpawner::DestroySpawnedObject(UObject& Object)
 	{
 		ControlRig->Rename(nullptr, GetTransientPackage());
 		ControlRig->MarkPendingKill();
-		ObjectHolder->Objects.Remove(&Object);
+		ObjectHolderPtr->Objects.Remove(&Object);
 	}
 }

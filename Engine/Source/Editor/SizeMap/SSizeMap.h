@@ -19,7 +19,10 @@ class SSizeMap : public SCompoundWidget
 
 public:
 
-	SLATE_BEGIN_ARGS( SSizeMap ) {}
+	SLATE_BEGIN_ARGS( SSizeMap ) 
+		: _SelectAssetOnDoubleClick(true)
+	{}
+		SLATE_ARGUMENT(bool, SelectAssetOnDoubleClick)
 	SLATE_END_ARGS()
 
 	/** Default constructor for SSizeMap */
@@ -71,6 +74,8 @@ protected:
 	/** Thumbnail pool */
 	TSharedPtr<class FAssetThumbnailPool> AssetThumbnailPool;
 
+	/** Tell us if we should select the asset on the double click */
+	bool SelectAssetOnDoubleClick;
 
 	/** This struct will contain size map-specific payload data that we'll associate with tree map nodes using a hash table */
 	struct FNodeSizeMapData

@@ -623,4 +623,18 @@ void UWidgetBlueprintLibrary::GetSafeZonePadding(UObject* WorldContextObject, FV
 	SpillOverPadding = Metrics.ActionSafePaddingSize;
 }
 
+bool UWidgetBlueprintLibrary::SetHardwareCursor(UObject* WorldContextObject, EMouseCursor::Type CursorShape, FName CursorName, FVector2D HotSpot)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if ( World && World->IsGameWorld() )
+	{
+		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		{
+			return ViewportClient->SetHardwareCursor(CursorShape, CursorName, HotSpot);
+		}
+	}
+
+	return false;
+}
+
 #undef LOCTEXT_NAMESPACE

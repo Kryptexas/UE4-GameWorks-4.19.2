@@ -639,7 +639,7 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 
 		if ( NewObject )
 		{
-			OutNewAssets.Add(NewObject);
+			OutNewAssets.AddUnique(NewObject);
 		}
 
 		bool bImportMeshLODs = ImportUI->StaticMeshImportData->bImportMeshLODs;
@@ -703,7 +703,7 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 					FbxImporter->PostImportStaticMesh(NewStaticMesh, Nodes);
 					FbxImporter->UpdateStaticMeshImportData(NewStaticMesh, nullptr);
 				}
-				OutNewAssets.Add(NewObject);
+				OutNewAssets.AddUnique(NewObject);
 			}
 		}
 		
@@ -713,7 +713,7 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 
 			if ( SubObject )
 			{
-				OutNewAssets.Add(SubObject);
+				OutNewAssets.AddUnique(SubObject);
 			}
 
 			if (NewObject==NULL)
@@ -764,10 +764,18 @@ UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bAutomatedImportShouldDetectType = true;
+	
 	StaticMeshImportData = CreateDefaultSubobject<UFbxStaticMeshImportData>(TEXT("StaticMeshImportData"));
+	StaticMeshImportData->LoadOptions();
+	
 	SkeletalMeshImportData = CreateDefaultSubobject<UFbxSkeletalMeshImportData>(TEXT("SkeletalMeshImportData"));
+	SkeletalMeshImportData->LoadOptions();
+	
 	AnimSequenceImportData = CreateDefaultSubobject<UFbxAnimSequenceImportData>(TEXT("AnimSequenceImportData"));
+	AnimSequenceImportData->LoadOptions();
+	
 	TextureImportData = CreateDefaultSubobject<UFbxTextureImportData>(TEXT("TextureImportData"));
+	TextureImportData->LoadOptions();
 }
 
 

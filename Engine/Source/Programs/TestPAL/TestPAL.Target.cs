@@ -34,6 +34,9 @@ public class TestPALTarget : TargetRules
 		UEBuildConfiguration.bCompileAgainstEngine = false;	// compiling without engine is broken (overridden functions do not override base class)
 		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
 
+		// Logs are still useful to print the results
+		UEBuildConfiguration.bUseLoggingInShipping = true;
+
 		// Make a console application under Windows, so entry point is main() everywhere
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
 	}

@@ -920,8 +920,6 @@ FCharacterList& FSlateFontCache::GetCharacterList( const FSlateFontInfo &InFontI
 
 FShapedGlyphFontAtlasData FSlateFontCache::GetShapedGlyphFontAtlasData( const FShapedGlyphEntry& InShapedGlyph, const FFontOutlineSettings& InOutlineSettings )
 {
-	check(IsInGameThread() || IsInRenderingThread());
-
 	uint8 CachedTypeIndex = (uint8)(InOutlineSettings.OutlineSize <= 0 ? EFontCacheAtlasDataType::Regular : EFontCacheAtlasDataType::Outline);
 	const ESlateTextureAtlasThreadId AtlasThreadId = GetCurrentSlateTextureAtlasThreadId();
 	check(AtlasThreadId != ESlateTextureAtlasThreadId::Unknown);
@@ -1040,7 +1038,7 @@ bool FSlateFontCache::ConditionalFlushCache()
 		bFlushed = !bFlushRequested;
 	}
 
-	if (!bFlushed && DoesThreadOwnSlateRendering())
+	if (!bFlushed && IsInGameThread())
 	{
 		// Only bother calling this if we didn't do a full flush
 		FlushFontObjects();
@@ -1072,7 +1070,7 @@ void FSlateFontCache::ReleaseResources()
 
 void FSlateFontCache::FlushCache()
 {
-	if ( DoesThreadOwnSlateRendering() )
+	if ( IsInGameThread() )
 	{
 		FlushData();
 		ReleaseResources();
@@ -1116,7 +1114,7 @@ void FSlateFontCache::FlushData()
 
 void FSlateFontCache::FlushFontObjects()
 {
-	check(DoesThreadOwnSlateRendering());
+	check(IsInGameThread());
 
 	bool bHasRemovedEntries = false;
 	{

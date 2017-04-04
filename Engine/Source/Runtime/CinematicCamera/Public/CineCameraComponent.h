@@ -264,6 +264,7 @@ protected:
 	virtual void PostLoad() override;
 	virtual void PostInitProperties() override;
 	virtual void OnRegister() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 #if WITH_EDITOR
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;

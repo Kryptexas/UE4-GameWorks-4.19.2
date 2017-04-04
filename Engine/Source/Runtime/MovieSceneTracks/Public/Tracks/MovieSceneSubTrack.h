@@ -26,7 +26,7 @@ public:
 	UMovieSceneSubTrack( const FObjectInitializer& ObjectInitializer );
 
 	/**
-	 * Adds a movie scene section to the end of all the existing sections. If there are no sections, the new movie scene section is added at the requested time.
+	 * Adds a movie scene section at the requested time.
 	 *
 	 * @param Sequence The sequence to add
 	 * @param StartTime The time to add the section at

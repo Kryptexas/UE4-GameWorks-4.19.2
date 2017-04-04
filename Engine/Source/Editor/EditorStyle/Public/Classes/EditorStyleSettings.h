@@ -150,6 +150,10 @@ public:
 	UPROPERTY(config)
 	uint32 bShowAllAdvancedDetails : 1;
 
+	/** When Playing or Simulating, shows all properties (even non-visible and non-editable properties), if the object belongs to a simulating world.  This is useful for debugging. */
+	UPROPERTY(config)
+	uint32 bShowHiddenPropertiesWhilePlaying : 1;
+
 	/** The font size used in the output log */
 	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Log Font Size", ConfigRestartRequired=true))
 	int32 LogFontSize;

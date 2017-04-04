@@ -228,7 +228,7 @@ public:
 	virtual void EnterTool() {}
 	virtual bool IsToolActive() const { return false;  }
 	virtual void ExitTool() {}
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) = 0;
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) = 0;
 	virtual void EndTool(FEditorViewportClient* ViewportClient) = 0;
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) {};
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) = 0;
@@ -255,6 +255,7 @@ public:
 
 	virtual void SetCanToolBeActivated(bool Value) { }
 	virtual bool CanToolBeActivated() const { return true;  }
+	virtual void SetExternalModifierPressed(const bool bPressed) {};
 
 	virtual EEditAction::Type GetActionEditDuplicate() { return EEditAction::Skip; }
 	virtual EEditAction::Type GetActionEditDelete() { return EEditAction::Skip; }

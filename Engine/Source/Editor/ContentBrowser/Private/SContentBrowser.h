@@ -263,6 +263,9 @@ private:
 	/** Handler for SaveAll in folder */
 	void HandleSaveAllCurrentFolderCommand() const;
 
+	/** Handler for Resave on a folder */
+	void HandleResaveAllCurrentFolderCommand() const;
+
 	/** Handler to check to see if a delete command is allowed */
 	bool HandleDeleteCommandCanExecute() const;
 

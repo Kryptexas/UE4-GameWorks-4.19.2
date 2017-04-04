@@ -104,6 +104,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 #define HEIRARCHICAL_TIMER 1
 #define PERPACKAGE_TIMER 0
 
+#define REMAPPED_PLUGGINS TEXT("RemappedPlugins")
+
 struct FTimerInfo
 {
 public:
@@ -3925,6 +3927,35 @@ bool UCookOnTheFlyServer::SaveCurrentIniSettings(const ITargetPlatform* TargetPl
 
 FString UCookOnTheFlyServer::ConvertCookedPathToUncookedPath(const FString& CookedRelativeFilename) const 
 {
+	// Check for remapped plugins' cooked content
+	if (PluginsToRemap.Num() > 0 && CookedRelativeFilename.Contains(REMAPPED_PLUGGINS))
+	{
+		int32 RemappedIndex = CookedRelativeFilename.Find(REMAPPED_PLUGGINS);
+		check(RemappedIndex >= 0);
+		static uint32 RemappedPluginStrLen = FCString::Strlen(REMAPPED_PLUGGINS);
+		// Snip everything up through the RemappedPlugins/ off so we can find the plugin it corresponds to
+		FString PluginPath = CookedRelativeFilename.RightChop(RemappedIndex + RemappedPluginStrLen + 1);
+		FString FullUncookedPath;
+		// Find the plugin that owns this content
+		for (TSharedRef<IPlugin> Plugin : PluginsToRemap)
+		{
+			if (PluginPath.StartsWith(Plugin->GetName()))
+			{
+				FullUncookedPath = Plugin->GetContentDir();
+				static uint32 ContentStrLen = FCString::Strlen(TEXT("Content/"));
+				// Chop off the pluginName/Content since it's part of the full path
+				FullUncookedPath /= PluginPath.RightChop(Plugin->GetName().Len() + ContentStrLen);
+				break;
+			}
+		}
+
+		if (FullUncookedPath.Len() > 0)
+		{
+			return FullUncookedPath;
+		}
+		// Otherwise fall through to sandbox handling
+	}
+
 	const FString CookedFilename = FPaths::ConvertRelativePathToFull(CookedRelativeFilename);
 
 
@@ -5799,7 +5830,7 @@ FString UCookOnTheFlyServer::ConvertToFullSandboxPath( const FString &FileName, 
 	check( SandboxFile );
 
 	FString Result;
-	if ( bForWrite)
+	if (bForWrite)
 	{
 		// Ideally this would be in the Sandbox File but it can't access the project or plugin
 		if (PluginsToRemap.Num() > 0)
@@ -5818,7 +5849,7 @@ FString UCookOnTheFlyServer::ConvertToFullSandboxPath( const FString &FileName, 
 					FString SnippedOffPath = FileName.RightChop(FoundAt);
 					// Put this is in <sandbox path>/RemappedPlugins/<PluginName>/Content/<remaing path to file>
 					FString RemappedPath = SandboxFile->GetSandboxDirectory();
-					RemappedPath /= TEXT("RemappedPlugins");
+					RemappedPath /= REMAPPED_PLUGGINS;
 					Result = RemappedPath / SnippedOffPath;
 					return Result;
 				}

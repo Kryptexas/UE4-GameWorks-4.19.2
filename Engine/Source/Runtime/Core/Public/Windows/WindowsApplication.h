@@ -361,17 +361,6 @@ public:
 	virtual EWindowTransparency GetWindowTransparencySupport() const override;
 	virtual void DestroyApplication() override;
 
-	DEPRECATED(4.7, "Please use GetInputInterface()")
-	virtual IForceFeedbackSystem* GetForceFeedbackSystem() override
-	{
-		return this; 
-	}
-
-	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() override
-	{
-		return this;
-	}
-
 	virtual IInputInterface* GetInputInterface() override
 	{
 		return this;

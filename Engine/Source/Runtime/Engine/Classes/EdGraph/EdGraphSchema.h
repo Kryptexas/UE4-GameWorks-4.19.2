@@ -67,7 +67,7 @@ private:
 
 	/** The tooltip text that should be displayed for this node in the creation menu. */
 	UPROPERTY()
-	FString TooltipDescription;
+	FText TooltipDescription;
 
 	/** This is the UI centric category the action fits in (e.g., Functions, Variables). Use this instead of the NodeType.NodeCategory because multiple NodeCategories might visually belong together. */
 	UPROPERTY()
@@ -119,7 +119,7 @@ public:
 	
 	virtual ~FEdGraphSchemaAction() {}
 
-	FEdGraphSchemaAction(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping, FText InKeywords = FText(), int32 InSectionID = 0)
+	FEdGraphSchemaAction(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, FText InKeywords = FText(), int32 InSectionID = 0)
 		: Grouping(InGrouping)
 		, SectionID(InSectionID)
 	{
@@ -150,7 +150,7 @@ public:
 
 	void UpdateCategory(FText NewCategory);
 
-	void UpdateSearchData(FText NewMenuDescription, FString NewToolTipDescription, FText NewCategory, FText NewKeywords);
+	void UpdateSearchData(FText NewMenuDescription, FText NewToolTipDescription, FText NewCategory, FText NewKeywords);
 
 	int32 GetSectionID() const
 	{
@@ -167,7 +167,7 @@ public:
 		return MenuDescription;
 	}
 
-	const FString& GetTooltipDescription() const
+	const FText& GetTooltipDescription() const
 	{
 		return TooltipDescription;
 	}
@@ -260,7 +260,7 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 		, NodeTemplate(nullptr)
 	{}
 
-	FEdGraphSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, NodeTemplate(nullptr)
 	{}
@@ -293,7 +293,7 @@ struct FEdGraphSchemaAction_Dummy : public FEdGraphSchemaAction
 	: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_Dummy(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_Dummy(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 };
@@ -539,7 +539,7 @@ public:
 	/** Friendly name to display for this graph */
 	FText DisplayName;
 	/** Text to show as tooltip for this graph */
-	FString Tooltip;
+	FText Tooltip;
 	/** Optional link to big tooltip documentation for this graph */
 	FString DocLink;
 	/** Excerpt within doc for big tooltip */

@@ -18,7 +18,7 @@ class UMG_API UPanelWidget : public UWidget
 protected:
 
 	/** The slots in the widget holding the child widgets of this panel. */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	TArray<UPanelSlot*> Slots;
 
 public:

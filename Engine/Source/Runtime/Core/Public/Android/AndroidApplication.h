@@ -56,12 +56,6 @@ public:
 	virtual void PollGameDeviceState( const float TimeDelta ) override;
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
-	
-	/** Function to return the current implementation of the ForceFeedback system */
-	DEPRECATED(4.7, "Please use GetInputInterface()")
-	virtual IForceFeedbackSystem* GetForceFeedbackSystem() override;
-
-	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() override;	
 
 	virtual IInputInterface* GetInputInterface() override;
 

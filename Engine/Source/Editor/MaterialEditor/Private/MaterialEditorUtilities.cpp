@@ -589,19 +589,22 @@ void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBui
 		{
 			if (!ActionMenuBuilder.FromPin || HasCompatibleConnection(MaterialExpression.MaterialClass, FromPinType, ActionMenuBuilder.FromPin->Direction, bMaterialFunction))
 			{
-				FString CreationName = MaterialExpression.Name;
+				FText CreationName = FText::FromString(MaterialExpression.Name);
 				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("Name"), FText::FromString( *MaterialExpression.Name ));
-				FString ToolTip = FText::Format(LOCTEXT("NewMaterialExpressionTooltip", "Adds a {Name} node here"), Arguments).ToString();
-				if (MaterialExpression.CreationDescription.Len() != 0)
+				Arguments.Add(TEXT("Name"), CreationName);
+				FText ToolTip = FText::Format(LOCTEXT("NewMaterialExpressionTooltip", "Adds a {Name} node here"), Arguments);
+				if (!MaterialExpression.CreationDescription.IsEmpty())
+				{
 					ToolTip = MaterialExpression.CreationDescription;
-				if (MaterialExpression.CreationName.Len() != 0)
+				}
+				if (!MaterialExpression.CreationName.IsEmpty())
+				{
 					CreationName = MaterialExpression.CreationName;
-
+				}
 
 				TSharedPtr<FMaterialGraphSchemaAction_NewNode> NewNodeAction(new FMaterialGraphSchemaAction_NewNode(
 					CategoryName,
-					FText::FromString(CreationName),
+					CreationName,
 					ToolTip, 0, CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords()));
 				NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;
 				ActionMenuBuilder.AddAction(NewNodeAction);

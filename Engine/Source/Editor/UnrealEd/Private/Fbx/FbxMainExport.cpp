@@ -404,7 +404,7 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, bool bSelectedOnly, INodeNa
 		}
 		else if(Actor->IsA(ACameraActor::StaticClass()))
 		{
-			ExportCamera(CastChecked<ACameraActor>(Actor), false, NodeNameAdapter); // Just export the placement of the particle emitter.
+			ExportCamera(CastChecked<ACameraActor>(Actor), false, NodeNameAdapter);
 		}
 		else
 		{
@@ -1499,18 +1499,18 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 		FbxNode* ParentNode = FindActor(ParentActor);
 		FVector ActorLocation, ActorRotation, ActorScale;
 
-		// For cameras and lights: always add a Y-pivot rotation to get the correct coordinate system.
-		FTransform RotationDirectionConvert = FTransform::Identity;
+		// For cameras and lights: always add a rotation to get the correct coordinate system.
+        FTransform RotationDirectionConvert = FTransform::Identity;
 		if (Actor->IsA(ACameraActor::StaticClass()) || Actor->IsA(ALight::StaticClass()))
 		{
 			if (Actor->IsA(ACameraActor::StaticClass()))
 			{
-				FRotator Rotator(0.0f, 0.0f, 90.0f);
+                FRotator Rotator = FFbxDataConverter::GetCameraRotation().GetInverse();
 				RotationDirectionConvert = FTransform(Rotator);
 			}
 			else if (Actor->IsA(ALight::StaticClass()))
 			{
-				FRotator Rotator(0.0f, -90.0f, 0.0f);
+				FRotator Rotator = FFbxDataConverter::GetLightRotation().GetInverse();
 				RotationDirectionConvert = FTransform(Rotator);
 			}
 		}
@@ -1602,6 +1602,22 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 			{
 				USceneComponent* Component = ComponentsToExport[CompIndex];
 
+                RotationDirectionConvert = FTransform::Identity;
+                // For cameras and lights: always add a rotation to get the correct coordinate system.
+				if (Component->IsA(UCameraComponent::StaticClass()) || Component->IsA(ULightComponent::StaticClass()))
+				{
+					if (Component->IsA(UCameraComponent::StaticClass()))
+					{
+                    	FRotator Rotator = FFbxDataConverter::GetCameraRotation().GetInverse();
+						RotationDirectionConvert = FTransform(Rotator);
+					}
+					else if (Component->IsA(ULightComponent::StaticClass()))
+					{
+						FRotator Rotator = FFbxDataConverter::GetLightRotation().GetInverse();
+						RotationDirectionConvert = FTransform(Rotator);
+					}
+				}
+
 				FbxNode* ExportNode = ActorNode;
 				if( ComponentsToExport.Num() > 1 )
 				{
@@ -1612,22 +1628,6 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 					if( Component != Actor->GetRootComponent() )
 					{
 						// Transform is relative to the root component
-						
-						RotationDirectionConvert = FTransform::Identity;
-						// For cameras and lights: always add a Y-pivot rotation to get the correct coordinate system.
-						if (Component->IsA(UCameraComponent::StaticClass()) || Component->IsA(ULightComponent::StaticClass()))
-						{
-							if (Component->IsA(UCameraComponent::StaticClass()))
-							{
-								FRotator Rotator(0.0f, 0.0f, 90.0f);
-								RotationDirectionConvert = FTransform(Rotator);
-							}
-							else if (Component->IsA(ULightComponent::StaticClass()))
-							{
-								FRotator Rotator(0.0f, -90.0f, 0.0f);
-								RotationDirectionConvert = FTransform(Rotator);
-							}
-						}
 						const FTransform RelativeTransform = RotationDirectionConvert * Component->GetComponentToWorld().GetRelativeTransform(Actor->GetTransform());
 						CompNode->LclTranslation.Set(Converter.ConvertToFbxPos(RelativeTransform.GetTranslation()));
 						CompNode->LclRotation.Set(Converter.ConvertToFbxRot(RelativeTransform.GetRotation().Euler()));
@@ -1636,6 +1636,19 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 
 					ExportNode = CompNode;
 					ActorNode->AddChild(CompNode);
+				}
+				else if(Component != Actor->GetRootComponent())
+				{
+					// Merge the component relative transform in the ActorNode transform since this is the only component to export and its not the root
+					const FTransform RelativeTransform = RotationDirectionConvert * Component->GetComponentToWorld().GetRelativeTransform(Actor->GetTransform());
+
+					FTransform ActorTransform(FRotator::MakeFromEuler(ActorRotation).Quaternion(), ActorLocation, ActorScale);
+					FTransform TotalTransform = RelativeTransform;
+					TotalTransform.Accumulate(ActorTransform);
+
+					ActorNode->LclTranslation.Set(Converter.ConvertToFbxPos(TotalTransform.GetLocation()));
+					ActorNode->LclRotation.Set(Converter.ConvertToFbxRot(TotalTransform.GetRotation().Euler()));
+					ActorNode->LclScaling.Set(Converter.ConvertToFbxScale(TotalTransform.GetScale3D()));
 				}
 
 				UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>( Component );
@@ -2349,12 +2362,12 @@ void FFbxExporter::ExportLevelSequence3DTransformTrack( FbxNode& FbxActor, UMovi
 		FTransform RotationDirectionConvert;
 		if (bIsCameraActor)
 		{
-			FRotator Rotator(0.0f, 0.0f, 90.0f);
+			FRotator Rotator = FFbxDataConverter::GetCameraRotation().GetInverse();
 			RotationDirectionConvert = FTransform(Rotator);
 		}
 		else if (bIsLightActor)
 		{
-			FRotator Rotator(0.0f, -90.0f, 0.0f);
+			FRotator Rotator = FFbxDataConverter::GetLightRotation().GetInverse();
 			RotationDirectionConvert = FTransform(Rotator);
 		}
 

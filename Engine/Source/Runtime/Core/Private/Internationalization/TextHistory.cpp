@@ -291,7 +291,7 @@ void FTextHistory_NamedFormat::Serialize( FArchive& Ar )
 		FText FormatText = SourceFmt.GetSourceText();
 		Ar << FormatText;
 	}
-	else
+	else if (Ar.IsLoading())
 	{
 		FText FormatText;
 		Ar << FormatText;
@@ -370,7 +370,7 @@ void FTextHistory_OrderedFormat::Serialize( FArchive& Ar )
 		FText FormatText = SourceFmt.GetSourceText();
 		Ar << FormatText;
 	}
-	else
+	else if (Ar.IsLoading())
 	{
 		FText FormatText;
 		Ar << FormatText;
@@ -456,7 +456,7 @@ void FTextHistory_ArgumentDataFormat::Serialize( FArchive& Ar )
 		FText FormatText = SourceFmt.GetSourceText();
 		Ar << FormatText;
 	}
-	else
+	else if (Ar.IsLoading())
 	{
 		FText FormatText;
 		Ar << FormatText;
@@ -626,7 +626,7 @@ FString FTextHistory_AsNumber::BuildLocalizedDisplayString() const
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentLocale();
 
 	const FDecimalNumberFormattingRules& FormattingRules = Culture.GetDecimalNumberFormattingRules();
 	return BuildNumericDisplayString(FormattingRules);
@@ -682,7 +682,7 @@ FString FTextHistory_AsPercent::BuildLocalizedDisplayString() const
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentLocale();
 
 	const FDecimalNumberFormattingRules& FormattingRules = Culture.GetPercentFormattingRules();
 	return BuildNumericDisplayString(FormattingRules, 100);
@@ -744,7 +744,7 @@ FString FTextHistory_AsCurrency::BuildLocalizedDisplayString() const
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentLocale();
 
 	// when we remove AsCurrency should be easy to switch these to AsCurrencyBase and change SourceValue to be BaseVal in AsCurrencyBase (currently is the pre-divided value)
 	const FDecimalNumberFormattingRules& FormattingRules = Culture.GetCurrencyFormattingRules(CurrencyCode);
@@ -851,7 +851,7 @@ FString FTextHistory_AsDate::BuildLocalizedDisplayString() const
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentLocale();
 
 	return FTextChronoFormatter::AsDate(SourceDateTime, DateStyle, TimeZone, Culture);
 }
@@ -935,7 +935,7 @@ FString FTextHistory_AsTime::BuildLocalizedDisplayString() const
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentLocale();
 
 	return FTextChronoFormatter::AsTime(SourceDateTime, TimeStyle, TimeZone, Culture);
 }
@@ -1026,7 +1026,7 @@ FString FTextHistory_AsDateTime::BuildLocalizedDisplayString() const
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentCulture();
+	const FCulture& Culture = TargetCulture.IsValid() ? *TargetCulture : *I18N.GetCurrentLocale();
 
 	return FTextChronoFormatter::AsDateTime(SourceDateTime, DateStyle, TimeStyle, TimeZone, Culture);
 }

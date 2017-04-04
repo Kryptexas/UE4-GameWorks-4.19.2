@@ -35,6 +35,11 @@ public:
 	UMaterialGraphNode* MaterialNode;
 	/** Custom Slate Element to display the preview */
 	FThreadSafePreviewPtr PreviewElement;
+private:
+	/**
+	 * Updates the expression preview render proxy from a graph node
+	 */
+	void UpdatePreviewNodeRenderProxy();
 };
 
 class FPreviewElement : public ICustomSlateElement
@@ -48,13 +53,17 @@ public:
 	 *
 	 * @param	InCanvasRect			Size of the canvas tile
 	 * @param	InClippingRect			How to clip the canvas tile
-	 * @param	InExpressionPreview		Render proxy for the Material preview
+	 * @param	InGraphNode				The graph node for the material preview
 	 * @param	bInIsRealtime			Whether preview is using realtime values
 	 *
 	 * @return	Whether there is anything to render
 	 */
-	bool BeginRenderingCanvas( const FIntRect& InCanvasRect, const FIntRect& InClippingRect, FMaterialRenderProxy* InExpressionPreview, bool bInIsRealtime );
+	bool BeginRenderingCanvas( const FIntRect& InCanvasRect, const FIntRect& InClippingRect, UMaterialGraphNode* InGraphNode, bool bInIsRealtime );
 
+	/**
+	 * Updates the expression preview render proxy from a graph node on the render thread
+	 */
+	void UpdateExpressionPreview(UMaterialGraphNode* PreviewNode);
 private:
 	/**
 	 * ICustomSlateElement interface 

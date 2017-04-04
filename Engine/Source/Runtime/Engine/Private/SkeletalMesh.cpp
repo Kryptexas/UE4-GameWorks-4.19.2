@@ -5404,8 +5404,8 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			if (bSectionSelected && bCanHighlightSelectedSections)
 			{
 				auto SelectionOverrideProxy = new FOverrideSelectionColorMaterialRenderProxy(
-					SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered()),
-					GetSelectionColor(GEngine->GetSelectedMaterialColor(), bIsSelected, IsHovered())
+					SectionElementInfo.Material->GetRenderProxy(true, IsHovered()),
+					GetSelectionColor(GEngine->GetSelectedMaterialColor(), true, IsHovered())
 					);
 
 				Collector.RegisterOneFrameMaterialProxy(SelectionOverrideProxy);
@@ -5414,10 +5414,10 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			}
 			else
 			{
-				Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
+				Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(false, IsHovered());
 			}
 		#else
-			Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
+			Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(false, IsHovered());
 		#endif
 
 			BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();

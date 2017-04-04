@@ -50,100 +50,212 @@ void EndInitTextLocalization()
 	else
 #endif
 	{
-		FString RequestedCultureName;
-		if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), RequestedCultureName))
+		FString RequestedLanguage;
+		FString RequestedLocale;
+		TArray<TTuple<FName, FString>> RequestedAssetGroups;
+
+		auto ReadSettingsFromCommandLine = [&RequestedLanguage, &RequestedLocale]()
 		{
+			if (RequestedLanguage.IsEmpty() && FParse::Value(FCommandLine::Get(), TEXT("LANGUAGE="), RequestedLanguage))
+			{
+				UE_LOG(LogInit, Log, TEXT("Overriding language with language command-line option (%s)."), *RequestedLanguage);
+			}
+
+			if (RequestedLocale.IsEmpty() && FParse::Value(FCommandLine::Get(), TEXT("LOCALE="), RequestedLocale))
+			{
+				UE_LOG(LogInit, Log, TEXT("Overriding locale with locale command-line option (%s)."), *RequestedLocale);
+			}
+
+			FString CultureOverride;
+			if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), CultureOverride))
+			{
+				if (RequestedLanguage.IsEmpty())
+				{
+					RequestedLanguage = CultureOverride;
+					UE_LOG(LogInit, Log, TEXT("Overriding language with culture command-line option (%s)."), *RequestedLanguage);
+				}
+				if (RequestedLocale.IsEmpty())
+				{
+					RequestedLocale = CultureOverride;
+					UE_LOG(LogInit, Log, TEXT("Overriding locale with culture command-line option (%s)."), *RequestedLocale);
+				}
+			}
+		};
+
+		auto ReadSettingsFromConfig = [&RequestedLanguage, &RequestedLocale, &RequestedAssetGroups](const TCHAR* InConfigLogName, const FString& InConfigFilename)
+		{
+			if (RequestedLanguage.IsEmpty())
+			{
+				if (const FConfigSection* AssetGroupCulturesSection = GConfig->GetSectionPrivate(TEXT("Internationalization.AssetGroupCultures"), false, true, InConfigFilename))
+				{
+					for (const auto& SectionEntryPair : *AssetGroupCulturesSection)
+					{
+						const bool bAlreadyExists = RequestedAssetGroups.ContainsByPredicate([&](const TTuple<FName, FString>& InRequestedAssetGroup)
+						{
+							return InRequestedAssetGroup.Key == SectionEntryPair.Key;
+						});
+
+						if (!bAlreadyExists)
+						{
+							RequestedAssetGroups.Add(MakeTuple(SectionEntryPair.Key, SectionEntryPair.Value.GetValue()));
+							UE_LOG(LogInit, Log, TEXT("Overriding asset group '%s' with %s configuration option (%s)."), *SectionEntryPair.Key.ToString(), InConfigLogName, *SectionEntryPair.Value.GetValue());
+						}
+					}
+				}
+			}
+
+			if (RequestedLanguage.IsEmpty() && GConfig->GetString(TEXT("Internationalization"), TEXT("Language"), RequestedLanguage, InConfigFilename))
+			{
+				UE_LOG(LogInit, Log, TEXT("Overriding language with %s language configuration option (%s)."), InConfigLogName, *RequestedLanguage);
+			}
+
+			if (RequestedLocale.IsEmpty() && GConfig->GetString(TEXT("Internationalization"), TEXT("Locale"), RequestedLocale, InConfigFilename))
+			{
+				UE_LOG(LogInit, Log, TEXT("Overriding locale with %s locale configuration option (%s)."), InConfigLogName, *RequestedLocale);
+			}
+
+			FString CultureOverride;
+			if (GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), CultureOverride, InConfigFilename))
+			{
+				if (RequestedLanguage.IsEmpty())
+				{
+					RequestedLanguage = CultureOverride;
+					UE_LOG(LogInit, Log, TEXT("Overriding language with %s culture configuration option (%s)."), InConfigLogName, *RequestedLanguage);
+				}
+				if (RequestedLocale.IsEmpty())
+				{
+					RequestedLocale = CultureOverride;
+					UE_LOG(LogInit, Log, TEXT("Overriding locale with %s culture configuration option (%s)."), InConfigLogName, *RequestedLocale);
+				}
+			}
+		};
+
+		auto ReadSettingsFromDefaults = [&RequestedLanguage, &RequestedLocale, &I18N]()
+		{
+			if (RequestedLanguage.IsEmpty())
+			{
+				RequestedLanguage = I18N.GetDefaultLanguage()->GetName();
+				UE_LOG(LogInit, Log, TEXT("Using OS detected language (%s)."), *RequestedLanguage);
+			}
+
+			if (RequestedLocale.IsEmpty())
+			{
+				RequestedLocale = I18N.GetDefaultLocale()->GetName();
+				UE_LOG(LogInit, Log, TEXT("Using OS detected locale (%s)."), *RequestedLocale);
+			}
+		};
+
+		if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), RequestedLanguage))
+		{
+			RequestedLocale = RequestedLanguage;
+
 			// Write the culture passed in if first install...
 			if (FParse::Param(FCommandLine::Get(), TEXT("firstinstall")))
 			{
-				GConfig->SetString(TEXT("Internationalization"), TEXT("Culture"), *RequestedCultureName, GEngineIni);
+				GConfig->SetString(TEXT("Internationalization"), TEXT("Language"), *RequestedLanguage, GEngineIni);
+				GConfig->SetString(TEXT("Internationalization"), TEXT("Locale"), *RequestedLocale, GEngineIni);
 			}
+
+			UE_LOG(LogInit, Log, TEXT("Overriding language with culture cook command-line option (%s)."), *RequestedLanguage);
+			UE_LOG(LogInit, Log, TEXT("Overriding locale with culture cook command-line option (%s)."), *RequestedLocale);
 		}
-		// Use culture override specified on commandline.
-		else if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), RequestedCultureName))
-		{
-			UE_LOG(LogInit, Log, TEXT("Overriding culture %s with command-line option."), *RequestedCultureName);
-		}
-		else
+		// Read setting override specified on commandline.
+		ReadSettingsFromCommandLine();
 #if WITH_EDITOR
-			// See if we've been provided a culture override in the editor
-			if(GIsEditor && GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorSettingsIni ))
-			{
-				UE_LOG(LogInit, Log, TEXT("Overriding culture %s with editor configuration."), *RequestedCultureName);
-			}
-			else
+		// Read setting specified in editor configuration.
+		if(GIsEditor)
+		{
+			ReadSettingsFromConfig(TEXT("editor"), GEditorSettingsIni);
+		}
 #endif // WITH_EDITOR
-				// Use culture specified in game configuration.
-				if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GGameUserSettingsIni ))
+		// Read setting specified in game configurations.
+		ReadSettingsFromConfig(TEXT("game user settings"), GGameUserSettingsIni);
+		ReadSettingsFromConfig(TEXT("game"), GGameIni);
+		// Read setting specified in engine configuration.
+		ReadSettingsFromConfig(TEXT("engine"), GEngineIni);
+		// Read defaults
+		ReadSettingsFromDefaults();
+
+		auto ValidateRequestedCulture = [ShouldLoadEditor, ShouldLoadGame, &I18N](const FString& InRequestedCulture, const FString& InFallbackCulture, const TCHAR* InLogDesc, const bool bWarnIfNotExactMatch) -> FString
+		{
+			FString TargetCultureName = InRequestedCulture;
+
+#if ENABLE_LOC_TESTING
+			if (TargetCultureName != TEXT("LEET"))
+#endif
+			{
+				TArray<FString> LocalizationPaths;
+				if (ShouldLoadEditor)
 				{
-					UE_LOG(LogInit, Log, TEXT("Overriding culture %s with game configuration."), *RequestedCultureName);
+					LocalizationPaths += FPaths::GetEditorLocalizationPaths();
 				}
-				// Use culture specified in engine configuration.
-				else if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEngineIni ))
+				if (ShouldLoadGame)
 				{
-					UE_LOG(LogInit, Log, TEXT("Overriding culture %s with engine configuration."), *RequestedCultureName);
+					LocalizationPaths += FPaths::GetGameLocalizationPaths();
+				}
+				LocalizationPaths += FPaths::GetEngineLocalizationPaths();
+
+				// Validate the locale has data or fallback to one that does.
+				TArray< FCultureRef > AvailableCultures;
+				I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures, false);
+
+				FString ValidCultureName;
+				const TArray<FString> PrioritizedCultureNames = I18N.GetPrioritizedCultureNames(TargetCultureName);
+				for (const FString& CultureName : PrioritizedCultureNames)
+				{
+					const bool bIsValidCulture = AvailableCultures.ContainsByPredicate([&](const FCultureRef& PotentialCulture) -> bool
+					{
+						return PotentialCulture->GetName() == CultureName;
+					});
+
+					if (bIsValidCulture)
+					{
+						ValidCultureName = CultureName;
+						break;
+					}
+				}
+
+				if (!ValidCultureName.IsEmpty())
+				{
+					if (bWarnIfNotExactMatch && InRequestedCulture != ValidCultureName)
+					{
+						// Make the user aware that the localization data belongs to a parent culture.
+						UE_LOG(LogTextLocalizationManager, Log, TEXT("No specific localization for '%s' exists, so the '%s' localization will be used."), *InRequestedCulture, *ValidCultureName, InLogDesc);
+					}
 				}
 				else
 				{
-					RequestedCultureName = I18N.GetDefaultCulture()->GetName();
+					UE_LOG(LogTextLocalizationManager, Log, TEXT("No localization for '%s' exists, so '%s' will be used for the %s."), *InRequestedCulture, *InFallbackCulture, InLogDesc);
+					TargetCultureName = InFallbackCulture;
 				}
+			}
 
-				FString TargetCultureName = RequestedCultureName;
-#if ENABLE_LOC_TESTING
-				if (TargetCultureName != TEXT("LEET"))
-#endif
-				{
-					TArray<FString> LocalizationPaths;
-					if(ShouldLoadEditor)
-					{
-						LocalizationPaths += FPaths::GetEditorLocalizationPaths();
-					}
-					if(ShouldLoadGame)
-					{
-						LocalizationPaths += FPaths::GetGameLocalizationPaths();
-					}
-					LocalizationPaths += FPaths::GetEngineLocalizationPaths();
+			return TargetCultureName;
+		};
 
-					// Validate the locale has data or fallback to one that does.
-					TArray< FCultureRef > AvailableCultures;
-					I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures, false);
+		const FString TargetLanguage = ValidateRequestedCulture(RequestedLanguage, TEXT("en"), TEXT("language"), true);
+		const FString TargetLocale = ValidateRequestedCulture(RequestedLocale, TargetLanguage, TEXT("locale"), false);
+		if (TargetLanguage == TargetLocale)
+		{
+			I18N.SetCurrentLanguageAndLocale(TargetLanguage);
+		}
+		else
+		{
+			I18N.SetCurrentLanguage(TargetLanguage);
+			I18N.SetCurrentLocale(TargetLocale);
+		}
 
-					FString ValidCultureName;
-					const TArray<FString> PrioritizedCultureNames = I18N.GetPrioritizedCultureNames(TargetCultureName);
-					for (const FString& CultureName : PrioritizedCultureNames)
-					{
-						const bool bIsValidCulture = AvailableCultures.ContainsByPredicate([&](const FCultureRef& PotentialCulture) -> bool
-						{
-							return PotentialCulture->GetName() == CultureName;
-						});
-
-						if (bIsValidCulture)
-						{
-							ValidCultureName = CultureName;
-							break;
-						}
-					}
-
-					if(!ValidCultureName.IsEmpty())
-					{
-						if(RequestedCultureName != ValidCultureName)
-						{
-							// Make the user aware that the localization data belongs to a parent culture.
-							UE_LOG(LogTextLocalizationManager, Log, TEXT("No specific translations for ('%s') exist, so ('%s') translations will be used."), *RequestedCultureName, *ValidCultureName);
-						}
-					}
-					else
-					{
-						// Fallback to English.
-						UE_LOG(LogTextLocalizationManager, Log, TEXT("No translations for ('%s') exist, falling back to 'en' for localization and internationalization data."), *RequestedCultureName);
-						TargetCultureName = TEXT("en");
-					}
-				}
-
-				I18N.SetCurrentCulture(TargetCultureName);
+		for (const auto& RequestedAssetGroupPair : RequestedAssetGroups)
+		{
+			const FString TargetAssetGroupCulture = ValidateRequestedCulture(RequestedAssetGroupPair.Value, TargetLanguage, *FString::Printf(TEXT("'%s' asset group"), *RequestedAssetGroupPair.Key.ToString()), false);
+			if (TargetAssetGroupCulture != TargetLanguage)
+			{
+				I18N.SetCurrentAssetGroupCulture(RequestedAssetGroupPair.Key, TargetAssetGroupCulture);
+			}
+		}
 	}
 
-	FTextLocalizationManager::Get().LoadLocalizationResourcesForCulture(I18N.GetCurrentCulture()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	FTextLocalizationManager::Get().LoadLocalizationResourcesForCulture(I18N.GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
 	FTextLocalizationManager::Get().bIsInitialized = true;
 }
 
@@ -204,7 +316,7 @@ FTextDisplayStringRef FTextLocalizationManager::GetDisplayString(const FString& 
 	}
 
 #if ENABLE_LOC_TESTING
-	const bool bShouldLEETIFYAll = bIsInitialized && FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("LEET");
+	const bool bShouldLEETIFYAll = bIsInitialized && FInternationalization::Get().GetCurrentLanguage()->GetName() == TEXT("LEET");
 
 	// Attempt to set bShouldLEETIFYUnlocalizedString appropriately, only once, after the commandline is initialized and parsed.
 	static bool bShouldLEETIFYUnlocalizedString = false;
@@ -229,14 +341,14 @@ FTextDisplayStringRef FTextLocalizationManager::GetDisplayString(const FString& 
 		const uint32 SourceStringHash = SourceString ? FCrc::StrCrc32(**SourceString) : 0;
 
 		// If the source string (hash) is different, the local source has changed and should override - can't be localized.
-		if( SourceStringHash != 0 && SourceStringHash != LiveEntry->SourceStringHash )
+		if(SourceString && SourceStringHash != LiveEntry->SourceStringHash)
 		{
 			LiveEntry->SourceStringHash = SourceStringHash;
-			*LiveEntry->DisplayString = SourceString ? *SourceString : FString();
+			*LiveEntry->DisplayString = *SourceString;
 			DirtyLocalRevisionForDisplayString(LiveEntry->DisplayString);
 
 #if ENABLE_LOC_TESTING
-			if( (bShouldLEETIFYAll || bShouldLEETIFYUnlocalizedString) && SourceString )
+			if(bShouldLEETIFYAll || bShouldLEETIFYUnlocalizedString)
 			{
 				FInternationalization::Leetify(*LiveEntry->DisplayString);
 				if(*LiveEntry->DisplayString == *SourceString)
@@ -449,7 +561,7 @@ void FTextLocalizationManager::RefreshResources()
 {
 	const bool ShouldLoadEditor = WITH_EDITOR;
 	const bool ShouldLoadGame = FApp::IsGame();
-	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentCulture()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
 }
 
 void FTextLocalizationManager::OnCultureChanged()
@@ -463,7 +575,7 @@ void FTextLocalizationManager::OnCultureChanged()
 
 	const bool ShouldLoadEditor = bIsInitialized && WITH_EDITOR;
 	const bool ShouldLoadGame = bIsInitialized && FApp::IsGame();
-	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentCulture()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
 }
 
 void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString& CultureName, const bool ShouldLoadEditor, const bool ShouldLoadGame)

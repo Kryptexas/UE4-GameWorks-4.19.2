@@ -8,6 +8,7 @@
 
 #pragma once
 #include "Animation/AnimInstance.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "AnimSequencerInstance.generated.h"
 
 UCLASS(transient, NotBlueprintable)
@@ -44,7 +45,7 @@ class ANIMGRAPHRUNTIME_API UAnimSequencerInstance : public UAnimInstance
 				InSkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationCustomMode);
 			}
 
-			if (InSkeletalMeshComponent->AnimScriptInstance == nullptr || !InSkeletalMeshComponent->AnimScriptInstance->GetClass()->IsChildOf(InstanceClassType::StaticClass()))
+			if (Cast<UAnimSequencerInstance>(InSkeletalMeshComponent->AnimScriptInstance) == nullptr || !InSkeletalMeshComponent->AnimScriptInstance->GetClass()->IsChildOf(InstanceClassType::StaticClass()))
 			{
 				InstanceClassType* SequencerInstance = NewObject<InstanceClassType>(InSkeletalMeshComponent, InstanceClassType::StaticClass());
 				InSkeletalMeshComponent->AnimScriptInstance = SequencerInstance;

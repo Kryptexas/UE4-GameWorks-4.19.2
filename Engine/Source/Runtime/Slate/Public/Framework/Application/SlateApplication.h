@@ -165,7 +165,14 @@ private:
 	int32 VirtualUserIndex;
 };
 
+enum class ESlateTickType : uint8
+{
+	/** Tick time only */
+	TimeOnly,
 
+	/** Update time, tick and paint widgets, and process input */
+	All,
+};
 
 class SLATE_API FSlateApplication
 	: public FSlateApplicationBase
@@ -237,7 +244,7 @@ public:
 	 */
 	static FSlateApplication& Get()
 	{
-		check( IsInGameThread() );
+		check( IsInGameThread() || IsInSlateThread() );
 		return *CurrentApplication;
 	}
 
@@ -268,10 +275,6 @@ public:
 	/** @return The duration of the given sound resource */
 	float GetSoundDuration(const FSlateSound& Sound) const;
 
-	/** @return The force feedback interface for this application */
-	DEPRECATED(4.7, "Please use GetInputInterface().")
-	IForceFeedbackSystem* GetForceFeedbackSystem() const { return PlatformApplication->DEPRECATED_GetForceFeedbackSystem(); }
-
 	IInputInterface* GetInputInterface() const { return PlatformApplication->GetInputInterface(); }
 
 	/** @return Whether or not the current platform supports system help */
@@ -296,7 +299,7 @@ public:
 	void FinishedInputThisFrame();
 
 	/** Ticks this application */
-	void Tick();
+	void Tick(ESlateTickType TickType = ESlateTickType::All);
 
 	/** Pumps OS messages when a modal window or intra-frame debugging session exists */
 	void PumpMessages();
@@ -602,7 +605,7 @@ public:
 	 */
 
 	/** returning platform-specific value designating window that captures mouse, or nullptr if mouse isn't captured */
-	virtual void* GetMouseCaptureWindow( void ) const;
+	virtual void* GetMouseCaptureWindow() const;
 
 	/** Releases the mouse capture from whatever it currently is on - for all users for all pointers. */
 	void ReleaseMouseCapture();
@@ -938,14 +941,7 @@ protected:
 	/**
 	 * Ticks and paints the actual Slate portion of the application.
 	 */
-	void TickApplication(float DeltaTime);
-
-	/** 
-	 * Ticks a slate window and all of its children
-	 *
-	 * @param WindowToTick	The window to tick
-	 */
-	void TickWindowAndChildren( TSharedRef<SWindow> WindowToTick );
+	void TickApplication(ESlateTickType TickType, float DeltaTime);
 
 	/** Draws Slate windows. Should only be called by the application's main loop or renderer. */
 	void DrawWindows();
@@ -1210,10 +1206,7 @@ public:
 
 	/** Getter for the cursor radius */
 	float GetCursorRadius() const;
-
-	/**  */
-	void RegisterCursor(EMouseCursor::Type CursorType, TSharedPtr<class FHardwareCursor> Cursor);
-
+	
 public:
 
 	//~ Begin FSlateApplicationBase Interface
@@ -1711,9 +1704,6 @@ private:
 	/** The hit-test radius of the cursor. Default value is 0. */
 	float CursorRadius;
 
-	/**  */
-	TMap<EMouseCursor::Type, TSharedPtr<class FHardwareCursor>> HardwareCursors;
-
 	/**
 	 * All users currently registered with Slate.  Normally this is 1, but in a 
 	 * situation where multiple users are providing input you need to track ui state
@@ -1751,23 +1741,57 @@ private:
 	double LastMouseMoveTime;
 
 	/** Helper for detecting when a drag should begin */
-	struct FDragDetector
+	class FDragDetector
 	{
+	public:
 		FDragDetector()
-		: DetectDragStartLocation( FVector2D::ZeroVector )
-		, DetectDragButton( EKeys::Invalid )
-		, DetectDragPointerIndex(INDEX_NONE)
 		{
 		}
-		/** If not null, a widget has request that we detect a drag being triggered in this widget and send an OnDragDetected() event*/
-		FWeakWidgetPath DetectDragForWidget;
-		/** Location from which be begin detecting the drag */
-		FVector2D DetectDragStartLocation;
-		/** Button that must be pressed to trigger the drag */
-		FKey DetectDragButton;
-		/** Pointer index of the drag operation */
-		int32 DetectDragPointerIndex;
-	} DragDetector;
+
+		void StartDragDetection(const FWidgetPath& PathToWidget, int32 UserIndex, int32 PointerIndex, FKey DragButton, FVector2D StartLocation);
+		bool IsDetectingDrag(const FPointerEvent& PointerEvent);
+		bool DetectDrag(const FPointerEvent& PointerEvent, float DragTriggerDistance, FWeakWidgetPath*& OutWeakWidgetPath);
+		void OnPointerRelease(const FPointerEvent& PointerEvent);
+		void ResetDetection();
+
+	private:
+
+		struct FDragDetectionState
+		{
+			FDragDetectionState()
+				: DetectDragStartLocation(FVector2D::ZeroVector)
+				, DetectDragButton(EKeys::Invalid)
+				, DetectDragUserIndex(INDEX_NONE)
+				, DetectDragPointerIndex(INDEX_NONE)
+			{
+			}
+
+			FDragDetectionState(const FWidgetPath& PathToWidget, int32 UserIndex, int32 PointerIndex, FKey DragButton, FVector2D StartLocation)
+				: DetectDragForWidget(PathToWidget)
+				, DetectDragStartLocation(StartLocation)
+				, DetectDragButton(DragButton)
+				, DetectDragUserIndex(UserIndex)
+				, DetectDragPointerIndex(PointerIndex)
+			{
+			}
+
+			/** If not null, a widget has request that we detect a drag being triggered in this widget and send an OnDragDetected() event*/
+			FWeakWidgetPath DetectDragForWidget;
+			/** Location from which be begin detecting the drag */
+			FVector2D DetectDragStartLocation;
+			/** Button that must be pressed to trigger the drag */
+			FKey DetectDragButton;
+			/** User index of the drag operation */
+			int32 DetectDragUserIndex;
+			/** Pointer index of the drag operation */
+			int32 DetectDragPointerIndex;
+		};
+
+		/** A map of pointer indices drag states currently being tracked. */
+		TMap<FUserAndPointer, FDragDetectionState> PointerIndexToDragState;
+	};
+
+	FDragDetector DragDetector;
 
 	/** Support for auto-dismissing pop-ups */
 	FPopupSupport PopupSupport;
@@ -1930,7 +1954,10 @@ private:
 	bool bTouchFallbackToMouse;
 
 	/** .ini controlled option to allow or disallow software cursor rendering */
-	bool bSoftwareCursorAvailable;	
+	bool bSoftwareCursorAvailable;
+
+	/** The OS or actions taken by the user may require we refresh the current state of the cursor. */
+	bool bQueryCursorRequested;
 
 	/**
 	 * Slate look and feel
@@ -1986,7 +2013,6 @@ private:
 	/** Critical section to avoid multiple threads calling Slate Tick when we're synchronizing between the Slate Loading Thread and the Game Thread. */
 	FCriticalSection SlateTickCriticalSection;
 
-	
 	/** Are we currently processing input in slate?  If so this value will be greater than 0. */
 	int32 ProcessingInput;
 

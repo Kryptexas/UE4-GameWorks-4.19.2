@@ -2,9 +2,9 @@
 
 #include "Compilation/MovieSceneSegmentCompiler.h"
 
-FMovieSceneSectionData::FMovieSceneSectionData(const TRange<float>& InBounds, int32 InSourceIndex, int32 InPriority)
+FMovieSceneSectionData::FMovieSceneSectionData(const TRange<float>& InBounds, FSectionEvaluationData InEvalData, int32 InPriority)
 	: Bounds(InBounds)
-	, SourceIndex(InSourceIndex)
+	, EvalData(InEvalData)
 	, Priority(InPriority)
 {}
 
@@ -95,9 +95,9 @@ TArray<FMovieSceneSegment> FMovieSceneSegmentCompiler::Compile(const TArrayView<
 		const FMovieSceneSectionData& Section = Data[Index];
 		if (!Section.Bounds.IsEmpty())
 		{
-			ensure(Section.SourceIndex != -1);
-			LowerBounds.Add(FBound(Section.SourceIndex, Section.Bounds.GetLowerBound()));
-			UpperBounds.Add(FBound(Section.SourceIndex, Section.Bounds.GetUpperBound()));
+			ensure(Section.EvalData.ImplIndex != -1);
+			LowerBounds.Add(FBound(Section.EvalData, Section.Bounds.GetLowerBound()));
+			UpperBounds.Add(FBound(Section.EvalData, Section.Bounds.GetUpperBound()));
 		}
 	}
 
@@ -127,10 +127,10 @@ TArray<FMovieSceneSegment> FMovieSceneSegmentCompiler::Compile(const TArrayView<
 		do
 		{
 			// Reference count how many times this section is overlapping the current time. This is to support multiple references to the same section.
-			const int32 OverlapIndex = OverlappingSections.IndexOfByKey(LowerBounds[LowerReadIndex].ImplIndex);
+			const int32 OverlapIndex = OverlappingSections.IndexOfByKey(LowerBounds[LowerReadIndex].EvalData);
 			if (OverlapIndex == INDEX_NONE)
 			{
-				OverlappingSections.Add(LowerBounds[LowerReadIndex].ImplIndex);
+				OverlappingSections.Add(LowerBounds[LowerReadIndex].EvalData);
 				OverlappingRefCounts.Add(1);
 			}
 			else
@@ -202,7 +202,7 @@ void FMovieSceneSegmentCompiler::CloseCompletedSegments()
 		// Remove all sections that finish on this time
 		while (UpperReadIndex < UpperBounds.Num() && UpperBounds[UpperReadIndex].Bound == ClosingBound)
 		{
-			int32 OverlappingIndex = OverlappingSections.IndexOfByKey(UpperBounds[UpperReadIndex].ImplIndex);
+			int32 OverlappingIndex = OverlappingSections.IndexOfByKey(UpperBounds[UpperReadIndex].EvalData);
 			if (ensure(OverlappingIndex != INDEX_NONE))
 			{
 				if (--OverlappingRefCounts[OverlappingIndex] == 0)
@@ -243,9 +243,29 @@ FMovieSceneTrackCompiler::FRows::FRows(const TArray<UMovieSceneSection*>& Sectio
 		}
 
 		const TRange<float> Range = Section->IsInfinite() ? TRange<float>::All() : Section->GetRange();
+
+		FSectionEvaluationData EvalData(Rows[RowIndex].Sections.Num());
+
 		Rows[RowIndex].Sections.Add(
-			FMovieSceneSectionRowData(Index, Range, Rows[RowIndex].Sections.Num(), Section->GetOverlapPriority())
+			FMovieSceneSectionRowData(Index, Range, EvalData, Section->GetOverlapPriority())
 			);
+
+		if (!Range.GetLowerBound().IsOpen() && Section->GetPreRollTime() > 0)
+		{
+			EvalData.Flags = ESectionEvaluationFlags::PreRoll;
+			TRange<float> PreRollRange(Range.GetLowerBoundValue() - Section->GetPreRollTime(), TRangeBound<float>::FlipInclusion(Range.GetLowerBoundValue()));
+			Rows[RowIndex].Sections.Add(
+				FMovieSceneSectionRowData(Index, PreRollRange, EvalData, Section->GetOverlapPriority())
+				);
+		}
+		if (!Range.GetUpperBound().IsOpen() && Section->GetPostRollTime() > 0)
+		{
+			EvalData.Flags = ESectionEvaluationFlags::PostRoll;
+			TRange<float> PostRollRange(TRangeBound<float>::FlipInclusion(Range.GetUpperBoundValue()), Range.GetUpperBoundValue() + Section->GetPostRollTime());
+			Rows[RowIndex].Sections.Add(
+				FMovieSceneSectionRowData(Index, PostRollRange, EvalData, Section->GetOverlapPriority())
+				);
+		}
 	}
 
 	Rows.RemoveAll(
@@ -264,9 +284,15 @@ FMovieSceneTrackEvaluationField FMovieSceneTrackCompiler::Compile(const TArrayVi
 {
 	FMovieSceneTrackEvaluationField Result;
 
-	TArray<FMovieSceneSegment> AllRowSegments;
+	// Methodology:
+	//   - We initially run one segment compilation per row, specifying each FRow::Sections for the source data.
+	//     This allows us to do per-row blending (like handling overlapping sections)
+	//   - After each row, we accumulate a single array of compiled segments to be considered for compilation at the track level
+	//     This allows us to do blending on a row basis, without considering individual row blending rules
+	// 
+
+	TArray<int32> SourceTrackDataToActualIndex;
 	TArray<FMovieSceneSectionData> TrackCompileData;
-	TArray<const FMovieSceneSectionData*> AllRows;
 
 	// Compile each row
 	for (int32 RowIndex = 0; RowIndex < Rows.Num(); ++RowIndex)
@@ -278,12 +304,8 @@ FMovieSceneTrackEvaluationField FMovieSceneTrackCompiler::Compile(const TArrayVi
 		}
 		
 		FMovieSceneSegmentCompiler Compiler;
-
-		for (const FMovieSceneSectionData& Section : Row.Sections)
-		{
-			AllRows.Add(&Section);
-		}
 		
+		// Compile this row into segments
 		TArray<FMovieSceneSegment> RowSegments = Compiler.Compile(
 			TArray<FMovieSceneSectionData>(Row.Sections),
 			Row.CompileRules);
@@ -291,22 +313,24 @@ FMovieSceneTrackEvaluationField FMovieSceneTrackCompiler::Compile(const TArrayVi
 		const int32 Priority = Rows.Num() - RowIndex;
 		for (FMovieSceneSegment& Segment : RowSegments)
 		{
-			TrackCompileData.Add(FMovieSceneSectionData(Segment.Range, TrackCompileData.Num(), Priority));
-
-			// Remap impl indices to their actual sections
 			for (FSectionEvaluationData& EvalData : Segment.Impls)
 			{
-				EvalData.ImplIndex = Row.Sections[EvalData.ImplIndex].ActualSectionIndex;
+				// Add the real section index to a LUT that corresponds to the source track compile data index
+				// The is the index that's actually used at runtime
+				SourceTrackDataToActualIndex.Add(Row.Sections[EvalData.ImplIndex].ActualSectionIndex);
+
+				// The track compilation data requires impl indices into the source data (TrackCompileData) for the compiler rules' consideration
+				EvalData.ImplIndex = TrackCompileData.Num();
+				TrackCompileData.Add(FMovieSceneSectionData(Segment.Range, EvalData, Priority));
 			}
 		}
-
-		AllRowSegments.Append(MoveTemp(RowSegments));
 	}
 
 	// Boil down each row into a single, blended field
 	FMovieSceneSegmentCompiler Compiler;
 	TArray<FMovieSceneSegment> TrackSegments = Compiler.Compile(TrackCompileData, nullptr);
 
+	// At this point, ImplIndex members correspond to the source data array (TrackCompileData)
 	if (Rules)
 	{
 		Rules->ProcessSegments(TrackSegments, TrackCompileData);
@@ -316,32 +340,22 @@ FMovieSceneTrackEvaluationField FMovieSceneTrackCompiler::Compile(const TArrayVi
 	// There should be no empty space by this point
 	for (FMovieSceneSegment& Segment : TrackSegments)
 	{
-		FMovieSceneSegment CompiledSegment(Segment.Range);
-
-		// Segment.Impls relates to the segments stored in AllRowSegments
-		for (const FSectionEvaluationData& RowEvalData : Segment.Impls)
+		for (FSectionEvaluationData& SectionEvalData : Segment.Impls)
 		{
-			for (FSectionEvaluationData SegmentEvalData : AllRowSegments[RowEvalData.ImplIndex].Impls)
-			{
-				// Take a forced time from the track level, if it's not specified on the row level
-				if (SegmentEvalData.ForcedTime == TNumericLimits<float>::Lowest())
-				{
-					SegmentEvalData.ForcedTime = RowEvalData.ForcedTime;
-				}
-				CompiledSegment.Impls.Add(SegmentEvalData);
-			}
+			// Remap the index to the actual section index
+			SectionEvalData.ImplIndex = SourceTrackDataToActualIndex[SectionEvalData.ImplIndex];
 		}
 		
-		if (CompiledSegment.Impls.Num() != 0 || (Rules && Rules->AllowEmptySegments()))
+		if (Segment.Impls.Num() != 0 || (Rules && Rules->AllowEmptySegments()))
 		{
 			// If this is the same as the previous segment, and it ajoins the previous segment's range, just increase the range of the previous segment
-			if (Result.Segments.Num() != 0 && Result.Segments.Last().Range.Adjoins(CompiledSegment.Range) && Result.Segments.Last().Impls == CompiledSegment.Impls)
+			if (Result.Segments.Num() != 0 && Result.Segments.Last().Range.Adjoins(Segment.Range) && Result.Segments.Last().Impls == Segment.Impls)
 			{
-				Result.Segments.Last().Range = FFloatRange::Hull(Result.Segments.Last().Range, CompiledSegment.Range);
+				Result.Segments.Last().Range = FFloatRange::Hull(Result.Segments.Last().Range, Segment.Range);
 			}
 			else
 			{
-				Result.Segments.Add(MoveTemp(CompiledSegment));
+				Result.Segments.Add(MoveTemp(Segment));
 			}
 		}
 	}

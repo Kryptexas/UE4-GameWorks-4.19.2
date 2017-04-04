@@ -40,7 +40,7 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2NewNode : public FEdGraphSchema
 		, bGotoNode(false)
 	{}
 
-	FEdGraphSchemaAction_K2NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping, FText InKeywords = FText())
+	FEdGraphSchemaAction_K2NewNode(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, FText InKeywords = FText())
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, MoveTemp(InKeywords))
 		, NodeTemplate(nullptr)
 		, bGotoNode(false)
@@ -87,7 +87,7 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2ViewNode : public FEdGraphSchem
 		, NodePtr(nullptr)
 	{}
 
-	FEdGraphSchemaAction_K2ViewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_K2ViewNode(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, NodePtr(nullptr)
 	{}
@@ -116,8 +116,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2AssignDelegate : public FEdGrap
 		:FEdGraphSchemaAction_K2NewNode()
 	{}
 
-	FEdGraphSchemaAction_K2AssignDelegate(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
+	FEdGraphSchemaAction_K2AssignDelegate(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping) 
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -148,7 +148,7 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_EventFromFunction : public FEdGra
 		, SignatureFunction(nullptr)
 	{}
 
-	FEdGraphSchemaAction_EventFromFunction(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_EventFromFunction(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, SignatureFunction(nullptr)
 	{}
@@ -188,8 +188,8 @@ struct FEdGraphSchemaAction_K2AddComponent : public FEdGraphSchemaAction_K2NewNo
 		, ComponentAsset(NULL)
 	{}
 
-	FEdGraphSchemaAction_K2AddComponent(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2AddComponent(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, ComponentClass(NULL)
 		, ComponentAsset(NULL)
 	{}
@@ -218,8 +218,8 @@ struct FEdGraphSchemaAction_K2AddTimeline : public FEdGraphSchemaAction_K2NewNod
 		: FEdGraphSchemaAction_K2NewNode()
 	{}
 
-	FEdGraphSchemaAction_K2AddTimeline(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2AddTimeline(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -245,8 +245,8 @@ struct FEdGraphSchemaAction_K2AddEvent : public FEdGraphSchemaAction_K2NewNode
 		: FEdGraphSchemaAction_K2NewNode()
 	{}
 
-	FEdGraphSchemaAction_K2AddEvent(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2AddEvent(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -275,8 +275,8 @@ struct FEdGraphSchemaAction_K2AddCustomEvent : public FEdGraphSchemaAction_K2New
 		: FEdGraphSchemaAction_K2NewNode()
 	{}
 
-	FEdGraphSchemaAction_K2AddCustomEvent(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2AddCustomEvent(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -306,8 +306,8 @@ struct FEdGraphSchemaAction_K2AddCallOnActor : public FEdGraphSchemaAction_K2New
 		: FEdGraphSchemaAction_K2NewNode()
 	{}
 
-	FEdGraphSchemaAction_K2AddCallOnActor(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2AddCallOnActor(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -331,11 +331,11 @@ struct FEdGraphSchemaAction_K2AddComment : public FEdGraphSchemaAction
 	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2AddComment()
-		: FEdGraphSchemaAction(FText(), NSLOCTEXT("K2AddComment", "AddComment", "Add Comment..."), NSLOCTEXT("K2AddComment", "AddComment_Tooltip", "Create a resizable comment box.").ToString(), 0)
+		: FEdGraphSchemaAction(FText(), NSLOCTEXT("K2AddComment", "AddComment", "Add Comment..."), NSLOCTEXT("K2AddComment", "AddComment_Tooltip", "Create a resizable comment box."), 0)
 	{
 	}
 
-	FEdGraphSchemaAction_K2AddComment(FText InDescription, FString InToolTip)
+	FEdGraphSchemaAction_K2AddComment(FText InDescription, FText InToolTip)
 		: FEdGraphSchemaAction(FText(), MoveTemp(InDescription), MoveTemp(InToolTip), 0)
 	{
 	}
@@ -364,8 +364,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2TargetNode : public FEdGraphSch
 		: FEdGraphSchemaAction_K2NewNode()
 	{}
 
-	FEdGraphSchemaAction_K2TargetNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2TargetNode(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -391,8 +391,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2PasteHere : public FEdGraphSche
 		: FEdGraphSchemaAction_K2NewNode()
 	{}
 
-	FEdGraphSchemaAction_K2PasteHere (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2PasteHere (FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -434,7 +434,7 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Enum : public FEdGraphSchemaAct
 		, Enum(nullptr)
 	{}
 
-	FEdGraphSchemaAction_K2Enum (FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_K2Enum(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, Enum(nullptr)
 	{}
@@ -478,7 +478,7 @@ public:
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_K2Var (FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping, const int32 InSectionID)
+	FEdGraphSchemaAction_K2Var(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, FText(), InSectionID)
 	{}
 
@@ -545,7 +545,7 @@ public:
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_K2LocalVar(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping, const int32 InSectionID)
+	FEdGraphSchemaAction_K2LocalVar(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, FText(), InSectionID)
 	{}
 
@@ -616,7 +616,7 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Graph : public FEdGraphSchemaAc
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_K2Graph (EEdGraphSchemaAction_K2Graph::Type InType, FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping, const int32 InSectionID = 0)
+	FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Type InType, FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID = 0)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, FText(), InSectionID)
 		, GraphType(InType)
 		, EdGraph(nullptr)
@@ -656,8 +656,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Event : public FEdGraphSchemaAc
 	 * @param   Tooltip			A string to display when hovering over this action entry.
 	 * @param   Grouping		Used to override list ordering (actions with the same number get grouped together, higher numbers get sorted first).
 	 */
-	FEdGraphSchemaAction_K2Event(FText const& Category, FText const& MenuDescription, FString const& Tooltip, int32 const Grouping)
-		: FEdGraphSchemaAction_K2TargetNode(Category, MenuDescription, Tooltip, Grouping)
+	FEdGraphSchemaAction_K2Event(FText Category, FText MenuDescription, FText Tooltip, int32 const Grouping)
+		: FEdGraphSchemaAction_K2TargetNode(MoveTemp(Category), MoveTemp(MenuDescription), MoveTemp(Tooltip), Grouping)
 	{}
 
 	/**
@@ -706,8 +706,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2InputAction : public FEdGraphSc
 	* @param   Tooltip			A string to display when hovering over this action entry.
 	* @param   Grouping		Used to override list ordering (actions with the same number get grouped together, higher numbers get sorted first).
 	*/
-	FEdGraphSchemaAction_K2InputAction(FText const& Category, FText const& MenuDescription, FString const& Tooltip, int32 const Grouping)
-		: FEdGraphSchemaAction_K2TargetNode(Category, MenuDescription, Tooltip, Grouping)
+	FEdGraphSchemaAction_K2InputAction(FText Category, FText MenuDescription, FText Tooltip, int32 const Grouping)
+		: FEdGraphSchemaAction_K2TargetNode(MoveTemp(Category), MoveTemp(MenuDescription), MoveTemp(Tooltip), Grouping)
 	{}
 
 	/**
@@ -764,7 +764,7 @@ public:
 		: FEdGraphSchemaAction(), EdGraph(NULL)
 	{}
 
-	FEdGraphSchemaAction_K2Delegate(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping, const int32 InSectionID)
+	FEdGraphSchemaAction_K2Delegate(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, FText(), InSectionID)
 		, EdGraph(nullptr)
 	{}

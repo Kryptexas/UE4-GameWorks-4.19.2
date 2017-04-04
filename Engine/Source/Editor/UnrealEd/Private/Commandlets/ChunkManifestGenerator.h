@@ -34,6 +34,8 @@ class FChunkManifestGenerator
 	TMap<FName, TArray<int32> > PackageChunkIDMap;
 	/** Maps packages to assets from the asset registry */
 	TMap<FName, TArray<int32> > PackageToRegistryDataMap;
+	/** Set of packages containing a map */
+	TSet<FName> PackagesContainingMaps;
 	/** Should the chunks be generated or only asset registry */
 	bool bGenerateChunks;
 	/** True if we should use the AssetManager, false to use the deprecated path */

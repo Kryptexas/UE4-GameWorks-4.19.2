@@ -380,16 +380,6 @@ public:
 		RealApplication->DestroyApplication();
 	}
 
-	virtual IForceFeedbackSystem* GetForceFeedbackSystem() override
-	{
-		return RealApplication->GetForceFeedbackSystem();
-	}
-
-	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() override
-	{
-		return RealApplication->DEPRECATED_GetForceFeedbackSystem();
-	}
-
 	virtual IInputInterface* GetInputInterface() override
 	{
 		return RealApplication->GetInputInterface();

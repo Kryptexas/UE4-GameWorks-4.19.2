@@ -719,14 +719,14 @@ FString UMaterialExpression::GetInputName(int32 InputIndex) const
 }
 
 #if WITH_EDITOR
-FString UMaterialExpression::GetCreationDescription() const
+FText UMaterialExpression::GetCreationDescription() const
 {
-	return FString();
+	return FText::GetEmpty();
 }
 
-FString UMaterialExpression::GetCreationName() const
+FText UMaterialExpression::GetCreationName() const
 {
-	return FString();
+	return FText::GetEmpty();
 }
 #endif
 
@@ -1502,7 +1502,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				else if (OutputIndex >= 0)
 				{
 					uint32 OutputType = InputExpression->GetOutputType(OutputIndex);
-					if (OutputType != MCT_Texture2D && OutputType != MCT_TextureCube)
+					if (OutputType != MCT_Texture2D && OutputType != MCT_TextureCube && OutputType != MCT_Texture)
 					{
 						return Compiler->Errorf(TEXT("TextureSample> Reroute not bound to proper texture type!"));
 					}
@@ -10313,14 +10313,14 @@ void UMaterialExpressionReroute::GetCaption(TArray<FString>& OutCaptions) const
 }
 
 
-FString UMaterialExpressionReroute::GetCreationDescription() const 
+FText UMaterialExpressionReroute::GetCreationDescription() const 
 {
-	return LOCTEXT("RerouteNodeCreationDesc", "This node looks like a single pin and can be used to tidy up your graph by adding a movable control point to the connection spline.").ToString();
+	return LOCTEXT("RerouteNodeCreationDesc", "This node looks like a single pin and can be used to tidy up your graph by adding a movable control point to the connection spline.");
 }
 
-FString UMaterialExpressionReroute::GetCreationName() const
+FText UMaterialExpressionReroute::GetCreationName() const
 {
-	return LOCTEXT("RerouteNodeCreationName", "Add Reroute Node...").ToString();
+	return LOCTEXT("RerouteNodeCreationName", "Add Reroute Node...");
 }
 
 

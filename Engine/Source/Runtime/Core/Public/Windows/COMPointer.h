@@ -106,6 +106,11 @@ public:
 		check(RawPointer != nullptr);
 		return RawPointer;
 	}
+
+	PointerType* Get() const
+	{
+		return RawPointer;
+	}
 	
 	bool operator==(PointerType* const InRawPointer) const
 	{

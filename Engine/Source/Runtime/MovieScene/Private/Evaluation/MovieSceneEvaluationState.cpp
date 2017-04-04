@@ -4,6 +4,7 @@
 #include "MovieSceneSequence.h"
 #include "MovieScene.h"
 #include "IMovieScenePlayer.h"
+#include "MovieSceneBindingOverridesInterface.h"
 
 DECLARE_CYCLE_STAT(TEXT("Find Bound Objects"), MovieSceneEval_FindBoundObjects, STATGROUP_MovieSceneEval);
 
@@ -203,16 +204,35 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 	else
 	{
 		// Probably a spawnable then (or an phantom)
-		UObject* SpawnedObject = Player.GetSpawnRegister().FindSpawnedObject(InGuid, SequenceID);
-		if (SpawnedObject)
+		bool bUseDefault = true;
+
+		// Allow external overrides for spawnables
+		const IMovieSceneBindingOverridesInterface* Overrides = Player.GetBindingOverrides();
+		if (Overrides)
 		{
-			Bindings->Objects.Add(SpawnedObject);
+			TArray<UObject*, TInlineAllocator<1>> FoundObjects;
+			bUseDefault = Overrides->LocateBoundObjects(InGuid, SequenceID, FoundObjects);
+			for (UObject* Object : FoundObjects)
+			{
+				Bindings->Objects.Add(Object);
+			}
+		}
+
+		// If we have no overrides, or they want to allow the default spawnable, do that now
+		if (bUseDefault)
+		{
+			UObject* SpawnedObject = Player.GetSpawnRegister().FindSpawnedObject(InGuid, SequenceID);
+			if (SpawnedObject)
+			{
+				Bindings->Objects.Add(SpawnedObject);
+			}
 		}
 	}
 
 	if (Bindings->Objects.Num())
 	{
 		Bindings->bUpToDate = true;
+		Player.NotifyBindingUpdate(InGuid, SequenceID, Bindings->Objects);
 	}
 }
 

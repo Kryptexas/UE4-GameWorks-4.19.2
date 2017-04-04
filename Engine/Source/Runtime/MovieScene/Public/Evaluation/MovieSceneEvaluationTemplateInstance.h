@@ -69,6 +69,9 @@ public:
 	/** Pointer to the evaluation template we're evaluating */
 	const FMovieSceneEvaluationTemplate* Template;
 
+	/** Pre and Post roll ranges in the inner-sequence's time space */
+	TRange<float> PreRollRange, PostRollRange;
+
 	/** ID of the sequence within the master sequence */
 	FMovieSceneSequenceID SequenceID;
 

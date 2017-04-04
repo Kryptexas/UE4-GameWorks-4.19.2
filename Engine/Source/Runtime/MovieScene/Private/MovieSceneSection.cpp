@@ -15,6 +15,8 @@ UMovieSceneSection::UMovieSceneSection(const FObjectInitializer& ObjectInitializ
 	, bIsActive(true)
 	, bIsLocked(false)
 	, bIsInfinite(false)
+	, PreRollTime(0)
+	, PostRollTime(0)
 { }
 
 

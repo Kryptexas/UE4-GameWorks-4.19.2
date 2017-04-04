@@ -1041,6 +1041,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModuleChecked(TEXT("StreamingPauseRendering"));
 		FModuleManager::Get().LoadModuleChecked(TEXT("Niagara"));
 		FModuleManager::Get().LoadModuleChecked(TEXT("GeometryCache"));
+		FModuleManager::Get().LoadModuleChecked(TEXT("MovieScene"));
+		FModuleManager::Get().LoadModuleChecked(TEXT("MovieSceneTracks"));
 	}
 
 	// Finish asset manager loading
@@ -2713,6 +2715,22 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 
 	{
+		FString LanguageName;
+		if (FParse::Value(Cmd, TEXT("LANGUAGE="), LanguageName))
+		{
+			FInternationalization::Get().SetCurrentLanguage(LanguageName);
+		}
+	}
+
+	{
+		FString LocaleName;
+		if (FParse::Value(Cmd, TEXT("LOCALE="), LocaleName))
+		{
+			FInternationalization::Get().SetCurrentLocale(LocaleName);
+		}
+	}
+
+	{
 		FString ConfigFilePath;
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
 		{
@@ -3514,9 +3532,14 @@ bool UEngine::HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevi
 	return true;
 }
 
+extern void ToggleFreezeFoliageCulling();
+
 bool UEngine::HandleFreezeRenderingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld  )
 {
 	ProcessToggleFreezeCommand( InWorld );
+
+	ToggleFreezeFoliageCulling();
+
 	return true;
 }
 

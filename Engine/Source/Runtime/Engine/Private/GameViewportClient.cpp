@@ -54,6 +54,7 @@
 #include "Slate/SGameLayerManager.h"
 #include "ActorEditorUtils.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "Framework/Application/HardwareCursor.h"
 
 #define LOCTEXT_NAMESPACE "GameViewport"
 
@@ -137,6 +138,7 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, MouseLockMode(EMouseLockMode::LockOnCapture)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
+	, bMouseEnter(false)
 {
 
 	TitleSafeZone.MaxPercentX = 0.9f;
@@ -347,14 +349,18 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 			}
 		}
 	}
-	
-	AddCursor(EMouseCursor::Default, UISettings->DefaultCursor);
-	AddCursor(EMouseCursor::TextEditBeam, UISettings->TextEditBeamCursor);
-	AddCursor(EMouseCursor::Crosshairs, UISettings->CrosshairsCursor);
-	AddCursor(EMouseCursor::Hand, UISettings->HandCursor);
-	AddCursor(EMouseCursor::GrabHand, UISettings->GrabHandCursor);
-	AddCursor(EMouseCursor::GrabHandClosed, UISettings->GrabHandClosedCursor);
-	AddCursor(EMouseCursor::SlashedCircle, UISettings->SlashedCircleCursor);
+
+	// Set all the software cursors.
+	for ( auto& Entry : UISettings->SoftwareCursors )
+	{
+		AddSoftwareCursor(Entry.Key, Entry.Value);
+	}
+
+	// Set all the hardware cursors.
+	for ( auto& Entry : UISettings->HardwareCursors )
+	{
+		SetHardwareCursor(Entry.Key, Entry.Value.CursorPath, Entry.Value.HotSpot);
+	}
 }
 
 UWorld* UGameViewportClient::GetWorld() const
@@ -592,6 +598,18 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
+
+	// Replace all the cursors.
+	TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
+	if ( ICursor* Cursor = PlatformCursor.Get() )
+	{
+		for ( auto& Entry : HardwareCursors )
+		{
+			Cursor->SetTypeShape(Entry.Key, Entry.Value->GetHandle());
+		}
+	}
+
+	bMouseEnter = true;
 }
 
 void UGameViewportClient::MouseLeave(FViewport* InViewport)
@@ -609,6 +627,28 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 			FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
 		}
 	}
+
+#if WITH_EDITOR
+
+	bMouseEnter = true;
+
+	// NOTE: Only do this in editor builds where the editor is running.
+	// We don't care about bothering to clear them otherwise, and it may negatively impact
+	// things like drag/drop, since those would 'leave' the viewport.
+	if ( !FSlateApplication::Get().IsDragDropping() )
+	{
+		// clear all the overridden hardware cursors
+		TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
+		if ( ICursor* Cursor = PlatformCursor.Get() )
+		{
+			for ( auto& Entry : HardwareCursors )
+			{
+				Cursor->SetTypeShape(Entry.Key, nullptr);
+			}
+		}
+	}
+
+#endif
 }
 
 bool UGameViewportClient::GetMousePosition(FVector2D& MousePosition) const
@@ -675,7 +715,7 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 	return FViewportClient::GetCursor(InViewport, X, Y);
 }
 
-void UGameViewportClient::AddCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass)
+void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass)
 {
 	if ( CursorClass.IsValid() )
 	{
@@ -705,6 +745,7 @@ TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* InViewp
 			return *CursorWidgetPtr;
 		}
 	}
+
 	return TOptional<TSharedRef<SWidget>>();
 }
 
@@ -1645,7 +1686,7 @@ ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 ULocalPlayer* UGameViewportClient::CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor)
 {
 	UGameInstance * ViewportGameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
-	return (ViewportGameInstance != NULL) ? ViewportGameInstance->CreateLocalPlayer(ControllerId, OutError, bSpawnActor) : NULL;
+	return ( ViewportGameInstance != NULL ) ? ViewportGameInstance->CreateLocalPlayer(ControllerId, OutError, bSpawnActor) : NULL;
 }
 
 bool UGameViewportClient::RemovePlayer(class ULocalPlayer* ExPlayer)
@@ -3209,6 +3250,35 @@ void UGameViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport
 	{
 		SetStatEnabled(NULL, false, true);
 	}
+}
+
+bool UGameViewportClient::SetHardwareCursor(EMouseCursor::Type CursorShape, FName GameContentPath, FVector2D HotSpot)
+{
+	TSharedPtr<FHardwareCursor> HardwareCursor = HardwareCursorCache.FindRef(GameContentPath);
+	if ( HardwareCursor.IsValid() == false )
+	{
+		HardwareCursor = MakeShared<FHardwareCursor>(FPaths::GameContentDir() / GameContentPath.ToString(), HotSpot);
+		if ( HardwareCursor->GetHandle() == nullptr )
+		{
+			return false;
+		}
+
+		HardwareCursorCache.Add(GameContentPath, HardwareCursor);
+	}
+
+	HardwareCursors.Add(CursorShape, HardwareCursor);
+
+	if ( bMouseEnter )
+	{
+		// clear all the overridden hardware cursors
+		TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
+		if ( ICursor* Cursor = PlatformCursor.Get() )
+		{
+			Cursor->SetTypeShape(CursorShape, HardwareCursor->GetHandle());
+		}
+	}
+	
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

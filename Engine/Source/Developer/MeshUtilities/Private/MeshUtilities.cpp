@@ -120,7 +120,7 @@ static FAutoConsoleVariable CVarMeshReductionModule(
 	ECVF_ReadOnly);
 
 void FMeshUtilities::UpdateMeshReductionModule()
-{
+	{
 		TArray<FName> ModuleNames;
 		FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
 
@@ -3017,7 +3017,7 @@ class FStaticMeshUtilityBuilder
 public:
 	FStaticMeshUtilityBuilder() : Stage(EStage::Uninit), NumValidLODs(0) {}
 
-	bool GatherSourceMeshesPerLOD(TArray<FStaticMeshSourceModel>& SourceModels, IMeshReduction* MeshReduction)
+	bool GatherSourceMeshesPerLOD(TArray<FStaticMeshSourceModel>& SourceModels, IMeshReduction* MeshReduction, ELightmapUVVersion LightmapUVVersion)
 	{
 		check(Stage == EStage::Uninit);
 
@@ -3098,6 +3098,7 @@ public:
 					}
 
 					FLayoutUV Packer(&RawMesh, SrcModel.BuildSettings.SrcLightmapIndex, SrcModel.BuildSettings.DstLightmapIndex, SrcModel.BuildSettings.MinLightmapResolution);
+					Packer.SetVersion(LightmapUVVersion);
 
 					Packer.FindCharts(OverlappingCorners);
 					bool bPackSuccess = Packer.FindBestPacking();
@@ -3440,10 +3441,10 @@ private:
 	bool HasRawMesh[MAX_STATIC_MESH_LODS];
 };
 
-bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup, int32 ImportVersion)
+bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup, int32 LightmapUVVersion, int32 ImportVersion)
 {
 	FStaticMeshUtilityBuilder Builder;
-	if (!Builder.GatherSourceMeshesPerLOD(SourceModels, StaticMeshReduction))
+	if (!Builder.GatherSourceMeshesPerLOD(SourceModels, StaticMeshReduction, (ELightmapUVVersion)LightmapUVVersion))
 	{
 		return false;
 	}
@@ -3457,10 +3458,10 @@ bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArra
 	return Builder.GenerateRenderingMeshes(*this, OutRenderData, SourceModels, ImportVersion);
 }
 
-bool FMeshUtilities::GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup)
+bool FMeshUtilities::GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup, int32 LightmapUVVersion)
 {
 	FStaticMeshUtilityBuilder Builder;
-	if (!Builder.GatherSourceMeshesPerLOD(Models, StaticMeshReduction))
+	if (!Builder.GatherSourceMeshesPerLOD(Models, StaticMeshReduction, (ELightmapUVVersion)LightmapUVVersion))
 	{
 		return false;
 	}
@@ -5762,8 +5763,8 @@ void FMeshUtilities::FlattenMaterialsWithMeshData(TArray<UMaterialInterface*>& I
 	}
 }
 
-// Exports static mesh LOD render data to a RawMesh
-static void ExportStaticMeshLOD(const FStaticMeshLODResources& StaticMeshLOD, FRawMesh& OutRawMesh)
+// Exports static mesh LOD render data to a RawMesh 
+void FMeshUtilities::ExportStaticMeshLOD(const FStaticMeshLODResources& StaticMeshLOD, FRawMesh& OutRawMesh) const 
 {
 	const int32 NumWedges = StaticMeshLOD.IndexBuffer.GetNumIndices();
 	const int32 NumVertexPositions = StaticMeshLOD.PositionVertexBuffer.GetNumVertices();
@@ -6288,10 +6289,17 @@ bool FMeshUtilities::ConstructRawMesh(
 	UMaterialInterface* DefaultMaterial = Cast<UMaterialInterface>(UMaterial::GetDefaultMaterial(MD_Surface));
 
 	//Need to store the unique material indices in order to re-map the material indices in each rawmesh	
+	TArray<int32> RemapMaterialArrayIndex;
+	RemapMaterialArrayIndex.AddZeroed(SourceStaticMesh->StaticMaterials.Num());
+	for (int32 ArrayIndex = 0; ArrayIndex < RemapMaterialArrayIndex.Num(); ++ArrayIndex)
+	{
+		RemapMaterialArrayIndex[ArrayIndex] = ArrayIndex;
+	}
 	for (const FStaticMeshSection& Section : SourceStaticMesh->RenderData->LODResources[InLODIndex].Sections)
 	{
 		// Add material and store the material ID
 		UMaterialInterface* MaterialToAdd = InMeshComponent->GetMaterial(Section.MaterialIndex);
+		FName MaterialSlotNameToAdd = SourceStaticMesh->StaticMaterials.IsValidIndex(Section.MaterialIndex) ? SourceStaticMesh->StaticMaterials[Section.MaterialIndex].MaterialSlotName : NAME_None;
 
 		if (MaterialToAdd)
 		{
@@ -6309,22 +6317,23 @@ bool FMeshUtilities::ConstructRawMesh(
 
 		FSectionInfo SectionInfo;
 		SectionInfo.Material = MaterialToAdd;
+		SectionInfo.MaterialSlotName = MaterialSlotNameToAdd;
 		SectionInfo.bCollisionEnabled = Section.bEnableCollision;
 		SectionInfo.bShadowCastingEnabled = Section.bCastShadow;
 		const int32 MaterialIdx = OutUniqueSections.Add(SectionInfo);
 
 		const int32 MaterialMapIdx = OutGlobalMaterialIndices.Add(MaterialIdx);
 		
-		// Update face material indices?
-		if (OutRawMesh.FaceMaterialIndices.Num())
+		RemapMaterialArrayIndex[Section.MaterialIndex] = MaterialMapIdx;
+	}
+
+	// Update face material indices, only if we are merging old imported static mesh asset, since the new build do not allow to shuffle section at import.
+	if (SourceStaticMesh->ImportVersion < RemoveStaticMeshSkinxxWorkflow && OutRawMesh.FaceMaterialIndices.Num())
+	{
+		for (int32& MaterialIndex : OutRawMesh.FaceMaterialIndices)
 		{
-			for (int32& MaterialIndex : OutRawMesh.FaceMaterialIndices)
-			{
-				if (MaterialIndex == Section.MaterialIndex)
-				{
-					MaterialIndex = MaterialMapIdx;
-				}
-			}
+			int32 RemapMaterialIndex = RemapMaterialArrayIndex[MaterialIndex];
+			MaterialIndex = RemapMaterialIndex;
 		}
 	}
 
@@ -7504,7 +7513,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 				Material = nullptr; // do not save non-asset materials
 			}
 
-			StaticMesh->StaticMaterials.Add(FStaticMaterial(Material));
+			StaticMesh->StaticMaterials.Add(FStaticMaterial(Material, Section.MaterialSlotName));
 		}
 
 		if (InSettings.bMergePhysicsData)

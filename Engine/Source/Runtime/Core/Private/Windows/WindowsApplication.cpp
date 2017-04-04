@@ -1765,6 +1765,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			// Mouse Cursor
 		case WM_SETCURSOR:
 			{
+				// WM_SETCURSOR - Sent to a window if the mouse causes the cursor to move within a window and mouse input is not captured.
 				return MessageHandler->OnCursorSet() ? 0 : 1;
 			}
 			break;

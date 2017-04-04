@@ -124,7 +124,7 @@ FText UK2Node_MacroInstance::GetTooltipText() const
 	{
 		if (!Metadata->ToolTip.IsEmpty())
 		{
-			return FText::FromString(Metadata->ToolTip);
+			return Metadata->ToolTip;
 		}
 	}
 

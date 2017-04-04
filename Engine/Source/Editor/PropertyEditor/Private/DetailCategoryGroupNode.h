@@ -18,10 +18,14 @@ class SDetailCategoryTableRow : public SDetailTableRowBase
 public:
 	SLATE_BEGIN_ARGS( SDetailCategoryTableRow )
 		: _InnerCategory( false )
+		, _ShowBorder( true )
+		, _ColumnSizeData(nullptr)
 	{}
 		SLATE_ARGUMENT( FText, DisplayName )
 		SLATE_ARGUMENT( bool, InnerCategory )
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, HeaderContent )
+		SLATE_ARGUMENT( bool, ShowBorder )
+		SLATE_ARGUMENT( const FDetailColumnSizeData*, ColumnSizeData )
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView );
@@ -31,8 +35,10 @@ private:
 private:
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	void OnColumnResized(float InNewWidth);
 private:
 	bool bIsInnerCategory;
+	bool bShowBorder;
 };
 
 
@@ -40,6 +46,14 @@ class FDetailCategoryGroupNode : public IDetailTreeNode, public TSharedFromThis<
 {
 public:
 	FDetailCategoryGroupNode( const FDetailNodeList& InChildNodes, FName InGroupName, FDetailCategoryImpl& InParentCategory );
+
+public:
+
+	void SetShowBorder(bool bInShowBorder) { bShowBorder = bInShowBorder; }
+	bool GetShowBorder() const { return bShowBorder; }
+
+	void SetHasSplitter(bool bInHasSplitter) { bHasSplitter = bInHasSplitter; }
+	bool GetHasSplitter() const { return bHasSplitter; }
 
 private:
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.GetDetailsView(); }
@@ -57,4 +71,7 @@ private:
 	FDetailCategoryImpl& ParentCategory;
 	FName GroupName;
 	bool bShouldBeVisible;
+
+	bool bShowBorder;
+	bool bHasSplitter;
 };

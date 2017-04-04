@@ -200,6 +200,11 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 	ResetTimingManager(Settings->ShouldLockPlaybackToAudioClock());
 
 	Settings->GetOnEvaluateSubSequencesInIsolationChanged().AddSP(this, &FSequencer::RestorePreAnimatedState);
+	
+	{
+		FDelegateHandle OnBlueprintCompiledHandle = GEditor->OnBlueprintCompiled().AddLambda([&]{ State.InvalidateExpiredObjects(); });
+		AcquiredResources.Add([=]{ GEditor->OnBlueprintCompiled().Remove(OnBlueprintCompiledHandle); });
+	}
 
 	ToolkitHost = InitParams.ToolkitHost;
 
@@ -233,6 +238,7 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 		.OnSelectionRangeEndDrag( this, &FSequencer::OnSelectionRangeEndDrag )
 		.IsPlaybackRangeLocked( this, &FSequencer::IsPlaybackRangeLocked )
 		.OnTogglePlaybackRangeLocked( this, &FSequencer::TogglePlaybackRangeLocked )
+		.TimeSnapInterval( this, &FSequencer::GetFixedFrameInterval )
 		.ScrubPosition( this, &FSequencer::GetLocalTime )
 		.OnBeginScrubbing( this, &FSequencer::OnBeginScrubbing )
 		.OnEndScrubbing( this, &FSequencer::OnEndScrubbing )
@@ -328,6 +334,7 @@ FSequencer::~FSequencer()
 		TrackEditor->OnRelease();
 	}
 
+	AcquiredResources.Release();
 	SequencerWidget.Reset();
 	TrackEditors.Empty();
 }
@@ -414,7 +421,7 @@ void FSequencer::Tick(float InDeltaTime)
 			bIsFixedFrameIntervalPlayback = GetFocusedMovieSceneSequence()->GetMovieScene()->GetForceFixedFrameIntervalPlayback();
 		}
 
-		const float TimeSnapInterval = Settings->GetTimeSnapInterval();
+		const float TimeSnapInterval = GetFixedFrameInterval();
 
 		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSnapInterval) && bIsFixedFrameIntervalPlayback)
 		{
@@ -424,6 +431,11 @@ void FSequencer::Tick(float InDeltaTime)
 		{
 			GEngine->SetMaxFPS(OldMaxTickRate);
 		}
+	}
+
+	if (GetSelectionRange().IsEmpty() && GetLoopMode() == SLM_LoopSelectionRange)
+	{
+		Settings->SetLoopMode(SLM_Loop);
 	}
 
 	if (PlaybackState == EMovieScenePlayerStatus::Playing ||
@@ -821,6 +833,16 @@ bool FSequencer::IsInterpTangentModeSelected(ERichCurveInterpMode InterpMode, ER
 }
 
 
+float FSequencer::GetFixedFrameInterval() const
+{
+	if (GetFocusedMovieSceneSequence() && GetFocusedMovieSceneSequence()->GetMovieScene())
+	{
+		return GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval();
+	}
+
+	return 1.f;
+}
+
 void FSequencer::SnapToFrame()
 {
 	FScopedTransaction SnapToFrameTransaction(NSLOCTEXT("Sequencer", "SnapToFrame_Transaction", "Snap Selected Keys to Frame"));
@@ -836,7 +858,7 @@ void FSequencer::SnapToFrame()
 				float NewKeyTime = Key.KeyArea->GetKeyTime(Key.KeyHandle.GetValue());
 
 				// Convert to frame
-				float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
+				float FrameRate = 1.0f / GetFixedFrameInterval();
 				int32 NewFrame = SequencerHelpers::TimeToFrame(NewKeyTime, FrameRate);
 
 				// Convert back to time
@@ -942,6 +964,10 @@ void FSequencer::TransformSelectedKeysAndSections(float InDeltaTime, float InSca
 	}
 }
 
+void FSequencer::TranslateSelectedKeysAndSections(bool bTranslateLeft)
+{
+	TransformSelectedKeysAndSections(bTranslateLeft ? -GetFixedFrameInterval() : GetFixedFrameInterval(), 1.f);
+}
 
 void FSequencer::OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors )
 {
@@ -1200,6 +1226,132 @@ void FSequencer::SetPlaybackRange(TRange<float> Range)
 			bNeedsEvaluate = true;
 		}
 	}
+}
+
+void FSequencer::SetSelectionRangeToShot(const bool bNextShot)
+{
+	UMovieSceneSequence* Sequence = GetFocusedMovieSceneSequence();
+	UMovieScene* OwnerMovieScene = Sequence->GetMovieScene();
+
+	float CurrentTime = GetGlobalTime();
+
+	UMovieSceneTrack* CinematicShotTrack = OwnerMovieScene->FindMasterTrack(UMovieSceneCinematicShotTrack::StaticClass());
+	if (!CinematicShotTrack)
+	{
+		return;
+	}
+
+	float MinTime = TNumericLimits<float>::Max();
+
+	TMap<float, int32> StartTimeMap;
+	for (int32 SectionIndex = 0; SectionIndex < CinematicShotTrack->GetAllSections().Num(); ++SectionIndex)
+	{
+		UMovieSceneSection* ShotSection = CinematicShotTrack->GetAllSections()[SectionIndex];
+
+		if (ShotSection)
+		{
+			StartTimeMap.Add(ShotSection->GetStartTime(), SectionIndex);
+		}
+	}
+
+	StartTimeMap.KeySort(TLess<float>());
+
+	int32 MinShotIndex = -1;
+	for (auto StartTimeIt = StartTimeMap.CreateIterator(); StartTimeIt; ++StartTimeIt)
+	{
+		float StartTime = StartTimeIt->Key;
+		if (bNextShot)
+		{
+			if (StartTime > CurrentTime)
+			{
+				float DiffTime = FMath::Abs(StartTime - CurrentTime);
+				if (DiffTime < MinTime)
+				{
+					MinTime = DiffTime;
+					MinShotIndex = StartTimeIt->Value;
+				}
+			}
+		}
+		else
+		{
+			if (CurrentTime >= StartTime)
+			{
+				float DiffTime = FMath::Abs(StartTime - CurrentTime);
+				if (DiffTime < MinTime)
+				{
+					MinTime = DiffTime;
+					MinShotIndex = StartTimeIt->Value;
+				}
+			}
+		}
+	}
+
+	int32 TargetShotIndex = -1;
+
+	if (bNextShot)
+	{
+		TargetShotIndex = MinShotIndex;
+	}
+	else
+	{
+		int32 PreviousShotIndex = -1;
+		for (auto StartTimeIt = StartTimeMap.CreateIterator(); StartTimeIt; ++StartTimeIt)
+		{
+			if (StartTimeIt->Value == MinShotIndex)
+			{
+				if (PreviousShotIndex != -1)
+				{
+					TargetShotIndex = PreviousShotIndex;
+				}
+				break;
+			}
+			PreviousShotIndex = StartTimeIt->Value;
+		}
+	}
+
+	if (TargetShotIndex != -1)
+	{
+		UMovieSceneSection* TargetShotSection = CinematicShotTrack->GetAllSections()[TargetShotIndex];
+
+		if (TargetShotSection)
+		{
+			SetSelectionRange(TRange<float>(TargetShotSection->GetStartTime(), TargetShotSection->GetEndTime()));
+		}
+	}
+}
+
+void FSequencer::SetPlaybackRangeToAllShots()
+{
+	UMovieSceneSequence* Sequence = GetFocusedMovieSceneSequence();
+	UMovieScene* OwnerMovieScene = Sequence->GetMovieScene();
+
+	UMovieSceneTrack* CinematicShotTrack = OwnerMovieScene->FindMasterTrack(UMovieSceneCinematicShotTrack::StaticClass());
+	if (!CinematicShotTrack || CinematicShotTrack->GetAllSections().Num() == 0)
+	{
+		return;
+	}
+
+	float LowerBound = CinematicShotTrack->GetAllSections()[0]->GetStartTime();
+	float UpperBound = CinematicShotTrack->GetAllSections()[0]->GetEndTime();
+
+	for (int32 SectionIndex = 0; SectionIndex < CinematicShotTrack->GetAllSections().Num(); ++SectionIndex)
+	{
+		UMovieSceneSection* ShotSection = CinematicShotTrack->GetAllSections()[SectionIndex];
+		if (ShotSection)
+		{
+			if (ShotSection->GetStartTime() < LowerBound)
+			{
+				LowerBound = ShotSection->GetStartTime();
+			}
+
+			if (ShotSection->GetEndTime() > UpperBound)
+			{
+				UpperBound = ShotSection->GetEndTime();
+			}
+		}
+	}
+
+	SetPlaybackRange(TRange<float>(LowerBound, UpperBound));
 }
 
 bool FSequencer::IsPlaybackRangeLocked() const
@@ -1462,7 +1614,7 @@ void FSequencer::SetLocalTime( float NewTime, ESnapTimeMode SnapTimeMode )
 	// Perform snapping
 	if ((SnapTimeMode & ESnapTimeMode::STM_Interval) && Settings->GetIsSnapEnabled())
 	{
-		NewTime = Settings->SnapTimeToInterval(NewTime);
+		NewTime = SequencerHelpers::SnapTimeToInterval(NewTime, GetFixedFrameInterval());
 	}
 
 	if ((SnapTimeMode & ESnapTimeMode::STM_Keys) && (Settings->GetSnapPlayTimeToKeys() || FSlateApplication::Get().GetModifierKeys().IsShiftDown()))
@@ -1664,7 +1816,7 @@ void FSequencer::RenderMovieInternal(float InStartTime, float InEndTime) const
 
 	if (CanShowFrameNumbers())
 	{
-		MovieSceneCapture->Settings.FrameRate = FMath::RoundToInt(1.f / Settings->GetTimeSnapInterval());
+		MovieSceneCapture->Settings.FrameRate = FMath::RoundToInt(1.f / GetFixedFrameInterval());
 		MovieSceneCapture->Settings.ZeroPadFrameNumbers = Settings->GetZeroPadFrames();
 		MovieSceneCapture->Settings.bUseRelativeFrameNumbers = false;
 
@@ -1673,6 +1825,8 @@ void FSequencer::RenderMovieInternal(float InStartTime, float InEndTime) const
 
 		MovieSceneCapture->StartFrame = SequenceStartFrame;
 		MovieSceneCapture->EndFrame = SequenceEndFrame;
+		MovieSceneCapture->bUseCustomEndFrame = true;
+		MovieSceneCapture->bUseCustomStartFrame = true;
 	}
 
 	IMovieSceneCaptureDialogModule::Get().OpenDialog(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
@@ -1961,7 +2115,7 @@ void FSequencer::SetViewportSettings(const TMap<FViewportClient*, EMovieSceneVie
 					}
 					if (ViewportParams->SetWhichViewportParam & EMovieSceneViewportParams::SVP_FadeColor)
 					{
-						LevelVC->FadeColor = ViewportParams->FadeColor.ToRGBE();
+						LevelVC->FadeColor = ViewportParams->FadeColor.ToFColor(/*bSRGB=*/ true);
 						LevelVC->bEnableFading = true;
 					}
 					if (ViewportParams->SetWhichViewportParam & EMovieSceneViewportParams::SVP_ColorScaling)
@@ -2098,7 +2252,7 @@ void FSequencer::RecordSelectedActors()
 
 	if (Settings->ShouldRewindOnRecord())
 	{
-		Rewind();
+		JumpToStart();
 	}
 	
 	TArray<ACameraActor*> SelectedCameras;
@@ -2182,14 +2336,12 @@ TSharedRef<SWidget> FSequencer::MakeTransportControls(bool bExtended)
 
 	FTransportControlArgs TransportControlArgs;
 	{
-		TransportControlArgs.OnBackwardEnd.BindSP( this, &FSequencer::OnStepToBeginning );
+		TransportControlArgs.OnBackwardEnd.BindSP( this, &FSequencer::OnJumpToStart );
 		TransportControlArgs.OnBackwardStep.BindSP( this, &FSequencer::OnStepBackward );
 		TransportControlArgs.OnForwardPlay.BindSP( this, &FSequencer::OnPlay, true, 1.f );
 		TransportControlArgs.OnBackwardPlay.BindSP( this, &FSequencer::OnPlay, true, -1.f );
 		TransportControlArgs.OnForwardStep.BindSP( this, &FSequencer::OnStepForward );
-		TransportControlArgs.OnForwardEnd.BindSP( this, &FSequencer::OnStepToEnd );
-		TransportControlArgs.OnToggleLooping.BindSP( this, &FSequencer::OnToggleLooping );
-		TransportControlArgs.OnGetLooping.BindSP( this, &FSequencer::IsLooping );
+		TransportControlArgs.OnForwardEnd.BindSP( this, &FSequencer::OnJumpToEnd );
 		TransportControlArgs.OnGetPlaybackMode.BindSP( this, &FSequencer::GetPlaybackMode );
 		TransportControlArgs.OnGetRecording.BindSP(this, &FSequencer::IsRecording);
 
@@ -2216,7 +2368,7 @@ TSharedRef<SWidget> FSequencer::MakeTransportControls(bool bExtended)
 		{
 			TransportControlArgs.WidgetsToCreate.Add(FTransportControlWidget(FOnMakeTransportWidget::CreateSP(this, &FSequencer::OnCreateTransportSetPlaybackEnd)));
 		}
-		TransportControlArgs.WidgetsToCreate.Add(FTransportControlWidget(ETransportControlWidgetType::Loop));
+		TransportControlArgs.WidgetsToCreate.Add(FTransportControlWidget(FOnMakeTransportWidget::CreateSP(this, &FSequencer::OnCreateTransportLoopMode)));
 		TransportControlArgs.bAreButtonsFocusable = false;
 	}
 
@@ -2257,6 +2409,57 @@ TSharedRef<SWidget> FSequencer::OnCreateTransportSetPlaybackEnd()
 		.ToolTipText(LOCTEXT("SetPlayEnd_Tooltip", "Set playback end to the current position"))
 		.ButtonStyle(FEditorStyle::Get(), "Sequencer.Transport.SetPlayEnd")
 		.ContentPadding(2.0f);
+}
+
+TSharedRef<SWidget> FSequencer::OnCreateTransportLoopMode()
+{
+	TSharedRef<SButton> LoopButton = SNew(SButton)
+		.OnClicked(this, &FSequencer::OnCycleLoopMode)
+		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+		.ToolTipText_Lambda([&]()
+		{ 
+			if (GetLoopMode() == ESequencerLoopMode::SLM_NoLoop)
+			{
+				return LOCTEXT("LoopModeNoLoop_Tooltip", "No looping");
+			}
+			else if (GetLoopMode() == ESequencerLoopMode::SLM_Loop)
+			{
+				return LOCTEXT("LoopModeLoop_Tooltip", "Loop playback range");
+			}
+			else
+			{
+				return LOCTEXT("LoopModeLoopSelectionRange_Tooltip", "Loop selection range");
+			}
+		})
+		.ContentPadding(2.0f);
+
+	TWeakPtr<SButton> WeakButton = LoopButton;
+
+	LoopButton->SetContent(SNew(SImage)
+		.Image_Lambda([&, WeakButton]()
+		{
+			if (GetLoopMode() == ESequencerLoopMode::SLM_NoLoop)
+			{
+				return WeakButton.IsValid() && WeakButton.Pin()->IsPressed() ? 
+					&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Loop.Disabled").Pressed : 
+					&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Loop.Disabled").Normal;
+			}
+			else if (GetLoopMode() == ESequencerLoopMode::SLM_Loop)
+			{
+				return WeakButton.IsValid() && WeakButton.Pin()->IsPressed() ? 
+					&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Loop.Enabled").Pressed : 
+					&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Loop.Enabled").Normal;
+			}
+			else
+			{
+				return WeakButton.IsValid() && WeakButton.Pin()->IsPressed() ? 
+					&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Loop.SelectionRange").Pressed : 
+					&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Loop.SelectionRange").Normal;
+			}
+		})
+	);
+
+	return LoopButton;
 }
 
 TSharedRef<SWidget> FSequencer::OnCreateTransportRecord()
@@ -2404,7 +2607,7 @@ void FSequencer::HandleRecordingStarted(UMovieSceneSequence* Sequence)
 		float LocalTime = GetLocalTime();
 
 		Section->SetStartTime(LocalTime);
-		Section->SetEndTime(LocalTime + Settings->GetTimeSnapInterval());
+		Section->SetEndTime(LocalTime + GetFixedFrameInterval());
 	}
 }
 
@@ -2451,7 +2654,7 @@ void FSequencer::HandleRecordingFinished(UMovieSceneSequence* Sequence)
 FReply FSequencer::OnStepForward()
 {
 	SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
-	float NewPosition = GetLocalTime() + Settings->GetTimeSnapInterval();
+	float NewPosition = GetLocalTime() + GetFixedFrameInterval();
 	SetLocalTime(NewPosition, ESnapTimeMode::STM_Interval);
 	return FReply::Handled();
 }
@@ -2460,21 +2663,14 @@ FReply FSequencer::OnStepForward()
 FReply FSequencer::OnStepBackward()
 {
 	SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
-	float NewPosition = GetLocalTime() - Settings->GetTimeSnapInterval();
+	float NewPosition = GetLocalTime() - GetFixedFrameInterval();
 	const bool bAllowSnappingToFrames = true;
 	SetLocalTime(NewPosition, ESnapTimeMode::STM_Interval);
 	return FReply::Handled();
 }
 
 
-FReply FSequencer::OnStepToEnd()
-{
-	SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
-	SetLocalTime(GetPlaybackRange().GetUpperBoundValue());
-	return FReply::Handled();
-}
-
-FReply FSequencer::OnStepToBeginning()
+FReply FSequencer::OnJumpToStart()
 {
 	SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
 	SetLocalTime(GetPlaybackRange().GetLowerBoundValue());
@@ -2482,9 +2678,29 @@ FReply FSequencer::OnStepToBeginning()
 }
 
 
-FReply FSequencer::OnToggleLooping()
+FReply FSequencer::OnJumpToEnd()
 {
-	Settings->SetLooping(!Settings->IsLooping());
+	SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
+	SetLocalTime(GetPlaybackRange().GetUpperBoundValue());
+	return FReply::Handled();
+}
+
+
+FReply FSequencer::OnCycleLoopMode()
+{
+	ESequencerLoopMode LoopMode = Settings->GetLoopMode();
+	if (LoopMode == ESequencerLoopMode::SLM_NoLoop)
+	{
+		Settings->SetLoopMode(ESequencerLoopMode::SLM_Loop);
+	}
+	else if (LoopMode == ESequencerLoopMode::SLM_Loop && !GetSelectionRange().IsEmpty())
+	{
+		Settings->SetLoopMode(ESequencerLoopMode::SLM_LoopSelectionRange);
+	}
+	else if (LoopMode == ESequencerLoopMode::SLM_LoopSelectionRange || GetSelectionRange().IsEmpty())
+	{
+		Settings->SetLoopMode(ESequencerLoopMode::SLM_NoLoop);
+	}
 	return FReply::Handled();
 }
 
@@ -2553,9 +2769,9 @@ FReply FSequencer::JumpToNextKey()
 	return FReply::Handled();
 }
 
-bool FSequencer::IsLooping() const
+ESequencerLoopMode FSequencer::GetLoopMode() const
 {
-	return Settings->IsLooping();
+	return Settings->GetLoopMode();
 }
 
 
@@ -2568,7 +2784,7 @@ void FSequencer::SetLocalTimeLooped(float NewLocalTime)
 	TRange<float> TimeBounds = GetTimeBounds();
 
 	bool bRestarted = false;
-	if (Settings->IsLooping())
+	if (GetLoopMode() == ESequencerLoopMode::SLM_Loop || GetLoopMode() == ESequencerLoopMode::SLM_LoopSelectionRange)
 	{
 		const UMovieSceneSequence* FocusedSequence = GetFocusedMovieSceneSequence();
 		if (FocusedSequence)
@@ -2654,7 +2870,7 @@ void FSequencer::SetLocalTimeLooped(float NewLocalTime)
 
 bool FSequencer::CanShowFrameNumbers() const
 {
-	return SequencerSnapValues::IsTimeSnapIntervalFrameRate(Settings->GetTimeSnapInterval());
+	return SequencerSnapValues::IsTimeSnapIntervalFrameRate(GetFixedFrameInterval());
 }
 
 
@@ -2722,6 +2938,14 @@ TRange<float> FSequencer::GetTimeBounds() const
 		return TRange<float>( -100000.0f, 100000.0f );
 	}
 	
+	if (GetLoopMode() == ESequencerLoopMode::SLM_LoopSelectionRange)
+	{
+		if (!GetSelectionRange().IsEmpty())
+		{
+			return GetSelectionRange();
+		}
+	}
+
 	if (Settings->ShouldEvaluateSubSequencesInIsolation() || ActiveTemplateIDs.Num() == 1)
 	{
 		return FocusedSequence->GetMovieScene()->GetPlaybackRange();
@@ -2859,8 +3083,8 @@ void FSequencer::OnScrubPositionChanged( float NewScrubPosition, bool bScrubbing
 
 		if (Settings->GetIsSnapEnabled() && Settings->GetSnapPlayTimeToInterval())
 		{
-			LowerBound = Settings->SnapTimeToInterval(LowerBound);
-			UpperBound = Settings->SnapTimeToInterval(UpperBound);
+			LowerBound = SequencerHelpers::SnapTimeToInterval(LowerBound, GetFixedFrameInterval());
+			UpperBound = SequencerHelpers::SnapTimeToInterval(UpperBound, GetFixedFrameInterval());
 		}
 
 		NewScrubPosition = FMath::Clamp(NewScrubPosition, LowerBound, UpperBound);		
@@ -2884,11 +3108,9 @@ void FSequencer::OnBeginScrubbing()
 
 void FSequencer::OnEndScrubbing()
 {
-	SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
+	SetPlaybackStatus(EMovieScenePlayerStatus::Stopped);
 	AutoscrubOffset.Reset();
 	StopAutoscroll();
-
-	bNeedsEvaluate = true;
 }
 
 
@@ -3192,18 +3414,37 @@ bool FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> N
 
 		if (Track != nullptr)
 		{
-			OwnerMovieScene->Modify();
-			if (OwnerMovieScene->IsAMasterTrack(*Track))
+			// Remove sub tracks belonging to this row only
+			if (SectionAreaNode->GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::SubTrack)
 			{
-				OwnerMovieScene->RemoveMasterTrack(*Track);
-			}
-			else if (OwnerMovieScene->GetCameraCutTrack() == Track)
-			{
-				OwnerMovieScene->RemoveCameraCutTrack();
+				SectionAreaNode->GetTrack()->Modify();
+				TSet<TWeakObjectPtr<UMovieSceneSection> > SectionsToDelete;
+				for (TSharedRef<ISequencerSection> SectionToDelete : SectionAreaNode->GetSections())
+				{
+					UMovieSceneSection* Section = SectionToDelete->GetSectionObject();
+					if (Section)
+					{
+						SectionsToDelete.Add(Section);
+					}
+				}
+				DeleteSections(SectionsToDelete);
+				SectionAreaNode->GetTrack()->FixRowIndices();
 			}
 			else
 			{
-				OwnerMovieScene->RemoveTrack(*Track);
+				OwnerMovieScene->Modify();
+				if (OwnerMovieScene->IsAMasterTrack(*Track))
+				{
+					OwnerMovieScene->RemoveMasterTrack(*Track);
+				}
+				else if (OwnerMovieScene->GetCameraCutTrack() == Track)
+				{
+					OwnerMovieScene->RemoveCameraCutTrack();
+				}
+				else
+				{
+					OwnerMovieScene->RemoveTrack(*Track);
+				}
 			}
 		
 			bAnythingRemoved = true;
@@ -4027,11 +4268,11 @@ void FSequencer::AssignActor(FMenuBuilder& MenuBuilder, FGuid InObjectBinding)
 }
 
 
-void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid InObjectBinding)
+FGuid FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid InObjectBinding)
 {
 	if (NumActors <= 0)
 	{
-		return;
+		return FGuid();
 	}
 
 	//@todo: this code doesn't work with multiple actors, or when the existing binding is bound to multiple actors
@@ -4040,7 +4281,7 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 
 	if (Actor == nullptr)
 	{
-		return;
+		return FGuid();
 	}
 
 	FScopedTransaction AssignActor( NSLOCTEXT("Sequencer", "AssignActor", "Assign Actor") );
@@ -4057,10 +4298,10 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 	UObject* RuntimeObject = RuntimeObjects.Num() ? RuntimeObjects[0].Get() : nullptr;
 
 	// Replace the object itself
-	FGuid ParentGuid;
+	FGuid NewGuid;
 	{
 		// Get the object guid to assign, remove the binding if it already exists
-		ParentGuid = FindObjectId(*Actor, ActiveTemplateIDs.Top());
+		FGuid ParentGuid = FindObjectId(*Actor, ActiveTemplateIDs.Top());
 		FString NewActorLabel = Actor->GetActorLabel();
 		if (ParentGuid.IsValid())
 		{
@@ -4070,7 +4311,7 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 
 		// Add this object
 		FMovieScenePossessable NewPossessable( NewActorLabel, Actor->GetClass());
-		ParentGuid = NewPossessable.GetGuid();
+		NewGuid = NewPossessable.GetGuid();
 		OwnerSequence->BindPossessableObject(NewPossessable.GetGuid(), *Actor, GetPlaybackContext());
 
 		// Replace
@@ -4100,7 +4341,7 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 		FMovieScenePossessable* ThisPossessable = OwnerMovieScene->FindPossessable( NewPossessable.GetGuid() );
 		if ( ensure( ThisPossessable ) )
 		{
-			ThisPossessable->SetParent( ParentGuid );
+			ThisPossessable->SetParent( NewGuid );
 		}
 	};
 
@@ -4157,7 +4398,7 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 		{
 			Folder->Modify();
 			Folder->RemoveChildObjectBinding( InObjectBinding );
-			Folder->AddChildObjectBinding( ParentGuid );
+			Folder->AddChildObjectBinding( NewGuid );
 			bFolderFound = true;
 		}
 
@@ -4170,6 +4411,8 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 	RestorePreAnimatedState();
 
 	NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemsChanged );
+
+	return NewGuid;
 }
 
 void FSequencer::DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted)
@@ -4259,8 +4502,25 @@ void FSequencer::ExportTracksToText(TArray<UMovieSceneTrack*> TracksToExport, FS
 	ExportedText = Archive;
 }
 
-void FSequencer::PasteCopiedTracks(TArray<TSharedPtr<FSequencerObjectBindingNode>>& ObjectNodes)
+void FSequencer::PasteCopiedTracks()
 {
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Selection.GetSelectedOutlinerNodes();
+
+	TArray<TSharedPtr<FSequencerObjectBindingNode>> ObjectNodes;
+	for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
+	{
+		if (Node->GetType() != ESequencerNode::Object)
+		{
+			continue;
+		}
+
+		TSharedPtr<FSequencerObjectBindingNode> ObjectNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
+		if (ObjectNode.IsValid())
+		{
+			ObjectNodes.Add(ObjectNode);
+		}
+	}
+
 	FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
 	// Grab the text to paste from the clipboard
 	FString TextToImport;
@@ -4274,30 +4534,52 @@ void FSequencer::PasteCopiedTracks(TArray<TSharedPtr<FSequencerObjectBindingNode
 		Transaction.Cancel();
 		return;
 	}
-
-	for (TSharedPtr<FSequencerObjectBindingNode> ObjectNode : ObjectNodes)
+	
+	if (ObjectNodes.Num())
 	{
-		FGuid ObjectGuid = ObjectNode->GetObjectBinding();
-
-		TArray<UMovieSceneTrack*> NewTracks;
-		FSequencer::ImportTracksFromText(TextToImport, NewTracks);
-
-		for (UMovieSceneTrack* NewTrack : NewTracks)
+		for (TSharedPtr<FSequencerObjectBindingNode> ObjectNode : ObjectNodes)
 		{
-			if (!GetFocusedMovieSceneSequence()->GetMovieScene()->AddGivenTrack(NewTrack, ObjectGuid))
+			FGuid ObjectGuid = ObjectNode->GetObjectBinding();
+
+			TArray<UMovieSceneTrack*> NewTracks;
+			FSequencer::ImportTracksFromText(TextToImport, NewTracks);
+
+			for (UMovieSceneTrack* NewTrack : NewTracks)
 			{
-				FNotificationInfo Info(LOCTEXT("TrackAlreadyBound", "Can't Paste: Binding doesn't exist"));
-				Info.FadeInDuration = 0.1f;
-				Info.FadeOutDuration = 0.5f;
-				Info.ExpireDuration = 2.5f;
-				auto NotificationItem = FSlateNotificationManager::Get().AddNotification(Info);
+				if (!GetFocusedMovieSceneSequence()->GetMovieScene()->AddGivenTrack(NewTrack, ObjectGuid))
+				{
+					FNotificationInfo Info(LOCTEXT("TrackAlreadyBound", "Can't Paste: Binding doesn't exist"));
+					Info.FadeInDuration = 0.1f;
+					Info.FadeOutDuration = 0.5f;
+					Info.ExpireDuration = 2.5f;
+					auto NotificationItem = FSlateNotificationManager::Get().AddNotification(Info);
 
-				NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
-				NotificationItem->ExpireAndFadeout();
+					NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+					NotificationItem->ExpireAndFadeout();
 
-				continue;
+					continue;
+				}
+				else
+				{
+					NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
+				}
 			}
-			else
+		}
+
+		return;
+	}
+
+	// Add as master track or set camera cut track
+	for (UMovieSceneTrack* NewTrack : ImportedTracks)
+	{
+		if (NewTrack->IsA(UMovieSceneCameraCutTrack::StaticClass()))
+		{
+			GetFocusedMovieSceneSequence()->GetMovieScene()->SetCameraCutTrack(NewTrack);
+			NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
+		}
+		else
+		{
+			if (GetFocusedMovieSceneSequence()->GetMovieScene()->AddGivenMasterTrack(NewTrack))
 			{
 				NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
 			}
@@ -4880,9 +5162,14 @@ void FSequencer::PlayForward()
 }
 
 
-void FSequencer::Rewind()
+void FSequencer::JumpToStart()
 {
-	OnStepToBeginning();
+	OnJumpToStart();
+}
+
+void FSequencer::JumpToEnd()
+{
+	OnJumpToEnd();
 }
 
 void FSequencer::ShuttleForward()
@@ -4921,12 +5208,22 @@ void FSequencer::Pause()
 {
 	SetPlaybackStatus(EMovieScenePlayerStatus::Stopped);
 
-	// Snap time when stopping play
-	SetLocalTime(GetLocalTime(), ESnapTimeMode::STM_Interval);
+	// When stopping a sequence, we always evaluate a non-empty range if possible. This ensures accurate paused motion blur effects.
+	const float TimeSnapInterval = GetFixedFrameInterval();
+	if (Settings->GetIsSnapEnabled() && TimeSnapInterval > 0)
+	{
+		ScrubPosition = (SequencerHelpers::SnapTimeToInterval(GetLocalTime(), GetFixedFrameInterval()) + TimeSnapInterval) * RootToLocalTransform.Inverse();
 
-	// Update on stop (cleans up things like sounds that are playing)
-	FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(ScrubPosition, GetFocusedMovieSceneSequence()->GetMovieScene()->GetOptionalFixedFrameInterval());
-	EvaluateInternal(Range);
+		FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(ScrubPosition, GetRootMovieSceneSequence()->GetMovieScene()->GetOptionalFixedFrameInterval());
+		EvaluateInternal(Range);
+	}
+	else
+	{
+		// Update on stop (cleans up things like sounds that are playing)
+		TOptional<FMovieSceneEvaluationRange> LastRange = PlayPosition.GetLastRange();
+		FMovieSceneEvaluationRange Range = LastRange.IsSet() ? LastRange.GetValue() : PlayPosition.JumpTo(ScrubPosition, GetFocusedMovieSceneSequence()->GetMovieScene()->GetOptionalFixedFrameInterval());
+		EvaluateInternal(Range);
+	}
 }
 
 void FSequencer::StepForward()
@@ -5051,7 +5348,7 @@ void FSequencer::SetKeyTime(const bool bUseFrames)
 		}
 	}
 
-	float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
+	float FrameRate = 1.0f / GetFixedFrameInterval();
 	
 	GenericTextEntryModeless(
 		bUseFrames ? NSLOCTEXT("Sequencer.Popups", "SetKeyFramePopup", "New Frame") : NSLOCTEXT("Sequencer.Popups", "SetKeyTimePopup", "New Time"),
@@ -5067,7 +5364,7 @@ void FSequencer::OnSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Typ
 	CloseEntryPopupMenu();
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
-		float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
+		float FrameRate = 1.0f / GetFixedFrameInterval();
 		double dNewTime = bUseFrames ? SequencerHelpers::FrameToTime(FCString::Atod(*InText.ToString()), FrameRate) : FCString::Atod(*InText.ToString());
 		const bool bIsNumber = InText.IsNumeric(); 
 		if(!bIsNumber)
@@ -5585,6 +5882,8 @@ void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, b
 
 void FSequencer::FixActorReferences()
 {
+	FScopedTransaction FixActorReferencesTransaction( NSLOCTEXT( "Sequencer", "FixActorReferences", "Fix Actor References" ) );
+
 	UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 
 	TMap<FString, AActor*> ActorNameToActorMap;
@@ -5601,7 +5900,7 @@ void FSequencer::FixActorReferences()
 	for ( int32 i = 0; i < FocusedMovieScene->GetPossessableCount(); i++ )
 	{
 		FMovieScenePossessable& Possessable = FocusedMovieScene->GetPossessable( i );
-		// Possesbles with parents are components so ignore them.
+		// Possessables with parents are components so ignore them.
 		if ( Possessable.GetParent().IsValid() == false )
 		{
 			if ( FindBoundObjects(Possessable.GetGuid(), ActiveTemplateIDs.Top()).Num() == 0 )
@@ -5611,14 +5910,34 @@ void FSequencer::FixActorReferences()
 		}
 	}
 
-	// For the posseables to fix, look up the actors by name and reassign them if found.
+	// For the possessables to fix, look up the actors by name and reassign them if found.
+	TMap<FGuid, FGuid> OldGuidToNewGuidMap;
 	for ( const FMovieScenePossessable& ActorPossessableToFix : ActorsPossessablesToFix )
 	{
 		AActor** ActorPtr = ActorNameToActorMap.Find( ActorPossessableToFix.GetName() );
 		if ( ActorPtr != nullptr )
 		{
-			DoAssignActor( ActorPtr, 1, ActorPossessableToFix.GetGuid() );
+			FGuid OldGuid = ActorPossessableToFix.GetGuid();
+
+			// The actor might have an existing guid while the possessable with the same name might not. 
+			// In that case, make sure we also replace the existing guid with the new guid 
+			FGuid ExistingGuid = FindObjectId( **ActorPtr, ActiveTemplateIDs.Top() );
+
+			FGuid NewGuid = DoAssignActor( ActorPtr, 1, ActorPossessableToFix.GetGuid() );
+
+			OldGuidToNewGuidMap.Add(OldGuid, NewGuid);
+
+			if (ExistingGuid.IsValid())
+			{
+				OldGuidToNewGuidMap.Add(ExistingGuid, NewGuid);
+			}
 		}
+	}
+
+	// Fixup any section bindings
+	for (UMovieSceneSection* Section : FocusedMovieScene->GetAllSections())
+	{
+		Section->OnBindingsUpdated(OldGuidToNewGuidMap);
 	}
 }
 
@@ -5981,6 +6300,21 @@ void FSequencer::BindCommands()
 		FCanExecuteAction::CreateSP( this, &FSequencer::IsViewingMasterSequence ) );
 
 	SequencerCommandBindings->MapAction(
+		Commands.SetSelectionRangeToNextShot,
+		FExecuteAction::CreateSP( this, &FSequencer::SetSelectionRangeToShot, true ),
+		FCanExecuteAction::CreateSP( this, &FSequencer::IsViewingMasterSequence ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetSelectionRangeToPreviousShot,
+		FExecuteAction::CreateSP( this, &FSequencer::SetSelectionRangeToShot, false ),
+		FCanExecuteAction::CreateSP( this, &FSequencer::IsViewingMasterSequence ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetPlaybackRangeToAllShots,
+		FExecuteAction::CreateSP( this, &FSequencer::SetPlaybackRangeToAllShots ),
+		FCanExecuteAction::CreateSP( this, &FSequencer::IsViewingMasterSequence ) );
+
+	SequencerCommandBindings->MapAction(
 		Commands.ExpandAllNodesAndDescendants,
 		FExecuteAction::CreateSP(this, &FSequencer::ExpandAllNodesAndDescendants));
 
@@ -5999,6 +6333,14 @@ void FSequencer::BindCommands()
 	SequencerCommandBindings->MapAction(
 		Commands.SetKey,
 		FExecuteAction::CreateSP( this, &FSequencer::SetKey ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.TranslateLeft,
+		FExecuteAction::CreateSP( this, &FSequencer::TranslateSelectedKeysAndSections, true) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.TranslateRight,
+		FExecuteAction::CreateSP( this, &FSequencer::TranslateSelectedKeysAndSections, false) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.TrimSectionLeft,
@@ -6182,6 +6524,12 @@ void FSequencer::BindCommands()
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetSnapPlayTimeToInterval(); } ) );
 
 	SequencerCommandBindings->MapAction(
+		Commands.ToggleSnapPlayTimeToPressedKey,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetSnapPlayTimeToPressedKey( !Settings->GetSnapPlayTimeToPressedKey() ); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetSnapPlayTimeToPressedKey(); } ) );
+
+	SequencerCommandBindings->MapAction(
 		Commands.ToggleSnapPlayTimeToDraggedKey,
 		FExecuteAction::CreateLambda( [this]{ Settings->SetSnapPlayTimeToDraggedKey( !Settings->GetSnapPlayTimeToDraggedKey() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
@@ -6204,6 +6552,12 @@ void FSequencer::BindCommands()
 		FExecuteAction::CreateLambda( [this]{ Settings->SetLinkCurveEditorTimeRange(!Settings->GetLinkCurveEditorTimeRange()); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetLinkCurveEditorTimeRange(); } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleShowPreAndPostRoll,
+		FExecuteAction::CreateLambda( [this]{ Settings->SetShouldShowPrePostRoll(!Settings->ShouldShowPrePostRoll()); } ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->ShouldShowPrePostRoll(); } ) );
 
 	auto CanCutOrCopy = [this]{
 		// For copy tracks
@@ -6411,8 +6765,12 @@ void FSequencer::BindCommands()
 		FExecuteAction::CreateSP( this, &FSequencer::PlayForward ));
 
 	SequencerCommandBindings->MapAction(
-		Commands.Rewind,
-		FExecuteAction::CreateSP( this, &FSequencer::Rewind ));
+		Commands.JumpToStart,
+		FExecuteAction::CreateSP( this, &FSequencer::JumpToStart ));
+
+	SequencerCommandBindings->MapAction(
+		Commands.JumpToEnd,
+		FExecuteAction::CreateSP( this, &FSequencer::JumpToEnd ));
 
 	SequencerCommandBindings->MapAction(
 		Commands.ShuttleForward,

@@ -22,6 +22,7 @@ UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectIn
 {
 #if WITH_EDITORONLY_DATA
 	TrackTint = FColor(93, 95, 136);
+	RowHeight = 50;
 #endif
 }
 
@@ -78,7 +79,7 @@ TRange<float> UMovieSceneAudioTrack::GetSectionBoundaries() const
 	return TRange<float>::Hull(Bounds);
 }
 
-float GetSoundDuration(USoundBase* Sound)
+float UMovieSceneAudioTrack::GetSoundDuration(USoundBase* Sound)
 {
 	USoundWave* SoundWave = nullptr;
 

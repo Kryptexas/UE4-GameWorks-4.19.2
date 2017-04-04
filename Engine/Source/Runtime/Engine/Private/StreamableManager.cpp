@@ -797,11 +797,12 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 
 	if (TargetSet.Num() != TargetsToStream.Num())
 	{
+#if UE_BUILD_DEBUG
 		FString RequestedSet;
 
 		for (const FStringAssetReference& Asset : TargetsToStream)
 		{
-			if (RequestedSet.IsEmpty())
+			if (!RequestedSet.IsEmpty())
 			{
 				RequestedSet += TEXT(", ");
 			}
@@ -809,6 +810,8 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 		}
 
 		UE_LOG(LogStreamableManager, Error, TEXT("RequestAsyncLoad called with duplicate assets %s!"), *RequestedSet);
+#endif
+
 		NewRequest->RequestedAssets = TargetSet.Array();
 	}
 

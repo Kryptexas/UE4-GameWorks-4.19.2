@@ -14,7 +14,7 @@
 #include "VREditorUISystem.h"
 #include "VIBaseTransformGizmo.h"
 #include "ViewportWorldInteraction.h"
-#include "VREditorWorldInteraction.h"
+#include "VREditorPlacement.h"
 #include "VREditorAvatarActor.h"
 #include "VREditorTeleporter.h"
 #include "VREditorAutoScaler.h"
@@ -25,6 +25,7 @@
 #include "EngineGlobals.h"
 #include "ILevelEditor.h"
 #include "LevelEditor.h"
+#include "LevelEditorActions.h"
 #include "SLevelViewport.h"
 #include "MotionControllerComponent.h"
 #include "EngineAnalytics.h"
@@ -43,6 +44,7 @@
 #include "VREditorActions.h"
 #include "EditorModes.h"
 #include "VRModeSettings.h"
+
 
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
@@ -287,12 +289,10 @@ void UVREditorMode::Enter()
 
 		// Setup the UI system
 		UISystem = NewObject<UVREditorUISystem>();
-		UISystem->SetOwner( this );
-		UISystem->Init();
+		UISystem->Init(this);
 
-
-		VRWorldInteractionExtension = NewObject<UVREditorWorldInteraction>();
-		VRWorldInteractionExtension->Init( this, WorldInteraction );
+		PlacementSystem = NewObject<UVREditorPlacement>();
+		PlacementSystem->Init(this);
 
 		// Setup teleporter
 		TeleportActor = SpawnTransientSceneActor<AVREditorTeleporter>( TEXT("Teleporter"), true );
@@ -369,11 +369,11 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 		UISystem = nullptr;
 	}
 
-	if( VRWorldInteractionExtension != nullptr )
+	if( PlacementSystem != nullptr )
 	{
-		VRWorldInteractionExtension->Shutdown();
-		VRWorldInteractionExtension->MarkPendingKill();
-		VRWorldInteractionExtension = nullptr;
+		PlacementSystem->Shutdown();
+		PlacementSystem->MarkPendingKill();
+		PlacementSystem = nullptr;
 	}
 
 	if( TeleportActor != nullptr )
@@ -633,25 +633,6 @@ float UVREditorMode::GetWorldScaleFactor() const
 	return WorldInteraction->GetWorldScaleFactor();
 }
 
-
-void UVREditorMode::CleanUpActorsBeforeMapChangeOrSimulate()
-{
-	if ( WorldInteraction != nullptr )
-	{
-		// NOTE: This will be called even when this mode is not currently active!
-		DestroyTransientActor(AvatarActor);
-		AvatarActor = nullptr;
-		FlashlightComponent = nullptr;
-
-		if ( UISystem != nullptr )
-		{
-			UISystem->CleanupActorsBeforeShutdown();
-		}
-
-		WorldInteraction->Shutdown();
-	}
-}
-
 void UVREditorMode::ToggleFlashlight( UVREditorInteractor* Interactor )
 {
 	UVREditorMotionControllerInteractor* MotionControllerInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
@@ -792,7 +773,18 @@ UVREditorInteractor* UVREditorMode::GetHandInteractor( const EControllerHand Con
 
 void UVREditorMode::SnapSelectedActorsToGround()
 {
-	VRWorldInteractionExtension->SnapSelectedActorsToGround();
+	TSharedPtr<SLevelViewport> LevelEditorViewport = StaticCastSharedPtr<SLevelViewport>(WorldInteraction->GetDefaultOptionalViewportClient()->GetEditorViewportWidget());
+	if (LevelEditorViewport.IsValid())
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+		const FLevelEditorCommands& Commands = LevelEditorModule.GetLevelEditorCommands();
+		const TSharedPtr< FUICommandList >& CommandList = LevelEditorViewport->GetParentLevelEditor().Pin()->GetLevelEditorActions(); //@todo vreditor: Cast on leveleditor
+
+		CommandList->ExecuteAction(Commands.SnapBottomCenterBoundsToFloor.ToSharedRef());
+
+		// Force transformables to refresh
+		GEditor->NoteSelectionChange();
+	}
 }
 
 const UVREditorMode::FSavedEditorState& UVREditorMode::GetSavedEditorState() const
@@ -1119,7 +1111,12 @@ void UVREditorMode::RestoreFromPIE()
 	WorldInteraction->SetUseInputPreprocessor(true);
 	WorldInteraction->SetActive(true);
 
-	UISystem->HideRadialMenu(false);
+	UVREditorMotionControllerInteractor* UIInteractor = UISystem->GetUIInteractor();
+	if (UIInteractor != nullptr)
+	{
+		UIInteractor->ResetTrackpad();
+		UISystem->HideRadialMenu(false, false);
+	}
 }
 
 void UVREditorMode::RestoreWorldToMeters()
@@ -1184,6 +1181,10 @@ void UVREditorMode::ResetActionsMenuGenerator()
 	GetUISystem().GetRadialMenuHandler()->ResetActionsMenuGenerator();
 }
 
+void UVREditorMode::RefreshRadialMenuActionsSubmenu()
+{
+	GetUISystem().GetRadialMenuHandler()->RegisterMenuGenerator( GetUISystem().GetRadialMenuHandler()->GetActionsMenuGenerator() );
+}
 
 bool UVREditorMode::GetStartedPlayFromVREditor() const
 {
@@ -1202,6 +1203,11 @@ void UVREditorMode::PlaySound(USoundBase* SoundBase, const FVector& InWorldLocat
 		const float Volume = InVolume*VREd::SFXMultiplier->GetFloat();
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundBase, InWorldLocation, Volume);
 	}
+}
+
+bool UVREditorMode::IsAimingTeleport() const
+{
+	return TeleportActor->IsAiming();
 }
 
 void UVREditorMode::PostPIEStarted( bool bIsSimulatingInEditor )

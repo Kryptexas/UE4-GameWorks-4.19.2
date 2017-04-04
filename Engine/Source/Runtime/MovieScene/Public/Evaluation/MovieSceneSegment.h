@@ -8,6 +8,19 @@
 #include "Containers/ArrayView.h"
 #include "MovieSceneSegment.generated.h"
 
+/** Enumeration specifying how to evaluate a particular section when inside a segment */
+UENUM()
+enum class ESectionEvaluationFlags : uint8
+{
+	/** No special flags - normal evaluation */
+	None		= 0x00,
+	/** Segment resides inside the 'pre-roll' time for the section */
+	PreRoll		= 0x01,
+	/** Segment resides inside the 'post-roll' time for the section */
+	PostRoll	= 0x02,
+};
+ENUM_CLASS_FLAGS(ESectionEvaluationFlags);
+
 /**
  * Evaluation data that specifies information about what to evaluate for a given template
  */
@@ -16,12 +29,12 @@ struct FSectionEvaluationData
 {
 	GENERATED_BODY()
 
-	FSectionEvaluationData() : ForcedTime(TNumericLimits<float>::Lowest()) {}
-	explicit FSectionEvaluationData(int32 InImplIndex, float InForcedTime = TNumericLimits<float>::Lowest()) : ImplIndex(InImplIndex), ForcedTime(InForcedTime) {}
+	FSectionEvaluationData() : ForcedTime(TNumericLimits<float>::Lowest()), Flags(ESectionEvaluationFlags::None) {}
+	explicit FSectionEvaluationData(int32 InImplIndex, float InForcedTime = TNumericLimits<float>::Lowest()) : ImplIndex(InImplIndex), ForcedTime(InForcedTime), Flags(ESectionEvaluationFlags::None) {}
 
 	friend bool operator==(FSectionEvaluationData A, FSectionEvaluationData B)
 	{
-		return A.ImplIndex == B.ImplIndex && A.ForcedTime == B.ForcedTime;
+		return A.ImplIndex == B.ImplIndex && A.ForcedTime == B.ForcedTime && A.Flags == B.Flags;
 	}
 
 	float GetTime(float InActualTime)
@@ -29,17 +42,27 @@ struct FSectionEvaluationData
 		return ForcedTime == TNumericLimits<float>::Lowest() ? InActualTime : ForcedTime;
 	}
 
-	/** The implementation index we should evaluation (index into FMovieSceneEvaluationTrack::ChildTemplates) */
+	/** Check if this is a preroll eval */
+	FORCEINLINE bool IsPreRoll() const { return (Flags & ESectionEvaluationFlags::PreRoll) != ESectionEvaluationFlags::None; }
+
+	/** Check if this is a postroll eval */
+	FORCEINLINE bool IsPostRoll() const { return (Flags & ESectionEvaluationFlags::PostRoll) != ESectionEvaluationFlags::None; }
+
+	/** The implementation index we should evaluate (index into FMovieSceneEvaluationTrack::ChildTemplates) */
 	UPROPERTY()
 	int32 ImplIndex;
 
 	/** A forced time to evaluate this section at */
 	UPROPERTY()
 	float ForcedTime;
+
+	/** Additional flags for evaluating this section */
+	UPROPERTY()
+	ESectionEvaluationFlags Flags;
 };
 
 /**
- * Information about a singe segment of an evaluation track
+ * Information about a single segment of an evaluation track
  */
 USTRUCT()
 struct FMovieSceneSegment
@@ -53,13 +76,13 @@ struct FMovieSceneSegment
 		: Range(InRange)
 	{}
 
-	FMovieSceneSegment(const TRange<float>& InRange, TArrayView<int32> InApplicationImpls)
+	FMovieSceneSegment(const TRange<float>& InRange, TArrayView<FSectionEvaluationData> InApplicationImpls)
 		: Range(InRange)
 	{
 		Impls.Reserve(InApplicationImpls.Num());
-		for (int32 Impl : InApplicationImpls)
+		for (const FSectionEvaluationData& Impl : InApplicationImpls)
 		{
-			Impls.Add(FSectionEvaluationData(Impl));
+			Impls.Add(Impl);
 		}
 	}
 

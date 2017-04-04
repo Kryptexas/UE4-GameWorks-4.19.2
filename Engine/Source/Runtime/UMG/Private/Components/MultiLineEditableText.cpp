@@ -16,6 +16,7 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 {
 	SMultiLineEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._TextStyle;
+	bIsReadOnly = Defaults._IsReadOnly.Get();
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
 	AutoWrapText = true;
 	
@@ -40,6 +41,7 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 	MyMultiLineEditableText = SNew(SMultiLineEditableText)
 	.TextStyle(&WidgetStyle)
 	.AllowContextMenu(AllowContextMenu)
+	.IsReadOnly(bIsReadOnly)
 //	.MinDesiredWidth(MinimumDesiredWidth)
 //	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
 //	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
@@ -67,7 +69,8 @@ void UMultiLineEditableText::SynchronizeProperties()
 	MyMultiLineEditableText->SetText(Text);
 	MyMultiLineEditableText->SetHintText(HintTextBinding);
 	MyMultiLineEditableText->SetAllowContextMenu(AllowContextMenu);
-//	MyMultiLineEditableText->SetIsReadOnly(IsReadOnly);
+	MyMultiLineEditableText->SetIsReadOnly(bIsReadOnly);
+
 //	MyMultiLineEditableText->SetIsPassword(IsPassword);
 //	MyMultiLineEditableText->SetColorAndOpacity(ColorAndOpacity);
 
@@ -92,6 +95,16 @@ void UMultiLineEditableText::SetText(FText InText)
 	if ( MyMultiLineEditableText.IsValid() )
 	{
 		MyMultiLineEditableText->SetText(Text);
+	}
+}
+
+void UMultiLineEditableText::SetIsReadOnly(bool bReadOnly)
+{
+	bIsReadOnly = bReadOnly;
+
+	if ( MyMultiLineEditableText.IsValid() )
+	{
+		MyMultiLineEditableText->SetIsReadOnly(bIsReadOnly);
 	}
 }
 

@@ -8371,12 +8371,12 @@ FText FBlueprintEditorUtils::GetGraphDescription(const UEdGraph* InGraph)
 	UK2Node_EditablePinBase* FunctionEntryNode = GetEntryNode(InGraph);
 	if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 	{
-		return FText::FromString(TypedEntryNode->MetaData.ToolTip);
+		return TypedEntryNode->MetaData.ToolTip;
 	}
 	else if (UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(FunctionEntryNode))
 	{
 		// Must be exactly a tunnel, not a macro instance
-		return FText::FromString(TunnelNode->MetaData.ToolTip);
+		return TunnelNode->MetaData.ToolTip;
 	}
 
 	return LOCTEXT( "NoGraphTooltip", "(None)" );

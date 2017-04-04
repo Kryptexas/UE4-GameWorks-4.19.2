@@ -35,8 +35,8 @@ class ENGINE_API UMaterialExpressionReroute : public UMaterialExpression
 
 	virtual uint32 GetInputType(int32 InputIndex) override;
 	virtual uint32 GetOutputType(int32 OutputIndex) override;
-	virtual FString GetCreationDescription() const override;
-	virtual FString GetCreationName() const override;
+	virtual FText GetCreationDescription() const override;
+	virtual FText GetCreationName() const override;
 	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
 #endif
 	//~ End UMaterialExpression Interface

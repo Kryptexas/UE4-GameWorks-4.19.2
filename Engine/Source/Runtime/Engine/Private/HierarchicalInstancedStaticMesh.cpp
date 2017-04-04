@@ -98,7 +98,12 @@ static TAutoConsoleVariable<int32> CVarMinVertsToSplitNode(
 static TAutoConsoleVariable<int32> CVarMaxOcclusionQueriesPerComponent(
 	TEXT("foliage.MaxOcclusionQueriesPerComponent"),
 	16,
-	TEXT("Controls the granualrity of occlusion culling. 16-128 is a reasonable range."));
+	TEXT("Controls the granularity of occlusion culling. 16-128 is a reasonable range."));
+
+static TAutoConsoleVariable<int32> CVarMinOcclusionQueriesPerComponent(
+	TEXT("foliage.MinOcclusionQueriesPerComponent"),
+	6,
+	TEXT("Controls the granularity of occlusion culling. 2 should be the Min."));
 
 static TAutoConsoleVariable<int32> CVarMinInstancesPerOcclusionQuery(
 	TEXT("foliage.MinInstancesPerOcclusionQuery"),
@@ -336,7 +341,7 @@ public:
 		if (Num / MinInstancesPerOcclusionQuery < OcclusionLayerTarget)
 		{
 			OcclusionLayerTarget = Num / MinInstancesPerOcclusionQuery;
-			if (OcclusionLayerTarget < 6)
+			if (OcclusionLayerTarget < CVarMinOcclusionQueriesPerComponent.GetValueOnAnyThread())
 			{
 				OcclusionLayerTarget = 0;
 			}
@@ -354,6 +359,7 @@ public:
 	void Build()
 	{
 		Result = new FClusterTree;
+		Result->OutOcclusionLayerNum = 0;
 
 		if (Num == 0)
 		{
@@ -710,6 +716,22 @@ static FAutoConsoleCommand UnFreezeFoliageCullingCmd(
 	TEXT("Useful for debugging. Freezes the foliage culling and LOD."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&UnFreezeFoliageCulling)
 	);
+
+void ToggleFreezeFoliageCulling()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	TArray<FString> Args;
+
+	if (GCaptureDebugRuns == 0)
+	{
+		FreezeFoliageCulling(Args);
+	}
+	else
+	{
+		UnFreezeFoliageCulling(Args);
+	}
+#endif
+}
 
 
 struct FFoliageOcclusionResults
@@ -1670,6 +1692,14 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				}
 				FillDynamicMeshElements(Collector, ElementParams, InstanceParams);
 			}
+
+			if (View->Family->EngineShowFlags.FoliageOcclusionBounds)
+			{
+				for (auto& OcclusionBound : OcclusionBounds)
+				{
+					DrawWireBox(Collector.GetPDI(ViewIndex), OcclusionBound.GetBox(), FColor(255, 0, 0), View->Family->EngineShowFlags.Game ? SDPG_World : SDPG_Foreground);
+				}
+			}
 		}
 	}
 }
@@ -1732,6 +1762,7 @@ UHierarchicalInstancedStaticMeshComponent::UHierarchicalInstancedStaticMeshCompo
 	, NumBuiltRenderInstances(0)
 	, UnbuiltInstanceBounds(ForceInit)
 	, bEnableDensityScaling(false)
+	, OcclusionLayerNumNodes(0)
 	, bIsAsyncBuilding(false)
 	, bDiscardAsyncBuildResults(false)
 	, bConcurrentRemoval(false)

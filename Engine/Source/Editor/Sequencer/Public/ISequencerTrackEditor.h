@@ -158,6 +158,21 @@ public:
 	 */
 	virtual void Tick(float DeltaTime) = 0;
 
+	/**
+	 * @return Whether this track handles resize events
+	 */
+	virtual bool IsResizable(UMovieSceneTrack* InTrack) const
+	{
+		return false;
+	}
+
+	/**
+	 * Resize this track
+	 */
+	virtual void Resize(float NewSize, UMovieSceneTrack* InTrack)
+	{
+		
+	}
 	/** Gets the mode used when supporting sections on multiple rows. */
 	virtual EMultipleRowMode GetMultipleRowMode() const = 0;
 

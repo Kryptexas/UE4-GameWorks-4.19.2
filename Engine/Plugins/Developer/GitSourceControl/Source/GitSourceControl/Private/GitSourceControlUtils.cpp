@@ -10,10 +10,12 @@
 #include "Modules/ModuleManager.h"
 #include "ISourceControlModule.h"
 #include "GitSourceControlModule.h"
+#include "GitSourceControlProvider.h"
 
 #if PLATFORM_LINUX
 #include <sys/ioctl.h>
 #endif
+
 
 
 namespace GitSourceControlConstants
@@ -100,16 +102,16 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 	FullCommand += LogableCommand;
 
 #if UE_BUILD_DEBUG
-	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *FullCommand);
+	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *LogableCommand);
 #endif
 	
 	FPlatformProcess::ExecProcess(*InPathToGitBinary, *FullCommand, &ReturnCode, &OutResults, &OutErrors);
 	
 #if UE_BUILD_DEBUG
-	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'OutResults=\n%s'"), *OutResults);
+	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw(%s): OutResults=\n%s"), *InCommand, *OutResults)
 	if(ReturnCode != 0)
 	{
-		UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw: 'OutErrors=\n%s'"), *OutErrors);
+		UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw(%s): OutErrors=\n%s"), *InCommand, *OutErrors);
 	}
 #endif
 
@@ -227,7 +229,7 @@ FString FindGitBinaryPath()
 	return GitBinaryPath;
 }
 
-bool CheckGitAvailability(const FString& InPathToGitBinary)
+bool CheckGitAvailability(const FString& InPathToGitBinary, FGitVersion *OutVersion)
 {
 	bool bGitAvailable = false;
 
@@ -240,9 +242,49 @@ bool CheckGitAvailability(const FString& InPathToGitBinary)
 		{
 			bGitAvailable = false;
 		}
+		else if(OutVersion)
+		{
+			ParseGitVersion(InfoMessages, OutVersion);
+			FindGitCapabilities(InPathToGitBinary, OutVersion);
+		}
 	}
 
 	return bGitAvailable;
+}
+
+void ParseGitVersion(const FString& InVersionString, FGitVersion *OutVersion) 
+{
+	// Parse "git version 2.11.0" into the string tokens "git", "version", "2.11.0"
+	TArray<FString> TokenizedString;
+	InVersionString.ParseIntoArrayWS(TokenizedString);
+
+	// Select the string token containing the version "2.11.0"
+	const FString* TokenVersionStringPtr = TokenizedString.FindByPredicate([](FString& s) { return TChar<TCHAR>::IsDigit(s[0]); });
+	if(TokenVersionStringPtr)
+	{
+		// Parse the version into its two Major.Minor numerical components
+		TArray<FString> ParsedVersionString;
+		TokenVersionStringPtr->ParseIntoArray(ParsedVersionString, TEXT("."));
+		if(ParsedVersionString.Num() >= 2)
+		{
+			if(ParsedVersionString[0].IsNumeric() && ParsedVersionString[1].IsNumeric())
+			{
+				OutVersion->Major = FCString::Atoi(*ParsedVersionString[0]);
+				OutVersion->Minor = FCString::Atoi(*ParsedVersionString[1]);
+			}
+		}
+	}
+}
+
+void FindGitCapabilities(const FString& InPathToGitBinary, FGitVersion *OutVersion) 
+{
+	FString InfoMessages;
+	FString ErrorMessages;
+	RunCommandInternalRaw(TEXT("cat-file -h"), InPathToGitBinary, FString(), TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
+	if (InfoMessages.Contains("--filters"))
+	{
+		OutVersion->bHasCatFileWithFilters = true;
+	}
 }
 
 // Find the root of the Git repository, looking from the provided path and upward in its parent directories.
@@ -581,33 +623,16 @@ static void RunGetConflictStatus(const FString& InPathToGitBinary, const FString
 	}
 }
 
-/** Parse the array of strings results of a 'git status' command for a directory
+/** Run a 'git ls-files' command to get all files tracked by Git recursively in a directory.
  *
  * Called in case of a "directory status" (no file listed in the command) when using the "Submit to Source Control" menu.
- *
- * @see #ParseFileStatusResult() below for an example of a cm status results
 */
-static void ParseDirectoryStatusResult(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InResults, TArray<FGitSourceControlState>& OutStates)
+static bool ListFilesInDirectoryRecurse(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const FString& InDirectory, TArray<FString>& OutFiles)
 {
-	// Iterate on each line of result of the status command
-	for (const FString& Result : InResults)
-	{
-		const FString RelativeFilename = FilenameFromGitStatus(Result);
-		const FString File = FPaths::ConvertRelativePathToFull(InRepositoryRoot, RelativeFilename);
-		if (FPaths::FileExists(File))
-		{
-			FGitSourceControlState FileState(File);
-			FGitStatusParser StatusParser(Result);
-			FileState.WorkingCopyState = StatusParser.State;
-			FileState.TimeStamp.Now();
-			if (FileState.IsConflicted())
-			{
-				// In case of a conflict (unmerged file) get the base revision to merge
-				RunGetConflictStatus(InPathToGitBinary, InRepositoryRoot, File, FileState);
-			}
-			OutStates.Add(MoveTemp(FileState));
-		}
-	}
+	TArray<FString> ErrorMessages;
+	TArray<FString> Directory;
+	Directory.Add(InDirectory);
+	return RunCommandInternal(TEXT("ls-files"), InPathToGitBinary, InRepositoryRoot, TArray<FString>(), Directory, OutFiles, ErrorMessages);
 }
 
 /** Parse the array of strings results of a 'git status' command for a provided list of files all in a common directory
@@ -622,7 +647,9 @@ R  Content/Textures/T_Perlin_Noise_M.uasset -> Content/Textures/T_Perlin_Noise_M
 */
 static void ParseFileStatusResult(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InFiles, const TArray<FString>& InResults, TArray<FGitSourceControlState>& OutStates)
 {
-	// Iterate on all files explicitely listed in the command
+	const FDateTime Now = FDateTime::Now();
+
+	// Iterate on all files explicitly listed in the command
 	for(const auto& File : InFiles)
 	{
 		FGitSourceControlState FileState(File);
@@ -653,7 +680,7 @@ static void ParseFileStatusResult(const FString& InPathToGitBinary, const FStrin
 				FileState.WorkingCopyState = EWorkingCopyState::NotControlled;
 			}
 		}
-		FileState.TimeStamp.Now();
+		FileState.TimeStamp = Now;
 		OutStates.Add(FileState);
 	}
 }
@@ -674,9 +701,15 @@ static void ParseStatusResults(const FString& InPathToGitBinary, const FString& 
 {
 	if (1 == InFiles.Num() && FPaths::DirectoryExists(InFiles[0]))
 	{
-		// 1) Special case for "status" of a directory: requires a specific parse logic.
+		// 1) Special case for "status" of a directory: requires to get the list of files by ourselves.
 		//   (this is triggered by the "Submit to Source Control" menu)
-		ParseDirectoryStatusResult(InPathToGitBinary, InRepositoryRoot, InResults, OutStates);
+		TArray<FString> Files;
+		const FString& Directory = InFiles[0];
+		const bool bResult = ListFilesInDirectoryRecurse(InPathToGitBinary, InRepositoryRoot, Directory, Files);
+		if (bResult)
+		{
+			ParseFileStatusResult(InPathToGitBinary, InRepositoryRoot, Files, InResults, OutStates);
+		}
 	}
 	else
 	{
@@ -738,6 +771,9 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 	int32 ReturnCode = -1;
 	FString FullCommand;
 
+	FGitSourceControlModule& GitSourceControl = FModuleManager::LoadModuleChecked<FGitSourceControlModule>("GitSourceControl");
+	const FGitVersion& GitVersion = GitSourceControl.GetProvider().GetGitVersion();
+
 	if(!InRepositoryRoot.IsEmpty())
 	{
 		// Specify the working copy (the root) of the git repository (before the command itself)
@@ -747,8 +783,18 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 		FullCommand += TEXT("\" --git-dir=\"");
 		FullCommand += FPaths::Combine(*InRepositoryRoot, TEXT(".git\" "));
 	}
+
 	// then the git command itself
-	FullCommand += TEXT("cat-file --filters ");
+	if(GitVersion.bHasCatFileWithFilters)
+	{
+		// Newer versions (2.9.3.windows.2) support smudge/clean filters used by Git LFS, git-fat, git-annex, etc
+		FullCommand += TEXT("cat-file --filters ");
+	}
+	else
+	{
+		// Previous versions fall-back on "git show" like before
+		FullCommand += TEXT("show ");
+	}
 
 	// Append to the command the parameter
 	FullCommand += InParameter;

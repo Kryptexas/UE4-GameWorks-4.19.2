@@ -173,6 +173,9 @@ struct FAssetPickerConfig
 	/** The delegate that fires when an asset is right clicked and a context menu is requested */
 	FOnGetAssetContextMenu OnGetAssetContextMenu;
 
+	/** The delegate that fires when a folder is right clicked and a context menu is requested */
+	FOnGetFolderContextMenu OnGetFolderContextMenu;
+
 	/** Fired when an asset item is constructed and a tooltip is requested. If unbound the item will use the default widget */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
 
@@ -275,6 +278,9 @@ struct FPathPickerConfig
 
 	/** The delegate that fires when a path is right clicked and a context menu is requested */
 	FContentBrowserMenuExtender_SelectedPaths OnGetPathContextMenuExtender;
+
+	/** The delegate that fires when a folder is right clicked and a context menu is requested */
+	FOnGetFolderContextMenu OnGetFolderContextMenu;
 
 	/** A pointer to an existing delegate that, when executed, will set the paths for the path picker after it is created. */
 	TArray<FSetPathPickerPathsDelegate*> SetPathsDelegates;

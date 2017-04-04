@@ -108,7 +108,7 @@ public:
 class MOVIESCENE_API FTrackInstancePropertyBindings
 {
 public:
-	FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName = FName());
+	FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName = FName(), const FName& InNotifyFunctionName = FName());
 
 	/**
 	 * Calls the setter function for a specific runtime object or if the setter function does not exist, the property is set directly
@@ -120,18 +120,19 @@ public:
 	void CallFunction( UObject& InRuntimeObject, typename TCallTraits<ValueType>::ParamType PropertyValue )
 	{
 		FPropertyAndFunction PropAndFunction = FindOrAdd(InRuntimeObject);
-		if (PropAndFunction.Function)
+		if (UFunction* SetterFunction = PropAndFunction.SetterFunction.Get())
 		{
 			// ProcessEvent should really be taking const void*
-			InRuntimeObject.ProcessEvent(PropAndFunction.Function, (void*)&PropertyValue);
+			InRuntimeObject.ProcessEvent(SetterFunction, (void*)&PropertyValue);
 		}
-		else if (PropAndFunction.PropertyAddress.Address)
+		else if (ValueType* Val = PropAndFunction.GetPropertyAddress<ValueType>())
 		{
-			ValueType* Val = PropAndFunction.PropertyAddress.Property->ContainerPtrToValuePtr<ValueType>(PropAndFunction.PropertyAddress.Address);
-			if(Val)
-			{
-				*Val = MoveTemp(PropertyValue);
-			}
+			*Val = MoveTemp(PropertyValue);
+		}
+
+		if (UFunction* NotifyFunction = PropAndFunction.NotifyFunction.Get())
+		{
+			InRuntimeObject.ProcessEvent(NotifyFunction, nullptr);
 		}
 	}
 
@@ -169,16 +170,8 @@ public:
 	{
 		FPropertyAndFunction PropAndFunction = FindOrAdd(Object);
 
-		if(PropAndFunction.PropertyAddress.Address)
-		{
-			const ValueType* Val = PropAndFunction.PropertyAddress.Property->ContainerPtrToValuePtr<ValueType>(PropAndFunction.PropertyAddress.Address);
-			if(Val)
-			{
-				return *Val;
-			}
-		}
-
-		return ValueType();
+		const ValueType* Val = PropAndFunction.GetPropertyAddress<ValueType>();
+		return Val ? *Val : ValueType();
 	}
 
 	/**
@@ -200,12 +193,13 @@ public:
 	{
 		FPropertyAndFunction PropAndFunction = FindOrAdd(Object);
 
-		if(PropAndFunction.PropertyAddress.Address)
+		if(ValueType* Val = PropAndFunction.GetPropertyAddress<ValueType>())
 		{
-			ValueType* Val = PropAndFunction.PropertyAddress.Property->ContainerPtrToValuePtr<ValueType>(PropAndFunction.PropertyAddress.Address);
-			if(Val)
+			*Val = InValue;
+
+			if (UFunction* NotifyFunction = PropAndFunction.NotifyFunction.Get())
 			{
-				*Val = InValue;
+				Object.ProcessEvent(NotifyFunction, nullptr);
 			}
 		}
 	}
@@ -237,8 +231,18 @@ private:
 
 	struct FPropertyAddress
 	{
-		UProperty* Property;
+		TWeakObjectPtr<UProperty> Property;
 		void* Address;
+
+		UProperty* GetProperty() const
+		{
+			UProperty* PropertyPtr = Property.Get();
+			if (PropertyPtr && Address && !PropertyPtr->HasAnyFlags(RF_BeginDestroyed | RF_FinishDestroyed))
+			{
+				return PropertyPtr;
+			}
+			return nullptr;
+		}
 
 		FPropertyAddress()
 			: Property(nullptr)
@@ -249,11 +253,20 @@ private:
 	struct FPropertyAndFunction
 	{
 		FPropertyAddress PropertyAddress;
-		UFunction* Function;
+		TWeakObjectPtr<UFunction> SetterFunction;
+		TWeakObjectPtr<UFunction> NotifyFunction;
+
+		template<typename ValueType>
+		ValueType* GetPropertyAddress() const
+		{
+			UProperty* PropertyPtr = PropertyAddress.GetProperty();
+			return PropertyPtr ? PropertyPtr->ContainerPtrToValuePtr<ValueType>(PropertyAddress.Address) : nullptr;
+		}
 
 		FPropertyAndFunction()
 			: PropertyAddress()
-			, Function( nullptr )
+			, SetterFunction( nullptr )
+			, NotifyFunction( nullptr )
 		{}
 	};
 
@@ -266,7 +279,7 @@ private:
 		FObjectKey ObjectKey(&InObject);
 
 		const FPropertyAndFunction* PropAndFunction = RuntimeObjectToFunctionMap.Find(ObjectKey);
-		if (PropAndFunction)
+		if (PropAndFunction && (PropAndFunction->SetterFunction.IsValid() || PropAndFunction->PropertyAddress.Property.IsValid()))
 		{
 			return *PropAndFunction;
 		}
@@ -284,6 +297,9 @@ private:
 
 	/** Name of the function to call to set values */
 	FName FunctionName;
+
+	/** Name of a function to call when a value has been set */
+	FName NotifyFunctionName;
 
 	/** Actual name of the property we are bound to */
 	FName PropertyName;

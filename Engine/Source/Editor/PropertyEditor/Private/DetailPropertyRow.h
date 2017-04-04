@@ -128,6 +128,16 @@ private:
 	 * @param InEditor			The editor we wish to create if it does not yet exist.
 	 */
 	static TSharedRef<FPropertyEditor> MakePropertyEditor( const TSharedRef<FPropertyNode>& InPropertyNode, const TSharedRef<IPropertyUtilities>& PropertyUtilities, TSharedPtr<FPropertyEditor>& InEditor );
+
+	/**
+	 * Gets the property customization for the specified node
+	 *
+	 * @param	InPropertyNode		The node to check for customizations
+	 * @param	InParentCategory	The node's parent category
+	 * @return	The property customization for the node, or null if one does not exist
+	 */
+	static TSharedPtr<IPropertyTypeCustomization> GetPropertyCustomization( const TSharedRef<FPropertyNode>& InPropertyNode, const TSharedRef<FDetailCategoryImpl>& InParentCategory );
+
 private:
 	/** User driven enabled state */
 	TAttribute<bool> CustomIsEnabledAttrib;

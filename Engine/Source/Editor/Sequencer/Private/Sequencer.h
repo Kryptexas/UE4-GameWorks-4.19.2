@@ -36,6 +36,7 @@
 #include "LevelEditor.h"
 #include "SequencerTimingManager.h"
 #include "AcquiredResources.h"
+#include "SequencerSettings.h"
 
 class AActor;
 class ACineCameraActor;
@@ -184,6 +185,18 @@ public:
 		SetPlaybackRange(TRange<float>(GetLocalTime(), GetPlaybackRange().GetUpperBoundValue()));
 	}
 
+	/**
+	 * Set the selection range to the next or previous shot's range.
+	 *
+	 */	
+	void SetSelectionRangeToShot(const bool bNextShot);
+
+	/**
+	 * Set the playback range to all the shot's playback ranges.
+	 *
+	 */	
+	void SetPlaybackRangeToAllShots();
+
 public:
 
 	bool IsPlaybackRangeLocked() const;
@@ -234,6 +247,9 @@ public:
 	/** Is interpolation mode selected. */
 	bool IsInterpTangentModeSelected(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode) const;
 
+	/** Get the fixed frame interval of the current movie scene. */
+	float GetFixedFrameInterval() const;
+
 	/** Snap the currently selected keys to frame. */
 	void SnapToFrame();
 
@@ -242,6 +258,9 @@ public:
 
 	/** Transform the selected keys and sections */
 	void TransformSelectedKeysAndSections(float InDeltaTime, float InScale);
+
+	/** Translate the selected keys and section by the time snap interval */
+	void TranslateSelectedKeysAndSections(bool bTranslateLeft);
 
 	/**
 	 * @return Movie scene tools used by the sequencer
@@ -375,9 +394,9 @@ public:
 	FReply OnRecord();
 	FReply OnStepForward();
 	FReply OnStepBackward();
-	FReply OnStepToEnd();
-	FReply OnStepToBeginning();
-	FReply OnToggleLooping();
+	FReply OnJumpToStart();
+	FReply OnJumpToEnd();
+	FReply OnCycleLoopMode();
 	FReply SetPlaybackEnd();
 	FReply SetPlaybackStart();
 	FReply JumpToPreviousKey();
@@ -392,13 +411,12 @@ public:
 	/** Delegate handler for recording finishing */
 	void HandleRecordingFinished(UMovieSceneSequence* Sequence);
 
-	/** Whether or not playback is looping */
-	bool IsLooping() const;
-
 	/** Set the new global time, accounting for looping options */
 	void SetLocalTimeLooped(float InTime);
 
 	float AutoScroll(float InTime, ESnapTimeMode SnapTimeMode);
+
+	ESequencerLoopMode GetLoopMode() const;
 
 	EPlaybackMode::Type GetPlaybackMode() const;
 
@@ -425,7 +443,7 @@ public:
 
 	/** Called when a user executes the assign actor to track menu item */
 	void AssignActor(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
-	void DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid ObjectBinding);
+	FGuid DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid ObjectBinding);
 
 	/** Called when a user executes the delete node menu item */
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
@@ -437,7 +455,7 @@ public:
 
 	/** Called when a user executes the paste track menu item */
 	bool CanPaste(const FString& TextToImport) const;
-	void PasteCopiedTracks(TArray<TSharedPtr<FSequencerObjectBindingNode>>& ObjectNodes);
+	void PasteCopiedTracks();
 	void ImportTracksFromText(const FString& TextToImport, /*out*/ TArray<UMovieSceneTrack*>& ImportedTrack);
 
 	/** Called when a user executes the active node menu item */
@@ -748,7 +766,8 @@ protected:
 	/** Transport controls */
 	void TogglePlay();
 	void PlayForward();
-	void Rewind();
+	void JumpToStart();
+	void JumpToEnd();
 	void ShuttleForward();
 	void ShuttleBackward();
 	void StepForward();
@@ -822,6 +841,9 @@ protected:
 	/** Select keys and/or sections in a display node that fall into the current selection range. */
 	void SelectInSelectionRange(const TSharedRef<FSequencerDisplayNode>& DisplayNode, const TRange<float>& SelectionRange, bool bSelectKeys, bool bSelectSections);
 	
+	/** Create loop mode transport control */
+	TSharedRef<SWidget> OnCreateTransportLoopMode();
+
 	/** Create record transport control */
 	TSharedRef<SWidget> OnCreateTransportRecord();
 

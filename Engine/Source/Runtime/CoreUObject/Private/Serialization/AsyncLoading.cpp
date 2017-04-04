@@ -21,6 +21,7 @@
 #include "Misc/PackageName.h"
 #include "UObject/PackageFileSummary.h"
 #include "UObject/Linker.h"
+#include "UObject/CoreRedirects.h"
 #include "Misc/StringAssetReference.h"
 #include "UObject/LinkerLoad.h"
 #include "Serialization/DeferredMessageLog.h"
@@ -4580,7 +4581,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FFlushTree* FlushTree)
 {
 	check(IsInGameThread());
-
+	
 	const bool bLoadingSuspended = IsAsyncLoadingSuspended();
 	EAsyncPackageState::Type Result = bLoadingSuspended ? EAsyncPackageState::PendingImports : EAsyncPackageState::Complete;
 
@@ -4644,14 +4645,15 @@ EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimi
 						}
 					}
 #endif
-					if (!bDidSomething)
-			{
-				CheckForCycles();
+					if (!bDidSomething )
+					{
+						CheckForCycles();
 					}
-				IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("CheckForCycles (non-shipping)"));
+
+					IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("CheckForCycles (non-shipping)"));
+				}
 			}
 		}
-	}
 	}
 
 	return Result;
@@ -5488,8 +5490,15 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 
 		if (!Linker)
 		{
+			// Process any package redirects
+			FString NameToLoad;
+			{
+				const FCoreRedirectObjectName NewPackageName = FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Package, FCoreRedirectObjectName(NAME_None, NAME_None, Desc.NameToLoad));
+				NameToLoad = NewPackageName.PackageName.ToString();
+			}
+
 			// Allow delegates to resolve this path
-			FString NameToLoad = FPackageName::GetDelegateResolvedPackagePath(Desc.NameToLoad.ToString());
+			NameToLoad = FPackageName::GetDelegateResolvedPackagePath(NameToLoad);
 
 			// The editor must not redirect packages for localization.
 			if (!GIsEditor)

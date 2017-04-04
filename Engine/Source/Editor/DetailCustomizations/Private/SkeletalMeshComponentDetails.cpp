@@ -147,7 +147,8 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 			AnimationBlueprintHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.MinDesiredWidth(250.f)
+		.MinDesiredWidth(125.f)
+		.MaxDesiredWidth(250.f)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -220,6 +221,8 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 					NameWidget.ToSharedRef()
 				]
 				.ValueContent()
+				.MinDesiredWidth(125.f)
+				.MaxDesiredWidth(250.f)
 				[
 					PropWidget
 				];

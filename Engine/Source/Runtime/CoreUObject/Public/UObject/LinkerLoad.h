@@ -190,6 +190,12 @@ public:
 	 */
 	COREUOBJECT_API static void AddKnownMissingPackage(FName PackageName);
 
+	/**
+	 * Register that a package is no longer known missing and that it should be searched for again in the future
+	 * @return true if the provided package was removed from the KnownMissingPackage list
+	 */
+	COREUOBJECT_API static bool RemoveKnownMissingPackage(FName PackageName);
+
 	/** 
 	 * Checks if the linker has any objects in the export table that require loading.
 	 */

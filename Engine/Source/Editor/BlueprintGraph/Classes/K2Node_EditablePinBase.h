@@ -68,7 +68,7 @@ struct FKismetUserDeclaredFunctionMetadata
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	FString ToolTip;
+	FText ToolTip;
 
 	UPROPERTY()
 	FText Category;

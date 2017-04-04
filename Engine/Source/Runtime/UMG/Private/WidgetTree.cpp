@@ -1,6 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/Visual.h"
+#include "Components/Widget.h"
+#include "Blueprint/UserWidget.h"
 
 /////////////////////////////////////////////////////
 // UWidgetTree
@@ -103,12 +106,82 @@ bool UWidgetTree::TryMoveWidgetToNewTree(UWidget* Widget, UWidgetTree* Destinati
 
 void UWidgetTree::GetAllWidgets(TArray<UWidget*>& Widgets) const
 {
-	ForEachWidget([&] (UWidget* Widget) { Widgets.Add(Widget); });
+	ForEachWidget([&Widgets] (UWidget* Widget) {
+		Widgets.Add(Widget);
+	});
 }
 
 void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets)
 {
-	ForWidgetAndChildren(Parent, [&] (UWidget* Widget) { Widgets.Add(Widget); });
+	ForWidgetAndChildren(Parent, [&Widgets] (UWidget* Widget) {
+		Widgets.Add(Widget);
+	});
+}
+
+void UWidgetTree::ForEachWidget(TFunctionRef<void(UWidget*)> Predicate) const
+{
+	if ( RootWidget )
+	{
+		Predicate(RootWidget);
+
+		ForWidgetAndChildren(RootWidget, Predicate);
+	}
+}
+
+void UWidgetTree::ForEachWidgetAndDescendants(TFunctionRef<void(UWidget*)> Predicate) const
+{
+	if ( RootWidget )
+	{
+		Predicate(RootWidget);
+
+		ForWidgetAndChildren(RootWidget, [&Predicate] (UWidget* Child) {
+			if ( UUserWidget* UserWidgetChild = Cast<UUserWidget>(Child) )
+			{
+				if ( UserWidgetChild->WidgetTree )
+				{
+					UserWidgetChild->WidgetTree->ForEachWidgetAndDescendants(Predicate);
+				}
+			}
+			else
+			{
+				Predicate(Child);
+			}
+		});
+	}
+}
+
+void UWidgetTree::ForWidgetAndChildren(UWidget* Widget, TFunctionRef<void(UWidget*)> Predicate)
+{
+	// Search for any named slot with content that we need to dive into.
+	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
+	{
+		TArray<FName> SlotNames;
+		NamedSlotHost->GetSlotNames(SlotNames);
+
+		for ( FName SlotName : SlotNames )
+		{
+			if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+			{
+				Predicate(SlotContent);
+
+				ForWidgetAndChildren(SlotContent, Predicate);
+			}
+		}
+	}
+
+	// Search standard children.
+	if ( UPanelWidget* PanelParent = Cast<UPanelWidget>(Widget) )
+	{
+		for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )
+		{
+			if ( UWidget* ChildWidget = PanelParent->GetChildAt(ChildIndex) )
+			{
+				Predicate(ChildWidget);
+
+				ForWidgetAndChildren(ChildWidget, Predicate);
+			}
+		}
+	}
 }
 
 void UWidgetTree::PreSave(const class ITargetPlatform* TargetPlatform)

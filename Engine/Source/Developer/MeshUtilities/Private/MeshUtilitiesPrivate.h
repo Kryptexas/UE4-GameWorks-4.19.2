@@ -60,6 +60,7 @@ private:
 		FStaticMeshRenderData& OutRenderData,
 		TArray<FStaticMeshSourceModel>& SourceModels,
 		const FStaticMeshLODGroup& LODGroup,
+		int32 LightmapUVVersion,
 		int32 ImportVersion = EImportStaticMeshVersion::LastVersion
 		) override;
 
@@ -75,7 +76,7 @@ private:
 		int32 ImportVersion
 		) override;
 
-	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup) override;
+	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup, int32 LightmapUVVersion) override;
 
 	virtual void GenerateSignedDistanceFieldVolumeData(
 		FString MeshName,
@@ -178,6 +179,8 @@ private:
 
 	virtual void CreateProxyMesh(const TArray<AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync,
 		const float ScreenAreaSize = 1.0f) override;
+
+	virtual void ExportStaticMeshLOD(const FStaticMeshLODResources& StaticMeshLOD, FRawMesh& OutRawMesh) const override;
 
 	DEPRECATED(4.11, "Please use CreateProxyMesh with new signature")
 		virtual void CreateProxyMesh(

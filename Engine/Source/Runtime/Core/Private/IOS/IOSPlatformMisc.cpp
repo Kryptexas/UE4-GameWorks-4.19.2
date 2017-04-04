@@ -182,21 +182,26 @@ void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
 #endif
 }
 
+FString FIOSPlatformMisc::GetDefaultLanguage()
+{
+	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
+	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
+	FString LangCode((__bridge NSString*)LangCodeStr);
+	CFRelease(Languages);
+
+	return LangCode;
+}
 
 FString FIOSPlatformMisc::GetDefaultLocale()
 {
-	CFLocaleRef loc = CFLocaleCopyCurrent();
-    
-	TCHAR langCode[20];
-	CFArrayRef langs = CFLocaleCopyPreferredLanguages();
-	CFStringRef langCodeStr = (CFStringRef)CFArrayGetValueAtIndex(langs, 0);
-	FPlatformString::CFStringToTCHAR(langCodeStr, langCode);
-    
-	TCHAR countryCode[20];
-	CFStringRef countryCodeStr = (CFStringRef)CFLocaleGetValue(loc, kCFLocaleCountryCode);
-	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
-    
-	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
+	CFLocaleRef Locale = CFLocaleCopyCurrent();
+	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
+	FString LangCode((__bridge NSString*)LangCodeStr);
+	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
+	FString CountryCode((__bridge NSString*)CountryCodeStr);
+	CFRelease(Locale);
+
+	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
 }
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )

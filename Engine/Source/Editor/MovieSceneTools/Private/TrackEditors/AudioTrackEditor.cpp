@@ -40,9 +40,6 @@
 
 namespace AnimatableAudioEditorConstants
 {
-	// @todo Sequencer Allow this to be customizable
-	const uint32 WaveformHeight = 50;
-
 	// Optimization - maximum samples per pixel this sound allows
 	const uint32 MaxSamplesPerPixel = 60;
 }
@@ -101,11 +98,11 @@ static const int32 StrokeBorderSize = 2;
 /** A specific sample from the audio, specifying peak and average amplitude over the sample's range */
 struct FAudioSample
 {
-	FAudioSample() : RMS(0.f), NumSamples(0) {}
+	FAudioSample() : RMS(0.f), Peak(0), NumSamples(0) {}
 
 	float RMS;
+	int32 Peak;
 	int32 NumSamples;
-	TMap<int32, int32> Histogram;
 };
 
 /** A segment in a cubic spline */
@@ -147,7 +144,7 @@ private:
 	void GenerateWaveformPreview(TArray<uint8>& OutBuffer, TRange<float> DrawRange, float DisplayScale);
 
 	/** Sample the audio data at the given lookup position. Appends the sample result to the Samples array */
-	void SampleAudio(int32 NumChannels, const int16* LookupData, int32 LookupStartIndex, int32 LookupEndIndex, int32 LookupSize, int32 MaxAmplitude, bool bShowIntensity);
+	void SampleAudio(int32 NumChannels, const int16* LookupData, int32 LookupStartIndex, int32 LookupEndIndex, int32 LookupSize, int32 MaxAmplitude);
 
 	/** Generate a natural cubic spline from the sample buffer */
 	void GenerateSpline(int32 NumChannels, int32 SamplePositionOffset);
@@ -233,7 +230,7 @@ FAudioThumbnail::~FAudioThumbnail()
 }
 
 
-FIntPoint FAudioThumbnail::GetSize() const {return FIntPoint(TextureSize, AnimatableAudioEditorConstants::WaveformHeight);}
+FIntPoint FAudioThumbnail::GetSize() const {return FIntPoint(TextureSize, Section.GetTypedOuter<UMovieSceneAudioTrack>()->GetRowHeight());}
 FSlateShaderResource* FAudioThumbnail::GetViewportRenderTargetTexture() const {return Texture;}
 bool FAudioThumbnail::RequiresVsync() const {return false;}
 
@@ -323,8 +320,6 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 		return;
 	}
 
-	const bool bShowIntensity = AudioSection->ShouldShowIntensity();
-
 	// @todo Sequencer This fixes looping drawing by pretending we are only dealing with a SoundWave
 	TRange<float> AudioTrueRange = TRange<float>(
 		AudioSection->GetStartTime() - AudioSection->GetStartOffset(),
@@ -347,6 +342,13 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 	int32 FirstSample = -2.f*SmoothingAmount - SampleLockOffset;
 	int32 LastSample = GetSize().X + 2*SmoothingAmount;
 
+	{
+		// @todo: when SampleCount <= 0, we have fewer samples than pixels, and should start to interpolate the spline by that distance, rather than a hard coded pixel density
+		int32 NumSamplesInRange = FMath::TruncToInt(LookupSize * (DrawRangeSize /GetSize().X) / TrueRangeSize);
+		int32 SampleCount = NumSamplesInRange / NumChannels;
+	}
+
+
 	// Sample the audio one pixel to the left and right
 	for (int32 X = FirstSample; X < LastSample; ++X)
 	{
@@ -357,14 +359,8 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 		float NextLookupTime = ((float)(X + 0.5f) / (float)GetSize().X) * DrawRangeSize + DrawRange.GetLowerBoundValue();
 		float NextLookupFraction = (NextLookupTime - AudioTrueRange.GetLowerBoundValue()) / TrueRangeSize;
 		int32 NextLookupIndex = FMath::TruncToInt(NextLookupFraction  * LookupSize);
-
-		if (LookupRange)
-		{
-			LookupIndex -= FMath::Clamp(LookupIndex, 0, LookupSize) % LookupRange;
-			NextLookupIndex = LookupIndex + LookupRange;
-		}
 		
-		SampleAudio(SoundWave->NumChannels, LookupData, LookupIndex, NextLookupIndex, LookupSize, MaxAmplitude, bShowIntensity);
+		SampleAudio(SoundWave->NumChannels, LookupData, LookupIndex, NextLookupIndex, LookupSize, MaxAmplitude);
 	}
 
 	// Generate a spline
@@ -408,15 +404,9 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 
 			const FAudioSample& Sample = Samples[ChannelIndex][X - FirstSample];
 
-			float IntensitySummation = bShowIntensity ? Sample.NumSamples : 0.f;
 			for (int32 PixelIndex = 0; PixelIndex < MaxAmplitude; ++PixelIndex)
 			{
 				uint8* Pixel = LookupPixel(OutData, X, PixelIndex, Width, Height, ChannelIndex, NumChannels);
-
-				if (bShowIntensity)
-				{
-					IntensitySummation -= Sample.Histogram.FindRef(PixelIndex);
-				}
 
 				const float PixelCenter = PixelIndex + 0.5f;
 
@@ -430,10 +420,10 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 					BorderBlend = 1.f - FMath::Clamp(BoundaryStart - PixelIndex, 0.f, 1.f);
 				}
 				
-				FLinearColor Color = LerpHSV(SolidFilledColor, BoundaryColorHSV, BorderBlend).HSVToLinearRGB();
+				FLinearColor Color = PixelIndex == Sample.Peak ? FillColor_B.HSVToLinearRGB() : LerpHSV(SolidFilledColor, BoundaryColorHSV, BorderBlend).HSVToLinearRGB();
 
 				// Calculate alpha based on how far from the boundary we are
-				float Alpha = FMath::Max(FMath::Clamp(BoundaryEnd - PixelCenter, 0.f, 1.f), IntensitySummation / Sample.NumSamples);
+				float Alpha = FMath::Max(FMath::Clamp(BoundaryEnd - PixelCenter, 0.f, 1.f), FMath::Clamp(float(Sample.Peak) - PixelIndex + 0.25f, 0.f, 1.f));
 				if (Alpha <= 0.f)
 				{
 					break;
@@ -567,7 +557,7 @@ void FAudioThumbnail::GenerateSpline(int32 NumChannels, int32 SamplePositionOffs
 	}
 }
 
-void FAudioThumbnail::SampleAudio(int32 NumChannels, const int16* LookupData, int32 LookupStartIndex, int32 LookupEndIndex, int32 LookupSize, int32 MaxAmplitude, bool bShowIntensity)
+void FAudioThumbnail::SampleAudio(int32 NumChannels, const int16* LookupData, int32 LookupStartIndex, int32 LookupEndIndex, int32 LookupSize, int32 MaxAmplitude)
 {
 	LookupStartIndex = NumChannels == 2 ? (LookupStartIndex % 2 == 0 ? LookupStartIndex : LookupStartIndex - 1) : LookupStartIndex;
 	LookupEndIndex = FMath::Max(LookupEndIndex, LookupStartIndex + 1);
@@ -578,7 +568,16 @@ void FAudioThumbnail::SampleAudio(int32 NumChannels, const int16* LookupData, in
 	int32 Range = LookupEndIndex - LookupStartIndex;
 	int32 SampleCount = Range / StepSize;
 	int32 MaxSampleCount = AnimatableAudioEditorConstants::MaxSamplesPerPixel;
-	int32 ModifiedStepSize = (SampleCount > MaxSampleCount ? SampleCount / MaxSampleCount : 1) * StepSize;
+	int32 ModifiedStepSize = StepSize;
+	
+	if (SampleCount > MaxSampleCount)
+	{
+		// Always start from a common multiple
+		int32 Adjustment = LookupStartIndex % MaxSampleCount;
+		LookupStartIndex = FMath::Clamp(LookupStartIndex - Adjustment, 0, LookupSize);
+		LookupEndIndex = FMath::Clamp(LookupEndIndex - Adjustment, 0, LookupSize);
+		ModifiedStepSize *= (SampleCount / MaxSampleCount);
+	}
 
 	for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ++ChannelIndex)
 	{
@@ -589,10 +588,6 @@ void FAudioThumbnail::SampleAudio(int32 NumChannels, const int16* LookupData, in
 			if (Index < 0 || Index >= LookupSize)
 			{
 				NewSample.RMS += 0.f;
-				if (bShowIntensity)
-				{
-					++NewSample.Histogram.FindOrAdd(0);
-				}
 				++NewSample.NumSamples;
 				continue;
 			}
@@ -601,10 +596,7 @@ void FAudioThumbnail::SampleAudio(int32 NumChannels, const int16* LookupData, in
 			int32 Sample = FMath::Clamp(FMath::TruncToInt(FMath::Abs(DataPoint) / 32768.f * MaxAmplitude), 0, MaxAmplitude - 1);
 
 			NewSample.RMS += FMath::Pow(Sample, 2);
-			if (bShowIntensity)
-			{
-				++NewSample.Histogram.FindOrAdd(Sample);
-			}
+			NewSample.Peak = FMath::Max(NewSample.Peak, Sample);
 			++NewSample.NumSamples;
 		}
 
@@ -619,6 +611,7 @@ void FAudioThumbnail::SampleAudio(int32 NumChannels, const int16* LookupData, in
 FAudioSection::FAudioSection( UMovieSceneSection& InSection, bool bOnAMasterTrack, TWeakPtr<ISequencer> InSequencer )
 	: Section( InSection )
 	, StoredDrawRange(TRange<float>::Empty())
+	, StoredSectionHeight(0.f)
 	, bIsOnAMasterTrack(bOnAMasterTrack)
 	, Sequencer(InSequencer)
 {
@@ -654,7 +647,7 @@ FText FAudioSection::GetSectionTitle() const
 
 float FAudioSection::GetSectionHeight() const
 {
-	return (float)AnimatableAudioEditorConstants::WaveformHeight;
+	return Section.GetTypedOuter<UMovieSceneAudioTrack>()->GetRowHeight();
 }
 
 void FAudioSection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const
@@ -678,7 +671,7 @@ int32 FAudioSection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 		FSlateDrawElement::MakeViewport(
 			Painter.DrawElements,
 			++LayerId,
-			Painter.SectionGeometry.ToPaintGeometry(FVector2D(StoredXOffset, 0), FVector2D(StoredXSize, (float)AnimatableAudioEditorConstants::WaveformHeight + 8.f)),
+			Painter.SectionGeometry.ToPaintGeometry(FVector2D(StoredXOffset, 0), FVector2D(StoredXSize, GetSectionHeight() + 8.f)),
 			WaveformThumbnail,
 			Painter.SectionClippingRect,
 			(Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect) | ESlateDrawEffect::NoGamma,
@@ -724,7 +717,7 @@ void FAudioSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& Pa
 			!FMath::IsNearlyEqual(DrawRange.GetUpperBoundValue(), StoredDrawRange.GetUpperBoundValue()) ||
 			XOffset != StoredXOffset || XSize != StoredXSize || Track->GetColorTint() != StoredColor ||
 			StoredSoundWave != SoundWave ||
-			StoredShowIntensity != AudioSection->ShouldShowIntensity() ||
+			StoredSectionHeight != GetSectionHeight() ||
 			StoredStartOffset != AudioSection->GetStartOffset())
 		{
 			float DisplayScale = XSize / DrawRange.Size<float>();
@@ -757,8 +750,8 @@ void FAudioSection::RegenerateWaveforms(TRange<float> DrawRange, int32 XOffset, 
 	StoredXOffset = XOffset;
 	StoredXSize = XSize;
 	StoredColor = ColorTint;
-	StoredShowIntensity = AudioSection->ShouldShowIntensity();
 	StoredStartOffset = AudioSection->GetStartOffset();
+	StoredSectionHeight = GetSectionHeight();
 
 	if (DrawRange.IsDegenerate() || DrawRange.IsEmpty() || AudioSection->GetSound() == NULL)
 	{
@@ -841,6 +834,28 @@ const FSlateBrush* FAudioTrackEditor::GetIconBrush() const
 	return FEditorStyle::GetBrush("Sequencer.Tracks.Audio");
 }
 
+bool FAudioTrackEditor::IsResizable(UMovieSceneTrack* InTrack) const
+{
+	return true;
+}
+
+void FAudioTrackEditor::Resize(float NewSize, UMovieSceneTrack* InTrack)
+{
+	UMovieSceneAudioTrack* AudioTrack = Cast<UMovieSceneAudioTrack>(InTrack);
+	if (AudioTrack)
+	{
+		AudioTrack->Modify();
+
+		int32 MaxNumRows = 1;
+		for (UMovieSceneSection* Section : AudioTrack->GetAllSections())
+		{
+			MaxNumRows = FMath::Max(MaxNumRows, Section->GetRowIndex() + 1);
+		}
+
+		AudioTrack->SetRowHeight(FMath::RoundToInt(NewSize) / MaxNumRows);
+	}
+}
+
 EMultipleRowMode FAudioTrackEditor::GetMultipleRowMode() const
 {
 	return EMultipleRowMode::MultipleTrack;
@@ -850,7 +865,13 @@ TSharedRef<ISequencerSection> FAudioTrackEditor::MakeSectionInterface( UMovieSce
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 	
-	bool bIsAMasterTrack = Cast<UMovieScene>(Track.GetOuter())->IsAMasterTrack(Track);
+	bool bIsAMasterTrack = false;
+	UMovieScene* MovieScene = Cast<UMovieScene>(Track.GetOuter());
+	if (MovieScene)
+	{
+		bIsAMasterTrack = MovieScene->IsAMasterTrack(Track);
+	}
+
 	return MakeShareable( new FAudioSection(SectionObject, bIsAMasterTrack, GetSequencer()) );
 }
 

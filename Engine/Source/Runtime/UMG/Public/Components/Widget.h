@@ -126,6 +126,32 @@ namespace EWidgetDesignFlags
 }
 
 
+#if WITH_EDITOR
+
+/**
+ * Event args that are sent whenever the designer is changed in some big way, allows for more accurate previews for
+ * widgets that need to anticipate things about the size of the screen, or other similar device factors.
+ */
+struct FDesignerChangedEventArgs
+{
+public:
+	FDesignerChangedEventArgs()
+		: bScreenPreview(false)
+		, Size(0, 0)
+		, DpiScale(1.0f)
+	{
+	}
+
+public:
+	bool bScreenPreview;
+	FVector2D Size;
+	float DpiScale;
+};
+
+#endif
+
+
+
 /**
  * This is the base class for all wrapped Slate controls that are exposed to UObjects.
  */
@@ -561,7 +587,7 @@ public:
 	/**  */
 	bool AddBinding(UDelegateProperty* DelegateProperty, UObject* SourceObject, const FDynamicPropertyPath& BindingPath);
 
-	static TSubclassOf<class UPropertyBinding> FindBinderClassForDestination(UProperty* Property);
+	static TSubclassOf<UPropertyBinding> FindBinderClassForDestination(UProperty* Property);
 
 	// Begin UObject
 	virtual UWorld* GetWorld() const override;
@@ -614,6 +640,8 @@ public:
 	// Begin Designer contextual events
 	void SelectByDesigner();
 	void DeselectByDesigner();
+
+	virtual void OnDesignerChanged(const FDesignerChangedEventArgs& EventArgs) { }
 
 	virtual void OnSelectedByDesigner() { }
 	virtual void OnDeselectedByDesigner() { }
@@ -688,7 +716,7 @@ protected:
 
 	/** Native property bindings. */
 	UPROPERTY(Transient)
-	TArray<class UPropertyBinding*> NativeBindings;
+	TArray<UPropertyBinding*> NativeBindings;
 
 	static TArray<TSubclassOf<UPropertyBinding>> BinderClasses;
 

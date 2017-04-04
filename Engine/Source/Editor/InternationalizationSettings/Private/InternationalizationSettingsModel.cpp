@@ -15,10 +15,19 @@ UInternationalizationSettingsModel::UInternationalizationSettingsModel( const FO
 void UInternationalizationSettingsModel::ResetToDefault()
 {
 	// Inherit editor culture from engine settings. Empty otherwise.
+	FString SavedLanguageName;
+	GConfig->GetString(TEXT("Internationalization"), TEXT("Language"), SavedLanguageName, GEngineIni);
+	GConfig->SetString(TEXT("Internationalization"), TEXT("Language"), *SavedLanguageName, GEditorSettingsIni);
+
+	FString SavedLocaleName;
+	GConfig->GetString(TEXT("Internationalization"), TEXT("Locale"), SavedLocaleName, GEngineIni);
+	GConfig->SetString(TEXT("Internationalization"), TEXT("Locale"), *SavedLocaleName, GEditorSettingsIni);
+
 	FString SavedCultureName;
 	GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni);
 	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEditorSettingsIni );
 
+	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameLanguage"), TEXT(""), GEditorSettingsIni );
 	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), TEXT(""), GEditorSettingsIni );
 
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), true, GEditorSettingsIni );
@@ -28,26 +37,46 @@ void UInternationalizationSettingsModel::ResetToDefault()
 	GConfig->Flush(false, GEditorSettingsIni);
 }
 
-bool UInternationalizationSettingsModel::GetEditorCultureName(FString& OutEditorCultureName) const
+bool UInternationalizationSettingsModel::GetEditorLanguage(FString& OutEditorLanguage) const
 {
-	return GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), OutEditorCultureName, GEditorSettingsIni)
-		|| GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), OutEditorCultureName, GEngineIni);
+	return GConfig->GetString(TEXT("Internationalization"), TEXT("Language"), OutEditorLanguage, GEditorSettingsIni)
+		|| GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), OutEditorLanguage, GEditorSettingsIni)
+		|| GConfig->GetString(TEXT("Internationalization"), TEXT("Language"), OutEditorLanguage, GEngineIni)
+		|| GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), OutEditorLanguage, GEngineIni);
 }
 
-void UInternationalizationSettingsModel::SetEditorCultureName(const FString& CultureName)
+void UInternationalizationSettingsModel::SetEditorLanguage(const FString& InEditorLanguage)
 {
-	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *CultureName, GEditorSettingsIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Language"), *InEditorLanguage, GEditorSettingsIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), TEXT(""), GEditorSettingsIni ); // Clear legacy setting
 	GConfig->Flush(false, GEditorSettingsIni);
 }
 
-bool UInternationalizationSettingsModel::GetNativeGameCultureName(FString& OutNativeGameCultureName) const
+bool UInternationalizationSettingsModel::GetEditorLocale(FString& OutEditorLocale) const
 {
-	return GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameCulture"), OutNativeGameCultureName, GEditorSettingsIni);
+	return GConfig->GetString(TEXT("Internationalization"), TEXT("Locale"), OutEditorLocale, GEditorSettingsIni)
+		|| GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), OutEditorLocale, GEditorSettingsIni)
+		|| GConfig->GetString(TEXT("Internationalization"), TEXT("Locale"), OutEditorLocale, GEngineIni)
+		|| GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), OutEditorLocale, GEngineIni);
 }
 
-void UInternationalizationSettingsModel::SetNativeGameCultureName(const FString& CultureName)
+void UInternationalizationSettingsModel::SetEditorLocale(const FString& InEditorLocale)
 {
-	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), *CultureName, GEditorSettingsIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Locale"), *InEditorLocale, GEditorSettingsIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), TEXT(""), GEditorSettingsIni ); // Clear legacy setting
+	GConfig->Flush(false, GEditorSettingsIni);
+}
+
+bool UInternationalizationSettingsModel::GetNativeGameLanguage(FString& OutNativeGameLanguage) const
+{
+	return GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameLanguage"), OutNativeGameLanguage, GEditorSettingsIni)
+		|| GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameCulture"), OutNativeGameLanguage, GEditorSettingsIni);
+}
+
+void UInternationalizationSettingsModel::SetNativeGameLanguage(const FString& InNativeGameLanguage)
+{
+	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameLanguage"), *InNativeGameLanguage, GEditorSettingsIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), TEXT(""), GEditorSettingsIni ); // Clear legacy setting
 	GConfig->Flush(false, GEditorSettingsIni);
 }
 

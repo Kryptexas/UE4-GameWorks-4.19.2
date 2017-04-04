@@ -264,6 +264,7 @@ AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform 
 			PostSpawnActor(Asset, NewActor);
 		}
 
+
 		// Only do this if the actor wasn't already given a name
 		if (Name == NAME_None && Asset)
 		{
@@ -1143,6 +1144,7 @@ UActorFactoryEmptyActor::UActorFactoryEmptyActor(const FObjectInitializer& Objec
 {
 	DisplayName = LOCTEXT("ActorFactoryEmptyActorDisplayName", "Empty Actor");
 	NewActorClass = AActor::StaticClass();
+	bVisualizeActor = true;
 }
 
 bool UActorFactoryEmptyActor::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
@@ -1159,7 +1161,7 @@ AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, co
 
 		USceneComponent* RootComponent = NewObject<USceneComponent>(NewActor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 		RootComponent->Mobility = EComponentMobility::Movable;
-		RootComponent->bVisualizeComponent = true;
+		RootComponent->bVisualizeComponent = bVisualizeActor;
 		RootComponent->SetWorldTransform(Transform);
 
 		NewActor->SetRootComponent(RootComponent);

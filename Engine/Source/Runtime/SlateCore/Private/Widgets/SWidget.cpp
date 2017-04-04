@@ -27,8 +27,6 @@ SLATE_DECLARE_CYCLE_COUNTER(GSlateGetVisibility, "GetVisibility");
 
 TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 0, TEXT("Controls whether invisible widgets are ticked."));
 
-SLATECORE_API int32 bFoldTick = 1;
-FAutoConsoleVariableRef FoldTick(TEXT("Slate.FoldTick"), bFoldTick, TEXT("When folding, call Tick as part of the paint pass instead of a separate tick pass."));
 
 #if STATS
 
@@ -85,15 +83,7 @@ FName NAME_MouseMove(TEXT("MouseMove"));
 FName NAME_MouseDoubleClick(TEXT("MouseDoubleClick"));
 
 SWidget::SWidget()
-	: Cursor( TOptional<EMouseCursor::Type>() )
-	, EnabledState( true )
-	, Visibility( EVisibility::Visible )
-	, RenderTransform( )
-	, RenderTransformPivot( FVector2D::ZeroVector )
-	, DesiredSize(FVector2D::ZeroVector)
-	, ToolTip()
-	, LayoutCache(nullptr)
-	, bIsHovered(false)
+	: bIsHovered(false)
 	, bCanTick(true)
 	, bCanSupportFocus(true)
 	, bCanHaveChildren(true)
@@ -101,6 +91,14 @@ SWidget::SWidget()
 	, bForceVolatile(false)
 	, bCachedVolatile(false)
 	, bInheritedVolatility(false)
+	, DesiredSize(FVector2D::ZeroVector)
+	, EnabledState( true )
+	, Visibility( EVisibility::Visible )
+	, RenderTransform( )
+	, RenderTransformPivot( FVector2D::ZeroVector )
+	, Cursor( TOptional<EMouseCursor::Type>() )
+	, ToolTip()
+	, LayoutCache(nullptr)
 {
 	if (GIsRunning)
 	{
@@ -159,8 +157,6 @@ void SWidget::Construct(
 	Tag = InTag;
 	bForceVolatile = InForceVolatile;
 	MetaData = InMetaData;
-
-	CreateStatID();
 }
 
 FReply SWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
@@ -430,7 +426,7 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 	// Gather all children, whether they're visible or not.  We need to allow invisible widgets to
 	// consider whether they should still be invisible in their tick functions, as well as maintain
 	// other state when hidden,
-	FArrangedChildren ArrangedChildren(TickInvisibleWidgets.GetValueOnGameThread() ? EVisibility::All : EVisibility::Visible);
+	FArrangedChildren ArrangedChildren(TickInvisibleWidgets.GetValueOnAnyThread() ? EVisibility::All : EVisibility::Visible);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
 	// Recur!
@@ -766,7 +762,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	CachedGeometry = AllottedGeometry;
 	CachedGeometry.AppendTransform(FSlateLayoutTransform(Args.GetWindowToDesktopTransform()));
 
-	if ( bFoldTick && bCanTick )
+	if ( bCanTick )
 	{
 		SWidget* MutableThis = const_cast<SWidget*>(this);
 		MutableThis->ExecuteActiveTimers( Args.GetCurrentTime(), Args.GetDeltaTime() );

@@ -19,9 +19,8 @@ class FMathStructCustomization
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
-	/** Notification when the max/min spinner values are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
-	DECLARE_MULTICAST_DELEGATE_FourParams(FOnNumericEntryBoxDynamicSliderMaxValueChanged, float, TWeakPtr<SWidget>, bool, bool);
-	DECLARE_MULTICAST_DELEGATE_FourParams(FOnNumericEntryBoxDynamicSliderMinValueChanged, float, TWeakPtr<SWidget>, bool, bool);
+	/** Notification when the max/min slider values are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
+	DECLARE_MULTICAST_DELEGATE_FourParams(FOnNumericEntryBoxDynamicSliderMinMaxValueChanged, float, TWeakPtr<SWidget>, bool, bool);
 
 	FMathStructCustomization()
 		: bIsUsingSlider(false)
@@ -34,8 +33,9 @@ public:
 	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
-	FOnNumericEntryBoxDynamicSliderMaxValueChanged& GetOnNumericEntryBoxDynamicSliderMaxValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMaxValueChanged; }
-	FOnNumericEntryBoxDynamicSliderMinValueChanged& GetOnNumericEntryBoxDynamicSliderMinValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMinValueChanged; }
+	/** Return max/min slider value changed delegate (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged& GetOnNumericEntryBoxDynamicSliderMaxValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMaxValueChanged; }
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged& GetOnNumericEntryBoxDynamicSliderMinValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMinValueChanged; }
 
 	/** Callback when the max/min spinner value are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
 	template <typename NumericType>
@@ -43,7 +43,18 @@ public:
 
 	template <typename NumericType>
 	void OnDynamicSliderMinValueChanged(NumericType NewMinSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfLower);
+
+	/**
+	* Called to see if the value is enabled for editing
+	*
+	* @param WeakHandlePtr	Handle to the property that the new value is for
+	*/
+	bool IsValueEnabled(TWeakPtr<IPropertyHandle> WeakHandlePtr) const;
 	
+	/** Utility function that will extract common Math related numeric metadata */	
+	template <typename NumericType>
+	static void ExtractNumericMetadata(TSharedRef<IPropertyHandle>& PropertyHandle, TOptional<NumericType>& MinValue, TOptional<NumericType>& MaxValue, TOptional<NumericType>& SliderMinValue, TOptional<NumericType>& SliderMaxValue, NumericType& SliderExponent, NumericType& Delta, int32 &ShiftMouseMovePixelPerDelta, bool& SupportDynamicSliderMaxValue, bool& SupportDynamicSliderMinValue);
+
 protected:
 
 	/**
@@ -91,12 +102,6 @@ protected:
 	template<typename NumericType>
 	void OnValueCommitted(NumericType NewValue, ETextCommit::Type CommitType, TWeakPtr<IPropertyHandle> WeakHandlePtr);
 	
-	/**
-	 * Called to see if the value is enabled for editing
-	 *
-	 * @param WeakHandlePtr	Handle to the property that the new value is for
-	 */
-	bool IsValueEnabled(TWeakPtr<IPropertyHandle> WeakHandlePtr) const;
 
 	/**
 	 * Called when the value is changed in the property editor
@@ -142,8 +147,8 @@ private:
 
 protected:
 
-	FOnNumericEntryBoxDynamicSliderMaxValueChanged OnNumericEntryBoxDynamicSliderMaxValueChanged;
-	FOnNumericEntryBoxDynamicSliderMinValueChanged OnNumericEntryBoxDynamicSliderMinValueChanged;
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged OnNumericEntryBoxDynamicSliderMaxValueChanged;
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged OnNumericEntryBoxDynamicSliderMinValueChanged;
 
 	/** All the sorted children of the struct that should be displayed */
 	TArray< TSharedRef<IPropertyHandle> > SortedChildHandles;

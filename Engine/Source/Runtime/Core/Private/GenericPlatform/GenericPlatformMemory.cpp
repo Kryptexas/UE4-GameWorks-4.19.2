@@ -16,7 +16,7 @@
 #include "HAL/MemoryMisc.h"
 #include "Misc/CoreDelegates.h"
 
-#if PLATFORM_LINUX
+#if PLATFORM_LINUX || PLATFORM_MAC
 	#include <sys/mman.h>
 	// more mmap()-based platforms can be added
 	#define UE4_PLATFORM_USES_MMAP_FOR_BINNED_OS_ALLOCS			1
@@ -24,8 +24,8 @@
 	#define UE4_PLATFORM_USES_MMAP_FOR_BINNED_OS_ALLOCS			0
 #endif
 
-// maintain bookkeeping info in Debug and Development
-#define UE4_PLATFORM_SANITY_CHECK_OS_ALLOCATIONS			(UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+// maintain bookkeeping info in Debug and Development (the latter only in games and servers)
+#define UE4_PLATFORM_SANITY_CHECK_OS_ALLOCATIONS			(UE_BUILD_DEBUG || (UE_BUILD_DEVELOPMENT && (UE_GAME || UE_SERVER)))
 
 DEFINE_STAT(MCR_Physical);
 DEFINE_STAT(MCR_GPU);
@@ -364,7 +364,7 @@ void FGenericPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
 		// do checks, from most to least serious
 		if (UNLIKELY(PointerToUnmap != AllocDescriptor || SizeToUnmap != SizeInWholePages + DescriptorSize))
 		{
-			UE_LOG(LogHAL, Fatal, TEXT("BinnedFreeToOS(): info mismatch: descriptor ptr: %p, size %llu, but our pointer is %p and size %llu."), PointerToUnmap, SizeToUnmap, Ptr, (uint64)(SizeInWholePages + DescriptorSize));
+			UE_LOG(LogHAL, Fatal, TEXT("BinnedFreeToOS(): info mismatch: descriptor ptr: %p, size %llu, but our pointer is %p and size %llu."), PointerToUnmap, SizeToUnmap, AllocDescriptor, (uint64)(SizeInWholePages + DescriptorSize));
 			// unreachable
 			return;
 		}

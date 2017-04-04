@@ -9,6 +9,8 @@
 #include "Tracks/MovieSceneMaterialTrack.h"
 #include "Sections/ParameterSection.h"
 #include "SequencerUtilities.h"
+#include "Modules/ModuleManager.h"
+#include "MaterialEditorModule.h"
 
 
 #define LOCTEXT_NAMESPACE "MaterialTrackEditor"
@@ -63,28 +65,49 @@ TSharedRef<SWidget> FMaterialTrackEditor::OnGetAddParameterMenuContent( FGuid Ob
 	UMaterial* Material = GetMaterialForTrack( ObjectBinding, MaterialTrack );
 	if ( Material != nullptr )
 	{
+		UMaterialInterface* MaterialInterface = GetMaterialInterfaceForTrack(ObjectBinding, MaterialTrack);
+		
+		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>( MaterialInterface );	
+		TArray<FGuid> VisibleExpressions;
+
+		IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
+		bool bCollectedVisibleParameters = false;
+		if (MaterialEditorModule && MaterialInstance)
+		{
+			MaterialEditorModule->GetVisibleMaterialParameters(Material, MaterialInstance, VisibleExpressions);
+			bCollectedVisibleParameters = true;
+		}
+
 		TArray<FParameterNameAndAction> ParameterNamesAndActions;
 
 		// Collect scalar parameters.
 		TArray<FName> ScalarParameterNames;
 		TArray<FGuid> ScalarParmeterGuids;
 		Material->GetAllScalarParameterNames( ScalarParameterNames, ScalarParmeterGuids );
-		for ( const FName& ScalarParameterName : ScalarParameterNames )
+		for (int32 ScalarParameterIndex = 0; ScalarParameterIndex < ScalarParameterNames.Num(); ++ScalarParameterIndex)
 		{
-			FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddScalarParameter, ObjectBinding, MaterialTrack, ScalarParameterName ) );
-			FParameterNameAndAction NameAndAction( ScalarParameterName, AddParameterMenuAction );
-			ParameterNamesAndActions.Add(NameAndAction);
+			if (!bCollectedVisibleParameters || VisibleExpressions.Contains(ScalarParmeterGuids[ScalarParameterIndex]))
+			{
+				FName ScalarParameterName = ScalarParameterNames[ScalarParameterIndex];
+				FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddScalarParameter, ObjectBinding, MaterialTrack, ScalarParameterName ) );
+				FParameterNameAndAction NameAndAction( ScalarParameterName, AddParameterMenuAction );
+				ParameterNamesAndActions.Add(NameAndAction);
+			}
 		}
 
 		// Collect color parameters.
 		TArray<FName> ColorParameterNames;
 		TArray<FGuid> ColorParmeterGuids;
 		Material->GetAllVectorParameterNames( ColorParameterNames, ColorParmeterGuids );
-		for ( const FName& ColorParameterName : ColorParameterNames )
+		for (int32 ColorParameterIndex = 0; ColorParameterIndex < ColorParameterNames.Num(); ++ColorParameterIndex)
 		{
-			FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddColorParameter, ObjectBinding, MaterialTrack, ColorParameterName ) );
-			FParameterNameAndAction NameAndAction( ColorParameterName, AddParameterMenuAction );
-			ParameterNamesAndActions.Add( NameAndAction );
+			if (!bCollectedVisibleParameters || VisibleExpressions.Contains(ColorParmeterGuids[ColorParameterIndex]))
+			{
+				FName ColorParameterName = ColorParameterNames[ColorParameterIndex];
+				FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddColorParameter, ObjectBinding, MaterialTrack, ColorParameterName ) );
+				FParameterNameAndAction NameAndAction( ColorParameterName, AddParameterMenuAction );
+				ParameterNamesAndActions.Add( NameAndAction );
+			}
 		}
 
 		// Sort and generate menu.

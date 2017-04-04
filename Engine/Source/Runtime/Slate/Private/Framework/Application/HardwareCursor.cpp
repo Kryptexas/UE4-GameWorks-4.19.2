@@ -25,8 +25,10 @@ FHardwareCursor::FHardwareCursor(const FString& InPathToCursorWithoutExtension, 
 {
 	// The hotspot should be in normalized coordinates, because we multiply it by the width & height of the
 	// actual image we load into memory, which may vary per platform, to get the actual Pixel Hotspot.
-	check(InHotSpot.X >= 0.0f && InHotSpot.X <= 1.0f);
-	check(InHotSpot.Y >= 0.0f && InHotSpot.Y <= 1.0f);
+	ensure(InHotSpot.X >= 0.0f && InHotSpot.X <= 1.0f);
+	ensure(InHotSpot.Y >= 0.0f && InHotSpot.Y <= 1.0f);
+	InHotSpot.X = FMath::Clamp(InHotSpot.X, 0.0f, 1.0f);
+	InHotSpot.Y = FMath::Clamp(InHotSpot.Y, 0.0f, 1.0f);
 
 	// NOTE:
 	// The reason we don't include the file extension is so we can support prioritization
@@ -38,87 +40,31 @@ FHardwareCursor::FHardwareCursor(const FString& InPathToCursorWithoutExtension, 
 
 #if PLATFORM_WINDOWS
 
-	const FString AniCursor = InPathToCursorWithoutExtension + TEXT(".ani");
-	const FString CurCursor = InPathToCursorWithoutExtension + TEXT(".cur");
-
-	TArray<uint8> CursorFileData;
-
-	if (FFileHelper::LoadFileToArray(CursorFileData, *AniCursor, FILEREAD_Silent) || FFileHelper::LoadFileToArray(CursorFileData, *CurCursor, FILEREAD_Silent))
+	if ( LoadCursorFromAniOrCur(InPathToCursorWithoutExtension) )
 	{
-		//TODO Would be nice to find a way to do this that doesn't involve the temp file copy.
-
-		// The cursors may be in a pak file, if that's the case we need to write it to a temporary file
-		// and then load that file as the cursor.  It's a workaround because there doesn't appear to be
-		// a good way to load a cursor from anything other than a loose file or a resource.
-		FString TempCursorFile = FPaths::CreateTempFilename(FPlatformProcess::UserTempDir(), TEXT("Cursor-"), TEXT(".temp"));
-		if (FFileHelper::SaveArrayToFile(CursorFileData, *TempCursorFile))
-		{
-			CursorHandle = (HCURSOR)LoadImage(NULL,
-				*TempCursorFile,
-				IMAGE_CURSOR,
-				0,
-				0,
-				LR_LOADFROMFILE);
-
-			IFileManager::Get().Delete(*TempCursorFile);
-		}
+		// Successfully loaded Ani or Cur
 	}
-	else if (FindAndLoadCorrectResolutionPng(CursorFileData, InPathToCursorWithoutExtension))
+	else if ( LoadCursorFromPngs(InPathToCursorWithoutExtension, InHotSpot) )
 	{
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-
-		IImageWrapperPtr PngImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-		if (PngImageWrapper.IsValid() && PngImageWrapper->SetCompressed(CursorFileData.GetData(), CursorFileData.Num()))
-		{
-			const TArray<uint8>* RawImageData = nullptr;
-			if (PngImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawImageData))
-			{
-				const int32 Width = PngImageWrapper->GetWidth();
-				const int32 Height = PngImageWrapper->GetHeight();
-
-				CreateCursorFromRGBABuffer((FColor*)RawImageData->GetData(), Width, Height, InHotSpot);
-			}
-		}
+		// Successfully loaded cursor from Pngs
 	}
 
 #elif PLATFORM_MAC
 
-	const FString TiffCursor = InPathToCursorWithoutExtension + TEXT(".tiff");
-
-	TArray<uint8> CursorFileData;
-	if (FFileHelper::LoadFileToArray(CursorFileData, *TiffCursor, FILEREAD_Silent) || FindAndLoadCorrectResolutionPng(CursorFileData, InPathToCursorWithoutExtension))
+	if ( LoadCursorFromTiff(InPathToCursorWithoutExtension, InHotSpot) )
 	{
-		NSData* CursorData = [[NSData alloc] initWithBytes:CursorFileData.GetData() length : CursorFileData.Num()];
-		NSImage* CursorImage = [[NSImage alloc] initWithData:CursorData];
-		NSImageRep* CursorImageRep = [[CursorImage representations] objectAtIndex:0];
-
-		const int32 PixelHotspotX = FMath::RoundToInt(InHotSpot.X * CursorImageRep.pixelsWide);
-		const int32 PixelHotspotY = FMath::RoundToInt(InHotSpot.Y * CursorImageRep.pixelsHigh);
-
-		CursorHandle = [[NSCursor alloc] initWithImage:CursorImage hotSpot : NSMakePoint(PixelHotspotX, PixelHotspotY)];
-		[CursorImage release];
-		[CursorData release];
+		// Successfully loaded Tiff Cursor
+	}
+	else if ( LoadCursorFromPngs(InPathToCursorWithoutExtension, InHotSpot) )
+	{
+		// Successfully loaded cursor from Pngs
 	}
 
 #elif PLATFORM_LINUX
 
-	TArray<uint8> CursorFileData;
-	if (FindAndLoadCorrectResolutionPng(CursorFileData, InPathToCursorWithoutExtension))
+	if ( LoadCursorFromPngs(InPathToCursorWithoutExtension, InHotSpot) )
 	{
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-
-		IImageWrapperPtr PngImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-		if (PngImageWrapper.IsValid() && PngImageWrapper->SetCompressed(CursorFileData.GetData(), CursorFileData.Num()))
-		{
-			const TArray<uint8>* RawImageData = nullptr;
-			if (PngImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawImageData))
-			{
-				const int32 Width = PngImageWrapper->GetWidth();
-				const int32 Height = PngImageWrapper->GetHeight();
-
-				CreateCursorFromRGBABuffer((FColor*)RawImageData->GetData(), Width, Height, InHotSpot);
-			}
-		}
+		// Successfully loaded cursor from Pngs
 	}
 
 #endif
@@ -142,8 +88,10 @@ FHardwareCursor::FHardwareCursor(const TArray<FColor>& Pixels, FIntPoint InSize,
 {
 	// The hotspot should be in normalized coordinates, because we multiply it by the width & height of the
 	// actual image we load into memory, which may vary per platform, to get the actual Pixel Hotspot.
-	check(InHotSpot.X >= 0.0f && InHotSpot.X <= 1.0f);
-	check(InHotSpot.Y >= 0.0f && InHotSpot.Y <= 1.0f);
+	ensure(InHotSpot.X >= 0.0f && InHotSpot.X <= 1.0f);
+	ensure(InHotSpot.Y >= 0.0f && InHotSpot.Y <= 1.0f);
+	InHotSpot.X = FMath::Clamp(InHotSpot.X, 0.0f, 1.0f);
+	InHotSpot.Y = FMath::Clamp(InHotSpot.Y, 0.0f, 1.0f);
 
 	const int32 Width = InSize.X;
 	const int32 Height = InSize.Y;
@@ -158,24 +106,29 @@ void FHardwareCursor::CreateCursorFromRGBABuffer(const FColor* Pixels, int32 Wid
 	TArray<FColor> BGRAPixels;
 	BGRAPixels.AddUninitialized(Width * Height);
 
+	TArray<uint8> MaskPixels;
+	MaskPixels.AddUninitialized(Width * Height);
+
 	for (int32 Index = 0; Index < BGRAPixels.Num(); Index++)
 	{
 		const FColor& SrcPixel = Pixels[Index];
 		BGRAPixels[Index] = FColor(SrcPixel.B, SrcPixel.G, SrcPixel.R, SrcPixel.A);
+		MaskPixels[Index] = 255;
 	}
 
 	// The bitmap created is already in BGRA format, so we can just hand over the buffer.
 	HBITMAP CursorColor = ::CreateBitmap(Width, Height, 1, 32, BGRAPixels.GetData());
 	// Just create a dummy mask, we're making a full 32bit bitmap with support for alpha, so no need to worry about the mask.
-	HBITMAP CursorMask = ::CreateCompatibleBitmap(::GetDC(NULL), Width, Height);
+	HBITMAP CursorMask = ::CreateBitmap(Width, Height, 1, 8, MaskPixels.GetData());
 
 	ICONINFO IconInfo = { 0 };
 	IconInfo.fIcon = FALSE;
 	IconInfo.xHotspot = FMath::RoundToInt(InHotSpot.X * Width);
 	IconInfo.yHotspot = FMath::RoundToInt(InHotSpot.Y * Height);
 	IconInfo.hbmColor = CursorColor;
-	IconInfo.hbmMask = CursorMask;
+	IconInfo.hbmMask = CursorColor;
 
+	// @TODO NDarnell For some reason CreateIconIndirect creates a black square over RemoteDesktop.
 	CursorHandle = ::CreateIconIndirect(&IconInfo);
 
 	::DeleteObject(CursorColor);
@@ -235,97 +188,167 @@ void FHardwareCursor::CreateCursorFromRGBABuffer(const FColor* Pixels, int32 Wid
 #endif
 }
 
-bool FHardwareCursor::FindAndLoadCorrectResolutionPng(TArray<uint8>& Result, const FString& InPathToCursorWithoutExtension)
-{
 #if PLATFORM_WINDOWS
-	const int32 SystemCursorWidth = ::GetSystemMetrics(SM_CXCURSOR);
-	const int32 SystemCursorHeight = ::GetSystemMetrics(SM_CYCURSOR);
-#elif PLATFORM_MAC
-	// TODO: Is there a way to tell the current desired cursor size on OSX?
-	const int32 SystemCursorWidth = 32;
-	const int32 SystemCursorHeight = 32;
-#elif PLATFORM_LINUX
-	// TODO: Is there a way to tell the current desired cursor size on Linux ?
-	const int32 SystemCursorWidth = 32;
-	const int32 SystemCursorHeight = 32;
-#endif
 
-#if PLATFORM_DESKTOP
+bool FHardwareCursor::LoadCursorFromAniOrCur(const FString& InPathToCursorWithoutExtension)
+{
+	const FString AniCursor = InPathToCursorWithoutExtension + TEXT(".ani");
+	const FString CurCursor = InPathToCursorWithoutExtension + TEXT(".cur");
 
-	FString CursorsWithSizeSearch = FPaths::GetCleanFilename(InPathToCursorWithoutExtension) + TEXT("_*x*.png");
-
-	TArray<FString> PngCursorFiles;
-	IFileManager::Get().FindFilesRecursive(PngCursorFiles, *FPaths::GetPath(InPathToCursorWithoutExtension), *CursorsWithSizeSearch, true, false, false);
-
-	FString PngCursorPath = InPathToCursorWithoutExtension + TEXT(".png");
-	int32 SizeDistance = INT_MAX;
-	int32 CursorWidth = 0;
-	int32 CursorHeight = 0;
-
-	for (const FString& CursorFile : PngCursorFiles)
+	TArray<uint8> CursorFileData;
+	if ( FFileHelper::LoadFileToArray(CursorFileData, *AniCursor, FILEREAD_Silent) || FFileHelper::LoadFileToArray(CursorFileData, *CurCursor, FILEREAD_Silent) )
 	{
-		FString Dummy;
-		FString SizeAndExtension;
-		FString Size;
-		FString Width, Height;
+		//TODO Would be nice to find a way to do this that doesn't involve the temp file copy.
 
-		if (!CursorFile.Split(TEXT("_"), &Dummy, &SizeAndExtension, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
+		// The cursors may be in a pak file, if that's the case we need to write it to a temporary file
+		// and then load that file as the cursor.  It's a workaround because there doesn't appear to be
+		// a good way to load a cursor from anything other than a loose file or a resource.
+		FString TempCursorFile = FPaths::CreateTempFilename(FPlatformProcess::UserTempDir(), TEXT("Cursor-"), TEXT(".temp"));
+		if ( FFileHelper::SaveArrayToFile(CursorFileData, *TempCursorFile) )
 		{
-			continue;
-		}
+			CursorHandle = (HCURSOR)LoadImage(NULL,
+				*TempCursorFile,
+				IMAGE_CURSOR,
+				0,
+				0,
+				LR_LOADFROMFILE);
 
-		if (!SizeAndExtension.Split(TEXT("."), &Size, &Dummy))
-		{
-			continue;
-		}
-
-		if (!Size.Split(TEXT("x"), &Width, &Height))
-		{
-			continue;
-		}
-
-		if (FCString::IsPureAnsi(*Width) && FCString::IsPureAnsi(*Height))
-		{
-			int32 TempCursorWidth = FCString::Atoi(*Width);
-			int32 TempCursorHeight = FCString::Atoi(*Height);
-
-			int32 Distance = FMath::Abs(SystemCursorWidth - CursorWidth);
-			if (Distance < SizeDistance)
-			{
-				PngCursorPath = CursorFile;
-				CursorWidth = TempCursorWidth;
-				CursorHeight = TempCursorHeight;
-				SizeDistance = Distance;
-
-				if (SizeDistance == 0)
-				{
-					break;
-				}
-			}
-		}
-	}
-
-	if (FFileHelper::LoadFileToArray(Result, *PngCursorPath, FILEREAD_Silent))
-	{
-		UE_LOG(LogHardwareCursor, Log, TEXT("Loading Cursor '%s'."), *PngCursorPath);
-
-		if ( SizeDistance != 0 )
-		{
-			FString PngCursorFileName = FPaths::GetCleanFilename(PngCursorPath);
-			UE_LOG(LogHardwareCursor, Warning, TEXT("The cursor '%s' is %dx%d, but the OS requested a cursor of size %dx%d.  You should add another variation to get a pixel perfect cursor."), 
-				*PngCursorFileName, CursorWidth, CursorHeight, SystemCursorWidth, SystemCursorHeight);
+			IFileManager::Get().Delete(*TempCursorFile);
 		}
 
 		return true;
 	}
-	else
+
+	return false;
+}
+
+#elif PLATFORM_MAC
+
+bool FHardwareCursor::LoadCursorFromTiff(const FString& InPathToCursorWithoutExtension, FVector2D InHotSpot)
+{
+	const FString TiffCursor = InPathToCursorWithoutExtension + TEXT(".tiff");
+
+	TArray<uint8> CursorFileData;
+	if ( FFileHelper::LoadFileToArray(CursorFileData, *TiffCursor, FILEREAD_Silent) )
 	{
-		UE_LOG(LogHardwareCursor, Error, TEXT("Failed to load cursor '%s', couldn't find any matching cursors."), *PngCursorPath);
+		NSData* CursorData = [[NSData alloc] initWithBytes:CursorFileData.GetData() length : CursorFileData.Num()];
+		NSImage* CursorImage = [[NSImage alloc] initWithData:CursorData];
+		NSImageRep* CursorImageRep =[[CursorImage representations] objectAtIndex:0];
+
+		const int32 PixelHotspotX = FMath::RoundToInt(InHotSpot.X * CursorImageRep.pixelsWide);
+		const int32 PixelHotspotY = FMath::RoundToInt(InHotSpot.Y * CursorImageRep.pixelsHigh);
+
+		CursorHandle = [[NSCursor alloc] initWithImage:CursorImage hotSpot : NSMakePoint(PixelHotspotX, PixelHotspotY)];
+		[CursorImage release];
+		[CursorData release];
+
+		return true;
 	}
+
+	return false;
+}
 
 #endif
 
+bool FHardwareCursor::LoadCursorFromPngs(const FString& InPathToCursorWithoutExtension, FVector2D InHotSpot)
+{
+	TArray<TSharedPtr<FPngFileData>> CursorPngFiles;
+	if ( LoadAvailableCursorPngs(CursorPngFiles, InPathToCursorWithoutExtension) )
+	{
+		// @TODO NDarnell Support all resolutions by building multi-resolution cursors in memory.
+		TSharedPtr<FPngFileData> NearestCursor = CursorPngFiles[0];
+		float PlatformScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(0, 0);
+		for ( TSharedPtr<FPngFileData>& FileData : CursorPngFiles )
+		{
+			const float NewDelta = FMath::Abs(FileData->ScaleFactor - PlatformScaleFactor);
+			if ( NewDelta < FMath::Abs(NearestCursor->ScaleFactor - PlatformScaleFactor) )
+			{
+				NearestCursor = FileData;
+			}
+		}
+
+		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+		IImageWrapperPtr PngImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+
+		if ( PngImageWrapper.IsValid() && PngImageWrapper->SetCompressed(NearestCursor->FileData.GetData(), NearestCursor->FileData.Num()) )
+		{
+			const TArray<uint8>* RawImageData = nullptr;
+			if ( PngImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawImageData) )
+			{
+				const int32 Width = PngImageWrapper->GetWidth();
+				const int32 Height = PngImageWrapper->GetHeight();
+
+				CreateCursorFromRGBABuffer((FColor*)RawImageData->GetData(), Width, Height, InHotSpot);
+			}
+		}
+
+		return true;
+	}
+
 	return false;
+}
+
+bool FHardwareCursor::LoadAvailableCursorPngs(TArray< TSharedPtr<FPngFileData> >& Results, const FString& InPathToCursorWithoutExtension)
+{
+#if PLATFORM_DESKTOP
+
+	FString CursorsWithSizeSearch = FPaths::GetCleanFilename(InPathToCursorWithoutExtension) + TEXT("*.png");
+
+	TArray<FString> PngCursorFiles;
+	IFileManager::Get().FindFilesRecursive(PngCursorFiles, *FPaths::GetPath(InPathToCursorWithoutExtension), *CursorsWithSizeSearch, true, false, false);
+
+	bool bFoundCursor = false;
+
+	for ( const FString& FullCursorPath : PngCursorFiles )
+	{
+		FString CursorFile = FPaths::GetBaseFilename(FullCursorPath);
+
+		FString Dummy;
+		FString ScaleFactorSection;
+		FString ScaleFactor;
+
+		if ( CursorFile.Split(TEXT("@"), &Dummy, &ScaleFactorSection, ESearchCase::IgnoreCase, ESearchDir::FromEnd) )
+		{
+			if ( ScaleFactorSection.Split(TEXT("x"), &ScaleFactor, &Dummy) == false )
+			{
+				ScaleFactor = ScaleFactorSection;
+			}
+		}
+		else
+		{
+			ScaleFactor = TEXT("1");
+		}
+
+		if ( FCString::IsNumeric(*ScaleFactor) == false )
+		{
+			UE_LOG(LogHardwareCursor, Error, TEXT("Failed to load cursor '%s', non-numeric characters in the scale factor."), *FullCursorPath);
+			continue;
+		}
+
+		TSharedPtr<FPngFileData> PngFileData = MakeShared<FPngFileData>();
+		PngFileData->FileName = FullCursorPath;
+		PngFileData->ScaleFactor = FCString::Atof(*ScaleFactor);
+
+		if ( FFileHelper::LoadFileToArray(PngFileData->FileData, *FullCursorPath, FILEREAD_Silent) )
+		{
+			UE_LOG(LogHardwareCursor, Log, TEXT("Loading Cursor '%s'."), *FullCursorPath);
+		}
+
+		Results.Add(PngFileData);
+
+		bFoundCursor = true;
+	}
+
+	Results.StableSort([] (const TSharedPtr<FPngFileData>& InFirst, const TSharedPtr<FPngFileData>& InSecond) -> bool
+	{
+		return InFirst->ScaleFactor < InSecond->ScaleFactor;
+	});
+
+	return bFoundCursor;
+
+#else
+	return false;
+#endif
 }
 
 FHardwareCursor::~FHardwareCursor()
@@ -359,14 +382,4 @@ void* FHardwareCursor::GetHandle()
 #else
 	return nullptr;
 #endif
-}
-
-void FHardwareCursor::ReplaceTheShapeFor(EMouseCursor::Type InCursorType)
-{
-	TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
-
-	if (ICursor* Cursor = PlatformCursor.Get())
-	{
-		Cursor->SetTypeShape(InCursorType, GetHandle());
-	}
 }

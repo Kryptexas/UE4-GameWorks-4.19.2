@@ -21,20 +21,20 @@ struct FNewBlendSpacePlayerAction : public FEdGraphSchemaAction_K2NewNode
 		check(BlendSpace);
 
 		const bool bIsAimOffset = BlendSpace->IsA(UAimOffsetBlendSpace::StaticClass()) || BlendSpace->IsA(UAimOffsetBlendSpace1D::StaticClass());
-		FString NewTooltipDescription;
+		FText NewTooltipDescription;
 		if (bIsAimOffset)
 		{
 			UAnimGraphNode_RotationOffsetBlendSpace* Template = NewObject<UAnimGraphNode_RotationOffsetBlendSpace>();
 			Template->Node.BlendSpace = BlendSpace;
 			NodeTemplate = Template;
-			NewTooltipDescription = TEXT("Evaluates an aim offset at a particular coordinate to produce a pose");
+			NewTooltipDescription = LOCTEXT("EvalAimOffsetToMakePose", "Evaluates an aim offset at a particular coordinate to produce a pose");
 		}
 		else
 		{
 			UAnimGraphNode_BlendSpacePlayer* Template = NewObject<UAnimGraphNode_BlendSpacePlayer>();
 			Template->Node.BlendSpace = BlendSpace;
 			NodeTemplate = Template;
-			NewTooltipDescription = TEXT("Evaluates a blend space at a particular coordinate to produce a pose");
+			NewTooltipDescription = LOCTEXT("EvalBlendSpaceToMakePose", "Evaluates a blend space at a particular coordinate to produce a pose");
 		}
 
 		FText NewMenuDescription = NodeTemplate->GetNodeTitle(ENodeTitleType::ListView);

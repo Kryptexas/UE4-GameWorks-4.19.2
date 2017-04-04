@@ -60,6 +60,8 @@
 #include "ScopedTransaction.h"
 #include "Components/NamedSlot.h"
 
+#include "Math/TransformCalculus2D.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 const float HoveredAnimationTime = 0.150f;
@@ -315,13 +317,16 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 							[
 								SAssignNew(PreviewSurface, SDPIScaler)
 								.DPIScale(this, &SDesignerView::GetPreviewDPIScale)
+								[
+									SAssignNew(PreviewContainer, SBox)
+								]
 							]
 						]
 					]
 				]
 			]
 
-			// A layer in the overlay where we put all the user intractable widgets, like the reorder widgets.
+			// A layer in the overlay where we draw effects, like the highlight effects.
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
@@ -1645,6 +1650,14 @@ void SDesignerView::PopulateWidgetGeometryCache(FArrangedWidget& Root)
 
 int32 SDesignerView::HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs)
 {
+	DrawSelectionAndHoverOutline(PaintArgs);
+	DrawSafeZone(PaintArgs);
+
+	return PaintArgs.Layer + 1;
+}
+
+void SDesignerView::DrawSelectionAndHoverOutline(const FOnPaintHandlerParams& PaintArgs)
+{
 	const TSet<FWidgetReference>& SelectedWidgets = GetSelectedWidgets();
 
 	// Allow the extensions to paint anything they want.
@@ -1656,7 +1669,7 @@ int32 SDesignerView::HandleEffectsPainting(const FOnPaintHandlerParams& PaintArg
 	static const FName SelectionOutlineName("UMGEditor.SelectionOutline");
 
 	static const FLinearColor SelectedTint(0, 1, 0);
-	
+
 	const FSlateBrush* SelectionOutlineBrush = FEditorStyle::Get().GetBrush(SelectionOutlineName);
 	FVector2D SelectionBrushInflationAmount = FVector2D(16, 16) * FVector2D(SelectionOutlineBrush->Margin.Left, SelectionOutlineBrush->Margin.Top) * ( 1.0f / GetPreviewScale() );
 
@@ -1682,7 +1695,7 @@ int32 SDesignerView::HandleEffectsPainting(const FOnPaintHandlerParams& PaintArg
 				PaintArgs.ClippingRect,
 				ESlateDrawEffect::None,
 				SelectedTint
-				);
+			);
 		}
 	}
 
@@ -1712,8 +1725,101 @@ int32 SDesignerView::HandleEffectsPainting(const FOnPaintHandlerParams& PaintArg
 			HoveredTint
 			);
 	}
+}
 
-	return PaintArgs.Layer + 1;
+void SDesignerView::DrawSafeZone(const FOnPaintHandlerParams& PaintArgs)
+{
+	bool bCanShowSafeZone = false;
+
+	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
+	{
+		switch ( DefaultWidget->DesignSizeMode )
+		{
+		case EDesignPreviewSizeMode::CustomOnScreen:
+		case EDesignPreviewSizeMode::DesiredOnScreen:
+		case EDesignPreviewSizeMode::FillScreen:
+			bCanShowSafeZone = true;
+			break;
+		}
+	}
+
+	if ( bCanShowSafeZone )
+	{
+		IConsoleVariable* SafeZoneDebugMode = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DebugSafeZone.Mode"));
+		check(SafeZoneDebugMode);
+
+		int32 DebugSafeZoneMode = SafeZoneDebugMode->GetInt();
+		if ( DebugSafeZoneMode != 0 )
+		{
+			FDisplayMetrics Metrics;
+			FSlateApplication::Get().GetDisplayMetrics(Metrics);
+
+			const FMargin DebugSafeMargin = ( DebugSafeZoneMode == 1 ) ?
+				FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
+				FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+
+			float PaddingRatio = DebugSafeMargin.Left / ( Metrics.PrimaryDisplayWidth * 0.5 );
+
+			const FMargin SafeMargin = FMargin(PaddingRatio * PreviewWidth * 0.5, PaddingRatio * PreviewHeight * 0.5);
+
+			const float UnsafeZoneAlpha = 0.2f;
+			const FLinearColor UnsafeZoneColor(1.0f, 0.5f, 0.5f, UnsafeZoneAlpha);
+
+			const float Width = PreviewWidth;
+			const float Height = PreviewHeight;
+
+			const float HeightOfSides = Height - SafeMargin.GetTotalSpaceAlong<Orient_Vertical>();
+
+			FGeometry PreviewGeometry = PreviewAreaConstraint->GetCachedGeometry();
+			PreviewGeometry.AppendTransform(FSlateLayoutTransform(Inverse(PaintArgs.Args.GetWindowToDesktopTransform())));
+
+			const FSlateBrush* WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
+
+			// Top bar
+			FSlateDrawElement::MakeBox(
+				PaintArgs.OutDrawElements,
+				PaintArgs.Layer,
+				PreviewGeometry.ToPaintGeometry(FVector2D::ZeroVector, FVector2D(Width, SafeMargin.Top)),
+				WhiteBrush,
+				PaintArgs.ClippingRect,
+				ESlateDrawEffect::None,
+				UnsafeZoneColor
+			);
+
+			// Bottom bar
+			FSlateDrawElement::MakeBox(
+				PaintArgs.OutDrawElements,
+				PaintArgs.Layer,
+				PreviewGeometry.ToPaintGeometry(FVector2D(0.0f, Height - SafeMargin.Bottom), FVector2D(Width, SafeMargin.Bottom)),
+				WhiteBrush,
+				PaintArgs.ClippingRect,
+				ESlateDrawEffect::None,
+				UnsafeZoneColor
+			);
+
+			// Left bar
+			FSlateDrawElement::MakeBox(
+				PaintArgs.OutDrawElements,
+				PaintArgs.Layer,
+				PreviewGeometry.ToPaintGeometry(FVector2D(0.0f, SafeMargin.Top), FVector2D(SafeMargin.Left, HeightOfSides)),
+				WhiteBrush,
+				PaintArgs.ClippingRect,
+				ESlateDrawEffect::None,
+				UnsafeZoneColor
+			);
+
+			// Right bar
+			FSlateDrawElement::MakeBox(
+				PaintArgs.OutDrawElements,
+				PaintArgs.Layer,
+				PreviewGeometry.ToPaintGeometry(FVector2D(Width - SafeMargin.Right, SafeMargin.Top), FVector2D(SafeMargin.Right, HeightOfSides)),
+				WhiteBrush,
+				PaintArgs.ClippingRect,
+				ESlateDrawEffect::None,
+				UnsafeZoneColor
+			);
+		}
+	}
 }
 
 void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
@@ -1751,6 +1857,8 @@ void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 					WidgetRef.GetPreview()->SelectByDesigner();
 				}
 			}
+
+			BroadcastDesignerChanged();
 		}
 		else
 		{
@@ -1766,6 +1874,33 @@ void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 				]
 			];
 		}
+	}
+}
+
+void SDesignerView::BroadcastDesignerChanged()
+{
+	UUserWidget* LatestPreviewWidget = BlueprintEditor.Pin()->GetPreview();
+	if ( LatestPreviewWidget )
+	{
+		FDesignerChangedEventArgs EventArgs;
+		if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
+		{
+			switch ( DefaultWidget->DesignSizeMode )
+			{
+			case EDesignPreviewSizeMode::CustomOnScreen:
+			case EDesignPreviewSizeMode::DesiredOnScreen:
+			case EDesignPreviewSizeMode::FillScreen:
+				EventArgs.bScreenPreview = true;
+				break;
+			default:
+				EventArgs.bScreenPreview = false;
+			}
+		}
+
+		EventArgs.Size = FVector2D(PreviewWidth, PreviewHeight);
+		EventArgs.DpiScale = GetPreviewDPIScale();
+
+		LatestPreviewWidget->OnDesignerChanged(EventArgs);
 	}
 }
 
@@ -2558,6 +2693,8 @@ void SDesignerView::HandleOnCommonResolutionSelected(int32 Width, int32 Height, 
 
 		MarkDesignModifed(/*bRequiresRecompile*/ false);
 	}
+
+	BroadcastDesignerChanged();
 
 	ResolutionTextFade.Play( this->AsShared() );
 }

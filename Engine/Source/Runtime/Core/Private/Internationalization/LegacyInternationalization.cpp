@@ -14,8 +14,10 @@ FLegacyInternationalization::FLegacyInternationalization(FInternationalization* 
 bool FLegacyInternationalization::Initialize()
 {
 	I18N->InvariantCulture = FInvariantCulture::Create();
-	I18N->DefaultCulture = I18N->InvariantCulture;
-	I18N->CurrentCulture = I18N->InvariantCulture;
+	I18N->DefaultLanguage = I18N->InvariantCulture;
+	I18N->DefaultLocale = I18N->InvariantCulture;
+	I18N->CurrentLanguage = I18N->InvariantCulture;
+	I18N->CurrentLocale = I18N->InvariantCulture;
 
 	return true;
 }
@@ -38,9 +40,8 @@ bool FLegacyInternationalization::IsCultureDisabled(const FString& Name)
 	return false;
 }
 
-bool FLegacyInternationalization::SetCurrentCulture(const FString& Name)
+void FLegacyInternationalization::HandleLanguageChanged(const FString& Name)
 {
-	return Name.IsEmpty();
 }
 
 void FLegacyInternationalization::GetCultureNames(TArray<FString>& CultureNames) const

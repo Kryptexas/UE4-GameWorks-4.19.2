@@ -95,7 +95,7 @@ FT_Pos GetHeight(FT_Face InFace, const EFontLayoutMethod InLayoutMethod)
 
 FT_Pos GetScaledHeight(FT_Face InFace, const EFontLayoutMethod InLayoutMethod)
 {
-	return FT_MulFix(GetHeight(InFace, InLayoutMethod), InFace->size->metrics.y_scale);
+	return (InLayoutMethod == EFontLayoutMethod::Metrics) ? InFace->size->metrics.height : FT_MulFix(InFace->bbox.yMax - InFace->bbox.yMin, InFace->size->metrics.y_scale);
 }
 
 FT_Pos GetAscender(FT_Face InFace, const EFontLayoutMethod InLayoutMethod)

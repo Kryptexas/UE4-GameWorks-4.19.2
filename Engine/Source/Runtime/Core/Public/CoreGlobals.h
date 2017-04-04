@@ -398,7 +398,7 @@ FORCEINLINE bool IsInGameThread()
 	if(GIsGameThreadIdInitialized)
 	{
 		const uint32 CurrentThreadId = FPlatformTLS::GetCurrentThreadId();
-		return CurrentThreadId == GGameThreadId || CurrentThreadId == GSlateLoadingThreadId;
+		return CurrentThreadId == GGameThreadId;
 	}
 
 	return true;

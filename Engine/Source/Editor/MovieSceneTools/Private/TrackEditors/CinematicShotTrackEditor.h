@@ -67,13 +67,12 @@ public:
 	/*
 	 * Insert shot. 
 	 */
-	void InsertShotAtCurrentTime();
-	void InsertShot(UMovieSceneCinematicShotSection* Section);
+	void InsertShot();
 
 	/*
 	 * Insert filler.
 	 */
-	void InsertFillerAtCurrentTime();
+	void InsertFiller();
 
 	/*
 	 * Duplicate shot. 
@@ -119,10 +118,9 @@ private:
 	 * @param NewShotName The new shot name.
 	 * @param NewShotStartTime The time to start the new shot at.
 	 * @param ShotToDuplicate The shot to duplicate.
-	 * @param bInsertShot Whether the shot should be inserted and the subsequent shots be pushed out.
 	 * @return The new shot.
 	 */
-	UMovieSceneSubSection* CreateShotInternal(FString& NewShotName, float NewShotStartTime, UMovieSceneCinematicShotSection* ShotToDuplicate = nullptr, const bool& bInsertShot = true);
+	UMovieSceneSubSection* CreateShotInternal(FString& NewShotName, float NewShotStartTime, UMovieSceneCinematicShotSection* ShotToDuplicate = nullptr);
 
 
 private:

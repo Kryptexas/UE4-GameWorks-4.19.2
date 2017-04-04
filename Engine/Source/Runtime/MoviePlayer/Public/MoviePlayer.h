@@ -150,11 +150,8 @@ public:
 	/** Registers a movie streamer with the movie player. Set in the preloading screen stage. */
 	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) = 0;
 
-	/** This movie player needs to be given the slate renderer in order to run properly. Set in the launch engine loop. */
-	virtual void SetSlateRenderer(TSharedPtr<class FSlateRenderer> InSlateRenderer) = 0;
-	
 	/** Initializes this movie player, creating the startup window and hiding the splash screen. To be called in the launch engine loop. */
-	virtual void Initialize() = 0;
+	virtual void Initialize(TSharedPtr<class FSlateRenderer> InSlateRenderer) = 0;
 
 	/** Shutsdown the movie player. */
 	virtual void Shutdown() = 0;
@@ -231,8 +228,17 @@ public:
 	virtual ~IGameMoviePlayer() {}
 };
 
+/** Creates the movie player */
+MOVIEPLAYER_API void CreateMoviePlayer();
+
+/** Destroys the movie player */
+MOVIEPLAYER_API void DestroyMoviePlayer();
+
 /** Gets the movie player singleton for the engine. */
-TSharedPtr<IGameMoviePlayer> MOVIEPLAYER_API GetMoviePlayer();
+MOVIEPLAYER_API IGameMoviePlayer* GetMoviePlayer();
+
+MOVIEPLAYER_API IGameMoviePlayer& GetMoviePlayerRef();
 
 /** Returns true if the movie player is enabled. */
 bool MOVIEPLAYER_API IsMoviePlayerEnabled();
+

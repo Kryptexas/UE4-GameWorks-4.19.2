@@ -124,6 +124,15 @@ void UEditableTextBox::SetError(FText InError)
 	}
 }
 
+void UEditableTextBox::SetIsReadOnly(bool bReadOnly)
+{
+	IsReadOnly = bReadOnly;
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
+	}
+}
+
 void UEditableTextBox::ClearError()
 {
 	if ( MyEditableTextBlock.IsValid() )

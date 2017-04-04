@@ -1708,20 +1708,26 @@ uint32 FMacPlatformMisc::GetCPUInfo()
 	return Args[0];
 }
 
-FString FMacPlatformMisc::GetDefaultLocale()
+FString FMacPlatformMisc::GetDefaultLanguage()
 {
-
 	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
 	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
 	FString LangCode((__bridge NSString*)LangCodeStr);
 	CFRelease(Languages);
 
+	return LangCode;
+}
+
+FString FMacPlatformMisc::GetDefaultLocale()
+{
 	CFLocaleRef Locale = CFLocaleCopyCurrent();
+	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
+	FString LangCode((__bridge NSString*)LangCodeStr);
 	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
 	FString CountryCode((__bridge NSString*)CountryCodeStr);
 	CFRelease(Locale);
 
-	return FString::Printf(TEXT("%s_%s"), *LangCode, *CountryCode);
+	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
 }
 
 FText FMacPlatformMisc::GetFileManagerName()

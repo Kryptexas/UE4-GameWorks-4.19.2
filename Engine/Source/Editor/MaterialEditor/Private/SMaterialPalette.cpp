@@ -45,7 +45,7 @@ void SMaterialPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForA
 	// Find icons
 	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(TEXT("NoBrush"));
 	FSlateColor IconColor = FSlateColor::UseForeground();
-	FText IconToolTip = FText::FromString(GraphAction->GetTooltipDescription());
+	FText IconToolTip = GraphAction->GetTooltipDescription();
 	bool bIsReadOnly = false;
 
 	TSharedRef<SWidget> IconWidget = CreateIconWidget( IconToolTip, IconBrush, IconColor );
@@ -94,7 +94,7 @@ TSharedRef<SWidget> SMaterialPaletteItem::CreateHotkeyDisplayWidget(const FSlate
 
 FText SMaterialPaletteItem::GetItemTooltip() const
 {
-	return FText::FromString(ActionPtr.Pin()->GetTooltipDescription());
+	return ActionPtr.Pin()->GetTooltipDescription();
 }
 
 //////////////////////////////////////////////////////////////////////////

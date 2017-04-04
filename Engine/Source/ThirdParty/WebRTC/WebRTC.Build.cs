@@ -18,7 +18,7 @@ public class WebRTC : ModuleRules
 		{
 			bShouldUseWebRTC = true;
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
 		{
 			bShouldUseWebRTC = true;
 		}

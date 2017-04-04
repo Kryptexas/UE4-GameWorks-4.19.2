@@ -37,7 +37,7 @@ private:
 	void HandlePropertyCheckStateChanged(ECheckBoxState InState, TSharedPtr<IPropertyHandle> PropertyHandle);
 
 	/** Helper function to get the actual name array from the property handle */
-	TArray<FName>& GetPropertyNameArray() const;
+	TArray<FName>* GetPropertyNameArray() const;
 
 	/** IDetailPropertyExtensionHandler interface */
 	virtual bool IsPropertyExtendable(const UClass* InObjectClass, const class IPropertyHandle& PropertyHandle) const override;

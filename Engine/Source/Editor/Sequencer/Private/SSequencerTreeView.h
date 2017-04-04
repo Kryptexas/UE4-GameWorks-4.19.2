@@ -45,6 +45,9 @@ struct FSequencerTreeViewColumn
 	TAttribute<float> Width;
 };
 
+/** A delegate that is executed when adding menu content. */
+DECLARE_DELEGATE_OneParam(FOnGetContextMenuContent, FMenuBuilder& /*MenuBuilder*/);
+
 /** The tree view used in the sequencer */
 class SSequencerTreeView : public STreeView<FDisplayNodeRef>
 {
@@ -53,6 +56,8 @@ public:
 	SLATE_BEGIN_ARGS(SSequencerTreeView){}
 		/** Externally supplied scroll bar */
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
+		/** Called to populate the context menu. */
+		SLATE_EVENT( FOnGetContextMenuContent, OnGetContextMenuContent )
 	SLATE_END_ARGS()
 
 	/** Construct this widget */
@@ -135,6 +140,8 @@ private:
 
 	/** Handles the context menu opening when right clicking on the tree view. */
 	TSharedPtr<SWidget> OnContextMenuOpening();
+
+	FOnGetContextMenuContent OnGetContextMenuContent;
 
 public:
 	

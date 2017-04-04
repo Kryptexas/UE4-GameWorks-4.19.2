@@ -15,7 +15,9 @@ FLayoutUV::FLayoutUV( FRawMesh* InMesh, uint32 InSrcChannel, uint32 InDstChannel
 	, TotalUVArea( 0.0f )
 	, LayoutRaster( TextureResolution, TextureResolution )
 	, ChartRaster( TextureResolution, TextureResolution )
+	, BestChartRaster( TextureResolution, TextureResolution )
 	, ChartShader( &ChartRaster )
+	, LayoutVersion( ELightmapUVVersion::Latest )
 {}
 
 void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
@@ -537,7 +539,7 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 
 bool FLayoutUV::FindBestPacking()
 {
-	if( (uint32)Charts.Num() > TextureResolution * TextureResolution )
+	if( (uint32)Charts.Num() > TextureResolution * TextureResolution || TotalUVArea == 0.f )
 	{
 		// More charts than texels
 		return false;
@@ -782,12 +784,32 @@ bool FLayoutUV::PackCharts()
 			}
 			else
 			{
-				uint32 BeginRasterize = FPlatformTime::Cycles();
-				RasterizeChart( Chart, Rect.W, Rect.H );
-				RasterizeCycles += FPlatformTime::Cycles() - BeginRasterize;
+				if ( LayoutVersion == ELightmapUVVersion::Segments && Orientation % 4 == 1 )
+				{
+					ChartRaster.FlipX( Rect );
+				}
+				else if ( LayoutVersion == ELightmapUVVersion::Segments && Orientation % 4 == 3 )
+				{
+					ChartRaster.FlipY( Rect );
+				}
+				else
+				{
+					int32 BeginRasterize = FPlatformTime::Cycles();
+					RasterizeChart( Chart, Rect.W, Rect.H );
+					RasterizeCycles += FPlatformTime::Cycles() - BeginRasterize;
+				}
+
+				bool bFound = false;
 
 				uint32 BeginFind = FPlatformTime::Cycles();
-				bool bFound = LayoutRaster.Find( Rect, ChartRaster );
+				if ( LayoutVersion == ELightmapUVVersion::BitByBit )
+				{
+					bFound = LayoutRaster.FindBitByBit( Rect, ChartRaster );
+				}
+				else if ( LayoutVersion == ELightmapUVVersion::Segments )
+				{
+					bFound = LayoutRaster.FindWithSegments( Rect, BestRect, ChartRaster );
+				}
 				FindCycles += FPlatformTime::Cycles() - BeginFind;
 
 				if( bFound )
@@ -795,8 +817,16 @@ bool FLayoutUV::PackCharts()
 					// Is best?
 					if( Rect.X + Rect.Y * TextureResolution < BestRect.X + BestRect.Y * TextureResolution )
 					{
+						BestChartRaster = ChartRaster;
+
 						BestOrientation = Orientation;
 						BestRect = Rect;
+
+						if ( BestRect.X == 0 && BestRect.Y == 0 )
+						{
+							// BestRect can't be beat, stop here
+							break;
+						}
 					}
 				}
 				else
@@ -811,11 +841,7 @@ bool FLayoutUV::PackCharts()
 			// Add chart to layout
 			OrientChart( Chart, BestOrientation );
 
-			uint32 BeginRasterize = FPlatformTime::Cycles();
-			RasterizeChart( Chart, BestRect.W, BestRect.H );
-			RasterizeCycles += FPlatformTime::Cycles() - BeginRasterize;
-
-			LayoutRaster.Alloc( BestRect, ChartRaster );
+			LayoutRaster.Alloc( BestRect, BestChartRaster );
 
 			Chart.PackingBias.X += BestRect.X;
 			Chart.PackingBias.Y += BestRect.Y;
@@ -991,6 +1017,11 @@ void FLayoutUV::RasterizeChart( const FMeshChart& Chart, uint32 RectW, uint32 Re
 		}
 
 		RasterizeTriangle< FAllocator2DShader, 16 >( ChartShader, Points, RectW, RectH );
+	}
+
+	if ( LayoutVersion == ELightmapUVVersion::Segments )
+	{
+		ChartRaster.CreateUsedSegments();
 	}
 }
 

@@ -151,6 +151,8 @@ public:
 
 public:
 
+	MOVIESCENE_API virtual void PostLoad() override;
+
 	MOVIESCENE_API virtual void Serialize(FArchive& Ar) override;
 
 #if WITH_EDITORONLY_DATA

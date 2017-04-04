@@ -45,6 +45,56 @@ class UWidget;
 class UDPICustomScalingRule;
 
 /**
+ * 
+ */
+USTRUCT()
+struct FHardwareCursorReference
+{
+	GENERATED_BODY()
+
+	/**
+	 * Specify the partial game content path to the hardware cursor.  For example,
+	 *   DO:   Slate/DefaultPointer
+	 *   DONT: Slate/DefaultPointer.cur
+	 *
+	 * NOTE: Having a 'Slate' directory in your game content folder will always be cooked, if
+	 *       you're trying to decide where to locate these cursor files.
+	 * 
+	 * The hardware cursor system will search for platform specific formats first if you want to 
+	 * take advantage of those capabilities.
+	 *
+	 * Windows:
+	 *   .ani -> .cur -> .png
+	 *
+	 * Mac:
+	 *   .tiff -> .png
+	 *
+	 * Linux:
+	 *   .png
+	 *
+	 * Multi-Resolution Png Fallback
+	 *  Because there's not a universal multi-resolution format for cursors there's a pattern we look for
+	 *  on all platforms where pngs are all that is found instead of cur/ani/tiff.
+	 *
+	 *    Pointer.png
+	 *    Pointer@1.25x.png
+	 *    Pointer@1.5x.png
+	 *    Pointer@1.75x.png
+	 *    Pointer@2x.png
+	 *    ...etc
+	 */
+	UPROPERTY(EditAnywhere, Category="Hardware Cursor")
+	FName CursorPath;
+
+	/**
+	 * HotSpot needs to be in normalized (0..1) coordinates since it may apply to different resolution images.
+	 * NOTE: This HotSpot is only used on formats that do not provide their own hotspot, e.g. Tiff, PNG.
+	 */
+	UPROPERTY(EditAnywhere, Category="Hardware Cursor", meta=( ClampMin=0, ClampMax=1 ))
+	FVector2D HotSpot;
+};
+
+/**
  * User Interface settings that control Slate and UMG.
  */
 UCLASS(config=Engine, defaultconfig, meta=(DisplayName="User Interface"))
@@ -54,49 +104,78 @@ class ENGINE_API UUserInterfaceSettings : public UDeveloperSettings
 
 public:
 
-	UPROPERTY(config, EditAnywhere, Category = "Focus", meta = (ToolTip = "Rule to determine if we should render the Focus Brush for widgets that have user focus."))
+	/**
+	 * Rule to determine if we should render the Focus Brush for widgets that have user focus.
+	 */
+	UPROPERTY(config, EditAnywhere, Category = "Focus")
 	ERenderFocusRule RenderFocusRule;
 
-	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the Default Cursor is requested."))
-	FStringClassReference DefaultCursor;
+	UPROPERTY(config, EditAnywhere, Category = "Hardware Cursors")
+	TMap<TEnumAsByte<EMouseCursor::Type>, FHardwareCursorReference> HardwareCursors;
 
-	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the TextEditBeam Cursor is requested."))
-	FStringClassReference TextEditBeamCursor;
+	UPROPERTY(config, EditAnywhere, Category = "Software Cursors", meta = ( MetaClass = "UserWidget" ))
+	TMap<TEnumAsByte<EMouseCursor::Type>, FStringClassReference> SoftwareCursors;
 
-	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the Crosshairs Cursor is requested."))
-	FStringClassReference CrosshairsCursor;
+	// DEPRECATED 4.16
+	UPROPERTY(config)
+	FStringClassReference DefaultCursor_DEPRECATED;
 
-	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the Hand Cursor is requested."))
-	FStringClassReference HandCursor;
+	// DEPRECATED 4.16
+	UPROPERTY(config)
+	FStringClassReference TextEditBeamCursor_DEPRECATED;
 
-	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the GrabHand Cursor is requested."))
-	FStringClassReference GrabHandCursor;
+	// DEPRECATED 4.16
+	UPROPERTY(config)
+	FStringClassReference CrosshairsCursor_DEPRECATED;
+
+	// DEPRECATED 4.16
+	UPROPERTY(config)
+	FStringClassReference HandCursor_DEPRECATED;
+
+	// DEPRECATED 4.16
+	UPROPERTY(config)
+	FStringClassReference GrabHandCursor_DEPRECATED;
 	
-	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the GrabHandClosed Cursor is requested."))
-	FStringClassReference GrabHandClosedCursor;
+	// DEPRECATED 4.16
+	UPROPERTY(config)
+	FStringClassReference GrabHandClosedCursor_DEPRECATED;
 
-	UPROPERTY(config, EditAnywhere, Category = "Cursors", meta = (MetaClass = "UserWidget", ToolTip = "Widget to use when the SlashedCircle Cursor is requested."))
-	FStringClassReference SlashedCircleCursor;
+	// DEPRECATED 4.16
+	UPROPERTY(config)
+	FStringClassReference SlashedCircleCursor_DEPRECATED;
 
-	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta = ( ToolTip = "An optional application scale to apply on top of the custom scaling rules.  So if you want to expose a property in your game title, you can modify this underlying value to scale the entire UI." ))
+	/**
+	 * An optional application scale to apply on top of the custom scaling rules.  So if you want to expose a 
+	 * property in your game title, you can modify this underlying value to scale the entire UI.
+	 */
+	UPROPERTY(config, EditAnywhere, Category="DPI Scaling")
 	float ApplicationScale;
 
-	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=(
-		DisplayName="DPI Scale Rule",
-		ToolTip="The rule used when trying to decide what scale to apply." ))
+	/**
+	 * The rule used when trying to decide what scale to apply.
+	 */
+	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=( DisplayName="DPI Scale Rule" ))
 	EUIScalingRule UIScaleRule;
 
-	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=( MetaClass="DPICustomScalingRule", ToolTip = "Set DPI Scale Rule to Custom, and this class will be used instead of any of the built-in rules." ))
+	/**
+	 * Set DPI Scale Rule to Custom, and this class will be used instead of any of the built-in rules.
+	 */
+	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=( MetaClass="DPICustomScalingRule" ))
 	FStringClassReference CustomScalingRuleClass;
 
+	/**
+	 * Controls how the UI is scaled at different resolutions based on the DPI Scale Rule
+	 */
 	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=(
 		DisplayName="DPI Curve",
-		ToolTip="Controls how the UI is scaled at different resolutions based on the DPI Scale Rule",
 		XAxisName="Resolution",
 		YAxisName="Scale"))
 	FRuntimeFloatCurve UIScaleCurve;
 
-	UPROPERTY(config, EditAnywhere, Category = "Widgets", meta = (ToolTip = "If false, widget references will be stripped during cook for server builds and not loaded at runtime."))
+	/**
+	 * If false, widget references will be stripped during cook for server builds and not loaded at runtime.
+	 */
+	UPROPERTY(config, EditAnywhere, Category = "Widgets")
 	bool bLoadWidgetsOnDedicatedServer;
 
 public:

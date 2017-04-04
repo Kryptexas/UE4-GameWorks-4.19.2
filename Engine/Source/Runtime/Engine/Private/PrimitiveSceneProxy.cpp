@@ -175,8 +175,17 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 #if WITH_EDITOR
 	const bool bGetDebugMaterials = true;
 	InComponent->GetUsedMaterials(UsedMaterialsForVerification, bGetDebugMaterials);
-#endif
+#endif	
 }
+
+#if WITH_EDITOR
+void FPrimitiveSceneProxy::SetUsedMaterialForVerification(const TArray<UMaterialInterface*>& InUsedMaterialsForVerification)
+{
+	check(IsInRenderingThread());
+
+	UsedMaterialsForVerification = InUsedMaterialsForVerification;
+}
+#endif
 
 FPrimitiveSceneProxy::~FPrimitiveSceneProxy()
 {

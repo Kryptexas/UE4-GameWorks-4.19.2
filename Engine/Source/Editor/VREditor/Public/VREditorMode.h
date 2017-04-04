@@ -184,9 +184,6 @@ public:
 	/** Gets the world scale factor, which can be multiplied by a scale vector to convert to room space */
 	float GetWorldScaleFactor() const;
 
-	/** Called internally when the user changes maps, enters/exits PIE or SIE, or switched between PIE/SIE */
-	void CleanUpActorsBeforeMapChangeOrSimulate();
-
 	/** Spawns a flashlight on the specified hand */
 	void ToggleFlashlight( class UVREditorInteractor* Interactor );
 
@@ -280,9 +277,9 @@ public:
 	void ResetActionsMenuGenerator();
 
 	/** Gets access to VREditorWorldInteraction */
-	class UVREditorWorldInteraction* GetVREditorWorldInteraction()
+	class UVREditorPlacement* GetPlacementSystem()
 	{
-		return VRWorldInteractionExtension;
+		return PlacementSystem;
 	}
 
 	/** Returns true if we started the play in editor session from this VR Editor */
@@ -295,8 +292,15 @@ public:
 	void PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume = 1.0f);
 
 	/** Delegate to be called when a material is placed **/
-	DECLARE_EVENT_ThreeParams( UVREditorWorldInteraction, FOnPlaceDraggedMaterial, UPrimitiveComponent*, UMaterialInterface*, bool& );
+	DECLARE_EVENT_ThreeParams( UVREditorPlacement, FOnPlaceDraggedMaterial, UPrimitiveComponent*, UMaterialInterface*, bool& );
 	FOnPlaceDraggedMaterial& OnPlaceDraggedMaterial() { return OnPlaceDraggedMaterialEvent; };
+
+	/** Call this to force the 'Actions' radial menu to refresh.  This is useful if the menu generator that you've bound
+	    needs to be re-run (usually because it switches on something that has changed since the last time it ran.) */
+	void RefreshRadialMenuActionsSubmenu();
+
+	/** Return true if currently aiming to teleport. */
+	bool IsAimingTeleport() const;
 
 protected:
 
@@ -421,7 +425,7 @@ protected:
 	EGizmoHandleTypes CurrentGizmoType;
 
 	UPROPERTY()
-	class UVREditorWorldInteraction* VRWorldInteractionExtension;
+	class UVREditorPlacement* PlacementSystem;
 
 	//
 	// Interactors

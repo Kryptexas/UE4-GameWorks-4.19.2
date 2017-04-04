@@ -22,6 +22,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	UPanelSlot* SetContent(UWidget* Content);
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
+	UWidget* GetContent() const;
+
 protected:
 
 	// UPanelWidget

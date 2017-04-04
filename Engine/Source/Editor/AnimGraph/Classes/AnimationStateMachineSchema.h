@@ -25,7 +25,7 @@ struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateNode : public FEdGraphSchemaAc
 		, NodeTemplate(nullptr)
 	{}
 
-	FEdGraphSchemaAction_NewStateNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_NewStateNode(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, NodeTemplate(nullptr)
 	{}
@@ -53,7 +53,7 @@ struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateComment : public FEdGraphSchem
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_NewStateComment(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_NewStateComment(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 

@@ -84,6 +84,12 @@ protected:
 	/** Called to force a redraw of this section's thumbnails */
 	void RedrawThumbnails();
 
+	/** Get the range that is currently visible in the section's time space */
+	TRange<float> GetVisibleRange() const;
+
+	/** Get the total range that thumbnails are to be generated for in the section's time space */
+	TRange<float> GetTotalRange() const;
+
 protected:
 
 	/** The section we are visualizing. */
@@ -103,6 +109,18 @@ protected:
 
 	/** Fade brush. */
 	const FSlateBrush* WhiteBrush;
+
+	/** Additional draw effects */
+	ESlateDrawEffect AdditionalDrawEffect;
+
+	enum class ETimeSpace
+	{
+		Global,
+		Local,
+	};
+
+	/** Enumeration value specifyin in which time-space to generate thumbnails */
+	ETimeSpace TimeSpace;
 };
 
 /**

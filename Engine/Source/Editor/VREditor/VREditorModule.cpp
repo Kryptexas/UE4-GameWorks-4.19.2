@@ -9,6 +9,8 @@
 #include "VREditorModeManager.h"
 #include "VREditorStyle.h"
 #include "VREditorMode.h"
+#include "MultiBoxBuilder.h"
+#include "MultiBoxExtender.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDWornState::Type
 
 class FVREditorModule : public IVREditorModule, public FTickableEditorObject
@@ -43,6 +45,11 @@ public:
 	virtual TStatId GetStatId() const override
 	{
 		return TStatId();
+	}
+	virtual const TSharedRef<FExtender>& GetRadialMenuExtender() override
+	{
+		static TSharedRef<class FExtender> RadialMenuExtender( new FExtender() );
+		return RadialMenuExtender;
 	}
 
 

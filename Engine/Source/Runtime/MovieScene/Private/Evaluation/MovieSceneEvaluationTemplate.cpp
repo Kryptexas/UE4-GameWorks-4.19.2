@@ -38,6 +38,11 @@ void FCachedMovieSceneEvaluationTemplate::ForceRegenerate(const FMovieSceneTrack
 
 void FCachedMovieSceneEvaluationTemplate::RegenerateImpl(const FMovieSceneTrackCompilationParams& Params)
 {
+	if (Params.bDuringBlueprintCompile != CachedCompilationParams.bDuringBlueprintCompile)
+	{
+		ResetGeneratedData();
+	}
+
 	CachedSignatures.Reset();
 	CachedCompilationParams = Params;
 
@@ -75,97 +80,35 @@ bool FCachedMovieSceneEvaluationTemplate::IsOutOfDate(const FMovieSceneTrackComp
 
 #endif // WITH_EDITORONLY_DATA
 
-bool FMovieSceneGenerationLedger::Serialize(FArchive& Ar)
-{
-	if (Ar.IsLoading())
-	{
-		int32 NumReferenceCounts = 0;
-
-		Ar << NumReferenceCounts;
-		for (int32 Index = 0; Index < NumReferenceCounts; ++Index)
-		{
-			FMovieSceneTrackIdentifier Identifier;
-			FMovieSceneTrackIdentifier::StaticStruct()->SerializeItem(Ar, &Identifier, nullptr);
-
-			int32 Count = 0;
-			Ar << Count;
-
-			TrackReferenceCounts.Add(Identifier, Count);
-		}
-
-		int32 SignatureToTrackIDs = 0;
-		Ar << SignatureToTrackIDs;
-
-		for (int32 Index = 0; Index < SignatureToTrackIDs; ++Index)
-		{
-			FGuid Signature;
-			Ar << Signature;
-
-			TArray<FMovieSceneTrackIdentifier, TInlineAllocator<1>>& Identifiers = TrackSignatureToTrackIdentifier.Add(Signature);
-
-			int32 NumIdentifiers = 0;
-			Ar << NumIdentifiers;
-			for (int32 IdentifierIndex = 0; IdentifierIndex < NumIdentifiers; ++IdentifierIndex)
-			{
-				FMovieSceneTrackIdentifier Identifier;
-				FMovieSceneTrackIdentifier::StaticStruct()->SerializeItem(Ar, &Identifier, nullptr);
-
-				Identifiers.Add(Identifier);
-			}
-		}
-
-		return true;
-	}
-	else if (Ar.IsSaving())
-	{
-		int32 NumReferenceCounts = TrackReferenceCounts.Num();
-
-		Ar << NumReferenceCounts;
-		for (auto& Pair : TrackReferenceCounts)
-		{
-			FMovieSceneTrackIdentifier Identifier = Pair.Key;
-			FMovieSceneTrackIdentifier::StaticStruct()->SerializeItem(Ar, &Identifier, nullptr);
-
-			int32 Count = Pair.Value;
-			Ar << Count;
-		}
-
-		int32 SignatureToTrackIDs = TrackSignatureToTrackIdentifier.Num();
-		Ar << SignatureToTrackIDs;
-
-		for (auto& Pair : TrackSignatureToTrackIdentifier)
-		{
-			FGuid Signature = Pair.Key;
-			Ar << Signature;
-
-			int32 NumIdentifiers = Pair.Value.Num();
-			Ar << NumIdentifiers;
-
-			for (FMovieSceneTrackIdentifier Identifier : Pair.Value)
-			{
-				FMovieSceneTrackIdentifier::StaticStruct()->SerializeItem(Ar, &Identifier, nullptr);
-			}
-		}
-
-		return true;
-	}
-
-	return false;
-}
-
-TArrayView<FMovieSceneTrackIdentifier> FMovieSceneGenerationLedger::FindTracks(const FGuid& InSignature)
+TArrayView<FMovieSceneTrackIdentifier> FMovieSceneTemplateGenerationLedger::FindTracks(const FGuid& InSignature)
 {
 	if (auto* Tracks = TrackSignatureToTrackIdentifier.Find(InSignature))
 	{
-		return *Tracks;
+		return Tracks->Data;
 	}
 	return TArrayView<FMovieSceneTrackIdentifier>();
 }
 
-void FMovieSceneGenerationLedger::AddTrack(const FGuid& InSignature, FMovieSceneTrackIdentifier Identifier)
+void FMovieSceneTemplateGenerationLedger::AddTrack(const FGuid& InSignature, FMovieSceneTrackIdentifier Identifier)
 {
-	TrackSignatureToTrackIdentifier.FindOrAdd(InSignature).Add(Identifier);
+	TrackSignatureToTrackIdentifier.FindOrAdd(InSignature).Data.Add(Identifier);
 	++TrackReferenceCounts.FindOrAdd(Identifier);
+}
+
+void FMovieSceneEvaluationTemplate::PostSerialize(const FArchive& Ar)
+{
+	if (Ar.IsLoading())
+	{
+		for (auto& Pair : Tracks)
+		{
+			if (Ledger.LastTrackIdentifier == FMovieSceneTrackIdentifier::Invalid() || Ledger.LastTrackIdentifier.Value < Pair.Key)
+			{
+				// Reset previously serialized, invalid data
+				ResetGeneratedData();
+				break;
+			}
+		}
+	}
 }
 
 void FMovieSceneEvaluationTemplate::ResetGeneratedData()

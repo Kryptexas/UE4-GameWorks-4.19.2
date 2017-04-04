@@ -30,6 +30,15 @@ enum class EWidgetSpace : uint8
 };
 
 UENUM(BlueprintType)
+enum class EWidgetTimingPolicy : uint8
+{
+	/** The widget will tick using real time. When not ticking, real time will accumulate and be simulated on the next tick. */
+	RealTime,
+	/** The widget will tick using game time, respecting pausing and time dilation. */
+	GameTime
+};
+
+UENUM(BlueprintType)
 enum class EWidgetBlendMode : uint8
 {
 	Opaque,
@@ -254,6 +263,9 @@ public:
 	float GetCylinderArcAngle() const { return CylinderArcAngle; }
 
 protected:
+	/** Just because the user attempts to receive hardware input does not mean it's possible. */
+	bool CanReceiveHardwareInput() const;
+
 	void RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
 	void UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
 
@@ -274,6 +286,10 @@ protected:
 	/** The coordinate space in which to render the widget */
 	UPROPERTY(EditAnywhere, Category=UserInterface)
 	EWidgetSpace Space;
+
+	/** How this widget should deal with timing, pausing, etc. */
+	UPROPERTY(EditAnywhere, Category=UserInterface)
+	EWidgetTimingPolicy TimingPolicy;
 
 	/** The class of User Widget to create and display an instance of */
 	UPROPERTY(EditAnywhere, Category=UserInterface)
@@ -301,6 +317,9 @@ protected:
 
 	/** What was the last time we rendered the widget? */
 	double LastWidgetRenderTime;
+
+	/** Returns current absolute time, respecting TimingPolicy. */
+	double GetCurrentTime() const;
 
 	/**
 	 * The actual draw size, this changes based on DrawSize - or the desired size of the widget if
@@ -444,9 +463,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category=UserInterface, meta=(ClampMin=1.0f, ClampMax=180.0f))
 	float CylinderArcAngle;
 
-	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
-	TSharedPtr<class FHittestGrid> HitTestGrid;
-	
 	/** The slate window that contains the user widget content */
 	TSharedPtr<class SVirtualWindow> SlateWindow;
 

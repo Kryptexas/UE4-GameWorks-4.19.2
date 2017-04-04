@@ -32,7 +32,8 @@ bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 #if UE_ENABLE_ICU
 	FInternationalization& I18N = FInternationalization::Get();
 
-	const FString OriginalCulture = I18N.GetCurrentCulture()->GetName();
+	FInternationalization::FCultureStateSnapshot OriginalCultureState;
+	I18N.BackupCultureState(OriginalCultureState);
 
 	const FDateTime UnixEpoch = FDateTime::FromUnixTimestamp(0);
 	const FDateTime UnixBillennium = FDateTime::FromUnixTimestamp(1000000000);
@@ -128,7 +129,7 @@ bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 		AddWarning(FString::Printf(TEXT("Internationalization data for %s missing - test is partially disabled."), TEXT("ja-JP")));
 	}
 
-	I18N.SetCurrentCulture(OriginalCulture);
+	I18N.RestoreCultureState(OriginalCultureState);
 #else
 	AddWarning("ICU is disabled thus locale-aware date/time formatting is disabled.");
 #endif

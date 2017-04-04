@@ -28,4 +28,9 @@ class USceneThumbnailInfo : public UThumbnailInfo
 	/** The offset from the bounds sphere distance from the asset */
 	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	float OrbitZoom;
+
+public:
+	UNREALED_API virtual void ResetToDefault();
+	UNREALED_API virtual bool DiffersFromDefault() const;
+
 };

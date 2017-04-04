@@ -380,7 +380,7 @@ void FParticleEmitterInstance::Init()
 	    {
 		    check(ParticleModule);
 		    uint8* PrepInstData = GetModuleInstanceData(ParticleModule);
-			    check(PrepInstData > 0); // Shouldn't be in the list if it doesn't have data
+			    check(PrepInstData != nullptr); // Shouldn't be in the list if it doesn't have data
 			    ParticleModule->PrepPerInstanceBlock(this, (void*)PrepInstData);
 	    }
     

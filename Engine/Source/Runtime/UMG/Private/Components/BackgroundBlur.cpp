@@ -155,20 +155,34 @@ void UBackgroundBlur::SetLowQualityFallbackBrush(const FSlateBrush& InBrush)
 	}
 }
 
+void UBackgroundBlur::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+}
+
 void UBackgroundBlur::PostLoad()
 {
 	Super::PostLoad();
 
-	if(GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::AddedBackgroundBlurContentSlot)
+	if ( GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::AddedBackgroundBlurContentSlot )
 	{
 		//Convert existing slot to new background blur slot slot.
-		if(UPanelSlot* PanelSlot = GetContentSlot())
+		if ( UPanelSlot* PanelSlot = GetContentSlot() )
 		{
-			UBackgroundBlurSlot* BlurSlot = NewObject<UBackgroundBlurSlot>(this);
-			BlurSlot->Content = PanelSlot->Content;
-			BlurSlot->Content->Slot = BlurSlot;
-			BlurSlot->Parent = this;
-			Slots[0] = BlurSlot;
+			if ( PanelSlot->IsA<UBackgroundBlurSlot>() == false )
+			{
+				UBackgroundBlurSlot* BlurSlot = NewObject<UBackgroundBlurSlot>(this);
+				BlurSlot->Content = PanelSlot->Content;
+				BlurSlot->Content->Slot = BlurSlot;
+				BlurSlot->Parent = this;
+				Slots[0] = BlurSlot;
+
+				// We don't want anyone considering this panel slot for anything, so mark it pending kill.  Otherwise
+				// it will confuse the pass we do when doing template validation when it finds it outered to the blur widget.
+				PanelSlot->MarkPendingKill();
+			}
 		}
 	}
 }
@@ -193,7 +207,7 @@ void UBackgroundBlur::PostEditChangeProperty(struct FPropertyChangedEvent& Prope
 
 			FName PropertyName = PropertyChangedEvent.Property->GetFName();
 
-			if (UBackgroundBlurSlot* BlurSlot = CastChecked<UBackgroundBlurSlot>(GetContentSlot()))
+			if (UBackgroundBlurSlot* BlurSlot = Cast<UBackgroundBlurSlot>(GetContentSlot()))
 			{
 				if (PropertyName == PaddingName)
 				{

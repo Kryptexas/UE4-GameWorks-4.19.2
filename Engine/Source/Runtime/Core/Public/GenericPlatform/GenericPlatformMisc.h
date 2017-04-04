@@ -827,6 +827,23 @@ public:
 	*/
 	static bool GetSHA256Signature(const void* Data, uint32 ByteSize, FSHA256Signature& OutSignature);	
 
+	/**
+	 * Get the default language (for localization) used by this platform.
+	 * @note This is typically the same as GetDefaultLocale unless the platform distinguishes between the two.
+	 * @note This should be returned in IETF language tag form:
+	 *  - A two-letter ISO 639-1 language code (eg, "zh").
+	 *  - An optional four-letter ISO 15924 script code (eg, "Hans").
+	 *  - An optional two-letter ISO 3166-1 country code (eg, "CN").
+	 */
+	static FString GetDefaultLanguage();
+
+	/**
+	 * Get the default locale (for internationalization) used by this platform.
+	 * @note This should be returned in IETF language tag form:
+	 *  - A two-letter ISO 639-1 language code (eg, "zh").
+	 *  - An optional four-letter ISO 15924 script code (eg, "Hans").
+	 *  - An optional two-letter ISO 3166-1 country code (eg, "CN").
+	 */
 	static FString GetDefaultLocale();
 
 	/**

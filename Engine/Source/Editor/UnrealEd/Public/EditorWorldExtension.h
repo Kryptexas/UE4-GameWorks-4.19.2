@@ -126,13 +126,6 @@ public:
 
 	/** 
 	 * Adds an extension to the collection
-	 * @param	EditorExtensionClass	The subclass of UEditorExtension that will be created, initialized and added to the collection.
-	 * @return							The created UEditorExtension.
-	 */
-	UEditorWorldExtension* AddExtension( TSubclassOf<UEditorWorldExtension> EditorExtensionClass );
-
-	/** 
-	 * Adds an extension to the collection
 	 * @param	EditorExtension			The UEditorExtension that will be created, initialized and added to the collection.
 	 */
 	void AddExtension( UEditorWorldExtension* EditorExtension );

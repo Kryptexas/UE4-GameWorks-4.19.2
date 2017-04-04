@@ -113,7 +113,7 @@ SOverlay::FOverlaySlot& SOverlay::AddSlot( int32 ZOrder )
 	{
 		// No ZOrder was specified; just add to the end of the list.
 		// Use a ZOrder index one after the last elements.
-		NewSlot.ZOrder = (Children.Num() == 0)
+		ZOrder = (Children.Num() == 0)
 			? 0
 			: ( Children[ Children.Num()-1 ].ZOrder + 1 );
 

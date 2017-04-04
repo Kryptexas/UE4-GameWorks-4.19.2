@@ -155,9 +155,12 @@ bool SSequencerCurveEditor::GetInputCurveSnapEnabled() const
 
 float SSequencerCurveEditor::GetCurveTimeSnapInterval() const
 {
-	return SequencerSettings->GetSnapKeyTimesToInterval()
-		? SequencerSettings->GetTimeSnapInterval()
-		: 0;
+	if (Sequencer.IsValid() )
+	{
+		return Sequencer.Pin()->GetFixedFrameInterval();
+	}
+
+	return 1.f;
 }
 
 float SSequencerCurveEditor::GetCurveValueSnapInterval() const
@@ -169,7 +172,7 @@ float SSequencerCurveEditor::GetCurveValueSnapInterval() const
 
 bool SSequencerCurveEditor::GetShowTimeInFrames() const
 {
-	return SequencerSnapValues::IsTimeSnapIntervalFrameRate(SequencerSettings->GetTimeSnapInterval());
+	return SequencerSnapValues::IsTimeSnapIntervalFrameRate(GetCurveTimeSnapInterval());
 }
 
 void SSequencerCurveEditor::NodeTreeSelectionChanged()

@@ -89,7 +89,9 @@ public:
 	void SetLowQualityFallbackBrush(const FSlateBrush& InBrush);
 
 	/** UObject interface */
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
+
 protected:
 	/** UWidget interface */
 	virtual UClass* GetSlotClass() const override;

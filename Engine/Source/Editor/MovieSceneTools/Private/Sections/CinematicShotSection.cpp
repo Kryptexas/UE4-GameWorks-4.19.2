@@ -41,6 +41,7 @@ FCinematicShotSection::FCinematicShotSection(TSharedPtr<ISequencer> InSequencer,
 	, InitialStartTimeDuringResize(0.f)
 	, ThumbnailCacheData(&SectionObject)
 {
+	AdditionalDrawEffect = ESlateDrawEffect::NoGamma;
 }
 
 
@@ -258,9 +259,9 @@ void FCinematicShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, c
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("InsertNewShot", "Insert Shot"),
-			FText::Format(LOCTEXT("InsertNewShotTooltip", "Insert a new shot after {0}"), SectionObject.GetShotDisplayName()),
+			LOCTEXT("InsertNewShotTooltip", "Insert a new shot at the current time"),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(CinematicShotTrackEditor.Pin().ToSharedRef(), &FCinematicShotTrackEditor::InsertShot, &SectionObject))
+			FUIAction(FExecuteAction::CreateSP(CinematicShotTrackEditor.Pin().ToSharedRef(), &FCinematicShotTrackEditor::InsertShot))
 		);
 
 		MenuBuilder.AddMenuEntry(

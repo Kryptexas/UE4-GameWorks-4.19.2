@@ -71,5 +71,9 @@ public:
 	* @return The current VREditor running
 	*/
 	virtual class UVREditorMode* GetVRMode() = 0;
+
+	/** Gets the radial menu extender.  This can be used to add your own menu items to the VR radial menu */
+	virtual const TSharedRef<class FExtender>& GetRadialMenuExtender() = 0;
+
 };
 

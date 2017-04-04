@@ -127,6 +127,16 @@ static void PlaceActorInFrontOfCamera(AActor* ActorCDO)
 	}
 }
 
+bool FLevelSequenceEditorActorSpawner::CanSetupDefaultsForSpawnable(UObject* SpawnedObject) const
+{
+	if (SpawnedObject == nullptr)
+	{
+		return true;
+	}
+
+	return FLevelSequenceActorSpawner::CanSetupDefaultsForSpawnable(SpawnedObject);
+}
+
 void FLevelSequenceEditorActorSpawner::SetupDefaultsForSpawnable(UObject* SpawnedObject, const FGuid& Guid, const FTransformData& TransformData, TSharedRef<ISequencer> Sequencer, USequencerSettings* Settings)
 {
 	FTransformData DefaultTransform = TransformData;

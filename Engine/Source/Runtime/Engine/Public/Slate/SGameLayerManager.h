@@ -50,6 +50,8 @@ enum class EWindowTitleBarMode : uint8
 class IGameLayerManager
 {
 public:
+	virtual const FGeometry& GetViewportWidgetHostGeometry() const = 0;
+
 	virtual void NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer) = 0;
 	virtual void NotifyPlayerRemoved(int32 PlayerIndex, ULocalPlayer* RemovedPlayer) = 0;
 
@@ -99,6 +101,8 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	// Begin IGameLayerManager
+	virtual const FGeometry& GetViewportWidgetHostGeometry() const override;
+
 	virtual void NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer) override;
 	virtual void NotifyPlayerRemoved(int32 PlayerIndex, ULocalPlayer* RemovedPlayer) override;
 
@@ -162,6 +166,7 @@ private:
 	TMap < ULocalPlayer*, TSharedPtr<FPlayerLayer> > PlayerLayers;
 
 	TAttribute<const FSceneViewport*> SceneViewport;
+	TSharedPtr<class SVerticalBox> WidgetHost;
 	TSharedPtr<SCanvas> PlayerCanvas;
 	TSharedPtr<class STooltipPresenter> TooltipPresenter;
 

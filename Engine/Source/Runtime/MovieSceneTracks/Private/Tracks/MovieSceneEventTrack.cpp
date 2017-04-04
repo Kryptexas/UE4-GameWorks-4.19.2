@@ -5,7 +5,8 @@
 #include "Sections/MovieSceneEventSection.h"
 #include "Evaluation/MovieSceneEventTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTrack.h"
-
+#include "Compilation/IMovieSceneTemplateGenerator.h"
+#include "IMovieSceneTracksModule.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneEventTrack"
 
@@ -74,10 +75,22 @@ FMovieSceneEvalTemplatePtr UMovieSceneEventTrack::CreateTemplateForSection(const
 
 void UMovieSceneEventTrack::PostCompile(FMovieSceneEvaluationTrack& Track, const FMovieSceneTrackCompilerArgs& Args) const
 {
-	static FName Events("Events");
-	Track.SetEvaluationGroup(Events);
-	// Evaluate events really early on in the frame, after the spawn track (which always evaluates first)
-	Track.SetEvaluationPriority(GetEvaluationPriority());
+	switch (EventPosition)
+	{
+	case EFireEventsAtPosition::AtStartOfEvaluation:
+		Track.SetEvaluationGroup(IMovieSceneTracksModule::GetEvaluationGroupName(EBuiltInEvaluationGroup::PreEvaluation));
+		break;
+
+	case EFireEventsAtPosition::AtEndOfEvaluation:
+		Track.SetEvaluationGroup(IMovieSceneTracksModule::GetEvaluationGroupName(EBuiltInEvaluationGroup::PostEvaluation));
+		break;
+
+	default:
+		Track.SetEvaluationGroup(IMovieSceneTracksModule::GetEvaluationGroupName(EBuiltInEvaluationGroup::SpawnObjects));
+		Track.SetEvaluationPriority(UMovieSceneSpawnTrack::GetEvaluationPriority() - 100);
+		break;
+	}
+
 	Track.SetEvaluationMethod(EEvaluationMethod::Swept);
 }
 

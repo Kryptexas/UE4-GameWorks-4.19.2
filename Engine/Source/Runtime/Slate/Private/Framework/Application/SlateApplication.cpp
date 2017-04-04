@@ -335,7 +335,6 @@ FSlateVirtualUser::~FSlateVirtualUser()
 
 DECLARE_CYCLE_STAT( TEXT("Message Tick Time"), STAT_SlateMessageTick, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Update Tooltip Time"), STAT_SlateUpdateTooltip, STATGROUP_Slate );
-DECLARE_CYCLE_STAT( TEXT("Tick Window And Children Time"), STAT_SlateTickWindowAndChildren, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Total Slate Tick Time"), STAT_SlateTickTime, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("SlatePrepass"), STAT_SlatePrepass, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Draw Window And Children Time"), STAT_SlateDrawWindowTime, STATGROUP_Slate );
@@ -363,7 +362,6 @@ SLATE_DECLARE_CYCLE_COUNTER(GSlateTotalTickTime, "Total Slate Tick Time");
 SLATE_DECLARE_CYCLE_COUNTER(GMessageTickTime, "Message Tick Time");
 SLATE_DECLARE_CYCLE_COUNTER(GUpdateTooltipTime, "Update Tooltip Time");
 SLATE_DECLARE_CYCLE_COUNTER(GSlateSynthesizeMouseMove, "Synthesize Mouse Move");
-SLATE_DECLARE_CYCLE_COUNTER(GTickWindowAndChildrenTime, "Tick Window And Children Time");
 SLATE_DECLARE_CYCLE_COUNTER(GTickWidgets, "TickWidgets");
 SLATE_DECLARE_CYCLE_COUNTER(GSlateTickNotificationManager, "NotificationManager Tick");
 SLATE_DECLARE_CYCLE_COUNTER(GSlateDrawWindows, "DrawWindows");
@@ -712,6 +710,73 @@ void FSlateApplication::MouseCaptorHelper::InformCurrentCaptorOfCaptureLoss(uint
 }
 
 //////////////////////////////////////////////////////////////////////////
+
+void FSlateApplication::FDragDetector::StartDragDetection(const FWidgetPath& PathToWidget, int32 UserIndex, int32 PointerIndex, FKey DragButton, FVector2D StartLocation)
+{
+	PointerIndexToDragState.Add(FUserAndPointer(UserIndex, PointerIndex), FDragDetectionState(PathToWidget, UserIndex, PointerIndex, DragButton, StartLocation));
+}
+
+bool FSlateApplication::FDragDetector::IsDetectingDrag(const FPointerEvent& PointerEvent)
+{
+	FUserAndPointer UserAndPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex());
+	FDragDetectionState* DetectionState = PointerIndexToDragState.Find(UserAndPointer);
+
+	if ( DetectionState )
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool FSlateApplication::FDragDetector::DetectDrag(const FPointerEvent& PointerEvent, float InDragTriggerDistance, FWeakWidgetPath*& OutWeakWidgetPath)
+{
+	FUserAndPointer UserAndPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex());
+	FDragDetectionState* DetectionState = PointerIndexToDragState.Find(UserAndPointer);
+
+	if ( DetectionState )
+	{
+		if ( DetectionState->DetectDragUserIndex == PointerEvent.GetUserIndex() &&
+			 DetectionState->DetectDragPointerIndex == PointerEvent.GetPointerIndex() )
+		{
+			const FVector2D DragDelta = DetectionState->DetectDragStartLocation - PointerEvent.GetScreenSpacePosition();
+			const bool bDragDetected = ( DragDelta.SizeSquared() > FMath::Square(InDragTriggerDistance) );
+			if ( bDragDetected )
+			{
+				OutWeakWidgetPath = &DetectionState->DetectDragForWidget;
+				return true;
+			}
+		}
+	}
+
+	OutWeakWidgetPath = nullptr;
+	return false;
+}
+
+void FSlateApplication::FDragDetector::OnPointerRelease(const FPointerEvent& PointerEvent)
+{
+	FUserAndPointer UserAndPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex());
+	FDragDetectionState* DetectionState = PointerIndexToDragState.Find(UserAndPointer);
+
+	if ( DetectionState )
+	{
+		if ( DetectionState->DetectDragButton == PointerEvent.GetEffectingButton() && 
+			 DetectionState->DetectDragUserIndex == PointerEvent.GetUserIndex() && 
+			 DetectionState->DetectDragPointerIndex == PointerEvent.GetPointerIndex() )
+		{
+			// The user has released the button (or finger) that was supposed to start the drag; stop detecting it.
+			PointerIndexToDragState.Remove(UserAndPointer);
+		}
+	}
+}
+
+void FSlateApplication::FDragDetector::ResetDetection()
+{
+	PointerIndexToDragState.Reset();
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 FDelegateHandle FPopupSupport::RegisterClickNotification( const TSharedRef<SWidget>& NotifyWhenClickedOutsideMe, const FOnClickedOutside& InNotification )
 {
 	// If the subscriber or a zone object is destroyed, the subscription is
@@ -899,6 +964,7 @@ FSlateApplication::FSlateApplication()
 	, bIsFakingTouched( false )
 	, bTouchFallbackToMouse( true )
 	, bSoftwareCursorAvailable( false )	
+	, bQueryCursorRequested( false )
 	, bMenuAnimationsEnabled( true )
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 	, VirtualDesktopRect( 0,0,0,0 )
@@ -1074,44 +1140,6 @@ bool FSlateApplication::IsWindowHousingInteractiveTooltip(const TSharedRef<const
 		ActiveToolTipPtr->IsInteractive();
 
 	return bIsHousingInteractiveTooltip;
-}
-
-void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick )
-{
-	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM(GTickWindowAndChildrenTime, WindowToTick->GetCreatedInLocation());
-	if ( WindowToTick->IsVisible() && !WindowToTick->IsWindowMinimized() )
-	{
-		// Switch to the appropriate world for ticking
-		FScopedSwitchWorldHack SwitchWorld( WindowToTick );
-
-		// Measure all the widgets before we tick, and update their DesiredSize.  This is
-		// needed so that Tick() can call ArrangeChildren(), then pass valid widget metrics into
-		// the Tick() function.
-		
-		{
-			SCOPE_CYCLE_COUNTER( STAT_SlatePrepass );
-			WindowToTick->SlatePrepass(GetApplicationScale()*WindowToTick->GetNativeWindow()->GetDPIScaleFactor());
-		}
-
-		if (WindowToTick->IsAutosized())
-		{
-			WindowToTick->Resize(WindowToTick->GetDesiredSizeDesktopPixels());
-		}
-
-		{
-			SCOPE_CYCLE_COUNTER( STAT_SlateTickWidgets );
-			SLATE_CYCLE_COUNTER_SCOPE(GTickWidgets);
-			// Tick this window and all of the widgets in this window
-			WindowToTick->TickWidgetsRecursively( WindowToTick->GetWindowGeometryInScreen(), GetCurrentTime(), GetDeltaTime() );
-		}
-
-		// Tick all of this window's child windows.
-		const TArray< TSharedRef<SWindow> >& WindowChildren = WindowToTick->GetChildWindows();
-		for ( int32 ChildIndex=0; ChildIndex < WindowChildren.Num(); ++ChildIndex )
-		{
-			TickWindowAndChildren( WindowChildren[ChildIndex] );
-		}
-	}
 }
 
 void FSlateApplication::DrawWindows()
@@ -1496,13 +1524,12 @@ void FSlateApplication::FinishedInputThisFrame()
 	});
 }
 
-
-extern SLATECORE_API int32 bFoldTick;
-
-
-void FSlateApplication::Tick()
+void FSlateApplication::Tick(ESlateTickType TickType)
 {
 	SCOPE_TIME_GUARD(TEXT("FSlateApplication::Tick"));
+
+	// It is not valid to tick Slate on any other thread but the game thread unless we are only updating time
+	check(IsInGameThread() || TickType == ESlateTickType::TimeOnly);
 
 	FScopeLock SlateTickAccess(&SlateTickCriticalSection);
 
@@ -1514,8 +1541,11 @@ void FSlateApplication::Tick()
 
 		const float DeltaTime = GetDeltaTime();
 
-		TickPlatform(DeltaTime);
-		TickApplication(DeltaTime);
+		if (TickType == ESlateTickType::All)
+		{
+			TickPlatform(DeltaTime);
+		}
+		TickApplication(TickType, DeltaTime);
 	}
 
 	// Update Slate Stats
@@ -1551,7 +1581,7 @@ void FSlateApplication::TickPlatform(float DeltaTime)
 	FPlatformMisc::EndNamedEvent();
 }
 
-void FSlateApplication::TickApplication(float DeltaTime)
+void FSlateApplication::TickApplication(ESlateTickType TickType, float DeltaTime)
 {
 	if (Renderer.IsValid())
 	{
@@ -1561,35 +1591,38 @@ void FSlateApplication::TickApplication(float DeltaTime)
 		Renderer->ReleaseAccessedResources(/* Flush State */ false);
 	}
 
-	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::PreTick");
+	if(TickType == ESlateTickType::All)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_SlatePreTickEvent);
-		PreTickEvent.Broadcast(DeltaTime);
-	}
-	FPlatformMisc::EndNamedEvent();
+		FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::PreTick");
+		{
+			SCOPE_CYCLE_COUNTER(STAT_SlatePreTickEvent);
+			PreTickEvent.Broadcast(DeltaTime);
+		}
+		FPlatformMisc::EndNamedEvent();
 
-	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::UpdateCursorLockRegion");
-	// The widget locking the cursor to its bounds may have been reshaped.
-	// Check if the widget was reshaped and update the cursor lock
-	// bounds if needed.
-	UpdateCursorLockRegion();
-	//FPlatformMisc::EndNamedEvent();
+		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::UpdateCursorLockRegion");
+		// The widget locking the cursor to its bounds may have been reshaped.
+		// Check if the widget was reshaped and update the cursor lock
+		// bounds if needed.
+		UpdateCursorLockRegion();
+		//FPlatformMisc::EndNamedEvent();
 
-	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::CaptureAndToolTipUpdate");
-	// When Slate captures the mouse, it is up to us to set the cursor 
-	// because the OS assumes that we own the mouse.
-	if (MouseCaptor.HasCapture())
-	{
-		QueryCursor();
-	}
+		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::CaptureAndToolTipUpdate");
+		// When Slate captures the mouse, it is up to us to set the cursor 
+		// because the OS assumes that we own the mouse.
+		if (MouseCaptor.HasCapture() || bQueryCursorRequested)
+		{
+			QueryCursor();
+		}
 
-	{
-		SCOPE_CYCLE_COUNTER( STAT_SlateUpdateTooltip );
-		SLATE_CYCLE_COUNTER_SCOPE(GUpdateTooltipTime);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_SlateUpdateTooltip);
+			SLATE_CYCLE_COUNTER_SCOPE(GUpdateTooltipTime);
 
-		// Update tool tip, if we have one
-		const bool AllowSpawningOfToolTips = false;
-		UpdateToolTip( AllowSpawningOfToolTips );
+			// Update tool tip, if we have one
+			const bool AllowSpawningOfToolTips = false;
+			UpdateToolTip(AllowSpawningOfToolTips);
+		}
 	}
 	//FPlatformMisc::EndNamedEvent();
 
@@ -1601,6 +1634,7 @@ void FSlateApplication::TickApplication(float DeltaTime)
 	// Update average time between ticks.  This is used to monitor how responsive the application "feels".
 	// Note that we calculate this before we apply the max quantum clamping below, because we want to store
 	// the actual frame rate, even if it is very low.
+	if (TickType == ESlateTickType::All)
 	{
 		// Scalar percent of new delta time that contributes to running average.  Use a lower value to add more smoothing
 		// to the average frame rate.  A value of 1.0 will disable smoothing.
@@ -1627,103 +1661,70 @@ void FSlateApplication::TickApplication(float DeltaTime)
 		LastTickTime = CurrentTime - MaxQuantumBeforeClamp;
 	}
 
-	const bool bNeedsSyntheticMouseMouse = SynthesizeMouseMovePending > 0;
-	if (bNeedsSyntheticMouseMouse && (!GIsGameThreadIdInitialized || GGameThreadId == FPlatformTLS::GetCurrentThreadId())) // IsInGameThread actually includes 2 threads (main and slate loading) 
+	if (TickType == ESlateTickType::All)
 	{
-		// Force a mouse move event to make sure all widgets know whether there is a mouse cursor hovering over them
-		SynthesizeMouseMove();
-		--SynthesizeMouseMovePending;
-	}
-
-	// Update auto-throttling based on elapsed time since user interaction
-	ThrottleApplicationBasedOnMouseMovement();
-
-	TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
-
-	const float SleepThreshold = SleepBufferPostInput.GetValueOnGameThread();
-	const double TimeSinceInput = LastTickTime - LastUserInteractionTime;
-	const double TimeSinceMouseMove = LastTickTime - LastMouseMoveTime;
-	
-	const bool bIsUserIdle = (TimeSinceInput > SleepThreshold) && (TimeSinceMouseMove > SleepThreshold);
-	const bool bAnyActiveTimersPending = AnyActiveTimersArePending();
-	if (bAnyActiveTimersPending)
-	{
-		// Some UI might slide under the cursor. To a widget, this is
-		// as if the cursor moved over it.
-		QueueSynthesizedMouseMove();
-	}
-
-	// Check if any element lists used for caching need to be released
-	{
-		for ( int32 CacheIndex = 0; CacheIndex < ReleasedCachedElementLists.Num(); CacheIndex++ )
+		const bool bNeedsSyntheticMouseMouse = SynthesizeMouseMovePending > 0;
+		if (bNeedsSyntheticMouseMouse && (!GIsGameThreadIdInitialized || IsInGameThread())) 
 		{
-			if ( ReleasedCachedElementLists[CacheIndex]->IsInUse() == false )
-			{
-				ensure( ReleasedCachedElementLists[CacheIndex].IsUnique() );
-				ReleasedCachedElementLists[CacheIndex].Reset();
-				ReleasedCachedElementLists.RemoveAtSwap(CacheIndex, 1, false);
-				CacheIndex--;
-			}
+			// Force a mouse move event to make sure all widgets know whether there is a mouse cursor hovering over them
+			SynthesizeMouseMove();
+			--SynthesizeMouseMovePending;
 		}
-	}
 
-	// skip tick/draw if we are idle and there are no active timers registered that we need to drive slate for.
-	// This effectively means the slate application is totally idle and we don't need to update the UI.
-	// This relies on Widgets properly registering for Active timer when they need something to happen even
-	// when the user is not providing any input (ie, animations, viewport rendering, async polling, etc).
-	bIsSlateAsleep = true;
-	if (!AllowSlateToSleep.GetValueOnGameThread() || bAnyActiveTimersPending || !bIsUserIdle || bNeedsSyntheticMouseMouse || FApp::UseVRFocus())
-	{
-		bIsSlateAsleep = false; // if we get here, then Slate is not sleeping
-		if (!bFoldTick)
+		// Update auto-throttling based on elapsed time since user interaction
+		ThrottleApplicationBasedOnMouseMovement();
+
+		TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
+
+		const float SleepThreshold = SleepBufferPostInput.GetValueOnGameThread();
+		const double TimeSinceInput = LastTickTime - LastUserInteractionTime;
+		const double TimeSinceMouseMove = LastTickTime - LastMouseMoveTime;
+
+		const bool bIsUserIdle = (TimeSinceInput > SleepThreshold) && (TimeSinceMouseMove > SleepThreshold);
+		const bool bAnyActiveTimersPending = AnyActiveTimersArePending();
+		if (bAnyActiveTimersPending)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_SlateTickWindowAndChildren);
-			SLATE_CYCLE_COUNTER_SCOPE(GTickWindowAndChildrenTime);
+			// Some UI might slide under the cursor. To a widget, this is
+			// as if the cursor moved over it.
+			QueueSynthesizedMouseMove();
+		}
 
-			if ( ActiveModalWindow.IsValid() )
+		// Check if any element lists used for caching need to be released
+		{
+			for (int32 CacheIndex = 0; CacheIndex < ReleasedCachedElementLists.Num(); CacheIndex++)
 			{
-				// There is a modal window, and we just need to tick it.
-				TickWindowAndChildren(ActiveModalWindow.ToSharedRef());
-				// And also tick any topmost windows (like tooltips, etc)
-				for ( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt )
+				if (ReleasedCachedElementLists[CacheIndex]->IsInUse() == false)
 				{
-					TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
-					if ( CurrentWindow->IsTopmostWindow() )
-					{
-						TickWindowAndChildren(CurrentWindow);
-					}
-				}
-				// also tick the notification manager's windows
-				TArray< TSharedRef<SWindow> > NotificationWindows;
-				FSlateNotificationManager::Get().GetWindows(NotificationWindows);
-				for ( auto CurrentWindowIt(NotificationWindows.CreateIterator()); CurrentWindowIt; ++CurrentWindowIt )
-				{
-					TickWindowAndChildren(*CurrentWindowIt);
-				}
-			}
-			else
-			{
-				// No modal window; tick all slate windows.
-				for ( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt )
-				{
-					TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
-					TickWindowAndChildren(CurrentWindow);
+					ensure(ReleasedCachedElementLists[CacheIndex].IsUnique());
+					ReleasedCachedElementLists[CacheIndex].Reset();
+					ReleasedCachedElementLists.RemoveAtSwap(CacheIndex, 1, false);
+					CacheIndex--;
 				}
 			}
 		}
 
-		// Update any notifications - this needs to be done after windows have updated themselves 
-		// (so they know their size)
+		// skip tick/draw if we are idle and there are no active timers registered that we need to drive slate for.
+		// This effectively means the slate application is totally idle and we don't need to update the UI.
+		// This relies on Widgets properly registering for Active timer when they need something to happen even
+		// when the user is not providing any input (ie, animations, viewport rendering, async polling, etc).
+		bIsSlateAsleep = true;
+		if (!AllowSlateToSleep.GetValueOnGameThread() || bAnyActiveTimersPending || !bIsUserIdle || bNeedsSyntheticMouseMouse || FApp::UseVRFocus())
 		{
-			SLATE_CYCLE_COUNTER_SCOPE(GSlateTickNotificationManager);
-			FSlateNotificationManager::Get().Tick();
+			bIsSlateAsleep = false; // if we get here, then Slate is not sleeping
+
+			// Update any notifications - this needs to be done after windows have updated themselves 
+			// (so they know their size)
+			{
+				SLATE_CYCLE_COUNTER_SCOPE(GSlateTickNotificationManager);
+				FSlateNotificationManager::Get().Tick();
+			}
+
+			// Draw all windows
+			DrawWindows();
 		}
 
-		// Draw all windows
-		DrawWindows();
+		PostTickEvent.Broadcast(DeltaTime);
 	}
-
-	PostTickEvent.Broadcast(DeltaTime);
 }
 
 
@@ -2050,7 +2051,7 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 				}
 
 				// Tick and render Slate
-				TickApplication(DeltaTime);
+				TickApplication(ESlateTickType::All, DeltaTime);
 			}
 
 			// Update Slate Stats
@@ -2530,7 +2531,7 @@ void FSlateApplication::ResetToDefaultPointerInputSettings()
 	}
 }
 
-void* FSlateApplication::GetMouseCaptureWindow( void ) const
+void* FSlateApplication::GetMouseCaptureWindow() const
 {
 	return PlatformApplication->GetCapture();
 }
@@ -2925,6 +2926,9 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	{
 		WidgetsUnderCursorLastEvent.Add( FUserAndPointer(UserIndex,PointerIndex), MouseCaptor.ToWeakPath(UserIndex,PointerIndex) );
 		MouseCaptor.InvalidateCaptureForPointer(UserIndex,PointerIndex);
+
+		// If mouse capture changes, we should refresh the cursor state.
+		bQueryCursorRequested = true;
 	}
 
 	// Clear focus is requested.
@@ -2977,10 +2981,14 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	if (bAppIsActive || bIsVirtualInteraction)
 	{
 		TSharedPtr<SWidget> RequestedMouseCaptor = TheReply.GetMouseCaptor();
+
 		// Do not capture the mouse if we are also starting a drag and drop.
 		if (RequestedMouseCaptor.IsValid() && !bStartingDragDrop)
 		{
 			MouseCaptor.SetMouseCaptor(UserIndex, PointerIndex, CurrentEventPath, RequestedMouseCaptor);
+
+			// When the cursor capture state changes we need to refresh cursor state.
+			bQueryCursorRequested = true;
 		}
 
 		if ( !bIsVirtualInteraction && CurrentEventPath.IsValid() && RequestedMouseCaptor.IsValid())
@@ -2992,6 +3000,9 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 				const TSharedRef< SWindow> Window = CurrentEventPath.GetWindow();
 				PlatformApplication->SetCapture(Window->GetNativeWindow());
 				PlatformApplication->SetHighPrecisionMouseMode(true, Window->GetNativeWindow());
+
+				// When the cursor capture state changes we need to refresh cursor state.
+				bQueryCursorRequested = true;
 			}
 		}
 
@@ -3021,6 +3032,9 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 			{
 				PlatformApplication->SetHighPrecisionMouseMode(false, nullptr);
 				PlatformApplication->SetCapture(nullptr);
+
+				// When the cursor capture state changes we need to refresh cursor state.
+				bQueryCursorRequested = true;
 			}
 		}
 	}
@@ -3075,11 +3089,14 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 
 	if ( TheReply.GetDetectDragRequest().IsValid() )
 	{
-		DragDetector.DetectDragForWidget = WidgetsUnderMouse->GetPathDownTo( TheReply.GetDetectDragRequest().ToSharedRef() );
-		DragDetector.DetectDragButton = TheReply.GetDetectDragRequestButton();
 		checkSlow(InMouseEvent);
-		DragDetector.DetectDragStartLocation = InMouseEvent->GetScreenSpacePosition();
-		DragDetector.DetectDragPointerIndex = InMouseEvent->GetPointerIndex();
+
+		DragDetector.StartDragDetection(
+			WidgetsUnderMouse->GetPathDownTo(TheReply.GetDetectDragRequest().ToSharedRef()),
+			InMouseEvent->GetUserIndex(),
+			InMouseEvent->GetPointerIndex(),
+			TheReply.GetDetectDragRequestButton(),
+			InMouseEvent->GetScreenSpacePosition());
 	}
 
 	// Set focus if requested.
@@ -3179,13 +3196,15 @@ void FSlateApplication::SetLastUserInteractionTime(double InCurrentTime)
 
 void FSlateApplication::QueryCursor()
 {
+	bQueryCursorRequested = false;
+
 	// The slate loading widget thread is not allowed to execute this code 
 	// as it is unsafe to read the hittest grid in another thread
 	if ( PlatformApplication->Cursor.IsValid() && IsInGameThread() )
 	{
 		// drag-drop overrides cursor
 		FCursorReply CursorReply = FCursorReply::Unhandled();
-		if(IsDragDropping())
+		if ( IsDragDropping() )
 		{
 			CursorReply = DragDropContent->OnCursorQuery();
 		}
@@ -4947,7 +4966,7 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 #if PLATFORM_MAC
 			|| (
 				PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
-				!DragDetector.DetectDragForWidget.IsValid()
+				!DragDetector.IsDetectingDrag(PointerEvent)
 			)
 #endif
 		)
@@ -4974,7 +4993,7 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 				// Clicking on a context menu should not activate anything
 				// @todo: This needs to be updated when we have window type in SWindow and we no longer have to guess if WidgetsUnderCursor.TopLevelWindow is a menu
 				const bool bIsContextMenu = TopLevelWindow.IsValid() && !TopLevelWindow->IsRegularWindow() && TopLevelWindow->HasMinimizeBox() && TopLevelWindow->HasMaximizeBox();
-				if ( !bIsContextMenu && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid() && ActiveWindow == [NSApp keyWindow] )
+				if ( !bIsContextMenu && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.IsDetectingDrag(PointerEvent) && ActiveWindow == [NSApp keyWindow] )
 				{
 					MouseCaptorHelper Captor = MouseCaptor;
 					FPlatformMisc::ActivateApplication();
@@ -5004,14 +5023,8 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 	TSharedPtr<SWindow> TopLevelWindow;
 #endif
 
-	if ( DragDetector.DetectDragForWidget.IsValid() )
-	{
-		if ( PointerEvent.GetEffectingButton() == DragDetector.DetectDragButton && PointerEvent.GetPointerIndex() == DragDetector.DetectDragPointerIndex )
-		{
-			// The user has released the button (or finger) that was supposed to start the drag; stop detecting it.
-			DragDetector = FDragDetector();
-		}
-	}
+	// Update the drag detector, this release may stop a drag detection.
+	DragDetector.OnPointerRelease(PointerEvent);
 
 	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
 	{
@@ -5128,42 +5141,41 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 	{
 		bShouldStartDetectingDrag = OnDragDropCheckOverride.Execute();
 	}
-	if( DragDetector.DetectDragForWidget.IsValid() && !bIsSynthetic && bShouldStartDetectingDrag)
-	{	
-		const FVector2D DragDelta = (DragDetector.DetectDragStartLocation - PointerEvent.GetScreenSpacePosition());
-		bDragDetected = ( DragDelta.SizeSquared() > FMath::Square(FSlateApplication::Get().GetDragTriggerDistance()) );
-		if (bDragDetected)
+
+	if ( !bIsSynthetic && bShouldStartDetectingDrag )
+	{
+		FWeakWidgetPath* DetectDragForWidget;
+		bDragDetected = DragDetector.DetectDrag(PointerEvent, GetDragTriggerDistance(), DetectDragForWidget);
+		if ( bDragDetected )
 		{
-			FWidgetPath DragDetectPath = DragDetector.DetectDragForWidget.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
-			const TSharedPtr<SWidget> DragDetectRequestor = DragDetector.DetectDragForWidget.GetLastWidget().Pin();
-			if (DragDetectPath.IsValid() && DragDetectRequestor.IsValid())
+			FWidgetPath DragDetectPath = DetectDragForWidget->ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
+			const TSharedPtr<SWidget> DragDetectRequestor = DetectDragForWidget->GetLastWidget().Pin();
+			if ( DragDetectPath.IsValid() && DragDetectRequestor.IsValid() )
 			{
 				FWidgetAndPointer DetectDragForMe = DragDetectPath.FindArrangedWidgetAndCursor(DragDetectRequestor.ToSharedRef()).Get(FWidgetAndPointer());
 
 				// A drag has been triggered. The cursor exited some widgets as a result.
 				// This assignment ensures that we will send OnLeave notifications to those widgets.
-				LastWidgetsUnderCursor = DragDetector.DetectDragForWidget;
+				LastWidgetsUnderCursor = *DetectDragForWidget;
 
-				// We're finished with the drag detect.
-				DragDetector = FDragDetector();
+				DragDetector.ResetDetection();
+
+				// Switch worlds widgets in the current path
+				FScopedSwitchWorldHack SwitchWorld(DragDetectPath);
 
 				// Send an OnDragDetected to the widget that requested drag-detection.
-				
-				// Switch worlds widgets in the current path
-				FScopedSwitchWorldHack SwitchWorld( DragDetectPath );
-
-				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe,DragDetectPath), PointerEvent, []( const FArrangedWidget& InDetectDragForMe, const FPointerEvent& TranslatedMouseEvent )
+				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe, DragDetectPath), PointerEvent, [] (const FArrangedWidget& InDetectDragForMe, const FPointerEvent& TranslatedMouseEvent)
 				{
-					return InDetectDragForMe.Widget->OnDragDetected(InDetectDragForMe.Geometry, TranslatedMouseEvent );
+					return InDetectDragForMe.Widget->OnDragDetected(InDetectDragForMe.Geometry, TranslatedMouseEvent);
 				});
-				
-				LOG_EVENT( EEventLog::DragDetected, Reply );
+
+				LOG_EVENT(EEventLog::DragDetected, Reply);
 			}
 			else
 			{
 				bDragDetected = false;
 			}
-		}		
+		}
 	}
 
 
@@ -5706,7 +5718,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 
 bool FSlateApplication::OnCursorSet()
 {
-	QueryCursor();
+	bQueryCursorRequested = true;
 	return true;
 }
 
@@ -6613,23 +6625,6 @@ void FSlateApplication::NavigateFromWidgetUnderCursor(const uint32 InUserIndex, 
 			{
 				FSlateApplication::Get().ProcessReply(PathToLocatedWidget, FReply::Handled().SetNavigation(InNavigationType, ENavigationGenesis::User, ENavigationSource::WidgetUnderCursor), &PathToLocatedWidget, nullptr, InUserIndex);
 			}
-		}
-	}
-}
-
-void FSlateApplication::RegisterCursor(EMouseCursor::Type CursorType, TSharedPtr<FHardwareCursor> HardwareCursor)
-{
-	HardwareCursors.Add(CursorType, HardwareCursor);
-
-	if (ICursor* Cursor = PlatformApplication->Cursor.Get())
-	{
-		if (HardwareCursor.IsValid())
-		{
-			Cursor->SetTypeShape(CursorType, HardwareCursor->GetHandle());
-		}
-		else
-		{
-			Cursor->SetTypeShape(CursorType, nullptr);
 		}
 	}
 }

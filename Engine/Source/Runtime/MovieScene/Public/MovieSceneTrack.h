@@ -37,6 +37,7 @@ struct FMovieSceneTrackCompilationParams
 
 	FMovieSceneTrackCompilationParams()
 		: bForEditorPreview(false)
+		, bDuringBlueprintCompile(false)
 	{
 	}
 
@@ -47,12 +48,16 @@ struct FMovieSceneTrackCompilationParams
 
 	friend bool operator==(const FMovieSceneTrackCompilationParams& A, const FMovieSceneTrackCompilationParams& B)
 	{
-		return A.bForEditorPreview == B.bForEditorPreview;
+		return A.bForEditorPreview == B.bForEditorPreview && A.bDuringBlueprintCompile == B.bDuringBlueprintCompile;
 	}
 
 	/** Whether we're generating for an editor preview, or for efficient runtime evaluation */
 	UPROPERTY()
 	bool bForEditorPreview;
+
+	/** Whether we're generating during a blueprint compile. As such, UObject types may not have been fully loaded. */
+	UPROPERTY()
+	bool bDuringBlueprintCompile;
 };
 
 /** Track compiler arguments */
@@ -86,8 +91,8 @@ struct FMovieSceneTrackEvalOptions
 	FMovieSceneTrackEvalOptions()
 		: bCanEvaluateNearestSection(false)
 		, bEvaluateNearestSection(false)
-		, bEvaluateInPreroll(true)
-		, bEvaluateInPostroll(true)
+		, bEvaluateInPreroll(false)
+		, bEvaluateInPostroll(false)
 	{}
 
 	/** true when the value of bEvaluateNearestSection is to be considered for the track */
@@ -159,6 +164,11 @@ public:
 	 * @param Args 			Compilation arguments
 	 */
 	MOVIESCENE_API virtual void GenerateTemplate(const FMovieSceneTrackCompilerArgs& Args) const;
+
+	/**
+	 * Get a raw compiled copy of this track with no additional shared tracks or compiler parameters
+	 */
+	MOVIESCENE_API FMovieSceneEvaluationTrack GenerateTrackTemplate() const;
 
 protected:
 

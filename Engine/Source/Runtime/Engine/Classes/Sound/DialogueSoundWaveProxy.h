@@ -20,6 +20,7 @@ class UDialogueSoundWaveProxy : public USoundBase
 
 	USoundWave* SoundWave;
 	TArray<struct FSubtitleCue> Subtitles;
+	FWaveInstance* CurrentWaveInstance;
 
 public:
 	/** Returns whether the sound base is set up in a playable manner */

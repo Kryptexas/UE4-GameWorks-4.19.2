@@ -138,7 +138,10 @@ void SObjectWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
 
 void SObjectWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
 {
-	// TODO UMG
+	if ( CanRouteEvent() )
+	{
+		WidgetObject->NativeOnFocusChanging(PreviousFocusPath, NewWidgetPath, InFocusEvent);
+	}
 }
 
 FReply SObjectWidget::OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent)
@@ -446,9 +449,16 @@ FReply SObjectWidget::OnMotionDetected(const FGeometry& MyGeometry, const FMotio
 
 FNavigationReply SObjectWidget::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
 {
+	// This reply will represent anything setup by the user with their Navigation Metadata, and we provide it to the user
+	// no matter what so they could make intelligent decisions like, for example, making a UUserWidget Subclass that plays a
+	// sound when the navigation is stopped, it could look at the default reply, and respond with a sound, letting the user
+	// know that way is not supported.
 	FNavigationReply Reply = SCompoundWidget::OnNavigation(MyGeometry, InNavigationEvent);
 
-	// TODO Notify blueprint
+	if ( CanRouteEvent() )
+	{
+		return WidgetObject->NativeOnNavigation(MyGeometry, InNavigationEvent, Reply);
+	}
 
 	return Reply;
 }

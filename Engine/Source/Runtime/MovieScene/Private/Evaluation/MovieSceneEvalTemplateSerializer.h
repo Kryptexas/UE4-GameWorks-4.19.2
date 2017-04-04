@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MovieSceneFwd.h"
 #include "Evaluation/MovieSceneEvaluationCustomVersion.h"
 
 struct FMovieSceneEmptyStruct;
@@ -26,8 +27,10 @@ bool SerializeEvaluationTemplate(TInlineValue<T, N>& Impl, FArchive& Ar)
 
 		// Find the script struct of the thing that was serialized
 		UScriptStruct* Struct = FindObject<UScriptStruct>(nullptr, *TypeName);
-		if (!Struct)
+		if (!Struct || Struct == T::StaticStruct())
 		{
+			UE_LOG(LogMovieScene, Warning, TEXT("Unknown or invalid track type (%s) found in serialized data. This track will no longer work. Please recompile template data."), *TypeName);
+
 			// If it wasn't found, just deserialize an empty struct instead, and set ourselves to default
 			FMovieSceneEmptyStruct Empty;
 			FMovieSceneEmptyStruct::StaticStruct()->SerializeItem(Ar, &Empty, nullptr);

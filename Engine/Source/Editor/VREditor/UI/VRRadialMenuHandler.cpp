@@ -128,7 +128,7 @@ void UVRRadialMenuHandler::Init(UVREditorUISystem* InUISystem)
 	Home();
 }
 
-void UVRRadialMenuHandler::BuildRadialMenuCommands(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+void UVRRadialMenuHandler::BuildRadialMenuCommands(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
 {
 	UVRRadialMenuHandler::OnRadialMenuGenerated.ExecuteIfBound(MenuBuilder, CommandList, VRMode, RadiusOverride);
 
@@ -169,8 +169,10 @@ void UVRRadialMenuHandler::BuildRadialMenuCommands(FMenuBuilder MenuBuilder, TSh
 	}
 }
 
-void UVRRadialMenuHandler::HomeMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+void UVRRadialMenuHandler::HomeMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
 {
+	MenuBuilder.BeginSection( "Home" );
+
 	// First menu entry is at 90 degrees 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("SnapSettings", "Snapping"),
@@ -258,10 +260,14 @@ void UVRRadialMenuHandler::HomeMenuGenerator(FMenuBuilder MenuBuilder, TSharedPt
 		NAME_None,
 		EUserInterfaceActionType::CollapsedButton
 		);
+
+	MenuBuilder.EndSection();
 }
 
-void UVRRadialMenuHandler::SnapMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+void UVRRadialMenuHandler::SnapMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
 {
+	MenuBuilder.BeginSection( "Snap" );
+
 	FVREditorActionCallbacks::UpdateSelectingCandidateActorsText(VRMode);
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("ToggleTranslationSnap", "Translate Snap"),
@@ -372,10 +378,14 @@ void UVRRadialMenuHandler::SnapMenuGenerator(FMenuBuilder MenuBuilder, TSharedPt
 		NAME_None,
 		EUserInterfaceActionType::CollapsedButton
 		);
+
+	MenuBuilder.EndSection();
 }
 
-void UVRRadialMenuHandler::GizmoMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+void UVRRadialMenuHandler::GizmoMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
 {
+	MenuBuilder.BeginSection( "Gizmo" );
+
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("LocalSpace", "Local Space"),
 		FText(),
@@ -454,10 +464,14 @@ void UVRRadialMenuHandler::GizmoMenuGenerator(FMenuBuilder MenuBuilder, TSharedP
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
 		);
+
+	MenuBuilder.EndSection();
 }
 
-void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
 {
+	MenuBuilder.BeginSection( "UI" );
+
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("ActorDetails", "Details"),
 		LOCTEXT("ActorDetailsTooltip", "Details"),
@@ -535,10 +549,14 @@ void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
 		);
+
+	MenuBuilder.EndSection();
 }
 
-void UVRRadialMenuHandler::EditMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+void UVRRadialMenuHandler::EditMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
 {
+	MenuBuilder.BeginSection( "Edit" );
+
 	// First menu entry is at 90 degrees 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("DeselectAll", "Deselect All"),
@@ -611,10 +629,14 @@ void UVRRadialMenuHandler::EditMenuGenerator(FMenuBuilder MenuBuilder, TSharedPt
 			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Copy_CanExecute)
 			)
 		);
+
+	MenuBuilder.EndSection();
 }
 
-void UVRRadialMenuHandler::ToolsMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+void UVRRadialMenuHandler::ToolsMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
 {
+	MenuBuilder.BeginSection( "Tools" );
+
 	TAttribute<FText> DynamicSimulateLabel;
 	DynamicSimulateLabel.BindStatic(&FVREditorActionCallbacks::GetSimulateText);
 
@@ -710,10 +732,14 @@ void UVRRadialMenuHandler::ToolsMenuGenerator(FMenuBuilder MenuBuilder, TSharedP
 		NAME_None,
 		EUserInterfaceActionType::CollapsedButton
 		);
+
+	MenuBuilder.EndSection();
 }
 
-void UVRRadialMenuHandler::ModesMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+void UVRRadialMenuHandler::ModesMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
 {
+	MenuBuilder.BeginSection( "Modes" );
+
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("Actors", "Actors"),
 		FText(),
@@ -766,6 +792,8 @@ void UVRRadialMenuHandler::ModesMenuGenerator(FMenuBuilder MenuBuilder, TSharedP
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
 		);
+
+	MenuBuilder.EndSection();
 }
 
 void UVRRadialMenuHandler::RegisterMenuGenerator(const FOnRadialMenuGenerated NewMenuGenerator, const bool bShouldAddToStack)

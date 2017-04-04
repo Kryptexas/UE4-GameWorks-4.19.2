@@ -103,6 +103,12 @@ public:
 		return nullptr;
 	}
 
+	virtual EThumbnailPrimType GetDefaultThumbnailPrimitiveType(UObject* Asset) const override
+	{
+		return TPT_None;
+	}
+
+
 	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const FAssetData& AssetData) const override
 	{
 		return nullptr;

@@ -1878,8 +1878,12 @@ bool FWindowsPlatformMisc::VerifyWindowsVersion(uint32 MajorVersion, uint32 Mino
 	Version.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	Version.dwMajorVersion = MajorVersion;
 	Version.dwMinorVersion = MinorVersion;
+
 	ULONGLONG ConditionMask = 0;
-	return !!VerifyVersionInfo( &Version, VER_MAJORVERSION, VerSetConditionMask(ConditionMask,VER_MAJORVERSION,VER_GREATER_EQUAL) );
+	ConditionMask = VerSetConditionMask(ConditionMask, VER_MAJORVERSION, VER_GREATER_EQUAL);
+	ConditionMask = VerSetConditionMask(ConditionMask, VER_MINORVERSION, VER_GREATER_EQUAL);
+
+	return !!VerifyVersionInfo(&Version, VER_MAJORVERSION | VER_MINORVERSION, ConditionMask);
 }
 
 bool FWindowsPlatformMisc::IsValidAbsolutePathFormat(const FString& Path)
@@ -2169,6 +2173,40 @@ bool FWindowsPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FSt
 	}
 
 	return Result == ERROR_SUCCESS;
+}
+
+FString FWindowsPlatformMisc::GetDefaultLanguage()
+{
+	// Only use GetUserPreferredUILanguages on Windows 8+ as older versions didn't always have language packs available
+	if (FWindowsPlatformMisc::VerifyWindowsVersion(6, 2))
+	{
+		ULONG NumLanguages = 0;
+		ULONG LangBufferSize = 0;
+		if (::GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &NumLanguages, nullptr, &LangBufferSize))
+		{
+			TArray<WCHAR> LangBuffer;
+			LangBuffer.SetNumZeroed(LangBufferSize);
+		
+			if (::GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &NumLanguages, LangBuffer.GetData(), &LangBufferSize))
+			{
+				// GetUserPreferredUILanguages returns a list where each item is null terminated, so this produces a string containing only the first item
+				return FString(LangBuffer.GetData());
+			}
+		}
+	}
+	
+	return GetDefaultLocale();
+}
+
+FString FWindowsPlatformMisc::GetDefaultLocale()
+{
+	WCHAR LocaleName[LOCALE_NAME_MAX_LENGTH];
+	if (::GetUserDefaultLocaleName(LocaleName, LOCALE_NAME_MAX_LENGTH))
+	{
+		return FString(LocaleName);
+	}
+
+	return FGenericPlatformMisc::GetDefaultLocale();
 }
 
 uint32 FWindowsPlatformMisc::GetLastError()

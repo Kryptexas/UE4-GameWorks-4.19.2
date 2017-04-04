@@ -3028,6 +3028,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					.Text( this, &FBlueprintGraphActionDetails::OnGetTooltipText )
 					.OnTextCommitted( this, &FBlueprintGraphActionDetails::OnTooltipTextCommitted )
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
+					.ModiferKeyForNewLine(EModifierKey::Shift)
 			];
 
 			// Composite graphs are auto-categorized into their parent graph
@@ -4181,7 +4182,7 @@ FText FBlueprintGraphActionDetails::OnGetTooltipText() const
 {
 	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
 	{
-		return FText::FromString(Metadata->ToolTip);
+		return Metadata->ToolTip;
 	}
 	else
 	{
@@ -4193,7 +4194,7 @@ void FBlueprintGraphActionDetails::OnTooltipTextCommitted(const FText& NewText, 
 {
 	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
 	{
-		Metadata->ToolTip = NewText.ToString();
+		Metadata->ToolTip = NewText;
 		if(auto Function = FindFunction())
 		{
 			Function->Modify();

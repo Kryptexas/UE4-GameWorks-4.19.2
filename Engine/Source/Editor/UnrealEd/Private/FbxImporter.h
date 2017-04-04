@@ -456,6 +456,13 @@ public:
 	static FbxDouble3   ConvertToFbxColor(FColor Color);
 	static FbxString	ConvertToFbxString(FName Name);
 	static FbxString	ConvertToFbxString(const FString& String);
+
+	// FbxCamera with no rotation faces X with Y-up while ours faces X with Z-up so add a -90 degrees roll to compensate
+	static FRotator GetCameraRotation() { return FRotator(0.f, 0.f, -90.f); }
+
+	// FbxLight with no rotation faces -Z while ours faces Y so add a 90 degrees pitch to compensate
+	static FRotator GetLightRotation() { return FRotator(0.f, 90.f, 0.f); }
+
 private:
 	static FbxAMatrix JointPostConversionMatrix;
 };

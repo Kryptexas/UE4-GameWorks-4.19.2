@@ -6,6 +6,7 @@
 #include "PropertyHandle.h"
 #include "IDetailKeyframeHandler.h"
 #include "GameDelegates.h"
+#include "Settings/LevelEditorPlaySettings.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/LevelEditor/Public/ILevelEditor.h"
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
@@ -181,6 +182,7 @@ void FLevelEditorSequencerIntegration::Initialize()
 	ActivateDetailKeyframeHandler();
 	AttachTransportControlsToViewports();
 	ActivateSequencerEditorMode();
+	BindLevelEditorCommands();
 
 	{
 		FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -334,13 +336,21 @@ void FLevelEditorSequencerIntegration::ActivateSequencerEditorMode()
 
 void FLevelEditorSequencerIntegration::OnPreBeginPIE(bool bIsSimulating)
 {
+	bool bReevaluate = (!bIsSimulating && GetDefault<ULevelEditorPlaySettings>()->bBindSequencerToPIE) || (bIsSimulating && GetDefault<ULevelEditorPlaySettings>()->bBindSequencerToSimulate);
+
 	IterateAllSequencers(
-		[](FSequencer& In, const FLevelEditorSequencerIntegrationOptions& Options)
+		[=](FSequencer& In, const FLevelEditorSequencerIntegrationOptions& Options)
 		{
 			if (Options.bRequiresLevelEvents)
 			{
 				In.RestorePreAnimatedState();
 				In.State.ClearObjectCaches();
+
+				if (bReevaluate)
+				{
+					// Notify data changed to enqueue an evaluate
+					In.NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::Unknown);
+				}
 			}
 		}
 	);
@@ -355,6 +365,7 @@ void FLevelEditorSequencerIntegration::OnEndPlayMap()
 			{
 				// Update and clear any stale bindings 
 				In.State.ClearObjectCaches();
+				In.ForceEvaluate();
 			}
 		}
 	);
@@ -947,6 +958,7 @@ void FLevelEditorSequencerIntegration::RemoveSequencer(TSharedRef<ISequencer> In
 				Control.Widget->AssignSequencer(SequencerPtr.ToSharedRef());
 			}
 		}
+
 	}
 	else
 	{

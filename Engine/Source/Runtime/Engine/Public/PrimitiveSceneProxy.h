@@ -462,10 +462,8 @@ public:
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
 
-	inline void AddUsedMaterialForVerification(UMaterialInterface* Material)
-	{
-		UsedMaterialsForVerification.AddUnique(Material);
-	}
+	/** This function exist only to perform an update of the UsedMaterialsForVerification on the render thread*/
+	ENGINE_API void SetUsedMaterialForVerification(const TArray<UMaterialInterface*>& InUsedMaterialsForVerification);
 #endif
 
 	inline FLinearColor GetWireframeColor() const { return WireframeColor; }

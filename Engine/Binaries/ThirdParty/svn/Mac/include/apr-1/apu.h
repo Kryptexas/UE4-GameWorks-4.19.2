@@ -102,10 +102,10 @@
 #define APU_HAVE_SDBM   1
 #define APU_HAVE_GDBM   0
 #define APU_HAVE_NDBM   0
-#define APU_HAVE_DB     1
+#define APU_HAVE_DB     0
 
 #if APU_HAVE_DB
-#define APU_HAVE_DB_VERSION    5
+#define APU_HAVE_DB_VERSION    0
 #endif
 
 #define APU_HAVE_PGSQL         0

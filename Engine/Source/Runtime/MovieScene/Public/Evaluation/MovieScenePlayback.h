@@ -103,11 +103,31 @@ struct FMovieSceneContext : FMovieSceneEvaluationRange
 	/**
 	 * Construction from an evaluation range, and a current status
 	 */
+	FMovieSceneContext(FMovieSceneEvaluationRange InRange)
+		: FMovieSceneEvaluationRange(InRange)
+		, Status(EMovieScenePlayerStatus::Stopped)
+		, PrePostRollStartEndTime(TNumericLimits<float>::Lowest())
+		, bHasJumped(false)
+		, bSilent(false)
+		, bSectionPreRoll(false)
+		, bSectionPostRoll(false)
+		, bHasPreRollEndTime(false)
+		, bHasPostRollStartTime(false)
+	{}
+
+	/**
+	 * Construction from an evaluation range, and a current status
+	 */
 	FMovieSceneContext(FMovieSceneEvaluationRange InRange, EMovieScenePlayerStatus::Type InStatus)
 		: FMovieSceneEvaluationRange(InRange)
 		, Status(InStatus)
+		, PrePostRollStartEndTime(TNumericLimits<float>::Lowest())
 		, bHasJumped(false)
 		, bSilent(false)
+		, bSectionPreRoll(false)
+		, bSectionPostRoll(false)
+		, bHasPreRollEndTime(false)
+		, bHasPostRollStartTime(false)
 	{}
 
 	/**
@@ -140,6 +160,26 @@ struct FMovieSceneContext : FMovieSceneEvaluationRange
 	FORCEINLINE const FMovieSceneSequenceTransform& GetRootToSequenceTransform() const
 	{
 		return RootToSequenceTransform;
+	}
+
+	/**
+	 * Apply section pre and post roll based on whether we're in the leading (preroll), or trailing (postroll) region for the section, and the current play direction
+	 *
+	 * @param bInLeadingRegion			Whether we are considered to be in the section's leading (aka preroll) region
+	 * @param bInTrailingRegion			Whether we are considered to be in the section's trailing (aka postroll) region
+	 */
+	FORCEINLINE void ApplySectionPrePostRoll(bool bInLeadingRegion, bool bInTrailingRegion)
+	{
+		if (Direction == EPlayDirection::Forwards)
+		{
+			bSectionPreRoll = bInLeadingRegion;
+			bSectionPostRoll = bInTrailingRegion;
+		}
+		else
+		{
+			bSectionPreRoll = bInTrailingRegion;
+			bSectionPostRoll = bInLeadingRegion;
+		}
 	}
 
 public:
@@ -183,6 +223,94 @@ public:
 		return NewContext;
 	}
 
+public:
+
+	/**
+	 * Check if we're in any kind of preroll (either prerolling section specifically, or as part of a sub-section)
+	 * @note Play direction has already been considered in the calculation of this function, so needs no extra consideration.
+	 */
+	bool IsPreRoll() const
+	{
+		return bHasPreRollEndTime || bSectionPreRoll;
+	}
+
+	/**
+	 * Check if we're in any kind of postroll (either postrolling section specifically, or as part of a sub-section)
+	 * @note Play direction has already been considered in the calculation of this function, so needs no extra consideration.
+	 */
+	bool IsPostRoll() const
+	{
+		return bHasPostRollStartTime || bSectionPostRoll;
+	}
+
+	/**
+	 * Check whether we have an externally supplied time at which preroll will end.
+	 * @note When not set (and IsPreRoll() is true), preroll ends at either the start or end of section bounds, depending on play direction.
+	 */
+	bool HasPreRollEndTime() const
+	{
+		return bHasPreRollEndTime;
+	}
+
+	/**
+	 * Check whether we have an externally supplied time at which postroll started.
+	 * @note When not set (and IsPostRoll() is true), preroll ends at either the start or end of section bounds, depending on play direction.
+	 */
+	bool HasPostRollStartTime() const
+	{
+		return bHasPostRollStartTime;
+	}
+
+	/**
+	 * Access the time at which preroll will stop, and evaluation will commence
+	 * @note: Only valid to call when HasPreRollEndTime() is true
+	 */
+	float GetPreRollEndTime() const
+	{
+		checkf(bHasPreRollEndTime, TEXT("It's invalid to call GetPreRollEndTime() without first checking HasPreRollEndTime()"));
+		return PrePostRollStartEndTime;
+	}
+
+	/**
+	 * Access the time at which post roll started (or in other terms: when evaluation stopped)
+	 * @note: Only valid to call when HasPostRollStartTime() is true
+	 */
+	float GetPostRollStartTime() const
+	{
+		checkf(bHasPostRollStartTime, TEXT("It's invalid to call GetPostRollStartTime() without first checking HasPostRollStartTime()"));
+		return PrePostRollStartEndTime;
+	}
+
+	/**
+	 * Report the outer section pre and post roll ranges for the current context
+	 *
+	 * @param InLeadingRange			The leading (preroll) range in front of the outer section, in the current transformation's time space
+	 * @param InTrailingRange			The trailing (postroll) range at the end of the outer section, in the current transformation's time space
+	 */
+	void ReportOuterSectionRanges(TRange<float> InLeadingRange, TRange<float> InTrailingRange)
+	{
+		const float Now = GetTime();
+		if (InLeadingRange.Contains(Now) && InLeadingRange.HasUpperBound())
+		{
+			PrePostRollStartEndTime = InLeadingRange.GetUpperBoundValue();
+
+			bHasPreRollEndTime = Direction == EPlayDirection::Forwards;
+			bHasPostRollStartTime = !bHasPreRollEndTime;
+		}
+		else if (InTrailingRange.Contains(Now) && InTrailingRange.HasLowerBound())
+		{
+			PrePostRollStartEndTime = InTrailingRange.GetLowerBoundValue();
+
+			bHasPreRollEndTime = Direction == EPlayDirection::Backwards;
+			bHasPostRollStartTime = !bHasPreRollEndTime;
+		}
+		else
+		{
+			bHasPreRollEndTime = bHasPostRollStartTime = false;
+			PrePostRollStartEndTime = TNumericLimits<float>::Lowest();
+		}
+	}
+
 protected:
 
 	/** The transform from the root sequence to the current sequence space */
@@ -191,11 +319,28 @@ protected:
 	/** The current playback status */
 	EMovieScenePlayerStatus::Type Status;
 
+	/** When bHasPreRollEndTime or bHasPostRollStartTime is true, this defines either the time at which 'real' evaluation commences, or finished */
+	float PrePostRollStartEndTime;
+
+protected:
+
 	/** Whether this evaluation frame is happening as part of a large jump */
 	bool bHasJumped : 1;
 
 	/** Whether this evaluation should happen silently */
 	bool bSilent : 1;
+
+	/** True if we should explicitly preroll the section. Already reconciled with play direction. */
+	bool bSectionPreRoll : 1;
+
+	/** True if we should explicitly postroll the section. Already reconciled with play direction. */
+	bool bSectionPostRoll : 1;
+
+	/** True if the value of PrePostRollStartEndTime has been set, and refers to the time at which preroll will end. Already reconciled with play direction. */
+	bool bHasPreRollEndTime : 1;
+
+	/** True if the value of PrePostRollStartEndTime has been set, and refers to the time at which postroll started. Already reconciled with play direction. */
+	bool bHasPostRollStartTime : 1;
 };
 
 /** Helper class designed to abstract the complexity of calculating evaluation ranges for previous times and fixed time intervals */
@@ -221,6 +366,12 @@ struct MOVIESCENE_API FMovieScenePlaybackPosition
 	FMovieSceneEvaluationRange PlayTo(float NewPosition, TOptional<float> FixedInterval);
 
 	/**
+	 * Get a range that encompasses the last evaluated range
+	 * @return An optional evaluation range
+	 */
+	TOptional<FMovieSceneEvaluationRange> GetLastRange() const;
+
+	/**
 	 * Get the last position that was set
 	 */
 	TOptional<float> GetPreviousPosition() const { return PreviousPosition; }
@@ -237,4 +388,7 @@ private:
 
 	/** The previous evaluated position when playing, potentially rounded to a frame interval. */
 	TOptional<float> PreviousPlayEvalPosition;
+
+	/** The previously evaluated range, if available */
+	TOptional<FMovieSceneEvaluationRange> LastRange;
 };

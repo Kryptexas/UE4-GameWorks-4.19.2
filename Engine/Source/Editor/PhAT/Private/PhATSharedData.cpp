@@ -487,7 +487,7 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 		TArray<UObject*> Objs;
 		for(int i=0; i<SelectedBodies.Num(); ++i)
 		{
-			Objs.Add(PhysicsAsset->SkeletalBodySetups[SelectedBodies[i].Index]);
+			Objs.AddUnique(PhysicsAsset->SkeletalBodySetups[SelectedBodies[i].Index]);
 		}
 		
 		GroupSelectionChangedEvent.Broadcast(Objs);

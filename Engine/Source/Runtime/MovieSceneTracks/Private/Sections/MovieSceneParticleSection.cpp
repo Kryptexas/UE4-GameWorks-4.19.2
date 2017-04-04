@@ -2,7 +2,7 @@
 
 #include "Sections/MovieSceneParticleSection.h"
 #include "Evaluation/MovieSceneParticleTemplate.h"
-
+#include "SequencerObjectVersion.h"
 
 UMovieSceneParticleSection::UMovieSceneParticleSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
@@ -10,6 +10,8 @@ UMovieSceneParticleSection::UMovieSceneParticleSection( const FObjectInitializer
 	ParticleKeys.SetDefaultValue((int32)EParticleKey::Deactivate);
 	ParticleKeys.SetUseDefaultValueBeforeFirstKey(true);
 	SetIsInfinite(true);
+		
+	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
 }
 
 void UMovieSceneParticleSection::AddKey( float Time, EParticleKey::Type KeyType )

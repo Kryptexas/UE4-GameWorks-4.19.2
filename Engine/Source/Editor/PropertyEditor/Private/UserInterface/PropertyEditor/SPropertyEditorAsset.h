@@ -109,7 +109,7 @@ private:
 	 * @param	InArgs	The args passed into Construct()
 	 * @returns true if we should display the thumbnail 
 	 */
-	bool ShouldDisplayThumbnail( const FArguments& InArgs );
+	bool ShouldDisplayThumbnail( const FArguments& InArgs, const UClass* ObjectClass ) const;
 
 	/** Gets the border brush to show around the thumbnail, changes when the user hovers on it. */
 	const FSlateBrush* GetThumbnailBorder() const;

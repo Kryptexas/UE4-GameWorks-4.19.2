@@ -17,6 +17,7 @@ public:
 protected:
 	//~ FPackageLocalizationCache interface
 	virtual void FindLocalizedPackages(const FString& InSourceRoot, const FString& InLocalizedRoot, TMap<FName, TArray<FName>>& InOutSourcePackagesToLocalizedPackages) override;
+	virtual void FindAssetGroupPackages(const FName InAssetGroupName, const FName InAssetClassName) override;
 };
 
 void FDefaultPackageLocalizationCache::FindLocalizedPackages(const FString& InSourceRoot, const FString& InLocalizedRoot, TMap<FName, TArray<FName>>& InOutSourcePackagesToLocalizedPackages)
@@ -39,6 +40,11 @@ void FDefaultPackageLocalizationCache::FindLocalizedPackages(const FString& InSo
 
 		return true;
 	}));
+}
+
+void FDefaultPackageLocalizationCache::FindAssetGroupPackages(const FName InAssetGroupName, const FName InAssetClassName)
+{
+	// Not supported without the asset registry
 }
 
 void FPackageLocalizationManager::PerformLazyInitialization()

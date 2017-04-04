@@ -5,6 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "UObject/Package.h"
 #include "UObject/ObjectMacros.h"
+#include "MovieSceneFwd.h"
 
 FLevelSequenceObjectReference::FLevelSequenceObjectReference(UObject* InObject, UObject* InContext)
 {
@@ -42,7 +43,12 @@ UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 	{
 		int32 PIEInstanceID = InContext->GetOutermost()->PIEInstanceID;
 		FUniqueObjectGuid FixedUpId = PIEInstanceID == -1 ? ObjectId : ObjectId.FixupForPIE(PIEInstanceID);
-		
+
+		if (PIEInstanceID != -1 && FixedUpId == ObjectId)
+		{
+			UE_LOG(LogMovieScene, Warning, TEXT("Attempted to resolve object with a PIE instance that has not been fixed up yet. This is probably due to a streamed level not being available yet."));
+			return nullptr;
+		}
 
 		FLazyObjectPtr LazyPtr;
 		LazyPtr = FixedUpId;

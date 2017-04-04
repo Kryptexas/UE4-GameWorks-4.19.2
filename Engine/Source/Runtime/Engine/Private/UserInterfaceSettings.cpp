@@ -22,9 +22,51 @@ void UUserInterfaceSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
 
+	if ( !DefaultCursor_DEPRECATED.IsNull() )
+	{
+		SoftwareCursors.Add(EMouseCursor::Default, DefaultCursor_DEPRECATED);
+		DefaultCursor_DEPRECATED.Reset();
+	}
+
+	if ( !TextEditBeamCursor_DEPRECATED.IsNull() )
+	{
+		SoftwareCursors.Add(EMouseCursor::TextEditBeam, TextEditBeamCursor_DEPRECATED);
+		TextEditBeamCursor_DEPRECATED.Reset();
+	}
+
+	if ( !CrosshairsCursor_DEPRECATED.IsNull() )
+	{
+		SoftwareCursors.Add(EMouseCursor::Crosshairs, CrosshairsCursor_DEPRECATED);
+		CrosshairsCursor_DEPRECATED.Reset();
+	}
+
+	if ( !HandCursor_DEPRECATED.IsNull() )
+	{
+		SoftwareCursors.Add(EMouseCursor::Hand, HandCursor_DEPRECATED);
+		HandCursor_DEPRECATED.Reset();
+	}
+
+	if ( !GrabHandCursor_DEPRECATED.IsNull() )
+	{
+		SoftwareCursors.Add(EMouseCursor::GrabHand, GrabHandCursor_DEPRECATED);
+		GrabHandCursor_DEPRECATED.Reset();
+	}
+
+	if ( !GrabHandClosedCursor_DEPRECATED.IsNull() )
+	{
+		SoftwareCursors.Add(EMouseCursor::GrabHandClosed, GrabHandClosedCursor_DEPRECATED);
+		GrabHandClosedCursor_DEPRECATED.Reset();
+	}
+
+	if ( !SlashedCircleCursor_DEPRECATED.IsNull() )
+	{
+		SoftwareCursors.Add(EMouseCursor::SlashedCircle, SlashedCircleCursor_DEPRECATED);
+		SlashedCircleCursor_DEPRECATED.Reset();
+	}
+
 	// Allow the assets to be replaced in the editor, but make sure they're part of the root set in cooked games
 #if WITH_EDITOR
-	if ( HasAnyFlags(RF_ClassDefaultObject) == false )
+	if ( IsTemplate() == false )
 	{
 		ForceLoadResources();
 	}
@@ -35,7 +77,7 @@ void UUserInterfaceSettings::PostInitProperties()
 
 float UUserInterfaceSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const
 {
-	float Scale = 1;
+	float Scale = 1.0f;
 
 	if ( UIScaleRule == EUIScalingRule::Custom )
 	{
@@ -89,13 +131,10 @@ void UUserInterfaceSettings::ForceLoadResources()
 	if (bLoadWidgetsOnDedicatedServer || !IsRunningDedicatedServer())
 	{
 		TArray<UObject*> LoadedClasses;
-		LoadedClasses.Add(DefaultCursor.TryLoad());
-		LoadedClasses.Add(TextEditBeamCursor.TryLoad());
-		LoadedClasses.Add(CrosshairsCursor.TryLoad());
-		LoadedClasses.Add(GrabHandCursor.TryLoad());
-		LoadedClasses.Add(HandCursor.TryLoad());
-		LoadedClasses.Add(GrabHandClosedCursor.TryLoad());
-		LoadedClasses.Add(SlashedCircleCursor.TryLoad());
+		for ( auto& Entry : SoftwareCursors )
+		{
+			LoadedClasses.Add(Entry.Value.TryLoad());
+		}
 
 		for (UObject* Cursor : LoadedClasses)
 		{

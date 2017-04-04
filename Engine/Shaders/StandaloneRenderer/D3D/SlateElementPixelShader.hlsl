@@ -9,7 +9,7 @@
 #define ESlateShader::LineSegment	3
 
 // Draw effects
-#define DE_Disabled 0x01
+#define DE_Disabled 0x20
 #define DE_IgnoreTextureAlpha 0x04
 
 Texture2D ElementTexture;

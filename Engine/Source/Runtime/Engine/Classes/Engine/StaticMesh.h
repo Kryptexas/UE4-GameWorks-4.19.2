@@ -444,6 +444,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	TArray<FMaterialRemapIndex> MaterialRemapIndexPerImportVersion;
 	
+	/* The lightmap UV generation version used during the last derived data build */
+	UPROPERTY()
+	int32 LightmapUVVersion;
+
 	/**
 	* If true on post load we need to calculate Display Factors from the
 	* loaded LOD distances.
@@ -864,6 +868,11 @@ private:
 
 	FOnPreMeshBuild PreMeshBuild;
 	FOnPostMeshBuild PostMeshBuild;
+
+	/**
+	 * Fixes up the material when it was converted to the new staticmesh build process
+	 */
+	TArray<int32> CleanUpRedondantMaterialPostLoad;
 
 #endif // #if WITH_EDITOR
 };

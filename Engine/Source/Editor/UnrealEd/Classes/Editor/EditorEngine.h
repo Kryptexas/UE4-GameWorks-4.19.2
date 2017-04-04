@@ -216,10 +216,10 @@ struct FCopySelectedInfo
 struct FCachedActorLabels
 {
 	/** Default constructor - does not populate the array */
-	FCachedActorLabels();
+	UNREALED_API FCachedActorLabels();
 
 	/** Constructor that populates the set of actor names */
-	explicit UNREALED_API FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
+	UNREALED_API explicit FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
 
 	/** Populate the set of actor names */
 	void Populate(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());

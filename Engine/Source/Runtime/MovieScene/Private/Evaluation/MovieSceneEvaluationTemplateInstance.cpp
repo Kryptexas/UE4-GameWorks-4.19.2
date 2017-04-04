@@ -16,6 +16,8 @@ DECLARE_CYCLE_STAT(TEXT("Evaluate Group"), MovieSceneEval_EvaluateGroup, STATGRO
 FMovieSceneEvaluationTemplateInstance::FMovieSceneEvaluationTemplateInstance(UMovieSceneSequence& InSequence, const FMovieSceneEvaluationTemplate& InTemplate)
 	: Sequence(&InSequence)
 	, Template(&InTemplate)
+	, PreRollRange(TRange<float>::Empty())
+	, PostRollRange(TRange<float>::Empty())
 {
 	if (Template->bHasLegacyTrackInstances)
 	{
@@ -28,6 +30,8 @@ FMovieSceneEvaluationTemplateInstance::FMovieSceneEvaluationTemplateInstance(con
 	: Sequence(InSubData.Sequence)
 	, RootToSequenceTransform(InSubData.RootToSequenceTransform)
 	, Template(&InTemplate)
+	, PreRollRange(InSubData.PreRollRange)
+	, PostRollRange(InSubData.PostRollRange)
 {
 	if (Template->bHasLegacyTrackInstances)
 	{
@@ -276,6 +280,9 @@ void FMovieSceneRootEvaluationTemplateInstance::EvaluateGroup(const FMovieSceneE
 				if (SegmentPtr.SequenceID != MovieSceneSequenceID::Root)
 				{
 					SubContext = Context.Transform(Instance.RootToSequenceTransform);
+
+					// Hittest against the sequence's pre and postroll ranges
+					SubContext.ReportOuterSectionRanges(Instance.PreRollRange, Instance.PostRollRange);
 				}
 
 				Track->Initialize(SegmentPtr.SegmentIndex, Operand, SubContext, PersistentDataProxy, Player);
@@ -316,6 +323,9 @@ void FMovieSceneRootEvaluationTemplateInstance::EvaluateGroup(const FMovieSceneE
 				if (SegmentPtr.SequenceID != MovieSceneSequenceID::Root)
 				{
 					SubContext = Context.Transform(Instance.RootToSequenceTransform);
+
+					// Hittest against the sequence's pre and postroll ranges
+					SubContext.ReportOuterSectionRanges(Instance.PreRollRange, Instance.PostRollRange);
 				}
 
 				Track->Evaluate(
@@ -373,7 +383,7 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 		else
 		{
 			PersistentDataProxy.SetSectionKey(Key);
-			if (Track)
+			if (Track && Track->HasChildTemplate(Key.SectionIdentifier))
 			{
 				Track->GetChildTemplate(Key.SectionIdentifier).OnEndEvaluation(PersistentDataProxy, Player);
 			}

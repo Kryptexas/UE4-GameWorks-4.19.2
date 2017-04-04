@@ -4,6 +4,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "GameFramework/Actor.h"
 #include "EditorStyleSet.h"
+#include "Package.h"
 #include "Tracks/MovieSceneEventTrack.h"
 #include "Sections/EventTrackSection.h"
 
@@ -58,6 +59,55 @@ void FEventTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, c
 		return;
 	}
 
+}
+
+
+void FEventTrackEditor::BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track)
+{
+	UMovieSceneEventTrack* EventTrack = CastChecked<UMovieSceneEventTrack>(Track);
+	UProperty* EventPositionProperty = FindField<UProperty>(Track->GetClass(), GET_MEMBER_NAME_STRING_CHECKED(UMovieSceneEventTrack, EventPosition));
+
+	MenuBuilder.AddSubMenu(
+		EventPositionProperty->GetDisplayNameText(),
+		EventPositionProperty->GetToolTipText(),
+		FNewMenuDelegate::CreateLambda(
+			[EventTrack](FMenuBuilder& SubMenuBuilder)
+			{
+				UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EFireEventsAtPosition"));
+				check(Enum);
+
+				for (int32 Index = 0; Index < Enum->NumEnums() - 1; ++Index)
+				{
+					EFireEventsAtPosition EnumValue = (EFireEventsAtPosition)Enum->GetValueByIndex(Index);
+
+					SubMenuBuilder.AddMenuEntry(
+						Enum->GetDisplayNameTextByIndex(Index),
+						Enum->GetToolTipTextByIndex(Index),
+						FSlateIcon(),
+						FUIAction(
+							FExecuteAction::CreateLambda(
+								[=]
+								{
+									FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "SetEventPosition", "Set Event Position"));
+									EventTrack->Modify();
+									EventTrack->EventPosition = EnumValue;
+								}
+							),
+							FCanExecuteAction(),
+							FIsActionChecked::CreateLambda(
+								[=]
+								{
+									return EventTrack->EventPosition == EnumValue;
+								}
+							)
+						),
+						NAME_None,
+						EUserInterfaceActionType::ToggleButton
+					);
+				}
+			}
+		)
+	);
 }
 
 

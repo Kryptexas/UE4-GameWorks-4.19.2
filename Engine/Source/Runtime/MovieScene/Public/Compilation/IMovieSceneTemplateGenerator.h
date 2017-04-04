@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
+#include "MovieSceneSegment.h"
 #include "Containers/ArrayView.h"
 
 class UMovieSceneTrack;
@@ -13,25 +14,6 @@ struct FMovieSceneEvaluationTrack;
 struct FMovieSceneSequenceTransform;
 struct FMovieSceneSharedDataId;
 struct FMovieSceneSubSequenceData;
-
-struct FMovieSceneEvaluationGroupParameters
-{
-	FMovieSceneEvaluationGroupParameters()
-		: EvaluationPriority(0)
-		, bRequiresImmediateFlush(false)
-	{
-	}
-
-	FMovieSceneEvaluationGroupParameters(uint16 InPriority, bool bInRequiresImmediateFlush)
-		: EvaluationPriority(InPriority)
-		, bRequiresImmediateFlush(bInRequiresImmediateFlush)
-	{}
-
-	/** Prioirty assigned to this group. Higher priorities are evaluated first */
-	uint16 EvaluationPriority;
-	/** Whether this group requires an immediate of the token stack */
-	bool bRequiresImmediateFlush;
-};
 
 /** Abstract base class used to generate evaluation templates */
 struct IMovieSceneTemplateGenerator
@@ -66,8 +48,9 @@ struct IMovieSceneTemplateGenerator
 	 *
 	 * @param RootRange					The range in which to add the specified segments (at the root level)
 	 * @param SegmentPtrs				The remapped segment ptrs
+	 * @param Flags						Flags for these external segments
 	 */
-	virtual void AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs) = 0;
+	virtual void AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs, ESectionEvaluationFlags Flags) = 0;
 
 	/**
 	 * Get a sequence's transform from its ID
@@ -84,25 +67,5 @@ struct IMovieSceneTemplateGenerator
 	 * @param ParentID					ID of the parent sequence
 	 */
 	virtual FMovieSceneSequenceID GenerateSequenceID(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID) = 0;
-
-	/**
-	 * Register template parameters for compilation
-	 */
-	MOVIESCENE_API static void RegisterEvaluationGroupParameters(FName GroupName, const FMovieSceneEvaluationGroupParameters& GroupParameters);
-
-	/**
-	 * Find group parameters for a specific evaluation group
-	 */
-	MOVIESCENE_API static FMovieSceneEvaluationGroupParameters GetEvaluationGroupParameters(FName GroupName);
-};
-
-
-/** Helper struct for registering evaluation group parameters */
-struct FMovieSceneTemplateParameterRegistration
-{
-	FMovieSceneTemplateParameterRegistration(FName InGroupName, const FMovieSceneEvaluationGroupParameters& InGroupParameters)
-	{
-		IMovieSceneTemplateGenerator::RegisterEvaluationGroupParameters(InGroupName, InGroupParameters);
-	}
 };
 

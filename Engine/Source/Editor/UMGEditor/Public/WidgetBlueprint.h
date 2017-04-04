@@ -205,6 +205,9 @@ public:
 	 */
 	UPROPERTY(AssetRegistrySearchable)
 	FString PaletteCategory;
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=WidgetBlueprintOptions)
+	bool bForceSlowConstructionPath;
 #endif
 
 public:
@@ -212,6 +215,9 @@ public:
 	/** UObject interface */
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void Serialize(FArchive& Ar) override;
+
+	UPackage* GetWidgetTemplatePackage() const;
 
 	virtual void ReplaceDeprecatedNodes() override;
 	

@@ -1,3 +1,17 @@
+Version 1.9.5
+http://svn.apache.org/repos/asf/subversion/tags/1.9.5/
+
+ Changes to included binaries:
+	* Subversion upgraded to 1.9.5
+	* Berkeley DB upgraded to 6.2.23
+	* Java upgraded to 8u121
+	* OpenSSL upgraded to 1.0.2k
+	* Sqlite upgraded to 3.17.0
+	* Serf upgraded to 1.3.9
+	* Swig upgraded to 3.0.12
+	* ZLib upgraded to 1.2.11
+	
+
 Version 1.9.4
 http://svn.apache.org/repos/asf/subversion/tags/1.9.4/
 

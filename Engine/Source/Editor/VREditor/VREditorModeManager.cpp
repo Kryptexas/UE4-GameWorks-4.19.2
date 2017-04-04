@@ -168,9 +168,16 @@ void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 		UWorld* World = GEditor->bIsSimulatingInEditor ? GEditor->PlayWorld : GWorld;
 		UEditorWorldExtensionCollection* Collection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World);
 		check(Collection != nullptr);
-		Collection->AddExtension(UViewportWorldInteraction::StaticClass());
-		VRMode = Cast<UVREditorMode>(Collection->AddExtension(UVREditorMode::StaticClass()));
+		
+		// Create viewport world interaction.
+		UViewportWorldInteraction* ViewportWorldInteraction = NewObject<UViewportWorldInteraction>();
+		check(ViewportWorldInteraction != nullptr);
+		Collection->AddExtension(ViewportWorldInteraction);
+
+		// Create vr editor mode.
+		VRMode = NewObject<UVREditorMode>();
 		check(VRMode != nullptr);
+		Collection->AddExtension(VRMode);
 	}
 
 	// Tell the level editor we want to be notified when selection changes

@@ -92,7 +92,7 @@ bool FText::IsWhitespace(const TCHAR Char)
 
 int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
+	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> Collator( FInternationalization::Get().GetCurrentLanguage()->Implementation->GetCollator(ComparisonLevel) );
 
 	// Create an iterator for 'this' so that we can interface with ICU
 	UCharIterator DisplayStringICUIterator;
@@ -130,7 +130,7 @@ class FText::FSortPredicate::FSortPredicateImplementation
 public:
 	FSortPredicateImplementation(const ETextComparisonLevel::Type InComparisonLevel)
 		: ComparisonLevel(InComparisonLevel)
-		, ICUCollator(FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(InComparisonLevel))
+		, ICUCollator(FInternationalization::Get().GetCurrentLanguage()->Implementation->GetCollator(InComparisonLevel))
 	{
 	}
 

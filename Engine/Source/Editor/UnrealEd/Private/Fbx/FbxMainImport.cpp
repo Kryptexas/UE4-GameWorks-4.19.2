@@ -142,22 +142,22 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 
 		if( ImportUI->StaticMeshImportData )
 		{
-			ImportUI->StaticMeshImportData->SaveConfig();
+			ImportUI->StaticMeshImportData->SaveOptions();
 		}
 
 		if( ImportUI->SkeletalMeshImportData )
 		{
-			ImportUI->SkeletalMeshImportData->SaveConfig();
+			ImportUI->SkeletalMeshImportData->SaveOptions();
 		}
 
 		if( ImportUI->AnimSequenceImportData )
 		{
-			ImportUI->AnimSequenceImportData->SaveConfig();
+			ImportUI->AnimSequenceImportData->SaveOptions();
 		}
 
 		if( ImportUI->TextureImportData )
 		{
-			ImportUI->TextureImportData->SaveConfig();
+			ImportUI->TextureImportData->SaveOptions();
 		}
 
 		if (FbxOptionWindow->ShouldImport())

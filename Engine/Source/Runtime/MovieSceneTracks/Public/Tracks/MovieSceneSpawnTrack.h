@@ -38,7 +38,7 @@ public:
 	}
 
 	static uint16 GetEvaluationPriority() { return uint16(0xFFF); }
-	
+
 public:
 
 	// UMovieSceneTrack interface

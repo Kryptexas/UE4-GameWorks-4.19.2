@@ -207,6 +207,7 @@ public:
 								.SelectionMode(ESelectionMode::Multi)
 								.ExternalScrollbar(VerticalScrollBar)
 								.AllowOverscroll(EAllowOverscroll::No)
+								.ConsumeMouseWheel(EConsumeMouseWheel::Always)
 							]
 						]
 						+ SGridPanel::Slot(1, 1)

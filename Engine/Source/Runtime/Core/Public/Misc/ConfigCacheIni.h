@@ -309,7 +309,7 @@ public:
 	CORE_API ~FConfigFile();
 	
 	// looks for a section by name, and creates an empty one if it can't be found
-	FConfigSection* FindOrAddSection(const FString& Name);
+	CORE_API FConfigSection* FindOrAddSection(const FString& Name);
 
 	bool operator==( const FConfigFile& Other ) const;
 	bool operator!=( const FConfigFile& Other ) const;

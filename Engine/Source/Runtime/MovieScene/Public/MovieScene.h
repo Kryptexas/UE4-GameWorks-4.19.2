@@ -7,23 +7,67 @@
 #include "Misc/Guid.h"
 #include "Templates/SubclassOf.h"
 #include "Templates/Casts.h"
+#include "MovieSceneFwd.h"
 #include "MovieSceneSpawnable.h"
 #include "MovieSceneBinding.h"
 #include "MovieScenePossessable.h"
 #include "MovieSceneSignedObject.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieScene.generated.h"
 
 class UMovieSceneFolder;
 class UMovieSceneSection;
 class UMovieSceneTrack;
 
-MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogMovieScene, Log, All);
-
-USTRUCT(BlueprintType)
-struct FMovieSceneObjectBindingPtr
+USTRUCT(BlueprintType, meta=(HasNativeMake))
+struct FMovieSceneObjectBindingID
 {
+	FMovieSceneObjectBindingID()
+		: SequenceID(int32(MovieSceneSequenceID::Root.GetInternalValue()))
+	{
+	}
+
+	FMovieSceneObjectBindingID(const FGuid& InGuid, FMovieSceneSequenceID InSequenceID)
+		: SequenceID(int32(InSequenceID.GetInternalValue())), Guid(InGuid)
+	{
+	}
+
 	GENERATED_BODY()
 
+	/** Access the identifier for the sequence in which the object resides */
+	FMovieSceneSequenceID GetSequenceID() const
+	{
+		return FMovieSceneSequenceID(uint32(SequenceID));
+	}
+
+	/** Access the guid that identifies the object binding within the sequence */
+	const FGuid& GetObjectBindingID() const
+	{
+		return Guid;
+	}
+
+	friend uint32 GetTypeHash(const FMovieSceneObjectBindingID& A)
+	{
+		return GetTypeHash(A.Guid) ^ GetTypeHash(A.SequenceID);
+	}
+
+	friend bool operator==(const FMovieSceneObjectBindingID& A, const FMovieSceneObjectBindingID& B)
+	{
+		return A.Guid == B.Guid && A.SequenceID == B.SequenceID;
+	}
+
+	friend bool operator!=(const FMovieSceneObjectBindingID& A, const FMovieSceneObjectBindingID& B)
+	{
+		return A.Guid != B.Guid || A.SequenceID != B.SequenceID;
+	}
+
+private:
+
+	/** Sequence ID stored as an int32 so that it can be used in the blueprint VM */
+	UPROPERTY()
+	int32 SequenceID;
+
+	/** Identifier for the object binding within the sequence */
 	UPROPERTY(EditAnywhere, Category="Binding")
 	FGuid Guid;
 };
@@ -236,7 +280,7 @@ public:
 	* Adds a given track.
 	*
 	* @param InTrack The track to add.
-	* @param ObjectGuid The runtime object guid that the type should bind to.
+	* @param ObjectGuid The runtime object guid that the type should bind to
 	* @see  FindTrack, RemoveTrack
 	* @return true if the track is successfully added, false otherwise.
 	*/
@@ -331,6 +375,15 @@ public:
 	}
 
 	/**
+	* Adds a given track as a master track
+	*
+	* @param InTrack The track to add.
+	* @see  FindTrack, RemoveTrack
+	* @return true if the track is successfully added, false otherwise.
+	*/
+	bool AddGivenMasterTrack(UMovieSceneTrack* InTrack);
+
+	/**
 	 * Finds a master track (one not bound to a runtime objects).
 	 *
 	 * @param TrackClass The class of the track to find.
@@ -399,6 +452,8 @@ public:
 
 	/** Removes the camera cut track if it exists. */
 	void RemoveCameraCutTrack();
+
+	void SetCameraCutTrack(UMovieSceneTrack* Track);
 
 public:
 

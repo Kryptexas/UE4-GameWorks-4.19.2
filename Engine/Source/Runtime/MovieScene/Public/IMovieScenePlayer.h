@@ -12,10 +12,12 @@
 #include "MovieSceneSpawnRegister.h"
 #include "Containers/ArrayView.h"
 #include "Evaluation/MovieSceneEvaluationState.h"
+#include "Evaluation/PersistentEvaluationData.h"
 #include "MovieSceneSequence.h"
 
 
 class FViewportClient;
+class IMovieSceneBindingOverridesInterface;
 struct FMovieSceneRootEvaluationTemplateInstance;
 
 
@@ -100,9 +102,25 @@ public:
 	}
 
 	/**
+	 * Access the binding overrides interface for this player.
+	 *
+	 * @return A pointer to the binding overrides interface, or nullptr if one is not available
+	 */
+	virtual const IMovieSceneBindingOverridesInterface* GetBindingOverrides() const { return nullptr; }
+
+	/**
 	 * Obtain an object responsible for managing movie scene spawnables
 	 */
 	virtual FMovieSceneSpawnRegister& GetSpawnRegister() { return NullRegister; }
+
+	/**
+	 * Called whenever an object binding has been resolved to give the player a chance to interact with the objects before they are animated
+	 * 
+	 * @param InGuid		The guid of the object binding that has been resolved
+	 * @param InSequenceID	The ID of the sequence in which the object binding resides
+	 * @param Objects		The array of objects that were resolved
+	 */
+	virtual void NotifyBindingUpdate(const FGuid& InGuid, FMovieSceneSequenceIDRef InSequenceID, TArrayView<TWeakObjectPtr<>> Objects) {}
 
 	/**
 	 * Access the playback context for this movie scene player

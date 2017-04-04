@@ -17,6 +17,7 @@ public:
 protected:
 	//~ FPackageLocalizationCache interface
 	virtual void FindLocalizedPackages(const FString& InSourceRoot, const FString& InLocalizedRoot, TMap<FName, TArray<FName>>& InOutSourcePackagesToLocalizedPackages) override;
+	virtual void FindAssetGroupPackages(const FName InAssetGroupName, const FName InAssetClassName) override;
 
 private:
 	/**

@@ -1259,7 +1259,8 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			bool bUnique = true;
 			for (int32 OtherMaterialIndex = MaterialIndex - 1; OtherMaterialIndex >= 0; --OtherMaterialIndex)
 			{
-				if (MeshMaterials[MaterialIndex].FbxMaterial == MeshMaterials[OtherMaterialIndex].FbxMaterial)
+				if (MeshMaterials[MaterialIndex].FbxMaterial == MeshMaterials[OtherMaterialIndex].FbxMaterial &&
+					MeshMaterials[MaterialIndex].Material == MeshMaterials[OtherMaterialIndex].Material)
 				{
 					int32 UniqueIndex = MaterialMap[OtherMaterialIndex];
 
@@ -1624,6 +1625,15 @@ void UnFbx::FFbxImporter::PostImportStaticMesh(UStaticMesh* StaticMesh, TArray<F
 
 			//Set the Number of LODs, this has to be done after we build the specified LOD Group
 			int32 LODCount = ImportOptions->LodNumber;
+			if (LODCount < 0)
+			{
+				LODCount = 0;
+			}
+			if (LODCount > MAX_STATIC_MESH_LODS)
+			{
+				LODCount = MAX_STATIC_MESH_LODS;
+			}
+
 			//Remove extra LODs
 			if (StaticMesh->SourceModels.Num() > LODCount)
 			{
@@ -1957,6 +1967,7 @@ void UnFbx::FFbxImporter::ImportStaticMeshLocalSockets(UStaticMesh* StaticMesh, 
 			{
 				// If the socket didn't exist create a new one now
 				Socket = NewObject<UStaticMeshSocket>(StaticMesh);
+				Socket->bSocketCreatedAtImport = true;
 				check(Socket);
 
 				Socket->SocketName = SocketNode.SocketName;
@@ -1984,6 +1995,12 @@ void UnFbx::FFbxImporter::ImportStaticMeshLocalSockets(UStaticMesh* StaticMesh, 
 			{
 				bool Found = false;
 				UStaticMeshSocket* MeshSocket = StaticMesh->Sockets[MeshSocketIx];
+				//Do not remove socket that was not generated at import
+				if (!MeshSocket->bSocketCreatedAtImport)
+				{
+					continue;
+				}
+
 				for (int32 FbxSocketIx = 0; FbxSocketIx < SocketNodes.Num(); FbxSocketIx++)
 				{
 					if (SocketNodes[FbxSocketIx].SocketName == MeshSocket->SocketName)
@@ -2034,9 +2051,10 @@ void UnFbx::FFbxImporter::ImportStaticMeshGlobalSockets( UStaticMesh* StaticMesh
 			Socket->RelativeLocation = SocketTransform.GetLocation();
 			Socket->RelativeRotation = SocketTransform.GetRotation().Rotator();
 			Socket->RelativeScale = SocketTransform.GetScale3D();
+
+			Socket->bSocketCreatedAtImport = true;
 		}
 	}
-
 	// Delete mesh sockets that were removed from the import data
 	if (StaticMesh->Sockets.Num() != SocketNodes.Num())
 	{
@@ -2044,6 +2062,12 @@ void UnFbx::FFbxImporter::ImportStaticMeshGlobalSockets( UStaticMesh* StaticMesh
 		{
 			bool Found = false;
 			UStaticMeshSocket* MeshSocket = StaticMesh->Sockets[MeshSocketIx];
+			//Do not remove socket that was not generated at import
+			if (!MeshSocket->bSocketCreatedAtImport)
+			{
+				continue;
+			}
+
 			for (int32 FbxSocketIx = 0; FbxSocketIx < SocketNodes.Num(); FbxSocketIx++)
 			{
 				if (SocketNodes[FbxSocketIx].SocketName == MeshSocket->SocketName)

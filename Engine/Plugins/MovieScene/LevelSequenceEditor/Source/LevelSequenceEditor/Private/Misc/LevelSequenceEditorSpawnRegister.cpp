@@ -318,7 +318,7 @@ void FLevelSequenceEditorSpawnRegister::SetupDefaultsForSpawnable(UObject* Spawn
 {
 	for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
 	{
-		if (SpawnedObject->IsA(MovieSceneObjectSpawner->GetSupportedTemplateType()))
+		if (MovieSceneObjectSpawner->CanSetupDefaultsForSpawnable(SpawnedObject))
 		{
 			MovieSceneObjectSpawner->SetupDefaultsForSpawnable(SpawnedObject, Guid, TransformData, Sequencer, Settings);
 			return;

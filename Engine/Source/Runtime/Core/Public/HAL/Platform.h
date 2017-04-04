@@ -61,6 +61,9 @@
 #if !defined(PLATFORM_SWITCH)
 	#define PLATFORM_SWITCH 0
 #endif
+#if !defined(PLATFORM_FREEBSD)
+	#define PLATFORM_FREEBSD 0
+#endif
 
 // Platform specific compiler pre-setup.
 #if PLATFORM_WINDOWS

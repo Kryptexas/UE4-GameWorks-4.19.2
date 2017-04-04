@@ -294,6 +294,15 @@ struct CORE_API FGenericPlatformMemory
 	 */
 	static void BinnedFreeToOS( void* Ptr, SIZE_T Size );
 
+	/**
+	 * Some platforms may pool allocations of this size to reduce OS calls. This function
+	 * serves as a hint for BinnedMalloc's CachedOSPageAllocator so it does not cache these allocations additionally
+	 */
+	static bool BinnedPlatformHasMemoryPoolForThisSize(SIZE_T Size)
+	{
+		return false;
+	}
+
 	// These alloc/free memory that is mapped to the GPU
 	// Only for platforms with UMA (XB1/PS4/etc)
 	static void* GPUMalloc(SIZE_T Count, uint32 Alignment = 0) { return nullptr; };

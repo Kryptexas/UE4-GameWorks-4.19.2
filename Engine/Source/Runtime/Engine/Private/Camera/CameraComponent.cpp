@@ -53,6 +53,15 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
+void UCameraComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+#if WITH_EDITORONLY_DATA
+	UpdateProxyMeshTransform();
+#endif
+
+	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
+}
+
 #if WITH_EDITORONLY_DATA
 
 void UCameraComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -180,6 +189,21 @@ void UCameraComponent::RefreshVisualRepresentation()
 	ResetProxyMeshTransform();
 }
 
+void UCameraComponent::UpdateProxyMeshTransform()
+{
+	if (ProxyMeshComponent)
+	{
+		FTransform OffsetCamToWorld = AdditiveOffset * GetComponentToWorld();
+
+		ResetProxyMeshTransform();
+
+		FTransform LocalTransform = ProxyMeshComponent->GetRelativeTransform();
+		FTransform WorldTransform = LocalTransform * OffsetCamToWorld;
+
+		ProxyMeshComponent->SetWorldTransform(WorldTransform);
+	}
+}
+
 void UCameraComponent::OverrideFrustumColor(FColor OverrideColor)
 {
 	if (DrawFrustum != nullptr)
@@ -261,18 +285,6 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 
 		DesiredView.Location = OffsetCamToWorld.GetLocation();
 		DesiredView.Rotation = OffsetCamToWorld.Rotator();
-
-#if WITH_EDITORONLY_DATA
-		if (ProxyMeshComponent)
-		{
-			ResetProxyMeshTransform();
-
-			FTransform LocalTransform = ProxyMeshComponent->GetRelativeTransform();
-			FTransform WorldTransform = LocalTransform * OffsetCamToWorld;
-
-			ProxyMeshComponent->SetWorldTransform(WorldTransform);
-		}
-#endif
 	}
 	else
 	{
@@ -295,10 +307,6 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 	{
 		DesiredView.PostProcessSettings = PostProcessSettings;
 	}
-
-#if WITH_EDITOR
-	ResetProxyMeshTransform();
-#endif //WITH_EDITOR
 }
 
 #if WITH_EDITOR
@@ -341,6 +349,10 @@ void UCameraComponent::AddAdditiveOffset(FTransform const& Transform, float FOV)
 	bUseAdditiveOffset = true;
 	AdditiveOffset = AdditiveOffset * Transform;
 	AdditiveFOVOffset += FOV;
+
+#if WITH_EDITORONLY_DATA
+	UpdateProxyMeshTransform();
+#endif
 }
 
 /** Removes any additive offset. */
@@ -349,6 +361,10 @@ void UCameraComponent::ClearAdditiveOffset()
 	bUseAdditiveOffset = false;
 	AdditiveOffset = FTransform::Identity;
 	AdditiveFOVOffset = 0.f;
+
+#if WITH_EDITORONLY_DATA
+	UpdateProxyMeshTransform();
+#endif
 }
 
 

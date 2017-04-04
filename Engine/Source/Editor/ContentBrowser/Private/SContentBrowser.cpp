@@ -775,6 +775,10 @@ void SContentBrowser::BindCommands()
 	Commands->MapAction(FContentBrowserCommands::Get().SaveAllCurrentFolder, FUIAction(
 		FExecuteAction::CreateSP(this, &SContentBrowser::HandleSaveAllCurrentFolderCommand)
 	));
+
+	Commands->MapAction(FContentBrowserCommands::Get().ResaveAllCurrentFolder, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::HandleResaveAllCurrentFolderCommand)
+	));
 }
 
 EVisibility SContentBrowser::GetCollectionViewVisibility() const
@@ -1996,6 +2000,11 @@ bool SContentBrowser::HandleSaveAssetCommandCanExecute() const
 void SContentBrowser::HandleSaveAllCurrentFolderCommand() const
 {
 	PathContextMenu->ExecuteSaveFolder();
+}
+
+void SContentBrowser::HandleResaveAllCurrentFolderCommand() const
+{
+	PathContextMenu->ExecuteResaveFolder();
 }
 
 void SContentBrowser::HandleRenameCommand()

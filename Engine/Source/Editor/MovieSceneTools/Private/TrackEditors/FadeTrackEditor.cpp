@@ -69,7 +69,7 @@ public:
 			{
 				float Value = FadeSection->Eval(Time, 0.f);
 			
-				FLinearColor Color = FLinearColor::Black;
+				FLinearColor Color = FadeSection->FadeColor;
 				Color.A = Value*255.f;
 
 				float TimeFraction = (Time - StartTime) / SectionDuration;

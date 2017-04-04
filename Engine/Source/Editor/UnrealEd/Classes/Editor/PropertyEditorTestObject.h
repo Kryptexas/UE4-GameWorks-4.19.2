@@ -49,6 +49,22 @@ enum ArrayLabelEnum
 };
 
 
+UENUM()
+enum class EditColor : uint8
+{
+	Red,
+	Orange,
+	Yellow,
+	Green,
+	Blue,
+	Indigo,
+	Violet,
+	Pink,
+	Magenta,
+	Cyan
+};
+
+
 USTRUCT()
 struct FPropertyEditorTestSubStruct
 {
@@ -327,6 +343,12 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(EditAnywhere, Category=TSetTests)
 	TSet<AActor*> ActorSet;
 
+	UPROPERTY(EditAnywhere, Category=TSetTests)
+	TSet<EditColor> EditColorSet;
+
+	UPROPERTY(EditAnywhere, Category=TSetTests)
+	TSet<FName> NameSet;
+
 	UPROPERTY(EditAnywhere, Category=TMapTests)
 	TMap<int32, FString> Int32ToStringMap;
 
@@ -350,6 +372,27 @@ class UPropertyEditorTestObject : public UObject
 
 	UPROPERTY(EditAnywhere, Category=TMapTests)
 	TMap<UObject*, FLinearColor> ObjectToColorMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<int32, TEnumAsByte<PropertEditorTestEnum> > IntToEnumMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<FName, FName> NameToNameMap;
+
+	UPROPERTY(EditAnywhere, Category=TSetStructTests)
+	TSet<FLinearColor> LinearColorSet;
+
+	UPROPERTY(EditAnywhere, Category=TSetStructTests)
+	TSet<FVector> VectorSet;
+
+	UPROPERTY(EditAnywhere, Category=TMapStructKeyTests)
+	TMap<FLinearColor, FString> LinearColorToStringMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapStructKeyTests)
+	TMap<FVector, float> VectorToFloatMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapStructKeyTests)
+	TMap<FLinearColor, FVector> LinearColorToVectorMap;
 
 	UPROPERTY(EditAnywhere, Category=ScriptInterfaces)
 	TScriptInterface<IBlendableInterface> BlendableInterface;

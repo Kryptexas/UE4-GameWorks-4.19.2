@@ -71,4 +71,5 @@ private:
 	static FName GreenName;
 	static FName BlueName;
 	static FName AlphaName;
+	static FName SpecifiedColorName;
 };

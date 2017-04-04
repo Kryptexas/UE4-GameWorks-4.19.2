@@ -83,10 +83,18 @@ FPreviewViewport::FPreviewViewport(class UMaterialGraphNode* InNode)
 	: MaterialNode(InNode)
 	, PreviewElement( new FPreviewElement )
 {
+	if (MaterialNode)
+	{
+		MaterialNode->InvalidatePreviewMaterialDelegate.BindRaw(this, &FPreviewViewport::UpdatePreviewNodeRenderProxy);
+	}
 }
 
 FPreviewViewport::~FPreviewViewport()
 {
+	if (MaterialNode)
+	{
+		MaterialNode->InvalidatePreviewMaterialDelegate.Unbind();
+	}
 	// Pass the preview element to the render thread so that it's deleted after it's shown for the last time
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER
 	(
@@ -117,7 +125,7 @@ void FPreviewViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const 
 
 	bool bIsRealtime = MaterialNode->RealtimeDelegate.IsBound() ? MaterialNode->RealtimeDelegate.Execute() : false;
 
-	if (PreviewElement->BeginRenderingCanvas( CanvasRect, ClippingRect, MaterialNode->GetExpressionPreview(), bIsRealtime ))
+	if (PreviewElement->BeginRenderingCanvas(CanvasRect, ClippingRect, MaterialNode, bIsRealtime))
 	{
 		// Draw above everything else
 		uint32 PreviewLayer = LayerId+1;
@@ -130,12 +138,20 @@ FIntPoint FPreviewViewport::GetSize() const
 	return FIntPoint(96,96);
 }
 
+void FPreviewViewport::UpdatePreviewNodeRenderProxy()
+{
+	if (PreviewElement.IsValid())
+	{
+		PreviewElement->UpdateExpressionPreview(MaterialNode);
+	}
+}
+
 /////////////////////////////////////////////////////
 // FPreviewElement
 
 FPreviewElement::FPreviewElement()
 	: RenderTarget(new FSlateMaterialPreviewRenderTarget)
-	, ExpressionPreview(NULL)
+	, ExpressionPreview(nullptr)
 	, bIsRealtime(false)
 {
 }
@@ -145,9 +161,9 @@ FPreviewElement::~FPreviewElement()
 	delete RenderTarget;
 }
 
-bool FPreviewElement::BeginRenderingCanvas( const FIntRect& InCanvasRect, const FIntRect& InClippingRect, FMaterialRenderProxy* InExpressionPreview, bool bInIsRealtime )
+bool FPreviewElement::BeginRenderingCanvas( const FIntRect& InCanvasRect, const FIntRect& InClippingRect, UMaterialGraphNode* InGraphNode, bool bInIsRealtime )
 {
-	if(InCanvasRect.Size().X > 0 && InCanvasRect.Size().Y > 0 && InClippingRect.Size().X > 0 && InClippingRect.Size().Y > 0 && InExpressionPreview != NULL)
+	if(InCanvasRect.Size().X > 0 && InCanvasRect.Size().Y > 0 && InClippingRect.Size().X > 0 && InClippingRect.Size().Y > 0 && InGraphNode != NULL)
 	{
 		/**
 		 * Struct to contain all info that needs to be passed to the render thread
@@ -159,7 +175,7 @@ bool FPreviewElement::BeginRenderingCanvas( const FIntRect& InCanvasRect, const 
 			/** How to clip the canvas tile */
 			FIntRect ClippingRect;
 			/** Render proxy for the expression preview */
-			FMaterialRenderProxy* ExpressionPreview;
+			FMaterialRenderProxy* RenderProxy;
 			/** Whether preview is using realtime values */
 			bool bIsRealtime;
 		};
@@ -167,18 +183,18 @@ bool FPreviewElement::BeginRenderingCanvas( const FIntRect& InCanvasRect, const 
 		FPreviewRenderInfo RenderInfo;
 		RenderInfo.CanvasRect = InCanvasRect;
 		RenderInfo.ClippingRect = InClippingRect;
-		RenderInfo.ExpressionPreview = InExpressionPreview;
+		RenderInfo.RenderProxy = InGraphNode->GetExpressionPreview();
 		RenderInfo.bIsRealtime = bInIsRealtime;
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER
-			(
+		(
 			BeginRenderingPreviewCanvas,
 			FPreviewElement*, PreviewElement, this, 
 			FPreviewRenderInfo, InRenderInfo, RenderInfo,
 		{
 			PreviewElement->RenderTarget->SetViewRect(InRenderInfo.CanvasRect);
 			PreviewElement->RenderTarget->SetClippingRect(InRenderInfo.ClippingRect);
-			PreviewElement->ExpressionPreview = InRenderInfo.ExpressionPreview;
+			PreviewElement->ExpressionPreview = InRenderInfo.RenderProxy;
 			PreviewElement->bIsRealtime = InRenderInfo.bIsRealtime;
 		}
 		);
@@ -188,34 +204,51 @@ bool FPreviewElement::BeginRenderingCanvas( const FIntRect& InCanvasRect, const 
 	return false;
 }
 
+void FPreviewElement::UpdateExpressionPreview(UMaterialGraphNode* MaterialNode)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER
+	(
+		UpdatePreviewNodeRenderProxy,
+		FPreviewElement*, PreviewElement, this,
+		FMaterialRenderProxy*, InRenderProxy, MaterialNode ? MaterialNode->GetExpressionPreview() : nullptr,
+		{
+			PreviewElement->ExpressionPreview = InRenderProxy;
+		}
+	);
+}
+
 void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, const void* InWindowBackBuffer)
 {
-	// Clip the canvas to avoid having to set UV values
-	FIntRect ClippingRect = RenderTarget->GetClippingRect();
-
-	RHICmdList.SetScissorRect(true,
-						ClippingRect.Min.X,
-						ClippingRect.Min.Y,
-						ClippingRect.Max.X,
-						ClippingRect.Max.Y);
-	RenderTarget->SetRenderTargetTexture( *(FTexture2DRHIRef*)InWindowBackBuffer );
+	if(ExpressionPreview)
 	{
-		// Check realtime mode for whether to pass current time to canvas
-		float CurrentTime = bIsRealtime ? (FApp::GetCurrentTime() - GStartTime) : 0.0f;
-		float DeltaTime = bIsRealtime ? FApp::GetDeltaTime() : 0.0f;
+		// Clip the canvas to avoid having to set UV values
+		FIntRect ClippingRect = RenderTarget->GetClippingRect();
 
-		FCanvas Canvas(RenderTarget, NULL, CurrentTime, CurrentTime, DeltaTime, GMaxRHIFeatureLevel);
+
+		RHICmdList.SetScissorRect(true,
+			ClippingRect.Min.X,
+			ClippingRect.Min.Y,
+			ClippingRect.Max.X,
+			ClippingRect.Max.Y);
+		RenderTarget->SetRenderTargetTexture(*(FTexture2DRHIRef*)InWindowBackBuffer);
 		{
-			Canvas.SetAllowedModes( 0 );
-			Canvas.SetRenderTargetRect( RenderTarget->GetViewRect() );
+			// Check realtime mode for whether to pass current time to canvas
+			float CurrentTime = bIsRealtime ? (FApp::GetCurrentTime() - GStartTime) : 0.0f;
+			float DeltaTime = bIsRealtime ? FApp::GetDeltaTime() : 0.0f;
 
-			FCanvasTileItem TileItem( FVector2D::ZeroVector, ExpressionPreview , RenderTarget->GetSizeXY());
-			Canvas.DrawItem( TileItem );
+			FCanvas Canvas(RenderTarget, NULL, CurrentTime, CurrentTime, DeltaTime, GMaxRHIFeatureLevel);
+			{
+				Canvas.SetAllowedModes(0);
+				Canvas.SetRenderTargetRect(RenderTarget->GetViewRect());
+
+				FCanvasTileItem TileItem(FVector2D::ZeroVector, ExpressionPreview, RenderTarget->GetSizeXY());
+				Canvas.DrawItem(TileItem);
+			}
+			Canvas.Flush_RenderThread(RHICmdList, true);
 		}
-		Canvas.Flush_RenderThread(RHICmdList, true);
+		RenderTarget->ClearRenderTargetTexture();
+		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 	}
-	RenderTarget->ClearRenderTargetTexture();
-	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 }
 
 /////////////////////////////////////////////////////

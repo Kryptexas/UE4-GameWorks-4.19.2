@@ -5,17 +5,100 @@
 #include "EditorStyleSet.h"
 #include "SSequencerTreeView.h"
 
+class SResizeArea : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SResizeArea){}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, TWeakPtr<FSequencerDisplayNode> InResizeTarget)
+	{
+		WeakResizeTarget = InResizeTarget;
+		ChildSlot
+		[
+			SNew(SBox).HeightOverride(5.f)
+		];
+	}
+
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		TSharedPtr<FSequencerDisplayNode> ResizeTarget = WeakResizeTarget.Pin();
+		if (ResizeTarget.IsValid() && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+		{
+			DragParameters = FDragParameters(ResizeTarget->GetNodeHeight(), MouseEvent.GetScreenSpacePosition().Y);
+			return FReply::Handled().CaptureMouse(AsShared());
+		}
+		return FReply::Handled();
+	}
+
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		DragParameters.Reset();
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		if (DragParameters.IsSet() && HasMouseCapture())
+		{
+			float NewHeight = DragParameters->OriginalHeight + (MouseEvent.GetScreenSpacePosition().Y - DragParameters->DragStartY);
+
+			TSharedPtr<FSequencerDisplayNode> ResizeTarget = WeakResizeTarget.Pin();
+			if (ResizeTarget.IsValid() && FMath::RoundToInt(NewHeight) != FMath::RoundToInt(DragParameters->OriginalHeight))
+			{
+				ResizeTarget->Resize(NewHeight);
+			}
+		}
+
+		return FReply::Handled();
+	}
+
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
+	{
+		return FCursorReply::Cursor(EMouseCursor::ResizeUpDown);
+	}
+
+private:
+
+	struct FDragParameters
+	{
+		FDragParameters(float InOriginalHeight, float InDragStartY) : OriginalHeight(InOriginalHeight), DragStartY(InDragStartY) {}
+
+		float OriginalHeight;
+		float DragStartY;
+	};
+	TOptional<FDragParameters> DragParameters;
+	TWeakPtr<FSequencerDisplayNode> WeakResizeTarget;
+};
+
 
 void SSequencerTrackLane::Construct(const FArguments& InArgs, const TSharedRef<FSequencerDisplayNode>& InDisplayNode, const TSharedRef<SSequencerTreeView>& InTreeView)
 {
 	DisplayNode = InDisplayNode;
 	TreeView = InTreeView;
 
+	TSharedRef<SWidget> Widget = InArgs._Content.Widget;
+
+	if (DisplayNode->IsResizable())
+	{
+		Widget = SNew(SOverlay)
+			+ SOverlay::Slot()
+			[
+				InArgs._Content.Widget
+			]
+
+			+ SOverlay::Slot()
+			.VAlign(VAlign_Bottom)
+			[
+				SNew(SResizeArea, DisplayNode)
+			];
+	}
+
 	ChildSlot
 	.HAlign(HAlign_Fill)
 	.Padding(0)
 	[
-		InArgs._Content.Widget
+		Widget
 	];
 }
 

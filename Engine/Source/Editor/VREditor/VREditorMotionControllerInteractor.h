@@ -65,6 +65,9 @@ public:
 
 	/** Get the motioncontroller component of this interactor */
 	class UMotionControllerComponent* GetMotionControllerComponent() const;
+	
+	/** Resets all the trackpad related values to default. */
+	void ResetTrackpad();
 
 	/** Check if the touchpad is currently touched */
 	bool IsTouchingTrackpad() const;

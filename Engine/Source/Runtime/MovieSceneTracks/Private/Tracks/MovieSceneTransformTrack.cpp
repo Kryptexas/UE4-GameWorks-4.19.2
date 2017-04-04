@@ -4,6 +4,7 @@
 #include "MovieSceneCommonHelpers.h"
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Compilation/MovieSceneSegmentCompiler.h"
+#include "Compilation/MovieSceneTemplateInterrogation.h"
 #include "Evaluation/MovieScenePropertyTemplates.h"
 
 
@@ -25,4 +26,10 @@ UMovieSceneSection* UMovieSceneTransformTrack::CreateNewSection()
 FMovieSceneEvalTemplatePtr UMovieSceneTransformTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
 {
 	return FMovieSceneTransformPropertySectionTemplate(*CastChecked<UMovieScene3DTransformSection>(&InSection), *this);
+}
+
+FMovieSceneInterrogationKey UMovieSceneTransformTrack::GetInterrogationKey()
+{
+	static FMovieSceneAnimTypeID TypeID = FMovieSceneAnimTypeID::Unique();
+	return TypeID;
 }

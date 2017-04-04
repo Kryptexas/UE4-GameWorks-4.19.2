@@ -108,17 +108,14 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 	if (WorldInteraction->IsInVR())
 	{
 		bool bIsAimingTowards = false;
-		bool bAnyInteractorInCorrectState = false;
 		const float GizmoRadius = (GizmoScale * 350) * 0.5f;
 
 		// Check if any interactor has a laser close to the gizmo
 		for (UViewportInteractor* Interactor : WorldInteraction->GetInteractors())
 		{	
 			// We only want the interactor to affect the size when aiming at the gizmo if they are dragging nothing
-			if (Interactor->GetDraggingMode() == EViewportInteractionDraggingMode::Nothing && !Interactor->GetIsLaserBlocked())
+			if (!Interactor->GetIsLaserBlocked() && Interactor->GetDraggingMode() != EViewportInteractionDraggingMode::World)
 			{
-				bAnyInteractorInCorrectState = true;			
-
 				FVector LaserPointerStart, LaserPointerEnd;
 				if (Interactor->GetLaserPointer(/*Out*/ LaserPointerStart, /*Out*/ LaserPointerEnd))
 				{
@@ -133,21 +130,18 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 			}
 		}
 
-		if (bAnyInteractorInCorrectState)
+		const float DeltaTime = WorldInteraction->GetCurrentDeltaTime();
+		if (bIsAimingTowards)
 		{
-			const float DeltaTime = WorldInteraction->GetCurrentDeltaTime();
-			if (bIsAimingTowards)
-			{
-				AimingAtGizmoScaleAlpha += DeltaTime / VREd::PivotGizmoAimAtAnimationSpeed->GetFloat();
-			}
-			else
-			{
-				AimingAtGizmoScaleAlpha -= DeltaTime / VREd::PivotGizmoAimAtAnimationSpeed->GetFloat();
-			}
-			AimingAtGizmoScaleAlpha = FMath::Clamp(AimingAtGizmoScaleAlpha, VREd::PivotGizmoAimAtShrinkSize->GetFloat(), 1.0f);
-
-			GizmoScale *= AimingAtGizmoScaleAlpha;
+			AimingAtGizmoScaleAlpha += DeltaTime / VREd::PivotGizmoAimAtAnimationSpeed->GetFloat();
 		}
+		else
+		{
+			AimingAtGizmoScaleAlpha -= DeltaTime / VREd::PivotGizmoAimAtAnimationSpeed->GetFloat();
+		}
+		AimingAtGizmoScaleAlpha = FMath::Clamp(AimingAtGizmoScaleAlpha, VREd::PivotGizmoAimAtShrinkSize->GetFloat(), 1.0f);
+
+		GizmoScale *= AimingAtGizmoScaleAlpha;
 	}
 
 	// Update animation

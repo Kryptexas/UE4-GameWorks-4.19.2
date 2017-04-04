@@ -8,10 +8,10 @@
 
 struct FMovieSceneSectionData
 {
-	MOVIESCENE_API FMovieSceneSectionData(const TRange<float>& InBounds, int32 InSourceIndex, int32 InPriority = 0);
+	MOVIESCENE_API FMovieSceneSectionData(const TRange<float>& InBounds, FSectionEvaluationData InEvalData, int32 InPriority = 0);
 
 	TRange<float> Bounds;
-	int32 SourceIndex;
+	FSectionEvaluationData EvalData;
 	int32 Priority;
 };
 
@@ -61,16 +61,16 @@ private:
 
 	struct FBound
 	{
-		FBound(int32 InImplIndex, TRangeBound<float> InBound) : ImplIndex(InImplIndex), Bound(InBound) {}
+		FBound(FSectionEvaluationData InEvalData, TRangeBound<float> InBound) : EvalData(InEvalData), Bound(InBound) {}
 
-		int32 ImplIndex;
+		FSectionEvaluationData EvalData;
 		TRangeBound<float> Bound;
 	};
 
 	int32 LowerReadIndex, UpperReadIndex;
 	TArray<FBound> LowerBounds, UpperBounds;
 	TArray<FMovieSceneSegment> CompiledSegments;
-	TArray<int32, TInlineAllocator<16>> OverlappingSections;
+	TArray<FSectionEvaluationData, TInlineAllocator<16>> OverlappingSections;
 	TArray<uint32, TInlineAllocator<16>> OverlappingRefCounts;
 };
 
@@ -83,8 +83,8 @@ struct FMovieSceneTrackCompiler
 {
 	struct FMovieSceneSectionRowData : FMovieSceneSectionData
 	{
-		FMovieSceneSectionRowData(int32 InActualSectionIndex, const TRange<float>& InBounds, int32 InIndexInRow, int32 InPriority = 0)
-			: FMovieSceneSectionData(InBounds, InIndexInRow, InPriority)
+		FMovieSceneSectionRowData(int32 InActualSectionIndex, const TRange<float>& InBounds, FSectionEvaluationData InRowEvalData, int32 InPriority = 0)
+			: FMovieSceneSectionData(InBounds, InRowEvalData, InPriority)
 			, ActualSectionIndex(InActualSectionIndex)
 		{}
 

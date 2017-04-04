@@ -18,10 +18,7 @@ FMovieSceneEvaluationTemplate& FMovieSceneSequenceTemplateStore::GetCompiledTemp
 		// Lookup into map here if we have a key that is not the sequence
 		if (ObjectKey == &Sequence)
 		{
-			if (Sequence.EvaluationTemplate.IsOutOfDate(Sequence.TemplateParameters))
-			{
-				Sequence.EvaluationTemplate.ForceRegenerate(Sequence.TemplateParameters);
-			}
+			Sequence.EvaluationTemplate.Regenerate(Sequence.TemplateParameters);
 		}
 		else
 		{
@@ -31,12 +28,9 @@ FMovieSceneEvaluationTemplate& FMovieSceneSequenceTemplateStore::GetCompiledTemp
 			{
 				EvaluationTemplatePtr = &Sequence.InstancedSubSequenceEvaluationTemplates.Add(ObjectKey);
 				EvaluationTemplatePtr->Initialize(Sequence, this);
-				EvaluationTemplatePtr->Regenerate(Sequence.TemplateParameters);
 			}
-			else if(EvaluationTemplatePtr->IsOutOfDate(Sequence.TemplateParameters))
-			{
-				EvaluationTemplatePtr->ForceRegenerate(Sequence.TemplateParameters);
-			}
+
+			EvaluationTemplatePtr->Regenerate(Sequence.TemplateParameters);
 		}
 	}
 #endif

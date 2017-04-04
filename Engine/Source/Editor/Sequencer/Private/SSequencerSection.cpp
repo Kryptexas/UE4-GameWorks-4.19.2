@@ -47,7 +47,64 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 		FPaintGeometry PaintGeometry = Section.IsInfinite() ?
 				InfiniteGeometry.ToPaintGeometry() :
 				SectionGeometry.ToPaintGeometry();
-				
+
+		if (!Section.IsInfinite() && Sequencer.GetSettings()->ShouldShowPrePostRoll())
+		{	
+			static const FSlateBrush* PreRollBrush = FEditorStyle::GetBrush("Sequencer.Section.PreRoll");
+			float BrushHeight = 16.f, BrushWidth = 10.f;
+
+			const float PreRollPx = TimeToPixelConverter.TimeToPixel(Section.GetStartTime() + Section.GetPreRollTime()) - TimeToPixelConverter.TimeToPixel(Section.GetStartTime());
+			if (PreRollPx > 0)
+			{
+				const float RoundedPreRollPx = (int(PreRollPx / BrushWidth)+1) * BrushWidth;
+
+				FSlateRect PreRollClipRect = ParentClippingRect;
+				PreRollClipRect.Right = SectionClippingRect.Left - 1;
+
+				// Round up to the nearest BrushWidth size
+				FGeometry PreRollArea = SectionGeometry.MakeChild(
+					FVector2D(RoundedPreRollPx, BrushHeight),
+					FSlateLayoutTransform(FVector2D(-PreRollPx, (SectionGeometry.GetLocalSize().Y - BrushHeight)*.5f))
+					);
+
+				FSlateDrawElement::MakeBox(
+					DrawElements,
+					LayerId,
+					PreRollArea.ToPaintGeometry(),
+					PreRollBrush,
+					PreRollClipRect,
+					DrawEffects
+				);
+			}
+
+			const float PostRollPx = TimeToPixelConverter.TimeToPixel(Section.GetEndTime() + Section.GetPostRollTime()) - TimeToPixelConverter.TimeToPixel(Section.GetEndTime());
+			if (PostRollPx > 0)
+			{
+				const float RoundedPostRollPx = (int(PostRollPx / BrushWidth)+1) * BrushWidth;
+				const float Difference = RoundedPostRollPx - PostRollPx;
+
+				// Slate border brushes tile UVs along +ve X, so we round the arrows to a multiple of the brush width, and offset, to ensure we don't have a partial tile visible at the end
+				FGeometry PostRollArea = SectionGeometry.MakeChild(
+					FVector2D(RoundedPostRollPx, BrushHeight),
+					FSlateLayoutTransform(FVector2D(SectionGeometry.GetLocalSize().X - Difference, (SectionGeometry.GetLocalSize().Y - BrushHeight)*.5f))
+					);
+
+				FSlateRect PostRollClipRect = ParentClippingRect;
+				PostRollClipRect.Left = SectionClippingRect.Right + 1;
+
+				FSlateDrawElement::MakeBox(
+					DrawElements,
+					LayerId,
+					PostRollArea.ToPaintGeometry(),
+					PreRollBrush,
+					PostRollClipRect,
+					DrawEffects
+				);
+			}
+
+			++LayerId;
+		}
+
 		FSlateDrawElement::MakeBox(
 			DrawElements,
 			LayerId++,
@@ -131,6 +188,9 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 	TOptional<FLinearColor> SelectionColor;
 	FSequencer& Sequencer;
 	FTimeToPixel TimeToPixelConverter;
+
+	/** The clipping rectangle of the parent widget */
+	FSlateRect ParentClippingRect;
 };
 
 void SSequencerSection::Construct( const FArguments& InArgs, TSharedRef<FSequencerTrackNode> SectionNode, int32 InSectionIndex )
@@ -355,13 +415,13 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	FGeometry PaintSpaceParentGeometry = ParentGeometry;
 	PaintSpaceParentGeometry.AppendTransform(FSlateLayoutTransform(Inverse(Args.GetWindowToDesktopTransform())));
 
-	FSlateRect ParentClippingRect = PaintSpaceParentGeometry.GetClippingRect();
+	Painter.ParentClippingRect = PaintSpaceParentGeometry.GetClippingRect();
 
 	// Clip vertically
-	ParentClippingRect.Top = FMath::Max(ParentClippingRect.Top, MyClippingRect.Top);
-	ParentClippingRect.Bottom = FMath::Min(ParentClippingRect.Bottom, MyClippingRect.Bottom);
+	Painter.ParentClippingRect.Top = FMath::Max(Painter.ParentClippingRect.Top, MyClippingRect.Top);
+	Painter.ParentClippingRect.Bottom = FMath::Min(Painter.ParentClippingRect.Bottom, MyClippingRect.Bottom);
 
-	Painter.SectionClippingRect = Painter.SectionGeometry.GetClippingRect().IntersectionWith(ParentClippingRect);
+	Painter.SectionClippingRect = Painter.SectionGeometry.GetClippingRect().IntersectionWith(Painter.ParentClippingRect);
 
 	Painter.LayerId = LayerId;
 	Painter.bParentEnabled = bEnabled;
@@ -393,7 +453,7 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		DrawSectionHandles(AllottedGeometry, MyClippingRect, OutDrawElements, ++LayerId, DrawEffects, SelectionColor, Hotspot);
 	}
 
-	FSlateRect KeyClippingRect = Painter.SectionGeometry.GetClippingRect().ExtendBy(FMargin(10.f, 0.f)).IntersectionWith(ParentClippingRect);
+	FSlateRect KeyClippingRect = Painter.SectionGeometry.GetClippingRect().ExtendBy(FMargin(10.f, 0.f)).IntersectionWith(Painter.ParentClippingRect);
 	
 	Painter.LayerId = ++LayerId;
 	PaintKeys( Painter, InWidgetStyle, KeyClippingRect );

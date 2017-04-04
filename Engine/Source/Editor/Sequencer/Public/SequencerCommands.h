@@ -25,8 +25,11 @@ public:
 	/** Play forward */
 	TSharedPtr< FUICommandInfo > PlayForward;
 
-	/** Rewind */
-	TSharedPtr< FUICommandInfo > Rewind;
+	/** Jump to start of playback */
+	TSharedPtr< FUICommandInfo > JumpToStart;
+
+	/** Jump to end of playback */
+	TSharedPtr< FUICommandInfo > JumpToEnd;
 
 	/** Shuttle forward */
 	TSharedPtr< FUICommandInfo > ShuttleForward;
@@ -69,6 +72,15 @@ public:
 
 	/** Zoom out of the view range */
 	TSharedPtr< FUICommandInfo > ZoomOutViewRange;
+
+	/** Set the selection range to the next shot. */
+	TSharedPtr< FUICommandInfo > SetSelectionRangeToNextShot;
+
+	/** Set the selection range to the previous shot. */
+	TSharedPtr< FUICommandInfo > SetSelectionRangeToPreviousShot;
+
+	/** Set the playback range to all the shots. */
+	TSharedPtr< FUICommandInfo > SetPlaybackRangeToAllShots;
 
 	/** Toggle locking the playback range. */
 	TSharedPtr< FUICommandInfo > TogglePlaybackRangeLocked;
@@ -136,6 +148,12 @@ public:
 	/** Trim section to the right, keeping the left portion */
 	TSharedPtr< FUICommandInfo > TrimSectionRight;
 
+	/** Translate the selected keys and section to the left */
+	TSharedPtr< FUICommandInfo > TranslateLeft;
+
+	/** Translate the selected keys and section to the right */
+	TSharedPtr< FUICommandInfo > TranslateRight;
+
 	/** Split section */
 	TSharedPtr< FUICommandInfo > SplitSection;
 
@@ -184,6 +202,9 @@ public:
 	/** Toggles whether or not the play time should snap to the selected interval. */
 	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToInterval;
 
+	/** Toggles whether or not the play time should snap to the pressed key. */
+	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToPressedKey;
+
 	/** Toggles whether or not the play time should snap to the dragged key. */
 	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToDraggedKey;
 
@@ -210,6 +231,9 @@ public:
 
 	/** Toggles whether or not the curve editor time range should be linked to the sequencer. */
 	TSharedPtr< FUICommandInfo > ToggleLinkCurveEditorTimeRange;
+
+	/** Toggles visualization of pre and post roll */
+	TSharedPtr< FUICommandInfo > ToggleShowPreAndPostRoll;
 
 	/** Enable the move tool */
 	TSharedPtr< FUICommandInfo > MoveTool;

@@ -403,17 +403,7 @@ bool FChunkManifestGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 
 bool FChunkManifestGenerator::ContainsMap(const FName& PackageName) const
 {
-	const auto& Assets = PackageToRegistryDataMap.FindChecked(PackageName);
-	
-	for (const auto& AssetIndex : Assets)
-	{
-		const auto& Asset = AssetRegistryData[AssetIndex];
-		if (Asset.GetClass()->IsChildOf(UWorld::StaticClass()) || Asset.GetClass()->IsChildOf(ULevel::StaticClass()))
-		{
-			return true;
-		}
-	}
-	return false;
+	return PackagesContainingMaps.Contains(PackageName);
 }
 
 void FChunkManifestGenerator::Initialize(const TArray<FName> &InStartupPackages)
@@ -462,6 +452,11 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 		// Map asset data to its package (there can be more than one asset data per package).
 		auto& PackageData = PackageToRegistryDataMap.FindOrAdd(AssetData.PackageName);
 		PackageData.Add(Index);
+		// Update whether the owner package contains a map
+		if (AssetData.GetClass()->IsChildOf(UWorld::StaticClass()) || AssetData.GetClass()->IsChildOf(ULevel::StaticClass()))
+		{
+			PackagesContainingMaps.Add(AssetData.PackageName);
+		}
 	}
 
 	// add all the packages to the unassigned package list

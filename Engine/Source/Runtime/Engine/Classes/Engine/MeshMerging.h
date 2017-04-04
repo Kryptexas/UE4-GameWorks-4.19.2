@@ -406,11 +406,12 @@ struct FMeshMergingSettings
 struct FSectionInfo
 {
 	class UMaterialInterface* Material;
+	FName MaterialSlotName;
 	bool bCollisionEnabled;
 	bool bShadowCastingEnabled;
 
 	bool operator==(const FSectionInfo& Other) const
 	{
-		return Material == Other.Material && bCollisionEnabled == Other.bCollisionEnabled && bShadowCastingEnabled == Other.bShadowCastingEnabled;
+		return Material == Other.Material && MaterialSlotName == Other.MaterialSlotName && bCollisionEnabled == Other.bCollisionEnabled && bShadowCastingEnabled == Other.bShadowCastingEnabled;
 	}
 };

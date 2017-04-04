@@ -12,10 +12,7 @@
 #include "MovieSceneSequence.h"
 #include "MultiBox/MultiBoxBuilder.h"
 
-
-static const FString SequencePinName(TEXT("Sequence"));
-
-#define LOCTEXT_NAMESPACE "UK2Node_GetSequenceBindings"
+#define LOCTEXT_NAMESPACE "UDEPRECATED_K2Node_GetSequenceBindings"
 
 
 class FKCHandler_GetSequenceBindings : public FNodeHandlingFunctor
@@ -28,7 +25,7 @@ public:
 
 	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
-		UK2Node_GetSequenceBindings* BindingsNode = CastChecked<UK2Node_GetSequenceBindings>(Node);
+		UDEPRECATED_K2Node_GetSequenceBindings* BindingsNode = CastChecked<UDEPRECATED_K2Node_GetSequenceBindings>(Node);
 		
 		for (UEdGraphPin* Pin : BindingsNode->GetAllPins())
 		{
@@ -42,23 +39,22 @@ public:
 				}
 				else
 				{
-					FMovieSceneObjectBindingPtr Value;
-					Value.Guid = Guid.GetValue();
-					FMovieSceneObjectBindingPtr::StaticStruct()->ExportText(Term->Name, &Value, nullptr, nullptr, 0, nullptr);
+					FMovieSceneObjectBindingID Value(Guid.GetValue(), MovieSceneSequenceID::Root);
+					FMovieSceneObjectBindingID::StaticStruct()->ExportText(Term->Name, &Value, nullptr, nullptr, 0, nullptr);
 				}
 			}
 		}
 	}
 };
 
-void UK2Node_GetSequenceBindings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void UDEPRECATED_K2Node_GetSequenceBindings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	UpdatePins();
 }
 
-TOptional<FGuid> UK2Node_GetSequenceBindings::GetGuidFromPin(UEdGraphPin* Pin) const
+TOptional<FGuid> UDEPRECATED_K2Node_GetSequenceBindings::GetGuidFromPin(UEdGraphPin* Pin) const
 {
 	const FGetSequenceBindingGuidMapping* Mapping = BindingGuids.FindByPredicate(
 		[=](const FGetSequenceBindingGuidMapping& InMapping)
@@ -70,21 +66,20 @@ TOptional<FGuid> UK2Node_GetSequenceBindings::GetGuidFromPin(UEdGraphPin* Pin) c
 	return Mapping ? Mapping->Guid : TOptional<FGuid>();
 }
 
-void UK2Node_GetSequenceBindings::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
+void UDEPRECATED_K2Node_GetSequenceBindings::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	// Ensure pins always have a default value
 	TOptional<FGuid> FoundGuid = GetGuidFromPin(Pin);
 	if (FoundGuid.IsSet())
 	{
-		FMovieSceneObjectBindingPtr Value;
-		Value.Guid = FoundGuid.GetValue();
-		FMovieSceneObjectBindingPtr::StaticStruct()->ExportText(Pin->DefaultValue, &Value, nullptr, nullptr, 0, nullptr);
+		FMovieSceneObjectBindingID Value(FoundGuid.GetValue(), MovieSceneSequenceID::Root);
+		FMovieSceneObjectBindingID::StaticStruct()->ExportText(Pin->DefaultValue, &Value, nullptr, nullptr, 0, nullptr);
 	}
 
 	Super::NotifyPinConnectionListChanged(Pin);
 }
 
-void UK2Node_GetSequenceBindings::PinDefaultValueChanged(UEdGraphPin* Pin)
+void UDEPRECATED_K2Node_GetSequenceBindings::PinDefaultValueChanged(UEdGraphPin* Pin)
 {
 	if (Pin && Pin->Direction == EGPD_Input)
 	{
@@ -94,35 +89,29 @@ void UK2Node_GetSequenceBindings::PinDefaultValueChanged(UEdGraphPin* Pin)
 	Super::PinDefaultValueChanged(Pin);
 }
 
-FNodeHandlingFunctor* UK2Node_GetSequenceBindings::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
+FNodeHandlingFunctor* UDEPRECATED_K2Node_GetSequenceBindings::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_GetSequenceBindings(CompilerContext);
 }
 
-FText UK2Node_GetSequenceBindings::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UDEPRECATED_K2Node_GetSequenceBindings::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return FText::Format(LOCTEXT("NodeTitle", "Get Sequence Bindings ({0})"), Sequence ? FText::FromName(Sequence->GetFName()) : LOCTEXT("NoSequence", "No Sequence"));
 }
 
-void UK2Node_GetSequenceBindings::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
+void UDEPRECATED_K2Node_GetSequenceBindings::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	Super::ReallocatePinsDuringReconstruction(OldPins);
 
 	UpdatePins();
 }
 
-FText UK2Node_GetSequenceBindings::GetTooltipText() const
+FText UDEPRECATED_K2Node_GetSequenceBindings::GetTooltipText() const
 {
 	return LOCTEXT("NodeTooltip", "Access all the binding IDs for the specified sequence");
 }
 
-FSlateIcon UK2Node_GetSequenceBindings::GetIconAndTint(FLinearColor& OutColor) const
-{
-	static FSlateIcon Icon("EditorStyle", "GraphEditor.GetSequenceBindings");
-	return Icon;
-}
-
-void UK2Node_GetSequenceBindings::UpdatePins()
+void UDEPRECATED_K2Node_GetSequenceBindings::UpdatePins()
 {
 	PreloadObject(Sequence);
 
@@ -150,13 +139,12 @@ void UK2Node_GetSequenceBindings::UpdatePins()
 			}
 
 			FString GuidString = Possessable.GetGuid().ToString();
-			UEdGraphPin* NewPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, TEXT(""), FMovieSceneObjectBindingPtr::StaticStruct(), false, false, GuidString);
+			UEdGraphPin* NewPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, TEXT(""), FMovieSceneObjectBindingID::StaticStruct(), false, false, GuidString);
 			NewPin->PinFriendlyName = MovieScene->GetObjectDisplayName(Possessable.GetGuid());
 			NewPin->PersistentGuid = Possessable.GetGuid();
 
-			FMovieSceneObjectBindingPtr Value;
-			Value.Guid = Possessable.GetGuid();
-			FMovieSceneObjectBindingPtr::StaticStruct()->ExportText(NewPin->DefaultValue, &Value, nullptr, nullptr, 0, nullptr);
+			FMovieSceneObjectBindingID Value(Possessable.GetGuid(), MovieSceneSequenceID::Root);
+			FMovieSceneObjectBindingID::StaticStruct()->ExportText(NewPin->DefaultValue, &Value, nullptr, nullptr, 0, nullptr);
 
 			BindingGuids.Add(FGetSequenceBindingGuidMapping{ NewPin->PinName, Possessable.GetGuid() });
 		}
@@ -169,7 +157,7 @@ void UK2Node_GetSequenceBindings::UpdatePins()
 	}
 }
 
-void UK2Node_GetSequenceBindings::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
+void UDEPRECATED_K2Node_GetSequenceBindings::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
 {
 	Super::GetContextMenuActions(Context);
 
@@ -188,7 +176,7 @@ void UK2Node_GetSequenceBindings::GetContextMenuActions(const FGraphNodeContextM
 						AllowedClasses,
 						PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses),
 						FOnShouldFilterAsset(),
-						FOnAssetSelected::CreateUObject(this, &UK2Node_GetSequenceBindings::SetSequence),
+						FOnAssetSelected::CreateUObject(this, &UDEPRECATED_K2Node_GetSequenceBindings::SetSequence),
 						FSimpleDelegate());
 					
 					SubMenuBuilder.AddWidget(MenuContent, FText::GetEmpty(), false);
@@ -205,7 +193,7 @@ void UK2Node_GetSequenceBindings::GetContextMenuActions(const FGraphNodeContextM
 				LOCTEXT("Refresh_ToolTip", "Refresh this node's bindings"),
 				FSlateIcon(),
 				FUIAction(
-						FExecuteAction::CreateUObject(this, &UK2Node_GetSequenceBindings::ReconstructNode)
+						FExecuteAction::CreateUObject(this, &UDEPRECATED_K2Node_GetSequenceBindings::ReconstructNode)
 					)
 				);
 		}
@@ -214,14 +202,14 @@ void UK2Node_GetSequenceBindings::GetContextMenuActions(const FGraphNodeContextM
 	}
 }
 
-void UK2Node_GetSequenceBindings::SetSequence(const FAssetData& InAssetData)
+void UDEPRECATED_K2Node_GetSequenceBindings::SetSequence(const FAssetData& InAssetData)
 {
 	FSlateApplication::Get().DismissAllMenus();
 	Sequence = Cast<UMovieSceneSequence>(InAssetData.GetAsset());
 	UpdatePins();
 }
 
-void UK2Node_GetSequenceBindings::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+void UDEPRECATED_K2Node_GetSequenceBindings::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	UClass* ActionKey = GetClass();
 	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
@@ -233,7 +221,7 @@ void UK2Node_GetSequenceBindings::GetMenuActions(FBlueprintActionDatabaseRegistr
 	}
 }
 
-FText UK2Node_GetSequenceBindings::GetMenuCategory() const
+FText UDEPRECATED_K2Node_GetSequenceBindings::GetMenuCategory() const
 {
 	static FNodeTextCache CachedCategory;
 	if (CachedCategory.IsOutOfDate(this))

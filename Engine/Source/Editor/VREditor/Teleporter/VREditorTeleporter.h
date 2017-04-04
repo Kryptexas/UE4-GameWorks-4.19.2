@@ -34,6 +34,9 @@ public:
 	/** Shuts down the teleporter */
 	void Shutdown();
 
+	/** Whether we are currently aiming to teleport. */
+	bool IsAiming() const;
+
 private:
 
 	//~ Begin AActor interface

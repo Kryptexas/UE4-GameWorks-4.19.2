@@ -20,7 +20,7 @@ void SSequencerTransformBox::Construct(const FArguments& InArgs, const TSharedRe
 	ScaleFactor = 1.f;
 
 	// Initialize to 10 frames if showing frame numbers
-	float TimeSnapInterval = SequencerPtr.Pin()->GetSettings()->GetTimeSnapInterval();
+	float TimeSnapInterval = SequencerPtr.Pin()->GetFixedFrameInterval();
 	if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSnapInterval))
 	{	
 		float FrameRate = 1.0f / TimeSnapInterval;

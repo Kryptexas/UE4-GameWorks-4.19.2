@@ -22,11 +22,13 @@ void SPathPicker::Construct( const FArguments& InArgs )
 		}
 	}
 
+	FOnGetFolderContextMenu OnGetFolderContextMenuDelegate = InArgs._PathPickerConfig.OnGetFolderContextMenu.IsBound() ? InArgs._PathPickerConfig.OnGetFolderContextMenu : FOnGetFolderContextMenu::CreateSP(this, &SPathPicker::GetFolderContextMenu);
+
 	ChildSlot
 	[
 		SAssignNew(PathViewPtr, SPathView)
 		.OnPathSelected(InArgs._PathPickerConfig.OnPathSelected)
-		.OnGetFolderContextMenu(this, &SPathPicker::GetFolderContextMenu)
+		.OnGetFolderContextMenu(OnGetFolderContextMenuDelegate)
 		.OnGetPathContextMenuExtender(InArgs._PathPickerConfig.OnGetPathContextMenuExtender)
 		.FocusSearchBoxWhenOpened(InArgs._PathPickerConfig.bFocusSearchBoxWhenOpened)
 		.AllowContextMenu(InArgs._PathPickerConfig.bAllowContextMenu)
@@ -115,5 +117,14 @@ void SPathPicker::SetPaths(const TArray<FString>& NewPaths)
 	PathViewPtr->SetSelectedPaths(NewPaths);
 }
 
+TArray<FString> SPathPicker::GetPaths() const
+{
+	return PathViewPtr->GetSelectedPaths();
+}
+
+const TSharedPtr<SPathView>& SPathPicker::GetPathView() const
+{
+	return PathViewPtr;
+}
 
 #undef LOCTEXT_NAMESPACE

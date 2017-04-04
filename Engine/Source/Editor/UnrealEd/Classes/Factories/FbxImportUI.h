@@ -118,11 +118,11 @@ public:
 	uint32 bImportRigidMesh:1;
 
 	/** Whether to automatically create Unreal materials for materials found in the FBX scene */
-	UPROPERTY(EditAnywhere, config, Category = Material, meta = (OBJRestrict="true"))
+	UPROPERTY(EditAnywhere, config, Category = Material)
 	uint32 bImportMaterials:1;
 
 	/** The option works only when option "Import UMaterial" is OFF. If "Import UMaterial" is ON, textures are always imported. */
-	UPROPERTY(EditAnywhere, config, Category=Material, meta=(OBJRestrict="true"))
+	UPROPERTY(EditAnywhere, config, Category=Material)
 	uint32 bImportTextures:1;
 
 	/** Import data used when importing static meshes */

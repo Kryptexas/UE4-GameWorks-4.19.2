@@ -96,7 +96,6 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::AddTexture( uint32 TextureWidth, 
 void FSlateTextureAtlas::MarkTextureDirty()
 {
 	{
-		check(IsInGameThread() || IsInRenderingThread());
 
 		const ESlateTextureAtlasThreadId AtlasThreadId = GetCurrentSlateTextureAtlasThreadId();
 		check(AtlasThreadId != ESlateTextureAtlasThreadId::Unknown);
@@ -117,8 +116,6 @@ void FSlateTextureAtlas::InitAtlasData()
 
 	AtlasData.Reserve(AtlasWidth * AtlasHeight * BytesPerPixel);
 	AtlasData.AddZeroed(AtlasWidth * AtlasHeight * BytesPerPixel);
-
-	check(IsInGameThread() || IsInRenderingThread());
 
 	AtlasOwnerThread = GetCurrentSlateTextureAtlasThreadId();
 	check(AtlasOwnerThread != ESlateTextureAtlasThreadId::Unknown);

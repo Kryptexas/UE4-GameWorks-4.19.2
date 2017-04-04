@@ -469,6 +469,7 @@ public:
 	virtual bool HasDocumentation() override { return false; }
 	virtual FString GetDocumentationLink() override { return FString(); }
 	virtual FString GetDocumentationExcerptName() override { return FString(); }
+	virtual uint8* GetValueBaseAddress( uint8* Base ) override;
 	virtual int32 GetNumPerObjectValues() const override;
 	virtual FPropertyAccess::Result SetPerObjectValues( const TArray<FString>& InPerObjectValues,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
 	virtual FPropertyAccess::Result GetPerObjectValues( TArray<FString>& OutPerObjectValues ) const override;
@@ -477,7 +478,7 @@ public:
 	virtual bool GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems) override;
 	virtual FPropertyAccess::Result SetObjectValueFromSelection() override;
 	virtual void NotifyPreChange() override;
-	virtual void NotifyPostChange() override;
+	virtual void NotifyPostChange( EPropertyChangeType::Type ChangeType = EPropertyChangeType::Unspecified ) override;
 	virtual void NotifyFinishedChangingProperties() override;
 	virtual void AddRestriction( TSharedRef<const FPropertyRestriction> Restriction )override;
 	virtual bool IsHidden(const FString& Value) const override;

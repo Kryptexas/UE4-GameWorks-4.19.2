@@ -334,6 +334,7 @@ private:
 		SetHLODColoration(false);
 		SetVisualizeLPV(false);
 		SetStreamingBounds(false);
+		SetFoliageOcclusionBounds(false);
 		SetConstraints(false);
 		SetMassProperties(false);
 		SetCameraFrustums(false);

@@ -260,6 +260,7 @@ namespace UnFbx {
 			if (AnimNodeHandle.Name.Compare(NodeName) == 0)
 			{
 				bool bIsCamera = AnimNodeHandle.AttributeType == FbxNodeAttribute::eCamera;
+				bool bIsLight = AnimNodeHandle.AttributeType == FbxNodeAttribute::eLight;
 				FFbxAnimCurveHandle TransformCurves[9];
 				for (auto NodePropertyKvp : AnimNodeHandle.NodeProperties)
 				{
@@ -285,37 +286,10 @@ namespace UnFbx {
 				GetCurveData(TransformCurves[7], ScaleY, false);
 				GetCurveData(TransformCurves[8], ScaleZ, false);
 
-				if (bIsCamera)
+				if (bIsCamera || bIsLight)
 				{
-					const bool bRotateAxis = true; // accounts for camera with rotate axis of 0, -90, 0
-
-					if (bRotateAxis)
-					{
-						GetCurveData(TransformCurves[1], TranslationY, true);
-						GetCurveData(TransformCurves[0], TranslationX, false);
-						GetCurveData(TransformCurves[2], TranslationZ, false);
-					}
-
-					FbxAMatrix FbxCamToUnrealRHMtx, InvFbxCamToUnrealRHMtx;
-					FbxAMatrix UnrealRHToUnrealLH, InUnrealRHToUnrealLH;
-					FbxCamToUnrealRHMtx[0] = FbxVector4(-1.f, 0.f, 0.f, 0.f);
-					FbxCamToUnrealRHMtx[1] = FbxVector4(0.f, 0.f, 1.f, 0.f);
-					FbxCamToUnrealRHMtx[2] = FbxVector4(0.f, 1.f, 0.f, 0.f);
-					InvFbxCamToUnrealRHMtx = FbxCamToUnrealRHMtx.Inverse();
-
-					UnrealRHToUnrealLH[0] = FbxVector4(0.f, 1.f, 0.f, 0.f);
-					UnrealRHToUnrealLH[1] = FbxVector4(1.f, 0.f, 0.f, 0.f);
-					UnrealRHToUnrealLH[2] = FbxVector4(0.f, 0.f, 1.f, 0.f);
-					InUnrealRHToUnrealLH = UnrealRHToUnrealLH.Inverse();
-
-					if (bRotateAxis)
-					{
-						GetCurveData(TransformCurves[3], EulerRotationX, false);
-						GetCurveData(TransformCurves[4], EulerRotationY, false);
-						GetCurveData(TransformCurves[5], EulerRotationZ, false);
-					}
-					
 					int32 CurvePointNum = FMath::Min3<int32>(EulerRotationX.Points.Num(), EulerRotationY.Points.Num(), EulerRotationZ.Points.Num());
+
 					// Once the individual Euler channels are imported, then convert the rotation into Unreal coords
 					for (int32 PointIndex = 0; PointIndex < CurvePointNum; ++PointIndex)
 					{
@@ -323,77 +297,75 @@ namespace UnFbx {
 						FInterpCurvePoint<float>& CurveKeyY = EulerRotationY.Points[PointIndex];
 						FInterpCurvePoint<float>& CurveKeyZ = EulerRotationZ.Points[PointIndex];
 
-						FbxAMatrix CurveMatrix;
-						CurveMatrix.SetR(FbxVector4(CurveKeyX.OutVal, CurveKeyY.OutVal, CurveKeyZ.OutVal));
+						FRotator AnimRotator(CurveKeyY.OutVal, CurveKeyZ.OutVal, CurveKeyX.OutVal);
 
-						// Remove the FbxCamera's local to world rotation
-						FbxAMatrix UnrealCameraRotationMtx = CurveMatrix * InvFbxCamToUnrealRHMtx;
+						FTransform AnimRotatorTransform;
+						FTransform UnrealRootRotatorTransform;
 
-						// Convert the remaining rotation into world space
-						UnrealCameraRotationMtx = UnrealRHToUnrealLH * UnrealCameraRotationMtx * InUnrealRHToUnrealLH;
+						AnimRotatorTransform.SetRotation(AnimRotator.Quaternion());
 
-						FbxVector4 UnrealCameraRotationEuler = UnrealCameraRotationMtx.GetR();
-						CurveKeyX.OutVal = UnrealCameraRotationEuler[0];
-						CurveKeyY.OutVal = UnrealCameraRotationEuler[1];
-						CurveKeyZ.OutVal = UnrealCameraRotationEuler[2];
-
-						if (bRotateAxis)
+						FRotator UnrealRootRotator;
+						if (bIsCamera)
 						{
-							FRotator UnrealRotator(CurveKeyY.OutVal, CurveKeyZ.OutVal, CurveKeyX.OutVal);
-
-							FTransform UnrealRotatorTransform;
-							FTransform UnrealRootRotatorTransform;
-						
-							UnrealRotatorTransform.SetRotation(UnrealRotator.Quaternion());
-
-							FRotator UnrealRootRotator(0.f, 90.f, 0.f); // rotate by 90
-							UnrealRootRotatorTransform.SetRotation(UnrealRootRotator.Quaternion());
-
-							FTransform ResultTransform = UnrealRotatorTransform * UnrealRootRotatorTransform;
-							FRotator ResultRotator = ResultTransform.Rotator();
-							CurveKeyX.OutVal = ResultRotator.Roll;
-							CurveKeyY.OutVal = ResultRotator.Pitch;
-							CurveKeyZ.OutVal = ResultRotator.Yaw;
+							UnrealRootRotator = FFbxDataConverter::GetCameraRotation();
 						}
+						else if (bIsLight)
+						{
+							UnrealRootRotator = FFbxDataConverter::GetLightRotation();
+						}
+						else
+						{
+							UnrealRootRotator = FRotator(0.f);
+						}
+
+						UnrealRootRotatorTransform.SetRotation(UnrealRootRotator.Quaternion());
+
+						FTransform ResultTransform = UnrealRootRotatorTransform * AnimRotatorTransform;
+						FRotator ResultRotator = ResultTransform.Rotator();
+						CurveKeyX.OutVal = ResultRotator.Roll;
+						CurveKeyY.OutVal = ResultRotator.Pitch;
+						CurveKeyZ.OutVal = ResultRotator.Yaw;
 					}
 
-
-					// The FInterpCurve code doesn't differentiate between angles and other data, so an interpolation from 179 to -179
-					// will cause the camera to rotate all the way around through 0 degrees.  So here we make a second pass over the 
-					// Euler track to convert the angles into a more interpolation-friendly format.  
-					float CurrentAngleOffset[3] = { 0.f, 0.f, 0.f };
-					for (int32 PointIndex = 1; PointIndex < CurvePointNum; ++PointIndex)
+					if (bIsCamera)
 					{
-						FInterpCurvePoint<float>& PrevCurveKeyX = EulerRotationX.Points[PointIndex-1];
-						FInterpCurvePoint<float>& PrevCurveKeyY = EulerRotationY.Points[PointIndex-1];
-						FInterpCurvePoint<float>& PrevCurveKeyZ = EulerRotationZ.Points[PointIndex-1];
-
-						FInterpCurvePoint<float>& CurveKeyX = EulerRotationX.Points[PointIndex];
-						FInterpCurvePoint<float>& CurveKeyY = EulerRotationY.Points[PointIndex];
-						FInterpCurvePoint<float>& CurveKeyZ = EulerRotationZ.Points[PointIndex];
-
-
-						FVector PreviousOutVal = FVector(PrevCurveKeyX.OutVal, PrevCurveKeyY.OutVal, PrevCurveKeyZ.OutVal);
-						FVector CurrentOutVal = FVector(CurveKeyX.OutVal, CurveKeyY.OutVal, CurveKeyZ.OutVal);
-
-						for (int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex)
+						// The FInterpCurve code doesn't differentiate between angles and other data, so an interpolation from 179 to -179
+						// will cause the camera to rotate all the way around through 0 degrees.  So here we make a second pass over the 
+						// Euler track to convert the angles into a more interpolation-friendly format.  
+						float CurrentAngleOffset[3] = { 0.f, 0.f, 0.f };
+						for (int32 PointIndex = 1; PointIndex < CurvePointNum; ++PointIndex)
 						{
-							float DeltaAngle = (CurrentOutVal[AxisIndex] + CurrentAngleOffset[AxisIndex]) - PreviousOutVal[AxisIndex];
+							FInterpCurvePoint<float>& PrevCurveKeyX = EulerRotationX.Points[PointIndex - 1];
+							FInterpCurvePoint<float>& PrevCurveKeyY = EulerRotationY.Points[PointIndex - 1];
+							FInterpCurvePoint<float>& PrevCurveKeyZ = EulerRotationZ.Points[PointIndex - 1];
 
-							if (DeltaAngle >= 180)
-							{
-								CurrentAngleOffset[AxisIndex] -= 360;
-							}
-							else if (DeltaAngle <= -180)
-							{
-								CurrentAngleOffset[AxisIndex] += 360;
-							}
+							FInterpCurvePoint<float>& CurveKeyX = EulerRotationX.Points[PointIndex];
+							FInterpCurvePoint<float>& CurveKeyY = EulerRotationY.Points[PointIndex];
+							FInterpCurvePoint<float>& CurveKeyZ = EulerRotationZ.Points[PointIndex];
 
-							CurrentOutVal[AxisIndex] += CurrentAngleOffset[AxisIndex];
+
+							FVector PreviousOutVal = FVector(PrevCurveKeyX.OutVal, PrevCurveKeyY.OutVal, PrevCurveKeyZ.OutVal);
+							FVector CurrentOutVal = FVector(CurveKeyX.OutVal, CurveKeyY.OutVal, CurveKeyZ.OutVal);
+
+							for (int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex)
+							{
+								float DeltaAngle = (CurrentOutVal[AxisIndex] + CurrentAngleOffset[AxisIndex]) - PreviousOutVal[AxisIndex];
+
+								if (DeltaAngle >= 180)
+								{
+									CurrentAngleOffset[AxisIndex] -= 360;
+								}
+								else if (DeltaAngle <= -180)
+								{
+									CurrentAngleOffset[AxisIndex] += 360;
+								}
+
+								CurrentOutVal[AxisIndex] += CurrentAngleOffset[AxisIndex];
+							}
+							CurveKeyX.OutVal = CurrentOutVal[0];
+							CurveKeyY.OutVal = CurrentOutVal[1];
+							CurveKeyZ.OutVal = CurrentOutVal[2];
 						}
-						CurveKeyX.OutVal = CurrentOutVal[0];
-						CurveKeyY.OutVal = CurrentOutVal[1];
-						CurveKeyZ.OutVal = CurrentOutVal[2];
 					}
 				}
 			}
@@ -646,28 +618,6 @@ namespace UnFbx {
 		// For cameras and lights (without targets) let's compensate the postrotation.
 		if (Node->GetCamera() || Node->GetLight())
 		{
-			if (!Node->GetTarget())
-			{
-				FbxVector4 RotationVector(90, 0, 0);
-				if (Node->GetCamera())
-					RotationVector.Set(0, 90, 0);
-
-				FbxAMatrix RotationMtx;
-				RotationMtx.SetR(RotationVector);
-
-				FbxVector4 PostRotationVector = Node->GetPostRotation(FbxNode::eSourcePivot);
-
-				// Rotation order don't affect post rotation, so just use the default XYZ order
-				FbxAMatrix lSourceR;
-				lSourceR.SetR(PostRotationVector);
-
-				RotationMtx = lSourceR * RotationMtx;
-
-				PostRotationVector = RotationMtx.GetR();
-
-				Node->SetPostRotation(FbxNode::eSourcePivot, PostRotationVector);
-			}
-
 			// Point light do not need to be adjusted (since they radiate in all the directions).
 			if (Node->GetLight() && Node->GetLight()->LightType.Get() == FbxLight::ePoint)
 			{

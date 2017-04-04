@@ -270,8 +270,11 @@ void FLevelEditorModule::ShutdownModule()
 {
 	IProjectManager::Get().OnTargetPlatformsForCurrentProjectChanged().RemoveAll(this);
 
-	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-	MessageLogModule.UnregisterLogListing("BuildAndSubmitErrors");
+	if(FModuleManager::Get().IsModuleLoaded("MessageLog"))
+	{
+		FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
+		MessageLogModule.UnregisterLogListing("BuildAndSubmitErrors");
+	}
 
 	MenuExtensibilityManager.Reset();
 	ToolBarExtensibilityManager.Reset();
@@ -297,10 +300,10 @@ void FLevelEditorModule::ShutdownModule()
 	SetLevelEditorTabManager(nullptr);
 	WorkspaceMenu::GetModule().ResetLevelEditorCategory();
 
-	if ( FSlateApplication::IsInitialized() )
+	if (FSlateApplication::IsInitialized() && FModuleManager::Get().IsModuleLoaded("SlateReflector"))
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner("LevelEditor");
-		FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").UnregisterTabSpawner();
+		FModuleManager::GetModuleChecked<ISlateReflectorModule>("SlateReflector").UnregisterTabSpawner();
 	}	
 
 	FLevelEditorCommands::Unregister();

@@ -12,7 +12,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/StaticMeshSocket.h"
 #include "ViewportWorldInteraction.h"
-#include "VREditorWorldInteraction.h"
+#include "VREditorPlacement.h"
 #include "VREditorMode.h"
 #include "VREditorUISystem.h"
 #include "VREditorFloatingText.h"
@@ -219,6 +219,8 @@ void UVREditorMotionControllerInteractor::SetupComponent( AActor* OwningActor )
 		HandMeshComponent = VRMode->CreateMotionControllerMesh( OwningActor, MotionControllerComponent ); 
 		check( HandMeshComponent != nullptr );
 		HandMeshComponent->SetCastShadow(false);
+		HandMeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+		HandMeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
 
 		UMaterialInterface* HandMeshMaterial = GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR ? AssetContainer.VivePreControllerMaterial : AssetContainer.OculusControllerMaterial;
 		check( HandMeshMaterial != nullptr );
@@ -711,7 +713,7 @@ void UVREditorMotionControllerInteractor::PreviewInputKey( FEditorViewportClient
 
 				const bool bShouldInterpolateFromDragLocation = false;
 				UActorFactory* FactoryToUse = nullptr;	// Use default factory
-				GetVRMode().GetVREditorWorldInteraction()->StartPlacingObjects( ObjectsToPlace, FactoryToUse, this, bShouldInterpolateFromDragLocation );
+				GetVRMode().GetPlacementSystem()->StartPlacingObjects( ObjectsToPlace, FactoryToUse, this, bShouldInterpolateFromDragLocation );
 			}
 		}
 	}
@@ -926,6 +928,14 @@ EControllerHand UVREditorMotionControllerInteractor::GetControllerSide() const
 UMotionControllerComponent* UVREditorMotionControllerInteractor::GetMotionControllerComponent() const
 {
 	return MotionControllerComponent;
+}
+
+void UVREditorMotionControllerInteractor::ResetTrackpad()
+{
+	TrackpadPosition = FVector2D::ZeroVector;
+	bIsTouchingTrackpad = false;
+	bIsTrackpadPositionValid[0] = false;
+	bIsTrackpadPositionValid[1] = false;
 }
 
 bool UVREditorMotionControllerInteractor::IsTouchingTrackpad() const
@@ -1426,7 +1436,8 @@ void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float Del
 			DraggingMode != EViewportInteractionDraggingMode::TransformablesWithGizmo &&
 			DraggingMode != EViewportInteractionDraggingMode::TransformablesFreely &&
 			DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact &&
-			DraggingMode != EViewportInteractionDraggingMode::AssistingDrag)
+			DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
+			!VRMode->IsAimingTeleport())
 		{
 			// Move thumbstick left to undo
 			if (TrackpadPosition.X < -1 * VREd::MinJoystickOffsetBeforeFlick->GetFloat() && 
@@ -1463,7 +1474,8 @@ void UVREditorMotionControllerInteractor::UndoRedoFromSwipe(const ETouchSwipeDir
 		DraggingMode != EViewportInteractionDraggingMode::TransformablesWithGizmo &&
 		DraggingMode != EViewportInteractionDraggingMode::TransformablesFreely &&
 		DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact &&
-		DraggingMode != EViewportInteractionDraggingMode::AssistingDrag)
+		DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
+		!VRMode->IsAimingTeleport())
 	{
 		if (InSwipeDirection == ETouchSwipeDirection::Left)
 		{

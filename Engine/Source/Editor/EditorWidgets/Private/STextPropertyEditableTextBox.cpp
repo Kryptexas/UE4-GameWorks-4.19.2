@@ -761,12 +761,12 @@ bool STextPropertyEditableTextBox::IsIdentityReadOnly() const
 		return true;
 	}
 
-	// We can't edit the identity of culture invariant texts, or string table references
+	// We can't edit the identity of texts that don't gather for localization
 	const int32 NumTexts = EditableTextProperty->GetNumTexts();
 	if (NumTexts == 1)
 	{
 		const FText TextValue = EditableTextProperty->GetText(0);
-		if (TextValue.IsCultureInvariant() || TextValue.IsFromStringTable())
+		if (!TextValue.ShouldGatherForLocalization())
 		{
 			return true;
 		}
@@ -870,7 +870,7 @@ void STextPropertyEditableTextBox::OnTextCommitted(const FText& NewText, ETextCo
 	const int32 NumTexts = EditableTextProperty->GetNumTexts();
 
 	// Don't commit the Multiple Values text if there are multiple properties being set
-	if (NumTexts > 0 && (NumTexts == 1 || NewText.ToString().Equals(MultipleValuesText.ToString(), ESearchCase::CaseSensitive)))
+	if (NumTexts > 0 && (NumTexts == 1 || !NewText.ToString().Equals(MultipleValuesText.ToString(), ESearchCase::CaseSensitive)))
 	{
 		FText TextErrorMsg;
 		if (EditableTextProperty->IsValidText(NewText, TextErrorMsg))
@@ -893,6 +893,13 @@ void STextPropertyEditableTextBox::OnTextCommitted(const FText& NewText, ETextCo
 			// Only apply the change if the new text is different
 			if (PropertyValue.ToString().Equals(NewText.ToString(), ESearchCase::CaseSensitive))
 			{
+				continue;
+			}
+
+			// Is the new text is empty, just use the empty instance
+			if (NewText.IsEmpty())
+			{
+				EditableTextProperty->SetText(TextIndex, FText::GetEmpty());
 				continue;
 			}
 

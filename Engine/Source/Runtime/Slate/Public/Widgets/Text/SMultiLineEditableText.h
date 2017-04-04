@@ -231,6 +231,9 @@ public:
 	/** See the AllowContextMenu attribute */
 	void SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu);
 
+	/** Sets the ReadOnly attribute */
+	void SetIsReadOnly(const TAttribute< bool >& InIsReadOnly);
+
 	/** Query to see if any text is selected within the document */
 	bool AnyTextSelected() const;
 

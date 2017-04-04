@@ -921,24 +921,9 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 void FSlateRHIRenderer::DrawWindows( FSlateDrawBuffer& WindowDrawBuffer )
 {
-	if (IsInSlateThread())
-	{
-		EnqueuedWindowDrawBuffer = &WindowDrawBuffer;
-	}
-	else
-	{
-		DrawWindows_Private(WindowDrawBuffer);
-	}
+	DrawWindows_Private(WindowDrawBuffer);
 }
 
-void FSlateRHIRenderer::DrawWindows()
-{
-	if (EnqueuedWindowDrawBuffer)
-	{
-		DrawWindows_Private(*EnqueuedWindowDrawBuffer);
-		EnqueuedWindowDrawBuffer = NULL;
-	}
-}
 
 void FSlateRHIRenderer::PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData)
 {
@@ -958,7 +943,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 {
 	checkSlow( IsThreadSafeForSlateRendering() );
 
-	// Enqueue a command to unlock the draw buffer after all windows have been drawn
+
 	FSlateRHIRenderingPolicy* Policy = RenderingPolicy.Get();
 	ENQUEUE_RENDER_COMMAND(SlateBeginDrawingWindowsCommand)(
 		[Policy](FRHICommandListImmediate& RHICmdList)
@@ -981,9 +966,9 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 	{
 		FSlateWindowElementList& ElementList = *WindowElementLists[ListIndex];
 
-		TSharedPtr<SWindow> Window = ElementList.GetWindow();
+		SWindow* Window = ElementList.GetRenderWindow();
 
-		if( Window.IsValid() )
+		if( Window )
 		{
 			const FVector2D WindowSize = Window->GetViewportSize();
 			if ( WindowSize.X > 0 && WindowSize.Y > 0 )
@@ -1017,7 +1002,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 				ElementBatcher->ResetBatches();
 
 				// The viewport had better exist at this point  
-				FViewportInfo* ViewInfo = WindowToViewportInfo.FindChecked( Window.Get() );
+				FViewportInfo* ViewInfo = WindowToViewportInfo.FindChecked( Window );
 
 				if (Window->IsViewportSizeDrivenByWindow())
 				{
@@ -1054,7 +1039,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 
 					// NOTE: We pass a raw pointer to the SWindow so that we don't have to use a thread-safe weak pointer in
 					// the FSlateWindowElementList structure
-					Params.SlateWindow = Window.Get();
+					Params.SlateWindow = Window;
 
 					// Skip the actual draw if we're in a headless execution environment
 					if (GIsClient && !IsRunningCommandlet() && !GUsingNullRHI)
@@ -1517,7 +1502,7 @@ void FSlateRHIRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImag
  */
 void FSlateRHIRenderer::FlushCommands() const
 {
-	if( IsInGameThread() )
+	if( IsInGameThread() || IsInSlateThread() )
 	{
 		FlushRenderingCommands();
 	}

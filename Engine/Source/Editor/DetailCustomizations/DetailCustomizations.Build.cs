@@ -25,6 +25,7 @@ public class DetailCustomizations : ModuleRules
 				"KismetWidgets",
 				"MovieSceneCapture",
 				"MovieSceneTools",
+				"MovieSceneTracks",
 				"MovieScene",
 				"SharedSettingsWidgets",
                 "ContentBrowser",
@@ -50,6 +51,7 @@ public class DetailCustomizations : ModuleRules
                 "CinematicCamera",
 				"ComponentVisualizers",
                 "SkeletonEditor",
+                "LevelSequence",
             }
 		);
 

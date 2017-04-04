@@ -144,6 +144,8 @@ public:
 			return true;
 #elif PLATFORM_IOS
 			return true;
+#elif PLATFORM_LINUX
+			return true;	// malloc()/free() is thread-safe on Linux
 #else
 			return false;
 #endif

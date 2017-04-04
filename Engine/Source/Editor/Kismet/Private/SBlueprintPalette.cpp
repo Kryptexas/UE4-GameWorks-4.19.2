@@ -307,7 +307,7 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBlueprint const* BlueprintIn, FSlateBrush const*& BrushOut, FSlateColor& ColorOut, FText& ToolTipOut, FString& DocLinkOut, FString& DocExcerptOut, FSlateBrush const*& SecondaryBrushOut, FSlateColor& SecondaryColorOut)
 {
 	// Default to tooltip based on action supplied
-	ToolTipOut = (ActionIn->GetTooltipDescription().Len() > 0) ? FText::FromString(ActionIn->GetTooltipDescription()) : ActionIn->GetMenuDescription();
+	ToolTipOut = ActionIn->GetTooltipDescription().IsEmpty() ? ActionIn->GetMenuDescription() : ActionIn->GetTooltipDescription();
 
 	if (ActionIn->GetTypeId() == FBlueprintActionMenuItem::StaticGetTypeId())
 	{
@@ -1011,7 +1011,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	FSlateBrush const* SecondaryBrush = FEditorStyle::GetBrush(TEXT("NoBrush"));
 	FSlateColor        IconColor   = FSlateColor::UseForeground();
 	FSlateColor        SecondaryIconColor   = FSlateColor::UseForeground();
-	FText			   IconToolTip = FText::FromString(GraphAction->GetTooltipDescription());
+	FText			   IconToolTip = GraphAction->GetTooltipDescription();
 	FString			   IconDocLink, IconDocExcerpt;
 	GetPaletteItemIcon(GraphAction, Blueprint, IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt, SecondaryBrush, SecondaryIconColor);
 	TSharedRef<SWidget> IconWidget = CreateIconWidget(IconToolTip, IconBrush, IconColor, IconDocLink, IconDocExcerpt, SecondaryBrush, SecondaryIconColor);
@@ -1444,7 +1444,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 	if (PaletteAction.IsValid())
 	{
 		// Default tooltip is taken from the action
-		ToolTipText = (PaletteAction->GetTooltipDescription().Len() > 0) ? FText::FromString(PaletteAction->GetTooltipDescription()) : PaletteAction->GetMenuDescription();
+		ToolTipText = PaletteAction->GetTooltipDescription().IsEmpty() ? PaletteAction->GetMenuDescription() : PaletteAction->GetTooltipDescription();
 
 		if(PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2AddComponent::StaticGetTypeId())
 		{
@@ -1490,7 +1490,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 				{
 					FGraphDisplayInfo DisplayInfo;
 					GraphSchema->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);
-					ToolTipText = FText::FromString(DisplayInfo.Tooltip);
+					ToolTipText = DisplayInfo.Tooltip;
 				}
 			}
 		}

@@ -583,7 +583,7 @@ void FEdModeLandscape::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector&
 		{
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
 
-			if (!VRInteractor->IsHoveringOverPriorityType() && CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
+			if (VRInteractor != nullptr && !VRInteractor->IsHoveringOverPriorityType() && CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
 			{
 				FVector HitLocation;
 				FVector LaserPointerStart, LaserPointerEnd;
@@ -591,6 +591,12 @@ void FEdModeLandscape::OnVRHoverUpdate(UViewportInteractor* Interactor, FVector&
 				{
 					if( LandscapeTrace( LaserPointerStart, LaserPointerEnd, HitLocation ) )
 					{
+						if (CurrentTool && CurrentTool->IsToolActive())
+						{
+							CurrentTool->SetExternalModifierPressed(Interactor->IsModifierPressed());
+							CurrentTool->MouseMove(nullptr, nullptr, HitLocation.X, HitLocation.Y);
+						}
+
 						if (CurrentBrush)
 						{
 							// Inform the brush of the current location, to update the cursor
@@ -616,7 +622,7 @@ void FEdModeLandscape::OnVRAction(FEditorViewportClient& ViewportClient, UViewpo
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
 
 			// Begin landscape brush
-			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() && !VRInteractor->IsHoveringOverPriorityType() )
+			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() && !VRInteractor->IsHoveringOverPriorityType() && CurrentTool)
 			{
 				if (ViewportClient.Viewport != nullptr && ViewportClient.Viewport == ToolActiveViewport)
 				{
@@ -624,7 +630,7 @@ void FEdModeLandscape::OnVRAction(FEditorViewportClient& ViewportClient, UViewpo
 					ToolActiveViewport = nullptr;
 				}
 
-				if (CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
+				if (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid)
 				{
 					FVector HitLocation;
 					FVector LaserPointerStart, LaserPointerEnd;
@@ -634,7 +640,8 @@ void FEdModeLandscape::OnVRAction(FEditorViewportClient& ViewportClient, UViewpo
 						{
 							if (!(CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap && CurrentToolTarget.LayerInfo == NULL))
 							{
-								if( CurrentTool->BeginTool( &ViewportClient, CurrentToolTarget, HitLocation, Interactor ) )
+								CurrentTool->SetExternalModifierPressed(Interactor->IsModifierPressed());
+								if( CurrentTool->BeginTool(&ViewportClient, CurrentToolTarget, HitLocation))
 								{
 									ToolActiveViewport = ViewportClient.Viewport;
 								}

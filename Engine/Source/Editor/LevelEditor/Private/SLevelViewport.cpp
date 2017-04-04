@@ -2022,7 +2022,7 @@ void SLevelViewport::SetKeyboardFocusToThisViewport()
 
 void SLevelViewport::SaveConfig(const FString& ConfigName) const
 {
-	if(ensure(GetDefault<ULevelEditorViewportSettings>()))
+	if(GUnrealEd && GetDefault<ULevelEditorViewportSettings>())
 	{
 		// When we startup the editor we always start it up in IsInGameView()=false mode
 		FEngineShowFlags& EditorShowFlagsToSave = LevelViewportClient->IsInGameView() ? LevelViewportClient->LastEngineShowFlags : LevelViewportClient->EngineShowFlags;

@@ -675,9 +675,18 @@ void FMallocProfiler::EndProfiling()
 		WriteAdditionalSnapshotMemoryStats();
 
 #if SERIALIZE_SYMBOL_INFO
+		double LastTimeUpdatedOnProgress = FPlatformTime::Seconds();
+		double kProgressUpdateIntervalSeconds = 60;
 		// Look up symbols on platforms supporting it at runtime.
 		for( int32 AddressIndex=0; AddressIndex<CallStackAddressInfoArray.Num(); AddressIndex++ )
 		{
+			double CurrentTime = FPlatformTime::Seconds();
+			if (UNLIKELY(CurrentTime - LastTimeUpdatedOnProgress > kProgressUpdateIntervalSeconds))
+			{
+				LastTimeUpdatedOnProgress = CurrentTime;
+				UE_LOG(LogProfilingDebugging, Log, TEXT("FMallocProfiler: %d/%d addresses symbolicated (%f%%)"), AddressIndex, CallStackAddressInfoArray.Num(), 100.0 * (double)AddressIndex / (double)CallStackAddressInfoArray.Num());
+			}
+
 			FCallStackAddressInfo&	AddressInfo = CallStackAddressInfoArray[AddressIndex];
 			// Look up symbols.
 			FProgramCounterSymbolInfo SymbolInfo;

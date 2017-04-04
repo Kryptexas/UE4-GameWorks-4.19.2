@@ -177,7 +177,7 @@ void FGenericReadRequestWorker::DoWork()
 }
 
 // @todo switch et al: this is a temporary measure until we can track down some threaded file handling issues on Switch 
-#if (PLATFORM_LINUX || PLATFORM_IOS || PLATFORM_MAC)
+#if (PLATFORM_IOS || PLATFORM_MAC)
 #define DISABLE_HANDLE_CACHING (1)
 #else
 #define DISABLE_HANDLE_CACHING (0)

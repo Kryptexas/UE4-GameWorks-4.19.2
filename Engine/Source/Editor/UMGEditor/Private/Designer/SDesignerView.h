@@ -127,6 +127,8 @@ private:
 	/** Updates the designer to display the latest preview widget */
 	void UpdatePreviewWidget(bool bForceUpdate);
 
+	void BroadcastDesignerChanged();
+
 	void ClearExtensionWidgets();
 	void CreateExtensionWidgetsForSelection();
 
@@ -187,6 +189,9 @@ private:
 
 	// Handles drawing selection and other effects a SPaintSurface widget injected into the hierarchy.
 	int32 HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs);
+	void DrawSelectionAndHoverOutline(const FOnPaintHandlerParams& PaintArgs);
+	void DrawSafeZone(const FOnPaintHandlerParams& PaintArgs);
+
 	FReply HandleDPISettingsClicked();
 
 	UUserWidget* GetDefaultWidget() const;
@@ -272,6 +277,8 @@ private:
 	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
 	TSharedPtr<SBox> PreviewAreaConstraint;
 	TSharedPtr<SDPIScaler> PreviewSurface;
+	TSharedPtr<SBox> PreviewContainer;
+
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 	TSharedPtr<SPaintSurface> EffectsLayer;
 

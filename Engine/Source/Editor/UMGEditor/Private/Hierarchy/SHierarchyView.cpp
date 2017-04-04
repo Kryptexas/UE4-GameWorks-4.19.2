@@ -331,8 +331,14 @@ void SHierarchyView::OnObjectsReplaced(const TMap<UObject*, UObject*>& Replaceme
 {
 	if ( !bRebuildTreeRequested )
 	{
-		bRefreshRequested = true;
-		bRebuildTreeRequested = true;
+		for ( const auto& Entry : ReplacementMap )
+		{
+			if ( Entry.Key->IsA<UVisual>() )
+			{
+				bRefreshRequested = true;
+				bRebuildTreeRequested = true;
+			}
+		}
 	}
 }
 

@@ -10,23 +10,25 @@
 #include "UObject/ObjectKey.h"
 
 class IMovieScenePlayer;
+class FMovieScenePreAnimatedState;
 
+/** Enumeration that defines at what level to capture animating state for */
 enum class ECapturePreAnimatedState : uint8
 {
+	/** Don't capture anything */
 	None,
+	/** Capture anything that animates, but only store such state globally across the sequence */
 	Global,
+	/** Capture anything for the current entity (track or section), such that it will be restored when that entity stops evaluating */
 	Entity,
 };
 
-struct IMovieScenePreAnimatedState
-{
-	virtual void EntityHasAnimatedObject(FMovieSceneEvaluationKey EntityKey, FObjectKey Object) = 0;
-	virtual void EntityHasAnimatedMaster(FMovieSceneEvaluationKey EntityKey) = 0;
-};
-
+/** Structure that defines an entity key and animation type identifier combination */
 struct FMovieSceneEntityAndAnimTypeID
 {
+	/** The entity that produced the aniamtion */
 	FMovieSceneEvaluationKey EntityKey;
+	/** The type of animation that was produced */
 	FMovieSceneAnimTypeID AnimTypeID;
 
 	friend bool operator==(const FMovieSceneEntityAndAnimTypeID& A, const FMovieSceneEntityAndAnimTypeID& B)
@@ -35,233 +37,131 @@ struct FMovieSceneEntityAndAnimTypeID
 	}
 };
 
-/** Saved state for animation bound to particular animated objects */
-struct FMovieSceneSavedObjectTokens
+/**
+ * Internal structure that defines a pre animated token, and how many entities have referenced it.
+ * Templated on token type in order to share logic between tokens that represent global state, and those that represent objects
+ */
+template<typename TokenType>
+struct MOVIESCENE_API TPreAnimatedToken
 {
-	FMovieSceneSavedObjectTokens(UObject& InObject)
-		: Object(&InObject)
+	TPreAnimatedToken(TokenType&& InToken);
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	TPreAnimatedToken(TPreAnimatedToken&&) = default;
+	TPreAnimatedToken& operator=(TPreAnimatedToken&&) = default;
+#else
+	TPreAnimatedToken(TPreAnimatedToken&& RHS);
+	TPreAnimatedToken& operator=(TPreAnimatedToken&& RHS);
+#endif
+
+	/** The number of entities that are referencing this token (can be 0 where only global state has been saved) */
+	uint32 EntityRefCount;
+
+	/** The token that defines how to globally restore this object's state. This token should always be valid. */
+	TokenType Token;
+
+	/** An optional token that is valid when the current entity scope should restore to a different state than defined by Token. */
+	TokenType OptionalEntityToken;
+};
+
+/** Template helper type definitions */
+namespace MovieSceneImpl
+{
+	struct FNull
+	{
+		FNull Get() const { return *this; }
+	};
+
+	template<typename TokenType> struct TProducerType;
+	template<typename TokenType> struct TPayloadType;
+
+	template<> struct TProducerType<IMovieScenePreAnimatedTokenPtr> { typedef IMovieScenePreAnimatedTokenProducer Type; };
+	template<> struct TProducerType<IMovieScenePreAnimatedGlobalTokenPtr> { typedef IMovieScenePreAnimatedGlobalTokenProducer Type; };
+
+	template<> struct TPayloadType<IMovieScenePreAnimatedTokenPtr> { typedef TWeakObjectPtr<UObject> Type; };
+	template<> struct TPayloadType<IMovieScenePreAnimatedGlobalTokenPtr> { typedef FNull Type; };
+}
+
+/**
+ * Saved state for animation bound to a particular animated object
+ */
+template<typename TokenType>
+struct MOVIESCENE_API TMovieSceneSavedTokens
+{
+	typedef typename MovieSceneImpl::TProducerType<TokenType>::Type ProducerType;
+	typedef typename MovieSceneImpl::TPayloadType<TokenType>::Type PayloadType;
+
+	TMovieSceneSavedTokens(PayloadType&& InPayload)
+		: Payload(MoveTemp(InPayload))
 	{}
 	
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FMovieSceneSavedObjectTokens(FMovieSceneSavedObjectTokens&&) = default;
-	FMovieSceneSavedObjectTokens& operator=(FMovieSceneSavedObjectTokens&&) = default;
+	TMovieSceneSavedTokens(TMovieSceneSavedTokens&&) = default;
+	TMovieSceneSavedTokens& operator=(TMovieSceneSavedTokens&&) = default;
 #else
-	FMovieSceneSavedObjectTokens(FMovieSceneSavedObjectTokens&& RHS)
-	{
-		*this = MoveTemp(RHS);
-	}
-	FMovieSceneSavedObjectTokens& operator=(FMovieSceneSavedObjectTokens&& RHS)
-	{
-		AnimatedGlobalTypeIDs = MoveTemp(RHS.AnimatedGlobalTypeIDs);
-		AnimatedEntityTypeIDs = MoveTemp(RHS.AnimatedEntityTypeIDs);
-		GlobalStateTokens = MoveTemp(RHS.GlobalStateTokens);
-		EntityTokens = MoveTemp(RHS.EntityTokens);
-		Object = MoveTemp(RHS.Object);
-		return *this;
-	}
+	TMovieSceneSavedTokens(TMovieSceneSavedTokens&& RHS);
+	TMovieSceneSavedTokens& operator=(TMovieSceneSavedTokens&& RHS);
 #endif
 
-	MOVIESCENE_API void Add(ECapturePreAnimatedState CaptureMode, FMovieSceneAnimTypeID InAnimTypeID, FMovieSceneEvaluationKey AssociatedKey, const IMovieScenePreAnimatedTokenProducer& Producer, UObject& InObject, IMovieScenePreAnimatedState& Parent);
+	/**
+	 * Called when animation is about to happen to cache of any existing state
+	 *
+	 * @param InCaptureMode 		Whether to capture for the specified associated key, globally, or not at all
+	 * @param InAnimTypeID 			ID that uniquely iudentifies the type of animation token to store
+	 * @param InAssociatedKey		When InCaptureMode == ECapturePreAnimatedState::Entity, defines the entity that is attempting to save the token
+	 * @param InProducer			The producer responsible for creating the token, if necessary
+	 * @param InParent				The pre animated state container that is making this request
+	 */
+	void OnPreAnimated(ECapturePreAnimatedState InCaptureMode, FMovieSceneAnimTypeID InAnimTypeID, FMovieSceneEvaluationKey InAssociatedKey, const ProducerType& InProducer, FMovieScenePreAnimatedState& InParent);
 
-	MOVIESCENE_API void Restore(IMovieScenePlayer& Player);
+	/**
+	 * Forcefully restore all pre animated state tokens held by this container
+	*
+	 * @param Player 				Movie scene player that is restoring the tokens
+	 */
+	void Restore(IMovieScenePlayer& Player);
 
-	MOVIESCENE_API void Restore(IMovieScenePlayer& Player, TFunctionRef<bool(FMovieSceneAnimTypeID)> InFilter);
+	/**
+	 * Restore all pre animated state tokens held by this container that pass the specified filter predicate
+	*
+	 * @param Player 				Movie scene player that is restoring the tokens
+	 * @param InFilter				Filter predicate that, when true, will restore tokens based on their animation type identifier
+	 */
+	void Restore(IMovieScenePlayer& Player, TFunctionRef<bool(FMovieSceneAnimTypeID)> InFilter);
 
-	void RestoreEntity(IMovieScenePlayer& Player, FMovieSceneEvaluationKey EntityKey)
-	{
-		TArray<FMovieSceneAnimTypeID, TInlineAllocator<8>> AnimTypesToRestore;
+	/**
+	 * Restore any pre animated state for the specified entity key, based on an optional filter
+	 * @param Player			The movie scene player responsible for playing back the sequence
+	 * @param EntityKey			A key for the specific entity (section or track) to restore data for
+	 * @param InFilter			(optional) Filter that can optionally include/exclude specific types of animation
+	 * @return True if the entity's pre-animated state was entirely restored, false if some state remains (ie, if it failed the filter)
+	 */
+	bool RestoreEntity(IMovieScenePlayer& Player, FMovieSceneEvaluationKey EntityKey, TOptional<TFunctionRef<bool(FMovieSceneAnimTypeID)>> InFilter = TOptional<TFunctionRef<bool(FMovieSceneAnimTypeID)>>());
 
-		for (int32 LUTIndex = AnimatedEntityTypeIDs.Num() - 1; LUTIndex >= 0; --LUTIndex)
-		{
-			FMovieSceneEntityAndAnimTypeID EntityAndAnimType = AnimatedEntityTypeIDs[LUTIndex];
-			if (EntityAndAnimType.EntityKey == EntityKey)
-			{
-				AnimTypesToRestore.Add(EntityAndAnimType.AnimTypeID);
-				AnimatedEntityTypeIDs.RemoveAtSwap(LUTIndex);
-			}
-		}
-
-		UObject* ObjectPtr = Object.Get();
-		for (int32 TokenIndex = EntityTokens.Num() - 1; TokenIndex >= 0; --TokenIndex)
-		{
-			FRefCountedPreAnimatedObjectToken& Token = EntityTokens[TokenIndex];
-			if (AnimTypesToRestore.Contains(Token.AnimTypeID) && --Token.RefCount == 0)
-			{
-				if (ObjectPtr)
-				{
-					Token.Token->RestoreState(*ObjectPtr, Player);
-				}
-				EntityTokens.RemoveAtSwap(TokenIndex);
-			}
-		}
-	}
-
-	void Reset()
-	{
-		AnimatedGlobalTypeIDs.Reset();
-		AnimatedEntityTypeIDs.Reset();
-		GlobalStateTokens.Reset();
-		EntityTokens.Reset();
-	}
+	/**
+	 * Reset all containers without applying or restoring any tokens
+	 */
+	void Reset();
 
 private:
 
-	/** Array of type IDs for cache efficient searching. Must have 1-1 index mapping into GlobalStateTokens. */
-	TArray<FMovieSceneAnimTypeID, TInlineAllocator<8>> AnimatedGlobalTypeIDs;
-	TArray<FMovieSceneEntityAndAnimTypeID, TInlineAllocator<8>> AnimatedEntityTypeIDs;
+	/** Array defining how whether (and how) particular entities have evaluated */
+	TArray<FMovieSceneEntityAndAnimTypeID, TInlineAllocator<8>> AnimatedEntities;
 
-	/** Tokens mapped to specific anim type IDs. Can only ever be one at a time. */
-	TArray<IMovieScenePreAnimatedTokenPtr> GlobalStateTokens;
+	/** Array of anim type IDs whose indices correspond to PreAnimatedTokens for efficient lookup */
+	TArray<FMovieSceneAnimTypeID, TInlineAllocator<8>> AllAnimatedTypeIDs;
 
-	/** Tokens mapped to specific anim type IDs. Can only ever be one at a time. */
-	struct FRefCountedPreAnimatedObjectToken
-	{
-		FRefCountedPreAnimatedObjectToken(IMovieScenePreAnimatedTokenPtr&& InToken, FMovieSceneAnimTypeID InAnimTypeID) : AnimTypeID(InAnimTypeID), RefCount(1), Token(MoveTemp(InToken)) {}
+	/** Array of tokens stored at the end of the class - these are rarely accessed */
+	TArray<TPreAnimatedToken<TokenType>> PreAnimatedTokens;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-		FRefCountedPreAnimatedObjectToken(FRefCountedPreAnimatedObjectToken&&) = default;
-		FRefCountedPreAnimatedObjectToken& operator=(FRefCountedPreAnimatedObjectToken&&) = default;
-#else
-		FRefCountedPreAnimatedObjectToken(FRefCountedPreAnimatedObjectToken&& RHS)
-			: AnimTypeID(RHS.AnimTypeID)
-			, RefCount(RHS.RefCount)
-			, Token(MoveTemp(RHS.Token))
-		{
-		}
-
-		FRefCountedPreAnimatedObjectToken& operator=(FRefCountedPreAnimatedObjectToken&& RHS)
-		{
-			AnimTypeID = MoveTemp(RHS.AnimTypeID);
-			RefCount = RHS.RefCount;
-			Token = MoveTemp(RHS.Token);
-			return *this;
-		}
-#endif
-
-		/** The type of the animation */
-		FMovieSceneAnimTypeID AnimTypeID;
-
-		/** The number of entities that are referencing this data */
-		uint32 RefCount;
-
-		/** The token that defines how to restore this object's state */
-		IMovieScenePreAnimatedTokenPtr Token;
-	};
-	TArray<FRefCountedPreAnimatedObjectToken> EntityTokens;
-
-	/** The object that was animated */
-	TWeakObjectPtr<> Object;
-};
-
-
-/** Saved state for animation bound to particular animated */
-struct FMovieSceneSavedMasterTokens
-{
-	FMovieSceneSavedMasterTokens(){}
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FMovieSceneSavedMasterTokens(FMovieSceneSavedMasterTokens&&) = default;
-	FMovieSceneSavedMasterTokens& operator=(FMovieSceneSavedMasterTokens&&) = default;
-#else
-	FMovieSceneSavedMasterTokens(FMovieSceneSavedMasterTokens&& RHS)
-	{
-		*this = MoveTemp(RHS);
-	}
-	FMovieSceneSavedMasterTokens& operator=(FMovieSceneSavedMasterTokens&& RHS)
-	{
-		AnimatedGlobalTypeIDs = MoveTemp(RHS.AnimatedGlobalTypeIDs);
-		AnimatedEntityTypeIDs = MoveTemp(RHS.AnimatedEntityTypeIDs);
-		GlobalStateTokens = MoveTemp(RHS.GlobalStateTokens);
-		EntityTokens = MoveTemp(RHS.EntityTokens);
-		return *this;
-	}
-#endif
-
-	MOVIESCENE_API void Add(ECapturePreAnimatedState CaptureMode, FMovieSceneAnimTypeID InAnimTypeID, FMovieSceneEvaluationKey AssociatedKey, const IMovieScenePreAnimatedGlobalTokenProducer& Producer, IMovieScenePreAnimatedState& Parent);
-
-	MOVIESCENE_API void Restore(IMovieScenePlayer& Player);
-
-	void RestoreEntity(IMovieScenePlayer& Player, FMovieSceneEvaluationKey EntityKey)
-	{
-		TArray<FMovieSceneAnimTypeID, TInlineAllocator<8>> AnimTypesToRestore;
-
-		for (int32 LUTIndex = AnimatedEntityTypeIDs.Num() - 1; LUTIndex >= 0; --LUTIndex)
-		{
-			FMovieSceneEntityAndAnimTypeID EntityAndAnimType = AnimatedEntityTypeIDs[LUTIndex];
-			if (EntityAndAnimType.EntityKey == EntityKey)
-			{
-				AnimTypesToRestore.Add(EntityAndAnimType.AnimTypeID);
-				AnimatedEntityTypeIDs.RemoveAtSwap(LUTIndex);
-			}
-		}
-
-		for (int32 TokenIndex = EntityTokens.Num() - 1; TokenIndex >= 0; --TokenIndex)
-		{
-			FRefCountedPreAnimatedGlobalToken& Token = EntityTokens[TokenIndex];
-			if (AnimTypesToRestore.Contains(Token.AnimTypeID) && --Token.RefCount == 0)
-			{
-				Token.Token->RestoreState(Player);
-				EntityTokens.RemoveAtSwap(TokenIndex);
-			}
-		}
-	}
-
-	void Reset()
-	{
-		AnimatedGlobalTypeIDs.Reset();
-		AnimatedEntityTypeIDs.Reset();
-		GlobalStateTokens.Reset();
-		EntityTokens.Reset();
-	}
-
-private:
-
-	TArray<FMovieSceneAnimTypeID, TInlineAllocator<8>> AnimatedGlobalTypeIDs;
-	TArray<FMovieSceneEntityAndAnimTypeID, TInlineAllocator<8>> AnimatedEntityTypeIDs;
-
-	/** Tokens mapped to specific anim type IDs. Can only ever be one at a time. */
-	TArray<IMovieScenePreAnimatedGlobalTokenPtr> GlobalStateTokens;
-
-	/** Tokens mapped to specific anim type IDs. Can only ever be one at a time. */
-	struct FRefCountedPreAnimatedGlobalToken
-	{
-		FRefCountedPreAnimatedGlobalToken(IMovieScenePreAnimatedGlobalTokenPtr&& InToken, FMovieSceneAnimTypeID InAnimTypeID) : AnimTypeID(InAnimTypeID), RefCount(1), Token(MoveTemp(InToken)) {}
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-		FRefCountedPreAnimatedGlobalToken(FRefCountedPreAnimatedGlobalToken&&) = default;
-		FRefCountedPreAnimatedGlobalToken& operator=(FRefCountedPreAnimatedGlobalToken&&) = default;
-#else
-		FRefCountedPreAnimatedGlobalToken(FRefCountedPreAnimatedGlobalToken&& RHS)
-			: AnimTypeID(RHS.AnimTypeID)
-			, RefCount(RHS.RefCount)
-			, Token(MoveTemp(RHS.Token))
-		{
-		}
-		FRefCountedPreAnimatedGlobalToken& operator=(FRefCountedPreAnimatedGlobalToken&& RHS)
-		{
-			AnimTypeID = MoveTemp(RHS.AnimTypeID);
-			RefCount = RHS.RefCount;
-			Token = MoveTemp(RHS.Token);
-			return *this;
-		}
-#endif
-
-		/** The type of the animation */
-		FMovieSceneAnimTypeID AnimTypeID;
-
-		/** The number of entities that are referencing this data */
-		uint32 RefCount;
-
-		/** The token that defines how to restore the state */
-		IMovieScenePreAnimatedGlobalTokenPtr Token;
-	};
-	TArray<FRefCountedPreAnimatedGlobalToken> EntityTokens;
+	/** Payload stored with tokens */
+	PayloadType Payload;
 };
 
 /**
  * Class that caches pre-animated state for objects that were manipulated by sequencer
  */
-class FMovieScenePreAnimatedState : IMovieScenePreAnimatedState
+class FMovieScenePreAnimatedState
 {
 public:
 
@@ -269,6 +169,7 @@ public:
 	 * Default construction
 	 */
 	FMovieScenePreAnimatedState()
+		: MasterTokens(MovieSceneImpl::FNull())
 	{
 		DefaultGlobalCaptureMode = ECapturePreAnimatedState::None;
 	}
@@ -290,6 +191,10 @@ public:
 	void EnableGlobalCapture()
 	{
 		DefaultGlobalCaptureMode = ECapturePreAnimatedState::Global;
+		if (CurrentCaptureState == ECapturePreAnimatedState::None)
+		{
+			CurrentCaptureState = DefaultGlobalCaptureMode;
+		}
 	}
 	
 	/**
@@ -298,6 +203,10 @@ public:
 	void DisableGlobalCapture()
 	{
 		DefaultGlobalCaptureMode = ECapturePreAnimatedState::None;
+		if (CurrentCaptureState == ECapturePreAnimatedState::Global)
+		{
+			CurrentCaptureState = DefaultGlobalCaptureMode;
+		}
 	}
 
 public:
@@ -321,13 +230,13 @@ public:
 
 		FObjectKey ObjectKey(&InObject);
 
-		FMovieSceneSavedObjectTokens* Container = ObjectTokens.Find(ObjectKey);
+		auto* Container = ObjectTokens.Find(ObjectKey);
 		if (!Container)
 		{
-			Container = &ObjectTokens.Add(ObjectKey, FMovieSceneSavedObjectTokens(InObject));
+			Container = &ObjectTokens.Add(ObjectKey, TMovieSceneSavedTokens<IMovieScenePreAnimatedTokenPtr>(&InObject));
 		}
 
-		Container->Add(CaptureState, InTokenType, CaptureEntity, Producer, InObject, *this);
+		Container->OnPreAnimated(CaptureState, InTokenType, CaptureEntity, Producer, *this);
 	}
 
 	void SavePreAnimatedState(FMovieSceneAnimTypeID InTokenType, const IMovieScenePreAnimatedGlobalTokenProducer& Producer, ECapturePreAnimatedState CaptureState, FMovieSceneEvaluationKey CaptureEntity)
@@ -337,30 +246,17 @@ public:
 			return;
 		}
 
-		MasterTokens.Add(CaptureState, InTokenType, CaptureEntity, Producer, *this);
+		MasterTokens.OnPreAnimated(CaptureState, InTokenType, CaptureEntity, Producer, *this);
 	}
 
 	void RestorePreAnimatedState(IMovieScenePlayer& Player, const FMovieSceneEvaluationKey& Key)
 	{
-		auto* AnimatedObjects = EntityToAnimatedObjects.Find(Key);
-		if (!AnimatedObjects)
-		{
-			return;
-		}
+		RestorePreAnimatedStateImpl(Player, Key, TOptional<TFunctionRef<bool(FMovieSceneAnimTypeID)>>());
+	}
 
-		for (FObjectKey ObjectKey : *AnimatedObjects)
-		{
-			if (ObjectKey == FObjectKey())
-			{
-				MasterTokens.RestoreEntity(Player, Key);
-			}
-			else if (FMovieSceneSavedObjectTokens* FoundState = ObjectTokens.Find(ObjectKey))
-			{
-				FoundState->RestoreEntity(Player, Key);
-			}
-		}
-
-		EntityToAnimatedObjects.Remove(Key);
+	void RestorePreAnimatedState(IMovieScenePlayer& Player, const FMovieSceneEvaluationKey& Key, TFunctionRef<bool(FMovieSceneAnimTypeID)> InFilter)
+	{
+		RestorePreAnimatedStateImpl(Player, Key, InFilter);
 	}
 
 	MOVIESCENE_API void RestorePreAnimatedState(IMovieScenePlayer& Player);
@@ -382,25 +278,37 @@ public:
 		}
 	}
 
-private:
-
-	virtual void EntityHasAnimatedObject(FMovieSceneEvaluationKey EntityKey, FObjectKey ObjectKey) override
+	void EntityHasAnimatedObject(FMovieSceneEvaluationKey EntityKey, FObjectKey ObjectKey)
 	{
 		EntityToAnimatedObjects.FindOrAdd(EntityKey).Add(ObjectKey);
 	}
 
-	virtual void EntityHasAnimatedMaster(FMovieSceneEvaluationKey EntityKey) override
+	void EntityHasAnimatedMaster(FMovieSceneEvaluationKey EntityKey)
 	{
 		EntityToAnimatedObjects.FindOrAdd(EntityKey).Add(FObjectKey());
 	}
 
-	TMap<FObjectKey, FMovieSceneSavedObjectTokens> ObjectTokens;
-	FMovieSceneSavedMasterTokens MasterTokens;
+protected:
 
+	MOVIESCENE_API void RestorePreAnimatedStateImpl(IMovieScenePlayer& Player, const FMovieSceneEvaluationKey& Key, TOptional<TFunctionRef<bool(FMovieSceneAnimTypeID)>> InFilter);
+
+private:
+
+	/** Map from object key to preanimated tokens that restore it back to its previous state */
+	TMap<FObjectKey, TMovieSceneSavedTokens<IMovieScenePreAnimatedTokenPtr>> ObjectTokens;
+
+	/** Global pre animated tokens that aren't bound to particular objects */
+	TMovieSceneSavedTokens<IMovieScenePreAnimatedGlobalTokenPtr> MasterTokens;
+
+	/** Map from evaluation key to objects that it has animated (used for efficient restoration of entities) */
 	TMap<FMovieSceneEvaluationKey, TArray<FObjectKey, TInlineAllocator<4>>> EntityToAnimatedObjects;
 
+	/** Entity key that is currently being evaluated. */
 	FMovieSceneEvaluationKey CapturingStateFor;
 
+	/** Whether we are to capture state for the current entity, globally, or not at all. */
 	ECapturePreAnimatedState CurrentCaptureState;
+
+	/** Defines whether we should capture state globally or not */
 	ECapturePreAnimatedState DefaultGlobalCaptureMode;
 };

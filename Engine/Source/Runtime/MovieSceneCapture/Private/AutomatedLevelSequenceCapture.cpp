@@ -168,6 +168,8 @@ void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InVie
 		}
 	}
 
+	ExportEDL();
+
 	CaptureState = ELevelSequenceCaptureState::Setup;
 	RemainingDelaySeconds = FMath::Max( 0.0f, DelayBeforeWarmUp );
 	CaptureStrategy = MakeShareable(new FFixedTimeStepCaptureStrategy(Settings.FrameRate));
@@ -520,8 +522,6 @@ void UAutomatedLevelSequenceCapture::Close()
 	Super::Close();
 			
 	RestoreShots();
-	
-	ExportEDL();
 }
 
 void UAutomatedLevelSequenceCapture::SerializeAdditionalJson(FJsonObject& Object)
@@ -573,11 +573,7 @@ void UAutomatedLevelSequenceCapture::ExportEDL()
 		return;
 	}
 	
-	ALevelSequenceActor* Actor = LevelSequenceActor.Get();
-	ULevelSequencePlayer* Player = Actor ? Actor->SequencePlayer : nullptr;
-	UMovieSceneSequence* Sequence = Player ? Player->GetSequence() : nullptr;
-	UMovieScene* MovieScene = Sequence ? Sequence->GetMovieScene() : nullptr;
-
+	UMovieScene* MovieScene = GetMovieScene(LevelSequenceActor);
 	if (!MovieScene)
 	{
 		return;

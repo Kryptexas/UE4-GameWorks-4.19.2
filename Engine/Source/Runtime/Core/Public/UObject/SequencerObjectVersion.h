@@ -21,6 +21,9 @@ struct CORE_API FSequencerObjectVersion
 		// Convert multiple rows to tracks
 		ConvertMultipleRowsToTracks,
 
+		// When finished now defaults to restore state
+		WhenFinishedDefaultsToRestoreState,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

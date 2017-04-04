@@ -12,7 +12,7 @@ class FUICommandList;
 class UVREditorMode;
 enum class EEditableMeshElementType;
 
-DECLARE_DELEGATE_FourParams(FOnRadialMenuGenerated, FMenuBuilder, TSharedPtr<FUICommandList>, UVREditorMode*, float&);
+DECLARE_DELEGATE_FourParams(FOnRadialMenuGenerated, FMenuBuilder&, TSharedPtr<FUICommandList>, UVREditorMode*, float&);
 
 /**
 * VR Editor user interface manager
@@ -24,7 +24,7 @@ class UVRRadialMenuHandler : public UObject
 
 public:
 	/** Builds the current radial menu */
-	void BuildRadialMenuCommands(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+	void BuildRadialMenuCommands(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
 	/** Registers a new menu generator and replaces the currently displayed menu if the radial menu is open */
 	void RegisterMenuGenerator(const FOnRadialMenuGenerated NewMenuGenerator, const bool bShouldAddToStack = true);
@@ -66,19 +66,19 @@ public:
 
 protected:
 	/** Functions to bind to each menu delegate */
-	void HomeMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+	void HomeMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
-	void SnapMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+	void SnapMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
-	void GizmoMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+	void GizmoMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
-	void UIMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+	void UIMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
-	void EditMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+	void EditMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
-	void ToolsMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+	void ToolsMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
-	void ModesMenuGenerator(FMenuBuilder MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+	void ModesMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
 protected:
 

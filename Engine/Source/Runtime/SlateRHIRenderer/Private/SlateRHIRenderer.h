@@ -222,7 +222,6 @@ public:
 	virtual void UpdateFullscreenState( const TSharedRef<SWindow> Window, uint32 OverrideResX, uint32 OverrideResY ) override;
 	virtual void RestoreSystemResolution(const TSharedRef<SWindow> InWindow) override;
 	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) override;
-	virtual void DrawWindows() override;
 	virtual void FlushCommands() const override;
 	virtual void Sync() const override;
 	virtual void ReleaseDynamicResource( const FSlateBrush& InBrush ) override;

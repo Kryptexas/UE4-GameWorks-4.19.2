@@ -71,8 +71,8 @@ uint16 FSlateFontRenderer::GetMaxHeight(const FSlateFontInfo& InFontInfo, const 
 	{
 		FreeTypeUtils::ApplySizeAndScale(FaceGlyphData.FaceAndMemory->GetFace(), InFontInfo.Size, InScale);
 
-		// Adjust the height by the size of the outline that was applied.  The outline is counted twice since it surrounds the font on top and bottom
-		const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize * 2;
+		// Adjust the height by the size of the outline that was applied.  
+		const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize;
 		return static_cast<uint16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FaceGlyphData.FaceAndMemory->GetScaledHeight()) + HeightAdjustment) * InScale);
 	}
 
@@ -94,9 +94,7 @@ int16 FSlateFontRenderer::GetBaseline(const FSlateFontInfo& InFontInfo, const fl
 	{
 		FreeTypeUtils::ApplySizeAndScale(FaceGlyphData.FaceAndMemory->GetFace(), InFontInfo.Size, InScale);
 
-		// Adjust the height by the size of the outline that was applied.  The outline is counted twice since it surrounds the font on top and bottom
-		const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize * 2;
-		return static_cast<int16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FaceGlyphData.FaceAndMemory->GetDescender()) + HeightAdjustment) * InScale);
+		return static_cast<int16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FaceGlyphData.FaceAndMemory->GetDescender())) * InScale);
 	}
 
 	return 0;
@@ -324,7 +322,7 @@ struct FRasterizerSpanList
 /**
  * Rasterizes a font glyph
  */
-void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanList& OutSpansListOuter)
+void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanList& OutSpansList)
 {
 	auto RasterizerCallback = [](const int32 Y, const int32 Count, const FT_Span* const Spans, void* const UserData)
 	{
@@ -349,7 +347,7 @@ void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanL
 	FMemory::Memzero<FT_Raster_Params>(RasterParams);
 	RasterParams.flags = FT_RASTER_FLAG_AA | FT_RASTER_FLAG_DIRECT;
 	RasterParams.gray_spans = RasterizerCallback;
-	RasterParams.user = &OutSpansListOuter;
+	RasterParams.user = &OutSpansList;
 
 	FT_Outline_Render(Library, Outline, &RasterParams);
 
@@ -366,7 +364,7 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 
 	float ScaledOutlineSize = FMath::RoundToFloat(InOutlineSettings.OutlineSize * InScale);
 
-	if( (ScaledOutlineSize > 0 || OutlineFontRenderMethod == 1) && Slot->format == FT_GLYPH_FORMAT_OUTLINE)
+	if((ScaledOutlineSize > 0 || OutlineFontRenderMethod == 1) && Slot->format == FT_GLYPH_FORMAT_OUTLINE)
 	{
 		// Render the filled area first
 		FRasterizerSpanList FillSpans;
@@ -397,7 +395,7 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 
 		FVector2D Size = BoundingBox.GetSize();
 
-		//Note: we add 1 to width and height because we need full pixels
+		//Note: we add 1 to width and height because the size of the rect is inclusive
 		int32 Width = FMath::TruncToInt(Size.X)+1;
 		int32 Height = FMath::TruncToInt(Size.Y)+1;
 
@@ -406,7 +404,7 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 		OutRenderData.MeasureInfo.SizeX = Width;
 		OutRenderData.MeasureInfo.SizeY = Height;
 
-		OutRenderData.RawPixels.AddZeroed(OutRenderData.MeasureInfo.SizeX * OutRenderData.MeasureInfo.SizeY);
+		OutRenderData.RawPixels.AddZeroed(Width*Height);
 
 		int32 XMin = BoundingBox.Min.X;
 		int32 YMin = BoundingBox.Min.Y;
@@ -468,7 +466,6 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 
 		// Note: in order to render the stroke properly AND to get proper measurements this must be done after rendering the stroke
 		FT_Render_Glyph(Slot, FT_RENDER_MODE_NORMAL);
-
 	}
 	else
 	{
