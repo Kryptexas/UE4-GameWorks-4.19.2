@@ -58,7 +58,7 @@ private:
 	TSubclassOf<AActor>	ChildActorClass;
 
 	/** The actor that we spawned and own */
-	UPROPERTY(ReplicatedUsing=OnRep_ChildActor, BlueprintReadOnly, Category=ChildActorComponent, TextExportTransient, NonPIEDuplicateTransient, meta=(AllowPrivateAccess="true"))
+	UPROPERTY(Replicated, BlueprintReadOnly, Category=ChildActorComponent, TextExportTransient, NonPIEDuplicateTransient, meta=(AllowPrivateAccess="true"))
 	AActor*	ChildActor;
 
 	/** Property to point to the template child actor for details panel purposes */
@@ -70,9 +70,6 @@ private:
 
 	/** Cached copy of the instance data when the ChildActor is destroyed to be available when needed */
 	mutable FChildActorComponentInstanceData* CachedInstanceData;
-
-	UFUNCTION()
-	void OnRep_ChildActor();
 
 public:
 

@@ -2606,16 +2606,30 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	if( !EditorLevelWorld )
 		return NULL;
+	
+	int32 PIEInstanceID = -1;
 
-	FWorldContext WorldContext = GEngine->GetWorldContextFromWorldChecked(OwningWorld);
-	GPlayInEditorID = WorldContext.PIEInstance;
+	if (FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(OwningWorld))
+	{
+		PIEInstanceID = WorldContext->PIEInstance;
+	}
+	else if (OwningWorld)
+	{
+		PIEInstanceID = OwningWorld->GetOutermost()->PIEInstanceID;
+	}
+	else
+	{
+		checkf(false, TEXT("Unable to determine PIEInstanceID to duplicate for PIE."));
+	}
 
-	FString PrefixedLevelName = ConvertToPIEPackageName(PackageName, WorldContext.PIEInstance);
+	GPlayInEditorID = PIEInstanceID;
+
+	FString PrefixedLevelName = ConvertToPIEPackageName(PackageName, PIEInstanceID);
 	const FName PrefixedLevelFName = FName(*PrefixedLevelName);
 	UWorld::WorldTypePreLoadMap.FindOrAdd(PrefixedLevelFName) = EWorldType::PIE;
 	UPackage* PIELevelPackage = CastChecked<UPackage>(CreatePackage(NULL,*PrefixedLevelName));
 	PIELevelPackage->SetPackageFlags(PKG_PlayInEditor);
-	PIELevelPackage->PIEInstanceID = WorldContext.PIEInstance;
+	PIELevelPackage->PIEInstanceID = PIEInstanceID;
 	PIELevelPackage->SetGuid( EditorLevelPackage->GetGuid() );
 
 	// Set up string asset reference fixups
@@ -2623,14 +2637,14 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	PackageNamesBeingDuplicatedForPIE.Add(PrefixedLevelName);
 	if ( OwningWorld )
 	{
-		const FString PlayWorldMapName = ConvertToPIEPackageName(OwningWorld->GetOutermost()->GetName(), WorldContext.PIEInstance);
+		const FString PlayWorldMapName = ConvertToPIEPackageName(OwningWorld->GetOutermost()->GetName(), PIEInstanceID);
 
 		PackageNamesBeingDuplicatedForPIE.Add(PlayWorldMapName);
 		for (ULevelStreaming* StreamingLevel : OwningWorld->StreamingLevels)
 		{
 			if (StreamingLevel)
 			{
-				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
+				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), PIEInstanceID);
 				PackageNamesBeingDuplicatedForPIE.AddUnique(StreamingLevelPIEName);
 			}
 		}
@@ -2651,7 +2665,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	UWorld::WorldTypePreLoadMap.Remove(PrefixedLevelFName);
 	ULevel::StreamedLevelsOwningWorld.Remove(PIELevelPackage->GetFName());
 	
-	PIELevelWorld->StreamingLevelsPrefix = BuildPIEPackagePrefix(WorldContext.PIEInstance);
+	PIELevelWorld->StreamingLevelsPrefix = BuildPIEPackagePrefix(PIEInstanceID);
 	{
 		ULevel* EditorLevel = EditorLevelWorld->PersistentLevel;
 		ULevel* PIELevel = PIELevelWorld->PersistentLevel;
@@ -4743,6 +4757,11 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FName& PackageName
 		// Now that the p map is loaded, start async loading any always loaded levels
 		if (World)
 		{
+			if (World->WorldType == EWorldType::PIE)
+			{
+				World->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(LevelPackage->PIEInstanceID);
+			}
+
 			if (World->PersistentLevel)
 			{
 				World->PersistentLevel->HandleLegacyMapBuildData();
@@ -5461,7 +5480,10 @@ UWorld* FSeamlessTravelHandler::Tick()
 				// Called after post seamless travel to make sure players are setup correctly first
 				LoadedWorld->BeginPlay();
 
+				FCoreUObjectDelegates::PostLoadMapWithWorld.Broadcast(LoadedWorld);
+				PRAGMA_DISABLE_DEPRECATION_WARNINGS
 				FCoreUObjectDelegates::PostLoadMap.Broadcast();
+				PRAGMA_ENABLE_DEPRECATION_WARNINGS
 			}
 			else
 			{

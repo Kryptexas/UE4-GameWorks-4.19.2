@@ -1931,6 +1931,10 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	static FPreLoadMapDelegate PreLoadMap;
 
 	// Sent at the _successful_ end of LoadMap
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPostLoadMapDelegate, UWorld* /* LoadedWorld */);
+	static FPostLoadMapDelegate PostLoadMapWithWorld;
+
+	DEPRECATED(4.16, "Use PostLoadMapWithWorld instead.")
 	static FSimpleMulticastDelegate PostLoadMap;
 
 	// Sent at the _successful_ end of LoadMap

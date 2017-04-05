@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Public/Styling/SlateBrush.h"
 #include "EditorStyleSettings.generated.h"
 
 /**
@@ -75,6 +76,22 @@ public:
 	/** Applies a color vision deficiency filter to the entire editor */
 	UPROPERTY(EditAnywhere, config, Category=Colors)
 	TEnumAsByte<EColorVisionDeficiency> ColorVisionDeficiencyPreviewType;
+
+	/** The color used to tint the editor window backgrounds */
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	FLinearColor EditorWindowBackgroundColor;
+
+	/** The override for the background of the main window (if not modified, the defaults will be used) */
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	FSlateBrush EditorMainWindowBackgroundOverride;
+
+	/** The override for the background of the child window (if not modified, the defaults will be used) */
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	FSlateBrush EditorChildWindowBackgroundOverride;
+
+	/** Check to reset the window background settings to editor defaults */
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	bool bResetEditorWindowBackgroundSettings;
 
 public:
 

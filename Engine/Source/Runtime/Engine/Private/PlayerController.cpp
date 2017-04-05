@@ -4097,17 +4097,25 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->HasPredictionData_Server() ? NetworkPredictionInterface->GetPredictionData_Server() : nullptr;
 				if (ServerData)
 				{
-					const float TimeSinceUpdate = GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp;
-					const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
-					if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f, AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
+					if (ServerData->ServerTimeStamp != 0.f)
 					{
-						//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
-						const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
-						if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+						const float TimeSinceUpdate = GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp;
+						const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
+						if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f, AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
 						{
-							NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
-							ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
+							//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
+							const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
+							if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+							{
+								NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
+								ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
+							}
 						}
+					}
+					else
+					{
+						// If timestamp is zero, set to current time so we don't have a huge initial delta time for correction.
+						ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
 					}
 				}
 			}
@@ -4868,8 +4876,7 @@ void APlayerController::OnServerStartedVisualLogger_Implementation(bool bIsLoggi
 
 bool APlayerController::ShouldPerformFullTickWhenPaused() const
 {
-	bool bIsInVR = (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled() && GEngine->HMDDevice->IsHMDConnected());
-	return bIsInVR || bShouldPerformFullTickWhenPaused;
+	return bShouldPerformFullTickWhenPaused || (/*bIsInVr =*/GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled() && GEngine->HMDDevice->IsHMDConnected());
 }
 
 #undef LOCTEXT_NAMESPACE

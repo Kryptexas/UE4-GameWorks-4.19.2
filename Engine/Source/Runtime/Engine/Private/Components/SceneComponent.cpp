@@ -738,6 +738,7 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 				UPrimitiveComponent* PrimitiveThis = Cast<UPrimitiveComponent>(this);
 				if (PrimitiveThis)
 				{
+					// NOTE: UpdateOverlaps filters events to only consider overlaps where bGenerateOverlapEvents is true for both components, so it's ok if we queued up other overlaps.
 					TArray<FOverlapInfo> EndOverlaps;
 					const TArray<FOverlapInfo>* EndOverlapsPtr = CurrentScopedUpdate->GetOverlapsAtEnd(*PrimitiveThis, EndOverlaps, bTransformChanged);
 					UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, EndOverlapsPtr);
@@ -1892,11 +1893,11 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 
 		UpdateComponentToWorld(EUpdateTransformFlags::None, ETeleportType::TeleportPhysics);
 
-		if (UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this))
+		if (AttachmentRules.bWeldSimulatedBodies)
 		{
-			if (FBodyInstance* BI = PrimitiveComponent->GetBodyInstance())
+			if (UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 			{
-				if (AttachmentRules.bWeldSimulatedBodies)
+				if (FBodyInstance* BI = PrimitiveComponent->GetBodyInstance())
 				{
 					PrimitiveComponent->WeldToImplementation(GetAttachParent(), GetAttachSocketName(), AttachmentRules.bWeldSimulatedBodies);
 				}
@@ -3101,12 +3102,13 @@ FScopedPreventAttachedComponentMove::~FScopedPreventAttachedComponentMove()
 
 static uint32 s_ScopedWarningCount = 0;
 
-FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, EScopedUpdate::Type ScopeBehavior )
+FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, EScopedUpdate::Type ScopeBehavior, bool bRequireOverlapsEventFlagToQueueOverlaps )
 : Owner(Component)
 , OuterDeferredScope(nullptr)
 , bDeferUpdates(ScopeBehavior == EScopedUpdate::DeferredUpdates)
 , bHasMoved(false)
 , bHasTeleported(false)
+, bRequireOverlapsEventFlag(bRequireOverlapsEventFlagToQueueOverlaps)
 , CurrentOverlapState(EOverlapState::eUseParent)
 , FinalOverlapCandidatesIndex(INDEX_NONE)
 {
@@ -3325,6 +3327,16 @@ const TArray<FOverlapInfo>* FScopedMovementUpdate::GetOverlapsAtEnd(class UPrimi
 	}
 
 	return EndOverlapsPtr;
+}
+
+
+bool FScopedMovementUpdate::SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewQuat, bool bNoPhysics /*= false*/, ETeleportType Teleport /*= ETeleportType::None*/)
+{
+	if (Owner)
+	{
+		return Owner->InternalSetWorldLocationAndRotation(NewLocation, NewQuat, bNoPhysics, Teleport);
+	}
+	return false;
 }
 
 

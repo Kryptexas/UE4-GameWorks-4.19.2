@@ -7,6 +7,7 @@
 #include "Modules/ModuleManager.h"
 #include "UObject/PrimaryAssetId.h"
 #include "Interfaces/ITargetPlatform.h"
+#include "AssetRegistryState.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAssetManagerEditor, Log, All);
 
@@ -67,8 +68,11 @@ public:
 	static const FName ChunksName;
 
 	/** Returns the value of a "virtual" column for an asset data, this will query the AssetManager for you and takes current platform into account */
-	virtual FString GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName, ITargetPlatform* TargetPlatform) const = 0;
+	virtual FString GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName, ITargetPlatform* TargetPlatform, const FAssetRegistryState* PlatformState) = 0;
 
 	/** Gets the list of target platforms that are available */
 	virtual void GetAvailableTargetPlatforms(TArray<ITargetPlatform*>& AvailablePlatforms) = 0;
+
+	/** Returns the asset registry state used by a specific target platform. This will load it on demand if needed */
+	virtual FAssetRegistryState* GetAssetRegistryStateForTargetPlatform(ITargetPlatform* TargetPlatform) = 0;
 };

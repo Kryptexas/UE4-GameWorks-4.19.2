@@ -2013,10 +2013,16 @@ struct ENGINE_API FHitResult
 	}
 
 	/** Utility to return the Actor that owns the Component that was hit. */
-	AActor* GetActor() const;
+	FORCEINLINE AActor* GetActor() const
+	{
+		return Actor.Get();
+	}
 
 	/** Utility to return the Component that was hit. */
-	UPrimitiveComponent* GetComponent() const;
+	FORCEINLINE UPrimitiveComponent* GetComponent() const
+	{
+		return Component.Get();
+	}
 
 	/** Optimized serialize function */
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);

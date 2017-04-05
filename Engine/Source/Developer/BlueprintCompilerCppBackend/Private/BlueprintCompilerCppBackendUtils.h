@@ -408,12 +408,12 @@ struct FNativizationSummaryHelper
 
 	static void ReducibleFunciton(const UClass* OriginalClass);
 
-	static void RegisterRequiredModules(const FString& PlatformName, const TSet<TAssetPtr<UPackage>>& Modules);
+	static void RegisterRequiredModules(const FName PlatformName, const TSet<TAssetPtr<UPackage>>& Modules);
 };
 struct FDependenciesGlobalMapHelper
 {
 	static FString EmitHeaderCode();
-	static FString EmitBodyCode();
+	static FString EmitBodyCode(const FString& PCHFilename);
 
 	static FNativizationSummary::FDependencyRecord& FindDependencyRecord(const FStringAssetReference& Key);
 

@@ -11,7 +11,8 @@
 
 FPackageReader::FPackageReader()
 {
-	Loader = NULL;
+	Loader = nullptr;
+	PackageFileSize = 0;
 	ArIsLoading		= true;
 	ArIsPersistent	= true;
 }
@@ -48,7 +49,7 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 		}
 	};
 
-	if( Loader == NULL )
+	if( Loader == nullptr )
 	{
 		// Couldn't open the file
 		SetPackageErrorCode(EOpenPackageResult::NoLoader);
@@ -132,6 +133,8 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 	const FCustomVersionContainer& PackageFileSummaryVersions = PackageFileSummary.GetCustomVersionContainer();
 	SetCustomVersions(PackageFileSummaryVersions);
 	Loader->SetCustomVersions(PackageFileSummaryVersions);
+
+	PackageFileSize = Loader->TotalSize();
 
 	SetPackageErrorCode(EOpenPackageResult::Success);
 	return true;
@@ -349,9 +352,11 @@ bool FPackageReader::ReadAssetRegistryDataIfCookedPackage(TArray<FAssetData*>& A
 	return false;
 }
 
-bool FPackageReader::ReadDependencyData (FPackageDependencyData& OutDependencyData)
+bool FPackageReader::ReadDependencyData(FPackageDependencyData& OutDependencyData)
 {
 	OutDependencyData.PackageName = FName(*FPackageName::FilenameToLongPackageName(PackageFilename));
+	OutDependencyData.PackageData.DiskSize = PackageFileSize;
+	OutDependencyData.PackageData.PackageGuid = PackageFileSummary.Guid;
 
 	SerializeNameMap();
 	SerializeImportMap(OutDependencyData.ImportMap);

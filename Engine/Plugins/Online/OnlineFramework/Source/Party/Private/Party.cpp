@@ -28,7 +28,7 @@ void UParty::Init()
 	check(GameInstance);
 	GameInstance->OnNotifyPreClientTravel().AddUObject(this, &ThisClass::NotifyPreClientTravel);
 
-	FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &ThisClass::OnPostLoadMap);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::OnPostLoadMap);
 }
 
 void UParty::InitPIE()
@@ -36,7 +36,7 @@ void UParty::InitPIE()
 	OnPostLoadMap();
 }
 
-void UParty::OnPostLoadMap()
+void UParty::OnPostLoadMap(UWorld*)
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -60,7 +60,7 @@ void UParty::OnShutdown()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+		FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 
 		UnregisterIdentityDelegates();
 		UnregisterPartyDelegates();

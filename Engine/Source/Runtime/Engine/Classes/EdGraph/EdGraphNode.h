@@ -206,6 +206,10 @@ class ENGINE_API UEdGraphNode : public UObject
 	UPROPERTY()
 	bool bCommentBubbleVisible;
 
+	/** Make comment bubble visible */
+	UPROPERTY(Transient)
+	bool bCommentBubbleMakeVisible;
+
 	/** Flag to store node specific compile error/warning*/
 	UPROPERTY()
 	int32 ErrorType;
@@ -614,6 +618,12 @@ public:
 
 	/** Adds an upgrade note to this node */
 	void AddNodeUpgradeNote(FText InUpgradeNote);
+
+	/** If the comment bubble needs to be made visible immediately */
+	bool ShouldMakeCommentBubbleVisible() const;
+
+	/** Sets a flag if the comment bubble needs to be made visible immediately */
+	void SetMakeCommentBubbleVisible(bool MakeVisible);
 #endif // WITH_EDITOR
 
 protected:

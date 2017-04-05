@@ -18,6 +18,7 @@
 #include "FindInBlueprintManager.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "TextPackageNamespaceUtil.h"
+#include "PlatformInfo.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 
@@ -30,23 +31,14 @@ namespace BlueprintNativeCodeGenUtilsImpl
 	static FString CoreModuleName   = TEXT("Core");
 	static FString EngineModuleName = TEXT("Engine");
 	static FString EngineHeaderFile = TEXT("Engine.h");
-
-	/**
-	 * Deletes the files/directories in the supplied array.
-	 * 
-	 * @param  TargetPaths    The set of directory and file paths that you want deleted.
-	 * @return True if all the files/directories were successfully deleted, other wise false.
-	 */
-	static bool WipeTargetPaths(const FBlueprintNativeCodeGenPaths& TargetPaths);
 	
 	/**
 	 * Creates and fills out a new .uplugin file for the converted assets.
 	 * 
-	 * @param  PluginName	The name of the plugin you're generating.
 	 * @param  TargetPaths	Defines the file path/name for the plugin file.
 	 * @return True if the file was successfully saved, otherwise false.
 	 */
-	static bool GeneratePluginDescFile(const FString& PluginName, const FBlueprintNativeCodeGenPaths& TargetPaths);
+	static bool GeneratePluginDescFile(const FBlueprintNativeCodeGenPaths& TargetPaths);
 
 	/**
 	 * Creates a module implementation and header file for the converted assets'
@@ -75,28 +67,23 @@ namespace BlueprintNativeCodeGenUtilsImpl
 	 */
 	static UClass* ResolveReplacementType(const FConvertedAssetRecord& ConversionRecord);
 
+	/** */
 	static FString NativizedDependenciesFileName() { return TEXT("NativizedAssets_Dependencies"); }
+	/** */
 	static bool GenerateNativizedDependenciesSourceFiles(const FBlueprintNativeCodeGenPaths& TargetPaths);
 }
 
 //------------------------------------------------------------------------------
-static bool BlueprintNativeCodeGenUtilsImpl::WipeTargetPaths(const FBlueprintNativeCodeGenPaths& TargetPaths)
-{
-	IFileManager& FileManager = IFileManager::Get();
-
-	bool bSuccess = true;
-	bSuccess &= FileManager.Delete(*TargetPaths.PluginFilePath());
-	bSuccess &= FileManager.DeleteDirectory(*TargetPaths.PluginSourceDir(), /*RequireExists =*/false, /*Tree =*/true);
-	bSuccess &= FileManager.Delete(*TargetPaths.ManifestFilePath());
-
-	return bSuccess;
-}
-
-//------------------------------------------------------------------------------
-static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FString& PluginName, const FBlueprintNativeCodeGenPaths& TargetPaths)
+static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBlueprintNativeCodeGenPaths& TargetPaths)
 {
 	FPluginDescriptor PluginDesc;
-	PluginDesc.FriendlyName = PluginName;
+	
+	const FString FilePath = TargetPaths.PluginFilePath();
+	FText ErrorMessage;
+	// attempt to load an existing plugin (in case it has existing source for another platform that we wish to keep)
+	PluginDesc.Load(FilePath, /*bPluginEnabledByDefault=*/true, ErrorMessage);
+
+	PluginDesc.FriendlyName = TargetPaths.GetPluginName();
 	PluginDesc.CreatedBy    = TEXT("Epic Games, Inc.");
 	PluginDesc.CreatedByURL = TEXT("http://epicgames.com");
 	PluginDesc.Description  = TEXT("A programatically generated plugin which contains source files produced from Blueprint assets. The aim of this is to help performance by eliminating script overhead for the converted assets (using the source files in place of thier coresponding assets).");
@@ -107,17 +94,40 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FStrin
 	PluginDesc.bCanContainContent = false;
 	PluginDesc.bIsBetaVersion     = true; // @TODO: change once we're confident in the feature
 
-	FModuleDescriptor RuntimeModuleDesc;
-	RuntimeModuleDesc.Name = *TargetPaths.RuntimeModuleName();
-	RuntimeModuleDesc.Type = EHostType::Runtime;
-	// load at startup (during engine init), after game modules have been loaded 
-	RuntimeModuleDesc.LoadingPhase = ELoadingPhase::Default;
+	const FName ModuleName = *TargetPaths.RuntimeModuleName();
+	FModuleDescriptor* ModuleDesc = PluginDesc.Modules.FindByPredicate([ModuleName](const FModuleDescriptor& Module)->bool
+		{
+			return (Module.Name == ModuleName);
+		}
+	);
+	if (ModuleDesc == nullptr)
+	{
+		ModuleDesc = &PluginDesc.Modules[ PluginDesc.Modules.Add(FModuleDescriptor()) ];
+	}
+	else
+	{
+		ModuleDesc->WhitelistPlatforms.Empty();
+	}
+	if (ensure(ModuleDesc))
+	{
+		ModuleDesc->Name = ModuleName;
+		ModuleDesc->Type = EHostType::CookedOnly;
+		// load at startup (during engine init), after game modules have been loaded 
+		ModuleDesc->LoadingPhase = ELoadingPhase::Default;
 
-	PluginDesc.Modules.Add(RuntimeModuleDesc);
-
-	FText ErrorMessage;
-	bool bSuccess = PluginDesc.Save(TargetPaths.PluginFilePath(), false, ErrorMessage);
-
+		const FName PlatformName = TargetPaths.GetTargetPlatformName();
+		for (PlatformInfo::FPlatformEnumerator PlatformIt = PlatformInfo::EnumeratePlatformInfoArray(); PlatformIt; ++PlatformIt)
+		{
+			if (PlatformIt->TargetPlatformName == PlatformName)
+			{
+				// We use the 'UBTTargetId' because this white-list expects the 
+				// string to correspond to UBT's UnrealTargetPlatform enum (and by proxy, FPlatformMisc::GetUBTPlatform)
+				ModuleDesc->WhitelistPlatforms.AddUnique(PlatformIt->UBTTargetId.ToString());
+			}
+		}
+	}
+	
+	bool bSuccess = PluginDesc.Save(FilePath, /*bPluginEnabledByDefault=*/false, ErrorMessage);
 	if (!bSuccess)
 	{
 		UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to generate the plugin description file: %s"), *ErrorMessage.ToString());
@@ -170,7 +180,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateNativizedDependenciesSource
 
 	{
 		const FString SourceFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::CppFile), *NativizedDependenciesFileName()) + TEXT(".cpp");
-		const FString SourceFileContent = CodeGenBackend.DependenciesGlobalMapBodyCode();
+		const FString SourceFileContent = CodeGenBackend.DependenciesGlobalMapBodyCode(TargetPaths.RuntimeModuleName());
 		bSuccess &= GameProjectUtils::WriteOutputFile(SourceFilePath, SourceFileContent, FailureReason);
 	}
 
@@ -292,7 +302,7 @@ bool FBlueprintNativeCodeGenUtils::FinalizePlugin(const FBlueprintNativeCodeGenM
 	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(Manifest);
 	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GenerateModuleSourceFiles(TargetPaths);
 	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GenerateNativizedDependenciesSourceFiles(TargetPaths);
-	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(TargetPaths.RuntimeModuleName(), TargetPaths);
+	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(TargetPaths);
 	return bSuccess;
 }
 

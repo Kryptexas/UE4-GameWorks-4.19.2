@@ -2219,7 +2219,7 @@ void UAssetManager::ApplyPrimaryAssetLabels()
 	// PostLoad in PrimaryAssetLabel sets PrimaryAssetRules overrides
 }
 
-void UAssetManager::ModifyCook(TArray<FString>& PackageNames)
+void UAssetManager::ModifyCook(TArray<FName>& PackageNames)
 {
 	// Make sure management database is set up
 	UpdateManagementDatabase();
@@ -2246,7 +2246,7 @@ void UAssetManager::ModifyCook(TArray<FString>& PackageNames)
 
 			if (CookRule == EPrimaryAssetCookRule::AlwaysCook)
 			{
-				PackageNames.AddUnique(AssetData.PackageName.ToString());
+				PackageNames.AddUnique(AssetData.PackageName);
 			}
 		}
 	}
@@ -2347,6 +2347,11 @@ bool UAssetManager::GetPackageChunkIds(FName PackageName, const ITargetPlatform*
 	}
 
 	return bFoundAny;
+}
+
+void UAssetManager::UpdatePackageSourceHash(FName PackageName, FMD5& PackageSourceHash) const
+{
+	// TODO Need to handle shader cache
 }
 
 void UAssetManager::PreBeginPIE(bool bStartSimulate)

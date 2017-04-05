@@ -122,7 +122,7 @@ private:
 	void OnPreLoadMap(const FString& LevelName);
 	
 	/** Called via a delegate in the engine when maps finish loading */
-	void OnPostLoadMap();
+	void OnPostLoadMap(UWorld* LoadedWorld);
 private:
 	FDefaultGameMoviePlayer();
 

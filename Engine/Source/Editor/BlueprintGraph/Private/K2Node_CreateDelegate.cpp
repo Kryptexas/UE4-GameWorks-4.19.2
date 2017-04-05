@@ -196,8 +196,8 @@ void UK2Node_CreateDelegate::ValidationAfterFunctionsAreCreated(class FCompilerR
 
 void UK2Node_CreateDelegate::HandleAnyChangeWithoutNotifying()
 {
-	const auto Blueprint = GetBlueprint();
-	const auto SelfScopeClass = Blueprint ? Blueprint->SkeletonGeneratedClass : NULL;
+	const auto Blueprint = HasValidBlueprint() ? GetBlueprint() : nullptr;
+	const auto SelfScopeClass = Blueprint ? Blueprint->SkeletonGeneratedClass : nullptr;
 	const auto ParentClass = GetScopeClass();
 	const bool bIsSelfScope = SelfScopeClass && ParentClass && ((SelfScopeClass->IsChildOf(ParentClass)) || (SelfScopeClass->ClassGeneratedBy == ParentClass->ClassGeneratedBy));
 
@@ -242,8 +242,8 @@ void UK2Node_CreateDelegate::HandleAnyChange(UEdGraph* & OutGraph, UBlueprint* &
 	}
 	else
 	{
-		OutGraph = NULL;
-		OutBlueprint = NULL;
+		OutGraph = nullptr;
+		OutBlueprint = nullptr;
 	}
 }
 
@@ -371,7 +371,7 @@ UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/
 		}
 	}
 
-	if (bUseSelf)
+	if (bUseSelf && HasValidBlueprint())
 	{
 		if (UBlueprint* ScopeClassBlueprint = GetBlueprint())
 		{
@@ -379,7 +379,7 @@ UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 FName UK2Node_CreateDelegate::GetFunctionName() const

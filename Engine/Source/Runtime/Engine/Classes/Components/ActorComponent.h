@@ -342,7 +342,7 @@ public:
 	 * @return - The active state of the component.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
-	virtual bool IsActive() const;
+	virtual bool IsActive() const { return bIsActive; }
 
 	/**
 	 * Sets whether the component should be auto activate or not. Only safe during construction scripts.

@@ -103,8 +103,9 @@ namespace UnrealBuildTool
 			{
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeAndProgram:
-				case ModuleHostType.ServerOnly:
+                case ModuleHostType.RuntimeAndProgram:
+                case ModuleHostType.CookedOnly:
+                case ModuleHostType.ServerOnly:
                 case ModuleHostType.ClientOnly:
                     return UHTModuleType.EngineRuntime;
 				case ModuleHostType.Developer:
@@ -122,8 +123,9 @@ namespace UnrealBuildTool
 			{
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeAndProgram:
-				case ModuleHostType.ServerOnly:
+                case ModuleHostType.RuntimeAndProgram:
+                case ModuleHostType.CookedOnly:
+                case ModuleHostType.ServerOnly:
                 case ModuleHostType.ClientOnly:
                     return UHTModuleType.GameRuntime;
 				case ModuleHostType.Developer:

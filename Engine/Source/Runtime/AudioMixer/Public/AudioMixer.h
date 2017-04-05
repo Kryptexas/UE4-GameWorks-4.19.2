@@ -15,7 +15,7 @@
 
 #ifndef AUDIO_MIXER_ENABLE_DEBUG_MODE
 // This define enables a bunch of more expensive debug checks and logging capabilities that are intended to be off most of the time even in debug builds of game/editor.
-#if UE_BUILD_SHIPPING
+#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define AUDIO_MIXER_ENABLE_DEBUG_MODE 0
 #else
 #define AUDIO_MIXER_ENABLE_DEBUG_MODE 1
@@ -57,6 +57,9 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Master Reverb"), STAT_AudioMixerMasterReverb, ST
 
 // The time it takes to process the master EQ effect.
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Master EQ"), STAT_AudioMixerMasterEQ, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the HRTF effect.
+DECLARE_CYCLE_STAT_EXTERN(TEXT("HRTF"), STAT_AudioMixerHRTF, STATGROUP_AudioMixer, AUDIOMIXER_API);
 
 
 // Enable debug checking for audio mixer
@@ -366,19 +369,20 @@ namespace Audio
 		FAudioOutputStreamInfo AudioStreamInfo;
 
 		/** The number of mixer buffers. */
-		static const int32 NumMixerBuffers = 3;
+		static const int32 NumMixerBuffers = 2;
 
 		/** List of generated output buffers. */
-		TArray<float> OutputBuffers[NumMixerBuffers];
+		TArray<float>	OutputBuffers[NumMixerBuffers];
+		bool			OutputBufferReady[NumMixerBuffers];
+		bool			WarnedBufferUnderrun;
 
 		/** The audio render thread. */
 		FRunnableThread* AudioRenderThread;
 		/** The render thread sync event. */
 		FEvent* AudioRenderEvent;
+
 		/** Event allows you to block until fadeout is complete. */
 		FEvent* AudioFadeEvent;
-		/** The render thread critical section. */
-		FCriticalSection AudioRenderCritSect;
 
 		/** The current buffer index. */
 		int32 CurrentBufferIndex;

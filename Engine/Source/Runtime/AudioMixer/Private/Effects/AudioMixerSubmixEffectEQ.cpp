@@ -5,6 +5,14 @@
 #include "Misc/ScopeLock.h"
 #include "AudioMixer.h"
 
+static int32 DisableSubmixEffectEQCvar = 0;
+FAutoConsoleVariableRef CVarDisableSubmixEQ(
+	TEXT("au.DisableSubmixEffectEQ"),
+	DisableSubmixEffectEQCvar,
+	TEXT("Disables the eq submix.\n")
+	TEXT("0: Not Disabled, 1: Disabled"),
+	ECVF_Default);
+
 
 static bool IsEqual(const FSubmixEffectSubmixEQSettings& Left, const FSubmixEffectSubmixEQSettings& Right)
 {
@@ -93,7 +101,7 @@ void FSubmixEffectSubmixEQ::OnProcessAudio(const FSoundEffectSubmixInputData& In
 	TArray<float>& InAudioBuffer = *InData.AudioBuffer;
 	TArray<float>& OutAudioBuffer = *OutData.AudioBuffer;
 
-	if (bEQSettingsSet)
+	if (bEQSettingsSet && !DisableSubmixEffectEQCvar && RenderThreadEQSettings.EQBands.Num() > 0)
 	{
 		// Feed every other channel through the EQ filters
 		int32 NumFilters = InData.NumChannels / 2;

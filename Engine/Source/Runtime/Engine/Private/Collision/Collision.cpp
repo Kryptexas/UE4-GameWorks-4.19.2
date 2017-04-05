@@ -31,16 +31,6 @@ FHitResult::FHitResult(class AActor* InActor, class UPrimitiveComponent* InCompo
 	Component = InComponent;
 }
 
-AActor* FHitResult::GetActor() const
-{
-	return Actor.Get();
-}
-
-UPrimitiveComponent* FHitResult::GetComponent() const
-{
-	return Component.Get();
-}
-
 bool FHitResult::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	// Most of the time the vectors are the same values, use that as an optimization
@@ -168,6 +158,7 @@ FCollisionQueryParams::FCollisionQueryParams(FName InTraceTag, bool bInTraceComp
 	bComponentListUnique = true;
 	IgnoreMask = 0;
 	bIgnoreBlocks = false;
+	bIgnoreTouches = false;
 
 	AddIgnoredActor(InIgnoreActor);
 	if (InIgnoreActor != NULL)
@@ -724,7 +715,7 @@ namespace CollisionResponseConsoleCommands
 		FCollisionResponseTemplate Template;
 		if (UCollisionProfile::Get()->GetProfileTemplate(ProfileToCheck, Template))
 		{
-			for (TObjectIterator<UPrimitiveComponent> Iter(RF_NoFlags, /*bIncludeDerivedClasses*/ true, EInternalObjectFlags::PendingKill); Iter; ++Iter)
+			for (TObjectIterator<UPrimitiveComponent> Iter(RF_NoFlags, /*bIncludeDerivedClasses*/ true, /*ExclusionFlags*/ EInternalObjectFlags::None); Iter; ++Iter)
 			{
 				UPrimitiveComponent* Comp = *Iter;
 				

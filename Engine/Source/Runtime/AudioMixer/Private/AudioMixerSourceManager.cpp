@@ -7,6 +7,17 @@
 #include "AudioMixerSubmix.h"
 #include "IAudioExtensionPlugin.h"
 
+DEFINE_STAT(STAT_AudioMixerHRTF);
+
+static int32 DisableParallelSourceProcessingCvar = 0;
+FAutoConsoleVariableRef CVarDisableParallelSourceProcessing(
+	TEXT("au.DisableParallelSourceProcessing"),
+	DisableParallelSourceProcessingCvar,
+	TEXT("Disables using async tasks for processing sources.\n")
+	TEXT("0: Not Disabled, 1: Disabled"),
+	ECVF_Default);
+
+
 #define ONEOVERSHORTMAX (3.0517578125e-5f) // 1/32768
 #define ENVELOPE_TAIL_THRESHOLD (1.58489e-5f) // -96 dB
 
@@ -19,10 +30,12 @@ namespace Audio
 		, EndValue(0.0f)
 		, CurrentValue(0.0f)
 		, NumInterpFrames(InNumInterpFrames)
+		, NumInterpFramesInverse(0.0f)
 		, Frame(0.0f)
 		, bIsInit(true)
 		, bIsDone(false)
 	{
+		NumInterpFramesInverse = (NumInterpFrames == 0.0f ? 0.0f : (1.0f / NumInterpFrames));
 	}
 
 	void FSourceParam::Reset()
@@ -59,18 +72,13 @@ namespace Audio
 
 	float FSourceParam::Update()
 	{
-		if (bIsDone)
+		if (!bIsDone)
 		{
-			return EndValue;
-		}
-		else
-		{
-			float Alpha = Frame / NumInterpFrames;
+			float Alpha = Frame * NumInterpFramesInverse;
 			if (Alpha >= 1.0f)
 			{
 				bIsDone = true;
 				CurrentValue = EndValue;
-				return EndValue;
 			}
 			else
 			{
@@ -78,8 +86,9 @@ namespace Audio
 			}
 
 			Frame += 1.0f;
-			return CurrentValue;
 		}
+
+		return CurrentValue;
 	}
 
 	float FSourceParam::GetValue() const
@@ -87,6 +96,22 @@ namespace Audio
 		return CurrentValue;
 	}
 
+	/*************************************************************************
+	* FMixerSourceManager::FSourceInfo
+	**************************************************************************/
+
+	FMixerSourceManager::FSourceInfo::FSourceInfo()
+		: PitchSourceParam(FSourceParam(128))
+		, VolumeSourceParam(FSourceParam(256))
+		, LPFCutoffFrequencyParam(FSourceParam(128))
+		, ChannelMapParam(FSourceChannelMap(256))
+	{
+		// Note: initialization is all done by FMixerSourceManager::Init
+	}
+
+	FMixerSourceManager::FSourceInfo::~FSourceInfo()
+	{
+	}
 
 	/*************************************************************************
 	* FMixerSourceManager
@@ -128,63 +153,67 @@ namespace Audio
 
 		NumTotalSources = InitParams.NumSources;
 
-#if ENABLE_AUDIO_OUTPUT_DEBUGGING
+		MixerSources.Init(nullptr, NumTotalSources);
+
+		SourceInfos.AddDefaulted(NumTotalSources);
 		for (int32 i = 0; i < NumTotalSources; ++i)
 		{
-			DebugOutputGenerators.Add(FSineOsc(44100, 50 + i * 5, 0.5f));
+			FSourceInfo& SourceInfo = SourceInfos[i];
+
+			//SourceInfo.BufferQueue
+			SourceInfo.BufferQueueListener = nullptr;
+			SourceInfo.CurrentPCMBuffer = nullptr;	
+			SourceInfo.CurrentAudioChunkNumFrames = 0;
+			//SourceInfo.SourceBuffer
+			//SourceInfo.AudioPluginOutputData
+			//SourceInfo.CurrentFrameValues
+			//SourceINfo.NextFrameValues
+			SourceInfo.CurrentFrameAlpha = 0.0f;
+			SourceInfo.CurrentFrameIndex = 0;
+			SourceInfo.NumFramesPlayed = 0;
+
+			// These are in the constructor
+			//SourceInfo.PitchSourceParam = FSourceParam(128);
+			//SourceInfo.VolumeSourceParam = FSourceParam(256);
+			//SourceInfo.LPFCutoffFrequencyParam = FSourceParam(128);
+			//SourceInfo.ChannelMapParam = FSourceChannelMap(256);
+		
+			//SourceInfo.SpatParams
+			//SourceInfo.ScratchChannelMap
+			//SourceInfo.LowPassFilters
+
+			SourceInfo.SourceEffectChainId = INDEX_NONE;
+			//SourceInfo.SourceEffects
+			//SourceInfo.SourceEffectPresets
+
+			SourceInfo.SourceEnvelopeFollower = Audio::FEnvelopeFollower(AUDIO_SAMPLE_RATE, 10, 100, Audio::EPeakMode::Peak);
+			SourceInfo.SourceEnvelopeValue = 0.0f;
+			SourceInfo.bEffectTailsDone = false;
+			//SourceInfo.SourceEffectInputData
+			//SourceInfo.SourceEffectOutputData
+			//SourceInfo.ReverbPluginOutputBuffer
+			SourceInfo.PostEffectBuffers = nullptr;
+			//SourceInfo.OutputBuffer
+		
+			SourceInfo.bIs3D = false;
+			SourceInfo.bIsCenterChannelOnly = false;
+			SourceInfo.bIsActive = false;
+			SourceInfo.bIsPlaying = false;
+			SourceInfo.bIsPaused = false;
+			SourceInfo.bIsDone = false;
+			SourceInfo.bIsBusy = false;
+			SourceInfo.bUseHRTFSpatializer = false;
+			SourceInfo.bUseOcclusionPlugin = false;
+			SourceInfo.bUseReverbPlugin = false;
+			SourceInfo.bHasStarted = false;
+			SourceInfo.bIsDebugMode = false;
+			//SourceInfo.DebugName
+
+			SourceInfo.NumInputChannels = 0;
+			SourceInfo.NumPostEffectChannels = 0;
+			SourceInfo.NumInputFrames = 0;
 		}
-#endif
-
-		MixerSources.Init(nullptr, NumTotalSources);
-		BufferQueue.AddDefaulted(NumTotalSources);
-		BufferQueueListener.Init(nullptr, NumTotalSources);
-		CurrentPCMBuffer.Init(nullptr, NumTotalSources);
-		CurrentAudioChunkNumFrames.AddDefaulted(NumTotalSources);
-		SourceBuffer.AddDefaulted(NumTotalSources);
-		AudioPluginOutputData.AddDefaulted(NumTotalSources);
-		CurrentFrameValues.AddDefaulted(NumTotalSources);
-		NextFrameValues.AddDefaulted(NumTotalSources);
-		CurrentFrameAlpha.AddDefaulted(NumTotalSources);
-		CurrentFrameIndex.AddDefaulted(NumTotalSources);
-		NumFramesPlayed.AddDefaulted(NumTotalSources);
-
-		PitchSourceParam.Init(FSourceParam(128), NumTotalSources);
-		VolumeSourceParam.Init(FSourceParam(256), NumTotalSources);
-		LPFCutoffFrequencyParam.Init(FSourceParam(128), NumTotalSources);
-		ChannelMapParam.Init(FSourceChannelMap(256), NumTotalSources);
-		SpatParams.AddDefaulted(NumTotalSources);
-		ScratchChannelMap.AddDefaulted(NumTotalSources);
-		LowPassFilters.AddDefaulted(NumTotalSources);
-		SourceEffectChainId.Init(INDEX_NONE, NumTotalSources);
-		SourceEffects.AddDefaulted(NumTotalSources);
-		SourceEffectPresets.AddDefaulted(NumTotalSources);
-		SourceEnvelopeFollower.Init(Audio::FEnvelopeFollower(AUDIO_SAMPLE_RATE, 10, 100, Audio::EPeakMode::Peak), NumTotalSources);
-		SourceEnvelopeValue.AddDefaulted(NumTotalSources);
-		bEffectTailsDone.AddDefaulted(NumTotalSources);
-		SourceEffectInputData.AddDefaulted(NumTotalSources);
-		SourceEffectOutputData.AddDefaulted(NumTotalSources);
-
-		ReverbPluginOutputBuffer.AddDefaulted(NumTotalSources);
-		PostEffectBuffers.AddDefaulted(NumTotalSources);
-		OutputBuffer.AddDefaulted(NumTotalSources);
-		bIs3D.AddDefaulted(NumTotalSources);
-		bIsCenterChannelOnly.AddDefaulted(NumTotalSources);
-		bIsActive.AddDefaulted(NumTotalSources);
-		bIsPlaying.AddDefaulted(NumTotalSources);
-		bIsPaused.AddDefaulted(NumTotalSources);
-		bIsDone.AddDefaulted(NumTotalSources);
-		bIsBusy.AddDefaulted(NumTotalSources);
-		bUseHRTFSpatializer.AddDefaulted(NumTotalSources);
-		bUseOcclusionPlugin.AddDefaulted(NumTotalSources);
-		bUseReverbPlugin.AddDefaulted(NumTotalSources);
-		bHasStarted.AddDefaulted(NumTotalSources);
-		bIsDebugMode.AddDefaulted(NumTotalSources);
-		DebugName.AddDefaulted(NumTotalSources);
-
-		NumInputChannels.AddDefaulted(NumTotalSources);
-		NumPostEffectChannels.AddDefaulted(NumTotalSources);
-		NumInputFrames.AddDefaulted(NumTotalSources);
-
+		
 		GameThreadInfo.bIsBusy.AddDefaulted(NumTotalSources);
 		GameThreadInfo.bIsDone.AddDefaulted(NumTotalSources);
 		GameThreadInfo.bEffectTailsDone.AddDefaulted(NumTotalSources);
@@ -200,8 +229,10 @@ namespace Audio
 		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 		{
-			SourceBuffer[SourceId].Reset(NumFrames * 8);
-			AudioPluginOutputData[SourceId].AudioBuffer.Reset(NumFrames * 2);
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+			SourceInfo.SourceBuffer.Reset(NumFrames * 8);
+			SourceInfo.AudioPluginOutputData.AudioBuffer.Reset(NumFrames * 2);
 		}
 
 		// Setup the source workers
@@ -254,8 +285,10 @@ namespace Audio
 
 		AUDIO_MIXER_DEBUG_LOG(SourceId, TEXT("Is releasing"));
 
+		FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
-		if (bIsDebugMode[SourceId])
+		if (SourceInfo.bIsDebugMode)
 		{
 			DebugSoloSources.Remove(SourceId);
 		}
@@ -263,10 +296,10 @@ namespace Audio
 
 		// Call OnRelease on the BufferQueueListener to give it a chance 
 		// to release any resources it owns on the audio render thread
-		if (BufferQueueListener[SourceId])
+		if (SourceInfo.BufferQueueListener)
 		{
-			BufferQueueListener[SourceId]->OnRelease();
-			BufferQueueListener[SourceId] = nullptr;
+			SourceInfo.BufferQueueListener->OnRelease();
+			SourceInfo.BufferQueueListener = nullptr;
 		}
 
 		// Remove the mixer source from its submix sends
@@ -277,50 +310,50 @@ namespace Audio
 		}
 
 		// Delete the source effects
-		SourceEffectChainId[SourceId] = INDEX_NONE;
+		SourceInfo.SourceEffectChainId = INDEX_NONE;
 		ResetSourceEffectChain(SourceId);
 
-		SourceEnvelopeFollower[SourceId].Reset();
-		bEffectTailsDone[SourceId] = true;
+		SourceInfo.SourceEnvelopeFollower.Reset();
+		SourceInfo.bEffectTailsDone = true;
 
 		// Delete the mixer source and null the slot
 		delete MixerSources[SourceId];
 		MixerSources[SourceId] = nullptr;
 
 		// Reset all state and data
-		PitchSourceParam[SourceId].Reset();
-		VolumeSourceParam[SourceId].Reset();
-		LPFCutoffFrequencyParam[SourceId].Reset();
+		SourceInfo.PitchSourceParam.Reset();
+		SourceInfo.VolumeSourceParam.Reset();
+		SourceInfo.LPFCutoffFrequencyParam.Reset();
 
-		LowPassFilters[SourceId].Reset();
-		ChannelMapParam[SourceId].Reset();
-		BufferQueue[SourceId].Empty();
-		CurrentPCMBuffer[SourceId] = nullptr;
-		CurrentAudioChunkNumFrames[SourceId] = 0;
-		SourceBuffer[SourceId].Reset();
-		AudioPluginOutputData[SourceId].AudioBuffer.Reset();
-		CurrentFrameValues[SourceId].Reset();
-		NextFrameValues[SourceId].Reset();
-		CurrentFrameAlpha[SourceId] = 0.0f;
-		CurrentFrameIndex[SourceId] = 0;
-		NumFramesPlayed[SourceId] = 0;
-		PostEffectBuffers[SourceId] = nullptr;
-		OutputBuffer[SourceId].Reset();
-		bIs3D[SourceId] = false;
-		bIsCenterChannelOnly[SourceId] = false;
-		bIsActive[SourceId] = false;
-		bIsPlaying[SourceId] = false;
-		bIsDone[SourceId] = true;
-		bIsPaused[SourceId] = false;
-		bIsBusy[SourceId] = false;
-		bUseHRTFSpatializer[SourceId] = false;
-		bUseOcclusionPlugin[SourceId] = false;
-		bUseReverbPlugin[SourceId] = false;
-		bHasStarted[SourceId] = false;
-		bIsDebugMode[SourceId] = false;
-		DebugName[SourceId] = FString();
-		NumInputChannels[SourceId] = 0;
-		NumPostEffectChannels[SourceId] = 0;
+		SourceInfo.LowPassFilters.Reset();
+		SourceInfo.ChannelMapParam.Reset();
+		SourceInfo.BufferQueue.Empty();
+		SourceInfo.CurrentPCMBuffer = nullptr;
+		SourceInfo.CurrentAudioChunkNumFrames = 0;
+		SourceInfo.SourceBuffer.Reset();
+		SourceInfo.AudioPluginOutputData.AudioBuffer.Reset();
+		SourceInfo.CurrentFrameValues.Reset();
+		SourceInfo.NextFrameValues.Reset();
+		SourceInfo.CurrentFrameAlpha = 0.0f;
+		SourceInfo.CurrentFrameIndex = 0;
+		SourceInfo.NumFramesPlayed = 0;
+		SourceInfo.PostEffectBuffers = nullptr;
+		SourceInfo.OutputBuffer.Reset();
+		SourceInfo.bIs3D = false;
+		SourceInfo.bIsCenterChannelOnly = false;
+		SourceInfo.bIsActive = false;
+		SourceInfo.bIsPlaying = false;
+		SourceInfo.bIsDone = true;
+		SourceInfo.bIsPaused = false;
+		SourceInfo.bIsBusy = false;
+		SourceInfo.bUseHRTFSpatializer = false;
+		SourceInfo.bUseOcclusionPlugin = false;
+		SourceInfo.bUseReverbPlugin = false;
+		SourceInfo.bHasStarted = false;
+		SourceInfo.bIsDebugMode = false;
+		SourceInfo.DebugName = FString();
+		SourceInfo.NumInputChannels = 0;
+		SourceInfo.NumPostEffectChannels = 0;
 
 		GameThreadInfo.bNeedsSpeakerMap[SourceId] = false;
 	}
@@ -348,28 +381,31 @@ namespace Audio
 			NewEffect->SetEnabled(!ChainEntry.bBypass);
 
 			// Add the effect instance
-			SourceEffects[SourceId].Add(NewEffect);
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+			SourceInfo.SourceEffects.Add(NewEffect);
 
 			// Add a slot entry for the preset so it can change while running. This will get sent to the running effect instance if the preset changes.
-			SourceEffectPresets[SourceId].Add(nullptr);
+			SourceInfo.SourceEffectPresets.Add(nullptr);
 		}
 	}
 
 	void FMixerSourceManager::ResetSourceEffectChain(const int32 SourceId)
 	{
-		for (int32 i = 0; i < SourceEffects[SourceId].Num(); ++i)
-		{
-			SourceEffects[SourceId][i]->UnregisterWithPreset();
-			delete SourceEffects[SourceId][i];
-			SourceEffects[SourceId][i] = nullptr;
-		}
-		SourceEffects[SourceId].Reset();
+		FSourceInfo& SourceInfo = SourceInfos[SourceId];
 
-		for (int32 i = 0; i < SourceEffectPresets[SourceId].Num(); ++i)
+		for (int32 i = 0; i < SourceInfo.SourceEffects.Num(); ++i)
 		{
-			SourceEffectPresets[SourceId][i] = nullptr;
+			SourceInfo.SourceEffects[i]->UnregisterWithPreset();
+			delete SourceInfo.SourceEffects[i];
+			SourceInfo.SourceEffects[i] = nullptr;
 		}
-		SourceEffectPresets[SourceId].Reset();
+		SourceInfo.SourceEffects.Reset();
+
+		for (int32 i = 0; i < SourceInfo.SourceEffectPresets.Num(); ++i)
+		{
+			SourceInfo.SourceEffectPresets[i] = nullptr;
+		}
+		SourceInfo.SourceEffectPresets.Reset();
 	}
 
 	bool FMixerSourceManager::GetFreeSourceId(int32& OutSourceId)
@@ -416,19 +452,21 @@ namespace Audio
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 			AUDIO_MIXER_CHECK(InitParams.SourceVoice != nullptr);
 
-			bIsPlaying[SourceId] = false;
-			bIsPaused[SourceId] = false;
-			bIsActive[SourceId] = true;
-			bIsBusy[SourceId] = true;
-			bIsDone[SourceId] = false;
-			bUseHRTFSpatializer[SourceId] = InitParams.bUseHRTFSpatialization;
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
 
-			BufferQueueListener[SourceId] = InitParams.BufferQueueListener;
-			NumInputChannels[SourceId] = InitParams.NumInputChannels;
-			NumInputFrames[SourceId] = InitParams.NumInputFrames;
+			SourceInfo.bIsPlaying = false;
+			SourceInfo.bIsPaused = false;
+			SourceInfo.bIsActive = true;
+			SourceInfo.bIsBusy = true;
+			SourceInfo.bIsDone = false;
+			SourceInfo.bUseHRTFSpatializer = InitParams.bUseHRTFSpatialization;
+
+			SourceInfo.BufferQueueListener = InitParams.BufferQueueListener;
+			SourceInfo.NumInputChannels = InitParams.NumInputChannels;
+			SourceInfo.NumInputFrames = InitParams.NumInputFrames;
 
 			// Initialize the number of per-source LPF filters based on input channels
-			LowPassFilters[SourceId].AddDefaulted(InitParams.NumInputChannels);
+			SourceInfo.LowPassFilters.AddDefaulted(InitParams.NumInputChannels);
 
 			// Setup the spatialization settings preset
 			if (InitParams.SpatializationPluginSettings != nullptr)
@@ -441,7 +479,7 @@ namespace Audio
 			{
 				MixerDevice->OcclusionInterface->SetOcclusionSettings(SourceId, InitParams.OcclusionPluginSettings);
 
-				bUseOcclusionPlugin[SourceId] = true;
+				SourceInfo.bUseOcclusionPlugin = true;
 			}
 
 			// Setup the reverb settings preset
@@ -449,18 +487,18 @@ namespace Audio
 			{
 				MixerDevice->ReverbPluginInterface->SetReverbSettings(SourceId, InitParams.AudioComponentUserID, InitParams.ReverbPluginSettings);
 
-				bUseReverbPlugin[SourceId] = true;
+				SourceInfo.bUseReverbPlugin = true;
 			}
 
 			// Default all sounds to not consider effect chain tails when playing
-			bEffectTailsDone[SourceId] = true;
+			SourceInfo.bEffectTailsDone = true;
 
 			// Copy the source effect chain if the channel count is 1 or 2
 			if (InitParams.NumInputChannels <= 2)
 			{
 				// If we're told to care about effect chain tails, then we're not allowed
 				// to stop playing until the effect chain tails are finished
-				bEffectTailsDone[SourceId] = !InitParams.bPlayEffectChainTails;
+				SourceInfo.bEffectTailsDone = !InitParams.bPlayEffectChainTails;
 
 				FSoundEffectSourceInitData InitData;
 				InitData.SampleRate = AUDIO_SAMPLE_RATE;
@@ -477,12 +515,12 @@ namespace Audio
 					InitData.SourceDuration = (float)INDEX_NONE;
 				}
 
-				SourceEffectChainId[SourceId] = InitParams.SourceEffectChainId;
+				SourceInfo.SourceEffectChainId = InitParams.SourceEffectChainId;
 				BuildSourceEffectChain(SourceId, InitData, InitParams.SourceEffectChain);
 			}
 
-			CurrentFrameValues[SourceId].Init(0.0f, InitParams.NumInputChannels);
-			NextFrameValues[SourceId].Init(0.0f, InitParams.NumInputChannels);
+			SourceInfo.CurrentFrameValues.Init(0.0f, InitParams.NumInputChannels);
+			SourceInfo.NextFrameValues.Init(0.0f, InitParams.NumInputChannels);
 
 			AUDIO_MIXER_CHECK(MixerSources[SourceId] == nullptr);
 			MixerSources[SourceId] = InitParams.SourceVoice;
@@ -495,11 +533,11 @@ namespace Audio
 			}
 
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
-			AUDIO_MIXER_CHECK(!bIsDebugMode[SourceId]);
-			bIsDebugMode[SourceId] = InitParams.bIsDebugMode;
+			AUDIO_MIXER_CHECK(!SourceInfo.bIsDebugMode);
+			SourceInfo.bIsDebugMode = InitParams.bIsDebugMode;
 
-			AUDIO_MIXER_CHECK(DebugName[SourceId].IsEmpty());
-			DebugName[SourceId] = InitParams.DebugName;
+			AUDIO_MIXER_CHECK(SourceInfo.DebugName.IsEmpty());
+			SourceInfo.DebugName = InitParams.DebugName;
 #endif 
 
 			AUDIO_MIXER_DEBUG_LOG(SourceId, TEXT("Is initializing"));
@@ -542,9 +580,11 @@ namespace Audio
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-			bIsPlaying[SourceId] = true;
-			bIsPaused[SourceId] = false;
-			bIsActive[SourceId] = true;
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+			SourceInfo.bIsPlaying = true;
+			SourceInfo.bIsPaused = false;
+			SourceInfo.bIsActive = true;
 
 			AUDIO_MIXER_DEBUG_LOG(SourceId, TEXT("Is playing"));
 		});
@@ -560,9 +600,11 @@ namespace Audio
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-			bIsPlaying[SourceId] = false;
-			bIsPaused[SourceId] = false;
-			bIsActive[SourceId] = false;
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+			SourceInfo.bIsPlaying = false;
+			SourceInfo.bIsPaused = false;
+			SourceInfo.bIsActive = false;
 
 			AUDIO_MIXER_DEBUG_LOG(SourceId, TEXT("Is stopping"));
 		});
@@ -578,8 +620,10 @@ namespace Audio
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-			bIsPaused[SourceId] = true;
-			bIsActive[SourceId] = false;
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+			SourceInfo.bIsPaused = true;
+			SourceInfo.bIsActive = false;
 		});
 	}
 
@@ -592,7 +636,7 @@ namespace Audio
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-			PitchSourceParam[SourceId].SetValue(Pitch);
+			SourceInfos[SourceId].PitchSourceParam.SetValue(Pitch);
 		});
 	}
 
@@ -606,7 +650,7 @@ namespace Audio
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-			VolumeSourceParam[SourceId].SetValue(Volume);
+			SourceInfos[SourceId].VolumeSourceParam.SetValue(Volume);
 		});
 	}
 
@@ -620,7 +664,7 @@ namespace Audio
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-			SpatParams[SourceId] = InParams;
+			SourceInfos[SourceId].SpatParams = InParams;
 		});
 	}
 
@@ -634,12 +678,14 @@ namespace Audio
 		{
 			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
 			// Set whether or not this is a 3d channel map and if its center channel only. Used for reseting channel maps on device change.
-			bIs3D[SourceId] = bInIs3D;
-			bIsCenterChannelOnly[SourceId] = bInIsCenterChannelOnly;
+			SourceInfo.bIs3D = bInIs3D;
+			SourceInfo.bIsCenterChannelOnly = bInIsCenterChannelOnly;
 
 			// Fix up the channel map in case device output count changed
-			const int32 NumSourceChannels = bUseHRTFSpatializer[SourceId] ? 2 : NumInputChannels[SourceId];
+			const int32 NumSourceChannels = SourceInfo.bUseHRTFSpatializer ? 2 : SourceInfo.NumInputChannels;
 			const int32 NumOutputChannels = MixerDevice->GetNumDeviceChannels();
 			const int32 ChannelMapSize = NumSourceChannels * NumOutputChannels;
 
@@ -659,12 +705,12 @@ namespace Audio
 				{
 					MixerDevice->Get2DChannelMap(NumSourceChannels, NumOutputChannels, bInIsCenterChannelOnly, NewChannelMap);
 				}
-				ChannelMapParam[SourceId].SetChannelMap(NewChannelMap);
+				SourceInfo.ChannelMapParam.SetChannelMap(NewChannelMap);
 			}
 			else
 			{
 				GameThreadInfo.bNeedsSpeakerMap[SourceId] = false;
-				ChannelMapParam[SourceId].SetChannelMap(ChannelMap);
+				SourceInfo.ChannelMapParam.SetChannelMap(ChannelMap);
 			}
 
 		});
@@ -684,7 +730,7 @@ namespace Audio
 			AUDIO_MIXER_CHECK(SampleRate > 0.0f);
 
 			const float NormalizedFrequency = 2.0f * InLPFFrequency / SampleRate;
-			LPFCutoffFrequencyParam[SourceId].SetValue(NormalizedFrequency);
+			SourceInfos[SourceId].LPFCutoffFrequencyParam.SetValue(NormalizedFrequency);
 		});
 	}
 
@@ -696,7 +742,7 @@ namespace Audio
 		// If we're submitting synchronously then don't use AudioMixerThreadCommand but submit directly
 		if (bSubmitSynchronously)
 		{
-			BufferQueue[SourceId].Enqueue(InSourceVoiceBuffer);
+			SourceInfos[SourceId].BufferQueue.Enqueue(InSourceVoiceBuffer);
 		}
 		else
 		{
@@ -708,7 +754,7 @@ namespace Audio
 			{
 				AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-				BufferQueue[SourceId].Enqueue(InSourceVoiceBuffer);
+				SourceInfos[SourceId].BufferQueue.Enqueue(InSourceVoiceBuffer);
 			});
 		}
 	}
@@ -730,7 +776,7 @@ namespace Audio
 	int64 FMixerSourceManager::GetNumFramesPlayed(const int32 SourceId) const
 	{
 		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
-		return NumFramesPlayed[SourceId];
+		return SourceInfos[SourceId].NumFramesPlayed;
 	}
 
 	bool FMixerSourceManager::IsDone(const int32 SourceId) const
@@ -753,11 +799,13 @@ namespace Audio
 
 	void FMixerSourceManager::ReadSourceFrame(const int32 SourceId)
 	{
-		const int32 NumChannels = NumInputChannels[SourceId];
+		FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+		const int32 NumChannels = SourceInfo.NumInputChannels;
 
 		// Check if the next frame index is out of range of the total number of frames we have in our current audio buffer
-		bool bNextFrameOutOfRange = (CurrentFrameIndex[SourceId] + 1) >= CurrentAudioChunkNumFrames[SourceId];
-		bool bCurrentFrameOutOfRange = CurrentFrameIndex[SourceId] >= CurrentAudioChunkNumFrames[SourceId];
+		bool bNextFrameOutOfRange = (SourceInfo.CurrentFrameIndex + 1) >= SourceInfo.CurrentAudioChunkNumFrames;
+		bool bCurrentFrameOutOfRange = SourceInfo.CurrentFrameIndex >= SourceInfo.CurrentAudioChunkNumFrames;
 
 		bool bReadCurrentFrame = true;
 
@@ -770,86 +818,86 @@ namespace Audio
 				// Don't need to read the current frame audio after reading new audio chunk
 				bReadCurrentFrame = false;
 
-				AUDIO_MIXER_CHECK(CurrentPCMBuffer[SourceId].IsValid());
-				const int16* AudioData = (const int16*)CurrentPCMBuffer[SourceId]->AudioData.GetData();
-				const int32 CurrentSampleIndex = CurrentFrameIndex[SourceId] * NumChannels;
+				AUDIO_MIXER_CHECK(SourceInfo.CurrentPCMBuffer.IsValid());
+				const int16* AudioData = (const int16*)SourceInfo.CurrentPCMBuffer->AudioData.GetData();
+				const int32 CurrentSampleIndex = SourceInfo.CurrentFrameIndex * NumChannels;
 
 				for (int32 Channel = 0; Channel < NumChannels; ++Channel)
 				{
-					CurrentFrameValues[SourceId][Channel] = (float)AudioData[CurrentSampleIndex + Channel] * ONEOVERSHORTMAX;
+					SourceInfo.CurrentFrameValues[Channel] = (float)AudioData[CurrentSampleIndex + Channel] * ONEOVERSHORTMAX;
 				}
 			}
 
 			// If this is our first PCM buffer, we don't need to do a callback to get more audio
-			if (CurrentPCMBuffer[SourceId].IsValid())
+			if (SourceInfo.CurrentPCMBuffer.IsValid())
 			{
-				if (CurrentPCMBuffer[SourceId]->LoopCount == Audio::LOOP_FOREVER && !CurrentPCMBuffer[SourceId]->bRealTimeBuffer)
+				if (SourceInfo.CurrentPCMBuffer->LoopCount == Audio::LOOP_FOREVER && !SourceInfo.CurrentPCMBuffer->bRealTimeBuffer)
 				{
 					AUDIO_MIXER_DEBUG_LOG(SourceId, TEXT("Hit Loop boundary, looping."));
 
-					CurrentFrameIndex[SourceId] = FMath::Max(CurrentFrameIndex[SourceId] - CurrentAudioChunkNumFrames[SourceId], 0);
+					SourceInfo.CurrentFrameIndex = FMath::Max(SourceInfo.CurrentFrameIndex - SourceInfo.CurrentAudioChunkNumFrames, 0);
 					break;
 				}
 
-				BufferQueueListener[SourceId]->OnSourceBufferEnd();
+				SourceInfo.BufferQueueListener->OnSourceBufferEnd();
 			}
 
 			// If we have audio in our queue, we're still playing
-			if (!BufferQueue[SourceId].IsEmpty())
+			if (!SourceInfo.BufferQueue.IsEmpty())
 			{
 				FMixerSourceBufferPtr NewBufferPtr;
-				BufferQueue[SourceId].Dequeue(NewBufferPtr);
-				CurrentPCMBuffer[SourceId] = NewBufferPtr;
+				SourceInfo.BufferQueue.Dequeue(NewBufferPtr);
+				SourceInfo.CurrentPCMBuffer = NewBufferPtr;
 
 				AUDIO_MIXER_CHECK(MixerSources[SourceId]->NumBuffersQueued.GetValue() > 0);
 
 				MixerSources[SourceId]->NumBuffersQueued.Decrement();
 
-				CurrentAudioChunkNumFrames[SourceId] = CurrentPCMBuffer[SourceId]->AudioBytes / (NUM_BYTES_PER_SAMPLE * NumChannels);
+				SourceInfo.CurrentAudioChunkNumFrames = SourceInfo.CurrentPCMBuffer->AudioBytes / (NUM_BYTES_PER_SAMPLE * NumChannels);
 
 				// Subtract the number of frames in the current buffer from our frame index.
 				// Note: if this is the first time we're playing, CurrentFrameIndex will be 0
 				if (bReadCurrentFrame)
 				{
-					CurrentFrameIndex[SourceId] = FMath::Max(CurrentFrameIndex[SourceId] - CurrentAudioChunkNumFrames[SourceId], 0);
+					SourceInfo.CurrentFrameIndex = FMath::Max(SourceInfo.CurrentFrameIndex - SourceInfo.CurrentAudioChunkNumFrames, 0);
 				}
 				else
 				{
 					// Since we're not reading the current frame, we allow the current frame index to be negative (NextFrameIndex will then be 0)
 					// This prevents dropping a frame of audio on the buffer boundary
-					CurrentFrameIndex[SourceId] = -1;
+					SourceInfo.CurrentFrameIndex = -1;
 				}
 			}
 			else
 			{
-				bIsDone[SourceId] = true;
+				SourceInfo.bIsDone = true;
 				return;
 			}
 
-			bNextFrameOutOfRange = (CurrentFrameIndex[SourceId] + 1) >= CurrentAudioChunkNumFrames[SourceId];
-			bCurrentFrameOutOfRange = CurrentFrameIndex[SourceId] >= CurrentAudioChunkNumFrames[SourceId];
+			bNextFrameOutOfRange = (SourceInfo.CurrentFrameIndex + 1) >= SourceInfo.CurrentAudioChunkNumFrames;
+			bCurrentFrameOutOfRange = SourceInfo.CurrentFrameIndex >= SourceInfo.CurrentAudioChunkNumFrames;
 		}
 
-		if (CurrentPCMBuffer[SourceId].IsValid())
+		if (SourceInfo.CurrentPCMBuffer.IsValid())
 		{
 			// Grab the 16-bit PCM audio data (which could be a new audio chunk from previous ReadSourceFrame call)
-			const int16* AudioData = (const int16*)CurrentPCMBuffer[SourceId]->AudioData.GetData();
-			const int32 NextSampleIndex = (CurrentFrameIndex[SourceId] + 1)  * NumChannels;
+			const int16* AudioData = (const int16*)SourceInfo.CurrentPCMBuffer->AudioData.GetData();
+			const int32 NextSampleIndex = (SourceInfo.CurrentFrameIndex + 1)  * NumChannels;
 
 			if (bReadCurrentFrame)
 			{
-				const int32 CurrentSampleIndex = CurrentFrameIndex[SourceId] * NumChannels;
+				const int32 CurrentSampleIndex = SourceInfo.CurrentFrameIndex * NumChannels;
 				for (int32 Channel = 0; Channel < NumChannels; ++Channel)
 				{
-					CurrentFrameValues[SourceId][Channel] = (float)AudioData[CurrentSampleIndex + Channel] * ONEOVERSHORTMAX;
-					NextFrameValues[SourceId][Channel] = (float)AudioData[NextSampleIndex + Channel] * ONEOVERSHORTMAX;
+					SourceInfo.CurrentFrameValues[Channel] = (float)AudioData[CurrentSampleIndex + Channel] * ONEOVERSHORTMAX;
+					SourceInfo.NextFrameValues[Channel] = (float)AudioData[NextSampleIndex + Channel] * ONEOVERSHORTMAX;
 				}
 			}
 			else
 			{
 				for (int32 Channel = 0; Channel < NumChannels; ++Channel)
 				{
-					NextFrameValues[SourceId][Channel] = (float)AudioData[NextSampleIndex + Channel] * ONEOVERSHORTMAX;
+					SourceInfo.NextFrameValues[Channel] = (float)AudioData[NextSampleIndex + Channel] * ONEOVERSHORTMAX;
 				}
 			}
 		}
@@ -866,39 +914,46 @@ namespace Audio
 
 		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
-			SourceBuffer[SourceId].Reset();
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
 
-			if (!bIsBusy[SourceId] || !bIsPlaying[SourceId] || bIsPaused[SourceId])
+			SourceInfo.SourceBuffer.Reset();
+
+			if (!SourceInfo.bIsBusy || !SourceInfo.bIsPlaying || SourceInfo.bIsPaused)
 			{
 				continue;
 			}
 
+			// Fill array with elements all at once to avoid sequential Add() operation overhead.
+			const int32 NumSourceChannels = SourceInfo.NumInputChannels;
+			SourceInfo.SourceBuffer.AddUninitialized(NumFrames * NumSourceChannels);
+			int32 SampleIndex = 0;
+
 			for (int32 Frame = 0; Frame < NumFrames; ++Frame)
 			{
 				// If the source is done, then we'll just write out 0s
-				if (!bIsDone[SourceId])
+				if (!SourceInfo.bIsDone)
 				{
 					// Whether or not we need to read another sample from the source buffers
 					// If we haven't yet played any frames, then we will need to read the first source samples no matter what
-					bool bReadNextSample = !bHasStarted[SourceId];
+					bool bReadNextSample = !SourceInfo.bHasStarted;
 
 					// Reset that we've started generating audio
-					bHasStarted[SourceId] = true;
+					SourceInfo.bHasStarted = true;
 
 					// Update the PrevFrameIndex value for the source based on alpha value
-					while (CurrentFrameAlpha[SourceId] >= 1.0f)
+					while (SourceInfo.CurrentFrameAlpha >= 1.0f)
 					{
 						// Our inter-frame alpha lerping value is causing us to read new source frames
 						bReadNextSample = true;
 
 						// Bump up the current frame index
-						CurrentFrameIndex[SourceId]++;
+						SourceInfo.CurrentFrameIndex++;
 
 						// Bump up the frames played -- this is tracking the total frames in source file played
 						// CurrentFrameIndex can wrap for looping sounds so won't be accurate in that case
-						NumFramesPlayed[SourceId]++;
+						SourceInfo.NumFramesPlayed++;
 
-						CurrentFrameAlpha[SourceId] -= 1.0f;
+						SourceInfo.CurrentFrameAlpha -= 1.0f;
 					}
 
 					// If our alpha parameter caused us to jump to a new source frame, we need
@@ -909,14 +964,12 @@ namespace Audio
 					}
 				}
 
-				const int32 NumSourceChannels = NumInputChannels[SourceId];
-
 				// If we've finished reading all buffer data, then just write out 0s
-				if (bIsDone[SourceId])
+				if (SourceInfo.bIsDone)
 				{
 					for (int32 Channel = 0; Channel < NumSourceChannels; ++Channel)
 					{
-						SourceBuffer[SourceId].Add(0.0f);
+						SourceInfo.SourceBuffer[SampleIndex++] = 0.0f;
 					}
 				}
 				else
@@ -924,16 +977,16 @@ namespace Audio
 					// Get the volume value of the source at this frame index
 					for (int32 Channel = 0; Channel < NumSourceChannels; ++Channel)
 					{
-						const float CurrFrameValue = CurrentFrameValues[SourceId][Channel];
-						const float NextFrameValue = NextFrameValues[SourceId][Channel];
-						const float CurrentAlpha = CurrentFrameAlpha[SourceId];
+						const float CurrFrameValue = SourceInfo.CurrentFrameValues[Channel];
+						const float NextFrameValue = SourceInfo.NextFrameValues[Channel];
+						const float CurrentAlpha = SourceInfo.CurrentFrameAlpha;
 
 						SampleValue = FMath::Lerp(CurrFrameValue, NextFrameValue, CurrentAlpha);
-						SourceBuffer[SourceId].Add(SampleValue);
+						SourceInfo.SourceBuffer[SampleIndex++] = SampleValue;
 					}
-					const float CurrentPitchScale = PitchSourceParam[SourceId].Update();
+					const float CurrentPitchScale = SourceInfo.PitchSourceParam.Update();
 
-					CurrentFrameAlpha[SourceId] += CurrentPitchScale;
+					SourceInfo.CurrentFrameAlpha += CurrentPitchScale;
 				}
 			}
 		}
@@ -948,43 +1001,45 @@ namespace Audio
 
 		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
-			if (!bIsBusy[SourceId] || !bIsPlaying[SourceId] || bIsPaused[SourceId])
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+			if (!SourceInfo.bIsBusy || !SourceInfo.bIsPlaying || SourceInfo.bIsPaused)
 			{
 				continue;
 			}
 
 			// Get the source buffer
-			TArray<float>& Buffer = SourceBuffer[SourceId];
+			TArray<float>& Buffer = SourceInfo.SourceBuffer;
 
-			const int32 NumInputChans = NumInputChannels[SourceId];
+			const int32 NumInputChans = SourceInfo.NumInputChannels;
 
-			float CurrentVolumeValue = VolumeSourceParam[SourceId].GetValue();
+			float CurrentVolumeValue = SourceInfo.VolumeSourceParam.GetValue();
 
 			// Process the per-source LPF if the source hasn't actually been finished
-			if (!bIsDone[SourceId])
+			if (!SourceInfo.bIsDone)
 			{
-
 				for (int32 Frame = 0; Frame < NumFrames; ++Frame)
 				{
-					FSourceParam& LPFFrequencyParam = LPFCutoffFrequencyParam[SourceId];
+					FSourceParam& LPFFrequencyParam = SourceInfo.LPFCutoffFrequencyParam;
+
 					// Update the frequency at the block rate
 					const float LPFFreq = LPFFrequencyParam.Update();
 
 					// Update the volume
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE				
-					CurrentVolumeValue = (bIsDebugModeEnabled && !bIsDebugMode[SourceId]) ? 0.0f : VolumeSourceParam[SourceId].Update();
+					CurrentVolumeValue = (bIsDebugModeEnabled && !SourceInfo.bIsDebugMode) ? 0.0f : SourceInfo.VolumeSourceParam.Update();
 
 #else
-					CurrentVolumeValue = VolumeSourceParam[SourceId].Update();
+					CurrentVolumeValue = SourceInfo.VolumeSourceParam.Update();
 #endif
 
 					for (int32 Channel = 0; Channel < NumInputChans; ++Channel)
 					{
-						LowPassFilters[SourceId][Channel].SetFrequency(LPFFreq);
+						SourceInfo.LowPassFilters[Channel].SetFrequency(LPFFreq);
 
 						// Process the source through the filter
 						const int32 SampleIndex = NumInputChans * Frame + Channel;
-						Buffer[SampleIndex] = CurrentVolumeValue * LowPassFilters[SourceId][Channel].ProcessAudio(Buffer[SampleIndex]);
+						Buffer[SampleIndex] = CurrentVolumeValue * SourceInfo.LowPassFilters[Channel].ProcessAudio(Buffer[SampleIndex]);
 					}
 				}
 			}
@@ -992,15 +1047,15 @@ namespace Audio
 			const int32 NumSamples = Buffer.Num();
 
 			// Now process the effect chain if it exists
-			if (SourceEffects[SourceId].Num() > 0 && (!bIsDone[SourceId] || !bEffectTailsDone[SourceId]))
+			if (SourceInfo.SourceEffects.Num() > 0 && (!SourceInfo.bIsDone || !SourceInfo.bEffectTailsDone))
 			{
-				SourceEffectInputData[SourceId].CurrentVolume = CurrentVolumeValue;
+				SourceInfo.SourceEffectInputData.CurrentVolume = CurrentVolumeValue;
 
-				SourceEffectOutputData[SourceId].AudioFrame.Reset();
-				SourceEffectOutputData[SourceId].AudioFrame.AddZeroed(NumInputChans);
+				SourceInfo.SourceEffectOutputData.AudioFrame.Reset();
+				SourceInfo.SourceEffectOutputData.AudioFrame.AddZeroed(NumInputChans);
 
-				SourceEffectInputData[SourceId].AudioFrame.Reset();
-				SourceEffectInputData[SourceId].AudioFrame.AddZeroed(NumInputChans);
+				SourceInfo.SourceEffectInputData.AudioFrame.Reset();
+				SourceInfo.SourceEffectInputData.AudioFrame.AddZeroed(NumInputChans);
 
 				// Process the effect chain for this buffer per frame
 				for (int32 Sample = 0; Sample < NumSamples; Sample += NumInputChans)
@@ -1008,21 +1063,21 @@ namespace Audio
 					// Get the buffer input sample
 					for (int32 Chan = 0; Chan < NumInputChans; ++Chan)
 					{
-						SourceEffectInputData[SourceId].AudioFrame[Chan] = Buffer[Sample + Chan];
+						SourceInfo.SourceEffectInputData.AudioFrame[Chan] = Buffer[Sample + Chan];
 					}
 
-					for (int32 SourceEffectIndex = 0; SourceEffectIndex < SourceEffects[SourceId].Num(); ++SourceEffectIndex)
+					for (int32 SourceEffectIndex = 0; SourceEffectIndex < SourceInfo.SourceEffects.Num(); ++SourceEffectIndex)
 					{
-						if (SourceEffects[SourceId][SourceEffectIndex]->IsActive())
+						if (SourceInfo.SourceEffects[SourceEffectIndex]->IsActive())
 						{
-							SourceEffects[SourceId][SourceEffectIndex]->Update();
+							SourceInfo.SourceEffects[SourceEffectIndex]->Update();
 
-							SourceEffects[SourceId][SourceEffectIndex]->ProcessAudio(SourceEffectInputData[SourceId], SourceEffectOutputData[SourceId]);
+							SourceInfo.SourceEffects[SourceEffectIndex]->ProcessAudio(SourceInfo.SourceEffectInputData, SourceInfo.SourceEffectOutputData);
 
 							// Copy the output of the effect into the input so the next effect will get the outputs audio
 							for (int32 Chan = 0; Chan < NumInputChans; ++Chan)
 							{
-								SourceEffectInputData[SourceId].AudioFrame[Chan] = SourceEffectOutputData[SourceId].AudioFrame[Chan];
+								SourceInfo.SourceEffectInputData.AudioFrame[Chan] = SourceInfo.SourceEffectOutputData.AudioFrame[Chan];
 							}
 						}
 					}
@@ -1030,39 +1085,39 @@ namespace Audio
 					// Copy audio frame back to the buffer
 					for (int32 Chan = 0; Chan < NumInputChans; ++Chan)
 					{
-						Buffer[Sample + Chan] = SourceEffectInputData[SourceId].AudioFrame[Chan];
+						Buffer[Sample + Chan] = SourceInfo.SourceEffectInputData.AudioFrame[Chan];
 					}
 				}
 			}
 
 			bool bReverbPluginUsed = false;
-			if (bUseReverbPlugin[SourceId])
+			if (SourceInfo.bUseReverbPlugin)
 			{
-				const FSpatializationParams* SourceSpatParams = &SpatParams[SourceId];
+				const FSpatializationParams* SourceSpatParams = &SourceInfo.SpatParams;
 
 				// Move the audio buffer to the reverb plugin buffer
 				AudioPluginInputData.SourceId = SourceId;
 				AudioPluginInputData.AudioBuffer = &Buffer;
 				AudioPluginInputData.SpatializationParams = SourceSpatParams;
 				AudioPluginInputData.NumChannels = NumInputChans;
-				AudioPluginOutputData[SourceId].AudioBuffer.Reset();
-				AudioPluginOutputData[SourceId].AudioBuffer.AddZeroed(AudioPluginInputData.AudioBuffer->Num());
+				SourceInfo.AudioPluginOutputData.AudioBuffer.Reset();
+				SourceInfo.AudioPluginOutputData.AudioBuffer.AddZeroed(AudioPluginInputData.AudioBuffer->Num());
 
-				MixerDevice->ReverbPluginInterface->ProcessSourceAudio(AudioPluginInputData, AudioPluginOutputData[SourceId]);
+				MixerDevice->ReverbPluginInterface->ProcessSourceAudio(AudioPluginInputData, SourceInfo.AudioPluginOutputData);
 
 				// Make sure the buffer counts didn't change and are still the same size
-				AUDIO_MIXER_CHECK(AudioPluginOutputData[SourceId].AudioBuffer.Num() == Buffer.Num());
+				AUDIO_MIXER_CHECK(SourceInfo.AudioPluginOutputData.AudioBuffer.Num() == Buffer.Num());
 
 				// Copy the reverb-processed data back to the source buffer
-				ReverbPluginOutputBuffer[SourceId].Reset();
-				ReverbPluginOutputBuffer[SourceId].Append(AudioPluginOutputData[SourceId].AudioBuffer);
+				SourceInfo.ReverbPluginOutputBuffer.Reset();
+				SourceInfo.ReverbPluginOutputBuffer.Append(SourceInfo.AudioPluginOutputData.AudioBuffer);
 
 				bReverbPluginUsed = true;
 			}
 
-			if (bUseOcclusionPlugin[SourceId])
+			if (SourceInfo.bUseOcclusionPlugin)
 			{
-				const FSpatializationParams* SourceSpatParams = &SpatParams[SourceId];
+				const FSpatializationParams* SourceSpatParams = &SourceInfo.SpatParams;
 
 				// Move the audio buffer to the occlusion plugin buffer
 				AudioPluginInputData.SourceId = SourceId;
@@ -1070,32 +1125,32 @@ namespace Audio
 				AudioPluginInputData.SpatializationParams = SourceSpatParams;
 				AudioPluginInputData.NumChannels = NumInputChans;
 
-				AudioPluginOutputData[SourceId].AudioBuffer.Reset();
-				AudioPluginOutputData[SourceId].AudioBuffer.AddZeroed(AudioPluginInputData.AudioBuffer->Num());
+				SourceInfo.AudioPluginOutputData.AudioBuffer.Reset();
+				SourceInfo.AudioPluginOutputData.AudioBuffer.AddZeroed(AudioPluginInputData.AudioBuffer->Num());
 
-				MixerDevice->OcclusionInterface->ProcessAudio(AudioPluginInputData, AudioPluginOutputData[SourceId]);
+				MixerDevice->OcclusionInterface->ProcessAudio(AudioPluginInputData, SourceInfo.AudioPluginOutputData);
 
 				// Make sure the buffer counts didn't change and are still the same size
-				AUDIO_MIXER_CHECK(AudioPluginOutputData[SourceId].AudioBuffer.Num() == Buffer.Num());
+				AUDIO_MIXER_CHECK(SourceInfo.AudioPluginOutputData.AudioBuffer.Num() == Buffer.Num());
 
 				// Copy the occlusion-processed data back to the source buffer and mix with the reverb plugin output buffer
 				if (bReverbPluginUsed)
 				{
 					for (int32 i = 0; i < Buffer.Num(); ++i)
 					{
-						Buffer[i] = ReverbPluginOutputBuffer[SourceId][i] + AudioPluginOutputData[SourceId].AudioBuffer[i];
+						Buffer[i] = SourceInfo.ReverbPluginOutputBuffer[i] + SourceInfo.AudioPluginOutputData.AudioBuffer[i];
 					}
 				}
 				else
 				{
-					FMemory::Memcpy(Buffer.GetData(), AudioPluginOutputData[SourceId].AudioBuffer.GetData(), sizeof(float) * Buffer.Num());
+					FMemory::Memcpy(Buffer.GetData(), SourceInfo.AudioPluginOutputData.AudioBuffer.GetData(), sizeof(float) * Buffer.Num());
 				}
 			}
 			else if (bReverbPluginUsed)
 			{
 				for (int32 i = 0; i < Buffer.Num(); ++i)
 				{
-					Buffer[i] += ReverbPluginOutputBuffer[SourceId][i];
+					Buffer[i] += SourceInfo.ReverbPluginOutputBuffer[i];
 				}
 			}
 
@@ -1109,28 +1164,30 @@ namespace Audio
 					AverageSampleValue += Buffer[Sample++];
 				}
 				AverageSampleValue /= NumInputChans;
-				SourceEnvelopeFollower[SourceId].ProcessAudio(AverageSampleValue);
+				SourceInfo.SourceEnvelopeFollower.ProcessAudio(AverageSampleValue);
 			}
 
 			// Copy the current value of the envelope follower (block-rate value)
-			SourceEnvelopeValue[SourceId] = SourceEnvelopeFollower[SourceId].GetCurrentValue();
+			SourceInfo.SourceEnvelopeValue = SourceInfo.SourceEnvelopeFollower.GetCurrentValue();
 
-			bEffectTailsDone[SourceId] = bEffectTailsDone[SourceId] || SourceEnvelopeValue[SourceId] < ENVELOPE_TAIL_THRESHOLD;
+			SourceInfo.bEffectTailsDone = SourceInfo.bEffectTailsDone || SourceInfo.SourceEnvelopeValue < ENVELOPE_TAIL_THRESHOLD;
 
 			// Check the source effect tails condition
-			if (bIsDone[SourceId] && bEffectTailsDone[SourceId])
+			if (SourceInfo.bIsDone && SourceInfo.bEffectTailsDone)
 			{
 				// If we're done and our tails our done, clear everything out
-				BufferQueue[SourceId].Empty();
-				CurrentFrameValues[SourceId].Reset();
-				NextFrameValues[SourceId].Reset();
-				CurrentPCMBuffer[SourceId] = nullptr;
+				SourceInfo.BufferQueue.Empty();
+				SourceInfo.CurrentFrameValues.Reset();
+				SourceInfo.NextFrameValues.Reset();
+				SourceInfo.CurrentPCMBuffer = nullptr;
 			}
 
 
 			// If the source has HRTF processing enabled, run it through the spatializer
-			if (bUseHRTFSpatializer[SourceId])
+			if (SourceInfo.bUseHRTFSpatializer)
 			{
+				SCOPE_CYCLE_COUNTER(STAT_AudioMixerHRTF);
+
 				TSharedPtr<IAudioSpatialization> SpatializationPlugin = MixerDevice->SpatializationPluginInterface;
 
 				AUDIO_MIXER_CHECK(SpatializationPlugin.IsValid());
@@ -1139,25 +1196,25 @@ namespace Audio
 				AudioPluginInputData.AudioBuffer = &Buffer;
 				AudioPluginInputData.NumChannels = NumInputChans;
 				AudioPluginInputData.SourceId = SourceId;
-				AudioPluginInputData.SpatializationParams = &SpatParams[SourceId];
+				AudioPluginInputData.SpatializationParams = &SourceInfo.SpatParams;
 
-				AudioPluginOutputData[SourceId].AudioBuffer.Reset();
-				AudioPluginOutputData[SourceId].AudioBuffer.AddZeroed(2 * NumFrames);
+				SourceInfo.AudioPluginOutputData.AudioBuffer.Reset();
+				SourceInfo.AudioPluginOutputData.AudioBuffer.AddZeroed(2 * NumFrames);
 
-				SpatializationPlugin->ProcessAudio(AudioPluginInputData, AudioPluginOutputData[SourceId]);
+				SpatializationPlugin->ProcessAudio(AudioPluginInputData, SourceInfo.AudioPluginOutputData);
 
 				// We are now a 2-channel file and should not be spatialized using normal 3d spatialization
-				NumPostEffectChannels[SourceId] = 2;
+				SourceInfo.NumPostEffectChannels = 2;
 
-				PostEffectBuffers[SourceId] = &AudioPluginOutputData[SourceId].AudioBuffer;
+				SourceInfo.PostEffectBuffers = &SourceInfo.AudioPluginOutputData.AudioBuffer;
 			}
 			else
 			{
 				// Otherwise our pre- and post-effect channels are the same as the input channels
-				NumPostEffectChannels[SourceId] = NumInputChannels[SourceId];
+				SourceInfo.NumPostEffectChannels = SourceInfo.NumInputChannels;
 
 				// Set the ptr to use for post-effect buffers
-				PostEffectBuffers[SourceId] = &Buffer;
+				SourceInfo.PostEffectBuffers = &Buffer;
 			}
 		}
 	}
@@ -1174,51 +1231,47 @@ namespace Audio
 
 		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
-			OutputBuffer[SourceId].Reset();
-			OutputBuffer[SourceId].AddZeroed(NumOutputSamples);
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+			SourceInfo.OutputBuffer.Reset();
+			SourceInfo.OutputBuffer.AddZeroed(NumOutputSamples);
 		}
 
 		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
 			// Don't need to compute anything if the source is not playing or paused (it will remain at 0.0 volume)
 			// Note that effect chains will still be able to continue to compute audio output. The source output 
 			// will simply stop being read from.
-			if (!bIsBusy[SourceId] || !bIsPlaying[SourceId] || bIsPaused[SourceId])
+			if (!SourceInfo.bIsBusy || !SourceInfo.bIsPlaying || SourceInfo.bIsPaused)
 			{
 				continue;
 			}
 
 			for (int32 Frame = 0; Frame < NumFrames; ++Frame)
 			{
-				const int32 PostEffectChannels = NumPostEffectChannels[SourceId];
+				const int32 PostEffectChannels = SourceInfo.NumPostEffectChannels;
+				AUDIO_MIXER_CHECK(SourceInfo.ChannelMapParam.ChannelValues.Num() == PostEffectChannels * NumOutputChannels);
 
-#if ENABLE_AUDIO_OUTPUT_DEBUGGING
-				FSineOsc& SineOsc = DebugOutputGenerators[SourceId];
-				float SourceSampleValue = SineOsc();
-#else
 				float SourceSampleValue = 0.0f;
-#endif
 
 				// For each source channel, compute the output channel mapping
 				for (int32 SourceChannel = 0; SourceChannel < PostEffectChannels; ++SourceChannel)
 				{
-
-#if !ENABLE_AUDIO_OUTPUT_DEBUGGING
 					const int32 SourceSampleIndex = Frame * PostEffectChannels + SourceChannel;
-					TArray<float>* Buffer = PostEffectBuffers[SourceId];
+					TArray<float>* Buffer = SourceInfo.PostEffectBuffers;
 					SourceSampleValue = (*Buffer)[SourceSampleIndex];
-#endif
+
 					// Make sure that our channel map is appropriate for the source channel and output channel count!
-					TArray<float>& Scratch = ScratchChannelMap[SourceId];
-					ChannelMapParam[SourceId].GetChannelMap(Scratch);
-					AUDIO_MIXER_CHECK(Scratch.Num() == PostEffectChannels * NumOutputChannels);
+					SourceInfo.ChannelMapParam.UpdateChannelMap();
 
 					for (int32 OutputChannel = 0; OutputChannel < NumOutputChannels; ++OutputChannel)
 					{
 						// Look up the channel map value (maps input channels to output channels) for the source
 						// This is the step that either applies the spatialization algorithm or just maps a 2d sound
 						const int32 ChannelMapIndex = NumOutputChannels * SourceChannel + OutputChannel;
-						const float ChannelMapValue = Scratch[ChannelMapIndex];
+						const float ChannelMapValue = SourceInfo.ChannelMapParam.GetChannelValue(ChannelMapIndex);
 
 						// If we have a non-zero sample value, write it out. Note that most 3d audio channel maps
 						// for surround sound will result in 0.0 sample values so this branch should save a bunch of multiplies + adds
@@ -1231,7 +1284,7 @@ namespace Audio
 
 							const int32 OutputSampleIndex = Frame * NumOutputChannels + OutputChannel;
 
-							OutputBuffer[SourceId][OutputSampleIndex] += SampleValue;
+							SourceInfo.OutputBuffer[OutputSampleIndex] += SampleValue;
 						}
 					}
 				}
@@ -1246,9 +1299,12 @@ namespace Audio
 
 		if (SendLevel > 0.0f)
 		{
+			const FSourceInfo& SourceInfo = SourceInfos[SourceId];
+			const TArray<float>& SourceOutputBuffer = SourceInfo.OutputBuffer;
+
 			for (int32 SampleIndex = 0; SampleIndex < OutWetBuffer.Num(); ++SampleIndex)
 			{
-				OutWetBuffer[SampleIndex] += OutputBuffer[SourceId][SampleIndex] * SendLevel;
+				OutWetBuffer[SampleIndex] += SourceOutputBuffer[SampleIndex] * SendLevel;
 			}
 		}
 	}
@@ -1258,29 +1314,31 @@ namespace Audio
 		// Update all source's to appropriate channel maps
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 		{
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
 			// Don't need to do anything if it's not active
-			if (!bIsActive[SourceId])
+			if (!SourceInfo.bIsActive)
 			{
 				continue;
 			}
 
-			ScratchChannelMap[SourceId].Reset();
-			const int32 NumSoureChannels = bUseHRTFSpatializer[SourceId] ? 2 : NumInputChannels[SourceId];
+			SourceInfo.ScratchChannelMap.Reset();
+			const int32 NumSoureChannels = SourceInfo.bUseHRTFSpatializer ? 2 : SourceInfo.NumInputChannels;
 
 			// If this is a 3d source, then just zero out the channel map, it'll cause a temporary blip
 			// but it should reset in the next tick
-			if (bIs3D[SourceId])
+			if (SourceInfo.bIs3D)
 			{
 				GameThreadInfo.bNeedsSpeakerMap[SourceId] = true;
-				ScratchChannelMap[SourceId].AddZeroed(NumSoureChannels * InNumOutputChannels);
+				SourceInfo.ScratchChannelMap.AddZeroed(NumSoureChannels * InNumOutputChannels);
 			}
 			// If it's a 2D sound, then just get a new channel map appropriate for the new device channel count
 			else
 			{
-				ScratchChannelMap[SourceId].Reset();
-				MixerDevice->Get2DChannelMap(NumSoureChannels, InNumOutputChannels, bIsCenterChannelOnly[SourceId], ScratchChannelMap[SourceId]);
+				SourceInfo.ScratchChannelMap.Reset();
+				MixerDevice->Get2DChannelMap(NumSoureChannels, InNumOutputChannels, SourceInfo.bIsCenterChannelOnly, SourceInfo.ScratchChannelMap);
 			}
-			ChannelMapParam[SourceId].SetChannelMap(ScratchChannelMap[SourceId]);
+			SourceInfo.ChannelMapParam.SetChannelMap(SourceInfo.ScratchChannelMap);
 		}
 	}
 
@@ -1293,12 +1351,14 @@ namespace Audio
 			InitData.SampleRate = AUDIO_SAMPLE_RATE;
 			for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 			{
-				if (SourceEffectChainId[SourceId] == InSourceEffectChainId)
+				FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+				if (SourceInfo.SourceEffectChainId == InSourceEffectChainId)
 				{
-					bEffectTailsDone[SourceId] = !bPlayEffectChainTails;
+					SourceInfo.bEffectTailsDone = !bPlayEffectChainTails;
 
 					// Check to see if the chain didn't actually change
-					TArray<FSoundEffectSource *>& ThisSourceEffectChain = SourceEffects[SourceId];
+					TArray<FSoundEffectSource *>& ThisSourceEffectChain = SourceInfo.SourceEffects;
 					bool bReset = false;
 					if (InSourceEffectChain.Num() == ThisSourceEffectChain.Num())
 					{
@@ -1325,11 +1385,11 @@ namespace Audio
 
 					if (bReset)
 					{
-						InitData.NumSourceChannels = NumInputChannels[SourceId];
+						InitData.NumSourceChannels = SourceInfo.NumInputChannels;
 
-						if (NumInputFrames[SourceId] != INDEX_NONE)
+						if (SourceInfo.NumInputFrames != INDEX_NONE)
 						{
-							InitData.SourceDuration = (float)NumInputFrames[SourceId] / AUDIO_SAMPLE_RATE;
+							InitData.SourceDuration = (float)SourceInfo.NumInputFrames / AUDIO_SAMPLE_RATE;
 						}
 						else
 						{
@@ -1360,7 +1420,7 @@ namespace Audio
 			PumpCommandQueue();
 		}
 
-		if (NumSourceWorkers > 0)
+		if (NumSourceWorkers > 0 && !DisableParallelSourceProcessingCvar)
 		{
 			AUDIO_MIXER_CHECK(SourceWorkers.Num() == NumSourceWorkers);
 			for (int32 i = 0; i < SourceWorkers.Num(); ++i)
@@ -1388,8 +1448,10 @@ namespace Audio
 		// Update the game thread copy of source doneness
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 		{		
-			GameThreadInfo.bIsDone[SourceId] = bIsDone[SourceId];
-			GameThreadInfo.bEffectTailsDone[SourceId] = bEffectTailsDone[SourceId];
+			FSourceInfo& SourceInfo = SourceInfos[SourceId];
+
+			GameThreadInfo.bIsDone[SourceId] = SourceInfo.bIsDone;
+			GameThreadInfo.bEffectTailsDone[SourceId] = SourceInfo.bEffectTailsDone;
 		}
 	}
 

@@ -686,6 +686,20 @@ public:
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
 	float ListenServerNetworkSimulatedSmoothRotationTime;
 
+	/**
+	 * Shrink simulated proxy capsule radius by this amount, to account for network rounding that may cause encroachment. Changing during gameplay is not supported.
+	 * @see AdjustProxyCapsuleSize()
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetProxyShrinkRadius;
+
+	/**
+	 * Shrink simulated proxy capsule half height by this amount, to account for network rounding that may cause encroachment. Changing during gameplay is not supported.
+	 * @see AdjustProxyCapsuleSize()
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetProxyShrinkHalfHeight;
+
 	/** Maximum distance character is allowed to lag behind server location when interpolating between updates. */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
 	float NetworkMaxSmoothUpdateDistance;
@@ -1037,6 +1051,7 @@ public:
 	virtual void OnRegister() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
+	virtual void Deactivate() override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	//End UActorComponent Interface
@@ -1297,8 +1312,12 @@ public:
 	/** Applies repulsion force to all touched components. */
 	virtual void ApplyRepulsionForce(float DeltaSeconds);
 	
-	/** Applies momentum accumulated through AddImpulse() and AddForce(). */
+	/** Applies momentum accumulated through AddImpulse() and AddForce(), then clears those forces. Does *not* use ClearAccumulatedForces() since that would clear pending launch velocity as well. */
 	virtual void ApplyAccumulatedForces(float DeltaSeconds);
+
+	/** Clears forces accumulated through AddImpulse() and AddForce(), and also pending launch velocity. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual void ClearAccumulatedForces();
 
 	/** Update the character state in PerformMovement right before doing the actual position change */
 	virtual void UpdateCharacterStateBeforeMovement();

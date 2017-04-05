@@ -65,7 +65,7 @@ public:
 	{
 		PrefilterReturnValue = PxQueryHitType::eNONE;		
 		bIsOverlapQuery = false;
-		bIgnoreTouches = false;
+		bIgnoreTouches = InQueryParams.bIgnoreTouches;
 		bIgnoreBlocks = InQueryParams.bIgnoreBlocks;
 	}
 

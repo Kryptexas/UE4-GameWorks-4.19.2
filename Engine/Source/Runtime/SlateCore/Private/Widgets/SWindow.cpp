@@ -492,6 +492,7 @@ void SWindow::ConstructWindowInternals()
 	{
 		TAttribute<EVisibility> WindowContentVisibility(this, &SWindow::GetWindowContentVisibility);
 		TAttribute<const FSlateBrush*> WindowBackgroundAttr(this, &SWindow::GetWindowBackground);
+		TAttribute<FSlateColor> WindowBackgroundColorAttr(this, &SWindow::GetWindowBackgroundColor);
 		TAttribute<const FSlateBrush*> WindowOutlineAttr(this, &SWindow::GetWindowOutline);
 		TAttribute<FSlateColor> WindowOutlineColorAttr(this, &SWindow::GetWindowOutlineColor);
 
@@ -505,7 +506,7 @@ void SWindow::ConstructWindowInternals()
 			[
 				FSlateApplicationBase::Get().MakeImage(
 					WindowBackgroundAttr,
-					FLinearColor::White,
+					WindowBackgroundColorAttr,
 					WindowContentVisibility
 				)
 			]
@@ -964,6 +965,11 @@ void SWindow::StartMorph()
 const FSlateBrush* SWindow::GetWindowBackground() const
 {
 	return WindowBackground;
+}
+
+FSlateColor SWindow::GetWindowBackgroundColor() const
+{
+	return Style->BackgroundColor;
 }
 
 const FSlateBrush* SWindow::GetWindowOutline() const

@@ -811,8 +811,6 @@ protected:
 	void OnSocketSelection( FName SocketName );
 
 	void PopulateVariableCategories();
-	
-	void AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder, const TArray<TSharedPtr<class FSCSEditorTreeNode>>& Nodes );
 
 private:
 	/** Weak reference to the Blueprint editor */

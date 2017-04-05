@@ -42,13 +42,27 @@ FReply SGraphPinClass::OnClickUse()
 class FGraphPinFilter : public IClassViewerFilter
 {
 public:
+	/** Package containing the graph pin */
+	const UPackage* GraphPinOutermostPackage;
+
 	/** All children of these classes will be included unless filtered out by another setting. */
 	TSet< const UClass* > AllowedChildrenOfClasses;
 
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{
 		// If it appears on the allowed child-of classes list (or there is nothing on that list)
-		return (InFilterFuncs->IfInChildOfClassesSet( AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed);
+		bool Result = (InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed);
+		if (Result)
+		{
+			check(InClass != nullptr);
+			const UPackage* ClassPackage = InClass->GetOutermost();
+			check(ClassPackage != nullptr);
+		
+			// Don't allow classes from a loaded map (e.g. LSBPs) unless we're already working inside that package context. Otherwise, choosing the class would lead to a GLEO at save time.
+			Result &= !ClassPackage->ContainsMap() || ClassPackage == GraphPinOutermostPackage;
+		}
+
+		return Result;
 	}
 
 	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
@@ -78,6 +92,7 @@ TSharedRef<SWidget> SGraphPinClass::GenerateAssetPicker()
 	Options.ClassFilter = Filter;
 
 	Filter->AllowedChildrenOfClasses.Add(PinRequiredParentClass);
+	Filter->GraphPinOutermostPackage = GraphPinObj->GetOuter()->GetOutermost();
 
 	return
 		SNew(SBox)

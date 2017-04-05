@@ -67,6 +67,7 @@ namespace EHostType
 		Runtime,
 		RuntimeNoCommandlet,
 		RuntimeAndProgram,
+		CookedOnly,
 		Developer,
 		Editor,
 		EditorNoCommandlet,

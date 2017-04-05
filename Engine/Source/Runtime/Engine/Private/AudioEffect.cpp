@@ -189,7 +189,7 @@ int64 FAudioEffectsManager::VolumeToMilliBels( float Volume, int32 MaxMilliBels 
 /** 
  * Gets the parameters for reverb based on settings and time
  */
-void FAudioEffectsManager::Interpolate( FAudioReverbEffect& Current, const FAudioReverbEffect& Start, const FAudioReverbEffect& End )
+bool FAudioEffectsManager::Interpolate( FAudioReverbEffect& Current, const FAudioReverbEffect& Start, const FAudioReverbEffect& End )
 {
 	float InterpValue = 1.0f;
 	if( End.Time - Start.Time > 0.0 )
@@ -200,22 +200,23 @@ void FAudioEffectsManager::Interpolate( FAudioReverbEffect& Current, const FAudi
 	if( InterpValue >= 1.0f )
 	{
 		Current = End;
-		return;
+		return true;
 	}
 
 	if( InterpValue <= 0.0f )
 	{
 		Current = Start;
-		return;
+		return false;
 	}
 
 	Current.Interpolate( InterpValue, Start, End );
+	return false;
 }
 
 /** 
  * Gets the parameters for EQ based on settings and time
  */
-void FAudioEffectsManager::Interpolate( FAudioEQEffect& Current, const FAudioEQEffect& Start, const FAudioEQEffect& End )
+bool FAudioEffectsManager::Interpolate( FAudioEQEffect& Current, const FAudioEQEffect& Start, const FAudioEQEffect& End )
 {
 	float InterpValue = 1.0f;
 	if( End.RootTime - Start.RootTime > 0.0 )
@@ -226,26 +227,31 @@ void FAudioEffectsManager::Interpolate( FAudioEQEffect& Current, const FAudioEQE
 	if( InterpValue >= 1.0f )
 	{
 		Current = End;
-		return;
+		return true;
 	}
 
 	if( InterpValue <= 0.0f )
 	{
 		Current = Start;
-		return;
+		return false;
 	}
 
 	Current.Interpolate( InterpValue, Start, End );
+	return false;
 }
 
 /** 
  * Clear out any reverb and EQ settings
  */
 FAudioEffectsManager::FAudioEffectsManager( FAudioDevice* InDevice )
-:	AudioDevice( InDevice )
-,	bEffectsInitialised( false )
-,	CurrentReverbAsset( NULL )
-,	CurrentEQMix( NULL )
+	: AudioDevice(InDevice)
+	, bEffectsInitialised(false)
+	, CurrentReverbAsset(nullptr)
+	, CurrentEQMix(nullptr)
+	, bReverbActive(false)
+	, bEQActive(false)
+	, bReverbChanged(true) // Setting to true to catch the first default reverb setting
+	, bEQChanged(false)
 {
 	InitAudioEffects();
 }
@@ -304,6 +310,7 @@ void FAudioEffectsManager::SetReverbSettings( const FReverbSettings& ReverbSetti
 		SourceReverbEffect.Time = FApp::GetCurrentTime();
 
 		DestinationReverbEffect = ReverbSettings.ReverbEffect;
+		bReverbChanged = true;
 
 		if (bForce)
 		{
@@ -351,6 +358,8 @@ void FAudioEffectsManager::SetMixSettings(USoundMix* NewMix, bool bIgnorePriorit
 
 			DestinationEQEffect.RootTime = FApp::GetCurrentTime() + NewMix->FadeInTime;
 			DestinationEQEffect.ClampValues();
+
+			bEQChanged = true;
 
 			CurrentEQMix = NewMix;
 		}
@@ -436,17 +445,22 @@ void FAudioEffectsManager::Update()
 
 #endif
 
-	Interpolate(CurrentReverbEffect, SourceReverbEffect, DestinationReverbEffect);
-
-	// Only apply reverb if it's different
-	if (CurrentReverbEffect != PrevReverbEffect)
+	const bool bIsReverbDone = Interpolate(CurrentReverbEffect, SourceReverbEffect, DestinationReverbEffect);
+	if (!bIsReverbDone || bReverbActive || bReverbChanged)
 	{
+		bReverbChanged = false;
 		PrevReverbEffect = CurrentReverbEffect;
+		bReverbActive = !bIsReverbDone;
 		SetReverbEffectParameters(CurrentReverbEffect);
 	}
 
-	Interpolate(CurrentEQEffect, SourceEQEffect, DestinationEQEffect);
-	SetEQEffectParameters(CurrentEQEffect);
+	const bool bIsEQDone = Interpolate(CurrentEQEffect, SourceEQEffect, DestinationEQEffect);
+	if (!bIsEQDone || bEQActive || bEQChanged)
+	{
+		bEQChanged = false;
+		bEQActive = !bIsEQDone;
+		SetEQEffectParameters(CurrentEQEffect);
+	}
 }
 
 // end 

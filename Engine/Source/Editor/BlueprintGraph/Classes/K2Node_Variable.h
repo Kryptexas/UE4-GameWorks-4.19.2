@@ -136,6 +136,7 @@ public:
 
 	/** Get the UProperty for this variable node */
 	UProperty* GetPropertyForVariable() const;
+	UProperty* GetPropertyForVariableFromSkeleton() const;
 
 	/** Accessor for the value output pin of the node */
 	UEdGraphPin* GetValuePin() const;

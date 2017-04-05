@@ -878,6 +878,9 @@ protected:
 	/** Get the brush used to draw the window background */
 	const FSlateBrush* GetWindowBackground() const;
 
+	/** Get the color used to tint the window background */
+	FSlateColor GetWindowBackgroundColor() const;
+
 	/** Get the brush used to draw the window outline */
 	const FSlateBrush* GetWindowOutline() const;
 

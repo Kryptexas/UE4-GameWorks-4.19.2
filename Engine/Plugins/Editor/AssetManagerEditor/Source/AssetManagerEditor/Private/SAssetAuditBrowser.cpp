@@ -2,7 +2,6 @@
 
 
 #include "SAssetAuditBrowser.h"
-#include "AssetManagerEditorModule.h"
 #include "Framework/Commands/UIAction.h"
 #include "Framework/Commands/UICommandList.h"
 #include "Widgets/Layout/SBorder.h"
@@ -186,7 +185,7 @@ bool SAssetAuditBrowser::CanShowColumnForAssetRegistryTag(FName AssetType, FName
 
 FString SAssetAuditBrowser::GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName) const
 {
-	return EditorModule->GetValueForCustomColumn(AssetData, ColumnName, CurrentTargetPlatform);
+	return EditorModule->GetValueForCustomColumn(AssetData, ColumnName, CurrentTargetPlatform, CurrentPlatformState);
 }
 
 void SAssetAuditBrowser::Construct(const FArguments& InArgs)
@@ -205,10 +204,20 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 	AssetManager->UpdateManagementDatabase();
 
 	PlatformComboList.Add(MakeShared<FString>(TEXT("Editor")));
-	PlatformComboList.Add(MakeShared<FString>(TEXT("PS4")));
-	PlatformComboList.Add(MakeShared<FString>(TEXT("XBox")));
+	PlatformList.Add(nullptr);
+
+	TArray<ITargetPlatform*> ValidPlatforms;
+	ManagerEditorModule.GetAvailableTargetPlatforms(ValidPlatforms);
+
+	for (ITargetPlatform* ValidPlatform : ValidPlatforms)
+	{
+		PlatformList.Add(ValidPlatform);
+		PlatformComboList.Add(MakeShared<FString>(ValidPlatform->PlatformName()));
+	}
+
 	CurrentPlatformString = TEXT("Editor");
 	CurrentTargetPlatform = nullptr;
+	CurrentPlatformState = nullptr;
 
 	Commands = MakeShareable(new FUICommandList());
 	Commands->MapAction(FGlobalEditorCommonCommands::Get().FindInContentBrowser, FUIAction(
@@ -249,8 +258,8 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 	Config.CustomColumns.Emplace(FPrimaryAssetId::PrimaryAssetTypeTag, LOCTEXT("AssetType", "Asset Type"), LOCTEXT("AssetTypeTooltip", "Primary Asset Type of this asset"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
 	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ManagedResourceSizeName, LOCTEXT("ManagedResourceSize", "Memory Kb"), LOCTEXT("ManagedResourceSizeTooltip", "Memory used by both this asset and any other assets it manages, in kilobytes"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
 	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ResourceSizeName, LOCTEXT("ResourceSize", "Exclusive Memory Kb"), LOCTEXT("ResourceSizeTooltip", "Memory used exclusively by this asset, in kilobytes"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	//Config.CustomColumns.Emplace(IAssetManagerEditorModule::ManagedDiskSizeName, LOCTEXT("ManagedDiskSize", "Managed File Size"), LOCTEXT("ManagedDiskSizeTooltip", "Total disk space used by all managed assets"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
-	//Config.CustomColumns.Emplace(IAssetManagerEditorModule::DiskSizeName, LOCTEXT("DiskSize", "File Size"), LOCTEXT("DiskSizeTooltip", "Size of saved file on disk"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
+	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ManagedDiskSizeName, LOCTEXT("ManagedDiskSize", "Disk Kb"), LOCTEXT("ManagedDiskSizeTooltip", "Total disk space used by both this and all managed assets, in kilobytes"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
+	Config.CustomColumns.Emplace(IAssetManagerEditorModule::DiskSizeName, LOCTEXT("DiskSize", "Exclusive Disk Kb"), LOCTEXT("DiskSizeTooltip", "Size of saved file on disk for only this asset, in kilobytes"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
 	Config.CustomColumns.Emplace(IAssetManagerEditorModule::TotalUsageName, LOCTEXT("TotalUsage", "Total Usage"), LOCTEXT("TotalUsageTooltip", "Weighted count of Primary Assets that use this, higher usage means it's more likely to be in memory at runtime"), UObject::FAssetRegistryTag::TT_Numerical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
 	Config.CustomColumns.Emplace(IAssetManagerEditorModule::CookRuleName, LOCTEXT("CookRule", "Cook Rule"), LOCTEXT("CookRuleTooltip", "Rather this asset will be cooked or not"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
 	Config.CustomColumns.Emplace(IAssetManagerEditorModule::ChunksName, LOCTEXT("Chunks", "Chunks"), LOCTEXT("ChunksTooltip", "List of chunks this will be added to when cooked"), UObject::FAssetRegistryTag::TT_Alphabetical, FOnGetCustomAssetColumnData::CreateSP(this, &SAssetAuditBrowser::GetValueForCustomColumn));
@@ -315,10 +324,10 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 			.Visibility(this, &SAssetAuditBrowser::GetHistoryVisibility)
 			.Padding(FMargin(3))
 			.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-		[
+			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
+				.HAlign(HAlign_Fill)
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
@@ -391,19 +400,34 @@ void SAssetAuditBrowser::Construct(const FArguments& InArgs)
 						.OnClicked(this, &SAssetAuditBrowser::RefreshAssets)
 					]
 					
-					/*+ SHorizontalBox::Slot()
+					+ SHorizontalBox::Slot()
 					.FillWidth(1.0f)
-					.HAlign(HAlign_Right)
+					.HAlign(HAlign_Fill)
 					[
-						SNew(SComboBox<TSharedPtr<FString>>)
-						.OptionsSource(&PlatformComboList)
-						.OnGenerateWidget(this, &SAssetAuditBrowser::GeneratePlatformComboItem)
-						.OnSelectionChanged(this, &SAssetAuditBrowser::HandlePlatformComboChanged)
+						SNew(SHorizontalBox)						
+						+ SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						.HAlign(HAlign_Right)
+						.VAlign(VAlign_Center)
 						[
 							SNew(STextBlock)
-							.Text(this, &SAssetAuditBrowser::GetPlatformComboText)
+							.ToolTipText(LOCTEXT("Platform_Tooltip", "Select which platform to display data for. Platforms are only available if a cooked AssetRegistry.bin is available in Saved/Cooked/Platform or Build/Platform."))
+							.Text(LOCTEXT("PlatformLabel", "Selected Platform: "))
 						]
-					]*/
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.HAlign(HAlign_Right)
+						[
+							SNew(SComboBox<TSharedPtr<FString>>)							
+							.OptionsSource(&PlatformComboList)
+							.OnGenerateWidget(this, &SAssetAuditBrowser::GeneratePlatformComboItem)
+							.OnSelectionChanged(this, &SAssetAuditBrowser::HandlePlatformComboChanged)
+							[
+								SNew(STextBlock)
+								.Text(this, &SAssetAuditBrowser::GetPlatformComboText)
+							]
+						]
+					]
 				]
 			]
 		]
@@ -664,7 +688,17 @@ EVisibility SAssetAuditBrowser::GetHistoryVisibility() const
 
 bool SAssetAuditBrowser::HandleFilterAsset(const FAssetData& InAssetData) const
 {
-	// Handled in FArFilter currently, can add more specific filters if needed
+	if (CurrentPlatformState)
+	{
+		const FAssetPackageData* FoundPackageData = CurrentPlatformState->GetAssetPackageData(InAssetData.PackageName);
+
+		// Check if it was actually cooked for this platform, negative size means it was not cooked
+		if (!FoundPackageData || FoundPackageData->DiskSize < 0)
+		{
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -676,12 +710,20 @@ TSharedRef<SWidget> SAssetAuditBrowser::GeneratePlatformComboItem(TSharedPtr<FSt
 
 void SAssetAuditBrowser::HandlePlatformComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
 {
-	if (Item.IsValid())
+	for (int32 i = 0; i < PlatformComboList.Num(); i++)
 	{
-		CurrentPlatformString = *Item.Get();
-	}
+		if (Item == PlatformComboList[i])
+		{
+			CurrentPlatformString = *Item.Get();
+			CurrentTargetPlatform = PlatformList[i];
 
-	// DO A THING
+			// Cache registry, may be null
+			CurrentPlatformState = EditorModule->GetAssetRegistryStateForTargetPlatform(CurrentTargetPlatform);
+
+			// Refresh
+			RefreshAssetView();
+		}
+	}
 }
 
 FText SAssetAuditBrowser::GetPlatformComboText() const

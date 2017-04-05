@@ -91,7 +91,7 @@ struct FCompilerNativizationOptions
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	FString PlatformName;
+	FName PlatformName;
 
 	UPROPERTY()
 	bool ServerOnlyPlatform;
@@ -114,6 +114,21 @@ struct FCompilerNativizationOptions
 		: ServerOnlyPlatform(false)
 		, ClientOnlyPlatform(false)
 	{}
+};
+
+/** Cached 'cosmetic' information about a macro graph (this is transient and is computed at load) */
+USTRUCT()
+struct FBlueprintMacroCosmeticInfo
+{
+	GENERATED_BODY()
+
+	// Does this macro contain one or more latent nodes?
+	bool bContainsLatentNodes;
+
+	FBlueprintMacroCosmeticInfo()
+		: bContainsLatentNodes(false)
+	{
+	}
 };
 
 struct FKismetCompilerOptions
@@ -276,7 +291,7 @@ struct FBPInterfaceDescription
 
 	/** References to the graphs associated with the required functions for this interface */
 	UPROPERTY()
-	TArray<class UEdGraph*> Graphs;
+	TArray<UEdGraph*> Graphs;
 
 
 	FBPInterfaceDescription()
@@ -428,27 +443,31 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 #if WITH_EDITORONLY_DATA
 	/** Set of pages that combine into a single uber-graph */
 	UPROPERTY()
-	TArray<class UEdGraph*> UbergraphPages;
+	TArray<UEdGraph*> UbergraphPages;
 
 	/** Set of functions implemented for this class graphically */
 	UPROPERTY()
-	TArray<class UEdGraph*> FunctionGraphs;
+	TArray<UEdGraph*> FunctionGraphs;
 
 	/** Graphs of signatures for delegates */
 	UPROPERTY()
-	TArray<class UEdGraph*> DelegateSignatureGraphs;
+	TArray<UEdGraph*> DelegateSignatureGraphs;
 
 	/** Set of macros implemented for this class */
 	UPROPERTY()
-	TArray<class UEdGraph*> MacroGraphs;
+	TArray<UEdGraph*> MacroGraphs;
 
 	/** Set of functions actually compiled for this class */
 	UPROPERTY(transient, duplicatetransient)
-	TArray<class UEdGraph*> IntermediateGeneratedGraphs;
+	TArray<UEdGraph*> IntermediateGeneratedGraphs;
 
 	/** Set of functions actually compiled for this class */
 	UPROPERTY(transient, duplicatetransient)
-	TArray<class UEdGraph*> EventGraphs;
+	TArray<UEdGraph*> EventGraphs;
+
+	/** Cached cosmetic information about macro graphs, use GetCosmeticInfoForMacro() to access */
+	UPROPERTY(Transient)
+	TMap<UEdGraph*, FBlueprintMacroCosmeticInfo> PRIVATE_CachedMacroInfo;
 
 	/** 
 	 * Flag indicating that a read only duplicate of this blueprint is being created, used to disable logic in ::PostDuplicate,

@@ -1480,6 +1480,11 @@ struct SLATECORE_API FWindowStyle : public FSlateWidgetStyle
 	FSlateBrush FlashTitleBrush;
 	FWindowStyle& SetFlashTitleBrush( const FSlateBrush& InFlashTitleBrush ){ FlashTitleBrush = InFlashTitleBrush; return *this; }
 
+	/** Color used to draw the window background */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	FSlateColor BackgroundColor;
+	FWindowStyle& SetBackgroundColor( const FSlateColor& InBackgroundColor ){ BackgroundColor = InBackgroundColor; return *this; }
+
 	/** Brush used to draw the window outline */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateBrush OutlineBrush;

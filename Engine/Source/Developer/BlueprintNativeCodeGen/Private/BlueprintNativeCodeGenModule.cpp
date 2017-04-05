@@ -15,7 +15,7 @@
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Settings/ProjectPackagingSettings.h"
-
+#include "PlatformInfo.h"
 #include "AssetRegistryModule.h"
 #include "BlueprintNativeCodeGenManifest.h"
 #include "Blueprint/BlueprintSupport.h"
@@ -27,15 +27,6 @@
 #include "Engine/InheritableComponentHandler.h"
 #include "Animation/AnimBlueprint.h"
 #include "Interfaces/ITargetPlatform.h"
-/*******************************************************************************
-* NativizationCookControllerImpl
-******************************************************************************/
-
-namespace NativizationCookControllerImpl
-{
-	// If you change this plugin name you must update logic in CookCommand.Automation.cs
-	static const TCHAR* DefaultPluginName = TEXT("NativizedAssets");
-}
 
 /*******************************************************************************
  * FBlueprintNativeCodeGenModule
@@ -50,8 +41,8 @@ public:
 	}
 
 	//~ Begin IBlueprintNativeCodeGenModule interface
-	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const TCHAR* PlatformName) override;
-	virtual void SaveManifest(int32 Id = -1) override;
+	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const FName PlatformName) override;
+	virtual void SaveManifest() override;
 	virtual void MergeManifest(int32 ManifestIdentifier) override;
 	virtual void FinalizeManifest() override;
 	virtual void GenerateStubs() override;
@@ -63,7 +54,7 @@ public:
 	{
 		return FFileHelper::EEncodingOptions::ForceUTF8;
 	}
-	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const FString& PlatformName) const override;
+	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const ITargetPlatform* Platform) const override;
 	virtual void FillPlatformNativizationDetails(const ITargetPlatform* Platform, FPlatformNativizationDetails& OutDetails) override;
 protected:
 	virtual void Initialize(const FNativeCodeGenInitData& InitData) override;
@@ -80,10 +71,10 @@ private:
 	void ReadConfig();
 	void FillTargetedForReplacementQuery();
 	void FillIsFunctionUsedInADelegate();
-	FBlueprintNativeCodeGenManifest& GetManifest(const TCHAR* PlatformName);
-	void GenerateSingleStub(UBlueprint* BP, const TCHAR* PlatformName);
+	FBlueprintNativeCodeGenManifest& GetManifest(const FName PlatformName);
+	void GenerateSingleStub(UBlueprint* BP, const FName PlatformName);
 	void CollectBoundFunctions(UBlueprint* BP);
-	void GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName, TSharedPtr<FNativizationSummary> NativizationSummary = TSharedPtr<FNativizationSummary>());
+	void GenerateSingleAsset(UField* ForConversion, const FName PlatformName, TSharedPtr<FNativizationSummary> NativizationSummary = TSharedPtr<FNativizationSummary>());
 
 	struct FStatePerPlatform
 	{
@@ -95,9 +86,9 @@ private:
 		mutable TMap<FStringAssetReference, EReplacementResult> CachedIsTargetedForReplacement;
 	};
 
-	TMap< FString, FStatePerPlatform > StatesPerPlatform;
+	TMap< FName, FStatePerPlatform > StatesPerPlatform;
 
-	TMap< FString, TUniquePtr<FBlueprintNativeCodeGenManifest> > Manifests;
+	TMap< FName, TUniquePtr<FBlueprintNativeCodeGenManifest> > Manifests;
 
 	// Children of these classes won't be nativized
 	TArray<FString> ExcludedAssetTypes;
@@ -108,20 +99,22 @@ private:
 	// Excluded folders. It excludes only BPGCs, enums and structures are still converted.
 	TArray<FString> ExcludedFolderPaths;
 
-	TArray<FString> TargetPlatformNames;
+	TArray<FName> TargetPlatformNames;
 
 	TMultiMap<FName, TAssetSubclassOf<UObject>> FunctionsBoundToADelegate; // is a function could be bound to a delegate, then it must have UFUNCTION macro. So we cannot optimize it.
 };
 
-const FCompilerNativizationOptions& FBlueprintNativeCodeGenModule::GetNativizationOptionsForPlatform(const FString& PlatformName) const
+const FCompilerNativizationOptions& FBlueprintNativeCodeGenModule::GetNativizationOptionsForPlatform(const ITargetPlatform* Platform) const
 {
+	const FName PlatformName = ensure(Platform) ? Platform->GetPlatformInfo().PlatformInfoName : NAME_None;
+
 	const TUniquePtr<FBlueprintNativeCodeGenManifest>* Result = Manifests.Find(PlatformName);
 	if (ensure(Result && Result->IsValid()))
 	{
 		const FBlueprintNativeCodeGenManifest& Manifest = **Result;
 		return Manifest.GetCompilerNativizationOptions();
 	}
-	UE_LOG(LogBlueprintCodeGen, Error, TEXT("Cannot find manifest for platform: %s"), *PlatformName);
+	UE_LOG(LogBlueprintCodeGen, Error, TEXT("Cannot find manifest for platform: %s"), *PlatformName.ToString());
 	static const FCompilerNativizationOptions FallbackNativizationOptions{};
 	return FallbackNativizationOptions;
 }
@@ -273,14 +266,17 @@ void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& Ini
 	// Each platform will need a manifest, because each platform could cook different assets:
 	for (const FPlatformNativizationDetails& Platform : InitData.CodegenTargets)
 	{
-		FString OutputPath = FPaths::Combine(*Platform.PlatformTargetDirectory, NativizationCookControllerImpl::DefaultPluginName);
-
-		Manifests.Add(*Platform.PlatformName, TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(NativizationCookControllerImpl::DefaultPluginName, OutputPath, Platform.CompilerNativizationOptions)));
+		FString TargetPath = InitData.DestPluginPath; 
+		if (TargetPath.IsEmpty())
+		{
+			TargetPath = FBlueprintNativeCodeGenPaths::GetDefaultPluginPath(Platform.PlatformName);
+		}
+		const FBlueprintNativeCodeGenManifest& Manifest = *Manifests.Add(Platform.PlatformName, TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(TargetPath, Platform.CompilerNativizationOptions, InitData.ManifestIdentifier)));
 
 		TargetPlatformNames.Add(Platform.PlatformName);
 
 		// Clear source code folder
-		const FString SourceCodeDir = GetManifest(*Platform.PlatformName).GetTargetPaths().PluginSourceDir();
+		const FString SourceCodeDir = Manifest.GetTargetPaths().PluginRootDir();
 		UE_LOG(LogBlueprintCodeGen, Log, TEXT("Clear nativized source code directory: %s"), *SourceCodeDir);
 		IFileManager::Get().DeleteDirectory(*SourceCodeDir, false, true);
 	}
@@ -305,11 +301,11 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 	for (const FPlatformNativizationDetails& Platform : CodegenTargets)
 	{
 		// load the old manifest:
-		FString OutputPath = FPaths::Combine(*Platform.PlatformTargetDirectory, NativizationCookControllerImpl::DefaultPluginName, *FBlueprintNativeCodeGenPaths::GetDefaultManifestPath());
+		FString OutputPath = FBlueprintNativeCodeGenPaths::GetDefaultManifestFilePath(Platform.PlatformName);
 		Manifests.Add(Platform.PlatformName, TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(FPaths::ConvertRelativePathToFull(OutputPath))));
 		//FBlueprintNativeCodeGenManifest OldManifest(FPaths::ConvertRelativePathToFull(OutputPath));
 		// reconvert every assets listed in the manifest:
-		for (const auto& ConversionTarget : GetManifest(*Platform.PlatformName).GetConversionRecord())
+		for (const auto& ConversionTarget : GetManifest(Platform.PlatformName).GetConversionRecord())
 		{
 			// load the package:
 			UPackage* Package = LoadPackage(nullptr, *ConversionTarget.Value.TargetObjPath, LOAD_None);
@@ -321,11 +317,11 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 			}
 
 			// reconvert it
-			Convert(Package, ESavePackageResult::ReplaceCompletely, *Platform.PlatformName);
+			Convert(Package, ESavePackageResult::ReplaceCompletely, Platform.PlatformName);
 		}
 
 		// reconvert every unconverted dependency listed in the manifest:
-		for (const auto& ConversionTarget : GetManifest(*Platform.PlatformName).GetUnconvertedDependencies())
+		for (const auto& ConversionTarget : GetManifest(Platform.PlatformName).GetUnconvertedDependencies())
 		{
 			// load the package:
 			UPackage* Package = LoadPackage(nullptr, *ConversionTarget.Key.GetPlainNameString(), LOAD_None);
@@ -337,7 +333,7 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 			if (ensure(BP))
 			{
 				CollectBoundFunctions(BP);
-				GenerateSingleStub(BP, *Platform.PlatformName);
+				GenerateSingleStub(BP, Platform.PlatformName);
 			}
 		}
 		FStatePerPlatform* State = StatesPerPlatform.Find(Platform.PlatformName);
@@ -347,7 +343,7 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPl
 			UBlueprint* BP = BPPtr.LoadSynchronous();
 			if (ensure(BP))
 			{
-				GenerateSingleAsset(BP->GeneratedClass, *Platform.PlatformName);
+				GenerateSingleAsset(BP->GeneratedClass, Platform.PlatformName);
 			}
 		}
 	}
@@ -361,7 +357,7 @@ void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 		CodeGenBackend.NativizationSummary() = NativizationSummary;
 	}
 
-	for (const FString& PlatformName : TargetPlatformNames)
+	for (const FName& PlatformName : TargetPlatformNames)
 	{
 		FStatePerPlatform* State = StatesPerPlatform.Find(PlatformName);
 		check(State);
@@ -370,7 +366,7 @@ void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 			UBlueprint* BP = BPPtr.LoadSynchronous();
 			if (ensure(BP))
 			{
-				GenerateSingleAsset(BP->GeneratedClass, *PlatformName, NativizationSummary);
+				GenerateSingleAsset(BP->GeneratedClass, PlatformName, NativizationSummary);
 			}
 		}
 	}
@@ -403,15 +399,14 @@ void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 	UE_LOG(LogBlueprintCodeGen, Display, TEXT("Nativization Summary - Shared Variables From Graph: %d"), NativizationSummary->MemberVariablesFromGraph);
 }
 
-FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest(const TCHAR* PlatformName)
+FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest(const FName PlatformName)
 {
-	FString PlatformNameStr(PlatformName);
-	TUniquePtr<FBlueprintNativeCodeGenManifest>* Result = Manifests.Find(PlatformNameStr);
+	TUniquePtr<FBlueprintNativeCodeGenManifest>* Result = Manifests.Find(PlatformName);
 	check(Result->IsValid());
 	return **Result;
 }
 
-void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const TCHAR* PlatformName)
+void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const FName PlatformName)
 {
 	if (!ensure(BP))
 	{
@@ -446,7 +441,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const TCH
 	GetManifest(PlatformName).GatherModuleDependencies(BP->GetOutermost());
 }
 
-void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName, TSharedPtr<FNativizationSummary> NativizationSummary)
+void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, const FName PlatformName, TSharedPtr<FNativizationSummary> NativizationSummary)
 {
 	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	auto& BackendPCHQuery = BackEndModule.OnPCHFilenameQuery();
@@ -509,7 +504,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 
 void FBlueprintNativeCodeGenModule::GenerateStubs()
 {
-	for (auto& PlatformName : TargetPlatformNames)
+	for (FName& PlatformName : TargetPlatformNames)
 	{
 		FStatePerPlatform* StateForCurrentPlatform = StatesPerPlatform.Find(PlatformName);
 		if (!ensure(StateForCurrentPlatform))
@@ -530,7 +525,7 @@ void FBlueprintNativeCodeGenModule::GenerateStubs()
 					continue;
 				}
 
-				GenerateSingleStub(BPPtr.LoadSynchronous(), *PlatformName);
+				GenerateSingleStub(BPPtr.LoadSynchronous(), PlatformName);
 			}
 			// make sure there was any progress
 			if (!ensure(OldGeneratedNum != AlreadyGenerated.Num()))
@@ -541,7 +536,7 @@ void FBlueprintNativeCodeGenModule::GenerateStubs()
 	}
 }
 
-void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, ESavePackageResult CookResult, const TCHAR* PlatformName)
+void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, ESavePackageResult CookResult, const FName PlatformName)
 {
 	// Find the struct/enum to convert:
 	UStruct* Struct = nullptr;
@@ -596,20 +591,20 @@ void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, ESavePackageResul
 	}
 }
 
-void FBlueprintNativeCodeGenModule::SaveManifest(int32 Id )
+void FBlueprintNativeCodeGenModule::SaveManifest()
 {
-	for (auto& PlatformName : TargetPlatformNames)
+	for (FName& PlatformName : TargetPlatformNames)
 	{
-		GetManifest(*PlatformName).Save(Id);
+		GetManifest(PlatformName).Save();
 	}
 }
 
 void FBlueprintNativeCodeGenModule::MergeManifest(int32 ManifestIdentifier)
 {
-	for (auto& PlatformName : TargetPlatformNames)
+	for (FName& PlatformName : TargetPlatformNames)
 	{
-		FBlueprintNativeCodeGenManifest& CurrentManifest = GetManifest(*PlatformName);
-		FBlueprintNativeCodeGenManifest OtherManifest = FBlueprintNativeCodeGenManifest(CurrentManifest.GetTargetPaths().ManifestFilePath() + FString::FromInt(ManifestIdentifier));
+		FBlueprintNativeCodeGenManifest& CurrentManifest = GetManifest(PlatformName);
+		FBlueprintNativeCodeGenManifest OtherManifest = FBlueprintNativeCodeGenManifest(CurrentManifest.GetTargetPaths().ManifestFilePath(ManifestIdentifier));
 		CurrentManifest.Merge(OtherManifest);
 	}
 } 
@@ -618,9 +613,9 @@ void FBlueprintNativeCodeGenModule::FinalizeManifest()
 {
 	IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	TSharedPtr<FNativizationSummary> NativizationSummary = CodeGenBackend.NativizationSummary();
-	for(auto& PlatformName : TargetPlatformNames)
+	for(FName& PlatformName : TargetPlatformNames)
 	{
-		FBlueprintNativeCodeGenManifest& Manifest = GetManifest(*PlatformName);
+		FBlueprintNativeCodeGenManifest& Manifest = GetManifest(PlatformName);
 		if (Manifest.GetConversionRecord().Num() > 0)
 		{
 			if (NativizationSummary.IsValid())
@@ -637,7 +632,8 @@ void FBlueprintNativeCodeGenModule::FinalizeManifest()
 					}
 				}
 			}
-			Manifest.Save(-1);
+			ensure(Manifest.GetManifestChunkId() == -1); // ensure this was intended to be the root manifest
+			Manifest.Save();
 			check(FBlueprintNativeCodeGenUtils::FinalizePlugin(Manifest));
 		}
 	}
@@ -1015,10 +1011,10 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 void FBlueprintNativeCodeGenModule::FillPlatformNativizationDetails(const ITargetPlatform* Platform, FPlatformNativizationDetails& Details)
 {
 	check(Platform);
-	Details.PlatformName = Platform->PlatformName();
-	// If you change this target path you must also update logic in CookCommand.Automation.CS. Passing a single directory around is cumbersome for testing, so I have hard coded it.
-	Details.PlatformTargetDirectory = FString(FPaths::Combine(*FPaths::GameIntermediateDir(), *(Platform->PlatformName())));
-	Details.CompilerNativizationOptions.PlatformName = Platform->PlatformName();
+	const PlatformInfo::FPlatformInfo& PlatformInfo = Platform->GetPlatformInfo();
+
+	Details.PlatformName = PlatformInfo.TargetPlatformName;
+	Details.CompilerNativizationOptions.PlatformName = Details.PlatformName;
 	Details.CompilerNativizationOptions.ClientOnlyPlatform = Platform->IsClientOnly();
 	Details.CompilerNativizationOptions.ServerOnlyPlatform = Platform->IsServerOnly();
 

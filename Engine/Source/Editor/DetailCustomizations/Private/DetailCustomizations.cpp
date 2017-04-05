@@ -20,6 +20,7 @@
 #include "ReflectionCaptureDetails.h"
 #include "SkyLightComponentDetails.h"
 #include "BrushDetails.h"
+#include "ObjectDetails.h"
 #include "ActorDetails.h"
 #include "SkeletalControlNodeDetails.h"
 #include "AnimMontageSegmentDetails.h"
@@ -252,6 +253,7 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 	// in the order they are customized.  This is only relevant for inheritance where both a child and a parent have properties that are customized.
 	// In the order below, Actor will get a chance to display details first, followed by USceneComponent.
 
+	RegisterCustomClassLayout("Object", FOnGetDetailCustomizationInstance::CreateStatic(&FObjectDetails::MakeInstance));
 	RegisterCustomClassLayout("Actor", FOnGetDetailCustomizationInstance::CreateStatic(&FActorDetails::MakeInstance));
 	RegisterCustomClassLayout("ActorComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FActorComponentDetails::MakeInstance));
 	RegisterCustomClassLayout("SceneComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FSceneComponentDetails::MakeInstance));

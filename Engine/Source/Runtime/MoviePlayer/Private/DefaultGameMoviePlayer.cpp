@@ -688,15 +688,15 @@ FReply FDefaultGameMoviePlayer::OnAnyDown()
 
 void FDefaultGameMoviePlayer::OnPreLoadMap(const FString& LevelName)
 {
-	FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 
 	if( PlayMovie() )
 	{
-		FCoreUObjectDelegates::PostLoadMap.AddSP(this, &FDefaultGameMoviePlayer::OnPostLoadMap );
+		FCoreUObjectDelegates::PostLoadMapWithWorld.AddSP(this, &FDefaultGameMoviePlayer::OnPostLoadMap );
 	}
 }
 
-void FDefaultGameMoviePlayer::OnPostLoadMap()
+void FDefaultGameMoviePlayer::OnPostLoadMap(UWorld* LoadedWorld)
 {
 	WaitForMovieToFinish();
 }

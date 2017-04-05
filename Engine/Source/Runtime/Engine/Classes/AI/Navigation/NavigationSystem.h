@@ -817,6 +817,8 @@ public:
 	 *	Note: this is not a runtime switch. Call it before any actual game starts. */
 	static void ConfigureAsStatic();
 
+	static void SetUpdateNavOctreeOnComponentChange(bool bNewUpdateOnComponentChange);
+
 	/** 
 	 * Exec command handlers
 	 */
@@ -898,7 +900,7 @@ protected:
 	static TSubclassOf<UNavArea> DefaultObstacleArea;
 
 	/** delegate handler for PostLoadMap event */
-	void OnPostLoadMap();
+	void OnPostLoadMap(UWorld* LoadedWorld);
 #if WITH_EDITOR
 	/** delegate handler for ActorMoved events */
 	void OnActorMoved(AActor* Actor);

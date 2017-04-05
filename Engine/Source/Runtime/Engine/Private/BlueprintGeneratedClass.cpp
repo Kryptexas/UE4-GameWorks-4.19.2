@@ -254,7 +254,7 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 {
 	if(GBlueprintUseCompilationManager)
 	{
-		FBlueprintCompilationManager::FlushCompilationQueue();
+		FBlueprintCompilationManager::FlushCompilationQueue(ObjLoaded);
 		return;
 	}
 	

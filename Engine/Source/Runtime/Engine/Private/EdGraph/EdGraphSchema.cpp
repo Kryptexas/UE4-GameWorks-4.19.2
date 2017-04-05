@@ -778,6 +778,7 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 						SelectedNode->PreEditChange(NodeCommentProperty);
 
 						SelectedNode->NodeComment = NewString;
+						SelectedNode->SetMakeCommentBubbleVisible(true);
 
 						FPropertyChangedEvent NodeCommentPropertyChangedEvent(NodeCommentProperty);
 						SelectedNode->PostEditChangeProperty(NodeCommentPropertyChangedEvent);

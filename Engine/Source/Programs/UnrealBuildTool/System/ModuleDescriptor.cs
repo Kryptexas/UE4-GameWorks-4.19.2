@@ -28,15 +28,20 @@ namespace UnrealBuildTool
 		/// </summary>
 		RuntimeNoCommandlet,
 
-		/// <summary>
-		/// Any target or program
-		/// </summary>
-		RuntimeAndProgram,
+        /// <summary>
+        /// Any target or program
+        /// </summary>
+        RuntimeAndProgram,
 
-		/// <summary>
-		/// Loaded only when the engine has support for developer tools enabled
+        /// <summary>
+		/// Loaded only in cooked builds
 		/// </summary>
-		Developer,
+		CookedOnly,
+
+        /// <summary>
+        /// Loaded only when the engine has support for developer tools enabled
+        /// </summary>
+        Developer,
 
 		/// <summary>
 		/// Loaded only by the editor
@@ -247,14 +252,15 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Determines whether the given plugin module is part of the current build.
-		/// </summary>
-		/// <param name="Platform">The platform being compiled for</param>
-		/// <param name="TargetType">The type of the target being compiled</param>
-		/// <param name="bBuildDeveloperTools">Whether the configuration includes developer tools (typically UEBuildConfiguration.bBuildDeveloperTools for UBT callers)</param>
-		/// <param name="bBuildEditor">Whether the configuration includes the editor (typically UEBuildConfiguration.bBuildEditor for UBT callers)</param>
-		public bool IsCompiledInConfiguration(UnrealTargetPlatform Platform, TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor)
+        /// <summary>
+        /// Determines whether the given plugin module is part of the current build.
+        /// </summary>
+        /// <param name="Platform">The platform being compiled for</param>
+        /// <param name="TargetType">The type of the target being compiled</param>
+        /// <param name="bBuildDeveloperTools">Whether the configuration includes developer tools (typically UEBuildConfiguration.bBuildDeveloperTools for UBT callers)</param>
+        /// <param name="bBuildEditor">Whether the configuration includes the editor (typically UEBuildConfiguration.bBuildEditor for UBT callers)</param>
+        /// <param name="bBuildRequiresCookedData">Whether the configuration requires cooked content (typically UEBuildConfiguration.bBuildRequiresCookedData for UBT callers)</param>
+        public bool IsCompiledInConfiguration(UnrealTargetPlatform Platform, TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor, bool bBuildRequiresCookedData)
 		{
 			// Check the platform is whitelisted
 			if (WhitelistPlatforms != null && WhitelistPlatforms.Length > 0 && !WhitelistPlatforms.Contains(Platform))
@@ -273,10 +279,12 @@ namespace UnrealBuildTool
 			{
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
-					return TargetType != TargetType.Program;
-				case ModuleHostType.RuntimeAndProgram:
+                    return TargetType != TargetType.Program;
+                case ModuleHostType.CookedOnly:
+                    return bBuildRequiresCookedData;
+                case ModuleHostType.RuntimeAndProgram:
 					return true;
-				case ModuleHostType.Developer:
+                case ModuleHostType.Developer:
 					return bBuildDeveloperTools;
 				case ModuleHostType.Editor:
 				case ModuleHostType.EditorNoCommandlet:

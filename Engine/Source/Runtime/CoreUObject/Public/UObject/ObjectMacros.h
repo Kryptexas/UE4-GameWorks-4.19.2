@@ -817,6 +817,9 @@ namespace UF
 		/// This function is cosmetic and will not run on dedicated servers
 		BlueprintCosmetic,
 
+		/// This function can be called in the editor on selected instances via a button in the details panel.
+		CallInEditor,
+
 		/// The UnrealHeaderTool code generator will not produce a execFoo thunk for this function; it is up to the user to provide one.
 		CustomThunk,
 

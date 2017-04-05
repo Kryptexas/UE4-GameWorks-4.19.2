@@ -79,6 +79,9 @@ const TCHAR* EHostType::ToString( const EHostType::Type Value )
 		case RuntimeAndProgram:
 			return TEXT("RuntimeAndProgram");
 
+		case CookedOnly:
+			return TEXT("CookedOnly");
+
 		case Developer:
 			return TEXT( "Developer" );
 
@@ -283,7 +286,7 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 		return false;
 	}
 
-	// Check the module is compatible with this target. This should match UEBuildTarget.ShouldIncludePluginModule in UBT
+	// Check the module is compatible with this target. This should match ModuleDescriptor.IsCompiledInConfiguration in UBT
 	switch (Type)
 	{
 	case EHostType::Runtime:
@@ -296,6 +299,9 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 
 	case EHostType::RuntimeAndProgram:
 		return true;
+
+	case EHostType::CookedOnly:
+		return FPlatformProperties::RequiresCookedData();
 
 	case EHostType::Developer:
 		#if WITH_UNREAL_DEVELOPER_TOOLS
@@ -355,6 +361,9 @@ bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
 			if(!IsRunningCommandlet()) return true;
 		#endif
 		break;
+
+	case EHostType::CookedOnly:
+		return FPlatformProperties::RequiresCookedData();
 
 	case EHostType::Developer:
 		#if WITH_UNREAL_DEVELOPER_TOOLS

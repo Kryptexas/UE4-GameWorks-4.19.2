@@ -7,6 +7,14 @@
 #include "IAudioExtensionPlugin.h"
 #include "Sound/AudioSettings.h"
 
+static int32 DisableHRTFCvar = 0;
+FAutoConsoleVariableRef CVarDisableHRTF(
+	TEXT("au.DisableHRTF"),
+	DisableHRTFCvar,
+	TEXT("Disables HRTF\n")
+	TEXT("0: Not Disabled, 1: Disabled"),
+	ECVF_Default);
+
 namespace Audio
 {
 
@@ -16,8 +24,6 @@ namespace Audio
 		, MixerBuffer(nullptr)
 		, MixerSourceVoice(nullptr)
 		, AsyncRealtimeAudioTask(nullptr)
-		, PendingReleaseBuffer(nullptr)
-		, PendingReleaseRealtimeAudioTask(nullptr)
 		, CurrentBuffer(0)
 		, PreviousAzimuth(-1.0f)
 		, bPlayedCachedBuffer(false)
@@ -59,6 +65,9 @@ namespace Audio
 			const int32 NumBytes = InWaveInstance->WaveData->RawPCMDataSize;
 			NumFrames = NumBytes / (InWaveInstance->WaveData->NumChannels * sizeof(int16));
 		}
+
+		// Reset our releasing bool
+		bIsReleasing = false;
 
 		FSoundBuffer* SoundBuffer = static_cast<FSoundBuffer*>(MixerBuffer);
 		if (SoundBuffer->NumChannels > 0)
@@ -285,7 +294,7 @@ namespace Audio
 
 	bool FMixerSource::IsPreparedToInit()
 	{
-		if (MixerBuffer && MixerBuffer->IsRealTimeSourceReady())
+		if (MixerBuffer && MixerBuffer->IsRealTimeSourceReady() && !bIsReleasing)
 		{
 			// Check if we have a realtime audio task already (doing first decode)
 			if (AsyncRealtimeAudioTask)
@@ -673,18 +682,23 @@ namespace Audio
 	void FMixerSource::OnRelease()
 	{
 		// This can only be freed from the audio render thread
-		if (PendingReleaseRealtimeAudioTask)
-		{
-			PendingReleaseRealtimeAudioTask->EnsureCompletion();
-			delete PendingReleaseRealtimeAudioTask;
-			PendingReleaseRealtimeAudioTask = nullptr;
+		IAudioTask* PendingTask = nullptr;
 
-			if (PendingReleaseBuffer)
-			{
-				delete PendingReleaseBuffer;
-				PendingReleaseBuffer = nullptr;
-			}
+		while (PendingReleaseRealtimeAudioTask.Dequeue(PendingTask))
+		{
+			PendingTask->EnsureCompletion();
+			delete PendingTask;
+			PendingTask = nullptr;
 		}
+
+		FSoundBuffer* PendingBuffer = nullptr;
+		if (PendingReleaseBuffer.Dequeue(PendingBuffer))
+		{
+			delete PendingBuffer;
+			PendingBuffer = nullptr;
+		}
+
+		bIsReleasing = false;
 	}
 
 	void FMixerSource::FreeResources()
@@ -697,7 +711,13 @@ namespace Audio
 		if (MixerSourceVoice)
 		{
 			// Hand off the ptr of the async task so it can be shutdown on the audio render thread.
-			PendingReleaseRealtimeAudioTask = AsyncRealtimeAudioTask;
+			if (AsyncRealtimeAudioTask)
+			{
+				PendingReleaseRealtimeAudioTask.Enqueue(AsyncRealtimeAudioTask);
+			}
+
+			// We're now "releasing" so don't recycle this voice until we get notified that the source has finished
+			bIsReleasing = true;
 
 			// This will trigger FMixerSource::OnRelease from audio render thread.
 			MixerSourceVoice->Release();
@@ -710,7 +730,7 @@ namespace Audio
 			if (Buffer)
 			{
 				check(Buffer->ResourceID == 0);
-				PendingReleaseBuffer = Buffer;
+				PendingReleaseBuffer.Enqueue(Buffer);
 			}
 
 			CurrentBuffer = 0;
@@ -937,6 +957,7 @@ namespace Audio
 		return (Buffer->NumChannels == 1 &&
 				AudioDevice->AudioPlugin != nullptr &&
 				AudioDevice->IsSpatializationPluginEnabled() &&
+				DisableHRTFCvar == 0 &&
 				WaveInstance->SpatializationAlgorithm != SPATIALIZATION_Default);
 	}
 

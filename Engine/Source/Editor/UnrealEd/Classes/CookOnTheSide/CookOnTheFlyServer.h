@@ -13,17 +13,18 @@ CookOnTheFlyServer.h : handles polite cook requests via network ;)
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Object.h"
 #include "UObject/WeakObjectPtr.h"
+#include "UObject/Package.h"
 #include "Misc/ScopeLock.h"
 #include "HAL/PlatformProcess.h"
 #include "TickableEditorObject.h"
 #include "IPlatformFileSandboxWrapper.h"
 #include "CookOnTheFlyServer.generated.h"
 
-class FChunkManifestGenerator;
+class FAssetRegistryGenerator;
 class ITargetPlatform;
 struct FPropertyChangedEvent;
-enum class ESavePackageResult;
 class IPlugin;
+class IAssetRegistry;
 
 enum class ECookInitializationFlags
 {
@@ -43,8 +44,9 @@ enum class ECookInitializationFlags
 	TestCook =									0x00002000, // test the cooker garbage collection process and cooking (cooker will never end just keep testing).
 	IterateOnHash =								0x00004000, // when using iterative cooking use hashes of original files instead of timestamps
 	LogDebugInfo =								0x00008000, // enables additional debug log information
-	IterateSharedBuild =						0x00010000, // iterate from a build in teh SharedIterativeBuild directory 
+	IterateSharedBuild =						0x00010000, // iterate from a build in the SharedIterativeBuild directory 
 	IgnoreIniSettingsOutOfDate =				0x00020000, // if the inisettings say the cook is out of date keep using the previously cooked build
+	IterateOnAssetRegistry =					0x00040000, // when using iterative cooking use the asset registry dependencies
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 
@@ -463,7 +465,7 @@ private:
 				bool allFailed = true;
 				for ( const auto& PlatformName : PlatformNames )
 				{
-					if ( OurRequest->HasSucceededSavePackage(PlatformName) == false )
+					if (OurRequest->HasSucceededSavePackage(PlatformName))
 					{
 						allFailed = false;
 						break;
@@ -830,13 +832,11 @@ private:
 		FString CreateReleaseVersion;
 		/** Leak test: last gc items (only valid when running from commandlet requires gc between each cooked package) */
 		TSet<FWeakObjectPtr> LastGCItems;
-		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
-		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
 		/** Dependency graph of maps as root objects. */
 		TMap<FName, TMap< FName, TSet <FName> > > MapDependencyGraphs; 
 		/** If a cook is cancelled next cook will need to resume cooking */ 
 		TArray<FFilePlatformRequest> PreviousCookRequests; 
-		/** If we are based on a release version of the game this is the set of packages which were cooked in that release */
+		/** If we are based on a release version of the game this is the set of packages which were cooked in that release. Map from platform name to list of uncooked package filenames */
 		TMap<FName,TArray<FName> > BasedOnReleaseCookedPackages;
 		/** Timing information about cook by the book */
 		double CookTime;
@@ -959,7 +959,11 @@ private:
 	mutable TMap<FName, FCachedPackageFilename> PackageFilenameCache; // filename cache (only process the string operations once)
 	mutable TMap<FName, FName> PackageFilenameToPackageFNameCache;
 
+	/** Cached copy of asset registry */
+	IAssetRegistry* AssetRegistry;
 
+	/** Map of platform name to asset registry generators, which hold the state of asset registry data for a platform */
+	TMap<FName, FAssetRegistryGenerator*> RegistryGenerators;
 
 	//////////////////////////////////////////////////////////////////////////
 	// iterative ini settings checking
@@ -1058,6 +1062,8 @@ public:
 		bool bGenerateDependenciesForMaps; 
 		bool bErrorOnEngineContentUse; // this is a flag for dlc, will cause the cooker to error if the dlc references engine content
 		int32 NumProcesses;
+		bool bNativizeAssets;
+		FString NativizedPluginPath; // path expressing the desired .uplugin path (optional); will only be utilized if bNativizeAssets is set
 		FCookByTheBookStartupOptions() :
 			CookOptions(ECookByTheBookOptions::None),
 			DLCName(FString()),
@@ -1065,7 +1071,8 @@ public:
 			bGenerateStreamingInstallManifests(false),
 			bGenerateDependenciesForMaps(false),
 			bErrorOnEngineContentUse(false),
-			NumProcesses(0)
+			NumProcesses(0),
+			bNativizeAssets(false)
 		{ }
 	};
 
@@ -1327,10 +1334,10 @@ private:
 	* Get all the packages which are listed in asset registry passed in.  
 	*
 	* @param AssetRegistryPath path of the assetregistry.bin file to read
-	* @param OutPackageNames out list of packages which were contained in the asset registry file
+	* @param OutPackageNames out list of uncooked package filenames which were contained in the asset registry file
 	* @return true if successfully read false otherwise
 	*/
-	bool GetAllPackagesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageNames ) const;
+	bool GetAllPackageFilenamesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageFilenames ) const;
 
 	/**
 	* SaveCookedAssetRegistry
@@ -1455,7 +1462,14 @@ private:
 	*/
 	bool ContainsMap(const FName& PackageName) const;
 
-
+	/** 
+	 * Returns true if this package contains a redirector, and fills in paths
+	 *
+	 * @param PackageName to return if it contains a redirector
+	 * @param RedirectedPaths map of original to redirected object paths
+	 * @return true if the Package contains a redirector false otherwise
+	 */
+	bool ContainsRedirector(const FName& PackageName, TMap<FString,FString>& RedirectedPaths) const;
 
 	/**
 	* GetCurrentIniVersionStrings gets the current ini version strings for compare against previous cook
@@ -1572,7 +1586,7 @@ private:
 	*
 	*	@return	ESavePackageResult::Success if packages was cooked
 	*/
-	void SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<ESavePackageResult>& SavePackageResults);
+	void SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FSavePackageResultStruct>& SavePackageResults);
 	/**
 	*	Cook (save) the given package
 	*
@@ -1584,7 +1598,7 @@ private:
 	*
 	*	@return	ESavePackageResult::Success if packages was cooked
 	*/
-	void SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames, TArray<ESavePackageResult>& SavePackageResults);
+	void SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames, TArray<FSavePackageResultStruct>& SavePackageResults);
 
 
 	/**

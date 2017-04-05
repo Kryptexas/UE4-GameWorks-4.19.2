@@ -4214,7 +4214,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 				return false;
 			}
 
-			return ExtendedIsChildOf(OutputClass, InputClass);
+			return ExtendedIsChildOf(OutputClass->GetAuthoritativeClass(), InputClass->GetAuthoritativeClass());
 		}
 		else if (((Output.PinCategory == PC_Asset) && (Input.PinCategory == PC_Asset))
 			|| ((Output.PinCategory == PC_AssetClass) && (Input.PinCategory == PC_AssetClass)))

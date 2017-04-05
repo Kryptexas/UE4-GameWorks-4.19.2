@@ -201,6 +201,8 @@ void USkeletalMeshComponent::OnComponentCollisionSettingsChanged()
 	{
 		((FSkeletalMeshSceneProxy*)SceneProxy)->SetCollisionEnabled_GameThread(IsCollisionEnabled());
 	}
+
+	Super::OnComponentCollisionSettingsChanged();
 }
 
 void USkeletalMeshComponent::AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)

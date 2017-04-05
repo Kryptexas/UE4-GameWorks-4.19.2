@@ -34,5 +34,8 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "OculusAudio" );
 	}
+
+	/** We are overriding spatialization. */
+	virtual bool ImplementsSpatialization() const override { return true; }
 };
 

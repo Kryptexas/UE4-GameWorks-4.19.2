@@ -116,19 +116,7 @@ void ACharacter::PostInitializeComponents()
 	{
 		if (Mesh)
 		{
-			BaseTranslationOffset = Mesh->RelativeLocation;
-			BaseRotationOffset = Mesh->RelativeRotation.Quaternion();
-
-#if ENABLE_NAN_DIAGNOSTIC
-			if (BaseRotationOffset.ContainsNaN())
-			{
-				logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in BaseRotationOffset! (%s)"), *BaseRotationOffset.ToString());
-			}
-			if (Mesh->RelativeRotation.ContainsNaN())
-			{
-				logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in Mesh->RelativeRotation! (%s)"), *Mesh->RelativeRotation.ToString());
-			}
-#endif
+			CacheInitialMeshOffset(Mesh->RelativeLocation, Mesh->RelativeRotation);
 
 			// force animation tick after movement component updates
 			if (Mesh->PrimaryComponentTick.bCanEverTick && CharacterMovement)
@@ -151,6 +139,34 @@ void ACharacter::PostInitializeComponents()
 		}
 	}
 }
+
+void ACharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	if (Mesh)
+	{
+		CacheInitialMeshOffset(Mesh->RelativeLocation, Mesh->RelativeRotation);
+	}
+}
+
+
+void ACharacter::CacheInitialMeshOffset(FVector MeshRelativeLocation, FRotator MeshRelativeRotation)
+{
+	BaseTranslationOffset = MeshRelativeLocation;
+	BaseRotationOffset = MeshRelativeRotation.Quaternion();
+
+#if ENABLE_NAN_DIAGNOSTIC
+	if (BaseRotationOffset.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in BaseRotationOffset! (%s)"), *BaseRotationOffset.ToString());
+	}
+	if (Mesh->RelativeRotation.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in Mesh->RelativeRotation! (%s)"), *Mesh->RelativeRotation.ToString());
+	}
+#endif
+}
+
 
 UPawnMovementComponent* ACharacter::GetMovementComponent() const
 {

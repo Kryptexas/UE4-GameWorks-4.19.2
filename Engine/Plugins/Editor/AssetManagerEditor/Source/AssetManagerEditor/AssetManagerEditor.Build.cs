@@ -30,7 +30,8 @@ public class AssetManagerEditor : ModuleRules
 				"AssetTools",
 				"PropertyEditor",
                 "GraphEditor",
-                "ReferenceViewer"
+                "ReferenceViewer",
+                "SandboxFile"
 			}
 		);
 	}

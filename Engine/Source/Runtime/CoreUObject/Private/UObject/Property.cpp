@@ -16,6 +16,7 @@
 #include "UObject/PropertyHelper.h"
 #include "UObject/CoreRedirects.h"
 #include "Misc/StringClassReference.h"
+#include "Math/Box2D.h"
 
 DEFINE_LOG_CATEGORY(LogProperty);
 
@@ -44,6 +45,18 @@ struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase2<FIntPo
 	};
 };
 IMPLEMENT_STRUCT(IntPoint);
+
+template<>
+struct TStructOpsTypeTraits<FIntVector> : public TStructOpsTypeTraitsBase2<FIntVector>
+{
+	enum
+	{
+		WithNoInitConstructor = true,
+		WithZeroConstructor = true,
+		WithSerializer = true,
+	};
+};
+IMPLEMENT_STRUCT(IntVector);
 
 template<>
 struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase2<FVector2D>
@@ -107,6 +120,17 @@ struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase2<FBox>
 	};
 };
 IMPLEMENT_STRUCT(Box);
+
+template<>
+struct TStructOpsTypeTraits<FBox2D> : public TStructOpsTypeTraitsBase2<FBox2D>
+{
+	enum
+	{
+		WithNoInitConstructor = true,
+		WithZeroConstructor = true,
+	};
+};
+IMPLEMENT_STRUCT(Box2D);
 
 template<>
 struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase2<FMatrix>

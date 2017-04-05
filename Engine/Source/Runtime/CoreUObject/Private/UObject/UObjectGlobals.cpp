@@ -122,7 +122,10 @@ FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollectConditionalBegi
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy;
 
 FCoreUObjectDelegates::FPreLoadMapDelegate FCoreUObjectDelegates::PreLoadMap;
+FCoreUObjectDelegates::FPostLoadMapDelegate FCoreUObjectDelegates::PostLoadMapWithWorld;
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostDemoPlay;
 FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTop;
 
@@ -2404,7 +2407,7 @@ UObject* StaticAllocateObject
 	checkSlow(TotalSize);
 
 	if( Obj == NULL )
-	{
+	{	
 		int32 Alignment	= FMath::Max( 4, InClass->GetMinAlignment() );
 		Obj = (UObject *)GUObjectAllocator.AllocateUObject(TotalSize,Alignment,GIsInitialLoad);
 	}

@@ -134,6 +134,29 @@ void FSlateEditorStyle::FStyle::SyncSettings()
 		FCoreStyle::SetSelectionColor( Settings->SelectionColor );
 		FCoreStyle::SetInactiveSelectionColor( Settings->InactiveSelectionColor );
 		FCoreStyle::SetPressedSelectionColor( Settings->PressedSelectionColor );
+
+		// Sync the window background settings
+		FSlateColor WindowBackgroundColor(FLinearColor::White);
+		FSlateBrush WindowBackgroundMain(IMAGE_BRUSH("Old/Window/WindowBackground", FVector2D(74, 74), FLinearColor::White, ESlateBrushTileType::Both));
+		FSlateBrush WindowBackgroundChild(IMAGE_BRUSH("Common/NoiseBackground", FVector2D(64, 64), FLinearColor::White, ESlateBrushTileType::Both));
+
+		WindowBackgroundColor = Settings->EditorWindowBackgroundColor;
+
+		FSlateBrush DummyBrush;
+		if (Settings->EditorMainWindowBackgroundOverride != DummyBrush)
+		{
+			WindowBackgroundMain = Settings->EditorMainWindowBackgroundOverride;
+		}
+
+		if (Settings->EditorChildWindowBackgroundOverride != DummyBrush)
+		{
+			WindowBackgroundChild = Settings->EditorChildWindowBackgroundOverride;
+		}
+
+		FWindowStyle& WindowStyle = const_cast<FWindowStyle&>(FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window"));
+		WindowStyle.SetBackgroundColor(WindowBackgroundColor)
+			.SetBackgroundBrush(WindowBackgroundMain)
+			.SetChildBackgroundBrush(WindowBackgroundChild);
 	}
 }
 
@@ -2845,23 +2868,31 @@ void FSlateEditorStyle::FStyle::SetupWindowStyles()
 
 		Set( "ChildWindow.Background",            new IMAGE_BRUSH( "Common/NoiseBackground", FVector2D(64, 64), FLinearColor::White, ESlateBrushTileType::Both) );
 
-		Set( "Window", FWindowStyle()
-#if !PLATFORM_MAC
-			.SetMinimizeButtonStyle( MinimizeButtonStyle )
-			.SetMaximizeButtonStyle( MaximizeButtonStyle )
-			.SetRestoreButtonStyle( RestoreButtonStyle )
-			.SetCloseButtonStyle( CloseButtonStyle )
-#endif
-			.SetTitleTextStyle( TitleTextStyle )
-			.SetActiveTitleBrush( IMAGE_BRUSH( "Old/Window/WindowTitle", Icon32x32, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) )
-			.SetInactiveTitleBrush( IMAGE_BRUSH( "Old/Window/WindowTitle_Inactive", Icon32x32, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) )
-			.SetFlashTitleBrush( IMAGE_BRUSH( "Old/Window/WindowTitle_Flashing", Icon24x24, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) )
-			.SetOutlineBrush( BORDER_BRUSH( "Old/Window/WindowOutline", FMargin(3.0f/32.0f) ) )
-			.SetOutlineColor( FLinearColor(0.1f, 0.1f, 0.1f, 1.0f) )
-			.SetBorderBrush( BOX_BRUSH( "Old/Window/WindowBorder", 0.48f ) )
-			.SetBackgroundBrush( IMAGE_BRUSH( "Old/Window/WindowBackground", FVector2D(74, 74), FLinearColor::White, ESlateBrushTileType::Both) )
-			.SetChildBackgroundBrush( IMAGE_BRUSH( "Common/NoiseBackground", FVector2D(64, 64), FLinearColor::White, ESlateBrushTileType::Both) )
-			);
+		// Update the window style in the *core* style, as SWindow is hardcoded to pull from that 
+		FSlateColor WindowBackgroundColor(FLinearColor::White);
+		FSlateBrush WindowBackgroundMain(IMAGE_BRUSH("Old/Window/WindowBackground", FVector2D(74, 74), FLinearColor::White, ESlateBrushTileType::Both));
+		FSlateBrush WindowBackgroundChild(IMAGE_BRUSH("Common/NoiseBackground", FVector2D(64, 64), FLinearColor::White, ESlateBrushTileType::Both));
+
+		if (Settings.IsValid())
+		{
+			WindowBackgroundColor = Settings->EditorWindowBackgroundColor;
+
+			FSlateBrush DummyBrush;
+			if (Settings->EditorMainWindowBackgroundOverride != DummyBrush)
+			{
+				WindowBackgroundMain = Settings->EditorMainWindowBackgroundOverride;
+			}
+
+			if (Settings->EditorChildWindowBackgroundOverride != DummyBrush)
+			{
+				WindowBackgroundChild = Settings->EditorChildWindowBackgroundOverride;
+			}
+		}
+
+		FWindowStyle& WindowStyle = const_cast<FWindowStyle&>(FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window"));
+		WindowStyle.SetBackgroundColor(WindowBackgroundColor)
+			.SetBackgroundBrush(WindowBackgroundMain)
+			.SetChildBackgroundBrush(WindowBackgroundChild);
 	}
 }
 

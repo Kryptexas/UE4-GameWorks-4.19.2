@@ -42,7 +42,7 @@ struct FNativizationSummary
 
 	TMap<FStringAssetReference, FDependencyRecord> DependenciesGlobalMap;
 
-	TMap<FString, TSet<TAssetPtr<UPackage>>> ModulesRequiredByPlatform;
+	TMap<FName, TSet<TAssetPtr<UPackage>>> ModulesRequiredByPlatform;
 
 	FNativizationSummary() : MemberVariablesFromGraph(0) {}
 };
@@ -104,6 +104,6 @@ public:
 	virtual TSharedPtr<FNativizationSummary>& NativizationSummary() = 0;
 
 	virtual FString DependenciesGlobalMapHeaderCode() = 0;
-	virtual FString DependenciesGlobalMapBodyCode() = 0;
+	virtual FString DependenciesGlobalMapBodyCode(const FString& PCHFilename) = 0;
 };
 

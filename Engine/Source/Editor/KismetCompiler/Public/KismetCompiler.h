@@ -25,6 +25,14 @@ KISMETCOMPILER_API DECLARE_LOG_CATEGORY_EXTERN(LogK2Compiler, Log, All);
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
 
+enum class EInternalCompilerFlags
+{
+	None = 0x0,
+
+	PostponeLocalsGenerationUntilPhaseTwo = 0x1,
+};
+ENUM_CLASS_FLAGS(EInternalCompilerFlags)
+
 class KISMETCOMPILER_API FKismetCompilerContext : public FGraphCompilerContext
 {
 protected:
@@ -116,15 +124,18 @@ public:
 	// Flag to trigger UMulticastDelegateProperty::SignatureFunction resolution in 
 	// CreateClassVariablesFromBlueprint:
 	bool bAssignDelegateSignatureFunction;
+
+	// Flag to trigger ProcessSubInstance in CreateClassVariablesFromBlueprint:
+	bool bGenerateSubInstanceVariables;
 public:
 	FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded);
 	virtual ~FKismetCompilerContext();
 	
 	/** Compile the class layout of the blueprint */
-	void CompileClassLayout();
+	void CompileClassLayout(EInternalCompilerFlags InternalFlags);
 	
 	/** Compile the functions of the blueprint - must be done after compiling the class layout: */
-	void CompileFunctions();
+	void CompileFunctions(EInternalCompilerFlags InternalFlags);
 
 	/** Compile a blueprint into a class and a set of functions */
 	void Compile();
@@ -398,7 +409,7 @@ protected:
 	 *   - Schedules execution of each node based on data/execution dependencies
 	 *   - Creates a UFunction object containing parameters and local variables (but no script code yet)
 	 */
-	virtual void PrecompileFunction(FKismetFunctionContext& Context);
+	virtual void PrecompileFunction(FKismetFunctionContext& Context, EInternalCompilerFlags InternalFlags);
 
 	/**
 	 * Second phase of compiling a function graph
@@ -463,6 +474,8 @@ protected:
 	void DetermineNodeExecLinks(UEdGraphNode* SourceNode, TMap<UEdGraphPin*, UEdGraphPin*>& SourceNodeLinks) const;
 
 private:
+	void CreateLocalsAndRegisterNets(FKismetFunctionContext& Context, UField**& FunctionPropertyStorageLocation);
+
 	/**
 	 * Handles creating a new event node for a given output on a timeline node utilizing the named function
 	 */
@@ -478,6 +491,12 @@ private:
 	 */
 	void ResetErrorFlags(UEdGraph* Graph) const;
 	
+	/**
+	 * The compilation manager is a new client of the compiler - it reuses several virtual functions
+	 * that are not usefully public in any other context and so rather than expand the public interface
+	 * we have decided to make the compilation manager a friend:
+	 */
+	friend struct FBlueprintCompilationManagerImpl;
 };
 
 //////////////////////////////////////////////////////////////////////////

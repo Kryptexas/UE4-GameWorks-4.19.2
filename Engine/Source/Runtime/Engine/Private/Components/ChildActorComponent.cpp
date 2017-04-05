@@ -187,12 +187,25 @@ void UChildActorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(UChildActorComponent, ChildActor);
 }
 
+struct FActorParentComponentSetter
+{
+private:
+	static void Set(AActor* ChildActor, UChildActorComponent* ParentComponent)
+	{
+		ChildActor->ParentComponent = ParentComponent;
+	}
+
+	friend UChildActorComponent;
+};
+
 void UChildActorComponent::PostRepNotifies()
 {
 	Super::PostRepNotifies();
 
 	if (ChildActor)
 	{
+		FActorParentComponentSetter::Set(ChildActor, this);
+
 		ChildActorClass = ChildActor->GetClass();
 		ChildActorName = ChildActor->GetFName();
 	}
@@ -405,17 +418,6 @@ void UChildActorComponent::SetChildActorClass(TSubclassOf<AActor> Class)
 	}
 }
 
-struct FActorParentComponentSetter
-{
-private:
-	static void Set(AActor* ChildActor, UChildActorComponent* ParentComponent)
-	{
-		ChildActor->ParentComponent = ParentComponent;
-	}
-
-	friend UChildActorComponent;
-};
-
 #if WITH_EDITOR
 void UChildActorComponent::PostLoad()
 {
@@ -428,18 +430,8 @@ void UChildActorComponent::PostLoad()
 		// Don't do this if there is no linker which implies component was created via duplication
 		if (ChildActorTemplate && GetLinker())
 		{
-			UWorld* MyWorld = GetWorld();
-			if (MyWorld && MyWorld->IsGameWorld())
-			{
-				// A game world might already be kicking along and then we will try and dispatch destroy events and it will be bad
-				// so just mark the child pending kill and move along
-				ChildActor->MarkPendingKill();
-				ChildActor = nullptr;
-			}
-			else
-			{
-				DestroyChildActor();
-			}
+			ChildActor->MarkPendingKill();
+			ChildActor = nullptr;
 		}
 		else
 		{
@@ -450,14 +442,6 @@ void UChildActorComponent::PostLoad()
 
 }
 #endif
-
-void UChildActorComponent::OnRep_ChildActor()
-{
-	if (ChildActor)
-	{
-		FActorParentComponentSetter::Set(ChildActor, this);
-	}
-}
 
 void UChildActorComponent::CreateChildActor()
 {

@@ -2571,7 +2571,7 @@ public:
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult);
 
 	// Returns true if the actor contains an active camera component
-	virtual bool HasActiveCameraComponent();
+	virtual bool HasActiveCameraComponent() const;
 
 	// Returns true if the actor contains an active locked to HMD camera component
 	virtual bool HasActivePawnControlCameraComponent() const;
@@ -2703,8 +2703,6 @@ public:
 	{
 		static_assert(TPointerIsConvertibleFromTo<T, const UActorComponent>::Value, "'T' template parameter to GetComponents must be derived from UActorComponent");
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
-
-		OutComponents.Reset(OwnedComponents.Num());
 
 		TArray<UChildActorComponent*> ChildActorComponents;
 

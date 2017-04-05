@@ -25,21 +25,20 @@ public class UnrealEd : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] 
 			{
-				"AssetRegistry",
 				"AssetTools",
-                "BehaviorTreeEditor",
+				"BehaviorTreeEditor",
 				"ClassViewer",
 				"ContentBrowser",
 				"CrashTracker",
 				"DerivedDataCache",
 				"DesktopPlatform",
-                "EnvironmentQueryEditor",
+				"EnvironmentQueryEditor",
 				"GameProjectGeneration",
 				"ProjectTargetPlatformEditor",
 				"ImageWrapper",
 				"MainFrame",
 				"MaterialEditor",
-                "MergeActors",
+				"MergeActors",
 				"MeshUtilities",
 				"Messaging",
 				"MovieSceneCapture",
@@ -47,27 +46,27 @@ public class UnrealEd : ModuleRules
 				"PlacementMode",
 				"Settings",
 				"SettingsEditor",
-                "SuperSearch",
-                "AudioEditor",
+				"SuperSearch",
+				"AudioEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
 				"ReferenceViewer",
-                "IntroTutorials",
+				"IntroTutorials",
 				"OutputLog",
 				"Landscape",
-                "Niagara",
+				"Niagara",
 				"SizeMap",
-                "LocalizationService",
-                "HierarchicalLODUtilities",
-                "MessagingRpc",
-                "PortalRpc",
-                "PortalServices",
-                "BlueprintNativeCodeGen",
-                "ViewportInteraction",
-                "VREditor",
-                "Persona",
-                "ClothingSystemEditorInterface",
-            }
+				"LocalizationService",
+				"HierarchicalLODUtilities",
+				"MessagingRpc",
+				"PortalRpc",
+				"PortalServices",
+				"BlueprintNativeCodeGen",
+				"ViewportInteraction",
+				"VREditor",
+				"Persona",
+				"ClothingSystemEditorInterface",
+			}
 		);
 
 		PublicDependencyModuleNames.AddRange(
@@ -84,15 +83,15 @@ public class UnrealEd : ModuleRules
 				"SandboxFile",
 				"Slate",
 				"SlateCore",
-                "EditorStyle",
+				"EditorStyle",
 				"SourceControl",
 				"UnrealEdMessages",
-                "AIModule",
+				"AIModule",
 				"GameplayDebugger",
 				"BlueprintGraph",
-                "Http",
+				"Http",
 				"UnrealAudio",
-                "FunctionalTesting",
+				"FunctionalTesting",
 				"AutomationController",
 				"Localization",
 				"AudioEditor",
@@ -101,13 +100,14 @@ public class UnrealEd : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] 
-			{ 
-                "LevelSequence",
+			{
+				"AssetRegistry",
+				"LevelSequence",
 				"AnimGraph",
-                "AppFramework",
+				"AppFramework",
 				"BlueprintGraph",
-                "CinematicCamera",
-                "DesktopPlatform",
+				"CinematicCamera",
+				"DesktopPlatform",
 				"EditorStyle",
 				"EngineSettings",
 				"InputCore",
@@ -129,36 +129,36 @@ public class UnrealEd : ModuleRules
 				"SwarmInterface",
 				"TargetPlatform",
 				"TargetDeviceServices",
-                "EditorWidgets",
+				"EditorWidgets",
 				"GraphEditor",
 				"Kismet",
-                "InternationalizationSettings",
-                "JsonUtilities",
+				"InternationalizationSettings",
+				"JsonUtilities",
 				"Landscape",
 				"HeadMountedDisplay",
-                "MeshPaint",
+				"MeshPaint",
 				"MeshPaintMode",
-                "Foliage",
-                "VectorVM",
+				"Foliage",
+				"VectorVM",
 				"TreeMap",
-                "MaterialUtilities",
+				"MaterialUtilities",
 				"Localization",
 				"LocalizationService",
 				"AddContentDialog",
 				"GameProjectGeneration",
-                "HierarchicalLODUtilities",
+				"HierarchicalLODUtilities",
 				"Analytics",
-                "AnalyticsET",
-                "PluginWarden",
-                "PixelInspectorModule",
+				"AnalyticsET",
+				"PluginWarden",
+				"PixelInspectorModule",
 				"MovieScene",
 				"MovieSceneTracks",
-                "ViewportInteraction",
-                "VREditor",
-                "ClothingSystemEditor",
-                "ClothingSystemRuntime",
-                "ClothingSystemRuntimeInterface",
-            }
+				"ViewportInteraction",
+				"VREditor",
+				"ClothingSystemEditor",
+				"ClothingSystemRuntime",
+				"ClothingSystemRuntimeInterface",
+			}
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
@@ -169,9 +169,8 @@ public class UnrealEd : ModuleRules
 				"StaticMeshEditor",
 				"TextureEditor",
 				"Cascade",
-                "UMGEditor",
+				"UMGEditor",
 				"Matinee",
-				"AssetRegistry",
 				"AssetTools",
 				"ClassViewer",
 				"CollectionManager",
@@ -189,14 +188,14 @@ public class UnrealEd : ModuleRules
 				"PackagesDialog",
 				"Persona",
 				"PhAT",
-                "ProjectLauncher",
+				"ProjectLauncher",
 				"DeviceManager",
 				"SettingsEditor",
 				"SessionFrontend",
 				"Sequencer",
 				"StringTableEditor",
 				"SuperSearch",
-                "GeometryMode",
+				"GeometryMode",
 				"TextureAlignMode",
 				"FoliageEdit",
 				"PackageDependencyInfo",
@@ -207,30 +206,30 @@ public class UnrealEd : ModuleRules
 				"PlacementMode",
 				"NiagaraEditor",
 				"MeshUtilities",
-                "MergeActors",
+				"MergeActors",
 				"ProjectSettingsViewer",
 				"ProjectTargetPlatformEditor",
 				"PListEditor",
-                "BehaviorTreeEditor",
-                "EnvironmentQueryEditor",
+				"BehaviorTreeEditor",
+				"EnvironmentQueryEditor",
 				"ViewportSnapping",
 				"UserFeedback",
-                "GameplayTasksEditor",
+				"GameplayTasksEditor",
 				"UndoHistory",
 				"SourceCodeAccess",
 				"ReferenceViewer",
 				"EditorLiveStreaming",
 				"HotReload",
-                "IOSPlatformEditor",
+				"IOSPlatformEditor",
 				"HTML5PlatformEditor",
 				"SizeMap",
 				"PortalProxies",
-                "PortalServices",
-                "GeometryCacheEd",
-                "BlueprintNativeCodeGen",
-                "AnimationModifiers",
-                "ClothPainter",
-            }
+				"PortalServices",
+				"GeometryCacheEd",
+				"BlueprintNativeCodeGen",
+				"AnimationModifiers",
+				"ClothPainter",
+			}
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
@@ -241,12 +240,12 @@ public class UnrealEd : ModuleRules
 		CircularlyReferencedDependentModules.AddRange(
 			new string[] 
 			{
-                "GraphEditor",
+				"GraphEditor",
 				"Kismet",
 				"AudioEditor",
-                "ViewportInteraction",
-                "VREditor"
-            }
+				"ViewportInteraction",
+				"VREditor"
+			}
 		); 
 
 
@@ -256,11 +255,11 @@ public class UnrealEd : ModuleRules
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {
 				"UserFeedback",
-             	"CollectionManager",
+				"CollectionManager",
 				"BlueprintGraph",
 				"AddContentDialog",                
-                "MeshUtilities"
-            }
+				"MeshUtilities"
+			}
 			);
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
@@ -280,14 +279,14 @@ public class UnrealEd : ModuleRules
 			
 		}
 
-        if (Target.Platform == UnrealTargetPlatform.HTML5)
-        {
+		if (Target.Platform == UnrealTargetPlatform.HTML5)
+		{
 			PublicDependencyModuleNames.Add("ALAudio");
-        }
+		}
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target,
-            "HACD",
-            "VHACD",
+			"HACD",
+			"VHACD",
 			"FBX",
 			"FreeType2"
 		);
@@ -296,7 +295,7 @@ public class UnrealEd : ModuleRules
 
 		if (UEBuildConfiguration.bCompileRecast)
 		{
-            PrivateDependencyModuleNames.Add("Navmesh");
+			PrivateDependencyModuleNames.Add("Navmesh");
 			Definitions.Add( "WITH_RECAST=1" );
 		}
 		else

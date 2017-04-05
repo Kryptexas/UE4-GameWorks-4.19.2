@@ -4152,13 +4152,10 @@ void FLevelEditorViewportClient::UpdateAudioListener(const FSceneView& View)
 				ViewLocation = WorldSpaceHeadLocation;
 			}
 
-			FMatrix CameraToWorld = View.ViewMatrices.GetInvViewMatrix();
-			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));
-			FVector ProjRight = CameraToWorld.TransformVector(FVector(1000, 0, 0));
+			const FRotator& ViewRotation = GetViewRotation();
 
-			FTransform ListenerTransform(FRotationMatrix::MakeFromZY(ProjUp, ProjRight));
-			ListenerTransform.SetTranslation(ViewLocation);
-			ListenerTransform.NormalizeRotation();
+			FTransform ListenerTransform(ViewRotation);
+			ListenerTransform.SetLocation(ViewLocation);
 
 			AudioDevice->SetListener(ViewportWorld, 0, ListenerTransform, 0.f);
 		}

@@ -97,8 +97,14 @@ FRawInputWindows::FRawInputWindows(const TSharedRef<FGenericApplicationMessageHa
 	// Register a default device.
 	const uint32 Flags = 0;
 	const int32 PageID = 0x01;
-	const int32 DeviceID = 0x04;
+	int32 DeviceID = 0x04;
 	DefaultDeviceHandle = RegisterInputDevice(RIM_TYPEHID, Flags, DeviceID, PageID);
+
+	if(DefaultDeviceHandle==INDEX_NONE)
+	{
+		DeviceID = 0x05;
+		DefaultDeviceHandle = RegisterInputDevice(RIM_TYPEHID, Flags, DeviceID, PageID);
+	}
 
 	AHUD::OnShowDebugInfo.AddRaw(this, &FRawInputWindows::ShowDebugInfo);
 }	
@@ -177,6 +183,9 @@ int32 FRawInputWindows::RegisterInputDevice(const int32 DeviceType, const int32 
 						RegisteredDeviceInfo.DeviceData.VendorID = ConnectedDeviceInfo.RIDDeviceInfo.hid.dwVendorId;
 						RegisteredDeviceInfo.DeviceData.ProductID = ConnectedDeviceInfo.RIDDeviceInfo.hid.dwProductId;
 					}
+
+					UE_LOG(LogRawInputWindows, Log, TEXT("VenderID:%x ProductID:%x"), RegisteredDeviceInfo.DeviceData.VendorID, RegisteredDeviceInfo.DeviceData.ProductID);
+
 					bWasConnected = true;
 					break;
 				}
@@ -189,6 +198,7 @@ int32 FRawInputWindows::RegisterInputDevice(const int32 DeviceType, const int32 
 			}
 			else
 			{
+				DeviceHandle = INDEX_NONE;
 				UE_LOG(LogRawInputWindows, Warning, TEXT("Device was registered succesfully but not connected (Usage:%d UsagePage:%d"), DeviceData.Usage, DeviceData.UsagePage);
 			}
 		}

@@ -15,8 +15,7 @@ class ITargetPlatform;
 
 struct FPlatformNativizationDetails
 {
-	FString PlatformName;
-	FString PlatformTargetDirectory;
+	FName PlatformName;
 	FCompilerNativizationOptions CompilerNativizationOptions;
 };
 
@@ -28,6 +27,10 @@ struct FNativeCodeGenInitData
 	// Optional Manifest ManifestIdentifier, used for child cook processes that need a unique manifest name.
 	// The identifier is used to make a unique name for each platform that is converted.
 	int32 ManifestIdentifier;
+
+	// Optional, desired .uplugin file path for the nativized plugin (used so people can manually coordinate 
+	// cook/build processes).
+	FString DestPluginPath;
 };
 
 /** 
@@ -75,8 +78,8 @@ public:
 		return TEXT("BlueprintNativeCodeGen");
 	}
 
-	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const TCHAR* PlatformName) = 0;
-	virtual void SaveManifest(int32 Id = -1) = 0;
+	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const FName PlatformName) = 0;
+	virtual void SaveManifest() = 0;
 	virtual void MergeManifest(int32 ManifestIdentifier) = 0;
 	virtual void FinalizeManifest() = 0;
 	virtual void GenerateStubs() = 0;

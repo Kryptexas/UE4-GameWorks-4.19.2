@@ -10,6 +10,7 @@
 #include "UObject/Package.h"
 #include "UObject/ObjectRedirector.h"
 #include "Misc/PackageName.h"
+#include "Misc/SecureHash.h"
 #include "UObject/LinkerLoad.h"
 #include "SharedMapView.h"
 #include "PrimaryAssetId.h"
@@ -490,6 +491,34 @@ inline FName FAssetData::GetTagValueRef<FName>(const FName InTagName) const
 	return TmpValue;
 }
 
+/** A class to hold data about a package on disk, this data is updated on save/load and is not updated when an asset changes in memory */
+class FAssetPackageData
+{
+public:
+	/** Total size of this asset on disk */
+	int64 DiskSize;
+
+	/** Guid of the guid, uniquely identifies an asset package */
+	FGuid PackageGuid;
+
+	/** Hash of the package and any dependencies that created it */
+	FMD5Hash PackageSourceHash;
+
+	FAssetPackageData()
+		: DiskSize(0)
+	{
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FAssetPackageData& PackageData)
+	{
+		Ar << PackageData.DiskSize;
+		Ar << PackageData.PackageGuid;
+		Ar << PackageData.PackageSourceHash;
+
+		return Ar;
+	}
+};
+
 /** A structure defining a thing that can be reference by something else in the asset registry. Represents either a package of a primary asset id */
 struct FAssetIdentifier
 {
@@ -540,7 +569,7 @@ struct FAssetIdentifier
 	/** Returns true if this represents a package */
 	bool IsPackage() const
 	{
-		return PackageName != NAME_None && !IsObject() && IsValue();
+		return PackageName != NAME_None && !IsObject() && !IsValue();
 	}
 
 	/** Returns true if this represents an object, true for both package objects and PrimaryAssetId objects */
@@ -634,6 +663,47 @@ struct FAssetIdentifier
 		Hash = HashCombine(Hash, GetTypeHash(Key.ObjectName));
 		Hash = HashCombine(Hash, GetTypeHash(Key.ValueName));
 		return Hash;
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FAssetIdentifier& AssetIdentifier)
+	{
+		// Serialize bitfield of which elements to serialize, in general many are empty
+		uint8 FieldBits = 0;
+
+		if (Ar.IsSaving())
+		{
+			FieldBits |= (AssetIdentifier.PackageName != NAME_None) << 0;
+			FieldBits |= (AssetIdentifier.PrimaryAssetType != NAME_None) << 1;
+			FieldBits |= (AssetIdentifier.ObjectName != NAME_None) << 2;
+			FieldBits |= (AssetIdentifier.ValueName != NAME_None) << 3;
+		}
+
+		Ar << FieldBits;
+
+		if (FieldBits & (1 << 0))
+		{
+			Ar << AssetIdentifier.PackageName;
+		}
+		if (FieldBits & (1 << 1))
+		{
+			FName TypeName = AssetIdentifier.PrimaryAssetType.GetName();
+			Ar << TypeName;
+
+			if (Ar.IsLoading())
+			{
+				AssetIdentifier.PrimaryAssetType = TypeName;
+			}
+		}
+		if (FieldBits & (1 << 2))
+		{
+			Ar << AssetIdentifier.ObjectName;
+		}
+		if (FieldBits & (1 << 3))
+		{
+			Ar << AssetIdentifier.ValueName;
+		}
+		
+		return Ar;
 	}
 };
 

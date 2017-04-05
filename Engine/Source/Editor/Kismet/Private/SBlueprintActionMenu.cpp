@@ -447,7 +447,7 @@ void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAll
 	
 	FBlueprintActionMenuBuilder MenuBuilder(EditorPtr);
 	// NOTE: cannot call GetGraphContextActions() during serialization and GC due to its use of FindObject()
-	if(!GIsSavingPackage && !IsGarbageCollecting())
+	if(!GIsSavingPackage && !IsGarbageCollecting() && FilterContext.Blueprints.Num() > 0)
 	{
 		FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, bIsContextSensitive, ContextTargetMask, MenuBuilder);
 	}

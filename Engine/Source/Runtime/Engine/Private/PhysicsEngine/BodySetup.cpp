@@ -793,7 +793,7 @@ void UBodySetup::InvalidatePhysicsData()
 		CookedFormatData.FlushData();
 	}
 }
-#endif // WITH_EDITOR
+#endif // WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 
 void UBodySetup::BeginDestroy()

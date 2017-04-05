@@ -4097,7 +4097,7 @@ void UEditorEngine::OnSourceControlDialogClosed(bool bEnabled)
 	}
 }
 
-ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
+FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 				 FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
 				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
 {
@@ -4109,7 +4109,7 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 	if (bForceLoadStringAssetReferences)
 	{
 		const FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
-		GRedirectCollector.ResolveStringAssetReference(PackageName);
+		GRedirectCollector.ResolveStringAssetReference(FName(*PackageName));
 	}
 
 	UObject* Base = InBase;
@@ -4186,7 +4186,7 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 	SlowTask.EnterProgressFrame(70);
 
 	UPackage::PreSavePackageEvent.Broadcast(InOuter);
-	const ESavePackageResult Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+	const FSavePackageResultStruct Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 
 	SlowTask.EnterProgressFrame(10);
 
@@ -4244,7 +4244,7 @@ bool UEditorEngine::SavePackage(UPackage* InOuter, UObject* InBase, EObjectFlags
 	uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask)
 {
 	// Workaround to avoid function signature change while keeping both bool and ESavePackageResult versions of SavePackage
-	const ESavePackageResult Result = Save(InOuter, InBase, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping,
+	const FSavePackageResultStruct Result = Save(InOuter, InBase, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping,
 		bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 	return Result == ESavePackageResult::Success;
 }

@@ -288,10 +288,11 @@ uint32 FActiveSound::GetSoundConcurrencyObjectID() const
 	{
 		return ConcurrencySettings->GetUniqueID();
 	}
-	else
+	else if (Sound)
 	{
 		return Sound->GetSoundConcurrencyObjectID();
 	}
+	return INDEX_NONE;
 }
 
 void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances, const float DeltaTime )
@@ -303,10 +304,6 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	{
 		return;
 	}
-
-	//@todo audio: Need to handle pausing and not getting out of sync by using the mixer's time.
-	//@todo audio: Fading in and out is also dependent on the DeltaTime
-	PlaybackTime += DeltaTime;
 
 	// splitscreen support:
 	// we always pass the 'primary' listener (viewport 0) to the sound nodes and the underlying audio system

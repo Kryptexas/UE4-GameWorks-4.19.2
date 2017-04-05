@@ -1224,6 +1224,7 @@ private:
 protected:
 
 	/** Whether we fully tick when the game is paused, if our tick function is allowed to do so. If false, we do a minimal update during the tick. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerController)
 	uint32 bShouldPerformFullTickWhenPaused:1;
 
 	/** The virtual touch interface */

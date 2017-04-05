@@ -7,6 +7,8 @@
 #include "Misc/AssetRegistryInterface.h"
 
 struct FARFilter;
+struct FAssetRegistrySerializationOptions;
+class FAssetRegistryState;
 
 namespace EAssetAvailability
 {
@@ -152,6 +154,9 @@ public:
 	 */
 	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType = EAssetRegistryDependencyType::Packages) const = 0;
 
+	/** Finds Package data for a package name. This data is only updated on save and can only be accessed for valid packages */
+	virtual const FAssetPackageData* GetAssetPackageData(FName PackageName) const = 0;
+
 	/** Returns true if the specified ClassName's ancestors could be found. If so, OutAncestorClassNames is a list of all its ancestors */
 	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const = 0;
 
@@ -165,7 +170,10 @@ public:
 	virtual void GetSubPaths(const FString& InBasePath, TArray<FString>& OutPathList, bool bInRecurse) const = 0;
 
 	/** Trims items out of the asset data list that do not pass the supplied filter */
-	virtual void RunAssetsThroughFilter (TArray<FAssetData>& AssetDataList, const FARFilter& Filter) const = 0;
+	virtual void RunAssetsThroughFilter(TArray<FAssetData>& AssetDataList, const FARFilter& Filter) const = 0;
+
+	/** Modifies passed in filter to make it safe for use on FAssetRegistryState. This expands recursive paths and classes */
+	virtual void ExpandRecursiveFilter(const FARFilter& InFilter, FARFilter& ExpandedFilter) const = 0;
 
 	/**
 	 * Gets the current availability of an asset, primarily for streaming install purposes.
@@ -294,14 +302,26 @@ public:
 	/** Serialize the registry to/from a file, skipping editor only data */
 	virtual void Serialize(FArchive& Ar) = 0;
 
-	/** Serialize raw registry data to a file, skipping editor only data */
-	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) = 0;
+	/**
+	 * Fills in a AssetRegistryState with a copy of the data in the internal cache, overriding some
+	 *
+	 * @param OutState		This will be filled in with a copy of the asset data, platform data, and dependency data
+	 * @param Options		Serialization options that will be used to write this later
+	 * @param OverrideData	Map of ObjectPath to AssetData. If non empty, it will use this map of AssetData, and will filter Platform/Dependency data to only include this set
+	 */
+	virtual void InitializeTemporaryAssetRegistryState(FAssetRegistryState& OutState, const FAssetRegistrySerializationOptions& Options, const TMap<FName, FAssetData*>& OverrideData = TMap<FName, FAssetData*>()) const = 0;
 
-	/** Serialize registry data from a file */
-	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) = 0;
+	/** Fills in FAssetRegistrySerializationOptions from ini, optionally using a target platform ini name */
+	virtual void InitializeSerializationOptions(FAssetRegistrySerializationOptions& Options, const FString& PlatformIniName = FString()) const = 0;
 
 	/** Load FPackageRegistry data from the supplied package */
-	virtual void LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*>& Data) const =0;
+	virtual void LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*>& Data) const = 0;
+
+	DEPRECATED(4.16, "Deprecated. Use InitializeTemporaryAssetRegistryState and call Serialize on it directly")
+	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) = 0;
+	
+	DEPRECATED(4.16, "Deprecated. Create a FAssetRegistryState and call Serialize on it directly")
+	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) = 0;
 
 protected:
 	// Functions specifically for calling from the asset manager

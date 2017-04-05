@@ -4,27 +4,18 @@
 #include "HAL/FileManager.h"
 #include "AssetRegistryPrivate.h"
 
-FNameTableArchiveReader::FNameTableArchiveReader()
+FNameTableArchiveReader::FNameTableArchiveReader(int32 SerializationVersion, const FString& Filename)
 	: FArchive()
+	, ProxyAr(nullptr)
 	, FileAr(nullptr)
 {
 	ArIsLoading = true;
-}
 
-FNameTableArchiveReader::~FNameTableArchiveReader()
-{
-	if (FileAr)
-	{
-		delete FileAr;
-		FileAr = nullptr;
-	}
-}
-
-bool FNameTableArchiveReader::LoadFile(const TCHAR* Filename, int32 SerializationVersion)
-{
-	FileAr = IFileManager::Get().CreateFileReader(Filename, FILEREAD_Silent);
+	FileAr = IFileManager::Get().CreateFileReader(*Filename, FILEREAD_Silent);
 	if (FileAr && !FileAr->IsError() && FileAr->TotalSize() > 0)
 	{
+		ProxyAr = FileAr;
+
 		int32 MagicNumber = 0;
 		*this << MagicNumber;
 
@@ -35,12 +26,39 @@ bool FNameTableArchiveReader::LoadFile(const TCHAR* Filename, int32 Serializatio
 
 			if (!IsError() && VersionNumber == SerializationVersion)
 			{
-				return SerializeNameMap();
+				if (SerializeNameMap())
+				{
+					// Succesfully loaded
+					return;
+				}
 			}
 		}
 	}
+	
+	// If we got here it failed to load properly
+	SetError();
+}
 
-	return false;
+FNameTableArchiveReader::FNameTableArchiveReader(FArchive& WrappedArchive)
+	: FArchive()
+	, ProxyAr(&WrappedArchive)
+	, FileAr(nullptr)
+{
+	ArIsLoading = true;
+
+	if (!SerializeNameMap())
+	{
+		SetError();
+	}
+}
+
+FNameTableArchiveReader::~FNameTableArchiveReader()
+{
+	if (FileAr)
+	{
+		delete FileAr;
+		FileAr = nullptr;
+	}
 }
 
 bool FNameTableArchiveReader::SerializeNameMap()
@@ -87,47 +105,52 @@ bool FNameTableArchiveReader::SerializeNameMap()
 	return true;
 }
 
-void FNameTableArchiveReader::Serialize( void* V, int64 Length )
+void FNameTableArchiveReader::Serialize(void* V, int64 Length)
 {
-	if (FileAr && !IsError())
+	if (ProxyAr && !IsError())
 	{
-		FileAr->Serialize( V, Length );
+		ProxyAr->Serialize(V, Length);
+
+		if (ProxyAr->IsError())
+		{
+			SetError();
+		}
 	}
 }
 
-bool FNameTableArchiveReader::Precache( int64 PrecacheOffset, int64 PrecacheSize )
+bool FNameTableArchiveReader::Precache(int64 PrecacheOffset, int64 PrecacheSize)
 {
-	if (FileAr && !IsError())
+	if (ProxyAr && !IsError())
 	{
-		return FileAr->Precache( PrecacheOffset, PrecacheSize );
+		return ProxyAr->Precache(PrecacheOffset, PrecacheSize);
 	}
 
 	return false;
 }
 
-void FNameTableArchiveReader::Seek( int64 InPos )
+void FNameTableArchiveReader::Seek(int64 InPos)
 {
-	if (FileAr && !IsError())
+	if (ProxyAr && !IsError())
 	{
-		FileAr->Seek( InPos );
+		ProxyAr->Seek(InPos);
 	}
 }
 
 int64 FNameTableArchiveReader::Tell()
 {
-	if (FileAr)
+	if (ProxyAr)
 	{
-		return FileAr->Tell();
+		return ProxyAr->Tell();
 	}
-	
+
 	return 0;
 }
 
 int64 FNameTableArchiveReader::TotalSize()
 {
-	if (FileAr)
+	if (ProxyAr)
 	{
-		return FileAr->TotalSize();
+		return ProxyAr->TotalSize();
 	}
 
 	return 0;
@@ -145,7 +168,6 @@ FArchive& FNameTableArchiveReader::operator<<( FName& Name )
 		SetError();
 	}
 
-	// if the name wasn't loaded (because it wasn't valid in this context)
 	const FName& MappedName = NameMap.IsValidIndex(NameIndex) ? NameMap[NameIndex] : NAME_None;
 	if (MappedName.IsNone())
 	{
@@ -164,10 +186,9 @@ FArchive& FNameTableArchiveReader::operator<<( FName& Name )
 	return *this;
 }
 
-
-
 FNameTableArchiveWriter::FNameTableArchiveWriter(int32 SerializationVersion, const FString& Filename)
 	: FArchive()
+	, ProxyAr(nullptr)
 	, FileAr(nullptr)
 	, FinalFilename(Filename)
 	, TempFilename(Filename + TEXT(".tmp"))
@@ -178,6 +199,8 @@ FNameTableArchiveWriter::FNameTableArchiveWriter(int32 SerializationVersion, con
 	FileAr = IFileManager::Get().CreateFileWriter(*TempFilename, 0);
 	if (FileAr)
 	{
+		ProxyAr = FileAr;
+
 		int32 MagicNumber = PACKAGE_FILE_TAG;
 		*this << MagicNumber;
 
@@ -192,18 +215,38 @@ FNameTableArchiveWriter::FNameTableArchiveWriter(int32 SerializationVersion, con
 	else
 	{
 		UE_LOG(LogAssetRegistry, Error, TEXT("Failed to open file for write %s"), *Filename);
+		SetError();
 	}
+}
+
+FNameTableArchiveWriter::FNameTableArchiveWriter(FArchive& WrappedArchive)
+	: FArchive()
+	, ProxyAr(&WrappedArchive)
+	, FileAr(nullptr)
+{
+	ArIsSaving = true;
+
+	// Just write a 0 for the name table offset for now. This will be overwritten later when we are done serializing
+	NameOffsetLoc = Tell();
+	int64 NameOffset = 0;
+	*this << NameOffset;
 }
 
 FNameTableArchiveWriter::~FNameTableArchiveWriter()
 {
-	if (FileAr)
+	if (ProxyAr)
 	{
 		int64 ActualNameOffset = Tell();
 		SerializeNameMap();
+
+		int64 EndOffset = Tell();
 		Seek(NameOffsetLoc);
 		*this << ActualNameOffset;
+		Seek(EndOffset);
+	}
 
+	if (FileAr)
+	{
 		delete FileAr;
 		FileAr = nullptr;
 
@@ -217,27 +260,36 @@ void FNameTableArchiveWriter::SerializeNameMap()
 	*this << NameCount;
 	if( NameCount > 0 )
 	{
-		for ( int32 NameMapIdx = 0; NameMapIdx < NameCount; ++NameMapIdx )
+		// Must still be sorted in add order
+		int32 NameMapIdx = 0;
+		for (auto& Pair : NameMap)
 		{
-			// Read the name entry
-			*this << *const_cast<FNameEntry*>(NameMap[NameMapIdx].GetDisplayNameEntry());
+			check(NameMapIdx == Pair.Value);
+			*this << *const_cast<FNameEntry*>(Pair.Key.GetDisplayNameEntry());
+			NameMapIdx++;
 		}
 	}
 }
 
 void FNameTableArchiveWriter::Serialize( void* V, int64 Length )
 {
-	if (FileAr)
+	if (ProxyAr)
 	{
-		FileAr->Serialize( V, Length );
+		ProxyAr->Serialize( V, Length );
+
+		if (ProxyAr->IsError())
+		{
+			SetError();
+		}
 	}
+
 }
 
 bool FNameTableArchiveWriter::Precache( int64 PrecacheOffset, int64 PrecacheSize )
 {
-	if (FileAr)
+	if (ProxyAr)
 	{
-		return FileAr->Precache( PrecacheOffset, PrecacheSize );
+		return ProxyAr->Precache( PrecacheOffset, PrecacheSize );
 	}
 	
 	return false;
@@ -245,17 +297,17 @@ bool FNameTableArchiveWriter::Precache( int64 PrecacheOffset, int64 PrecacheSize
 
 void FNameTableArchiveWriter::Seek( int64 InPos )
 {
-	if (FileAr)
+	if (ProxyAr)
 	{
-		FileAr->Seek( InPos );
+		ProxyAr->Seek( InPos );
 	}
 }
 
 int64 FNameTableArchiveWriter::Tell()
 {
-	if (FileAr)
+	if (ProxyAr)
 	{
-		return FileAr->Tell();
+		return ProxyAr->Tell();
 	}
 
 	return 0.f;
@@ -263,9 +315,9 @@ int64 FNameTableArchiveWriter::Tell()
 
 int64 FNameTableArchiveWriter::TotalSize()
 {
-	if (FileAr)
+	if (ProxyAr)
 	{
-		return FileAr->TotalSize();
+		return ProxyAr->TotalSize();
 	}
 
 	return 0.f;
@@ -273,15 +325,15 @@ int64 FNameTableArchiveWriter::TotalSize()
 
 FArchive& FNameTableArchiveWriter::operator<<( FName& Name )
 {
-	int32* NameIndexPtr = NameMapLookup.Find(Name);
+	int32* NameIndexPtr = NameMap.Find(Name);
 	int32 NameIndex = NameIndexPtr ? *NameIndexPtr : INDEX_NONE;
 	if ( NameIndex == INDEX_NONE )
 	{
 		// We need to store the FName without the number, as the number is stored separately and we don't 
 		// want duplicate entries in the name table just because of the number
 		const FName NameNoNumber(Name, 0);
-		NameIndex = NameMap.Add(NameNoNumber);
-		NameMapLookup.Add(NameNoNumber, NameIndex);
+		NameIndex = NameMap.Num();
+		NameMap.Add(NameNoNumber, NameIndex);
 	}
 
 	FArchive& Ar = *this;

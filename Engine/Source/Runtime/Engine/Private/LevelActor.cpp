@@ -632,14 +632,11 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 			ActorNetDriver->NotifyActorDestroyed(ThisActor);
 		}
 	}
-	else
+	else if (WorldType != EWorldType::Inactive && !IsRunningCommandlet())
 	{
-		if (!IsRunningCommandlet())
-		{
-			// Only worlds in the middle of seamless travel should have no context, and in that case, we shouldn't be destroying actors on them until
-			// they have become the current world (i.e. CopyWorldData has been called)
-			UE_LOG(LogSpawn, Warning, TEXT("UWorld::DestroyActor: World has no context! World: %s, Actor: %s"), *GetName(), *ThisActor->GetPathName());
-		}
+		// Inactive worlds do not have a world context, otherwise only worlds in the middle of seamless travel should have no context,
+		// and in that case, we shouldn't be destroying actors on them until they have become the current world (i.e. CopyWorldData has been called)
+		UE_LOG(LogSpawn, Warning, TEXT("UWorld::DestroyActor: World has no context! World: %s, Actor: %s"), *GetName(), *ThisActor->GetPathName());
 	}
 
 	if ( DemoNetDriver )

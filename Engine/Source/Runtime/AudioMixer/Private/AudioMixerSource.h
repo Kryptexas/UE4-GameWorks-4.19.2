@@ -150,8 +150,8 @@ namespace Audio
 		FMixerBuffer* MixerBuffer;
 		FMixerSourceVoice* MixerSourceVoice;
 		IAudioTask* AsyncRealtimeAudioTask;
-		FSoundBuffer* PendingReleaseBuffer;
-		IAudioTask* PendingReleaseRealtimeAudioTask;
+		TQueue<FSoundBuffer*> PendingReleaseBuffer;
+		TQueue<IAudioTask*> PendingReleaseRealtimeAudioTask;
 		FCriticalSection RenderThreadCritSect;
 
 		TArray<float> ChannelMap;
@@ -174,6 +174,9 @@ namespace Audio
 		FThreadSafeBool bIsPlayingEffectTails;
 		FThreadSafeBool bBuffersToFlush;
 		FThreadSafeBool bFreeAsyncTask;
+
+		// Whether or not we're currently releasing our resources. Prevents recycling the source until release is finished.
+		FThreadSafeBool bIsReleasing;
 
 		uint32 bResourcesNeedFreeing : 1;
 		uint32 bEditorWarnedChangedSpatialization : 1;

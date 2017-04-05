@@ -21,6 +21,7 @@ class FBlueprintEditor;
 class FCompilerResultsLog;
 class INameValidatorInterface;
 class UActorComponent;
+class UBlueprintGeneratedClass;
 class UK2Node_Variable;
 class ULevelScriptBlueprint;
 class USCS_Node;
@@ -172,6 +173,11 @@ public:
 	 * Helper function to patch the new CDO into the linker where the old one existed 
 	 */
 	static void PatchNewCDOIntoLinker(UObject* CDO, FLinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded);
+
+	/** 
+	 * Procedure used to remove old function implementations and child properties from data only blueprints.
+	 */
+	static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Blueprint);
 
 	/**
 	 *  Synchronizes Blueprint's GeneratedClass's properties with the NewVariable declarations in the blueprint
@@ -1106,6 +1112,15 @@ public:
 	/** Returns whether or not the given Blueprint should be nativized implicitly, regardless of whether or not the user has explicitly enabled it */
 	static bool ShouldNativizeImplicitly(const UBlueprint* Blueprint);
 
+	/** Checks the given pin for linked pins, and returns the linked pin with the most-derived pin type. */
+	static const UEdGraphPin* FindLinkedPinWithMostDerivedPinType(const UEdGraphPin* Pin);
+
+	/** Checks the given pin against the given set of dynamically-typed pins, and returns the linked pin that has the authoritative pin type. Assumes that the given pin is linked. */
+	static const UEdGraphPin* FindLinkedPinWithAuthoritativePinType(const UEdGraphPin* Pin, const TArray<UEdGraphPin*>& PinsToCheck);
+
+	/** Propagates the source pin's type to the given set of target pins. */
+	static void PropagatePinTypeInfo(const UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& TargetPins);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
 
@@ -1146,9 +1161,6 @@ public:
 	/** Handle old AnimBlueprints (state machines in the wrong position, transition graphs with the wrong schema, etc...) */
 	static void UpdateOutOfDateAnimBlueprints(UBlueprint* Blueprint);
 
-	/* Update old pure functions to be pure using new system*/
-	static void UpdateOldPureFunctions(UBlueprint* Blueprint);
-
 	/** Handle fixing up composite nodes within the blueprint*/
 	static void UpdateOutOfDateCompositeNodes(UBlueprint* Blueprint);
 
@@ -1163,6 +1175,12 @@ public:
 
 	/** Handle stale pin watches */
 	static void UpdateStalePinWatches( UBlueprint* Blueprint );
+
+	/** Updates the cosmetic information cache for macros */
+	static void ClearMacroCosmeticInfoCache(UBlueprint* Blueprint);
+
+	/** Returns the cosmetic information for the specified macro graph, caching it if necessary */
+	static FBlueprintMacroCosmeticInfo GetCosmeticInfoForMacro(UEdGraph* MacroGraph);
 
 	/** Return the first function from implemented interface with given name */
 	static UFunction* FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool* bOutInvalidInterface = nullptr, bool bGetAllInterfaces = false);

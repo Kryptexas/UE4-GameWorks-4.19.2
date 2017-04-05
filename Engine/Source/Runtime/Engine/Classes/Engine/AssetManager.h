@@ -286,7 +286,7 @@ public:
 	// EDITOR ONLY FUNCTIONALITY
 
 	/** Gets package names to add to the cook. Do this instead of loading assets so RAM can be properly managed on build machines */
-	virtual void ModifyCook(TArray<FString>& PackageNames);
+	virtual void ModifyCook(TArray<FName>& PackageNames);
 
 	/** Returns cook rule for a package name using Management rules, games should override this to take into account their individual workflows */
 	virtual EPrimaryAssetCookRule GetPackageCookRule(FName PackageName) const;
@@ -296,6 +296,9 @@ public:
 
 	/** For a given package and platform, return what Chunks it should be assigned to, games can override this as needed. Returns false if no information found */
 	virtual bool GetPackageChunkIds(FName PackageName, const class ITargetPlatform* TargetPlatform, const TArray<int32>& ExistingChunkList, TArray<int32>& OutChunkList) const;
+
+	/** Runs game-specific code to update the source hash on a package at cook time. This is added to the base package guid check */
+	virtual void UpdatePackageSourceHash(FName PackageName, FMD5& PackageSourceHash) const;
 
 	/** Refresh the entire set of asset data, can call from editor when things have changed dramatically */
 	virtual void RefreshPrimaryAssetDirectory();

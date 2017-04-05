@@ -315,16 +315,6 @@ namespace DetailedCookStats
 }
 #endif
 
-UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-	, bCompileBlueprintsInDevelopmentMode(true)
-{
-	SectionName = TEXT("Cooker");
-	DefaultPVRTCQuality = 1;
-	DefaultASTCQualityBySize = 3;
-	DefaultASTCQualityBySpeed = 3;
-}
-
 UCookCommandlet::UCookCommandlet( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 {
@@ -353,9 +343,22 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 	// make sure that the cookonthefly server doesn't get cleaned up while we are garbage collecting below :)
 	FScopeRootObject S(CookOnTheFlyServer);
 
+	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
+	ECookInitializationFlags IterateFlags = ECookInitializationFlags::Iterative;
+
+	if (CookerSettings->bUseAssetRegistryForIteration || Switches.Contains(TEXT("iterateregistry")))
+	{
+		// Asset registry overwrites other options
+		IterateFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnAssetRegistry;
+	}
+	else if (Switches.Contains(TEXT("iteratehash")))
+	{
+		IterateFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnHash;
+	}
+
 	ECookInitializationFlags CookFlags = ECookInitializationFlags::None;
 	CookFlags |= bCompressed ? ECookInitializationFlags::Compressed : ECookInitializationFlags::None;
-	CookFlags |= bIterativeCooking ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
+	CookFlags |= bIterativeCooking ? IterateFlags : ECookInitializationFlags::None;
 	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;
 	CookFlags |= bUnversioned ? ECookInitializationFlags::Unversioned : ECookInitializationFlags::None;
 	CookOnTheFlyServer->Initialize( ECookMode::CookOnTheFly, CookFlags );
@@ -588,25 +591,43 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	// make sure that the cookonthefly server doesn't get cleaned up while we are garbage collecting below :)
 	FScopeRootObject S(CookOnTheFlyServer);
 
+	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
+	ECookInitializationFlags IterateFlags = ECookInitializationFlags::Iterative;
+
+	if (CookerSettings->bUseAssetRegistryForIteration || Switches.Contains(TEXT("iterateregistry")))
+	{
+		// Asset registry overwrites other options
+		IterateFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnAssetRegistry;
+	}
+	else if (Switches.Contains(TEXT("iteratehash")))
+	{
+		IterateFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnHash;
+	}
+
+	if (Switches.Contains(TEXT("iteratesharedcookedbuild")))
+	{
+		// Add shared build flag to method flag, and enable iterative
+		IterateFlags |= ECookInitializationFlags::IterateSharedBuild;
+		if (!(IterateFlags | ECookInitializationFlags::IterateOnAssetRegistry))
+		{
+			IterateFlags |= ECookInitializationFlags::IterateOnHash;
+		}
+
+		bIterativeCooking = true;
+	}
+	
 	ECookInitializationFlags CookFlags = ECookInitializationFlags::IncludeServerMaps;
 	CookFlags |= bCompressed ? ECookInitializationFlags::Compressed : ECookInitializationFlags::None;
-	CookFlags |= bIterativeCooking ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
+	CookFlags |= bIterativeCooking ? IterateFlags : ECookInitializationFlags::None;
 	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;	
 	CookFlags |= bUseSerializationForGeneratingPackageDependencies ? ECookInitializationFlags::UseSerializationForPackageDependencies : ECookInitializationFlags::None;
 	CookFlags |= bUnversioned ? ECookInitializationFlags::Unversioned : ECookInitializationFlags::None;
 	CookFlags |= bVerboseCookerWarnings ? ECookInitializationFlags::OutputVerboseCookerWarnings : ECookInitializationFlags::None;
 	CookFlags |= bPartialGC ? ECookInitializationFlags::EnablePartialGC : ECookInitializationFlags::None;
-	bool bTestCook = FParse::Param(*Params, TEXT("Testcook"));
+	bool bTestCook = Switches.Contains(TEXT("Testcook"));
 	CookFlags |= bTestCook ? ECookInitializationFlags::TestCook : ECookInitializationFlags::None;
-	CookFlags |= FParse::Param(*Params, TEXT("iteratehash")) ? ECookInitializationFlags::IterateOnHash : ECookInitializationFlags::None;
-	CookFlags |= FParse::Param(*Params, TEXT("logdebuginfo")) ? ECookInitializationFlags::LogDebugInfo : ECookInitializationFlags::None;
-
-	// shared cooked build flags
-	bool bIterateSharedCookedBuild = Switches.Contains(TEXT("iteratesharedcookedbuild"));
-	ECookInitializationFlags IterateSharedCookedBuildFlags = ECookInitializationFlags::IterateOnHash | ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateSharedBuild;
-	CookFlags |= bIterateSharedCookedBuild ? IterateSharedCookedBuildFlags : ECookInitializationFlags::None;
-
-	CookFlags |= FParse::Param(*Params, TEXT("Ignoreinisettingsoutofdate")) ? ECookInitializationFlags::IgnoreIniSettingsOutOfDate : ECookInitializationFlags::None;
+	CookFlags |= Switches.Contains(TEXT("logdebuginfo")) ? ECookInitializationFlags::LogDebugInfo : ECookInitializationFlags::None;
+	CookFlags |= Switches.Contains(TEXT("Ignoreinisettingsoutofdate")) ? ECookInitializationFlags::IgnoreIniSettingsOutOfDate : ECookInitializationFlags::None;
 
 	TArray<UClass*> FullGCAssetClasses;
 	if (FullGCAssetClassNames.Num())
@@ -645,6 +666,9 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 
 	FString CreateReleaseVersion;
 	FParse::Value( *Params, TEXT("CreateReleaseVersion="), CreateReleaseVersion);
+
+	FString NativizedPluginPath;
+	FParse::Value(*Params, TEXT("NativizeAssets="), NativizedPluginPath);
 
 	TArray<FString> CmdLineMapEntries;
 	TArray<FString> CmdLineDirEntries;
@@ -817,6 +841,8 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	StartupOptions.ChildCookFileName = ChildCookFile;
 	StartupOptions.ChildCookIdentifier = ChildCookIdentifier;
 	StartupOptions.NumProcesses = NumProcesses;
+	StartupOptions.bNativizeAssets = !NativizedPluginPath.IsEmpty() || Switches.Contains(TEXT("NativizeAssets"));
+	Swap( StartupOptions.NativizedPluginPath, NativizedPluginPath );
 
 	COOK_STAT(
 	{

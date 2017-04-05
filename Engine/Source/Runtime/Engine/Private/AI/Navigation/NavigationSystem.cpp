@@ -339,6 +339,11 @@ void UNavigationSystem::ConfigureAsStatic()
 	bStaticRuntimeNavigation = true;
 }
 
+void UNavigationSystem::SetUpdateNavOctreeOnComponentChange(bool bNewUpdateOnComponentChange)
+{
+	bUpdateNavOctreeOnComponentChange = bNewUpdateOnComponentChange;
+}
+
 void UNavigationSystem::DoInitialSetup()
 {
 	if (bInitialSetupHasBeenPerformed)
@@ -474,7 +479,7 @@ void UNavigationSystem::PostInitProperties()
 			GEngine->OnActorMoved().AddUObject(this, &UNavigationSystem::OnActorMoved);
 		}
 #endif
-		FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
+		FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
 		UNavigationSystem::NavigationDirtyEvent.AddUObject(this, &UNavigationSystem::OnNavigationDirtied);
 
 #if WITH_HOT_RELOAD
@@ -1482,7 +1487,7 @@ const ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProp
 			}
 
 			ExcessRadius = NavIt.AgentRadius - AgentProperties.AgentRadius;
-			ExcessHeight = NavIt.AgentHeight - AgentHeight;
+			ExcessHeight = bSkipAgentHeightCheckWhenPickingNavData ? 0.f : (NavIt.AgentHeight - AgentHeight);
 
 			const bool bExcessRadiusIsBetter = ((ExcessRadius == 0) && (BestExcessRadius != 0)) 
 				|| ((ExcessRadius > 0) && (BestExcessRadius < 0))
@@ -3548,7 +3553,7 @@ void UNavigationSystem::RemoveLevelCollisionFromOctree(ULevel* Level)
 	}
 }
 
-void UNavigationSystem::OnPostLoadMap()
+void UNavigationSystem::OnPostLoadMap(UWorld*)
 {
 	UE_LOG(LogNavigation, Log, TEXT("UNavigationSystem::OnPostLoadMap"));
 
@@ -3604,7 +3609,7 @@ void UNavigationSystem::CleanUp(ECleanupMode Mode)
 	}
 #endif // WITH_EDITOR
 
-	FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 	UNavigationSystem::NavigationDirtyEvent.RemoveAll(this);
 	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);

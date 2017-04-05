@@ -104,6 +104,19 @@ namespace ESoundMixState
 		// Time elapsed, just about to be removed
 		AwaitingRemoval,
 	};
+
+	static const TCHAR* GetString(ESoundMixState::Type InType)
+	{
+		switch (InType)
+		{
+			case ESoundMixState::Inactive: return TEXT("Inactive");
+			case ESoundMixState::FadingIn: return TEXT("FadingIn");
+			case ESoundMixState::Active: return TEXT("Active");
+			case ESoundMixState::FadingOut: return TEXT("FadingOut");
+			case ESoundMixState::AwaitingRemoval: return TEXT("AwaitingRemoval");
+			default: return TEXT("unknown");
+		}
+	}
 }
 
 namespace ESortedActiveWaveGetType
@@ -184,6 +197,7 @@ struct FListener
 	float InteriorLPFInterp;
 	float ExteriorVolumeInterp;
 	float ExteriorLPFInterp;
+	FAudioDevice* AudioDevice;
 
 	FVector GetUp() const		{ return Transform.GetUnitAxis(EAxis::Z); }
 	FVector GetFront() const	{ return Transform.GetUnitAxis(EAxis::Y); }
@@ -204,7 +218,7 @@ struct FListener
 	 */
 	void ApplyInteriorSettings(uint32 AudioVolumeID, const FInteriorSettings& Settings);
 
-	FListener()
+	FListener(FAudioDevice* InAudioDevice)
 		: Transform(FTransform::Identity)
 		, Velocity(ForceInit)
 		, AudioVolumeID(0)
@@ -217,8 +231,12 @@ struct FListener
 		, InteriorLPFInterp(0.f)
 		, ExteriorVolumeInterp(0.f)
 		, ExteriorLPFInterp(0.f)
+		, AudioDevice(InAudioDevice)
 	{
 	}
+
+private:
+	FListener();
 };
 
 /** 
@@ -526,6 +544,8 @@ public:
 	 */
 	int32 GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveInstances, const ESortedActiveWaveGetType::Type GetType);
 
+	/** Update the active sound playback time. This is done here to do after all audio is updated. */
+	void UpdateActiveSoundPlaybackTime();
 
 	/** Optional fadeout of audio to avoid clicks when closing audio device. */
 	virtual void FadeOut() {}
@@ -570,6 +590,9 @@ public:
 	 * Sets the maximum number of channels dynamically. Can't raise the cap over the initial value but can lower it 
 	 */
 	virtual void SetMaxChannels(int32 InMaxChannels);
+
+	/** Returns the max channels used by the audio device. */
+	int32 GetMaxChannels() const;
 
 	/**
 	* Stops any sound sources which are using the given buffer.
@@ -805,7 +828,7 @@ public:
 	 * @param SoundMix The SoundMix to push.
 	 * @param bIsPassive Whether this is a passive push from a playing sound.
 	 */
-	void PushSoundMixModifier(USoundMix* SoundMix, bool bIsPassive = false);
+	void PushSoundMixModifier(USoundMix* SoundMix, bool bIsPassive = false, bool bIsRetrigger = false);
 
 	/** 
 	 * Sets a sound class override in the given sound mix.
@@ -1299,7 +1322,8 @@ public:
 
 	bool IsMainAudioDevice()
 	{
-		return this == GEngine->GetMainAudioDevice();
+		FAudioDevice* MainAudioDevice = GEngine->GetMainAudioDevice();
+		return (MainAudioDevice == nullptr || MainAudioDevice == this);
 	}
 
 public:

@@ -2993,7 +2993,6 @@ uint32 FRecastTileGenerator::GetUsedMemCount() const
 	TotalMemory += Modifiers.GetAllocatedSize();
 	TotalMemory += OffmeshLinks.GetAllocatedSize();
 	TotalMemory += RawGeometry.GetAllocatedSize();
-	TotalMemory += Modifiers.GetAllocatedSize();
 	
 	for (const FRecastRawGeometryElement& Element : RawGeometry)
 	{

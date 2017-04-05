@@ -126,24 +126,6 @@ namespace CharacterMovementCVars
 		TEXT("0: Disable, 1: Enable"),
 		ECVF_Default);
 
-	static float NetProxyShrinkRadius = 0.01f;
-	FAutoConsoleVariableRef CVarNetProxyShrinkRadius(
-		TEXT("p.NetProxyShrinkRadius"),
-		NetProxyShrinkRadius,
-		TEXT("Shrink simulated proxy capsule radius by this amount, to account for network rounding that may cause encroachment.\n")
-		TEXT("Changing this value at runtime may require the proxy to re-join for correct behavior.\n")
-		TEXT("<= 0: disabled, > 0: shrink by this amount."),
-		ECVF_Default);
-
-	static float NetProxyShrinkHalfHeight = 0.01f;
-	FAutoConsoleVariableRef CVarNetProxyShrinkHalfHeight(
-		TEXT("p.NetProxyShrinkHalfHeight"),
-		NetProxyShrinkHalfHeight,
-		TEXT("Shrink simulated proxy capsule half height by this amount, to account for network rounding that may cause encroachment.\n")
-		TEXT("Changing this value at runtime may require the proxy to re-join for correct behavior.\n")
-		TEXT("<= 0: disabled, > 0: shrink by this amount."),
-		ECVF_Default);
-
 	static int32 ReplayUseInterpolation = 1;
 	FAutoConsoleVariableRef CVarReplayUseInterpolation(
 		TEXT( "p.ReplayUseInterpolation" ),
@@ -239,6 +221,7 @@ void FFindFloorResult::SetFromLineTrace(const FHitResult& InHit, const float InS
 		HitResult.TraceEnd = OldHit.TraceEnd;
 
 		bLineTrace = true;
+		FloorDist = InSweepFloorDist;
 		LineDist = InLineDist;
 		bWalkableFloor = bIsWalkableFloor;
 	}
@@ -287,6 +270,10 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	MaxDepenetrationWithGeometryAsProxy = 100.f;
 	MaxDepenetrationWithPawn = 100.f;
 	MaxDepenetrationWithPawnAsProxy = 2.f;
+
+	// Set to match EVectorQuantization::RoundTwoDecimals
+	NetProxyShrinkRadius = 0.01f;
+	NetProxyShrinkHalfHeight = 0.01f;
 
 	NetworkSimulatedSmoothLocationTime = 0.100f;
 	NetworkSimulatedSmoothRotationTime = 0.033f;
@@ -506,6 +493,22 @@ void UCharacterMovementComponent::BeginDestroy()
 	Super::BeginDestroy();
 }
 
+void UCharacterMovementComponent::Deactivate()
+{
+	bStopMovementAbortPaths = false; // Mirrors StopMovementKeepPathing(), because Super calls StopMovement() and we want that handled differently.
+	Super::Deactivate();
+	if (!IsActive())
+	{
+		ClearAccumulatedForces();
+		if (CharacterOwner)
+		{
+			CharacterOwner->ClearJumpInput();
+		}
+	}
+	bStopMovementAbortPaths = true;
+}
+
+
 void UCharacterMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	if (NewUpdatedComponent)
@@ -535,6 +538,7 @@ void UCharacterMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdate
 	bDeferUpdateMoveComponent = false;
 	DeferredUpdatedMoveComponent = NULL;
 
+	USceneComponent* OldUpdatedComponent = UpdatedComponent;
 	UPrimitiveComponent* OldPrimitive = Cast<UPrimitiveComponent>(UpdatedComponent);
 	if (IsValid(OldPrimitive) && OldPrimitive->OnComponentBeginOverlap.IsBound())
 	{
@@ -543,6 +547,11 @@ void UCharacterMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdate
 	
 	Super::SetUpdatedComponent(NewUpdatedComponent);
 	CharacterOwner = Cast<ACharacter>(PawnOwner);
+
+	if (UpdatedComponent != OldUpdatedComponent)
+	{
+		ClearAccumulatedForces();
+	}
 
 	if (UpdatedComponent == NULL)
 	{
@@ -693,7 +702,10 @@ FVector UCharacterMovementComponent::GetImpartedMovementBaseVelocity() const
 
 void UCharacterMovementComponent::Launch(FVector const& LaunchVel)
 {
-	PendingLaunchVelocity = LaunchVel;
+	if ((MovementMode != MOVE_None) && IsActive() && HasValidData())
+	{
+		PendingLaunchVelocity = LaunchVel;
+	}
 }
 
 bool UCharacterMovementComponent::HandlePendingLaunch()
@@ -915,6 +927,7 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 			// Kill velocity and clear queued up events
 			StopMovementKeepPathing();
 			CharacterOwner->ClearJumpInput();
+			ClearAccumulatedForces();
 		}
 	}
 
@@ -1084,6 +1097,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 			}
 		}
 
+		ClearAccumulatedForces();
 		return;
 	}
 
@@ -1187,8 +1201,8 @@ void UCharacterMovementComponent::AdjustProxyCapsuleSize()
 	{
 		bShrinkProxyCapsule = false;
 
-		float ShrinkRadius = FMath::Max(0.f, CharacterMovementCVars::NetProxyShrinkRadius);
-		float ShrinkHalfHeight = FMath::Max(0.f, CharacterMovementCVars::NetProxyShrinkHalfHeight);
+		float ShrinkRadius = FMath::Max(0.f, NetProxyShrinkRadius);
+		float ShrinkHalfHeight = FMath::Max(0.f, NetProxyShrinkHalfHeight);
 
 		if (ShrinkRadius == 0.f && ShrinkHalfHeight == 0.f)
 		{
@@ -1514,14 +1528,17 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 					UpdateFloorFromAdjustment();
 				}
 			}
-
-			HandlePendingLaunch();
 		}
 
 		if (MovementMode == MOVE_None)
 		{
+			ClearAccumulatedForces();
 			return;
 		}
+
+		//TODO: Also ApplyAccumulatedForces()?
+		HandlePendingLaunch();
+		ClearAccumulatedForces();
 
 		Acceleration = Velocity.GetSafeNormal();	// Not currently used for simulated movement
 		AnalogInputModifier = 1.0f;				// Not currently used for simulated movement
@@ -1867,6 +1884,15 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	// no movement if we can't move, or if currently doing physical simulation on UpdatedComponent
 	if (MovementMode == MOVE_None || UpdatedComponent->Mobility != EComponentMobility::Movable || UpdatedComponent->IsSimulatingPhysics())
 	{
+		if (!CharacterOwner->bClientUpdating && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh() && !CharacterOwner->bServerMoveIgnoreRootMotion)
+		{
+			// Consume root motion
+			TickCharacterPose(DeltaSeconds);
+			RootMotionParams.Clear();
+			CurrentRootMotion.Clear();
+		}
+		// Clear pending physics forces
+		ClearAccumulatedForces();
 		return;
 	}
 
@@ -1942,6 +1968,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 
 		// Character::LaunchCharacter() has been deferred until now.
 		HandlePendingLaunch();
+		ClearAccumulatedForces();
 
 #if ROOT_MOTION_DEBUG
 		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
@@ -2171,10 +2198,13 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		}
 	}
 
+	const FVector NewLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+	const FQuat NewRotation = UpdatedComponent ? UpdatedComponent->GetComponentQuat() : FQuat::Identity;
+
 	if (bHasAuthority && UpdatedComponent && !IsNetMode(NM_Client))
 	{
-		const bool bLocationChanged = (UpdatedComponent->GetComponentLocation() != LastUpdateLocation);
-		const bool bRotationChanged = (UpdatedComponent->GetComponentQuat() != LastUpdateRotation);
+		const bool bLocationChanged = (NewLocation != LastUpdateLocation);
+		const bool bRotationChanged = (NewRotation != LastUpdateRotation);
 		if (bLocationChanged || bRotationChanged)
 		{
 			const UWorld* MyWorld = GetWorld();
@@ -2182,8 +2212,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		}
 	}
 
-	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
-	LastUpdateRotation = UpdatedComponent ? UpdatedComponent->GetComponentQuat() : FQuat::Identity;
+	LastUpdateLocation = NewLocation;
+	LastUpdateRotation = NewRotation;
 	LastUpdateVelocity = Velocity;
 }
 
@@ -4966,16 +4996,25 @@ void UCharacterMovementComponent::AdjustFloorHeight()
 	SCOPE_CYCLE_COUNTER(STAT_CharAdjustFloorHeight);
 
 	// If we have a floor check that hasn't hit anything, don't adjust height.
-	if (!CurrentFloor.bBlockingHit)
+	if (!CurrentFloor.IsWalkableFloor())
 	{
 		return;
 	}
 
-	const float OldFloorDist = CurrentFloor.FloorDist;
-	if (CurrentFloor.bLineTrace && OldFloorDist < MIN_FLOOR_DIST)
+	float OldFloorDist = CurrentFloor.FloorDist;
+	if (CurrentFloor.bLineTrace)
 	{
-		// This would cause us to scale unwalkable walls
-		return;
+		if (OldFloorDist < MIN_FLOOR_DIST && CurrentFloor.LineDist >= MIN_FLOOR_DIST)
+		{
+			// This would cause us to scale unwalkable walls
+			UE_LOG(LogCharacterMovement, VeryVerbose, TEXT("Adjust floor height aborting due to line trace with small floor distance (line: %.2f, sweep: %.2f)"), CurrentFloor.LineDist, CurrentFloor.FloorDist);
+			return;
+		}
+		else
+		{
+			// Falling back to a line trace means the sweep was unwalkable (or in penetration). Use the line distance for the vertical adjustment.
+			OldFloorDist = CurrentFloor.LineDist;
+		}
 	}
 
 	// Move up or down to maintain floor height.
@@ -5011,6 +5050,9 @@ void UCharacterMovementComponent::AdjustFloorHeight()
 		// Don't recalculate velocity based on this height adjustment, if considering vertical adjustments.
 		// Also avoid it if we moved out of penetration
 		bJustTeleported |= !bMaintainHorizontalGroundVelocity || (OldFloorDist < 0.f);
+		
+		// If something caused us to adjust our height (especially a depentration) we should ensure another check next frame or we will keep a stale result.
+		bForceNextFloorCheck = true;
 	}
 }
 
@@ -5416,7 +5458,7 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 
 void UCharacterMovementComponent::AddImpulse( FVector Impulse, bool bVelocityChange )
 {
-	if (HasValidData() && !Impulse.IsZero())
+	if (!Impulse.IsZero() && (MovementMode != MOVE_None) && IsActive() && HasValidData())
 	{
 		// handle scaling by mass
 		FVector FinalImpulse = Impulse;
@@ -5438,7 +5480,7 @@ void UCharacterMovementComponent::AddImpulse( FVector Impulse, bool bVelocityCha
 
 void UCharacterMovementComponent::AddForce( FVector Force )
 {
-	if (HasValidData() && !Force.IsZero())
+	if (!Force.IsZero() && (MovementMode != MOVE_None) && IsActive() && HasValidData())
 	{
 		if (Mass > SMALL_NUMBER)
 		{
@@ -5576,7 +5618,7 @@ float UCharacterMovementComponent::K2_GetWalkableFloorZ() const
 bool UCharacterMovementComponent::IsWithinEdgeTolerance(const FVector& CapsuleLocation, const FVector& TestImpactPoint, const float CapsuleRadius) const
 {
 	const float DistFromCenterSq = (TestImpactPoint - CapsuleLocation).SizeSquared2D();
-	const float ReducedRadiusSq = FMath::Square(FMath::Max(KINDA_SMALL_NUMBER, CapsuleRadius - SWEEP_EDGE_REJECT_DISTANCE));
+	const float ReducedRadiusSq = FMath::Square(FMath::Max(SWEEP_EDGE_REJECT_DISTANCE + KINDA_SMALL_NUMBER, CapsuleRadius - SWEEP_EDGE_REJECT_DISTANCE));
 	return DistFromCenterSq < ReducedRadiusSq;
 }
 
@@ -5649,13 +5691,17 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 			if (Hit.bStartPenetrating || !IsWithinEdgeTolerance(CapsuleLocation, Hit.ImpactPoint, CapsuleShape.Capsule.Radius))
 			{
 				// Use a capsule with a slightly smaller radius and shorter height to avoid the adjacent object.
-				ShrinkHeight = (PawnHalfHeight - PawnRadius) * (1.f - ShrinkScaleOverlap);
-				TraceDist = SweepDistance + ShrinkHeight;
+				// Capsule must not be nearly zero or the trace will fall back to a line trace from the start point and have the wrong length.
 				CapsuleShape.Capsule.Radius = FMath::Max(0.f, CapsuleShape.Capsule.Radius - SWEEP_EDGE_REJECT_DISTANCE - KINDA_SMALL_NUMBER);
-				CapsuleShape.Capsule.HalfHeight = FMath::Max(PawnHalfHeight - ShrinkHeight, CapsuleShape.Capsule.Radius);
-				Hit.Reset(1.f, false);
+				if (!CapsuleShape.IsNearlyZero())
+				{
+					ShrinkHeight = (PawnHalfHeight - PawnRadius) * (1.f - ShrinkScaleOverlap);
+					TraceDist = SweepDistance + ShrinkHeight;
+					CapsuleShape.Capsule.HalfHeight = FMath::Max(PawnHalfHeight - ShrinkHeight, CapsuleShape.Capsule.Radius);
+					Hit.Reset(1.f, false);
 
-				bBlockingHit = FloorSweepTest(Hit, CapsuleLocation, CapsuleLocation + FVector(0.f,0.f,-TraceDist), CollisionChannel, CapsuleShape, QueryParams, ResponseParam);
+					bBlockingHit = FloorSweepTest(Hit, CapsuleLocation, CapsuleLocation + FVector(0.f,0.f,-TraceDist), CollisionChannel, CapsuleShape, QueryParams, ResponseParam);
+				}
 			}
 
 			// Reduce hit distance by ShrinkHeight because we shrank the capsule for the trace.
@@ -9024,9 +9070,17 @@ void UCharacterMovementComponent::ApplyAccumulatedForces(float DeltaSeconds)
 	}
 
 	Velocity += PendingImpulseToApply + (PendingForceToApply * DeltaSeconds);
-
+	
+	// Don't call ClearAccumulatedForces() because it could affect launch velocity
 	PendingImpulseToApply = FVector::ZeroVector;
 	PendingForceToApply = FVector::ZeroVector;
+}
+
+void UCharacterMovementComponent::ClearAccumulatedForces()
+{
+	PendingImpulseToApply = FVector::ZeroVector;
+	PendingForceToApply = FVector::ZeroVector;
+	PendingLaunchVelocity = FVector::ZeroVector;
 }
 
 void UCharacterMovementComponent::AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff)
@@ -9640,6 +9694,7 @@ FNetworkPredictionData_Server_Character::FNetworkPredictionData_Server_Character
 	if (World)
 	{
 		WorldCreationTime = World->GetTimeSeconds();
+		ServerTimeStamp = World->GetTimeSeconds();
 	}
 
 	MaxResponseTime = MaxMoveDeltaTime; // Deprecated, use MaxMoveDeltaTime instead

@@ -38,7 +38,7 @@ uint32 GetTypeHash(const FOverlapKey& Key)
 
 
 #define DRAW_OVERLAPPING_TRIS (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
-extern TAutoConsoleVariable<int32> CVarShowInitialOverlaps;
+extern int32 CVarShowInitialOverlaps;
 
 // Sentinel for invalid query results.
 static const PxQueryHit InvalidQueryHit;
@@ -956,7 +956,7 @@ static bool ConvertOverlappedShapeToImpactHit(const UWorld* World, const PxLocat
 	}
 
 #if DRAW_OVERLAPPING_TRIS
-	if (CVarShowInitialOverlaps.GetValueOnAnyThread() != 0 && World && World->IsGameWorld())
+	if (CVarShowInitialOverlaps != 0 && World && World->IsGameWorld())
 	{
 		FVector DummyNormal(0.f);
 		const PxTransform PShapeWorldPose = PxShapeExt::getGlobalPose(*PShape, *PActor);

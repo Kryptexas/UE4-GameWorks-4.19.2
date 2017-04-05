@@ -2947,6 +2947,13 @@ bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutE
 			OutErrorMessage = LOCTEXT("RenameFailed_EngineReservedName", "This name is reserved for engine use.");
 			return false;
 		}
+		else if (InNewText.ToString().Len() > NAME_SIZE)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("CharCount"), NAME_SIZE);
+			OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_TooLong", "Component name must be less than {CharCount} characters long."), Arguments);
+			return false;
+		}
 		else if (!FComponentEditorUtils::IsComponentNameAvailable(InNewText.ToString(), ExistingNameSearchScope, NodePtr->GetComponentTemplate()))
 		{
 			OutErrorMessage = LOCTEXT("RenameFailed_ExistingName", "Another component already has the same name.");

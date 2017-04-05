@@ -18,6 +18,7 @@
 #include "UObject/LinkerPlaceholderClass.h"
 #include "UObject/LinkerPlaceholderExportObject.h"
 #include "UObject/LinkerPlaceholderFunction.h"
+#include "UObject/ReferenceChainSearch.h"
 #include "UObject/StructScriptLoader.h"
 #include "UObject/UObjectThreadContext.h"
 
@@ -191,6 +192,100 @@ bool FBlueprintSupport::ShouldSuppressWarning(FName WarningIdentifier)
 	return BlueprintWarningsToSuppress.Find(WarningIdentifier) != nullptr;
 }
 
+#if WITH_EDITOR
+void FBlueprintSupport::ValidateNoRefsToOutOfDateClasses()
+{
+	// ensure no TRASH/REINST types remain:
+	TArray<UObject*> OutOfDateClasses;
+	GetObjectsOfClass(UClass::StaticClass(), OutOfDateClasses);
+	OutOfDateClasses.RemoveAllSwap( 
+		[](UObject* Obj)
+		{ 
+			UClass* AsClass = CastChecked<UClass>(Obj);
+			return (!AsClass->HasAnyClassFlags(CLASS_NewerVersionExists)) || !AsClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint); 
+		} 
+	);
+
+	for(UObject* Obj : OutOfDateClasses)
+	{
+		FReferenceChainSearch RefChainSearch(Obj, FReferenceChainSearch::ESearchMode::Shortest);
+		if( RefChainSearch.GetReferenceChains().Num() != 0 )
+		{
+			RefChainSearch.PrintResults();
+			ensureAlwaysMsgf(false, TEXT("Found and output bad class references"));
+		}
+	}
+}
+
+void FBlueprintSupport::ValidateNoExternalRefsToSkeletons()
+{
+	// bit of a hack to find the skel class, because UBlueprint is not visible here,
+	// but it's very useful to be able to validate BP assumptions in low level code:
+	auto IsSkeleton = [](UClass* InClass)
+	{
+		return InClass->ClassGeneratedBy && InClass->GetName().StartsWith(TEXT("SKEL_"));
+	};
+
+	auto IsOuteredToSkeleton = [IsSkeleton](UObject* Object)
+	{
+		UObject* Iter = Object->GetOuter();
+		while(Iter)
+		{
+			if(UClass* AsClass = Cast<UClass>(Iter))
+			{
+				if(IsSkeleton(AsClass))
+				{
+					return true;
+				}
+			}
+			Iter = Iter->GetOuter();
+		}
+		return false;
+	};
+
+	TArray<UObject*> SkeletonClasses;
+	GetObjectsOfClass(UClass::StaticClass(), SkeletonClasses);
+	SkeletonClasses.RemoveAllSwap( 
+		[IsSkeleton](UObject* Obj)
+		{ 
+			UClass* AsClass = CastChecked<UClass>(Obj);
+			return !IsSkeleton(AsClass);
+		} 
+	);
+
+	for(UObject* SkeletonClass : SkeletonClasses)
+	{
+		FReferenceChainSearch RefChainSearch(SkeletonClass, FReferenceChainSearch::ESearchMode::Shortest|FReferenceChainSearch::ESearchMode::ExternalOnly);
+		bool bBadRefs = false;
+		for(const FReferenceChainSearch::FReferenceChain& Chain : RefChainSearch.GetReferenceChains())
+		{
+			if(Chain.RefChain[0].ReferencedBy->GetOutermost() != SkeletonClass->GetOutermost())
+			{
+				bBadRefs = true;
+				// if there's a skeleton class (or an object outered to a skeleton class) at the end of chain, then it's fine:
+				if(UClass* AsClass = Cast<UClass>(Chain.RefChain.Last().ReferencedBy))
+				{
+					if(IsSkeleton(AsClass))
+					{
+						bBadRefs = false;
+					}
+				}
+				else if(IsOuteredToSkeleton(Chain.RefChain.Last().ReferencedBy))
+				{
+					bBadRefs = false;
+				}
+			}
+		}
+
+		if(bBadRefs)
+		{
+			RefChainSearch.PrintResults();
+			ensureAlwaysMsgf(false, TEXT("Found and output bad references to skeleton classes"));
+		}
+	}
+}
+#endif // WITH_EDITOR
+
 /*******************************************************************************
  * FScopedClassDependencyGather
  ******************************************************************************/
@@ -274,7 +369,7 @@ FScopedClassDependencyGather::~FScopedClassDependencyGather()
 		}
 		else
 		{
-			BatchMasterClass->ConditionalRecompileClass(nullptr);
+			BatchMasterClass->ConditionalRecompileClass(&FUObjectThreadContext::Get().ObjLoaded);
 		}
 
 		BatchMasterClass = NULL;

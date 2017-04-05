@@ -2085,10 +2085,10 @@ void FSpriteGeometryCollisionBuilderBase::ProcessGeometry(const FSpriteGeometryC
 void FSpriteGeometryCollisionBuilderBase::Finalize()
 {
 	// Rebuild the body setup
-#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 	MyBodySetup->InvalidatePhysicsData();
-#endif
 	MyBodySetup->CreatePhysicsMeshes();
+#endif
 }
 
 void FSpriteGeometryCollisionBuilderBase::AddBoxCollisionShapesToBodySetup(const FSpriteGeometryCollection& InGeometry)

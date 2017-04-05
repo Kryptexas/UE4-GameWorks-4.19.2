@@ -1561,7 +1561,7 @@ void FNativizationSummaryHelper::ReducibleFunciton(const UClass* OriginalClass)
 	}
 }
 
-void FNativizationSummaryHelper::RegisterRequiredModules(const FString& PlatformName, const TSet<TAssetPtr<UPackage>>& InModules)
+void FNativizationSummaryHelper::RegisterRequiredModules(const FName PlatformName, const TSet<TAssetPtr<UPackage>>& InModules)
 {
 	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
@@ -1794,10 +1794,10 @@ FString FDependenciesGlobalMapHelper::EmitHeaderCode()
 	return TEXT("#pragma once\n#include \"Blueprint/BlueprintSupport.h\"\nstruct F__NativeDependencies { \n\tstatic const FBlueprintDependencyObjectRef& Get(int16 Index);\n };");
 }
 
-FString FDependenciesGlobalMapHelper::EmitBodyCode()
+FString FDependenciesGlobalMapHelper::EmitBodyCode(const FString& PCHFilename)
 {
 	FCodeText CodeText;
-	CodeText.AddLine("#include \"NativizedAssets.h\"");
+	CodeText.AddLine(FString::Printf(TEXT("#include \"%s.h\""), *PCHFilename));
 	{
 		FDisableUnwantedWarningOnScope DisableUnwantedWarningOnScope(CodeText);
 

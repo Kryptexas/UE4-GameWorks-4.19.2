@@ -489,8 +489,13 @@ public:
 	*/
 	virtual void Parse1ToNSectionOfNames(const TCHAR* Section, const TCHAR* KeyOne, const TCHAR* KeyN, TMap<FName, TArray<FName> >& OutMap, const FString& Filename);
 
+	/** Finds Config file based on the final, generated ini name */
 	FConfigFile* FindConfigFile( const FString& Filename );
 	FConfigFile* Find( const FString& InFilename, bool CreateIfNotFound );
+
+	/** Finds Config file that matches the base name such as "Engine" */
+	FConfigFile* FindConfigFileWithBaseName(FName BaseName);
+
 	void Flush( bool Read, const FString& Filename=TEXT("") );
 
 	void LoadFile( const FString& InFilename, const FConfigFile* Fallback = NULL, const TCHAR* PlatformString = NULL );

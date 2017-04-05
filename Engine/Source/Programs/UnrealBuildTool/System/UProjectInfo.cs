@@ -362,17 +362,18 @@ namespace UnrealBuildTool
 			return bEnabled;
 		}
 
-		/// <summary>
-		/// Determine if a plugin is enabled for a given project
-		/// </summary>
-		/// <param name="Project">The project to check</param>
-		/// <param name="Plugin">Information about the plugin</param>
-		/// <param name="Platform">The target platform</param>
-		/// <param name="TargetType"></param>
-		/// <param name="bBuildDeveloperTools"></param>
-		/// <param name="bBuildEditor"></param>
-		/// <returns>True if the plugin should be enabled for this project</returns>
-		public static bool IsPluginDescriptorRequiredForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor)
+        /// <summary>
+        /// Determine if a plugin is enabled for a given project
+        /// </summary>
+        /// <param name="Project">The project to check</param>
+        /// <param name="Plugin">Information about the plugin</param>
+        /// <param name="Platform">The target platform</param>
+        /// <param name="TargetType"></param>
+        /// <param name="bBuildDeveloperTools"></param>
+        /// <param name="bBuildEditor"></param>
+        /// <param name="bBuildRequiresCookedData"></param>
+        /// <returns>True if the plugin should be enabled for this project</returns>
+        public static bool IsPluginDescriptorRequiredForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor, bool bBuildRequiresCookedData)
 		{
 			// Check if it's referenced by name from the project descriptor. If it is, we'll need the plugin to be included with the project regardless of whether it has
 			// any platform-specific modules or content, just so the runtime can make the call.
@@ -396,7 +397,7 @@ namespace UnrealBuildTool
 			// Check if the plugin has any modules for the given target
 			foreach (ModuleDescriptor Module in Plugin.Descriptor.Modules)
 			{
-				if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+				if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor, bBuildRequiresCookedData))
 				{
 					return true;
 				}

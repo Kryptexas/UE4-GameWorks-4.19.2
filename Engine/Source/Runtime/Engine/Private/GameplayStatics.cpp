@@ -39,6 +39,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "EngineStats.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
@@ -57,6 +58,9 @@ struct FSaveGameFileVersion
 		LatestVersion = VersionPlusOne - 1
 	};
 };
+
+DECLARE_CYCLE_STAT(TEXT("BreakHitResult"), STAT_BreakHitResult, STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("MakeHitResult"), STAT_MakeHitResult, STATGROUP_Game);
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
@@ -302,26 +306,29 @@ bool UGameplayStatics::ApplyRadialDamageWithFalloff(const UObject* WorldContextO
 		}
 	}
 
-	// make sure we have a good damage type
-	TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
-
 	bool bAppliedDamage = false;
 
-	// call damage function on each affected actors
-	for (TMap<AActor*, TArray<FHitResult> >::TIterator It(OverlapComponentMap); It; ++It)
+	if (OverlapComponentMap.Num() > 0)
 	{
-		AActor* const Victim = It.Key();
-		TArray<FHitResult> const& ComponentHits = It.Value();
+		// make sure we have a good damage type
+		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
 
 		FRadialDamageEvent DmgEvent;
 		DmgEvent.DamageTypeClass = ValidDamageTypeClass;
-		DmgEvent.ComponentHits = ComponentHits;
 		DmgEvent.Origin = Origin;
 		DmgEvent.Params = FRadialDamageParams(BaseDamage, MinimumDamage, DamageInnerRadius, DamageOuterRadius, DamageFalloff);
 
-		Victim->TakeDamage(BaseDamage, DmgEvent, InstigatedByController, DamageCauser);
+		// call damage function on each affected actors
+		for (TMap<AActor*, TArray<FHitResult> >::TIterator It(OverlapComponentMap); It; ++It)
+		{
+			AActor* const Victim = It.Key();
+			TArray<FHitResult> const& ComponentHits = It.Value();
+			DmgEvent.ComponentHits = ComponentHits;
 
-		bAppliedDamage = true;
+			Victim->TakeDamage(BaseDamage, DmgEvent, InstigatedByController, DamageCauser);
+
+			bAppliedDamage = true;
+		}
 	}
 
 	return bAppliedDamage;
@@ -864,6 +871,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 
 void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, int32& FaceIndex, FVector& TraceStart, FVector& TraceEnd)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BreakHitResult);
 	bBlockingHit = Hit.bBlockingHit;
 	bInitialOverlap = Hit.bStartPenetrating;
 	Time = Hit.Time;
@@ -883,6 +891,7 @@ void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit,
 
 FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, int32 FaceIndex, FVector TraceStart, FVector TraceEnd)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MakeHitResult);
 	FHitResult Hit;
 	Hit.bBlockingHit = bBlockingHit;
 	Hit.bStartPenetrating = bInitialOverlap;

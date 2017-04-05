@@ -887,7 +887,7 @@ UBreakpoint* FKismetDebugUtilities::FindBreakpointForNode(UBlueprint* Blueprint,
 		{
 			Blueprint->Breakpoints.RemoveAtSwap(Index);
 			Blueprint->MarkPackageDirty();
-			UE_LOG(LogBlueprintDebug, Display, TEXT("Encountered a blueprint breakpoint in %s without an associated node. The blueprint has been remoevd"), *Blueprint->GetPathName());
+			UE_LOG(LogBlueprintDebug, Display, TEXT("Encountered a blueprint breakpoint in %s without an associated node. The blueprint breakpoint has been removed"), *Blueprint->GetPathName());
 			continue;
 		}
 

@@ -477,7 +477,7 @@ private:
 	/**
 	 * Notification that a world has been loaded (need to get a UWorld to register delegates on OSS)
 	 */
-	void OnPostLoadMap();
+	void OnPostLoadMap(UWorld* = nullptr);
 
 	/**
 	 * Register with the identity interface to monitor logout for party cleanup

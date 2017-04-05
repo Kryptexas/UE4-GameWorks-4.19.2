@@ -9847,7 +9847,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			if (!bCalled)
 			{
+				PRAGMA_DISABLE_DEPRECATION_WARNINGS
 				FCoreUObjectDelegates::PostLoadMap.Broadcast();
+				PRAGMA_ENABLE_DEPRECATION_WARNINGS
+				FCoreUObjectDelegates::PostLoadMapWithWorld.Broadcast(nullptr);
 			}
 		}
 	} PostLoadMapCaller;
@@ -10305,7 +10308,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	// send a callback message
 	PostLoadMapCaller.bCalled = true;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FCoreUObjectDelegates::PostLoadMap.Broadcast();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FCoreUObjectDelegates::PostLoadMapWithWorld.Broadcast(WorldContext.World());
 	
 	WorldContext.World()->bWorldWasLoadedThisTick = true;
 

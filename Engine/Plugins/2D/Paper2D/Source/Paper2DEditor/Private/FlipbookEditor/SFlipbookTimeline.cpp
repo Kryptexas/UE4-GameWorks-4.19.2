@@ -55,11 +55,12 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<FUIComman
 	ChildSlot
 	[
 		SNew(SBorder)
-		.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 		[
 			SNew(SScrollBox)
 			.Orientation(Orient_Horizontal)
 			.ScrollBarAlwaysVisible(true)
+			.OnUserScrolled(this, &SFlipbookTimeline::AnimationScrollBar_OnUserScrolled)
 			+SScrollBox::Slot()
 			[
 				SNew(SOverlay)
@@ -218,7 +219,7 @@ int32 SFlipbookTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 	const int32 TotalNumFrames = (Flipbook != nullptr) ? Flipbook->GetNumFrames() : 0;
 
 	const float SlateTotalDistance = SlateUnitsPerFrame * TotalNumFrames;
-	const float CurrentTimeXPos = (CurrentTimeSecs / TotalTimeSecs) * SlateTotalDistance;
+	const float CurrentTimeXPos = (((CurrentTimeSecs / TotalTimeSecs) * SlateTotalDistance) - AnimationScrollBarPosition) + FMath::Clamp((AllottedGeometry.Size.X + AnimationScrollBarPosition) - SlateTotalDistance, 0.0f, AnimationScrollBarPosition);
 
 	// Draw a line for the current scrub cursor
 	++LayerId;
@@ -342,6 +343,11 @@ void SFlipbookTimeline::RebuildPerFrameBG()
 			]
 		];
 	}
+}
+
+void SFlipbookTimeline::AnimationScrollBar_OnUserScrolled(float ScrollOffset)
+{
+	AnimationScrollBarPosition = ScrollOffset;
 }
 
 //////////////////////////////////////////////////////////////////////////

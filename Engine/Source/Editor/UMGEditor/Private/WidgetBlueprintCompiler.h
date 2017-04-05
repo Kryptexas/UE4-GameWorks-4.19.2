@@ -31,7 +31,7 @@ protected:
 	virtual UEdGraphSchema_K2* CreateSchema() override;
 	virtual void CreateFunctionList() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
-	virtual void PrecompileFunction(FKismetFunctionContext& Context) override;
+	virtual void PrecompileFunction(FKismetFunctionContext& Context, EInternalCompilerFlags InternalFlags) override;
 	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOutOldCDO) override;
 	virtual void SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean) override;
 	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) override;

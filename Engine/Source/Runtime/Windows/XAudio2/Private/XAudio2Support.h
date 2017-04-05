@@ -891,7 +891,7 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 
 	double GetAudioClockTime()
 	{
-		if (AudioClockVoice)
+		if (AudioClockVoice && bAllowNewVoices)
 		{
 			XAUDIO2_VOICE_STATE VoiceState;
 			AudioClockVoice->GetState(&VoiceState);

@@ -237,15 +237,6 @@ namespace SavePackageStats
 }
 #endif
 
-#if WITH_EDITOR
-static const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const ITargetPlatform* TargetPlatform, const IBlueprintNativeCodeGenCore* Coordinator)
-{
-	check(Coordinator);
-	const FString PlatformName = ensure(TargetPlatform) ? TargetPlatform->PlatformName() : FString();
-	return Coordinator->GetNativizationOptionsForPlatform(PlatformName);
-}
-#endif //WITH_EDITOR
-
 static bool HasUnsaveableOuter(UObject* InObj, UPackage* InSavingPackage)
 {
 	UObject* Obj = InObj;
@@ -631,7 +622,7 @@ public:
 	{
 		if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 		{
-			const FCompilerNativizationOptions& NativizationOptions = GetNativizationOptionsForPlatform(TargetPlatform, Coordinator);
+			const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
 			if (const UClass* ReplObjClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
 			{
 				MarkNameAsReferenced(ReplObjClass->GetFName());
@@ -756,7 +747,7 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 	// Check for nativization replacement
 	if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 	{
-		const FCompilerNativizationOptions& NativizationOptions = GetNativizationOptionsForPlatform(TargetPlatform, Coordinator);
+		const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
 		FName UnusedName;
 		if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
 		{
@@ -1219,7 +1210,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 				if(const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 				{
 					FName UnusedName;
-					UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName, GetNativizationOptionsForPlatform(CookingTarget(), Coordinator));
+					UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName, Coordinator->GetNativizationOptionsForPlatform(CookingTarget()));
 					Parent = ReplacedOuter ? ReplacedOuter : Obj->GetOuter();
 				}
 #endif //WITH_EDITOR
@@ -3768,7 +3759,7 @@ void VerifyEDLCookInfo()
 
 extern FGCCSyncObject GGarbageCollectionGuardCritical;
 
-ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
+FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 	FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, uint32 SaveFlags, 
 	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp, bool bSlowTask)
 {
@@ -3854,7 +3845,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		}
 
 		uint32 Time = 0; CLOCK_CYCLES(Time);
-
+		int64 TotalPackageSizeUncompressed = 0;
+		
 		// Make sure package is fully loaded before saving. 
 		if (!Base && !InOuter->IsFullyLoaded())
 		{
@@ -3969,7 +3961,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		}
 		SlowTask.EnterProgressFrame();
 
-	
 		// Untag all objects and names.
 		UnMarkAllObjects();
 
@@ -4168,7 +4159,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 #if WITH_EDITOR
 					if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 					{
-						EReplacementResult ReplacmentResult = Coordinator->IsTargetedForReplacement(InOuter, GetNativizationOptionsForPlatform(TargetPlatform, Coordinator));
+						EReplacementResult ReplacmentResult = Coordinator->IsTargetedForReplacement(InOuter, Coordinator->GetNativizationOptionsForPlatform(TargetPlatform));
 						if (ReplacmentResult == EReplacementResult::ReplaceCompletely)
 						{
 							if (IsEventDrivenLoaderEnabledInCookedBuilds() && TargetPlatform)
@@ -4652,7 +4643,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						FName ReplacedName = NAME_None;
 						if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 						{
-							const FCompilerNativizationOptions& NativizationOptions = GetNativizationOptionsForPlatform(TargetPlatform, Coordinator);
+							const FCompilerNativizationOptions& NativizationOptions = Coordinator->GetNativizationOptionsForPlatform(TargetPlatform);
 							if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj, NativizationOptions))
 							{
 								ObjClass = ReplacedClass;
@@ -5482,8 +5473,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				}
 				SlowTask.EnterProgressFrame(1, NSLOCTEXT("Core", "SerializingBulkData", "Serializing bulk data"));
 
-				COOK_STAT(uint64 TotalPackageSizeUncompressed = 0);
-
 				// now we write all the bulkdata that is supposed to be at the end of the package
 				// and fix up the offset
 				int64 StartOfBulkDataArea = Linker->Tell();
@@ -5573,7 +5562,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 					if (BulkArchive)
 					{
-						COOK_STAT(TotalPackageSizeUncompressed += BulkArchive->TotalSize());
+						TotalPackageSizeUncompressed += BulkArchive->TotalSize();
 						BulkArchive->Close();
 						if ( bSaveAsync )
 						{
@@ -5746,10 +5735,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								ExportSizes.Add(Linker->ExportMap[I].SerialSize);
 							}
 							
-							COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
-							
 							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
 							int64 DataSize = Writer->TotalSize();
+
+							TotalPackageSizeUncompressed += DataSize;
+							
 							FLargeMemoryPtr DataPtr = FLargeMemoryPtr(Writer->GetData());
 							Writer->ReleaseOwnership();
 							AsyncWriteCompressedFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp, Linker->ForceByteSwapping(), Linker->Summary.TotalHeaderSize, ExportSizes);
@@ -5760,7 +5750,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing from memory to '%s'"), *NewPath );
 						FFileCompressionHelper CompressionHelper;
-						COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
+						TotalPackageSizeUncompressed += Linker->Saver->TotalSize();
 						Success = CompressionHelper.CompressFile( *NewPath, Linker );
 						// Detach archive used for memory saving.
 						if( Linker )
@@ -5773,7 +5763,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
-						COOK_STAT(TotalPackageSizeUncompressed += IFileManager::Get().FileSize(*TempFilename));
+						TotalPackageSizeUncompressed += IFileManager::Get().FileSize(*TempFilename);
 						Success = CompressionHelper.CompressFile( *TempFilename, *NewPath, Linker );
 					}
 					// Fully compress package in one "block".
@@ -5781,6 +5771,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Full-package compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
+						TotalPackageSizeUncompressed += IFileManager::Get().FileSize(*TempFilename);
 						Success = CompressionHelper.FullyCompressFile( *TempFilename, *NewPath, Linker->ForceByteSwapping() );
 					}
 					else if (bSaveAsync)
@@ -5790,11 +5781,12 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						// Detach archive used for memory saving.
 						if (Linker)
 						{
-							COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
-							COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
-
 							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
 							int64 DataSize = Writer->TotalSize();
+
+							COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
+							TotalPackageSizeUncompressed += DataSize;
+
 							FLargeMemoryPtr DataPtr(Writer->GetData());
 							Writer->ReleaseOwnership();
 							if (IsEventDrivenLoaderEnabledInCookedBuilds() && Linker->IsCooking())
@@ -5813,6 +5805,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					else
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Moving '%s' to '%s'"), *TempFilename, *NewPath );
+						TotalPackageSizeUncompressed += IFileManager::Get().FileSize(*TempFilename);
 						Success = IFileManager::Get().Move( *NewPath, *TempFilename );
 						if (FinalTimeStamp != FDateTime::MinValue())
 						{
@@ -5937,11 +5930,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 		{
 			if (bRequestStub)
 			{
-				return ESavePackageResult::GenerateStub;
+				return FSavePackageResultStruct(ESavePackageResult::GenerateStub, TotalPackageSizeUncompressed);
 			}
 			else
 			{
-				return ESavePackageResult::Success;
+				return FSavePackageResultStruct(ESavePackageResult::Success, TotalPackageSizeUncompressed);
 			}
 		}
 		else
@@ -5963,7 +5956,7 @@ bool UPackage::SavePackage(UPackage* InOuter, UObject* Base, EObjectFlags TopLev
 	FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, uint32 SaveFlags,
 	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp, bool bSlowTask)
 {
-	const ESavePackageResult Result = Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, 
+	const FSavePackageResultStruct Result = Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping,
 		bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 	return Result == ESavePackageResult::Success;
 }

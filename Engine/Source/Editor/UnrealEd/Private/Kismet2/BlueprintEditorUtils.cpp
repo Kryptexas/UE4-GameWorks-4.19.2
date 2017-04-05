@@ -1176,7 +1176,7 @@ struct FRegenerationHelper
 	by normal blueprint compilation is cleared here. If we don't then these functions and properties will
 	hang around when a class is converted from a real blueprint to a data only blueprint.
 */
-static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Blueprint)
+void FBlueprintEditorUtils::RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Blueprint)
 {
 	if (Class == nullptr)
 	{
@@ -2059,8 +2059,8 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 		{
 			if (!Blueprint->bIsRegeneratingOnLoad)
 			{
-			GetDerivedClasses(SkelClass, ChildrenOfClass, false);
-		}
+				GetDerivedClasses(SkelClass, ChildrenOfClass, false);
+			}
 		}
 
 		{
@@ -2110,20 +2110,11 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint, FProp
 			}
 		}
 
-		if (PropertyChangedEvent.Property)
+		// If this was called the CDO was probably modified. Regenerate the post construct property list
+		UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+		if (!Blueprint->bBeingCompiled && BPGC)
 		{
-			// If the property was an array, regenerate the custom property list since it contains an
-			// entry for every array element and some elements may be gone now.
-			// Regenerate for structs as well because they may contain arrays and we will only get one property
-			// event if the whole struct changes at once, thus implicitly changing the arrays inside.
-			if (PropertyChangedEvent.Property->IsA(UArrayProperty::StaticClass()) || PropertyChangedEvent.Property->IsA(UStructProperty::StaticClass()))
-			{
-				UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
-				if (BPGC)
-				{
-					BPGC->UpdateCustomPropertyListForPostConstruction();
-				}
-			}
+			BPGC->UpdateCustomPropertyListForPostConstruction();
 		}
 
 		Blueprint->Status = BS_Dirty;
@@ -2132,6 +2123,9 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint, FProp
 		// certain cases, we needed to be able to pass along specific FPropertyChangedEvent that initially triggered
 		// this call so that we could keep the Blueprint from refreshing under certain conditions.
 		Blueprint->PostEditChangeProperty(PropertyChangedEvent);
+
+		// Clear out the cache as the user may have added or removed a latent action to a macro graph
+		FBlueprintEditorUtils::ClearMacroCosmeticInfoCache(Blueprint);
 	}
 }
 
@@ -2430,6 +2424,9 @@ void FBlueprintEditorUtils::RemoveGraph(UBlueprint* Blueprint, class UEdGraph* G
 						FBlueprintEditorUtils::RemoveNode(Blueprint, Node);
 					}
 				}
+
+				// Clear the cache since it's indexed by graph and one of the graphs is going away
+				FBlueprintEditorUtils::ClearMacroCosmeticInfoCache(Blueprint);
 			}
 
 			for (FBPInterfaceDescription& CurrInterface : Blueprint->ImplementedInterfaces)
@@ -5451,6 +5448,132 @@ bool FBlueprintEditorUtils::ShouldNativizeImplicitly(const UBlueprint* Blueprint
 	return false;
 }
 
+const UEdGraphPin* FBlueprintEditorUtils::FindLinkedPinWithMostDerivedPinType(const UEdGraphPin* Pin)
+{
+	const UEdGraphPin* MostDerivedLinkedTo = nullptr;
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+	check(Pin);
+
+	for (const UEdGraphPin* LinkedTo : Pin->LinkedTo)
+	{
+		if (MostDerivedLinkedTo == nullptr)
+		{
+			// The first link starts out as the most-derived type.
+			MostDerivedLinkedTo = LinkedTo;
+		}
+		else if (LinkedTo->PinType.PinCategory == Schema->PC_Object
+			|| LinkedTo->PinType.PinCategory == Schema->PC_Struct
+			|| LinkedTo->PinType.PinCategory == Schema->PC_Class
+			|| LinkedTo->PinType.PinCategory == Schema->PC_Interface)
+		{
+			// If the current linked pin's type (first param below) is a subclass of the current most-derived linked pin's type (second param below), then reset the most-derived linked pin to the current one.
+			if (LinkedTo->PinType.PinSubCategoryObject != MostDerivedLinkedTo->PinType.PinSubCategoryObject
+				&& Schema->ArePinTypesCompatible(LinkedTo->PinType, MostDerivedLinkedTo->PinType, nullptr, true))
+			{
+				MostDerivedLinkedTo = LinkedTo;
+			}
+		}
+		else
+		{
+			// For all other pin type categories, we don't need to iterate any further.
+			break;
+		}
+	}
+
+	return MostDerivedLinkedTo;
+}
+
+const UEdGraphPin* FBlueprintEditorUtils::FindLinkedPinWithAuthoritativePinType(const UEdGraphPin* Pin, const TArray<UEdGraphPin *>& PinsToCheck)
+{
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+	check(Pin);
+
+	// In case of multiple links, make sure we're using the link with the most-derived pin type.
+	const UEdGraphPin* LinkedTo = FindLinkedPinWithMostDerivedPinType(Pin);
+	if (LinkedTo)
+	{
+		// Make sure the pin type array attribute matches up, or they won't be compatible.
+		check(Pin->PinType.bIsArray == LinkedTo->PinType.bIsArray);
+
+		// For certain type categories, we check the other pins to see if any of them might be linked to a more-compatible pin type.
+		if (LinkedTo->PinType.PinCategory == Schema->PC_Object
+			|| LinkedTo->PinType.PinCategory == Schema->PC_Struct
+			|| LinkedTo->PinType.PinCategory == Schema->PC_Class
+			|| LinkedTo->PinType.PinCategory == Schema->PC_Interface)
+		{
+			for (UEdGraphPin* PinToCheck : PinsToCheck)
+			{
+				// Make sure we don't check against itself.
+				if (PinToCheck != Pin)
+				{
+					check(PinToCheck);
+
+					// If the other pin is also linked, check against that pin's most-derived linked pin type (in case of multiple links).
+					if (PinToCheck->LinkedTo.Num() > 0)
+					{
+						const UEdGraphPin* LinkedPinToCheck = FindLinkedPinWithMostDerivedPinType(PinToCheck);
+						check(LinkedPinToCheck);
+
+						// If the linked pin's type (first param below) is a subclass of the other linked pin's type (second param below), then return the other pin as the authoritative pin type.
+						if (LinkedTo->PinType.PinSubCategoryObject != LinkedPinToCheck->PinType.PinSubCategoryObject
+							&& Schema->ArePinTypesCompatible(LinkedTo->PinType, LinkedPinToCheck->PinType, nullptr, true))
+						{
+							return LinkedPinToCheck;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return LinkedTo;
+}
+
+void FBlueprintEditorUtils::PropagatePinTypeInfo(const UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& TargetPins)
+{
+	if (SourcePin)
+	{
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		const FEdGraphPinType& SourcePinType = SourcePin->PinType;
+
+		// Propagate pin type info to the set of target pins
+		for (UEdGraphPin* CurrentPin : TargetPins)
+		{
+			if (CurrentPin != SourcePin)
+			{
+				CA_SUPPRESS(6011); // warning C6011: Dereferencing NULL pointer 'CurrentPin'.
+				FEdGraphPinType& CurrentPinType = CurrentPin->PinType;
+
+				bool const bHasTypeMismatch = (CurrentPinType.PinCategory != SourcePinType.PinCategory) ||
+					(CurrentPinType.PinSubCategory != SourcePinType.PinSubCategory) ||
+					(CurrentPinType.PinSubCategoryObject != SourcePinType.PinSubCategoryObject);
+
+				if (!bHasTypeMismatch)
+				{
+					continue;
+				}
+
+				if (CurrentPin->SubPins.Num() > 0)
+				{
+					Schema->RecombinePin(CurrentPin->SubPins[0]);
+				}
+
+				CurrentPinType.PinCategory = SourcePinType.PinCategory;
+				CurrentPinType.PinSubCategory = SourcePinType.PinSubCategory;
+				CurrentPinType.PinSubCategoryObject = SourcePinType.PinSubCategoryObject;
+
+				// Reset default values
+				if (!Schema->IsPinDefaultValid(CurrentPin, CurrentPin->DefaultValue, CurrentPin->DefaultObject, CurrentPin->DefaultTextValue).IsEmpty())
+				{
+					CurrentPin->ResetDefaultValue();
+				}
+			}
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Interfaces
 
@@ -6571,6 +6694,34 @@ void FBlueprintEditorUtils::UpdateStalePinWatches( UBlueprint* Blueprint )
 	}
 }
 
+void FBlueprintEditorUtils::ClearMacroCosmeticInfoCache(UBlueprint* Blueprint)
+{
+	Blueprint->PRIVATE_CachedMacroInfo.Reset();
+}
+
+FBlueprintMacroCosmeticInfo FBlueprintEditorUtils::GetCosmeticInfoForMacro(UEdGraph* MacroGraph)
+{
+	if (UBlueprint* MacroOwnerBP = FBlueprintEditorUtils::FindBlueprintForGraph(MacroGraph))
+	{
+		checkSlow(MacroGraph->GetSchema()->GetGraphType(MacroGraph) == GT_Macro);
+		
+		// See if it's in the cache
+		if (FBlueprintMacroCosmeticInfo* pCosmeticInfo = MacroOwnerBP->PRIVATE_CachedMacroInfo.Find(MacroGraph))
+		{
+			return *pCosmeticInfo;
+		}
+		else
+		{
+			FBlueprintMacroCosmeticInfo& CosmeticInfo = MacroOwnerBP->PRIVATE_CachedMacroInfo.Add(MacroGraph);
+			CosmeticInfo.bContainsLatentNodes = FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(MacroGraph);
+
+			return CosmeticInfo;
+		}
+	}
+
+	return FBlueprintMacroCosmeticInfo();
+}
+
 FName FBlueprintEditorUtils::FindUniqueKismetName(const UBlueprint* InBlueprint, const FString& InBaseName, UStruct* InScope/* = nullptr*/)
 {
 	int32 Count = 0;
@@ -7519,34 +7670,6 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintInterfaceClassPicke
 	}
 
 	return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked);
-}
-
-void FBlueprintEditorUtils::UpdateOldPureFunctions( UBlueprint* Blueprint )
-{
-	if(UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(Blueprint->SkeletonGeneratedClass))
-	{
-		for (UFunction* Function : TFieldRange<UFunction>(GeneratedClass, EFieldIteratorFlags::ExcludeSuper))
-		{
-			if(Function && ((Function->FunctionFlags & FUNC_BlueprintPure) > 0))
-			{
-				for (UEdGraph* FunctionGraph : Blueprint->FunctionGraphs)
-				{
-					if (FunctionGraph->GetFName() == Function->GetFName())
-					{
-						TArray<UK2Node_FunctionEntry*> EntryNodes;
-						FunctionGraph->GetNodesOfClass(EntryNodes);
-
-						if( EntryNodes.Num() > 0 )
-						{
-							UK2Node_FunctionEntry* Entry = EntryNodes[0];
-							Entry->Modify();
-							Entry->AddExtraFlags(FUNC_BlueprintPure);
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 /** Call PostEditChange() on any Actors that are based on this Blueprint */
@@ -8543,6 +8666,11 @@ bool FBlueprintEditorUtils::HasGetTypeHash(const FEdGraphPinType& PinType)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	if(PinType.PinCategory == K2Schema->PC_Boolean)
+	{
+		return false;
+	}
+
+	if (PinType.PinCategory == K2Schema->PC_Text)
 	{
 		return false;
 	}

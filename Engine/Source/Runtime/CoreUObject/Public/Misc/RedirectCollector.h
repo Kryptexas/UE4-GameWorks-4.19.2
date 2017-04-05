@@ -139,7 +139,17 @@ public:
 	 * @param bProcessAlreadyResolvedPackages If a package has already been resolved in a previous call of this function, should we process this package again and resolve it again?  
 	 *             True = process it again, False = don't process it again
 	 */
-	void ResolveStringAssetReference(FString FilterPackage = FString(), bool bProcessAlreadyResolvedPackages=true);
+	void ResolveStringAssetReference(FName FilterPackage = NAME_None, bool bProcessAlreadyResolvedPackages = true);
+
+	/**
+	 * Returns the list of packages that would be loaded by ResolveStringAssetReference 
+	 * @param FilterPackage Return references made by loading this package. If passed null will return all references made before package loading
+	 * @param ReferencedPackages Return list of packages referenced by FilterPackage
+	 */
+	void GetStringAssetReferencePackageList(FName FilterPackage, TSet<FName>& ReferencedPackages);
+
+	/** Adds a new mapping for redirector path to destination path, this is useful if you have external data about redirection */
+	void AddStringAssetReferenceRedirection(const FString& OriginalPath, const FString& RedirectedPath);
 
 	/**
 	 * Do we have any references to resolve.

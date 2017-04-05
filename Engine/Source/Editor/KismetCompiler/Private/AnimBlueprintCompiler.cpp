@@ -122,6 +122,38 @@ FAnimBlueprintCompiler::~FAnimBlueprintCompiler()
 {
 }
 
+void FAnimBlueprintCompiler::CreateClassVariablesFromBlueprint()
+{
+	FKismetCompilerContext::CreateClassVariablesFromBlueprint();
+
+	if(bGenerateSubInstanceVariables)
+	{	
+		for (UEdGraph* It : Blueprint->UbergraphPages)
+		{
+			TArray<UAnimGraphNode_SubInstance*> SubInstanceNodes;
+			It->GetNodesOfClass(SubInstanceNodes);
+			for( UAnimGraphNode_SubInstance* SubInstance : SubInstanceNodes )
+			{
+				ProcessSubInstance(SubInstance);
+			}
+		}
+		
+		if(!bIsDerivedAnimBlueprint)
+		{
+			for (UEdGraph* It : Blueprint->FunctionGraphs)
+			{
+				TArray<UAnimGraphNode_SubInstance*> SubInstanceNodes;
+				It->GetNodesOfClass(SubInstanceNodes);
+				for( UAnimGraphNode_SubInstance* SubInstance : SubInstanceNodes )
+				{
+					ProcessSubInstance(SubInstance);
+				}
+			}
+		}
+	}
+}
+
+
 UEdGraphSchema_K2* FAnimBlueprintCompiler::CreateSchema()
 {
 	AnimSchema = NewObject<UAnimationGraphSchema>();

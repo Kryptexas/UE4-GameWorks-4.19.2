@@ -270,6 +270,21 @@ void UAttributeSet::InitFromMetaDataTable(const UDataTable* DataTable)
 				NumericProperty->SetFloatingPointPropertyValue(Data, MetaData->BaseValue);
 			}
 		}
+		else if (FGameplayAttribute::IsGameplayAttributeDataProperty(Property))
+		{
+			FString RowNameStr = FString::Printf(TEXT("%s.%s"), *Property->GetOuter()->GetName(), *Property->GetName());
+
+			FAttributeMetaData * MetaData = DataTable->FindRow<FAttributeMetaData>(FName(*RowNameStr), Context, false);
+			if (MetaData)
+			{
+				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+				check(StructProperty);
+				FGameplayAttributeData* DataPtr = StructProperty->ContainerPtrToValuePtr<FGameplayAttributeData>(this);
+				check(DataPtr);
+				DataPtr->SetBaseValue(MetaData->BaseValue);
+				DataPtr->SetCurrentValue(MetaData->BaseValue);
+			}
+		}
 	}
 
 	PrintDebug();

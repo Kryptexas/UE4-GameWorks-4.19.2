@@ -9,7 +9,7 @@
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
-
+#include "PlatformInfo.h"
 #include "IBlueprintCompilerCppBackendModule.h"
 #include "JsonObjectConverter.h"
 
@@ -32,6 +32,10 @@ namespace BlueprintNativeCodeGenManifestImpl
 	static const FString PluginFileExt        = TEXT(".uplugin");
 	static const FString SourceSubDir         = TEXT("Source");
 	static const FString EditorModulePostfix  = TEXT("Editor");
+	static const int32   RootManifestId       = -1;
+	// if you change this placeholder value, then you should reflect those changes in UAT (in 
+	// AddBlueprintPluginPathArgument() - where it folds this string into the requested pathname)
+	static const FString PlatformPlaceholderPattern = TEXT("<PLAT>");
 
 	/**
 	 * Populates the provided manifest object with data from the specified file.
@@ -316,36 +320,77 @@ FUnconvertedDependencyRecord::FUnconvertedDependencyRecord(const FString& InGene
  * FBlueprintNativeCodeGenPaths
  ******************************************************************************/
 
-//------------------------------------------------------------------------------
-FString FBlueprintNativeCodeGenPaths::GetDefaultManifestPath()
+ //------------------------------------------------------------------------------
+FBlueprintNativeCodeGenPaths FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths(const FName PlatformName)
 {
-	return FApp::GetGameName() + BlueprintNativeCodeGenManifestImpl::ManifestFileExt;
+	FString DefaultPluginName = TEXT("NativizedAssets");
+	FString DefaultPluginDir = FPaths::Combine(*FPaths::Combine(*FPaths::GameIntermediateDir(), TEXT("Plugins")), *DefaultPluginName);
+	return FBlueprintNativeCodeGenPaths(DefaultPluginName, DefaultPluginDir, PlatformName);
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNativeCodeGenPaths::FBlueprintNativeCodeGenPaths(const FString& PluginNameIn, const FString& TargetDirIn, const FString& ManifestPathIn)
-	: TargetDir(TargetDirIn)
+FString FBlueprintNativeCodeGenPaths::GetDefaultPluginPath(const FName PlatformName)
+{
+	return GetDefaultCodeGenPaths(PlatformName).PluginFilePath();
+}
+
+//------------------------------------------------------------------------------
+FString FBlueprintNativeCodeGenPaths::GetDefaultManifestFilePath(const FName PlatformName, const int32 ChunkId)
+{
+	return GetDefaultCodeGenPaths(PlatformName).ManifestFilename(ChunkId);
+}
+
+//------------------------------------------------------------------------------
+FBlueprintNativeCodeGenPaths::FBlueprintNativeCodeGenPaths(const FString& PluginNameIn, const FString& TargetDirIn, const FName PlatformNameIn)
+	: PluginsDir(TargetDirIn)
 	, PluginName(PluginNameIn)
-	, ManifestPath(ManifestPathIn)
+	, PlatformName(PlatformNameIn)
 {
+	// PluginsDir is expected to be the generic 'Plugins' directory (we'll add our own subfolder matching the plugin name)
+	if (FPaths::GetBaseFilename(PluginsDir) == PluginNameIn)
+	{
+		PluginsDir = FPaths::GetPath(PluginsDir);
+	}
+	// if you change the replacement of this placeholder value, then you should reflect those changes in UAT (in 
+	// AddBlueprintPluginPathArgument() - where it folds this string into the requested pathname)
+	if (!PlatformName.IsNone() && PluginsDir.ReplaceInline(*BlueprintNativeCodeGenManifestImpl::PlatformPlaceholderPattern, *PlatformName.ToString()) == 0)
+	{
+		// DON'T alter the path that was likely passed down through the command line
+		//
+		// // if there was no platform placeholder in the string, append one to the end
+		// PluginsDir = FPaths::Combine(*PluginsDir, *(PluginNameIn + TEXT("_") + PlatformName.ToString()));
+	}
 }
 
 //------------------------------------------------------------------------------
-FString FBlueprintNativeCodeGenPaths::ManifestFilePath() const
+FString FBlueprintNativeCodeGenPaths::ManifestFilename(const int32 ChunkId) const
 {
-	return ManifestPath;
+	using namespace BlueprintNativeCodeGenManifestImpl;
+
+	FString Filename = FApp::GetGameName() + (TEXT("_") + PlatformName.ToString());
+	if (ChunkId != RootManifestId)
+	{
+		Filename += FString::Printf(TEXT("-%02d"), ChunkId);
+	}
+	return Filename + ManifestFileExt;
+}
+
+//------------------------------------------------------------------------------
+FString FBlueprintNativeCodeGenPaths::ManifestFilePath(const int32 ChunkId) const
+{
+	return FPaths::Combine(*RuntimeModuleDir(), *ManifestFilename(ChunkId));
 }
 
 //------------------------------------------------------------------------------
 FString FBlueprintNativeCodeGenPaths::PluginRootDir() const
 {
-	return TargetDir;
+	return FPaths::Combine(*PluginsDir, *PluginName);
 }
 
 //------------------------------------------------------------------------------
 FString FBlueprintNativeCodeGenPaths::PluginFilePath() const
 {
-	return FPaths::Combine(*PluginRootDir(), *PluginName) + BlueprintNativeCodeGenManifestImpl::PluginFileExt;;
+	return FPaths::Combine(*PluginRootDir(), *PluginName) + BlueprintNativeCodeGenManifestImpl::PluginFileExt;
 }
 
 //------------------------------------------------------------------------------
@@ -363,7 +408,12 @@ FString FBlueprintNativeCodeGenPaths::RuntimeModuleDir() const
 //------------------------------------------------------------------------------
 FString FBlueprintNativeCodeGenPaths::RuntimeModuleName() const
 {
-	return PluginName;
+	FString ModuleName = PluginName;
+// 	if (!PlatformName.IsNone())
+// 	{
+// 		ModuleName += TEXT("_") + PlatformName.ToString();
+// 	}
+	return ModuleName;
 }
 
 //------------------------------------------------------------------------------
@@ -395,43 +445,37 @@ FString FBlueprintNativeCodeGenPaths::RuntimePCHFilename() const
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest()
+FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(int32 ManifestId)
+	: ManifestChunkId(ManifestId)
 {
+	InitDestPaths(FBlueprintNativeCodeGenPaths::GetDefaultPluginPath(NAME_None));
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FString& InPluginName, const FString& InOutputDir, FCompilerNativizationOptions InCompilerNativizationOptions)
-	: NativizationOptions(InCompilerNativizationOptions)
+FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FCompilerNativizationOptions& InCompilerNativizationOptions, int32 ManifestId)
+	: ManifestChunkId(ManifestId)
+	, NativizationOptions(InCompilerNativizationOptions)
 {
-	using namespace BlueprintNativeCodeGenManifestImpl;
-	
-	PluginName = InPluginName;
-	OutputDir = InOutputDir;
-	if (FPaths::IsRelative(OutputDir))
-	{
-		FPaths::MakePathRelativeTo(OutputDir, *FPaths::GameDir());
-	}
+	InitDestPaths(FBlueprintNativeCodeGenPaths::GetDefaultPluginPath(InCompilerNativizationOptions.PlatformName));
+}
 
-	if (!ensure(!OutputDir.IsEmpty()))
-	{
-		OutputDir = FPaths::Combine(*FPaths::GameIntermediateDir(), *PluginName);
-	}
-
-	FString ManifestFilename = FBlueprintNativeCodeGenPaths::GetDefaultManifestPath();
-	ManifestFilePath = FPaths::Combine(*GetTargetDir(), *ManifestFilename);
+FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FString& PluginPath, const FCompilerNativizationOptions& InCompilerNativizationOptions, int32 ManifestId)
+	: ManifestChunkId(ManifestId)
+	, NativizationOptions(InCompilerNativizationOptions)
+{
+	InitDestPaths(PluginPath);
 }
 
 //------------------------------------------------------------------------------
 FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FString& ManifestFilePathIn)
-	: ManifestFilePath(ManifestFilePathIn)
 {
-	ensureAlwaysMsgf(BlueprintNativeCodeGenManifestImpl::LoadManifest(ManifestFilePathIn, this), TEXT("Missing Manifest for Blueprint code generation: %s"), *ManifestFilePath );
+	ensureAlwaysMsgf( BlueprintNativeCodeGenManifestImpl::LoadManifest(ManifestFilePathIn, this), TEXT("Missing Manifest for Blueprint code generation: %s"), *ManifestFilePathIn);
 }
 
 //------------------------------------------------------------------------------
 FBlueprintNativeCodeGenPaths FBlueprintNativeCodeGenManifest::GetTargetPaths() const
 {
-	return FBlueprintNativeCodeGenPaths(PluginName, GetTargetDir(), ManifestFilePath);
+	return FBlueprintNativeCodeGenPaths(PluginName, GetTargetDir(), NativizationOptions.PlatformName);
 }
 
 //------------------------------------------------------------------------------
@@ -484,19 +528,10 @@ void FBlueprintNativeCodeGenManifest::AddSingleModuleDependency(UPackage* Packag
 }
 
 //------------------------------------------------------------------------------
-bool FBlueprintNativeCodeGenManifest::Save(int32 Id) const
+bool FBlueprintNativeCodeGenManifest::Save() const
 {
-	FString FullFilename;
-	if (Id != -1)
-	{
-		FullFilename = *(ManifestFilePath + FString::FromInt(Id));
-	}
-	else
-	{
-		FullFilename = *ManifestFilePath;
-	}
-	
-	const TCHAR* Filename = *FullFilename;
+	const FString FullFilename = GetTargetPaths().ManifestFilePath(ManifestChunkId);	
+
 	TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 
 	if (FJsonObjectConverter::UStructToJsonObject(FBlueprintNativeCodeGenManifest::StaticStruct(), this, JsonObject,
@@ -508,7 +543,7 @@ bool FBlueprintNativeCodeGenManifest::Save(int32 Id) const
 		if (FJsonSerializer::Serialize(JsonObject, JsonWriter))
 		{
 			JsonWriter->Close();
-			return FFileHelper::SaveStringToFile(FileContents, Filename);
+			return FFileHelper::SaveStringToFile(FileContents, *FullFilename);
 		}
 	}
 	return false;
@@ -530,6 +565,41 @@ void FBlueprintNativeCodeGenManifest::Merge(const FBlueprintNativeCodeGenManifes
 	{
 		UnconvertedDependencies.Add(Entry.Key, Entry.Value);
 	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintNativeCodeGenManifest::InitDestPaths(const FString& PluginPath)
+{
+	using namespace BlueprintNativeCodeGenManifestImpl;
+
+	if (ensure(!PluginPath.IsEmpty()))
+	{
+		PluginName = FPaths::GetBaseFilename(PluginPath);
+
+		if (ensure(PluginPath.EndsWith(PluginFileExt)))
+		{
+			OutputDir = FPaths::GetPath(PluginPath);
+		}
+		else
+		{
+			OutputDir = PluginPath;
+		}
+
+		if (FPaths::IsRelative(OutputDir))
+		{
+			FPaths::MakePathRelativeTo(OutputDir, *FPaths::GameDir());
+		}
+	}
+	else
+	{
+		FBlueprintNativeCodeGenPaths DefaultPaths =  FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths(NAME_None);
+		PluginName = DefaultPaths.GetPluginName();
+		OutputDir  = DefaultPaths.PluginRootDir();
+	}
+
+	// there's some sanitation that FBlueprintNativeCodeGenPaths does that we 
+	// can avoid in the future, if we pass this through it once
+	OutputDir = GetTargetPaths().PluginRootDir();
 }
 
 //------------------------------------------------------------------------------

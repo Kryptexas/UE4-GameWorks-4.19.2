@@ -1301,16 +1301,9 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		Collector.AddReferencedObject( This->SuperStruct, This );
 		Collector.AddReferencedObject( This->Children, This );
 
-		TArray<UObject*> ScriptObjectReferences;
-		FArchiveScriptReferenceCollector ObjectReferenceCollector( ScriptObjectReferences );
-		int32 iCode = 0;
-		while( iCode < This->Script.Num() )
-		{	
-			This->SerializeExpr( iCode, ObjectReferenceCollector );
-		}
-		for( int32 Index = 0; Index < ScriptObjectReferences.Num(); Index++ )
+		for( int32 Index = 0; Index < This->ScriptObjectReferences.Num(); Index++ )
 		{
-			Collector.AddReferencedObject( ScriptObjectReferences[ Index ], This );
+			Collector.AddReferencedObject( This->ScriptObjectReferences[ Index ], This );
 		}
 	}
 

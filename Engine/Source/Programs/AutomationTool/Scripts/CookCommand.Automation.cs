@@ -19,20 +19,26 @@ public partial class Project : CommandUtils
 {
     #region Cook Command
 
-    static void AddBlueprintPluginPathArgument(ProjectParams Params, bool Client, UnrealTargetPlatform TargetPlatform, string PlatformToCook)
+    static string AddBlueprintPluginPathArgument(ProjectParams Params, bool Client, UnrealTargetPlatform TargetPlatform, string PlatformToCook)
     {
+        string PluginPath = "";
+
         if (Params.RunAssetNativization)
         {
+            // if you change or remove this placeholder value, then you should reflect those changes in the CookCommandlet (in 
+            // BlueprintNativeCodeGenManifest.cpp - where it searches and replaces this value)
+            string PlatformPlaceholderPattern = "<PLAT>";
+
+            string ProjectDir = Params.RawProjectPath.Directory.ToString();
+            PluginPath = CombinePaths(ProjectDir, "Intermediate", "Plugins", PlatformPlaceholderPattern, "NativizedAssets", "NativizedAssets.uplugin");
+
             ProjectParams.BlueprintPluginKey PluginKey = new ProjectParams.BlueprintPluginKey();
             PluginKey.Client = Client;
             PluginKey.TargetPlatform = TargetPlatform;
 
-            string ProjectDir = Params.RawProjectPath.Directory.ToString();
-            // If you change this target path you must also update logic in CookOnTheFlyServer.cpp. Passing a single directory around is cumbersome for testing, so I have hard coded it.
-            // Similarly if you change the .uplugin name you must update DefaultPluginName in BlueprintNativeCodeGenModule.cpp
-            string GeneratedPluginPath = CombinePaths(ProjectDir, "Intermediate", PlatformToCook, "NativizedAssets/NativizedAssets.uplugin");
-            Params.BlueprintPluginPaths.Add(PluginKey, new FileReference(GeneratedPluginPath));
+            Params.BlueprintPluginPaths.Add(PluginKey, new FileReference(PluginPath.Replace(PlatformPlaceholderPattern, PlatformToCook)));
         }
+        return PluginPath;
     }
 
 	static void CopySharedCookedBuildForTarget(ProjectParams Params,TargetPlatformDescriptor TargetPlatform, string CookPlatform)
@@ -222,7 +228,9 @@ public partial class Project : CommandUtils
 		}
 		else
 		{
-			var PlatformsToCook = new HashSet<string>();
+            string NativizedPluginPath = "";
+
+            var PlatformsToCook = new HashSet<string>();
             if (!Params.NoClient)
 			{
 				foreach (var ClientPlatform in Params.ClientTargetPlatforms)
@@ -231,7 +239,7 @@ public partial class Project : CommandUtils
 					var DataPlatformDesc = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
                     string PlatformToCook = Platform.Platforms[DataPlatformDesc].GetCookPlatform(false, Params.Client);
                     PlatformsToCook.Add(PlatformToCook);
-                    AddBlueprintPluginPathArgument(Params, true, DataPlatformDesc.Type, PlatformToCook);
+                    NativizedPluginPath = AddBlueprintPluginPathArgument(Params, true, DataPlatformDesc.Type, PlatformToCook);
                 }
 			}
 			if (Params.DedicatedServer)
@@ -242,7 +250,7 @@ public partial class Project : CommandUtils
 					var DataPlatformDesc = Params.GetCookedDataPlatformForServerTarget(ServerPlatform);
                     string PlatformToCook = Platform.Platforms[DataPlatformDesc].GetCookPlatform(true, false);
                     PlatformsToCook.Add(PlatformToCook);
-                    AddBlueprintPluginPathArgument(Params, false, DataPlatformDesc.Type, PlatformToCook);
+                    NativizedPluginPath = AddBlueprintPluginPathArgument(Params, false, DataPlatformDesc.Type, PlatformToCook);
                 }
 			}
 
@@ -369,6 +377,10 @@ public partial class Project : CommandUtils
                 if (Params.RunAssetNativization)
                 {
                     CommandletParams += " -NativizeAssets";
+                    if (NativizedPluginPath.Length > 0)
+                    {
+                        CommandletParams += "=\"" + NativizedPluginPath + "\"";
+                    }
                 }
                 if (Params.HasAdditionalCookerOptions)
                 {

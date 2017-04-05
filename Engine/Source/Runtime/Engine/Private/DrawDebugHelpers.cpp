@@ -720,7 +720,7 @@ void DrawDebugString(const UWorld* InWorld, FVector const& TextLocation, const F
 		for( FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
 			APlayerController* PlayerController = Iterator->Get();
-			if (PlayerController->MyHUD)
+			if (PlayerController->MyHUD && PlayerController->Player)
 			{
 				PlayerController->MyHUD->AddDebugText(Text, BaseAct, Duration, TextLocation, TextLocation, TextColor, true, (TestBaseActor==NULL), false, nullptr, 1.0f, bDrawShadow);
 			}

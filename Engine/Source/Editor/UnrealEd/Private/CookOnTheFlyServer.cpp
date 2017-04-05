@@ -25,6 +25,7 @@
 #include "UObject/UObjectIterator.h"
 #include "UObject/Package.h"
 #include "UObject/MetaData.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Misc/PackageName.h"
 #include "Misc/RedirectCollector.h"
 #include "Engine/Level.h"
@@ -63,6 +64,8 @@
 #include "PlatformInfo.h"
 
 #include "AssetRegistryModule.h"
+#include "AssetRegistryState.h"
+#include "CookerSettings.h"
 #include "BlueprintNativeCodeGenModule.h"
 
 #include "GameDelegates.h"
@@ -73,7 +76,7 @@
 #include "IProjectManager.h"
 
 // cook by the book requirements
-#include "Commandlets/ChunkManifestGenerator.h"
+#include "Commandlets/AssetRegistryGenerator.h"
 #include "Engine/WorldComposition.h"
 
 // error message log
@@ -760,11 +763,12 @@ void UCookOnTheFlyServer::ClearPackageFilenameCache() const
 UCookOnTheFlyServer::UCookOnTheFlyServer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer),
 	CurrentCookMode(ECookMode::CookOnTheFly),
-	CookByTheBookOptions(NULL),
+	CookByTheBookOptions(nullptr),
 	CookFlags(ECookInitializationFlags::None),
 	bIsInitializingSandbox(false),
 	bIgnoreMarkupPackageAlreadyLoaded(false),
-	bIsSavingPackage(false)
+	bIsSavingPackage(false),
+	AssetRegistry(nullptr)
 {
 }
 
@@ -843,17 +847,15 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 	{
 		// When cooking on the fly the full registry is saved at the beginning
 		// in cook by the book asset registry is saved after the cook is finished
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 
 		// write it out to a memory archive
 		FArrayWriter SerializedAssetRegistry;
 		SerializedAssetRegistry.SetFilterEditorOnly(true);
-		AssetRegistry.Serialize(SerializedAssetRegistry);
+		AssetRegistry->Serialize(SerializedAssetRegistry);
 		UE_LOG(LogCook, Display, TEXT("Generated asset registry size is %5.2fkb"), (float)SerializedAssetRegistry.Num() / 1024.f);
 
 		// now save it in each cooked directory
-		FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
+		FString RegistryFilename = FPaths::GameDir() / GetAssetRegistryFilename();
 		// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
 		FString SandboxFilename = ConvertToFullSandboxPath(*RegistryFilename, true);
 
@@ -1052,10 +1054,6 @@ void UCookOnTheFlyServer::GetDependentPackages(const TSet<UPackage*>& RootPackag
 {
 	check(IsChildCooker() == false);
 
-	static const FName AssetRegistryName("AssetRegistry");
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
 	TSet<FName> RootPackageFNames;
 	for (const UPackage* RootPackage : RootPackages)
 	{
@@ -1072,10 +1070,6 @@ void UCookOnTheFlyServer::GetDependentPackages( const TSet<FName>& RootPackages,
 {
 	check(IsChildCooker() == false);
 
-	static const FName AssetRegistryName("AssetRegistry");
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
 	TArray<FName> FoundPackagesArray;
 	for (const FName& RootPackage : RootPackages)
 	{
@@ -1087,7 +1081,7 @@ void UCookOnTheFlyServer::GetDependentPackages( const TSet<FName>& RootPackages,
 	while ( FoundPackagesCounter < FoundPackagesArray.Num() )
 	{
 		TArray<FName> PackageDependencies;
-		if (AssetRegistry.GetDependencies(FoundPackagesArray[FoundPackagesCounter], PackageDependencies) == false)
+		if (AssetRegistry->GetDependencies(FoundPackagesArray[FoundPackagesCounter], PackageDependencies) == false)
 		{
 			// this could happen if we are in the editor and the dependency list is not up to date
 
@@ -1154,13 +1148,8 @@ void UCookOnTheFlyServer::GetDependencies( const TSet<UPackage*>& Packages, TSet
 
 bool UCookOnTheFlyServer::ContainsMap(const FName& PackageName) const
 {
-	static const FName AssetRegistryName("AssetRegistry");
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
-
 	TArray<FAssetData> Assets;
-	ensure( AssetRegistry.GetAssetsByPackageName(PackageName, Assets) );
+	ensure(AssetRegistry->GetAssetsByPackageName(PackageName, Assets, true));
 
 	for (const FAssetData& Asset : Assets)
 	{
@@ -1170,6 +1159,62 @@ bool UCookOnTheFlyServer::ContainsMap(const FName& PackageName) const
 		}
 	}
 	return false;
+}
+
+bool UCookOnTheFlyServer::ContainsRedirector(const FName& PackageName, TMap<FString, FString>& RedirectedPaths) const
+{
+	bool bFoundRedirector = false;
+	TArray<FAssetData> Assets;
+	ensure(AssetRegistry->GetAssetsByPackageName(PackageName, Assets, true));
+
+	for (const FAssetData& Asset : Assets)
+	{
+		if (Asset.IsRedirector())
+		{
+			FString OriginalPath = Asset.ObjectPath.ToString();
+			FString RedirectedPath;
+			if (Asset.GetTagValue("DestinationObject", RedirectedPath))
+			{
+				ConstructorHelpers::StripObjectClass(RedirectedPath);
+				FAssetData DestinationData = AssetRegistry->GetAssetByObjectPath(FName(*RedirectedPath), true);
+
+				// Need to follow chain of redirectors
+				while (DestinationData.IsRedirector())
+				{
+					if (Asset.GetTagValue("DestinationObject", RedirectedPath))
+					{
+						ConstructorHelpers::StripObjectClass(RedirectedPath);
+						DestinationData = AssetRegistry->GetAssetByObjectPath(FName(*RedirectedPath), true);
+					}
+				}
+
+				// DestinationData may be invalid if this is a subobject, check package as well
+				bool bDestinationValid = DestinationData.IsValid();
+
+				if (!bDestinationValid)
+				{
+					FName StandardPackageName = GetCachedStandardPackageFileFName(FName(*FPackageName::ObjectPathToPackageName(RedirectedPath)));
+					if (StandardPackageName != NAME_None)
+					{
+						bDestinationValid = true;
+					}
+				}
+
+				if (bDestinationValid)
+				{
+					RedirectedPaths.Add(OriginalPath, RedirectedPath);
+				}
+				else
+				{
+					RedirectedPaths.Add(OriginalPath, FString());
+					UE_LOG(LogCook, Log, TEXT("Found redirector in package %s pointing to deleted object %s"), *PackageName.ToString(), *RedirectedPath);
+				}
+
+				bFoundRedirector = true;
+			}
+		}
+	}
+	return bFoundRedirector;
 }
 
 bool UCookOnTheFlyServer::IsCookingInEditor() const
@@ -1306,10 +1351,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 	if (IsChildCooker() == false)
 	{
-		static const FName AssetRegistryName("AssetRegistry");
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-		IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-		if (AssetRegistry.IsLoadingAssets())
+		if (AssetRegistry->IsLoadingAssets())
 		{
 			// early out
 			return Result;
@@ -1986,7 +2028,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				}
 
 				TArray<bool> SucceededSavePackage;
-				TArray<ESavePackageResult> SavePackageResults;
+				TArray<FSavePackageResultStruct> SavePackageResults;
 				{
 					COOK_STAT(FScopedDurationTimer TickCookOnTheSideSaveCookedPackageTimer(DetailedCookStats::TickCookOnTheSideSaveCookedPackageTimeSec));
 					SCOPE_TIMER(SaveCookedPackage);
@@ -2004,8 +2046,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					SaveCookedPackage(Package, SaveFlags, bWasUpToDate, AllTargetPlatformNames, SavePackageResults);
 					GOutputCookingWarnings = false;
 					check(AllTargetPlatformNames.Num() == SavePackageResults.Num());
-					for ( const ESavePackageResult& SavePackageResult : SavePackageResults )
+					for (int32 PlatformIndex = 0; PlatformIndex < AllTargetPlatformNames.Num(); PlatformIndex++)
 					{
+						const FSavePackageResultStruct& SavePackageResult = SavePackageResults[PlatformIndex];
 						if (SavePackageResult == ESavePackageResult::Success || SavePackageResult == ESavePackageResult::GenerateStub || SavePackageResult == ESavePackageResult::ReplaceCompletely)
 						{
 							SucceededSavePackage.Add(true);
@@ -2019,6 +2062,18 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 								++CookedPackageCount;
 								Result |= COSR_CookedPackage;
 							}
+
+							// Update asset registry
+							if (CookByTheBookOptions)
+							{
+								FAssetRegistryGenerator* Generator = RegistryGenerators.FindRef(AllTargetPlatformNames[PlatformIndex]);
+								if (Generator)
+								{
+									FAssetPackageData* PackageData = Generator->GetAssetPackageData(Package->GetFName());
+									PackageData->DiskSize = SavePackageResult.TotalFileSize;
+								}
+							}
+
 						}
 						else
 						{
@@ -2056,7 +2111,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					// mark the package as cooked
 					FFilePlatformCookedPackage FileRequest(StandardFilename, AllTargetPlatformNames, SucceededSavePackage);
 					bool bWasReferencedOnlyByEditorOnlyData = false;
-					for (const ESavePackageResult& SavePackageResult : SavePackageResults)
+					for (const FSavePackageResultStruct& SavePackageResult : SavePackageResults)
 					{
 						if ( SavePackageResult == ESavePackageResult::ReferencedOnlyByEditorOnlyData )
 						{
@@ -2573,9 +2628,6 @@ const TArray<FName>& UCookOnTheFlyServer::GetFullPackageDependencies(const FName
 	TArray<FName>* PackageDependencies = CachedFullPackageDependencies.Find(PackageName);
 	if ( !PackageDependencies )
 	{
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
 		if ( PackageName.ToString().Contains( TEXT("/Game/Sounds/Class/Interior")))
 		{
 			static int i =0; 
@@ -2597,7 +2649,7 @@ const TArray<FName>& UCookOnTheFlyServer::GetFullPackageDependencies(const FName
 		}
 
 		TArray<FName> ChildDependencies;
-		if ( AssetRegistry.GetDependencies(PackageName, ChildDependencies, EAssetRegistryDependencyType::All) )
+		if ( AssetRegistry->GetDependencies(PackageName, ChildDependencies, EAssetRegistryDependencyType::All) )
 		{
 		TArray<FName> Dependencies = ChildDependencies;
 		Dependencies.AddUnique(PackageName);
@@ -2740,7 +2792,7 @@ void UCookOnTheFlyServer::TickRecompileShaderRequests()
 }
 
 
-void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<ESavePackageResult>& SavePackageResults)
+void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FSavePackageResultStruct>& SavePackageResults)
 {
 	TArray<FName> TargetPlatformNames; 
 	return SaveCookedPackage( Package, SaveFlags, bOutWasUpToDate, TargetPlatformNames, SavePackageResults);
@@ -2787,22 +2839,39 @@ bool UCookOnTheFlyServer::MakePackageFullyLoaded(UPackage* Package)
 	return bPackageFullyLoaded;
 }
 
-void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames, TArray<ESavePackageResult>& SavePackageResults)
+void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames, TArray<FSavePackageResultStruct>& SavePackageResults)
 {
 	check( SavePackageResults.Num() == 0);
 	check( bIsSavingPackage == false );
 	bIsSavingPackage = true;
 	FString Filename(GetCachedPackageFilename(Package));
 
-	if (!CookByTheBookOptions || !CookByTheBookOptions->bDisableUnsolicitedPackages)
+	// Don't resolve, just add to request list as needed
+	TSet<FName> StringAssetPackages;
+
+	GRedirectCollector.GetStringAssetReferencePackageList(Package->GetFName(), StringAssetPackages);
+	
+	for (FName StringAssetPackage : StringAssetPackages)
 	{
-		GIsCookerLoadingPackage = true;
+		TMap<FString, FString> RedirectedPaths;
 
-		SCOPE_TIMER(ResolveRedirectors);
-		COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
-		GRedirectCollector.ResolveStringAssetReference(Package->GetPathName(), false);
+		// If this is a redirector, extract destination from asset registry
+		if (ContainsRedirector(StringAssetPackage, RedirectedPaths))
+		{
+			for (TPair<FString, FString>& RedirectedPath : RedirectedPaths)
+			{
+				GRedirectCollector.AddStringAssetReferenceRedirection(RedirectedPath.Key, RedirectedPath.Value);
+			}
+		}
 
-		GIsCookerLoadingPackage = false;
+		// Verify package actually exists
+		FName StandardPackageName = GetCachedStandardPackageFileFName(StringAssetPackage);
+
+		if (StandardPackageName != NAME_None && IsCookByTheBookMode() && !CookByTheBookOptions->bDisableUnsolicitedPackages)
+		{
+			// Add to front of request queue as an unsolicited package
+			RequestPackage(StandardPackageName, true);
+		}
 	}
 
 	if (Filename.Len())
@@ -2877,12 +2946,11 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 		
 		for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex )
 		{
-			SavePackageResults.Add(ESavePackageResult::Error);
+			SavePackageResults.Add(FSavePackageResultStruct(ESavePackageResult::Success));
 			ITargetPlatform* Target = Platforms[PlatformIndex];
 			FString PlatFilename = Filename.Replace(TEXT("[Platform]"), *Target->PlatformName());
 
-			ESavePackageResult& Result = SavePackageResults[PlatformIndex];
-			Result = ESavePackageResult::Success;
+			FSavePackageResultStruct& Result = SavePackageResults[PlatformIndex];
 
 			bool bCookPackage = true;
 
@@ -2954,7 +3022,7 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 						GIsCookerLoadingPackage = false;
 						{
 							SCOPE_TIMER(ConvertingBlueprints);
-							IBlueprintNativeCodeGenModule::Get().Convert(Package, Result, *(Target->PlatformName()));
+							IBlueprintNativeCodeGenModule::Get().Convert(Package, Result.Result, *(Target->PlatformName()));
 						}
 						INC_INT_STAT(SavedPackage, 1);
 
@@ -4154,12 +4222,6 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 
 	FPackageDependencyInfoModule& PDInfoModule = FModuleManager::LoadModuleChecked<FPackageDependencyInfoModule>("PackageDependencyInfo");
 
-
-
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
-
 	TArray<FName> AllCookedPackages = InAllCookedPackages;
 	TSet<FName> FailedToSavePackagesSet;
 	for ( const FName& FailedToSavePackage : FailedToSavePackages)
@@ -4280,7 +4342,7 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 
 
 		TArray<FAssetData> AssetRegistryData;
-		AssetRegistry.GetAssetsByPackageName(PackageName, AssetRegistryData, true);
+		AssetRegistry->GetAssetsByPackageName(PackageName, AssetRegistryData, true);
 
 		for (const FAssetData& AssetData : AssetRegistryData)
 		{	// Add only assets that have actually been cooked and belong to any chunk
@@ -4524,8 +4586,12 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 	check(IsChildCooker() == false);
 
 	// check each package to see if it's out of date
-	FPackageDependencyInfoModule& PDInfoModule = FModuleManager::LoadModuleChecked<FPackageDependencyInfoModule>("PackageDependencyInfo");
+	FPackageDependencyInfoModule* PDInfoModule = nullptr;
 
+	if (IsCookFlagSet(ECookInitializationFlags::Iterative) && !IsCookFlagSet(ECookInitializationFlags::IterateOnAssetRegistry))
+	{
+		PDInfoModule = &FModuleManager::LoadModuleChecked<FPackageDependencyInfoModule>("PackageDependencyInfo");
+	}
 
 	// See what files are out of date in the sandbox folder
 	for (int32 Index = 0; Index < Platforms.Num(); Index++)
@@ -4553,9 +4619,197 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 
 		static bool bFindCulprit = false; //debugging setting if we want to find culprit for iterative cook issues
 
-		if (IsCookFlagSet(ECookInitializationFlags::IterateOnHash))
+		if (IsCookFlagSet(ECookInitializationFlags::IterateOnAssetRegistry))
 		{
-			// load the platform cooked asset registry
+			// Registry generator already exists
+			FAssetRegistryGenerator* PlatformAssetRegistry = RegistryGenerators.FindRef(PlatformFName);
+
+			// Load the platform cooked asset registry file
+			const FString CookedAssetRegistry = FPaths::GameDir() / GetAssetRegistryFilename();
+			const FString SandboxCookedAssetRegistryFilename = ConvertToFullSandboxPath(*CookedAssetRegistry, true, Target->PlatformName());
+
+			bool bIsIterateSharedBuild = IsCookFlagSet(ECookInitializationFlags::IterateSharedBuild);
+
+			if (bIsIterateSharedBuild)
+			{
+				// see if the shared build is newer then the current cooked content in the local directory
+				FDateTime CurrentLocalCookedBuild = IFileManager::Get().GetTimeStamp(*SandboxCookedAssetRegistryFilename);
+
+				// iterate on the shared build if the option is set
+				FString SharedCookedAssetRegistry = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), GetAssetRegistryFilename());
+
+				FDateTime CurrentIterativeCookedBuild = IFileManager::Get().GetTimeStamp(*SharedCookedAssetRegistry);
+
+				if (CurrentIterativeCookedBuild > CurrentLocalCookedBuild)
+				{
+					// clean the sandbox 
+					ClearPlatformCookedData(FName(*Target->PlatformName()));
+					FString SandboxDirectory = GetSandboxDirectory(Target->PlatformName());
+					IFileManager::Get().DeleteDirectory(*SandboxDirectory, false, true);
+
+					// SaveCurrentIniSettings(Target); // use this if we don't care about ini safty.
+					// copy the ini settings from the shared cooked build. 
+					const FString SharedCookedIniFile = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), TEXT("CookedIniVersion.txt"));
+					const FString SandboxCookedIniFile = ConvertToFullSandboxPath(*(FPaths::GameDir() / TEXT("CookedIniVersion.txt")), true).Replace(TEXT("[Platform]"), *Target->PlatformName());
+
+					IFileManager::Get().Copy(*SandboxCookedIniFile, *SharedCookedIniFile);
+
+					bool bIniSettingsOutOfDate = IniSettingsOutOfDate(Target);
+					if (bIniSettingsOutOfDate && !IsCookFlagSet(ECookInitializationFlags::IgnoreIniSettingsOutOfDate))
+					{
+						UE_LOG(LogCook, Display, TEXT("Shared iterative build ini settings out of date, not using shared cooked build"));
+					}
+					else
+					{
+						if (bIniSettingsOutOfDate)
+						{
+							UE_LOG(LogCook, Display, TEXT("Shared iterative build ini settings out of date, but we don't care"));
+						}
+
+						UE_LOG(LogCook, Display, TEXT("Shared iterative build is newer then local cooked build, iteratively cooking from shared build "));
+						PlatformAssetRegistry->LoadPreviousAssetRegistry(SharedCookedAssetRegistry);
+					}
+				}
+				else
+				{
+					UE_LOG(LogCook, Display, TEXT("Local cook is newer then shared cooked build, iterativly cooking from local build"));
+				}
+
+			}
+
+			PlatformAssetRegistry->LoadPreviousAssetRegistry(SandboxCookedAssetRegistryFilename);
+
+			// Get list of changed packages
+			TSet<FName> ModifiedPackages, NewPackages, RemovedPackages, IdenticalCookedPackages, IdenticalUncookedPackages;
+
+			PlatformAssetRegistry->ComputePackageDifferences(ModifiedPackages, NewPackages, RemovedPackages, IdenticalCookedPackages, IdenticalUncookedPackages);
+
+			// check the files on disk 
+			TMap<FName, FName> UncookedPathToCookedPath;
+			// get all the on disk cooked files
+			GetAllCookedFiles(UncookedPathToCookedPath, SandboxPath);
+
+			const static FName NAME_DummyCookedFilename(TEXT("DummyCookedFilename")); // pls never name a package dummycookedfilename otherwise shit might go wonky
+			if (bIsIterateSharedBuild)
+			{
+				// if we are iterating of a shared build the cooked files might not exist in the cooked directory because we assume they are packaged in the pak file (which we don't want to extract)
+				for (FName PackageName : IdenticalCookedPackages)
+				{
+					FString Filename;
+					if (FPackageName::DoesPackageExist(PackageName.ToString(), nullptr, &Filename))
+					{
+						UncookedPathToCookedPath.Add(FName(*Filename), NAME_DummyCookedFilename);
+					}
+				}
+			}
+
+			uint32 NumPackagesConsidered = UncookedPathToCookedPath.Num();
+			uint32 NumPackagesUnableToFindCookedPackageInfo = 0;
+			uint32 NumPackagesFileHashMismatch = 0;
+			uint32 NumPackagesKept = 0;
+			uint32 NumMarkedFailedSaveKept = 0;
+
+			for (const auto& CookedPaths : UncookedPathToCookedPath)
+			{
+				const FName CookedFile = CookedPaths.Value;
+				const FName UncookedFilename = CookedPaths.Key;
+				const FName* FoundPackageName = GetCachedPackageFilenameToPackageFName(UncookedFilename);
+				const FName PackageName = *FoundPackageName;
+				const FString UncookedFilenameString = UncookedFilename.ToString();
+				bool bShouldKeep = true;
+
+				if (ModifiedPackages.Contains(PackageName))
+				{
+					++NumPackagesFileHashMismatch;
+					bShouldKeep = false;
+				}
+				else if (NewPackages.Contains(PackageName) || RemovedPackages.Contains(PackageName))
+				{
+					++NumPackagesUnableToFindCookedPackageInfo;
+					bShouldKeep = false;
+				}
+				else if (IdenticalUncookedPackages.Contains(PackageName))
+				{
+					// May have switched between editor only and not, recheck
+					++NumPackagesUnableToFindCookedPackageInfo;
+					bShouldKeep = false;
+				}
+				
+				if (CookedFile == NAME_DummyCookedFilename)
+				{
+					check(IFileManager::Get().FileExists(*CookedFile.ToString()) == false);
+				}
+
+				TArray<FName> PlatformNames;
+				PlatformNames.Add(PlatformFName);
+
+				if (bShouldKeep)
+				{
+					// Add this package to the CookedPackages list so that we don't try cook it again
+					if (CookedFile != NAME_DummyCookedFilename)
+					{
+						check(IFileManager::Get().FileExists(*CookedFile.ToString()));
+					}
+					TArray<bool> Succeeded;
+					Succeeded.Add(true);
+
+					if (IdenticalCookedPackages.Contains(PackageName))
+					{
+						CookedPackages.Add(FFilePlatformCookedPackage(UncookedFilename, MoveTemp(PlatformNames), MoveTemp(Succeeded)));
+						++NumPackagesKept;
+					}
+				}
+				else
+				{
+					// Force cook the modified file
+					CookRequests.EnqueueUnique(MoveTemp(FFilePlatformRequest(UncookedFilename, PlatformNames)));
+					if (CookedFile != NAME_DummyCookedFilename)
+					{
+						// delete the old package 
+						const FString CookedFullPath = FPaths::ConvertRelativePathToFull(CookedFile.ToString());
+						UE_LOG(LogCook, Verbose, TEXT("Deleting cooked package %s failed filehash test"), *CookedFullPath);
+						CookedPackagesToDelete.Add(CookedFullPath);
+					}
+					else
+					{
+						// the cooker should rebuild this package because it's not in the cooked package list
+						// the new package will have higher priority then the package in the original shared cooked build
+						UE_LOG(LogCook, Verbose, TEXT("Shared cooked build: Detected package is out of date %s"), *UncookedFilenameString);
+					}
+				}
+			}
+
+			// Register identical uncooked packages from previous run
+			for (FName UncookedPackage : IdenticalUncookedPackages)
+			{
+				const FName UncookedFilename = GetCachedStandardPackageFileFName(UncookedPackage);
+
+				TArray<FName> PlatformNames;
+				PlatformNames.Add(PlatformFName);
+
+				ensure(CookedPackages.Exists(UncookedFilename, PlatformNames, false) == false);
+
+				CookedPackages.Add(MoveTemp(FFilePlatformCookedPackage(UncookedFilename, MoveTemp(PlatformNames))));
+				++NumMarkedFailedSaveKept;
+			}
+
+			UE_LOG(LogCook, Display, TEXT("Iterative cooking summary for %s, \nConsidered: %d, \nFile Hash missmatch: %d, \nPackages Kept: %d, \nPackages failed save kept: %d, \nMissing Cooked Info(expected 0): %d"),
+				*Target->PlatformName(),
+				NumPackagesConsidered, NumPackagesFileHashMismatch,
+				NumPackagesKept, NumMarkedFailedSaveKept,
+				NumPackagesUnableToFindCookedPackageInfo);
+
+			auto DeletePackageLambda = [&CookedPackagesToDelete](int32 PackageIndex)
+			{
+				const FString& CookedFullPath = CookedPackagesToDelete[PackageIndex];
+				IFileManager::Get().Delete(*CookedFullPath, true, true, true);
+			};
+			ParallelFor(CookedPackagesToDelete.Num(), DeletePackageLambda);
+
+		}
+		else if (IsCookFlagSet(ECookInitializationFlags::IterateOnHash))
+		{
+			// load the platform cooked asset registry json
 			const FString CookedAssetRegistry = FPaths::GameDir() / TEXT("CookedAssetRegistry.json");
 			const FString SandboxCookedAssetRegistryFilename = ConvertToFullSandboxPath(*CookedAssetRegistry, true, Target->PlatformName());
 
@@ -4657,7 +4911,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 					int32 NumThreadsToDeterminePackageInfo = FMath::Max(GLargeThreadPool->GetNumThreads() - 2,1);
 					check(bIgnoreMarkupPackageAlreadyLoaded == false);
 					bIgnoreMarkupPackageAlreadyLoaded = true;
-					PDInfoModule.AsyncDetermineAllDependentPackageInfo(AllUncookedFilenames, NumThreadsToDeterminePackageInfo);
+					PDInfoModule->AsyncDetermineAllDependentPackageInfo(AllUncookedFilenames, NumThreadsToDeterminePackageInfo);
 					bIgnoreMarkupPackageAlreadyLoaded = false;
 				}
 			}
@@ -4698,7 +4952,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 #if OUTPUT_TIMING
 					SCOPE_TIMER(DetermineFullPackageHash);
 #endif
-					if (bShouldKeep && PDInfoModule.DetermineFullPackageHash(*UncookedFilenameString, FullPackageHash) == false)
+					if (bShouldKeep && PDInfoModule->DetermineFullPackageHash(*UncookedFilenameString, FullPackageHash) == false)
 					{
 						++NumPackagesUnableToDetermineCurrentDependencyInfo;
 						bShouldKeep = false;
@@ -4706,7 +4960,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 				}
 
 				FMD5Hash PackageDependentHash;
-				if (bShouldKeep && PDInfoModule.DeterminePackageDependentHash(*UncookedFilenameString, PackageDependentHash) == false)
+				if (bShouldKeep && PDInfoModule->DeterminePackageDependentHash(*UncookedFilenameString, PackageDependentHash) == false)
 				{
 					UE_LOG(LogCook, Warning, TEXT("Should never happen, above function should have failed and not gone in here, Package %s"), *UncookedFilenameString);
 					bShouldKeep = false;
@@ -4728,7 +4982,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 					{
 						UE_LOG(LogCook, Display, TEXT("Tracing package dependency which caused iterative cook to fail for: %s could be slow Dependent package hashes %s != %s"), *UncookedFilenameString, *Lex::ToString(CookedPackageInfo->DependentPackageHash), *Lex::ToString(PackageDependentHash));
 						TMap<FString, FMD5Hash> CurrentPackageHashes;
-						PDInfoModule.RecursiveGetDependentPackageHashes(*UncookedFilenameString, CurrentPackageHashes);
+						PDInfoModule->RecursiveGetDependentPackageHashes(*UncookedFilenameString, CurrentPackageHashes);
 						for (const auto& CurrentPackageHash : CurrentPackageHashes)
 						{
 							const FName PackageName(*CurrentPackageHash.Key);
@@ -4747,7 +5001,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 						}
 
 						TArray<FString> CurrentPackageDependencies;
-						PDInfoModule.GetPackageDependencies(*UncookedFilenameString, CurrentPackageDependencies);
+						PDInfoModule->GetPackageDependencies(*UncookedFilenameString, CurrentPackageDependencies);
 
 						FString DependencyString = TEXT("CookedPackageInfo:");
 						for (const FString& Dependency : CookedPackageInfo->DependentPackages)
@@ -4831,7 +5085,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 
 					bool bShouldKeep = true;
 					FMD5Hash FullPackageHash;
-					if (bShouldKeep && PDInfoModule.DetermineFullPackageHash(*StandardName.ToString(), FullPackageHash) == false)
+					if (bShouldKeep && PDInfoModule->DetermineFullPackageHash(*StandardName.ToString(), FullPackageHash) == false)
 					{
 						++NumPackagesUnableToDetermineCurrentDependencyInfo;
 						// UE_LOG(LogCook, Display, TEXT("Unable to find package dependency information for: %s, unable to iterative cook"), *UncookedFilenameString);
@@ -4918,7 +5172,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 					FString UncookedFilename = ConvertCookedPathToUncookedPath(CookedFilename);
 					
 				FDateTime DependentTimestamp;
-				if (PDInfoModule.DeterminePackageDependentTimeStamp(*UncookedFilename, DependentTimestamp) == true)
+				if (PDInfoModule->DeterminePackageDependentTimeStamp(*UncookedFilename, DependentTimestamp) == true)
 				{
 					double Diff = (CookedTimestamp - DependentTimestamp).GetTotalSeconds();
 
@@ -4966,9 +5220,9 @@ void UCookOnTheFlyServer::VerifyCookedPackagesAreUptodate(const TArray<ITargetPl
 	// we remove cooked packages which are updated using the "MarkObjectDirty" callbacks from the editor
 	// here we process the dependencies by removing any packages which awere dependent on a package which was removed
 
-	if (IsCookFlagSet(ECookInitializationFlags::IterateSharedBuild))
+	if (IsCookFlagSet(ECookInitializationFlags::IterateSharedBuild) || IsCookFlagSet(ECookInitializationFlags::IterateOnAssetRegistry))
 	{
-		// can't verify cooked packages in shared builds
+		// can't verify cooked packages in shared builds, for asset registry it got verified during the gather step
 		check( IsCookOnTheFlyMode() == false );
 		return;
 	}
@@ -5002,19 +5256,12 @@ void UCookOnTheFlyServer::VerifyCookedPackagesAreUptodate(const TArray<ITargetPl
 		}
 	}
 
-
-
 	// loop through all cooked packages and remove any which are missing their dependencies
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
 	uint32 CookedPackagesConsidered = 0;
 	uint32 CookedPackagesFailedDependencyCheck = 0;
 	uint32 FoundRedirectors = 0;
 	uint32 CookedPackagesKept = 0;
 	
-
-
 	for (const ITargetPlatform* TargetPlatform : Platforms)
 	{
 		FName PlatformFName = FName(*TargetPlatform->PlatformName());
@@ -5070,34 +5317,26 @@ void UCookOnTheFlyServer::VerifyCookedPackagesAreUptodate(const TArray<ITargetPl
 					continue;
 				}
 
-				bool bContainsObjectRedirector = false;
-				TArray<FAssetData> AssetData;
-				if (AssetRegistry.GetAssetsByPackageName(DependencyPackageName, AssetData, true))
+				TMap<FString, FString> RedirectedPaths;
+				if (ContainsRedirector(DependencyPackageName, RedirectedPaths))
 				{
-					for ( const FAssetData& Asset : AssetData )
+					FString DestinationObjectPath;
+					for (TPair<FString, FString>& RedirectedPath : RedirectedPaths)
 					{
-						if (Asset.IsRedirector())
-						{
-							FString DestinationObjectPath;
-							if (Asset.GetTagValue("DestinationObject", DestinationObjectPath))
-							{
-								FString RedirectPackageName = ExtractPackageNameFromObjectPath(DestinationObjectPath);
-								if ( !FPackageName::IsValidLongPackageName(RedirectPackageName) )
-								{
-									UE_LOG(LogCook, Warning, TEXT("Unable to redirector object path from string %s, potentially malformed"), *DestinationObjectPath);
-									continue;
-								}
-								Dependencies.AddUnique( FName(*RedirectPackageName) );
-							}
-							bContainsObjectRedirector = true;
-						}
+						DestinationObjectPath = RedirectedPath.Value;
+						break;
 					}
-					if (bContainsObjectRedirector)
+
+					FString RedirectPackageName = ExtractPackageNameFromObjectPath(DestinationObjectPath);
+					if (!FPackageName::IsValidLongPackageName(RedirectPackageName))
 					{
-						++FoundRedirectors;
-						// don't process this dependency anymore 
+						UE_LOG(LogCook, Warning, TEXT("Unable to resolve redirector object path from string %s, potentially malformed"), *DestinationObjectPath);
 						continue;
 					}
+					Dependencies.AddUnique(FName(*RedirectPackageName));
+					++FoundRedirectors;
+					// don't process this dependency anymore 
+					continue;	
 				}
 
 				const FName StandardDependencyName = GetCachedStandardPackageFileFName(DependencyPackageName);
@@ -5123,7 +5362,7 @@ void UCookOnTheFlyServer::VerifyCookedPackagesAreUptodate(const TArray<ITargetPl
 				if (CookedPackages.Exists(StandardDependencyName, PlatformNamesArray, false))
 				{
 					TArray<FName> NewDependencies;
-					AssetRegistry.GetDependencies(DependencyPackageName, NewDependencies, EAssetRegistryDependencyType::All);
+					AssetRegistry->GetDependencies(DependencyPackageName, NewDependencies, EAssetRegistryDependencyType::All);
 					for (const FName& NewDependency : NewDependencies)
 					{
 						Dependencies.AddUnique(NewDependency);
@@ -5189,10 +5428,10 @@ void UCookOnTheFlyServer::VerifyCookedPackagesAreUptodate(const TArray<ITargetPl
 		CookedPackagesMissingOnDisk,
 		CookedPackagesDeleted );
 
-					}
+}
 
 void UCookOnTheFlyServer::CleanSandbox(const bool bIterative)
-					{
+{
 	//child cookers shouldn't clean sandbox we would be deleting the master cookers / other cookers data
 	check(IsChildCooker() == false);
 
@@ -5254,27 +5493,32 @@ void UCookOnTheFlyServer::CleanSandbox(const bool bIterative)
 				}
 			}
 
-			if (bIsInitializingSandbox)
+			if (IsCookFlagSet(ECookInitializationFlags::IterateOnAssetRegistry))
 			{
-				// if we are initializing sandbox that means that the sandbox has been recreated and could be pointing at something different
-				// need to hit the disk and populate our cooked packages form there
+				// This is fast in asset registry iterate, so just reconstruct
+				CookedPackages.Empty();
 				PopulateCookedPackagesFromDisk(Platforms);
-
-				VerifyCookedPackagesAreUptodate(Platforms);
 			}
 			else
 			{
-				// do a fast check and see if anything has changed since last cook
-				// we know that the sandbox is the same so the cookedpackagelist will be populated with what's on disk
-				// note this can only happen in editor
-				VerifyCookedPackagesAreUptodate(Platforms);
-			}
+				if (bIsInitializingSandbox)
+				{
+					// if we are initializing sandbox that means that the sandbox has been recreated and could be pointing at something different
+					// need to hit the disk and populate our cooked packages form there
+					PopulateCookedPackagesFromDisk(Platforms);
 
+					VerifyCookedPackagesAreUptodate(Platforms);
+				}
+				else
+				{
+					// do a fast check and see if anything has changed since last cook
+					// we know that the sandbox is the same so the cookedpackagelist will be populated with what's on disk
+					// note this can only happen in editor
+					VerifyCookedPackagesAreUptodate(Platforms);
+				}
 
-			// Collect garbage to ensure we don't have any packages hanging around from dependent time stamp determination
-			if ( IsCookingInEditor() )
-			{
-				CollectGarbage(RF_NoFlags);
+				// Collect garbage to ensure we don't have any packages hanging around from dependent time stamp determination
+				CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 			}
 		}
 	}
@@ -5290,6 +5534,10 @@ void UCookOnTheFlyServer::CleanSandbox(const bool bIterative)
 
 void UCookOnTheFlyServer::GenerateAssetRegistry()
 {
+	// Cache asset registry for later
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistry = &AssetRegistryModule.Get();
+
 	if (!!(CookFlags & ECookInitializationFlags::GeneratedAssetRegistry))
 	{
 		return;
@@ -5309,10 +5557,6 @@ void UCookOnTheFlyServer::GenerateAssetRegistry()
 		FPackageName::RegisterMountPoint(TEXT("/TempAutosave/"), FPaths::GameSavedDir() / GEngine->PlayOnConsoleSaveDir);
 	}
 
-	// load the interface
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
 	double GenerateAssetRegistryTime = 0.0;
 	{
 		SCOPE_TIMER(GenerateAssetRegistryTime);
@@ -5330,12 +5574,30 @@ void UCookOnTheFlyServer::GenerateAssetRegistry()
 			TArray<FString> ScanPaths;
 			if (GConfig->GetArray(TEXT("AssetRegistry"), TEXT("PathsToScanForCook"), ScanPaths, GEngineIni) > 0)
 			{
-				AssetRegistry.ScanPathsSynchronous(ScanPaths);
+				AssetRegistry->ScanPathsSynchronous(ScanPaths);
 			}
 			else
 			{
-				AssetRegistry.SearchAllAssets(true);
+				AssetRegistry->SearchAllAssets(true);
 			}
+		}
+	}
+
+	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+	const TArray<ITargetPlatform*>& Platforms = TPM.GetCookingTargetPlatforms();
+
+	for (ITargetPlatform* TargetPlatform : Platforms)
+	{
+		FName PlatformName = FName(*TargetPlatform->PlatformName());
+
+		// make sure we have a registry generate for all the platforms 
+		FAssetRegistryGenerator* RegistryGenerator = RegistryGenerators.FindRef(PlatformName);
+		if (RegistryGenerator == nullptr)
+		{
+			RegistryGenerator = new FAssetRegistryGenerator(TargetPlatform);
+			RegistryGenerator->CleanManifestDirectories();
+			RegistryGenerator->Initialize(CookByTheBookOptions ? CookByTheBookOptions->StartupPackages : TArray<FName>());
+			RegistryGenerators.Add(PlatformName, RegistryGenerator);
 		}
 	}
 }
@@ -5509,14 +5771,14 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		TArray<FString> FilesInPathStrings;
 		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPathStrings);
 
-		if (UAssetManager::IsValid())
-		{
-			UAssetManager::Get().ModifyCook(FilesInPathStrings);
-		}
-
 		for (const FString& FileString : FilesInPathStrings)
 		{
 			FilesInPath.Add(FName(*FileString));
+		}
+
+		if (UAssetManager::IsValid())
+		{
+			UAssetManager::Get().ModifyCook(FilesInPath);
 		}
 #if DEBUG_COOKMODIFICATIONDELEGATE
 		for (TObjectIterator<UPackage> It; It; ++It)
@@ -5879,12 +6141,12 @@ FString UCookOnTheFlyServer::ConvertToFullSandboxPath( const FString &FileName, 
 
 const FString UCookOnTheFlyServer::GetSandboxAssetRegistryFilename()
 {
-	static const FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
+	static const FString RegistryFilename = FPaths::GameDir() / GetAssetRegistryFilename();
 
 	if (IsCookingDLC())
 	{
 		check(IsCookByTheBookMode());
-		const FString DLCRegistryFilename = FPaths::Combine(*FPaths::GamePluginsDir(), *CookByTheBookOptions->DlcName, TEXT("AssetRegistry.bin"));
+		const FString DLCRegistryFilename = FPaths::Combine(*FPaths::GamePluginsDir(), *CookByTheBookOptions->DlcName, GetAssetRegistryFilename());
 		return ConvertToFullSandboxPath(*DLCRegistryFilename, true);
 	}
 
@@ -5910,6 +6172,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 	
 	GRedirectCollector.LogTimers();
+	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 
 	if (IsChildCooker())
 	{
@@ -5922,7 +6185,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 		FFileHelper::SaveStringToFile(UncookedPackageList, *GetChildCookerResultFilename(CookByTheBookOptions->ChildCookFilename));
 		if (IBlueprintNativeCodeGenModule::IsNativeCodeGenModuleLoaded())
 		{
-			IBlueprintNativeCodeGenModule::Get().SaveManifest(CookByTheBookOptions->ChildCookIdentifier);
+			IBlueprintNativeCodeGenModule::Get().SaveManifest();
 		}
 	}
 	else
@@ -5980,66 +6243,51 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 		{
 			SCOPE_TIMER(SavingAssetRegistry);
-			for (auto& Manifest : CookByTheBookOptions->ManifestGenerators)
+			for (TPair<FName, FAssetRegistryGenerator*>& Pair : RegistryGenerators)
 			{
-				TArray<FName> CookedPackagesForPlatform;
-				CookedPackages.GetCookedFilesForPlatform(Manifest.Key, CookedPackagesForPlatform, false, true);
-
-				TArray<FName> LongCookedPackageNames;
-				for (const FName& CookedPackageFileName : CookedPackagesForPlatform)
-				{
-					const FName *LongPackageFName = GetCachedPackageFilenameToPackageFName(CookedPackageFileName);
-					if (LongPackageFName && (*LongPackageFName != NAME_None)) // shall we do this the easy way or the hard way?
-					{
-						LongCookedPackageNames.Add(*LongPackageFName);
-						continue;
-					}
-					// the hard way 
-					FString LongPackageName;
-					verify(FPackageName::TryConvertFilenameToLongPackageName(CookedPackageFileName.ToString(), LongPackageName));
-					LongCookedPackageNames.Add(FName(*LongPackageName));
-				}
-				if ( IsCookingDLC() )
-				{
-					SCOPE_TIMER(RemovingOldManifestEntries);
-					// remove the previous release cooked packages from the new asset registry
-
-					const TArray<FName>* PreviousReleaseCookedPackages = CookByTheBookOptions->BasedOnReleaseCookedPackages.Find(Manifest.Key);
-					if ( PreviousReleaseCookedPackages ) 
-					{
-						for ( const auto& PreviousReleaseCookedPackage : *PreviousReleaseCookedPackages )
-						{
-							LongCookedPackageNames.Remove(PreviousReleaseCookedPackage);
-						}
-					}
-				}
-				{
-					SCOPE_TIMER(BuildChunkManifest);
-					Manifest.Value->BuildChunkManifest(LongCookedPackageNames, SandboxFile.Get(), CookByTheBookOptions->bGenerateStreamingInstallManifests);
-				}
-				{
-					SCOPE_TIMER(SaveManifests);
-					// Always try to save the manifests, this is required to make the asset registry work, but doesn't necessarily write a file
-					Manifest.Value->SaveManifests(SandboxFile.Get());
-				}
-				const FName& PlatformName = Manifest.Key;
+				TArray<FName> CookedPackagesFilenames;
 				TArray<FName> IgnorePackageFilenames;
+
+				const FName& PlatformName = Pair.Key;
+				FAssetRegistryGenerator& Generator = *Pair.Value;
+
+				CookedPackages.GetCookedFilesForPlatform(PlatformName, CookedPackagesFilenames, false, true);
 
 				// ignore any packages which failed to cook
 				CookedPackages.GetCookedFilesForPlatform(PlatformName, IgnorePackageFilenames, true, false);
-				// ignore any packages which were in a previous release of cooked content
-				IgnorePackageFilenames.Append(CookByTheBookOptions->BasedOnReleaseCookedPackages.FindRef(PlatformName));
 
-				TArray<FName> IgnorePackageNames;
-				IgnorePackageNames.Empty(IgnorePackageFilenames.Num());
-				for (const FName& PackageFilename : IgnorePackageFilenames)
+				if (IsCookingDLC())
 				{
-					FString LongPackageName;
-					verify(FPackageName::TryConvertFilenameToLongPackageName(PackageFilename.ToString(), LongPackageName));
-					IgnorePackageNames.Add(FName(*LongPackageName));
+					// remove the previous release cooked packages from the new asset registry, add to ignore list
+					SCOPE_TIMER(RemovingOldManifestEntries);
+					
+					const TArray<FName>* PreviousReleaseCookedPackages = CookByTheBookOptions->BasedOnReleaseCookedPackages.Find(PlatformName);
+					if (PreviousReleaseCookedPackages)
+					{
+						for (FName PreviousReleaseCookedPackage : *PreviousReleaseCookedPackages)
+						{
+							CookedPackagesFilenames.Remove(PreviousReleaseCookedPackage);
+							IgnorePackageFilenames.Add(PreviousReleaseCookedPackage);
+						}
+					}
 				}
 
-				// Ignore packages that weren't cooked because they were only referenced by editor-only properties
+				// convert from filenames to package names
+				TSet<FName> CookedPackageNames;
+				for (FName PackageFilename : CookedPackagesFilenames)
+				{
+					const FName *FoundLongPackageFName = GetCachedPackageFilenameToPackageFName(PackageFilename);
+					CookedPackageNames.Add(*FoundLongPackageFName);
+				}
+
+				TSet<FName> IgnorePackageNames;
+				for (FName PackageFilename : IgnorePackageFilenames)
+				{
+					const FName *FoundLongPackageFName = GetCachedPackageFilenameToPackageFName(PackageFilename);
+					IgnorePackageNames.Add(*FoundLongPackageFName);
+				}
+
+				// ignore packages that weren't cooked because they were only referenced by editor-only properties
 				TSet<FName> UncookedEditorOnlyPackageNames;
 				UncookedEditorOnlyPackages.GetNames(UncookedEditorOnlyPackageNames);
 				for (FName UncookedEditorOnlyPackage : UncookedEditorOnlyPackageNames)
@@ -6047,18 +6295,34 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 					IgnorePackageNames.Add(UncookedEditorOnlyPackage);
 				}
 				{
-					SCOPE_TIMER(SaveRealAssetRegistry);
-					Manifest.Value->SaveAssetRegistry(SandboxRegistryFilename, &IgnorePackageNames);
+					SCOPE_TIMER(BuildChunkManifest);
+					Generator.BuildChunkManifest(CookedPackageNames, IgnorePackageNames, SandboxFile.Get(), CookByTheBookOptions->bGenerateStreamingInstallManifests);
 				}
+				{
+					SCOPE_TIMER(SaveManifests);
+					// Always try to save the manifests, this is required to make the asset registry work, but doesn't necessarily write a file
+					Generator.SaveManifests(SandboxFile.Get());
+				}
+				{
+					SCOPE_TIMER(SaveRealAssetRegistry);
+					Generator.SaveAssetRegistry(SandboxRegistryFilename);
+
+					if (!IsCookFlagSet(ECookInitializationFlags::Iterative))
+					{
+						Generator.WriteCookerOpenOrder();
+					}
+
+				}
+				// If asset registry iteration is enabled, but this is a full build, don't save the old json as it is slow and won't be used
+				if (!IsCookFlagSet(ECookInitializationFlags::IterateOnAssetRegistry) && !CookerSettings->bUseAssetRegistryForIteration)
 				{
 					SCOPE_TIMER(SaveCookedPackageAssetRegistry);
 
-					
 					TArray<FName> AllCookedPackages;
 					TArray<FName> UncookedEditorOnlyPackageNamesArray;
 					{
 						SCOPE_TIMER(SortingCookedPackages);
-						AllCookedPackages.Append(CookedPackagesForPlatform);
+						AllCookedPackages.Append(CookedPackagesFilenames);
 					
 						for (FName UncookedEditorOnlyPackage : UncookedEditorOnlyPackageNames)
 						{
@@ -6067,15 +6331,20 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 						AllCookedPackages.Sort();
 						UncookedEditorOnlyPackageNamesArray.Sort();
 					}
-					SaveCookedAssetRegistry(SandboxCookedAssetRegistryFilename, AllCookedPackages, UncookedEditorOnlyPackageNamesArray, IgnorePackageNames, PlatformName.ToString(), false);
+					SaveCookedAssetRegistry(SandboxCookedAssetRegistryFilename, AllCookedPackages, UncookedEditorOnlyPackageNamesArray, IgnorePackageNames.Array(), PlatformName.ToString(), false);
 				}
 				if (IsCreatingReleaseVersion())
 				{
-					const FString VersionedRegistryPath = GetReleaseVersionAssetRegistryPath(CookByTheBookOptions->CreateReleaseVersion, Manifest.Key);
+					const FString VersionedRegistryPath = GetReleaseVersionAssetRegistryPath(CookByTheBookOptions->CreateReleaseVersion, PlatformName);
 					IFileManager::Get().MakeDirectory(*VersionedRegistryPath, true);
 					const FString VersionedRegistryFilename = VersionedRegistryPath / GetAssetRegistryFilename();
-					const FString CookedAssetRegistryFilename = SandboxRegistryFilename.Replace(TEXT("[Platform]"), *Manifest.Key.ToString());
+					const FString CookedAssetRegistryFilename = SandboxRegistryFilename.Replace(TEXT("[Platform]"), *PlatformName.ToString());
 					IFileManager::Get().Copy(*VersionedRegistryFilename, *CookedAssetRegistryFilename, true, true);
+
+					// Also copy development registry if it exists
+					const FString DevVersionedRegistryFilename = VersionedRegistryFilename.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
+					const FString DevCookedAssetRegistryFilename = CookedAssetRegistryFilename.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
+					IFileManager::Get().Copy(*DevVersionedRegistryFilename, *DevCookedAssetRegistryFilename, true, true);
 				}
 			}
 		}
@@ -6111,14 +6380,8 @@ void UCookOnTheFlyServer::BuildMapDependencyGraph(const FName& PlatformName)
 {
 	auto& MapDependencyGraph = CookByTheBookOptions->MapDependencyGraphs.FindChecked(PlatformName);
 
-
-
 	TArray<FName> PlatformCookedPackages;
 	CookedPackages.GetCookedFilesForPlatform(PlatformName, PlatformCookedPackages);
-
-	static const FName AssetRegistryName("AssetRegistry");
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 
 	// assign chunks for all the map packages
 	for (const FName& CookedPackage : PlatformCookedPackages)
@@ -6409,6 +6672,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		TermSandbox();
 	}
 
+	// This will either delete the sandbox or iteratively clean it
 	InitializeSandbox();
 
 	if (CurrentCookMode == ECookMode::CookByTheBook && !IsCookFlagSet(ECookInitializationFlags::Iterative))
@@ -6416,9 +6680,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		StartSavingEDLCookInfoForVerification();
 	}
 
-
-	bool bRunConversion = FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets"));
-	if (bRunConversion)
+	if (CookByTheBookStartupOptions.bNativizeAssets)
 	{
 		FNativeCodeGenInitData CodeGenData;
 		for (const ITargetPlatform* Entry : CookByTheBookStartupOptions.TargetPlatforms)
@@ -6428,6 +6690,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			CodeGenData.CodegenTargets.Push(PlatformNativizationDetails);
 		}
 		CodeGenData.ManifestIdentifier = CookByTheBookStartupOptions.ChildCookIdentifier;
+		CodeGenData.DestPluginPath = CookByTheBookStartupOptions.NativizedPluginPath;
 		IBlueprintNativeCodeGenModule::InitializeModule(CodeGenData);
 	}
 	else if(PackagingSettings->bWarnIfPackagedWithoutNativizationFlag && PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
@@ -6461,26 +6724,12 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 	if (!IsChildCooker())
 	{
-		// iteratively clean any old files out of the sandbox (check if ini settings are out of date and clean out any stale files)
-		CleanSandbox(true);
-
 		bool const bShaderCodeCacheCook = (!IsCookFlagSet(ECookInitializationFlags::Iterative) && CookByTheBookStartupOptions.NumProcesses == 0 && CookByTheBookOptions->ChildCookers.Num() == 0 && !IsCookingInEditor());
 		
 		TArray<FName> CachedShaderFormats;
 		for (ITargetPlatform* Platform : TargetPlatforms)
 		{
 			FName PlatformName = FName(*Platform->PlatformName());
-
-			// make sure we have a manifest for all the platforms 
-			// we want a seperate manifest for each platform because they can all be in different states of cooked content
-			FChunkManifestGenerator* ManifestGenerator = CookByTheBookOptions->ManifestGenerators.FindRef(PlatformName);
-			if (ManifestGenerator == NULL)
-			{
-				ManifestGenerator = new FChunkManifestGenerator(Platform);
-				ManifestGenerator->CleanManifestDirectories();
-				ManifestGenerator->Initialize(CookByTheBookOptions->StartupPackages);
-				CookByTheBookOptions->ManifestGenerators.Add(PlatformName, ManifestGenerator);
-			}
 
 			if (CookByTheBookOptions->bGenerateDependenciesForMaps)
 			{
@@ -6511,7 +6760,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 			TArray<FName> PackageList;
 			// if this check fails probably because the asset registry can't be found or read
-			bool bSucceeded = GetAllPackagesFromAssetRegistry(OriginalSandboxRegistryFilename, PackageList);
+			bool bSucceeded = GetAllPackageFilenamesFromAssetRegistry(OriginalSandboxRegistryFilename, PackageList);
 			if (!bSucceeded)
 			{
 				using namespace PlatformInfo;
@@ -6521,7 +6770,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 				for (const FPlatformInfo* PlatformFlaworInfo : VanillaPlatfromEntry.PlatformFlavors)
 				{
 					OriginalSandboxRegistryFilename = GetReleaseVersionAssetRegistryPath(BasedOnReleaseVersion, PlatformFlaworInfo->PlatformInfoName) / GetAssetRegistryFilename();
-					bSucceeded = GetAllPackagesFromAssetRegistry(OriginalSandboxRegistryFilename, PackageList);
+					bSucceeded = GetAllPackageFilenamesFromAssetRegistry(OriginalSandboxRegistryFilename, PackageList);
 					if (bSucceeded)
 					{
 						break;
@@ -6533,7 +6782,6 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			if ( bSucceeded )
 			{
 				TArray<FName> PlatformNames;
-				PlatformNames.Add(PlatformName);
 				TArray<bool> Succeeded;
 				Succeeded.Add(true);
 				PlatformNames.Add(PlatformName);
@@ -6546,31 +6794,42 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		}
 	}
 	
-	TArray<FName> FilesInPath;
-
-	if (IsCookFlagSet(ECookInitializationFlags::IterateOnHash))
-	{
-		// if we are iterative cooking we don't need to resolve startup packages  they will get resolved if they are saved
-	}
-	else if (!CookByTheBookOptions->bDisableUnsolicitedPackages)
-	{
-		GIsCookerLoadingPackage = true;
-#if OUTPUT_TIMING
-		SCOPE_TIMER(StartupPackagesResolveStringAssetReferences);
-#endif
-		for (const FName& StartupPackage : CookByTheBookOptions->StartupPackages)
-		{
-			GRedirectCollector.ResolveStringAssetReference(StartupPackage.ToString(), false);
-		}
-		GIsCookerLoadingPackage = false;
-	}
-
 	// don't resave the global shader map files in dlc
-	if ( !IsCookingDLC() && !IsChildCooker() && !(CookByTheBookStartupOptions.CookOptions & ECookByTheBookOptions::ForceDisableSaveGlobalShaders) )
+	if (!IsCookingDLC() && !IsChildCooker() && !(CookByTheBookStartupOptions.CookOptions & ECookByTheBookOptions::ForceDisableSaveGlobalShaders))
 	{
 		SaveGlobalShaderMapFiles(TargetPlatforms);
 	}
-	
+
+	TArray<FName> FilesInPath;
+	TSet<FName> StartupStringAssetPackages;
+
+	// Get the list of string asset references, for both empty package and all startup packages
+	GRedirectCollector.GetStringAssetReferencePackageList(NAME_None, StartupStringAssetPackages);
+
+	for (const FName& StartupPackage : CookByTheBookOptions->StartupPackages)
+	{
+		GRedirectCollector.GetStringAssetReferencePackageList(StartupPackage, StartupStringAssetPackages);
+	}
+
+	for (FName StringAssetPackage : StartupStringAssetPackages)
+	{
+		TMap<FString, FString> RedirectedPaths;
+
+		// If this is a redirector, extract destination from asset registry
+		if (ContainsRedirector(StringAssetPackage, RedirectedPaths))
+		{
+			for (TPair<FString, FString>& RedirectedPath : RedirectedPaths)
+			{
+				GRedirectCollector.AddStringAssetReferenceRedirection(RedirectedPath.Key, RedirectedPath.Value);
+			}
+		}
+
+		if (!CookByTheBookOptions->bDisableUnsolicitedPackages)
+		{
+			AddFileToCook(FilesInPath, StringAssetPackage.ToString());
+		}
+	}
+
 	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, CookOptions);
 	
 	if (FilesInPath.Num() == 0)
@@ -6624,7 +6883,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 				FString OriginalAssetRegistryPath = GetReleaseVersionAssetRegistryPath( BasedOnReleaseVersion, PlatformName ) / GetAssetRegistryFilename();
 
 				TArray<FName> PackageFiles;
-				verify( !GetAllPackagesFromAssetRegistry(OriginalAssetRegistryPath, PackageFiles) );
+				verify( !GetAllPackageFilenamesFromAssetRegistry(OriginalAssetRegistryPath, PackageFiles) );
 
 				for ( const FName& PackageFilename : PackageFiles )
 				{
@@ -6781,18 +7040,13 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 	}
 
 
-	static const FName AssetRegistryName("AssetRegistry");
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
-
 	int32 PackageCounter = 0;
 	while (PackageCounter < PackageNames.Num())
 	{
 		const FName& PackageName = PackageNames[PackageCounter];
 		++PackageCounter;
 		TArray<FName> UnfilteredDependencies;
-		AssetRegistry.GetDependencies(PackageName, UnfilteredDependencies);
+		AssetRegistry->GetDependencies(PackageName, UnfilteredDependencies);
 
 		for (const FName& Dependency : UnfilteredDependencies)
 		{
@@ -7141,40 +7395,32 @@ void UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders(const FShaderR
 		RecompileData.bCompileChangedShaders);
 }
 
-bool UCookOnTheFlyServer::GetAllPackagesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageNames ) const
+bool UCookOnTheFlyServer::GetAllPackageFilenamesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageFilenames ) const
 {
-
-	static const FName AssetRegistryName("AssetRegistry");
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
-
 	FArrayReader SerializedAssetData;
 	if (FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryPath))
 	{
-		TMap<FName, FAssetData*> RegistryDataMap;
-		AssetRegistry.LoadRegistryData(SerializedAssetData, RegistryDataMap);
+		FAssetRegistryState TempState;
+		FAssetRegistrySerializationOptions LoadOptions;
+		LoadOptions.bSerializeDependencies = false;
+		LoadOptions.bSerializePackageData = false;
 
+		TempState.Serialize(SerializedAssetData, LoadOptions);
 
-		for (const auto& RegistryData : RegistryDataMap)
+		const TMap<FName, const FAssetData*>& RegistryDataMap = TempState.GetObjectPathToAssetDataMap();
+
+		for (const TPair<FName, const FAssetData*>& RegistryData : RegistryDataMap)
 		{
-			FAssetData* NewAssetData = RegistryData.Value;
+			const FAssetData* NewAssetData = RegistryData.Value;
 			FName CachedPackageFileFName = GetCachedStandardPackageFileFName(NewAssetData->ObjectPath);
 			if (CachedPackageFileFName != NAME_None)
 			{
-				OutPackageNames.Add(CachedPackageFileFName);
+				OutPackageFilenames.Add(CachedPackageFileFName);
 			}
 			else
 			{
 				UE_LOG(LogCook, Warning, TEXT("Could not resolve package %s from %s"), *NewAssetData->ObjectPath.ToString(), *AssetRegistryPath);
 			}
-		}
-		
-
-		// clean up memory
-		for (const auto& RegistryData : RegistryDataMap)
-		{
-			delete RegistryData.Value;
 		}
 		return true;
 	}

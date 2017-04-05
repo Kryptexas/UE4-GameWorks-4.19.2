@@ -10,6 +10,7 @@
 #include "AssetData.h"
 #include "Widgets/SToolTip.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserDelegates.h"
+#include "AssetManagerEditorModule.h"
 
 class FUICommandList;
 class SMenuAnchor;
@@ -132,12 +133,14 @@ protected:
 
 	/** List of valid platforms */
 	TArray<TSharedPtr<FString>> PlatformComboList;
+	TArray<ITargetPlatform*> PlatformList;
 
 	/** Current platform string */
 	FString CurrentPlatformString;
 
-	/** Current TargetPlatform */
+	/** Current TargetPlatform and registry state, may be null! */
 	ITargetPlatform* CurrentTargetPlatform;
+	FAssetRegistryState* CurrentPlatformState;
 
 	/** Delegates to interact with asset view */
 	FSyncToAssetsDelegate SyncToAssetsDelegate;

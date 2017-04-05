@@ -2,6 +2,7 @@
 
 
 #include "K2Node_Variable.h"
+#include "BlueprintCompilationManager.h"
 #include "UObject/UObjectHash.h"
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/MovementComponent.h"
@@ -388,17 +389,57 @@ UClass* UK2Node_Variable::GetVariableSourceClass() const
 
 UProperty* UK2Node_Variable::GetPropertyForVariable() const
 {
+	if(!FBlueprintCompilationManager::IsGeneratedClassLayoutReady())
+	{
+		// first look in the skeleton class:
+		if(UProperty* SkeletonProperty = GetPropertyForVariableFromSkeleton())
+		{
+			return SkeletonProperty;
+		}
+	}
+
 	const FName VarName = GetVarName();
 	UEdGraphPin* VariablePin = FindPin(GetVarNameString());
 
 	UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
 
 	// if the variable has been deprecated, don't use it
-	if(VariableProperty != NULL)
+	if(VariableProperty != nullptr)
 	{
 		if (VariableProperty->HasAllPropertyFlags(CPF_Deprecated))
 		{
-			VariableProperty = NULL;
+			VariableProperty = nullptr;
+		}
+		// If the variable has been remapped update the pin
+		else if (VariablePin && VarName != GetVarName())
+		{
+			VariablePin->PinName = GetVarNameString();
+		}
+	}
+
+	return VariableProperty;
+}
+
+UProperty* UK2Node_Variable::GetPropertyForVariableFromSkeleton() const
+{
+	const FName VarName = GetVarName();
+	UEdGraphPin* VariablePin = FindPin(GetVarNameString());
+	
+	UClass* ParentClass = VariableReference.GetMemberParentClass( GetBlueprintClassFromNode() );
+	UBlueprint* OwningBP = ParentClass ? Cast<UBlueprint>( ParentClass->ClassGeneratedBy ) : nullptr;
+	
+	UProperty* VariableProperty = nullptr;
+	if( UClass* SkeletonClass = OwningBP ? OwningBP->SkeletonGeneratedClass : nullptr )
+	{
+		VariableProperty = SkeletonClass->FindPropertyByName( VariableReference.GetMemberName() );
+	}
+
+	// if the variable has been deprecated, don't use it
+	if(VariableProperty != nullptr)
+	{
+		if (VariableProperty->HasAllPropertyFlags(CPF_Deprecated))
+		{
+			VariableProperty = nullptr;
 		}
 		// If the variable has been remapped update the pin
 		else if (VariablePin && VarName != GetVarName())

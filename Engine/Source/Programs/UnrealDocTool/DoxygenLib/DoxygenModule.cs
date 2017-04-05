@@ -26,7 +26,7 @@ namespace DoxygenLib
 
 			XmlNode NameNode = Node.SelectSingleNode("compoundname");
 			Compound.Name = (NameNode == null) ? null : NameNode.InnerText;
-
+			
 			return Compound;
 		}
 	}
@@ -187,6 +187,10 @@ namespace DoxygenLib
 					ReadMembers(Module, Compound, "", Entity, null, Entity.Members);
 					Scopes.Add(Entity.Name, Entity);
 				}
+                else if (Compound.Kind == "file")
+                {
+                    ReadEnumMembers(Module, Compound, "", null, Compound.Node, Module.Entities);
+                }
 			}
 
 			// Go back over all the scopes and fixup their parents
@@ -243,6 +247,24 @@ namespace DoxygenLib
 				}
 			}
 		}
+
+        protected static void ReadEnumMembers(DoxygenModule Module, DoxygenCompound Compound, string NamePrefix, DoxygenEntity Parent, XmlNode NamespaceNode, List<DoxygenEntity> Entities)
+        {
+            using (XmlNodeList NodeList = Compound.Node.SelectNodes("sectiondef/memberdef"))
+            {
+                foreach (XmlNode Node in NodeList)
+                {
+                    XmlNode NameNode = Node.SelectSingleNode("name");
+                    if (NameNode.InnerText.Length > 0)
+                    {
+                        string Name = NamePrefix + NameNode.InnerText;
+                        DoxygenEntity Entity = DoxygenEntity.FromXml(Module, Name, Node, NamespaceNode);
+                        Entity.Parent = Parent;
+                        Entities.Add(Entity);
+                    }
+                }
+            }
+        }
 
 		/*
 		public DoxygenSourceFile FindSourceFile(string InFileName)

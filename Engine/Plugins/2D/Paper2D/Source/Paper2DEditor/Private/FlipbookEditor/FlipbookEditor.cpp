@@ -223,7 +223,7 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Viewport(const FSpawnTabArgs& Arg
 	TSharedRef<SWidget> ScrubControl = SNew(SScrubControlPanel)
 		.IsEnabled(true)
 		.Value(this, &FFlipbookEditor::GetPlaybackPosition)
-		.NumOfKeys(this, &FFlipbookEditor::GetTotalFrameCount)
+		.NumOfKeys(this, &FFlipbookEditor::GetTotalFrameCountPlusOne)
 		.SequenceLength(this, &FFlipbookEditor::GetTotalSequenceLength)
 		.OnValueChanged(this, &FFlipbookEditor::SetPlaybackPosition)
 //		.OnBeginSliderMovement(this, &SAnimationScrubPanel::OnBeginSliderMovement)
@@ -682,6 +682,11 @@ EPlaybackMode::Type FFlipbookEditor::GetPlaybackMode() const
 uint32 FFlipbookEditor::GetTotalFrameCount() const
 {
 	return FlipbookBeingEdited->GetNumFrames();
+}
+
+uint32 FFlipbookEditor::GetTotalFrameCountPlusOne() const
+{
+	return FlipbookBeingEdited->GetNumFrames() + 1;
 }
 
 float FFlipbookEditor::GetTotalSequenceLength() const

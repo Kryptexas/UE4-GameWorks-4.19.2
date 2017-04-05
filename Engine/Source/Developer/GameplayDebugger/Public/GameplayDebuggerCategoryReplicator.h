@@ -73,7 +73,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 
 	/** [AUTH] set new owner */

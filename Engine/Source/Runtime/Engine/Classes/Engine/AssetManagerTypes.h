@@ -22,7 +22,7 @@ enum class EPrimaryAssetCookRule : uint8
 	/** Asset can be cooked for development and testing, but should never be shipped in a production build */
 	DevelopmentCook,
 
-	/** Asset should always be cooked, for production and development */
+	/** Asset will always be cooked, in both production and development */
 	AlwaysCook,
 };
 
@@ -32,19 +32,19 @@ struct FPrimaryAssetRules
 {
 	GENERATED_BODY()
 	
-	/** Primary Assets with a higher priority will take precedence over lower priorities when assigning management for referenced assets. If priorities match, both will manage the same asset. */
+	/** Primary Assets with a higher priority will take precedence over lower priorities when assigning management for referenced assets. If priorities match, both will manage the same secondary asset */
 	UPROPERTY(EditAnywhere, Category = Rules)
 	int32 Priority;
 
-	/** If true, will apply this rule to all referenced assets recurively, if they are not managed by a higher priority */
+	/** If true, will apply this rule to all referenced secondary assets recursively, if they are not managed by a higher priority Primary Asset */
 	UPROPERTY(EditAnywhere, Category = Rules)
 	bool bApplyRecursively;
 
-	/** Assets will be put into this chunk id, if not -1 */
+	/** Assets will be put into this chunk id specifically, if set to something other than -1 */
 	UPROPERTY(EditAnywhere, Category = Rules)
 	int32 ChunkId;
 
-	/** Rather this asset should be cooked or not */
+	/** Rule describing when this asset should be cooked */
 	UPROPERTY(EditAnywhere, Category = Rules)
 	EPrimaryAssetCookRule CookRule;
 
@@ -79,7 +79,7 @@ struct FPrimaryAssetTypeInfo
 
 	// Loaded out of ini or set via ScanPathsForPrimaryAssets
 
-	/** Asset type name. This is a raw name as this is what generates the acceptable list */
+	/** The logical name for this type of Primary Asset */
 	UPROPERTY(EditAnywhere, Category = AssetType)
 	FName PrimaryAssetType;
 
@@ -93,7 +93,7 @@ public:
 	UPROPERTY(Transient)
 	UClass* AssetBaseClassLoaded;
 
-	/** True if the objects loaded are blueprints classes, false if they are normal UObjects */
+	/** True if the assets loaded are blueprints classes, false if they are normal UObjects */
 	UPROPERTY(EditAnywhere, Category = AssetType)
 	bool bHasBlueprintClasses;
 
@@ -111,7 +111,7 @@ private:
 	TArray<FStringAssetReference> SpecificAssets;
 public:
 
-	/** Management rules for entire type, this is read out of ini but can be modified at run/cook time */
+	/** Default management rules for this type, individual assets can be overridden */
 	UPROPERTY(EditAnywhere, Category = Rules, meta = (ShowOnlyInnerProperties))
 	FPrimaryAssetRules Rules;
 

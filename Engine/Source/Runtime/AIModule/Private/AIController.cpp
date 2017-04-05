@@ -75,7 +75,7 @@ void AAIController::PostInitializeComponents()
 	}
 
 #if ENABLE_VISUAL_LOG
-	TArray<UActorComponent*> ComponentSet;
+	TInlineComponentArray<UActorComponent*> ComponentSet;
 	GetComponents(ComponentSet);
 	for (auto Component : ComponentSet)
 	{

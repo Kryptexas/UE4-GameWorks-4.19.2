@@ -97,6 +97,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FComponentEndOverlapSignature, UP
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentWakeSignature, UPrimitiveComponent*, WakingComponent, FName, BoneName);
 /** Delegate for notification when a sleep event is fired by physics*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentSleepSignature, UPrimitiveComponent*, SleepingComponent, FName, BoneName);
+/** Delegate for notification when collision settings change. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentCollisionSettingsChangedSignature, UPrimitiveComponent*, ChangedComponent);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentBeginCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentEndCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
@@ -380,11 +382,11 @@ public:
 	// Physics
 	
 	/** Will ignore radial impulses applied to this component. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
 	uint32 bIgnoreRadialImpulse:1;
 
 	/** Will ignore radial forces applied to this component. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
 	uint32 bIgnoreRadialForce:1;
 
 	// General flags.
@@ -742,6 +744,11 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category = "Collision")
 	FComponentSleepSignature OnComponentSleep;
+
+	/**
+	 *	Event called when collision settings change for this component.
+	 */
+	FComponentCollisionSettingsChangedSignature OnComponentCollisionSettingsChangedEvent;
 
 	/** Event called when the mouse cursor is moved over this component and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
@@ -1656,6 +1663,7 @@ public:
 	 *	@param NewAngVel		New angular velocity to apply to physics, in degrees per second.
 	 *	@param bAddToCurrent	If true, NewAngVel is added to the existing angular velocity of all bodies.
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (UnsafeDuringActorConstruction = "true"))
 	virtual void SetAllPhysicsAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent = false);
 
 	/**

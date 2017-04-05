@@ -61,7 +61,7 @@ namespace UnrealBuildTool.Rules
                     "Projects",
                     "EditorStyle",
                     "Phonon",
-                    "ComponentVisualizers",
+                    "ComponentVisualizers"
                  }
             );
 

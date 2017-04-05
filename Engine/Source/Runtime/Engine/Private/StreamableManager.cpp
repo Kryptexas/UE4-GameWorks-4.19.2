@@ -714,6 +714,9 @@ FStreamable* FStreamableManager::StreamInternal(const FStringAssetReference& InT
 	
 	if (!Existing->Target)
 	{
+		// Disable failed flag as it may have been added at a later point
+		Existing->bLoadFailed = false;
+
 		FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 
 		// If async loading isn't safe or it's forced on, we have to do a sync load which will flush all async loading
@@ -752,8 +755,9 @@ FStreamable* FStreamableManager::StreamInternal(const FStringAssetReference& InT
 			}
 			Existing->bAsyncLoadRequestOutstanding = false;
 		}
-		else if (!Existing->bAsyncLoadRequestOutstanding)
+		else
 		{
+			// We always queue a new request in case the existing one gets cancelled
 			FString Package = TargetName.ToString();
 			int32 FirstDot = Package.Find(TEXT("."));
 			if (FirstDot != INDEX_NONE)
@@ -780,11 +784,6 @@ UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& Target
 
 TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority, bool bManageActiveHandle, const FString& DebugName)
 {
-	if (TargetsToStream.Num() == 0)
-	{
-		return nullptr;
-	}
-
 	// Schedule a new callback, this will get called when all related async loads are completed
 	TSharedRef<FStreamableHandle> NewRequest = MakeShareable(new FStreamableHandle());
 	NewRequest->CompleteDelegate = DelegateToCall;
@@ -792,12 +791,18 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 	NewRequest->RequestedAssets = TargetsToStream;
 	NewRequest->DebugName = DebugName;
 
-	// Remove any duplicates
-	TSet<FStringAssetReference> TargetSet(TargetsToStream);
+	// Remove null requests
+	NewRequest->RequestedAssets.Remove(FStringAssetReference());
 
-	if (TargetSet.Num() != TargetsToStream.Num())
+	if (NewRequest->RequestedAssets.Num() == 0)
 	{
-#if UE_BUILD_DEBUG
+		// Original array was empty or all null
+		UE_LOG(LogStreamableManager, Error, TEXT("RequestAsyncLoad called with empty or only null assets!"));
+		NewRequest->CancelHandle();
+		return nullptr;
+	} 
+	else if (NewRequest->RequestedAssets.Num() != TargetsToStream.Num())
+	{
 		FString RequestedSet;
 
 		for (const FStringAssetReference& Asset : TargetsToStream)
@@ -809,7 +814,28 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 			RequestedSet += Asset.ToString();
 		}
 
-		UE_LOG(LogStreamableManager, Error, TEXT("RequestAsyncLoad called with duplicate assets %s!"), *RequestedSet);
+		// Some valid, some null
+		UE_LOG(LogStreamableManager, Warning, TEXT("RequestAsyncLoad called with both valid and null assets, null assets removed from %s!"), *RequestedSet);
+	}
+
+	// Remove any duplicates
+	TSet<FStringAssetReference> TargetSet(NewRequest->RequestedAssets);
+
+	if (TargetSet.Num() != NewRequest->RequestedAssets.Num())
+	{
+#if UE_BUILD_DEBUG
+		FString RequestedSet;
+
+		for (const FStringAssetReference& Asset : NewRequest->RequestedAssets)
+		{
+			if (!RequestedSet.IsEmpty())
+			{
+				RequestedSet += TEXT(", ");
+			}
+			RequestedSet += Asset.ToString();
+		}
+
+		UE_LOG(LogStreamableManager, Verbose, TEXT("RequestAsyncLoad called with duplicate assets, duplicates removed from %s!"), *RequestedSet);
 #endif
 
 		NewRequest->RequestedAssets = TargetSet.Array();
@@ -840,6 +866,8 @@ TSharedPtr<FStreamableHandle> FStreamableManager::RequestAsyncLoad(const TArray<
 
 		if (Existing && (Existing->Target || Existing->bLoadFailed))
 		{
+			Existing->bAsyncLoadRequestOutstanding = false;
+
 			CheckCompletedRequests(NewRequest->RequestedAssets[i], Existing);
 		}
 	}
@@ -983,7 +1011,7 @@ void FStreamableManager::AsyncLoadCallback(FStringAssetReference TargetName)
 		}
 		else
 		{
-			UE_LOG(LogStreamableManager, Error, TEXT("AsyncLoadCallback called for %s when not waiting on a load request!"), *TargetName.ToString());
+			UE_LOG(LogStreamableManager, Verbose, TEXT("AsyncLoadCallback called for %s when not waiting on a load request, was loaded early by sync load"), *TargetName.ToString());
 		}
 		if (Existing->Target)
 		{

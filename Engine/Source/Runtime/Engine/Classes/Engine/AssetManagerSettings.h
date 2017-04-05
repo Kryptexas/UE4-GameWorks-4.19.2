@@ -39,7 +39,7 @@ struct FPrimaryAssetRulesOverride
 	FPrimaryAssetRules Rules;
 };
 
-/** Doesn't subclass developer settings because the UI shouldn't be enabled until this feature is out of experimental */
+/** Settings for the Asset Management framework, which can be used to discover, load, and audit game-specific asset types */
 UCLASS(config = Game, defaultconfig, notplaceable, meta = (DisplayName = "Asset Manager"))
 class ENGINE_API UAssetManagerSettings : public UDeveloperSettings
 {

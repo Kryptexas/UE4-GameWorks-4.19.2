@@ -36,6 +36,12 @@
 #include "AssetData.h"
 #include "Engine/World.h"
 #include "Misc/App.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "IPlatformFileSandboxWrapper.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Serialization/ArrayReader.h"
 
 #define LOCTEXT_NAMESPACE "AssetManagerEditor"
 
@@ -182,8 +188,9 @@ public:
 	void OpenAssetManagementUI(TArray<FAssetData> SelectedAssets);
 	void OpenAssetManagementUI(TArray<FName> SelectedAssets);
 
-	FString GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName, ITargetPlatform* TargetPlatform) const override;
+	FString GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName, ITargetPlatform* TargetPlatform, const FAssetRegistryState* PlatformState) override;
 	void GetAvailableTargetPlatforms(TArray<ITargetPlatform*>& AvailablePlatforms) override;
+	FAssetRegistryState* GetAssetRegistryStateForTargetPlatform(ITargetPlatform* TargetPlatform) override;
 private:
 
 	static bool GetDependencyTypeArg(const FString& Arg, EAssetRegistryDependencyType::Type& OutDepType);
@@ -205,6 +212,7 @@ private:
 	void WriteProfileFile(const FString& Extension, const FString& FileContents);
 	void WriteCollection(FName CollectionName, const TArray<FName>& PackageNames);
 	void WriteSizeSortedList(TArray<FName>& PackageNames) const;
+	FString GetSavedAssetRegistryPath(ITargetPlatform* TargetPlatform);
 
 	TArray<IConsoleObject*> AuditCmds;
 
@@ -217,6 +225,9 @@ private:
 
 	TWeakPtr<SDockTab> AssetManagementTab;
 	TWeakPtr<SAssetAuditBrowser> AssetManagementUI;
+	TMap<ITargetPlatform*, FAssetRegistryState> AssetRegistryStateMap;
+	FSandboxPlatformFile* CookedSandbox;
+	FSandboxPlatformFile* EditorCookedSandbox;
 
 	void CreateAssetManagerContentBrowserMenu(FMenuBuilder& MenuBuilder, TArray<FAssetData> SelectedAssets);
 	void CreateReferenceViewerMenu(FMenuBuilder& MenuBuilder, TArray<FAssetIdentifier> SelectedAssets);
@@ -237,6 +248,9 @@ IMPLEMENT_MODULE(FAssetManagerEditorModule, AssetManagerEditor);
 
 void FAssetManagerEditorModule::StartupModule()
 {
+	CookedSandbox = nullptr;
+	EditorCookedSandbox = nullptr;
+
 	if (!IsRunningCommandlet())
 	{
 		AuditCmds.Add(IConsoleManager::Get().RegisterConsoleCommand(
@@ -297,6 +311,18 @@ void FAssetManagerEditorModule::StartupModule()
 
 void FAssetManagerEditorModule::ShutdownModule()
 {
+	if (CookedSandbox)
+	{
+		delete CookedSandbox;
+		CookedSandbox = nullptr;
+	}
+
+	if (EditorCookedSandbox)
+	{
+		delete EditorCookedSandbox;
+		EditorCookedSandbox = nullptr;
+	}
+
 	for (IConsoleObject* AuditCmd : AuditCmds)
 	{
 		IConsoleManager::Get().UnregisterConsoleObject(AuditCmd);
@@ -434,7 +460,7 @@ TSharedRef<FExtender> FAssetManagerEditorModule::OnExtendReferenceViewerSelectio
 	return Extender;
 }
 
-FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName, ITargetPlatform* TargetPlatform) const
+FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData, FName ColumnName, ITargetPlatform* TargetPlatform, const FAssetRegistryState* PlatformState)
 {
 	UAssetManager& AssetManager = UAssetManager::Get();
 	IAssetRegistry& AssetRegistry = AssetManager.GetAssetRegistry();
@@ -450,7 +476,7 @@ FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData
 		if (!PrimaryAssetId.IsValid())
 		{
 			// Just return exclusive
-			return GetValueForCustomColumn(AssetData, SizeTag, TargetPlatform);
+			return GetValueForCustomColumn(AssetData, SizeTag, TargetPlatform, PlatformState);
 		}
 
 		TArray<FName> AssetPackageArray;
@@ -470,17 +496,24 @@ FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData
 				// Use first one
 				FAssetData& ManagedAssetData = FoundData[0];
 
-				FString DataString;
-				if (ManagedAssetData.GetTagValue(SizeTag, DataString))
-				{
-					int64 PackageSize = 0;
-					Lex::FromString(PackageSize, *DataString);
-					TotalSize += PackageSize;
-				}
+				FString DataString = GetValueForCustomColumn(ManagedAssetData, SizeTag, TargetPlatform, PlatformState);
+
+				int64 PackageSize = 0;
+				Lex::FromString(PackageSize, *DataString);
+				TotalSize += PackageSize;
 			}
 		}
 
 		ReturnString = Lex::ToString(TotalSize);
+	}
+	else if (ColumnName == DiskSizeName)
+	{
+		const FAssetPackageData* FoundData = PlatformState ? PlatformState->GetAssetPackageData(AssetData.PackageName) : AssetRegistry.GetAssetPackageData(AssetData.PackageName);
+
+		if (FoundData)
+		{
+			ReturnString = Lex::ToString((FoundData->DiskSize + 512) / 1024);
+		}
 	}
 	else if (ColumnName == TotalUsageName)
 	{
@@ -504,7 +537,9 @@ FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData
 	}
 	else if (ColumnName == CookRuleName)
 	{
-		EPrimaryAssetCookRule CookRule = AssetManager.GetPackageCookRule(AssetData.PackageName);
+		EPrimaryAssetCookRule CookRule;
+
+		CookRule = AssetManager.GetPackageCookRule(AssetData.PackageName);
 
 		switch (CookRule)
 		{
@@ -517,7 +552,19 @@ FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData
 	{
 		TArray<int32> FoundChunks;
 
-		AssetManager.GetPackageChunkIds(AssetData.PackageName, TargetPlatform, AssetData.ChunkIDs, FoundChunks);
+		if (PlatformState)
+		{
+			const FAssetData* PlatformData = PlatformState->GetAssetByObjectPath(AssetData.ObjectPath);
+			if (PlatformData)
+			{
+				FoundChunks = PlatformData->ChunkIDs;
+			}
+		}
+		else
+		{
+			AssetManager.GetPackageChunkIds(AssetData.PackageName, TargetPlatform, AssetData.ChunkIDs, FoundChunks);
+		}
+		
 		FoundChunks.Sort();
 
 		for (int32 Chunk : FoundChunks)
@@ -538,9 +585,135 @@ FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData
 	return ReturnString;
 }
 
+FString FAssetManagerEditorModule::GetSavedAssetRegistryPath(ITargetPlatform* TargetPlatform)
+{
+	if (!TargetPlatform)
+	{
+		return FString();
+	}
+
+	FString PlatformName = TargetPlatform->PlatformName();
+
+	// Initialize sandbox wrapper
+	if (!CookedSandbox)
+	{
+		CookedSandbox = new FSandboxPlatformFile(false);
+
+		FString OutputDirectory = FPaths::Combine(*FPaths::GameDir(), TEXT("Saved"), TEXT("Cooked"), TEXT("[Platform]"));
+		FPaths::NormalizeDirectoryName(OutputDirectory);
+
+		CookedSandbox->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *OutputDirectory));
+	}
+
+	if (!EditorCookedSandbox)
+	{
+		EditorCookedSandbox = new FSandboxPlatformFile(false);
+
+		FString OutputDirectory = FPaths::Combine(*FPaths::GameDir(), TEXT("Saved"), TEXT("EditorCooked"), TEXT("[Platform]"));
+		FPaths::NormalizeDirectoryName(OutputDirectory);
+
+		EditorCookedSandbox->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *OutputDirectory));
+	}
+
+	FString CommandLinePath;
+	FParse::Value(FCommandLine::Get(), TEXT("AssetRegistryFile="), CommandLinePath);
+	CommandLinePath.ReplaceInline(TEXT("[Platform]"), *PlatformName);
+	
+	// First try DevelopmentAssetRegistry.bin, then try AssetRegistry.bin
+	FString CookedAssetRegistry = FPaths::GameDir() / TEXT("AssetRegistry.bin");
+
+	FString CookedPath = CookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
+	FString DevCookedPath = CookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
+
+	FString EditorCookedPath = EditorCookedSandbox->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry).Replace(TEXT("[Platform]"), *PlatformName);
+	FString DevEditorCookedPath = EditorCookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
+
+	FString SharedCookedPath = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), PlatformName, TEXT("Cooked"), TEXT("AssetRegistry.bin"));
+	FString DevSharedCookedPath = SharedCookedPath.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
+
+	// Try command line, then cooked, then build
+	if (!CommandLinePath.IsEmpty() && IFileManager::Get().FileExists(*CommandLinePath))
+	{
+		return CommandLinePath;
+	}
+
+	if (IFileManager::Get().FileExists(*DevCookedPath))
+	{
+		return DevCookedPath;
+	}
+
+	if (IFileManager::Get().FileExists(*CookedPath))
+	{
+		return CookedPath;
+	}
+
+	if (IFileManager::Get().FileExists(*DevEditorCookedPath))
+	{
+		return DevEditorCookedPath;
+	}
+
+	if (IFileManager::Get().FileExists(*EditorCookedPath))
+	{
+		return EditorCookedPath;
+	}
+
+	if (IFileManager::Get().FileExists(*DevSharedCookedPath))
+	{
+		return DevSharedCookedPath;
+	}
+
+	if (IFileManager::Get().FileExists(*SharedCookedPath))
+	{
+		return SharedCookedPath;
+	}
+
+	return FString();
+}
+
 void FAssetManagerEditorModule::GetAvailableTargetPlatforms(TArray<ITargetPlatform*>& AvailablePlatforms)
 {
+	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
 
+	for (ITargetPlatform* CheckPlatform : Platforms)
+	{
+		FString RegistryPath = GetSavedAssetRegistryPath(CheckPlatform);
+
+		if (!RegistryPath.IsEmpty())
+		{
+			AvailablePlatforms.Add(CheckPlatform);
+		}
+	}
+}
+
+FAssetRegistryState* FAssetManagerEditorModule::GetAssetRegistryStateForTargetPlatform(ITargetPlatform* TargetPlatform)
+{
+	FAssetRegistryState* FoundRegistry = AssetRegistryStateMap.Find(TargetPlatform);
+
+	if (FoundRegistry)
+	{
+		return FoundRegistry;
+	}
+
+	FString RegistryPath = GetSavedAssetRegistryPath(TargetPlatform);
+
+	if (RegistryPath.IsEmpty())
+	{
+		return nullptr;
+	}
+
+	FArrayReader SerializedAssetData;
+	if (FFileHelper::LoadFileToArray(SerializedAssetData, *RegistryPath))
+	{
+		FAssetRegistryState& NewState = AssetRegistryStateMap.Add(TargetPlatform);
+		FAssetRegistrySerializationOptions Options;
+		Options.ModifyForDevelopment();
+
+		NewState.Serialize(SerializedAssetData, Options);
+
+		return &NewState;
+	}
+
+	return nullptr;
 }
 
 void FAssetManagerEditorModule::PerformAuditConsoleCommand(const TArray<FString>& Args)

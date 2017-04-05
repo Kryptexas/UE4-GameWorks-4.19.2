@@ -37,6 +37,34 @@ enum class ESavePackageResult
 	GenerateStub
 };
 
+/**
+ * Struct returned from save package, contains the enum as well as extra data about what was written
+ */
+struct FSavePackageResultStruct
+{
+	/** Success/failure of the save operation */
+	ESavePackageResult Result;
+
+	/** Total size of all files written out, including bulk data */
+	int64 TotalFileSize;
+
+	/** Constructors, it will implicitly construct from the result enum */
+	FSavePackageResultStruct() : Result(ESavePackageResult::Error), TotalFileSize(0) {}
+	FSavePackageResultStruct(ESavePackageResult InResult) : Result(InResult), TotalFileSize(0) {}
+	FSavePackageResultStruct(ESavePackageResult InResult, int64 InTotalFileSize) : Result(InResult), TotalFileSize(InTotalFileSize) {}
+
+	bool operator==(const FSavePackageResultStruct& Other) const
+	{
+		return Result == Other.Result;
+	}
+
+	bool operator!=(const FSavePackageResultStruct& Other) const
+	{
+		return Result != Other.Result;
+	}
+
+};
+
 COREUOBJECT_API void StartSavingEDLCookInfoForVerification();
 COREUOBJECT_API void VerifyEDLCookInfo();
 
@@ -490,9 +518,9 @@ public:
 	 * @param	TargetPlatform					The platform being saved for
 	 * @param	FinalTimeStamp					If not FDateTime::MinValue(), the timestamp the saved file should be set to. (Intended for cooking only...)
 	 *
-	 * @return	ESavePackageResult enum value with the result of saving a package.
+	 * @return	FSavePackageResultStruct enum value with the result of saving a package as well as extra data
 	 */
-	static ESavePackageResult Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
+	static FSavePackageResultStruct Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 		FOutputDevice* Error=GError, FLinkerLoad* Conform=NULL, bool bForceByteSwapping=false, bool bWarnOfLongFilename=true, 
 		uint32 SaveFlags=SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true );
 

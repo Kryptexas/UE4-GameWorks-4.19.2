@@ -77,6 +77,7 @@ UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 	bCommentBubblePinned = false;
 	bCommentBubbleVisible = false;
+	bCommentBubbleMakeVisible = false;
 	bCanResizeNode = false;
 #endif // WITH_EDITORONLY_DATA
 }
@@ -601,6 +602,17 @@ void UEdGraphNode::AddNodeUpgradeNote(FText InUpgradeNote)
 	}
 #endif
 }
+
+bool UEdGraphNode::ShouldMakeCommentBubbleVisible() const
+{
+	return bCommentBubbleMakeVisible;
+}
+
+void UEdGraphNode::SetMakeCommentBubbleVisible(bool MakeVisible)
+{
+	bCommentBubbleMakeVisible = MakeVisible;
+}
+
 #endif	//#if WITH_EDITOR
 
 bool UEdGraphNode::IsInDevelopmentMode() const

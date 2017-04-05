@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SBehaviorTreeBlackboardView.h"
+#include "SBehaviorTreeBlackboardEditor.h"
 #include "Styling/SlateBrush.h"
 #include "Fonts/SlateFontInfo.h"
 #include "Misc/Paths.h"
@@ -188,10 +189,19 @@ private:
 	virtual void OnNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit) override
 	{
 		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_BlackboardEntry::StaticGetTypeId());
+		
+		const FString AsString = *NewText.ToString();
+
+		if (AsString.Len() > NAME_SIZE)
+		{
+			UE_LOG(LogBlackboardEditor, Error, TEXT("%s is not a valid Blackboard key name. Needs to be shorter than 1024 characters."), *NewText.ToString());
+			return;
+		}
+
 		TSharedPtr<FEdGraphSchemaAction_BlackboardEntry> BlackboardEntryAction = StaticCastSharedPtr<FEdGraphSchemaAction_BlackboardEntry>(ActionPtr.Pin());
 
 		FName OldName = BlackboardEntryAction->Key.EntryName;
-		FName NewName = FName(*NewText.ToString());
+		FName NewName = FName(*AsString);
 		if(NewName != OldName)
 		{
 			if(!BlackboardEntryAction->bIsNew)

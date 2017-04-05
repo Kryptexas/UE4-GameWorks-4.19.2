@@ -312,6 +312,11 @@ public:
 		return false;
 	}
 
+	virtual bool SupportsMultipleAudioDevices() const
+	{
+		return true;
+	}
+
 	virtual TSharedPtr<IAudioSpatialization> CreateSpatializationInterface(class FAudioDevice* AudioDevice)
 	{
 		return nullptr;

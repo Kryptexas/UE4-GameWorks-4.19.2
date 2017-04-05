@@ -5526,10 +5526,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 #endif
 
 					// Add to known missing list so it won't error again
-					if (FPackageName::IsScriptPackage(NameToLoad))
-					{
-						FLinkerLoad::AddKnownMissingPackage(FailedLoadName);
-					}
+					FLinkerLoad::AddKnownMissingPackage(FailedLoadName);
 				}
 
 				bLoadHasFailed = true;
@@ -6348,6 +6345,16 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 				PackageObjLoaded[ObjectIndex] = nullptr;
 			}
 		}
+
+		// Clean up UPackage so it can't be found later
+		if (LinkerRoot && !LinkerRoot->IsRooted())
+		{
+			LinkerRoot->ClearFlags(RF_NeedPostLoad | RF_NeedLoad | RF_NeedPostLoadSubobjects);
+			LinkerRoot->MarkPendingKill();
+			LinkerRoot->Rename(*MakeUniqueObjectName(GetTransientPackage(), UPackage::StaticClass()).ToString(), nullptr, REN_DontCreateRedirectors | REN_DoNotDirty | REN_ForceNoResetLoaders | REN_NonTransactional);
+			DetachLinker();
+		}
+
 		LoadingResult = EAsyncLoadingResult::Failed;
 	}
 

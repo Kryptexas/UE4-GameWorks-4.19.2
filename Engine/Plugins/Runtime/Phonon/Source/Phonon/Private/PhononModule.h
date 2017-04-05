@@ -35,6 +35,7 @@ public:
 
 	void SetSampleRate(const int32 SampleRate);
 
+	virtual bool SupportsMultipleAudioDevices() const { return false; }
 	virtual bool ImplementsSpatialization() const { return true; }
 	virtual bool ImplementsOcclusion() const { return true; }
 	virtual bool ImplementsReverb() const { return true; }

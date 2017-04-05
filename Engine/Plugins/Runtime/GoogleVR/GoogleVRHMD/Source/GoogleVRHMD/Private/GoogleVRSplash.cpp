@@ -53,7 +53,7 @@ FGoogleVRSplash::~FGoogleVRSplash()
 	if (bInitialized)
 	{
 		FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
-		FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+		FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 	}
 }
 
@@ -62,7 +62,7 @@ void FGoogleVRSplash::Init()
 	if (!bInitialized)
 	{
 		FCoreUObjectDelegates::PreLoadMap.AddSP(this, &FGoogleVRSplash::OnPreLoadMap);
-		FCoreUObjectDelegates::PostLoadMap.AddSP(this, &FGoogleVRSplash::OnPostLoadMap);
+		FCoreUObjectDelegates::PostLoadMapWithWorld.AddSP(this, &FGoogleVRSplash::OnPostLoadMap);
 
 		LoadDefaultSplashTexturePath();
 		bInitialized = true;
@@ -74,7 +74,7 @@ void FGoogleVRSplash::OnPreLoadMap(const FString&)
 	Show();
 }
 
-void FGoogleVRSplash::OnPostLoadMap()
+void FGoogleVRSplash::OnPostLoadMap(UWorld*)
 {
 	Hide();
 }

@@ -585,6 +585,13 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 
 		FBlueprintEditorUtils::RefreshVariables(this);
 		FBlueprintEditorUtils::PreloadConstructionScript( this );
+		
+		// Preload Overridden Components
+		if (InheritableComponentHandler)
+		{
+			InheritableComponentHandler->PreloadAll();
+		}
+
 		FBlueprintEditorUtils::LinkExternalDependencies( this );
 
 		FBlueprintCompilationManager::NotifyBlueprintLoaded( this ); 
@@ -653,18 +660,6 @@ void UBlueprint::PostLoad()
 	// Purge any NULL graphs
 	FBlueprintEditorUtils::PurgeNullGraphs(this);
 
-	// Remove old AutoConstructionScript graph
-	for (int32 i = 0; i < FunctionGraphs.Num(); ++i)
-	{
-		UEdGraph* FuncGraph = FunctionGraphs[i];
-		if ((FuncGraph != NULL) && (FuncGraph->GetName() == TEXT("AutoConstructionScript")))
-		{
-			UE_LOG(LogBlueprint, Log, TEXT("!!! Removing AutoConstructionScript from %s"), *GetPathName());
-			FunctionGraphs.RemoveAt(i);
-			break;
-		}
-	}
-
 	// Remove stale breakpoints
 	for (int32 i = 0; i < Breakpoints.Num(); ++i)
 	{
@@ -724,17 +719,6 @@ void UBlueprint::PostLoad()
 
 	// Update old Anim Blueprints
 	FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(this);
-
-	// Update old macro blueprints
-	if(BPTYPE_MacroLibrary == BlueprintType)
-	{
-		//macros were moved into a separate array
-		MacroGraphs.Append(FunctionGraphs);
-		FunctionGraphs.Empty();
-	}
-
-	// Update old pure functions to be pure using new system
-	FBlueprintEditorUtils::UpdateOldPureFunctions(this);
 
 #if WITH_EDITORONLY_DATA
 	// Ensure all the pin watches we have point to something useful
@@ -1195,7 +1179,7 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets")))
 		{
 			ensure(TargetPlatform);
-			const FCompilerNativizationOptions& NativizationOptions = NativeCodeGenCore->GetNativizationOptionsForPlatform(TargetPlatform ? TargetPlatform->PlatformName() : FString{});
+			const FCompilerNativizationOptions& NativizationOptions = NativeCodeGenCore->GetNativizationOptionsForPlatform(TargetPlatform);
 			TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
 			UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GeneratedClass->GetSuperClass(), ParentBPClassStack);
 			for (const UBlueprintGeneratedClass *ParentBPClass : ParentBPClassStack)

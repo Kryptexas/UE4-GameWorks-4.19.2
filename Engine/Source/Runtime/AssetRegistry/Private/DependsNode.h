@@ -45,6 +45,8 @@ public:
 	void ClearDependencies();
 	/** Removes Manage dependencies on this node and clean up referencers array. Manage references are the only ones safe to remove at runtime */
 	void RemoveManageReferencesToNode();
+	/** Returns number of connections this node has, both references and dependencies */
+	int32 GetConnectionCount() const;
 
 	/** Iterate over all the dependencies of this node, filtered by the supplied type parameter, and call the supplied lambda parameter on the record */
 	template <class T>
@@ -69,10 +71,12 @@ public:
 		}
 	}
 
-	void Reserve(int32 InNumHardDependencies, int32 InNumSoftDependencies, int32 InNumReferencers)
+	void Reserve(int32 InNumHardDependencies, int32 InNumSoftDependencies, int32 InNumNameDependencies, int32 InNumManageDependencies, int32 InNumReferencers)
 	{
 		HardDependencies.Reserve(InNumHardDependencies);
 		SoftDependencies.Reserve(InNumSoftDependencies);
+		NameDependencies.Reserve(InNumNameDependencies);
+		ManageDependencies.Reserve(InNumManageDependencies);
 		Referencers.Reserve(InNumReferencers);
 	}
 

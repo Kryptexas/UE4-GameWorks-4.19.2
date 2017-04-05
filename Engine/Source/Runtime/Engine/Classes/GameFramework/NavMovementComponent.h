@@ -47,7 +47,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = NavMovement, meta = (EditCondition = "bUseAccelerationForPaths"))
 	uint32 bUseFixedBrakingDistanceForPaths : 1;
 
-private:
+protected:
 	/** If set, StopActiveMovement call will abort current path following request */
 	uint32 bStopMovementAbortPaths:1;
 

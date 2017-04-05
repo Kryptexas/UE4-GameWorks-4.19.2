@@ -23,6 +23,7 @@ enum EThreadPriority
 	TPri_Highest,
 	TPri_Lowest,
 	TPri_SlightlyBelowNormal,
+	TPri_TimeCritical
 };
 
 class FGenericPlatformAffinity

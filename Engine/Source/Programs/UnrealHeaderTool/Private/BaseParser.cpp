@@ -101,6 +101,9 @@ namespace
 			Blueprintable.InsertAddAction(TEXT("IsBlueprintBase"), TEXT("true"));
 			Blueprintable.InsertAddAction(TEXT("BlueprintType"),   TEXT("true"));
 
+			FMetadataKeyword& CallInEditor = Dictionary.Add(TEXT("CallInEditor"), EMetadataValueArgument::None);
+			CallInEditor.InsertAddAction(TEXT("CallInEditor"), TEXT("true"));
+
 			FMetadataKeyword& NotBlueprintable = Dictionary.Add(TEXT("NotBlueprintable"), EMetadataValueArgument::None);
 			NotBlueprintable.InsertAddAction   (TEXT("IsBlueprintBase"), TEXT("false"));
 			NotBlueprintable.InsertRemoveAction(TEXT("BlueprintType"));

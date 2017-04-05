@@ -160,7 +160,8 @@ class BuildPlugin : BuildCommand
 			{
 				bool bBuildDeveloperTools = (TargetType == TargetType.Editor || TargetType == TargetType.Program);
 				bool bBuildEditor = (TargetType == TargetType.Editor);
-				if (Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+				bool bBuildRequiresCookedData = (TargetType != TargetType.Editor && TargetType != TargetType.Program);
+				if (Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor, bBuildRequiresCookedData))
 				{
 					ModuleNames.Add(Module.Name);
 				}

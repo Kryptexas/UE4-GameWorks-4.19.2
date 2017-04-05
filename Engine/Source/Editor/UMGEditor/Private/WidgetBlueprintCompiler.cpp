@@ -553,9 +553,9 @@ void FWidgetBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 	NewClass = NewWidgetBlueprintClass;
 }
 
-void FWidgetBlueprintCompiler::PrecompileFunction(FKismetFunctionContext& Context)
+void FWidgetBlueprintCompiler::PrecompileFunction(FKismetFunctionContext& Context, EInternalCompilerFlags InternalFlags)
 {
-	Super::PrecompileFunction(Context);
+	Super::PrecompileFunction(Context, InternalFlags);
 
 	VerifyEventReplysAreNotEmpty(Context);
 }

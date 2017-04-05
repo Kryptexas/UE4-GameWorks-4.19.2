@@ -495,6 +495,18 @@ void UAbilitySystemComponent::CheckForClearedAbilities()
 			i--;
 		}
 	}
+
+	// Clear any out of date ability spec handles on active gameplay effects
+	for (FActiveGameplayEffect& ActiveGE : &ActiveGameplayEffects)
+	{
+		for (FGameplayAbilitySpecDef& AbilitySpec : ActiveGE.Spec.GrantedAbilitySpecs)
+		{
+			if (AbilitySpec.AssignedHandle.IsValid() && FindAbilitySpecFromHandle(AbilitySpec.AssignedHandle) == nullptr)
+			{
+				AbilitySpec.AssignedHandle = FGameplayAbilitySpecHandle();
+			}
+		}
+	}
 }
 
 void UAbilitySystemComponent::IncrementAbilityListLock()

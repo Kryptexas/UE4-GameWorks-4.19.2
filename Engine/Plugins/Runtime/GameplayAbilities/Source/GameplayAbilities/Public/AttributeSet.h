@@ -342,19 +342,19 @@ public:
 
 	FAttributeMetaData();
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Attribute")
 	float		BaseValue;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Attribute")
 	float		MinValue;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Attribute")
 	float		MaxValue;
 
 	UPROPERTY()
 	FString		DerivedAttributeInfo;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Attribute")
 	bool		bCanStack;
 };
 

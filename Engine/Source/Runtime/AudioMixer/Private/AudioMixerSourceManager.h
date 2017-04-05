@@ -19,10 +19,10 @@
 
 // Macro which checks if the source id is in debug mode, avoids having a bunch of #ifdefs in code
 #define AUDIO_MIXER_DEBUG_LOG(SourceId, Format, ...)																							\
-	if (bIsDebugMode[SourceId])																													\
+	if (SourceInfos[SourceId].bIsDebugMode)																													\
 	{																																			\
 		FString CustomMessage = FString::Printf(Format, ##__VA_ARGS__);																			\
-		FString LogMessage = FString::Printf(TEXT("<Debug Sound Log> [Id=%d][Name=%s]: %s"), SourceId, *DebugName[SourceId], *CustomMessage);	\
+		FString LogMessage = FString::Printf(TEXT("<Debug Sound Log> [Id=%d][Name=%s]: %s"), SourceId, *SourceInfos[SourceId].DebugName, *CustomMessage);	\
 		UE_LOG(LogAudioMixer, Log, TEXT("%s"), *LogMessage);																								\
 	}
 
@@ -111,11 +111,14 @@ namespace Audio
 		float Update();
 		float GetValue() const;
 
+		FORCEINLINE float GetCurrentValue() const { return CurrentValue; }
+
 	private:
 		float StartValue;
 		float EndValue;
 		float CurrentValue;
 		float NumInterpFrames;
+		float NumInterpFramesInverse;
 		float Frame;
 		bool bIsInit;
 		bool bIsDone;
@@ -156,11 +159,29 @@ namespace Audio
 
 		void GetChannelMap(TArray<float>& OutChannelMap)
 		{
+			const int32 NumChannelValues = ChannelValues.Num();
 			OutChannelMap.Reset();
-			for (int32 i = 0; i < ChannelValues.Num(); ++i)
+			OutChannelMap.AddUninitialized(NumChannelValues);
+			for (int32 i = 0; i < NumChannelValues; ++i)
 			{
-				OutChannelMap.Add(ChannelValues[i].Update());
+				OutChannelMap[i] = ChannelValues[i].Update();
 			}
+		}
+
+		FORCEINLINE_DEBUGGABLE
+		void UpdateChannelMap()
+		{
+			const int32 NumChannelValues = ChannelValues.Num();
+			for (int32 i = 0; i < NumChannelValues; ++i)
+			{
+				ChannelValues[i].Update();
+			}
+		}
+
+		FORCEINLINE_DEBUGGABLE
+		float GetChannelValue(int ChannelIndex)
+		{
+			return ChannelValues[ChannelIndex].GetCurrentValue();
 		}
 
 		void PadZeroes(const int32 ToSize)
@@ -281,82 +302,84 @@ namespace Audio
 		// A command queue to execute commands from audio thread (or game thread) to audio mixer device thread.
 		TQueue<TFunction<void()>> SourceCommandQueue;
 
-		/////////////////////////////////////////////////////////////////////////////
-		// Vectorized source voice info
-		/////////////////////////////////////////////////////////////////////////////
-
-		// Raw PCM buffer data
-		TArray<TQueue<FMixerSourceBufferPtr>> BufferQueue;
-		TArray<ISourceBufferQueueListener*> BufferQueueListener;
-
-		// Debugging source generators
-#if ENABLE_AUDIO_OUTPUT_DEBUGGING
-		TArray<FSineOsc> DebugOutputGenerators;
-#endif
-		// Array of sources which are currently debug solo'd
 		TArray<int32> DebugSoloSources;
-		TArray<bool> bIsDebugMode;
-		TArray<FString> DebugName;
-
-		// Data used for rendering sources
-		TArray<FMixerSourceBufferPtr> CurrentPCMBuffer;
-		TArray<int32> CurrentAudioChunkNumFrames;
-		TArray<TArray<float>> SourceBuffer;
-		TArray<TArray<float>> CurrentFrameValues;
-		TArray<TArray<float>> NextFrameValues;
-		TArray<float> CurrentFrameAlpha;
-		TArray<int32> CurrentFrameIndex;
-		TArray<int64> NumFramesPlayed;
-
-		TArray<FSourceParam> PitchSourceParam;
-		TArray<FSourceParam> VolumeSourceParam;
-		TArray<FSourceParam> LPFCutoffFrequencyParam;
-
-		// Simple LPFs for all sources (all channels of all sources)
-		TArray<TArray<FOnePoleLPF>> LowPassFilters;
-
-		// Source effect instances
-		TArray<uint32> SourceEffectChainId;
-		TArray<TArray<FSoundEffectSource*>> SourceEffects;
-		TArray<TArray<USoundEffectSourcePreset*>> SourceEffectPresets;
-		TArray<bool> bEffectTailsDone;
-		TArray<FSoundEffectSourceInputData> SourceEffectInputData;
-		TArray<FSoundEffectSourceOutputData> SourceEffectOutputData;
 
 		// Audio plugin processing
 		FAudioPluginSourceInputData AudioPluginInputData;
-		TArray<FAudioPluginSourceOutputData> AudioPluginOutputData;
 
-		// A DSP object which tracks the amplitude envelope of a source.
-		TArray<Audio::FEnvelopeFollower> SourceEnvelopeFollower;
-		TArray<float> SourceEnvelopeValue;
+		struct FSourceInfo
+		{
+			FSourceInfo();
+			~FSourceInfo();
 
-		TArray<FSourceChannelMap> ChannelMapParam;
-		TArray<FSpatializationParams> SpatParams;
-		TArray<TArray<float>> ScratchChannelMap;
+			// Raw PCM buffer data
+			TQueue<FMixerSourceBufferPtr> BufferQueue;
+			ISourceBufferQueueListener* BufferQueueListener;
 
-		// Output data, after computing a block of sample data, this is read back from mixers
-		TArray<TArray<float>> ReverbPluginOutputBuffer;
-		TArray<TArray<float>*> PostEffectBuffers;
-		TArray<TArray<float>> OutputBuffer;
+			// Data used for rendering sources
+			FMixerSourceBufferPtr CurrentPCMBuffer;
+			int32 CurrentAudioChunkNumFrames;
+			TArray<float> SourceBuffer;
+			TArray<float> CurrentFrameValues;
+			TArray<float> NextFrameValues;
+			float CurrentFrameAlpha;
+			int32 CurrentFrameIndex;
+			int64 NumFramesPlayed;
 
-		// State management
-		TArray<bool> bIs3D;
-		TArray<bool> bIsCenterChannelOnly;
-		TArray<bool> bIsActive;
-		TArray<bool> bIsPlaying;
-		TArray<bool> bIsPaused;
-		TArray<bool> bHasStarted;
-		TArray<bool> bIsBusy;
-		TArray<bool> bUseHRTFSpatializer;
-		TArray<bool> bUseOcclusionPlugin;
-		TArray<bool> bUseReverbPlugin;
-		TArray<bool> bIsDone;
+			FSourceParam PitchSourceParam;
+			FSourceParam VolumeSourceParam;
+			FSourceParam LPFCutoffFrequencyParam;
 
-		// Source format info
-		TArray<int32> NumInputChannels;
-		TArray<int32> NumPostEffectChannels;
-		TArray<int32> NumInputFrames;
+			// Simple LPFs for all sources (all channels of all sources)
+			TArray<FOnePoleLPF> LowPassFilters;
+
+			// Source effect instances
+			uint32 SourceEffectChainId;
+			TArray<FSoundEffectSource*> SourceEffects;
+			TArray<USoundEffectSourcePreset*> SourceEffectPresets;
+			bool bEffectTailsDone;
+			FSoundEffectSourceInputData SourceEffectInputData;
+			FSoundEffectSourceOutputData SourceEffectOutputData;
+
+			FAudioPluginSourceOutputData AudioPluginOutputData;
+
+			// A DSP object which tracks the amplitude envelope of a source.
+			Audio::FEnvelopeFollower SourceEnvelopeFollower;
+			float SourceEnvelopeValue;
+
+			FSourceChannelMap ChannelMapParam;
+			FSpatializationParams SpatParams;
+			TArray<float> ScratchChannelMap;
+
+			// Output data, after computing a block of sample data, this is read back from mixers
+			TArray<float> ReverbPluginOutputBuffer;
+			TArray<float>* PostEffectBuffers;
+			TArray<float> OutputBuffer;
+
+			// State management
+			bool bIs3D;
+			bool bIsCenterChannelOnly;
+			bool bIsActive;
+			bool bIsPlaying;
+			bool bIsPaused;
+			bool bHasStarted;
+			bool bIsBusy;
+			bool bUseHRTFSpatializer;
+			bool bUseOcclusionPlugin;
+			bool bUseReverbPlugin;
+			bool bIsDone;
+
+			bool bIsDebugMode;
+			FString DebugName;
+
+			// Source format info
+			int32 NumInputChannels;
+			int32 NumPostEffectChannels;
+			int32 NumInputFrames;
+		};
+
+		// Array of source infos.
+		TArray<FSourceInfo> SourceInfos;
 
 		// Async task workers for processing sources in parallel
 		TArray<FAsyncTask<FAudioMixerSourceWorker>*> SourceWorkers;

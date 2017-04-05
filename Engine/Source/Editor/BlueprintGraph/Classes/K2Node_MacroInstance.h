@@ -70,6 +70,7 @@ public:
 	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	virtual FText GetCompactNodeTitle() const override;
 	virtual bool ShouldDrawCompact() const override;
+	virtual FName GetCornerIcon() const override;
 	//~ End UK2Node Interface
 
 	//~ Begin UK2Node_EditablePinBase Interface

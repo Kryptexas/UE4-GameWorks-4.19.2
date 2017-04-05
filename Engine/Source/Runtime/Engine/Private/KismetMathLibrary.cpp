@@ -623,7 +623,7 @@ void UKismetMathLibrary::BreakTimespan(FTimespan InTimespan, int32& Days, int32&
 
 FVector UKismetMathLibrary::GetForwardVector(FRotator InRot)
 {
-	return FRotationMatrix(InRot).GetScaledAxis(EAxis::X);
+	return InRot.Vector();
 }
 
 FVector UKismetMathLibrary::GetRightVector(FRotator InRot)

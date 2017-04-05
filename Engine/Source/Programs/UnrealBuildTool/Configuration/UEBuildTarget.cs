@@ -3282,7 +3282,7 @@ namespace UnrealBuildTool
 			{
 				foreach (ModuleDescriptor Module in Plugin.Descriptor.Modules)
 				{
-					if (Module.IsCompiledInConfiguration(Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor))
+					if (Module.IsCompiledInConfiguration(Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor, Rules.bBuildRequiresCookedData))
 					{
 						UEBuildModule ModuleInstance = FindOrCreateModuleByName(Module.Name);
 						if(ModuleInstance.Binary == null)
@@ -3400,7 +3400,7 @@ namespace UnrealBuildTool
 						{
 							foreach (ModuleDescriptor ModuleDescriptor in Plugin.Descriptor.Modules)
 							{
-								if (ModuleDescriptor.IsCompiledInConfiguration(Platform, TargetType, bAllowDeveloperModules && Rules.bBuildDeveloperTools, Rules.bBuildEditor))
+								if (ModuleDescriptor.IsCompiledInConfiguration(Platform, TargetType, bAllowDeveloperModules && Rules.bBuildDeveloperTools, Rules.bBuildEditor, Rules.bBuildRequiresCookedData))
 								{
 									string RelativeFileName = RulesAssembly.GetModuleFileName(ModuleDescriptor.Name).MakeRelativeTo(UnrealBuildTool.EngineDirectory);
 									if (!ExcludeFolders.Any(x => RelativeFileName.Contains(x)) && !PrecompiledModules.Any(x => x.Name == ModuleDescriptor.Name))
@@ -3724,7 +3724,7 @@ namespace UnrealBuildTool
 
 			// Remove any enabled plugins that are unused on the current platform. This prevents having to stage the .uplugin files, but requires that the project descriptor
 			// doesn't have a platform-neutral reference to it.
-			EnabledPlugins.RemoveAll(Plugin => !UProjectInfo.IsPluginDescriptorRequiredForProject(Plugin, ProjectDescriptor, Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor));
+			EnabledPlugins.RemoveAll(Plugin => !UProjectInfo.IsPluginDescriptorRequiredForProject(Plugin, ProjectDescriptor, Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor, Rules.bBuildRequiresCookedData));
 
 			// Set the list of plugins that should be built
 			if (Rules.bBuildAllPlugins)

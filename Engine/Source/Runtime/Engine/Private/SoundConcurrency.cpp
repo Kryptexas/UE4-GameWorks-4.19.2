@@ -176,10 +176,11 @@ FActiveSound* FSoundConcurrencyManager::CreateNewActiveSound(const FActiveSound&
 	{
 		return HandleConcurrencyEvaluationOverride(NewActiveSound);
 	}
-	else
+	else if (ConcurrencyObjectID != INDEX_NONE)
 	{
 		return HandleConcurrencyEvaluation(NewActiveSound);
 	}
+	return nullptr;
 }
 
 FActiveSound* FSoundConcurrencyManager::ResolveConcurrency(const FActiveSound& NewActiveSound, FConcurrencyGroup& ConcurrencyGroup)
@@ -430,6 +431,12 @@ FActiveSound* FSoundConcurrencyManager::HandleConcurrencyEvaluation(const FActiv
 	FConcurrencyObjectID ConcurrencyObjectID = NewActiveSound.GetSoundConcurrencyObjectID();
 	check(ConcurrencyObjectID != 0);
 
+	// If there is no concurrency object ID, then there is no sound to play, so don't try to play
+	if (ConcurrencyObjectID == INDEX_NONE)
+	{
+		return nullptr;
+	}
+
 	FActiveSound* ActiveSound = nullptr;
 
 	// Check to see if we're limiting per owner
@@ -551,7 +558,7 @@ void FSoundConcurrencyManager::RemoveActiveSound(FActiveSound* ActiveSound)
 				SoundObjectToActiveSounds.Remove(SoundObjectID);
 			}
 		}
-		else // We're limiting concurrency per-group (not per-instance)
+		else if (ConcurrencyObjectID != INDEX_NONE) // We're limiting concurrency per-group (not per-instance)
 		{
 			// Check if we're doing a per-owner concurrency group
 			if (ConcurrencySettings->bLimitToOwner && OwnerObjectID != 0)

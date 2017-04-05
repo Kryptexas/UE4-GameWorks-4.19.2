@@ -102,7 +102,7 @@ public:
 		fclose(fp);
 		return true;
 #else
-		return FFileHelper::LoadFileToArray(Data, *GetSaveGamePath(Name));
+		return FFileHelper::LoadFileToArray(Data, *GetSaveGamePath(Name), FILEREAD_Silent);
 #endif
 	}
 

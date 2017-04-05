@@ -66,10 +66,8 @@ private:
 	 * 
 	 * @param	SourceObject	the original version of the object
 	 * @param	DuplicateObject	the copy of the object
-	 *
-	 * @return	a pointer to the copy of the object
 	 */
-	UObject* AddDuplicate(UObject* SourceObject,UObject* DuplicateObject);
+	void AddDuplicate(UObject* SourceObject, UObject* DuplicateObject);
 
 public:
 	/**

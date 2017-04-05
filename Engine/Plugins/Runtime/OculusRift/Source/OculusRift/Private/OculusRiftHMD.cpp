@@ -1559,7 +1559,7 @@ void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPas
 		{
 			if (!frame->Flags.bOrientationChanged)
 			{
-				UE_LOG(LogHMD, Log, TEXT("Orientation wasn't applied to a camera in frame %d"), int(CurrentFrameNumber.GetValue()));
+				UE_LOG(LogHMD, Verbose, TEXT("Orientation wasn't applied to a camera in frame %d"), int(CurrentFrameNumber.GetValue()));
 			}
 
 			FVector CurEyePosition;

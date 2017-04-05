@@ -3,6 +3,22 @@
 #include "CookerSettings.h"
 #include "UObject/UnrealType.h"
 
+
+UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bEnableCookOnTheSide(false)
+	, bEnableBuildDDCInBackground(false)
+	, bIterativeCookingForLaunchOn(false)
+	, bUseAssetRegistryForIteration(false)
+	, bCompileBlueprintsInDevelopmentMode(true)
+	, bCookBlueprintComponentTemplateData(false)
+{
+	SectionName = TEXT("Cooker");
+	DefaultPVRTCQuality = 1;
+	DefaultASTCQualityBySize = 3;
+	DefaultASTCQualityBySpeed = 3;
+}
+
 void UCookerSettings::PostInitProperties()
 {
 	Super::PostInitProperties();

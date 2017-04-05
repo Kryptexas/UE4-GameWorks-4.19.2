@@ -17,7 +17,7 @@ public:
 
 	// Map load delegates
 	void OnPreLoadMap(const FString&);
-	void OnPostLoadMap();
+	void OnPostLoadMap(UWorld*);
 
 	// FTickableObjectRenderThread overrides
 	virtual void Tick(float DeltaTime) override;

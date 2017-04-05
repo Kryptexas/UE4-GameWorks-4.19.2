@@ -125,6 +125,10 @@ void UAbilitySystemComponent::GetAllAttributes(OUT TArray<FGameplayAttribute>& A
 			{
 				Attributes.Push( FGameplayAttribute(FloatProperty) );
 			}
+			else if (FGameplayAttribute::IsGameplayAttributeDataProperty(*It))
+			{
+				Attributes.Push(FGameplayAttribute(*It));
+			}
 		}
 	}
 }

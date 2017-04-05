@@ -5,6 +5,7 @@
 #include "Misc/StringAssetReference.h"
 #include "UObject/AssetPtr.h"
 #include "UObject/PropertyPortFlags.h"
+#include "UObject/UObjectHash.h"
 #include "Serialization/DuplicatedObject.h"
 #include "Serialization/DuplicatedDataWriter.h"
 
@@ -96,15 +97,7 @@ FArchive& FDuplicateDataWriter::operator<<(FAssetPtr& AssetPtr)
 	return *this;
 }
 
-/**
- * Places a new duplicate in the DuplicatedObjects map as well as the UnserializedObjects list
- *
- * @param	SourceObject		the original version of the object
- * @param	DuplicateObject		the copy of the object
- *
- * @return	a pointer to the copy of the object
- */
-UObject* FDuplicateDataWriter::AddDuplicate(UObject* SourceObject,UObject* DupObject)
+void FDuplicateDataWriter::AddDuplicate(UObject* SourceObject, UObject* DupObject)
 {
 	if ( DupObject && !DupObject->IsTemplate() )
 	{
@@ -125,7 +118,6 @@ UObject* FDuplicateDataWriter::AddDuplicate(UObject* SourceObject,UObject* DupOb
 
 
 	UnserializedObjects.Add(SourceObject);
-	return DupObject;
 }
 
 /**
@@ -137,7 +129,7 @@ UObject* FDuplicateDataWriter::AddDuplicate(UObject* SourceObject,UObject* DupOb
  */
 UObject* FDuplicateDataWriter::GetDuplicatedObject(UObject* Object, bool bCreateIfMissing)
 {
-	UObject* Result = NULL;
+	UObject* Result = nullptr;
 	if (IsValid(Object))
 	{
 		// Check for an existing duplicate of the object.
@@ -150,15 +142,27 @@ UObject* FDuplicateDataWriter::GetDuplicatedObject(UObject* Object, bool bCreate
 		{
 			// Check to see if the object's outer is being duplicated.
 			UObject* DupOuter = GetDuplicatedObject(Object->GetOuter());
-			if(DupOuter != NULL)
+			if(DupOuter != nullptr)
 			{
-				// The object's outer is being duplicated, create a duplicate of this object.
-				UObject* NewEmptyDuplicate = StaticConstructObject_Internal(Object->GetClass(), DupOuter, Object->GetFName(), 
-					ApplyFlags | Object->GetMaskedFlags(FlagMask),
-					ApplyInternalFlags | (Object->GetInternalFlags() & InternalFlagMask),
-					Object->GetArchetype(), true, InstanceGraph);
+				// First check if the duplicated outer already has an allocated duplicate of this object
+				Result = static_cast<UObject*>(FindObjectWithOuter(DupOuter, Object->GetClass(), Object->GetFName()));
 
-				Result = AddDuplicate(Object, NewEmptyDuplicate);
+				if (Result == nullptr)
+				{
+					// The object's outer is being duplicated, create a duplicate of this object.
+					Result = StaticConstructObject_Internal(Object->GetClass(), DupOuter, Object->GetFName(),
+						ApplyFlags | Object->GetMaskedFlags(FlagMask),
+						ApplyInternalFlags | (Object->GetInternalFlags() & InternalFlagMask),
+						Object->GetArchetype(), true, InstanceGraph);
+				}
+				else
+				{
+					// If we found the object then set the flags up such that it matches up with what would have been allocated
+					Result->SetFlags(ApplyFlags | Object->GetMaskedFlags(FlagMask));
+					Result->SetInternalFlags(ApplyInternalFlags | (Object->GetInternalFlags() & InternalFlagMask));
+				}
+
+				AddDuplicate(Object, Result);
 			}
 		}
 	}

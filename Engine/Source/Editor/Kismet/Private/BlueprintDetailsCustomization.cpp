@@ -77,6 +77,16 @@
 
 #define LOCTEXT_NAMESPACE "BlueprintDetailsCustomization"
 
+namespace BlueprintDocumentationDetailDefs
+{
+	/** Minimum size of the details title panel */
+	static const float DetailsTitleMinWidth = 125.f;
+	/** Maximum size of the details title panel */
+	static const float DetailsTitleMaxWidth = 300.f;
+	/** magic number retrieved from SGraphNodeComment::GetWrapAt() */
+	static const float DetailsTitleWrapPadding = 32.0f;
+};
+
 void FBlueprintDetails::AddEventsCategory(IDetailLayoutBuilder& DetailBuilder, UProperty* VariableProperty)
 {
 	UBlueprint* BlueprintObj = GetBlueprintObj();
@@ -3333,7 +3343,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				]
 			];
 		}
-		const bool bShowCallInEditor = IsCustomEvent() || FBlueprintEditorUtils::IsBlutility( GetBlueprintObj() );
+		const bool bShowCallInEditor = IsCustomEvent() || FBlueprintEditorUtils::IsBlutility( GetBlueprintObj() ) || (FunctionEntryNode && FunctionEntryNode->IsEditable());
 		if( bShowCallInEditor )
 		{
 			Category.AddCustomRow( LOCTEXT( "EditorCallable", "Call In Editor" ) )
@@ -5370,8 +5380,6 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 
 	TArray<FSCSEditorTreeNodePtrType> Nodes = Editor->GetSelectedNodes();
 
-	AddExperimentalWarningCategory(DetailLayout, Nodes);
-
 	if (!Nodes.Num())
 	{
 		CachedNodePtr = nullptr;
@@ -5795,70 +5803,6 @@ void FBlueprintComponentDetails::OnSocketSelection( FName SocketName )
 	}
 }
 
-void FBlueprintComponentDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder, const TArray<FSCSEditorTreeNodePtrType>& Nodes )
-{
-	bool bIsExperimental = false;
-	bool bIsEarlyAccess = false;
-	for (const FSCSEditorTreeNodePtrType& Node : Nodes)
-	{
-		
-		if (UActorComponent* Component = Node->GetComponentTemplate())
-		{
-			bool bObjectClassIsExperimental, bObjectClassIsEarlyAccess;
-			FObjectEditorUtils::GetClassDevelopmentStatus(Component->GetClass(), bObjectClassIsExperimental, bObjectClassIsEarlyAccess);
-			bIsExperimental |= bObjectClassIsExperimental;
-			bIsEarlyAccess |= bObjectClassIsEarlyAccess;
-		}
-	}
-	
-	if (bIsExperimental || bIsEarlyAccess)
-	{
-		const FName CategoryName(TEXT("Warning"));
-		const FText CategoryDisplayName = LOCTEXT("WarningCategoryDisplayName", "Warning");
-		FString ClassUsed = DetailBuilder.GetTopLevelProperty().ToString();
-		const FText WarningText = bIsExperimental ? FText::Format( LOCTEXT("ExperimentalClassWarning", "Uses experimental class: {0}"), FText::FromString(*ClassUsed) )
-			: FText::Format( LOCTEXT("EarlyAccessClassWarning", "Uses early access class: {0}"), FText::FromString(*ClassUsed) );
-		const FText SearchString = WarningText;
-		const FText Tooltip = bIsExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
-		const FString ExcerptName = bIsExperimental ? TEXT("ComponentUsesExperimentalClass") : TEXT("ComponentUsesEarlyAccessClass");
-		const FSlateBrush* WarningIcon = FEditorStyle::GetBrush(bIsExperimental ? "PropertyEditor.ExperimentalClass" : "PropertyEditor.EarlyAccessClass");
-
-		IDetailCategoryBuilder& WarningCategory = DetailBuilder.EditCategory(CategoryName, CategoryDisplayName, ECategoryPriority::Variable);
-
-		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString)
-			.WholeRowContent()
-			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
-				.BorderBackgroundColor(FColor(166,137,0))
-				[
-					SNew(SHorizontalBox)
-					.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
-					.Visibility(EVisibility::Visible)
-
-					+ SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-					[
-						SNew(SImage)
-						.Image(WarningIcon)
-					]
-
-					+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-					[
-						SNew(STextBlock)
-						.Text(WarningText)
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-					]
-				]
-			];
-	}
-}
-
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
@@ -5899,6 +5843,8 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	}
 
 	TSharedPtr<SWidget> EditNameWidget;
+	float WidgetMinDesiredWidth = BlueprintDocumentationDetailDefs::DetailsTitleMinWidth;
+	float WidgetMaxDesiredWidth = BlueprintDocumentationDetailDefs::DetailsTitleMaxWidth;
 	if( bNameAllowsMultiLine )
 	{
 		SAssignNew(MultiLineNameEditableTextBox, SMultiLineEditableTextBox)
@@ -5910,7 +5856,8 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.RevertTextOnEscape(true)
 		.SelectAllTextWhenFocused(true)
 		.IsReadOnly(this, &FBlueprintGraphNodeDetails::IsNameReadOnly)
-		.Font(DetailFontInfo);
+		.Font(DetailFontInfo)
+		.WrapTextAt(WidgetMaxDesiredWidth - BlueprintDocumentationDetailDefs::DetailsTitleWrapPadding);
 
 		EditNameWidget = MultiLineNameEditableTextBox;
 	}
@@ -5923,6 +5870,7 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.Font(DetailFontInfo);
 
 		EditNameWidget = NameEditableTextBox;
+		WidgetMaxDesiredWidth = WidgetMinDesiredWidth;
 	}
 
 	Category.AddCustomRow( RowHeader )
@@ -5933,6 +5881,8 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.Font(DetailFontInfo)
 	]
 	.ValueContent()
+	.MinDesiredWidth(WidgetMinDesiredWidth)
+	.MaxDesiredWidth(WidgetMaxDesiredWidth)
 	[
 		EditNameWidget.ToSharedRef()
 	];
@@ -6108,14 +6058,6 @@ void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 		}));
 	}
 }
-
-namespace BlueprintDocumentationDetailDefs
-{
-	/** Minimum size of the details title panel */
-	static const float DetailsTitleMinWidth = 125.f;
-	/** Maximum size of the details title panel */
-	static const float DetailsTitleMaxWidth = 300.f;
-};
 
 void FBlueprintDocumentationDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {

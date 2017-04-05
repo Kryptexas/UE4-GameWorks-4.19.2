@@ -40,7 +40,7 @@ private:
 	virtual void StartupModule() override
 	{
 		FCoreDelegates::OnPreExit.AddRaw(this, &FMovieSceneCaptureModule::PreExit);
-		FCoreUObjectDelegates::PostLoadMap.AddRaw(this, &FMovieSceneCaptureModule::OnPostLoadMap );
+		FCoreUObjectDelegates::PostLoadMapWithWorld.AddRaw(this, &FMovieSceneCaptureModule::OnPostLoadMap );
 
 		FMovieSceneCaptureProtocolInfo Info;
 		{
@@ -92,7 +92,7 @@ private:
 		FActiveMovieSceneCaptures::Get().Shutdown();
 	}
 
-	void OnPostLoadMap()
+	void OnPostLoadMap(UWorld*)
 	{
 		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 		if (GameEngine && StartupMovieCaptureHandle.IsValid())
@@ -110,7 +110,7 @@ private:
 		}
 
 		StartupMovieCaptureHandle = FMovieSceneCaptureHandle();
-		FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+		FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 	}
 
 	virtual void PreUnloadCallback() override

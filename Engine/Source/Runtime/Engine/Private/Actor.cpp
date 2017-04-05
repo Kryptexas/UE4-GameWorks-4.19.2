@@ -2376,19 +2376,20 @@ void AActor::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 	GetActorEyesViewPoint(OutResult.Location, OutResult.Rotation);
 }
 
-bool AActor::HasActiveCameraComponent()
+bool AActor::HasActiveCameraComponent() const
 {
 	if (bFindCameraComponentWhenViewTarget)
 	{
 		// Look for the first active camera component and use that for the view
-		TInlineComponentArray<UCameraComponent*> Cameras;
-		GetComponents<UCameraComponent>(Cameras);
-
-		for (UCameraComponent* CameraComponent : Cameras)
+		for (const UActorComponent* Component : OwnedComponents)
 		{
-			if (CameraComponent->bIsActive)
+			const UCameraComponent* CameraComponent = Cast<const UCameraComponent>(Component);
+			if (CameraComponent)
 			{
-				return true;
+				if (CameraComponent->bIsActive)
+				{
+					return true;
+				}
 			}
 		}
 	}
@@ -2400,14 +2401,15 @@ bool AActor::HasActivePawnControlCameraComponent() const
 	if (bFindCameraComponentWhenViewTarget)
 	{
 		// Look for the first active camera component and use that for the view
-		TInlineComponentArray<UCameraComponent*> Cameras;
-		GetComponents<UCameraComponent>(Cameras);
-
-		for (UCameraComponent* CameraComponent : Cameras)
+		for (const UActorComponent* Component : OwnedComponents)
 		{
-			if (CameraComponent->bIsActive && CameraComponent->bUsePawnControlRotation)
+			const UCameraComponent* CameraComponent = Cast<const UCameraComponent>(Component);
+			if (CameraComponent)
 			{
-				return true;
+				if (CameraComponent->bIsActive && CameraComponent->bUsePawnControlRotation)
+				{
+					return true;
+				}
 			}
 		}
 	}

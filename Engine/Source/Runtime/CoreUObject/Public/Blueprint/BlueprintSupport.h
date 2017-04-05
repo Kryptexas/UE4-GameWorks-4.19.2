@@ -8,6 +8,7 @@
 
 class UDynamicClass;
 struct FCompilerNativizationOptions;
+class ITargetPlatform;
 
 struct FBlueprintWarningDeclaration
 {
@@ -65,6 +66,14 @@ struct FBlueprintSupport
 	COREUOBJECT_API static void UpdateWarningBehavior(const TArray<FName>& WarningIdentifiersToTreatAsError, const TArray<FName>& WarningIdentifiersToSuppress);
 	COREUOBJECT_API static bool ShouldTreatWarningAsError(FName WarningIdentifier);
 	COREUOBJECT_API static bool ShouldSuppressWarning(FName WarningIdentifier);
+
+#if WITH_EDITOR
+	/** Function that walks the object graph, ensuring that there are no references to TRASH or REINST classes: */
+	COREUOBJECT_API static void ValidateNoRefsToOutOfDateClasses();
+
+	/** Function that walks the object graph, ensuring that there are no references to SKEL classes: */
+	COREUOBJECT_API static void ValidateNoExternalRefsToSkeletons();
+#endif
 };
 
 #if WITH_EDITOR
@@ -183,7 +192,7 @@ struct IBlueprintNativeCodeGenCore
 	/*
 	 * Return nativization options for given platform.
 	 */
-	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const FString& PlatformName) const = 0;
+	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const ITargetPlatform* Platform) const = 0;
 };
 
 #endif // WITH_EDITOR

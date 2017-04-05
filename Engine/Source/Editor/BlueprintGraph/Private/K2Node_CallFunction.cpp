@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "K2Node_CallFunction.h"
+#include "BlueprintCompilationManager.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/Interface.h"
 #include "UObject/PropertyPortFlags.h"
@@ -1074,6 +1075,15 @@ void UK2Node_CallFunction::PinDefaultValueChanged(UEdGraphPin* Pin)
 
 UFunction* UK2Node_CallFunction::GetTargetFunction() const
 {
+	if(!FBlueprintCompilationManager::IsGeneratedClassLayoutReady())
+	{
+		// first look in the skeleton class:
+		if(UFunction* SkeletonFn = GetTargetFunctionFromSkeletonClass())
+		{
+			return SkeletonFn;
+		}
+	}
+
 	UFunction* Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode());
 	return Function;
 }

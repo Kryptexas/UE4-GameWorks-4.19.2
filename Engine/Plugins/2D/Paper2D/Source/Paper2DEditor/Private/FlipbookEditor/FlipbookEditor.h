@@ -75,7 +75,7 @@ protected:
 		}
 		else
 		{
-			return FMath::Clamp<int32>((int32)(GetPlaybackPosition() * GetFramesPerSecond()), 0, TotalLengthInFrames - 1);
+			return FMath::Clamp<int32>((int32)(GetPlaybackPosition() * GetFramesPerSecond()), 0, TotalLengthInFrames);
 		}
 	}
 
@@ -84,7 +84,7 @@ protected:
 		const int32 TotalLengthInFrames = GetTotalFrameCount();
 		if (TotalLengthInFrames > 0)
 		{
-			int32 ClampedIndex = FMath::Clamp<int32>(NewIndex, 0, TotalLengthInFrames - 1);
+			int32 ClampedIndex = FMath::Clamp<int32>(NewIndex, 0, TotalLengthInFrames);
 			SetPlaybackPosition(ClampedIndex / GetFramesPerSecond());
 		}
 		else
@@ -120,6 +120,7 @@ protected:
 	FReply OnClick_ToggleLoop();
 
 	uint32 GetTotalFrameCount() const;
+	uint32 GetTotalFrameCountPlusOne() const;
 	float GetTotalSequenceLength() const;
 	float GetPlaybackPosition() const;
 	void SetPlaybackPosition(float NewTime);

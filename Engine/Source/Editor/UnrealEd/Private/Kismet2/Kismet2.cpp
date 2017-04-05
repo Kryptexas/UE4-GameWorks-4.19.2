@@ -1299,6 +1299,20 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 	TMap<USceneComponent*, USCS_Node*> SceneComponentsToAdd;
 	TMap<USceneComponent*, USCS_Node*> InstanceComponentToNodeMap;
 
+	auto AddChildToSCSRootNodeLambda = [SCS, OptionalNewRootNode](USCS_Node* InSCSNode)
+	{
+		if (OptionalNewRootNode != nullptr)
+		{
+			OptionalNewRootNode->AddChildNode(InSCSNode);
+		}
+		else
+		{
+			// Continuation of convention from FCreateConstructionScriptFromSelectedActors::Execute, perhaps more elegant
+			// to provide OptionalNewRootNode in both cases.
+			SCS->GetRootNodes()[0]->AddChildNode(InSCSNode);
+		}
+	};
+
 	struct FAddComponentsToBlueprintImpl
 	{
 		/** 
@@ -1383,16 +1397,7 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 				// If we're not attached to a blueprint component, add ourself to the root node or the SCS root component:
 				else if (SceneComponent->GetAttachParent() == nullptr)
 				{
-					if (OptionalNewRootNode != nullptr)
-					{
-						OptionalNewRootNode->AddChildNode(SCSNode);
-					}
-					else
-					{
-						// Continuation of convention from FCreateConstructionScriptFromSelectedActors::Execute, perhaps more elegant
-						// to provide OptionalNewRootNode in both cases.
-						SCS->GetRootNodes()[0]->AddChildNode(SCSNode);
-					}
+					AddChildToSCSRootNodeLambda(SCSNode);
 				}
 				// If we're attached to a blueprint component look it up as the variable name is the component name
 				else if (SceneComponent->GetAttachParent()->IsCreatedByConstructionScript())
@@ -1458,7 +1463,15 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 	// Hook up the remaining components nodes that the parent's node was missing when it was processed
 	for (auto ComponentIt = SceneComponentsToAdd.CreateConstIterator(); ComponentIt; ++ComponentIt)
 	{
-		InstanceComponentToNodeMap.FindChecked(ComponentIt.Key()->GetAttachParent())->AddChildNode(ComponentIt.Value());
+		// The AttachParent may or may not be BP-spawnable; if it's not, then we won't have created the parent node, so just add it as a child of the root node in that case.
+		if (USCS_Node** ParentSCSNode = InstanceComponentToNodeMap.Find(ComponentIt.Key()->GetAttachParent()))
+		{
+			(*ParentSCSNode)->AddChildNode(ComponentIt.Value());
+		}
+		else
+		{
+			AddChildToSCSRootNodeLambda(ComponentIt.Value());
+		}
 	}
 }
 

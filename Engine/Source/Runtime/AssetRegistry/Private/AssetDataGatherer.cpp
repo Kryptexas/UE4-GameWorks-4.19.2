@@ -13,7 +13,7 @@
 
 namespace AssetDataGathererConstants
 {
-	static const int32 CacheSerializationVersion = 8;
+	static const int32 CacheSerializationVersion = 9;
 	static const int32 MaxFilesToDiscoverBeforeFlush = 2500;
 	static const int32 MaxFilesToGatherBeforeFlush = 250;
 	static const int32 MaxFilesToProcessBeforeCacheWrite = 50000;
@@ -464,8 +464,8 @@ uint32 FAssetDataGatherer::Run()
 	if ( bLoadAndSaveCache )
 	{
 		// load the cached data
-		FNameTableArchiveReader CachedAssetDataReader;
-		if (CachedAssetDataReader.LoadFile(*CacheFilename, CacheSerializationVersion))
+		FNameTableArchiveReader CachedAssetDataReader(CacheSerializationVersion, CacheFilename);
+		if (!CachedAssetDataReader.IsError())
 		{
 			SerializeCache(CachedAssetDataReader);
 		}

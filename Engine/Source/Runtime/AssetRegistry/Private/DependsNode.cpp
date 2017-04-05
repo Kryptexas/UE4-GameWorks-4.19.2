@@ -173,3 +173,8 @@ void FDependsNode::PrintReferencersRecursive(const FString& Indent, TSet<const F
 		}
 	}
 }
+
+int32 FDependsNode::GetConnectionCount() const
+{
+	return HardDependencies.Num() + SoftDependencies.Num() + NameDependencies.Num() + ManageDependencies.Num() + Referencers.Num();
+}

@@ -1042,6 +1042,8 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 			bNavigationRelevant = bNewNavRelevant;
 			UNavigationSystem::UpdateComponentInNavOctree(*this);
 		}
+
+		OnComponentCollisionSettingsChangedEvent.Broadcast(this);
 	}
 }
 

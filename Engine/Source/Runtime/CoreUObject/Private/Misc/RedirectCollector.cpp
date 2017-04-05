@@ -135,17 +135,10 @@ void FRedirectCollector::LogTimers() const
 	LOG_REDIRECT_TIMERS();
 }
 
-void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage, bool bProcessAlreadyResolvedPackages)
+void FRedirectCollector::ResolveStringAssetReference(FName FilterPackageFName, bool bProcessAlreadyResolvedPackages)
 {
 	SCOPE_REDIRECT_TIMER(ResolveTimeTotal);
 	
-	
-	FName FilterPackageFName = NAME_None;
-	if (!FilterPackage.IsEmpty())
-	{
-		FilterPackageFName = FName(*FilterPackage);
-	}
-
 	TMultiMap<FName, FPackagePropertyPair> SkippedReferences;
 	SkippedReferences.Empty(StringAssetReferences.Num());
 	while ( StringAssetReferences.Num())
@@ -259,7 +252,36 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage, bool
 	check((StringAssetReferences.Num() == 0) || (FilterPackageFName != NAME_None));
 }
 
+void FRedirectCollector::GetStringAssetReferencePackageList(FName FilterPackage, TSet<FName>& ReferencedPackages)
+{
+	for (const auto& CurrentReference : StringAssetReferences)
+	{
+		const FName& ToLoadFName = CurrentReference.Key;
+		const FPackagePropertyPair& RefFilenameAndProperty = CurrentReference.Value;
 
+		// Package name may be null, if so return the set of things not associated with a package
+		if (FilterPackage == RefFilenameAndProperty.GetCachedPackageName())
+		{
+			FString PackageNameString = FPackageName::ObjectPathToPackageName(ToLoadFName.ToString());
+
+			ReferencedPackages.Add(FName(*PackageNameString));
+		}
+	}
+}
+
+void FRedirectCollector::AddStringAssetReferenceRedirection(const FString& OriginalPath, const FString& RedirectedPath)
+{
+	FString* Found = StringAssetRemap.Find(OriginalPath);
+
+	if (Found)
+	{
+		ensureMsgf(*Found == RedirectedPath, TEXT("Cannot remap %s to %s, it is already mapped to %s!"), *OriginalPath, *RedirectedPath, **Found);
+	}
+	else
+	{
+		StringAssetRemap.Add(OriginalPath, RedirectedPath);
+	}
+}
 
 FRedirectCollector GRedirectCollector;
 

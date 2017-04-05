@@ -337,3 +337,13 @@ void UBrainComponent::StopLogic(const FString& Reason)
 {
 
 }
+
+bool UBrainComponent::IsRunning() const 
+{ 
+	return false; 
+}
+
+bool UBrainComponent::IsPaused() const 
+{ 
+	return false; 
+}
