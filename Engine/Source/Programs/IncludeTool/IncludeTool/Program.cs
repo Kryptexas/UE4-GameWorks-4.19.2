@@ -346,12 +346,9 @@ namespace IncludeTool
 
 				// Find any additional system include paths for the internal preprocessor, which are normally inserted by the compiler
 				List<DirectoryReference> ExtraSystemIncludePaths = new List<DirectoryReference>();
-				if(Options.Platform == TargetPlatform.Linux && FileToCompileEnvironment.Count > 0)
+				if (Options.Platform == TargetPlatform.Linux && FileToCompileEnvironment.Count > 0)
 				{
-					DirectoryReference SysRootDir = FileToCompileEnvironment.First().Value.Options.Where(x => x.Name.StartsWith("--sysroot=")).Select(x => new DirectoryReference(x.Name.Substring(10))).First();
-					ExtraSystemIncludePaths.Add(DirectoryReference.Combine(SysRootDir, "usr", "include"));
-					ExtraSystemIncludePaths.Add(DirectoryReference.Combine(SysRootDir, "lib", "clang", "3.9.0", "include"));
-					ExtraSystemIncludePaths.Add(DirectoryReference.Combine(InputDir, "Engine", "Source", "ThirdParty", "Linux", "LibCxx", "include", "c++", "v1"));
+					Utility.GetSystemIncludeDirectories(FileToCompileEnvironment.First().Value, InputDir, ExtraSystemIncludePaths);
 				}
 
 				// Preprocess all the input files
