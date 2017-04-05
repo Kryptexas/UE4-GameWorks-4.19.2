@@ -95,14 +95,39 @@ uint32 FNetworkVersion::GetLocalNetworkVersion( bool AllowOverrideDelegate /*=tr
 	const uint32 EngineNetworkVersion	= FNetworkVersion::GetEngineNetworkProtocolVersion();
 	const uint32 GameNetworkVersion		= FNetworkVersion::GetGameNetworkProtocolVersion();
 
+	uint32 OldChecksum = CachedNetworkChecksum;
 	CachedNetworkChecksum = FCrc::MemCrc32( &EngineNetworkVersion, sizeof( EngineNetworkVersion ), CachedNetworkChecksum );
-	UE_LOG(LogNetVersion, Log, TEXT("Hash3: %u"), CachedNetworkChecksum);
+	UE_LOG(LogNetVersion, Log, TEXT("EngineNetworkVersion: Hashed value %d at 0x%08X of %d bytes with %u into %u"), EngineNetworkVersion, &EngineNetworkVersion, sizeof(EngineNetworkVersion), OldChecksum, CachedNetworkChecksum);
 
+	uint32 OldChecksum2 = CachedNetworkChecksum;
 	CachedNetworkChecksum = FCrc::MemCrc32( &GameNetworkVersion, sizeof( GameNetworkVersion ), CachedNetworkChecksum );
-	UE_LOG(LogNetVersion, Log, TEXT("Hash4: %u"), CachedNetworkChecksum);
+	UE_LOG(LogNetVersion, Log, TEXT("GameNetworkVersion: Hashed value %d at 0x%08X of %d bytes with %u into %u"), GameNetworkVersion, &GameNetworkVersion, sizeof(GameNetworkVersion), OldChecksum2, CachedNetworkChecksum);
 
 	UE_LOG( LogNetVersion, Log, TEXT( "GetNetworkCompatibleChangelist: %u, ProjectName: '%s', ProjectVersion: '%s', EngineNetworkVersion: %i, GameNetworkVersion: %i, NetworkChecksum: %u" ), 
 		NetworkCompatibleChangelist, *ProjectName, *ProjectVersion, EngineNetworkVersion, GameNetworkVersion, CachedNetworkChecksum );
+
+
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 16; j++)
+		{
+			FString Log;
+
+			for (int k = 0; k < 16; k++)
+			{
+				uint32 Value = FCrc::CRCTablesSB8[i][j * 16 + k];
+
+				if (Log.Len() > 0)
+				{
+					Log += TEXT(", ");
+				}
+
+				Log += FString::Printf(TEXT("0x%08X"), Value);				
+			}
+
+			UE_LOG(LogNetVersion, Log, TEXT("CRC[%d][%d]: %s"),  i, j, *Log);
+		}
+	}
 
 	bHasCachedNetworkChecksum = true;
 
