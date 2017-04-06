@@ -38,7 +38,7 @@
 struct VertexToPixelInterpolants
 {
 	float4 Position : SV_POSITION;
-	float4 Color : COLOR0;
+	half4 Color : COLOR0;
 	float4 OriginalPosition : ORIGINAL_POSITION;
 	float4 ClipOriginAndPos : TEXCOORD0;
 	float4 ClipExtents : TEXCOORD1;
@@ -58,41 +58,41 @@ float2 GetUV(VertexToPixelInterpolants Interpolants, int UVIndex)
 #endif
 }
 
-float4 ApplyColorVisionDeficiencyFilter(float4 Color)
+half4 ApplyColorVisionDeficiencyFilter(half4 Color)
 {
-	float4 OutColor = Color;
+	half4 OutColor = Color;
 #if COLOR_VISION_DEFICIENCY_TYPE == CVD_Deuteranomly
-	OutColor.rgb = float3(
+	OutColor.rgb = half3(
 		OutColor.r * 0.80000 + OutColor.g * 0.20000 + OutColor.b * 0.0,
 		OutColor.r * 0.25833 + OutColor.g * 0.74167 + OutColor.b * 0.0,
 		OutColor.r * 0.0     + OutColor.g * 0.14167 + OutColor.b * 0.85833);
 #elif COLOR_VISION_DEFICIENCY_TYPE == CVD_Deuteranopia
-	OutColor.rgb = float3(
+	OutColor.rgb = half3(
 		OutColor.r * 0.625 + OutColor.g * 0.375 + OutColor.b * 0.0,
 		OutColor.r * 0.700 + OutColor.g * 0.300 + OutColor.b * 0.0,
 		OutColor.r * 0.0   + OutColor.g * 0.300 + OutColor.b * 0.700);
 #elif COLOR_VISION_DEFICIENCY_TYPE == CVD_Protanomly
-	OutColor.rgb = float3(
+	OutColor.rgb = half3(
 		OutColor.r * 0.81667 + OutColor.g * 0.18333 + OutColor.b * 0.0,
 		OutColor.r * 0.33333 + OutColor.g * 0.66667 + OutColor.b * 0.0,
 		OutColor.r * 0.0     + OutColor.g * 0.12500 + OutColor.b * 0.87500);
 #elif COLOR_VISION_DEFICIENCY_TYPE == CVD_Protanopia
-	OutColor.rgb = float3(
+	OutColor.rgb = half3(
 		OutColor.r * 0.56667 + OutColor.g * 0.43333 + OutColor.b * 0.0,
 		OutColor.r * 0.55833 + OutColor.g * 0.44167 + OutColor.b * 0.0,
 		OutColor.r * 0.0     + OutColor.g * 0.24167 + OutColor.b * 0.75833);
 #elif COLOR_VISION_DEFICIENCY_TYPE == CVD_Tritanomaly
-	OutColor.rgb = float3(
+	OutColor.rgb = half3(
 		OutColor.r * 0.96667 + OutColor.g * 0.03333 + OutColor.b * 0.0,
 		OutColor.r * 0.0     + OutColor.g * 0.73333 + OutColor.b * 0.26667,
 		OutColor.r * 0.0     + OutColor.g * 0.18333 + OutColor.b * 0.81667);
 #elif COLOR_VISION_DEFICIENCY_TYPE == CVD_Tritanopia
-	OutColor.rgb = float3(
+	OutColor.rgb = half3(
 		OutColor.r * 0.950 + OutColor.g * 0.050 + OutColor.b * 0.0,
 		OutColor.r * 0.0   + OutColor.g * 0.433 + OutColor.b * 0.567,
 		OutColor.r * 0.0   + OutColor.g * 0.475 + OutColor.b * 0.525);
 #elif COLOR_VISION_DEFICIENCY_TYPE == CVD_Achromatopsia
-	OutColor.rgb = float3(
+	OutColor.rgb = half3(
 		OutColor.r * 0.299 + OutColor.g * 0.587 + OutColor.b * 0.114,
 		OutColor.r * 0.299 + OutColor.g * 0.587 + OutColor.b * 0.114,
 		OutColor.r * 0.299 + OutColor.g * 0.587 + OutColor.b * 0.114);

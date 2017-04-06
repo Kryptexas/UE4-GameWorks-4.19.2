@@ -2985,7 +2985,9 @@ protected:
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override
 	{
-		const uint32 MaxNumCoordinates = (FeatureLevel == ERHIFeatureLevel::ES2) ? 3 : 8;
+		// For WebGL 1 which is essentially GLES2.0, we can safely assume a higher number of supported vertex attributes
+		// even when we are compiling ES 2 feature level shaders.
+		const uint32 MaxNumCoordinates = ((Platform == SP_OPENGL_ES2_WEBGL) || (FeatureLevel != ERHIFeatureLevel::ES2)) ? 8 : 3;
 
 		if (CoordinateIndex >= MaxNumCoordinates)
 		{
@@ -3118,7 +3120,8 @@ protected:
 		{
 			// Mobile: Sampling of a particular level depends on an extension; iOS does have it by default but
 			// there's a driver as of 7.0.2 that will cause a GPU hang if used with an Aniso > 1 sampler, so show an error for now
-			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
+			if ((Platform != SP_OPENGL_ES2_WEBGL) && // WebGL 2/GLES3.0 (or browsers with the texture lod extension) it is possible to sample from specific mip levels
+				ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 			{
 				Errorf(TEXT("Sampling for a specific mip-level is not supported for ES2"));
 				return INDEX_NONE;
@@ -4623,7 +4626,8 @@ protected:
 
 	virtual int32 DDX( int32 X ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
+		if ((Platform != SP_OPENGL_ES2_WEBGL) && // WebGL 2/GLES3.0 - DDX() function is available
+			ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -4649,7 +4653,8 @@ protected:
 
 	virtual int32 DDY( int32 X ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
+		if ((Platform != SP_OPENGL_ES2_WEBGL) && // WebGL 2/GLES3.0 - DDY() function is available
+			ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}

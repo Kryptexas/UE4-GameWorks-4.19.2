@@ -11,6 +11,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogAndroidApplication, Log, All);
 
 bool FAndroidApplication::bWindowSizeChanged = false;
 
+FAndroidApplication* FAndroidApplication::_application = nullptr;
+
 FAndroidApplication* FAndroidApplication::CreateAndroidApplication()
 {
 	return new FAndroidApplication();
@@ -21,6 +23,7 @@ FAndroidApplication::FAndroidApplication()
 	, InputInterface( FAndroidInputInterface::Create( MessageHandler ) )
 	, bHasLoadedInputPlugins(false)
 {
+	_application = this;
 }
 
 void FAndroidApplication::SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )

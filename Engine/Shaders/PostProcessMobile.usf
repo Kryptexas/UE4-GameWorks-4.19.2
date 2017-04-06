@@ -653,7 +653,7 @@ void DofDownPS_ES2(
 	OutColor = ((A * A.a) + (B * B.a) + (C * C.a) + (D * D.a)) * rcp(A.a + B.a + C.a + D.a);
 
 	// Clamp rgb to prevent overflow during scale.
-	OutColor.rgb = min(OutColor.rgb, 4.0);
+	OutColor.rgb = min(OutColor.rgb, 65504.0/16384.125);
 
 	OutColor.rgb *= OutColor.a;
 }

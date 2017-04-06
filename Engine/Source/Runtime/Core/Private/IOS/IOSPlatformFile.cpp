@@ -739,7 +739,7 @@ FString FIOSPlatformFile::ConvertToIOSPath(const FString& Filename, bool bForWri
 
 	if(bForWrite)
 	{
-		static FString WritePathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+		static FString WritePathBase = FString([NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
 		return WritePathBase + Result;
 	}
 	else
@@ -751,12 +751,12 @@ FString FIOSPlatformFile::ConvertToIOSPath(const FString& Filename, bool bForWri
 		static bool bIsIterative = FParse::Value(FCommandLine::Get(), TEXT("iterative"), Value);
 		if (bHasHostIP)
 		{
-			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
 			return ReadPathBase + Result;
 		}
 		else if (bIsIterative)
 		{
-			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
+			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
 			return ReadPathBase + Result.ToLower();
 		}
 		else

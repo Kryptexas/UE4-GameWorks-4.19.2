@@ -1,15 +1,10 @@
 ﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
-using Ionic.Zip;
 using System.IO;
-using System.Web;
-using System.Net;
-using System.Linq;
+using System.Net.Http;
 using System.Text;
 using AutomationTool;
 using UnrealBuildTool;
-using System.Threading;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -18,6 +13,10 @@ using System.Text.RegularExpressions;
 
 public class HTML5Platform : Platform
 {
+	// ini configurations
+	static bool Compressed = false;
+	static bool targetingWasm = true; // THIS WILL BE default WHEN wasm BECOME STANDARD !!!
+
 	public HTML5Platform()
 		: base(UnrealTargetPlatform.HTML5)
 	{
@@ -36,9 +35,19 @@ public class HTML5Platform : Platform
 		{
 			Directory.CreateDirectory(PackagePath);
 		}
-		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
+		// ini configurations
 		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.HTML5);
+		ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWasm", out targetingWasm);
+
+		// Debug and Development builds are not uncompressed to speed up iteration times.
+		// Shipping builds "can be" compressed,
+		if (Params.ClientConfigsToBuild[0].ToString() == "Shipping")
+		{
+			ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "Compressed", out Compressed);
+		}
+
+		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
 		if (HTMLPakAutomation.CanCreateMapPaks(Params))
 		{
@@ -80,53 +89,83 @@ public class HTML5Platform : Platform
 			{
 				using (new PushedDirectory(Path.Combine(Params.BaseStageDirectory, "HTML5")))
 				{
-					string CmdLine = string.Format("\"{0}\" \"{1}\" --preload . --js-output=\"{1}.js\"", PackagerPath, FinalDataLocation);
+					string CmdLine = string.Format("\"{0}\" \"{1}\" --preload . --js-output=\"{1}.js\" --no-heap-copy", PackagerPath, FinalDataLocation);
 					RunAndLog(CmdEnv, PythonPath, CmdLine);
 				}
 			}
 		}
 
 		// copy the "Executable" to the package directory
-		string GameExe = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
+		string GameBasename = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
 		if (Params.ClientConfigsToBuild[0].ToString() != "Development")
 		{
-			GameExe += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
+			GameBasename += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
 		}
-		GameExe += ".js";
+		// no extension
+		string GameBasepath = Path.GetDirectoryName(Params.ProjectGameExeFilename);
+		string FullGameBasePath = Path.Combine(GameBasepath, GameBasename);
+		string FullPackageGameBasePath = Path.Combine(PackagePath, GameBasename);
+
+		// with extension
+		string GameExe = GameBasename + ".js";
+		string FullGameExePath = Path.Combine(GameBasepath, GameExe);
+		string FullPackageGameExePath = Path.Combine(PackagePath, GameExe);
+
 
 		// ensure the ue4game binary exists, if applicable
-		string FullGameExePath = Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe);
 		if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullGameExePath))
 		{
 			Log("Failed to find game application " + FullGameExePath);
 			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find application {0}. You may need to build the UE4 project with your target configuration and platform.", FullGameExePath);
 		}
 
-		if (Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) != Path.Combine(PackagePath, GameExe))
+		if (FullGameExePath != FullPackageGameExePath)
 		{
-			File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe), Path.Combine(PackagePath, GameExe), true);
-			File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".mem", true);
-			File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) + ".symbols", Path.Combine(PackagePath, GameExe) + ".symbols", true);
+			File.Copy(FullGameExePath, FullPackageGameExePath, true);
+			File.Copy(FullGameExePath + ".symbols", FullPackageGameExePath + ".symbols", true);
+			if (targetingWasm)
+			{
+				File.Copy(FullGameBasePath + ".wasm", FullPackageGameBasePath + ".wasm", true);
+			}
+			else
+			{
+				File.Copy(FullGameExePath + ".mem", FullPackageGameExePath + ".mem", true);
+			}
 		}
 
-		File.SetAttributes(Path.Combine(PackagePath, GameExe), FileAttributes.Normal);
-		File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".mem", FileAttributes.Normal);
-		File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".symbols", FileAttributes.Normal);
+		File.SetAttributes(FullPackageGameExePath, FileAttributes.Normal);
+		File.SetAttributes(FullPackageGameExePath + ".symbols", FileAttributes.Normal);
+		if (targetingWasm)
+		{
+			File.SetAttributes(FullPackageGameBasePath + ".wasm", FileAttributes.Normal);
+		}
+		else
+		{
+			File.SetAttributes(FullPackageGameExePath + ".mem", FileAttributes.Normal);
+		}
 
 
 		// put the HTML file to the package directory
-		string TemplateFileName = "GameX.html.template";
-		string TemplateFile = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", TemplateFileName);
-		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
+		string TemplateFile = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/HTML5/GameX.html.template");
+		string OutputFile = Path.Combine(PackagePath,
+				(Params.ClientConfigsToBuild[0].ToString() != "Development" ?
+				 (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) :
+				 Params.ShortProjectName)) + ".html";
 
-		GenerateFileFromTemplate(TemplateFile, OutputFile, Params.ShortProjectName, Params.ClientConfigsToBuild[0].ToString(), Params.StageCommandline, !Params.IsCodeBasedProject, HTML5SDKInfo.HeapSize(ConfigCache, Params.ClientConfigsToBuild[0].ToString()));
+		GenerateFileFromTemplate(TemplateFile,
+				OutputFile,
+				Params.ShortProjectName,
+				Params.ClientConfigsToBuild[0].ToString(),
+				Params.StageCommandline,
+				!Params.IsCodeBasedProject,
+				HTML5SDKInfo.HeapSize(ConfigCache, Params.ClientConfigsToBuild[0].ToString()));
 
-		string MacBashTemplateFile = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", "RunMacHTML5LaunchHelper.command.template");
+		string MacBashTemplateFile = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/HTML5/RunMacHTML5LaunchHelper.command.template");
 		string MacBashOutputFile = Path.Combine(PackagePath, "RunMacHTML5LaunchHelper.command");
-		string MonoPath = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "BatchFiles", "Mac", "SetupMono.sh");
+		string MonoPath = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/SetupMono.sh");
 		GenerateMacCommandFromTemplate(MacBashTemplateFile, MacBashOutputFile, MonoPath);
 
-		string htaccessTemplate = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", "htaccess.template");
+		string htaccessTemplate = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/HTML5/htaccess.template");
 		string htaccesspath = Path.Combine(PackagePath, ".htaccess");
 		if ( File.Exists(htaccesspath) )
 		{
@@ -139,7 +178,7 @@ public class HTML5Platform : Platform
 		}
 		File.Copy(htaccessTemplate, htaccesspath, true);
 
-		string JSDir = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5");
+		string JSDir = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/HTML5");
 		string OutDir = PackagePath;
 
 		// Gather utlity .js files and combine into one file
@@ -153,23 +192,57 @@ public class HTML5Platform : Platform
 			File.AppendAllText(DestinationFile, Data);
 		}
 
-		// Compress all files. These are independent tasks which can be threaded.
-		Task[] CompressionTasks = new Task[6];
-		//data file.
-		CompressionTasks[0] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation, FinalDataLocation + "gz"));
-		// data file .js driver.
-		CompressionTasks[1] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation + ".js" , FinalDataLocation + ".jsgz"));
-		// main js.
-		CompressionTasks[2] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe), Path.Combine(PackagePath, GameExe) + "gz"));
-		// mem init file.
-		CompressionTasks[3] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".memgz"));
-		// symbols file.
-		CompressionTasks[4] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".symbols", Path.Combine(PackagePath, GameExe) + ".symbolsgz"));
-		// Utility
-		CompressionTasks[5] = Task.Factory.StartNew(() => CompressFile(OutDir + "/Utility.js", OutDir + "/Utility.jsgz"));
+		if (Compressed)
+		{
+			Log("Build configuration is " + Params.ClientConfigsToBuild[0].ToString() + ", so (gzip) compressing files for web servers.");
+
+			// Compress all files. These are independent tasks which can be threaded.
+			List<Task> CompressionTasks = new List<Task>();
+
+			// Note that the main .data file is never gzip compressed, because we rely on UnrealPak having compressed it already (above), and gzipping the pak file on
+			// top is showing negligible benefit. Check the console output from UnrealPak run to verify that it is indeed compressed.
+//			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FinalDataLocation, FinalDataLocation + "gz")));
+
+			// data file .js driver.
+			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FinalDataLocation + ".js" , FinalDataLocation + ".jsgz")));
+
+			// main js.
+			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameExePath, FullPackageGameExePath + "gz")));
+			if (targetingWasm)
+			{
+				// main game code
+				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameBasePath + ".wasm", FullPackageGameBasePath + ".wasmgz")));
+			}
+			else
+			{
+				// mem init file.
+				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameExePath + ".mem", FullPackageGameExePath + ".memgz")));
+			}
+
+			// symbols file.
+			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameExePath + ".symbols", FullPackageGameExePath + ".symbolsgz")));
+
+			// Utility
+			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(OutDir + "/Utility.js", OutDir + "/Utility.jsgz")));
+
+			Task.WaitAll(CompressionTasks.ToArray());
+		}
+		else
+		{
+			Log("Build configuration is " + Params.ClientConfigsToBuild[0].ToString() + ", so not compressing. Build Shipping configuration to compress files to save space.");
+
+			// nuke old compressed files to prevent using stale files
+			File.Delete(FinalDataLocation + "gz");
+			File.Delete(FinalDataLocation + ".jsgz");
+			File.Delete(FullPackageGameExePath + "gz");
+			File.Delete(FullPackageGameBasePath + ".wasmgz");
+			File.Delete(FullPackageGameExePath + ".memgz");
+			File.Delete(FullPackageGameExePath + ".symbolsgz");
+			File.Delete(OutDir + "/Utility.jsgz");
+		}
 
 		File.Copy(CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/HTML5LaunchHelper.exe"),CombinePaths(OutDir, "HTML5LaunchHelper.exe"),true);
-		Task.WaitAll(CompressionTasks);
+//		Task.WaitAll(CompressionTasks);
 		PrintRunTime();
 	}
 
@@ -189,20 +262,20 @@ public class HTML5Platform : Platform
 		using (System.IO.Stream input = System.IO.File.OpenRead(Source))
 		{
 			using (var raw = System.IO.File.Create(Destination))
+			{
+				using (Stream compressor = new Ionic.Zlib.GZipStream(raw, Ionic.Zlib.CompressionMode.Compress,Ionic.Zlib.CompressionLevel.BestCompression))
 				{
-					using (Stream compressor = new Ionic.Zlib.GZipStream(raw, Ionic.Zlib.CompressionMode.Compress,Ionic.Zlib.CompressionLevel.BestCompression))
+					byte[] buffer = new byte[2048];
+					int SizeRead = 0;
+					while ((SizeRead = input.Read(buffer, 0, buffer.Length)) != 0)
 					{
-						byte[] buffer = new byte[2048];
-						int SizeRead = 0;
-						while ((SizeRead = input.Read(buffer, 0, buffer.Length)) != 0)
-						{
-							compressor.Write(buffer, 0, SizeRead);
-						}
+						compressor.Write(buffer, 0, SizeRead);
 					}
 				}
+			}
 		}
 
-		if (DeleteSource && File.Exists(Source))
+		if (DeleteSource)
 		{
 			File.Delete(Source);
 		}
@@ -228,6 +301,11 @@ public class HTML5Platform : Platform
 					LineStr = LineStr.Replace("%GAME%", InGameName);
 				}
 
+				if (LineStr.Contains("%SERVE_COMPRESSED%"))
+				{
+					LineStr = LineStr.Replace("%SERVE_COMPRESSED%", Compressed ? "true" : "false");
+				}
+
 				if (LineStr.Contains("%HEAPSIZE%"))
 				{
 					LineStr = LineStr.Replace("%HEAPSIZE%", HeapSize.ToString() + " * 1024 * 1024");
@@ -248,19 +326,13 @@ public class HTML5Platform : Platform
 					string ArgumentString = IsContentOnly ? "'../../../" + InGameName + "/" + InGameName + ".uproject '," : "";
 					for (int i = 0; i < Arguments.Length - 1; ++i)
 					{
-						ArgumentString += "'";
-						ArgumentString += Arguments[i];
-						ArgumentString += "'";
-						ArgumentString += ",' ',";
+						ArgumentString += "'" + Arguments[i] + "'" + ",' ',";
 					}
 					if (Arguments.Length > 0)
 					{
-						ArgumentString += "'";
-						ArgumentString += Arguments[Arguments.Length - 1];
-						ArgumentString += "'";
+						ArgumentString += "'" + Arguments[Arguments.Length - 1] + "'";
 					}
 					LineStr = LineStr.Replace("%UE4CMDLINE%", ArgumentString);
-
 				}
 
 				outputContents.AppendLine(LineStr);
@@ -343,59 +415,89 @@ public class HTML5Platform : Platform
 		}
 
 		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5");
-		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
+		string ProjectDataName = Params.ShortProjectName + ".data";
 
 		// copy the "Executable" to the archive directory
-		string GameExe = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
+		string GameBasename = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
 		if (Params.ClientConfigsToBuild[0].ToString() != "Development")
 		{
-			GameExe += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
+			GameBasename += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
 		}
-		GameExe += ".js";
+		string GameExe = GameBasename + ".js";
 
 		// put the HTML file to the package directory
-		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
+		string OutputFilename = (Params.ClientConfigsToBuild[0].ToString() != "Development" ?
+				 (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) :
+				 Params.ShortProjectName) + ".html";
 
 		// data file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + "gz"));
+		SC.ArchiveFiles(PackagePath, ProjectDataName);
 		// data file js driver
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".js"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".jsgz"));
+		SC.ArchiveFiles(PackagePath, ProjectDataName + ".js");
 		// main js file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + "gz"));
-		// memory init file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".memgz"));
+		SC.ArchiveFiles(PackagePath, GameExe);
+		if (targetingWasm)
+		{
+			// main game code
+			SC.ArchiveFiles(PackagePath, GameBasename + ".wasm");
+		}
+		else
+		{
+			// memory init file
+			SC.ArchiveFiles(PackagePath, GameExe + ".mem");
+		}
 		// symbols file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbols"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbolsgz"));
+		SC.ArchiveFiles(PackagePath, GameExe + ".symbols");
 		// utilities
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.js"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.jsgz"));
+		SC.ArchiveFiles(PackagePath, "Utility.js");
 		// landing page.
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(OutputFile));
+		SC.ArchiveFiles(PackagePath, OutputFilename);
 
 		// Archive HTML5 Server and a Readme.
-		var LaunchHelperPath = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/");
-		SC.ArchiveFiles(LaunchHelperPath, "HTML5LaunchHelper.exe");
-		SC.ArchiveFiles(Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5"), "Readme.txt");
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(Path.Combine(PackagePath, "RunMacHTML5LaunchHelper.command")));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(Path.Combine(PackagePath, ".htaccess")));
+		SC.ArchiveFiles(CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/"), "HTML5LaunchHelper.exe");
+		SC.ArchiveFiles(CombinePaths(CmdEnv.LocalRoot, "Engine/Build/HTML5/"), "Readme.txt");
+		SC.ArchiveFiles(PackagePath, "RunMacHTML5LaunchHelper.command");
+		SC.ArchiveFiles(PackagePath, ".htaccess");
+
+		if (Compressed)
+		{
+			SC.ArchiveFiles(PackagePath, ProjectDataName + "gz");
+			SC.ArchiveFiles(PackagePath, ProjectDataName + ".jsgz");
+			SC.ArchiveFiles(PackagePath, GameExe + "gz");
+			if (targetingWasm)
+			{
+				SC.ArchiveFiles(PackagePath, GameBasename + ".wasmgz");
+			}
+			else
+			{
+				SC.ArchiveFiles(PackagePath, GameExe + ".memgz");
+			}
+			SC.ArchiveFiles(PackagePath, GameExe + ".symbolsgz");
+			SC.ArchiveFiles(PackagePath, "Utility.jsgz");
+		}
+		else
+		{
+			// nuke old compressed files to prevent using stale files
+			File.Delete(ProjectDataName + "gz");
+			File.Delete(ProjectDataName + ".jsgz");
+			File.Delete(GameExe + "gz");
+			File.Delete(GameBasename + ".wasmgz");
+			File.Delete(GameExe + ".memgz");
+			File.Delete(GameExe + ".symbolsgz");
+			File.Delete("Utility.jsgz");
+		}
 
 		if (HTMLPakAutomation.CanCreateMapPaks(Params))
 		{
-		// find all paks.
-			string[] Files = Directory.GetFiles(Path.Combine(PackagePath, Params.ShortProjectName), "*",SearchOption.AllDirectories);
+			// find all paks.
+			string[] Files = Directory.GetFiles(Path.Combine(PackagePath, Params.ShortProjectName), "*", SearchOption.AllDirectories);
 			foreach(string PakFile in Files)
 			{
-				var DestPak = PakFile.Replace(PackagePath,"");
-				SC.ArchivedFiles.Add(PakFile, DestPak);
+				SC.ArchivedFiles.Add(PakFile, Path.GetFileName(PakFile));
 			}
 		}
 
-		UploadToS3(SC);
+		UploadToS3(SC, OutputFilename);
 	}
 
 	public override IProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
@@ -472,7 +574,7 @@ public class HTML5Platform : Platform
 
 	public override string GetPlatformPakCommandLine()
 	{
-		return " -compress";
+		return Compressed ? " -compress" : "";
 	}
 
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
@@ -491,8 +593,8 @@ public class HTML5Platform : Platform
 	{
 		return new List<string> { ".pdb" };
 	}
-	#region Hooks
 
+#region Hooks
 	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
 	{
 	}
@@ -503,32 +605,29 @@ public class HTML5Platform : Platform
 		ExecutableNames.Add(Path.Combine(SC.ProjectRoot, "Binaries", "HTML5", SC.ShortProjectName));
 		return ExecutableNames;
 	}
-	#endregion
+#endregion
 
 #region AMAZON S3
-	public void UploadToS3(DeploymentContext SC)
+	public void UploadToS3(DeploymentContext SC, string OutputFilename)
 	{
 		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(SC.RawProjectPath), SC.StageTargetPlatform.PlatformType);
 		bool Upload = false;
 
+		string Region = "";
 		string KeyId = "";
 		string AccessKey = "";
 		string BucketName = "";
 		string FolderName = "";
 
-		if (Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "UploadToS3", out Upload))
-		{
-			if (!Upload)
-				return;
-		}
-		else
+		if (! Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "UploadToS3", out Upload) || ! Upload )
 		{
 			return;
 		}
-		bool AmazonIdentity = Ini.GetString("/Script/HTML5PlatformEditor.HTML5TargetSettings", "S3KeyID", out KeyId) &&
+
+		bool AmazonIdentity = Ini.GetString("/Script/HTML5PlatformEditor.HTML5TargetSettings", "S3Region", out Region) &&
+								Ini.GetString("/Script/HTML5PlatformEditor.HTML5TargetSettings", "S3KeyID", out KeyId) &&
 								Ini.GetString("/Script/HTML5PlatformEditor.HTML5TargetSettings", "S3SecretAccessKey", out AccessKey) &&
-								Ini.GetString("/Script/HTML5PlatformEditor.HTML5TargetSettings", "S3BucketName", out BucketName) &&
-								Ini.GetString("/Script/HTML5PlatformEditor.HTML5TargetSettings", "S3FolderName", out FolderName);
+								Ini.GetString("/Script/HTML5PlatformEditor.HTML5TargetSettings", "S3BucketName", out BucketName);
 
 		if ( !AmazonIdentity )
 		{
@@ -536,21 +635,37 @@ public class HTML5Platform : Platform
 			return;
 		}
 
+		Ini.GetString("/Script/HTML5PlatformEditor.HTML5TargetSettings", "S3FolderName", out FolderName);
 		if ( FolderName == "" )
 		{
 			FolderName = SC.ShortProjectName;
 		}
-
-		List<Task> UploadTasks = new List<Task>();
-		foreach(KeyValuePair<string, string> Entry in SC.ArchivedFiles)
+		else
 		{
-			FileInfo Info = new FileInfo(Entry.Key);
-			UploadTasks.Add (Task.Factory.StartNew(() => UploadToS3Worker(Info,KeyId,AccessKey,BucketName,FolderName)));
+			// strip any before and after folder "/"
+			FolderName = Regex.Replace(Regex.Replace(FolderName, "^/+", "" ), "/+$", "");
 		}
 
-		Task.WaitAll(UploadTasks.ToArray());
+		List<Task> UploadTasks = new List<Task>();
+		long msTimeOut = 0;
+		foreach (KeyValuePair<string, string> Entry in SC.ArchivedFiles)
+		{
+			FileInfo Info = new FileInfo(Entry.Key);
+			UploadTasks.Add(UploadToS3Worker(Info, Region, KeyId, AccessKey, BucketName, FolderName));
+			if ( msTimeOut < Info.Length )
+			{
+				msTimeOut = Info.Length;
+			}
+		}
+		msTimeOut /= 100; // [miliseconds] give 10 secs for each ~MB ( (10s * 1000ms) / ( 1024KB * 1024MB * 1000ms ) )
+		if ( msTimeOut < (100*1000) ) // HttpClient: default timeout is 100 sec
+		{
+			msTimeOut = 100*1000;
+		}
+		Log("Upload Timeout set to: " + (msTimeOut/1000) + "secs");
+		Task.WaitAll(UploadTasks.ToArray(), (int)msTimeOut); // set timeout [miliseconds]
 
-		string URL = "http://" + BucketName + ".s3.amazonaws.com/" + FolderName + "/" + SC.ShortProjectName + ".html";
+		string URL = "https://" + BucketName + ".s3.amazonaws.com/" + FolderName + "/" + OutputFilename;
 		Log("Your project's shareable link is: " + URL);
 
 		Log("Upload Tasks finished.");
@@ -558,82 +673,131 @@ public class HTML5Platform : Platform
 
 	private static IDictionary<string, string> MimeTypeMapping = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
 		{
+			// the following will default to: "appication/octet-stream"
+			// .data .datagz
+
+			{ ".wasm", "application/wasm" },
+			{ ".wasmgz", "application/wasm" },
+            { ".htaccess", "text/plain"},
 			{ ".html", "text/html"},
-			{ ".jsgz", "application/x-javascript" },  // upload compressed javascript.
-			{ ".datagz", "appication/octet-stream"}
+			{ ".js", "application/x-javascript" },
+			{ ".jsgz", "application/x-javascript" },
+            { ".symbols", "text/plain"},
+            { ".symbolsgz", "text/plain"},
+			{ ".txt", "text/plain"}
 		};
 
-	public void UploadToS3Worker(FileInfo Info, string KeyId, string AccessKey, string BucketName, string FolderName )
+	static async Task UploadToS3Worker(FileInfo Info, string Region, string KeyId, string AccessKey, string BucketName, string FolderName)
 	{
+		// --------------------------------------------------
+		// "AWS Signature Version 4"
+		// http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
+		// --------------------------------------------------
 		Log(" Uploading " + Info.Name);
 
-			// force upload files even if the timestamps haven't changed.
-			string TimeStamp = string.Format("{0:r}", DateTime.UtcNow);
-			string ContentType = "";
-			if (MimeTypeMapping.ContainsKey(Info.Extension))
-			{
-				ContentType = MimeTypeMapping[Info.Extension];
-			}
-			else
-			{
-				// default
-				ContentType = "application/octet-stream";
-			}
+		// --------------------------------------------------
+		// http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-post-example.html
+		string TimeStamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
+		string DateExpire = DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd");
+		string AWSDate = DateTime.UtcNow.AddDays(1).ToString("yyyyMMdd");
+		string MimeType = (MimeTypeMapping.ContainsKey(Info.Extension))
+							? MimeTypeMapping[Info.Extension]
+							: "application/octet-stream";
+		string MimePath = MimeType.Split('/')[0];
+		string AWSCredential = KeyId + "/" + AWSDate + "/" + Region + "/s3/aws4_request";
 
+        // --------------------------------------------------
+        string policy = "{ \"expiration\": \"" + DateExpire + "T12:00:00.000Z\"," +
+                        " \"conditions\": [" +
+                        " { \"bucket\": \"" + BucketName + "\" }," +
+                        " [ \"starts-with\", \"$key\", \"" + FolderName + "/\" ]," +
+                        " { \"acl\": \"public-read\" }," +
+                        " [ \"starts-with\", \"$content-type\", \"" + MimePath + "/\" ],";
+        if (Info.Extension.EndsWith("gz"))
+        {
+            policy += " [ \"starts-with\", \"$content-encoding\", \"gzip\" ],";
+        }
+        policy +=       " { \"x-amz-credential\": \"" + AWSCredential + "\" }," +
+						" { \"x-amz-algorithm\": \"AWS4-HMAC-SHA256\" }," +
+						" { \"x-amz-date\": \"" + TimeStamp + "\" }" +
+						" ]" +
+						"}";
+		string policyBase64 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(policy), Base64FormattingOptions.InsertLineBreaks);
 
-			// URL to put things.
-			string URL = "http://" + BucketName + ".s3.amazonaws.com/" + FolderName + "/" + Info.Name;
+		// --------------------------------------------------
+		// http://docs.aws.amazon.com/general/latest/gr/signature-v4-examples.html
+		var kha = KeyedHashAlgorithm.Create("HmacSHA256");
+		kha.Key = Encoding.UTF8.GetBytes(("AWS4" + AccessKey).ToCharArray()); // kSecret
+		byte[] sig = kha.ComputeHash(Encoding.UTF8.GetBytes(AWSDate));
+		kha.Key = sig; // kDate
 
-			HttpWebRequest Request = (HttpWebRequest)WebRequest.Create(URL);
+		sig = kha.ComputeHash(Encoding.UTF8.GetBytes(Region));
+		kha.Key = sig; // kRegion
 
-			// Upload.
-			Request.Method = "PUT";
-			Request.Headers["x-amz-date"] = TimeStamp;
-			Request.Headers["x-amz-acl"] = "public-read"; // we probably want to make public read by default.
+		sig = kha.ComputeHash(Encoding.UTF8.GetBytes("s3"));
+		kha.Key = sig; // kService
 
-			// set correct content encoding for compressed javascript.
-			if ( Info.Extension.EndsWith("gz") )
-			{
-				Request.Headers["Content-Encoding"] = "gzip";
-			}
+		sig = kha.ComputeHash(Encoding.UTF8.GetBytes("aws4_request"));
+		kha.Key = sig; // kSigning
 
-			Request.ContentType = ContentType;
-			Request.ContentLength = Info.Length;
+		sig = kha.ComputeHash(Encoding.UTF8.GetBytes(policyBase64));
+		string signature = BitConverter.ToString(sig).Replace("-", "").ToLower(); // for Authorization
 
-			//http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
-			// Find Base64Encoded data.
-			UTF8Encoding EncodingMethod = new UTF8Encoding();
-			HMACSHA1 Signature = new HMACSHA1 { Key = EncodingMethod.GetBytes(AccessKey) };
-			// don't change this string.
-			string RequestString = "PUT\n\n" + ContentType + "\n\nx-amz-acl:public-read\nx-amz-date:" + TimeStamp + "\n/"+ BucketName + "/" + FolderName + "/" + Info.Name;
-			Byte[] ComputedHash = Signature.ComputeHash(EncodingMethod.GetBytes(RequestString));
-			var Base64Encoded = Convert.ToBase64String(ComputedHash);
+		// debugging...
+		//Console.WriteLine("policy: [" + policy + "]");
+		//Console.WriteLine("policyBase64: [" + policyBase64 + "]");
+		//Console.WriteLine("signature: [" + signature + "]");
 
-			// final amz auth header.
-			Request.Headers["Authorization"] = "AWS " + KeyId + ":" + Base64Encoded;
+		// --------------------------------------------------
+		HttpClient httpClient = new HttpClient();
+		var formData = new MultipartFormDataContent();
+		formData.Add(new StringContent(FolderName + "/" + Info.Name), "key");
+		formData.Add(new StringContent("public-read"), "acl");
+		formData.Add(new StringContent(AWSCredential), "X-Amz-Credential");
+		formData.Add(new StringContent("AWS4-HMAC-SHA256"), "X-Amz-Algorithm");
+		formData.Add(new StringContent(signature), "X-Amz-Signature");
+		formData.Add(new StringContent(TimeStamp), "X-Amz-Date");
+		formData.Add(new StringContent(policyBase64), "Policy");
+		formData.Add(new StringContent(MimeType), "Content-Type");
+        if ( Info.Extension.EndsWith("gz") )
+        {
+            formData.Add(new StringContent("gzip"), "Content-Encoding");
+        }
+        // debugging...
+        //Console.WriteLine("key: [" + FolderName + "/" + Info.Name + "]");
+        //Console.WriteLine("AWSCredential: [" + AWSCredential + "]");
+        //Console.WriteLine("TimeStamp: [" + TimeStamp + "]");
+        //Console.WriteLine("MimeType: [" + MimeType + "]");
 
-			try
-			{
-				// may fail for really big stuff. YMMV. May need Multi part approach, we will see.
-				Byte[] FileData = File.ReadAllBytes(Info.FullName);
-				var requestStream = Request.GetRequestStream();
-				requestStream.Write(FileData, 0, FileData.Length);
-				requestStream.Close();
+        // the file ----------------------------------------
+        var fileContent = new ByteArrayContent(System.IO.File.ReadAllBytes(Info.FullName));
+		fileContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(MimeType);
+		formData.Add(fileContent, "file", Info.Name);
+		int adjustTimeout = (int)(Info.Length / (100*1000)); // [seconds] give 10 secs for each ~MB ( (10s * 1000ms) / ( 1024KB * 1024MB * 1000ms ) )
+		if ( adjustTimeout > 100 ) // default timeout is 100 sec
+		{
+			httpClient.Timeout = TimeSpan.FromSeconds(adjustTimeout); // increase timeout
+		}
+		//Console.WriteLine("httpClient Timeout: [" + httpClient.Timeout + "]" );
 
-				using (var response = Request.GetResponse() as HttpWebResponse)
-				{
-					var reader = new StreamReader(response.GetResponseStream());
-					reader.ReadToEnd();
-				}
-			}
-			catch (Exception ex)
-			{
-				Log("Could not connect to S3, incorrect S3 Keys? " + ex.ToString());
-				throw ex;
-			}
+		// upload ----------------------------------------
+		string URL = "https://" + BucketName + ".s3.amazonaws.com/";
+		var response = await httpClient.PostAsync(URL, formData);
+		if (response.IsSuccessStatusCode)
+		{
+			Log("Upload done: " + Info.Name);
+		}
+		else
+		{
+			var contents = response.Content.ReadAsStringAsync();
+			var reason = Regex.Replace(
+/* grab inner block */ Regex.Replace(contents.Result, "<[^>]+>\n<[^>]+>([^<]+)</[^>]+>", "$1")
+/* strip tags */       , "<([^>]+)>([^<]+)</[^>]+>", "$1 - $2\n");
 
-			Log(Info.Name + " has been uploaded ");
+			//Console.WriteLine("Fail to Upload: " + Info.Name + " Header - " + response.ToString());
+			Console.WriteLine("Fail to Upload: " + Info.Name + "\nResponse - " + reason);
+			throw new Exception("FAILED TO UPLOAD: " + Info.Name);
+		}
 	}
-
-#endregion
+	#endregion
 }

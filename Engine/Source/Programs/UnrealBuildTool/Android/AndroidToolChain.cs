@@ -36,14 +36,14 @@ namespace UnrealBuildTool
 
 		static private Dictionary<string, string[]> LibrariesToSkip = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] { } }, 
-			{ "-arm64", new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", "gpg", } },
-			{ "-x86",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", } }, 
+			{ "-arm64", new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", } },
+			{ "-x86",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", "opus", "speex_resampler", } }, 
 			{ "-x64",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", "gpg", } }, 
 		};
 
 		static private Dictionary<string, string[]> ModulesToSkip = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] {  } }, 
-			{ "-arm64", new string[] { "OnlineSubsystemGooglePlay", } }, 
+			{ "-arm64", new string[] {  } }, 
 			{ "-x86",   new string[] {  } }, 
 			{ "-x64",   new string[] { "OnlineSubsystemGooglePlay", } }, 
 		};
@@ -257,6 +257,13 @@ namespace UnrealBuildTool
 			return GLESversion;
 		}
 
+		private bool BuildWithHiddenSymbolVisibility(CppCompileEnvironment CompileEnvironment)
+		{
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Android);
+			bool bBuild = false;
+			return CompileEnvironment.Configuration == CppConfiguration.Shipping && (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildWithHiddenSymbolVisibility", out bBuild) && bBuild);
+		}
+
 		public override void SetUpGlobalEnvironment(ReadOnlyTargetRules Target)
 		{
 			base.SetUpGlobalEnvironment(Target);
@@ -388,6 +395,10 @@ namespace UnrealBuildTool
 			Result += " -Wno-unknown-pragmas";			// probably should kill this one, sign of another issue in PhysX?
 			Result += " -Wno-invalid-offsetof";			// needed to suppress warnings about using offsetof on non-POD types.
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
+			if (BuildWithHiddenSymbolVisibility(CompileEnvironment))
+			{
+				Result += " -fvisibility=hidden -fvisibility-inlines-hidden"; // Symbols default to hidden.
+			}
 
 			if (CompileEnvironment.bEnableShadowVariableWarnings)
 			{
@@ -451,7 +462,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				Result += " -fno-exceptions";           
+				Result += " -fno-exceptions";
 			}
 
 			// Conditionally enable (default disabled) generation of information about every class with virtual functions for use by the C++ runtime type identification features 
@@ -497,6 +508,7 @@ namespace UnrealBuildTool
 				if (CompileEnvironment.Configuration != CppConfiguration.Debug)
 				{
 					Result += " -ffunction-sections";   // Places each function in its own section of the output file, linker may be able to perform opts to improve locality of reference
+					Result += " -fdata-sections"; // Places each data item in its own section of the output file, linker may be able to perform opts to improve locality of reference
 				}
 
 				Result += " -fsigned-char";				// Treat chars as signed //@todo android: any concerns about ABI compatibility with libs here?
@@ -608,6 +620,7 @@ namespace UnrealBuildTool
 			Result += " -nostdlib";
 			Result += " -Wl,-shared,-Bsymbolic";
 			Result += " -Wl,--no-undefined";
+			Result += " -Wl,-gc-sections"; // Enable garbage collection of unused input sections. works best with -ffunction-sections, -fdata-sections
 
 			if (Architecture == "-arm64")
 			{
@@ -720,12 +733,17 @@ namespace UnrealBuildTool
 			return false;
 		}
 
+        static private string GetNativeGluePath()
+		{
+			return Environment.GetEnvironmentVariable("NDKROOT") + "/sources/android/native_app_glue/android_native_app_glue.c";
+		}
+
 		static void ConditionallyAddNDKSourceFiles(List<FileItem> SourceFiles, string ModuleName)
 		{
 			// We need to add the extra glue and cpu code only to Launch module.
 			if (ModuleName.Equals("Launch"))
 			{
-				SourceFiles.Add(FileItem.GetItemByPath(Environment.GetEnvironmentVariable("NDKROOT") + "/sources/android/native_app_glue/android_native_app_glue.c"));
+				SourceFiles.Add(FileItem.GetItemByPath( GetNativeGluePath() ));
 
 				// Newer NDK cpu_features.c uses getauxval() which causes a SIGSEGV in libhoudini.so (ARM on Intel translator) in older versions of Houdini
 				// so we patch the file to use alternative methods of detecting CPU features if libhoudini.so is detected
@@ -915,6 +933,7 @@ namespace UnrealBuildTool
 
 			// Directly added NDK files for NDK extensions
 			ConditionallyAddNDKSourceFiles(SourceFiles, ModuleName);
+			string NativeGluePath = Path.GetFullPath(GetNativeGluePath());
 
 			// Deal with dynamic modules removed by architecture
 			GenerateEmptyLinkFunctionsForRemovedModules(SourceFiles, ModuleName, CompileEnvironment.OutputDirectory);
@@ -1080,6 +1099,13 @@ namespace UnrealBuildTool
 
 						// Build a full argument list
 						string AllArguments = Arguments + FileArguments + CompileEnvironment.AdditionalArguments;
+
+						if (SourceFile.AbsolutePath.Equals(NativeGluePath))
+						{
+							// Remove visibility settings for android native glue. Since it doesn't decorate with visibility attributes.
+							AllArguments = AllArguments.Replace("-fvisibility=hidden -fvisibility-inlines-hidden", "");
+						}
+
 						AllArguments = ActionThread.ExpandEnvironmentVariables(AllArguments);
 						AllArguments = AllArguments.Replace("\\", "/");
 
@@ -1288,6 +1314,18 @@ namespace UnrealBuildTool
 						}
 						LinkAction.CommandArguments += OptionalLinkArguments;
 						LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
+
+						// Write the MAP file to the output directory.
+						if (LinkEnvironment.bCreateMapFile)
+						{
+							FileReference MAPFilePath = FileReference.Combine(LinkEnvironment.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".map");
+							FileItem MAPFile = FileItem.GetItemByFileReference(MAPFilePath);
+							LinkAction.CommandArguments += String.Format(" -Wl,-Map,{0}", MAPFilePath);
+							LinkAction.ProducedItems.Add(MAPFile);
+
+							// Export a list of object file paths, so we can locate the object files referenced by the map file
+							ExportObjectFilePaths(LinkEnvironment, Path.ChangeExtension(MAPFilePath.FullName, ".objpaths"));
+						}
 					}
 
 					// Add the additional arguments specified by the environment.
@@ -1300,6 +1338,34 @@ namespace UnrealBuildTool
 			}
 
 			return Outputs.ToArray();
+		}
+
+		private void ExportObjectFilePaths(LinkEnvironment LinkEnvironment, string FileName)
+		{
+			// Write the list of object file directories
+			HashSet<DirectoryReference> ObjectFileDirectories = new HashSet<DirectoryReference>();
+			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
+			{
+				ObjectFileDirectories.Add(InputFile.Reference.Directory);
+			}
+			foreach (FileItem InputLibrary in LinkEnvironment.InputLibraries)
+			{
+				ObjectFileDirectories.Add(InputLibrary.Reference.Directory);
+			}
+			foreach (string AdditionalLibrary in LinkEnvironment.AdditionalLibraries.Where(x => Path.IsPathRooted(x)))
+			{
+				ObjectFileDirectories.Add(new FileReference(AdditionalLibrary).Directory);
+			}
+			foreach (string LibraryPath in LinkEnvironment.LibraryPaths)
+			{
+				ObjectFileDirectories.Add(new DirectoryReference(LibraryPath));
+			}
+			foreach (string LibraryPath in (Environment.GetEnvironmentVariable("LIB") ?? "").Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+			{
+				ObjectFileDirectories.Add(new DirectoryReference(LibraryPath));
+			}
+			Directory.CreateDirectory(Path.GetDirectoryName(FileName));
+			File.WriteAllLines(FileName, ObjectFileDirectories.Select(x => x.FullName).OrderBy(x => x).ToArray());
 		}
 
 		public override void ModifyBuildProducts(ReadOnlyTargetRules Target, UEBuildBinary Binary, List<string> Libraries, List<UEBuildBundleResource> BundleResources, Dictionary<FileReference, BuildProductType> BuildProducts)

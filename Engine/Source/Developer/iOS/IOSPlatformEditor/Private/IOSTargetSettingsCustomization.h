@@ -97,6 +97,10 @@ private:
 	TSharedPtr<IPropertyHandle> ShaderVersionPropertyHandle;
 	TSharedPtr<IPropertyHandle> MinOSPropertyHandle;
 	TSharedPtr<IPropertyHandle> GLES2PropertyHandle;
+	TSharedPtr<IPropertyHandle> DevArmV7PropertyHandle;
+	TSharedPtr<IPropertyHandle> DevArmV7sPropertyHandle;
+	TSharedPtr<IPropertyHandle> ShipArmV7PropertyHandle;
+	TSharedPtr<IPropertyHandle> ShipArmV7sPropertyHandle;
 
 	FString SelectedProvision;
 	FString SelectedFile;
@@ -188,10 +192,24 @@ private:
 	/** Delegate handler to get the description of the shader standard */
 	FText GetShaderVersionDesc() const;
 
+	/** Delegate handler to get the list of shader standards */
+	TSharedRef<SWidget> OnGetMinVersionContent();
+
+	/** Delegate handler to get the description of the shader standard */
+	FText GetMinVersionDesc() const;
+
 	void SetShaderStandard(int32 Value);
 	
 	void UpdateShaderStandardWarning();
 	
+	void UpdateOSVersionWarning();
+
+	void UpdateGLVersionWarning();
+
+	void SetMinVersion(int32 Value);
+
+	void HandleGLES2CheckBoxCheckStateChanged(ECheckBoxState NewState);
+
 	// 
 	FText GetBundleText(TSharedRef<IPropertyHandle> InPropertyHandle) const;
 
@@ -199,4 +217,10 @@ private:
 	
 	/** Reference to the shader version property warning text box. */
 	TSharedPtr< SErrorText > ShaderVersionWarningTextBox;
+
+	/** Reference to the shader version property warning text box. */
+	TSharedPtr< SErrorText > IOSVersionWarningTextBox;
+
+	/** Reference to the os version property warning text box. */
+	TSharedPtr< SErrorText > GLVersionWarningTextBox;
 };

@@ -907,15 +907,14 @@ bool FEdModeLandscape::LandscapeMouseTrace(FEditorViewportClient* ViewportClient
 
 	FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
 	FViewportCursorLocation MouseViewportRay(View, ViewportClient, MouseX, MouseY);
-	FVector BrushTraceDirection = MouseViewportRay.GetDirection();
+	FVector MouseViewportRayDirection = MouseViewportRay.GetDirection();
 
 	FVector Start = MouseViewportRay.GetOrigin();
+	FVector End = Start + WORLD_MAX * MouseViewportRayDirection;
 	if (ViewportClient->IsOrtho())
 	{
-		Start += -WORLD_MAX * BrushTraceDirection;
+		Start -= WORLD_MAX * MouseViewportRayDirection;
 	}
-
-	FVector End = Start + WORLD_MAX * BrushTraceDirection;
 
 	return LandscapeTrace(Start, End, OutHitLocation);
 }

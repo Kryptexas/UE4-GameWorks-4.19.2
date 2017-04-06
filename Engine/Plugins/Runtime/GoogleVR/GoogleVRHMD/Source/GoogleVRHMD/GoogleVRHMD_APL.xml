@@ -93,8 +93,16 @@
 		<addFeature android:name="android.hardware.sensor.gyroscope" android:required="true" />
 		<if condition="bSupportDaydream">
 			<true>
-				<addFeature android:name="android.hardware.vr.high_performance" android:required="true" />
-				<addFeature android:name="android.software.vr.mode" android:required="true" />
+				<if condition="bDaydreamAndCardboardMode">
+					<true>
+						<addFeature android:name="android.hardware.vr.high_performance" android:required="false" />
+						<addFeature android:name="android.software.vr.mode" android:required="false" />
+					</true>
+					<false>
+						<addFeature android:name="android.hardware.vr.high_performance" android:required="true" />
+						<addFeature android:name="android.software.vr.mode" android:required="true" />
+					</false>
+				</if>
 			</true>
 			<false>
 				<addFeature android:name="android.hardware.vr.high_performance" android:required="false" />

@@ -552,6 +552,17 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category = "Color Grading|Highlights", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorCorrectionHighlightsMin", DisplayName = "HighlightsMin"))
 	float ColorCorrectionHighlightsMin;
 
+	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmSlope", DisplayName = "Slope"))
+	float FilmSlope;
+	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmToe", DisplayName = "Toe"))
+	float FilmToe;
+	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmShoulder", DisplayName = "Shoulder"))
+	float FilmShoulder;
+	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmBlackClip", DisplayName = "Black clip"))
+	float FilmBlackClip;
+	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmWhiteClip", DisplayName = "White clip"))
+	float FilmWhiteClip;
+
 	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(editcondition = "bOverride_FilmWhitePoint", DisplayName = "Tint", HideAlphaChannel, LegacyTonemapper))
 	FLinearColor FilmWhitePoint;
 	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", AdvancedDisplay, meta=(editcondition = "bOverride_FilmShadowTint", DisplayName = "Tint Shadow", HideAlphaChannel, LegacyTonemapper))
@@ -579,17 +590,6 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", AdvancedDisplay, meta=(UIMin = "1.0", UIMax = "4.0", editcondition = "bOverride_FilmDynamicRange", DisplayName = "Dynamic Range", LegacyTonemapper))
 	float FilmDynamicRange;
 
-	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmSlope", DisplayName = "Slope"))
-	float FilmSlope;
-	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmToe", DisplayName = "Toe"))
-	float FilmToe;
-	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmShoulder", DisplayName = "Shoulder"))
-	float FilmShoulder;
-	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmBlackClip", DisplayName = "Black clip"))
-	float FilmBlackClip;
-	UPROPERTY(interp, BlueprintReadWrite, Category="Tonemapper", meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmWhiteClip", DisplayName = "White clip"))
-	float FilmWhiteClip;
-	
 	/** Scene tint color */
 	UPROPERTY(interp, BlueprintReadWrite, Category="Color Grading|Global", meta=(editcondition = "bOverride_SceneColorTint", HideAlphaChannel))
 	FLinearColor SceneColorTint;

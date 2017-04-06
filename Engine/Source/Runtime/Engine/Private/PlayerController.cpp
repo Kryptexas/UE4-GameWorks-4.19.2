@@ -1392,6 +1392,13 @@ void APlayerController::BeginPlay()
 			LocalPlayer->GetSlateOperations().LockMouseToWidget( LocalPlayer->ViewportClient->GetGameViewportWidget().ToSharedRef() );
 		}
 	}
+
+	//If we are faking touch events show the cursor
+	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().IsFakingTouchEvents())
+	{
+		bShowMouseCursor = true;
+	}
+
 }
 
 void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)

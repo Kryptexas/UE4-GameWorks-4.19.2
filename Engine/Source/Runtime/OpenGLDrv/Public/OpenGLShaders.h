@@ -32,7 +32,7 @@ struct FOpenGLShaderDeviceCapabilities
 	bool bSupportsStandardDerivativesExtension;
 	bool bSupportsRenderTargetFormat_PF_FloatRGBA;
 	bool bSupportsShaderFramebufferFetch;
-	bool bRequiresShaderFramebufferFetchUndef;
+	bool bRequiresUEShaderFramebufferFetchDef;
 	bool bRequiresARMShaderFramebufferFetchDepthStencilUndef;
 	bool bRequiresDontEmitPrecisionForTextureSamplers;
 	bool bSupportsShaderTextureLod;

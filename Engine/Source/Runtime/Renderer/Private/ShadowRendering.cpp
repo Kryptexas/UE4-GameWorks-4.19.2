@@ -778,6 +778,23 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
+
+			for (int32 ElementIndex = 0; ElementIndex < StaticSubjectMeshElements.Num(); ++ElementIndex)
+			{
+				const FStaticMesh& StaticMesh = *StaticSubjectMeshElements[ElementIndex].Mesh;
+				FDepthDrawingPolicyFactory::DrawStaticMesh(
+					RHICmdList,
+					*View,
+					FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
+					StaticMesh,
+					StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num()) - 1),
+					true,
+					DrawRenderState,
+					StaticMesh.PrimitiveSceneInfo->Proxy,
+					StaticMesh.BatchHitProxyId,
+					false
+				);
+			}
 		}
 	}
 }

@@ -66,7 +66,7 @@ struct FHTML5PlatformProperties
 
 	static FORCEINLINE bool AllowsFramerateSmoothing()
 	{
-		return true;
+		return false;
 	}
 
 	static FORCEINLINE bool SupportsWindowedMode()

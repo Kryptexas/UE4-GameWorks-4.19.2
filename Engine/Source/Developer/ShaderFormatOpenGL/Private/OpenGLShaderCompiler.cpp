@@ -1365,10 +1365,15 @@ uint32 FOpenGLFrontend::GetMaxSamplers(GLSLVersion Version)
 
 		// mimicing the old GetFeatureLevelMaxTextureSamplers for the rest
 		case GLSL_ES2:
-		case GLSL_ES2_WEBGL:
+		case GLSL_ES2_IOS:
 		case GLSL_150_ES2:
 		case GLSL_150_ES2_NOUB:
 			return 8;
+
+		case GLSL_ES2_WEBGL:
+			// For WebGL 1 and 2, GL_MAX_TEXTURE_IMAGE_UNITS is generally much higher than on old GLES 2 Android
+			// devices, but we only know the limit at runtime. Assume a decent desktop default.
+			return 32;
 
 		default:
 			return 16;
@@ -1415,7 +1420,14 @@ FGlslCodeBackend* FOpenGLFrontend::CreateBackend(GLSLVersion Version, uint32 CCF
 
 FGlslLanguageSpec* FOpenGLFrontend::CreateLanguageSpec(GLSLVersion Version)
 {
+#if PLATFORM_HTML5_BROWSER
+	// For backwards compatibility when targeting WebGL 2 shaders,
+	// generate GLES2/WebGL 1 style shaders but with GLES3/WebGL 2
+	// constructs available.
+	return new FGlslLanguageSpec(true);
+#else
 	return new FGlslLanguageSpec(IsES2Platform(Version) && !IsPCES2Platform(Version));
+#endif
 }
 
 /**

@@ -7,6 +7,7 @@
 #include "RHIStaticStates.h"
 #include "HeadMountedDisplayCommon.h"
 #include "ClearQuad.h"
+#include "PipelineStateCache.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
 

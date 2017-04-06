@@ -1280,23 +1280,23 @@ void FHTTPChunkInstall::SetupMasterManifest(const FString& InBaseUrl, const FStr
 	{
 		CloudDirectory = CloudDir = TmpString1;
 #if PLATFORM_ANDROID
-		if (FOpenGLES2::SupportsASTC())
+		if (FOpenGL::SupportsASTC())
 		{
 			CloudDirectory = CloudDir = CloudDir.Replace(TEXT("^FORMAT"), TEXT("ASTC"));
 		}
-		else if (FOpenGLES2::SupportsATITC())
+		else if (FOpenGL::SupportsATITC())
 		{
 			CloudDirectory = CloudDir = CloudDir.Replace(TEXT("^FORMAT"), TEXT("ATC"));
 		}
-		else if (FOpenGLES2::SupportsDXT())
+		else if (FOpenGL::SupportsDXT())
 		{
 			CloudDirectory = CloudDir = CloudDir.Replace(TEXT("^FORMAT"), TEXT("DXT"));
 		}
-		else if (FOpenGLES2::SupportsPVRTC())
+		else if (FOpenGL::SupportsPVRTC())
 		{
 			CloudDirectory = CloudDir = CloudDir.Replace(TEXT("^FORMAT"), TEXT("PVRTC"));
 		}
-		else if (FOpenGLES2::SupportsETC2())
+		else if (FOpenGL::SupportsETC2())
 		{
 			CloudDirectory = CloudDir = CloudDir.Replace(TEXT("^FORMAT"), TEXT("ETC2"));
 		}

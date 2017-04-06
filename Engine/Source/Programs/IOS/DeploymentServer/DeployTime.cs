@@ -478,9 +478,11 @@ namespace DeploymentServer
 					// Source folder
 					string SourceFolder = "/Documents/";
 
-					bResult = Device.TryBackup(BundleIdentifier, SourceFolder, TargetFolder);
+                    bResult = Device.TryBackup(BundleIdentifier, SourceFolder, TargetFolder + SourceFolder);
+                    SourceFolder = "/Library/Caches/";
+                    bResult = Device.TryBackup(BundleIdentifier, SourceFolder, TargetFolder + SourceFolder);
 
-					ReportIF.Log("");
+                    ReportIF.Log("");
 				}
                 return bResult;
             });

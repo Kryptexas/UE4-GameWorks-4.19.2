@@ -46,11 +46,17 @@ for (mode, cmake_build_type) in build_modes:
 	os.chdir(build_dir)
 
 	# C & C++ compiler flags to use for the build.
-	compile_flags = mode + ' -D_DEBUG ' if cmake_build_type == 'Debug' else ' -DNDEBUG '
-	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags, '-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags]
+	compile_flags = mode
+	compile_flags += ' -D_DEBUG ' if cmake_build_type == 'Debug' else ' -DNDEBUG '
+	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags,
+		'-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags,
+		'-DCMAKE_STATIC_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_SHARED_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_MODULE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_EXE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode]
 
 	# Configure the build via CMake
-	run([os.path.join(os.getenv('EMSCRIPTEN'), bat_file('emcmake')), 'cmake', '-DUSE_INTEL_ATOMIC_PRIMITIVES=ON', '-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON', '-DCMAKE_BUILD_TYPE=' + cmake_build_type] + compile_flags + ['..'])
+	run([os.path.join(os.getenv('EMSCRIPTEN'), bat_file('emcmake')), 'cmake', '-DBUILD_WITH_FREETYPE_2_6=ON', '-DUSE_INTEL_ATOMIC_PRIMITIVES=ON', '-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON', '-DCMAKE_BUILD_TYPE=' + cmake_build_type] + compile_flags + ['..'])
 
 	# Run the build
 	cmd = ['cmake', '--build', '.', '--', 'harfbuzz', '-j']

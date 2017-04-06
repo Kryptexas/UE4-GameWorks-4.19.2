@@ -241,9 +241,8 @@ public:
 	 */
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
-		// ES2 HTML5 does not support hardware instancing at all
 		// Android may not support on old devices
-		return	(Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_ANDROID)
+		return	(Platform == SP_OPENGL_ES2_ANDROID)
 				&& (Material->IsUsedWithInstancedStaticMeshes() || Material->IsSpecialEngineMaterial())
 				&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType);
 	}

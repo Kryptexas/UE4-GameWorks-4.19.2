@@ -3,6 +3,7 @@
 #include "LocationServicesAndroidImpl.h"
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
+#include "AndroidPermissionFunctionLibrary.h"
 
 DEFINE_LOG_CATEGORY(LogLocationServicesAndroid);
 
@@ -13,6 +14,9 @@ ULocationServicesAndroidImpl::~ULocationServicesAndroidImpl()
 
 bool ULocationServicesAndroidImpl::InitLocationServices(ELocationAccuracy Accuracy, float UpdateFrequency, float MinDistanceFilter)
 {
+	TArray<FString> Permissions = { "android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION" };
+	UAndroidPermissionFunctionLibrary::AcquirePermissions(Permissions);
+
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		static jmethodID InitLocationServicesMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_InitLocationServices", "(IFF)Z", false);
@@ -97,7 +101,7 @@ bool ULocationServicesAndroidImpl::IsLocationServiceEnabled()
 }
 
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeHandleLocationChanged(JNIEnv* jenv, jobject thiz, jlong time, jdouble longitude, jdouble latitude, jfloat accuracy, jdouble altitude)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeHandleLocationChanged(JNIEnv* jenv, jobject thiz, jlong time, jdouble longitude, jdouble latitude, jfloat accuracy, jdouble altitude)
 {
 	//we're passing this value up to Blueprints, which only takes floats.
 	FLocationServicesData LocationData;

@@ -234,7 +234,6 @@ void FStaticMeshInstanceBuffer::AllocateData(FStaticMeshInstanceData& Other)
 bool FInstancedStaticMeshVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return (Material->IsUsedWithInstancedStaticMeshes() || Material->IsSpecialEngineMaterial()) 
-			&& Platform != SP_OPENGL_ES2_WEBGL // ES2 HTML5 does not support hardware instancing at all
 			&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType);
 }
 

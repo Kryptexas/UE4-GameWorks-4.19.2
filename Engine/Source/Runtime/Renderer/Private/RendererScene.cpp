@@ -532,7 +532,9 @@ FORCEINLINE static void VerifyProperPIEScene(UPrimitiveComponent* Component, UWo
 #endif
 }
 
-FScene::FReadOnlyCVARCache::FReadOnlyCVARCache()
+FReadOnlyCVARCache* FReadOnlyCVARCache::Singleton = nullptr;
+
+FReadOnlyCVARCache::FReadOnlyCVARCache()
 {
 	static const auto CVarSupportAtmosphericFog = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAtmosphericFog"));
 	static const auto CVarSupportStationarySkylight = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportStationarySkylight"));
@@ -541,6 +543,13 @@ FScene::FReadOnlyCVARCache::FReadOnlyCVARCache()
 	static const auto CVarSupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));	
 	static const auto CVarVertexFoggingForOpaque = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VertexFoggingForOpaque"));	
 	static const auto CVarForwardShading = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
+	static const auto CVarAllowStaticLighting = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+
+	static const auto CVarMobileAllowMovableDirectionalLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowMovableDirectionalLights"));
+	static const auto CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+	static const auto CVarAllReceiveDynamicCSM = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllReceiveDynamicCSM"));
+	static const auto CVarMobileAllowDistanceFieldShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowDistanceFieldShadows"));
+	static const auto CVarMobileNumDynamicPointLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileNumDynamicPointLights"));
 
 	const bool bForceAllPermutations = CVarSupportAllShaderPermutations && CVarSupportAllShaderPermutations->GetValueOnAnyThread() != 0;
 
@@ -548,6 +557,14 @@ FScene::FReadOnlyCVARCache::FReadOnlyCVARCache()
 	bEnableStationarySkylight = !CVarSupportStationarySkylight || CVarSupportStationarySkylight->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 	bEnablePointLightShadows = !CVarSupportPointLightWholeSceneShadows || CVarSupportPointLightWholeSceneShadows->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 	bEnableLowQualityLightmaps = !CVarSupportLowQualityLightmaps || CVarSupportLowQualityLightmaps->GetValueOnAnyThread() != 0 || bForceAllPermutations;
+	bAllowStaticLighting = CVarAllowStaticLighting->GetValueOnAnyThread() != 0;
+
+	// mobile
+	bMobileAllowMovableDirectionalLights = CVarMobileAllowMovableDirectionalLights->GetValueOnAnyThread() != 0;
+	bAllReceiveDynamicCSM = CVarAllReceiveDynamicCSM->GetValueOnAnyThread() != 0;
+	bMobileAllowDistanceFieldShadows = CVarMobileAllowDistanceFieldShadows->GetValueOnAnyThread() != 0;
+	bMobileEnableStaticAndCSMShadowReceivers = CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnAnyThread() != 0;
+	NumMobileMovablePointLights = CVarMobileNumDynamicPointLights->GetValueOnAnyThread();
 
 	// Only enable VertexFoggingForOpaque if ForwardShading is enabled 
 	const bool bForwardShading = CVarForwardShading && CVarForwardShading->GetValueOnAnyThread() != 0;
@@ -582,10 +599,13 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	bRequiresHitProxies(bInRequiresHitProxies)
 ,	bIsEditorScene(bInIsEditorScene)
 ,	NumUncachedStaticLightingInteractions(0)
+,	NumMobileStaticAndCSMLights_RenderThread(0)
+,	NumMobileMovableDirectionalLights_RenderThread(0)
 ,	SceneLODHierarchy(this)
 ,	DefaultMaxDistanceFieldOcclusionDistance(InWorld->GetWorldSettings()->DefaultMaxDistanceFieldOcclusionDistance)
 ,	GlobalDistanceFieldViewDistance(InWorld->GetWorldSettings()->GlobalDistanceFieldViewDistance)
 ,	DynamicIndirectShadowsSelfShadowingIntensity(FMath::Clamp(InWorld->GetWorldSettings()->DynamicIndirectShadowsSelfShadowingIntensity, 0.0f, 1.0f))
+,	ReadOnlyCVARCache(FReadOnlyCVARCache::Get())
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 ,	SceneFrameNumber(0)
@@ -1063,14 +1083,26 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 
 		if(GetShadingPath() == EShadingPath::Mobile)
 		{
+			const bool bUseCSMForDynamicObjects = LightSceneInfo->Proxy->UseCSMForDynamicObjects();
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			// these are tracked for disabled shader permutation warnings
+			if (LightSceneInfo->Proxy->IsMovable())
+			{
+				NumMobileMovableDirectionalLights_RenderThread++;
+			}
+			if (bUseCSMForDynamicObjects)
+			{
+				NumMobileStaticAndCSMLights_RenderThread++;
+			}
+#endif
 		    // Set MobileDirectionalLights entry
 		    int32 FirstLightingChannel = GetFirstLightingChannelFromMask(LightSceneInfo->Proxy->GetLightingChannelMask());
 		    if (FirstLightingChannel >= 0 && MobileDirectionalLights[FirstLightingChannel] == nullptr)
 		    {
 			    MobileDirectionalLights[FirstLightingChannel] = LightSceneInfo;
     
-			    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
-			    if (!LightSceneInfo->Proxy->HasStaticShadowing() || LightSceneInfo->Proxy->UseCSMForDynamicObjects())
+			    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lighting policy:
+			    if (!LightSceneInfo->Proxy->HasStaticShadowing() || bUseCSMForDynamicObjects)
 				{
 		    		bScenesPrimitivesNeedStaticMeshElementUpdate = true;
 				}
@@ -1734,14 +1766,32 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 
 		if(GetShadingPath() == EShadingPath::Mobile)
 		{
-		    // check MobileDirectionalLights
+			const bool bUseCSMForDynamicObjects = LightSceneInfo->Proxy->UseCSMForDynamicObjects();
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			// Tracked for disabled shader permutation warnings.
+			// Condition must match that in AddLightSceneInfo_RenderThread
+			if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional && !LightSceneInfo->Proxy->HasStaticLighting())
+			{
+				if (LightSceneInfo->Proxy->IsMovable())
+				{
+					NumMobileMovableDirectionalLights_RenderThread--;
+				}
+				if (bUseCSMForDynamicObjects)
+				{
+					NumMobileStaticAndCSMLights_RenderThread--;
+				}
+			}
+#endif
+
+			// check MobileDirectionalLights
 		    for (int32 LightChannelIdx = 0; LightChannelIdx < ARRAY_COUNT(MobileDirectionalLights); LightChannelIdx++)
 		    {
 			    if (LightSceneInfo == MobileDirectionalLights[LightChannelIdx])
 			    {
 				    MobileDirectionalLights[LightChannelIdx] = nullptr;
-				    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-					if (!LightSceneInfo->Proxy->HasStaticShadowing() || LightSceneInfo->Proxy->UseCSMForDynamicObjects())
+					// if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+					if (!LightSceneInfo->Proxy->HasStaticShadowing() || bUseCSMForDynamicObjects)
 					{
 						bScenesPrimitivesNeedStaticMeshElementUpdate = true;
 					}

@@ -59,8 +59,10 @@ static const uint32 ValidGamepadKeyCodesList[] =
 	AKEYCODE_BUTTON_A,
 	AKEYCODE_DPAD_CENTER,
 	AKEYCODE_BUTTON_B,
+	AKEYCODE_BUTTON_C,
 	AKEYCODE_BUTTON_X,
 	AKEYCODE_BUTTON_Y,
+	AKEYCODE_BUTTON_Z,
 	AKEYCODE_BUTTON_L1,
 	AKEYCODE_BUTTON_R1,
 	AKEYCODE_BUTTON_START,
@@ -135,7 +137,7 @@ static FEvent* EventHandlerEvent = NULL;
 // Wait for Java onCreate to complete before resume main init
 static volatile bool GResumeMainInit = false;
 volatile bool GEventHandlerInitialized = false;
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv* jenv, jobject thiz)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv* jenv, jobject thiz)
 {
 	GResumeMainInit = true;
 
@@ -1071,7 +1073,7 @@ static int HandleSensorEvents(int fd, int events, void* data)
 //Native-defined functions
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeConsoleCommand(String commandString);"
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv* jenv, jobject thiz, jstring commandString)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv* jenv, jobject thiz, jstring commandString)
 {
 	const char* javaChars = jenv->GetStringUTFChars(commandString, 0);
 
@@ -1082,7 +1084,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv*
 }
 
 // This is called from the Java UI thread for initializing VR HMDs
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeInitHMDs(JNIEnv* jenv, jobject thiz)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeInitHMDs(JNIEnv* jenv, jobject thiz)
 {
 	for (auto HMDModuleIt = GHMDImplementations.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
 	{
@@ -1092,7 +1094,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeInitHMDs(JNIEnv* jenv,
 	GHMDsInitialized = true;
 }
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel, jstring osLanguage )
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel, jstring osLanguage )
 {
 	const char *javaAndroidVersion = jenv->GetStringUTFChars(androidVersion, 0 );
 	FString UEAndroidVersion = FString(UTF8_TO_TCHAR( javaAndroidVersion ));

@@ -9,6 +9,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/Engine/Public/PixelFormat.h"
+#include "HAL/IConsoleManager.h"
 
 enum EShaderFrequency
 {
@@ -819,6 +820,14 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 
 inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 {
+#if WITH_EDITOR
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.ForceRHISwitchVerticalAxis"));
+	if (CVar->GetValueOnAnyThread())
+	{
+		return true;
+	}
+#endif
+
 	// ES2 & ES3.1 need to flip when rendering to an RT that will be post processed
 	return IsOpenGLPlatform(Platform) && IsMobilePlatform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL && !IsVulkanPlatform(Platform)
 	       && Platform != SP_SWITCH && Platform != SP_SWITCH_FORWARD;

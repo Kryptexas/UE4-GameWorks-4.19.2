@@ -110,7 +110,7 @@ int64 CallLongMethod(JNIEnv* Env, jobject Object, jmethodID Method, ...)
 	return (int64)Return;
 }
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeOnUiLayerBack(JNIEnv* jenv, jobject thiz)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeOnUiLayerBack(JNIEnv* jenv, jobject thiz)
 {
 	// Need to be on game thread to dispatch handler
 	bBackDetected = true;

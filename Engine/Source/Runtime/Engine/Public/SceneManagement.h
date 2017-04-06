@@ -2447,3 +2447,36 @@ extern ENGINE_API FSharedSamplerState* Clamp_WorldGroupSettings;
 
 /** Initializes the shared sampler states. */
 extern ENGINE_API void InitializeSharedSamplerStates();
+
+/**
+* Cache of read-only console variables used by the scene renderer
+*/
+struct FReadOnlyCVARCache
+{
+	static const FReadOnlyCVARCache& Get()
+	{
+		if (!Singleton)
+		{
+			Singleton = new FReadOnlyCVARCache();
+		}
+		return *Singleton;
+	}
+
+	bool bEnablePointLightShadows;
+	bool bEnableStationarySkylight;
+	bool bEnableAtmosphericFog;
+	bool bEnableLowQualityLightmaps;
+	bool bEnableVertexFoggingForOpaque;
+	bool bAllowStaticLighting;
+
+	// Mobile specific
+	bool bMobileAllowMovableDirectionalLights;
+	bool bAllReceiveDynamicCSM;
+	bool bMobileAllowDistanceFieldShadows;
+	bool bMobileEnableStaticAndCSMShadowReceivers;
+	int32 NumMobileMovablePointLights;
+
+private:
+	FReadOnlyCVARCache();
+	static FReadOnlyCVARCache* Singleton;
+};

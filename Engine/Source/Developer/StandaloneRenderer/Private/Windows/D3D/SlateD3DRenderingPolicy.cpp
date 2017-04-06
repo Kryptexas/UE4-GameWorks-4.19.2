@@ -194,7 +194,7 @@ void FSlateD3D11RenderingPolicy::UpdateVertexAndIndexBuffers( FSlateBatchData& I
 	
 		{
 			SLATE_CYCLE_COUNTER_SCOPE(GSlateMemCopyRenderBuffers);
-			InBatchData.FillVertexAndIndexBuffer( VerticesPtr, IndicesPtr );
+			InBatchData.FillVertexAndIndexBuffer( VerticesPtr, IndicesPtr, /*bAbsoluteIndices*/ false );
 		}
 
 		{

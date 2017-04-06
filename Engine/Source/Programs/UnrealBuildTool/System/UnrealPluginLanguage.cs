@@ -48,6 +48,7 @@ namespace UnrealBuildTool
 	 *	$S(PluginDir) = directory the XML file was loaded from
 	 *	$S(EngineDir) = engine directory
 	 *	$S(BuildDir) = project's platform appropriate build directory (within the Intermediate folder)
+	 *	$S(Configuration) = configuration type (Debug, DebugGame, Development, Test, Shipping)
 	 *	$B(Distribution) = true if distribution build
 	 * 
 	 * Note: with the exception of the above variables, all are in the context of the plugin to
@@ -2134,12 +2135,13 @@ namespace UnrealBuildTool
 			return GlobalContext.StringVariables["Output"];
 		}
 
-		public void Init(List<string> Architectures, bool bDistribution, string EngineDirectory, string BuildDirectory, string ProjectDirectory)
+		public void Init(List<string> Architectures, bool bDistribution, string EngineDirectory, string BuildDirectory, string ProjectDirectory, string Configuration)
 		{
 			GlobalContext.BoolVariables["Distribution"] = bDistribution;
 			GlobalContext.StringVariables["EngineDir"] = EngineDirectory;
 			GlobalContext.StringVariables["BuildDir"] = BuildDirectory;
 			GlobalContext.StringVariables["ProjectDir"] = ProjectDirectory;
+			GlobalContext.StringVariables["Configuration"] = Configuration;
 
 			foreach (string Arch in Architectures)
 			{

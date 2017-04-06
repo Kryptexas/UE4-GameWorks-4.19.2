@@ -217,7 +217,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
-		return (Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL) // Those are only platforms that might not support hardware instancing
+		return (Platform == SP_OPENGL_ES2_ANDROID) // Android platforms that might not support hardware instancing
 			&& FMeshParticleVertexFactory::ShouldCache(Platform, Material, ShaderType);
 	}
 

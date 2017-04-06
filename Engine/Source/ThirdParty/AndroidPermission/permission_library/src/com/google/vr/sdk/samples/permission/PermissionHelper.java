@@ -14,16 +14,16 @@ public class PermissionHelper {
 		//trying to find the activity PermissionFragment should be attached to
 		//in the case of Daydream app, attach to GVRTransition2DActivity if there is any
 		try {
-			Class clazz = Class.forName("com.google.vr.sdk.samples.transition.GVRTransition2DActivity");
+			Class<?> clazz = Class.forName("com.google.vr.sdk.samples.transition.GVRTransition2DActivity");
 			Method m = clazz.getMethod("getActivity", new Class[] {});
 			activity = (Activity)m.invoke(null);
 		} catch (Exception e) {
-			Log.e(LOG_TAG, "GVRTransition2DActivity.getActivity() failed");
+			Log.e(LOG_TAG, "GVRTransition2DActivity.getActivity() failed. Trying to get GameActivity.");
 		}
 		if (activity != null) return activity;
 		//for non Daydream app, directly attach the fragment to GameActivity
 		try {
-			Class clazz = Class.forName("com.epicgames.ue4.GameActivity");
+			Class<?> clazz = Class.forName("com.epicgames.ue4.GameActivity");
 			Method m = clazz.getMethod("Get", new Class[] {});
 			return (Activity)m.invoke(null);
 		} catch (Exception e) {
@@ -49,8 +49,14 @@ public class PermissionHelper {
 
 	public static void acquirePermissions(final String permissions[])
 	{
-		final Activity activity = getForegroundActivity();
-		if (activity==null) return;
+		Activity activity = getForegroundActivity();
+		PermissionHelper.acquirePermissions(permissions, activity);
+	}
+
+	public static void acquirePermissions(final String permissions[], Activity InActivity)
+	{
+		if (InActivity==null) return;
+		final Activity activity = InActivity;
 		activity.runOnUiThread(new Runnable(){
 			public void run() {
 				PermissionFragment fragment = PermissionFragment.getInstance(activity);

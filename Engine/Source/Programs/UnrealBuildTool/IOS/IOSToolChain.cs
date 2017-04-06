@@ -210,6 +210,7 @@ namespace UnrealBuildTool
 				Result += " -Wno-inconsistent-missing-override"; // too many missing overrides...
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
+			
 
 			// fix for Xcode 8.3 enabling nonportable include checks, but p4 has some invalid cases in it
 			if (Settings.Value.IOSSDKVersionFloat >= 10.3)
@@ -425,11 +426,17 @@ namespace UnrealBuildTool
 			// parse the string
 			string[] Tokens = Archs.Split(",".ToCharArray());
 
+
 			string Result = "";
+
 			foreach (string Token in Tokens)
 			{
 				Result += " -arch " + Token;
 			}
+
+            //  Remove this in 4.16 
+            //  Commented this out, for now. @Pete let's conditionally check this when we re-implement this fix. 
+            //  Result += " -mcpu=cortex-a9";
 
 			return Result;
 		}

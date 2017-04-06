@@ -219,7 +219,7 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 							if (DeviceID == Device->GetDeviceProperties().deviceID)
 							{
 								uint8* Uuid = (uint8*)Data;
-								if (FMemory::Memcmp(Device->GetDeviceProperties().pipelineCacheUUID, Uuid, sizeof(VK_UUID_SIZE)) == 0)
+								if (FMemory::Memcmp(Device->GetDeviceProperties().pipelineCacheUUID, Uuid, VK_UUID_SIZE) == 0)
 								{
 									bLoaded = true;
 								}

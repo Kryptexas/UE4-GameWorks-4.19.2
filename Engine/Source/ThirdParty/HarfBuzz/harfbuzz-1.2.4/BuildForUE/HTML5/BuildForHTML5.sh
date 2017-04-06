@@ -26,6 +26,7 @@ build_via_cmake()
 	# ----------------------------------------
 	emcmake cmake -G "Unix Makefiles" \
 		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
+		-DBUILD_WITH_FREETYPE_2_6=ON \
 		-DUSE_INTEL_ATOMIC_PRIMITIVES=ON \
 		-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON \
 		-DCMAKE_BUILD_TYPE=$type \

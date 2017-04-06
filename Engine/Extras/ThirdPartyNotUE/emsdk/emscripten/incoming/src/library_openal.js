@@ -185,6 +185,10 @@ var LibraryOpenAL = {
       return 0;
     } else {
       AL.currentContext = AL.contexts[context - 1];
+      // EMTIMER
+      Module['AL'] = AL;
+      Module['ALctx'] = AL.currentContext;
+      // EMTIMER
       return 1;
     }
   },
@@ -314,6 +318,25 @@ var LibraryOpenAL = {
       }
       {{{ makeSetValue('data', '0', '0', 'i32') }}};
       break;
+    case 0x1007 /* ALC_FREQUENCY */:
+      if (!device) {
+        AL.alcErr = 0xA001 /* ALC_INVALID_DEVICE */;
+        return 0;
+      }
+      if (!AL.currentContext) {
+        AL.alcErr = 0xA002 /* ALC_INVALID_CONTEXT */;
+        return 0;
+      }
+      {{{ makeSetValue('data', '0', 'AL.currentContext.ctx.sampleRate', 'i32') }}};
+      break;
+    case 0x1010 /* ALC_MONO_SOURCES */:
+    case 0x1011 /* ALC_STEREO_SOURCES */:
+      if (!device) {
+        AL.alcErr = 0xA001 /* ALC_INVALID_DEVICE */;
+        return 0;
+      }
+      {{{ makeSetValue('data', '0', '0x7FFFFFFF', 'i32') }}};
+      break;
     case 0x20003 /* ALC_MAX_AUXILIARY_SENDS */:
       if (!device) {
         AL.currentContext.err = 0xA001 /* ALC_INVALID_DEVICE */;
@@ -397,7 +420,9 @@ var LibraryOpenAL = {
           this._velocity[0] = val[0];
           this._velocity[1] = val[1];
           this._velocity[2] = val[2];
-          if (this.panner) this.panner.setVelocity(val[0], val[1], val[2]);
+          // TODO: The velocity values are not currently used to implement a doppler effect.
+          // If support for doppler effect is reintroduced, compute the doppler
+          // speed pitch factor and apply it here.
         },
         get direction() {
           return this._direction;
@@ -504,7 +529,8 @@ var LibraryOpenAL = {
           panner.maxDistance = src.maxDistance;
           panner.rolloffFactor = src.rolloffFactor;
           panner.setPosition(src.position[0], src.position[1], src.position[2]);
-          panner.setVelocity(src.velocity[0], src.velocity[1], src.velocity[2]);
+          // TODO: If support for doppler effect is reintroduced, compute the doppler
+          // speed pitch factor and apply it here.
           panner.connect(AL.currentContext.gain);
 
           // Disconnect from the default source.
@@ -551,6 +577,9 @@ var LibraryOpenAL = {
       if (src.state === 0x1012 /* AL_PLAYING */) {
         // update currently playing entry
         var entry = src.queue[src.buffersPlayed];
+        if (!entry || !entry.src) {
+          return;
+        }
         var currentTime = AL.currentContext.ctx.currentTime;
         var oldrate = entry.src.playbackRate.value;
         var offset = currentTime - src.bufferPosition;
@@ -606,7 +635,7 @@ var LibraryOpenAL = {
     }
   },
 
-  alSource3i: ['alSource3f'],
+  alSource3i__deps: ['alSource3f'],
   alSource3i: function(source, param, v1, v2, v3) {
     _alSource3f(source, param, v1, v2, v3);
   },
@@ -1367,7 +1396,9 @@ var LibraryOpenAL = {
       AL.currentContext.ctx.listener._velocity[0] = v1;
       AL.currentContext.ctx.listener._velocity[1] = v2;
       AL.currentContext.ctx.listener._velocity[2] = v3;
-      AL.currentContext.ctx.listener.setVelocity(v1, v2, v3);
+      // TODO: The velocity values are not currently used to implement a doppler effect.
+      // If support for doppler effect is reintroduced, compute the doppler
+      // speed pitch factor and apply it here.
       break;
     default:
 #if OPENAL_DEBUG
@@ -1402,7 +1433,9 @@ var LibraryOpenAL = {
       AL.currentContext.ctx.listener._velocity[0] = x;
       AL.currentContext.ctx.listener._velocity[1] = y;
       AL.currentContext.ctx.listener._velocity[2] = z;
-      AL.currentContext.ctx.listener.setVelocity(x, y, z);
+      // TODO: The velocity values are not currently used to implement a doppler effect.
+      // If support for doppler effect is reintroduced, compute the doppler
+      // speed pitch factor and apply it here.
       break;
     case 0x100F /* AL_ORIENTATION */:
       var x = {{{ makeGetValue('values', '0', 'float') }}};

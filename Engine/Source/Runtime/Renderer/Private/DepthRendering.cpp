@@ -213,8 +213,8 @@ public:
 		return 
 			// Compile for materials that are masked.
 			(!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected() || Material->IsTranslucencyWritingCustomDepth()) 
-			// Mobile uses default material pixel shader to write custom stencil to color target
-			|| (IsMobilePlatform(Platform) && Material->IsDefaultMaterial());
+			// Mobile uses material pixel shader to write custom stencil to color target
+			|| (IsMobilePlatform(Platform) && (Material->IsDefaultMaterial() || Material->MaterialMayModifyMeshPosition()));
 	}
 
 	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):

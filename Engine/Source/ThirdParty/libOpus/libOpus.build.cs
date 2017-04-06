@@ -56,5 +56,15 @@ public class libOpus : ModuleRules
                 PublicAdditionalLibraries.Add(LibraryPath + "Linux/" + Target.Architecture + "/libopus_fPIC.a");
             }
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			PublicLibraryPaths.Add(LibraryPath + "Android/ARMv7/");
+			PublicLibraryPaths.Add(LibraryPath + "Android/ARM64/");
+			PublicLibraryPaths.Add(LibraryPath + "Android/x64/");
+			
+			PublicAdditionalLibraries.Add("opus");
+			PublicAdditionalLibraries.Add("speex_resampler");
+		}
+
 	}
 }

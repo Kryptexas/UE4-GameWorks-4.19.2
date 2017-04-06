@@ -1995,10 +1995,6 @@ void UEditorEngine::PlayUsingLauncher()
 			CurrentLauncherCookMode = ELauncherProfileCookModes::OnTheFlyInEditor;
 			bIncrimentalCooking = false;
 		}
-		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("TVOS"))
-		{
-			bIncrimentalCooking = false;
-		}
 		LauncherProfile->SetCookMode( CurrentLauncherCookMode );
 		LauncherProfile->SetUnversionedCooking(!bIncrimentalCooking);
 		LauncherProfile->SetIncrementalCooking(bIncrimentalCooking);

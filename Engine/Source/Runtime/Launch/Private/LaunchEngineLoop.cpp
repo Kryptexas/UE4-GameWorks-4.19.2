@@ -1224,7 +1224,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// "-Deterministic" is a shortcut for "-UseFixedTimeStep -FixedSeed"
 	bool bDeterministic = FParse::Param(FCommandLine::Get(), TEXT("Deterministic"));
 
+#if PLATFORM_HTML5_BROWSER
+	bool bUseFixedTimeStep = false;
+	GConfig->GetBool(TEXT("/Script/HTML5PlatformEditor.HTML5TargetSettings"), TEXT("UseFixedTimeStep"), bUseFixedTimeStep, GEngineIni);
+	FApp::SetUseFixedTimeStep(bUseFixedTimeStep);
+#else
 	FApp::SetUseFixedTimeStep(bDeterministic || FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
+#endif
 
 	FApp::bUseFixedSeed = bDeterministic || FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FixedSeed"));
 

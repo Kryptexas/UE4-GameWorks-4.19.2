@@ -944,26 +944,17 @@ void ProcessMobileBasePassMesh(
 			MobileDirectionalLight = LightChannel >= 0 ? GetSceneMobileDirectionalLights(Scene, LightChannel) : nullptr;
 		}
 	
-		static auto* CVarMobileAllowMovableDirectionalLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowMovableDirectionalLights"));
-		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
-		static auto* CVarAllReceiveDynamicCSM = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllReceiveDynamicCSM"));
-		static auto* CVarAllowStaticLighting = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-		static auto* CVarMobileAllowDistanceFieldShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowDistanceFieldShadows"));
+		const FReadOnlyCVARCache& ReadOnlyCVARCache = FReadOnlyCVARCache::Get();
 
-		const bool bMobileAllowMovableDirectionalLights = (CVarMobileAllowMovableDirectionalLights->GetValueOnRenderThread() != 0);
 		const bool bPrimReceivesStaticAndCSM = Action.CanReceiveStaticAndCSM(MobileDirectionalLight, Parameters.PrimitiveSceneProxy);
-		const bool bAllReceiveDynamicCSM = (CVarAllReceiveDynamicCSM->GetValueOnRenderThread() == 1);
-		const bool bAllowStaticLighting = (CVarAllowStaticLighting->GetValueOnRenderThread() != 0);
-		const bool bMobileAllowDistanceFieldShadows = CVarMobileAllowDistanceFieldShadows->GetValueOnRenderThread() == 1;
-
-		const bool bUseMovableLight = MobileDirectionalLight && !MobileDirectionalLight->Proxy->HasStaticShadowing() && bMobileAllowMovableDirectionalLights;
+		const bool bUseMovableLight = MobileDirectionalLight && !MobileDirectionalLight->Proxy->HasStaticShadowing() && ReadOnlyCVARCache.bMobileAllowMovableDirectionalLights;
 
 		const bool bUseStaticAndCSM = MobileDirectionalLight && MobileDirectionalLight->Proxy->UseCSMForDynamicObjects()
 			&& bPrimReceivesStaticAndCSM
-			&& CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() == 1
-			&& (bAllReceiveDynamicCSM || (Parameters.PrimitiveSceneProxy != nullptr && Parameters.PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights()));
+			&& ReadOnlyCVARCache.bMobileEnableStaticAndCSMShadowReceivers
+			&& (ReadOnlyCVARCache.bAllReceiveDynamicCSM || (Parameters.PrimitiveSceneProxy != nullptr && Parameters.PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights()));
 
-		if (LightMapInteraction.GetType() == LMIT_Texture && bAllowStaticLighting)
+		if (LightMapInteraction.GetType() == LMIT_Texture && ReadOnlyCVARCache.bAllowStaticLighting && ReadOnlyCVARCache.bEnableLowQualityLightmaps)
 		{
 			// Lightmap path
 			const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
@@ -984,7 +975,7 @@ void ProcessMobileBasePassMesh(
 			}
 			else if (bUseStaticAndCSM)
 			{
-				if (ShadowMapInteraction.GetType() == SMIT_Texture && MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && bMobileAllowDistanceFieldShadows)
+				if (ShadowMapInteraction.GetType() == SMIT_Texture && MobileDirectionalLight && MobileDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows() && ReadOnlyCVARCache.bMobileAllowDistanceFieldShadows)
 				{
 					Action.template Process<NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM), Parameters.Mesh.LCI);
 				}
@@ -995,7 +986,7 @@ void ProcessMobileBasePassMesh(
 			}
 			else
 			{
-				if (ShadowMapInteraction.GetType() == SMIT_Texture && bMobileAllowDistanceFieldShadows)
+				if (ShadowMapInteraction.GetType() == SMIT_Texture && ReadOnlyCVARCache.bMobileAllowDistanceFieldShadows)
 				{
 					Action.template Process<NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOBILE_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP), Parameters.Mesh.LCI);
 				}

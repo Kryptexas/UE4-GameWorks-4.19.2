@@ -63,7 +63,7 @@ build_via_cmake()
 		"$GW_DEPS_ROOT"/PhysX_3.4/Source/compiler/cmake/html5
 
 # disabling APEX build for HTML5
-#		$GW_DEPS_ROOT/APEX_1.4/compiler/cmake/HTML5
+#		"$GW_DEPS_ROOT"/APEX_1.4/compiler/cmake/HTML5
 
 	cmake --build . -- -j VERBOSE=1
 	# ----------------------------------------

@@ -304,7 +304,7 @@ namespace UnrealBuildTool
 				{
 					string Contents = File.ReadAllText(Filename);
 
-					// replace some varaibles
+					// replace some variables
 					foreach (var Pair in Replacements)
 					{
 						Contents = Contents.Replace(Pair.Key, Pair.Value);
@@ -429,14 +429,20 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public int GetStoreVersion()
+		{
+			var Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+			int StoreVersion;
+			Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "StoreVersion", out StoreVersion);
+			return StoreVersion;
+		}
+
 		public void WriteJavaOBBDataFile(string FileName, string PackageName, List<string> ObbSources)
 		{
 
 			Log.TraceInformation("\n==== Writing to OBB data file {0} ====", FileName);
 
-			var Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
-			int StoreVersion;
-			Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "StoreVersion", out StoreVersion);
+			int StoreVersion = GetStoreVersion();
 
 			string[] obbDataFile = File.Exists(FileName) ? File.ReadAllLines(FileName) : null;
 
@@ -1322,7 +1328,7 @@ namespace UnrealBuildTool
 
 
 
-		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, string EngineDirectory, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch, string CookFlavor, bool bUseExternalFilesDir)
+		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, string EngineDirectory, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch, string CookFlavor, bool bUseExternalFilesDir, string Configuration)
 		{
 			// Read the engine version
 			string EngineMajorVersion = "4";
@@ -1364,6 +1370,8 @@ namespace UnrealBuildTool
 			string PackageName = GetPackageName(ProjectName);
 			bool bEnableGooglePlaySupport;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bEnableGooglePlaySupport", out bEnableGooglePlaySupport);
+			bool bUseGetAccounts;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bUseGetAccounts", out bUseGetAccounts);
 			string DepthBufferPreference;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "DepthBufferPreference", out DepthBufferPreference);
 			int MinSDKVersion;
@@ -1615,6 +1623,7 @@ namespace UnrealBuildTool
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bShouldHideUI\" android:value=\"{0}\"/>", EnableFullScreen ? "true" : "false"));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.ProjectName\" android:value=\"{0}\"/>", ProjectName));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bHasOBBFiles\" android:value=\"{0}\"/>", bHasOBBFiles ? "true" : "false"));
+			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.BuildConfiguration\" android:value=\"{0}\"/>", Configuration));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bUseExternalFilesDir\" android:value=\"{0}\"/>", bUseExternalFilesDir ? "true" : "false"));
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.games.APP_ID\"");
 			Text.AppendLine("\t\t           android:value=\"@string/app_id\" />");
@@ -1672,7 +1681,12 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t<uses-permission android:name=\"com.android.vending.CHECK_LICENSE\"/>");
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>");
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\"/>");
-			//	Text.AppendLine("\t<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>");
+
+				if (bEnableGooglePlaySupport && bUseGetAccounts)
+				{
+					Text.AppendLine("\t<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>");
+				}				
+				
 				Text.AppendLine("\t<uses-permission android:name=\"android.permission.VIBRATE\"/>");
 				//			Text.AppendLine("\t<uses-permission android:name=\"android.permission.DISABLE_KEYGUARD\"/>");
 
@@ -1684,7 +1698,15 @@ namespace UnrealBuildTool
 				{
 					foreach (string Permission in ExtraPermissions)
 					{
-						Text.AppendLine(string.Format("\t<uses-permission android:name=\"{0}\"/>", Permission));
+						string TrimmedPermission = Permission.Trim(' ');
+						if (TrimmedPermission != "")
+						{
+							string PermissionString = string.Format("\t<uses-permission android:name=\"{0}\"/>", TrimmedPermission);
+							if (!Text.ToString().Contains(PermissionString))
+							{
+								Text.AppendLine(PermissionString);
+							}
+						}
 					}
 				}
 				string RequirementsAdditionsFile = Path.Combine(GameBuildFilesPath, "ManifestRequirementsAdditions.txt");
@@ -1697,7 +1719,11 @@ namespace UnrealBuildTool
 				}
 				if (AndroidGraphicsDebugger.ToLower() == "adreno")
 				{
-					Text.AppendLine("\t<uses-permission android:name=\"com.qti.permission.PROFILER\"/>");
+					string PermissionString = "\t<uses-permission android:name=\"com.qti.permission.PROFILER\"/>";
+					if (!Text.ToString().Contains(PermissionString))
+					{
+						Text.AppendLine(PermissionString);
+					}
 				}
 
 				if (!bSupportingAllTextureFormats)
@@ -2088,7 +2114,27 @@ namespace UnrealBuildTool
 			var Arches = ToolChain.GetAllArchitectures();
 			var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
 
-			// Initialize APL contexts for each architecture enabled
+			// figure out the configuration from output filename
+			string Configuration = "Development";
+			string OutputConfig = Path.GetFileNameWithoutExtension(OutputPath);
+			if (OutputConfig.EndsWith("-Debug"))
+			{
+				Configuration = "Debug";
+			}
+			else if (OutputConfig.EndsWith("-Test"))
+			{
+				Configuration = "Test";
+			}
+			else if (OutputConfig.EndsWith("-DebugGame"))
+			{
+				Configuration = "Debug";
+			}
+			else if (OutputConfig.EndsWith("-Shipping"))
+			{
+				Configuration = "Shipping";
+			}
+
+			// Initialize UPL contexts for each architecture enabled
 			List<string> NDKArches = new List<string>();
 			foreach (var Arch in Arches)
 			{
@@ -2098,7 +2144,7 @@ namespace UnrealBuildTool
 					NDKArches.Add(NDKArch);
 				}
 			}
-			UPL.Init(NDKArches, bForDistribution, EngineDirectory, UE4BuildPath, ProjectDirectory);
+			UPL.Init(NDKArches, bForDistribution, EngineDirectory, UE4BuildPath, ProjectDirectory, Configuration);
 
 			IEnumerable<Tuple<string, string, string>> BuildList = null;
 
@@ -2106,7 +2152,7 @@ namespace UnrealBuildTool
 			{
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
-							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir)
+							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir, Configuration)
 							select Tuple.Create(Arch, GPUArch, manifest);
 			}
 			else
@@ -2114,7 +2160,7 @@ namespace UnrealBuildTool
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
 							let manifestFile = Path.Combine(IntermediateAndroidPath, Arch + "_" + GPUArch + "_AndroidManifest.xml")
-							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir)
+							let manifest = GenerateManifest(ToolChain, ProjectName, EngineDirectory, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor, bUseExternalFilesDir, Configuration)
 							let OldManifest = File.Exists(manifestFile) ? File.ReadAllText(manifestFile) : ""
 							where manifest != OldManifest
 							select Tuple.Create(Arch, GPUArch, manifest);
@@ -2187,7 +2233,7 @@ namespace UnrealBuildTool
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
 
 			//Extract AAR and Jar files with dependencies
-			ExtractAARAndJARFiles(EngineDirectory, UE4BuildPath, NDKArches);
+			ExtractAARAndJARFiles(EngineDirectory, UE4BuildPath, NDKArches, PackageName);
 
 			//Now validate GooglePlay app_id if enabled
 			ValidateGooglePlay(UE4BuildPath);
@@ -2388,6 +2434,18 @@ namespace UnrealBuildTool
 				// now copy to the final location
 				File.Copy(UE4BuildPath + "/bin/" + ProjectName + AntOutputSuffix + ".apk", DestApkName, true);
 
+				bool bBuildWithHiddenSymbolVisibility = false;
+				Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildWithHiddenSymbolVisibility", out bBuildWithHiddenSymbolVisibility);
+				if ( Configuration == "Shipping" && bBuildWithHiddenSymbolVisibility)
+				{
+					// Copy .so with symbols to 
+					int StoreVersion = GetStoreVersion();
+					string SymbolSODirectory = Path.Combine(Path.GetDirectoryName(DestApkName), ProjectName + "_Symbols_v" + StoreVersion + "/" + ProjectName + Arch + GPUArchitecture);
+					string SymbolifiedSOPath = Path.Combine(SymbolSODirectory, Path.GetFileName(FinalSOName));
+					MakeDirectoryIfRequired(SymbolifiedSOPath);
+
+					File.Copy(FinalSOName, SymbolifiedSOPath, true);
+				}
 			}
 
 		}
@@ -2617,7 +2675,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private void ExtractAARAndJARFiles(string EngineDir, string UE4BuildPath, List<string> NDKArches)
+		private void ExtractAARAndJARFiles(string EngineDir, string UE4BuildPath, List<string> NDKArches, string AppPackageName)
 		{
 			AndroidAARHandler AARHandler = new AndroidAARHandler();
 			string ImportList = "";
@@ -2676,7 +2734,7 @@ namespace UnrealBuildTool
 			}
 
 			// Finally, extract the AARs and copy the JARs
-			AARHandler.ExtractAARs(UE4BuildPath);
+			AARHandler.ExtractAARs(UE4BuildPath, AppPackageName);
 			AARHandler.CopyJARs(UE4BuildPath);
 		}
     }

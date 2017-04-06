@@ -2332,7 +2332,10 @@ public:
 	 */
 	void OpenMatinee(class AMatineeActor* MatineeActor, bool bWarnUser=true);
 
-	void UpdateReflectionCaptures();
+	/**
+	* Update any outstanding reflection captures
+	*/
+	void UpdateReflectionCaptures(UWorld* World = GWorld);
 
 	/**
 	 * Convenience method for adding a Slate modal window that is parented to the main frame (if it exists)

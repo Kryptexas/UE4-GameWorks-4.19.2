@@ -13,7 +13,8 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"LocationServicesBPLibrary",
-					"LocationServicesAndroidImpl"
+					"LocationServicesAndroidImpl", 
+					"AndroidPermission"
 				}
 			);
 					

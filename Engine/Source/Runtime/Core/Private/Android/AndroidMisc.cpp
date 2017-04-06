@@ -981,6 +981,9 @@ uint32 FAndroidMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxM
 		//ADDKEYMAP( VK_INSERT, TEXT("Insert") );
 		//ADDKEYMAP( AKEYCODE_DEL, TEXT("Delete") );
 
+		ADDKEYMAP( AKEYCODE_AT, TEXT("At"));
+		ADDKEYMAP( AKEYCODE_POUND, TEXT("Pound"));
+
 		ADDKEYMAP( AKEYCODE_STAR, TEXT("Multiply") );
 		ADDKEYMAP( AKEYCODE_PLUS, TEXT("Add") );
 		ADDKEYMAP( AKEYCODE_MINUS, TEXT("Subtract") );

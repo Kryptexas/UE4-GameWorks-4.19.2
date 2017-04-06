@@ -743,8 +743,12 @@ void FAndroidInputInterface::SendControllerEvents()
 					CurrentDevice.DeviceState = MappingState::Valid;
 
 					// Generic mappings
+					CurrentDevice.ButtonRemapping = ButtonRemapType::Normal;
+					CurrentDevice.LTAnalogRangeMinimum = 0.0f;
+					CurrentDevice.RTAnalogRangeMinimum = 0.0f;
 					CurrentDevice.bSupportsHat = false;
 					CurrentDevice.bMapL1R1ToTriggers = false;
+					CurrentDevice.bMapZRZToTriggers = false;
 					CurrentDevice.bRightStickZRZ = true;
 					CurrentDevice.bRightStickRXRY = false;
 
@@ -776,6 +780,31 @@ void FAndroidInputInterface::SendControllerEvents()
 					else if (CurrentDevice.DeviceInfo.Name.StartsWith(TEXT("Mad Catz C.T.R.L.R")))
 					{
 						CurrentDevice.bSupportsHat = true;
+					}
+					else if (CurrentDevice.DeviceInfo.Name.StartsWith(TEXT("Xbox Wireless Controller")))
+					{
+						CurrentDevice.ButtonRemapping = ButtonRemapType::XBoxWireless;
+						CurrentDevice.bSupportsHat = true;
+						CurrentDevice.bMapL1R1ToTriggers = false;
+						CurrentDevice.bMapZRZToTriggers = true;
+						CurrentDevice.bRightStickZRZ = false;
+						CurrentDevice.bRightStickRXRY = true;
+					}
+					else if (CurrentDevice.DeviceInfo.Name.StartsWith(TEXT("SteelSeries Stratus XL")))
+					{
+						CurrentDevice.bSupportsHat = true;
+
+						// For some reason the left trigger is at 0.5 when at rest so we have to adjust for that.
+						CurrentDevice.LTAnalogRangeMinimum = 0.5f;
+					}
+
+					// The PS4 controller name is just "Wireless Controller" which is hardly unique so we can't trust a name
+					// comparison. Instead we check the product and vendor IDs to ensure it's the correct one.
+					else if (CurrentDevice.DeviceInfo.Name.StartsWith(TEXT("PS4 Wireless Controller")))
+					{
+						CurrentDevice.ButtonRemapping = ButtonRemapType::PS4;
+						CurrentDevice.bSupportsHat = true;
+						CurrentDevice.bRightStickZRZ = true;
 					}
 
 					FCoreDelegates::OnControllerConnectionChange.Broadcast(true, -1, DeviceIndex);
@@ -1042,6 +1071,24 @@ void FAndroidInputInterface::JoystickAxisEvent(int32 deviceId, int32 axisId, flo
 	if (deviceId == -1)
 		return;
 
+	// Left trigger may need range correction
+	if (axisId == AMOTION_EVENT_AXIS_LTRIGGER && DeviceMapping[deviceId].LTAnalogRangeMinimum != 0.0f)
+	{
+		const float AdjustMin = DeviceMapping[deviceId].LTAnalogRangeMinimum;
+		const float AdjustMax = 1.0f - AdjustMin;
+		NewControllerData[deviceId].LTAnalog = FMath::Clamp(axisValue - AdjustMin, 0.0f, AdjustMax) / AdjustMax;
+		return;
+	}
+
+	// Right trigger may need range correction
+	if (axisId == AMOTION_EVENT_AXIS_RTRIGGER && DeviceMapping[deviceId].RTAnalogRangeMinimum != 0.0f)
+	{
+		const float AdjustMin = DeviceMapping[deviceId].RTAnalogRangeMinimum;
+		const float AdjustMax = 1.0f - AdjustMin;
+		NewControllerData[deviceId].RTAnalog = FMath::Clamp(axisValue - AdjustMin, 0.0f, AdjustMax) / AdjustMax;
+		return;
+	}
+
 	// Deal with left stick and triggers (generic)
 	switch (axisId)
 	{
@@ -1068,6 +1115,16 @@ void FAndroidInputInterface::JoystickAxisEvent(int32 deviceId, int32 axisId, flo
 		{
 			case AMOTION_EVENT_AXIS_RX:		NewControllerData[deviceId].RXAnalog =  axisValue; return;
 			case AMOTION_EVENT_AXIS_RY:		NewControllerData[deviceId].RYAnalog = -axisValue; return;
+		}
+	}
+
+	// Deal with Z/RZ mapping to triggers
+	if (DeviceMapping[deviceId].bMapZRZToTriggers)
+	{
+		switch (axisId)
+		{
+			case AMOTION_EVENT_AXIS_Z:		NewControllerData[deviceId].LTAnalog =  axisValue; return;
+			case AMOTION_EVENT_AXIS_RZ:		NewControllerData[deviceId].RTAnalog =  axisValue; return;
 		}
 	}
 
@@ -1128,37 +1185,77 @@ void FAndroidInputInterface::JoystickButtonEvent(int32 deviceId, int32 buttonId,
 	if (deviceId == -1)
 		return;
 
-	switch (buttonId)
+	// Deal with button remapping
+	switch (DeviceMapping[deviceId].ButtonRemapping)
 	{
-		case AKEYCODE_BUTTON_A:
-		case AKEYCODE_DPAD_CENTER:   NewControllerData[deviceId].ButtonStates[0] = buttonDown; break;
-		case AKEYCODE_BUTTON_B:      NewControllerData[deviceId].ButtonStates[1] = buttonDown; break;
-		case AKEYCODE_BUTTON_X:      NewControllerData[deviceId].ButtonStates[2] = buttonDown; break;
-		case AKEYCODE_BUTTON_Y:      NewControllerData[deviceId].ButtonStates[3] = buttonDown; break;
-		case AKEYCODE_BUTTON_L1:     NewControllerData[deviceId].ButtonStates[4] = buttonDown;
-									 if (DeviceMapping[deviceId].bMapL1R1ToTriggers)
-									 {
-										 NewControllerData[deviceId].ButtonStates[10] = buttonDown;
-									 }
-									 break;
-		case AKEYCODE_BUTTON_R1:     NewControllerData[deviceId].ButtonStates[5] = buttonDown;
-									 if (DeviceMapping[deviceId].bMapL1R1ToTriggers)
-									 {
-										 NewControllerData[deviceId].ButtonStates[11] = buttonDown;
-									 }
-									 break;
-		case AKEYCODE_BUTTON_START:
-		case AKEYCODE_MENU:          NewControllerData[deviceId].ButtonStates[6] = buttonDown; NewControllerData[deviceId].ButtonStates[17] = buttonDown;  break;
-		case AKEYCODE_BUTTON_SELECT: 
-		case AKEYCODE_BACK:          NewControllerData[deviceId].ButtonStates[7] = buttonDown; NewControllerData[deviceId].ButtonStates[16] = buttonDown;  break;
-		case AKEYCODE_BUTTON_THUMBL: NewControllerData[deviceId].ButtonStates[8] = buttonDown; break;
-		case AKEYCODE_BUTTON_THUMBR: NewControllerData[deviceId].ButtonStates[9] = buttonDown; break;
-		case AKEYCODE_BUTTON_L2:     NewControllerData[deviceId].ButtonStates[10] = buttonDown; break;
-		case AKEYCODE_BUTTON_R2:     NewControllerData[deviceId].ButtonStates[11] = buttonDown; break;
-		case AKEYCODE_DPAD_UP:       NewControllerData[deviceId].ButtonStates[12] = buttonDown; break;
-		case AKEYCODE_DPAD_DOWN:     NewControllerData[deviceId].ButtonStates[13] = buttonDown; break;
-		case AKEYCODE_DPAD_LEFT:     NewControllerData[deviceId].ButtonStates[14] = buttonDown; break;
-		case AKEYCODE_DPAD_RIGHT:    NewControllerData[deviceId].ButtonStates[15] = buttonDown; break;
+		case ButtonRemapType::Normal:
+			switch (buttonId)
+			{
+				case AKEYCODE_BUTTON_A:
+				case AKEYCODE_DPAD_CENTER:   NewControllerData[deviceId].ButtonStates[0] = buttonDown; break;
+				case AKEYCODE_BUTTON_B:      NewControllerData[deviceId].ButtonStates[1] = buttonDown; break;
+				case AKEYCODE_BUTTON_X:      NewControllerData[deviceId].ButtonStates[2] = buttonDown; break;
+				case AKEYCODE_BUTTON_Y:      NewControllerData[deviceId].ButtonStates[3] = buttonDown; break;
+				case AKEYCODE_BUTTON_L1:     NewControllerData[deviceId].ButtonStates[4] = buttonDown;
+											 if (DeviceMapping[deviceId].bMapL1R1ToTriggers)
+											 {
+												 NewControllerData[deviceId].ButtonStates[10] = buttonDown;
+											 }
+											 break;
+				case AKEYCODE_BUTTON_R1:     NewControllerData[deviceId].ButtonStates[5] = buttonDown;
+											 if (DeviceMapping[deviceId].bMapL1R1ToTriggers)
+											 {
+												 NewControllerData[deviceId].ButtonStates[11] = buttonDown;
+											 }
+											 break;
+				case AKEYCODE_BUTTON_START:
+				case AKEYCODE_MENU:          NewControllerData[deviceId].ButtonStates[6] = buttonDown; NewControllerData[deviceId].ButtonStates[17] = buttonDown;  break;
+				case AKEYCODE_BUTTON_SELECT:
+				case AKEYCODE_BACK:          NewControllerData[deviceId].ButtonStates[7] = buttonDown; NewControllerData[deviceId].ButtonStates[16] = buttonDown;  break;
+				case AKEYCODE_BUTTON_THUMBL: NewControllerData[deviceId].ButtonStates[8] = buttonDown; break;
+				case AKEYCODE_BUTTON_THUMBR: NewControllerData[deviceId].ButtonStates[9] = buttonDown; break;
+				case AKEYCODE_BUTTON_L2:     NewControllerData[deviceId].ButtonStates[10] = buttonDown; break;
+				case AKEYCODE_BUTTON_R2:     NewControllerData[deviceId].ButtonStates[11] = buttonDown; break;
+				case AKEYCODE_DPAD_UP:       NewControllerData[deviceId].ButtonStates[12] = buttonDown; break;
+				case AKEYCODE_DPAD_DOWN:     NewControllerData[deviceId].ButtonStates[13] = buttonDown; break;
+				case AKEYCODE_DPAD_LEFT:     NewControllerData[deviceId].ButtonStates[14] = buttonDown; break;
+				case AKEYCODE_DPAD_RIGHT:    NewControllerData[deviceId].ButtonStates[15] = buttonDown; break;
+			}
+			break;
+
+		case ButtonRemapType::XBoxWireless:
+			switch (buttonId)
+			{
+				case AKEYCODE_BUTTON_A:      NewControllerData[deviceId].ButtonStates[0] = buttonDown; break; // A
+				case AKEYCODE_BUTTON_B:      NewControllerData[deviceId].ButtonStates[1] = buttonDown; break; // B
+				case AKEYCODE_BUTTON_C:      NewControllerData[deviceId].ButtonStates[2] = buttonDown; break; // X
+				case AKEYCODE_BUTTON_X:      NewControllerData[deviceId].ButtonStates[3] = buttonDown; break; // Y
+				case AKEYCODE_BUTTON_Y:      NewControllerData[deviceId].ButtonStates[4] = buttonDown; break; // L1
+				case AKEYCODE_BUTTON_Z:      NewControllerData[deviceId].ButtonStates[5] = buttonDown; break; // R1
+				case AKEYCODE_BUTTON_R1:     NewControllerData[deviceId].ButtonStates[6] = buttonDown; NewControllerData[deviceId].ButtonStates[17] = buttonDown;  break; // Menu
+				case AKEYCODE_BUTTON_L1:     NewControllerData[deviceId].ButtonStates[7] = buttonDown; NewControllerData[deviceId].ButtonStates[16] = buttonDown;  break; // View
+				case AKEYCODE_BUTTON_L2:     NewControllerData[deviceId].ButtonStates[8] = buttonDown; break; // ThumbL
+				case AKEYCODE_BUTTON_R2:     NewControllerData[deviceId].ButtonStates[9] = buttonDown; break; // ThumbR
+			}
+			break;
+
+		case ButtonRemapType::PS4:
+			switch (buttonId)
+			{
+				case AKEYCODE_BUTTON_B:      NewControllerData[deviceId].ButtonStates[0] = buttonDown; break; // Cross
+				case AKEYCODE_BUTTON_C:      NewControllerData[deviceId].ButtonStates[1] = buttonDown; break; // Circle
+				case AKEYCODE_BUTTON_A:      NewControllerData[deviceId].ButtonStates[2] = buttonDown; break; // Square
+				case AKEYCODE_BUTTON_X:      NewControllerData[deviceId].ButtonStates[3] = buttonDown; break; // Triangle
+				case AKEYCODE_BUTTON_Y:      NewControllerData[deviceId].ButtonStates[4] = buttonDown; break; // L1
+				case AKEYCODE_BUTTON_Z:      NewControllerData[deviceId].ButtonStates[5] = buttonDown; break; // R1
+				case AKEYCODE_BUTTON_L2:     NewControllerData[deviceId].ButtonStates[6] = buttonDown; NewControllerData[deviceId].ButtonStates[17] = buttonDown;  break; // Options
+				case AKEYCODE_BUTTON_R2:     NewControllerData[deviceId].ButtonStates[7] = buttonDown; NewControllerData[deviceId].ButtonStates[16] = buttonDown;  break; // Share
+				case AKEYCODE_BUTTON_SELECT: NewControllerData[deviceId].ButtonStates[8] = buttonDown; break; // ThumbL
+				case AKEYCODE_BUTTON_START:  NewControllerData[deviceId].ButtonStates[9] = buttonDown; break; // ThumbR
+				case AKEYCODE_BUTTON_L1:     NewControllerData[deviceId].ButtonStates[10] = buttonDown; break; // L2
+				case AKEYCODE_BUTTON_R1:     NewControllerData[deviceId].ButtonStates[11] = buttonDown; break; // R2
+			}
+			break;
 	}
 }
 

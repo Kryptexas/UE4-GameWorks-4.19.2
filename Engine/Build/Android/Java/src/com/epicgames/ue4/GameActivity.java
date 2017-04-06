@@ -5,10 +5,13 @@ package com.epicgames.ue4;
 
 import java.io.File;
 
+import java.lang.Override;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.text.DecimalFormat;
+
+import android.annotation.TargetApi;
 
 import android.app.NativeActivity;
 import android.os.Bundle;
@@ -21,9 +24,13 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.PendingIntent;
 import android.app.AlarmManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.text.Editable;
 import android.text.InputType;
+import android.text.method.PasswordTransformationMethod;
 import android.text.TextWatcher;
 import android.view.inputmethod.EditorInfo;
 import android.content.Context;
@@ -39,6 +46,8 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.FeatureInfo;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageInfo;
+
 
 import android.media.AudioManager;
 import android.util.DisplayMetrics;
@@ -77,6 +86,8 @@ import com.google.android.gms.ads.InterstitialAd;
 
 import com.google.android.gms.plus.Plus;
 
+import com.google.vr.sdk.samples.permission.PermissionHelper;
+
 import java.net.URL;
 import java.net.HttpURLConnection;
 
@@ -101,6 +112,9 @@ import com.epicgames.ue4.DownloadShim;
 
 // used in new virtual keyboard
 import android.view.inputmethod.InputMethodManager;
+
+import android.graphics.Rect;
+import android.view.ViewTreeObserver;
 
 //$${gameActivityImportAdditions}$$
 
@@ -139,7 +153,13 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private int noActionAnimID = -1;
 
 	// Console
+	private static final String CONSOLE_SPINNER_ITEMS[] = {"Common Console Commands", "stat FPS", "stat Anim","stat OpenGLRHI","stat VulkanRHI","stat DumpEvents","stat DumpFrame",
+		"stat DumpHitches","stat Engine","stat Game","stat Grouped","stat Hitches","stat InitViews","stat LightRendering",
+		"stat Memory","stat Particles","stat SceneRendering","stat SceneUpdate","stat ShadowRendering","stat Slow",
+		"stat Streaming","stat StreamingDetails","stat Unit","stat UnitGraph", "stat StartFile", "stat StopFile", "GameVer", "show PostProcessing"};
 	AlertDialog consoleAlert;
+	LinearLayout consoleAlertLayout;
+	Spinner consoleSpinner;
 	EditText consoleInputBox;
 	ArrayList<String> consoleHistoryList;
 	int consoleHistoryIndex;
@@ -154,6 +174,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	// Keep a reference to the main content view so we can bring up the virtual keyboard without an editbox
 	private View mainView;
 	private boolean bKeyboardShowing;
+
+	private View mainDecorView;
+	private Rect mainDecorViewRect;
 
 	// Console commands receiver
 	ConsoleCmdReceiver consoleCmdReceiver;
@@ -221,6 +244,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	/** Whether this application is for distribution */
 	private boolean IsForDistribution = false;
 
+	/** Application build configuration */
+	private String BuildConfiguration = "";
+
 	/** Whether we are in VRMode */
 	private boolean IsInVRMode = false;
 
@@ -283,9 +309,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	{
 		super.onStart();
 		
-		if (IsForDistribution == false)
+		if (!BuildConfiguration.equals("Shipping"))
 		{
 			// Create console command broadcast listener
+			Log.debug( "Creating console command broadcast listener");
 			consoleCmdReceiver = new ConsoleCmdReceiver(this);
 			registerReceiver(consoleCmdReceiver, new IntentFilter(Intent.ACTION_RUN));
 		}
@@ -377,11 +404,35 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				e.printStackTrace();
 			}
 		}
+
+		//Check for target sdk.  If less than 23 than warn that permission handling is not used.
+		int targetSdkVersion = 0;
+		try 
+		{
+			PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+			targetSdkVersion = packageInfo.applicationInfo.targetSdkVersion;
+		}
+		catch (PackageManager.NameNotFoundException e) 
+		{
+			Log.debug(e.getMessage());
+		}
+
+		if(targetSdkVersion < 23) //23 is the API level (Marshmallow) where runtime permission handling is available 
+		{
+			Log.debug("Target SDK is lower than 23.  This may cause issues if permissions are denied by the user." );				
+		}
+
+
 		
 		// Suppress java logs in Shipping builds
 		if (nativeIsShippingBuild())
 		{
 			Logger.SuppressLogs();
+		}
+		else
+		{
+			//For non-shipping builds we need to request this permission bc we write to the sdcard for logs
+			PermissionHelper.acquirePermissions(new String[] {"android.permission.WRITE_EXTERNAL_STORAGE"}, this);
 		}
 
 		_activity = this;
@@ -617,7 +668,18 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			{
 				Log.debug( "UI hiding not found. Leaving as " + ShouldHideUI);
 			}
-			if(bundle.containsKey("com.epicgames.ue4.GameActivity.bUseExternalFilesDir"))
+
+			if (bundle.containsKey("com.epicgames.ue4.GameActivity.BuildConfiguration"))
+			{
+				BuildConfiguration = bundle.getString("com.epicgames.ue4.GameActivity.BuildConfiguration");
+				Log.debug( "BuildConfiguration set to " + BuildConfiguration);
+			}
+			else
+			{
+				Log.debug( "BuildConfiguration not found" );
+			}
+
+			if (bundle.containsKey("com.epicgames.ue4.GameActivity.bUseExternalFilesDir"))
             {
                 UseExternalFilesDir = bundle.getBoolean("com.epicgames.ue4.GameActivity.bUseExternalFilesDir");
                 Log.debug( "UseExternalFilesDir set to " + UseExternalFilesDir);
@@ -638,8 +700,11 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			Log.debug( "Failed to load meta-data: NullPointer: " + e.getMessage());
 		}
 
+		Log.debug("APK path: " + getPackageResourcePath());
+		Log.debug("OBB in APK: " + (PackageDataInsideApkValue==1));
+		nativeSetGlobalActivity(UseExternalFilesDir, PackageDataInsideApkValue==1, getPackageResourcePath());
+
 		// tell the engine if this is a portrait app
-		nativeSetGlobalActivity(UseExternalFilesDir);
 		nativeSetWindowInfo(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT, DepthBufferPreference);
 
 		// get the full language code, like en-US
@@ -724,10 +789,35 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			}
 		});
 
+		// Spinner with Quick Stat Commands
+		consoleSpinner = new Spinner(this);
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, CONSOLE_SPINNER_ITEMS);
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		consoleSpinner.setAdapter(adapter);
+		consoleSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+			@Override
+			public void onItemSelected(AdapterView<?> adapterView, View view, int pos, long id) {
+				if (pos > 0)
+					consoleInputBox.setText(adapterView.getItemAtPosition(pos).toString());
+			}
+
+			@Override
+			public void onNothingSelected(AdapterView<?> adapterView) {
+				consoleInputBox.setText("");
+				consoleSpinner.setSelection(0);
+			}
+		});
+
+		// Layout for Quick Commands and Console Input
+		consoleAlertLayout = new LinearLayout(this);
+		consoleAlertLayout.setOrientation(LinearLayout.VERTICAL);
+		consoleAlertLayout.addView(consoleSpinner);
+		consoleAlertLayout.addView(consoleInputBox);
+
 		builder = new AlertDialog.Builder(this);
 		builder.setTitle("Console Window - Enter Command")
 		.setMessage("")
-		.setView(consoleInputBox)
+		.setView(consoleAlertLayout)
 		.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
 				String message = consoleInputBox.getText().toString().trim();
@@ -742,6 +832,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 				nativeConsoleCommand(message);
 				consoleInputBox.setText(" ");
+				consoleSpinner.setSelection(0);
 				dialog.dismiss();
 				CurrentDialogType = EAlertDialogType.None;
 			}
@@ -749,6 +840,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
 				consoleInputBox.setText(" ");
+				consoleSpinner.setSelection(0);
 				dialog.dismiss();
 				CurrentDialogType = EAlertDialogType.None;
 			}
@@ -841,6 +933,39 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
         mainView = findViewById( android.R.id.content );
         mainView.setFocusable( true );
         mainView.setFocusableInTouchMode( true );
+
+        mainDecorView = getWindow().getDecorView();
+        mainDecorViewRect = new Rect();
+        mainDecorView.getWindowVisibleDisplayFrame( mainDecorViewRect );
+
+        mainView.getViewTreeObserver().addOnGlobalLayoutListener( new ViewTreeObserver.OnGlobalLayoutListener()
+        {
+        	@Override
+        	public void onGlobalLayout()
+        	{
+        		if( bKeyboardShowing )
+        		{
+        			Rect visibleRect = new Rect();
+        			View visibleView = getWindow().getDecorView();
+        			visibleView.getWindowVisibleDisplayFrame( visibleRect );
+
+        			// determine which side of the screen the keyboard is covering
+        			int leftDiff = Math.abs( mainDecorViewRect.left - visibleRect.left );
+        			int topDiff = Math.abs( mainDecorViewRect.top - visibleRect.top );
+        			int rightDiff = Math.abs( mainDecorViewRect.right - visibleRect.right );
+        			int bottomDiff = Math.abs( mainDecorViewRect.bottom - visibleRect.bottom );
+
+        			// Rect covered by the virtual keyboard
+        			Rect keyboardRect = new Rect();
+    				keyboardRect.left = ( rightDiff > 0 ) ? visibleRect.right : mainDecorViewRect.left; // keyboard is on the right
+    				keyboardRect.top = ( bottomDiff > 0 ) ? visibleRect.bottom : mainDecorViewRect.top; // keyboard is on the bottom
+    				keyboardRect.right = ( leftDiff > 0 ) ? visibleRect.left : mainDecorViewRect.right; // keyboard is on the left
+    				keyboardRect.bottom = ( topDiff > 0 ) ? visibleRect.top : mainDecorViewRect.bottom; // keyboard is on the top
+
+        			nativeVirtualKeyboardShown( keyboardRect.left, keyboardRect.top, keyboardRect.right, keyboardRect.bottom );
+        		}
+        	}
+        });
 
 //$${gameActivityOnCreateAdditions}$$
 		
@@ -1072,7 +1197,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			}
 
 			adPopupWindow.showAtLocation(activityLayout, adGravity, 0, 0);
-			adPopupWindow.update();
+			// don't call update on 7.0 to work around this issue: https://code.google.com/p/android/issues/detail?id=221001
+			if (ANDROID_BUILD_VERSION != 24) {
+				adPopupWindow.update();
+			}
 		}
 		else
 		{
@@ -1192,7 +1320,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		});
 	}
 
-	public void AndroidThunkJava_ShowVirtualKeyboardInputDialog(int InputType, String Label, String Contents)
+	public void AndroidThunkJava_ShowVirtualKeyboardInputDialog(int inInputType, String Label, String Contents)
 	{
 		if (virtualKeyboardAlert.isShowing() == true)
 		{
@@ -1205,7 +1333,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		// @HSL_BEGIN - Josh.May - 11/01/2016 - Ensure the input mode of the text box is set before setting the contents.
 		// configure for type of input
-		virtualKeyboardInputBox.setRawInputType(InputType);
+		virtualKeyboardInputBox.setRawInputType(inInputType);
+		virtualKeyboardInputBox.setTransformationMethod((inInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? null : PasswordTransformationMethod.getInstance());
 		
 		virtualKeyboardInputBox.setText("");
 		virtualKeyboardInputBox.append(Contents);
@@ -1243,17 +1372,16 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public void AndroidThunkJava_ShowVirtualKeyboardInput(int InputType, String Label, String Contents)
 	{
-		if (bKeyboardShowing)
-		{
-			Log.debug("Virtual keyboard already showing.");
-			return;
-		}
-
 		_activity.runOnUiThread(new Runnable()
 		{
 			public void run()
 			{
-				if (mainView.requestFocus())
+				if (bKeyboardShowing)
+				{
+					Log.debug("Virtual keyboard already showing.");
+					return;
+				}
+				else if (mainView.requestFocus())
 				{
 		            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 		            imm.showSoftInput(mainView, 0);
@@ -1281,32 +1409,60 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	{
 		try
         {
-			String email = Plus.AccountApi.getAccountName(googleClient);
-			Log.debug("AndroidThunkJava_ResetAchievements: using email " + email);
-
-            String accesstoken = GoogleAuthUtil.getToken(this, email, "oauth2:https://www.googleapis.com/auth/games");
-
-			String ResetURL = "https://www.googleapis.com/games/v1management/achievements/reset?access_token=" + accesstoken;
-			Log.debug("AndroidThunkJava_ResetAchievements: using URL " + ResetURL);
-
-			URL url = new URL(ResetURL);
-			HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
-
-			try
+			String accesstoken = GetAccessToken();
+			          
+			if(!accesstoken.equals(""))
 			{
-				urlConnection.setRequestMethod("POST");
-				int status = urlConnection.getResponseCode();
-				Log.debug("AndroidThunkJava_ResetAchievements: HTTP response is " + status);
+				String ResetURL = "https://www.googleapis.com/games/v1management/achievements/reset?access_token=" + accesstoken;
+				Log.debug("AndroidThunkJava_ResetAchievements: using URL " + ResetURL);
+
+				URL url = new URL(ResetURL);
+				HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
+
+				try
+				{
+					urlConnection.setRequestMethod("POST");
+					int status = urlConnection.getResponseCode();
+					Log.debug("AndroidThunkJava_ResetAchievements: HTTP response is " + status);
+				}
+				finally
+				{
+					urlConnection.disconnect();
+				}
 			}
-			finally
+			else
 			{
-				urlConnection.disconnect();
+				Log.debug("AndroidThunkJava_ResetAchievements: Access Token not returned.  Possible reason is that android.permission.GET_ACCOUNTS is not granted.  Make sure to add in by going to Project settings > Android > Advanced Project Settings and check the box for \"Request Access Token On Connect\". ");
 			}
         }
         catch(Exception e)
         {
             Log.debug("AndroidThunkJava_ResetAchievements failed: " + e.getMessage());
         }
+	}
+
+	// TODO: replace this with non-depreciated method (OK now for up to API-25)
+	@TargetApi(23)
+	private String GetAccessToken()
+	{
+		String accesstoken = "";
+
+		try
+        {
+			if (PermissionHelper.checkPermission("android.permission.GET_ACCOUNTS"))
+			{
+				String email = Plus.AccountApi.getAccountName(googleClient);
+				Log.debug("GetAccessToken: using email " + email);
+
+				accesstoken = GoogleAuthUtil.getToken(this, email, "oauth2:https://www.googleapis.com/auth/games");
+			}
+		}
+		catch(Exception e)
+        {
+            Log.debug("GetAccessToken failed: " + e.getMessage());
+        }
+
+		return accesstoken;
 	}
 
 	public void AndroidThunkJava_ShowAdBanner(String AdMobAdUnitID, boolean bShowOnBottonOfScreen)
@@ -1356,7 +1512,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					adPopupWindow = new PopupWindow(_activity);
 					adPopupWindow.setWidth((int)(320*scale));
 					adPopupWindow.setHeight((int)(50*scale));
-					adPopupWindow.setWindowLayoutMode(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
 					adPopupWindow.setClippingEnabled(false);
 
 					adLayout = new LinearLayout(_activity);
@@ -1537,13 +1692,17 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				{
 					try
 					{
-						String email = Plus.AccountApi.getAccountName(googleClient);
-						Log.debug("Google Client Connect using email " + email);
-
-						String accesstoken = GoogleAuthUtil.getToken(GameActivity.Get(), email, "oauth2:https://www.googleapis.com/auth/games");
-						Log.debug("Google Client Connect using Access Token " + accesstoken);
-
-						nativeGoogleClientConnectCompleted(true, accesstoken);
+						String accesstoken = GetAccessToken();
+						if(!accesstoken.equals(""))
+						{
+							Log.debug("Google Client Connect using Access Token " + accesstoken);
+							nativeGoogleClientConnectCompleted(true, accesstoken);
+						}
+						else
+						{
+							Log.debug("Google Client Connect succeeded but no access token returned");
+							nativeGoogleClientConnectCompleted(true, "");
+						}
 					}
 					catch (Exception e)
 					{
@@ -1564,6 +1723,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	@Override
 	public void onConnectionFailed(ConnectionResult connectionResult)
 	{
+		Log.debug("Google Client Connect failed. Error Code: " + connectionResult.getErrorCode() + " Description: " + connectionResult.getErrorMessage());
 		nativeGoogleClientConnectCompleted(false, "");
 	}
 
@@ -1571,6 +1731,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	@Override
 	public void onConnectionSuspended(int cause)
 	{
+		Log.debug("Google Client Connect Suspended: " + cause);
 	}
 
 	public AssetManager AndroidThunkJava_GetAssetManager()
@@ -2126,7 +2287,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		new DeviceInfoData(0x1949, 0x0404, "Amazon Fire TV Remote"),
 		new DeviceInfoData(0x1949, 0x0406, "Amazon Fire Game Controller"),
 		new DeviceInfoData(0x0738, 0x5263, "Mad Catz C.T.R.L.R (Smart)"),
-		new DeviceInfoData(0x0738, 0x5266, "Mad Catz C.T.R.L.R")
+		new DeviceInfoData(0x0738, 0x5266, "Mad Catz C.T.R.L.R"),
+		new DeviceInfoData(0x045e, 0x02e0, "Xbox Wireless Controller"),
+		new DeviceInfoData(0x0111, 0x1419, "SteelSeries Stratus XL"), 
+		new DeviceInfoData(0x054c, 0x05c4, "PS4 Wireless Controller")
 	};
 
 	public class InputDeviceInfo {
@@ -2329,7 +2493,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	}
 
 	public native boolean nativeIsShippingBuild();
-	public native void nativeSetGlobalActivity(boolean bUseExternalFilesDir);
+	public native void nativeSetGlobalActivity(boolean bUseExternalFilesDir, boolean bOBBInAPK, String APKPath);
 	public native void nativeSetWindowInfo(boolean bIsPortrait, int DepthBufferPreference);
 	public native void nativeSetObbInfo(String ProjectName, String PackageName, int Version, int PatchVersion);
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel, String OSLanguage );
@@ -2347,6 +2511,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeOnActivityResult(GameActivity activity, int requestCode, int resultCode, Intent data);
 
 	public native void nativeGoogleClientConnectCompleted(boolean bSuccess, String accessToken);
+
+	public native void nativeVirtualKeyboardShown(int left, int top, int right, int bottom);
 		
 	static
 	{

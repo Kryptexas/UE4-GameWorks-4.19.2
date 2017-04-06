@@ -448,10 +448,12 @@ void FSlateBatchData::AssignIndexArrayToBatch( FSlateElementBatch& Batch )
 
 }
 
-void FSlateBatchData::FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* IndexBuffer)
+void FSlateBatchData::FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* IndexBuffer, bool bAbsoluteIndices)
 {
 	int32 IndexOffset = 0;
 	int32 VertexOffset = 0;
+	int32 BaseVertexIndex = 0;
+
 	for ( const FSlateRenderBatch& Batch : RenderBatches )
 	{
 		// Ignore foreign batches that are inserted into our render set.
@@ -464,15 +466,27 @@ void FSlateBatchData::FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* Index
 		{
 			FSlateVertexArray& Vertices = BatchVertexArrays[Batch.VertexArrayIndex];
 			FSlateIndexArray& Indices = BatchIndexArrays[Batch.IndexArrayIndex];
-
+	
 			if ( Vertices.Num() && Indices.Num() )
 			{
 				uint32 RequiredVertexSize = Vertices.Num() * Vertices.GetTypeSize();
 				uint32 RequiredIndexSize = Indices.Num() * Indices.GetTypeSize();
 
 				FMemory::Memcpy(VertexBuffer + VertexOffset, Vertices.GetData(), RequiredVertexSize);
-				FMemory::Memcpy(IndexBuffer + IndexOffset, Indices.GetData(), RequiredIndexSize);
-
+				if (BaseVertexIndex == 0 || !bAbsoluteIndices)
+				{
+					FMemory::Memcpy(IndexBuffer + IndexOffset, Indices.GetData(), RequiredIndexSize);
+				}
+				else
+				{
+					SlateIndex* TargetIndexBuffer = (SlateIndex*)(IndexBuffer + IndexOffset);
+					for (int32 i = 0; i < Indices.Num(); ++i)
+					{
+						TargetIndexBuffer[i] = Indices[i] + BaseVertexIndex;
+					}
+				}
+				
+				BaseVertexIndex+= Vertices.Num();
 				IndexOffset += ( Indices.Num()*sizeof(SlateIndex) );
 				VertexOffset += ( Vertices.Num()*sizeof(FSlateVertex) );
 

@@ -491,14 +491,35 @@ void FVulkanDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntR
 
 	OutData.SetNum(NumPixels);
 	FColor* Dest = OutData.GetData();
-	for (int32 Row = Rect.Min.Y; Row < Rect.Max.Y; ++Row)
+
+	if (Texture2D->Surface.StorageFormat == VK_FORMAT_R8G8B8A8_UNORM)
 	{
-		FColor* Src = (FColor*)StagingBuffer->GetMappedPointer() + Row * TextureRHI2D->GetSizeX() + Rect.Min.X;
-		for (int32 Col = Rect.Min.X; Col < Rect.Max.X; ++Col)
+		for (int32 Row = Rect.Min.Y; Row < Rect.Max.Y; ++Row)
 		{
-			*Dest++ = *Src++;
+			FColor* Src = (FColor*)StagingBuffer->GetMappedPointer() + Row * TextureRHI2D->GetSizeX() + Rect.Min.X;
+			for (int32 Col = Rect.Min.X; Col < Rect.Max.X; ++Col)
+			{
+				Dest->R = Src->B;
+				Dest->G = Src->G;
+				Dest->B = Src->R;
+				Dest->A = Src->A;
+				Dest++;
+				Src++;
+			}
 		}
 	}
+	else
+	{
+		FColor* Src = (FColor*)StagingBuffer->GetMappedPointer() + Rect.Min.Y * TextureRHI2D->GetSizeX() + Rect.Min.X;
+		for (int32 Row = Rect.Min.Y; Row < Rect.Max.Y; ++Row)
+		{
+			const int32 NumCols = Rect.Max.X - Rect.Min.X;
+			FMemory::Memcpy(Dest, Src, NumCols * sizeof(FColor));
+			Src += TextureRHI2D->GetSizeX();
+			Dest += NumCols;
+		}
+	}
+
 	Device->GetStagingManager().ReleaseBuffer(CmdBuffer, StagingBuffer);
 	ImmediateContext.GetCommandBufferManager()->PrepareForNewActiveCommandBuffer();
 }

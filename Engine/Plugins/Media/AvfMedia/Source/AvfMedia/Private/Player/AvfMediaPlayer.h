@@ -29,7 +29,7 @@ public:
 	FAvfMediaPlayer();
 
 	/** Destructor. */
-	~FAvfMediaPlayer() { }
+	~FAvfMediaPlayer();
 
 	/** Called by the delegate whenever the player item status changes. */
 	void HandleStatusNotification(AVPlayerItemStatus Status);

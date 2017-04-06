@@ -26,6 +26,7 @@
 #include "AssetToolsModule.h"
 #include "EditorSupportDelegates.h"
 #include "Matinee/MatineeActor.h"
+#include "GameFramework/WorldSettings.h"
 
 #include "ShaderCompiler.h"
 
@@ -317,6 +318,12 @@ UWorld* FLevelCollectionModel::GetSimulationWorld() const
 	return GEditor->PlayWorld; 
 }
 
+bool FLevelCollectionModel::IsOriginRebasingEnabled() const
+{
+	UWorld* ThisWorld = GetWorld();
+	return ThisWorld && ThisWorld->GetWorldSettings()->bEnableWorldOriginRebasing;
+}
+
 FLevelModelList& FLevelCollectionModel::GetRootLevelList()
 { 
 	return RootLevelsList;
@@ -578,6 +585,11 @@ void FLevelCollectionModel::LoadLevels(const FLevelModelList& InLevelList)
 			);
 
 		LevelModel->LoadLevel();
+	}
+
+	if (InLevelList.Num() > 0)
+	{
+		GEditor->ResetTransaction(LOCTEXT("LoadingWorldTilesTransReset", "Loading Levels"));
 	}
 
 	GWarn->EndSlowTask();	

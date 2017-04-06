@@ -957,7 +957,12 @@ void FVulkanCommandListContext::PrepareForCPURead()
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	if (CmdBuffer && CmdBuffer->HasBegun())
 	{
-		ensure(CmdBuffer->IsOutsideRenderPass());
+		if (CmdBuffer->IsInsideRenderPass())
+		{
+			//#todo-rco: If we get real render passes then this is not needed
+			TransitionState.EndRenderPass(CmdBuffer);
+		}
+
 		CommandBufferManager->SubmitActiveCmdBuffer(true);
 	}
 }

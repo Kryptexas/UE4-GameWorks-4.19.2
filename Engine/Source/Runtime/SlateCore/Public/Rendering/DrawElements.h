@@ -1085,8 +1085,9 @@ public:
 	 *
 	 * @param VertexBuffer	Pointer to the actual memory for the vertex buffer 
 	 * @param IndexBuffer	Pointer to the actual memory for an index buffer
+	 * @param bAbsoluteIndices	Whether to write absolute indices (simplifies draw call setup on RHIs that do not support BaseVertex)
 	 */
-	SLATECORE_API void FillVertexAndIndexBuffer( uint8* VertexBuffer, uint8* IndexBuffer );
+	SLATECORE_API void FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* IndexBuffer, bool bAbsoluteIndices);
 
 	/** 
 	 * Creates rendering data from batched elements

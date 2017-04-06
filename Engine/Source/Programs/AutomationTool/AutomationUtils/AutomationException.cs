@@ -58,7 +58,8 @@ namespace AutomationTool
         Error_DeviceNotSetupForDevelopment = 150,
         Error_DeviceOSNewerThanSDK = 151,
 		Error_TestFailure = 152,
-    };
+		Error_SymbolizedSONotFound = 153,
+	};
 
     /// <summary>
     /// Exception class used by the AutomationTool to throw exceptions. Allows setting an exit code that will be passed to the entry routine to return to the system on program exit.

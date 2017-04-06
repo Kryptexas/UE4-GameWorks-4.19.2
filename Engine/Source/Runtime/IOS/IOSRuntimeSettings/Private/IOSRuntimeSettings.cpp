@@ -23,10 +23,10 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bGeneratedSYMFile = false;
 	bGeneratedSYMBundle = false;
 	bGenerateXCArchive = false;
-	bDevForArmV7 = true;
-	bDevForArm64 = false;
+	bDevForArmV7 = false;
+	bDevForArm64 = true;
 	bDevForArmV7S = false;
-	bShipForArmV7 = true;
+	bShipForArmV7 = false;
 	bShipForArm64 = true;
 	bShipForArmV7S = false;
 	bShipForBitcode = false;
@@ -60,16 +60,16 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2)), GetDefaultConfigFilename());
 	}
 
-	// Ensure that at least armv7 is selected for shipping and dev
+	// Ensure that at least arm64 is selected for shipping and dev
 	if (!bDevForArmV7 && !bDevForArm64 && !bDevForArmV7S)
 	{
-		bDevForArmV7 = true;
-		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7)), GetDefaultConfigFilename());
+		bDevForArm64 = true;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArm64)), GetDefaultConfigFilename());
 	}
 	if (!bShipForArmV7 && !bShipForArm64 && !bShipForArmV7S)
 	{
-		bShipForArmV7 = true;
-		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArmV7)), GetDefaultConfigFilename());
+		bShipForArm64 = true;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArm64)), GetDefaultConfigFilename());
 	}
 }
 

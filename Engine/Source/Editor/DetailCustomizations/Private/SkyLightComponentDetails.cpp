@@ -14,6 +14,7 @@
 #include "DetailWidgetRow.h"
 #include "DetailCategoryBuilder.h"
 #include "IDetailsView.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponentDetails"
 
@@ -87,7 +88,16 @@ FReply FSkyLightComponentDetails::OnUpdateSkyCapture()
 	{
 		if (UWorld* SkyLightWorld = SkyLight->GetWorld())
 		{
-			SkyLightWorld->UpdateAllSkyCaptures();
+			const ERHIFeatureLevel::Type ActiveFeatureLevel = SkyLightWorld->FeatureLevel;
+			if (ActiveFeatureLevel < ERHIFeatureLevel::SM4 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+			{
+				// Trigger a switch to GMaxRHIFeatureLevel for a full reflection capture update (including sky) if we're in mobile preview.
+				GEditor->UpdateReflectionCaptures(SkyLightWorld);
+			}
+			else
+			{
+				SkyLightWorld->UpdateAllSkyCaptures();
+			}
 		}
 	}
 

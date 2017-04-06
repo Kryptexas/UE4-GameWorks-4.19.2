@@ -46,6 +46,8 @@ public:
 	static jclass FindJavaClass(const char* name);
 	static void DetachJavaEnv();
 	static bool CheckJavaException();
+	
+	static FAndroidApplication* Get() { return _application; }
 
 public:	
 	
@@ -82,6 +84,8 @@ private:
 	TArray< TSharedRef< FAndroidWindow > > Windows;
 
 	static bool bWindowSizeChanged;
+
+	static FAndroidApplication* _application;
 };
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

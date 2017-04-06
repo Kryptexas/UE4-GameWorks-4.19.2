@@ -29,6 +29,7 @@ extern FString GExternalFilePath;
 extern FString GFontPathBase;
 extern bool GOBBinAPK;
 extern FString GOBBFilePathBase;
+extern FString GAPKFilename;
 
 FOnActivityResult FJavaWrapper::OnActivityResultDelegate;
 
@@ -607,11 +608,33 @@ void AndroidThunkCpp_HideVirtualKeyboardInput()
 
 		// call the java side
 		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_HideVirtualKeyboardInput);
+
+		if( FTaskGraphInterface::IsRunning() )
+		{
+			FGraphEventRef VirtualKeyboardShown = FFunctionGraphTask::CreateAndDispatchWhenReady( [&]()
+			{
+				FAndroidApplication::Get()->OnVirtualKeyboardHidden().Broadcast();
+			}, TStatId(), NULL, ENamedThreads::GameThread );
+		}
+	}
+}
+
+// This is called from the ViewTreeObserver.OnGlobalLayoutListener in GameActivity
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardShown(JNIEnv* jenv, jobject thiz, jint left, jint top, jint right, jint bottom)
+{
+	FPlatformRect ScreenRect( left, top, right, bottom );
+
+	if( FTaskGraphInterface::IsRunning() )
+	{
+		FGraphEventRef VirtualKeyboardShown = FFunctionGraphTask::CreateAndDispatchWhenReady( [ScreenRect]()
+		{
+			FAndroidApplication::Get()->OnVirtualKeyboardShown().Broadcast( ScreenRect );
+		}, TStatId(), NULL, ENamedThreads::GameThread );
 	}
 }
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeVirtualKeyboardResult(bool update, String contents);"
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(JNIEnv* jenv, jobject thiz, jboolean update, jstring contents)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(JNIEnv* jenv, jobject thiz, jboolean update, jstring contents)
 {
 	// update text widget with new contents if OK pressed
 	if (update == JNI_TRUE)
@@ -639,7 +662,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(
 }
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeVirtualKeyboardChanged(String contents);"
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardChanged(JNIEnv* jenv, jobject thiz, jstring contents)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardChanged(JNIEnv* jenv, jobject thiz, jstring contents)
 {
 	if (VirtualKeyboardWidget != NULL)
 	{
@@ -1141,7 +1164,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 //Native-defined functions
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeSetGlobalActivity();"
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIEnv* jenv, jobject thiz, jboolean bUseExternalFilesDir /*, jobject googleServices*/)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIEnv* jenv, jobject thiz, jboolean bUseExternalFilesDir, jboolean bOBBinAPK, jstring APKFilename /*, jobject googleServices*/)
 {
 	if (!FJavaWrapper::GameActivityThis)
 	{
@@ -1160,8 +1183,13 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIE
 		// FJavaWrapper::GoogleServicesThis = jenv->NewGlobalRef(googleServices);
 
 		// Next we check to see if the OBB file is in the APK
-		jmethodID isOBBInAPKMethod = jenv->GetStaticMethodID(FJavaWrapper::GameActivityClassID, "isOBBInAPK", "()Z");
-		GOBBinAPK = (bool)jenv->CallStaticBooleanMethod(FJavaWrapper::GameActivityClassID, isOBBInAPKMethod, nullptr);
+		//jmethodID isOBBInAPKMethod = jenv->GetStaticMethodID(FJavaWrapper::GameActivityClassID, "isOBBInAPK", "()Z");
+		//GOBBinAPK = (bool)jenv->CallStaticBooleanMethod(FJavaWrapper::GameActivityClassID, isOBBInAPKMethod, nullptr);
+		GOBBinAPK = bOBBinAPK;
+
+		const char *nativeAPKFilenameString = jenv->GetStringUTFChars(APKFilename, 0);
+		GAPKFilename = FString(nativeAPKFilenameString);
+		jenv->ReleaseStringUTFChars(APKFilename, nativeAPKFilenameString);
 
 		// Cache path to external files directory
 		jclass ContextClass = jenv->FindClass("android/content/Context");
@@ -1189,7 +1217,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIE
 }
 
 
-extern "C" bool Java_com_epicgames_ue4_GameActivity_nativeIsShippingBuild(JNIEnv* LocalJNIEnv, jobject LocalThiz)
+JNI_METHOD bool Java_com_epicgames_ue4_GameActivity_nativeIsShippingBuild(JNIEnv* LocalJNIEnv, jobject LocalThiz)
 {
 #if UE_BUILD_SHIPPING
 	return JNI_TRUE;
@@ -1198,7 +1226,7 @@ extern "C" bool Java_com_epicgames_ue4_GameActivity_nativeIsShippingBuild(JNIEnv
 #endif
 }
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeOnActivityResult(JNIEnv* jenv, jobject thiz, jobject activity, jint requestCode, jint resultCode, jobject data)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeOnActivityResult(JNIEnv* jenv, jobject thiz, jobject activity, jint requestCode, jint resultCode, jobject data)
 {
 	FJavaWrapper::OnActivityResultDelegate.Broadcast(jenv, thiz, activity, requestCode, resultCode, data);
 }

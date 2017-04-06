@@ -10,6 +10,7 @@ public class LocationServicesAndroidEditor : ModuleRules
 				new string[]
 				{
 					"Core",
+					"AndroidPermission"
 				}
 			);
 

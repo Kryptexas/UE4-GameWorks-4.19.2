@@ -59,11 +59,11 @@ void UFont::PostLoad()
 		{	
 			Texture->SetFlags(RF_Public);
 			Texture->LODGroup = TEXTUREGROUP_UI;
+			Texture->ConditionalPostLoad();
 
 			// Fix up compression type for distance field fonts.
 			if (Texture->CompressionSettings == TC_Displacementmap && !Texture->SRGB)
 			{
-				Texture->ConditionalPostLoad();
 				Texture->CompressionSettings = TC_DistanceFieldFont;
 				Texture->UpdateResource();
 			}

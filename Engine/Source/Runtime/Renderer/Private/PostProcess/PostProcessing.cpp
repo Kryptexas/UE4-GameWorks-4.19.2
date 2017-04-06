@@ -2031,6 +2031,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		// ES2 preview uses a subsection of the scene RT, bUsedFramebufferFetch == true deals with this case.  
 		FIntPoint SceneColorSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 		bool bViewRectSource = bUsedFramebufferFetch || SceneColorSize != PrePostSourceViewportSize;
+		bool bMobileHDR32bpp = IsMobileHDR32bpp();
 
 		// temporary solution for SP_METAL using HW sRGB flag during read vs all other mob platforms using
 		// incorrect UTexture::SRGB state. (UTexture::SRGB != HW texture state)
@@ -2042,7 +2043,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		if( View.Family->EngineShowFlags.PostProcessing )
 		{
 			bool bUseMosaic = IsMobileHDRMosaic();
-			bool bUseEncodedHDR = IsMobileHDR32bpp() && !bUseMosaic;
+			bool bUseEncodedHDR = bMobileHDR32bpp && !bUseMosaic;
 
 			bool bUseSun = !bUseEncodedHDR && View.bLightShaftUse;
 			bool bUseDof = !bUseEncodedHDR && GetMobileDepthOfFieldScale(View) > 0.0f && !Context.View.Family->EngineShowFlags.VisualizeDOF;
@@ -2311,8 +2312,8 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			}
 		}
 		
-		static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperFilm"));
-		const bool bUseTonemapperFilm = IsMobileHDR() && GSupportsRenderTargetFormat_PF_FloatRGBA && (VarTonemapperFilm && VarTonemapperFilm->GetValueOnRenderThread());
+		static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.TonemapperFilm"));
+		const bool bUseTonemapperFilm = IsMobileHDR() && !bMobileHDR32bpp && GSupportsRenderTargetFormat_PF_FloatRGBA && (VarTonemapperFilm && VarTonemapperFilm->GetValueOnRenderThread());
 
 		static const auto VarTonemapperUpscale = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileTonemapperUpscale"));
 		bool bDisableUpscaleInTonemapper = Context.View.Family->bUseSeparateRenderTarget || IsMobileHDRMosaic() || !VarTonemapperUpscale || VarTonemapperUpscale->GetValueOnRenderThread() == 0;

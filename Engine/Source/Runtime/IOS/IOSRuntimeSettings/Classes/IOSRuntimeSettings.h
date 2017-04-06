@@ -326,7 +326,7 @@ public:
 	EPowerUsageFrameRateLock FrameRateLock;
 
 	// Minimum iOS version this game supports
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = OSInfo)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = OSInfo, meta = (DisplayName = "Minimum iOS Version"))
 	EIOSVersion MinimumiOSVersion;
 
 	// Whether or not to add support for iPad devices

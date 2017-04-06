@@ -109,8 +109,8 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 			[
 				SNew(SSpinBox<uint32>)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.MinValue(2)
-				.MaxValue(4096)
+				.MinValue(1)
+				.MaxValue(8192)
 				.Value(this, &FTextureLODGroupLayout::GetMinLODSize)
 				.OnValueChanged(this, &FTextureLODGroupLayout::OnMinLODSizeChanged)
 				.OnValueCommitted(this, &FTextureLODGroupLayout::OnMinLODSizeCommitted)
@@ -129,8 +129,8 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 			[
 				SNew(SSpinBox<uint32>)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.MinValue(2)
-				.MaxValue(4096)
+				.MinValue(1)
+				.MaxValue(8192)
 				.Value(this, &FTextureLODGroupLayout::GetMaxLODSize)
 				.OnValueChanged(this, &FTextureLODGroupLayout::OnMaxLODSizeChanged)
 				.OnValueCommitted(this, &FTextureLODGroupLayout::OnMaxLODSizeCommitted)
@@ -149,10 +149,10 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 			]
 			.ValueContent()
 			[
-				SNew(SSpinBox<uint32>)
+				SNew(SSpinBox<int32>)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.MinValue(1)
-				.MaxValue(100)
+				.MinValue(-MAX_TEXTURE_MIP_COUNT)
+				.MaxValue(MAX_TEXTURE_MIP_COUNT)
 				.Value(this, &FTextureLODGroupLayout::GetLODBias)
 				.OnValueChanged(this, &FTextureLODGroupLayout::OnLODBiasChanged)
 				.OnValueCommitted(this, &FTextureLODGroupLayout::OnLODBiasCommitted)
@@ -292,17 +292,17 @@ void FTextureLODGroupLayout::OnMaxLODSizeCommitted(uint32 NewValue, ETextCommit:
 }
 
 
-uint32 FTextureLODGroupLayout::GetLODBias() const
+int32 FTextureLODGroupLayout::GetLODBias() const
 {
 	return LodGroup->LODBias;
 }
 
-void FTextureLODGroupLayout::OnLODBiasChanged(uint32 NewValue)
+void FTextureLODGroupLayout::OnLODBiasChanged(int32 NewValue)
 {
 	LodGroup->LODBias = NewValue;
 }
 
-void FTextureLODGroupLayout::OnLODBiasCommitted(uint32 NewValue, ETextCommit::Type TextCommitType)
+void FTextureLODGroupLayout::OnLODBiasCommitted(int32 NewValue, ETextCommit::Type TextCommitType)
 {
 	//if (FEngineAnalytics::IsAvailable())
 	//{

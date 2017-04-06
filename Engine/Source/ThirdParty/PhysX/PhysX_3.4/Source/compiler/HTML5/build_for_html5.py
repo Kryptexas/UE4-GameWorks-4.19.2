@@ -55,7 +55,17 @@ for (mode, cmake_build_type) in build_modes:
 	# C & C++ compiler flags to use for the build.
 	compile_flags = mode + ' -Wno-double-promotion -Wno-comma -Wno-expansion-to-defined -Wno-undefined-func-template -Wno-disabled-macro-expansion -Wno-missing-noreturn '
 	compile_flags += ' -D_DEBUG ' if cmake_build_type == 'Debug' else ' -DNDEBUG '
-	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags, '-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags]
+	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags,
+		'-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags]
+
+# BUG: Would like to enable the following flags, but that gives missing symbols when linking:
+#     "UATHelper: Packaging (HTML5): UnrealBuildTool: warning: unresolved symbol: _ZN5physx6shdfnd14NamedAllocatorD1Ev, _ZN5physx6shdfnd14NamedAllocatorD2Ev, _ZN5physx6shdfnd14NamedAllocatorC1EPKc, _ZN5physx6shdfnd14NamedAllocator10deallocateEPv, _ZN5physx6shdfnd14NamedAllocatorC2ERKS1_, _ZN5physx6shdfnd14NamedAllocator8allocateEjPKci"
+# Not really sure why that occurs and whether it is an Emscripten or an UE4 issue, but for now, disable linker optimization flags (below).
+
+#		'-DCMAKE_STATIC_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+#		'-DCMAKE_SHARED_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+#		'-DCMAKE_MODULE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+#		'-DCMAKE_EXE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode]
 
 	# Configure the build via CMake
 	run([os.path.join(os.getenv('EMSCRIPTEN'), bat_file('emcmake')), 'cmake',

@@ -1170,8 +1170,9 @@ public:
 					{
 						HLandscapeSplineProxy_Segment* SplineProxy = (HLandscapeSplineProxy_Segment*)HitProxy;
 						ClickedSplineSegment = SplineProxy->SplineSegment;
-
-						LandscapeToSpline = ClickedSplineSegment->GetTypedOuter<AActor>()->ActorToWorld().GetRelativeTransform(ClickedSplineSegment->GetOuterULandscapeSplinesComponent()->ComponentToWorld);
+						ALandscapeProxy* LandscapeProxy = ClickedSplineSegment->GetTypedOuter<ALandscapeProxy>();
+						check(LandscapeProxy);
+						LandscapeToSpline = LandscapeProxy->LandscapeActorToWorld().GetRelativeTransform(ClickedSplineSegment->GetOuterULandscapeSplinesComponent()->ComponentToWorld);
 					}
 					else if (HitProxy->IsA(HActor::StaticGetType()))
 					{
@@ -1189,7 +1190,8 @@ public:
 									if (ULandscapeSplineSegment* SplineSegment = Cast<ULandscapeSplineSegment>(ComponentOwner))
 									{
 										ClickedSplineSegment = SplineSegment;
-										LandscapeToSpline = ActorProxy->Actor->ActorToWorld().GetRelativeTransform(SplineComponent->ComponentToWorld);
+										ALandscapeProxy* LandscapeProxy = CastChecked<ALandscapeProxy>(SplineComponent->GetOwner());
+										LandscapeToSpline = LandscapeProxy->LandscapeActorToWorld().GetRelativeTransform(SplineComponent->ComponentToWorld);
 									}
 								}
 							}

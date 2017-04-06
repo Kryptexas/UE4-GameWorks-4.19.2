@@ -15,9 +15,35 @@ namespace UnrealBuildTool
 {
 	class AndroidAARHandler
 	{
+		class AndroidAAREntry
+		{
+			public string BaseName;
+			public string Version;
+			public string Filename;
+			public List<string> Dependencies;
+
+			public AndroidAAREntry(string InBaseName, string InVersion, string InFilename)
+			{
+				BaseName = InBaseName;
+				Version = InVersion;
+				Filename = InFilename;
+				Dependencies = new List<string>();
+			}
+
+			public void AddDependency(string InBaseName, string InVersion)
+			{
+				Dependencies.Add(InBaseName);  // + "-" + InVersion);  will replace version with latest
+			}
+
+			public void ClearDependencies()
+			{
+				Dependencies.Clear();
+			}
+		}
+
 		private List<string> Repositories = null;
-		private List<string> AARList = null;
-		private List<string> JARList = null;
+		private List<AndroidAAREntry> AARList = null;
+		private List<AndroidAAREntry> JARList = null;
 
 		/// <summary>
 		/// Handler for AAR and JAR dependency determination and staging
@@ -25,8 +51,8 @@ namespace UnrealBuildTool
 		public AndroidAARHandler()
 		{
 			Repositories = new List<string>();
-			AARList = new List<string>();
-			JARList = new List<string>();
+			AARList = new List<AndroidAAREntry>();
+			JARList = new List<AndroidAAREntry>();
 		}
 
 		/// <summary>
@@ -78,13 +104,13 @@ namespace UnrealBuildTool
 		public void DumpAAR()
 		{
 			Log.TraceInformation("ALL DEPENDENCIES");
-			foreach (string Name in AARList)
+			foreach (AndroidAAREntry Entry in AARList)
 			{
-				Log.TraceInformation("{0}", Name);
+				Log.TraceInformation("{0}", Entry.Filename);
 			}
-			foreach (string Name in JARList)
+			foreach (AndroidAAREntry Entry in JARList)
 			{
-				Log.TraceInformation("{0}", Name);
+				Log.TraceInformation("{0}", Entry.Filename);
 			}
 		}
 
@@ -103,7 +129,7 @@ namespace UnrealBuildTool
 			{
 				string PackageDirectory = Path.Combine(Repository, PackagePath, BaseName, Version);
 
-				if (Directory.Exists(PackageDirectory))
+                if (Directory.Exists(PackageDirectory))
 				{
 					return PackageDirectory;
 				}
@@ -128,14 +154,55 @@ namespace UnrealBuildTool
 			}
 			string BaseFilename = Path.Combine(BasePath, BaseName + "-" + Version);
 
-			// Do we already have this dependency?
-			if (JARList.Contains(BaseFilename))
+			// Check if already added
+			for (int JARIndex = 0; JARIndex < JARList.Count; JARIndex++)
 			{
-				return;
+				if (JARList[JARIndex].BaseName == BaseName)
+				{
+					// Is it the same version?
+					if (JARList[JARIndex].Version == Version)
+					{
+						return;
+					}
+
+					// Ignore if older version
+					string[] EntryVersionParts = JARList[JARIndex].Version.Split('.');
+					string[] NewVersionParts = Version.Split('.');
+					for (int Index = 0; Index < EntryVersionParts.Length; Index++)
+					{
+						int EntryVersionInt = 0;
+						if (int.TryParse(EntryVersionParts[Index], out EntryVersionInt))
+						{
+							int NewVersionInt = 0;
+							if (int.TryParse(NewVersionParts[Index], out NewVersionInt))
+							{
+								if (NewVersionInt < EntryVersionInt)
+								{
+									return;
+								}
+							}
+							else
+							{
+								return;
+							}
+						}
+						else
+						{
+							return;
+						}
+					}
+
+					Log.TraceInformation("AAR: {0}: {1} newer than {2}", JARList[JARIndex].BaseName, Version, JARList[JARIndex].Version);
+
+					// This is a newer version; remove old one
+					JARList.RemoveAt(JARIndex);
+					break;
+				}
 			}
 
 			//Log.TraceInformation("JAR: {0}", BaseName);
-			JARList.Add(BaseFilename);
+			AndroidAAREntry AAREntry = new AndroidAAREntry(BaseName, Version, BaseFilename);
+			JARList.Add(AAREntry);
 
 			// Check for dependencies
 			XDocument DependsXML;
@@ -175,6 +242,12 @@ namespace UnrealBuildTool
 				string DepType = GetElementValue(DependNode, TypeName, "jar");
 
 				//Log.TraceInformation("Dependency: {0} {1} {2} {3} {4}", DepGroupId, DepArtifactId, DepVersion, DepScope, DepType);
+
+				// ignore test scope
+				if (DepScope == "test")
+				{
+					continue;
+				}
 
 				if (DepType == "aar")
 				{
@@ -203,14 +276,56 @@ namespace UnrealBuildTool
 			}
 			string BaseFilename = Path.Combine(BasePath, BaseName + "-" + Version);
 
-			// Do we already have this dependency?
-			if (AARList.Contains(BaseFilename))
+			// Check if already added
+			for (int AARIndex = 0; AARIndex < AARList.Count; AARIndex++)
 			{
-				return;
+				if (AARList[AARIndex].BaseName == BaseName)
+				{
+					// Is it the same version?
+					if (AARList[AARIndex].Version == Version)
+					{
+						return;
+					}
+
+					// Ignore if older version
+					string[] EntryVersionParts = AARList[AARIndex].Version.Split('.');
+					string[] NewVersionParts = Version.Split('.');
+					for (int Index = 0; Index < EntryVersionParts.Length; Index++)
+					{
+						int EntryVersionInt = 0;
+						if (int.TryParse(EntryVersionParts[Index], out EntryVersionInt))
+						{
+							int NewVersionInt = 0;
+							if (int.TryParse(NewVersionParts[Index], out NewVersionInt))
+							{
+								if (NewVersionInt < EntryVersionInt)
+								{
+									return;
+								}
+							}
+							else
+							{
+								return;
+							}
+						}
+						else
+						{
+							return;
+						}
+					}
+
+					Log.TraceInformation("AAR: {0}: {1} newer than {2}", AARList[AARIndex].BaseName, Version, AARList[AARIndex].Version);
+
+					// This is a newer version; remove old one
+					// @TODO: be smarter about dependency cleanup (newer AAR might not need older dependencies)
+					AARList.RemoveAt(AARIndex);
+					break;
+				}
 			}
 
 			//Log.TraceInformation("AAR: {0}", BaseName);
-			AARList.Add(BaseFilename);
+			AndroidAAREntry AAREntry = new AndroidAAREntry(BaseName, Version, BaseFilename);
+			AARList.Add(AAREntry);
 
 			// Check for dependencies
 			XDocument DependsXML;
@@ -251,8 +366,17 @@ namespace UnrealBuildTool
 
 				//Log.TraceInformation("Dependency: {0} {1} {2} {3} {4}", DepGroupId, DepArtifactId, DepVersion, DepScope, DepType);
 
+				// ignore test scope
+				if (DepScope == "test")
+				{
+					continue;
+				}
+
 				if (DepType == "aar")
 				{
+					// Add dependency
+					AAREntry.AddDependency(DepArtifactId, DepVersion);
+
 					AddNewAAR(DepGroupId, DepArtifactId, DepVersion);
 				}
 				else
@@ -290,13 +414,18 @@ namespace UnrealBuildTool
 			DestinationPath = Path.Combine(DestinationPath, "libs");
 			MakeDirectoryIfRequired(DestinationPath);
 
-			foreach (string Name in JARList)
+			foreach (AndroidAAREntry Entry in JARList)
 			{
-				string Filename = Name + ".jar";
+				string Filename = Entry.Filename + ".jar";
 				string BaseName = Path.GetFileName(Filename);
 				string TargetPath = Path.Combine(DestinationPath, BaseName);
+                //Log.TraceInformation("Attempting to copy JAR {0} {1} {2}", Filename, BaseName, TargetPath);
 
-				if (!File.Exists(TargetPath))
+                if (!File.Exists(Filename))
+                {
+                    Log.TraceInformation("JAR doesn't exist! {0}", Filename);
+                }
+                if (!File.Exists(TargetPath))
 				{
 					Log.TraceInformation("Copying JAR {0}", BaseName);
 					File.Copy(Filename, TargetPath);
@@ -308,15 +437,17 @@ namespace UnrealBuildTool
 		/// Extracts the required AAR files to the provided directory
 		/// </summary>
 		/// <param name="DestinationPath">Destination path for AAR files</param>
-		public void ExtractAARs(string DestinationPath)
+		/// <param name="AppPackageName">Name of the package these AARs are being used with</param>
+		public void ExtractAARs(string DestinationPath, string AppPackageName)
 		{
 			MakeDirectoryIfRequired(DestinationPath);
 			DestinationPath = Path.Combine(DestinationPath, "JavaLibs");
 			MakeDirectoryIfRequired(DestinationPath);
 
-			foreach (string Name in AARList)
+			Log.TraceInformation("Extracting AARs");
+			foreach (AndroidAAREntry Entry in AARList)
 			{
-				string BaseName = Path.GetFileName(Name);
+				string BaseName = Path.GetFileName(Entry.Filename);
 				string TargetPath = Path.Combine(DestinationPath, BaseName);
 
 				// Only extract if haven't before to prevent changing timestamps
@@ -324,7 +455,7 @@ namespace UnrealBuildTool
 				if (!File.Exists(TargetManifestFileName))
 				{
 					Log.TraceInformation("Extracting AAR {0}", BaseName);
-					IEnumerable<string> FileNames = UnzipFiles(Name + ".aar", TargetPath);
+					IEnumerable<string> FileNames = UnzipFiles(Entry.Filename + ".aar", TargetPath);
 
 					// Must have a src directory (even if empty)
 					string SrcDirectory = Path.Combine(TargetPath, "src");
@@ -355,6 +486,14 @@ namespace UnrealBuildTool
 						{
 							try
 							{
+								// Replace all instances of the application id with the packagename
+								string Contents = File.ReadAllText(ManifestFilename);
+								string NewContents = Contents.Replace("${applicationId}", AppPackageName);
+								if (Contents != NewContents)
+								{
+									File.WriteAllText(ManifestFilename, NewContents);
+								}
+
 								ManifestXML = XDocument.Load(ManifestFilename);
 								XElement UsesSdk = ManifestXML.Root.Element(XName.Get("uses-sdk", ManifestXML.Root.Name.NamespaceName));
 								XAttribute Target = UsesSdk.Attribute(XName.Get("minSdkVersion", "http://schemas.android.com/apk/res/android"));
@@ -366,7 +505,26 @@ namespace UnrealBuildTool
 							}
 						}
 
-						File.WriteAllText(PropertyFilename, "target=android-" + MinSDK + "\nandroid.library=true\n");
+						// Project contents
+						string ProjectPropertiesContents = "target=android-" + MinSDK + "\nandroid.library=true\n";
+
+						// Add the dependencies
+						int RefCount = 0;
+						foreach (string DependencyName in Entry.Dependencies)
+						{
+							// Find the version
+							foreach (AndroidAAREntry ScanEntry in AARList)
+							{
+								if (ScanEntry.BaseName == DependencyName)
+								{
+									RefCount++;
+									ProjectPropertiesContents += "android.library.reference." + RefCount + "=../" + DependencyName + "-" + ScanEntry.Version + "\n";
+									break;
+								}
+							}
+						}
+
+						File.WriteAllText(PropertyFilename, ProjectPropertiesContents);
 					}
 				}
 			}

@@ -184,7 +184,7 @@ public:
 		OutSection = TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings");
 		InBoolKeys.Add(TEXT("bBuildForArmV7")); InBoolKeys.Add(TEXT("bBuildForArm64")); InBoolKeys.Add(TEXT("bBuildForX86"));
 		InBoolKeys.Add(TEXT("bBuildForX8664")); InBoolKeys.Add(TEXT("bBuildForES2")); InBoolKeys.Add(TEXT("bBuildForESDeferred"));
-		InBoolKeys.Add(TEXT("bBuildForES31"));
+		InBoolKeys.Add(TEXT("bBuildForES31")); InBoolKeys.Add(TEXT("bBuildWithHiddenSymbolVisibility"));
 	}
 
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);

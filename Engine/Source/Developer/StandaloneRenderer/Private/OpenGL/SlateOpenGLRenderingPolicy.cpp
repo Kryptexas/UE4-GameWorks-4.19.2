@@ -118,7 +118,7 @@ void FSlateOpenGLRenderingPolicy::UpdateVertexAndIndexBuffers(FSlateBatchData& I
 		uint8* VerticesPtr = (uint8*)VertexBuffer.Lock(0);
 		uint8* IndicesPtr = (uint8*)IndexBuffer.Lock(0);
 
-		InBatchData.FillVertexAndIndexBuffer(VerticesPtr, IndicesPtr);
+		InBatchData.FillVertexAndIndexBuffer(VerticesPtr, IndicesPtr, /*bAbsoluteIndices*/ false);
 
 		VertexBuffer.Unlock();
 		IndexBuffer.Unlock();

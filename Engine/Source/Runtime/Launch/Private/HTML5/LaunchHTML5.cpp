@@ -11,6 +11,7 @@ THIRD_PARTY_INCLUDES_END
 #if PLATFORM_HTML5_BROWSER
 	THIRD_PARTY_INCLUDES_START
 	#include <emscripten/emscripten.h>
+	#include <emscripten/trace.h>
 	THIRD_PARTY_INCLUDES_END
 #else
 	// SDL defines main to be SDL_main and expects you to use SDLmain.  We don't.
@@ -21,7 +22,6 @@ THIRD_PARTY_INCLUDES_END
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5Launch, Log, All);
 
 #include <string.h>
-#include "trace.h"
 
 FEngineLoop	GEngineLoop;
 TCHAR GCmdLine[2048];

@@ -150,6 +150,7 @@ FShaderCache* FShaderCache::Cache = nullptr;
 FShaderCache::FShaderCookCache* FShaderCache::CookCache = nullptr;
 #endif
 int32 FShaderCache::GameVersion = 0;
+uint32 FShaderCache::MaxTextureSamplers = FShaderCache::FShaderDrawKey::MaxNumSamplers;
 static double LoadTimeStart = 0;
 
 static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
@@ -509,6 +510,8 @@ FShaderCache::FShaderCache(uint32 InOptions, uint32 InMaxResources)
 {
 	check(!(Options & SCO_Cooking));
 	check(InMaxResources <= FShaderDrawKey::MaxNumResources);
+
+	MaxTextureSamplers = FMath::Min<uint32>(GetMaxTextureSamplers(), FShaderDrawKey::MaxNumSamplers);
 	
 	Viewport[0] = Viewport[1] = Viewport[2] = Viewport[3] = 0;
 	DepthRange[0] = DepthRange[1] = 0.0f;
@@ -1119,7 +1122,12 @@ void FShaderCache::InternalSetSamplerState(EShaderFrequency Frequency, uint32 In
 {
 	if ( (bUseShaderDrawLog && !bIsPreDraw) && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 	{
-		checkf(Index < GetMaxTextureSamplers(), TEXT("Attempting to bind sampler at index %u which exceeds RHI max. %d"), Index, GetMaxTextureSamplers());
+		if (Index >= FShaderDrawKey::MaxNumSamplers)
+		{
+			// Hardware can support more samplers than FShaderDrawKey::MaxNumSamplers, so just skip those we can't fit in cache
+			return;
+		}
+
 		InvalidResourceCount -= (uint32)(CurrentDrawKey.SamplerStates[Frequency][Index] == FShaderDrawKey::InvalidState);
 		if ( State )
 		{
@@ -1950,7 +1958,7 @@ void FShaderCache::SetShaderSamplerTextures( FRHICommandList& RHICmdList, FShade
 {
 	FShaderPlatformCache& PlatformCache = Caches.PlatformCaches.FindOrAdd(GMaxRHIShaderPlatform);
 	
-	for ( uint32 i = 0; i < GetMaxTextureSamplers(); i++ )
+	for ( uint32 i = 0; i < MaxTextureSamplers; i++ )
 	{
 		checkf(DrawKey.SamplerStates[Frequency][i] != FShaderDrawKey::InvalidState, TEXT("Resource state cannot be 'InvalidState' as that indicates a resource lifetime error in the application."));
 		

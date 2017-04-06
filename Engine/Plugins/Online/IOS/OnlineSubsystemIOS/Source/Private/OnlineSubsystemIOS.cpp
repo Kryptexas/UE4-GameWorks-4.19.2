@@ -6,11 +6,13 @@
 
 FOnlineSubsystemIOS::FOnlineSubsystemIOS()
 {
+	StoreHelper = nil;
 }
 
 FOnlineSubsystemIOS::FOnlineSubsystemIOS(FName InInstanceName)
 	: FOnlineSubsystemImpl(IOS_SUBSYSTEM, InInstanceName)
 {
+	StoreHelper = nil;
 }
 
 IOnlineSessionPtr FOnlineSubsystemIOS::GetSessionInterface() const

@@ -147,6 +147,10 @@ FAvfMediaPlayer::FAvfMediaPlayer()
 	bPrerolled = false;
 }
 
+FAvfMediaPlayer::~FAvfMediaPlayer()
+{
+	Close();
+}
 
 void FAvfMediaPlayer::HandleStatusNotification(AVPlayerItemStatus Status)
 {
@@ -418,6 +422,12 @@ void FAvfMediaPlayer::Close()
 		{
 			[MediaHelper release];
 			MediaHelper = nil;
+		}
+
+		if (MediaPlayer != nil)
+		{
+			[MediaPlayer release];
+			MediaPlayer = nil;
 		}
 	
 		Tracks.Reset();

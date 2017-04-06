@@ -70,6 +70,8 @@ private:
 	void ExecWindowResized();
 	void ExecDestroyWindow();
 	
+	static void OnScaleFactorChanged(IConsoleVariable* CVar);
+
 	static FAppEventManager* sInstance;
 
 	pthread_mutex_t QueueMutex;			//@todo android: can probably get rid of this now that we're using an mpsc queue

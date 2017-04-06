@@ -656,7 +656,6 @@ void OPENGLDRV_API GetCurrentOpenGLShaderDeviceCapabilities(FOpenGLShaderDeviceC
 	Capabilities.bSupportsStandardDerivativesExtension = FOpenGL::SupportsStandardDerivativesExtension();
 	Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA = GSupportsRenderTargetFormat_PF_FloatRGBA;
 	Capabilities.bSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
-	Capabilities.bRequiresShaderFramebufferFetchUndef = FOpenGL::RequiresShaderFramebufferFetchUndef();
 	Capabilities.bRequiresARMShaderFramebufferFetchDepthStencilUndef = FOpenGL::RequiresARMShaderFramebufferFetchDepthStencilUndef();
 	Capabilities.bRequiresDontEmitPrecisionForTextureSamplers = FOpenGL::RequiresDontEmitPrecisionForTextureSamplers();
 	Capabilities.bSupportsShaderTextureLod = FOpenGL::SupportsShaderTextureLod();
@@ -676,6 +675,11 @@ void OPENGLDRV_API GetCurrentOpenGLShaderDeviceCapabilities(FOpenGLShaderDeviceC
 #endif
 	Capabilities.MaxRHIShaderPlatform = GMaxRHIShaderPlatform;
 	Capabilities.bSupportsSeparateShaderObjects = FOpenGL::SupportsSeparateShaderObjects();
+
+#if OPENGL_ES2 || OPENGL_ESDEFERRED
+	Capabilities.bRequiresUEShaderFramebufferFetchDef = FOpenGL::RequiresUEShaderFramebufferFetchDef();
+#endif
+	
 }
 
 void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, const FString& ShaderName, GLenum TypeEnum, const FOpenGLShaderDeviceCapabilities& Capabilities, FAnsiCharArray& GlslCode)
@@ -774,6 +778,13 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		AppendCString(GlslCode, "\n\n");
 	}
 
+	if (Capabilities.bRequiresUEShaderFramebufferFetchDef && TypeEnum == GL_FRAGMENT_SHADER)
+	{
+		// Some devices (Zenfone5) support GL_EXT_shader_framebuffer_fetch but do not define GL_EXT_shader_framebuffer_fetch in GLSL compiler
+		// We can't define anything with GL_, so we use UE_EXT_shader_framebuffer_fetch to enable frame buffer fetch
+		AppendCString(GlslCode, "#define UE_EXT_shader_framebuffer_fetch 1\n");
+	}
+
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android)
 	{
 		// Temporary patch to remove #extension GL_OES_standard_derivaties if not supported
@@ -810,13 +821,6 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 				{
 					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 2.0\n");
 				}
-			}
-
-			if (Capabilities.bRequiresShaderFramebufferFetchUndef && TypeEnum == GL_FRAGMENT_SHADER)
-			{
-				// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
-				// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
-				AppendCString(GlslCode, "#undef GL_EXT_shader_framebuffer_fetch\n");
 			}
 
 			if (Capabilities.bRequiresARMShaderFramebufferFetchDepthStencilUndef && TypeEnum == GL_FRAGMENT_SHADER)

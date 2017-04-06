@@ -104,7 +104,7 @@ TSharedRef<FInternetAddr> FSocketSubsystemIOS::GetLocalHostAddr(FOutputDevice& O
 			{
 				if (strcmp(Travel->ifa_name, "en0") == 0)
 				{
-					WifiAddress = ((sockaddr_in*)Travel->ifa_addr)->sin_addr.s_addr;
+					WifiAddress = ntohl(((sockaddr_in*)Travel->ifa_addr)->sin_addr.s_addr);
 					bWasWifiSet = true;
 					// this is the best, no need to go on
 					break;
@@ -136,5 +136,6 @@ TSharedRef<FInternetAddr> FSocketSubsystemIOS::GetLocalHostAddr(FOutputDevice& O
 	}
 
 	// return the newly created address
+	bCanBindAll = true;
 	return HostAddr;
 }

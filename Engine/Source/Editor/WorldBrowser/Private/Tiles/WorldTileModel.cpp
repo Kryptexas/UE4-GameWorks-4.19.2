@@ -31,10 +31,11 @@ FWorldTileModel::FWorldTileModel(FWorldTileCollectionModel& InWorldModel, int32 
 	UWorldComposition* WorldComposition = LevelCollectionModel.GetWorld()->WorldComposition;
 
 	// Tile display details object
-	TileDetails = NewObject<UWorldTileDetails>(GetTransientPackage(), NAME_None, RF_Transient);
+	TileDetails = NewObject<UWorldTileDetails>(GetTransientPackage(), NAME_None, RF_Transient|RF_Transactional);
 	TileDetails->AddToRoot();
 
 	// Subscribe to tile properties changes
+	TileDetails->PostUndoEvent.AddRaw(this, &FWorldTileModel::OnPostUndoEvent);
 	TileDetails->PositionChangedEvent.AddRaw(this, &FWorldTileModel::OnPositionPropertyChanged);
 	TileDetails->ParentPackageNameChangedEvent.AddRaw(this, &FWorldTileModel::OnParentPackageNamePropertyChanged);
 	TileDetails->LODSettingsChangedEvent.AddRaw(this, &FWorldTileModel::OnLODSettingsPropertyChanged);
@@ -192,6 +193,7 @@ void FWorldTileModel::OnDrop(const TSharedPtr<FLevelDragDropOp>& Op)
 	
 	if (LevelModelList.Num())
 	{
+		const FScopedTransaction AssignParentTransaction(LOCTEXT("AssignParentTransaction", "Assign Parent Level"));
 		LevelCollectionModel.AssignParent(LevelModelList, this->AsShared());
 	}
 }
@@ -209,7 +211,7 @@ bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 	}
 
 	// Visibility does not depend on level positions when world origin rebasing is disabled
-	if (!LevelCollectionModel.GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	if (!LevelCollectionModel.IsOriginRebasingEnabled())
 	{
 		return true;
 	}
@@ -294,7 +296,7 @@ bool FWorldTileModel::IsShelved() const
 
 void FWorldTileModel::Shelve()
 {
-	if (LevelCollectionModel.IsReadOnly() || IsShelved() || IsRootTile() || !LevelCollectionModel.GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	if (LevelCollectionModel.IsReadOnly() || IsShelved() || IsRootTile() || !LevelCollectionModel.IsOriginRebasingEnabled())
 	{
 		return;
 	}
@@ -442,6 +444,8 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 	
 	// Actual offset
 	FIntPoint Offset = InPosition - TileDetails->AbsolutePosition;
+
+	TileDetails->Modify();
 	
 	// Update absolute position
 	TileDetails->AbsolutePosition = InPosition;
@@ -467,7 +471,7 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 		{
 			Level->ApplyWorldOffset(FVector(Offset), false);
 
-			for (auto Actor : Level->Actors)
+			for (AActor* Actor : Level->Actors)
 			{
 				if (Actor != nullptr)
 				{
@@ -630,6 +634,11 @@ void FWorldTileModel::LoadLevel()
 	
 	// Enable tile properties
 	TileDetails->bTileEditable = LoadedLevel.IsValid();
+
+	if ((GEditor != nullptr) && (GEditor->Trans != nullptr))
+	{
+		GEditor->Trans->Reset(LOCTEXT("Loaded", "Discard undo history."));
+	}
 }
 
 ULevelStreaming* FWorldTileModel::GetAssosiatedStreamingLevel()
@@ -684,6 +693,8 @@ void FWorldTileModel::OnLevelRemovedFromWorld()
 
 void FWorldTileModel::OnParentChanged()
 {
+	TileDetails->Modify();
+
 	// Transform level offset to absolute
 	TileDetails->Position = GetAbsoluteLevelPosition();
 	// Remove link to parent	
@@ -788,6 +799,31 @@ void FWorldTileModel::OnLevelInfoUpdated()
 			}
 		}
 	}
+}
+
+void FWorldTileModel::OnPostUndoEvent()
+{
+	FWorldTileInfo Info = LevelCollectionModel.GetWorld()->WorldComposition->GetTileInfo(TileDetails->PackageName);
+	if (GetLevelObject())
+	{
+		// Level position changes
+		FIntPoint NewAbsolutePosition = TileDetails->AbsolutePosition;
+		if (Info.AbsolutePosition != NewAbsolutePosition)
+		{
+			// SetLevelPosition will update AbsolutePosition to an actual value once level is moved
+			TileDetails->AbsolutePosition = Info.AbsolutePosition; 
+			SetLevelPosition(NewAbsolutePosition);
+		}
+		
+		// Level attachment changes
+		FName NewParentName = TileDetails->ParentPackageName;
+		if (Info.ParentTilePackageName != NewParentName.ToString())
+		{
+			OnParentPackageNamePropertyChanged();
+		}
+	}
+	
+	OnLevelInfoUpdated();
 }
 
 void FWorldTileModel::OnPositionPropertyChanged()

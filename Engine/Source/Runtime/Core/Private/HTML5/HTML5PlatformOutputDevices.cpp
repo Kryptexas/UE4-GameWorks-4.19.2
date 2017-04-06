@@ -2,7 +2,7 @@
 
 #include "HTML5PlatformOutputDevices.h"
 #include "HAL/OutputDevices.h"
-#include "trace.h"
+#include <emscripten/trace.h>
 
 class FTraceOutputDevice : public FOutputDevice
 {

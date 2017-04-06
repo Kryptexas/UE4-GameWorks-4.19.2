@@ -4,8 +4,8 @@ import os
 import sys
 
 # Variables configured at build time.
-llvm_source_root = "D:/WORK/ue4/jukka/emsdk/clang/fastcomp/src"
-llvm_obj_root = "D:/WORK/ue4/jukka/emsdk/clang/fastcomp/build_incoming_vs2015_64"
+llvm_source_root = "D:/SCRATCH/misc/html5/emsdk/clang/fastcomp/src"
+llvm_obj_root = "D:/SCRATCH/misc/html5/emsdk/clang/fastcomp/build_incoming_vs2015_64"
 
 # Make sure we can find the lit package.
 sys.path.insert(0, os.path.join(llvm_source_root, 'utils', 'lit'))

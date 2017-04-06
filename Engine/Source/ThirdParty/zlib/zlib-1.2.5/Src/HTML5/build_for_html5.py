@@ -26,6 +26,9 @@ build_modes = [('', 'Debug'),
 src_directory = os.path.normpath(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..'))
 print 'Build source directory: ' + src_directory
 
+# When using CMake to configure, we need to delete this file from source directory (don't commit the deletion though! The file is needed for other platforms to configure the build)
+if os.path.exists(os.path.join(src_directory, 'zconf.h')): os.remove(os.path.join(src_directory, 'zconf.h'))
+
 output_lib_directory = os.path.normpath(os.path.join(src_directory, '..', 'Lib', 'HTML5'))
 if 'rebuild' in sys.argv:
 	try:
@@ -48,8 +51,14 @@ for (mode, cmake_build_type) in build_modes:
 	os.chdir(build_dir)
 
 	# C & C++ compiler flags to use for the build.
-	compile_flags = mode + ' -D_DEBUG ' if cmake_build_type == 'Debug' else ' -DNDEBUG '
-	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags, '-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags]
+	compile_flags = mode
+	compile_flags += ' -D_DEBUG ' if cmake_build_type == 'Debug' else ' -DNDEBUG '
+	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags,
+		'-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags,
+		'-DCMAKE_STATIC_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_SHARED_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_MODULE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_EXE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode]
 
 	# Configure the build via CMake
 	run([os.path.join(os.getenv('EMSCRIPTEN'), bat_file('emcmake')), 'cmake', '-DBUILD_SHARED_LIBS=OFF', '-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON', '-DCMAKE_BUILD_TYPE=' + cmake_build_type] + compile_flags + ['..'])

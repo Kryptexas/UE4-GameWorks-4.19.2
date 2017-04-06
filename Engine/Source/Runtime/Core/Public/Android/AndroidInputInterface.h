@@ -88,6 +88,13 @@ enum MappingState
 	Valid
 };
 
+enum ButtonRemapType
+{
+	Normal,
+	XBoxWireless,
+	PS4
+};
+
 struct FAndroidInputDeviceInfo {
 	int32 DeviceId;
 	int32 VendorId;
@@ -105,11 +112,21 @@ struct FAndroidGamepadDeviceMapping
 	// State of mapping
 	MappingState DeviceState;
 
+	// Type of button remapping to use
+	ButtonRemapType ButtonRemapping;
+
+	// Sets the analog range of the trigger minimum (normally 0).  Final value is mapped as (input - Minimum) / (1 - Minimum) to [0,1] output.
+	float LTAnalogRangeMinimum;
+	float RTAnalogRangeMinimum;
+
 	// Device supports hat as dpad
 	bool bSupportsHat;
 
 	// Map L1 and R1 to LTRIGGER and RTRIGGER
 	bool bMapL1R1ToTriggers;
+
+	// Map Z and RZ to LTAnalog and RTAnalog
+	bool bMapZRZToTriggers;
 
 	// Right stick on Z/RZ
 	bool bRightStickZRZ;

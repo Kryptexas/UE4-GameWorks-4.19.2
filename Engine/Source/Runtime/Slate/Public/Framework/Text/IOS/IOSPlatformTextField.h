@@ -31,9 +31,15 @@ typedef FIOSPlatformTextField FPlatformTextField;
 {
 	TSharedPtr<IVirtualKeyboardEntry> TextWidget;
 	FText TextEntry;
+    
+#ifdef __IPHONE_8_0
+    UIAlertController* AlertController;
+#endif
+    UIAlertView* AlertView;
 }
 
 -(void)show:(TSharedPtr<IVirtualKeyboardEntry>)InTextWidget;
+-(void)hide;
 
 @end
 #endif

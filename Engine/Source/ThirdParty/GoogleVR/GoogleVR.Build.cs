@@ -39,10 +39,10 @@ public class GoogleVR : ModuleRules
 
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			string GoogleVRArmLibPath = GoogleVRBaseLibPath + "android_arm/";
-			string GoogleVRArm64LibPath = GoogleVRBaseLibPath + "android_arm64/";
-			string GoogleVRx86LibPath = GoogleVRBaseLibPath + "android_x86/";
-			string GoogleVRx86_64LibPath = GoogleVRBaseLibPath + "android_x86_64/";
+			string GoogleVRArmLibPath = GoogleVRBaseLibPath + "android/armv7";
+			string GoogleVRArm64LibPath = GoogleVRBaseLibPath + "android/arm64";
+			string GoogleVRx86LibPath = GoogleVRBaseLibPath + "android/x86";
+			string GoogleVRx86_64LibPath = GoogleVRBaseLibPath + "android/x86_64";
 
 			// toolchain will filter properly
 			PublicLibraryPaths.Add(GoogleVRArmLibPath);

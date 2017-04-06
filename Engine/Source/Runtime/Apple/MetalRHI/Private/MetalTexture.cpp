@@ -1146,6 +1146,9 @@ FMetalSurface::~FMetalSurface()
 	
 	if(CoreVideoImageRef)
 	{
+		// CFArray can contain CFType objects and is toll-free bridged with NSArray
+		CFArrayRef Temp = CFArrayCreate(kCFAllocatorSystemDefault, &CoreVideoImageRef, 1, &kCFTypeArrayCallBacks);
+		SafeReleaseMetalResource((NSArray*)Temp);
 		CFRelease(CoreVideoImageRef);
 	}
 

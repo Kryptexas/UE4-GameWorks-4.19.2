@@ -70,7 +70,7 @@ static bool SupportsVulkan()
 		GlslangAvailable = true;
 	#endif
 #elif PLATFORM_MAC
-	GlslangAvailable = false;	// @TODO: change when glslang library compiled for Mac
+	GlslangAvailable = true;
 #elif PLATFORM_LINUX
 	GlslangAvailable = false;	// @TODO: change when glslang library compiled for Linux
 #endif

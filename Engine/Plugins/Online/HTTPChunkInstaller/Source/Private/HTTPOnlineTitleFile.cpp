@@ -36,27 +36,27 @@ FOnlineTitleFileHttp::FOnlineTitleFileHttp(const FString& InBaseUrl, const FStri
 	ManifestData = InManifestData;
 
 #if PLATFORM_ANDROID
-	if (FOpenGLES2::SupportsASTC())
+	if (FOpenGL::SupportsASTC())
 	{
 		EnumerateFilesUrl = EnumerateFilesUrl.Replace(TEXT("^FORMAT"), TEXT("ASTC"));
 		Manifest = Manifest.Replace(TEXT("^FORMAT"), TEXT("astc"));
 	}
-	else if (FOpenGLES2::SupportsATITC())
+	else if (FOpenGL::SupportsATITC())
 	{
 		EnumerateFilesUrl = EnumerateFilesUrl.Replace(TEXT("^FORMAT"), TEXT("ATC"));
 		Manifest = Manifest.Replace(TEXT("^FORMAT"), TEXT("atc"));
 	}
-	else if (FOpenGLES2::SupportsDXT())
+	else if (FOpenGL::SupportsDXT())
 	{
 		EnumerateFilesUrl = EnumerateFilesUrl.Replace(TEXT("^FORMAT"), TEXT("DXT"));
 		Manifest = Manifest.Replace(TEXT("^FORMAT"), TEXT("dxt"));
 	}
-	else if (FOpenGLES2::SupportsPVRTC())
+	else if (FOpenGL::SupportsPVRTC())
 	{
 		EnumerateFilesUrl = EnumerateFilesUrl.Replace(TEXT("^FORMAT"), TEXT("PVRTC"));
 		Manifest = Manifest.Replace(TEXT("^FORMAT"), TEXT("pvrtc"));
 	}
-	else if (FOpenGLES2::SupportsETC2())
+	else if (FOpenGL::SupportsETC2())
 	{
 		EnumerateFilesUrl = EnumerateFilesUrl.Replace(TEXT("^FORMAT"), TEXT("ETC2"));
 		Manifest = Manifest.Replace(TEXT("^FORMAT"), TEXT("etc2"));

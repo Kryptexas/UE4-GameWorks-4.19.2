@@ -183,6 +183,9 @@ private:
 
 	/** Spawns AlevelBounds actor in the level in case it doesn't has one */
 	void EnsureLevelHasBoundsActor();
+
+	/** Handler for PostEditUndo  */
+	void OnPostUndoEvent();
 	
 	/** Handler for PositionChanged event from Tile details object  */
 	void OnPositionPropertyChanged();

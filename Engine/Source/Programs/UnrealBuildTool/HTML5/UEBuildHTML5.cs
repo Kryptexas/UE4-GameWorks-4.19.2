@@ -59,7 +59,7 @@ namespace UnrealBuildTool
 
 		public override void PreBuildSync()
 		{
-			HTML5ToolChain.PreBuildSync();
+            HTML5ToolChain.PreBuildSync();
 		}
 
 		// F5 should always try to run the Win32 version
@@ -177,7 +177,10 @@ namespace UnrealBuildTool
 		/// <param name="Target">The target being build</param>
 		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
-			if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
+			if (Target.Platform == UnrealTargetPlatform.Win32 ||
+				Target.Platform == UnrealTargetPlatform.Win64 ||
+				Target.Platform == UnrealTargetPlatform.Mac ||
+				Target.Platform == UnrealTargetPlatform.Linux)
 			{
 				// allow standalone tools to use targetplatform modules, without needing Engine
 				if ((!Target.bBuildRequiresCookedData
@@ -265,6 +268,16 @@ namespace UnrealBuildTool
 					// We don't need debug info for Emscripten, and it causes a bunch of issues with linking
 					return true;
 			};
+		}
+
+		/// <summary>
+		/// Setup the binaries for this specific platform.
+		/// </summary>
+		/// <param name="Target">The target being built</param>
+		/// <param name="ExtraModuleNames"></param>
+		public override void AddExtraModules(ReadOnlyTargetRules Target, List<string> ExtraModuleNames)
+		{
+            ExtraModuleNames.Add("HTML5PlatformFeatures");
 		}
 
 		/// <summary>

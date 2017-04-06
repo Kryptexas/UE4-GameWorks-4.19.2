@@ -6,6 +6,7 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Build;
 import android.support.v13.app.FragmentCompat;
 import android.util.Log;
 
@@ -47,8 +48,14 @@ public class PermissionFragment extends Fragment
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		if (requestCode==PERMISSION_REQUEST_CODE) {
+		if (Build.VERSION.SDK_INT >= 23) //Only in Marshmallow(23) and above needs runtime permission checking
+		{
+			super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+		}
+		
+		if (requestCode==PERMISSION_REQUEST_CODE &&
+			permissions.length>0) 
+		{
 			if (grantResults.length>0 &&
 					grantResults[0]==PackageManager.PERMISSION_GRANTED)
 				Log.d(TAG, "permission granted for " + permissions[0]);

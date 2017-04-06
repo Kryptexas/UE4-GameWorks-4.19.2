@@ -2584,6 +2584,12 @@ void FSceneRenderer::GatherShadowPrimitives(
 	}
 }
 
+static bool NeedsUnatlasedCSMDepthsWorkaround(ERHIFeatureLevel::Type FeatureLevel)
+{
+	// UE-42131: Excluding mobile from this, mobile renderer relies on the depth texture border.
+	return GRHINeedsUnatlasedCSMDepthsWorkaround && (FeatureLevel >= ERHIFeatureLevel::SM4);
+}
+
 void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 	TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, 
 	TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfosThatNeedCulling,
@@ -2642,7 +2648,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 					// Create the projected shadow info.
 					FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(), 1, 16) FProjectedShadowInfo;
 
-					uint32 ShadowBorder = GRHINeedsUnatlasedCSMDepthsWorkaround ? 0 : SHADOW_BORDER;
+					uint32 ShadowBorder = NeedsUnatlasedCSMDepthsWorkaround(FeatureLevel) ? 0 : SHADOW_BORDER;
 
 					ProjectedShadowInfo->SetupWholeSceneProjection(
 						&LightSceneInfo,
@@ -3072,7 +3078,7 @@ void FSceneRenderer::AllocateCSMDepthTargets(FRHICommandListImmediate& RHICmdLis
 {
 	if (WholeSceneDirectionalShadows.Num() > 0)
 	{
-		const bool bAllowAtlasing = !GRHINeedsUnatlasedCSMDepthsWorkaround;
+		const bool bAllowAtlasing = !NeedsUnatlasedCSMDepthsWorkaround(FeatureLevel);
 
 		const int32 MaxTextureSize = 1 << (GMaxTextureMipCount - 1);
 		TArray<FLayoutAndAssignedShadows, SceneRenderingAllocator> Layouts;

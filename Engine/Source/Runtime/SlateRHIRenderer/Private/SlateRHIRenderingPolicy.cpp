@@ -28,6 +28,13 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Num Layers"), STAT_SlateNumLayers, STATGROUP_Sl
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Batches"), STAT_SlateNumBatches, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Vertices"), STAT_SlateVertexCount, STATGROUP_Slate);
 
+TAutoConsoleVariable<int32> CVarSlateAbsoluteIndices(
+	TEXT("Slate.AbsoluteIndices"),
+	0,
+	TEXT("0: Each element first vertex index starts at 0 (default), 1: Use absolute indices, simplifies draw call setup on RHIs that do not support BaseVertex"),
+	ECVF_Default
+);
+
 FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy(TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, TOptional<int32> InitialBufferSize)
 	: FSlateRenderingPolicy(InSlateFontServices, 0)
 	, PostProcessor(new FSlatePostProcessor)
@@ -89,11 +96,13 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 	FVertexBufferRHIRef VertexBufferRHI;
 	FIndexBufferRHIRef IndexBufferRHI;
 	FSlateBatchData& BatchData;
+	bool bAbsoluteIndices;
 
-	FSlateUpdateVertexAndIndexBuffers(TSlateElementVertexBuffer<FSlateVertex>& InVertexBuffer, FSlateElementIndexBuffer& InIndexBuffer, FSlateBatchData& InBatchData)
+	FSlateUpdateVertexAndIndexBuffers(TSlateElementVertexBuffer<FSlateVertex>& InVertexBuffer, FSlateElementIndexBuffer& InIndexBuffer, FSlateBatchData& InBatchData, bool bInAbsoluteIndices)
 		: VertexBufferRHI(InVertexBuffer.VertexBufferRHI)
 		, IndexBufferRHI(InIndexBuffer.IndexBufferRHI)
 		, BatchData(InBatchData)
+		, bAbsoluteIndices(bInAbsoluteIndices)
 	{
 		check(IsInRenderingThread());
 	}
@@ -111,7 +120,7 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 		uint32 RequiredIndexBufferSize = NumBatchedIndices*sizeof(SlateIndex);		
 		uint8* IndexBufferData = (uint8*)GDynamicRHI->RHILockIndexBuffer( IndexBufferRHI, 0, RequiredIndexBufferSize, RLM_WriteOnly );
 
-		BatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
+		BatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData, bAbsoluteIndices );
 
 		GDynamicRHI->RHIUnlockVertexBuffer( VertexBufferRHI );
 		GDynamicRHI->RHIUnlockIndexBuffer( IndexBufferRHI );
@@ -151,6 +160,7 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 	if( InBatchData.GetRenderBatches().Num() > 0  && NumVertices > 0 && NumIndices > 0)
 	{
 		bool bShouldShrinkResources = false;
+		bool bAbsoluteIndices = CVarSlateAbsoluteIndices.GetValueOnRenderThread() != 0;
 
 		VertexBuffer.PreFillBuffer(NumVertices, bShouldShrinkResources);
 		IndexBuffer.PreFillBuffer(NumIndices, bShouldShrinkResources);
@@ -159,15 +169,15 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 		{
 			uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RenderThread(NumVertices);
 			uint8* IndexBufferData =  (uint8*)IndexBuffer.LockBuffer_RenderThread(NumIndices);
-
-			InBatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
+									
+			InBatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData, bAbsoluteIndices );
 	
 			VertexBuffer.UnlockBuffer_RenderThread();
 			IndexBuffer.UnlockBuffer_RenderThread();
 		}
 		else
 		{
-			new (RHICmdList.AllocCommand<FSlateUpdateVertexAndIndexBuffers>()) FSlateUpdateVertexAndIndexBuffers(VertexBuffer, IndexBuffer, InBatchData);
+			new (RHICmdList.AllocCommand<FSlateUpdateVertexAndIndexBuffers>()) FSlateUpdateVertexAndIndexBuffers(VertexBuffer, IndexBuffer, InBatchData, bAbsoluteIndices);
 		}
 	}
 
@@ -301,6 +311,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false,CF_Always>::GetRHI();
 
 	const FSlateRenderDataHandle* LastHandle = nullptr;
+
+	const bool bAbsoluteIndices = CVarSlateAbsoluteIndices.GetValueOnRenderThread() != 0;
 
 	// Draw each element
 	for( int32 BatchIndex = 0; BatchIndex < RenderBatches.Num(); ++BatchIndex )
@@ -500,15 +512,16 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	
 				// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
-				if (!GRHISupportsBaseVertexIndex)
+				if (!GRHISupportsBaseVertexIndex && !bAbsoluteIndices)
 				{
 					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
 					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
 				}
 				else
 				{
+					uint32 VertexOffset = bAbsoluteIndices ? 0 : RenderBatch.VertexOffset; 
 					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
-					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
+					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
 				}
 			}
 			else if (GEngine && ShaderResource && ShaderResource->GetType() == ESlateShaderResource::Material && ShaderType != ESlateShader::PostProcess)
@@ -607,15 +620,16 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 								InstanceBuffer->BindStreamSource(RHICmdList, 1, RenderBatch.InstanceOffset);
 
 								// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
-								if ( !GRHISupportsBaseVertexIndex )
+								if ( !GRHISupportsBaseVertexIndex && !bAbsoluteIndices)
 								{
 									RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
 									RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, InstanceCount);
 								}
 								else
 								{
+									uint32 VertexOffset = bAbsoluteIndices ? 0 : RenderBatch.VertexOffset; 
 									RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
-									RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, InstanceCount);
+									RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, InstanceCount);
 								}
 							}
 							//else
@@ -643,15 +657,16 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 							RHICmdList.SetStreamSource(1, nullptr, 0, 0);
 
 							// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
-							if ( !GRHISupportsBaseVertexIndex )
+							if ( !GRHISupportsBaseVertexIndex && !bAbsoluteIndices)
 							{
 								RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
 								RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 							}
 							else
 							{
+								uint32 VertexOffset = bAbsoluteIndices ? 0 : RenderBatch.VertexOffset; 
 								RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
-								RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
+								RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 							}
 						}
 					}

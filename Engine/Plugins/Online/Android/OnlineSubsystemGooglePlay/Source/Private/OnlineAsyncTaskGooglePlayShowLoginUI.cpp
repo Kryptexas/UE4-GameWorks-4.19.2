@@ -3,6 +3,9 @@
 #include "OnlineAsyncTaskGooglePlayShowLoginUI.h"
 #include "OnlineSubsystemGooglePlay.h"
 #include "OnlineIdentityInterfaceGooglePlay.h"
+#include "AndroidPermissionCallbackProxy.h"
+#include "Misc/ConfigCacheIni.h"
+
 
 THIRD_PARTY_INCLUDES_START
 #include "gpg/player_manager.h"
@@ -116,9 +119,23 @@ void FOnlineAsyncTaskGooglePlayShowLoginUI::OnFetchSelfResponse(const gpg::Playe
 		UE_LOG(LogOnline, Log, TEXT("FOnlineAsyncTaskGooglePlayShowLoginUI FetchSelf success"));
 		Subsystem->GetIdentityGooglePlay()->SetPlayerDataFromFetchSelfResponse(SelfResponse.data);
 
-		extern void AndroidThunkCpp_GoogleClientConnect();
-		AndroidThunkCpp_GoogleClientConnect();
-		// bIsComplete set by response from googleClientConnect in ProcessGoogleClientConnectResult
+		bool bUseGetAccounts = false;
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bUseGetAccounts"), bUseGetAccounts, GEngineIni);
+
+		//If the user has selected to use the GET_ACCOUNTS permission from project settings we will first try to get that permission and then
+		// in OnPermissionRequestReturn we will try the Google Client Connect
+		if (bUseGetAccounts && !UAndroidPermissionFunctionLibrary::CheckPermission("android.permission.GET_ACCOUNTS"))
+		{
+			UAndroidPermissionCallbackProxy::GetInstance()->OnPermissionsGrantedDelegate.BindRaw(this, &FOnlineAsyncTaskGooglePlayShowLoginUI::OnPermissionRequestReturn);
+			TArray<FString> Permissions = { "android.permission.GET_ACCOUNTS" };
+			UAndroidPermissionFunctionLibrary::AcquirePermissions(Permissions);
+		}
+		else
+		{
+			// bIsComplete set by response from googleClientConnect in ProcessGoogleClientConnectResult
+			extern void AndroidThunkCpp_GoogleClientConnect();
+			AndroidThunkCpp_GoogleClientConnect();
+		}
 	}
 	else
 	{
@@ -126,3 +143,16 @@ void FOnlineAsyncTaskGooglePlayShowLoginUI::OnFetchSelfResponse(const gpg::Playe
 		bIsComplete = true;
 	}
 }
+
+
+void FOnlineAsyncTaskGooglePlayShowLoginUI::OnPermissionRequestReturn(const TArray<FString>& Permissions, const TArray<bool>& GrantResults)
+{
+	bool bFound = Permissions.Contains(FString("android.permission.GET_ACCOUNTS"));
+	if (bFound)
+	{
+		// the result doesn't really matter as it will just allow users to clear achievements, we want to call connect always
+		extern void AndroidThunkCpp_GoogleClientConnect();
+		AndroidThunkCpp_GoogleClientConnect();
+	}
+}
+

@@ -299,7 +299,6 @@ class SHADERCORE_API FShaderCache : public FTickableObjectRenderThread
 			FMemory::Memset(RenderTargets, 255, sizeof(RenderTargets));
 			FMemory::Memset(SamplerStates, 255, sizeof(SamplerStates));
 			FMemory::Memset(Resources, 255, sizeof(Resources));
-			check(GetMaxTextureSamplers() <= MaxNumSamplers);
 		}
 		
 		struct FShaderRasterizerState
@@ -1216,6 +1215,7 @@ private:
 	static int32 AccelPredrawBatchTime;
 	static int32 AccelTargetPrecompileFrameTime;
 	static float InitialShaderLoadTime;
+	static uint32 MaxTextureSamplers;
 	static FAutoConsoleVariableRef CVarUseShaderCaching;
 	static FAutoConsoleVariableRef CVarUseShaderPredraw;
 	static FAutoConsoleVariableRef CVarUseShaderDrawLog;

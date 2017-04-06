@@ -49,6 +49,10 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 				[TextField show: TextEntryWidget];
 			});
 		}
+        else
+        {
+            [TextField hide];
+        }
 	}
 #endif
 }
@@ -56,6 +60,30 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 #if !PLATFORM_TVOS
 
 @implementation SlateTextField
+
+-(void)hide
+{
+    if(!TextWidget.IsValid())
+    {
+        return;
+    }
+    
+#ifdef __IPHONE_8_0
+    if([UIAlertController class] && AlertController != nil)
+    {
+        [AlertController dismissViewControllerAnimated: YES completion: nil];
+    }
+    else
+#endif
+    {
+        if(AlertView != nil)
+        {
+            [AlertView dismissWithClickedButtonIndex: 0 animated: YES]; //0 is the cancel button
+        }
+    }
+    
+    TextWidget = nullptr;
+}
 
 -(void)show:(TSharedPtr<IVirtualKeyboardEntry>)InTextWidget
 {
@@ -65,7 +93,7 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 #ifdef __IPHONE_8_0
 	if ([UIAlertController class])
 	{
-		UIAlertController* AlertController = [UIAlertController alertControllerWithTitle : @"" message:@"" preferredStyle:UIAlertControllerStyleAlert];
+		AlertController = [UIAlertController alertControllerWithTitle : @"" message:@"" preferredStyle:UIAlertControllerStyleAlert];
 		UIAlertAction* okAction = [UIAlertAction 
 										actionWithTitle:NSLocalizedString(@"OK", nil)
 										style:UIAlertActionStyleDefault
@@ -79,7 +107,10 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 											FIOSAsyncTask* AsyncTask = [[FIOSAsyncTask alloc] init];
 											AsyncTask.GameThreadCallback = ^ bool(void)
 											{
-												TextWidget->SetTextFromVirtualKeyboard(TextEntry, ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
+                                                if(TextWidget.IsValid())
+                                                {
+                                                    TextWidget->SetTextFromVirtualKeyboard(TextEntry, ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
+                                                }
 
 												// clear the TextWidget
 												TextWidget = nullptr;
@@ -147,7 +178,7 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 	else
 #endif
 	{
-		UIAlertView* AlertView = [[UIAlertView alloc] initWithTitle:@""
+		AlertView = [[UIAlertView alloc] initWithTitle:@""
 									message:@""
 									delegate:self
 									cancelButtonTitle:NSLocalizedString(@"Cancel", nil)
@@ -214,7 +245,7 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
     AsyncTask.GameThreadCallback = ^ bool(void)
     {
 		// index 1 is the OK button
-		if(buttonIndex == 1)
+		if(buttonIndex == 1 && TextWidget.IsValid())
 		{
 			TextWidget->SetTextFromVirtualKeyboard(TextEntry, ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
 		}

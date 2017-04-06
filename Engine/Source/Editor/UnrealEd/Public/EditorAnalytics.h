@@ -64,6 +64,7 @@ namespace EAnalyticsErrorCodes
 		DeviceNotSetupForDevelopment = 150,
 		DeviceOSNewerThanSDK = 151,
 		TestFailure = 152,
+		SymbolizedSONotFound = 153,
 	};
 };
 

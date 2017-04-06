@@ -1396,7 +1396,7 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 
 		// Only cache for ES2/3.1 shader platforms, and only compile 32bpp shaders for Android or PC emulation
 		return IsMobilePlatform(Platform) && 
-			(!TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) || Platform == SP_OPENGL_ES2_ANDROID || (IsES2Platform(Platform) && IsPCPlatform(Platform)));
+			(!TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) || Platform == SP_OPENGL_ES2_ANDROID || (IsMobilePlatform(Platform) && IsPCPlatform(Platform)));
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

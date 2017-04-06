@@ -40,7 +40,8 @@ static bool IsRetainedRenderingEnabled()
 
 SRetainerWidget::SRetainerWidget()
 	: CachedWindowToDesktopTransform(0, 0)
-	, WidgetRenderer( /* bUseGammaCorrection */ true)
+	// Use slate's gamma correction for mobile, as HW sRGB writes are not supported.
+	, WidgetRenderer( GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1 )
 	, DynamicEffect(nullptr)
 {
 }
@@ -61,8 +62,11 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 	STAT(MyStatId = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Slate>(InArgs._StatId);)
 
 	RenderTarget = NewObject<UTextureRenderTarget2D>();
+	
+	// Use HW sRGB correction for RT, ensuring it is linearised on read by material shaders
+	// since SRetainerWidget::OnPaint renders the RT with gamma correction.
 	RenderTarget->SRGB = true;
-	RenderTarget->TargetGamma = 1;
+	RenderTarget->TargetGamma = 2.2f;
 	RenderTarget->ClearColor = FLinearColor::Transparent;
 
 	SurfaceBrush.SetResourceObject(RenderTarget);
@@ -339,7 +343,7 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 				AllottedGeometry.ToPaintGeometry(),
 				&SurfaceBrush,
 				MyClippingRect,
-				ESlateDrawEffect::NoGamma | ESlateDrawEffect::PreMultipliedAlpha,
+				ESlateDrawEffect::PreMultipliedAlpha,
 				FLinearColor(PremultipliedColorAndOpacity.R, PremultipliedColorAndOpacity.G, PremultipliedColorAndOpacity.B, PremultipliedColorAndOpacity.A)
 				);
 			

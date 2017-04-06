@@ -3307,6 +3307,7 @@ static void DumpHelp(UWorld* InWorld)
 	ConsoleCommandLibrary_DumpLibraryHTML(InWorld, *GEngine, FilePath);
 
 	// Notification in editor
+#if WITH_EDITOR
 	{
 		const FText Message = NSLOCTEXT("UnrealEd", "ConsoleHelpExported", "ConsoleHelp.html was saved as");
 		FNotificationInfo Info(Message);
@@ -3331,6 +3332,7 @@ static void DumpHelp(UWorld* InWorld)
 		FPlatformProcess::LaunchURL(*LaunchableURL, nullptr, nullptr);
 #endif
 	}
+#endif// WITH_EDITOR
 }
 static FAutoConsoleCommandWithWorld GConsoleCommandHelp(
 	TEXT("help"),

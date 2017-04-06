@@ -921,6 +921,18 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			bNeedsMarkRenderStateDirty = true;
 		}
 
+		if (Component->bRenderCustomDepth != FoliageType->bRenderCustomDepth)
+		{
+			Component->bRenderCustomDepth = FoliageType->bRenderCustomDepth;
+			bNeedsMarkRenderStateDirty = true;
+		}
+
+		if (Component->CustomDepthStencilValue != FoliageType->CustomDepthStencilValue)
+		{
+			Component->CustomDepthStencilValue = FoliageType->CustomDepthStencilValue;
+			bNeedsMarkRenderStateDirty = true;
+		}
+
 		const UFoliageType_InstancedStaticMesh* FoliageType_ISM = Cast<UFoliageType_InstancedStaticMesh>(FoliageType);
 		if (FoliageType_ISM)
 		{

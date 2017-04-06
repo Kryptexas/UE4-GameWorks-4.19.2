@@ -29,5 +29,11 @@ public class OnlineSubsystemGooglePlay : ModuleRules
 				"GpgCppSDK"
             }
 			);
+
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"AndroidPermission"
+			}
+			);
 	}
 }

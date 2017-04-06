@@ -31,10 +31,10 @@ half4 GetLightMapColorLQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 
 #if USE_LM_DIRECTIONALITY
 	// Alpha doesn't matter, will scaled by zero
-	half4 SH = Lightmap1 * PrecomputedLightingBuffer.LightMapScale[1] + PrecomputedLightingBuffer.LightMapAdd[1];	// 1 vmad
+	float4 SH = Lightmap1 * PrecomputedLightingBuffer.LightMapScale[1] + PrecomputedLightingBuffer.LightMapAdd[1];	// 1 vmad
 
 	// Sample SH with normal
-	half Directionality = max( 0.0, dot( SH, half4(WorldNormal.yzx, 1) ) );	// 1 dot, 1 smax
+	half Directionality = max( 0.0, dot( SH, float4(WorldNormal.yzx, 1) ) );	// 1 dot, 1 smax
 #else
 	half Directionality = 0.6;
 #endif
@@ -69,13 +69,13 @@ void GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNorm
 
 #if USE_LM_DIRECTIONALITY
 	// Range scale SH. Alpha doesn't matter, will scale with zero
-	half4 SH = Lightmap1 * PrecomputedLightingBuffer.LightMapScale[1] + PrecomputedLightingBuffer.LightMapAdd[1];
+	float4 SH = Lightmap1 * PrecomputedLightingBuffer.LightMapScale[1] + PrecomputedLightingBuffer.LightMapAdd[1];
 
 	// Sample SH with normal
-	half Directionality = max( 0.0, dot( SH, half4(WorldNormal.yzx, 1) ) );
+	half Directionality = max( 0.0, dot( SH, float4(WorldNormal.yzx, 1) ) );
 
 	#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-		half SubsurfaceDirectionality = max( 0.0, dot( SH, half4(-WorldNormal.yzx, 1) ) );
+		half SubsurfaceDirectionality = max( 0.0, dot( SH, float4(-WorldNormal.yzx, 1) ) );
 		OutSubsurfaceLighting = L * SubsurfaceDirectionality * UVW;
 	#endif
 #else

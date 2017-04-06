@@ -187,10 +187,12 @@ static void CopyCaptureToTarget(
 	const FIntPoint& TargetSize, 
 	FViewInfo& View, 
 	const FIntRect& ViewRect, 
-	FTextureRHIParamRef SourceTextureRHI, 
+	FTexture2DRHIParamRef SourceTextureRHI, 
 	bool bNeedsFlippedRenderTarget,
 	FSceneRenderer* SceneRenderer)
 {
+	check(SourceTextureRHI);
+
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	ESceneCaptureSource CaptureSource = View.Family->SceneCaptureSource;
 	ESceneCaptureCompositeMode CaptureCompositeMode = View.Family->SceneCaptureCompositeMode;
@@ -232,7 +234,7 @@ static void CopyCaptureToTarget(
 
 	const bool bUsingDemosaic = IsMobileHDRMosaic();
 	FShader* VertexShader;
-	FIntPoint SourceTexSize = bNeedsFlippedRenderTarget ? TargetSize : FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
+	FIntPoint SourceTexSize = SourceTextureRHI->GetSizeXY();
 	if (bUsingDemosaic)
 	{
 		VertexShader = SetCaptureToTargetShaders<true>(RHICmdList, GraphicsPSOInit, CaptureSource, View, SourceTexSize, SourceTextureRHI);
@@ -344,14 +346,18 @@ void UpdateSceneCaptureContentMobile_RenderThread(
 
 		const bool bIsMobileHDR = IsMobileHDR();
 		const bool bRHINeedsFlip = RHINeedsToSwitchVerticalAxis(GMaxRHIShaderPlatform);
-		// note that GLES will flip the image during post processing. this needs flipping again so it is correct for texture addressing.
-		const bool bNeedsFlippedRenderTarget = (!bIsMobileHDR || !bUseSceneTextures) && bRHINeedsFlip;
+		// note that GLES code will flip the image when:
+		//	bIsMobileHDR && SceneCaptureSource == SCS_FinalColorLDR (flip performed during post processing)
+		//	!bIsMobileHDR (rendering is flipped by vertex shader)
+		// they need flipping again so it is correct for texture addressing.
+		const bool bNeedsFlippedCopy = (!bIsMobileHDR || !bUseSceneTextures) && bRHINeedsFlip;
+		const bool bNeedsFlippedFinalColor = bNeedsFlippedCopy && !bUseSceneTextures;
 
 		// Intermediate render target that will need to be flipped (needed on !IsMobileHDR())
 		TRefCountPtr<IPooledRenderTarget> FlippedPooledRenderTarget;
 
 		const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
-		if (bNeedsFlippedRenderTarget)
+		if (bNeedsFlippedFinalColor)
 		{
 			// We need to use an intermediate render target since the result will be flipped
 			auto& RenderTargetRHI = Target->GetRenderTargetTexture();
@@ -382,15 +388,19 @@ void UpdateSceneCaptureContentMobile_RenderThread(
 		FViewInfo& View = SceneRenderer->Views[0];
 		FIntRect ViewRect = View.ViewRect;
 		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
-		auto& RenderTargetRHI = Target->GetRenderTargetTexture();
-		SetRenderTarget(RHICmdList, RenderTargetRHI, NULL, true);
-		DrawClearQuad(RHICmdList, SceneRenderer->FeatureLevel, true, FLinearColor::Black, false, 0, false, 0, Target->GetSizeXY(), ViewRect);
+
+		if(bNeedsFlippedFinalColor)
+		{
+			auto& RenderTargetRHI = Target->GetRenderTargetTexture();
+			SetRenderTarget(RHICmdList, RenderTargetRHI, NULL, true);
+			DrawClearQuad(RHICmdList, SceneRenderer->FeatureLevel, true, FLinearColor::Black, false, 0, false, 0, Target->GetSizeXY(), ViewRect);
+		}
 
 		// Render the scene normally
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, RenderScene);
 
-			if (bNeedsFlippedRenderTarget)
+			if (bNeedsFlippedFinalColor)
 			{
 				// Hijack the render target
 				SceneRenderer->ViewFamily.RenderTarget = &FlippedRenderTarget; //-V506
@@ -398,7 +408,7 @@ void UpdateSceneCaptureContentMobile_RenderThread(
 
 			SceneRenderer->Render(RHICmdList);
 
-			if (bNeedsFlippedRenderTarget)
+			if (bNeedsFlippedFinalColor)
 			{
 				// And restore it
 				SceneRenderer->ViewFamily.RenderTarget = Target;
@@ -406,17 +416,17 @@ void UpdateSceneCaptureContentMobile_RenderThread(
 		}
 
 		const FIntPoint TargetSize(UnconstrainedViewRect.Width(), UnconstrainedViewRect.Height());
-		if (bNeedsFlippedRenderTarget)
+		if (bNeedsFlippedFinalColor)
 		{
 			// We need to flip this texture upside down (since we depended on tonemapping to fix this on the hdr path)
 			SCOPED_DRAW_EVENT(RHICmdList, FlipCapture);
-			CopyCaptureToTarget(RHICmdList, Target, TargetSize, View, ViewRect, FlippedRenderTarget.GetTextureParamRef(), true, SceneRenderer);
+			CopyCaptureToTarget(RHICmdList, Target, TargetSize, View, ViewRect, FlippedRenderTarget.GetTextureParamRef(), bNeedsFlippedCopy, SceneRenderer);
 		}
 		else if(bUseSceneTextures)
 		{
 			// Copy the captured scene into the destination texture
 			SCOPED_DRAW_EVENT(RHICmdList, CaptureSceneColor);
-			CopyCaptureToTarget(RHICmdList, Target, TargetSize, View, ViewRect, FSceneRenderTargets::Get(RHICmdList).GetSceneColorTexture(), false, SceneRenderer);
+			CopyCaptureToTarget(RHICmdList, Target, TargetSize, View, ViewRect, FSceneRenderTargets::Get(RHICmdList).GetSceneColorTexture()->GetTexture2D(), bNeedsFlippedCopy, SceneRenderer);
 		}
 
 		RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);

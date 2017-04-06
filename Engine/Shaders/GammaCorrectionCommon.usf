@@ -49,10 +49,10 @@ half3 sRGBToLinear( half3 Color )
 /**
  * @param GammaCurveRatio The curve ratio compared to a 2.2 standard gamma, e.g. 2.2 / DisplayGamma.  So normally the value is 1.
  */
-half3 ApplyGammaCorrection(float3 LinearColor, float GammaCurveRatio)
+half3 ApplyGammaCorrection(half3 LinearColor, half GammaCurveRatio)
 {
 	// Apply "gamma" curve adjustment.
-	float3 CorrectedColor = pow(LinearColor, GammaCurveRatio);
+	half3 CorrectedColor = pow(LinearColor, GammaCurveRatio);
 
 	#if MAC
 		// Note, MacOSX native output is raw gamma 2.2 not sRGB!

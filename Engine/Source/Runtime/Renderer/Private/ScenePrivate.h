@@ -1823,16 +1823,6 @@ class FScene : public FSceneInterface
 {
 public:
 
-	struct FReadOnlyCVARCache
-	{
-		FReadOnlyCVARCache();
-		bool bEnablePointLightShadows;
-		bool bEnableStationarySkylight;
-		bool bEnableAtmosphericFog;
-		bool bEnableLowQualityLightmaps;
-		bool bEnableVertexFoggingForOpaque;
-	};
-
 	/** An optional world associated with the scene. */
 	UWorld* World;
 
@@ -2022,6 +2012,10 @@ public:
 	/** Set by the rendering thread to signal to the game thread that the scene needs a static lighting build. */
 	volatile mutable int32 NumUncachedStaticLightingInteractions;
 
+	/** Track numbers of various lights types on mobile, used to show warnings for disabled shader permutations. */
+	int32 NumMobileStaticAndCSMLights_RenderThread;
+	int32 NumMobileMovableDirectionalLights_RenderThread;
+
 	FMotionBlurInfoData MotionBlurInfoData;
 
 	/** Uniform buffers for parameter collections with the corresponding Ids. */
@@ -2036,7 +2030,7 @@ public:
 
 	float DynamicIndirectShadowsSelfShadowingIntensity;
 
-	FReadOnlyCVARCache ReadOnlyCVARCache;
+	const FReadOnlyCVARCache& ReadOnlyCVARCache;
 
 #if WITH_EDITOR
 	/** Editor Pixel inspector */

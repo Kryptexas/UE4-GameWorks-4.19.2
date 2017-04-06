@@ -4,6 +4,7 @@
 #include "OnlineSubsystemGameCircle.h"
 #include "Async/TaskGraphInterfaces.h"
 #include <jni.h>
+#include "AndroidPlatform.h"
 
 ////////////////////////////////////////////////////////////////////
 /// Amazon Store Helper Request Response Codes

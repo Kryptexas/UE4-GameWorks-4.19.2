@@ -141,4 +141,6 @@ private:
 	// Holds a critical section for locking access to the collection of devices.
 	static FCriticalSection DevicesCriticalSection;
 
+	void PopulateDevices(TArray<FString>& DeviceMaps, FString prefix);
+
 };

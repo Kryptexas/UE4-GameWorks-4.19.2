@@ -51,6 +51,13 @@ static TAutoConsoleVariable<int32> CVarTonemapperFilm(
 	ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarMobileTonemapperFilm(
+	TEXT("r.Mobile.TonemapperFilm"),
+	0,
+	TEXT("Whether mobile platforms should use new film tone mapper"),
+	ECVF_RenderThreadSafe
+	);
+
 // false:use 256x16 texture / true:use volume texture (faster, requires geometry shader)
 // USE_VOLUME_LUT: needs to be the same for C++ and HLSL
 bool UseVolumeTextureLUT(EShaderPlatform Platform) 

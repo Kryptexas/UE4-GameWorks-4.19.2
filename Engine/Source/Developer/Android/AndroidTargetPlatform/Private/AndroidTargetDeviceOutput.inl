@@ -46,6 +46,8 @@ inline void FAndroidDeviceOutputReaderRunnable::Stop(void)
 
 inline uint32 FAndroidDeviceOutputReaderRunnable::Run(void)
 {
+	FString LogcatOutput;
+	
 	while (StopTaskCounter.GetValue() == 0 && LogcatProcHandle.IsValid())
 	{
 		if (!FPlatformProcess::IsProcRunning(LogcatProcHandle))
@@ -66,12 +68,24 @@ inline uint32 FAndroidDeviceOutputReaderRunnable::Run(void)
 		}
 		else
 		{
-			FString LogcatOutput = FPlatformProcess::ReadPipe(LogcatReadPipe);
+			LogcatOutput.Append(FPlatformProcess::ReadPipe(LogcatReadPipe));
+
 			if (LogcatOutput.Len() > 0)
 			{
 				TArray<FString> OutputLines;
 				LogcatOutput.ParseIntoArray(OutputLines, TEXT("\n"), false);
-			
+
+				if (!LogcatOutput.EndsWith(TEXT("\n")))
+				{
+					// partial line at the end, do not serialize it until we receive remainder
+					LogcatOutput = OutputLines.Last();
+					OutputLines.RemoveAt(OutputLines.Num() - 1);
+				}
+				else
+				{
+					LogcatOutput.Reset();
+				}
+
 				for (int32 i = 0; i < OutputLines.Num(); ++i)
 				{
 					Output->Serialize(*OutputLines[i], ELogVerbosity::Log, NAME_None);
