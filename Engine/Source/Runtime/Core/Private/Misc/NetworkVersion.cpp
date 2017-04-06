@@ -59,8 +59,11 @@ uint32 FNetworkVersion::GetGameCompatibleNetworkProtocolVersion()
 	return GameCompatibleNetworkProtocolVersion;
 }
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 uint32 FNetworkVersion::GetLocalNetworkVersion( bool AllowOverrideDelegate /*=true*/ )
 {
+	
 	if ( bHasCachedNetworkChecksum )
 	{
 		return CachedNetworkChecksum;
@@ -103,6 +106,8 @@ uint32 FNetworkVersion::GetLocalNetworkVersion( bool AllowOverrideDelegate /*=tr
 
 	return CachedNetworkChecksum;
 }
+
+PRAGMA_ENABLE_OPTIMIZATION
 
 bool FNetworkVersion::IsNetworkCompatible( const uint32 LocalNetworkVersion, const uint32 RemoteNetworkVersion )
 {
