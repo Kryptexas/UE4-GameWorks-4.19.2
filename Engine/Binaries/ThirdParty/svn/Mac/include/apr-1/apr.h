@@ -266,7 +266,7 @@ extern "C" {
 /*  APR Feature Macros */
 #define APR_HAS_SHARED_MEMORY     1
 #define APR_HAS_THREADS           1
-#define APR_HAS_SENDFILE          1
+#define APR_HAS_SENDFILE          0
 #define APR_HAS_MMAP              1
 #define APR_HAS_FORK              1
 #define APR_HAS_RANDOM            1
@@ -613,7 +613,7 @@ typedef int apr_wait_t;
 #error no decision has been made on APR_PATH_MAX for your platform
 #endif
 
-#define APR_DSOPATH "DYLD_LIBRARY_PATH"
+#define APR_DSOPATH "REPLACE_WITH_YOUR_SHLIBPATH_VAR"
 
 /** @} */
 

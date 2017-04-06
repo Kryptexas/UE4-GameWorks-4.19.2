@@ -24,9 +24,9 @@
 #
 # Configuration variables
 #
-apr_builddir=/usr/local/apr/build-1
-apr_builders=/usr/local/apr/build-1
-top_builddir=/usr/local/apr/build-1
+apr_builddir=/Users/kmaramara/desktop/svn/apr-dist/build-1
+apr_builders=/Users/kmaramara/desktop/svn/apr-dist/build-1
+top_builddir=/Users/kmaramara/desktop/svn/apr-dist/build-1
 
 # Some layouts require knowing what version we are at.
 APR_MAJOR_VERSION=1
@@ -51,7 +51,7 @@ DEFS=-DHAVE_CONFIG_H
 # at the end of the process.
 #
 EXTRA_CFLAGS=-g -O2
-EXTRA_CPPFLAGS=-DDARWIN -DSIGPROCMASK_SETS_THREAD_MASK -DDARWIN_10
+EXTRA_CPPFLAGS=
 EXTRA_LDFLAGS=
 EXTRA_LIBS=-lpthread
 EXTRA_INCLUDES=
