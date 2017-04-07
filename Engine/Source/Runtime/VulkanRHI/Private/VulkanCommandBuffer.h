@@ -7,7 +7,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "VulkanRHIPrivate.h"
 #include "VulkanConfiguration.h"
 
 class FVulkanDevice;
