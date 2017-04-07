@@ -11,7 +11,6 @@
 #include "VulkanCommandBuffer.h"
 #include "VulkanDescriptorSets.h"
 #include "VulkanGlobalUniformBuffer.h"
-#include "VulkanResources.h"
 #include "VulkanPipeline.h"
 
 class FVulkanComputePipeline;

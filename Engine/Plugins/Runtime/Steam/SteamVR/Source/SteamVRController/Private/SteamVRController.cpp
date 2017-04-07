@@ -293,7 +293,7 @@ public:
 					HandToUse = (HandToUse == EControllerHand::Left) ? EControllerHand::Right : EControllerHand::Left; 
 				}
 
-				if (VRSystem->GetControllerState(DeviceIndex, &VRControllerState))
+				if (VRSystem->GetControllerState(DeviceIndex, &VRControllerState, sizeof(vr::VRControllerState_t)))
 				{
 					if (VRControllerState.unPacketNum != ControllerState.PacketNum )
 					{
@@ -515,7 +515,7 @@ public:
 		return false;
 	}
 
-	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const
+	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 	{
 		bool RetVal = false;
 
@@ -524,6 +524,7 @@ public:
  		if (SteamVRHMD)
  		{
  			FQuat DeviceOrientation = FQuat::Identity;
+			// Steam handles WorldToMetersScale when it reads the controller posrot, so we do not need to use it again here.  Debugging found that they are the same.
  			RetVal = SteamVRHMD->GetControllerHandPositionAndOrientation(ControllerIndex, DeviceHand, OutPosition, DeviceOrientation);
  			OutOrientation = DeviceOrientation.Rotator();
  		}

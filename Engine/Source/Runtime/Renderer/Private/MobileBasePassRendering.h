@@ -712,7 +712,12 @@ public:
 		}
 		else
 		{
+
 			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
+
+			static const auto CVarMonoscopicFarField = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
+			const bool bIsMobileMonoscopic = CVarMonoscopicFarField && (CVarMonoscopicFarField->GetValueOnGameThread() != 0);
+
 			if (bEncodedHDR == false)
 			{
 				switch (BlendMode)
@@ -725,7 +730,14 @@ public:
 					// Masked materials are rendered together in the base pass, where the blend state is set at a higher level
 					break;
 				case BLEND_Translucent:
-					DrawRenderState.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+					if (bIsMobileMonoscopic)
+					{
+						DrawRenderState.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_One>::GetRHI());
+					}
+					else
+					{
+						DrawRenderState.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+					}
 					break;
 				case BLEND_Additive:
 					// Add to the existing scene color

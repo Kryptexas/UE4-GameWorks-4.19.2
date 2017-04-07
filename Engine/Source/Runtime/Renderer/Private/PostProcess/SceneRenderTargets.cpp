@@ -765,12 +765,19 @@ void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 
 void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList)
 {
+	// For mono support. 
+	// Ensure we clear alpha to 0. We use alpha to tag which pixels had objects rendered into them so we can mask them out for the mono pass
+	if (MobileMultiViewSceneColor && !(MobileMultiViewSceneColor->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultColorClear))
+	{
+		MobileMultiViewSceneColor.SafeRelease();
+	}
+
 	if (!MobileMultiViewSceneColor)
 	{
 		const EPixelFormat SceneColorBufferFormat = GetSceneColorFormat();
 		const FIntPoint MultiViewBufferSize(BufferSize.X / 2, BufferSize.Y);
 
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, SceneColorBufferFormat, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, SceneColorBufferFormat, DefaultColorClear, TexCreate_None, TexCreate_RenderTargetable, false));
 		Desc.Flags |= TexCreate_FastVRAM;
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		Desc.ArraySize = 2;
@@ -782,12 +789,18 @@ void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmd
 
 void FSceneRenderTargets::AllocMobileMultiViewDepth(FRHICommandList& RHICmdList)
 {
+	// For mono support. We change the default depth clear value to the mono clip plane to clip the stereo portion of the frustum.
+	if (MobileMultiViewSceneDepthZ && !(MobileMultiViewSceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear))
+	{
+		MobileMultiViewSceneDepthZ.SafeRelease();
+	}
+
 	if (!MobileMultiViewSceneDepthZ)
 	{
 		const FIntPoint MultiViewBufferSize(BufferSize.X / 2, BufferSize.Y);
 
 		// Using the result of GetDepthFormat() without stencil due to packed depth-stencil not working in array frame buffers.
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, PF_D24, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, PF_D24, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		Desc.Flags |= TexCreate_FastVRAM;
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		Desc.ArraySize = 2;
@@ -1560,13 +1573,25 @@ void FSceneRenderTargets::AllocateMobileRenderTargets(FRHICommandList& RHICmdLis
 	AllocSceneColor(RHICmdList);
 	AllocateCommonDepthTargets(RHICmdList);
 
+#if PLATFORM_ANDROID
 	static const auto MobileMultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+	static const auto CVarMobileMultiViewDirect = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView.Direct"));
+
 	const bool bIsUsingMobileMultiView = GSupportsMobileMultiView && (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+
+	// TODO: Test platform support for direct
+	const bool bIsMobileMultiViewDirectEnabled = (CVarMobileMultiViewDirect && CVarMobileMultiViewDirect->GetValueOnAnyThread() != 0);
+
 	if (bIsUsingMobileMultiView)
 	{
-		AllocMobileMultiViewSceneColor(RHICmdList);
+		if (!bIsMobileMultiViewDirectEnabled)
+		{
+			AllocMobileMultiViewSceneColor(RHICmdList);
+		}
+
 		AllocMobileMultiViewDepth(RHICmdList);
 	}
+#endif
 
 	AllocateDebugViewModeTargets(RHICmdList);
 
@@ -2221,7 +2246,14 @@ bool FSceneRenderTargets::AreRenderTargetClearsValid(ESceneColorFormatType InSce
 			const TRefCountPtr<IPooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath();
 			const bool bColorValid = SceneColorTarget && (SceneColorTarget->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultColorClear);
 			const bool bDepthValid = SceneDepthZ && (SceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear);
+#if PLATFORM_ANDROID
+			// For mobile multi-view + mono support
+			const bool bMobileMultiViewColorValid = (!MobileMultiViewSceneColor || MobileMultiViewSceneColor->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultColorClear);
+			const bool bMobileMultiViewDepthValid = (!MobileMultiViewSceneDepthZ || MobileMultiViewSceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear);
+			return bColorValid && bDepthValid && bMobileMultiViewColorValid && bMobileMultiViewDepthValid;
+#else
 			return bColorValid && bDepthValid;
+#endif
 		}
 	default:
 		{

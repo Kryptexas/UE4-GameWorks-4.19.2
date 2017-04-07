@@ -392,13 +392,20 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	uint32 bMultiView : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
-		ConsoleVariable = "vr.MobileMultiView", DisplayName = "Mobile Multi-View (Experimental)",
-		ToolTip = "Enable mobile multi-view rendering (only available on some GearVR Android devices using OpenGL ES 3.1).",
+		ConsoleVariable = "vr.MobileMultiView", DisplayName = "Mobile Multi-View",
+		ToolTip = "Enable mobile multi-view rendering (only available on some GearVR Android devices using OpenGL ES 2.0).",
 		ConfigRestartRequired = true))
 		uint32 bMobileMultiView : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
-		ConsoleVariable = "vr.MonoscopicFarField", DisplayName = "Monoscopic Far Field (Experimental)",
+		EditCondition = "bMobileMultiView",
+		ConsoleVariable = "vr.MobileMultiView.Direct", DisplayName = "Mobile Multi-View Direct",
+		ToolTip = "Enable direct mobile multi-view rendering (only available on multi-view enabled GearVR Android devices).",
+		ConfigRestartRequired = true))
+		uint32 bMobileMultiViewDirect : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
+		ConsoleVariable = "vr.MonoscopicFarField", DisplayName = "Monoscopic Far Field",
 		ToolTip = "Enable monoscopic far field rendering (only available for mobile).",
 		ConfigRestartRequired = true))
 		uint32 bMonoscopicFarField : 1;

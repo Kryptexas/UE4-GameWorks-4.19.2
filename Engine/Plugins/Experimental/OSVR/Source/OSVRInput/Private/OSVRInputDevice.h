@@ -63,7 +63,7 @@ public:
     * @param OutPosition		(out) If tracked, the position (in calibrated-space) of the controller in the specified hand
     * @return					True if the device requested is valid and tracked, false otherwise
     */
-    virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const override;
+    virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const override;
 
 #if OSVR_UNREAL_4_11
     virtual ETrackingStatus GetControllerTrackingStatus(const int32, const EControllerHand) const override;

@@ -273,7 +273,7 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 		// Verify we are not setting the same render targets again
 		if (RenderTargetsInfo.DepthStencilRenderTarget.Texture ||
 			RenderTargetsInfo.NumColorRenderTargets > 1 ||
-			(RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture))
+			((RenderTargetsInfo.NumColorRenderTargets == 1) && RenderTargetsInfo.ColorRenderTarget[0].Texture))
 		{
 			TransitionState.BeginRenderPass(*this, PendingGfxState->CurrentKey, *Device, CmdBuffer, RenderTargetsInfo, RTLayout, RenderPass, Framebuffer);
 		}
@@ -296,7 +296,7 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 
 	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture ||
 		RenderTargetsInfo.NumColorRenderTargets > 1 ||
-		(RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture))
+		((RenderTargetsInfo.NumColorRenderTargets == 1) && RenderTargetsInfo.ColorRenderTarget[0].Texture))
 	{
 		FVulkanRenderTargetLayout RTLayout(RenderTargetsInfo);
 		const uint32 RTLayoutHash = RTLayout.GetHash();

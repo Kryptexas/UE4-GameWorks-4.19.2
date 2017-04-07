@@ -62,18 +62,9 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 		const int ViewportSizeY = (ViewFamily.RenderTarget->GetRenderTargetTexture()) ? 
 			ViewFamily.RenderTarget->GetRenderTargetTexture()->GetSizeY() : ViewFamily.RenderTarget->GetSizeXY().Y;
 		RHICmdList.SetViewport(GapMinX, 0, 0, GapMaxX, ViewportSizeY, 1.0f);
-
-		if (ensure(ViewFamily.RenderTarget->GetRenderTargetTexture()->GetClearColor() == FLinearColor::Black))
-		{
-			FRHIRenderTargetView RtView = FRHIRenderTargetView(ViewFamily.RenderTarget->GetRenderTargetTexture(), ERenderTargetLoadAction::EClear);
-			FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
-			RHICmdList.SetRenderTargetsAndClear(Info);
-		}
-		else
-		{
-			SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
-			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
-		}
+		
+		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
 	}
 
 	check(ViewFamily.RenderTarget->GetRenderTargetTexture());
@@ -217,8 +208,7 @@ bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uin
 	{
 		LayerFlags |= FCustomPresent::HighQuality;
 	}
-	pCustomPresent->AllocateRenderTargetTexture(SizeX, SizeY, Format, InTexFlags, LayerFlags, OutTargetableTexture, OutShaderResourceTexture);
-	return true;
+	return pCustomPresent->AllocateRenderTargetTexture(SizeX, SizeY, Format, InTexFlags, LayerFlags, OutTargetableTexture, OutShaderResourceTexture);
 }
 
 void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY,
@@ -325,11 +315,13 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 	check(pCustomPresent);
 
 	pCustomPresent->UpdateLayers(RHICmdList);
+	static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
+	EMirrorWindowMode MirrorWindowMode = (EMirrorWindowMode) FMath::Clamp(CVarMirrorMode->GetValueOnRenderThread(), 0, (int32)EMirrorWindowMode::Last);
 
 	auto RenderContext = pCustomPresent->GetRenderContext();
-	if (RenderContext && RenderContext->GetFrameSettings()->Flags.bMirrorToWindow)
+	if (RenderContext && MirrorWindowMode != EMirrorWindowMode::Disabled)
 	{
-		if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_Distorted)
+		if (MirrorWindowMode == EMirrorWindowMode::Distorted)
 		{
 			FTexture2DRHIRef MirrorTexture = pCustomPresent->GetMirrorTexture();
 			if (MirrorTexture)
@@ -337,7 +329,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 				pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, MirrorTexture, MirrorTexture->GetTexture2D()->GetSizeX(), MirrorTexture->GetTexture2D()->GetSizeY());
 			}
 		}
-		else if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_Undistorted)
+		else if (MirrorWindowMode == EMirrorWindowMode::Undistorted)
 		{
 			auto FrameSettings = RenderContext->GetFrameSettings();
 			FIntRect destRect(0, 0, BackBuffer->GetSizeX() / 2, BackBuffer->GetSizeY());
@@ -348,12 +340,12 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 				destRect.Max.X += BackBuffer->GetSizeX() / 2;
 			}
 		}
-		else if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEye ||
-				 RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeLetterboxed || 
-				 RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeCroppedToFill )
+		else if (MirrorWindowMode == EMirrorWindowMode::SingleEye ||
+				 MirrorWindowMode == EMirrorWindowMode::SingleEyeLetterboxed || 
+				 MirrorWindowMode == EMirrorWindowMode::SingleEyeCroppedToFill )
 		{
-			const bool bLetterbox = ( RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeLetterboxed );
-			const bool bCropToFill = ( RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeCroppedToFill );
+			const bool bLetterbox = ( MirrorWindowMode == EMirrorWindowMode::SingleEyeLetterboxed );
+			const bool bCropToFill = ( MirrorWindowMode == EMirrorWindowMode::SingleEyeCroppedToFill );
 
 			auto FrameSettings = RenderContext->GetFrameSettings();
 
@@ -420,11 +412,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 		}
 	}
 #if OCULUS_STRESS_TESTS_ENABLED
-	if (StressTester)
-	{
-		StressTester->TickGPU_RenderThread(RHICmdList, BackBuffer, SrcTexture);
-		//StressTester->TickGPU_RenderThread(RHICmdList, SrcTexture, BackBuffer);
-	}
+	FOculusStressTester::TickGPU_RenderThread(RHICmdList, BackBuffer, SrcTexture);
 #endif
 }
 
@@ -452,13 +440,14 @@ static void DrawOcclusionMesh(FRHICommandList& RHICmdList, EStereoscopicPass Ste
 
 bool FOculusRiftHMD::HasHiddenAreaMesh() const
 {
-	// Don't use hidden area mesh if it will interfere with mirror window output
-	auto RenderContext = pCustomPresent->GetRenderContext();
-
-	if (RenderContext)
+	if (IsInRenderingThread())
 	{
-		if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeLetterboxed || 
-			RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeCroppedToFill )
+		// Don't use hidden area mesh if it will interfere with mirror window output
+		static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
+		EMirrorWindowMode MirrorWindowMode = (EMirrorWindowMode)FMath::Clamp(CVarMirrorMode->GetValueOnRenderThread(), 0, (int32)EMirrorWindowMode::Last);
+
+		if (MirrorWindowMode == EMirrorWindowMode::SingleEyeLetterboxed ||
+			MirrorWindowMode == EMirrorWindowMode::SingleEyeCroppedToFill)
 		{
 			return false;
 		}
@@ -474,13 +463,14 @@ void FOculusRiftHMD::DrawHiddenAreaMesh_RenderThread(FRHICommandList& RHICmdList
 
 bool FOculusRiftHMD::HasVisibleAreaMesh() const 
 {
-	// Don't use visible area mesh if it will interfere with mirror window output
-	auto RenderContext = pCustomPresent->GetRenderContext();
-
-	if (RenderContext)
+	if (IsInRenderingThread())
 	{
-		if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeLetterboxed || 
-			RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeCroppedToFill )
+		// Don't use visible area mesh if it will interfere with mirror window output
+		static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
+		EMirrorWindowMode MirrorWindowMode = (EMirrorWindowMode)FMath::Clamp(CVarMirrorMode->GetValueOnRenderThread(), 0, (int32)EMirrorWindowMode::Last);
+
+		if (MirrorWindowMode == EMirrorWindowMode::SingleEyeLetterboxed ||
+			MirrorWindowMode == EMirrorWindowMode::SingleEyeCroppedToFill)
 		{
 			return false;
 		}
@@ -563,6 +553,10 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 {
 #if !UE_BUILD_SHIPPING
 	check(IsInGameThread());
+	if (Canvas == nullptr)
+	{
+		return;
+	}
 	const auto frame = GetFrame();
 	if (frame)
 	{
@@ -678,18 +672,13 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 			float LeftPos = 0;
 
 			ClipX -= 100;
-			//ClipY = ClipY * 0.60;
 			LeftPos = ClipX * 0.3f;
 			float TopPos = ClipY * 0.4f;
 
 			int32 X = (int32)LeftPos;
 			int32 Y = (int32)TopPos;
 
-			FString Str, StatusStr;
-			// First row
-			//Str = FString::Printf(TEXT("VSync: %s"), (FrameSettings->Flags.bVSync) ? TEXT("ON") : TEXT("OFF"));
-			//Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-			//Y += RowHeight;
+			FString Str;
 
 			Str = FString::Printf(TEXT("Upd on GT/RT: %s / %s"), (!FrameSettings->Flags.bDoNotUpdateOnGT) ? TEXT("ON") : TEXT("OFF"),
 				(FrameSettings->Flags.bUpdateOnRT) ? TEXT("ON") : TEXT("OFF"));
@@ -697,14 +686,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 
 			Y += RowHeight;
 
-// 			static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
-// 			int finFr = CFinishFrameVar->GetInt();
-// 			Str = FString::Printf(TEXT("FinFr: %s"), (finFr || FrameSettings->Flags.bTimeWarp) ? TEXT("ON") : TEXT("OFF"));
-// 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-// 
-// 			Y += RowHeight;
-
-			if(!FrameSettings->PixelDensityAdaptive)
+			if(!FrameSettings->bPixelDensityAdaptive)
 			{
 				Str = FString::Printf(TEXT("PD: %.2f"), FrameSettings->PixelDensity);
 			}
@@ -716,11 +698,6 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 			Y += RowHeight;
 
-			Str = FString::Printf(TEXT("FOV V/H: %.2f / %.2f deg"), 
-				FMath::RadiansToDegrees(FrameSettings->VFOVInRadians), FMath::RadiansToDegrees(FrameSettings->HFOVInRadians));
-			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-
-			Y += RowHeight;
 			Str = FString::Printf(TEXT("W-to-m scale: %.2f uu/m"), frame->GetWorldToMetersScale());
 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 
@@ -756,9 +733,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 			Y += RowHeight;
 
-			StatusStr = ((FrameSettings->SupportedTrackingCaps & ovrTrackingCap_Position) != 0) ?
-				((FrameSettings->Flags.bHmdPosTracking) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
-			Str = FString::Printf(TEXT("PosTr: %s"), *StatusStr);
+			Str = FString::Printf(TEXT("PosTr: %s"), ((FrameSettings->SupportedTrackingCaps & ovrTrackingCap_Position) != 0) ? TEXT("ON") : TEXT("UNSUP"));
 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 			Y += RowHeight;
 
@@ -771,32 +746,9 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
  			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
  			Y += RowHeight;
 
-// 			StatusStr = ((FrameSettings->SupportedHmdCaps & ovrHmdCap_LowPersistence) != 0) ?
-// 				((FrameSettings->Flags.bLowPersistenceMode) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
-// 			Str = FString::Printf(TEXT("LowPers: %s"), *StatusStr);
-// 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-// 			Y += RowHeight;
-
-// 			StatusStr = ((FrameSettings->SupportedDistortionCaps & ovrDistortionCap_Overdrive) != 0) ?
-// 				((FrameSettings->Flags.bOverdrive) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
-// 			Str = FString::Printf(TEXT("Overdrive: %s"), *StatusStr);
-// 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-// 			Y += RowHeight;
 		}
-
-		//TODO:  Where can I get context!?
-		UWorld* MyWorld = GWorld;
-		if (Canvas && Canvas->SceneView && FrameSettings->Flags.bDrawSensorFrustum)
-		{
-			DrawDebugTrackingCameraFrustum(MyWorld, Canvas->SceneView->ViewRotation, Canvas->SceneView->ViewLocation);
-		}
-
-		if (Canvas && Canvas->SceneView)
-		{
-			DrawSeaOfCubes(MyWorld, Canvas->SceneView->ViewLocation);
-		}
+		
 	}
-
 #endif // #if !UE_BUILD_SHIPPING
 }
 
@@ -879,9 +831,10 @@ void FOculusRiftHMD::ShutdownRendering()
 // FCustomPresent
 //-------------------------------------------------------------------------------------------------
 
-FCustomPresent::FCustomPresent(const FOvrSessionSharedPtr& InOvrSession)
+FCustomPresent::FCustomPresent(const FOvrSessionSharedPtr& InOvrSession, FOculusRiftHMD* InRiftHMD)
 	: FRHICustomPresent(nullptr)
 	, Session(InOvrSession)
+	, RiftHMD(InRiftHMD)
 	, LayerMgr(MakeShareable(new FLayerManager(this)))
 	, MirrorTexture(nullptr)
 	, NeedToKillHmd(0)
@@ -952,6 +905,7 @@ void FCustomPresent::OnBackBufferResize()
 
 bool FCustomPresent::Present(int32& SyncInterval)
 {
+	static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
 	check(IsInRenderingThread());
 
 	if (!RenderContext.IsValid())
@@ -960,7 +914,7 @@ bool FCustomPresent::Present(int32& SyncInterval)
 	}
 
 	SyncInterval = 0; // turn off VSync for the 'normal Present'.
-	bool bHostPresent = RenderContext->GetFrameSettings()->Flags.bMirrorToWindow;
+	bool bHostPresent = CVarMirrorMode->GetValueOnRenderThread() > 0;
 
 	FinishRendering();
 	return bHostPresent;
@@ -1012,6 +966,9 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 	const FHMDLayerDesc* pEyeLayerDesc = LayerMgr->GetEyeLayerDesc();
 	check(pEyeLayerDesc);
 	auto TextureSet = pEyeLayerDesc->GetTextureSet();
+
+	bool bEyeLayer10bitFloat = RiftHMD->Settings->Flags.bHQBuffer;
+
 	bool bEyeLayerIsHQ = false;
 	bool bEyeLayerShouldBeHQ = (LayerFlags & HighQuality) != 0;
 	if (!TextureSet.IsValid())
@@ -1058,8 +1015,8 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 			TextureSet->ReleaseResources();
 			LayerMgr->InvalidateTextureSets();
 		}
-
-		FTexture2DSetProxyPtr ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumMips, DefaultEyeBuffer);
+		
+		FTexture2DSetProxyPtr ColorTextureSet = CreateTextureSet(SizeX, SizeY, bEyeLayer10bitFloat ? PF_FloatR11G11B10 : EPixelFormat(Format), NumMips, DefaultEyeBuffer);
 		if (ColorTextureSet.IsValid())
 		{
 			// update the eye layer textureset. at the moment only one eye layer is supported

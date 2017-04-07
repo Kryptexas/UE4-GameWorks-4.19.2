@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"HILFE ÖFFNEN"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Du benötigst ein mit Daydream kompatibles Smartphone. Weitere Informationen findest du in der Daydream-Hilfe."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Hol dir die Cardboard App zum Konfigurieren deines VR-Geräts."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"Richte dein VR-Gerät ein, damit du es optimal nutzen kannst."</string>
 <string name="dialog_title" msgid="7887077605817014784">"Konfigurieren"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"Smartphone nicht kompatibel"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"Einrichtung erforderlich"</string>

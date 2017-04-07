@@ -1337,9 +1337,6 @@ private:
 	TMap<FVulkanPipelineGraphicsKey, FVulkanGfxPipeline* > PipelineCache;
 };
 
-//#todo-rco: Remove me
-#include "../Private/VulkanPipelineState.h"
-
 template<class T>
 struct TVulkanResourceTraits
 {
@@ -1473,9 +1470,9 @@ struct TVulkanResourceTraits<FRHIComputeFence>
 };
 
 template<>
-struct TVulkanResourceTraits<FRHIComputePipelineState>
+struct TVulkanResourceTraits<class FRHIComputePipelineState>
 {
-	typedef FVulkanComputePipeline TConcreteType;
+	typedef class FVulkanComputePipeline TConcreteType;
 };
 
 template<typename TRHIType>

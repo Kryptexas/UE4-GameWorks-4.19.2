@@ -8,7 +8,14 @@
 #include "OnlineSubsystemOculusTypes.h"
 #include "OnlineSubsystemOculusPackage.h"
 
+#if USING_CODE_ANALYSIS
+#pragma warning( push )
+#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
+#endif	// USING_CODE_ANALYSIS
 #include <atomic>
+#if USING_CODE_ANALYSIS
+#pragma warning( pop )
+#endif	// USING_CODE_ANALYSIS
 
 class FOnlineUserCloudOculus : public IOnlineUserCloud
 {

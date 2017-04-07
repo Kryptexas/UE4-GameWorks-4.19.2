@@ -35,6 +35,7 @@ _(ovrResult, ovr_GetSessionStatus, , (ovrSession session, ovrSessionStatus* sess
 _(ovrResult, ovr_SetTrackingOriginType, , (ovrSession session, ovrTrackingOrigin origin)) \
 _(ovrTrackingOrigin, ovr_GetTrackingOriginType, , (ovrSession session)) \
 _(ovrResult, ovr_RecenterTrackingOrigin, , (ovrSession session)) \
+_(ovrResult, ovr_SpecifyTrackingOrigin, , (ovrSession session, ovrPosef originPose)) \
 _(void, ovr_ClearShouldRecenterFlag, , (ovrSession session)) \
 _(ovrTrackingState, ovr_GetTrackingState, , (ovrSession session, double absTime, ovrBool latencyMarker)) \
 _(ovrTrackerPose, ovr_GetTrackerPose, , (ovrSession session, unsigned int index)) \
@@ -107,7 +108,8 @@ struct ovrSensorData_;
 typedef struct ovrSensorData_ ovrSensorData;
 
 #define OVR_LIST_PRIVATE_APIS(_,X) \
-_(ovrTrackingState, ovr_GetTrackingStateWithSensorData, , (ovrSession session, double absTime, ovrBool latencyMarker, ovrSensorData* sensorData))
+_(ovrTrackingState, ovr_GetTrackingStateWithSensorData, , (ovrSession session, double absTime, ovrBool latencyMarker, ovrSensorData* sensorData)) \
+_(ovrResult, ovr_GetDevicePoses, , (ovrSession session, ovrTrackedDeviceType* deviceTypes, int deviceCount, double absTime, ovrPoseStatef* outDevicePoses))
 
 //
 // OVR_LIST_APIS - master list of all API entrypoints

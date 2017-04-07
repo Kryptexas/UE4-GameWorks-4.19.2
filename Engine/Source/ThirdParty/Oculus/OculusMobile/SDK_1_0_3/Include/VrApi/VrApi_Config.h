@@ -41,6 +41,12 @@ OVR_VRAPI_DEPRECATED
 
 #endif
 
+#if defined( __x86_64__ ) || defined( __aarch64__ ) || defined( _WIN64 )
+	#define OVR_VRAPI_64_BIT
+#else
+	#define OVR_VRAPI_32_BIT
+#endif
+
 /*
 
 OVR_VRAPI_STATIC_ASSERT( exp )						// static assert
@@ -83,7 +89,7 @@ OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( type, bytes )	// assert the size of a type on
 
 #define OVR_VRAPI_ASSERT_TYPE_SIZE( type, bytes	)			OVR_VRAPI_STATIC_ASSERT( sizeof( type ) == (bytes) )
 
-#if defined( __x86_64__ ) || defined( _WIN64 )
+#if defined( OVR_VRAPI_64_BIT )
 	#define OVR_VRAPI_PADDING_32_BIT( bytes )
 	#if defined( __COUNTER__ )
 		#define OVR_VRAPI_PADDING_64_BIT( bytes )				OVR_VRAPI_PADDING_ID( bytes, __COUNTER__ )

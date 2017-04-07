@@ -27,8 +27,12 @@ public class SteamVRController : ModuleRules
 // 			"SteamVR",
 // 		});
 
-		AddEngineThirdPartyPrivateStaticDependencies(Target,
-            "OpenVR"
-        );
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");
+
+        if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+            PrivateDependencyModuleNames.Add("OpenGLDrv");
+        }
     }
 }

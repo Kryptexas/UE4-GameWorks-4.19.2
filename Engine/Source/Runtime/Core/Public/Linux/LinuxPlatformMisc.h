@@ -20,6 +20,7 @@ struct FGenericCrashContext;
  */
 struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 {
+	static uint32 WindowStyle();
 	static void PlatformInit();
 	static void PlatformTearDown();
 	static void SetGracefulTerminationHandler();

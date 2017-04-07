@@ -43,13 +43,11 @@ void FSteamSplashTicker::OnPostLoadMap(UWorld*)
 
 void FSteamSplashTicker::Tick(float DeltaTime)
 {
-#if PLATFORM_WINDOWS
-	if (SteamVRHMD->pD3D11Bridge && SteamVRHMD->VRCompositor && SteamVRHMD->bSplashIsShown)
+	if (SteamVRHMD->pBridge && SteamVRHMD->VRCompositor && SteamVRHMD->bSplashIsShown)
 	{
-		SteamVRHMD->pD3D11Bridge->FinishRendering();
+		SteamVRHMD->pBridge->FinishRendering();
 		SteamVRHMD->VRCompositor->PostPresentHandoff();
 	}
-#endif
 }
 TStatId FSteamSplashTicker::GetStatId() const
 {

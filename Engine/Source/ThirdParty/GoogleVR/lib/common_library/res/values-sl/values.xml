@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"ODPRI CENTER ZA POMOČ"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Potreben je telefon, ki je združljiv s platformo Daydream. Za več informacij obiščite center za pomoč za Daydream."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Če želite konfigurirati pregledovalnik, namestite aplikacijo Cardboard."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"Da bo izkušnja čim boljša, namestite pregledovalnik."</string>
 <string name="dialog_title" msgid="7887077605817014784">"Konfiguriranje"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"Nezdružljiv telefon"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"Potrebna je nastavitev"</string>

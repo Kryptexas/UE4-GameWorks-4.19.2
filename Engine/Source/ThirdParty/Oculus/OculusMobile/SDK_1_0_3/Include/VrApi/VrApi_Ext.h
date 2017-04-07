@@ -47,31 +47,6 @@ typedef struct ovrFrameParmsExtBase
 #define VRAPI_FRAME_LAYER_FLAG_REMAP_2D_EQUIRECT_EXT (1<<VRAPI_FRAME_LAYER_FLAG_REMAP_2D_SHIFT_EXT)
 #define VRAPI_FRAME_LAYER_FLAG_REMAP_2D_HEMICYL_EXT  (2<<VRAPI_FRAME_LAYER_FLAG_REMAP_2D_SHIFT_EXT)
 
-#if defined( __cplusplus )
-extern "C" {
-#endif
-
-//-----------------------------------------------------------------
-// VrApi Property
-//-----------------------------------------------------------------
-
-typedef enum
-{
-    VRAPI_OIT_MODE,
-    VRAPI_OIT_EYE2IMU_X,
-    VRAPI_OIT_EYE2IMU_Y,
-    VRAPI_OIT_EYE2IMU_Z
-} ovrProperty;
-
-// TODO: Return boolean for set success/failure?
-// TODO: Pass ovrJava in the case we want to set a parameter through java?
-OVR_VRAPI_EXPORT void vrapi_SetPropertyInt( const ovrProperty propType, const int intVal );
-OVR_VRAPI_EXPORT void vrapi_SetPropertyFloat( const ovrProperty propType, const float floatVal );
-
-#if defined( __cplusplus )
-}	// extern "C"
-#endif
-
 ///--END_SDK_REMOVE
 
 /* ovrStructureType allocations */

@@ -183,7 +183,17 @@ public:
 	static void RecreateSwapChain(void* NewNativeWindow);
 
 	virtual FTexture2DRHIRef AsyncReallocateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2D, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus) final override;
-
+	
+	VkInstance GetInstance()
+	{
+		return Instance;
+	}
+	
+	FVulkanDevice* GetDevice()
+	{
+		return Device;
+	}
+	
 private:
 	void PooledUniformBuffersBeginFrame();
 	void ReleasePooledUniformBuffers();

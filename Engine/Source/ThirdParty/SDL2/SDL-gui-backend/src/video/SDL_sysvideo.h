@@ -232,6 +232,15 @@ struct SDL_VideoDevice
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     int (*SetKeyboardGrab) (_THIS, SDL_Window * window, SDL_bool enable);
+    /* * * */
+    /*
+     * Vulkan support
+     */
+    int (*VK_LoadLibrary) (_THIS, const char *path);
+    void (*VK_UnloadLibrary) (_THIS);
+    char** (*VK_GetRequiredInstanceExtensions)(_THIS, unsigned int* count);
+    SDL_bool (*VK_CreateSurface)(_THIS, SDL_Window* window, SDL_VkInstance instance, SDL_VkSurface* surface);
+
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
 
@@ -334,6 +343,22 @@ struct SDL_VideoDevice
         char driver_path[256];
         void *dll_handle;
     } gl_config;
+
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+   /* * * */
+    /* Data used by the Vulkan drivers */
+    struct
+    {
+        int driver_loaded;
+        char driver_path[256];
+        void *dll_handle;
+        char** required_instance_extensions;
+    } vk_config;
+
+    struct SDL_VKDriverData *vk_data;
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
     /* * * */
     /* Cache current GL context; don't call the OS when it hasn't changed. */

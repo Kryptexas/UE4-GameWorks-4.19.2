@@ -325,7 +325,7 @@ void FTranslucentPrimSet::DrawPrimitivesForMobile(FRHICommandListImmediate& RHIC
 	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
 }
 
-void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdList)
+void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdList, const TArrayView<const FViewInfo*> PassViews)
 {
 	if (ShouldRenderTranslucency())
 	{
@@ -334,11 +334,11 @@ void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdLi
 
 		SCOPED_DRAW_EVENT(RHICmdList, Translucency);
 
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		for (int32 ViewIndex = 0; ViewIndex < PassViews.Num(); ViewIndex++)
 		{
 			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
-
-			const FViewInfo& View = Views[ViewIndex];
+			
+			const FViewInfo& View = *PassViews[ViewIndex];
 			FDrawingPolicyRenderState DrawRenderState(View);
 
 			#if PLATFORM_HTML5

@@ -57,7 +57,7 @@ namespace UnrealBuildTool
 			}
 
 			// Read the cache from disk
-			using (BinaryReader Reader = new BinaryReader(File.Open(Location.FullName, FileMode.Open, FileAccess.Read, FileShare.None)))
+			using (BinaryReader Reader = new BinaryReader(File.Open(Location.FullName, FileMode.Open, FileAccess.Read, FileShare.Read)))
 			{
 				// Check the serialization version matches
 				if(Reader.ReadInt32() != SerializationVersion)

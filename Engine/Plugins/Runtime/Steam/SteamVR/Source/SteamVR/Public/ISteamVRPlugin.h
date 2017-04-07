@@ -2,7 +2,7 @@
 
 #pragma once
 
-#define STEAMVR_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WINVER > 0x0502)
+#define STEAMVR_SUPPORTED_PLATFORMS (PLATFORM_LINUX || (PLATFORM_WINDOWS && WINVER > 0x0502))
 
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"

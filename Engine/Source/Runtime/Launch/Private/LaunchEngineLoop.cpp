@@ -3794,17 +3794,22 @@ void FEngineLoop::PreInitHMDDevice()
 		IModularFeatures& ModularFeatures = IModularFeatures::Get();
 		TArray<IHeadMountedDisplayModule*> HMDModules = ModularFeatures.GetModularFeatureImplementations<IHeadMountedDisplayModule>(Type);
 
-		// Iterate over modules, calling PreInit
+		// Check whether the user passed in an explicit HMD module on the command line
+		FString ExplicitHMDName;
+		bool bUseExplicitHMDName = FParse::Value(FCommandLine::Get(), TEXT("hmd="), ExplicitHMDName);
+		
+		// Iterate over modules, checking ExplicitHMDName and calling PreInit
 		for (auto HMDModuleIt = HMDModules.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
 		{
 			IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
 
-			if (!HMDModule->PreInit())
+			if ((bUseExplicitHMDName && !ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase)) || !HMDModule->PreInit())
 			{
-				// Unregister modules which fail PreInit
+				// Unregister modules which don't match ExplicitHMDName, or which fail PreInit
 				ModularFeatures.UnregisterModularFeature(Type, HMDModule);
 			}
 		}
+		// Note we do not disable or warn here if no HMD modules matched ExplicitHMDName, as not all HMD plugins have been loaded yet.
 	}
 #endif // #if WITH_ENGINE && !UE_SERVER
 }

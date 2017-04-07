@@ -597,6 +597,16 @@ SDL_DYNAPI_PROC(int,SDL_GL_SetSwapInterval,(int a),(a),return)
 SDL_DYNAPI_PROC(int,SDL_GL_GetSwapInterval,(void),(),return)
 SDL_DYNAPI_PROC(void,SDL_GL_SwapWindow,(SDL_Window *a),(a),)
 SDL_DYNAPI_PROC(void,SDL_GL_DeleteContext,(SDL_GLContext a),(a),)
+
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+SDL_DYNAPI_PROC(int,SDL_VK_LoadLibrary,(const char *a),(a),return)
+SDL_DYNAPI_PROC(void,SDL_VK_UnloadLibrary,(void),(),)
+SDL_DYNAPI_PROC(char**,SDL_VK_GetRequiredInstanceExtensions,(unsigned int* a),(a),return)
+SDL_DYNAPI_PROC(SDL_bool,SDL_VK_CreateSurface,(SDL_Window* a, SDL_VkInstance b, SDL_VkSurface* c),(a,b,c),return)
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
 SDL_DYNAPI_PROC(int,SDL_vsscanf,(const char *a, const char *b, va_list c),(a,b,c),return)
 SDL_DYNAPI_PROC(int,SDL_GameControllerAddMappingsFromRW,(SDL_RWops *a, int b),(a,b),return)
 SDL_DYNAPI_PROC(void,SDL_GL_ResetAttributes,(void),(),)

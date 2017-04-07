@@ -625,7 +625,7 @@ static void DrawVisible(
 	}
 }
 
-void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmdList)
+void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmdList, const TArrayView<const FViewInfo*> PassViews)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BasePass);
 	SCOPE_CYCLE_COUNTER(STAT_BasePassDrawTime);
@@ -649,25 +649,20 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 	}
 
 	// Draw the scene's emissive and light-map color.
-	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	for (int32 ViewIndex = 0; ViewIndex < PassViews.Num(); ViewIndex++)
 	{
 		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
-		FViewInfo& View = Views[ViewIndex];
+		const FViewInfo& View = *PassViews[ViewIndex];
 
 		if (!View.ShouldRenderView())
 		{
-			return;
+			continue;
 		}
 
 		FDrawingPolicyRenderState DrawRenderState(View);
 
 		const FMobileCSMVisibilityInfo* MobileCSMVisibilityInfo = View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse ? &View.MobileCSMVisibilityInfo : nullptr;
 		const FMobileCSMVisibilityInfo* MobileCSMVisibilityInfoStereo = (View.bIsMobileMultiViewEnabled && View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse && Views.Num() > 1) ? &Views[1].MobileCSMVisibilityInfo : nullptr;
-
-		if (View.StereoPass == eSSP_MONOSCOPIC_EYE && ViewFamily.IsMonoscopicFarFieldEnabled())
-		{
-			RenderMonoscopicFarFieldMask(RHICmdList);
-		}
 
 		// Opaque blending
 		if (View.bIsPlanarReflection)

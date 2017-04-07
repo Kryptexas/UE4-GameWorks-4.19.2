@@ -644,6 +644,11 @@ void FAssetRegistryGenerator::BuildChunkManifest(const TSet<FName>& InCookedPack
 			// Now clear the original chunk id list. We will fill it with real IDs when cooking.
 			AssetData.ChunkIDs.Empty();
 		}
+		// Update whether the owner package contains a map
+		if (AssetData.GetClass()->IsChildOf(UWorld::StaticClass()) || AssetData.GetClass()->IsChildOf(ULevel::StaticClass()))
+		{
+			PackagesContainingMaps.Add(AssetData.PackageName);
+		}
 	}
 
 	// add all the packages to the unassigned package list

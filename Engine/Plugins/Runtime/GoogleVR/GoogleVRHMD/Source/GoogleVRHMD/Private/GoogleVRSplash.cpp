@@ -1,4 +1,4 @@
-/* Copyright 2016 Google Inc. All rights reserved.
+/* Copyright 2016 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -341,10 +341,9 @@ bool FGoogleVRSplash::LoadDefaultSplashTexturePath()
 bool FGoogleVRSplash::LoadTexture()
 {
 	SplashTexture = LoadObject<UTexture2D>(nullptr, *SplashTexturePath, nullptr, LOAD_None, nullptr);
-	SplashTexture->AddToRoot();
-
 	if (SplashTexture && SplashTexture->IsValidLowLevel())
 	{
+		SplashTexture->AddToRoot();
 		UE_LOG(LogHMD, Log, TEXT("Splash Texture load successful!"));
 		SplashTexture->UpdateResource();
 		FlushRenderingCommands();

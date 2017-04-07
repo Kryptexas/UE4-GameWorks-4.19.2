@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"ÅBN HJÆLP"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"En Daydream-kompatibel telefon er påkrævet. Gå til Hjælp til Daydream for at få flere oplysninger."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Hent Cardboard-appen, så du kan konfigurere fremviseren."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"Konfigurer din fremviser for at få den bedste oplevelse."</string>
 <string name="dialog_title" msgid="7887077605817014784">"Konfigurer"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"Telefonen er ikke kompatibel"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"Konfiguration er påkrævet"</string>

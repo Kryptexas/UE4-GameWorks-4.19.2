@@ -61,7 +61,25 @@ public class VulkanRHI : ModuleRules
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
 			}
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.Android || Target.Platform == UnrealTargetPlatform.Mac)
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
+
+			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+			bool bSDKInstalled = !String.IsNullOrEmpty(VulkanSDKPath);
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux || !bSDKInstalled)
+			{
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
+			}
+			else
+			{
+				PrivateIncludePaths.Add(VulkanSDKPath + "/include");
+				PrivateIncludePaths.Add(VulkanSDKPath + "/include/vulkan");
+				PublicLibraryPaths.Add(VulkanSDKPath + "/lib");
+				PublicAdditionalLibraries.Add("vulkan");
+			}
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Android || Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
 

@@ -141,16 +141,16 @@ class ENGINE_API UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionL
 	/**
 	 * Returns true, if HMD is in low persistence mode. 'false' otherwise.
 	 */
-	UFUNCTION(BlueprintPure, Category="Input|HeadMountedDisplay")
-	static bool IsInLowPersistenceMode();
+	UFUNCTION(BlueprintPure, Category="Input|HeadMountedDisplay", meta = (DeprecatedFunction, DeprecationMessage = "This functionality is no longer available. HMD platforms that support low persistence will always enable it."))
+	static bool IsInLowPersistenceMode() { return false; }
 
 	/**
 	 * Switches between low and full persistence modes.
 	 *
 	 * @param bEnable			(in) 'true' to enable low persistence mode; 'false' otherwise
 	 */
-	UFUNCTION(BlueprintCallable, Category="Input|HeadMountedDisplay")
-	static void EnableLowPersistenceMode(bool bEnable);
+	UFUNCTION(BlueprintCallable, Category="Input|HeadMountedDisplay", meta = (DeprecatedFunction, DeprecationMessage = "This functionality is no longer available. HMD platforms that support low persistence will always enable it."))
+	static void EnableLowPersistenceMode(bool bEnable) { }
 
 	/** 
 	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction and assuming

@@ -295,8 +295,8 @@ static FOpenGLTexture2D* OpenGLCreateTexture2DAlias(
 }
 
 //////////////////////////////////////////////////////////////////////////
-FOculusRiftHMD::OGLBridge::OGLBridge(const FOvrSessionSharedPtr& InOvrSession) :
-	FCustomPresent(InOvrSession)
+FOculusRiftHMD::OGLBridge::OGLBridge(const FOvrSessionSharedPtr& InOvrSession, FOculusRiftHMD* RiftHMD) :
+	FCustomPresent(InOvrSession, RiftHMD)
 {
 }
 
@@ -380,6 +380,8 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 	SCOPE_CYCLE_COUNTER(STAT_BeginRendering);
 
 	SetRenderContext(&InRenderContext);
+	static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
+	EMirrorWindowMode MirrorWindowMode = (EMirrorWindowMode)FMath::Clamp(CVarMirrorMode->GetValueOnRenderThread(), 0, (int32)EMirrorWindowMode::Last);
 
 	FGameFrame* ThisFrame = GetRenderFrame();
 	check(ThisFrame);
@@ -392,11 +394,13 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 	const FVector2D ActualMirrorWindowSize = ThisFrame->WindowSize;
 	// detect if mirror texture needs to be re-allocated or freed
 	FOvrSessionShared::AutoSession OvrSession(Session);
-	if (Session->IsActive() && MirrorTextureRHI && (bNeedReAllocateMirrorTexture || 
-		(FrameSettings->Flags.bMirrorToWindow && (
-		FrameSettings->MirrorWindowMode != FSettings::eMirrorWindow_Distorted ||
-		ActualMirrorWindowSize != FVector2D(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY()))) ||
-		!FrameSettings->Flags.bMirrorToWindow ))
+	if (Session->IsActive() && MirrorTextureRHI &&
+		(
+			bNeedReAllocateMirrorTexture
+			|| MirrorWindowMode != EMirrorWindowMode::Distorted
+			|| ActualMirrorWindowSize != FVector2D(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY())
+			)
+		)
 	{
 		check(MirrorTexture);
 		ovr_DestroyMirrorTexture(OvrSession, MirrorTexture);
@@ -406,7 +410,7 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 	}
 
 	// need to allocate a mirror texture?
-	if (FrameSettings->Flags.bMirrorToWindow && FrameSettings->MirrorWindowMode == FSettings::eMirrorWindow_Distorted && !MirrorTextureRHI &&
+	if (MirrorWindowMode == EMirrorWindowMode::Distorted && !MirrorTextureRHI &&
 		ActualMirrorWindowSize.X != 0 && ActualMirrorWindowSize.Y != 0)
 	{
 		ovrMirrorTextureDesc desc{};

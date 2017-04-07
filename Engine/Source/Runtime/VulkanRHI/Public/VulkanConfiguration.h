@@ -17,6 +17,8 @@
 	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
 #elif PLATFORM_ANDROID
 	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
+#elif PLATFORM_LINUX
+	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
 #else
 	#error Unsupported platform!
 #endif
@@ -102,6 +104,8 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()
+#elif PLATFORM_LINUX
+	#define VULKAN_SIGNAL_UNIMPLEMENTED()	checkf(false, TEXT("Unimplemented vulkan functionality: %s"), __PRETTY_FUNCTION__)
 #else
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()				checkf(false, TEXT("Unimplemented vulkan functionality: %s"), TEXT(__FUNCTION__))
 #endif

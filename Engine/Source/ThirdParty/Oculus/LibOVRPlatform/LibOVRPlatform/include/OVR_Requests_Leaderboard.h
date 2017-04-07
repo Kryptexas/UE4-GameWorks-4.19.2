@@ -140,7 +140,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetEntries(const char *leaderbo
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetEntriesAfterRank(const char *leaderboardName, int limit, unsigned long long afterRank);
 
 /// Requests the next block of leaderboard entries.
-/// \param handle The return value from ovr_MessageGetLeaderboardEntryArray.
+/// \param handle The return value from ovr_Message_GetLeaderboardEntryArray().
 ///
 /// A message with type ::ovrMessage_Leaderboard_GetNextEntries will be generated in response.
 ///
@@ -151,7 +151,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetEntriesAfterRank(const char 
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Leaderboard_GetNextEntries(const ovrLeaderboardEntryArrayHandle handle);
 
 /// Requests the previous block of leaderboard entries.
-/// \param handle The return value from ovr_MessageGetLeaderboardEntryArray.
+/// \param handle The return value from ovr_Message_GetLeaderboardEntryArray().
 ///
 /// A message with type ::ovrMessage_Leaderboard_GetPreviousEntries will be generated in response.
 ///

@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"ATVĒRT PALĪDZĪBAS CENTRU"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Ir nepieciešams Daydream-ready tālrunis. Plašāku informāciju skatiet Daydream palīdzības centrā."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Lai konfigurētu savu skatītāju, iegūstiet lietotni Cardboard."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"Vislabākajiem rezultātiem iestatiet skatītāju."</string>
 <string name="dialog_title" msgid="7887077605817014784">"Konfigurēšana"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"Nesaderīgs tālrunis"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"Nepieciešama iestatīšana"</string>

@@ -283,6 +283,7 @@ namespace UnrealBuildTool
 				{
 					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
 				}
 			}
 			else if (ModuleName == "Launch")

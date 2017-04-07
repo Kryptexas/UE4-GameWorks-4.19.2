@@ -8,15 +8,29 @@
 
 FDynamicRHI* PlatformCreateDynamicRHI()
 {
-	FDynamicRHI* DynamicRHI = NULL;
-	// Load the dynamic RHI module.
-	IDynamicRHIModule* DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv"));
-
-	if (!DynamicRHIModule->IsSupported())
+	const bool bForceVulkan = FParse::Param(FCommandLine::Get(), TEXT("vulkan"));
+	FDynamicRHI* DynamicRHI = nullptr;
+	IDynamicRHIModule* DynamicRHIModule = nullptr;
+	if(bForceVulkan)
 	{
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("LinuxDynamicRHI", "RequiredOpenGL", "OpenGL 3.2 is required to run the engine."));
-		FPlatformMisc::RequestExit(1);
-		DynamicRHIModule = NULL;
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("VulkanRHI"));
+		if (!DynamicRHIModule->IsSupported())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("LinuxDynamicRHI", "RequiredVulkan", "Vulkan Driver is required to run the engine."));
+			FPlatformMisc::RequestExit(1);
+			DynamicRHIModule = nullptr;
+		}
+	}
+	else
+	{
+		// Load the dynamic RHI module.
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv"));
+		if (!DynamicRHIModule->IsSupported())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("LinuxDynamicRHI", "RequiredOpenGL", "OpenGL 3.2 is required to run the engine."));
+			FPlatformMisc::RequestExit(1);
+			DynamicRHIModule = nullptr;
+		}
 	}
 
 	// default to SM4 for safety's sake

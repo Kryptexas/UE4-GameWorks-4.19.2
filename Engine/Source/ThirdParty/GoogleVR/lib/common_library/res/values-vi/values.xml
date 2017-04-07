@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"MỞ TRUNG TÂM TRỢ GIÚP"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Yêu cầu điện thoại sẵn sàng cho Daydream. Hãy truy cập Trung tâm trợ giúp của Daydream để biết thêm thông tin."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Hãy tải ứng dụng Cardboard để định cấu hình thiết bị xem của bạn."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"Thiết lập thiết bị xem của bạn để có trải nghiệm tốt nhất."</string>
 <string name="dialog_title" msgid="7887077605817014784">"Định cấu hình"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"Điện thoại không tương thích"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"Yêu cầu thiết lập"</string>

@@ -8,9 +8,7 @@
 
 #include "VulkanConfiguration.h"
 #include "VulkanMemory.h"
-#include "VulkanCommandBuffer.h"
 #include "VulkanGlobalUniformBuffer.h"
-#include "VulkanResources.h"
 
 //#todo-rco: Split into Creator & Data
 class FVulkanDescriptorSetsLayout

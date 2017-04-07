@@ -23,4 +23,3 @@
     <include layout="@layout/settings_button" android:id="@+id/ui_settings_button"/>
 
 </RelativeLayout>
-<!-- From: file:/tmp/aar_gen_tmp9184061690264887159/tmp-deduplicated/vr/gvr/platform/common/android/res/layout-land/ui_layer_with_portrait_support.xml -->

@@ -189,17 +189,6 @@ void UOculusFunctionLibrary::GetPlayerCameraManagerFollowHmd(bool& bFollowHmdOri
 #endif // OCULUS_SUPPORTED_PLATFORMS
 }
 
-void UOculusFunctionLibrary::SetPositionScale3D(FVector PosScale3D)
-{
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
-	FHeadMountedDisplay* OculusHMD = GetOculusHMD();
-	if (OculusHMD != nullptr)
-	{
-		OculusHMD->SetPositionScale3D(PosScale3D);
-	}
-#endif // OCULUS_RIFT_SUPPORTED_PLATFORMS
-}
-
 void UOculusFunctionLibrary::SetBaseRotationAndPositionOffset(FRotator BaseRot, FVector PosOffset, EOrientPositionSelector::Type Options)
 {
 #if OCULUS_SUPPORTED_PLATFORMS

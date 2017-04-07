@@ -115,8 +115,12 @@ FString UOculusNetConnection::LowLevelDescribe()
 
 void UOculusNetConnection::FinishDestroy()
 {
+  // Keep track if it's this call that is closing the connection before cleanup is called
+  const bool bIsClosingOpenConnection = State != EConnectionState::USOCK_Closed;
 	Super::FinishDestroy();
-	if (PeerID != 0 && State != EConnectionState::USOCK_Closed)
+
+  // If this connection was open, then close it
+	if (PeerID != 0 && bIsClosingOpenConnection)
 	{
 		ovr_Net_Close(PeerID);
 	}

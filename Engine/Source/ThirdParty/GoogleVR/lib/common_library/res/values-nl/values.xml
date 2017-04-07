@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"HELPCENTRUM OPENEN"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Je hebt een telefoon nodig die geschikt is voor Daydream. Bezoek het Helpcentrum van Daydream voor meer informatie."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Download de Cardboard-app om je bril te configureren."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"Stel je bril in voor een optimale gebruikerservaring."</string>
 <string name="dialog_title" msgid="7887077605817014784">"Configureren"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"Ongeschikte telefoon"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"Instellen vereist"</string>

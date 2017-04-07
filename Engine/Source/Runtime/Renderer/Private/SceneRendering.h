@@ -8,6 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "Containers/IndirectArray.h"
+#include "Containers/ArrayView.h"
 #include "Stats/Stats.h"
 #include "RHI.h"
 #include "RenderResource.h"
@@ -1464,6 +1465,9 @@ protected:
 	void RenderDistortion(FRHICommandListImmediate& RHICmdList);
 	void RenderDistortionES2(FRHICommandListImmediate& RHICmdList);
 
+	/** Returns the scene color texture multi-view is targeting. */	
+	FTextureRHIParamRef GetMultiViewSceneColor(const FSceneRenderTargets& SceneContext) const;
+
 	/** Composites the monoscopic far field view into the stereo views. */
 	void CompositeMonoscopicFarField(FRHICommandListImmediate& RHICmdList);
 
@@ -1507,7 +1511,7 @@ protected:
 	void InitViews(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the opaque base pass for mobile. */
-	void RenderMobileBasePass(FRHICommandListImmediate& RHICmdList);
+	void RenderMobileBasePass(FRHICommandListImmediate& RHICmdList, const TArrayView<const FViewInfo*> PassViews);
 
 	/** Render modulated shadow projections in to the scene, loops over any unrendered shadows until all are processed.*/
 	void RenderModulatedShadowProjections(FRHICommandListImmediate& RHICmdList);
@@ -1522,7 +1526,7 @@ protected:
 	void RenderDecals(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the base pass for translucency. */
-	void RenderTranslucency(FRHICommandListImmediate& RHICmdList);
+	void RenderTranslucency(FRHICommandListImmediate& RHICmdList, const TArrayView<const FViewInfo*> PassViews);
 
 	/** Perform upscaling when post process is not used. */
 	void BasicPostProcess(FRHICommandListImmediate& RHICmdList, FViewInfo &View, bool bDoUpscale, bool bDoEditorPrimitives);

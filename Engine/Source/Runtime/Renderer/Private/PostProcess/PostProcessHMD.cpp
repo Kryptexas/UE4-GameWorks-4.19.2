@@ -170,7 +170,7 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport
-	if (ensure(DestRenderTarget.TargetableTexture->GetClearColor() == FLinearColor::Black))
+	if (DestRenderTarget.TargetableTexture->GetClearColor() == FLinearColor::Black)
 	{
 		FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, ERenderTargetLoadAction::EClear);
 		FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());

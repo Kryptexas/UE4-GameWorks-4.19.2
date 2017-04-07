@@ -58,6 +58,10 @@ public class GlsLang : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libglslang.a");
+			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libHLSL.a");
+			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libOGLCompiler.a");
+			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libOSDependent.a");
+			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libSPIRV.a");
 		}
 		else
 		{

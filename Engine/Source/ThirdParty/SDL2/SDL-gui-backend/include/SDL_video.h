@@ -122,7 +122,8 @@ typedef enum
     /* shift bits further left to avoid collision with other possible SDL flags */
     SDL_WINDOW_DIALOG        = 0x01000000,      /**< window should be treated as a dialog window */
     SDL_WINDOW_NOTIFICATION  = 0x02000000,      /**< window should be treated as a notification window */
-    SDL_WINDOW_DND           = 0x04000000       /**< window should be treated as a drag and drop window */
+    SDL_WINDOW_DND           = 0x04000000,      /**< window should be treated as a drag and drop window */
+    SDL_WINDOW_VULKAN        = 0x08000000       /**< window usable with Vulkan surface */
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
 } SDL_WindowFlags;
@@ -918,6 +919,17 @@ extern DECLSPEC int SDLCALL SDL_SetWindowInputFocus(SDL_Window * window);
  *  \sa SDL_RaiseWindow()
  */
 extern DECLSPEC int SDLCALL SDL_SetKeyboardGrab(SDL_Window * window, SDL_bool enable);
+
+/** Vulkan related stuff. */
+typedef void *SDL_VkSurface;
+typedef void *SDL_VkInstance;
+typedef void *SDL_VkInstanceCreateInfo;
+
+extern DECLSPEC int SDLCALL SDL_VK_LoadLibrary(const char *path);
+extern DECLSPEC void SDLCALL SDL_VK_UnloadLibrary(void);
+extern DECLSPEC char** SDLCALL SDL_VK_GetRequiredInstanceExtensions(unsigned int* count);
+extern DECLSPEC SDL_bool SDLCALL SDL_VK_CreateSurface(SDL_Window* window, SDL_VkInstance instance, SDL_VkSurface* surface);
+
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
 

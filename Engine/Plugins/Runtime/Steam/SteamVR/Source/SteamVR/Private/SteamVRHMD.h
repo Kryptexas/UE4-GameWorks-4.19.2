@@ -3,20 +3,27 @@
 #pragma once
 #include "ISteamVRPlugin.h"
 #include "HeadMountedDisplay.h"
-#include "IHeadMountedDisplay.h"
+#include "HeadMountedDisplayBase.h"
 #include "SteamVRFunctionLibrary.h"
 #include "SteamVRSplash.h"
 #include "IStereoLayers.h"
+#include "StereoLayerManager.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
 #include <d3d11.h>
 #include "HideWindowsPlatformTypes.h"
+#elif PLATFORM_LINUX
+#define GL_GLEXT_PROTOTYPES 1
+#include <GL/glcorearb.h>
+#include <GL/glext.h>
 #endif
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 
 #include "SceneViewExtension.h"
+
+#define STEAMVR_USE_VULKAN_RHI 0
 
 class IRendererModule;
 
@@ -31,10 +38,41 @@ typedef bool(VR_CALLTYPE *pVRIsHmdPresent)();
 typedef void*(VR_CALLTYPE *pVRGetGenericInterface)(const char* pchInterfaceVersion, vr::HmdError* peError);
 
 
+/** 
+ * Translates deprecated SteamVR HMD console commands to the newer ones
+ */
+class FSteamVRHMDCompat : private FSelfRegisteringExec
+{
+private:
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+};
+
+/** 
+ * Struct for managing stereo layer data.
+ */
+struct FSteamVRLayer
+{
+	typedef IStereoLayers::FLayerDesc FLayerDesc;
+	FLayerDesc	          LayerDesc;
+	vr::VROverlayHandle_t OverlayHandle;
+	bool				  bUpdateTexture;
+
+	FSteamVRLayer(const FLayerDesc& InLayerDesc)
+		: LayerDesc(InLayerDesc)
+		, OverlayHandle(vr::k_ulOverlayHandleInvalid)
+		, bUpdateTexture(false)
+	{}
+
+	// Required by TStereoLayerManager:
+	friend bool GetLayerDescMember(const FSteamVRLayer& Layer, FLayerDesc& OutLayerDesc);
+	friend void SetLayerDescMember(FSteamVRLayer& Layer, const FLayerDesc& InLayerDesc);
+	friend void MarkLayerTextureForUpdate(FSteamVRLayer& Layer);
+};
+
 /**
  * SteamVR Head Mounted Display
  */
-class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, public TSharedFromThis<FSteamVRHMD, ESPMode::ThreadSafe>, public IStereoLayers
+class FSteamVRHMD : public FHeadMountedDisplayBase, public ISceneViewExtension, public TSharedFromThis<FSteamVRHMD, ESPMode::ThreadSafe>, public TStereoLayerManager<FSteamVRLayer>
 {
 public:
 	/** IHeadMountedDisplay interface */
@@ -52,7 +90,7 @@ public:
 	virtual void EnableHMD(bool allow = true) override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
-	
+
 	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
 
 	virtual bool DoesSupportPositionalTracking() const override;
@@ -71,15 +109,9 @@ public:
 
 	virtual bool IsChromaAbCorrectionEnabled() const override;
 
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-
-	virtual bool IsPositionalTrackingEnabled() const override;
-	virtual bool EnablePositionalTracking(bool enable) override;
+	virtual bool IsPositionalTrackingEnabled() const override { return true; }
 
 	virtual bool IsHeadTrackingAllowed() const override;
-
-	virtual bool IsInLowPersistenceMode() const override;
-	virtual void EnableLowPersistenceMode(bool Enable = true) override;
 
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
 	virtual void ResetOrientation(float Yaw = 0.f) override;
@@ -104,6 +136,8 @@ public:
 	virtual void UpdateScreenSettings(const FViewport* InViewport) override {}
 
 	virtual void OnEndPlay(FWorldContext& InWorldContext) override;
+
+	virtual FString GetVersionString() const override;
 
 	virtual void SetTrackingOrigin(EHMDTrackingOrigin::Type NewOrigin) override;
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;
@@ -141,11 +175,7 @@ public:
 	virtual bool UsePostInitView() const override;
 
 	// IStereoLayers interface
-	virtual uint32 CreateLayer(const FLayerDesc& InLayerDesc) override;
-	virtual void DestroyLayer(uint32 LayerId) override;
-	virtual void SetLayerDesc(uint32 LayerId, const FLayerDesc& InLayerDesc) override;
-	virtual bool GetLayerDesc(uint32 LayerId, FLayerDesc& OutLayerDesc) override;
-	virtual void MarkTextureForUpdate(uint32 LayerId) override;
+	// Create/Set/Get/Destroy inherited from TStereoLayerManager
 	virtual void UpdateSplashScreen() override;
 
 	class BridgeBaseImpl : public FRHICustomPresent
@@ -153,9 +183,9 @@ public:
 	public:
 		BridgeBaseImpl(FSteamVRHMD* plugin) :
 			FRHICustomPresent(nullptr),
-			Plugin(plugin), 
-			bNeedReinitRendererAPI(true), 
-			bInitialized(false) 
+			Plugin(plugin),
+			bNeedReinitRendererAPI(true),
+			bInitialized(false)
 		{}
 
 		bool IsInitialized() const { return bInitialized; }
@@ -195,6 +225,56 @@ public:
 	protected:
 		ID3D11Texture2D* RenderTargetTexture = NULL;
 	};
+#elif PLATFORM_LINUX
+
+#if STEAMVR_USE_VULKAN_RHI
+	class VulkanBridge : public BridgeBaseImpl
+	{
+	public:
+		VulkanBridge(FSteamVRHMD* plugin);
+
+		virtual void OnBackBufferResize() override;
+		virtual bool Present(int& SyncInterval) override;
+		virtual void PostPresent() override;
+
+		virtual void BeginRendering() override;
+		void FinishRendering();
+		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) override;
+		virtual void Reset() override;
+		virtual void Shutdown() override
+		{
+			Reset();
+		}
+
+	protected:
+
+		FTexture2DRHIRef RenderTargetTexture;
+	};
+
+	#else
+	class OpenGLBridge : public BridgeBaseImpl
+	{
+	public:
+		OpenGLBridge(FSteamVRHMD* plugin);
+
+		virtual void OnBackBufferResize() override;
+		virtual bool Present(int& SyncInterval) override;
+		virtual void PostPresent() override;
+
+		virtual void BeginRendering() override;
+		void FinishRendering();
+		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) override;
+		virtual void Reset() override;
+		virtual void Shutdown() override
+		{
+			Reset();
+		}
+
+	protected:
+		GLuint RenderTargetTexture = 0;
+
+	};
+	#endif
 #endif // PLATFORM_WINDOWS
 
 	BridgeBaseImpl* GetActiveRHIBridgeImpl();
@@ -205,7 +285,7 @@ public:
 	void GetTrackedDeviceIds(ESteamVRTrackedDeviceType DeviceType, TArray<int32>& TrackedIds) const;
 	bool GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat& CurrentOrientation, FVector& CurrentPosition);
 	ETrackingStatus GetControllerTrackingStatus(uint32 DeviceId) const;
-	STEAMVR_API bool GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation );
+	STEAMVR_API bool GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation);
 	STEAMVR_API ETrackingStatus GetControllerTrackingStatus(int32 ControllerIndex, EControllerHand DeviceHand) const;
 
 
@@ -215,9 +295,6 @@ public:
 
 	/** Returns an array of the bounds as Unreal-scaled vectors, relative to the HMD calibration point (0,0,0).  The Z will always be at 0.f */
 	TArray<FVector> GetBounds() const;
-
-	/** Get the windowed mirror mode.  @todo steamvr: thread safe flags */
-	int32 GetWindowMirrorMode() const { return WindowMirrorMode; }
 
 	/** Sets the map from Unreal controller id and hand index, to tracked device id. */
 	void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ 2 ]);
@@ -254,7 +331,6 @@ private:
 	void Shutdown();
 
 	void LoadFromIni();
-	void SaveToIni();
 
 	bool LoadOpenVRModule();
 	void UnloadOpenVRModule();
@@ -290,7 +366,7 @@ public:
 	{
 		// Rows and columns are swapped between vr::HmdMatrix34_t and FMatrix
 		vr::HmdMatrix34_t out;
-	
+
 		out.m[0][0] = tm.M[0][0];
 		out.m[1][0] = tm.M[0][1];
 		out.m[2][0] = tm.M[0][2];
@@ -317,13 +393,12 @@ private:
 	EHMDWornState::Type HmdWornState;
 	bool bStereoDesired;
 	bool bStereoEnabled;
-	bool bHmdPosTracking;
 	mutable bool bHaveVisionTracking;
 
  	struct FTrackingFrame
  	{
  		uint32 FrameNumber;
- 
+
  		bool bDeviceIsConnected[vr::k_unMaxTrackedDeviceCount];
  		bool bPoseIsValid[vr::k_unMaxTrackedDeviceCount];
  		FVector DevicePosition[vr::k_unMaxTrackedDeviceCount];
@@ -343,7 +418,7 @@ private:
 			FMemory::Memzero(bDeviceIsConnected, MaxDevices * sizeof(bool));
 			FMemory::Memzero(bPoseIsValid, MaxDevices * sizeof(bool));
 			FMemory::Memzero(DevicePosition, MaxDevices * sizeof(FVector));
-			
+
 			WorldToMetersScale = 100.0f;
 
 			for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
@@ -397,24 +472,12 @@ private:
 	};
 	FChaperoneBounds ChaperoneBounds;
 	
-	struct FLayer
-	{
-		uint32						LayerId;
-		IStereoLayers::FLayerDesc	LayerDesc;
-		vr::VROverlayHandle_t		OverlayHandle;
-		bool						bUpdateTexture;
-	};
-	void UpdateLayer(struct FLayer& Layer) const;
-	void UpdateLayerTextures() const;
+	virtual void UpdateLayer(struct FSteamVRLayer& Layer, uint32 LayerId, bool bIsValid) const override;
 
-	TArray<uint32>	LayerFreeIndices;
-	TArray<FLayer>	Layers;
-	mutable FCriticalSection LayerCritSect;
+	void UpdateLayerTextures();
 
 	TSharedPtr<FSteamSplashTicker>	SplashTicker;
 	
-	float IPD;
-	int32 WindowMirrorMode;		// how to mirror the display contents to the desktop window: 0 - no mirroring, 1 - single eye, 2 - stereo pair
 	uint32 WindowMirrorBoundsWidth;
 	uint32 WindowMirrorBoundsHeight;
 	/** How far the HMD has to move before it's considered to be worn */
@@ -429,7 +492,7 @@ private:
 	mutable FVector			CurHmdPosition;
 
 	/** used to check how much the HMD has moved for changing the Worn status */
-	FVector					HMDStartLocation; 
+	FVector					HMDStartLocation;
 
 	mutable FQuat			LastHmdOrientation; // contains last APPLIED ON GT HMD orientation
 	FVector					LastHmdPosition;	// contains last APPLIED ON GT HMD position
@@ -458,9 +521,18 @@ private:
 
 	FString DisplayId;
 
+	FSteamVRHMDCompat CompatExec;
+
 #if PLATFORM_WINDOWS
-	TRefCountPtr<D3D11Bridge>	pD3D11Bridge;
+	TRefCountPtr<D3D11Bridge>	pBridge;
+#elif PLATFORM_LINUX
+	#if STEAMVR_USE_VULKAN_RHI
+		TRefCountPtr<VulkanBridge>	pBridge;
+	#else
+		TRefCountPtr<OpenGLBridge>	pBridge;
+	#endif
 #endif
+
 
 //@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
 public:

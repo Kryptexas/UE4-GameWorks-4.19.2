@@ -518,6 +518,16 @@ SDL_VideoInit(const char *driver_name)
     _this->current_glwin_tls = SDL_TLSCreate();
     _this->current_glctx_tls = SDL_TLSCreate();
 
+
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    /* Set some very sane Vulkan defaults */
+    _this->vk_config.driver_loaded = 0;
+    _this->vk_config.dll_handle = NULL;
+    _this->vk_config.required_instance_extensions = NULL;
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
     /* Initialize the video subsystem */
     if (_this->VideoInit(_this) < 0) {
         SDL_VideoQuit();
@@ -1383,6 +1393,16 @@ SDL_CreateWindow(const char *title, int x, int y, int w, int h, Uint32 flags)
         }
     }
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    if (flags & SDL_WINDOW_VULKAN) {
+        if (SDL_VK_LoadLibrary(NULL) < 0) {
+            return NULL;
+        }
+    }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
     /* Unless the user has specified the high-DPI disabling hint, respect the
      * SDL_WINDOW_ALLOW_HIGHDPI flag.
      */
@@ -1520,6 +1540,7 @@ int
 SDL_RecreateWindow(SDL_Window * window, Uint32 flags)
 {
     SDL_bool loaded_opengl = SDL_FALSE;
+    SDL_bool loaded_vulkan = SDL_FALSE;
 
     if ((flags & SDL_WINDOW_OPENGL) && !_this->GL_CreateContext) {
         return SDL_SetError("No OpenGL support in video driver");
@@ -1559,6 +1580,21 @@ SDL_RecreateWindow(SDL_Window * window, Uint32 flags)
         }
     }
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    if ((window->flags & SDL_WINDOW_VULKAN) != (flags & SDL_WINDOW_VULKAN)) {
+        if (flags & SDL_WINDOW_VULKAN) {
+            if (SDL_VK_LoadLibrary(NULL) < 0) {
+                return -1;
+            }
+            loaded_vulkan = SDL_TRUE;
+        } else {
+            SDL_VK_UnloadLibrary();
+        }
+    }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
     window->flags = ((flags & CREATE_FLAGS) | SDL_WINDOW_HIDDEN);
     window->last_fullscreen_flags = window->flags;
     window->is_destroying = SDL_FALSE;
@@ -1569,6 +1605,14 @@ SDL_RecreateWindow(SDL_Window * window, Uint32 flags)
                 SDL_GL_UnloadLibrary();
                 window->flags &= ~SDL_WINDOW_OPENGL;
             }
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+            if (loaded_vulkan) {
+                SDL_VK_UnloadLibrary();
+                window->flags &= ~SDL_WINDOW_VULKAN;
+            }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */            
             return -1;
         }
     }
@@ -2450,6 +2494,76 @@ SDL_SetKeyboardGrab(SDL_Window * window, SDL_bool enable)
     
     return _this->SetKeyboardGrab(_this, window, enable);
 }
+
+
+int
+SDL_VK_LoadLibrary(const char *path)
+{
+    int retval;
+
+    if (!_this) {
+        return SDL_UninitializedVideo();
+    }
+    if (_this->vk_config.driver_loaded) {
+        if (path && SDL_strcmp(path, _this->vk_config.driver_path) != 0) {
+            return SDL_SetError("Vulkan library already loaded");
+        }
+        retval = 0;
+    } else {
+        if (!_this->VK_LoadLibrary) {
+            return SDL_SetError("No dynamic Vulkan support in video driver");
+        }
+        retval = _this->VK_LoadLibrary(_this, path);
+    }
+    if (retval == 0) {
+        ++_this->vk_config.driver_loaded;
+    } else {
+        if (_this->VK_UnloadLibrary) {
+            _this->VK_UnloadLibrary(_this);
+        }
+    }
+    return (retval);
+}
+
+void
+SDL_VK_UnloadLibrary(void)
+{
+    if (!_this) {
+        SDL_UninitializedVideo();
+        return;
+    }
+    if (_this->vk_config.driver_loaded > 0) {
+        if (--_this->vk_config.driver_loaded > 0) {
+            return;
+        }
+        if (_this->VK_UnloadLibrary) {
+            _this->VK_UnloadLibrary(_this);
+        }
+    }
+}
+
+char** 
+SDL_VK_GetRequiredInstanceExtensions(unsigned int* count)
+{
+    if (!_this->VK_GetRequiredInstanceExtensions) {
+        return NULL;
+    }
+    
+    return _this->VK_GetRequiredInstanceExtensions(_this, count);  
+}
+
+SDL_bool
+SDL_VK_CreateSurface(SDL_Window* window, SDL_VkInstance instance, SDL_VkSurface* surface)
+{
+    CHECK_WINDOW_MAGIC(window, -1);
+    
+    if (!_this->VK_CreateSurface || !_this->vk_config.driver_loaded) {
+        return SDL_Unsupported();
+    }
+    
+    return _this->VK_CreateSurface(_this, window, instance, surface);    
+}
+
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
 
@@ -2754,6 +2868,11 @@ SDL_VideoQuit(void)
         SDL_free(_this->displays);
         _this->displays = NULL;
         _this->num_displays = 0;
+    }
+    if (_this->vk_config.required_instance_extensions){
+        SDL_free(_this->vk_config.required_instance_extensions[0]);
+        SDL_free(_this->vk_config.required_instance_extensions[1]);
+        _this->vk_config.required_instance_extensions = NULL;
     }
     SDL_free(_this->clipboard_text);
     _this->clipboard_text = NULL;

@@ -45,6 +45,7 @@ const TCHAR* GShaderSourceModeDefineName[] =
 	nullptr,
 	TEXT("SOURCE_MODE_SCENE_COLOR_SCENE_DEPTH"),
 	TEXT("SOURCE_MODE_SCENE_DEPTH"),
+	TEXT("SOURCE_MODE_DEVICE_DEPTH"),
 	TEXT("SOURCE_MODE_NORMAL"),
 	TEXT("SOURCE_MODE_BASE_COLOR")
 };
@@ -100,6 +101,7 @@ IMPLEMENT_SHADER_TYPE(template<>, TSceneCapturePS<SCS_SceneColorHDR>, TEXT("Scen
 IMPLEMENT_SHADER_TYPE(template<>, TSceneCapturePS<SCS_SceneColorHDRNoAlpha>, TEXT("SceneCapturePixelShader"), TEXT("Main"), SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TSceneCapturePS<SCS_SceneColorSceneDepth>,TEXT("SceneCapturePixelShader"),TEXT("Main"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TSceneCapturePS<SCS_SceneDepth>,TEXT("SceneCapturePixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, TSceneCapturePS<SCS_DeviceDepth>, TEXT("SceneCapturePixelShader"), TEXT("Main"), SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TSceneCapturePS<SCS_Normal>,TEXT("SceneCapturePixelShader"),TEXT("Main"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TSceneCapturePS<SCS_BaseColor>,TEXT("SceneCapturePixelShader"),TEXT("Main"),SF_Pixel);
 
@@ -175,6 +177,14 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 			else if (SceneCaptureSource == SCS_SceneDepth)
 			{
 				TShaderMapRef<TSceneCapturePS<SCS_SceneDepth> > PixelShader(View.ShaderMap);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+				PixelShader->SetParameters(RHICmdList, View);
+			}
+			else if (ViewFamily.SceneCaptureSource == SCS_DeviceDepth)
+			{
+				TShaderMapRef<TSceneCapturePS<SCS_DeviceDepth> > PixelShader(View.ShaderMap);
 				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 

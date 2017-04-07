@@ -7,6 +7,10 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanSwapChain.h"
 
+#if PLATFORM_LINUX
+#include <SDL.h>
+#endif
+
 FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevice, void* WindowHandle, EPixelFormat& InOutPixelFormat, uint32 Width, uint32 Height,
 	uint32* InOutDesiredNumBackBuffers, TArray<VkImage>& OutImages)
 	: SwapChain(VK_NULL_HANDLE)
@@ -30,6 +34,12 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	SurfaceCreateInfo.window = (ANativeWindow*)WindowHandle;
 
 	VERIFYVULKANRESULT(vkCreateAndroidSurfaceKHR(Instance, &SurfaceCreateInfo, nullptr, &Surface));
+#elif PLATFORM_LINUX
+	if(SDL_VK_CreateSurface((SDL_Window*)WindowHandle, (SDL_VkInstance)Instance, (SDL_VkSurface*)&Surface) == SDL_FALSE)
+    {
+		UE_LOG(LogInit, Error, TEXT("Error initializing SDL Vulkan Surface: %s"), SDL_GetError());
+		check(0);
+	}
 #else
 	static_assert(false, "Unsupported Vulkan platform!");
 #endif

@@ -123,7 +123,8 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 
 	{ TEXT("BC6H"),				4,			4,			1,			16,			3,				0,				1,				PF_BC6H				},
 	{ TEXT("BC7"),				4,			4,			1,			16,			4,				0,				1,				PF_BC7				},
-	{ TEXT("R8_UINT"),			1,			1,			1,			1,			1,				0,				1,				PF_R8_UINT },
+	{ TEXT("R8_UINT"),			1,			1,			1,			1,			1,				0,				1,				PF_R8_UINT			},
+	{ TEXT("L8"),				1,			1,			1,			1,			1,				0,				0,				PF_L8				},
 };
 
 static struct FValidatePixelFormats

@@ -20,8 +20,13 @@ public class HeadMountedDisplay : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
-                "RHI"
-			}
-		);
+                "RHI",
+                "Renderer",
+                "ShaderCore",
+                "RenderCore",
+                "UtilityShaders",
+                "Analytics"
+            }
+        );
 	}
 }

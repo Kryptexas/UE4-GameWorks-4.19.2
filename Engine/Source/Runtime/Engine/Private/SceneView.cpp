@@ -574,6 +574,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, DynamicMeshElementsShadowCullFrustum(nullptr)
 	, PreShadowTranslation(FVector::ZeroVector)
 	, ViewActor(InitOptions.ViewActor)
+	, PlayerIndex(InitOptions.PlayerIndex)
 	, Drawer(InitOptions.ViewElementDrawer)
 	, ViewRect(InitOptions.GetConstrainedViewRect())
 	, UnscaledViewRect(InitOptions.GetConstrainedViewRect())
@@ -610,6 +611,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsInstancedStereoEnabled(false)
 	, bIsMultiViewEnabled(false)
 	, bIsMobileMultiViewEnabled(false)
+	, bIsMobileMultiViewDirectEnabled(false)
 	, bShouldBindInstancedViewUB(false)
 	, GlobalClippingPlane(FPlane(0, 0, 0, 0))
 #if WITH_EDITOR
@@ -721,8 +723,14 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	static const auto MultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 	bIsMultiViewEnabled = ShaderPlatform == EShaderPlatform::SP_PS4 && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
 
+#if PLATFORM_ANDROID
 	static const auto MobileMultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
-	bIsMobileMultiViewEnabled = (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+	bIsMobileMultiViewEnabled = StereoPass != eSSP_MONOSCOPIC_EYE && (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+
+	// TODO: Test platform support for direct
+	static const auto MobileMultiViewDirectCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView.Direct"));
+	bIsMobileMultiViewDirectEnabled = (MobileMultiViewDirectCVar && MobileMultiViewDirectCVar->GetValueOnAnyThread() != 0);
+#endif
 
 	bShouldBindInstancedViewUB = bIsInstancedStereoEnabled || bIsMobileMultiViewEnabled;
 

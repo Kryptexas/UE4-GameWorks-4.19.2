@@ -26,11 +26,7 @@ class HEADMOUNTEDDISPLAY_API IHeadMountedDisplay : public IModuleInterface, publ
 public:
 	IHeadMountedDisplay();
 
-	virtual FName GetDeviceName() const
-	{
-		static FName DefaultName(TEXT("Unknown"));
-		return DefaultName;
-	}
+	virtual FName GetDeviceName() const = 0;
 
 	/**
 	 * Returns true if HMD is currently connected.  It may or may not be in use.
@@ -149,10 +145,27 @@ public:
 	virtual FVector GetAudioListenerOffset() const { return FVector(0.f); }
 
 	/**
-	 * Get the ISceneViewExtension for this HMD, or none.
+	 * Gather scene extensions for this HMD. Override GetViewExtension unless you need to support more than one view extension.
 	 */
-	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() = 0;
+	virtual void GatherViewExtensions(TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> >& OutViewExtensions)
+	{
+		auto HmdViewExt = GetViewExtension();
+		if (HmdViewExt.IsValid())
+		{
+			OutViewExtensions.Add(HmdViewExt);
+		}
+	}
 
+protected:
+	/**
+	* Get the ISceneViewExtension for this HMD, or none.
+	*/
+	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension()
+	{
+		return nullptr;
+	}
+
+public:
 	/**
 	 * Apply the orientation of the headset to the PC's rotation.
 	 * If this is not done then the PC will face differently than the camera,
@@ -191,19 +204,8 @@ public:
 	 */
 	virtual bool GetChromaAbCorrectionValues(FVector4& K) const  { return false; }
 
-	/**
-	 * Exec handler to allow console commands to be passed through to the HMD for debugging
-	 */
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) = 0;
-
 	/** Returns true if positional tracking enabled and working. */
 	virtual bool IsPositionalTrackingEnabled() const = 0;
-
-	/**
-	 * Tries to enable positional tracking.
-	 * Returns the actual status of positional tracking.
-	 */
-	virtual bool EnablePositionalTracking(bool enable) = 0;
 
 	/**
 	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
@@ -211,17 +213,6 @@ public:
 	 */
 	virtual bool IsHeadTrackingAllowed() const = 0;
 
-	/**
-	 * Returns true, if HMD is in low persistence mode. 'false' otherwise.
-	 */
-	virtual bool IsInLowPersistenceMode() const = 0;
-
-	/**
-	 * Switches between low and full persistence modes.
-	 *
-	 * @param Enable			(in) 'true' to enable low persistence mode; 'false' otherwise
-	 */
-	virtual void EnableLowPersistenceMode(bool Enable = true) = 0;
 
 	/**
 	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction and assuming
@@ -268,18 +259,6 @@ public:
 	 * Returns current base orientation of HMD as a quaternion.
 	 */
 	virtual FQuat GetBaseOrientation() const { return FQuat::Identity; }
-
-	/**
-	 * Scales the HMD position that gets added to the virtual camera position.
-	 *
-	 * @param PosScale3D	(in) the scale to apply to the HMD position.
-	 */
-	virtual void SetPositionScale3D(FVector PosScale3D) {}
-
-	/**
-	 * Returns current position scale of HMD.
-	 */
-	virtual FVector GetPositionScale3D() const { return FVector::ZeroVector; }
 
 	/**
 	* @return true if a hidden area mesh is available for the device.

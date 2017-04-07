@@ -96,7 +96,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	int32 WindowWidth = ClientWidth;
 	int32 WindowHeight = ClientHeight;
 
-	WindowStyle |= SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+	WindowStyle |= FLinuxPlatformMisc::WindowStyle() | SDL_WINDOW_SHOWN;
 
 	if ( !Definition->HasOSWindowBorder )
 	{

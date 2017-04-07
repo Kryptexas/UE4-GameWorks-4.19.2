@@ -437,8 +437,8 @@ void FOculusRiftPlugin::SetGraphicsAdapter(const ovrGraphicsLuid& luid)
 // FOculusRiftHMD::D3D11Bridge
 //-------------------------------------------------------------------------------------------------
 
-FOculusRiftHMD::D3D11Bridge::D3D11Bridge(const FOvrSessionSharedPtr& InOvrSession)
-	: FCustomPresent(InOvrSession)
+FOculusRiftHMD::D3D11Bridge::D3D11Bridge(const FOvrSessionSharedPtr& InOvrSession, FOculusRiftHMD* RiftHMD)
+	: FCustomPresent(InOvrSession, RiftHMD)
 {
 }
 
@@ -480,6 +480,8 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 	check(IsInRenderingThread());
 
 	SetRenderContext(&InRenderContext);
+	static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
+	EMirrorWindowMode MirrorWindowMode = (EMirrorWindowMode)FMath::Clamp(CVarMirrorMode->GetValueOnRenderThread(), 0, (int32)EMirrorWindowMode::Last);
 
 	FGameFrame* CurrentRenderFrame = GetRenderFrame();
 	check(CurrentRenderFrame);
@@ -492,11 +494,13 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 	FOvrSessionShared::AutoSession OvrSession(Session);
 	const FVector2D ActualMirrorWindowSize = CurrentRenderFrame->WindowSize;
 	// detect if mirror texture needs to be re-allocated or freed
-	if (Session->IsActive() && MirrorTextureRHI && (bNeedReAllocateMirrorTexture || 
-		(FrameSettings->Flags.bMirrorToWindow && (
-		FrameSettings->MirrorWindowMode != FSettings::eMirrorWindow_Distorted ||
-		ActualMirrorWindowSize != FVector2D(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY()))) ||
-		!FrameSettings->Flags.bMirrorToWindow ))
+	if (Session->IsActive() && MirrorTextureRHI &&
+			(
+				bNeedReAllocateMirrorTexture
+				|| MirrorWindowMode != EMirrorWindowMode::Distorted
+				|| ActualMirrorWindowSize != FVector2D(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY())
+			)
+		)
 	{
 		check(MirrorTexture);
 		ovr_DestroyMirrorTexture(OvrSession, MirrorTexture);
@@ -506,7 +510,7 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 	}
 
 	// need to allocate a mirror texture?
-	if (FrameSettings->Flags.bMirrorToWindow && FrameSettings->MirrorWindowMode == FSettings::eMirrorWindow_Distorted && !MirrorTextureRHI &&
+	if (MirrorWindowMode == EMirrorWindowMode::Distorted && !MirrorTextureRHI &&
 		ActualMirrorWindowSize.X != 0 && ActualMirrorWindowSize.Y != 0)
 	{
 		ovrMirrorTextureDesc desc {};
@@ -556,8 +560,9 @@ FTexture2DSetProxyPtr FOculusRiftHMD::D3D11Bridge::CreateTextureSet(const uint32
 {
 	auto D3D11RHI = static_cast<FD3D11DynamicRHI*>(GDynamicRHI);
 	ID3D11Device* D3DDevice = D3D11RHI->GetDevice();
-	
-	const EPixelFormat Format = PF_B8G8R8A8;
+
+	bool fp10 = InSrcFormat == PF_FloatR11G11B10;
+	const EPixelFormat Format = fp10 ? PF_FloatR11G11B10 : PF_B8G8R8A8;
 	const DXGI_FORMAT PlatformResourceFormat = (DXGI_FORMAT)GPixelFormats[Format].PlatformFormat;
 
 	const uint32 TexCreate_Flags = (((InCreateTexFlags & ShaderResource) ? TexCreate_ShaderResource : 0)|
@@ -574,12 +579,12 @@ FTexture2DSetProxyPtr FOculusRiftHMD::D3D11Bridge::CreateTextureSet(const uint32
 	desc.Height = InSizeY;
 	// Override the format to be sRGB so that the compositor always treats eye buffers
 	// as if they're sRGB even if we are sending in linear formatted textures
-	desc.Format = (InCreateTexFlags & LinearSpace) ? OVR_FORMAT_B8G8R8A8_UNORM : OVR_FORMAT_B8G8R8A8_UNORM_SRGB;
-	desc.MiscFlags = ovrTextureMisc_DX_Typeless;
+	desc.Format = fp10? OVR_FORMAT_R11G11B10_FLOAT : ((InCreateTexFlags & LinearSpace) ? OVR_FORMAT_B8G8R8A8_UNORM : OVR_FORMAT_B8G8R8A8_UNORM_SRGB);
+	desc.MiscFlags = fp10 ? 0 : ovrTextureMisc_DX_Typeless;
 
 	// just make sure the proper format is used; if format is different then we might
 	// need to make some changes here.
-	check(PlatformResourceFormat == DXGI_FORMAT_B8G8R8A8_TYPELESS);
+	check(PlatformResourceFormat == (fp10 ? DXGI_FORMAT_R11G11B10_FLOAT : DXGI_FORMAT_B8G8R8A8_TYPELESS));
 
 	desc.BindFlags = ovrTextureBind_DX_RenderTarget;
 	if (desc.MipLevels != 1)
@@ -619,7 +624,7 @@ FTexture2DSetProxyPtr FOculusRiftHMD::D3D11Bridge::CreateTextureSet(const uint32
 
 	dsDesc.Format = PlatformResourceFormat; //DXGI_FORMAT_B8G8R8A8_UNORM;
 
-	UE_LOG(LogHMD, Log, TEXT("Allocated a new swap texture set (size %d x %d, mipcount = %d), 0x%p"), desc.Width, desc.Height, desc.MipLevels, textureSet);
+	UE_LOG(LogHMD, Log, TEXT("Allocated a new swap texture set (size %d x %d, mipcount = %d, format = %s), 0x%p"), desc.Width, desc.Height, desc.MipLevels, (fp10 ? *FString("Float10") : *FString("RGBA8")), textureSet);
 
 	TRefCountPtr<FD3D11Texture2DSet> ColorTextureSet = FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 		D3D11RHI,

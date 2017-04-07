@@ -69,7 +69,8 @@ enum EPixelFormat
 	PF_BC6H					=55,
 	PF_BC7					=56,
 	PF_R8_UINT				=57,
-	PF_MAX                  =58,
+	PF_L8					=58,
+	PF_MAX                  =59,
 };
 #define FOREACH_ENUM_EPIXELFORMAT(op) \
 	op(PF_Unknown) \
@@ -128,5 +129,6 @@ enum EPixelFormat
 	op(PF_ASTC_12x12) \
 	op(PF_BC6H) \
 	op(PF_BC7) \
-	op(PF_R8_UINT)
+	op(PF_R8_UINT) \
+	op(PF_L8)
 

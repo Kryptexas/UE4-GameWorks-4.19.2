@@ -39,6 +39,12 @@ void FAsyncLoadingSplash::Startup()
 				RenTicker->Register();
 			});
 
+		// Check to see if we want to use autoloading splash screens from the config
+		const TCHAR* OculusSettings = TEXT("Oculus.Settings");
+		bool bUseAutoShow = true;
+		GConfig->GetBool(OculusSettings, TEXT("bUseAutoLoadingSplashScreen"), bUseAutoShow, GEngineIni);
+		bAutoShow = bUseAutoShow;
+
 		// Add a delegate to start playing movies when we start loading a map
 		FCoreUObjectDelegates::PreLoadMap.AddSP(this, &FAsyncLoadingSplash::OnPreLoadMap);
 		FCoreUObjectDelegates::PostLoadMapWithWorld.AddSP(this, &FAsyncLoadingSplash::OnPostLoadMap);

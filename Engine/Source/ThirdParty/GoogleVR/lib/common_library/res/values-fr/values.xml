@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"OUVRIR LE CENTRE D\'AIDE"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Vous devez utiliser un téléphone compatible Daydream. Consultez le centre d\'aide Daydream pour en savoir plus."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Téléchargez l\'application Cardboard afin de configurer votre visionneuse."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"Pour profiter pleinement de l\'application, configurez votre visionneuse."</string>
 <string name="dialog_title" msgid="7887077605817014784">"Configurer"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"Téléphone incompatible"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"Configuration requise"</string>

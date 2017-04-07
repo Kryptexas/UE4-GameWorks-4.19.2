@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "IHeadMountedDisplay.h"
+#include "HeadMountedDisplayBase.h"
 #include "SceneViewExtension.h"
 
 class APlayerController;
@@ -14,7 +14,7 @@ class UCanvas;
 /**
  * Simple Head Mounted Display
  */
-class FSimpleHMD : public IHeadMountedDisplay, public ISceneViewExtension, public TSharedFromThis<FSimpleHMD, ESPMode::ThreadSafe>
+class FSimpleHMD : public FHeadMountedDisplayBase, public ISceneViewExtension, public TSharedFromThis<FSimpleHMD, ESPMode::ThreadSafe>
 {
 public:
 	/** IHeadMountedDisplay interface */
@@ -47,15 +47,9 @@ public:
 
 	virtual bool IsChromaAbCorrectionEnabled() const override;
 
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-
 	virtual bool IsPositionalTrackingEnabled() const override;
-	virtual bool EnablePositionalTracking(bool enable) override;
 
 	virtual bool IsHeadTrackingAllowed() const override;
-
-	virtual bool IsInLowPersistenceMode() const override;
-	virtual void EnableLowPersistenceMode(bool Enable = true) override;
 
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
 	virtual void ResetOrientation(float Yaw = 0.f) override;

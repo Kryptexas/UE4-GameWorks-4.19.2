@@ -745,19 +745,8 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 		{
 		    // If stereo rendering is enabled, update the size and offset appropriately for this pass
 		    // @todo vreditor: Also need to update certain other use cases of ViewFOV like culling, streaming, etc.  (needs accessor)
-		    float ActualFOV = ViewFOV;
 		    if( bStereoRendering )
 		    {
-				if( GEngine->HMDDevice.IsValid() )
-				{
-					float HMDVerticalFOV, HMDHorizontalFOV;
-					GEngine->HMDDevice->GetFieldOfView( HMDHorizontalFOV, HMDVerticalFOV );
-					if( HMDHorizontalFOV > 0 )
-					{
-						ActualFOV = HMDHorizontalFOV;
-					}
-				}
-
 		        int32 X = 0;
 		        int32 Y = 0;
 		        uint32 SizeX = ViewportSizeXY.X;
@@ -791,14 +780,14 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 		    {
 			    // @todo vreditor: bConstrainAspectRatio is ignored in this path, as it is in the game client as well currently
 			    // Let the stereoscopic rendering device handle creating its own projection matrix, as needed
-			    ViewInitOptions.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix( StereoPass, ActualFOV );
+			    ViewInitOptions.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix( StereoPass, ViewFOV );
 		    }
 		    else
 		    {
 			    const float MinZ = GetNearClipPlane();
 			    const float MaxZ = MinZ;
 			    // Avoid zero ViewFOV's which cause divide by zero's in projection matrix
-			    const float MatrixFOV = FMath::Max(0.001f, ActualFOV) * (float)PI / 360.0f;
+			    const float MatrixFOV = FMath::Max(0.001f, ViewFOV) * (float)PI / 360.0f;
     
 			    if (bConstrainAspectRatio)
 			    {
@@ -3347,11 +3336,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	// Allow HMD to modify the view later, just before rendering
 	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
 	{
-		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
-		if (HmdViewExt.IsValid())
-		{
-			ViewFamily.ViewExtensions.Add(HmdViewExt);
-		}
+		GEngine->HMDDevice->GatherViewExtensions(ViewFamily.ViewExtensions);
 
 		// Allow HMD to modify screen settings
 		GEngine->HMDDevice->UpdateScreenSettings(Viewport);

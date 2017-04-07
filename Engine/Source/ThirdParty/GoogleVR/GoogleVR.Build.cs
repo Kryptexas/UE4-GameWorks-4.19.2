@@ -57,6 +57,9 @@ public class GoogleVR : ModuleRules
 			string GoogleVRIOSLibPath = GoogleVRBaseLibPath + "ios/";
 			PublicLibraryPaths.Add(GoogleVRIOSLibPath);
 
+			// Libraries that the GVR SDK depend on.
+			PublicAdditionalLibraries.Add(GoogleVRIOSLibPath+"libGTMSessionFetcher.a");
+
 			// Frameworks that GoogleVR frame depends on
 			PublicAdditionalFrameworks.Add(new UEBuildFramework("CoreText"));
 			PublicAdditionalFrameworks.Add(new UEBuildFramework("AudioToolbox"));

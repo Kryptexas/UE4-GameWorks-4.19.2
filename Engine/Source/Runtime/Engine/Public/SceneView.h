@@ -142,6 +142,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	const FSceneViewFamily* ViewFamily;
 	FSceneViewStateInterface* SceneViewStateInterface;
 	const AActor* ViewActor;
+	int32 PlayerIndex;
 	FViewElementDrawer* ViewElementDrawer;
 
 	FLinearColor BackgroundColor;
@@ -191,6 +192,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		: ViewFamily(NULL)
 		, SceneViewStateInterface(NULL)
 		, ViewActor(NULL)
+		, PlayerIndex(INDEX_NONE)
 		, ViewElementDrawer(NULL)
 		, BackgroundColor(FLinearColor::Transparent)
 		, OverlayColor(FLinearColor::Transparent)
@@ -777,6 +779,9 @@ private:
 public:
 	/** The actor which is being viewed from. */
 	const AActor* ViewActor;
+	 
+	/** Player index this view is associated with or INDEX_NONE. */
+	int32 PlayerIndex;
 
 	/** An interaction which draws the view's interaction elements. */
 	FViewElementDrawer* Drawer;
@@ -920,6 +925,9 @@ public:
 
 	/** True if mobile multi-view is enabled. */
 	bool bIsMobileMultiViewEnabled;
+
+	/** True if mobile multi-view direct is enabled. */
+	bool bIsMobileMultiViewDirectEnabled;
 
 	/** True if we need to bind the instanced view uniform buffer parameters. */
 	bool bShouldBindInstancedViewUB;

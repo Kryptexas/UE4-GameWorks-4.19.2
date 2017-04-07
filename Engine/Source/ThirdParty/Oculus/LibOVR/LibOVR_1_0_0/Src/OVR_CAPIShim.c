@@ -1308,6 +1308,13 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_RecenterTrackingOrigin(ovrSession session)
     return API.ovr_RecenterTrackingOrigin.Ptr(session);
 }
 
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_SpecifyTrackingOrigin(ovrSession session, ovrPosef originPose)
+{
+    if (!API.ovr_SpecifyTrackingOrigin.Ptr)
+        return ovrError_NotInitialized;
+    return API.ovr_SpecifyTrackingOrigin.Ptr(session, originPose);
+}
+
 OVR_PUBLIC_FUNCTION(void) ovr_ClearShouldRecenterFlag(ovrSession session)
 {
     if (!API.ovr_ClearShouldRecenterFlag.Ptr)
@@ -1325,6 +1332,13 @@ OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingState(ovrSession session, d
     }
 
     return API.ovr_GetTrackingState.Ptr(session, absTime, latencyMarker);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetDevicePoses(ovrSession session, ovrTrackedDeviceType* deviceTypes, int deviceCount, double absTime, ovrPoseStatef* outDevicePoses)
+{
+    if (!API.ovr_GetDevicePoses.Ptr)
+        return ovrError_NotInitialized;
+    return API.ovr_GetDevicePoses.Ptr(session, deviceTypes, deviceCount, absTime, outDevicePoses);
 }
 
 OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingStateWithSensorData(ovrSession session, double absTime, ovrBool latencyMarker, ovrSensorData* sensorData)

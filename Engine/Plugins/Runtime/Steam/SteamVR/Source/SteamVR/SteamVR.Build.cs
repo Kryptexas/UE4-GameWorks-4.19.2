@@ -10,6 +10,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"SteamVR/Private",
 					"../../../../../Source/Runtime/Renderer/Private",
+					"../../../../../Source/Runtime/VulkanRHI/Private",
 					// ... add other private include paths required here ...
 				}
 				);
@@ -41,6 +42,14 @@ namespace UnrealBuildTool.Rules
             {
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");
                 PrivateDependencyModuleNames.AddRange(new string[] { "D3D11RHI" });     //@todo steamvr: multiplatform
+            }
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");
+                AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
+                PrivateDependencyModuleNames.Add("OpenGLDrv");
+                PrivateDependencyModuleNames.Add("VulkanRHI");
             }
 		}
 	}

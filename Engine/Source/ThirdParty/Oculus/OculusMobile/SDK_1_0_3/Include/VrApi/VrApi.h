@@ -129,7 +129,7 @@ while ( !exit )
 		ovrMobile * ovr = vrapi_EnterVrMode( &modeParms );
 
 		// Frame loop, possibly running on another thread.
-		for ( long long frameIndex = 1; ; frameIndex++ )
+		for ( long long frameIndex = 1; resumed && nativeWindow != NULL; frameIndex++ )
 		{
 			// Get the HMD pose, predicted for the middle of the time period during which
 			// the new eye images will be displayed. The number of frames predicted ahead
@@ -217,7 +217,7 @@ surfaceChanged / surfaceDestroyed). The application (or 3rd party engine) typica
 these events. Since the VrApi cannot just allocate a new window/frontbuffer, and the VrApi
 does not handle the life cycle events, the VrApi somehow has to take over ownership of the
 Android surface from the application. To allow this, the application can explicitly pass
-the EGLDisplay, EGLContext EGLSurface or ANativeWindow to vrapi_EnterVrMode(), where the
+the EGLDisplay, EGLContext, EGLSurface, or ANativeWindow to vrapi_EnterVrMode(), where the
 EGLSurface is the surface created from the ANativeWindow. The EGLContext is used to match
 the version and config for the context used by the background time warp thread. This EGLContext,
 and no other context can be current on the EGLSurface.
@@ -449,6 +449,18 @@ OVR_VRAPI_EXPORT ovrInitializeStatus vrapi_Initialize( const ovrInitParms * init
 // Can be called from any thread.
 OVR_VRAPI_EXPORT void vrapi_Shutdown();
 
+///--BEGIN_SDK_REMOVE
+//-----------------------------------------------------------------
+// VrApi Properties
+//-----------------------------------------------------------------
+
+OVR_VRAPI_EXPORT void vrapi_SetPropertyInt( const ovrJava * java, const ovrProperty propType, const int intVal );
+OVR_VRAPI_EXPORT void vrapi_SetPropertyFloat( const ovrJava * java, const ovrProperty propType, const float floatVal );
+
+// returns fails if the property cannot be read
+OVR_VRAPI_EXPORT bool vrapi_GetPropertyInt( const ovrJava * java, const ovrProperty propType, int * intVal );
+///--END_SDK_REMOVE
+
 //-----------------------------------------------------------------
 // System Properties
 //-----------------------------------------------------------------
@@ -567,12 +579,27 @@ OVR_VRAPI_EXPORT void vrapi_RecenterPose( ovrMobile * ovr );
 
 //-----------------------------------------------------------------
 // Texture Swap Chains
+//
 //-----------------------------------------------------------------
 
 // Create a texture swap chain that can be passed to vrapi_SubmitFrame.
 // Must be called from a thread with a valid OpenGL ES context current.
+//
+// Specifying 0 levels allows the individual texture ids to be set with
+// vrapi_SetTextureSwapChainHandle().
+//
+// Specifying VRAPI_TEXTURE_SWAPCHAIN_FULL_MIP_CHAIN levels will calculate
+// the levels based on width and height.
+//
+// Buffers used to be a bool that selected either a single texture index
+// or a triple buffered index, but the new entry point allows up to 16 buffers
+// to be allocated, which is useful for maintaining a deep video buffer queue
+// to get better frame timing.
+OVR_VRAPI_EXPORT ovrTextureSwapChain * vrapi_CreateTextureSwapChain2( ovrTextureType type, ovrTextureFormat format,
+																int width, int height, int levels, int bufferCount );
+
 OVR_VRAPI_EXPORT ovrTextureSwapChain * vrapi_CreateTextureSwapChain( ovrTextureType type, ovrTextureFormat format,
-																int width, int height, int levels, bool buffered );
+                                                                int width, int height, int levels, bool buffered );
 
 // Destroy the given texture swap chain.
 // Must be called from a thread with the same OpenGL ES context current when vrapi_CreateTextureSwapChain was called.
@@ -585,6 +612,9 @@ OVR_VRAPI_EXPORT int vrapi_GetTextureSwapChainLength( ovrTextureSwapChain * chai
 OVR_VRAPI_EXPORT unsigned int vrapi_GetTextureSwapChainHandle( ovrTextureSwapChain * chain, int index );
 
 // Set the OpenGL name of the texture at the given index. NOTE: This is not portable to PC.
+// This will silently fail with:
+// W/TimeWarp: SetTextureSwapChainHandle: chain->Allocated
+// Unless the SwapChain was created with 0 levels.
 OVR_VRAPI_EXPORT void vrapi_SetTextureSwapChainHandle( ovrTextureSwapChain * chain, int index, unsigned int handle );
 
 //-----------------------------------------------------------------

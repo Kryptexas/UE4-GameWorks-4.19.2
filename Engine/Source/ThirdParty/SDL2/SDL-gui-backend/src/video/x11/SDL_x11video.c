@@ -39,6 +39,9 @@
 #include "SDL_x11opengles.h"
 #endif
 
+#include "SDL_x11vulkan.h"
+
+
 /* Initialization/Query functions */
 static int X11_VideoInit(_THIS);
 static void X11_VideoQuit(_THIS);
@@ -255,6 +258,10 @@ X11_CreateDevice(int devindex)
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     device->SetKeyboardGrab = X11_SetKeyboardGrab;
+    device->VK_LoadLibrary = X11_VK_LoadLibrary;
+    device->VK_UnloadLibrary = X11_VK_UnloadLibrary;
+    device->VK_GetRequiredInstanceExtensions = X11_VK_GetRequiredInstanceExtensions;
+    device->VK_CreateSurface = X11_VK_CreateSurface;
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
     device->shape_driver.CreateShaper = X11_CreateShaper;

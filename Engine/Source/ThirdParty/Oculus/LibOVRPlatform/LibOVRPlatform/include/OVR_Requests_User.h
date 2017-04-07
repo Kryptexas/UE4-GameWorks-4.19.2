@@ -6,6 +6,7 @@
 #include "OVR_Types.h"
 #include "OVR_Platform_Defs.h"
 
+#include "OVR_UserAndRoomArray.h"
 #include "OVR_UserArray.h"
 
 /// \file
@@ -25,7 +26,7 @@
 
 /// Retrieve the user with the given ID. This might fail if the ID is invalid
 /// or the user is blocked.
-/// 
+///
 /// NOTE: Users will have a unique ID per application.
 /// \param userID User ID retrieved with this application.
 ///
@@ -49,10 +50,10 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_Get(ovrID userID);
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetAccessToken();
 
 /// Retrieve the currently signed in user. This call is available offline.
-/// 
+///
 /// NOTE: This will not return the user's presence as it should always be
 /// 'online' in your application.
-/// 
+///
 /// NOTE: Users will have a unique ID per application.
 ///
 /// A message with type ::ovrMessage_User_GetLoggedInUser will be generated in response.
@@ -72,6 +73,27 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetLoggedInUser();
 /// If no error occurred, the message will contain a payload of type ::ovrUserArrayHandle.
 /// Extract the payload from the message handle with ::ovr_Message_GetUserArray().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetLoggedInUserFriends();
+
+/// Retrieve a list of the logged in user's friends and any rooms they might be
+/// in.
+///
+/// A message with type ::ovrMessage_User_GetLoggedInUserFriendsAndRooms will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrUserAndRoomArrayHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetUserAndRoomArray().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetLoggedInUserFriendsAndRooms();
+
+/// Get the next page of entries
+///
+/// A message with type ::ovrMessage_User_GetNextUserAndRoomArrayPage will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrUserAndRoomArrayHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetUserAndRoomArray().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetNextUserAndRoomArrayPage(ovrUserAndRoomArrayHandle handle);
 
 /// Get the next page of entries
 ///
@@ -100,7 +122,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_User_GetOrgScopedID(ovrID userID);
 /// from ovr_User_Get() to your your backend. Your server can then use our api
 /// to verify identity. 'https://graph.oculus.com/user_nonce_validate?nonce=USE
 /// R_PROOF&user_id=USER_ID&access_token=ACCESS_TOKEN'
-/// 
+///
 /// NOTE: The nonce is only good for one check and then it is invalidated.
 ///
 /// A message with type ::ovrMessage_User_GetUserProof will be generated in response.

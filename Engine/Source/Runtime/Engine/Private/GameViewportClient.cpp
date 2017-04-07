@@ -890,11 +890,7 @@ static void GatherViewExtensions(FViewport* InViewport, TArray<TSharedPtr<class 
 {
 	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
 	{
-		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
-		if (HmdViewExt.IsValid())
-		{
-			OutViewExtensions.Add(HmdViewExt);
-		}
+		GEngine->HMDDevice->GatherViewExtensions(OutViewExtensions);
 	}
 
 	for (auto ViewExt : GEngine->ViewExtensions)

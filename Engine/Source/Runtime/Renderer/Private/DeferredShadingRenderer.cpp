@@ -1204,7 +1204,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderTranslucency(RHICmdList);
 		ServiceLocalQueue();
 
-		if(GetRefractionQuality(ViewFamily) > 0)
+		static const auto DisableDistortionCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DisableDistortion"));
+		const bool bAllowDistortion = DisableDistortionCVar->GetValueOnAnyThread() != 1;
+
+		if (GetRefractionQuality(ViewFamily) > 0 && bAllowDistortion)
 		{
 			// To apply refraction effect by distorting the scene color.
 			// After non separate translucency as that is considered at scene depth anyway

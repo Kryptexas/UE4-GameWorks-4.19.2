@@ -73,6 +73,7 @@
 #include "PhysicsSettingsDetails.h"
 #include "GeneralProjectSettingsDetails.h"
 #include "HardwareTargetingSettingsDetails.h"
+#include "LinuxTargetSettingsDetails.h"
 #include "WindowsTargetSettingsDetails.h"
 #include "MacTargetSettingsDetails.h"
 #include "MoviePlayerSettingsDetails.h"
@@ -328,6 +329,7 @@ void FDetailCustomizationsModule::RegisterObjectCustomizations()
 	RegisterCustomClassLayout("InputSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FInputSettingsDetails::MakeInstance));
 	RegisterCustomClassLayout("WindowsTargetSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FWindowsTargetSettingsDetails::MakeInstance));
 	RegisterCustomClassLayout("MacTargetSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FMacTargetSettingsDetails::MakeInstance));
+	RegisterCustomClassLayout("LinuxTargetSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FLinuxTargetSettingsDetails::MakeInstance));
 	RegisterCustomClassLayout("MoviePlayerSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FMoviePlayerSettingsDetails::MakeInstance));
 
 	RegisterCustomClassLayout("SourceCodeAccessSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FSourceCodeAccessSettingsDetails::MakeInstance));

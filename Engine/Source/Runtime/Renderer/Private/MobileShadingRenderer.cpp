@@ -169,6 +169,16 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Using only view 0 to check to do on-chip transform of alpha.
 	FViewInfo& View = Views[0];
 
+	// Default view list
+	TArray<const FViewInfo*> ViewList;
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++) 
+	{
+		if (Views[ViewIndex].StereoPass != eSSP_MONOSCOPIC_EYE)
+		{
+			ViewList.Add(&Views[ViewIndex]);
+		}
+	}
+
 	const bool bGammaSpace = !IsMobileHDR();
 	const bool bRequiresUpscale = !ViewFamily.bUseSeparateRenderTarget && ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
 	// ES2 requires that the back buffer and depth match dimensions.
@@ -182,9 +192,10 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	FTextureRHIParamRef SceneColor = nullptr;
+
 	if (bGammaSpace && !bRenderToSceneColor)
 	{
-		SceneColor = (View.bIsMobileMultiViewEnabled) ? SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().TargetableTexture : static_cast<FTextureRHIRef>(ViewFamily.RenderTarget->GetRenderTargetTexture());
+		SceneColor = GetMultiViewSceneColor(SceneContext);
 		const FTextureRHIParamRef SceneDepth = (View.bIsMobileMultiViewEnabled) ? SceneContext.MobileMultiViewSceneDepthZ->GetRenderTargetItem().TargetableTexture : static_cast<FTextureRHIRef>(SceneContext.GetSceneDepthTexture());
 		SetRenderTarget(RHICmdList, SceneColor, SceneDepth, ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
@@ -200,7 +211,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, Views[0].BackgroundColor);
 	}
 
-	RenderMobileBasePass(RHICmdList);
+	RenderMobileBasePass(RHICmdList, ViewList);
 
 	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
 	ConditionalResolveSceneDepth(RHICmdList, View);
@@ -219,11 +230,6 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	RenderModulatedShadowProjections(RHICmdList);
 
-	if (ViewFamily.IsMonoscopicFarFieldEnabled())
-	{
-		CompositeMonoscopicFarField(RHICmdList);
-	}
-
 	// Draw translucency.
 	if (ViewFamily.EngineShowFlags.Translucency)
 	{
@@ -238,10 +244,24 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			// to apply refraction effect by distorting the scene color
 			RenderDistortionES2(RHICmdList);
 		}
-		RenderTranslucency(RHICmdList);
+		RenderTranslucency(RHICmdList, ViewList);
 	}
 
-	CopyMobileMultiViewSceneColor(RHICmdList);
+	if (ViewFamily.IsMonoscopicFarFieldEnabled())
+	{
+		TArray<const FViewInfo*> MonoViewList;
+		MonoViewList.Add(&Views[2]);
+
+		RenderMonoscopicFarFieldMask(RHICmdList);
+		RenderMobileBasePass(RHICmdList, MonoViewList);
+		RenderTranslucency(RHICmdList, MonoViewList);
+		CompositeMonoscopicFarField(RHICmdList);
+	}
+
+	if (!View.bIsMobileMultiViewDirectEnabled)
+	{
+		CopyMobileMultiViewSceneColor(RHICmdList);
+	}
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 	bool bOnChipSunMask =
@@ -560,10 +580,12 @@ void FMobileSceneRenderer::CopyMobileMultiViewSceneColor(FRHICommandListImmediat
 		return;
 	}
 
+	RHICmdList.DiscardRenderTargets(true, true, 0);
+
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Switching from the multi-view scene color render target array to side by side scene color
-	SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop, true);
+	SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EClearColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop, true);
 
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);

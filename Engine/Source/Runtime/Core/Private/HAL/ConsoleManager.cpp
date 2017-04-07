@@ -732,6 +732,36 @@ private:
 	FConsoleCommandWithWorldAndArgsDelegate Delegate;
 };
 
+/* Console command that can be given a world parameter, args and an output device. */
+class FConsoleCommandWithWorldArgsAndOutputDevice : public FConsoleCommandBase
+{
+
+public:
+	FConsoleCommandWithWorldArgsAndOutputDevice(const FConsoleCommandWithWorldArgsAndOutputDeviceDelegate& InitDelegate, const TCHAR* InitHelp, const EConsoleVariableFlags InitFlags)
+		: FConsoleCommandBase(InitHelp, InitFlags),
+		Delegate(InitDelegate)
+	{
+	}
+
+	// interface IConsoleCommand -----------------------------------
+
+	virtual void Release() override
+	{
+		delete this;
+	}
+
+	virtual bool Execute(const TArray< FString >& Args, UWorld* InWorld, FOutputDevice& OutputDevice) override
+	{
+		return Delegate.ExecuteIfBound(Args, InWorld, OutputDevice);
+	}
+
+private:
+
+	/** User function to call when the console command is executed */
+	FConsoleCommandWithWorldArgsAndOutputDeviceDelegate Delegate;
+};
+
+
 /* Console command that can be given an output device. */
 class FConsoleCommandWithOutputDevice : public FConsoleCommandBase
 {
@@ -839,6 +869,11 @@ IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, cons
 IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldAndArgsDelegate& Command, uint32 Flags)
 {
 	return AddConsoleObject(Name, new FConsoleCommandWithWorldAndArgs(Command, Help, (EConsoleVariableFlags)Flags))->AsCommand();
+}
+
+IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldArgsAndOutputDeviceDelegate& Command, uint32 Flags)
+{
+	return AddConsoleObject(Name, new FConsoleCommandWithWorldArgsAndOutputDevice(Command, Help, (EConsoleVariableFlags)Flags))->AsCommand();
 }
 
 IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithOutputDeviceDelegate& Command, uint32 Flags)

@@ -644,8 +644,12 @@ void Main(
 	#endif
 
 	// We write to alpha here for mono far field mask computation
-	#if MONOSCOPIC_FAR_FIELD && !MATERIALBLENDING_ANY_TRANSLUCENT
-	OutColor.a = 1.0;
+	#if MONOSCOPIC_FAR_FIELD
+		#if MATERIALBLENDING_ANY_TRANSLUCENT
+			OutColor.a = Opacity;
+		#else
+			OutColor.a = 1.0;
+		#endif
 	#endif
 #endif
 }

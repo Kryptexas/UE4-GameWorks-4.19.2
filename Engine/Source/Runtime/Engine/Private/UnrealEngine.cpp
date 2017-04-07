@@ -2700,11 +2700,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return true;
 	}
 
-	if (HMDDevice.IsValid() && HMDDevice->Exec( InWorld, Cmd, Ar ))
-	{
-		return true;
-	}
-
 #if ENABLE_LOC_TESTING
 	{
 		FString CultureName;

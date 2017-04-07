@@ -2355,3 +2355,17 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 	}
 }
+
+FTextureRHIParamRef FSceneRenderer::GetMultiViewSceneColor(const FSceneRenderTargets& SceneContext) const
+{
+	const FViewInfo& View = Views[0];
+
+	if (View.bIsMobileMultiViewEnabled && !View.bIsMobileMultiViewDirectEnabled)
+	{
+		return SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().TargetableTexture;
+	}
+	else
+	{
+		return static_cast<FTextureRHIRef>(ViewFamily.RenderTarget->GetRenderTargetTexture());
+	}
+}

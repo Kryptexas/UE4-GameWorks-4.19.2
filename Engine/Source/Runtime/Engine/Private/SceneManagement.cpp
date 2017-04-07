@@ -390,13 +390,26 @@ int8 ComputeTemporalStaticMeshLOD( const FStaticMeshRenderData* RenderData, cons
 	return MinLOD;
 }
 
+// Ensure we always use the left eye when selecting lods to avoid divergent selections in stereo
+static const FSceneView& GetLODView(const FSceneView& InView)
+{
+	if (InView.StereoPass == EStereoscopicPass::eSSP_RIGHT_EYE && InView.Family)
+	{
+		return *InView.Family->Views[0];
+	}
+	else
+	{
+		return InView;
+	}
+}
+
 int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale )
 {
 	if (RenderData)
 	{
 		const int32 NumLODs = MAX_STATIC_MESH_LODS;
-
-		const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Origin, SphereRadius, View) * FactorScale * FactorScale;
+		const FSceneView& LODView = GetLODView(View);
+		const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Origin, SphereRadius, LODView) * FactorScale * FactorScale * LODView.LODDistanceFactor * LODView.LODDistanceFactor;
 
 		// Walk backwards and return the first matching LOD
 		for (int32 LODIndex = NumLODs - 1; LODIndex >= 0; --LODIndex)
@@ -414,6 +427,7 @@ int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVecto
 FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMeshes, const FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale )
 {
 	FLODMask LODToRender;
+	const FSceneView& LODView = GetLODView(View);
 
 	// Handle forced LOD level first
 	if (ForcedLODLevel >= 0)
@@ -427,7 +441,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 		}
 		LODToRender.SetLOD(FMath::Clamp<int8>(ForcedLODLevel, MinLOD, MaxLOD));
 	}
-	else if (View.Family->EngineShowFlags.LOD)
+	else if (LODView.Family->EngineShowFlags.LOD)
 	{
 		int32 NumMeshes = StaticMeshes.Num();
 
@@ -437,7 +451,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 			{
 				int32 MinLODFound = INT_MAX;
 				bool bFoundLOD = false;
-				const float ScreenRadiusSquared = ComputeTemporalLODBoundsScreenRadiusSquared(Origin, SphereRadius, View, SampleIndex);
+				const float ScreenRadiusSquared = ComputeTemporalLODBoundsScreenRadiusSquared(Origin, SphereRadius, LODView, SampleIndex);
 
 				for(int32 MeshIndex = NumMeshes-1 ; MeshIndex >= 0 ; --MeshIndex)
 				{
@@ -465,7 +479,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 		{
 			int32 MinLODFound = INT_MAX;
 			bool bFoundLOD = false;
-			const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Origin, SphereRadius, View);
+			const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Origin, SphereRadius, LODView);
 
 			for(int32 MeshIndex = NumMeshes-1 ; MeshIndex >= 0 ; --MeshIndex)
 			{

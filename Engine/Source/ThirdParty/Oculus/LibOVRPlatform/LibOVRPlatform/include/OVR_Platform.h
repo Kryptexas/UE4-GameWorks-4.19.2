@@ -45,6 +45,7 @@
 #include "OVR_MatchmakingEnqueueResult.h"
 #include "OVR_MatchmakingEnqueueResultAndRoom.h"
 #include "OVR_Voip_LowLevel.h"
+#include "OVR_PlatformInitializeResult.h"
 #include "OVR_Requests_Achievements.h"
 #include "OVR_Requests_Application.h"
 #include "OVR_Requests_ApplicationLifecycle.h"

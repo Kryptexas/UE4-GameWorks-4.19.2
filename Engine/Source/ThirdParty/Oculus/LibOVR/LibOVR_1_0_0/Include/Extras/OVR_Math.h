@@ -353,12 +353,6 @@ inline double Acos(double x) { return (x > 1.0) ? 0.0 : (x < -1.0) ? MATH_DOUBLE
 inline float Asin(float x)   { return (x > 1.0f) ? MATH_FLOAT_PIOVER2 : (x < -1.0f) ? -MATH_FLOAT_PIOVER2 : asinf(x); }
 inline double Asin(double x) { return (x > 1.0) ? MATH_DOUBLE_PIOVER2 : (x < -1.0) ? -MATH_DOUBLE_PIOVER2 : asin(x); }
 
-#if defined(_MSC_VER)
-    inline int isnan(double x) { return ::_isnan(x); }
-#elif !defined(isnan) // Some libraries #define isnan.
-    inline int isnan(double x) { return ::isnan(x); }
-#endif
-
 template<class T>
 class Quat;
 
@@ -725,7 +719,8 @@ public:
     // Projects this vector onto a plane defined by a normal vector
     Vector3 ProjectToPlane(const Vector3& normal) const { return *this - this->ProjectTo(normal); }
 
-    bool IsNan() const { return isnan(x) || isnan(y) || isnan(z); }
+    bool IsNan() const { return !isfinite(x+y+z); }
+    bool IsFinite() const { return isfinite(x+y+z); }
 };
 
 typedef Vector3<float>  Vector3f;
@@ -1551,7 +1546,9 @@ public:
     // assuming negative direction of the axis). Standard formula: q(t) * V * q(t)^-1.
     Vector3<T> Rotate(const Vector3<T>& v) const
     {
-        OVR_MATH_ASSERT(isnan(w) || IsNormalized());
+        // FIXME: Why the IsNan() test?  This assert should fire in the IsNan() case too!
+        // Someone must have been annoyed by assertion failures and fixed it this way instead of fixing the root cause.
+        OVR_MATH_ASSERT(IsNan() || IsNormalized());
 
         // rv = q * (v,0) * q'
         // Same as rv = v + real * cross(imag,v)*2 + cross(imag, cross(imag,v)*2);
@@ -1605,7 +1602,7 @@ public:
     }
 
     // Time integration of constant angular velocity over dt
-    Quat TimeIntegrate(Vector3<T> angularVelocity, T dt) const
+    Quat TimeIntegrate(const Vector3<T>& angularVelocity, T dt) const
     {
         // solution is: this * exp( omega*dt/2 ); FromRotationVector(v) gives exp(v*.5).
         return (*this * FastFromRotationVector(angularVelocity * dt, false)).Normalized();
@@ -1622,7 +1619,7 @@ public:
     // Terms 3 and beyond are vanishingly small:
     //  W3 = cross(omega_dot, cross(omega_dot, omega))/240*dt^5
     //
-    Quat TimeIntegrate(Vector3<T> angularVelocity, Vector3<T> angularAcceleration, T dt) const
+    Quat TimeIntegrate(const Vector3<T>& angularVelocity, const Vector3<T>& angularAcceleration, T dt) const
     {
         const Vector3<T>& omega = angularVelocity;
         const Vector3<T>& omegaDot = angularAcceleration;
@@ -1757,7 +1754,8 @@ public:
         }
     }
 
-    bool IsNan() const { return isnan(x) || isnan(y) || isnan(z) || isnan(w); }
+    bool IsNan() const { return !isfinite(x+y+z+w); }
+    bool IsFinite() const { return isfinite(x+y+z+w); }
 };
 
 typedef Quat<float>  Quatf;
@@ -1894,13 +1892,13 @@ public:
 
     // Interpolation between two poses: translation is interpolated with Lerp(),
     // and rotations are interpolated with Slerp().
-    Pose Lerp(const Pose& b, T s)
+    Pose Lerp(const Pose& b, T s) const
     {
         return Pose(Rotation.Slerp(b.Rotation, s), Translation.Lerp(b.Translation, s));
     }
 
     // Similar to Lerp above, except faster in case of small rotation differences.  See Quat<T>::FastSlerp.
-    Pose FastLerp(const Pose& b, T s)
+    Pose FastLerp(const Pose& b, T s) const
     {
         return Pose(Rotation.FastSlerp(b.Rotation, s), Translation.Lerp(b.Translation, s));
     }
@@ -1920,7 +1918,11 @@ public:
                     Translation + linearVelocity*dt + linearAcceleration*dt*dt * T(0.5));
     }
 
+    Pose Normalized() const { return Pose(Rotation.Normalized(), Translation); }
+    void Normalize() { Rotation.Normalize(); }
+
     bool IsNan() const { return Translation.IsNan() || Rotation.IsNan(); }
+    bool IsFinite() const { return Translation.IsFinite() && Rotation.IsFinite(); }
 };
 
 typedef Pose<float>  Posef;
@@ -2619,7 +2621,7 @@ public:
     static Matrix4 PerspectiveRH(T yfov, T aspect, T znear, T zfar)
     {
         Matrix4 m;
-        T tanHalfFov = tan(yfov * T(0.5));
+        T tanHalfFov = (T)tan(yfov * T(0.5));
 
         m.M[0][0] = T(1) / (aspect * tanHalfFov);
         m.M[1][1] = T(1) / tanHalfFov;
@@ -2644,7 +2646,7 @@ public:
     static Matrix4 PerspectiveLH(T yfov, T aspect, T znear, T zfar)
     {
         Matrix4 m;
-        T tanHalfFov = tan(yfov * T(0.5));
+        T tanHalfFov = (T)tan(yfov * T(0.5));
 
         m.M[0][0] = T(1) / (aspect * tanHalfFov);
         m.M[1][1] = T(1) / tanHalfFov;

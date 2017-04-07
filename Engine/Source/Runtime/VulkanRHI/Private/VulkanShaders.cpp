@@ -352,10 +352,10 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 		FGeometryShaderRHIParamRef InGeometryShaderRHI)
 	: FVulkanDescriptorSetRingBuffer(InDevice)
 	, CacheLink(InVertexDeclarationRHI,InVertexShaderRHI,InPixelShaderRHI,InHullShaderRHI,InDomainShaderRHI,InGeometryShaderRHI,this)
+	, GlobalListLink(this)
 	, bDirtyVertexStreams(true)
 	, Layout(InDevice)
 	, LastBoundPipeline(VK_NULL_HANDLE)
-	, GlobalListLink(this)
 {
 	static int32 sID = 0;
 	ID = sID++;

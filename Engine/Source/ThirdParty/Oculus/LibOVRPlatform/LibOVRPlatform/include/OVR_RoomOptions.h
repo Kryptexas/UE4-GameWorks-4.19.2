@@ -15,7 +15,10 @@ typedef struct ovrRoomOptions* ovrRoomOptionsHandle;
 
 OVRP_PUBLIC_FUNCTION(ovrRoomOptionsHandle) ovr_RoomOptions_Create();
 OVRP_PUBLIC_FUNCTION(void) ovr_RoomOptions_Destroy(ovrRoomOptionsHandle handle);
+OVRP_PUBLIC_FUNCTION(void) ovr_RoomOptions_SetDataStoreString(ovrRoomOptionsHandle handle, const char* key, const char* value);
+OVRP_PUBLIC_FUNCTION(void) ovr_RoomOptions_ClearDataStore(ovrRoomOptionsHandle handle);
 OVRP_PUBLIC_FUNCTION(void) ovr_RoomOptions_SetOrdering(ovrRoomOptionsHandle handle, ovrUserOrdering value);
 OVRP_PUBLIC_FUNCTION(void) ovr_RoomOptions_SetRoomId(ovrRoomOptionsHandle handle, ovrID value);
+OVRP_PUBLIC_FUNCTION(void) ovr_RoomOptions_SetTurnOffUpdates(ovrRoomOptionsHandle handle, bool value);
 
 #endif

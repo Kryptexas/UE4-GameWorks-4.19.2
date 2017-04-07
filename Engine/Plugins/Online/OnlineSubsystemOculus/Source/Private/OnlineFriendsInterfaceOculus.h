@@ -8,8 +8,16 @@
 #include "OnlinePresenceInterface.h"
 #include "OnlineSubsystemOculusTypes.h"
 #include "OnlineSubsystemOculusPackage.h"
+
 THIRD_PARTY_INCLUDES_START
+#if USING_CODE_ANALYSIS
+#pragma warning( push )
+#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
+#endif	// USING_CODE_ANALYSIS
 #include <string>
+#if USING_CODE_ANALYSIS
+#pragma warning( pop )
+#endif	// USING_CODE_ANALYSIS
 THIRD_PARTY_INCLUDES_END
 
 class FOnlineOculusFriend : public FOnlineFriend

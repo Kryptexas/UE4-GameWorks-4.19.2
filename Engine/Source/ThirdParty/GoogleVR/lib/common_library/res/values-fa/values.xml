@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"باز کردن مرکز راهنمایی"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"به تلفن آمادهٔ Daydream نیاز دارید. برای اطلاعات بیشتر از مرکز راهنمای Daydream بازدید کنید."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"برای پیکربندی نظاره‌گر، برنامه Cardboard را دریافت کنید."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"برای اینکه بهترین تجربه را داشته باشید، نظاره‌گرتان را راه‌اندازی کنید."</string>
 <string name="dialog_title" msgid="7887077605817014784">"پیکربندی"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"تلفن ناسازگار"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"لازم است راه‌اندازی کنید"</string>

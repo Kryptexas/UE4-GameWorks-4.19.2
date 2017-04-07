@@ -29,7 +29,7 @@ static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if PLATFORM_ANDROID
+#if PLATFORM_ANDROID || PLATFORM_LINUX
 
 // Vulkan function pointers
 
@@ -139,7 +139,7 @@ static inline int32 CountSetBits(int32 n)
 
 DEFINE_LOG_CATEGORY(LogVulkan)
 
-#if PLATFORM_ANDROID
+#if PLATFORM_ANDROID || PLATFORM_LINUX
 #include <dlfcn.h>
 
 static void *VulkanLib = nullptr;
@@ -154,7 +154,11 @@ static bool LoadVulkanLibrary()
 	bAttemptedLoad = true;
 
 	// try to load libvulkan.so
+#if PLATFORM_LINUX
+	VulkanLib = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+#else
 	VulkanLib = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+#endif
 	if (VulkanLib == nullptr)
 	{
 		return false;

@@ -100,6 +100,7 @@ public:
 	 *
 	 * @param ScreenPercentage	(in) Specifies the screen percentage to be used in VR mode. Use 0.0f value to reset to default value.
 	 */
+	DEPRECATED(4.15, "Please modify the r.ScreenPercentage console variable instead.")
 	virtual void SetScreenPercentage(float InScreenPercentage) {}
 	
 	/** 
@@ -107,6 +108,7 @@ public:
 	 *
 	 * @return (float)	The screen percentage to be used in stereo mode. 0.0f, if default value is used.
 	 */
+	DEPRECATED(4.15, "Please refer to the r.ScreenPercentage console variable instead.")
 	virtual float GetScreenPercentage() const { return 0.0f; }
 
 	/** 

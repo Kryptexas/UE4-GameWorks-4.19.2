@@ -6,6 +6,10 @@
 
 #include "VulkanRHIPrivate.h"
 
+#if PLATFORM_LINUX
+#include <SDL.h>
+#endif
+
 #if VULKAN_HAS_DEBUGGING_ENABLED
 
 	#if VULKAN_ENABLE_DRAW_MARKERS
@@ -75,7 +79,7 @@ static const ANSICHAR* GValidationLayersDevice[] =
 	"VK_LAYER_LUNARG_swapchain",
 	"VK_LAYER_GOOGLE_unique_objects",
 #endif
-#if VK_HEADER_VERSION >= 24
+#if defined(VK_HEADER_VERSION) && (VK_HEADER_VERSION >= 24)
 	"VK_LAYER_LUNARG_core_validation",
 #endif
 
@@ -89,9 +93,13 @@ static const ANSICHAR* GValidationLayersDevice[] =
 // Instance Extensions to enable
 static const ANSICHAR* GInstanceExtensions[] =
 {
+#if !PLATFORM_LINUX
 	VK_KHR_SURFACE_EXTENSION_NAME,
+#endif
 #if PLATFORM_ANDROID
 	VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
+#elif PLATFORM_LINUX
+//	VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
 #else
 	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #endif
@@ -259,9 +267,18 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	}
 #endif	// VULKAN_HAS_DEBUGGING_ENABLED
 
+#if PLATFORM_LINUX
+	uint32_t count = 0;
+	auto RequiredExtensions = SDL_VK_GetRequiredInstanceExtensions(&count);
+	for(int32 i = 0; i < count; i++) {
+		OutInstanceExtensions.Add(RequiredExtensions[i]);
+	}
+#endif
+
 	for (int32 i = 0; i < GlobalExtensions.ExtensionProps.Num(); i++)
 	{
-		for (int32 j = 0; j < ARRAY_COUNT(GInstanceExtensions); j++)
+		// ARRAY_COUNT cannot be used with 0-sized arrays
+		for (int32 j = 0; j < sizeof(GInstanceExtensions) / sizeof(GInstanceExtensions[0]); j++)
 		{
 			if (!FCStringAnsi::Strcmp(GlobalExtensions.ExtensionProps[i].extensionName, GInstanceExtensions[j]))
 			{
