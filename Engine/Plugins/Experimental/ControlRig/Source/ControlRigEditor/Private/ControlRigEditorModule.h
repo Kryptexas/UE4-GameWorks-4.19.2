@@ -39,6 +39,9 @@ private:
 	/** Called to setup a new sequence's defaults */
 	static void OnInitializeSequence(UControlRigSequence* Sequence);
 
+	/** Whether we can export the current control rig sequence as an anim sequence */
+	bool CanExportAnimSequenceFromSequencer() const;
+
 	/** Export the current control rig sequence as an anim sequence */
 	void ExportAnimSequenceFromSequencer();
 

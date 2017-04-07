@@ -138,7 +138,7 @@ void PxcDisplayContactCacheStats();
 class ScAfterIntegrationTask :  public Cm::Task
 {
 public:
-	static const PxU32 MaxTasks = 128;
+	static const PxU32 MaxTasks = 256;
 private:
 	const IG::NodeIndex* const	mIndices;
 	const PxU32					mNumBodies;
@@ -277,7 +277,7 @@ public:
 
 	virtual const char* getName() const
 	{
-		return "ScScene.afterIntegration";
+		return "ScScene.afterIntegrationTask";
 	}
 
 private:
@@ -311,7 +311,7 @@ public:
 
 		const IG::NodeIndex*const nodeIndices = islandSim.getActiveNodes(IG::Node::eRIGID_BODY_TYPE);
 
-		if(0)
+		if(1)
 		{
 			for(PxU32 i = 0; i < numBodies; i+=MaxBodiesPerTask)
 			{

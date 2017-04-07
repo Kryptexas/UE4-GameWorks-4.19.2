@@ -316,7 +316,7 @@ void ACharacter::OnJumped_Implementation()
 
 bool ACharacter::IsJumpProvidingForce() const
 {
-	return (bPressedJump && JumpKeyHoldTime > 0.0f && JumpKeyHoldTime < GetJumpMaxHoldTime());
+	return (bPressedJump && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
 
 // Deprecated
@@ -971,19 +971,30 @@ void ACharacter::CheckJumpInput(float DeltaTime)
 	{
 		if (bPressedJump)
 		{
-			// Increment our timer first so calls to IsJumpProvidingForce() will return true
-			JumpKeyHoldTime += DeltaTime;
-
-			if (CharacterMovement->IsFalling() && JumpCurrentCount == 0)
+			// If this is the first jump and we're already falling,
+			// then increment the JumpCount to compensate.
+			const bool bFirstJump = JumpCurrentCount == 0;
+			if (bFirstJump && CharacterMovement->IsFalling())
 			{
 				JumpCurrentCount++;
 			}
 
 			const bool bDidJump = CanJump() && CharacterMovement->DoJump(bClientUpdating);
-			if (!bWasJumping && bDidJump)
+			if (bDidJump)
 			{
-				JumpCurrentCount++;
-				OnJumped();
+				// Transistion from not (actively) jumping to jumping.
+				if (!bWasJumping)
+				{
+					JumpCurrentCount++;
+					OnJumped();
+				}
+				// Only increment the jump time if successfully jumped and it's
+				// the first jump. This prevents including the initial DeltaTime
+				// for the first frame of a jump.
+				if (!bFirstJump)
+				{
+					JumpKeyHoldTime += DeltaTime;
+				}
 			}
 
 			bWasJumping = bDidJump;

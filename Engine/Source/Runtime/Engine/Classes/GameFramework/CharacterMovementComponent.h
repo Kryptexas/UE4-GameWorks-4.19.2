@@ -168,6 +168,13 @@ protected:
 
 public:
 
+	/**
+	 *	Apply gravity while the character is actively jumping (e.g. holding the jump key).
+	 *	Helps remove frame-rate dependent jump height, but may alter base jump height.
+	 */
+	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	uint32 bApplyGravityWhileJumping:1;
+
 	/** Custom gravity scale. Gravity is multiplied by this amount for the character. */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
 	float GravityScale;
@@ -387,6 +394,18 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement (Rotation Settings)", EditAnywhere, BlueprintReadWrite)
 	uint32 bOrientRotationToMovement:1;
+
+	/**
+	 * Whether or not the character should sweep for collision geometry while walking.
+	 * @see USceneComponent::MoveComponent.
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint32 bSweepWhileNavWalking:1;
+
+private:
+
+	// Tracks whether or not we need to update the bSweepWhileNavWalking flag do to an upgrade.
+	uint32 bNeedsSweepWhileWalkingUpdate:1;
 
 protected:
 
@@ -1046,6 +1065,10 @@ public:
 	void UnpackNetworkMovementMode(const uint8 ReceivedMode, TEnumAsByte<EMovementMode>& OutMode, uint8& OutCustomMode, TEnumAsByte<EMovementMode>& OutGroundMode) const;
 	virtual void ApplyNetworkMovementMode(const uint8 ReceivedMode);
 
+	// Begin UObject Interface
+	virtual void Serialize(FArchive& Archive) override;
+	// End UObject Interface
+
 	//Begin UActorComponent Interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void OnRegister() override;
@@ -1241,9 +1264,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration);
 	
-	/** Compute the max jump height based on the JumpZVelocity velocity and gravity. */
+	/**
+	 *	Compute the max jump height based on the JumpZVelocity velocity and gravity.
+	 *	This does not take into account the CharacterOwner's MaxJumpHoldTime.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual float GetMaxJumpHeight() const;
+
+	/**
+	 *	Compute the max jump height based on the JumpZVelocity velocity and gravity.
+	 *	This does take into account the CharacterOwner's MaxJumpHoldTime.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovemet")
+	virtual float GetMaxJumpHeightWithJumpTime() const;
 	
 	/** @return Maximum acceleration for the current state, based on MaxAcceleration and any additional modifiers. */
 	DEPRECATED(4.3, "GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired.")

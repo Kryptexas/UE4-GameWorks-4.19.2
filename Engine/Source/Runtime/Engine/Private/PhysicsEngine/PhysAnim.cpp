@@ -456,6 +456,13 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
+	// Double check that the physics state has been created.
+	// If there's no physics state, we can't do anything.
+	if (!IsPhysicsStateCreated())
+	{
+		return;
+	}
+
 	// This below code produces some interesting result here
 	// - below codes update physics data, so if you don't update pose, the physics won't have the right result
 	// - but if we just update physics bone without update current pose, it will have stale data
@@ -472,7 +479,8 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 
 	// Get the scene, and do nothing if we can't get one.
 	FPhysScene* PhysScene = nullptr;
-	if (GetWorld() != nullptr)
+	UWorld* World = GetWorld();
+	if (World != nullptr)
 	{
 		PhysScene = GetWorld()->GetPhysicsScene();
 	}
@@ -511,7 +519,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(i);
 			FVector ParentPos = CurrentLocalToWorld.TransformPosition(InSpaceBases[ParentIndex].GetLocation());
 
-			GetWorld()->LineBatcher->DrawLine(ThisPos, ParentPos, AnimSkelDrawColor, SDPG_Foreground);
+			World->LineBatcher->DrawLine(ThisPos, ParentPos, AnimSkelDrawColor, SDPG_Foreground);
 		}
 	}
 #endif
@@ -532,11 +540,9 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		if (PhysicsAsset && SkeletalMesh && Bodies.Num() > 0)
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (!ensure(PhysicsAsset->SkeletalBodySetups.Num() == Bodies.Num()))
+			if (!ensureMsgf(PhysicsAsset->SkeletalBodySetups.Num() == Bodies.Num(), TEXT("Mesh (%s) has PhysicsAsset(%s), and BodySetup(%d) and Bodies(%d) don't match"),
+						*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num()))
 			{
-				// related to TTP 280315
-				UE_LOG(LogPhysics, Warning, TEXT("Mesh (%s) has PhysicsAsset(%s), and BodySetup(%d) and Bodies(%d) don't match"),
-					*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num());
 				return;
 			}
 #endif

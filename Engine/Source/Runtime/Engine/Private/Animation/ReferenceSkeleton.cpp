@@ -255,6 +255,28 @@ SIZE_T FReferenceSkeleton::GetDataSize() const
 	return ResourceSize;
 }
 
+void FReferenceSkeleton::EnsureParentExists(TArray<FBoneIndexType>& InOutBoneArray) const
+{
+	for (int32 BoneIndex = 0; BoneIndex < InOutBoneArray.Num(); ++BoneIndex)
+	{
+		const int32 ChildIndex = InOutBoneArray[BoneIndex];
+		// root doesn't have parent
+		if (ChildIndex > 0)
+		{
+			// if you don't have parent of the input array, make sure to insert in the current index
+			const int32 ParentIndex = GetParentIndex(ChildIndex);
+			if (InOutBoneArray.Find(ParentIndex) == INDEX_NONE)
+			{
+				// Will check this bones parent later in the loop
+				InOutBoneArray.Add(ParentIndex);
+			}
+		}
+	}
+	
+	// sort it now
+	InOutBoneArray.Sort();
+}
+
 FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
 {
 	Ar << F.RawRefBoneInfo;

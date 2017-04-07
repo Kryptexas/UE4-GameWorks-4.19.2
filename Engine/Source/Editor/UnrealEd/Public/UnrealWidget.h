@@ -223,7 +223,7 @@ private:
 		FVector ZAxis;
 
 		//true if camera movement is locked to the object
-		float bMovementLockedToCamera;
+		bool bMovementLockedToCamera;
 
 		//Direction in world space to the current mouse location
 		FVector PixelDir;

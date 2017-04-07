@@ -1856,6 +1856,22 @@ void FAnimBlueprintCompiler::PostCompile()
 	// Verify thread-safety
 	if(GetDefault<UEngine>()->bAllowMultiThreadedAnimationUpdate && DefaultAnimInstance->bUseMultiThreadedAnimationUpdate)
 	{
+		// If we are a child anim BP, check parent classes & their CDOs
+		if (UAnimBlueprintGeneratedClass* ParentClass = Cast<UAnimBlueprintGeneratedClass>(AnimBlueprintGeneratedClass->GetSuperClass()))
+		{
+			UAnimBlueprint* ParentAnimBlueprint = Cast<UAnimBlueprint>(ParentClass->ClassGeneratedBy);
+			if (ParentAnimBlueprint && !ParentAnimBlueprint->bUseMultiThreadedAnimationUpdate)
+			{
+				DefaultAnimInstance->bUseMultiThreadedAnimationUpdate = false;
+			}
+
+			UAnimInstance* ParentDefaultObject = Cast<UAnimInstance>(ParentClass->GetDefaultObject(false));
+			if (ParentDefaultObject && !ParentDefaultObject->bUseMultiThreadedAnimationUpdate)
+			{
+				DefaultAnimInstance->bUseMultiThreadedAnimationUpdate = false;
+			}
+		}
+
 		// iterate all properties to determine validity
 		for (UStructProperty* Property : TFieldRange<UStructProperty>(AnimBlueprintGeneratedClass, EFieldIteratorFlags::IncludeSuper))
 		{

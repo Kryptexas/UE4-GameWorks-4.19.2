@@ -33,7 +33,7 @@ void FTexturePaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyH
 	/** Caches paint mode painter instance */
 	MeshPainter = FPaintModePainter::Get();
 	// Cache vertex paint settings ptr
-	PaintSettings = &(GetMutableDefault<UPaintModeSettings>()->TexturePaintSettings);
+	PaintSettings = &(UPaintModeSettings::Get()->TexturePaintSettings);
 
 	uint32 NumChildren = 0;
 	PropertyHandle->GetNumChildren(NumChildren);
@@ -158,7 +158,7 @@ TSharedRef<IPropertyTypeCustomization> FVertexPaintSettingsCustomization::MakeIn
 void FVertexPaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
 	// Cache vertex paint settings ptr
-	PaintSettings = &(GetMutableDefault<UPaintModeSettings>()->VertexPaintSettings);
+	PaintSettings = &(UPaintModeSettings::Get()->VertexPaintSettings);
 	
 	TMap<FName, TSharedRef<IPropertyHandle>> CustomizedProperties;
 	TMap<FName, TSharedRef<IPropertyHandle>> Properties;
@@ -264,6 +264,7 @@ void FVertexPaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 				.Value_Lambda([=]() -> int32 { return PaintSettings->LODIndex; })
 				.MinValue(0)
 				.MaxValue_Lambda([=]() -> int32 { return FPaintModePainter::Get()->GetMaxLODIndexToPaint(); })
+				.MaxSliderValue_Lambda([=]() -> int32 { return FPaintModePainter::Get()->GetMaxLODIndexToPaint(); })
 				.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateLambda([=](int32 Value) { PaintSettings->LODIndex = Value; }))
 				.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateLambda([=](int32 Value, ETextCommit::Type CommitType) { PaintSettings->LODIndex = Value; FPaintModePainter::Get()->PaintLODChanged(); }))
 			]
@@ -316,7 +317,7 @@ TSharedRef<IDetailCustomization> FPaintModeSettingsCustomization::MakeInstance()
 
 void FPaintModeSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	UPaintModeSettings* Settings = GetMutableDefault<UPaintModeSettings>();
+	UPaintModeSettings* Settings = UPaintModeSettings::Get();
 
 	TSharedRef<IPropertyHandle> PaintModeProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPaintModeSettings, PaintMode));
 	uint8 EnumValue = 0;

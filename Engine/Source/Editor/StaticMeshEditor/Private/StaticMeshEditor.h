@@ -325,7 +325,7 @@ private:
 	TArray<FPrimData> SelectedPrims;
 
 	/** Scene preview settings widget */
-	TSharedPtr< class SAdvancedPreviewDetailsTab> AdvancedPreviewSettingsWidget;
+	TSharedPtr<SWidget> AdvancedPreviewSettingsWidget;
 
 	/** Misc consts */
 	const float MinPrimSize;

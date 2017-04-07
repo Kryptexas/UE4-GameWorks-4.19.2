@@ -321,7 +321,7 @@ void FSkeletonSelectionEditMode::DrawHUD(FEditorViewportClient* ViewportClient, 
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
 
 	// Draw name of selected bone
-	if (GetAnimPreviewScene().GetSelectedBoneIndex() != INDEX_NONE)
+	if (IsSelectedBoneRequired())
 	{
 		const FIntPoint ViewPortSize = Viewport->GetSizeXY();
 		const int32 HalfX = ViewPortSize.X / 2;
@@ -374,12 +374,29 @@ bool FSkeletonSelectionEditMode::AllowWidgetMove()
 	return !PreviewMeshComponent->IsAnimBlueprintInstanced();
 }
 
+bool FSkeletonSelectionEditMode::IsSelectedBoneRequired() const
+{
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
+	int32 SelectedBoneIndex = GetAnimPreviewScene().GetSelectedBoneIndex();
+	if (SelectedBoneIndex != INDEX_NONE && PreviewMeshComponent->SkeletalMesh && PreviewMeshComponent->SkeletalMesh->GetImportedResource())
+	{
+		//Get current LOD
+		const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, PreviewMeshComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
+		FStaticLODModel& LODModel = PreviewMeshComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+
+		//Check whether the bone is vertex weighted
+		return LODModel.RequiredBones.Find(SelectedBoneIndex) != INDEX_NONE;
+	}
+
+	return false;
+}
+
 bool FSkeletonSelectionEditMode::ShouldDrawWidget() const
 {
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
 	if (!PreviewMeshComponent->IsAnimBlueprintInstanced())
 	{
-		return (GetAnimPreviewScene().GetSelectedBoneIndex() != INDEX_NONE) || GetAnimPreviewScene().GetSelectedSocket().IsValid() || GetAnimPreviewScene().GetSelectedActor() != nullptr;
+		return IsSelectedBoneRequired() || GetAnimPreviewScene().GetSelectedSocket().IsValid() || GetAnimPreviewScene().GetSelectedActor() != nullptr;
 	}
 
 	return false;
@@ -485,8 +502,7 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 			bHandled = true;
 		}
 	}
-
-	if (!bHandled)
+	else 
 	{
 		// Cast for phys bodies if we didn't get any hit proxies
 		FHitResult Result(1.0f);

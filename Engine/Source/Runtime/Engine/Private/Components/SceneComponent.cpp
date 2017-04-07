@@ -169,6 +169,9 @@ static int32 SetDescendantMobility(USceneComponent const* SceneComponentObject, 
 				{
 					ChildSceneComponent->Mobility = NewMobilityType;
 				}
+
+				ChildSceneComponent->RecreatePhysicsState();
+
 				++NumDescendantsChanged;
 			}
 			NumDescendantsChanged += SetDescendantMobility(ChildSceneComponent, NewMobilityType, ShouldOverrideMobility);
@@ -235,6 +238,7 @@ static int32 SetAncestorMobility(USceneComponent const* SceneComponentObject, EC
 				AttachedParent->Mobility = NewMobilityType;
 			}
 
+			AttachedParent->RecreatePhysicsState();
 			++MobilityAlteredCount;
 		}
 		SceneComponentObject = AttachedParent;
@@ -2502,16 +2506,35 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 	if (GetAttachParent() != nullptr)
 	{
 		FTransform const ParentToWorld = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
-
-		if (!bAbsoluteLocation)
+		// in order to support mirroring, you'll have to use FTransform.GetrelativeTransform
+		// because negative scale should flip the rotation
+		if (FTransform::AnyHasNegativeScale(RelativeScale3D, ParentToWorld.GetScale3D()))
 		{
-			NewLocation = ParentToWorld.InverseTransformPosition(NewLocation);
+			FTransform const WorldTransform = FTransform(RotationQuat, NewLocation, RelativeScale3D*ParentToWorld.GetScale3D());
+			FTransform const RelativeTransform = WorldTransform.GetRelativeTransform(ParentToWorld);
+
+			if (!bAbsoluteLocation)
+			{
+				NewLocation = RelativeTransform.GetLocation();
+			}
+
+			if (!bAbsoluteRotation)
+			{
+				NewRotationQuat = RelativeTransform.GetRotation();
+			}
 		}
-
-		if (!bAbsoluteRotation)
+		else
 		{
-			// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
-			NewRotationQuat = ParentToWorld.GetRotation().Inverse() * NewRotationQuat;
+			if (!bAbsoluteLocation)
+			{
+				NewLocation = ParentToWorld.InverseTransformPosition(NewLocation);
+			}
+
+			if (!bAbsoluteRotation)
+			{
+				// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
+				NewRotationQuat = ParentToWorld.GetRotation().Inverse() * NewRotationQuat;
+			}
 		}
 	}
 

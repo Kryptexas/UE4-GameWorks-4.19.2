@@ -261,10 +261,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomRotation(
 			DecompressRotation<FORMAT>( R1, RotStream, KeyData1 );
 
 			// Fast linear quaternion interpolation.
-			// To ensure the 'shortest route', we make sure the dot product between the two keys is positive.
-			const float DotResult = (R0 | R1);
-			const float Bias = FMath::FloatSelect(DotResult, 1.0f, -1.0f);
-			FQuat RLerped((R0 * (1.f-Alpha)) + (R1 * (Alpha * Bias)));
+			FQuat RLerped = FQuat::FastLerp(R0, R1, Alpha);
 			RLerped.Normalize();
 			OutAtom.SetRotation(RLerped);
 		}

@@ -131,12 +131,16 @@ void UShapeComponent::CreateShapeBodySetupIfNeeded()
 			if(BodyInstance.IsValidBodyInstance())
 			{
 #if WITH_PHYSX
-				SCOPED_SCENE_READ_LOCK(GetPhysXSceneFromIndex(BodyInstance.GetSceneIndex()));
-				TArray<PxShape *> PShapes;
-				BodyInstance.GetAllShapes_AssumesLocked(PShapes);
+				BodyInstance.ExecuteOnPhysicsReadWrite([this]
+				{
+					TArray<PxShape *> PShapes;
+					BodyInstance.GetAllShapes_AssumesLocked(PShapes);
 
-				check(PShapes.Num() == 1);	//Shape component should only have 1 shape
-				SetShapeToNewGeom<ShapeElemType>(PShapes[0]);
+					for(PxShape* PShape : PShapes)	//The reason we iterate is we may have multiple scenes and thus multiple shapes, but they are all pointing to the same geometry
+					{
+						SetShapeToNewGeom<ShapeElemType>(PShape);
+					}
+				});
 #endif
 			}
 		}

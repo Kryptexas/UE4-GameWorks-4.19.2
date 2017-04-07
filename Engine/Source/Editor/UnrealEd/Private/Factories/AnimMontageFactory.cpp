@@ -97,6 +97,12 @@ UObject* UAnimMontageFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 		}
 
 		AnimMontage->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			AnimMontage->SetPreviewMesh(PreviewSkeletalMesh);
+		}
+
+		EnsureStartingSection(AnimMontage);
 
 		return AnimMontage;
 	}
@@ -108,6 +114,28 @@ void UAnimMontageFactory::OnTargetSkeletonSelected(const FAssetData& SelectedAss
 {
 	TargetSkeleton = Cast<USkeleton>(SelectedAsset.GetAsset());
 	PickerWindow->RequestDestroyWindow();
+}
+
+bool UAnimMontageFactory::EnsureStartingSection(UAnimMontage* Montage)
+{
+	bool bModified = false;
+	if (Montage->CompositeSections.Num() <= 0)
+	{
+		FCompositeSection NewSection;
+		NewSection.SetTime(0.0f);
+		NewSection.SectionName = FName(TEXT("Default"));
+		Montage->CompositeSections.Add(NewSection);
+		bModified = true;
+	}
+
+	check(Montage->CompositeSections.Num() > 0);
+	if (Montage->CompositeSections[0].GetTime() > 0.0f)
+	{
+		Montage->CompositeSections[0].SetTime(0.0f);
+		bModified = true;
+	}
+
+	return bModified;
 }
 
 #undef LOCTEXT_NAMESPACE

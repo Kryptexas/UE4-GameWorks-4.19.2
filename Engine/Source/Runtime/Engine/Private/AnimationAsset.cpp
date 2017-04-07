@@ -275,6 +275,13 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 			//Firstly need to remap
 			for (UAnimationAsset* AnimAsset : AnimAssetsToReplace)
 			{
+				//Make sure animation has finished loading before we start messing with it
+				if (FLinkerLoad* AnimLinker = AnimAsset->GetLinker())
+				{
+					AnimLinker->Preload(AnimAsset);
+				}
+				AnimAsset->ConditionalPostLoad();
+
 				// these two are different functions for now
 				// technically if you have implementation for Remap, it will also set skeleton 
 				AnimAsset->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);

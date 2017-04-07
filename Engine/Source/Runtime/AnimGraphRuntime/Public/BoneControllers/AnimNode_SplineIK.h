@@ -7,6 +7,18 @@
 #include "AlphaBlend.h"
 #include "AnimNode_SplineIK.generated.h"
 
+/** 
+ * The different axes we can align our bones to.
+ * Note that the values are set to match up with EAxis (but without 'None')
+ */
+UENUM()
+enum class ESplineBoneAxis : uint8
+{
+	X = 1,
+	Y = 2,
+	Z = 3,
+};
+
 /** Data cached per bone in the chain */
 USTRUCT()
 struct FSplineIKCachedBoneData
@@ -47,7 +59,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SplineIK : public FAnimNode_SkeletalContro
 
 	/** Axis of the controlled bone (ie the direction of the spline) to use as the direction for the curve. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters")
-	TEnumAsByte<EAxis::Type> BoneAxis;
+	ESplineBoneAxis BoneAxis;
 
 	/** The number of points in the spline if we are specifying it directly */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters")

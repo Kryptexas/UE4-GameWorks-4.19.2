@@ -2582,14 +2582,21 @@ void UStaticMesh::PostLoad()
 			}
 			//Sort the remove material list so we can remove from the end to ensure index are valid during remove operation
 			ToRemoveMaterials.Sort();
+			bool bRemovedMaterial = false;
 			for (int32 RemoveIndex = ToRemoveMaterials.Num() - 1; RemoveIndex >= 0; --RemoveIndex)
 			{
 				if (StaticMaterials.IsValidIndex(ToRemoveMaterials[RemoveIndex]))
 				{
 					StaticMaterials.RemoveAt(ToRemoveMaterials[RemoveIndex]);
+					bRemovedMaterial = true;
 				}
 			}
 			CleanUpRedondantMaterialPostLoad.Reset();
+
+			if(bRemovedMaterial && BodySetup)
+			{
+				BodySetup->InvalidatePhysicsData();
+			}
 		}
 
 		// Only required in an editor build as other builds process this in a different place

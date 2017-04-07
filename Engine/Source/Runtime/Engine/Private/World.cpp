@@ -847,7 +847,7 @@ void UWorld::PostLoad()
 		// Make sure thumbnail info exists
 		if ( !ThumbnailInfo )
 		{
-			ThumbnailInfo = NewObject<UWorldThumbnailInfo>(this);
+			ThumbnailInfo = NewObject<UWorldThumbnailInfo>(this, NAME_None, RF_Transactional);
 		}
 	}
 #endif

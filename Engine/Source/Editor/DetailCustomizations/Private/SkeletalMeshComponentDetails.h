@@ -33,8 +33,8 @@ private:
 
 	/** Helper wrapper functions for VisibilityForAnimationMode */
 	EVisibility VisibilityForBlueprintMode() const {return VisibilityForAnimationMode(EAnimationMode::AnimationBlueprint);}
-	EVisibility VisibilityForSingleAnimMode() const {return VisibilityForAnimationMode(EAnimationMode::AnimationSingleNode);}
-	EVisibility VisibilityForAnimPicker() const;
+	EVisibility VisibilityForSingleAnimMode() const { return VisibilityForAnimationMode(EAnimationMode::AnimationSingleNode); }
+	bool AnimPickerIsEnabled() const;
 
 	/** Handler for filtering animation assets in the UI picker when asset mode is selected */
 	bool OnShouldFilterAnimAsset(const FAssetData& AssetData);
@@ -83,8 +83,8 @@ private:
 	/** Full name of the currently selected skeleton to use for filtering animation assets */
 	FString SelectedSkeletonName;
 
-	/** Current visibility of the animation asset picker in the details panel */
-	EVisibility AnimPickerVisibility;
+	/** Current enabled state of the animation asset picker in the details panel */
+	bool bAnimPickerEnabled;
 
 	/** The combo button for the class picker, Cached so we can close it when the user picks something */
 	TSharedPtr<SComboButton> ClassPickerComboButton;

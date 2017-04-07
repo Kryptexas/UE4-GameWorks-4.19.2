@@ -334,7 +334,7 @@ void FControlRigEditorModule::HandleSequencerCreated(TSharedRef<ISequencer> InSe
 	}
 
 	// We want to be informed of sequence activations (subsequences or not)
-	auto HandleActivateSequence = [LocalSequencer](FMovieSceneSequenceIDRef Ref)
+	auto HandleActivateSequence = [this, LocalSequencer](FMovieSceneSequenceIDRef Ref)
 	{
 		if (LocalSequencer.IsValid())
 		{
@@ -342,6 +342,8 @@ void FControlRigEditorModule::HandleSequencerCreated(TSharedRef<ISequencer> InSe
 			UMovieSceneSequence* Sequence = Sequencer->GetFocusedMovieSceneSequence();
 			if (UControlRigSequence* ControlRigSequence = ExactCast<UControlRigSequence>(Sequence))
 			{
+				WeakSequencer = LocalSequencer;
+
 				GLevelEditorModeTools().ActivateMode(FControlRigEditMode::ModeName);
 
 				if (FControlRigEditMode* ControlRigEditMode = static_cast<FControlRigEditMode*>(GLevelEditorModeTools().GetActiveMode(FControlRigEditMode::ModeName)))
@@ -486,7 +488,21 @@ void FControlRigEditorModule::BindCommands()
 
 	CommandBindings->MapAction(
 		Commands.ExportAnimSequence,
-		FExecuteAction::CreateRaw(this, &FControlRigEditorModule::ExportAnimSequenceFromSequencer));
+		FExecuteAction::CreateRaw(this, &FControlRigEditorModule::ExportAnimSequenceFromSequencer),
+		FCanExecuteAction(),
+		FGetActionCheckState(), 
+		FIsActionButtonVisible::CreateRaw(this, &FControlRigEditorModule::CanExportAnimSequenceFromSequencer));
+}
+
+bool FControlRigEditorModule::CanExportAnimSequenceFromSequencer() const
+{
+	if (WeakSequencer.IsValid())
+	{
+		TSharedRef<ISequencer> Sequencer = WeakSequencer.Pin().ToSharedRef();
+		return ExactCast<UControlRigSequence>(Sequencer->GetFocusedMovieSceneSequence()) != nullptr;
+	}
+
+	return false;
 }
 
 void FControlRigEditorModule::ExportAnimSequenceFromSequencer()

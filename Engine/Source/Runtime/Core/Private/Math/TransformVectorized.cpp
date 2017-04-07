@@ -210,7 +210,7 @@ FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 		return FTransform::Identity;
 	}
 
-	if (VectorAnyLesserThan(VectorMin(this->Scale3D, Other.Scale3D), GlobalVectorConstants::FloatZero))
+	if (Private_AnyHasNegativeScale(this->Scale3D, Other.Scale3D))
 	{
 		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
 		GetRelativeTransformUsingMatrixWithScale(&Result, this, &Other);

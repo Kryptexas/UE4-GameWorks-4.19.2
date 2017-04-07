@@ -10,9 +10,7 @@
 #include "Stats/Stats.h"
 #include "InputCoreTypes.h"
 #include "PreviewScene.h"
-#if WITH_EDITOR
 #include "TickableEditorObject.h"
-#endif
 
 class FViewport;
 class UAssetViewerSettings;
@@ -22,13 +20,13 @@ class USkyLightComponent;
 class UStaticMeshComponent;
 class USphereReflectionCaptureComponent;
 struct FPreviewSceneProfile;
+class FUICommandList;
 
-#if WITH_EDITOR
-
-class ENGINE_API FAdvancedPreviewScene : public FPreviewScene, public FTickableEditorObject
+class ADVANCEDPREVIEWSCENE_API FAdvancedPreviewScene : public FPreviewScene, public FTickableEditorObject
 {
 public:
 	FAdvancedPreviewScene(ConstructionValues CVS, float InFloorOffset = 0.0f);
+	~FAdvancedPreviewScene();
 
 	void UpdateScene(FPreviewSceneProfile& Profile, bool bUpdateSkyLight = true, bool bUpdateEnvironment = true, bool bUpdatePostProcessing = true, bool bUpdateDirectionalLight = true);
 
@@ -52,6 +50,20 @@ public:
 	const float GetSkyRotation() const;
 	const int32 GetCurrentProfileIndex() const;
 	const bool IsUsingPostProcessing() const;
+
+protected:
+	/** Bind our command bindings to handlers */
+	void BindCommands();
+
+	/** Toggle the sky sphere on and off */
+	void HandleToggleSky();
+
+	/** Toggle the floor mesh on and off */
+	void HandleToggleFloor();
+
+	/** Handle refreshing the scene when settings change */
+	void OnAssetViewerSettingsRefresh(const FName& InPropertyName);
+
 protected:
 	USkyLightComponent* SkyLightComponent;
 	UStaticMeshComponent* SkyComponent;
@@ -71,6 +83,10 @@ protected:
 	bool bUseSkylight;
 
 	int32 CurrentProfileIndex;
-};
 
-#endif // WITH_EDITOR
+	/** Command list for input handling */
+	TSharedPtr<FUICommandList> UICommandList;
+
+	/** Delegate handle used to refresh the scene when settings change */
+	FDelegateHandle RefreshDelegate;
+};

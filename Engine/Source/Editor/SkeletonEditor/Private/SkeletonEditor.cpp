@@ -228,7 +228,7 @@ void FSkeletonEditor::ExtendMenu()
 	AddMenuExtender(MenuExtender);
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-	AddMenuExtender(SkeletonEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+	AddMenuExtender(SkeletonEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 }
 
 void FSkeletonEditor::HandleObjectsSelected(const TArray<UObject*>& InObjects)

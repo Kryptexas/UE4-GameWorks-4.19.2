@@ -8,6 +8,9 @@
 #include "Engine/Engine.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
+static const FVector DefaultLookAtAxis(0.f, 1.f, 0.f);
+static const FVector DefaultLookUpAxis(1.f, 0.f, 0.f);
+
 /////////////////////////////////////////////////////
 // FAnimNode_LookAt
 
@@ -15,10 +18,10 @@ FAnimNode_LookAt::FAnimNode_LookAt()
 	: LookAtLocation(FVector(100.f, 0.f, 0.f))
 	, LookAtAxis_DEPRECATED(EAxisOption::Y)
 	, CustomLookAtAxis_DEPRECATED(FVector(0.f, 1.f, 0.f))
-	, LookAt_Axis(FVector(0.f, 1.f, 0.f))
+	, LookAt_Axis(DefaultLookAtAxis)
 	, LookUpAxis_DEPRECATED(EAxisOption::X)
 	, CustomLookUpAxis_DEPRECATED(FVector(1.f, 0.f, 0.f))
-	, LookUp_Axis(FVector(1.f, 0.f, 0.f))
+	, LookUp_Axis(DefaultLookUpAxis)
 	, LookAtClamp(0.f)
 	, InterpolationTime(0.f)
 	, InterpolationTriggerThreashold(0.f)
@@ -288,5 +291,15 @@ void FAnimNode_LookAt::Initialize(const FAnimationInitializeContext& Context)
 
 	// initialize
 	LookUp_Axis.Initialize();
+	if (LookUp_Axis.Axis.IsZero())
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("Zero-length look-up axis specified in LookAt node. Reverting to default."));
+		LookUp_Axis.Axis = DefaultLookUpAxis;
+	}
 	LookAt_Axis.Initialize();
+	if (LookAt_Axis.Axis.IsZero())
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("Zero-length look-at axis specified in LookAt node. Reverting to default."));
+		LookAt_Axis.Axis = DefaultLookAtAxis;
+	}
 }

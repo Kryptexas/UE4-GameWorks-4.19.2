@@ -346,6 +346,22 @@ FAnimCurveBase * FRawCurveTracks::GetCurveData(USkeleton::AnimCurveUID Uid, ERaw
 	}
 }
 
+const FAnimCurveBase * FRawCurveTracks::GetCurveData(USkeleton::AnimCurveUID Uid, ERawCurveTrackTypes SupportedCurveType /*= FloatType*/) const
+{
+	switch (SupportedCurveType)
+	{
+#if WITH_EDITOR
+	case ERawCurveTrackTypes::RCT_Vector:
+		return GetCurveDataImpl<FVectorCurve>(VectorCurves, Uid);
+	case ERawCurveTrackTypes::RCT_Transform:
+		return GetCurveDataImpl<FTransformCurve>(TransformCurves, Uid);
+#endif // WITH_EDITOR
+	case ERawCurveTrackTypes::RCT_Float:
+	default:
+		return GetCurveDataImpl<FFloatCurve>(FloatCurves, Uid);
+	}
+}
+
 bool FRawCurveTracks::DeleteCurveData(const FSmartName& CurveToDelete, ERawCurveTrackTypes SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)
@@ -517,6 +533,20 @@ DataType * FRawCurveTracks::GetCurveDataImpl(TArray<DataType> & Curves, USkeleto
 	for(DataType& Curve : Curves)
 	{
 		if(Curve.Name.UID == Uid)
+		{
+			return &Curve;
+		}
+	}
+
+	return NULL;
+}
+
+template <typename DataType>
+const DataType * FRawCurveTracks::GetCurveDataImpl(const TArray<DataType> & Curves, USkeleton::AnimCurveUID Uid) const
+{
+	for (const DataType& Curve : Curves)
+	{
+		if (Curve.Name.UID == Uid)
 		{
 			return &Curve;
 		}

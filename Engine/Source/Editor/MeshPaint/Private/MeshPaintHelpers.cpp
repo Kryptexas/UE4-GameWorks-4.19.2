@@ -383,6 +383,103 @@ void MeshPaintHelpers::ApplyVertexWeightPaint(const FMeshPaintParameters &InPara
 	}	
 }
 
+FLinearColor MeshPaintHelpers::GenerateColorForTextureWeight(const int32 NumWeights, const int32 WeightIndex)
+{
+	const bool bUsingOneMinusTotal =
+		NumWeights == 2 ||		// Two textures: Use a lerp() in pixel shader (single value)
+		NumWeights == 5;			// Five texture: Requires 1.0-sum( R+G+B+A ) in shader
+	check(bUsingOneMinusTotal || NumWeights <= MeshPaintDefs::MaxSupportedPhysicalWeights);
+
+	// Prefer to use RG/RGB instead of AR/ARG when we're only using 2/3 physical weights
+	const int32 TotalPhysicalWeights = bUsingOneMinusTotal ? NumWeights - 1 : NumWeights;
+	const bool bUseColorAlpha =
+		TotalPhysicalWeights != 2 &&			// Two physical weights: Use RG instead of AR
+		TotalPhysicalWeights != 3;				// Three physical weights: Use RGB instead of ARG
+
+												// Index of the blend weight that we're painting
+	check(WeightIndex >= 0 && WeightIndex < MeshPaintDefs::MaxSupportedWeights);
+
+	// Convert the color value to an array of weights
+	float Weights[MeshPaintDefs::MaxSupportedWeights];
+	{
+		for (int32 CurWeightIndex = 0; CurWeightIndex < NumWeights; ++CurWeightIndex)
+		{
+			if (CurWeightIndex == TotalPhysicalWeights)
+			{
+				// This weight's value is one minus the sum of all previous weights
+				float OtherWeightsTotal = 0.0f;
+				for (int32 OtherWeightIndex = 0; OtherWeightIndex < CurWeightIndex; ++OtherWeightIndex)
+				{
+					OtherWeightsTotal += Weights[OtherWeightIndex];
+				}
+				Weights[CurWeightIndex] = 1.0f - OtherWeightsTotal;
+			}
+			else
+			{
+				if (CurWeightIndex == WeightIndex)
+				{
+					Weights[CurWeightIndex] = 1.0f;
+				}
+				else
+				{
+					Weights[CurWeightIndex] = 0.0f;
+				}
+			}
+		}
+	}
+
+	FLinearColor NewColor(FLinearColor::Black);
+	// Convert the weights back to a color value	
+	for (int32 CurWeightIndex = 0; CurWeightIndex < NumWeights; ++CurWeightIndex)
+	{
+		// We can skip the non-physical weights as it's already baked into the others
+		if (CurWeightIndex != TotalPhysicalWeights)
+		{
+			switch (CurWeightIndex)
+			{
+			case 0:
+				if (bUseColorAlpha)
+				{
+					NewColor.A = Weights[CurWeightIndex];
+				}
+				else
+				{
+					NewColor.R = Weights[CurWeightIndex];
+				}
+				break;
+
+			case 1:
+				if (bUseColorAlpha)
+				{
+					NewColor.R = Weights[CurWeightIndex];
+				}
+				else
+				{
+					NewColor.G = Weights[CurWeightIndex];
+				}
+				break;
+
+			case 2:
+				if (bUseColorAlpha)
+				{
+					NewColor.G = Weights[CurWeightIndex];
+				}
+				else
+				{
+					NewColor.B = Weights[CurWeightIndex];
+				}
+				break;
+
+			case 3:
+				NewColor.B = Weights[CurWeightIndex];
+				break;
+			}
+		}
+	}
+
+	return NewColor;
+}
+
 float MeshPaintHelpers::ComputePaintMultiplier(float SquaredDistanceToVertex2D, float BrushStrength, float BrushInnerRadius, float BrushRadialFalloff, float BrushInnerDepth, float BrushDepthFallof, float VertexDepthToBrush)
 {
 	float PaintAmount = 1.0f;
@@ -992,7 +1089,7 @@ void MeshPaintHelpers::ClearMeshTextureOverrides(const IMeshPaintGeometryAdapter
 	}
 }
 
-void MeshPaintHelpers::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent)
+void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent)
 {
 	if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(InMeshComponent))
 	{
@@ -1004,7 +1101,7 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapte
 	}
 }
 
-void MeshPaintHelpers::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, UStaticMeshComponent* StaticMeshComponent)
+void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& GeometryInfo, UStaticMeshComponent* StaticMeshComponent)
 {
 	// If a static mesh component was found, apply LOD0 painting to all lower LODs.
 	if (!StaticMeshComponent || !StaticMeshComponent->GetStaticMesh())
@@ -1491,7 +1588,7 @@ struct FVertexColorPropogationOctreeSemantics
 };
 typedef TOctree<FPaintedMeshVertex, FVertexColorPropogationOctreeSemantics> TVertexColorPropogationPosOctree;
 
-void MeshPaintHelpers::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, USkeletalMeshComponent* SkeletalMeshComponent)
+void MeshPaintHelpers::ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& GeometryInfo, USkeletalMeshComponent* SkeletalMeshComponent)
 {
 	checkf(SkeletalMeshComponent != nullptr, TEXT("Invalid Skeletal Mesh Component"));
 	USkeletalMesh* Mesh = SkeletalMeshComponent->SkeletalMesh;
@@ -1504,6 +1601,7 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapte
 			if (NumLODs > 1)
 			{
 				const FStaticLODModel& BaseLOD = Resource->LODModels[0];
+				GeometryInfo.PreEdit();				
 
 				FBox BaseBounds(EForceInit::ForceInitToZero);
 				TArray<FSoftSkinVertex> BaseVertices;
@@ -1529,6 +1627,11 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapte
 					FStaticLODModel& ApplyLOD = Resource->LODModels[LODIndex];
 					FBox CombinedBounds = BaseBounds;
 					Mesh->LODInfo[LODIndex].bHasPerLODVertexColors = false;
+
+					if (!ApplyLOD.ColorVertexBuffer.IsInitialized())
+					{
+						ApplyLOD.ColorVertexBuffer.InitFromSingleColor(FColor::White, ApplyLOD.NumVertices);
+					}
 
 					TArray<FSoftSkinVertex> ApplyVertices;
 					ApplyLOD.GetVertices(ApplyVertices);
@@ -1629,6 +1732,8 @@ void MeshPaintHelpers::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapte
 						}
 					}
 				}
+				
+				GeometryInfo.PostEdit();
 			}
 		}
 	}

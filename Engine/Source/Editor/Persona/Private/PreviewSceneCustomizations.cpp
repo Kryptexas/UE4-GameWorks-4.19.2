@@ -16,6 +16,7 @@
 #include "SImage.h"
 #include "AssetToolsModule.h"
 #include "IAssetTools.h"
+#include "Animation/AnimBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "PreviewSceneCustomizations"
 
@@ -77,6 +78,10 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 		if (PersonaToolkit.Pin()->GetContext() == UAnimationAsset::StaticClass()->GetFName())
 		{
 			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshAnimation", "{0}\n(Animation)"), SkeletalMeshProperty->GetPropertyDisplayName());
+		}
+		else if(PersonaToolkit.Pin()->GetContext() == UAnimBlueprint::StaticClass()->GetFName())
+		{
+			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshAnimBlueprint", "{0}\n(Animation Blueprint)"), SkeletalMeshProperty->GetPropertyDisplayName());
 		}
 		else
 		{

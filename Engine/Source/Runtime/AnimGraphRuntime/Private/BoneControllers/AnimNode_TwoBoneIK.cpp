@@ -50,16 +50,19 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 
 	FCompactPoseBoneIndex IKBoneCompactPoseIndex = IKBone.GetCompactPoseIndex(BoneContainer);
 
+	FCompactPoseBoneIndex UpperLimbIndex(INDEX_NONE);
 	const FCompactPoseBoneIndex LowerLimbIndex = BoneContainer.GetParentBoneIndex(IKBoneCompactPoseIndex);
 	if (LowerLimbIndex == INDEX_NONE)
 	{
 		bInvalidLimb = true;
 	}
-
-	const FCompactPoseBoneIndex UpperLimbIndex = BoneContainer.GetParentBoneIndex(LowerLimbIndex);
-	if (UpperLimbIndex == INDEX_NONE)
+	else
 	{
-		bInvalidLimb = true;
+		UpperLimbIndex = BoneContainer.GetParentBoneIndex(LowerLimbIndex);
+		if (UpperLimbIndex == INDEX_NONE)
+		{
+			bInvalidLimb = true;
+		}
 	}
 
 	const bool bInBoneSpace = (EffectorLocationSpace == BCS_ParentBoneSpace) || (EffectorLocationSpace == BCS_BoneSpace);

@@ -201,6 +201,8 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 
 	bCachedAllCollideableDescendantsRelative = false;
 	LastCheckedAllCollideableDescendantsTime = 0.f;
+	
+	bApplyImpulseOnDamage = true;
 }
 
 bool UPrimitiveComponent::UsesOnlyUnlitMaterials() const
@@ -689,10 +691,11 @@ void UPrimitiveComponent::OnDestroyPhysicsState()
 	Super::OnDestroyPhysicsState();
 }
 
-void UPrimitiveComponent::SendRenderDebugPhysics()
-{
 #if !UE_BUILD_SHIPPING
-	if (SceneProxy)
+void UPrimitiveComponent::SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideSceneProxy)
+{
+	FPrimitiveSceneProxy* UseSceneProxy = OverrideSceneProxy ? OverrideSceneProxy : SceneProxy;
+	if (UseSceneProxy)
 	{
 		TArray<FPrimitiveSceneProxy::FDebugMassData> DebugMassData;
 		if (!IsWelded() && Mobility != EComponentMobility::Static)
@@ -714,13 +717,13 @@ void UPrimitiveComponent::SendRenderDebugPhysics()
 		}
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			PrimitiveComponent_SendRenderDebugPhysics, FPrimitiveSceneProxy*, UseSceneProxy, SceneProxy, TArray<FPrimitiveSceneProxy::FDebugMassData>, UseDebugMassData, DebugMassData,
+			PrimitiveComponent_SendRenderDebugPhysics, FPrimitiveSceneProxy*, PassedSceneProxy, UseSceneProxy, TArray<FPrimitiveSceneProxy::FDebugMassData>, UseDebugMassData, DebugMassData,
 		{
-			UseSceneProxy->SetDebugMassData(UseDebugMassData);
+				PassedSceneProxy->SetDebugMassData(UseDebugMassData);
 		});
 	}
-#endif
 }
+#endif
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const
 {
@@ -923,25 +926,28 @@ void UPrimitiveComponent::UpdateCollisionProfile()
 
 void UPrimitiveComponent::ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	UDamageType const* const DamageTypeCDO = DamageEvent.DamageTypeClass ? DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>() : GetDefault<UDamageType>();
-	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	if (bApplyImpulseOnDamage)
 	{
-		FPointDamageEvent* const PointDamageEvent = (FPointDamageEvent*) &DamageEvent;
-		if((DamageTypeCDO->DamageImpulse > 0.f) && !PointDamageEvent->ShotDirection.IsNearlyZero())
+		UDamageType const* const DamageTypeCDO = DamageEvent.DamageTypeClass ? DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>() : GetDefault<UDamageType>();
+		if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
 		{
-			if (IsSimulatingPhysics(PointDamageEvent->HitInfo.BoneName))
+			FPointDamageEvent* const PointDamageEvent = (FPointDamageEvent*)&DamageEvent;
+			if ((DamageTypeCDO->DamageImpulse > 0.f) && !PointDamageEvent->ShotDirection.IsNearlyZero())
 			{
-				FVector const ImpulseToApply = PointDamageEvent->ShotDirection.GetSafeNormal() * DamageTypeCDO->DamageImpulse;
-				AddImpulseAtLocation(ImpulseToApply, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.BoneName);
+				if (IsSimulatingPhysics(PointDamageEvent->HitInfo.BoneName))
+				{
+					FVector const ImpulseToApply = PointDamageEvent->ShotDirection.GetSafeNormal() * DamageTypeCDO->DamageImpulse;
+					AddImpulseAtLocation(ImpulseToApply, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.BoneName);
+				}
 			}
 		}
-	}
-	else if (DamageEvent.IsOfType(FRadialDamageEvent::ClassID))
-	{
-		FRadialDamageEvent* const RadialDamageEvent = (FRadialDamageEvent*) &DamageEvent;
-		if ( (DamageTypeCDO->DamageImpulse > 0.f) )
+		else if (DamageEvent.IsOfType(FRadialDamageEvent::ClassID))
 		{
-			AddRadialImpulse(RadialDamageEvent->Origin, RadialDamageEvent->Params.OuterRadius, DamageTypeCDO->DamageImpulse, RIF_Linear, DamageTypeCDO->bRadialDamageVelChange);
+			FRadialDamageEvent* const RadialDamageEvent = (FRadialDamageEvent*)&DamageEvent;
+			if (DamageTypeCDO->DamageImpulse > 0.f)
+			{
+				AddRadialImpulse(RadialDamageEvent->Origin, RadialDamageEvent->Params.OuterRadius, DamageTypeCDO->DamageImpulse, RIF_Linear, DamageTypeCDO->bRadialDamageVelChange);
+			}
 		}
 	}
 }

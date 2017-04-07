@@ -616,6 +616,12 @@ struct FRawCurveTracks
 	 * Find curve data based on the curve UID
 	 */
 	ENGINE_API FAnimCurveBase * GetCurveData(USkeleton::AnimCurveUID Uid, ERawCurveTrackTypes SupportedCurveType = ERawCurveTrackTypes::RCT_Float);
+
+	/**
+	* Find curve data based on the curve UID
+	*/
+	ENGINE_API const FAnimCurveBase * GetCurveData(USkeleton::AnimCurveUID Uid, ERawCurveTrackTypes SupportedCurveType = ERawCurveTrackTypes::RCT_Float) const;
+
 	/**
 	 * Add new curve from the provided UID and return true if success
 	 * bVectorInterpCurve == true, then it will create FVectorCuve, otherwise, FFloatCurve
@@ -686,6 +692,12 @@ private:
 	 */
 	template <typename DataType>
 	DataType * GetCurveDataImpl(TArray<DataType>& Curves, USkeleton::AnimCurveUID Uid);
+
+	/**
+	* Find curve data based on the curve UID
+	*/
+	template <typename DataType>
+	const DataType * GetCurveDataImpl(const TArray<DataType>& Curves, USkeleton::AnimCurveUID Uid) const;
 
 	/**
 	 * Add new curve from the provided UID and return true if success

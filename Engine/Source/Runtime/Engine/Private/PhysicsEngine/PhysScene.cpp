@@ -359,9 +359,7 @@ FPhysScene::FPhysScene()
 	bSubsteppingAsync = PhysSetting->bSubsteppingAsync;
 	bAsyncSceneEnabled = PhysSetting->bEnableAsyncScene;
 	NumPhysScenes = bAsyncSceneEnabled ? PST_Async + 1 : PST_Cloth + 1;
-
-	FMemory::Memzero(PendingSimulationTransforms);
-
+	
 	// Create scenes of all scene types
 	for (uint32 SceneType = 0; SceneType < NumPhysScenes; ++SceneType)
 	{
@@ -1020,7 +1018,6 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	if (ApexScene && UseDelta > 0.f)
 #endif
 	{
-		PendingSimulationTransforms[SceneType] = true;
 		if(IsSubstepping(SceneType)) //we don't bother sub-stepping cloth
 		{
 			bTaskOutstanding = SubstepSimulation(SceneType, InOutCompletionEvent);
@@ -1249,8 +1246,6 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructibleActors[SceneType]);
 	}
 #endif
-
-	PendingSimulationTransforms[SceneType] = false;
 }
 
 void FPhysScene::DispatchPhysNotifications_AssumesLocked()
@@ -1960,8 +1955,6 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene, this, SceneType);
 #endif
 #endif
-
-	PendingSimulationTransforms[SceneType] = false;
 
 	FPhysicsDelegates::OnPhysSceneInit.Broadcast(this, (EPhysicsSceneType)SceneType);
 

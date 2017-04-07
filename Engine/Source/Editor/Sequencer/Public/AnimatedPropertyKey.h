@@ -33,13 +33,21 @@ struct FAnimatedPropertyKey
 		FAnimatedPropertyKey Definition;
 		Definition.PropertyTypeName = Property->GetClass()->GetFName();
 
-		if (const auto* StructProperty = Cast<const UStructProperty>(Property))
+		if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
 		{
 			Definition.ObjectTypeName = StructProperty->Struct->GetFName();
 		}
-		else if (const auto* ObjectProperty = Cast<const UObjectPropertyBase>(Property))
+		else if (const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>(Property))
 		{
 			Definition.ObjectTypeName = ObjectProperty->PropertyClass->GetFName();
+		}
+		else if(const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property))
+		{
+			Definition.PropertyTypeName = ArrayProperty->Inner->GetClass()->GetFName();
+			if (const UStructProperty* InnerStructProperty = Cast<const UStructProperty>(ArrayProperty->Inner))
+			{
+				Definition.ObjectTypeName = InnerStructProperty->Struct->GetFName();
+			}
 		}
 		return Definition;
 	}

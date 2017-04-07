@@ -54,7 +54,8 @@ public:
 
 			ShowMenuBuilder.AddMenuEntry(Commands.SetShowGrid);
 			ShowMenuBuilder.AddMenuEntry(Commands.SetShowBounds);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowCollision);
+			ShowMenuBuilder.AddMenuEntry(Commands.SetShowSimpleCollision);
+			ShowMenuBuilder.AddMenuEntry(Commands.SetShowComplexCollision);
 
 			ShowMenuBuilder.AddMenuSeparator();
 
@@ -448,10 +449,16 @@ void SStaticMeshEditorViewport::BindCommands()
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowBoundsChecked ) );
 
 	CommandList->MapAction(
-		Commands.SetShowCollision,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetShowWireframeCollision ),
+		Commands.SetShowSimpleCollision,
+		FExecuteAction::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetShowSimpleCollision ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowWireframeCollisionChecked ) );
+		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowSimpleCollisionChecked ) );
+
+	CommandList->MapAction(
+		Commands.SetShowComplexCollision,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetShowComplexCollision),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowComplexCollisionChecked));
 
 	CommandList->MapAction(
 		Commands.SetShowSockets,

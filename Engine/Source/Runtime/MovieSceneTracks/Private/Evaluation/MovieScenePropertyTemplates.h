@@ -9,7 +9,7 @@
 #include "Evaluation/MovieScenePropertyTemplate.h"
 #include "Curves/IntegralCurve.h"
 #include "Curves/StringCurve.h"
-
+#include "Templates/UnrealTypeTraits.h"
 #include "MovieScenePropertyTemplates.generated.h"
 
 class UMovieSceneBoolSection;
@@ -238,6 +238,10 @@ protected:
 	FStringCurve StringCurve;
 };
 
+Expose_TNameOf(FVector2D);
+Expose_TNameOf(FVector);
+Expose_TNameOf(FVector4);
+
 USTRUCT()
 struct FMovieSceneVectorPropertySectionTemplate : public FMovieSceneEvalTemplate
 {
@@ -271,6 +275,7 @@ protected:
 	int32 NumChannelsUsed;
 };
 
+Expose_TNameOf(FTransform);
 
 USTRUCT()
 struct FMovieSceneTransformPropertySectionTemplate : public FMovieSceneEvalTemplate

@@ -170,6 +170,8 @@ class UPaintModeSettings : public UMeshPaintSettings
 {
 	GENERATED_UCLASS_BODY()
 public:
+
+	static UPaintModeSettings* Get();
 	
 	UPROPERTY()
 	EPaintMode PaintMode;

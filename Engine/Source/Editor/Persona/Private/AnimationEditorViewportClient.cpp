@@ -962,13 +962,16 @@ void FAnimationViewportClient::DrawNodeDebugLines(TArray<FText>& Lines, FCanvas*
 
 void FAnimationViewportClient::TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge )
 {
-	ModeTools->StartTracking(this, Viewport);
+	if (ModeTools->StartTracking(this, Viewport) && bIsDraggingWidget)
+	{
+		Widget->SetSnapEnabled(true);
+	}
 }
 
 void FAnimationViewportClient::TrackingStopped() 
 {
 	ModeTools->EndTracking(this, Viewport);
-
+	Widget->SetSnapEnabled(false);
 	Invalidate();
 }
 

@@ -20,6 +20,7 @@
 #include "AnimPreviewInstance.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Images/SImage.h"
+#include "Factories/AnimMontageFactory.h"
 
 #define LOCTEXT_NAMESPACE "AnimSequenceEditor"
 
@@ -630,19 +631,8 @@ void SMontageEditor::SortSections()
 /** Ensure there is at least one section in the montage and that the first section starts at T=0.f */
 void SMontageEditor::EnsureStartingSection()
 {
-	if(MontageObj->CompositeSections.Num() <= 0)
+	if (UAnimMontageFactory::EnsureStartingSection(MontageObj))
 	{
-		FCompositeSection NewSection;
-		NewSection.SetTime(0.0f);
-		NewSection.SectionName = FName(TEXT("Default"));
-		MontageObj->CompositeSections.Add(NewSection);
-		OnMontageModified();
-	}
-
-	check(MontageObj->CompositeSections.Num() > 0);
-	if(MontageObj->CompositeSections[0].GetTime() > 0.0f)
-	{
-		MontageObj->CompositeSections[0].SetTime(0.0f);
 		OnMontageModified();
 	}
 }

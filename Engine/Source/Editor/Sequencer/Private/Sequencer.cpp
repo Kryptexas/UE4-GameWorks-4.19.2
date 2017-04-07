@@ -4943,11 +4943,7 @@ void FSequencer::ConvertToPossessable(TSharedRef<FSequencerObjectBindingNode> No
 
 void FSequencer::ConvertSelectedNodesToPossessables()
 {
-	const FScopedTransaction Transaction( LOCTEXT("ConvertSelectedNodesPossessable", "Convert Selected Nodes to Possessables") );
-
 	UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
-
-	MovieScene->Modify();
 
 	TArray<TSharedRef<FSequencerObjectBindingNode>> ObjectBindingNodes;
 
@@ -4958,61 +4954,67 @@ void FSequencer::ConvertSelectedNodesToPossessables()
 			auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
 
 			FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBindingNode->GetObjectBinding());
-			if (Spawnable)
+			if (Spawnable && SpawnRegister->CanConvertSpawnableToPossessable(*Spawnable))
 			{
 				ObjectBindingNodes.Add(ObjectBindingNode);
 			}
 		}
 	}
 
-	FScopedSlowTask SlowTask(ObjectBindingNodes.Num(), LOCTEXT("ConvertPossessablesProgress", "Converting Selected Spawnable Nodes to Possessables"));
-	SlowTask.MakeDialog(true);
-
-	TArray<AActor*> PossessedActors;
-	for (const TSharedRef<FSequencerObjectBindingNode>& ObjectBindingNode : ObjectBindingNodes)
+	if (ObjectBindingNodes.Num() > 0)
 	{
-		SlowTask.EnterProgressFrame();
-	
-		FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBindingNode->GetObjectBinding());
-		if (Spawnable)
+		const FScopedTransaction Transaction(LOCTEXT("ConvertSelectedNodesPossessable", "Convert Selected Nodes to Possessables"));
+		MovieScene->Modify();
+
+		FScopedSlowTask SlowTask(ObjectBindingNodes.Num(), LOCTEXT("ConvertPossessablesProgress", "Converting Selected Spawnable Nodes to Possessables"));
+		SlowTask.MakeDialog(true);
+
+		TArray<AActor*> PossessedActors;
+		for (const TSharedRef<FSequencerObjectBindingNode>& ObjectBindingNode : ObjectBindingNodes)
 		{
-			FMovieScenePossessable* Possessable = ConvertToPossessableInternal(Spawnable->GetGuid());
+			SlowTask.EnterProgressFrame();
 
-			UpdateRuntimeInstances();
-
-			for (TWeakObjectPtr<> WeakObject : FindBoundObjects(Possessable->GetGuid(), ActiveTemplateIDs.Top()))
+			FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBindingNode->GetObjectBinding());
+			if (Spawnable)
 			{
-				if (AActor* PossessedActor = Cast<AActor>(WeakObject.Get()))
+				FMovieScenePossessable* Possessable = ConvertToPossessableInternal(Spawnable->GetGuid());
+
+				UpdateRuntimeInstances();
+
+				for (TWeakObjectPtr<> WeakObject : FindBoundObjects(Possessable->GetGuid(), ActiveTemplateIDs.Top()))
 				{
-					PossessedActors.Add(PossessedActor);
+					if (AActor* PossessedActor = Cast<AActor>(WeakObject.Get()))
+					{
+						PossessedActors.Add(PossessedActor);
+					}
 				}
+			}
+
+			if (GWarn->ReceivedUserCancel())
+			{
+				break;
 			}
 		}
 
-		if (GWarn->ReceivedUserCancel())
+		if (PossessedActors.Num())
 		{
-			break;
+			const bool bNotifySelectionChanged = true;
+			const bool bDeselectBSP = true;
+			const bool bWarnAboutTooManyActors = false;
+			const bool bSelectEvenIfHidden = false;
+
+			GEditor->GetSelectedActors()->Modify();
+			GEditor->GetSelectedActors()->BeginBatchSelectOperation();
+			GEditor->SelectNone(bNotifySelectionChanged, bDeselectBSP, bWarnAboutTooManyActors);
+			for (auto PossessedActor : PossessedActors)
+			{
+				GEditor->SelectActor(PossessedActor, true, bNotifySelectionChanged, bSelectEvenIfHidden);
+			}
+			GEditor->GetSelectedActors()->EndBatchSelectOperation();
+			GEditor->NoteSelectionChange();
+
+			NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
 		}
-	}
-
-	if (PossessedActors.Num())
-	{
-		const bool bNotifySelectionChanged = true;
-		const bool bDeselectBSP = true;
-		const bool bWarnAboutTooManyActors = false;
-		const bool bSelectEvenIfHidden = false;
-
-		GEditor->GetSelectedActors()->Modify();
-		GEditor->GetSelectedActors()->BeginBatchSelectOperation();
-		GEditor->SelectNone(bNotifySelectionChanged, bDeselectBSP, bWarnAboutTooManyActors);
-		for (auto PossessedActor : PossessedActors)
-		{
-			GEditor->SelectActor(PossessedActor, true, bNotifySelectionChanged, bSelectEvenIfHidden);
-		}
-		GEditor->GetSelectedActors()->EndBatchSelectOperation();
-		GEditor->NoteSelectionChange();
-
-		NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
 	}
 }
 
@@ -6377,7 +6379,30 @@ void FSequencer::BindCommands()
 		FCanExecuteAction::CreateLambda(CanConvertToSpawnables)
 	);
 
-	auto AreSpawnablesSelected = [this]{
+	auto AreConvertableSpawnablesSelected = [this] {
+		UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
+
+		for (const TSharedRef<FSequencerDisplayNode>& Node : Selection.GetSelectedOutlinerNodes())
+		{
+			if (Node->GetType() == ESequencerNode::Object)
+			{
+				FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(static_cast<FSequencerObjectBindingNode&>(*Node).GetObjectBinding());
+				if (Spawnable && SpawnRegister->CanConvertSpawnableToPossessable(*Spawnable))
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+
+	SequencerCommandBindings->MapAction(
+		FSequencerCommands::Get().ConvertToPossessable,
+		FExecuteAction::CreateSP(this, &FSequencer::ConvertSelectedNodesToPossessables),
+		FCanExecuteAction::CreateLambda(AreConvertableSpawnablesSelected)
+	);
+
+	auto AreSpawnablesSelected = [this] {
 		UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 
 		for (const TSharedRef<FSequencerDisplayNode>& Node : Selection.GetSelectedOutlinerNodes())
@@ -6393,12 +6418,6 @@ void FSequencer::BindCommands()
 		}
 		return false;
 	};
-	SequencerCommandBindings->MapAction(
-		FSequencerCommands::Get().ConvertToPossessable,
-		FExecuteAction::CreateSP(this, &FSequencer::ConvertSelectedNodesToPossessables),
-		FCanExecuteAction::CreateLambda(AreSpawnablesSelected)
-	);
-
 
 	SequencerCommandBindings->MapAction(
 		FSequencerCommands::Get().SaveCurrentSpawnableState,

@@ -80,29 +80,21 @@ public:
 	template<typename ValueType>
 	ValueType GetPropertyValue() const
 	{
-		TOptional<FScriptArrayHelper> ParentArray;
-
 		void* ContainerPtr = ObjectsThatChanged[0];
 		for (int32 i = 0; i < PropertyPath.GetNumProperties(); i++)
 		{
 			const FPropertyInfo& PropertyInfo = PropertyPath.GetPropertyInfo(i);
 			if (UProperty* Property = PropertyInfo.Property.Get())
 			{
+				int32 ArrayIndex = FMath::Max(0, PropertyInfo.ArrayIndex);
 				if (UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property))
 				{
-					ParentArray = FScriptArrayHelper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(ContainerPtr));
-					continue;
-				}
-
-				int32 ArrayIndex = FMath::Max(0, PropertyInfo.ArrayIndex);
-				if (ParentArray.IsSet())
-				{
-					if (!ParentArray->IsValidIndex(ArrayIndex))
+					FScriptArrayHelper ParentArrayHelper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(ContainerPtr));
+					if (!ParentArrayHelper.IsValidIndex(ArrayIndex))
 					{
 						return ValueType();
 					}
-					ContainerPtr = ParentArray->GetRawPtr(ArrayIndex);
-					ParentArray.Reset();
+					ContainerPtr = ParentArrayHelper.GetRawPtr(ArrayIndex);
 				}
 				else
 				{

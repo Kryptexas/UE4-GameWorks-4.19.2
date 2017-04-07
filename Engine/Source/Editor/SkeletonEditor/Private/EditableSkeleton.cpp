@@ -185,6 +185,11 @@ EBoneTranslationRetargetingMode::Type FEditableSkeleton::GetBoneTranslationRetar
 	return Skeleton->GetBoneTranslationRetargetingMode(BoneIndex);
 }
 
+void FEditableSkeleton::RefreshBoneTree()
+{
+	OnTreeRefresh.Broadcast();
+}
+
 bool FEditableSkeleton::DoesSocketAlreadyExist(const USkeletalMeshSocket* InSocket, const FText& InSocketName, ESocketParentType SocketParentType, USkeletalMesh* InSkeletalMesh) const
 {
 	TArray<USkeletalMeshSocket*>* SocketArrayPtr = nullptr;

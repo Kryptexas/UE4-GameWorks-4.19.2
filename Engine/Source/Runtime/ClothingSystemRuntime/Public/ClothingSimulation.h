@@ -73,7 +73,7 @@ public:
 	{}
 
 	// Static method for calculating a skinned mesh result from source data
-	static CLOTHINGSYSTEMRUNTIME_API void SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals);
+	static CLOTHINGSYSTEMRUNTIME_API void SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FTransform& RootBoneTransform, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals);
 
 protected:
 

@@ -621,6 +621,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_64BIT_EXPORTMAP_SERIALSIZES,
 	// Sky light stores IrradianceMap for mobile renderer.
 	VER_UE4_SKYLIGHT_MOBILE_IRRADIANCE_MAP,
+	// Added flag to control sweep behavior while walking in UCharacterMovementComponent.
+	VER_UE4_ADDED_SWEEP_WHILE_WALKING_FLAG,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

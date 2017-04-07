@@ -84,6 +84,8 @@ class UAnimSequenceBase : public UAnimationAsset
 	/** Evaluate curve data to Instance at the time of CurrentTime **/
 	ENGINE_API virtual void EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime, bool bForceUseRawData=false) const;
 
+	ENGINE_API virtual const FRawCurveTracks& GetCurveData() const { return RawCurveData; }
+
 #if WITH_EDITOR
 	/** Return Number of Frames **/
 	virtual int32 GetNumberOfFrames() const;

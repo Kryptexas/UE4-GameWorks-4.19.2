@@ -639,8 +639,10 @@ protected:
 #if !(UE_BUILD_SHIPPING)
 	/** LOD used for collision */
 	int32 LODForCollision;
-	/** If we want to draw the mesh collision for debugging */
-	uint32 bDrawMeshCollisionWireframe : 1;
+	/** Draw mesh collision if used for complex collision */
+	uint32 bDrawMeshCollisionIfComplex : 1;
+	/** Draw mesh collision if used for simple collision */
+	uint32 bDrawMeshCollisionIfSimple : 1;
 #endif
 
 	/**

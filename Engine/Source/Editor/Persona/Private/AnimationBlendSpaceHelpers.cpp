@@ -473,10 +473,7 @@ void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, c
 
 	GridPoints.AddDefaulted(TotalNumGridPoints);
 
-	FVector GridPointPosition;
-	// when it fails to find, do distance resolution
-	const int32 NumSamplesInGrid = (SamplePoints.Num() >= 3)? 3 : SamplePoints.Num();
-
+	FVector GridPointPosition;		
 	for (int32 GridPositionX = 0; GridPositionX < NumGridPointsForAxis.X; ++GridPositionX)
 	{
 		for (int32 GridPositionY = 0; GridPositionY < NumGridPointsForAxis.Y; ++GridPositionY)
@@ -559,7 +556,7 @@ void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, c
 					{
 						// Two points or co-linear triangles, first find the two closest samples
 						TArray<FSortByDistance> SampleDistances;
-						for (int32 PointIndex = 0; PointIndex < NumSamplesInGrid; ++PointIndex)
+						for (int32 PointIndex = 0; PointIndex < SamplePoints.Num(); ++PointIndex)
 						{
 							const float DistanceFromSampleToPoint= (SamplePoints[PointIndex].Position - GridPointPosition).SizeSquared2D();
 							SampleDistances.Add(FSortByDistance(PointIndex, DistanceFromSampleToPoint));

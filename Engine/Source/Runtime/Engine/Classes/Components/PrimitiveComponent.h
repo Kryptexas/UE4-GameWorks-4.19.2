@@ -389,6 +389,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
 	uint32 bIgnoreRadialForce:1;
 
+	/** True for damage to this component to apply physics impulse, false to opt out of these impulses. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
+	uint32 bApplyImpulseOnDamage : 1;
+
 	// General flags.
 	
 	/** If this is True, this component must always be loaded on clients, even if Hidden and CollisionEnabled is NoCollision. */
@@ -1491,8 +1495,10 @@ protected:
 public:
 	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const override;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Updates the renderer with the center of mass data */
-	virtual void SendRenderDebugPhysics();
+	virtual void SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideSceneProxy = nullptr);
+#endif
 
 	// End USceneComponentInterface
 

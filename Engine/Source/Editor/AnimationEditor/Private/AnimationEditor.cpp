@@ -331,7 +331,7 @@ void FAnimationEditor::ExtendMenu()
 	AddMenuExtender(MenuExtender);
 
 	IAnimationEditorModule& AnimationEditorModule = FModuleManager::GetModuleChecked<IAnimationEditorModule>("AnimationEditor");
-	AddMenuExtender(AnimationEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+	AddMenuExtender(AnimationEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 }
 
 void FAnimationEditor::HandleObjectsSelected(const TArray<UObject*>& InObjects)
@@ -556,7 +556,7 @@ void FAnimationEditor::OnExportToFBX(const EPoseSourceOption Option)
 	}
 	else if (Option == EPoseSourceOption::CurrentAnimation_Play)
 	{
-		TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+		TArray<TWeakObjectPtr<UObject>> Skeletons;
 		Skeletons.Add(PersonaToolkit->GetSkeleton());
 
 		AnimationEditorUtils::CreateAnimationAssets(Skeletons, UAnimSequence::StaticClass(), FString("_Play"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::ExportToFBX, true), AnimationAsset, true);
@@ -639,20 +639,34 @@ TSharedRef< SWidget > FAnimationEditor::GenerateCreateAssetMenu() const
 	}
 	MenuBuilder.EndSection();
 
-	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+	TArray<TWeakObjectPtr<UObject>> Objects;
 
-	Skeletons.Add(PersonaToolkit->GetSkeleton());
+	if (PersonaToolkit->GetPreviewMesh())
+	{
+		Objects.Add(PersonaToolkit->GetPreviewMesh());
+	}
+	else
+	{
+		Objects.Add(PersonaToolkit->GetSkeleton());
+	}
 
-	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FAnimationEditor::HandleAssetCreated), false);
+	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Objects, FAnimAssetCreated::CreateSP(this, &FAnimationEditor::HandleAssetCreated), false);
 
 	return MenuBuilder.MakeWidget();
 }
 
 void FAnimationEditor::FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const
 {
-	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+	TArray<TWeakObjectPtr<UObject>> Objects;
 
-	Skeletons.Add(PersonaToolkit->GetSkeleton());
+	if (PersonaToolkit->GetPreviewMesh())
+	{
+		Objects.Add(PersonaToolkit->GetPreviewMesh());
+	}
+	else
+	{
+		Objects.Add(PersonaToolkit->GetSkeleton());
+	}
 
 	// create rig
 	MenuBuilder.BeginSection("CreateAnimationSubMenu", LOCTEXT("CreateAnimationSubMenuHeading", "Create Animation"));
@@ -662,7 +676,7 @@ void FAnimationEditor::FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const
 			LOCTEXT("CreateAnimation_RefPose_Tooltip", "Create Animation from reference pose."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::ReferencePose), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Objects, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::ReferencePose), false),
 				FCanExecuteAction()
 				)
 			);
@@ -672,7 +686,7 @@ void FAnimationEditor::FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const
 			LOCTEXT("CreateAnimation_CurrentPose_Tooltip", "Create Animation from current pose."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentPose), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Objects, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentPose), false),
 				FCanExecuteAction()
 				)
 			);
@@ -691,9 +705,16 @@ void FAnimationEditor::FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const
 void FAnimationEditor::FillCreateAnimationFromCurrentAnimationMenu(FMenuBuilder& MenuBuilder) const
 {
 	{
-		TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+		TArray<TWeakObjectPtr<UObject>> Objects;
 
-		Skeletons.Add(PersonaToolkit->GetSkeleton());
+		if (PersonaToolkit->GetPreviewMesh())
+		{
+			Objects.Add(PersonaToolkit->GetPreviewMesh());
+		}
+		else
+		{
+			Objects.Add(PersonaToolkit->GetSkeleton());
+		}
 
 		// create rig
 		MenuBuilder.BeginSection("CreateAnimationSubMenu", LOCTEXT("CreateAnimationFromCurrentAnimationSubmenuHeading", "Create Animation"));
@@ -703,7 +724,7 @@ void FAnimationEditor::FillCreateAnimationFromCurrentAnimationMenu(FMenuBuilder&
 				LOCTEXT("CreateAnimation_CurrentAnimation_Source_Tooltip", "Create Animation from Source Data."),
 				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_Source), false),
+					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Objects, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_Source), false),
 					FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence)
 				)
 			);
@@ -713,7 +734,7 @@ void FAnimationEditor::FillCreateAnimationFromCurrentAnimationMenu(FMenuBuilder&
 				LOCTEXT("CreateAnimation_CurrentAnimation_Play_Tooltip", "Create Animation from Play on the Current Preview Mesh, including Retargeting, Post Process Graph, or anything you see on the preview mesh."),
 				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_Play), false),
+					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Objects, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_Play), false),
 					FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence)
 				)
 			);
@@ -724,9 +745,16 @@ void FAnimationEditor::FillCreateAnimationFromCurrentAnimationMenu(FMenuBuilder&
 }
 void FAnimationEditor::FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const
 {
-	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+	TArray<TWeakObjectPtr<UObject>> Objects;
 
-	Skeletons.Add(PersonaToolkit->GetSkeleton());
+	if (PersonaToolkit->GetPreviewMesh())
+	{
+		Objects.Add(PersonaToolkit->GetPreviewMesh());
+	}
+	else
+	{
+		Objects.Add(PersonaToolkit->GetSkeleton());
+	}
 
 	// create rig
 	MenuBuilder.BeginSection("CreatePoseAssetSubMenu", LOCTEXT("CreatePoseAssetSubMenuHeading", "Create PoseAsset"));
@@ -736,7 +764,7 @@ void FAnimationEditor::FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const
 			LOCTEXT("CreatePoseAsset_CurrentPose_Tooltip", "Create PoseAsset from current pose."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Skeletons, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, EPoseSourceOption::CurrentPose), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Objects, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, EPoseSourceOption::CurrentPose), false),
 				FCanExecuteAction()
 			)
 		);
@@ -746,7 +774,7 @@ void FAnimationEditor::FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const
 			LOCTEXT("CreatePoseAsset_CurrentAnimation_Tooltip", "Create Animation from current animation."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Skeletons, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, EPoseSourceOption::CurrentAnimation_Source), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Objects, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, EPoseSourceOption::CurrentAnimation_Source), false),
 				FCanExecuteAction()
 			)
 		);

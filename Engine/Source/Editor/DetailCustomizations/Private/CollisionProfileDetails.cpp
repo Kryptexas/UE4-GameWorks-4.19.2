@@ -1748,7 +1748,6 @@ void FCollisionProfileDetails::CommitProfileChange(int32 ProfileIndex, FCollisio
 		}	
 	}
 
-	SavedData.Save(CollisionProfile);
 }
 
 void FCollisionProfileDetails::UpdateChannel(bool bTraceType)
@@ -1763,20 +1762,17 @@ void FCollisionProfileDetails::UpdateChannel(bool bTraceType)
 		ObjectChannelListView->RequestListRefresh();
 	}
 
-	CollisionProfile->LoadProfileConfig(true);
-	CollisionProfile->UpdateDefaultConfigFile();
-
-	// update profile list if the name changed, this has to be refreshed
-	RefreshProfileList();
-	ProfileListView->RequestListRefresh();
+	UpdateProfile();
 }
 
 void FCollisionProfileDetails::UpdateProfile()
 {
-	RefreshProfileList();
-	ProfileListView->RequestListRefresh();
 	CollisionProfile->LoadProfileConfig(true);
 	CollisionProfile->UpdateDefaultConfigFile();
+	SavedData.Save(CollisionProfile);
+
+	RefreshProfileList();
+	ProfileListView->RequestListRefresh();
 }
 
 void FCollisionProfileDetails::RefreshChannelList(bool bTraceType)
@@ -2183,7 +2179,7 @@ void FCollisionProfileDetails::OnProfileListItemDoubleClicked(TSharedPtr< FProfi
 // FCollsiionProfileData
 //=====================================================================================
 
-void FCollisionProfileDetails::FCollsiionProfileData::Save(UCollisionProfile * Profile)
+void FCollisionProfileDetails::FCollisionProfileData::Save(UCollisionProfile * Profile)
 {
 	Profiles = Profile->Profiles;
 	DefaultChannelResponses = Profile->DefaultChannelResponses;

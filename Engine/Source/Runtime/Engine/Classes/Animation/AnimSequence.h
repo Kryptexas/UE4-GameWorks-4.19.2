@@ -545,6 +545,7 @@ public:
 	virtual void RefreshCacheData() override;
 	virtual EAdditiveAnimationType GetAdditiveAnimType() const override { return AdditiveAnimType; }
 	virtual void EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime, bool bForceUseRawData=false) const;
+	virtual const FRawCurveTracks& GetCurveData() const;
 #if WITH_EDITOR
 	virtual void MarkRawDataAsModified(bool bForceNewRawDatGuid = true) override
 	{

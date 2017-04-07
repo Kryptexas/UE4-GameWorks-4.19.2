@@ -175,4 +175,7 @@ public:
 
 	/** Rename an existing virtual bone */
 	virtual void RenameVirtualBone(const FName& OriginalName, const FName& InVBName) = 0;
+
+	/** Broadcasts tree refresh delegate */
+	virtual void RefreshBoneTree() = 0;
 };

@@ -266,9 +266,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics, meta = (editcondition = "!bSimulatePhysics"))
 	uint32 bAutoWeld : 1;
 
-	/** determines if the body is currently welded */
-	uint32 bWelded : 1;
-
 	/** If object should start awake, or if it should initially be sleeping */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bSimulatePhysics"))
 	uint32 bStartAwake:1;

@@ -51,8 +51,6 @@ enum EPhysBodyOp
 	PBO_None,
 	/** Terminate - if you terminate, you won't be able to re-init when unhidden. */
 	PBO_Term,
-	/** Disable collision - it will enable collision when unhidden. */
-	PBO_Disable,
 	PBO_MAX,
 };
 
@@ -454,6 +452,15 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetForcedLOD(int32 InNewForcedLOD);
+
+#if WITH_EDITOR
+	/**
+	 * Get the LOD Bias of this component
+	 *
+	 * @return	The LOD bias of this component. Derived classes can override this to ignore or override LOD bias settings.
+	 */
+	virtual int32 GetLODBias() const;
+#endif
 
 	UFUNCTION(BlueprintCallable, Category="Lighting")
 	void SetCastCapsuleDirectShadow(bool bNewValue);

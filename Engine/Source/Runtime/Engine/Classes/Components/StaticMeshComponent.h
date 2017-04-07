@@ -230,8 +230,10 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	uint32 bDisallowMeshPaintPerInstance : 1;
 
 #if !(UE_BUILD_SHIPPING)
-	/** Option to draw mesh collision in wireframe */
-	uint32 bDrawMeshCollisionWireframe : 1;
+	/** Draw mesh collision if used for complex collision */
+	uint32 bDrawMeshCollisionIfComplex : 1;
+	/** Draw mesh collision if used for simple collision */
+	uint32 bDrawMeshCollisionIfSimple : 1;
 #endif
 
 	/**

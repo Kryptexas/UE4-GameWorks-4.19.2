@@ -59,8 +59,9 @@ FPaintModePainter* FPaintModePainter::Get()
 void FPaintModePainter::Init()
 {
 	/** Setup necessary data */
-	BrushSettings = GetMutableDefault<UPaintBrushSettings>();
-	PaintSettings = GetMutableDefault<UPaintModeSettings>();
+	BrushSettings = DuplicateObject<UPaintBrushSettings>(GetMutableDefault<UPaintBrushSettings>(), GetTransientPackage());
+	BrushSettings->AddToRoot();
+	PaintSettings = UPaintModeSettings::Get();
 	Widget = SNew(SPaintModeWidget, this);
 	FPaintModeCommands::Register();
 	CachedLODIndex = PaintSettings->VertexPaintSettings.LODIndex;
@@ -518,7 +519,12 @@ void FPaintModePainter::ApplyVertexColorAction(EVertexColorAction Action)
 			FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionFillInstColors", "Filling Per-Instance Vertex Colors"));
 
 			static const bool bConvertSRGB = false;
-			const FColor FillColor = PaintSettings->VertexPaintSettings.PaintColor.ToFColor(bConvertSRGB);
+			FColor FillColor = PaintSettings->VertexPaintSettings.PaintColor.ToFColor(bConvertSRGB);
+
+			if (PaintSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintWeights)
+			{
+				FillColor = MeshPaintHelpers::GenerateColorForTextureWeight((int32)PaintSettings->VertexPaintSettings.TextureWeightType, (int32)PaintSettings->VertexPaintSettings.PaintTextureWeightIndex).ToFColor(bConvertSRGB);
+			}
 			
 			TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
 			/** Fill each mesh component with the given vertex color */
@@ -824,7 +830,7 @@ void FPaintModePainter::ActorDeselected(AActor* Actor)
 	for (UMeshComponent* MeshComponent : MeshComponents)
 	{
 		/** Try and find an adapter for this component */
-		if (const IMeshPaintGeometryAdapter* Adapter = ComponentToAdapterMap.FindRef(MeshComponent).Get())
+		if (IMeshPaintGeometryAdapter* Adapter = ComponentToAdapterMap.FindRef(MeshComponent).Get())
 		{	
 			/** If in texture paint mode save out the specific instance settings, and reset texture overrides */
 			if (PaintSettings->PaintMode == EPaintMode::Textures)

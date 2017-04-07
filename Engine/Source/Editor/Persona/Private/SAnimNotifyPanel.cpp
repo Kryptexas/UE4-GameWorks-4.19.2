@@ -31,6 +31,7 @@
 #include "BlueprintActionDatabase.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/BlendSpaceBase.h"
 #include "TabSpawners.h"
 
 // Track Panel drawing
@@ -2631,6 +2632,8 @@ void SAnimNotifyTrack::CreateNewSyncMarkerAtCursor(FString NewSyncMarkerName, UC
 	SyncMarker.TrackIndex = TrackIndex;
 	SyncMarker.Time = LastClickedTime;
 	OnUpdatePanel.ExecuteIfBound();
+
+	UBlendSpaceBase::UpdateBlendSpacesUsingAnimSequence(Seq);
 }
 
 void SAnimNotifyTrack::ReplaceSelectedWithBlueprintNotify(FString NewNotifyName, FString BlueprintPath)
@@ -3362,9 +3365,9 @@ void SAnimNotifyTrack::Update()
 
 int32 SAnimNotifyTrack::GetHitNotifyNode(const FGeometry& MyGeometry, const FVector2D& CursorPosition)
 {
-	for ( int32 I=NotifyNodes.Num()-1; I>=0; --I ) //Run through from 'top most' Notify to bottom
+	for (int32 I = NotifyNodes.Num() - 1; I >= 0; --I) //Run through from 'top most' Notify to bottom
 	{
-		if ( NotifyNodes[I].Get()->HitTest(MyGeometry, CursorPosition) )
+		if (NotifyNodes[I].Get()->HitTest(MyGeometry, CursorPosition))
 		{
 			return I;
 		}
@@ -3373,14 +3376,14 @@ int32 SAnimNotifyTrack::GetHitNotifyNode(const FGeometry& MyGeometry, const FVec
 	return INDEX_NONE;
 }
 
-FReply SAnimNotifyTrack::OnNotifyNodeDragStarted( TSharedRef<SAnimNotifyNode> NotifyNode, const FPointerEvent& MouseEvent, const FVector2D& ScreenNodePosition, const bool bDragOnMarker, int32 NotifyIndex ) 
+FReply SAnimNotifyTrack::OnNotifyNodeDragStarted(TSharedRef<SAnimNotifyNode> NotifyNode, const FPointerEvent& MouseEvent, const FVector2D& ScreenNodePosition, const bool bDragOnMarker, int32 NotifyIndex)
 {
 	// Check to see if we've already selected the triggering node
 	if (!NotifyNode->bSelected)
 	{
 		SelectTrackObjectNode(NotifyIndex, MouseEvent.IsShiftDown());
 	}
-	
+
 	// Sort our nodes so we're acessing them in time order
 	SelectedNodeIndices.Sort([this](const int32& A, const int32& B)
 	{
@@ -3390,18 +3393,18 @@ FReply SAnimNotifyTrack::OnNotifyNodeDragStarted( TSharedRef<SAnimNotifyNode> No
 	});
 
 	// If we're dragging one of the direction markers we don't need to call any further as we don't want the drag drop op
-	if(!bDragOnMarker)
+	if (!bDragOnMarker)
 	{
 		TArray<TSharedPtr<SAnimNotifyNode>> NodesToDrag;
 		const float FirstNodeX = NotifyNodes[SelectedNodeIndices[0]]->GetWidgetPosition().X;
-		
+
 		TSharedRef<SOverlay> DragBox = SNew(SOverlay);
 		for (auto Iter = SelectedNodeIndices.CreateIterator(); Iter; ++Iter)
 		{
 			TSharedPtr<SAnimNotifyNode> Node = NotifyNodes[*Iter];
 			NodesToDrag.Add(Node);
 		}
-		
+
 		FVector2D DecoratorPosition = NodesToDrag[0]->GetWidgetPosition();
 		DecoratorPosition = CachedGeometry.LocalToAbsolute(DecoratorPosition);
 		return OnNodeDragStarted.Execute(NodesToDrag, DragBox, MouseEvent.GetScreenSpacePosition(), DecoratorPosition, bDragOnMarker);
@@ -3413,38 +3416,38 @@ FReply SAnimNotifyTrack::OnNotifyNodeDragStarted( TSharedRef<SAnimNotifyNode> No
 	}
 }
 
-FReply SAnimNotifyTrack::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply SAnimNotifyTrack::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		FVector2D CursorPos = MouseEvent.GetScreenSpacePosition();
 		CursorPos = MyGeometry.AbsoluteToLocal(CursorPos);
 		int32 HitIndex = GetHitNotifyNode(MyGeometry, CursorPos);
 
-		if (HitIndex!=INDEX_NONE)
+		if (HitIndex != INDEX_NONE)
 		{
 			// Hit a node, record the mouse position for use later so we can know when / where a
 			// drag happened on the node handles if necessary.
 			NotifyNodes[HitIndex]->SetLastMouseDownPosition(CursorPos);
-			
-			return FReply::Handled().DetectDrag( NotifyNodes[HitIndex].ToSharedRef(), EKeys::LeftMouseButton );
+
+			return FReply::Handled().DetectDrag(NotifyNodes[HitIndex].ToSharedRef(), EKeys::LeftMouseButton);
 		}
 	}
 
 	return FReply::Unhandled();
 }
 
-float SAnimNotifyTrack::CalculateTime( const FGeometry& MyGeometry, FVector2D NodePos, bool bInputIsAbsolute )
+float SAnimNotifyTrack::CalculateTime(const FGeometry& MyGeometry, FVector2D NodePos, bool bInputIsAbsolute)
 {
-	if(bInputIsAbsolute)
+	if (bInputIsAbsolute)
 	{
 		NodePos = MyGeometry.AbsoluteToLocal(NodePos);
 	}
 	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, MyGeometry.Size);
-	return FMath::Clamp<float>( ScaleInfo.LocalXToInput(NodePos.X), 0.f, Sequence->SequenceLength );
+	return FMath::Clamp<float>(ScaleInfo.LocalXToInput(NodePos.X), 0.f, Sequence->SequenceLength);
 }
 
-FReply SAnimNotifyTrack::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+FReply SAnimNotifyTrack::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	return FReply::Unhandled();
 }
@@ -3456,6 +3459,10 @@ void SAnimNotifyTrack::HandleNodeDrop(TSharedPtr<SAnimNotifyNode> Node, float Of
 	OnDeselectAllNotifies.ExecuteIfBound();
 	const FScopedTransaction Transaction(LOCTEXT("MoveNotifyEvent", "Move Anim Notify"));
 	Sequence->Modify();
+	if (Node->NodeObjectInterface->GetType() == ENodeObjectTypes::SYNC_MARKER)
+	{
+		UBlendSpaceBase::UpdateBlendSpacesUsingAnimSequence(Sequence);
+	}
 
 	float LocalX = GetCachedGeometry().AbsoluteToLocal(Node->GetScreenPosition() + Offset).X;
 	float SnapTime = Node->GetLastSnappedTime();
@@ -3615,6 +3622,8 @@ void SAnimNotifyTrack::PasteSingleSyncMarker(FString& MarkerString, float PasteT
 			// Paste failed, remove the notify
 			AnimSeq->AuthoredSyncMarkers.RemoveAt(NewIdx);
 		}
+
+		UBlendSpaceBase::UpdateBlendSpacesUsingAnimSequence(Sequence);
 
 		OnDeselectAllNotifies.ExecuteIfBound();
 		Sequence->MarkPackageDirty();
@@ -4280,10 +4289,12 @@ void SAnimNotifyPanel::OnDeletePressed()
 void SAnimNotifyPanel::DeleteSelectedNodeObjects()
 {
 	TArray<INodeObjectInterface*> SelectedNodes;
-	for(TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
+	for (TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
 	{
 		Track->AppendSelectionToArray(SelectedNodes);
 	}
+
+	const bool bContainsSyncMarkers = SelectedNodes.ContainsByPredicate([](const INodeObjectInterface* Interface) { return Interface->GetType() == ENodeObjectTypes::NOTIFY; });
 
 	if (SelectedNodes.Num() > 0)
 	{
@@ -4296,6 +4307,11 @@ void SAnimNotifyPanel::DeleteSelectedNodeObjects()
 		{
 			INodeObjectInterface* NodeObject = SelectedNodes[NodeIndex];
 			NodeObject->Delete(Sequence);
+		}
+
+		if (bContainsSyncMarkers)
+		{
+			UBlendSpaceBase::UpdateBlendSpacesUsingAnimSequence(Sequence);
 		}
 	}
 

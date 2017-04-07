@@ -15,6 +15,8 @@ struct CORE_API FAnimPhysObjectVersion
 		ConvertAnimNodeLookAtAxis = 1,
 		// Change FKSphylElem and FKBoxElem to use Rotators not Quats for easier editing
 		BoxSphylElemsUseRotators = 2,
+		// Change thumbnail scene info and asset import data to be transactional
+		ThumbnailSceneInfoAndAssetImportDataAreTransactional = 3,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

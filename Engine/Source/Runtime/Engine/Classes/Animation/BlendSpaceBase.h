@@ -282,6 +282,9 @@ class UBlendSpaceBase : public UAnimationAsset, public IInterpolationIndexProvid
 	ENGINE_API void InitializeFilter(FBlendFilter* Filter) const;
 	
 #if WITH_EDITOR	
+	/** Validates sample data for blendspaces using the given animation sequence */
+	ENGINE_API static void UpdateBlendSpacesUsingAnimSequence(UAnimSequenceBase* Sequence);
+
 	/** Validates the contained data */
 	ENGINE_API void ValidateSampleData();
 

@@ -316,12 +316,15 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorSpawnRegister::CreateNew
 
 void FLevelSequenceEditorSpawnRegister::SetupDefaultsForSpawnable(UObject* SpawnedObject, const FGuid& Guid, const FTransformData& TransformData, TSharedRef<ISequencer> Sequencer, USequencerSettings* Settings)
 {
-	for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
+	if (SpawnedObject)
 	{
-		if (MovieSceneObjectSpawner->CanSetupDefaultsForSpawnable(SpawnedObject))
+		for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
 		{
-			MovieSceneObjectSpawner->SetupDefaultsForSpawnable(SpawnedObject, Guid, TransformData, Sequencer, Settings);
-			return;
+			if (MovieSceneObjectSpawner->CanSetupDefaultsForSpawnable(SpawnedObject))
+			{
+				MovieSceneObjectSpawner->SetupDefaultsForSpawnable(SpawnedObject, Guid, TransformData, Sequencer, Settings);
+				return;
+			}
 		}
 	}
 }
@@ -345,6 +348,19 @@ void FLevelSequenceEditorSpawnRegister::HandleConvertPossessableToSpawnable(UObj
 			World->EditorDestroyActor(OldActor, true);
 		}
 	}
+}
+
+bool FLevelSequenceEditorSpawnRegister::CanConvertSpawnableToPossessable(FMovieSceneSpawnable& Spawnable) const
+{
+	for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
+	{
+		if (Spawnable.GetObjectTemplate()->IsA(MovieSceneObjectSpawner->GetSupportedTemplateType()))
+		{
+			return MovieSceneObjectSpawner->CanConvertSpawnableToPossessable(Spawnable);
+		}
+	}
+
+	return false;
 }
 
 #endif

@@ -50,16 +50,19 @@ void FSequencerObjectChangeListener::BroadcastPropertyChanged( FKeyPropertyParam
 	// For example, a property changed for the FieldOfView property will be sent for 
 	// both the CameraActor and the CameraComponent.
 	TArray<UObject*> KeyableObjects;
+	FOnAnimatablePropertyChanged Delegate;
+	UProperty* Property = nullptr;
+	FPropertyPath PropertyPath;
 	for (auto ObjectToKey : KeyPropertyParams.ObjectsToKey)
 	{
 		if (KeyPropertyParams.PropertyPath.GetNumProperties() > 0)
 		{
 			for (TFieldIterator<UProperty> PropertyIterator(ObjectToKey->GetClass()); PropertyIterator; ++PropertyIterator)
 			{
-				UProperty* Property = *PropertyIterator;
-				if (Property == KeyPropertyParams.PropertyPath.GetRootProperty().Property.Get())
+				UProperty* CheckProperty = *PropertyIterator;
+				if (CheckProperty == KeyPropertyParams.PropertyPath.GetRootProperty().Property.Get())
 				{
-					if (CanKeyProperty(FCanKeyPropertyParams(ObjectToKey->GetClass(), KeyPropertyParams.PropertyPath)))
+					if (CanKeyProperty_Internal(FCanKeyPropertyParams(ObjectToKey->GetClass(), KeyPropertyParams.PropertyPath), Delegate, Property, PropertyPath))
 					{
 						KeyableObjects.Add(ObjectToKey);
 						break;
@@ -74,44 +77,10 @@ void FSequencerObjectChangeListener::BroadcastPropertyChanged( FKeyPropertyParam
 		return;
 	}
 
-	const UStructProperty* StructProperty = Cast<const UStructProperty>(KeyPropertyParams.PropertyPath.GetLeafMostProperty().Property.Get());
-	const UStructProperty* ParentStructProperty = nullptr;
-	if (KeyPropertyParams.PropertyPath.GetNumProperties() > 1)
+	if (Delegate.IsBound() && PropertyPath.GetNumProperties() > 0 && Property != nullptr)
 	{
-		ParentStructProperty = Cast<const UStructProperty>(KeyPropertyParams.PropertyPath.GetPropertyInfo(KeyPropertyParams.PropertyPath.GetNumProperties() - 2).Property.Get());
-	}
-
-	FPropertyPath PropertyPath;
-	FName StructPropertyNameToKey = NAME_None;
-
-	bool bFoundAndBroadcastedDelegate = false;
-	if (ParentStructProperty)
-	{
-		PropertyPath = *KeyPropertyParams.PropertyPath.TrimPath(1);
-
-		// If the property parent is a struct, see if this property parent can be keyed. (e.g R,G,B,A for a color)
-		FOnAnimatablePropertyChanged Delegate = PropertyChangedEventMap.FindRef(FAnimatedPropertyKey::FromStructType(ParentStructProperty->Struct));
-		UProperty* Property = KeyPropertyParams.PropertyPath.GetLeafMostProperty().Property.Get();
-		if (Delegate.IsBound() && Property)
-		{
-			bFoundAndBroadcastedDelegate = true;
-			FPropertyChangedParams Params(KeyableObjects, PropertyPath, Property->GetFName(), KeyPropertyParams.KeyMode);
-			Delegate.Broadcast(Params);
-		}
-	}
-
-	if (!bFoundAndBroadcastedDelegate)
-	{
-		FPropertyChangedParams Params(KeyableObjects, KeyPropertyParams.PropertyPath, NAME_None, KeyPropertyParams.KeyMode);
-		if (StructProperty)
-		{
-			PropertyChangedEventMap.FindRef(FAnimatedPropertyKey::FromStructType(StructProperty->Struct)).Broadcast(Params);
-		}
-		else if (UProperty* Property = KeyPropertyParams.PropertyPath.GetLeafMostProperty().Property.Get())
-		{
-			// the property in question is not a struct or an inner of the struct. See if it is directly keyable
-			PropertyChangedEventMap.FindRef(FAnimatedPropertyKey::FromProperty(Property)).Broadcast(Params);
-		}
+		FPropertyChangedParams Params(KeyableObjects, PropertyPath, Property->GetFName(), KeyPropertyParams.KeyMode);
+		Delegate.Broadcast(Params);
 	}
 }
 
@@ -183,174 +152,112 @@ bool IsHiddenFunction(const UStruct& PropertyStructure, FAnimatedPropertyKey Pro
 	return HideFunctions.Contains(FunctionName.ToString());
 }
 
-bool FSequencerObjectChangeListener::FindPropertySetter( const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const FString& InPropertyVarName, const UStructProperty* StructProperty, const UArrayProperty* ArrayProperty) const
+const FOnAnimatablePropertyChanged* FSequencerObjectChangeListener::FindPropertySetter(const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const UProperty& Property) const
 {
-	if (!PropertyChangedEventMap.Contains( PropertyKey ))
+	const FOnAnimatablePropertyChanged* DelegatePtr = PropertyChangedEventMap.Find(PropertyKey);
+	if (DelegatePtr != nullptr)
 	{
-		return false;
-	}
+		FString PropertyVarName = Property.GetName();
 
-	FString PropertyVarName = InPropertyVarName;
+		// If this is a bool property, strip off the 'b' so that the "Set" functions to be 
+		// found are, for example, "SetHidden" instead of "SetbHidden"
+		if (PropertyKey.PropertyTypeName == "BoolProperty")
+		{
+			PropertyVarName.RemoveFromStart("b", ESearchCase::CaseSensitive);
+		}
 
-	// If this is a bool property, strip off the 'b' so that the "Set" functions to be 
-	// found are, for example, "SetHidden" instead of "SetbHidden"
-	if (PropertyKey.PropertyTypeName == "BoolProperty")
-	{
-		PropertyVarName.RemoveFromStart("b", ESearchCase::CaseSensitive);
-	}
+		static const FString Set(TEXT("Set"));
 
-	static const FString Set(TEXT("Set"));
+		const FString FunctionString = Set + PropertyVarName;
 
-	const FString FunctionString = Set + PropertyVarName;
+		FName FunctionName = FName(*FunctionString);
 
-	FName FunctionName = FName(*FunctionString);
+		static const FName DeprecatedFunctionName(TEXT("DeprecatedFunction"));
+		UFunction* Function = nullptr;
+		if (const UClass* Class = Cast<const UClass>(&PropertyStructure))
+		{
+			Function = Class->FindFunctionByName(FunctionName);
+		}
+		bool bFoundValidFunction = false;
+		if (Function && !Function->HasMetaData(DeprecatedFunctionName))
+		{
+			bFoundValidFunction = true;
+		}
 
-	static const FName DeprecatedFunctionName(TEXT("DeprecatedFunction"));
-	UFunction* Function = nullptr;
-	if (const UClass* Class = Cast<const UClass>(&PropertyStructure))
-	{
-		Function = Class->FindFunctionByName(FunctionName);
-	}
-	bool bFoundValidFunction = false;
-	if( Function && !Function->HasMetaData(DeprecatedFunctionName) )
-	{
-		bFoundValidFunction = true;
-	}
+		bool bFoundValidInterp = false;
+		bool bFoundEditDefaultsOnly = false;
+		bool bFoundEdit = false;
 
-	bool bFoundValidInterp = false;
-	bool bFoundEditDefaultsOnly = false;
-	bool bFoundEdit = false;
-	if (ArrayProperty != nullptr)
-	{
-		if (ArrayProperty->HasAnyPropertyFlags(CPF_Interp))
+		if (Property.HasAnyPropertyFlags(CPF_Interp))
 		{
 			bFoundValidInterp = true;
 		}
-		if (ArrayProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
+
+		// @TODO: should we early out of our property path iteration if we find an "edit defaults only" property?
+		if (Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance))
 		{
 			bFoundEditDefaultsOnly = true;
 		}
-		if (ArrayProperty->HasAnyPropertyFlags(CPF_Edit))
+		if (Property.HasAnyPropertyFlags(CPF_Edit))
 		{
 			bFoundEdit = true;
 		}
-	}
-	else if (StructProperty != nullptr)
-	{
-		if (StructProperty->HasAnyPropertyFlags(CPF_Interp))
+
+		const bool bIsHiddenFunction = IsHiddenFunction(PropertyStructure, FAnimatedPropertyKey::FromProperty(&Property), Property.GetName());
+
+		// Valid if there's a setter function and the property is editable. Also valid if there's an interp keyword.
+		if (((bFoundValidFunction && bFoundEdit && !bFoundEditDefaultsOnly) || bFoundValidInterp) && !bIsHiddenFunction)
 		{
-			bFoundValidInterp = true;
-		}
-		if (StructProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
-		{
-			bFoundEditDefaultsOnly = true;
-		}
-		if (StructProperty->HasAnyPropertyFlags(CPF_Edit))
-		{
-			bFoundEdit = true;
+			return DelegatePtr;
 		}
 	}
-	else
-	{
-		UProperty* Property = PropertyStructure.FindPropertyByName(FName(*InPropertyVarName));
-		if (Property)
-		{
-			if (Property->HasAnyPropertyFlags(CPF_Interp))
-			{
-				bFoundValidInterp = true;
-			}
-			if (Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
-			{
-				bFoundEditDefaultsOnly = true;
-			}
-			if (Property->HasAnyPropertyFlags(CPF_Edit))
-			{
-				bFoundEdit = true;
-			}
-		}
-	}
-	
-	// Valid if there's a setter function and the property is editable. Also valid if there's an interp keyword.
-	return (bFoundValidFunction && bFoundEdit && !bFoundEditDefaultsOnly) || bFoundValidInterp;
+
+	return nullptr;
 }
 
 bool FSequencerObjectChangeListener::CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const
+{
+	FOnAnimatablePropertyChanged Delegate;
+	UProperty* Property = nullptr;
+	FPropertyPath PropertyPath;
+	return CanKeyProperty_Internal(CanKeyPropertyParams, Delegate, Property, PropertyPath);
+}
+
+bool FSequencerObjectChangeListener::CanKeyProperty_Internal(FCanKeyPropertyParams CanKeyPropertyParams, FOnAnimatablePropertyChanged& InOutDelegate, UProperty*& InOutProperty, FPropertyPath& InOutPropertyPath) const
 {
 	if (CanKeyPropertyParams.PropertyPath.GetNumProperties() == 0)
 	{
 		return false;
 	}
 
-	const UStructProperty* StructProperty = Cast<const UStructProperty>(CanKeyPropertyParams.PropertyPath.GetLeafMostProperty().Property.Get());
-	const UStructProperty* ParentStructProperty = nullptr;
-	if (CanKeyPropertyParams.PropertyPath.GetNumProperties() > 1)
+	// iterate over the property path trying to find keyable properties
+	InOutPropertyPath = FPropertyPath();
+	for (int32 Index = 0; Index < CanKeyPropertyParams.PropertyPath.GetNumProperties(); ++Index)
 	{
-		ParentStructProperty = Cast<const UStructProperty>(CanKeyPropertyParams.PropertyPath.GetPropertyInfo(CanKeyPropertyParams.PropertyPath.GetNumProperties() - 2).Property.Get());
-	}
+		const FPropertyInfo& PropertyInfo = CanKeyPropertyParams.PropertyPath.GetPropertyInfo(Index);
 
-	const UArrayProperty* ParentArrayProperty = nullptr;
-	if (CanKeyPropertyParams.PropertyPath.GetNumProperties() > 2)
-	{
-		ParentArrayProperty = Cast<const UArrayProperty>(CanKeyPropertyParams.PropertyPath.GetPropertyInfo(CanKeyPropertyParams.PropertyPath.GetNumProperties() - 3).Property.Get());
-	}
+		// Add this to our 'potentially truncated' path
+		InOutPropertyPath.AddProperty(PropertyInfo);
 
-	bool bFound = false;
-	if ( StructProperty )
-	{
-		const UStruct* PropertyContainer = CanKeyPropertyParams.FindPropertyContainer(StructProperty);
-		bFound = FindPropertySetter(*PropertyContainer, FAnimatedPropertyKey::FromStructType(StructProperty->Struct), StructProperty->GetName(), StructProperty );
-	}
-
-	if( !bFound && ParentStructProperty )
-	{
-		// If the property parent is a struct, see if this property parent can be keyed.
-		const UStruct* PropertyContainer = CanKeyPropertyParams.FindPropertyContainer(ParentStructProperty);
-		bFound = FindPropertySetter(*PropertyContainer, FAnimatedPropertyKey::FromStructType(ParentStructProperty->Struct), ParentStructProperty->GetName(), ParentStructProperty );
-
-		if (!bFound && ParentArrayProperty)
+		UProperty* Property = CanKeyPropertyParams.PropertyPath.GetPropertyInfo(Index).Property.Get();
+		if (Property)
 		{
-			// If the property parent is a struct contained in an array, see if this property parent can be keyed.
-			PropertyContainer = CanKeyPropertyParams.FindPropertyContainer(ParentStructProperty);
-			bFound = FindPropertySetter(*PropertyContainer, FAnimatedPropertyKey::FromStructType(ParentStructProperty->Struct), ParentStructProperty->GetName(), ParentStructProperty, ParentArrayProperty);
+			const UStruct* PropertyContainer = CanKeyPropertyParams.FindPropertyContainer(Property);
+			if (PropertyContainer)
+			{
+				FAnimatedPropertyKey PropertyKey = FAnimatedPropertyKey::FromProperty(Property);
+				const FOnAnimatablePropertyChanged* DelegatePtr = FindPropertySetter(*PropertyContainer, PropertyKey, *Property);
+				if (DelegatePtr != nullptr)
+				{
+					InOutProperty = Property;
+					InOutDelegate = *DelegatePtr;
+					return true;
+				}
+			}
 		}
 	}
 
-	UProperty* Property = CanKeyPropertyParams.PropertyPath.GetLeafMostProperty().Property.Get();
-	if( !bFound && Property )
-	{
-		// the property in question is not a struct or an inner of the struct. See if it is directly keyable
-		const UStruct* PropertyContainer = CanKeyPropertyParams.FindPropertyContainer(Property);
-		bFound = FindPropertySetter(*PropertyContainer, FAnimatedPropertyKey::FromProperty(Property), Property->GetName());
-
-		if (IsHiddenFunction(*PropertyContainer, FAnimatedPropertyKey::FromProperty(Property), Property->GetName()))
-		{
-			return false;
-		}
-	}
-
-	if ( !bFound && Property )
-	{
-		bool bFoundValidInterp = false;
-		bool bFoundEditDefaultsOnly = false;
-		bool bFoundEdit = false;
-		if (Property->HasAnyPropertyFlags(CPF_Interp))
-		{
-			bFoundValidInterp = true;
-		}
-		if (Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
-		{
-			bFoundEditDefaultsOnly = true;
-		}
-		if (Property->HasAnyPropertyFlags(CPF_Edit))
-		{
-			bFoundEdit = true;
-		}
-
-		// Valid Interp keyword is found. The property also needs to be editable.
-		bFound = bFoundValidInterp && bFoundEdit && !bFoundEditDefaultsOnly;
-	}
-
-	return bFound;
+	return false;
 }
 
 void FSequencerObjectChangeListener::KeyProperty(FKeyPropertyParams KeyPropertyParams) const

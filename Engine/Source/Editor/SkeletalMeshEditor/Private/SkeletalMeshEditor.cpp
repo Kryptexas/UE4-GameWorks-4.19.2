@@ -502,7 +502,7 @@ void FSkeletalMeshEditor::ExtendMenu()
 	AddMenuExtender(MenuExtender);
 
 	ISkeletalMeshEditorModule& SkeletalMeshEditorModule = FModuleManager::GetModuleChecked<ISkeletalMeshEditorModule>("SkeletalMeshEditor");
-	AddMenuExtender(SkeletalMeshEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+	AddMenuExtender(SkeletalMeshEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 }
 
 void FSkeletalMeshEditor::HandleObjectsSelected(const TArray<UObject*>& InObjects)

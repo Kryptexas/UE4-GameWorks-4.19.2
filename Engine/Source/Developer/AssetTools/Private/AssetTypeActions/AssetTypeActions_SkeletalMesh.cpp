@@ -33,6 +33,7 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "ISkeletalMeshEditorModule.h"
 #include "ApexClothingUtils.h"
+#include "Algo/Transform.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -455,7 +456,7 @@ void FAssetTypeActions_SkeletalMesh::GetActions( const TArray<UObject*>& InObjec
 	GetNonDestructibleActions(Meshes, MenuBuilder);
 }
 
-void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
+void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
 {
 	MenuBuilder.BeginSection("CreatePhysicsAsset", LOCTEXT("CreatePhysicsAssetMenuHeading", "Physics Asset"));
 	{
@@ -466,16 +467,9 @@ void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, c
 	}
 	MenuBuilder.EndSection();
 
-	// Get the skeleton for each selected skeletal mesh
-	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
-	Skeletons.Reserve(Meshes.Num());
-	for (int32 i = 0; i < Meshes.Num(); i++)
-	{
-		Skeletons.Add(Meshes[i]->Skeleton);
-	}
-	
-	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_SkeletalMesh::OnAssetCreated));
-
+	TArray<TWeakObjectPtr<UObject>> Objects;
+	Algo::Transform(Meshes, Objects, [](const TWeakObjectPtr<USkeletalMesh>& SkelMesh) { return SkelMesh; });
+	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Objects, FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_SkeletalMesh::OnAssetCreated));
 }
 
 void FAssetTypeActions_SkeletalMesh::GetNonDestructibleActions( const TArray<TWeakObjectPtr<USkeletalMesh>>& Meshes, FMenuBuilder& MenuBuilder)
@@ -555,7 +549,7 @@ UThumbnailInfo* FAssetTypeActions_SkeletalMesh::GetThumbnailInfo(UObject* Asset)
 	UThumbnailInfo* ThumbnailInfo = SkeletalMesh->ThumbnailInfo;
 	if ( ThumbnailInfo == NULL )
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfo>(SkeletalMesh);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(SkeletalMesh, NAME_None, RF_Transactional);
 		SkeletalMesh->ThumbnailInfo = ThumbnailInfo;
 	}
 
@@ -724,7 +718,7 @@ void FAssetTypeActions_SkeletalMesh::ExecuteImportClothing(TArray<TWeakObjectPtr
 	}
 }
 
-void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
+void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
 {
 	MenuBuilder.BeginSection("SkeletonMenu", LOCTEXT("SkeletonMenuHeading", "Skeleton"));
 	MenuBuilder.AddMenuEntry(

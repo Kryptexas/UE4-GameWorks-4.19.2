@@ -204,7 +204,7 @@ private:
 	void CacheHierarchyTransforms(const float StartSampleTime, const float EndSampleTime);
 	
 	/** Retrieves a material according to the given name and resaves it into the parent package*/
-	UMaterial* RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags );
+	UMaterialInterface* RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags );
 		
 	/** Compresses the imported animation data, returns true if compression was successful and compressed data was populated */
 	const bool CompressAnimationDataUsingPCA(const FAbcCompressionSettings& InCompressionSettings, const bool bRunComparison = false);	

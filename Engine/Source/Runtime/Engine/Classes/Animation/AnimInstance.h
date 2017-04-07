@@ -1005,7 +1005,8 @@ public:
 public:
 
 	/** Access the required bones array */
-	FBoneContainer& GetRequiredBones();	
+	FBoneContainer& GetRequiredBones();
+	const FBoneContainer& GetRequiredBones() const;
 
 	/** Animation Notifies that has been triggered in the latest tick **/
 	FAnimNotifyQueue NotifyQueue;
@@ -1151,9 +1152,6 @@ protected:
 
 	/** Called to setup for updates */
 	void PreUpdateAnimation(float DeltaSeconds);
-
-	/** Actually does the update work, can be called from a worker thread  */
-	void UpdateAnimationInternal_Concurrent(float DeltaSeconds, FAnimInstanceProxy& Proxy);
 
 	/** update animation curves to component */
 	void UpdateCurvesToComponents(USkeletalMeshComponent* Component);

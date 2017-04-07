@@ -1097,21 +1097,33 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 						// Fix RequiredBones array.
 						for (int32 j = 0; j < LODModel.RequiredBones.Num() && !bMissingBone; j++)
 						{
-							int32 NewBoneIndex = OldToNewMap[LODModel.RequiredBones[j]];
-							if (NewBoneIndex == INDEX_NONE)
+							const int32 OldBoneIndex = LODModel.RequiredBones[j];
+
+							if(OldToNewMap.IsValidIndex(OldBoneIndex))	//Previously virtual bones could end up in this array
+																		// Must validate against this
 							{
-								bMissingBone = true;
-								MissingBoneName = MeshData->ExistingRefSkeleton.GetBoneName(LODModel.RequiredBones[j]);
+								const int32 NewBoneIndex = OldToNewMap[OldBoneIndex];
+								if (NewBoneIndex == INDEX_NONE)
+								{
+									bMissingBone = true;
+									MissingBoneName = MeshData->ExistingRefSkeleton.GetBoneName(OldBoneIndex);
+								}
+								else
+								{
+									LODModel.RequiredBones[j] = NewBoneIndex;
+								}
 							}
 							else
 							{
-								LODModel.RequiredBones[j] = NewBoneIndex;
+								//Bone didn't exist in our required bones, clean up. 
+								LODModel.RequiredBones.RemoveAt(j,1,false);
+								--j;
 							}
 						}
 
 						// Sort ascending for parent child relationship
 						LODModel.RequiredBones.Sort();
-						LODModel.ActiveBoneIndices.Sort();
+						SkeletalMesh->RefSkeleton.EnsureParentExists(LODModel.ActiveBoneIndices);
 
 						// Fix the sections' BoneMaps.
 						for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)

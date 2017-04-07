@@ -1260,7 +1260,8 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, con
 		}
 	}
 
-	LODModel.ActiveBoneIndices.Sort();
+	// ensure parent exists with incoming active bone indices, and the result should be sorted	
+	RefSkeleton.EnsureParentExists(LODModel.ActiveBoneIndices);
 
 	// Reset 'final vertex to import vertex' map info
 	LODModel.MeshToImportVertexMap.Empty();

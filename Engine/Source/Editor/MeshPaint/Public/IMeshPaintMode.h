@@ -75,6 +75,8 @@ private:
 
 	/** Called when rerunning a construction script causes objects to be replaced */
 	void OnObjectsReplaced(const TMap<UObject*, UObject*>& OldToNewInstanceMap);
+
+	void OnResetViewMode();
 private:	
 	/** When painting in VR, this is the hand index that we're painting with.  Otherwise INDEX_NONE. */
 	UViewportInteractor* PaintingWithInteractorInVR;
@@ -85,5 +87,5 @@ private:
 	FDelegateHandle SelectionChangedHandle;
 protected:
 	/** Painter used by this edit mode for applying paint actions */
-	IMeshPainter* MeshPainter;
+	IMeshPainter* MeshPainter;	
 };

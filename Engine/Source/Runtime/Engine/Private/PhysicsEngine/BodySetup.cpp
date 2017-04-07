@@ -871,10 +871,7 @@ void UBodySetup::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITOR
-	if ( Ar.IsLoading() )
-	{
-		AggGeom.FixupDeprecated( Ar );
-	}
+	AggGeom.FixupDeprecated( Ar );
 #endif
 }
 
@@ -1642,7 +1639,8 @@ FKSphylElem FKSphylElem::GetFinalScaled(const FVector& Scale3D, const FTransform
 
 	FVector LocalOrigin = RelativeTM.TransformPosition(Center) * Scale3D;
 	ScaledSphylElem.Center = LocalOrigin;
-	
+	ScaledSphylElem.Rotation = FRotator(RelativeTM.GetRotation() * FQuat(ScaledSphylElem.Rotation));
+
 	return ScaledSphylElem;
 }
 

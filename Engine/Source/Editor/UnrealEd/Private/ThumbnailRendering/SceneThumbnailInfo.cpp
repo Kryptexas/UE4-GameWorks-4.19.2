@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "AnimPhysObjectVersion.h"
 
 
 USceneThumbnailInfo::USceneThumbnailInfo(const FObjectInitializer& ObjectInitializer)
@@ -25,4 +26,16 @@ bool USceneThumbnailInfo::DiffersFromDefault() const
 	return OrbitPitch != Default->OrbitPitch ||
 		OrbitYaw != Default->OrbitYaw ||
 		OrbitZoom != Default->OrbitZoom;
+}
+
+void USceneThumbnailInfo::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
+
+	if (Ar.CustomVer(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::ThumbnailSceneInfoAndAssetImportDataAreTransactional)
+	{
+		SetFlags(RF_Transactional);
+	}
 }

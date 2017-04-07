@@ -464,13 +464,6 @@ private:
 	FPendingConstraintData PendingConstraintData[PST_MAX];
 	
 public:
-
-	/** Whether or not the results of the simulation has updated yet. This can be important for trying to set the body transform or velocity (which is double buffered during simulation) */
-	bool IsPendingSimulationTransforms(uint32 SceneType) const
-	{
-		return PendingSimulationTransforms[SceneType];
-	}
-
 #if WITH_PHYSX
 	/** Static factory used to override the simulation event callback from other modules.
 	If not set it defaults to using FPhysXSimEventCallback. */
@@ -684,10 +677,7 @@ private:
 #endif
 
 	class FPhysSubstepTask * PhysSubSteppers[PST_MAX];
-
-	/** Indicates whether the physx scene is currently simulating*/
-	bool PendingSimulationTransforms[PST_MAX];
-
+	
 #if WITH_APEX
 	TUniquePtr<struct FPendingApexDamageManager> PendingApexDamageManager;
 #endif

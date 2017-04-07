@@ -47,10 +47,6 @@ public:
 		, AudioDevice(AudioDevice)
 		, OvrAudioContext(nullptr)
 	{
-		// XAudio2's buffer lengths are always 1 percent of sample rate
-		uint32 BufferLength = AudioDevice->SampleRate / 100;
-		InitializeSpatializationEffect(BufferLength);
-
 		check(HRTFEffects.Num() == 0);
 		check(Params.Num() == 0);
 

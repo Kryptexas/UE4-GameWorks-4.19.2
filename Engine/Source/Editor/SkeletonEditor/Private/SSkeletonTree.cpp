@@ -1373,6 +1373,11 @@ void SSkeletonTree::SetSelectedBone( const FName& BoneName )
 		// This function is called when something else selects a bone (i.e. *NOT* the user clicking on a row in the treeview)
 		// For example, this would be called if user clicked a bone hit point in the preview window
 
+		if (GetPreviewScene().IsValid())
+		{
+			GetPreviewScene()->SetSelectedBone(BoneName);
+		}
+
 		// Find which row (if any) contains the bone requested
 		for (auto SkeletonRowIt = LinearItems.CreateConstIterator(); SkeletonRowIt; ++SkeletonRowIt)
 		{
@@ -1383,11 +1388,6 @@ void SSkeletonTree::SetSelectedBone( const FName& BoneName )
 				SkeletonTreeView->SetSelection(SkeletonRow);
 				SkeletonTreeView->RequestScrollIntoView(SkeletonRow);
 			}
-		}
-
-		if (GetPreviewScene().IsValid())
-		{
-			GetPreviewScene()->SetSelectedBone(BoneName);
 		}
 
 		BoneProxy->BoneName = BoneName;

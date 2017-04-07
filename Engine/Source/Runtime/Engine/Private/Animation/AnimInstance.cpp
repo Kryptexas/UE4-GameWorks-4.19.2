@@ -2739,6 +2739,11 @@ FBoneContainer& UAnimInstance::GetRequiredBones()
 	return GetProxyOnGameThread<FAnimInstanceProxy>().GetRequiredBones();
 }
 
+const FBoneContainer& UAnimInstance::GetRequiredBones() const
+{
+	return GetProxyOnGameThread<FAnimInstanceProxy>().GetRequiredBones();
+}
+
 void UAnimInstance::QueueRootMotionBlend(const FTransform& RootTransform, const FName& SlotName, float Weight)
 {
 	RootMotionBlendQueue.Add(FQueuedRootMotionBlend(RootTransform, SlotName, Weight));

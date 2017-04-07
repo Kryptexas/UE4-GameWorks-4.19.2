@@ -83,13 +83,13 @@ public:
 	static void ClearMeshTextureOverrides(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent);
 
 	/** Applies vertex color painting found on LOD 0 to all lower LODs. */
-	static void ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent);
+	static void ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent);
 
 	/** Applies the vertex colors found in LOD level 0 to all contained LOD levels in the StaticMeshComponent */
-	static void ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, UStaticMeshComponent* StaticMeshComponent);
+	static void ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& GeometryInfo, UStaticMeshComponent* StaticMeshComponent);
 
 	/** Applies the vertex colors found in LOD level 0 to all contained LOD levels in the SkeletalMeshComponent */
-	static void ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, USkeletalMeshComponent* SkeletalMeshComponent);
+	static void ApplyVertexColorsToAllLODs(IMeshPaintGeometryAdapter& GeometryInfo, USkeletalMeshComponent* SkeletalMeshComponent);
 
 	/** Returns the number of Mesh LODs for the given MeshComponent */
 	static int32 GetNumberOfLODs(const UMeshComponent* MeshComponent);
@@ -117,6 +117,9 @@ public:
 
 	/** Applies Vertex Blend Weight Painting according to the given parameters */
 	static void ApplyVertexWeightPaint(const FMeshPaintParameters &InParams, const FLinearColor &OldColor, const float PaintAmount, FLinearColor &NewColor);
+
+	/** Generate texture weight color for given number of weights and the to-paint index */
+	static FLinearColor GenerateColorForTextureWeight(const int32 NumWeights, const int32 WeightIndex);
 
 	/** Computes the Paint power multiplier value */
 	static float ComputePaintMultiplier(float SquaredDistanceToVertex2D, float BrushStrength, float BrushInnerRadius, float BrushRadialFalloff, float BrushInnerDepth, float BrushDepthFallof, float VertexDepthToBrush);

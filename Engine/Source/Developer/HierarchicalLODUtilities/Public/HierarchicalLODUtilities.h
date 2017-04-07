@@ -50,5 +50,6 @@ public:
 	virtual int32 GetLODLevelForScreenSize(const UStaticMeshComponent* StaticMeshComponent, const float ScreenSize) override;
 	virtual AHierarchicalLODVolume* CreateVolumeForLODActor(ALODActor* InLODActor, UWorld* InWorld) override;
 	virtual void HandleActorModified(AActor* InActor) override;
+	virtual bool IsWorldUsedForStreaming(const UWorld* InWorld) override;
 };
 

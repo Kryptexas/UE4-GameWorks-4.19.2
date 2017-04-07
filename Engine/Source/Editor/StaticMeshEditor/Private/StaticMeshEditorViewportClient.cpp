@@ -74,7 +74,8 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;
 
-	bShowCollision = false;
+	bShowSimpleCollision = false;
+	bShowComplexCollision = false;
 	bShowSockets = true;
 	bDrawUVs = false;
 	bDrawNormals = false;
@@ -448,13 +449,14 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 		return;
 	}
 
-	if (bShowCollision && StaticMesh->BodySetup)
+	// Draw simple shapes if we are showing simple, or showing complex but using simple as complex
+	if (StaticMesh->BodySetup && (bShowSimpleCollision || (bShowComplexCollision && StaticMesh->BodySetup->CollisionTraceFlag == ECollisionTraceFlag::CTF_UseSimpleAsComplex)))
 	{
 		// Ensure physics mesh is created before we try and draw it
 		StaticMesh->BodySetup->CreatePhysicsMeshes();
 
-		const FColor SelectedColor(149, 223, 157);
-		const FColor UnselectedColor(157, 149, 223);
+		const FColor SelectedColor(20, 220, 20);
+		const FColor UnselectedColor(0, 125, 0);
 
 		const FVector VectorScaleOne(1.0f);
 
@@ -1246,7 +1248,8 @@ void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, 
 
 	if(StaticMeshComponent != nullptr)
 	{
-		StaticMeshComponent->bDrawMeshCollisionWireframe = bShowCollision;
+		StaticMeshComponent->bDrawMeshCollisionIfSimple = bShowSimpleCollision;
+		StaticMeshComponent->bDrawMeshCollisionIfComplex = bShowComplexCollision;
 		StaticMeshComponent->MarkRenderStateDirty();
 	}
 	
@@ -1368,27 +1371,50 @@ bool FStaticMeshEditorViewportClient::IsSetDrawVerticesChecked() const
 	return bDrawVertices;
 }
 
-void FStaticMeshEditorViewportClient::SetShowWireframeCollision()
+void FStaticMeshEditorViewportClient::SetShowSimpleCollision()
 {
-	bShowCollision = !bShowCollision;
+	bShowSimpleCollision = !bShowSimpleCollision;
 
-	if(StaticMeshComponent != nullptr)
+	if (StaticMeshComponent != nullptr)
 	{
-		StaticMeshComponent->bDrawMeshCollisionWireframe = bShowCollision;
+		// Have to set this flag in case we are using 'use complex as simple'
+		StaticMeshComponent->bDrawMeshCollisionIfSimple = bShowSimpleCollision;
 		StaticMeshComponent->MarkRenderStateDirty();
 	}
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bShowCollision"), bShowCollision ? TEXT("True") : TEXT("False"));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bShowCollision"), (bShowSimpleCollision || bShowComplexCollision) ? TEXT("True") : TEXT("False"));
 	}
 	StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetShowWireframeCollisionChecked() const
+bool FStaticMeshEditorViewportClient::IsSetShowSimpleCollisionChecked() const
 {
-	return bShowCollision;
+	return bShowSimpleCollision;
+}
+
+void FStaticMeshEditorViewportClient::SetShowComplexCollision()
+{
+	bShowComplexCollision = !bShowComplexCollision;
+
+	if (StaticMeshComponent != nullptr)
+	{
+		StaticMeshComponent->bDrawMeshCollisionIfComplex = bShowComplexCollision;
+		StaticMeshComponent->MarkRenderStateDirty();
+	}
+
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bShowCollision"), (bShowSimpleCollision || bShowComplexCollision) ? TEXT("True") : TEXT("False"));
+	}
+	Invalidate();
+}
+
+bool FStaticMeshEditorViewportClient::IsSetShowComplexCollisionChecked() const
+{
+	return bShowComplexCollision;
 }
 
 void FStaticMeshEditorViewportClient::SetShowSockets()

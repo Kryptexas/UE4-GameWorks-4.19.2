@@ -271,17 +271,20 @@ FAbcMeshSample* AbcImporterUtilities::GenerateAbcMeshSampleForFrame(Alembic::Abc
 	Alembic::AbcGeom::IC4fGeomParam Color4Property;
 
 	Alembic::AbcGeom::ICompoundProperty GeomParams = Schema.getArbGeomParams();
-	const int32 NumGeomParams = GeomParams.getNumProperties();
-	for (int32 GeomParamIndex = 0; GeomParamIndex < NumGeomParams; ++GeomParamIndex)
+	if (GeomParams.valid())
 	{
-		auto PropertyHeader = GeomParams.getPropertyHeader(GeomParamIndex);
-		if (Alembic::AbcGeom::IC3fGeomParam::matches(PropertyHeader))
+		const int32 NumGeomParams = GeomParams.getNumProperties();
+		for (int32 GeomParamIndex = 0; GeomParamIndex < NumGeomParams; ++GeomParamIndex)
 		{
-			Color3Property = Alembic::AbcGeom::IC3fGeomParam(GeomParams, PropertyHeader.getName());
-		}
-		else if (Alembic::AbcGeom::IC4fGeomParam::matches(PropertyHeader))
-		{
-			Color4Property = Alembic::AbcGeom::IC4fGeomParam(GeomParams, PropertyHeader.getName());
+			auto PropertyHeader = GeomParams.getPropertyHeader(GeomParamIndex);
+			if (Alembic::AbcGeom::IC3fGeomParam::matches(PropertyHeader))
+			{
+				Color3Property = Alembic::AbcGeom::IC3fGeomParam(GeomParams, PropertyHeader.getName());
+			}
+			else if (Alembic::AbcGeom::IC4fGeomParam::matches(PropertyHeader))
+			{
+				Color4Property = Alembic::AbcGeom::IC4fGeomParam(GeomParams, PropertyHeader.getName());
+			}
 		}
 	}	
 

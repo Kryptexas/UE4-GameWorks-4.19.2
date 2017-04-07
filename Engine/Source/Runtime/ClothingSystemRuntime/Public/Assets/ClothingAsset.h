@@ -171,6 +171,10 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothPhysicalMeshData
 	// Number of fixed verts in the simulation mesh (fixed verts are just skinned and do not simulate)
 	UPROPERTY(EditAnywhere, Category = SimMesh)
 	int32 NumFixedVerts;
+
+	// Valid indices to use for self collisions (reduced set of Indices)
+	UPROPERTY(EditAnywhere, Category = SimMesh)
+	TArray<uint32> SelfCollisionIndices;
 };
 
 USTRUCT()
@@ -265,7 +269,7 @@ enum class EClothingWindMethod : uint8
 	// Use updated wind calculation for NvCloth based solved taking into account
 	// drag and lift, this will require those properties to be correctly set in
 	// the clothing configuration
-	Accurate
+	Accurate UMETA(Hidden)
 };
 
 /** Holds initial, asset level config for clothing actors. */
@@ -492,6 +496,18 @@ public:
 	void BuildLodTransitionData();
 #endif
 
+	virtual void PostLoad() override;
+
+	/** 
+	 * Builds self collision data
+	 * This is a subset of actual verts that need to be considered for self collision such that we cover
+	 * as much of the mesh as possible in collision bodies so that nothing can fall through
+	 */
+	void BuildSelfCollisionData();
+
+	// Calculates the prefered root bone for the simulation
+	void CalculateReferenceBoneIndex();
+
 	// Configuration of the cloth, contains all the parameters for how the clothing behaves
 	UPROPERTY(EditAnywhere, Category = Config)
 	FClothConfig ClothConfig;
@@ -511,6 +527,10 @@ public:
 	// List of the indices for the bones in UsedBoneNames, used for remapping
 	UPROPERTY()
 	TArray<int32> UsedBoneIndices;
+
+	// Bone to treat as the root of the simulation space
+	UPROPERTY()
+	int32 ReferenceBoneIndex;
 
 	/** Custom data applied by the importer depending on where the asset was imported from */
 	UPROPERTY()

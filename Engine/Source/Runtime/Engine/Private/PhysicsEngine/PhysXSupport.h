@@ -281,8 +281,9 @@ class FPhysXAllocator : public PxAllocatorCallback
 
 		FName AllocationTypeName;
 		size_t	AllocationSize;
-		uint8 Padding[8];	//physx needs 16 byte alignment. Additionally we fill padding with a pattern to see if there's any memory stomps
-		uint8 Padding2[(sizeof(FName) + sizeof(size_t) + sizeof(Padding)) % 16];
+		static const int PaddingSize = 8;
+		uint8 Padding[PaddingSize];	//physx needs 16 byte alignment. Additionally we fill padding with a pattern to see if there's any memory stomps
+		uint8 Padding2[(sizeof(FName) + sizeof(size_t) + PaddingSize) % 16];
 
 		void Validate() const
 		{

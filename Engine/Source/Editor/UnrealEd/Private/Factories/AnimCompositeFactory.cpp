@@ -93,6 +93,10 @@ UObject* UAnimCompositeFactory::FactoryCreateNew(UClass* Class, UObject* InParen
 		}
 		
 		AnimComposite->SetSkeleton( TargetSkeleton );
+		if (PreviewSkeletalMesh)
+		{
+			AnimComposite->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return AnimComposite;
 	}

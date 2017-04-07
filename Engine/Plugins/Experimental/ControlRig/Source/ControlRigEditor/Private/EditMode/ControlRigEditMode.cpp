@@ -282,24 +282,28 @@ void FControlRigEditMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 		{
 			if (UHierarchicalRig* HierarchicalRig = Cast<UHierarchicalRig>(ControlRigs[0].Get()))
 			{
-				FWidget::EWidgetMode CurrentMode = GetModeManager()->GetWidgetMode();
-				bool bModeSupported = false;
-				for (const FName& SelectedNode : SelectedNodes)
+				if (SelectedNodes.Num() > 0)
 				{
-					UControlManipulator* Manipulator = HierarchicalRig->FindManipulator(SelectedNode);
-					if (Manipulator)
+					FWidget::EWidgetMode CurrentMode = GetModeManager()->GetWidgetMode();
+					bool bModeSupported = false;
+					for (const FName& SelectedNode : SelectedNodes)
 					{
-						if (Manipulator->SupportsTransformComponent(WidgetModeToTransformComponent(CurrentMode)))
+						UControlManipulator* Manipulator = HierarchicalRig->FindManipulator(SelectedNode);
+						if (Manipulator)
 						{
-							bModeSupported = true;
+							if (Manipulator->SupportsTransformComponent(WidgetModeToTransformComponent(CurrentMode)))
+							{
+								bModeSupported = true;
+							}
 						}
+					}
+
+					if (!bModeSupported)
+					{
+						GetModeManager()->CycleWidgetMode();
 					}
 				}
 
-				if (!bModeSupported)
-				{
-					GetModeManager()->CycleWidgetMode();
-				}
 				ViewportClient->Invalidate();
 			}
 		}

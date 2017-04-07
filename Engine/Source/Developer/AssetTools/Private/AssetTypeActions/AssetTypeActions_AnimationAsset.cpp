@@ -97,7 +97,7 @@ UThumbnailInfo* FAssetTypeActions_AnimationAsset::GetThumbnailInfo(UObject* Asse
 	UThumbnailInfo* ThumbnailInfo = Anim->ThumbnailInfo;
 	if (ThumbnailInfo == NULL)
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfo>(Anim);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(Anim, NAME_None, RF_Transactional);
 		Anim->ThumbnailInfo = ThumbnailInfo;
 	}
 

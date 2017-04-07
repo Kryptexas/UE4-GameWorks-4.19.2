@@ -2293,6 +2293,8 @@ public:
 	/** Map of LOD levels to frame skip amounts. if bShouldUseLodMap is set these values will be used for
 	 * the frameskip amounts and the distance factor thresholds will be ignored. The flag and these values
 	 * should be configured using the customization callback when parameters are created for a component.
+	 *
+	 * Note that this is # of frames to skip, so if you have 20, that means every 21th frame, it will update, and evaluate. 
 	 */
 	UPROPERTY()
 	TMap<int32, int32> LODToFrameSkipMap;

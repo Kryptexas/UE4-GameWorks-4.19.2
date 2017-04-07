@@ -36,12 +36,13 @@ class FAnimCurveBaseInterface : public FCurveOwnerInterface
 private:
 	FAnimCurveBase*	CurveData;
 
-	void UpdateNameInternal(FRawCurveTracks& RawCurveData, const SmartName::UID_Type& RequestedNameUID, FName RequestedName)
+	void UpdateNameInternal(FRawCurveTracks& RawCurveData, const SmartName::UID_Type& RequestedNameUID, const FGuid& RequestedNameGuid, FName RequestedName)
 	{
 		FAnimCurveBase* CurrentCurveData = RawCurveData.GetCurveData(CurveUID);
 		if (CurrentCurveData)
 		{
 			CurrentCurveData->Name.UID = RequestedNameUID;
+			CurrentCurveData->Name.Guid = RequestedNameGuid;
 			CurrentCurveData->Name.DisplayName = RequestedName;
 		}
 	}
@@ -157,12 +158,12 @@ public:
 		CurrentCurveData->FloatCurve.AddKey(0.0f, 1.0f);
 	}
 
-	void UpdateName(const SmartName::UID_Type& RequestedNameUID, FName RequestedName)
+	void UpdateName(const SmartName::UID_Type& RequestedNameUID, const FGuid& RequestedNameGuid, FName RequestedName)
 	{
-		UpdateNameInternal(AnimSequenceBase.Get()->RawCurveData, RequestedNameUID, RequestedName);
+		UpdateNameInternal(AnimSequenceBase.Get()->RawCurveData, RequestedNameUID, RequestedNameGuid, RequestedName);
 		if (UAnimSequence* Seq = AnimSequence.Get())
 		{
-			UpdateNameInternal(Seq->CompressedCurveData, RequestedNameUID, RequestedName);
+			UpdateNameInternal(Seq->CompressedCurveData, RequestedNameUID, RequestedNameGuid, RequestedName);
 		}
 		CurveUID = RequestedNameUID;
 	}
@@ -439,10 +440,16 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 				// If requested name exists, make sure it's not currently in use in this sequence.
 
 				SmartName::UID_Type RequestedNameUID;
+				FGuid RequestedNameGuid;
 
 				if (const SmartName::UID_Type* RequestedNameUIDPtr = NameMapping->FindUID(RequestedName))
 				{
 					RequestedNameUID = *RequestedNameUIDPtr;
+
+					FSmartName ExistingName;
+					bool bFoundSmartName = NameMapping->FindSmartNameByUID(RequestedNameUID, ExistingName);
+					check(bFoundSmartName);
+					RequestedNameGuid = ExistingName.Guid;
 
 					// Already in use in this sequence, and if it's not my UID
 					if (RequestedNameUID != CurveInterface->CurveUID && CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(RequestedNameUID) != nullptr)
@@ -467,12 +474,13 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 						return;
 					}
 					RequestedNameUID = NewName.UID;
+					RequestedNameGuid = NewName.Guid;
 				}
 
 				// Not in use in this sequence, switch it to the other curve name.
 				CurveInterface->AnimSequenceBase->Modify(true);
 
-				CurveInterface->UpdateName(RequestedNameUID, RequestedName);
+				CurveInterface->UpdateName(RequestedNameUID, RequestedNameGuid, RequestedName);
 
 				// 2. refresh panel
 				TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();

@@ -40,7 +40,6 @@ UAlembicImportFactory::UAlembicImportFactory(const FObjectInitializer& ObjectIni
 void UAlembicImportFactory::PostInitProperties()
 {
 	Super::PostInitProperties();
-
 	ImportSettings = UAbcImportSettings::Get();
 }
 

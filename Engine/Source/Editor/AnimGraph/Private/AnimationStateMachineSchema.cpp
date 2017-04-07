@@ -444,4 +444,30 @@ void UAnimationStateMachineSchema::GetAssetsPinHoverMessage(const TArray<FAssetD
 	OutOkIcon = false;
 }
 
+void UAnimationStateMachineSchema::BreakNodeLinks(UEdGraphNode& TargetNode) const
+{
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "GraphEd_BreakNodeLinks", "Break Node Links"));
+
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(&TargetNode);
+	Super::BreakNodeLinks(TargetNode);
+	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+}
+
+void UAnimationStateMachineSchema::BreakPinLinks(UEdGraphPin& TargetPin, bool bSendsNodeNotification) const
+{
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "GraphEd_BreakPinLinks", "Break Pin Links"));
+	// cache this here, as BreakPinLinks can trigger a node reconstruction invalidating the TargetPin references
+	UBlueprint* const Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(TargetPin.GetOwningNode());
+	Super::BreakPinLinks(TargetPin, bSendsNodeNotification);
+	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+}
+
+void UAnimationStateMachineSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin)
+{
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "GraphEd_BreakSinglePinLink", "Break Pin Link"));
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(TargetPin->GetOwningNode());
+	Super::BreakSinglePinLink(SourcePin, TargetPin);
+	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+}
+
 #undef LOCTEXT_NAMESPACE

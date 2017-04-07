@@ -641,7 +641,7 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 	// sort required bone array in strictly increasing order
 	MergeLODModel.RequiredBones.Sort();
-	MergeLODModel.ActiveBoneIndices.Sort();
+	MergeMesh->RefSkeleton.EnsureParentExists(MergeLODModel.ActiveBoneIndices);
 
 	// copy the new vertices and indices to the vertex buffer for the new model
 	MergeLODModel.VertexBufferGPUSkin.SetUseFullPrecisionUVs(MergeMesh->bUseFullPrecisionUVs);

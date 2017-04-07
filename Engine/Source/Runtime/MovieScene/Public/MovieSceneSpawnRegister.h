@@ -137,6 +137,13 @@ public:
 	 */
 	virtual void HandleConvertPossessableToSpawnable(UObject* OldObject, IMovieScenePlayer& Player, FTransformData& OutTransformData) {}
 
+
+	/**
+	 * Check whether the specified Spawnable can become a Possessable.
+	 * @param	Spawnable	The spawnable to check
+	 * @return whether the conversion from Spawnable to Possessable can occur.
+	 */
+	virtual bool CanConvertSpawnableToPossessable(FMovieSceneSpawnable& Spawnable) const { return true; }
 #endif
 
 protected:

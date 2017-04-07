@@ -169,6 +169,47 @@ void UPhysicalAnimationComponent::ApplyPhysicalAnimationProfileBelow(FName BodyN
 	}
 }
 
+FTransform UPhysicalAnimationComponent::GetBodyTargetTransform(FName BodyName) const
+{
+	if (SkeletalMeshComponent)
+	{
+#if WITH_PHYSX
+		for (int32 DataIdx = 0; DataIdx < DriveData.Num(); ++DataIdx)
+		{
+			const FPhysicalAnimationData& PhysAnimData = DriveData[DataIdx];
+			const FPhysicalAnimationInstanceData& InstanceData = RuntimeInstanceData[DataIdx];
+			if (BodyName == PhysAnimData.BodyName)
+			{
+				if (PxRigidDynamic* TargetActor = InstanceData.TargetActor)
+				{
+					PxTransform PKinematicTarget;
+					if (TargetActor->getKinematicTarget(PKinematicTarget))
+					{
+						return P2UTransform(PKinematicTarget);
+					}
+					else
+					{
+						return P2UTransform(TargetActor->getGlobalPose());
+					}
+				}
+
+				break;
+			}
+		}
+#endif
+
+		// if body isn't controlled by physical animation, just return the body position
+		const TArray<FTransform>& ComponentSpaceTransforms = SkeletalMeshComponent->GetComponentSpaceTransforms();
+		const int32 BoneIndex = SkeletalMeshComponent->GetBoneIndex(BodyName);
+		if (ComponentSpaceTransforms.IsValidIndex(BoneIndex))
+		{
+			return ComponentSpaceTransforms[BoneIndex] * SkeletalMeshComponent->GetComponentToWorld();
+		}
+	}
+
+	return FTransform::Identity;
+}
+
 FTransform ComputeWorldSpaceTargetTM(const USkeletalMeshComponent& SkeletalMeshComponent, const TArray<FTransform>& SpaceBases, int32 BoneIndex)
 {
 	return SpaceBases[BoneIndex] * SkeletalMeshComponent.GetComponentToWorld();

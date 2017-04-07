@@ -7,29 +7,16 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 #include "PropertyEditorDelegates.h"
+#include "AdvancedPreviewSceneModule.h"
 
 class FAdvancedPreviewScene;
 class IDetailsView;
 class UAssetViewerSettings;
 class UEditorPerProjectUserSettings;
 
-class UNREALED_API SAdvancedPreviewDetailsTab : public SCompoundWidget
+class ADVANCEDPREVIEWSCENE_API SAdvancedPreviewDetailsTab : public SCompoundWidget
 {
 public:
-	/** Info about a per-instance details customization */
-	struct FDetailCustomizationInfo
-	{
-		UStruct* Struct;
-		FOnGetDetailCustomizationInstance OnGetDetailCustomizationInstance;
-	};
-
-	/** Info about a per-instance property type customization */
-	struct FPropertyTypeCustomizationInfo
-	{
-		FName StructName;
-		FOnGetPropertyTypeCustomizationInstance OnGetPropertyTypeCustomizationInstance;
-	};
-
 	SLATE_BEGIN_ARGS(SAdvancedPreviewDetailsTab)
 		: _AdditionalSettings(nullptr)
 	{}
@@ -38,10 +25,10 @@ public:
 	SLATE_ARGUMENT(UObject*, AdditionalSettings)
 
 	/** Customizations to use for this details tab */
-	SLATE_ARGUMENT(TArray<FDetailCustomizationInfo>, DetailCustomizations)
+	SLATE_ARGUMENT(TArray<FAdvancedPreviewSceneModule::FDetailCustomizationInfo>, DetailCustomizations)
 
 	/** Customizations to use for this details tab */
-	SLATE_ARGUMENT(TArray<FPropertyTypeCustomizationInfo>, PropertyTypeCustomizations)
+	SLATE_ARGUMENT(TArray<FAdvancedPreviewSceneModule::FPropertyTypeCustomizationInfo>, PropertyTypeCustomizations)
 
 	SLATE_END_ARGS()
 
@@ -82,7 +69,7 @@ protected:
 
 	UEditorPerProjectUserSettings* PerProjectSettings;
 
-	TArray<FDetailCustomizationInfo> DetailCustomizations;
+	TArray<FAdvancedPreviewSceneModule::FDetailCustomizationInfo> DetailCustomizations;
 
-	TArray<FPropertyTypeCustomizationInfo> PropertyTypeCustomizations;
+	TArray<FAdvancedPreviewSceneModule::FPropertyTypeCustomizationInfo> PropertyTypeCustomizations;
 };

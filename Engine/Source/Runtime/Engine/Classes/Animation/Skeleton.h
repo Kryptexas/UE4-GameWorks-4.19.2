@@ -545,7 +545,7 @@ public:
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
 	ENGINE_API USkeletalMesh* GetPreviewMesh() const;
-	ENGINE_API USkeletalMesh* GetAssetPreviewMesh(class UAnimationAsset* AnimAsset);
+	ENGINE_API USkeletalMesh* GetAssetPreviewMesh(UObject* InAsset);
 
 	/** Find the first compatible mesh for this skeleton */
 	ENGINE_API USkeletalMesh* FindCompatibleMesh() const;

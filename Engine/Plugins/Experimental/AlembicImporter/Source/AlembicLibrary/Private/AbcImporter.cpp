@@ -38,6 +38,7 @@ THIRD_PARTY_INCLUDES_END
 
 #include "MeshUtilities.h"
 #include "MaterialUtilities.h"
+#include "Materials/MaterialInstance.h"
 
 #include "Runtime/Engine/Classes/Materials/MaterialInterface.h"
 #include "Runtime/Engine/Public/MaterialCompiler.h"
@@ -153,6 +154,13 @@ const EAbcImportError FAbcImporter::OpenAbcFileForImport(const FString InFilePat
 
 	ImportData->FilePath = InFilePath;
 	ImportData->NumTotalMaterials = 0;
+	ImportData->bBackedSupportsMultithreading = (CompressionType == Alembic::AbcCoreFactory::IFactory::kOgawa);
+
+	const int32 NumTimeSamples = Archive.getNumTimeSamplings();
+	if (NumTimeSamples >= 2)
+	{
+		ImportData->ArchiveTimePerCycle = Archive.getTimeSampling(1)->getTimeSamplingType().getTimePerCycle();
+	}
 
 
 	return AbcImportError_NoError;
@@ -171,15 +179,64 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	// This will remove all poly meshes that are set not to be imported in the settings UI
 	ImportData->PolyMeshObjects.RemoveAll([=](const TSharedPtr<FAbcPolyMeshObject>& Object) {return !Object->bShouldImport; });
 
-	// Creates materials according to the face set names that were found in the Alembic file
-	if (ImportSettings->MaterialSettings.bCreateMaterials)
+	if (ImportSettings->MaterialSettings.bFindMaterials)
 	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		TArray<FAssetData> AssetData;
+		const UClass* Class = UMaterialInterface::StaticClass();
+		AssetRegistryModule.Get().GetAssetsByClass(Class->GetFName(), AssetData, true);
+		for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
+		{
+			for (const FString& FaceSetName : MeshObject->FaceSetNames)
+			{
+				UMaterialInterface** ExistingMaterial = ImportData->MaterialMap.Find(*FaceSetName);
+				if (!ExistingMaterial)
+				{
+					FAssetData* MaterialAsset = AssetData.FindByPredicate([=](const FAssetData& Asset)
+					{
+						return Asset.AssetName.ToString() == FaceSetName;
+					});
+
+					if (MaterialAsset)
+					{
+						UMaterialInterface* FoundMaterialInterface = Cast<UMaterialInterface>(MaterialAsset->GetAsset());
+						if (FoundMaterialInterface)
+						{							
+							ImportData->MaterialMap.Add(FaceSetName, FoundMaterialInterface);
+							UMaterial* BaseMaterial = Cast<UMaterial>(FoundMaterialInterface);
+							if ( !BaseMaterial )
+							{
+								if (UMaterialInstance* FoundInstance = Cast<UMaterialInstance>(FoundMaterialInterface))
+								{
+									BaseMaterial = FoundInstance->GetMaterial();
+								}
+							}
+
+							if (BaseMaterial)
+							{
+								BaseMaterial->bUsedWithSkeletalMesh |= ImportSettings->ImportType == EAlembicImportType::Skeletal;
+								BaseMaterial->bUsedWithMorphTargets |= ImportSettings->ImportType == EAlembicImportType::Skeletal;
+							}							
+						}
+					}
+					else
+					{
+						TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("NoMaterialForFaceSet", "Unable to find matching Material for Face Set {0}, using default material instead."), FText::FromString(FaceSetName)));
+						FAbcImportLogger::AddImportMessage(Message);
+					}
+				}
+			}
+		}
+	}
+	else if (ImportSettings->MaterialSettings.bCreateMaterials)
+	{
+		// Creates materials according to the face set names that were found in the Alembic file
 		for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
 		{
 			for (const FString& FaceSetName : MeshObject->FaceSetNames)
 			{
 				// Preventing duplicate material creation
-				UMaterial** ExistingMaterial = ImportData->MaterialMap.Find(*FaceSetName);
+				UMaterialInterface** ExistingMaterial = ImportData->MaterialMap.Find(*FaceSetName);
 				if (!ExistingMaterial)
 				{ 
 					UMaterial* Material = NewObject<UMaterial>((UObject*)GetTransientPackage(), *FaceSetName);
@@ -236,7 +293,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	case EAlembicSamplingType::PerFrame:
 		{
 			// Calculates the time step required to get the number of frames
-			TimeStep = CacheLength / (float)(ImportData->MaxFrameIndex - ImportData->MinFrameIndex);
+			TimeStep = !FMath::IsNearlyZero(ImportData->ArchiveTimePerCycle) ? ImportData->ArchiveTimePerCycle : CacheLength / (float)(ImportData->MaxFrameIndex - ImportData->MinFrameIndex);
 			break;
 		}
 	
@@ -268,7 +325,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	}
 
 	ImportData->SecondsPerFrame = TimeStep;
-	ImportData->ImportLength = FrameSpan * TimeStep;
+	ImportData->ImportLength = (FrameSpan - 1) * TimeStep;
 
 	// Override the frame start to not crash when indexing the sample array using it as a frame offset TODO CHANGE THIS TO BE MORE CLEAN
 	ImportSettings->SamplingSettings.FrameStart = StartFrameIndex;
@@ -299,7 +356,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 			Alembic::Abc::TimeSamplingPtr TimeSampler = Schema.getTimeSampling();
 			TransformObject->TimeSamples[FrameIndex] = SampleTime;
 		}
-	});
+	}, !ImportData->bBackedSupportsMultithreading);
 
 	// Now we have loaded all the transformations, cache the accumulated transforms for each used hierarchy path
 	CacheHierarchyTransforms(StartFrameIndex * TimeStep, EndFrameIndex * TimeStep);
@@ -311,7 +368,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	}
 
 	// Initializing and running the importing threads 
-	const uint32 NumThreads = InNumThreads;
+	const uint32 NumThreads = ImportData->bBackedSupportsMultithreading ? InNumThreads : 1;
 
 	// At least 4 frames are required in order for use to spin off multiple threads to import the data
 	const uint32 MinimumNumberOfSamplesForSpinningOfThreads = 4;
@@ -749,13 +806,13 @@ UStaticMesh* FAbcImporter::CreateStaticMeshFromRawMesh(UObject* InParent, const 
 		const bool bCreateMaterial = ImportData->ImportSettings->MaterialSettings.bCreateMaterials;
 		for (uint32 MaterialIndex = 0; MaterialIndex < ((NumMaterials != 0) ? NumMaterials : 1); ++MaterialIndex)
 		{
-			UMaterial* Material = nullptr;
+			UMaterialInterface* Material = nullptr;
 			if (FaceSetNames.IsValidIndex(MaterialIndex))
 			{
 				Material = RetrieveMaterial(FaceSetNames[MaterialIndex], InParent, Flags);
 			}
 
-		StaticMesh->StaticMaterials.Add(( Material != nullptr) ? Material : DefaultMaterial);
+			StaticMesh->StaticMaterials.Add(( Material != nullptr) ? Material : DefaultMaterial);
 		}
 
 		// Get the first LOD for filling it up with geometry, only support one LOD
@@ -902,7 +959,7 @@ UGeometryCache* FAbcImporter::ImportAsGeometryCache(UObject* InParent, EObjectFl
 				const uint32 NumMaterials = (MeshObject->FaceSetNames.Num() > 0) ? MeshObject->FaceSetNames.Num() : 1;
 				for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 				{
-					UMaterial* Material = nullptr;
+					UMaterialInterface* Material = nullptr;
 					if (MeshObject->FaceSetNames.IsValidIndex(MaterialIndex))
 					{
 						Material = RetrieveMaterial(MeshObject->FaceSetNames[MaterialIndex], InParent, Flags);
@@ -1012,6 +1069,8 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 		bool bBuildSuccess = false;
 		TArray<int32> MorphTargetVertexRemapping;
 		TArray<int32> UsedVertexIndicesForMorphs;
+		MergedMeshSample->TangentX.Empty();
+		MergedMeshSample->TangentY.Empty();
 		bBuildSuccess = BuildSkeletalMesh(LODModel, SkeletalMesh->RefSkeleton, MergedMeshSample, MorphTargetVertexRemapping, UsedVertexIndicesForMorphs);
 
 		if (!bBuildSuccess)
@@ -1099,11 +1158,17 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 			for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 			{
 				const FString& MaterialName = CompressedData.MaterialNames[MaterialIndex];
-				UMaterial* Material = RetrieveMaterial(MaterialName, InParent, Flags);
-				SkeletalMesh->Materials.Add(FSkeletalMaterial(Material, true));
+				UMaterialInterface* Material = RetrieveMaterial(MaterialName, InParent, Flags);
+				SkeletalMesh->Materials.Add(FSkeletalMaterial(Material, true));	
 			}
 
 			++ObjectIndex;
+		}
+		
+		// Set recompute tangent flag on skeletal mesh sections
+		for (FSkelMeshSection& Section : SkeletalMesh->GetSourceModel().Sections)
+		{
+			Section.bRecomputeTangent = true;
 		}
 
 		SkeletalMesh->CalculateInvRefMatrices();
@@ -1236,7 +1301,7 @@ const bool FAbcImporter::CompressAnimationDataUsingPCA(const FAbcCompressionSett
 			CompressedData.AverageSample = new FAbcMeshSample(MergedZeroFrameSample);
 			FMemory::Memcpy(CompressedData.AverageSample->Vertices.GetData(), AverageVertexData.GetData(), sizeof(FVector) * NumVertices);
 
-			const float FrameStep = (MaxTime - MinTime) / (float)(NumSamples);
+			const float FrameStep = (MaxTime - MinTime) / (float)(NumSamples - 1);
 			AbcImporterUtilities::GenerateCompressedMeshData(CompressedData, NumUsedSingularValues, NumSamples, OutU, OutV, FrameStep, MinTime);
 
 			if (bRunComparison)
@@ -1832,10 +1897,10 @@ void FAbcImporter::GenerateMorphTargetVertices(FAbcMeshSample* BaseSample, TArra
 	}
 }
 
-UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags)
+UMaterialInterface* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags)
 {
-	UMaterial* Material = nullptr;
-	UMaterial** CachedMaterial = ImportData->MaterialMap.Find(MaterialName);
+	UMaterialInterface* Material = nullptr;
+	UMaterialInterface** CachedMaterial = ImportData->MaterialMap.Find(MaterialName);
 	if (CachedMaterial)
 	{
 		Material = *CachedMaterial;
@@ -1878,8 +1943,6 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 		Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		check(Material);
 	}
-
-	
 
 	return Material;
 }

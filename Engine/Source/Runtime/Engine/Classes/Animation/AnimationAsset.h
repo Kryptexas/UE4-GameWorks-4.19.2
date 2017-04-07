@@ -849,8 +849,16 @@ public:
 	 **/
 	ENGINE_API virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap);
 
+	/** Set the preview mesh for this animation asset */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh);
+
+	/** 
+	 * Get the preview mesh for this animation asset 
+	 * Note: loads the mesh if it is not already loaded, or nulls it out if the skeleton has changed since.
+	 */
 	ENGINE_API USkeletalMesh* GetPreviewMesh();
+
+	/** Get the preview mesh for this animation asset */
 	ENGINE_API USkeletalMesh* GetPreviewMesh() const;
 
 	ENGINE_API virtual int32 GetMarkerUpdateCounter() const { return 0; }

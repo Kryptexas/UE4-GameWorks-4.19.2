@@ -46,11 +46,12 @@ IMeshPaintEdMode::IMeshPaintEdMode()
 	: FEdMode(),
 	  PaintingWithInteractorInVR( nullptr )
 {
+	GEditor->OnEditorClose().AddRaw(this, &IMeshPaintEdMode::OnResetViewMode);
 }
 
 IMeshPaintEdMode::~IMeshPaintEdMode()
 {
-
+	GEditor->OnEditorClose().RemoveAll(this);
 }
 
 /** FGCObject interface */
@@ -156,12 +157,7 @@ void IMeshPaintEdMode::Exit()
 	// The user can manipulate the editor selection lock flag in paint mode so we make sure to restore it here
 	GEdSelectionLock = bWasSelectionLockedOnStart;
 	
-	// Reset viewport color mode for all active viewports
-	for (int32 ViewIndex = 0; ViewIndex < GEditor->AllViewportClients.Num(); ++ViewIndex)
-	{
-		FEditorViewportClient* ViewportClient = GEditor->AllViewportClients[ViewIndex];
-		MeshPaintHelpers::SetViewportColorMode(EMeshPaintColorViewMode::Normal, ViewportClient);
-	}
+	OnResetViewMode();
 
 	// Restore selection color
 	GEngine->RestoreSelectedMaterialColor();
@@ -267,8 +263,12 @@ bool IMeshPaintEdMode::InputKey( FEditorViewportClient* InViewportClient, FViewp
 			bPaintApplied = MeshPainter->Paint(InViewport, View->ViewMatrices.GetViewOrigin(), MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection());
 			
 		}
+		else if (MeshPainter->IsPainting() && bUserWantsPaint)
+		{
+			bHandled = true;
+		}
 
-		if( !bPaintApplied )
+		if( !bPaintApplied && !MeshPainter->IsPainting())
 		{
 			bHandled = false;
 		}
@@ -344,6 +344,16 @@ void IMeshPaintEdMode::OnAssetRemoved(const FAssetData& AssetData)
 void IMeshPaintEdMode::OnObjectsReplaced(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
 {
 	MeshPainter->Refresh();
+}
+
+void IMeshPaintEdMode::OnResetViewMode()
+{
+	// Reset viewport color mode for all active viewports
+	for (int32 ViewIndex = 0; ViewIndex < GEditor->AllViewportClients.Num(); ++ViewIndex)
+	{
+		FEditorViewportClient* ViewportClient = GEditor->AllViewportClients[ViewIndex];
+		MeshPaintHelpers::SetViewportColorMode(EMeshPaintColorViewMode::Normal, ViewportClient);
+	}
 }
 
 /** FEdMode: Called after an Undo operation */

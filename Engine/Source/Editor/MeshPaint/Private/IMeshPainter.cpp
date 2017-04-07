@@ -71,7 +71,7 @@ void IMeshPainter::RegisterCommands(TSharedRef<FUICommandList> CommandList)
 	{
 		const float BrushChangeValue = 0.05f;
 		float BrushRadius = GetBrushSettings()->GetBrushRadius();
-		BrushRadius = FMath::Max(BrushRadius*(1.f + (BrushChangeValue * Multiplier)), BrushRadius + (1.f * Multiplier));
+		BrushRadius *= (1.f + (BrushChangeValue * Multiplier));
 		GetBrushSettings()->SetBrushRadius(BrushRadius);
 	};
 	CommandList->MapAction(Commands.IncreaseBrushSize, FExecuteAction::CreateLambda(BrushLambda, 1.0f), FCanExecuteAction(), EUIActionRepeatMode::RepeatEnabled);
@@ -131,7 +131,7 @@ bool IMeshPainter::InputKey(FEditorViewportClient* InViewportClient, FViewport* 
 	{
 		const float BrushChangeValue = 0.05f;
 		float BrushRadius = GetBrushSettings()->GetBrushRadius();
-		BrushRadius = FMath::Max(BrushRadius*(1.f + (BrushChangeValue * Multiplier)), BrushRadius + (1.f * Multiplier));
+		BrushRadius *= (1.f + (BrushChangeValue * Multiplier));
 		GetBrushSettings()->SetBrushRadius(BrushRadius);
 	};
 

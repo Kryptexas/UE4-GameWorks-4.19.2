@@ -13,6 +13,8 @@
 class UMovieScene2DTransformSection;
 class UMovieScenePropertyTrack;
 
+Expose_TNameOf(FWidgetTransform);
+
 USTRUCT()
 struct FMovieScene2DTransformSectionTemplate : public FMovieSceneEvalTemplate
 {

@@ -375,6 +375,9 @@ public:
 
 	void RebuildNameToIndexMap();
 
+	/** Ensure parent exists in the given input array. Insert parent to the array. The result should be sorted. */
+	ENGINE_API void EnsureParentExists(TArray<FBoneIndexType>& InOutBoneArray) const;
+
 	SIZE_T GetDataSize() const;
 
 	friend FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F);

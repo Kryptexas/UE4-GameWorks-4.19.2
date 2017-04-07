@@ -10,7 +10,7 @@
 
 DECLARE_CYCLE_STAT(TEXT("Skin Physics Mesh"), STAT_ClothSkinPhysMesh, STATGROUP_Physics);
 
-void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals)
+void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FTransform& RootBoneTransform, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ClothSkinPhysMesh);
 
@@ -121,6 +121,8 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 			}
 		}
 
+		OutPosition = RootBoneTransform.InverseTransformPosition(OutPosition);
+		OutNormal = RootBoneTransform.InverseTransformVector(OutNormal);
 		OutNormal = OutNormal.GetUnsafeNormal();
 	}
 }
@@ -134,7 +136,7 @@ void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, I
 	
 	if(USkinnedMeshComponent* MasterComponent = InComponent->MasterPoseComponent.Get())
 	{
-		const int32 NumBones = InComponent->GetNumComponentSpaceTransforms();
+		const int32 NumBones = InComponent->MasterBoneMap.Num();
 		
 		BaseContext->BoneTransforms.Empty(NumBones);
 		BaseContext->BoneTransforms.AddDefaulted(NumBones);

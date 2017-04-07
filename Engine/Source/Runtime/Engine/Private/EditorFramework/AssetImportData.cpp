@@ -7,7 +7,7 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "UObject/Package.h"
-
+#include "AnimPhysObjectVersion.h"
 
 // This whole class is compiled out in non-editor
 UAssetImportData::UAssetImportData(const FObjectInitializer& ObjectInitializer)
@@ -238,6 +238,13 @@ void UAssetImportData::Serialize(FArchive& Ar)
 	}
 
 	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
+
+	if (Ar.CustomVer(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::ThumbnailSceneInfoAndAssetImportDataAreTransactional)
+	{
+		SetFlags(RF_Transactional);
+	}
 }
 
 void UAssetImportData::PostLoad()

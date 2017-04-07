@@ -677,7 +677,7 @@ UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent* PrimComponent, FN
 	//check that body itself is welded
 	if (FBodyInstance* BI = PrimComponent->GetBodyInstance(ParentSocketName, false))
 	{
-		if (bAboutToWeld == false && BI->bWelded == false && BI->bAutoWeld == false)	//we're not welded and we aren't trying to become welded
+		if (bAboutToWeld == false && BI->WeldParent == nullptr && BI->bAutoWeld == false)	//we're not welded and we aren't trying to become welded
 		{
 			return NULL;
 		}
@@ -693,7 +693,7 @@ UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent* PrimComponent, FN
 		PrevSocketName = RootComponent->GetAttachSocketName();
 
 		RootBI = RootComponent->GetBodyInstance(SocketName, false);
-		if (RootBI && RootBI->bWelded)
+		if (RootBI && RootBI->WeldParent != nullptr)
 		{
 			continue;
 		}
@@ -720,7 +720,7 @@ void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodi
 		{
 			if (FBodyInstance* BI = PrimChild->GetBodyInstance(NAME_None, false))
 			{
-				if (BI->bWelded || (bIncludingAutoWeld && BI->bAutoWeld))
+				if (BI->WeldParent != nullptr || (bIncludingAutoWeld && BI->bAutoWeld))
 				{
 					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels, bIncludingAutoWeld);
 				}
@@ -772,7 +772,6 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 				return true;
 			}
 
-			BI->bWelded = true;
 			//There are multiple cases to handle:
 			//Root is kinematic, simulated
 			//Child is kinematic, simulated
@@ -814,7 +813,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 
 	FBodyInstance* NewRootBI = GetBodyInstance(NAME_None, false);
 	UWorld* CurrentWorld = GetWorld();
-	if (NewRootBI == NULL || NewRootBI->bWelded == false || CurrentWorld == nullptr || CurrentWorld->GetPhysicsScene() == nullptr || IsPendingKill())
+	if (NewRootBI == NULL || NewRootBI->WeldParent == nullptr || CurrentWorld == nullptr || CurrentWorld->GetPhysicsScene() == nullptr || IsPendingKill())
 	{
 		return;
 	}
@@ -841,7 +840,6 @@ void UPrimitiveComponent::UnWeldFromParent()
 				RootBI->UnWeld(NewRootBI);	//don't bother fixing up shapes if RootComponent is about to be deleted
 			}
 
-			NewRootBI->bWelded = false;
 			FPlatformAtomics::InterlockedExchangePtr((void**)&NewRootBI->WeldParent, nullptr);
 
 			bool bHasBodySetup = GetBodySetup() != nullptr;
@@ -924,7 +922,7 @@ float UPrimitiveComponent::GetClosestPointOnCollision(const FVector& Point, FVec
 {
 	OutPointOnBody = Point;
 
-	if (FBodyInstance* BodyInst = GetBodyInstance(BoneName))
+	if (FBodyInstance* BodyInst = GetBodyInstance(BoneName, /*bGetWelded=*/ false))
 	{
 		return BodyInst->GetDistanceToBody(Point, OutPointOnBody);
 	}

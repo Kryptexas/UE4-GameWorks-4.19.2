@@ -338,7 +338,7 @@ void FAnimNode_SingleNode::Evaluate(FPoseContext& Output)
 				LocalSourceCurve.InitFrom(Output.Curve);
 			
 				FAnimTrack const* const AnimTrack = Montage->GetAnimationData(ActiveMontageSlot);
-				if (AnimTrack->IsAdditive())
+				if (AnimTrack && AnimTrack->IsAdditive())
 				{
 #if WITH_EDITORONLY_DATA
 					// if montage is additive, we need to have base pose for the slot pose evaluate

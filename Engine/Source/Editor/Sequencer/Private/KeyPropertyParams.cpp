@@ -11,8 +11,23 @@ FPropertyPath PropertyHandleToPropertyPath(const UClass* OwnerClass, const IProp
 	TSharedPtr<IPropertyHandle> CurrentHandle = InPropertyHandle.GetParentHandle();
 	while (CurrentHandle.IsValid() && CurrentHandle->GetProperty() != nullptr)
 	{
-		PropertyInfo.Insert(FPropertyInfo(CurrentHandle->GetProperty(), CurrentHandle->GetIndexInArray()), 0);
-		CurrentHandle = CurrentHandle->GetParentHandle();
+		// IPropertyHandle chains contain arrays in a manner designed for display in the property editor, e.g.
+		// Container.Array.Array[ArrayIndex].StructInner.
+		// We need to collapse adjacent array properties as we are looking for Container.Array[ArrayIndex].StructInner
+		// to for a well-formed 'property path'
+		TSharedPtr<IPropertyHandle> ParentHandle = CurrentHandle->GetParentHandle();
+		if (ParentHandle.IsValid() && ParentHandle->GetProperty() != nullptr && ParentHandle->GetProperty()->IsA<UArrayProperty>())
+		{
+			UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(ParentHandle->GetProperty());
+
+			PropertyInfo.Insert(FPropertyInfo(ParentHandle->GetProperty(), CurrentHandle->GetIndexInArray()), 0);
+			CurrentHandle = ParentHandle->GetParentHandle();
+		}
+		else
+		{
+			PropertyInfo.Insert(FPropertyInfo(CurrentHandle->GetProperty(), CurrentHandle->GetIndexInArray()), 0);
+			CurrentHandle = CurrentHandle->GetParentHandle();
+		}
 	}
 
 	FPropertyPath PropertyPath;

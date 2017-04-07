@@ -142,6 +142,8 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::OnAdded()
 		}
 	}
 
+	SkeletalMeshComponent->bUseRefPoseOnInitAnim = true;
+	SkeletalMeshComponent->InitAnim(true);
 	ECollisionEnabled::Type CachedCollisionType = SkeletalMeshComponent->BodyInstance.GetCollisionEnabled();
 	SkeletalMeshReferencers.Referencers.Emplace(SkeletalMeshComponent, CachedCollisionType);
 
@@ -179,6 +181,8 @@ void FMeshPaintGeometryAdapterForSkeletalMeshes::OnRemoved()
 	);
 	check(Index != INDEX_NONE);
 
+	SkeletalMeshComponent->bUseRefPoseOnInitAnim = false;
+	SkeletalMeshComponent->InitAnim(true);
 	SkeletalMeshComponent->BodyInstance.SetCollisionEnabled(SkeletalMeshReferencers->Referencers[Index].CachedCollisionType, false);
 	SkeletalMeshComponent->RecreatePhysicsState();
 

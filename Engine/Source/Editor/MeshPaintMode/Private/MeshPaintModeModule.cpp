@@ -31,6 +31,8 @@ void FMeshPaintModeModule::StartupModule()
 	PropertyModule.RegisterCustomPropertyTypeLayout("VertexPaintSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVertexPaintSettingsCustomization::MakeInstance));
 	PropertyModule.RegisterCustomPropertyTypeLayout("TexturePaintSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTexturePaintSettingsCustomization::MakeInstance));
 	PropertyModule.RegisterCustomPropertyTypeLayout("TexturePaintSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTexturePaintSettingsCustomization::MakeInstance));
+
+	FModuleManager::Get().LoadModule("MeshPaint");
 }
 
 void FMeshPaintModeModule::ShutdownModule()

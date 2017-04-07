@@ -223,7 +223,32 @@ void UAnimSequence::Serialize(FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 
+	FRawCurveTracks RawCurveCache;
+
+	if (Ar.IsCooking())
+	{
+		RawCurveCache.FloatCurves = MoveTemp(RawCurveData.FloatCurves);
+		RawCurveData.FloatCurves.Reset();
+
+#if WITH_EDITORONLY_DATA
+		RawCurveCache.VectorCurves = MoveTemp(RawCurveData.VectorCurves);
+		RawCurveData.VectorCurves.Reset();
+
+		RawCurveCache.TransformCurves = MoveTemp(RawCurveData.TransformCurves);
+		RawCurveData.TransformCurves.Reset();
+#endif
+	}
+
 	Super::Serialize(Ar);
+
+	if (Ar.IsCooking())
+	{
+		RawCurveData.FloatCurves = MoveTemp(RawCurveCache.FloatCurves);
+#if WITH_EDITORONLY_DATA
+		RawCurveData.VectorCurves = MoveTemp(RawCurveCache.VectorCurves);
+		RawCurveData.TransformCurves = MoveTemp(RawCurveCache.TransformCurves);
+#endif
+	}
 
 	FStripDataFlags StripFlags( Ar );
 	if( !StripFlags.IsEditorDataStripped() )
@@ -543,12 +568,12 @@ void ShowResaveMessage(const UAnimSequence* Sequence)
 {
 	if (!IsRunningGame())
 	{
-		UE_LOG(LogAnimation, Log, TEXT("Resave Animation Required(%s, %s): Fixing track data and recompressing."), *GetNameSafe(Sequence), *Sequence->GetPathName());
+		UE_LOG(LogAnimation, Warning, TEXT("Resave Animation Required(%s, %s): Fixing track data and recompressing."), *GetNameSafe(Sequence), *Sequence->GetPathName());
 
 		static FName NAME_LoadErrors("LoadErrors");
 		FMessageLog LoadErrors(NAME_LoadErrors);
 
-		TSharedRef<FTokenizedMessage> Message = LoadErrors.Info();
+		TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave1", "The Animation ")));
 		Message->AddToken(FAssetNameToken::Create(Sequence->GetPathName(), FText::FromString(GetNameSafe(Sequence))));
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave2", " needs resave.")));
@@ -4506,6 +4531,18 @@ void UAnimSequence::EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime
 	else
 	{
 		CompressedCurveData.EvaluateCurveData(OutCurve, CurrentTime);
+	}
+}
+
+const FRawCurveTracks& UAnimSequence::GetCurveData() const
+{
+	if (bUseRawDataOnly)
+	{
+		return Super::GetCurveData();
+	}
+	else
+	{
+		return CompressedCurveData;
 	}
 }
 

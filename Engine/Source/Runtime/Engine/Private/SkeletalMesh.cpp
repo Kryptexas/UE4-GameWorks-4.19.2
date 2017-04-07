@@ -3200,8 +3200,8 @@ void USkeletalMesh::CalculateInvRefMatrices()
 
 void USkeletalMesh::CalculateRequiredBones(class FStaticLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const TMap<FBoneIndexType, FBoneIndexType> * BonesToRemove)
 {
-	// RequiredBones for base model includes all bones.
-	int32 RequiredBoneCount = RefSkeleton.GetNum();
+	// RequiredBones for base model includes all raw bones.
+	int32 RequiredBoneCount = RefSkeleton.GetRawBoneNum();
 	LODModel.RequiredBones.Empty(RequiredBoneCount);
 	for(int32 i=0; i<RequiredBoneCount; i++)
 	{

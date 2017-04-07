@@ -247,6 +247,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	PostPhysicsTickFunction.bStartWithTickEnabled = false;
 	PostPhysicsTickFunction.TickGroup = TG_PostPhysics;
 
+	bApplyGravityWhileJumping = true;
+
 	GravityScale = 1.f;
 	GroundFriction = 8.0f;
 	JumpZVelocity = 420.0f;
@@ -320,6 +322,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	bNetworkSmoothingComplete = true; // Initially true until we get a net update, so we don't try to smooth to an uninitialized value.
 	bWantsToLeaveNavWalking = false;
 	bIsNavWalkingOnServer = false;
+	bSweepWhileNavWalking = true;
+	bNeedsSweepWhileWalkingUpdate = false;
 
 	bEnablePhysicsInteraction = true;
 	StandingDownwardForceScale = 1.0f;
@@ -558,9 +562,17 @@ void UCharacterMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdate
 		StopActiveMovement();
 	}
 
-	if (IsValid(UpdatedPrimitive) && bEnablePhysicsInteraction)
+	const bool bValidUpdatedPrimitive = IsValid(UpdatedPrimitive);
+
+	if (bValidUpdatedPrimitive && bEnablePhysicsInteraction)
 	{
 		UpdatedPrimitive->OnComponentBeginOverlap.AddUniqueDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
+	}
+
+	if (bNeedsSweepWhileWalkingUpdate)
+	{
+		bSweepWhileNavWalking = bValidUpdatedPrimitive ? UpdatedPrimitive->bGenerateOverlapEvents : false;
+		bNeedsSweepWhileWalkingUpdate = false;
 	}
 
 	if (bUseRVOAvoidance && IsValid(NewUpdatedComponent))
@@ -1056,6 +1068,18 @@ static void DrawCircle( const UWorld* InWorld, const FVector& Base, const FVecto
 	}
 }
 #endif
+
+void UCharacterMovementComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+
+	if (Archive.IsLoading() && Archive.UE4Ver() < VER_UE4_ADDED_SWEEP_WHILE_WALKING_FLAG)
+	{
+		// We need to update the bSweepWhileNavWalking flag to match the previous behavior.
+		// Since UpdatedComponent is transient, we'll have to wait until we're registered.
+		bNeedsSweepWhileWalkingUpdate = true;
+	}
+}
 
 void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
@@ -2792,7 +2816,7 @@ FVector UCharacterMovementComponent::NewFallVelocity(const FVector& InitialVeloc
 {
 	FVector Result = InitialVelocity;
 
-	if (!Gravity.IsZero())
+	if (!Gravity.IsZero() && (bApplyGravityWhileJumping || !(CharacterOwner && CharacterOwner->IsJumpProvidingForce())))
 	{
 		// Apply gravity.
 		Result += Gravity * DeltaTime;
@@ -3292,6 +3316,23 @@ float UCharacterMovementComponent::GetMaxJumpHeight() const
 	{
 		return 0.f;
 	}
+}
+
+float UCharacterMovementComponent::GetMaxJumpHeightWithJumpTime() const
+{
+	const float MaxJumpHeight = GetMaxJumpHeight();
+
+	if (CharacterOwner)
+	{
+		// When bApplyGravityWhileJumping is true, the actual max height will be lower than this.
+		// However, it will also be dependent on framerate (and substep iterations) so just return this
+		// to avoid expensive calculations.
+
+		// This can be imagined as the character being displaced to some height, then jumping from that height.
+		return (CharacterOwner->JumpMaxHoldTime * JumpZVelocity) + MaxJumpHeight;
+	}
+
+	return MaxJumpHeight;
 }
 
 // TODO: deprecated, remove.
@@ -4755,9 +4796,8 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 
 		if (!AdjustedDelta.IsNearlyZero())
 		{
-			const bool bSweep = UpdatedPrimitive ? UpdatedPrimitive->bGenerateOverlapEvents : false;
 			FHitResult HitResult;
-			SafeMoveUpdatedComponent(AdjustedDelta, UpdatedComponent->GetComponentQuat(), bSweep, HitResult);
+			SafeMoveUpdatedComponent(AdjustedDelta, UpdatedComponent->GetComponentQuat(), bSweepWhileNavWalking, HitResult);
 		}
 
 		// Update velocity to reflect actual move
@@ -10136,6 +10176,7 @@ void UCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 	// Reset JumpKeyHoldTime when player presses Jump key on server as well.
 	if (!bWasJumping && CharacterOwner->bPressedJump)
 	{
+		CharacterOwner->bWasJumping = false;
 		CharacterOwner->JumpKeyHoldTime = 0.0f;
 	}
 }

@@ -16,14 +16,16 @@ FText UAnimGraphNode_CurveSource::GetTooltipText() const
 
 FText UAnimGraphNode_CurveSource::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType != ENodeTitleType::MenuTitle && Node.SourceBinding != NAME_None)
+	if (TitleType != ENodeTitleType::MenuTitle)
 	{
-		return FText::Format(LOCTEXT("AnimGraphNode_CurveSource_Title_Fmt", "Curve Source: {0}"), FText::FromName(Node.SourceBinding));
+		UEdGraphPin* SourceBindingPin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_CurveSource, SourceBinding));
+		if (SourceBindingPin == nullptr && Node.SourceBinding != NAME_None)
+		{
+			return FText::Format(LOCTEXT("AnimGraphNode_CurveSource_Title_Fmt", "Curve Source: {0}"), FText::FromName(Node.SourceBinding));
+		}
 	}
-	else
-	{
-		return LOCTEXT("AnimGraphNode_CurveSource_Title", "Curve Source");
-	}
+
+	return LOCTEXT("AnimGraphNode_CurveSource_Title", "Curve Source");
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -92,7 +92,16 @@ namespace EditorAnimUtils
 			}
 			else if( UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Asset) )
 			{
-				AnimBlueprintsToRetarget.AddUnique(AnimBlueprint);
+
+				// Add parents blueprint. 
+				UAnimBlueprint* ParentBP = Cast<UAnimBlueprint>(AnimBlueprint->ParentClass->ClassGeneratedBy);
+				while (ParentBP)
+				{
+					AnimBlueprintsToRetarget.AddUnique(ParentBP);
+					ParentBP = Cast<UAnimBlueprint>(ParentBP->ParentClass->ClassGeneratedBy);
+				}
+				
+				AnimBlueprintsToRetarget.AddUnique(AnimBlueprint);				
 			}
 		}
 		
@@ -266,6 +275,20 @@ namespace EditorAnimUtils
 			UAnimBlueprint * AnimBlueprint = (*AnimBPIter);
 
 			AnimBlueprint->TargetSkeleton = NewSkeleton;
+
+			if (HasDuplicates())
+			{
+				// if they have parent blueprint, make sure to re-link to the new one also
+				UAnimBlueprint* CurrentParentBP = Cast<UAnimBlueprint>(AnimBlueprint->ParentClass->ClassGeneratedBy);
+				if (CurrentParentBP)
+				{
+					UAnimBlueprint* const * ParentBP = DuplicatedBlueprints.Find(CurrentParentBP);
+					if (ParentBP)
+					{
+						AnimBlueprint->ParentClass = (*ParentBP)->GeneratedClass;
+					}
+				}
+			}
 
 			if(RemappedAnimAssets.Num() > 0)
 			{

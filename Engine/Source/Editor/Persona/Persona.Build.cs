@@ -4,39 +4,50 @@ using UnrealBuildTool;
 
 public class Persona : ModuleRules
 {
-	public Persona(ReadOnlyTargetRules Target) : base(Target)
-	{
-		PrivateIncludePaths.Add("Editor/Persona/Private");	// For PCH includes (because they don't work with relative paths, yet)
+    public Persona(ReadOnlyTargetRules Target) : base(Target)
+    {
+        PrivateIncludePaths.Add("Editor/Persona/Private");  // For PCH includes (because they don't work with relative paths, yet)
 
-		PrivateIncludePathModuleNames.AddRange(
-			new string[] {
-				"AssetRegistry", 
-				"MainFrame",
-				"DesktopPlatform",
+        PublicIncludePathModuleNames.AddRange(
+            new string[] {
                 "SkeletonEditor",
+            }
+        );
+
+        PublicDependencyModuleNames.AddRange(
+            new string[] {
+                "AdvancedPreviewScene",
+            }
+        );
+
+        PrivateIncludePathModuleNames.AddRange(
+            new string[] {
+                "AssetRegistry", 
+                "MainFrame",
+                "DesktopPlatform",
                 "ContentBrowser",
                 "AssetTools",
                 "AnimationEditor",
             }
-		);
+        );
 
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
+        PrivateDependencyModuleNames.AddRange(
+            new string[] {
                 "AppFramework",
-				"Core", 
-				"CoreUObject", 
-				"Slate", 
-				"SlateCore",
+                "Core", 
+                "CoreUObject", 
+                "Slate", 
+                "SlateCore",
                 "EditorStyle",
-				"Engine", 
-				"UnrealEd", 
-				"GraphEditor", 
+                "Engine", 
+                "UnrealEd", 
+                "GraphEditor", 
                 "InputCore",
-				"Kismet", 
-				"KismetWidgets",
-				"AnimGraph",
+                "Kismet", 
+                "KismetWidgets",
+                "AnimGraph",
                 "PropertyEditor",
-				"EditorWidgets",
+                "EditorWidgets",
                 "BlueprintGraph",
                 "RHI",
                 "Json",
@@ -45,18 +56,18 @@ public class Persona : ModuleRules
                 "ClothingSystemEditorInterface",
                 "ClothingSystemRuntimeInterface",
             }
-		);
+        );
 
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[] {
-				"ContentBrowser",
-				"Documentation",
-				"MainFrame",
-				"DesktopPlatform",
+        DynamicallyLoadedModuleNames.AddRange(
+            new string[] {
+                "ContentBrowser",
+                "Documentation",
+                "MainFrame",
+                "DesktopPlatform",
                 "SkeletonEditor",
                 "AssetTools",
                 "AnimationEditor",
             }
-		);
-	}
+        );
+    }
 }

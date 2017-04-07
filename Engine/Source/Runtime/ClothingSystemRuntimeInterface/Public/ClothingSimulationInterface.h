@@ -94,7 +94,7 @@ protected:
 	virtual void GetSimulationData(TMap<int32, FClothSimulData>& OutData, USkeletalMeshComponent* InOwnerComponent, USkeletalMeshComponent* InOverrideComponent) const = 0;
 
 	/** Get the bounds of the simulation mesh in local simulation space */
-	virtual FBoxSphereBounds GetBounds() const = 0;
+	virtual FBoxSphereBounds GetBounds(const USkeletalMeshComponent* InOwnerComponent) const = 0;
 
 	/**
 	 * Called by the engine when an external object wants to inject collision data into this simulation above

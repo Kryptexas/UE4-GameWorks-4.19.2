@@ -455,7 +455,9 @@ public:
 
 	void CreateBodySetup();
 
-	virtual void SendRenderDebugPhysics() override;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	virtual void SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideSceneProxy = nullptr) override;
+#endif
 
 	/**
 	 * Misc 
@@ -1026,7 +1028,6 @@ public:
 protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
-	virtual void CreateRenderState_Concurrent() override;
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual void OnCreatePhysicsState() override;
 	virtual void OnDestroyPhysicsState() override;
@@ -1645,8 +1646,16 @@ private:
 	 */
 	void ResetMorphTargetCurves();
 
+	// Can't rely on time value, because those may be affected by dilation and whether or not
+	// the game is paused.
+	// Also can't just rely on a flag as other components (like CharacterMovementComponent) may tick
+	// the pose and we can't guarantee tick order.
+	UPROPERTY(Transient)
+	uint32 LastPoseTickFrame;
+
 public:
 	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */
+	DEPRECATED(4.16, "This property is deprecated. Please use PoseTickedThisFrame instead.")
 	UPROPERTY(Transient)
 	float LastPoseTickTime;
 

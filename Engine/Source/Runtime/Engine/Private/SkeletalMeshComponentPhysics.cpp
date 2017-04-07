@@ -1295,10 +1295,11 @@ void USkeletalMeshComponent::OnDestroyPhysicsState()
 #define DEBUGBROKENCONSTRAINTUPDATE(x)
 #endif
 
-void USkeletalMeshComponent::SendRenderDebugPhysics()
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+void USkeletalMeshComponent::SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideSceneProxy)
 {
-#if !UE_BUILD_SHIPPING
-	if (SceneProxy)
+	FPrimitiveSceneProxy* UseSceneProxy = OverrideSceneProxy ? OverrideSceneProxy : SceneProxy;
+	if (UseSceneProxy)
 	{
 		TArray<FPrimitiveSceneProxy::FDebugMassData> DebugMassData;
 		DebugMassData.Reserve(Bodies.Num());
@@ -1322,15 +1323,15 @@ void USkeletalMeshComponent::SendRenderDebugPhysics()
 		}
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			SkeletalMesh_SendRenderDebugPhysics, FPrimitiveSceneProxy*, UseSceneProxy, SceneProxy, TArray<FPrimitiveSceneProxy::FDebugMassData>, UseDebugMassData, DebugMassData,
+			SkeletalMesh_SendRenderDebugPhysics, FPrimitiveSceneProxy*, PassedSceneProxy, UseSceneProxy, TArray<FPrimitiveSceneProxy::FDebugMassData>, UseDebugMassData, DebugMassData,
 			{
-				UseSceneProxy->SetDebugMassData(UseDebugMassData);
+				PassedSceneProxy->SetDebugMassData(UseDebugMassData);
 			}
 		);
 		
 	}
-#endif
 }
+#endif
 
 void USkeletalMeshComponent::UpdateMeshForBrokenConstraints()
 {
@@ -1462,9 +1463,9 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 	for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 	{
 		FBodyInstance* BI = Bodies[BodyIdx];
-		if (BI && (BI->bWelded || (bIncludingAutoWeld && BI->bAutoWeld)))
+		if (BI && (BI->WeldParent != nullptr || (bIncludingAutoWeld && BI->bAutoWeld)))
 		{
-			OutWeldedBodies.Add(&BodyInstance);
+			OutWeldedBodies.Add(BI);
 			if (PhysicsAsset)
 			{
 				if (UBodySetup * PhysicsAssetBodySetup = PhysicsAsset->SkeletalBodySetups[BodyIdx])
@@ -2110,7 +2111,7 @@ void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds, co
 {
 	if(ClothingSimulation && ClothingSimulation->ShouldSimulate())
 	{
-		InOutBounds = InOutBounds + ClothingSimulation->GetBounds().TransformBy(LocalToWorld);
+		InOutBounds = InOutBounds + ClothingSimulation->GetBounds(this).TransformBy(LocalToWorld);
 	}
 }
 
@@ -2181,9 +2182,6 @@ void USkeletalMeshComponent::GetWindForCloth_GameThread(FVector& WindDirection, 
 	WindDirection = FVector::ZeroVector;
 	WindAdaption = 2.f;	//not sure where this const comes from, but that's what the old code did
 	
-	//to convert from normalized value( usually 0.0 to 1.0 ) to Apex clothing wind value
-	//const float WindUnitAmout = 2500.0f;
-	
 	UWorld* World = GetWorld();
 	if(World && World->Scene)
 	{
@@ -2197,7 +2195,7 @@ void USkeletalMeshComponent::GetWindForCloth_GameThread(FVector& WindDirection, 
 			float WindMaxGust;
 			World->Scene->GetWindParameters_GameThread(Position, WindDirection, WindSpeed, WindMinGust, WindMaxGust);
 
-			WindDirection *= /*WindUnitAmout **/ WindSpeed;
+			WindDirection *= WindSpeed;
 			WindAdaption = FMath::Rand() % 20 * 0.1f; // make range from 0 to 2
 		}
 	}

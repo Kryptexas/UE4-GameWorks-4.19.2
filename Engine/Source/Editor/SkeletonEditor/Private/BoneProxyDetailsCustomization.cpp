@@ -89,22 +89,27 @@ static TSharedRef<SWidget> BuildTransformFieldLabel(bool* bValuePtr, const FText
 	MenuBuilder.EndSection();
 
 	return 
-		SNew(SComboButton)
-		.ContentPadding( 0 )
-		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-		.ForegroundColor( FSlateColor::UseForeground() )
-		.MenuContent()
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.HAlign(HAlign_Left)
 		[
-			MenuBuilder.MakeWidget()
-		]
-		.ButtonContent()
-		[
-			SNew( SBox )
-			.Padding( FMargin( 0.0f, 0.0f, 2.0f, 0.0f ) )
+			SNew(SComboButton)
+			.ContentPadding( 0 )
+			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+			.ForegroundColor( FSlateColor::UseForeground() )
+			.MenuContent()
 			[
-				SNew(STextBlock)
-				.Text_Static(&GetTransformFieldText, bValuePtr, Label)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
+				MenuBuilder.MakeWidget()
+			]
+			.ButtonContent()
+			[
+				SNew( SBox )
+				.Padding( FMargin( 0.0f, 0.0f, 2.0f, 0.0f ) )
+				[
+					SNew(STextBlock)
+					.Text_Static(&GetTransformFieldText, bValuePtr, Label)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
 			]
 		];
 }

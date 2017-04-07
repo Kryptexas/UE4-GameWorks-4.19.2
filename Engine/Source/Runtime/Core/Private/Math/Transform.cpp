@@ -166,8 +166,7 @@ FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 	// where A = this, B = Other
 	FTransform Result;
 
-	const bool bHaveNegativeScale = Scale3D.GetMin() < 0 || Other.Scale3D.GetMin() < 0;
-	if (bHaveNegativeScale)
+	if (AnyHasNegativeScale(Scale3D, Other.GetScale3D()))
 	{
 		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
 		GetRelativeTransformUsingMatrixWithScale(&Result, this, &Other);

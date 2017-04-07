@@ -772,7 +772,10 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 		if (USkeleton* Skeleton = InBlendSpace->GetSkeleton())
 		{
 			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetAssetPreviewMesh(InBlendSpace);
-
+			if (!PreviewSkeletalMesh)
+			{
+				PreviewSkeletalMesh = Skeleton->FindCompatibleMesh();
+			}
 			PreviewActor->GetSkeletalMeshComponent()->SetSkeletalMesh(PreviewSkeletalMesh);
 
 			if (PreviewSkeletalMesh)
@@ -902,8 +905,11 @@ bool FAnimBlueprintThumbnailScene::SetAnimBlueprint(class UAnimBlueprint* InBlue
 	{
 		if (USkeleton* Skeleton = InBlueprint->TargetSkeleton)
 		{
-			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetPreviewMesh(true);
-
+			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetAssetPreviewMesh(InBlueprint);
+			if (!PreviewSkeletalMesh)
+			{
+				PreviewSkeletalMesh = Skeleton->FindCompatibleMesh();
+			}
 			PreviewActor->GetSkeletalMeshComponent()->SetSkeletalMesh(PreviewSkeletalMesh);
 
 			if (PreviewSkeletalMesh)

@@ -30,6 +30,7 @@
 #include "AnimGraphNode_PoseByName.h"
 #include "AnimGraphCommands.h"
 #include "K2Node_Knot.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "AnimationGraphSchema"
 
@@ -320,6 +321,9 @@ void UAnimationGraphSchema::UpdateNodeWithAsset(UK2Node* K2Node, UAnimationAsset
 		{
 			if (AssetPlayerNode->SupportsAssetClass(Asset->GetClass()) != EAnimAssetHandlerType::NotSupported)
 			{
+				const FScopedTransaction Transaction(LOCTEXT("UpdateNodeWithAsset", "Updating Node with Asset"));
+				AssetPlayerNode->Modify();
+
 				AssetPlayerNode->SetAnimationAsset(Asset);
 
 				K2Node->GetSchema()->ForceVisualizationCacheClear();

@@ -228,19 +228,10 @@ FReply SAdvancedPreviewDetailsTab::RemoveProfileButtonClick()
 
 void SAdvancedPreviewDetailsTab::OnAssetViewerSettingsRefresh(const FName& InPropertyName)
 {
-	const bool bNameNone = InPropertyName == NAME_None;
-	
-	const bool bUpdateEnvironment = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, EnvironmentCubeMap)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, LightingRigRotation) || (InPropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, Profiles)));
-	const bool bUpdateSkyLight = bUpdateEnvironment || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, SkyLightIntensity) || (InPropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, Profiles)));
-	const bool bUpdateDirectionalLight = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, DirectionalLightIntensity)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, DirectionalLightColor));
-	const bool bUpdatePostProcessing = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, PostProcessingSettings)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled));
-
 	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, ProfileName) || InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bSharedProfile))
 	{
 		UpdateProfileNames();
 	}
-
-	PreviewScenePtr.Pin()->UpdateScene(DefaultSettings->Profiles[ProfileIndex], bUpdateSkyLight || bNameNone, bUpdateEnvironment || bNameNone, bUpdatePostProcessing || bNameNone, bUpdateDirectionalLight || bNameNone);
 }
 
 void SAdvancedPreviewDetailsTab::CreateSettingsView()
@@ -263,12 +254,12 @@ void SAdvancedPreviewDetailsTab::CreateSettingsView()
 
 	SettingsView = EditModule.CreateDetailView(DetailsViewArgs);
 
-	for (const FDetailCustomizationInfo& DetailCustomizationInfo : DetailCustomizations)
+	for (const FAdvancedPreviewSceneModule::FDetailCustomizationInfo& DetailCustomizationInfo : DetailCustomizations)
 	{
 		SettingsView->RegisterInstancedCustomPropertyLayout(DetailCustomizationInfo.Struct, DetailCustomizationInfo.OnGetDetailCustomizationInstance);
 	}
 
-	for (const FPropertyTypeCustomizationInfo& PropertyTypeCustomizationInfo : PropertyTypeCustomizations)
+	for (const FAdvancedPreviewSceneModule::FPropertyTypeCustomizationInfo& PropertyTypeCustomizationInfo : PropertyTypeCustomizations)
 	{
 		EditModule.RegisterCustomPropertyTypeLayout(PropertyTypeCustomizationInfo.StructName, PropertyTypeCustomizationInfo.OnGetPropertyTypeCustomizationInstance, nullptr, SettingsView);
 	}

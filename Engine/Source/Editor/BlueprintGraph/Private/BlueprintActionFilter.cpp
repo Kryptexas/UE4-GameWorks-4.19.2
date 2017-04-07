@@ -1123,33 +1123,53 @@ static bool BlueprintActionFilterImpl::IsSchemaIncompatible(FBlueprintActionFilt
 	UEdGraphNode const* NodeCDO = CastChecked<UEdGraphNode>(NodeClass->ClassDefaultObject);
 	checkSlow(NodeCDO != nullptr);
 
-	auto IsSchemaIncompatibleLambda = [NodeCDO](TArray<UEdGraph*> const& GraphList)->bool
-	{
-		bool bIsCompatible = true;
-		for (UEdGraph const* Graph : GraphList)
-		{
-			if (!NodeCDO->CanCreateUnderSpecifiedSchema(Graph->GetSchema()))
-			{
-				bIsCompatible = false;
-				break;
-			}
-		}
-		return !bIsCompatible;
-	};
+
 	
 	if (FilterContext.Graphs.Num() > 0)
 	{
+		auto IsSchemaIncompatibleLambda = [NodeCDO](TArray<UEdGraph*> const& GraphList)->bool
+		{
+			bool bIsCompatible = true;
+			for (UEdGraph const* Graph : GraphList)
+			{
+				if (!NodeCDO->CanCreateUnderSpecifiedSchema(Graph->GetSchema()))
+				{
+					bIsCompatible = false;
+					break;
+				}
+			}
+			return !bIsCompatible;
+		};
+
 		bIsFilteredOut = IsSchemaIncompatibleLambda(FilterContext.Graphs);
 	}
 	else
 	{
+		// When we are in a non-graph context, we may need to account for some graphs 
+		// being incompatible. In this case the code to place a node will take care of
+		// any issues, but we dont filter here if a schema is rejected, only if all schemas
+		// are incompatible.
+		auto AreAnySchemasCompatibleLambda = [NodeCDO](TArray<UEdGraph*> const& GraphList)->bool
+		{
+			bool bIsCompatible = false;
+			for (UEdGraph const* Graph : GraphList)
+			{
+				if (NodeCDO->CanCreateUnderSpecifiedSchema(Graph->GetSchema()))
+				{
+					bIsCompatible = true;
+					break;
+				}
+			}
+			return bIsCompatible;
+		};
+
 		bIsFilteredOut = true;
 		for (UBlueprint const* Blueprint : FilterContext.Blueprints)
 		{
 			TArray<UEdGraph*> BpGraphList;
 			Blueprint->GetAllGraphs(BpGraphList);
 
-			if (!IsSchemaIncompatibleLambda(BpGraphList))
+			if (AreAnySchemasCompatibleLambda(BpGraphList))
 			{
 				bIsFilteredOut = false;
 				break;

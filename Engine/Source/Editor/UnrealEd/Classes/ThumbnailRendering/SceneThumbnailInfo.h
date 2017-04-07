@@ -17,6 +17,9 @@ class USceneThumbnailInfo : public UThumbnailInfo
 {
 	GENERATED_UCLASS_BODY()
 
+	/** UObject interface */
+	virtual void Serialize(FArchive& Ar) override;
+
 	/** The pitch of the orbit camera around the asset */
 	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	float OrbitPitch;

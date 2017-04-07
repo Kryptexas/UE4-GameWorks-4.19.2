@@ -46,7 +46,7 @@ class UThumbnailInfo* FAssetTypeActions_GeometryCache::GetThumbnailInfo(UObject*
 	UThumbnailInfo* ThumbnailInfo = GeometryCache->ThumbnailInfo;
 	if (ThumbnailInfo == NULL)
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfo>(GeometryCache);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(GeometryCache, NAME_None, RF_Transactional);
 		GeometryCache->ThumbnailInfo = ThumbnailInfo;
 	}
 

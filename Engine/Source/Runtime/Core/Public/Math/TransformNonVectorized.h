@@ -523,6 +523,7 @@ public:
 	*/
 	FORCEINLINE void operator*=(const FQuat& Other);
 
+	FORCEINLINE static bool AnyHasNegativeScale(const FVector& InScale3D, const  FVector& InOtherScale3D);
 	FORCEINLINE void ScaleTranslation(const FVector& InScale3D);
 	FORCEINLINE void ScaleTranslation(const float& Scale);
 	FORCEINLINE void RemoveScaling(float Tolerance = SMALL_NUMBER);
@@ -1226,6 +1227,11 @@ private:
 
 template <> struct TIsPODType<FTransform> { enum { Value = true }; };
 
+FORCEINLINE bool FTransform::AnyHasNegativeScale(const FVector& InScale3D, const  FVector& InOtherScale3D) 
+{
+	return  (InScale3D.X < 0.f || InScale3D.Y < 0.f || InScale3D.Z < 0.f 
+			|| InOtherScale3D.X < 0.f || InOtherScale3D.Y < 0.f || InOtherScale3D.Z < 0.f );
+}
 
 /** Scale the translation part of the Transform by the supplied vector. */
 FORCEINLINE void FTransform::ScaleTranslation(const FVector& InScale3D)
@@ -1314,8 +1320,7 @@ FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform
 	//	S(AxB) = S(A)*S(B)
 	//	T(AxB) = Q(B)*S(B)*T(A)*-Q(B) + T(B)
 
-	const bool bHaveNegativeScale = A->Scale3D.GetMin() < 0 || B->Scale3D.GetMin() < 0;
-	if (bHaveNegativeScale)
+	if (AnyHasNegativeScale(A->Scale3D, B->Scale3D))
 	{
 		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
 		MultiplyUsingMatrixWithScale(OutTransform, A, B);

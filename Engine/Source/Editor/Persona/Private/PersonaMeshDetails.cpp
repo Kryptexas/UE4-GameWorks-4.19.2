@@ -65,6 +65,7 @@
 #include "SExpandableArea.h"
 #include "SKismetInspector.h"
 #include "PropertyEditorDelegates.h"
+#include "IEditableSkeleton.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
@@ -1144,22 +1145,33 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 		// Create information panel for each LOD level.
 		for (int32 LODIndex = 0; LODIndex < SkelMeshLODCount; ++LODIndex)
 		{
+			TSharedRef<IPropertyHandle> LODInfoProperty = DetailLayout.GetProperty(FName("LODInfo"), USkeletalMesh::StaticClass());
+			uint32 NumChildren = 0;
+			LODInfoProperty->GetNumChildren(NumChildren);
+			check(NumChildren >(uint32)LODIndex);
+			TSharedPtr<IPropertyHandle> ChildHandle = LODInfoProperty->GetChildHandle(LODIndex);
+			check(ChildHandle.IsValid());
+			
 			if (LODIndex > 0 && IsAutoMeshReductionAvailable())
-			{
-				TSharedRef<IPropertyHandle> LODInfoProperty = DetailLayout.GetProperty(FName("LODInfo"), USkeletalMesh::StaticClass());
-				uint32 NumChildren = 0;
-				LODInfoProperty->GetNumChildren(NumChildren);
+			{	
+				
 
-				check(NumChildren > (uint32)LODIndex);
-	
-				TSharedPtr<IPropertyHandle> ChildHandle = LODInfoProperty->GetChildHandle(LODIndex);
-				check(ChildHandle.IsValid());
 				TSharedPtr<IPropertyHandle> ReductionHandle = ChildHandle->GetChildHandle(FName("ReductionSettings"));
 				check(ReductionHandle.IsValid());
 				TSharedPtr<IPropertyHandle> BonesToRemoveHandle = ReductionHandle->GetChildHandle(FName("BonesToRemove"));
 
+
 				ReductionSettingsWidgets[LODIndex] = MakeShareable(new FSkelMeshReductionSettingsLayout(LODIndex, SharedThis(this), BonesToRemoveHandle, SkelMesh->Skeleton));
 			}
+
+			TSharedPtr<IPropertyHandle> RemovedBonesHandle = ChildHandle->GetChildHandle(FName("RemovedBones"));
+			RemovedBonesHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateLambda([this, LODIndex, SkelMesh]()
+			{
+				if (SkelMesh->LODInfo[LODIndex].RemovedBones.Num() == 0)
+				{
+					RemoveBones(LODIndex);
+				}
+			}));
 
 			FSkeletalMeshLODInfo& LODInfo = SkelMesh->LODInfo[LODIndex];
 			if (ReductionSettingsWidgets[LODIndex].IsValid())
@@ -1202,38 +1214,31 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 
 				LODCategory.AddCustomBuilder(MakeShareable(new FSectionList(LODCategory.GetParentLayout(), SectionListDelegates, (LODIndex > 0))));
 			}
-			// add each LOD Info to each LOD category
-			TSharedRef<IPropertyHandle> LODInfoProperty = DetailLayout.GetProperty(FName("LODInfo"), USkeletalMesh::StaticClass());
 
 			if (LODInfoProperty->IsValidHandle())
 			{
-				uint32 NumChildren;
-				LODInfoProperty->GetNumChildren(NumChildren);
-				check((uint32)LODIndex < NumChildren);
-
 				// changing property name to "LOD Info" because it shows only array index
 				TSharedPtr<IPropertyHandle> LODInfoChild = LODInfoProperty->GetChildHandle(LODIndex);
 				LODInfoChild->CreatePropertyNameWidget(LOCTEXT("LODInfoLabel", "LOD Info"));
 				LODCategory.AddProperty(LODInfoChild);
 
 				//@Todo : ideally this should be inside of LODinfo customization, but for now this will allow users to re-apply removed joints after re-import if they want to.
-				// this also can be buggy if you have this opened and you removed joints using skeleton tree, in that case, it might not show
-				if (SkelMesh->LODInfo[LODIndex].RemovedBones.Num() > 0)
-				{
-					// add custom button to re-apply bone reduction if they want to
-					LODCategory.AddCustomRow(LOCTEXT("ReapplyRemovedBones", "Reapply Removed Bones"))
-					.ValueContent()
-					.HAlign(HAlign_Left)
+				// this also can be buggy if you have this opened and you removed joints using skeleton tree, in that case, it might not show			
+				// add custom button to re-apply bone reduction if they want to
+				FDetailWidgetRow& ButtonRow = LODCategory.AddCustomRow(LOCTEXT("ReapplyRemovedBones", "Reapply Removed Bones"))
+				.ValueContent()
+				.HAlign(HAlign_Left)			
+				[
+					SNew(SButton)
+					.OnClicked(this, &FPersonaMeshDetails::RemoveBones, LODIndex)
 					[
-						SNew(SButton)
-						.OnClicked(this, &FPersonaMeshDetails::RemoveBones, LODIndex)
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("ReapplyRemovedBonesButton", "Reapply removed bones"))
-							.Font(DetailLayout.GetDetailFont())
-						]
-					];
-				}
+						SNew(STextBlock)
+						.Text(LOCTEXT("ReapplyRemovedBonesButton", "Reapply removed bones"))
+						.Font(DetailLayout.GetDetailFont())
+					]
+				];
+
+				ButtonRow.Visibility(TAttribute<EVisibility>::Create([SkelMesh, LODIndex]() -> EVisibility { return (SkelMesh->LODInfo[LODIndex].RemovedBones.Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed;  }));
 			}
 
 			if (ReductionSettingsWidgets[LODIndex].IsValid())
@@ -1399,6 +1404,8 @@ FReply FPersonaMeshDetails::RemoveBones(int32 LODIndex)
 	MeshUtilities.RemoveBonesFromMesh(SkelMesh, LODIndex, NULL);
 
 	MeshDetailLayout->ForceRefreshDetails();
+	GetPersonaToolkit()->GetEditableSkeleton()->RefreshBoneTree();
+
 	return FReply::Handled();
 }
 
@@ -2261,32 +2268,32 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSectio
 	ClothComboBoxes.AddDefaulted();
 
 	SectionWidget->AddSlot()
-		.AutoHeight()
+	.AutoHeight()
 	.Padding(0, 2, 0, 0)
+	[
+	SNew(SHorizontalBox)
+	+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
 		[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("Clothing", "Clothing"))
-			]
+			SNew(STextBlock)
+			.Text(LOCTEXT("Clothing", "Clothing"))
+		]
 
 		+ SHorizontalBox::Slot()
-			.AutoWidth()
+		.AutoWidth()
 		.Padding(2, 2, 0, 0)
 		[
 			SAssignNew(ClothComboBoxes.Last(), SClothComboBox)
 			.OnGenerateWidget(this, &FPersonaMeshDetails::OnGenerateWidgetForClothingEntry)
-			.OnSelectionChanged(this, &FPersonaMeshDetails::OnClothingSelectionChanged, LODIndex, SectionIndex)
+			.OnSelectionChanged(this, &FPersonaMeshDetails::OnClothingSelectionChanged, ClothComboBoxes.Num() - 1, LODIndex, SectionIndex)
 			.OptionsSource(&NewClothingAssetEntries)
 			[
 				SNew(STextBlock)
 				.Text(this, &FPersonaMeshDetails::OnGetClothingComboText, LODIndex, SectionIndex)
 			]
-			]
-		];
+		]
+	];
 
 #endif// #if WITH_APEX_CLOTHING
 	return SectionWidget;
@@ -3343,11 +3350,11 @@ void FPersonaMeshDetails::UpdateClothingEntries()
 
 	NewClothingAssetEntries.Empty();
 
-	TSharedPtr<FClothingEntry> NoneEntry = MakeShared<FClothingEntry>();
-	NoneEntry->AssetIndex = INDEX_NONE;
-	NoneEntry->Asset = nullptr;
+	ClothingNoneEntry = MakeShared<FClothingEntry>();
+	ClothingNoneEntry->AssetIndex = INDEX_NONE;
+	ClothingNoneEntry->Asset = nullptr;
 
-	NewClothingAssetEntries.Add(NoneEntry);
+	NewClothingAssetEntries.Add(ClothingNoneEntry);
 
 	const int32 NumClothingAssets = Mesh->MeshClothingAssets.Num();
 	for(int32 Idx = 0; Idx < NumClothingAssets; ++Idx)
@@ -3415,13 +3422,27 @@ FText FPersonaMeshDetails::OnGetClothingComboText(int32 InLodIdx, int32 InSectio
 	return LOCTEXT("ClothingCombo_None", "None");
 }
 
-void FPersonaMeshDetails::OnClothingSelectionChanged(TSharedPtr<FClothingEntry> InNewEntry, ESelectInfo::Type InSelectType, int32 InLodIdx, int32 InSectionIdx)
+void FPersonaMeshDetails::OnClothingSelectionChanged(TSharedPtr<FClothingEntry> InNewEntry, ESelectInfo::Type InSelectType, int32 BoxIndex, int32 InLodIdx, int32 InSectionIdx)
 {
 	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
 
 	if(UClothingAsset* ClothingAsset = Cast<UClothingAsset>(InNewEntry->Asset.Get()))
 	{
-		ClothingAsset->BindToSkeletalMesh(Mesh, InLodIdx, InSectionIdx, InNewEntry->AssetLodIndex);
+		// Look for a currently bound asset an unbind it if necessary first
+		if(UClothingAssetBase* CurrentAsset = Mesh->GetSectionClothingAsset(InLodIdx, InSectionIdx))
+		{
+			CurrentAsset->UnbindFromSkeletalMesh(Mesh, InLodIdx);
+		}
+
+		if(!ClothingAsset->BindToSkeletalMesh(Mesh, InLodIdx, InSectionIdx, InNewEntry->AssetLodIndex))
+		{
+			// We failed to bind the clothing asset, reset box selection to "None"
+			SClothComboBoxPtr BoxPtr = ClothComboBoxes[BoxIndex];
+			if(BoxPtr.IsValid())
+			{
+				BoxPtr->SetSelectedItem(ClothingNoneEntry);
+			}
+		}
 	}
 	else if(Mesh)
 	{

@@ -41,9 +41,11 @@ FClothPainter::~FClothPainter()
 
 void FClothPainter::Init()
 {
-	BrushSettings = GetMutableDefault<UPaintBrushSettings>();
+	BrushSettings = DuplicateObject<UPaintBrushSettings>(GetMutableDefault<UPaintBrushSettings>(), GetTransientPackage());	
+	BrushSettings->AddToRoot();
 	BrushSettings->bOnlyFrontFacingTriangles = false;
 	PaintSettings = DuplicateObject<UClothPainterSettings>(GetMutableDefault<UClothPainterSettings>(), GetTransientPackage());
+	PaintSettings->AddToRoot();
 
 	PaintSettings->OnAssetSelectionChanged.AddRaw(this, &FClothPainter::OnAssetSelectionChanged);
 

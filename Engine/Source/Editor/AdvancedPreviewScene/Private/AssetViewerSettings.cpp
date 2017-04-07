@@ -98,7 +98,7 @@ void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 
 	// Store path to the set enviroment map texture
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, EnvironmentCubeMap))
-	{
+	{		
 		int32 ProfileIndex = GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex;
 		Profiles[ProfileIndex].EnvironmentCubeMapPath = Profiles[ProfileIndex].EnvironmentCubeMap.ToString();
 	}

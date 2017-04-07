@@ -191,7 +191,8 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	bEnableUpdateRateOptimizations = false;
 	RagdollAggregateThreshold = UPhysicsSettings::Get()->RagdollAggregateThreshold;
 
-	LastPoseTickTime = -1.f;
+	// LastPoseTickTime = -1;
+	LastPoseTickFrame = 0u;
 
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 
@@ -274,6 +275,11 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		{
 			AnimClass = AnimBlueprintGeneratedClass;
 		}
+	}
+
+	if (Ar.IsLoading() && AnimBlueprintGeneratedClass)
+	{
+		AnimBlueprintGeneratedClass = nullptr;
 	}
 
 	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_AUTO_WELDING))
@@ -427,6 +433,8 @@ bool USkeletalMeshComponent::IsAnimBlueprintInstanced() const
 
 void USkeletalMeshComponent::OnRegister()
 {
+	UpdateHasValidBodies();	//Make sure this is done before we call into the Super which will trigger OnCreatePhysicsState
+
 	Super::OnRegister();
 
 	bool bForceReInit = false;
@@ -713,13 +721,6 @@ void USkeletalMeshComponent::ClearAnimScriptInstance()
 	SubInstances.Empty();
 }
 
-void USkeletalMeshComponent::CreateRenderState_Concurrent()
-{
-	// Update bHasValidBodies flag
-	UpdateHasValidBodies();
-
-	Super::CreateRenderState_Concurrent();
-}
 
 void USkeletalMeshComponent::InitializeComponent()
 {
@@ -963,9 +964,11 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 
 	if ((AnimUpdateRateParams != nullptr) && (!ShouldUseUpdateRateOptimizations() || !AnimUpdateRateParams->ShouldSkipUpdate()))
 	{
+		// Don't care about roll over, just care about uniqueness (and 32-bits should give plenty).
+		LastPoseTickFrame = static_cast<uint32>(GFrameCounter);
+
 		float TimeAdjustment = AnimUpdateRateParams->GetTimeAdjustment();
 		TickAnimation(DeltaTime + TimeAdjustment, bNeedsValidRootMotion);
-		LastPoseTickTime = GetWorld()->TimeSeconds;
 		if (CVarSpewAnimRateOptimization.GetValueOnGameThread() > 0 && Ticked.Increment()==500)
 		{
 			UE_LOG(LogTemp, Display, TEXT("%d Ticked %d NotTicked"), Ticked.GetValue(), NotTicked.GetValue());
@@ -1627,7 +1630,7 @@ void USkeletalMeshComponent::WritebackClothingSimulationData()
 	if(ClothingSimulation)
 	{
 		USkeletalMeshComponent* OverrideComponent = nullptr;
-		if(MasterPoseComponent.IsValid() && IsClothBoundToMasterComponent())
+		if(MasterPoseComponent.IsValid())
 		{
 			OverrideComponent = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get());
 		}
@@ -2028,7 +2031,7 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRe
 #if WITH_EDITOR
 		ValidateAnimation();
 #endif
-	
+
 		if(IsPhysicsStateCreated())
 		{
 			if(GetPhysicsAsset() == OldPhysAsset && OldPhysAsset && Bodies.Num() == OldPhysAsset->SkeletalBodySetups.Num())	//Make sure that we actually created all the bodies for the asset (needed for old assets in editor)
@@ -2155,12 +2158,6 @@ void USkeletalMeshComponent::HideBone( int32 BoneIndex, EPhysBodyOp PhysBodyOpti
 			if (PhysBodyOption == PBO_Term)
 			{
 				TermBodiesBelow(HideBoneName);
-			}
-			else if (PhysBodyOption == PBO_Disable)
-			{
-				// Disable collision
-				// @JTODO
-				//SetCollisionBelow(false, HideBoneName);
 			}
 		}
 	}
@@ -2532,7 +2529,7 @@ class UAnimSingleNodeInstance* USkeletalMeshComponent::GetSingleNodeInstance() c
 
 bool USkeletalMeshComponent::PoseTickedThisFrame() const 
 { 
-	return LastPoseTickTime == GetWorld()->TimeSeconds; 
+	return GFrameCounter == LastPoseTickFrame; 
 }
 
 FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform& InTransform)

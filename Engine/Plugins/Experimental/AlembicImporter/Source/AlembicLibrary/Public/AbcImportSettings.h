@@ -159,11 +159,16 @@ struct FAbcMaterialSettings
 
 	FAbcMaterialSettings()
 		: bCreateMaterials(false)
+		, bFindMaterials(false)
 	{}
 
 	/** Whether or not to create materials according to found Face Set names (will not work without face sets) */
 	UPROPERTY(EditAnywhere, Category = Materials)
 	bool bCreateMaterials;
+
+	/** Whether or not to try and find materials according to found Face Set names (will not work without face sets) */
+	UPROPERTY(EditAnywhere, Category = Materials)
+	bool bFindMaterials;
 };
 
 

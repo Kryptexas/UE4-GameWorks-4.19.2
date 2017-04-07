@@ -285,7 +285,7 @@ void ASkeletalMeshActor::LoadedFromAnotherClass(const FName& OldClassName)
 
 		if (OldClassName == SkeletalPhysicsActor_NAME || OldClassName == KAsset_NAME)
 		{
-			SkeletalMeshComponent->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
+			SkeletalMeshComponent->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipSimulatingBones;
 			SkeletalMeshComponent->BodyInstance.bSimulatePhysics = true;
 			SkeletalMeshComponent->bBlendPhysics = true;
 

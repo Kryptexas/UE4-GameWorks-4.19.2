@@ -66,7 +66,7 @@ public:
 	void UpdateMotionConstraints(FClothingSimulationContextNv* InContext);
 
 	// Updates the wind effects on the currently active cloth
-	void UpdateWind(FClothingSimulationContextNv* InContext);
+	void UpdateWind(FClothingSimulationContextNv* InContext, const FVector& InWindVelocity);
 
 	// Conditional rebuild of the aggregated collisions list
 	void ConditionalRebuildCollisions();
@@ -142,7 +142,7 @@ public:
 	virtual void Shutdown() override;
 	virtual bool ShouldSimulate() const override;
 	virtual void Simulate(IClothingSimulationContext* InContext) override;
-	virtual FBoxSphereBounds GetBounds() const override;
+	virtual FBoxSphereBounds GetBounds(const USkeletalMeshComponent* InOwnerComponent) const override;
 
 	virtual void DestroyActors() override;
 	virtual void DestroyContext(IClothingSimulationContext* InContext) override;

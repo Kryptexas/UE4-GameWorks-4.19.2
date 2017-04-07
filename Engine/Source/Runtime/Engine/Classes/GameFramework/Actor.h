@@ -2133,7 +2133,7 @@ public:
 	void RemoveControllingMatineeActor( AMatineeActor& InMatineeActor );
 
 	/** Dispatches ReceiveHit virtual and OnComponentHit delegate */
-	void DispatchPhysicsCollisionHit(const struct FRigidBodyCollisionInfo& MyInfo, const struct FRigidBodyCollisionInfo& OtherInfo, const FCollisionImpactData& RigidCollisionData);
+	virtual void DispatchPhysicsCollisionHit(const struct FRigidBodyCollisionInfo& MyInfo, const struct FRigidBodyCollisionInfo& OtherInfo, const FCollisionImpactData& RigidCollisionData);
 	
 	/** @return the actor responsible for replication, if any.  Typically the player controller */
 	virtual const AActor* GetNetOwner() const;

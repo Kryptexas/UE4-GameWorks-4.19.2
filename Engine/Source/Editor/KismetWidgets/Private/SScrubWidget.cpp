@@ -29,7 +29,7 @@ int32 SScrubWidget::GetDivider(float InputMinX, float InputMaxX, FVector2D Widge
 
 	float TotalWidgetWidth = TimeScaleInfo.WidgetSize.X;
 	int32 NumKeys = TimeScaleInfo.ViewInputRange / TimePerKey;
-	float KeyWidgetWidth = TotalWidgetWidth / (float)Helper.GetNumKeys();
+	float KeyWidgetWidth = TotalWidgetWidth / (float)NumKeys;
 	int32 Divider = 1; 
 	if (KeyWidgetWidth > 0)
 	{

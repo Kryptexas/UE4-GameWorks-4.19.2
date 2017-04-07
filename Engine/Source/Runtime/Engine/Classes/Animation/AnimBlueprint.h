@@ -10,6 +10,7 @@
 
 class SWidget;
 class UAnimationAsset;
+class USkeletalMesh;
 
 USTRUCT()
 struct FAnimGroupInfo
@@ -145,10 +146,22 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 
 	virtual void Serialize(FArchive& Ar) override;
 
+	/** Set the preview mesh for this animation blueprint */
+	void SetPreviewMesh(USkeletalMesh* PreviewMesh);
+
+	/** 
+	 * Get the preview mesh for this animation blueprint 
+	 * Note: loads the mesh if it is not already loaded, or nulls it out if the skeleton has changed since.
+	 */
+	USkeletalMesh* GetPreviewMesh();
+
+	/** Get the preview mesh for this animation blueprint */
+	USkeletalMesh* GetPreviewMesh() const;
+
 protected:
 	// Broadcast when an override is changed, allowing derived blueprints to be updated
 	FOnOverrideChangedMulticaster OnOverrideChanged;
-#endif
+#endif	// #if WITH_EDITOR
 
 #if WITH_EDITORONLY_DATA
 public:
@@ -160,5 +173,10 @@ public:
 	// particular point of the anim graph) 
 	UPROPERTY(transient)
 	TArray<class UPoseWatch*> PoseWatches;
+
+private:
+	/** The default skeletal mesh to use when previewing this asset - this only applies when you open Persona using this asset*/
+	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
+	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
 #endif
 };

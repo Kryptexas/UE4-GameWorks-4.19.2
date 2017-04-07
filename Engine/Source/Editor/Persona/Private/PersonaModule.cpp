@@ -85,6 +85,9 @@ void FPersonaModule::StartupModule()
 	//Call this to make sure AnimGraph module is setup
 	FModuleManager::Get().LoadModuleChecked(TEXT("AnimGraph"));
 
+	// Make sure the advanced preview scene module is loaded
+	FModuleManager::Get().LoadModuleChecked("AdvancedPreviewScene");
+
 	// Load all blueprint animnotifies from asset registry so they are available from drop downs in anim segment detail views
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -718,6 +721,10 @@ void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilde
 				}
 				return true;
 			});
+			if (WeakPersonaToolkit.IsValid())
+			{
+				AssetPickerConfig.InitialAssetSelection = FAssetData(WeakPersonaToolkit.Pin()->GetPreviewMesh());
+			}
 
 			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 

@@ -43,7 +43,6 @@ public class DetailCustomizations : ModuleRules
 				"SourceCodeAccess",
 				"RHI",
                 "HardwareTargeting",
-				"SharedSettingsWidgets",
                 "AIModule", 
                 "MeshUtilities",
 				"ConfigEditor",
@@ -52,6 +51,7 @@ public class DetailCustomizations : ModuleRules
 				"ComponentVisualizers",
                 "SkeletonEditor",
                 "LevelSequence",
+                "AdvancedPreviewScene",
             }
 		);
 

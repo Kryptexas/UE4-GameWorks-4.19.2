@@ -24,6 +24,18 @@ class AWheeledVehicle * UVehicleAnimInstance::GetVehicle()
 	return Cast<AWheeledVehicle> (GetOwningActor());
 }
 
+void UVehicleAnimInstance::NativeInitializeAnimation()
+{
+	// Find a wheeled movement component
+	if (AActor* Actor = GetOwningActor())
+	{
+		if (UWheeledVehicleMovementComponent* FoundWheeledVehicleMovementComponent = Actor->FindComponentByClass<UWheeledVehicleMovementComponent>())
+		{
+			SetWheeledVehicleMovementComponent(FoundWheeledVehicleMovementComponent);
+		}
+	}
+}
+
 FAnimInstanceProxy* UVehicleAnimInstance::CreateAnimInstanceProxy()
 {
 	return &AnimInstanceProxy;

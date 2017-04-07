@@ -5,6 +5,8 @@
 namespace AnimationCore
 {
 
+	PRAGMA_DISABLE_OPTIMIZATION
+
 void SolveTwoBoneIK(FTransform& InOutRootTransform, FTransform& InOutJointTransform, FTransform& InOutEndTransform, const FVector& JointTarget, const FVector& Effector, bool bAllowStretching, float StartStretchRatio, float MaxStretchScale)
 {
 	float LowerLimbLength = (InOutEndTransform.GetLocation() - InOutJointTransform.GetLocation()).Size();
@@ -144,7 +146,7 @@ void SolveTwoBoneIK(const FVector& RootPos, const FVector& JointPos, const FVect
 	OutJointPos = JointPos;
 
 	// If we are trying to reach a goal beyond the length of the limb, clamp it to something solvable and extend limb fully.
-	if (DesiredLength > MaxLimbLength)
+	if (DesiredLength >= MaxLimbLength)
 	{
 		OutEndPos = RootPos + (MaxLimbLength * DesiredDir);
 		OutJointPos = RootPos + (UpperLimbLength * DesiredDir);
@@ -160,46 +162,30 @@ void SolveTwoBoneIK(const FVector& RootPos, const FVector& JointPos, const FVect
 		// If CosAngle is less than 0, the upper arm actually points the opposite way to DesiredDir, so we handle that.
 		const bool bReverseUpperBone = (CosAngle < 0.f);
 
-		// If CosAngle is greater than 1.f, the triangle could not be made - we cannot reach the target.
-		// We just have the two limbs double back on themselves, and EndPos will not equal the desired EffectorLocation.
-		if ((CosAngle > 1.f) || (CosAngle < -1.f))
+		// Angle between upper limb and DesiredDir
+		// ACos clamps internally so we dont need to worry about out-of-range values here.
+		const float Angle = FMath::Acos(CosAngle);
+
+		// Now we calculate the distance of the joint from the root -> effector line.
+		// This forms a right-angle triangle, with the upper limb as the hypotenuse.
+		const float JointLineDist = UpperLimbLength * FMath::Sin(Angle);
+
+		// And the final side of that triangle - distance along DesiredDir of perpendicular.
+		// ProjJointDistSqr can't be neg, because JointLineDist must be <= UpperLimbLength because appSin(Angle) is <= 1.
+		const float ProjJointDistSqr = (UpperLimbLength*UpperLimbLength) - (JointLineDist*JointLineDist);
+		// although this shouldn't be ever negative, sometimes Xbox release produces -0.f, causing ProjJointDist to be NaN
+		// so now I branch it. 						
+		float ProjJointDist = (ProjJointDistSqr > 0.f) ? FMath::Sqrt(ProjJointDistSqr) : 0.f;
+		if (bReverseUpperBone)
 		{
-			// Because we want the effector to be a positive distance down DesiredDir, we go back by the smaller section.
-			if (UpperLimbLength > LowerLimbLength)
-			{
-				OutJointPos = RootPos + (UpperLimbLength * DesiredDir);
-				OutEndPos = OutJointPos - (LowerLimbLength * DesiredDir);
-			}
-			else
-			{
-				OutJointPos = RootPos - (UpperLimbLength * DesiredDir);
-				OutEndPos = OutJointPos + (LowerLimbLength * DesiredDir);
-			}
+			ProjJointDist *= -1.f;
 		}
-		else
-		{
-			// Angle between upper limb and DesiredDir
-			const float Angle = FMath::Acos(CosAngle);
 
-			// Now we calculate the distance of the joint from the root -> effector line.
-			// This forms a right-angle triangle, with the upper limb as the hypotenuse.
-			const float JointLineDist = UpperLimbLength * FMath::Sin(Angle);
-
-			// And the final side of that triangle - distance along DesiredDir of perpendicular.
-			// ProjJointDistSqr can't be neg, because JointLineDist must be <= UpperLimbLength because appSin(Angle) is <= 1.
-			const float ProjJointDistSqr = (UpperLimbLength*UpperLimbLength) - (JointLineDist*JointLineDist);
-			// although this shouldn't be ever negative, sometimes Xbox release produces -0.f, causing ProjJointDist to be NaN
-			// so now I branch it. 						
-			float ProjJointDist = (ProjJointDistSqr > 0.f) ? FMath::Sqrt(ProjJointDistSqr) : 0.f;
-			if (bReverseUpperBone)
-			{
-				ProjJointDist *= -1.f;
-			}
-
-			// So now we can work out where to put the joint!
-			OutJointPos = RootPos + (ProjJointDist * DesiredDir) + (JointLineDist * JointBendDir);
-		}
+		// So now we can work out where to put the joint!
+		OutJointPos = RootPos + (ProjJointDist * DesiredDir) + (JointLineDist * JointBendDir);
 	}
 }
+
+PRAGMA_ENABLE_OPTIMIZATION
 
 }

@@ -33,7 +33,7 @@ UThumbnailInfo* FAssetTypeActions_MaterialInterface::GetThumbnailInfo(UObject* A
 	UThumbnailInfo* ThumbnailInfo = MaterialInterface->ThumbnailInfo;
 	if ( ThumbnailInfo == NULL )
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfoWithPrimitive>(MaterialInterface);
+		ThumbnailInfo = NewObject<USceneThumbnailInfoWithPrimitive>(MaterialInterface, NAME_None, RF_Transactional);
 		MaterialInterface->ThumbnailInfo = ThumbnailInfo;
 	}
 

@@ -26,6 +26,7 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "Misc/ScopedSlowTask.h"
+#include "Animation/AnimBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
 #define ROOT_BONE_PARENT	INDEX_NONE
@@ -897,14 +898,19 @@ USkeletalMesh* USkeleton::GetPreviewMesh() const
 	return PreviewSkeletalMesh.Get();
 }
 
-USkeletalMesh* USkeleton::GetAssetPreviewMesh(UAnimationAsset* AnimAsset) 
+USkeletalMesh* USkeleton::GetAssetPreviewMesh(UObject* InAsset) 
 {
-	USkeletalMesh * PreviewMesh = NULL;
+	USkeletalMesh* PreviewMesh = nullptr;
+
 	// return asset preview asset
 	// if nothing is assigned, return skeleton asset
-	if (AnimAsset)
+	if (UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(InAsset))
 	{
 		PreviewMesh = AnimAsset->GetPreviewMesh();
+	}
+	else if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(InAsset))
+	{
+		PreviewMesh = AnimBlueprint->GetPreviewMesh();
 	}
 
 	if (!PreviewMesh)

@@ -12,6 +12,9 @@
 #include "MovieSceneExecutionToken.h"
 #include "Evaluation/PersistentEvaluationData.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
+#include "MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "MovieScenePropertyTemplate.generated.h"
 
 DECLARE_CYCLE_STAT(TEXT("Property Track Token Execute"), MovieSceneEval_PropertyTrack_TokenExecute, STATGROUP_MovieSceneEval);
@@ -57,7 +60,22 @@ namespace PropertyTemplate
 			{
 				if (UObject* ObjectPtr = Object.Get())
 				{
-					ObjectsAndValues.Add(TCachedValue<PropertyValueType>{ ObjectPtr, PropertyBindings->GetCurrentValue<PropertyValueType>(*ObjectPtr) });
+					PropertyBindings->CacheBinding(*ObjectPtr);
+					if (UProperty* Property = PropertyBindings->GetProperty(*ObjectPtr))
+					{
+						if (Property->GetSize() == sizeof(PropertyValueType))
+						{
+							ObjectsAndValues.Add(TCachedValue<PropertyValueType>{ ObjectPtr, PropertyBindings->GetCurrentValue<PropertyValueType>(*ObjectPtr) });
+						}
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+						else
+						{
+							FMessageLog("Sequencer").Warning()
+								->AddToken(FUObjectToken::Create(Player.GetEvaluationTemplate().GetSequence(MovieSceneSequenceID::Root)))
+								->AddToken(FTextToken::Create(FText::Format(NSLOCTEXT("MovieScene", "IncompatibleDataWarning", "Property size mismatch for property '{0}'. Expected '{1}', found '{2}'. Recreate the track with the new property type."), FText::FromString(PropertyBindings->GetPropertyPath()), FText::FromString(TNameOf<PropertyValueType>::GetName()), FText::FromString(Property->GetCPPType()))));
+						}
+#endif
+					}
 				}
 			}
 		}

@@ -28,7 +28,7 @@ int32 GSkeletalMeshLODBias = 0;
 FAutoConsoleVariableRef CVarSkeletalMeshLODBias(
 	TEXT("r.SkeletalMeshLODBias"),
 	GSkeletalMeshLODBias,
-	TEXT("LOD bias for skeletal meshes."),
+	TEXT("LOD bias for skeletal meshes (does not affect animation editor viewports)."),
 	ECVF_Scalability
 	);
 
@@ -358,6 +358,10 @@ FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 			Result = ::new FSkeletalMeshSceneProxy(this, SkelMeshResource);
 		}
 	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	SendRenderDebugPhysics(Result);
+#endif
 
 	return Result;
 }
@@ -1718,7 +1722,7 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 			if (bRequirePhysicsAsset)
 			{
 				FName BoneName = SkeletalMesh->RefSkeleton.GetBoneName(i);
-				bPassPACheck = (PhysAsset->BodySetupIndexMap.FindRef(BoneName) != INDEX_NONE);
+				bPassPACheck = (PhysAsset->BodySetupIndexMap.Find(BoneName) != nullptr);
 			}
 
 			if (bPassPACheck && (IgnoreScale < 0.f || GetComponentSpaceTransforms()[i].GetScaledAxis(EAxis::X).SizeSquared() > IgnoreScaleSquared))
@@ -2238,6 +2242,13 @@ void USkinnedMeshComponent::SetMinLOD(int32 InNewMinLOD)
 	MinLodModel = FMath::Clamp(InNewMinLOD, 0, MaxLODIndex);
 }
 
+#if WITH_EDITOR
+int32 USkinnedMeshComponent::GetLODBias() const
+{
+	return GSkeletalMeshLODBias;
+}
+#endif
+
 void USkinnedMeshComponent::SetCastCapsuleDirectShadow(bool bNewValue)
 {
 	if (bNewValue != bCastCapsuleDirectShadow)
@@ -2292,7 +2303,12 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 			}
 			else if (MeshObject)
 			{
-				PredictedLODLevel = FMath::Clamp(MeshObject->MinDesiredLODLevel + GSkeletalMeshLODBias, 0, MaxLODIndex);
+#if WITH_EDITOR
+				const int32 LODBias = GetLODBias();
+#else
+				const int32 LODBias = GSkeletalMeshLODBias;
+#endif
+				PredictedLODLevel = FMath::Clamp(MeshObject->MinDesiredLODLevel + LODBias, 0, MaxLODIndex);
 			}
 			// If no MeshObject - just assume lowest LOD.
 			else
@@ -2330,6 +2346,11 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 		{
 			bLODChanged |= SlaveComponents->UpdateLODStatus();
 		}
+	}
+
+	if (bLODChanged)
+	{
+		MarkRenderDynamicDataDirty();
 	}
 
 	return bLODChanged;
@@ -2816,7 +2837,7 @@ void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateSh
 	bInterpolateSkippedFrames = (bNewInterpSkippedFrames && (EvaluationRate < MaxEvalRateForInterpolation)) || (FAnimUpdateRateManager::CVarForceInterpolation.GetValueOnAnyThread() == 1);
 
 	// Make sure we don't overflow. we don't need very large numbers.
-	const uint32 Counter = (GFrameCounter + UpdateRateShift)% MAX_uint8;
+	const uint32 Counter = (GFrameCounter + UpdateRateShift)% MAX_uint32;
 
 	bSkipUpdate = ((Counter % UpdateRate) > 0);
 	bSkipEvaluation = ((Counter % EvaluationRate) > 0);

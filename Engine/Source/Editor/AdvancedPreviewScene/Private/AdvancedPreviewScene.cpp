@@ -3,8 +3,6 @@
 #include "AdvancedPreviewScene.h"
 #include "UnrealClient.h"
 
-#if WITH_EDITOR
-
 #include "Components/PostProcessComponent.h"
 #include "Engine/Texture.h"
 #include "Engine/TextureCube.h"
@@ -22,14 +20,23 @@
 #include "AssetViewerSettings.h"
 
 #include "Engine/StaticMesh.h"
+#include "AdvancedPreviewSceneCommands.h"
+#include "UICommandList.h"
+#include "Framework/Application/SlateApplication.h"
 
 FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFloorOffset)
 	: FPreviewScene(CVS)
 {
 	DefaultSettings = UAssetViewerSettings::Get();
+	check(DefaultSettings);
+
+	RefreshDelegate = DefaultSettings->OnAssetViewerSettingsChanged().AddRaw(this, &FAdvancedPreviewScene::OnAssetViewerSettingsRefresh);
+
 	CurrentProfileIndex = DefaultSettings->Profiles.IsValidIndex(CurrentProfileIndex) ? GetDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex : 0;
 	ensureMsgf(DefaultSettings->Profiles.IsValidIndex(CurrentProfileIndex), TEXT("Invalid default settings pointer or current profile index"));
 	FPreviewSceneProfile& Profile = DefaultSettings->Profiles[CurrentProfileIndex];
+
+	SphereReflectionComponent = nullptr;
 
 	const FTransform Transform(FRotator(0, 0, 0), FVector(0, 0, 0), FVector(1));
 
@@ -87,6 +94,21 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 	bRotateLighting = Profile.bRotateLightingRig;
 	CurrentRotationSpeed = Profile.RotationSpeed;
 	bSkyChanged = false;
+	bUseSkylight = true;
+
+	BindCommands();
+}
+
+FAdvancedPreviewScene::~FAdvancedPreviewScene()
+{
+	if (UObjectInitialized())
+	{
+		DefaultSettings = UAssetViewerSettings::Get();
+		if (DefaultSettings)
+		{
+			DefaultSettings->OnAssetViewerSettingsChanged().Remove(RefreshDelegate);
+		}
+	}
 }
 
 void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpdateSkyLight /*= true*/, bool bUpdateEnvironment  /*= true*/, bool bUpdatePostProcessing /*= true*/, bool bUpdateDirectionalLight /*= true*/)
@@ -314,23 +336,16 @@ const bool FAdvancedPreviewScene::HandleViewportInput(FViewport* InViewport, int
 
 const bool FAdvancedPreviewScene::HandleInputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool Gamepad)
 {
-	bool bResult = false;
-
-	const bool bHideSky = InViewport->KeyState(EKeys::I);
-	const bool bHideFloor = InViewport->KeyState(EKeys::O);
-	if (bHideSky)
+	if (Event == IE_Pressed)
 	{
-		SetEnvironmentVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment);
-		bResult = true;
+		FModifierKeysState KeyState = FSlateApplication::Get().GetModifierKeys();
+		if (UICommandList->ProcessCommandBindings(Key, KeyState, (Event == IE_Repeat)))
+		{
+			return true;
+		}
 	}
 
-	if (bHideFloor)
-	{
-		SetFloorVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor);
-		bResult = true;
-	}
-
-	return bResult;
+	return false;
 }
 
 void FAdvancedPreviewScene::SetFloorVisibility(const bool bVisible, const bool bDirect)
@@ -414,4 +429,37 @@ const UStaticMeshComponent* FAdvancedPreviewScene::GetFloorMeshComponent() const
 	return FloorMeshComponent;
 }
 
-#endif // WITH_EDITOR
+void FAdvancedPreviewScene::BindCommands()
+{
+	UICommandList = MakeShared<FUICommandList>();
+
+	const FAdvancedPreviewSceneCommands& Commands = FAdvancedPreviewSceneCommands::Get();
+
+	UICommandList->MapAction(Commands.ToggleFloor,
+		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleFloor));
+
+	UICommandList->MapAction(Commands.ToggleSky,
+		FExecuteAction::CreateRaw(this, &FAdvancedPreviewScene::HandleToggleSky));
+}
+
+void FAdvancedPreviewScene::HandleToggleSky()
+{
+	SetEnvironmentVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment);
+}
+
+void FAdvancedPreviewScene::HandleToggleFloor()
+{
+	SetFloorVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor);
+}
+
+void FAdvancedPreviewScene::OnAssetViewerSettingsRefresh(const FName& InPropertyName)
+{
+	const bool bNameNone = InPropertyName == NAME_None;
+
+	const bool bUpdateEnvironment = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, EnvironmentCubeMap)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, LightingRigRotation) || (InPropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, Profiles)));
+	const bool bUpdateSkyLight = bUpdateEnvironment || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, SkyLightIntensity) || (InPropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, Profiles)));
+	const bool bUpdateDirectionalLight = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, DirectionalLightIntensity)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, DirectionalLightColor));
+	const bool bUpdatePostProcessing = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, PostProcessingSettings)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled));
+
+	UpdateScene(DefaultSettings->Profiles[CurrentProfileIndex], bUpdateSkyLight || bNameNone, bUpdateEnvironment || bNameNone, bUpdatePostProcessing || bNameNone, bUpdateDirectionalLight || bNameNone);
+}

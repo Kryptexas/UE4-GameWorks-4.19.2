@@ -9,6 +9,7 @@
 #include "AnimationUtils.h"
 #include "Animation/BlendSpaceUtilities.h"
 #include "UObject/FrameworkObjectVersion.h"
+#include "UObject/UObjectIterator.h"
 
 DECLARE_CYCLE_STAT(TEXT("BlendSpace GetAnimPose"), STAT_BlendSpace_GetAnimPose, STATGROUP_Anim);
 
@@ -1244,6 +1245,21 @@ void UBlendSpaceBase::UpdatePreviewBasePose()
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
+}
+
+void UBlendSpaceBase::UpdateBlendSpacesUsingAnimSequence(UAnimSequenceBase* Sequence)
+{
+	for (TObjectIterator<UBlendSpaceBase> BlendSpaceIt; BlendSpaceIt; ++BlendSpaceIt)
+	{
+		TArray<UAnimationAsset*> ReferredAssets;
+		BlendSpaceIt->GetAllAnimationSequencesReferred(ReferredAssets, false);
+
+		if (ReferredAssets.Contains(Sequence))
+		{
+			BlendSpaceIt->Modify();
+			BlendSpaceIt->ValidateSampleData();
+		}
+	}	
 }
 
 #endif // WITH_EDITOR

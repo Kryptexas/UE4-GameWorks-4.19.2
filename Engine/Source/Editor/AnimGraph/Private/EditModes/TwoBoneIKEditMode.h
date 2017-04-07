@@ -15,6 +15,14 @@ struct FViewportClick;
 class FTwoBoneIKEditMode : public FAnimNodeEditMode
 {
 public:
+	/** Bone selection mode */
+	enum BoneSelectModeType
+	{
+		BSM_EndEffector,
+		BSM_JointTarget,
+		BSM_Max
+	};
+
 	FTwoBoneIKEditMode();
 
 	/** IAnimNodeEditMode interface */
@@ -36,30 +44,19 @@ protected:
 
 private:
 	/** Helper function for Render() */
-	void DrawTargetLocation(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelComp, USkeleton * Skeleton, EBoneControlSpace SpaceBase, FName SpaceBoneName, const FVector& TargetLocation, const FColor& TargetColor, const FColor& BoneColor) const;
+	void DrawTargetLocation(FPrimitiveDrawInterface* PDI, BoneSelectModeType InBoneSelectMode, const FColor& TargetColor, const FColor& BoneColor) const;
 
-	/** Creates and destroys the selection actor as needed */
-	void ManageBoneSelectActor();
+	/** Helper funciton for GetWidgetLocation() and joint rendering */
+	FVector GetWidgetLocation(BoneSelectModeType InBoneSelectMode) const;
 
 private:
 	/** Cache the typed nodes */
 	struct FAnimNode_TwoBoneIK* TwoBoneIKRuntimeNode;
 	UAnimGraphNode_TwoBoneIK* TwoBoneIKGraphNode;
 
-	/** Bone selection mode */
-	enum BoneSelectModeType
-	{
-		BSM_EndEffector,
-		BSM_JointTarget,
-		BSM_Max
-	};
-
 	/** The current bone selection mode */
 	BoneSelectModeType BoneSelectMode;
 
 	/** The bone space we last saw for the current node */
 	EBoneControlSpace PreviousBoneSpace;
-
-	/** */
-	TWeakObjectPtr<class ABoneSelectActor> BoneSelectActor;
 };

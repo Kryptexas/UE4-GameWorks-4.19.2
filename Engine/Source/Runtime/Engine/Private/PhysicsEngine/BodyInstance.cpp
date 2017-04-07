@@ -448,7 +448,6 @@ FBodyInstance::FBodyInstance()
 	, bOverrideMass(false)
 	, bEnableGravity(true)
 	, bAutoWeld(false)
-	, bWelded(false)
 	, bStartAwake(true)
 	, bGenerateWakeEvents(false)
 	, bUpdateMassWhenScaleChanges(false)
@@ -2071,7 +2070,7 @@ const FBodyInstance* FBodyInstance::GetOriginalBodyInstance(const PxShape* PShap
 {
 	const FBodyInstance* BI = WeldParent ? WeldParent : this;
 	const FWeldInfo* Result = BI->ShapeToBodiesMap.IsValid() ? BI->ShapeToBodiesMap->Find(PShape) : nullptr;
-	return Result ? Result->ChildBI : this;
+	return Result ? Result->ChildBI : BI;
 }
 
 const FTransform& FBodyInstance::GetRelativeBodyTransform(const physx::PxShape* PShape) const
@@ -3088,13 +3087,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportTy
 							PRigidDynamic->setKinematicTarget(PNewPose);  // physx doesn't clear target on setGlobalPose, so overwrite any previous attempt to set this that wasn't yet resolved
 						}
 
-						//if(!PhysScene->IsPendingSimulationTransforms( RigidActorSync ? PST_Sync : PST_Async ))
-						//{
-							PRigidDynamic->setGlobalPose(PNewPose);
-						//} else if(bSimulatePhysics)
-						//{
-							//UE_LOG(LogPhysics, Warning, TEXT("SetTransformWhileSimulating: Setting body transform on a simulated body of component (%s) while the physics simulation is running. This will be ignored. You may want to change the component's TickGroup or consider moving the simulated body using a physical constraint"), OwnerComponent.Get() ? *OwnerComponent->GetPathName() : TEXT("NONE"));
-						//}
+						PRigidDynamic->setGlobalPose(PNewPose);
 					}
 				}
 			}
@@ -4611,10 +4604,12 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 	bool bFoundValidBody = false;
 	bool bEarlyOut = true;
 
+	const FBodyInstance* UseBI = WeldParent ? WeldParent : this;
+
 #if WITH_PHYSX
-	ExecuteOnPxRigidActorReadOnly(this, [&](const PxRigidActor* RigidActor)
+	ExecuteOnPxRigidActorReadOnly(UseBI, [&](const PxRigidActor* RigidActor)
 	{
-		if (RigidActor->getNbShapes() == 0 || OwnerComponent == NULL)
+		if (RigidActor->getNbShapes() == 0 || UseBI->OwnerComponent == NULL)
 		{
 			return;
 		}
@@ -4632,6 +4627,12 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 		{
 			PxShape* PShape = PShapes[ShapeIdx];
 			check(PShape);
+
+			if (IsShapeBoundToBody(PShape) == false)	//skip welded shapes that do not belong to us
+			{
+				continue;
+			}
+
 			PxGeometry& PGeom = PShape->getGeometry().any();
 			PxTransform PGlobalPose = GetPxTransform_AssumesLocked(PShape, RigidActor);
 			PxGeometryType::Enum GeomType = PShape->getGeometryType();
@@ -4903,32 +4904,37 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 			PxVec3 POutDirection;
 			float OutDistance;
 
-			if (PxGeometryQuery::computePenetration(POutDirection, OutDistance, PGeom, ShapePose, PShape->getGeometry().any(), GetPxTransform_AssumesLocked(PShape, RigidBody)))
-			{				
-				//TODO: there are some edge cases that give us nan results. In these cases we skip
-				if (!POutDirection.isFinite())
+			if(OutMTD)
+			{
+				if (PxGeometryQuery::computePenetration(POutDirection, OutDistance, PGeom, ShapePose, PShape->getGeometry().any(), GetPxTransform_AssumesLocked(PShape, RigidBody)))
 				{
+					//TODO: there are some edge cases that give us nan results. In these cases we skip
+					if (!POutDirection.isFinite())
+					{
 #if !UE_BUILD_SHIPPING
-					//UE_LOG(LogPhysics, Warning, TEXT("Warning: OverlapPhysX_AssumesLocked: MTD returned NaN :( normal: (X:%f, Y:%f, Z:%f)"), POutDirection.x, POutDirection.y, POutDirection.z);
+						//UE_LOG(LogPhysics, Warning, TEXT("Warning: OverlapPhysX_AssumesLocked: MTD returned NaN :( normal: (X:%f, Y:%f, Z:%f)"), POutDirection.x, POutDirection.y, POutDirection.z);
 #endif
-					POutDirection.x = 0.f;
-					POutDirection.y = 0.f;
-					POutDirection.z = 0.f;
-				}
+						POutDirection.x = 0.f;
+						POutDirection.y = 0.f;
+						POutDirection.z = 0.f;
+					}
 
-				if(OutMTD)
-				{
 					OutMTD->Direction = P2UVector(POutDirection);
 					OutMTD->Distance = FMath::Abs(OutDistance);
-				}
-				
-				if(GHillClimbError)
-				{
-					LogHillClimbError(this, PGeom, ShapePose);
-				}
 
-				return true;
-			}			
+					if (GHillClimbError)
+					{
+						LogHillClimbError(this, PGeom, ShapePose);
+					}
+
+					return true;
+				}
+			}
+			else
+			{
+				return PxGeometryQuery::overlap(PGeom, ShapePose, PShape->getGeometry().any(), GetPxTransform_AssumesLocked(PShape, RigidBody));
+			}
+					
 		}
 	}
 

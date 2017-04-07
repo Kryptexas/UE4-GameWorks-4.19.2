@@ -6382,6 +6382,10 @@ UObject* UBlendSpaceFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent
 		UBlendSpace * BlendSpace = NewObject<UBlendSpace>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			BlendSpace->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return BlendSpace;
 	}
@@ -6452,6 +6456,10 @@ UObject* UBlendSpaceFactory1D::FactoryCreateNew(UClass* Class,UObject* InParent,
 		UBlendSpace1D * BlendSpace = NewObject<UBlendSpace1D>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			BlendSpace->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return BlendSpace;
 	}
@@ -6482,6 +6490,10 @@ UObject* UAimOffsetBlendSpaceFactoryNew::FactoryCreateNew(UClass* Class,UObject*
 		UAimOffsetBlendSpace * BlendSpace = NewObject<UAimOffsetBlendSpace>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			BlendSpace->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return BlendSpace;
 	}
@@ -6506,6 +6518,10 @@ UObject* UAimOffsetBlendSpaceFactory1D::FactoryCreateNew(UClass* Class,UObject* 
 		UAimOffsetBlendSpace1D * BlendSpace = NewObject<UAimOffsetBlendSpace1D>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			BlendSpace->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return BlendSpace;
 	}

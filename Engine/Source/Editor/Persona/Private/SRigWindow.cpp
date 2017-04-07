@@ -133,7 +133,7 @@ void SRigWindow::Construct(const FArguments& InArgs, const TSharedRef<class IEdi
 
 		// now show bone mapping
 		+ SVerticalBox::Slot()
-		.AutoHeight()
+		.FillHeight(1)
 		.Padding(0,2)
 		[
 			SAssignNew(BoneMappingWidget, SBoneMappingBase, InOnPostUndo)

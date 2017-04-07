@@ -906,8 +906,9 @@ void UDebugSkelMeshComponent::RefreshSelectedClothingSkinnedPositions()
 				GetCurrentRefToLocalMatrices(RefToLocals, 0);
 
 				FClothLODData& LodData = ConcreteAsset->LodData[SelectedClothingLodForPainting];
-				
-				FClothingSimulationBase::SkinPhysicsMesh(ConcreteAsset, LodData.PhysicalMeshData, RefToLocals.GetData(), RefToLocals.Num(), SkinnedSelectedClothingPositions, SkinnedSelectedClothingNormals);
+
+				FTransform RootBoneTransform = GetBoneTransform(ConcreteAsset->ReferenceBoneIndex);
+				FClothingSimulationBase::SkinPhysicsMesh(ConcreteAsset, LodData.PhysicalMeshData, RootBoneTransform, RefToLocals.GetData(), RefToLocals.Num(), SkinnedSelectedClothingPositions, SkinnedSelectedClothingNormals);
 			}
 		}
 	}

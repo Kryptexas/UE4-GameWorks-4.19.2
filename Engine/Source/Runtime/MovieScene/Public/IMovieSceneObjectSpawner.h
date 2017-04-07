@@ -94,6 +94,14 @@ public:
 	 * @return whether this spawned can set up defaults
 	 */
 	virtual bool CanSetupDefaultsForSpawnable(UObject* SpawnedObject) const { return SpawnedObject ? SpawnedObject->IsA(GetSupportedTemplateType()) : false; }
+
+	/**
+	 * Check whether the specified Spawnable can become a Possessable.
+	 * @param	Spawnable	The spawnable to check
+	 * @return whether the conversion from Spawnable to Possessable can occur.
+	 */
+	virtual bool CanConvertSpawnableToPossessable(FMovieSceneSpawnable& Spawnable) const { return true; }
+
 #endif
 
 public:

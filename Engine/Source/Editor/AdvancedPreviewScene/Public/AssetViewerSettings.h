@@ -123,7 +123,7 @@ struct FPreviewSceneProfile
 * Default asset viewer settings.
 */
 UCLASS(config=Editor, meta=(DisplayName = "Asset Viewer"))
-class UNREALED_API UAssetViewerSettings : public UObject, public FEditorUndoClient
+class ADVANCEDPREVIEWSCENE_API UAssetViewerSettings : public UObject, public FEditorUndoClient
 {
 	GENERATED_BODY()
 public:
