@@ -14,9 +14,7 @@
 #include <d3d11.h>
 #include "HideWindowsPlatformTypes.h"
 #elif PLATFORM_LINUX
-#define GL_GLEXT_PROTOTYPES 1
-#include <GL/glcorearb.h>
-#include <GL/glext.h>
+#include "OpenGLDrv.h"
 #endif
 
 #if STEAMVR_SUPPORTED_PLATFORMS
