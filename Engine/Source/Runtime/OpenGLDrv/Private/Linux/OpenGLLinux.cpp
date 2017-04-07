@@ -7,6 +7,7 @@
 #include "Linux/OpenGLLinux.h"
 #include "Misc/ScopeLock.h"
 #include "OpenGLDrv.h"
+#include "SDL.h"
 #include "OpenGLDrvPrivate.h"
 #include "ComponentReregisterContext.h"
 
