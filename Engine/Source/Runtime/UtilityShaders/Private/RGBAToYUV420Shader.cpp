@@ -3,6 +3,8 @@
 #include "RGBAToYUV420Shader.h"
 #include "ShaderParameterUtils.h"
 
+#if defined(HAS_MORPHEUS) && HAS_MORPHEUS
+
 /* FRGBAToYUV420CS shader
  *****************************************************************************/
 
@@ -44,3 +46,5 @@ void FRGBAToYUV420CS::UnbindBuffers(FRHICommandList& RHICmdList)
 	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 	RHICmdList.SetUAVParameter(ComputeShaderRHI, OutTextureRW.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
 }
+
+#endif //defined(HAS_MORPHEUS) && HAS_MORPHEUS

@@ -7,26 +7,35 @@
 #include "RenderResource.h"
 #include "Shader.h"
 #include "GlobalShader.h"
+#include "Modules/ModuleManager.h"
+
+#if defined(HAS_MORPHEUS) && HAS_MORPHEUS
 
 /**
- * Pixel shader to convert an AYUV texture to RGBA.
+ * Pixel shader to convert RGBA to YUV420.
  *
- * This shader expects a single texture consisting of a N x M array of pixels
- * in AYUV format. Each pixel is encoded as four consecutive unsigned chars
- * with the following layout: [V0 U0 Y0 A0][V1 U1 Y1 A1]..
+ * YUV420 has 8 bit intensity values in the top 2/3 of the texture for every pixel and 8 bit each UV coordinates 
+ * into the YUV colorspace in the bottom 1/3 for every pixel quad.
+ *
+ * This is only used by PS4.
  */
 class FRGBAToYUV420CS
 	: public FGlobalShader
 {
-	//DECLARE_EXPORTED_SHADER_TYPE(FRGBAToYUV420CS, Global, UTILITYSHADERS_API);
 	DECLARE_SHADER_TYPE(FRGBAToYUV420CS, Global);
 
 public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		//return true;  
-		return Platform == EShaderPlatform::SP_PS4;
+		if (Platform == EShaderPlatform::SP_PS4)
+		{
+			// we must use a run time check for this because the builds the build machines create will have Morpheus defined,
+			// but a user will not necessarily have the Morpheus files
+			return FModuleManager::Get().ModuleExists(TEXT("Morpheus"));
+		}
+
+		return false;
 	}
 
 	FRGBAToYUV420CS() { }
@@ -49,3 +58,5 @@ public:
 protected:
 	FShaderResourceParameter OutTextureRW;
 };
+
+#endif //defined(HAS_MORPHEUS) && HAS_MORPHEUS
