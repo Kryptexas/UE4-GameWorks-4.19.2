@@ -234,18 +234,18 @@ namespace AutomationTool
 			string Ext = AutomationTool.Platform.GetExeExtension(SC.StageTargetPlatform.TargetPlatformType);
 			if (!String.IsNullOrEmpty(SC.CookPlatform))
 			{
-				if (SC.StageExecutables.Count() > 0)
+				if (SC.StageTargets.Count() > 0)
 				{
-					foreach (var StageExecutable in SC.StageExecutables)
+					DirectoryReference LocalRoot = new DirectoryReference(SC.LocalRoot);
+					foreach (StageTarget Target in SC.StageTargets)
 					{
-						string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName(StageExecutable);
-						if (!SC.IsCodeBasedProject)
+						foreach (BuildProduct Product in Target.Receipt.BuildProducts)
 						{
-							ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir, ExeName + Ext));
-						}
-						else
-						{
-							ExecutableNames.Add(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir, ExeName + Ext));
+							if (Product.Type == BuildProductType.Executable)
+							{
+								string RelativeExePath = new FileReference(Product.Path).MakeRelativeTo(LocalRoot);
+								ExecutableNames.Add(Path.Combine(SC.RuntimeRootDir, RelativeExePath));
+							}
 						}
 					}
 				}

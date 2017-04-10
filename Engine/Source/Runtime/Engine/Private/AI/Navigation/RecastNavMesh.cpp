@@ -119,7 +119,7 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 
 	// when writing, write a zero here for now.  will come back and fill it in later.
 	uint32 RecastNavMeshSizeBytes = 0;
-	int32 RecastNavMeshSizePos = Ar.Tell();
+	int64 RecastNavMeshSizePos = Ar.Tell();
 	Ar << RecastNavMeshSizeBytes;
 
 	if (Ar.IsLoading())
@@ -708,7 +708,7 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 	
 	// when writing, write a zero here for now.  will come back and fill it in later.
 	uint32 RecastNavMeshSizeBytes = 0;
-	int32 RecastNavMeshSizePos = Ar.Tell();
+	int64 RecastNavMeshSizePos = Ar.Tell();
 	{
 #if WITH_EDITOR
 		FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
@@ -749,7 +749,7 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 
 		if (Ar.IsSaving())
 		{
-			int32 CurPos = Ar.Tell();
+			int64 CurPos = Ar.Tell();
 			RecastNavMeshSizeBytes = CurPos - RecastNavMeshSizePos;
 			Ar.Seek(RecastNavMeshSizePos);
 			Ar << RecastNavMeshSizeBytes;

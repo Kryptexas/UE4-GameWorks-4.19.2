@@ -32,14 +32,6 @@ FUObjectArray GUObjectArray;
  */
 
 
-/**
- * The object hash size to use
- *
- * NOTE: This must be power of 2 so that (size - 1) turns on all bits!
- * NOTE2: With the new implementation, there is no particular memory advantage to having this be small
-*/
-#define OBJECT_HASH_BINS (1024*1024)
-
 /*
  * Special hash bucket to conserve memory.
  * Contains a pointer to head element and an optional list of items if more than one element exists in the bucket.
@@ -51,110 +43,135 @@ struct FHashBucket
 
 	/** This always empty set is used to get an iterator if the bucket doesn't use a TSet (has only 1 element) */
 	static TSet<UObjectBase*> EmptyBucket;
-	/** Used when the bucket has only one item, does not necessarily represent the first item if Items TSet is non-null */
-	UObjectBase* Head;
-	/** If more than one items belongs to this bucket this is non-null and contains all elements of this bucker (including Head element) */
-	TSet<UObjectBase*>* Items;
+
+	/*
+	* If these are both null, this bucket is empty
+	* If the first one is null, but the second one is non-null, then the second one is a TSet pointer
+	* If the first one is not null, then it is a uobject ptr, and the second ptr is either null or a second element
+	*/
+	void *ElementsOrSetPtr[2];
+
+	FORCEINLINE TSet<UObjectBase*>* GetSet()
+	{
+		if (ElementsOrSetPtr[1] && !ElementsOrSetPtr[0])
+		{
+			return (TSet<UObjectBase*>*)ElementsOrSetPtr[1];
+		}
+		return nullptr;
+	}
+
+	FORCEINLINE const TSet<UObjectBase*>* GetSet() const
+	{
+		if (ElementsOrSetPtr[1] && !ElementsOrSetPtr[0])
+		{
+			return (TSet<UObjectBase*>*)ElementsOrSetPtr[1];
+		}
+		return nullptr;
+	}
 
 	/** Constructor */
-	FHashBucket()
-		: Head(nullptr)
-		, Items(nullptr)
-	{}
-	~FHashBucket()
+	FORCEINLINE FHashBucket()
 	{
-		delete Items;
+		ElementsOrSetPtr[0] = nullptr;
+		ElementsOrSetPtr[1] = nullptr;
+	}
+	FORCEINLINE ~FHashBucket()
+	{
+		delete GetSet();
 	}
 	/** Adds an Object to the bucket */
 	FORCEINLINE void Add(UObjectBase* Object)
 	{
+		TSet<UObjectBase*>* Items = GetSet();
 		if (Items)
 		{
 			Items->Add(Object);
 		}
-		else if (Head)
+		else if (ElementsOrSetPtr[0] && ElementsOrSetPtr[1])
 		{
 			Items = new TSet<UObjectBase*>();
-			Items->Add(Head);
+			Items->Add((UObjectBase*)ElementsOrSetPtr[0]);
+			Items->Add((UObjectBase*)ElementsOrSetPtr[1]);
 			Items->Add(Object);
+			ElementsOrSetPtr[0] = nullptr;
+			ElementsOrSetPtr[1] = Items;
+		}
+		else if (ElementsOrSetPtr[0])
+		{
+			ElementsOrSetPtr[1] = Object;
 		}
 		else
 		{
-			Head = Object;
+			ElementsOrSetPtr[0] = Object;
+			checkSlow(!ElementsOrSetPtr[1]);
 		}
 	}
 	/** Removes an Object from the bucket */
 	FORCEINLINE int32 Remove(UObjectBase* Object)
 	{
 		int32 Result = 0;
+		TSet<UObjectBase*>* Items = GetSet();
 		if (Items)
 		{
 			Result = Items->Remove(Object);
-			if (Items->Num() <= 1)
+			if (Items->Num() <= 2)
 			{
-				if (Items->Num() == 1)
-				{
-					Head = *TSet<UObjectBase*>::TIterator(*Items);
-				}
-				else
-				{
-					// This is probably a bug, we should be able to delete Items set when it has 1 element.
-					Head = nullptr;
-				}
+				auto It = TSet<UObjectBase*>::TIterator(*Items);
+				ElementsOrSetPtr[0] = *It;
+				checkSlow((bool)It);
+				++It;
+				ElementsOrSetPtr[1] = *It;
 				delete Items;
-				Items = nullptr;
-			}
-			else if (Head == Object)
-			{
-				Head = *TSet<UObjectBase*>::TIterator(*Items);
 			}
 		}
-		else
+		else if (Object == ElementsOrSetPtr[1])
 		{
-			check(Head == Object);
-			Head = nullptr;
 			Result = 1;
+			ElementsOrSetPtr[1] = nullptr;
+		}
+		else if (Object == ElementsOrSetPtr[0])
+		{
+			Result = 1;
+			ElementsOrSetPtr[0] = ElementsOrSetPtr[1];
+			ElementsOrSetPtr[1] = nullptr;
 		}
 		return Result;
 	}
 	/** Checks if an Object exists in this bucket */
 	FORCEINLINE bool Contains(UObjectBase* Object) const
 	{
-		bool bContains = (Head == Object);
-		if (!bContains && Items)
+		const TSet<UObjectBase*>* Items = GetSet();
+		if (Items)
 		{
-			bContains = Items->Contains(Object);
+			return Items->Contains(Object);
 		}
-		return bContains;
+		return Object == ElementsOrSetPtr[0] || Object == ElementsOrSetPtr[1];
 	}
 	/** Returns the number of Objects in this bucket */
 	FORCEINLINE int32 Num() const
 	{
-		int32 Result = 0;
+		const TSet<UObjectBase*>* Items = GetSet();
 		if (Items)
 		{
-			Result = Items->Num();
+			return Items->Num();
 		}
-		else if (Head)
-		{
-			Result = 1;
-		}
-		return Result;
+		return !!ElementsOrSetPtr[0] + !!ElementsOrSetPtr[1];
 	}
 	/** Returns the amount of memory allocated for and by Items TSet */
 	FORCEINLINE uint32 GetItemsSize() const
 	{
-		uint32 AllocatedSize = 0;
+		const TSet<UObjectBase*>* Items = GetSet();
 		if (Items)
 		{
-			AllocatedSize = (uint32)sizeof(*Items) + Items->GetAllocatedSize();
+			return (uint32)sizeof(*Items) + Items->GetAllocatedSize();
 		}
-		return AllocatedSize;
+		return 0;
 	}
 private:
 	/** Gets an iterator for the TSet in this bucket or for the EmptyBucker if Items is null */
 	FORCEINLINE TSet<UObjectBase*>::TIterator GetIteratorForSet()
 	{
+		TSet<UObjectBase*>* Items = GetSet();
 		return Items ? Items->CreateIterator() : EmptyBucket.CreateIterator();
 	}
 };
@@ -165,31 +182,36 @@ struct FHashBucketIterator
 {
 	FHashBucket& Bucket;
 	TSet<UObjectBase*>::TIterator SetIterator;
+	bool bItems;
 	bool bReachedEndNoItems;
+	bool bSecondItem;
 
 	FORCEINLINE FHashBucketIterator(FHashBucket& InBucket)
 		: Bucket(InBucket)
 		, SetIterator(InBucket.GetIteratorForSet())
-		, bReachedEndNoItems(InBucket.Head == nullptr)
+		, bItems(!!InBucket.GetSet())
+		, bReachedEndNoItems(!InBucket.ElementsOrSetPtr[0] && !InBucket.ElementsOrSetPtr[1])
+		, bSecondItem(false)
 	{
 	}
 	/** Advances the iterator to the next element. */
 	FORCEINLINE FHashBucketIterator& operator++()
 	{
-		if (Bucket.Items)
+		if (bItems)
 		{
 			++SetIterator;
 		}
 		else
 		{
-			bReachedEndNoItems = true;
+			bReachedEndNoItems = bSecondItem || !Bucket.ElementsOrSetPtr[1];
+			bSecondItem = true;
 		}
 		return *this;
 	}
 	/** conversion to "bool" returning true if the iterator is valid. */
 	FORCEINLINE explicit operator bool() const
 	{
-		if (Bucket.Items)
+		if (bItems)
 		{
 			return (bool)SetIterator;
 		}
@@ -205,13 +227,13 @@ struct FHashBucketIterator
 	}
 	FORCEINLINE UObjectBase*& operator*()
 	{
-		if (Bucket.Items)
+		if (bItems)
 		{
 			return *SetIterator;
 		}
 		else
 		{
-			return Bucket.Head;
+			return (UObjectBase*&)Bucket.ElementsOrSetPtr[!!bSecondItem];
 		}
 	}
 };
@@ -227,7 +249,7 @@ public:
 	TMultiMap<int32, class UObjectBase*> HashOuter;
 
 	/** Map of object to their outers, used to avoid an object iterator to find such things. **/
-	TMap<UObjectBase*, TSet<UObjectBase*> > ObjectOuterMap;
+	TMap<UObjectBase*, FHashBucket> ObjectOuterMap;
 	TMap<UClass*, TSet<UObjectBase*> > ClassToObjectListMap;
 	TMap<UClass*, TSet<UClass*> > ClassToChildListMap;
 
@@ -287,16 +309,21 @@ public:
 
 class FHashTableLock
 {
-	FUObjectHashTables& Tables;
+#if THREADSAFE_UOBJECTS
+	FUObjectHashTables* Tables;
+#endif
 public:
 	FORCEINLINE FHashTableLock(FUObjectHashTables& InTables)
-		: Tables(InTables)
 	{
 #if THREADSAFE_UOBJECTS
-		// GC locks everything on the main thread so no need to lock here
 		if (!(IsGarbageCollecting() && IsInGameThread()))
 		{
-			Tables.Lock();
+			Tables = &InTables;
+			InTables.Lock();
+		}
+		else
+		{
+			Tables = nullptr;
 		}
 #else
 		check(IsInGameThread());
@@ -305,9 +332,9 @@ public:
 	FORCEINLINE ~FHashTableLock()
 	{
 #if THREADSAFE_UOBJECTS
-		if (!(IsGarbageCollecting() && IsInGameThread()))
+		if (Tables)
 		{
-			Tables.Unlock();
+			Tables->Unlock();
 		}
 #endif
 	}
@@ -320,7 +347,7 @@ public:
  */
 static FORCEINLINE int32 GetObjectHash(FName ObjName)
 {
-	return (ObjName.GetComparisonIndex() ^ ObjName.GetNumber()) & (OBJECT_HASH_BINS - 1);
+	return (ObjName.GetComparisonIndex() ^ ObjName.GetNumber());
 }
 
 /**
@@ -334,7 +361,7 @@ static FORCEINLINE int32 GetObjectHash(FName ObjName)
  */
 static FORCEINLINE int32 GetObjectOuterHash(FName ObjName,PTRINT Outer)
 {
-	return ((ObjName.GetComparisonIndex() ^ ObjName.GetNumber()) ^ (Outer >> 4)) & (OBJECT_HASH_BINS - 1);
+	return ((ObjName.GetComparisonIndex() ^ ObjName.GetNumber()) ^ (Outer >> 6));
 }
 
 UObject* StaticFindObjectFastExplicitThreadSafe(FUObjectHashTables& ThreadHash, UClass* ObjectClass, FName ObjectName, const FString& ObjectPathName, bool bExactClass, EObjectFlags ExcludeFlags/*=0*/)
@@ -511,16 +538,15 @@ UObject* StaticFindObjectFastInternal(UClass* ObjectClass, UObject* ObjectPackag
 }
 
 // Assumes that ThreadHash's critical is already locked
-static void AddToOuterMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
+FORCEINLINE static void AddToOuterMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
 {
-	TSet<UObjectBase*>& Inners = ThreadHash.ObjectOuterMap.FindOrAdd(Object->GetOuter());
-	bool bIsAlreadyInSetPtr = false;
-	Inners.Add(Object, &bIsAlreadyInSetPtr);
-	check(!bIsAlreadyInSetPtr); // if it already exists, something is wrong with the external code
+	FHashBucket& Bucket = ThreadHash.ObjectOuterMap.FindOrAdd(Object->GetOuter());
+	checkSlow(!Bucket.Contains(Object)); // if it already exists, something is wrong with the external code
+	Bucket.Add(Object);
 }
 
 // Assumes that ThreadHash's critical is already locked
-static void AddToClassMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
+FORCEINLINE static void AddToClassMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
 {
 	{
 		check(Object->GetClass());
@@ -546,23 +572,22 @@ static void AddToClassMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
 }
 
 // Assumes that ThreadHash's critical is already locked
-static void RemoveFromOuterMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
+FORCEINLINE static void RemoveFromOuterMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
 {
-	TSet<UObjectBase*>& Inners = ThreadHash.ObjectOuterMap.FindOrAdd(Object->GetOuter());
-	int32 NumRemoved = Inners.Remove(Object);
+	FHashBucket& Bucket = ThreadHash.ObjectOuterMap.FindOrAdd(Object->GetOuter());
+	int32 NumRemoved = Bucket.Remove(Object);
 	if (NumRemoved != 1)
 	{
-		UE_LOG(LogUObjectHash, Error, TEXT("Internal Error: RemoveFromOuterMap NumRemoved = %d  for %s"), NumRemoved, *GetFullNameSafe((UObjectBaseUtility*)Object));
+		UE_LOG(LogUObjectHash, Fatal, TEXT("Internal Error: RemoveFromOuterMap NumRemoved = %d  for %s"), NumRemoved, *GetFullNameSafe((UObjectBaseUtility*)Object));
 	}
-	check(NumRemoved == 1); // must have existed, else something is wrong with the external code
-	if (!Inners.Num())
+	if (!Bucket.Num())
 	{
 		ThreadHash.ObjectOuterMap.Remove(Object->GetOuter());
 	}
 }
 
 // Assumes that ThreadHash's critical is already locked
-static void RemoveFromClassMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
+FORCEINLINE static void RemoveFromClassMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
 {
 	UObjectBaseUtility* ObjectWithUtility = static_cast<UObjectBaseUtility*>(Object);
 
@@ -614,10 +639,10 @@ void GetObjectsWithOuter(const class UObjectBase* Outer, TArray<UObject *>& Resu
 	int32 StartNum = Results.Num();
 	auto& ThreadHash = FUObjectHashTables::Get();
 	FHashTableLock HashLock(ThreadHash);
-	TSet<UObjectBase*> const* Inners = ThreadHash.ObjectOuterMap.Find(Outer);
+	FHashBucket* Inners = ThreadHash.ObjectOuterMap.Find(Outer);
 	if (Inners)
 	{
-		for (TSet<UObjectBase*>::TConstIterator It(*Inners); It; ++It)
+		for (FHashBucketIterator It(*Inners); It; ++It)
 		{
 			UObject *Object = static_cast<UObject *>(*It);
 			if (!Object->HasAnyFlags(ExclusionFlags) && !Object->HasAnyInternalFlags(ExclusionInternalFlags))
@@ -633,10 +658,10 @@ void GetObjectsWithOuter(const class UObjectBase* Outer, TArray<UObject *>& Resu
 			StartNum = RangeEnd;
 			for (int32 Index = RangeStart; Index < RangeEnd; Index++)
 			{
-				TSet<UObjectBase*> const* InnerInners = ThreadHash.ObjectOuterMap.Find(Results[Index]);
+				FHashBucket* InnerInners = ThreadHash.ObjectOuterMap.Find(Results[Index]);
 				if (InnerInners)
 				{
-					for (TSet<UObjectBase*>::TConstIterator It(*InnerInners); It; ++It)
+					for (FHashBucketIterator It(*InnerInners); It; ++It)
 					{
 						UObject *Object = static_cast<UObject *>(*It);
 						if (!Object->HasAnyFlags(ExclusionFlags) && !Object->HasAnyInternalFlags(ExclusionInternalFlags))
@@ -661,16 +686,16 @@ void ForEachObjectWithOuter(const class UObjectBase* Outer, TFunctionRef<void(UO
 	}
 	FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
 	FHashTableLock HashLock(ThreadHash);
-	TArray<TSet<UObjectBase*> const*> AllInners;
+	TArray<FHashBucket*, TInlineAllocator<1> > AllInners;
 
-	if (TSet<UObjectBase*> const* Inners = ThreadHash.ObjectOuterMap.Find(Outer))
+	if (FHashBucket* Inners = ThreadHash.ObjectOuterMap.Find(Outer))
 	{
 		AllInners.Add(Inners);
 	}
 	while (AllInners.Num())
 	{
-		TSet<UObjectBase*> const* Inners = AllInners.Pop();
-		for (TSet<UObjectBase*>::TConstIterator It(*Inners); It; ++It)
+		FHashBucket* Inners = AllInners.Pop();
+		for (FHashBucketIterator It(*Inners); It; ++It)
 		{
 			UObject *Object = static_cast<UObject*>(*It);
 			if (!Object->HasAnyFlags(ExclusionFlags) && !Object->HasAnyInternalFlags(ExclusionInternalFlags))
@@ -679,7 +704,7 @@ void ForEachObjectWithOuter(const class UObjectBase* Outer, TFunctionRef<void(UO
 			}
 			if (bIncludeNestedObjects)
 			{
-				if (TSet<UObjectBase*> const* ObjectInners = ThreadHash.ObjectOuterMap.Find(Object))
+				if (FHashBucket* ObjectInners = ThreadHash.ObjectOuterMap.Find(Object))
 				{
 					AllInners.Add(ObjectInners);
 				}
@@ -709,10 +734,10 @@ UObjectBase* FindObjectWithOuter(class UObjectBase* Outer, class UClass* ClassTo
 	{
 		auto& ThreadHash = FUObjectHashTables::Get();
 		FHashTableLock HashLock(ThreadHash);
-		TSet<UObjectBase*> const* Inners = ThreadHash.ObjectOuterMap.Find( Outer );
+		FHashBucket* Inners = ThreadHash.ObjectOuterMap.Find(Outer);
 		if (Inners)
 		{
-			for (TSet<UObjectBase*>::TConstIterator It(*Inners); It; ++It)
+			for (FHashBucketIterator It(*Inners); It; ++It)
 			{
 				UObject *Object = static_cast<UObject *>(*It);
 				if (Object->HasAnyInternalFlags(ExclusionInternalFlags))
@@ -945,7 +970,7 @@ void LogHashStatisticsInternal(TMultiMap<int32, UObjectBase*>& Hash, FOutputDevi
 	int32 SlotsInUse = Hash.GetKeys(HashBuckets);
 
 	int32 TotalCollisions = 0;
-	int32 MinCollisions = OBJECT_HASH_BINS;
+	int32 MinCollisions = MAX_int32;
 	int32 MaxCollisions = 0;
 	int32 MaxBin = 0;
 
@@ -1009,7 +1034,7 @@ void LogHashStatisticsInternal(TMap<int32, FHashBucket>& Hash, FOutputDevice& Ar
 	int32 SlotsInUse = Hash.Num();
 
 	int32 TotalCollisions = 0;
-	int32 MinCollisions = OBJECT_HASH_BINS;
+	int32 MinCollisions = MAX_int32;
 	int32 MaxCollisions = 0;
 	int32 MaxBin = 0;
 	int32 NumBucketsWithMoreThanOneItem = 0;

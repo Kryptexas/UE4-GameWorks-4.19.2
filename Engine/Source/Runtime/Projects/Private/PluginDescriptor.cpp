@@ -97,6 +97,7 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 	Object.TryGetStringField(TEXT("DocsURL"), DocsURL);
 	Object.TryGetStringField(TEXT("MarketplaceURL"), MarketplaceURL);
 	Object.TryGetStringField(TEXT("SupportURL"), SupportURL);
+	Object.TryGetStringField(TEXT("EngineVersion"), EngineVersion);
 	Object.TryGetNumberField(TEXT("CompatibleChangelist"), CompatibleChangelist);
 
 	if (!FModuleDescriptor::ReadArray(Object, TEXT("Modules"), Modules, OutFailReason))
@@ -165,6 +166,10 @@ void FPluginDescriptor::Write(FString& Text, bool bPluginTypeEnabledByDefault) c
 	Writer.WriteValue(TEXT("DocsURL"), DocsURL);
 	Writer.WriteValue(TEXT("MarketplaceURL"), MarketplaceURL);
 	Writer.WriteValue(TEXT("SupportURL"), SupportURL);
+	if (EngineVersion.Len() > 0)
+	{
+		Writer.WriteValue(TEXT("EngineVersion"), EngineVersion);
+	}
 	if (CompatibleChangelist != 0)
 	{
 		Writer.WriteValue(TEXT("CompatibleChangelist"), CompatibleChangelist);

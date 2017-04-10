@@ -14,6 +14,7 @@
 #include "StaticMeshResources.h"
 #include "ProfilingDebugging/CookStats.h"
 #include "UniquePtr.h"
+#include "Engine/StaticMesh.h"
 
 #if WITH_EDITOR
 #include "DerivedDataCacheInterface.h"

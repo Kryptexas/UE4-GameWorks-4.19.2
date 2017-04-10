@@ -13,6 +13,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_GameplayCueEvent"
 
+static FName GAMEPLAYABILITIES_BlueprintCustomHandler = TEXT("BlueprintCustomHandler");
+
 UK2Node_GameplayCueEvent::UK2Node_GameplayCueEvent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

@@ -294,20 +294,32 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 	IStreamingManager implementation.
 -----------------------------------------------------------------------------*/
 
-static FStreamingManagerCollection* StreamingManagerCollection = NULL;
+static FStreamingManagerCollection* StreamingManagerCollection = nullptr;
 
 FStreamingManagerCollection& IStreamingManager::Get()
 {
-	if (StreamingManagerCollection == NULL)
+	if (StreamingManagerCollection == nullptr)
 	{
 		StreamingManagerCollection = new FStreamingManagerCollection();
 	}
 	return *StreamingManagerCollection;
 }
 
+FStreamingManagerCollection* IStreamingManager::Get_Concurrent()
+{
+	if (StreamingManagerCollection != (FStreamingManagerCollection*)-1)
+	{
+		return StreamingManagerCollection;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 void IStreamingManager::Shutdown()
 {
-	if (StreamingManagerCollection != NULL)
+	if (StreamingManagerCollection != nullptr)
 	{
 		delete StreamingManagerCollection;
 		StreamingManagerCollection = (FStreamingManagerCollection*)-1;//Force Error if manager used after shutdown
@@ -1006,16 +1018,13 @@ void FStreamingManagerCollection::NotifyPrimitiveDetached( const UPrimitiveCompo
  * Only affects primitives that were already attached.
  * Replaces previous info.
  */
-void FStreamingManagerCollection::NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive )
-{
-	if ( Primitive->IsA( UMeshComponent::StaticClass() ) )
+void FStreamingManagerCollection::NotifyPrimitiveUpdated_Concurrent( const UPrimitiveComponent* Primitive )
 	{
 		// Route to streaming managers.
 		for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 		{
 			IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
-			StreamingManager->NotifyPrimitiveUpdated( Primitive );
-		}
+		StreamingManager->NotifyPrimitiveUpdated_Concurrent( Primitive );
 	}
 }
 

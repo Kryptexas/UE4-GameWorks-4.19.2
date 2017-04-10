@@ -16,6 +16,7 @@
 #include "Engine/MapBuildDataRegistry.h"
 #include "Components/LightComponent.h"
 #include "ShadowMap.h"
+#include "Engine/StaticMesh.h"
 
 /**
  * Creates a static lighting vertex to represent the given static mesh vertex.

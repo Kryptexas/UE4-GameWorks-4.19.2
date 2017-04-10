@@ -88,6 +88,7 @@
     <Compile Include="InstalledBuild.cs" />
     <Compile Include="ListThirdPartySoftware.Automation.cs" />
     <Compile Include="RebuildLightMapsCommand.Automation.cs" />
+    <Compile Include="ReplaceAssetsUsingManifest.cs" />
     <Compile Include="ResavePackagesCommand.Automation.cs" />
     <Compile Include="IPhonePackager.Automation.cs" />
     <Compile Include="LauncherLocalization.Automation.cs" />

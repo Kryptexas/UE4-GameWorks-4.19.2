@@ -10,7 +10,7 @@ using System.Linq;
 using System.Management;
 using System.Reflection;
 using System.Threading;
-
+using System.ServiceProcess;
 
 namespace UnrealBuildTool
 {
@@ -309,7 +309,20 @@ namespace UnrealBuildTool
 			{
 				return false;
 			}
-			return File.Exists(Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe"));
+			if (!File.Exists(Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe")))
+			{
+				return false;
+			}
+
+			ServiceController[] services = ServiceController.GetServices();
+			foreach (ServiceController service in services)
+			{
+				if (service.ServiceName.StartsWith("SNDBS") && service.Status == ServiceControllerStatus.Running)
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public override bool ExecuteActions(List<Action> Actions, bool bLogDetailedActionStats)

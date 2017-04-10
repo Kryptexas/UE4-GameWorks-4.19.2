@@ -2909,14 +2909,6 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 		EObjectFlags FlagsToCook = RF_Public;
 
 
-		bool bShouldCompressPackage = IsCookFlagSet(ECookInitializationFlags::Compressed);
-
-		if (CookByTheBookOptions)
-		{
-			bShouldCompressPackage &= (CookByTheBookOptions->bForceDisableCompressedPackages == false);
-			bShouldCompressPackage |= CookByTheBookOptions->bForceEnableCompressedPackages;
-		}
-
 		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
 
 		static TArray<ITargetPlatform*> ActiveStartupPlatforms = TPM.GetCookingTargetPlatforms();
@@ -2949,17 +2941,6 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 				TargetPlatformNames.Add(FName(*Platform->PlatformName()));
 			}
 		}
-		
-		for (ITargetPlatform* TargetPlatform : Platforms)
-		{
-			bShouldCompressPackage &= TargetPlatform->SupportsFeature(ETargetPlatformFeatures::ShouldUseCompressedCookedPackages);
-		}
-
-		if (bShouldCompressPackage)
-		{
-			Package->SetPackageFlags(PKG_StoreCompressed);
-		}
-
 		
 		for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex )
 		{
@@ -6615,8 +6596,6 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	CookByTheBookOptions->bGenerateStreamingInstallManifests = CookByTheBookStartupOptions.bGenerateStreamingInstallManifests;
 	CookByTheBookOptions->bGenerateDependenciesForMaps = CookByTheBookStartupOptions.bGenerateDependenciesForMaps;
 	CookByTheBookOptions->CreateReleaseVersion = CreateReleaseVersion;
-	CookByTheBookOptions->bForceEnableCompressedPackages = !!(CookOptions & ECookByTheBookOptions::ForceEnableCompressed);
-	CookByTheBookOptions->bForceDisableCompressedPackages = !!(CookOptions & ECookByTheBookOptions::ForceDisableCompressed);
 	CookByTheBookOptions->ChildCookFilename = CookByTheBookStartupOptions.ChildCookFileName;
 	CookByTheBookOptions->bDisableUnsolicitedPackages = !!(CookOptions & ECookByTheBookOptions::DisableUnsolicitedPackages);
 	CookByTheBookOptions->ChildCookIdentifier = CookByTheBookStartupOptions.ChildCookIdentifier;
@@ -6801,7 +6780,6 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 				TArray<FName> PlatformNames;
 				TArray<bool> Succeeded;
 				Succeeded.Add(true);
-				PlatformNames.Add(PlatformName);
 				for (const FName& PackageFilename : PackageList)
 				{
 					CookedPackages.Add( MoveTemp( FFilePlatformCookedPackage( PackageFilename, PlatformNames, Succeeded) ) );

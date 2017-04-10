@@ -489,9 +489,9 @@ void AActor::BeginDestroy()
 {
 	ULevel* OwnerLevel = Cast<ULevel>(GetOuter());
 	UnregisterAllComponents();
-	if (OwnerLevel)
+	if (OwnerLevel && !OwnerLevel->HasAnyInternalFlags(EInternalObjectFlags::Unreachable))
 	{
-		OwnerLevel->Actors.Remove(this);
+		OwnerLevel->Actors.RemoveSingleSwap(this, false);
 	}
 	Super::BeginDestroy();
 }

@@ -86,22 +86,28 @@ void FCSVStatsProfiler::ReadStatsFrame( const TArray<FStatMessage>& CondensedMes
 			const FName StatRawName = StatMessage.NameAndInfo.GetRawName();
 			if (StatRawName == StatRawNames[Jndex])
 			{
-				double StatValue = 0.0f;
+				FString StatValue;
 				if (StatMessage.NameAndInfo.GetFlag( EStatMetaFlags::IsPackedCCAndDuration ))
 				{
-					StatValue = MillisecondsPerCycle * FromPackedCallCountDuration_Duration( StatMessage.GetValue_int64() );
+					StatValue = Lex::ToString(MillisecondsPerCycle * FromPackedCallCountDuration_Duration( StatMessage.GetValue_int64() ));
 				}
 				else if (StatMessage.NameAndInfo.GetFlag( EStatMetaFlags::IsCycle ))
 				{
-					StatValue = MillisecondsPerCycle * StatMessage.GetValue_int64();
+					StatValue = Lex::ToString(MillisecondsPerCycle * StatMessage.GetValue_int64());
 				}
 				else
 				{
-					StatValue = StatMessage.GetValue_int64();
+					switch (StatMessage.NameAndInfo.GetField<EStatDataType>())
+					{
+					case EStatDataType::ST_double: StatValue = Lex::ToString(StatMessage.GetValue_double()); break;
+					case EStatDataType::ST_int64: StatValue = Lex::ToString(StatMessage.GetValue_int64()); break;
+					case EStatDataType::ST_FName: StatValue = StatMessage.GetValue_FName().ToString(); break;
+					default: StatValue = TEXT("<unknown type>");
+					}
 				}
 
 				// write out to the csv file
-				WriteString( "%d,%S,%f\r\n", Frame, *StatShortNames[Jndex].ToString(), StatValue );
+				WriteString( "%d,%S,%S\r\n", Frame, *StatShortNames[Jndex].ToString(), *StatValue );
 			}
 		}
 	}
@@ -152,7 +158,7 @@ void FStatsConvertCommand::InternalRun()
 		}
 
 		Instance->Initialize( FileWriter.Get(), StatArrayString );
-		Instance->ReadAndProcessAsynchronously();
+		Instance->ReadAndProcessSynchronously();
 
 		while (Instance->IsBusy())
 		{

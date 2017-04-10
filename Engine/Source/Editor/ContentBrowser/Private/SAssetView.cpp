@@ -4543,4 +4543,17 @@ TSharedRef<SWidget> SAssetView::CreateRowHeaderMenuContent(const FString ColumnN
 	return MenuBuilder.MakeWidget();
 }
 
+void SAssetView::ForceShowPluginFolder(bool bEnginePlugin)
+{
+	if (bEnginePlugin && !IsShowingEngineFolder())
+	{
+		ToggleShowEngineFolder();
+	}
+
+	if (!IsShowingPluginFolders())
+	{
+		ToggleShowPluginFolders();
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -145,11 +145,6 @@ namespace UnrealBuildTool
 				string FullVersionString;
 				switch (Compiler)
 				{
-					case WindowsCompiler.VisualStudio2013:
-						VersionString = "18.0";
-						FullVersionString = "1800";
-						break;
-
 					case WindowsCompiler.VisualStudio2015:
 						VersionString = "19.0";
 						FullVersionString = "1900";
@@ -1452,8 +1447,14 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// @todo UE4 DLL: Why do I need LIBPATHs to build only export libraries with /DEF? (tbbmalloc.lib)
-			if (!LinkEnvironment.bIsBuildingLibrary || bIncludeDependentLibrariesInLibrary)
+			// Set up the library paths for linking this binary
+			if(bBuildImportLibraryOnly)
+			{
+				// When building an import library, ignore all the libraries included via embedded #pragma lib declarations. 
+				// We shouldn't need them to generate exports.
+				Arguments.Add("/NODEFAULTLIB");
+			}
+			else if (!LinkEnvironment.bIsBuildingLibrary || bIncludeDependentLibrariesInLibrary)
 			{
 				// Add the library paths to the argument list.
 				foreach (string LibraryPath in LinkEnvironment.LibraryPaths)

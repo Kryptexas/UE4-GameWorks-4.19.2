@@ -9,7 +9,7 @@
 	<Option Name="SkipSubmit" DefaultValue="false" Description="Whether or not to submit changelist"/>
 	<Option Name="TargetLibs" DefaultValue="PhysX+APEX" Description="Target libs"/>
 	<Option Name="TargetConfigs" DefaultValue="profile+release+checked" Description="Target Configs"/>
-	<Option Name="TargetWindowsCompilers" DefaultValue="VisualStudio2015+VisualStudio2013" Description="Target Compilers"/>
+	<Option Name="TargetWindowsCompilers" DefaultValue="VisualStudio2015" Description="Target Compilers"/>
 	<Option Name="WithWin32" DefaultValue="false" Description="Compile for Win32"/>
 	<Option Name="WithWin64" DefaultValue="false" Description="Compile for Win64"/>
 	<Option Name="WithPS4" DefaultValue="false" Description="Compile for PS4"/>

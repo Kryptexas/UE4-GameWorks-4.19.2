@@ -157,7 +157,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	{
 		UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
 		UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
-		ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave | ECookInitializationFlags::Compressed;
+		ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave;
 		const ECookInitializationFlags IterativeFlags = ECookInitializationFlags::Iterative | (CookerSettings->bUseAssetRegistryForIteration ? ECookInitializationFlags::IterateOnAssetRegistry : ECookInitializationFlags::IterateOnHash);
 		BaseCookingFlags |= CookerSettings->bIterativeCookingForLaunchOn ? IterativeFlags : ECookInitializationFlags::None;
 		BaseCookingFlags |= CookerSettings->bEnableBuildDDCInBackground ? ECookInitializationFlags::BuildDDCInBackground : ECookInitializationFlags::None;

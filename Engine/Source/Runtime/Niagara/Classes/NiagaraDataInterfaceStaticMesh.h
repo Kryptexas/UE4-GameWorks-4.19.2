@@ -5,6 +5,7 @@
 #include "NiagaraCommon.h"
 #include "VectorVM.h"
 #include "StaticMeshResources.h"
+#include "Engine/StaticMesh.h"
 #include "NiagaraDataInterfaceStaticMesh.generated.h"
 
 //A coordinate on a mesh usable in Niagara.

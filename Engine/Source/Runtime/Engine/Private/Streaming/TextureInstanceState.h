@@ -28,9 +28,7 @@ public:
 	void RemoveComponent(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures);
 	bool RemoveComponentReferences(const UPrimitiveComponent* Component);
 
-#if !UE_BUILD_SHIPPING
 	void GetReferencedComponents(TArray<const UPrimitiveComponent*>& Components) const;
-#endif
 
 	void UpdateBounds(const UPrimitiveComponent* Component);
 	bool UpdateBounds(int32 BoundIndex);
@@ -41,7 +39,7 @@ public:
 
 	// Generate the compiled elements.
 	int32 CompileElements();
-	int32 CheckRegistrationAndUnpackBounds();
+	int32 CheckRegistrationAndUnpackBounds(TArray<const UPrimitiveComponent*>& RemovedComponents);
 
 	/** Move around one bound to free the last bound indices. This allows to keep the number of dynamic bounds low. */
 	bool MoveBound(int32 SrcBoundIndex, int32 DstBoundIndex);

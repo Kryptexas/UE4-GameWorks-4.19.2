@@ -98,7 +98,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, bool EncryptEverything, String PatchSourceContentPath, String EngineDir, String ProjectDir, String Platform)
+    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, bool EncryptEverything, bool EncryptPakIndex, String PatchSourceContentPath, String EngineDir, String ProjectDir, String Platform)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -127,6 +127,10 @@ public partial class Project : CommandUtils
         if (!String.IsNullOrEmpty(PatchSourceContentPath))
         {
             CmdLine += " -generatepatch=" + CommandUtils.MakePathSafeToUseWithCommandLine(PatchSourceContentPath) + " -tempfiles=" + CommandUtils.MakePathSafeToUseWithCommandLine(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "TempFiles"));
+        }
+        if (EncryptPakIndex)
+        {
+            CmdLine += " -encryptindex";
         }
 		CmdLine += " -multiprocess"; // Prevents warnings about being unable to write to config files
 		CmdLine += PlatformOptions;
@@ -283,7 +287,7 @@ public partial class Project : CommandUtils
             SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Binaries"), "UE4Server-*.dll", true, null, null, true);
 
             // Put all of the cooked dir into the staged dir
-            string PlatformCookDir = CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform);
+            string PlatformCookDir = String.IsNullOrEmpty(Params.CookOutputDir)? CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform) : CombinePaths(Params.CookOutputDir, SC.CookPlatform);
 			string[] ExcludeWildCards = null; //{"AssetRegistry.bin"};
 
             // Stage any loose files in the root folder
@@ -539,11 +543,11 @@ public partial class Project : CommandUtils
 			// eliminate the sand box
 			if (Params.CookInEditor)
 			{
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform)); 
+				SC.StageFiles(StagedFileType.UFS, String.IsNullOrEmpty(Params.CookOutputDir)? CombinePaths(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform) : CombinePaths(Params.CookOutputDir, SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform)); 
 			}
 			else
 			{
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
+				SC.StageFiles(StagedFileType.UFS, String.IsNullOrEmpty(Params.CookOutputDir)? CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform) : CombinePaths(Params.CookOutputDir, SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
 			}
 
             // CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
@@ -958,7 +962,15 @@ public partial class Project : CommandUtils
 			// then be combined with the shared cooked build
 			PostFix += "_S_P";
 		}
-		var OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.FinalCookPlatform + PostFix + ".pak");
+		string OutputRelativeLocation;
+		if(Params.HasDLCName)
+		{
+			OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Plugins/" + Params.DLCName + "/Content/Paks/" + SC.FinalCookPlatform, Params.DLCName + ".pak");
+		}
+		else
+		{
+			OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.FinalCookPlatform + PostFix + ".pak");
+		}
 		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
 		{
 			OutputRelativeLocation = OutputRelativeLocation.ToLowerInvariant();
@@ -1037,8 +1049,10 @@ public partial class Project : CommandUtils
 		ConfigHierarchy PlatformGameConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
 		bool PackageSettingsEncryptIniFiles = false;
 		PlatformGameConfig.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bEncryptIniFiles", out PackageSettingsEncryptIniFiles);
+        bool PackageSettingsEncryptPakIndex = false;
+        PlatformGameConfig.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bEncryptPakIndex", out PackageSettingsEncryptPakIndex);
 
-		if (!bCopiedExistingPak)
+        if (!bCopiedExistingPak)
 		{
 			if (File.Exists(OutputLocation))
 			{
@@ -1053,7 +1067,7 @@ public partial class Project : CommandUtils
 				String EngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
 				String ProjectDir = CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName);
 				String Platform = ConfigHierarchy.GetIniPlatformName(SC.StageTargetPlatform.IniPlatformType);
-				RunUnrealPak(UnrealPakResponseFile, OutputLocation, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, Params.EncryptEverything, PatchSourceContentPath, EngineDir, ProjectDir, Platform);
+				RunUnrealPak(UnrealPakResponseFile, OutputLocation, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, Params.EncryptEverything, Params.EncryptPakIndex || PackageSettingsEncryptPakIndex, PatchSourceContentPath, EngineDir, ProjectDir, Platform);
 			}
 		}
 

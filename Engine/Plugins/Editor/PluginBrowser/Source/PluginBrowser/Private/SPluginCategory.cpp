@@ -22,6 +22,10 @@ void SPluginCategory::Construct(const FArguments& Args, const TSharedRef<FPlugin
 	// Figure out which font size to use
 	const auto bIsRootItem = !Category->ParentCategory.IsValid();
 
+	auto PluginCountLambda = [&]() -> FText {
+		return FText::Format(LOCTEXT("NumberOfPluginsWrapper", "({0})"), FText::AsNumber(Category->Plugins.Num()));
+	};
+
 	ChildSlot
 	[ 
 		SNew( SBorder )
@@ -66,7 +70,7 @@ void SPluginCategory::Construct(const FArguments& Args, const TSharedRef<FPlugin
 				// Only display if at there is least one plugin is in this category
 				.Visibility( Category->Plugins.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed )
 
-				.Text( FText::Format( LOCTEXT( "NumberOfPluginsWrapper", "({0})" ), FText::AsNumber( Category->Plugins.Num() ) ) )
+				.Text_Lambda( PluginCountLambda )
 				.TextStyle( FPluginStyle::Get(), bIsRootItem ? "CategoryTreeItem.Root.PluginCountText" : "CategoryTreeItem.PluginCountText" )
 			]
 		]

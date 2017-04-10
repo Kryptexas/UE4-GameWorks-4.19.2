@@ -562,7 +562,10 @@ bool FModuleManager::UnloadModule( const FName InModuleName, bool bIsShutdown )
 
 			// Verify that we have the only outstanding reference to this module.  No one should still be 
 			// referencing a module that is about to be destroyed!
-			check( ModuleInfo.Module.IsUnique() );
+			if (!ModuleInfo.Module.IsUnique())
+			{
+				UE_LOG(LogModuleManager, Fatal, TEXT("Outstanding reference to module '%s' while trying to unload it. Strong references to module interfaces should not be kept."), *InModuleName.ToString());
+			}
 
 			// Release reference to module interface.  This will actually destroy the module object.
 			ModuleInfo.Module.Reset();

@@ -9,9 +9,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Factories/Factory.h"
+#include "EditorReimportHandler.h"
 #include "FontFileImportFactory.generated.h"
-
-class FReimportHandler;
 
 UCLASS()
 class UNREALED_API UFontFileImportFactory : public UFactory, public FReimportHandler

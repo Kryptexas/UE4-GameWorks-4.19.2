@@ -14,6 +14,7 @@
 #include "Misc/PackageName.h"
 #include "Commandlets/Commandlet.h"
 #include "UniquePtr.h"
+#include "IPlatformFileSandboxWrapper.h"
 #include "CookCommandlet.generated.h"
 
 class FSandboxPlatformFile;
@@ -31,8 +32,6 @@ class UCookCommandlet
 
 	/** If true, iterative cooking is being done */
 	bool bIterativeCooking;
-	/** If true, packages are cooked compressed */
-	bool bCompressed;
 	/** Prototype cook-on-the-fly server */
 	bool bCookOnTheFly; 
 	/** Cook everything */

@@ -36,7 +36,7 @@ FMallocProfilerEx::FMallocProfilerEx( FMalloc* InMalloc )
 void FMallocProfilerEx::WriteLoadedLevels( UWorld* InWorld )
 {
 	uint16 NumLoadedLevels = 0;
-	int32 NumLoadedLevelsPosition = BufferedFileWriter.Tell();
+	int64 NumLoadedLevelsPosition = BufferedFileWriter.Tell();
 	BufferedFileWriter << NumLoadedLevels;
 
 	if (InWorld)
@@ -68,7 +68,7 @@ void FMallocProfilerEx::WriteLoadedLevels( UWorld* InWorld )
 		// Patch up the count.
 		if (NumLoadedLevels > 0)
 		{
-			int32 EndPosition = BufferedFileWriter.Tell();
+			int64 EndPosition = BufferedFileWriter.Tell();
 			BufferedFileWriter.Seek(NumLoadedLevelsPosition);
 			BufferedFileWriter << NumLoadedLevels;
 			BufferedFileWriter.Seek(EndPosition);

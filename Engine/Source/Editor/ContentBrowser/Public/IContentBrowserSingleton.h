@@ -489,4 +489,16 @@ public:
 	 * @param InAssetsToAssign - assets that should receive the new thumbnail ONLY if they are assets that use GenericThumbnails
 	 */
 	virtual void CaptureThumbnailFromViewport(FViewport* InViewport, TArray<FAssetData>& SelectedAssets) = 0;
+
+	/**
+	 * Sets the content browser to display the selected paths
+	 */
+	virtual void SetSelectedPaths(const TArray<FString>& FolderPaths, bool bNeedsRefresh = false) = 0;
+
+	/**
+	* Forces the content browser to show plugin content if it's not already showing.
+	*
+	* @param bEnginePlugin	If this is true, it will also force the content browser to show engine content
+	*/
+	virtual void ForceShowPluginContent(bool bEnginePlugin) = 0;
 };

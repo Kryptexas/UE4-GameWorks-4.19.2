@@ -12,6 +12,7 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
+#include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
 #include "EngineUtils.h"
 #include "UObject/FrameworkObjectVersion.h"

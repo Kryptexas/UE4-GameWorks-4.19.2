@@ -79,13 +79,8 @@ private:
 
 	const UPackage* Package;
 
-	/** Generated function implementations that belong in the cpp file, split into multiple files base on line count **/
-	TArray<TUniqueObj<FUHTStringBuilderLineCounter>> GeneratedFunctionBodyTextSplit;
 	/** Set of already exported cross-module references, to prevent duplicates */
 	TSet<FString> UniqueCrossModuleReferences;
-
-	/** Names that have been exported so far. Key is a native name, value is a overriden name (or also the native)**/
-	TMap<FName, FName> ReferencedNames;
 
 	/** the existing disk version of the header for this package's names */
 	FString OriginalNamesHeader;
@@ -107,48 +102,6 @@ private:
 
 	/** Makefile to save parsing data to. */
 	FUHTMakefile& UHTMakefile;
-	// This exists because it makes debugging much easier on VC2010, since the visualizers can't properly understand templates with templated args
-	struct HeaderDependents : TArray<const FString*>
-	{
-	};
-
-	/**
-	 * Gets generated function text device.
-	 */
-	FUHTStringBuilder& GetGeneratedFunctionTextDevice();
-
-	/**
-	 * Sorts the list of header files being exported from a package according to their dependency on each other.
-	 *
-	 * @param	HeaderDependencyMap		A map of headers and their dependencies. Each header is represented as the actual filename string.
-	 * @param	SortedHeaderFilenames	[out] receives the sorted list of header filenames.
-	 * @return	true upon success, false if there were circular dependencies which made it impossible to sort properly.
-	 */
-	static bool SortHeaderDependencyMap(const TMap<const FString*, HeaderDependents>& HeaderDependencyMap, TArray<const FString*>& SortedHeaderFilenames );
-
-	/**
-	 * Finds to headers that are dependent on each other.
-	 * Wrapper for FindInterDependencyRecursive().
-	 *
-	 * @param  HeaderDependencyMap A map of headers and their dependencies. Each header is represented as an index into a TArray of the actual filename strings.
-	 * @param  Header              A header to scan for any inter-dependency.
-	 * @param  OutHeader1          [out] Receives the first inter-dependent header index.
-	 * @param  OutHeader2          [out] Receives the second inter-dependent header index.
-	 * @return true if an inter-dependency was found.
-	 */
-	static bool FindInterDependency( TMap<const FString*, HeaderDependents>& HeaderDependencyMap, const FString* Header, const FString*& OutHeader1, const FString*& OutHeader2 );
-
-	/**
-	 * Finds to headers that are dependent on each other.
-	 *
-	 * @param  HeaderDependencyMap A map of headers and their dependencies. Each header is represented as an index into a TArray of the actual filename strings.
-	 * @param  Header              A header to scan for any inter-dependency.
-	 * @param  VisitedHeaders      Must be filled with false values before the first call (must be large enough to be indexed by all headers).
-	 * @param  OutHeader1          [out] Receives the first inter-dependent header index.
-	 * @param  OutHeader2          [out] Receives the second inter-dependent header index.
-	 * @return true if an inter-dependency was found.
-	 */
-	static bool FindInterDependencyRecursive( TMap<const FString*, HeaderDependents>& HeaderDependencyMap, const FString* HeaderIndex, TSet<const FString*>& VisitedHeaders, const FString*& OutHeader1, const FString*& OutHeader2 );
 
 	/**
 	 * Exports the struct's C++ properties to the HeaderText output device and adds special
@@ -203,24 +156,6 @@ private:
 	 * @param	SourceFile			Source file to export.
 	 */
 	bool WriteHeader(const TCHAR* Path, const FString& InBodyText, const TSet<FString>& InFwdDecl);
-
-	/**
-	 * Appends the header definition for an inheritance hierarchy of classes to the header.
-	 *
-	 * @param	OutputGetter			The function to call to get the output.
-	 * @param	SourceFile				The source file for which to export header.
-	 * @param	VisitedSet				The set of source files visited so far. Must be empty before the first call.
-	 * @param	bCheckDependenciesOnly	Whether we should just keep checking for dependency errors, without exporting anything.
-	 */
-	void ExportSourceFileHeader(
-		FOutputDevice&                     OutGeneratedHeaderText,
-		TFunctionRef<FUHTStringBuilder&()> OutputGetter,
-		FOutputDevice&                     OutDeclarations,
-		const FUnrealSourceFile&           SourceFile,
-		const TArray<UEnum*>&              Enums,
-		const TArray<UScriptStruct*>&      Structs,
-		const TArray<UDelegateFunction*>&  DelegateFunctions
-	);
 
 	/**
 	 * Returns a string in the format CLASS_Something|CLASS_Something which represents all class flags that are set for the specified
@@ -307,7 +242,7 @@ private:
 	/**
 	 * Exports the generated cpp file for all functions/events/delegates in package.
 	 */
-	void ExportGeneratedCPP(const TCHAR* Declarations, const TArray<FUnrealSourceFile*>& Exported);
+	void ExportGeneratedCPP(FOutputDevice& Out, const TCHAR* EmptyLinkFunctionPostfix, const TCHAR* Declarations, const TCHAR* Body, const TCHAR* OtherIncludes);
 
 	/**
 	 * Get the intrinsic null value for this property
@@ -399,7 +334,7 @@ private:
 	 * @param	Out			The destination to write to.
 	 * @param	Package		Package to export code for.
 	**/
-	void ExportGeneratedPackageInitCode(FOutputDevice& Out, FUHTStringBuilder& OutDeclarations, const UPackage* Package);
+	void ExportGeneratedPackageInitCode(FOutputDevice& Out, FUHTStringBuilder& OutDeclarations, const UPackage* Package, uint32 CRC);
 
 	/**
 	 * Function to output the C++ code necessary to set up the given array of properties
@@ -442,7 +377,6 @@ private:
 	static void ExportCallbackFunctions(
 		FOutputDevice&            OutGeneratedHeaderText,
 		FOutputDevice&            Out,
-		TMap<FName, FName>&       ReferencedNames,
 		TSet<FString>&            OutFwdDecls,
 		const TArray<UFunction*>& CallbackFunctions,
 		const TCHAR*              CallbackWrappersMacroName,

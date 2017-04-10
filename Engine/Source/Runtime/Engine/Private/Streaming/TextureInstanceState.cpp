@@ -300,9 +300,9 @@ bool FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, F
 			// Handle force mip streaming by over scaling the texel factor. 
 			AddElement(Component, Info.Texture, BoundsIndex, Info.TexelFactor, Component->bForceMipStreaming, ComponentLink);
 		}
+		return true;
 	}
-
-	return true;
+	return false;
 }
 
 bool FTextureInstanceState::AddComponentFast(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext)
@@ -391,7 +391,6 @@ bool FTextureInstanceState::RemoveComponentReferences(const UPrimitiveComponent*
 	}
 }
 
-#if !UE_BUILD_SHIPPING
 void FTextureInstanceState::GetReferencedComponents(TArray<const UPrimitiveComponent*>& Components) const
 {
 	for (TMap<const UPrimitiveComponent*, int32>::TConstIterator It(ComponentMap); It; ++It)
@@ -399,8 +398,6 @@ void FTextureInstanceState::GetReferencedComponents(TArray<const UPrimitiveCompo
 		Components.Add(It.Key());
 	}
 }
-#endif
-
 
 void FTextureInstanceState::UpdateBounds(const UPrimitiveComponent* Component)
 {
@@ -529,7 +526,7 @@ int32 FTextureInstanceState::CompileElements()
 	return CompiledTextureMap.Num();
 }
 
-int32 FTextureInstanceState::CheckRegistrationAndUnpackBounds()
+int32 FTextureInstanceState::CheckRegistrationAndUnpackBounds(TArray<const UPrimitiveComponent*>& RemovedComponents)
 {
 	for (int32 BoundIndex = 0; BoundIndex < Bounds4Components.Num(); ++BoundIndex)
 	{
@@ -544,6 +541,7 @@ int32 FTextureInstanceState::CheckRegistrationAndUnpackBounds()
 			{
 				FRemovedTextureArray RemovedTextures; // Here we don't have to process the removed textures as the data was never used.
 				RemoveComponent(Component, RemovedTextures);
+				RemovedComponents.Add(Component);
 			}
 		}
 	}

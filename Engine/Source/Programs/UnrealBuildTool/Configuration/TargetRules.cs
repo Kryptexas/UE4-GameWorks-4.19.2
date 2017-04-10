@@ -146,7 +146,9 @@ namespace UnrealBuildTool
 			/// Settings exposed from the TargetRules instance
 			/// </summary>
 			#region Forwarded fields
+			#if !__MonoCS__
 			#pragma warning disable CS1591
+			#endif
 
 			public bool bHasExports
 			{
@@ -166,7 +168,9 @@ namespace UnrealBuildTool
 				set { Inner.bDisableSymbolCache = value; }
 			}
 
+			#if !__MonoCS__
 			#pragma warning restore CS1591
+			#endif
 			#endregion
 		}
 
@@ -193,7 +197,9 @@ namespace UnrealBuildTool
 			/// Settings exposed from the TargetRules instance
 			/// </summary>
 			#region Forwarded fields
+			#if !__MonoCS__
 			#pragma warning disable CS1591
+			#endif
 
 			public List<string> Definitions
 			{
@@ -206,7 +212,9 @@ namespace UnrealBuildTool
 				set { Inner.bEnableOSX109Support = value; }
 			}
 
+			#if !__MonoCS__
 			#pragma warning restore CS1591
+			#endif
 			#endregion
 		}
 
@@ -591,7 +599,7 @@ namespace UnrealBuildTool
 		/// Disables force-included PCHs for files that are in the adaptive non-unity working set.
 		/// </summary>
 		[XmlConfigFile(Category = "BuildConfiguration")]
-		public bool bAdaptiveUnityDisablesPCH = false;
+		public bool bAdaptiveUnityDisablesPCH = true;
 
 		/// <summary>
 		/// The number of source files in a game module before unity build will be activated for that module.  This
@@ -1366,7 +1374,9 @@ namespace UnrealBuildTool
 		/// Accessors for fields on the inner TargetRules instance
 		/// </summary>
 		#region Read-only accessor properties 
+		#if !__MonoCS__
 		#pragma warning disable CS1591
+		#endif
 
 		public string Name
 		{
@@ -1969,8 +1979,6 @@ namespace UnrealBuildTool
 			private set;
 		}
 
-		#pragma warning restore C1591
-
 		public string OverrideExecutableFileExtension
 		{
 			get { return Inner.OverrideExecutableFileExtension; }
@@ -1980,6 +1988,10 @@ namespace UnrealBuildTool
 		{
 			get { return Inner.bShouldCompileAsDLL; }
 		}
+
+		#if !__MonoCS__
+		#pragma warning restore C1591
+		#endif
 		#endregion
 
 		/// <summary>

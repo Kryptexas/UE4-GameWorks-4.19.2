@@ -7,7 +7,9 @@ using System.IO;
 using UnrealBuildTool;
 using System.Runtime.InteropServices;
 
+#if !__MonoCS__
 #pragma warning disable CS1591
+#endif
 
 public enum ResourceType
 {
@@ -286,4 +288,6 @@ public class ModuleResourceUpdate : IDisposable
 	}
 }
 
+#if !__MonoCS__
 #pragma warning restore CS1591
+#endif

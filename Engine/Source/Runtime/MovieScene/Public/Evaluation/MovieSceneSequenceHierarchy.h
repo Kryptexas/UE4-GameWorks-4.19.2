@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Evaluation/MovieSceneSequenceTransform.h"
 #include "Evaluation/MovieSceneSectionParameters.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneSequenceHierarchy.generated.h"
 
 class UMovieSceneSequence;

@@ -9,6 +9,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 #include "IPluginWizardDefinition.h"
+#include "NewPluginDescriptorData.h"
 #include "ModuleDescriptor.h"
 
 class ITableRow;
@@ -22,6 +23,36 @@ class SListView;
 DECLARE_LOG_CATEGORY_EXTERN(LogPluginWizard, Log, All);
 
 class SFilePathBlock;
+
+/**
+ * Parameters for writing out the descriptor file
+ */
+struct FWriteDescriptorParams
+{
+	FWriteDescriptorParams()
+		: bCanContainContent(false)
+		, bHasModules(false)
+		, bIsMod(false)
+		, ModuleDescriptorType(EHostType::Runtime)
+		, LoadingPhase(ELoadingPhase::Default)
+	{
+	}
+
+	/** Can this plugin contain content */
+	bool bCanContainContent;
+
+	/** Does this plugin have Source files? */
+	bool bHasModules;
+
+	/** Whether this plugin should be flagged as a mod */
+	bool bIsMod;
+
+	/** If this plugin has Source, what is the type of Source included(so it can potentially be excluded in the right builds) */
+	EHostType::Type ModuleDescriptorType;
+
+	/** If this plugin has Source, when should the module be loaded (may need to be earlier than default if used in blueprints) */
+	ELoadingPhase::Type LoadingPhase;
+};
 
 /**
  * A wizard to create a new plugin
@@ -52,6 +83,14 @@ private:
 	 * @return The widget for this template
 	 */
 	TSharedRef<ITableRow> OnGenerateTemplateRow(TSharedRef<FPluginTemplateDescription> InItem, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/**
+	 * Called to generate a widget for the specified tile item
+	 * @param Item The template information for this row
+	 * @param OwnerTable The table that owns these rows
+	 * @return The widget for this template
+	 */
+	TSharedRef<ITableRow> OnGenerateTemplateTile(TSharedRef<FPluginTemplateDescription> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/**
 	 * Called when the template selection changes
@@ -95,6 +134,11 @@ private:
 	ECheckBoxState IsEnginePlugin() const;
 
 	/**
+	 * Returns the visibility of the "Open Content Directory" checkbox, which should be displayed for any plugin that can contain content
+	 */
+	EVisibility GetShowPluginContentDirectoryVisibility() const;
+
+	/**
 	 * Called when state of Engine plugin checkbox changes
 	 * @param NewCheckedState New state of the checkbox
 	 */
@@ -117,15 +161,12 @@ private:
 
 	/**
 	 * Writes a plugin descriptor file to disk
-	 * @param PluginModuleName Name of the plugin and its module
-	 * @param UPluginFilePath Path where the descriptor file should be written
-	 * @param bCanContainContent Can this plugin contain content
-	 * @param bHasModules Does this plugin have Source?
-	 * @param ModuleDescriptorType If this plugin has Source, what is the type of Source included (so it can potentially be excluded in the right builds)
-	 * @param LoadingPhase If this plugin has Source, when should the module be loaded (may need to be earlier than default if used in blueprints)
+	 * @param PluginModuleName		Name of the plugin and its module
+	 * @param UPluginFilePath		Path where the descriptor file should be written
+	 * @param Parmas				Additional parameters for writing out the descriptor file		
 	 * @return Whether the files was written successfully
 	 */
-	bool WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules, EHostType::Type InModuleDescriptorType, ELoadingPhase::Type LoadingPhase);
+	bool WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, const FWriteDescriptorParams& Params);
 
 	/**
 	 * Displays an editor pop up error notification
@@ -139,7 +180,20 @@ private:
 	 */
 	void DeletePluginDirectory(const FString& InPath);
 
+	/**
+	 * Generates the expected list view for the plugin wizard, based on the wizard's definition
+	 */
+	void GenerateListViewWidget();
+
+	/**
+	 * Generates the dynamic brush resource for a plugin template definition if it has not yet been created
+	 */
+	void GeneratePluginTemplateDynamicBrush(TSharedRef<FPluginTemplateDescription> InItem);
+
 private:
+	/** Additional user-defined descriptor data */
+	TWeakObjectPtr<UNewPluginDescriptorData> DescriptorData;
+
 	/** The current plugin wizard definition */
 	TSharedPtr<IPluginWizardDefinition> PluginWizardDefinition;
 
@@ -163,6 +217,9 @@ private:
 
 	/** File Path widget that user will choose plugin location and name with */
 	TSharedPtr<SFilePathBlock> FilePathBlock;
+
+	/** Check box to show a plugin's content directory once a plugin has been successfully created */
+	TSharedPtr<class SCheckBox> ShowPluginContentDirectoryCheckBox;
 
 	/** Whether the path of the plugin entered is currently valid */
 	bool bIsPluginPathValid;

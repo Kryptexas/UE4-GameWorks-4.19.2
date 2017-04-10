@@ -100,7 +100,7 @@ FArchive& operator<<(FArchive& Ar, FStaticMeshSection& Section)
 	Ar << Section.bCastShadow;
 
 #if WITH_EDITORONLY_DATA
-	if(!Ar.IsCooking() || Ar.CookingTarget()->HasEditorOnlyData())
+	if((!Ar.IsCooking() && !Ar.IsFilterEditorOnly()) || (Ar.IsCooking() && Ar.CookingTarget()->HasEditorOnlyData()))
 	{
 		for (int32 UVIndex = 0; UVIndex < MAX_STATIC_TEXCOORDS; ++UVIndex)
 		{
@@ -738,7 +738,8 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			}
 			else
 			{
-				const float ViewDistance = CalculateViewDistance(LOD.MaxDeviation, Owner->SourceModels[LODIndex].ReductionSettings.PixelError);
+				const float PixelError = Owner->SourceModels.IsValidIndex(LODIndex) ? Owner->SourceModels[LODIndex].ReductionSettings.PixelError : UStaticMesh::MinimumAutoLODPixelError;
+				const float ViewDistance = CalculateViewDistance(LOD.MaxDeviation, PixelError);
 
 				// Generate a projection matrix.
 				// ComputeBoundsScreenSize only uses (0, 0) and (1, 1) of this matrix.
@@ -1337,7 +1338,7 @@ FArchive& operator<<(FArchive& Ar, FStaticMaterial& Elem)
 
 	Ar << Elem.MaterialSlotName;
 #if WITH_EDITORONLY_DATA
-	if(!Ar.IsCooking() || Ar.CookingTarget()->HasEditorOnlyData())
+	if((!Ar.IsCooking() && !Ar.IsFilterEditorOnly()) || (Ar.IsCooking() && Ar.CookingTarget()->HasEditorOnlyData()))
 	{
 		Ar << Elem.ImportedMaterialSlotName;
 	}

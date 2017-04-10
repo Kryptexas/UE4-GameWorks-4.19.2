@@ -299,7 +299,8 @@ ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
 	LevelColor = FLinearColor::White;
 	FixupOverrideVertexColorsTime = 0;
 	FixupOverrideVertexColorsCount = 0;
-#endif
+#endif	
+	bActorClusterCreated = false;
 }
 
 void ULevel::Initialize(const FURL& InURL)
@@ -319,7 +320,7 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	ULevel* This = CastChecked<ULevel>(InThis);
 
 	// Let GC know that we're referencing some AActor objects
-	if (FPlatformProperties::RequiresCookedData() && GActorClusteringEnabled)
+	if (FPlatformProperties::RequiresCookedData() && GActorClusteringEnabled && This->bActorClusterCreated)
 	{
 		Collector.AddReferencedObjects(This->ActorsForGC, This);
 	}
@@ -642,13 +643,13 @@ void ULevel::PostLoad()
 
 bool ULevel::CanBeClusterRoot() const
 {
-	return !!GActorClusteringEnabled;
+	// We don't want to create the cluster for levels in the same place as other clusters (after PostLoad)
+	// because at this point some of the assets referenced by levels may still haven't created clusters themselves.
+	return false;
 }
 
 void ULevel::CreateCluster()
 {
-	check(GActorClusteringEnabled);
-
 	// ULevels are not cluster roots themselves, instead they create a special actor container
 	// that holds a reference to all actors that are to be clustered. This is because only
 	// specific actor types can be clustered so the remaining actors that are not clustered
@@ -656,7 +657,7 @@ void ULevel::CreateCluster()
 	// Also, we don't want the level to reference the actors that are clusters because that would
 	// make things work even slower (references to clustered objects are expensive). That's why
 	// we keep a separate array for referencing unclustered actors (ActorsForGC).
-	if (ActorCluster == nullptr)
+	if (FPlatformProperties::RequiresCookedData() && GActorClusteringEnabled && !bActorClusterCreated)
 	{
 		TArray<AActor*> ClusterActors;
 
@@ -678,6 +679,7 @@ void ULevel::CreateCluster()
 			ActorCluster->Actors = MoveTemp(ClusterActors);
 			ActorCluster->CreateCluster();
 		}
+		bActorClusterCreated = true;
 	}
 }
 
@@ -981,6 +983,8 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 		CurrentActorIndexForUpdateComponents	= 0;
 		bAreComponentsCurrentlyRegistered		= true;
 		
+		CreateCluster();
+
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_IncrementalUpdateComponents_RerunConstructionScripts);
 #endif

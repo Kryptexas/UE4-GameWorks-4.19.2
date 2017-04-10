@@ -4,7 +4,6 @@
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Stats/StatsMisc.h"
-#include "HAL/IOBase.h"
 #include "Misc/ConfigCacheIni.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/SlowTask.h"
@@ -64,8 +63,6 @@ static FAutoConsoleVariableRef CVarLinkerAllowDynamicClasses(
 UClass* FLinkerLoad::UTexture2DStaticClass = NULL;
 
 FName FLinkerLoad::NAME_LoadErrors("LoadErrors");
-
-TMap<FString, FLinkerLoad::FPackagePrecacheInfo> FLinkerLoad::PackagePrecacheMap;
 
 
 /*----------------------------------------------------------------------------
@@ -391,15 +388,6 @@ static FORCEINLINE bool IsCoreUObjectPackage(const FName& PackageName)
 	FLinkerLoad.
 ----------------------------------------------------------------------------*/
 
-void FLinkerLoad::GetListOfPackagesInPackagePrecacheMap( TArray<FString>& ListOfPackages )
-{
-	check(!GNewAsyncIO);
-	for ( TMap<FString, FLinkerLoad::FPackagePrecacheInfo>::TIterator It(PackagePrecacheMap); It; ++It )
-	{
-		ListOfPackages.Add( It.Key() );
-	}
-}
-
 void FLinkerLoad::StaticInit(UClass* InUTexture2DStaticClass)
 {
 	UTexture2DStaticClass = InUTexture2DStaticClass;
@@ -601,7 +589,7 @@ FLinkerLoad* FLinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 	// Create a new linker if there isn't an existing one.
 	if( Linker == NULL )
 	{
-		if (GNewAsyncIO && FApp::IsGame() && !GIsEditor)
+		if (GEventDrivenLoaderEnabled && FApp::IsGame() && !GIsEditor)
 		{
 			LoadFlags |= LOAD_Async;
 		}
@@ -646,13 +634,13 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 			bool bCanSerializePackageFileSummary = false;
 			if (GEventDrivenLoaderEnabled)
 			{
-			check(Loader || bDynamicClassLinker);
+				check(Loader || bDynamicClassLinker);
 				bCanSerializePackageFileSummary = true;
 			}
 			else
 			{
-			// Create loader, aka FArchive used for serialization and also precache the package file summary.
-			// false is returned until any precaching is complete.
+				// Create loader, aka FArchive used for serialization and also precache the package file summary.
+				// false is returned until any precaching is complete.
 				SCOPED_LOADTIMER(LinkerLoad_CreateLoader);
 				Status = CreateLoader(TFunction<void()>([]() {}));
 
@@ -892,8 +880,6 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 
 	if( !Loader && !bDynamicClassLinker )
 	{
-		const bool bIsAsyncLoad = LoadFlags & LOAD_Async;
-
 #if WITH_EDITOR
 		FFormatNamedArguments FeedbackArgs;
 		FeedbackArgs.Add( TEXT("CleanFilename"), FText::FromString( FPaths::GetCleanFilename( *Filename ) ) );
@@ -911,18 +897,6 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 		{
 			// In this case we can skip serializing PackageFileSummary and fill all the required info here
 			CreateDynamicTypeLoader();
-		}
-		else if (GNewAsyncIO)
-		{
-			if (!bIsAsyncLoad)
-		{
-			check(!FPlatformProperties::RequiresCookedData() && !FSHA1::GetFileSHAHash(*Filename, NULL));
-			Loader = IFileManager::Get().CreateFileReader(*Filename, 0);
-			if (!Loader)
-			{
-				UE_LOG(LogLinker, Warning, TEXT("Error opening file '%s'."), *Filename );
-				return LINKER_Failed;
-			}
 		}
 		else
 		{
@@ -945,8 +919,6 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 			}
 #if DEVIRTUALIZE_FLinkerLoad_Serialize
 			ActiveFPLB = Loader->ActiveFPLB; // make sure my fast past loading is using the FAA2 fast path buffer
-#else
-				check(false);
 #endif
 
 			bool bHasHashEntry = FSHA1::GetFileSHAHash(*Filename, NULL);
@@ -974,89 +946,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 			{
 				bLoaderIsFArchiveAsync2 = true;
 			}
-		}
-		} // GNewAsyncIO
-		else
-		{
-		// NOTE: Precached memory read gets highest priority, then memory reader, then seek free, then normal
-		// check to see if there is was an async preload request for this file
-			if (FPackagePrecacheInfo* PrecacheInfo = PackagePrecacheMap.Find(*Filename))
-		{
-			// if so, serialize from memory (note this will have uncompressed a fully compressed package)
-			// block until the async read is complete
-			if (PrecacheInfo->SynchronizationObject->GetValue() != 0)
-			{
-				double StartTime = FPlatformTime::Seconds();
-
-				FPlatformProcess::ConditionalSleep([&]()
-				{
-					SHUTDOWN_IF_EXIT_REQUESTED;
-					return PrecacheInfo->SynchronizationObject->GetValue() == 0;
-				}
-				);
-				float WaitTime = FPlatformTime::Seconds() - StartTime;
-				UE_LOG(LogInit, Log, TEXT("Waited %.3f sec for async package '%s' to complete caching."), WaitTime, *Filename);
-			}
-
-			// create a buffer reader using the read in data
-			// assume that all precached startup packages have SHA entries
-			Loader = new FBufferReaderWithSHA(PrecacheInfo->PackageData, PrecacheInfo->PackageDataSize, true, *Filename, true);
-
-			// remove the precache info from the map
-			PackagePrecacheMap.Remove(*Filename);
-		}
-		else if ((LoadFlags & LOAD_MemoryReader) || !bIsAsyncLoad)
-		{
-			// Create file reader used for serialization.
-			FArchive* FileReader = IFileManager::Get().CreateFileReader( *Filename, 0 );
-			if( !FileReader )
-			{
-				UE_LOG(LogLinker, Warning, TEXT("Error opening file '%s'."), *Filename );
-				return LINKER_Failed;
-			}
-
-			bool bHasHashEntry = FSHA1::GetFileSHAHash(*Filename, NULL);
-			// force preload into memory if file has an SHA entry
-			if( LoadFlags & LOAD_MemoryReader || 
-				bHasHashEntry )
-			{
-					// Serialize data from memory instead of from disk.
-					check(FileReader);
-					uint32	BufferSize	= FileReader->TotalSize();
-					void*	Buffer		= FMemory::Malloc( BufferSize );
-					FileReader->Serialize( Buffer, BufferSize );
-					if( bHasHashEntry )
-					{
-						// create buffer reader and spawn SHA verify when it gets closed
-						Loader = new FBufferReaderWithSHA( Buffer, BufferSize, true, *Filename, true );
-					}
-					else
-					{
-						// create a buffer reader
-						Loader = new FBufferReader( Buffer, BufferSize, true, true );
-					}
-					delete FileReader;
-			}
-			else
-			{
-				// read directly from file
-				Loader = FileReader;
-			}
-		}
-		else if (bIsAsyncLoad)
-		{
-			// Use the async archive as it supports proper Precache and package compression.
-			Loader = new FArchiveAsync( *Filename );
-
-			// An error signifies that the package couldn't be opened.
-			if( Loader->IsError() )
-			{
-				delete Loader;
-				UE_LOG(LogLinker, Warning, TEXT("Error opening file '%s'."), *Filename );
-				return LINKER_Failed;
-			}
-		}
-		}
+		} 
 
 		check(bDynamicClassLinker || Loader);
 		check(bDynamicClassLinker || !Loader->IsError());
@@ -1083,41 +973,41 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 	}
 	if (GEventDrivenLoaderEnabled)
 	{
-	return LINKER_TimedOut;
+		return LINKER_TimedOut;
 	}
 	else
 	{
-	bool bExecuteNextStep = true;
-	if( bHasSerializedPackageFileSummary == false )
-	{
-			if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
+		bool bExecuteNextStep = true;
+		if( bHasSerializedPackageFileSummary == false )
 		{
-			bExecuteNextStep = GetFArchiveAsync2Loader()->ReadyToStartReadingHeader(bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
-		}
-		else
-		{
-			int64 Size = Loader->TotalSize();
-			if (Size <= 0)
+			if (bLoaderIsFArchiveAsync2)
 			{
-				delete Loader;
-				Loader = nullptr;
-				UE_LOG(LogLinker, Warning, TEXT("Error opening file '%s'."), *Filename);
-				return LINKER_Failed;
+				bExecuteNextStep = GetFArchiveAsync2Loader()->ReadyToStartReadingHeader(bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
 			}
-			// Precache up to one ECC block before serializing package file summary.
-			// If the package is partially compressed, we'll know that quickly and
-			// end up discarding some of the precached data so we can re-fetch
-			// and decompress it.
-			static int64 MinimumReadSize = 32 * 1024;
-			checkSlow(MinimumReadSize >= 2048 && MinimumReadSize <= 1024 * 1024); // not a hard limit, but we should be loading at least a reasonable amount of data
-			int32 PrecacheSize = FMath::Min(MinimumReadSize, Size);
-			check( PrecacheSize > 0 );
-			// Wait till we're finished precaching before executing the next step.
-			bExecuteNextStep = Loader->Precache(0, PrecacheSize);
+			else
+			{
+				int64 Size = Loader->TotalSize();
+				if (Size <= 0)
+				{
+					delete Loader;
+					Loader = nullptr;
+					UE_LOG(LogLinker, Warning, TEXT("Error opening file '%s'."), *Filename);
+					return LINKER_Failed;
+				}
+				// Precache up to one ECC block before serializing package file summary.
+				// If the package is partially compressed, we'll know that quickly and
+				// end up discarding some of the precached data so we can re-fetch
+				// and decompress it.
+				static int64 MinimumReadSize = 32 * 1024;
+				checkSlow(MinimumReadSize >= 2048 && MinimumReadSize <= 1024 * 1024); // not a hard limit, but we should be loading at least a reasonable amount of data
+				int32 PrecacheSize = FMath::Min(MinimumReadSize, Size);
+				check( PrecacheSize > 0 );
+				// Wait till we're finished precaching before executing the next step.
+				bExecuteNextStep = Loader->Precache(0, PrecacheSize);
+			}
 		}
-	}
 
-	return (bExecuteNextStep && !IsTimeLimitExceeded( TEXT("creating loader") )) ? LINKER_Loaded : LINKER_TimedOut;
+		return (bExecuteNextStep && !IsTimeLimitExceeded( TEXT("creating loader") )) ? LINKER_Loaded : LINKER_TimedOut;
 	}
 }
 
@@ -1135,7 +1025,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 			UE_LOG(LogLinker, Warning, TEXT("The file '%s' contains unrecognizable data, check that it is of the expected type."), *Filename);
 			return LINKER_Failed;
 		}
-		if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
+		if (bLoaderIsFArchiveAsync2)
 		{
 			GetFArchiveAsync2Loader()->StartReadingHeader();
 		}
@@ -1293,41 +1183,6 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		SetCustomVersions(SummaryVersions);
 
 		// Package has been stored compressed.
-#if DEBUG_DISTRIBUTED_COOKING
-		if( false )
-#else
-		if( Summary.PackageFlags & PKG_StoreCompressed )
-#endif
-		{
-			checkf(!GNewAsyncIO, TEXT("Package level compression cannot be used with the async io scheme."));
-
-			// Set compression mapping. Failure means Loader doesn't support package compression.
-			check( Summary.CompressedChunks.Num() );
-			if( !Loader->SetCompressionMap( &Summary.CompressedChunks, (ECompressionFlags) Summary.CompressionFlags ) )
-			{
-				// Current loader doesn't support it, so we need to switch to one known to support it.
-				
-				// We need keep track of current position as we already serialized the package file summary.
-				int32		CurrentPos				= Loader->Tell();
-				// Serializing the package file summary determines whether we are forcefully swapping bytes
-				// so we need to propage this information from the old loader to the new one.
-				bool	bHasForcedByteSwapping	= Loader->ForceByteSwapping();
-
-				// Delete existing loader...
-				delete Loader;
-				// ... and create new one using FArchiveAsync as it supports package compression.
-				Loader = new FArchiveAsync( *Filename );
-				check( !Loader->IsError() );
-
-				// Seek to current position as package file summary doesn't need to be serialized again.
-				Loader->Seek( CurrentPos );
-				// Propagate byte-swapping behavior.
-				Loader->SetByteSwapping( bHasForcedByteSwapping );
-				
-				// Set the compression map and verify it won't fail this time.
-				verify( Loader->SetCompressionMap( &Summary.CompressedChunks, (ECompressionFlags) Summary.CompressionFlags ) );
-			}
-		}
 
 		UPackage* LinkerRootPackage = LinkerRoot;
 		if( LinkerRootPackage )
@@ -1408,7 +1263,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeNameMap()
 		if( Summary.TotalHeaderSize > 0 )
 		{
 			// Precache name, import and export map.
-			if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
+			if (bLoaderIsFArchiveAsync2)
 			{
 				bFinishedPrecaching = GetFArchiveAsync2Loader()->ReadyToStartReadingHeader(bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
 				check(!GEventDrivenLoaderEnabled || bFinishedPrecaching || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
@@ -1932,11 +1787,6 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 //			UE_LOG(LogLinker, Log, TEXT("Found a user created pacakge (%s)"), *(FPaths::GetBaseFilename(Filename)));
 		}
 
-		if ( !(LoadFlags & LOAD_NoVerify) )
-		{
-			Verify();
-		}
-
 		if (GEventDrivenLoaderEnabled && AsyncRoot)
 		{
 			for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
@@ -1951,10 +1801,16 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 			}
 		}
 
-		if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
+		if (bLoaderIsFArchiveAsync2)
 		{
 			GetFArchiveAsync2Loader()->EndReadingHeader();
 		}
+
+		if ( !(LoadFlags & LOAD_NoVerify) )
+		{
+			Verify();
+		}
+
 
 		// Avoid duplicate work in the case of async linker creation.
 		bHasFinishedInitialization = true;
@@ -2861,7 +2717,7 @@ UClass* FLinkerLoad::GetExportLoadClass(int32 Index)
 	return ExportClass;
 }
 
-int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
+int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload)
 {
 	UMetaData* MetaData = nullptr;
 	int32 MetaDataIndex = INDEX_NONE;
@@ -2909,7 +2765,7 @@ int32 FLinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
  * @param bForcePreload	Whether to explicitly call Preload (serialize) right away instead of being
  *						called from EndLoad()
  */
-void FLinkerLoad::LoadAllObjects( bool bForcePreload )
+void FLinkerLoad::LoadAllObjects(bool bForcePreload)
 {
 #if WITH_EDITOR
 	FScopedSlowTask SlowTask(ExportMap.Num(), NSLOCTEXT("Core", "LinkerLoad_LoadingObjects", "Loading Objects"), ShouldReportProgress());
@@ -3295,11 +3151,7 @@ void FLinkerLoad::Preload( UObject* Object )
 				// is stored
 				Loader->Seek(Export.SerialOffset);
 
-				FArchiveAsync2* FAA2 = nullptr;
-				if (GNewAsyncIO)
-				{
-					FAA2 = GetFArchiveAsync2Loader();
-				}
+				FArchiveAsync2* FAA2 = GetFArchiveAsync2Loader();
 
 				{
 					SCOPE_CYCLE_COUNTER(STAT_LinkerPrecache);
@@ -4557,77 +4409,6 @@ FArchive& FLinkerLoad::operator<<( UObject*& Object )
 void FLinkerLoad::BadNameIndexError(NAME_INDEX NameIndex)
 {
 	UE_LOG(LogLinker, Error, TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num());
-}
-
-void FLinkerLoad::AsyncPreloadPackage(const TCHAR* PackageName)
-{
-	check(!GNewAsyncIO);
-
-	// get package filename
-	FString PackageFilename;
-	if (!FPackageName::DoesPackageExist(PackageName, NULL, &PackageFilename))
-	{
-		UE_LOG(LogLinker, Fatal,TEXT("Failed to find file for package %s for async preloading."), PackageName);
-	}
-
-	// make sure it wasn't already there
-	check(PackagePrecacheMap.Find(*PackageFilename) == NULL);
-
-	// add a new one to the map
-	FPackagePrecacheInfo& PrecacheInfo = PackagePrecacheMap.Add(*PackageFilename, FPackagePrecacheInfo());
-
-	// make a new sync object (on heap so the precache info can be copied in the map, etc)
-	PrecacheInfo.SynchronizationObject = new FThreadSafeCounter;
-
-	// increment the sync object, later we'll wait for it to be decremented
-	PrecacheInfo.SynchronizationObject->Increment();
-	
-	// default to not compressed
-	bool bWasCompressed = false;
-
-	// get filesize (first checking if it was compressed)
-	const int32 UncompressedSize = -1;
-	const int32 FileSize = IFileManager::Get().FileSize(*PackageFilename);
-
-	// if we were compressed, the size we care about on the other end is the uncompressed size
-	CA_SUPPRESS(6326)
-	PrecacheInfo.PackageDataSize = UncompressedSize == -1 ? FileSize : UncompressedSize;
-	
-	// allocate enough space
-	PrecacheInfo.PackageData = FMemory::Malloc(PrecacheInfo.PackageDataSize);
-
-	uint64 RequestId;
-	// kick off the async read (uncompressing if needed) of the whole file and make sure it worked
-	CA_SUPPRESS(6326)
-	if (UncompressedSize != -1)
-	{
-		PrecacheInfo.PackageDataSize = UncompressedSize;
-		RequestId = FIOSystem::Get().LoadCompressedData(
-						PackageFilename, 
-						0, 
-						FileSize, 
-						UncompressedSize, 
-						PrecacheInfo.PackageData, 
-						COMPRESS_Default, 
-						PrecacheInfo.SynchronizationObject,
-						AIOP_Normal);
-	}
-	else
-	{
-		PrecacheInfo.PackageDataSize = FileSize;
-		RequestId = FIOSystem::Get().LoadData(
-						PackageFilename, 
-						0, 
-						PrecacheInfo.PackageDataSize, 
-						PrecacheInfo.PackageData, 
-						PrecacheInfo.SynchronizationObject, 
-						AIOP_Normal);
-	}
-
-	// give a hint to the IO system that we are done with this file for now
-	FIOSystem::Get().HintDoneWithFile(PackageFilename);
-
-	check(RequestId);
 }
 
 /**

@@ -3197,28 +3197,6 @@ FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
 }
 
 //////////////////////////////////////////////////////////////////////////
-// UActorComponent inlines
-
-FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
-{
-#if WITH_EDITOR
-	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
-	if (bCanUseCachedOwner)
-	{
-		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-		return OwnerPrivate;
-	}
-	else
-	{
-		return GetTypedOuter<AActor>();
-	}
-#else
-	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-	return OwnerPrivate;
-#endif
-}
-
-//////////////////////////////////////////////////////////////////////////
 // Macro to hide common Transform functions in native code for classes where they don't make sense.
 // Note that this doesn't prevent access through function calls from parent classes (ie an AActor*), but
 // does prevent use in the class that hides them and any derived child classes.

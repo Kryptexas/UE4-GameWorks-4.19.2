@@ -13,6 +13,7 @@ using UnrealBuildTool;
 [Help("NoHostPlatform", "Prevent compiling for the editor platform on the host")]
 [Help("TargetPlatforms", "Specify a list of target platforms to build, separated by '+' characters (eg. -TargetPlatforms=Win32+Win64). Default is all the Rocket target platforms.")]
 [Help("Package", "The path which the build artifacts should be packaged to, ready for distribution.")]
+[Help("Unversioned", "Do not embed the current engine version into the descriptor")]
 class BuildPlugin : BuildCommand
 {
 	public override void ExecuteBuild()
@@ -90,7 +91,7 @@ class BuildPlugin : BuildCommand
 		FileReference[] BuildProducts = CompilePlugin(HostProjectFile, HostProjectPluginFile, Plugin, HostPlatforms, TargetPlatforms, "");
 
 		// Package up the final plugin data
-		PackagePlugin(HostProjectPluginFile, BuildProducts, PackageDir);
+		PackagePlugin(HostProjectPluginFile, BuildProducts, PackageDir, ParseParam("unversioned"));
 
 		// Remove the host project
 		if(!ParseParam("NoDeleteHostProject"))
@@ -208,7 +209,7 @@ class BuildPlugin : BuildCommand
 		return BuildProducts;
 	}
 
-	static void PackagePlugin(FileReference SourcePluginFile, IEnumerable<FileReference> BuildProducts, DirectoryReference TargetDir)
+	static void PackagePlugin(FileReference SourcePluginFile, IEnumerable<FileReference> BuildProducts, DirectoryReference TargetDir, bool bUnversioned)
 	{
 		DirectoryReference SourcePluginDir = SourcePluginFile.Directory;
 
@@ -226,6 +227,14 @@ class BuildPlugin : BuildCommand
 		PluginDescriptor NewDescriptor = PluginDescriptor.FromFile(TargetPluginFile, false);
 		NewDescriptor.bEnabledByDefault = false;
 		NewDescriptor.bInstalled = true;
+		if(!bUnversioned)
+		{
+			BuildVersion Version;
+			if(BuildVersion.TryRead(out Version))
+			{
+				NewDescriptor.EngineVersion = String.Format("{0}.{1}.0", Version.MajorVersion, Version.MinorVersion);
+			}
+		}
 		NewDescriptor.Save(TargetPluginFile.FullName, false);
 	}
 

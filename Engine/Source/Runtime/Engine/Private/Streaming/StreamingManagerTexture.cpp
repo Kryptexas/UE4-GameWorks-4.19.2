@@ -9,7 +9,6 @@
 #include "Engine/World.h"
 #include "Engine/TextureStreamingTypes.h"
 #include "Materials/MaterialInterface.h"
-#include "Components/MeshComponent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/App.h"
@@ -18,6 +17,7 @@
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "Streaming/AsyncTextureStreaming.h"
+#include "Components/PrimitiveComponent.h"
 
 void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TArray<FTextureSortElement>* InCandidateTextures, int64 RequiredMemorySize, volatile bool* bSucceeded);
 bool TrackTexture( const FString& TextureName );
@@ -57,6 +57,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 ,	PreviousPoolSizeSetting(-1)
 ,	bPauseTextureStreaming(false)
 ,	LastWorldUpdateTime(GIsEditor ? -FLT_MAX : 0) // In editor, visibility is not taken into consideration.
+,	ConcurrentLockState(0)
 {
 	// Read settings from ini file.
 	int32 TempInt;
@@ -169,7 +170,7 @@ void FStreamingManagerTexture::OnPreGarbageCollect()
 		if (LevelManager.GetLevel()->IsPendingKill())
 		{
 			FRemovedTextureArray RemovedTextures;
-			LevelManager.Remove(DynamicComponentManager, RemovedTextures);
+			LevelManager.Remove(RemovedTextures);
 			SetTexturesRemovedTimestamp(RemovedTextures);
 
 			// Remove the level entry. The async task view will still be valid as it uses a shared ptr.
@@ -430,7 +431,7 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 			for (FLevelTextureManager& LevelManager : LevelTextureManagers)
 			{
 				Levels.Push(LevelManager.GetLevel());
-				LevelManager.Remove(DynamicComponentManager, RemovedTextures);
+				LevelManager.Remove(RemovedTextures);
 			}
 			LevelTextureManagers.Empty();
 
@@ -444,7 +445,7 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 			DynamicComponentManager.GetReferencedComponents(DynamicComponents);
 			for (const UPrimitiveComponent* Primitive : DynamicComponents)
 			{
-				NotifyPrimitiveUpdated(Primitive);
+				NotifyPrimitiveUpdated_Concurrent(Primitive);
 			}
 		}
 #endif
@@ -511,7 +512,7 @@ void FStreamingManagerTexture::BoostTextures( AActor* Actor, float BoostFactor )
 		for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
 		{
 			UPrimitiveComponent* Primitive = Components[ComponentIndex];
-			if ( Primitive->IsRegistered() && Primitive->IsA(UMeshComponent::StaticClass()) )
+			if ( Primitive->IsRegistered() )
 			{
 				Textures.Reset();
 				Primitive->GetUsedTextures( Textures, EMaterialQualityLevel::Num );
@@ -572,7 +573,7 @@ void FStreamingManagerTexture::RemoveLevel( ULevel* Level )
 			if (LevelManager.GetLevel() == Level)
 			{
 				FRemovedTextureArray RemovedTextures;
-				LevelManager.Remove(DynamicComponentManager, RemovedTextures);
+				LevelManager.Remove(RemovedTextures);
 				SetTexturesRemovedTimestamp(RemovedTextures);
 
 				// Remove the level entry. The async task view will still be valid as it uses a shared ptr.
@@ -642,11 +643,7 @@ void FStreamingManagerTexture::NotifyActorSpawned( AActor* Actor )
 
 		for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
 		{
-			UPrimitiveComponent* Primitive = Components[ComponentIndex];
-			if (Primitive->IsRegistered() && Primitive->IsA(UMeshComponent::StaticClass()))
-			{
-				NotifyPrimitiveAttached( Primitive, DPT_Spawned );
-			}
+			NotifyPrimitiveAttached(Components[ComponentIndex], DPT_Spawned);
 		}
 	}
 }
@@ -660,6 +657,7 @@ void FStreamingManagerTexture::NotifyActorDestroyed( AActor* Actor )
 
 	TInlineComponentArray<UPrimitiveComponent*> Components;
 	Actor->GetComponents(Components);
+	Components.Remove(nullptr);
 
 	// Here we assume that level can not be changed in game, to allow an optimized path.
 	ULevel* Level = !GIsEditor ? Actor->GetLevel() : nullptr;
@@ -677,39 +675,39 @@ void FStreamingManagerTexture::NotifyActorDestroyed( AActor* Actor )
 		}
 	}
 
-	// Remove any references in the dynamic component manager.
 	for (UPrimitiveComponent* Component : Components)
 	{
+		// Remove any references in the dynamic component manager.
 		DynamicComponentManager.Remove(Component, RemovedTextures);
+
+		// Reset this now as we have finished iterating over the levels
+		Component->bAttachedToStreamingManagerAsStatic = false;
 	}
 
 	SetTexturesRemovedTimestamp(RemovedTextures);
 	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
 }
 
-bool FStreamingManagerTexture::IsHandledAsStatic(const UPrimitiveComponent* Primitive) const
+void FStreamingManagerTexture::RemoveStaticReferences(const UPrimitiveComponent* Primitive)
 {
-	if (Primitive && Primitive->Mobility == EComponentMobility::Static)
+	check(Primitive);
+
+	if (Primitive->bAttachedToStreamingManagerAsStatic)
 	{
-		const AActor* Owner = Primitive->GetOwner();
-		if (Owner && Owner->IsRootComponentStatic())
+		FRemovedTextureArray RemovedTextures;
+		ULevel* Level = Primitive->GetComponentLevel();
+		for (FLevelTextureManager& LevelManager : LevelTextureManagers)
 		{
-			// Now check if the level is handled by the streamer
-			const ULevel* Level = Owner->GetLevel();
-			if (Level)
+			if (!Level || LevelManager.GetLevel() == Level)
 			{
-				for (const FLevelTextureManager& LevelManager : LevelTextureManagers)
-				{
-					if (LevelManager.GetLevel() == Level)
-					{
-						return true;
-					}
-				}
+				LevelManager.RemoveComponentReferences(Primitive, RemovedTextures);
 			}
 		}
+		Primitive->bAttachedToStreamingManagerAsStatic = false;
+		// Nothing to do with removed textures as we are about to reinsert
 	}
-	return false;
 }
+
 
 /**
  * Called when a primitive is attached to an actor or another component.
@@ -721,13 +719,15 @@ void FStreamingManagerTexture::NotifyPrimitiveAttached( const UPrimitiveComponen
 {
 	STAT(GatheredStats.CallbacksCycles = -(int32)FPlatformTime::Cycles();)
 
-	// Only add it if it's a UMeshComponent, since we only track those in UMeshComponent::BeginDestroy().
 	// Also only consider non static primitive as they can only be created in the editor, which will trigger a data rebuild.
-	if (bUseDynamicStreaming && Primitive && Primitive->IsA(UMeshComponent::StaticClass()) && !IsHandledAsStatic(Primitive))
+	if (bUseDynamicStreaming && Primitive)
 	{
 #if STREAMING_LOG_DYNAMIC
 		UE_LOG(LogContentStreaming, Log, TEXT("NotifyPrimitiveAttached(0x%08x \"%s\"), IsRegistered=%d"), SIZE_T(Primitive), *Primitive->GetReadableName(), Primitive->IsRegistered());
 #endif
+		// This primitive is becoming dynamic, so clear static references
+		RemoveStaticReferences(Primitive);
+
 		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Primitive);
 		DynamicComponentManager.Add(Primitive, LevelContext);
 	}
@@ -741,7 +741,7 @@ void FStreamingManagerTexture::NotifyPrimitiveAttached( const UPrimitiveComponen
  */
 void FStreamingManagerTexture::NotifyPrimitiveDetached( const UPrimitiveComponent* Primitive )
 {
-	if (!Primitive)
+	if (!Primitive || !Primitive->IsAttachedToStreamingManager())
 	{
 		return;
 	}
@@ -753,23 +753,27 @@ void FStreamingManagerTexture::NotifyPrimitiveDetached( const UPrimitiveComponen
 		UE_LOG(LogContentStreaming, Log, TEXT("NotifyPrimitiveDetached(0x%08x \"%s\"), IsRegistered=%d"), SIZE_T(Primitive), *Primitive->GetReadableName(), Primitive->IsRegistered());
 #endif
 
-	// Here we assume that level can not be changed in game, to allow an optimized path.
-	// If there is not level, then we assume it could be in any level.
-	ULevel* Level = !GIsEditor ? Primitive->GetComponentLevel() : nullptr;
-	if (Level && (Level->IsPendingKill() || Level->HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed)))
+	if (Primitive->bAttachedToStreamingManagerAsStatic)
 	{
-		// Do a batch remove to prevent handling each component individually.
-		RemoveLevel(Level);
-	}
-	// Unless in editor, we don't want to remove reference in static level data when toggling visibility.
-	else if (GIsEditor || Primitive->IsPendingKill() || Primitive->HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed))
-	{
-		for (FLevelTextureManager& LevelManager : LevelTextureManagers)
+		// Here we assume that level can not be changed in game, to allow an optimized path.
+		// If there is not level, then we assume it could be in any level.
+		ULevel* Level = !GIsEditor ? Primitive->GetComponentLevel() : nullptr;
+		if (Level && (Level->IsPendingKill() || Level->HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed)))
 		{
-			if (!Level || LevelManager.GetLevel() == Level)
+			// Do a batch remove to prevent handling each component individually.
+			RemoveLevel(Level);
+		}
+		// Unless in editor, we don't want to remove reference in static level data when toggling visibility.
+		else if (GIsEditor || Primitive->IsPendingKill() || Primitive->HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed))
+		{
+			for (FLevelTextureManager& LevelManager : LevelTextureManagers)
 			{
-				LevelManager.RemoveComponentReferences(Primitive, RemovedTextures);
+				if (!Level || LevelManager.GetLevel() == Level)
+				{
+					LevelManager.RemoveComponentReferences(Primitive, RemovedTextures);
+				}
 			}
+			Primitive->bAttachedToStreamingManagerAsStatic = false;
 		}
 	}
 	
@@ -809,17 +813,28 @@ void FStreamingManagerTexture::SetTexturesRemovedTimestamp(const FRemovedTexture
  * Only affects primitives that were already attached.
  * Replaces previous info.
  */
-void FStreamingManagerTexture::NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive )
+void FStreamingManagerTexture::NotifyPrimitiveUpdated_Concurrent( const UPrimitiveComponent* Primitive )
 {
-	STAT(GatheredStats.CallbacksCycles = -(int32)FPlatformTime::Cycles();)
+	STAT(int32 CallbackCycle = -(int32)FPlatformTime::Cycles();)
 
-	if (DynamicComponentManager.IsReferenced(Primitive))
+	// The level context is not used currently.
+	if (bUseDynamicStreaming && Primitive && Primitive->bHandledByStreamingManagerAsDynamic)
 	{
-		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Primitive);
+		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num);
+
+		while (FPlatformAtomics::InterlockedCompareExchange(&ConcurrentLockState, 1, 0) != 0)
+		{
+			FPlatformProcess::Sleep(0);
+		}
+
+		// Do Work
 		DynamicComponentManager.Add(Primitive, LevelContext);
+		
+		ConcurrentLockState = 0;
 	}
 
-	STAT(GatheredStats.CallbacksCycles += FPlatformTime::Cycles();)
+	STAT(CallbackCycle += (int32)FPlatformTime::Cycles();)
+	STAT(FPlatformAtomics::InterlockedAdd(&GatheredStats.CallbacksCycles, CallbackCycle));
 }
 
 /**
@@ -1024,6 +1039,7 @@ void FStreamingManagerTexture::UpdateStats()
 		GatheredStats.MipIOBandwidth = DeltaStatTime > SMALL_NUMBER ? GatheredStats.MipIOBandwidth / DeltaStatTime : 0;
 	}
 	DisplayedStats = GatheredStats;
+	GatheredStats.CallbacksCycles = 0;
 	GatheredStats.MipIOBandwidth = 0;
 	MemoryOverBudget = DisplayedStats.OverBudget;
 	MaxEverRequired = FMath::Max<int64>(MaxEverRequired, DisplayedStats.RequiredPool);
@@ -1578,6 +1594,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 		AsyncWork->EnsureCompletion();
 
 		FAsyncTextureStreamingData& StreamingData = AsyncWork->GetTask().StreamingData;
+		StreamingData.Init(CurrentViewInfos, LastWorldUpdateTime, LevelTextureManagers, DynamicComponentManager);
 		StreamingData.UpdateBoundSizes_Async(Settings);
 
 		for ( int32 TextureIndex=0; TextureIndex < StreamingTextures.Num(); ++TextureIndex )
@@ -1594,11 +1611,7 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 				UE_LOG(LogContentStreaming, Log,  TEXT("Texture: %s"), *TextureName );
 				UE_LOG(LogContentStreaming, Log,  TEXT("  Texture group:   %s"), UTexture::GetTextureGroupString(StreamingTexture.LODGroup) );
 
-				if ( StreamingTexture.bForceFullyLoadHeuristic )
-				{
-					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips: bForceFullyLoad") );
-				}
-				else if ( Texture2D->bGlobalForceMipLevelsToBeResident )
+				if ( Texture2D->bGlobalForceMipLevelsToBeResident )
 				{
 					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  bGlobalForceMipLevelsToBeResident") );
 				}
@@ -1610,6 +1623,10 @@ bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd
 				{
 					float TimeLeft = (float)(Texture2D->ForceMipLevelsToBeResidentTimestamp - FApp::GetCurrentTime());
 					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips:  %.1f seconds left"), FMath::Max(TimeLeft,0.0f) );
+				}
+				else if ( StreamingTexture.bForceFullyLoadHeuristic )
+				{
+					UE_LOG(LogContentStreaming, Log,  TEXT("  Force all mips: bForceFullyLoad") );
 				}
 				else if ( StreamingTexture.MipCount == 1 )
 				{

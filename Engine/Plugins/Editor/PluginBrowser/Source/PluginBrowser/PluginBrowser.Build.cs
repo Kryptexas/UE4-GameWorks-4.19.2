@@ -27,7 +27,8 @@ namespace UnrealBuildTool.Rules
 					"DirectoryWatcher",
 					"GameProjectGeneration",
 					"MainFrame",
-                    "UATHelper"
+                    "UATHelper",
+                    "AssetTools",
 				}
 			);
 

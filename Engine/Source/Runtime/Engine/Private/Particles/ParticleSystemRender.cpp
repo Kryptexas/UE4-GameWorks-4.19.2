@@ -36,6 +36,7 @@
 #include "ParticleBeamTrailVertexFactory.h"
 #include "Private/SceneRendering.h"
 #include "Particles/ParticleLODLevel.h"
+#include "Engine/StaticMesh.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleSystemSceneProxy GetMeshElements"), STAT_FParticleSystemSceneProxy_GetMeshElements, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData GetDynamicMeshElementsEmitter GetParticleOrderData"), STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData, STATGROUP_Particles);

@@ -112,9 +112,16 @@ public class MacPlatform : Platform
 					if (SC.NonUFSStagingFiles.ContainsKey(Executable.Path) && Executable.Path.Replace("\\", "/").Contains("/" + TargetPlatformType.ToString() + "/"))
 					{
 						string BootstrapArguments = "";
-						if (!SC.IsCodeBasedProject && !ShouldStageCommandLine(Params, SC))
+						if (!ShouldStageCommandLine(Params, SC))
 						{
-							BootstrapArguments = String.Format("../../../{0}/{0}.uproject", SC.ShortProjectName);
+							if (!SC.IsCodeBasedProject)
+							{
+								BootstrapArguments = String.Format("../../../{0}/{0}.uproject", SC.ShortProjectName);
+							}
+							else
+							{
+								BootstrapArguments = SC.ShortProjectName;
+							}
 						}
 
 						string BootstrapExeName;

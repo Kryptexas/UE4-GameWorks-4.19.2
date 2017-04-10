@@ -10,6 +10,7 @@
 #include "Materials/Material.h"
 #include "Particles/ParticleSystem.h"
 #include "TessellationRendering.h"
+#include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
 #include "FXSystem.h"
 

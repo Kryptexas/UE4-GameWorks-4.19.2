@@ -23,6 +23,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Visual Studio 2013 (Visual C++ 12.0)
 		/// </summary>
+		[Obsolete("UE4 does not support building Visual Studio 2013 targets from the 4.16 release onwards.")]
 		VisualStudio2013,
 
 		/// <summary>
@@ -46,7 +47,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsTargetPlatform.WindowsTargetSettings", "CompilerVersion")]
 		[XmlConfigFile(Category = "WindowsPlatform")]
-		[CommandLine("-2013", Value = "VisualStudio2013")]
 		[CommandLine("-2015", Value = "VisualStudio2015")]
 		[CommandLine("-2017", Value = "VisualStudio2017")]
 		public WindowsCompiler Compiler = WindowsCompiler.Default;
@@ -90,8 +90,6 @@ namespace UnrealBuildTool
 		{
 			switch (Compiler)
 			{
-				case WindowsCompiler.VisualStudio2013:
-					return "2013";
 				case WindowsCompiler.VisualStudio2015:
 					return "2015";
 				case WindowsCompiler.VisualStudio2017:
@@ -126,7 +124,9 @@ namespace UnrealBuildTool
 		/// Accessors for fields on the inner TargetRules instance
 		/// </summary>
 		#region Read-only accessor properties 
+		#if !__MonoCS__
 		#pragma warning disable CS1591
+		#endif
 
 		public WindowsCompiler Compiler
 		{
@@ -163,7 +163,9 @@ namespace UnrealBuildTool
 			return Inner.GetVisualStudioCompilerVersionName();
 		}
 
+		#if !__MonoCS__
 		#pragma warning restore CS1591
+		#endif
 		#endregion
 	}
 
@@ -301,10 +303,6 @@ namespace UnrealBuildTool
 				{
 					return WindowsCompiler.VisualStudio2015;
 				}
-				else if (ProjectFormat == VCProjectFileFormat.VisualStudio2013)
-				{
-					return WindowsCompiler.VisualStudio2013;
-				}
 			}
 
 			// Second, default based on what's installed, test for 2015 first
@@ -312,10 +310,6 @@ namespace UnrealBuildTool
 			if (TryGetVCInstallDir(WindowsCompiler.VisualStudio2015, out VCInstallDir))
 			{
 				return WindowsCompiler.VisualStudio2015;
-			}
-			if (TryGetVCInstallDir(WindowsCompiler.VisualStudio2013, out VCInstallDir))
-			{
-				return WindowsCompiler.VisualStudio2013;
 			}
 			if (TryGetVCInstallDir(WindowsCompiler.VisualStudio2017, out VCInstallDir))
 			{
@@ -330,7 +324,7 @@ namespace UnrealBuildTool
 			}
 			else if (TryGetVSInstallDir(WindowsCompiler.VisualStudio2017, out VSInstallDir))
 			{
-				Log.TraceWarning("Visual Studio 2017 is installed, but is missing the C++ toolchain. Please verify that \"Common Tools for Visual C++ 2015\" are selected from the Visual Studio 2015 installation options.");
+				Log.TraceWarning("Visual Studio 2017 is installed, but is missing the C++ toolchain. Please verify that the \"VC++ 2017 toolset\" component is selected in the Visual Studio 2017 installation options.");
 			}
 			else
 			{
@@ -350,8 +344,6 @@ namespace UnrealBuildTool
 		{
 			switch (Compiler)
 			{
-				case WindowsCompiler.VisualStudio2013:
-					return "Visual Studio 2013";
 				case WindowsCompiler.VisualStudio2015:
 					return "Visual Studio 2015";
 				case WindowsCompiler.VisualStudio2017:
@@ -378,8 +370,6 @@ namespace UnrealBuildTool
 
 			switch (Compiler)
 			{
-				case WindowsCompiler.VisualStudio2013:
-					return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VS7", "12.0", out InstallDir);
 				case WindowsCompiler.VisualStudio2015:
 					return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VS7", "14.0", out InstallDir);
 				case WindowsCompiler.VisualStudio2017:
@@ -403,11 +393,7 @@ namespace UnrealBuildTool
 				return false;
 			}
 
-			if (Compiler == WindowsCompiler.VisualStudio2013)
-			{
-				return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "12.0", out InstallDir);
-			}
-			else if (Compiler == WindowsCompiler.VisualStudio2015)
+			if (Compiler == WindowsCompiler.VisualStudio2015)
 			{
 				return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "14.0", out InstallDir);
 			}
@@ -817,22 +803,22 @@ namespace UnrealBuildTool
 			{
 				if (!string.IsNullOrEmpty(Target.WindowsPlatform.CompanyName))
 				{
-					CompileEnvironment.Definitions.Add(String.Format("PROJECT_COMPANY_NAME={0}", Target.WindowsPlatform.CompanyName));
+					CompileEnvironment.Definitions.Add(String.Format("PROJECT_COMPANY_NAME={0}", SanitizeMacroValue(Target.WindowsPlatform.CompanyName)));
 				}
 
 				if (!string.IsNullOrEmpty(Target.WindowsPlatform.CopyrightNotice))
 				{
-					CompileEnvironment.Definitions.Add(String.Format("PROJECT_COPYRIGHT_STRING={0}", Target.WindowsPlatform.CopyrightNotice));
+					CompileEnvironment.Definitions.Add(String.Format("PROJECT_COPYRIGHT_STRING={0}", SanitizeMacroValue(Target.WindowsPlatform.CopyrightNotice)));
 				}
 
 				if (!string.IsNullOrEmpty(Target.WindowsPlatform.ProductName))
 				{
-					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_NAME={0}", Target.WindowsPlatform.ProductName));
+					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_NAME={0}", SanitizeMacroValue(Target.WindowsPlatform.ProductName)));
 				}
 
 				if (Target.ProjectFile != null)
 				{
-					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_IDENTIFIER={0}", Target.ProjectFile.GetFileNameWithoutExtension()));
+					CompileEnvironment.Definitions.Add(String.Format("PROJECT_PRODUCT_IDENTIFIER={0}", SanitizeMacroValue(Target.ProjectFile.GetFileNameWithoutExtension())));
 				}
 			}
 
@@ -852,6 +838,25 @@ namespace UnrealBuildTool
 			{
 				LinkEnvironment.DefaultStackSizeCommit = IniDefaultStackSizeCommit;
 			}
+		}
+
+		/// <summary>
+		/// Macros passed via the command line have their quotes stripped, and are tokenized before being re-stringized by the compiler. This conversion
+		/// back and forth is normally ok, but certain characters such as single quotes must always be paired. Remove any such characters here.
+		/// </summary>
+		/// <param name="Value">The macro value</param>
+		/// <returns>The sanitized value</returns>
+		static string SanitizeMacroValue(string Value)
+		{
+			StringBuilder Result = new StringBuilder(Value.Length);
+			for(int Idx = 0; Idx < Value.Length; Idx++)
+			{
+				if(Value[Idx] != '\'' && Value[Idx] != '\"')
+				{
+					Result.Append(Value[Idx]);
+				}
+			}
+			return Result.ToString();
 		}
 
 		/// <summary>

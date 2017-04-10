@@ -319,11 +319,11 @@ public:
 	*/
 	virtual void OnClusterMarkedAsPendingKill() {}
 
-	/** 
-	 * Adds this objects to a GC cluster that already exists 
-	 * @param ClusterRootOrObjectFromCluster Object that belongs to the cluster we want to add this object to.
-	 * @param Add this object to the target cluster as a mutable object without adding this object's references.
-	 */
+	/**
+	* Adds this objects to a GC cluster that already exists
+	* @param ClusterRootOrObjectFromCluster Object that belongs to the cluster we want to add this object to.
+	* @param Add this object to the target cluster as a mutable object without adding this object's references.
+	*/
 	virtual void AddToCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster, bool bAddAsMutableObject = false);
 
 protected:
@@ -748,4 +748,3 @@ struct FScopeCycleCounterUObject
 		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
 #endif
-

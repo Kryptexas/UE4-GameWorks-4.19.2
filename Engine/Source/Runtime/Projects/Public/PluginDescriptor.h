@@ -69,6 +69,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** Support URL/email for this plugin. */
 	FString SupportURL;
 
+	/** Version of the engine that this plugin is compatible with */
+	FString EngineVersion;
+
 	/** For packaged plugins, contains the compatible changelist of the engine that built this plugin */
 	int32 CompatibleChangelist;
 

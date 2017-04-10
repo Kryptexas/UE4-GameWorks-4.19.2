@@ -19,14 +19,6 @@ UMeshComponent::UMeshComponent(const FObjectInitializer& ObjectInitializer)
 	bCachedMaterialParameterIndicesAreDirty = true;
 }
 
-void UMeshComponent::BeginDestroy()
-{
-	// Notify the streaming system.
-	IStreamingManager::Get().NotifyPrimitiveDetached( this );
-
-	Super::BeginDestroy();
-}
-
 UMaterialInterface* UMeshComponent::GetMaterial(int32 ElementIndex) const
 {
 	if (OverrideMaterials.IsValidIndex(ElementIndex))

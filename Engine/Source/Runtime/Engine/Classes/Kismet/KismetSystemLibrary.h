@@ -13,6 +13,7 @@
 #include "UObject/TextProperty.h"
 #include "Engine/LatentActionManager.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Engine/CollisionProfile.h"
 #include "KismetSystemLibrary.generated.h"
 
 class AActor;
@@ -20,7 +21,6 @@ class ACameraActor;
 class APlayerController;
 class UPrimitiveComponent;
 class USceneComponent;
-struct FCollisionProfileName;
 
 template<class TClass> class TAssetSubclassOf;
 

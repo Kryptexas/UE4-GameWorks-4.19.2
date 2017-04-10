@@ -4,7 +4,6 @@
 	"FriendlyName" : "Online Subsystem Oculus",
 	"Version" : 1,
 	"VersionName" : "1.12",
-	"EngineVersion" : "4.2.0",
 	"Description" : "Access to Oculus Platform",
 	"Category" : "Online Platform",
 	"CreatedBy" : "Oculus",

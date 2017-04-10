@@ -266,6 +266,13 @@ public:
 	 * @return If successful will return a non-nullptr pointer. Close the file by delete'ing the handle.
 	 */
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename, bool bAllowWrite = false) = 0;
+
+	virtual IFileHandle* OpenReadNoBuffering(const TCHAR* Filename, bool bAllowWrite = false)
+	{
+		return OpenRead(Filename, bAllowWrite);
+	}
+
+
 	/** Attempt to open a file for writing. If successful will return a non-nullptr pointer. Close the file by delete'ing the handle. **/
 	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) = 0;
 

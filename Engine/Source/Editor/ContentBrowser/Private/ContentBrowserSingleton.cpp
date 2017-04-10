@@ -583,4 +583,41 @@ FText FContentBrowserSingleton::GetContentBrowserTabLabel(int32 BrowserIdx)
 	}
 }
 
+void FContentBrowserSingleton::SetSelectedPaths(const TArray<FString>& FolderPaths, bool bNeedsRefresh/* = false*/)
+{
+	// Make sure we have a valid browser
+	if (!PrimaryContentBrowser.IsValid())
+	{
+		ChooseNewPrimaryBrowser();
+
+		if (!PrimaryContentBrowser.IsValid())
+		{
+			SummonNewBrowser();
+		}
+	}
+
+	if (PrimaryContentBrowser.IsValid())
+	{
+		PrimaryContentBrowser.Pin()->SetSelectedPaths(FolderPaths, bNeedsRefresh);
+	}
+}
+
+void FContentBrowserSingleton::ForceShowPluginContent(bool bEnginePlugin)
+{
+	if (!PrimaryContentBrowser.IsValid())
+	{
+		ChooseNewPrimaryBrowser();
+
+		if (!PrimaryContentBrowser.IsValid())
+		{
+			SummonNewBrowser();
+		}
+	}
+
+	if (PrimaryContentBrowser.IsValid())
+	{
+		PrimaryContentBrowser.Pin()->ForceShowPluginContent(bEnginePlugin);
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

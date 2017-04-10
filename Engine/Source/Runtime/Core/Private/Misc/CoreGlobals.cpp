@@ -225,8 +225,6 @@ double					GStartTime						= FPlatformTime::InitTiming();
 FString					GSystemStartTime;
 /** Whether we are still in the initial loading proces.														*/
 bool					GIsInitialLoad					= true;
-/* Whether we are using the new async IO */
-bool					GNewAsyncIO = false;
 /* Whether we are using the event driven loader */
 bool					GEventDrivenLoaderEnabled = false;
 //@todoio put this in some kind of API

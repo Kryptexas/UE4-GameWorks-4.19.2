@@ -191,7 +191,7 @@ struct FTextureStreamingStats
 	double Timestamp;
 
 	
-	int32 CallbacksCycles;
+	volatile int32 CallbacksCycles;
 	int32 SetupAsyncTaskCycles;
 	int32 UpdateStreamingDataCycles;
 	int32 StreamTexturesCycles;

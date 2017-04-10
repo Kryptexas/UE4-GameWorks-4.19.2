@@ -360,6 +360,10 @@ public partial class Project : CommandUtils
                         CommandletParams += " -errorOnEngineContentUse";
                     }
                 }
+				if(!String.IsNullOrEmpty(Params.CookOutputDir))
+				{
+					CommandletParams += " -outputdir=" + CommandUtils.MakePathSafeToUseWithCommandLine(Params.CookOutputDir);
+				}
                 // don't include the based on release version unless we are cooking dlc or creating a new release version
                 // in this case the based on release version is used in packaging
                 if (Params.HasBasedOnReleaseVersion && (Params.HasDLCName || Params.HasCreateReleaseVersion))

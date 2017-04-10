@@ -22,7 +22,6 @@
 #include "PrimitiveViewRelevance.h"
 #include "PrimitiveSceneProxy.h"
 #include "Engine/MeshMerging.h"
-#include "Engine/StaticMesh.h"
 #include "UObject/UObjectHash.h"
 #include "MeshBatch.h"
 #include "SceneManagement.h"
@@ -38,6 +37,11 @@
 
 class FDistanceFieldVolumeData;
 class UBodySetup;
+
+/** The maximum number of static mesh LODs allowed. */
+#define MAX_STATIC_MESH_LODS 8
+
+struct FStaticMaterial;
 
 /**
  * The LOD settings to use for a group of static meshes.
@@ -181,7 +185,7 @@ struct FStaticMeshSection
 };
 
 
-
+struct FStaticMeshLODResources;
 
 /** Creates distribution for uniformly sampling a mesh section. */
 struct ENGINE_API FStaticMeshSectionAreaWeightedTriangleSampler : FWeightedRandomSampler

@@ -192,9 +192,6 @@ public:
 
 	class IAsyncReadFileHandle* IORequestHandle;
 
-	/** Potentially outstanding audio chunk I/O requests */
-	TArray<uint64>	IORequestIndices;
-
 	/** Indices of chunks that are currently loaded */
 	TArray<uint32>	LoadedChunkIndices;
 

@@ -147,7 +147,7 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 	}
 
 	// need to know how much data this call to SerializeItem consumes, so mark where we are
-	int32 DataOffset = Ar.Tell();
+	int64 DataOffset = Ar.Tell();
 
 	// If we're using a custom property list, first serialize any explicit indices
 	int32 i = 0;

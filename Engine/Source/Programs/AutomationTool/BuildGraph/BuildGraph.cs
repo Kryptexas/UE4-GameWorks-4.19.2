@@ -51,6 +51,7 @@ namespace AutomationTool
 	[Help("Set:<Property>=<Value>", "Sets a named property to the given value")]
 	[Help("Clean", "Cleans all cached state of completed build nodes before running")]
 	[Help("CleanNode=<Name>[+<Name>...]", "Cleans just the given nodes before running")]
+	[Help("Resume", "Resumes a local build from the last node that completed successfully")]
 	[Help("ListOnly", "Shows the contents of the preprocessed graph, but does not execute it")]
 	[Help("ShowDeps", "Show node dependencies in the graph output")]
 	[Help("ShowNotifications", "Show notifications that will be sent for each node in the output")]
@@ -86,7 +87,7 @@ namespace AutomationTool
 			bool bSkipTriggers = ParseParam("SkipTriggers");
 			string TokenSignature = ParseParamValue("TokenSignature", null);
 			bool bSkipTargetsWithoutTokens = ParseParam("SkipTargetsWithoutTokens");
-			bool bClearHistory = ParseParam("Clean") || ParseParam("ClearHistory");
+			bool bResume = SingleNodeName != null || ParseParam("Resume");
 			bool bListOnly = ParseParam("ListOnly");
 			bool bWriteToSharedStorage = ParseParam("WriteToSharedStorage") || CommandUtils.IsBuildMachine;
 			bool bPublicTasksOnly = ParseParam("PublicTasksOnly");
@@ -196,7 +197,7 @@ namespace AutomationTool
 			// Create the temp storage handler
 			DirectoryReference RootDir = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot);
 			TempStorage Storage = new TempStorage(RootDir, DirectoryReference.Combine(RootDir, "Engine", "Saved", "BuildGraph"), (SharedStorageDir == null)? null : new DirectoryReference(SharedStorageDir), bWriteToSharedStorage);
-			if(bClearHistory)
+			if(!bResume)
 			{
 				Storage.CleanLocal();
 			}
@@ -637,12 +638,20 @@ namespace AutomationTool
 				InputStorageBlocks.UnionWith(FileList.Blocks);
 			}
 
-			// Read all the input storage blocks, keeping track of which block each file came from
-			Dictionary<FileReference, TempStorageBlock> FileToStorageBlock = new Dictionary<FileReference, TempStorageBlock>();
+			// Read the manifests for all the input storage blocks
+			Dictionary<TempStorageBlock, TempStorageManifest> InputManifests = new Dictionary<TempStorageBlock, TempStorageManifest>();
 			foreach(TempStorageBlock InputStorageBlock in InputStorageBlocks)
 			{
 				TempStorageManifest Manifest = Storage.Retreive(InputStorageBlock.NodeName, InputStorageBlock.OutputName);
-				foreach(FileReference File in Manifest.Files.Select(x => x.ToFileReference(RootDir)))
+				InputManifests[InputStorageBlock] = Manifest;
+			}
+
+			// Read all the input storage blocks, keeping track of which block each file came from
+			Dictionary<FileReference, TempStorageBlock> FileToStorageBlock = new Dictionary<FileReference, TempStorageBlock>();
+			foreach(KeyValuePair<TempStorageBlock, TempStorageManifest> Pair in InputManifests)
+			{
+				TempStorageBlock InputStorageBlock = Pair.Key;
+				foreach(FileReference File in Pair.Value.Files.Select(x => x.ToFileReference(RootDir)))
 				{
 					TempStorageBlock CurrentStorageBlock;
 					if(FileToStorageBlock.TryGetValue(File, out CurrentStorageBlock))
@@ -673,6 +682,17 @@ namespace AutomationTool
 			{
 				CommandUtils.Log("========== Finished: {0} ==========", Node.Name);
 				Console.WriteLine();
+			}
+
+			// Check that none of the inputs have been clobbered
+			List<TempStorageFile> ModifiedFiles = InputManifests.Values.SelectMany(x => x.Files).Where(x => !x.CompareSilent(CommandUtils.RootDirectory)).ToList();
+			if(ModifiedFiles.Count > 0)
+			{
+				foreach(TempStorageFile ModifiedFile in ModifiedFiles)
+				{
+					CommandUtils.LogError("Build product from a previous step has been modified: {0}", ModifiedFile.RelativePath);
+				}
+				return false;
 			}
 
 			// Determine all the output files which are required to be copied to temp storage (because they're referenced by nodes in another agent)

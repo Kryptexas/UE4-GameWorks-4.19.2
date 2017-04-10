@@ -96,18 +96,6 @@ bool FWorldTileInfo::Read(const FString& InPackageFileName, FWorldTileInfo& OutI
 	// Does the package contains a level info?
 	if (FileSummary.WorldTileInfoDataOffset != 0)
 	{
-		if (!!(FileSummary.PackageFlags & PKG_StoreCompressed))
-		{
-			checkf(!GNewAsyncIO, TEXT("Package level compression cannot be used with the async io scheme."));
-			check(FileSummary.CompressedChunks.Num() > 0);
-			if (!FileReader->SetCompressionMap(&FileSummary.CompressedChunks, (ECompressionFlags)FileSummary.CompressionFlags))
-			{
-				FileReader = MakeUnique<FArchiveAsync>(*InPackageFileName); // re-assign scope pointer
-				check(!FileReader->IsError());
-				verify(FileReader->SetCompressionMap(&FileSummary.CompressedChunks, (ECompressionFlags)FileSummary.CompressionFlags));
-			}
-		}
-				
 		// Seek the the part of the file where the structure lives
 		FileReader->Seek(FileSummary.WorldTileInfoDataOffset);
 

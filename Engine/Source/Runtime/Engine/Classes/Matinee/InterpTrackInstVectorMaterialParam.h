@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Matinee/InterpTrackInst.h"
+#include "Engine/EngineTypes.h"
 #include "InterpTrackInstVectorMaterialParam.generated.h"
 
 class UInterpTrack;

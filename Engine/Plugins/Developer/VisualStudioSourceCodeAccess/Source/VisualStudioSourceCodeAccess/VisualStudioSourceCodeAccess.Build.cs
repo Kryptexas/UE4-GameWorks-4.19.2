@@ -34,9 +34,6 @@ namespace UnrealBuildTool.Rules
 					case WindowsCompiler.VisualStudio2015:
 						DTEKey = "VisualStudio.DTE.14.0";
 						break;
-					case WindowsCompiler.VisualStudio2013:
-						DTEKey = "VisualStudio.DTE.12.0";
-						break;
 				}
 				bHasVisualStudioDTE = RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, RegistryView.Registry32).OpenSubKey(DTEKey) != null;
 			}

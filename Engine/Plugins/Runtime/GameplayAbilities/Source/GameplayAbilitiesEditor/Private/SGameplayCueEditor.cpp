@@ -52,8 +52,8 @@
 #include "AssetRegistryModule.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 
-#define LOCTEXT_NAMESPACE "SGameplayCueEditor"
 #include "SGameplayCueEditor_Picker.h"
+#define LOCTEXT_NAMESPACE "SGameplayCueEditor"
 
 static const FName CueTagColumnName("GameplayCueTags");
 static const FName CueHandlerColumnName("GameplayCueHandlers");

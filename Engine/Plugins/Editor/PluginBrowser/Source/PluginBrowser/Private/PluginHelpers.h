@@ -15,4 +15,12 @@ public:
 	 * @return Whether the copy completed successfully
 	 */
 	static bool CopyPluginTemplateFolder(const TCHAR* DestinationDirectory, const TCHAR* Source, const FString& PluginName);
+
+	/**
+	 * Fixes up any plugin uassets that were created via a template folder to ensure that their package exists in the
+	 * plugin folder itself.
+	 *
+	 * @param	PluginName		The name of the plugin whose assets need to be fixed
+	 */
+	static bool FixupPluginTemplateAssets(const FString& PluginName);
 };

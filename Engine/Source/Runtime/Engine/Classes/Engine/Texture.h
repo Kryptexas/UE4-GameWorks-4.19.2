@@ -14,6 +14,7 @@
 #include "Serialization/BulkData.h"
 #include "Engine/TextureDefines.h"
 #include "MaterialShared.h"
+#include "TextureResource.h"
 #include "Texture.generated.h"
 
 class ITargetPlatform;

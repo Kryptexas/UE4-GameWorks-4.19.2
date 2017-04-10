@@ -1727,9 +1727,6 @@ public:
 	bool HandleFreezeStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );		// Smedis
 	bool HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );			// Smedis
 
-	bool HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar );						// Smedis
-	bool HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar);
-
 	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 	bool HandleToggleAsyncComputeCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleRecompileShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );

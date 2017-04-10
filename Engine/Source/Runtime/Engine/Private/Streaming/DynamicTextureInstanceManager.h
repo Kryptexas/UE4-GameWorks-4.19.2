@@ -36,7 +36,7 @@ public:
 	-----------------------------------*/
 
 	/** Return whether this component can be managed by this manager. */
-	FORCEINLINE bool IsReferenced(const UPrimitiveComponent* Component) const final override { return StateSync.GetState()->HasComponentReferences(Component) || PendingComponents.Contains(Component); }
+	bool IsReferenced(const UPrimitiveComponent* Component) const final;
 
 	/** Return whether this component is be managed by this manager. */
 	bool CanManage(const UPrimitiveComponent* Component) const final override;
@@ -91,6 +91,6 @@ private:
 	/** The free bound index to be used as defrag destination. */
 	int32 PendingDefragDstBoundIndex;
 
-	/** The list of components to be processed. */
-	TSet<const UPrimitiveComponent*> PendingComponents;
+	/** The list of components to be processed (could have duplicates). */
+	TArray<const UPrimitiveComponent*> PendingComponents;
 };

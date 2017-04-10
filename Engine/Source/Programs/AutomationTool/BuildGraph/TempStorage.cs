@@ -142,20 +142,58 @@ namespace AutomationTool
 		/// <returns>True if the files are identical, false otherwise</returns>
 		public bool Compare(DirectoryReference RootDir)
 		{
+			string Message;
+			if(CompareInternal(RootDir, out Message))
+			{
+				if(Message != null)
+				{
+					CommandUtils.Log(Message);
+				}
+				return true;
+			}
+			else
+			{
+				if(Message != null)
+				{
+					CommandUtils.LogError(Message);
+				}
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Compare stored for this file with the one on disk, and output an error if they differ.
+		/// </summary>
+		/// <param name="RootDir">Root directory for this branch</param>
+		/// <returns>True if the files are identical, false otherwise</returns>
+		public bool CompareSilent(DirectoryReference RootDir)
+		{
+			string Message;
+			return CompareInternal(RootDir, out Message);
+		}
+
+		/// <summary>
+		/// Compare stored for this file with the one on disk, and output an error if they differ.
+		/// </summary>
+		/// <param name="RootDir">Root directory for this branch</param>
+		/// <param name="Message">Message describing the difference</param>
+		/// <returns>True if the files are identical, false otherwise</returns>
+		bool CompareInternal(DirectoryReference RootDir, out string Message)
+		{
 			FileReference LocalFile = ToFileReference(RootDir);
 
 			// Get the local file info, and check it exists
 			FileInfo Info = new FileInfo(LocalFile.FullName);
 			if(!Info.Exists)
 			{
-				CommandUtils.LogError("Missing file from manifest - {0}", RelativePath);
+				Message = String.Format("Missing file from manifest - {0}", RelativePath);
 				return false;
 			}
 
 			// Check the size matches
 			if(Info.Length != Length)
 			{
-				CommandUtils.LogError("File size differs from manifest - {0} is {1} bytes, expected {2} bytes", RelativePath, Info.Length, Length);
+				Message = String.Format("File size differs from manifest - {0} is {1} bytes, expected {2} bytes", RelativePath, Info.Length, Length);
 				return false;
 			}
 
@@ -166,13 +204,20 @@ namespace AutomationTool
 				DateTime ExpectedLocal = new DateTime(LastWriteTimeUtcTicks, DateTimeKind.Utc).ToLocalTime();
 				if(RequireMatchingTimestamps())
 				{
-					CommandUtils.LogError("File date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
+					Message = String.Format("File date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
 					return false;
 				}
-				CommandUtils.Log("File date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
+				else
+				{
+					Message = String.Format("Ignored file date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
+					return true;
+				}
 			}
-
-			return true;
+			else
+			{
+				Message = null;
+				return true;
+			}
 		}
 
 		/// <summary>
@@ -612,6 +657,9 @@ namespace AutomationTool
 
 				// Read the manifest and check the files
 				TempStorageManifest LocalManifest = TempStorageManifest.Load(LocalManifestFile);
+
+
+
 				if(LocalManifest.Files.Any(x => !x.Compare(RootDir)))
 				{
 					return false;

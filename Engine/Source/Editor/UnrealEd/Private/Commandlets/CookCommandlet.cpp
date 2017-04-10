@@ -357,7 +357,6 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 	}
 
 	ECookInitializationFlags CookFlags = ECookInitializationFlags::None;
-	CookFlags |= bCompressed ? ECookInitializationFlags::Compressed : ECookInitializationFlags::None;
 	CookFlags |= bIterativeCooking ? IterateFlags : ECookInitializationFlags::None;
 	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;
 	CookFlags |= bUnversioned ? ECookInitializationFlags::Unversioned : ECookInitializationFlags::None;
@@ -512,7 +511,6 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	bLeakTest = Switches.Contains(TEXT("LEAKTEST"));   // Test for UObject leaks
 	bUnversioned = Switches.Contains(TEXT("UNVERSIONED"));   // Save all cooked packages without versions. These are then assumed to be current version on load. This is dangerous but results in smaller patch sizes.
 	bGenerateStreamingInstallManifests = Switches.Contains(TEXT("MANIFESTS"));   // Generate manifests for building streaming install packages
-	bCompressed = Switches.Contains(TEXT("COMPRESSED"));
 	bIterativeCooking = Switches.Contains(TEXT("ITERATE"));
 	bSkipEditorContent = Switches.Contains(TEXT("SKIPEDITORCONTENT")); // This won't save out any packages in Engine/COntent/Editor*
 	bErrorOnEngineContentUse = Switches.Contains(TEXT("ERRORONENGINECONTENTUSE"));
@@ -617,7 +615,6 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	}
 	
 	ECookInitializationFlags CookFlags = ECookInitializationFlags::IncludeServerMaps;
-	CookFlags |= bCompressed ? ECookInitializationFlags::Compressed : ECookInitializationFlags::None;
 	CookFlags |= bIterativeCooking ? IterateFlags : ECookInitializationFlags::None;
 	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;	
 	CookFlags |= bUseSerializationForGeneratingPackageDependencies ? ECookInitializationFlags::UseSerializationForPackageDependencies : ECookInitializationFlags::None;
@@ -669,6 +666,9 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 
 	FString NativizedPluginPath;
 	FParse::Value(*Params, TEXT("NativizeAssets="), NativizedPluginPath);
+
+	FString OutputDirectoryOverride;
+	FParse::Value( *Params, TEXT("OutputDir="), OutputDirectoryOverride);
 
 	TArray<FString> CmdLineMapEntries;
 	TArray<FString> CmdLineDirEntries;
@@ -725,7 +725,7 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 
 	}
 
-	CookOnTheFlyServer->Initialize(ECookMode::CookByTheBook, CookFlags);
+	CookOnTheFlyServer->Initialize(ECookMode::CookByTheBook, CookFlags, OutputDirectoryOverride);
 
 	// for backwards compat use the FullGCAssetClasses that we got from the cook commandlet ini section
 	if (FullGCAssetClasses.Num() > 0)

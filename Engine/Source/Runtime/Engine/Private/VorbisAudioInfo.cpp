@@ -536,8 +536,6 @@ void LoadVorbisLibraries()
 		// Load the Ogg dlls
 #  if _MSC_VER >= 1900
 		FString VSVersion = TEXT("VS2015/");
-#  elif _MSC_VER >= 1800
-		FString VSVersion = TEXT("VS2013/");
 #  else
 #    error "Unsupported Visual Studio version."
 #  endif

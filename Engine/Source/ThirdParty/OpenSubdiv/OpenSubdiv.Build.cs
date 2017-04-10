@@ -20,9 +20,6 @@ public class OpenSubdiv : ModuleRules
             {
                 switch (WindowsPlatform.Compiler)
                 {
-                    case WindowsCompiler.VisualStudio2013:
-						LibFolder = "/libVS2013";
-						break;
                     case WindowsCompiler.VisualStudio2017:
                     case WindowsCompiler.VisualStudio2015:
 						LibFolder = "/libVS2015";

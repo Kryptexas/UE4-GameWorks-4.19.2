@@ -291,7 +291,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Serialization/BufferWriter.h"
 #include "Serialization/ArchiveSaveCompressedProxy.h"
 #include "Serialization/ArchiveLoadCompressedProxy.h"
-#include "HAL/IOBase.h"
 #include "Misc/Variant.h"
 #include "Misc/WildcardString.h"
 #include "Containers/CircularBuffer.h"

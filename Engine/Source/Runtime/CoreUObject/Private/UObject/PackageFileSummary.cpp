@@ -247,7 +247,12 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		}
 
 		Ar << Sum.CompressionFlags;
-		Ar << Sum.CompressedChunks;
+
+		TArray<FCompressedChunk> CompressedChunks;
+		Ar << CompressedChunks;
+
+		checkf(!CompressedChunks.Num(), TEXT("Package level compression cannot be used with the async io scheme."));
+
 		Ar << Sum.PackageSource;
 
 		Ar << Sum.AdditionalPackagesToCook;

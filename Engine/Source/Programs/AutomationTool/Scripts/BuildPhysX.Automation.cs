@@ -112,9 +112,6 @@ class BuildPhysX : BuildCommand
 		string VisualStudioDirectoryName;
 		switch (TargetWindowsCompiler)
 		{
-			case WindowsCompiler.VisualStudio2013:
-				VisualStudioDirectoryName = "VS2013";
-				break;
 			case WindowsCompiler.VisualStudio2015:
 				VisualStudioDirectoryName = "VS2015";
 				break;
@@ -178,9 +175,6 @@ class BuildPhysX : BuildCommand
 		string VisualStudioName;
 		switch(TargetWindowsCompiler)
 		{
-			case WindowsCompiler.VisualStudio2013:
-				VisualStudioName = "Visual Studio 12 2013";
-				break;
 			case WindowsCompiler.VisualStudio2015:
 				VisualStudioName = "Visual Studio 14 2015";
 				break;
@@ -499,7 +493,7 @@ class BuildPhysX : BuildCommand
 	private List<WindowsCompiler> GetTargetWindowsCompilers()
 	{
 		List<WindowsCompiler> TargetWindowsCompilers = new List<WindowsCompiler>();
-		string TargetWindowsCompilersFilter = ParseParamValue("TargetWindowsCompilers", "VisualStudio2015+VisualStudio2013");
+		string TargetWindowsCompilersFilter = ParseParamValue("TargetWindowsCompilers", "VisualStudio2015");
 		if (TargetWindowsCompilersFilter != null)
 		{
 			foreach (string TargetWindowsCompilerName in TargetWindowsCompilersFilter.Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries))
@@ -739,9 +733,6 @@ class BuildPhysX : BuildCommand
 		string VisualStudioToolchainVersion = "";
 		switch (Version)
 		{
-			case WindowsCompiler.VisualStudio2013:
-				VisualStudioToolchainVersion = "12.0";
-				break;
 			case WindowsCompiler.VisualStudio2015:
 				VisualStudioToolchainVersion = "14.0";
 				break;
@@ -1055,9 +1046,6 @@ class BuildPhysX : BuildCommand
 		{
 			switch (TargetWindowsCompiler)
 			{
-				case WindowsCompiler.VisualStudio2013:
-					VisualStudioName = "VS2013";
-					break;
 				case WindowsCompiler.VisualStudio2015:
 					VisualStudioName = "VS2015";
 					break;
@@ -1093,9 +1081,6 @@ class BuildPhysX : BuildCommand
 		{
 			switch (TargetWindowsCompiler)
 			{
-				case WindowsCompiler.VisualStudio2013:
-					VisualStudioName = "VS2013";
-					break;
 				case WindowsCompiler.VisualStudio2015:
 					VisualStudioName = "VS2015";
 					break;

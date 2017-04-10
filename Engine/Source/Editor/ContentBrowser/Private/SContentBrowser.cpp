@@ -1289,6 +1289,29 @@ void SContentBrowser::PathPickerPathSelected(const FString& FolderPath)
 	PathSelected(FolderPath);
 }
 
+void SContentBrowser::SetSelectedPaths(const TArray<FString>& FolderPaths, bool bNeedsRefresh/* = false */)
+{
+	if (FolderPaths.Num() > 0)
+	{
+		if (bNeedsRefresh)
+		{
+			PathViewPtr->Populate();
+		}
+
+		PathViewPtr->SetSelectedPaths(FolderPaths);
+
+		PathSelected(FolderPaths[0]);
+	}
+}
+
+void SContentBrowser::ForceShowPluginContent(bool bEnginePlugin)
+{
+	if (AssetViewPtr.IsValid())
+	{
+		AssetViewPtr->ForceShowPluginFolder(bEnginePlugin);
+	}
+}
+
 void SContentBrowser::PathPickerCollectionSelected(const FCollectionNameType& SelectedCollection)
 {
 	PathPickerButton->SetIsOpen(false);

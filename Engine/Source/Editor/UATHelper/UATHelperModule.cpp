@@ -40,6 +40,7 @@ struct EventData
 	FString EventName;
 	bool bProjectHasCode;
 	double StartTime;
+	IUATHelperModule::UatTaskResultCallack ResultCallback;
 };
 
 /* FMainFrameActionCallbacks callbacks
@@ -192,7 +193,7 @@ public:
 	{
 	}
 
-	virtual void CreateUatTask( const FString& CommandLine, const FText& PlatformDisplayName, const FText& TaskName, const FText &TaskShortName, const FSlateBrush* TaskIcon )
+	virtual void CreateUatTask( const FString& CommandLine, const FText& PlatformDisplayName, const FText& TaskName, const FText &TaskShortName, const FSlateBrush* TaskIcon, UatTaskResultCallack ResultCallback )
 	{
 		// make sure that the UAT batch file is in place
 	#if PLATFORM_WINDOWS
@@ -270,6 +271,7 @@ public:
 		Data.StartTime = FPlatformTime::Seconds();
 		Data.EventName = EventName;
 		Data.bProjectHasCode = bHasCode;
+		Data.ResultCallback = ResultCallback;
 		UatProcess->OnCanceled().BindStatic(&FUATHelperModule::HandleUatProcessCanceled, NotificationItemPtr, PlatformDisplayName, TaskShortName, Data);
 		UatProcess->OnCompleted().BindStatic(&FUATHelperModule::HandleUatProcessCompleted, NotificationItemPtr, PlatformDisplayName, TaskShortName, Data);
 		UatProcess->OnOutput().BindStatic(&FUATHelperModule::HandleUatProcessOutput, NotificationItemPtr, PlatformDisplayName, TaskShortName);
@@ -292,6 +294,10 @@ public:
 			TArray<FAnalyticsEventAttribute> ParamArray;
 			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), 0.0));
 			FEditorAnalytics::ReportEvent(EventName + TEXT(".Failed"), PlatformDisplayName.ToString(), bHasCode, EAnalyticsErrorCodes::UATLaunchFailure, ParamArray);
+			if (ResultCallback)
+			{
+				ResultCallback(TEXT("FailedToStart"), 0.0f);
+			}
 		}
 	}
 
@@ -331,8 +337,13 @@ public:
 			);
 
 		TArray<FAnalyticsEventAttribute> ParamArray;
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+		const double TimeSec = FPlatformTime::Seconds() - Event.StartTime;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TimeSec));
 		FEditorAnalytics::ReportEvent(Event.EventName + TEXT(".Canceled"), PlatformDisplayName.ToString(), Event.bProjectHasCode, ParamArray);
+		if (Event.ResultCallback)
+		{
+			Event.ResultCallback(TEXT("Canceled"), TimeSec);
+		}
 		//	FMessageLog("PackagingResults").Warning(FText::Format(LOCTEXT("UatProcessCanceledMessageLog", "{TaskName} for {Platform} canceled by user"), Arguments));
 	}
 
@@ -341,6 +352,7 @@ public:
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Platform"), PlatformDisplayName);
 		Arguments.Add(TEXT("TaskName"), TaskName);
+		const double TimeSec = FPlatformTime::Seconds() - Event.StartTime;
 
 		if ( ReturnCode == 0 )
 		{
@@ -351,8 +363,12 @@ public:
 				);
 
 			TArray<FAnalyticsEventAttribute> ParamArray;
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TimeSec));
 			FEditorAnalytics::ReportEvent(Event.EventName + TEXT(".Completed"), PlatformDisplayName.ToString(), Event.bProjectHasCode, ParamArray);
+			if (Event.ResultCallback)
+			{
+				Event.ResultCallback(TEXT("Completed"), TimeSec);
+			}
 
 			//		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessSuccessMessageLog", "{TaskName} for {Platform} completed successfully"), Arguments));
 		}
@@ -365,8 +381,12 @@ public:
 				);
 
 			TArray<FAnalyticsEventAttribute> ParamArray;
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TimeSec));
 			FEditorAnalytics::ReportEvent(Event.EventName + TEXT(".Failed"), PlatformDisplayName.ToString(), Event.bProjectHasCode, ReturnCode, ParamArray);
+			if (Event.ResultCallback)
+			{
+				Event.ResultCallback(TEXT("Failed"), TimeSec);
+			}
 
 			// Send the error to the Message Log.
 			if ( TaskName.EqualTo(LOCTEXT("PackagingTaskName", "Packaging")) )

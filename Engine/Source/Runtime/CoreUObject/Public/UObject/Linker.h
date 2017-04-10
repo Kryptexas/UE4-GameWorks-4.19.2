@@ -503,7 +503,6 @@ public:
 		return false;
 	}
 
-	FORCEINLINE bool IsCompressed() const { return !!(Summary.PackageFlags & PKG_StoreCompressed); }
 };
 
 

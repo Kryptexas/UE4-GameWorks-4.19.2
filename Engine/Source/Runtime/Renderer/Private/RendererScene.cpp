@@ -49,6 +49,7 @@
 #include "SpeedTreeWind.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PlanarReflectionSceneProxy.h"
+#include "Engine/StaticMesh.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached

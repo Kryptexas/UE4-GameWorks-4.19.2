@@ -26,7 +26,7 @@ public:
 	void NormalizeLightmapTexelFactor();
 
 	FORCEINLINE int32 CompileElements() { return StateSync.SyncAndGetState()->CompileElements(); }
-	FORCEINLINE int32 CheckRegistrationAndUnpackBounds() { return StateSync.SyncAndGetState()->CheckRegistrationAndUnpackBounds(); }
+	FORCEINLINE int32 CheckRegistrationAndUnpackBounds(TArray<const UPrimitiveComponent*>& RemovedComponents) { return StateSync.SyncAndGetState()->CheckRegistrationAndUnpackBounds(RemovedComponents); }
 	FORCEINLINE FTextureInstanceState::FTextureIterator GetTextureIterator( ) {  return StateSync.SyncAndGetState()->GetTextureIterator(); }
 
 	/*-----------------------------------
@@ -35,6 +35,9 @@ public:
 
 	/** Return whether this component can be managed by this manager. */
 	FORCEINLINE bool IsReferenced(const UPrimitiveComponent* Component) const final override { return StateSync.GetState()->HasComponentReferences(Component); }
+
+	/** Return whether this component can be managed by this manager. */
+	FORCEINLINE void GetReferencedComponents(TArray<const UPrimitiveComponent*>& Components) const { StateSync.GetState()->GetReferencedComponents(Components); }
 
 	/** Return whether this component is be managed by this manager. */
 	bool CanManage(const UPrimitiveComponent* Component) const final override;

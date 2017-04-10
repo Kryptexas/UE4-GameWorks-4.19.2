@@ -429,7 +429,33 @@ bool FPluginManager::ConfigureEnabledPlugins()
 					AllEnabledPlugins.Remove(Plugin->Name);
 				}
 
-				if (Plugin->bEnabled && Plugin->Descriptor.CompatibleChangelist != 0 && FEngineVersion::CompatibleWith().HasChangelist() && Plugin->Descriptor.CompatibleChangelist != FEngineVersion::CompatibleWith().GetChangelist())
+				if (Plugin->bEnabled && Plugin->Descriptor.EngineVersion.Len() > 0)
+				{
+					FEngineVersion Version;
+					if (!FEngineVersion::Parse(Plugin->Descriptor.EngineVersion, Version))
+					{
+						UE_LOG(LogPluginManager, Warning, TEXT("Engine version string in %s could not be parsed (\"%s\")"), *Plugin->FileName, *Plugin->Descriptor.EngineVersion);
+					}
+					else
+					{
+						EVersionComparison Comparison = FEngineVersion::GetNewest(FEngineVersion::CompatibleWith(), Version, nullptr);
+						if (Comparison != EVersionComparison::Neither)
+						{
+							FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
+							if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "The '{0}' plugin was designed for a different version of the engine. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
+							{
+								Plugin->bEnabled = false;
+								AllEnabledPlugins.Remove(Plugin->Name);
+								UE_LOG(LogPluginManager, Log, TEXT("Disabled plugin '%s' due to incompatibility"), *Plugin->FileName);
+							}
+							else
+							{
+								UE_LOG(LogPluginManager, Log, TEXT("Enabled plugin '%s' despite being built for CL %d"), *Plugin->FileName, Plugin->Descriptor.CompatibleChangelist);
+							}
+						}
+					}
+				}
+				else if (Plugin->bEnabled && Plugin->Descriptor.CompatibleChangelist != 0 && FEngineVersion::CompatibleWith().HasChangelist() && Plugin->Descriptor.CompatibleChangelist != FEngineVersion::CompatibleWith().GetChangelist())
 				{
 					FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
 					if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "'{0}' was designed for a different version of the game. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
@@ -437,13 +463,13 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						Plugin->bEnabled = false;
 						AllEnabledPlugins.Remove(Plugin->Name);
 						UE_LOG(LogPluginManager, Log, TEXT("Disabled plugin '%s' due to incompatibility"), *Plugin->FileName);
-			}
+					}
 					else
 					{
 						UE_LOG(LogPluginManager, Log, TEXT("Enabled plugin '%s' despite being built for CL %d"), *Plugin->FileName, Plugin->Descriptor.CompatibleChangelist);
 					}
 				}
-		}
+			}
 		}
 
 		if (bHasProjectFile)

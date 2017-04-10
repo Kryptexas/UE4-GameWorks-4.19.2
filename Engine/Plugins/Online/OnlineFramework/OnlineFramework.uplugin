@@ -4,7 +4,6 @@
 	"FriendlyName" : "Online Framework Plugin",
 	"Version" : 2,
 	"VersionName" : "1.0",
-	"EngineVersion" : "4.2.0",
 	"Description" : "Shared code for interacting with online gameplay services.",
 	"Category" : "Online Platform",
 	"CreatedBy" : "Epic Games, Inc.",

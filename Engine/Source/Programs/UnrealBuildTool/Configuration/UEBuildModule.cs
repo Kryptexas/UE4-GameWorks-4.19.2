@@ -272,11 +272,6 @@ namespace UnrealBuildTool
 				HashSet<DirectoryReference> ReferencedDirs = new HashSet<DirectoryReference>();
 				GetReferencedDirectories(ReferencedDirs);
 
-				if(Name == "WinDualShock")
-				{
-					Console.Write("");
-				}
-
 				// Remove all the whitelisted folders
 				ReferencedDirs.ExceptWith(WhitelistRestrictedFolders);
 				ReferencedDirs.ExceptWith(PublicDependencyModules.SelectMany(x => x.WhitelistRestrictedFolders));

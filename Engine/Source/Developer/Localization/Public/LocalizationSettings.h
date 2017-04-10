@@ -9,6 +9,7 @@
 #include "LocalizationSettings.generated.h"
 
 struct FPropertyChangedEvent;
+class ULocalizationTargetSet;
 
 // Class for loading/saving configuration settings and the details view objects needed for localization dashboard functionality.
 UCLASS(Config=Editor, defaultconfig)

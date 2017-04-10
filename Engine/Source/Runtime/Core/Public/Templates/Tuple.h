@@ -8,13 +8,6 @@
 #include "Templates/Decay.h"
 #include "Delegates/IntegerSequence.h"
 
-// VS2013 gives erroneous warnings about multiple default constructors from the various classes in this file,
-// even though the variadic ones can never be called with no arguments.
-#if defined(_MSC_VER) && _MSC_VER <= 1800
-	#pragma warning(push)
-	#pragma warning(disable:4520) // multiple default constructors specified
-#endif
-
 // VS2015 Update 2 (and seemingly earlier) erroneously complains about multiple versions
 // of special member functions, so we disable the use of defaulting in that case.
 // 
@@ -697,7 +690,3 @@ template <typename FuncType, typename... Types>
 {
 	return UE4Tuple_Private::TTransformTuple_Impl<TMakeIntegerSequence<uint32, sizeof...(Types)>>::Do(Tuple, MoveTemp(Func));
 }
-
-#if defined(_MSC_VER) && _MSC_VER <= 1800
-	#pragma warning(pop)
-#endif

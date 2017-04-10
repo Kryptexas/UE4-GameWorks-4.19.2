@@ -219,9 +219,6 @@ public:
 		case ETargetPlatformFeatures::DeferredRendering:
 			return true;
 
-		case ETargetPlatformFeatures::ShouldUseCompressedCookedPackages:
-			return false;
-
 		case ETargetPlatformFeatures::ShouldSplitPaksIntoSmallerSizes :
 			return false;
 		}

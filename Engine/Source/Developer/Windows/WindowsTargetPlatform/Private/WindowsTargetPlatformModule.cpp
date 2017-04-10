@@ -73,11 +73,7 @@ public:
 		FString Compiler;
 		if (GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("Compiler"), Compiler, GEngineIni))
 		{
-			if (Compiler == TEXT("VisualStudio2013"))
-			{
-				TargetSettings->Compiler = ECompilerVersion::VisualStudio2013;
-			}
-			else if (Compiler == TEXT("VisualStudio2015"))
+			if (Compiler == TEXT("VisualStudio2015"))
 			{
 				TargetSettings->Compiler = ECompilerVersion::VisualStudio2015;
 			}

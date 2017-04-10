@@ -24,6 +24,7 @@
 
 
 const FVector2D FTabManager::FallbackWindowSize( 1000, 600 );
+TMap<FTabId, FVector2D> FTabManager::DefaultTabWindowSizeMap;
 
 DEFINE_LOG_CATEGORY_STATIC(LogTabManager, Display, All);
 
@@ -1146,7 +1147,7 @@ TSharedRef<SDockTab> FTabManager::InvokeTab_Internal( const FTabId& TabId )
 	else
 	{
 		// No layout info about this tab found; start 
-		TSharedRef<FArea> NewAreaForTab = FTabManager::NewArea(FTabManager::FallbackWindowSize)
+		TSharedRef<FArea> NewAreaForTab = FTabManager::NewArea(FTabManager::GetDefaultTabWindowSize(TabId))
 		->Split
 		(
 			FTabManager::NewStack()
@@ -1521,6 +1522,19 @@ TSharedPtr<class SDockingTabStack> FTabManager::FindTabInLiveArea( const FTabMat
 	}
 
 	return TSharedPtr<SDockingTabStack>();
+}
+
+FVector2D FTabManager::GetDefaultTabWindowSize(const FTabId& TabId)
+{
+	FVector2D WindowSize = FTabManager::FallbackWindowSize;
+	FVector2D* DefaultTabSize = FTabManager::DefaultTabWindowSizeMap.Find(TabId);
+
+	if (DefaultTabSize != nullptr)
+	{
+		WindowSize = *DefaultTabSize;
+	}
+
+	return WindowSize;
 }
 
 template<typename MatchFunctorType>

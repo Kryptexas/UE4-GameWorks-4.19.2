@@ -69,6 +69,9 @@ namespace AutomationTool
 			// Create list of platform configurations installed in a Rocket build
 			List<InstalledPlatformInfo.InstalledPlatformConfiguration> InstalledConfigs = new List<InstalledPlatformInfo.InstalledPlatformConfiguration>();
 
+			// Add the editor platform, otherwise we'll never be able to run UAT
+			InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(UnrealTargetConfiguration.Development, HostPlatform.Current.HostEditorPlatform, TargetRules.TargetType.Editor, "", "", EProjectType.Unknown, false));
+
 			foreach (UnrealTargetPlatform CodeTargetPlatform in Enum.GetValues(typeof(UnrealTargetPlatform)))
 			{
 				if (PlatformExports.IsPlatformAvailable(CodeTargetPlatform))

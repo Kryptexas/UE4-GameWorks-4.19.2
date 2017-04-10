@@ -229,10 +229,6 @@ namespace UnrealBuildTool
 					}
 					break;
 
-				case WindowsCompiler.VisualStudio2013:
-					Version = "v8.1";
-					break;
-
 				default:
 					throw new BuildException("Unexpected compiler setting when trying to determine Windows SDK folder");
 			}

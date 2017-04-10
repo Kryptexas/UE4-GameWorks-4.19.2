@@ -283,9 +283,13 @@ public:
 	UFUNCTION()
 	void OnRep_IsActive();
 
+private:
+	AActor* GetActorOwnerNoninline() const;
+
+public:
 	/** Follow the Outer chain to get the  AActor  that 'Owns' this component */
 	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Actor Owning Parent"))
-	class AActor* GetOwner() const;
+	AActor* GetOwner() const;
 
 	virtual UWorld* GetWorld() const override final { return (WorldPrivate ? WorldPrivate : GetWorld_Uncached()); }
 
@@ -908,4 +912,23 @@ FORCEINLINE_DEBUGGABLE bool UActorComponent::IsNetMode(ENetMode Mode) const
 		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
 	}
 #endif // UE_EDITOR
+}
+
+FORCEINLINE_DEBUGGABLE AActor* UActorComponent::GetOwner() const
+{
+#if WITH_EDITOR
+	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
+	if (bCanUseCachedOwner)
+	{
+		checkSlow(OwnerPrivate == GetActorOwnerNoninline()); // verify cached value is correct
+		return OwnerPrivate;
+	}
+	else
+	{
+		return GetActorOwnerNoninline();
+	}
+#else
+	checkSlow(OwnerPrivate == GetActorOwnerNoninline()); // verify cached value is correct
+	return OwnerPrivate;
+#endif
 }

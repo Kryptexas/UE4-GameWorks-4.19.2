@@ -201,6 +201,11 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Encrypt ini files inside pak files"))
 	bool bEncryptIniFiles;
 
+	/**
+	* Encrypt the pak index 
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Encrypt the pak index, making it unusable without the required key"))
+	bool bEncryptPakIndex;
 	
 	/**
 	* Don't include content in any editor folders when cooking.  This can cause issues with missing content in cooked games if the content is being used. 

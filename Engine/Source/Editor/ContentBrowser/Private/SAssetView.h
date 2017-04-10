@@ -295,6 +295,13 @@ public:
 	/** Called when a folder is removed from the asset registry */
 	void OnAssetRegistryPathRemoved(const FString& Path);
 
+	/**
+	 * Forces the plugin content folder to be shown.
+	 *
+	 * @param bEnginePlugin		If true, also forces the engine folder to be shown.
+	 */
+	void ForceShowPluginFolder( bool bEnginePlugin );
+
 private:
 
 	/** @return the thumbnail scale setting path to use when looking up the setting in an ini. */

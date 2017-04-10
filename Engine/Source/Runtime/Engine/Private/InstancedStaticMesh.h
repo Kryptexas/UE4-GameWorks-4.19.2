@@ -21,6 +21,7 @@
 #include "Materials/Material.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "StaticMeshResources.h"
+#include "Engine/StaticMesh.h"
 
 
 #include "StaticMeshLight.h"

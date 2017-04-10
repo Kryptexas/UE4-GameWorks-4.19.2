@@ -109,6 +109,11 @@ namespace UnrealBuildTool
 		public string SupportURL;
 
 		/// <summary>
+		/// Sets the version of the engine that this plugin is compatible with.
+		/// </summary>
+		public string EngineVersion;
+
+		/// <summary>
 		/// For packaged plugins, contains the changelist that this plugin is compatible with
 		/// </summary>
 		public int CompatibleChangelist;
@@ -229,6 +234,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetStringField("DocsURL", out Descriptor.DocsURL);
 				RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
 				RawObject.TryGetStringField("SupportURL", out Descriptor.SupportURL);
+				RawObject.TryGetStringField("EngineVersion", out Descriptor.EngineVersion);
 				RawObject.TryGetIntegerField("CompatibleChangelist", out Descriptor.CompatibleChangelist);
 
 				JsonObject[] ModulesArray;
@@ -288,6 +294,10 @@ namespace UnrealBuildTool
 				Writer.WriteValue("DocsURL", DocsURL);
 				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
 				Writer.WriteValue("SupportURL", SupportURL);
+				if(!String.IsNullOrEmpty(EngineVersion))
+				{
+					Writer.WriteValue("EngineVersion", EngineVersion);
+				}
 				if(CompatibleChangelist != 0)
 				{
 					Writer.WriteValue("CompatibleChangelist", CompatibleChangelist);

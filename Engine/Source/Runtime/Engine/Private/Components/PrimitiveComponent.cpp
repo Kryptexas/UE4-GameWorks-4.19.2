@@ -200,6 +200,9 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	bWantsOnUpdateTransform = true;
 
 	bCachedAllCollideableDescendantsRelative = false;
+	bAttachedToStreamingManagerAsStatic = false;
+	bAttachedToStreamingManagerAsDynamic = false;
+	bHandledByStreamingManagerAsDynamic = false;
 	LastCheckedAllCollideableDescendantsTime = 0.f;
 	
 	bApplyImpulseOnDamage = true;
@@ -428,6 +431,17 @@ void UPrimitiveComponent::CreateRenderState_Concurrent()
 	{
 		GetWorld()->Scene->AddPrimitive(this);
 	}
+
+	// To prevent processing components twice (since they are also processed in the FLevelTextureManager when the level becomes visible)
+	// here we only handles component that are already dynamic and that need an updates.
+	if (bHandledByStreamingManagerAsDynamic)
+	{
+		FStreamingManagerCollection* Collection = IStreamingManager::Get_Concurrent();
+		if (Collection)
+		{
+			Collection->NotifyPrimitiveUpdated_Concurrent(this);
+		}
+	}
 }
 
 void UPrimitiveComponent::SendRenderTransform_Concurrent()
@@ -448,9 +462,6 @@ void UPrimitiveComponent::SendRenderTransform_Concurrent()
 void UPrimitiveComponent::OnRegister()
 {
 	Super::OnRegister();
-
-	// Notify the streaming system. Will only update the component data if it's already tracked.
-	IStreamingManager::Get().NotifyPrimitiveUpdated(this);
 
 	if (bCanEverAffectNavigation)
 	{
@@ -484,6 +495,12 @@ void UPrimitiveComponent::OnUnregister()
 	}
 
 	Super::OnUnregister();
+
+	// Unregister only has effect on dynamic primitives (as static ones are handled when the level visibility changes).
+	if (bAttachedToStreamingManagerAsDynamic)
+	{
+		IStreamingManager::Get().NotifyPrimitiveDetached(this);
+	}
 
 	if (bCanEverAffectNavigation)
 	{
@@ -1026,6 +1043,12 @@ void UPrimitiveComponent::PostEditImport()
 
 void UPrimitiveComponent::BeginDestroy()
 {
+	// Whether static or dynamic, all references need to be freed
+	if (IsAttachedToStreamingManager())
+	{
+		IStreamingManager::Get().NotifyPrimitiveDetached(this);
+	}
+
 	Super::BeginDestroy();
 
 	// Use a fence to keep track of when the rendering thread executes this scene detachment.

@@ -149,12 +149,7 @@ namespace UnrealGameSync
 				if(NewSelectedClientFileName[EndIdx] == '/')
 				{
 					bool bFileExists;
-					if(!PerforceClient.FileExists(NewSelectedClientFileName.Substring(0, EndIdx) + "/Engine/Source/UE4Editor.target.cs", out bFileExists, Log))
-					{
-						ErrorMessage = String.Format("Could not find engine in Perforce relative to project path ({0})", NewSelectedClientFileName);
-						return false;
-					}
-					else if(bFileExists)
+					if(PerforceClient.FileExists(NewSelectedClientFileName.Substring(0, EndIdx) + "/Engine/Source/UE4Editor.target.cs", out bFileExists, Log) && bFileExists)
 					{
 						BranchClientPath = NewSelectedClientFileName.Substring(0, EndIdx);
 						break;

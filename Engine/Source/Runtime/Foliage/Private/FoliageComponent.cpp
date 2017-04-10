@@ -12,6 +12,7 @@
 #include "StaticMeshResources.h"
 #include "InteractiveFoliageActor.h"
 #include "InteractiveFoliageComponent.h"
+#include "Engine/StaticMesh.h"
 
 /** Scene proxy class for UInteractiveFoliageComponent. */
 class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy

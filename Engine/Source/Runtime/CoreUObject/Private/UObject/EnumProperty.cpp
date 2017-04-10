@@ -301,6 +301,8 @@ void UEnumProperty::LinkInternal(FArchive& Ar)
 
 	this->ElementSize = UnderlyingProp->ElementSize;
 	this->PropertyFlags |= CPF_IsPlainOldData | CPF_NoDestructor | CPF_ZeroConstructor;
+
+	PropertyFlags |= (UnderlyingProp->PropertyFlags & CPF_HasGetValueTypeHash);
 }
 
 bool UEnumProperty::Identical(const void* A, const void* B, uint32 PortFlags) const

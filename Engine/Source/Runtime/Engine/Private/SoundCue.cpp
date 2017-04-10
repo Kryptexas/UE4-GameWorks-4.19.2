@@ -96,16 +96,12 @@ void USoundCue::PostLoad()
 
 	// Game doesn't care if there are NULL graph nodes
 #if WITH_EDITOR
-	if (GIsEditor )
+	if (GIsEditor && !GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
-		if (SoundCueGraph)
+		// we should have a soundcuegraph unless we are contained in a package which is missing editor only data
+		if (ensure(SoundCueGraph))
 		{
 			USoundCue::GetSoundCueAudioEditor()->RemoveNullNodes(this);
-		}
-		else
-		{
-			// we should have a soundcuegraph unless we are contained in a package which is missing editor only data
-			check( GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly) );
 		}
 
 		// Always load all sound waves in the editor

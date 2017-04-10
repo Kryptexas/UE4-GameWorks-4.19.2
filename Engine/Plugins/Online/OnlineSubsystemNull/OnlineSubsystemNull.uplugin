@@ -4,7 +4,6 @@
 	"FriendlyName" : "Online Subsystem NULL",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"EngineVersion" : "4.2.0",
 	"Description" : "Access to NULL platform",
 	"Category" : "Online Platform",
 	"CreatedBy" : "Epic Games, Inc.",

@@ -27,6 +27,11 @@ FDynamicTextureInstanceManager::FDynamicTextureInstanceManager()
 	Tasks.CreateViewTask = new FCreateViewTask(TextureInstanceTask::FCreateViewWithUninitializedBounds::FOnWorkDone::CreateLambda([this](FTextureInstanceView* InView){ this->OnCreateViewDone(InView); }));
 }
 
+bool FDynamicTextureInstanceManager::IsReferenced(const UPrimitiveComponent* Component) const
+{ 
+	return Component && Component->bAttachedToStreamingManagerAsDynamic && (StateSync.GetState()->HasComponentReferences(Component) || PendingComponents.Contains(Component));
+}
+
 void FDynamicTextureInstanceManager::RegisterTasks(TextureInstanceTask::FDoWorkTask& AsyncTask)
 {
 	FTasks& Tasks = StateSync.GetTasks();
@@ -48,35 +53,28 @@ void FDynamicTextureInstanceManager::IncrementalUpdate(FRemovedTextureArray& Rem
 		PendingDefragSrcBoundIndex = INDEX_NONE;
 		PendingDefragDstBoundIndex = INDEX_NONE;
 	}
-
-	TSet<const UPrimitiveComponent*> TempComponents;
 	
+	// Because PendingComponents could have duplicates, we first do a pass to remove everything.
 	for (const UPrimitiveComponent* Component : PendingComponents)
 	{
-		// Make sure there is no reference as reinserting twice will create issue.
 		State->RemoveComponent(Component, RemovedTextures);
+		Component->bAttachedToStreamingManagerAsDynamic = false;
+	}
 
-		if (CanManage(Component))
+	// Now insert everything, checking for duplicates through bAttachedToStreamingManagerAsDynamic
+	for (const UPrimitiveComponent* Component : PendingComponents)
+	{
+		if (!Component->bAttachedToStreamingManagerAsDynamic && CanManage(Component) && Component->IsRegistered())
 		{
-			if (Component->IsRegistered())
+			FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Component);
+			if (State->AddComponentFast(Component, LevelContext))
 			{
-				FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Component);
-				State->AddComponentFast(Component, LevelContext);
-			}
-			else // Otherwise process on next frame.
-			{
-				const AActor* Owner = Component->GetOwner();
-				if (!Owner || !Owner->GetRootComponent() || !Owner->GetRootComponent()->IsRegistered())
-				{
-					// Only postpone if root component is not yet register.
-					TempComponents.Add(Component);
-				}
+				Component->bAttachedToStreamingManagerAsDynamic = true;
 			}
 		}
 	}
 
-	// Swap for the next frame.
-	FMemory::Memswap(&TempComponents, &PendingComponents, sizeof(PendingComponents));
+	PendingComponents.Reset();
 
 	// Now update the bounds
 	Refresh(Percentage);
@@ -146,6 +144,12 @@ bool FDynamicTextureInstanceManager::Add(const UPrimitiveComponent* Component, F
 	{
 		// Postpone so that we don't have to sync the state.
 		PendingComponents.Add(Component);
+
+		Component->bAttachedToStreamingManagerAsDynamic = true;
+
+		// This flag stays true forever to notify that this will always be handled as dynamic from now on.
+		// To is to allow the update (on render state changes) to work, which handles only dynamic primitives
+		Component->bHandledByStreamingManagerAsDynamic = true;
 		return true;
 	}
 	return false;
@@ -153,12 +157,17 @@ bool FDynamicTextureInstanceManager::Add(const UPrimitiveComponent* Component, F
 
 void FDynamicTextureInstanceManager::Remove(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures)
 {
-	PendingComponents.Remove(Component);
-
-	// If the component is in used, stop any task possibly indirecting it, and clear references.
-	if (StateSync.GetState()->HasComponentReferences(Component))
+	check(!Component || Component->IsValidLowLevelFast());
+	if (Component && Component->bAttachedToStreamingManagerAsDynamic)
 	{
-		StateSync.SyncAndGetState()->RemoveComponent(Component, RemovedTextures);
+		PendingComponents.Remove(Component);
+
+		// If the component is used, stop any task possibly indirecting it, and clear references.
+		if (StateSync.GetState()->HasComponentReferences(Component))
+		{
+			StateSync.SyncAndGetState()->RemoveComponent(Component, RemovedTextures);
+		}
+		Component->bAttachedToStreamingManagerAsDynamic = false;
 	}
 }
 

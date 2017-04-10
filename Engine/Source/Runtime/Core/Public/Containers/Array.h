@@ -1354,7 +1354,7 @@ public:
 	 */
 	FORCEINLINE void CheckAddress(const ElementType* Addr) const
 	{
-		checkf(Addr < GetData() || Addr >= (GetData() + ArrayMax), TEXT("Attempting to add a container element (%p) which already comes from the container (%p, ArrayMax: %d, ArrayNum: %d, SizeofElement: %d)!"), Addr, GetData(), ArrayMax, ArrayNum, sizeof(ElementType));
+		checkf(Addr < GetData() || Addr >= (GetData() + ArrayMax), TEXT("Attempting to use a container element (%p) which already comes from the container being modified (%p, ArrayMax: %d, ArrayNum: %d, SizeofElement: %d)!"), Addr, GetData(), ArrayMax, ArrayNum, sizeof(ElementType));
 	}
 
 	/**

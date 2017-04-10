@@ -183,15 +183,25 @@ void FGenericReadRequestWorker::DoWork()
 #define DISABLE_HANDLE_CACHING (0)
 #endif
 
+#if WITH_EDITOR
+#define MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE 1
+#define FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE 1
+#define DISABLE_BUFFERING_ON_GENERIC_ASYNC_FILE_HANDLE 0
+#else
+#define MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE
+#define FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE
+#define DISABLE_BUFFERING_ON_GENERIC_ASYNC_FILE_HANDLE 1
+#endif
+
 class FGenericAsyncReadFileHandle final : public IAsyncReadFileHandle
 {
 	IPlatformFile* LowerLevel;
 	FString Filename;
 	TArray<FGenericReadRequest*> LiveRequests; // linear searches could be improved
-	FThreadSafeCounter LiveRequestsNonConcurrent; // This file handle should not be used concurrently; we test that with this.
 
+	FCriticalSection LiveRequestsCritical;
 	FCriticalSection HandleCacheCritical;
-	IFileHandle* HandleCache[PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE];
+	IFileHandle* HandleCache[MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE];
 	bool bOpenFailed;
 	bool bDisableHandleCaching;
 public:
@@ -201,19 +211,22 @@ public:
 		, bOpenFailed(false)
 		, bDisableHandleCaching(!!DISABLE_HANDLE_CACHING)
 	{
+#if !WITH_EDITOR
 		if (!Filename.EndsWith(TEXT(".pak")))
 		{
 			bDisableHandleCaching = true; // Closing files can be slow, so we want to do that on the thread and not on the calling thread. Pak files are rarely, if ever, closed and that is where the handle caching saves.
 		}
-		for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
+#endif
+		for (int32 Index = 0; Index < MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
 		{
 			HandleCache[Index] = nullptr;
 		}
 	}
 	~FGenericAsyncReadFileHandle()
 	{
+		FScopeLock Lock(&LiveRequestsCritical);
 		check(!LiveRequests.Num()); // must delete all requests before you delete the handle
-		for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
+		for (int32 Index = 0; Index < MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
 		{
 			if (HandleCache[Index])
 			{
@@ -223,13 +236,12 @@ public:
 	}
 	void RemoveRequest(FGenericReadRequest* Req)
 	{
-		check(LiveRequestsNonConcurrent.Increment() == 1);
+		FScopeLock Lock(&LiveRequestsCritical);
 		verify(LiveRequests.Remove(Req) == 1);
-		check(LiveRequestsNonConcurrent.Decrement() == 0);
 	}
 	uint8* GetPrecachedBlock(uint8* UserSuppliedMemory, int64 InOffset, int64 InBytesToRead)
 	{
-		check(LiveRequestsNonConcurrent.Increment() == 1);
+		FScopeLock Lock(&LiveRequestsCritical);
 		uint8* Result = nullptr;
 		for (FGenericReadRequest* Req : LiveRequests)
 		{
@@ -239,7 +251,6 @@ public:
 				break;
 			}
 		}
-		check(LiveRequestsNonConcurrent.Decrement() == 0);
 		return Result;
 	}
 	virtual IAsyncReadRequest* SizeRequest(FAsyncFileCallBack* CompleteCallback = nullptr) override
@@ -251,9 +262,8 @@ public:
 		FGenericReadRequest* Result = new FGenericReadRequest(this, LowerLevel, *Filename, CompleteCallback, UserSuppliedMemory, Offset, BytesToRead, Priority);
 		if (Priority == AIOP_Precache) // only precache requests are tracked for possible reuse
 		{
-			check(LiveRequestsNonConcurrent.Increment() == 1);
+			FScopeLock Lock(&LiveRequestsCritical);
 			LiveRequests.Add(Result);
-			check(LiveRequestsNonConcurrent.Decrement() == 0);
 		}
 		return Result;
 	}
@@ -262,16 +272,24 @@ public:
 	{
 		if (bDisableHandleCaching)
 		{
+#if DISABLE_BUFFERING_ON_GENERIC_ASYNC_FILE_HANDLE
 			return LowerLevel->OpenRead(*Filename);
+#else
+			return LowerLevel->OpenReadNoBuffering(*Filename);
+#endif
 		}
 		IFileHandle* Result = nullptr;
-		if (PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE)
+		if (FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE)
 		{
-			check(PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE == 1);
+			check(MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE == 1);
 			HandleCacheCritical.Lock();
 			if (!HandleCache[0] && !bOpenFailed)
 			{
+#if DISABLE_BUFFERING_ON_GENERIC_ASYNC_FILE_HANDLE
 				HandleCache[0] = LowerLevel->OpenRead(*Filename);
+#else
+				HandleCache[0] = LowerLevel->OpenReadNoBuffering(*Filename);
+#endif
 				bOpenFailed = (HandleCache[0] == nullptr);
 			}
 			Result = HandleCache[0];
@@ -283,7 +301,7 @@ public:
 		else
 		{
 			FScopeLock Lock(&HandleCacheCritical);
-			for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
+			for (int32 Index = 0; Index < MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
 			{
 				if (HandleCache[Index])
 				{
@@ -294,7 +312,11 @@ public:
 			}
 			if (!Result && !bOpenFailed)
 			{
+#if DISABLE_BUFFERING_ON_GENERIC_ASYNC_FILE_HANDLE
 				Result = LowerLevel->OpenRead(*Filename);
+#else
+				Result = LowerLevel->OpenReadNoBuffering(*Filename);
+#endif
 				bOpenFailed = (Result == nullptr);
 			}
 		}
@@ -306,7 +328,7 @@ public:
 		if (!bDisableHandleCaching)
 		{
 			check(!bOpenFailed);
-			if (PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE)
+			if (FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE)
 			{
 				check(Handle && Handle == HandleCache[0]);
 				HandleCacheCritical.Unlock();
@@ -315,7 +337,7 @@ public:
 			}
 			{
 				FScopeLock Lock(&HandleCacheCritical);
-				for (int32 Index = 0; Index < PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
+				for (int32 Index = 0; Index < MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE; Index++)
 				{
 					if (!HandleCache[Index])
 					{
@@ -354,7 +376,7 @@ void FGenericReadRequest::PerformRequest()
 	if (!bCanceled)
 	{
 		bool bMemoryHasBeenAcquired = bUserSuppliedMemory;
-		if (PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE && !bMemoryHasBeenAcquired && BytesToRead != MAX_uint64)
+		if (FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE && !bMemoryHasBeenAcquired && BytesToRead != MAX_uint64)
 		{
 			// If possible, we do the malloc before we get the handle which will lock. Memory allocation can take time and other locks, so best do this before we get the file handle
 			check(!Memory);
@@ -365,7 +387,7 @@ void FGenericReadRequest::PerformRequest()
 		IFileHandle* Handle = Owner->GetHandle();
 		if (Handle)
 		{
-			if (BytesToRead == MAX_uint64)
+			if (BytesToRead == MAX_int64)
 			{
 				BytesToRead = Handle->Size() - Offset;
 				check(BytesToRead > 0);
@@ -383,7 +405,7 @@ void FGenericReadRequest::PerformRequest()
 		}
 		else if (!bUserSuppliedMemory && bMemoryHasBeenAcquired)
 		{
-			check(PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE);
+			check(FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE);
 			// oops, we allocated memory and we couldn't open the file anyway
 			check(Memory);
 			FMemory::Free(Memory);
@@ -412,7 +434,6 @@ bool FGenericReadRequest::CheckForPrecache()
 
 IAsyncReadFileHandle* IPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 {
-	check(GNewAsyncIO);
 	return new FGenericAsyncReadFileHandle(this, Filename);
 }
 

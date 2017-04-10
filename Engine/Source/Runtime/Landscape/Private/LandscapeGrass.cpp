@@ -50,6 +50,7 @@
 #include "MaterialCompiler.h"
 #include "Containers/Algo/Accumulate.h"
 #include "Package.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 

@@ -16,8 +16,6 @@
 #include "HAL/ThreadSafeBool.h"
 #include "Misc/ConfigCacheIni.h"
 
-class IAssetRegistryInterface;
-
 /** [EDL] Event Driven loader event */
 struct FAsyncLoadEvent
 {
@@ -137,8 +135,6 @@ struct FFlushTree
  */
 class FAsyncLoadingThread : public FRunnable
 {
-	friend class FArchiveAsync;
-
 	/** Thread to run the worker FRunnable on */
 	FRunnableThread* Thread;
 	/** Stops this thread */
@@ -526,12 +522,12 @@ private:
 	* it will call itself recursively for all the package dependencies
 	* @param FlushTree Package dependency tree to be flushed
 	*/
-	void ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, IAssetRegistryInterface* InAssetRegistry, FFlushTree* FlushTree);
+	void ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, FFlushTree* FlushTree);
 
 	/**
 	* [ASYNC THREAD] Internal helper function for updating the priorities of an existing package and all its dependencies
 	*/
-	void UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority, IAssetRegistryInterface* InAssetRegistry);
+	void UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority);
 
 	/**
 	* [ASYNC THREAD] Finds existing async package and adds the new request's completion callback to it.

@@ -6,6 +6,7 @@
 #include "NiagaraDataSet.h"
 #include "NiagaraStats.h"
 #include "Async/ParallelFor.h"
+#include "Engine/StaticMesh.h"
 
 DECLARE_CYCLE_STAT(TEXT("Generate Mesh Vertex Data"), STAT_NiagaraGenMeshVertexData, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Meshes"), STAT_NiagaraRenderMeshes, STATGROUP_Niagara);

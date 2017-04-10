@@ -338,9 +338,6 @@ private:
 	/** Potentially outstanding texture I/O requests.														*/
 	TArray<class IAsyncReadRequest*> IORequests;
 
-	/** Potentially outstanding texture I/O requests.														*/
-	uint64				IORequestIndices[MAX_TEXTURE_MIP_COUNT];
-
 	/** Number of file I/O requests for current request. The use of this is crazy confusing.				*/
 	int32					IORequestCount;
 

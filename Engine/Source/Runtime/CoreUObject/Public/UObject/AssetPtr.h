@@ -113,8 +113,15 @@ public:
 	}
 
 	/** Construct from an object already in memory */
-	FORCEINLINE TAssetPtr(const T* Object)
+	template <typename U>
+	FORCEINLINE TAssetPtr(const U* Object)
 		: AssetPtr(Object)
+	{
+	}
+
+	/** Construct from a nullptr */
+	FORCEINLINE TAssetPtr(TYPE_OF_NULLPTR)
+		: AssetPtr(nullptr)
 	{
 	}
 
@@ -131,9 +138,17 @@ public:
 	}
 
 	/** Copy from an object already in memory */
-	FORCEINLINE TAssetPtr& operator=(const T* Object)
+	template <typename U>
+	FORCEINLINE TAssetPtr& operator=(const U* Object)
 	{
 		AssetPtr = Object;
+		return *this;
+	}
+
+	/** Assign from a nullptr */
+	FORCEINLINE TAssetPtr& operator=(TYPE_OF_NULLPTR)
+	{
+		AssetPtr = nullptr;
 		return *this;
 	}
 
@@ -160,18 +175,40 @@ public:
 		return *this;
 	}
 
-	/**  
+	/**
 	 * Compare asset pointers for equality
 	 * Caution: Two asset pointers might not be equal to each other, but they both might return nullptr
 	 *
-	 * @param Other asset pointer to compare to 
+	 * @param Other asset pointer to compare to
 	 */
 	FORCEINLINE friend bool operator==(const TAssetPtr& Lhs, const TAssetPtr& Rhs)
 	{
 		return Lhs.AssetPtr == Rhs.AssetPtr;
 	}
 
-	/**  
+	/**
+	 * Compare asset pointers for equality
+	 * Caution: Two asset pointers might not be equal to each other, but they both might return nullptr
+	 *
+	 * @param Other asset pointer to compare to
+	 */
+	FORCEINLINE friend bool operator==(const TAssetPtr& Lhs, TYPE_OF_NULLPTR)
+	{
+		return Lhs.AssetPtr == nullptr;
+	}
+
+	/**
+	 * Compare asset pointers for equality
+	 * Caution: Two asset pointers might not be equal to each other, but they both might return nullptr
+	 *
+	 * @param Other asset pointer to compare to
+	 */
+	FORCEINLINE friend bool operator==(TYPE_OF_NULLPTR, const TAssetPtr& Rhs)
+	{
+		return nullptr == Rhs.AssetPtr;
+	}
+
+	/**
 	 * Compare asset pointers for inequality
 	 * Caution: Two asset pointers might not be equal to each other, but they both might return nullptr
 	 *
@@ -182,7 +219,29 @@ public:
 		return Lhs.AssetPtr != Rhs.AssetPtr;
 	}
 
-	/**  
+	/**
+	 * Compare asset pointers for inequality
+	 * Caution: Two asset pointers might not be equal to each other, but they both might return nullptr
+	 *
+	 * @param Other asset pointer to compare to
+	 */
+	FORCEINLINE friend bool operator!=(const TAssetPtr& Lhs, TYPE_OF_NULLPTR)
+	{
+		return Lhs.AssetPtr != nullptr;
+	}
+
+	/**
+	 * Compare asset pointers for inequality
+	 * Caution: Two asset pointers might not be equal to each other, but they both might return nullptr
+	 *
+	 * @param Other asset pointer to compare to
+	 */
+	FORCEINLINE friend bool operator!=(TYPE_OF_NULLPTR, const TAssetPtr& Rhs)
+	{
+		return nullptr != Rhs.AssetPtr;
+	}
+
+	/**
 	 * Dereference the asset pointer.
 	 *
 	 * @return nullptr if this object is gone or the lazy pointer was null, otherwise a valid UObject pointer

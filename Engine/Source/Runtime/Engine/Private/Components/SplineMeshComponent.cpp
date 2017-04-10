@@ -13,6 +13,7 @@
 #include "AI/NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
+#include "Engine/StaticMesh.h"
 #include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 

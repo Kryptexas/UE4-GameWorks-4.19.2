@@ -25,7 +25,7 @@ public:
 	ULevel* GetLevel() const { return Level; }
 
 	// Remove the whole level
-	void Remove(FDynamicTextureInstanceManager& DynamicManager, FRemovedTextureArray& RemovedTextures);
+	void Remove(FRemovedTextureArray& RemovedTextures);
 
 	// Invalidate a component reference.
 
@@ -39,7 +39,6 @@ public:
 	{ 
 		// Check everywhere as the mobility can change in game.
 		StaticInstances.Remove(Component, RemovedTextures); 
-		DynamicComponents.RemoveSingleSwap(Component); 
 		UnprocessedStaticComponents.RemoveSingleSwap(Component); 
 		PendingInsertionStaticPrimitives.RemoveSingleSwap(Component); 
 	}
@@ -64,9 +63,6 @@ private:
 	bool bIsInitialized;
 
 	FStaticTextureInstanceManager StaticInstances;
-
-	/** The list of dynamic components contained in the level. Used to removed them from the FDynamicTextureInstanceManager on ::Remove. */
-	TArray<const UPrimitiveComponent*> DynamicComponents;
 
 	/** The static actors that had not only dynamic static components. */
 	TArray<const AActor*> StaticActorsWithNonStaticPrimitives;
@@ -94,7 +90,6 @@ private:
 	TArray<const UPrimitiveComponent*> PendingInsertionStaticPrimitives;
 	// Reversed lookup for ULevel::StreamingTextureGuids.
 	TMap<FGuid, int32> TextureGuidToLevelIndex;
-
 
 	bool NeedsIncrementalBuild(int32 NumStepsLeftForIncrementalBuild) const;
 	void IncrementalBuild(FStreamingTextureLevelContext& LevelContext, bool bForceCompletion, int64& NumStepsLeft);

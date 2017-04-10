@@ -1473,10 +1473,13 @@ void UTexture2D::GetMipData(int32 FirstMipToLoad, void** OutMipData)
 		UE_LOG(LogTexture,Warning,TEXT("GetMipData failed for %s (%s)"),
 			*GetPathName(), GPixelFormats[GetPixelFormat()].Name);
 #if WITH_EDITOR
-		ForceRebuildPlatformData();
-		if (PlatformData->TryLoadMips(FirstMipToLoad, OutMipData) == false)
+		if (!GetOutermost()->bIsCookedForEditor)
 		{
-			UE_LOG(LogTexture,Error,TEXT("Failed to build texture %s."), *GetPathName());
+			ForceRebuildPlatformData();
+			if (PlatformData->TryLoadMips(FirstMipToLoad, OutMipData) == false)
+			{
+				UE_LOG(LogTexture, Error, TEXT("Failed to build texture %s."), *GetPathName());
+			}
 		}
 #endif // #if WITH_EDITOR
 	}

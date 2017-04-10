@@ -1015,13 +1015,6 @@ void UActorComponent::UnregisterComponent()
 	// If registered, should have a world
 	checkf(WorldPrivate != nullptr, TEXT("%s"), *GetFullName());
 
-	// Notify the texture streaming system
-	const UPrimitiveComponent* Primitive = Cast<const UPrimitiveComponent>(this);
-	if ( Primitive )
-	{
-		IStreamingManager::Get().NotifyPrimitiveDetached( Primitive );
-	}
-
 	RegisterAllComponentTickFunctions(false);
 	ExecuteUnregisterEvents();
 
@@ -1757,6 +1750,13 @@ void UActorComponent::Serialize(FArchive& Ar)
 	{
 		bHasBeenCreated = true;
 	}
+}
+
+AActor* UActorComponent::GetActorOwnerNoninline() const
+{
+	// This is defined out-of-line because AActor isn't defined where the inlined function is.
+
+	return GetTypedOuter<AActor>();
 }
 
 #undef LOCTEXT_NAMESPACE

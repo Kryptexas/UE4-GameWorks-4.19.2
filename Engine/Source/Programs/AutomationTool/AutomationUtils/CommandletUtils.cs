@@ -106,6 +106,9 @@ namespace AutomationTool
                 CommandletArguments += (CommandletArguments.Length > 0 ? " " : "") + CulturesToCookArg;
             }
 
+			// UAT has it's own option for appending log timestamps; we don't need the UE4 timestamps too.
+			CommandletArguments += " -NoLogTimes";
+
             RunCommandlet(ProjectName, UE4Exe, "Cook", String.Format("{0} -TargetPlatform={1} {2}",  CommandletArguments, TargetPlatform, Parameters));
 		}
 
@@ -293,7 +296,7 @@ namespace AutomationTool
 				Args += " -UTF8Output";
 				Opts |= ERunOptions.UTF8Output;
 			}
-			var RunResult = Run(EditorExe, Args, Options: Opts);
+			var RunResult = Run(EditorExe, Args, Options: Opts, Identifier: Commandlet);
 			PopDir();
 
 			// Draw attention to signal exit codes on Posix systems, rather than just printing the exit code

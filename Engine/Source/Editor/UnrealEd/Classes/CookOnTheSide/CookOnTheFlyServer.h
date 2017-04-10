@@ -29,7 +29,7 @@ class IAssetRegistry;
 enum class ECookInitializationFlags
 {
 	None =										0x00000000, // No flags
-	Compressed =								0x00000001, // will save compressed packages
+	//unused =									0x00000001, 
 	Iterative =									0x00000002, // use iterative cooking (previous cooks will not be cleaned unless detected out of date, experimental)
 	SkipEditorContent =							0x00000004, // do not cook any content in the content\editor directory
 	Unversioned =								0x00000008, // save the cooked packages without a version number
@@ -809,8 +809,6 @@ private:
 			CookTime( 0.0 ),
 			CookStartTime( 0.0 ), 
 			bErrorOnEngineContentUse(false),
-			bForceEnableCompressedPackages(false),
-			bForceDisableCompressedPackages(false),
 			bIsChildCooker(false),
 			bDisableUnsolicitedPackages(false),
 			ChildCookIdentifier(-1)
@@ -843,9 +841,6 @@ private:
 		double CookStartTime;
 		/** error when detecting engine content being used in this cook */
 		bool bErrorOnEngineContentUse;
-		/** force this cook by the book to enable \ disable package compression */
-		bool bForceEnableCompressedPackages;
-		bool bForceDisableCompressedPackages;
 		bool bIsChildCooker;
 		bool bDisableUnsolicitedPackages;
 		int32 ChildCookIdentifier;

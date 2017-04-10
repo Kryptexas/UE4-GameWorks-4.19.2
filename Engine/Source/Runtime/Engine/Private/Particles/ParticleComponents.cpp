@@ -45,6 +45,7 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 #include "Misc/MapErrors.h"
+#include "Engine/StaticMesh.h"
 #if WITH_EDITOR
 #include "Engine/InterpCurveEdSetup.h"
 #include "ObjectEditorUtils.h"

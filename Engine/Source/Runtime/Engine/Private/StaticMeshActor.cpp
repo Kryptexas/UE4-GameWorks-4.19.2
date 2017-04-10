@@ -16,6 +16,7 @@
 #include "Misc/MapErrors.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "StaticMeshResources.h"
+#include "Engine/StaticMesh.h"
 
 
 #define LOCTEXT_NAMESPACE "StaticMeshActor"

@@ -39,7 +39,7 @@ namespace UnrealBuildTool
 	{
 		Default,          // Default to the best installed version, but allow SDKs to override
 		VisualStudio2012, // Unsupported
-		VisualStudio2013,
+		VisualStudio2013, // Unsupported
 		VisualStudio2015,
 		VisualStudio2017,
 	}
@@ -91,10 +91,9 @@ namespace UnrealBuildTool
 				{
 					ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
 				}
-				else if (Argument == "-2013")
+				else if (Argument.Equals("-2013unsupported", StringComparison.InvariantCultureIgnoreCase))
 				{
 					ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
-					BuildToolOverride = " -2013";
 				}
 				else if(Argument == "-2015")
 				{
@@ -274,11 +273,7 @@ namespace UnrealBuildTool
 					{
 						// Get the corresponding compiler version
 						WindowsCompiler Compiler = WindowsCompiler.Default;
-						if(PreferredProjectFileFormat == VCProjectFileFormat.VisualStudio2013)
-						{
-							Compiler = WindowsCompiler.VisualStudio2013;
-						}
-						else if(PreferredProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
+						if(PreferredProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
 						{
 							Compiler = WindowsCompiler.VisualStudio2015;
 						}
@@ -314,10 +309,6 @@ namespace UnrealBuildTool
 				if (WindowsPlatform.TryGetVCInstallDir(WindowsCompiler.VisualStudio2015, out VCInstallDir))
 				{
 					ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
-				}
-				else if (WindowsPlatform.TryGetVCInstallDir(WindowsCompiler.VisualStudio2013, out VCInstallDir))
-				{
-					ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
 				}
 				else if (WindowsPlatform.TryGetVCInstallDir(WindowsCompiler.VisualStudio2017, out VCInstallDir))
 				{

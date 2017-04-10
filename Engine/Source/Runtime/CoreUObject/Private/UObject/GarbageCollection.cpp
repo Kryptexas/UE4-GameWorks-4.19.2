@@ -20,6 +20,7 @@
 #include "UObject/GCObject.h"
 #include "UObject/GCScopeLock.h"
 #include "HAL/ExceptionHandling.h"
+#include "UObject/UObjectClusters.h"
 
 /*-----------------------------------------------------------------------------
    Garbage collection.
@@ -351,32 +352,80 @@ public:
 				{
 					if (!ReferencedMutableObjectItem->IsPendingKill())
 					{
-						if (ReferencedMutableObjectItem->IsUnreachable() && ReferencedMutableObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
+						if (ReferencedMutableObjectItem->IsUnreachable())
 						{
-							ReferencedMutableObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
-							ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
+							if (ReferencedMutableObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
+							{
+								// Needs doing because this is either a normal unclustered object (clustered objects are never unreachable) or a cluster root
+								ReferencedMutableObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
+								ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
+
+								// So is this a cluster root maybe?
+								if (ReferencedMutableObjectItem->GetOwnerIndex() < 0)
+								{
+									MarkReferencedClustersAsReachable(ReferencedMutableObjectItem->GetClusterIndex(), ObjectsToSerialize);
+								}
+							}
+						}
+						else if (ReferencedMutableObjectItem->GetOwnerIndex() > 0 && !ReferencedMutableObjectItem->HasAnyFlags(EInternalObjectFlags::ReachableInCluster))
+						{
+							// This is a clustered object that maybe hasn't been processed yet
+							if (ReferencedMutableObjectItem->ThisThreadAtomicallySetFlag(EInternalObjectFlags::ReachableInCluster))
+							{
+								// Needs doing, we need to get its cluster root and process it too
+								FUObjectItem* ReferencedMutableObjectsClusterRootItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferencedMutableObjectItem->GetOwnerIndex());
+								if (ReferencedMutableObjectsClusterRootItem->IsUnreachable())
+								{
+									// The root is also maybe unreachable so process it and all the referenced clusters
+									if (ReferencedMutableObjectsClusterRootItem->ThisThreadAtomicallyClearedRFUnreachable())
+									{
+										ReferencedMutableObjectsClusterRootItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
+										MarkReferencedClustersAsReachable(ReferencedMutableObjectsClusterRootItem->GetClusterIndex(), ObjectsToSerialize);
+									}
+								}
+							}
 						}
 					}
 					else
 					{
-						// Pending kill support for clusters
+						// Pending kill support for clusters (multi-threaded case)
 						ReferencedMutableObjectIndex = -1;
 						bAddClusterObjectsToSerialize = true;
 					}
 				}
-				else if (ReferencedMutableObjectItem->IsUnreachable())
+				else if (!ReferencedMutableObjectItem->IsPendingKill())
 				{
-					if (!ReferencedMutableObjectItem->IsPendingKill())
+					if (ReferencedMutableObjectItem->IsUnreachable())
 					{
+						// Needs doing because this is either a normal unclustered object (clustered objects are never unreachable) or a cluster root
 						ReferencedMutableObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
 						ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
+
+						// So is this a cluster root?
+						if (ReferencedMutableObjectItem->GetOwnerIndex() < 0)
+						{
+							MarkReferencedClustersAsReachable(ReferencedMutableObjectItem->GetClusterIndex(), ObjectsToSerialize);
+						}
 					}
-					else
+					else if (ReferencedMutableObjectItem->GetOwnerIndex() > 0 && !ReferencedMutableObjectItem->HasAnyFlags(EInternalObjectFlags::ReachableInCluster))
 					{
-						// Pending kill support for clusters
-						ReferencedMutableObjectIndex = -1;
-						bAddClusterObjectsToSerialize = true;
+						// This is a clustered object that hasn't been processed yet
+						ReferencedMutableObjectItem->SetFlags(EInternalObjectFlags::ReachableInCluster);
+						
+						// If the root is also unreachable, process it and all its referenced clusters
+						FUObjectItem* ReferencedMutableObjectsClusterRootItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferencedMutableObjectItem->GetOwnerIndex());
+						if (ReferencedMutableObjectsClusterRootItem->IsUnreachable())
+						{
+							ReferencedMutableObjectsClusterRootItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+							MarkReferencedClustersAsReachable(ReferencedMutableObjectsClusterRootItem->GetClusterIndex(), ObjectsToSerialize);
+						}
 					}
+				}
+				else
+				{
+					// Pending kill support for clusters (single-threaded case)
+					ReferencedMutableObjectIndex = -1;
+					bAddClusterObjectsToSerialize = true;
 				}
 			}
 		}
@@ -546,7 +595,8 @@ public:
 				checkSlow(RootObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
 				if (bParallel)
 				{
-					if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
+					if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable() || 
+						(bStrongReference && RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference)))
 					{
 						if (bStrongReference)
 						{
@@ -807,6 +857,11 @@ public:
 #if DO_GUARD_SLOW
 				checkCode(if (ObjectItem->IsPendingKill()) { UE_LOG(LogGarbage, Fatal, TEXT("Object %s is part of root set though has been marked RF_PendingKill!"), *Object->GetFullName()); });
 #endif
+				if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) || ObjectItem->GetOwnerIndex() > 0)
+				{
+					KeepClusterRefs.Add(ObjectItem);
+				}
+
 				ObjectsToSerialize.Add(Object);
 			}
 			// Regular objects or cluster root objects
@@ -839,7 +894,7 @@ public:
 					checkSlow(Object->IsValidLowLevel());
 					ObjectsToSerialize.Add(Object);
 
-					if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) || ObjectItem->GetOwnerIndex() > 0)
+					if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
 					{
 						KeepClusterRefs.Add(ObjectItem);
 					}
@@ -1255,7 +1310,88 @@ static FAutoConsoleVariableRef CVarFlushStreamingOnGC(
 	ECVF_Default
 	);
 
-bool VerifyClusterAssumptions(UObject* ClusterRootObject);
+
+#define PROFILE_GCConditionalBeginDestroy 0
+#define PROFILE_GCConditionalBeginDestroyByClass 0
+
+#if PROFILE_GCConditionalBeginDestroy
+
+struct FCBDTime
+{
+	double TotalTime;
+	int32 Items;
+	FCBDTime()
+		: TotalTime(0.0)
+		, Items(0)
+	{
+	}
+
+	bool operator<(const FCBDTime& Other) const
+	{
+		return TotalTime > Other.TotalTime;
+	}
+};
+
+TMap<FName, FCBDTime> CBDTimings;
+TMap<UObject*, FName> CBDNameLookup;
+
+struct FScopedCBDProfile
+{
+	FName Obj;
+	double StartTime;
+
+	FORCEINLINE FScopedCBDProfile(UObject* InObj)
+		: StartTime(FPlatformTime::Seconds())
+	{
+		CBDNameLookup.Add(InObj, InObj->GetFName());
+#if PROFILE_GCConditionalBeginDestroyByClass
+		UObject* Outermost = ((UObject*)InObj->GetClass());
+#else
+		UObject* Outermost = ((UObject*)InObj->GetOutermost());
+#endif
+		Obj = Outermost->GetFName();
+		if (Obj == NAME_None)
+		{
+			Obj = CBDNameLookup.FindRef(Outermost);
+		}
+	}
+	FORCEINLINE ~FScopedCBDProfile()
+	{
+		double ThisTime = FPlatformTime::Seconds() - StartTime;
+		FCBDTime& Rec = CBDTimings.FindOrAdd(Obj);
+		Rec.Items++;
+		Rec.TotalTime += ThisTime;
+	}
+	FORCEINLINE static void DumpProfile()
+	{
+		CBDTimings.ValueSort(TLess<FCBDTime>());
+		int32 NumPrint = 0;
+		for (auto& Item : CBDTimings)
+		{
+			UE_LOG(LogTemp, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Items, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Items), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
+			if (NumPrint++ > 3000000000)
+			{
+				break;
+			}
+		}
+		CBDTimings.Empty();
+		CBDNameLookup.Empty();
+	}
+};
+
+
+#else
+struct FScopedCBDProfile
+{
+	FORCEINLINE FScopedCBDProfile(UObject*)
+	{
+	}
+	FORCEINLINE static void DumpProfile()
+	{
+	}
+};
+#endif
+
 
 /** 
  * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set
@@ -1300,7 +1436,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 		// This has to be unlocked before we call post GC callbacks
 		FGCScopeLock GCLock;
 
-		UE_LOG(LogGarbage, Log, TEXT("Collecting garbage"));
+		UE_LOG(LogGarbage, Log, TEXT("Collecting garbage%s"), IsAsyncLoading() ? TEXT(" while async loading") : TEXT(""));
 
 		// Make sure previous incremental purge has finished or we do a full purge pass in case we haven't kicked one
 		// off yet since the last call to garbage collection.
@@ -1422,8 +1558,14 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 				if (ObjectItem->IsUnreachable())
 				{
 					Items++;
+#if UE_GCCLUSTER_VERBOSE_LOGGING
+					UObject* Object = (UObject*)ObjectItem->Object;
+#endif
 					if ((ObjectItem->GetFlags() & EInternalObjectFlags::ClusterRoot) == EInternalObjectFlags::ClusterRoot)
 					{
+#if UE_GCCLUSTER_VERBOSE_LOGGING
+						UE_LOG(LogGarbage, Log, TEXT("Destroying cluster (%d) %s"), ObjectItem->GetClusterIndex(), *Object->GetFullName());
+#endif
 						// Nuke the entire cluster
 						ObjectItem->ClearFlags(EInternalObjectFlags::ClusterRoot | EInternalObjectFlags::NoStrongReference);
 						const int32 ClusterRootIndex = It.GetIndex();
@@ -1440,6 +1582,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 								if (ClusterObjectIndex < ClusterRootIndex)
 								{
 									UObject* ClusterObject = (UObject*)ClusterObjectItem->Object;
+									FScopedCBDProfile Profile(ClusterObject);
 									ClusterObject->ConditionalBeginDestroy();
 									ClusterItems++;
 								}
@@ -1450,19 +1593,32 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 					}
 
 					// Begin the object's asynchronous destruction.
+#if !UE_GCCLUSTER_VERBOSE_LOGGING
 					UObject* Object = (UObject*)ObjectItem->Object;
+#endif
+					FScopedCBDProfile Profile(Object);
 					Object->ConditionalBeginDestroy();
 				}
 				else if (ObjectItem->IsNoStrongReference())
 				{
 					ObjectItem->ClearNoStrongReference();
 					ObjectItem->SetPendingKill();
+					if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+					{
+						// If a cluster root has no strong reference then none of its object had a strong reference either, mark all as pending kill
+						FUObjectCluster& Cluster = GUObjectClusters[ObjectItem->GetClusterIndex()];
+						for (int32 ClusterObjectIndex : Cluster.Objects)
+						{
+							FUObjectItem* ClusterObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ClusterObjectIndex);
+							ClusterObjectItem->SetPendingKill();
+						}
+					}
 				}
 			}
 			UE_LOG(LogGarbage, Log, TEXT("%f ms for unhashing unreachable objects. Clusters removed: %d.   Items %d Cluster Items %d"), (FPlatformTime::Seconds() - StartTime) * 1000, ClustersRemoved, Items, ClusterItems);
 			FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.Broadcast();
 		}
-
+		FScopedCBDProfile::DumpProfile();
 		// Set flag to indicate that we are relying on a purge to be performed.
 		GObjPurgeIsRequired = true;
 		// Reset purged count.

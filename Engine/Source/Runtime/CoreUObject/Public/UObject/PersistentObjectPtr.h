@@ -155,15 +155,35 @@ public:
 	}
 
 	/** Compare pointers for equality. Only Serial Number matters for the base implementation */
-	FORCEINLINE bool operator==(const TPersistentObjectPtr& Other) const
+	FORCEINLINE friend bool operator==(const TPersistentObjectPtr& Lhs, const TPersistentObjectPtr& Rhs)
 	{
-		return ObjectID == Other.ObjectID;
+		return Lhs.ObjectID == Rhs.ObjectID;
+	}
+
+	FORCEINLINE friend bool operator==(const TPersistentObjectPtr& Lhs, TYPE_OF_NULLPTR)
+	{
+		return !Lhs.IsValid();
+	}
+
+	FORCEINLINE friend bool operator==(TYPE_OF_NULLPTR, const TPersistentObjectPtr& Rhs)
+	{
+		return !Rhs.IsValid();
 	}
 
 	/** Compare pointers for inequality. Only Serial Number matters for the base implementation */
-	FORCEINLINE bool operator!=(const TPersistentObjectPtr& Other) const
+	FORCEINLINE friend bool operator!=(const TPersistentObjectPtr& Lhs, const TPersistentObjectPtr& Rhs)
 	{
-		return ObjectID != Other.ObjectID;
+		return Lhs.ObjectID != Rhs.ObjectID;
+	}
+
+	FORCEINLINE friend bool operator!=(const TPersistentObjectPtr& Lhs, TYPE_OF_NULLPTR)
+	{
+		return Lhs.IsValid();
+	}
+
+	FORCEINLINE friend bool operator!=(TYPE_OF_NULLPTR, const TPersistentObjectPtr& Rhs)
+	{
+		return Rhs.IsValid();
 	}
 
 	/**  

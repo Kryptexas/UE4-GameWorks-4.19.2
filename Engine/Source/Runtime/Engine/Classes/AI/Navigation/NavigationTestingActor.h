@@ -12,6 +12,7 @@
 #include "AI/Navigation/NavigationData.h"
 #include "Tickable.h"
 #include "AI/Navigation/NavPathObserverInterface.h"
+#include "AI/Navigation/RecastNavMesh.h"
 #include "NavigationTestingActor.generated.h"
 
 class ANavigationTestingActor;

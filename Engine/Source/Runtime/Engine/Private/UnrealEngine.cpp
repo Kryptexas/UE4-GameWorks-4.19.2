@@ -27,7 +27,6 @@
 #include "HAL/Runnable.h"
 #include "Misc/OutputDeviceArchiveWrapper.h"
 #include "Stats/StatsMisc.h"
-#include "HAL/IOBase.h"
 #include "Containers/Ticker.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/AutomationTest.h"
@@ -2856,16 +2855,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return HandleFreezeAllCommand( Cmd, Ar, InWorld );
 	}
 	
-	else if( !GNewAsyncIO && FParse::Command(&Cmd, TEXT("FLUSHIOMANAGER")) )
-	{
-		return HandleFlushIOManagerCommand( Cmd, Ar );
-	}
-	// This will list out the packages which are in the precache list and have not been "loaded" out.  (e.g. could be just there taking up memory!)
-	else if ( !GNewAsyncIO && FParse::Command(&Cmd, TEXT("ListPrecacheMapPackages")))
-	{
-		return HandleListPreCacheMapPackagesCommand(Cmd, Ar);
-	}
-
 	else if( FParse::Command(&Cmd,TEXT("ToggleRenderingThread")) )
 	{
 		return HandleToggleRenderingThreadCommand( Cmd, Ar );
@@ -3501,31 +3490,6 @@ bool UEngine::HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 {
 	ProcessToggleFreezeCommand( InWorld );
 	ProcessToggleFreezeStreamingCommand(InWorld);
-	return true;
-}
-
-bool UEngine::HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	check(!GNewAsyncIO);
-	FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
-	return true;
-}
-bool UEngine::HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar)
-{
-	check(!GNewAsyncIO);
-	TArray<FString> Packages;
-	FLinkerLoad::GetListOfPackagesInPackagePrecacheMap(Packages);
-
-	Packages.Sort();
-
-	Ar.Logf(TEXT("Total Number Of Packages In PrecacheMap: %i "), Packages.Num());
-
-	for (int32 i = 0; i < Packages.Num(); ++i)
-	{
-		Ar.Logf(TEXT("%i %s"), i, *Packages[i]);
-	}
-	Ar.Logf(TEXT("Total Number Of Packages In PrecacheMap: %i "), Packages.Num());
-
 	return true;
 }
 

@@ -6,6 +6,7 @@
 #include "MeshPaintHelpers.h"
 #include "ComponentReregisterContext.h"
 #include "MeshPaintTypes.h"
+#include "Engine/StaticMesh.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintGeometryAdapterForStaticMeshes

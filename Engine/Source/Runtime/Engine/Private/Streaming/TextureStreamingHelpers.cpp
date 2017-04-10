@@ -283,5 +283,4 @@ void FTextureStreamingStats::Apply()
 	SET_CYCLE_COUNTER(STAT_Streaming02_UpdateStreamingData, UpdateStreamingDataCycles);
 	SET_CYCLE_COUNTER(STAT_Streaming03_StreamTextures, StreamTexturesCycles);
 	SET_CYCLE_COUNTER(STAT_Streaming04_Notifications, CallbacksCycles);
-	CallbacksCycles = 0;
 }

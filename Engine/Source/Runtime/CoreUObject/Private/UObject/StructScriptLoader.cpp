@@ -111,7 +111,7 @@ int32 FDeferredScriptTracker::ResolveDeferredScripts(FLinkerLoad* Linker)
 	// FDeferredScriptLoader::Resolve() could insert back into this list 
 	DeferredScriptLoads.Remove(Linker);
 
-	int32 const SerializationPosToRestore = Ar.Tell();
+	int64 const SerializationPosToRestore = Ar.Tell();
 
 	int32 ResolveCount = 0;
 	for (FDeferredScriptLoader& DeferredScript : DefferedLinkerScripts)

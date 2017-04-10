@@ -158,7 +158,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 * Only affects primitives that were already attached.
 	 * Replaces previous info.
 	 */
-	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive ) override;
+	virtual void NotifyPrimitiveUpdated_Concurrent( const UPrimitiveComponent* Primitive ) override;
 
 	/** Returns the corresponding FStreamingTexture for a UTexture2D. */
 	FStreamingTexture* GetStreamingTexture( const UTexture2D* Texture2D );
@@ -184,8 +184,8 @@ protected:
 //BEGIN: Thread-safe functions and data
 		friend class FAsyncTextureStreamingTask;
 
-		/** Returns whether this primitive will be handled by as a static primitive within LevelTextureManagers */
-		bool IsHandledAsStatic(const UPrimitiveComponent* Primitive) const;
+		/** Remove any references in level managers to this component */
+		void RemoveStaticReferences(const UPrimitiveComponent* Primitive);
 
 		/**
 		 * Not thread-safe: Updates a portion (as indicated by 'StageIndex') of all streaming textures,
@@ -326,5 +326,7 @@ protected:
 	uint32 MaxNumWantingTextures;
 #endif
 	
+	volatile int32 ConcurrentLockState;
+
 	friend bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture, bool bForceMipLevelsToBeResident, const FStreamingManagerTexture* Manager);
 };

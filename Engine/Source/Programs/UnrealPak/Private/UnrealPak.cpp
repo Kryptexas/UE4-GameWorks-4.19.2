@@ -21,6 +21,7 @@ struct FPakCommandLineParameters
 		, FileSystemBlockSize(0)
 		, PatchFilePadAlign(0)
 		, GeneratePatch(false)
+		, EncryptIndex(false)
 	{}
 
 	int32  CompressionBlockSize;
@@ -30,6 +31,7 @@ struct FPakCommandLineParameters
 	bool   GeneratePatch;
 	FString SourcePatchPakFilename;
 	FString SourcePatchDiffDirectory;
+	bool EncryptIndex;
 };
 
 struct FPakEntryPair
@@ -473,6 +475,11 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 		CmdLineParameters.PatchFilePadAlign = 0;
 	}
 
+	if (FParse::Param(FCommandLine::Get(), TEXT("encryptindex")))
+	{
+		CmdLineParameters.EncryptIndex = true;
+	}
+
 	if (FParse::Value(FCommandLine::Get(), TEXT("-create="), ResponseFile))
 	{
 		TArray<FString> Lines;
@@ -900,6 +907,11 @@ void PrepareEncryptionAndSigningKeys()
 			UE_LOG(LogPakFile, Error, TEXT("Supplied pak signing keys were not valid"));
 		}
 	}
+
+	if (AESKeyIsValid())
+	{
+		FCoreDelegates::GetPakEncryptionKeyDelegate().BindLambda([]() { return GAESKeyANSI; });
+	}
 }
 
 /**
@@ -936,6 +948,8 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 	}
 
 	FPakInfo Info;
+	Info.bEncryptedIndex = (AESKeyIsValid() && CmdLineParameters.EncryptIndex);
+
 	TArray<FPakEntryPair> Index;
 	FString MountPoint = GetCommonRootPath(FilesToAdd);
 	uint8* ReadBuffer = NULL;
@@ -1233,9 +1247,29 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 			}
 		}
 	}
-	PakFileHandle->Serialize(IndexData.GetData(), IndexData.Num());
+
+	if (Info.bEncryptedIndex)
+	{
+		int32 OriginalSize = IndexData.Num();
+		int32 AlignedSize = Align(OriginalSize, FAES::AESBlockSize);
+
+		for (int32 PaddingIndex = IndexData.Num(); PaddingIndex < AlignedSize; ++PaddingIndex)
+		{
+			uint8 Byte = IndexData[PaddingIndex % OriginalSize];
+			IndexData.Add(Byte);
+		}
+	}
 
 	FSHA1::HashBuffer(IndexData.GetData(), IndexData.Num(), Info.IndexHash);
+
+	if (Info.bEncryptedIndex)
+	{
+		UE_LOG(LogPakFile, Display, TEXT("Encrypting index..."));
+		FAES::EncryptData(IndexData.GetData(), IndexData.Num(), GAESKeyANSI);
+	}
+
+	PakFileHandle->Serialize(IndexData.GetData(), IndexData.Num());
+
 	Info.IndexSize = IndexData.Num();
 
 	// Save trailer (offset, size, hash value)
@@ -1806,6 +1840,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		UE_LOG(LogPakFile, Error, TEXT("    -enginedir (specify engine dir for when using ini encryption configs)"));
 		UE_LOG(LogPakFile, Error, TEXT("    -projectdir (specify project dir for when using ini encryption configs)"));
 		UE_LOG(LogPakFile, Error, TEXT("    -encryptionini (specify ini base name to gather encryption settings from)"));
+		UE_LOG(LogPakFile, Error, TEXT("    -encryptindex (encrypt the pak file index, making it unusable in unrealpak without supplying the key)"));
 		return 1;
 	}
 
@@ -1843,13 +1878,13 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 			FParse::Value(FCommandLine::Get(), TEXT("SizeFilter="), SizeFilter);
 
 			FString PakFilename = GetPakPath(ArgV[1], false);
-			Result = ListFilesInPak(*PakFilename, SizeFilter);
+			Result = ListFilesInPak(*PakFilename, SizeFilter) ? 0 : 1;
 		}
 		else if (FParse::Param(FCommandLine::Get(), TEXT("Diff")))
 		{
 			FString PakFilename1 = GetPakPath(ArgV[1], false);
 			FString PakFilename2 = GetPakPath(ArgV[2], false);
-			Result = DiffFilesInPaks(*PakFilename1, *PakFilename2);
+			Result = DiffFilesInPaks(*PakFilename1, *PakFilename2) ? 0 : 1;
 		}
 		else if (FParse::Param(FCommandLine::Get(), TEXT("Extract")))
 		{

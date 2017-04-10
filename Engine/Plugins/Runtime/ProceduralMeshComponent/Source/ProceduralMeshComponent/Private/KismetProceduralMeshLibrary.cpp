@@ -5,6 +5,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "ProceduralMeshComponentPluginPrivate.h"
 #include "StaticMeshResources.h"
+#include "Engine/StaticMesh.h"
 #include "GeomTools.h"
 
 #include "Logging/TokenizedMessage.h"

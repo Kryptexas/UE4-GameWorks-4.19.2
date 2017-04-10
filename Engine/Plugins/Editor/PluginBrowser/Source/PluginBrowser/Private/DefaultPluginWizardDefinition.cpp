@@ -80,6 +80,11 @@ bool FDefaultPluginWizardDefinition::HasValidTemplateSelection() const
 	return CurrentTemplateDefinition.IsValid();
 }
 
+void FDefaultPluginWizardDefinition::ClearTemplateSelection()
+{
+	CurrentTemplateDefinition.Reset();
+}
+
 bool FDefaultPluginWizardDefinition::AllowsEnginePlugins() const
 {
 	// Don't show the option to make an engine plugin in installed builds
@@ -89,6 +94,13 @@ bool FDefaultPluginWizardDefinition::AllowsEnginePlugins() const
 bool FDefaultPluginWizardDefinition::CanContainContent() const
 {
 	return CurrentTemplateDefinition.IsValid() ? CurrentTemplateDefinition->bCanContainContent : false;
+}
+
+bool FDefaultPluginWizardDefinition::HasModules() const
+{
+	FString SourceFolderPath = GetPluginFolderPath() / TEXT("Source");
+	
+	return FPaths::DirectoryExists(SourceFolderPath);
 }
 
 bool FDefaultPluginWizardDefinition::IsMod() const
@@ -146,7 +158,23 @@ bool FDefaultPluginWizardDefinition::GetTemplateIconPath(TSharedRef<FPluginTempl
 	return bRequiresDefaultIcon;
 }
 
-FString FDefaultPluginWizardDefinition::GetFolderForSelection() const
+TArray<FString> FDefaultPluginWizardDefinition::GetFoldersForSelection() const
+{
+	TArray<FString> SelectedFolders;
+
+	if (CurrentTemplateDefinition.IsValid())
+	{
+		SelectedFolders.Add(GetFolderForTemplate(CurrentTemplateDefinition.ToSharedRef()));
+	}
+
+	return SelectedFolders;
+}
+
+void FDefaultPluginWizardDefinition::PluginCreated(const FString& PluginName, bool bWasSuccessful) const
+{
+}
+
+FString FDefaultPluginWizardDefinition::GetPluginFolderPath() const
 {
 	return GetFolderForTemplate(CurrentTemplateDefinition.ToSharedRef());
 }

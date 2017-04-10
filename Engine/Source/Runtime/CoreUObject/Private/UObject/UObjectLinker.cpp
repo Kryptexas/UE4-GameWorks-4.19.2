@@ -112,7 +112,10 @@ void UObject::SetLinker( FLinkerLoad* LinkerLoad, int32 LinkerIndex, bool bShoul
 	{
 		bShouldDetachExisting = false; // no change so don't call notify
 	}
-	LinkerAnnotation.AddAnnotation(this,FLinkerIndexPair(LinkerLoad,LinkerIndex));
+	if (Existing.Linker != LinkerLoad || Existing.LinkerIndex != LinkerIndex)
+	{
+		LinkerAnnotation.AddAnnotation(this, FLinkerIndexPair(LinkerLoad, LinkerIndex));
+	}
 	if (bShouldDetachExisting)
 	{
 #if WITH_EDITOR

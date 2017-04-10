@@ -55,10 +55,6 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 
-	//~ Begin UObject Interface
-	virtual void BeginDestroy() override;
-	//~ End UObject Interface
-
 	//~ Begin UPrimitiveComponent Interface
 	virtual int32 GetNumMaterials() const override;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;

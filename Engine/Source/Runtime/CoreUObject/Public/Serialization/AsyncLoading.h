@@ -837,12 +837,6 @@ private:
 	 */
 	EAsyncPackageState::Type PreLoadObjects();
 	/**
-	* Preloads aka serializes all loaded objects for the new async IO.
-	*
-	* @return true if we finished serializing all loaded objects, false otherwise.
-	*/
-	EAsyncPackageState::Type PreLoadObjectsForNewAsyncIO();
-	/**
 	 * Route PostLoad to all loaded objects. This might load further objects!
 	 *
 	 * @return true if we finished calling PostLoad on all loaded objects and no new ones were created, false otherwise

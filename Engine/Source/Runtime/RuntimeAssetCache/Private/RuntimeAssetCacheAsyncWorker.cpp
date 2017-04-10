@@ -73,7 +73,7 @@ void FRuntimeAssetCacheAsyncWorker::DoWork()
 	/* Entry found. */
 	if (Metadata
 		/* But was saved with older builder version. */
-		&& CacheBuilder->CachedAssetVersionIsUpToDate(Metadata->GetCachedAssetVersion()))
+		&& !CacheBuilder->CachedAssetVersionIsUpToDate(Metadata->GetCachedAssetVersion()))
 	{
 		/* Pretend entry wasn't found, so it gets rebuilt. */
 		FRuntimeAssetCacheBucketScopeLock Guard(*CurrentBucket);

@@ -2,6 +2,7 @@
 
 #include "NiagaraMeshRendererProperties.h"
 #include "NiagaraEffectRendererMeshes.h"
+#include "Engine/StaticMesh.h"
 
 UNiagaraMeshRendererProperties::UNiagaraMeshRendererProperties()
 	: ParticleMesh(nullptr)

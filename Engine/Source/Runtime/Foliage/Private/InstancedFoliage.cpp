@@ -39,6 +39,7 @@ InstancedFoliage.cpp: Instanced foliage implementation.
 #include "ProceduralFoliageVolume.h"
 #include "EngineUtils.h"
 #include "EngineGlobals.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 

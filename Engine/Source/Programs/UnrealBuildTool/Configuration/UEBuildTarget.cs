@@ -2424,7 +2424,7 @@ namespace UnrealBuildTool
 					{
 						OutputFilePath = OutputFilePath.Substring(0, OutputFilePath.LastIndexOf(".app/Contents/MacOS") + 4);
 					}
-					string EnginePath = Utils.CleanDirectorySeparators(ExecutableBinary.Config.OutputFilePath.Directory.MakeRelativeTo(UnrealBuildTool.EngineDirectory), '/');
+					string EnginePath = Utils.CleanDirectorySeparators(UnrealBuildTool.EngineDirectory.MakeRelativeTo(ExecutableBinary.Config.OutputFilePath.Directory), '/');
 					if (EnginePath.EndsWith("/") == false)
 					{
 						EnginePath += "/";

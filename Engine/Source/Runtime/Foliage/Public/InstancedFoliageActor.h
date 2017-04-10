@@ -9,6 +9,7 @@
 #include "GameFramework/Actor.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "FoliageInstanceBase.h"
+#include "InstancedFoliage.h"
 
 #include "InstancedFoliageActor.generated.h"
 

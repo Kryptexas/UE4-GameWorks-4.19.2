@@ -56,9 +56,6 @@ enum class ETargetPlatformFeatures
 	/** The platform uses the deferred pipeline, typically PC/Console platforms */
 	DeferredRendering,
 
-	/** Should use compressed cooked packages */
-	ShouldUseCompressedCookedPackages, 
-
 	/* Should split paks into smaller sized paks */
 	ShouldSplitPaksIntoSmallerSizes,
 };

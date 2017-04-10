@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
 #include "Components/TimelineComponent.h"
+#include "Engine/Blueprint.h"
 #include "TimelineTemplate.generated.h"
 
 USTRUCT()

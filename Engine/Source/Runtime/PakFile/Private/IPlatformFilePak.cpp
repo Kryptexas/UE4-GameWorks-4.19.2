@@ -6,7 +6,6 @@
 #include "Misc/CommandLine.h"
 #include "Async/AsyncWork.h"
 #include "Serialization/MemoryReader.h"
-#include "HAL/IOBase.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
@@ -84,7 +83,7 @@ inline void DecryptData(uint8* InData, uint32 InDataSize)
 {
 	SCOPE_SECONDS_ACCUMULATOR(STAT_PakCache_DecryptTime);
 	const ANSICHAR* Key = FPakPlatformFile::GetPakEncryptionKey();
-	check(Key);
+	checkf(Key, TEXT("AES decryption has been requested, but no valid encryption key was available"));
 	FAES::DecryptData(InData, InDataSize, Key);
 }
 
@@ -1904,6 +1903,7 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 
 		if (Block.InRequestRefCount == 0 || bWasCanceled)
 		{
+			FMemory::Free(Memory);
 			ClearBlock(Block);
 		}
 		else
@@ -3267,7 +3267,7 @@ void FAsyncIOCPUWorkTask::DoTask(ENamedThreads::Type CurrentThread, const FGraph
 
 IAsyncReadFileHandle* FPakPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 {
-	check(GConfig && GNewAsyncIO);
+	check(GConfig);
 #if USE_PAK_PRECACHE
 	if (FPlatformProcess::SupportsMultithreading() && GPakCache_Enable > 0)
 	{
@@ -3612,6 +3612,7 @@ void FPakFile::Initialize(FArchive* Reader)
 		Info.Serialize(*Reader);
 		UE_CLOG(Info.Magic != FPakInfo::PakFile_Magic, LogPakFile, Fatal, TEXT("Trailing magic number (%ud) in '%s' is different than the expected one. Verify your installation."), Info.Magic, *PakFilename);
 		UE_CLOG(!(Info.Version >= FPakInfo::PakFile_Version_Initial && Info.Version <= FPakInfo::PakFile_Version_Latest), LogPakFile, Fatal, TEXT("Invalid pak file version (%d) in '%s'. Verify your installation."), Info.Version, *PakFilename);
+		UE_CLOG((Info.bEncryptedIndex == 1) && (FPakPlatformFile::GetPakEncryptionKey() == nullptr), LogPakFile, Fatal, TEXT("Index of pak file '%s' is encrypted, but this executable doesn't have any valid decryption keys"), *PakFilename);
 
 		LoadIndex(Reader);
 		// LoadIndex should crash in case of an error, so just assume everything is ok if we got here.
@@ -3638,6 +3639,12 @@ void FPakFile::LoadIndex(FArchive* Reader)
 		IndexData.AddUninitialized(Info.IndexSize);
 		Reader->Serialize(IndexData.GetData(), Info.IndexSize);
 		FMemoryReader IndexReader(IndexData);
+
+		// Decrypt if necessary
+		if (Info.bEncryptedIndex)
+		{
+			DecryptData(IndexData.GetData(), Info.IndexSize);
+		}
 
 		// Check SHA1 value.
 		uint8 IndexHash[20];
@@ -3919,21 +3926,8 @@ FPakPlatformFile::~FPakPlatformFile()
 	FCoreDelegates::OnUnmountPak.Unbind();
 
 #if USE_PAK_PRECACHE
-	if (GNewAsyncIO)
-	{
-		FPakPrecacher::Shutdown();
-	}
+	FPakPrecacher::Shutdown();
 #endif
-	if (!GNewAsyncIO)
-	{
-		// We need to flush async IO... if it hasn't been shut down already.
-		if (FIOSystem::HasShutdown() == false)
-		{
-			FIOSystem& IOSystem = FIOSystem::Get();
-			IOSystem.BlockTillAllRequestsFinishedAndFlushHandles();
-		}
-	}
-
 	{
 		FScopeLock ScopedLock(&PakListCritical);
 		for (int32 PakFileIndex = 0; PakFileIndex < PakFiles.Num(); PakFileIndex++)
@@ -4139,7 +4133,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 void FPakPlatformFile::InitializeNewAsyncIO()
 {
 #if USE_PAK_PRECACHE 
-	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading() && GNewAsyncIO && !FParse::Param(FCommandLine::Get(), TEXT("FileOpenLog")))
+	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading() &&  !FParse::Param(FCommandLine::Get(), TEXT("FileOpenLog")))
 	{
 		FEncryptionKey DecryptionKey;
 		FString PakSigningKeyExponent, PakSigningKeyModulus;

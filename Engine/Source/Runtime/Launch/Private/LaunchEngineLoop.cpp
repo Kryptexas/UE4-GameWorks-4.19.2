@@ -36,7 +36,6 @@
 #include "Interfaces/IProjectManager.h"
 #include "Misc/UProjectInfo.h"
 #include "Misc/EngineVersion.h"
-#include "HAL/IOBase.h"
 
 #include "Misc/CoreDelegates.h"
 #include "Modules/ModuleManager.h"
@@ -244,6 +243,11 @@ public:
 
 	virtual ~FOutputDeviceStdOutput()
 	{
+	}
+
+	virtual bool CanBeUsedOnAnyThread() const override
+	{
+		return true;
 	}
 
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
@@ -1380,13 +1384,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 	
 #if WITH_COREUOBJECT
-	GNewAsyncIO = IsEventDrivenLoaderEnabled();
 	FPlatformFileManager::Get().InitializeNewAsyncIO();
 #endif
 
 	if (FPlatformProcess::SupportsMultithreading())
 	{
-		if (GNewAsyncIO)
 		{
 			GIOThreadPool = FQueuedThreadPool::Allocate();
 			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfIOWorkerThreadsToSpawn();
@@ -1544,11 +1546,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (!GScopedStdOut && !bHasEditorToken && !bIsRegularClient && !IsRunningDedicatedServer())
 	{
 		InitializeStdOutDevice();
-	}
-
-	if (!GNewAsyncIO)
-	{
-		FIOSystem::Get(); // force it to be created if it isn't already
 	}
 
 	// allow the platform to start up any features it may need
@@ -2734,12 +2731,8 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 	IStreamingManager::Shutdown();
-	if (!GNewAsyncIO)
-	{
-		FIOSystem::Shutdown();
-	}
 
-FPlatformMisc::ShutdownTaggedStorage();
+	FPlatformMisc::ShutdownTaggedStorage();
 }
 
 

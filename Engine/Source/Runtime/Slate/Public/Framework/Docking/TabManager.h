@@ -578,6 +578,16 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 			return MakeShareable( new FSplitter() );
 		}
 
+		static void RegisterDefaultTabWindowSize(const FTabId& TabName, const FVector2D DefaultSize)
+		{
+			DefaultTabWindowSizeMap.Add(TabName, DefaultSize);
+		}
+
+		static void UnregisterDefaultTabWindowSize(const FTabId& TabName)
+		{
+			DefaultTabWindowSizeMap.Remove(TabName);
+		}
+
 		void SetOnPersistLayout( const FOnPersistLayout& InHandler );
 
 		/** Close all live areas and wipe all the persisted areas. */
@@ -806,6 +816,12 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		/** The fallback size for a window */
 		const static FVector2D FallbackWindowSize;
+
+		/** Default tab window sizes for newly-created tabs */
+		static TMap<FTabId, FVector2D> DefaultTabWindowSizeMap;
+
+		/** Returns the default window size for the TabId, or the fallback window size if it wasn't registered */
+		static FVector2D GetDefaultTabWindowSize(const FTabId& TabId);
 
 		/**
 		 * Defensive: True when we are saving the visual state.

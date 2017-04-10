@@ -12,6 +12,7 @@
 #include "Settings/ProjectPackagingSettings.h"
 #include "FileHelpers.h"
 #include "RedirectCollector.h"
+#include "Editor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateDistillFileSetsCommandlet, Log, All);
 
@@ -51,6 +52,8 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 		}
 	}
 
+	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+
 	if ( MapList.Num() <= 0 )
 	{
 		// No map tokens were supplied on the command line, so assume all maps
@@ -84,6 +87,19 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 					UE_LOG(LogGenerateDistillFileSetsCommandlet, Warning, TEXT("Failed to determine package name for map file %s."), *Filename);
 				}
 			}
+		}
+	}
+	else
+	{
+		// Add the default map section
+		TArray<FString> AlwaysCookMapList;
+		GEditor->LoadMapListFromIni(TEXT("AlwaysCookMaps"), AlwaysCookMapList);
+		MapList.Append(AlwaysCookMapList);
+
+		// Add Maps to cook from project packaging settings if any exist
+		for (const FFilePath& MapToCook : PackagingSettings->MapsToCook)
+		{
+			MapList.AddUnique(MapToCook.FilePath);
 		}
 	}
 	
@@ -236,7 +252,6 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 
 	// Add assets from additional directories to always cook
 	const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
-	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 	for (const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 	{
 		FString DirectoryPath = AbsoluteGameContentDir / DirToCook.Path;

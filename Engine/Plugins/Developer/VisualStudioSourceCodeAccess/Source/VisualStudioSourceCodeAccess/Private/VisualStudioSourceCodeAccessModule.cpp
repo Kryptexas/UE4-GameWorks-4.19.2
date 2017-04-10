@@ -21,7 +21,6 @@ void FVisualStudioSourceCodeAccessModule::StartupModule()
 	// from the solution on disk.
 	RegisterWrapper("VisualStudio2017", LOCTEXT("VisualStudio2017", "Visual Studio 2017"), LOCTEXT("UsingVisualStudio2017", "Open source code files in Visual Studio 2017"));
 	RegisterWrapper("VisualStudio2015", LOCTEXT("VisualStudio2015", "Visual Studio 2015"), LOCTEXT("UsingVisualStudio2015", "Open source code files in Visual Studio 2015"));
-	RegisterWrapper("VisualStudio2013", LOCTEXT("VisualStudio2013", "Visual Studio 2013"), LOCTEXT("UsingVisualStudio2013", "Open source code files in Visual Studio 2013"));
 
 	// Bind our source control provider to the editor
 	IModularFeatures::Get().RegisterModularFeature(TEXT("SourceCodeAccessor"), &VisualStudioSourceCodeAccessor.Get() );

@@ -154,6 +154,17 @@ public:
 	TEnumAsByte<enum ESceneDepthPriorityGroup> ViewOwnerDepthPriorityGroup;
 
 public:
+
+	/** Whether this primitive is referenced by a FLevelTextureManager  */
+	mutable uint32 bAttachedToStreamingManagerAsStatic : 1;
+	/** Whether this primitive is referenced by a FDynamicTextureInstanceManager */
+	mutable uint32 bAttachedToStreamingManagerAsDynamic : 1;
+	/** Whether this primitive is handled as dynamic, although it could have no references */
+	mutable uint32 bHandledByStreamingManagerAsDynamic : 1;
+
+	/** Whether this primitive is referenced by the streaming manager and should sent callbacks when detached or destroyed */
+	FORCEINLINE bool IsAttachedToStreamingManager() const { return !!(bAttachedToStreamingManagerAsStatic | bAttachedToStreamingManagerAsDynamic); }
+	
 	/** 
 	 * Indicates if we'd like to create physics state all the time (for collision and simulation). 
 	 * If you set this to false, it still will create physics state if collision or simulation activated. 

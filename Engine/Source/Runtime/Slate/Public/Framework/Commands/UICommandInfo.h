@@ -191,6 +191,9 @@ public:
 	/** Utility function to make an FUICommandInfo */
 	static void MakeCommandInfo( const TSharedRef<class FBindingContext>& InContext, TSharedPtr< FUICommandInfo >& OutCommand, const FName InCommandName, const FText& InCommandLabel, const FText& InCommandDesc, const FSlateIcon& InIcon, const EUserInterfaceActionType::Type InUserInterfaceType, const FInputChord& InDefaultChord );
 
+	/** Utility function to unregister an FUICommandInfo */
+	static void UnregisterCommandInfo(const TSharedRef<class FBindingContext>& InContext, const TSharedRef<FUICommandInfo>& InCommand);
+
 	/** @return The display label for this command */
 	const FText& GetLabel() const { return Label; }
 

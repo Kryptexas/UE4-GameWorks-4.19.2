@@ -136,12 +136,9 @@ void FPlatformFileManager::InitializeNewAsyncIO()
 		}
 	}
 	// Make sure all platform wrappers know about new async IO and EDL
-	if (GNewAsyncIO)
+	for (IPlatformFile* ChainElement = TopmostPlatformFile; ChainElement; ChainElement = ChainElement->GetLowerLevel())
 	{
-		for (IPlatformFile* ChainElement = TopmostPlatformFile; ChainElement; ChainElement = ChainElement->GetLowerLevel())
-		{
-			ChainElement->InitializeNewAsyncIO();
-		}
+		ChainElement->InitializeNewAsyncIO();
 	}
 }
 

@@ -46,9 +46,6 @@ enum ECompressionFlags
 
 struct FCompression
 {
-	/** Maximum allowed size of an uncompressed buffer passed to CompressMemory or UncompressMemory. */
-	const static uint32 MaxUncompressedSize = 256 * 1024;
-
 	/** Time spent compressing data in seconds. */
 	CORE_API static double CompressorTime;
 	/** Number of bytes before compression.		*/

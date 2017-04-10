@@ -2446,9 +2446,17 @@ void UMaterial::Serialize(FArchive& Ar)
 
 	Super::Serialize(Ar);
 
-	if (FPlatformProperties::RequiresCookedData() && Ar.IsLoading())
+	if(Ar.IsLoading())
 	{
-		Expressions.Remove(nullptr);
+#if WITH_EDITOR
+		bool bCooked = FPlatformProperties::RequiresCookedData() || GetOutermost()->bIsCookedForEditor;
+#else
+		bool bCooked = FPlatformProperties::RequiresCookedData();
+#endif
+		if (bCooked)
+		{
+			Expressions.Remove(nullptr);
+		}
 	}
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)

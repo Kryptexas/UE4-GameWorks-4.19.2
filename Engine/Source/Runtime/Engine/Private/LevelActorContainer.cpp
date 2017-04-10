@@ -10,6 +10,7 @@ Level.cpp: Level-related functions
 #include "UObject/FastReferenceCollector.h"
 #include "UObject/UObjectArray.h"
 #include "UObject/Package.h"
+#include "UObject/UObjectClusters.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelActorContainer, Log, All);
 
@@ -156,15 +157,14 @@ public:
 
 	FORCENOINLINE bool CanAddToCluster(UObject* Object)
 	{
-		UPackage* Package = Object->GetOutermost();
-		if (Package->ContainsMap() && Package != ParentLevelPackage)
+		if (!Object->IsIn(ParentLevelPackage))
 		{
-			// Can't reference anything from other levels
+			// No external references are allowed in level clusters
 			return false;
 		}
-		if (Object->IsIn(ParentLevelPackage) && !Object->IsIn(ParentLevel))
+		else if (!Object->IsIn(ParentLevel))
 		{
-			// If the object is in the same package but is not in the level we don't want it.
+			// If the object is in the same package but is not in the level we don't want it either.
 			return false;
 		}
 		if (Object->IsA(ULevel::StaticClass()) || Object->IsA(UWorld::StaticClass()))
@@ -188,7 +188,9 @@ public:
 	{
 		// If we haven't finished loading, we can't be sure we know all the references
 		check(!Obj->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad));
-		if (ObjectIndex != ClusterRootIndex && ObjectItem->GetOwnerIndex() == 0 && !ObjectItem->IsRootSet() && !GUObjectArray.IsDisregardForGC(Obj) && Obj->CanBeInCluster())
+		check(ObjectItem->GetOwnerIndex() == 0 || ObjectItem->GetOwnerIndex() == ClusterRootIndex || ObjectIndex == ClusterRootIndex);
+		check(Obj->CanBeInCluster());
+		if (ObjectIndex != ClusterRootIndex && ObjectItem->GetOwnerIndex() == 0 && !GUObjectArray.IsDisregardForGC(Obj))
 		{
 			ObjectsToSerialize.Add(Obj);
 			check(!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
@@ -200,8 +202,7 @@ public:
 				UObject* ObjOuter = Obj->GetOuter();
 				if (CanAddToCluster(ObjOuter))
 				{
-					int32 OuterIndex = GUObjectArray.ObjectToIndex(ObjOuter);
-					AddObjectToCluster(OuterIndex, GUObjectArray.IndexToObjectUnsafeForGC(OuterIndex), ObjOuter, ObjectsToSerialize, false);
+					HandleTokenStreamObjectReference(ObjectsToSerialize, Obj, ObjOuter, INDEX_NONE, true);
 				}
 				else
 				{
@@ -258,16 +259,18 @@ public:
 						Cluster.MutableObjects.AddUnique(OtherClusterReferencedMutableObjectIndex);
 					}
 				}
-				else if (ObjectItem->GetOwnerIndex() == 0 && !ObjectItem->IsRootSet() && !GUObjectArray.IsDisregardForGC(Object) &&
-					!(Object->CanBeClusterRoot() && Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))) // Objects that can create clusters themselves and haven't been postloaded yet should be excluded
+				else if (!GUObjectArray.IsDisregardForGC(Object)) // Objects that can create clusters themselves and haven't been postloaded yet should be excluded
 				{
+					check(ObjectItem->GetOwnerIndex() == 0);
+
 					// New object, add it to the cluster.
-					if (CanAddToCluster(Object))
+					if (CanAddToCluster(Object) && !Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
 					{
 						AddObjectToCluster(GUObjectArray.ObjectToIndex(Object), ObjectItem, Object, ObjectsToSerialize, true);
 					}
 					else
 					{
+						checkf(!Object->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad), TEXT("%s is being added to cluster but hasn't finished loading yet"), *Object->GetFullName());
 						Cluster.MutableObjects.AddUnique(GUObjectArray.ObjectToIndex(Object));
 					}
 				}
@@ -353,13 +356,17 @@ void ULevelActorContainer::CreateCluster()
 
 		UE_LOG(LogLevelActorContainer, Log, TEXT("Created LevelActorCluster (%d) for %s with %d objects, %d referenced clusters and %d mutable objects."),
 			ClusterIndex, *GetOuter()->GetPathName(), Cluster.Objects.Num(), Cluster.ReferencedClusters.Num(), Cluster.MutableObjects.Num());
+
+#if UE_GCCLUSTER_VERBOSE_LOGGING
+		DumpClusterToLog(Cluster, true, false);
+#endif
 	}
 	else
 	{
 		check(RootItem->GetOwnerIndex() == 0);
 		RootItem->SetClusterIndex(ClusterIndex);
 		GUObjectClusters.FreeCluster(ClusterIndex);
-	} 
+	}
 }
 
 void ULevelActorContainer::OnClusterMarkedAsPendingKill()

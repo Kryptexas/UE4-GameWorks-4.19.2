@@ -66,14 +66,6 @@ protected:
 
 			// Will set bRegistered to true
 			InComponent->ExecuteRegisterEvents();
-
-			// Notify the streaming system. Will only update the component data if it's already tracked.
-			// @todo make virtual in ActorComponent to avoid cast here?
-			const UPrimitiveComponent* Primitive = Cast<const UPrimitiveComponent>(InComponent);
-			if ( Primitive )
-			{
-				IStreamingManager::Get().NotifyPrimitiveUpdated( Primitive );
-			}
 		}
 	}
 };

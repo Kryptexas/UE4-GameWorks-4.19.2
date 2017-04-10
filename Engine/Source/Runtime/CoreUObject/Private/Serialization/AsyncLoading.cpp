@@ -12,7 +12,6 @@
 #include "Misc/ScopeLock.h"
 #include "Stats/StatsMisc.h"
 #include "Misc/CoreStats.h"
-#include "HAL/IOBase.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/CommandLine.h"
@@ -30,7 +29,6 @@
 #include "Misc/Paths.h"
 #include "Serialization/AsyncLoadingThread.h"
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
-#include "Misc/AssetRegistryInterface.h"
 #include "ProfilingDebugging/LoadTimeTracker.h"
 #include "HAL/ThreadHeartBeat.h"
 #include "HAL/ExceptionHandling.h"
@@ -144,16 +142,6 @@ static FAutoConsoleVariableRef CVarTimeLimitExceededMinTime(
 	ECVF_Default
 	);
 
-static int32 GPreloadPackageDependencies = 0;
-static FAutoConsoleVariableRef CVarPreloadPackageDependencies(
-	TEXT("s.PreloadPackageDependencies"),
-	GPreloadPackageDependencies,
-	TEXT("Enables preloading of package dependencies based on data from the asset registry\n") \
-	TEXT("0 - Do not preload dependencies. Can cause more seeks but uses less memory [default].\n") \
-	TEXT("1 - Preload package dependencies. Faster but requires asset registry data to be loaded into memory\n"),
-	ECVF_Default
-	);
-
 static int32 GEventDrivenLoaderEnabledInCookedBuilds = 0;
 static FAutoConsoleVariableRef CVarEventDrivenLoaderEnabled(
 	TEXT("s.EventDrivenLoaderEnabled"),
@@ -167,6 +155,13 @@ static FAutoConsoleVariableRef CVar_MaxReadyRequestsToStallMB(
 	TEXT("s.MaxReadyRequestsToStallMB"),
 	GMaxReadyRequestsToStallMB,
 	TEXT("Controls the maximum amount memory for unhandled IO requests before we stall the pak precacher to let the CPU catch up (in megabytes).")
+);
+
+int32 GEditorLoadPrecacheSizeKB = 0;
+static FAutoConsoleVariableRef CVar_EditorLoadPrecacheSizeKB(
+	TEXT("s.EditorLoadPrecacheSizeKB"),
+	GEditorLoadPrecacheSizeKB,
+	TEXT("Size, in KB, to precache when loading packages in the editor.")
 );
 
 
@@ -417,7 +412,7 @@ FAsyncPackage* FAsyncLoadingThread::FindExistingPackageAndAddCompletionCallback(
 	return Result;
 }
 
-void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority, IAssetRegistryInterface* InAssetRegistry)
+void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPackage, TAsyncLoadPriority InNewPriority)
 {
 	check(!IsInGameThread() || !IsMultithreaded());
 	if (GEventDrivenLoaderEnabled)
@@ -436,34 +431,9 @@ void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPacka
 		// Reduce loading counters as InsertPackage incremented them again
 		ExistingAsyncPackagesCounter.Decrement();
 	}
-
-#if !WITH_EDITOR
-	if (InAssetRegistry)
-	{
-		TMap<FName, int32> OrderTracker;
-		int32 Order = 0;
-		ScanPackageDependenciesForLoadOrder(*InPackage->GetPackageName().ToString(), OrderTracker, Order, InAssetRegistry);
-
-		OrderTracker.ValueSort(TLess<int32>());
-
-		// should adjust the low level IO priorities here!
-
-		for (auto& Dependency : OrderTracker)
-		{
-			if (Dependency.Value < OrderTracker.Num() - 1) // we are already handling this one
-			{
-				FAsyncPackage* DependencyPackage = AsyncPackageNameLookup.FindRef(Dependency.Key);
-				if (DependencyPackage)
-				{
-					UpdateExistingPackagePriorities(DependencyPackage, InNewPriority, nullptr);
-				}
-			}
-		}
-	}
-#endif
 }
 
-void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, IAssetRegistryInterface* InAssetRegistry, FFlushTree* FlushTree)
+void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InRequest, FAsyncPackage* InRootPackage, FFlushTree* FlushTree)
 {
 	FAsyncPackage* Package = FindExistingPackageAndAddCompletionCallback(InRequest, AsyncPackageNameLookup, FlushTree);
 
@@ -471,7 +441,7 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 	{
 		// The package is already sitting in the queue. Make sure the its priority, and the priority of all its
 		// dependencies is at least as high as the priority of this request
-		UpdateExistingPackagePriorities(Package, InRequest->Priority, InAssetRegistry);
+		UpdateExistingPackagePriorities(Package, InRequest->Priority);
 	}
 	else
 	{
@@ -510,28 +480,6 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 			Package->PopulateFlushTree(FlushTree);
 		}
 
-#if !WITH_EDITOR
-		if (InAssetRegistry && !InRootPackage)
-		{
-			InRootPackage = Package;
-			TMap<FName, int32> OrderTracker;
-			int32 Order = 0;
-			ScanPackageDependenciesForLoadOrder(*InRequest->Name.ToString(), OrderTracker, Order, InAssetRegistry);
-
-			OrderTracker.ValueSort(TLess<int32>());
-			for (auto& Dependency : OrderTracker)
-			{
-				if (Dependency.Value < OrderTracker.Num() - 1) // we are already handling this one
-						{
-							QueuedPackagesCounter.Increment();
-							const int32 RequestID = GPackageRequestID.Increment();
-							FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
-					FAsyncPackageDesc DependencyPackageRequest(RequestID, Dependency.Key, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, INDEX_NONE, InRequest->Priority);
-					ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, nullptr, FlushTree);
-				}
-			}
-		}
-#endif
 		// Add to queue according to priority.
 		InsertPackage(Package, false, EAsyncPackageInsertMode::InsertAfterMatchingPriorities);
 
@@ -595,21 +543,12 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue(bool bUseTimeLimit, bool
 
 		if (QueueCopy.Num() > 0)
 		{
-			IAssetRegistryInterface* AssetRegistry = nullptr;
-
-			if (GPreloadPackageDependencies && !GEventDrivenLoaderEnabled && IsPlatformFileCompatibleWithDependencyPreloading() &&
-					// we don't want preloading of dependencies with event driven loading, we would rather find the dependencies naturally.
-				 !GEventDrivenLoaderEnabled)
-			{
-				AssetRegistry = IAssetRegistryInterface::GetPtr();
-			}
-
 			double Timer = 0;
 			{
 				SCOPE_SECONDS_COUNTER(Timer);
 				for (FAsyncPackageDesc* PackageRequest : QueueCopy)
 				{
-					ProcessAsyncPackageRequest(PackageRequest, nullptr, AssetRegistry, FlushTree);
+					ProcessAsyncPackageRequest(PackageRequest, nullptr, FlushTree);
 					delete PackageRequest;
 				}
 			}
@@ -798,10 +737,20 @@ struct FEDLBootNotificationManager
 			TArray<FName> Array;
 			FFixedBootOrder()
 			{
-				// add these in reverse order of when we want them processed
-				Array.Add("/Script/Engine/Default__SoundBase");
-				Array.Add("/Script/Engine/Default__MaterialInterface");
-				Array.Add("/Script/Engine/Default__DeviceProfileManager");
+				// look for any packages that we want to force preload at startup
+				FConfigSection* BootObjects = GConfig->GetSectionPrivate(TEXT("/Script/Engine.StreamingSettings"), false, true, GEngineIni);
+				if (BootObjects)
+				{
+					// go through list and add to the array
+					for (FConfigSectionMap::TIterator It(*BootObjects); It; ++It)
+					{
+						if (It.Key() == TEXT("FixedBootOrder"))
+						{
+							// add this package to the list to be fully loaded later
+							Array.Add(FName(*It.Value().GetValue()));
+						}
+					}
+				}
 			}
 
 		} FixedBootOrder;
@@ -4359,7 +4308,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 	} // GEventDrivenLoaderEnabled
 	else
 	{
-		bool bDepthFirst = false; // GNewAsyncIO
+		bool bDepthFirst = false;
 
 		// We need to loop as the function has to handle finish loading everything given no time limit
 		// like e.g. when called from FlushAsyncLoading.
@@ -4413,11 +4362,6 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 
 				check(!AsyncPackages.Contains(Package));
 
-			}
-			else if (!bUseTimeLimit && !FPlatformProcess::SupportsMultithreading() && !GNewAsyncIO)
-			{
-				// Tick async loading when multithreading is disabled.
-				FIOSystem::Get().TickSingleThreaded();
 			}
 
 			{ // maybe we shouldn't do this if we are already out of time?
@@ -4666,8 +4610,7 @@ FAsyncLoadingThread::FAsyncLoadingThread()
 {
 	check(!bThreadStarted);
 	// Current these two vars are always on or off together but can be made separate
-	GNewAsyncIO = IsEventDrivenLoaderEnabled();
-	GEventDrivenLoaderEnabled = GNewAsyncIO;
+	GEventDrivenLoaderEnabled = IsEventDrivenLoaderEnabled();
 
 	if (IsEventDrivenLoaderEnabled())
 	{
@@ -4691,8 +4634,7 @@ FAsyncLoadingThread::FAsyncLoadingThread()
 	AsyncLoadingTickCounter = 0;
 
 #if !IS_PROGRAM && !WITH_EDITORONLY_DATA
-	UE_LOG(LogStreaming, Display, TEXT("Async Loading initialized: New Async IO: %s, Event Driven Loader: %s, Async Loading Thread: %s"),
-		GNewAsyncIO ? TEXT("true") : TEXT("false"),
+	UE_LOG(LogStreaming, Display, TEXT("Async Loading initialized: Event Driven Loader: %s, Async Loading Thread: %s"),
 		GEventDrivenLoaderEnabled ? TEXT("true") : TEXT("false"),
 		FAsyncLoadingThread::ShouldBeMultithreaded() ? TEXT("true") : TEXT("false"));
 #endif
@@ -5206,15 +5148,6 @@ void FAsyncPackage::DetachLinker()
  */
 bool FAsyncPackage::GiveUpTimeSlice()
 {
-	if (!GNewAsyncIO)
-	{
-		static const bool bPlatformIsSingleThreaded = !FPlatformProcess::SupportsMultithreading();
-		if (bPlatformIsSingleThreaded)
-		{
-			FIOSystem::Get().TickSingleThreaded();
-		}
-	}
-
 	if (bUseTimeLimit && !bUseFullTimeLimit)
 	{
 		bTimeLimitExceeded = true;
@@ -5374,14 +5307,7 @@ EAsyncPackageState::Type FAsyncPackage::TickAsyncPackage(bool InbUseTimeLimit, b
 			if (LoadingState == EAsyncPackageState::Complete)
 			{
 				SCOPED_LOADTIMER(Package_PreLoadObjects);
-				if (GNewAsyncIO)
-				{
-					LoadingState = PreLoadObjectsForNewAsyncIO();
-				}
-				else
-				{
-					LoadingState = PreLoadObjects();
-				}
+				LoadingState = PreLoadObjects();
 			}
 		} // !GEventDrivenLoaderEnabled
 
@@ -5661,9 +5587,7 @@ void FAsyncPackage::AddImportDependency(const FName& PendingImport, FFlushTree* 
 		}
 	}
 
-	const bool bDepthFirst = GNewAsyncIO;
-
-	if (!bReinsert || bDepthFirst)
+	if (!bReinsert)
 	{
 		FAsyncLoadingThread::Get().InsertPackage(PackageToStream, bReinsert);
 	}
@@ -5894,7 +5818,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateMetaData()
 	if (!MetaDataIndex.IsSet())
 	{
 		checkSlow(!FPlatformProperties::RequiresCookedData());
-		MetaDataIndex = Linker->LoadMetaDataFromExportMap();
+		MetaDataIndex = Linker->LoadMetaDataFromExportMap(false);
 	}
 
 	return EAsyncPackageState::Complete;
@@ -5930,11 +5854,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateExports()
 		// Precache data and see whether it's already finished.
 		bool bReady;
 
-		FArchiveAsync2* FAA2 = nullptr;
-		if (GNewAsyncIO)
-		{
-			FAA2 = Linker->GetFArchiveAsync2Loader();
-		}
+		FArchiveAsync2* FAA2 = Linker->GetFArchiveAsync2Loader();
 		if (FAA2)
 		{
 			bReady = FAA2->Precache(Export.SerialOffset, Export.SerialSize, bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
@@ -5990,59 +5910,6 @@ void FAsyncPackage::FreeReferencedImports()
 		check(Ref.DependencyRefCount.GetValue() >= 0);
 	}
 	ReferencedImports.Empty();
-}
-
-EAsyncPackageState::Type FAsyncPackage::PreLoadObjectsForNewAsyncIO()
-{
-	SCOPED_LOADTIMER(PreLoadObjectsTime);
-	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_PreLoadObjects);
-
-	// GC can't run in here
-	FGCScopeGuard GCGuard;
-
-	TArray<UObject*>& ThreadObjLoaded = FUObjectThreadContext::Get().ObjLoaded;
-	PackageObjLoaded.Append(ThreadObjLoaded);
-	ThreadObjLoaded.Reset();
-
-	// Preload (aka serialize) the objects.
-	while (PreLoadIndex < PackageObjLoaded.Num() && !IsTimeLimitExceeded())
-	{
-		UObject* Object = PackageObjLoaded[PreLoadIndex];
-		if (Object && Object->HasAnyFlags(RF_NeedLoad))
-		{
-			FLinkerLoad* ObjectLinker = Object->GetLinker();
-			if (ObjectLinker)
-			{
-				const FObjectExport& Export = ObjectLinker->ExportMap[Object->GetLinkerIndex()];
-				FArchiveAsync2* FAA2 = ObjectLinker->GetFArchiveAsync2Loader();
-				bool bReady;
-				if (FAA2)
-				{
-					bReady = FAA2->Precache(Export.SerialOffset, Export.SerialSize, bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
-				}
-				else
-				{
-					bReady = ObjectLinker->Precache(Export.SerialOffset, Export.SerialSize);
-				}
-				if (!bReady && bUseTimeLimit)
-				{
-					UE_LOG(LogStreaming, Warning, TEXT("Detected streaming object that was not precached, will hitch %s"), *Object->GetFullName());
-				}
-				ObjectLinker->Preload(Object);
-				LastObjectWorkWasPerformedOn = Object;
-				LastTypeOfWorkPerformed = TEXT("preloading");
-
-				PackageObjLoaded.Append(ThreadObjLoaded);
-				ThreadObjLoaded.Reset();
-			}
-		}
-		PreLoadIndex++;
-	}
-
-	PackageObjLoaded.Append(ThreadObjLoaded);
-	ThreadObjLoaded.Reset();
-
-	return PreLoadIndex == PackageObjLoaded.Num() ? EAsyncPackageState::Complete : EAsyncPackageState::TimeOut;
 }
 
 EAsyncPackageState::Type FAsyncPackage::PreLoadObjects()
@@ -6299,11 +6166,6 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 			if (Linker)
 			{
 				CreateClustersFromPackage(Linker);
-				if (!GNewAsyncIO)
-				{
-					// give a hint to the IO system that we are done with this file for now
-					FIOSystem::Get().HintDoneWithFile(Linker->Filename);
-				}
 			}
 			::IsTimeLimitExceeded(InTickStartTime, bInUseTimeLimit, InOutTimeLimit, LastTypeOfWorkPerformed, LastObjectWorkWasPerformedOn);
 		}
@@ -6372,28 +6234,6 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 		// Flush linker cache now to reduce peak memory usage (5.5-10x)
 		// We shouldn't need it anyway at this point and even if something attempts to read in PostLoad, 
 		// we're just going to re-cache then.
-#if !UE_BUILD_SHIPPING
-		if (FPlatformProperties::RequiresCookedData() && GNewAsyncIO)
-		{
-			int32 TotalJunk = 0;
-			for (int32 Index = 0; Index < Linker->ExportMap.Num(); Index++)
-			{
-				if (!Linker->ExportMap[Index].Object)
-				{
-					UE_LOG(LogStreaming, Warning, TEXT("Export %d (%s) in %s was not created."), Index, *Linker->ExportMap[Index].ObjectName.ToString(), *Linker->Filename);
-					TotalJunk += Linker->ExportMap[Index].SerialSize;
-				}
-				else if (Linker->ExportMap[Index].Object->HasAnyFlags(RF_NeedLoad))
-				{
-					UE_LOG(LogStreaming, Warning, TEXT("Export %d (%s) in %s still had RF_NeedLoad."), Index, *Linker->ExportMap[Index].ObjectName.ToString(), *Linker->Filename);
-				}
-			}
-			if (TotalJunk)
-			{
-				UE_LOG(LogStreaming, Warning, TEXT("File %s had %dk of exports we never loaded."), *Linker->Filename, (TotalJunk + 1023) / 1024);
-			}
-		}
-#endif
 		Linker->FlushCache();
 	}
 
@@ -6458,7 +6298,7 @@ void FAsyncPackage::CallCompletionCallbacks(bool bInternal, EAsyncLoadingResult:
 
 void FAsyncPackage::Cancel()
 {
-	UE_CLOG(GNewAsyncIO || GEventDrivenLoaderEnabled, LogStreaming, Fatal, TEXT("FAsyncPackage::Cancel is not supported with the new loader"));
+	UE_CLOG(GEventDrivenLoaderEnabled, LogStreaming, Fatal, TEXT("FAsyncPackage::Cancel is not supported with the new loader"));
 
 	// Call any completion callbacks specified.
 	const EAsyncLoadingResult::Type Result = EAsyncLoadingResult::Canceled;
@@ -6486,11 +6326,6 @@ void FAsyncPackage::Cancel()
 	{
 		if (Linker)
 		{
-			if (!GNewAsyncIO)
-			{
-				// give a hint to the IO system that we are done with this file for now
-				FIOSystem::Get().HintDoneWithFile(Linker->Filename);
-			}
 			Linker->FlushCache();
 		}
 		LinkerRoot->ClearFlags(RF_WasLoaded);
@@ -6535,18 +6370,7 @@ int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/,
 		bOnce = true;
 		FGCObject::StaticInit(); // otherwise this thing is created during async loading, but not associated with a package
 	}
-
-#if !WITH_EDITOR
-	if (GPreloadPackageDependencies && !GEventDrivenLoaderEnabled)
-	{
-		// If dependency preloading is enabled, we need to force the asset registry module to be loaded on the game thread
-		// as it will potentiall be used on the async loading thread, which isn't allowed to load modules.
-		// We could do this at init time, but doing it here allows us to not load the module at all if preloading is
-		// disabled.l
-		IAssetRegistryInterface::GetPtr();
-	}
-#endif
-
+	
 	// The comments clearly state that it should be a package name but we also handle it being a filename as this function is not perf critical
 	// and LoadPackage handles having a filename being passed in as well.
 	FString PackageName;
@@ -6656,13 +6480,6 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 
 		FCoreDelegates::OnAsyncLoadingFlush.Broadcast();
 
-		if (!GNewAsyncIO)
-		{
-			// Disallow low priority requests like texture streaming while we are flushing streaming
-			// in order to avoid excessive seeking.
-			FIOSystem::Get().SetMinPriority(AIOP_Normal);
-		}
-
 		// Flush async loaders by not using a time limit. Needed for e.g. garbage collection.
 		UE_LOG(LogStreaming, Log,  TEXT("Flushing async loaders.") );
 		{
@@ -6691,11 +6508,6 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 
 		check(PackageID != INDEX_NONE || !IsAsyncLoading());
 
-		if (!GNewAsyncIO)
-		{
-			// Reset min priority again.
-			FIOSystem::Get().SetMinPriority(AIOP_MIN);
-		}
 	}
 }
 
@@ -6826,564 +6638,10 @@ void NotifyRegistrationComplete()
 }
 
 
-/*----------------------------------------------------------------------------
-	FArchiveAsync.
-----------------------------------------------------------------------------*/
-static uint8* MallocAsyncBuffer(const SIZE_T Size, SIZE_T& OutAllocatedSize)
-{
-	uint8* Result = nullptr;
-#if FIND_MEMORY_STOMPS
-	const SIZE_T PageSize = FPlatformMemory::GetConstants().PageSize;
-	const SIZE_T Alignment = PageSize;
-	const SIZE_T AlignedSize = (Size + Alignment - 1U) & -static_cast<int32>(Alignment);
-	const SIZE_T AllocFullPageSize = AlignedSize + (PageSize - 1) & ~(PageSize - 1U);
-	check(AllocFullPageSize >= Size);
-	OutAllocatedSize = AllocFullPageSize;
-	Result = (uint8*)FPlatformMemory::BinnedAllocFromOS(AllocFullPageSize);
-#else
-	OutAllocatedSize = Size;
-	Result = (uint8*)FMemory::Malloc(Size);
-#endif // FIND_MEMORY_STOMPS
-	return Result;
-}
-
-static void FreeAsyncBuffer(uint8* Buffer, const SIZE_T AllocatedSize)
-{
-	if (Buffer)
-	{
-#if FIND_MEMORY_STOMPS
-		FPlatformMemory::BinnedFreeToOS(Buffer, AllocatedSize);
-#else
-		FMemory::Free(Buffer);
-#endif // FIND_MEMORY_STOMPS
-	}
-}
-
-/**
- * Constructor, initializing all member variables.
- */
-FArchiveAsync::FArchiveAsync( const TCHAR* InFileName )
-	: FileName(InFileName)
-	, FileSize(INDEX_NONE)
-	, UncompressedFileSize(INDEX_NONE)
-	, BulkDataAreaSize(0)
-	, CurrentPos(0)
-	, CompressedChunks(nullptr)
-	, CurrentChunkIndex(0)
-	, CompressionFlags(COMPRESS_None)
-	, PlatformIsSinglethreaded(false)
-{
-	/** Cache FPlatformProcess::SupportsMultithreading() value as it shows up too often in profiles */
-	PlatformIsSinglethreaded = !FPlatformProcess::SupportsMultithreading();
-
-	ArIsLoading		= true;
-	ArIsPersistent	= true;
-
-	PrecacheStartPos[CURRENT]	= 0;
-	PrecacheEndPos[CURRENT]		= 0;
-	PrecacheBuffer[CURRENT]		= nullptr;
-	PrecacheBufferSize[CURRENT] = 0;
-	PrecacheBufferProtected[CURRENT] = false;
-
-	PrecacheStartPos[NEXT]		= 0;
-	PrecacheEndPos[NEXT]		= 0;
-	PrecacheBuffer[NEXT]		= nullptr;
-	PrecacheBufferSize[NEXT] = 0;
-	PrecacheBufferProtected[NEXT] = false;
-
-	// Relies on default constructor initializing to 0.
-	check( PrecacheReadStatus[CURRENT].GetValue() == 0 );
-	check( PrecacheReadStatus[NEXT].GetValue() == 0 );
-
-	// Cache file size.
-	FileSize = IFileManager::Get().FileSize( *FileName );
-	// Check whether file existed.
-	if( FileSize >= 0 )
-	{
-		// No error.
-		ArIsError	= false;
-
-		// Retrieved uncompressed file size.
-		UncompressedFileSize = INDEX_NONE;
-
-		// Package wasn't compressed so use regular file size.
-		if( UncompressedFileSize == INDEX_NONE )
-		{
-		UncompressedFileSize = FileSize;
-		}
-	}
-	else
-	{
-		// Couldn't open the file.
-		ArIsError	= true;
-	}
-}
-
-/**
- * Flushes cache and frees internal data.
- */
-void FArchiveAsync::FlushCache()
-{
-	// Wait on all outstanding requests.
-	if (PrecacheReadStatus[CURRENT].GetValue() || PrecacheReadStatus[NEXT].GetValue())
-	{
-		SCOPE_CYCLE_COUNTER(STAT_Sleep);
-#if !( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 on Windows has bugs with inlining DLL imported functions
-		FThreadIdleStats::FScopeIdle Scope;
-#endif
-		do
-		{
-			SHUTDOWN_IF_EXIT_REQUESTED;
-			FPlatformProcess::SleepNoStats(0.0f);
-		} while (PrecacheReadStatus[CURRENT].GetValue() || PrecacheReadStatus[NEXT].GetValue());
-	}
-
-	uint32 Delta = 0;
-
-	// Invalidate any precached data and free memory for current buffer.
-	Delta += PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT];
-	FreeAsyncBuffer(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT]);
-	PrecacheBuffer[CURRENT]		= nullptr;
-	PrecacheStartPos[CURRENT]	= 0;
-	PrecacheEndPos[CURRENT]		= 0;
-	PrecacheBufferSize[CURRENT] = 0;
-	PrecacheBufferProtected[CURRENT] = false;
-	
-	// Invalidate any precached data and free memory for next buffer.
-	FreeAsyncBuffer(PrecacheBuffer[NEXT], PrecacheBufferSize[NEXT]);
-	PrecacheBuffer[NEXT]		= nullptr;
-	PrecacheStartPos[NEXT]		= 0;
-	PrecacheEndPos[NEXT]		= 0;
-	PrecacheBufferSize[NEXT] = 0;
-	PrecacheBufferProtected[NEXT] = false;
-
-	Delta += PrecacheEndPos[NEXT] - PrecacheStartPos[NEXT];
-	DEC_DWORD_STAT_BY(STAT_StreamingAllocSize, Delta);
-}
-
-/**
- * Virtual destructor cleaning up internal file reader.
- */
-FArchiveAsync::~FArchiveAsync()
-{
-	// Invalidate any precached data and free memory.
-	FlushCache();
-}
-
-/**
- * Close archive and return whether there has been an error.
- *
- * @return	true if there were NO errors, false otherwise
- */
-bool FArchiveAsync::Close()
-{
-	// Invalidate any precached data and free memory.
-	FlushCache();
-	// Return true if there were NO errors, false otherwise.
-	return !ArIsError;
-}
-
-/**
- * Sets mapping from offsets/ sizes that are going to be used for seeking and serialization to what
- * is actually stored on disk. If the archive supports dealing with compression in this way it is 
- * going to return true.
- *
- * @param	InCompressedChunks	Pointer to array containing information about [un]compressed chunks
- * @param	InCompressionFlags	Flags determining compression format associated with mapping
- *
- * @return true if archive supports translating offsets & uncompressing on read, false otherwise
- */
-bool FArchiveAsync::SetCompressionMap( TArray<FCompressedChunk>* InCompressedChunks, ECompressionFlags InCompressionFlags )
-{
-	// Set chunks. A value of nullptr means to use direct reads again.
-	CompressedChunks	= InCompressedChunks;
-	CompressionFlags	= InCompressionFlags;
-	CurrentChunkIndex	= 0;
-	// Invalidate any precached data and free memory.
-	FlushCache();
-
-	// verify some assumptions
-	check(UncompressedFileSize == FileSize);
-	check(CompressedChunks->Num() > 0);
-
-	// update the uncompressed filesize (which is the end of the uncompressed last chunk)
-	FCompressedChunk& LastChunk = (*CompressedChunks)[CompressedChunks->Num() - 1];
-	UncompressedFileSize = LastChunk.UncompressedOffset + LastChunk.UncompressedSize;
-
-	BulkDataAreaSize = FileSize - (LastChunk.CompressedOffset + LastChunk.CompressedSize);
-
-	// We support translation as requested.
-	return true;
-}
-
-/**
- * Swaps current and next buffer. Relies on calling code to ensure that there are no outstanding
- * async read operations into the buffers.
- */
-void FArchiveAsync::BufferSwitcheroo()
-{
-	check( PrecacheReadStatus[CURRENT].GetValue() == 0 );
-	check( PrecacheReadStatus[NEXT].GetValue() == 0 );
-
-	// Switcheroo.
-	DEC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT]);
-	FreeAsyncBuffer(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT]);
-	PrecacheBuffer[CURRENT]		= PrecacheBuffer[NEXT];
-	PrecacheStartPos[CURRENT]	= PrecacheStartPos[NEXT];
-	PrecacheEndPos[CURRENT]		= PrecacheEndPos[NEXT];
-	PrecacheBufferSize[CURRENT] = PrecacheBufferSize[NEXT];
-	PrecacheBufferProtected[CURRENT] = PrecacheBufferProtected[NEXT];
-
-	// Next buffer is unused/ free.
-	PrecacheBuffer[NEXT]		= nullptr;
-	PrecacheStartPos[NEXT]		= 0;
-	PrecacheEndPos[NEXT]		= 0;
-	PrecacheBufferSize[NEXT] = 0;
-	PrecacheBufferProtected[NEXT] = 0;
-}
-
-/**
- * Whether the current precache buffer contains the passed in request.
- *
- * @param	RequestOffset	Offset in bytes from start of file
- * @param	RequestSize		Size in bytes requested
- *
- * @return true if buffer contains request, false othwerise
- */
-bool FArchiveAsync::PrecacheBufferContainsRequest( int64 RequestOffset, int64 RequestSize )
-{
-	// true if request is part of precached buffer.
-	if( (RequestOffset >= PrecacheStartPos[CURRENT]) 
-	&&  (RequestOffset+RequestSize <= PrecacheEndPos[CURRENT]) )
-	{
-		return true;
-	}
-	// false if it doesn't fit 100%.
-	else
-	{
-		return false;
-	}
-}
-
-/**
- * Finds and returns the compressed chunk index associated with the passed in offset.
- *
- * @param	RequestOffset	Offset in file to find associated chunk index for
- *
- * @return Index into CompressedChunks array matching this offset
- */
-int32 FArchiveAsync::FindCompressedChunkIndex( int64 RequestOffset )
-{
-	// Find base start point and size. @todo optimization: avoid full iteration
-	CurrentChunkIndex = 0;
-	while( CurrentChunkIndex < CompressedChunks->Num() )
-	{
-		const FCompressedChunk& Chunk = (*CompressedChunks)[CurrentChunkIndex];
-		// Check whether request offset is encompassed by this chunk.
-		if( Chunk.UncompressedOffset <= RequestOffset 
-		&&  Chunk.UncompressedOffset + Chunk.UncompressedSize > RequestOffset )
-		{
-			break;
-		}
-		CurrentChunkIndex++;
-	}
-	check( CurrentChunkIndex < CompressedChunks->Num() );
-	return CurrentChunkIndex;
-}
-
-/**
- * Precaches compressed chunk of passed in index using buffer at passed in index.
- *
- * @param	ChunkIndex	Index of compressed chunk
- * @param	BufferIndex	Index of buffer to precache into	
- */
-void FArchiveAsync::PrecacheCompressedChunk( int64 ChunkIndex, int64 BufferIndex )
-{
-	// Compressed chunk to request.
-	FCompressedChunk ChunkToRead = (*CompressedChunks)[ChunkIndex];
-
-	// Update start and end position...
-	{
-		DEC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[BufferIndex] - PrecacheStartPos[BufferIndex]);
-	}
-	PrecacheStartPos[BufferIndex]	= ChunkToRead.UncompressedOffset;
-	PrecacheEndPos[BufferIndex]		= ChunkToRead.UncompressedOffset + ChunkToRead.UncompressedSize;
-
-	// In theory we could use FMemory::Realloc if it had a way to signal that we don't want to copy
-	// the data (implicit realloc behavior).
-	FreeAsyncBuffer(PrecacheBuffer[BufferIndex], PrecacheBufferSize[BufferIndex]);
-	PrecacheBufferProtected[BufferIndex] = false;
-	PrecacheBuffer[BufferIndex] = MallocAsyncBuffer(PrecacheEndPos[BufferIndex] - PrecacheStartPos[BufferIndex], PrecacheBufferSize[BufferIndex]);
-	{
-		INC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[BufferIndex] - PrecacheStartPos[BufferIndex]);
-	}
-
-	// Increment read status, request load and make sure that request was possible (e.g. filename was valid).
-	check( PrecacheReadStatus[BufferIndex].GetValue() == 0 );
-	PrecacheReadStatus[BufferIndex].Increment();
-	uint64 RequestId = FIOSystem::Get().LoadCompressedData( 
-							FileName, 
-							ChunkToRead.CompressedOffset, 
-							ChunkToRead.CompressedSize, 
-							ChunkToRead.UncompressedSize, 
-							PrecacheBuffer[BufferIndex], 
-							CompressionFlags, 
-							&PrecacheReadStatus[BufferIndex],
-							AIOP_Normal);
-	check(RequestId);
-}
-
-bool FArchiveAsync::Precache( int64 RequestOffset, int64 RequestSize )
-{
-	SCOPE_CYCLE_COUNTER(STAT_FArchiveAsync_Precache);
-
-	// Check whether we're currently waiting for a read request to finish.
-	bool bFinishedReadingCurrent	= PrecacheReadStatus[CURRENT].GetValue()==0 ? true : false;
-	bool bFinishedReadingNext		= PrecacheReadStatus[NEXT].GetValue()==0 ? true : false;
-
-	// Return read status if the current request fits entirely in the precached region.
-	if( PrecacheBufferContainsRequest( RequestOffset, RequestSize ) )
-	{
-		if (!bFinishedReadingCurrent && PlatformIsSinglethreaded)
-		{
-			// Tick async loading when multithreading is disabled.
-			FIOSystem::Get().TickSingleThreaded();
-		}
-		return bFinishedReadingCurrent;
-	}
-	// We're not fitting into the precached region and we have a current read request outstanding
-	// so wait till we're done with that. This can happen if we're skipping over large blocks in
-	// the file because the object has been found in memory.
-	// @todo async: implement cancelation
-	else if( !bFinishedReadingCurrent )
-	{
-		return false;
-	}
-	// We're still in the middle of fulfilling the next read request so wait till that is done.
-	else if( !bFinishedReadingNext )
-	{
-		return false;
-	}
-	// We need to make a new read request.
-	else
-	{
-		// Compressed read. The passed in offset and size were requests into the uncompressed file and
-		// need to be translated via the CompressedChunks map first.
-		if( CompressedChunks && RequestOffset < UncompressedFileSize)
-		{
-			// Switch to next buffer.
-			BufferSwitcheroo();
-
-			// Check whether region is precached after switcheroo.
-			bool	bIsRequestCached	= PrecacheBufferContainsRequest( RequestOffset, RequestSize );
-			// Find chunk associated with request.
-			int32		RequestChunkIndex	= FindCompressedChunkIndex( RequestOffset );
-
-			// Precache chunk if it isn't already.
-			if( !bIsRequestCached )
-			{
-				PrecacheCompressedChunk( RequestChunkIndex, CURRENT );
-			}
-
-			// Precache next chunk if there is one.
-			if( RequestChunkIndex + 1 < CompressedChunks->Num() )
-			{
-				PrecacheCompressedChunk( RequestChunkIndex + 1, NEXT );
-			}
-		}
-		// Regular read.
-		else
-		{
-			// Request generic async IO system.
-			{
-				DEC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT]);
-			}
-			PrecacheStartPos[CURRENT]	= RequestOffset;
-			// We always request at least a few KByte to be read/ precached to avoid going to disk for
-			// a lot of little reads.
-			static int64 MinimumReadSize = FIOSystem::Get().MinimumReadSize();
-			checkSlow(MinimumReadSize >= 2048 && MinimumReadSize <= 1024 * 1024); // not a hard limit, but we should be loading at least a reasonable amount of data
-			PrecacheEndPos[CURRENT]		= RequestOffset + FMath::Max( RequestSize, MinimumReadSize );
-			// Ensure that we're not trying to read beyond EOF.
-			PrecacheEndPos[CURRENT]		= FMath::Min( PrecacheEndPos[CURRENT], FileSize );
-			// In theory we could use FMemory::Realloc if it had a way to signal that we don't want to copy
-			// the data (implicit realloc behavior).
-			FreeAsyncBuffer(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT]);
-			PrecacheBufferProtected[CURRENT] = false;
-			PrecacheBuffer[CURRENT] = MallocAsyncBuffer(PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT], PrecacheBufferSize[CURRENT]);
-			{
-				INC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT]);
-			}
-
-			// Increment read status, request load and make sure that request was possible (e.g. filename was valid).
-			PrecacheReadStatus[CURRENT].Increment();
-			uint64 RequestId = FIOSystem::Get().LoadData( 
-									FileName, 
-									PrecacheStartPos[CURRENT], 
-									PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT], 
-									PrecacheBuffer[CURRENT], 
-									&PrecacheReadStatus[CURRENT],
-									AIOP_Normal);
-			check(RequestId);
-		}
-
-		return false;
-	}
-}
-
-/**
- * Serializes data from archive.
- *
- * @param	Data	Pointer to serialize to
- * @param	Count	Number of bytes to read
- */
-void FArchiveAsync::Serialize(void* Data, int64 Count)
-{
-#if PLATFORM_DESKTOP
-	// Show a message box indicating, possible, corrupt data (desktop platforms only)
-	if (CurrentPos + Count > TotalSize())
-	{
-		FText ErrorMessage, ErrorCaption;
-		GConfig->GetText(TEXT("/Script/Engine.Engine"),
-			  			 TEXT("SerializationOutOfBoundsErrorMessage"),
-						 ErrorMessage,
-						 GEngineIni);
-		GConfig->GetText(TEXT("/Script/Engine.Engine"),
-			TEXT("SerializationOutOfBoundsErrorMessageCaption"),
-			ErrorCaption,
-			GEngineIni);
-
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
-	}
-#endif
-	// Ensure we aren't reading beyond the end of the file
-	checkf( CurrentPos + Count <= TotalSize(), TEXT("Seeked past end of file %s (%lld / %lld)"), *FileName, CurrentPos + Count, TotalSize() );
-
-#if LOOKING_FOR_PERF_ISSUES
-	uint32 StartCycles = 0;
-	bool	bIOBlocked	= false;
-#endif
-
-	// Make sure serialization request fits entirely in already precached region.
-	if( !PrecacheBufferContainsRequest( CurrentPos, Count ) )
-	{
-		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FArchiveAsync::Serialize.PrecacheBufferContainsRequest" ), STAT_ArchiveAsync_Serialize_PrecacheBufferContainsRequest, STATGROUP_AsyncLoad );
-
-#if LOOKING_FOR_PERF_ISSUES
-		// Keep track of time we started to block.
-		StartCycles = FPlatformTime::Cycles();
-		bIOBlocked = true;
-#endif
-
-		// Busy wait for region to be precached.
-		if (!Precache(CurrentPos, Count))
-		{
-			SCOPE_CYCLE_COUNTER(STAT_Sleep);
-#if !( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 on Windows has bugs with inlining DLL imported functions
-			FThreadIdleStats::FScopeIdle Scope;
-#endif
-			do
-			{
-				SHUTDOWN_IF_EXIT_REQUESTED;
-				if (PlatformIsSinglethreaded)
-				{
-					FIOSystem::Get().TickSingleThreaded();
-				}
-				FPlatformProcess::SleepNoStats(0.001f);
-			} while (!Precache(CurrentPos, Count));
-		}
-
-		// There shouldn't be any outstanding read requests for the main buffer at this point.
-		check( PrecacheReadStatus[CURRENT].GetValue() == 0 );
-	}
-	
-	// Make sure to wait till read request has finished before progressing. This can happen if PreCache interface
-	// is not being used for serialization.
-	if (PrecacheReadStatus[CURRENT].GetValue())
-	{
-		SCOPE_CYCLE_COUNTER(STAT_Sleep);
-#if !( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 on Windows has bugs with inlining DLL imported functions
-		FThreadIdleStats::FScopeIdle Scope;
-#endif
-		do
-		{
-			SHUTDOWN_IF_EXIT_REQUESTED;
-#if LOOKING_FOR_PERF_ISSUES
-			// Only update StartTime if we haven't already started blocking I/O above.
-			if (!bIOBlocked)
-			{
-				// Keep track of time we started to block.
-				StartCycles = FPlatformTime::Cycles();
-				bIOBlocked = true;
-			}
-#endif
-			if (PlatformIsSinglethreaded)
-			{
-				FIOSystem::Get().TickSingleThreaded();
-			}
-			FPlatformProcess::SleepNoStats(0.001f);
-		} while (PrecacheReadStatus[CURRENT].GetValue());
-	}
-#if FIND_MEMORY_STOMPS
-	if (!PrecacheBufferProtected[CURRENT])
-	{
-		if (!FPlatformMemory::PageProtect(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT], true, false))
-		{
-			UE_LOG(LogStreaming, Warning, TEXT("Unable to write protect async buffer %d for %s"), int32(CURRENT), *FileName);
-		}
-		PrecacheBufferProtected[CURRENT] = true;
-	}
-#endif // FIND_MEMORY_STOMPS
-
-	// Update stats if we were blocked.
-#if LOOKING_FOR_PERF_ISSUES
-	if( bIOBlocked )
-	{
-		const int32 BlockingCycles = int32(FPlatformTime::Cycles() - StartCycles);
-		FAsyncLoadingThread::BlockingCycles.Add( BlockingCycles );
-
-		UE_LOG(LogStreaming, Warning, TEXT("FArchiveAsync::Serialize: %5.2fms blocking on read from '%s' (Offset: %lld, Size: %lld)"), 
-			FPlatformTime::ToMilliseconds(BlockingCycles), 
-			*FileName, 
-			CurrentPos, 
-			Count );
-	}
-#endif
-
-	// Copy memory to destination.
-	FMemory::Memcpy( Data, PrecacheBuffer[CURRENT] + (CurrentPos - PrecacheStartPos[CURRENT]), Count );
-	// Serialization implicitly increases position in file.
-	CurrentPos += Count;
-}
-
-int64 FArchiveAsync::Tell()
-{
-	return CurrentPos;
-}
-
-int64 FArchiveAsync::TotalSize()
-{
-	return UncompressedFileSize + BulkDataAreaSize;
-}
-
-void FArchiveAsync::Seek( int64 InPos )
-{
-	check( InPos >= 0 && InPos <= TotalSize() );
-	CurrentPos = InPos;
-}
-
-/*----------------------------------------------------------------------------
-	End.
-----------------------------------------------------------------------------*/
-
-//@todoio Also all of the leaf-first loader can go away
-FArchiveAsync2::FArchiveAsync2(const TCHAR* InFileName
-
-	, TFunction<void()>&& InSummaryReadyCallback
-
-	)
+FArchiveAsync2::FArchiveAsync2(const TCHAR* InFileName, TFunction<void()>&& InSummaryReadyCallback)
 	: Handle(nullptr)
 	, SizeRequestPtr(nullptr)
+	, EditorPrecacheRequestPtr(nullptr)
 	, SummaryRequestPtr(nullptr)
 	, SummaryPrecacheRequestPtr(nullptr)
 	, ReadRequestPtr(nullptr)
@@ -7471,6 +6729,13 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 				SummaryRequestPtr = Handle->ReadRequest(0, Size, AIOP_Normal, &ReadCallbackFunction);
 				// I need a precache request here to keep the memory alive until I submit the header request
 				SummaryPrecacheRequestPtr = Handle->ReadRequest(0, Size, AIOP_Precache);
+#if WITH_EDITOR
+				if (FileSize > Size && GEditorLoadPrecacheSizeKB > 0)
+				{
+					const int64 MaxEditorPrecacheSize = int64(GEditorLoadPrecacheSizeKB) * 1024;
+					EditorPrecacheRequestPtr = Handle->ReadRequest(Size, FMath::Min<int64>(FileSize - Size, MaxEditorPrecacheSize), AIOP_Precache);
+				}
+#endif
 			}
 		}
 	}
@@ -7534,6 +6799,13 @@ void FArchiveAsync2::FlushCache()
 	WaitRead(); // this deals with the read request
 	CompleteCancel(); // this deals with the cancel request, important this is last because completing other things leaves cancels to process
 	FlushPrecacheBlock();
+
+	if (EditorPrecacheRequestPtr)
+	{
+		EditorPrecacheRequestPtr->WaitCompletion();
+		delete EditorPrecacheRequestPtr;
+		EditorPrecacheRequestPtr = nullptr;
+	}
 
 	if ((UE_LOG_ACTIVE(LogAsyncArchive, Verbose) 
 #if defined(ASYNC_WATCH_FILE)
@@ -8144,7 +7416,7 @@ void FArchiveAsync2::Serialize(void* Data, int64 Count)
 	}
 	if (BeforeBlockSize)
 	{
-		UE_LOG(LogAsyncArchive, Warning, TEXT("FArchiveAsync2::Serialize Backwards streaming in %s  BeforeBlockOffset = %lld   BeforeBlockOffset = %lld"), *FileName, BeforeBlockOffset, BeforeBlockOffset);
+		UE_CLOG(GEventDrivenLoaderEnabled, LogAsyncArchive, Warning, TEXT("FArchiveAsync2::Serialize Backwards streaming in %s  CurrentPos = %lld   BeforeBlockOffset = %lld"), *FileName, CurrentPos, BeforeBlockOffset);
 		LogItem(TEXT("Sync Before Block"), BeforeBlockOffset, BeforeBlockSize);
 		PrecacheInternal(BeforeBlockOffset, BeforeBlockSize);
 		WaitRead();
