@@ -19,6 +19,7 @@
 
 // Globals.
 FDynamicRHI* GDynamicRHI = NULL;
+FRHIPacemaker* GRHIPacemaker = NULL;
 
 static TAutoConsoleVariable<int32> CVarWarnOfBadDrivers(
 	TEXT("r.WarnOfBadDrivers"),

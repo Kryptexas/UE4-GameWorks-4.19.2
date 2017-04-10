@@ -695,9 +695,11 @@ FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedF
 	return new FD3D11DynamicRHI(DXGIFactory1,ChosenAdapter.MaxSupportedFeatureLevel,ChosenAdapter.AdapterIndex,ChosenDescription);
 }
 
+FDx11RHIPacemaker GDx11RHIPacemaker;
 void FD3D11DynamicRHI::Init()
 {
 	InitD3DDevice();
+	GRHIPacemaker = &GDx11RHIPacemaker;
 }
 
 void FD3D11DynamicRHI::FlushPendingLogs()

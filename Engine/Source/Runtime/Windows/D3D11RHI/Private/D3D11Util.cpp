@@ -154,9 +154,9 @@ static FString GetD3D11TextureFlagString(uint32 TextureFlags)
 
 static void TerminateOnDeviceRemoved(HRESULT D3DResult, ID3D11Device* Direct3DDevice)
 {
-	if (GDynamicRHI)
+	if (GRHIPacemaker)
 	{
-		GDynamicRHI->CheckGpuHeartbeat();
+		GRHIPacemaker->CheckGpuHeartbeat();
 	}
 
 	if (D3DResult == DXGI_ERROR_DEVICE_REMOVED)

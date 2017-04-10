@@ -790,9 +790,9 @@ void StopRenderingThread()
 void CheckRenderingThreadHealth()
 {
 	bool IsGpuAlive = true;
-	if (GDynamicRHI)
+	if (GRHIPacemaker)
 	{
-		IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();
+		IsGpuAlive = GRHIPacemaker->CheckGpuHeartbeat();
 	}
 
 	if(!GIsRenderingThreadHealthy || !IsGpuAlive)

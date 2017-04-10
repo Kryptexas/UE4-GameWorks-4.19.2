@@ -550,11 +550,6 @@ public:
 		return DXGIFactory1;
 	}
 
-	bool CheckGpuHeartbeat() const override
-	{
-		return GPUProfilingData.CheckGpuHeartbeat();
-	}
-
 private:
 	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
@@ -763,6 +758,7 @@ protected:
 	TMultiMap<ID3D11Resource*, FUnresolvedRTInfo> UnresolvedTargets;
 #endif
 
+	friend struct FDx11RHIPacemaker;
 	FD3DGPUProfiler GPUProfilingData;
 	// >= 0, was computed before, unless hardware was changed during engine init it should be the same
 	int32 ChosenAdapter;
@@ -856,6 +852,19 @@ protected:
 
 	friend struct FD3DGPUProfiler;
 
+};
+
+struct FDx11RHIPacemaker : public FRHIPacemaker
+{
+	//checks if the GPU is still alive.
+	bool CheckGpuHeartbeat() const override
+	{
+		if (GDynamicRHI)
+		{
+			return static_cast<FD3D11DynamicRHI*>(GDynamicRHI)->GPUProfilingData.CheckGpuHeartbeat();
+		}
+		return true;
+	}
 };
 
 struct FD3D11Adapter

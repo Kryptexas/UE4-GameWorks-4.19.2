@@ -1286,15 +1286,19 @@ public:
 	//Utilities
 	virtual void EnableIdealGPUCaptureOptions(bool bEnable);
 
-	//checks if the GPU is still alive.
-	virtual bool CheckGpuHeartbeat() const { return true; }
-
 	/* Copy the source box pixels in the destination box texture, return true if implemented for the current platform*/
 	virtual bool RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox) { return false; }
 };
 
+struct FRHIPacemaker
+{
+	//checks if the GPU is still alive.
+	virtual bool CheckGpuHeartbeat() const { return true; }
+};
+
 /** A global pointer to the dynamically bound RHI implementation. */
 extern RHI_API FDynamicRHI* GDynamicRHI;
+extern RHI_API FRHIPacemaker* GRHIPacemaker;
 
 FORCEINLINE FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer)
 {
