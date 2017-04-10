@@ -870,7 +870,7 @@ private:
 	/**
 	 * Fixes up the material when it was converted to the new staticmesh build process
 	 */
-	TArray<int32> CleanUpRedondantMaterialPostLoad;
+	bool CleanUpRedondantMaterialPostLoad;
 
 #endif // #if WITH_EDITOR
 };
