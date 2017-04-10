@@ -609,7 +609,9 @@ void UPrimitiveComponent::OnCreatePhysicsState()
 #if UE_WITH_PHYSICS
 			// Create the body.
 			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());		
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			SendRenderDebugPhysics();
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
@@ -684,14 +686,14 @@ void UPrimitiveComponent::OnDestroyPhysicsState()
 		BodyInstance.TermBody();
 	}
 
-#if !UE_BUILD_SHIPPING
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	SendRenderDebugPhysics();
 #endif
 
 	Super::OnDestroyPhysicsState();
 }
 
-#if !UE_BUILD_SHIPPING
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 void UPrimitiveComponent::SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideSceneProxy)
 {
 	FPrimitiveSceneProxy* UseSceneProxy = OverrideSceneProxy ? OverrideSceneProxy : SceneProxy;

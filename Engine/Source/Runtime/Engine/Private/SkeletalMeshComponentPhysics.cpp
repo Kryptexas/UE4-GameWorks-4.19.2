@@ -1261,7 +1261,9 @@ void USkeletalMeshComponent::OnCreatePhysicsState()
 	{
 		InitArticulated(GetWorld()->GetPhysicsScene());
 		USceneComponent::OnCreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		SendRenderDebugPhysics();
+#endif
 	}
 	else
 	{
@@ -1716,8 +1718,9 @@ void USkeletalMeshComponent::SetPhysicsAsset(UPhysicsAsset* InPhysicsAsset, bool
 		// Indicate that 'required bones' array will need to be recalculated.
 		bRequiredBonesUpToDate = false;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		SendRenderDebugPhysics();
-
+#endif
 	}
 }
 
