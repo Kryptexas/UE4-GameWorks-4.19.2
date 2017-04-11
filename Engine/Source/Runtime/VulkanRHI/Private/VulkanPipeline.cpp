@@ -9,6 +9,7 @@
 #include "Misc/FileHelper.h"
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
+#include "VulkanBoundShaderState.h"
 
 static const double HitchTime = 1.0 / 1000.0;
 
