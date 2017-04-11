@@ -32,6 +32,8 @@ extern int32 GMetalRuntimeDebugLevel;
 
 @synthesize InnerBuffer;
 
+APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugCommandBuffer)
+
 -(id)initWithCommandBuffer:(id<MTLCommandBuffer>)Buffer
 {
 	id Self = [super init];
@@ -151,7 +153,7 @@ extern int32 GMetalRuntimeDebugLevel;
 - (id <MTLBlitCommandEncoder>)blitCommandEncoder
 {
 	[self beginBlitCommandEncoder:DebugGroup.lastObject ? DebugGroup.lastObject : @"Blit"];
-    return [[[FMetalDebugBlitCommandEncoder alloc] initWithEncoder:[InnerBuffer blitCommandEncoder] andCommandBuffer:self] autorelease];
+	return [[[FMetalDebugBlitCommandEncoder alloc] initWithEncoder:[InnerBuffer blitCommandEncoder] andCommandBuffer:self] autorelease];
 }
 
 - (id <MTLRenderCommandEncoder>)renderCommandEncoderWithDescriptor:(MTLRenderPassDescriptor *)renderPassDescriptor

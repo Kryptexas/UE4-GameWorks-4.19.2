@@ -424,6 +424,11 @@ public:
 		return ProjNoAAMatrix;
 	}
 
+	inline const FVector2D GetTemporalAAJitter() const
+	{
+		return TemporalAAProjectionJitter;
+	}
+
 	const FMatrix ComputeViewRotationProjectionMatrix() const
 	{
 		return ViewMatrix.RemoveTranslation() * ProjectionMatrix;
@@ -587,6 +592,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevInvViewProj) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevScreenToTranslatedWorld) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ClipToPrevClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, TemporalAAJitter) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, GlobalClippingPlane) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, FieldOfViewWideAngles) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, PrevFieldOfViewWideAngles) \

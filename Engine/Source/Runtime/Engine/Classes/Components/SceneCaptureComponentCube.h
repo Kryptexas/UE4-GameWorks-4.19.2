@@ -48,5 +48,5 @@ public:
 	// For backwards compatibility
 	void UpdateContent() { CaptureSceneDeferred(); }
 
-	static void UpdateDeferredCaptures(FSceneInterface* Scene);
+	void UpdateSceneCaptureContents(FSceneInterface* Scene) override;
 };

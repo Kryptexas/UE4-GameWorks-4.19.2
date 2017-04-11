@@ -405,7 +405,7 @@ public:
 	virtual void RHIExecuteCommandList(FRHICommandList* CmdList) final override;
 	virtual void* RHIGetNativeDevice() final override;
 	virtual class IRHICommandContext* RHIGetDefaultContext() final override;
-	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override;
+	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) final override;
 
 
 
@@ -484,18 +484,6 @@ public:
 	virtual void RHIEndDrawPrimitiveUP() final override;
 	virtual void RHIBeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData) final override;
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override;
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) final override
-	{
-		RHIClear(true, Color, false, 0, false, 0);
-	}
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) final override
-	{
-		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil);
-	}
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) final override
-	{
-		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0);
-	}
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
 	virtual void RHIPopEvent() final override;
@@ -668,7 +656,6 @@ private:
 
 	void SetupUAVsForDraw(FOpenGLContextState& ContextState, const TRefCountPtr<FOpenGLComputeShader> &ComputeShader, int32 MaxUAVsNeeded);
 
-	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 public:

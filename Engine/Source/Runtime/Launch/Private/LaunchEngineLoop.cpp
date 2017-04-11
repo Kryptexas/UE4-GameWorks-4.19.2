@@ -99,6 +99,7 @@
 	#include "ShaderCompiler.h"
 	#include "DistanceFieldAtlas.h"
 	#include "GlobalShader.h"
+	#include "ShaderCodeLibrary.h"
 	#include "Materials/MaterialInterface.h"
 	#include "TextureResource.h"
 	#include "Engine/Texture2D.h"
@@ -131,6 +132,9 @@
 #endif
 
 	#include "MoviePlayer.h"
+
+	#include "ShaderCodeLibrary.h"
+	#include "ShaderCache.h"
 
 #if !UE_BUILD_SHIPPING
 	#include "STaskGraph.h"
@@ -1636,9 +1640,29 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InPackageLocalizationManager.InitializeFromCache(MakeShareable(new FEnginePackageLocalizationCache()));
 	});
 #endif	// USE_LOCALIZED_PACKAGE_CACHE
-
+	
+	
+	// Without optimisation the shader loading can be so slow we mustn't attempt to preload all the shaders at load.
+	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
+	if (CVar->GetInt() == 0)
+	{
+		FShaderCache::InitShaderCache(SCO_NoShaderPreload);
+	}
+	else
+	{
+		FShaderCache::InitShaderCache(SCO_Default);
+	}
+	
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
+	
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		// Will open material shader code storage if project was packaged with it
+		FShaderCodeLibrary::InitForRuntime(GMaxRHIShaderPlatform);
+	}
+	
+	FShaderCache::LoadBinaryCache();
 
 	if (!FPlatformProperties::RequiresCookedData())
 	{
@@ -1666,7 +1690,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			Commandline.Contains(TEXT("run=cook")) == false )
 		// if (FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")) == false)
 		{
-			CompileGlobalShaderMaps(false);
+			CompileGlobalShaderMap(false);
 			if (GetGlobalShaderMap(GMaxRHIFeatureLevel) == nullptr && GIsRequestingExit)
 			{
 				// This means we can't continue without the global shader map.
@@ -1679,7 +1703,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 		
 		CreateMoviePlayer();
-
 		// If platforms support early movie playback we have to start the rendering thread much earlier
 #if PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 		RHIPostInit();
@@ -2702,6 +2725,13 @@ void FEngineLoop::Exit()
 
 	// Stop the rendering thread.
 	StopRenderingThread();
+	
+
+	// Disable the shader cache
+	FShaderCache::ShutdownShaderCache();
+	
+	// Close shader code map, if any
+	FShaderCodeLibrary::Shutdown();
 
 	// Tear down the RHI.
 	RHIExitAndStopRHIThread();

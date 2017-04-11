@@ -30,6 +30,7 @@ public:
 		StaticShadowDepthTexture.Bind(ParameterMap, TEXT("StaticShadowDepthTexture"));
 		StaticShadowDepthTextureSampler.Bind(ParameterMap, TEXT("StaticShadowDepthTextureSampler"));
 		WorldToStaticShadowMatrix.Bind(ParameterMap, TEXT("WorldToStaticShadowMatrix"));
+		StaticShadowBufferSize.Bind(ParameterMap, TEXT("StaticShadowBufferSize"));
 	}
 
 	template<typename ShaderRHIParamRef>
@@ -123,6 +124,7 @@ public:
 		const uint32 bStaticallyShadowedValue = LightSceneInfo->IsPrecomputedLightingValid() && StaticShadowDepthMap && StaticShadowDepthMap->TextureRHI ? 1 : 0;
 		FTextureRHIParamRef StaticShadowDepthMapTexture = bStaticallyShadowedValue ? StaticShadowDepthMap->TextureRHI : GWhiteTexture->TextureRHI;
 		const FMatrix WorldToStaticShadow = bStaticallyShadowedValue ? StaticShadowDepthMap->Data->WorldToLight : FMatrix::Identity;
+		const FVector4 StaticShadowBufferSizeValue = bStaticallyShadowedValue ? FVector4(StaticShadowDepthMap->Data->ShadowMapSizeX, StaticShadowDepthMap->Data->ShadowMapSizeY, 1.0f / StaticShadowDepthMap->Data->ShadowMapSizeX, 1.0f / StaticShadowDepthMap->Data->ShadowMapSizeY) : FVector4(0, 0, 0, 0);
 
 		SetShaderValue(RHICmdList, ShaderRHI, bStaticallyShadowed, bStaticallyShadowedValue);
 
@@ -131,11 +133,12 @@ public:
 			ShaderRHI,
 			StaticShadowDepthTexture,
 			StaticShadowDepthTextureSampler,
-			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			StaticShadowDepthMapTexture
 			);
 
 		SetShaderValue(RHICmdList, ShaderRHI, WorldToStaticShadowMatrix, WorldToStaticShadow);
+		SetShaderValue(RHICmdList, ShaderRHI, StaticShadowBufferSize, StaticShadowBufferSizeValue);
 	}
 
 	/** Serializer. */ 
@@ -153,6 +156,7 @@ public:
 		Ar << P.StaticShadowDepthTexture;
 		Ar << P.StaticShadowDepthTextureSampler;
 		Ar << P.WorldToStaticShadowMatrix;
+		Ar << P.StaticShadowBufferSize;
 		return Ar;
 	}
 
@@ -170,4 +174,5 @@ private:
 	FShaderResourceParameter StaticShadowDepthTexture;
 	FShaderResourceParameter StaticShadowDepthTextureSampler;
 	FShaderParameter WorldToStaticShadowMatrix;
+	FShaderParameter StaticShadowBufferSize;
 };

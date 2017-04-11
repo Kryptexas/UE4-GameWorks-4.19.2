@@ -1060,6 +1060,12 @@ enum class EResourceTransitionAccess
 	EMaxAccess,
 };
 
+enum class EResourceAliasability
+{
+	EAliasable, // Make the resource aliasable with other resources
+	EUnaliasable, // Make the resource unaliasable with any other resources
+};
+
 class RHI_API FResourceTransitionUtility
 {
 public:
@@ -1144,6 +1150,18 @@ struct FUpdateTextureRegion3D
 	,	Width(InWidth)
 	,	Height(InHeight)
 	,	Depth(InDepth)
+	{}
+
+	FUpdateTextureRegion3D(FIntVector InDest, FIntVector InSource, FIntVector InSourceSize)
+		: DestX(InDest.X)
+		, DestY(InDest.Y)
+		, DestZ(InDest.Z)
+		, SrcX(InSource.X)
+		, SrcY(InSource.Y)
+		, SrcZ(InSource.Z)
+		, Width(InSourceSize.X)
+		, Height(InSourceSize.Y)
+		, Depth(InSourceSize.Z)
 	{}
 
 	friend FArchive& operator<<(FArchive& Ar,FUpdateTextureRegion3D& Region)
@@ -1249,13 +1267,13 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Lines drawn"),STAT_RHILines,STATGROUP_RH
 #if STATS
 	#define RHI_DRAW_CALL_INC() \
 		INC_DWORD_STAT(STAT_RHIDrawPrimitiveCalls); \
-		GNumDrawCallsRHI++;
+		FPlatformAtomics::InterlockedIncrement(&GNumDrawCallsRHI);
 
 	#define RHI_DRAW_CALL_STATS(PrimitiveType,NumPrimitives) \
 		RHI_DRAW_CALL_INC(); \
 		INC_DWORD_STAT_BY(STAT_RHITriangles,(uint32)(PrimitiveType != PT_LineList ? (NumPrimitives) : 0)); \
 		INC_DWORD_STAT_BY(STAT_RHILines,(uint32)(PrimitiveType == PT_LineList ? (NumPrimitives) : 0)); \
-		GNumPrimitivesDrawnRHI += NumPrimitives;
+		FPlatformAtomics::InterlockedAdd(&GNumPrimitivesDrawnRHI, NumPrimitives);
 #else
 	#define RHI_DRAW_CALL_INC()
 	#define RHI_DRAW_CALL_STATS(PrimitiveType,NumPrimitives)

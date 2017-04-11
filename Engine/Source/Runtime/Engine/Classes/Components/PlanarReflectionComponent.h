@@ -101,6 +101,12 @@ public:
 		OutMatrix = ProjectionWithExtraFOV[StereoIndex];
 	}
 
+	FVector4 GetScreenScaleBias(const uint32 StereoIndex) const
+	{
+		check(StereoIndex < 2);
+		return ScreenScaleBias[StereoIndex];
+	}
+
 	int32 GetPlanarReflectionId() const
 	{
 		return PlanarReflectionId;
@@ -116,6 +122,7 @@ private:
 	class FPlanarReflectionRenderTarget* RenderTarget;
 
 	FMatrix ProjectionWithExtraFOV[2];
+	FVector4 ScreenScaleBias[2];
 
 	int32 PlanarReflectionId;
 

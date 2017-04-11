@@ -91,6 +91,16 @@ static TAutoConsoleVariable<float> CVarLPVEmissiveIntensityMultiplier(
 	1.0f,
 	TEXT("Emissive intensity multiplier") );
 
+static TAutoConsoleVariable<float> CVarLPVDirectionalOcclusionDefaultDiffuse(
+	TEXT("r.LPV.DirectionalOcclusionDefaultDiffuse"), 
+	0.75f, 
+	TEXT("") );
+
+static TAutoConsoleVariable<float> CVarLPVDirectionalOcclusionDefaultSpecular(
+	TEXT("r.LPV.DirectionalOcclusionDefaultSpecular"), 
+	0.75f, 
+	TEXT("") );
+
 // ----------------------------------------------------------------------------
 
 /**
@@ -1003,11 +1013,17 @@ void FLightPropagationVolume::InitSettings(FRHICommandListImmediate& RHICmdList,
 		LpvReadUniformBufferParams.DiffuseOcclusionIntensity		= LPVSettings.LPVDiffuseOcclusionIntensity;
 		LpvReadUniformBufferParams.SpecularOcclusionIntensity		= LPVSettings.LPVSpecularOcclusionIntensity;
 
+		LpvReadUniformBufferParams.DirectionalOcclusionDefaultValue = FVector( CVarLPVDirectionalOcclusionDefaultDiffuse.GetValueOnRenderThread(), CVarLPVDirectionalOcclusionDefaultSpecular.GetValueOnRenderThread(), 0.0f );
+		LpvReadUniformBufferParams.DirectionalOcclusionFadeRange 	= LPVSettings.LPVDirectionalOcclusionFadeRange;
+		LpvReadUniformBufferParams.FadeRange = LPVSettings.LPVFadeRange;
+
 		LpvReadUniformBufferParams.mLpvGridOffset		= mGridOffset;
 		LpvReadUniformBufferParams.LpvScale				= LpvScale;
 		LpvReadUniformBufferParams.OneOverLpvScale		= OneOverLpvScale;
 		LpvReadUniformBufferParams.SpecularIntensity	= CVarLPVSpecularIntensity.GetValueOnRenderThread();
 		LpvReadUniformBufferParams.DiffuseIntensity		= CVarLPVDiffuseIntensity.GetValueOnRenderThread();
+
+		LpvReadUniformBufferParams.LpvGridOffsetSmooth  = Offset;
 
 		// Compute the bounding box
 		FVector Centre = ( FVector(mGridOffset.X, mGridOffset.Y, mGridOffset.Z ) + FVector(0.5f,0.5f,0.5f) - HalfGridRes ) * -LpvScale;

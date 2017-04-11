@@ -516,6 +516,17 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 		bPrevFrame = 1;
 	}
 	
+	FRenderingCompositeOutputRef VelocityInput;
+	if ( VelocityRT && !Context.View.bCameraCut )
+	{
+		VelocityInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(VelocityRT));
+	}
+	else
+	{
+		// No velocity, use black
+		VelocityInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSystemTextures.BlackDummy));
+	}
+	
 	if (CVarSSRCone.GetValueOnRenderThread())
 	{
 		HCBInput = Context.Graph.RegisterPass( new FRCPassPostProcessBuildHCB() );
@@ -527,6 +538,7 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 		TracePass->SetInput( ePId_Input0, SceneColorInput );
 		TracePass->SetInput( ePId_Input1, HZBInput );
 		TracePass->SetInput( ePId_Input2, HCBInput );
+		TracePass->SetInput( ePId_Input3, VelocityInput );
 
 		Context.FinalOutput = FRenderingCompositeOutputRef( TracePass );
 	}
@@ -546,18 +558,6 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 				// No history, use black
 				HistoryInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSystemTextures.BlackDummy));
 			}
-
-			FRenderingCompositeOutputRef VelocityInput;
-			if ( VelocityRT )
-			{
-				VelocityInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(VelocityRT));
-			}
-			else
-			{
-				// No velocity, use black
-				VelocityInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSystemTextures.BlackDummy));
-			}
-
 
 			FRenderingCompositePass* TemporalAAPass = Context.Graph.RegisterPass( new FRCPassPostProcessSSRTemporalAA );
 			TemporalAAPass->SetInput( ePId_Input0, Context.FinalOutput );

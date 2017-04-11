@@ -144,14 +144,15 @@ void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, 
 	}
 }
 
-void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FSceneRenderTargetItem& RenderTargetItem, const FLinearColor& ClearColor)
+template< typename T >
+inline void ClearUAV_T(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FSceneRenderTargetItem& RenderTargetItem, const T(&ClearValues)[4])
 {
 	if (auto Texture2d = RenderTargetItem.TargetableTexture->GetTexture2D())
 	{
-		TShaderMapRef<FClearTexture2DReplacementCS> ComputeShader(GetGlobalShaderMap(FeatureLevel));
+		TShaderMapRef< FClearTexture2DReplacementCS<T> > ComputeShader(GetGlobalShaderMap(FeatureLevel));
 		FComputeShaderRHIParamRef ShaderRHI = ComputeShader->GetComputeShader();
 		RHICmdList.SetComputeShader(ShaderRHI);
-		ComputeShader->SetParameters(RHICmdList, RenderTargetItem.UAV, ClearColor);
+		ComputeShader->SetParameters(RHICmdList, RenderTargetItem.UAV, ClearValues);
 		uint32 x = (Texture2d->GetSizeX() + 7) / 8;
 		uint32 y = (Texture2d->GetSizeY() + 7) / 8;
 		RHICmdList.DispatchComputeShader(x, y, 1);
@@ -159,10 +160,10 @@ void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, 
 	}
 	else if (auto Texture2dArray = RenderTargetItem.TargetableTexture->GetTexture2DArray())
 	{
-		TShaderMapRef<FClearTexture2DArrayReplacementCS> ComputeShader(GetGlobalShaderMap(FeatureLevel));
+		TShaderMapRef< FClearTexture2DArrayReplacementCS<T> > ComputeShader(GetGlobalShaderMap(FeatureLevel));
 		FComputeShaderRHIParamRef ShaderRHI = ComputeShader->GetComputeShader();
 		RHICmdList.SetComputeShader(ShaderRHI);
-		ComputeShader->SetParameters(RHICmdList, RenderTargetItem.UAV, ClearColor);
+		ComputeShader->SetParameters(RHICmdList, RenderTargetItem.UAV, ClearValues);
 		uint32 x = (Texture2dArray->GetSizeX() + 7) / 8;
 		uint32 y = (Texture2dArray->GetSizeY() + 7) / 8;
 		uint32 z = Texture2dArray->GetSizeZ();
@@ -171,10 +172,10 @@ void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, 
 	}
 	else if (auto TextureCube = RenderTargetItem.TargetableTexture->GetTextureCube())
 	{
-		TShaderMapRef<FClearTexture2DArrayReplacementCS> ComputeShader(GetGlobalShaderMap(FeatureLevel));
+		TShaderMapRef< FClearTexture2DArrayReplacementCS<T> > ComputeShader(GetGlobalShaderMap(FeatureLevel));
 		FComputeShaderRHIParamRef ShaderRHI = ComputeShader->GetComputeShader();
 		RHICmdList.SetComputeShader(ShaderRHI);
-		ComputeShader->SetParameters(RHICmdList, RenderTargetItem.UAV, ClearColor);
+		ComputeShader->SetParameters(RHICmdList, RenderTargetItem.UAV, ClearValues);
 		uint32 x = (TextureCube->GetSize() + 7) / 8;
 		uint32 y = (TextureCube->GetSize() + 7) / 8;
 		RHICmdList.DispatchComputeShader(x, y, 6);
@@ -182,10 +183,10 @@ void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, 
 	}
 	else if (auto Texture3d = RenderTargetItem.TargetableTexture->GetTexture3D())
 	{
-		TShaderMapRef<FClearVolumeReplacementCS> ComputeShader(GetGlobalShaderMap(FeatureLevel));
+		TShaderMapRef< FClearVolumeReplacementCS<T> > ComputeShader(GetGlobalShaderMap(FeatureLevel));
 		FComputeShaderRHIParamRef ShaderRHI = ComputeShader->GetComputeShader();
 		RHICmdList.SetComputeShader(ShaderRHI);
-		ComputeShader->SetParameters(RHICmdList, RenderTargetItem.UAV, ClearColor);
+		ComputeShader->SetParameters(RHICmdList, RenderTargetItem.UAV, ClearValues);
 		uint32 x = (Texture3d->GetSizeX() + 3) / 4;
 		uint32 y = (Texture3d->GetSizeY() + 3) / 4;
 		uint32 z = (Texture3d->GetSizeZ() + 3) / 4;
@@ -198,49 +199,76 @@ void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, 
 	}
 }
 
-void DrawClearQuadMRT( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil )
+void ClearTexture2DUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, FUnorderedAccessViewRHIParamRef UAV, int32 Width, int32 Height, const FLinearColor& ClearColor)
 {
-	ClearQuadSetup( RHICmdList, FeatureLevel, bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil );
+	TShaderMapRef< FClearTexture2DReplacementCS<float> > ComputeShader(GetGlobalShaderMap(FeatureLevel));
+	FComputeShaderRHIParamRef ShaderRHI = ComputeShader->GetComputeShader();
+	RHICmdList.SetComputeShader(ShaderRHI);
+	ComputeShader->SetParameters(RHICmdList, UAV, reinterpret_cast<const float(&)[4]>(ClearColor));
+	uint32 x = (Width + 7) / 8;
+	uint32 y = (Height + 7) / 8;
+	RHICmdList.DispatchComputeShader(x, y, 1);
+	ComputeShader->FinalizeParameters(RHICmdList, UAV);
+}
+
+void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FSceneRenderTargetItem& RenderTargetItem, const float(&ClearValues)[4])
+{
+	ClearUAV_T(RHICmdList, FeatureLevel, RenderTargetItem, ClearValues);
+}
+
+void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FSceneRenderTargetItem& RenderTargetItem, const uint32(&ClearValues)[4])
+{
+	ClearUAV_T(RHICmdList, FeatureLevel, RenderTargetItem, ClearValues);
+}
+
+void ClearUAV(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FSceneRenderTargetItem& RenderTargetItem, const FLinearColor& ClearColor)
+{
+	ClearUAV_T(RHICmdList, FeatureLevel, RenderTargetItem, reinterpret_cast<const float(&)[4]>(ClearColor));
+}
+
+void DrawClearQuadMRT(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
+{
+	ClearQuadSetup(RHICmdList, FeatureLevel, bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil);
 
 	// without a hole
 	FVector4 Vertices[4];
-	Vertices[0].Set( -1.0f,  1.0f, Depth, 1.0f );
-	Vertices[1].Set(  1.0f,  1.0f, Depth, 1.0f );
-	Vertices[2].Set( -1.0f, -1.0f, Depth, 1.0f );
-	Vertices[3].Set(  1.0f, -1.0f, Depth, 1.0f );
+	Vertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+	Vertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+	Vertices[2].Set(-1.0f, -1.0f, Depth, 1.0f);
+	Vertices[3].Set(1.0f, -1.0f, Depth, 1.0f);
 	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 }
 
-void DrawClearQuadMRT( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect )
+void DrawClearQuadMRT(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect)
 {
-	if(ExcludeRect.Min == FIntPoint::ZeroValue && ExcludeRect.Max == ViewSize)
+	if (ExcludeRect.Min == FIntPoint::ZeroValue && ExcludeRect.Max == ViewSize)
 	{
 		// Early out if the entire surface is excluded
 		return;
 	}
 
-	ClearQuadSetup( RHICmdList, FeatureLevel, bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil );
+	ClearQuadSetup(RHICmdList, FeatureLevel, bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil);
 
 	// Draw a fullscreen quad
-	if(ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
+	if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
 	{
 		// with a hole in it
 		FVector4 OuterVertices[4];
-		OuterVertices[0].Set( -1.0f,  1.0f, Depth, 1.0f );
-		OuterVertices[1].Set(  1.0f,  1.0f, Depth, 1.0f );
-		OuterVertices[2].Set(  1.0f, -1.0f, Depth, 1.0f );
-		OuterVertices[3].Set( -1.0f, -1.0f, Depth, 1.0f );
+		OuterVertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+		OuterVertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+		OuterVertices[2].Set(1.0f, -1.0f, Depth, 1.0f);
+		OuterVertices[3].Set(-1.0f, -1.0f, Depth, 1.0f);
 
 		float InvViewWidth = 1.0f / ViewSize.X;
 		float InvViewHeight = 1.0f / ViewSize.Y;
 		FVector4 FractionRect = FVector4(ExcludeRect.Min.X * InvViewWidth, ExcludeRect.Min.Y * InvViewHeight, (ExcludeRect.Max.X - 1) * InvViewWidth, (ExcludeRect.Max.Y - 1) * InvViewHeight);
 
 		FVector4 InnerVertices[4];
-		InnerVertices[0].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f );
-		InnerVertices[1].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f );
-		InnerVertices[2].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f );
-		InnerVertices[3].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f );
-				
+		InnerVertices[0].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
+		InnerVertices[1].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
+		InnerVertices[2].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
+		InnerVertices[3].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
+
 		FVector4 Vertices[10];
 		Vertices[0] = OuterVertices[0];
 		Vertices[1] = InnerVertices[0];
@@ -253,16 +281,16 @@ void DrawClearQuadMRT( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Featu
 		Vertices[8] = OuterVertices[0];
 		Vertices[9] = InnerVertices[0];
 
-		DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]) );
+		DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]));
 	}
 	else
 	{
 		// without a hole
 		FVector4 Vertices[4];
-		Vertices[0].Set( -1.0f,  1.0f, Depth, 1.0f );
-		Vertices[1].Set(  1.0f,  1.0f, Depth, 1.0f );
-		Vertices[2].Set( -1.0f, -1.0f, Depth, 1.0f );
-		Vertices[3].Set(  1.0f, -1.0f, Depth, 1.0f );
+		Vertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+		Vertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+		Vertices[2].Set(-1.0f, -1.0f, Depth, 1.0f);
+		Vertices[3].Set(1.0f, -1.0f, Depth, 1.0f);
 
 		DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 	}

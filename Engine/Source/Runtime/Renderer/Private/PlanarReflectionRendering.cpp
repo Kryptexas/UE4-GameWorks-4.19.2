@@ -69,7 +69,7 @@ public:
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View, ESceneRenderTargetsMode::SetTextures);
-		PlanarReflectionParameters.SetParameters(RHICmdList, ShaderRHI, ReflectionSceneProxy);
+		PlanarReflectionParameters.SetParameters(RHICmdList, ShaderRHI, View, ReflectionSceneProxy);
 
 		int32 RenderTargetSizeY = ReflectionSceneProxy->RenderTarget->GetSizeXY().Y;
 		const float KernelRadiusYValue = FMath::Clamp(ReflectionSceneProxy->PrefilterRoughness, 0.0f, 0.04f) * RenderTargetSizeY;
@@ -367,7 +367,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 		const FMatrix ComponentTransform = CaptureComponent->ComponentToWorld.ToMatrixWithScale();
 		const FPlane MirrorPlane = FPlane(ComponentTransform.TransformPosition(FVector::ZeroVector), ComponentTransform.TransformVector(FVector(0, 0, 1)));
 
-		TArray<FSceneCaptureViewInfo> ViewState;
+		TArray<FSceneCaptureViewInfo> SceneCaptureViewInfo;
 
 		for (int32 ViewIndex = 0; ViewIndex < MainSceneRenderer.Views.Num(); ++ViewIndex)
 		{
@@ -399,14 +399,14 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 			NewView.ProjectionMatrix = ProjectionMatrix;
 			NewView.StereoPass = View.StereoPass;
 
-			ViewState.Add(NewView);
+			SceneCaptureViewInfo.Add(NewView);
 		}
 		
 		FPostProcessSettings PostProcessSettings;
 
-		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, ViewState, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f);
+		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, SceneCaptureViewInfo, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f);
 
-		for (int32 ViewIndex = 0; ViewIndex < ViewState.Num(); ++ViewIndex)
+		for (int32 ViewIndex = 0; ViewIndex < SceneCaptureViewInfo.Num(); ++ViewIndex)
 		{
 			SceneRenderer->Views[ViewIndex].GlobalClippingPlane = MirrorPlane;
 			// Jitter can't be removed completely due to the clipping plane
@@ -414,18 +414,34 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 			SceneRenderer->Views[ViewIndex].bAllowTemporalJitter = false;
 			SceneRenderer->Views[ViewIndex].bRenderSceneTwoSided = CaptureComponent->bRenderSceneTwoSided;
 
-			CaptureComponent->ProjectionWithExtraFOV[ViewIndex] = ViewState[ViewIndex].ProjectionMatrix;
+			CaptureComponent->ProjectionWithExtraFOV[ViewIndex] = SceneCaptureViewInfo[ViewIndex].ProjectionMatrix;
+
+			// Calculate the vector used by shaders to convert clip space coordinates to texture space.
+			const float InvBufferSizeX = 1.0f / DesiredPlanarReflectionTextureSize.X;
+			const float InvBufferSizeY = 1.0f / DesiredPlanarReflectionTextureSize.Y;
+
+			FIntRect ViewRect = SceneRenderer->Views[ViewIndex].ViewRect;
+
+			// to bring NDC (-1..1, 1..-1) into 0..1 UV for BufferSize textures
+			const FVector4 ScreenScaleBias(
+				ViewRect.Width() * InvBufferSizeX / +2.0f,
+				ViewRect.Height() * InvBufferSizeY / (-2.0f * GProjectionSignY),
+				(ViewRect.Width() / 2.0f + ViewRect.Min.X) * InvBufferSizeX,
+				(ViewRect.Height() / 2.0f + ViewRect.Min.Y) * InvBufferSizeY
+				);
+
+			CaptureComponent->ScreenScaleBias[ViewIndex] = ScreenScaleBias;
 
 			const bool bIsStereo = MainSceneRenderer.Views[0].StereoPass != EStereoscopicPass::eSSP_FULL;
 
-			ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
-				UpdateProxyCommand,
-				FMatrix, ProjectionMatrix, ViewState[ViewIndex].ProjectionMatrix,
-				int32, ViewIndex, ViewIndex,
-				bool, bIsStereo, bIsStereo,
-				FPlanarReflectionSceneProxy*, SceneProxy, CaptureComponent->SceneProxy,
+			const FMatrix ProjectionMatrix = SceneCaptureViewInfo[ViewIndex].ProjectionMatrix;
+			FPlanarReflectionSceneProxy* SceneProxy = CaptureComponent->SceneProxy;
+
+			ENQUEUE_RENDER_COMMAND(UpdateProxyCommand)(
+				[ProjectionMatrix, ScreenScaleBias, ViewIndex, bIsStereo, SceneProxy](FRHICommandList& RHICmdList)
 				{
 					SceneProxy->ProjectionWithExtraFOV[ViewIndex] = ProjectionMatrix;
+					SceneProxy->ScreenScaleBias[ViewIndex] = ScreenScaleBias;
 					SceneProxy->bIsStereo = bIsStereo;
 				});
 		}
@@ -522,7 +538,7 @@ public:
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
-		PlanarReflectionParameters.SetParameters(RHICmdList, ShaderRHI, ReflectionSceneProxy);
+		PlanarReflectionParameters.SetParameters(RHICmdList, ShaderRHI, View, ReflectionSceneProxy);
 	}
 
 	// FShader interface.
@@ -644,7 +660,7 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 	return false;
 }
 
-void FPlanarReflectionParameters::SetParameters(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef ShaderRHI, const FPlanarReflectionSceneProxy* ReflectionSceneProxy)
+void FPlanarReflectionParameters::SetParameters(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef ShaderRHI, const FSceneView& View, const FPlanarReflectionSceneProxy* ReflectionSceneProxy)
 {
 	// Degenerate plane causes shader to branch around the reflection lookup
 	FPlane ReflectionPlaneValue(FVector4(0, 0, 0, 0));
@@ -662,7 +678,39 @@ void FPlanarReflectionParameters::SetParameters(FRHICommandList& RHICmdList, FPi
 		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters, ReflectionSceneProxy->PlanarReflectionParameters);
 		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters2, ReflectionSceneProxy->PlanarReflectionParameters2);
 		SetShaderValue(RHICmdList, ShaderRHI, IsStereoParameter, ReflectionSceneProxy->bIsStereo);
-		SetShaderValueArray(RHICmdList, ShaderRHI, ProjectionWithExtraFOV, ReflectionSceneProxy->ProjectionWithExtraFOV, 2);
+
+		// Instanced stereo needs both view's values available at once
+		if (ReflectionSceneProxy->bIsStereo || View.Family->Views.Num() == 1)
+		{
+			SetShaderValueArray(RHICmdList, ShaderRHI, ProjectionWithExtraFOV, ReflectionSceneProxy->ProjectionWithExtraFOV, 2);
+			SetShaderValueArray(RHICmdList, ShaderRHI, PlanarReflectionScreenScaleBias, ReflectionSceneProxy->ScreenScaleBias, 2);
+		}
+		else
+		{
+			int32 ViewIndex = 0;
+
+			for (int32 i = 0; i < View.Family->Views.Num(); i++)
+			{
+				if (&View == View.Family->Views[i])
+				{
+					ViewIndex = i;
+					break;
+				}
+			}
+
+			FMatrix ProjectionWithExtraFOVValue[2];
+			FVector4 ScreenScaleBiasValue[2];
+
+			// Make sure the current view's value is at index 0
+			ProjectionWithExtraFOVValue[0] = ReflectionSceneProxy->ProjectionWithExtraFOV[ViewIndex];
+			ProjectionWithExtraFOVValue[1] = FMatrix::Identity;
+
+			ScreenScaleBiasValue[0] = ReflectionSceneProxy->ScreenScaleBias[ViewIndex];
+			ScreenScaleBiasValue[1] = FVector4(0, 0, 0, 0);
+
+			SetShaderValueArray(RHICmdList, ShaderRHI, ProjectionWithExtraFOV, ProjectionWithExtraFOVValue, 2);
+			SetShaderValueArray(RHICmdList, ShaderRHI, PlanarReflectionScreenScaleBias, ScreenScaleBiasValue, 2);
+		}
 	}
 	else // Metal needs the IsStereoParameter set always otherwise the access in the shader may be invalid.
 	{

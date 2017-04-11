@@ -207,7 +207,7 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 		PlanarReflectionProxy = PrimitiveSceneInfo->CachedPlanarReflectionProxy;
 	}
 
-	PlanarReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, PlanarReflectionProxy);
+	PlanarReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, View, PlanarReflectionProxy);
 
 	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
 	FTextureRHIParamRef CubeArrayTexture = FeatureLevel >= ERHIFeatureLevel::SM5 ? GBlackCubeArrayTexture->TextureRHI : GBlackTextureCube->TextureRHI;

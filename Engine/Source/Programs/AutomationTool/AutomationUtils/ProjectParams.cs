@@ -441,6 +441,8 @@ namespace AutomationTool
 			bool? TreatNonShippingBinariesAsDebugFiles = null,
 			string Provision = null,
 			string Certificate = null,
+		    string Team = null,
+		    bool AutomaticSigning = false,
 			ParamList<string> InMapsToRebuildLightMaps = null,
 			ParamList<string> TitleID = null
 			)
@@ -677,6 +679,8 @@ namespace AutomationTool
 
 			this.Provision = ParseParamValueIfNotSpecified(Command, Provision, "provision", String.Empty, true);
 			this.Certificate = ParseParamValueIfNotSpecified(Command, Certificate, "certificate", String.Empty, true);
+			this.Team = ParseParamValueIfNotSpecified(Command, Team, "team", String.Empty, true);
+			this.AutomaticSigning = GetParamValueIfNotSpecified(Command, AutomaticSigning, this.AutomaticSigning, "AutomaticSigning");
 
 			this.ServerDevice = ParseParamValueIfNotSpecified(Command, ServerDevice, "serverdevice", this.Devices.Count > 0 ? this.Devices[0] : "");
 			this.NullRHI = GetParamValueIfNotSpecified(Command, NullRHI, this.NullRHI, "nullrhi");
@@ -1448,6 +1452,16 @@ namespace AutomationTool
 		/// Certificate to use
 		/// </summary>
 		public string Certificate = null;
+
+		/// <summary>
+		/// Team ID to use
+		/// </summary>
+		public string Team = null;
+
+		/// <summary>
+		/// true if provisioning is automatically managed
+		/// </summary>
+		public bool AutomaticSigning = false;
 
 		/// <summary>
 		/// TitleID to package

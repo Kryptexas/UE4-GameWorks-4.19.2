@@ -9,6 +9,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "IDetailCustomization.h"
+#include "ShaderFormatsPropertyDetails.h"
 
 class FMonitoredProcess;
 class IDetailLayoutBuilder;
@@ -101,6 +102,7 @@ private:
 	TSharedPtr<IPropertyHandle> DevArmV7sPropertyHandle;
 	TSharedPtr<IPropertyHandle> ShipArmV7PropertyHandle;
 	TSharedPtr<IPropertyHandle> ShipArmV7sPropertyHandle;
+	TSharedPtr<IPropertyHandle> AutomaticSigningProperty;
 
 	FString SelectedProvision;
 	FString SelectedFile;

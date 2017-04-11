@@ -132,6 +132,8 @@ return TSuper::SupportsFeature(Feature);
 				OutFormats.AddUnique(NAME_SF_METAL_MACES3_1);
 				static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
 				OutFormats.AddUnique(NAME_SF_METAL_MACES2);
+				static FName NAME_SF_METAL_MRT_MAC(TEXT("SF_METAL_MRT_MAC"));
+				OutFormats.AddUnique(NAME_SF_METAL_MRT_MAC);
 			}
 		}
 	}
@@ -160,32 +162,6 @@ return TSuper::SupportsFeature(Feature);
 			OutFormats.AddUnique(FName(*ShaderFormat));
 		}
 	}
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override
-	{
-		// Get the cached shader formats for this platform, we do not always want all those that are supported.
-		TArray<FString> CachedShaderFormats;
-		GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("CachedShaderFormats"), CachedShaderFormats, GEngineIni);
-
-		// Gather the list of Target RHIs and filter out any that may be invalid.
-		TArray<FName> PossibleShaderFormats;
-		GetAllPossibleShaderFormats(PossibleShaderFormats);
-
-		for (int32 ShaderFormatIdx = CachedShaderFormats.Num() - 1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
-		{
-			FString ShaderFormat = CachedShaderFormats[ShaderFormatIdx];
-			if (PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
-			{
-				CachedShaderFormats.RemoveAt(ShaderFormatIdx);
-			}
-		}
-
-		for(const FString& ShaderFormat : CachedShaderFormats)
-		{
-			OutFormats.AddUnique(FName(*ShaderFormat));
-		}
-	}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;

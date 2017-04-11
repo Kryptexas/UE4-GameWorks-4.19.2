@@ -285,16 +285,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #if MATERIAL_SSR && !FORWARD_SHADING
 	if( View.CameraCut == 0 )
 	{
-		//uint ViewRandom = (uint)(View.TemporalAAParams.r * 1551);
-		uint ViewRandom = View.StateFrameIndexMod8 * 1551;
-
-		uint Morton = MortonCode( (uint)MaterialParameters.SvPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SvPosition.y & 3 ) * 2 );
-		uint PixelIndex = ReverseBits32( Morton ) >> 28;
-		//uint PixelIndex = ( (uint)MaterialParameters.SvPosition.x & 3 ) | ( ( (uint)MaterialParameters.SvPosition.y & 3 ) * 2 );
-		//PixelIndex = ( PixelIndex * 1551 ) & 15;
-
-		uint Offset = ( PixelIndex + ViewRandom ) & 15;
-		float StepOffset = Offset / 15.0;
+		float StepOffset = InterleavedGradientNoise( MaterialParameters.SvPosition.xy, View.StateFrameIndexMod8 );
 		StepOffset -= 0.5;
 		
 		float4 HitUVzTime;
@@ -310,13 +301,12 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		// if there was a hit
 		BRANCH if( HitUVzTime.w < 1 )
 		{
-			float4 SSR = SampleScreenColor( PrevSceneColor, PrevSceneColorSampler, HitUVzTime.xyz );
+			float4 SSR = SampleScreenColor( PrevSceneColor, PrevSceneColorSampler,  ReprojectHit( HitUVzTime.xyz ) );
 			SSR *= saturate( 2 - 6.6 * Roughness );
 			SpecularIBL.rgb = SpecularIBL.rgb * (1 - SSR.a) + SSR.rgb;
 		}
 	}
 #endif
-
 
 	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);
 

@@ -26,12 +26,13 @@ public:
 		PlanarReflectionParameters.Bind(ParameterMap, TEXT("PlanarReflectionParameters"));
 		PlanarReflectionParameters2.Bind(ParameterMap, TEXT("PlanarReflectionParameters2"));
 		ProjectionWithExtraFOV.Bind(ParameterMap, TEXT("ProjectionWithExtraFOV"));
+		PlanarReflectionScreenScaleBias.Bind(ParameterMap, TEXT("PlanarReflectionScreenScaleBias"));
 		IsStereoParameter.Bind(ParameterMap, TEXT("bIsStereo"));
 		PlanarReflectionTexture.Bind(ParameterMap, TEXT("PlanarReflectionTexture"));
 		PlanarReflectionSampler.Bind(ParameterMap, TEXT("PlanarReflectionSampler"));
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef ShaderRHI, const class FPlanarReflectionSceneProxy* ReflectionSceneProxy);
+	void SetParameters(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef ShaderRHI, const FSceneView& View, const class FPlanarReflectionSceneProxy* ReflectionSceneProxy);
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar, FPlanarReflectionParameters& P)
@@ -44,6 +45,7 @@ public:
 		Ar << P.PlanarReflectionParameters;
 		Ar << P.PlanarReflectionParameters2;
 		Ar << P.ProjectionWithExtraFOV;
+		Ar << P.PlanarReflectionScreenScaleBias;
 		Ar << P.IsStereoParameter;
 		Ar << P.PlanarReflectionTexture;
 		Ar << P.PlanarReflectionSampler;
@@ -60,6 +62,7 @@ private:
 	FShaderParameter PlanarReflectionParameters;
 	FShaderParameter PlanarReflectionParameters2;
 	FShaderParameter ProjectionWithExtraFOV;
+	FShaderParameter PlanarReflectionScreenScaleBias;
 	FShaderParameter IsStereoParameter;
 	FShaderResourceParameter PlanarReflectionTexture;
 	FShaderResourceParameter PlanarReflectionSampler;

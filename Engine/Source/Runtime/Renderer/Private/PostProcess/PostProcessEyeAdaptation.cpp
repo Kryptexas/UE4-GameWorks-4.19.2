@@ -163,9 +163,77 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FPostProcessEyeAdaptationPS,TEXT("PostProcessEyeAdaptation"),TEXT("MainPS"),SF_Pixel);
 
+/** Encapsulates the histogram-based post processing eye adaptation compute shader. */
+class FPostProcessEyeAdaptationCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPostProcessEyeAdaptationCS, Global);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
+	}
+
+	/** Default constructor. */
+	FPostProcessEyeAdaptationCS() {}
+
+public:
+	FPostProcessPassParameters PostprocessParameter;
+	FRWShaderParameter OutComputeTex;
+	FShaderParameter EyeAdaptationParams;
+
+	/** Initialization constructor. */
+	FPostProcessEyeAdaptationCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		OutComputeTex.Bind(Initializer.ParameterMap, TEXT("OutComputeTex"));
+		EyeAdaptationParams.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationParams"));
+	}
+
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, FUnorderedAccessViewRHIParamRef DestUAV)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+
+		// CS params
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		PostprocessParameter.SetCS(ShaderRHI, Context, RHICmdList, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		OutComputeTex.SetTexture(RHICmdList, ShaderRHI, nullptr, DestUAV);		
+		
+		// PS params
+		FVector4 EyeAdaptationParamValues[3];
+		FRCPassPostProcessEyeAdaptation::ComputeEyeAdaptationParamsValue(Context.View, EyeAdaptationParamValues);
+		SetShaderValueArray(RHICmdList, ShaderRHI, EyeAdaptationParams, EyeAdaptationParamValues, 3);
+	}
+
+	template <typename TRHICmdList>
+	void UnsetParameters(TRHICmdList& RHICmdList)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		OutComputeTex.UnsetUAV(RHICmdList, ShaderRHI);
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << PostprocessParameter << OutComputeTex << EyeAdaptationParams;
+		return bShaderHasOutdatedParameters;
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(,FPostProcessEyeAdaptationCS,TEXT("PostProcessEyeAdaptation"),TEXT("MainCS"),SF_Compute);
+
 void FRCPassPostProcessEyeAdaptation::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessEyeAdaptation);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessEyeAdaptation, TEXT("PostProcessEyeAdaptation%s"), bIsComputePass?TEXT("Compute"):TEXT(""));
+	AsyncEndFence = FComputeFenceRHIRef();
 
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
@@ -177,50 +245,102 @@ void FRCPassPostProcessEyeAdaptation::Process(FRenderingCompositePassContext& Co
 
 	const FSceneRenderTargetItem& DestRenderTarget = EyeAdaptation->GetRenderTargetItem();
 
-	// Inform MultiGPU systems that we're starting to update this texture for this frame
-	Context.RHICmdList.BeginUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+	if (bIsComputePass)
+	{
+		FIntRect DestRect(0, 0, DestSize.X, DestSize.Y);
 
-	// we render to our own output render target, not the intermediate one created by the compositing system
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), true);
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
+		// Common setup
+		SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
+		Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f);
+		
+		static FName AsyncEndFenceName(TEXT("AsyncEyeAdaptationEndFence"));
+		AsyncEndFence = Context.RHICmdList.CreateComputeFence(AsyncEndFenceName);
 
-	FGraphicsPipelineStateInitializer GraphicsPSOInit;
-	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		if (IsAsyncComputePass())
+		{
+			// Async path
+			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
+			{
+ 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncEyeAdaptation);
+				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
+				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+				DispatchCS(RHICmdListComputeImmediate, Context, DestRenderTarget.UAV);
+				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
+			}
+			FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);
+		}
+		else
+		{
+			// Direct path
+			WaitForInputPassComputeFences(Context.RHICmdList);
+			Context.RHICmdList.BeginUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
 
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessEyeAdaptationPS> PixelShader(Context.GetShaderMap());
+			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+			DispatchCS(Context.RHICmdList, Context, DestRenderTarget.UAV);
+			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
 
-	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
-	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+			Context.RHICmdList.EndUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+		}
+	}
+	else
+	{
+		// Inform MultiGPU systems that we're starting to update this texture for this frame
+		Context.RHICmdList.BeginUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
 
-	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+		// we render to our own output render target, not the intermediate one created by the compositing system
+		// Set the view family's render target/viewport.
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), true);
+		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
-	PixelShader->SetPS(Context);
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
-	// Draw a quad mapping scene color to the view's render target
-	DrawRectangle(
-		Context.RHICmdList,
-		0, 0,
-		DestSize.X, DestSize.Y,
-		0, 0,
-		DestSize.X, DestSize.Y,
-		DestSize,
-		DestSize,
-		*VertexShader,
-		EDRF_UseTriangleOptimization);
+		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+		TShaderMapRef<FPostProcessEyeAdaptationPS> PixelShader(Context.GetShaderMap());
 
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-	// Inform MultiGPU systems that we've finished updating this texture for this frame
-	Context.RHICmdList.EndUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+
+		PixelShader->SetPS(Context);
+
+		// Draw a quad mapping scene color to the view's render target
+		DrawRectangle(
+			Context.RHICmdList,
+			0, 0,
+			DestSize.X, DestSize.Y,
+			0, 0,
+			DestSize.X, DestSize.Y,
+			DestSize,
+			DestSize,
+			*VertexShader,
+			EDRF_UseTriangleOptimization);
+
+		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+		// Inform MultiGPU systems that we've finished updating this texture for this frame
+		Context.RHICmdList.EndUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+	}
 
 	Context.View.SetValidEyeAdaptation();
+}
+
+template <typename TRHICmdList>
+void FRCPassPostProcessEyeAdaptation::DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, FUnorderedAccessViewRHIParamRef DestUAV)
+{
+	auto ShaderMap = Context.GetShaderMap();
+	TShaderMapRef<FPostProcessEyeAdaptationCS> ComputeShader(ShaderMap);
+	RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+
+	ComputeShader->SetParameters(RHICmdList, Context, DestUAV);
+	DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
+	ComputeShader->UnsetParameters(RHICmdList);
 }
 
 void FRCPassPostProcessEyeAdaptation::ComputeEyeAdaptationParamsValue(const FViewInfo& View, FVector4 Out[3])

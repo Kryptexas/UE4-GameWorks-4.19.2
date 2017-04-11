@@ -318,7 +318,7 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 
 	RHITransitionResources(EResourceTransitionAccess::EReadable, &SourceTextureRHI, 1);
 
-	auto CopyImage = [](FTransitionState& InRenderPassState, FVulkanCmdBuffer* InCmdBuffer, FVulkanSurface& SrcSurface, FVulkanSurface& DstSurface, uint32 NumLayers, const FResolveParams& ResolveParams)
+	auto CopyImage = [](FTransitionState& InRenderPassState, FVulkanCmdBuffer* InCmdBuffer, FVulkanSurface& SrcSurface, FVulkanSurface& DstSurface, uint32 SrcNumLayers, uint32 DstNumLayers, const FResolveParams& ResolveParams)
 	{
 		VkImageLayout* SrcLayoutPtr = InRenderPassState.CurrentLayout.Find(SrcSurface.Image);
 		check(SrcLayoutPtr);
@@ -338,14 +338,14 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		SrcRange.aspectMask = SrcSurface.GetFullAspectMask();
 		SrcRange.baseMipLevel = ResolveParams.MipIndex;
 		SrcRange.levelCount = 1;
-		SrcRange.baseArrayLayer = ResolveParams.SourceArrayIndex * NumLayers + (NumLayers == 6 ? ResolveParams.CubeFace : 0);
+		SrcRange.baseArrayLayer = ResolveParams.SourceArrayIndex * SrcNumLayers + (SrcNumLayers == 6 ? ResolveParams.CubeFace : 0);
 		SrcRange.layerCount = 1;
 
 		VkImageSubresourceRange DstRange;
 		DstRange.aspectMask = DstSurface.GetFullAspectMask();
 		DstRange.baseMipLevel = ResolveParams.MipIndex;
 		DstRange.levelCount = 1;
-		DstRange.baseArrayLayer = ResolveParams.DestArrayIndex * NumLayers + (NumLayers == 6 ? ResolveParams.CubeFace : 0);
+		DstRange.baseArrayLayer = ResolveParams.DestArrayIndex * DstNumLayers + (DstNumLayers == 6 ? ResolveParams.CubeFace : 0);
 		DstRange.layerCount = 1;
 
 		VulkanSetImageLayout(CmdBuffer, SrcSurface.Image, SrcLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, SrcRange);
@@ -372,45 +372,54 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		VulkanSetImageLayout(CmdBuffer, SrcSurface.Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, SrcLayout, SrcRange);
 		VulkanSetImageLayout(CmdBuffer, DstSurface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, DstLayout, DstRange);
 	};
-	FRHITexture2D* SourceTextureRHI2D = SourceTextureRHI->GetTexture2D();
-	if (SourceTextureRHI2D)
+
+	FRHITexture2D* SourceTexture2D = SourceTextureRHI->GetTexture2D();
+	FRHITexture3D* SourceTexture3D = SourceTextureRHI->GetTexture3D();
+	FRHITextureCube* SourceTextureCube = SourceTextureRHI->GetTextureCube();
+	FRHITexture2D* DestTexture2D = DestTextureRHI->GetTexture2D();
+	FRHITexture3D* DestTexture3D = DestTextureRHI->GetTexture3D();
+	FRHITextureCube* DestTextureCube = DestTextureRHI->GetTextureCube();
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+
+	if (SourceTexture2D && DestTexture2D) 
 	{
-		FRHITexture2D* DestTextureRHI2D = DestTextureRHI->GetTexture2D();
-		FVulkanTexture2D* VulkanSrcTexture = (FVulkanTexture2D*)SourceTextureRHI2D;
-		FVulkanTexture2D* VulkanDstTexture = (FVulkanTexture2D*)DestTextureRHI2D;
-		if (VulkanSrcTexture->Surface.Image != VulkanDstTexture->Surface.Image)
+		FVulkanTexture2D* VulkanSourceTexture = (FVulkanTexture2D*)SourceTexture2D;
+		FVulkanTexture2D* VulkanDestTexture = (FVulkanTexture2D*)DestTexture2D;
+		if (VulkanSourceTexture->Surface.Image != VulkanDestTexture->Surface.Image) 
 		{
-			FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-			CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 1, InResolveParams);
+			CopyImage(TransitionState, CmdBuffer, VulkanSourceTexture->Surface, VulkanDestTexture->Surface, 1, 1, InResolveParams);
 		}
 	}
-	else
+	else if (SourceTextureCube && DestTextureCube) 
 	{
-		FRHITexture3D* SourceTextureRHI3D = SourceTextureRHI->GetTexture3D();
-		if (SourceTextureRHI3D)
+		FVulkanTextureCube* VulkanSourceTexture = (FVulkanTextureCube*)SourceTextureCube;
+		FVulkanTextureCube* VulkanDestTexture = (FVulkanTextureCube*)DestTextureCube;
+		if (VulkanSourceTexture->Surface.Image != VulkanDestTexture->Surface.Image) 
 		{
-			FRHITexture3D* DestTextureRHI3D = DestTextureRHI->GetTexture3D();
-			FVulkanTexture3D* VulkanSrcTexture = (FVulkanTexture3D*)SourceTextureRHI3D;
-			FVulkanTexture3D* VulkanDstTexture = (FVulkanTexture3D*)DestTextureRHI3D;
-			if (VulkanSrcTexture->Surface.Image != VulkanDstTexture->Surface.Image)
-			{
-				FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-				CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 1, InResolveParams);
-			}
+			CopyImage(TransitionState, CmdBuffer, VulkanSourceTexture->Surface, VulkanDestTexture->Surface, 6, 6, InResolveParams);
 		}
-		else
+	}
+	else if (SourceTexture2D && DestTextureCube) 
+	{
+		FVulkanTexture2D* VulkanSourceTexture = (FVulkanTexture2D*)SourceTexture2D;
+		FVulkanTextureCube* VulkanDestTexture = (FVulkanTextureCube*)DestTextureCube;
+		if (VulkanSourceTexture->Surface.Image != VulkanDestTexture->Surface.Image) 
 		{
-			FRHITextureCube* SourceTextureRHICube = SourceTextureRHI->GetTextureCube();
-			check(SourceTextureRHICube);
-			FRHITextureCube* DestTextureRHICube = DestTextureRHI->GetTextureCube();
-			FVulkanTextureCube* VulkanSrcTexture = (FVulkanTextureCube*)SourceTextureRHICube;
-			FVulkanTextureCube* VulkanDstTexture = (FVulkanTextureCube*)DestTextureRHICube;
-			if (VulkanSrcTexture->Surface.Image != VulkanDstTexture->Surface.Image)
-			{
-				FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-				CopyImage(TransitionState, CmdBuffer, VulkanSrcTexture->Surface, VulkanDstTexture->Surface, 6, InResolveParams);
-			}
+			CopyImage(TransitionState, CmdBuffer, VulkanSourceTexture->Surface, VulkanDestTexture->Surface, 1, 6, InResolveParams);
 		}
+	}
+	else if (SourceTexture3D && DestTexture3D) 
+	{
+		FVulkanTexture3D* VulkanSourceTexture = (FVulkanTexture3D*)SourceTexture3D;
+		FVulkanTexture3D* VulkanDestTexture = (FVulkanTexture3D*)DestTexture3D;
+		if (VulkanSourceTexture->Surface.Image != VulkanDestTexture->Surface.Image)
+		{
+			CopyImage(TransitionState, CmdBuffer, VulkanSourceTexture->Surface, VulkanDestTexture->Surface, 1, 1, InResolveParams);
+		}
+	}
+	else 
+	{
+		checkf(false, TEXT("Using unsupported Resolve combination"));
 	}
 }
 

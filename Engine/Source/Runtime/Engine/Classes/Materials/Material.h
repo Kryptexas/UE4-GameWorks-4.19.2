@@ -568,6 +568,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
 	uint32 bUsedWithMeshParticles:1;
 
+
+	/**
+	* Indicates that the material and its instances can be use with Niagara sprites (meshes and ribbons, respectively)
+	* This will result in the shaders required to support Niagara sprites being compiled which will increase shader compile time and memory usage.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
+	uint32 bUsedWithNiagaraSprites : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
+	uint32 bUsedWithNiagaraRibbons : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
+	uint32 bUsedWithNiagaraMeshParticles : 1;
+
+
+
 	/** 
 	 * Indicates that the material and its instances can be use with static lighting
 	 * This will result in the shaders required to support static lighting being compiled which will increase shader compile time and memory usage.
@@ -652,7 +668,7 @@ public:
 	uint32 bUsePlanarForwardReflections : 1;
 
 	/* Reduce roughness based on screen space normal changes. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ForwardShading)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Material, AdvancedDisplay)
 	uint32 bNormalCurvatureToRoughness : 1;
 
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */

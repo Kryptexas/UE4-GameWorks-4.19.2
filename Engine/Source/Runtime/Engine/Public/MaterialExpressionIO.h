@@ -83,6 +83,16 @@ struct FExpressionInput
 
 	/** If this input goes through reroute nodes or other paths that should not affect code, trace back on the input chain.*/
 	ENGINE_API FExpressionInput GetTracedInput() const;
+
+	/** Helper for setting component mask. */
+	ENGINE_API void SetMask(int32 UseMask, int32 R, int32 G, int32 B, int32 A)
+	{
+		Mask = UseMask;
+		MaskR = R;
+		MaskG = G;
+		MaskB = B;
+		MaskA = A;
+	}
 };
 
 template<>
@@ -124,6 +134,16 @@ struct FExpressionOutput
 		MaskB(InMaskB),
 		MaskA(InMaskA)
 	{}
+
+	/** Helper for setting component mask. */
+	ENGINE_API void SetMask(int32 UseMask, int32 R, int32 G, int32 B, int32 A)
+	{
+		Mask = UseMask;
+		MaskR = R;
+		MaskG = G;
+		MaskB = B;
+		MaskA = A;
+	}
 };
 
 //

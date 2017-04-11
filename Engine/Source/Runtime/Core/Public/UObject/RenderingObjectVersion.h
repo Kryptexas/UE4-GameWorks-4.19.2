@@ -45,6 +45,10 @@ struct CORE_API FRenderingObjectVersion
 
 		DistanceFieldSelfShadowBias,
 
+		FixedLegacyMaterialAttributeNodeTypes,
+
+		ShaderResourceCodeSharing,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

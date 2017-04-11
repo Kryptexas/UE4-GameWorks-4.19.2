@@ -27,6 +27,7 @@
 #include "DynamicPrimitiveDrawing.h"
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
+#include "GPUSkinCache.h"
 
 static TAutoConsoleVariable<int32> CVarRHICmdPrePassDeferredContexts(
 	TEXT("r.RHICmdPrePassDeferredContexts"),
@@ -836,6 +837,12 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 
 bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
+	// Transition after static since only dynamic needs the skin cache (currently)
+	if (FGPUSkinCache* GPUSkinCache = Scene->GetGPUSkinCache())
+	{
+		GPUSkinCache->TransitionAllToReadable(RHICmdList);
+	}
+
 	FDepthDrawingPolicyFactory::ContextType Context(EarlyZPassMode, true);
 
 	for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
@@ -966,7 +973,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 			bDirty |= Scene->MaskedDepthDrawList.DrawVisibleInstancedStereo(RHICmdList, StereoView, DrawRenderState);
 		}
 	}
-	
+
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 		bDirty |= RenderPrePassViewDynamic(RHICmdList, View, DrawRenderState);
@@ -1302,7 +1309,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 			}
 			RHICmdList.SetViewport(FullViewRect.Min.X, FullViewRect.Min.Y, 0, FullViewRect.Max.X, FullViewRect.Max.Y, 1);
 		}
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, false, FLinearColor::Transparent, false, 0, true, 1);
+		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, false, FLinearColor::Transparent, false, 0, true, 0);
 	}
 
 	SceneContext.FinishRenderingPrePass(RHICmdList);

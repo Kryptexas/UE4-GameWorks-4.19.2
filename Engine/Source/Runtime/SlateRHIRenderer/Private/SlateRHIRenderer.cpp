@@ -671,6 +671,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	}
 
 	{
+		SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_SlateUI);
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
 
@@ -754,7 +755,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		}
 
 #if DEBUG_OVERDRAW
-		RHIClear(true, FLinearColor::Black, false, 0.0f, true, 0x00);
+		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
 #endif
 		if( BatchData.GetRenderBatches().Num() > 0 )
 		{
@@ -873,11 +874,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 					EDRF_UseTriangleOptimization);
 			}
 		}
-	}
 
 	if (!bRenderedStereo && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 	{
 		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
+	}
 	}
 
 	STOP_DRAW_EVENT(DrawEvent);

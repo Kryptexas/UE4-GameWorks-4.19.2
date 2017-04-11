@@ -1003,7 +1003,7 @@ public:
 				}
 				check(Last >= Start);
 
-				IRHICommandContextContainer* ContextContainer =  RHIGetCommandContextContainer();
+				IRHICommandContextContainer* ContextContainer =  RHIGetCommandContextContainer(ThreadIndex, EffectiveThreads);
 				check(ContextContainer);
 
 				FGraphEventRef TranslateCompletionEvent = TGraphTask<FParallelTranslateCommandList>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&RHICmdLists[Start], 1 + Last - Start, ContextContainer, bIsPrepass);
@@ -1081,22 +1081,18 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 			return;
 		}
 		IRHICommandContextContainer* ContextContainer = nullptr;
+		bool bMerge = !!CVarRHICmdMergeSmallDeferredContexts.GetValueOnRenderThread();
+		int32 EffectiveThreads = 0;
+		int32 Start = 0;
+		int32 ThreadIndex = 0;
 		if (GRHISupportsParallelRHIExecute && CVarRHICmdUseDeferredContexts.GetValueOnAnyThread() > 0)
 		{
-			ContextContainer = RHIGetCommandContextContainer();
-		}
-		if (ContextContainer)
-		{
-			bool bMerge = !!CVarRHICmdMergeSmallDeferredContexts.GetValueOnRenderThread();
-
-			int32 EffectiveThreads = 0;
-			int32 Start = 0;
 			// this is pretty silly but we need to know the number of jobs in advance, so we run the merge logic twice
 			while (Start < Num)
 			{
 				int32 Last = Start;
 				int32 DrawCnt = NumDrawsIfKnown[Start];
-
+				
 				if (bMerge && DrawCnt >= 0)
 				{
 					while (Last < Num - 1 && NumDrawsIfKnown[Last + 1] >= 0 && DrawCnt + NumDrawsIfKnown[Last + 1] <= MinDrawsPerTranslate)
@@ -1108,11 +1104,14 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 				check(Last >= Start);
 				Start = Last + 1;
 				EffectiveThreads++;
-			} 
+			}
+			
 			Start = 0;
-			int32 ThreadIndex = 0;
-
-			while (Start < Num)       
+			ContextContainer = RHIGetCommandContextContainer(ThreadIndex, EffectiveThreads);
+		}
+		if (ContextContainer)
+		{
+			while (Start < Num)
 			{    
 				int32 Last = Start;
 				int32 DrawCnt = NumDrawsIfKnown[Start];
@@ -1132,7 +1131,7 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 
 				if (!ContextContainer) 
 				{
-					ContextContainer = RHIGetCommandContextContainer();
+					ContextContainer = RHIGetCommandContextContainer(ThreadIndex, EffectiveThreads);
 				}
 				check(ContextContainer);
 
@@ -1993,10 +1992,22 @@ FVertexShaderRHIRef FDynamicRHI::CreateVertexShader_RenderThread(class FRHIComma
 	return GDynamicRHI->RHICreateVertexShader(Code);
 }
 
+FVertexShaderRHIRef FDynamicRHI::CreateVertexShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return GDynamicRHI->RHICreateVertexShader(Library, Hash);
+}
+
 FPixelShaderRHIRef FDynamicRHI::CreatePixelShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code)
 {
 	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
 	return GDynamicRHI->RHICreatePixelShader(Code);
+}
+
+FPixelShaderRHIRef FDynamicRHI::CreatePixelShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return GDynamicRHI->RHICreatePixelShader(Library, Hash);
 }
 
 FGeometryShaderRHIRef FDynamicRHI::CreateGeometryShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code)
@@ -2005,10 +2016,22 @@ FGeometryShaderRHIRef FDynamicRHI::CreateGeometryShader_RenderThread(class FRHIC
 	return GDynamicRHI->RHICreateGeometryShader(Code);
 }
 
+FGeometryShaderRHIRef FDynamicRHI::CreateGeometryShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return GDynamicRHI->RHICreateGeometryShader(Library, Hash);
+}
+
 FGeometryShaderRHIRef FDynamicRHI::CreateGeometryShaderWithStreamOutput_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream)
 {
 	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
 	return GDynamicRHI->RHICreateGeometryShaderWithStreamOutput(Code, ElementList, NumStrides, Strides, RasterizedStream);
+}
+
+FGeometryShaderRHIRef FDynamicRHI::CreateGeometryShaderWithStreamOutput_RenderThread(class FRHICommandListImmediate& RHICmdList, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return GDynamicRHI->RHICreateGeometryShaderWithStreamOutput(ElementList, NumStrides, Strides, RasterizedStream, Library, Hash);
 }
 
 FComputeShaderRHIRef FDynamicRHI::CreateComputeShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code)
@@ -2017,16 +2040,34 @@ FComputeShaderRHIRef FDynamicRHI::CreateComputeShader_RenderThread(class FRHICom
 	return GDynamicRHI->RHICreateComputeShader(Code);
 }
 
+FComputeShaderRHIRef FDynamicRHI::CreateComputeShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return GDynamicRHI->RHICreateComputeShader(Library, Hash);
+}
+
 FHullShaderRHIRef FDynamicRHI::CreateHullShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code)
 {
 	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
 	return GDynamicRHI->RHICreateHullShader(Code);
 }
 
+FHullShaderRHIRef FDynamicRHI::CreateHullShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return GDynamicRHI->RHICreateHullShader(Library, Hash);
+}
+
 FDomainShaderRHIRef FDynamicRHI::CreateDomainShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code)
 {
 	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
 	return GDynamicRHI->RHICreateDomainShader(Code);
+}
+
+FDomainShaderRHIRef FDynamicRHI::CreateDomainShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return GDynamicRHI->RHICreateDomainShader(Library, Hash);
 }
 
 void FDynamicRHI::UpdateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)

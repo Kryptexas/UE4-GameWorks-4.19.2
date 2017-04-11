@@ -617,7 +617,11 @@ private:
 			if (!PooledRenderTarget[BufferNumber].IsValid())
 			{
 				// Create the texture needed for EyeAdaptation
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F /*PF_R32_FLOAT*/, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+				if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+				{
+					Desc.TargetableFlags |= TexCreate_UAV;
+				}
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PooledRenderTarget[BufferNumber], TEXT("EyeAdaptation"));
 			}
 
@@ -685,6 +689,30 @@ public:
 	TRefCountPtr<IPooledRenderTarget> MobileAaBloomSunVignette1;
 	TRefCountPtr<IPooledRenderTarget> MobileAaColor0;
 	TRefCountPtr<IPooledRenderTarget> MobileAaColor1;
+
+	// Pre-computed filter in spectral (i.e. FFT) domain along with data to determine if we need to up date it
+	struct {
+		void SafeRelease() { Spectral.SafeRelease(); CenterWeight.SafeRelease(); }
+		// The 2d fourier transform of the physical space texture.
+		TRefCountPtr<IPooledRenderTarget> Spectral;
+		TRefCountPtr<IPooledRenderTarget> CenterWeight; // a 1-pixel buffer that holds blend weights for half-resolution fft.
+
+														// The physical space source texture
+		UTexture2D* Physical = NULL;
+
+		// The Scale * 100 = percentage of the image space that the physical kernel represents.
+		// e.g. Scale = 1 indicates that the physical kernel image occupies the same size 
+		// as the image to be processed with the FFT convolution.
+		float Scale = 0.f;
+
+		// The size of the viewport for which the spectral kernel was calculated. 
+		FIntPoint ImageSize;
+
+		FVector2D CenterUV;
+
+		// Mip level of the physical space source texture used when caching the spectral space texture.
+		uint32 PhysicalMipLevel;
+	} BloomFFTKernel;
 
 	// cache for stencil reads to a avoid reallocations of the SRV, Key is to detect if the object has changed
 	FTextureRHIRef SelectionOutlineCacheKey;
@@ -917,23 +945,22 @@ public:
 	
 
 	// Returns a reference to the render target used for the LUT.  Allocated on the first request.
-	FSceneRenderTargetItem& GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT)
+	FSceneRenderTargetItem& GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV)
 	{
-		
-
 		if (CombinedLUTRenderTarget.IsValid() == false || 
 			CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize ||
-			((CombinedLUTRenderTarget->GetDesc().Depth != 0) != bUseVolumeLUT))
+			((CombinedLUTRenderTarget->GetDesc().Depth != 0) != bUseVolumeLUT) ||
+			!!(CombinedLUTRenderTarget->GetDesc().TargetableFlags & TexCreate_UAV) != bNeedUAV)
 		{
 			// Create the texture needed for the tonemapping LUT
-
 			EPixelFormat LUTPixelFormat = PF_A2B10G10R10;
 			if (!GPixelFormats[LUTPixelFormat].Supported)
 			{
 				LUTPixelFormat = PF_R8G8B8A8;
 			}
 
-			FPooledRenderTargetDesc Desc = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(LUTSize * LUTSize, LUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
+			FPooledRenderTargetDesc Desc = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(LUTSize * LUTSize, LUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_ShaderResource, false);
+			Desc.TargetableFlags |= bNeedUAV ? TexCreate_UAV : TexCreate_RenderTargetable;
 
 			if (bUseVolumeLUT)
 			{
@@ -944,7 +971,6 @@ public:
 			Desc.DebugName = TEXT("CombineLUTs");
 			
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CombinedLUTRenderTarget, Desc.DebugName);
-
 		}
 
 		FSceneRenderTargetItem& RenderTarget = CombinedLUTRenderTarget.GetReference()->GetRenderTargetItem();
@@ -994,6 +1020,7 @@ public:
 		MobileAaBloomSunVignette1.SafeRelease();
 		MobileAaColor0.SafeRelease();
 		MobileAaColor1.SafeRelease();
+		BloomFFTKernel.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
 
@@ -1028,7 +1055,13 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
+
 		Collector.AddReferencedObjects(MIDPool);
+	
+		if (BloomFFTKernel.Physical)
+		{
+			Collector.AddReferencedObject(BloomFFTKernel.Physical);
+		}
 	}
 
 	/** called in InitViews() */
@@ -1416,7 +1449,7 @@ public:
 
 	inline bool CanUse16BitObjectIndices() const
 	{
-		return NumObjectsInBuffer < (1 << 16);
+		return bCanUse16BitObjectIndices && (NumObjectsInBuffer < (1 << 16));
 	}
 
 	int32 NumObjectsInBuffer;
@@ -1442,6 +1475,7 @@ public:
 	int32 AtlasGeneration;
 
 	bool bTrackAllPrimitives;
+	bool bCanUse16BitObjectIndices;
 };
 
 /** Stores data for an allocation in the FIndirectLightingCache. */
@@ -2018,6 +2052,9 @@ public:
 
 	FMotionBlurInfoData MotionBlurInfoData;
 
+	/** GPU Skinning cache, if enabled */
+	class FGPUSkinCache* GPUSkinCache;
+
 	/** Uniform buffers for parameter collections with the corresponding Ids. */
 	TMap<FGuid, FUniformBufferRHIRef> ParameterCollections;
 
@@ -2158,6 +2195,11 @@ public:
 	}
 
 	virtual void UpdateSceneSettings(AWorldSettings* WorldSettings) override;
+
+	virtual class FGPUSkinCache* GetGPUSkinCache() override
+	{
+		return GPUSkinCache;
+	}
 
 	/**
 	 * Sets the FX system associated with the scene.

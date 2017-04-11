@@ -503,7 +503,6 @@ inline FVulkanTextureBase* GetVulkanTextureFromRHITexture(FRHITexture* Texture)
 	}
 	else if (Texture->GetTexture2DArray())
 	{
-		check(false);	//@TODO: Not supported yet!
 		return static_cast<FVulkanTexture2DArray*>(Texture);
 	}
 	else if (Texture->GetTexture3D())

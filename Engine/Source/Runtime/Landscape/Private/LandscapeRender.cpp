@@ -2608,6 +2608,9 @@ public:
 	bool IsUsedWithParticleSprites()       const override { return false; }
 	bool IsUsedWithBeamTrails()            const override { return false; }
 	bool IsUsedWithMeshParticles()         const override { return false; }
+	bool IsUsedWithNiagaraSprites()       const override { return false; }
+	bool IsUsedWithNiagaraRibbons()       const override { return false; }
+	bool IsUsedWithNiagaraMeshParticles()       const override { return false; }
 	bool IsUsedWithMorphTargets()          const override { return false; }
 	bool IsUsedWithSplineMeshes()          const override { return false; }
 	bool IsUsedWithInstancedStaticMeshes() const override { return false; }

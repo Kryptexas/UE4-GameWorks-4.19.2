@@ -177,7 +177,7 @@ public:
 		LightSourceRadius = 0.0f;
 		LightSourceLength = 0.0f;
 		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
-		LightMinRoughness = FMath::Max(MinRoughness, .04f);
+		LightMinRoughness = FMath::Max(MinRoughness, .02f);
 	}
 
 	virtual float GetLightSourceAngle() const override
@@ -709,6 +709,7 @@ UDirectionalLightComponent::UDirectionalLightComponent(const FObjectInitializer&
 	IndirectLightingIntensity = 1.0f;
 	CastTranslucentShadows = true;
 	bUseInsetShadowsForMovableObjects = true;
+	bCastVolumetricShadow = true;
 
 	ModulatedShadowColor = FColor(128, 128, 128);
 }

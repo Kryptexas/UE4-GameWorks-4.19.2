@@ -51,6 +51,7 @@
 #include <execinfo.h>
 #include <signal.h>
 #include <sys/sysctl.h>
+#include <malloc/malloc.h>
 
 // SIMD intrinsics
 #if WITH_SIMULATOR
@@ -72,8 +73,9 @@ typedef struct tagRECT RECT;
 #define IN
 
 /*----------------------------------------------------------------------------
-Memory. On Mac OS X malloc allocates memory aligned to 16 bytes.
-----------------------------------------------------------------------------*/
+ Memory. On Mac OS X malloc allocates memory aligned to 16 bytes.
+ ----------------------------------------------------------------------------*/
 #define _aligned_malloc(Size,Align) malloc(Size)
 #define _aligned_realloc(Ptr,Size,Align) realloc(Ptr,Size)
 #define _aligned_free(Ptr) free(Ptr)
+#define _aligned_msize(Ptr,Align,Offset) malloc_size(Ptr)

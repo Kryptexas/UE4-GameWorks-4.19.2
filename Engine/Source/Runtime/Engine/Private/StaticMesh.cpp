@@ -2434,11 +2434,14 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		{
 			FName MaterialSlotName = MaterialInterface != nullptr ? MaterialInterface->GetFName() : NAME_None;
 			int32 NameCounter = 1;
-			while (MaterialSlotNames.Find(MaterialSlotName) != INDEX_NONE && MaterialSlotName != NAME_None)
+			if (MaterialInterface)
 			{
-				FString MaterialSlotNameStr = MaterialInterface->GetName() + TEXT("_") + FString::FromInt(NameCounter);
-				MaterialSlotName = FName(*MaterialSlotNameStr);
-				NameCounter++;
+				while (MaterialSlotName != NAME_None && MaterialSlotNames.Find(MaterialSlotName) != INDEX_NONE)
+				{
+					FString MaterialSlotNameStr = MaterialInterface->GetName() + TEXT("_") + FString::FromInt(NameCounter);
+					MaterialSlotName = FName(*MaterialSlotNameStr);
+					NameCounter++;
+				}
 			}
 			MaterialSlotNames.Add(MaterialSlotName);
 			StaticMaterials.Add(FStaticMaterial(MaterialInterface, MaterialSlotName));

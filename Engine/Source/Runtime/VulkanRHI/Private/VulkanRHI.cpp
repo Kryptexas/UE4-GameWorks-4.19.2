@@ -850,7 +850,7 @@ IRHICommandContext* FVulkanDynamicRHI::RHIGetDefaultContext()
 	return &Device->GetImmediateContext();
 }
 
-IRHICommandContextContainer* FVulkanDynamicRHI::RHIGetCommandContextContainer()
+IRHICommandContextContainer* FVulkanDynamicRHI::RHIGetCommandContextContainer(int32 Index, int32 Num)
 {
 	return nullptr;
 }

@@ -25,8 +25,9 @@ public:
 // ePId_Input0: scene color
 // ePId_Input1: scene depth
 // ePId_Input2: hierarchical scene color (optional)
+// ePId_Input3: velocity (optional)
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
-class FRCPassPostProcessScreenSpaceReflections : public TRenderingCompositePassBase<3, 1>
+class FRCPassPostProcessScreenSpaceReflections : public TRenderingCompositePassBase<4, 1>
 {
 public:
 	FRCPassPostProcessScreenSpaceReflections( bool InPrevFrame )

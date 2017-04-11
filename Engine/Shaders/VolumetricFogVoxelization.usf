@@ -13,24 +13,7 @@ struct FVoxelizeVolumePrimitiveVSToGS
 {
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
 	float3 ViewSpacePosition : TEXCOORD6;
-};   
-
-void VoxelizeVS(
-	FVertexFactoryInput Input,
-	out FVoxelizeVolumePrimitiveVSToGS Output
-	)
-{
-	ResolvedView = ResolveView();
-
-	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
-	float4 TranslatedWorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
-	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
-
-	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, TranslatedWorldPosition.xyz, TangentToLocal);
-
-	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
-	Output.ViewSpacePosition = mul(TranslatedWorldPosition, View.TranslatedWorldToView).xyz;
-}
+};
 
 struct FVoxelizeVolumePrimitiveGSToPS
 {
@@ -55,17 +38,23 @@ uint VoxelizationPassIndex;
 float4x4 ViewToVolumeClip; 
 
 #ifndef MAX_SLICES_PER_VOXELIZATION_PASS
-#define MAX_SLICES_PER_VOXELIZATION_PASS 1
+#define MAX_SLICES_PER_VOXELIZATION_PASS 1 
 #endif
 
+#if USING_VERTEX_SHADER_LAYER
+#define NUM_INPUT_VERTICES 1
+void Voxelize(FVoxelizeVolumePrimitiveVSToGS Inputs[1], out FVoxelizeVolumePrimitiveGSToPS Output)
+#else
+#define NUM_INPUT_VERTICES 3
 [maxvertexcount(MAX_SLICES_PER_VOXELIZATION_PASS * 3)]
 void VoxelizeGS(triangle FVoxelizeVolumePrimitiveVSToGS Inputs[3], inout TriangleStream<FVoxelizeVolumePrimitiveGSToPS> OutStream)
-{ 
+#endif
+{
 	float MinDepth = 1000000.0f;
 	float MaxDepth = 0;
 
 	UNROLL
-	for (uint VertexIndex = 0; VertexIndex < 3; VertexIndex++)
+	for (uint VertexIndex = 0; VertexIndex < NUM_INPUT_VERTICES; VertexIndex++)
 	{
 		MinDepth = min(MinDepth, Inputs[VertexIndex].ViewSpacePosition.z);
 		MaxDepth = max(MaxDepth, Inputs[VertexIndex].ViewSpacePosition.z);
@@ -73,7 +62,7 @@ void VoxelizeGS(triangle FVoxelizeVolumePrimitiveVSToGS Inputs[3], inout Triangl
 
 	int GridSizeZ = VolumetricFog.GridSize.z;
 	float4 PrimitiveVolumeBounds = VertexFactoryGetTranslatedPrimitiveVolumeBounds(Inputs[0].FactoryInterpolants);
-	float3 ViewSpacePrimitiveVolumeOrigin = mul(float4(PrimitiveVolumeBounds.xyz, 1), View.TranslatedWorldToView);
+	float3 ViewSpacePrimitiveVolumeOrigin = mul(float4(PrimitiveVolumeBounds.xyz, 1), View.TranslatedWorldToView).xyz;
 
 	int FurthestSliceIndexUnclamped = ComputeZSliceFromDepth(MaxDepth + PrimitiveVolumeBounds.w);
 	int ClosestSliceIndexUnclamped = ComputeZSliceFromDepth(MinDepth - PrimitiveVolumeBounds.w);
@@ -87,11 +76,11 @@ void VoxelizeGS(triangle FVoxelizeVolumePrimitiveVSToGS Inputs[3], inout Triangl
 		&& ClosestSliceIndex <= FurthestSliceIndexUnclamped
 		&& FurthestSliceIndexUnclamped >= 0)
 	{
-		float2 PrimitiveCenterToVertex[3];
-		float InvLengthPrimitiveCenterToVertex[3];
+		float2 PrimitiveCenterToVertex[NUM_INPUT_VERTICES];
+		float InvLengthPrimitiveCenterToVertex[NUM_INPUT_VERTICES];
 
 		UNROLL
-		for (uint VertexIndex = 0; VertexIndex < 3; VertexIndex++)
+		for (uint VertexIndex = 0; VertexIndex < NUM_INPUT_VERTICES; VertexIndex++)
 		{
 			PrimitiveCenterToVertex[VertexIndex] = Inputs[VertexIndex].ViewSpacePosition.xy - ViewSpacePrimitiveVolumeOrigin.xy;
 			InvLengthPrimitiveCenterToVertex[VertexIndex] = 1.0f / length(PrimitiveCenterToVertex[VertexIndex]);
@@ -110,9 +99,11 @@ void VoxelizeGS(triangle FVoxelizeVolumePrimitiveVSToGS Inputs[3], inout Triangl
 				float SliceOffsetRatio = PrimitiveVolumeBounds.w > 0 ? SliceRadius / PrimitiveVolumeBounds.w : 1;
 
 				UNROLL
-				for (uint VertexIndex = 0; VertexIndex < 3; VertexIndex++)
+				for (uint VertexIndex = 0; VertexIndex < NUM_INPUT_VERTICES; VertexIndex++)
 				{
+#if !USING_VERTEX_SHADER_LAYER
 					FVoxelizeVolumePrimitiveGSToPS Output;
+#endif
 					Output.SliceIndex = SliceIndex;
 
 					// Scale vertex position XY based on the slice radius so we more tightly bound the primitive volume sphere
@@ -120,13 +111,46 @@ void VoxelizeGS(triangle FVoxelizeVolumePrimitiveVSToGS Inputs[3], inout Triangl
 					Output.OutPosition = mul(float4(ViewSpaceVertexPosition, 1), ViewToVolumeClip);
 					Output.FactoryInterpolants = Inputs[VertexIndex].FactoryInterpolants;
 
+#if !USING_VERTEX_SHADER_LAYER
 					OutStream.Append(Output);
+#endif
 				}
 
+#if !USING_VERTEX_SHADER_LAYER
 				OutStream.RestartStrip();
+#endif
 			}
 		}
 	}
+}
+
+void VoxelizeVS(
+	FVertexFactoryInput Input,
+#if USING_VERTEX_SHADER_LAYER
+	out FVoxelizeVolumePrimitiveGSToPS Output
+#else
+	out FVoxelizeVolumePrimitiveVSToGS Output
+#endif
+	)
+{
+	ResolvedView = ResolveView();
+
+	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
+	float4 TranslatedWorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
+
+	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, TranslatedWorldPosition.xyz, TangentToLocal);
+
+	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
+
+#if USING_VERTEX_SHADER_LAYER
+	FVoxelizeVolumePrimitiveVSToGS Inputs[1];
+	Inputs[0].FactoryInterpolants = Output.FactoryInterpolants;
+	Inputs[0].ViewSpacePosition = mul(TranslatedWorldPosition, View.TranslatedWorldToView).xyz;
+	Voxelize(Inputs, Output);
+#else
+	Output.ViewSpacePosition = mul(TranslatedWorldPosition, View.TranslatedWorldToView).xyz;
+#endif
 }
 
 void VoxelizePS(
@@ -144,13 +168,16 @@ void VoxelizePS(
 
 	float3 EmissiveColor = clamp(GetMaterialEmissiveRaw(PixelMaterialInputs), 0.0f, 65000.0f);
 
-	float3 Scattering = 0;
-	float Absorption = 0;
+	float3 Albedo = 0;
+	float Extinction = 0;
 
 #if !MATERIAL_SHADINGMODEL_UNLIT
-	Scattering = clamp(GetMaterialBaseColorRaw(PixelMaterialInputs), 0.0f, 65000.0f);
-	Absorption = clamp(GetMaterialOpacityRaw(PixelMaterialInputs), 0.0f, 65000.0f);
+	Albedo = GetMaterialBaseColor(PixelMaterialInputs) * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
+	Extinction = clamp(GetMaterialOpacityRaw(PixelMaterialInputs), 0.0f, 65000.0f);
 #endif
+
+	float3 Scattering = Albedo * Extinction;
+	float Absorption = max(Extinction - Luminance(Scattering), 0.0f);
 
 	float FadeStart = .6f;
 	float SliceFadeAlpha = 1 - saturate((SvPosition.w / VolumetricFog.MaxDistance - FadeStart) / (1 - FadeStart));

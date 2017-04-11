@@ -142,8 +142,6 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(DynamicShadows, SFG_LightingComponents, LOCTEXT("Dyna
 SHOWFLAG_ALWAYS_ACCESSIBLE(Particles, SFG_Normal, LOCTEXT("ParticlesSF", "Particles Sprite"))
 /** if SkeletalMeshes are getting rendered, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
 SHOWFLAG_ALWAYS_ACCESSIBLE(SkeletalMeshes, SFG_Normal, LOCTEXT("SkeletalMeshesSF", "Skeletal Meshes"))
-/** if elements using the SkinCache are getting rendered (cache is still populated but not rendered, c) */
-SHOWFLAG_FIXED_IN_SHIPPING(1, SkinCache, SFG_Advanced, LOCTEXT("SkinCacheSF", "Skin Cache (GPU vertex cache for skeletal meshes)"))
 /** if the builder brush (editor) is getting rendered */
 SHOWFLAG_FIXED_IN_SHIPPING(0, BuilderBrush, SFG_Hidden, LOCTEXT("BuilderBrushSF", "Builder Brush"))
 /** Render translucency, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */

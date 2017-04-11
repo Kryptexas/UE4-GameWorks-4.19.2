@@ -92,7 +92,7 @@ static TGlobalResource<FNiagaraRibbonVertexDeclaration> GNiagaraRibbonVertexDecl
 
 bool FNiagaraRibbonVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
-	return Material->IsUsedWithBeamTrails() || Material->IsSpecialEngineMaterial();
+	return Material->IsUsedWithNiagaraRibbons() || Material->IsSpecialEngineMaterial();
 }
 
 /**

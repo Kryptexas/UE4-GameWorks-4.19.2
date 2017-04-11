@@ -310,6 +310,8 @@
     <Compile Include="System\Utils.cs" />
     <Compile Include="System\VCProject.cs" />
     <Compile Include="System\VCProjectFileGenerator.cs" />
+    <Compile Include="System\EddieProject.cs" />
+    <Compile Include="System\EddieGenerator.cs" />
     <Compile Include="ToolChain\RemoteToolChain.cs" />
     <Compile Include="ToolChain\UEToolChain.cs" />
     <Compile Include="System\XGE.cs" />

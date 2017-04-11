@@ -6,7 +6,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FMetalDebugParallelRenderCommandEncoder : NSObject<MTLParallelRenderCommandEncoder>
+@interface FMetalDebugParallelRenderCommandEncoder : FApplePlatformObject<MTLParallelRenderCommandEncoder>
 {
     @private
 #pragma mark - Private Member Variables -

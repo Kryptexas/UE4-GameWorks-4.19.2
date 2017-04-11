@@ -110,5 +110,5 @@ class ENGINE_API USceneCaptureComponent2D : public USceneCaptureComponent
 	UFUNCTION(BlueprintCallable,Category = "Rendering|SceneCapture")
 	void CaptureScene();
 
-	static void UpdateDeferredCaptures( FSceneInterface* Scene );
+	void UpdateSceneCaptureContents(FSceneInterface* Scene) override;
 };

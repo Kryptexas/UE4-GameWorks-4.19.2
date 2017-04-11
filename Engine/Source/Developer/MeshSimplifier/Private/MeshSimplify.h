@@ -754,27 +754,10 @@ float TMeshSimplifier<T, NumAttributes>::ComputeNewVerts( TSimpEdge<T>* edge, T*
 {
 	TSimpEdge<T>* e;
 	TSimpVert<T>* v;
-	uint32 i = 0;
 
-// Avoid warning C6262: Function uses '121180' bytes of stack:  exceeds /analyze:stacksize '81940'.  Consider moving some data to heap.
-// as suppression doesn't seem to work on VS2015 Update 2.
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	QuadricType* quadrics = new QuadricType[256];
-	struct FDeleteQuadrics
-	{
-		~FDeleteQuadrics()
-		{
-			delete [] quadrics;
-		}
-
-		QuadricType* quadrics;
-	} DeleteQuadrics = { quadrics };
-#else
-	QuadricType quadrics[256];
-#endif
+	TArray< QuadricType, TInlineAllocator<16> > quadrics;
 
 	TQuadricAttrOptimizer< NumAttributes > optimizer;
-	FVector newPos;
 
 	LockVertFlags( SIMP_MARK1 );
 	
@@ -789,10 +772,13 @@ float TMeshSimplifier<T, NumAttributes>::ComputeNewVerts( TSimpEdge<T>* edge, T*
 		checkSlow( e->v1->adjTris.Num() > 0 );
 		checkSlow( e->v0->GetMaterialIndex() == e->v1->GetMaterialIndex() );
 
-		newVerts[i]  = e->v0->vert;
-		quadrics[i]  = GetQuadric( e->v0 );
-		quadrics[i] += GetQuadric( e->v1 );
-		optimizer.AddQuadric( quadrics[ i++ ] );
+		newVerts[ quadrics.Num() ] = e->v0->vert;
+
+		QuadricType quadric;
+		quadric  = GetQuadric( e->v0 );
+		quadric += GetQuadric( e->v1 );
+		quadrics.Add( quadric );
+		optimizer.AddQuadric( quadric );
 
 		e->v0->DisableFlags( SIMP_MARK1 );
 		e->v1->DisableFlags( SIMP_MARK1 );
@@ -805,9 +791,12 @@ float TMeshSimplifier<T, NumAttributes>::ComputeNewVerts( TSimpEdge<T>* edge, T*
 	do {
 		if( v->TestFlags( SIMP_MARK1 ) )
 		{
-			newVerts[i] = v->vert;
-			quadrics[i] = GetQuadric( v );
-			optimizer.AddQuadric( quadrics[ i++ ] );
+			newVerts[ quadrics.Num() ] = v->vert;
+
+			QuadricType quadric;
+			quadric = GetQuadric( v );
+			quadrics.Add( quadric );
+			optimizer.AddQuadric( quadric );
 
 			v->DisableFlags( SIMP_MARK1 );
 		}
@@ -818,9 +807,12 @@ float TMeshSimplifier<T, NumAttributes>::ComputeNewVerts( TSimpEdge<T>* edge, T*
 	do {
 		if( v->TestFlags( SIMP_MARK1 ) )
 		{
-			newVerts[i] = v->vert;
-			quadrics[i] = GetQuadric( v );
-			optimizer.AddQuadric( quadrics[ i++ ] );
+			newVerts[ quadrics.Num() ] = v->vert;
+
+			QuadricType quadric;
+			quadric = GetQuadric( v );
+			quadrics.Add( quadric );
+			optimizer.AddQuadric( quadric );
 
 			v->DisableFlags( SIMP_MARK1 );
 		}
@@ -829,8 +821,7 @@ float TMeshSimplifier<T, NumAttributes>::ComputeNewVerts( TSimpEdge<T>* edge, T*
 
 	UnlockVertFlags( SIMP_MARK1 );
 
-	uint32 numQuadrics = i;
-	check( numQuadrics <= 256 );
+	check( quadrics.Num() <= 256 );
 
 	FQuadric edgeQuadric;
 	edgeQuadric.Zero();
@@ -849,6 +840,7 @@ float TMeshSimplifier<T, NumAttributes>::ComputeNewVerts( TSimpEdge<T>* edge, T*
 
 	optimizer.AddQuadric( edgeQuadric );
 	
+	FVector newPos;
 	{
 		bool bLocked0 = edge->v0->TestFlags( SIMP_LOCKED );
 		bool bLocked1 = edge->v1->TestFlags( SIMP_LOCKED );
@@ -879,7 +871,7 @@ float TMeshSimplifier<T, NumAttributes>::ComputeNewVerts( TSimpEdge<T>* edge, T*
 	
 	float cost = 0.0f;
 
-	for( i = 0; i < numQuadrics; i++ )
+	for( int i = 0; i < quadrics.Num(); i++ )
 	{
 		newVerts[i].GetPos() = newPos;
 

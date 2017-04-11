@@ -103,6 +103,14 @@ struct FLightPropagationVolumeSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVSpecularOcclusionIntensity", UIMin = "0", UIMax = "4", DisplayName = "Specular occlusion intensity") )
 	float LPVSpecularOcclusionIntensity;
 
+	/** LPV Fade range - increase to fade more gradually towards the LPV edges.*/
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVFadeRange", UIMin = "0", UIMax = "9", DisplayName = "Fade range"))
+	float LPVFadeRange;
+
+	/** LPV Directional Occlusion Fade range - increase to fade more gradually towards the LPV edges.*/
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVDirectionalOcclusionFadeRange", UIMin = "0", UIMax = "9", DisplayName = "DO Fade range"))
+	float LPVDirectionalOcclusionFadeRange;
+
 	// good start values for a new volume
 	FLightPropagationVolumeSettings()
 	{
@@ -124,6 +132,8 @@ struct FLightPropagationVolumeSettings
 		LPVSpecularOcclusionExponent = 7.0f;
 		LPVDiffuseOcclusionIntensity = 1.0f;
 		LPVSpecularOcclusionIntensity = 1.0f;
+		LPVFadeRange = 0.0f;
+		LPVDirectionalOcclusionFadeRange = 0.0f;
 	}
 
 	/**

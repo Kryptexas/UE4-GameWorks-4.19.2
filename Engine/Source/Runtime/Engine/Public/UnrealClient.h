@@ -35,6 +35,7 @@ public:
 	* @return render target surface RHI resource
 	*/
 	ENGINE_API virtual const FTexture2DRHIRef& GetRenderTargetTexture() const;
+	ENGINE_API virtual FUnorderedAccessViewRHIRef GetRenderTargetUAV() const;
 
 	// Properties.
 	virtual FIntPoint GetSizeXY() const = 0;

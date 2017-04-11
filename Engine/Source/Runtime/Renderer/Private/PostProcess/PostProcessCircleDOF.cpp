@@ -191,7 +191,7 @@ void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& C
 	FIntRect DestRect = SrcRect / 2;
 
 	const FSceneRenderTargetItem& DestRenderTarget0 = PassOutputs[0].RequestSurface(Context);
-	const FSceneRenderTargetItem& DestRenderTarget1 = SupportSceneAlpha() ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget1 = FPostProcessing::HasAlphaChannelSupport() ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	FTextureRHIParamRef RenderTargets[2] =
@@ -199,7 +199,7 @@ void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& C
 		DestRenderTarget0.TargetableTexture,
 		DestRenderTarget1.TargetableTexture
 	};
-	uint32 NumRenderTargets = SupportSceneAlpha() ? 2 : 1;
+	uint32 NumRenderTargets = FPostProcessing::HasAlphaChannelSupport() ? 2 : 1;
 	SetRenderTargets(Context.RHICmdList, NumRenderTargets, RenderTargets, FTextureRHIParamRef(), 0, NULL);
 
 	FLinearColor ClearColors[2] = 
@@ -280,7 +280,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOFSetup::ComputeOutputDesc(EPas
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
 	Ret.AutoWritable = false;
-	if (SupportSceneAlpha())
+	if (FPostProcessing::HasAlphaChannelSupport())
 	{
 		if (InPassOutputId == ePId_Output0)
 		{
@@ -680,7 +680,7 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 	FIntRect DestRect = SrcRect;
 
 	const FSceneRenderTargetItem& DestRenderTarget0 = PassOutputs[0].RequestSurface(Context);
-	const FSceneRenderTargetItem& DestRenderTarget1 = SupportSceneAlpha() ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget1 = FPostProcessing::HasAlphaChannelSupport() ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	FTextureRHIParamRef RenderTargets[2] =
@@ -688,7 +688,7 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 		DestRenderTarget0.TargetableTexture,
 		DestRenderTarget1.TargetableTexture
 	};
-	uint32 NumRenderTargets = SupportSceneAlpha() ? 2 : 1;
+	uint32 NumRenderTargets = FPostProcessing::HasAlphaChannelSupport() ? 2 : 1;
 	SetRenderTargets(Context.RHICmdList, NumRenderTargets, RenderTargets, FTextureRHIParamRef(), 0, NULL);
 
 	FLinearColor ClearColors[2] = 
@@ -749,7 +749,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOF::ComputeOutputDesc(EPassOutp
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
 
-	if (SupportSceneAlpha())
+	if (FPostProcessing::HasAlphaChannelSupport())
 	{
 		if (InPassOutputId == 0)
 		{

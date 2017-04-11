@@ -482,12 +482,12 @@ FText UMaterialGraph::GetEmissivePinName() const
 
 FText UMaterialGraph::GetBaseColorPinName() const
 {
-	return Material->MaterialDomain == MD_Volume ? LOCTEXT("Scattering", "Scattering") : LOCTEXT("BaseColor", "Base Color");
+	return Material->MaterialDomain == MD_Volume ? LOCTEXT("Albedo", "Albedo") : LOCTEXT("BaseColor", "Base Color");
 }
 
 FText UMaterialGraph::GetOpacityPinName() const
 {
-	return Material->MaterialDomain == MD_Volume ? LOCTEXT("Absorption", "Absorption") : LOCTEXT("Opacity", "Opacity");
+	return Material->MaterialDomain == MD_Volume ? LOCTEXT("Extinction", "Extinction") : LOCTEXT("Opacity", "Opacity");
 }
 
 FText UMaterialGraph::GetMetallicPinName() const

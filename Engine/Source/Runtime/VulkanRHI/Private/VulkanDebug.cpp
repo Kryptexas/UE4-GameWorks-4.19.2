@@ -6,10 +6,6 @@
 
 #include "VulkanRHIPrivate.h"
 
-#if defined(VK_HEADER_VERSION) && VK_HEADER_VERSION < 8 && (VK_API_VERSION < VK_MAKE_VERSION(1, 0, 3))
-#include <vulkan/vk_ext_debug_report.h>
-#endif
-
 #define VULKAN_ENABLE_API_DUMP_DETAILED				0
 
 #define CREATE_MSG_CALLBACK							"vkCreateDebugReportCallbackEXT"
@@ -22,12 +18,12 @@ DEFINE_LOG_CATEGORY(LogVulkanRHI);
 static VkBool32 VKAPI_PTR DebugReportFunction(
 	VkDebugReportFlagsEXT			MsgFlags,
 	VkDebugReportObjectTypeEXT		ObjType,
-    uint64_t						SrcObject,
-    size_t							Location,
-    int32							MsgCode,
+	uint64_t						SrcObject,
+	size_t							Location,
+	int32							MsgCode,
 	const ANSICHAR*					LayerPrefix,
 	const ANSICHAR*					Msg,
-    void*							UserData)
+	void*							UserData)
 {
 	if (MsgFlags != VK_DEBUG_REPORT_ERROR_BIT_EXT && 
 		MsgFlags != VK_DEBUG_REPORT_WARNING_BIT_EXT &&
@@ -471,6 +467,9 @@ namespace VulkanRHI
 #endif
 #if VK_HEADER_VERSION >= 24
 			VKSWITCHCASE(VK_ERROR_FRAGMENTED_POOL)
+#endif
+#if VK_HEADER_VERSION >= 39
+			VKSWITCHCASE(VK_ERROR_OUT_OF_POOL_MEMORY_KHR)
 #endif
 #undef VKSWITCHCASE
 		default:

@@ -53,6 +53,33 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 
 void FD3D12DynamicRHI::SetupRecursiveResources()
 {
+	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+
+	{
+		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
+		PixelShader->GetPixelShader();
+	}
+
+	extern ENGINE_API TGlobalResource<FScreenVertexDeclaration> GScreenVertexDeclaration;
+
+	// TODO: Waiting to integrate MSAA fix for ResolveShader.h
+	if (GMaxRHIShaderPlatform == SP_XBOXONE)
+		return;
+
+	TShaderMapRef<FResolveVS> ResolveVertexShader(ShaderMap);
+	if (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_XBOXONE)
+	{
+		TShaderMapRef<FResolveDepthPS> ResolvePixelShader_Depth(ShaderMap);
+		ResolvePixelShader_Depth->GetPixelShader();
+
+		TShaderMapRef<FResolveDepthPS> ResolvePixelShader_SingleSample(ShaderMap);
+		ResolvePixelShader_SingleSample->GetPixelShader();
+	}
+	else
+	{
+		TShaderMapRef<FResolveDepthNonMSPS> ResolvePixelShader_DepthNonMS(ShaderMap);
+		ResolvePixelShader_DepthNonMS->GetPixelShader();
+	}
 }
 
 // Vertex state.
@@ -1708,11 +1735,6 @@ void FD3D12CommandContext::RHIEndDrawIndexedPrimitiveUP()
 }
 
 // Raster operations.
-void FD3D12CommandContext::RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
-{
-	RHIClearMRTImpl(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil);
-}
-
 void FD3D12CommandContext::RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
 	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil);

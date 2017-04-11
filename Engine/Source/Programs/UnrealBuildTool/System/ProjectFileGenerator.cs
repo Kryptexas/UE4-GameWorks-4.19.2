@@ -125,6 +125,7 @@ namespace UnrealBuildTool
 		CodeLite,
 		VisualStudio,
 		XCode,
+		Eddie,
 	}
 
 	/// <summary>

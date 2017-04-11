@@ -35,11 +35,31 @@ SamplerState FogInscatteringColorSampler;
 float3 FogInscatteringTextureParameters;
 float ApplyVolumetricFog;
 
+float3 ComputeInscatteringColor(float3 CameraToReceiver, float CameraToReceiverLength)
+{
+	half3 Inscattering = ExponentialFogColorParameter.xyz;
+	half3 DirectionalInscattering = 0;
+
+#if SUPPORT_FOG_INSCATTERING_TEXTURE
+	BRANCH
+	if (ExponentialFogParameters3.z > 0)
+	{
+		float FadeAlpha = saturate(CameraToReceiverLength * FogInscatteringTextureParameters.x + FogInscatteringTextureParameters.y);
+		float3 CubemapLookupVector = CameraToReceiver;
+		// Rotate around Z axis
+		CubemapLookupVector.xy = float2(dot(CubemapLookupVector.xy, float2(SinCosInscatteringColorCubemapRotation.y, -SinCosInscatteringColorCubemapRotation.x)), dot(CubemapLookupVector.xy, SinCosInscatteringColorCubemapRotation.xy));
+		float3 DirectionalColor = TextureCubeSampleLevel(FogInscatteringColorCubemap, FogInscatteringColorSampler, CubemapLookupVector, 0).xyz;
+		float3 NonDirectionalColor = TextureCubeSampleLevel(FogInscatteringColorCubemap, FogInscatteringColorSampler, CubemapLookupVector, FogInscatteringTextureParameters.z).xyz;
+		Inscattering *= lerp(NonDirectionalColor, DirectionalColor, FadeAlpha);
+	}
+#endif
+
+	return Inscattering;
+}
+
 // @param WorldPositionRelativeToCamera = WorldPosition - InCameraPosition
 half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera, float ExcludeDistance)
 {
-	/** Color to use. */
-	const half3 ExponentialFogColor = ExponentialFogColorParameter.xyz;
 	const half MinFogOpacity = ExponentialFogColorParameter.w;
 
 	float3 CameraToReceiver = WorldPositionRelativeToCamera;
@@ -52,7 +72,26 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera, float Exclud
 	float RayLength = CameraToReceiverLength;
 	float RayDirectionZ = CameraToReceiver.z;
 
+	// Factor in StartDistance
 	ExcludeDistance = max(ExcludeDistance, ExponentialFogParameters.w);
+	
+#if USE_GLOBAL_CLIP_PLANE
+
+	BRANCH
+	// While rendering a planar reflection with a clip plane, we must compute analytical fog using a camera path starting from the plane, rather than the virtual camera origin
+	if (dot(View.GlobalClippingPlane.xyz, 1) > 0.0f)
+	{
+		float CameraOriginPlaneDistance = dot(View.GlobalClippingPlane, float4(View.WorldCameraOrigin, 1));
+		float PlaneIntersectionTime = -CameraOriginPlaneDistance / dot(CameraToReceiver, View.GlobalClippingPlane.xyz);
+
+		// Only modify the start distance if the reflection plane is between the camera and receiver point
+		if (PlaneIntersectionTime > 0 && PlaneIntersectionTime < 1)
+		{
+			ExcludeDistance = max(ExcludeDistance, PlaneIntersectionTime * CameraToReceiverLength);
+		}
+	}
+
+#endif
 
 	if (ExcludeDistance > 0)
 	{
@@ -69,33 +108,6 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera, float Exclud
 		RayOriginTerms = ExponentialFogParameters3.x * exp2(-Exponent);
 	}
 
-#if USE_GLOBAL_CLIP_PLANE
-
-	BRANCH
-	// While rendering a planar reflection with a clip plane, we must compute analytical fog using a camera path starting from the plane, rather than the virtual camera origin
-	if (dot(View.GlobalClippingPlane.xyz, 1) > 0.0f)
-	{
-		float CameraOriginPlaneDistance = dot(View.GlobalClippingPlane, float4(View.WorldCameraOrigin, 1));
-		float PlaneIntersectionTime = -CameraOriginPlaneDistance / dot(CameraToReceiver, View.GlobalClippingPlane.xyz);
-
-		// Continue if the reflection plane is between the camera and receiver point
-		if (PlaneIntersectionTime > 0 && PlaneIntersectionTime < 1)
-		{
-			float CameraToPlaneIntersectionZ = PlaneIntersectionTime * CameraToReceiver.z;
-			float PlaneIntersectionZ = View.WorldCameraOrigin.z + CameraToPlaneIntersectionZ;
-			float PlaneIntersectionToReceiverZ = CameraToReceiver.z - CameraToPlaneIntersectionZ;
-
-			// Calculate fog off of the ray starting from the reflection plane, instead of starting from the camera
-			RayLength = (1.0f - PlaneIntersectionTime) * CameraToReceiverLength;
-			RayDirectionZ = PlaneIntersectionToReceiverZ;
-
-			float Exponent = max(-127.0f, ExponentialFogParameters.y * (PlaneIntersectionZ - ExponentialFogParameters3.y));
-			RayOriginTerms = ExponentialFogParameters3.x * exp2(-Exponent);
-		}
-	}
-
-#endif
-
 	// Calculate the line integral of the ray from the camera to the receiver position through the fog density function
 	// The exponential fog density function is d = GlobalDensity * exp(-HeightFalloff * z)
 	float EffectiveZ = (abs(RayDirectionZ) > FLT_EPSILON2) ? RayDirectionZ : FLT_EPSILON2;
@@ -103,22 +115,8 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera, float Exclud
 	float ExponentialHeightLineIntegralShared = RayOriginTerms * (1.0f - exp2(-Falloff) ) / Falloff;
 	float ExponentialHeightLineIntegral = ExponentialHeightLineIntegralShared * RayLength;
 
-	half3 Inscattering = ExponentialFogColor;
+	half3 InscatteringColor = ComputeInscatteringColor(CameraToReceiver, CameraToReceiverLength);
 	half3 DirectionalInscattering = 0;
-
-#if SUPPORT_FOG_INSCATTERING_TEXTURE
-	BRANCH
-	if (ExponentialFogParameters3.z > 0)
-	{
-		float FadeAlpha = saturate(CameraToReceiverLength * FogInscatteringTextureParameters.x + FogInscatteringTextureParameters.y);
-		float3 CubemapLookupVector = CameraToReceiver;
-		// Rotate around Z axis
-		CubemapLookupVector.xy = float2(dot(CubemapLookupVector.xy, float2(SinCosInscatteringColorCubemapRotation.y, -SinCosInscatteringColorCubemapRotation.x)), dot(CubemapLookupVector.xy, SinCosInscatteringColorCubemapRotation.xy));
-		float3 DirectionalColor = TextureCubeSampleLevel(FogInscatteringColorCubemap, FogInscatteringColorSampler, CubemapLookupVector, 0).xyz;
-		float3 NonDirectionalColor = TextureCubeSampleLevel(FogInscatteringColorCubemap, FogInscatteringColorSampler, CubemapLookupVector, FogInscatteringTextureParameters.z).xyz;
-		Inscattering *= lerp(NonDirectionalColor, DirectionalColor, FadeAlpha);
-	}
-#endif
 
 #if SUPPORT_FOG_DIRECTIONAL_LIGHT_INSCATTERING
 	if (InscatteringLightDirection.w > 0 && ExponentialFogParameters3.z == 0)
@@ -145,7 +143,7 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera, float Exclud
 		DirectionalInscattering = 0;
 	}
 
-	return half4((Inscattering) * (1 - ExpFogFactor) + DirectionalInscattering, ExpFogFactor);
+	return half4((InscatteringColor) * (1 - ExpFogFactor) + DirectionalInscattering, ExpFogFactor);
 }
 
 Texture3D IntegratedLightScattering;

@@ -100,14 +100,12 @@ public:
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const override
 	{
 		OutFormats.Add(FName(TEXT("EncodedHDR")));
+		OutFormats.Add(FName(TEXT("FullHDR")));
 	}
 
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override;
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;
@@ -209,7 +207,7 @@ private:
 #endif // WITH_ENGINE
 
     // holds usb device helper
-    FIOSDeviceHelper DeviceHelper;
+	FIOSDeviceHelper DeviceHelper;
 
 private:
 

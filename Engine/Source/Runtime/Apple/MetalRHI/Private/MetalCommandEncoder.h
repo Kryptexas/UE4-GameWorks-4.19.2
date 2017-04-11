@@ -5,6 +5,7 @@
 #include <Metal/Metal.h>
 #include "MetalBufferPools.h"
 #include "MetalDebugCommandEncoder.h"
+#include "MetalFence.h"
 
 class FMetalCommandList;
 class FMetalCommandQueue;
@@ -24,6 +25,8 @@ enum EMetalSubmitFlags
 	EMetalSubmitFlagsWaitOnCommandBuffer = 1 << 1,
 	/** Break a single logical command-buffer into parts to keep the GPU active. */
 	EMetalSubmitFlagsBreakCommandBuffer = 1 << 2,
+	/** Submit the prologue command-buffer only, leave the current command-buffer active.  */
+	EMetalSubmitFlagsAsyncCommandBuffer = 1 << 3,
 };
 
 /**
@@ -95,6 +98,9 @@ public:
 	/** @returns The active blit command encoder or nil if there isn't one. */
 	id<MTLBlitCommandEncoder> GetBlitCommandEncoder(void) const;
 	
+	/** @returns The MTLFence for the current encoder or nil if there isn't one. */
+	id<MTLFence> GetEncoderFence(void) const;
+	
 #pragma mark - Public Command Encoder Mutators -
 
 	/**
@@ -109,10 +115,19 @@ public:
 	void BeginBlitCommandEncoding(void);
 	
 	/** Declare that all command generation from this encoder is complete, and detach from the MTLCommandBuffer if there is an encoder active or does nothing if there isn't. */
-	void EndEncoding(void);
+	id<MTLFence> EndEncoding(void);
 	
 	/** Initialises a fence for the current command-buffer optionally adding a command-buffer completion handler to the command-buffer */
 	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler);
+	
+	/** Adds a command-buffer completion handler to the command-buffer */
+	void AddCompletionHandler(MTLCommandBufferHandler Handler);
+	
+	/** Update the event to capture all GPU work so far enqueued by this encoder. */
+	void UpdateFence(id<MTLFence> Fence);
+	
+	/** Prevent further GPU work until the event is reached. */
+	void WaitForFence(id<MTLFence> Fence);
 
 #pragma mark - Public Debug Support -
 	
@@ -139,11 +154,19 @@ public:
 	 */
 	void SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass);
 	
+	/**
+	 * Set the render pass store actions, call after SetRenderPassDescriptor but before EndEncoding.
+	 * @param ColorStore The store actions for color targets.
+	 * @param DepthStore The store actions for the depth buffer - use MTLStoreActionUnknown if no depth-buffer bound.
+	 * @param StencilStore The store actions for the stencil buffer - use MTLStoreActionUnknown if no stencil-buffer bound.
+	 */
+	void SetRenderPassStoreActions(MTLStoreAction const* const ColorStore, MTLStoreAction const DepthStore, MTLStoreAction const StencilStore);
+	
 	/*
 	 * Sets the current render pipeline state object.
 	 * @param PipelineState The pipeline state to set. Must not be nil.
 	 */
-	void SetRenderPipelineState(id<MTLRenderPipelineState> const PipelineState, MTLRenderPipelineReflection* Reflection, NSString* VertexSource, NSString* FragmentSource);
+	void SetRenderPipelineState(FMetalShaderPipeline* const PipelineState);
 	
 	/*
 	 * Set the viewport, which is used to transform vertexes from normalized device coordinates to window coordinates.  Fragments that lie outside of the viewport are clipped, and optionally clamped for fragments outside of znear/zfar.
@@ -270,7 +293,7 @@ public:
 	 * Set the compute pipeline state that will be used.
 	 * @param State The state to set - must not be nil.
 	 */
-	void SetComputePipelineState(id<MTLComputePipelineState> const State, MTLComputePipelineReflection* Reflection, NSString* Source);
+	void SetComputePipelineState(FMetalShaderPipeline* State);
 
 #pragma mark - Public Ring-Buffer Accessor -
 	
@@ -313,7 +336,14 @@ private:
 #pragma mark - Private Member Variables -
 	FMetalCommandList& CommandList;
 
+    // Cache Queue feature
+    bool bSupportsMetalFeaturesSetBytes;
+    
 	FMetalBufferBindings ShaderBuffers[MTLFunctionTypeKernel+1];
+	
+	MTLStoreAction ColorStoreActions[MaxMetalRenderTargets];
+	MTLStoreAction DepthStoreAction;
+	MTLStoreAction StencilStoreAction;
 	
 	TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> RingBuffer;
 	
@@ -325,6 +355,8 @@ private:
 	id<MTLRenderCommandEncoder> RenderCommandEncoder;
 	id<MTLComputeCommandEncoder> ComputeCommandEncoder;
 	id<MTLBlitCommandEncoder> BlitCommandEncoder;
+	FMetalFence EncoderFence;
 	
+	NSMutableArray<MTLCommandBufferHandler>* CompletionHandlers;
 	NSMutableArray* DebugGroups;
 };

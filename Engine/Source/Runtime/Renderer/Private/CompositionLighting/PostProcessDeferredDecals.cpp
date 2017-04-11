@@ -628,6 +628,15 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	bool bNeedsDBufferTargets = false;
 
+	// Delay creating and clearing the DBuffers since if they're not used, we can use small textures and not eat the mem/perf cost of the clearing them (and fetching in the base pass)
+	FDelayedRendererAction DelayedCreateAndClearDBuffers;
+	struct FDelayedCreateAndClearDBuffersData
+	{
+		FRenderingCompositePassContext* Context;
+		FSceneRenderTargets* SceneContext;
+		bool bUseDummyDBuffers;
+	} DelayedCreateAndClearDBuffersData = {&Context, &SceneContext, false};
+
 	if (CurrentStage == DRS_BeforeBasePass)
 	{
 		// before BasePass, only if DBuffer is enabled
@@ -637,10 +646,10 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		// clears/decompresses and set the targets to NULL		
 		// The DBufferA-C will be replaced with dummy textures in FDeferredPixelShaderParameters
 		if (ViewFamily.EngineShowFlags.Decals)
-	    {
-		    FScene& Scene = *(FScene*)ViewFamily.Scene;
-		    if (Scene.Decals.Num() > 0 || Context.View.MeshDecalPrimSet.NumPrims() > 0)
-		    {
+		{
+			FScene& Scene = *(FScene*)ViewFamily.Scene;
+			if (Scene.Decals.Num() > 0 || Context.View.MeshDecalPrimSet.NumPrims() > 0)
+			{
 				bNeedsDBufferTargets = true;
 			}
 		}
@@ -648,58 +657,64 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		// If we need dbuffer targets, initialize them
 		if ( bNeedsDBufferTargets )
 		{
-			FPooledRenderTargetDesc GBufferADesc;
-			SceneContext.GetGBufferADesc(GBufferADesc);
-			
-			// DBuffer: Decal buffer
-		    FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GBufferADesc.Extent,
-			    PF_B8G8R8A8,
-			    FClearValueBinding::None,
-			    TexCreate_None,
-			    TexCreate_ShaderResource | TexCreate_RenderTargetable,
-			    false,
-			    1, 
-			    true, 
-			    true));
-    
-		    if (!SceneContext.DBufferA)
-		    {
-			    Desc.ClearValue = FClearValueBinding::Black;
-			    GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferA, TEXT("DBufferA"));
-		    }
-    
-		    if (!SceneContext.DBufferB)
-		    {
-			    Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
-			    GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferB, TEXT("DBufferB"));
-		    }
-    
-		    Desc.Format = PF_R8G8;
-    
-		    if (!SceneContext.DBufferC)
-		    {
-			    Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
-			    GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferC, TEXT("DBufferC"));
-		    }
+			auto CreateAndClearDBuffers = [](FRHICommandListImmediate& InRHICommandList, void* UserData)
+			{
+				FDelayedCreateAndClearDBuffersData* DelayedData = (FDelayedCreateAndClearDBuffersData*)UserData;
+				FPooledRenderTargetDesc GBufferADesc;
+				DelayedData->SceneContext->GetGBufferADesc(GBufferADesc);
 
-		    // we assume views are non overlapping, then we need to clear only once in the beginning, otherwise we would need to set scissor rects
-		    // and don't get FastClear any more.
-		    bool bFirstView = Context.View.Family->Views[0] == &Context.View;
-    
-		    if (bFirstView)
-		    {
-			    SCOPED_DRAW_EVENT(RHICmdList, DBufferClear);
-    
-			    FRHIRenderTargetView RenderTargets[3];
-			    RenderTargets[0] = FRHIRenderTargetView(SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-			    RenderTargets[1] = FRHIRenderTargetView(SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-			    RenderTargets[2] = FRHIRenderTargetView(SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-    
-			    FRHIDepthRenderTargetView DepthView(SceneContext.GetSceneDepthTexture(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
-    
-			    FRHISetRenderTargetsInfo Info(3, RenderTargets, DepthView);
-			    RHICmdList.SetRenderTargetsAndClear(Info);
-		    }
+				// DBuffer: Decal buffer
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(
+					DelayedData->bUseDummyDBuffers ? FIntPoint(1, 1) : GBufferADesc.Extent,
+					PF_B8G8R8A8,
+					FClearValueBinding::None,
+					TexCreate_None,
+					TexCreate_ShaderResource | TexCreate_RenderTargetable,
+					false,
+					1,
+					true,
+					true));
+
+				if (!DelayedData->SceneContext->DBufferA)
+				{
+					Desc.ClearValue = FClearValueBinding::Black;
+					GRenderTargetPool.FindFreeElement(InRHICommandList, Desc, DelayedData->SceneContext->DBufferA, TEXT("DBufferA"));
+				}
+
+				if (!DelayedData->SceneContext->DBufferB)
+				{
+					Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
+					GRenderTargetPool.FindFreeElement(InRHICommandList, Desc, DelayedData->SceneContext->DBufferB, TEXT("DBufferB"));
+				}
+
+				Desc.Format = PF_R8G8;
+
+				if (!DelayedData->SceneContext->DBufferC)
+				{
+					Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
+					GRenderTargetPool.FindFreeElement(InRHICommandList, Desc, DelayedData->SceneContext->DBufferC, TEXT("DBufferC"));
+				}
+
+				// we assume views are non overlapping, then we need to clear only once in the beginning, otherwise we would need to set scissor rects
+				// and don't get FastClear any more.
+				bool bFirstView = DelayedData->Context->View.Family->Views[0] == &DelayedData->Context->View;
+				if (bFirstView)
+				{
+					SCOPED_DRAW_EVENT(InRHICommandList, DBufferClear);
+
+					FRHIRenderTargetView RenderTargets[3];
+					RenderTargets[0] = FRHIRenderTargetView(DelayedData->SceneContext->DBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+					RenderTargets[1] = FRHIRenderTargetView(DelayedData->SceneContext->DBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+					RenderTargets[2] = FRHIRenderTargetView(DelayedData->SceneContext->DBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+
+					FRHIDepthRenderTargetView DepthView(DelayedData->SceneContext->GetSceneDepthTexture(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
+
+					// If we don't need the DBuffers, don't clear depth as it won't match the dummy sizes
+					FRHISetRenderTargetsInfo Info(3, RenderTargets, DelayedData->bUseDummyDBuffers ? FRHIDepthRenderTargetView() : DepthView);
+					InRHICommandList.SetRenderTargetsAndClear(Info);
+				}
+			};
+			DelayedCreateAndClearDBuffers.SetDelayedFunction(CreateAndClearDBuffers, &DelayedCreateAndClearDBuffersData);
 		} // if ( bNeedsDBufferTargets )
 	}
 
@@ -711,6 +726,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		{
 			if (Context.View.MeshDecalPrimSet.NumPrims() > 0)
 			{
+				DelayedCreateAndClearDBuffers.RunFunctionOnce(RHICmdList);
 				check(bNeedsDBufferTargets || CurrentStage != DRS_BeforeBasePass);
 				RenderMeshDecals(Context, CurrentStage);
 			}
@@ -730,6 +746,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			if (SortedDecals.Num() > 0)
 			{
+				DelayedCreateAndClearDBuffers.RunFunctionOnce(RHICmdList);
 				SCOPED_DRAW_EVENTF(RHICmdList, DeferredDecalsInner, TEXT("DeferredDecalsInner %d/%d"), SortedDecals.Num(), Scene.Decals.Num());
 
 				FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -857,11 +874,19 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 				// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 				// Clear stencil to 0, which is the assumed default by other passes
-				DrawClearQuad(RHICmdList, SMFeatureLevel, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());					
+				DrawClearQuad(RHICmdList, SMFeatureLevel, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());
 			}
 
 			if (CurrentStage == DRS_BeforeBasePass)
 			{
+				if (!DelayedCreateAndClearDBuffers.HasBeenCalled())
+				{
+					// If we don't need the DBuffers, use 1x1 textures instead
+					DelayedCreateAndClearDBuffersData.bUseDummyDBuffers = true;
+				}
+
+				DelayedCreateAndClearDBuffers.RunFunctionOnce(RHICmdList);
+
 				// combine DBuffer RTWriteMasks; will end up in one texture we can load from in the base pass PS and decide whether to do the actual work or not
 				RenderTargetManager.FlushMetaData();
 

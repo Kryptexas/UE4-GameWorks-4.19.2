@@ -16,10 +16,24 @@
 class FRCPassPostProcessBloomSetup : public TRenderingCompositePassBase<2, 1>
 {
 public:
+	FRCPassPostProcessBloomSetup(bool bInIsComputePass)
+	{
+		bIsComputePass = bInIsComputePass;
+		bPreferAsyncCompute = false;
+	}
+
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 	virtual void Release() override { delete this; }
+
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
+
+private:
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, FTextureRHIParamRef EyeAdaptationTex);
+
+	FComputeFenceRHIRef AsyncEndFence;
 };
 
 // ePId_Input0: HDR SceneColor

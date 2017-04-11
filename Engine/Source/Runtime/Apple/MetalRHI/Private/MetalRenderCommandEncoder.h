@@ -6,21 +6,24 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FMetalDebugRenderCommandEncoder : NSObject<MTLRenderCommandEncoder>
+@class FMetalShaderPipeline;
+
+@interface FMetalDebugRenderCommandEncoder : FMetalDebugCommandEncoder<MTLRenderCommandEncoder>
 {
     @private
 #pragma mark - Private Member Variables -
+#if METAL_DEBUG_OPTIONS
+	FMetalDebugShaderResourceMask ResourceMask[EMetalShaderRenderNum];
     FMetalDebugBufferBindings ShaderBuffers[EMetalShaderRenderNum];
     FMetalDebugTextureBindings ShaderTextures[EMetalShaderRenderNum];
     FMetalDebugSamplerBindings ShaderSamplers[EMetalShaderRenderNum];
+#endif
 }
 
 /** The wrapped native command-encoder for which we collect debug information. */
 @property (readonly, retain) id<MTLRenderCommandEncoder> Inner;
 @property (readonly, retain) FMetalDebugCommandBuffer* Buffer;
-@property (nonatomic, retain) MTLRenderPipelineReflection* Reflection;
-@property (nonatomic, retain) NSString* VertexSource;
-@property (nonatomic, retain) NSString* FragmentSource;
+@property (nonatomic, retain) FMetalShaderPipeline* Pipeline;
 
 /** Initialise the wrapper with the provided command-buffer. */
 -(id)initWithEncoder:(id<MTLRenderCommandEncoder>)Encoder andCommandBuffer:(FMetalDebugCommandBuffer*)Buffer;
@@ -33,14 +36,12 @@ NS_ASSUME_NONNULL_BEGIN
 NS_ASSUME_NONNULL_END
 
 #if METAL_DEBUG_OPTIONS
-#define METAL_SET_RENDER_REFLECTION(Encoder, InReflection, InVertex, InFragment)                            \
-    if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation) \
-    {                                                                                                       \
-        ((FMetalDebugRenderCommandEncoder*)Encoder).Reflection = InReflection;                              \
-        ((FMetalDebugRenderCommandEncoder*)Encoder).VertexSource = InVertex;                                \
-        ((FMetalDebugRenderCommandEncoder*)Encoder).FragmentSource = InFragment;                            \
+#define METAL_SET_RENDER_REFLECTION(Encoder, InPipeline)														\
+    if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelFastValidation) \
+    {																											\
+        ((FMetalDebugRenderCommandEncoder*)Encoder).Pipeline = InPipeline;										\
     }
 #else
-#define METAL_SET_RENDER_REFLECTION(Encoder, Reflection, VertexSource, FragmentSource)
+#define METAL_SET_RENDER_REFLECTION(Encoder, InPipeline)
 #endif
 

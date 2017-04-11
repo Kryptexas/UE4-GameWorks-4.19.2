@@ -26,14 +26,16 @@ public:
 	{
 		const FProjectedShadowInfo* TranslucentSelfShadow;
 		ETranslucencyPass::Type TranslucenyPassType;
+		ESceneRenderTargetsMode::Type TextureMode;
 		bool bSceneColorCopyIsUpToDate;
 		bool bPostAA;
 
-		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPass::Type InTranslucenyPassType = ETranslucencyPass::TPT_StandardTranslucency, bool bPostAAIn = false)
+		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPass::Type InTranslucenyPassType = ETranslucencyPass::TPT_StandardTranslucency, bool bPostAAIn = false, ESceneRenderTargetsMode::Type InTextureMode = ESceneRenderTargetsMode::SetTextures)
 			: TranslucentSelfShadow(InTranslucentSelfShadow)
 			, TranslucenyPassType(InTranslucenyPassType)
+			, TextureMode(InTextureMode)
 			, bSceneColorCopyIsUpToDate(false)
-			, bPostAA(bPostAAIn)
+			, bPostAA(bPostAAIn)			
 		{}
 	};
 
@@ -103,10 +105,12 @@ public:
 	enum { bAllowSimpleElements = true };
 	struct ContextType 
 	{
+		ESceneRenderTargetsMode::Type TextureMode;
 		bool bRenderingSeparateTranslucency;
 
-		ContextType(bool InbRenderingSeparateTranslucency)
-		:	bRenderingSeparateTranslucency(InbRenderingSeparateTranslucency)
+		ContextType(ESceneRenderTargetsMode::Type InTextureMode, bool InbRenderingSeparateTranslucency)
+		: TextureMode(InTextureMode)
+		, bRenderingSeparateTranslucency(InbRenderingSeparateTranslucency)
 		{}
 
 		bool ShouldRenderSeparateTranslucency() const { return bRenderingSeparateTranslucency; }

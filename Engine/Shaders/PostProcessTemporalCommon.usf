@@ -103,7 +103,24 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_ACCURATE_ALPHA 0
 #endif
 
+// Sample the stencil buffer inline rather than multiple masked passes.
+#ifndef AA_SINGLE_PASS_RESPONSIVE
+	#define AA_SINGLE_PASS_RESPONSIVE	0
+#endif
+
 	float2 ScreenPos = ( UV * PostprocessInput0Size.xy - 0.5 - ScreenPosToPixel.zw ) / ScreenPosToPixel.xy;
+
+	// Handle single or multi-pass responsive AA
+#if RESPONSIVE
+	const float bIsResponsiveAAPixel = 1.f;
+#elif AA_SINGLE_PASS_RESPONSIVE
+	#define STENCIL_TEMPORAL_RESPONSIVE_AA_MASK (1 << 3)
+	int2 SceneStencilUV = (int2)trunc(UV * PostprocessInput0Size.xy);
+	uint SceneStencilRef = SceneStencilTexture.Load(int3(SceneStencilUV, 0)) STENCIL_COMPONENT_SWIZZLE;
+	const float bIsResponsiveAAPixel = (SceneStencilRef & STENCIL_TEMPORAL_RESPONSIVE_AA_MASK) ? 1.f : TemporalAAComputeParams.x;
+#else
+	const float bIsResponsiveAAPixel = 0.f;
+#endif
 
 	// FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
     // ------------------------------------------------
@@ -539,13 +556,13 @@ which can be configured via defines for various temporal AA passes.
 	#if AA_TONE
 		BlendFinal = CurrentFrameWeight;
 	#endif
-	#if RESPONSIVE
-		// Responsive forces 1/4 of new frame.
-		BlendFinal = 1.0/4.0;
-	#elif AA_NAN && (COMPILER_GLSL || COMPILER_METAL)
+	#if AA_NAN && (COMPILER_GLSL || COMPILER_METAL)
 		// The current Metal & GLSL compilers don't handle saturate(NaN) -> 0, instead they return NaN/INF.
-		BlendFinal = -min(-BlendFinal, 0.0);
+		BlendFinal = -min(-BlendFinal, 0.0);		
 	#endif
+
+	// Responsive forces 1/4 of new frame.
+	BlendFinal = bIsResponsiveAAPixel ? (1.0/4.0) : BlendFinal;
 
 	// Offscreen feedback resets.
 	#if AA_LERP 
@@ -582,9 +599,8 @@ which can be configured via defines for various temporal AA passes.
 		#else
 			// Blend in linear to hit luma target.
 			OutColor.rgb = lerp(HistoryColor.rgb, Filtered.rgb, BlendFinal);
-			#if RESPONSIVE
-				OutColor.a = max(HistoryColor.a, 1.0/2.0);
-			#endif
+
+			OutColor.a = bIsResponsiveAAPixel ? max(HistoryColor.a, 1.0/2.0) : OutColor.a;
 		#endif
 	#else
 		OutColor = lerp(HistoryColor, Filtered, FixedLerp);
@@ -632,3 +648,4 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_CLAMP
 #undef AA_DYNAMIC_ANTIGHOST
 #undef AA_ACCURATE_ALPHA
+#undef AA_SINGLE_PASS_RESPONSIVE

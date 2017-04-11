@@ -62,6 +62,9 @@ void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Cont
 		return;
 	}
 
+	// May need to wait on the inputs to complete
+	WaitForInputPassComputeFences(Context.RHICmdList);
+
 	const FSceneView& View = Context.View;
 
 	FIntPoint TexSize = InputDesc->Extent;

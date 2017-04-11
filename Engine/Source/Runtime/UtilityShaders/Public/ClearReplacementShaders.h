@@ -65,6 +65,7 @@ protected:
 	FShaderParameter ClearColor;
 };
 
+template< typename T >
 class FClearTexture2DReplacementCS : public FGlobalShader
 {
 	DECLARE_EXPORTED_SHADER_TYPE(FClearTexture2DReplacementCS, Global, UTILITYSHADERS_API);
@@ -85,12 +86,18 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 	
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4]);
 	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
 	
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine( TEXT("Type"), TIsSame< T, float >::Value ? TEXT("float4") : TEXT("uint4") );
 	}
 	
 	const FShaderParameter& GetClearColorParameter()
@@ -108,6 +115,7 @@ protected:
 	FShaderResourceParameter ClearTextureRW;
 };
 
+template< typename T >
 class FClearTexture2DArrayReplacementCS : public FGlobalShader
 {
 	DECLARE_EXPORTED_SHADER_TYPE(FClearTexture2DArrayReplacementCS, Global, UTILITYSHADERS_API);
@@ -128,12 +136,18 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4]);
 	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine( TEXT("Type"), TIsSame< T, float >::Value ? TEXT("float4") : TEXT("uint4") );
 	}
 
 	const FShaderParameter& GetClearColorParameter()
@@ -151,6 +165,7 @@ protected:
 	FShaderResourceParameter ClearTextureArrayRW;
 };
 
+template< typename T >
 class FClearVolumeReplacementCS : public FGlobalShader
 {
 	DECLARE_EXPORTED_SHADER_TYPE(FClearVolumeReplacementCS, Global, UTILITYSHADERS_API);
@@ -171,12 +186,18 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4]);
 	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine( TEXT("Type"), TIsSame< T, float >::Value ? TEXT("float4") : TEXT("uint4") );
 	}
 
 	const FShaderParameter& GetClearColorParameter()

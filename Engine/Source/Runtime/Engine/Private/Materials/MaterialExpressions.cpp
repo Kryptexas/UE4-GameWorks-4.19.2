@@ -363,6 +363,7 @@ UMaterialExpression::UMaterialExpression(const FObjectInitializer& ObjectInitial
 	bShowInputs = true;
 	bShowOutputs = true;
 	bCollapsed = true;
+	bShowMaskColorsOnPin = true;
 }
 
 
@@ -4100,6 +4101,13 @@ UMaterialExpressionMakeMaterialAttributes::UMaterialExpressionMakeMaterialAttrib
 #endif
 }
 
+void UMaterialExpressionMakeMaterialAttributes::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+}
+
 #if WITH_EDITOR
 int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) 
 {
@@ -4172,6 +4180,7 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	static FConstructorStatics ConstructorStatics;
 
 	bShowOutputNameOnPin = true;
+	bShowMaskColorsOnPin = false;
 
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_MaterialAttributes);
@@ -4185,27 +4194,65 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT("BaseColor"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Metallic"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Specular"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Roughness"), 1, 1, 1, 1, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Metallic"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Specular"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Roughness"), 1, 1, 0, 0, 0));
 	Outputs.Add(FExpressionOutput(TEXT("EmissiveColor"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Opacity"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("OpacityMask"), 1, 1, 1, 1, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Opacity"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("OpacityMask"), 1, 1, 0, 0, 0));
 	Outputs.Add(FExpressionOutput(TEXT("Normal"), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT("WorldPositionOffset"), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT("WorldDisplacement"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("TessellationMultiplier"), 1, 1, 1, 1, 0));
+	Outputs.Add(FExpressionOutput(TEXT("TessellationMultiplier"), 1, 1, 0, 0, 0));
 	Outputs.Add(FExpressionOutput(TEXT("SubsurfaceColor"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("ClearCoat"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("ClearCoatRoughness"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("AmbientOcclusion"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Refraction"), 1, 1, 1, 1, 0));
+	Outputs.Add(FExpressionOutput(TEXT("ClearCoat"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("ClearCoatRoughness"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("AmbientOcclusion"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Refraction"), 1, 1, 1, 0, 0));
 
 	for (int32 UVIndex = 0; UVIndex <= MP_CustomizedUVs7 - MP_CustomizedUVs0; UVIndex++)
 	{
 		Outputs.Add(FExpressionOutput(*FString::Printf(TEXT("CustomizedUV%u"), UVIndex), 1, 1, 1, 0, 0));
 	}
-	Outputs.Add(FExpressionOutput(TEXT("PixelDepthOffset"), 1, 1, 1, 1, 0));
+
+	Outputs.Add(FExpressionOutput(TEXT("PixelDepthOffset"), 1, 1, 0, 0, 0));
+}
+
+void UMaterialExpressionBreakMaterialAttributes::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::FixedLegacyMaterialAttributeNodeTypes)
+	{
+		// Update the masks for legacy content
+		int32 OutputIndex = 0;
+
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // BaseColor
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // Metallic
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // Specular
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // Roughness
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // EmissiveColor
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // Opacity
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // OpacityMask
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // Normal
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // WorldPositionOffset
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // WorldDisplacement
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // TessellationMultiplier
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // SubsurfaceColor
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // ClearCoat
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // ClearCoatRoughness 
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // AmbientOcclusion
+		Outputs[OutputIndex].SetMask(1, 1, 1, 0, 0); ++OutputIndex; // Refraction
+		
+		for (int32 i = 0; i <= MP_CustomizedUVs7 - MP_CustomizedUVs0; ++i, ++OutputIndex)
+		{
+			Outputs[OutputIndex].SetMask(1, 1, 1, 0, 0);
+		}
+
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); // PixelDepthOffset
+	}
 }
 
 #if WITH_EDITOR
@@ -4248,11 +4295,6 @@ int32 UMaterialExpressionBreakMaterialAttributes::Compile(class FMaterialCompile
 	if (!Property)
 	{
 		return Compiler->Errorf(TEXT("Tried to compile material attributes?"));
-	}
-	else if (*Property == MP_Refraction)
-	{
-		// Legacy hack: Defined component masks don't match actual types, so locally fixing with the intention of deprecating this node moving forward.
-		return Compiler->ForceCast(MaterialAttributes.CompileWithDefault(Compiler, FMaterialAttributeDefinitionMap::GetID(*Property)), MCT_Float3);
 	}
 	else
 	{

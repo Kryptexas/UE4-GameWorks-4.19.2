@@ -38,9 +38,9 @@ UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInit
 	FogCutoffDistance = 0;
 
 	VolumetricFogScatteringDistribution = .2f;
-	VolumetricFogScatteringScale = 1.0f;
-	VolumetricFogAbsorptionScale = 1.0f;
-	VolumetricFogDistance = 4500.0f;
+	VolumetricFogAlbedo = FColor::White;
+	VolumetricFogExtinctionScale = 1.0f;
+	VolumetricFogDistance = 6000.0f;
 }
 
 void UExponentialHeightFogComponent::AddFogIfNeeded()
@@ -265,20 +265,20 @@ void UExponentialHeightFogComponent::SetVolumetricFogScatteringDistribution(floa
 	}
 }
 
-void UExponentialHeightFogComponent::SetVolumetricFogAbsorptionScale(float NewValue)
+void UExponentialHeightFogComponent::SetVolumetricFogExtinctionScale(float NewValue)
 {
-	if(VolumetricFogAbsorptionScale != NewValue)
+	if (VolumetricFogExtinctionScale != NewValue)
 	{
-		VolumetricFogAbsorptionScale = NewValue;
+		VolumetricFogExtinctionScale = NewValue;
 		MarkRenderStateDirty();
 	}
 }
 
-void UExponentialHeightFogComponent::SetVolumetricFogScatteringScale(float NewValue)
+void UExponentialHeightFogComponent::SetVolumetricFogAlbedo(FColor NewValue)
 {
-	if(VolumetricFogScatteringScale != NewValue)
+	if (VolumetricFogAlbedo != NewValue)
 	{
-		VolumetricFogScatteringScale = NewValue;
+		VolumetricFogAlbedo = NewValue;
 		MarkRenderStateDirty();
 	}
 }

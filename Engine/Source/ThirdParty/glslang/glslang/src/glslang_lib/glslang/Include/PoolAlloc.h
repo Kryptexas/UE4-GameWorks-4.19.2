@@ -87,9 +87,9 @@ public:
             memset(postGuard(), guardBlockEndVal,   guardBlockSize);
 #       endif
     }
-    
+
 	//#Epic - Had to rename check() to Check()
-    void Check() const {
+	void Check() const {
         checkGuardBlock(preGuard(),  guardBlockBeginVal, "before");
         checkGuardBlock(postGuard(), guardBlockEndVal,   "after");
     }
@@ -256,7 +256,7 @@ extern TPoolAllocator& GetThreadPoolAllocator();
 
 struct TThreadMemoryPools
 {
-        TPoolAllocator* threadPoolAllocator;
+    TPoolAllocator* threadPoolAllocator;
 };
 
 void SetThreadPoolAllocator(TPoolAllocator& poolAllocator);

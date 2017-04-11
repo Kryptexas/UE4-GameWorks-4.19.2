@@ -430,10 +430,10 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 
 			int32 StandardDeferredStart = 0;
 
+			bool bRenderSimpleLightsStandardDeferred = SimpleLights.InstanceData.Num() > 0;
+
 			if (CanUseTiledDeferred())
 			{
-				int32 NumSortedLightsTiledDeferred = SupportedByTiledDeferredLightEnd;
-
 				bool bAnyViewIsStereo = false;
 				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 				{
@@ -445,19 +445,16 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				}
 
 				// Use tiled deferred shading on any unshadowed lights without a texture light profile
-				if (!ShouldUseTiledDeferred(SupportedByTiledDeferredLightEnd, SimpleLights.InstanceData.Num()) || bAnyUnsupportedByTiledDeferred || bAnyViewIsStereo)
-				{
-					NumSortedLightsTiledDeferred = 0;
-				}
-
-				if (NumSortedLightsTiledDeferred > 0 || SimpleLights.InstanceData.Num() > 0)
+				if (ShouldUseTiledDeferred(SupportedByTiledDeferredLightEnd, SimpleLights.InstanceData.Num()) && !bAnyUnsupportedByTiledDeferred && !bAnyViewIsStereo)
 				{
 					// Update the range that needs to be processed by standard deferred to exclude the lights done with tiled
-					StandardDeferredStart = NumSortedLightsTiledDeferred;
-					RenderTiledDeferredLighting(RHICmdList, SortedLights, NumSortedLightsTiledDeferred, SimpleLights);
+					StandardDeferredStart = SupportedByTiledDeferredLightEnd;
+					bRenderSimpleLightsStandardDeferred = false;
+					RenderTiledDeferredLighting(RHICmdList, SortedLights, SupportedByTiledDeferredLightEnd, SimpleLights);
 				}
 			}
-			else if (SimpleLights.InstanceData.Num() > 0)
+			
+			if (bRenderSimpleLightsStandardDeferred)
 			{
 				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 				RenderSimpleLightsStandardDeferred(RHICmdList, SimpleLights);

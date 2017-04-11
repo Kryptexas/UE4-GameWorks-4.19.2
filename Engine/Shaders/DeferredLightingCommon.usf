@@ -350,6 +350,7 @@ void GetLocalLightAttenuation(
 	float3 WorldPosition, 
 	float3 N,
 	FDeferredLightData LightData, 
+	float DistanceBiasSqr,
 	inout float3 ToLight, 
 	inout float3 L, 
 	inout float NoL, 
@@ -387,7 +388,7 @@ void GetLocalLightAttenuation(
 			}
 			else
 			{
-				DistanceAttenuation = rcp( DistanceSqr + 1 );
+				DistanceAttenuation = rcp( DistanceSqr + DistanceBiasSqr );
 				NoL = saturate( dot( N, L ) );
 
 				if( SourceRadius > 0 )
@@ -464,7 +465,7 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 
 	if (LightData.bRadialLight)
 	{
-		GetLocalLightAttenuation(WorldPosition, N, LightData, ToLight, L, NoL, DistanceAttenuation, LightRadiusMask, SpotFalloff);
+		GetLocalLightAttenuation(WorldPosition, N, LightData, 1, ToLight, L, NoL, DistanceAttenuation, LightRadiusMask, SpotFalloff);
 	}
 
 	LightAccumulator.EstimatedCost += 0.3f;		// running the PixelShader at all has a cost

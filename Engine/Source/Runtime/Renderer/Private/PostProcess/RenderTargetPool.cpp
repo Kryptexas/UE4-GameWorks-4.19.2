@@ -286,6 +286,12 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 					Found = Element;
 					FoundIndex = i;
 					bReusingExistingTarget = true;
+					if (Element->RenderTargetItem.TargetableTexture)
+					{
+						FRHICommandListImmediate& RHICmdListImmediate = FRHICommandListExecutor::GetImmediateCommandList();
+						FTextureRHIParamRef Texture = Element->RenderTargetItem.TargetableTexture;
+						RHICmdListImmediate.SetResourceAliasability(EResourceAliasability::EUnaliasable, &Texture, 1);
+					}
 					goto Done;
 				}
 			}
@@ -367,7 +373,7 @@ Done:
 					Desc.Depth,
 					Desc.Format,
 					Desc.NumMips,
-					Desc.TargetableFlags,
+					Desc.Flags | Desc.TargetableFlags,
 					CreateInfo);
 
 				// similar to RHICreateTargetableShaderResource2D
@@ -1336,6 +1342,15 @@ uint32 FPooledRenderTarget::Release() const
 
 			NonConstItem.SafeRelease();
 			delete this;
+		}
+		else if (IsFree() && GIsRHIInitialized)
+		{
+			FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+			if (RenderTargetItem.TargetableTexture)
+			{
+				FTextureRHIParamRef Texture = RenderTargetItem.TargetableTexture;
+				RHICmdList.SetResourceAliasability(EResourceAliasability::EAliasable, &Texture, 1);
+			}
 		}
 		return Refs;
 	}

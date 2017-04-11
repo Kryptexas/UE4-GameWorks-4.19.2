@@ -19,6 +19,8 @@
 #include "ClearQuad.h"
 #include "PipelineStateCache.h"
 
+const int32 GBokehDOFSetupTileSizeX = 8;
+const int32 GBokehDOFSetupTileSizeY = 8;
 
 /**
  * Index buffer for drawing an individual sprite.
@@ -427,9 +429,77 @@ public:
 
 IMPLEMENT_SHADER_TYPE3(PostProcessBokehDOFSetupPS, SF_Pixel);
 
+/** Encapsulates the post processing depth of field setup compute shader. */
+class FRCPassPostProcessBokehDOFSetupCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FRCPassPostProcessBokehDOFSetupCS, Global);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GBokehDOFSetupTileSizeX);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GBokehDOFSetupTileSizeY);
+	}
+
+	/** Default constructor. */
+	FRCPassPostProcessBokehDOFSetupCS() {}
+
+public:
+	FPostProcessPassParameters PostprocessParameter;
+	FDeferredPixelShaderParameters DeferredParameters;
+	FShaderParameter BokehDOFSetupComputeParams;
+	FShaderParameter OutComputeTex;
+
+	/** Initialization constructor. */
+	FRCPassPostProcessBokehDOFSetupCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		DeferredParameters.Bind(Initializer.ParameterMap);
+		BokehDOFSetupComputeParams.Bind(Initializer.ParameterMap,TEXT("BokehDOFSetupComputeParams"));
+		OutComputeTex.Bind(Initializer.ParameterMap, TEXT("OutComputeTex"));
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << PostprocessParameter << DeferredParameters << BokehDOFSetupComputeParams << OutComputeTex;
+		return bShaderHasOutdatedParameters;
+	}
+
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const FIntPoint& DestSize, FUnorderedAccessViewRHIParamRef DestUAV)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetCS(ShaderRHI, Context, RHICmdList, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		RHICmdList.SetUAVParameter(ShaderRHI, OutComputeTex.GetBaseIndex(), DestUAV);
+
+		FVector4 BokehDOFSetupComputeValues(0, 0, 1.f / (float)DestSize.X, 1.f / (float)DestSize.Y);
+		SetShaderValue(RHICmdList, ShaderRHI, BokehDOFSetupComputeParams, BokehDOFSetupComputeValues);
+	}
+
+	template <typename TRHICmdList>
+	void UnsetParameters(TRHICmdList& RHICmdList)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		RHICmdList.SetUAVParameter(ShaderRHI, OutComputeTex.GetBaseIndex(), NULL);
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(,FRCPassPostProcessBokehDOFSetupCS,TEXT("PostProcessBokehDOF"),TEXT("MainCS"),SF_Compute);
+
 void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, BokehDOFSetup);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessBokehDOFSetup, TEXT("PostProcessBokehDOFSetup%s"), bIsComputePass?TEXT("Compute"):TEXT(""));
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
@@ -453,54 +523,88 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-	
-	// can be optimized (don't clear areas we overwrite, don't clear when full screen),
-	// needed when a camera (matinee) has black borders or with multiple viewports
-	// focal distance depth is stored in the alpha channel to avoid DOF artifacts
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, View.FinalPostProcessSettings.DepthOfFieldFocalDistance), false, 0, false, 0, DestSize, DestRect);
-
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
-
-	FGraphicsPipelineStateInitializer GraphicsPSOInit;
-	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-	// set the state
-	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-
-	// setup shader
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
-	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
+	if (bIsComputePass)
 	{
-		TShaderMapRef<PostProcessBokehDOFSetupPS> PixelShader(Context.GetShaderMap());
+		DestRect = {View.ViewRect.Min, View.ViewRect.Min + DestSize};
 
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+		SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
+		Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f);
 
-		VertexShader->SetParameters(Context);
-		PixelShader->SetParameters(Context);
+		WaitForInputPassComputeFences(Context.RHICmdList);
+		Context.RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+		DispatchCS(Context.RHICmdList, Context, DestRect, DestRenderTarget.UAV);
+		Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV);
 	}
+	else
+	{
+		WaitForInputPassComputeFences(Context.RHICmdList);
 
-	DrawPostProcessPass(
-		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
-		DestRect.Width(), DestRect.Height(),
-		SrcRect.Min.X, SrcRect.Min.Y,
-		SrcRect.Width(), SrcRect.Height(),
-		DestSize,
-		SrcSize,
-		*VertexShader,
-		View.StereoPass,
-		Context.HasHmdMesh(),
-		EDRF_UseTriangleOptimization);
+		// Set the view family's render target/viewport.
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	
+		// can be optimized (don't clear areas we overwrite, don't clear when full screen),
+		// needed when a camera (matinee) has black borders or with multiple viewports
+		// focal distance depth is stored in the alpha channel to avoid DOF artifacts
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, View.FinalPostProcessSettings.DepthOfFieldFocalDistance), false, 0, false, 0, DestSize, DestRect);
 
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
+
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		// set the state
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+		// setup shader
+		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		{
+			TShaderMapRef<PostProcessBokehDOFSetupPS> PixelShader(Context.GetShaderMap());
+
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+
+			VertexShader->SetParameters(Context);
+			PixelShader->SetParameters(Context);
+		}
+
+		DrawPostProcessPass(
+			Context.RHICmdList,
+			DestRect.Min.X, DestRect.Min.Y,
+			DestRect.Width(), DestRect.Height(),
+			SrcRect.Min.X, SrcRect.Min.Y,
+			SrcRect.Width(), SrcRect.Height(),
+			DestSize,
+			SrcSize,
+			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
+			EDRF_UseTriangleOptimization);
+
+		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	}
+}
+
+template <typename TRHICmdList>
+void FRCPassPostProcessBokehDOFSetup::DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV)
+{
+	auto ShaderMap = Context.GetShaderMap();
+	TShaderMapRef<FRCPassPostProcessBokehDOFSetupCS> ComputeShader(ShaderMap);
+	RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+
+	FIntPoint DestSize(DestRect.Width(), DestRect.Height());
+	ComputeShader->SetParameters(RHICmdList, Context, DestSize, DestUAV);
+
+	uint32 GroupSizeX = FMath::DivideAndRoundUp(DestSize.X, GBokehDOFSetupTileSizeX);
+	uint32 GroupSizeY = FMath::DivideAndRoundUp(DestSize.Y, GBokehDOFSetupTileSizeY);
+	DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
+
+	ComputeShader->UnsetParameters(RHICmdList);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessBokehDOFSetup::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -513,7 +617,8 @@ FPooledRenderTargetDesc FRCPassPostProcessBokehDOFSetup::ComputeOutputDesc(EPass
 	Ret.Extent.Y = FMath::Max(1, Ret.Extent.Y);
 	Ret.Format = PF_FloatRGBA;
 	Ret.DebugName = TEXT("BokehDOFSetup");
-
+	Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
+	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
 	return Ret;
 }
 
@@ -747,7 +852,7 @@ void FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(const FRenderingCompo
 
 void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PassPostProcessBokehDOF);
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessBokehDOF, TEXT("PostProcessBokehDOF%s"), bIsComputePass?TEXT("Compute"):TEXT(""));
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 	
@@ -774,6 +879,8 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 	FIntPoint LocalViewSize = LocalViewRect.Size();
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+
+	WaitForInputPassComputeFences(Context.RHICmdList);
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());

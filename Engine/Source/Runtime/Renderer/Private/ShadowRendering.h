@@ -1712,7 +1712,7 @@ public:
 	{
 		FTextureRHIParamRef ShadowDepthTextureValue = ShadowInfo 
 			? ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture->GetTextureCube()
-			: GBlackTextureCube->TextureRHI.GetReference();
+			: GBlackTextureDepthCube->TextureRHI.GetReference();
         if (!ShadowDepthTextureValue)
         {
             ShadowDepthTextureValue = GBlackTextureDepthCube->TextureRHI.GetReference();

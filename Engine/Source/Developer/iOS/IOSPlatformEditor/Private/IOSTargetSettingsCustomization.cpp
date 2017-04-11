@@ -33,6 +33,8 @@
 #include "SNumericDropDown.h"
 #include "Misc/MessageDialog.h"
 #include "Widgets/Notifications/SErrorText.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "IOSTargetSettings"
 DEFINE_LOG_CATEGORY_STATIC(LogIOSTargetSettings, Log, All);
@@ -285,6 +287,10 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	SignCertificateProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, SigningCertificate));
 	BuildCategory.AddProperty(SignCertificateProperty)
 		.Visibility(EVisibility::Hidden);
+	AutomaticSigningProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bAutomaticSigning));
+	BuildCategory.AddProperty(AutomaticSigningProperty)
+		.Visibility(EVisibility::Hidden);
+	ProvisionCategory.AddProperty(AutomaticSigningProperty);
 
 /*	ProvisionCategory.AddCustomRow(TEXT("Certificate Request"), false)
 		.NameContent()
@@ -872,6 +878,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 		UpdateGLVersionWarning();
 	}
+	ITargetPlatform* TargetPlatform = FModuleManager::GetModuleChecked<ITargetPlatformModule>("IOSTargetPlatform").GetTargetPlatform();
 
 	SETUP_PLIST_PROP(bSupportsIPad, DeviceCategory);
 	SETUP_PLIST_PROP(bSupportsIPhone, DeviceCategory);
@@ -1713,8 +1720,11 @@ void FIOSTargetSettingsCustomization::SetShaderStandard(int32 Value)
     {
         FText Message;
         
-		uint8 EnumValue = 0;
+		uint8 EnumValue = (uint8)EIOSVersion::IOS_10;
+		if (MinOSPropertyHandle.IsValid())
+		{
 		MinOSPropertyHandle->GetValue(EnumValue);
+		}
 		
 		bool bHasGL = false;
 		GLES2PropertyHandle->GetValue(bHasGL);

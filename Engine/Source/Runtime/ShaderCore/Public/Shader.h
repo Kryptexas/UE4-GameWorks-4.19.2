@@ -228,6 +228,10 @@ private:
 	// compression functions
 	void UncompressCode(TArray<uint8>& UncompressedCode) const;
 	void CompressCode(const TArray<uint8>& UncompressedCode);
+	
+
+	/** Conditionally serialize shader code. */
+	void SerializeShaderCode(FArchive& Ar);
 
 	/** Reference to the RHI shader.  Only one of these is ever valid, and it is the one corresponding to Target.Frequency. */
 	FVertexShaderRHIRef VertexShader;
@@ -266,6 +270,10 @@ private:
 
 	/** A 'canary' used to detect when a stale shader resource is being rendered with. */
 	uint32 Canary;
+	
+
+	/** Whether the shader code is stored in a shader library. */
+	bool bCodeInSharedLocation;
 
 	/** Initialize the shader RHI resources. */
 	SHADERCORE_API void InitializeShaderRHI();

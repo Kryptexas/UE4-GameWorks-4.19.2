@@ -469,6 +469,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 
 				// disable depth test & writes
 				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+				DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
 
 				// draw batched items
 				DrawParameters.RenderData->BatchedElements.Draw(

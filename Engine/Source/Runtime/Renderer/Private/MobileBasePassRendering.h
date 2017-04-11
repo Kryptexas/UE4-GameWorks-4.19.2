@@ -342,7 +342,7 @@ public:
 		}
 
 		const FPlanarReflectionSceneProxy* CachedPlanarReflectionProxy = PrimitiveSceneInfo ? PrimitiveSceneInfo->CachedPlanarReflectionProxy : nullptr;
-		PlanarReflectionParams.SetParameters(RHICmdList, PixelShader, CachedPlanarReflectionProxy );
+		PlanarReflectionParams.SetParameters(RHICmdList, PixelShader, View, CachedPlanarReflectionProxy );
 
 		FMeshMaterialShader::SetMesh(RHICmdList, PixelShader,VertexFactory,View,Proxy,BatchElement,DrawRenderState);		
 	}

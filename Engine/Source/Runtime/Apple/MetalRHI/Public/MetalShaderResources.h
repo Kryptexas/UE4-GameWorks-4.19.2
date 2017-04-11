@@ -214,6 +214,9 @@ struct FMetalCodeHeader
     uint32 TessellationControlPointIndexBuffer;
 	float  TessellationMaxTessFactor;
 
+	uint32 SourceLen;
+	uint32 SourceCRC;
+	
 	uint16 CompileFlags;
 	
 	uint8 NumThreadsX;
@@ -271,6 +274,9 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
     Ar << Header.TessellationControlPointOutBuffer;
     Ar << Header.TessellationControlPointIndexBuffer;
 	
+	Ar << Header.SourceLen;
+	Ar << Header.SourceCRC;
+	
 	Ar << Header.CompileFlags;
 	
 	Ar << Header.NumThreadsX;
@@ -286,3 +292,14 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
 
     return Ar;
 }
+
+struct FMetalShaderMap
+{
+	FString Format;
+	TMap<FSHAHash, TPair<uint8, TArray<uint8>>> HashMap;
+	
+	friend FArchive& operator<<(FArchive& Ar, FMetalShaderMap& Header)
+	{
+		return Ar << Header.Format << Header.HashMap;
+	}
+};

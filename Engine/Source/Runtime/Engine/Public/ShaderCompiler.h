@@ -602,7 +602,7 @@ extern ENGINE_API void ProcessCompiledGlobalShaders(const TArray<FShaderCommonCo
 * Saves the global shader map as a file for the target platform.
 * @return the name of the file written
 */
-extern ENGINE_API FString SaveGlobalShaderFile(EShaderPlatform Platform, FString SavePath);
+extern ENGINE_API FString SaveGlobalShaderFile(EShaderPlatform Platform, FString SavePath, class ITargetPlatform* TargetPlatform = nullptr);
 
 /**
 * Recompiles global shaders
@@ -625,7 +625,9 @@ extern ENGINE_API void RecompileShadersForRemote(
 	TArray<FString>* ModifiedFiles,
 	bool bCompileChangedShaders = true);
 
-extern ENGINE_API void CompileGlobalShaderMaps(bool bRefreshShaderMap);
+extern ENGINE_API void CompileGlobalShaderMap(bool bRefreshShaderMap=false);
+extern ENGINE_API void CompileGlobalShaderMap(EShaderPlatform Platform, bool bRefreshShaderMap = false);
+extern ENGINE_API void CompileGlobalShaderMap(ERHIFeatureLevel::Type InFeatureLevel, bool bRefreshShaderMap=false);
 
 extern ENGINE_API FString GetGlobalShaderMapDDCKey();
 

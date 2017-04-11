@@ -321,16 +321,28 @@ void FPerformanceMonitorModule::GetStatsBreakdown()
 	int curFrame = Stats.GetLatestValidFrame();
 	if (curFrame >= 0)
 	{
-		//StoredMessages.Add(Stats.GetCondensedHistory(curFrame));
-		TArray<float> ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("RenderThreadTime"));
-		ArrayForStatName.Add(FPlatformTime::ToMilliseconds(GRenderThreadTime));
-		GeneratedStats.Emplace(TEXT("RenderThreadTime"), ArrayForStatName);
-		ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GameThreadTime"));
-		ArrayForStatName.Add(FPlatformTime::ToMilliseconds(GGameThreadTime));
-		GeneratedStats.Emplace(TEXT("GameThreadTime"), ArrayForStatName);
-		ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GPUFrameTime"));
-		ArrayForStatName.Add(FPlatformTime::ToMilliseconds(GGPUFrameTime));
-		GeneratedStats.Emplace(TEXT("GPUFrameTime"), ArrayForStatName);
+		for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
+		{
+			if (WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE)
+			{
+				UWorld* World = WorldContext.World();		
+				const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
+				check(StatUnitData);
+				TArray<float> ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("FrameTime"));
+				ArrayForStatName.Add(StatUnitData->RawFrameTime);
+				GeneratedStats.Emplace(TEXT("FrameTime"), ArrayForStatName);
+				ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("RenderThreadTime"));
+				ArrayForStatName.Add(StatUnitData->RawRenderThreadTime);
+				GeneratedStats.Emplace(TEXT("RenderThreadTime"), ArrayForStatName);
+				ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GameThreadTime"));
+				ArrayForStatName.Add(StatUnitData->RawGameThreadTime);
+				GeneratedStats.Emplace(TEXT("GameThreadTime"), ArrayForStatName);
+				ArrayForStatName = GeneratedStats.FindOrAdd(TEXT("GPUFrameTime"));
+				ArrayForStatName.Add(StatUnitData->RawGPUFrameTime);
+				GeneratedStats.Emplace(TEXT("GPUFrameTime"), ArrayForStatName);
+				break;
+			}
+		}
 		TArray<FString> StatsCoveredThisFrame = DesiredStats;
 		for (int j = 0; j < ReceivedFramePayload.Num(); j++)
 		{
@@ -343,7 +355,7 @@ void FPerformanceMonitorModule::GetStatsBreakdown()
 			FString StatName = StatFName.ToString();
 			if (StatsCoveredThisFrame.Contains(StatName))
 			{
-				ArrayForStatName = GeneratedStats.FindOrAdd(StatName);
+				TArray<float> ArrayForStatName = GeneratedStats.FindOrAdd(StatName);
 				ArrayForStatName.Add(FPlatformTime::ToMilliseconds(TempMessage.GetValue_Duration()));
 				GeneratedStats.Emplace(StatName, ArrayForStatName);
 				StatsCoveredThisFrame.Remove(StatName);

@@ -509,13 +509,13 @@ namespace VulkanRHI
 		VULKANAPINAMESPACE::vkDestroySemaphore(Device, Semaphore, Allocator);
 	}
 
-	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateEvent(VkDevice Device, const VkEventCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkEvent* pEvent)
+	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateEvent(VkDevice Device, const VkEventCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkEvent* Event)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateEvent(CreateInfo=0x%016llx%s, OutEvent=0x%016llx)"), CreateInfo, Event));
 
-		VkResult Result = VULKANAPINAMESPACE::vkCreateEvent(Device, CreateInfo, Allocator, pEvent);
+		VkResult Result = VULKANAPINAMESPACE::vkCreateEvent(Device, CreateInfo, Allocator, Event);
 
-		PrintResultAndNamedHandle(Result, TEXT("Event"), *Fence);
+		PrintResultAndNamedHandle(Result, TEXT("Event"), *Event);
 		return Result;
 	}
 
@@ -1175,15 +1175,15 @@ namespace VulkanRHI
 		VULKANAPINAMESPACE::vkCmdResetEvent(CommandBuffer, Event, StageMask);
 	}
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdWaitEvents(VkCommandBuffer CommandBuffer, uint32 EventCount, const VkEvent* pEvents,
+	static FORCEINLINE_DEBUGGABLE void  vkCmdWaitEvents(VkCommandBuffer CommandBuffer, uint32 EventCount, const VkEvent* Events,
 		VkPipelineStageFlags SrcStageMask, VkPipelineStageFlags DstStageMask,
 		uint32 MemoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers,
 		uint32 BufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers,
 		uint32 ImageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
 	{
-		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdWaitEvents()[...]"), Event, StageMask));
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdWaitEvents()[...]")/*, Events, StageMask*/));
 
-		VULKANAPINAMESPACE::vkCmdWaitEvents(CommandBuffer, EventCount, pEvents, SrcStageMask, DstStageMask, MemoryBarrierCount, pMemoryBarriers,
+		VULKANAPINAMESPACE::vkCmdWaitEvents(CommandBuffer, EventCount, Events, SrcStageMask, DstStageMask, MemoryBarrierCount, pMemoryBarriers,
 			BufferMemoryBarrierCount, pBufferMemoryBarriers, ImageMemoryBarrierCount, pImageMemoryBarriers);
 	}
 

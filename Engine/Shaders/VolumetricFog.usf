@@ -60,8 +60,8 @@ float3 ScatteringFunction()
 	//return RaleighScattering();
 }
 
-float GlobalScatteringScale;
-float GlobalAbsorptionScale;
+float3 GlobalAlbedo;
+float GlobalExtinctionScale;
 
 #ifndef THREADGROUP_SIZE 
 #define THREADGROUP_SIZE 1
@@ -80,17 +80,18 @@ void MaterialSetupCS(
 	 
 	float3 WorldPosition = ComputeCellWorldPosition(GridCoordinate, VoxelOffset);
 
-	float LocalDensity = 0;
-	//LocalDensity += .0001f * saturate(SimplexNoise3D_TEX(WorldPosition / 1000));
+	float GlobalDensity = ExponentialFogParameters3.x * exp2(-ExponentialFogParameters.y * (WorldPosition.z - ExponentialFogParameters3.y));
 
-	//@todo why is this needed to match height fog
-	float AdjustFactor = .5f;
-	float GlobalDensity = AdjustFactor * ExponentialFogParameters3.x * exp2(-ExponentialFogParameters.y * (WorldPosition.z - ExponentialFogParameters3.y));
+	float3 Albedo = GlobalAlbedo;
 
-	float3 Scattering = (GlobalDensity + LocalDensity) * ScatteringFunction() * GlobalScatteringScale;
-	float Absorption = (GlobalDensity + LocalDensity) * GlobalAbsorptionScale;
+	// Exponential height fog interprets density differently, match its behavior
+	float MatchHeightFogFactor = .5f;
+	float Extinction = max(GlobalDensity * GlobalExtinctionScale * MatchHeightFogFactor, 0);
 
-	if (all(GridCoordinate < VolumetricFog.GridSizeInt))
+	float3 Scattering = Albedo * Extinction;
+	float Absorption = max(Extinction - Luminance(Scattering), 0.0f);
+
+	if (all((int3)GridCoordinate < VolumetricFog.GridSizeInt))
 	{
 		RWVBufferA[GridCoordinate] = float4(Scattering, Absorption);
 		RWVBufferB[GridCoordinate] = float4(0, 0, 0, 0);
@@ -176,6 +177,7 @@ void WriteToBoundingSphereVS(
 
 float3 FrameJitterOffset;
 float PhaseG;
+float InverseSquaredLightDistanceBiasScale;
 
 #ifndef INVERSE_SQUARED_FALLOFF
 #define INVERSE_SQUARED_FALLOFF 1
@@ -222,7 +224,10 @@ void InjectShadowedLocalLightPS(
 	float LightRadiusMask = 1;
 	float SpotFalloff = 1;
 
-	GetLocalLightAttenuation(WorldPosition, float3(0, 0, 1), LightData, ToLight, L, NoL, DistanceAttenuation, LightRadiusMask, SpotFalloff);
+	float CellRadius = length(WorldPosition - ComputeCellWorldPosition(GridCoordinate + uint3(1, 1, 1), CellOffset));
+	// Bias the inverse squared light falloff based on voxel size to prevent aliasing near the light source
+	float DistanceBias = max(CellRadius * InverseSquaredLightDistanceBiasScale, 1);
+	GetLocalLightAttenuation(WorldPosition, float3(0, 0, 1), LightData, DistanceBias * DistanceBias, ToLight, L, NoL, DistanceAttenuation, LightRadiusMask, SpotFalloff);
 	float CombinedAttenuation = DistanceAttenuation * LightRadiusMask * SpotFalloff;
 
 	float ShadowFactor = 1.0f;
@@ -367,9 +372,49 @@ float GetLightFunction(float3 WorldPosition)
 	return Texture2DSampleLevel(LightFunctionTexture, LightFunctionSampler, LightFunctionUV, 0).x;
 }
 
+float ComputeStaticShadowing(float3 WorldPosition)
+{
+	float ShadowFactor = 1;
+
+	BRANCH
+	if (ForwardGlobalLightData.DirectionalLightUseStaticShadowing > 0)
+	{
+		// This path is used for directional lights and spot lights, which only require a single projection
+		// Transform the world position into shadowmap space
+		float4 HomogeneousShadowPosition = mul(float4(WorldPosition, 1), ForwardGlobalLightData.DirectionalLightWorldToStaticShadow);
+		float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+
+		// Treat as unshadowed if the voxel is outside of the shadow map
+		if (all(ShadowUVs >= 0 && ShadowUVs <= 1))
+		{
+			#define FILTER_STATIC_SHADOWING 1
+			#if FILTER_STATIC_SHADOWING
+				FPCFSamplerSettings Settings;
+				Settings.ShadowDepthTexture = ForwardGlobalLightData.DirectionalLightStaticShadowmap;
+				Settings.ShadowDepthTextureSampler = ForwardGlobalLightData.StaticShadowmapSampler;
+				Settings.ShadowBufferSize = ForwardGlobalLightData.DirectionalLightStaticShadowBufferSize;
+				Settings.SceneDepth = HomogeneousShadowPosition.z;
+				Settings.TransitionScale = 40;
+				Settings.bSubsurface = false;
+				Settings.DensityMulConstant = 0;
+				Settings.ProjectionDepthBiasParameters = float2(0, 0);
+
+				ShadowFactor = Manual1x1PCF(ShadowUVs, Settings);
+			#else
+				// Sample the shadowmap depth and determine if this voxel is shadowed
+				float ShadowDepth = Texture2DSampleLevel(ForwardGlobalLightData.DirectionalLightStaticShadowmap, ForwardGlobalLightData.StaticShadowmapSampler, ShadowUVs, 0).x;
+				ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth;
+			#endif
+		}
+	}
+
+	return ShadowFactor;
+}
+
 float SkyLightVolumetricScatteringIntensity;
 float4 SkySH[3];
 float UseHeightFogColors;
+float UseDirectionalLightShadowing;
 
 [numthreads(THREADGROUP_SIZE, THREADGROUP_SIZE, THREADGROUP_SIZE)]
 void LightScatteringCS(
@@ -384,7 +429,8 @@ void LightScatteringCS(
 
 	float SceneDepth;
 	float3 WorldPosition = ComputeCellWorldPosition(GridCoordinate, CellOffset, SceneDepth);
-	float3 CameraVector = normalize(WorldPosition - View.WorldCameraOrigin);
+	float CameraVectorLength = length(WorldPosition - View.WorldCameraOrigin);
+	float3 CameraVector = (WorldPosition - View.WorldCameraOrigin) / CameraVectorLength;
 	float4 MaterialScatteringAndAbsorption = VBufferA[GridCoordinate];
 
 	// Shadowed point and spot lights were computed earlier
@@ -393,9 +439,9 @@ void LightScatteringCS(
 	BRANCH
 	if (ForwardGlobalLightData.HasDirectionalLight)
 	{
-		float DynamicShadowFactor = 1.0f;
+		float ShadowFactor = ComputeStaticShadowing(WorldPosition);
 
-		if (ForwardGlobalLightData.NumDirectionalLightCascades > 0)
+		if (ForwardGlobalLightData.NumDirectionalLightCascades > 0 && UseDirectionalLightShadowing > 0)
 		{
 			uint CascadeIndex = ForwardGlobalLightData.NumDirectionalLightCascades;
 
@@ -420,12 +466,12 @@ void LightScatteringCS(
 				{
 					// Sample the shadowmap depth and determine if this voxel is shadowed
 					float ShadowDepth = Texture2DSampleLevel(ForwardGlobalLightData.DirectionalLightShadowmapAtlas, ForwardGlobalLightData.ShadowmapSampler, ShadowUVs, 0).x;
-					DynamicShadowFactor = HomogeneousShadowPosition.z < ShadowDepth - ForwardGlobalLightData.DirectionalLightDepthBias.x;
+					ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth - ForwardGlobalLightData.DirectionalLightDepthBias.x;
 				}
 			}
 		}
 
-		DynamicShadowFactor *= GetLightFunction(WorldPosition);
+		ShadowFactor *= GetLightFunction(WorldPosition);
 
 		float3 DirectionalLightColor = ForwardGlobalLightData.DirectionalLightColor;
 
@@ -436,7 +482,7 @@ void LightScatteringCS(
 		}
 
 		LightScattering += DirectionalLightColor
-			* (DynamicShadowFactor 
+			* (ShadowFactor 
 			* ForwardGlobalLightData.DirectionalLightVolumetricScatteringIntensity 
 			* PhaseFunction(PhaseG, dot(ForwardGlobalLightData.DirectionalLightDirection, -CameraVector)));
 	}
@@ -451,11 +497,12 @@ void LightScatteringCS(
 
 		if (UseHeightFogColors > 0)
 		{
+			float3 HeightFogInscatteringColor = ComputeInscatteringColor(CameraVector, CameraVectorLength);
 			float ScalarFactor = SHAmbientFunction();
 			FTwoBandSHVectorRGB SkyIrradianceSH;
-			SkyIrradianceSH.R.V = float4(ScalarFactor * VolumetricFog.HeightFogInscatteringColor.r, 0, 0, 0);
-			SkyIrradianceSH.G.V = float4(ScalarFactor * VolumetricFog.HeightFogInscatteringColor.g, 0, 0, 0);
-			SkyIrradianceSH.B.V = float4(ScalarFactor * VolumetricFog.HeightFogInscatteringColor.b, 0, 0, 0);
+			SkyIrradianceSH.R.V = float4(ScalarFactor * HeightFogInscatteringColor.r, 0, 0, 0);
+			SkyIrradianceSH.G.V = float4(ScalarFactor * HeightFogInscatteringColor.g, 0, 0, 0);
+			SkyIrradianceSH.B.V = float4(ScalarFactor * HeightFogInscatteringColor.b, 0, 0, 0);
 
 			SkyLighting = max(DotSH(SkyIrradianceSH, RotatedHGZonalHarmonic), 0);
 		}
@@ -475,6 +522,11 @@ void LightScatteringCS(
 
 	uint GridIndex = ComputeLightGridCellIndex(GridCoordinate.xy * VolumetricFog.FogGridToPixelXY, SceneDepth, 0);
 	const FCulledLightsGridData CulledLightsGrid = GetCulledLightsGrid(GridIndex, 0);
+
+	float CellRadius = length(WorldPosition - ComputeCellWorldPosition(GridCoordinate + uint3(1, 1, 1), CellOffset));
+	// Bias the inverse squared light falloff based on voxel size to prevent aliasing near the light source
+	float DistanceBiasSqr = max(CellRadius * InverseSquaredLightDistanceBiasScale, 1);
+	DistanceBiasSqr *= DistanceBiasSqr;
 
 	// Forward lighting of unshadowed point and spot lights
 	LOOP
@@ -503,7 +555,7 @@ void LightScatteringCS(
 			float LightRadiusMask = 1;
 			float SpotFalloff = 1;
 
-			GetLocalLightAttenuation(WorldPosition, float3(0, 0, 1), LightData, ToLight, L, NoL, DistanceAttenuation, LightRadiusMask, SpotFalloff);
+			GetLocalLightAttenuation(WorldPosition, float3(0, 0, 1), LightData, DistanceBiasSqr, ToLight, L, NoL, DistanceAttenuation, LightRadiusMask, SpotFalloff);
 
 			float CombinedAttenuation = DistanceAttenuation * LightRadiusMask * SpotFalloff;
 

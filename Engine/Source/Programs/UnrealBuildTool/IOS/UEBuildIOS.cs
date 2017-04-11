@@ -129,6 +129,12 @@ namespace UnrealBuildTool
 		public readonly string BundleIdentifier = "";
 
 		/// <summary>
+		/// true if using Xcode managed provisioning, else false
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bAutomaticSigning")]
+		public readonly bool bAutomaticSigning = false;
+
+		/// <summary>
 		/// Returns a list of all the non-shipping architectures which are supported
 		/// </summary>
 		public IEnumerable<string> NonShippingArchitectures
@@ -324,27 +330,66 @@ namespace UnrealBuildTool
             string filename = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + MobileProvision;
             if (File.Exists(filename))
             {
-                string AllText = File.ReadAllText(filename);
-                int idx = AllText.IndexOf("<key>UUID</key>");
-                if (idx > 0)
-                {
-                    idx = AllText.IndexOf("<string>", idx);
-                    if (idx > 0)
-                    {
-                        idx += "<string>".Length;
-                        MobileProvisionUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
-                    }
-                }
-                idx = AllText.IndexOf("<key>com.apple.developer.team-identifier</key>");
-                if (idx > 0)
-                {
-                    idx = AllText.IndexOf("<string>", idx);
-                    if (idx > 0)
-                    {
-                        idx += "<string>".Length;
-                        TeamUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
-                    }
-                }
+				byte[] AllBytes = File.ReadAllBytes(filename);
+
+				uint StartIndex = (uint)AllBytes.Length;
+				uint EndIndex = (uint)AllBytes.Length;
+
+				for (uint i = 0; i + 4 < AllBytes.Length; i++)
+				{
+					if (AllBytes[i] == '<' && AllBytes[i+1] == '?' && AllBytes[i+ 2] == 'x' && AllBytes[i+ 3] == 'm' && AllBytes[i+ 4] == 'l')
+					{
+						StartIndex = i;
+						break;
+					}
+				}
+
+				if (StartIndex < AllBytes.Length)
+				{
+					for (uint i = StartIndex; i + 7 < AllBytes.Length; i++)
+					{
+						if(AllBytes[i] == '<' && AllBytes[i + 1] == '/' && AllBytes[i + 2] == 'p' && AllBytes[i + 3] == 'l' && AllBytes[i + 4] == 'i' && AllBytes[i + 5] == 's' && AllBytes[i + 6] == 't' && AllBytes[i + 7] == '>')
+						{
+							EndIndex = i+7;
+							break;
+						}
+					}
+				}
+
+				if (StartIndex < AllBytes.Length && EndIndex < AllBytes.Length)
+				{
+					byte[] TextBytes = new byte[EndIndex - StartIndex];
+					Buffer.BlockCopy(AllBytes, (int)StartIndex, TextBytes, 0, (int)(EndIndex - StartIndex));
+
+					string AllText = Encoding.UTF8.GetString(TextBytes);
+					int idx = AllText.IndexOf("<key>UUID</key>");
+					if (idx > 0)
+					{
+						idx = AllText.IndexOf("<string>", idx);
+						if (idx > 0)
+						{
+							idx += "<string>".Length;
+							MobileProvisionUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+						}
+					}
+					idx = AllText.IndexOf("<key>com.apple.developer.team-identifier</key>");
+					if (idx > 0)
+					{
+						idx = AllText.IndexOf("<string>", idx);
+						if (idx > 0)
+						{
+							idx += "<string>".Length;
+							TeamUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+						}
+					}
+				}
+
+				if (string.IsNullOrEmpty(MobileProvisionUUID) || string.IsNullOrEmpty(TeamUUID))
+				{
+					MobileProvision = null;
+					SigningCertificate = null;
+					Log.TraceLog("Failed to parse the mobile provisioning profile.");
+				}
             }
             else
             {

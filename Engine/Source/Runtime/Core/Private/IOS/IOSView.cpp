@@ -96,7 +96,7 @@ id<MTLDevice> GMetalDevice = nil;
 	bool bTriedToInit = false;
 
 	// the check for the function pointer itself is to determine if the Metal framework exists, before calling it
-	if (bSupportsMetal && !bForceES2 && MTLCreateSystemDefaultDevice != NULL)
+	if ((bSupportsMetal || bSupportsMetalMRT) && !bForceES2 && MTLCreateSystemDefaultDevice != NULL)
 	{
 		// if the device is unable to run with Metal (pre-A7), this will return nil
 		GMetalDevice = MTLCreateSystemDefaultDevice();

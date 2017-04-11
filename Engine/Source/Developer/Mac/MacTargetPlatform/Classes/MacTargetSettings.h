@@ -37,13 +37,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category=Rendering)
 	TArray<FString> TargetedRHIs;
-	
-	/**
-	 * The collection of shader formats we want to cache on this platform.
-	 * This is not always the full list of RHI we can support.
-	 */
-	UPROPERTY(EditAnywhere, config, Category=Rendering)
-    TArray<FString> CachedShaderFormats;
     
     /**
      * The maximum supported Metal shader langauge version. 

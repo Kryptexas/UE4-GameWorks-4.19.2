@@ -1292,6 +1292,9 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(Bloom6Size);
 		LERP_PP(BloomDirtMaskIntensity);
 		LERP_PP(BloomDirtMaskTint);
+		LERP_PP(BloomConvolutionSize);
+		LERP_PP(BloomConvolutionCenterUV);
+		LERP_PP(BloomConvolutionPreFilter);
 		LERP_PP(AmbientCubemapIntensity);
 		LERP_PP(AmbientCubemapTint);
 		LERP_PP(AutoExposureLowPercent);
@@ -1377,6 +1380,23 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 			Dest.BloomDirtMask = Src.BloomDirtMask;
 		}
 
+		IF_PP(BloomMethod)
+		{
+			Dest.BloomMethod = Src.BloomMethod;
+		}
+
+		// actual texture cannot be blended but the intensity can be blended
+		IF_PP(BloomConvolutionTexture)
+		{
+			Dest.BloomConvolutionTexture = Src.BloomConvolutionTexture;
+		}
+		
+		// A continuous blending of this value would result trashing the pre-convolved bloom kernel cache.
+		IF_PP(BloomConvolutionBufferScale)
+		{
+			Dest.BloomConvolutionBufferScale = Src.BloomConvolutionBufferScale;
+		}
+
 		// actual texture cannot be blended but the intensity can be blended
 		IF_PP(DepthOfFieldBokehShape)
 		{
@@ -1434,6 +1454,8 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(LPVSpecularOcclusionExponent);
 		LERP_PP(LPVDiffuseOcclusionIntensity);
 		LERP_PP(LPVSpecularOcclusionIntensity);
+		LERP_PP(LPVFadeRange);
+		LERP_PP(LPVDirectionalOcclusionFadeRange);
 
 		if (Src.bOverride_LPVSize)
 		{
@@ -2244,6 +2266,9 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	FMatrix PrevViewProj = FTranslationMatrix(DeltaTranslation) * InPrevViewMatrices.GetTranslatedViewMatrix() * InPrevViewMatrices.ComputeProjectionNoAAMatrix();
 
 	ViewUniformShaderParameters.ClipToPrevClip = InvViewProj * PrevViewProj;
+	ViewUniformShaderParameters.TemporalAAJitter = FVector4(
+		InViewMatrices.GetTemporalAAJitter().X,		InViewMatrices.GetTemporalAAJitter().Y,
+		InPrevViewMatrices.GetTemporalAAJitter().X, InPrevViewMatrices.GetTemporalAAJitter().Y );
 
 	ViewUniformShaderParameters.UnlitViewmodeMask = !Family->EngineShowFlags.Lighting ? 1 : 0;
 	ViewUniformShaderParameters.OutOfBoundsMask = Family->EngineShowFlags.VisualizeOutOfBoundsPixels ? 1 : 0;

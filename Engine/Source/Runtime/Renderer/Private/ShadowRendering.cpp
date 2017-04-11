@@ -119,7 +119,8 @@ float GetLightFadeFactor(const FSceneView& View, const FLightSceneProxy* Proxy)
 	float SizeFade = FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared;
 	SizeFade = FMath::Clamp(6.0f - 6.0f * SizeFade, 0.0f, 1.0f);
 
-	float MaxDist = Proxy->GetMaxDrawDistance();
+	extern float GLightMaxDrawDistanceScale;
+	float MaxDist = Proxy->GetMaxDrawDistance() * GLightMaxDrawDistanceScale;
 	float Range = Proxy->GetFadeRange();
 	float DistanceFade = MaxDist ? (MaxDist - FMath::Sqrt(DistanceSquared)) / Range : 1.0f;
 	DistanceFade = FMath::Clamp(DistanceFade, 0.0f, 1.0f);

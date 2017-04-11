@@ -229,9 +229,9 @@ public class IOSPlatform : Platform
 		return IOSExports.PrepForUATPackageOrDeploy(Config, ProjectFile, InProjectName, InProjectDirectory, InExecutablePath, InEngineDir, bForDistribution, CookFlavor, bIsDataDeploy, bCreateStubIPA);
 	}
 
-    public virtual void GetProvisioningData(FileReference InProject, bool bDistribution, out string MobileProvision, out string SigningCertificate)
+    public virtual void GetProvisioningData(FileReference InProject, bool bDistribution, out string MobileProvision, out string SigningCertificate, out string TeamUUID, out bool bAutomaticSigning)
     {
-		IOSExports.GetProvisioningData(InProject, bDistribution, out MobileProvision, out SigningCertificate);
+		IOSExports.GetProvisioningData(InProject, bDistribution, out MobileProvision, out SigningCertificate, out TeamUUID, out bAutomaticSigning);
     }
 
 	public virtual bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
@@ -312,7 +312,9 @@ public class IOSPlatform : Platform
 
 		string MobileProvision;
 		string SigningCertificate;
-        GetProvisioningData(Params.RawProjectPath, Params.Distribution, out MobileProvision, out SigningCertificate);
+		string TeamUUID;
+		bool bAutomaticSigning;
+        GetProvisioningData(Params.RawProjectPath, Params.Distribution, out MobileProvision, out SigningCertificate, out TeamUUID, out bAutomaticSigning);
 
         //@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
         //   - Raw executable is unsigned & unstripped (need to investigate adding stripping to IPP)
@@ -393,6 +395,12 @@ public class IOSPlatform : Platform
 		{
 			Params.Certificate = SigningCertificate;
 		}
+		if (String.IsNullOrEmpty(Params.Team))
+		{
+			Params.Team = TeamUUID;
+		}
+
+		Params.AutomaticSigning = bAutomaticSigning;
 
 		// Scheme name and configuration for code signing with Xcode project
 		string SchemeName = Params.IsCodeBasedProject ? Params.RawProjectPath.GetFileNameWithoutExtension() : "UE4";
@@ -570,7 +578,7 @@ public class IOSPlatform : Platform
 				bCreatedIPA = true;
 
 				// code sign the app
-				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate, SchemeName, SchemeConfiguration);
+				CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.IsCodeBasedProject, Params.Distribution, Params.Provision, Params.Certificate, Params.Team, Params.AutomaticSigning, SchemeName, SchemeConfiguration);
 
 				// now generate the ipa
 				PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Params.IsCodeBasedProject ? Params.ShortProjectName : Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath.FullName), SC.StageTargetConfigurations[0], Params.Distribution);
@@ -625,7 +633,7 @@ public class IOSPlatform : Platform
 		return XcodeProj;
 	}
 
-	private void CodeSign(string BaseDirectory, string GameName, FileReference RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null, string Certificate = null, string SchemeName = null, string SchemeConfiguration = null)
+	private void CodeSign(string BaseDirectory, string GameName, FileReference RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false, string Provision = null, string Certificate = null, string Team = null, bool bAutomaticSigning = false, string SchemeName = null, string SchemeConfiguration = null)
 	{
 		// check for the proper xcodeproject
 		bool bWasGenerated = false;
@@ -639,32 +647,41 @@ public class IOSPlatform : Platform
 		Arguments += " -configuration \"" + (SchemeConfiguration != null ? SchemeConfiguration : TargetConfig.ToString()) + "\"";
 		Arguments += " -destination generic/platform=" + (PlatformName == "TVOS" ? "tvOS" : "iOS");
 		Arguments += " -sdk " + SDKName;
-		if (!string.IsNullOrEmpty(Certificate))
+
+		if (bAutomaticSigning)
 		{
-			Arguments += " CODE_SIGN_IDENTITY=\"" + Certificate + "\"";
+			Arguments += " DEVELOPMENT_TEAM=\"" + Team + "\"";
+			Arguments += " CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 		}
 		else
 		{
-			Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
-		}
-		if (!string.IsNullOrEmpty(Provision))
-		{
-			// read the provision to get the UUID
-			if (File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Provision))
+			if (!string.IsNullOrEmpty(Certificate))
 			{
-				string UUID = "";
-				string AllText = File.ReadAllText(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Provision);
-				int idx = AllText.IndexOf("<key>UUID</key>");
-				if (idx > 0)
+				Arguments += " CODE_SIGN_IDENTITY=\"" + Certificate + "\"";
+			}
+			else
+			{
+				Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
+			}
+			if (!string.IsNullOrEmpty(Provision))
+			{
+				// read the provision to get the UUID
+				if (File.Exists(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Provision))
 				{
-					idx = AllText.IndexOf("<string>", idx);
+					string UUID = "";
+					string AllText = File.ReadAllText(Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + Provision);
+					int idx = AllText.IndexOf("<key>UUID</key>");
 					if (idx > 0)
 					{
-						idx += "<string>".Length;
-						UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
-                        Arguments += " PROVISIONING_PROFILE_SPECIFIER=" + UUID;
-                    }
-                }
+						idx = AllText.IndexOf("<string>", idx);
+						if (idx > 0)
+						{
+							idx += "<string>".Length;
+							UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+	                        Arguments += " PROVISIONING_PROFILE_SPECIFIER=" + UUID;
+	                    }
+	                }
+				}
 			}
 		}
 		IProcessResult Result = Run ("/usr/bin/env", Arguments, null, ERunOptions.Default);

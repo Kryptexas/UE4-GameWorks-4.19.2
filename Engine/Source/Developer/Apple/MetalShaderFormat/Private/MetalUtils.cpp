@@ -404,7 +404,7 @@ namespace MetalUtils
 		ComputeSystemValueTable
 	};
 
-	static ir_rvalue* GenerateInputFromSemantic(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
+	static ir_rvalue* GenerateInputFromSemantic(EHlslShaderFrequency Frequency, EMetalGPUSemantics bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* Semantic, const glsl_type* Type, exec_list* DeclInstructions, exec_list* PreCallInstructions)
 	{
 		if (!Semantic)
@@ -424,7 +424,7 @@ namespace MetalUtils
 		else
 		if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 		{
-			FSystemValue* SystemValues = bIsDesktop ? DesktopSystemValueTable[Frequency] : MobileSystemValueTable[Frequency];
+			FSystemValue* SystemValues = (bIsDesktop == EMetalGPUSemanticsMobile) ? MobileSystemValueTable[Frequency] : DesktopSystemValueTable[Frequency];
 			for (int i = 0; SystemValues[i].HlslSemantic != NULL; ++i)
 			{
 				if (SystemValues[i].Mode == ir_var_in && FCStringAnsi::Stricmp(SystemValues[i].HlslSemantic, Semantic) == 0)
@@ -526,7 +526,7 @@ namespace MetalUtils
 		return VariableDeref;
 	}
 
-	static void GenerateInputForVariable(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
+	static void GenerateInputForVariable(EHlslShaderFrequency Frequency, EMetalGPUSemantics bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* InputSemantic, ir_dereference* InputVariableDeref, exec_list* DeclInstructions, exec_list* PreCallInstructions)
 	{
 		const glsl_type* InputType = InputVariableDeref->type;
@@ -615,27 +615,27 @@ namespace MetalUtils
 		}
 	}
 
-	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* InputSemantic, const glsl_type* InputType, exec_list* DeclInstructions, exec_list* PreCallInstructions)
+	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, uint32 bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* InputSemantic, const glsl_type* InputType, exec_list* DeclInstructions, exec_list* PreCallInstructions)
 	{
 		if((InputType->is_inputpatch()))
 		{
-			return GenerateInputFromSemantic(Frequency, bIsDesktop, ParseState, InputSemantic, InputType, DeclInstructions, PreCallInstructions)->as_dereference_variable();
+			return GenerateInputFromSemantic(Frequency, (EMetalGPUSemantics)bIsDesktop, ParseState, InputSemantic, InputType, DeclInstructions, PreCallInstructions)->as_dereference_variable();
 		}
 		ir_variable* TempVariable = new(ParseState)ir_variable(InputType, nullptr, ir_var_temporary);
 		ir_dereference_variable* TempVariableDeref = new(ParseState)ir_dereference_variable(TempVariable);
 		PreCallInstructions->push_tail(TempVariable);
-		GenerateInputForVariable(Frequency, bIsDesktop, ParseState, InputSemantic, TempVariableDeref, DeclInstructions, PreCallInstructions);
+		GenerateInputForVariable(Frequency, (EMetalGPUSemantics)bIsDesktop, ParseState, InputSemantic, TempVariableDeref, DeclInstructions, PreCallInstructions);
 		return TempVariableDeref;
 	}
 
-	static ir_rvalue* GenerateOutputFromSemantic(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
+	static ir_rvalue* GenerateOutputFromSemantic(EHlslShaderFrequency Frequency, uint32 bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* Semantic, FSemanticQualifier Qualifier, const glsl_type* Type, exec_list* DeclInstructions, const glsl_type** DestVariableType)
 	{
 		ir_variable* Variable = NULL;
 
 		if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 		{
-			FSystemValue* SystemValues = bIsDesktop ? DesktopSystemValueTable[Frequency] : MobileSystemValueTable[Frequency];
+			FSystemValue* SystemValues = (bIsDesktop == EMetalGPUSemanticsMobile) ? MobileSystemValueTable[Frequency] : DesktopSystemValueTable[Frequency];
 			
 			for (int i = 0; SystemValues[i].HlslSemantic != nullptr; ++i)
 			{
@@ -685,7 +685,7 @@ namespace MetalUtils
 		return VariableDeref;
 	}
 
-	static void GenerateOutputForVariable(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
+	static void GenerateOutputForVariable(EHlslShaderFrequency Frequency, EMetalGPUSemantics bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* OutputSemantic, FSemanticQualifier Qualifier, ir_dereference* OutputVariableDeref, exec_list* DeclInstructions, exec_list* PostCallInstructions
 		/*int SemanticArraySize,int SemanticArrayIndex*/)
 	{
@@ -780,7 +780,7 @@ namespace MetalUtils
 		}
 	}
 
-	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState,
+	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, uint32 bIsDesktop, _mesa_glsl_parse_state* ParseState,
 		const char* OutputSemantic, FSemanticQualifier Qualifier, const glsl_type* OutputType, exec_list* DeclInstructions, exec_list* PreCallInstructions, exec_list* PostCallInstructions)
 	{
 		// Generate a local variable to hold the output.
@@ -788,7 +788,7 @@ namespace MetalUtils
 		ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
 		PreCallInstructions->push_tail(TempVariable);
 
-		GenerateOutputForVariable(Frequency, bIsDesktop, ParseState, OutputSemantic, Qualifier, TempVariableDeref, DeclInstructions, PostCallInstructions);
+		GenerateOutputForVariable(Frequency, (EMetalGPUSemantics)bIsDesktop, ParseState, OutputSemantic, Qualifier, TempVariableDeref, DeclInstructions, PostCallInstructions);
 
 		return TempVariableDeref;
 	}
@@ -1173,10 +1173,10 @@ void FMetalCodeBackend::PromoteInputsAndOutputsGlobalHalfToFloat(exec_list* Inst
 	}
 }
 
-static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, bool bIsDesktop, EHlslShaderFrequency Frequency, ir_variable* Variable, TArray<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask, TIRVarList& OutFunctionArguments)
+static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EMetalGPUSemantics bIsDesktop, EHlslShaderFrequency Frequency, ir_variable* Variable, TArray<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask, TIRVarList& OutFunctionArguments)
 {
 	// Don't move variables that are system values into the input structures
-	const auto* SystemValues = bIsDesktop ? MetalUtils::DesktopSystemValueTable[Frequency] : MetalUtils::MobileSystemValueTable[Frequency];
+	const auto* SystemValues = (bIsDesktop == EMetalGPUSemanticsMobile) ? MetalUtils::MobileSystemValueTable[Frequency] : MetalUtils::DesktopSystemValueTable[Frequency];
 	for(int i = 0; SystemValues[i].MetalSemantic != nullptr; ++i)
 	{
 		if (Variable->semantic && !FCStringAnsi::Stricmp(Variable->semantic, "SV_DomainLocation"))
@@ -1332,7 +1332,7 @@ static FSystemValue* SystemValueTable[] =
 * @returns the IR variable deref for the semantic.
 */
 static ir_dereference_variable* GenerateShaderInput(
-	EHlslShaderFrequency Frequency, bool bIsDesktop,
+	EHlslShaderFrequency Frequency, EMetalGPUSemantics bIsDesktop,
 	_mesa_glsl_parse_state* ParseState,
 	const char* InputSemantic,
 	const glsl_type* InputType,
@@ -2670,7 +2670,7 @@ struct FConvertHalfToFloatUniformAndSamples : public ir_rvalue_visitor
 			}
 			else if (Texture->coordinate && Texture->coordinate->type->base_type == GLSL_TYPE_INT)
 			{
-				// convert int to uint
+				// convert int to uint32
 				Texture->coordinate = new(State)ir_expression(ir_unop_i2u, Texture->coordinate);
 			}
 		}

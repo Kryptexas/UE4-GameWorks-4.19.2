@@ -14,6 +14,7 @@
 #include "IOSInputInterface.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Apple/ApplePlatformDebugEvents.h"
 
 #include "Apple/ApplePlatformCrashContext.h"
 
@@ -1004,3 +1005,20 @@ bool FIOSPlatformMisc::IsControllerAssignedToGamepad(int32 ControllerId)
 	FIOSInputInterface* InputInterface = (FIOSInputInterface*)CachedApplication->GetInputInterface();
 	return InputInterface->IsControllerAssignedToGamepad(ControllerId);
 }
+
+#if IOS_PROFILING_ENABLED
+void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
+{
+	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
+}
+
+void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
+{
+	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
+}
+
+void FIOSPlatformMisc::EndNamedEvent()
+{
+	FApplePlatformDebugEvents::EndNamedEvent();
+}
+#endif

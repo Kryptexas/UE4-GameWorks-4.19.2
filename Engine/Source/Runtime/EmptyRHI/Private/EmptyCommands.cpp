@@ -378,12 +378,6 @@ void FEmptyDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 	GPendingDrawPrimitiveUPVertexData = NULL;
 }
 
-
-void FEmptyDynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color, bool bClearDepth,float Depth, bool bClearStencil,uint32 Stencil)
-{
-	FEmptyDynamicRHI::RHIClearMRT(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil);
-}
-
 void FEmptyDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil)
 {
 
@@ -423,17 +417,5 @@ void FEmptyDynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 }
 
 void FEmptyDynamicRHI::RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
-{
-}
-
-void FEmptyDynamicRHI::RHIClearColor(const FLinearColor& Color)
-{
-}
-
-void FEmptyDynamicRHI::RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil)
-{
-}
-
-void FEmptyDynamicRHI::RHIClearColor(int32 NumClearColors, const FLinearColor* ColorArray)
 {
 }

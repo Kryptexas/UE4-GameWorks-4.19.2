@@ -17,18 +17,14 @@ FMetalIndexBuffer::FMetalIndexBuffer(uint32 InStride, uint32 InSize, uint32 InUs
 	, IndexType((InStride == 2) ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32)
 {
 	MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-	FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, Mode));
-	Buffer = [Buf.Buffer retain];
+	Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, Mode));
 	INC_DWORD_STAT_BY(STAT_MetalIndexMemAlloc, InSize);
-	INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
 }
 
 FMetalIndexBuffer::~FMetalIndexBuffer()
 {
 	INC_DWORD_STAT_BY(STAT_MetalIndexMemFreed, GetSize());
-	DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
 	SafeReleasePooledBuffer(Buffer);
-	[Buffer release];
 }
 
 void* FMetalIndexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32 Size)
@@ -41,12 +37,9 @@ void* FMetalIndexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32 
 		INC_MEMORY_STAT_BY(STAT_MetalIndexMemAlloc, GetSize());
 		INC_MEMORY_STAT_BY(STAT_MetalIndexMemFreed, GetSize());
 		
-		id<MTLBuffer> OldBuffer = Buffer;
+		GetMetalDeviceContext().ReleasePooledBuffer(Buffer);
 		MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), GetSize(), Mode));
-		Buffer = [Buf.Buffer retain];
-		GetMetalDeviceContext().ReleasePooledBuffer(OldBuffer);
-		[OldBuffer release];
+		Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), GetSize(), Mode));
 	}
 	
 	if(LockMode != RLM_ReadOnly)
@@ -84,6 +77,7 @@ void FMetalIndexBuffer::Unlock()
 
 FIndexBufferRHIRef FMetalDynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
+	@autoreleasepool {
 	// make the RHI object, which will allocate memory
 	FMetalIndexBuffer* IndexBuffer = new FMetalIndexBuffer(Stride, Size, InUsage);
 	
@@ -104,24 +98,31 @@ FIndexBufferRHIRef FMetalDynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 S
 	}
 
 	return IndexBuffer;
+	}
 }
 
 void* FMetalDynamicRHI::RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRHI, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
 {
+	@autoreleasepool {
 	FMetalIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 
 	return (uint8*)IndexBuffer->Lock(LockMode, Offset, Size);
+	}
 }
 
 void FMetalDynamicRHI::RHIUnlockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRHI)
 {
+	@autoreleasepool {
 	FMetalIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 
 	IndexBuffer->Unlock();
+	}
 }
 
 FIndexBufferRHIRef FMetalDynamicRHI::CreateIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
+	@autoreleasepool {
 	return GDynamicRHI->RHICreateIndexBuffer(Stride, Size, InUsage, CreateInfo);
+	}
 }
 

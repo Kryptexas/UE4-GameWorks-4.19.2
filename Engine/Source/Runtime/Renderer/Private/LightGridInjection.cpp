@@ -25,6 +25,8 @@
 #include "ScenePrivate.h"
 #include "ClearQuad.h"
 #include "VolumetricFog.h"
+#include "Components/LightComponent.h"
+#include "Engine/MapBuildDataRegistry.h"
 
 int32 GLightGridPixelSize = 64;
 FAutoConsoleVariableRef CVarLightGridPixelSize(
@@ -68,14 +70,24 @@ FForwardGlobalLightData::FForwardGlobalLightData()
 	NumDirectionalLightCascades = 0;
 	CascadeEndDepths = FVector4(0, 0, 0, 0);
 	DirectionalLightShadowmapAtlas = GBlackTexture->TextureRHI;
-	ShadowmapSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	ShadowmapSampler = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+	DirectionalLightUseStaticShadowing = 0;
+	DirectionalLightStaticShadowmap = GBlackTexture->TextureRHI;
+	StaticShadowmapSampler = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 }
 
 int32 NumCulledLightsGridStride = 2;
 int32 NumCulledGridPrimitiveTypes = 2;
 int32 LightLinkStride = 2;
+
+// @todo Metal lacks SRV format conversions.
+#if !PLATFORM_MAC && !PLATFORM_IOS
 // 65k indexable light limit
 typedef uint16 FLightIndexType;
+#else
+// UINT_MAX indexable light limit
+typedef uint32 FLightIndexType;
+#endif
 
 /**  */
 class FForwardCullingParameters
@@ -430,7 +442,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 							float VolumetricScatteringIntensity = LightProxy->GetVolumetricScatteringIntensity();
 
-							if (LightNeedsSeparateInjectionIntoVolumetricFog(LightProxy, VisibleLightInfos[LightSceneInfo->Id]))
+							if (LightNeedsSeparateInjectionIntoVolumetricFog(LightSceneInfo, VisibleLightInfos[LightSceneInfo->Id]))
 							{
 								// Disable this lights forward shading volumetric scattering contribution
 								VolumetricScatteringIntensity = 0;
@@ -483,6 +495,14 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 									}
 								}
 							}
+
+							const FStaticShadowDepthMap* StaticShadowDepthMap = LightSceneInfo->Proxy->GetStaticShadowDepthMap();
+							const uint32 bStaticallyShadowedValue = LightSceneInfo->IsPrecomputedLightingValid() && StaticShadowDepthMap && StaticShadowDepthMap->TextureRHI ? 1 : 0;
+	
+							GlobalLightData.DirectionalLightUseStaticShadowing = bStaticallyShadowedValue;
+							GlobalLightData.DirectionalLightStaticShadowBufferSize = bStaticallyShadowedValue ? FVector4(StaticShadowDepthMap->Data->ShadowMapSizeX, StaticShadowDepthMap->Data->ShadowMapSizeY, 1.0f / StaticShadowDepthMap->Data->ShadowMapSizeX, 1.0f / StaticShadowDepthMap->Data->ShadowMapSizeY) : FVector4(0, 0, 0, 0);
+							GlobalLightData.DirectionalLightWorldToStaticShadow = bStaticallyShadowedValue ? StaticShadowDepthMap->Data->WorldToLight : FMatrix::Identity;
+							GlobalLightData.DirectionalLightStaticShadowmap = bStaticallyShadowedValue ? StaticShadowDepthMap->TextureRHI : GWhiteTexture->TextureRHI;
 						}
 					}
 				}
@@ -553,15 +573,15 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			FVector ZParams = GetLightGridZParams(View.NearClippingDistance, FarPlane + 10.f);
 			GlobalLightData.LightGridZParams = ZParams;
 
-			const uint32 NumIndexableLights = 1 << (sizeof(FLightIndexType) * 8);
+			const uint64 NumIndexableLights = 1llu << (sizeof(FLightIndexType) * 8llu);
 
-			if ((uint32)ForwardLocalLightData.Num() > NumIndexableLights)
+			if ((uint64)ForwardLocalLightData.Num() > NumIndexableLights)
 			{
 				static bool bWarned = false;
 
 				if (!bWarned)
 				{
-					UE_LOG(LogRenderer, Warning, TEXT("Exceeded indexable light count, glitches will be visible (%u / %u)"), ForwardLocalLightData.Num(), NumIndexableLights);
+					UE_LOG(LogRenderer, Warning, TEXT("Exceeded indexable light count, glitches will be visible (%u / %llu)"), ForwardLocalLightData.Num(), NumIndexableLights);
 					bWarned = true;
 				}
 			}

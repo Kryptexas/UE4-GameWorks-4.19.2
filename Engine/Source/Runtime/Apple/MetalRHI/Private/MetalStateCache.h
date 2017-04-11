@@ -6,6 +6,8 @@
 #include "MetalCommandEncoder.h"
 #include "MetalRenderPipelineDesc.h"
 
+class FShaderCacheState;
+
 enum EMetalRenderFlags
 {
     EMetalRenderFlagPipelineState = 1 << 0,
@@ -86,11 +88,13 @@ public:
 	 */
 	void SetShaderSamplerState(EShaderFrequency const Frequency, FMetalSamplerState* const Sampler, NSUInteger const Index);
 
-	void SetShaderResourceView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV);
+	void SetShaderResourceView(FMetalContext* Context, EShaderFrequency ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV);
 	
 	void SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV);
 
 	void SetStateDirty(void);
+	
+	void SetRenderStoreActions(FMetalCommandEncoder& CommandEncoder, bool const bConditionalSwitch);
 	
 	void SetRenderState(FMetalCommandEncoder& CommandEncoder, FMetalCommandEncoder* PrologueEncoder);
 
@@ -135,6 +139,9 @@ public:
 	MTLRenderPassDescriptor* GetRenderPassDescriptor(void) const { return RenderPassDesc; }
 	
 	FTexture2DRHIRef CreateFallbackDepthStencilSurface(uint32 Width, uint32 Height);
+	
+	void SetShaderCacheStateObject(FShaderCacheState* CacheState)	{ShaderCacheContextState = CacheState;}
+	FShaderCacheState* GetShaderCacheStateObject() const			{return ShaderCacheContextState;}
 	
 private:
 	void ConditionalUpdateBackBuffer(FMetalSurface& Surface);
@@ -212,6 +219,10 @@ private:
 	FMetalBufferBindings ShaderBuffers[SF_NumFrequencies];
 	FMetalTextureBindings ShaderTextures[SF_NumFrequencies];
 	FMetalSamplerBindings ShaderSamplers[SF_NumFrequencies];
+	
+	MTLStoreAction ColorStore[MaxMetalRenderTargets];
+	MTLStoreAction DepthStore;
+	MTLStoreAction StencilStore;
 
 	id<MTLBuffer> VisibilityResults;
 	MTLVisibilityResultMode VisibilityMode;
@@ -247,4 +258,6 @@ private:
     bool bUsingTessellation;
     bool bCanRestartRenderPass;
     bool bImmediate;
+	
+	FShaderCacheState* ShaderCacheContextState;
 };

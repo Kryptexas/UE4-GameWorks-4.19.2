@@ -547,6 +547,13 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 	{
 		GRHIVendorId = 0x5143;
 	}
+#if PLATFORM_WINDOWS
+	auto* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseStagingBuffer"));
+	if (CVar)
+	{
+		CVar->Set(false);
+	}
+#endif
 #endif
 
 	// Setup CVars that require the RHI initialized

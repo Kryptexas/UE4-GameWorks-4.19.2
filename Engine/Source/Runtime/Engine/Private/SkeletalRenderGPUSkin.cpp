@@ -165,11 +165,16 @@ void FSkeletalMeshObjectGPUSkin::ReleaseResources()
 	// also release morph resources
 	ReleaseMorphResources();
 	FSkeletalMeshObjectGPUSkin* MeshObject = this;
+	FGPUSkinCacheEntry** PtrSkinCacheEntry = &SkinCacheEntry;
 	ENQUEUE_RENDER_COMMAND(WaitRHIThreadFenceForDynamicData)(
-		[MeshObject](FRHICommandList& RHICmdList)
+		[MeshObject, PtrSkinCacheEntry](FRHICommandList& RHICmdList)
 		{
+			FGPUSkinCacheEntry*& LocalSkinCacheEntry = *PtrSkinCacheEntry;
+			FGPUSkinCache::Release(LocalSkinCacheEntry);
+
 			FScopeCycleCounter Context(MeshObject->GetStatId());
 			MeshObject->WaitForRHIThreadFenceForDynamicData();
+			*PtrSkinCacheEntry = nullptr;
 		}
 	);
 }
@@ -249,19 +254,21 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	// We prepare the next frame but still have the value from the last one
 	uint32 FrameNumberToPrepare = GFrameNumber + 1;
 
+	FGPUSkinCache* GPUSkinCache = nullptr;
 	if (InMeshComponent && InMeshComponent->SceneProxy)
 	{
 		// We allow caching of per-frame, per-scene data
 		FrameNumberToPrepare = InMeshComponent->SceneProxy->GetScene().GetFrameNumber() + 1;
+		GPUSkinCache = InMeshComponent->SceneProxy->GetScene().GetGPUSkinCache();
 	}
 
 	// queue a call to update this data
 	FSkeletalMeshObjectGPUSkin* MeshObject = this;
 	ENQUEUE_RENDER_COMMAND(SkelMeshObjectUpdateDataCommand)(
-		[MeshObject, FrameNumberToPrepare, NewDynamicData](FRHICommandListImmediate& RHICmdList)
+		[MeshObject, FrameNumberToPrepare, NewDynamicData, GPUSkinCache](FRHICommandListImmediate& RHICmdList)
 		{
 			FScopeCycleCounter Context(MeshObject->GetStatId());
-			MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
+			MeshObject->UpdateDynamicData_RenderThread(GPUSkinCache, RHICmdList, NewDynamicData, nullptr, FrameNumberToPrepare);
 		}
 	);
 
@@ -306,7 +313,7 @@ static TAutoConsoleVariable<int32> CVarDeferSkeletalDynamicDataUpdateUntilGDME(
 	0,
 	TEXT("If > 0, then do skeletal mesh dynamic data updates will be deferred until GDME. Experimental option."));
 
-void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, uint32 FrameNumberToPrepare)
+void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, FSceneInterface* Scene, uint32 FrameNumberToPrepare)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GPUSkinUpdateRTTime);
 	check(InDynamicData);
@@ -333,15 +340,15 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 	}
 	else
 	{
-		ProcessUpdatedDynamicData(RHICmdList, FrameNumberToPrepare, bMorphNeedsUpdate);
+		ProcessUpdatedDynamicData(GPUSkinCache, RHICmdList, FrameNumberToPrepare, bMorphNeedsUpdate);
 	}
 }
 
-void FSkeletalMeshObjectGPUSkin::PreGDMECallback(uint32 FrameNumber)
+void FSkeletalMeshObjectGPUSkin::PreGDMECallback(FGPUSkinCache* GPUSkinCache, uint32 FrameNumber)
 {
 	if (bNeedsUpdateDeferred)
 	{
-		ProcessUpdatedDynamicData(FRHICommandListExecutor::GetImmediateCommandList(), FrameNumber, bMorphNeedsUpdateDeferred);
+		ProcessUpdatedDynamicData(GPUSkinCache, FRHICommandListExecutor::GetImmediateCommandList(), FrameNumber, bMorphNeedsUpdateDeferred);
 	}
 }
 
@@ -355,7 +362,7 @@ void FSkeletalMeshObjectGPUSkin::WaitForRHIThreadFenceForDynamicData()
 	}
 }
 
-void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, bool bMorphNeedsUpdate)
+void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, bool bMorphNeedsUpdate)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FSkeletalMeshObjectGPUSkin_ProcessUpdatedDynamicData);
 	bNeedsUpdateDeferred = false;
@@ -437,19 +444,14 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 			bool bUseSkinCache = bGPUSkinCacheEnabled;
 			if (bUseSkinCache)
 			{
-				if (SectionIdx >= MAX_GPUSKINCACHE_CHUNKS_PER_LOD)
+				if (bClothFactory)
 				{
-					INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForMaxChunksPerLOD);
-					bUseSkinCache = false;
-				}
-				else if (bClothFactory)
-				{
-					INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForCloth);
+					//INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForCloth);
 					bUseSkinCache = false;
 				}
 				else if (Section.MaxBoneInfluences == 0)
 				{
-					INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForZeroInfluences);
+					//INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForZeroInfluences);
 					bUseSkinCache = false;
 				}
 
@@ -470,27 +472,13 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 			// Create a uniform buffer from the bone transforms.
 			TArray<FMatrix>& ReferenceToLocalMatrices = DynamicData->ReferenceToLocal;
 			bool bNeedFence = ShaderData.UpdateBoneData(RHICmdList, ReferenceToLocalMatrices, Section.BoneMap, FrameNumberToPrepare, FeatureLevel, bUseSkinCache);
-
 			// Try to use the GPU skinning cache if possible
 			if (bUseSkinCache)
 			{
-				if (GUseGPUMorphTargets)
-				{
-					// When rewriting the skin cache, first do all morph compute jobs, then all skin cache compute jobs, and then all recompute tangent jobs instead of sequentially
-				}
-				int32 Key = GGPUSkinCache.StartCacheMesh(RHICmdList, FrameNumberToPrepare, GPUSkinCacheKeys[SectionIdx], VertexFactory,
-					VertexFactoryData.PassthroughVertexFactories[SectionIdx].Get(), Section, this, bMorph ? &LOD.MorphVertexBuffer : 0);
-
-				// TODO: If failed we could remove the key (on the other hand it might a bu in cache for longer)
-
-				// -1 if failed
-				if(Key >= 0)
-				{
-					ensure(Key <= 0xffff);
-					GPUSkinCacheKeys[SectionIdx] = (int16)Key;
-				}
+				GPUSkinCache->ProcessEntry(RHICmdList, VertexFactory,
+					VertexFactoryData.PassthroughVertexFactories[SectionIdx].Get(), Section, this, bMorph ? &LOD.MorphVertexBuffer : 0,
+					FrameNumberToPrepare, SectionIdx, SkinCacheEntry);
 			}
-
 #if WITH_APEX_CLOTHING
 			// Update uniform buffer for APEX cloth simulation mesh positions and normals
 			if( bClothFactory )
@@ -735,17 +723,9 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetSkinVertexFactory(const FSc
 	}
 
 	// If the GPU skinning cache was used, return the passthrough vertex factory
-	if (GGPUSkinCache.IsElementProcessed(View->Family->FrameNumber, GPUSkinCacheKeys[ChunkIdx]))
+	if (SkinCacheEntry && FGPUSkinCache::IsEntryValid(SkinCacheEntry, ChunkIdx))
 	{
-		if(View->Family->EngineShowFlags.SkinCache)
-		{
-			return LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx].Get();
-		}
-		else
-		{
-			// hide this mesh
-			return 0;
-		}
+		return LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx].Get();
 	}
 
 	// use the morph enabled vertex factory if any active morphs are set

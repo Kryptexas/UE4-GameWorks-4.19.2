@@ -99,7 +99,7 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 
 	int32 SelectionColorIndex = INDEX_NONE;
 
-	if (ShaderFrequency == SF_Pixel)
+	if (ShaderFrequency == SF_Pixel && GetMaterialDomain() != MD_Volume)
 	{
 		SelectionColorIndex = Compiler->ComponentMask(Compiler->VectorParameter(NAME_SelectionColor,FLinearColor::Black),1,1,1,0);
 	}
@@ -123,10 +123,10 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 			break;
 
 		case MP_DiffuseColor: 
-			Ret = Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor, MFCF_ForceCast), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
+			Ret = MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor, MFCF_ForceCast);
 			break;
 		case MP_BaseColor: 
-			Ret = Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_BaseColor, MFCF_ForceCast), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
+			Ret = MaterialInterface->CompileProperty(Compiler, MP_BaseColor, MFCF_ForceCast);
 			break;
 		case MP_MaterialAttributes:
 			Ret = INDEX_NONE;
@@ -142,15 +142,16 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 	{
 		// Where possible we want to preserve constant expressions allowing default value checks
 		EMaterialValueType ResultType = Compiler->GetParameterType(Ret);
+		EMaterialValueType ExactAttributeType = (AttributeType == MCT_Float) ? MCT_Float1 : AttributeType;
 		EMaterialValueType ExactResultType = (ResultType == MCT_Float) ? MCT_Float1 : ResultType;
 
-		if (AttributeType == ExactResultType)
+		if (ExactAttributeType == ExactResultType)
 		{
 			return Ret;
 		}
-		else if (ResultType == MCT_Float || (AttributeType == MCT_Float1 && ResultType & MCT_Float))
+		else if (ResultType == MCT_Float || (ExactAttributeType == MCT_Float1 && ResultType & MCT_Float))
 		{
-			return Compiler->ComponentMask(Ret, true, AttributeType >= MCT_Float2, AttributeType >= MCT_Float3, AttributeType >= MCT_Float4);
+			return Compiler->ComponentMask(Ret, true, ExactAttributeType >= MCT_Float2, ExactAttributeType >= MCT_Float3, ExactAttributeType >= MCT_Float4);
 		}
 	}
 
@@ -1109,6 +1110,9 @@ bool UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_ParticleSprites: UsageValue = bUsedWithParticleSprites; break;
 		case MATUSAGE_BeamTrails: UsageValue = bUsedWithBeamTrails; break;
 		case MATUSAGE_MeshParticles: UsageValue = bUsedWithMeshParticles; break;
+		case MATUSAGE_NiagaraSprites: UsageValue = bUsedWithNiagaraSprites; break;
+		case MATUSAGE_NiagaraRibbons: UsageValue = bUsedWithNiagaraRibbons; break;
+		case MATUSAGE_NiagaraMeshParticles: UsageValue = bUsedWithNiagaraMeshParticles; break;
 		case MATUSAGE_StaticLighting: UsageValue = bUsedWithStaticLighting; break;
 		case MATUSAGE_MorphTargets: UsageValue = bUsedWithMorphTargets; break;
 		case MATUSAGE_SplineMesh: UsageValue = bUsedWithSplineMeshes; break;
@@ -1172,6 +1176,18 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 		{
 			bUsedWithMeshParticles = NewValue; break;
 		}
+		case MATUSAGE_NiagaraSprites:
+		{
+			bUsedWithNiagaraSprites = NewValue; break;
+		}
+		case MATUSAGE_NiagaraRibbons:
+		{
+			bUsedWithNiagaraRibbons = NewValue; break;
+		}
+		case MATUSAGE_NiagaraMeshParticles:
+		{
+			bUsedWithNiagaraMeshParticles = NewValue; break;
+		}
 		case MATUSAGE_StaticLighting:
 		{
 			bUsedWithStaticLighting = NewValue; break;
@@ -1209,6 +1225,9 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 		case MATUSAGE_ParticleSprites: UsageName = TEXT("bUsedWithParticleSprites"); break;
 		case MATUSAGE_BeamTrails: UsageName = TEXT("bUsedWithBeamTrails"); break;
 		case MATUSAGE_MeshParticles: UsageName = TEXT("bUsedWithMeshParticles"); break;
+		case MATUSAGE_NiagaraSprites: UsageName = TEXT("bUsedWithNiagaraSprites"); break;
+		case MATUSAGE_NiagaraRibbons: UsageName = TEXT("bUsedWithNiagaraRibbons"); break;
+		case MATUSAGE_NiagaraMeshParticles: UsageName = TEXT("bUsedWithNiagaraMeshParticles"); break;
 		case MATUSAGE_StaticLighting: UsageName = TEXT("bUsedWithStaticLighting"); break;
 		case MATUSAGE_MorphTargets: UsageName = TEXT("bUsedWithMorphTargets"); break;
 		case MATUSAGE_SplineMesh: UsageName = TEXT("bUsedWithSplineMeshes"); break;
@@ -1281,6 +1300,9 @@ static bool IsPrimitiveTypeUsageFlag(EMaterialUsage Usage)
 		|| Usage == MATUSAGE_ParticleSprites
 		|| Usage == MATUSAGE_BeamTrails
 		|| Usage == MATUSAGE_MeshParticles
+		|| Usage == MATUSAGE_NiagaraSprites
+		|| Usage == MATUSAGE_NiagaraRibbons
+		|| Usage == MATUSAGE_NiagaraMeshParticles
 		|| Usage == MATUSAGE_MorphTargets
 		|| Usage == MATUSAGE_SplineMesh
 		|| Usage == MATUSAGE_InstancedStaticMeshes

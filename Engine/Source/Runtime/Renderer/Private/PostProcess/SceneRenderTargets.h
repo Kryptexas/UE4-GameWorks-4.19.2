@@ -437,6 +437,13 @@ public:
 
 		return GBufferResourcesUniformBuffer; 
 	}
+	/** Get the uniform buffer containing dummy GBuffer resources. */
+	FUniformBufferRHIParamRef GetDummyGBufferResourcesUniformBuffer() const
+	{
+		//we don't alloc the dummy by default as they aren't necessary for cooked builds.
+		checkf(IsValidRef(GBufferDummyResourcesUniformBuffer), TEXT("GBuffer dummies required but not available. Calling code must call AllocDummyGBufferTargets is these are required."));
+		return GBufferDummyResourcesUniformBuffer;
+	}
 	/** Returns the size of most screen space render targets e.g. SceneColor, SceneDepth, GBuffer, ... might be different from final RT or output Size because of ScreenPercentage use. */
 	FIntPoint GetBufferSizeXY() const { return BufferSize; }
 	/** */
@@ -493,6 +500,7 @@ public:
 	void PreallocGBufferTargets();
 	void GetGBufferADesc(FPooledRenderTargetDesc& Desc) const;
 	void AllocGBufferTargets(FRHICommandList& RHICmdList);
+	void AllocDummyGBufferTargets(FRHICommandList& RHICmdList);
 
 	void AllocLightAttenuation(FRHICommandList& RHICmdList);
 
@@ -706,6 +714,7 @@ private:
 
 	/** Uniform buffer containing GBuffer resources. */
 	FUniformBufferRHIRef GBufferResourcesUniformBuffer;
+	FUniformBufferRHIRef GBufferDummyResourcesUniformBuffer;
 	/** size of the back buffer, in editor this has to be >= than the biggest view port */
 	FIntPoint BufferSize;
 	FIntPoint SeparateTranslucencyBufferSize;

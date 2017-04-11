@@ -84,6 +84,58 @@ struct FSpriteCategoryInfo
 	FText Description;
 };
 
+/** Exposed enum to parallel RHI's EStencilMask and show up in the editor. Has a paired struct to convert between the two. */
+UENUM()
+enum class ERendererStencilMask : uint8
+{
+	ERSM_Default UMETA(DisplayName = "Default"),
+	ERSM_255 UMETA(DisplayName = "All bits (255), ignore depth"),
+	ERSM_1 UMETA(DisplayName = "First bit (1), ignore depth"),
+	ERSM_2 UMETA(DisplayName = "Second bit (2), ignore depth"),
+	ERSM_4 UMETA(DisplayName = "Third bit (4), ignore depth"),
+	ERSM_8 UMETA(DisplayName = "Fourth bit (8), ignore depth"),
+	ERSM_16 UMETA(DisplayName = "Fifth bit (16), ignore depth"),
+	ERSM_32 UMETA(DisplayName = "Sixth bit (32), ignore depth"),
+	ERSM_64 UMETA(DisplayName = "Seventh bit (64), ignore depth"),
+	ERSM_128 UMETA(DisplayName = "Eighth bit (128), ignore depth")
+};
+
+/** Converts a stencil mask from the editor's USTRUCT version to the version the renderer uses. */
+struct FRendererStencilMaskEvaluation
+{
+	static FORCEINLINE EStencilMask ToStencilMask(const ERendererStencilMask InEnum)
+	{
+		switch (InEnum)
+		{
+		case ERendererStencilMask::ERSM_Default:
+			return EStencilMask::SM_Default;
+		case ERendererStencilMask::ERSM_255:
+			return EStencilMask::SM_255;
+		case ERendererStencilMask::ERSM_1:
+			return EStencilMask::SM_1;
+		case ERendererStencilMask::ERSM_2:
+			return EStencilMask::SM_2;
+		case ERendererStencilMask::ERSM_4:
+			return EStencilMask::SM_4;
+		case ERendererStencilMask::ERSM_8:
+			return EStencilMask::SM_8;
+		case ERendererStencilMask::ERSM_16:
+			return EStencilMask::SM_16;
+		case ERendererStencilMask::ERSM_32:
+			return EStencilMask::SM_32;
+		case ERendererStencilMask::ERSM_64:
+			return EStencilMask::SM_64;
+		case ERendererStencilMask::ERSM_128:
+			return EStencilMask::SM_128;
+		default:
+			// Unsupported EStencilMask - return a safe default.
+			check(false);
+			return EStencilMask::SM_Default;
+		}
+	}
+};
+
+
 /**
  * Delegate for notification of blocking collision against a specific component.  
  * NormalImpulse will be filled in for physics-simulating bodies, but will be zero for swept-component blocking collisions. 
@@ -425,6 +477,10 @@ public:
 	/** Optionally write this 0-255 value to the stencil buffer in CustomDepth pass (Requires project setting or r.CustomDepth == 3) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering,  meta=(UIMin = "0", UIMax = "255", editcondition = "bRenderCustomDepth", DisplayName = "CustomDepth Stencil Value"))
 	int32 CustomDepthStencilValue;
+
+	/** Mask used for stencil buffer writes. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = "Rendering", meta = (editcondition = "bRenderCustomDepth"))
+	ERendererStencilMask CustomDepthStencilWriteMask;
 
 	/**
 	 * Translucent objects with a lower sort priority draw behind objects with a higher priority.
@@ -1134,6 +1190,10 @@ public:
 	/** Sets the CustomDepth stencil value (0 - 255) and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering", meta=(UIMin = "0", UIMax = "255"))
 	void SetCustomDepthStencilValue(int32 Value);
+
+	/** Sets the CustomDepth stencil write mask and marks the render state dirty. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void SetCustomDepthStencilWriteMask(ERendererStencilMask WriteMaskBit);
 
 	/** Sets bRenderInMainPass property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering")

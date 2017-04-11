@@ -189,7 +189,7 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor
 	// Re-apply gamma corrrection
 //	OutColor.rgb = pow( OutColor.rgb, 1/2.2f );
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	OutColor.a = lerp(DestColor.a, 1, SrcColor.a * DarkenMask * HiddenMask);
 #else
 	OutColor.a = 0;

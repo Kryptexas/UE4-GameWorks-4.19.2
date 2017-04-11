@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalRHIPrivate.h"
+#include "ShaderCache.h"
 
 TGlobalResource<TBoundShaderStateHistory<10000>> FMetalRHICommandContext::BoundShaderStateHistory;
 
@@ -11,7 +12,7 @@ FMetalDeviceContext& GetMetalDeviceContext()
 	return ((FMetalDeviceContext&)Context->GetInternalContext());
 }
 
-void SafeReleaseMetalResource(id Object)
+void SafeReleaseMetalObject(id Object)
 {
 	if(GIsRHIInitialized && GDynamicRHI)
 	{
@@ -19,6 +20,20 @@ void SafeReleaseMetalResource(id Object)
 		if(Context)
 		{
 			((FMetalDeviceContext&)Context->GetInternalContext()).ReleaseObject(Object);
+			return;
+		}
+	}
+	[Object release];
+}
+
+void SafeReleaseMetalResource(id<MTLResource> Object)
+{
+	if(GIsRHIInitialized && GDynamicRHI)
+	{
+		FMetalRHICommandContext* Context = static_cast<FMetalRHICommandContext*>(RHIGetDefaultContext());
+		if(Context)
+		{
+			((FMetalDeviceContext&)Context->GetInternalContext()).ReleaseResource(Object);
 			return;
 		}
 	}
@@ -37,6 +52,19 @@ void SafeReleasePooledBuffer(id<MTLBuffer> Buffer)
 	}
 }
 
+void SafeReleaseMetalFence(id Object)
+{
+	if(GIsRHIInitialized && GDynamicRHI && Object)
+	{
+		FMetalRHICommandContext* Context = static_cast<FMetalRHICommandContext*>(RHIGetDefaultContext());
+		if(Context)
+		{
+			((FMetalDeviceContext&)Context->GetInternalContext()).ReleaseFence((id<MTLFence>)Object);
+			return;
+		}
+	}
+}
+
 FMetalRHICommandContext::FMetalRHICommandContext(struct FMetalGPUProfiler* InProfiler, FMetalContext* WrapContext)
 : Context(WrapContext)
 , Profiler(InProfiler)
@@ -48,10 +76,12 @@ FMetalRHICommandContext::FMetalRHICommandContext(struct FMetalGPUProfiler* InPro
 , PendingNumPrimitives(0)
 {
 	check(Context);
+	Context->GetCurrentState().SetShaderCacheStateObject(FShaderCache::CreateOrFindCacheStateForContext(this));	
 }
 
 FMetalRHICommandContext::~FMetalRHICommandContext()
 {
+	FShaderCache::RemoveCacheStateForContext(this);
 	delete Context;
 }
 
@@ -84,8 +114,18 @@ void FMetalRHIComputeContext::RHISetComputeShader(FComputeShaderRHIParamRef Comp
 
 void FMetalRHIComputeContext::RHISubmitCommandsHint()
 {
+	if (!Context->GetCurrentCommandBuffer())
+	{
+		Context->InitFrame(false);
+	}
 	Context->FinishFrame();
 	
+#if ENABLE_METAL_GPUPROFILE
 	FMetalContext::MakeCurrent(&GetMetalDeviceContext());
-	FMetalContext::CreateAutoreleasePool();
+#endif
+}
+
+FMetalRHIImmediateCommandContext::FMetalRHIImmediateCommandContext(struct FMetalGPUProfiler* InProfiler, FMetalContext* WrapContext)
+	: FMetalRHICommandContext(InProfiler, WrapContext)
+{
 }

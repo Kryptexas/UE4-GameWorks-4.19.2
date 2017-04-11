@@ -144,7 +144,7 @@ FVertexDeclarationRHIRef FOpenGLDynamicRHI::RHICreateVertexDeclaration(const FVe
 		
 		check(VertexDeclarationRefPtr);
 		check(IsValidRef(*VertexDeclarationRefPtr));
-		FShaderCache::LogVertexDeclaration(Elements, *VertexDeclarationRefPtr);
+		FShaderCache::LogVertexDeclaration(FShaderCache::GetDefaultCacheState(), Elements, *VertexDeclarationRefPtr);
 	}
 
 	// The cached declaration must match the input declaration!

@@ -675,6 +675,10 @@ namespace UnrealBuildTool
 						{
 							ProjectFileTypes.Add(ProjectFileType.XCode);
 						}
+						else if (LowercaseArg.StartsWith("-eddieprojectfile"))
+						{
+							ProjectFileTypes.Add(ProjectFileType.Eddie);
+						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
 							//ConfigName = Arg;
@@ -832,6 +836,9 @@ namespace UnrealBuildTool
 									break;
 								case ProjectFileType.XCode:
 									Generator = new XcodeProjectFileGenerator(ProjectFile);
+									break;
+								case ProjectFileType.Eddie:
+									Generator = new EddieProjectFileGenerator(ProjectFile);
 									break;
 								default:
 									throw new BuildException("Unhandled project file type '{0}", ProjectFileType);

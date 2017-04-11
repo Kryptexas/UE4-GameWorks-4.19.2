@@ -836,6 +836,7 @@ public:
 	bool bCastShadows;
 	bool bWantsStaticShadowing;
 	bool bHasStaticLighting;
+	bool bCastVolumetricShadow;
 	FLinearColor LightColor;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 	float AverageBrightness;
@@ -1022,6 +1023,7 @@ public:
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
+	inline bool CastsVolumetricShadow() const { return bCastVolumetricShadow; }
 	inline bool CastsShadowsFromCinematicObjectsOnly() const { return bCastShadowsFromCinematicObjectsOnly; }
 	inline bool CastsModulatedShadows() const { return bCastModulatedShadows; }
 	inline const FLinearColor& GetModulatedShadowColor() const { return ModulatedShadowColor; }
@@ -1146,6 +1148,8 @@ protected:
 
 	/** Whether the light is allowed to cast dynamic shadows from translucency. */
 	const uint32 bCastTranslucentShadows : 1;
+
+	const uint32 bCastVolumetricShadow : 1;
 
 	const uint32 bCastShadowsFromCinematicObjectsOnly : 1;
 

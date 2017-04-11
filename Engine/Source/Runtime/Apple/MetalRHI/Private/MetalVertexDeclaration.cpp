@@ -173,6 +173,7 @@ FVertexDeclarationRHIRef FMetalDynamicRHI::CreateVertexDeclaration_RenderThread(
 
 FVertexDeclarationRHIRef FMetalDynamicRHI::RHICreateVertexDeclaration(const FVertexDeclarationElementList& Elements)
 {
+	@autoreleasepool {
 	uint32 Key = FCrc::MemCrc32(Elements.GetData(), Elements.Num() * sizeof(FVertexElement));
 	// look up an existing declaration
 	FVertexDeclarationRHIRef* VertexDeclarationRefPtr = GVertexDeclarationCache.Find(Key);
@@ -182,10 +183,11 @@ FVertexDeclarationRHIRef FMetalDynamicRHI::RHICreateVertexDeclaration(const FVer
 
 		// create and add to the cache if it doesn't exist.
 		VertexDeclarationRefPtr = &GVertexDeclarationCache.Add(Key, new FMetalVertexDeclaration(Elements));
-		FShaderCache::LogVertexDeclaration(Elements, *VertexDeclarationRefPtr);
+		FShaderCache::LogVertexDeclaration(ImmediateContext.Context->GetCurrentState().GetShaderCacheStateObject(), Elements, *VertexDeclarationRefPtr);
 	}
 
 	return *VertexDeclarationRefPtr;
+	}
 }
 
 void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList& InElements)

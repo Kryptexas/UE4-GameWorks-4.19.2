@@ -33,6 +33,17 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 #define WITH_DX_PERF	1
 #endif
 
+#ifndef NV_AFTERMATH
+#define NV_AFTERMATH	0
+#endif
+
+#if NV_AFTERMATH
+#define GFSDK_Aftermath_WITH_DX11 1
+#include "GFSDK_Aftermath.h"
+#undef GFSDK_Aftermath_WITH_DX11
+extern int32 GDX11NVAfterMathEnabled;
+#endif
+
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
 #define CHECK_SRV_TRANSITIONS 0
 #else
@@ -282,6 +293,12 @@ struct FD3DGPUProfiler : public FGPUProfiler
 	void BeginFrame(class FD3D11DynamicRHI* InRHI);
 
 	void EndFrame();
+
+	bool CheckGpuHeartbeat() const;
+
+private:
+	TMap<uint32, FString> CachedStrings;
+	TArray<uint32> PushPopStack;
 };
 
 /** Forward declare the context for the AMD AGS utility library. */
@@ -432,7 +449,7 @@ public:
 	virtual void RHIExecuteCommandList(FRHICommandList* CmdList) final override;
 	virtual void* RHIGetNativeDevice() final override;
 	virtual class IRHICommandContext* RHIGetDefaultContext() final override;
-	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override;
+	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) final override;
 
 
 
@@ -519,9 +536,6 @@ public:
 	virtual void RHIEndDrawPrimitiveUP() final override;
 	virtual void RHIBeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData) final override;
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override;
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) final override;
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) final override;
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) final override;
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
 	virtual void RHIPopEvent() final override;
@@ -542,8 +556,13 @@ public:
 	{
 		return DXGIFactory1;
 	}
+
+	bool CheckGpuHeartbeat() const override
+	{
+		return GPUProfilingData.CheckGpuHeartbeat();
+	}
+
 private:
-	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 	enum class EForceFullScreenClear
@@ -872,8 +891,9 @@ struct FD3D11Adapter
 class FD3D11DynamicRHIModule : public IDynamicRHIModule
 {
 public:
-	// IModuleInterface
+	// IModuleInterface	
 	virtual bool SupportsDynamicReloading() override { return false; }
+	virtual void StartupModule() override;
 
 	// IDynamicRHIModule
 	virtual bool IsSupported() override;

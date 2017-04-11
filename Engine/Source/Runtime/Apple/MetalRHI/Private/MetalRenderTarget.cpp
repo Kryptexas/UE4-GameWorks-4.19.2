@@ -19,6 +19,7 @@ static FAutoConsoleVariableRef CVarMetalUseTexGetBytes(
 
 void FMetalRHICommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
 {
+	@autoreleasepool {
 	if (!SourceTextureRHI || !DestTextureRHI)
 	{
 		// nothing to do if one of the textures is null!
@@ -84,6 +85,7 @@ void FMetalRHICommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceT
 		}
 		
 		Context->CopyFromTextureToTexture(Source->Texture, SrcIndex, ResolveParams.MipIndex, Origin, Size, Destination->Texture, DestIndex, ResolveParams.MipIndex, Origin);
+	}
 	}
 }
 
@@ -427,6 +429,7 @@ static void ConvertSurfaceDataToFColor(EPixelFormat Format, uint32 Width, uint32
 
 void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
+	@autoreleasepool {
 	if (!ensure(TextureRHI))
 	{
 		OutData.Empty();
@@ -461,8 +464,7 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 		
 		id<MTLTexture> TempTexture = nil;
-#if METAL_API_1_1
-		if (Texture.storageMode == MTLStorageModePrivate)
+		if (ImmediateContext.Context->GetCommandQueue().SupportsFeature(EMetalFeaturesResourceOptions) &&  Texture.storageMode == MTLStorageModePrivate)
 		{
 #if PLATFORM_MAC
 			MTLStorageMode StorageMode = MTLStorageModeManaged;
@@ -479,14 +481,17 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 			Desc.mipmapLevelCount = Texture.mipmapLevelCount;
 			Desc.sampleCount = Texture.sampleCount;
 			Desc.arrayLength = Texture.arrayLength;
-			Desc.resourceOptions = (Texture.cpuCacheMode << MTLResourceCPUCacheModeShift) | (StorageMode << MTLResourceStorageModeShift);
+			
+			MTLResourceOptions GeneralResourceOption = GetMetalDeviceContext().GetCommandQueue().GetCompatibleResourceOptions(((Texture.cpuCacheMode << MTLResourceCPUCacheModeShift) | (StorageMode << MTLResourceStorageModeShift) | MTLResourceHazardTrackingModeUntracked));
+			Desc.resourceOptions = GeneralResourceOption;
+			
 			Desc.cpuCacheMode = Texture.cpuCacheMode;
 			Desc.storageMode = StorageMode;
 			Desc.usage = Texture.usage;
 			
 			TempTexture = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc];
 			
-			Context->CopyFromTextureToTexture(Texture, 0, 0, Region.origin, Region.size, TempTexture, 0, 0, MTLOriginMake(0, 0, 0));
+			ImmediateContext.Context->CopyFromTextureToTexture(Texture, 0, 0, Region.origin, Region.size, TempTexture, 0, 0, MTLOriginMake(0, 0, 0));
 			
 			Texture = TempTexture;
 			Region = MTLRegionMake2D(0, 0, SizeX, SizeY);
@@ -495,13 +500,12 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 		if(Texture.storageMode == MTLStorageModeManaged)
 		{
 			// Synchronise the texture with the CPU
-			Context->SynchronizeTexture(Texture, 0, 0);
+			ImmediateContext.Context->SynchronizeTexture(Texture, 0, 0);
 		}
-#endif
 #endif
 
 		//kick the current command buffer.
-		Context->SubmitCommandBufferAndWait();
+		ImmediateContext.Context->SubmitCommandBufferAndWait();
 		
 		const uint32 Stride = GPixelFormats[Surface->PixelFormat].BlockBytes * SizeX;
 		const uint32 BytesPerImage = Stride * SizeY;
@@ -525,29 +529,26 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 		const uint32 Alignment = PLATFORM_MAC ? 1u : 64u; // Mac permits natural row alignment (tightly-packed) but iOS does not.
 		const uint32 AlignedStride = ((Stride - 1) & ~(Alignment - 1)) + Alignment;
 		const uint32 BytesPerImage = AlignedStride * SizeY;
-		FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), BytesPerImage, MTLStorageModeShared));
-		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
+		id<MTLBuffer> Buffer = ((FMetalDeviceContext*)ImmediateContext.Context)->CreatePooledBuffer(FMetalPooledBufferArgs(ImmediateContext.Context->GetDevice(), BytesPerImage, MTLStorageModeShared));
 		{
 			// Synchronise the texture with the CPU
 			SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 			
 			if (Surface->PixelFormat != PF_DepthStencil)
 			{
-				Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
+				ImmediateContext.Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
 			}
-#if METAL_API_1_1
 			else if (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions))
 			{
 				if (!InFlags.GetOutputStencil())
 				{
-					Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionDepthFromDepthStencil);
+					ImmediateContext.Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionDepthFromDepthStencil);
 				}
 				else
 				{
-					Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionStencilFromDepthStencil);
+					ImmediateContext.Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionStencilFromDepthStencil);
 				}
 			}
-#endif
 			else
 			{
 				// not supported yet
@@ -555,17 +556,18 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 			}
 			
 			//kick the current command buffer.
-			Context->SubmitCommandBufferAndWait();
+			ImmediateContext.Context->SubmitCommandBufferAndWait();
 			
-			ConvertSurfaceDataToFColor(Surface->PixelFormat, SizeX, SizeY, (uint8*)[Buffer.Buffer contents], AlignedStride, OutDataPtr, InFlags);
+			ConvertSurfaceDataToFColor(Surface->PixelFormat, SizeX, SizeY, (uint8*)[Buffer contents], AlignedStride, OutDataPtr, InFlags);
 		}
-		DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
-		((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
+		((FMetalDeviceContext*)ImmediateContext.Context)->ReleasePooledBuffer(Buffer);
+	}
 	}
 }
 
 void FMetalDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void*& OutData,int32& OutWidth,int32& OutHeight)
 {
+	@autoreleasepool {
     FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
     FMetalTexture2D* Texture = (FMetalTexture2D*)TextureRHI->GetTexture2D();
     
@@ -573,17 +575,21 @@ void FMetalDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void*
     OutWidth = Texture->GetSizeX();
     OutHeight = Texture->GetSizeY();
     OutData = Surface->Lock(0, 0, RLM_ReadOnly, Stride);
+	}
 }
 
 void FMetalDynamicRHI::RHIUnmapStagingSurface(FTextureRHIParamRef TextureRHI)
 {
+	@autoreleasepool {
     FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
-    
+	
     Surface->Unlock(0, 0);
+	}
 }
 
 void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<FFloat16Color>& OutData, ECubeFace CubeFace,int32 ArrayIndex,int32 MipIndex)
 {
+	@autoreleasepool {
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
 	
     id<MTLTexture> Texture = Surface->Texture;
@@ -624,19 +630,18 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 	const uint32 AlignedStride = ((Stride - 1) & ~(Alignment - 1)) + Alignment;
 	const uint32 BytesPerImage = AlignedStride  * SizeY;
 	int32 FloatBGRADataSize = BytesPerImage;
-	FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), FloatBGRADataSize, MTLStorageModeShared));
-	INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
+	id<MTLBuffer> Buffer = ((FMetalDeviceContext*)ImmediateContext.Context)->CreatePooledBuffer(FMetalPooledBufferArgs(ImmediateContext.Context->GetDevice(), FloatBGRADataSize, MTLStorageModeShared));
 	{
 		// Synchronise the texture with the CPU
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 		
-		Context->CopyFromTextureToBuffer(Texture, ArrayIndex, MipIndex, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
+		ImmediateContext.Context->CopyFromTextureToBuffer(Texture, ArrayIndex, MipIndex, Region.origin, Region.size, Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
 		
 		//kick the current command buffer.
-		Context->SubmitCommandBufferAndWait();
+		ImmediateContext.Context->SubmitCommandBufferAndWait();
 	}
 	
-	uint8* DataPtr = (uint8*)[Buffer.Buffer contents];
+	uint8* DataPtr = (uint8*)[Buffer contents];
 	FFloat16Color* OutDataPtr = OutData.GetData();
 	if (Alignment > 1u)
 	{
@@ -654,12 +659,13 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 		FMemory::Memcpy(OutDataPtr, FloatBGRAData, FloatBGRADataSize);
 	}
 	
-	DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
-	((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
+	((FMetalDeviceContext*)ImmediateContext.Context)->ReleasePooledBuffer(Buffer);
+	}
 }
 
 void FMetalDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,FIntRect InRect,FIntPoint ZMinMax,TArray<FFloat16Color>& OutData)
 {
+	@autoreleasepool {
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
 	
 	id<MTLTexture> Texture = Surface->Texture;
@@ -690,19 +696,18 @@ void FMetalDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 	const uint32 AlignedStride = ((Stride - 1) & ~(Alignment - 1)) + Alignment;
 	const uint32 BytesPerImage = AlignedStride  * SizeY;
 	int32 FloatBGRADataSize = BytesPerImage * SizeZ;
-	FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), FloatBGRADataSize, MTLStorageModeShared));
-	INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
+	id<MTLBuffer> Buffer = ((FMetalDeviceContext*)ImmediateContext.Context)->CreatePooledBuffer(FMetalPooledBufferArgs(ImmediateContext.Context->GetDevice(), FloatBGRADataSize, MTLStorageModeShared));
 	{
 		// Synchronise the texture with the CPU
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 		
-		Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
+		ImmediateContext.Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
 		
 		//kick the current command buffer.
-		Context->SubmitCommandBufferAndWait();
+		ImmediateContext.Context->SubmitCommandBufferAndWait();
 	}
 	
-	uint8* DataPtr = (uint8*)[Buffer.Buffer contents];
+	uint8* DataPtr = (uint8*)[Buffer contents];
 	FFloat16Color* OutDataPtr = OutData.GetData();
 	if (Alignment > 1u)
 	{
@@ -723,6 +728,6 @@ void FMetalDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 		FMemory::Memcpy(OutDataPtr, FloatBGRAData, FloatBGRADataSize);
 	}
 	
-	DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.Buffer.length - BytesPerImage);
-	((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
+	((FMetalDeviceContext*)ImmediateContext.Context)->ReleasePooledBuffer(Buffer);
+	}
 }

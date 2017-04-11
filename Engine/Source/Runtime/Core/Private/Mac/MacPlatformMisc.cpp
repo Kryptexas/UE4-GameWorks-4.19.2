@@ -28,6 +28,7 @@
 #include "Misc/FeedbackContext.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/Culture.h"
+#include "Apple/ApplePlatformDebugEvents.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -1656,6 +1657,16 @@ void FMacPlatformMisc::LoadPreInitModules()
 	FModuleManager::Get().LoadModule(TEXT("AudioMixerCoreAudio"));
 }
 
+void* FMacPlatformMisc::CreateAutoreleasePool()
+{
+	return [[NSAutoreleasePool alloc] init];
+}
+
+void FMacPlatformMisc::ReleaseAutoreleasePool(void *Pool)
+{
+	[(NSAutoreleasePool*)Pool release];
+}
+
 FLinearColor FMacPlatformMisc::GetScreenPixelColor(const FVector2D& InScreenPos, float /*InGamma*/)
 {
 	SCOPED_AUTORELEASE_POOL;
@@ -2881,3 +2892,20 @@ void FMacPlatformMisc::UpdateDriverMonitorStatistics(int32 DeviceIndex)
 		}
 	}
 }
+
+#if MAC_PROFILING_ENABLED
+void FMacPlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
+{
+	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
+}
+
+void FMacPlatformMisc::BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
+{
+	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
+}
+
+void FMacPlatformMisc::EndNamedEvent()
+{
+	FApplePlatformDebugEvents::EndNamedEvent();
+}
+#endif

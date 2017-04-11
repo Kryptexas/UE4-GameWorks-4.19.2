@@ -365,6 +365,9 @@ void UNiagaraComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMateria
 {
 	for (TSharedRef<FNiagaraSimulation> Sim : EffectInstance->GetEmitters())	
 	{
+#if WITH_EDITORONLY_DATA
+		OutMaterials.Add(Sim->GetEmitterHandle().GetSource()->Material);
+#endif
 		if (UNiagaraEmitterProperties* Props = Sim->GetEmitterHandle().GetInstance())
 		{	
 			//TODO: Remove this! Material and all rendering related data should live in the renderer props

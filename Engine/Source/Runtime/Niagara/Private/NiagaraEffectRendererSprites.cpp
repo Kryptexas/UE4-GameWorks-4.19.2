@@ -283,7 +283,7 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 bool NiagaraEffectRendererSprites::SetMaterialUsage()
 {
 	//Causes deadlock :S Need to look at / rework the setting of materials and render modules.
-	return Material && Material->CheckMaterialUsage_Concurrent(MATUSAGE_ParticleSprites);
+	return Material && Material->CheckMaterialUsage_Concurrent(MATUSAGE_NiagaraSprites);
 }
 
 /** Update render data buffer from attributes */

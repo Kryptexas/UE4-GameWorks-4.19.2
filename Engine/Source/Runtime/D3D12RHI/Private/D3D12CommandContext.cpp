@@ -520,7 +520,7 @@ void FD3D12CommandContextContainer::operator delete(void* RawMemory)
 	FMemory::Free(RawMemory);
 }
 
-IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer()
+IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer(int32 Index, int32 Num)
 {
 	return new FD3D12CommandContextContainer(&GetAdapter(), GFrameNumberRenderThread % GetAdapter().GetNumGPUNodes());
 }

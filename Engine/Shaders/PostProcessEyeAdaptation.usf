@@ -66,11 +66,9 @@ float ComputeEyeAdaptation(float OldExposure, float TargetExposure, float FrameT
 	return clamp(OldExposure + Diff * Factor, EyeAdaptationParams[0].z, EyeAdaptationParams[0].w);
 }
 
-void MainPS(float4 UVAndScreenPos : TEXCOORD0, 
-	out float2 OutColor : SV_Target0)
+float2 MainEyeAdaptationCommon()
 {
-	float2 UV = UVAndScreenPos.xy;
-
+	float2 OutColor = 0;
 	float ExposureOffsetMultipler = EyeAdaptationParams[1].x;
 	
 	float TargetExposure = ComputeEyeAdaptationExposure(PostprocessInput0);
@@ -86,7 +84,28 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0,
 
 	OutColor.r = ExposureOffsetMultipler * SmoothedExposureScale;
 	OutColor.g = ExposureOffsetMultipler * TargetExposureScale;
+
+	return OutColor;
 }
+
+void MainPS(float4 UVAndScreenPos : TEXCOORD0, 
+	out float2 OutColor : SV_Target0)
+{
+	OutColor = MainEyeAdaptationCommon();
+}
+
+#if COMPUTESHADER
+RWTexture2D<float2> RWOutComputeTex;
+
+[numthreads(1, 1, 1)]
+void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
+{
+	float2 OutColor = MainEyeAdaptationCommon();
+
+	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
+	RWOutComputeTex[PixelPos] = OutColor;
+}
+#endif
 
 
 void MainBasicEyeAdaptationSetupPS(

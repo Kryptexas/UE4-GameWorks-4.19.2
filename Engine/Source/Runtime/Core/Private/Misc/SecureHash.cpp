@@ -607,6 +607,11 @@ FArchive& operator<<( FArchive& Ar, FSHAHash& G )
 	return Ar;
 }
 
+uint32 GetTypeHash(FSHAHash const& InKey)
+{
+	return FCrc::MemCrc32(InKey.Hash, sizeof(InKey.Hash));
+}
+
 FSHA1::FSHA1()
 {
 	m_block = (SHA1_WORKSPACE_BLOCK *)m_workspace;

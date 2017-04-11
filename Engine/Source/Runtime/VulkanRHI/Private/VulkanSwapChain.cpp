@@ -56,26 +56,62 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 		Formats.AddZeroed(NumFormats);
 		VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetPhysicalDeviceSurfaceFormatsKHR(Device.GetPhysicalHandle(), Surface, &NumFormats, Formats.GetData()));
 
-		if (Formats.Num() == 1 && Formats[0].format == VK_FORMAT_UNDEFINED && InOutPixelFormat == PF_Unknown)
+		if (InOutPixelFormat != PF_Unknown)
 		{
-			InOutPixelFormat = PF_B8G8R8A8;
-		}
-		else if (InOutPixelFormat == PF_Unknown)
-		{
-			// Reverse lookup
-			check(Formats[0].format != VK_FORMAT_UNDEFINED);
-			for (int32 Index = 0; Index < PF_MAX; ++Index)
+			bool bFound = false;
+			if (GPixelFormats[InOutPixelFormat].Supported)
 			{
-				if (Formats[0].format == GPixelFormats[Index].PlatformFormat)
+				VkFormat Requested = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
+				for (int32 Index = 0; Index < Formats.Num(); ++Index)
 				{
-					InOutPixelFormat = (EPixelFormat)Index;
-					CurrFormat = Formats[0];
+					if (Formats[Index].format == Requested)
+					{
+						CurrFormat = Formats[Index];
+						bFound = true;
+						break;
+					}
+				}
+
+				if (!bFound)
+				{
+					UE_LOG(LogVulkanRHI, Warning, TEXT("Requested PixelFormat %d not supported by this swapchain! Falling back to supported swapchain formats..."), (uint32)InOutPixelFormat);
+					InOutPixelFormat = PF_Unknown;
+				}
+			}
+			else
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Requested PixelFormat %d not supported by this Vulkan implementation!"), (uint32)InOutPixelFormat);
+				InOutPixelFormat = PF_Unknown;
+			}
+		}
+
+		if (InOutPixelFormat == PF_Unknown)
+		{
+			for (int32 Index = 0; Index < Formats.Num(); ++Index)
+			{
+				// Reverse lookup
+				check(Formats[Index].format != VK_FORMAT_UNDEFINED);
+				for (int32 PFIndex = 0; PFIndex < PF_MAX; ++PFIndex)
+				{
+					if (Formats[Index].format == GPixelFormats[PFIndex].PlatformFormat)
+					{
+						InOutPixelFormat = (EPixelFormat)PFIndex;
+						CurrFormat = Formats[Index];
+						UE_LOG(LogVulkanRHI, Display, TEXT("No swapchain format requested, picking up VulkanFormat %d"), (uint32)CurrFormat.format);
+						break;
+					}
+				}
+
+				if (InOutPixelFormat != PF_Unknown)
+				{
 					break;
 				}
 			}
 		}
-		else
+
+		if (InOutPixelFormat == PF_Unknown)
 		{
+			UE_LOG(LogVulkanRHI, Warning, TEXT("Can't find a proper pixel format for the swapchain, trying to pick up the first available"));
 			VkFormat PlatformFormat = UEToVkFormat(InOutPixelFormat, false);
 			bool bSupported = false;
 			for (int32 Index = 0; Index < Formats.Num(); ++Index)
@@ -89,6 +125,28 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 			}
 
 			check(bSupported);
+		}
+
+		if (InOutPixelFormat == PF_Unknown)
+		{
+			FString Msg;
+			for (int32 Index = 0; Index < Formats.Num(); ++Index)
+			{
+				if (Index == 0)
+				{
+					Msg += TEXT("(");
+				}
+				else
+				{
+					Msg += TEXT(", ");
+				}
+				Msg += FString::Printf(TEXT("%d"), (int32)Formats[Index].format);
+			}
+			if (Formats.Num())
+			{
+				Msg += TEXT(")");
+			}
+			UE_LOG(LogVulkanRHI, Fatal, TEXT("Unable to find a pixel format for the swapchain; swapchain returned %d Vulkan formats %s"), Formats.Num(), *Msg);
 		}
 	}
 

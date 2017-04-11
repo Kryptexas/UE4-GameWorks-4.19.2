@@ -360,7 +360,12 @@ static float GetRenderScaleLevelFromQualityLevel(int32 InQualityLevel, EQualityL
 	TArray<FString> ResolutionValueStrings;
 	GConfig->GetSingleLineArray(TEXT("ScalabilitySettings"), TEXT("PerfIndexValues_ResolutionQuality"), ResolutionValueStrings, GScalabilityIni);
 
-	check(ResolutionValueStrings.Num() > 0);
+	if (ResolutionValueStrings.Num() == 0)
+	{
+		UE_LOG(LogConsoleResponse, Display, TEXT("Failed to find resolution value strings in scalability ini. Falling back to default."));
+		return 100.0f;
+	}
+
 	//no negative levels.
 	InQualityLevel = FMath::Max(0, InQualityLevel);
 	if (Behavior == EQualityLevelBehavior::ERelativeToMax)

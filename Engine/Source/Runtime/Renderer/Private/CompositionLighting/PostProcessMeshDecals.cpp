@@ -520,7 +520,7 @@ private:
 };
 
 
-void RenderPrimitive(FRenderingCompositePassContext& Context, FDecalDrawingPolicyFactory::ContextType& DrawContext, const FDrawingPolicyRenderState& DrawRenderState, FPrimitiveSceneInfo* PrimitiveSceneInfo)
+static void RenderPrimitive(FRenderingCompositePassContext& Context, FDecalDrawingPolicyFactory::ContextType& DrawContext, const FDrawingPolicyRenderState& DrawRenderState, FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);

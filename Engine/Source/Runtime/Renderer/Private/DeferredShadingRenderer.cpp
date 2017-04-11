@@ -105,14 +105,6 @@ static FAutoConsoleVariableRef CVarEnableAsyncComputeTranslucencyLightingVolumeC
 	ECVF_RenderThreadSafe | ECVF_Scalability
 );
 
-static TAutoConsoleVariable<int32> CVarAlphaChannel(
-	TEXT("r.SceneAlpha"),
-	0,
-	TEXT("0 to disable scene alpha channel support.\n")
-	TEXT(" 0: disabled (default)\n")
-	TEXT(" 1: enabled"),
-	ECVF_ReadOnly);
-
 static TAutoConsoleVariable<int32> CVarBasePassWriteDepthEvenWithFullPrepass(
 	TEXT("r.BasePassWriteDepthEvenWithFullPrepass"),
 	0,
@@ -188,11 +180,6 @@ void GetEarlyZPassMode(ERHIFeatureLevel::Type FeatureLevel, EDepthDrawingMode& E
 		EarlyZPassMode = DDM_AllOpaque;
 		bEarlyZPassMovable = true;
 	}
-}
-
-bool SupportSceneAlpha()
-{
-	return CVarAlphaChannel.GetValueOnRenderThread() != 0;
 }
 
 const TCHAR* GetDepthPassReason(bool bDitheredLODTransitionsUseStencil, ERHIFeatureLevel::Type FeatureLevel)
@@ -382,11 +369,6 @@ void FDeferredShadingSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICm
 	}
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
-	if (GEnableGPUSkinCache)
-	{
-		GGPUSkinCache.TransitionToWriteable(RHICmdList);
-	}
 
 	FSceneRenderer::RenderFinish(RHICmdList);
 
@@ -731,11 +713,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		Scene->FXSystem->PreRender(RHICmdList, &Views[0].GlobalDistanceFieldInfo.ParameterData);
 	}
 
-	if (GEnableGPUSkinCache)
-	{
-		GGPUSkinCache.TransitionToReadable(RHICmdList);
-	}
-
 	bool bDidAfterTaskWork = false;
 	auto AfterTasksAreStarted = [&bDidAfterTaskWork, bDoInitViewAftersPrepass, this, &RHICmdList, &ILCTaskData, &SortEvents, bLateFXPrerender, bDoFXPrerender]()
 	{
@@ -773,6 +750,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	else
 	{
+		if (FGPUSkinCache* GPUSkinCache = Scene->GetGPUSkinCache())
+		{
+			GPUSkinCache->TransitionAllToReadable(RHICmdList);
+		}
+
 		// we didn't do the prepass, but we still want the HMD mask if there is one
 		AfterTasksAreStarted();
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
@@ -873,33 +855,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, SceneContext.GetSceneDepthTexture());
 		ServiceLocalQueue();
 	}
-
-	// Clear the GBuffer render targets
-	bool bIsGBufferCurrent = false;
-	if (bRequiresRHIClear)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_SetAndClearViewGBuffer);
-		// set GBuffer to be current, and clear it
-		SetAndClearViewGBuffer(RHICmdList, Views[0], BasePassDepthStencilAccess, !bDepthWasCleared);
-
-		// depth was cleared now no matter what
-		bDepthWasCleared = true;
-		bIsGBufferCurrent = true;
-		ServiceLocalQueue();
-	}
-
-	if (bIsWireframe && FSceneRenderer::ShouldCompositeEditorPrimitives(Views[0]))
-	{
-		// In Editor we want wire frame view modes to be MSAA for better quality. Resolve will be done with EditorPrimitives
-		SetRenderTarget(RHICmdList, SceneContext.GetEditorPrimitivesColor(RHICmdList), SceneContext.GetEditorPrimitivesDepth(RHICmdList), ESimpleRenderTargetMode::EClearColorAndDepth);
-	}
-	else if (!bIsGBufferCurrent)
-	{
-		// make sure the GBuffer is set, in case we didn't need to clear above
-		ERenderTargetLoadAction DepthLoadAction = bDepthWasCleared ? ERenderTargetLoadAction::ELoad : ERenderTargetLoadAction::EClear;
-		SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
-	}
-
+	
 	if (bRenderDeferredLighting)
 	{
 		//Single point to catch UE-31578, UE-32536 and UE-22073 and attempt to recover by reallocating Deferred Render Targets
@@ -913,11 +869,37 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			ensureMsgf(SceneContext.TranslucencyLightingVolumeDirectional[1], TEXT("%s is unallocated, Deferred Render Targets would be detected as: %s"), "TranslucencyLightingVolumeDirectional1", str);
 			SceneContext.AllocateDeferredShadingPathRenderTargets(RHICmdList);
 		}
-
+		
 		if (GbEnableAsyncComputeTranslucencyLightingVolumeClear && GSupportsEfficientAsyncCompute)
 		{
 			ClearTranslucentVolumeLightingAsyncCompute(RHICmdList);
 		}
+	}
+
+	// Clear the GBuffer render targets
+	bool bIsGBufferCurrent = false;
+	if (bRequiresRHIClear)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_SetAndClearViewGBuffer);
+		// set GBuffer to be current, and clear it
+		SetAndClearViewGBuffer(RHICmdList, Views[0], BasePassDepthStencilAccess, !bDepthWasCleared);
+		
+		// depth was cleared now no matter what
+		bDepthWasCleared = true;
+		bIsGBufferCurrent = true;
+		ServiceLocalQueue();
+	}
+	
+	if (bIsWireframe && FSceneRenderer::ShouldCompositeEditorPrimitives(Views[0]))
+	{
+		// In Editor we want wire frame view modes to be MSAA for better quality. Resolve will be done with EditorPrimitives
+		SetRenderTarget(RHICmdList, SceneContext.GetEditorPrimitivesColor(RHICmdList), SceneContext.GetEditorPrimitivesDepth(RHICmdList), ESimpleRenderTargetMode::EClearColorAndDepth);
+	}
+	else if (!bIsGBufferCurrent)
+	{
+		// make sure the GBuffer is set, in case we didn't need to clear above
+		ERenderTargetLoadAction DepthLoadAction = bDepthWasCleared ? ERenderTargetLoadAction::ELoad : ERenderTargetLoadAction::EClear;
+		SceneContext.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction, BasePassDepthStencilAccess, ViewFamily.EngineShowFlags.ShaderComplexity);
 	}
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("BasePass"));

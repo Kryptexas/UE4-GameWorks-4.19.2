@@ -664,11 +664,7 @@ public:
 	 *
 	 * @return true if allows, false if shouldn't allow thread heartbeat hang detection
 	 */
-	static bool AllowThreadHeartBeat()
-	{
-		// allow if not overridden
-		return true;
-	}
+	static bool AllowThreadHeartBeat();
 
 	/**
 	 * return the number of hardware CPU cores

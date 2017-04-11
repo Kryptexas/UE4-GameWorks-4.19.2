@@ -122,7 +122,7 @@ namespace UnrealBuildTool
 			Result += " -fexceptions";
 			Result += " -fasm-blocks";
 
-			string AddressSanitizer = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
+            string AddressSanitizer = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
 			string ThreadSanitizer = Environment.GetEnvironmentVariable("ENABLE_THREAD_SANITIZER");
 			if (AddressSanitizer != null && AddressSanitizer == "YES")
 			{
@@ -180,10 +180,18 @@ namespace UnrealBuildTool
 			Result += " -mmacosx-version-min=" + (CompileEnvironment.bEnableOSX109Support ? "10.9" : Settings.MacOSVersion);
 
 			// Optimize non- debug builds.
-            // Don't optimise if using AddressSanitizer or you'll get false positive errors due to erroneous optimisation of necessary AddressSanitizer instrumentation.
-			if (CompileEnvironment.bOptimizeCode && (AddressSanitizer == null || AddressSanitizer != "YES") && (ThreadSanitizer == null || ThreadSanitizer != "YES"))
+			if (CompileEnvironment.bOptimizeCode)
 			{
-				if (CompileEnvironment.bOptimizeForSize)
+				// Don't over optimise if using AddressSanitizer or you'll get false positive errors due to erroneous optimisation of necessary AddressSanitizer instrumentation.
+				if (AddressSanitizer != null && AddressSanitizer == "YES")
+				{
+					Result += " -O1 -g -fno-optimize-sibling-calls -fno-omit-frame-pointer";
+				}
+				else if (ThreadSanitizer != null && ThreadSanitizer == "YES")
+				{
+					Result += " -O1 -g";
+				}
+				else if (CompileEnvironment.bOptimizeForSize)
 				{
 					Result += " -Oz";
 				}
@@ -303,15 +311,15 @@ namespace UnrealBuildTool
 			Result += " -mmacosx-version-min=" + Settings.MacOSVersion;
 			Result += " -dead_strip";
 
-			string AddressSanitizer = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
+            string AddressSanitizer = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
 			string ThreadSanitizer = Environment.GetEnvironmentVariable("ENABLE_THREAD_SANITIZER");
 			if (AddressSanitizer != null && AddressSanitizer == "YES")
 			{
-				Result += " -fsanitize=address";
+				Result += " -g -fsanitize=address";
 			}
 			else if (ThreadSanitizer != null && ThreadSanitizer == "YES")
 			{
-				Result += " -fsanitize=thread";
+				Result += " -g -fsanitize=thread";
 			}
 
 			if (LinkEnvironment.bIsBuildingDLL)

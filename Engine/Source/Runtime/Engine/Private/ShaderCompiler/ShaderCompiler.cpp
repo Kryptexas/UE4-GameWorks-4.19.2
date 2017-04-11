@@ -164,14 +164,14 @@ static TAutoConsoleVariable<int32> CVarShaderFastMath(
 
 static TAutoConsoleVariable<int32> CVarShaderZeroInitialise(
 	TEXT("r.Shaders.ZeroInitialise"),
-	0,
-	TEXT("Whether to explicitly zero initialise local variables of primitive type in shaders. Defaults to 0 (disabled - maintains previous behaviour). Not all shader languages can omit zero initialisation."),
+	1,
+	TEXT("Whether to enforce zero initialise local variables of primitive type in shaders. Defaults to 1 (enabled). Not all shader languages can omit zero initialisation."),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarShaderBoundsChecking(
 	TEXT("r.Shaders.BoundsChecking"),
-	0,
-	TEXT("Whether to explicitly enforce bounds-checking & flush-to-zero/ignore for buffer reads & writes in shaders. Defaults to 0 (disabled - maintains previous behaviour). Not all shader languages can omit bounds checking."),
+	1,
+	TEXT("Whether to enforce bounds-checking & flush-to-zero/ignore for buffer reads & writes in shaders. Defaults to 1 (enabled). Not all shader languages can omit bounds checking."),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarD3DRemoveUnusedInterpolators(
@@ -2724,6 +2724,7 @@ void GlobalBeginCompileShader(
 		}
 	} 
 	
+	if (IsMetalPlatform((EShaderPlatform)Target.Platform))
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.ZeroInitialise"));
 		
@@ -2733,12 +2734,21 @@ void GlobalBeginCompileShader(
 		}
 	}
 	
+	if (IsMetalPlatform((EShaderPlatform)Target.Platform))
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.BoundsChecking"));
 		
 		if (CVar->GetInt() != 0)
 		{
 			Input.Environment.CompilerFlags.Add(CFLAG_BoundsChecking);
+		}
+		
+		// Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
+		bool bArchive = false;
+		GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bShareMaterialShaderCode"), bArchive, GGameIni);
+		if (bArchive)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_Archive);
 		}
 	}
 
@@ -2821,8 +2831,8 @@ void GlobalBeginCompileShader(
 	}
 
 	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SceneAlpha"));
-		Input.Environment.SetDefine(TEXT("SCENE_ALPHA"), CVar ? (CVar->GetInt() != 0) : 0);
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessing.PropagateAlpha"));
+		Input.Environment.SetDefine(TEXT("POST_PROCESS_ALPHA"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
 	{
@@ -2956,7 +2966,7 @@ public:
 		FlushRenderingCommands();
 
 		// reload the global shaders
-		CompileGlobalShaderMaps(true);
+		CompileGlobalShaderMap(true);
 
 		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
 		for(TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList());It;It.Next())
@@ -4022,7 +4032,7 @@ void SaveGlobalShaderMapToDerivedDataCache(EShaderPlatform Platform)
 }
 
 /** Saves the global shader map as a file for the target platform. */
-FString SaveGlobalShaderFile(EShaderPlatform Platform, FString SavePath)
+FString SaveGlobalShaderFile(EShaderPlatform Platform, FString SavePath, class ITargetPlatform* TargetPlatform)
 {
 	TShaderMap<FGlobalShaderType>* GlobalShaderMap = GetGlobalShaderMap(Platform);
 
@@ -4033,7 +4043,11 @@ FString SaveGlobalShaderFile(EShaderPlatform Platform, FString SavePath)
 	}
 
 	TArray<uint8> GlobalShaderData;
-	FMemoryWriter MemoryWriter(GlobalShaderData);
+	FMemoryWriter MemoryWriter(GlobalShaderData, true);
+	if (TargetPlatform)
+	{
+		MemoryWriter.SetCookingTarget(TargetPlatform);
+	}
 	SerializeGlobalShaders(MemoryWriter, GlobalShaderMap);
 
 	// make the final name
@@ -4231,29 +4245,15 @@ void CompileGlobalShaderMap(EShaderPlatform Platform, bool bRefreshShaderMap)
 	}
 }
 
-void CompileGlobalShaderMaps(bool bRefreshShaderMap)
+void CompileGlobalShaderMap(ERHIFeatureLevel::Type InFeatureLevel, bool bRefreshShaderMap)
 {
-	if (!GIsEditor)
-	{
-		EShaderPlatform Platform = GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel];
-		CompileGlobalShaderMap(Platform, bRefreshShaderMap);
-	}
-	else
-	{
-		bool AlreadyCompiledPlatforms[SP_NumPlatforms] = {};
-		for (int FeatureLevel = 0; FeatureLevel < ERHIFeatureLevel::Num; FeatureLevel++)
-		{
-			EShaderPlatform Platform = GShaderPlatformForFeatureLevel[FeatureLevel];
-			if (Platform >= 0 && Platform < SP_NumPlatforms)
-			{
-				if (!AlreadyCompiledPlatforms[Platform])
-				{
-					CompileGlobalShaderMap(Platform, bRefreshShaderMap);
-					AlreadyCompiledPlatforms[Platform] = true;
-				}
-			}
-		}
-	}
+	EShaderPlatform Platform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+	CompileGlobalShaderMap(Platform, bRefreshShaderMap);
+}
+
+void CompileGlobalShaderMap(bool bRefreshShaderMap)
+{
+	CompileGlobalShaderMap(GMaxRHIFeatureLevel, bRefreshShaderMap);
 }
 
 bool RecompileChangedShadersForPlatform(const FString& PlatformName)
@@ -4402,7 +4402,7 @@ void RecompileShadersForRemote(
 				}
 
 				// save it out so the client can get it (and it's up to date next time)
-				FString GlobalShaderFilename = SaveGlobalShaderFile(ShaderPlatform, OutputDirectory);
+				FString GlobalShaderFilename = SaveGlobalShaderFile(ShaderPlatform, OutputDirectory, TargetPlatform);
 
 				// add this to the list of files to tell the other end about
 				if (ModifiedFiles)

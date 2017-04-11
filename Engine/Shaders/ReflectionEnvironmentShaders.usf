@@ -195,7 +195,7 @@ void DownsamplePS(
 		float2( 0,  1),
 	};
 
-	OutColor = SourceTexture.Sample( SourceTextureSampler, CubeCoordinates );
+	OutColor = SourceTexture.SampleLevel( SourceTextureSampler, CubeCoordinates, 0 );
 
 	UNROLL
 	for( uint i = 0; i < 8; i++ )
@@ -205,7 +205,7 @@ void DownsamplePS(
 		float3 SampleDir = CubeCoordinates;
 		SampleDir += TangentX * ( Offsets[i].x * SampleOffset );
 		SampleDir += TangentY * ( Offsets[i].y * SampleOffset );
-		OutColor += SourceTexture.Sample( SourceTextureSampler, SampleDir ) * Weight;
+		OutColor += SourceTexture.SampleLevel( SourceTextureSampler, SampleDir, 0 ) * Weight;
 	}
 
 	OutColor *= rcp( 1.0 + 1.0 + 2.0 );

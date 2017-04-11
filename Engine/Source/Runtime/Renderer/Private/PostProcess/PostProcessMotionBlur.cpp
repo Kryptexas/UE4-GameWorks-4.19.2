@@ -35,6 +35,8 @@ static TAutoConsoleVariable<float> CVarMotionBlur2ndScale(
 	TEXT(""),
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 
+const int32 GMotionBlurComputeTileSizeX = 8;
+const int32 GMotionBlurComputeTileSizeY = 8;
 
 FIntPoint GetNumTiles16x16( FIntPoint PixelExtent )
 {
@@ -621,6 +623,136 @@ public:
 VARIATION1(1)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)
 #undef VARIATION1
 
+/**
+ * @param Quality 0: visualize, 1:low, 2:medium, 3:high, 4:very high
+ */
+template< uint32 Quality >
+class FPostProcessMotionBlurCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPostProcessMotionBlurCS, Global);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		// CS Params
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GMotionBlurComputeTileSizeX);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GMotionBlurComputeTileSizeY);
+
+		// PS params
+		OutEnvironment.SetDefine(TEXT("MOTION_BLUR_QUALITY"), Quality);
+	}
+
+	/** Default constructor. */
+	FPostProcessMotionBlurCS() {}
+
+public:
+	// CS params
+	FRWShaderParameter OutComputeTex;
+	FShaderParameter MotionBlurComputeParams;
+
+	// PS params
+	FPostProcessPassParameters PostprocessParameter;
+	FDeferredPixelShaderParameters DeferredParameters;
+	FShaderParameter MotionBlurParameters;
+
+	/** Initialization constructor. */
+	FPostProcessMotionBlurCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		// CS params
+		OutComputeTex.Bind(Initializer.ParameterMap, TEXT("OutComputeTex"));
+		MotionBlurComputeParams.Bind(Initializer.ParameterMap, TEXT("MotionBlurComputeParams"));
+
+		// PS params
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		DeferredParameters.Bind(Initializer.ParameterMap);
+		MotionBlurParameters.Bind(Initializer.ParameterMap, TEXT("MotionBlurParameters"));
+	}
+
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const FIntPoint& DestSize, FUnorderedAccessViewRHIParamRef DestUAV, float Scale)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+
+		// CS params
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		OutComputeTex.SetTexture(RHICmdList, ShaderRHI, nullptr, DestUAV);
+		
+		FVector4 MotionBlurComputeValues(0, 0, 1.f / (float)DestSize.X, 1.f / (float)DestSize.Y);
+		SetShaderValue(RHICmdList, ShaderRHI, MotionBlurComputeParams, MotionBlurComputeValues);
+
+		// PS params
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+
+		{
+			bool bFiltered = false;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			bFiltered = CVarMotionBlurFiltering.GetValueOnRenderThread() != 0;
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+			if(bFiltered)
+			{
+				FSamplerStateRHIParamRef Filters[] =
+				{
+					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+					TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+					TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+					TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+				};
+
+				PostprocessParameter.SetCS( ShaderRHI, Context, RHICmdList, 0, eFC_0000, Filters );
+			}
+			else
+			{
+				PostprocessParameter.SetCS(ShaderRHI, Context, RHICmdList, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+			}
+		}
+
+		SetShaderValue(RHICmdList, ShaderRHI, MotionBlurParameters, GetMotionBlurParameters( Context.View, Scale ) );
+	}
+
+	template <typename TRHICmdList>
+	void UnsetParameters(TRHICmdList& RHICmdList)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		OutComputeTex.UnsetUAV(RHICmdList, ShaderRHI);
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		// CS params
+		Ar << OutComputeTex << MotionBlurComputeParams;
+		// PS params
+		Ar << PostprocessParameter << DeferredParameters << MotionBlurParameters;
+		return bShaderHasOutdatedParameters;
+	}
+
+	static const TCHAR* GetSourceFilename()
+	{
+		return TEXT("PostProcessMotionBlur");
+	}
+
+	static const TCHAR* GetFunctionName()
+	{
+		return TEXT("MainCS");
+	}
+};
+
+// #define avoids a lot of code duplication
+#define VARIATION1(A) typedef FPostProcessMotionBlurCS<A> FPostProcessMotionBlurCS##A; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessMotionBlurCS##A, SF_Compute);
+
+VARIATION1(1)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)
+#undef VARIATION1
+
 
 
 // @param Quality 0: visualize, 1:low, 2:medium, 3:high, 4:very high
@@ -650,6 +782,7 @@ static void SetMotionBlurShaderNewTempl( const FRenderingCompositePassContext& C
 void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Context)
 {
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
+	AsyncEndFence = FComputeFenceRHIRef();
 
 	if(!InputDesc)
 	{
@@ -670,21 +803,6 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 	FIntRect SrcRect = View.ViewRect / ScaleFactor;
 	FIntRect DestRect = SrcRect;
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, MotionBlur, TEXT("MotionBlur %dx%d"), SrcRect.Width(), SrcRect.Height());
-
-	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
-
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-
-	// Is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
-
-	Context.SetViewportAndCallRHI(SrcRect);
-	
-	// is optimized away if possible (RT size=view size, )
-	//Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
-
 	float BlurScaleLUT[] =
 	{
 		1.0f - 0.5f / 4.0f,
@@ -697,50 +815,141 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 		1.0f / 16.0f * CVarMotionBlur2ndScale.GetValueOnRenderThread(),
 	};
 	float Scale = Pass >= 0 ? BlurScaleLUT[ (Pass * 4) + (Quality - 1) ] : 1.0f;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, MotionBlur, TEXT("MotionBlur%s %dx%d"),
+		bIsComputePass?TEXT("Compute"):TEXT(""), SrcRect.Width(), SrcRect.Height());
+
+	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+
+	if (bIsComputePass)
+	{
+		DestRect = {View.ViewRect.Min, View.ViewRect.Min + PassOutputs[0].RenderTargetDesc.Extent};
 	
-	if(Quality == 1)
-	{
-		SetMotionBlurShaderNewTempl<1>( Context, Scale );
-	}
-	else if(Quality == 2)
-	{
-		SetMotionBlurShaderNewTempl<2>( Context, Scale );
-	}
-	else if(Quality == 3 || Pass > 0 )
-	{
-		SetMotionBlurShaderNewTempl<3>( Context, Scale );
+		// Common setup
+		SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
+		Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f);
+		
+		static FName AsyncEndFenceName(TEXT("AsyncMotionBlurEndFence"));
+		AsyncEndFence = Context.RHICmdList.CreateComputeFence(AsyncEndFenceName);
+
+		if (IsAsyncComputePass())
+		{
+			// Async path
+			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
+			{
+ 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncMotionBlur);
+				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
+				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+				DispatchCS(RHICmdListComputeImmediate, Context, DestRect, DestRenderTarget.UAV, Scale);
+				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
+			}
+			FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);
+		}
+		else
+		{
+			// Direct path
+			WaitForInputPassComputeFences(Context.RHICmdList);
+			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+			DispatchCS(Context.RHICmdList, Context, DestRect, DestRenderTarget.UAV, Scale);			
+			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
+		}
 	}
 	else
 	{
-		check(Quality == 4);
-		SetMotionBlurShaderNewTempl<4>( Context, Scale );
+		WaitForInputPassComputeFences(Context.RHICmdList);
+
+		// Set the view family's render target/viewport.
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+
+		// Is optimized away if possible (RT size=view size, )
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+
+		Context.SetViewportAndCallRHI(SrcRect);
+	
+		// is optimized away if possible (RT size=view size, )
+		//Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
+	
+		if(Quality == 1)
+		{
+			SetMotionBlurShaderNewTempl<1>( Context, Scale );
+		}
+		else if(Quality == 2)
+		{
+			SetMotionBlurShaderNewTempl<2>( Context, Scale );
+		}
+		else if(Quality == 3 || Pass > 0 )
+		{
+			SetMotionBlurShaderNewTempl<3>( Context, Scale );
+		}
+		else
+		{
+			check(Quality == 4);
+			SetMotionBlurShaderNewTempl<4>( Context, Scale );
+		}
+
+		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	
+		DrawPostProcessPass(
+			Context.RHICmdList,
+			0, 0,
+			SrcRect.Width(), SrcRect.Height(),
+			SrcRect.Min.X, SrcRect.Min.Y,
+			SrcRect.Width(), SrcRect.Height(),
+			SrcRect.Size(),
+			SrcSize,
+			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
+			EDRF_UseTriangleOptimization);
+
+		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	}
+}
+
+template <typename TRHICmdList>
+void FRCPassPostProcessMotionBlur::DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, float Scale)
+{
+	auto ShaderMap = Context.GetShaderMap();
+
+	FIntPoint DestSize(DestRect.Width(), DestRect.Height());
+	uint32 GroupSizeX = FMath::DivideAndRoundUp(DestSize.X, GMotionBlurComputeTileSizeX);
+	uint32 GroupSizeY = FMath::DivideAndRoundUp(DestSize.Y, GMotionBlurComputeTileSizeY);
+
+#define DISPATCH_CASE(A)																\
+	case A:																				\
+	{																					\
+		TShaderMapRef<FPostProcessMotionBlurCS<A>> ComputeShader(ShaderMap);			\
+		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());					\
+		ComputeShader->SetParameters(RHICmdList, Context, DestSize, DestUAV, Scale);	\
+		DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);	\
+		ComputeShader->UnsetParameters(RHICmdList);										\
+	}																					\
+	break;
+
+	const uint32 CSQuality = (Pass > 0) ? 3 : Quality;
+
+	switch(CSQuality)
+	{
+	DISPATCH_CASE(1)
+	DISPATCH_CASE(2)
+	DISPATCH_CASE(3)
+	DISPATCH_CASE(4)
+	default:
+		check(0);
 	}
 
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-
-	
-	DrawPostProcessPass(
-		Context.RHICmdList,
-		0, 0,
-		SrcRect.Width(), SrcRect.Height(),
-		SrcRect.Min.X, SrcRect.Min.Y,
-		SrcRect.Width(), SrcRect.Height(),
-		SrcRect.Size(),
-		SrcSize,
-		*VertexShader,
-		View.StereoPass,
-		Context.HasHmdMesh(),
-		EDRF_UseTriangleOptimization);
-
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+#undef DISPATCH_CASE
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessMotionBlur::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
-
 	Ret.Reset();
-	if (!SupportSceneAlpha())
+
+	Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
+	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
+
+	if (!FPostProcessing::HasAlphaChannelSupport())
 	{
 		Ret.Format = PF_FloatRGB;
 	}

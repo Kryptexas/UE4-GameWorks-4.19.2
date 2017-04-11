@@ -227,7 +227,7 @@ const TArray<FNiagaraVariable>& NiagaraEffectRendererRibbon::GetRequiredAttribut
 
 bool NiagaraEffectRendererRibbon::SetMaterialUsage()
 {
-	return Material && Material->CheckMaterialUsage_Concurrent(MATUSAGE_BeamTrails);
+	return Material && Material->CheckMaterialUsage_Concurrent(MATUSAGE_NiagaraRibbons);
 }
 
 FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const FNiagaraSceneProxy* Proxy, const FNiagaraDataSet &Data)

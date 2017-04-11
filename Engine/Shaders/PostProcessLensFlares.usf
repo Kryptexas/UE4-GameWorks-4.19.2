@@ -12,11 +12,14 @@ float4 FlareColor;
 // UV is in 0..1 range but the viewport might not cover the full screen
 float2 TexScale;
 
-
 // pixel shader, can be optimized by using additive blending
 void CopyPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
+#ifdef CLEAR_REGION
+	OutColor = float4(0.f, 0.f, 0.f, 0.f);
+#else	
 	OutColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, InUV.xy);
+#endif 
 }
 
 // pixel shader entry point

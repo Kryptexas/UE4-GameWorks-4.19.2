@@ -2139,6 +2139,7 @@ protected:
 			{MEVP_ViewSize, MCT_Float2, TEXT("View.ViewSizeAndInvSize.xy"), TEXT("View.ViewSizeAndInvSize.zw")},
 			{MEVP_WorldSpaceViewPosition, MCT_Float3, TEXT("ResolvedView.<PREV>WorldViewOrigin"), nullptr},
 			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("ResolvedView.<PREV>WorldCameraOrigin"), nullptr},
+			{MEVP_ViewportOffset, MCT_Float2, TEXT("View.ViewRectMin.xy"), nullptr},
 		};
 		static_assert((sizeof(ViewPropertyMetaArray) / sizeof(ViewPropertyMetaArray[0])) == MEVP_MAX, "incoherency between EMaterialExposedViewProperty and ViewPropertyMetaArray");
 
@@ -2638,11 +2639,9 @@ protected:
 		switch (Mapping)
 		{
 		case MESP_SceneTextureUV:
-			return AddCodeChunk(MCT_Float2, TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
+			return AddCodeChunk(MCT_Float2, TEXT("GetSceneTextureUV(Parameters)"));
 		case MESP_ViewportUV:
-			// Works for pixel and vertex shader.  The following commented line would optimize for pixel shader but doesnt work for vertex shader
-			return AddCodeChunk(MCT_Float2, TEXT("BufferUVToViewportUV(ScreenAlignedPosition(GetScreenPosition(Parameters)))"));
-			//return AddCodeChunk(MCT_Float2, TEXT("SvPositionToViewportUV(Parameters.SvPosition)"));
+			return AddCodeChunk(MCT_Float2, TEXT("GetViewportUV(Parameters)"));
 		default:
 			return Errorf(TEXT("Invalid UV mapping!"));
 		}		
@@ -3985,8 +3984,8 @@ protected:
 			return INDEX_NONE;
 		}
 
-		// use ClampedPow so artist are prevented to cause NAN creeping into the math
-		return AddCodeChunk(GetParameterType(Base),TEXT("ClampedPow(%s,%s)"),*GetParameterCode(Base),*CoerceParameter(Exponent,MCT_Float));
+		// Clamp Pow input to >= 0 to help avoid common NaN cases
+		return AddCodeChunk(GetParameterType(Base),TEXT("PositiveClampedPow(%s,%s)"),*GetParameterCode(Base),*CoerceParameter(Exponent,MCT_Float));
 	}
 	
 	virtual int32 Logarithm2(int32 X) override
@@ -5070,6 +5069,7 @@ protected:
 		FString OutputTypeString;
 		switch (OutputType)
 		{
+			case MCT_Float:
 			case MCT_Float1:
 				OutputTypeString = TEXT("MaterialFloat");
 				break;

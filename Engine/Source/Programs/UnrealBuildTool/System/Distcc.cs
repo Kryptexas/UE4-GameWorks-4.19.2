@@ -305,6 +305,14 @@ namespace UnrealBuildTool
 										{
 											string TypeCommand = String.IsNullOrEmpty(DMUCSDistProp) ? "" : (" --type " + DMUCSDistProp);
 											string NewCommandArguments = "--server " + DMUCSCoordinator + TypeCommand + " --wait -1 \"" + DistccExecutable + "\" " + Action.CommandPath + " " + Action.CommandArguments;
+											
+											if (Action.ActionType == ActionType.Compile)
+											{
+												// Distcc separates preprocessing and compilation which means we must silence these warnings
+												NewCommandArguments += " -Wno-constant-logical-operand";
+												NewCommandArguments += " -Wno-parentheses-equality";
+											}
+											
 											Action.CommandPath = GetHostExecutable;
 											Action.CommandArguments = NewCommandArguments;
 										}

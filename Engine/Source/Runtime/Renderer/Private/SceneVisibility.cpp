@@ -164,6 +164,14 @@ static TAutoConsoleVariable<int32> CVarParallelInitViews(
 	ECVF_RenderThreadSafe
 	);
 
+float GLightMaxDrawDistanceScale = 1.0f;
+static FAutoConsoleVariableRef CVarLightMaxDrawDistanceScale(
+	TEXT("r.LightMaxDrawDistanceScale"),
+	GLightMaxDrawDistanceScale,
+	TEXT("Scale applied to the MaxDrawDistance of lights.  Useful for fading out local lights more aggressively on some platforms."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+);
+
 /*------------------------------------------------------------------------------
 	Visibility determination.
 ------------------------------------------------------------------------------*/
@@ -2703,7 +2711,7 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 					{
 						FSphere Bounds = Proxy->GetBoundingSphere();
 						float DistanceSquared = (Bounds.Center - View.ViewMatrices.GetViewOrigin()).SizeSquared();
-						float MaxDistSquared = Proxy->GetMaxDrawDistance() * Proxy->GetMaxDrawDistance();
+						float MaxDistSquared = Proxy->GetMaxDrawDistance() * Proxy->GetMaxDrawDistance() * GLightMaxDrawDistanceScale * GLightMaxDrawDistanceScale;
 						const bool bDrawLight = (FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared < 1.0f)
 													&& (MaxDistSquared == 0 || DistanceSquared < MaxDistSquared);
 							

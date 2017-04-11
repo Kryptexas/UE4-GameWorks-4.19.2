@@ -53,6 +53,8 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 
 	Context.SetViewportAndCallRHI(ViewRect);
 
+	WaitForInputPassComputeFences(Context.RHICmdList);
+
 	if (View.Family->EngineShowFlags.Selection)
 	{
 		FHitProxyDrawingPolicyFactory::ContextType FactoryContext;
@@ -405,7 +407,7 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 FPooledRenderTargetDesc FRCPassPostProcessSelectionOutline::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
-
+	Ret.Reset();
 	Ret.DebugName = TEXT("SelectionComposited");
 
 	return Ret;

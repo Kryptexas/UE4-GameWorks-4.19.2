@@ -10,7 +10,7 @@
 
 class FMetalContext;
 
-/** The interface RHI command context. Sometimes the RHI handles these. On platforms that can processes command lists in parallel, it is a separate object. */
+/** The interface RHI command context. */
 class FMetalRHICommandContext : public IRHICommandContext
 {
 public:
@@ -22,15 +22,6 @@ public:
 	
 	/** Get the profiler pointer */
 	FORCEINLINE struct FMetalGPUProfiler* GetProfiler() const { return Profiler; }
-	
-	template<typename TRHIType>
-	static FORCEINLINE typename TMetalResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)
-	{
-		return static_cast<typename TMetalResourceTraits<TRHIType>::TConcreteType*>(Resource);
-	}
-	
-	/////// RHI Context Methods
-	
 	
 	/**
 	 *Sets the current compute shader.  Mostly for compliance with platforms
@@ -289,19 +280,6 @@ public:
 	 */
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override;
 	
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color) final override
-	{
-		RHIClear(true, Color, false, 0, false, 0);
-	}
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil) final override
-	{
-		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil);
-	}
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray) final override
-	{
-		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0);
-	}
-
 	/**
 	 * Enabled/Disables Depth Bounds Testing with the given min/max depth.
 	 * @param bEnable	Enable(non-zero)/disable(zero) the depth bounds test
@@ -342,6 +320,9 @@ protected:
 	/** Context implementation details. */
 	FMetalContext* Context;
 	
+	/** Occlusion query batch fence */
+	TSharedPtr<FMetalCommandBufferFence, ESPMode::ThreadSafe> CommandBufferFence;
+	
 	/** Profiling implementation details. */
 	struct FMetalGPUProfiler* Profiler;
 	
@@ -356,7 +337,6 @@ protected:
 	uint32 PendingNumPrimitives;
 
 private:
-	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 };
 
@@ -369,4 +349,21 @@ public:
 	virtual void RHISetAsyncComputeBudget(EAsyncComputeBudget Budget) final override;
 	virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) final override;
 	virtual void RHISubmitCommandsHint() final override;
+};
+
+class FMetalRHIImmediateCommandContext : public FMetalRHICommandContext
+{
+public:
+	FMetalRHIImmediateCommandContext(struct FMetalGPUProfiler* InProfiler, FMetalContext* WrapContext);
+
+	// FRHICommandContext API accessible only on the immediate device context
+	virtual void RHIBeginDrawingViewport(FViewportRHIParamRef Viewport, FTextureRHIParamRef RenderTargetRHI) final override;
+	virtual void RHIEndDrawingViewport(FViewportRHIParamRef Viewport, bool bPresent, bool bLockToVsync) final override;
+	virtual void RHIBeginFrame() final override;
+	virtual void RHIEndFrame() final override;
+	virtual void RHIBeginScene() final override;
+	virtual void RHIEndScene() final override;
+	
+protected:
+	friend class FMetalDynamicRHI;
 };

@@ -560,6 +560,27 @@ void FD3D11DynamicRHI::RHIEndScene()
 
 void FD3DGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
+#if NV_AFTERMATH
+	if(GDX11NVAfterMathEnabled)
+	{
+		uint32 CRC = FCrc::StrCrc32<TCHAR>(Name);	
+		
+		if (CachedStrings.Num() > 10000)
+		{
+			CachedStrings.Empty(10000);
+		}
+
+		if (CachedStrings.Find(CRC) == nullptr)
+		{
+			CachedStrings.Emplace(CRC, FString(Name));
+		}
+		PushPopStack.Push(CRC);
+
+		auto* DeviceContext = D3D11RHI->GetDeviceContext();
+		GFSDK_Aftermath_DX11_SetEventMarker(DeviceContext, &PushPopStack[0], PushPopStack.Num() * sizeof(uint32));
+	}
+#endif
+
 #if WITH_DX_PERF
 	D3DPERF_BeginEvent(Color.DWColor(),Name);
 #endif
@@ -569,11 +590,54 @@ void FD3DGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 
 void FD3DGPUProfiler::PopEvent()
 {
+#if NV_AFTERMATH
+	if (GDX11NVAfterMathEnabled)
+	{
+		PushPopStack.Pop(false);
+	}
+#endif
+
 #if WITH_DX_PERF
 	D3DPERF_EndEvent();
 #endif
 
 	FGPUProfiler::PopEvent();
+}
+
+bool FD3DGPUProfiler::CheckGpuHeartbeat() const
+{
+#if NV_AFTERMATH
+	if (GDX11NVAfterMathEnabled)
+	{
+		auto* DeviceContext = D3D11RHI->GetDeviceContext();
+		GFSDK_Aftermath_Status Status;
+		GFSDK_Aftermath_ContextData ContextDataOut;
+		auto Result = GFSDK_Aftermath_DX11_GetData(1, &DeviceContext, &ContextDataOut, &Status);
+		if (Result == GFSDK_Aftermath_Result_Success)
+		{
+			if (Status != GFSDK_Aftermath_Status_Active)
+			{
+				const TCHAR* AftermathReason[] = { TEXT("Active"), TEXT("Timeout"), TEXT("OutOfMemory"), TEXT("PageFault"), TEXT("Unknown") };
+				check(Status < 5);
+				UE_LOG(LogRHI, Error, TEXT("[Aftermath] Status: %s"), AftermathReason[Status]);
+				UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
+				uint32 NumCRCs = ContextDataOut.markerSize / sizeof(uint32);
+				uint32* Data = (uint32*)ContextDataOut.markerData;
+				for (uint32 i = 0; i < NumCRCs; i++)
+				{
+					const FString* Frame = CachedStrings.Find(Data[i]);
+					if (Frame != nullptr)
+					{
+						UE_LOG(LogRHI, Error, TEXT("[Aftermath] %i: %s"), i, *(*Frame));
+					}
+				}
+				UE_LOG(LogRHI, Error, TEXT("[Aftermath] GPU Stack Dump"));
+				return false;
+			}
+		}
+	}
+#endif
+	return true;
 }
 
 /** Start this frame of per tracking */

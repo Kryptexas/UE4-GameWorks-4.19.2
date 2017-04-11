@@ -263,9 +263,6 @@ public:
 			OutFormats.AddUnique(FName(*ShaderFormat));
 		}
 	}
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;

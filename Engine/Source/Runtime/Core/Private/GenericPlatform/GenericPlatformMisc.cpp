@@ -926,6 +926,16 @@ void FGenericPlatformMisc::SetOverrideGameDir(const FString& InOverrideDir)
 	OverrideGameDir = InOverrideDir;
 }
 
+bool FGenericPlatformMisc::AllowThreadHeartBeat()
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("noheartbeatthread")))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 int32 FGenericPlatformMisc::NumberOfCoresIncludingHyperthreads()
 {
 	return FPlatformMisc::NumberOfCores();

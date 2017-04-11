@@ -95,7 +95,8 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bUseEditorCompositing(InComponent->bUseEditorCompositing)
 ,	bReceiveCombinedCSMAndStaticShadowsFromStationaryLights(InComponent->bReceiveCombinedCSMAndStaticShadowsFromStationaryLights)
 ,	bRenderCustomDepth(InComponent->bRenderCustomDepth)
-,	CustomDepthStencilValue((uint8)InComponent->CustomDepthStencilValue) 
+,	CustomDepthStencilValue(InComponent->CustomDepthStencilValue)
+,	CustomDepthStencilWriteMask(FRendererStencilMaskEvaluation::ToStencilMask(InComponent->CustomDepthStencilWriteMask))
 ,	LightingChannelMask(GetLightingChannelMaskForStruct(InComponent->LightingChannels))
 ,	LpvBiasMultiplier(InComponent->LpvBiasMultiplier)
 ,	IndirectLightingCacheQuality(InComponent->IndirectLightingCacheQuality)
@@ -142,7 +143,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 		// Otherwise they would light differently in editor and in game, even after a lighting rebuild
 		bNeedsUnbuiltPreviewLighting = false;
 	}
-
+	
 	if(InComponent->GetOwner())
 	{
 		DrawInGame &= !(InComponent->GetOwner()->bHidden);

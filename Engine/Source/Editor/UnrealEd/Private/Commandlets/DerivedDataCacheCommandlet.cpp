@@ -167,7 +167,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			{
 				const EShaderPlatform TargetPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
 				// Kick off global shader compiles for each target platform
-				GetGlobalShaderMap(TargetPlatform);
+				CompileGlobalShaderMap(TargetPlatform);
 			}
 		}
 

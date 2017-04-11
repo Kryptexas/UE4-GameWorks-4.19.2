@@ -61,6 +61,16 @@ FLinearColor ULightComponentBase::GetLightColor() const
 	return FLinearColor(LightColor);
 }
 
+void ULightComponentBase::SetCastVolumetricShadow(bool bNewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& bCastVolumetricShadow != bNewValue)
+	{
+		bCastVolumetricShadow = bNewValue;
+		MarkRenderStateDirty();
+	}
+}
+
 void ULightComponentBase::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -198,6 +208,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bCastDynamicShadow(InLightComponent->CastShadows && InLightComponent->CastDynamicShadows)
 	, bCastStaticShadow(InLightComponent->CastShadows && InLightComponent->CastStaticShadows)
 	, bCastTranslucentShadows(InLightComponent->CastTranslucentShadows)
+	, bCastVolumetricShadow(InLightComponent->bCastVolumetricShadow)
 	, bCastShadowsFromCinematicObjectsOnly(InLightComponent->bCastShadowsFromCinematicObjectsOnly)
 	, bAffectTranslucentLighting(InLightComponent->bAffectTranslucentLighting)
 	, bUsedAsAtmosphereSunLight(InLightComponent->IsUsedAsAtmosphereSunLight())

@@ -58,9 +58,10 @@ public:
 
 	FIntPoint TileDimensions;
 	int32 MaxSceneObjects;
+	bool bAllow16BitIndices;
 
-	FTileIntersectionResources() :
-		MaxSceneObjects(0)
+	FTileIntersectionResources(bool bInAllow16BitIndices) :
+		MaxSceneObjects(0), bAllow16BitIndices(bInAllow16BitIndices)
 	{}
 
 	bool HasAllocatedEnoughFor(FIntPoint TestTileDimensions, int32 TestMaxSceneObjects) const

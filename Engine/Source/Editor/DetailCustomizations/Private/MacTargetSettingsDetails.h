@@ -4,69 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
+#include "ShaderFormatsPropertyDetails.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;
 class SErrorText;
 class SWidget;
-
-enum class ECheckBoxState : uint8;
-
-/* FMacShaderFormatsPropertyDetails
- *****************************************************************************/
-
-/**
- * Helper which implements details panel customizations for a device profiles parent property
- */
-class FMacShaderFormatsPropertyDetails
-: public TSharedFromThis<FMacShaderFormatsPropertyDetails>
-{
-	
-public:
-	
-	/**
-	 * Constructor for the parent property details view
-	 *
-	 * @param InDetailsBuilder - Where we are adding our property view to
-	 * @param InProperty - The category name to override
-	 * @param InTitle - Title for display
-	 */
-	FMacShaderFormatsPropertyDetails(IDetailLayoutBuilder* InDetailBuilder, FString InProperty, FString InTitle);
-	
-	/** Simple delegate for updating shader version warning */
-	void SetOnUpdateShaderWarning(FSimpleDelegate const& Delegate);
-	
-	/**
-	 * Create the UI to select which windows shader formats we are targetting
-	 */
-	void CreateTargetShaderFormatsPropertyView();
-	
-	
-	/**
-	 * @param InRHIName - The input RHI to check
-	 * @returns Whether this RHI is currently enabled
-	 */
-	ECheckBoxState IsTargetedRHIChecked(FName InRHIName) const;
-	
-private:
-	
-	// Supported/Targeted RHI check boxes
-	void OnTargetedRHIChanged(ECheckBoxState InNewValue, FName InRHIName);
-	
-private:
-	
-	/** A handle to the detail view builder */
-	IDetailLayoutBuilder* DetailBuilder;
-	
-	/** Access to the Parent Property */
-	TSharedPtr<IPropertyHandle> ShaderFormatsPropertyHandle;
-	
-	/** The category name to override */
-	FString Property;
-	
-	/** Title for display */
-	FString Title;
-};
 
 /**
  * Manages the Transform section of a details view                    
@@ -104,10 +47,7 @@ private:
 	
 private:
 	/** Reference to the target shader formats property view */
-	TSharedPtr<FMacShaderFormatsPropertyDetails> TargetShaderFormatsDetails;
-	
-	/** Reference to the cached shader formats property view */
-	TSharedPtr<FMacShaderFormatsPropertyDetails> CachedShaderFormatsDetails;
+	TSharedPtr<FShaderFormatsPropertyDetails> TargetShaderFormatsDetails;
     
     /** Reference to the shader version property */
     TSharedPtr<IPropertyHandle> ShaderVersionPropertyHandle;

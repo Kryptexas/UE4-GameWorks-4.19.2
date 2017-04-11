@@ -159,15 +159,24 @@ void FMetalCommandList::HandleMetalCommandBufferFailure(id <MTLCommandBuffer> Co
 	}
 }
 
-void FMetalCommandList::Commit(id<MTLCommandBuffer> Buffer, bool const bWait)
+void FMetalCommandList::Commit(id<MTLCommandBuffer> Buffer, NSArray<MTLCommandBufferHandler>* CompletionHandlers, bool const bWait)
 {
 	check(Buffer);
 	
+	[CompletionHandlers retain];
 	[Buffer addCompletedHandler : ^ (id <MTLCommandBuffer> CompletedBuffer)
 	{
 		if (CompletedBuffer.status == MTLCommandBufferStatusError)
 		{
-			HandleMetalCommandBufferFailure(CompletedBuffer);
+			HandleMetalCommandBufferFailure(Buffer);
+		}
+		if (CompletionHandlers)
+		{
+			for (MTLCommandBufferHandler Handler in CompletionHandlers)
+			{
+				Handler(CompletedBuffer);
+			}
+			[CompletionHandlers release];
 		}
 	}];
 	

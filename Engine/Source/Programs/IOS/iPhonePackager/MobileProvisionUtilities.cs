@@ -404,34 +404,54 @@ namespace iPhonePackager
 	/// </summary>
 	public class MobileProvisionParser
 	{
+		private static int StrStrByteArray(byte[] Haystack, int Offset, string Needle)
+		{
+			byte[] NeedleBytes = Encoding.UTF8.GetBytes(Needle);
+
+			//@TODO: Is there anything better in .NET? That's going to be pretty slow on large files
+			for(int i = Offset; i < Haystack.Length - NeedleBytes.Length; ++i)
+			{
+				bool bMatch = true;
+
+				for(int j = 0; j < NeedleBytes.Length; ++j)
+				{
+					if( Haystack[i + j] != NeedleBytes[j] )
+					{
+						bMatch = false;
+						break;
+					}
+				}
+
+				if( bMatch )
+				{
+					return i;
+				}
+			}
+
+			return -1;
+		}
+
 		public static MobileProvision ParseFile(byte[] RawData)
 		{
 			//@TODO: This file is just an ASN.1 stream, should find or make a raw ASN1 parser and use
 			// that instead of this (theoretically fragile) code (particularly the length extraction)
 
-			// Scan it for the start of the embedded blob of xml
-			byte[] SearchPattern = Encoding.UTF8.GetBytes("<?xml");
-			for (int TextStart = 2; TextStart < RawData.Length - SearchPattern.Length; ++TextStart)
-			{
-				// See if this point is a match
-				bool bMatch = true;
-				for (int PatternIndex = 0; bMatch && (PatternIndex < SearchPattern.Length); ++PatternIndex)
-				{
-					bMatch = bMatch && (RawData[TextStart + PatternIndex] == SearchPattern[PatternIndex]);
-				}
+			string StartPattern = "<?xml";
+			string EndPattern = "</plist>";
 
-				if (bMatch)
+			// Search the start pattern
+			int StartPos = StrStrByteArray(RawData, 0, StartPattern);
+			if( StartPos != -1 )
+			{
+				// Search the end pattern
+				int EndPos = StrStrByteArray(RawData, StartPos, EndPattern);
+				if( EndPos != -1 )
 				{
-					// Back up two bytes and read a two byte little endian plist size
-					int TextLength = (RawData[TextStart - 2] << 8) | (RawData[TextStart - 1]);
+					// Offset the end position to take in account the end pattern
+					EndPos += EndPattern.Length;
 
 					// Convert the data to a string
-					string PlistText = Encoding.UTF8.GetString(RawData, TextStart, TextLength);
-
-					//@TODO: Distribution provisions seem to be a byte too long, and it may be a general problem with interpreting the length
-					// For now, we just cut back to the end of the last tag.
-					int CutPoint = PlistText.LastIndexOf('>');
-					PlistText = PlistText.Substring(0, CutPoint + 1);
+					string PlistText = Encoding.UTF8.GetString(RawData, StartPos, EndPos - StartPos);
 
 					// Return the constructed 'mobile provision'
 					return new MobileProvision(PlistText);

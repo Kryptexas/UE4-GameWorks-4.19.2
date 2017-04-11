@@ -1025,6 +1025,9 @@ public:
 	virtual bool IsUsedWithParticleSprites() const { return false; }
 	virtual bool IsUsedWithBeamTrails() const { return false; }
 	virtual bool IsUsedWithMeshParticles() const { return false; }
+	virtual bool IsUsedWithNiagaraSprites() const { return false; }
+	virtual bool IsUsedWithNiagaraRibbons() const { return false; }
+	virtual bool IsUsedWithNiagaraMeshParticles() const { return false; }
 	virtual bool IsUsedWithStaticLighting() const { return false; }
 	virtual	bool IsUsedWithMorphTargets() const { return false; }
 	virtual bool IsUsedWithSplineMeshes() const { return false; }
@@ -1671,6 +1674,9 @@ public:
 	ENGINE_API virtual bool IsUsedWithParticleSprites() const override;
 	ENGINE_API virtual bool IsUsedWithBeamTrails() const override;
 	ENGINE_API virtual bool IsUsedWithMeshParticles() const override;
+	ENGINE_API virtual bool IsUsedWithNiagaraSprites() const override;
+	ENGINE_API virtual bool IsUsedWithNiagaraRibbons() const override;
+	ENGINE_API virtual bool IsUsedWithNiagaraMeshParticles() const override;
 	ENGINE_API virtual bool IsUsedWithStaticLighting() const override;
 	ENGINE_API virtual bool IsUsedWithMorphTargets() const override;
 	ENGINE_API virtual bool IsUsedWithSplineMeshes() const override;

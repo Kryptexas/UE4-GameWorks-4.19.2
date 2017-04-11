@@ -191,8 +191,6 @@ struct FEngineShowFlags
 		SetStereoRendering(false);
 		SetDistanceFieldAO(false);
 		SetDistanceFieldGI(false);
-		// hiding the SkinCache would break thumbnail caching
-		SetSkinCache(true);
 		SetVolumetricFog(false);
 	}
 

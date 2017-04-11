@@ -297,7 +297,7 @@ public:
 	virtual void* RHIGetNativeDevice() final override;
 	virtual class IRHICommandContext* RHIGetDefaultContext() final override;
 	virtual class IRHIComputeContext* RHIGetDefaultAsyncComputeContext() final override;
-	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override;
+	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) final override;
 
 
 	// FD3D12DynamicRHI interface.

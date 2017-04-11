@@ -116,7 +116,7 @@ FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer()
 		// This should not happen if initialize was called correctly.  This is a fallback to ensure that the movie player rendering tickable gets unregistered on the rendering thread correctly
 		Shutdown();
 	}
-	else
+	else if (GIsRHIInitialized)
 	{
 		// Even when uninitialized we must safely unregister the movie player on the render thread
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UnregisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,

@@ -1952,7 +1952,7 @@ void FStaticLightingSystem::CalculateStaticShadowDepthMap(FGuid LightGuid)
 		const FVector4 LightSpaceImportanceBoundMin = FVector4(-HalfCrossSectionLength, -HalfCrossSectionLength, 0);
 		const FVector4 LightSpaceImportanceBoundMax = FVector4(HalfCrossSectionLength, HalfCrossSectionLength, SpotLight->Radius);
 
-		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(HalfCrossSectionLength / (2 * ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX), 4.0f));
+		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(HalfCrossSectionLength / ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, 4.0f));
 		ShadowDepthMap->ShadowMapSizeX = ShadowDepthMap->ShadowMapSizeX == appTruncErrorCode ? INT_MAX : ShadowDepthMap->ShadowMapSizeX;
 		ShadowDepthMap->ShadowMapSizeY = ShadowDepthMap->ShadowMapSizeX;
 
@@ -2039,7 +2039,7 @@ void FStaticLightingSystem::CalculateStaticShadowDepthMap(FGuid LightGuid)
 	}
 	else if (PointLight)
 	{
-		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(PointLight->Radius / (2 * ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX), 4.0f));
+		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(PointLight->Radius / ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, 4.0f));
 		ShadowDepthMap->ShadowMapSizeX = ShadowDepthMap->ShadowMapSizeX == appTruncErrorCode ? INT_MAX : ShadowDepthMap->ShadowMapSizeX;
 		ShadowDepthMap->ShadowMapSizeY = ShadowDepthMap->ShadowMapSizeX;
 

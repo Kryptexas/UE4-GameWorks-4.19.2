@@ -41,6 +41,7 @@
 #include "SkeletalMeshSorting.h"
 #include "Engine/Engine.h"
 #include "Animation/NodeMappingContainer.h"
+#include "GPUSkinCache.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
@@ -5231,7 +5232,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 	{
 		return;
 	}	
-	MeshObject->PreGDMECallback(ViewFamily.FrameNumber);
+	MeshObject->PreGDMECallback(ViewFamily.Scene->GetGPUSkinCache(), ViewFamily.FrameNumber);
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -5331,11 +5332,11 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 {
 	const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
 
-	// If hidden skip the draw
-	if (Section.bDisabled || MeshObject->IsMaterialHidden(LODIndex,SectionElementInfo.UseMaterialIndex))
-	{
-		return;
-	}
+	//// If hidden skip the draw
+	//if (Section.bDisabled || MeshObject->IsMaterialHidden(LODIndex,SectionElementInfo.UseMaterialIndex))
+	//{
+	//	return;
+	//}
 
 #if !WITH_EDITOR
 	const bool bIsSelected = false;
@@ -5378,15 +5379,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 
 			BatchElement.IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
 			BatchElement.MaxVertexIndex = LODModel.NumVertices - 1;
-	
-			if(SectionIndex < FSkeletalMeshObject::MAX_GPUSKINCACHE_CHUNKS_PER_LOD)
-			{
-				BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[SectionIndex];
-			}
-			else
-			{
-				BatchElement.UserIndex = -1;
-			}
+			BatchElement.VertexFactoryUserData = FGPUSkinCache::GetFactoryUserData(MeshObject->SkinCacheEntry, SectionIndex);
 
 			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionElementInfo.Material, Mesh.VertexFactory->GetType(), ViewFamily.GetFeatureLevel() );
 			if ( bRequiresAdjacencyInformation )

@@ -7,6 +7,7 @@
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
 #include "SceneManagement.h"
+#include "GPUSkinCache.h"
 
 /*-----------------------------------------------------------------------------
 Globals
@@ -33,6 +34,7 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 #endif	
 ,	SkeletalMeshResource(InSkeletalMeshResource)
 ,	SkeletalMeshLODInfo(InMeshComponent->SkeletalMesh->LODInfo)
+,	SkinCacheEntry(nullptr)
 ,	LastFrameNumber(0)
 #if WITH_EDITORONLY_DATA
 ,	ProgressiveDrawingFraction(InMeshComponent->ProgressiveDrawingFraction)
@@ -52,9 +54,6 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 	}
 #endif // #if WITH_EDITORONLY_DATA
 
-	// Assume no GPU skin cache
-	FMemory::Memset(GPUSkinCacheKeys, -1, sizeof(GPUSkinCacheKeys));
-
 	// We want to restore the most recent value of the MaxDistanceFactor the SkeletalMeshComponent
 	// cached, which will be 0.0 when first created, and a valid, updated value when recreating
 	// this mesh object (e.g. during a component reregister), avoiding issues with a transient
@@ -63,6 +62,10 @@ FSkeletalMeshObject::FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent,
 	WorkingMaxDistanceFactor = MaxDistanceFactor;
 
 	InitLODInfos(InMeshComponent);
+}
+
+FSkeletalMeshObject::~FSkeletalMeshObject()
+{
 }
 
 void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const FBoxSphereBounds& Bounds, int32 FrameNumber)

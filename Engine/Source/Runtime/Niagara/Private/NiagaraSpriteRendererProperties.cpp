@@ -27,7 +27,7 @@ void UNiagaraSpriteRendererProperties::GetUsedMaterials(TArray<UMaterialInterfac
 
 bool UNiagaraSpriteRendererProperties::IsMaterialValidForRenderer(UMaterial* Material, FText& InvalidMessage)
 {
-	if (Material->bUsedWithParticleSprites == false)
+	if (Material->bUsedWithNiagaraSprites == false)
 	{
 		InvalidMessage = NSLOCTEXT("NiagaraSpriteRendererProperties", "InvalidMaterialMessage", "The material isn't marked as \"Used with particle sprites\"");
 		return false;
@@ -38,7 +38,7 @@ bool UNiagaraSpriteRendererProperties::IsMaterialValidForRenderer(UMaterial* Mat
 void UNiagaraSpriteRendererProperties::FixMaterial(UMaterial* Material)
 {
 	Material->Modify();
-	Material->bUsedWithParticleSprites = true;
+	Material->bUsedWithNiagaraSprites = true;
 	Material->ForceRecompileForRendering();
 }
 

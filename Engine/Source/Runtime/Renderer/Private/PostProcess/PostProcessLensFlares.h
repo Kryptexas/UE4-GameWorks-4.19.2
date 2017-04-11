@@ -17,7 +17,7 @@ class FRCPassPostProcessLensFlares : public TRenderingCompositePassBase<2, 1>
 {
 public:
 	// constructor
-	FRCPassPostProcessLensFlares(float InSizeScale);
+	FRCPassPostProcessLensFlares(float InSizeScale, bool bCompositBloomIn = true);
 
 	// interface FRenderingCompositePass ---------
 
@@ -27,4 +27,5 @@ public:
 
 private:
 	float SizeScale;
+	bool bCompositeBloom;
 };

@@ -187,6 +187,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	CanCharacterStepUpOn = ECB_Yes;
 	ComponentId.PrimIDValue = NextComponentId.Increment();
 	CustomDepthStencilValue = 0;
+	CustomDepthStencilWriteMask = ERendererStencilMask::ERSM_Default;
 
 	bUseEditorCompositing = false;
 
@@ -3137,6 +3138,15 @@ void UPrimitiveComponent::SetCustomDepthStencilValue(int32 Value)
 	if (CustomDepthStencilValue != ClampedValue)
 	{
 		CustomDepthStencilValue = ClampedValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UPrimitiveComponent::SetCustomDepthStencilWriteMask(ERendererStencilMask WriteMask)
+{
+	if (CustomDepthStencilWriteMask != WriteMask)
+	{
+		CustomDepthStencilWriteMask = WriteMask;
 		MarkRenderStateDirty();
 	}
 }

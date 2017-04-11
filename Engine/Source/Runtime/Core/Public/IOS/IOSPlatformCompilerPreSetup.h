@@ -127,6 +127,9 @@
 // since they cannot be caught by all compilers that we support. They are deemed to be relatively safe to be ignored, at least until all SDKs/toolchains start supporting them.
 #pragma clang diagnostic warning "-Wreorder"
 #pragma clang diagnostic warning "-Wparentheses-equality"
+#pragma clang diagnostic ignored "-Winconsistent-missing-override"
+#pragma clang diagnostic ignored "-Wundefined-bool-conversion"
+#pragma clang diagnostic ignored "-Wunused-local-typedef"
 #pragma clang diagnostic ignored "-Wdelete-non-virtual-dtor"
 
 // Apple LLVM 8.1.0 (Xcode 8.3) introduced -Wundefined-var-template

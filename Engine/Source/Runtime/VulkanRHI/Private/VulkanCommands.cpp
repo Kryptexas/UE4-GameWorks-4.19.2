@@ -817,20 +817,6 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 	}
 }
 
-void FVulkanCommandListContext::RHIClear(bool bClearColor,const FLinearColor& Color, bool bClearDepth,float Depth, bool bClearStencil,uint32 Stencil)
-{
-	if (!(bClearColor || bClearDepth || bClearStencil))
-	{
-		return;
-	}
-	//FRCLog::Printf(TEXT("RHIClear"));
-	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-
-	const uint32 NumColorAttachments = bClearColor ? TransitionState.CurrentFramebuffer->GetNumColorAttachments() : 0;
-
-	FVulkanCommandListContext::InternalClearMRT(CmdBuffer, bClearColor, NumColorAttachments, &Color, bClearDepth, Depth, bClearStencil, Stencil);
-}
-
 void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
 	if (!(bClearColor || bClearDepth || bClearStencil))

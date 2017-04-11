@@ -264,7 +264,7 @@ FSamplerStateRHIRef FOpenGLDynamicRHI::RHICreateSamplerState(const FSamplerState
 	SamplerState->AddRef();
 	GSamplerStateCache.Add(Initializer, SamplerState);
 
-	FShaderCache::LogSamplerState(Initializer, SamplerState);
+	FShaderCache::LogSamplerState(FShaderCache::GetDefaultCacheState(), Initializer, SamplerState);
 	return SamplerState;
 }
 
@@ -276,7 +276,7 @@ FRasterizerStateRHIRef FOpenGLDynamicRHI::RHICreateRasterizerState(const FRaster
 	RasterizerState->Data.DepthBias = Initializer.DepthBias;
 	RasterizerState->Data.SlopeScaleDepthBias = Initializer.SlopeScaleDepthBias;
 	
-	FShaderCache::LogRasterizerState(Initializer, RasterizerState);
+	FShaderCache::LogRasterizerState(FShaderCache::GetDefaultCacheState(), Initializer, RasterizerState);
 	return RasterizerState;
 }
 
@@ -299,7 +299,7 @@ FDepthStencilStateRHIRef FOpenGLDynamicRHI::RHICreateDepthStencilState(const FDe
 	DepthStencilState->Data.StencilReadMask = Initializer.StencilReadMask;
 	DepthStencilState->Data.StencilWriteMask = Initializer.StencilWriteMask;
 
-	FShaderCache::LogDepthStencilState(Initializer, DepthStencilState);
+	FShaderCache::LogDepthStencilState(FShaderCache::GetDefaultCacheState(), Initializer, DepthStencilState);
 	return DepthStencilState;
 }
 
@@ -331,7 +331,7 @@ FBlendStateRHIRef FOpenGLDynamicRHI::RHICreateBlendState(const FBlendStateInitia
 		RenderTarget.ColorWriteMaskA = (RenderTargetInitializer.ColorWriteMask & CW_ALPHA) != 0;
 	}
 	
-	FShaderCache::LogBlendState(Initializer, BlendState);
+	FShaderCache::LogBlendState(FShaderCache::GetDefaultCacheState(), Initializer, BlendState);
 	return BlendState;
 }
 

@@ -2768,9 +2768,19 @@ public:
 		return GDynamicRHI->CreatePixelShader_RenderThread(*this, Code);
 	}
 	
+	FORCEINLINE FPixelShaderRHIRef CreatePixelShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return GDynamicRHI->CreatePixelShader_RenderThread(*this, Library, Hash);
+	}
+	
 	FORCEINLINE FVertexShaderRHIRef CreateVertexShader(const TArray<uint8>& Code)
 	{
 		return GDynamicRHI->CreateVertexShader_RenderThread(*this, Code);
+	}
+	
+	FORCEINLINE FVertexShaderRHIRef CreateVertexShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return GDynamicRHI->CreateVertexShader_RenderThread(*this, Library, Hash);
 	}
 	
 	FORCEINLINE FHullShaderRHIRef CreateHullShader(const TArray<uint8>& Code)
@@ -2778,9 +2788,19 @@ public:
 		return GDynamicRHI->CreateHullShader_RenderThread(*this, Code);
 	}
 	
+	FORCEINLINE FHullShaderRHIRef CreateHullShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return GDynamicRHI->CreateHullShader_RenderThread(*this, Library, Hash);
+	}
+	
 	FORCEINLINE FDomainShaderRHIRef CreateDomainShader(const TArray<uint8>& Code)
 	{
 		return GDynamicRHI->CreateDomainShader_RenderThread(*this, Code);
+	}
+	
+	FORCEINLINE FDomainShaderRHIRef CreateDomainShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return GDynamicRHI->CreateDomainShader_RenderThread(*this, Library, Hash);
 	}
 	
 	FORCEINLINE FGeometryShaderRHIRef CreateGeometryShader(const TArray<uint8>& Code)
@@ -2788,14 +2808,29 @@ public:
 		return GDynamicRHI->CreateGeometryShader_RenderThread(*this, Code);
 	}
 	
+	FORCEINLINE FGeometryShaderRHIRef CreateGeometryShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return GDynamicRHI->CreateGeometryShader_RenderThread(*this, Library, Hash);
+	}
+	
 	FORCEINLINE FGeometryShaderRHIRef CreateGeometryShaderWithStreamOutput(const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream)
 	{
 		return GDynamicRHI->CreateGeometryShaderWithStreamOutput_RenderThread(*this, Code, ElementList, NumStrides, Strides, RasterizedStream);
 	}
 	
+	FORCEINLINE FGeometryShaderRHIRef CreateGeometryShaderWithStreamOutput(const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return GDynamicRHI->CreateGeometryShaderWithStreamOutput_RenderThread(*this, ElementList, NumStrides, Strides, RasterizedStream, Library, Hash);
+	}
+	
 	FORCEINLINE FComputeShaderRHIRef CreateComputeShader(const TArray<uint8>& Code)
 	{
 		return GDynamicRHI->CreateComputeShader_RenderThread(*this, Code);
+	}
+	
+	FORCEINLINE FComputeShaderRHIRef CreateComputeShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return GDynamicRHI->CreateComputeShader_RenderThread(*this, Library, Hash);
 	}
 	
 	FORCEINLINE FComputeFenceRHIRef CreateComputeFence(const FName& Name)
@@ -3305,6 +3340,11 @@ public:
 		GDynamicRHI->RHIExecuteCommandList(CmdList);
 	}
 	
+	FORCEINLINE void SetResourceAliasability(EResourceAliasability AliasMode, FTextureRHIParamRef* InTextures, int32 NumTextures)
+	{
+		GDynamicRHI->RHISetResourceAliasability_RenderThread(*this, AliasMode, InTextures, NumTextures);
+	}
+	
 	FORCEINLINE void* GetNativeDevice()
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_GetNativeDevice_Flush);
@@ -3318,12 +3358,17 @@ public:
 		return RHIGetDefaultContext();
 	}
 	
-	FORCEINLINE class IRHICommandContextContainer* GetCommandContextContainer()
+	FORCEINLINE class IRHICommandContextContainer* GetCommandContextContainer(int32 Index, int32 Num)
 	{
-		return RHIGetCommandContextContainer();
+		return RHIGetCommandContextContainer(Index, Num);
 	}
 	void UpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture);
 	
+	FORCEINLINE FRHIShaderLibraryRef CreateShaderLibrary(EShaderPlatform Platform, FString FilePath)
+	{
+		FScopedRHIThreadStaller StallRHIThread(*this);
+		return GDynamicRHI->RHICreateShaderLibrary(Platform, FilePath);
+	}
 
 };
 
@@ -3464,9 +3509,19 @@ FORCEINLINE FPixelShaderRHIRef RHICreatePixelShader(const TArray<uint8>& Code)
 	return FRHICommandListExecutor::GetImmediateCommandList().CreatePixelShader(Code);
 }
 
+FORCEINLINE FPixelShaderRHIRef RHICreatePixelShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreatePixelShader(Library, Hash);
+}
+
 FORCEINLINE FVertexShaderRHIRef RHICreateVertexShader(const TArray<uint8>& Code)
 {
 	return FRHICommandListExecutor::GetImmediateCommandList().CreateVertexShader(Code);
+}
+
+FORCEINLINE FVertexShaderRHIRef RHICreateVertexShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateVertexShader(Library, Hash);
 }
 
 FORCEINLINE FHullShaderRHIRef RHICreateHullShader(const TArray<uint8>& Code)
@@ -3474,9 +3529,19 @@ FORCEINLINE FHullShaderRHIRef RHICreateHullShader(const TArray<uint8>& Code)
 	return FRHICommandListExecutor::GetImmediateCommandList().CreateHullShader(Code);
 }
 
+FORCEINLINE FHullShaderRHIRef RHICreateHullShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateHullShader(Library, Hash);
+}
+
 FORCEINLINE FDomainShaderRHIRef RHICreateDomainShader(const TArray<uint8>& Code)
 {
 	return FRHICommandListExecutor::GetImmediateCommandList().CreateDomainShader(Code);
+}
+
+FORCEINLINE FDomainShaderRHIRef RHICreateDomainShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateDomainShader(Library, Hash);
 }
 
 FORCEINLINE FGeometryShaderRHIRef RHICreateGeometryShader(const TArray<uint8>& Code)
@@ -3484,14 +3549,29 @@ FORCEINLINE FGeometryShaderRHIRef RHICreateGeometryShader(const TArray<uint8>& C
 	return FRHICommandListExecutor::GetImmediateCommandList().CreateGeometryShader(Code);
 }
 
+FORCEINLINE FGeometryShaderRHIRef RHICreateGeometryShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateGeometryShader(Library, Hash);
+}
+
 FORCEINLINE FGeometryShaderRHIRef RHICreateGeometryShaderWithStreamOutput(const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream)
 {
 	return FRHICommandListExecutor::GetImmediateCommandList().CreateGeometryShaderWithStreamOutput(Code, ElementList, NumStrides, Strides, RasterizedStream);
 }
 
+FORCEINLINE FGeometryShaderRHIRef RHICreateGeometryShaderWithStreamOutput(const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateGeometryShaderWithStreamOutput(ElementList, NumStrides, Strides, RasterizedStream, Library, Hash);
+}
+
 FORCEINLINE FComputeShaderRHIRef RHICreateComputeShader(const TArray<uint8>& Code)
 {
 	return FRHICommandListExecutor::GetImmediateCommandList().CreateComputeShader(Code);
+}
+
+FORCEINLINE FComputeShaderRHIRef RHICreateComputeShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateComputeShader(Library, Hash);
 }
 
 FORCEINLINE FComputeFenceRHIRef RHICreateComputeFence(const FName& Name)
@@ -3760,6 +3840,10 @@ FORCEINLINE void RHIRecreateRecursiveBoundShaderStates()
 	GDynamicRHI->RHIRecreateRecursiveBoundShaderStates();
 }
 
+FORCEINLINE FRHIShaderLibraryRef RHICreateShaderLibrary(EShaderPlatform Platform, FString FilePath)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateShaderLibrary(Platform, FilePath);
+}
 
 
 #include "RHICommandList.inl"

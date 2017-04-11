@@ -443,8 +443,8 @@ FExponentialHeightFogSceneInfo::FExponentialHeightFogSceneInfo(const UExponentia
 
 	bEnableVolumetricFog = InComponent->bEnableVolumetricFog;
 	VolumetricFogScatteringDistribution = FMath::Clamp(InComponent->VolumetricFogScatteringDistribution, -.99f, .99f);
-	VolumetricFogScatteringScale = FMath::Max(InComponent->VolumetricFogScatteringScale, 0.0f);
-	VolumetricFogAbsorptionScale = FMath::Max(InComponent->VolumetricFogAbsorptionScale, 0.0f);
+	VolumetricFogAlbedo = FLinearColor(InComponent->VolumetricFogAlbedo);
+	VolumetricFogExtinctionScale = FMath::Max(InComponent->VolumetricFogExtinctionScale, 0.0f);
 	VolumetricFogDistance = FMath::Max(InComponent->VolumetricFogDistance, 0.0f);
 	bOverrideLightColorsWithFogInscatteringColors = InComponent->bOverrideLightColorsWithFogInscatteringColors;
 }

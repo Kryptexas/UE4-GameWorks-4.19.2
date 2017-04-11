@@ -65,6 +65,7 @@ struct FVertexFactoryInput
 
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
+	// If this changes make sure to update LocalVertexFactory.usf
 	float2	TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX] : ATTRIBUTE5;
 
 	#if NUM_MATERIAL_TEXCOORDS_VERTEX > 4

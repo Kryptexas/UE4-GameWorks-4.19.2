@@ -102,10 +102,12 @@ void FDeferredShadingSceneRenderer::RenderLightFunctionForVolumetricFog(
 	FIntVector VolumetricFogGridSize,
 	float VolumetricFogMaxDistance,
 	FMatrix& OutLightFunctionWorldToShadow,
-	TRefCountPtr<IPooledRenderTarget>& OutLightFunctionTexture)
+	TRefCountPtr<IPooledRenderTarget>& OutLightFunctionTexture,
+	bool& bOutUseDirectionalLightShadowing)
 {
 	OutLightFunctionWorldToShadow = FMatrix::Identity;
 	OutLightFunctionTexture = NULL;
+	bOutUseDirectionalLightShadowing = true;
 
 	FLightSceneInfo* DirectionalLightSceneInfo = NULL;
 
@@ -117,11 +119,15 @@ void FDeferredShadingSceneRenderer::RenderLightFunctionForVolumetricFog(
 		if (ViewFamily.EngineShowFlags.LightFunctions 
 			&& LightSceneInfo->Proxy->GetLightType() == LightType_Directional
 			&& LightSceneInfo->ShouldRenderLightViewIndependent() 
-			&& LightSceneInfo->ShouldRenderLight(View)
-			&& CheckForLightFunction(LightSceneInfo))
+			&& LightSceneInfo->ShouldRenderLight(View))
 		{
-			DirectionalLightSceneInfo = LightSceneInfo;
-			break;
+			bOutUseDirectionalLightShadowing = LightSceneInfo->Proxy->CastsVolumetricShadow();
+
+			if (CheckForLightFunction(LightSceneInfo))
+			{
+				DirectionalLightSceneInfo = LightSceneInfo;
+				break;
+			}
 		}
 	}
 

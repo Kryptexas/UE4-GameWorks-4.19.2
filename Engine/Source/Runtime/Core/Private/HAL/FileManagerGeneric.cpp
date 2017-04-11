@@ -290,7 +290,7 @@ bool FFileManagerGeneric::Move( const TCHAR* Dest, const TCHAR* Src, bool Replac
 {
 	MakeDirectory( *FPaths::GetPath(Dest), true );
 	// Retry on failure, unless the file wasn't there anyway.
-	if( GetLowLevel().FileExists( Dest ) && !GetLowLevel().DeleteFile( Dest ) && !bDoNotRetryOrError )
+	if( GetLowLevel().FileExists( Dest ) && Replace && !GetLowLevel().DeleteFile( Dest ) && !bDoNotRetryOrError )
 	{
 		// If the delete failed, throw a warning but retry before we throw an error
 		UE_LOG( LogFileManager, Warning, TEXT( "DeleteFile was unable to delete '%s', retrying in .5s..." ), Dest );

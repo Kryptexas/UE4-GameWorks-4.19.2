@@ -402,6 +402,7 @@ public:
 	inline bool WantsSelectionOutline() const { return bWantsSelectionOutline; }
 	inline bool ShouldRenderCustomDepth() const { return bRenderCustomDepth; }
 	inline uint8 GetCustomDepthStencilValue() const { return CustomDepthStencilValue; }
+	inline EStencilMask GetStencilWriteMask() const { return CustomDepthStencilWriteMask; }
 	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
 	inline uint8 GetLightingChannelStencilValue() const 
 	{ 
@@ -803,6 +804,9 @@ private:
 
 	/** Optionally write this stencil value during the CustomDepth pass */
 	uint8 CustomDepthStencilValue;
+
+	/** When writing custom depth stencil, use this write mask */
+	EStencilMask CustomDepthStencilWriteMask;
 
 	uint8 LightingChannelMask;
 

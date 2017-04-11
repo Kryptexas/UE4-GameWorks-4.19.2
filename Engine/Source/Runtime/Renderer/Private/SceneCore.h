@@ -217,8 +217,8 @@ public:
 
 	bool bEnableVolumetricFog;
 	float VolumetricFogScatteringDistribution;
-	float VolumetricFogScatteringScale;
-	float VolumetricFogAbsorptionScale;
+	FLinearColor VolumetricFogAlbedo;
+	float VolumetricFogExtinctionScale;
 	float VolumetricFogDistance;
 	bool bOverrideLightColorsWithFogInscatteringColors;
 

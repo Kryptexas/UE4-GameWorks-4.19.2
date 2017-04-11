@@ -14,9 +14,10 @@
 #include "PipelineStateCache.h"
 
 /** Encapsulates a simple copy pixel shader. */
-class FPostProcessLensFlareBasePS : public FGlobalShader
+template <bool bClearRegion = false>
+class TPostProcessLensFlareBasePS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(FPostProcessLensFlareBasePS, Global);
+	DECLARE_SHADER_TYPE(TPostProcessLensFlareBasePS, Global);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
@@ -24,19 +25,30 @@ class FPostProcessLensFlareBasePS : public FGlobalShader
 	}
 
 	/** Default constructor. */
-	FPostProcessLensFlareBasePS() {}
+	TPostProcessLensFlareBasePS() {}
 
 public:
 	FPostProcessPassParameters PostprocessParameter;
+	FShaderParameter CompositeBloomParameter;
 
 	/** Initialization constructor. */
-	FPostProcessLensFlareBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	TPostProcessLensFlareBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
 	// FShader interface.
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		if (bClearRegion)
+		{
+			OutEnvironment.SetDefine(TEXT("CLEAR_REGION"), 1);
+		}
+	}
+
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
@@ -54,7 +66,14 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessLensFlareBasePS,TEXT("PostProcessLensFlares"),TEXT("CopyPS"),SF_Pixel);
+#define IMPLEMENT_LENSE_FLARE_BASE(_bClearRegion) \
+typedef TPostProcessLensFlareBasePS< _bClearRegion > FPostProcessLensFlareBasePS##_bClearRegion ;\
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessLensFlareBasePS##_bClearRegion ,TEXT("PostProcessLensFlares"),TEXT("CopyPS"),SF_Pixel);
+
+IMPLEMENT_LENSE_FLARE_BASE(true)
+IMPLEMENT_LENSE_FLARE_BASE(false)
+
+#undef IMPLEMENT_LENSE_FLARE_BASE
 
 
 /** Encapsulates the post processing lens flare pixel shader. */
@@ -108,8 +127,8 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessLensFlaresPS,TEXT("PostProcessLensFlares"),TE
 
 
 
-FRCPassPostProcessLensFlares::FRCPassPostProcessLensFlares(float InSizeScale)
-	: SizeScale(InSizeScale)
+FRCPassPostProcessLensFlares::FRCPassPostProcessLensFlares(float InSizeScale, bool InbCompositeBloom)
+	: SizeScale(InSizeScale), bCompositeBloom(InbCompositeBloom)
 {
 }
 
@@ -162,8 +181,9 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 
 	
 	// setup background (bloom), can be implemented to use additive blending to avoid the read here
+	if (bCompositeBloom)
 	{
-		TShaderMapRef<FPostProcessLensFlareBasePS> PixelShader(Context.GetShaderMap());
+		TShaderMapRef<TPostProcessLensFlareBasePS<true>> PixelShader(Context.GetShaderMap());
 
 		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
@@ -186,6 +206,33 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 			TexSize1,
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
+	}
+	else
+	{
+		TShaderMapRef<TPostProcessLensFlareBasePS<false>> PixelShader(Context.GetShaderMap());
+
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+
+		VertexShader->SetParameters(Context);
+		PixelShader->SetParameters(Context);
+
+		// Draw a quad mapping scene color to the view's render target
+		DrawRectangle(
+			Context.RHICmdList,
+			0, 0,
+			ViewSize1.X, ViewSize1.Y,
+			ViewRect1.Min.X, ViewRect1.Min.Y,
+			ViewSize1.X, ViewSize1.Y,
+			ViewSize1,
+			TexSize1,
+			*VertexShader,
+			EDRF_UseTriangleOptimization);
+
 	}
 
 	// additive blend

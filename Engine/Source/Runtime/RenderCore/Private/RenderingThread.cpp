@@ -791,13 +791,18 @@ void StopRenderingThread()
 
 void CheckRenderingThreadHealth()
 {
-	if(!GIsRenderingThreadHealthy)
+	bool IsGpuAlive = true;
+	if (GDynamicRHI)
+	{
+		IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();
+	}
+
+	if(!GIsRenderingThreadHealthy || !IsGpuAlive)
 	{
 		GErrorHist[0] = 0;
 		GIsCriticalError = false;
 		UE_LOG(LogRendererCore, Fatal,TEXT("Rendering thread exception:\r\n%s"),*GRenderingThreadError);
 	}
-	
 
 	if (IsInGameThread())
 	{

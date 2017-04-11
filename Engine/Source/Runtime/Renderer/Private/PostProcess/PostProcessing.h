@@ -81,6 +81,9 @@ public:
 	void ProcessES2(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bViewRectSource);
 
 	void ProcessPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, TRefCountPtr<IPooledRenderTarget>& OutFilteredSceneColor);
+
+	// Returns whether the scene color's alpha channel is supported within the post processing.
+	static bool HasAlphaChannelSupport();
 };
 
 /** The global used for post processing. */

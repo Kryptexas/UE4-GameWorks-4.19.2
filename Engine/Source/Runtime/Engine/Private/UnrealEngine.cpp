@@ -325,7 +325,7 @@ void ScalabilityCVarsSinkCallback()
 	}
 
 	{
-		static const auto* MaxCSMShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxCSMShadowResolution"));
+		static const auto* MaxCSMShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxCSMResolution"));
 		LocalScalabilityCVars.MaxCSMShadowResolution = MaxCSMShadowResolution->GetValueOnGameThread();
 	}
 
@@ -801,8 +801,8 @@ void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericConte
 
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("EngineMemoryWarningHandler: Mem Used %.2f MB, Texture Memory %.2f MB, Render Target memory %.2f MB, OS Free %.2f MB\n"), 
 		Stats.UsedPhysical / 1048576.0f, 
-		GCurrentTextureMemorySize / 1048576.0f, 
-		GCurrentRendertargetMemorySize / 1048576.0f, 
+		GCurrentTextureMemorySize / 1024.f,
+		GCurrentRendertargetMemorySize / 1024.f,
 		Stats.AvailablePhysical / 1048576.0f);
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST

@@ -164,7 +164,7 @@ void AddNewlyFreedBufferToUniformBufferPool(id<MTLBuffer> Buffer, uint32 Offset,
 id<MTLBuffer> SuballocateUB(uint32 Size, uint32& OutOffset)
 {
 	// No space was found to use, create a new Pool buffer
-	id<MTLBuffer> Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:Size options:BUFFER_CACHE_MODE|BUFFER_MANAGED_MEM];
+	id<MTLBuffer> Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:Size options:GetMetalDeviceContext().GetCommandQueue().GetCompatibleResourceOptions(BUFFER_CACHE_MODE|MTLResourceHazardTrackingModeUntracked|BUFFER_MANAGED_MEM)];
 	TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 	INC_MEMORY_STAT_BY(STAT_MetalTotalUniformBufferMemory, Size);
 
@@ -245,7 +245,7 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 				
 				// copy the contents
 				FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, Contents, Layout.ConstantBufferSize);
-#if METAL_API_1_1 && PLATFORM_MAC
+#if PLATFORM_MAC
 				if(Buffer.storageMode == MTLStorageModeManaged)
 				{
 					[Buffer didModifyRange:NSMakeRange(Offset, Layout.ConstantBufferSize)];
@@ -286,7 +286,7 @@ FMetalUniformBuffer::~FMetalUniformBuffer()
 	}
 	if (Data)
 	{
-		SafeReleaseMetalResource(Data);
+		SafeReleaseMetalObject(Data);
 	}
 }
 
@@ -308,6 +308,8 @@ void const* FMetalUniformBuffer::GetData()
 
 FUniformBufferRHIRef FMetalDynamicRHI::RHICreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
 {
+	@autoreleasepool {
 	check(IsInRenderingThread() || IsInParallelRenderingThread() || IsInRHIThread());
 	return new FMetalUniformBuffer(Contents, Layout, Usage);
+	}
 }

@@ -8,6 +8,7 @@
 #define SHADOW_QUALITY 2
 
 #include "ShadowProjectionCommon.usf"
+#include "ShadowFilteringCommon.usf"
 
 /** Parameters needed to access the shadow map of the light. */
 float4x4 WorldToShadowMatrix;
@@ -25,6 +26,7 @@ SamplerState StaticShadowDepthTextureSampler;
 
 /** Transform used for static shadowing by spot and directional lights. */
 float4x4 WorldToStaticShadowMatrix;
+float4 StaticShadowBufferSize;
 
 /** Computes dynamic and static shadowing for a point anywhere in space. */
 float ComputeVolumeShadowing(float3 WorldPositionForLighting, bool bPointLight, bool bSpotLight)
@@ -63,9 +65,23 @@ float ComputeVolumeShadowing(float3 WorldPositionForLighting, bool bPointLight, 
 			// Treat as unshadowed if the voxel is outside of the shadow map
 			if (all(ShadowUVs >= 0 && ShadowUVs <= 1))
 			{
+				FPCFSamplerSettings Settings;
+				Settings.ShadowDepthTexture = StaticShadowDepthTexture;
+				Settings.ShadowDepthTextureSampler = StaticShadowDepthTextureSampler;
+				Settings.ShadowBufferSize = StaticShadowBufferSize;
+				Settings.SceneDepth = HomogeneousShadowPosition.z;
+				Settings.TransitionScale = 40;
+				Settings.bSubsurface = false;
+				Settings.DensityMulConstant = 0;
+				Settings.ProjectionDepthBiasParameters = float2(0, 0);
+
+				ShadowFactor = Manual1x1PCF(ShadowUVs, Settings);
+
+				/*
 				// Sample the shadowmap depth and determine if this voxel is shadowed
 				float ShadowDepth = Texture2DSampleLevel(StaticShadowDepthTexture, StaticShadowDepthTextureSampler, ShadowUVs, 0).x;
 				ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth;
+				*/
 			}
 		}
 	}		

@@ -37,6 +37,7 @@ public:
 	FRCPassPostProcessWeightedSampleSum(EFilterShape InFilterShape,
 			EFilterCombineMethod InCombineMethod,
 			float InSizeScale,
+			bool bInIsComputePass,
 			const TCHAR* InDebugName = TEXT("WeightedSampleSum"),
 			FLinearColor InAdditiveTintValue = FLinearColor::White);
 
@@ -46,17 +47,19 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
 	// retrieve runtime filter kernel properties.
-	static float GetClampedKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius);
-	static int GetIntegerKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius);
+	static float GetClampedKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, EShaderPlatform InPlatform, float KernelRadius);
+	static int GetIntegerKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, EShaderPlatform InPlatform, float KernelRadius);
 
 	// @param InCrossCenterWeight >=0
 	void SetCrossCenterWeight(float InCrossCenterWeight) { check(InCrossCenterWeight >= 0.0f); CrossCenterWeight = InCrossCenterWeight; }
+
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
 
 private:
 	void AdjustRectsForFastBlur(FIntRect& SrcRect, FIntRect& DestRect) const;
 	void DrawClear(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, FIntPoint DestSize) const;
 	void DrawQuad(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const;
-	static uint32 GetMaxNumSamples(ERHIFeatureLevel::Type InFeatureLevel);
+	static uint32 GetMaxNumSamples(ERHIFeatureLevel::Type InFeatureLevel, EShaderPlatform InPlatform);
 
 	// e.g. EFS_Horiz or EFS_Vert
 	EFilterShape FilterShape;
@@ -69,4 +72,10 @@ private:
 
 	// @return true: half x resolution for horizontal pass, vertical pass takes that as input, lower quality
 	bool DoFastBlur() const;
+
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV,
+		FTextureRHIParamRef FilterTextureRHI, FTextureRHIParamRef AdditiveTextureRHI, uint32 CombineMethodInt, FLinearColor* SampleWeightValues, FVector2D* SampleOffsetValues, uint32 NumSamples);
+
+	FComputeFenceRHIRef AsyncEndFence;
 };

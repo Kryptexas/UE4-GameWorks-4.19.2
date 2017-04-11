@@ -43,22 +43,24 @@ struct FTextureLock
 {
 	FRHIResource* Texture;
 	uint32 MipIndex;
+	uint32 LayerIndex;
 
-	FTextureLock(FRHIResource* InTexture, uint32 InMipIndex)
+	FTextureLock(FRHIResource* InTexture, uint32 InMipIndex, uint32 InLayerIndex = 0)
 		: Texture(InTexture)
 		, MipIndex(InMipIndex)
+		, LayerIndex(InLayerIndex)
 	{
 	}
 };
 
 inline bool operator == (const FTextureLock& A, const FTextureLock& B)
 {
-	return A.Texture == B.Texture && A.MipIndex == B.MipIndex;
+	return A.Texture == B.Texture && A.MipIndex == B.MipIndex && A.LayerIndex == B.LayerIndex;
 }
 
 inline uint32 GetTypeHash(const FTextureLock& Lock)
 {
-	return GetTypeHash(Lock.Texture) ^ Lock.MipIndex;
+	return GetTypeHash(Lock.Texture) ^ (Lock.MipIndex << 16) ^ (Lock.LayerIndex << 8);
 }
 
 static TMap<FTextureLock, VulkanRHI::FStagingBuffer*> GPendingLockedBuffers;
@@ -954,15 +956,73 @@ void FVulkanDynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint
 void* FVulkanDynamicRHI::RHILockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
 	FVulkanTexture2DArray* Texture = ResourceCast(TextureRHI);
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	return nullptr;//Texture->Surface.Lock(MipIndex, TextureIndex, LockMode, DestStride);
+	check(Texture);
+
+	VulkanRHI::FStagingBuffer** StagingBuffer = nullptr;
+	{
+		FScopeLock Lock(&GTextureMapLock);
+		StagingBuffer = &GPendingLockedBuffers.FindOrAdd(FTextureLock(TextureRHI, MipIndex, TextureIndex));
+		checkf(!*StagingBuffer, TEXT("Can't lock the same texture twice!"));
+	}
+
+	uint32 BufferSize = 0;
+	DestStride = 0;
+	Texture->Surface.GetMipSize(MipIndex, BufferSize);
+	Texture->Surface.GetMipStride(MipIndex, DestStride);
+	*StagingBuffer = Device->GetStagingManager().AcquireBuffer(BufferSize);
+
+	void* Data = (*StagingBuffer)->GetMappedPointer();
+	return Data;
 }
 
 void FVulkanDynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,bool bLockWithinMiptail)
 {
 	FVulkanTexture2DArray* Texture = ResourceCast(TextureRHI);
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	//Texture->Surface.Unlock(MipIndex, TextureIndex);
+	check(Texture);
+
+	VkDevice LogicalDevice = Device->GetInstanceHandle();
+
+	VulkanRHI::FStagingBuffer* StagingBuffer = nullptr;
+	{
+		FScopeLock Lock(&GTextureMapLock);
+		bool bFound = GPendingLockedBuffers.RemoveAndCopyValue(FTextureLock(TextureRHI, MipIndex, TextureIndex), StagingBuffer);
+		checkf(bFound, TEXT("Texture was not locked!"));
+	}
+
+	FVulkanCmdBuffer* CmdBuffer = Device->GetImmediateContext().GetCommandBufferManager()->GetUploadCmdBuffer();
+	ensure(CmdBuffer->IsOutsideRenderPass());
+	VkCommandBuffer StagingCommandBuffer = CmdBuffer->GetHandle();
+	EPixelFormat Format = Texture->Surface.PixelFormat;
+	uint32 MipWidth = FMath::Max<uint32>(Texture->Surface.Width >> MipIndex, GPixelFormats[Format].BlockSizeX);
+	uint32 MipHeight = FMath::Max<uint32>(Texture->Surface.Height >> MipIndex, GPixelFormats[Format].BlockSizeY);
+
+	VkImageSubresourceRange SubresourceRange;
+	FMemory::Memzero(SubresourceRange);
+	SubresourceRange.aspectMask = Texture->Surface.GetPartialAspectMask();
+	SubresourceRange.baseMipLevel = MipIndex;
+	SubresourceRange.levelCount = 1;
+	SubresourceRange.baseArrayLayer = TextureIndex;
+	SubresourceRange.layerCount = 1;
+	VulkanSetImageLayout(StagingCommandBuffer, Texture->Surface.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, SubresourceRange);
+
+	VkBufferImageCopy Region;
+	FMemory::Memzero(Region);
+	//#todo-rco: Might need an offset here?
+	//Region.bufferOffset = 0;
+	//Region.bufferRowLength = 0;
+	//Region.bufferImageHeight = 0;
+	Region.imageSubresource.aspectMask = Texture->Surface.GetPartialAspectMask();
+	Region.imageSubresource.mipLevel = MipIndex;
+	Region.imageSubresource.baseArrayLayer = TextureIndex;
+	Region.imageSubresource.layerCount = 1;
+	Region.imageExtent.width = MipWidth;
+	Region.imageExtent.height = MipHeight;
+	Region.imageExtent.depth = 1;
+	VulkanRHI::vkCmdCopyBufferToImage(StagingCommandBuffer, StagingBuffer->GetHandle(), Texture->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Region);
+
+	VulkanSetImageLayout(StagingCommandBuffer, Texture->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, SubresourceRange);
+
+	Device->GetStagingManager().ReleaseBuffer(CmdBuffer, StagingBuffer);
 }
 
 void FVulkanDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)

@@ -154,7 +154,10 @@ void FIESLoadHelper::Load(const uint8* Buffer)
 		}
 		else
 		{
-			// EIESV_1986
+			Version = EIESV_1986;
+
+			// Return buffer to start of file since line read was not the version
+			BufferPos = Buffer;
 		}
 	}
 

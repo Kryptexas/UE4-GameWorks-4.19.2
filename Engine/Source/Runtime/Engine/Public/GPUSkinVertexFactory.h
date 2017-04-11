@@ -134,13 +134,13 @@ private:
 struct FVertexBufferAndSRV
 {
 	void SafeRelease()
-    {
-        VertexBufferRHI.SafeRelease();
-        VertexBufferSRV.SafeRelease();
-    }
+	{
+		VertexBufferRHI.SafeRelease();
+		VertexBufferSRV.SafeRelease();
+	}
 
-    FVertexBufferRHIRef VertexBufferRHI;
-    FShaderResourceViewRHIRef VertexBufferSRV;
+	FVertexBufferRHIRef VertexBufferRHI;
+	FShaderResourceViewRHIRef VertexBufferSRV;
 };
 
 /**
@@ -150,7 +150,7 @@ struct FVertexBufferAndSRV
  */
 inline bool IsValidRef(const FVertexBufferAndSRV& Buffer)
 {
-    return IsValidRef(Buffer.VertexBufferRHI) && IsValidRef(Buffer.VertexBufferSRV);
+	return IsValidRef(Buffer.VertexBufferRHI) && IsValidRef(Buffer.VertexBufferSRV);
 }
 
 /** The policy for pooling bone vertex buffers */
@@ -545,7 +545,7 @@ public:
 		}
 	}
 
-	inline int32 GetStreamIndex(int32 RWBufferIndex) const
+	inline int32 GetStreamIndex() const
 	{
 		check(StreamIndex != -1);
 		return (uint32)StreamIndex;

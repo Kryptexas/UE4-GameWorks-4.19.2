@@ -17,6 +17,8 @@ TAutoConsoleVariable<FString> FDumpTransitionsHelper::CVarDumpTransitionsForReso
 	TEXT("Name of the resource to dump"),
 	ECVF_Default);
 
+RHI_API FRHILockTracker GRHILockTracker;
+
 FName FDumpTransitionsHelper::DumpTransitionForResource = NAME_None;
 void FDumpTransitionsHelper::DumpTransitionForResourceHandler()
 {

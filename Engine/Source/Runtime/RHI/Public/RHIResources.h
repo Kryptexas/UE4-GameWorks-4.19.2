@@ -1601,3 +1601,63 @@ public:
 protected:
 	TRefCountPtr<FRHIComputeShader> ComputeShader;
 };
+
+//
+// Shader Library
+//
+
+class FRHIShaderLibrary : public FRHIResource
+{
+public:
+	FRHIShaderLibrary(EShaderPlatform InPlatform) : Platform(InPlatform) {}
+	virtual ~FRHIShaderLibrary() {}
+	
+	FORCEINLINE EShaderPlatform GetPlatform(void) const { return Platform; }
+	
+	virtual bool IsNativeLibrary() const = 0;
+	
+	//Library iteration
+	struct FShaderLibraryEntry
+	{
+		FShaderLibraryEntry(): Frequency(SF_NumFrequencies), Platform(SP_NumPlatforms) {}
+		
+		FSHAHash Hash;
+		EShaderFrequency Frequency;
+		EShaderPlatform Platform;
+		
+		bool IsValid() const {return (Frequency < SF_NumFrequencies) && (Platform < SP_NumPlatforms);}
+	};
+	
+	class FShaderLibraryIterator : public FRHIResource
+	{
+	public:
+		FShaderLibraryIterator(FRHIShaderLibrary* ShaderLibrary) : ShaderLibrarySource(ShaderLibrary) {}
+		virtual ~FShaderLibraryIterator() {}
+	
+		//Is the iterator valid
+		virtual bool IsValid() const					 = 0;
+		
+		//Iterator position access
+		virtual FShaderLibraryEntry operator*()	const	 = 0;
+		
+		//Iterator next operation
+		virtual FShaderLibraryIterator& operator++()	 = 0;
+		
+		//Access the library we are iterating through - allow query e.g. GetPlatform from iterator object
+		FRHIShaderLibrary* GetLibrary() const			 {return ShaderLibrarySource;};
+		
+	private:
+		//Control source object lifetime while iterator is 'active'
+		TRefCountPtr<FRHIShaderLibrary> ShaderLibrarySource;
+	};
+	
+	virtual TRefCountPtr<FShaderLibraryIterator> CreateIterator(void) = 0;
+	
+	virtual uint32 GetShaderCount(void) const = 0;
+
+protected:
+	EShaderPlatform Platform;
+};
+
+typedef FRHIShaderLibrary*				FRHIShaderLibraryParamRef;
+typedef TRefCountPtr<FRHIShaderLibrary>	FRHIShaderLibraryRef;

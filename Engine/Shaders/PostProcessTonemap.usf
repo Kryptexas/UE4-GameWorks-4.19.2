@@ -78,10 +78,9 @@ half3 ColorLookupTable( half3 LinearColor )
 	float3 UVW = LUTEncodedColor * ((LUTSize - 1) / LUTSize) + (0.5f / LUTSize);
 
 #if USE_VOLUME_LUT == 1
-	half3 OutDeviceColor = ColorGradingLUT.Sample( ColorGradingLUTSampler, UVW ).rgb;
+	half3 OutDeviceColor = Texture3DSample( ColorGradingLUT, ColorGradingLUTSampler, UVW ).rgb;
 #else
 	half3 OutDeviceColor = UnwrappedTexture3DSample( ColorGradingLUT, ColorGradingLUTSampler, UVW, LUTSize ).rgb;
-	//half3 OutDeviceColor = UnwrappedTexture3DSample( PostprocessInput3, PostprocessInput3Sampler, UVW, LUTSize ).rgb;
 #endif
 	
 	return OutDeviceColor * 1.05;
@@ -122,6 +121,44 @@ float2 UVToScreenPos(float2 UV)
 
 float4 FringeUVParams;
 
+void TonemapCommonVS(
+	in	float4 Position,
+	in	float2 TexCoord,
+	out	float3 OutExposureScaleVignette,
+	out	float4 OutGrainUV,
+	out	float4 OutFringe,
+	out	float2 OutFullViewUV
+	)
+{
+	// Forward renderer uses view size texture
+	// TODO: Looks to be Ronin specific.. check this:
+	OutFullViewUV.xy = Position.xy * float2(0.5,-0.5) + 0.5;
+
+#if NEEDTOSWITCHVERTICLEAXIS
+	OutFullViewUV.y = 1.0 - OutFullViewUV.y;
+#endif
+
+#if EYEADAPTATION_EXPOSURE_FIX == 1
+	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
+	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).r;//EyeAdaptationLookup();
+#else
+	// If eye adaptation is disabled (e.g. fixed exposure level ) or  not available.  
+	OutExposureScaleVignette.x = DefaultEyeExposure;
+#endif
+
+	// Scale vignette to always be a circle with consistent corner intensity.
+	OutExposureScaleVignette.yz = VignetteSpace(Position.xy);
+
+	// Grain
+	OutGrainUV.xy = TexCoord + PostprocessInput0Size.zw * float2(-0.5,0.5);
+	OutGrainUV.zw = TexCoord + GrainRandomFull.xy;
+
+	// Fringe
+	float2 ScreenPos = UVToScreenPos(TexCoord);
+	OutFringe.xy = ScreenPosToUV(ScreenPos * FringeUVParams.r);
+	OutFringe.zw = ScreenPosToUV(ScreenPos * FringeUVParams.g);
+}
+
 // vertex shader entry point
 void MainVS(
 	in 					float4 InPosition 				: ATTRIBUTE0,
@@ -130,7 +167,7 @@ void MainVS(
 	out noperspective 	float3 OutExposureScaleVignette : TEXCOORD1,
 	out noperspective 	float4 OutGrainUV 				: TEXCOORD2,
 	out noperspective 	float4 OutFringe 				: TEXCOORD3,
-	out noperspective 	float4 OutFullViewUV 			: TEXCOORD4,
+	out noperspective 	float2 OutFullViewUV 			: TEXCOORD4,
 	out 				float4 OutPosition 				: SV_POSITION
 	)
 {
@@ -139,35 +176,8 @@ void MainVS(
 	InTexCoord.y = 1.0 - InTexCoord.y;
 #endif
 
-	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord.xy);
-
-	// Forward renderer uses view size texture
-	// TODO: Looks to be Ronin specific.. check this:
-	OutFullViewUV.xy = OutPosition.xy * float2(0.5,-0.5) + 0.5;
-
-#if NEEDTOSWITCHVERTICLEAXIS
-	OutFullViewUV.y = 1.0 - OutFullViewUV.y;
-#endif
-
-#if EYEADAPTATION_EXPOSURE_FIX == 1
-	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
-	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).r;
-#else
-	// If eye adaptation is disabled (e.g. fixed exposure level ) or  not available.  
-	OutExposureScaleVignette.x = DefaultEyeExposure;
-#endif
-
-	// Scale vignette to always be a circle with consistent corner intensity.
-	OutExposureScaleVignette.yz = VignetteSpace(OutPosition.xy);
-
-	// Grain
-	OutGrainUV.xy = OutTexCoord + PostprocessInput0Size.zw * float2(-0.5,0.5);
-	OutGrainUV.zw = OutTexCoord + GrainRandomFull.xy;
-
-	// Fringe
-	float2 ScreenPos = UVToScreenPos(OutTexCoord);
-	OutFringe.xy = ScreenPosToUV(ScreenPos * FringeUVParams.r);
-	OutFringe.zw = ScreenPosToUV(ScreenPos * FringeUVParams.g);
+	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord);
+	TonemapCommonVS(OutPosition, OutTexCoord, OutExposureScaleVignette, OutGrainUV, OutFringe, OutFullViewUV);
 }
 
 // Function graphing
@@ -276,18 +286,16 @@ half3 LookupSceneColor(float2 SceneUV, int2 PixelOffset)
 #endif
 }
 
-// pixel shader entry point
-void MainPS(
-	in noperspective float2 UV : TEXCOORD0,
-	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
-	in noperspective float4 GrainUV : TEXCOORD2,
-	in noperspective float4 FringeUV : TEXCOORD3,
-	in noperspective float4 FullViewUV : TEXCOORD4,
-	float4 SvPosition : SV_POSITION,		// after all interpolators
-	out float4 OutColor : SV_Target0
+float4 TonemapCommonPS(
+	float2 UV,
+	float3 InExposureScaleVignette,
+	float4 GrainUV,
+	float4 FringeUV,
+	float2 FullViewUV,
+	float4 SvPosition
 	)
 {
-	OutColor = 0;
+	float4 OutColor = 0;
 
 #if DEBUG_TONEMAPPER
 	// @param DebugTile 0,0 is center, -1,0 is left, 1,0 is right, ...
@@ -394,11 +402,8 @@ void MainPS(
 		}
 #endif //DEBUG_TONEMAPPER
 
-
 		// -1:sharpen, 0:no effect, 1:blur
 		float LerpFactor = -EdgeMask * SharpenMultiplierDiv6;
-
-
 
 		// reference
 		// same instruction count as if the center weight is 1.0
@@ -486,7 +491,6 @@ void MainPS(
 		}
 	#endif
 
-
 #if DEBUG_TONEMAPPER
 	if (!bOutputDebugTile)
 	{
@@ -505,7 +509,54 @@ void MainPS(
 		OutColor = 1;
 	}
 #endif //DEBUG_TONEMAPPER
+
+	return OutColor;
 }
+
+// pixel shader entry point
+void MainPS(
+	in noperspective float2 UV : TEXCOORD0,
+	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
+	in noperspective float4 GrainUV : TEXCOORD2,
+	in noperspective float4 FringeUV : TEXCOORD3,
+	in noperspective float2 FullViewUV : TEXCOORD4,
+	float4 SvPosition : SV_POSITION,		// after all interpolators
+	out float4 OutColor : SV_Target0
+	)
+{
+	OutColor = TonemapCommonPS(UV, InExposureScaleVignette, GrainUV, FringeUV, FullViewUV, SvPosition);
+}
+
+#if COMPUTESHADER
+// xy: Unused, zw: ThreadToUVScale
+float4 TonemapComputeParams;
+RWTexture2D<float4> RWOutComputeTex;
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
+{
+	float2 UV = ((float2)DispatchThreadId + View.ViewRectMin.xy + 0.5f) * TonemapComputeParams.zw;
+	float4 SvPosition = float4(UV*2-1,0,1);
+
+	if (IsComputeUVOutOfBounds(UV))
+	{
+		return;
+	}
+
+	float3 ExposureScaleVignette;
+	float4 GrainUV, FringeUV;
+	float2 FullViewUV;	
+	TonemapCommonVS(SvPosition, UV, ExposureScaleVignette, GrainUV, FringeUV, FullViewUV);
+
+	float4 OutColor = TonemapCommonPS(UV, ExposureScaleVignette, GrainUV, FringeUV, FullViewUV, SvPosition);
+
+	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
+#if NEEDTOSWITCHVERTICLEAXIS
+	PixelPos.y = (uint)(1.0/TonemapComputeParams.w) - PixelPos.y;
+#endif
+	RWOutComputeTex[PixelPos] = OutColor;
+}
+#endif
 
 
 // ES2 version
@@ -625,15 +676,15 @@ void MainPS_ES2(
 	BRANCH
 	if (FringeIntensity > 0.0)
 	{
-		SceneColor.r = PostprocessInput0.Sample(PostprocessInput0Sampler, UV).r;
-		SceneColor.g = PostprocessInput0.Sample(PostprocessInput0Sampler, InFringeTexCoords.xy).g;
-		SceneColor.b = PostprocessInput0.Sample(PostprocessInput0Sampler, InFringeTexCoords.zw).b;
+		SceneColor.r = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).r;
+		SceneColor.g = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, InFringeTexCoords.xy).g;
+		SceneColor.b = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, InFringeTexCoords.zw).b;
 		SceneColor.a = 1.0;
 	}
 	else
 #endif
 	{
-		SceneColor = PostprocessInput0.Sample(PostprocessInput0Sampler, UV);
+		SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
 	}
 
 	#if USE_GAMMA_ONLY
@@ -648,8 +699,8 @@ void MainPS_ES2(
 		#endif
 
 		#if USE_DOF
-			half4 DofFine = PostprocessInput0.Sample(PostprocessInput0Sampler, FineDofGrain.xy);
-			half4 Dof = PostprocessInput2.Sample(PostprocessInput2Sampler, FullViewUV.zw);
+			half4 DofFine = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FineDofGrain.xy);
+			half4 Dof = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, FullViewUV.zw);
 			// Convert alpha back into circle of confusion.
 			SceneColor.a = max(Dof.a, abs(SceneColor.a * 2.0 - 1.0));
 			// Convert circle of confusion into blend factors.		
@@ -671,7 +722,7 @@ void MainPS_ES2(
 					// This has grain jitter off.
 				#else
 					// Do jitter for grain.
-					half4 DofFine = PostprocessInput0.Sample(PostprocessInput0Sampler, FineDofGrain.xy);
+					half4 DofFine = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FineDofGrain.xy);
 					// Grain jitter.
 					SceneColor.rgb = lerp(SceneColor.rgb, DofFine.rgb, (1.0-Grain*Grain) * GrainScaleBiasJitter.z);
 				#endif

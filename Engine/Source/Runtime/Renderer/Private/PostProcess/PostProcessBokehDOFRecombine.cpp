@@ -22,6 +22,9 @@ static TAutoConsoleVariable<int32> CVarSeparateTranslucencyUpsampleMode(
 	TEXT("0: bilinear 1: Nearest-Depth Neighbor (only when r.SeparateTranslucencyScreenPercentage is 50)"),
 	ECVF_Scalability | ECVF_Default);
 
+const int32 GBokehDOFRecombineComputeTileSizeX = 8;
+const int32 GBokehDOFRecombineComputeTileSizeY = 8;
+
 /**
  * Encapsulates a shader to combined Depth of field and separate translucency layers.
  * @param Method 1:DOF, 2:SeparateTranslucency, 3:DOF+SeparateTranslucency, 4:SeparateTranslucency with Nearest-Depth Neighbor, 5:DOF+SeparateTranslucency with Nearest-Depth Neighbor
@@ -152,6 +155,166 @@ public:
 VARIATION1(1)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)			VARIATION1(5)
 #undef VARIATION1
 
+/**
+ * Encapsulates a shader to combined Depth of field and separate translucency layers.
+ * @param Method 1:DOF, 2:SeparateTranslucency, 3:DOF+SeparateTranslucency, 4:SeparateTranslucency with Nearest-Depth Neighbor, 5:DOF+SeparateTranslucency with Nearest-Depth Neighbor
+ */
+template <uint32 Method>
+class FPostProcessBokehDOFRecombineCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPostProcessBokehDOFRecombineCS, Global);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static int32 GetCombineFeatureMethod()
+	{
+		if (Method <= 3)
+		{
+			return Method;
+		}
+		else
+		{
+			return Method - 2;
+		}
+	}
+
+	static bool UseNearestDepthNeighborUpsample()
+	{
+		return Method > 3;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		// CS Params
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GBokehDOFRecombineComputeTileSizeX);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GBokehDOFRecombineComputeTileSizeY);
+
+		// PS params
+		OutEnvironment.SetDefine(TEXT("RECOMBINE_METHOD"), GetCombineFeatureMethod());
+		OutEnvironment.SetDefine(TEXT("NEAREST_DEPTH_NEIGHBOR_UPSAMPLE"), UseNearestDepthNeighborUpsample());
+	}
+
+	/** Default constructor. */
+	FPostProcessBokehDOFRecombineCS() {}
+
+public:
+	// CS params
+	FRWShaderParameter OutComputeTex;
+	FShaderParameter BokehDOFRecombineComputeParams;
+
+	// PS params
+	FPostProcessPassParameters PostprocessParameter;
+	FDeferredPixelShaderParameters DeferredParameters;
+	FShaderParameter DepthOfFieldParams;
+	FShaderParameter SeparateTranslucencyResMultParam;
+	FShaderResourceParameter LowResDepthTexture;
+	FShaderResourceParameter BilinearClampedSampler;
+	FShaderResourceParameter PointClampedSampler;
+
+	/** Initialization constructor. */
+	FPostProcessBokehDOFRecombineCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		// CS params
+		OutComputeTex.Bind(Initializer.ParameterMap, TEXT("OutComputeTex"));
+		BokehDOFRecombineComputeParams.Bind(Initializer.ParameterMap, TEXT("BokehDOFRecombineComputeParams"));
+
+		// PS params
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		DeferredParameters.Bind(Initializer.ParameterMap);
+		DepthOfFieldParams.Bind(Initializer.ParameterMap,TEXT("DepthOfFieldParams"));
+		SeparateTranslucencyResMultParam.Bind(Initializer.ParameterMap, TEXT("SeparateTranslucencyResMult"));
+		LowResDepthTexture.Bind(Initializer.ParameterMap, TEXT("LowResDepthTexture"));
+		BilinearClampedSampler.Bind(Initializer.ParameterMap, TEXT("BilinearClampedSampler"));
+		PointClampedSampler.Bind(Initializer.ParameterMap, TEXT("PointClampedSampler"));
+	}
+
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const FIntPoint& DestSize, FUnorderedAccessViewRHIParamRef DestUAV, float UVScaling)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+		// CS params
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		OutComputeTex.SetTexture(RHICmdList, ShaderRHI, nullptr, DestUAV);
+		
+		FVector4 BokehDOFRecombineComputeValues(0, 0, 1.f / (float)DestSize.X, UVScaling / (float)DestSize.Y);
+		SetShaderValue(RHICmdList, ShaderRHI, BokehDOFRecombineComputeParams, BokehDOFRecombineComputeValues);
+
+		// PS params
+		PostprocessParameter.SetCS(ShaderRHI, Context, RHICmdList, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+
+		FIntPoint OutScaledSize;
+		float OutScale;
+		SceneContext.GetSeparateTranslucencyDimensions(OutScaledSize, OutScale);
+
+		SetShaderValue(RHICmdList, ShaderRHI, SeparateTranslucencyResMultParam, FVector4(OutScale, OutScale, OutScale, OutScale));
+
+		{
+			FVector4 DepthOfFieldParamValues[2];
+			FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(Context, DepthOfFieldParamValues);
+			SetShaderValueArray(RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
+		}
+
+		if (UseNearestDepthNeighborUpsample())
+		{
+			check(SceneContext.IsSeparateTranslucencyDepthValid());
+			FTextureRHIParamRef LowResDepth = SceneContext.GetSeparateTranslucencyDepthSurface();
+			SetTextureParameter(RHICmdList, ShaderRHI, LowResDepthTexture, LowResDepth);
+
+			const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
+
+			SetSamplerParameter(RHICmdList, ShaderRHI, BilinearClampedSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+			SetSamplerParameter(RHICmdList, ShaderRHI, PointClampedSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		}
+		else
+		{
+			checkSlow(!LowResDepthTexture.IsBound());
+		}
+	}
+
+	template <typename TRHICmdList>
+	void UnsetParameters(TRHICmdList& RHICmdList)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		OutComputeTex.UnsetUAV(RHICmdList, ShaderRHI);
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		// CS params
+		Ar << OutComputeTex << BokehDOFRecombineComputeParams;
+		// PS params
+		Ar << PostprocessParameter << DepthOfFieldParams << DeferredParameters << SeparateTranslucencyResMultParam << LowResDepthTexture << BilinearClampedSampler << PointClampedSampler;
+		return bShaderHasOutdatedParameters;
+	}
+
+	static const TCHAR* GetSourceFilename()
+	{
+		return TEXT("PostProcessBokehDOF");
+	}
+
+	static const TCHAR* GetFunctionName()
+	{
+		return TEXT("MainRecombineCS");
+	}
+};
+
+// #define avoids a lot of code duplication
+#define VARIATION1(A) typedef FPostProcessBokehDOFRecombineCS<A> FPostProcessBokehDOFRecombineCS##A; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessBokehDOFRecombineCS##A, SF_Compute);
+
+VARIATION1(1)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)			VARIATION1(5)
+#undef VARIATION1
 
 template <uint32 Method>
 void FRCPassPostProcessBokehDOFRecombine::SetShader(const FRenderingCompositePassContext& Context)
@@ -181,8 +344,9 @@ void FRCPassPostProcessBokehDOFRecombine::SetShader(const FRenderingCompositePas
 
 void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext& Context)
 {
-	uint32 Method = 2;
+	AsyncEndFence = FComputeFenceRHIRef();
 
+	uint32 Method = 2;
 	FRenderingCompositeOutputRef* Input1 = GetInput(ePId_Input1);
 
 	if(Input1 && Input1->GetPass())
@@ -217,11 +381,11 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 
 	const FSceneView& View = Context.View;
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, BokehDOFRecombine, TEXT("BokehDOFRecombine#%d %dx%d"), Method, View.ViewRect.Width(), View.ViewRect.Height());
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, BokehDOFRecombine, TEXT("BokehDOFRecombine%s#%d %dx%d"),
+		bIsComputePass?TEXT("Compute"):TEXT(""), Method, View.ViewRect.Width(), View.ViewRect.Height());
 
 	const FPooledRenderTargetDesc* InputDesc0 = GetInputDesc(ePId_Input0);
 	const FPooledRenderTargetDesc* InputDesc1 = GetInputDesc(ePId_Input1);
-
 
 	FIntPoint TexSize = InputDesc1 ? InputDesc1->Extent : InputDesc0->Extent;
 
@@ -232,48 +396,127 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	if (bIsComputePass)
+	{
+		FIntRect DestRect = {View.ViewRect.Min, View.ViewRect.Min + PassOutputs[0].RenderTargetDesc.Extent};
 
-	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 1.0f, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
+		// Calculate the scaling required to convert UVs to bokeh accumulation space
+		const float UVScaling = (float)HalfResViewRect.Height() / (float)TexSize.Y;
+	
+		// Common setup
+		SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
+		Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f);
+		
+		static FName AsyncEndFenceName(TEXT("AsyncBokehDOFRecombineEndFence"));
+		AsyncEndFence = Context.RHICmdList.CreateComputeFence(AsyncEndFenceName);
 
-	Context.SetViewportAndCallRHI(View.ViewRect);
+		if (IsAsyncComputePass())
+		{
+			// Async path
+			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
+			{
+ 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncBokehDOFRecombine);
+				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
+
+				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+				DispatchCS(RHICmdListComputeImmediate, Context, DestRect, DestRenderTarget.UAV, Method, UVScaling);
+				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
+			}
+			FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);
+		}
+		else
+		{
+			// Direct path
+			WaitForInputPassComputeFences(Context.RHICmdList);
+			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+			DispatchCS(Context.RHICmdList, Context, DestRect, DestRenderTarget.UAV, Method, UVScaling);			
+			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
+		}
+	}
+	else
+	{
+		WaitForInputPassComputeFences(Context.RHICmdList);
+
+		// Set the view family's render target/viewport.
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+
+		// is optimized away if possible (RT size=view size, )
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 1.0f, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
+
+		Context.SetViewportAndCallRHI(View.ViewRect);
+
+		switch(Method)
+		{
+			case 1: SetShader<1>(Context); break;
+			case 2: SetShader<2>(Context); break;
+			case 3: SetShader<3>(Context); break;
+			case 4: SetShader<4>(Context); break;
+			case 5: SetShader<5>(Context); break;
+			default:
+				check(0);
+		}
+
+		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+
+		DrawPostProcessPass(
+			Context.RHICmdList,
+			0, 0,
+			View.ViewRect.Width(), View.ViewRect.Height(),
+			HalfResViewRect.Min.X, HalfResViewRect.Min.Y,
+			HalfResViewRect.Width(), HalfResViewRect.Height(),
+			View.ViewRect.Size(),
+			TexSize,
+			*VertexShader,
+			View.StereoPass,
+			Context.HasHmdMesh(),
+			EDRF_UseTriangleOptimization);
+
+		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	}
+}
+
+template <typename TRHICmdList>
+void FRCPassPostProcessBokehDOFRecombine::DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, uint32 Method, float UVScaling)
+{
+	auto ShaderMap = Context.GetShaderMap();
+
+	FIntPoint DestSize(DestRect.Width(), DestRect.Height());
+	uint32 GroupSizeX = FMath::DivideAndRoundUp(DestSize.X, GBokehDOFRecombineComputeTileSizeX);
+	uint32 GroupSizeY = FMath::DivideAndRoundUp(DestSize.Y, GBokehDOFRecombineComputeTileSizeY);
+
+#define DISPATCH_CASE(A)																\
+	case A:																				\
+	{																					\
+		TShaderMapRef<FPostProcessBokehDOFRecombineCS<A>> ComputeShader(ShaderMap);		\
+		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());					\
+		ComputeShader->SetParameters(RHICmdList, Context, DestSize, DestUAV, UVScaling);\
+		DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);	\
+		ComputeShader->UnsetParameters(RHICmdList);										\
+	}																					\
+	break;
 
 	switch(Method)
 	{
-		case 1: SetShader<1>(Context); break;
-		case 2: SetShader<2>(Context); break;
-		case 3: SetShader<3>(Context); break;
-		case 4: SetShader<4>(Context); break;
-		case 5: SetShader<5>(Context); break;
-		default:
-			check(0);
+	DISPATCH_CASE(1)
+	DISPATCH_CASE(2)
+	DISPATCH_CASE(3)
+	DISPATCH_CASE(4)
+	DISPATCH_CASE(5)
+	default:
+		check(0);
 	}
 
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-
-	DrawPostProcessPass(
-		Context.RHICmdList,
-		0, 0,
-		View.ViewRect.Width(), View.ViewRect.Height(),
-		HalfResViewRect.Min.X, HalfResViewRect.Min.Y,
-		HalfResViewRect.Width(), HalfResViewRect.Height(),
-		View.ViewRect.Size(),
-		TexSize,
-		*VertexShader,
-		View.StereoPass,
-		Context.HasHmdMesh(),
-		EDRF_UseTriangleOptimization);
-
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+#undef DISPATCH_CASE
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessBokehDOFRecombine::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
-
 	Ret.Reset();
+
+	Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
+	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
+
 	Ret.AutoWritable = false;
 	Ret.DebugName = TEXT("BokehDOFRecombine");
 

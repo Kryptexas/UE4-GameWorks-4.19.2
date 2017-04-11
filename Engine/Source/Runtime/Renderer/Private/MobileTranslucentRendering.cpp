@@ -252,7 +252,7 @@ bool FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 				PrimitiveSceneProxy,
 				true,
 				false,
-				ESceneRenderTargetsMode::SetTextures,
+				DrawingContext.TextureMode,
 				FeatureLevel, 
 				false, // ISR disabled for mobile
 				View.bIsMobileMultiViewEnabled
@@ -365,12 +365,12 @@ void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdLi
 			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 
 			// Draw only translucent prims that don't read from scene color
-			FMobileTranslucencyDrawingPolicyFactory::ContextType DrawingContext(false);
+			FMobileTranslucencyDrawingPolicyFactory::ContextType DrawingContext(ESceneRenderTargetsMode::SetTextures, false);
 			View.TranslucentPrimSet.DrawPrimitivesForMobile<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext);
 			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileTranslucencyDrawingPolicyFactory::ContextType(false), SDPG_World, false);
+			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileTranslucencyDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures, false), SDPG_World, false);
 			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileTranslucencyDrawingPolicyFactory::ContextType(false), SDPG_Foreground, false);
+			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileTranslucencyDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures, false), SDPG_Foreground, false);
 		}
 	}
 }

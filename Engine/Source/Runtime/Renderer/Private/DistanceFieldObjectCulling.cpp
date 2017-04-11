@@ -84,7 +84,7 @@ void FTileIntersectionResources::InitDynamicRHI()
 
 	// Can only use 16 bit for CulledTileDataArray if few enough objects and tiles
 	const bool b16BitObjectIndices = MaxSceneObjects < (1 << 16);
-	const bool b16BitCulledTileIndexBuffer = b16BitObjectIndices && TileDimensions.X * TileDimensions.Y < (1 << 16);
+	const bool b16BitCulledTileIndexBuffer = bAllow16BitIndices && b16BitObjectIndices && TileDimensions.X * TileDimensions.Y < (1 << 16);
 	CulledTileDataArray.Initialize(b16BitCulledTileIndexBuffer ? sizeof(uint16) : sizeof(uint32), GMaxDistanceFieldObjectsPerCullTile * TileDimensions.X * TileDimensions.Y * CulledTileDataStride, b16BitCulledTileIndexBuffer ? PF_R16_UINT : PF_R32_UINT);
 	ObjectTilesIndirectArguments.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 }
@@ -606,7 +606,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 			}
 			else
 			{
-				TileIntersectionResources = new FTileIntersectionResources();
+				TileIntersectionResources = new FTileIntersectionResources(!IsMetalPlatform(GShaderPlatformForFeatureLevel[View.FeatureLevel]));
 			}
 
 			TileIntersectionResources->SetupParameters(TileListGroupSize, Scene->DistanceFieldSceneData.NumObjectsInBuffer);

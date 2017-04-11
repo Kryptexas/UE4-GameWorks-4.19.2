@@ -306,6 +306,7 @@ public:
 		AutoWritable = true;
 
 		// Remove UAV flag for rendertargets that don't need it (some formats are incompatible)
+		TargetableFlags |= TexCreate_RenderTargetable;
 		TargetableFlags &= (~TexCreate_UAV);
 	}
 

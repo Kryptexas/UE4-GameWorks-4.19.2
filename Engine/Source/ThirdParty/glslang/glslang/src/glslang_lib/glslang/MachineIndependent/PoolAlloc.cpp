@@ -105,8 +105,8 @@ void SetThreadPoolAllocator(TPoolAllocator& poolAllocator)
 TPoolAllocator::TPoolAllocator(int growthIncrement, int allocationAlignment) :
     pageSize(growthIncrement),
     alignment(allocationAlignment),
-    freeList(0),
-    inUseList(0),
+    freeList(nullptr),
+    inUseList(nullptr),
     numCalls(0)
 {
     //
@@ -339,7 +339,7 @@ void* TPoolAllocator::allocate(size_t numBytes)
 void TAllocation::checkAllocList() const
 {
 	//#Epic - Had to rename check() to Check()
-    for (const TAllocation* alloc = this; alloc != 0; alloc = alloc->prevAlloc)
+	for (const TAllocation* alloc = this; alloc != 0; alloc = alloc->prevAlloc)
         alloc->Check();
 }
 

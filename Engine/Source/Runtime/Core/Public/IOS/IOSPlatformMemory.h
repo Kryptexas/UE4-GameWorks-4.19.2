@@ -7,6 +7,7 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformMemory.h"
+#include "Apple/ApplePlatformMemory.h"
 
 /**
  *	IOS implementation of the FGenericPlatformMemoryStats.

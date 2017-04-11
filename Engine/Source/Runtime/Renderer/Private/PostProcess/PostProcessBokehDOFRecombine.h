@@ -17,13 +17,25 @@
 class FRCPassPostProcessBokehDOFRecombine : public TRenderingCompositePassBase<3, 1>
 {
 public:
+	FRCPassPostProcessBokehDOFRecombine(bool InIsComputePass)
+	{
+		bIsComputePass = InIsComputePass;
+		bPreferAsyncCompute = false;
+	}
+
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
-private:
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
 
+private:
 	template <uint32 Method>
 	static void SetShader(const FRenderingCompositePassContext& Context);
+
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, uint32 Method, float UVScaling);
+	
+	FComputeFenceRHIRef AsyncEndFence;
 };

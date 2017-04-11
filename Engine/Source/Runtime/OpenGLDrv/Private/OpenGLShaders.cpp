@@ -2401,7 +2401,7 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 			}
 		}
 
-		if(FShaderCache::IsPrebindCall() && !VertexDeclarationRHI)
+		if(FShaderCache::IsPrebindCall(FShaderCache::GetDefaultCacheState()) && !VertexDeclarationRHI)
 		{
 			return nullptr;
 		}
@@ -2420,7 +2420,7 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 				DomainShaderRHI
 				);
 
-			FShaderCache::LogBoundShaderState(FOpenGL::GetShaderPlatform(), VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, BoundShaderState);
+			FShaderCache::LogBoundShaderState(FShaderCache::GetDefaultCacheState(), FOpenGL::GetShaderPlatform(), VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, BoundShaderState);
 
 			return BoundShaderState;
 		}

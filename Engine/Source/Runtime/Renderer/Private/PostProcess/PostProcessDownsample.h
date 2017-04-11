@@ -21,6 +21,7 @@ public:
 	// @param Quality only used if ePId_Input1 is not set, 0:one filtered sample, 1:four filtered samples
 	FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat = PF_Unknown,
 			uint32 InQuality = 1,
+			bool bInIsComputePass = false, 
 			const TCHAR *InDebugName = TEXT("Downsample"));
 
 	// interface FRenderingCompositePass ---------
@@ -29,13 +30,20 @@ public:
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
+
 private:
-	template <uint32 Method> static void SetShader(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc);
+	template <uint32 Method>
+	void SetShader(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc);
+
+	template <uint32 Method, typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntPoint& SrcSize, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV);
+
+	FComputeFenceRHIRef AsyncEndFence;
 
 	EPixelFormat OverrideFormat;
 	// explained in constructor
 	uint32 Quality;
 	// must be a valid pointer
 	const TCHAR* DebugName;
-	bool IsDepthInputAvailable() const;
 };

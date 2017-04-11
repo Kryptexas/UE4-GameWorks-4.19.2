@@ -22,7 +22,7 @@ void ExponentialPixelMain(
 	float3 WorldPositionRelativeToCamera = ScreenVector.xyz * SceneDepth;
 
 	float ZSlice = log2(SceneDepth * View.VolumetricFogGridZParams.x + View.VolumetricFogGridZParams.y) * View.VolumetricFogGridZParams.z * View.VolumetricFogInvGridSize.z;
-	float3 VolumeUV = float3(SVPos * View.VolumetricFogSVPosToVolumeUV, ZSlice);
+	float3 VolumeUV = float3((SVPos.xy - View.ViewRectMin.xy) * View.VolumetricFogSVPosToVolumeUV, ZSlice);
 
 	float4 FogInscatteringAndOpacity = CalculateCombinedFog(WorldPositionRelativeToCamera, VolumeUV);
 

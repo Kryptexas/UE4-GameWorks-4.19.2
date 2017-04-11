@@ -49,6 +49,12 @@ static TAutoConsoleVariable<float> CVarSeparateTranslucencyMinDownsampleChangeTi
 	TEXT("Minimum time in seconds between changes to automatic downsampling state, used to prevent rapid swapping between half and full res."),
 	ECVF_Scalability | ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarCopySceneColorOncePerViewOnly(
+	TEXT("r.CopySceneColorOncePerViewOnly"),
+	0,
+	TEXT("Copy the scene color for translucent materials that sample from it only once per-view rather than prior to each draw call. Currently adds a fixed overhead of one copy per-view even when it isn't used."),
+	ECVF_RenderThreadSafe);
+
 void FDeferredShadingSceneRenderer::UpdateTranslucencyTimersAndSeparateTranslucencyBufferSize(FRHICommandListImmediate& RHICmdList)
 {
 	bool bAnyViewWantsDownsampledSeparateTranslucency = false;
@@ -257,7 +263,7 @@ void FTranslucencyDrawingPolicyFactory::CopySceneColor(FRHICommandList& RHICmdLi
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	SCOPED_DRAW_EVENTF(RHICmdList, EventCopy, TEXT("CopySceneColor from SceneColor node for %s %s"), *PrimitiveSceneProxy->GetOwnerName().ToString(), *PrimitiveSceneProxy->GetResourceName().ToString());
+	SCOPED_DRAW_EVENTF(RHICmdList, EventCopy, TEXT("CopySceneColor from SceneColor node for %s %s"), PrimitiveSceneProxy ? *PrimitiveSceneProxy->GetOwnerName().ToString() : TEXT("Scene"), PrimitiveSceneProxy ? *PrimitiveSceneProxy->GetResourceName().ToString() : TEXT("Scene"));
 
 	RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(View.ViewRect.Min.X, View.ViewRect.Min.Y, View.ViewRect.Max.X, View.ViewRect.Max.Y));
 
@@ -372,9 +378,8 @@ public:
 			*Parameters.Material,
 			Parameters.FeatureLevel,
 			LightMapPolicy,
-			Parameters.BlendMode,
-			// Translucent meshes need scene render targets set as textures
-			ESceneRenderTargetsMode::SetTextures,
+			Parameters.BlendMode,			
+			Parameters.TextureMode,
 			bRenderSkylight,
 			bRenderAtmosphericFog,
 			ComputeMeshOverrideSettings(Parameters.Mesh),
@@ -500,18 +505,22 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 			{
 				if (DrawingContext.bSceneColorCopyIsUpToDate == false)
 				{
-					if (!RHICmdList.Bypass() && !IsInActualRenderingThread() && !IsInGameThread())
+					if (CVarCopySceneColorOncePerViewOnly.GetValueOnRenderThread() == 0)
 					{
-						FRHICommandList* CmdList = new FRHICommandList;
-						CmdList->CopyRenderThreadContexts(RHICmdList);
-						FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FCopySceneColorAndRestoreRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(*CmdList, View, PrimitiveSceneProxy);
-						RHICmdList.QueueRenderThreadCommandListSubmit(RenderThreadCompletionEvent, CmdList);
+						if (!RHICmdList.Bypass() && !IsInActualRenderingThread() && !IsInGameThread())
+						{
+							FRHICommandList* CmdList = new FRHICommandList;
+							CmdList->CopyRenderThreadContexts(RHICmdList);
+							FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FCopySceneColorAndRestoreRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(*CmdList, View, PrimitiveSceneProxy);
+							RHICmdList.QueueRenderThreadCommandListSubmit(RenderThreadCompletionEvent, CmdList);
+						}
+						else
+						{
+							// otherwise, just do it now. We don't want to defer in this case because that can interfere with render target visualization (a debugging tool).
+							CopySceneColorAndRestore(RHICmdList, View, PrimitiveSceneProxy);
+						}
 					}
-					else
-					{
-						// otherwise, just do it now. We don't want to defer in this case because that can interfere with render target visualization (a debugging tool).
-						CopySceneColorAndRestore(RHICmdList, View, PrimitiveSceneProxy);
-					}
+
 					// todo: this optimization is currently broken
 					DrawingContext.bSceneColorCopyIsUpToDate = (DrawingContext.TranslucenyPassType == ETranslucencyPass::TPT_SeparateTranslucency);
 					SetTranslucentState(RHICmdList, DrawRenderStateLocal);
@@ -566,7 +575,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 					PrimitiveSceneProxy, 
 					!bPreFog,
 					bEditorCompositeDepthTest,
-					ESceneRenderTargetsMode::SetTextures,
+					DrawingContext.TextureMode,
 					FeatureLevel
 				),
 				FDrawTranslucentMeshAction(
@@ -1139,6 +1148,11 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			{
 				ETranslucencyPass::Type TranslucencyPass = ETranslucencyPass::TPT_SeparateTranslucency;
 
+				if (CVarCopySceneColorOncePerViewOnly.GetValueOnRenderThread() != 0)
+				{
+					TGraphTask<FCopySceneColorAndRestoreRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(RHICmdList, View, nullptr);
+				}
+				
 				// always call BeginRenderingSeparateTranslucency() even if there are no primitives to we keep the RT allocated
 				FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, 
 					RHICmdList, 
@@ -1298,6 +1312,11 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 					BeginTimingSeparateTranslucencyPass(RHICmdList, View);
 
+					if (CVarCopySceneColorOncePerViewOnly.GetValueOnRenderThread() != 0)
+					{
+						FTranslucencyDrawingPolicyFactory::CopySceneColor(RHICmdList, View, nullptr);
+					}
+					
 					bool bFirstTimeThisFrame = (ViewIndex == 0);
 					SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bFirstTimeThisFrame);
 

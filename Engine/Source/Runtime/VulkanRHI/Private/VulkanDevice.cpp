@@ -221,13 +221,17 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_FloatRGBA, VK_FORMAT_R16G16B16A16_SFLOAT, 8);
 	SetComponentMapping(PF_FloatRGBA, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
-	MapFormatSupport(PF_DepthStencil, VK_FORMAT_D24_UNORM_S8_UINT);
+	MapFormatSupport(PF_DepthStencil, VK_FORMAT_D32_SFLOAT_S8_UINT);
 	if (!GPixelFormats[PF_DepthStencil].Supported)
 	{
-		MapFormatSupport(PF_DepthStencil, VK_FORMAT_D32_SFLOAT_S8_UINT);
+		MapFormatSupport(PF_DepthStencil, VK_FORMAT_D24_UNORM_S8_UINT);
 		if (!GPixelFormats[PF_DepthStencil].Supported)
 		{
 			MapFormatSupport(PF_DepthStencil, VK_FORMAT_D16_UNORM_S8_UINT);
+			if (!GPixelFormats[PF_DepthStencil].Supported)
+			{
+				UE_LOG(LogVulkanRHI, Error, TEXT("No stencil texture format supported!"));
+			}
 		}
 	}
 	SetComponentMapping(PF_DepthStencil, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY);

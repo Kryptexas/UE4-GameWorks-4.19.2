@@ -358,7 +358,13 @@ public:
 
 		if (!bAllQueriesAllocated)
 		{
-			UE_LOG(LogSceneUtils, Warning, TEXT("Ran out of GPU queries! Results for this frame will be incomplete"));
+			static bool bWarned = false;
+
+			if (!bWarned)
+			{
+				bWarned = true;
+				UE_LOG(LogSceneUtils, Warning, TEXT("Ran out of GPU queries! Results for this frame will be incomplete"));
+			}
 		}
 
 		float TotalMS = 0.0f;

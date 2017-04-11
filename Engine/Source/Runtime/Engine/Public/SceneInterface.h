@@ -299,6 +299,14 @@ public:
 	virtual void UpdateSceneSettings(AWorldSettings* WorldSettings) {}
 
 	/**
+	* Gets the GPU Skin Cache system associated with the scene.
+	*/
+	virtual class FGPUSkinCache* GetGPUSkinCache()
+	{
+		return nullptr;
+	}
+
+	/**
 	 * Sets the FX system associated with the scene.
 	 */
 	virtual void SetFXSystem( class FFXSystemInterface* InFXSystem ) = 0;

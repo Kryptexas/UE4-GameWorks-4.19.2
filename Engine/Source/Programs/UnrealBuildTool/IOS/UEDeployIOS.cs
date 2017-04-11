@@ -283,6 +283,9 @@ namespace UnrealBuildTool
 					case "IOS_9":
 						MinVersion = "9.0";
 						break;
+					case "IOS_10":
+						MinVersion = "10.0";
+						break;
 				}
 			}
 			else
@@ -383,6 +386,7 @@ namespace UnrealBuildTool
 				}
 			}
 			Text.AppendLine("\t</array>");
+
 			Text.AppendLine("\t<key>CFBundleIcons</key>");
 			Text.AppendLine("\t<dict>");
 			Text.AppendLine("\t\t<key>CFBundlePrimaryIcon</key>");

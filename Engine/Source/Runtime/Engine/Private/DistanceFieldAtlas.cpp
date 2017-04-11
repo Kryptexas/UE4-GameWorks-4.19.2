@@ -76,13 +76,13 @@ static TAutoConsoleVariable<float> CVarDistFieldResScale(
 static TAutoConsoleVariable<int32> CVarDistFieldAtlasResXY(
 	TEXT("r.DistanceFields.AtlasSizeXY"),
 	512,	
-	TEXT("Size of the global mesh distance field atlas volume texture in X and Y."),
+	TEXT("Max size of the global mesh distance field atlas volume texture in X and Y."),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarDistFieldAtlasResZ(
 	TEXT("r.DistanceFields.AtlasSizeZ"),
 	1024,	
-	TEXT("Size of the global mesh distance field atlas volume texture in Z."),
+	TEXT("Max size of the global mesh distance field atlas volume texture in Z."),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarLandscapeGI(
@@ -265,6 +265,11 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			}
 		}
 
+		static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.Compress"));
+		const bool bDataIsCompressed = CVarCompress->GetValueOnAnyThread() != 0;
+
+		const int32 FormatSize = GPixelFormats[Format].BlockBytes;
+
 		if (!VolumeTextureRHI
 			|| BlockAllocator.GetSizeX() > VolumeTextureRHI->GetSizeX()
 			|| BlockAllocator.GetSizeY() > VolumeTextureRHI->GetSizeY()
@@ -305,16 +310,19 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 				}
 			}
 
+			// Fully free the previous atlas memory before allocating a new one
+			{
+				// Remove last ref, add to deferred delete list
+				VolumeTextureRHI = NULL;
+
+				// Flush commandlist, flush RHI thread, delete deferred resources (GNM Memblock defers further)
+				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+
+				// Flush GPU, flush GNM Memblock free
+				RHIFlushResources();
+			}
+
 			FRHIResourceCreateInfo CreateInfo;
-
-			// Remove last ref, add to deferred delete list
-			VolumeTextureRHI = NULL;
-
-			// Flush commandlist, flush RHI thread, delete deferred resources (GNM Memblock defers further)
-			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
-
-			// Flush GPU, flush GNM Memblock free
-			RHIFlushResources();
 
 			VolumeTextureRHI = RHICreateTexture3D(
 				BlockAllocator.GetSizeX(), 
@@ -326,46 +334,94 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 				CreateInfo);
 
 			UE_LOG(LogStaticMesh,Log,TEXT("%s"),*GetSizeString());
-		}
 
-		static const auto CVarCompress = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.Compress"));
-		const bool bDataIsCompressed = CVarCompress->GetValueOnAnyThread() != 0;
-
-		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
-		{
-			FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
-			const FIntVector Size = Texture->VolumeData.Size;
-
-			const FUpdateTextureRegion3D UpdateRegion(
-				Texture->AtlasAllocationMin.X,
-				Texture->AtlasAllocationMin.Y,
-				Texture->AtlasAllocationMin.Z,
-				0,
-				0,
-				0,
-				Size.X,
-				Size.Y,
-				Size.Z);
-
-			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
-			const int32 UncompressedSize = Size.X * Size.Y * Size.Z * FormatSize;
-
-			if (bDataIsCompressed)
+			// Full update, coalesce the thousands of small allocations into a single array for RHIUpdateTexture3D
+			// D3D12 has a huge alignment requirement which results in 6Gb of staging textures being needed to update a 112Mb atlas in small chunks otherwise (FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT)
 			{
+				const int32 Pitch = BlockAllocator.GetSizeX() * FormatSize;
+				const int32 DepthPitch = BlockAllocator.GetSizeX() * BlockAllocator.GetSizeY() * FormatSize;
+
+				TArray<uint8> CoalescedTextureData;
+				CoalescedTextureData.Empty(BlockAllocator.GetSizeZ() * DepthPitch);
+				CoalescedTextureData.AddZeroed(BlockAllocator.GetSizeZ() * DepthPitch);
+
 				TArray<uint8> UncompressedData;
-				UncompressedData.Empty(UncompressedSize);
-				UncompressedData.AddUninitialized(UncompressedSize);
 
-				verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, UncompressedData.GetData(), UncompressedSize, Texture->VolumeData.CompressedDistanceFieldVolume.GetData(), Texture->VolumeData.CompressedDistanceFieldVolume.Num()));
+				for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
+				{
+					FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
+					const FIntVector Size = Texture->VolumeData.Size;
+					const int32 UncompressedSize = Size.X * Size.Y * Size.Z * FormatSize;
 
-				// Update the volume texture atlas
-				RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)UncompressedData.GetData());
+					const TArray<uint8>* SourceDataPtr = NULL;
+
+					if (bDataIsCompressed)
+					{
+						UncompressedData.Reset(UncompressedSize);
+						UncompressedData.AddUninitialized(UncompressedSize);
+
+						verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, UncompressedData.GetData(), UncompressedSize, Texture->VolumeData.CompressedDistanceFieldVolume.GetData(), Texture->VolumeData.CompressedDistanceFieldVolume.Num()));
+
+						SourceDataPtr = &UncompressedData;
+					}
+					else
+					{
+						// Update the volume texture atlas
+						check(Texture->VolumeData.CompressedDistanceFieldVolume.Num() == Size.X * Size.Y * Size.Z * FormatSize);
+						SourceDataPtr = &Texture->VolumeData.CompressedDistanceFieldVolume;
+					}
+
+					const int32 SourcePitch = Size.X * FormatSize;
+
+					// Copy each row into the correct position in CoalescedTextureData
+					for (int32 ZIndex = 0; ZIndex < Size.Z; ZIndex++)
+					{
+						const int32 DestZIndex = (Texture->AtlasAllocationMin.Z + ZIndex) * DepthPitch + Texture->AtlasAllocationMin.X * FormatSize;
+						const int32 SourceZIndex = ZIndex * Size.Y * SourcePitch;
+
+						for (int32 YIndex = 0; YIndex < Size.Y; YIndex++)
+						{
+							const int32 DestIndex = DestZIndex + (Texture->AtlasAllocationMin.Y + YIndex) * Pitch;
+							const int32 SourceIndex = SourceZIndex + YIndex * SourcePitch;
+							FMemory::Memcpy((uint8*)&CoalescedTextureData[DestIndex], (const uint8*)&(*SourceDataPtr)[SourceIndex], SourcePitch);
+						}
+					}
+				}
+
+				UncompressedData.Empty();
+
+				const FUpdateTextureRegion3D UpdateRegion(FIntVector::ZeroValue, FIntVector::ZeroValue, BlockAllocator.GetSize());
+
+				RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Pitch, DepthPitch, (const uint8*)CoalescedTextureData.GetData());
 			}
-			else
+		}
+		else
+		{
+			for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
 			{
-				// Update the volume texture atlas
-				check(Texture->VolumeData.CompressedDistanceFieldVolume.Num() == Size.X * Size.Y * Size.Z * FormatSize);
-				RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)Texture->VolumeData.CompressedDistanceFieldVolume.GetData());
+				FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
+				const FIntVector Size = Texture->VolumeData.Size;
+
+				const FUpdateTextureRegion3D UpdateRegion(Texture->AtlasAllocationMin, FIntVector::ZeroValue, Size);
+				const int32 UncompressedSize = Size.X * Size.Y * Size.Z * FormatSize;
+
+				if (bDataIsCompressed)
+				{
+					TArray<uint8> UncompressedData;
+					UncompressedData.Empty(UncompressedSize);
+					UncompressedData.AddUninitialized(UncompressedSize);
+
+					verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, UncompressedData.GetData(), UncompressedSize, Texture->VolumeData.CompressedDistanceFieldVolume.GetData(), Texture->VolumeData.CompressedDistanceFieldVolume.Num()));
+
+					// Update the volume texture atlas
+					RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)UncompressedData.GetData());
+				}
+				else
+				{
+					// Update the volume texture atlas
+					check(Texture->VolumeData.CompressedDistanceFieldVolume.Num() == Size.X * Size.Y * Size.Z * FormatSize);
+					RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)Texture->VolumeData.CompressedDistanceFieldVolume.GetData());
+				}
 			}
 		}
 

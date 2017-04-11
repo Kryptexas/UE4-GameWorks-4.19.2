@@ -2,6 +2,8 @@
 
 #pragma once
 
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+
 // Include the intrinsic functions header
 #include <arm_neon.h>
 
@@ -1355,3 +1357,5 @@ FORCEINLINE VectorRegisterInt VectorIntSelect(const VectorRegisterInt& Mask, con
 #define VectorIntLoad1( Ptr )	vld1q_dup_s32((int32*)Ptr)
 
 // To be continued...
+
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS

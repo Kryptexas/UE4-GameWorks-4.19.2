@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,7 +18,9 @@ namespace UnrealBuildTool
 		/// <param name="Distribution"></param>
 		/// <param name="MobileProvision"></param>
 		/// <param name="SigningCertificate"></param>
-		public static void GetProvisioningData(FileReference InProject, bool Distribution, out string MobileProvision, out string SigningCertificate)
+		/// <param name="TeamUUID"></param>
+		/// <param name="bAutomaticSigning"></param>
+		public static void GetProvisioningData(FileReference InProject, bool Distribution, out string MobileProvision, out string SigningCertificate, out string TeamUUID, out bool bAutomaticSigning)
 		{
 			IOSProjectSettings ProjectSettings = ((TVOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS)).ReadProjectSettings(InProject);
 
@@ -27,11 +29,15 @@ namespace UnrealBuildTool
 			{
 				MobileProvision = null;
 				SigningCertificate = null;
+				TeamUUID = null;
+				bAutomaticSigning = false;
 			}
 			else
 			{
 				MobileProvision = Data.MobileProvision;
 				SigningCertificate = Data.SigningCertificate;
+				TeamUUID = Data.TeamUUID;
+				bAutomaticSigning = ProjectSettings.bAutomaticSigning;
 			}
 		}
 

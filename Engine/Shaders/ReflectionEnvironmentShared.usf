@@ -37,7 +37,7 @@ float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness, out float
 	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, SkyLightParameters.x);
 	float3 Reflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
 
-	OutSkyAverageBrightness = SkyLightCubemapBrightness;
+	OutSkyAverageBrightness = SkyLightCubemapBrightness * Luminance( View.SkyLightColor.rgb );
 	return Reflection * View.SkyLightColor.rgb;
 }
 

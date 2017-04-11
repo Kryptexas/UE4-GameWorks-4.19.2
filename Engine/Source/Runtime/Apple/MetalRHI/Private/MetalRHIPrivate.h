@@ -19,14 +19,7 @@ const uint32 BufferOffsetAlignment = 256;
 // The buffer page size that can be uploaded in a set*Bytes call
 const uint32 MetalBufferPageSize = 4096;
 
-#define METAL_API_1_1 (__IPHONE_9_0 || __MAC_10_11)
-#define METAL_API_1_2 ((__IPHONE_10_0 && defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0) || (__MAC_10_12 && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_12))
-
-#if METAL_API_1_1
 #define BUFFER_CACHE_MODE MTLResourceCPUCacheModeWriteCombined
-#else
-#define BUFFER_CACHE_MODE MTLResourceOptionCPUCacheModeWriteCombined
-#endif
 
 #if PLATFORM_MAC
 #define BUFFER_MANAGED_MEM MTLResourceStorageModeManaged
@@ -48,6 +41,8 @@ const uint32 MaxMetalStreams = 30;
 #define METAL_STATISTICS 0
 #endif
 
+#define METAL_SUPPORTS_HEAPS !PLATFORM_MAC
+
 #define METAL_DEBUG_OPTIONS !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #if METAL_DEBUG_OPTIONS
 #define METAL_DEBUG_OPTION(Code) Code
@@ -56,6 +51,10 @@ const uint32 MaxMetalStreams = 30;
 #endif
 
 #define SHOULD_TRACK_OBJECTS (UE_BUILD_DEBUG)
+
+/** Set to 1 to enable GPU events in Xcode frame debugger */
+#define ENABLE_METAL_GPUEVENTS	(UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT)
+#define ENABLE_METAL_GPUPROFILE	(ENABLE_METAL_GPUEVENTS & 1)
 
 #define UNREAL_TO_METAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
 #define METAL_TO_UNREAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
@@ -66,35 +65,29 @@ const uint32 MaxMetalStreams = 30;
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
-#if !METAL_API_1_1
-#define MTLVisibilityResultModeCounting ((MTLVisibilityResultMode)2)
-#endif
-
-#if !METAL_API_1_2
-#define MTLFeatureSet_iOS_GPUFamily3_v1 ((MTLFeatureSet)4)
-#define MTLFeatureSet_iOS_GPUFamily1_v3 ((MTLFeatureSet)5)
-#define MTLFeatureSet_iOS_GPUFamily2_v3 ((MTLFeatureSet)6)
-#define MTLFeatureSet_iOS_GPUFamily3_v2 ((MTLFeatureSet)7)
-#define MTLFeatureSet_tvOS_GPUFamily1_v2 ((MTLFeatureSet)30001)
-#define MTLFeatureSet_OSX_GPUFamily1_v2 ((MTLFeatureSet)10001)
-#define MTLPixelFormatDepth16Unorm ((MTLPixelFormat)250)
-#define MTLPixelFormatX24_Stencil8 ((MTLPixelFormat)262)
-#define MTLPixelFormatX32_Stencil8 ((MTLPixelFormat)261)
-#endif
-
 // Access the internal context for the device-owning DynamicRHI object
 FMetalDeviceContext& GetMetalDeviceContext();
 
+// Safely release a metal object, correctly handling the case where the RHI has been destructed first
+void SafeReleaseMetalObject(id Object);
+
 // Safely release a metal resource, correctly handling the case where the RHI has been destructed first
-void SafeReleaseMetalResource(id Object);
+void SafeReleaseMetalResource(id<MTLResource> Object);
 
 // Safely release a pooled buffer, correctly handling the case where the RHI has been destructed first
 void SafeReleasePooledBuffer(id<MTLBuffer> Buffer);
+
+// Safely release a fence, correctly handling cases where fences aren't supported or the debug implementation is used.
+void SafeReleaseMetalFence(id Object);
 
 // Access the underlying surface object from any kind of texture
 FMetalSurface* GetMetalSurfaceFromRHITexture(FRHITexture* Texture);
 
 #define NOT_SUPPORTED(Func) UE_LOG(LogMetal, Fatal, TEXT("'%s' is not supported"), L##Func);
+
+#if !METAL_SUPPORTS_HEAPS
+#define MTLResourceHazardTrackingModeUntracked 0
+#endif
 
 #if SHOULD_TRACK_OBJECTS
 void TrackMetalObject(NSObject* Object);
@@ -162,21 +155,15 @@ FORCEINLINE MTLLoadAction GetMetalRTLoadAction(ERenderTargetLoadAction LoadActio
 	}
 }
 
-FORCEINLINE MTLStoreAction GetMetalRTStoreAction(ERenderTargetStoreAction StoreAction)
-{
-	switch(StoreAction)
-	{
-		case ERenderTargetStoreAction::ENoAction: return MTLStoreActionDontCare;
-		case ERenderTargetStoreAction::EStore: return MTLStoreActionStore;
-		case ERenderTargetStoreAction::EMultisampleResolve: return MTLStoreActionMultisampleResolve;
-		default: return MTLStoreActionDontCare;
-	}
-}
-
 uint32 TranslateElementTypeToSize(EVertexElementType Type);
 
 MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType);
 
+template<typename TRHIType>
+static FORCEINLINE typename TMetalResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)
+{
+	return static_cast<typename TMetalResourceTraits<TRHIType>::TConcreteType*>(Resource);
+}
+
 #include "MetalStateCache.h"
 #include "MetalContext.h"
-

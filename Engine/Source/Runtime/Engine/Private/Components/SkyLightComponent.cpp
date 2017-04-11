@@ -114,6 +114,7 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, bCastShadows(InLightComponent->CastShadows)
 	, bWantsStaticShadowing(InLightComponent->Mobility == EComponentMobility::Stationary)
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
+	, bCastVolumetricShadow(InLightComponent->bCastVolumetricShadow)
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
 	, IndirectLightingIntensity(InLightComponent->IndirectLightingIntensity)
 	, VolumetricScatteringIntensity(FMath::Max(InLightComponent->VolumetricScatteringIntensity, 0.0f))
@@ -170,6 +171,7 @@ USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializ
 	AverageBrightness = 1.0f;
 	BlendDestinationAverageBrightness = 1.0f;
 	bSkyCaptureRequiredFromLoad = false;
+	bCastVolumetricShadow = true;
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const

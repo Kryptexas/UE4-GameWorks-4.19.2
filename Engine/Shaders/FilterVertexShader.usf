@@ -25,7 +25,7 @@ void Main(
 	{
 		half4 OffsetUVUV = SampleOffsets[SampleIndex / 2];
 		OutOffsetUVs[ SampleIndex + 0 ] = UV.xy + OffsetUVUV.xy;
-		OutOffsetUVs[ SampleIndex + 1 ] = UV.xy + OffsetUVUV.wz;
+		OutOffsetUVs[ SampleIndex + 1 ] = UV.xy + OffsetUVUV.zw;
 	}
 	if(SampleIndex < NUM_SAMPLES)
 	{
@@ -50,7 +50,7 @@ void Main(
 
 	for(int OffsetIndex = 0;OffsetIndex < (NUM_SAMPLES + 1) / 2;OffsetIndex++)
 	{
-		OutOffsetUVs[OffsetIndex] = UV.xyyx + SampleOffsets[OffsetIndex];
+		OutOffsetUVs[OffsetIndex] = UV.xyxy + SampleOffsets[OffsetIndex];
 	}
 
 	OutUV = UV;

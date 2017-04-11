@@ -22,7 +22,9 @@ enum EMaterialExposedViewProperty
 	/** Absolute world space view position (differs from the camera position in the shadow passes) */
 	MEVP_WorldSpaceViewPosition UMETA(DisplayName="View Position (Absolute World Space)"),
 	/** Absolute world space camera position */
-	MEVP_WorldSpaceCameraPosition UMETA(DisplayName="Camera Position (Absolute World Space)"),
+	MEVP_WorldSpaceCameraPosition UMETA(DisplayName = "Camera Position (Absolute World Space)"),
+	/** Horizontal and vertical position of the viewport in pixels within the buffer. */
+	MEVP_ViewportOffset UMETA(DisplayName = "Viewport Offset"),
 
 	MEVP_MAX,
 };

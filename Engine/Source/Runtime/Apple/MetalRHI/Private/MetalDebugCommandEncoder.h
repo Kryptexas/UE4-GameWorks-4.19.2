@@ -6,6 +6,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/**
+ * The sampler, buffer and texture resource limits as defined here:
+ * https://developer.apple.com/library/ios/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Render-Ctx/Render-Ctx.html
+ */
 #if PLATFORM_IOS
 #define METAL_MAX_BUFFERS 30
 #define METAL_MAX_TEXTURES 31
@@ -17,11 +21,9 @@ typedef __uint128_t FMetalTextureMask;
 #else
 #error "Unsupported Platform!"
 #endif
+typedef uint32 FMetalBufferMask;
+typedef uint16 FMetalSamplerMask;
 
-/**
- * The sampler, buffer and texture resource limits as defined here:
- * https://developer.apple.com/library/ios/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Render-Ctx/Render-Ctx.html
- */
 enum EMetalLimits
 {
 	ML_MaxSamplers = 16, /** Maximum number of samplers */
@@ -34,7 +36,16 @@ enum EMetalShaderFrequency
     EMetalShaderVertex = 0,
     EMetalShaderFragment = 1,
     EMetalShaderCompute = 2,
-    EMetalShaderRenderNum = 2
+    EMetalShaderRenderNum = 2,
+	EMetalShaderStagesNum = 3
+};
+
+/** A structure for quick mask-testing of shader-stage resource bindings */
+struct FMetalDebugShaderResourceMask
+{
+	FMetalTextureMask TextureMask;
+	FMetalBufferMask BufferMask;
+	FMetalSamplerMask SamplerMask;
 };
 
 /** A structure of arrays for the current buffer binding settings. */
@@ -63,6 +74,20 @@ struct FMetalDebugSamplerBindings
 };
 
 @class FMetalDebugCommandBuffer;
+
+@class FMetalDebugFence;
+
+@interface FMetalDebugCommandEncoder : FApplePlatformObject
+{
+@public
+	NSHashTable<FMetalDebugFence*>* UpdatedFences;
+	NSHashTable<FMetalDebugFence*>* WaitingFences;
+}
+-(instancetype)init;
+-(id<MTLCommandEncoder>)commandEncoder;
+-(void)addUpdateFence:(id)Fence;
+-(void)addWaitFence:(id)Fence;
+@end
 
 NS_ASSUME_NONNULL_END
 

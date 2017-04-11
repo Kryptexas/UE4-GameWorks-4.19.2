@@ -90,32 +90,43 @@ class ENGINE_API UExponentialHeightFogComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ExponentialHeightFogComponent, meta=(UIMin = "100000", UIMax = "20000000"))
 	float FogCutoffDistance;
 
-	/** Whether to enable volumetric fog. */
+	/** 
+	 * Whether to enable Volumetric fog.  Scalability settings control the resolution of the fog simulation. 
+	 * Note that Volumetric fog currently does not support StartDistance, FogMaxOpacity and FogCutoffDistance.
+	 * Volumetric fog also can't match exponential height fog in general as exponential height fog has non-physical behavior.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Volumetric Fog"))
 	bool bEnableVolumetricFog;
 
-	/** Positive values cause more scattering in the direction of the light, negative values cause more scattering in the opposite direction of the light. */
+	/** 
+	 * Controls the scattering phase function - how much incoming light scatters in various directions.
+	 * A distribution value of 0 scatters equally in all directions, while .9 scatters predominantly in the light direction.  
+	 * In order to have visible volumetric fog light shafts from the side, the distribution will need to be closer to 0.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Scattering Distribution", UIMin = "-.9", UIMax = ".9"))
 	float VolumetricFogScatteringDistribution;
 
-	/** Scales the global scattering amount used by volumetric fog.  Values larger than 1 cause fog particles everywhere reflect more light. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Scattering Scale", UIMin = ".1", UIMax = "10"))
-	float VolumetricFogScatteringScale;
+	/** 
+	 * The height fog particle reflectiveness used by volumetric fog. 
+	 * Water particles in air have an albedo near white, while dust has slightly darker value.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Albedo"))
+	FColor VolumetricFogAlbedo;
 
-	/** Scales the global absorption amount used by volumetric fog.  Values larger than 1 cause fog particles everywhere absorb more light. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Absorption Scale", UIMin = ".1", UIMax = "10"))
-	float VolumetricFogAbsorptionScale;
+	/** Scales the height fog particle extinction amount used by volumetric fog.  Values larger than 1 cause fog particles everywhere absorb more light. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Extinction Scale", UIMin = ".1", UIMax = "10"))
+	float VolumetricFogExtinctionScale;
 
 	/** 
-	 * Distance over which volumetric fog should cover.  Larger values extend the effect into the distance but reduce the details that can be captured.
-	 * This should typically be tweaked along with the directional light 'Dynamic Shadow Distance' so that volumetric fog will receive shadows everywhere.
+	 * Distance over which volumetric fog should be computed.  Larger values extend the effect into the distance but expose under-sampling artifacts in details.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Distance", UIMin = "1000", UIMax = "10000"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "View Distance", UIMin = "1000", UIMax = "10000"))
 	float VolumetricFogDistance;
 
 	/** 
 	 * Whether to use FogInscatteringColor for the Sky Light volumetric scattering color and DirectionalInscatteringColor for the Directional Light scattering color. 
-	 * Enabling this allows Volumetric fog to match Height fog in the distance, but produces non-physical volumetric lighting that may not match surface lighting.
+	 * Make sure your directional light has 'Atmosphere Sun Light' enabled!
+	 * Enabling this allows Volumetric fog to better match Height fog in the distance, but produces non-physical volumetric lighting that may not match surface lighting.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog)
 	bool bOverrideLightColorsWithFogInscatteringColors;
@@ -170,10 +181,10 @@ public:
 	void SetVolumetricFogScatteringDistribution(float NewValue);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
-	void SetVolumetricFogAbsorptionScale(float NewValue);
+	void SetVolumetricFogExtinctionScale(float NewValue);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
-	void SetVolumetricFogScatteringScale(float NewValue);
+	void SetVolumetricFogAlbedo(FColor NewValue);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
 	void SetVolumetricFogDistance(float NewValue);

@@ -17,13 +17,12 @@ inline bool DoesPlatformSupportVolumetricFog(EShaderPlatform Platform)
 
 inline bool DoesPlatformSupportVolumetricFogVoxelization(EShaderPlatform Platform)
 {
-	//@todo - voxelization without geometry shader for Metal
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_XBOXONE;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_XBOXONE || Platform == SP_METAL_SM5;
 }
 
 extern bool ShouldRenderVolumetricFog(const FScene* Scene, const FSceneViewFamily& ViewFamily);
 
-extern bool LightNeedsSeparateInjectionIntoVolumetricFog(const FLightSceneProxy* LightProxy, FVisibleLightInfo& VisibleLightInfo);
+extern bool LightNeedsSeparateInjectionIntoVolumetricFog(const FLightSceneInfo* LightSceneInfo, FVisibleLightInfo& VisibleLightInfo);
 
 /**  */
 class FVolumetricFogParameters

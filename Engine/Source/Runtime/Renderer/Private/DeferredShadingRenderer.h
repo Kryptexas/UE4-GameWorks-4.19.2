@@ -25,8 +25,6 @@ public:
 	TRefCountPtr<IPooledRenderTarget> LightShaftOcclusion;
 };
 
-extern bool SupportSceneAlpha();
-
 /**
  * Scene renderer that implements a deferred shading pipeline and associated features.
  */
@@ -400,7 +398,8 @@ private:
 		FIntVector VolumetricFogGridSize,
 		float VolumetricFogMaxDistance,
 		FMatrix& OutLightFunctionWorldToShadow,
-		TRefCountPtr<IPooledRenderTarget>& OutLightFunctionTexture);
+		TRefCountPtr<IPooledRenderTarget>& OutLightFunctionTexture,
+		bool& bOutUseDirectionalLightShadowing);
 
 	void VoxelizeFogVolumePrimitives(
 		FRHICommandListImmediate& RHICmdList,

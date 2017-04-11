@@ -616,8 +616,9 @@ public:
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
 		check(VertexFactory->GetType() == &FGPUSkinPassthroughVertexFactory::StaticType);
-
-		GGPUSkinCache.SetVertexStreamFromCache(RHICmdList, View.Family->FrameNumber, BatchElement.UserIndex, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousFloatOffset, GPUSkinCachePreviousBuffer);
+		FGPUSkinBatchElementUserData* BatchUserData = (FGPUSkinBatchElementUserData*)BatchElement.VertexFactoryUserData;
+		check(BatchUserData);
+		FGPUSkinCache::SetVertexStreams(BatchUserData->Entry, BatchUserData->Section, RHICmdList, View.Family->FrameNumber, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousFloatOffset, GPUSkinCachePreviousBuffer);
 	}
 
 	virtual uint32 GetSize() const override { return sizeof(*this); }

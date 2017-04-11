@@ -38,9 +38,10 @@ public:
 	/** 
 	 * Commits the provided buffer to the command-list for execution. When parallel encoding this will be submitted later.
 	 * @param Buffer The buffer to submit to the command-list.
+	 * @param CompletionHandlers The completion handlers that should be attached to this command-buffer.
 	 * @param bWait Whether to wait for the command buffer to complete - it is an error to set this to true on a deferred command-list.
 	 */
-	void Commit(id<MTLCommandBuffer> Buffer, bool const bWait);
+	void Commit(id<MTLCommandBuffer> Buffer, NSArray<MTLCommandBufferHandler>* CompletionHandlers, bool const bWait);
 	
 	/**
 	 * Submits all outstanding command-buffers in the proper commit order to the command-queue.

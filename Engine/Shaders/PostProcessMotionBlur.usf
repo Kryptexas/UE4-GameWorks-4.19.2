@@ -177,24 +177,13 @@ float GetVelocityLengthPixels( float2 EncodedVelocity )
 #endif
 }
 
-void MainPS(
-	in noperspective float4 UVAndScreenPos : TEXCOORD0,
-	in float4 SvPosition : SV_Position,		// after all interpolators
-	out float4 OutColor : SV_Target0
-	)
+#define CLAMP_UV 1
+
+float4 MainMotionBlurCommon(float2 UV, float2 ScreenSpacePos, uint2 PixelPos)
 {
-	// Screen Quad UV 0..1
-	float2 UV = UVAndScreenPos.xy;
-	// screen position in [-1, 1] screen space
-	float2 ScreenSpacePos = UVAndScreenPos.zw;
-
-#if !SCENE_ALPHA
-	OutColor = 0;
-#endif
-
+	float4 OutColor = 0;
 	const uint StepCount = GetStepCountFromQuality() / 2;
 
-	uint2 PixelPos = SvPosition.xy;
 #if 0
 	float2 PosMod = float2( PixelPos & 1 );
 	float Dither = ( PosMod.x * 0.5 - 0.25 ) * ( PosMod.y * 2 - 1 );
@@ -221,17 +210,19 @@ void MainPS(
 	bool bSkipPath = MaxVelocityLengthSqrPixels < 0.25;
 	bool bFastPath = MinVelocityLengthSqrPixels > 0.4 * MaxVelocityLengthSqrPixels;
 
-	SceneColorLayout CenterColor = CastFloat4ToSceneColorLayout(
-			PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0 ));
+	float4 CenterColor = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, UV, 0 );
 
 	BRANCH
 	if( bSkipPath )
 	{
 		SetSceneColorLayoutToFloat4(OutColor, CenterColor);
-		return;
+		return OutColor;
 	}
 
-#if 0
+	float2 MinViewportUV = (View.ViewRectMin + 0.5) * View.BufferSizeAndInvSize.zw;
+	float2 MaxViewportUV = (View.ViewRectMin + View.ViewSizeAndInvSize.xy - 0.5) * View.BufferSizeAndInvSize.zw;
+
+#if 1
 	float4 SearchVectorPixels = float4( MaxVelocityPixels, -MaxVelocityPixels );
 #else
 	// Clip MaxVelocity to screen rect
@@ -252,7 +243,7 @@ void MainPS(
 	BRANCH
 	if( bFastPath )
 	{
-		SceneColorLayout ColorAccum = 0;
+		float4 ColorAccum = 0;
 
 		UNROLL
 		for( uint i = 0; i < StepCount; i++ )
@@ -264,15 +255,18 @@ void MainPS(
 			SampleUV[0] = UV + OffsetFraction.x * SearchVector.xy;
 			SampleUV[1] = UV + OffsetFraction.y * SearchVector.zw;
 
-			ColorAccum += CastFloat4ToSceneColorLayout(
-					PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[0], 0 ));
-			ColorAccum += CastFloat4ToSceneColorLayout(
-					PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[1], 0 ));
+#if CLAMP_UV
+			SampleUV[0] = clamp( SampleUV[0], MinViewportUV, MaxViewportUV );
+			SampleUV[1] = clamp( SampleUV[1], MinViewportUV, MaxViewportUV );
+#endif
+
+			ColorAccum += PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[0], 0 );
+			ColorAccum += PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[1], 0 );
 		}
 	
 		ColorAccum *= 0.5 / StepCount;
 
-		SetSceneColorLayoutToFloat4(OutColor, ColorAccum);
+		OutColor = ColorAccum;
 	}
 	else
 	{
@@ -280,18 +274,14 @@ void MainPS(
 		float  CenterDepth = CenterVelocityDepth.z;
 		float  CenterVelocityLength = GetVelocityLengthPixels( CenterVelocityDepth.xy );
 		
-#if SCENE_ALPHA
 		float4 ColorAccum = 0;
-		float ColorAccumWeight = 0;
-#else
-		float4 ColorAccum = 0;
-#endif
+		float  ColorAccumWeight = 0;
 
 		UNROLL
 		for( uint i = 0; i < StepCount; i++ )
 		{
 			float2 SampleUV[2];
-			SceneColorLayout SampleColor[2];
+			float4 SampleColor[2];
 			float  SampleDepth[2];
 			float  SampleVelocityLength[2];
 			float  Weight[2];
@@ -302,12 +292,16 @@ void MainPS(
 			SampleUV[0] = UV + OffsetFraction.x * SearchVector.xy;
 			SampleUV[1] = UV + OffsetFraction.y * SearchVector.zw;
 
+#if CLAMP_UV
+			SampleUV[0] = clamp( SampleUV[0], MinViewportUV, MaxViewportUV );
+			SampleUV[1] = clamp( SampleUV[1], MinViewportUV, MaxViewportUV );
+#endif
+
 			UNROLL
 			for( uint j = 0; j < 2; j++ )
 			{
 				float3 SampleVelocityDepth = PostprocessInput2.SampleLevel( PostprocessInput2Sampler, SampleUV[j], 0 ).xyz;
-				SampleColor[j] = CastFloat4ToSceneColorLayout(
-						PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[j], 0 ));
+				SampleColor[j] = PostprocessInput0.SampleLevel( PostprocessInput0Sampler, SampleUV[j], 0 );
 				SampleDepth[j] = SampleVelocityDepth.z;
 
 				// in pixels
@@ -320,29 +314,63 @@ void MainPS(
 			Weight[0] = all( Mirror ) ? Weight[1] : Weight[0];
 			Weight[1] = any( Mirror ) ? Weight[1] : Weight[0];
 			
-#if SCENE_ALPHA
 			ColorAccum += Weight[0] * SampleColor[0] + Weight[1] * SampleColor[1];
 			ColorAccumWeight += Weight[0] + Weight[1];
-#else
-			ColorAccum += Weight[0] * float4( SampleColor[0], 1 );
-			ColorAccum += Weight[1] * float4( SampleColor[1], 1 );
-#endif
 		}
 	
-		ColorAccum *= 0.5 / StepCount;
-		
-#if SCENE_ALPHA
-		ColorAccumWeight *= 0.5 / StepCount;
+		ColorAccum			*= 0.5 / StepCount;
+		ColorAccumWeight	*= 0.5 / StepCount;
+
 		OutColor = ColorAccum + ( 1 - ColorAccumWeight ) * CenterColor;
-#else
-		OutColor.rgb = ColorAccum.rgb + ( 1 - ColorAccum.a ) * CenterColor;
-#endif
 	}
+
+#if !POST_PROCESS_ALPHA
+	OutColor.a = 0;
+#endif
+
+	return OutColor;
 }
 
+void MainPS(
+	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	in float4 SvPosition : SV_Position,		// after all interpolators
+	out float4 OutColor : SV_Target0
+	)
+{
+	// Screen Quad UV 0..1
+	float2 UV = UVAndScreenPos.xy;
+	// screen position in [-1, 1] screen space
+	float2 ScreenSpacePos = UVAndScreenPos.zw;
+	uint2 PixelPos = SvPosition.xy;
+
+	OutColor = MainMotionBlurCommon(UV, ScreenSpacePos, PixelPos);
+}
+
+#if COMPUTESHADER
+// xy: Unused, zw: ThreadToUVScale
+float4 MotionBlurComputeParams;
+RWTexture2D<float4> RWOutComputeTex;
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
+{
+	float2 PxPosition = ((float2)DispatchThreadId + View.ViewRectMin.xy + 0.5f);
+	float2 UV = PxPosition.xy * MotionBlurComputeParams.zw;
+	float4 SvPosition = float4(UV*2-1,0,1);
+
+	if (IsComputeUVOutOfBounds(UV))
+	{
+		return;
+	}
+
+	float4 OutColor = MainMotionBlurCommon(UV, SvPosition.xy, (uint2)PxPosition);
+
+	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
+	RWOutComputeTex[PixelPos] = OutColor;
+}
+#endif
 
 // ------------------------------------------
-
 
 // debug motionblur (very useful, keep)
 // @param ScreenPos -1..1 -1..1 for viewport

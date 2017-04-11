@@ -75,6 +75,10 @@ class ENGINE_API USceneCaptureComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture, meta=(UIMin = "100", UIMax = "10000"))
 	float MaxViewDistanceOverride;
 
+	/** Capture priority within the frame to sort scene capture on GPU to resolve interdependencies between multiple capture components. Highest come first. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SceneCapture)
+	int32 CaptureSortPriority;
+
 	/** ShowFlags for the SceneCapture's ViewFamily, to control rendering settings for this view. Hidden but accessible through details customization */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, interp, Category=SceneComponent)
 	TArray<struct FEngineShowFlagsSetting> ShowFlagSettings;
@@ -115,9 +119,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
 	void ClearShowOnlyComponents(UPrimitiveComponent* InComponent);
 
+	/** Changes the value of TranslucentSortPriority. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	void SetCaptureSortPriority(int32 NewCaptureSortPriority);
+
 	/** Returns the view state, if any, and allocates one if needed. This function can return NULL, e.g. when bCaptureEveryFrame is false. */
-	FSceneViewStateInterface* GetViewState();
-	FSceneViewStateInterface* GetStereoViewState();
+	FSceneViewStateInterface* GetViewState(int32 ViewIndex);
 
 	/** Return a boolean for whether this flag exists in the ShowFlagSettings array, and a pointer to the flag if it does exist  */
 	bool GetSettingForShowFlag(FString FlagName, FEngineShowFlagsSetting** ShowFlagSettingOut);
@@ -133,15 +140,18 @@ public:
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
+	static void UpdateDeferredCaptures(FSceneInterface* Scene);
+
 protected:
 	/** Update the show flags from our show flags settings (ideally, you'd be able to set this more directly, but currently unable to make FEngineShowFlags a UStruct to use it as a UProperty...) */
 	void UpdateShowFlags();
 
+	virtual void UpdateSceneCaptureContents(FSceneInterface* Scene) {};
+
 	/**
 	 * The view state holds persistent scene rendering state and enables occlusion culling in scene captures.
-	 * NOTE: This object is used by the rendering thread. The smart pointer's destructor will destroy it and that
+	 * NOTE: This object is used by the rendering thread. When the game thread attempts to destroy it, FDeferredCleanupInterface will keep the object around until the RT is done accessing it.
 	 */
-	FSceneViewStateReference ViewState;
-	FSceneViewStateReference StereoViewState;
+	TArray<FSceneViewStateReference> ViewStates;
 };
 

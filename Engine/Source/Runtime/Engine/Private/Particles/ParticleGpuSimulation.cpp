@@ -4656,29 +4656,32 @@ void FFXSystem::SimulateGPUParticles(
 			Simulation->PerFrameSimulationParameters.ResetDeltaSeconds();
 		}
 	}
-
-	// Simulate particles in all active tiles.
-	if ( SimulationCommands.Num() )
+	
+	if ( SimulationCommands.Num() || TilesToClear.Num())
 	{
-		ExecuteSimulationCommands(
-					RHICmdList,
-					GraphicsPSOInit,
-					FeatureLevel,
-					SimulationCommands,
-					ParticleSimulationResources,
-					ViewUniformBuffer,
-					GlobalDistanceFieldParameterData,
-					SceneDepthTexture,
-					GBufferATexture,
-					Phase,
-					FixDeltaSeconds > 0
-					);
-	}
+		// Simulate particles in all active tiles.
+		if ( SimulationCommands.Num() )
+		{
+			ExecuteSimulationCommands(
+						RHICmdList,
+						GraphicsPSOInit,
+						FeatureLevel,
+						SimulationCommands,
+						ParticleSimulationResources,
+						ViewUniformBuffer,
+						GlobalDistanceFieldParameterData,
+						SceneDepthTexture,
+						GBufferATexture,
+						Phase,
+						FixDeltaSeconds > 0
+						);
+		}
 
-	// Clear any newly allocated tiles.
-	if (TilesToClear.Num())
-	{
-		ClearTiles(RHICmdList, GraphicsPSOInit, FeatureLevel, TilesToClear);
+		// Clear any newly allocated tiles.
+		if (TilesToClear.Num())
+		{
+			ClearTiles(RHICmdList, GraphicsPSOInit, FeatureLevel, TilesToClear);
+		}
 	}
 
 	// Inject any new particles that have spawned into the simulation.

@@ -731,7 +731,13 @@ void FPixelShaderInOut_MainPS(
 		float3 AbsorptionColor = BaseColor * (1 / MetalSpec);
 		float3 Absorption = AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + 1 );
 
-		GBuffer.BaseColor = lerp( BaseColor, lerp( BaseColor, MetalSpec * Absorption, Metallic ) * RefractionScale, ClearCoat );
+		float F0 = 0.04;
+		float Fc = Pow5( 1 - NoV );
+		float F = Fc + (1 - Fc) * F0;
+		float LayerAttenuation = lerp( 1, (1 - F), ClearCoat );
+		BaseColor *= LayerAttenuation;
+
+		GBuffer.BaseColor = lerp( BaseColor, MetalSpec * Absorption * RefractionScale, Metallic * ClearCoat );
 		GBuffer.Specular *= lerp( 1, RefractionScale, ClearCoat );
 
 		GBuffer.CustomData.x = ClearCoat;
@@ -807,7 +813,7 @@ void FPixelShaderInOut_MainPS(
 	// So that the following code can still use DiffuseColor and SpecularColor.
 	GBuffer.SpecularColor = lerp(0.08 * LocalSpecular.xxx, LocalBaseColor, Metallic.xxx);
 
-#if MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS && FORWARD_SHADING
+#if MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS
     float GeometricAARoughness = NormalCurvatureToRoughness(MaterialParameters.WorldNormal);
     GBuffer.Roughness = max(GBuffer.Roughness, GeometricAARoughness);
 

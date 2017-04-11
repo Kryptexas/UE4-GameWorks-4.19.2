@@ -6,6 +6,7 @@
 
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
+#include "ShaderCache.h"
 
 int32 GMetalUseSamplerCompareFunc = 1;
 FAutoConsoleVariableRef CVarMetalUseSamplerCompareFunc(
@@ -341,30 +342,37 @@ FMetalBlendState::~FMetalBlendState()
 
 FSamplerStateRHIRef FMetalDynamicRHI::RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer)
 {
-	FSamplerStateRHIRef State = new FMetalSamplerState(Context->GetDevice(), Initializer);
-	FShaderCache::LogSamplerState(Initializer, State);
+    @autoreleasepool {
+	FSamplerStateRHIRef State = new FMetalSamplerState(ImmediateContext.Context->GetDevice(), Initializer);
 	return State;
+	}
 }
 
 FRasterizerStateRHIRef FMetalDynamicRHI::RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer)
 {
+	@autoreleasepool {
     FRasterizerStateRHIRef State = new FMetalRasterizerState(Initializer);
-	FShaderCache::LogRasterizerState(Initializer, State);
+	FShaderCache::LogRasterizerState(ImmediateContext.Context->GetCurrentState().GetShaderCacheStateObject(), Initializer, State);
 	return State;
+	}
 }
 
 FDepthStencilStateRHIRef FMetalDynamicRHI::RHICreateDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer)
 {
-	FDepthStencilStateRHIRef State = new FMetalDepthStencilState(Context->GetDevice(), Initializer);
-	FShaderCache::LogDepthStencilState(Initializer, State);
+	@autoreleasepool {
+	FDepthStencilStateRHIRef State = new FMetalDepthStencilState(ImmediateContext.Context->GetDevice(), Initializer);
+	FShaderCache::LogDepthStencilState(ImmediateContext.Context->GetCurrentState().GetShaderCacheStateObject(),Initializer, State);
 	return State;
+	}
 }
 
 
 FBlendStateRHIRef FMetalDynamicRHI::RHICreateBlendState(const FBlendStateInitializerRHI& Initializer)
 {
+	@autoreleasepool {
 	FBlendStateRHIRef State = new FMetalBlendState(Initializer);
-	FShaderCache::LogBlendState(Initializer, State);
+	FShaderCache::LogBlendState(ImmediateContext.Context->GetCurrentState().GetShaderCacheStateObject(), Initializer, State);
 	return State;
+	}
 }
 

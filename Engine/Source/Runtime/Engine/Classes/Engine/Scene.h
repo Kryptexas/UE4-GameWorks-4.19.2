@@ -46,6 +46,16 @@ enum EAutoExposureMethod
 	AEM_MAX,
 };
 
+UENUM()
+enum EBloomMethod
+{
+	/** Sum of Gaussian formulation */
+	BM_SOG  UMETA(DisplayName = "Standard"),
+	/** Fast Fourier Transform Image based convolution, intended for cinematics (too expensive for games)  */
+	BM_FFT  UMETA(DisplayName = "Convolution"),
+	BM_MAX,
+};
+
 USTRUCT()
 struct FWeightedBlendable
 {
@@ -212,6 +222,9 @@ struct FPostProcessSettings
 	uint32 bOverride_AmbientCubemapIntensity:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_BloomMethod : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_BloomIntensity:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
@@ -255,6 +268,21 @@ struct FPostProcessSettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_BloomSizeScale:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_BloomConvolutionTexture : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_BloomConvolutionSize : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_BloomConvolutionCenterUV : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_BloomConvolutionPreFilter : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_BloomConvolutionBufferScale : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_BloomDirtMaskIntensity:1;
@@ -399,6 +427,12 @@ struct FPostProcessSettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_LPVEmissiveInjectionIntensity:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_LPVFadeRange : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_LPVDirectionalOcclusionFadeRange : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_IndirectLightingColor:1;
@@ -598,6 +632,11 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Image Effects", meta=(UIMin = "0.0", UIMax = "5.0", editcondition = "bOverride_SceneFringeIntensity", DisplayName = "Chromatic Aberation"))
 	float SceneFringeIntensity;
 
+
+	/** Bloom algorithm */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lens|Bloom", meta = (editcondition = "bOverride_BloomMethod", DisplayName = "Method"))
+	TEnumAsByte<enum EBloomMethod> BloomMethod;
+
 	/** Multiplier for all bloom contributions >=0: off, 1(default), >1 brighter */
 	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Bloom", meta=(ClampMin = "0.0", UIMax = "8.0", editcondition = "bOverride_BloomIntensity", DisplayName = "Intensity"))
 	float BloomIntensity;
@@ -677,20 +716,42 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Bloom", AdvancedDisplay, meta=(editcondition = "bOverride_Bloom6Tint", DisplayName = "#6 Tint", HideAlphaChannel))
 	FLinearColor Bloom6Tint;
 
-	/** BloomDirtMask intensity */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Dirt Mask", meta=(ClampMin = "0.0", UIMax = "8.0", editcondition = "bOverride_BloomDirtMaskIntensity", DisplayName = "Dirt Mask Intensity"))
-	float BloomDirtMaskIntensity;
+	/**
+	* Texture that defines the convolution for bloom.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lens|Bloom", meta = (editcondition = "bOverride_BloomConvolutionTexture", DisplayName = "Convolution Kernel"))
+	class UTexture2D* BloomConvolutionTexture;
 
-	/** BloomDirtMask tint color */
-	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Dirt Mask", meta=(editcondition = "bOverride_BloomDirtMaskTint", DisplayName = "Dirt Mask Tint", HideAlphaChannel))
-	FLinearColor BloomDirtMaskTint;
+	/** Relative size of the convolution kernel image compared to the minor axis of the viewport  */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Bloom", AdvancedDisplay, meta = (ClampMin = "0.0", UIMax = "1.0", editcondition = "bOverride_BloomConvolutionSize", DisplayName = "Convolution Scale"))
+	float BloomConvolutionSize;
 
+	/** The UV location of the center of the kernel.  Should be very close to (.5,.5) */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Bloom", AdvancedDisplay, meta = (editcondition = "bOverride_BloomConvolutionCenterUV", DisplayName = "Convolution Center"))
+	FVector2D BloomConvolutionCenterUV;
+
+	/** Boost intensity of select pixels  prior to computing bloom convolution (Min, Max, Multiplier).  Max < Min disables */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Bloom", AdvancedDisplay, meta = (editcondition = "bOverride_BloomConvolutionPreFilter", DisplayName = "Convolution Boost"))
+	FVector BloomConvolutionPreFilter;
+
+	/** Implicit buffer region as a fraction of the screen size to insure the bloom does not wrap across the screen.  Larger sizes have perf impact.*/
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Bloom", AdvancedDisplay, meta = (ClampMin = "0.0", UIMax = "1.0", editcondition = "bOverride_BloomConvolutionBufferScale", DisplayName = "Convolution Buffer"))
+	float BloomConvolutionBufferScale;
+	
 	/**
 	 * Texture that defines the dirt on the camera lens where the light of very bright objects is scattered.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Lens|Dirt Mask", meta=(editcondition = "bOverride_BloomDirtMask", DisplayName = "Dirt Mask Texture"))
 	class UTexture* BloomDirtMask;	
 	
+	/** BloomDirtMask intensity */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Dirt Mask", meta = (ClampMin = "0.0", UIMax = "8.0", editcondition = "bOverride_BloomDirtMaskIntensity", DisplayName = "Dirt Mask Intensity"))
+	float BloomDirtMaskIntensity;
+
+	/** BloomDirtMask tint color */
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Dirt Mask", meta = (editcondition = "bOverride_BloomDirtMaskTint", DisplayName = "Dirt Mask Tint", HideAlphaChannel))
+	FLinearColor BloomDirtMaskTint;
+
 	/** AmbientCubemap tint color */
 	UPROPERTY(interp, BlueprintReadWrite, Category="Rendering Features|Ambient Cubemap", meta=(editcondition = "bOverride_AmbientCubemapTint", DisplayName = "Tint", HideAlphaChannel))
 	FLinearColor AmbientCubemapTint;
@@ -1032,6 +1093,14 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category="Rendering Features|Screen Space Reflections", meta=(ClampMin = "0.01", ClampMax = "1.0", editcondition = "bOverride_ScreenSpaceReflectionMaxRoughness", DisplayName = "Max Roughness"))
 	float ScreenSpaceReflectionMaxRoughness;
 
+	/** LPV Fade range - increase to fade more gradually towards the LPV edges.*/
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Rendering Features|Light Propagation Volume", AdvancedDisplay, meta = (editcondition = "bOverride_LPVFadeRange", UIMin = "0", UIMax = "9", DisplayName = "Fade range"))
+	float LPVFadeRange;
+
+	/** LPV Directional Occlusion Fade range - increase to fade more gradually towards the LPV edges.*/
+	UPROPERTY(interp, BlueprintReadWrite, Category = "Rendering Features|Light Propagation Volume", AdvancedDisplay, meta = (editcondition = "bOverride_LPVDirectionalOcclusionFadeRange", UIMin = "0", UIMax = "9", DisplayName = "DO Fade range"))
+	float LPVDirectionalOcclusionFadeRange;
+
 	/**
 	* To render with lower or high resolution than it is presented,
 	* controlled by console variable,
@@ -1172,6 +1241,7 @@ struct FPostProcessSettings
 
 		SceneColorTint = FLinearColor(1, 1, 1);
 		SceneFringeIntensity = 0.0f;
+		BloomMethod = BM_SOG;
 		// next value might get overwritten by r.DefaultFeature.Bloom
 		BloomIntensity = 0.675f;
 		BloomThreshold = -1.0f;	
@@ -1189,6 +1259,10 @@ struct FPostProcessSettings
 		Bloom5Size = 30.0f;
 		Bloom6Tint = FLinearColor(0.061f, 0.061f, 0.061f);
 		Bloom6Size = 64.0f;
+		BloomConvolutionSize = 1.f;
+		BloomConvolutionCenterUV = FVector2D(0.5f, 0.5f);
+		BloomConvolutionPreFilter = FVector(0.f, -1.f, 1.f);
+		BloomConvolutionBufferScale = 0.133f;
 		BloomDirtMaskIntensity = 0.0f;
 		BloomDirtMaskTint = FLinearColor(0.5f, 0.5f, 0.5f);
 		AmbientCubemapIntensity = 1.0f;
@@ -1217,6 +1291,8 @@ struct FPostProcessSettings
 		LPVSpecularOcclusionExponent = 7.0f;
 		LPVDiffuseOcclusionIntensity = 1.0f;
 		LPVSpecularOcclusionIntensity = 1.0f;
+		LPVFadeRange = 0.0f;
+		LPVDirectionalOcclusionFadeRange = 0.0f;
 		HistogramLogMin = -8.0f;
 		HistogramLogMax = 4.0f;
 		// next value might get overwritten by r.DefaultFeature.LensFlare

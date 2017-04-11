@@ -50,6 +50,7 @@
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PlanarReflectionSceneProxy.h"
 #include "Engine/StaticMesh.h"
+#include "GPUSkinCache.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -284,6 +285,8 @@ FDistanceFieldSceneData::FDistanceFieldSceneData(EShaderPlatform ShaderPlatform)
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 
 	bTrackAllPrimitives = (DoesPlatformSupportDistanceFieldAO(ShaderPlatform) || DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform)) && CVar->GetValueOnGameThread() != 0;
+	
+	bCanUse16BitObjectIndices = !IsMetalPlatform(ShaderPlatform);
 }
 
 FDistanceFieldSceneData::~FDistanceFieldSceneData() 
@@ -602,6 +605,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	NumUncachedStaticLightingInteractions(0)
 ,	NumMobileStaticAndCSMLights_RenderThread(0)
 ,	NumMobileMovableDirectionalLights_RenderThread(0)
+,	GPUSkinCache(nullptr)
 ,	SceneLODHierarchy(this)
 ,	DefaultMaxDistanceFieldOcclusionDistance(InWorld->GetWorldSettings()->DefaultMaxDistanceFieldOcclusionDistance)
 ,	GlobalDistanceFieldViewDistance(InWorld->GetWorldSettings()->GlobalDistanceFieldViewDistance)
@@ -644,6 +648,12 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 		SetFXSystem(NULL);
 	}
 
+	if (IsGPUSkinCacheAvailable())
+	{
+		const bool bRequiresMemoryLimit = !bInIsEditorScene;
+		GPUSkinCache = new FGPUSkinCache(bRequiresMemoryLimit);
+	}
+
 	World->UpdateParameterCollectionInstances(false);
 }
 
@@ -667,7 +677,13 @@ FScene::~FScene()
 	if (AtmosphericFog)
 	{
 		delete AtmosphericFog;
-		AtmosphericFog = NULL;
+		AtmosphericFog = nullptr;
+	}
+
+	if (GPUSkinCache)
+	{
+		delete GPUSkinCache;
+		GPUSkinCache = nullptr;
 	}
 }
 
@@ -736,9 +752,8 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 			TEXT("Nans found on Bounds for Primitive %s: Origin %s, BoxExtent %s, SphereRadius %f"), *Primitive->GetName(), *Primitive->Bounds.Origin.ToString(), *Primitive->Bounds.BoxExtent.ToString(), Primitive->Bounds.SphereRadius);
 
 	// Create any RenderThreadResources required.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		FCreateRenderThreadResourcesCommand,
-		FCreateRenderThreadParameters, Params, Params,
+	ENQUEUE_RENDER_COMMAND(CreateRenderThreadResourcesCommand)(
+		[Params](FRHICommandListImmediate& RHICmdList)
 	{
 		FPrimitiveSceneProxy* SceneProxy = Params.PrimitiveSceneProxy;
 		FScopeCycleCounter Context(SceneProxy->GetStatId());
@@ -757,10 +772,9 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 	Primitive->AttachmentCounter.Increment();
 
 	// Send a command to the rendering thread to add the primitive to the scene.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FAddPrimitiveCommand,
-		FScene*,Scene,this,
-		FPrimitiveSceneInfo*,PrimitiveSceneInfo,PrimitiveSceneInfo,
+	FScene* Scene = this;
+	ENQUEUE_RENDER_COMMAND(AddPrimitiveCommand)(
+		[Scene, PrimitiveSceneInfo](FRHICommandListImmediate& RHICmdList)
 		{
 			FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
 			Scene->AddPrimitiveSceneInfo_RenderThread(RHICmdList, PrimitiveSceneInfo);
@@ -855,9 +869,8 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 			ensureMsgf(!Primitive->Bounds.BoxExtent.ContainsNaN() && !Primitive->Bounds.Origin.ContainsNaN() && !FMath::IsNaN(Primitive->Bounds.SphereRadius) && FMath::IsFinite(Primitive->Bounds.SphereRadius),
 				TEXT("Nans found on Bounds for Primitive %s: Origin %s, BoxExtent %s, SphereRadius %f"), *Primitive->GetName(), *Primitive->Bounds.Origin.ToString(), *Primitive->Bounds.BoxExtent.ToString(), Primitive->Bounds.SphereRadius);
 
-			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-				UpdateTransformCommand,
-				FPrimitiveUpdateParams,UpdateParams,UpdateParams,
+			ENQUEUE_RENDER_COMMAND(UpdateTransformCommand)(
+				[UpdateParams](FRHICommandListImmediate& RHICmdList)
 				{
 					FScopeCycleCounter Context(UpdateParams.PrimitiveSceneProxy->GetStatId());
 					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.AttachmentRootPosition);

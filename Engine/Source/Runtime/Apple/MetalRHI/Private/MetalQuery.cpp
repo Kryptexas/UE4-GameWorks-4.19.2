@@ -47,18 +47,22 @@ bool FMetalCommandBufferFence::Wait(uint64 Millis)
 		TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe> CommandBuffer = CommandBufferRef.Pin();
 		if (CommandBuffer.IsValid())
 		{
-			bool bFinished = false;
+			check([CommandBuffer->CommandBuffer status] >= MTLCommandBufferStatusCommitted && [CommandBuffer->CommandBuffer status] <= MTLCommandBufferStatusError);
+		
+			[CommandBuffer->Condition lock];
+			bool bFinished = CommandBuffer->bFinished;
 			if(!bFinished)
 			{
-				check([CommandBuffer->CommandBuffer status] >= MTLCommandBufferStatusCommitted && [CommandBuffer->CommandBuffer status] <= MTLCommandBufferStatusError);
-				dispatch_time_t Timeout = Millis > 0 ? dispatch_time(DISPATCH_TIME_NOW, Millis * 1000000llu) : DISPATCH_TIME_NOW;
-				bFinished = (dispatch_semaphore_wait(CommandBuffer->Semaphore, Timeout) == 0);
-				if (bFinished)
-				{
-					[CommandBuffer->CommandBuffer waitUntilCompleted];
-				}
-				check([CommandBuffer->CommandBuffer status] >= MTLCommandBufferStatusCommitted && [CommandBuffer->CommandBuffer status] <= MTLCommandBufferStatusError);
+				bFinished = [CommandBuffer->Condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:Millis / 1000.0]];
 			}
+			if (bFinished)
+			{
+				[CommandBuffer->CommandBuffer waitUntilCompleted];
+			}
+			[CommandBuffer->Condition unlock];
+			
+			check([CommandBuffer->CommandBuffer status] >= MTLCommandBufferStatusCommitted && [CommandBuffer->CommandBuffer status] <= MTLCommandBufferStatusError);
+			
 			if([CommandBuffer->CommandBuffer status] == MTLCommandBufferStatusError)
 			{
 				FMetalCommandList::HandleMetalCommandBufferFailure(CommandBuffer->CommandBuffer);
@@ -77,7 +81,7 @@ bool FMetalQueryResult::Wait(uint64 Millis)
 {
 	if(!bCompleted)
 	{
-		bCompleted = CommandBufferFence.Wait(Millis);
+		bCompleted = CommandBufferFence->Wait(Millis);
 		
 		return bCompleted;
 	}
@@ -100,6 +104,7 @@ FMetalRenderQuery::FMetalRenderQuery(ERenderQueryType InQueryType)
 	bAvailable = false;
 	Buffer.Offset = 0;
 	Buffer.bCompleted = false;
+	Buffer.bBatchFence = false;
 }
 
 FMetalRenderQuery::~FMetalRenderQuery()
@@ -108,27 +113,51 @@ FMetalRenderQuery::~FMetalRenderQuery()
 	Buffer.Offset = 0;
 }
 
-void FMetalRenderQuery::Begin(FMetalContext* Context)
+void FMetalRenderQuery::Begin(FMetalContext* Context, TSharedPtr<FMetalCommandBufferFence, ESPMode::ThreadSafe> const& BatchFence)
 {
+	Buffer.CommandBufferFence.Reset();
 	Buffer.SourceBuffer.SafeRelease();
 	Buffer.Offset = 0;
+	Buffer.bBatchFence = false;
 	
 	Result = 0;
 	bAvailable = false;
 	
-	if(Type == RQT_Occlusion)
+	switch(Type)
 	{
-		// allocate our space in the current buffer
-		Context->GetQueryBufferPool()->Allocate(Buffer);
-		Buffer.bCompleted = false;
-		
-		if ((GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4) && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesCountingQueries))
+		case RQT_Occlusion:
 		{
-			Context->GetCurrentState().SetVisibilityResultMode(MTLVisibilityResultModeCounting, Buffer.Offset);
+			// allocate our space in the current buffer
+			Context->GetQueryBufferPool()->Allocate(Buffer);
+			Buffer.bCompleted = false;
+			
+			if ((GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4) && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesCountingQueries))
+			{
+				Context->GetCurrentState().SetVisibilityResultMode(MTLVisibilityResultModeCounting, Buffer.Offset);
+			}
+			else
+			{
+				Context->GetCurrentState().SetVisibilityResultMode(MTLVisibilityResultModeBoolean, Buffer.Offset);
+			}
+			if (BatchFence.IsValid())
+			{
+				Buffer.CommandBufferFence = BatchFence;
+				Buffer.bBatchFence = true;
+			}
+			else
+			{
+				Buffer.CommandBufferFence = MakeShareable(new FMetalCommandBufferFence);
+			}
+			break;
 		}
-		else
+		case RQT_AbsoluteTime:
 		{
-			Context->GetCurrentState().SetVisibilityResultMode(MTLVisibilityResultModeBoolean, Buffer.Offset);
+			break;
+		}
+		default:
+		{
+			check(0);
+			break;
 		}
 	}
 }
@@ -140,23 +169,34 @@ void FMetalRenderQuery::End(FMetalContext* Context)
 		case RQT_Occlusion:
 		{
 			// switch back to non-occlusion rendering
+			check(Buffer.CommandBufferFence.IsValid());
 			Context->GetCurrentState().SetVisibilityResultMode(MTLVisibilityResultModeDisabled, 0);
-			Context->InsertCommandBufferFence(Buffer.CommandBufferFence);
+			
+			// For unique, unbatched, queries insert the fence now
+			if (!Buffer.bBatchFence)
+			{
+				Context->InsertCommandBufferFence(*(Buffer.CommandBufferFence));
+			}
 			break;
 		}
 		case RQT_AbsoluteTime:
 		{
 			// Reset the result availability state
+			Buffer.SourceBuffer.SafeRelease();
+			Buffer.Offset = 0;
+			Buffer.bCompleted = false;
+			Buffer.bBatchFence = false;
+			Buffer.CommandBufferFence = MakeShareable(new FMetalCommandBufferFence);
+			check(Buffer.CommandBufferFence.IsValid());
+			
 			Result = 0;
 			bAvailable = false;
-			Buffer.bCompleted = false;
-			Buffer.CommandBufferFence.CommandBufferRef.Reset();
 			
 			// Insert the fence to wait on the current command buffer
-			Context->InsertCommandBufferFence(Buffer.CommandBufferFence, ^(id<MTLCommandBuffer> _Nonnull)
+			Context->InsertCommandBufferFence(*(Buffer.CommandBufferFence), ^(id<MTLCommandBuffer> _Nonnull)
 			{
 				Result = (FPlatformTime::ToMilliseconds64(mach_absolute_time()) * 1000.0);
-			});
+            });
 			
 			// Submit the current command buffer, marking this is as a break of a logical command buffer for render restart purposes
 			// This is necessary because we use command-buffer completion to emulate timer queries as Metal has no such API
@@ -173,11 +213,14 @@ void FMetalRenderQuery::End(FMetalContext* Context)
 
 FRenderQueryRHIRef FMetalDynamicRHI::RHICreateRenderQuery_RenderThread(class FRHICommandListImmediate& RHICmdList, ERenderQueryType QueryType)
 {
+	@autoreleasepool {
 	return GDynamicRHI->RHICreateRenderQuery(QueryType);
+	}
 }
 
 FRenderQueryRHIRef FMetalDynamicRHI::RHICreateRenderQuery(ERenderQueryType QueryType)
 {
+	@autoreleasepool {
 	FRenderQueryRHIRef Query;
 	// AMD have subtleties to their completion handler routines that mean we don't seem able to reliably wait on command-buffers
 	// until after a drawable present...
@@ -187,10 +230,12 @@ FRenderQueryRHIRef FMetalDynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 		Query = new FMetalRenderQuery(QueryType);
 	}
 	return Query;
+	}
 }
 
 bool FMetalDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,uint64& OutNumPixels,bool bWait)
 {
+	@autoreleasepool {
 	check(IsInRenderingThread());
 	FMetalRenderQuery* Query = ResourceCast(QueryRHI);
 	
@@ -236,27 +281,37 @@ bool FMetalDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 	// at this point, we are ready to read the value!
 	OutNumPixels = Query->Result;
     return true;
+	}
 }
 
 // Occlusion/Timer queries.
 void FMetalRHICommandContext::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
+	@autoreleasepool {
 	FMetalRenderQuery* Query = ResourceCast(QueryRHI);
 	
-	Query->Begin(Context);
+	Query->Begin(Context, CommandBufferFence);
+	}
 }
 
 void FMetalRHICommandContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
+	@autoreleasepool {
 	FMetalRenderQuery* Query = ResourceCast(QueryRHI);
 	
 	Query->End(Context);
+	}
 }
 
 void FMetalRHICommandContext::RHIBeginOcclusionQueryBatch()
 {
+	check(!CommandBufferFence.IsValid());
+	CommandBufferFence = MakeShareable(new FMetalCommandBufferFence);
 }
 
 void FMetalRHICommandContext::RHIEndOcclusionQueryBatch()
 {
+	check(CommandBufferFence.IsValid());
+	Context->InsertCommandBufferFence(*CommandBufferFence);
+	CommandBufferFence.Reset();
 }
