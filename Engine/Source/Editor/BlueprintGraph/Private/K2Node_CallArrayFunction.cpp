@@ -6,7 +6,6 @@
 #include "K2Node_GetArrayItem.h"
 #include "BlueprintsObjectVersion.h"
 #include "Kismet/KismetArrayLibrary.h" // for Array_Get()
-#include "Kismet2/BlueprintEditorUtils.h"
 
 UK2Node_CallArrayFunction::UK2Node_CallArrayFunction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -64,12 +63,9 @@ void UK2Node_CallArrayFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	Super::NotifyPinConnectionListChanged(Pin);
 
-	// Get the set of dynamically-typed pins.
-	TArray<UEdGraphPin*> DynamicPins;
-	GetDynamicallyTypedPins(DynamicPins);
+	TArray<UEdGraphPin*> PinsToCheck;
+	GetArrayTypeDependentPins(PinsToCheck);
 
-	// We need to also check subpins here in case one of them was the target of the connection event.
-	TArray<UEdGraphPin*> PinsToCheck = DynamicPins;
 	for (int32 Index = 0; Index < PinsToCheck.Num(); ++Index)
 	{
 		UEdGraphPin* PinToCheck = PinsToCheck[Index];
@@ -79,50 +75,52 @@ void UK2Node_CallArrayFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		}
 	}
 
-	// If the event target is one of the dynamically-typed pins, we may need to conform the node to match the linked pin's type.
+	PinsToCheck.Add(GetTargetArrayPin());
+
 	if (PinsToCheck.Contains(Pin))
 	{
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		bool bNeedToPropagate = false;
 
-		// Determine whether or not the target pin is connected and/or has a valid pin type.
-		const bool bTargetPinHasValidType = Pin->PinType.PinCategory != Schema->PC_Wildcard;
-		const bool bTargetPinHasConnection = Pin->LinkedTo.Num() > 0;
-
-		// If the target pin has a connection, but does not yet have a valid pin type, we need to set it based on the connected pin's type.
-		if (bTargetPinHasConnection && !bTargetPinHasValidType)
+		if( Pin->LinkedTo.Num() > 0 )
 		{
-			// Find a linked pin with an authoritative pin type (it might be linked to one of the other pins, depending on which category it is).
-			const UEdGraphPin* LinkedPin = FBlueprintEditorUtils::FindLinkedPinWithAuthoritativePinType(Pin, PinsToCheck);
+			if (Pin->PinType.PinCategory == Schema->PC_Wildcard)
+			{
+				UEdGraphPin* LinkedTo = Pin->LinkedTo[0];
+				check(LinkedTo);
+				check(Pin->PinType.bIsArray == LinkedTo->PinType.bIsArray);
 
-			// Propagate the linked pin's type to the set of dynamically-typed pins (which will also include the target pin).
-			check(LinkedPin);
-			FBlueprintEditorUtils::PropagatePinTypeInfo(LinkedPin, DynamicPins);
+				Pin->PinType.PinCategory = LinkedTo->PinType.PinCategory;
+				Pin->PinType.PinSubCategory = LinkedTo->PinType.PinSubCategory;
+				Pin->PinType.PinSubCategoryObject = LinkedTo->PinType.PinSubCategoryObject;
+
+				bNeedToPropagate = true;
+			}
 		}
-		else if (!bTargetPinHasConnection && bTargetPinHasValidType)
+		else
 		{
-			// If the target pin does not have a connection, but does have a valid type, we may need to reset it back to the wildcard type.
-			bool bNeedToResetType = true;
+			bNeedToPropagate = true;
 
-			// Check to see if any of the other dynamically-typed pins still have a connection. If any of them do, then we can't reset the type.
 			for (UEdGraphPin* PinToCheck : PinsToCheck)
 			{
 				if (PinToCheck->LinkedTo.Num() > 0)
 				{
-					bNeedToResetType = false;
+					bNeedToPropagate = false;
 					break;
 				}
 			}
 
-			if (bNeedToResetType)
+			if (bNeedToPropagate)
 			{
-				// Reset the pin's type.
 				Pin->PinType.PinCategory = Schema->PC_Wildcard;
 				Pin->PinType.PinSubCategory = TEXT("");
 				Pin->PinType.PinSubCategoryObject = NULL;
-
-				// Reset all other dynamically-typed pins to match.
-				FBlueprintEditorUtils::PropagatePinTypeInfo(Pin, DynamicPins);
 			}
+		}
+
+		if (bNeedToPropagate)
+		{
+			PropagateArrayTypeInfo(Pin);
 		}
 	}
 }
@@ -251,13 +249,6 @@ bool UK2Node_CallArrayFunction::IsWildcardProperty(UFunction* InArrayFunction, c
 	return false;
 }
 
-void UK2Node_CallArrayFunction::PropagateArrayTypeInfo(const UEdGraphPin* SourcePin)
-{
-	TArray<UEdGraphPin*> DynamicPins;
-	GetDynamicallyTypedPins(DynamicPins);
-	FBlueprintEditorUtils::PropagatePinTypeInfo(SourcePin, DynamicPins);
-}
-
 void UK2Node_CallArrayFunction::GetArrayTypeDependentPins(TArray<UEdGraphPin*>& OutPins) const
 {
 	OutPins.Empty();
@@ -281,11 +272,49 @@ void UK2Node_CallArrayFunction::GetArrayTypeDependentPins(TArray<UEdGraphPin*>& 
 	}
 }
 
-void UK2Node_CallArrayFunction::GetDynamicallyTypedPins(TArray<UEdGraphPin *>& OutPins) const
+void UK2Node_CallArrayFunction::PropagateArrayTypeInfo(const UEdGraphPin* SourcePin)
 {
-	// Include all pins that are listed as type-dependent in the UFUNCTION metadata. This must be done first, as it will clear the array.
-	GetArrayTypeDependentPins(OutPins);
+	if( SourcePin )
+	{
+		const UEdGraphSchema_K2* Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+		const FEdGraphPinType& SourcePinType = SourcePin->PinType;
 
-	// Include the target array pin.
-	OutPins.Add(GetTargetArrayPin());
+		TArray<UEdGraphPin*> DependentPins;
+		GetArrayTypeDependentPins(DependentPins);
+		DependentPins.Add(GetTargetArrayPin());
+	
+		// Propagate pin type info (except for array info!) to pins with dependent types
+		for (UEdGraphPin* CurrentPin : DependentPins)
+		{
+			if (CurrentPin != SourcePin)
+			{
+				CA_SUPPRESS(6011); // warning C6011: Dereferencing NULL pointer 'CurrentPin'.
+				FEdGraphPinType& CurrentPinType = CurrentPin->PinType;
+
+				bool const bHasTypeMismatch = (CurrentPinType.PinCategory != SourcePinType.PinCategory) ||
+					(CurrentPinType.PinSubCategory != SourcePinType.PinSubCategory) ||
+					(CurrentPinType.PinSubCategoryObject != SourcePinType.PinSubCategoryObject);
+
+				if (!bHasTypeMismatch)
+				{
+					continue;
+				}
+
+				if (CurrentPin->SubPins.Num() > 0)
+				{
+					Schema->RecombinePin(CurrentPin->SubPins[0]);
+				}
+
+				CurrentPinType.PinCategory          = SourcePinType.PinCategory;
+				CurrentPinType.PinSubCategory       = SourcePinType.PinSubCategory;
+				CurrentPinType.PinSubCategoryObject = SourcePinType.PinSubCategoryObject;
+
+				// Reset default values
+				if (!Schema->IsPinDefaultValid(CurrentPin, CurrentPin->DefaultValue, CurrentPin->DefaultObject, CurrentPin->DefaultTextValue).IsEmpty())
+				{
+					CurrentPin->ResetDefaultValue();
+				}
+			}
+		}
+	}
 }

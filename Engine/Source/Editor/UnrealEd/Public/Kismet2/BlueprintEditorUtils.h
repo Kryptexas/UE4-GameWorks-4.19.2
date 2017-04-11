@@ -1112,15 +1112,6 @@ public:
 	/** Returns whether or not the given Blueprint should be nativized implicitly, regardless of whether or not the user has explicitly enabled it */
 	static bool ShouldNativizeImplicitly(const UBlueprint* Blueprint);
 
-	/** Checks the given pin for linked pins, and returns the linked pin with the most-derived pin type. */
-	static const UEdGraphPin* FindLinkedPinWithMostDerivedPinType(const UEdGraphPin* Pin);
-
-	/** Checks the given pin against the given set of dynamically-typed pins, and returns the linked pin that has the authoritative pin type. Assumes that the given pin is linked. */
-	static const UEdGraphPin* FindLinkedPinWithAuthoritativePinType(const UEdGraphPin* Pin, const TArray<UEdGraphPin*>& PinsToCheck);
-
-	/** Propagates the source pin's type to the given set of target pins. */
-	static void PropagatePinTypeInfo(const UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& TargetPins);
-
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
 
