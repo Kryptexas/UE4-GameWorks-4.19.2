@@ -36,6 +36,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "EngineGlobals.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
