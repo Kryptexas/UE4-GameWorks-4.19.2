@@ -2,6 +2,7 @@
 
 #include "MIDIDeviceController.h"
 #include "MIDIDeviceLog.h"
+#include "portmidi.h"
 
 
 #define LOCTEXT_NAMESPACE "MIDIDeviceController"

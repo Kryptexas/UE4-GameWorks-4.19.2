@@ -5,6 +5,7 @@
 #include "UObject/UObjectHash.h"
 #include "MIDIDeviceController.h"
 #include "MIDIDeviceLog.h"
+#include "portmidi.h"
 
 #define LOCTEXT_NAMESPACE "MIDIDeviceManager"
 
