@@ -17,14 +17,6 @@
 #include "WindowsHWrapper.h"
 #endif
 
-DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
-
-/** How many back buffers to cycle through */
-enum
-{
-	NUM_RENDER_BUFFERS = 3,
-};
-
 #ifndef VK_PROTOTYPES
 #define VK_PROTOTYPES	1
 #endif
@@ -72,12 +64,7 @@ enum
 	#include "VulkanCommandWrappers.h"
 #else
 	#if VULKAN_DYNAMICALLYLOADED
-		// Bring functions from VulkanDynamicAPI to VulkanRHI
-		#define VK_DYNAMICAPI_TO_VULKANRHI(Type,Func) using VulkanDynamicAPI::Func;
-		namespace VulkanRHI
-		{
-			ENUM_VK_ENTRYPOINTS_ALL(VK_DYNAMICAPI_TO_VULKANRHI);
-		}
+		#include "VulkanCommandsDirect.h"
 	#else
 		#error "Statically linked vulkan api must be wrapped!"
 	#endif
@@ -87,6 +74,10 @@ enum
 #include "VulkanRHI.h"
 #include "VulkanGlobalUniformBuffer.h"
 #include "RHI.h"
+#include "VulkanDevice.h"
+#include "VulkanQueue.h"
+#include "VulkanCommandBuffer.h"
+#include "Stats2.h"
 
 using namespace VulkanRHI;
 
@@ -189,8 +180,6 @@ protected:
 	friend class FVulkanPipelineStateCache;
 };
 
-#include "VulkanDevice.h"
-
 struct FVulkanSemaphore
 {
 	FVulkanSemaphore(FVulkanDevice& InDevice):
@@ -223,9 +212,6 @@ private:
 	FVulkanDevice& Device;
 	VkSemaphore SemaphoreHandle;
 };
-
-#include "VulkanQueue.h"
-#include "VulkanCommandBuffer.h"
 
 class FVulkanFramebuffer
 {
@@ -406,7 +392,6 @@ inline void VulkanSetImageLayoutSimple(VkCommandBuffer CmdBuffer, VkImage Image,
 void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI);
 
 // Stats
-#include "Stats2.h"
 DECLARE_STATS_GROUP(TEXT("Vulkan RHI"), STATGROUP_VulkanRHI, STATCAT_Advanced);
 //DECLARE_STATS_GROUP(TEXT("Vulkan RHI Verbose"), STATGROUP_VulkanRHIVERBOSE, STATCAT_Advanced);
 //DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("DrawPrimitive calls"), STAT_VulkanDrawPrimitiveCalls, STATGROUP_VulkanRHI, );

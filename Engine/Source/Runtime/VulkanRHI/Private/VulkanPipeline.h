@@ -7,6 +7,7 @@
 #pragma once
 
 #include "VulkanResources.h"
+#include "VulkanDescriptorSets.h"
 
 class FVulkanDevice;
 class FVulkanFramebuffer;

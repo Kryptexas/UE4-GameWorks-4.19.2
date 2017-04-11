@@ -11,6 +11,7 @@
 #include "VulkanPipeline.h"
 #include "VulkanGlobalUniformBuffer.h"
 #include "VulkanPipelineState.h"
+#include "VulkanBoundShaderState.h"
 
 typedef uint32 FStateKey;
 
