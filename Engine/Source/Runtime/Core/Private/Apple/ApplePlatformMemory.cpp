@@ -6,7 +6,11 @@
 
 #include "ApplePlatformMemory.h"
 #include "HAL/PlatformMemory.h"
+#include "HAL/PlatformMath.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/AlignmentTemplates.h"
 
+#include <stdlib.h>
 #include <objc/runtime.h>
 #include <CoreFoundation/CFBase.h>
 
@@ -62,7 +66,7 @@ NS_ASSUME_NONNULL_BEGIN
 	
 	// Allocate the correct size & zero it
 	// All allocations must be 16 byte aligned
-	SIZE_T Size = Align(FMath::Max(class_getInstanceSize(NewClass), class_getInstanceSize([FApplePlatformObjectZombie class])), 16);
+	SIZE_T Size = Align(FPlatformMath::Max(class_getInstanceSize(NewClass), class_getInstanceSize([FApplePlatformObjectZombie class])), 16);
 	void* Mem = nullptr;
 	
 	OSQueueHead* Alloc = [NewClass classAllocator];
