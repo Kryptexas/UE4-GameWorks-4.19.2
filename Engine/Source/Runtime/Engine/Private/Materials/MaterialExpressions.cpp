@@ -4106,6 +4106,12 @@ void UMaterialExpressionMakeMaterialAttributes::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+	
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::FixedLegacyMaterialAttributeNodeTypes)
+	{
+		// Update the legacy masks else fail on vec3 to vec2 conversion
+		Refraction.SetMask(1, 1, 1, 0, 0);
+	}
 }
 
 #if WITH_EDITOR
