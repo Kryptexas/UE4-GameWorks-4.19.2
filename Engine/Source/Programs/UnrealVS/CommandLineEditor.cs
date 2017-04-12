@@ -144,43 +144,41 @@ namespace UnrealVS
 			string Text = "";
 
 			IVsHierarchy ProjectHierarchy;
-			UnrealVSPackage.Instance.SolutionBuildManager.get_StartupProject( out ProjectHierarchy );
-			if( ProjectHierarchy != null )
+			if (UnrealVSPackage.Instance.SolutionBuildManager.get_StartupProject(out ProjectHierarchy) == VSConstants.S_OK && ProjectHierarchy != null)
 			{
-				var SelectedStartupProject = Utils.HierarchyObjectToProject( ProjectHierarchy );
-
+				Project SelectedStartupProject = Utils.HierarchyObjectToProject(ProjectHierarchy);
 				if (SelectedStartupProject != null)
 				{
-					var CommandLineArgumentsProperty = GetProjectCommandLineProperty(SelectedStartupProject);
-
-					if (CommandLineArgumentsProperty != null)
+					Configuration SelectedConfiguration = SelectedStartupProject.ConfigurationManager.ActiveConfiguration;
+					if (SelectedConfiguration != null)
 					{
-						var CommandLineArguments = (string) CommandLineArgumentsProperty.Value;
-
-						// for "Game" projects automatically remove the game project filename from the start of the command line
-						var ActiveConfiguration = (SolutionConfiguration2) UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
-						if (UnrealVSPackage.Instance.IsUE4Loaded && Utils.IsGameProject(SelectedStartupProject) && Utils.HasUProjectCommandLineArg(ActiveConfiguration.Name))
+						IVsBuildPropertyStorage PropertyStorage = ProjectHierarchy as IVsBuildPropertyStorage;
+						if (PropertyStorage != null)
 						{
-							var AutoPrefix = Utils.GetAutoUProjectCommandLinePrefix(SelectedStartupProject);
-
-							if (!string.IsNullOrEmpty(AutoPrefix))
+							// Query the property store for the debugger arguments
+							string ConfigurationName = String.Format("{0}|{1}", SelectedConfiguration.ConfigurationName, SelectedConfiguration.PlatformName);
+							if (PropertyStorage.GetPropertyValue("LocalDebuggerCommandArguments", ConfigurationName, (uint)_PersistStorageType.PST_USER_FILE, out Text) != VSConstants.S_OK)
 							{
-								if (CommandLineArguments.Trim().StartsWith(AutoPrefix, StringComparison.OrdinalIgnoreCase))
+								if (PropertyStorage.GetPropertyValue("StartArguments", ConfigurationName, (uint)_PersistStorageType.PST_USER_FILE, out Text) != VSConstants.S_OK)
 								{
-									CommandLineArguments = CommandLineArguments.Trim().Substring(AutoPrefix.Length).Trim();
+									Text = InvalidProjectString;
 								}
-								//else if (CommandLineArguments.Trim().StartsWith(SelectedStartupProject.Name + " ", StringComparison.OrdinalIgnoreCase))
-								//{
-								//	CommandLineArguments = CommandLineArguments.Trim().Substring(SelectedStartupProject.Name.Length + 1).Trim();
-								//}
+							}
+
+							// for "Game" projects automatically remove the game project filename from the start of the command line
+							var ActiveConfiguration = (SolutionConfiguration2)UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
+							if (UnrealVSPackage.Instance.IsUE4Loaded && Utils.IsGameProject(SelectedStartupProject) && Utils.HasUProjectCommandLineArg(ActiveConfiguration.Name))
+							{
+								string AutoPrefix = Utils.GetAutoUProjectCommandLinePrefix(SelectedStartupProject);
+								if (!string.IsNullOrEmpty(AutoPrefix))
+								{
+									if (Text.Trim().StartsWith(AutoPrefix, StringComparison.OrdinalIgnoreCase))
+									{
+										Text = Text.Trim().Substring(AutoPrefix.Length).Trim();
+									}
+								}
 							}
 						}
-
-						Text = CommandLineArguments;
-					}
-					else
-					{
-						Text = InvalidProjectString;
 					}
 				}
 			}
@@ -250,41 +248,52 @@ namespace UnrealVS
 		private void CommitCommandLineText(string CommandLine)
 		{
 			IVsHierarchy ProjectHierarchy;
-			UnrealVSPackage.Instance.SolutionBuildManager.get_StartupProject(out ProjectHierarchy);
-			if (ProjectHierarchy != null)
+			if (UnrealVSPackage.Instance.SolutionBuildManager.get_StartupProject(out ProjectHierarchy) == VSConstants.S_OK && ProjectHierarchy != null)
 			{
-				var SelectedStartupProject = Utils.HierarchyObjectToProject(ProjectHierarchy);
-
+				Project SelectedStartupProject = Utils.HierarchyObjectToProject(ProjectHierarchy);
 				if (SelectedStartupProject != null)
 				{
-					var CommandLineArgumentsProperty = GetProjectCommandLineProperty(SelectedStartupProject);
-
-					if (CommandLineArgumentsProperty != null)
+					Configuration SelectedConfiguration = SelectedStartupProject.ConfigurationManager.ActiveConfiguration;
+					if (SelectedConfiguration != null)
 					{
-						string FullCommandLine = CommandLine;
-
-						// for "Game" projects automatically remove the game project filename from the start of the command line
-						var ActiveConfiguration = (SolutionConfiguration2)UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
-						if (UnrealVSPackage.Instance.IsUE4Loaded && Utils.IsGameProject(SelectedStartupProject) && Utils.HasUProjectCommandLineArg(ActiveConfiguration.Name))
+						IVsBuildPropertyStorage PropertyStorage = ProjectHierarchy as IVsBuildPropertyStorage;
+						if (PropertyStorage != null)
 						{
-							var AutoPrefix = Utils.GetAutoUProjectCommandLinePrefix(SelectedStartupProject);
-							
-							if (FullCommandLine.IndexOf(Utils.UProjectExtension, StringComparison.OrdinalIgnoreCase) < 0 &&
-								string.Compare(FullCommandLine, SelectedStartupProject.Name, StringComparison.OrdinalIgnoreCase) != 0 &&
-								!FullCommandLine.StartsWith(SelectedStartupProject.Name + " ", StringComparison.OrdinalIgnoreCase))
+							string FullCommandLine = CommandLine;
+
+							// for "Game" projects automatically remove the game project filename from the start of the command line
+							var ActiveConfiguration = (SolutionConfiguration2)UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
+							if (UnrealVSPackage.Instance.IsUE4Loaded && Utils.IsGameProject(SelectedStartupProject) && Utils.HasUProjectCommandLineArg(ActiveConfiguration.Name))
 							{
-								// Committed command line does not specify a .uproject
-								FullCommandLine = AutoPrefix + " " + FullCommandLine;
+								string AutoPrefix = Utils.GetAutoUProjectCommandLinePrefix(SelectedStartupProject);
+								if (FullCommandLine.IndexOf(Utils.UProjectExtension, StringComparison.OrdinalIgnoreCase) < 0 &&
+									string.Compare(FullCommandLine, SelectedStartupProject.Name, StringComparison.OrdinalIgnoreCase) != 0 &&
+									!FullCommandLine.StartsWith(SelectedStartupProject.Name + " ", StringComparison.OrdinalIgnoreCase))
+								{
+									// Committed command line does not specify a .uproject
+									FullCommandLine = AutoPrefix + " " + FullCommandLine;
+								}
+							}
+
+							// Get the project kind. C++ projects store the debugger arguments differently to other project types.
+							string ProjectKind = SelectedStartupProject.Kind;
+
+							// Update the property
+							string ProjectConfigurationName = String.Format("{0}|{1}", SelectedConfiguration.ConfigurationName, SelectedConfiguration.PlatformName);
+							if (String.Equals(ProjectKind, "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}", StringComparison.InvariantCultureIgnoreCase))
+							{
+								PropertyStorage.SetPropertyValue("LocalDebuggerCommandArguments", ProjectConfigurationName, (uint)_PersistStorageType.PST_USER_FILE, FullCommandLine);
+							}
+							else
+							{
+								PropertyStorage.SetPropertyValue("StartArguments", ProjectConfigurationName, (uint)_PersistStorageType.PST_USER_FILE, FullCommandLine);
 							}
 						}
-
-						Utils.SetPropertyValue(CommandLineArgumentsProperty, FullCommandLine);
 					}
 				}
 			}
 
 			CommitCommandLineToMRU(CommandLine);
-
 		}
 
 		private void CommitCommandLineToMRU(string CommandLine)
@@ -310,23 +319,6 @@ namespace UnrealVS
 			var OleArgs = (OleMenuCmdEventArgs)Args;
 
 			Marshal.GetNativeVariantForObject(ComboList.ToArray(), OleArgs.OutValue);
-		}
-
-		/// <summary>
-		/// Helper function to get the correct property from a project that represents its command line arguments
-		/// </summary>
-		private static Property GetProjectCommandLineProperty(Project InProject)
-		{
-			// C++ projects use "CommandArguments" as the property name
-			var CommandLineArgumentsProperty = Utils.GetProjectConfigProperty(InProject, null, "CommandArguments");
-
-			// C# projects use "StartArguments" as the property name
-			if (CommandLineArgumentsProperty == null)
-			{
-				CommandLineArgumentsProperty = Utils.GetProjectConfigProperty(InProject, null, "StartArguments");
-			}
-
-			return CommandLineArgumentsProperty;
 		}
 
 		/// List of MRU strings to show in the combobox drop-down list

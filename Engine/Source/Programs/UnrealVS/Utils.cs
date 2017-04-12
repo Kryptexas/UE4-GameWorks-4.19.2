@@ -10,6 +10,7 @@ using System.Linq.Expressions;
 using VSLangProj;
 using System.IO;
 using EnvDTE80;
+using Microsoft.VisualStudio.Shell;
 
 namespace UnrealVS
 {
@@ -101,36 +102,6 @@ namespace UnrealVS
 			}
 
 			return CfgProvider2;
-		}
-
-		/// <summary>
-		/// Locates a specific project config property for the active configuration and returns it (or null if not found.)
-		/// </summary>
-		/// <param name="Project">Project to search the active configuration for the property</param>
-		/// <param name="Configuration">Project configuration to edit, or null to use the "active" configuration</param>
-		/// <param name="PropertyName">Name of the property</param>
-		/// <returns>Property object or null if not found</returns>
-		public static Property GetProjectConfigProperty(Project Project, Configuration Configuration, string PropertyName)
-		{
-			if (Configuration == null)
-			{
-				Configuration = Project.ConfigurationManager.ActiveConfiguration;
-			}
-			if (Configuration != null && Configuration.Properties != null)
-			{
-				var Properties = Configuration.Properties;
-				foreach (var RawProperty in Properties)
-				{
-					var Property = (Property)RawProperty;
-					if (Property.Name.Equals(PropertyName, StringComparison.InvariantCultureIgnoreCase))
-					{
-						return Property;
-					}
-				}
-			}
-
-			// Not found
-			return null;
 		}
 
 		/// <summary>
@@ -527,7 +498,10 @@ namespace UnrealVS
 		public static bool SelectProjectInSolutionExplorer(Project Project)
 		{
 			UnrealVSPackage.Instance.DTE.ExecuteCommand("View.SolutionExplorer");
-			Project.ParentProjectItem.ExpandView();
+			if (Project.ParentProjectItem != null)
+			{
+				Project.ParentProjectItem.ExpandView();
+			}
 
 			UIHierarchy SolutionExplorerHierarachy = UnrealVSPackage.Instance.DTE2.ToolWindows.SolutionExplorer;
 			Utils.UITreeItem SolutionExplorerTree = Utils.GetUIHierarchyTree(SolutionExplorerHierarachy);
