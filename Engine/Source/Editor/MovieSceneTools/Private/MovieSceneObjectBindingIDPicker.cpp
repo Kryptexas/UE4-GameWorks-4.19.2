@@ -12,6 +12,10 @@
 #include "Sections/MovieSceneCinematicShotSection.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Textures/SlateIcon.h"
+#include "SlateIconFinder.h"
+#include "EditorStyleSet.h"
+#include "SImage.h"
+#include "SOverlay.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneObjectBindingIDPicker"
 
@@ -19,9 +23,11 @@ DECLARE_DELEGATE_OneParam(FOnSelectionChanged, const FMovieSceneObjectBindingID&
 
 struct FSequenceBindingNode
 {
-	FSequenceBindingNode(FText InDisplayString, FMovieSceneObjectBindingID InBindingID)
+	FSequenceBindingNode(FText InDisplayString, FMovieSceneObjectBindingID InBindingID, FSlateIcon InIcon)
 		: BindingID(InBindingID)
 		, DisplayString(InDisplayString)
+		, Icon(InIcon)
+		, bIsSpawnable(false)
 	{}
 
 	void AddChild(TSharedRef<FSequenceBindingNode> Child)
@@ -33,6 +39,8 @@ struct FSequenceBindingNode
 	FMovieSceneObjectBindingID BindingID, ParentID;
 
 	FText DisplayString;
+	FSlateIcon Icon;
+	bool bIsSpawnable;
 
 	TArray<TSharedRef<FSequenceBindingNode>> Children;
 };
@@ -45,7 +53,7 @@ struct FSequenceBindingTree
 
 		FMovieSceneObjectBindingID ID;
 
-		TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(FText(), ID);
+		TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(FText(), ID, FSlateIcon());
 		Hierarchy.Add(ID, NewNode);
 
 		if (InSequence)
@@ -62,30 +70,6 @@ struct FSequenceBindingTree
 	TSharedPtr<FSequenceBindingNode> FindNode(FMovieSceneObjectBindingID BindingID) const
 	{
 		return Hierarchy.FindRef(BindingID);
-	}
-
-	FText GetTextForBinding(FMovieSceneObjectBindingID BindingID) const
-	{
-		TSharedPtr<FSequenceBindingNode> Object = BindingID.GetObjectBindingID().IsValid() ? Hierarchy.FindRef(BindingID) : nullptr;
-		return Object.IsValid() ? Object->DisplayString : LOCTEXT("UnresolvedBinding", "Unresolved Binding");
-	}
-
-	FText GetToolTipTextForBinding(FMovieSceneObjectBindingID BindingID) const
-	{
-		TSharedPtr<FSequenceBindingNode> Object = BindingID.GetObjectBindingID().IsValid() ? Hierarchy.FindRef(BindingID) : nullptr;
-		if (!Object.IsValid())
-		{
-			return LOCTEXT("UnresolvedBinding_ToolTip", "The specified binding could not be located in the sequence");
-		}
-
-		FText NestedPath;
-		while (Object.IsValid() && Object->BindingID != FMovieSceneObjectBindingID())
-		{
-			NestedPath = NestedPath.IsEmpty() ? Object->DisplayString : FText::Format(LOCTEXT("NestedPathFormat", "{0} -> {1}"), Object->DisplayString, NestedPath);
-			Object = Hierarchy.FindRef(Object->ParentID);
-		}
-
-		return NestedPath;
 	}
 
 private:
@@ -108,7 +92,8 @@ private:
 			{
 				FMovieSceneObjectBindingID ID(Possessable.GetGuid(), SequenceID);
 
-				TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(MovieScene->GetObjectDisplayName(Possessable.GetGuid()), ID);
+				FSlateIcon Icon = FSlateIconFinder::FindIconForClass(Possessable.GetPossessedObjectClass());
+				TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(MovieScene->GetObjectDisplayName(Possessable.GetGuid()), ID, Icon);
 
 				EnsureParent(Possessable.GetParent(), MovieScene, SequenceID)->AddChild(NewNode);
 				Hierarchy.Add(ID, NewNode);
@@ -120,9 +105,16 @@ private:
 		{
 			const FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(Index);
 
+			// Spawnables may have been added in the above loop
 			FMovieSceneObjectBindingID ID(Spawnable.GetGuid(), SequenceID);
+			if (Hierarchy.FindRef(ID).IsValid())
+			{
+				continue;
+			}
 
-			TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(MovieScene->GetObjectDisplayName(Spawnable.GetGuid()), ID);
+			FSlateIcon Icon = FSlateIconFinder::FindIconForClass(Spawnable.GetObjectTemplate()->GetClass());
+			TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(MovieScene->GetObjectDisplayName(Spawnable.GetGuid()), ID, Icon);
+			NewNode->bIsSpawnable = true;
 
 			EnsureParent(FGuid(), MovieScene, SequenceID)->AddChild(NewNode);
 			Hierarchy.Add(ID, NewNode);
@@ -146,9 +138,14 @@ private:
 							SubSequenceID = SubSequenceID.AccumulateParentID(SequenceID);
 						}
 
+						
 						FMovieSceneObjectBindingID ID(FGuid(), SubSequenceID);
-						FText DisplayString = Section->IsA<UMovieSceneCinematicShotSection>() ? Cast<UMovieSceneCinematicShotSection>(Section)->GetShotDisplayName() : FText::FromName(SubSection->GetFName());
-						TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(DisplayString, ID);
+
+						UMovieSceneCinematicShotSection* ShotSection = Cast<UMovieSceneCinematicShotSection>(Section);
+						FText DisplayString = ShotSection ? ShotSection->GetShotDisplayName() : FText::FromName(SubSection->GetFName());
+						FSlateIcon Icon(FEditorStyle::GetStyleSetName(), ShotSection ? "Sequencer.Tracks.CinematicShot" : "Sequencer.Tracks.Sub");
+						
+						TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(DisplayString, ID, Icon);
 
 						EnsureParent(FGuid(), MovieScene, SequenceID)->AddChild(NewNode);
 						Hierarchy.Add(ID, NewNode);
@@ -181,7 +178,17 @@ private:
 			AddToGuid = GrandParentPossessable->GetGuid();
 		}
 
-		TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(InMovieScene->GetObjectDisplayName(InParentGuid), ParentPtr);
+		const FMovieScenePossessable* Possessable = InMovieScene->FindPossessable(InParentGuid);
+		const FMovieSceneSpawnable* Spawnable = Possessable ? nullptr : InMovieScene->FindSpawnable(InParentGuid);
+
+		FSlateIcon Icon;
+		if (Possessable || Spawnable)
+		{
+			Icon = FSlateIconFinder::FindIconForClass(Possessable ? Possessable->GetPossessedObjectClass() : Spawnable->GetObjectTemplate()->GetClass());
+		}
+
+		TSharedRef<FSequenceBindingNode> NewNode = MakeShared<FSequenceBindingNode>(InMovieScene->GetObjectDisplayName(InParentGuid), ParentPtr, Icon);
+		NewNode->bIsSpawnable = Spawnable != nullptr;
 		EnsureParent(AddToGuid, InMovieScene, SequenceID)->AddChild(NewNode);
 
 		Hierarchy.Add(ParentPtr, NewNode);
@@ -202,21 +209,22 @@ void FMovieSceneObjectBindingIDPicker::Initialize()
 	}
 
 	DataTree->Build(GetSequence());
-
-	CurrentText = DataTree->GetTextForBinding(GetCurrentValue());
-	ToolTipText = DataTree->GetToolTipTextForBinding(GetCurrentValue());
+	UpdateCachedData();
 }
 
 void FMovieSceneObjectBindingIDPicker::OnGetMenuContent(FMenuBuilder& MenuBuilder, TSharedPtr<FSequenceBindingNode> Node)
 {
 	check(Node.IsValid());
 
-	if (Node->BindingID.GetObjectBindingID().IsValid())
+	bool bHadAnyEntries = false;
+
+	if (Node->BindingID.GetGuid().IsValid())
 	{
+		bHadAnyEntries = true;
 		MenuBuilder.AddMenuEntry(
 			Node->DisplayString,
 			FText(),
-			FSlateIcon(),
+			Node->Icon,
 			FUIAction(
 				FExecuteAction::CreateRaw(this, &FMovieSceneObjectBindingIDPicker::SetBindingId, Node->BindingID)
 			)
@@ -227,12 +235,16 @@ void FMovieSceneObjectBindingIDPicker::OnGetMenuContent(FMenuBuilder& MenuBuilde
 	{
 		check(Child.IsValid())
 
-		if (!Child->BindingID.GetObjectBindingID().IsValid())
+		bHadAnyEntries = true;
+
+		if (!Child->BindingID.GetGuid().IsValid())
 		{
 			MenuBuilder.AddSubMenu(
 				Child->DisplayString,
 				FText(),
-				FNewMenuDelegate::CreateRaw(this, &FMovieSceneObjectBindingIDPicker::OnGetMenuContent, Child)
+				FNewMenuDelegate::CreateRaw(this, &FMovieSceneObjectBindingIDPicker::OnGetMenuContent, Child),
+				false,
+				Child->Icon
 				);
 		}
 		else
@@ -240,12 +252,17 @@ void FMovieSceneObjectBindingIDPicker::OnGetMenuContent(FMenuBuilder& MenuBuilde
 			MenuBuilder.AddMenuEntry(
 				Child->DisplayString,
 				FText(),
-				FSlateIcon(),
+				Child->Icon,
 				FUIAction(
 					FExecuteAction::CreateRaw(this, &FMovieSceneObjectBindingIDPicker::SetBindingId, Child->BindingID)
 				)
 			);
 		}
+	}
+
+	if (!bHadAnyEntries)
+	{
+		MenuBuilder.AddMenuEntry(LOCTEXT("NoEntries", "No Object Bindings"), FText(), FSlateIcon(), FUIAction());
 	}
 }
 
@@ -253,16 +270,78 @@ TSharedRef<SWidget> FMovieSceneObjectBindingIDPicker::GetPickerMenu()
 {
 	FMenuBuilder MenuBuilder(true, nullptr);
 
+	Initialize();
 	OnGetMenuContent(MenuBuilder, DataTree->GetRootNode());
 
 	return MenuBuilder.MakeWidget();
 }
 
+TSharedRef<SWidget> FMovieSceneObjectBindingIDPicker::GetCurrentItemWidget(TSharedRef<STextBlock> TextContent)
+{
+	TextContent->SetText(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FMovieSceneObjectBindingIDPicker::GetCurrentText)));
+	
+	return SNew(SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SOverlay)
+
+			+ SOverlay::Slot()
+			[
+				SNew(SImage)
+				.Image_Raw(this, &FMovieSceneObjectBindingIDPicker::GetCurrentIconBrush)
+			]
+
+			+ SOverlay::Slot()
+			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Right)
+			[
+				SNew(SImage)
+				.Visibility_Raw(this, &FMovieSceneObjectBindingIDPicker::GetSpawnableIconOverlayVisibility)
+				.Image(FEditorStyle::GetBrush("Sequencer.SpawnableIconOverlay"))
+			]
+		]
+
+		+ SHorizontalBox::Slot()
+		.Padding(4.f,0,0,0)
+		.VAlign(VAlign_Center)
+		[
+			TextContent
+		];
+}
+
 void FMovieSceneObjectBindingIDPicker::SetBindingId(FMovieSceneObjectBindingID InBindingId)
 {
 	SetCurrentValue(InBindingId);
-	CurrentText = DataTree->GetTextForBinding(InBindingId);
-	ToolTipText = DataTree->GetToolTipTextForBinding(InBindingId);
+	UpdateCachedData();
+}
+
+void FMovieSceneObjectBindingIDPicker::UpdateCachedData()
+{
+	FMovieSceneObjectBindingID CurrentValue = GetCurrentValue();
+	TSharedPtr<FSequenceBindingNode> Object = CurrentValue.IsValid() ? DataTree->FindNode(CurrentValue) : nullptr;
+
+	if (!Object.IsValid())
+	{
+		CurrentIcon = FSlateIcon();
+		CurrentText = LOCTEXT("UnresolvedBinding", "Unresolved Binding");
+		ToolTipText = LOCTEXT("UnresolvedBinding_ToolTip", "The specified binding could not be located in the sequence");
+		bIsCurrentItemSpawnable = false;
+	}
+	else
+	{
+		CurrentText = Object->DisplayString;
+		CurrentIcon = Object->Icon;
+		bIsCurrentItemSpawnable = Object->bIsSpawnable;
+
+		ToolTipText = FText();
+		while (Object.IsValid() && Object->BindingID != FMovieSceneObjectBindingID())
+		{
+			ToolTipText = ToolTipText.IsEmpty() ? Object->DisplayString : FText::Format(LOCTEXT("ToolTipFormat", "{0} -> {1}"), Object->DisplayString, ToolTipText);
+			Object = DataTree->FindNode(Object->ParentID);
+		}
+	}
 }
 
 FText FMovieSceneObjectBindingIDPicker::GetToolTipText() const
@@ -273,6 +352,21 @@ FText FMovieSceneObjectBindingIDPicker::GetToolTipText() const
 FText FMovieSceneObjectBindingIDPicker::GetCurrentText() const
 {
 	return CurrentText;
+}
+
+FSlateIcon FMovieSceneObjectBindingIDPicker::GetCurrentIcon() const
+{
+	return CurrentIcon;
+}
+
+const FSlateBrush* FMovieSceneObjectBindingIDPicker::GetCurrentIconBrush() const
+{
+	return CurrentIcon.GetOptionalIcon();
+}
+
+EVisibility FMovieSceneObjectBindingIDPicker::GetSpawnableIconOverlayVisibility() const
+{
+	return bIsCurrentItemSpawnable ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 #undef LOCTEXT_NAMESPACE

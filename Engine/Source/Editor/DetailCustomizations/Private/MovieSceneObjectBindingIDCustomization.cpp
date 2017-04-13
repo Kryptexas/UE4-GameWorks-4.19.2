@@ -44,9 +44,10 @@ void FMovieSceneObjectBindingIDCustomization::CustomizeHeader(TSharedRef<IProper
 			.ContentPadding(FMargin(4.0, 2.0))
 			.ButtonContent()
 			[
-				SNew(STextBlock)
-				.Text(this, &FMovieSceneObjectBindingIDCustomization::GetCurrentText)
-				.Font(CustomizationUtils.GetRegularFont())
+				GetCurrentItemWidget(
+					SNew(STextBlock)
+					.Font(CustomizationUtils.GetRegularFont())
+				)
 			]
 		]
 	];

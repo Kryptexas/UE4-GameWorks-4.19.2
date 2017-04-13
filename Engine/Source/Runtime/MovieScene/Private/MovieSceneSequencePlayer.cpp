@@ -372,7 +372,7 @@ void UMovieSceneSequencePlayer::ApplyLatentActions()
 TArray<UObject*> UMovieSceneSequencePlayer::GetBoundObjects(FMovieSceneObjectBindingID ObjectBinding)
 {
 	TArray<UObject*> Objects;
-	for (TWeakObjectPtr<> WeakObject : FindBoundObjects(ObjectBinding.GetObjectBindingID(), ObjectBinding.GetSequenceID()))
+	for (TWeakObjectPtr<> WeakObject : FindBoundObjects(ObjectBinding.GetGuid(), ObjectBinding.GetSequenceID()))
 	{
 		if (UObject* Object = WeakObject.Get())
 		{

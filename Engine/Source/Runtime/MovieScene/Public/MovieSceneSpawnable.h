@@ -79,6 +79,17 @@ public:
 	}
 
 	/**
+	 * Get the template object for this spawnable
+	 *
+	 * @return Object template
+	 * @see GetGuid, GetName
+	 */
+	const UObject* GetObjectTemplate() const
+	{
+		return ObjectTemplate;
+	}
+
+	/**
 	 * Copy the specified object into this spawnable's template
 	 *
 	 * @param InSourceObject The source object to use. This object will be duplicated into the spawnable.

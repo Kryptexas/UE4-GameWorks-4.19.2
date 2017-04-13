@@ -94,7 +94,7 @@ void UK2Node_GetSequenceBinding::ValidateNodeDuringCompilation(FCompilerResultsL
 		const FText MessageText = LOCTEXT("InvalidSequenceBinding_NoSequence", "Invalid sequence binding specified on node @@ (could not find sequence).");
 		MessageLog.Warning(*MessageText.ToString(), this);
 	}
-	else if (!MovieScene->FindPossessable(Binding.GetObjectBindingID()) && !MovieScene->FindSpawnable(Binding.GetObjectBindingID()))
+	else if (!MovieScene->FindPossessable(Binding.GetGuid()) && !MovieScene->FindSpawnable(Binding.GetGuid()))
 	{
 		const FText MessageText = LOCTEXT("InvalidSequenceBinding_Unresolved", "Invalid sequence binding specified on node @@.");
 		MessageLog.Warning(*MessageText.ToString(), this);
@@ -117,7 +117,7 @@ void UK2Node_GetSequenceBinding::AllocateDefaultPins()
 UMovieScene* UK2Node_GetSequenceBinding::GetObjectMovieScene() const
 {
 	UMovieSceneSequence* Sequence = GetSequence();
-	if (Sequence && Binding.GetObjectBindingID().IsValid())
+	if (Sequence && Binding.IsValid())
 	{
 		// Ensure that the sequence data is as loaded as it can be - we many only be able to partially load the structural information as part of a blueprint compile as that may happen at Preload time
 		EnsureFullyLoaded(Sequence);
@@ -163,7 +163,7 @@ FText UK2Node_GetSequenceBinding::GetSequenceName() const
 FText UK2Node_GetSequenceBinding::GetBindingName() const
 {
 	UMovieScene* MovieScene = GetObjectMovieScene();
-	return MovieScene ? MovieScene->GetObjectDisplayName(Binding.GetObjectBindingID()) : FText();
+	return MovieScene ? MovieScene->GetObjectDisplayName(Binding.GetGuid()) : FText();
 }
 
 FText UK2Node_GetSequenceBinding::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -437,11 +437,12 @@ TSharedPtr<SGraphNode> UK2Node_GetSequenceBinding::CreateVisualWidget()
 					.MenuPlacement(MenuPlacement_BelowAnchor)
 					.ButtonContent()
 					[
-						SNew(STextBlock)
-						.TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
-						.Font( FEditorStyle::GetFontStyle( "PropertyWindow.NormalFont" ) )
-						.ColorAndOpacity(this, &SGraphNodeGetSequenceBinding::OnGetComboForeground)
-						.Text( this, &SGraphNodeGetSequenceBinding::GetCurrentText )
+						GetCurrentItemWidget(
+							SNew(STextBlock)
+							.TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
+							.Font( FEditorStyle::GetFontStyle( "PropertyWindow.NormalFont" ) )
+							.ColorAndOpacity(this, &SGraphNodeGetSequenceBinding::OnGetComboForeground)
+						)
 					]
 					.OnGetMenuContent(this, &SGraphNodeGetSequenceBinding::GetPickerMenu)
 				]

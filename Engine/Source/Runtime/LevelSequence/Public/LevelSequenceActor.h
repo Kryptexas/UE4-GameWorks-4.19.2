@@ -130,7 +130,7 @@ public:
 		BindingOverrides->SetBinding(Binding, TArray<UObject*>(Actors), bAllowBindingsFromAsset);
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.Invalidate(Binding.GetObjectBindingID(), Binding.GetSequenceID());
+			SequencePlayer->State.Invalidate(Binding.GetGuid(), Binding.GetSequenceID());
 		}
 	}
 
@@ -141,7 +141,7 @@ public:
 		BindingOverrides->AddBinding(Binding, Actor);
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.Invalidate(Binding.GetObjectBindingID(), Binding.GetSequenceID());
+			SequencePlayer->State.Invalidate(Binding.GetGuid(), Binding.GetSequenceID());
 		}
 	}
 
@@ -152,7 +152,7 @@ public:
 		BindingOverrides->RemoveBinding(Binding, Actor);
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.Invalidate(Binding.GetObjectBindingID(), Binding.GetSequenceID());
+			SequencePlayer->State.Invalidate(Binding.GetGuid(), Binding.GetSequenceID());
 		}
 	}
 
@@ -163,7 +163,7 @@ public:
 		BindingOverrides->ResetBinding(Binding);
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.Invalidate(Binding.GetObjectBindingID(), Binding.GetSequenceID());
+			SequencePlayer->State.Invalidate(Binding.GetGuid(), Binding.GetSequenceID());
 		}
 	}
 
