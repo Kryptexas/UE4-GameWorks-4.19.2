@@ -27,6 +27,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "NativeClassHierarchy.h"
 #include "CollectionAssetRegistryBridge.h"
+#include "ContentBrowserCommands.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -63,6 +64,8 @@ FContentBrowserSingleton::FContentBrowserSingleton()
 
 	// Register to be notified when properties are edited
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.AddRaw(this, &FContentBrowserSingleton::OnEditorLoadSelectedAssetsIfNeeded);
+
+	FContentBrowserCommands::Register();
 }
 
 FContentBrowserSingleton::~FContentBrowserSingleton()
