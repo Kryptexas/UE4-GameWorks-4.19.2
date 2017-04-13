@@ -2701,7 +2701,7 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 	FString BaseClassIncludePath;
 	if(ParentClassInfo.GetIncludePath(BaseClassIncludePath))
 	{
-		BaseClassIncludeDirective = FString::Printf(LINE_TERMINATOR TEXT("#include \"%s\""), *BaseClassIncludePath);
+		BaseClassIncludeDirective = FString::Printf(TEXT("#include \"%s\""), *BaseClassIncludePath);
 	}
 
 	FString ModuleAPIMacro;
@@ -2738,9 +2738,93 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 	FinalOutput = FinalOutput.Replace(TEXT("%CLASS_FUNCTION_DECLARATIONS%"), *ClassFunctionDeclarations, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%BASE_CLASS_INCLUDE_DIRECTIVE%"), *BaseClassIncludeDirective, ESearchCase::CaseSensitive);
 
+	// Remove any empty lines
+	FinalOutput = FinalOutput.Replace(LINE_TERMINATOR LINE_TERMINATOR LINE_TERMINATOR, LINE_TERMINATOR LINE_TERMINATOR);
+
 	HarvestCursorSyncLocation( FinalOutput, OutSyncLocation );
 
 	return WriteOutputFile(NewHeaderFileName, FinalOutput, OutFailReason);
+}
+
+static bool TryParseIncludeDirective(const FString& Text, int StartPos, int EndPos, FString& IncludePath)
+{
+	// Check if the line starts with a # character
+	int Pos = StartPos;
+	while (Pos < EndPos && FChar::IsWhitespace(Text[Pos]))
+	{
+		Pos++;
+	}
+	if (Pos == EndPos || Text[Pos++] != '#')
+	{
+		return false;
+	}
+	while (Pos < EndPos && FChar::IsWhitespace(Text[Pos]))
+	{
+		Pos++;
+	}
+
+	// Check it's an include directive
+	const TCHAR* IncludeText = TEXT("include");
+	for (int Idx = 0; IncludeText[Idx] != 0; Idx++)
+	{
+		if (Pos == EndPos || Text[Pos] != IncludeText[Idx])
+		{
+			return false;
+		}
+		Pos++;
+	}
+	while (Pos < EndPos && FChar::IsWhitespace(Text[Pos]))
+	{
+		Pos++;
+	}
+
+	// Parse out the quoted include path
+	if (Pos == EndPos || Text[Pos++] != '"')
+	{
+		return false;
+	}
+	int IncludePathPos = Pos;
+	while (Pos < EndPos && Text[Pos] != '"')
+	{
+		Pos++;
+	}
+	IncludePath = Text.Mid(IncludePathPos, Pos - IncludePathPos);
+	return true;
+}
+
+static bool IsUsingOldStylePch(FString BaseDir)
+{
+	// Find all the cpp files under the base directory
+	TArray<FString> Files;
+	IFileManager::Get().FindFilesRecursive(Files, *BaseDir, TEXT("*.cpp"), true, false, false);
+
+	// Parse the first include directive for up to 16 include paths
+	TArray<FString> FirstIncludedFiles;
+	for (int Idx = 0; Idx < Files.Num() && Idx < 16; Idx++)
+	{
+		FString Text;
+		FFileHelper::LoadFileToString(Text, *Files[Idx]);
+
+		int LinePos = 0;
+		while(LinePos < Text.Len())
+		{
+			int EndOfLinePos = LinePos;
+			while (EndOfLinePos < Text.Len() && Text[EndOfLinePos] != '\n')
+			{
+				EndOfLinePos++;
+			}
+
+			FString IncludePath;
+			if (TryParseIncludeDirective(Text, LinePos, EndOfLinePos, IncludePath))
+			{
+				FirstIncludedFiles.AddUnique(FPaths::GetCleanFilename(IncludePath));
+				break;
+			}
+
+			LinePos = EndOfLinePos + 1;
+		}
+	}
+	return FirstIncludedFiles.Num() == 1 && Files.Num() > 1;
 }
 
 bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, FString& OutSyncLocation, const FModuleContextInfo& ModuleInfo, FText& OutFailReason)
@@ -2785,8 +2869,15 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 	}
 
 	// Calculate the correct include path for the module header
-	const FString ModuleIncludePath = DetermineModuleIncludePath(ModuleInfo, NewCPPFileName);
-
+	FString PchIncludeDirective;
+	if (IsUsingOldStylePch(ModuleInfo.ModuleSourcePath))
+	{
+		const FString ModuleIncludePath = DetermineModuleIncludePath(ModuleInfo, NewCPPFileName);
+		if (ModuleIncludePath.Len() > 0)
+		{
+			PchIncludeDirective = FString::Printf(TEXT("#include \"%s\""), *ModuleIncludePath);
+		}
+	}
 
 	FString EventualConstructorDefinition;
 	if (PropertyOverrides.Num() != 0)
@@ -2801,11 +2892,14 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnPrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleInfo.ModuleName, ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_INCLUDE_PATH%"), *ModuleIncludePath, ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%PCH_INCLUDE_DIRECTIVE%"), *PchIncludeDirective, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%EVENTUAL_CONSTRUCTOR_DEFINITION%"), *EventualConstructorDefinition, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%ADDITIONAL_MEMBER_DEFINITIONS%"), *AdditionalMemberDefinitions, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%ADDITIONAL_INCLUDE_DIRECTIVES%"), *AdditionalIncludesStr, ESearchCase::CaseSensitive);
+
+	// Remove any empty lines
+	FinalOutput = FinalOutput.Replace(LINE_TERMINATOR LINE_TERMINATOR LINE_TERMINATOR, LINE_TERMINATOR LINE_TERMINATOR);
 
 	HarvestCursorSyncLocation( FinalOutput, OutSyncLocation );
 

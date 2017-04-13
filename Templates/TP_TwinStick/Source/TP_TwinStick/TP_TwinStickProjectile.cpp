@@ -1,8 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserve
 
-#include "TP_TwinStick.h"
 #include "TP_TwinStickProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/StaticMeshComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "Engine/StaticMesh.h"
 
 ATP_TwinStickProjectile::ATP_TwinStickProjectile() 
 {

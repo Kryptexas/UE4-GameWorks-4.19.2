@@ -1,9 +1,17 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_TwinStick.h"
 #include "TP_TwinStickPawn.h"
 #include "TP_TwinStickProjectile.h"
 #include "TimerManager.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Camera/CameraComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/InputComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/StaticMesh.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 const FName ATP_TwinStickPawn::MoveForwardBinding("MoveForward");
 const FName ATP_TwinStickPawn::MoveRightBinding("MoveRight");

@@ -1,9 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_Puzzle.h"
 #include "TP_PuzzlePawn.h"
 #include "TP_PuzzleBlock.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 
 ATP_PuzzlePawn::ATP_PuzzlePawn(const FObjectInitializer& ObjectInitializer) 

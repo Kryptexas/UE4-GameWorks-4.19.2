@@ -1,9 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "TP_FlyingPawn.generated.h"
 
-UCLASS(config=Game)
+UCLASS(Config=Game)
 class ATP_FlyingPawn : public APawn
 {
 	GENERATED_BODY()

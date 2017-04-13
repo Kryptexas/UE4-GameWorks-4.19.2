@@ -1,9 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_Puzzle.h"
 #include "TP_PuzzleBlockGrid.h"
 #include "TP_PuzzleBlock.h"
 #include "Components/TextRenderComponent.h"
+#include "Engine/World.h"
 
 #define LOCTEXT_NAMESPACE "PuzzleBlockGrid"
 

@@ -1,8 +1,12 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "FP_FirstPerson.h"
 #include "FP_FirstPersonCharacter.h"
 #include "Animation/AnimInstance.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/InputComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerController.h"
 
 static FName WeaponFireTraceIdent = FName(TEXT("WeaponTrace"));
 #define COLLISION_WEAPON		ECC_GameTraceChannel1
