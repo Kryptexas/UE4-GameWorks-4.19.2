@@ -14,6 +14,9 @@ namespace UnrealBuildTool
 {
 	class UEDeployAndroid : UEBuildDeploy, IAndroidDeploy
 	{
+		// Minimum Android SDK that must be used for Java compiling
+		readonly int MinimumSDKLevel = 23;
+
 		/// <summary>
 		/// Internal usage for GetApiLevel
 		/// </summary>
@@ -66,6 +69,45 @@ namespace UnrealBuildTool
 			return ConfigCache.ReadHierarchy(Type, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Android);
 		}
 
+		private string GetLatestSDKApiLevel(AndroidToolChain ToolChain)
+		{
+			// we expect there to be one, so use the first one
+			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
+
+			// run a command and capture output
+			var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
+			ExeInfo.UseShellExecute = false;
+			ExeInfo.RedirectStandardOutput = true;
+			using (var GameProcess = Process.Start(ExeInfo))
+			{
+				PossibleApiLevels = new List<string>();
+				GameProcess.BeginOutputReadLine();
+				GameProcess.OutputDataReceived += ParseApiLevel;
+				GameProcess.WaitForExit();
+			}
+
+			if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+			{
+				return ToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
+			}
+
+			throw new BuildException("Can't make an APK without an API installed (see \"android.bat list targets\")");
+		}
+
+		private int GetApiLevelInt(string ApiString)
+		{
+			int VersionInt = 0;
+			if (ApiString.Contains("-"))
+			{
+				int Version;
+				if (int.TryParse(ApiString.Substring(ApiString.LastIndexOf('-') + 1), out Version))
+				{
+					VersionInt = Version;
+				}
+			}
+			return VersionInt;
+		}
+
 		private string CachedSDKLevel = null;
 		private string GetSdkApiLevel(AndroidToolChain ToolChain)
 		{
@@ -85,27 +127,20 @@ namespace UnrealBuildTool
 				// run a command and capture output
 				if (SDKLevel == "latest")
 				{
-					// we expect there to be one, so use the first one
-					string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
+					SDKLevel = GetLatestSDKApiLevel(ToolChain);
+				}
 
-					var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
-					ExeInfo.UseShellExecute = false;
-					ExeInfo.RedirectStandardOutput = true;
-					using (var GameProcess = Process.Start(ExeInfo))
-					{
-						PossibleApiLevels = new List<string>();
-						GameProcess.BeginOutputReadLine();
-						GameProcess.OutputDataReceived += ParseApiLevel;
-						GameProcess.WaitForExit();
-					}
+				// make sure it is at least android-23
+				int SDKLevelInt = GetApiLevelInt(SDKLevel);
+				if (SDKLevelInt < MinimumSDKLevel)
+				{
+					Console.WriteLine("Requires at least SDK API level {0}, currently set to '{1}'", MinimumSDKLevel, SDKLevel);
+					SDKLevel = GetLatestSDKApiLevel(ToolChain);
 
-					if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+					SDKLevelInt = GetApiLevelInt(SDKLevel);
+					if (SDKLevelInt < MinimumSDKLevel)
 					{
-						SDKLevel = ToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
-					}
-					else
-					{
-						throw new BuildException("Can't make an APK without an API installed (see \"android.bat list targets\")");
+						throw new BuildException("Can't make an APK without API 'android-" + MinimumSDKLevel.ToString() + "' minimum installed (see \"android.bat list targets\")");
 					}
 				}
 
@@ -2033,6 +2068,9 @@ namespace UnrealBuildTool
 		private void MakeApk(AndroidToolChain ToolChain, string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage, bool bDisallowPackagingDataInApk, bool bDisallowExternalFilesDir)
 		{
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
+
+			// do this here so we'll stop early if there is a problem with the SDK API level (cached so later calls will return the same)
+			string SDKAPILevel = GetSdkApiLevel(ToolChain);
 
 			PatchAntBatIfNeeded();
 
