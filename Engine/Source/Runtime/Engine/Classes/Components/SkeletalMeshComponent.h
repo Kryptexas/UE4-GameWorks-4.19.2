@@ -73,9 +73,6 @@ struct FAnimationEvaluationContext
 	// Are we evaluating this tick
 	bool bDoEvaluation;
 
-	// Are we updating the anim instance this tick
-	bool bDoUpdate;
-
 	// Are we storing data in cache bones this tick
 	bool bDuplicateToCacheBones;
 
@@ -99,7 +96,6 @@ struct FAnimationEvaluationContext
 		Curve.CopyFrom(Other.Curve);
 		bDoInterpolation = Other.bDoInterpolation;
 		bDoEvaluation = Other.bDoEvaluation;
-		bDoUpdate = Other.bDoUpdate;
 		bDuplicateToCacheBones = Other.bDuplicateToCacheBones;
 		bDuplicateToCacheCurve = Other.bDuplicateToCacheCurve;
 	}
