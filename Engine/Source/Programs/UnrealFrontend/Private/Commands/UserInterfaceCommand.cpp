@@ -32,6 +32,8 @@ void FUserInterfaceCommand::Run(  )
 {
 	FString UnrealFrontendLayoutIni = FPaths::GetPath(GEngineIni) + "/Layout.ini";
 
+	FCoreStyle::ResetToDefault();
+
 	// load required modules
 	FModuleManager::Get().LoadModuleChecked("EditorStyle");
 	FModuleManager::Get().LoadModuleChecked("Messaging");
