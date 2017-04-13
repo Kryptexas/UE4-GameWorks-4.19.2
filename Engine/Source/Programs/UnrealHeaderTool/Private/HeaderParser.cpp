@@ -6904,6 +6904,9 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 
 	// Expect a semicolon.
 	RequireSymbol( TEXT(";"), TEXT("'variable declaration'") );
+
+	// Skip redundant semi-colons
+	while (MatchSymbol(TEXT(";")));
 }
 
 //
