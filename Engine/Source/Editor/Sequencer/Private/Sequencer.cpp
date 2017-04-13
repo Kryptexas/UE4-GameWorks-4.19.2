@@ -1689,13 +1689,6 @@ void FSequencer::EvaluateInternal(FMovieSceneEvaluationRange InRange)
 
 	if (!IsInSilentMode())
 	{
-		// Redraw if not in PIE/simulate
-		const bool bIsInPIEOrSimulate = GEditor->PlayWorld != NULL || GEditor->bIsSimulatingInEditor;
-		if (!bIsInPIEOrSimulate)
-		{
-			FEditorSupportDelegates::RedrawAllViewports.Broadcast();
-		}
-		
 		OnGlobalTimeChangedDelegate.Broadcast();
 	}
 }

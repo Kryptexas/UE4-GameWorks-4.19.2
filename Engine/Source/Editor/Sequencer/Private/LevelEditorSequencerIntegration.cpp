@@ -303,6 +303,25 @@ void FLevelEditorSequencerIntegration::OnNewActorsDropped(const TArray<UObject*>
 	);
 }
 
+void FLevelEditorSequencerIntegration::OnSequencerEvaluated()
+{
+	// Redraw if not in PIE/simulate
+	const bool bIsInPIEOrSimulate = GEditor->PlayWorld != NULL || GEditor->bIsSimulatingInEditor;
+	if (bIsInPIEOrSimulate)
+	{
+		return;
+	}
+
+	// Request a single real-time frame to be rendered to ensure that we tick the world and update the viewport
+	for (FEditorViewportClient* LevelVC : GEditor->AllViewportClients)
+	{
+		if (LevelVC && !LevelVC->IsRealtime())
+		{
+			LevelVC->RequestRealTimeFrames(1);
+		}
+	}
+}
+
 void FLevelEditorSequencerIntegration::ActivateSequencerEditorMode()
 {
 	// Release the sequencer mode if we already enabled it
@@ -897,9 +916,25 @@ void FLevelEditorSequencerIntegration::AddSequencer(TSharedRef<ISequencer> InSeq
 	}
 
 	KeyFrameHandler->Add(InSequencer);
-	
+
 	auto DerivedSequencerPtr = StaticCastSharedRef<FSequencer>(InSequencer);
 	BoundSequencers.Add(FSequencerAndOptions{ DerivedSequencerPtr, Options });
+
+	{
+		// Set up a callback for when this sequencer changes its time to redraw any non-realtime viewports
+		TWeakPtr<ISequencer> WeakSequencer = InSequencer;
+		FDelegateHandle Handle = InSequencer->OnGlobalTimeChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnSequencerEvaluated);
+		BoundSequencers.Last().AcquiredResources.Add(
+			[=]
+			{
+				TSharedPtr<ISequencer> Pinned = WeakSequencer.Pin();
+				if (Pinned.IsValid())
+				{
+					Pinned->OnGlobalTimeChanged().Remove(Handle);
+				}
+			}
+		);
+	}
 
 	FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
 	if (SequencerEdMode)
@@ -929,6 +964,7 @@ void FLevelEditorSequencerIntegration::OnSequencerReceivedFocus(TSharedRef<ISequ
 
 void FLevelEditorSequencerIntegration::RemoveSequencer(TSharedRef<ISequencer> InSequencer)
 {
+	// Remove any instances of this sequencer in the array of bound sequencers, along with its resources
 	BoundSequencers.RemoveAll(
 		[=](const FSequencerAndOptions& In)
 		{
