@@ -22,6 +22,8 @@ struct FMovieSceneSegmentCompilerRules
 		bAllowEmptySegments = false;
 	}
 
+	virtual ~FMovieSceneSegmentCompilerRules() {}
+
 	bool AllowEmptySegments() const { return bAllowEmptySegments; }
 
 	virtual TOptional<FMovieSceneSegment> InsertEmptySpace(const TRange<float>& Range, const FMovieSceneSegment* PreviousSegment, const FMovieSceneSegment* NextSegment) const
