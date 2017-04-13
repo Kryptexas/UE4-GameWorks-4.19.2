@@ -661,6 +661,14 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		 */
 		virtual TSharedRef<SDockTab> InvokeTab( const FTabId& TabId );
 
+		/**
+		 * Finds the first instance of an existing tab with the given tab id.
+		 *
+		 * @param TabId The tab identifier.
+		 * @return The existing tab instance if found, otherwise null.
+		 */
+		TSharedPtr<SDockTab> FindExistingLiveTab(const FTabId& TabId) const;
+
 		virtual ~FTabManager()
 		{
 		}
@@ -721,9 +729,6 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		void MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedPtr<FTabSpawnerEntry> &SpawnerNode );
 
 		TSharedRef<SDockTab> InvokeTab_Internal( const FTabId& TabId );
-
-		/** Finds the first instance of an existing tab with the given tab id. */
-		TSharedPtr<SDockTab> FindExistingLiveTab(const FTabId& TabId) const;
 
 		/** Finds the last major or nomad tab in a particular window. */
 		TSharedPtr<SDockTab> FindLastTabInWindow(TSharedPtr<SWindow> Window) const;
