@@ -23,6 +23,11 @@ namespace UnrealBuildTool
 		public static HashSet<FileItem> CandidateSourceFilesForWorkingSet = new HashSet<FileItem>();
 
 		/// <summary>
+		/// Set of target names we've printed out adaptive non-unity messages for.
+		/// </summary>
+		public static HashSet<string> PrintedSettingsForTargets  = new HashSet<string>();
+
+		/// <summary>
 		/// Prefix used for all dynamically created Unity modules
 		/// </summary>
 		public static string ModulePrefix = "Module.";
@@ -285,6 +290,17 @@ namespace UnrealBuildTool
 
 				if (AdaptiveUnityBuildInfoString.Length > 0)
 				{
+					if (PrintedSettingsForTargets.Add(Target.Name))
+					{
+						if (Target.bAdaptiveUnityDisablesPCH)
+						{
+							Log.TraceInformation("[Adaptive unity build] Disabling PCH for excluded files due to bAdaptiveUnityDisablesPCH setting.");
+						}
+						if (Target.bAdaptiveUnityDisablesOptimizations)
+						{
+							Log.TraceInformation("[Adaptive unity build] Disabling optimizations for excluded files due to bAdaptiveUnityDisablesOptimizations setting.");
+						}
+					}
 					Log.TraceInformation(AdaptiveUnityBuildInfoString.ToString());
 				}
 

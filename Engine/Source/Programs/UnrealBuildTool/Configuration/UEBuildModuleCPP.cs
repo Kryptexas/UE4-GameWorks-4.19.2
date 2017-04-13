@@ -712,7 +712,7 @@ namespace UnrealBuildTool
 					AdaptiveUnityEnvironment.bOptimizeCode = false;
 				}
 				AdaptiveUnityEnvironment.PrecompiledHeaderAction = PrecompiledHeaderAction.None;
-				Console.WriteLine("Compiling {0} without PCH", String.Join(", ", AdaptiveFiles.Select(x => x.AbsolutePath)));
+
 				// Compile the files
 				CPPOutput AdaptiveOutput = ToolChain.CompileCPPFiles(AdaptiveUnityEnvironment, AdaptiveFiles, Name, ActionGraph);
 
