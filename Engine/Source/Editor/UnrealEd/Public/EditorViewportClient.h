@@ -282,9 +282,20 @@ public:
 	void SetRealtime(bool bInRealtime, bool bStoreCurrentValue = false);
 
 	/** @return		True if viewport is in realtime mode, false otherwise. */
-	bool IsRealtime() const				
+	bool IsRealtime() const
 	{ 
-		return bIsRealtime; 
+		return bIsRealtime || RealTimeFrameCount != 0;
+	}
+
+	/**
+	 * Get the number of real-time frames to draw (overrides bRealtime)
+	 * @note When non-zero, the viewport will render RealTimeFrameCount frames in real-time mode, then revert back to bIsRealtime
+	 * this can be used to ensure that not only the viewport renders a frame, but also that the world ticks
+	 * @param NumExtraFrames 		The number of extra real time frames to draw
+	 */
+	void RequestRealTimeFrames(uint32 NumRealTimeFrames = 1)
+	{
+		RealTimeFrameCount = FMath::Max(NumRealTimeFrames, RealTimeFrameCount);
 	}
 
 	/**
@@ -1417,6 +1428,9 @@ protected:
 
 	/** If true, force this viewport to use real time audio regardless of other settings */
 	bool bForceAudioRealtime;
+
+	/** Counter to force real-time mode for a number of frames. Overrides bIsRealtime when non-zero. */
+	uint32 RealTimeFrameCount;
 
 	/** if the viewport is currently realtime */
 	bool bIsRealtime;

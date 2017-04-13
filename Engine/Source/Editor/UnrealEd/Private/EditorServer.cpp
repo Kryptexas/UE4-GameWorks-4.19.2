@@ -279,6 +279,7 @@ void UEditorEngine::RedrawAllViewports(bool bInvalidateHitProxies)
 		FEditorViewportClient* ViewportClient = AllViewportClients[ViewportIndex];
 		if ( ViewportClient && ViewportClient->Viewport )
 		{
+			ViewportClient->RequestRealTimeFrames(1);
 			if ( bInvalidateHitProxies )
 			{
 				// Invalidate hit proxies and display pixels.
