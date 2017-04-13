@@ -103,6 +103,7 @@
     <Compile Include="StageTargetCommand.Automation.cs" />
     <Compile Include="StreamCopyDescription.Automation.cs" />
     <Compile Include="SubmitUtililzationReportToEC.Automation.cs" />
+    <Compile Include="SyncDepotPath.cs" />
     <Compile Include="Tests.Automation.cs" />
     <Compile Include="TestSnippet.Automation.cs" />
     <Compile Include="UE4BuildUtils.cs" />
