@@ -418,7 +418,6 @@
 #include "Framework/Commands/UICommandList.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Application/MenuStack.h"
-#include "Runtime/Slate/Private/Framework/Application/Menu.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBar.h"
 #include "Framework/Layout/InertialScrollManager.h"
