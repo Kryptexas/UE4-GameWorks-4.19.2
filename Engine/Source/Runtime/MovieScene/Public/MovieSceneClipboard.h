@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "MovieSceneTrack.h"
+#include "InlineValue.h"
 
 #if WITH_EDITOR
 
@@ -33,18 +34,13 @@ public:
 	template<typename T>
 	FMovieSceneClipboardKey(float InTime, T InValue)
 		: Time(InTime)
-		, bIsSet(true)
+		, Data(TKey<T>(MoveTemp(InValue)))
 	{
-		static_assert(sizeof(TKey<T>) <= MaxDataSizeBytes, "Cannot use objects greater than MaxDataSizeBytes with this type");
-		new(Data) TKey<T>(MoveTemp(InValue));
 	}
 
 	/** Copy construction/assignment */
 	FMovieSceneClipboardKey(const FMovieSceneClipboardKey& In);
 	FMovieSceneClipboardKey& operator=(const FMovieSceneClipboardKey& In);
-
-	/** Destructor */
-	~FMovieSceneClipboardKey();
 
 	/** Get the time at which this key is defined */
 	float GetTime() const;
@@ -74,21 +70,24 @@ public:
 	template<typename T>
 	bool TryGetValue(T& Value) const
 	{
-		auto& Impl = reinterpret_cast<const IKey&>(Data);
+		if (!Data.IsValid())
+		{
+			return false;
+		}
 
 		// Check for same type
-		if (Impl.GetTypeName() == MovieSceneClipboard::GetKeyTypeName<T>())
+		if (Data->GetTypeName() == MovieSceneClipboard::GetKeyTypeName<T>())
 		{
-			Value = static_cast<const TKey<T>&>(Impl).Value;
+			Value = static_cast<const TKey<T>&>(Data.GetValue()).Value;
 			return true;
 		}
 
 		// Check for conversion possibility
-		FConversionFunction* ConversionFunction = Impl.FindConversionTo(MovieSceneClipboard::GetKeyTypeName<T>());
+		FConversionFunction* ConversionFunction = Data->FindConversionTo(MovieSceneClipboard::GetKeyTypeName<T>());
 		if (ConversionFunction)
 		{
 			FMovieSceneClipboardKey Key = ConversionFunction->operator()(*this);
-			Value = reinterpret_cast<TKey<T>&>(Key.Data).Value;
+			Value = static_cast<const TKey<T>&>(Key.Data.GetValue()).Value;
 			return true;
 		}
 
@@ -99,16 +98,11 @@ private:
 
 	typedef TFunction<FMovieSceneClipboardKey(const FMovieSceneClipboardKey&)> FConversionFunction;
 
-	/**
-	 * Destroy the data contained within this key
-	 */
-	void Destroy();
-
 	/** Abstract base class for all key types */
 	struct IKey
 	{
 		virtual ~IKey() {}
-		virtual void CopyTo(void* Ptr) const = 0;
+		virtual void CopyTo(TInlineValue<IKey, 64>& OutDest) const = 0;
 		virtual FConversionFunction* FindConversionTo(FName DestinationTypeName) const = 0;
 		virtual FName GetTypeName() const = 0;
 	};
@@ -137,9 +131,9 @@ private:
 		}
 
 		/** Copy this value to another destination ptr */
-		virtual void CopyTo(void* Ptr) const
+		virtual void CopyTo(TInlineValue<IKey, 64>& OutDest) const
 		{
-			new (Ptr) TKey(*this);
+			OutDest = TKey(Value);
 		}
 
 		/** The actual value */
@@ -150,11 +144,7 @@ private:
 	float Time;
 
 	/** Type-erased bytes containing the key's value */
-	static const uint32 MaxDataSizeBytes = 48;
-	uint8 Data[MaxDataSizeBytes];
-
-	/** true when Data is a valid IKey&, false otherwise */
-	bool bIsSet;
+	TInlineValue<IKey, 64> Data;
 
 public:
 
@@ -163,7 +153,7 @@ public:
 	static void DefineConversion(TFunction<ToType(const FromType&)> InFunction)
 	{
 		auto Facade = [=](const FMovieSceneClipboardKey& InKey) -> FMovieSceneClipboardKey {
-			const TKey<FromType>& TypedKey = reinterpret_cast<const TKey<FromType>&>(InKey.Data);
+			const TKey<FromType>& TypedKey = static_cast<const TKey<FromType>&>(InKey.Data.GetValue());
 
 			return FMovieSceneClipboardKey(InKey.GetTime(), InFunction(TypedKey.Value));
 		};
