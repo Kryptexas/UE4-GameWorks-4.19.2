@@ -1943,7 +1943,6 @@ bool GameProjectUtils::GenerateBasicSourceCode(const FString& NewProjectSourcePa
 	{
 		const FString NewHeaderFilename = GameModulePath / NewProjectName + TEXT(".h");
 		TArray<FString> PublicHeaderIncludes;
-		PublicHeaderIncludes.Add(TEXT("Engine.h"));
 		if ( GenerateGameModuleHeaderFile(NewHeaderFilename, PublicHeaderIncludes, OutFailReason) )
 		{
 			OutCreatedFiles.Add(NewHeaderFilename);
@@ -2736,10 +2735,11 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 	FinalOutput = FinalOutput.Replace(TEXT("%EVENTUAL_CONSTRUCTOR_DECLARATION%"), *EventualConstructorDeclaration, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%CLASS_PROPERTIES%"), *ClassProperties, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%CLASS_FUNCTION_DECLARATIONS%"), *ClassFunctionDeclarations, ESearchCase::CaseSensitive);
+	if (BaseClassIncludeDirective.Len() == 0)
+	{
+		FinalOutput = FinalOutput.Replace(TEXT("%BASE_CLASS_INCLUDE_DIRECTIVE%") LINE_TERMINATOR, TEXT(""), ESearchCase::CaseSensitive);
+	}
 	FinalOutput = FinalOutput.Replace(TEXT("%BASE_CLASS_INCLUDE_DIRECTIVE%"), *BaseClassIncludeDirective, ESearchCase::CaseSensitive);
-
-	// Remove any empty lines
-	FinalOutput = FinalOutput.Replace(LINE_TERMINATOR LINE_TERMINATOR LINE_TERMINATOR, LINE_TERMINATOR LINE_TERMINATOR);
 
 	HarvestCursorSyncLocation( FinalOutput, OutSyncLocation );
 
@@ -2892,14 +2892,15 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnPrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleInfo.ModuleName, ESearchCase::CaseSensitive);
+	if (PchIncludeDirective.Len() == 0)
+	{
+		FinalOutput = FinalOutput.Replace(TEXT("%PCH_INCLUDE_DIRECTIVE%") LINE_TERMINATOR, TEXT(""), ESearchCase::CaseSensitive);
+	}
 	FinalOutput = FinalOutput.Replace(TEXT("%PCH_INCLUDE_DIRECTIVE%"), *PchIncludeDirective, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%EVENTUAL_CONSTRUCTOR_DEFINITION%"), *EventualConstructorDefinition, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%ADDITIONAL_MEMBER_DEFINITIONS%"), *AdditionalMemberDefinitions, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%ADDITIONAL_INCLUDE_DIRECTIVES%"), *AdditionalIncludesStr, ESearchCase::CaseSensitive);
-
-	// Remove any empty lines
-	FinalOutput = FinalOutput.Replace(LINE_TERMINATOR LINE_TERMINATOR LINE_TERMINATOR, LINE_TERMINATOR LINE_TERMINATOR);
 
 	HarvestCursorSyncLocation( FinalOutput, OutSyncLocation );
 
