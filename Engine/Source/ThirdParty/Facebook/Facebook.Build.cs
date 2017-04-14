@@ -3,103 +3,81 @@
 using System.IO;
 using UnrealBuildTool;
 
-public class Facebook : ModuleRules
+public class OnlineSubsystemFacebook : ModuleRules
 {
-	public Facebook(ReadOnlyTargetRules Target) : base(Target)
-    {
-		Type = ModuleType.External;
+	public OnlineSubsystemFacebook(ReadOnlyTargetRules Target) : base(Target)
+	{
+		Definitions.Add("ONLINESUBSYSTEMFACEBOOK_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		Definitions.Add("WITH_FACEBOOK=1");
+		PrivateIncludePaths.Add("Private");
 
-		// Additional Frameworks and Libraries for Android found in OnlineSubsystemFacebook_UPL.xml
-        if (Target.Platform == UnrealTargetPlatform.IOS)
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"CoreUObject",
+				"HTTP",
+				"ImageCore",
+				"Json",
+				"OnlineSubsystem",
+			}
+			);
+
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "Facebook");
+
+		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-            Definitions.Add("UE4_FACEBOOK_VER=4.18");
+			Definitions.Add("WITH_FACEBOOK=1");
+			PrivateIncludePaths.Add("Private/IOS");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			bool bHasFacebookSDK = false;
+			string FacebookNFLDir = "";
+			try
+			{
+				FacebookNFLDir = System.IO.Path.Combine(ModuleDirectory, "ThirdParty", "Android", "NotForLicensees", "FacebookSDK");
+				bHasFacebookSDK = System.IO.Directory.Exists(FacebookNFLDir);
+			}
+			catch (System.Exception)
+			{
+			}
 
-            // These are iOS system libraries that Facebook depends on (FBAudienceNetwork, FBNotifications)
-            PublicFrameworks.AddRange(
-            new string[] {
-                "ImageIO"
-            });
+			PrivateIncludePaths.Add("Private/Android");
 
-            // More dependencies for Facebook (FBAudienceNetwork, FBNotifications)
-            PublicAdditionalLibraries.AddRange(
-            new string[] {
-                "xml2"
-            });
+			if (bHasFacebookSDK)
+			{
+				string Err = string.Format("Facebook SDK found in {0}", FacebookNFLDir);
+				System.Console.WriteLine(Err);
 
-            PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"AccountKit",
-					"IOS/FacebookSDK/AccountKit.embeddedframework.zip",
-					"AccountKit.framework/AccountKitAdditionalStrings.bundle"
-				)
-			);
+				Definitions.Add("WITH_FACEBOOK=1");
+				Definitions.Add("UE4_FACEBOOK_VER=4.19.0");
 
-			PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"AccountKit",
-					"IOS/FacebookSDK/AccountKit.embeddedframework.zip",
-					"AccountKit.framework/AccountKitStrings.bundle"
-				)
-			);
+				PrivateDependencyModuleNames.AddRange(
+				new string[] {
+				"Launch",
+				}
+				);
 
-			PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"Bolts",
-					"IOS/FacebookSDK/Bolts.embeddedframework.zip"
-				)
-			);
-
-			// Add the FBAudienceNetwork framework
-			PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"FBAudienceNetwork",
-					"IOS/FacebookSDK/FBAudienceNetwork.embeddedframework.zip"
-				)
-			);
-
-			// Access to Facebook notifications
-			PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"FBNotifications",
-					"IOS/FacebookSDK/FBNotifications.embeddedframework.zip"
-				)
-			);
-
-			// Access to Facebook core
-			PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"FBSDKCoreKit",
-					"IOS/FacebookSDK/FBSDKCoreKit.embeddedframework.zip",
-					"FBSDKCoreKit.framework/Resources/FacebookSDKStrings.bundle"
-				)
-			);
-
-			// Access to Facebook login
-			PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"FBSDKLoginKit",
-					"IOS/FacebookSDK/FBSDKLoginKit.embeddedframework.zip"
-				)
-			);
-
-			// Access to Facebook messenger sharing
-			PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"FBSDKMessengerShareKit",
-					"IOS/FacebookSDK/FBSDKMessengerShareKit.embeddedframework.zip"
-				)
-			);
-
-			// Access to Facebook sharing
-			PublicAdditionalFrameworks.Add(
-				new UEBuildFramework(
-					"FBSDKShareKit",
-					"IOS/FacebookSDK/FBSDKShareKit.embeddedframework.zip"
-				)
-			);
+				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemFacebook_UPL.xml")));
+			}
+			else
+			{
+				string Err = string.Format("Facebook SDK not found in {0}", FacebookNFLDir);
+				System.Console.WriteLine(Err);
+				Definitions.Add("WITH_FACEBOOK=0");
+			}
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			Definitions.Add("WITH_FACEBOOK=1");
+			PrivateIncludePaths.Add("Private/Windows");
+		}
+		else
+		{
+			Definitions.Add("WITH_FACEBOOK=0");
+			PrecompileForTargets = PrecompileTargetsType.None;
 		}
 	}
 }
-

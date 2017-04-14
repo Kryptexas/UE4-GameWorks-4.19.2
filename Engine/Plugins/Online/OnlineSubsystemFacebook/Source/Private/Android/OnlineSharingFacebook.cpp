@@ -5,6 +5,8 @@
 #include "OnlineSubsystemFacebookPrivate.h"
 #include "OnlineIdentityFacebook.h"
 
+#if WITH_FACEBOOK
+
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #include "Async/TaskGraphInterfaces.h"
@@ -284,3 +286,5 @@ JNI_METHOD void Java_com_epicgames_ue4_FacebookLogin_nativeRequestPublishPermiss
 	ENamedThreads::GameThread
 	);
 }
+
+#endif // WITH_FACEBOOK

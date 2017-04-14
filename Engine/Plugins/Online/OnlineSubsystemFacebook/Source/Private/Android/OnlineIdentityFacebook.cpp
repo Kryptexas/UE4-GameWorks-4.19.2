@@ -3,6 +3,8 @@
 #include "OnlineIdentityFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
 
+#if WITH_FACEBOOK
+
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #include "Misc/ConfigCacheIni.h"
@@ -363,7 +365,7 @@ JNI_METHOD void Java_com_epicgames_ue4_FacebookLogin_nativeLogoutComplete(JNIEnv
 	);
 }
 
-
+#endif // WITH_FACEBOOK
 
 
 
