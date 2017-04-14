@@ -652,6 +652,13 @@ protected:
 	void CORE_API Assign(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds, int32 Microseconds);
 
 private:
+#ifdef COREUOBJECT_API
+	friend COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_FTimespan();
+#else
+	friend class UScriptStruct* Z_Construct_UScriptStruct_FTimespan();
+#endif
+
+private:
 
 	/** Holds the time span in 100 nanoseconds resolution. */
 	int64 Ticks;
