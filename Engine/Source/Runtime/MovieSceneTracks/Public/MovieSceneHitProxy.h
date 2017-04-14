@@ -4,15 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "HitProxies.h"
+#include "MovieSceneSection.h"
+#include "MovieSceneTrack.h"
 
 struct HMovieSceneKeyProxy : public HHitProxy
 {
 	DECLARE_HIT_PROXY( MOVIESCENETRACKS_API );
 
 	/** The track that contains the section */
-	class UMovieSceneTrack* MovieSceneTrack;
+	TWeakObjectPtr<UMovieSceneTrack> MovieSceneTrack;
 	/** The section that contains the keyframe */
-	class UMovieSceneSection* MovieSceneSection;
+	TWeakObjectPtr<UMovieSceneSection> MovieSceneSection;
 	/** The time of the key that is selected */
 	float Time;
 

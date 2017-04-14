@@ -134,13 +134,16 @@ void FSequencerEdMode::OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* K
 	bool bAltDown = Viewport->KeyState(EKeys::LeftAlt) || Viewport->KeyState(EKeys::RightAlt);
 	bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
 
-	for (TWeakPtr<FSequencer> WeakSequencer : Sequencers)
+	if (KeyProxy->MovieSceneSection.IsValid() && KeyProxy->MovieSceneSection.Get() != nullptr)
 	{
-		TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
-		if (Sequencer.IsValid())
+		for (TWeakPtr<FSequencer> WeakSequencer : Sequencers)
 		{
-			Sequencer->SetLocalTimeDirectly(KeyProxy->Time);
-			Sequencer->SelectTrackKeys(KeyProxy->MovieSceneSection, KeyProxy->Time, bShiftDown, bCtrlDown);
+			TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+			if (Sequencer.IsValid())
+			{
+				Sequencer->SetLocalTimeDirectly(KeyProxy->Time);
+				Sequencer->SelectTrackKeys(KeyProxy->MovieSceneSection.Get(), KeyProxy->Time, bShiftDown, bCtrlDown);
+			}
 		}
 	}
 }
