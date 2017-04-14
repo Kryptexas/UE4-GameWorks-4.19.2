@@ -82,6 +82,12 @@ namespace UnrealBuildTool.Rules
 					);
 			}
 
-		}
+            if (Target.Platform == UnrealTargetPlatform.XboxOne)
+            {
+                AddEngineThirdPartyPrivateStaticDependencies(Target,
+                    "libOpus"
+                    );
+            }
+        }
 	}
 }

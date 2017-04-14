@@ -117,4 +117,9 @@ struct FMacPlatformProperties
 	{
 		return true;
 	}
+
+	static FORCEINLINE bool SupportsAudioStreaming()
+	{
+		return !IsServerOnly();
+	}
 };

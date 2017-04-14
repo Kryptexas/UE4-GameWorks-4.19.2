@@ -201,10 +201,6 @@ void FSoundSource::Stop()
 		WaveInstance->NotifyFinished(true);
 		WaveInstance = nullptr;
 	}
-	else
-	{
-		check(AudioDevice->FreeSources.Find(this) != INDEX_NONE);
-	}
 }
 
 void FSoundSource::SetPauseByGame(bool bInIsPauseByGame)

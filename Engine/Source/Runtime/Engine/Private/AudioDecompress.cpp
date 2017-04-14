@@ -22,6 +22,7 @@ IStreamedCompressedInfo::IStreamedCompressedInfo()
 	, bStoringEndOfFile(false)
 	, StreamingSoundWave(nullptr)
 	, CurrentChunkIndex(0)
+	, bPrintChunkFailMessage(true)
 {
 }
 
@@ -184,13 +185,18 @@ bool IStreamedCompressedInfo::StreamCompressedData(uint8* Destination, bool bLoo
 		SrcBufferData = IStreamingManager::Get().GetAudioStreamingManager().GetLoadedChunk(StreamingSoundWave, CurrentChunkIndex);
 		if (SrcBufferData)
 		{
+			bPrintChunkFailMessage = true;
 			SrcBufferDataSize = StreamingSoundWave->RunningPlatformData->Chunks[CurrentChunkIndex].DataSize;
 			SrcBufferOffset = CurrentChunkIndex == 0 ? AudioDataOffset : 0;
 		}
 		else
 		{
 			// Still not loaded, zero remainder of current buffer
-			UE_LOG(LogAudio, Warning, TEXT("Unable to read from chunk %d of SoundWave'%s'"), CurrentChunkIndex, *StreamingSoundWave->GetName());
+			if (bPrintChunkFailMessage)
+			{
+				UE_LOG(LogAudio, Verbose, TEXT("Chunk %d not loaded from streaming manager for SoundWave '%s'. Likely due to stall on game thread."), CurrentChunkIndex, *StreamingSoundWave->GetName());
+				bPrintChunkFailMessage = false;
+			}
 			ZeroBuffer(Destination + RawPCMOffset, BufferSize - RawPCMOffset);
 			return false;
 		}

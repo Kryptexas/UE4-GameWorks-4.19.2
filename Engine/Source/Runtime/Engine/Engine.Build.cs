@@ -132,7 +132,11 @@ public class Engine : ModuleRules
 					bVariadicTemplatesSupported = false;
 				}
 			}
-		}
+
+            AddEngineThirdPartyPrivateStaticDependencies(Target,
+                "libOpus"
+                );
+        }
 
 		if (bVariadicTemplatesSupported)
         {

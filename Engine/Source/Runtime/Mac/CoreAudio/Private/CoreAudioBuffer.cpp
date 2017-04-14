@@ -419,3 +419,23 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::Init( FAudioDevice* AudioDevice, U
 
 	return Buffer;
 }
+
+int32 FCoreAudioSoundBuffer::GetCurrentChunkIndex() const
+{
+	if (DecompressionState == NULL)
+	{
+		return -1;
+	}
+
+	return DecompressionState->GetCurrentChunkIndex();
+}
+
+int32 FCoreAudioSoundBuffer::GetCurrentChunkOffset() const
+{
+	if (DecompressionState == NULL)
+	{
+		return -1;
+	}
+
+	return DecompressionState->GetCurrentChunkOffset();
+}
