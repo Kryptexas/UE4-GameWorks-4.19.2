@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Sections/MovieSceneEventSection.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
+#include "MovieSceneObjectBindingID.h"
 
 #include "MovieSceneEventTemplate.generated.h"
 
@@ -22,6 +23,9 @@ struct FMovieSceneEventSectionTemplate : public FMovieSceneEvalTemplate
 
 	UPROPERTY()
 	FMovieSceneEventSectionData EventData;
+
+	UPROPERTY()
+	TArray<FMovieSceneObjectBindingID> EventReceivers;
 
 	UPROPERTY()
 	uint32 bFireEventsWhenForwards : 1;

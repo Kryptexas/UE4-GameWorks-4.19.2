@@ -110,7 +110,6 @@
 #include "MovieSceneCurveInterfaceKeyEditStructCustomization.h"
 #include "LevelSequenceBurnInOptionsCustomization.h"
 #include "MovieSceneBindingOverrideDataCustomization.h"
-#include "MovieSceneObjectBindingIDCustomization.h"
 #include "TextCustomization.h"
 #include "AnimTrailNodeDetails.h"
 #include "MaterialProxySettingsCustomizations.h"
@@ -240,7 +239,6 @@ void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 	RegisterCustomPropertyTypeLayout("CameraFocusSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCameraFocusSettingsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("MovieSceneSequencePlaybackSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneSequencePlaybackSettingsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("MovieSceneBindingOverrideData", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneBindingOverrideDataCustomization::MakeInstance));
-	RegisterCustomPropertyTypeLayout("MovieSceneObjectBindingID", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneObjectBindingIDCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("MovieSceneTrackEvalOptions", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneTrackEvalOptionsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("MovieSceneSectionEvalOptions", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneSectionEvalOptionsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("MovieSceneEventParameters", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneEventParametersCustomization::MakeInstance));

@@ -4,11 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "SlateIcon.h"
+#include "MovieSceneSequenceID.h"
 
 class SWidget;
 class UMovieSceneSequence;
 class FMenuBuilder;
 class STextBlock;
+class ISequencer;
 struct EVisibility;
 struct FSlateBrush;
 struct FSequenceBindingTree;
@@ -21,13 +23,25 @@ struct FMovieSceneObjectBindingID;
 class MOVIESCENETOOLS_API FMovieSceneObjectBindingIDPicker
 {
 public:
+
+	/** Default constructor used in contexts external to the sequencer interface. Always generates FMovieSceneObjectBindingIDs from the root of the sequence */
 	FMovieSceneObjectBindingIDPicker()
 		: bIsCurrentItemSpawnable(false)
 	{}
 
+	/**
+	 * Constructor used from within the sequencer interface to generate IDs from the currently focused sequence if possible (else from the root sequence).
+	 * This ensures that the bindings will resolve correctly in isolation only the the focused sequence is being used, or from the root sequence.
+	 */
+	FMovieSceneObjectBindingIDPicker(FMovieSceneSequenceID InLocalSequenceID, TSharedPtr<ISequencer> InSequencer)
+		: Sequencer(InSequencer)
+		, LocalSequenceID(InLocalSequenceID)
+		, bIsCurrentItemSpawnable(false)
+	{}
+
 protected:
 
-	/** Get the sequence to look up object bindings within */
+	/** Get the sequence to look up object bindings within. Only used when no sequencer is available. */
 	virtual UMovieSceneSequence* GetSequence() const = 0;
 
 	/** Set the current binding ID */
@@ -63,7 +77,19 @@ protected:
 	/** Get a widget that represents the currently chosen item */
 	TSharedRef<SWidget> GetCurrentItemWidget(TSharedRef<STextBlock> TextContent);
 
+	/** Optional sequencer ptr */
+	TSharedPtr<ISequencer> Sequencer;
+
+	/** The ID of the sequence to generate IDs relative to */
+	FMovieSceneSequenceID LocalSequenceID;
+
 private:
+
+	/** Get the currently set binding ID, remapped to the root sequence if necessary */
+	FMovieSceneObjectBindingID GetRemappedCurrentValue() const;
+
+	/** Set the binding ID, remapped to the local sequence if possible */
+	void SetRemappedCurrentValue(FMovieSceneObjectBindingID InValue);
 
 	/** UPdate the cached text, tooltip and icon */
 	void UpdateCachedData();

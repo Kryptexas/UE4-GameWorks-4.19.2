@@ -109,7 +109,7 @@ FMovieSceneEvaluationTrack UMovieSceneTrack::GenerateTrackTemplate() const
 			virtual void AddLegacyTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, const UMovieSceneTrack& SourceTrack) override {}
 			virtual void AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs, ESectionEvaluationFlags Flags) override {}
 			virtual FMovieSceneSequenceTransform GetSequenceTransform(FMovieSceneSequenceIDRef InSequenceID) const override { return FMovieSceneSequenceTransform(); }
-			virtual FMovieSceneSequenceID GenerateSequenceID(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID) override { return MovieSceneSequenceID::Root; }
+			virtual void AddSubSequence(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID, FMovieSceneSequenceID SpecificID) override { }
 		} Generator;
 
 		FMovieSceneSequenceTemplateStore Store;

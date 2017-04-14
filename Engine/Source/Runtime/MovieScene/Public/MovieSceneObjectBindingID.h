@@ -9,6 +9,19 @@
 #include "MovieSceneSequenceID.h"
 #include "MovieSceneObjectBindingID.generated.h"
 
+struct FMovieSceneSequenceHierarchy;
+
+/** Enumeration specifying how a movie scene object binding ID relates to the sequence */
+UENUM()
+enum class EMovieSceneObjectBindingSpace : uint8
+{
+	/** The object binding sequence ID resolves from a local sequence (ie, it may need to accumulate a parent sequence ID before it resolves correctly) */
+	Local,
+	/** The object binding sequence ID resolves from the root of the sequence */
+	Root,
+};
+
+
 /** Persistent identifier to a specific object binding within a sequence hierarchy. */
 USTRUCT(BlueprintType, meta=(HasNativeMake))
 struct FMovieSceneObjectBindingID
@@ -17,13 +30,13 @@ struct FMovieSceneObjectBindingID
 
 	/** Default construction to an invalid object binding ID */
 	FMovieSceneObjectBindingID()
-		: SequenceID(int32(MovieSceneSequenceID::Root.GetInternalValue()))
+		: SequenceID(int32(MovieSceneSequenceID::Root.GetInternalValue())), Space(EMovieSceneObjectBindingSpace::Root)
 	{
 	}
 
 	/** Construction from an object binding guid, and the specific sequence instance ID in which it resides */
-	FMovieSceneObjectBindingID(const FGuid& InGuid, FMovieSceneSequenceID InSequenceID)
-		: SequenceID(int32(InSequenceID.GetInternalValue())), Guid(InGuid)
+	FMovieSceneObjectBindingID(const FGuid& InGuid, FMovieSceneSequenceID InSequenceID, EMovieSceneObjectBindingSpace InSpace = EMovieSceneObjectBindingSpace::Root)
+		: SequenceID(int32(InSequenceID.GetInternalValue())), Space(InSpace), Guid(InGuid)
 	{
 	}
 
@@ -51,6 +64,19 @@ struct FMovieSceneObjectBindingID
 	{
 		return Guid;
 	}
+	
+	/**
+	 * Access how this binding's sequence ID relates to the master sequence
+	 */
+	EMovieSceneObjectBindingSpace GetBindingSpace() const
+	{
+		return Space;
+	}
+
+	/**
+	 * Resolve this binding ID from a local binding to be accessible from the root, by treating the specified local sequence ID as this binding's root
+	 */
+	MOVIESCENE_API FMovieSceneObjectBindingID ResolveLocalToRoot(FMovieSceneSequenceID LocalSequenceID, const FMovieSceneSequenceHierarchy& Hierarchy) const;
 
 public:
 
@@ -74,6 +100,10 @@ private:
 	/** Sequence ID stored as an int32 so that it can be used in the blueprint VM */
 	UPROPERTY()
 	int32 SequenceID;
+
+	/** The binding's resolution space */
+	UPROPERTY()
+	EMovieSceneObjectBindingSpace Space;
 
 	/** Identifier for the object binding within the sequence */
 	UPROPERTY(EditAnywhere, Category="Binding")

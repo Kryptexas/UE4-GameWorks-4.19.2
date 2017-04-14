@@ -265,7 +265,7 @@ struct FSubTrackRemapper
 			const UMovieSceneSubSection* SubSection = CastChecked<const UMovieSceneSubSection>(Sections[SectionIndex]);
 
 			// Remap the tracks contained within this sequence only within the range of the section
-			FMovieSceneSequenceTransform InnerSequenceTransform = Args.Generator.GetSequenceTransform(Cache->RemappedID);
+			FMovieSceneSequenceTransform InnerSequenceTransform = Args.Generator.GetSequenceTransform(Cache->SequenceID);
 
 			TRange<int32> OverlappingSegments = Cache->Template->EvaluationField.OverlapRange(Segment.Range * InnerSequenceTransform);
 			for (int32 Index = OverlappingSegments.GetLowerBoundValue(); Index < OverlappingSegments.GetUpperBoundValue(); ++Index)
@@ -294,10 +294,14 @@ struct FSubTrackRemapper
 
 		FMovieSceneEvaluationTemplate& Template = SubSection->GenerateTemplateForSubSequence(Args);
 
-		// Remap it into the template generator
-		FMovieSceneSequenceID RemappedID = Args.Generator.GenerateSequenceID(SubSection->GenerateSubSequenceData(), MovieSceneSequenceID::Root);
+		FMovieSceneSubSequenceData SubSequenceData = SubSection->GenerateSubSequenceData();
 
-		FSectionData Cache(RemappedID, &Template, Args.SubSequenceStore);
+		FMovieSceneSequenceID SubSequenceID = SubSequenceData.DeterministicSequenceID;
+
+		// Add this sub sequence as a direct descendent of the current template.
+		Args.Generator.AddSubSequence(SubSequenceData, MovieSceneSequenceID::Root, SubSequenceID);
+
+		FSectionData Cache(SubSequenceID, &Template, Args.SubSequenceStore);
 
 		// For editor previews, we remap all sub sequences regardless of whether they are actually used in the sub sequence or not
 		if (Args.Params.bForEditorPreview)
@@ -317,8 +321,8 @@ private:
 
 	struct FSectionData
 	{
-		FSectionData(FMovieSceneSequenceIDRef InRemappedID, const FMovieSceneEvaluationTemplate* InTemplate, FMovieSceneSequenceTemplateStore& SequenceStore)
-			: RemappedID(InRemappedID), Template(InTemplate)
+		FSectionData(FMovieSceneSequenceIDRef InSequenceID, const FMovieSceneEvaluationTemplate* InTemplate, FMovieSceneSequenceTemplateStore& SequenceStore)
+			: SequenceID(InSequenceID), Template(InTemplate)
 		{
 			for (auto& Pair : InTemplate->Hierarchy.AllSubSequenceData())
 			{
@@ -341,7 +345,7 @@ private:
 		}
 		FSectionData& operator=(FSectionData&& RHS)
 		{
-			RemappedID = MoveTemp(RHS.RemappedID);
+			SequenceID = MoveTemp(RHS.SequenceID);
 			Template = MoveTemp(RHS.Template);
 			SubTemplates = MoveTemp(RHS.SubTemplates);
 			ChildrenRemappedIDs = MoveTemp(RHS.ChildrenRemappedIDs);
@@ -349,12 +353,12 @@ private:
 		}
 #endif
 		/** The ID of this section's sequence in the master sequecne */
-		FMovieSceneSequenceID RemappedID;
+		FMovieSceneSequenceID SequenceID;
 		/** The compiled template (stored in the sequence itself) */
 		const FMovieSceneEvaluationTemplate* Template;
 		/** Map of all sub sequence templates, mapped by source ID (before remapping) */
 		TMap<FMovieSceneSequenceID, const FMovieSceneEvaluationTemplate*> SubTemplates;
-		/** A map of remapped sequence IDs originating from this sequence's external tracks*/
+		/** A map from original sub-sequence IDs held within this track, to such IDs accumulated with this sub sequence's ID (ie, local sequenceID -> sequenceID from the master */
 		TMap<FMovieSceneSequenceID, FMovieSceneSequenceID> ChildrenRemappedIDs;
 	};
 
@@ -389,7 +393,7 @@ private:
 		// Root tracks use the cache's remapped ID
 		if (SourceID == MovieSceneSequenceID::Root)
 		{
-			return Cache.RemappedID;
+			return Cache.SequenceID;
 		}
 
 		// Nested tracks tracks - may need to remap the outer sequence
@@ -406,9 +410,9 @@ private:
 		FMovieSceneSubSequenceData SubDataCopy = *SubData;
 
 		// Accumulate the parent's sequence transform
-		SubDataCopy.RootToSequenceTransform = SubDataCopy.RootToSequenceTransform * Args.Generator.GetSequenceTransform(Cache.RemappedID);
+		SubDataCopy.RootToSequenceTransform = SubDataCopy.RootToSequenceTransform * Args.Generator.GetSequenceTransform(Cache.SequenceID);
 
-		FMovieSceneSequenceID RemappedParentID = HierarchyNode->ParentID == MovieSceneSequenceID::Root ? Cache.RemappedID : RemapSubSequence(Cache, HierarchyNode->ParentID);
+		FMovieSceneSequenceID RemappedParentID = HierarchyNode->ParentID == MovieSceneSequenceID::Root ? Cache.SequenceID : RemapSubSequence(Cache, HierarchyNode->ParentID);
 
 		// Accumulate the hierarchical bias
 		const FMovieSceneSubSequenceData* ParentData = Cache.Template->Hierarchy.FindSubData(RemappedParentID);
@@ -418,11 +422,14 @@ private:
 			SubDataCopy.HierarchicalBias += ParentData->HierarchicalBias;
 		}
 
-		// Remap this sequence within the main generator, under this section as a parent
-		FMovieSceneSequenceID RemappedID = Args.Generator.GenerateSequenceID(SubDataCopy, RemappedParentID);
-		Cache.ChildrenRemappedIDs.Add(SourceID, RemappedID);
+		// Hash this source ID with the owning sequence ID to make it unique
+		FMovieSceneSequenceID InnerSequenceID = SourceID.AccumulateParentID(Cache.SequenceID);
 
-		return RemappedID;
+		// Remap this sequence within the main generator, under this section as a parent
+		Args.Generator.AddSubSequence(SubDataCopy, RemappedParentID, InnerSequenceID);
+		Cache.ChildrenRemappedIDs.Add(SourceID, InnerSequenceID);
+
+		return InnerSequenceID;
 	}
 
 	const FMovieSceneEvaluationTrack* FindTrack(FMovieSceneEvaluationFieldTrackPtr TrackPtr, const FSectionData& SectionData) const
