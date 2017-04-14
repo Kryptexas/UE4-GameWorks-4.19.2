@@ -1074,6 +1074,16 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// For game modules, set the define for the project name. This will be used by the IMPLEMENT_PRIMARY_GAME_MODULE macro.
+			if (!bIsEngineModule)
+			{
+				if (Target.ProjectFile != null)
+				{
+					string ProjectName = Target.ProjectFile.GetFileNameWithoutExtension();
+					Result.Definitions.Add(String.Format("UE_PROJECT_NAME={0}", ProjectName));
+				}
+			}
+
 			// Add the module's private definitions.
 			Result.Definitions.AddRange(Definitions);
 

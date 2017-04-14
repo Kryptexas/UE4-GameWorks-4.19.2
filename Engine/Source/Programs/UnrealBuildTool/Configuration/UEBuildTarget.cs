@@ -2431,13 +2431,6 @@ namespace UnrealBuildTool
 					}
 					GlobalCompileEnvironment.Definitions.Add("UE_ENGINE_DIRECTORY=" + EnginePath);
 				}
-
-				// Set the define for the project name. This allows the executable to locate the correct project file to use, which may not be the same as the game name or target.
-				if (ProjectFile != null)
-				{
-					string ProjectName = ProjectFile.GetFileNameWithoutExtension();
-					GlobalCompileEnvironment.Definitions.Add(String.Format("UE_PROJECT_NAME={0}", ProjectName));
-				}
 			}
 
 			// On Mac and Linux we have actions that should be executed after all the binaries are created
