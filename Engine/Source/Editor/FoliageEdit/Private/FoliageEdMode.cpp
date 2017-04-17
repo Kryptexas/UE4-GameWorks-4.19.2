@@ -47,6 +47,9 @@
 #include "VREditorMode.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
+#include "LevelUtils.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FoliageEdMode"
@@ -2890,6 +2893,86 @@ bool FEdModeFoliage::IsModifierButtonPressed(const FEditorViewportClient* Viewpo
 	}
 
 	return IsShiftDown(ViewportClient->Viewport) || bIsModifierPressed;
+}
+
+void FEdModeFoliage::MoveSelectedFoliageToLevel(ULevel* InTargetLevel)
+{
+	// Can't move into a locked level
+	if (FLevelUtils::IsLevelLocked(InTargetLevel))
+	{
+		FNotificationInfo NotificatioInfo(NSLOCTEXT("UnrealEd", "CannotMoveFoliageIntoLockedLevel", "Cannot move the selected foliage into a locked level"));
+		NotificatioInfo.bUseThrobber = false;
+		FSlateNotificationManager::Get().AddNotification(NotificatioInfo)->SetCompletionState(SNotificationItem::CS_Fail);
+		return;
+	}
+
+	// Get a world context
+	UWorld* World = InTargetLevel->OwningWorld;
+	bool PromptToMoveFoliageTypeToAsset = World->StreamingLevels.Num() > 0;
+	bool ShouldPopulateMeshList = false;
+
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "MoveSelectedFoliageToSelectedLevel", "Move Selected Foliage to Level"));
+	
+	// Iterate over all foliage actors in the world and move selected instances to a foliage actor in the target level
+	const int32 NumLevels = World->GetNumLevels();
+	for (int32 LevelIdx = 0; LevelIdx < NumLevels; ++LevelIdx)
+	{
+		ULevel* Level = World->GetLevel(LevelIdx);
+		if (Level != InTargetLevel)
+		{
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level, /*bCreateIfNone*/ false);
+
+			if (IFA && IFA->HasSelectedInstances())
+			{
+				bool CanMoveInstanceType = true;
+
+				// Make sure all our foliage type used by our selected instances are asset otherwise promote them to assets
+				TMap<UFoliageType*, FFoliageMeshInfo*> SelectedInstanceFoliageTypes = IFA->GetSelectedInstancesFoliageType();
+
+				for (auto& MeshPair : SelectedInstanceFoliageTypes)
+				{
+					if (!MeshPair.Key->IsAsset())
+					{
+						// Keep previous selection
+						TSet<int32> PreviousSelectionSet = MeshPair.Value->SelectedIndices;
+						TArray<int32> PreviousSelectionArray;
+						PreviousSelectionArray.Reserve(PreviousSelectionSet.Num());
+
+						for (int32& Value : PreviousSelectionSet)
+						{
+							PreviousSelectionArray.Add(Value);
+						}
+
+						UFoliageType* NewFoliageType = SaveFoliageTypeObject(MeshPair.Key);
+						CanMoveInstanceType = NewFoliageType != nullptr;
+
+						if (NewFoliageType != nullptr)
+						{
+							// Restore previous selection for move operation
+							FFoliageMeshInfo* MeshInfo = IFA->FindMesh(NewFoliageType);
+							MeshInfo->SelectInstances(IFA, true, PreviousSelectionArray);
+						}
+					}
+				}
+			
+				// Update our actor if we saved some foliage type as asset
+				if (CanMoveInstanceType)
+				{
+					IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level, /*bCreateIfNone*/ false);
+					ensure(IFA != nullptr && IFA->HasSelectedInstances());
+
+					IFA->MoveSelectedInstancesToLevel(InTargetLevel);
+					ShouldPopulateMeshList = true;
+				}
+			}
+		}
+	}
+
+	// Update foliage usages
+	if (ShouldPopulateMeshList)
+	{
+		PopulateFoliageMeshList();
+	}
 }
 
 UFoliageType* FEdModeFoliage::AddFoliageAsset(UObject* InAsset)

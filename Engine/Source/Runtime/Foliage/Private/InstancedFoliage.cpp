@@ -1331,6 +1331,8 @@ void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSele
 		{
 			InIFA->Modify();
 
+			SelectedIndices.Reserve(InInstances.Num());
+
 			for (int32 i : InInstances)
 			{
 				SelectedIndices.Add(i);
@@ -2102,6 +2104,21 @@ bool AInstancedFoliageActor::HasSelectedInstances() const
 	}
 
 	return false;
+}
+
+TMap<UFoliageType*, FFoliageMeshInfo*> AInstancedFoliageActor::GetSelectedInstancesFoliageType()
+{
+	TMap<UFoliageType*, FFoliageMeshInfo*> SelectedInstanceFoliageTypes;
+
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		if (MeshPair.Value->SelectedIndices.Num() > 0)
+		{
+			SelectedInstanceFoliageTypes.Add(MeshPair.Key, &MeshPair.Value.Get());
+		}
+	}
+
+	return SelectedInstanceFoliageTypes;
 }
 
 void AInstancedFoliageActor::Destroyed()

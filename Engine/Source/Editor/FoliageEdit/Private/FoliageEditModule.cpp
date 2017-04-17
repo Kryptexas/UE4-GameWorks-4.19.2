@@ -28,6 +28,7 @@ const FName FoliageEditAppIdentifier = FName(TEXT("FoliageEdApp"));
 #include "ProceduralFoliageBlockingVolume.h"
 #include "FoliageTypeObjectCustomization.h"
 #include "FoliageType_ISMThumbnailRenderer.h"
+#include "EditorModeManager.h"
 
 /**
  * Foliage Edit Mode module
@@ -162,6 +163,15 @@ public:
 			AProceduralFoliageVolume::StaticClass()->ClassFlags |= CLASS_NotPlaceable;
 			AProceduralFoliageBlockingVolume::StaticClass()->ClassFlags |= CLASS_NotPlaceable;
 		}
+	}
+
+	virtual void MoveSelectedFoliageToLevel(ULevel* InTargetLevel) override
+	{
+		ensure(GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Foliage));
+
+		FEdModeFoliage* FoliageMode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Foliage);
+
+		FoliageMode->MoveSelectedFoliageToLevel(InTargetLevel);
 	}
 
 	FDelegateHandle OnLevelActorDeletedDelegateHandle;

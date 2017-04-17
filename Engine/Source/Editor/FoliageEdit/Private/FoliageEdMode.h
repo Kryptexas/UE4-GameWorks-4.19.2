@@ -352,6 +352,9 @@ public:
 	/** Notifies all active modes of mouse click messages. */
 	bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click) override;
 
+	/** Moves selected foliage instances to the target level. */
+	void MoveSelectedFoliageToLevel(ULevel* InTargetLevel);
+
 	/** FEdMode: widget handling */
 	virtual FVector GetWidgetLocation() const override;
 	virtual bool AllowWidgetMove() override;

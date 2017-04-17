@@ -158,6 +158,9 @@ public:
 	// Whether actor has selected instances
 	FOLIAGE_API bool HasSelectedInstances() const;
 
+	// Will return all the foliage type used by currently selected instances
+	FOLIAGE_API TMap<UFoliageType*, FFoliageMeshInfo*> GetSelectedInstancesFoliageType();
+
 	// Propagate the selected instances to the actual render components
 	FOLIAGE_API void ApplySelectionToComponents(bool bApply);
 

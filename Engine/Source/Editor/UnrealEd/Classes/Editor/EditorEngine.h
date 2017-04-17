@@ -1932,13 +1932,6 @@ public:
 	void MoveSelectedActorsToLevel( ULevel* InLevel );
 
 	/**
-	 * Moves selected foliage instances to the target level.
-	 *
-	 * @param	InLevel		The target level.
-	 */
-	void MoveSelectedFoliageToLevel( ULevel* InTargetLevel );
-
-	/**
 	 *	Returns list of all foliage types used in the world
 	 * 
 	 * @param	InWorld	 The target world.
