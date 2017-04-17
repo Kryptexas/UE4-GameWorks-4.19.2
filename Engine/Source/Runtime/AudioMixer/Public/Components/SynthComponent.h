@@ -148,10 +148,10 @@ protected:
 
 private:
 
-	UPROPERTY()
+	UPROPERTY(Transient)
 	USynthSound* Synth;
 
-	UPROPERTY()
+	UPROPERTY(Transient)
 	UAudioComponent* AudioComponent;
 
 	void PumpPendingMessages();

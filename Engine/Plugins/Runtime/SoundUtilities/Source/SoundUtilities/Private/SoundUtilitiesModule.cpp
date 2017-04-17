@@ -8,7 +8,7 @@
 
 DEFINE_LOG_CATEGORY(LogSoundUtilities);
 
-IMPLEMENT_MODULE(FSoundUtilitiesModule, FSynthesis)
+IMPLEMENT_MODULE(FSoundUtilitiesModule, SoundUtilities)
 
 void FSoundUtilitiesModule::StartupModule()
 {
