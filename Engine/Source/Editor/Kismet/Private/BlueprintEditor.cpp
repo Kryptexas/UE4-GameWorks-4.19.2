@@ -5006,58 +5006,43 @@ bool FBlueprintEditor::CanPromoteSelectionToMacro() const
 
 void FBlueprintEditor::OnExpandNodes()
 {
-	const FScopedTransaction Transaction( FGraphEditorCommands::Get().ExpandNodes->GetDescription() );
+	const FScopedTransaction Transaction( FGraphEditorCommands::Get().ExpandNodes->GetLabel() );
 	GetBlueprintObj()->Modify();
 
-	// Expand all composite nodes back in place
 	TSet<UEdGraphNode*> ExpandedNodes;
-
 	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
 
+	// Expand selected nodes into the focused graph context.
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
 	for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
 	{
+		ExpandedNodes.Empty();
+		bool bExpandedNodesNeedUniqueGuid = true;
+
+		DocumentManager->CleanInvalidTabs();
+
 		if (UK2Node_MacroInstance* SelectedMacroInstanceNode = Cast<UK2Node_MacroInstance>(*NodeIt))
 		{
 			UEdGraph* MacroGraph = SelectedMacroInstanceNode->GetMacroGraph();
 			if(MacroGraph)
 			{
-				DocumentManager->CleanInvalidTabs();
-
 				// Clone the graph so that we do not delete the original
 				UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(MacroGraph, NULL);
 				ExpandNode(SelectedMacroInstanceNode, ClonedGraph, /*inout*/ ExpandedNodes);
 
-				//Remove this node from selection
-				FocusedGraphEd->SetNodeSelection(SelectedMacroInstanceNode, false);
-
 				ClonedGraph->MarkPendingKill();
-
-				//Add expanded nodes to selection
-				for (UEdGraphNode* ExpandedNode : ExpandedNodes)
-				{
-					FocusedGraphEd->SetNodeSelection(ExpandedNode, true);
-				}
 			}
 		}
 		else if (UK2Node_Composite* SelectedCompositeNode = Cast<UK2Node_Composite>(*NodeIt))
 		{
-			DocumentManager->CleanInvalidTabs();
+			// No need to assign unique GUIDs since the source graph will be removed.
+			bExpandedNodesNeedUniqueGuid = false;
 
 			// Expand the composite node back into the world
 			UEdGraph* SourceGraph = SelectedCompositeNode->BoundGraph;
-
 			ExpandNode(SelectedCompositeNode, SourceGraph, /*inout*/ ExpandedNodes);
+
 			FBlueprintEditorUtils::RemoveGraph(GetBlueprintObj(), SourceGraph, EGraphRemoveFlags::Recompile);
-
-			//Remove this node from selection
-			FocusedGraphEd->SetNodeSelection(SelectedCompositeNode, false);
-
-			//Add expanded nodes to selection
-			for (UEdGraphNode* ExpandedNode : ExpandedNodes)
-			{
-				FocusedGraphEd->SetNodeSelection(ExpandedNode, true);
-			}
 		}
 		else if (UK2Node_CallFunction* SelectedCallFunctionNode = Cast<UK2Node_CallFunction>(*NodeIt))
 		{
@@ -5069,22 +5054,47 @@ void FBlueprintEditor::OnExpandNodes()
 
 			if(FunctionGraph)
 			{
-				DocumentManager->CleanInvalidTabs();
-
 				// Clone the graph so that we do not delete the original
 				UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(FunctionGraph, NULL);
 				ExpandNode(SelectedCallFunctionNode, ClonedGraph, ExpandedNodes);
 
-				//Remove this node from selection
-				FocusedGraphEd->SetNodeSelection(SelectedCallFunctionNode, false);
-
 				ClonedGraph->MarkPendingKill();
+			}
+		}
 
-				//Add expanded nodes to selection
-				for (UEdGraphNode* ExpandedNode : ExpandedNodes)
+		if (ExpandedNodes.Num() > 0)
+		{
+			FVector2D AvgNodePosition(0.0f, 0.0f);
+
+			for (TSet<UEdGraphNode*>::TIterator It(ExpandedNodes); It; ++It)
+			{
+				UEdGraphNode* Node = *It;
+				AvgNodePosition.X += Node->NodePosX;
+				AvgNodePosition.Y += Node->NodePosY;
+			}
+
+			float InvNumNodes = 1.0f / float(ExpandedNodes.Num());
+			AvgNodePosition.X *= InvNumNodes;
+			AvgNodePosition.Y *= InvNumNodes;
+
+			//Remove source node from selection
+			UEdGraphNode* SourceNode = CastChecked<UEdGraphNode>(*NodeIt);
+			FocusedGraphEd->SetNodeSelection(SourceNode, false);
+
+			for (UEdGraphNode* ExpandedNode : ExpandedNodes)
+			{
+				ExpandedNode->NodePosX = (ExpandedNode->NodePosX - AvgNodePosition.X) + SourceNode->NodePosX;
+				ExpandedNode->NodePosY = (ExpandedNode->NodePosY - AvgNodePosition.Y) + SourceNode->NodePosY;
+
+				ExpandedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
+
+				if (bExpandedNodesNeedUniqueGuid)
 				{
-					FocusedGraphEd->SetNodeSelection(ExpandedNode, true);
+					ExpandedNode->CreateNewGuid();
 				}
+
+				//Add expanded node to selection
+				FocusedGraphEd->SetNodeSelection(ExpandedNode, true);
 			}
 		}
 	}
