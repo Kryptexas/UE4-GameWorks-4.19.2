@@ -181,6 +181,7 @@ public class Launch : ModuleRules
 		{
 			PrivateDependencyModuleNames.Add("OpenGLDrv");
 			PrivateDependencyModuleNames.Add("IOSAudio");
+			PrivateDependencyModuleNames.Add("AudioMixerAudioUnit");
 			DynamicallyLoadedModuleNames.Add("IOSRuntimeSettings");
 			DynamicallyLoadedModuleNames.Add("IOSLocalNotification");
 			PublicFrameworks.Add("OpenGLES");

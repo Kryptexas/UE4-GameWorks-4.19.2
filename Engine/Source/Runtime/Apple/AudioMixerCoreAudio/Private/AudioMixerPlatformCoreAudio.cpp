@@ -230,7 +230,7 @@ namespace Audio
 		
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Closed;
 		
-		return false;
+		return true;
 	}
 
 	bool FMixerPlatformCoreAudio::StartAudioStream()
@@ -1187,7 +1187,7 @@ namespace Audio
 										const AudioTimeStamp* OutputTime,
 										void* UserData)
 	{
-		// Get the user data and cast to our FUnrealAudioCoreAudio object
+		// Get the user data and cast to our FMixerPlatformCoreAudio object
 		FMixerPlatformCoreAudio* me = (FMixerPlatformCoreAudio*) UserData;
 
 		// Call our callback function

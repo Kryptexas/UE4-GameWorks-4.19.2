@@ -212,6 +212,7 @@ bool FADPCMAudioInfo::ReadCompressedData(uint8* Destination, bool bLooping, uint
 
 		memcpy(OutData, WaveInfo.SampleDataStart + TotalSamplesStreamed * sizeof(uint16) * NumChannels, decompressedSamplesToCopy * sizeof(uint16) * NumChannels);
 		TotalSamplesStreamed += decompressedSamplesToCopy;
+		BufferSize -= decompressedSamplesToCopy * sizeof(uint16) * NumChannels;
 		
 		// Check for the end of the audio samples and loop if needed
 		if(TotalSamplesStreamed >= TotalSamplesPerChannel)

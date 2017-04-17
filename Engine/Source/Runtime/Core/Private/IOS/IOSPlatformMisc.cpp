@@ -393,6 +393,7 @@ void FIOSPlatformMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 	FModuleManager::Get().LoadModule(TEXT("IOSAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
 }
 
 void* FIOSPlatformMisc::CreateAutoreleasePool()
