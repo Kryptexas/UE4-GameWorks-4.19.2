@@ -336,13 +336,33 @@ void DiffUtils::CompareUnrelatedSCS(const UBlueprint* Old, const TArray< FSCSRes
 
 		if (NewEntry != nullptr)
 		{
-			// did a property change?
-			TArray<FSingleObjectDiffEntry> DifferingProperties;
-			DiffUtils::CompareUnrelatedObjects(OldNode.Object, NewEntry->Object, DifferingProperties);
-			for (const auto& Property : DifferingProperties)
+			bool bShouldDiffProperties = true;
+
+			// did it change class?
+			const bool bObjectTypesDiffer = OldNode.Object != nullptr && NewEntry->Object != nullptr && OldNode.Object->GetClass() != NewEntry->Object->GetClass();
+			if (bObjectTypesDiffer)
 			{
-				FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_PROPERTY_CHANGED, Property };
+				FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_TYPE_CHANGED, FSingleObjectDiffEntry() };
 				OutDifferingEntries.Entries.Push(Diff);
+
+				// Only diff properties if we're still within the same class inheritance hierarchy.
+				bShouldDiffProperties = OldNode.Object->GetClass()->IsChildOf(NewEntry->Object->GetClass()) || NewEntry->Object->GetClass()->IsChildOf(OldNode.Object->GetClass());
+			}
+
+			// did a property change?
+			if(bShouldDiffProperties)
+			{
+				TArray<FSingleObjectDiffEntry> DifferingProperties;
+				DiffUtils::CompareUnrelatedObjects(OldNode.Object, NewEntry->Object, DifferingProperties);
+				for (const auto& Property : DifferingProperties)
+				{
+					// Only include property value change entries if the object types differ.
+					if (!bObjectTypesDiffer || Property.DiffType == EPropertyDiffType::PropertyValueChanged)
+					{
+						FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_PROPERTY_CHANGED, Property };
+						OutDifferingEntries.Entries.Push(Diff);
+					}
+				}
 			}
 
 			// did it move?
@@ -983,8 +1003,11 @@ FText DiffViewUtils::SCSDiffMessage(const FSCSDiffEntry& Difference, FText Objec
 	case ETreeDiffType::NODE_REMOVED:
 		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeRemoved", "Removed Node {0} from {1}"), NodeName, ObjectName);
 		break;
+	case ETreeDiffType::NODE_TYPE_CHANGED:
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeTypeChanged", "Node {0} changed type in {1}"), NodeName, ObjectName);
+		break;
 	case ETreeDiffType::NODE_PROPERTY_CHANGED:
-		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeChanged", "{0} on {1}"), DiffViewUtils::PropertyDiffMessage(Difference.PropertyDiff, NodeName), ObjectName);
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodePropertyChanged", "{0} on {1}"), DiffViewUtils::PropertyDiffMessage(Difference.PropertyDiff, NodeName), ObjectName);
 		break;
 	case ETreeDiffType::NODE_MOVED:
 		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeMoved", "Moved Node {0} in {1}"), NodeName, ObjectName);
