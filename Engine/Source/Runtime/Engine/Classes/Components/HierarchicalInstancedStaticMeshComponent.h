@@ -128,9 +128,14 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	UPROPERTY()
 	int32 OcclusionLayerNumNodes;
 
+	// The last mesh bounds that was cache
+	UPROPERTY()
+	FBoxSphereBounds CacheMeshExtendedBounds;
+
 	bool bIsAsyncBuilding;
 	bool bDiscardAsyncBuildResults;
 	bool bConcurrentRemoval;
+	bool bAutoRebuildTreeOnInstanceChanges;
 
 	UPROPERTY()
 	bool bDisableCollision;
@@ -175,6 +180,7 @@ public:
 
 	void BuildTree();
 	void BuildTreeAsync();
+	void BuildTreeIfOutdated(bool Async, bool ForceUpdate);
 	static void BuildTreeAnyThread(
 		TArray<FMatrix>& InstanceTransforms, 
 		const FBox& MeshBox,

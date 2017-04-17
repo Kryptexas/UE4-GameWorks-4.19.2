@@ -1376,7 +1376,7 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 				}
 
 				// Remove any unused instances
-				MeshInfo.RemoveInstances(IFA, InstancesToRemove);
+				MeshInfo.RemoveInstances(IFA, InstancesToRemove, true);
 
 				for (UHierarchicalInstancedStaticMeshComponent* FoliageComp : AffectedFoliageComponets)
 				{

@@ -172,6 +172,7 @@ public:
 
 	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
 	void NotifyFoliageTypeChanged(UFoliageType* FoliageType, bool bMeshChanged);
+	void NotifyFoliageTypeWillChange(UFoliageType* FoliageType, bool bMeshChanged);
 
 	DECLARE_EVENT_OneParam(AInstancedFoliageActor, FOnFoliageTypeMeshChanged, UFoliageType*);
 	FOnFoliageTypeMeshChanged& OnFoliageTypeMeshChanged() { return OnFoliageTypeMeshChangedEvent; }

@@ -565,6 +565,9 @@ private:
 	/** Set the brush mesh opacity */
 	void SetBrushOpacity(const float InOpacity);
 
+	/** Called if the foliage tree is outdated */
+	void RebuildFoliageTree(const UFoliageType* Settings);
+
 	bool bBrushTraceValid;
 	FVector BrushLocation;
 	FVector BrushNormal;

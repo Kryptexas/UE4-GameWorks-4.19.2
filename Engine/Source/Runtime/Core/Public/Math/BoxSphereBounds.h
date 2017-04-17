@@ -119,6 +119,21 @@ public:
 	 */
 	FORCEINLINE FBoxSphereBounds operator+( const FBoxSphereBounds& Other ) const;
 
+	/**
+	 * Compare bounding volume this and Other.
+	 *
+	 * @param Other The other bounding volume.
+	 * @return true of they match.
+	 */
+	FORCEINLINE bool operator==(const FBoxSphereBounds& Other) const;
+	
+	/**
+	 * Compare bounding volume this and Other.
+	 *
+	 * @param Other The other bounding volume.
+	 * @return true of they do not match.
+	 */	
+	FORCEINLINE bool operator!=(const FBoxSphereBounds& Other) const;
 
 public:
 
@@ -343,6 +358,15 @@ FORCEINLINE FBoxSphereBounds FBoxSphereBounds::operator+( const FBoxSphereBounds
 	return Result;
 }
 
+FORCEINLINE bool FBoxSphereBounds::operator==(const FBoxSphereBounds& Other) const
+{
+	return Origin == Other.Origin && BoxExtent == Other.BoxExtent &&  SphereRadius == Other.SphereRadius;
+}
+
+FORCEINLINE bool FBoxSphereBounds::operator!=(const FBoxSphereBounds& Other) const
+{
+	return !(*this == Other);
+}
 
 FORCEINLINE FString FBoxSphereBounds::ToString() const
 {

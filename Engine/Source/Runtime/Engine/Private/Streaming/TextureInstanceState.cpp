@@ -226,11 +226,6 @@ void FTextureInstanceState::RemoveElement(int32 ElementIndex, int32& NextCompone
 	}
 }
 
-static bool operator==(const FBoxSphereBounds& A, const FBoxSphereBounds& B)
-{
-	return A.Origin == B.Origin && A.BoxExtent == B.BoxExtent &&  A.SphereRadius == B.SphereRadius;
-}
-
 bool FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext)
 {
 	TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;

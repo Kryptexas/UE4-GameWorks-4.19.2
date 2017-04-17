@@ -2233,6 +2233,10 @@ void UStaticMesh::CalculateExtendedBounds()
 	}
 
 	ExtendedBounds = Bounds;
+
+#if WITH_EDITOR
+	OnExtendedBoundsChanged.Broadcast(Bounds);
+#endif
 }
 
 

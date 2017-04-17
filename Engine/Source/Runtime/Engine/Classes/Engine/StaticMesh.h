@@ -413,6 +413,11 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITOR
+	/** Notification when bounds changed */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnExtendedBoundsChanged, const FBoxSphereBounds&);
+#endif
+
 	/** Pointer to the data used to render this static mesh. */
 	TUniquePtr<class FStaticMeshRenderData> RenderData;
 
@@ -591,6 +596,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	FBoxSphereBounds ExtendedBounds;
 
+#if WITH_EDITOR
+	FOnExtendedBoundsChanged OnExtendedBoundsChanged;
+#endif
+
 protected:
 	/**
 	 * Index of an element to ignore while gathering streaming texture factors.
@@ -620,7 +629,10 @@ public:
 	ENGINE_API virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
 	ENGINE_API void SetLODGroup(FName NewGroup, bool bRebuildImmediately = true);
 	ENGINE_API void BroadcastNavCollisionChange();
+
+	FOnExtendedBoundsChanged& GetOnExtendedBoundsChanged() { return OnExtendedBoundsChanged; }
 #endif // WITH_EDITOR
+
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void PostLoad() override;
