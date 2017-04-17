@@ -12,7 +12,7 @@
 #include "SNumericEntryBox.h"
 
 /** Callback to get the current FVector4 value */
-DECLARE_DELEGATE_OneParam(FOnGetCurrentVector4Value, FVector4&)
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnGetCurrentVector4Value, FVector4&)
 
 /**
 * Enumerates color picker modes.
@@ -45,7 +45,8 @@ public:
 
 
 	SLATE_BEGIN_ARGS(SColorGradingPicker)
-		: _SupportDynamicSliderMaxValue(false)
+		: _AllowSpin(true)
+		, _SupportDynamicSliderMaxValue(false)
 		, _SupportDynamicSliderMinValue(false)
 		, _MainDelta(0.01f)
 		, _MainShiftMouseMovePixelPerDelta(10)
@@ -58,6 +59,7 @@ public:
 		SLATE_ARGUMENT(TOptional<float>, ValueMax )
 		SLATE_ARGUMENT(TOptional<float>, SliderValueMin)
 		SLATE_ARGUMENT(TOptional<float>, SliderValueMax)
+		SLATE_ATTRIBUTE(bool, AllowSpin)
 
 		/** Tell us if we want to support dynamically changing of the max value using ctrl */
 		SLATE_ATTRIBUTE(bool, SupportDynamicSliderMaxValue)
@@ -106,6 +108,8 @@ protected:
 	TOptional<float> OnGetMainValue() const;
 	void OnMainValueChanged(float InValue, bool ShouldCommitValueChanges);
 	FLinearColor GetCurrentLinearColor();
+
+	bool IsEntryBoxEnabled() const;
 
 	// Callback for value changes in the color spectrum picker.
 	void HandleCurrentColorValueChanged(const FLinearColor& NewValue, bool ShouldCommitValueChanges);
