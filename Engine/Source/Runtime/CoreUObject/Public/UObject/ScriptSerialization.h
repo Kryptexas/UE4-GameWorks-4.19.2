@@ -237,6 +237,8 @@
 		case EX_EndStructConst:
 		case EX_EndArray:
 		case EX_EndArrayConst:
+		case EX_EndSet:
+		case EX_EndMap:
 		case EX_IntZero:
 		case EX_IntOne:
 		case EX_True:
