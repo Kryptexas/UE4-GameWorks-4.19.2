@@ -146,7 +146,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bTickEvenWhenPaused = true;
+	PrimaryComponentTick.bTickEvenWhenPaused = false;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 
 	bWantsInitializeComponent = true;
