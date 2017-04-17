@@ -5900,9 +5900,6 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 	}
 #endif
 
-#if WITH_FLEX
-	Set("ClassThumbnail.FlexContainer", new IMAGE_BRUSH("Icons/icon_class_FlexContainer_64x", Icon32x32));
-#endif
 }
 
 void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()

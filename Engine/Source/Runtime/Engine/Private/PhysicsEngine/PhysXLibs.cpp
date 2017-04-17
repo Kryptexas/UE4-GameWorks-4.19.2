@@ -83,7 +83,7 @@ ENGINE_API void LoadPhysXModules()
 #ifdef UE_PHYSX_SUFFIX
 	FString PhysXSuffix(TEXT(PREPROCESSOR_TO_STRING(UE_PHYSX_SUFFIX)) + ArchName + TEXT(".dll"));
 #else
-
+	FString PhysXSuffix(ArchName + TEXT(".dll"));
 #endif
 
 #ifdef UE_APEX_SUFFIX
