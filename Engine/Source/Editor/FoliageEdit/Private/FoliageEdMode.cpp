@@ -827,7 +827,7 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, co
 			if (AInstancedFoliageActor::FoliageTrace(World, Hit, FDesiredFoliageInstance(TraceStart, TraceEnd), NAME_FoliageBrush, false, FilterFunc))
 			{
 				UPrimitiveComponent* PrimComp = Hit.Component.Get();
-				if (CanPaint(PrimComp->GetComponentLevel()))
+				if (PrimComp != nullptr && CanPaint(PrimComp->GetComponentLevel()))
 				{
 					if (!bAdjustBrushRadius)
 					{
