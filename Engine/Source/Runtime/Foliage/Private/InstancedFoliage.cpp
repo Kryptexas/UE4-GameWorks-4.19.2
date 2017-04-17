@@ -40,6 +40,7 @@ InstancedFoliage.cpp: Instanced foliage implementation.
 #include "EngineUtils.h"
 #include "EngineGlobals.h"
 #include "Engine/StaticMesh.h"
+#include "DrawDebugHelpers.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 
@@ -2836,54 +2837,67 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 	return false;
 }
 
-bool AInstancedFoliageActor::CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation)
+bool AInstancedFoliageActor::CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation, UPrimitiveComponent* HitComponent)
 {
-	FMatrix InstTransform = Inst.GetInstanceWorldTransform().ToMatrixWithScale();
-	FVector LocalHit = InstTransform.InverseTransformPosition(HitLocation);
-
-	if (Settings->CollisionWithWorld)
+	if (!Settings->CollisionWithWorld)
 	{
-		// Check for overhanging ledge
+		return false;
+	}
+
+	FTransform OriginalTransform = Inst.GetInstanceWorldTransform();
+	OriginalTransform.SetRotation(FQuat::Identity);
+
+	FMatrix InstTransformNoRotation = OriginalTransform.ToMatrixWithScale();
+	OriginalTransform = Inst.GetInstanceWorldTransform();
+
+	// Check for overhanging ledge
+	const int32 SamplePositionCount = 4;
+	{
+		FVector LocalSamplePos[SamplePositionCount] = {
+			FVector(Settings->LowBoundOriginRadius.Z, 0, 0),
+			FVector(-Settings->LowBoundOriginRadius.Z, 0, 0),
+			FVector(0, Settings->LowBoundOriginRadius.Z, 0),
+			FVector(0, -Settings->LowBoundOriginRadius.Z, 0)
+		};
+
+		for (uint32 i = 0; i < SamplePositionCount; ++i)
 		{
-			FVector LocalSamplePos[4] = {
-				FVector(Settings->LowBoundOriginRadius.Z, 0, 0),
-				FVector(-Settings->LowBoundOriginRadius.Z, 0, 0),
-				FVector(0, Settings->LowBoundOriginRadius.Z, 0),
-				FVector(0, -Settings->LowBoundOriginRadius.Z, 0)
-			};
+			FVector SamplePos = InstTransformNoRotation.TransformPosition(Settings->LowBoundOriginRadius + LocalSamplePos[i]);
+			float WorldRadius = (Settings->LowBoundOriginRadius.Z + Settings->LowBoundOriginRadius.Z)*FMath::Max(Inst.DrawScale3D.X, Inst.DrawScale3D.Y);
+			FVector NormalVector = Settings->AlignToNormal ? HitNormal : OriginalTransform.GetRotation().GetUpVector();
 
+			//::DrawDebugSphere(InWorld, SamplePos, 10, 6, FColor::Red, true, 30.0f);
+			//::DrawDebugSphere(InWorld, SamplePos - NormalVector*WorldRadius, 10, 6, FColor::Orange, true, 30.0f);
+			//::DrawDebugDirectionalArrow(InWorld, SamplePos, SamplePos - NormalVector*WorldRadius, 10.0f, FColor::Red, true, 30.0f);
 
-			for (uint32 i = 0; i < 4; ++i)
+			FHitResult Hit;
+			if (AInstancedFoliageActor::FoliageTrace(InWorld, Hit, FDesiredFoliageInstance(SamplePos, SamplePos - NormalVector*WorldRadius)))
 			{
-				FHitResult Hit;
-				FVector SamplePos = InstTransform.TransformPosition(FVector(Settings->LowBoundOriginRadius.X, Settings->LowBoundOriginRadius.Y, 2.f) + LocalSamplePos[i]);
-				float WorldRadius = (Settings->LowBoundOriginRadius.Z + 2.f)*FMath::Max(Inst.DrawScale3D.X, Inst.DrawScale3D.Y);
-				FVector NormalVector = Settings->AlignToNormal ? HitNormal : FVector(0, 0, 1);
-				if (AInstancedFoliageActor::FoliageTrace(InWorld, Hit, FDesiredFoliageInstance(SamplePos, SamplePos - NormalVector*WorldRadius)))
+				FVector LocalHit = OriginalTransform.InverseTransformPosition(Hit.Location);
+				
+				if (LocalHit.Z - Inst.ZOffset < Settings->LowBoundOriginRadius.Z && Hit.Component.Get() == HitComponent)
 				{
-					if (LocalHit.Z - Inst.ZOffset < Settings->LowBoundOriginRadius.Z)
-					{
-						continue;
-					}
+					//::DrawDebugSphere(InWorld, Hit.Location, 6, 6, FColor::Green, true, 30.0f);
+					continue;
 				}
-				return false;
 			}
-		}
 
-		// Check collision with Bounding Box
-		{
-			FBox MeshBox = Settings->MeshBounds.GetBox();
-			MeshBox.Min.Z = FMath::Min(MeshBox.Max.Z, LocalHit.Z + Settings->MeshBounds.BoxExtent.Z * 0.05f);
-			FBoxSphereBounds ShrinkBound(MeshBox);
-			FBoxSphereBounds WorldBound = ShrinkBound.TransformBy(InstTransform);
-			//::DrawDebugBox(World, WorldBound.Origin, WorldBound.BoxExtent, FColor::Red, true, 10.f);
-			static FName NAME_FoliageCollisionWithWorld = FName(TEXT("FoliageCollisionWithWorld"));
-			if (InWorld->OverlapBlockingTestByChannel(WorldBound.Origin, FQuat(Inst.Rotation), ECC_WorldStatic, FCollisionShape::MakeBox(ShrinkBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale), FCollisionQueryParams(NAME_FoliageCollisionWithWorld, false)))
-			{
-				return false;
-			}
+			//::DrawDebugSphere(InWorld, SamplePos, 6, 6, FColor::Cyan, true, 30.0f);
+
+			return false;
 		}
 	}
+
+	FBoxSphereBounds LocalBound(Settings->MeshBounds.GetBox());
+	FBoxSphereBounds WorldBound = LocalBound.TransformBy(OriginalTransform);
+
+	static FName NAME_FoliageCollisionWithWorld = FName(TEXT("FoliageCollisionWithWorld"));
+	if (InWorld->OverlapBlockingTestByChannel(WorldBound.Origin, FQuat(Inst.Rotation), ECC_WorldStatic, FCollisionShape::MakeBox(LocalBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale), FCollisionQueryParams(NAME_FoliageCollisionWithWorld, false, HitComponent != nullptr ? HitComponent->GetOwner() : nullptr)))
+	{
+		return false;
+	}
+
+	//::DrawDebugBox(InWorld, WorldBound.Origin, LocalBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale, FQuat(Inst.Rotation), FColor::Red, true, 30.f);
 
 	return true;
 }
@@ -2955,7 +2969,7 @@ bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType
 		}
 	}
 
-	return bSkipCollision || AInstancedFoliageActor::CheckCollisionWithWorld(InWorld, Settings, Inst, HitNormal, HitLocation);
+	return bSkipCollision || AInstancedFoliageActor::CheckCollisionWithWorld(InWorld, Settings, Inst, HitNormal, HitLocation, HitComponent);
 }
 #endif
 
