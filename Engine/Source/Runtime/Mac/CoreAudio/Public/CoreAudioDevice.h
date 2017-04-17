@@ -292,7 +292,7 @@ protected:
 	/** Which sound buffer should be written to next - used for double buffering. */
 	bool						bStreamedSound;
 	/** A pair of sound buffers to allow notification when a sound loops. */
-	FCoreAudioBuffer				CoreAudioBuffers[3];
+	FCoreAudioBuffer			CoreAudioBuffers[3];
 	/** Set when we wish to let the buffers play themselves out */
 	bool						bBuffersToFlush;
 
@@ -320,6 +320,8 @@ protected:
 	int32						NumActiveBuffers;
 	
 	int32						MixerInputNumber;
+
+	FCriticalSection			CriticalSection;
 
 private:
 

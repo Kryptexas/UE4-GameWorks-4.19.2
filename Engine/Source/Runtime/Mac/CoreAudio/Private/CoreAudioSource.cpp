@@ -99,9 +99,9 @@ void FCoreAudioSoundSource::FreeResources( void )
 		}
 
 		// Buffers without a valid resource ID are transient and need to be deleted.
-		if (CoreAudioBuffer)
+		if( CoreAudioBuffer )
 		{
-			check(CoreAudioBuffer->ResourceID == 0);
+			check( CoreAudioBuffer->ResourceID == 0 );
 			delete CoreAudioBuffer;
 			CoreAudioBuffer = nullptr;
 		}
@@ -135,7 +135,7 @@ bool FCoreAudioSoundSource::ReadMorePCMData( const int32 BufferIndex, EDataReadM
 	USoundWave* WaveData = WaveInstance->WaveData;
 	if( WaveData && WaveData->bProcedural )
 	{
-		const int32 MaxSamples = (MONO_PCM_BUFFER_SIZE * CoreAudioBuffer->NumChannels) / sizeof(int16);
+		const int32 MaxSamples = ( MONO_PCM_BUFFER_SIZE * CoreAudioBuffer->NumChannels ) / sizeof( int16 );
 
 		if (DataReadMode == EDataReadMode::Synchronous || WaveData->bCanProcessAsync == false)
 		{
@@ -161,7 +161,7 @@ bool FCoreAudioSoundSource::ReadMorePCMData( const int32 BufferIndex, EDataReadM
 		if (DataReadMode == EDataReadMode::Synchronous)
 		{
 			++NumActiveBuffers;
-			return CoreAudioBuffer->ReadCompressedData(CoreAudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never);
+			return CoreAudioBuffer->ReadCompressedData( CoreAudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never );
 		}
 		else
 		{
@@ -241,9 +241,8 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 	{
 		// Find matching buffer.
 		CoreAudioBuffer = FCoreAudioSoundBuffer::Init( AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f );
-
-		// Buffer failed to be created, or there was an error with the compressed data
-		if( CoreAudioBuffer && Buffer->NumChannels > 0 )
+	
+		if( CoreAudioBuffer && CoreAudioBuffer->NumChannels > 0 )
 		{
 			SCOPE_CYCLE_COUNTER( STAT_AudioSourceInitTime );
 
@@ -266,6 +265,7 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 			{
 				return false;
 			}
+
 
 			Buffer = CoreAudioBuffer;
 			WaveInstance = InWaveInstance;
@@ -420,8 +420,10 @@ void FCoreAudioSoundSource::Play( void )
  */
 void FCoreAudioSoundSource::Stop( void )
 {
+	FScopeLock Lock(&CriticalSection);
+
 	if( WaveInstance )
-	{	
+	{
 		if( Playing && AudioChannel )
 		{
 			DetachFromAUGraph();
@@ -480,6 +482,8 @@ void FCoreAudioSoundSource::HandleRealTimeSourceData(bool bLooped)
  */
 void FCoreAudioSoundSource::HandleRealTimeSource(bool bBlockForData)
 {
+	FScopeLock Lock(&CriticalSection);
+
 	const bool bGetMoreData = bBlockForData || (RealtimeAsyncTask == nullptr);
 	int32 BufferIndex = (BufferInUse + NumActiveBuffers) % 3;
 	if (RealtimeAsyncTask)
@@ -551,6 +555,8 @@ bool FCoreAudioSoundSource::IsFinished( void )
 	
 	if( WaveInstance )
 	{
+		FScopeLock Lock(&CriticalSection);
+
 		// If not rendering, we're either at the end of a sound, or starved
 		// and we are expecting the sound to be finishing
 		if (NumActiveBuffers == 0 && (bBuffersToFlush || !bStreamedSound))
@@ -1005,6 +1011,7 @@ OSStatus FCoreAudioSoundSource::CoreAudioRenderCallback( void *InRefCon, AudioUn
 {
 	OSStatus Status = noErr;
 	FCoreAudioSoundSource *Source = ( FCoreAudioSoundSource *)InRefCon;
+	FScopeLock Lock(&Source->CriticalSection);
 
 	uint32 DataByteSize = InNumberFrames * sizeof( Float32 );
 	uint32 PacketsRequested = InNumberFrames;
@@ -1069,6 +1076,7 @@ OSStatus FCoreAudioSoundSource::CoreAudioConvertCallback( AudioConverterRef Conv
 														 AudioStreamPacketDescription **OutPacketDescription, void *InUserData )
 {
 	FCoreAudioSoundSource *Source = ( FCoreAudioSoundSource *)InUserData;
+	FScopeLock Lock(&Source->CriticalSection);
 
 	uint8 *Buffer = Source->CoreAudioBuffers[Source->BufferInUse].AudioData;
 	int32 BufferSize = Source->CoreAudioBuffers[Source->BufferInUse].AudioDataSize;

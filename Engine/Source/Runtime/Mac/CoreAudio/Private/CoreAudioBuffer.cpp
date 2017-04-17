@@ -354,7 +354,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::Init( FAudioDevice* AudioDevice, U
 
 	// Allow the precache to happen if necessary
 	EDecompressionType DecompressionType = Wave->DecompressionType;
-	if (bForceRealtime &&  DecompressionType != DTYPE_Setup )
+	if (bForceRealtime && DecompressionType != DTYPE_Setup && DecompressionType != DTYPE_Streaming)
 	{
 		DecompressionType = DTYPE_RealTime;
 	}
