@@ -492,7 +492,7 @@ void ExportPxHeightField(PxHeightField const * const HeightField, const FTransfo
 	{
 		for (int32 X = 0; X < NumCols - 1; X++)
 		{
-			const int32 SampleIdx = (bMirrored ? X : (NumCols - X - 1))*NumCols + Y;
+			const int32 SampleIdx = (bMirrored ? X : (NumCols - X - 1 - 1))*NumCols + Y;
 			const PxHeightFieldSample& Sample = HFSamples[SampleIdx];
 			const bool bIsHole = (Sample.materialIndex0 == PxHeightFieldMaterial::eHOLE);
 			if (bIsHole)
