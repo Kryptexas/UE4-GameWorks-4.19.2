@@ -168,7 +168,8 @@ void UMaterialGraph::LinkGraphNodesFromMaterial()
 			{
 				UEdGraphPin* InputPin = CastChecked<UMaterialGraphNode>(Expression->GraphNode)->GetInputPin(InputIndex);
 
-				if ( ExpressionInputs[InputIndex]->Expression)
+				// InputPin can be null during a PostEditChange when there is a circular dependency between nodes, and nodes have pins that are dynamically created
+				if (InputPin != nullptr && ExpressionInputs[InputIndex]->Expression)
 				{
 					UMaterialGraphNode* GraphNode = CastChecked<UMaterialGraphNode>(ExpressionInputs[InputIndex]->Expression->GraphNode);
 					InputPin->MakeLinkTo(GraphNode->GetOutputPin(GetValidOutputIndex(ExpressionInputs[InputIndex])));
