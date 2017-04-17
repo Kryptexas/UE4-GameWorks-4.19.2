@@ -2841,7 +2841,7 @@ bool AInstancedFoliageActor::CheckCollisionWithWorld(const UWorld* InWorld, cons
 {
 	if (!Settings->CollisionWithWorld)
 	{
-		return false;
+		return true;
 	}
 
 	FTransform OriginalTransform = Inst.GetInstanceWorldTransform();
