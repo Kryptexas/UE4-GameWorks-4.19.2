@@ -246,7 +246,9 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				return false;
+				// the default value for the VRMode is DaydreamAndCardboard, so unless the developer
+				// changes the mode, there will be no setting string to look up here
+				return true;
 			}
 		}
 
