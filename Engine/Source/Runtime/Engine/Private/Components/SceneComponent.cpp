@@ -2829,16 +2829,23 @@ void USceneComponent::SetVisibility(const bool bNewVisibility, const USceneCompo
 	}
 }
 
-void USceneComponent::SetHiddenInGame(bool NewHiddenGame, bool bPropagateToChildren)
+void USceneComponent::OnHiddenInGameChanged()
 {
-	if( NewHiddenGame != bHiddenInGame )
+	MarkRenderStateDirty();
+}
+
+void USceneComponent::SetHiddenInGame(const bool bNewHiddenGame, const USceneComponent::EVisibilityPropagation PropagateToChildren)
+{
+	bool bRecurseChildren = (PropagateToChildren == EVisibilityPropagation::Propagate);
+	if ( bNewHiddenGame != bHiddenInGame )
 	{
-		bHiddenInGame = NewHiddenGame;
-		MarkRenderStateDirty();
+		bRecurseChildren = bRecurseChildren || (PropagateToChildren == EVisibilityPropagation::DirtyOnly);
+		bHiddenInGame = bNewHiddenGame;
+		OnHiddenInGameChanged();
 	}
 
 	const TArray<USceneComponent*>& AttachedChildren = GetAttachChildren();
-	if (bPropagateToChildren && AttachedChildren.Num() > 0)
+	if (bRecurseChildren && AttachedChildren.Num() > 0)
 	{
 		// fully traverse down the attachment tree
 		// we do it entirely inline here instead of recursing in case a primitivecomponent is a child of a non-primitivecomponent
@@ -2854,12 +2861,14 @@ void USceneComponent::SetHiddenInGame(bool NewHiddenGame, bool bPropagateToChild
 			{
 				ComponentStack.Append(CurrentComp->GetAttachChildren());
 
-				UPrimitiveComponent* const PrimComp = Cast<UPrimitiveComponent>(CurrentComp);
-				if (PrimComp)
+				if (PropagateToChildren == EVisibilityPropagation::Propagate)
 				{
-					// don't propagate, we are handling it already
-					PrimComp->SetHiddenInGame(NewHiddenGame, false);
+					CurrentComp->SetHiddenInGame(bNewHiddenGame, EVisibilityPropagation::NoPropagation);
 				}
+
+				// Render state must be dirtied if any parent component's visibility has changed. Since we can't easily track whether 
+				// any parent in the hierarchy was dirtied, we have to mark dirty always.
+				CurrentComp->MarkRenderStateDirty();
 			}
 		}
 	}
