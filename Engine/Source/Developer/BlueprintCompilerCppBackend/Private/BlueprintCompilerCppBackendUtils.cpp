@@ -291,7 +291,7 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 		ExportCPPFlags = (ExportCPPFlags & ~CPPF_ArgumentOrReturnValue);
 	}
 
-	if (auto ClassProperty = Cast<const UClassProperty>(Property))
+	if (const UClassProperty* ClassProperty = Cast<const UClassProperty>(Property))
 	{
 		GetActualNameCPP(ClassProperty, ClassProperty->MetaClass);
 	}
@@ -345,7 +345,7 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 	FStringOutputDevice Out;
 	const bool bSkipParameterName = (ParameterName == EPropertyNameInDeclaration::Skip);
 	const FString ActualNativeName = bSkipParameterName ? FString() : (FEmitHelper::GetCppName(Property, false, ParameterName == EPropertyNameInDeclaration::ForceConverted) + NamePostfix);
-	Property->ExportCppDeclaration(Out, DeclarationType, nullptr, InExportCPPFlags, bSkipParameterName, ActualCppTypePtr, ActualExtendedTypePtr, &ActualNativeName);
+	Property->ExportCppDeclaration(Out, DeclarationType, nullptr, ExportCPPFlags, bSkipParameterName, ActualCppTypePtr, ActualExtendedTypePtr, &ActualNativeName);
 	return FString(Out);
 
 }
@@ -1352,7 +1352,7 @@ bool FEmitHelper::ShouldHandleAsImplementableEvent(UFunction* Function)
 	return false;
 }
 
-bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd, bool bForceReference)
+bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, const UProperty* LProp, const UProperty* RProp, FString& OutCastBegin, FString& OutCastEnd, bool bForceReference)
 {
 	if ((RType.bIsArray != LType.bIsArray) || (LType.PinCategory != RType.PinCategory))
 	{
@@ -1361,68 +1361,138 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 
 	// BYTE to ENUM cast
 	// ENUM to BYTE cast
-	if ((LType.PinCategory == UEdGraphSchema_K2::PC_Byte) && !RType.bIsArray)
+	if (LType.PinCategory == UEdGraphSchema_K2::PC_Byte)
 	{
-		auto LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
-		auto RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
-		if (!RTypeEnum && LTypeEnum)
+		if (!RType.bIsArray)
 		{
-			ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
-			const FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : FEmitHelper::GetCppName(LTypeEnum);
-			OutCastBegin = bForceReference 
-				? FString::Printf(TEXT("*(%s*)(&("), *EnumCppType) 
-				: FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
-			OutCastEnd = bForceReference ? TEXT("))") :  TEXT(")");
-			return true;
-		}
-		if (!LTypeEnum && RTypeEnum)
-		{
-			ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
-			const FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
-
-			if (bForceReference)
+			UEnum* LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
+			UEnum* RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
+			if (!RTypeEnum && LTypeEnum)
 			{
-				OutCastBegin = TEXT("*static_cast<uint8*>(&(");
+				ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
+				const FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : FEmitHelper::GetCppName(LTypeEnum);
+				OutCastBegin = bForceReference
+					? FString::Printf(TEXT("*(%s*)(&("), *EnumCppType)
+					: FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
+				OutCastEnd = bForceReference ? TEXT("))") : TEXT(")");
+				return true;
+			}
+			if (!LTypeEnum && RTypeEnum)
+			{
+				ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
+				const FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
+
+				if (bForceReference)
+				{
+					OutCastBegin = TEXT("*static_cast<uint8*>(&(");
+					OutCastEnd = TEXT("))");
+				}
+				else
+				{
+					OutCastBegin = TEXT("static_cast<uint8>(");
+					OutCastEnd = TEXT(")");
+				}
+
+				return true;
+			}
+		}
+	}
+	else // UObject casts (UClass, etc.)
+	{
+		auto GetClassType = [&EmitterContext](const FEdGraphPinType& PinType)->UClass*
+		{
+			UClass* TypeClass = EmitterContext.Dependencies.FindOriginalClass(Cast<UClass>(PinType.PinSubCategoryObject.Get()));
+			return  TypeClass ? EmitterContext.GetFirstNativeOrConvertedClass(TypeClass) : nullptr;
+		};
+
+		auto RequiresArrayCast = [&RType](UClass* LClass, UClass* RClass)->bool
+		{
+			return RType.bIsArray && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass);
+		};
+
+		const bool bIsClassTerm = LType.PinCategory == UEdGraphSchema_K2::PC_Class;
+		auto GetTypeString = [bIsClassTerm](UClass* TermType, const UObjectProperty* AssociatedProperty)->FString
+		{
+			// favor the property's CPPType since it makes choices based off of things like CPF_UObjectWrapper (which 
+			// adds things like TSubclassof<> to the decl)... however, if the property type doesn't match the term 
+			// type, then ignore the property (this can happen for things like our array library, which uses wildcards 
+			// and custom thunks to allow differing types)
+			const bool bPropertyMatch = AssociatedProperty && ((AssociatedProperty->PropertyClass == TermType) ||
+				(bIsClassTerm && CastChecked<UClassProperty>(AssociatedProperty)->MetaClass == TermType));
+
+			if (bPropertyMatch)
+			{
+				// use GetCPPTypeCustom() so that it properly fills out nativized class names
+				return AssociatedProperty->GetCPPTypeCustom(/*ExtendedTypeText=*/nullptr, CPPF_None, FEmitHelper::GetCppName(TermType));
+			}
+			else if (bIsClassTerm)
+			{
+				return TEXT("UClass*");
+			}
+			return FEmitHelper::GetCppName(TermType) + TEXT("*");
+		};
+
+		auto GetInnerTypeString = [GetTypeString](UClass* TermType, const UArrayProperty* ArrayProp)
+		{
+			const UObjectProperty* InnerProp = ArrayProp ? Cast<UObjectProperty>(ArrayProp->Inner) : nullptr;
+			return GetTypeString(TermType, InnerProp);
+		};
+
+		auto GenerateArrayCast = [&OutCastBegin, &OutCastEnd](const FString& LTypeStr, const FString& RTypeStr)
+		{
+			OutCastBegin = FString::Printf(TEXT("TArrayCaster< %s >("), *RTypeStr);
+			OutCastEnd   = FString::Printf(TEXT(").Get< %s >()"), *LTypeStr);
+		};
+		// CLASS/TSubClassOf<> to CLASS/TSubClassOf<>
+		if (bIsClassTerm)
+		{
+			UClass* LClass = GetClassType(LType);
+			UClass* RClass = GetClassType(RType);
+			// it seems that we only need to cast class types when they're in arrays (TSubClassOf<>
+			// has built in conversions to/from other TSubClassOfs and raw UClasses)
+			if (RType.bIsArray)
+			{
+				const UArrayProperty* LArrayProp = Cast<UArrayProperty>(LProp);
+				const UClassProperty* LInnerProp = LArrayProp ? Cast<UClassProperty>(LArrayProp->Inner) : nullptr;
+				const UArrayProperty* RArrayProp = Cast<UArrayProperty>(RProp);
+				const UClassProperty* RInnerProp = RArrayProp ? Cast<UClassProperty>(RArrayProp->Inner) : nullptr;
+
+				const bool bLHasWrapper = LInnerProp ? LInnerProp->HasAnyPropertyFlags(CPF_UObjectWrapper) : false;
+				const bool bRHasWrapper = RInnerProp ? RInnerProp->HasAnyPropertyFlags(CPF_UObjectWrapper) : false;
+				// if neither has a TSubClass<> wrapper, then they'll both be declared as a UClass*, and a cast is uneeded
+				if ((bLHasWrapper != bRHasWrapper) || (bLHasWrapper && RequiresArrayCast(LClass, RClass)))
+				{
+					GenerateArrayCast(GetTypeString(LClass, LInnerProp), GetTypeString(RClass, RInnerProp));
+					return true;
+				}
+			}
+		}
+		// OBJECT to OBJECT
+		else if (LType.PinCategory == UEdGraphSchema_K2::PC_Object)
+		{
+			UClass* LClass = GetClassType(LType);
+			UClass* RClass = GetClassType(RType);
+
+			if (!RType.bIsArray && LClass && RClass && (LType.bIsReference || bForceReference) && (LClass != RClass) && RClass->IsChildOf(LClass))
+			{
+				// when pointer is passed as reference, the type must be exactly the same
+				OutCastBegin = FString::Printf(TEXT("*(%s*)(&("), *GetTypeString(LClass, Cast<UObjectProperty>(LProp)));
 				OutCastEnd = TEXT("))");
+				return true;
 			}
-			else
+			if (!RType.bIsArray && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 			{
-				OutCastBegin = TEXT("static_cast<uint8>(");
-				OutCastEnd = TEXT(")");
+				OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
+				OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");
+				return true;
 			}
-			
-			return true;
+			else if (RequiresArrayCast(LClass, RClass))
+			{
+				GenerateArrayCast(GetInnerTypeString(LClass, Cast<UArrayProperty>(LProp)), GetInnerTypeString(RClass, Cast<UArrayProperty>(RProp)));
+				return true;
+			}
 		}
 	}
-
-	// OBJECT to OBJECT
-	if (LType.PinCategory == UEdGraphSchema_K2::PC_Object)
-	{
-		UClass* LClass = EmitterContext.Dependencies.FindOriginalClass( Cast<UClass>(LType.PinSubCategoryObject.Get()) );
-		LClass = LClass ? EmitterContext.GetFirstNativeOrConvertedClass(LClass) : nullptr;
-		UClass* RClass = EmitterContext.Dependencies.FindOriginalClass( Cast<UClass>(RType.PinSubCategoryObject.Get()) );
-		RClass = RClass ? EmitterContext.GetFirstNativeOrConvertedClass(RClass) : nullptr;
-		if (!RType.bIsArray && LClass && RClass && (LType.bIsReference || bForceReference) && (LClass != RClass) && RClass->IsChildOf(LClass))
-		{
-			// when pointer is passed as reference, the type must be exactly the same
-			OutCastBegin = FString::Printf(TEXT("*(%s**)(&("), *FEmitHelper::GetCppName(LClass));
-			OutCastEnd = TEXT("))");
-			return true;
-		}
-		if (!RType.bIsArray && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
-		{
-			OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
-			OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");
-			return true;
-		}
-		else if (RType.bIsArray && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass))
-		{
-			OutCastBegin = FString::Printf(TEXT("TArrayCaster<%s*>("), *FEmitHelper::GetCppName(RClass));
-			OutCastEnd = FString::Printf(TEXT(").Get<%s*>()"), *FEmitHelper::GetCppName(LClass));
-			return true;
-		}
-	}
-
 	return false;
 }
 
