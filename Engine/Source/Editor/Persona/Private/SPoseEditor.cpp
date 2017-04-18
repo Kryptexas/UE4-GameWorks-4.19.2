@@ -516,6 +516,7 @@ void SPoseViewer::OnDeletePoses()
 
 	// reinit animation
 	RestartAnimations(&(EditableSkeletonPtr.Pin()->GetSkeleton()));
+	RestartPreviewComponent();
 
 	CreatePoseList(NameFilterBox->GetText().ToString());
 }
@@ -767,7 +768,7 @@ void SPoseViewer::CreateCurveList(const FString& SearchText)
 	CurveListView->RequestListRefresh();
 }
 
-void SPoseViewer::AddCurveOverride(FName& Name, float Weight)
+void SPoseViewer::AddCurveOverride(const FName& Name, float Weight)
 {
 	float& Value = OverrideCurves.FindOrAdd(Name);
 	Value = Weight;
@@ -810,11 +811,8 @@ SPoseViewer::~SPoseViewer()
 	}
 }
 
-void SPoseViewer::OnPoseAssetModified()
+void SPoseViewer::RestartPreviewComponent()
 {
-	CreatePoseList(NameFilterBox->GetText().ToString());
-	CreateCurveList(NameFilterBox->GetText().ToString());
-
 	// it needs reinitialization of animation system
 	// so that pose blender can reinitialize names and so on correctly
 	if (PreviewScenePtr.IsValid())
@@ -823,9 +821,20 @@ void SPoseViewer::OnPoseAssetModified()
 		if (PreviewComponent)
 		{
 			PreviewComponent->InitAnim(true);
+			for (auto Iter = OverrideCurves.CreateConstIterator(); Iter; ++Iter)
+			{
+				// refresh curve names that are active
+				AddCurveOverride(Iter.Key(), Iter.Value());
+			}
 		}
 	}
-	
+}
+
+void SPoseViewer::OnPoseAssetModified()
+{
+	CreatePoseList(NameFilterBox->GetText().ToString());
+	CreateCurveList(NameFilterBox->GetText().ToString());
+	RestartPreviewComponent();
 }
 
 void SPoseViewer::ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const
