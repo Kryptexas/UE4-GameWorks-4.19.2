@@ -3542,12 +3542,13 @@ void FSlateEditableTextLayout::FTextInputMethodContext::BeginComposition()
 
 void FSlateEditableTextLayout::FTextInputMethodContext::UpdateCompositionRange(const int32 InBeginIndex, const uint32 InLength)
 {
-	check(bIsComposing);
+	if (bIsComposing)
+	{
+		CompositionBeginIndex = InBeginIndex;
+		CompositionLength = InLength;
 
-	CompositionBeginIndex = InBeginIndex;
-	CompositionLength = InLength;
-
-	OwnerLayout->UpdateCursorHighlight();
+		OwnerLayout->UpdateCursorHighlight();
+	}
 }
 
 void FSlateEditableTextLayout::FTextInputMethodContext::EndComposition()
