@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DSP/Osc.h"
 
 namespace Audio
 {
@@ -26,13 +25,6 @@ namespace Audio
 
 	class FWaveTableOsc;
 
-	// A factory interface for creating custom wave tables
-	class ICustomWaveTableOscFactory
-	{
-	public:
-		// Creates  custom wave table with the given requested size. Custom table doesn't necessarily have to honor the requested size.
-		virtual FWaveTableOsc* CreateCustomWaveTable(const int32 RequestedWaveTableSize) = 0;
-	};
 
 	// A wave table oscillator class
 	class AUDIOMIXER_API FWaveTableOsc
@@ -65,26 +57,21 @@ namespace Audio
 		// Returns the frequency of the wave table oscillator.
 		float GetFrequencyHz() const { return FrequencyHz; }
 
+		// Returns the internal table used int he wave table.
+		TArray<float>& GetTable();
+		const TArray<float>& GetTable() const;
+
 		// Processes the wave table, outputs the normal and quad phase (optional) values 
 		void Generate(float* OutputNormalPhase, float* OutputQuadPhase = nullptr);
 
-		// Sets the factory interface to use to create a custom wave table
-		static void SetCustomWaveTableOscFactory(ICustomWaveTableOscFactory* InCustomWaveTableOscFactory);
-
 		// Creates a wave table using internal factories for standard wave tables or uses custom wave table factor if it exists.
-		static FWaveTableOsc* CreateWaveTable(const EWaveTable::Type WaveTableType, const int32 WaveTableSize = 1024);
+		static TSharedPtr<FWaveTableOsc> CreateWaveTable(const EWaveTable::Type WaveTableType, const int32 WaveTableSize = 1024);
 
 	protected:
 		void UpdateFrequency();
 
-		// Custom wave table factory
-		static ICustomWaveTableOscFactory* CustomWaveTableOscFactory;
-
 		// The wave table buffer
-		float* WaveTableBuffer;
-
-		// The wave table buffer size
-		int32 WaveTableBufferSize;
+		TArray<float> WaveTableBuffer;
 
 		// The frequency of the output (given the sample rate)
 		float FrequencyHz;

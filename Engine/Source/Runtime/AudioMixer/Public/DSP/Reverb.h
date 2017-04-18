@@ -164,7 +164,7 @@ namespace Audio
 		FDelayAPF APF4;
 
 		// Wave table oscillator, modulates input APF in plates
-		FWaveTableOsc* LFO;
+		TSharedPtr<FWaveTableOsc> LFO;
 
 		// Plate data struction to organize each plate's delay lines and filters
 		struct FPlate
