@@ -676,16 +676,9 @@ void ALODActor::RecalculateDrawingDistance(const float InTransitionScreenSize)
 	static const float FOVRad = 90.0f * (float)PI / 360.0f;
 	static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
 	FBoxSphereBounds Bounds = GetStaticMeshComponent()->CalcBounds(FTransform());
+	LODDrawDistance = ComputeBoundsDrawDistance(InTransitionScreenSize, Bounds.SphereRadius, ProjectionMatrix);
 
-	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(1920.0f / 2.0f * ProjectionMatrix.M[0][0],
-		1080.0f / 2.0f * ProjectionMatrix.M[1][1]);
-
-	// ScreenSize is the projected diameter, so halve it
-	const float ScreenRadius = FMath::Max(SMALL_NUMBER, InTransitionScreenSize * 0.5f);
-
-	// Invert the calcs in ComputeBoundsScreenSize
-	LODDrawDistance = FMath::Sqrt(FMath::Abs((FMath::Square((ScreenMultiple * Bounds.SphereRadius) / ScreenRadius)) + FMath::Square(Bounds.SphereRadius)));
+	StaticMeshComponent->MinDrawDistance = LODDrawDistance;	
 
 	UpdateSubActorLODParents();
 }
