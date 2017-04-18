@@ -1952,10 +1952,10 @@ void ULevel::CleanupLevelScriptBlueprint()
 
 void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)
 {
-	if( !InBlueprint->bIsRegeneratingOnLoad )
-	{
+	if( !InBlueprint->bIsRegeneratingOnLoad && 
 		// Make sure this is OUR level scripting blueprint
-		check(InBlueprint == LevelScriptBlueprint);
+		ensureMsgf(InBlueprint == LevelScriptBlueprint, TEXT("Level ('%s') recieved OnLevelScriptBlueprintChanged notification for the wrong Blueprint ('%s')."), LevelScriptBlueprint ? *LevelScriptBlueprint->GetPathName() : TEXT("NULL"), *InBlueprint->GetPathName()) )
+	{
 		UClass* SpawnClass = (LevelScriptBlueprint->GeneratedClass) ? LevelScriptBlueprint->GeneratedClass : LevelScriptBlueprint->SkeletonGeneratedClass;
 
 		// Get rid of the old LevelScriptActor
