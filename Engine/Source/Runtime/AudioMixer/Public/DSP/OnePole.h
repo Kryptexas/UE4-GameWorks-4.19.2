@@ -38,12 +38,9 @@ namespace Audio
 		/** Sets the filter frequency using normalized frequency (between 0.0 and 1.0f or 0.0 hz and Nyquist Frequency in Hz) */
 		FORCEINLINE void SetFrequency(const float InFrequency)
 		{
-			if (CutoffFrequency != InFrequency)
-			{
-				CutoffFrequency = InFrequency;
-				B1 = FMath::Exp(-PI * CutoffFrequency);
-				A0 = 1.0f - B1;
-			}
+			CutoffFrequency = InFrequency;
+			B1 = FMath::Exp(-PI * CutoffFrequency);
+			A0 = 1.0f - B1;
 		}
 
 		float ProcessAudio(const float InputSample)
