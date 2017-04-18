@@ -578,7 +578,7 @@ public:
 	{
 		if (Term->bIsLiteral)
 		{
-			check(!(Term->Type.bIsArray || Term->Type.bIsSet || Term->Type.bIsMap) || CoerceProperty);
+			check(!Term->Type.IsContainer() || CoerceProperty);
 
 			// Additional Validation, since we cannot trust custom k2nodes
 			const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
@@ -1226,25 +1226,7 @@ public:
 			Writer << FunctionName;
 		}
 		
-		TArray<FName> WildcardParams;
 		const bool bIsCustomThunk = FunctionToCall->HasMetaData(TEXT("CustomThunk"));
-		if (bIsCustomThunk)
-		{
-			// collect all parameters that (should) have wildcard type.
-			auto CollectWildcards = [&](FName MetaDataName)
-			{
-				const FString DependentPinMetaData = FunctionToCall->GetMetaData(MetaDataName);
-				TArray<FString> TypeDependentPinNames;
-				DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
-				for (FString& Iter : TypeDependentPinNames)
-				{
-					WildcardParams.Add(FName(*Iter));
-				}
-			};
-			CollectWildcards(FBlueprintMetadata::MD_ArrayDependentParam);
-			CollectWildcards(FName(TEXT("CustomStructureParam")));
-		}
-
 		// Emit function parameters
 		int32 NumParams = 0;
 		for (TFieldIterator<UProperty> PropIt(FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
@@ -1263,10 +1245,10 @@ public:
  				}
 				else
 				{
-					const bool bWildcard = WildcardParams.Contains(FuncParamProperty->GetFName());
 					// Native type of a wildcard parameter should be ignored.
+					const bool bBadCoerceProperty = bIsCustomThunk && !Term->Type.IsContainer() && UEdGraphSchema_K2::IsWildcardProperty(FuncParamProperty);
 					// When no coerce property is passed, a type of literal will be retrieved from the term.
-					EmitTerm(Term, bWildcard ? nullptr : FuncParamProperty);
+					EmitTerm(Term, bBadCoerceProperty ? nullptr : FuncParamProperty);
 				}
 				NumParams++;
 			}
