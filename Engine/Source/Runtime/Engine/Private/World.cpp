@@ -2107,7 +2107,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 
 		// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 		// from disk rather than duplicated
-		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bHasRerunConstructionScripts || Level->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
+		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bHasRerunConstructionScripts || !bRerunConstructionDuringEditorStreaming)));
 		
 		// Incrementally update components.
 		int32 NumComponentsToUpdate = GLevelStreamingComponentsRegistrationGranularity;
@@ -2669,6 +2669,8 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	{
 		ULevel* EditorLevel = EditorLevelWorld->PersistentLevel;
 		ULevel* PIELevel = PIELevelWorld->PersistentLevel;
+
+		PIELevel->bHasRerunConstructionScripts = EditorLevel->bHasRerunConstructionScripts;
 
 		// Fixup model components. The index buffers have been created for the components in the EditorWorld and the order
 		// in which components were post-loaded matters. So don't try to guarantee a particular order here, just copy the
