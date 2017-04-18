@@ -2099,13 +2099,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					}
 				}
 
-				//@todo ResetLoaders outside of this (ie when Package is NULL) causes problems w/ default materials
-				if (Package->IsRooted() == false && ((CurrentCookMode==ECookMode::CookOnTheFly)) )
-				{
-					SCOPE_TIMER(ResetLoaders);
-					ResetLoaders(Package);
-				}
-
 				FName StandardFilename = GetCachedStandardPackageFileFName(Package);
 
 				// We always want to mark package as processed unless it wasn't saved because it was referenced by editor-only data
