@@ -67,6 +67,16 @@ public:
 		}
 	}
 
+	/** Notifies the asset registry that an in-memory package was deleted */
+	static void PackageDeleted(UPackage* DeletedPackage)
+	{
+		if (GIsEditor)
+		{
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName);
+			AssetRegistryModule.Get().PackageDeleted(DeletedPackage);
+		}
+	}
+
 	/** Access the dependent package names for a given source package */
 	void GetDependencies(FName InPackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) override
 	{

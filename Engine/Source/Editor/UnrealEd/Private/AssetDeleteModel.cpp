@@ -552,7 +552,6 @@ void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 		TArray<UObject*> AssetsInRedirectorPackage;
 		
 		GetObjectsWithOuter(RedirectorPackage, AssetsInRedirectorPackage, /*bIncludeNestedObjects=*/false);
-		UMetaData* PackageMetaData = NULL;
 		bool bContainsAtLeastOneOtherAsset = false;
 
 		for ( auto ObjIt = AssetsInRedirectorPackage.CreateConstIterator(); ObjIt; ++ObjIt )
@@ -560,30 +559,21 @@ void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 			if ( UObjectRedirector* Redirector = Cast<UObjectRedirector>(*ObjIt) )
 			{
 				Redirector->RemoveFromRoot();
+				continue;
 			}
-			else if ( UMetaData* MetaData = Cast<UMetaData>(*ObjIt) )
+			
+			if ( UMetaData* MetaData = Cast<UMetaData>(*ObjIt) )
 			{
-				PackageMetaData = MetaData;
+				// Nothing to do; ObjectTools::CleanUpAfterSuccessfulDelete will take care of this if needed
+				continue;
 			}
-			else
-			{
-				bContainsAtLeastOneOtherAsset = true;
-			}
+			
+			bContainsAtLeastOneOtherAsset = true;
 		}
 
 		if ( !bContainsAtLeastOneOtherAsset )
 		{
 			RedirectorPackage->RemoveFromRoot();
-
-			// @todo we shouldnt be worrying about metadata objects here, ObjectTools::CleanUpAfterSuccessfulDelete should
-			if ( PackageMetaData )
-			{
-				PackageMetaData->RemoveFromRoot();
-				if (!PendingDeletes.ContainsByPredicate([=](const TSharedPtr<FPendingDelete>& A) { return A->GetObject() == PackageMetaData; }))
-				{
-					PendingDeletes.Add(MakeShareable(new FPendingDelete(PackageMetaData)));
-				}
-			}
 		}
 	}
 }
