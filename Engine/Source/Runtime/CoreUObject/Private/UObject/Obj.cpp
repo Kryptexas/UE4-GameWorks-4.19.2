@@ -2349,15 +2349,7 @@ void UObject::UpdateSinglePropertyInConfigFile(const UProperty* InProperty, cons
 
 		const FString SectionName = Keys[0];
 		FString PropertyKey = InProperty->GetFName().ToString();
-
-        const bool bIsADefaultIniWrite = !InConfigIniName.Contains(FPaths::GameSavedDir())
-			&& !InConfigIniName.Contains(FPaths::EngineSavedDir())
-			&& (FPaths::GetBaseFilename(InConfigIniName).StartsWith(TEXT("Default")) || FPaths::GetBaseFilename(InConfigIniName).StartsWith(TEXT("User"))); 
-		if (InProperty->GetOuter()->IsA<UArrayProperty>() && bIsADefaultIniWrite)
-		{
-			PropertyKey = TEXT("+") + PropertyKey;
-		}
-
+		
 #if WITH_EDITOR
 		static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
 		FString CVarName = InProperty->GetMetaData(ConsoleVariableFName);

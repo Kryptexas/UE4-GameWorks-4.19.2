@@ -119,6 +119,27 @@ struct FPreviewSceneProfile
 	}
 };
 
+
+UCLASS(config = Editor)
+class ULocalProfiles : public UObject
+{
+	GENERATED_BODY()
+public:
+	/** Collection of local scene profiles */
+	UPROPERTY(config)
+	TArray<FPreviewSceneProfile> Profiles;
+};
+
+UCLASS(config = Editor, defaultconfig )
+class USharedProfiles : public UObject
+{
+	GENERATED_BODY()
+public:
+	/** Collection of shared scene profiles */
+	UPROPERTY(config)
+	TArray<FPreviewSceneProfile> Profiles;
+};
+
 /**
 * Default asset viewer settings.
 */
@@ -157,16 +178,8 @@ public:
 	/** Collection of scene profiles */
 	UPROPERTY(EditAnywhere, transient, Category = Settings, meta=(ShowOnlyInnerProperties))
 	TArray<FPreviewSceneProfile> Profiles;
-
-	/** Collection of local scene profiles */
-	UPROPERTY(config)
-	TArray<FPreviewSceneProfile> SharedProfiles;
 	
-	/** Collection of local scene profiles */
-	UPROPERTY(config)
-	TArray<FPreviewSceneProfile> LocalProfiles;
-
-	/** Cached value to determine whether or not a profile was added or removed*/
+	/** Cached value to determine whether or not a profile was added or removed */
 	int32 NumProfiles;
 protected:
 	/** Broadcasts after an scene profile was added or deleted from the asset viewer singleton instance */
