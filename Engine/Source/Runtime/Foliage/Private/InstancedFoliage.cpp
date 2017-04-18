@@ -670,14 +670,7 @@ FFoliageMeshInfo::FFoliageMeshInfo()
 { }
 
 FFoliageMeshInfo::~FFoliageMeshInfo()
-{
-#if WITH_EDITOR
-	if (Component != nullptr && Component->GetStaticMesh() != nullptr)
-	{
-		Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(this);
-	}
-#endif
-}
+{ }
 
 
 #if WITH_EDITOR
