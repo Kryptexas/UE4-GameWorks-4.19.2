@@ -1219,7 +1219,12 @@ void FStaticMeshEditorViewportClient::OnAssetViewerSettingsChanged(const FName& 
 {
 	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled) || InPropertyName == NAME_None)
 	{
-		SetAdvancedShowFlagsForScene(UAssetViewerSettings::Get()->Profiles[AdvancedPreviewScene->GetCurrentProfileIndex()].bPostProcessingEnabled);
+		UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+		const int32 ProfileIndex = AdvancedPreviewScene->GetCurrentProfileIndex();
+		if (Settings->Profiles.IsValidIndex(ProfileIndex))
+		{
+			SetAdvancedShowFlagsForScene(Settings->Profiles[ProfileIndex].bPostProcessingEnabled);
+		}		
 	}
 }
 
