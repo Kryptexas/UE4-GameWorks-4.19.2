@@ -28,7 +28,7 @@ if not exist ./Win64 (
 cd ./Win64
 
 	REM VS2015 Make
-	if not exist ./VS2013 (
+	if not exist ./VS2015 (
 		echo Error: VS2015 directory does not exist. Did you forget to run configuration?
 		goto:eof)
 	cd ./VS2015
