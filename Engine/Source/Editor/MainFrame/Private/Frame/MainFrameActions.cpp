@@ -75,7 +75,8 @@ FMainFrameCommands::FMainFrameCommands()
 
 void FMainFrameCommands::RegisterCommands()
 {
-	if ( !IsRunningCommandlet() )
+	// Some commands cannot be processed in a commandlet or if the editor is started without a project
+	if ( !IsRunningCommandlet() && FApp::HasGameName() )
 	{
 		// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
 		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
