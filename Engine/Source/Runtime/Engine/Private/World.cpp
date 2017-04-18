@@ -1220,6 +1220,9 @@ void UWorld::InitWorld(const InitializationValues IVS)
 			DefaultBrush->Brush->SetFlags( RF_Transactional );
 			DefaultBrush->Brush->Polys->SetFlags( RF_Transactional );
 
+			// The default brush is legacy but has to exist for some old bsp operations.  However it should not be interacted with in the editor. 
+			DefaultBrush->SetIsTemporarilyHiddenInEditor(true);
+
 			// Find the index in the array the default brush has been spawned at. Not necessarily
 			// the last index as the code might spawn the default physics volume afterwards.
 			const int32 DefaultBrushActorIndex = PersistentLevel->Actors.Find( DefaultBrush );
