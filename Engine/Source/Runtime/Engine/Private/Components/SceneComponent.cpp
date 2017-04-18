@@ -1306,10 +1306,25 @@ void USceneComponent::SetWorldRotation(const FQuat& NewRotation, bool bSweep, FH
 	// If already attached to something, transform into local space
 	if (GetAttachParent() != nullptr && !bAbsoluteRotation)
 	{
-		const FQuat ParentToWorldQuat = GetAttachParent()->GetSocketQuaternion(GetAttachSocketName());
-		// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
-		const FQuat NewRelQuat = ParentToWorldQuat.Inverse() * NewRotation;
-		NewRelRotation = NewRelQuat;
+		const FTransform  ParentToWorld = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
+		// in order to support mirroring, you'll have to use FTransform.GetRelativeTransform
+		// because negative SCALE should flip the rotation
+		if (FTransform::AnyHasNegativeScale(RelativeScale3D, ParentToWorld.GetScale3D()))
+		{	
+			FTransform NewTransform = GetComponentTransform();
+			// set new desired rotation
+			NewTransform.SetRotation(NewRotation);
+			// Get relative transform from ParentToWorld
+			const FQuat NewRelQuat = NewTransform.GetRelativeTransform(ParentToWorld).GetRotation();
+			NewRelRotation = NewRelQuat;
+		}
+		else
+		{
+			const FQuat ParentToWorldQuat = ParentToWorld.GetRotation();
+			// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
+			const FQuat NewRelQuat = ParentToWorldQuat.Inverse() * NewRotation;
+			NewRelRotation = NewRelQuat;		
+		}
 	}
 
 	SetRelativeRotation(NewRelRotation, bSweep, OutSweepHitResult, Teleport);
