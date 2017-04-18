@@ -835,7 +835,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			Result += CustomThunkFunctionPostfix(Statement);
 		}
 
-		if (Statement.bIsParentContext && bNativeEvent)
+		if ((Statement.bIsParentContext || Statement.bIsInterfaceContext) && bNativeEvent)
 		{
 			ensure(!bCallOnDifferentObject);
 			Result += TEXT("_Implementation");
