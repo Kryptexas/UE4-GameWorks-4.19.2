@@ -445,16 +445,24 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip(ExposeToCinematicsTooltip)
 	];
 
-	// Build the property specific config variable tool tip
-	FFormatNamedArguments ConfigTooltipArgs;
-	if (UClass* OwnerClass = VariableProperty->GetOwnerClass())
+	FText LocalisedTooltip;
+	if (IsConfigCheckBoxEnabled())
 	{
-		OwnerClass = OwnerClass->GetAuthoritativeClass();
-		ConfigTooltipArgs.Add(TEXT("ConfigPath"), FText::FromString(OwnerClass->GetConfigName()));
-		ConfigTooltipArgs.Add(TEXT("ConfigSection"), FText::FromString(OwnerClass->GetPathName()));
+		// Build the property specific config variable tool tip
+		FFormatNamedArguments ConfigTooltipArgs;
+		if (UClass* OwnerClass = VariableProperty->GetOwnerClass())
+		{
+			OwnerClass = OwnerClass->GetAuthoritativeClass();
+			ConfigTooltipArgs.Add(TEXT("ConfigPath"), FText::FromString(OwnerClass->GetConfigName()));
+			ConfigTooltipArgs.Add(TEXT("ConfigSection"), FText::FromString(OwnerClass->GetPathName()));
+		}
+		LocalisedTooltip = FText::Format(LOCTEXT("VariableExposeToConfig_Tooltip", "Should this variable read its default value from a config file if it is present?\r\n\r\nThis is used for customising variable default values and behavior between different projects and configurations.\r\n\r\nConfig file [{ConfigPath}]\r\nConfig section [{ConfigSection}]"), ConfigTooltipArgs);
 	}
-	const FText LocalisedTooltip = FText::Format(LOCTEXT("VariableExposeToConfig_Tooltip", "Should this variable read its default value from a config file if it is present?\r\n\r\nThis is used for customising variable default values and behavior between different projects and configurations.\r\n\r\nConfig file [{ConfigPath}]\r\nConfig section [{ConfigSection}]"), ConfigTooltipArgs); 
-
+	else if (IsVariableInBlueprint())
+	{
+		// mimics the error that UHT would throw
+		LocalisedTooltip = LOCTEXT("ObjectVariableConfig_Tooltip", "Not allowed to use 'config' with object variables");
+	}
 	TSharedPtr<SToolTip> ExposeToConfigTooltip = IDocumentation::Get()->CreateToolTip(LocalisedTooltip, NULL, DocLink, TEXT("ExposeToConfig"));
 
 	Category.AddCustomRow( LOCTEXT("VariableExposeToConfig", "Config Variable"), true )
@@ -472,7 +480,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip( ExposeToConfigTooltip )
 		.IsChecked( this, &FBlueprintVarActionDetails::OnGetConfigVariableCheckboxState )
 		.OnCheckStateChanged( this, &FBlueprintVarActionDetails::OnSetConfigVariableState )
-		.IsEnabled(IsVariableInBlueprint())
+		.IsEnabled(this, &FBlueprintVarActionDetails::IsConfigCheckBoxEnabled)
 	];
 
 	PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
@@ -1971,6 +1979,21 @@ EVisibility FBlueprintVarActionDetails::ExposeConfigVisibility() const
 		}
 	}
 	return EVisibility::Collapsed;
+}
+
+bool FBlueprintVarActionDetails::IsConfigCheckBoxEnabled() const
+{
+	bool bEnabled = IsVariableInBlueprint();
+	if (bEnabled && CachedVariableProperty.IsValid())
+	{
+		if (UProperty* VariableProperty = CachedVariableProperty.Get())
+		{
+			// meant to match up with UHT's FPropertyBase::IsObject(), which it uses to block object properties from being marked with CPF_Config
+			bEnabled = VariableProperty->IsA<UClassProperty>() || VariableProperty->IsA<UAssetClassProperty>() || 
+				(!VariableProperty->IsA<UObjectPropertyBase>() && !VariableProperty->IsA<UInterfaceProperty>());
+		}
+	}
+	return bEnabled;
 }
 
 FText FBlueprintVarActionDetails::OnGetMetaKeyValue(FName Key) const

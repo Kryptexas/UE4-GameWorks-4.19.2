@@ -44,7 +44,7 @@
 #include "Settings/ProjectPackagingSettings.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/LevelScriptBlueprint.h"
-
+#include "BlueprintsObjectVersion.h"
 #include "Kismet2/CompilerResultsLog.h"
 
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
@@ -5171,8 +5171,19 @@ bool FBlueprintEditorUtils::ValidateAllFunctionGraphs(UBlueprint* InBlueprint, U
 	return false;
 }
 
-void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc)
+void FBlueprintEditorUtils::FixupVariableDescription(UBlueprint* Blueprint, FBPVariableDescription& VarDesc)
 {
+	if ((VarDesc.PropertyFlags & CPF_Config) != 0 )// commented out for 4.16 (since we cannot modify FBlueprintsObjectVersion in the release branch)... use the version check when merging to Main/Dev-Framework: && Blueprint->GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::DisallowObjectConfigVars)
+	{
+		const FEdGraphPinType& VarType = VarDesc.VarType;
+		if (VarType.PinCategory == UEdGraphSchema_K2::PC_Object ||
+			VarType.PinCategory == UEdGraphSchema_K2::PC_Interface ||
+			VarType.PinCategory == UEdGraphSchema_K2::PC_Asset)
+		{
+			VarDesc.PropertyFlags &= ~CPF_Config;
+		}
+	}
+
 	// Remove bitflag enum type metadata if the enum type name is missing or if the enum type is no longer a bitflags type.
 	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_BitmaskEnum))
 	{
