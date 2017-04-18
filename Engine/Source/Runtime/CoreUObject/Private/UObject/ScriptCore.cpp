@@ -2716,6 +2716,48 @@ void UObject::execArrayConst(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_ArrayConst, execArrayConst);
 
+void UObject::execSetConst(FFrame& Stack, RESULT_DECL)
+{
+	UProperty* InnerProperty = CastChecked<UProperty>(Stack.ReadObject());
+	int32 Num = Stack.ReadInt<int32>();
+	check(RESULT_PARAM);
+
+	FScriptSetHelper SetHelper = FScriptSetHelper::CreateHelperFormElementProperty(InnerProperty, RESULT_PARAM);
+	SetHelper.EmptyElements(Num);
+
+	while (*Stack.Code != EX_EndSetConst)
+	{
+		int32 Index = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
+		Stack.Step(Stack.Object, SetHelper.GetElementPtr(Index));
+	}
+	SetHelper.Rehash();
+
+	P_FINISH;	// EX_EndSetConst
+}
+IMPLEMENT_VM_FUNCTION(EX_SetConst, execSetConst);
+
+void UObject::execMapConst(FFrame& Stack, RESULT_DECL)
+{
+	UProperty* KeyProperty = CastChecked<UProperty>(Stack.ReadObject());
+	UProperty* ValProperty = CastChecked<UProperty>(Stack.ReadObject());
+	int32 Num = Stack.ReadInt<int32>();
+	check(RESULT_PARAM);
+
+	FScriptMapHelper MapHelper = FScriptMapHelper::CreateHelperFormInnerProperties(KeyProperty, ValProperty, RESULT_PARAM);
+	MapHelper.EmptyValues(Num);
+
+	while (*Stack.Code != EX_EndMapConst)
+	{
+		int32 Index = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
+		Stack.Step(Stack.Object, MapHelper.GetKeyPtr(Index));
+		Stack.Step(Stack.Object, MapHelper.GetValuePtr(Index));
+	}
+	MapHelper.Rehash();
+
+	P_FINISH;	// EX_EndMapConst
+}
+IMPLEMENT_VM_FUNCTION(EX_MapConst, execMapConst);
+
 void UObject::execIntZero( FFrame& Stack, RESULT_DECL )
 {
 	*(int32*)RESULT_PARAM = 0;

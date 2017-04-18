@@ -239,6 +239,8 @@
 		case EX_EndArrayConst:
 		case EX_EndSet:
 		case EX_EndMap:
+		case EX_EndSetConst:
+		case EX_EndMapConst:
 		case EX_IntZero:
 		case EX_IntOne:
 		case EX_True:
@@ -439,6 +441,21 @@
 			XFERPTR(UProperty*);	// Inner property
 			XFER(int32);			// Number of elements
 			while (SerializeExpr(iCode, Ar) != EX_EndArrayConst);
+			break;
+		}
+		case EX_SetConst:
+		{
+			XFERPTR(UProperty*);	// Inner property
+			XFER(int32);			// Number of elements
+			while (SerializeExpr(iCode, Ar) != EX_EndSetConst);
+			break;
+		}
+		case EX_MapConst:
+		{
+			XFERPTR(UProperty*);	// Key property
+			XFERPTR(UProperty*);	// Val property
+			XFER(int32);			// Number of elements
+			while (SerializeExpr(iCode, Ar) != EX_EndMapConst);
 			break;
 		}
 		case EX_ByteConst:
