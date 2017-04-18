@@ -1355,7 +1355,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 	if (IsChildCooker() == false)
 	{
-		if (AssetRegistry->IsLoadingAssets())
+		if (AssetRegistry == nullptr || AssetRegistry->IsLoadingAssets())
 		{
 			// early out
 			return Result;
