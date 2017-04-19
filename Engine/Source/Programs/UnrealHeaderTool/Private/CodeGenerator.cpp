@@ -5189,6 +5189,20 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 					ScriptGenerator->FinishExport();
 				}
 			}
+
+			// Get a list of external dependencies from each enabled plugin
+			FString ExternalDependencies;
+			for (IScriptGeneratorPluginInterface* ScriptPlugin : ScriptPlugins)
+			{
+				TArray<FString> PluginExternalDependencies;
+				ScriptPlugin->GetExternalDependencies(PluginExternalDependencies);
+
+				for (const FString& PluginExternalDependency : PluginExternalDependencies)
+				{
+					ExternalDependencies += PluginExternalDependency + LINE_TERMINATOR;
+				}
+			}
+			FFileHelper::SaveStringToFile(ExternalDependencies, *GManifest.ExternalDependenciesFile);
 		}
 	}
 
