@@ -182,7 +182,7 @@ class BuildPhysX : BuildCommand
 				throw new AutomationException(String.Format("Non-CMake or unsupported platform '{0}' supplied to GetCMakeArguments", TargetData.ToString()));
 		}
 
-		string OutputFlags = " -DPX_OUTPUT_LIB_DIR=" + GetPlatformLibDirectory(TargetData, TargetWindowsCompiler);
+		string OutputFlags = " -DPX_OUTPUT_LIB_DIR=\"" + GetPlatformLibDirectory(TargetData, TargetWindowsCompiler) + "\"";
 		if(PlatformHasBinaries(TargetData))
 		{
 			OutputFlags += " -DPX_OUTPUT_DLL_DIR=" + GetPlatformBinaryDirectory(TargetData, TargetWindowsCompiler) + " -DPX_OUTPUT_EXE_DIR=" + GetPlatformBinaryDirectory(TargetData, TargetWindowsCompiler);
@@ -246,7 +246,7 @@ class BuildPhysX : BuildCommand
 						return DirectoryReference.Combine(PhysXCMakeFiles, "Switch").ToString() + " -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=Switch -DCMAKE_BUILD_TYPE=" + BuildConfig + " -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\Switch\\SwitchToolchain.cmake\"" + OutputFlags;
 					case UnrealTargetPlatform.HTML5:
 						string CmakeToolchainFile = FileReference.Combine(PhysXSourceRootDirectory, "Externals", "CMakeModules", "HTML5", "Emscripten." + BuildConfig + ".cmake").ToString();
-						return DirectoryReference.Combine(PhysXCMakeFiles, "HTML5").ToString() +
+						return "\"" + DirectoryReference.Combine(PhysXCMakeFiles, "HTML5").ToString() + "\"" +
 							" -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=HTML5" +
 							" -DPXSHARED_ROOT_DIR=\"" + SharedSourceRootDirectory.ToString() + "\"" +
 							" -DNVSIMD_INCLUDE_DIR=\"" + SharedSourceRootDirectory.ToString() + "/src/NvSimd\"" +
@@ -682,9 +682,9 @@ class BuildPhysX : BuildCommand
 
 						// CMAKE
 						ProcessStartInfo StartInfo = new ProcessStartInfo();
-						StartInfo.FileName = "cmake";
+						StartInfo.FileName = "python";
 						StartInfo.WorkingDirectory = CMakeTargetDirectory.ToString();
-						StartInfo.Arguments = GetCMakeArguments(TargetLib, TargetData, BuildConfig);
+						StartInfo.Arguments = "\"" + HTML5SDKInfo.EMSCRIPTEN_ROOT + "\\emcmake\" cmake " + GetCMakeArguments(TargetLib, TargetData, BuildConfig);
 
 						Log("Working in: {0}", StartInfo.WorkingDirectory);
 						Log("{0} {1}", StartInfo.FileName, StartInfo.Arguments);
@@ -926,7 +926,7 @@ class BuildPhysX : BuildCommand
 				{
 					// Use emscripten toolchain
 					MakeCommand = "python";
-					MakeOptions = HTML5SDKInfo.EMSCRIPTEN_ROOT + "\\emmake make";
+					MakeOptions = "\"" + HTML5SDKInfo.EMSCRIPTEN_ROOT + "\\emmake\" make";
 					BuildMap = new Dictionary<string, string>()
 					{
 						{"debug", "Build-O0"},
