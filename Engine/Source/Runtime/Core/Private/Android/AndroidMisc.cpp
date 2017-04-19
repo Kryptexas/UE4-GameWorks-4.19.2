@@ -117,6 +117,7 @@ void FAndroidMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 	FModuleManager::Get().LoadModule(TEXT("AndroidAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerAndroid"));
 }
 
 // Test for device vulkan support.

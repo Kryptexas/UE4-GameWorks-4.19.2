@@ -195,6 +195,7 @@ public class Launch : ModuleRules
 		{
 			PrivateDependencyModuleNames.Add("OpenGLDrv"); 
 			PrivateDependencyModuleNames.Add("AndroidAudio");
+            PrivateDependencyModuleNames.Add("AudioMixerAndroid");
 			DynamicallyLoadedModuleNames.Add("AndroidRuntimeSettings");
 			DynamicallyLoadedModuleNames.Add("AndroidLocalNotification");
 		}
