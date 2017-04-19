@@ -305,7 +305,8 @@ namespace Audio
 			else
 			{
 				// Now check to see if we need to kick off a decode the first chunk of audio
-				if (MixerBuffer->GetType() == EBufferType::PCMRealTime && WaveInstance->WaveData)
+				const EBufferType::Type BufferType = MixerBuffer->GetType();
+				if ((BufferType == EBufferType::PCMRealTime || BufferType == EBufferType::Streaming) && WaveInstance->WaveData)
 				{
 					// If any of these conditions meet, we need to do an initial async decode before we're ready to start playing the sound
 					if (WaveInstance->StartTime > 0.0f || WaveInstance->WaveData->bProcedural || !WaveInstance->WaveData->CachedRealtimeFirstBuffer)
@@ -643,7 +644,7 @@ namespace Audio
 			}
 			else
 			{
-				DataReadMode = (MixerBuffer->GetType() == EBufferType::Streaming ? EBufferReadMode::Synchronous : EBufferReadMode::Asynchronous);
+				DataReadMode = EBufferReadMode::Asynchronous;
 			}
 			const bool bLooped = ReadMorePCMRTData(CurrentBuffer, DataReadMode);
 
