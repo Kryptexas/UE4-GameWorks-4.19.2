@@ -2,7 +2,7 @@
 
 #include "AndroidMediaPlayer.h"
 #include "AndroidJavaMediaPlayer.h"
-#include "AndroidJavaMediaPlayer.h"
+#include "Misc/CoreDelegates.h"
 #include "Misc/Paths.h"
 #include "Android/AndroidFile.h"
 #include "../AndroidMediaLog.h"
@@ -29,6 +29,26 @@ FAndroidMediaPlayer::~FAndroidMediaPlayer()
 	{
 		JavaMediaPlayer->Reset();
 		JavaMediaPlayer->Release();
+	}
+}
+
+
+void FAndroidMediaPlayer::AppServicePause()
+{
+	// check state in case changed before ticked
+	if ((State == EMediaState::Playing) && JavaMediaPlayer.IsValid())
+	{
+		JavaMediaPlayer->Pause();
+	}
+}
+
+
+void FAndroidMediaPlayer::AppServiceResume()
+{
+	// check state in case changed before ticked
+	if ((State == EMediaState::Playing) && JavaMediaPlayer.IsValid())
+	{
+		JavaMediaPlayer->Start();
 	}
 }
 
@@ -168,6 +188,18 @@ bool FAndroidMediaPlayer::SupportsSeeking() const
 
 void FAndroidMediaPlayer::Close()
 {
+	// remove delegates if registered
+	if (ResumeHandle.IsValid())
+	{
+		FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Remove(ResumeHandle);
+		ResumeHandle.Reset();
+	}
+	if (PauseHandle.IsValid())
+	{
+		FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Remove(PauseHandle);
+		PauseHandle.Reset();
+	}
+
 	if (State == EMediaState::Closed)
 	{
 		return;
@@ -329,7 +361,30 @@ void FAndroidMediaPlayer::TickPlayer(float DeltaTime)
 {
 	if (State != EMediaState::Playing)
 	{
+		// remove delegates if registered
+		if (ResumeHandle.IsValid())
+		{
+			FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Remove(ResumeHandle);
+			ResumeHandle.Reset();
+		}
+
+		if (PauseHandle.IsValid())
+		{
+			FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Remove(PauseHandle);
+			PauseHandle.Reset();
+		}
+
 		return;
+	}
+
+	// register delegate if not registered
+	if (!ResumeHandle.IsValid())
+	{
+		ResumeHandle = FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FAndroidMediaPlayer::AppServiceResume);
+	}
+	if (!PauseHandle.IsValid())
+	{
+		PauseHandle = FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddRaw(this, &FAndroidMediaPlayer::AppServicePause);
 	}
 
 	Tracks.Tick();
