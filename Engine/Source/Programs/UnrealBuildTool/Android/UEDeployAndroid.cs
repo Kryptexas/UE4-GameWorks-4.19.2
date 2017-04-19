@@ -30,6 +30,7 @@ namespace UnrealBuildTool
 		}
 
 		private UnrealPluginLanguage UPL = null;
+		private bool GoogleVRPluginEnabled = false;
 
 		public void SetAndroidPluginData(List<string> Architectures, List<string> inPluginExtraData)
 		{
@@ -38,6 +39,18 @@ namespace UnrealBuildTool
 			{
 				NDKArches.Add(GetNDKArch(Arch));
 			}
+
+			// check if the GoogleVR plugin was enabled
+			GoogleVRPluginEnabled = false;
+			foreach (var Plugin in inPluginExtraData)
+			{
+				if (Plugin.Contains("GoogleVRHMD"))
+				{
+					GoogleVRPluginEnabled = true;
+					break;
+				}
+			}
+
 			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, NDKArches, "http://schemas.android.com/apk/res/android", "xmlns:android=\"http://schemas.android.com/apk/res/android\"", UnrealTargetPlatform.Android);
 //			APL.SetTrace();
 		}
@@ -233,6 +246,12 @@ namespace UnrealBuildTool
 
 		public bool IsPackagingForDaydream(ConfigHierarchy Ini = null)
 		{
+			// always false if the GoogleVR plugin wasn't enabled
+			if (!GoogleVRPluginEnabled)
+			{
+				return false;
+			}
+
 			// make a new one if one wasn't passed in
 			if (Ini == null)
 			{
