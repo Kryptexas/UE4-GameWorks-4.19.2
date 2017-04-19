@@ -292,9 +292,13 @@ void FIOSAudioSoundSource::Stop(void)
 
 		Paused = false;
 		Playing = false;
+	}
 
-		FSoundSource::Stop();
+	// Call parent class version regardless of if there's a wave instance
+	FSoundSource::Stop();
 		
+	if (WaveInstance)
+	{
 		if(IOSBuffer != NULL)
 		{
 			IOSBuffer->DecompressionState->SeekToTime(0.0f);
