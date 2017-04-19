@@ -35,6 +35,9 @@ public:
 	/** Registers audio editor asset actions. */
 	virtual void RegisterAssetActions() = 0;
 
+	/** Registers audio editor asset actions specific to audio mixer functionality. */
+	virtual void RegisterAudioMixerAssetActions() = 0;
+
 	/** Registers effect preset asset actions. */
 	virtual void RegisterEffectPresetAssetActions() {}
 

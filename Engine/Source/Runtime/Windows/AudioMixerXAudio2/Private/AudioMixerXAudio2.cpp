@@ -14,6 +14,8 @@
 class FAudioMixerModuleXAudio2 : public IAudioDeviceModule
 {
 public:
+	virtual bool IsAudioMixerModule() const override { return true; }
+
 	virtual FAudioDevice* CreateAudioDevice() override
 	{
 		return new Audio::FMixerDevice(new Audio::FMixerPlatformXAudio2());
