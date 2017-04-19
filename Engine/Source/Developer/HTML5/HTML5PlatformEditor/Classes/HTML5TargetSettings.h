@@ -52,6 +52,12 @@ public:
 	bool TargetWebGL2;
 
 	/**
+	 * Use IndexedDB storage
+	 */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "IndexedDB storage (WASM only - experimental)"))
+	bool EnableIndexedDB;
+
+	/**
 	 * Use Fixed TimeStep
 	 */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "Fixed TimeStep (i.e. use requestAnimationFrame)"))

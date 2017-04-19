@@ -296,6 +296,12 @@ public class HTML5Platform : Platform
 			while (reader.Peek() != -1)
 			{
 				LineStr = reader.ReadLine();
+				if (LineStr.Contains("%TIMESTAMP%"))
+				{
+					string TimeStamp = DateTime.UtcNow.ToString("yyyyMMddHHmm");
+					LineStr = LineStr.Replace("%TIMESTAMP%", TimeStamp);
+				}
+
 				if (LineStr.Contains("%GAME%"))
 				{
 					LineStr = LineStr.Replace("%GAME%", InGameName);

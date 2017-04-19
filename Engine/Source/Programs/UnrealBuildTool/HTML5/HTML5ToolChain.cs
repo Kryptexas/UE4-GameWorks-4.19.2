@@ -39,6 +39,11 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableSIMD", out enableSIMD);
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableMultithreading", out enableMultithreading);
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableTracing", out bEnableTracing);
+			Log.TraceInformation("HTML5ToolChain: TargetWasm = "         + targetingWasm        );
+			Log.TraceInformation("HTML5ToolChain: TargetWebGL2 = "       + targetWebGL2         );
+			Log.TraceInformation("HTML5ToolChain: EnableSIMD = "         + enableSIMD           );
+			Log.TraceInformation("HTML5ToolChain: EnableMultithreading " + enableMultithreading );
+			Log.TraceInformation("HTML5ToolChain: EnableTracing = "      + bEnableTracing       );
 
 			// TODO: remove this "fix" when emscripten supports (SIMD & pthreads) + WASM
 			if ( targetingWasm )
