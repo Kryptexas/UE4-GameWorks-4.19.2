@@ -231,6 +231,7 @@ UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName
 			// if the config needs to come from a platform, set it now, then reload the config
 			DeviceProfile->ConfigPlatform = ConfigPlatform;
 			DeviceProfile->LoadConfig();
+			DeviceProfile->ValidateProfile();
 		}
 
 		// if the config didn't specify a DeviceType, use the passed in one
