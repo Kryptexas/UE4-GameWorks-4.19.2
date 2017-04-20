@@ -1080,7 +1080,14 @@ void FGPUSkinCache::InternalRelease(FGPUSkinCacheEntry* SkinCacheEntry)
 			DEC_MEMORY_STAT_BY(STAT_GPUSkinCache_TotalMemUsed, RequiredMemInBytes);
 
 			SkinCache->Allocations.Remove(Allocation);
-			SkinCache->BuffersToTransition.Remove(DispatchData.GetRWBuffer().UAV);
+			for (uint32 i = 0; i < FAllocation::NUM_BUFFERS; i++)
+			{
+				FRWBuffer& RWBuffer = Allocation->RWBuffers[i];
+				if (RWBuffer.UAV.IsValid())
+				{
+					SkinCache->BuffersToTransition.Remove(RWBuffer.UAV);
+				}
+			}
 
 			delete Allocation;
 			DispatchData.Allocation = nullptr;
