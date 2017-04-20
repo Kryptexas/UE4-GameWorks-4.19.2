@@ -1481,7 +1481,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			FString DLCPath = GetDLCContentPath();
 			if ( ToBuild.GetFilename().ToString().StartsWith(DLCPath) == false ) // if we don't start with the dlc path then we shouldn't be cooking this data 
 			{
-				UE_LOG(LogCook, Error, TEXT("Engine content %s is being referenced by DLC!"), *ToBuild.GetFilename().ToString() );
+				UE_LOG(LogCook, Error, TEXT("Engine or Game content %s is being referenced by DLC!"), *ToBuild.GetFilename().ToString() );
 				bShouldCook = false;
 			}
 		}
@@ -6786,6 +6786,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			if ( bSucceeded )
 			{
 				TArray<FName> PlatformNames;
+				PlatformNames.Add(PlatformName);
 				TArray<bool> Succeeded;
 				Succeeded.Add(true);
 				for (const FName& PackageFilename : PackageList)
