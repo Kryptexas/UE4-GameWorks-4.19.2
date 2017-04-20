@@ -241,7 +241,16 @@ public class NvCloth : ModuleRules
 
 			LibraryFormatString = "{0}";
 		}
-		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
+        else if (Target.Platform == UnrealTargetPlatform.Switch)
+        {
+            NvClothLibDir += "/Switch";
+            PublicLibraryPaths.Add(NvClothLibDir);
+
+            NvClothLibraries.Add("NvCloth{0}");
+
+            LibraryFormatString = "{0}";
+        }
+        else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
 			Definitions.Add("_XBOX_ONE=1");
 

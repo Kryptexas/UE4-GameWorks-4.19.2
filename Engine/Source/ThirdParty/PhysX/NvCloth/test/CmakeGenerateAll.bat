@@ -11,5 +11,6 @@ echo CMAKE_PATH_F = %CMAKE_PATH_F%
 SET PATH=%PATH%;"%CMAKE_PATH_F%"
 call CmakeGenerateProjects.bat
 call CmakeGenerateProjectsPs4.bat
+call CmakeGenerateProjectsSwitch.bat
 call CmakeGenerateProjectsXboxOne.bat
 pause

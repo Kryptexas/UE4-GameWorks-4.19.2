@@ -193,7 +193,8 @@ class BuildPhysX : BuildCommand
 		switch (TargetData.Platform)
 		{
 			case UnrealTargetPlatform.PS4:
-			case UnrealTargetPlatform.Linux:
+            case UnrealTargetPlatform.Switch:
+            case UnrealTargetPlatform.Linux:
 				OutputFlags += " -DUSE_RESPONSE_FILES=1";
 				break;
 		}
@@ -288,6 +289,8 @@ class BuildPhysX : BuildCommand
                         return DirectoryReference.Combine(NvClothCMakeFiles, "Windows").ToString() + " -G \"" + VisualStudioName + "\" -Ax64 -DTARGET_BUILD_PLATFORM=Windows" + OutputFlags;
                     case UnrealTargetPlatform.PS4:
                         return DirectoryReference.Combine(NvClothCMakeFiles, "PS4").ToString() + " -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=PS4 -DCMAKE_BUILD_TYPE=" + BuildConfig + " -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\PS4\\PS4Toolchain.txt\"" + OutputFlags;
+                    case UnrealTargetPlatform.Switch:
+                        return DirectoryReference.Combine(NvClothCMakeFiles, "Switch").ToString() + " -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=Switch -DCMAKE_BUILD_TYPE=" + BuildConfig + " -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\Switch\\SwitchToolchain.txt\"" + OutputFlags;
                     case UnrealTargetPlatform.XboxOne:
                         return DirectoryReference.Combine(NvClothCMakeFiles, "XboxOne").ToString() + " -G \"Visual Studio 14 2015\" -DTARGET_BUILD_PLATFORM=XboxOne -DCMAKE_TOOLCHAIN_FILE=\"" + PhysXSourceRootDirectory + "\\Externals\\CMakeModules\\XboxOne\\XboxOneToolchain.txt\" -DCMAKE_GENERATOR_PLATFORM=DURANGO" + OutputFlags;
                     case UnrealTargetPlatform.Linux:
@@ -413,7 +416,7 @@ class BuildPhysX : BuildCommand
 		List<TargetPlatformData> TargetPlatforms = new List<TargetPlatformData>();
 
 		// Remove any platforms that aren't enabled on the command line
-		string TargetPlatformFilter = ParseParamValue("TargetPlatforms", "Win32+Win64+PS4");
+		string TargetPlatformFilter = ParseParamValue("TargetPlatforms", "Win32+Win64+PS4+Switch");
 		if (TargetPlatformFilter != null)
 		{
 			foreach (string TargetPlatformName in TargetPlatformFilter.Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries))
@@ -1364,6 +1367,7 @@ class BuildPhysX : BuildCommand
                 case UnrealTargetPlatform.Win32:
                 case UnrealTargetPlatform.Win64:
                 case UnrealTargetPlatform.PS4:
+                case UnrealTargetPlatform.Switch:
                 case UnrealTargetPlatform.XboxOne:
                 case UnrealTargetPlatform.Mac:
                     return true;

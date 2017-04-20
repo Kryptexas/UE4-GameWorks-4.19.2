@@ -14,5 +14,6 @@ call "../../scripts/locate_xpj.bat" XPJ
 "%XPJ%\xpj4.exe" -t vc14 -p win32 -x "%CD%\NvCloth.xpj"
 "%XPJ%\xpj4.exe" -t vc14 -p xboxone -x "%CD%\NvCloth.xpj"
 "%XPJ%\xpj4.exe" -t vc14 -p ps4 -x "%CD%\NvCloth.xpj"
+"%XPJ%\xpj4.exe" -t vc14 -p switch -x "%CD%\NvCloth.xpj"
 
 pause

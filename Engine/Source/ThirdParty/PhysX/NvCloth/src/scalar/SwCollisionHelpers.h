@@ -29,7 +29,7 @@
 
 #pragma once
 
-namespace physx
+namespace nv
 {
 namespace cloth
 {
