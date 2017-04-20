@@ -1161,6 +1161,12 @@ void UNetDriver::Shutdown()
 		}
 	}
 
+	// Empty our replication map here before we're destroyed, 
+	// even though we use AddReferencedObjects to keep the referenced properties
+	// in here from being collected, when we're all GC'd the order seems non-deterministic
+	RepLayoutMap.Empty();
+	ReplicationChangeListMap.Empty();
+
 	ConnectionlessHandler.Reset(nullptr);
 
 #if DO_ENABLE_NET_TEST
