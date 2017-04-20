@@ -364,6 +364,10 @@
 	#define PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK			0
 #endif
 
+#ifndef PLATFORM_VECTOR_CUBIC_INTERP_SSE
+#define PLATFORM_VECTOR_CUBIC_INTERP_SSE					0
+#endif
+
 // deprecated, do not use
 #define PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult	#
 #define PLATFORM_SUPPORTS_RHI_THREAD #
