@@ -314,6 +314,11 @@ namespace UnrealBuildTool
 		public string SolutionDirectory = String.Empty;
 
 		/// <summary>
+		/// Whether the target should be included in the default solution build configuration
+		/// </summary>
+		public bool? bBuildInSolutionByDefault = null;
+
+		/// <summary>
 		/// Output the executable to the engine binaries folder.
 		/// </summary>
 		public bool bOutputToEngineBinaries = false;
@@ -1461,6 +1466,11 @@ namespace UnrealBuildTool
 		public string SolutionDirectory
 		{
 			get { return Inner.SolutionDirectory; }
+		}
+
+		public bool? bBuildInSolutionByDefault
+		{
+			get { return Inner.bBuildInSolutionByDefault; }
 		}
 
 		public bool bOutputToEngineBinaries
