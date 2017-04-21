@@ -179,7 +179,7 @@ const void FHTML5Misc::PreLoadMap(FString& Map, FString& LastMap, void* DynData)
 	Downloader->Cache(Map, LastMap, DynData);
 }
 
-void FHTML5Misc::PlatformPostInit(bool ShowSplashScreen /*= false*/)
+void FHTML5Misc::PlatformPostInit()
 {
 	FModuleManager::Get().LoadModule("MapPakDownloader");
 }

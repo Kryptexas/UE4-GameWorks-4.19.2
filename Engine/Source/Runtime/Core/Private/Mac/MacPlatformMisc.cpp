@@ -424,7 +424,7 @@ void FMacPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("Power Source: %s"), GMacAppInfo.RunningOnBattery ? TEXT(kIOPSBatteryPowerValue) : TEXT(kIOPSACPowerValue) );
 }
 
-void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
+void FMacPlatformMisc::PlatformPostInit()
 {
 	// Setup the app menu in menu bar
 	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
