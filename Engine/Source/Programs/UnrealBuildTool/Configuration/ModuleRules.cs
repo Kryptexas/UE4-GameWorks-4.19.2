@@ -342,6 +342,11 @@ namespace UnrealBuildTool
 		public PrecompileTargetsType PrecompileForTargets = PrecompileTargetsType.Default;
 
 		/// <summary>
+		/// External files which invalidate the makefile if modified. Relative paths are resolved relative to the .build.cs file.
+		/// </summary>
+		public List<string> ExternalDependencies = new List<string>();
+
+		/// <summary>
 		/// Property for the directory containing this module. Useful for adding paths to third party dependencies.
 		/// </summary>
 		public string ModuleDirectory
