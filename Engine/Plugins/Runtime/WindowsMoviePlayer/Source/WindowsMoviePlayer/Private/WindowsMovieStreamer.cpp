@@ -92,7 +92,7 @@ bool FMediaFoundationMovieStreamer::Tick(float DeltaTime)
 		}
 		else if (PlaybackType != MT_Normal)
 		{
-			MovieIndex = PlaybackType == MT_LoadingLoop ? StoredMoviePaths.Num() - 2 : -1;
+			MovieIndex = PlaybackType == MT_LoadingLoop ? StoredMoviePaths.Num() - 1 : 0;
 			OpenNextMovie();
 		}
 		else
