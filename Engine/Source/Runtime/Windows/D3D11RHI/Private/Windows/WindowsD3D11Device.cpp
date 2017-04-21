@@ -1012,7 +1012,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 				{
 					unsigned Index = (unsigned)Result & (~((unsigned)GFSDK_Aftermath_Result_Fail));
 					const TCHAR* Reason[13] = { TEXT("Fail"), TEXT("VersionMismatch"), TEXT("NotInitialized"), TEXT("InvalidAdapter"), TEXT("InvalidParameter"), TEXT("Unknown"), TEXT("ApiError"), TEXT("NvApiIncompatible"), TEXT("GettingContextDataWithNewCommandList"), TEXT("AlreadyInitialized"), TEXT("D3DDebugLayerNotCompatible"),TEXT("NotEnabledInDriver"), TEXT("DriverVersionNotSupported") };
-					Index = Index > 13 ? 0 : Index;
+					Index = Index > 12 ? 0 : Index;
 
 					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled but failed to initialize due to reason: %s"), Reason[Index]);
 					GDX11NVAfterMathEnabled = 0;
