@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 		static bool enableMultithreading = false;
 		static bool bEnableTracing = false; // Debug option
 
-		public HTML5ToolChain()
+		public HTML5ToolChain(FileReference InProjectFile)
 			: base(CppPlatform.HTML5, WindowsCompiler.VisualStudio2015)
 		{
 			if (!HTML5SDKInfo.IsSDKInstalled())
@@ -32,10 +32,21 @@ namespace UnrealBuildTool
 			// - but, during packaging, if -remoteini is used -- need to use UnrealBuildTool.GetRemoteIniPath()
 			//   (note: ConfigCache can take null ProjectFile)
 			string EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
-			DirectoryReference ProjectFile = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath) : null;
+			DirectoryReference ProjectFile = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath)
+												: !String.IsNullOrEmpty(InProjectFile.FullName) ? DirectoryReference.FromFile(InProjectFile) : null;
 			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectFile, UnrealTargetPlatform.HTML5);
-			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWasm", out targetingWasm);
-			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWebGL2", out targetWebGL2);
+
+			// these will be going away...
+			bool targetingAsmjs = false; // inverted check
+			bool targetWebGL1 = false; // inverted check
+			if ( Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetAsmjs", out targetingAsmjs) )
+			{
+				targetingWasm = !targetingAsmjs;
+			}
+			if ( Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWebGL1", out targetWebGL1) )
+			{
+				targetWebGL2  = !targetWebGL1;
+			}
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableSIMD", out enableSIMD);
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableMultithreading", out enableMultithreading);
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableTracing", out bEnableTracing);
