@@ -2029,8 +2029,8 @@ private:
 		EMaterialValueType ValueType, const FVector4& DefaultValue, EShaderFrequency ShaderFrequency,
 		int32 TexCoordIndex = INDEX_NONE, bool bIsHidden = false, MaterialAttributeBlendFunction BlendFunction = nullptr);
 
-	FMaterialAttributeDefintion* Find(const FGuid& AttributeID);
-	FMaterialAttributeDefintion* Find(EMaterialProperty Property);
+	ENGINE_API FMaterialAttributeDefintion* Find(const FGuid& AttributeID);
+	ENGINE_API FMaterialAttributeDefintion* Find(EMaterialProperty Property);
 
 	ENGINE_API static FMaterialAttributeDefinitionMap GMaterialPropertyAttributesMap;
 

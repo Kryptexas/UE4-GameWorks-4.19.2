@@ -3,8 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
-class AActor;
+#include "GameFramework/Actor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FCreateBlueprintFromActorDialog

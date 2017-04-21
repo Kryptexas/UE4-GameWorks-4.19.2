@@ -17,7 +17,7 @@
 
 #define LOCTEXT_NAMESPACE "CreateBlueprintFromActorDialog"
 
-TWeakObjectPtr<AActor> FCreateBlueprintFromActorDialog::ActorOverride;
+TWeakObjectPtr<AActor> FCreateBlueprintFromActorDialog::ActorOverride = nullptr;
 
 void FCreateBlueprintFromActorDialog::OpenDialog(bool bInHarvest, AActor* InActorOverride )
 {
