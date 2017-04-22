@@ -23,7 +23,7 @@ void UBlackboardKeyType::InitializeKey(UBlackboardComponent& OwnerComp, FBlackbo
 	if (bCreateKeyInstance)
 	{
 		FBlackboardInstancedKeyMemory* MyMemory = (FBlackboardInstancedKeyMemory*)RawData;
-		UBlackboardKeyType* KeyInstance = NewObject<UBlackboardKeyType>(&OwnerComp, GetClass(), GetFName(), RF_NoFlags, (UObject*)(this));
+		UBlackboardKeyType* KeyInstance = NewObject<UBlackboardKeyType>(&OwnerComp, GetClass());
 		MyMemory->KeyIdx = KeyID;
 		OwnerComp.KeyInstances[KeyID] = KeyInstance;
 
