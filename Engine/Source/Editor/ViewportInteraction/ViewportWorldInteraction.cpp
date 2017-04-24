@@ -415,7 +415,7 @@ void UViewportWorldInteraction::EnteredSimulateInEditor()
 	GEditor->NoteSelectionChange();
 }
 
-void UViewportWorldInteraction::LeftSimulateInEditor()
+void UViewportWorldInteraction::LeftSimulateInEditor(UWorld* SimulateWorld)
 {
 	// Make sure transformables get updated
 	GEditor->NoteSelectionChange();

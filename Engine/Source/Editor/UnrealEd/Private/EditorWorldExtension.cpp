@@ -335,6 +335,7 @@ void UEditorWorldExtensionCollection::ShowAllActors(const bool bShow)
 	}
 }
 
+
 void UEditorWorldExtensionCollection::PostPIEStarted( bool bIsSimulatingInEditor )
 {
 	if( bIsSimulatingInEditor && GEditor->EditorWorld != nullptr && GEditor->EditorWorld == WorldContext->World() )
@@ -370,6 +371,8 @@ void UEditorWorldExtensionCollection::OnEndPIE( bool bWasSimulatingInEditor )
 	{
 		if( !GIsRequestingExit )
 		{
+			UWorld* SimulateWorld = WorldContext->World();
+
 			// Revert back to the editor world before closing the play world, otherwise actors and objects will be destroyed.
 			SetWorldContext( EditorWorldOnSimulate );
 			EditorWorldOnSimulate = nullptr;
@@ -377,7 +380,7 @@ void UEditorWorldExtensionCollection::OnEndPIE( bool bWasSimulatingInEditor )
 			for( FEditorExtensionTuple& EditorExtensionTuple : EditorExtensions )
 			{
 				UEditorWorldExtension* EditorExtension = EditorExtensionTuple.Get<0>();
-				EditorExtension->LeftSimulateInEditor();
+				EditorExtension->LeftSimulateInEditor(SimulateWorld);
 			}
 		}
 	}

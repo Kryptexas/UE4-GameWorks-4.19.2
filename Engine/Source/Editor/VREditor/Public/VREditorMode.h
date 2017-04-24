@@ -305,7 +305,7 @@ public:
 protected:
 
 	virtual void TransitionWorld(UWorld* NewWorld) override;
-	virtual void LeftSimulateInEditor() override;
+	virtual void LeftSimulateInEditor(UWorld* SimulateWorld) override;
 
 private:
 
