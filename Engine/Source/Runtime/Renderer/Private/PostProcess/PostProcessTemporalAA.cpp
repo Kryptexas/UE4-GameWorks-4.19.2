@@ -484,7 +484,7 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 		SrcSize,
 		*VertexShader,
 		View.StereoPass,
-		Context.HasHmdMesh(),
+		false, // Disabled for correctness
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -617,7 +617,7 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 			SrcSize,
 			*VertexShader,
 			View.StereoPass,
-			Context.HasHmdMesh(),
+			false, // Disabled for correctness
 			EDRF_UseTriangleOptimization);
 
 		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -718,7 +718,7 @@ void FRCPassPostProcessDOFTemporalAANear::Process(FRenderingCompositePassContext
 		SrcSize,
 		*VertexShader,
 		View.StereoPass,
-		Context.HasHmdMesh(),
+		false, // Disabled for correctness
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -806,7 +806,7 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 		SrcSize,
 		*VertexShader,
 		View.StereoPass,
-		Context.HasHmdMesh(),
+		false, // Disabled for correctness
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -968,7 +968,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 				SrcSize,
 				*VertexShader,
 				View.StereoPass,
-				Context.HasHmdMesh(),
+				false, // Disabled for correctness
 				EDRF_UseTriangleOptimization);
 		}
 		else
@@ -1021,7 +1021,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 					SrcSize,
 					*VertexShader,
 					View.StereoPass,
-					Context.HasHmdMesh(),
+					false, // Disabled for correctness
 					EDRF_UseTriangleOptimization);
 			}
 	
@@ -1072,7 +1072,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 					SrcSize,
 					*VertexShader,
 					View.StereoPass,
-					Context.HasHmdMesh(),
+					false, // Disabled for correctness
 					EDRF_UseTriangleOptimization);
 			}
 		}
