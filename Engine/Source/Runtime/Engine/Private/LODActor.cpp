@@ -483,6 +483,7 @@ void ALODActor::DetermineShadowingFlags()
 	bool bCastsShadow = false;
 	bool bCastsStaticShadow = false;
 	bool bCastsDynamicShadow = false;
+	bool bCastFarShadow = false;
 	for (AActor* Actor : SubActors)
 	{
 		TArray<UStaticMeshComponent*> StaticMeshComponents;
@@ -492,12 +493,14 @@ void ALODActor::DetermineShadowingFlags()
 			bCastsShadow |= Component->CastShadow;
 			bCastsStaticShadow |= Component->bCastStaticShadow;
 			bCastsDynamicShadow |= Component->bCastDynamicShadow;
+			bCastFarShadow |= Component->bCastFarShadow;
 		}
 	}
 
 	StaticMeshComponent->CastShadow = bCastsShadow;
 	StaticMeshComponent->bCastStaticShadow = bCastsStaticShadow;
 	StaticMeshComponent->bCastDynamicShadow = bCastsDynamicShadow;
+	StaticMeshComponent->bCastFarShadow = bCastFarShadow;
 	StaticMeshComponent->MarkRenderStateDirty();
 }
 
