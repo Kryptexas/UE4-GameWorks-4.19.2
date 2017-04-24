@@ -32,9 +32,9 @@ namespace UnrealBuildTool
 			// - but, during packaging, if -remoteini is used -- need to use UnrealBuildTool.GetRemoteIniPath()
 			//   (note: ConfigCache can take null ProjectFile)
 			string EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
-			DirectoryReference ProjectFile = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath)
-												: !String.IsNullOrEmpty(InProjectFile.FullName) ? DirectoryReference.FromFile(InProjectFile) : null;
-			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectFile, UnrealTargetPlatform.HTML5);
+			DirectoryReference ProjectDir = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath)
+												: DirectoryReference.FromFile(InProjectFile);
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectDir, UnrealTargetPlatform.HTML5);
 
 			// these will be going away...
 			bool targetingAsmjs = false; // inverted check
