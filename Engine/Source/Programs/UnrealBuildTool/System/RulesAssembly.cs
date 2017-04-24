@@ -72,7 +72,10 @@ namespace UnrealBuildTool
 			// Compile the assembly
 			if (AssemblySourceFiles.Count > 0)
 			{
-				CompiledAssembly = DynamicCompilation.CompileAndLoadAssembly(AssemblyFileName, AssemblySourceFiles);
+				List<string> PreprocessorDefines = new List<string>();
+				PreprocessorDefines.Add("WITH_FORWARDED_MODULE_RULES_CTOR");
+				PreprocessorDefines.Add("WITH_FORWARDED_TARGET_RULES_CTOR");
+				CompiledAssembly = DynamicCompilation.CompileAndLoadAssembly(AssemblyFileName, AssemblySourceFiles, PreprocessorDefines: PreprocessorDefines);
 			}
 
 			// Setup the module map
