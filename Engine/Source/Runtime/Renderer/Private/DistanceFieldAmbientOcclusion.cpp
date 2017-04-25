@@ -91,7 +91,7 @@ FAutoConsoleVariableRef CVarAOOverwriteSceneColor(
 	ECVF_RenderThreadSafe
 	);
 
-int32 GMaxDistanceFieldObjectsPerCullTile = 256;
+int32 GMaxDistanceFieldObjectsPerCullTile = 512;
 FAutoConsoleVariableRef CVarMaxDistanceFieldObjectsPerCullTile(
 	TEXT("r.AOMaxObjectsPerCullTile"),
 	GMaxDistanceFieldObjectsPerCullTile,
