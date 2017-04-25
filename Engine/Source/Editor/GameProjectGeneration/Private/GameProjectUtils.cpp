@@ -2910,7 +2910,7 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 bool GameProjectUtils::GenerateGameModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason)
 {
 	FString Template;
-	if ( !ReadTemplateFile(TEXT("GameModule.Build.cs.template"), Template, OutFailReason) )
+	if (!ReadTemplateFile(TEXT("GameModule.Build.cs.template"), Template, OutFailReason))
 	{
 		return false;
 	}
@@ -2919,6 +2919,29 @@ bool GameProjectUtils::GenerateGameModuleBuildFile(const FString& NewBuildFileNa
 	FinalOutput = FinalOutput.Replace(TEXT("%PUBLIC_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PublicDependencyModuleNames), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PRIVATE_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PrivateDependencyModuleNames), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
+
+	return WriteOutputFile(NewBuildFileName, FinalOutput, OutFailReason);
+}
+
+bool GameProjectUtils::GeneratePluginModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, const FString& PchIncPath, FText& OutFailReason)
+{
+	FString Template;
+	if ( !ReadTemplateFile(TEXT("PluginModule.Build.cs.template"), Template, OutFailReason) )
+	{
+		return false;
+	}
+
+	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%PUBLIC_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PublicDependencyModuleNames), ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%PRIVATE_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PrivateDependencyModuleNames), ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
+	
+	FString AddedBody;
+	if (!PchIncPath.IsEmpty())
+	{
+		AddedBody = FString::Printf(TEXT("PrivatePCHHeaderFile = \"%s\";"), *PchIncPath);
+	}
+	FinalOutput = FinalOutput.Replace(TEXT("%ADDED_BODY%"), *AddedBody, ESearchCase::CaseSensitive);
 
 	return WriteOutputFile(NewBuildFileName, FinalOutput, OutFailReason);
 }
