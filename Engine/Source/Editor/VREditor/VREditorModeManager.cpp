@@ -16,6 +16,8 @@
 #include "ViewportWorldInteraction.h"
 #include "VRModeSettings.h"
 #include "Dialogs.h"
+#include "ProjectDescriptor.h"
+#include "Interfaces/IProjectManager.h"
 
 #define LOCTEXT_NAMESPACE "VREditor"
 
@@ -43,7 +45,6 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 	bool bCanAutoEnterVR = GetDefault<UVRModeSettings>()->bEnableAutoVREditMode && 
 		(GEditor->PlayWorld == nullptr || (CurrentVREditorMode != nullptr && CurrentVREditorMode->GetStartedPlayFromVREditor())) && 
 		FPlatformProcess::IsThisApplicationForeground();
-
 	if( GEngine != nullptr && GEngine->HMDDevice.IsValid() )
 	{
 		// Only check whether you are wearing the HMD every second, if you are allowed to auto-enter VR, and if your HMD state has changed since the last check. 
@@ -107,6 +108,12 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 			bEnableVRRequest = false;
 		}
 	}
+}
+
+bool FVREditorModeManager::IsTickable() const
+{
+	const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
+	return CurrentProject != nullptr;
 }
 
 void FVREditorModeManager::EnableVREditor( const bool bEnable, const bool bForceWithoutHMD )
