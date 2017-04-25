@@ -64,8 +64,6 @@
 
 			UE4_indexedDBName: 'UE4_assetDatabase_%GAME%', // TODO Nick: this should be an ascii ID string without special characters that is unique to the project that is being packaged
 			UE4_indexedDBVersion: %TIMESTAMP%, // Bump this number to invalidate existing IDB storages in browsers.
-
-			preRun: [function() { addRunDependency('wait-for-compiled-code'); }]
 		};
 
 		// Tests if type === 'browser' or type === 'os' is 64-bit or not.
@@ -1169,8 +1167,11 @@ $(document).ready(function() {
 				Module['wasmInstantiateActionReject'] = reject;
 			});
 
-			var mainJsDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.js')).then(addScriptToDom);
-			if (runningAsmJs) mainJsDownload = mainJsDownload.catch(noAsmJsFallbackHostedError);
+			var mainJsDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.js')).then(function(data) {
+					return addScriptToDom(data).then(function() {
+						addRunDependency('wait-for-compiled-code');
+					});
+				});
 		} else {
 			var mainCompiledCode = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.asm.js'), 'arraybuffer').then(function(data) {
 				taskProgress(TASK_COMPILING);
@@ -1183,11 +1184,12 @@ $(document).ready(function() {
 				noAsmJsFallbackHostedError();
 			});
 			var compiledCodeInstantiateAction = true; // There is no need to manually instantiate asm.js, so instead of having a Promise() to resolve that, pass through true as a no-op.
-			if (runningAsmJs) mainJsDownload = mainCompiledCode.catch(noAsmJsFallbackHostedError);
-			else {
-				var asmJsRuntimeDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%_asm.js')).catch(noAsmJsFallbackHostedError);
-				var mainJsDownload = Promise.all([asmJsRuntimeDownload, mainCompiledCode]).then(function(results) { addScriptToDom(results[0]); });
-			}
+			var asmJsRuntimeDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%_asm.js')).catch(noAsmJsFallbackHostedError);
+			var mainJsDownload = Promise.all([asmJsRuntimeDownload, mainCompiledCode]).then(function(results) {
+				return addScriptToDom(results[0]).then(function() {
+					addRunDependency('wait-for-compiled-code');
+				});
+			});
 		}
 
 		var dataJsDownload = fetchOrDownloadAndStore(db, Module.locateFile('%GAME%.data.js'));
@@ -1229,9 +1231,7 @@ $(document).ready(function() {
 				Module['precompiledShaders'] = Module['precompiledPrograms'] = Module['preinitializedWebGLContext'] = Module['glIDCounter'] = Module['precompiledUniforms'] = null;
 			}
 			taskProgress(TASK_MAIN);
-			setTimeout(function() {
-				removeRunDependency('wait-for-compiled-code'); // Now we are ready to call main()
-			}, 100);
+			removeRunDependency('wait-for-compiled-code'); // Now we are ready to call main()
 		});
 	};
 

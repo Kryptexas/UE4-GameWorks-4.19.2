@@ -123,6 +123,8 @@ public class HTML5Platform : Platform
 		string GameExe = GameBasename + ".js";
 		string FullGameExePath = Path.Combine(GameBasepath, GameExe);
 		string FullPackageGameExePath = Path.Combine(PackagePath, GameExe);
+		// special case -- this will be removed when asm.js has been deprecated
+		string ASMJS_FullPackageGameExePath = Path.Combine(PackagePath, GameBasename + "_asm.js");
 
 
 		// ensure the ue4game binary exists, if applicable
@@ -134,27 +136,31 @@ public class HTML5Platform : Platform
 
 		if (FullGameExePath != FullPackageGameExePath)
 		{
-			File.Copy(FullGameExePath, FullPackageGameExePath, true);
 			File.Copy(FullGameExePath + ".symbols", FullPackageGameExePath + ".symbols", true);
 			if (targetingWasm)
 			{
 				File.Copy(FullGameBasePath + ".wasm", FullPackageGameBasePath + ".wasm", true);
+				File.Copy(FullGameExePath, FullPackageGameExePath, true);
 			}
 			else
 			{
 				File.Copy(FullGameExePath + ".mem", FullPackageGameExePath + ".mem", true);
+				File.Copy(FullGameBasePath + ".asm.js", FullPackageGameBasePath + ".asm.js", true);
+				File.Copy(FullGameExePath, ASMJS_FullPackageGameExePath, true); // --separate-asm
 			}
 		}
 
-		File.SetAttributes(FullPackageGameExePath, FileAttributes.Normal);
 		File.SetAttributes(FullPackageGameExePath + ".symbols", FileAttributes.Normal);
 		if (targetingWasm)
 		{
 			File.SetAttributes(FullPackageGameBasePath + ".wasm", FileAttributes.Normal);
+			File.SetAttributes(FullPackageGameExePath, FileAttributes.Normal);
 		}
 		else
 		{
 			File.SetAttributes(FullPackageGameExePath + ".mem", FileAttributes.Normal);
+			File.SetAttributes(FullPackageGameBasePath + ".asm.js", FileAttributes.Normal);
+			File.SetAttributes(ASMJS_FullPackageGameExePath, FileAttributes.Normal);
 		}
 
 
@@ -219,17 +225,21 @@ public class HTML5Platform : Platform
 			// data file .js driver.
 			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FinalDataLocation + ".js" , FinalDataLocation + ".jsgz")));
 
-			// main js.
-			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameExePath, FullPackageGameExePath + "gz")));
 			if (targetingWasm)
 			{
 				// main game code
 				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameBasePath + ".wasm", FullPackageGameBasePath + ".wasmgz")));
+				// main js.
+				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameExePath, FullPackageGameExePath + "gz")));
 			}
 			else
 			{
 				// mem init file.
 				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameExePath + ".mem", FullPackageGameExePath + ".memgz")));
+				// main js.
+				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameBasePath + ".asm.js", FullPackageGameBasePath + ".asm.jsgz")));
+				// main game code
+				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(ASMJS_FullPackageGameExePath, ASMJS_FullPackageGameExePath + "gz")));
 			}
 
 			// symbols file.
@@ -459,17 +469,21 @@ public class HTML5Platform : Platform
 		SC.ArchiveFiles(PackagePath, ProjectDataName);
 		// data file js driver
 		SC.ArchiveFiles(PackagePath, ProjectDataName + ".js");
-		// main js file
-		SC.ArchiveFiles(PackagePath, GameExe);
 		if (targetingWasm)
 		{
 			// main game code
 			SC.ArchiveFiles(PackagePath, GameBasename + ".wasm");
+			// main js file
+			SC.ArchiveFiles(PackagePath, GameExe);
 		}
 		else
 		{
 			// memory init file
 			SC.ArchiveFiles(PackagePath, GameExe + ".mem");
+			// maingame code
+			SC.ArchiveFiles(PackagePath, GameBasename + ".asm.js");
+			// main js file
+			SC.ArchiveFiles(PackagePath, GameBasename + "_asm.js");
 		}
 		// symbols file
 		SC.ArchiveFiles(PackagePath, GameExe + ".symbols");
@@ -496,6 +510,7 @@ public class HTML5Platform : Platform
 			else
 			{
 				SC.ArchiveFiles(PackagePath, GameExe + ".memgz");
+				SC.ArchiveFiles(PackagePath, GameExe + ".asm.jsgz");
 			}
 			SC.ArchiveFiles(PackagePath, GameExe + ".symbolsgz");
 			SC.ArchiveFiles(PackagePath, "Utility.jsgz");
