@@ -1453,11 +1453,11 @@ Sc::ActorPair* Sc::NPhaseCore::findActorPair(ShapeSim* s0, ShapeSim* s1, Ps::Int
 	RigidSim* aLess = &s0->getRbSim();
 	RigidSim* aMore = &s1->getRbSim();
 
-	if(aLess > aMore)
+	if (aLess->getID() > aMore->getID())
 		Ps::swap(aLess, aMore);
 
-	key.mSim0 = aLess;
-	key.mSim1 = aMore;
+	key.mSim0 = aLess->getID();
+	key.mSim1 = aMore->getID();
 
 	Sc::ActorPair*& actorPair = mActorPairMap[key];
 	
@@ -2211,12 +2211,14 @@ void Sc::NPhaseCore::lostTouchReports(ShapeInteraction* si, PxU32 flags, PxU32 c
 	{
 		RigidSim* sim0 = static_cast<RigidSim*>(&si->getActor0());
 		RigidSim* sim1 = static_cast<RigidSim*>(&si->getActor1());
-		if (sim0 > sim1)
-			Ps::swap(sim0, sim1);
 
 		BodyPairKey pair;
-		pair.mSim0 = sim0;
-		pair.mSim1 = sim1;
+
+		if (sim0->getID() > sim1->getID())
+			Ps::swap(sim0, sim1);
+
+		pair.mSim0 = sim0->getID();
+		pair.mSim1 = sim1->getID();
 
 		mActorPairMap.erase(pair);
 
@@ -2283,16 +2285,11 @@ void Sc::NPhaseCore::clearContactReportActorPairs(bool shrinkToZero)
 		}
 		else
 		{
-			
-			RigidSim* sim0 = &aPair->getActorA();
-			RigidSim* sim1 = &aPair->getActorB();
-
-			if(sim0 > sim1)
-				Ps::swap(sim0, sim1);
-
 			BodyPairKey pair;
-			pair.mSim0 = sim0;
-			pair.mSim1 = sim1;
+			PxU32 actorAID = aPair->getActorAID();
+			PxU32 actorBID = aPair->getActorBID();
+			pair.mSim0 = PxMin(actorAID, actorBID);
+			pair.mSim1 = PxMax(actorAID, actorBID);
 
 			mActorPairMap.erase(pair);
 			destroyActorPairReport(*aPair);
