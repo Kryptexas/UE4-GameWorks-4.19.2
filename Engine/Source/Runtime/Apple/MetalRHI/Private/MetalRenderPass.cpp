@@ -489,15 +489,15 @@ void FMetalRenderPass::DrawPatches(uint32 PrimitiveType,id<MTLBuffer> IndexBuffe
 		
 		if(hullShaderOutputBufferSize)
 		{
-			deviceContext.ReleasePooledBuffer(hullShaderOutputBuffer);
+			deviceContext.ReleaseResource(hullShaderOutputBuffer);
 		}
 		if(hullConstShaderOutputBufferSize)
 		{
-			deviceContext.ReleasePooledBuffer(hullConstShaderOutputBuffer);
+			deviceContext.ReleaseResource(hullConstShaderOutputBuffer);
 		}
 		if(tessellationFactorBufferSize)
 		{
-			deviceContext.ReleasePooledBuffer(tessellationFactorBuffer);
+			deviceContext.ReleaseResource(tessellationFactorBuffer);
 		}
 	
 		auto computeEncoder = PrologueEncoder.GetComputeCommandEncoder();
