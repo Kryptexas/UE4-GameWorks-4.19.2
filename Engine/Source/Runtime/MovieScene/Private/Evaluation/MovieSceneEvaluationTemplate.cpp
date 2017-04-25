@@ -101,7 +101,7 @@ void FMovieSceneEvaluationTemplate::PostSerialize(const FArchive& Ar)
 	{
 		for (auto& Pair : Tracks)
 		{
-			if (Ledger.LastTrackIdentifier == FMovieSceneTrackIdentifier::Invalid() || Ledger.LastTrackIdentifier.Value < Pair.Key)
+			if (TemplateLedger.LastTrackIdentifier == FMovieSceneTrackIdentifier::Invalid() || TemplateLedger.LastTrackIdentifier.Value < Pair.Key)
 			{
 				// Reset previously serialized, invalid data
 				ResetGeneratedData();
@@ -113,8 +113,8 @@ void FMovieSceneEvaluationTemplate::PostSerialize(const FArchive& Ar)
 
 void FMovieSceneEvaluationTemplate::ResetGeneratedData()
 {
-	Ledger.TrackSignatureToTrackIdentifier.Reset();
-	Ledger.TrackReferenceCounts.Reset();
+	TemplateLedger.TrackSignatureToTrackIdentifier.Reset();
+	TemplateLedger.TrackReferenceCounts.Reset();
 
 	Tracks.Reset();
 	StaleTracks.Reset();
@@ -125,20 +125,20 @@ void FMovieSceneEvaluationTemplate::ResetGeneratedData()
 
 FMovieSceneTrackIdentifier FMovieSceneEvaluationTemplate::AddTrack(const FGuid& InSignature, FMovieSceneEvaluationTrack&& InTrack)
 {
-	FMovieSceneTrackIdentifier NewIdentifier = ++Ledger.LastTrackIdentifier;
+	FMovieSceneTrackIdentifier NewIdentifier = ++TemplateLedger.LastTrackIdentifier;
 	
 	InTrack.SetupOverrides();
 	Tracks.Add(NewIdentifier.Value, MoveTemp(InTrack));
-	Ledger.AddTrack(InSignature, NewIdentifier);
+	TemplateLedger.AddTrack(InSignature, NewIdentifier);
 
 	return NewIdentifier;
 }
 
 void FMovieSceneEvaluationTemplate::RemoveTrack(const FGuid& InSignature)
 {
-	for (FMovieSceneTrackIdentifier TrackIdentifier : Ledger.FindTracks(InSignature))
+	for (FMovieSceneTrackIdentifier TrackIdentifier : TemplateLedger.FindTracks(InSignature))
 	{
-		int32* RefCount = Ledger.TrackReferenceCounts.Find(TrackIdentifier);
+		int32* RefCount = TemplateLedger.TrackReferenceCounts.Find(TrackIdentifier);
 		if (ensure(RefCount) && --(*RefCount) == 0)
 		{
 			if (bKeepStaleTracks)
@@ -150,10 +150,10 @@ void FMovieSceneEvaluationTemplate::RemoveTrack(const FGuid& InSignature)
 			}
 			
 			Tracks.Remove(TrackIdentifier.Value);
-			Ledger.TrackReferenceCounts.Remove(TrackIdentifier);
+			TemplateLedger.TrackReferenceCounts.Remove(TrackIdentifier);
 		}
 	}
-	Ledger.TrackSignatureToTrackIdentifier.Remove(InSignature);
+	TemplateLedger.TrackSignatureToTrackIdentifier.Remove(InSignature);
 }
 
 const TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& FMovieSceneEvaluationTemplate::GetTracks() const
@@ -172,5 +172,5 @@ TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& FMovieSceneEvaluat
 
 TArrayView<FMovieSceneTrackIdentifier> FMovieSceneEvaluationTemplate::FindTracks(const FGuid& InSignature)
 {
-	return Ledger.FindTracks(InSignature);
+	return TemplateLedger.FindTracks(InSignature);
 }
