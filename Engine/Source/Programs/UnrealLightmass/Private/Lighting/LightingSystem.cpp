@@ -2039,7 +2039,7 @@ void FStaticLightingSystem::CalculateStaticShadowDepthMap(FGuid LightGuid)
 	}
 	else if (PointLight)
 	{
-		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(PointLight->Radius / ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, 4.0f));
+		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(PointLight->Radius * 4 / ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, 4.0f));
 		ShadowDepthMap->ShadowMapSizeX = ShadowDepthMap->ShadowMapSizeX == appTruncErrorCode ? INT_MAX : ShadowDepthMap->ShadowMapSizeX;
 		ShadowDepthMap->ShadowMapSizeY = ShadowDepthMap->ShadowMapSizeX;
 
