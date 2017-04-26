@@ -3572,15 +3572,14 @@ public:
 	{
 	}
 
-	virtual void UpdateOperation(FLatentResponse& Response)
+	virtual void UpdateOperation(FLatentResponse& Response) override
 	{
 		// Update elapsed time
 		TimeElapsed += Response.ElapsedTime();
 
 		const bool bComplete = (!bRunning || (TotalTime >= 0.f && TimeElapsed >= TotalTime) || !PlayerController.IsValid());
 
-		APlayerController* PC = PlayerController.Get();
-		if (PC)
+		if (APlayerController* PC = PlayerController.Get())
 		{
 			if (bComplete)
 			{
@@ -3593,6 +3592,22 @@ public:
 		}
 		
 		Response.FinishAndTriggerIf(bComplete, ExecutionFunction, OutputLink, CallbackTarget);
+	}
+
+	virtual void NotifyObjectDestroyed() override
+	{
+		if (APlayerController* PC = PlayerController.Get())
+		{
+			PC->DynamicForceFeedbacks.Remove(LatentUUID);
+		}
+	}
+
+	virtual void NotifyActionAborted() override
+	{
+		if (APlayerController* PC = PlayerController.Get())
+		{
+			PC->DynamicForceFeedbacks.Remove(LatentUUID);
+		}
 	}
 };
 
