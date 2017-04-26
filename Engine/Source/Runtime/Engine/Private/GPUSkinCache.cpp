@@ -239,7 +239,14 @@ public:
 
 	bool IsSectionValid(int32 Section)
 	{
-		return DispatchData[Section].SectionIndex == Section;
+		const FSectionDispatchData& SectionData = DispatchData[Section];
+		return SectionData.SectionIndex == Section;
+	}
+
+	bool IsSourceFactoryValid(int32 Section, FGPUBaseSkinVertexFactory* SourceVertexFactory)
+	{
+		const FSectionDispatchData& SectionData = DispatchData[Section];
+		return SectionData.SourceVertexFactory == SourceVertexFactory;
 	}
 
 	bool IsValid(FSkeletalMeshObjectGPUSkin* InSkin)
@@ -938,7 +945,7 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 		}
 		else
 		{
-			if (!InOutEntry->IsSectionValid(Section))
+			if (!InOutEntry->IsSectionValid(Section) || !InOutEntry->IsSourceFactoryValid(Section, VertexFactory))
 			{
 				// This section might not be valid yet, so set it up
 				int32 TotalNumVertices = VertexFactory->GetSkinVertexBuffer()->GetNumVertices();
