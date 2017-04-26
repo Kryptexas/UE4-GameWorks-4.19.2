@@ -21,8 +21,10 @@
 	
 	# Temporary PS4 deprecation warnings
 	".*OnlineSubsystemPS4.*warning:.*\\[-Wdeprecated-declarations\\]",
-	".*PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]"
+	".*PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]",
 	
+	# Steam DLLs are not available when cooking ShooterGame against Rocket
+	"Warning: STEAM: Steam API disabled!"
 	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
