@@ -3454,7 +3454,6 @@ private:
 				{
 					UpdatedSection += FConfigFile::GenerateExportedPropertyLine(PropertyName, PropertyValue);
 					bWrotePropertyOnPass = true;
-					break;
 				}
 				else
 				{
