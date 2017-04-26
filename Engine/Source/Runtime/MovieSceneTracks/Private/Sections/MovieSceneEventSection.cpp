@@ -3,9 +3,29 @@
 #include "Sections/MovieSceneEventSection.h"
 #include "EngineGlobals.h"
 #include "IMovieScenePlayer.h"
+#include "ReleaseObjectVersion.h"
 
 #include "Curves/KeyFrameAlgorithms.h"
 
+bool FMovieSceneEventParameters::Serialize(FArchive& Ar)
+{
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+
+	if (Ar.IsLoading() && Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::EventSectionParameterStringAssetRef)
+	{
+		UStruct* StructPtr = nullptr;
+		Ar << StructPtr;
+		StructType = StructPtr;
+	}
+	else
+	{
+		Ar << StructType;
+	}
+	
+	Ar << StructBytes;
+
+	return true;
+}
 
 /* UMovieSceneSection structors
  *****************************************************************************/

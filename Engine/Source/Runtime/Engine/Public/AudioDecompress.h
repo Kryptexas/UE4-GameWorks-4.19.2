@@ -238,6 +238,8 @@ protected:
 	USoundWave* StreamingSoundWave;
 	/** The current chunk index in the streamed chunks. */
 	int32 CurrentChunkIndex;
+	/** Whether or not to print the chunk fail message. */
+	bool bPrintChunkFailMessage;
 };
 
 

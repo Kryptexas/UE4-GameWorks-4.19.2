@@ -110,37 +110,32 @@ FMovieSceneSequenceTransform FMovieSceneEvaluationTemplateGenerator::GetSequence
 	return ensure(Data) ? Data->RootToSequenceTransform : FMovieSceneSequenceTransform();
 }
 
-FMovieSceneSequenceID FMovieSceneEvaluationTemplateGenerator::GenerateSequenceID(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID)
+void FMovieSceneEvaluationTemplateGenerator::AddSubSequence(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID, FMovieSceneSequenceID SequenceID)
 {
 	FMovieSceneSequenceHierarchyNode* ParentNode = Template.Hierarchy.FindNode(ParentID);
 	checkf(ParentNode, TEXT("Cannot generate a sequence ID for a ParentID that doesn't yet exist"));
 
-	FMovieSceneSequenceID ThisID = SequenceData.DeterministicSequenceID;
-
+	check(SequenceID.IsValid());
+	
+#if WITH_EDITORONLY_DATA
 	if (const FMovieSceneSubSequenceData* ParentSubSequenceData = Template.Hierarchy.FindSubData(ParentID))
 	{
-#if WITH_EDITORONLY_DATA
 		// Clamp this sequence's valid play range by its parent's valid play range
 		TRange<float> ParentPlayRangeChildSpace = ParentSubSequenceData->ValidPlayRange * (SequenceData.RootToSequenceTransform * ParentSubSequenceData->RootToSequenceTransform.Inverse());
 		SequenceData.ValidPlayRange = TRange<float>::Intersection(ParentPlayRangeChildSpace, SequenceData.ValidPlayRange);
-#endif
-		// Determine its ID from its parent's
-		ThisID = SequenceData.DeterministicSequenceID.AccumulateParentID(ParentSubSequenceData->DeterministicSequenceID);
 	}
+#endif
 
 	// Ensure we have a unique ID. This should never happen in reality.
-	while(!ensureMsgf(!Template.Hierarchy.FindNode(ThisID), TEXT("CRC collision on deterministic hashes. Manually hashing a random new one.")))
+	while(!ensureMsgf(!Template.Hierarchy.FindNode(SequenceID), TEXT("CRC collision on deterministic hashes. Manually hashing a random new one.")))
 	{
-		ThisID = ThisID.AccumulateParentID(ThisID);
+		SequenceID = SequenceID.AccumulateParentID(SequenceID);
 	}
 
-	SequenceData.DeterministicSequenceID = ThisID;
-
-	ParentNode->Children.Add(ThisID);
-	Template.Hierarchy.Add(SequenceData, ThisID, ParentID);
-
-	return ThisID;
+	Template.Hierarchy.Add(SequenceData, SequenceID, ParentID);
 }
+
+
 void FMovieSceneEvaluationTemplateGenerator::Generate(FMovieSceneTrackCompilationParams InParams)
 {
 	Template.Hierarchy = FMovieSceneSequenceHierarchy();

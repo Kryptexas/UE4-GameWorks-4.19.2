@@ -130,7 +130,7 @@ struct FSkelMeshSkinWeightInfo
 
 /** LOD specific setup for the skeletal mesh component. */
 USTRUCT()
-struct FSkelMeshComponentLODInfo
+struct ENGINE_API FSkelMeshComponentLODInfo
 {
 	GENERATED_USTRUCT_BODY()
 

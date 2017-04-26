@@ -4706,11 +4706,10 @@ bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Ro
 			}
 
 			// Calc shape global pose
-			const PxGeometry& PGeom = PTargetShape->getGeometry().any();
 			PxTransform PShapeGlobalPose = PTestGlobalPose.transform(PTargetShape->getLocalPose());
 			for (const FBodyInstance* BodyInstance : Bodies)
 			{
-				bHaveOverlap = BodyInstance->OverlapPhysX_AssumesLocked(PGeom, PShapeGlobalPose);
+				bHaveOverlap = BodyInstance->OverlapPhysX_AssumesLocked(PTargetShape->getGeometry().any(), PShapeGlobalPose);
 				if (bHaveOverlap)
 				{
 					return;

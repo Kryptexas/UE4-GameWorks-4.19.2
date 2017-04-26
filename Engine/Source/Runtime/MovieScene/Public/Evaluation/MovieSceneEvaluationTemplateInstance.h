@@ -205,7 +205,7 @@ private:
 	/**
 	 * Gather entities that are to be evaluated this frame
 	 */
-	void GatherEntities(const FMovieSceneEvaluationGroup& Group, IMovieScenePlayer& Player, FMovieSceneSequenceID OverrideRootID);
+	void GatherEntities(const FMovieSceneEvaluationGroup& Group, IMovieScenePlayer& Player);
 
 	/**
 	 * Process entities that are newly evaluated, and those that are no longer being evaluated
@@ -215,18 +215,26 @@ private:
 	/**
 	 * Evaluate a particular group of a segment
 	 */
-	void EvaluateGroup(const FMovieSceneEvaluationGroup& Group, const FMovieSceneContext& Context, IMovieScenePlayer& Player, FMovieSceneExecutionTokens& ExecutionTokens, FMovieSceneSequenceID OverrideRootID) const;
+	void EvaluateGroup(const FMovieSceneEvaluationGroup& Group, const FMovieSceneContext& Context, IMovieScenePlayer& Player, FMovieSceneExecutionTokens& ExecutionTokens) const;
 
 	/**
-	 * Remap the specified sequence ID from relative to OverrideRootID, to the Root
+	 * Remap the specified sequence ID based on the currently evaluating sequence path, to the Root
 	 *
 	 * @param SequenceID			The sequence ID to find a template for
-	 * @param OverrideRootID		Overriden ID that we're treating as the root
 	 * @return Pointer to a template instance, or nullptr if the ID was not found
 	 */
-	FORCEINLINE FMovieSceneSequenceID GetSequenceIdForRoot(FMovieSceneSequenceID SequenceID, FMovieSceneSequenceID OverrideRootID) const
+	FORCEINLINE FMovieSceneSequenceID GetSequenceIdForRoot(FMovieSceneSequenceID SequenceID) const
 	{
-		return OverrideRootID == MovieSceneSequenceID::Root ? SequenceID : SequenceID.AccumulateParentID(OverrideRootID);
+		if (!ReverseOverrideRootPath.Num())
+		{
+			return SequenceID;
+		}
+
+		for (FMovieSceneSequenceID Parent : ReverseOverrideRootPath)
+		{
+			SequenceID = SequenceID.AccumulateParentID(Parent);
+		}
+		return SequenceID;
 	}
 
 	/**
@@ -237,7 +245,7 @@ private:
 	 */
 	FORCEINLINE const FMovieSceneEvaluationTemplateInstance& GetInstanceChecked(FMovieSceneSequenceIDRef SequenceID) const
 	{
-		return SequenceID == MovieSceneSequenceID::Root ? RootInstance : *SubInstances.Find(SequenceID);
+		return SequenceID == MovieSceneSequenceID::Root ? RootInstance : SubInstances.FindChecked(SequenceID);
 	}
 
 	/**
@@ -279,6 +287,9 @@ private:
 
 	/** Template store responsible for supplying templates for a given sequence */
 	TSharedPtr<FMovieSceneSequenceTemplateStore> TemplateStore;
+
+	/** A reverse path of deterministic sequence IDs required to accumulate from local -> root */
+	TArray<FMovieSceneSequenceID, TInlineAllocator<8>> ReverseOverrideRootPath;
 
 	/** True when any of our templates are out of date, and need reinitializing */
 	bool bIsDirty;

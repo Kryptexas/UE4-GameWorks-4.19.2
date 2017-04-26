@@ -1,14 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "PLUGIN_NAME.h"
-
-#include "SlateBasics.h"
-#include "SlateExtras.h"
-
 #include "PLUGIN_NAMEStyle.h"
 #include "PLUGIN_NAMECommands.h"
-
 #include "LevelEditor.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 static const FName PLUGIN_NAMETabName("PLUGIN_NAME");
 

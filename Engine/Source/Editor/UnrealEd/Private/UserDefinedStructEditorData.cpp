@@ -25,7 +25,7 @@ bool FStructVariableDescription::SetPinType(const FEdGraphPinType& VarType)
 
 FEdGraphPinType FStructVariableDescription::ToPinType() const
 {
-	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.Get(), bIsArray, false, bIsSet, bIsMap, PinValueType);
+	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.LoadSynchronous(), bIsArray, false, bIsSet, bIsMap, PinValueType);
 }
 
 UUserDefinedStructEditorData::UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer)

@@ -745,7 +745,7 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	if (bSucceeded && bHasModules)
 	{
 		FString ProjectFileName = FPaths::GetProjectFilePath();
-		FString Arguments = FString::Printf(TEXT("%sEditor %s %s -EditorRecompile -Module %s -Project=\"%s\" -Progress -NoHotReloadFromIDE"), *FPaths::GetBaseFilename(ProjectFileName), FModuleManager::Get().GetUBTConfiguration(), FPlatformMisc::GetUBTPlatform(), *PluginModuleName, *ProjectFileName);
+		FString Arguments = FString::Printf(TEXT("%sEditor %s %s -EditorRecompile -Module %s -Project=\"%s\" -Plugin \"%s\" -Progress -NoHotReloadFromIDE"), *FPaths::GetBaseFilename(ProjectFileName), FModuleManager::Get().GetUBTConfiguration(), FPlatformMisc::GetUBTPlatform(), *PluginModuleName, *ProjectFileName, *UPluginFilePath);
 		if (!FDesktopPlatformModule::Get()->RunUnrealBuildTool(LOCTEXT("Compiling", "Compiling..."), FPaths::RootDir(), Arguments, GWarn))
 		{
 			PopErrorNotification(LOCTEXT("FailedToCompile", "Failed to compile source code."));

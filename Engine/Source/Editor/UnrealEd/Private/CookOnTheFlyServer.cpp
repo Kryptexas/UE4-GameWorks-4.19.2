@@ -838,31 +838,18 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
 	const TArray<ITargetPlatform*>& Platforms = TPM.GetCookingTargetPlatforms();
 
-
 	GenerateAssetRegistry();
 
 	InitializeSandbox();
 
-	
+	// When cooking on the fly the full registry is saved at the beginning
+	// in cook by the book asset registry is saved after the cook is finished
+	for (int32 Index = 0; Index < Platforms.Num(); Index++)
 	{
-		// When cooking on the fly the full registry is saved at the beginning
-		// in cook by the book asset registry is saved after the cook is finished
-
-		// write it out to a memory archive
-		FArrayWriter SerializedAssetRegistry;
-		SerializedAssetRegistry.SetFilterEditorOnly(true);
-		AssetRegistry->Serialize(SerializedAssetRegistry);
-		UE_LOG(LogCook, Display, TEXT("Generated asset registry size is %5.2fkb"), (float)SerializedAssetRegistry.Num() / 1024.f);
-
-		// now save it in each cooked directory
-		FString RegistryFilename = FPaths::GameDir() / GetAssetRegistryFilename();
-		// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
-		FString SandboxFilename = ConvertToFullSandboxPath(*RegistryFilename, true);
-
-		for (int32 Index = 0; Index < Platforms.Num(); Index++)
+		FAssetRegistryGenerator* Generator = RegistryGenerators.FindRef(FName(*Platforms[Index]->PlatformName()));
+		if (Generator)
 		{
-			FString PlatFilename = SandboxFilename.Replace(TEXT("[Platform]"), *Platforms[Index]->PlatformName());
-			FFileHelper::SaveArrayToFile(SerializedAssetRegistry, *PlatFilename);
+			Generator->SaveAssetRegistry(GetSandboxAssetRegistryFilename());
 		}
 	}
 
@@ -1368,7 +1355,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 	if (IsChildCooker() == false)
 	{
-		if (AssetRegistry->IsLoadingAssets())
+		if (AssetRegistry == nullptr || AssetRegistry->IsLoadingAssets())
 		{
 			// early out
 			return Result;
@@ -1494,7 +1481,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			FString DLCPath = GetDLCContentPath();
 			if ( ToBuild.GetFilename().ToString().StartsWith(DLCPath) == false ) // if we don't start with the dlc path then we shouldn't be cooking this data 
 			{
-				UE_LOG(LogCook, Error, TEXT("Engine content %s is being referenced by DLC!"), *ToBuild.GetFilename().ToString() );
+				UE_LOG(LogCook, Error, TEXT("Engine or Game content %s is being referenced by DLC!"), *ToBuild.GetFilename().ToString() );
 				bShouldCook = false;
 			}
 		}
@@ -2110,13 +2097,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					{
 						Object->ClearAllCachedCookedPlatformData();
 					}
-				}
-
-				//@todo ResetLoaders outside of this (ie when Package is NULL) causes problems w/ default materials
-				if (Package->IsRooted() == false && ((CurrentCookMode==ECookMode::CookOnTheFly)) )
-				{
-					SCOPE_TIMER(ResetLoaders);
-					ResetLoaders(Package);
 				}
 
 				FName StandardFilename = GetCachedStandardPackageFileFName(Package);
@@ -6806,6 +6786,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			if ( bSucceeded )
 			{
 				TArray<FName> PlatformNames;
+				PlatformNames.Add(PlatformName);
 				TArray<bool> Succeeded;
 				Succeeded.Add(true);
 				for (const FName& PackageFilename : PackageList)

@@ -29,5 +29,4 @@ public:
 
 private:
 	TSharedPtr<class FAssetThumbnail> AssetThumbnail;
-	bool bUsesThumbnail;
 };

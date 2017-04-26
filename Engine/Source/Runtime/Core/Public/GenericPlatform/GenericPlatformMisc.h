@@ -196,7 +196,12 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static void PlatformPreInit();
 	static void PlatformInit() { }
-	static void PlatformPostInit(bool ShowSplashScreen = false) { }
+	static void PlatformPostInit() { }
+
+	/**
+	* Called to dismiss splash screen
+	*/
+	static void PlatformHandleSplashScreen(bool ShowSplashScreen = false) { }
 
 	/**
 	 * Called during AppExit(). Log, Config still exist at this point, but not much else does.

@@ -484,9 +484,7 @@ FReply SBlendSpaceGridWidget::OnDrop(const FGeometry& MyGeometry, const FDragDro
 	{
 		if (DragState == EDragState::DragDrop)
 		{
-			const FVector2D GridPosition = SnapToClosestGridPoint(LocalMousePosition);
-			const FVector SampleValue = GridPositionToSampleValue(GridPosition);
-			
+			const FVector SampleValue = SnapToClosestSamplePoint(LocalMousePosition);
 			TSharedPtr<FAssetDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
 			if (DragDropOperation.IsValid())
 			{
@@ -496,9 +494,7 @@ FReply SBlendSpaceGridWidget::OnDrop(const FGeometry& MyGeometry, const FDragDro
 		}
 		else if (DragState == EDragState::DragDropOverride)
 		{
-			const FVector2D GridPosition = SnapToClosestGridPoint(LocalMousePosition);
-			const FVector SampleValue = GridPositionToSampleValue(GridPosition);
-
+			const FVector SampleValue = SnapToClosestSamplePoint(LocalMousePosition);
 			TSharedPtr<FAssetDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
 			if (DragDropOperation.IsValid())
 			{
@@ -819,27 +815,43 @@ FReply SBlendSpaceGridWidget::ToggleTriangulationVisibility()
 void SBlendSpaceGridWidget::CalculateGridPoints()
 {
 	CachedGridPoints.Empty(SampleGridDivisions.X * SampleGridDivisions.Y);
-	for (int32 GridY = 0; GridY < ((GridType== EGridType::TwoAxis) ? SampleGridDivisions.Y + 1: 1); ++GridY)
+	CachedSamplePoints.Empty(SampleGridDivisions.X * SampleGridDivisions.Y);
+	for (int32 GridY = 0; GridY < ((GridType == EGridType::TwoAxis) ? SampleGridDivisions.Y + 1 : 1); ++GridY)
 	{
 		for (int32 GridX = 0; GridX < SampleGridDivisions.X + 1; ++GridX)
 		{
 			// Calculate grid point in 0-1 form
-			FVector2D GridPoint = FVector2D(GridX * (1.0f / SampleGridDivisions.X), (GridType == EGridType::TwoAxis) ? GridY * (1.0f / 
+			FVector2D GridPoint = FVector2D(GridX * (1.0f / SampleGridDivisions.X), (GridType == EGridType::TwoAxis) ? GridY * (1.0f /
 				SampleGridDivisions.Y) : 0.5f);
 
 			// Multiply with size and offset according to the grid layout
 			GridPoint *= CachedGridRectangle.GetSize();
 			GridPoint += CachedGridRectangle.GetTopLeft();
 			CachedGridPoints.Add(GridPoint);
+
+			CachedSamplePoints.Add(FVector(SampleValueMin.X + (GridX * (SampleValueRange.X / SampleGridDivisions.X)),
+				(GridType == EGridType::TwoAxis) ? SampleValueMax.Y - (GridY * (SampleValueRange.Y / SampleGridDivisions.Y)) : 0.0f, 0.0f));
 		}
 	}
 }
 
 const FVector2D SBlendSpaceGridWidget::SnapToClosestGridPoint(const FVector2D& InPosition) const
 {
+	const int32 GridPointIndex = FindClosestGridPointIndex(InPosition);
+	return CachedGridPoints[GridPointIndex];
+}
+
+const FVector SBlendSpaceGridWidget::SnapToClosestSamplePoint(const FVector2D& InPosition) const
+{
+	const int32 GridPointIndex = FindClosestGridPointIndex(InPosition);
+	return CachedSamplePoints[GridPointIndex];
+}
+
+int32 SBlendSpaceGridWidget::FindClosestGridPointIndex(const FVector2D& InPosition) const
+{
 	// Clamp the screen position to the grid
-	const FVector2D GridPosition( FMath::Clamp(InPosition.X, CachedGridRectangle.Left, CachedGridRectangle.Right),
-								  FMath::Clamp(InPosition.Y, CachedGridRectangle.Top, CachedGridRectangle.Bottom));
+	const FVector2D GridPosition(FMath::Clamp(InPosition.X, CachedGridRectangle.Left, CachedGridRectangle.Right),
+		FMath::Clamp(InPosition.Y, CachedGridRectangle.Top, CachedGridRectangle.Bottom));
 	// Find the closest grid point
 	float Distance = FLT_MAX;
 	int32 GridPointIndex = INDEX_NONE;
@@ -856,9 +868,8 @@ const FVector2D SBlendSpaceGridWidget::SnapToClosestGridPoint(const FVector2D& I
 
 	checkf(GridPointIndex != INDEX_NONE, TEXT("Unable to find gridpoint"));
 
-	return CachedGridPoints[GridPointIndex];
+	return GridPointIndex;
 }
-
 const FVector2D SBlendSpaceGridWidget::SampleValueToGridPosition(const FVector& SampleValue) const
 {
 	const FVector2D GridSize = CachedGridRectangle.GetSize();	
@@ -1047,8 +1058,7 @@ FText SBlendSpaceGridWidget::GetToolTipSampleValue() const
 		// If we are performing a drag and drop operation return the current sample value it is hovered at
 		case EDragState::DragDrop:
 		{
-			const FVector2D GridPoint = SnapToClosestGridPoint(LocalMousePosition);
-			const FVector SampleValue = GridPositionToSampleValue(GridPoint);
+			const FVector SampleValue = SnapToClosestSamplePoint(LocalMousePosition);
 
 			ToolTipText = FText::Format(ValueFormattingText, ParameterXName, FText::FromString(FString::SanitizeFloat(SampleValue.X)), ParameterYName, FText::FromString(FString::SanitizeFloat(SampleValue.Y)));
 
@@ -1385,8 +1395,7 @@ void SBlendSpaceGridWidget::Tick(const FGeometry& AllottedGeometry, const double
 	{
 		// If we are dragging a sample, find out whether or not it has actually moved to a different grid position since the last tick and update the blend space accordingly
 		const FBlendSample& BlendSample = BlendSpace->GetBlendSample(DraggedSampleIndex);
-		const FVector2D GridPosition = SnapToClosestGridPoint(LocalMousePosition);
-		const FVector SampleValue = GridPositionToSampleValue(GridPosition);		
+		const FVector SampleValue = SnapToClosestSamplePoint(LocalMousePosition);
 
 		if (SampleValue != LastDragPosition)
 		{
@@ -1397,7 +1406,7 @@ void SBlendSpaceGridWidget::Tick(const FGeometry& AllottedGeometry, const double
 	else if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop || DragState == EDragState::DragDropOverride)
 	{
 		// Validate that the sample is not overlapping with a current sample when doing a drag/drop operation and that we are dropping a valid animation for the blend space (type)
-		const FVector DropSampleValue = GridPositionToSampleValue(SnapToClosestGridPoint(LocalMousePosition));
+		const FVector DropSampleValue = SnapToClosestSamplePoint(LocalMousePosition);
 		const bool bValidPosition = BlendSpace->IsSampleWithinBounds(DropSampleValue);
 		const bool bExistingSample = BlendSpace->IsTooCloseToExistingSamplePoint(DropSampleValue, INDEX_NONE);
 		const bool bValidSequence = ValidateAnimationSequence(DragDropAnimationSequence, InvalidDragDropText);

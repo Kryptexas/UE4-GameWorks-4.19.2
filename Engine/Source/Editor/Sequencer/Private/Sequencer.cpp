@@ -102,6 +102,7 @@
 #include "UnrealExporter.h"
 #include "ISequencerEditorObjectBinding.h"
 #include "LevelSequence.h"
+#include "IVREditorModule.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -1689,13 +1690,6 @@ void FSequencer::EvaluateInternal(FMovieSceneEvaluationRange InRange)
 
 	if (!IsInSilentMode())
 	{
-		// Redraw if not in PIE/simulate
-		const bool bIsInPIEOrSimulate = GEditor->PlayWorld != NULL || GEditor->bIsSimulatingInEditor;
-		if (!bIsInPIEOrSimulate)
-		{
-			FEditorSupportDelegates::RedrawAllViewports.Broadcast();
-		}
-		
 		OnGlobalTimeChangedDelegate.Broadcast();
 	}
 }
@@ -6707,7 +6701,7 @@ void FSequencer::BindCommands()
 		FExecuteAction::CreateSP(this, &FSequencer::CreateCamera),
 		FCanExecuteAction(),
 		FIsActionChecked(),
-		FIsActionButtonVisible::CreateLambda([this] { return ExactCast<ULevelSequence>(GetFocusedMovieSceneSequence()) != nullptr; })
+		FIsActionButtonVisible::CreateLambda([this] { return ExactCast<ULevelSequence>(GetFocusedMovieSceneSequence()) != nullptr && IVREditorModule::Get().IsVREditorModeActive() == false; }) //@todo VREditor: Creating a camera while in VR mode disrupts the hmd. This is a temporary fix by hiding the button when in VR mode.
 	);
 
 	SequencerCommandBindings->MapAction(

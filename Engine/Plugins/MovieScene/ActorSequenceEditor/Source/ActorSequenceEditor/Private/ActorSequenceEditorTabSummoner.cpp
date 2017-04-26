@@ -224,6 +224,39 @@ public:
 		return Sequence ? Sequence->GetDisplayName() : LOCTEXT("DefaultSequencerLabel", "Sequencer");
 	}
 
+	UActorSequence* GetActorSequence() const
+	{
+		return WeakSequence.Get();
+	}
+
+	UObject* GetPlaybackContext() const
+	{
+		UActorSequence* LocalActorSequence = GetActorSequence();
+		if (LocalActorSequence)
+		{
+			if (AActor* Actor = LocalActorSequence->GetTypedOuter<AActor>())
+			{
+				return Actor;
+			}
+			else if (UBlueprintGeneratedClass* GeneratedClass = LocalActorSequence->GetTypedOuter<UBlueprintGeneratedClass>())
+			{
+				return GeneratedClass->SimpleConstructionScript->GetComponentEditorActorInstance();
+			}
+		}
+		
+		return nullptr;
+	}
+
+	TArray<UObject*> GetEventContexts() const
+	{
+		TArray<UObject*> Contexts;
+		if (auto* Context = GetPlaybackContext())
+		{
+			Contexts.Add(Context);
+		}
+		return Contexts;
+	}
+
 	void SetActorSequence(UActorSequence* NewSequence)
 	{
 		if (UActorSequence* OldSequence = WeakSequence.Get())
@@ -269,37 +302,10 @@ public:
 		FSequencerInitParams SequencerInitParams;
 		{
 			TWeakObjectPtr<UActorSequence> LocalWeakSequence = NewSequence;
-			auto GetPlaybackContext =
-				[LocalWeakSequence]() -> UObject*
-				{
-					UActorSequence* LocalActorSequence = LocalWeakSequence.Get();
-					if (LocalActorSequence)
-					{
-						if (AActor* Actor = LocalActorSequence->GetTypedOuter<AActor>())
-						{
-							return Actor;
-						}
-						else if (UBlueprintGeneratedClass* GeneratedClass = LocalActorSequence->GetTypedOuter<UBlueprintGeneratedClass>())
-						{
-							return GeneratedClass->SimpleConstructionScript->GetComponentEditorActorInstance();
-						}
-					}
-					
-					return nullptr;
-				};
 
 			SequencerInitParams.RootSequence = NewSequence;
-			SequencerInitParams.EventContexts = TAttribute<TArray<UObject*>>::Create(TAttribute<TArray<UObject*>>::FGetter::CreateLambda(
-				[GetPlaybackContext]{
-					TArray<UObject*> Contexts;
-					if (auto* Context = GetPlaybackContext())
-					{
-						Contexts.Add(Context);
-					}
-					return Contexts;
-				}
-			));
-			SequencerInitParams.PlaybackContext = TAttribute<UObject*>::Create(TAttribute<UObject*>::FGetter::CreateLambda(GetPlaybackContext));
+			SequencerInitParams.EventContexts = TAttribute<TArray<UObject*>>(this, &SActorSequenceEditorWidgetImpl::GetEventContexts);
+			SequencerInitParams.PlaybackContext = TAttribute<UObject*>(this, &SActorSequenceEditorWidgetImpl::GetPlaybackContext);
 
 			TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
 
@@ -497,6 +503,11 @@ FText SActorSequenceEditorWidget::GetDisplayLabel() const
 void SActorSequenceEditorWidget::AssignSequence(UActorSequence* NewActorSequence)
 {
 	Impl.Pin()->SetActorSequence(NewActorSequence);
+}
+
+UActorSequence* SActorSequenceEditorWidget::GetSequence() const
+{
+	return Impl.Pin()->GetActorSequence();
 }
 
 FActorSequenceEditorSummoner::FActorSequenceEditorSummoner(TSharedPtr<FBlueprintEditor> BlueprintEditor)

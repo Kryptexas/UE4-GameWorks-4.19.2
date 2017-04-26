@@ -13,7 +13,11 @@ public class DX12 : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
 			PublicLibraryPaths.Add(DirectXSDKDir + "/Lib/x64");
-		}
+
+            PublicDelayLoadDLLs.Add("WinPixEventRuntime.dll");
+            PublicAdditionalLibraries.Add("WinPixEventRuntime.lib");
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Windows/DirectX/x64/WinPixEventRuntime.dll"));
+        }
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			PublicLibraryPaths.Add(DirectXSDKDir + "/Lib/x86");

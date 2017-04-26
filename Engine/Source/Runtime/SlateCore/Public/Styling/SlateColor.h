@@ -74,6 +74,9 @@ public:
 		, LinkedSpecifiedColor(InColor)
 	{ }
 
+	~FSlateColor()
+	{ }
+
 public:
 
 	/**

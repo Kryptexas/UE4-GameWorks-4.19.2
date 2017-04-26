@@ -194,12 +194,20 @@ int32 FXAudio2SoundBuffer::GetSize( void )
 
 int32 FXAudio2SoundBuffer::GetCurrentChunkIndex() const
 {
-	return DecompressionState->GetCurrentChunkIndex();
+	if (DecompressionState)
+	{
+		return DecompressionState->GetCurrentChunkIndex();
+	}
+	return INDEX_NONE;
 }
 
 int32 FXAudio2SoundBuffer::GetCurrentChunkOffset() const
 {
-	return DecompressionState->GetCurrentChunkOffset();
+	if (DecompressionState)
+	{
+		return DecompressionState->GetCurrentChunkOffset();
+	}
+	return INDEX_NONE;
 }
 
 bool FXAudio2SoundBuffer::IsRealTimeSourceReady()
@@ -497,21 +505,21 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateStreamingBuffer( FXAudio2Device*
 		Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
 		Wave->Duration = QualityInfo.Duration;
 
+		Buffer->InitWaveFormatEx(WAVE_FORMAT_PCM, Wave, false);
+
 		// Clear out any dangling pointers
 		Buffer->PCM.PCMData = NULL;
 		Buffer->PCM.PCMDataSize = 0;
 
-		Buffer->InitWaveFormatEx(WAVE_FORMAT_PCM, Wave, false);
+		return Buffer;
 	}
 	else
 	{
-		Wave->DecompressionType = DTYPE_Invalid;
-		Wave->NumChannels = 0;
+		delete Buffer;
+		Buffer = nullptr;
 
-		Wave->RemoveAudioResource();
+		return nullptr;
 	}
-
-	return(Buffer);
 }
 
 FXAudio2SoundBuffer* FXAudio2SoundBuffer::Init( FAudioDevice* AudioDevice, USoundWave* Wave, bool bForceRealTime )

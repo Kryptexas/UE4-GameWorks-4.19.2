@@ -496,7 +496,7 @@ void UExporter::EmitBeginObject( FOutputDevice& Ar, UObject* Obj, uint32 PortFla
 
 	if (!(PortFlags & PPF_SeparateDefine))
 	{
-		Ar.Logf(TEXT(" Class=%s"), *Obj->GetClass()->GetName());
+		Ar.Logf(TEXT(" Class=%s"), *Obj->GetClass()->GetPathName());
 	}
 
 	// always need a name, adding "" for space handling
@@ -508,7 +508,9 @@ void UExporter::EmitBeginObject( FOutputDevice& Ar, UObject* Obj, uint32 PortFla
 		if (!bIsExportingDefaultObject)
 		{
 			UObject* Archetype = Obj->GetArchetype();
-			Ar.Logf(TEXT(" Archetype=%s"), *UObjectPropertyBase::GetExportPath(Archetype, Archetype->GetOutermost(), Archetype->GetOuter(), PortFlags));
+			// since we could have two object owners with the same name (like named Blueprints in different folders),
+			// we need the fully qualified path for the archetype (so we don't get confused when unpacking this)
+			Ar.Logf(TEXT(" Archetype=%s"), *UObjectPropertyBase::GetExportPath(Archetype, Archetype->GetOutermost(), /*ExportRootScope =*/nullptr, PortFlags & ~PPF_ExportsNotFullyQualified));
 		}
 	}
 

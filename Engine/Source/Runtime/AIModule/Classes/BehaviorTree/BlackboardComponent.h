@@ -307,11 +307,11 @@ bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass
 		return false;
 	}
 
-	const uint16 DataOffset = EntryInfo->KeyType->IsInstanced() ? sizeof(FBlackboardInstancedKeyMemory) : 0;
+	const uint16 DataOffset = EntryInfo->KeyType->HasInstance() ? sizeof(FBlackboardInstancedKeyMemory) : 0;
 	uint8* RawData = GetKeyRawData(KeyID) + DataOffset;
 	if (RawData)
 	{
-		UBlackboardKeyType* KeyOb = EntryInfo->KeyType->IsInstanced() ? KeyInstances[KeyID] : EntryInfo->KeyType;
+		UBlackboardKeyType* KeyOb = EntryInfo->KeyType->HasInstance() ? KeyInstances[KeyID] : EntryInfo->KeyType;
 		const bool bChanged = TDataClass::SetValue((TDataClass*)KeyOb, RawData, Value);
 		if (bChanged)
 		{
@@ -328,7 +328,7 @@ bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass
 						const int32 OtherKeyID = OtherBlackboardAsset ? OtherBlackboardAsset->GetKeyID(EntryInfo->EntryName) : FBlackboard::InvalidKey;
 						if (OtherKeyID != FBlackboard::InvalidKey)
 						{
-							UBlackboardKeyType* OtherKeyOb = EntryInfo->KeyType->IsInstanced() ? OtherBlackboard->KeyInstances[OtherKeyID] : EntryInfo->KeyType;
+							UBlackboardKeyType* OtherKeyOb = EntryInfo->KeyType->HasInstance() ? OtherBlackboard->KeyInstances[OtherKeyID] : EntryInfo->KeyType;
 							uint8* OtherRawData = OtherBlackboard->GetKeyRawData(OtherKeyID) + DataOffset;
 
 							TDataClass::SetValue((TDataClass*)OtherKeyOb, OtherRawData, Value);
@@ -361,8 +361,8 @@ typename TDataClass::FDataType UBlackboardComponent::GetValue(FBlackboard::FKey 
 		return TDataClass::InvalidValue;
 	}
 
-	UBlackboardKeyType* KeyOb = EntryInfo->KeyType->IsInstanced() ? KeyInstances[KeyID] : EntryInfo->KeyType;
-	const uint16 DataOffset = EntryInfo->KeyType->IsInstanced() ? sizeof(FBlackboardInstancedKeyMemory) : 0;
+	UBlackboardKeyType* KeyOb = EntryInfo->KeyType->HasInstance() ? KeyInstances[KeyID] : EntryInfo->KeyType;
+	const uint16 DataOffset = EntryInfo->KeyType->HasInstance() ? sizeof(FBlackboardInstancedKeyMemory) : 0;
 
 	const uint8* RawData = GetKeyRawData(KeyID) + DataOffset;
 	return RawData ? TDataClass::GetValue((TDataClass*)KeyOb, RawData) : TDataClass::InvalidValue;

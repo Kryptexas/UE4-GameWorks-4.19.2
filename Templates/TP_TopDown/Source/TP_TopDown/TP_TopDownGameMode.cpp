@@ -1,9 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_TopDown.h"
 #include "TP_TopDownGameMode.h"
 #include "TP_TopDownPlayerController.h"
 #include "TP_TopDownCharacter.h"
+#include "UObject/ConstructorHelpers.h"
 
 ATP_TopDownGameMode::ATP_TopDownGameMode()
 {

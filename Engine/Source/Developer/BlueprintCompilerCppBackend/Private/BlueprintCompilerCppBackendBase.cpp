@@ -926,11 +926,12 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 	OutHeaderCode = MoveTemp(Header.Result);
 	
 	FCodeText Body;
+	Body.AddLine(FString::Printf(TEXT("#include \"%s.h\""), *FEmitHelper::GetBaseFilename(SourceEnum)));
 	
 	const FString PCHFilename = FEmitHelper::GetPCHFilename();
 	if (!PCHFilename.IsEmpty())
 	{
-		Body.AddLine(FString::Printf(TEXT("#include \"%s\""), *PCHFilename));
+		Body.AddLine(FString::Printf(TEXT("#include \"%s\""), *PCHFilename));	
 	}
 	else
 	{
@@ -941,8 +942,6 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 			Body.AddLine(FString::Printf(TEXT("#include \"%s\""), *MainHeaderFilename));
 		}
 	}
-
-	Body.AddLine(FString::Printf(TEXT("#include \"%s.h\""), *FEmitHelper::GetBaseFilename(SourceEnum)));
 
 	// generate implementation of GetUserFriendlyName:
 	Body.AddLine(FString::Printf(TEXT("FText %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName, *EnumCppName));
@@ -1294,6 +1293,8 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 {
 	EmitterContext.Header.AddLine(TEXT("#pragma once"));
 
+	FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Body, *CleanName, true);
+
 	const FString PCHFilename = FEmitHelper::GetPCHFilename();
 	if (!PCHFilename.IsEmpty())
 	{
@@ -1308,7 +1309,7 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 			FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Body, *MainHeaderFilename, false);
 		}
 	}
-	FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Body, *CleanName, true);
+	
 	FIncludeHeaderHelper::EmitIncludeHeader(bIncludeCodeHelpersInHeader ? EmitterContext.Header : EmitterContext.Body, TEXT("GeneratedCodeHelpers"), true);
 	FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Header, TEXT("Blueprint/BlueprintSupport"), true);
 

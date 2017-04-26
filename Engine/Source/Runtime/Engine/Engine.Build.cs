@@ -11,7 +11,7 @@ public class Engine : ModuleRules
 
 		SharedPCHHeaderFile = "Public/EngineSharedPCH.h";
 
-		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer", "PacketHandler", "NetworkReplayStreaming" });
+		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer", "PacketHandler", "NetworkReplayStreaming", "AudioMixer" });
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -132,7 +132,11 @@ public class Engine : ModuleRules
 					bVariadicTemplatesSupported = false;
 				}
 			}
-		}
+
+            AddEngineThirdPartyPrivateStaticDependencies(Target,
+                "libOpus"
+                );
+        }
 
 		if (bVariadicTemplatesSupported)
         {

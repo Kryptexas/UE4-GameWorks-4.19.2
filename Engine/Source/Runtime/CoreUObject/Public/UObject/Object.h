@@ -1190,6 +1190,8 @@ public:
 	DECLARE_FUNCTION(execSetSet);
 	DECLARE_FUNCTION(execSetMap);
 	DECLARE_FUNCTION(execArrayConst);
+	DECLARE_FUNCTION(execSetConst);
+	DECLARE_FUNCTION(execMapConst);
 
 	// Object construction
 	DECLARE_FUNCTION(execNew);

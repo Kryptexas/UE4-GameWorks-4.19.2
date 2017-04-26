@@ -117,6 +117,7 @@ void FAndroidMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 	FModuleManager::Get().LoadModule(TEXT("AndroidAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerAndroid"));
 }
 
 // Test for device vulkan support.
@@ -228,7 +229,11 @@ void FAndroidMisc::PlatformInit()
 
 extern void AndroidThunkCpp_DismissSplashScreen();
 
-void FAndroidMisc::PlatformPostInit(bool ShowSplashScreen)
+void FAndroidMisc::PlatformPostInit()
+{
+}
+
+void FAndroidMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
 	if (!ShowSplashScreen)
 	{

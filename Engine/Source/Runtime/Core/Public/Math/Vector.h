@@ -19,6 +19,10 @@
 #include "Math/IntVector.h"
 #include "Math/Axis.h"
 
+#if PLATFORM_VECTOR_CUBIC_INTERP_SSE
+#include "UnrealMathSSE.h"
+#endif
+
 /**
  * A vector in 3-D space composed of components (X, Y, Z) with floating point precision.
  */
@@ -2094,3 +2098,29 @@ inline FVector FVector2D::SphericalToUnitCartesian() const
 	const float SinTheta = FMath::Sin(X);
 	return FVector(FMath::Cos(Y) * SinTheta, FMath::Sin(Y) * SinTheta, FMath::Cos(X));
 }
+
+#if PLATFORM_VECTOR_CUBIC_INTERP_SSE
+template<>
+FORCEINLINE_DEBUGGABLE FVector FMath::CubicInterp(const FVector& P0, const FVector& T0, const FVector& P1, const FVector& T1, const float& A)
+{
+	static_assert(PLATFORM_ENABLE_VECTORINTRINSICS == 1, "Requires SSE intrinsics.");
+	FVector res;
+
+	const float A2 = A  * A;
+	const float A3 = A2 * A;
+
+	float s0 = (2 * A3) - (3 * A2) + 1;
+	float s1 = A3 - (2 * A2) + A;
+	float s2 = (A3 - A2);
+	float s3 = (-2 * A3) + (3 * A2);
+
+	VectorRegister v0 = VectorMultiply(VectorLoadFloat1(&s0), VectorLoadFloat3(&P0));
+	VectorRegister v1 = VectorMultiply(VectorLoadFloat1(&s1), VectorLoadFloat3(&T0));
+	VectorRegister v2 = VectorMultiply(VectorLoadFloat1(&s2), VectorLoadFloat3(&T1));
+	VectorRegister v3 = VectorMultiply(VectorLoadFloat1(&s3), VectorLoadFloat3(&P1));
+
+	VectorStoreFloat3(VectorAdd(VectorAdd(v0, v1), VectorAdd(v2, v3)), &res);
+
+	return res;
+}
+#endif

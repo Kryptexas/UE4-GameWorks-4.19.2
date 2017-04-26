@@ -34,6 +34,9 @@ struct CORE_API FReleaseObjectVersion
 		// Adding mesh section info data for existing billboard LOD models
 		SpeedTreeBillboardSectionInfoFixup,
 
+		// Change FMovieSceneEventParameters::StructType to be a string asset reference from a TWeakObjectPtr<UScriptStruct>
+		EventSectionParameterStringAssetRef,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

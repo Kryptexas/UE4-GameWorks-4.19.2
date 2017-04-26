@@ -1758,6 +1758,10 @@ namespace UnrealBuildTool
 					ProjectFile.IsForeignProject = bGeneratingGameProjectFiles && OnlyGameProject != null && TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory);
 					ProjectFile.IsGeneratedProject = true;
 					ProjectFile.IsStubProject = UnrealBuildTool.IsProjectInstalled();
+					if (TargetRulesObject.bBuildInSolutionByDefault.HasValue)
+					{
+						ProjectFile.ShouldBuildByDefaultForSolutionTargets = TargetRulesObject.bBuildInSolutionByDefault.Value;
+					}
 
 					// Check to see if this is a template target.  That is, the target is located under the "Templates" folder
 					bool IsTemplateTarget = TargetFilePath.IsUnderDirectory(TemplatesDirectory);

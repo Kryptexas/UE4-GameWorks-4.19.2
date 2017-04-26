@@ -1,5 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
+#include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "TP_PuzzleBlockGrid.generated.h"
 

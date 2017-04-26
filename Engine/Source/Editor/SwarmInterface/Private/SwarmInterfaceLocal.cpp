@@ -171,6 +171,7 @@ int32 FSwarmInterfaceLocalImpl::CloseConnection( void )
 		FPlatformProcess::CloseProc(LightmassProcHandle);
 	}
 	Recepient = FMessageAddress();
+	FMessageEndpoint::SafeRelease(MessageEndpoint);
 	bIsConnected = false;
 	CallbackFunc = NULL;
 	CallbackData = NULL;

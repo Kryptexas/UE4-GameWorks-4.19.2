@@ -142,7 +142,12 @@ unshift @::gMatchers, (
 	{
 		id =>               "automationException",
 		pattern =>          q{AutomationTool\\.AutomationException: },
-		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^  at "));}
+		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^   at "));}
+	},
+	{
+		id =>               "generalException",
+		pattern =>          q{^ERROR: [a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+Exception: },
+		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^   at "));}
 	},
 	{
 		id =>				"ubtFatal",

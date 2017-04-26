@@ -791,13 +791,7 @@ void StopRenderingThread()
 
 void CheckRenderingThreadHealth()
 {
-	bool IsGpuAlive = true;
-	if (GDynamicRHI)
-	{
-		IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();
-	}
-
-	if(!GIsRenderingThreadHealthy || !IsGpuAlive)
+	if(!GIsRenderingThreadHealthy)
 	{
 		GErrorHist[0] = 0;
 		GIsCriticalError = false;

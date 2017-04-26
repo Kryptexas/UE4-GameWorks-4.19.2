@@ -127,7 +127,6 @@ public:
 		, GPUSkin(InGPUSkin)
 		, MorphBuffer(0)
 		, LOD(InGPUSkin->GetLOD())
-		, IndexBuffer(nullptr)
 	{
 		
 		const TArray<FSkelMeshSection>& Sections = InGPUSkin->GetRenderSections(LOD);
@@ -158,6 +157,9 @@ public:
 
 		FGPUBaseSkinVertexFactory* SourceVertexFactory;
 		FGPUSkinPassthroughVertexFactory* TargetVertexFactory;
+
+		// triangle index buffer (input for the RecomputeSkinTangents, might need special index buffer unique to position and normal, not considering UV/vertex color)
+		FShaderResourceViewRHIParamRef IndexBuffer;
 
 		const FSkelMeshSection* Section;
 
@@ -194,6 +196,7 @@ public:
 			: Allocation(nullptr)
 			, SourceVertexFactory(nullptr)
 			, TargetVertexFactory(nullptr)
+			, IndexBuffer(nullptr)
 			, Section(nullptr)
 			, SectionIndex(-1)
 			, SkinType(0)
@@ -287,6 +290,21 @@ public:
 		Data.InputWeightStart = (InputWeightStride * Section->BaseVertexIndex) / sizeof(float);
 		Data.SourceVertexFactory = InSourceVertexFactory;
 		Data.TargetVertexFactory = InTargetVertexFactory;
+
+		int32 RecomputeTangentsMode = GForceRecomputeTangents > 0 ? 1 : GSkinCacheRecomputeTangents;
+		if (RecomputeTangentsMode > 0)
+		{
+			if (Section->bRecomputeTangent || RecomputeTangentsMode == 1)
+			{
+				FRawStaticIndexBuffer16or32Interface* IndexBuffer = LodModel.MultiSizeIndexContainer.GetIndexBuffer();
+				Data.IndexBuffer = IndexBuffer->GetSRV();
+				if (Data.IndexBuffer)
+				{
+					Data.NumTriangles = Section->NumTriangles;
+					Data.IndexBufferOffsetValue = Section->BaseIndex;
+				}
+			}
+		}
 	}
 
 protected:
@@ -298,9 +316,6 @@ protected:
 	FShaderResourceViewRHIRef InputWeightStreamSRV;
 	FShaderResourceViewRHIParamRef MorphBuffer;
 	int32 LOD;
-
-	// triangle index buffer (input for the RecomputeSkinTangents, might need special index buffer unique to position and normal, not considering UV/vertex color)
-	FShaderResourceViewRHIParamRef IndexBuffer;
 
 	friend class FGPUSkinCache;
 	friend class FBaseGPUSkinCacheCS;
@@ -590,7 +605,7 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, GPUSkinCacheBuffer, DispatchData.GetRWBuffer().SRV);
 		SetShaderValue(RHICmdList, ShaderRHI, SkinCacheStart, DispatchData.OutputStreamStart);
 
-		SetSRVParameter(RHICmdList, ShaderRHI, IndexBuffer, Entry->IndexBuffer);
+		SetSRVParameter(RHICmdList, ShaderRHI, IndexBuffer, DispatchData.IndexBuffer);
 		SetShaderValue(RHICmdList, ShaderRHI, IndexBufferOffset, DispatchData.IndexBufferOffsetValue);
 		
 		SetShaderValue(RHICmdList, ShaderRHI, InputStreamStart, DispatchData.InputStreamStart);
@@ -885,7 +900,7 @@ void FGPUSkinCache::DoDispatch(FRHICommandListImmediate& RHICmdList, FGPUSkinCac
 	//RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DispatchData.GetRWBuffer());
 	SkinCacheEntry->UpdateVertexFactoryDeclaration(Section);
 
-	if (SkinCacheEntry->IndexBuffer)
+	if (SkinCacheEntry->DispatchData[Section].IndexBuffer)
 	{
 		DispatchUpdateSkinTangents(RHICmdList, SkinCacheEntry, Section);
 	}
@@ -941,7 +956,6 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 		}
 	}
 
-	int32 RecomputeTangentsMode = GForceRecomputeTangents > 0 ? 1 : GSkinCacheRecomputeTangents;
 	// Try to allocate a new entry
 	if (!InOutEntry)
 	{
@@ -957,15 +971,6 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 
 		InOutEntry = new FGPUSkinCacheEntry(this, Skin);
 		InOutEntry->GPUSkin = Skin;
-
-		if (RecomputeTangentsMode > 0)
-		{
-			if (BatchElement.bRecomputeTangent || RecomputeTangentsMode == 1)
-			{
-				FRawStaticIndexBuffer16or32Interface* IndexBuffer = LodModel.MultiSizeIndexContainer.GetIndexBuffer();
-				InOutEntry->IndexBuffer = IndexBuffer->GetSRV();
-			}
-		}
 
 		InOutEntry->SetupSection(Section, NewAllocation, &LodModel.Sections[Section], MorphVertexBuffer, NumVertices, InputStreamStart, StreamStrides[0], VertexFactory, TargetVertexFactory);
 		Entries.Add(InOutEntry);
@@ -991,12 +996,6 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 		InOutEntry->InputWeightStreamSRV = WeightBuffer->GetSRV();
 	}
 	InOutEntry->DispatchData[Section].SkinType = MorphVertexBuffer ? 1 : 0;
-
-	if (InOutEntry->IndexBuffer)
-	{
-		InOutEntry->DispatchData[Section].NumTriangles = BatchElement.NumTriangles;
-		InOutEntry->DispatchData[Section].IndexBufferOffsetValue = BatchElement.BaseIndex;
-	}
 
 	DoDispatch(RHICmdList, InOutEntry, Section, FrameNumber);
 	InOutEntry->UpdateVertexFactoryDeclaration(Section);
@@ -1081,7 +1080,14 @@ void FGPUSkinCache::InternalRelease(FGPUSkinCacheEntry* SkinCacheEntry)
 			DEC_MEMORY_STAT_BY(STAT_GPUSkinCache_TotalMemUsed, RequiredMemInBytes);
 
 			SkinCache->Allocations.Remove(Allocation);
-			SkinCache->BuffersToTransition.Remove(DispatchData.GetRWBuffer().UAV);
+			for (uint32 i = 0; i < FAllocation::NUM_BUFFERS; i++)
+			{
+				FRWBuffer& RWBuffer = Allocation->RWBuffers[i];
+				if (RWBuffer.UAV.IsValid())
+				{
+					SkinCache->BuffersToTransition.Remove(RWBuffer.UAV);
+				}
+			}
 
 			delete Allocation;
 			DispatchData.Allocation = nullptr;

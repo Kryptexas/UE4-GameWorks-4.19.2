@@ -276,12 +276,13 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public UHTManifest(UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, IEnumerable<UHTModuleInfo> ModuleInfo, bool bUsePrecompiled)
+		public UHTManifest(UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, string InExternalDependenciesFile, IEnumerable<UHTModuleInfo> ModuleInfo, bool bUsePrecompiled)
 		{
 			IsGameTarget = (Target.TargetType != TargetType.Program);
 			RootLocalPath = InRootLocalPath;
 			RootBuildPath = InRootBuildPath;
 			TargetName = Target.GetTargetName();
+			ExternalDependenciesFile = InExternalDependenciesFile;
 
 			Modules = ModuleInfo.Select(Info => new Module
 			{
@@ -304,6 +305,7 @@ namespace UnrealBuildTool
 		public string RootLocalPath;    // The engine path on the local machine
 		public string RootBuildPath;    // The engine path on the build machine, if different (e.g. Mac/iOS builds)
 		public string TargetName;       // Name of the target currently being compiled
+		public string ExternalDependenciesFile; // File to contain additional dependencies that the generated code depends on
 		public List<Module> Modules;
 	}
 
@@ -827,6 +829,36 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Determines if any external dependencies for generated code is out of date
+		/// </summary>
+		/// <param name="ExternalDependenciesFile">Path to the external dependencies file</param>
+		/// <returns>True if any external dependencies are out of date</returns>
+		private static bool AreExternalDependenciesOutOfDate(FileReference ExternalDependenciesFile)
+		{
+			if (!FileReference.Exists(ExternalDependenciesFile))
+			{
+				return true;
+			}
+
+			DateTime LastWriteTime = File.GetLastWriteTimeUtc(ExternalDependenciesFile.FullName);
+
+			string[] Lines = File.ReadAllLines(ExternalDependenciesFile.FullName);
+			foreach (string Line in Lines)
+			{
+				string ExternalDependencyFile = Line.Trim();
+				if (ExternalDependencyFile.Length > 0)
+				{
+					if (!File.Exists(ExternalDependencyFile) || File.GetLastWriteTimeUtc(ExternalDependencyFile) > LastWriteTime)
+					{
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
 		/// Updates the intermediate include directory timestamps of all the passed in UObject modules
 		/// </summary>
 		private static void UpdateDirectoryTimestamps(List<UHTModuleInfo> UObjectModules, bool bUsePrecompiled)
@@ -955,8 +987,16 @@ namespace UnrealBuildTool
 					}
 				}
 
+				// Get the file containing dependencies for the generated code
+				FileReference ExternalDependenciesFile = ModuleInfoFileName.ChangeExtension(".deps");
+				if (AreExternalDependenciesOutOfDate(ExternalDependenciesFile))
+				{
+					bUHTNeedsToRun = true;
+					bHaveHeaderTool = false; // Force UHT to build until dependency checking is fast enough to run all the time
+				}
+
 				// @todo ubtmake: Optimization: Ideally we could avoid having to generate this data in the case where UHT doesn't even need to run!  Can't we use the existing copy?  (see below use of Manifest)
-				UHTManifest Manifest = new UHTManifest(Target, RootLocalPath, UEBuildPlatform.GetBuildPlatform(Target.Platform).ConvertPath(RootLocalPath + '\\'), UObjectModules, Target.bUsePrecompiled);
+				UHTManifest Manifest = new UHTManifest(Target, RootLocalPath, UEBuildPlatform.GetBuildPlatform(Target.Platform).ConvertPath(RootLocalPath + '\\'), ExternalDependenciesFile.FullName, UObjectModules, Target.bUsePrecompiled);
 
 				if (!bIsBuildingUHT && bUHTNeedsToRun)
 				{

@@ -158,8 +158,7 @@ namespace Audio
 	}
 
 	FPlateReverb::FPlateReverb()
-		: LFO(nullptr)
-		, bEnableLateReflections(true)
+		: bEnableLateReflections(true)
 		, bEnableEarlyReflections(true)
 	{
 		FMemory::Memzero(LeftTaps, sizeof(float)*NumTaps);
@@ -168,11 +167,6 @@ namespace Audio
 
 	FPlateReverb::~FPlateReverb()
 	{
-		if (LFO)
-		{
-			delete LFO;
-			LFO = nullptr;
-		}
 	}
 
 	void FPlateReverb::Init(const int32 InSampleRate)
@@ -198,7 +192,7 @@ namespace Audio
 		APF4.Init(SampleRate, DefaultDelayLength);
 		APF4.SetDelayMsec(GetDelayMsec(277));
 
-		if (!LFO)
+		if (!LFO.IsValid())
 		{
 			LFO = FWaveTableOsc::CreateWaveTable(EWaveTable::SineWaveTable);
 		}

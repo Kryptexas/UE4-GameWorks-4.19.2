@@ -52,14 +52,7 @@ namespace Audio
 			StartValue = InValue;
 			EndValue = InValue;
 			Frame = NumInterpFrames;
-			if (NumInterpFrames == 0.0f)
-			{
-				bIsDone = true;
-			}
-			else
-			{
-				bIsDone = false;
-			}
+			bIsDone = true;
 		}
 		else
 		{

@@ -74,5 +74,7 @@ public:
 	virtual void FinishExport() = 0;
 	/** Name of the generator plugin, mostly for debuggind purposes */
 	virtual FString GetGeneratorName() const = 0;
+	/** Finds a list of external dependencies which require UHT to be re-run */
+	virtual void GetExternalDependencies(TArray<FString>& Dependencies) const { }
 };
 

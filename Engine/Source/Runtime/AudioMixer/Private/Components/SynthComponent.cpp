@@ -44,7 +44,6 @@ USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 	AudioComponent->bStopWhenOwnerDestroyed = true;
 	AudioComponent->bShouldRemainActiveIfDropped = true;
 	AudioComponent->Mobility = EComponentMobility::Movable;
-	AudioComponent->SetupAttachment(this);
 
 	bAutoActivate = true;
 	bStopWhenOwnerDestroyed = true;
@@ -91,6 +90,11 @@ void USynthComponent::Deactivate()
 
 void USynthComponent::OnRegister()
 {
+	if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
+	{
+		AudioComponent->SetupAttachment(this);
+	}
+
 	Super::OnRegister();
 
 	if (!bIsInitialized)

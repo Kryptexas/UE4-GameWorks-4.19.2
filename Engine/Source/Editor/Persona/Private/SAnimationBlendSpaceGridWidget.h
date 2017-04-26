@@ -145,6 +145,10 @@ protected:
 	void CalculateGridPoints();
 	/** Snaps the given screen position to the closest grid point */
 	const FVector2D SnapToClosestGridPoint(const FVector2D& InPosition) const;
+	/** Snaps the given screen position to the sample value on the grid */
+	const FVector SnapToClosestSamplePoint(const FVector2D& InPosition) const;
+	/** Returns the index of the closest grid point to the given mouse position */
+	int32 FindClosestGridPointIndex(const FVector2D& InPosition) const;
 	/** Converts the given sample value to a screen space position */
 	const FVector2D SampleValueToGridPosition(const FVector& SampleValue) const;
 	/** Converst a screen space (grid) position to a valid sample value */
@@ -231,6 +235,7 @@ private:
 	FText ParameterXName;
 	FText ParameterYName;
 	TArray<FVector2D> CachedGridPoints;
+	TArray<FVector> CachedSamplePoints;
 
 	/** Whether or not the cached data should be refreshed on the next tick*/
 	bool bRefreshCachedData;

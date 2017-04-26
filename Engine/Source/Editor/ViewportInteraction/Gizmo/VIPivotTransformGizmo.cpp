@@ -96,7 +96,7 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 	// Increase scale with distance, to make gizmo handles easier to click on
 	const float WorldSpaceDistanceToToPivot = FMath::Max(VREd::PivotGizmoMinDistanceForScaling->GetFloat(), FMath::Sqrt(FVector::DistSquared( GetActorLocation(), InViewLocation )));
 	const float WorldScaleFactor = WorldInteraction->GetWorldScaleFactor();
-	float GizmoScale = (InScaleMultiplier * ((WorldSpaceDistanceToToPivot / WorldScaleFactor) * VREd::PivotGizmoDistanceScaleFactor->GetFloat())) * WorldScaleFactor;
+	const float GizmoScale = (InScaleMultiplier * ((WorldSpaceDistanceToToPivot / WorldScaleFactor) * VREd::PivotGizmoDistanceScaleFactor->GetFloat())) * WorldScaleFactor;
 	const bool bIsWorldSpaceGizmo = (WorldInteraction->GetTransformGizmoCoordinateSpace() == COORD_World);
 
 	if (LastDraggingHandle != nullptr && DraggingHandle == nullptr)
@@ -104,6 +104,7 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 		AimingAtGizmoScaleAlpha = 0.0f;
 	}
 
+	float AnimatedGizmoScale = GizmoScale;
 	// Only scale the gizmo down when not aiming at it for VR implementations
 	if (WorldInteraction->IsInVR())
 	{
@@ -141,7 +142,7 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 		}
 		AimingAtGizmoScaleAlpha = FMath::Clamp(AimingAtGizmoScaleAlpha, VREd::PivotGizmoAimAtShrinkSize->GetFloat(), 1.0f);
 
-		GizmoScale *= AimingAtGizmoScaleAlpha;
+		AnimatedGizmoScale *= AimingAtGizmoScaleAlpha;
 	}
 
 	// Update animation
@@ -154,8 +155,11 @@ void APivotTransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, cons
 		{
 			//const FTransform HandleGroupTransform = bIsWorldSpaceGizmo == true && HandleGroup != RotationGizmoHandleGroup == true ? TransformGizmoToWorld : InLocalToWorld;
 			bool bIsHoveringOrDraggingThisHandleGroup = false;
+			
+			const float Scale = HandleGroup == StretchGizmoHandleGroup ? GizmoScale : AnimatedGizmoScale;
+
 			HandleGroup->UpdateGizmoHandleGroup(InLocalToWorld, InLocalBounds, InViewLocation, bInAllHandlesVisible, DraggingHandle,
-				InHoveringOverHandles, AnimationAlpha, GizmoScale, InGizmoHoverScale, InGizmoHoverAnimationDuration, /* Out */ bIsHoveringOrDraggingThisHandleGroup);
+				InHoveringOverHandles, AnimationAlpha, Scale, InGizmoHoverScale, InGizmoHoverAnimationDuration, /* Out */ bIsHoveringOrDraggingThisHandleGroup);
 			
 			if (HandleGroup != RotationGizmoHandleGroup)
 			{

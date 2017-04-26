@@ -3440,12 +3440,8 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	TypeOut.bIsReference = Property->HasAllPropertyFlags(CPF_OutParm|CPF_ReferenceParm);
 	TypeOut.bIsConst     = Property->HasAllPropertyFlags(CPF_ConstParm);
 
-	// Check to see if this is the wildcard property for the target array type
-	UFunction* Function = Cast<UFunction>(Property->GetOuter());
-
-	if( UK2Node_CallArrayFunction::IsWildcardProperty(Function, Property)
-		|| UK2Node_CallFunction::IsStructureWildcardProperty(Function, Property->GetName())
-		|| UK2Node_CallFunction::IsWildcardProperty(Function, Property))
+	// Check to see if this is the wildcard property for the target container type
+	if(IsWildcardProperty(Property))
 	{
 		TypeOut.PinCategory = PC_Wildcard;
 		if(MapProperty)
@@ -3485,6 +3481,16 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	}
 
 	return true;
+}
+
+bool UEdGraphSchema_K2::IsWildcardProperty(const UProperty* Property)
+{
+	UFunction* Function = Cast<UFunction>(Property->GetOuter());
+
+	return Function && ( UK2Node_CallArrayFunction::IsWildcardProperty(Function, Property)
+		|| UK2Node_CallFunction::IsStructureWildcardProperty(Function, Property->GetName())
+		|| UK2Node_CallFunction::IsWildcardProperty(Function, Property)
+		|| FEdGraphUtilities::IsArrayDependentParam(Function, Property->GetName()) );
 }
 
 FString UEdGraphSchema_K2::TypeToString(const FEdGraphPinType& Type)

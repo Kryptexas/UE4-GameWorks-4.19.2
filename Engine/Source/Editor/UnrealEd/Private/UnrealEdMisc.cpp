@@ -273,7 +273,7 @@ void FUnrealEdMisc::OnInit()
 	FUserActivityTracking::SetActivity(FUserActivity(TEXT("EditorInit"), EUserActivityContext::Editor));
 
 	FEditorModeRegistry::Initialize();
-	GLevelEditorModeTools().ActivateDefaultMode();
+
 
 	// Are we in immersive mode?
 	const TCHAR* ParsedCmdLine = FCommandLine::Get();

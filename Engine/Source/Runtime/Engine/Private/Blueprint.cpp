@@ -432,7 +432,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 		if (Ar.IsLoading())
 		{
 			// Validate metadata keys/values on load only
-			FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(Variable);
+			FBlueprintEditorUtils::FixupVariableDescription(this, Variable);
 		}
 	}
 

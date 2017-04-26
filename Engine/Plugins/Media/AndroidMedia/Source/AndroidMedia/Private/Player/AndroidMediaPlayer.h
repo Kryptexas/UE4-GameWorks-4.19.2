@@ -68,6 +68,8 @@ public:
 	}
 
 private:
+	void AppServicePause();
+	void AppServiceResume();
 
 	/** The Java side media interface. */
 	TSharedPtr<FJavaAndroidMediaPlayer, ESPMode::ThreadSafe> JavaMediaPlayer;
@@ -86,4 +88,8 @@ private:
 
 	/** Track collection. */
 	FAndroidMediaTracks Tracks;
+
+	/** Foreground/background delegates */
+	FDelegateHandle PauseHandle;
+	FDelegateHandle ResumeHandle;
 };

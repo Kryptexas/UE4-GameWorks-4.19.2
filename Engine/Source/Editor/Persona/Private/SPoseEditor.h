@@ -282,7 +282,7 @@ public:
 	* @param Name - Name of the morph target we want to override
 	* @param Weight - How much of this morph target to apply (0.0 - 1.0)
 	*/
-	void AddCurveOverride(FName& Name, float Weight);
+	void AddCurveOverride(const FName& Name, float Weight);
 
 	/** Remove a named curve override */ 
 	void RemoveCurveOverride(FName& Name);
@@ -304,6 +304,7 @@ public:
 private:
 
 	void BindCommands();
+	void RestartPreviewComponent();
 
 	/** Handler for context menus */
 	TSharedPtr<SWidget> OnGetContextMenuContent() const;

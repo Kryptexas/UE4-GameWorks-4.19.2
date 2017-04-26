@@ -15,7 +15,8 @@ public class HTML5Platform : Platform
 {
 	// ini configurations
 	static bool Compressed = false;
-	static bool targetingWasm = true; // THIS WILL BE default WHEN wasm BECOME STANDARD !!!
+	static bool targetingWasm = true;
+	static bool enableIndexedDB = false; // experimental for now...
 
 	public HTML5Platform()
 		: base(UnrealTargetPlatform.HTML5)
@@ -38,14 +39,26 @@ public class HTML5Platform : Platform
 
 		// ini configurations
 		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.HTML5);
-		ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWasm", out targetingWasm);
+		bool targetingAsmjs = false; // inverted checked - this will be going away soon...
+		if ( ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetAsmjs", out targetingAsmjs) )
+		{
+			targetingWasm = !targetingAsmjs;
+		}
 
-		// Debug and Development builds are not uncompressed to speed up iteration times.
-		// Shipping builds "can be" compressed,
+		// Debug and Development builds are not uncompressed to:
+		// - speed up iteration times
+		// - ensure (IndexedDB) data are not cached/used
+		// Shipping builds "can be":
+		// - compressed
+		// - (IndexedDB) cached
 		if (Params.ClientConfigsToBuild[0].ToString() == "Shipping")
 		{
 			ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "Compressed", out Compressed);
+			ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableIndexedDB", out enableIndexedDB);
 		}
+		Log("HTML5Platform.Automation: TargetWasm = "       + targetingWasm   );
+		Log("HTML5Platform.Automation: Compressed = "       + Compressed      );
+		Log("HTML5Platform.Automation: EnableIndexedDB = "  + enableIndexedDB );
 
 		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
@@ -296,6 +309,12 @@ public class HTML5Platform : Platform
 			while (reader.Peek() != -1)
 			{
 				LineStr = reader.ReadLine();
+				if (LineStr.Contains("%TIMESTAMP%"))
+				{
+					string TimeStamp = DateTime.UtcNow.ToString("yyyyMMddHHmm");
+					LineStr = LineStr.Replace("%TIMESTAMP%", TimeStamp);
+				}
+
 				if (LineStr.Contains("%GAME%"))
 				{
 					LineStr = LineStr.Replace("%GAME%", InGameName);
@@ -304,6 +323,12 @@ public class HTML5Platform : Platform
 				if (LineStr.Contains("%SERVE_COMPRESSED%"))
 				{
 					LineStr = LineStr.Replace("%SERVE_COMPRESSED%", Compressed ? "true" : "false");
+				}
+
+				if (LineStr.Contains("%DISABLE_INDEXEDDB%"))
+				{
+					LineStr = LineStr.Replace("%DISABLE_INDEXEDDB%",
+							enableIndexedDB ? "" : "enableReadFromIndexedDB = false;\nenableWriteToIndexedDB = false;");
 				}
 
 				if (LineStr.Contains("%HEAPSIZE%"))

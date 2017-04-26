@@ -40,14 +40,18 @@ void UGranularSynth::OnRegister()
 		SetComponentTickEnabled(true);
 		RegisterComponent();
 
-		GranularSynth.Init(GetAudioDevice(), 500);
-
-		if (SoundWave)
+		FAudioDevice* AudioDevice = GetAudioDevice();
+		if (AudioDevice)
 		{
-			SoundWaveCopy = DuplicateObject<USoundWave>(SoundWave, GetTransientPackage());
-			SoundWaveCopy->AddToRoot();
+			GranularSynth.Init(AudioDevice, 500);
 
-			GranularSynth.LoadSoundWave(SoundWaveCopy);
+			if (SoundWave)
+			{
+				SoundWaveCopy = DuplicateObject<USoundWave>(SoundWave, GetTransientPackage());
+				SoundWaveCopy->AddToRoot();
+
+				GranularSynth.LoadSoundWave(SoundWaveCopy);
+			}
 		}
 	}
 }

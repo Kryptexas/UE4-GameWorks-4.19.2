@@ -21,7 +21,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit(bool ShowSplashScreen = false);
+	static void PlatformPostInit();
 	static void PlatformTearDown();
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);

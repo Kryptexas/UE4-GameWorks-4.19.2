@@ -699,6 +699,13 @@ protected:
 	static const int32 DaysToMonth[];
 
 private:
+#ifdef COREUOBJECT_API
+	friend COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_FDateTime();
+#else
+	friend class UScriptStruct* Z_Construct_UScriptStruct_FDateTime();
+#endif
+
+private:
 
 	/** Holds the ticks in 100 nanoseconds resolution since January 1, 0001 A.D. */
 	int64 Ticks;

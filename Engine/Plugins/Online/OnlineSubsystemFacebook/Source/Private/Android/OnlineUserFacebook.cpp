@@ -4,6 +4,8 @@
 #include "OnlineUserFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
 
+#if WITH_FACEBOOK
+
 FOnlineUserFacebook::FOnlineUserFacebook(FOnlineSubsystemFacebook* InSubsystem)
 	: FOnlineUserFacebookCommon(InSubsystem)
 {
@@ -12,3 +14,5 @@ FOnlineUserFacebook::FOnlineUserFacebook(FOnlineSubsystemFacebook* InSubsystem)
 FOnlineUserFacebook::~FOnlineUserFacebook()
 {
 }
+
+#endif // WITH_FACEBOOK

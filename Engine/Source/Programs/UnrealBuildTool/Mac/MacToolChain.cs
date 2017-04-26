@@ -945,11 +945,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			string ReadyFilePath = LinkEnvironment.IntermediateDirectory + "/" + LinkEnvironment.OutputFilePath.GetFileName() + ".ready";
-			FileItem DylibReadyOutputFile = FileItem.GetItemByPath(ReadyFilePath);
-			FileItem RemoteDylibReadyOutputFile = LocalToRemoteFileItem(DylibReadyOutputFile, false);
-
-			LinkAction.CommandArguments = "-c '" + LinkCommand + "; echo \"-\" >> \"" + RemoteDylibReadyOutputFile.AbsolutePath + "\"'";
+			LinkAction.CommandArguments = "-c '" + LinkCommand + "'";
 
 			// Only execute linking on the local Mac.
 			LinkAction.bCanExecuteRemotely = false;
@@ -958,7 +954,6 @@ namespace UnrealBuildTool
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
 
 			LinkAction.ProducedItems.Add(RemoteOutputFile);
-			LinkAction.ProducedItems.Add(RemoteDylibReadyOutputFile);
 
 			if (!DirectoryReference.Exists(LinkEnvironment.IntermediateDirectory))
 			{
@@ -1253,9 +1248,6 @@ namespace UnrealBuildTool
 				BinaryPath = Path.ChangeExtension(BinaryPath, ".dSYM");
 			}
 
-			string ReadyFilePath = LinkEnvironment.IntermediateDirectory + "/" + Path.GetFileName(MachOBinary.AbsolutePath) + ".ready";
-			FileItem ReadyFile = FileItem.GetItemByPath(ReadyFilePath);
-
 			FileItem OutputFile = FileItem.GetItemByPath(BinaryPath);
 			FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
 			FileItem InputFile = LocalToRemoteFileItem(MachOBinary, false);
@@ -1276,13 +1268,15 @@ namespace UnrealBuildTool
 			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
 			GenDebugAction.CommandPath = "sh";
 
-			// Deletes ay existing file on the building machine,
-			// note that the source and dest are switched from a copy command
-			GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"'",
+			// Deletes ay existing file on the building machine. Also, waits 30 seconds, if needed, for the input file to be created in an attempt to work around
+			// a problem where dsymutil would exit with an error saying the input file did not exist.
+			// Note that the source and dest are switched from a copy command
+			GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; for i in {{1..30}}; do if [ -f \"{1}\" ] ; then break; else echo\"Waiting for {1} before generating dSYM file.\"; sleep 1; fi; done; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"'",
 				Settings.ToolchainDir,
 				InputFile.AbsolutePath,
 				DestFile.AbsolutePath);
-			GenDebugAction.PrerequisiteItems.Add(LocalToRemoteFileItem(ReadyFile, false));
+			GenDebugAction.PrerequisiteItems.Add(FixDylibOutputFile);
+			GenDebugAction.PrerequisiteItems.Add(LocalToRemoteFileItem(InputFile, false));
 			GenDebugAction.ProducedItems.Add(DestFile);
 			GenDebugAction.CommandDescription = "";
 			GenDebugAction.StatusDescription = "Generating " + Path.GetFileName(BinaryPath);
@@ -1572,7 +1566,6 @@ namespace UnrealBuildTool
 				foreach (UEBuildBinary Binary in InTarget.AppBinaries)
 				{
 					BuiltBinaries.Add(Path.GetFullPath(Binary.ToString()));
-					BuiltBinaries.Add(Path.GetFullPath(Binary.ToString() + ".ready"));
 
 					string DebugExtension = UEBuildPlatform.GetBuildPlatform(InTarget.Platform).GetDebugInfoExtension(InTarget.Rules, Binary.Config.Type);
 					if (DebugExtension == ".dSYM")

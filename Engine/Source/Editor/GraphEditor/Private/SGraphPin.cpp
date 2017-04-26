@@ -154,11 +154,18 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 	const bool bIsInput = (GetDirection() == EGPD_Input);
 
 	// Create the pin icon widget
-	TSharedRef<SWidget> ActualPinWidget = SPinTypeSelector::ConstructPinTypeImage(
+	TSharedRef<SWidget> PinWidgetRef = SPinTypeSelector::ConstructPinTypeImage(
 		TAttribute<const FSlateBrush*>::Create( TAttribute<const FSlateBrush*>::FGetter::CreateRaw(this, &SGraphPin::GetPinIcon ) ),
 		TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw(this, &SGraphPin::GetPinColor) ),
 		TAttribute<const FSlateBrush*>::Create( TAttribute<const FSlateBrush*>::FGetter::CreateRaw(this, &SGraphPin::GetSecondaryPinIcon ) ),
 		TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw(this, &SGraphPin::GetSecondaryPinColor) ));
+	PinImage = PinWidgetRef;
+
+	PinWidgetRef->SetCursor( 
+		TAttribute<TOptional<EMouseCursor::Type> >::Create (
+			TAttribute<TOptional<EMouseCursor::Type> >::FGetter::CreateRaw( this, &SGraphPin::GetPinCursor )
+		)
+	);
 
 	// Create the pin indicator widget (used for watched values)
 	static const FName NAME_NoBorder("NoBorder");
@@ -241,7 +248,7 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 			.VAlign(VAlign_Center)
 			.Padding(0, 0, InArgs._SideToSideMargin, 0)
 			[
-				ActualPinWidget
+				PinWidgetRef
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -265,7 +272,7 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 			.VAlign(VAlign_Center)
 			.Padding(InArgs._SideToSideMargin, 0, 0, 0)
 			[
-				ActualPinWidget
+				PinWidgetRef
 			];
 	}
 
@@ -280,7 +287,7 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 			.LowDetail()
 			[
 				//@TODO: Try creating a pin-colored line replacement that doesn't measure text / call delegates but still renders
-				ActualPinWidget
+				PinWidgetRef
 			]
 			.HighDetail()
 				[

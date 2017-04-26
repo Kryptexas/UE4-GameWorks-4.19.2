@@ -1535,6 +1535,7 @@ class IAudioDeviceModule : public IModuleInterface
 public:
 
 	/** Creates a new instance of the audio device implemented by the module. */
+	virtual bool IsAudioMixerModule() const { return false; }
 	virtual FAudioDevice* CreateAudioDevice() = 0;
 };
 

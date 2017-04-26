@@ -86,24 +86,6 @@ template <> struct equality_pipeline_state_desc<FD3D12LowLevelGraphicsPipelineSt
 		PSO_IF_NOT_EQUAL_RETURN_FALSE(HSHash)
 		PSO_IF_NOT_EQUAL_RETURN_FALSE(DSHash)
 
-#if UE_BUILD_DEBUG
-		const D3D12_SHADER_BYTECODE* lhByteCode = &lhs.Desc.VS;
-		const D3D12_SHADER_BYTECODE* rhByteCode = &rhs.Desc.VS;
-		for (SIZE_T i = 0; i < 5; i++)
-		{
-			if (lhByteCode[i].pShaderBytecode != rhByteCode[i].pShaderBytecode &&
-				lhByteCode[i].pShaderBytecode != nullptr &&
-				lhByteCode[i].BytecodeLength)
-			{
-				if (FMemory::Memcmp(lhByteCode[i].pShaderBytecode, rhByteCode[i].pShaderBytecode, rhByteCode[i].BytecodeLength) != 0)
-				{
-					UE_LOG(LogD3D12RHI, Error, TEXT("Error! there is a collision with the SHA1. This should never happen but checking for completeness."));
-					return false;
-				}
-			}
-		}
-#endif
-
 		if (lhs.Desc.StreamOutput.pSODeclaration != rhs.Desc.StreamOutput.pSODeclaration &&
 			lhs.Desc.StreamOutput.NumEntries)
 		{

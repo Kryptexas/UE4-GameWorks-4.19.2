@@ -4,11 +4,13 @@
 
 #include "IPropertyTypeCustomization.h"
 #include "MovieSceneObjectBindingIDPicker.h"
+#include "MovieSceneSequenceID.h"
 
 class FReply;
 class IPropertyHandle;
 class UMovieSceneSequence;
 class FDragDropOperation;
+class ISequencer;
 struct FMovieSceneObjectBindingID;
 
 
@@ -18,10 +20,12 @@ class FMovieSceneObjectBindingIDCustomization
 {
 public:
 
-	static TSharedRef<IPropertyTypeCustomization> MakeInstance()
-	{
-		return MakeShareable(new FMovieSceneObjectBindingIDCustomization);
-	}
+	FMovieSceneObjectBindingIDCustomization()
+	{}
+
+	FMovieSceneObjectBindingIDCustomization(FMovieSceneSequenceID InLocalSequenceID, TSharedPtr<ISequencer> InSequencer)
+		: FMovieSceneObjectBindingIDPicker(InLocalSequenceID, InSequencer)
+	{}
 
 	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override {}

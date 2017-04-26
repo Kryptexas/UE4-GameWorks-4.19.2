@@ -18,7 +18,7 @@
 struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
-	static void PlatformPostInit(bool ShowSplashScreen = false);
+	static void PlatformPostInit();
 	static class GenericApplication* CreateApplication();
 	static uint32 GetKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);

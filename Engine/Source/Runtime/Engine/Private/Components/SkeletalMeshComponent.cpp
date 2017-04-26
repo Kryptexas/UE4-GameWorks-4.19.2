@@ -146,7 +146,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bTickEvenWhenPaused = true;
+	PrimaryComponentTick.bTickEvenWhenPaused = false;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 
 	bWantsInitializeComponent = true;
@@ -1533,16 +1533,12 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	}
 
 	// update anim instance
-	if(AnimEvaluationContext.bDoUpdate)
+	if (InAnimInstance && InAnimInstance->NeedsUpdate())
 	{
 		InAnimInstance->ParallelUpdateAnimation();
-
-		if(PostProcessAnimInstance)
-		{
-			PostProcessAnimInstance->ParallelUpdateAnimation();
-		}
 	}
-	else if(!InAnimInstance && PostProcessAnimInstance)
+
+	if (PostProcessAnimInstance && PostProcessAnimInstance->NeedsUpdate())
 	{
 		// If we don't have an anim instance, we may still have a post physics instance
 		PostProcessAnimInstance->ParallelUpdateAnimation();
@@ -1730,7 +1726,6 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	}
 
 	AnimEvaluationContext.bDoEvaluation = bShouldDoEvaluation;
-	AnimEvaluationContext.bDoUpdate = AnimScriptInstance && AnimScriptInstance->NeedsUpdate();
 	
 	AnimEvaluationContext.bDoInterpolation = bDoEvaluationRateOptimization && !bInvalidCachedBones && AnimUpdateRateParams->ShouldInterpolateSkippedFrames() && CurrentAnimCurveMappingNameUids != nullptr;
 	AnimEvaluationContext.bDuplicateToCacheBones = bInvalidCachedBones || (bDoEvaluationRateOptimization && AnimEvaluationContext.bDoEvaluation && !AnimEvaluationContext.bDoInterpolation);
@@ -1814,14 +1809,14 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 					AnimCurves.CopyFrom(CachedCurve);
 				}
 			}
-			if(AnimEvaluationContext.bDoUpdate)
+			if (AnimScriptInstance && AnimScriptInstance->NeedsUpdate())
 			{
 				AnimScriptInstance->ParallelUpdateAnimation();
+			}
 
-				if(PostProcessAnimInstance)
-				{
-					PostProcessAnimInstance->ParallelUpdateAnimation();
-				}
+			if (PostProcessAnimInstance && PostProcessAnimInstance->NeedsUpdate())
+			{
+				PostProcessAnimInstance->ParallelUpdateAnimation();
 			}
 		}
 
@@ -1839,7 +1834,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 {
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
 
-	if(AnimEvaluationContext.bDoUpdate)
+	if (EvaluationContext.AnimInstance && EvaluationContext.AnimInstance->NeedsUpdate())
 	{
 		EvaluationContext.AnimInstance->PostUpdateAnimation();
 
@@ -1847,17 +1842,16 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		{
 			SubInstance->PostUpdateAnimation();
 		}
+	}
 
-		if(PostProcessAnimInstance)
-		{
-			PostProcessAnimInstance->PostUpdateAnimation();
-		}
+	if (PostProcessAnimInstance && PostProcessAnimInstance->NeedsUpdate())
+	{
+		PostProcessAnimInstance->PostUpdateAnimation();
+	}
 
-		AnimEvaluationContext.bDoUpdate = false;
-		if (!IsRegistered()) // Notify/Event has caused us to go away so cannot carry on from here
-		{
-			return;
-		}
+	if (!IsRegistered()) // Notify/Event has caused us to go away so cannot carry on from here
+	{
+		return;
 	}
 
 	if (EvaluationContext.bDuplicateToCacheCurve)

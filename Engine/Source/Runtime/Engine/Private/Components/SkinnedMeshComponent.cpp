@@ -1869,24 +1869,27 @@ FORCEINLINE FVector GetTypedSkinnedVertexPosition(
 	for(int32 InfluenceIndex = 0;InfluenceIndex < Section.MaxBoneInfluences;InfluenceIndex++)
 #endif
 	{
-		int32 BoneIndex = Section.BoneMap[SrcSkinWeights->InfluenceBones[InfluenceIndex]];
+		const int32 MeshBoneIndex = Section.BoneMap[SrcSkinWeights->InfluenceBones[InfluenceIndex]];
+		int32 TransformBoneIndex = MeshBoneIndex;
+
 		if(MasterPoseComponentInst)
 		{		
 			const TArray<int32>& MasterBoneMap = SkinnedComp->GetMasterBoneMap();
 			check(MasterBoneMap.Num() == SkinnedComp->SkeletalMesh->RefSkeleton.GetNum());
-			BoneIndex = MasterBoneMap[BoneIndex];
+			TransformBoneIndex = MasterBoneMap[MeshBoneIndex];
 		}
 
 		const float	Weight = (float)SrcSkinWeights->InfluenceWeights[InfluenceIndex] / 255.0f;
 		{
 			if (bCachedMatrices)
 			{
-				const FMatrix& RefToLocal = RefToLocals[BoneIndex];
+				const FMatrix& RefToLocal = RefToLocals[MeshBoneIndex];
 				SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
 			}
 			else
 			{
-				const FMatrix RefToLocal = SkinnedComp->SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->GetComponentSpaceTransforms()[BoneIndex].ToMatrixWithScale();
+				const FMatrix BoneTransformMatrix = (TransformBoneIndex != INDEX_NONE) ? BaseComponent->GetComponentSpaceTransforms()[TransformBoneIndex].ToMatrixWithScale() : FMatrix::Identity;
+				const FMatrix RefToLocal = SkinnedComp->SkeletalMesh->RefBasesInvMatrix[MeshBoneIndex] * BoneTransformMatrix;
 				SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
 			}
 		}

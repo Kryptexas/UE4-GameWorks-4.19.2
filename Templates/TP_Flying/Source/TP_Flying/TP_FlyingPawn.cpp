@@ -1,7 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_Flying.h"
 #include "TP_FlyingPawn.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Camera/CameraComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/InputComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Engine/World.h"
+#include "Engine/StaticMesh.h"
 
 ATP_FlyingPawn::ATP_FlyingPawn()
 {

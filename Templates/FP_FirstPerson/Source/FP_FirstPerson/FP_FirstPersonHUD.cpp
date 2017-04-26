@@ -1,10 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "FP_FirstPerson.h"
 #include "FP_FirstPersonHUD.h"
 #include "Engine/Canvas.h"
 #include "TextureResource.h"
 #include "CanvasItem.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Engine/Texture2D.h"
 
 AFP_FirstPersonHUD::AFP_FirstPersonHUD()
 {

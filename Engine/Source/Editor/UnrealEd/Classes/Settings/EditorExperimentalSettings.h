@@ -75,10 +75,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	bool bShowAudioStreamingOptions;
 
-	/** Whether to show AudioMixer-dependent editor data. Only enable if also running with the -audiomixer. */
-	UPROPERTY(EditAnywhere, config, Category = Audio)
-	bool bShowAudioMixerData;
-
 	/** Allows ChunkIDs to be assigned to assets to via the content browser context menu. */
 	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
 	bool bContextMenuChunkAssignments;

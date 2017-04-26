@@ -354,7 +354,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::Init( FAudioDevice* AudioDevice, U
 
 	// Allow the precache to happen if necessary
 	EDecompressionType DecompressionType = Wave->DecompressionType;
-	if (bForceRealtime &&  DecompressionType != DTYPE_Setup )
+	if (bForceRealtime && DecompressionType != DTYPE_Setup && DecompressionType != DTYPE_Streaming)
 	{
 		DecompressionType = DTYPE_RealTime;
 	}
@@ -418,4 +418,24 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::Init( FAudioDevice* AudioDevice, U
 	}
 
 	return Buffer;
+}
+
+int32 FCoreAudioSoundBuffer::GetCurrentChunkIndex() const
+{
+	if (DecompressionState == NULL)
+	{
+		return -1;
+	}
+
+	return DecompressionState->GetCurrentChunkIndex();
+}
+
+int32 FCoreAudioSoundBuffer::GetCurrentChunkOffset() const
+{
+	if (DecompressionState == NULL)
+	{
+		return -1;
+	}
+
+	return DecompressionState->GetCurrentChunkOffset();
 }

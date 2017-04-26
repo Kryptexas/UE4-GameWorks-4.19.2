@@ -74,7 +74,7 @@ void SColorGradingPicker::Construct( const FArguments& InArgs )
 				.EditableTextBoxStyle(&FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("DarkEditableTextBox"))
 				.Value(this, &SColorGradingPicker::OnGetMainValue)
 				.OnValueChanged(this, &SColorGradingPicker::OnMainValueChanged, false)
-				.AllowSpin(true)
+				.AllowSpin(InArgs._AllowSpin.Get())
 				.SupportDynamicSliderMaxValue(InArgs._SupportDynamicSliderMaxValue)
 				.SupportDynamicSliderMinValue(InArgs._SupportDynamicSliderMinValue)
 				.OnDynamicSliderMaxValueChanged(this, &SColorGradingPicker::OnDynamicSliderMaxValueChanged)
@@ -87,25 +87,38 @@ void SColorGradingPicker::Construct( const FArguments& InArgs )
 				.ShiftMouseMovePixelPerDelta(MainShiftMouseMovePixelPerDelta)
 				.OnBeginSliderMovement(this, &SColorGradingPicker::OnBeginSliderMovement)
 				.OnEndSliderMovement(this, &SColorGradingPicker::OnEndSliderMovement)
+				.UndeterminedString(NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values"))
+				.IsEnabled(this, &SColorGradingPicker::IsEntryBoxEnabled)
 			]
 	];
+}
+
+bool SColorGradingPicker::IsEntryBoxEnabled() const
+{
+	return OnGetMainValue() != TOptional<float>();
 }
 
 void SColorGradingPicker::OnBeginSliderMovement()
 {
 	bIsMouseDragging = true;
 	//Keep the current value so we can always keep the ratio during the whole drag.
-	OnQueryCurrentColor.ExecuteIfBound(StartDragRatio);
-	TransformColorGradingRangeToLinearColorRange(StartDragRatio);
-	float MaxCurrentValue = FMath::Max3(StartDragRatio.X, StartDragRatio.Y, StartDragRatio.Z);
-	FVector4 RatioValue(1.0f, 1.0f, 1.0f, 1.0f);
-	if (MaxCurrentValue > SMALL_NUMBER)
+
+	if (OnQueryCurrentColor.IsBound())
 	{
-		RatioValue.X = StartDragRatio.X / MaxCurrentValue;
-		RatioValue.Y = StartDragRatio.Y / MaxCurrentValue;
-		RatioValue.Z = StartDragRatio.Z / MaxCurrentValue;
+		if (OnQueryCurrentColor.Execute(StartDragRatio))
+		{
+			TransformColorGradingRangeToLinearColorRange(StartDragRatio);
+			float MaxCurrentValue = FMath::Max3(StartDragRatio.X, StartDragRatio.Y, StartDragRatio.Z);
+			FVector4 RatioValue(1.0f, 1.0f, 1.0f, 1.0f);
+			if (MaxCurrentValue > SMALL_NUMBER)
+			{
+				RatioValue.X = StartDragRatio.X / MaxCurrentValue;
+				RatioValue.Y = StartDragRatio.Y / MaxCurrentValue;
+				RatioValue.Z = StartDragRatio.Z / MaxCurrentValue;
+			}
+			StartDragRatio = RatioValue;
+		}
 	}
-	StartDragRatio = RatioValue;
 }
 
 void SColorGradingPicker::OnEndSliderMovement(float NewValue)
@@ -143,34 +156,47 @@ void SColorGradingPicker::OnMainValueChanged(float InValue, bool ShouldCommitVal
 	TransformColorGradingRangeToLinearColorRange(InValue);
 
 	FVector4 CurrentValue(0.0f, 0.0f, 0.0f, 0.0f);
-	OnQueryCurrentColor.ExecuteIfBound(CurrentValue);
-	TransformColorGradingRangeToLinearColorRange(CurrentValue);
-	
-	
-	//The MainValue is the maximum of any channel value
-	float MaxCurrentValue = FMath::Max3(CurrentValue.X, CurrentValue.Y, CurrentValue.Z);
-	if (MaxCurrentValue <= SMALL_NUMBER)
+
+	if (OnQueryCurrentColor.IsBound())
 	{
-		//We need the neutral value for the type of color grading, currently only offset is an addition(0.0) all other are multiplier(1.0)
-		CurrentValue = FVector4(InValue, InValue, InValue, CurrentValue.W);
+		if (OnQueryCurrentColor.Execute(CurrentValue))
+		{
+			TransformColorGradingRangeToLinearColorRange(CurrentValue);
+
+			//The MainValue is the maximum of any channel value
+			float MaxCurrentValue = FMath::Max3(CurrentValue.X, CurrentValue.Y, CurrentValue.Z);
+			if (MaxCurrentValue <= SMALL_NUMBER)
+			{
+				//We need the neutral value for the type of color grading, currently only offset is an addition(0.0) all other are multiplier(1.0)
+				CurrentValue = FVector4(InValue, InValue, InValue, CurrentValue.W);
+			}
+			else
+			{
+				float Ratio = InValue / MaxCurrentValue;
+				CurrentValue *= FVector4(Ratio, Ratio, Ratio, 1.0f);
+				AdjustRatioValue(CurrentValue);
+			}
+			TransformLinearColorRangeToColorGradingRange(CurrentValue);
+			OnColorCommitted.ExecuteIfBound(CurrentValue, ShouldCommitValueChanges);
+		}
 	}
-	else
-	{
-		float Ratio = InValue / MaxCurrentValue;
-		CurrentValue *= FVector4(Ratio, Ratio, Ratio, 1.0f);
-		AdjustRatioValue(CurrentValue);
-	}
-	TransformLinearColorRangeToColorGradingRange(CurrentValue);
-	OnColorCommitted.ExecuteIfBound(CurrentValue, ShouldCommitValueChanges);
 }
 
 TOptional<float> SColorGradingPicker::OnGetMainValue() const
 {
 	FVector4 CurrentValue(0.0f, 0.0f, 0.0f, 0.0f);
-	OnQueryCurrentColor.ExecuteIfBound(CurrentValue);
-	//The MainValue is the maximum of any channel value
-	TOptional<float> CurrentValueOption = FMath::Max3(CurrentValue.X, CurrentValue.Y, CurrentValue.Z);
-	return CurrentValueOption;
+
+	if (OnQueryCurrentColor.IsBound())
+	{
+		if (OnQueryCurrentColor.Execute(CurrentValue))
+		{
+			//The MainValue is the maximum of any channel value
+			TOptional<float> CurrentValueOption = FMath::Max3(CurrentValue.X, CurrentValue.Y, CurrentValue.Z);
+			return CurrentValueOption;
+		}
+	}
+
+	return TOptional<float>();
 }
 
 void SColorGradingPicker::TransformLinearColorRangeToColorGradingRange(FVector4 &VectorValue) const
@@ -198,11 +224,16 @@ FLinearColor SColorGradingPicker::GetCurrentLinearColor()
 {
 	FLinearColor CurrentColor;
 	FVector4 CurrentValue;
-	if (OnQueryCurrentColor.ExecuteIfBound(CurrentValue))
+
+	if (OnQueryCurrentColor.IsBound())
 	{
-		TransformColorGradingRangeToLinearColorRange(CurrentValue);
-		CurrentColor = FLinearColor(CurrentValue.X, CurrentValue.Y, CurrentValue.Z);
+		if (OnQueryCurrentColor.Execute(CurrentValue))
+		{
+			TransformColorGradingRangeToLinearColorRange(CurrentValue);
+			CurrentColor = FLinearColor(CurrentValue.X, CurrentValue.Y, CurrentValue.Z);
+		}
 	}
+
 	return CurrentColor.LinearRGBToHSV();
 }
 
@@ -210,14 +241,18 @@ void SColorGradingPicker::HandleCurrentColorValueChanged( const FLinearColor& Ne
 {
 	//Query the current vector4 so we can pass back the w value
 	FVector4 CurrentValue(0.0f, 0.0f, 0.0f, 0.0f);
-	OnQueryCurrentColor.ExecuteIfBound(CurrentValue);
-
-	FLinearColor NewValueRGB = NewValue.HSVToLinearRGB();
-	FVector4 NewValueVector(NewValueRGB.R, NewValueRGB.G, NewValueRGB.B);
-	TransformLinearColorRangeToColorGradingRange(NewValueVector);
-	//Set the W with the original value
-	NewValueVector.W = CurrentValue.W;
-	OnColorCommitted.ExecuteIfBound(NewValueVector, ShouldCommitValueChanges);
+	if (OnQueryCurrentColor.IsBound())
+	{
+		if (OnQueryCurrentColor.Execute(CurrentValue))
+		{
+			FLinearColor NewValueRGB = NewValue.HSVToLinearRGB();
+			FVector4 NewValueVector(NewValueRGB.R, NewValueRGB.G, NewValueRGB.B);
+			TransformLinearColorRangeToColorGradingRange(NewValueVector);
+			//Set the W with the original value
+			NewValueVector.W = CurrentValue.W;
+			OnColorCommitted.ExecuteIfBound(NewValueVector, ShouldCommitValueChanges);
+		}
+	}
 }
 
 void SColorGradingPicker::OnDynamicSliderMaxValueChanged(float NewMaxSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfHigher)

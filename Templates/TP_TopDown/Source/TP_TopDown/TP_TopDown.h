@@ -1,11 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __TP_TOPDOWN_H__
-#define __TP_TOPDOWN_H__
+#pragma once
 
-#include "EngineMinimal.h"
+#include "CoreMinimal.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTP_TopDown, Log, All);
-
-
-#endif

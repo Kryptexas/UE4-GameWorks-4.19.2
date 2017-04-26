@@ -716,7 +716,7 @@ public:
 			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
 
 			static const auto CVarMonoscopicFarField = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
-			const bool bIsMobileMonoscopic = CVarMonoscopicFarField && (CVarMonoscopicFarField->GetValueOnGameThread() != 0);
+			const bool bIsMobileMonoscopic = CVarMonoscopicFarField && (CVarMonoscopicFarField->GetValueOnRenderThread() != 0);
 
 			if (bEncodedHDR == false)
 			{

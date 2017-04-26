@@ -212,10 +212,10 @@ enum EExprToken
 	EX_EndSet				= 0x3A,
 	EX_SetMap				= 0x3B,
 	EX_EndMap				= 0x3C,
-	//						= 0x3D,
-	//						= 0x3E,
-	//						= 0x3F,
-	//						= 0x40,
+	EX_SetConst				= 0x3D,
+	EX_EndSetConst			= 0x3E,
+	EX_MapConst				= 0x3F,
+	EX_EndMapConst			= 0x40,
 	//						= 0x41,
 	EX_StructMemberContext	= 0x42, // Context expression to address a property within a struct
 	EX_LetMulticastDelegate	= 0x43, // Assignment to a multi-cast delegate

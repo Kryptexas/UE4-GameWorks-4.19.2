@@ -25,8 +25,6 @@ struct FRHICommandSignalFrameFence : public FRHICommand<FRHICommandSignalFrameFe
 	}
 };
 
-void* FD3D12ThreadLocalObject<FD3D12FastConstantAllocator>::ThisThreadObject = nullptr;
-
 FD3D12Adapter::FD3D12Adapter(FD3D12AdapterDesc& DescIn)
 	: Desc(DescIn)
 	, bDeviceRemoved(false)

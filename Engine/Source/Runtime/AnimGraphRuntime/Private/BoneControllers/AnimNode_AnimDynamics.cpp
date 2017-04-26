@@ -698,7 +698,6 @@ void FAnimNode_AnimDynamics::PreUpdate(const UAnimInstance* InAnimInstance)
 	const UWorld* World = SkelComp->GetWorld();
 
 	check(World->GetWorldSettings());
-	check(World->Scene);
 
 	CurrentTimeDilation = World->GetWorldSettings()->GetEffectiveTimeDilation();
 	if(CVarEnableWind.GetValueOnAnyThread() == 1 && bEnableWind)
@@ -709,7 +708,7 @@ void FAnimNode_AnimDynamics::PreUpdate(const UAnimInstance* InAnimInstance)
 		{
 			Body->bWindEnabled = bEnableWind;
 
-			if(Body->bWindEnabled)
+			if(Body->bWindEnabled && World->Scene)
 			{
 				FSceneInterface* Scene = World->Scene;
 

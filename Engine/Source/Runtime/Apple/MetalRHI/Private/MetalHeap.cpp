@@ -1093,9 +1093,9 @@ id<MTLTexture> FMetalHeap::CreateTexture(MTLTextureDescriptor* Desc, FMetalSurfa
 		check((uint32)Descriptor.StorageMode < (uint32)EMetalHeapTypeNum);
 		check((uint32)Descriptor.CPUCacheMode < (uint32)EMetalHeapCacheNum);
 		
-		if ((TotalTextureMemory + Descriptor.Size) > GTexturePoolSize)
+		if (GTexturePoolSize > 0 && (TotalTextureMemory + Descriptor.Size) > GTexturePoolSize)
 		{
-			UE_LOG(LogMetal, Warning, TEXT("Texture heap allocations (%.2f) will exceed texture pool size (%.2f) - performance may suffer and the application may be subject to OS low-memory handling!"), (float)(TotalTextureMemory + Descriptor.Size) / 1024.f / 1024.f, ((float)GTexturePoolSize / 1024.f / 1024.f));
+			UE_LOG(LogMetal, Verbose, TEXT("Texture heap allocations (%.2f) will exceed texture pool size (%.2f) - performance may suffer and the application may be subject to OS low-memory handling!"), (float)(TotalTextureMemory + Descriptor.Size) / 1024.f / 1024.f, ((float)GTexturePoolSize / 1024.f / 1024.f));
 		}
 		
 		Heap = CreateHeap(Descriptor);

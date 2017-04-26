@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 		static bool enableMultithreading = false;
 		static bool bEnableTracing = false; // Debug option
 
-		public HTML5ToolChain()
+		public HTML5ToolChain(FileReference InProjectFile)
 			: base(CppPlatform.HTML5, WindowsCompiler.VisualStudio2015)
 		{
 			if (!HTML5SDKInfo.IsSDKInstalled())
@@ -32,13 +32,29 @@ namespace UnrealBuildTool
 			// - but, during packaging, if -remoteini is used -- need to use UnrealBuildTool.GetRemoteIniPath()
 			//   (note: ConfigCache can take null ProjectFile)
 			string EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
-			DirectoryReference ProjectFile = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath) : null;
-			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectFile, UnrealTargetPlatform.HTML5);
-			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWasm", out targetingWasm);
-			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWebGL2", out targetWebGL2);
+			DirectoryReference ProjectDir = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath)
+												: DirectoryReference.FromFile(InProjectFile);
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectDir, UnrealTargetPlatform.HTML5);
+
+			// these will be going away...
+			bool targetingAsmjs = false; // inverted check
+			bool targetWebGL1 = false; // inverted check
+			if ( Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetAsmjs", out targetingAsmjs) )
+			{
+				targetingWasm = !targetingAsmjs;
+			}
+			if ( Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWebGL1", out targetWebGL1) )
+			{
+				targetWebGL2  = !targetWebGL1;
+			}
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableSIMD", out enableSIMD);
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableMultithreading", out enableMultithreading);
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableTracing", out bEnableTracing);
+			Log.TraceInformation("HTML5ToolChain: TargetWasm = "         + targetingWasm        );
+			Log.TraceInformation("HTML5ToolChain: TargetWebGL2 = "       + targetWebGL2         );
+			Log.TraceInformation("HTML5ToolChain: EnableSIMD = "         + enableSIMD           );
+			Log.TraceInformation("HTML5ToolChain: EnableMultithreading " + enableMultithreading );
+			Log.TraceInformation("HTML5ToolChain: EnableTracing = "      + bEnableTracing       );
 
 			// TODO: remove this "fix" when emscripten supports (SIMD & pthreads) + WASM
 			if ( targetingWasm )

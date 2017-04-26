@@ -283,6 +283,7 @@ namespace UnrealBuildTool
 		{
 			BuildCsFilename = Info.GetString("bf");
 			ModuleSourceFolder = (DirectoryReference)Info.GetValue("mf", typeof(DirectoryReference));
+			ExternalDependencies = (List<string>)Info.GetValue("ed", typeof(List<string>));
 			UHTHeaderNames = (List<string>)Info.GetValue("hn", typeof(List<string>));
 		}
 
@@ -290,16 +291,19 @@ namespace UnrealBuildTool
 		{
 			Info.AddValue("bf", BuildCsFilename);
 			Info.AddValue("mf", ModuleSourceFolder);
+			Info.AddValue("ed", ExternalDependencies);
 			Info.AddValue("hn", UHTHeaderNames);
 		}
 
-		public FlatModuleCsDataType(string InBuildCsFilename)
+		public FlatModuleCsDataType(string InBuildCsFilename, IEnumerable<string> InExternalDependencies)
 		{
 			BuildCsFilename = InBuildCsFilename;
+			ExternalDependencies = new List<string>(InExternalDependencies);
 		}
 
 		public string BuildCsFilename;
 		public DirectoryReference ModuleSourceFolder;
+		public List<string> ExternalDependencies;
 		public List<string> UHTHeaderNames = new List<string>();
 	}
 
@@ -2431,13 +2435,6 @@ namespace UnrealBuildTool
 					}
 					GlobalCompileEnvironment.Definitions.Add("UE_ENGINE_DIRECTORY=" + EnginePath);
 				}
-
-				// Set the define for the project name. This allows the executable to locate the correct project file to use, which may not be the same as the game name or target.
-				if (ProjectFile != null)
-				{
-					string ProjectName = ProjectFile.GetFileNameWithoutExtension();
-					GlobalCompileEnvironment.Definitions.Add(String.Format("UE_PROJECT_NAME={0}", ProjectName));
-				}
 			}
 
 			// On Mac and Linux we have actions that should be executed after all the binaries are created
@@ -4427,7 +4424,7 @@ namespace UnrealBuildTool
 				// Now, go ahead and create the module builder instance
 				Module = InstantiateModule(RulesObject, ModuleName, ModuleType.Value, ModuleDirectory, GeneratedCodeDirectory, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles, ModuleFileName);
 				Modules.Add(Module.Name, Module);
-				FlatModuleCsData.Add(Module.Name, new FlatModuleCsDataType((Module.RulesFile == null) ? null : Module.RulesFile.FullName));
+				FlatModuleCsData.Add(Module.Name, new FlatModuleCsDataType((Module.RulesFile == null) ? null : Module.RulesFile.FullName, RulesObject.ExternalDependencies));
 			}
 			return Module;
 		}

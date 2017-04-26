@@ -648,12 +648,7 @@ bool FAssetRegistryState::Serialize(FArchive& OriginalAr, FAssetRegistrySerializ
 
 			for (FDependsNode* Dependency : ProcessedDependencies)
 			{
-				FDependsNode* RedirectedDependency = ResolveRedirector(Dependency, CachedAssetsByObjectPath, RedirectCache);
-				if (RedirectedDependency == nullptr)
-				{
-					RedirectedDependency = Dependency;
-				}
-				int32 Index = DependsIndexMap[RedirectedDependency->GetIdentifier()];
+				int32 Index = DependsIndexMap[Dependency->GetIdentifier()];
 				Ar << Index;
 			}
 		}
@@ -909,41 +904,40 @@ FDependsNode* FAssetRegistryState::ResolveRedirector(FDependsNode* InDependency,
 													 TMap<FName, FAssetData*>& InAllowedAssets,
 													 TMap<FDependsNode*, FDependsNode*>& InCache)
 {
-	static const FName ObjectRedirectorClassName(TEXT("ObjectRedirector"));
-
-	FDependsNode* Original = InDependency;
-	FDependsNode* Result = nullptr;
-
 	if (InCache.Contains(InDependency))
 	{
 		return InCache[InDependency];
 	}
+
+	FDependsNode* CurrentDependency = InDependency;
+	FDependsNode* Result = nullptr;
 
 	static TSet<FName> EncounteredDependencies;
 	EncounteredDependencies.Empty();
 
 	while (Result == nullptr)
 	{
-		checkSlow(InDependency);
+		checkSlow(CurrentDependency);
 
-		if (EncounteredDependencies.Contains(InDependency->GetPackageName()))
+		if (EncounteredDependencies.Contains(CurrentDependency->GetPackageName()))
 		{
 			break;
 		}
 
-		EncounteredDependencies.Add(InDependency->GetPackageName());
+		EncounteredDependencies.Add(CurrentDependency->GetPackageName());
 
-		if (CachedAssetsByPackageName.Contains(InDependency->GetPackageName()))
+		if (CachedAssetsByPackageName.Contains(CurrentDependency->GetPackageName()))
 		{
 			// Get the list of assets contained in this package
-			TArray<FAssetData*>& Assets = CachedAssetsByPackageName[InDependency->GetPackageName()];
+			TArray<FAssetData*>& Assets = CachedAssetsByPackageName[CurrentDependency->GetPackageName()];
 
 			for (FAssetData* Asset : Assets)
 			{
-				if (Asset->AssetClass == ObjectRedirectorClassName)
+				if (Asset->IsRedirector())
 				{
+					FDependsNode* ChainedRedirector = nullptr;
 					// This asset is a redirector, so we want to look at its dependencies and find the asset that it is redirecting to
-					InDependency->IterateOverDependencies([&](FDependsNode* InDepends, EAssetRegistryDependencyType::Type) {
+					CurrentDependency->IterateOverDependencies([&](FDependsNode* InDepends, EAssetRegistryDependencyType::Type) {
 						if (InAllowedAssets.Contains(InDepends->GetPackageName()))
 						{
 							// This asset is in the allowed asset list, so take this as the redirect target
@@ -954,13 +948,20 @@ FDependsNode* FAssetRegistryState::ResolveRedirector(FDependsNode* InDependency,
 							// This dependency isn't in the allowed list, but it is a valid asset in the registry.
 							// Because this is a redirector, this should mean that the redirector is pointing at ANOTHER
 							// redirector (or itself in some horrible situations) so we'll move to that node and try again
-							InDependency = InDepends;
+							ChainedRedirector = InDepends;
 						}
 					});
+
+					if (ChainedRedirector)
+					{
+						// Found a redirector, break for loop
+						CurrentDependency = ChainedRedirector;
+						break;
+					}
 				}
 				else
 				{
-					Result = InDependency;
+					Result = CurrentDependency;
 				}
 
 				if (Result)
@@ -972,11 +973,11 @@ FDependsNode* FAssetRegistryState::ResolveRedirector(FDependsNode* InDependency,
 		}
 		else
 		{
-			Result = InDependency;
+			Result = CurrentDependency;
 		}
 	}
 
-	InCache.Add(Original, Result);
+	InCache.Add(InDependency, Result);
 	return Result;
 }
 

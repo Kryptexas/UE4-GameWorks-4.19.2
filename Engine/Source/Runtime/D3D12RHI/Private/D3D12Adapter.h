@@ -45,6 +45,8 @@ enum EMultiGPUMode
 
 static const bool GRedirectDefaultContextForAFR = true;
 
+void* FD3D12ThreadLocalObject<FD3D12FastConstantAllocator>::ThisThreadObject = nullptr;
+
 struct FD3D12AdapterDesc
 {
 	FD3D12AdapterDesc()

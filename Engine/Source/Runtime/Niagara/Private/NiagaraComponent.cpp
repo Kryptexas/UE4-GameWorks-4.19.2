@@ -363,6 +363,11 @@ FPrimitiveSceneProxy* UNiagaraComponent::CreateSceneProxy()
 
 void UNiagaraComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials) const
 {
+	if (!EffectInstance.IsValid())
+	{
+		return;
+	}
+
 	for (TSharedRef<FNiagaraSimulation> Sim : EffectInstance->GetEmitters())	
 	{
 #if WITH_EDITORONLY_DATA

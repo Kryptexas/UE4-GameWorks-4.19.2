@@ -3361,7 +3361,27 @@ public:
 		return false;
 	}
 
+	static FScriptMapHelper CreateHelperFormInnerProperties(UProperty* InKeyProperty, UProperty* InValProperty, const void *InMap)
+	{
+		check(InKeyProperty && InValProperty);
+
+		FScriptMapHelper ScriptMapHelper;
+		ScriptMapHelper.KeyProp = InKeyProperty;
+		ScriptMapHelper.ValueProp = InValProperty;
+		ScriptMapHelper.Map = (FScriptMap*)InMap;
+		ScriptMapHelper.MapLayout = FScriptMap::GetScriptLayout(InKeyProperty->GetSize(), InKeyProperty->GetMinAlignment(), InValProperty->GetSize(), InValProperty->GetMinAlignment());
+
+		return ScriptMapHelper;
+	}
+
 private:
+	FScriptMapHelper()
+		: KeyProp(nullptr)
+		, ValueProp(nullptr)
+		, Map(nullptr)
+		, MapLayout(FScriptMap::GetScriptLayout(0, 1, 0, 1))
+	{}
+
 	/**
 	 * Internal function to call into the property system to construct / initialize elements.
 	 *
@@ -3832,7 +3852,28 @@ public:
 		return false;
 	}
 
-private:
+	static FScriptSetHelper CreateHelperFormElementProperty(UProperty* InElementProperty, const void *InSet)
+	{
+		check(InElementProperty);
+
+		FScriptSetHelper ScriptSetHelper;
+		ScriptSetHelper.ElementProp = InElementProperty;
+		ScriptSetHelper.Set = (FScriptSet*)InSet;
+
+		const int32 ElementPropSize = InElementProperty->GetSize();
+		const int32 ElementPropAlignment = InElementProperty->GetMinAlignment();
+		ScriptSetHelper.SetLayout = FScriptSet::GetScriptLayout(ElementPropSize, ElementPropAlignment);
+
+		return ScriptSetHelper;
+	}
+
+private: 
+	FScriptSetHelper()
+		: ElementProp(nullptr)
+		, Set(nullptr)
+		, SetLayout(FScriptSet::GetScriptLayout(0, 1))
+	{}
+
 	/**
 	* Internal function to call into the property system to construct / initialize elements.
 	*

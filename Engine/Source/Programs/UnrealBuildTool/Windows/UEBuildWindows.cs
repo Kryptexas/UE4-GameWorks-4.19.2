@@ -644,18 +644,14 @@ namespace UnrealBuildTool
 					// Define to indicate profiling enabled (64-bit only)
 					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=1");
 					Rules.Definitions.Add("PROFILE");
-					Rules.PublicAdditionalLibraries.Add("WinPixEventRuntime.lib");
-
-					Rules.PublicDelayLoadDLLs.Add("WinPixEventRuntime.dll");
-					Rules.RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Windows/DirectX/x64/WinPixEventRuntime.dll"));
 				}
 				else
 				{
 					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
 				}
 
-				// To enable platform specific D3D12 RHI Types
-				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
+                // To enable platform specific D3D12 RHI Types
+                Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 			}
 
 			// Delay-load D3D12 so we can use the latest features and still run on downlevel versions of the OS

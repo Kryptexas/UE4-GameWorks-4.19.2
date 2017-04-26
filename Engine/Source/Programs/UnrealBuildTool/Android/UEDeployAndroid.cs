@@ -14,6 +14,9 @@ namespace UnrealBuildTool
 {
 	class UEDeployAndroid : UEBuildDeploy, IAndroidDeploy
 	{
+		// Minimum Android SDK that must be used for Java compiling
+		readonly int MinimumSDKLevel = 23;
+
 		/// <summary>
 		/// Internal usage for GetApiLevel
 		/// </summary>
@@ -27,6 +30,7 @@ namespace UnrealBuildTool
 		}
 
 		private UnrealPluginLanguage UPL = null;
+		private bool GoogleVRPluginEnabled = false;
 
 		public void SetAndroidPluginData(List<string> Architectures, List<string> inPluginExtraData)
 		{
@@ -35,6 +39,18 @@ namespace UnrealBuildTool
 			{
 				NDKArches.Add(GetNDKArch(Arch));
 			}
+
+			// check if the GoogleVR plugin was enabled
+			GoogleVRPluginEnabled = false;
+			foreach (var Plugin in inPluginExtraData)
+			{
+				if (Plugin.Contains("GoogleVRHMD"))
+				{
+					GoogleVRPluginEnabled = true;
+					break;
+				}
+			}
+
 			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, NDKArches, "http://schemas.android.com/apk/res/android", "xmlns:android=\"http://schemas.android.com/apk/res/android\"", UnrealTargetPlatform.Android);
 //			APL.SetTrace();
 		}
@@ -66,6 +82,45 @@ namespace UnrealBuildTool
 			return ConfigCache.ReadHierarchy(Type, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Android);
 		}
 
+		private string GetLatestSDKApiLevel(AndroidToolChain ToolChain)
+		{
+			// we expect there to be one, so use the first one
+			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
+
+			// run a command and capture output
+			var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
+			ExeInfo.UseShellExecute = false;
+			ExeInfo.RedirectStandardOutput = true;
+			using (var GameProcess = Process.Start(ExeInfo))
+			{
+				PossibleApiLevels = new List<string>();
+				GameProcess.BeginOutputReadLine();
+				GameProcess.OutputDataReceived += ParseApiLevel;
+				GameProcess.WaitForExit();
+			}
+
+			if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+			{
+				return ToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
+			}
+
+			throw new BuildException("Can't make an APK without an API installed (see \"android.bat list targets\")");
+		}
+
+		private int GetApiLevelInt(string ApiString)
+		{
+			int VersionInt = 0;
+			if (ApiString.Contains("-"))
+			{
+				int Version;
+				if (int.TryParse(ApiString.Substring(ApiString.LastIndexOf('-') + 1), out Version))
+				{
+					VersionInt = Version;
+				}
+			}
+			return VersionInt;
+		}
+
 		private string CachedSDKLevel = null;
 		private string GetSdkApiLevel(AndroidToolChain ToolChain)
 		{
@@ -85,27 +140,20 @@ namespace UnrealBuildTool
 				// run a command and capture output
 				if (SDKLevel == "latest")
 				{
-					// we expect there to be one, so use the first one
-					string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
+					SDKLevel = GetLatestSDKApiLevel(ToolChain);
+				}
 
-					var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
-					ExeInfo.UseShellExecute = false;
-					ExeInfo.RedirectStandardOutput = true;
-					using (var GameProcess = Process.Start(ExeInfo))
-					{
-						PossibleApiLevels = new List<string>();
-						GameProcess.BeginOutputReadLine();
-						GameProcess.OutputDataReceived += ParseApiLevel;
-						GameProcess.WaitForExit();
-					}
+				// make sure it is at least android-23
+				int SDKLevelInt = GetApiLevelInt(SDKLevel);
+				if (SDKLevelInt < MinimumSDKLevel)
+				{
+					Console.WriteLine("Requires at least SDK API level {0}, currently set to '{1}'", MinimumSDKLevel, SDKLevel);
+					SDKLevel = GetLatestSDKApiLevel(ToolChain);
 
-					if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+					SDKLevelInt = GetApiLevelInt(SDKLevel);
+					if (SDKLevelInt < MinimumSDKLevel)
 					{
-						SDKLevel = ToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
-					}
-					else
-					{
-						throw new BuildException("Can't make an APK without an API installed (see \"android.bat list targets\")");
+						throw new BuildException("Can't make an APK without API 'android-" + MinimumSDKLevel.ToString() + "' minimum installed (see \"android.bat list targets\")");
 					}
 				}
 
@@ -198,6 +246,12 @@ namespace UnrealBuildTool
 
 		public bool IsPackagingForDaydream(ConfigHierarchy Ini = null)
 		{
+			// always false if the GoogleVR plugin wasn't enabled
+			if (!GoogleVRPluginEnabled)
+			{
+				return false;
+			}
+
 			// make a new one if one wasn't passed in
 			if (Ini == null)
 			{
@@ -211,7 +265,9 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				return false;
+				// the default value for the VRMode is DaydreamAndCardboard, so unless the developer
+				// changes the mode, there will be no setting string to look up here
+				return true;
 			}
 		}
 
@@ -1954,9 +2010,90 @@ namespace UnrealBuildTool
             }
         }
 
+		private void PatchAntBatIfNeeded()
+		{
+			// only need to do this for Windows (other platforms are Mono so use that for check)
+			if (Utils.IsRunningOnMono)
+			{
+				return;
+			}
+
+			string AntBinPath = Environment.ExpandEnvironmentVariables("%ANT_HOME%/bin");
+			string AntBatFilename = Path.Combine(AntBinPath, "ant.bat");
+			string AntOrigBatFilename = Path.Combine(AntBinPath, "ant.orig.bat");
+
+			if (!File.Exists(AntOrigBatFilename))
+			{
+				// check for an unused drive letter
+				string UnusedDriveLetter = "";
+				bool bFound = true;
+				DriveInfo[] AllDrives = DriveInfo.GetDrives();
+				for (char DriveLetter = 'Z'; DriveLetter >= 'A'; DriveLetter--)
+				{
+					UnusedDriveLetter = Char.ToString(DriveLetter) + ":";
+					bFound = false;
+					foreach (DriveInfo drive in AllDrives)
+					{
+						if (drive.Name.ToUpper().StartsWith(UnusedDriveLetter))
+						{
+							bFound = true;
+							break;
+						}
+					}
+
+					if (!bFound)
+					{
+						break;
+					}
+				}
+
+				if (bFound)
+				{
+					Log.TraceInformation("\nUnable to apply fixed ant.bat (all drive letters in use!)");
+					return;
+				}
+
+				Log.TraceInformation("\nPatching ant.bat to work around commandline length limit (using unused drive letter {0})", UnusedDriveLetter);
+
+				// copy the existing ant.bat to ant.orig.bat
+				File.Copy(AntBatFilename, AntOrigBatFilename, true);
+
+				// make sure ant.bat isn't read-only
+				FileAttributes Attribs = File.GetAttributes(AntBatFilename);
+				if (Attribs.HasFlag(FileAttributes.ReadOnly))
+				{
+					File.SetAttributes(AntBatFilename, Attribs & ~FileAttributes.ReadOnly);
+				}
+
+				// generate new ant.bat with an unused drive letter for subst
+				string AntBatText =
+					"@echo off\n" +
+					"set ANTPATH=%~dp0\n" +
+					"set ANT_CMD_LINE_ARGS =\n" +
+					":setupArgs\n" +
+					"if \"\"%1\"\"==\"\"\"\" goto doneStart\n" +
+					"set ANT_CMD_LINE_ARGS=%ANT_CMD_LINE_ARGS% %1\n" +
+					"shift\n" +
+					"goto setupArgs\n\n" +
+					":doneStart\n" +
+					"subst " + UnusedDriveLetter + " \"%CD%\"\n" +
+					"pushd " + UnusedDriveLetter + "\n" +
+					"call %ANTPATH%\\ant.orig.bat %ANT_CMD_LINE_ARGS%\n" +
+					"popd\n" +
+					"subst " + UnusedDriveLetter + " /d\n";
+
+				File.WriteAllText(AntBatFilename, AntBatText);
+			}
+		}
+
 		private void MakeApk(AndroidToolChain ToolChain, string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage, bool bDisallowPackagingDataInApk, bool bDisallowExternalFilesDir)
 		{
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
+
+			// do this here so we'll stop early if there is a problem with the SDK API level (cached so later calls will return the same)
+			string SDKAPILevel = GetSdkApiLevel(ToolChain);
+
+			PatchAntBatIfNeeded();
 
 			// cache some tools paths
 			string NDKBuildPath = Environment.ExpandEnvironmentVariables("%NDKROOT%/ndk-build" + (Utils.IsRunningOnMono ? "" : ".cmd"));

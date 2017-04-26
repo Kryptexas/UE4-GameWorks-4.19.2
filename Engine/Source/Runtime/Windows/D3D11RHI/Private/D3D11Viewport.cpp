@@ -216,7 +216,8 @@ void FD3D11Viewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 		check(SizeY > 0);
 
 		// Resize the swap chain.
-		VERIFYD3D11RESULT_EX(SwapChain->ResizeBuffers(1,SizeX,SizeY,GetRenderTargetFormat(PixelFormat),DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH), D3DRHI->GetDevice());
+		DXGI_FORMAT RenderTargetFormat = GetRenderTargetFormat(PixelFormat);
+		VERIFYD3D11RESIZEVIEWPORTRESULT(SwapChain->ResizeBuffers(1,SizeX,SizeY,RenderTargetFormat,DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH),SizeX,SizeY,RenderTargetFormat, D3DRHI->GetDevice());
 
 		if(bInIsFullscreen)
 		{

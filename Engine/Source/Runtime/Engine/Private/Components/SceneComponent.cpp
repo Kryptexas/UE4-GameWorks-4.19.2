@@ -1306,10 +1306,25 @@ void USceneComponent::SetWorldRotation(const FQuat& NewRotation, bool bSweep, FH
 	// If already attached to something, transform into local space
 	if (GetAttachParent() != nullptr && !bAbsoluteRotation)
 	{
-		const FQuat ParentToWorldQuat = GetAttachParent()->GetSocketQuaternion(GetAttachSocketName());
-		// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
-		const FQuat NewRelQuat = ParentToWorldQuat.Inverse() * NewRotation;
-		NewRelRotation = NewRelQuat;
+		const FTransform  ParentToWorld = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
+		// in order to support mirroring, you'll have to use FTransform.GetRelativeTransform
+		// because negative SCALE should flip the rotation
+		if (FTransform::AnyHasNegativeScale(RelativeScale3D, ParentToWorld.GetScale3D()))
+		{	
+			FTransform NewTransform = GetComponentTransform();
+			// set new desired rotation
+			NewTransform.SetRotation(NewRotation);
+			// Get relative transform from ParentToWorld
+			const FQuat NewRelQuat = NewTransform.GetRelativeTransform(ParentToWorld).GetRotation();
+			NewRelRotation = NewRelQuat;
+		}
+		else
+		{
+			const FQuat ParentToWorldQuat = ParentToWorld.GetRotation();
+			// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
+			const FQuat NewRelQuat = ParentToWorldQuat.Inverse() * NewRotation;
+			NewRelRotation = NewRelQuat;		
+		}
 	}
 
 	SetRelativeRotation(NewRelRotation, bSweep, OutSweepHitResult, Teleport);
@@ -2829,16 +2844,23 @@ void USceneComponent::SetVisibility(const bool bNewVisibility, const USceneCompo
 	}
 }
 
-void USceneComponent::SetHiddenInGame(bool NewHiddenGame, bool bPropagateToChildren)
+void USceneComponent::OnHiddenInGameChanged()
 {
-	if( NewHiddenGame != bHiddenInGame )
+	MarkRenderStateDirty();
+}
+
+void USceneComponent::SetHiddenInGame(const bool bNewHiddenGame, const USceneComponent::EVisibilityPropagation PropagateToChildren)
+{
+	bool bRecurseChildren = (PropagateToChildren == EVisibilityPropagation::Propagate);
+	if ( bNewHiddenGame != bHiddenInGame )
 	{
-		bHiddenInGame = NewHiddenGame;
-		MarkRenderStateDirty();
+		bRecurseChildren = bRecurseChildren || (PropagateToChildren == EVisibilityPropagation::DirtyOnly);
+		bHiddenInGame = bNewHiddenGame;
+		OnHiddenInGameChanged();
 	}
 
 	const TArray<USceneComponent*>& AttachedChildren = GetAttachChildren();
-	if (bPropagateToChildren && AttachedChildren.Num() > 0)
+	if (bRecurseChildren && AttachedChildren.Num() > 0)
 	{
 		// fully traverse down the attachment tree
 		// we do it entirely inline here instead of recursing in case a primitivecomponent is a child of a non-primitivecomponent
@@ -2854,12 +2876,14 @@ void USceneComponent::SetHiddenInGame(bool NewHiddenGame, bool bPropagateToChild
 			{
 				ComponentStack.Append(CurrentComp->GetAttachChildren());
 
-				UPrimitiveComponent* const PrimComp = Cast<UPrimitiveComponent>(CurrentComp);
-				if (PrimComp)
+				if (PropagateToChildren == EVisibilityPropagation::Propagate)
 				{
-					// don't propagate, we are handling it already
-					PrimComp->SetHiddenInGame(NewHiddenGame, false);
+					CurrentComp->SetHiddenInGame(bNewHiddenGame, EVisibilityPropagation::NoPropagation);
 				}
+
+				// Render state must be dirtied if any parent component's visibility has changed. Since we can't easily track whether 
+				// any parent in the hierarchy was dirtied, we have to mark dirty always.
+				CurrentComp->MarkRenderStateDirty();
 			}
 		}
 	}

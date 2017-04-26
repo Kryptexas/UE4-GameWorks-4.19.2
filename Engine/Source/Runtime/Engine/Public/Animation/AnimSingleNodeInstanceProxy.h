@@ -17,7 +17,7 @@ struct FAnimSingleNodeInstanceProxy;
  * Cant be used outside of this context as it has no graph node counterpart 
  */
 USTRUCT()
-struct FAnimNode_SingleNode : public FAnimNode_Base
+struct ENGINE_API FAnimNode_SingleNode : public FAnimNode_Base
 {
 	friend struct FAnimSingleNodeInstanceProxy;
 

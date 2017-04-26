@@ -695,6 +695,9 @@ public:
 	 */
 	bool ConvertPropertyToPinType(const UProperty* Property, /*out*/ FEdGraphPinType& TypeOut) const;
 
+	/** Determines if the specified param property is intended to be used as a wildcard (for custom thunk functions, like in our array library, etc.)*/
+	static bool IsWildcardProperty(const UProperty* ParamProperty);
+
 	/** Flags to indicate different types of blueprint callable functions */
 	enum EFunctionType
 	{

@@ -21,10 +21,14 @@ FOnlineSubsystemFacebook::~FOnlineSubsystemFacebook()
 
 bool FOnlineSubsystemFacebook::Init()
 {
+#if WITH_FACEBOOK
 	FacebookIdentity = MakeShareable(new FOnlineIdentityFacebook(this));
 	FacebookFriends = MakeShareable(new FOnlineFriendsFacebook(this));
 	FacebookSharing = MakeShareable(new FOnlineSharingFacebook(this));
 	return true;
+#else
+	return false;
+#endif
 }
 
 bool FOnlineSubsystemFacebook::Shutdown()

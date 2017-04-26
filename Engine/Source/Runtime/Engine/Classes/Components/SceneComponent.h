@@ -755,10 +755,15 @@ protected:
 	 */
 	virtual void OnVisibilityChanged();
 
+	/**
+	* Overridable internal function to respond to changes in the hidden in game value of the component.
+	*/
+	virtual void OnHiddenInGameChanged();
+
 private:
 
 	/** 
-	 * Enum that dictates what propagation policy to follow when calling SetVisibility recursively 
+	 * Enum that dictates what propagation policy to follow when calling SetVisibility or SetHiddenInGame recursively 
 	 */
 	enum class EVisibilityPropagation : uint8
 	{
@@ -768,7 +773,7 @@ private:
 		// If the visibility changed, mark all attached component's render states as dirty
 		DirtyOnly,
 
-		// Call SetVisibility recursively on attached components and also mark their render state as dirty
+		// Call function recursively on attached components and also mark their render state as dirty
 		Propagate
 	};
 
@@ -776,6 +781,11 @@ private:
 	 * Internal function to set visibility of the component. Enum controls propagation rules.
 	 */
 	void SetVisibility(bool bNewVisibility, EVisibilityPropagation PropagateToChildren);
+
+	/**
+	* Internal function to set hidden in game for the component. Enum controls propagation rules.
+	*/
+	void SetHiddenInGame(bool bNewHiddenInGame, EVisibilityPropagation PropagateToChildren);
 
 public:
 
@@ -802,7 +812,10 @@ public:
 	 * @param NewHidden	- The value to assign to HiddenGame.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Development")
-	virtual void SetHiddenInGame(bool NewHidden, bool bPropagateToChildren=false);
+	void SetHiddenInGame(bool NewHidden, bool bPropagateToChildren=false)
+	{
+		SetHiddenInGame(NewHidden, bPropagateToChildren ? EVisibilityPropagation::Propagate : EVisibilityPropagation::DirtyOnly);
+	}
 
 public:
 	/** Delegate that will be called when PhysicsVolume has been changed **/

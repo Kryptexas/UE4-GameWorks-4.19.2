@@ -54,6 +54,10 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 				CurrentAsset = nullptr;
 			}
 		}
+		
+		// We've changed the animation asset, and the next frame could be wildly different from the frame we're
+		// on now. In this case of a single node instance, we reset the clothing on the next update.
+		MeshComponent->ClothTeleportMode = EClothingTeleportMode::TeleportAndReset;
 	}
 	
 	Proxy.SetAnimationAsset(NewAsset, GetSkelMeshComponent(), bInIsLooping, InPlayRate);

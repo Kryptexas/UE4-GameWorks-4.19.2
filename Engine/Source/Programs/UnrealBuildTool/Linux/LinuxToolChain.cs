@@ -14,7 +14,7 @@ namespace UnrealBuildTool
 	{
 		string Architecture;
 
-		public LinuxToolChain(string InArchitecture) 
+		public LinuxToolChain(string InArchitecture)
 			: base(CppPlatform.Linux)
 		{
 			Architecture = InArchitecture;
@@ -335,7 +335,7 @@ namespace UnrealBuildTool
 			// test without this next line?
 			Result += " -funwind-tables";               // generate unwind tables as they seem to be needed for stack tracing (why??)
 			Result += " -Wsequence-point";              // additional warning not normally included in Wall: warns if order of operations is ambigious
-			//Result += " -Wunreachable-code";            // additional warning not normally included in Wall: warns if there is code that will never be executed - not helpful due to bIsGCC and similar 
+			//Result += " -Wunreachable-code";            // additional warning not normally included in Wall: warns if there is code that will never be executed - not helpful due to bIsGCC and similar
 			//Result += " -Wshadow";                      // additional warning not normally included in Wall: warns if there variable/typedef shadows some other variable - not helpful because we have gobs of code that shadows variables
 
 			Result += ArchitectureSpecificSwitches(CompileEnvironment.Architecture);
@@ -423,7 +423,7 @@ namespace UnrealBuildTool
 				//Result += " -fsanitize=address";            // detect address based errors (support properly and link to libasan)
 			}
 
-			// debug info 
+			// debug info
 			// bCreateDebugInfo is normally set for all configurations, including Shipping - this is needed to enable callstack in Shipping builds (proper resolution: UEPLAT-205, separate files with debug info)
 			if (CompileEnvironment.bCreateDebugInfo)
 			{
@@ -529,9 +529,9 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		// Conditionally enable (default disabled) generation of information about every class with virtual functions for use by the C++ runtime type identification features 
-		// (`dynamic_cast' and `typeid'). If you don't use those parts of the language, you can save some space by using -fno-rtti. 
-		// Note that exception handling uses the same information, but it will generate it as needed. 
+		// Conditionally enable (default disabled) generation of information about every class with virtual functions for use by the C++ runtime type identification features
+		// (`dynamic_cast' and `typeid'). If you don't use those parts of the language, you can save some space by using -fno-rtti.
+		// Note that exception handling uses the same information, but it will generate it as needed.
 		static string GetRTTIFlag(CppCompileEnvironment CompileEnvironment)
 		{
 			string Result = "";
@@ -602,7 +602,7 @@ namespace UnrealBuildTool
 			}
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenAL/Linux/" + LinkEnvironment.Architecture;
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/CEF3/Linux";
-			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenVR/OpenVRv1_0_2/Linux/" + LinkEnvironment.Architecture; 
+			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenVR/OpenVRv1_0_6/linux64";
 
 			// Some OS ship ld with new ELF dynamic tags, which use DT_RUNPATH vs DT_RPATH. Since DT_RUNPATH do not propagate to dlopen()ed DSOs,
 			// this breaks the editor on such systems. See https://kenai.com/projects/maxine/lists/users/archive/2011-01/message/12 for details

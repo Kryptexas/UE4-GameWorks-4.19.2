@@ -13,65 +13,12 @@
 #include "MovieScenePossessable.h"
 #include "MovieSceneSignedObject.h"
 #include "MovieSceneSequenceID.h"
+#include "MovieSceneObjectBindingID.h"
 #include "MovieScene.generated.h"
 
 class UMovieSceneFolder;
 class UMovieSceneSection;
 class UMovieSceneTrack;
-
-USTRUCT(BlueprintType, meta=(HasNativeMake))
-struct FMovieSceneObjectBindingID
-{
-	FMovieSceneObjectBindingID()
-		: SequenceID(int32(MovieSceneSequenceID::Root.GetInternalValue()))
-	{
-	}
-
-	FMovieSceneObjectBindingID(const FGuid& InGuid, FMovieSceneSequenceID InSequenceID)
-		: SequenceID(int32(InSequenceID.GetInternalValue())), Guid(InGuid)
-	{
-	}
-
-	GENERATED_BODY()
-
-	/** Access the identifier for the sequence in which the object resides */
-	FMovieSceneSequenceID GetSequenceID() const
-	{
-		return FMovieSceneSequenceID(uint32(SequenceID));
-	}
-
-	/** Access the guid that identifies the object binding within the sequence */
-	const FGuid& GetObjectBindingID() const
-	{
-		return Guid;
-	}
-
-	friend uint32 GetTypeHash(const FMovieSceneObjectBindingID& A)
-	{
-		return GetTypeHash(A.Guid) ^ GetTypeHash(A.SequenceID);
-	}
-
-	friend bool operator==(const FMovieSceneObjectBindingID& A, const FMovieSceneObjectBindingID& B)
-	{
-		return A.Guid == B.Guid && A.SequenceID == B.SequenceID;
-	}
-
-	friend bool operator!=(const FMovieSceneObjectBindingID& A, const FMovieSceneObjectBindingID& B)
-	{
-		return A.Guid != B.Guid || A.SequenceID != B.SequenceID;
-	}
-
-private:
-
-	/** Sequence ID stored as an int32 so that it can be used in the blueprint VM */
-	UPROPERTY()
-	int32 SequenceID;
-
-	/** Identifier for the object binding within the sequence */
-	UPROPERTY(EditAnywhere, Category="Binding")
-	FGuid Guid;
-};
-
 
 /** @todo: remove this type when support for intrinsics on TMap values is added? */
 USTRUCT()
