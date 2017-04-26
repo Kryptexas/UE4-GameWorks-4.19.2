@@ -2376,7 +2376,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeIfOutdated(bool Async, 
 		|| UnbuiltInstanceBoundsList.Num() > 0
 		|| GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES)
 	{
-		if (GIsEditor && !FApp::IsUnattended())
+		if (GIsEditor && !FApp::IsUnattended() && !IsRunningCommandlet()) // only when user is in control (i.e normal editor)
 		{
 			UE_LOG(LogStaticMesh, Warning, TEXT("Rebuilding hierarchical instanced mesh component, please resave map %s."), *GetFullName());
 		}
