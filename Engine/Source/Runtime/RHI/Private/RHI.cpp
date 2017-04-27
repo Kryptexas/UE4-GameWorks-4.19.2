@@ -380,7 +380,8 @@ static FName NAME_PCD3D_ES2(TEXT("PCD3D_ES2"));
 static FName NAME_GLSL_150(TEXT("GLSL_150"));
 static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 static FName NAME_SF_PS4(TEXT("SF_PS4"));
-static FName NAME_SF_XBOXONE(TEXT("SF_XBOXONE"));
+static FName NAME_SF_XBOXONE_D3D11(TEXT("SF_XBOXONE_D3D11"));
+static FName NAME_SF_XBOXONE_D3D12(TEXT("SF_XBOXONE_D3D12"));
 static FName NAME_GLSL_430(TEXT("GLSL_430"));
 static FName NAME_GLSL_150_ES2(TEXT("GLSL_150_ES2"));
 static FName NAME_GLSL_150_ES2_NOUB(TEXT("GLSL_150_ES2_NOUB"));
@@ -423,8 +424,10 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_GLSL_150_MAC;
 	case SP_PS4:
 		return NAME_SF_PS4;
-	case SP_XBOXONE:
-		return NAME_SF_XBOXONE;
+	case SP_XBOXONE_D3D11:
+		return NAME_SF_XBOXONE_D3D11;
+	case SP_XBOXONE_D3D12:
+		return NAME_SF_XBOXONE_D3D12;
 	case SP_OPENGL_SM5:
 		return NAME_GLSL_430;
 	case SP_OPENGL_PCES2:
@@ -489,7 +492,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_GLSL_150)				return SP_OPENGL_SM4;
 	if (ShaderFormat == NAME_GLSL_150_MAC)			return SP_OPENGL_SM4_MAC;
 	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
-	if (ShaderFormat == NAME_SF_XBOXONE)			return SP_XBOXONE;
+	if (ShaderFormat == NAME_SF_XBOXONE_D3D11)		return SP_XBOXONE_D3D11;
+	if (ShaderFormat == NAME_SF_XBOXONE_D3D12)		return SP_XBOXONE_D3D12;
 	if (ShaderFormat == NAME_GLSL_430)				return SP_OPENGL_SM5;
 	if (ShaderFormat == NAME_GLSL_150_ES2)			return SP_OPENGL_PCES2;
 	if (ShaderFormat == NAME_GLSL_150_ES2_NOUB)		return SP_OPENGL_PCES2;
@@ -581,7 +585,7 @@ RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform))
 	{
-		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
+		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE_D3D12) || (Platform == SP_XBOXONE_D3D11) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
 	}
     // For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
     // As such it becomes an opt-in project setting.

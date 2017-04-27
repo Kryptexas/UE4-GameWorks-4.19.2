@@ -63,11 +63,11 @@ void FD3D12DynamicRHI::SetupRecursiveResources()
 	extern ENGINE_API TGlobalResource<FScreenVertexDeclaration> GScreenVertexDeclaration;
 
 	// TODO: Waiting to integrate MSAA fix for ResolveShader.h
-	if (GMaxRHIShaderPlatform == SP_XBOXONE)
+	if (GMaxRHIShaderPlatform == SP_XBOXONE_D3D12)
 		return;
 
 	TShaderMapRef<FResolveVS> ResolveVertexShader(ShaderMap);
-	if (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_XBOXONE)
+	if (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_XBOXONE_D3D12)
 	{
 		TShaderMapRef<FResolveDepthPS> ResolvePixelShader_Depth(ShaderMap);
 		ResolvePixelShader_Depth->GetPixelShader();

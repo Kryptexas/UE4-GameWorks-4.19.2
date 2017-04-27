@@ -625,7 +625,8 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 	{
 		case SP_PCD3D_SM5:
 		case SP_PS4:
-		case SP_XBOXONE:
+		case SP_XBOXONE_D3D11:
+		case SP_XBOXONE_D3D12:
 		case SP_PCD3D_SM4:
 		case SP_PCD3D_ES2:
 		case SP_METAL:
@@ -704,7 +705,7 @@ void FShaderCache::InitShaderCache(uint32 Options)
 	if(bUseShaderCaching)
 	{
 		Cache = new FShaderCache(Options);
-	}
+		}
 }
 
 void FShaderCache::LoadBinaryCache()
@@ -722,33 +723,33 @@ void FShaderCache::LoadBinaryCache()
 		Cache->DefaultCacheState = Cache->InternalCreateOrFindCacheStateForContext(&GRHICommandList.GetImmediateCommandList().GetContext());
 	}
 
-	FShaderCacheState* CacheState = Cache->InternalCreateOrFindCacheStateForContext(&GRHICommandList.GetImmediateCommandList().GetContext());
+		FShaderCacheState* CacheState = Cache->InternalCreateOrFindCacheStateForContext(&GRHICommandList.GetImmediateCommandList().GetContext());
 
-	//I think we can get away without any locks in here specifically during the initial load phase as we are iterating the code cache
+		//I think we can get away without any locks in here specifically during the initial load phase as we are iterating the code cache
 
-	LoadTimeStart = FPlatformTime::Seconds();
-	Cache->ShadersToPrecompile = 0;
+		LoadTimeStart = FPlatformTime::Seconds();
+		Cache->ShadersToPrecompile = 0;
 
-	FString UserBinaryShaderFile = FPaths::GameSavedDir() / GShaderCacheFileName;
-	FString GameBinaryShaderFile = FPaths::GameContentDir() / GShaderCacheFileName;
+		FString UserBinaryShaderFile = FPaths::GameSavedDir() / GShaderCacheFileName;
+		FString GameBinaryShaderFile = FPaths::GameContentDir() / GShaderCacheFileName;
 
-	// Try to load user cache, making sure that if we fail version test we still try game-content version.
-	bool bLoadedUserCache = LoadShaderCache(UserBinaryShaderFile, &Cache->Caches);
+		// Try to load user cache, making sure that if we fail version test we still try game-content version.
+		bool bLoadedUserCache = LoadShaderCache(UserBinaryShaderFile, &Cache->Caches);
 
-	// Fallback to game-content version.
-	if ( !bLoadedUserCache )
-	{
-		LoadShaderCache(GameBinaryShaderFile, &Cache->Caches);
-	}
+		// Fallback to game-content version.
+		if ( !bLoadedUserCache )
+			{
+			LoadShaderCache(GameBinaryShaderFile, &Cache->Caches);
+		}
 
-	// Make sure relevant platform caches are already setup
-	for(size_t FeatureLevel = 0;FeatureLevel < ERHIFeatureLevel::Num;++FeatureLevel)
-	{
-		Cache->Caches.PlatformCaches.FindOrAdd(GShaderPlatformForFeatureLevel[FeatureLevel]);
-	}
+		// Make sure relevant platform caches are already setup
+		for(size_t FeatureLevel = 0;FeatureLevel < ERHIFeatureLevel::Num;++FeatureLevel)
+				{
+			Cache->Caches.PlatformCaches.FindOrAdd(GShaderPlatformForFeatureLevel[FeatureLevel]);
+				}
 
-	//Prefetch the current platform cache
-	Cache->CurrentShaderPlatformCache = &Cache->Caches.PlatformCaches.FindOrAdd(GMaxRHIShaderPlatform);
+		//Prefetch the current platform cache
+		Cache->CurrentShaderPlatformCache = &Cache->Caches.PlatformCaches.FindOrAdd(GMaxRHIShaderPlatform);
 
 	if (bUseShaderBinaryCache)
 	{
@@ -771,7 +772,7 @@ void FShaderCache::LoadBinaryCache()
 				FSHAHash Null;
 		
 				for (FShaderCodeLibraryPipeline const& Pipeline : *CachedPipelines)
-				{
+		{
 					PipelineKey.Hash = 0;
 					
 					PipelineKey.VertexShader.Platform = Platform;
@@ -827,42 +828,42 @@ void FShaderCache::LoadBinaryCache()
 					{
 						TSet<FShaderPipelineKey>& ShaderPipelines = Cache->Pipelines.FindOrAdd(PipelineKey.PixelShader);
 						ShaderPipelines.Add(PipelineKey);
-					}
-				}
 			}
 		}
+	}
+		}
 
-		for(uint32 i = 0; i < ERHIFeatureLevel::Num; i++)
+			for(uint32 i = 0; i < ERHIFeatureLevel::Num; i++)
+	{
+				if (GShaderPlatformForFeatureLevel[i] != SP_NumPlatforms)
 		{
-			if (GShaderPlatformForFeatureLevel[i] != SP_NumPlatforms)
-			{
-				const EShaderPlatform ShaderPlat = GShaderPlatformForFeatureLevel[i];
+					const EShaderPlatform ShaderPlat = GShaderPlatformForFeatureLevel[i];
 
-				// Regardless of the presence of the platform specific file we want an modifiable FShaderCacheLibrary to catch any outliers.
-				FShaderCacheLibrary* ShaderCacheLib = new FShaderCacheLibrary(ShaderPlat,GShaderCodeCacheFileName);
-				ShaderCacheLib->AddRef();
-				
-				// Try to load user cache, making sure that if we fail version test we still try game-content version.
-				bool bLoadedCache = ShaderCacheLib->Load(FPaths::GameSavedDir());
-				Cache->CodeCache.Add(ShaderPlat,ShaderCacheLib);
-				
-				Cache->CachedShaderLibraries.Add( ShaderPlat, ShaderCacheLib );
+					// Regardless of the presence of the platform specific file we want an modifiable FShaderCacheLibrary to catch any outliers.
+					FShaderCacheLibrary* ShaderCacheLib = new FShaderCacheLibrary(ShaderPlat,GShaderCodeCacheFileName);
+					ShaderCacheLib->AddRef();
+					
+					// Try to load user cache, making sure that if we fail version test we still try game-content version.
+					bool bLoadedCache = ShaderCacheLib->Load(FPaths::GameSavedDir());
+					Cache->CodeCache.Add(ShaderPlat,ShaderCacheLib);
+					
+					Cache->CachedShaderLibraries.Add( ShaderPlat, ShaderCacheLib );
 
-				if (bLoadedCache)
+					if (bLoadedCache)
 				{
-					for (auto const& ShaderPipelinePair : ShaderCacheLib->Pipelines)
-					{
-						TSet<FShaderPipelineKey>& ShaderPipelines = Cache->Pipelines.FindOrAdd(ShaderPipelinePair.Key);
-						ShaderPipelines.Append(ShaderPipelinePair.Value);
-					}
-					if (ShaderCacheLib->GetShaderCount())
-					{
-						Cache->ShadersToPrecompile += ShaderCacheLib->GetShaderCount();
-						Cache->ShaderLibraryPreCompileProgress.Add( ShaderCacheLib->CreateIterator() );
-					}
-				}
+						for (auto const& ShaderPipelinePair : ShaderCacheLib->Pipelines)
+	{
+							TSet<FShaderPipelineKey>& ShaderPipelines = Cache->Pipelines.FindOrAdd(ShaderPipelinePair.Key);
+							ShaderPipelines.Append(ShaderPipelinePair.Value);
+						}
+						if (ShaderCacheLib->GetShaderCount())
+		{
+							Cache->ShadersToPrecompile += ShaderCacheLib->GetShaderCount();
+							Cache->ShaderLibraryPreCompileProgress.Add( ShaderCacheLib->CreateIterator() );
 			}
 		}
+		}
+	}
 
 		bool const bUseAsync = bUseAsyncShaderPrecompilation != 0;
 		{
@@ -872,15 +873,15 @@ void FShaderCache::LoadBinaryCache()
 			TArray<uint8> DummyCode;
 			
 			while(!bUseAsyncShaderPrecompilation && Cache->ShaderLibraryPreCompileProgress.Num() > 0)
-			{
+	{
 				TRefCountPtr<FRHIShaderLibrary::FShaderLibraryIterator> ShaderIterator =  Cache->ShaderLibraryPreCompileProgress[0];
 		
 				while (ShaderIterator->IsValid() && !bUseAsyncShaderPrecompilation)
-				{
+		{
 					auto LibraryEntry = **ShaderIterator;
 					
 					if(LibraryEntry.IsValid())
-					{
+		{
 						FShaderCacheKey Key;
 						Key.Platform = LibraryEntry.Platform;
 						Key.Frequency = LibraryEntry.Frequency;
@@ -892,25 +893,25 @@ void FShaderCache::LoadBinaryCache()
 			
 					double Duration = FPlatformTime::Seconds() - StartTime;
 					if(bUseAsync && InitialShaderLoadTime >= 0.0f && Duration >= InitialShaderLoadTime)
-					{
+			{
 						bUseAsyncShaderPrecompilation = bUseAsync;
-					}
+				}
 				
 					--(Cache->ShadersToPrecompile);
 					++(*ShaderIterator);
-				}
+			}
 		
 				//Invalid iterator - continue otherwise we're in async mode leave iterator in list
 				if (!ShaderIterator->IsValid())
-				{
+		{
 					Cache->ShaderLibraryPreCompileProgress.RemoveAt(0);
 				}
 				else
-				{
+			{
 					break;
-				}
 			}
 		}
+	}
 	}
 }
 
@@ -933,7 +934,7 @@ void FShaderCache::ShutdownShaderCache()
 	{
 		delete Cache;
 		Cache = nullptr;
-	}
+		}
 }
 
 FShaderCache::FShaderCache(uint32 InOptions)
