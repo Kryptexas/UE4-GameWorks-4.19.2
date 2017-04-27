@@ -126,7 +126,6 @@ void SAndroidWebBrowserWidget::Close()
 {
 	JWebView->CallMethod<void>(JWebView_Close.GetValue());
 	WebBrowserWindowPtr.Reset();
-	bClosed = true;
 }
 
 void SAndroidWebBrowserWidget::GoBack()
