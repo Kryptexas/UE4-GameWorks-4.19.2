@@ -879,7 +879,7 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 
 inline bool RHISupportsShaderCompression(const EShaderPlatform Platform)
 {
-	return ( Platform != SP_XBOXONE_D3D12 || Platform != SP_XBOXONE_D3D11 ); // Handled automatically with hardware decompress
+	return ( Platform != SP_XBOXONE_D3D12) && ( Platform != SP_XBOXONE_D3D11 ); // Handled automatically with hardware decompress
 }
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
