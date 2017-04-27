@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.IO;
 
 namespace UnrealBuildTool.Rules
 {
@@ -48,7 +49,13 @@ namespace UnrealBuildTool.Rules
 			{
 				string LibraryPath = BaseLibDir + "x64/Release/";
 				PublicAdditionalLibraries.Add(LibraryPath+"/UnrealUSDWrapper.lib");
-			}
+
+                foreach (string FilePath in Directory.EnumerateFiles(Path.Combine(ModuleDirectory, "../../Binaries/Win64/"), "*.dll", SearchOption.AllDirectories))
+                {
+                    Console.WriteLine(FilePath);
+                    RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+                }
+            }
 		}
 	}
 }
