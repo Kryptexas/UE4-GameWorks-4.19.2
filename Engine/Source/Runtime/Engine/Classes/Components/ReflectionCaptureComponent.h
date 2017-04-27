@@ -245,9 +245,6 @@ class UReflectionCaptureComponent : public USceneComponent
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditImport() override;
 	virtual void PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel) override;
-
-	// Test if editor needs to update mobile's reflection captures. 
-	ENGINE_API static bool MobileReflectionCapturesNeedForcedUpdate(UWorld* WorldToUpdate);
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;

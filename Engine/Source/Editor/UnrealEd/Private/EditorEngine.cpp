@@ -1534,8 +1534,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Skip updating reflection captures on the first update as the level will not be ready to display
 	if (!bFirstTick)
 	{
-		if (UReflectionCaptureComponent::MobileReflectionCapturesNeedForcedUpdate(EditorContext.World())
-			|| USkyLightComponent::MobileSkyCapturesNeedForcedUpdate(EditorContext.World()))
+		if (USkyLightComponent::MobileSkyCapturesNeedForcedUpdate(EditorContext.World()))
 		{
 			UpdateReflectionCaptures();
 		}
