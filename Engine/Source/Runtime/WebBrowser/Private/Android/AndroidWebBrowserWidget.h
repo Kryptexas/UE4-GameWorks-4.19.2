@@ -21,6 +21,8 @@ class SAndroidWebBrowserWidget : public SLeafWidget
 	SLATE_END_ARGS()
 
 public:
+	virtual ~SAndroidWebBrowserWidget();
+
 	void Construct(const FArguments& Args);
 
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
@@ -62,15 +64,12 @@ public:
 
 	// Helper to get the native widget pointer from a Java callback.
 	// Jobj can either be a WebViewControl, a WebViewControl.ViewClient or WebViewControl.ChromeClient instance
-	static SAndroidWebBrowserWidget* GetWidgetPtr(JNIEnv* JEnv, jobject Jobj)
-	{
-		jclass Class = JEnv->GetObjectClass(Jobj);
-		jmethodID JMethod = JEnv->GetMethodID(Class, "GetNativePtr", "()J");
-		check(JMethod != nullptr);
-		return reinterpret_cast<SAndroidWebBrowserWidget*>(JEnv->CallLongMethod(Jobj, JMethod));
-	}
+	static TSharedPtr<SAndroidWebBrowserWidget> GetWidgetPtr(JNIEnv* JEnv, jobject Jobj);
 
 protected:
+	static FCriticalSection WebControlsCS;
+	static TMap<jlong, TWeakPtr<SAndroidWebBrowserWidget>> AllWebControls;
+
 	bool HandleJsDialog(TSharedPtr<IWebBrowserDialog>& Dialog);
 	int HistorySize;
 	int HistoryPosition;

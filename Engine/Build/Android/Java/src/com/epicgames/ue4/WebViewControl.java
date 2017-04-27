@@ -174,6 +174,11 @@ class WebViewControl
 			@Override
 			public void run()
 			{
+				if (bClosed)
+				{
+					// queued up run()s can occur after Close() called; don't want to show it again
+					return;
+				}
 				if (!bShown)
 				{
 					bShown = true;
@@ -222,9 +227,19 @@ class WebViewControl
 			{
 				if (bShown)
 				{
-					((ViewGroup)webView.getParent()).removeView(webView);
+					ViewGroup parent = (ViewGroup)webView.getParent();
+					if (parent != null)
+					{
+						parent.removeView(webView);
+					}
+					parent = (ViewGroup)positionLayout.getParent();
+					if (parent != null)
+					{
+						parent.removeView(positionLayout);
+					}
 					bShown = false;
 				}
+				bClosed = true;
 			}
 		});
 	}
@@ -299,6 +314,7 @@ class WebViewControl
 	private WebViewPositionLayout positionLayout;
 	public int curX, curY, curW, curH;
 	private boolean bShown;
+	private boolean bClosed;
 	private String NextURL;
 	private String NextContent;
 	
