@@ -2001,7 +2001,7 @@ void FHlslNiagaraCompiler::Operation(class UNiagaraNodeOp* Operation, TArray<int
 		if (!AddStructToDefinitionSet(OutputType))
 		{
 			FText PinNameText = OutputPins[OutputIndex]->PinFriendlyName.IsEmpty() ? FText::FromString(OutputPins[OutputIndex]->PinName) : OutputPins[OutputIndex]->PinFriendlyName;
-			Error(FText::Format(LOCTEXT("GetConstantFail", "Cannot handle type {0}! Output Pin: {1}"), OutputType.GetNameText(), PinNameText), Operation, OutputPins[OutputIndex]);
+			Error(FText::Format(LOCTEXT("GetConstantFail_OutputPin", "Cannot handle type {0}! Output Pin: {1}"), OutputType.GetNameText(), PinNameText), Operation, OutputPins[OutputIndex]);
 		}
 
 		const FNiagaraOpInOutInfo& IOInfo = OpInfo->Outputs[OutputIndex];

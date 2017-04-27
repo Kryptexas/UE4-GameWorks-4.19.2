@@ -2951,7 +2951,7 @@ bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutE
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("CharCount"), NAME_SIZE);
-			OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_TooLong", "Component name must be less than {CharCount} characters long."), Arguments);
+			OutErrorMessage = FText::Format(LOCTEXT("ComponentRenameFailed_TooLong", "Component name must be less than {CharCount} characters long."), Arguments);
 			return false;
 		}
 		else if (!FComponentEditorUtils::IsComponentNameAvailable(InNewText.ToString(), ExistingNameSearchScope, NodePtr->GetComponentTemplate()))
