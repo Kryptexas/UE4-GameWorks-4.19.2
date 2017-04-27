@@ -109,7 +109,8 @@ private:
 
 	mutable FSlateBrush SurfaceBrush;
 
-	mutable FWidgetRenderer WidgetRenderer;
+	void InitWidgetRenderer();
+	mutable TSharedPtr<class FWidgetRenderer> WidgetRenderer;
 	mutable class UTextureRenderTarget2D* RenderTarget;
 	mutable TSharedPtr<SWidget> MyWidget;
 
