@@ -218,10 +218,6 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 		{
 			if (bIsChildActor || Component->IsCreatedByConstructionScript()) // Only cache data from 'created by construction script' components
 			{
-				if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
-				{
-					SceneComponent->ConditionalUpdateComponentToWorld();
-				}
 				FActorComponentInstanceData* ComponentInstanceData = Component->GetComponentInstanceData();
 				if (ComponentInstanceData)
 				{
