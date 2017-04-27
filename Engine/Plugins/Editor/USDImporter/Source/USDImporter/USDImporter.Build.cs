@@ -52,7 +52,6 @@ namespace UnrealBuildTool.Rules
 
                 foreach (string FilePath in Directory.EnumerateFiles(Path.Combine(ModuleDirectory, "../../Binaries/Win64/"), "*.dll", SearchOption.AllDirectories))
                 {
-                    Console.WriteLine(FilePath);
                     RuntimeDependencies.Add(new RuntimeDependency(FilePath));
                 }
             }
