@@ -17,6 +17,15 @@ namespace UnrealBuildTool
 		// Minimum Android SDK that must be used for Java compiling
 		readonly int MinimumSDKLevel = 23;
 
+		// Reserved Java keywords not allowed in package names without modification
+		static private string[] JavaReservedKeywords = new string[] {
+			"abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do",
+			"double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof",
+			"int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static",
+			"strictfp", "super", "switch", "sychronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while",
+			"false", "null", "true"
+		};
+
 		/// <summary>
 		/// Internal usage for GetApiLevel
 		/// </summary>
@@ -1363,15 +1372,106 @@ namespace UnrealBuildTool
 			}
 		}
 
+		private string CachedPackageName = null;
+
+		private bool IsLetter(char Input)
+		{
+			return (Input >= 'A' && Input <= 'Z') || (Input >= 'a' && Input <= 'z');
+		}
+
+		private bool IsDigit(char Input)
+		{
+			return (Input >= '0' && Input <= '9');
+		}
+
 		private string GetPackageName(string ProjectName)
 		{
-			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
-			string PackageName;
-			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "PackageName", out PackageName);
-			// replace some variables
-			PackageName = PackageName.Replace("[PROJECT]", ProjectName);
-			PackageName = PackageName.Replace("-", "_");
-			return PackageName;
+			if (CachedPackageName == null)
+			{
+				ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+				string PackageName;
+				Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "PackageName", out PackageName);
+
+				if (PackageName.Contains("[PROJECT]"))
+				{
+					// project name must start with a letter
+					if (!IsLetter(ProjectName[0]))
+					{
+						throw new BuildException("Package name segments must all start with a letter. Please replace [PROJECT] with a valid name");
+					}
+
+					// hyphens not allowed so change them to underscores in project name
+					if (ProjectName.Contains("-"))
+					{
+						Trace.TraceWarning("Project name contained hyphens, converted to underscore");
+						ProjectName = ProjectName.Replace("-", "_");
+					}
+
+					// check for special characters
+					for (int Index = 0; Index < ProjectName.Length; Index++)
+					{
+						char c = ProjectName[Index];
+						if (c != '.' && !IsDigit(c) && !IsLetter(c))
+						{
+							throw new BuildException("Project name contains illegal characters (only letters, numbers, and underscore allowed); please replace [PROJECT] with a valid name");
+						}
+					}
+
+					PackageName = PackageName.Replace("[PROJECT]", ProjectName);
+				}
+
+				// verify minimum number of segments
+				string[] PackageParts = PackageName.Split('.');
+				int SectionCount = PackageParts.Length;
+				if (SectionCount < 2)
+				{
+					throw new BuildException("Package name must have at least 2 segments separated by periods (ex. com.projectname, not projectname); please change in Android Project Settings. Currently set to '" + PackageName + "'");
+				}
+
+				// hyphens not allowed
+				if (PackageName.Contains("-"))
+				{
+					throw new BuildException("Package names may not contain hyphens; please change in Android Project Settings. Currently set to '" + PackageName + "'");
+				}
+
+				// do not allow special characters
+				for (int Index = 0; Index < PackageName.Length; Index++)
+				{
+					char c = PackageName[Index];
+					if (c != '.' && !IsDigit(c) && !IsLetter(c))
+					{
+						throw new BuildException("Package name contains illegal characters (only letters, numbers, and underscore allowed); please change in Android Project Settings. Currently set to '" + PackageName + "'");
+					}
+				}
+
+				// validate each segment
+				for (int Index = 0; Index < SectionCount; Index++)
+				{
+					if (PackageParts[Index].Length < 1)
+					{
+						throw new BuildException("Package name segments must have at least one letter; please change in Android Project Settings. Currently set to '" + PackageName + "'");
+					}
+
+					if (!IsLetter(PackageParts[Index][0]))
+					{
+						throw new BuildException("Package name segments must start with a letter; please change in Android Project Settings. Currently set to '" + PackageName + "'");
+					}
+
+					// cannot use Java reserved keywords
+					foreach (string Keyword in JavaReservedKeywords)
+					{
+						if (PackageParts[Index] == Keyword)
+						{
+							throw new BuildException("Package name segments must not be a Java reserved keyword (" + Keyword + "); please change in Android Project Settings. Currently set to '" + PackageName + "'");
+						}
+					}
+				}
+
+				Console.WriteLine("Using package name: '{0}'", PackageName);
+				CachedPackageName = PackageName;
+			}
+
+			return CachedPackageName;
 		}
 
 		private string GetPublicKey()
