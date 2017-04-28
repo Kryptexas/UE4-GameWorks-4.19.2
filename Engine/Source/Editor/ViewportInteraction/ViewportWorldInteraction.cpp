@@ -3343,7 +3343,8 @@ FVector UViewportWorldInteraction::FindTransformGizmoAlignPoint(const FTransform
 		for (const AActor* SelectedCandidateActor : CandidateActors)
 		{
 			// Don't align to yourself, the entire world, or any actors hidden in the editor
-			if (!SelectedCandidateActor->IsSelected()
+			if (SelectedCandidateActor != nullptr
+				&& !SelectedCandidateActor->IsSelected()
 				&& SelectedCandidateActor != GetWorld()->GetDefaultBrush()
 				&& SelectedCandidateActor->IsHiddenEd() == false
 				&& !SelectedCandidateActor->IsEditorOnly()
@@ -3374,7 +3375,8 @@ FVector UViewportWorldInteraction::FindTransformGizmoAlignPoint(const FTransform
 				const AActor* PossibleCandidateActor = OverlapResult.GetActor();
 
 				// Don't align to yourself, the entire world, or any actors hidden in the editor
-				if (!PossibleCandidateActor->IsSelected()
+				if (PossibleCandidateActor != nullptr
+					&& !PossibleCandidateActor->IsSelected()
 					&& PossibleCandidateActor != GetWorld()->GetDefaultBrush()
 					&& PossibleCandidateActor->IsHiddenEd() == false
 					&& !PossibleCandidateActor->IsEditorOnly()
