@@ -138,14 +138,14 @@ public:
 			}
 		}
 
-		void Release(TArray<FUnorderedAccessViewRHIParamRef>& BuffersToTransition)
+		void Release(TArray<FUnorderedAccessViewRHIParamRef>& InBuffersToTransition)
 		{
 			for (uint32 i = 0; i < NUM_BUFFERS; i++)
 			{
 				FRWBuffer& RWBuffer = RWBuffers[i];
 				if (RWBuffer.UAV.IsValid())
 				{
-					BuffersToTransition.Remove(RWBuffer.UAV);
+					InBuffersToTransition.Remove(RWBuffer.UAV);
 				}
 			}
 		}
