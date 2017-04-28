@@ -562,7 +562,7 @@ void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, TA
 
 void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 {
-	if (WorldToUpdate->Scene && WorldToUpdate->FeatureLevel >= ERHIFeatureLevel::SM4)
+	if (WorldToUpdate->Scene)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_SkylightCaptures);
 		if (SkyCapturesToUpdate.Num() > 0)

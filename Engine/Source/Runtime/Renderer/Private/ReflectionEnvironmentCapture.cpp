@@ -33,6 +33,7 @@
 #include "ReflectionEnvironment.h"
 #include "OneColorShader.h"
 #include "PipelineStateCache.h"
+#include "MobileReflectionEnvironmentCapture.h"
 
 /** Near plane to use when capturing the scene. */
 float GReflectionCaptureNearPlane = 5;
@@ -91,66 +92,7 @@ void FullyResolveReflectionScratchCubes(FRHICommandListImmediate& RHICmdList)
 	RHICmdList.CopyToResolveTarget(Scratch1, Scratch1, true, ResolveParams);  
 }
 
-/** Pixel shader used for filtering a mip. */
-class FCubeFilterPS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FCubeFilterPS,Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return true;
-	}
-
-	FCubeFilterPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		FGlobalShader(Initializer)
-	{
-		CubeFace.Bind(Initializer.ParameterMap,TEXT("CubeFace"));
-		MipIndex.Bind(Initializer.ParameterMap,TEXT("MipIndex"));
-		NumMips.Bind(Initializer.ParameterMap,TEXT("NumMips"));
-		SourceTexture.Bind(Initializer.ParameterMap,TEXT("SourceTexture"));
-		SourceTextureSampler.Bind(Initializer.ParameterMap,TEXT("SourceTextureSampler"));
-	}
-	FCubeFilterPS() {}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << CubeFace;
-		Ar << MipIndex;
-		Ar << NumMips;
-		Ar << SourceTexture;
-		Ar << SourceTextureSampler;
-		return bShaderHasOutdatedParameters;
-	}
-
-	FShaderParameter CubeFace;
-	FShaderParameter MipIndex;
-	FShaderParameter NumMips;
-	FShaderResourceParameter SourceTexture;
-	FShaderResourceParameter SourceTextureSampler;
-};
-
 IMPLEMENT_SHADER_TYPE(,FCubeFilterPS,TEXT("ReflectionEnvironmentShaders"),TEXT("DownsamplePS"),SF_Pixel);
-
-template< uint32 bNormalize >
-class TCubeFilterPS : public FCubeFilterPS
-{
-	DECLARE_SHADER_TYPE(TCubeFilterPS,Global);
-
-public:
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FCubeFilterPS::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("NORMALIZE"), bNormalize);
-	}
-
-	TCubeFilterPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-	: FCubeFilterPS(Initializer)
-	{}
-
-	TCubeFilterPS() {}
-};
 
 IMPLEMENT_SHADER_TYPE(template<>,TCubeFilterPS<0>,TEXT("ReflectionEnvironmentShaders"),TEXT("FilterPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TCubeFilterPS<1>,TEXT("ReflectionEnvironmentShaders"),TEXT("FilterPS"),SF_Pixel);
@@ -184,12 +126,11 @@ public:
 	{
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, int32 TargetSize)
+	void SetParameters(FRHICommandList& RHICmdList, int32 TargetSize, FSceneRenderTargetItem& Cubemap)
 	{
 		const int32 EffectiveTopMipSize = TargetSize;
 		const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
 		// Read from the smallest mip that was downsampled to
-		FSceneRenderTargetItem& Cubemap = FSceneRenderTargets::Get(RHICmdList).ReflectionColorScratchCubemap[0]->GetRenderTargetItem();
 
 		if (Cubemap.IsValid())
 		{
@@ -289,7 +230,7 @@ void CreateCubeMips( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Typ
 }
 
 /** Computes the average brightness of the given reflection capture and stores it in the scene. */
-float ComputeSingleAverageBrightnessFromCubemap(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, int32 TargetSize)
+float ComputeSingleAverageBrightnessFromCubemap(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, int32 TargetSize, FSceneRenderTargetItem& Cubemap)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, ComputeSingleAverageBrightnessFromCubemap);
 
@@ -317,7 +258,7 @@ float ComputeSingleAverageBrightnessFromCubemap(FRHICommandListImmediate& RHICmd
 	
 	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetParameters(RHICmdList, TargetSize);
+	PixelShader->SetParameters(RHICmdList, TargetSize, Cubemap);
 
 	DrawRectangle( 
 		RHICmdList,
@@ -354,7 +295,7 @@ void ComputeAverageBrightness(FRHICommandListImmediate& RHICmdList, ERHIFeatureL
 	FSceneRenderTargetItem& DownSampledCube = FSceneRenderTargets::Get(RHICmdList).ReflectionColorScratchCubemap[0]->GetRenderTargetItem();
 	CreateCubeMips( RHICmdList, FeatureLevel, NumMips, DownSampledCube );
 
-	OutAverageBrightness = ComputeSingleAverageBrightnessFromCubemap(RHICmdList, FeatureLevel, CubmapSize);
+	OutAverageBrightness = ComputeSingleAverageBrightnessFromCubemap(RHICmdList, FeatureLevel, CubmapSize, DownSampledCube);
 }
 
 /** Generates mips for glossiness and filters the cubemap for a given reflection. */
@@ -1551,7 +1492,7 @@ void CopyToSkyTexture(FRHICommandList& RHICmdList, FScene* Scene, FTexture* Proc
 // Warning: returns before writes to OutIrradianceEnvironmentMap have completed, as they are queued on the rendering thread
 void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap)
 {	
-	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	if (GSupportsRenderTargetFormat_PF_FloatRGBA || GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateSkyCaptureContents);
 		{
@@ -1600,19 +1541,35 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 			FSHVectorRGB3*, IrradianceEnvironmentMap, &OutIrradianceEnvironmentMap,
 			ERHIFeatureLevel::Type, FeatureLevel, GetFeatureLevel(),
 		{
-			ComputeAverageBrightness(RHICmdList, FeatureLevel, CubemapSize, AverageBrightness);
-			FilterReflectionEnvironment(RHICmdList, FeatureLevel, CubemapSize, IrradianceEnvironmentMap);
+			if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
+			{
+				MobileReflectionEnvironmentCapture::ComputeAverageBrightness(RHICmdList, FeatureLevel, CubemapSize, AverageBrightness);
+				MobileReflectionEnvironmentCapture::FilterReflectionEnvironment(RHICmdList, FeatureLevel, CubemapSize, IrradianceEnvironmentMap);
+			}
+			else
+			{
+				ComputeAverageBrightness(RHICmdList, FeatureLevel, CubemapSize, AverageBrightness);
+				FilterReflectionEnvironment(RHICmdList, FeatureLevel, CubemapSize, IrradianceEnvironmentMap);
+			}
 		});
 
 		// Optionally copy the filtered mip chain to the output texture
 		if (OutProcessedTexture)
 		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
+			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER( 
 				CopyCommand,
 				FScene*, Scene, this,
 				FTexture*, ProcessedTexture, OutProcessedTexture,
+				ERHIFeatureLevel::Type, FeatureLevel, GetFeatureLevel(),
 			{
-				CopyToSkyTexture(RHICmdList, Scene, ProcessedTexture);
+				if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
+				{
+					MobileReflectionEnvironmentCapture::CopyToSkyTexture(RHICmdList, Scene, ProcessedTexture);
+				}
+				else
+				{
+					CopyToSkyTexture(RHICmdList, Scene, ProcessedTexture);
+				}
 			});
 		}
 	}
