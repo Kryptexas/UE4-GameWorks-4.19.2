@@ -61,6 +61,7 @@ float3 ScatteringFunction()
 }
 
 float3 GlobalAlbedo;
+float3 GlobalEmissive;
 float GlobalExtinctionScale;
 
 #ifndef THREADGROUP_SIZE 
@@ -94,7 +95,7 @@ void MaterialSetupCS(
 	if (all((int3)GridCoordinate < VolumetricFog.GridSizeInt))
 	{
 		RWVBufferA[GridCoordinate] = float4(Scattering, Absorption);
-		RWVBufferB[GridCoordinate] = float4(0, 0, 0, 0);
+		RWVBufferB[GridCoordinate] = float4(GlobalEmissive, 0);
 	}
 }
 

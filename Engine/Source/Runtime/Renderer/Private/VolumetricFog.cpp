@@ -147,6 +147,7 @@ public:
 		VolumetricFogParameters.Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
 		GlobalAlbedo.Bind(Initializer.ParameterMap, TEXT("GlobalAlbedo"));
+		GlobalEmissive.Bind(Initializer.ParameterMap, TEXT("GlobalEmissive"));
 		GlobalExtinctionScale.Bind(Initializer.ParameterMap, TEXT("GlobalExtinctionScale"));
 	} 
 
@@ -166,6 +167,7 @@ public:
 		VolumetricFogParameters.Set(RHICmdList, ShaderRHI, View, VBufferA, VBufferB, NULL);
 		HeightFogParameters.Set(RHICmdList, ShaderRHI, &View);
 		SetShaderValue(RHICmdList, ShaderRHI, GlobalAlbedo, FogInfo.VolumetricFogAlbedo);
+		SetShaderValue(RHICmdList, ShaderRHI, GlobalEmissive, FogInfo.VolumetricFogEmissive);
 		SetShaderValue(RHICmdList, ShaderRHI, GlobalExtinctionScale, FogInfo.VolumetricFogExtinctionScale);
 	}
 
@@ -183,6 +185,7 @@ public:
 		Ar << VolumetricFogParameters;
 		Ar << HeightFogParameters;
 		Ar << GlobalAlbedo;
+		Ar << GlobalEmissive;
 		Ar << GlobalExtinctionScale;
 		return bShaderHasOutdatedParameters;
 	}
@@ -192,6 +195,7 @@ private:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 	FExponentialHeightFogShaderParameters HeightFogParameters;
 	FShaderParameter GlobalAlbedo;
+	FShaderParameter GlobalEmissive;
 	FShaderParameter GlobalExtinctionScale;
 };
 
