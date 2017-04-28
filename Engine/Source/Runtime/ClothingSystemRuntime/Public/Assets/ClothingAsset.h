@@ -282,6 +282,7 @@ struct FClothConfig
 		: WindMethod(EClothingWindMethod::Legacy)
 		, SelfCollisionRadius(0.0f)
 		, SelfCollisionStiffness(0.0f)
+		, SelfCollisionCullScale(1.0f)
 		, Damping(0.4f)
 		, Friction(0.1f)
 		, WindDragCoefficient(0.02f/100.0f)
@@ -328,6 +329,16 @@ struct FClothConfig
 	// Stiffness of the spring force that will resolve self collisions
 	UPROPERTY(EditAnywhere, Category = ClothConfig)
 	float SelfCollisionStiffness;
+
+	/** 
+	 * Scale to use for the radius of the culling checks for self collisions.
+	 * Any other self collision body within the radius of this check will be culled.
+	 * This helps performance with higher resolution meshes by reducing the number
+	 * of colliding bodies within the cloth. Reducing this will have a negative
+	 * effect on performance!
+	 */
+	UPROPERTY(EditAnywhere, Category = ClothConfig, meta = (UIMin="0", ClampMin="0"))
+	float SelfCollisionCullScale;
 
 	// Damping of particle motion per-axis
 	UPROPERTY(EditAnywhere, Category = ClothConfig)
