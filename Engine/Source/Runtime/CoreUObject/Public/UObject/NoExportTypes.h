@@ -924,7 +924,6 @@ public:
 USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeDateTime", HasNativeBreak="Engine.KismetMathLibrary.BreakDateTime"))
 struct FDateTime
 {
-	UPROPERTY()
 	int64 Ticks;
 };
 
@@ -934,7 +933,6 @@ struct FDateTime
 USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeTimespan", HasNativeBreak="Engine.KismetMathLibrary.BreakTimespan"))
 struct FTimespan
 {
-	UPROPERTY()
 	int64 Ticks;
 };
 
