@@ -141,6 +141,7 @@
 #pragma clang diagnostic ignored "-Wobjc-protocol-property-synthesis"
 #pragma clang diagnostic ignored "-Wnullability-completeness-on-arrays"
 #pragma clang diagnostic ignored "-Wnull-dereference"
+#pragma clang diagnostic ignored "-Wnonportable-include-path"
 #endif
 
 // We can pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
