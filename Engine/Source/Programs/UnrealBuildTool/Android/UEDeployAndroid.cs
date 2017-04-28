@@ -1411,7 +1411,7 @@ namespace UnrealBuildTool
 					for (int Index = 0; Index < ProjectName.Length; Index++)
 					{
 						char c = ProjectName[Index];
-						if (c != '.' && !IsDigit(c) && !IsLetter(c))
+						if (c != '.' && c != '_' && !IsDigit(c) && !IsLetter(c))
 						{
 							throw new BuildException("Project name contains illegal characters (only letters, numbers, and underscore allowed); please replace [PROJECT] with a valid name");
 						}
@@ -1438,7 +1438,7 @@ namespace UnrealBuildTool
 				for (int Index = 0; Index < PackageName.Length; Index++)
 				{
 					char c = PackageName[Index];
-					if (c != '.' && !IsDigit(c) && !IsLetter(c))
+					if (c != '.' && c != '_' && !IsDigit(c) && !IsLetter(c))
 					{
 						throw new BuildException("Package name contains illegal characters (only letters, numbers, and underscore allowed); please change in Android Project Settings. Currently set to '" + PackageName + "'");
 					}
