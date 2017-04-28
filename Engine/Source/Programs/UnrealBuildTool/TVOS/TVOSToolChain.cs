@@ -21,5 +21,14 @@ namespace UnrealBuildTool
 			: base(CPPTargetPlatform.TVOS, InProjectFile, InPlatformContext)
 		{
 		}
+
+        public override bool ShouldExcludeNonPortableIncludePathWarnings()
+        {
+            if (IOSSDKVersionFloat >= 10.2)
+            {
+                return true;
+            }
+            return false;
+        }
 	};
 }
