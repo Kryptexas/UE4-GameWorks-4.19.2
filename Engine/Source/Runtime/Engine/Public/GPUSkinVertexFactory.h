@@ -343,12 +343,12 @@ public:
 		// @param bPrevious true:previous, false:current
 		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return IsValid() can fail, then you have to create the buffers first (or if the size changes)
-		FVertexBufferAndSRV& GetBoneBufferForWriting(bool bPrevious, uint32 FrameNumber)
+		FVertexBufferAndSRV& GetBoneBufferForWriting(uint32 FrameNumber)
 		{
 			const FShaderDataType* This = (const FShaderDataType*)this;
 
 			// non const version maps to const version
-			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(bPrevious, FrameNumber);
+			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(false, FrameNumber);
 		}
 
 	private:
