@@ -21,8 +21,6 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount,
 #include "RHICommandListCommandExecutes.inl"
 #endif
 
-int32 FRHICommandListBase::StateCacheEnabled = 1;
-
 static TAutoConsoleVariable<int32> CVarRHICmdBypass(
 	TEXT("r.RHICmdBypass"),
 	FRHICommandListExecutor::DefaultBypass,
@@ -104,12 +102,6 @@ static TAutoConsoleVariable<int32> CVarRHICmdMinCmdlistSizeForParallelTranslate(
 	TEXT("r.RHICmdMinCmdlistSizeForParallelTranslate"),
 	32,
 	TEXT("In kilobytes. Cmdlists are merged into one parallel translate until we have at least this much memory to process. For a given pass, we won't do more translates than we have task threads. Only relevant if r.RHICmdBalanceTranslatesAfterTasks is on."));
-
-static FAutoConsoleVariableRef CVarRHICmdListStateCache(
-	TEXT("r.RHICmdStateCacheEnable"),
-	FRHICommandListBase::StateCacheEnabled,
-	TEXT("If > 0, then enable a minor state cache on the from of cmdlist recording.")
-	);
 
 RHI_API bool GEnableAsyncCompute = true;
 RHI_API FRHICommandListExecutor GRHICommandList;
@@ -746,7 +738,6 @@ void FRHICommandListBase::Reset()
 		RenderThreadContexts[Index] = nullptr;
 	}
 	ExecuteStat = TStatId();
-	FlushStateCache();
 }
 
 
@@ -1020,7 +1011,7 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FRHICommandListBase_QueueParallelAsyncCommandListSubmit);
 	check(IsInRenderingThread() && IsImmediate() && Num);
-	FlushStateCache();
+
 	if (GRHIThread)
 	{
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we should start on the stuff before this async list
@@ -1202,7 +1193,6 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 void FRHICommandListBase::QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList)
 {
 	check(IsInRenderingThread() && IsImmediate());
-	FlushStateCache();
 
 	if (GRHIThread)
 	{
@@ -1270,7 +1260,7 @@ struct FRHICommandWaitForAndSubmitRTSubList : public FRHICommand<FRHICommandWait
 void FRHICommandListBase::QueueRenderThreadCommandListSubmit(FGraphEventRef& RenderThreadCompletionEvent, class FRHICommandList* CmdList)
 {
 	check(!IsInRHIThread());
-	FlushStateCache();
+
 	if (RenderThreadCompletionEvent.GetReference())
 	{
 		check(!IsInActualRenderingThread() && !IsInGameThread() && !IsImmediate());
@@ -1306,7 +1296,6 @@ struct FRHICommandSubmitSubList : public FRHICommand<FRHICommandSubmitSubList>
 
 void FRHICommandListBase::QueueCommandListSubmit(class FRHICommandList* CmdList)
 {
-	FlushStateCache();
 	new (AllocCommand<FRHICommandSubmitSubList>()) FRHICommandSubmitSubList(CmdList);
 }
 
