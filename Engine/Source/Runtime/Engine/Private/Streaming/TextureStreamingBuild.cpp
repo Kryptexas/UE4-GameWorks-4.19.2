@@ -159,6 +159,16 @@ ENGINE_API bool BuildTextureStreamingComponentData(UWorld* InWorld, EMaterialQua
 
 #undef LOCTEXT_NAMESPACE
 
+/**
+ * Checks whether a UTexture2D is supposed to be streaming.
+ * @param Texture	Texture to check
+ * @return			true if the UTexture2D is supposed to be streaming
+ */
+bool IsStreamingTexture( const UTexture2D* Texture2D )
+{
+	return Texture2D && Texture2D->bIsStreamable && !Texture2D->NeverStream && Texture2D->GetNumMips() > Texture2D->GetNumNonStreamingMips();
+}
+
 uint32 PackRelativeBox(const FVector& RefOrigin, const FVector& RefExtent, const FVector& Origin, const FVector& Extent)
 {
 	const FVector RefMin = RefOrigin - RefExtent;

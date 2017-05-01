@@ -497,7 +497,7 @@ public:
 	/** Helper struct to specify spawn behavior */
 	struct FInitBodySpawnParams
 	{
-		FInitBodySpawnParams(const UPrimitiveComponent* PrimComp);
+		ENGINE_API FInitBodySpawnParams(const UPrimitiveComponent* PrimComp);
 
 		/** Whether the created physx actor will be static */
 		bool bStaticPhysics;

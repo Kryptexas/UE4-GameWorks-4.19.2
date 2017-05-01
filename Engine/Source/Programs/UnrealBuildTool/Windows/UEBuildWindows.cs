@@ -263,6 +263,8 @@ namespace UnrealBuildTool
 			}
 			if (bCompileWithICL)
 			{
+				Target.NumIncludedBytesPerUnityCPP = Math.Min(Target.NumIncludedBytesPerUnityCPP, 256 * 1024);
+
 				Target.bUseSharedPCHs = false;
 
 				if (WindowsPlatform.bUseVCCompilerArgs)
