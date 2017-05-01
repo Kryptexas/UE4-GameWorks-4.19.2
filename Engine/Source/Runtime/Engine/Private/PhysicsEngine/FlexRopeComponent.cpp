@@ -532,7 +532,7 @@ void UFlexRopeComponent::OnUnregister()
 
 #if WITH_FLEX
 
-	if (ContainerInstance)
+	if (ContainerInstance && AssetInstance)
 	{
 		ContainerInstance->DestroyInstance(AssetInstance);
 		AssetInstance = NULL;
