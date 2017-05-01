@@ -72,12 +72,19 @@ public:
 	 */
 	UTextureLODSettings* GetTextureLODSettings() const;
 
+	bool ModifyCVarValue(const FString& CVarName, const FString& CVarValue, bool bAddIfNonExistant = false);
+	FString GetCVarValue(const FString& CVarName);
 private:
-
+	// Make sure our TextureLODGroups array is sorted correctly and complete
+	void ValidateTextureLODGroups();
 	/** Delegate object fired when there has been any changes to the console variables */
 	FOnCVarsUpdated CVarsUpdatedDelegate;
 
 public:
+	/* ValidateProfile()
+	* Validate the Profile after changes by loading it's config (.ini)
+	*/
+	void ValidateProfile();
 
 	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;

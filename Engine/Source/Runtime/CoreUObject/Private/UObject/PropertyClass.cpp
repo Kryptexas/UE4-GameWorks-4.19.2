@@ -84,8 +84,12 @@ const TCHAR* UClassProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 		{
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			FLinkerLoad* ObjectLinker = (Parent != nullptr) ? Parent->GetClass()->GetLinker() : GetLinker();
-			bool const bIsDeferringValueLoad = ((ObjectLinker == nullptr) || (ObjectLinker->LoadFlags & LOAD_DeferDependencyLoads)) &&
-				(Cast<ULinkerPlaceholderClass>(MetaClass) || Cast<ULinkerPlaceholderClass>(AssignedPropertyClass));
+			auto IsDeferringValueLoad = [](const UClass* Class)->bool
+			{
+				const ULinkerPlaceholderClass* Placeholder = Cast<ULinkerPlaceholderClass>(Class);
+				return Placeholder && !Placeholder->IsMarkedResolved();
+			};
+			const bool bIsDeferringValueLoad = IsDeferringValueLoad(MetaClass) || ((!ObjectLinker || (ObjectLinker->LoadFlags & LOAD_DeferDependencyLoads) != 0) && IsDeferringValueLoad(AssignedPropertyClass));
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 			check( bIsDeferringValueLoad || !(Cast<ULinkerPlaceholderClass>(MetaClass) || Cast<ULinkerPlaceholderClass>(AssignedPropertyClass)) );

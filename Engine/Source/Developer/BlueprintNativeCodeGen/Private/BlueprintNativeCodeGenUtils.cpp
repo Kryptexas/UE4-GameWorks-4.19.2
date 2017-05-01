@@ -172,15 +172,17 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateNativizedDependenciesSource
 	bool bSuccess = true;
 
 	IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	const FString BaseFilename = NativizedDependenciesFileName();
+
 	{
-		const FString HeaderFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::HFile), *NativizedDependenciesFileName()) + TEXT(".h");
+		const FString HeaderFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::HFile), *BaseFilename) + TEXT(".h");
 		const FString HeaderFileContent = CodeGenBackend.DependenciesGlobalMapHeaderCode();
 		bSuccess &= GameProjectUtils::WriteOutputFile(HeaderFilePath, HeaderFileContent, FailureReason);
 	}
 
 	{
-		const FString SourceFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::CppFile), *NativizedDependenciesFileName()) + TEXT(".cpp");
-		const FString SourceFileContent = CodeGenBackend.DependenciesGlobalMapBodyCode(TargetPaths.RuntimeModuleName());
+		const FString SourceFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::CppFile), *BaseFilename) + TEXT(".cpp");
+		const FString SourceFileContent = FString::Printf( TEXT("#include \"%s.h\"\n%s"), *BaseFilename, *CodeGenBackend.DependenciesGlobalMapBodyCode(TargetPaths.RuntimeModuleName()) );
 		bSuccess &= GameProjectUtils::WriteOutputFile(SourceFilePath, SourceFileContent, FailureReason);
 	}
 

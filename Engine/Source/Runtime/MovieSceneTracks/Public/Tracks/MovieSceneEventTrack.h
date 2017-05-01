@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "MovieSceneNameableTrack.h"
 #include "Tracks/MovieSceneSpawnTrack.h"
+#include "MovieSceneObjectBindingID.h"
 #include "MovieSceneEventTrack.generated.h"
 
 struct FMovieSceneEvaluationTrack;
@@ -76,6 +77,10 @@ public:
 	/** Defines where in the evaluation to trigger events */
 	UPROPERTY(EditAnywhere, Category=TrackEvent)
 	EFireEventsAtPosition EventPosition;
+
+	/** Defines a list of object bindings on which to trigger the events in this track. When empty, events will trigger in the default event contexts for the playback environment (such as the level blueprint, or widget). */
+	UPROPERTY(EditAnywhere, Category=TrackEvent)
+	TArray<FMovieSceneObjectBindingID> EventReceivers;
 
 private:
 	

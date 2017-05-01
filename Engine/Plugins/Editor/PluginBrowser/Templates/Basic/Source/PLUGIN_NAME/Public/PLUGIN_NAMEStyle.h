@@ -1,9 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Styling/SlateStyle.h"
 
-/**  */
 class FPLUGIN_NAMEStyle
 {
 public:

@@ -34,8 +34,8 @@
  */
 FCoreAudioSoundSource::FCoreAudioSoundSource( FAudioDevice* InAudioDevice )
 :	FSoundSource( InAudioDevice ),
-	Buffer( NULL ),
-	CoreAudioConverter( NULL ),
+	CoreAudioBuffer(nullptr),
+	CoreAudioConverter(nullptr),
 	RealtimeAsyncTask(nullptr),
 	bStreamedSound( false ),
 	bBuffersToFlush( false ),
@@ -99,11 +99,11 @@ void FCoreAudioSoundSource::FreeResources( void )
 		}
 
 		// Buffers without a valid resource ID are transient and need to be deleted.
-		if( Buffer )
+		if( CoreAudioBuffer )
 		{
-			check( Buffer->ResourceID == 0 );
-			delete Buffer;
-			Buffer = nullptr;
+			check( CoreAudioBuffer->ResourceID == 0 );
+			delete CoreAudioBuffer;
+			CoreAudioBuffer = nullptr;
 		}
 		
 		bStreamedSound = false;
@@ -124,8 +124,8 @@ void FCoreAudioSoundSource::SubmitPCMBuffers( void )
 	NumActiveBuffers=1;
 	BufferInUse=0;
 
-	CoreAudioBuffers[0].AudioData = Buffer->PCMData;
-	CoreAudioBuffers[0].AudioDataSize = Buffer->PCMDataSize;
+	CoreAudioBuffers[0].AudioData = CoreAudioBuffer->PCMData;
+	CoreAudioBuffers[0].AudioDataSize = CoreAudioBuffer->PCMDataSize;
 }
 
 bool FCoreAudioSoundSource::ReadMorePCMData( const int32 BufferIndex, EDataReadMode DataReadMode )
@@ -135,7 +135,7 @@ bool FCoreAudioSoundSource::ReadMorePCMData( const int32 BufferIndex, EDataReadM
 	USoundWave* WaveData = WaveInstance->WaveData;
 	if( WaveData && WaveData->bProcedural )
 	{
-		const int32 MaxSamples = ( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels ) / sizeof( int16 );
+		const int32 MaxSamples = ( MONO_PCM_BUFFER_SIZE * CoreAudioBuffer->NumChannels ) / sizeof( int16 );
 
 		if (DataReadMode == EDataReadMode::Synchronous || WaveData->bCanProcessAsync == false)
 		{
@@ -161,11 +161,11 @@ bool FCoreAudioSoundSource::ReadMorePCMData( const int32 BufferIndex, EDataReadM
 		if (DataReadMode == EDataReadMode::Synchronous)
 		{
 			++NumActiveBuffers;
-			return Buffer->ReadCompressedData( CoreAudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never );
+			return CoreAudioBuffer->ReadCompressedData( CoreAudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never );
 		}
 		else
 		{
-			RealtimeAsyncTask = new FAsyncRealtimeAudioTask(Buffer, (uint8*)CoreAudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never, DataReadMode == EDataReadMode::AsynchronousSkipFirstFrame);
+			RealtimeAsyncTask = new FAsyncRealtimeAudioTask(CoreAudioBuffer, (uint8*)CoreAudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never, DataReadMode == EDataReadMode::AsynchronousSkipFirstFrame);
 			RealtimeAsyncTask->StartBackgroundTask();
 			return false;
 		}
@@ -183,7 +183,7 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 
 	bStreamedSound = true;
 
-	const uint32 BufferSize = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
+	const uint32 BufferSize = MONO_PCM_BUFFER_SIZE * CoreAudioBuffer->NumChannels;
 
 	// Set up double buffer area to decompress to
 	CoreAudioBuffers[0].AudioData = (uint8*)FMemory::Malloc(BufferSize);
@@ -215,7 +215,7 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 
 	// Start the async population of the next buffer
 	EDataReadMode DataReadMode = EDataReadMode::Asynchronous;
-	if (Buffer->SoundFormat == ESoundFormat::SoundFormat_Streaming)
+	if (CoreAudioBuffer->SoundFormat == ESoundFormat::SoundFormat_Streaming)
 	{
 		DataReadMode =  EDataReadMode::Synchronous;
 	}
@@ -240,14 +240,13 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
 		// Find matching buffer.
-		Buffer = FCoreAudioSoundBuffer::Init( AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f );
+		CoreAudioBuffer = FCoreAudioSoundBuffer::Init( AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f );
 	
-		// Buffer failed to be created, or there was an error with the compressed data
-		if( Buffer && Buffer->NumChannels > 0 )
+		if( CoreAudioBuffer && CoreAudioBuffer->NumChannels > 0 )
 		{
 			SCOPE_CYCLE_COUNTER( STAT_AudioSourceInitTime );
 
-			if (Buffer->NumChannels < 3)
+			if (CoreAudioBuffer->NumChannels < 3)
 			{
 				MixerInputNumber = AudioDevice->GetFreeMixer3DInput();
 			}
@@ -268,6 +267,7 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 			}
 
 
+			Buffer = CoreAudioBuffer;
 			WaveInstance = InWaveInstance;
 
 			// Set whether to apply reverb
@@ -275,11 +275,11 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 
 			if (WaveInstance->StartTime > 0.f)
 			{
-				Buffer->Seek(WaveInstance->StartTime);
+				CoreAudioBuffer->Seek(WaveInstance->StartTime);
 			}
 
 			// Submit audio buffers
-			switch( Buffer->SoundFormat )
+			switch( CoreAudioBuffer->SoundFormat )
 			{
 				case SoundFormat_PCM:
 				case SoundFormat_PCMPreview:
@@ -328,7 +328,7 @@ void FCoreAudioSoundSource::Update( void )
 
 	Volume *= AudioDevice->GetPlatformAudioHeadroom();
 
-	if( Buffer->NumChannels < 3 )
+	if( CoreAudioBuffer->NumChannels < 3 )
 	{
 		float Azimuth = 0.0f;
 		float Elevation = 0.0f;
@@ -420,8 +420,10 @@ void FCoreAudioSoundSource::Play( void )
  */
 void FCoreAudioSoundSource::Stop( void )
 {
+	FScopeLock Lock(&CriticalSection);
+
 	if( WaveInstance )
-	{	
+	{
 		if( Playing && AudioChannel )
 		{
 			DetachFromAUGraph();
@@ -432,7 +434,7 @@ void FCoreAudioSoundSource::Stop( void )
 
 		Paused = false;
 		Playing = false;
-		Buffer = NULL;
+		CoreAudioBuffer = nullptr;
 		bBuffersToFlush = false;
 	}
 
@@ -480,6 +482,8 @@ void FCoreAudioSoundSource::HandleRealTimeSourceData(bool bLooped)
  */
 void FCoreAudioSoundSource::HandleRealTimeSource(bool bBlockForData)
 {
+	FScopeLock Lock(&CriticalSection);
+
 	const bool bGetMoreData = bBlockForData || (RealtimeAsyncTask == nullptr);
 	int32 BufferIndex = (BufferInUse + NumActiveBuffers) % 3;
 	if (RealtimeAsyncTask)
@@ -526,7 +530,7 @@ void FCoreAudioSoundSource::HandleRealTimeSource(bool bBlockForData)
 	if (bGetMoreData)
 	{
 		// Get the next bit of streaming data
-		const bool bLooped = ReadMorePCMData(BufferIndex, (Buffer->SoundFormat == ESoundFormat::SoundFormat_Streaming ? EDataReadMode::Synchronous : EDataReadMode::Asynchronous));
+		const bool bLooped = ReadMorePCMData(BufferIndex, (CoreAudioBuffer->SoundFormat == ESoundFormat::SoundFormat_Streaming ? EDataReadMode::Synchronous : EDataReadMode::Asynchronous));
 
 		if (RealtimeAsyncTask == nullptr)
 		{
@@ -551,6 +555,8 @@ bool FCoreAudioSoundSource::IsFinished( void )
 	
 	if( WaveInstance )
 	{
+		FScopeLock Lock(&CriticalSection);
+
 		// If not rendering, we're either at the end of a sound, or starved
 		// and we are expecting the sound to be finishing
 		if (NumActiveBuffers == 0 && (bBuffersToFlush || !bStreamedSound))
@@ -798,12 +804,12 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 	AUNode FinalNode = -1;
 	AudioStreamBasicDescription* StreamFormat = NULL;
 	
-	if (Buffer->NumChannels < 3)
+	if (CoreAudioBuffer->NumChannels < 3)
 	{
-		ErrorStatus = AudioConverterNew( &Buffer->PCMFormat, &AudioDevice->Mixer3DFormat, &CoreAudioConverter );
+		ErrorStatus = AudioConverterNew( &CoreAudioBuffer->PCMFormat, &AudioDevice->Mixer3DFormat, &CoreAudioConverter );
 		FinalNode = AudioDevice->GetMixer3DNode();
 
-		uint32 SpatialSetting = ( Buffer->NumChannels == 1 ) ? kSpatializationAlgorithm_SoundField : kSpatializationAlgorithm_StereoPassThrough;
+		uint32 SpatialSetting = ( CoreAudioBuffer->NumChannels == 1 ) ? kSpatializationAlgorithm_SoundField : kSpatializationAlgorithm_StereoPassThrough;
 		ErrorStatus = AudioUnitSetProperty( AudioDevice->GetMixer3DUnit(), kAudioUnitProperty_SpatializationAlgorithm, kAudioUnitScope_Input, MixerInputNumber, &SpatialSetting, sizeof( SpatialSetting ) );
 		check(ErrorStatus == noErr);
 
@@ -817,11 +823,11 @@ bool FCoreAudioSoundSource::AttachToAUGraph()
 		FinalNode = AudioDevice->GetMatrixMixerNode();
 		StreamFormat = &AudioDevice->MatrixMixerInputFormat;
 		
-		ErrorStatus = AudioConverterNew( &Buffer->PCMFormat, &AudioDevice->MatrixMixerInputFormat, &CoreAudioConverter );
+		ErrorStatus = AudioConverterNew( &CoreAudioBuffer->PCMFormat, &AudioDevice->MatrixMixerInputFormat, &CoreAudioConverter );
 		check(ErrorStatus == noErr);
 
-		bool bIs6ChannelOGG = Buffer->NumChannels == 6
-							&& ((Buffer->DecompressionState && Buffer->DecompressionState->UsesVorbisChannelOrdering())
+		bool bIs6ChannelOGG = CoreAudioBuffer->NumChannels == 6
+							&& ((CoreAudioBuffer->DecompressionState && CoreAudioBuffer->DecompressionState->UsesVorbisChannelOrdering())
 							|| WaveInstance->WaveData->bDecompressedFromOgg);
 
 		AudioDevice->SetupMatrixMixerInput( MixerInputNumber, bIs6ChannelOGG );
@@ -937,7 +943,7 @@ bool FCoreAudioSoundSource::DetachFromAUGraph()
 
 	if( AudioChannel )
 	{
-		if( Buffer->NumChannels < 3 )
+		if( CoreAudioBuffer->NumChannels < 3 )
 		{
 			SAFE_CA_CALL( AUGraphDisconnectNodeInput( AudioDevice->GetAudioUnitGraph(), AudioDevice->GetMixer3DNode(), MixerInputNumber ) );
 			AudioDevice->SetFreeMixer3DInput( MixerInputNumber );
@@ -1005,6 +1011,7 @@ OSStatus FCoreAudioSoundSource::CoreAudioRenderCallback( void *InRefCon, AudioUn
 {
 	OSStatus Status = noErr;
 	FCoreAudioSoundSource *Source = ( FCoreAudioSoundSource *)InRefCon;
+	FScopeLock Lock(&Source->CriticalSection);
 
 	uint32 DataByteSize = InNumberFrames * sizeof( Float32 );
 	uint32 PacketsRequested = InNumberFrames;
@@ -1020,7 +1027,7 @@ OSStatus FCoreAudioSoundSource::CoreAudioRenderCallback( void *InRefCon, AudioUn
 	AudioBufferList *LocalBufferList = &LocalBuffers.BufferList;
 	LocalBufferList->mNumberBuffers = IOData->mNumberBuffers;
 
-	if( Source->Buffer && Source->Playing )
+	if( Source->CoreAudioBuffer && Source->Playing )
 	{
 		while( PacketsObtained < PacketsRequested )
 		{
@@ -1069,19 +1076,20 @@ OSStatus FCoreAudioSoundSource::CoreAudioConvertCallback( AudioConverterRef Conv
 														 AudioStreamPacketDescription **OutPacketDescription, void *InUserData )
 {
 	FCoreAudioSoundSource *Source = ( FCoreAudioSoundSource *)InUserData;
+	FScopeLock Lock(&Source->CriticalSection);
 
 	uint8 *Buffer = Source->CoreAudioBuffers[Source->BufferInUse].AudioData;
 	int32 BufferSize = Source->CoreAudioBuffers[Source->BufferInUse].AudioDataSize;
 	int32 ReadCursor = Source->CoreAudioBuffers[Source->BufferInUse].ReadCursor;
 
-	int32 PacketsAvailable = Source->Buffer ? ( BufferSize - ReadCursor ) / Source->Buffer->PCMFormat.mBytesPerPacket : 0;
+	int32 PacketsAvailable = Source->CoreAudioBuffer ? ( BufferSize - ReadCursor ) / Source->CoreAudioBuffer->PCMFormat.mBytesPerPacket : 0;
 	if( PacketsAvailable < *IONumberDataPackets )
 	{
 		*IONumberDataPackets = PacketsAvailable;
 	}
 
 	IOData->mBuffers[0].mData = *IONumberDataPackets ? Buffer + ReadCursor : NULL;
-	IOData->mBuffers[0].mDataByteSize = Source->Buffer ? *IONumberDataPackets * Source->Buffer->PCMFormat.mBytesPerPacket : 0;
+	IOData->mBuffers[0].mDataByteSize = Source->CoreAudioBuffer ? *IONumberDataPackets * Source->CoreAudioBuffer->PCMFormat.mBytesPerPacket : 0;
 	ReadCursor += IOData->mBuffers[0].mDataByteSize;
 	Source->CoreAudioBuffers[Source->BufferInUse].ReadCursor = ReadCursor;
 

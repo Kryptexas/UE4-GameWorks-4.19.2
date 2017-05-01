@@ -109,7 +109,6 @@ public:
 	virtual UObject* GetPlaceholderAsUObject()
 		PURE_VIRTUAL(FLinkerPlaceholderBase::GetPlaceholderAsUObject, return nullptr;)
 
-protected:
 	/**
 	 * Checks to see if ResolveAllPlaceholderReferences() has been called on 
 	 * this placeholder.
@@ -118,6 +117,7 @@ protected:
 	 */
 	bool IsMarkedResolved() const;
 
+protected:
 	/**
 	 * Flags this placeholder as resolved (so that IsMarkedResolved() and 
 	 * HasBeenFullyResolved() can return true).

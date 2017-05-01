@@ -11,7 +11,7 @@ UStretchGizmoHandleGroup::UStretchGizmoHandleGroup()
 {
 	UStaticMesh* StretchingHandleMesh = nullptr;
 	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/StretchingHandle" ) );
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/PlaneTranslationHandle" ) );
 		StretchingHandleMesh = ObjectFinder.Object;
 		check( StretchingHandleMesh != nullptr );
 	}

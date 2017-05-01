@@ -10,6 +10,17 @@ class FAcquiredResources
 {
 public:
 
+	/** Default construction */
+	FAcquiredResources() = default;
+
+	/** Copy construction is disabled */
+	FAcquiredResources(const FAcquiredResources&) = delete;
+	FAcquiredResources& operator=(const FAcquiredResources&) = delete;
+
+	/** Move construction/assignment implies a transfer of ownership of the acquired resources */
+	FAcquiredResources(FAcquiredResources&&) = default;
+	FAcquiredResources& operator=(FAcquiredResources&&) = default;
+
 	/**
 	 * Destructor that releases any acquired resources
 	 */

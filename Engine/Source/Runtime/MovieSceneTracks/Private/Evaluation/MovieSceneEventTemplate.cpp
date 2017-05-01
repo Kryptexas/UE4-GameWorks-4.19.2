@@ -24,7 +24,7 @@ struct FMovieSceneEventData
 struct FEventTrackExecutionToken
 	: IMovieSceneExecutionToken
 {
-	FEventTrackExecutionToken(TArray<FMovieSceneEventData> InEvents) : Events(MoveTemp(InEvents)) {}
+	FEventTrackExecutionToken(TArray<FMovieSceneEventData> InEvents, const TArray<FMovieSceneObjectBindingID>& InEventReceivers) : Events(MoveTemp(InEvents)), EventReceivers(InEventReceivers) {}
 
 	/** Execute this token, operating on all objects referenced by 'Operand' */
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
@@ -33,7 +33,35 @@ struct FEventTrackExecutionToken
 		
 		TArray<float> PerformanceCaptureEventPositions;
 
-		for (UObject* EventContextObject : Player.GetEventContexts())
+		// Resolve event contexts to trigger the event on
+		TArray<UObject*> EventContexts;
+
+		// If we have specified event receivers, use those
+		if (EventReceivers.Num())
+		{
+			EventContexts.Reserve(EventReceivers.Num());
+			for (FMovieSceneObjectBindingID ID : EventReceivers)
+			{
+				// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+				ID = ID.ResolveLocalToRoot(Operand.SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
+
+				// Lookup the object(s) specified by ID in the player
+				for (TWeakObjectPtr<> WeakEventContext : Player.FindBoundObjects(ID.GetGuid(), ID.GetSequenceID()))
+				{
+					if (UObject* EventContext = WeakEventContext.Get())
+					{
+						EventContexts.Add(EventContext);
+					}
+				}
+			}
+		}
+		else
+		{
+			// If we haven't specified event receivers, use the default set defined on the player
+			EventContexts = Player.GetEventContexts();
+		}
+
+		for (UObject* EventContextObject : EventContexts)
 		{
 			if (!EventContextObject)
 			{
@@ -128,10 +156,12 @@ struct FEventTrackExecutionToken
 	}
 
 	TArray<FMovieSceneEventData> Events;
+	TArray<FMovieSceneObjectBindingID, TInlineAllocator<2>> EventReceivers;
 };
 
 FMovieSceneEventSectionTemplate::FMovieSceneEventSectionTemplate(const UMovieSceneEventSection& Section, const UMovieSceneEventTrack& Track)
 	: EventData(Section.GetEventData())
+	, EventReceivers(Track.EventReceivers)
 	, bFireEventsWhenForwards(Track.bFireEventsWhenForwards)
 	, bFireEventsWhenBackwards(Track.bFireEventsWhenBackwards)
 {
@@ -193,6 +223,6 @@ void FMovieSceneEventSectionTemplate::EvaluateSwept(const FMovieSceneEvaluationO
 
 	if (Events.Num())
 	{
-		ExecutionTokens.Add(FEventTrackExecutionToken(MoveTemp(Events)));
+		ExecutionTokens.Add(FEventTrackExecutionToken(MoveTemp(Events), EventReceivers));
 	}
 }

@@ -60,7 +60,7 @@ private:
 	friend class TTickableObjectsCollection;
 
 	/** True if collection of tickable objects is still intact. */
-	static bool bCollectionIntact;
+	UNREALED_API static bool bCollectionIntact;
 
 	/** Avoids removal if the object outlived the collection. */
 	UNREALED_API static void UnregisterTickableObject(FTickableEditorObject* Obj)

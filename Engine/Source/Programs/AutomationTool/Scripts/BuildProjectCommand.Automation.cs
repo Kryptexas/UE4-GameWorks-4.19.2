@@ -52,7 +52,14 @@ public partial class Project : CommandUtils
             FileReference CodePlugin = null;
             if(Params.BlueprintPluginPaths.TryGetValue(PluginKey, out CodePlugin))
             {
-                ScriptPluginArgs += "-PLUGIN \"" + CodePlugin + "\" ";
+                if (FileReference.Exists(CodePlugin))
+                {
+                    ScriptPluginArgs += "-PLUGIN \"" + CodePlugin + "\" ";
+                }
+                else
+                {
+                    LogWarning("Failed to find generated plugin for Blueprint nativization [" + CodePlugin.FullName + "]. Nativization has run, but maybe there are no Blueprints which were converted?");
+                }
             }
             else
             {

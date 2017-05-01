@@ -103,7 +103,7 @@ static void SetupIOSDLCProfile(ILauncherProfileRef& DLCProfile, const FProfilePa
 	DLCProfile->SetBasedOnReleaseVersionName(IOSProfileConstants::AppReleaseName);
 	DLCProfile->SetCreateDLC(true);
 	DLCProfile->SetDLCName(IOSProfileConstants::DLCName);
-	DLCProfile->SetDLCIncludeEngineContent(false);
+	DLCProfile->SetDLCIncludeEngineContent(true);
 		
 	DLCProfile->SetIncrementalCooking(false);
 	DLCProfile->SetCompressed(false);

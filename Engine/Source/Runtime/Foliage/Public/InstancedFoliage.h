@@ -164,9 +164,7 @@ struct FFoliageMeshInfo
 #endif
 
 	FOLIAGE_API FFoliageMeshInfo();
-
-	~FFoliageMeshInfo() // =default
-	{ }
+	FOLIAGE_API ~FFoliageMeshInfo();
 
 	FFoliageMeshInfo(FFoliageMeshInfo&& Other)
 		// even VC++2013 doesn't support "=default" on move constructors
@@ -196,9 +194,9 @@ struct FFoliageMeshInfo
 	}
 
 #if WITH_EDITOR
-	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance);
-	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance, UActorComponent* InBaseComponent);
-	FOLIAGE_API void RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove);
+	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance, bool RebuildFoliageTree);
+	FOLIAGE_API void AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance, UActorComponent* InBaseComponent, bool RebuildFoliageTree);
+	FOLIAGE_API void RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove, bool RebuildFoliageTree);
 	// Apply changes in the FoliageType to the component
 	FOLIAGE_API void UpdateComponentSettings(const UFoliageType* InSettings);
 	// Recreate the component if the FoliageType's ComponentClass doesn't match the Component's class
@@ -232,6 +230,8 @@ struct FFoliageMeshInfo
 
 	// For debugging. Validate state after editing.
 	void CheckValid();
+
+	FOLIAGE_API void HandleComponentMeshBoundsChanged(const FBoxSphereBounds& NewBounds);
 #endif
 
 	friend FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo& MeshInfo);

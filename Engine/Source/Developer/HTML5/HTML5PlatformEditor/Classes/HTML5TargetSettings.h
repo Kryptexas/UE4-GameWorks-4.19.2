@@ -40,16 +40,22 @@ public:
 	// ------------------------------------------------------------
 
 	/**
-	 * Target Web Assembly builds
+	 * Target ASMJS builds - NOTE: ASMJS will be going away in future UE4 releases.
 	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "WebAssembly Build (or else ASM.js)"))
-	bool TargetWasm;
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "asmjs Build (else build WASM)"))
+	bool TargetAsmjs;
 
 	/**
-	 * Target WebGL2 builds
+	 * Target WebGL1 builds - NOTE: WebGL1 target will be going away soon...
 	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "WebGL2 Build (or else WebGL1)"))
-	bool TargetWebGL2;
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "WebGL1 Build (else build WebGL2)"))
+	bool TargetWebGL1;
+
+	/**
+	 * Use IndexedDB storage
+	 */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "IndexedDB storage (WASM only - during shipping packaging)"))
+	bool EnableIndexedDB;
 
 	/**
 	 * Use Fixed TimeStep
@@ -65,7 +71,8 @@ public:
 	bool EnableSIMD;
 
 	/**
-	 * Enable Multithreading
+	 * Enable Multithreading - NOTE: this is not supported currently in WASM - it will be forced false in this case.
+	 * Multithreading will be supported during WASM builds in a future emscripten release.
 	 */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "Multithreading support (asm.js only - experimental)"))
 	bool EnableMultithreading;

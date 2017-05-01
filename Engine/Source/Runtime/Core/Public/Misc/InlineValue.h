@@ -96,9 +96,11 @@ public:
 	{
 		if (bIsValid)
 		{
-			DestructItem(&GetValue());
-			ConditionallyDestroyAllocation();
+			BaseType& Value = GetValue();
+			// Set bIsValid immediately to avoid double-deletion on potential re-entry
 			bIsValid = false;
+			Value.~BaseType();
+			ConditionallyDestroyAllocation();
 		}
 	}
 

@@ -3424,31 +3424,34 @@ FText FPersonaMeshDetails::OnGetClothingComboText(int32 InLodIdx, int32 InSectio
 
 void FPersonaMeshDetails::OnClothingSelectionChanged(TSharedPtr<FClothingEntry> InNewEntry, ESelectInfo::Type InSelectType, int32 BoxIndex, int32 InLodIdx, int32 InSectionIdx)
 {
-	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
-
-	if(UClothingAsset* ClothingAsset = Cast<UClothingAsset>(InNewEntry->Asset.Get()))
+	if(InNewEntry.IsValid())
 	{
-		// Look for a currently bound asset an unbind it if necessary first
-		if(UClothingAssetBase* CurrentAsset = Mesh->GetSectionClothingAsset(InLodIdx, InSectionIdx))
-		{
-			CurrentAsset->UnbindFromSkeletalMesh(Mesh, InLodIdx);
-		}
+		USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
 
-		if(!ClothingAsset->BindToSkeletalMesh(Mesh, InLodIdx, InSectionIdx, InNewEntry->AssetLodIndex))
+		if(UClothingAsset* ClothingAsset = Cast<UClothingAsset>(InNewEntry->Asset.Get()))
 		{
-			// We failed to bind the clothing asset, reset box selection to "None"
-			SClothComboBoxPtr BoxPtr = ClothComboBoxes[BoxIndex];
-			if(BoxPtr.IsValid())
+			// Look for a currently bound asset an unbind it if necessary first
+			if(UClothingAssetBase* CurrentAsset = Mesh->GetSectionClothingAsset(InLodIdx, InSectionIdx))
 			{
-				BoxPtr->SetSelectedItem(ClothingNoneEntry);
+				CurrentAsset->UnbindFromSkeletalMesh(Mesh, InLodIdx);
+			}
+
+			if(!ClothingAsset->BindToSkeletalMesh(Mesh, InLodIdx, InSectionIdx, InNewEntry->AssetLodIndex))
+			{
+				// We failed to bind the clothing asset, reset box selection to "None"
+				SClothComboBoxPtr BoxPtr = ClothComboBoxes[BoxIndex];
+				if(BoxPtr.IsValid())
+				{
+					BoxPtr->SetSelectedItem(ClothingNoneEntry);
+				}
 			}
 		}
-	}
-	else if(Mesh)
-	{
-		if(UClothingAssetBase* CurrentAsset = Mesh->GetSectionClothingAsset(InLodIdx, InSectionIdx))
+		else if(Mesh)
 		{
-			CurrentAsset->UnbindFromSkeletalMesh(Mesh, InLodIdx);
+			if(UClothingAssetBase* CurrentAsset = Mesh->GetSectionClothingAsset(InLodIdx, InSectionIdx))
+			{
+				CurrentAsset->UnbindFromSkeletalMesh(Mesh, InLodIdx);
+			}
 		}
 	}
 }

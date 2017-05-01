@@ -179,6 +179,7 @@ private:
 	ECheckBoxState OnGetConfigVariableCheckboxState() const;
 	void OnSetConfigVariableState(ECheckBoxState InNewState);
 	EVisibility ExposeConfigVisibility() const;
+	bool IsConfigCheckBoxEnabled() const;
 
 	FText OnGetMetaKeyValue(FName Key) const;
 	void OnMetaKeyValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo, FName Key);

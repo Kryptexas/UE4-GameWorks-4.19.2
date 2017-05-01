@@ -836,13 +836,6 @@ public partial class Project : CommandUtils
 
 		var UnrealPakResponseFile = CreatePakResponseFileFromStagingManifest(SC);
 
-        if (Params.CreateChunkInstall)
-        {
-            string ChunkInstallBasePath = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform);
-            string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
-            InternalUtils.SafeDeleteDirectory(CloudDir, true);
-        }
-
         CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName);
 	}
 
@@ -1140,7 +1133,6 @@ public partial class Project : CommandUtils
 				string AppLaunch = ""; // For a chunk install this value doesn't seem to matter
 				string ManifestFilename = AppName + VersionString + ".manifest";
 				string SourceManifestPath = CombinePaths(CloudDir, ManifestFilename);
-				string BackupManifestPath = CombinePaths(RawDataPath, ManifestFilename);
 				string DestManifestPath = CombinePaths(ManifestDir, ManifestFilename);
 				InternalUtils.SafeCreateDirectory(ManifestDir, true);
 
@@ -1154,7 +1146,6 @@ public partial class Project : CommandUtils
 				string UnrealPakLogFileName = "UnrealPak_" + PakName;
 				RunAndLog(CmdEnv, BPTExe, CmdLine, UnrealPakLogFileName, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 
-				InternalUtils.SafeCopyFile(SourceManifestPath, BackupManifestPath);
 				InternalUtils.SafeCopyFile(SourceManifestPath, DestManifestPath);
 			}
 			else
@@ -1243,14 +1234,7 @@ public partial class Project : CommandUtils
 		}
 
 		IEnumerable<Tuple<Dictionary<string,string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
-
-        if (Params.CreateChunkInstall)
-        {
-            string ChunkInstallBasePath = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform);
-            string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
-            InternalUtils.SafeDeleteDirectory(CloudDir, true);
-        }
-		
+	
 		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
 		{
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);

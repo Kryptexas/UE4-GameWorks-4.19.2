@@ -10,32 +10,26 @@ TMap<FName, TMap<FName, FMovieSceneClipboardKey::FConversionFunction>> FMovieSce
 
 FMovieSceneClipboardKey::FMovieSceneClipboardKey(const FMovieSceneClipboardKey& In)
 	: Time(In.Time)
-	, bIsSet(In.bIsSet)
 {
-	if (In.bIsSet)
+	if (In.Data.IsValid())
 	{
-		auto& Impl = reinterpret_cast<const IKey&>(In.Data);
-		Impl.CopyTo(Data);
+		In.Data->CopyTo(Data);
 	}
 }
 
 FMovieSceneClipboardKey& FMovieSceneClipboardKey::operator=(const FMovieSceneClipboardKey& In)
 {
 	Time = In.Time;
-	bIsSet = In.bIsSet;
-
-	if (bIsSet)
+	if (In.Data.IsValid())
 	{
-		auto& Impl = reinterpret_cast<const IKey&>(In.Data);
-		Impl.CopyTo(Data);
+		In.Data->CopyTo(Data);
+	}
+	else
+	{
+		Data.Reset();
 	}
 	
 	return *this;
-}
-
-FMovieSceneClipboardKey::~FMovieSceneClipboardKey()
-{
-	Destroy();
 }
 
 float FMovieSceneClipboardKey::GetTime() const
@@ -46,15 +40,6 @@ float FMovieSceneClipboardKey::GetTime() const
 void FMovieSceneClipboardKey::SetTime(float InTime)
 {
 	Time = InTime;
-}
-
-void FMovieSceneClipboardKey::Destroy()
-{
-	if (bIsSet)
-	{
-		reinterpret_cast<IKey&>(Data).~IKey();
-		bIsSet = false;
-	}
 }
 
 FMovieSceneClipboardKeyTrack::FMovieSceneClipboardKeyTrack(FMovieSceneClipboardKeyTrack&& In)

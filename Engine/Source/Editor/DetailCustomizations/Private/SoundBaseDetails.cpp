@@ -2,7 +2,7 @@
 
 #include "SoundBaseDetails.h"
 #include "Sound/SoundBase.h"
-#include "Settings/EditorExperimentalSettings.h"
+#include "Classes/Sound/AudioSettings.h"
 #include "PropertyHandle.h"
 #include "DetailLayoutBuilder.h"
 
@@ -13,7 +13,7 @@ TSharedRef<IDetailCustomization> FSoundBaseDetails::MakeInstance()
 
 void FSoundBaseDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	if (!GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData)
+	if (!GetDefault<UAudioSettings>()->IsAudioMixerEnabled())
 	{
 		TSharedRef<IPropertyHandle> Property = DetailBuilder.GetProperty("SoundSubmixObject", USoundBase::StaticClass());
 		Property->MarkHiddenByCustomization();

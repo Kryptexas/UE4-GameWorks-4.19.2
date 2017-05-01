@@ -183,8 +183,8 @@ FMeshBatchAndRelevance::FMeshBatchAndRelevance(const FMeshBatch& InMesh, const F
 	PrimitiveSceneProxy(InPrimitiveSceneProxy)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FMeshBatchAndRelevance);
-	EBlendMode BlendMode = InMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode();
-	bHasOpaqueOrMaskedMaterial = !IsTranslucentBlendMode(BlendMode);
+	const FMaterial* Material = InMesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
+	bHasOpaqueOrMaskedMaterial = !IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetMaterialDomain() == MD_Surface;
 	bRenderInMainPass = PrimitiveSceneProxy->ShouldRenderInMainPass();
 }
 

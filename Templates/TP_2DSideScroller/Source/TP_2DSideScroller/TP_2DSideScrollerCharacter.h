@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "PaperCharacter.h"
 #include "TP_2DSideScrollerCharacter.generated.h"
 

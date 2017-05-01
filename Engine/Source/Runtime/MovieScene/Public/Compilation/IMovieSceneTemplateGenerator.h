@@ -7,6 +7,7 @@
 #include "MovieSceneFwd.h"
 #include "MovieSceneSegment.h"
 #include "Containers/ArrayView.h"
+#include "MovieSceneSequenceID.h"
 
 class UMovieSceneTrack;
 struct FMovieSceneEvaluationFieldSegmentPtr;
@@ -61,11 +62,12 @@ struct IMovieSceneTemplateGenerator
 	virtual FMovieSceneSequenceTransform GetSequenceTransform(FMovieSceneSequenceIDRef InSequenceID) const = 0;
 
 	/**
-	 * Generate a new sequence ID for the specified sub sequence
+	 * Add the specified sub sequence data to this generator
 	 *
 	 * @param SequenceData				Data pertaining to the sequence to add
 	 * @param ParentID					ID of the parent sequence
+	 * @param SequenceID				Specific ID to use to identify this sub sequence in the template. Must not already exist in the template.
 	 */
-	virtual FMovieSceneSequenceID GenerateSequenceID(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID) = 0;
+	virtual void AddSubSequence(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID, FMovieSceneSequenceID SequenceID) = 0;
 };
 

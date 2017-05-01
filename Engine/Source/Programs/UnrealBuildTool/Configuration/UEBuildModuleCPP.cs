@@ -480,7 +480,7 @@ namespace UnrealBuildTool
 							Writer.WriteLine("#undef {0}", ModuleApiDefine);
 
 							// Games may choose to use shared PCHs from the engine, so allow them to change the value of these macros
-							if(Type.IsGameModule())
+							if(!IsEngineModule())
 							{
 								Writer.WriteLine("#undef UE_IS_ENGINE_MODULE");
 								Writer.WriteLine("#undef DEPRECATED_FORGAME");
@@ -712,7 +712,7 @@ namespace UnrealBuildTool
 					AdaptiveUnityEnvironment.bOptimizeCode = false;
 				}
 				AdaptiveUnityEnvironment.PrecompiledHeaderAction = PrecompiledHeaderAction.None;
-				Console.WriteLine("Compiling {0} without PCH", String.Join(", ", AdaptiveFiles.Select(x => x.AbsolutePath)));
+
 				// Compile the files
 				CPPOutput AdaptiveOutput = ToolChain.CompileCPPFiles(AdaptiveUnityEnvironment, AdaptiveFiles, Name, ActionGraph);
 
@@ -1010,6 +1010,15 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Determines whether the current module is an engine module, as opposed to a target-specific module
+		/// </summary>
+		/// <returns>True if it is an engine module, false otherwise</returns>
+		public bool IsEngineModule()
+		{
+			return ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineSourceProgramsDirectory) && Name != "UE4Game";
+		}
+
+		/// <summary>
 		/// Creates a compile environment from a base environment based on the module settings.
 		/// </summary>
 		/// <param name="Target">Rules for the target being built</param>
@@ -1027,7 +1036,7 @@ namespace UnrealBuildTool
 			}
 
 			// Check if this is an engine module
-			bool bIsEngineModule = ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
+			bool bIsEngineModule = IsEngineModule();
 
 			// Override compile environment
 			Result.bFasterWithoutUnity = Rules.bFasterWithoutUnity;
@@ -1074,6 +1083,16 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// For game modules, set the define for the project name. This will be used by the IMPLEMENT_PRIMARY_GAME_MODULE macro.
+			if (!bIsEngineModule)
+			{
+				if (Target.ProjectFile != null)
+				{
+					string ProjectName = Target.ProjectFile.GetFileNameWithoutExtension();
+					Result.Definitions.Add(String.Format("UE_PROJECT_NAME={0}", ProjectName));
+				}
+			}
+
 			// Add the module's private definitions.
 			Result.Definitions.AddRange(Definitions);
 
@@ -1101,7 +1120,7 @@ namespace UnrealBuildTool
 			CppCompileEnvironment CompileEnvironment = new CppCompileEnvironment(BaseCompileEnvironment);
 
 			// Use the default optimization setting for 
-			bool bIsEngineModule = ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
+			bool bIsEngineModule = IsEngineModule();
 			CompileEnvironment.bOptimizeCode = ShouldEnableOptimization(ModuleRules.CodeOptimization.Default, Target.Configuration, bIsEngineModule);
 
 			// Override compile environment

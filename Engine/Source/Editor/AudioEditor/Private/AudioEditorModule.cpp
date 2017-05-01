@@ -18,7 +18,7 @@
 #include "Sound/SoundEffectPreset.h"
 #include "SoundCueEditor.h"
 #include "SoundSubmixEditor.h"
-#include "Settings/EditorExperimentalSettings.h"
+#include "Classes/Sound/AudioSettings.h"
 #include "AssetTypeActions/AssetTypeActions_DialogueVoice.h"
 #include "AssetTypeActions/AssetTypeActions_DialogueWave.h"
 #include "AssetTypeActions/AssetTypeActions_SoundAttenuation.h"
@@ -92,10 +92,14 @@ public:
 		AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundMix));
 		AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundWave));
 		AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_ReverbEffect));
+	}
 
+	virtual void RegisterAudioMixerAssetActions() override
+	{
 		// Only register asset actions for when audio mixer data is enabled
-		if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData)
+		if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled())
 		{
+			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundSubmix));
 			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectSubmixPreset));
 			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectSourcePreset));
@@ -119,7 +123,7 @@ public:
 	virtual void RegisterEffectPresetAssetActions() override
 	{
 		// Only register asset actions for the case where audio mixer data is enabled
-		if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData)
+		if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled())
 		{
 			// Register the audio editor asset type actions
 			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();

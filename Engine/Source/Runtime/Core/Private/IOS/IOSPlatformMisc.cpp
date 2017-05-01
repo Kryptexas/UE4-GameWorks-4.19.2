@@ -70,7 +70,7 @@ void FIOSPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("Free Memory at startup: %d MB"), GStartupFreeMemoryMB);
 }
 
-void FIOSPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
+void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
     GShowSplashScreen = ShowSplashScreen;
 }
@@ -393,6 +393,7 @@ void FIOSPlatformMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 	FModuleManager::Get().LoadModule(TEXT("IOSAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
 }
 
 void* FIOSPlatformMisc::CreateAutoreleasePool()

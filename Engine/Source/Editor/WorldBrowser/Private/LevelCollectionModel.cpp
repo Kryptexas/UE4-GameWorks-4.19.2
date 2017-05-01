@@ -29,6 +29,7 @@
 #include "GameFramework/WorldSettings.h"
 
 #include "ShaderCompiler.h"
+#include "FoliageEditModule.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -1642,7 +1643,13 @@ void FLevelCollectionModel::MoveFoliageToSelected_Executed()
 	if (GetSelectedLevels().Num() == 1)
 	{
 		ULevel* TargetLevel = GetSelectedLevels()[0]->GetLevelObject();
-		GEditor->MoveSelectedFoliageToLevel(TargetLevel);
+
+		// Need to only permit this action when the foliage mode is open as the selection is being done there
+		if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Foliage))
+		{
+			IFoliageEditModule& FoliageModule = FModuleManager::GetModuleChecked<IFoliageEditModule>("FoliageEdit");
+			FoliageModule.MoveSelectedFoliageToLevel(TargetLevel);
+		}
 	}
 }
 

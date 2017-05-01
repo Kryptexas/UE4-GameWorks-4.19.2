@@ -166,8 +166,15 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 		
-	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
+	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
+	{
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0);
+	}
+	else
+	{
+		// is optimized away if possible (RT size=view size, )
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
+	}
 
 	Context.SetViewportAndCallRHI(ViewRect1);
 
@@ -183,7 +190,7 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	// setup background (bloom), can be implemented to use additive blending to avoid the read here
 	if (bCompositeBloom)
 	{
-		TShaderMapRef<TPostProcessLensFlareBasePS<true>> PixelShader(Context.GetShaderMap());
+		TShaderMapRef<TPostProcessLensFlareBasePS<false>> PixelShader(Context.GetShaderMap());
 
 		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
@@ -209,7 +216,7 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	}
 	else
 	{
-		TShaderMapRef<TPostProcessLensFlareBasePS<false>> PixelShader(Context.GetShaderMap());
+		TShaderMapRef<TPostProcessLensFlareBasePS<true>> PixelShader(Context.GetShaderMap());
 
 		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);

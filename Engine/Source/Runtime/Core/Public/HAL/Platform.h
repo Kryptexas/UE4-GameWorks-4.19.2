@@ -75,7 +75,7 @@
 #elif PLATFORM_MAC
 	#include "Mac/MacPlatformCompilerPreSetup.h"
 #elif PLATFORM_IOS
-	#include "IOS/IOSPlatformCompilerPreSetup.h"
+	#include "iOS/IOSPlatformCompilerPreSetup.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidPlatformCompilerPreSetup.h"
 #elif PLATFORM_HTML5
@@ -362,6 +362,10 @@
 
 #ifndef PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 	#define PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK			0
+#endif
+
+#ifndef PLATFORM_VECTOR_CUBIC_INTERP_SSE
+#define PLATFORM_VECTOR_CUBIC_INTERP_SSE					0
 #endif
 
 // deprecated, do not use

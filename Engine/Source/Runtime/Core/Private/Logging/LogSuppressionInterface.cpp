@@ -541,8 +541,10 @@ public:
 				{
 					Ar.Logf(TEXT("%-40s  %-12s  %s"), *It->Name, FOutputDeviceHelper::VerbosityToString(It->Verbosity), It->Postfix ? TEXT(" - DebugBreak") : TEXT(""));
 				}
+
+				return true;
 			}
-			else
+			else if (Cmd[0] != '.')
 			{
 				FString Rest(Cmd);
 				Rest = Rest.Trim();
@@ -600,8 +602,8 @@ public:
 					Ar.Logf( TEXT("[cat]=[level]") );					
 					Ar.Logf( TEXT("foo=verbose break") );					
 				}
+				return true;
 			}
-			return true;
 		}
 		return false;
 	}

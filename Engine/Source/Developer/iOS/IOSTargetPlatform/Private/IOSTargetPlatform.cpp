@@ -512,7 +512,7 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 			if (bIncludePVRTC)
 			{
 				// handle non-power of 2 textures
-				if (!Texture->Source.IsPowerOfTwo())
+				if (!Texture->Source.IsPowerOfTwo() && Texture->PowerOfTwoMode == ETexturePowerOfTwoSetting::None)
 				{
 					// option 1: Uncompress, but users will get very large textures unknowningly
 					// OutFormats.AddUnique(NameBGRA8);

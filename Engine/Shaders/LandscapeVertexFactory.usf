@@ -158,9 +158,7 @@ struct FVertexFactoryIntermediates
 {
 	float4 InputPosition;
 	float3 LocalPosition;
-#if USING_TESSELLATION
 	float3 WorldNormal;
-#endif
 };
 
 float3 GetLocalPosition(FVertexFactoryIntermediates Intermediates)
@@ -642,13 +640,15 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 	Intermediates.LocalPosition = lerp( float3(InputPositionLODAdjusted, Height), float3(InputPositionNextLOD, HeightNextLOD), MorphAlpha );
 
-#if USING_TESSELLATION
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	float2 Normal = float2(SampleValue.b, SampleValue.a);
 	float2 NormalNextLOD = float2(SampleValueNextLOD.b, SampleValueNextLOD.a);
 	float2 InterpNormal = lerp( Normal, NormalNextLOD, MorphAlpha ) * float2(2.0,2.0) - float2(1.0,1.0);
 	Intermediates.WorldNormal = float3( InterpNormal, sqrt(max(1.0-dot(InterpNormal,InterpNormal),0.0)) );
+#else
+	Intermediates.WorldNormal = float3( 0.0, 0.0, 1.0 );
 #endif
-
+	
 	return Intermediates;
 }
 
@@ -687,7 +687,7 @@ float2 LandscapeVertexFactorySampleHeight(FVertexFactoryInput Input, FVertexFact
 */
 float3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates )
 {
-	float3x3 Result = float3x3(float3(1,0,0),float3(0,1,0),float3(0,0,1));
+	float3x3 Result = CalcTangentBasisFromWorldNormal(Intermediates.WorldNormal);
 	return Result;
 }
 

@@ -19,6 +19,7 @@ namespace Audio
 		, Pitch(-1.0f)
 		, Volume(-1.0f)
 		, Distance(-1.0f)
+		, LPFFrequency(-1.0f)
 		, SourceId(INDEX_NONE)
 		, bIsPlaying(false)
 		, bIsPaused(false)

@@ -24,5 +24,7 @@ public class MayaLiveLinkPluginTarget : TargetRules
 		bCompileAgainstCoreUObject = true;
         bCompileICU = false;
         bHasExports = true;
+
+		bBuildInSolutionByDefault = false;
 	}
 }

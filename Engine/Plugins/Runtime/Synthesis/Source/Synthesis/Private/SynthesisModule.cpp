@@ -8,7 +8,7 @@
 
 DEFINE_LOG_CATEGORY(LogSynthesis);
 
-IMPLEMENT_MODULE(FSynthesisModule, FSynthesis)
+IMPLEMENT_MODULE(FSynthesisModule, Synthesis)
 
 void FSynthesisModule::StartupModule()
 {

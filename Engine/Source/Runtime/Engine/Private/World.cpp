@@ -1220,6 +1220,9 @@ void UWorld::InitWorld(const InitializationValues IVS)
 			DefaultBrush->Brush->SetFlags( RF_Transactional );
 			DefaultBrush->Brush->Polys->SetFlags( RF_Transactional );
 
+			// The default brush is legacy but has to exist for some old bsp operations.  However it should not be interacted with in the editor. 
+			DefaultBrush->SetIsTemporarilyHiddenInEditor(true);
+
 			// Find the index in the array the default brush has been spawned at. Not necessarily
 			// the last index as the code might spawn the default physics volume afterwards.
 			const int32 DefaultBrushActorIndex = PersistentLevel->Actors.Find( DefaultBrush );
@@ -2107,7 +2110,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 
 		// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 		// from disk rather than duplicated
-		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bHasRerunConstructionScripts || Level->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
+		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bHasRerunConstructionScripts || !bRerunConstructionDuringEditorStreaming)));
 		
 		// Incrementally update components.
 		int32 NumComponentsToUpdate = GLevelStreamingComponentsRegistrationGranularity;
@@ -2669,6 +2672,8 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	{
 		ULevel* EditorLevel = EditorLevelWorld->PersistentLevel;
 		ULevel* PIELevel = PIELevelWorld->PersistentLevel;
+
+		PIELevel->bHasRerunConstructionScripts = EditorLevel->bHasRerunConstructionScripts;
 
 		// Fixup model components. The index buffers have been created for the components in the EditorWorld and the order
 		// in which components were post-loaded matters. So don't try to guarantee a particular order here, just copy the
@@ -3757,7 +3762,7 @@ bool UWorld::AreActorsInitialized() const
 float UWorld::GetMonoFarFieldCullingDistance() const
 {
 	float Result = 0.0f;
-	const AWorldSettings* const WorldSettings = GetWorldSettings();
+	const AWorldSettings* const WorldSettings = GetWorldSettings(false);
 	if (WorldSettings != nullptr)
 	{
 		Result = WorldSettings->MonoCullingDistance;

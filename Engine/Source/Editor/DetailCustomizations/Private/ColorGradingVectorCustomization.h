@@ -78,6 +78,9 @@ protected:
 	bool GetSupportDynamicSliderMaxValue(bool DefaultValue, int32 ColorIndex) const;
 	bool GetSupportDynamicSliderMinValue(bool DefaultValue, int32 ColorIndex) const;
 
+	/** Callback returning if an entry box should be enabled */
+	bool IsEntryBoxEnabled(int32 ColorIndex) const;
+
 	/** Helper function used to compute desired gradient color for a requested color index */
 	FLinearColor GetGradientEndColor(int32 ColorIndex) const;
 	FLinearColor GetGradientStartColor(int32 ColorIndex) const;
@@ -130,6 +133,7 @@ public:
 private:
 	/** Will return the color of the color block displayed in the header */
 	FLinearColor OnGetHeaderColorBlock() const;
+	EVisibility GetMultipleValuesTextVisibility() const;
 
 	/** Represent the custom builder associated with the color grading property */
 	TSharedPtr<class FColorGradingCustomBuilder> CustomColorGradingBuilder;
@@ -172,7 +176,7 @@ private:
 
 	/* Local UI Handlers */
 	void OnColorGradingPickerChanged(FVector4 &NewValue, bool ShouldCommitValueChanges);
-	void GetCurrentColorGradingValue(FVector4 &OutCurrentValue);
+	bool GetCurrentColorGradingValue(FVector4 &OutCurrentValue);
 
 	/** Callback when user click the Group reset button */
 	void OnDetailGroupReset();

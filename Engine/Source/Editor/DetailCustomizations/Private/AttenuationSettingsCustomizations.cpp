@@ -9,7 +9,7 @@
 #include "DetailWidgetRow.h"
 #include "IDetailPropertyRow.h"
 #include "AudioDevice.h"
-#include "Settings/EditorExperimentalSettings.h"
+#include "Classes/Sound/AudioSettings.h"
 
 TSharedRef<IPropertyTypeCustomization> FSoundAttenuationSettingsCustomization::MakeInstance() 
 {
@@ -227,7 +227,7 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMin)).ToSharedRef());
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMax)).ToSharedRef());
 
-	if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData)
+	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled())
 	{
 		if (IsAudioPluginEnabled(EAudioPlugin::REVERB))
 		{
@@ -272,7 +272,7 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 
 	// Hide the occlusion plugin settings slot if there's no occlusion plugin loaded. 
 	// Don't show the built-in occlusion settings if we're using 
-	if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData && IsAudioPluginEnabled(EAudioPlugin::OCCLUSION))
+	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled() && IsAudioPluginEnabled(EAudioPlugin::OCCLUSION))
 	{
 		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionPluginSettings)).ToSharedRef())
 			.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);

@@ -201,7 +201,7 @@ void FD3D12TextureStats::D3D12TextureDeleted(TD3D12Texture2D<BaseResourceType>& 
 	{
 		const D3D12_RESOURCE_DESC& Desc = D3D12Texture2D->GetDesc();
 		const int64 TextureSize = Texture.GetMemorySize();
-		check(TextureSize > 0);
+		check(TextureSize > 0 || (Texture.Flags & TexCreate_Virtual));
 
 		UpdateD3D12TextureStats(Desc, -TextureSize, false, Texture.IsCubemap());
 	}

@@ -3530,9 +3530,9 @@ void FRepLayout::InitProperties( TArray< uint8, TAlignedHeapAllocator<16> >& Sha
 	}
 }
 
-void FRepLayout::DestructProperties( FRepState * RepState ) const
+void FRepLayout::DestructProperties( FRepStateStaticBuffer& RepStateStaticBuffer ) const
 {
-	uint8* StoredData = RepState->StaticBuffer.GetData();
+	uint8* StoredData = RepStateStaticBuffer.GetData();
 
 	// Destruct all items
 	for ( int32 i = 0; i < Parents.Num(); i++ )
@@ -3541,13 +3541,13 @@ void FRepLayout::DestructProperties( FRepState * RepState ) const
 		if ( Parents[i].ArrayIndex == 0 )
 		{
 			PTRINT Offset = Parents[i].Property->ContainerPtrToValuePtr<uint8>( StoredData ) - StoredData;
-			check( Offset >= 0 && Offset < RepState->StaticBuffer.Num() );
+			check( Offset >= 0 && Offset < RepStateStaticBuffer.Num() );
 
 			Parents[i].Property->DestroyValue( StoredData + Offset );
 		}
 	}
 
-	RepState->StaticBuffer.Empty();
+	RepStateStaticBuffer.Empty();
 }
 
 void FRepLayout::GetLifetimeCustomDeltaProperties(TArray< int32 > & OutCustom, TArray< ELifetimeCondition >	& OutConditions)
@@ -3571,6 +3571,14 @@ FRepState::~FRepState()
 {
 	if (RepLayout.IsValid() && StaticBuffer.Num() > 0)
 	{	
-		RepLayout->DestructProperties( this );
+		RepLayout->DestructProperties( StaticBuffer );
+	}
+}
+
+FRepChangelistState::~FRepChangelistState()
+{
+	if (RepLayout.IsValid() && StaticBuffer.Num() > 0)
+	{	
+		RepLayout->DestructProperties( StaticBuffer );
 	}
 }

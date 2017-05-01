@@ -30,9 +30,9 @@
 	<AARImports>
 		<if condition="bEnabled">
 			<true>
-				<insertValue value="repository $S(PluginDir)/ThirdParty"/>
+				<insertValue value="repository $S(PluginDir)/ThirdParty/Android/NotForLicensees"/>
 				<insertNewline/>
-				<insertValue value="Android,facebook-android-sdk,4.19.0" />
+				<insertValue value="FacebookSDK,facebook-android-sdk,4.19.0" />
 				<insertNewline/>
 			</true>
 		</if>

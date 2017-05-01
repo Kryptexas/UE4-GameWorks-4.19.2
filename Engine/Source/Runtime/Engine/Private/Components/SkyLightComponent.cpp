@@ -796,10 +796,6 @@ void USkyLightComponent::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_SKYLIGHT_MOBILE_IRRADIANCE_MAP)
 	{
-		if (bHasEverCaptured)
-		{
-			IrradianceMapFence.Wait();
-		}
 		Ar << IrradianceEnvironmentMap;
 	}
 	else

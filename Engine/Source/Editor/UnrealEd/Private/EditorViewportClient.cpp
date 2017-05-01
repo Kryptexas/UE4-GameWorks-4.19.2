@@ -318,6 +318,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, CurrentGestureRotDelta(FRotator::ZeroRotator)
 	, GestureMoveForwardBackwardImpulse(0.0f)
 	, bForceAudioRealtime(false)
+	, RealTimeFrameCount(0)
 	, bIsRealtime(false)
 	, bStoredRealtime(false)
 	, bStoredShowStats(false)
@@ -3268,6 +3269,11 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 
 void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 {
+	if (RealTimeFrameCount > 0)
+	{
+		--RealTimeFrameCount;
+	}
+
 	FViewport* ViewportBackup = Viewport;
 	Viewport = InViewport ? InViewport : Viewport;
 

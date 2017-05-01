@@ -1415,7 +1415,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInViewport_Clicked( )
 bool FInternalPlayWorldCommandCallbacks::PlayInViewport_CanExecute()
 {
 	// Allow PIE if we don't already have a play session or the play session is simulate in editor (which we can toggle to PIE)
-	return !HasPlayWorld() || GUnrealEd->bIsSimulatingInEditor;
+	return (!GEditor->bIsPlayWorldQueued && !HasPlayWorld() ) || GUnrealEd->bIsSimulatingInEditor;
 }
 
 

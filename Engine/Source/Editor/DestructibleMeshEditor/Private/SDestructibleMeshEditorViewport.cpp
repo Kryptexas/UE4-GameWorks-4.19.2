@@ -454,7 +454,9 @@ void FDestructibleMeshEditorViewportClient::ImportFBXChunks()
 				{
 					UStaticMesh* TempStaticMesh = NULL;
 					TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMesh(GetTransientPackage(), FbxMeshArray[i], NAME_None, RF_NoFlags, ImportData, 0);
-
+					TArray<FbxNode*> TempFbxMeshArray;
+					TempFbxMeshArray.Add(FbxMeshArray[i]);
+					FFbxImporter->PostImportStaticMesh(TempStaticMesh, TempFbxMeshArray);
 					ChunkMeshes.Add(TempStaticMesh);
 				}
 

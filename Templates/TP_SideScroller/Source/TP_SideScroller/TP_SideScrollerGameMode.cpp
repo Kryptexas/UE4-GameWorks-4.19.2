@@ -1,8 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_SideScroller.h"
 #include "TP_SideScrollerGameMode.h"
 #include "TP_SideScrollerCharacter.h"
+#include "UObject/ConstructorHelpers.h"
 
 ATP_SideScrollerGameMode::ATP_SideScrollerGameMode()
 {

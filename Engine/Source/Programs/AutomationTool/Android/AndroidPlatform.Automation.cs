@@ -1423,6 +1423,18 @@ public class AndroidPlatform : Platform
 		//same with the package names
 		List<string> PackageNames = new List<string>();
 
+		//strip off the device, GPU architecture and extension (.so)
+		int DashIndex = ClientApp.LastIndexOf("-");
+		if (DashIndex >= 0)
+		{
+			ClientApp = ClientApp.Substring(0, DashIndex);
+			DashIndex = ClientApp.LastIndexOf("-");
+			if (DashIndex >= 0)
+			{
+				ClientApp = ClientApp.Substring(0, DashIndex);
+			}
+		}
+
 		foreach (string DeviceName in Params.DeviceNames)
 		{
 			//save the device name
@@ -1431,10 +1443,10 @@ public class AndroidPlatform : Platform
 			//get the package name and save that
 			string DeviceArchitecture = GetBestDeviceArchitecture(Params, DeviceName);
 			string GPUArchitecture = GetBestGPUArchitecture(Params, DeviceName);
-			string ApkName = ClientApp + DeviceArchitecture + ".apk";
+			string ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true, DeviceArchitecture, GPUArchitecture);
 			if (!File.Exists(ApkName))
 			{
-				ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true, DeviceArchitecture, GPUArchitecture);
+				throw new AutomationException(ExitCode.Error_AppNotFound, "Failed to find application " + ApkName);
 			}
 			Console.WriteLine("Apk='{0}', ClientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.ProjectGameExeFilename);
 

@@ -9,11 +9,10 @@ public class Facebook : ModuleRules
     {
 		Type = ModuleType.External;
 
-		Definitions.Add("WITH_FACEBOOK=1");
-
 		// Additional Frameworks and Libraries for Android found in OnlineSubsystemFacebook_UPL.xml
         if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
+			Definitions.Add("WITH_FACEBOOK=1");
             Definitions.Add("UE4_FACEBOOK_VER=4.18");
 
             // These are iOS system libraries that Facebook depends on (FBAudienceNetwork, FBNotifications)

@@ -14,6 +14,18 @@ namespace UnrealBuildTool
 {
 	class UEDeployAndroid : UEBuildDeploy, IAndroidDeploy
 	{
+		// Minimum Android SDK that must be used for Java compiling
+		readonly int MinimumSDKLevel = 23;
+
+		// Reserved Java keywords not allowed in package names without modification
+		static private string[] JavaReservedKeywords = new string[] {
+			"abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do",
+			"double", "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof",
+			"int", "interface", "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static",
+			"strictfp", "super", "switch", "sychronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while",
+			"false", "null", "true"
+		};
+
 		/// <summary>
 		/// Internal usage for GetApiLevel
 		/// </summary>
@@ -27,6 +39,7 @@ namespace UnrealBuildTool
 		}
 
 		private UnrealPluginLanguage UPL = null;
+		private bool GoogleVRPluginEnabled = false;
 
 		public void SetAndroidPluginData(List<string> Architectures, List<string> inPluginExtraData)
 		{
@@ -35,6 +48,18 @@ namespace UnrealBuildTool
 			{
 				NDKArches.Add(GetNDKArch(Arch));
 			}
+
+			// check if the GoogleVR plugin was enabled
+			GoogleVRPluginEnabled = false;
+			foreach (var Plugin in inPluginExtraData)
+			{
+				if (Plugin.Contains("GoogleVRHMD"))
+				{
+					GoogleVRPluginEnabled = true;
+					break;
+				}
+			}
+
 			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, NDKArches, "http://schemas.android.com/apk/res/android", "xmlns:android=\"http://schemas.android.com/apk/res/android\"", UnrealTargetPlatform.Android);
 //			APL.SetTrace();
 		}
@@ -66,6 +91,45 @@ namespace UnrealBuildTool
 			return ConfigCache.ReadHierarchy(Type, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Android);
 		}
 
+		private string GetLatestSDKApiLevel(AndroidToolChain ToolChain)
+		{
+			// we expect there to be one, so use the first one
+			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
+
+			// run a command and capture output
+			var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
+			ExeInfo.UseShellExecute = false;
+			ExeInfo.RedirectStandardOutput = true;
+			using (var GameProcess = Process.Start(ExeInfo))
+			{
+				PossibleApiLevels = new List<string>();
+				GameProcess.BeginOutputReadLine();
+				GameProcess.OutputDataReceived += ParseApiLevel;
+				GameProcess.WaitForExit();
+			}
+
+			if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+			{
+				return ToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
+			}
+
+			throw new BuildException("Can't make an APK without an API installed (see \"android.bat list targets\")");
+		}
+
+		private int GetApiLevelInt(string ApiString)
+		{
+			int VersionInt = 0;
+			if (ApiString.Contains("-"))
+			{
+				int Version;
+				if (int.TryParse(ApiString.Substring(ApiString.LastIndexOf('-') + 1), out Version))
+				{
+					VersionInt = Version;
+				}
+			}
+			return VersionInt;
+		}
+
 		private string CachedSDKLevel = null;
 		private string GetSdkApiLevel(AndroidToolChain ToolChain)
 		{
@@ -85,27 +149,20 @@ namespace UnrealBuildTool
 				// run a command and capture output
 				if (SDKLevel == "latest")
 				{
-					// we expect there to be one, so use the first one
-					string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
+					SDKLevel = GetLatestSDKApiLevel(ToolChain);
+				}
 
-					var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
-					ExeInfo.UseShellExecute = false;
-					ExeInfo.RedirectStandardOutput = true;
-					using (var GameProcess = Process.Start(ExeInfo))
-					{
-						PossibleApiLevels = new List<string>();
-						GameProcess.BeginOutputReadLine();
-						GameProcess.OutputDataReceived += ParseApiLevel;
-						GameProcess.WaitForExit();
-					}
+				// make sure it is at least android-23
+				int SDKLevelInt = GetApiLevelInt(SDKLevel);
+				if (SDKLevelInt < MinimumSDKLevel)
+				{
+					Console.WriteLine("Requires at least SDK API level {0}, currently set to '{1}'", MinimumSDKLevel, SDKLevel);
+					SDKLevel = GetLatestSDKApiLevel(ToolChain);
 
-					if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+					SDKLevelInt = GetApiLevelInt(SDKLevel);
+					if (SDKLevelInt < MinimumSDKLevel)
 					{
-						SDKLevel = ToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
-					}
-					else
-					{
-						throw new BuildException("Can't make an APK without an API installed (see \"android.bat list targets\")");
+						throw new BuildException("Can't make an APK without API 'android-" + MinimumSDKLevel.ToString() + "' minimum installed (see \"android.bat list targets\")");
 					}
 				}
 
@@ -198,6 +255,12 @@ namespace UnrealBuildTool
 
 		public bool IsPackagingForDaydream(ConfigHierarchy Ini = null)
 		{
+			// always false if the GoogleVR plugin wasn't enabled
+			if (!GoogleVRPluginEnabled)
+			{
+				return false;
+			}
+
 			// make a new one if one wasn't passed in
 			if (Ini == null)
 			{
@@ -211,7 +274,9 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				return false;
+				// the default value for the VRMode is DaydreamAndCardboard, so unless the developer
+				// changes the mode, there will be no setting string to look up here
+				return true;
 			}
 		}
 
@@ -1307,15 +1372,106 @@ namespace UnrealBuildTool
 			}
 		}
 
+		private string CachedPackageName = null;
+
+		private bool IsLetter(char Input)
+		{
+			return (Input >= 'A' && Input <= 'Z') || (Input >= 'a' && Input <= 'z');
+		}
+
+		private bool IsDigit(char Input)
+		{
+			return (Input >= '0' && Input <= '9');
+		}
+
 		private string GetPackageName(string ProjectName)
 		{
-			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
-			string PackageName;
-			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "PackageName", out PackageName);
-			// replace some variables
-			PackageName = PackageName.Replace("[PROJECT]", ProjectName);
-			PackageName = PackageName.Replace("-", "_");
-			return PackageName;
+			if (CachedPackageName == null)
+			{
+				ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+				string PackageName;
+				Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "PackageName", out PackageName);
+
+				if (PackageName.Contains("[PROJECT]"))
+				{
+					// project name must start with a letter
+					if (!IsLetter(ProjectName[0]))
+					{
+						throw new BuildException("Package name segments must all start with a letter. Please replace [PROJECT] with a valid name");
+					}
+
+					// hyphens not allowed so change them to underscores in project name
+					if (ProjectName.Contains("-"))
+					{
+						Trace.TraceWarning("Project name contained hyphens, converted to underscore");
+						ProjectName = ProjectName.Replace("-", "_");
+					}
+
+					// check for special characters
+					for (int Index = 0; Index < ProjectName.Length; Index++)
+					{
+						char c = ProjectName[Index];
+						if (c != '.' && c != '_' && !IsDigit(c) && !IsLetter(c))
+						{
+							throw new BuildException("Project name contains illegal characters (only letters, numbers, and underscore allowed); please replace [PROJECT] with a valid name");
+						}
+					}
+
+					PackageName = PackageName.Replace("[PROJECT]", ProjectName);
+				}
+
+				// verify minimum number of segments
+				string[] PackageParts = PackageName.Split('.');
+				int SectionCount = PackageParts.Length;
+				if (SectionCount < 2)
+				{
+					throw new BuildException("Package name must have at least 2 segments separated by periods (ex. com.projectname, not projectname); please change in Android Project Settings. Currently set to '" + PackageName + "'");
+				}
+
+				// hyphens not allowed
+				if (PackageName.Contains("-"))
+				{
+					throw new BuildException("Package names may not contain hyphens; please change in Android Project Settings. Currently set to '" + PackageName + "'");
+				}
+
+				// do not allow special characters
+				for (int Index = 0; Index < PackageName.Length; Index++)
+				{
+					char c = PackageName[Index];
+					if (c != '.' && c != '_' && !IsDigit(c) && !IsLetter(c))
+					{
+						throw new BuildException("Package name contains illegal characters (only letters, numbers, and underscore allowed); please change in Android Project Settings. Currently set to '" + PackageName + "'");
+					}
+				}
+
+				// validate each segment
+				for (int Index = 0; Index < SectionCount; Index++)
+				{
+					if (PackageParts[Index].Length < 1)
+					{
+						throw new BuildException("Package name segments must have at least one letter; please change in Android Project Settings. Currently set to '" + PackageName + "'");
+					}
+
+					if (!IsLetter(PackageParts[Index][0]))
+					{
+						throw new BuildException("Package name segments must start with a letter; please change in Android Project Settings. Currently set to '" + PackageName + "'");
+					}
+
+					// cannot use Java reserved keywords
+					foreach (string Keyword in JavaReservedKeywords)
+					{
+						if (PackageParts[Index] == Keyword)
+						{
+							throw new BuildException("Package name segments must not be a Java reserved keyword (" + Keyword + "); please change in Android Project Settings. Currently set to '" + PackageName + "'");
+						}
+					}
+				}
+
+				Console.WriteLine("Using package name: '{0}'", PackageName);
+				CachedPackageName = PackageName;
+			}
+
+			return CachedPackageName;
 		}
 
 		private string GetPublicKey()
@@ -1409,7 +1565,7 @@ namespace UnrealBuildTool
 
 			string InstallLocation;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "InstallLocation", out InstallLocation);
-			switch(InstallLocation.ToLower())
+			switch (InstallLocation.ToLower())
 			{
 				case "preferexternal":
 					InstallLocation = "preferExternal";
@@ -1473,7 +1629,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				switch(CookFlavor)
+				switch (CookFlavor)
 				{
 					case "_Multi":
 						//need to check ini to determine which are supported
@@ -1539,7 +1695,7 @@ namespace UnrealBuildTool
 					Text.AppendLine("\t             " + Line);
 				}
 			}
-            Text.AppendLine("\t             android:hardwareAccelerated=\"true\">");
+			Text.AppendLine("\t             android:hardwareAccelerated=\"true\">");
 			Text.AppendLine("\t             android:hasCode=\"true\">");
 			if (bShowLaunchImage)
 			{
@@ -1625,7 +1781,10 @@ namespace UnrealBuildTool
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bHasOBBFiles\" android:value=\"{0}\"/>", bHasOBBFiles ? "true" : "false"));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.BuildConfiguration\" android:value=\"{0}\"/>", Configuration));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bUseExternalFilesDir\" android:value=\"{0}\"/>", bUseExternalFilesDir ? "true" : "false"));
-			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bDaydream\" android:value=\"{0}\"/>", bPackageForDaydream ? "true" : "false"));
+			if (bPackageForDaydream)
+			{
+				Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bDaydream\" android:value=\"true\"/>"));
+			}
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.games.APP_ID\"");
 			Text.AppendLine("\t\t           android:value=\"@string/app_id\" />");
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.version\"");
@@ -2033,8 +2192,11 @@ namespace UnrealBuildTool
 		{
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
 
+			// do this here so we'll stop early if there is a problem with the SDK API level (cached so later calls will return the same)
+			string SDKAPILevel = GetSdkApiLevel(ToolChain);
+
 			PatchAntBatIfNeeded();
-			
+
 			// cache some tools paths
 			string NDKBuildPath = Environment.ExpandEnvironmentVariables("%NDKROOT%/ndk-build" + (Utils.IsRunningOnMono ? "" : ".cmd"));
 

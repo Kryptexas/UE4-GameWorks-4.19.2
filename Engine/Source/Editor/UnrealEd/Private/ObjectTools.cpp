@@ -1581,6 +1581,12 @@ namespace ObjectTools
 			GUnrealEd->GetPackageAutoSaver().OnPackagesDeleted(PackagesToDelete);
 		}
 
+		// Let the asset registry know that these packages are being removed
+		for (UPackage* PackageToDelete : PackagesToDelete)
+		{
+			FAssetRegistryModule::PackageDeleted(PackageToDelete);
+		}
+
 		// Unload the packages and collect garbage.
 		if ( PackagesToDelete.Num() > 0 || EmptyPackagesToUnload.Num() > 0 )
 		{
@@ -1790,7 +1796,7 @@ namespace ObjectTools
 			FNotificationInfo Info( NSLOCTEXT("UnrealEd", "Warning_CantDeleteRebuildingAssetRegistry", "Unable To Delete While Discovering Assets") );
 			Info.ExpireDuration = 3.0f;
 			FSlateNotificationManager::Get().AddNotification(Info);
-			return false;
+			return 0;
 		}
 
 		// let systems clean up any unnecessary references that they may have 
@@ -2312,8 +2318,12 @@ namespace ObjectTools
 
 				if( DeleteSingleObject( CurObject ) )
 				{
-					// Update return val
-					++NumDeletedObjects;
+					// Only count the objects we were given to delete, as this function may have added more (eg, BP instances)
+					if (InObjectsToDelete.Contains(CurObject))
+					{
+						// Update return val
+						++NumDeletedObjects;
+					}
 				}
 
 				GWarn->StatusUpdate(Count, ReplaceableObjectsNum, NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_DeletingObjects", "Deleting Assets..."));

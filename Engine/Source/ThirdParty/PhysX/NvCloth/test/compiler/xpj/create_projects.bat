@@ -17,6 +17,7 @@ rem set GOOGLETEST=..\..\..\..\..\..\..\physx\externals\GoogleTest\gtest-1.4.0
 "%XPJ%\xpj4.exe" -t vc14 -p win32 -x "%CD%\NvClothUnitTests.xpj"
 "%XPJ%\xpj4.exe" -t vc14 -p xboxone -x "%CD%\NvClothUnitTests.xpj"
 "%XPJ%\xpj4.exe" -t vc14 -p ps4 -x "%CD%\NvClothUnitTests.xpj"
+"%XPJ%\xpj4.exe" -t vc14 -p switch -x "%CD%\NvClothUnitTests.xpj"
 
 call "../GetFoundationDLLs.bat"
 

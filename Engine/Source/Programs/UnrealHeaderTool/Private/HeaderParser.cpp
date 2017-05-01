@@ -5913,6 +5913,80 @@ UDelegateFunction* FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasse
 	return DelegateSignatureFunction;
 }
 
+// Compares the properties of two functions to see if they have the same signature.
+bool AreFunctionSignaturesEqual(const UFunction* Lhs, const UFunction* Rhs)
+{
+	auto LhsPropIter = TFieldIterator<UProperty>(Lhs);
+	auto RhsPropIter = TFieldIterator<UProperty>(Rhs);
+
+	for (;;)
+	{
+		bool bEndOfLhsFunction = !LhsPropIter;
+		bool bEndOfRhsFunction = !RhsPropIter;
+
+		if (bEndOfLhsFunction != bEndOfRhsFunction)
+		{
+			// The functions have different numbers of parameters
+			return false;
+		}
+
+		if (bEndOfLhsFunction)
+		{
+			// We've compared all the parameters
+			return true;
+		}
+
+		const UProperty* LhsProp = *LhsPropIter;
+		const UProperty* RhsProp = *RhsPropIter;
+
+		const UClass* LhsClass = LhsProp->GetClass();
+		const UClass* RhsClass = RhsProp->GetClass();
+
+		if (LhsClass != RhsClass)
+		{
+			// The properties have different types
+			return false;
+		}
+
+		if (LhsClass == UArrayProperty::StaticClass())
+		{
+			const UArrayProperty* LhsArrayProp = (const UArrayProperty*)LhsProp;
+			const UArrayProperty* RhsArrayProp = (const UArrayProperty*)RhsProp;
+
+			if (LhsArrayProp->Inner->GetClass() != RhsArrayProp->Inner->GetClass())
+			{
+				// The properties are arrays of different types
+				return false;
+			}
+		}
+		else if (LhsClass == UMapProperty::StaticClass())
+		{
+			const UMapProperty* LhsMapProp = (const UMapProperty*)LhsProp;
+			const UMapProperty* RhsMapProp = (const UMapProperty*)RhsProp;
+
+			if (LhsMapProp->KeyProp->GetClass() != RhsMapProp->KeyProp->GetClass() || LhsMapProp->ValueProp->GetClass() != RhsMapProp->ValueProp->GetClass())
+			{
+				// The properties are maps of different types
+				return false;
+			}
+		}
+		else if (LhsClass == USetProperty::StaticClass())
+		{
+			const USetProperty* LhsSetProp = (const USetProperty*)LhsProp;
+			const USetProperty* RhsSetProp = (const USetProperty*)RhsProp;
+
+			if (LhsSetProp->ElementProp->GetClass() != RhsSetProp->ElementProp->GetClass())
+			{
+			// The properties are sets of different types
+			return false;
+			}
+		}
+
+		++LhsPropIter;
+		++RhsPropIter;
+	}
+}
+
 /**
  * Parses and compiles a function declaration
  */
@@ -6248,7 +6322,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 
 	// determine if there are any outputs for this function
 	bool bHasAnyOutputs = bHasReturnValue;
-	if (bHasAnyOutputs == false)
+	if (!bHasAnyOutputs)
 	{
 		for (TFieldIterator<UProperty> It(TopFunction); It; ++It)
 		{
@@ -6260,7 +6334,25 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 			}
 		}
 	}
-	if ( (bHasAnyOutputs == false) && (FuncInfo.FunctionFlags & (FUNC_BlueprintPure)) )
+
+	// Check to see if there is a function in the super class with the same name but a different signature
+	UStruct* SuperStruct = GetCurrentClass();
+	if (SuperStruct)
+	{
+		SuperStruct = SuperStruct->GetSuperStruct();
+	}
+	if (SuperStruct)
+	{
+		if (UFunction* OverriddenFunction = ::FindField<UFunction>(SuperStruct, FuncInfo.Function.Identifier))
+		{
+			if (!AreFunctionSignaturesEqual(TopFunction, OverriddenFunction))
+			{
+				FError::Throwf(TEXT("Function '%s' has a different signature from the one defined in base class '%s'"), FuncInfo.Function.Identifier, *OverriddenFunction->GetOuter()->GetName());
+			}
+		}
+	}
+
+	if (!bHasAnyOutputs && (FuncInfo.FunctionFlags & (FUNC_BlueprintPure)))
 	{
 		// This bad behavior would be treated as a warning in the Blueprint editor, so when converted assets generates these bad functions
 		// we don't want to prevent compilation:
@@ -6812,6 +6904,9 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 
 	// Expect a semicolon.
 	RequireSymbol( TEXT(";"), TEXT("'variable declaration'") );
+
+	// Skip redundant semi-colons
+	while (MatchSymbol(TEXT(";")));
 }
 
 //

@@ -1750,7 +1750,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				GetMoviePlayer()->Initialize(SlateRenderer);
 
 				// hide splash screen now
-				FPlatformMisc::PlatformPostInit(false);
+				FPlatformMisc::PlatformHandleSplashScreen(false);
 
 				// only allowed to play any movies marked as early startup.  These movies or widgets can have no interaction whatsoever with uobjects or engine features
 				GetMoviePlayer()->PlayEarlyStartupMovies();
@@ -1834,18 +1834,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
-#if !UE_SERVER
-	if ( !IsRunningDedicatedServer() )
-	{
-		// do any post appInit processing, before the render thread is started.
-		FPlatformMisc::PlatformPostInit(!GetMoviePlayer()->IsMovieCurrentlyPlaying());
-	}
-	else
-#endif
-	{
-		// do any post appInit processing, before the render thread is started.
-		FPlatformMisc::PlatformPostInit(true);
-	}
+	// do any post appInit processing, before the render thread is started.
+	FPlatformMisc::PlatformPostInit();
 	SlowTask.EnterProgressFrame(5);
 
 #if !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
@@ -1877,9 +1867,21 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		// Play any non-early startup loading movies.
 		GetMoviePlayer()->PlayMovie();
-
 	}
 #endif
+
+#if !UE_SERVER
+	if (!IsRunningDedicatedServer())
+	{
+		// show or hide splash screen based on movie
+		FPlatformMisc::PlatformHandleSplashScreen(!GetMoviePlayer()->IsMovieCurrentlyPlaying());
+	}
+	else
+#endif
+	{
+		// show splash screen
+		FPlatformMisc::PlatformHandleSplashScreen(true);
+	}
 
 	{
 		FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.AddStatic(StartRenderCommandFenceBundler);

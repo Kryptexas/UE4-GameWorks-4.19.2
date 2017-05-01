@@ -22,8 +22,9 @@ void UChildActorComponent::OnRegister()
 
 	if (ChildActor)
 	{
-		if (ChildActor->GetClass() != ChildActorClass)
+		if (bNeedsRecreate || ChildActor->GetClass() != ChildActorClass)
 		{
+			bNeedsRecreate = false;
 			DestroyChildActor();
 			CreateChildActor();
 		}
@@ -430,8 +431,7 @@ void UChildActorComponent::PostLoad()
 		// Don't do this if there is no linker which implies component was created via duplication
 		if (ChildActorTemplate && GetLinker())
 		{
-			ChildActor->MarkPendingKill();
-			ChildActor = nullptr;
+			bNeedsRecreate = true;
 		}
 		else
 		{

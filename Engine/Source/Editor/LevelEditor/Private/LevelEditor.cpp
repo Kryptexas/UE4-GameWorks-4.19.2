@@ -171,6 +171,8 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 		GLevelEditorModeTools().RemoveDefaultMode( FBuiltinEditorModes::EM_Default );
 		GLevelEditorModeTools().AddDefaultMode( FBuiltinEditorModes::EM_Placement );
 		GLevelEditorModeTools().DeactivateAllModes();
+		GLevelEditorModeTools().ActivateDefaultMode();
+
 	}
 
 	IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));

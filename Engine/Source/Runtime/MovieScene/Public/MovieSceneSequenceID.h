@@ -61,6 +61,12 @@ struct FMovieSceneSequenceID
 	{
 		return Value;
 	}
+
+	FORCEINLINE bool IsValid() const
+	{
+		return Value != -1;
+	}
+
 private:
 
 	UPROPERTY()

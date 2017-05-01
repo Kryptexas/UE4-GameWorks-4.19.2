@@ -369,7 +369,7 @@ static const TCHAR* ImportProperties(
 						FParse::Value(StrPtr, TEXT("Flags="), Instance.Flags);
 
 						// Add the instance
-						MeshInfo->AddInstance(IFA, FoliageType, Instance, ActorComponent);
+						MeshInfo->AddInstance(IFA, FoliageType, Instance, ActorComponent, true);
 					}
 				}
 			}

@@ -2074,15 +2074,18 @@ void FMeshMaterialsLayout::OnMaterialChanged(UMaterialInterface* NewMaterial, UM
 	if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex))
 	{
 		StaticMesh.StaticMaterials[MaterialIndex].MaterialInterface = NewMaterial;
-		//Set the Material slot name to a good default one
-		if (StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName == NAME_None)
+		if (NewMaterial != nullptr)
 		{
-			StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName = NewMaterial->GetFName();
-		}
-		//Set the original fbx material name so we can re-import correctly
-		if (StaticMesh.StaticMaterials[MaterialIndex].ImportedMaterialSlotName == NAME_None)
-		{
-			StaticMesh.StaticMaterials[MaterialIndex].ImportedMaterialSlotName = NewMaterial->GetFName();
+			//Set the Material slot name to a good default one
+			if (StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName == NAME_None)
+			{
+				StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName = NewMaterial->GetFName();
+			}
+			//Set the original fbx material name so we can re-import correctly
+			if (StaticMesh.StaticMaterials[MaterialIndex].ImportedMaterialSlotName == NAME_None)
+			{
+				StaticMesh.StaticMaterials[MaterialIndex].ImportedMaterialSlotName = NewMaterial->GetFName();
+			}
 		}
 	}
 

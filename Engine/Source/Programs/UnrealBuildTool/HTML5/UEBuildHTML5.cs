@@ -288,7 +288,7 @@ namespace UnrealBuildTool
 		/// <returns>New toolchain instance.</returns>
 		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
 		{
-			return new HTML5ToolChain();
+			return new HTML5ToolChain(Target.ProjectFile);
 		}
 
 		/// <summary>

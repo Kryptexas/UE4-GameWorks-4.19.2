@@ -84,6 +84,12 @@ void UK2Node_BitmaskLiteral::Serialize(FArchive& Ar)
 	// Post-load validation of the enum type.
 	if (Ar.IsLoading() && Ar.IsPersistent() && !Ar.HasAnyPortFlags(PPF_Duplicate | PPF_DuplicateForPIE))
 	{
+		// If valid, ensure that the enum type is loaded.
+		if (BitflagsEnum != nullptr)
+		{
+			Ar.Preload(BitflagsEnum);
+		}
+
 		ValidateBitflagsEnumType();
 	}
 }

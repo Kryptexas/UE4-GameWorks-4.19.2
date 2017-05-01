@@ -4443,25 +4443,28 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 			}
 		}
 
-		// Delete old generated .cpp files which we don't need because we generated less code than last time.
-		TArray<FString> FoundFiles;
-		IFileManager::Get().FindFiles(FoundFiles, *(ModuleInfo->GeneratedCPPFilenameBase + TEXT(".*.cpp")), true, false);
-		FString BaseDir = FPaths::GetPath(ModuleInfo->GeneratedCPPFilenameBase);
-		for (FString& File : FoundFiles)
+		if (bAllowSaveExportedHeaders)
 		{
-			if (!NumberedHeaderNames.Contains(File))
+			// Delete old generated .cpp files which we don't need because we generated less code than last time.
+			TArray<FString> FoundFiles;
+			IFileManager::Get().FindFiles(FoundFiles, *(ModuleInfo->GeneratedCPPFilenameBase + TEXT(".*.cpp")), true, false);
+			FString BaseDir = FPaths::GetPath(ModuleInfo->GeneratedCPPFilenameBase);
+			for (FString& File : FoundFiles)
 			{
-				IFileManager::Get().Delete(*FPaths::Combine(*BaseDir, *File));
+				if (!NumberedHeaderNames.Contains(File))
+				{
+					IFileManager::Get().Delete(*FPaths::Combine(*BaseDir, *File));
+				}
 			}
-		}
 
-		// delete the old .cpp file that will cause link errors if it's left around (Engine.generated.cpp and Engine.generated.1.cpp will 
-		// conflict now that we no longer use Engine.generated.cpp to #include Engine.generated.1.cpp, and UBT would compile all 3)
-		// @todo: This is a temp measure so we don't force everyone to require a Clean
-		if (GeneratedFunctionBodyTextSplit.Num() > 1)
-		{
-			FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
-			IFileManager::Get().Delete(*CppPath);
+			// delete the old .cpp file that will cause link errors if it's left around (Engine.generated.cpp and Engine.generated.1.cpp will 
+			// conflict now that we no longer use Engine.generated.cpp to #include Engine.generated.1.cpp, and UBT would compile all 3)
+			// @todo: This is a temp measure so we don't force everyone to require a Clean
+			if (GeneratedFunctionBodyTextSplit.Num() > 1)
+			{
+				FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
+				IFileManager::Get().Delete(*CppPath);
+			}
 		}
 	}
 
@@ -5186,6 +5189,20 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 					ScriptGenerator->FinishExport();
 				}
 			}
+
+			// Get a list of external dependencies from each enabled plugin
+			FString ExternalDependencies;
+			for (IScriptGeneratorPluginInterface* ScriptPlugin : ScriptPlugins)
+			{
+				TArray<FString> PluginExternalDependencies;
+				ScriptPlugin->GetExternalDependencies(PluginExternalDependencies);
+
+				for (const FString& PluginExternalDependency : PluginExternalDependencies)
+				{
+					ExternalDependencies += PluginExternalDependency + LINE_TERMINATOR;
+				}
+			}
+			FFileHelper::SaveStringToFile(ExternalDependencies, *GManifest.ExternalDependenciesFile);
 		}
 	}
 

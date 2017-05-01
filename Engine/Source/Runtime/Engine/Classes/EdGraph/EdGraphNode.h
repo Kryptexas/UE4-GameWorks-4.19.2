@@ -20,6 +20,8 @@ class UEdGraphSchema;
 struct FEdGraphPinType;
 struct FPropertyChangedEvent;
 struct FSlateIcon;
+struct FDiffResults;
+struct FDiffSingleResult;
 
 /**
   * Struct used to define information for terminal types, e.g. types that can be contained
@@ -560,7 +562,7 @@ public:
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const {}
 
 	/** Gives the node the option to customize how diffs are discovered within it.  */
-	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results ) ;
+	virtual void FindDiffs(class UEdGraphNode* OtherNode, FDiffResults& Results);
 
 	// This function gets menu items that can be created using this node given the specified context
 	virtual void GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBuilder) const {}
@@ -624,6 +626,23 @@ public:
 
 	/** Sets a flag if the comment bubble needs to be made visible immediately */
 	void SetMakeCommentBubbleVisible(bool MakeVisible);
+
+protected:
+	/**
+	 * Finds the difference in properties of node instance
+	 *
+	 * @param StructA The struct of the class we are looking at LHS
+	 * @param StructB The struct of the class we are looking at RHS
+	 * @param DataA The raw data for the UObject we are comparing LHS
+	 * @param DataB The raw data for the UObject we are comparing RHS
+	 * @param Results The Results where differences are stored
+	 * @param Diff The single result with default parameters setup
+	 */
+	virtual void DiffProperties(UClass* StructA, UClass* StructB, UObject* DataA, UObject* DataB, FDiffResults& Results, FDiffSingleResult& Diff) const;
+
+	// Returns a human-friendly description of the property in the form "PropertyName: Value"
+	virtual FString GetPropertyNameAndValueForDiff(const UProperty* Prop, const uint8* PropertyAddr) const;
+
 #endif // WITH_EDITOR
 
 protected:

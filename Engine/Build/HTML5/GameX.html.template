@@ -6,6 +6,20 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<script>
+		// THIS IS TEMP -- to be removed when the following has been removed as well
+		// .../Engine/Source/Runtime/Engine/Private/ActiveSound.cpp
+		//     // for velocity-based effects like doppler
+		//     ParseParams.Velocity = (ParseParams.Transform.GetTranslation() - LastLocation) / DeltaTime;
+		window.AudioContext = ( window.AudioContext || window.webkitAudioContext || null );
+		if ( AudioContext ) {
+			var ue4_hacks = {}; // making this obvious...
+			ue4_hacks.ctx = new AudioContext();
+			ue4_hacks.panner = ue4_hacks.ctx.createPanner();
+			ue4_hacks.panner.__proto__.setVelocity = ( ue4_hacks.panner.__proto__.setVelocity || function(){} );
+		}
+	</script>
+
+	<script>
 		// Configuration item: enable this hosting an asm.js fallback, and set to false if hosting only Wasm version.
 		const supportsAsmJsAsFallback = true;
 
@@ -49,7 +63,7 @@
 			assetDownloadProgress: {}, // Track how many bytes of each needed asset has been downloaded so far.
 
 			UE4_indexedDBName: 'UE4_assetDatabase_%GAME%', // TODO Nick: this should be an ascii ID string without special characters that is unique to the project that is being packaged
-			UE4_indexedDBVersion: 1, // Bump this number to invalidate existing IDB storages in browsers. // TODO Nick: Perhaps UE4 could automatically bump this number up when repackaging the project?
+			UE4_indexedDBVersion: %TIMESTAMP%, // Bump this number to invalidate existing IDB storages in browsers.
 
 			preRun: [function() { addRunDependency('wait-for-compiled-code'); }]
 		};
@@ -724,18 +738,34 @@ function download(url, responseType) {
 	});
 }
 
+function getIDBRequestErrorString(req) {
+	try { return req.error ? ('IndexedDB ' + req.error.name + ': ' + req.error.message) : req.result;
+	} catch(ex) { return null; }
+}
+
 function deleteIndexedDBStorage(dbName, onsuccess, onerror, onblocked) {
-  var idb = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
-  if (Module['dbInstance']) Module['dbInstance'].close();
-  if (!dbName) dbName = Module['UE4_indexedDBName'];
-  var req = idb.deleteDatabase(dbName);
-  req.onsuccess = function() { console.log('Deleted IndexedDB storage ' + dbName + '!'); reportDataBytesStoredInIndexedDB(null); if (onsuccess) onsuccess(); }
-  req.onerror = function(e) { console.error('Failed to delete IndexedDB storage ' + dbName + '!'); console.error(e); if (onerror) onerror(e); return false; }
-  req.onblocked = function(e) { console.error('Failed to delete IndexedDB storage ' + dbName + ', DB was blocked!'); console.error(e); if (onblocked) onblocked(e); return false; }
+	var idb = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+	if (Module['dbInstance']) Module['dbInstance'].close();
+	if (!dbName) dbName = Module['UE4_indexedDBName'];
+	var req = idb.deleteDatabase(dbName);
+	req.onsuccess = function() { console.log('Deleted IndexedDB storage ' + dbName + '!'); reportDataBytesStoredInIndexedDB(null); if (onsuccess) onsuccess(); }
+	req.onerror = function(evt) {
+		var errorString = getIDBRequestErrorString(req);
+		console.error('Failed to delete IndexedDB storage ' + dbName + ', ' + errorString);
+		evt.preventDefault();
+		if (onerror) onerror(errorString);
+	};
+	req.onblocked = function(evt) {
+		var errorString = getIDBRequestErrorString(req);
+		console.error('Failed to delete IndexedDB storage ' + dbName + ', DB was blocked! ' + errorString);
+		evt.preventDefault();
+		if (onblocked) onblocked(errorString);
+	}
 }
 
 var enableReadFromIndexedDB = (location.search.indexOf('noidbread') == -1);
 var enableWriteToIndexedDB = enableReadFromIndexedDB && (location.search.indexOf('noidbwrite') == -1);
+%DISABLE_INDEXEDDB%
 
 if (!enableReadFromIndexedDB) showWarningRibbon('Running with IndexedDB access disabled.');
 else if (!enableWriteToIndexedDB) showWarningRibbon('Running in read-only IndexedDB access mode.');
@@ -744,8 +774,7 @@ function storeToIndexedDB(db, key, value) {
 	return new Promise(function(resolve, reject) {
 		if (!enableWriteToIndexedDB) return reject('storeToIndexedDB: IndexedDB writes disabled by "?noidbwrite" option');
 		function fail(e) {
-			console.error('Failed to store file ' + key + ' to IndexedDB storage! error:');
-			console.error(e);
+			console.error('Failed to store file ' + key + ' to IndexedDB storage! error: ' + e);
 			if (!Module['idberrorShown']) {
 				showWarningRibbon('Failed to store file ' + key + ' to IndexedDB, error: ' + e);
 				Module['idberrorShown'] = true;
@@ -759,13 +788,14 @@ function storeToIndexedDB(db, key, value) {
 			var transaction = db.transaction(['FILES'], 'readwrite');
 			var packages = transaction.objectStore('FILES');
 			var putRequest = packages.put(value, "file/" + Module.key + '/' + key);
-			putRequest.onsuccess = function(event) {
+			putRequest.onsuccess = function(evt) {
 				if (value.byteLength || value.length) reportDataBytesStoredInIndexedDB(value.size || value.byteLength || value.length);
 				resolve(key);
 			};
-			putRequest.onerror = function(error) {
-				fail(error);
-				return false; /* Don't propagate the error to window.onerror handler. */
+			putRequest.onerror = function(evt) {
+				var errorString = getIDBRequestErrorString(putRequest) || ('IndexedDB request error: ' + evt);
+				evt.preventDefault();
+				fail(errorString);
 			};
 		} catch(e) {
 			fail(e);
@@ -790,17 +820,21 @@ function fetchFromIndexedDB(db, key) {
 			var transaction = db.transaction(['FILES'], 'readonly');
 			var packages = transaction.objectStore('FILES');
 			var getRequest = packages.get("file/" + Module.key + '/' + key);
-			getRequest.onsuccess = function(event) {
-				if (event.target.result) {
-					var len = event.target.result.size || event.target.result.byteLength || event.target.result.length;
+			getRequest.onsuccess = function(evt) {
+				if (evt.target.result) {
+					var len = evt.target.result.size || evt.target.result.byteLength || evt.target.result.length;
 					if (len) reportDataBytesStoredInIndexedDB(len);
-					resolve(event.target.result);
+					resolve(evt.target.result);
 				} else {
 					// Succeeded to load, but the load came back with the value of undefined, treat that as an error since we never store undefined in db.
 					reject();
 				}
 			};
-			getRequest.onerror = function(error) { fail(error); return false; /* Don't propagate the error to window.onerror handler. */ };
+			getRequest.onerror = function(evt) {
+				var errorString = getIDBRequestErrorString(getRequest) || ('IndexedDB.get request error: ' + evt);
+				evt.preventDefault();
+				fail(errorString);
+			};
 		} catch(e) {
 			fail(e);
 		}
@@ -830,20 +864,26 @@ function fetchOrDownloadAndStore(db, url, responseType) {
 function openIndexedDB(dbName, dbVersion) {
 	return new Promise(function(resolve, reject) {
 		if (!enableReadFromIndexedDB) return reject('openIndexedDB: IndexedDB disabled by "?noidbread" option');
-  		try {
+		try {
 			var idb = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
-  			var openRequest = idb.open(dbName, dbVersion);
-  		} catch(e) { return reject(e); }
+			var openRequest = idb.open(dbName, dbVersion);
+		} catch(e) { return reject(e); }
 
-		openRequest.onupgradeneeded = function(event) {
-			var db = event.target.result;
+		openRequest.onupgradeneeded = function(evt) {
+			var db = evt.target.result;
 			if (db.objectStoreNames.contains('FILES')) db.deleteObjectStore('FILES');
 			db.createObjectStore('FILES');
 		};
-		openRequest.onsuccess = function(event) {
-			resolve(event.target.result);
+		openRequest.onsuccess = function(evt) {
+//			var t1 = performance.realNow();
+//			if (typeof emunittestReportCustomBlockDuration !== 'undefined') emunittestReportCustomBlockDuration('openIndexedDB', (t1-t0));
+			resolve(evt.target.result);
 		};
-		openRequest.onerror = function(error) { reject(error); return false; /* Don't propagate the error to window.onerror handler. */ };
+		openRequest.onerror = function(evt) {
+			var errorString = getIDBRequestErrorString(openRequest) || ('IndexedDB request error: ' + evt);
+			evt.preventDefault();
+			reject(errorString);
+		};
 	});
 }
 
@@ -1000,7 +1040,7 @@ function compileShadersFromJson(jsonData) {
 				console.error('Precompiling shaders got GL error: ' + e);
 				return reject('Precompiling shaders got GL error: ' + e);
 			}
-		 	Module['precompiledPrograms'].push({
+			Module['precompiledPrograms'].push({
 				program: program,
 				programInfos: ptable,
 				vs: p.vs,
@@ -1011,7 +1051,7 @@ function compileShadersFromJson(jsonData) {
 		setTimeout(buildProgram, 0);
 	})
 
-	return promise;	
+	return promise;
 }
 
 $(document).ready(function() {
@@ -1068,7 +1108,7 @@ $(document).ready(function() {
 
 	// The following WebGL extensions would be preferred to exist for best features/performance, but are not strictly needed and UE4 can fall back if not available.
 	var preferredToHaveWebGLExtensions = [// The following are core in WebGL 2:
-	                                      'ANGLE_instanced_arrays', // UE4 uses instanced rendering where possible, but can fallback to noninstanced. 
+	                                      'ANGLE_instanced_arrays', // UE4 uses instanced rendering where possible, but can fallback to noninstanced.
 	                                      'EXT_color_buffer_half_float',
 	                                      'EXT_sRGB',
 	                                      'EXT_shader_texture_lod', // textureLod() is needed for correct reflections, without this reflection shaders are missing and render out black.
@@ -1132,7 +1172,7 @@ $(document).ready(function() {
 			var mainJsDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.js')).then(addScriptToDom);
 			if (runningAsmJs) mainJsDownload = mainJsDownload.catch(noAsmJsFallbackHostedError);
 		} else {
-			var mainCompiledCode = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.asm.js'), 'arraybuffer').then(function(data) { 
+			var mainCompiledCode = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.asm.js'), 'arraybuffer').then(function(data) {
 				taskProgress(TASK_COMPILING);
 				return addScriptToDom(data).then(function() {
 					taskFinished(TASK_COMPILING);
@@ -1143,8 +1183,11 @@ $(document).ready(function() {
 				noAsmJsFallbackHostedError();
 			});
 			var compiledCodeInstantiateAction = true; // There is no need to manually instantiate asm.js, so instead of having a Promise() to resolve that, pass through true as a no-op.
-			var asmJsRuntimeDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%_asm.js')).catch(noAsmJsFallbackHostedError);
-			var mainJsDownload = Promise.all([asmJsRuntimeDownload, mainCompiledCode]).then(function(results) { addScriptToDom(results[0]); });
+			if (runningAsmJs) mainJsDownload = mainCompiledCode.catch(noAsmJsFallbackHostedError);
+			else {
+				var asmJsRuntimeDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%_asm.js')).catch(noAsmJsFallbackHostedError);
+				var mainJsDownload = Promise.all([asmJsRuntimeDownload, mainCompiledCode]).then(function(results) { addScriptToDom(results[0]); });
+			}
 		}
 
 		var dataJsDownload = fetchOrDownloadAndStore(db, Module.locateFile('%GAME%.data.js'));

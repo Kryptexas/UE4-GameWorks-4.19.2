@@ -110,8 +110,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 	static const FName DefaultForegroundName("DefaultForeground");
 
-	FContentBrowserCommands::Register();
-
 	BindCommands();
 
 	ChildSlot

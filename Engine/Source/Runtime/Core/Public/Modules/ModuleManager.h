@@ -779,11 +779,7 @@ class FDefaultGameModuleImpl
  * DebugGame modules will be loaded by specifying the -debug parameter on the command-line.
  */
 #if IS_MONOLITHIC && UE_BUILD_DEVELOPMENT
-	#if defined(UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME) && UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME
-		#define IMPLEMENT_DEBUGGAME() extern const bool GIsDebugGame = true;
-	#else
-		#define IMPLEMENT_DEBUGGAME() extern const bool GIsDebugGame = false;
-	#endif
+	#define IMPLEMENT_DEBUGGAME() extern const bool GIsDebugGame = (UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME != 0);
 #else
 	#define IMPLEMENT_DEBUGGAME()
 #endif 

@@ -80,7 +80,7 @@
     // supports restrict
     //
 
-    #define IMATH_RESTRICT restrict
+    #define IMATH_RESTRICT
 
 #elif defined __sgi
 

@@ -2024,6 +2024,25 @@ namespace UnrealBuildTool
 						}
 					}
 				}
+
+				foreach (FlatModuleCsDataType FlatCsModuleData in Target.FlatModuleCsData.Values)
+				{
+					if (FlatCsModuleData.BuildCsFilename != null && FlatCsModuleData.ExternalDependencies.Count > 0)
+					{
+						string BaseDir = Path.GetDirectoryName(FlatCsModuleData.BuildCsFilename);
+						foreach (string ExternalDependency in FlatCsModuleData.ExternalDependencies)
+						{
+							FileInfo DependencyFile = new FileInfo(Path.Combine(BaseDir, ExternalDependency));
+							bool bDependencyFileExists = DependencyFile.Exists;
+							if (!bDependencyFileExists || DependencyFile.LastWriteTime > UBTMakefileInfo.LastWriteTime)
+							{
+								Log.TraceVerbose("{0} has been {1} since makefile was built, ignoring it ({2})", DependencyFile.FullName, bDependencyFileExists ? "changed" : "deleted", UBTMakefileInfo.FullName);
+								ReasonNotLoaded = string.Format("changes to external dependency");
+								return null;
+							}
+						}
+					}
+				}
 			}
 
 			// We do a check to see if any modules' headers have changed which have

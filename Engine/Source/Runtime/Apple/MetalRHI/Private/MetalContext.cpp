@@ -225,7 +225,6 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 			UE_LOG(LogMetal, Warning,  TEXT("Couldn't find Metal device %s in GPU descriptors from IORegistry - capability reporting may be wrong."), *FString(SelectedDevice.name));
 		}
 	}
-	check(SelectedDevice);
 	return SelectedDevice;
 }
 
@@ -293,8 +292,13 @@ FMetalDeviceContext* FMetalDeviceContext::CreateDeviceContext()
 	uint32 DeviceIndex = 0;
 #if PLATFORM_IOS
 	id<MTLDevice> Device = [IOSAppDelegate GetDelegate].IOSView->MetalDevice;
-#else // @todo zebra
+#else
 	id<MTLDevice> Device = GetMTLDevice(DeviceIndex);
+	if (!Device)
+	{
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("The graphics card in this Mac appears to erroneously report support for Metal graphics technology, which is required to run this application, but failed to create a Metal device. The application will now exit."), TEXT("Failed to initialize Metal"));
+		exit(0);
+	}
 #endif
 	FMetalCommandQueue* Queue = new FMetalCommandQueue(Device, GMetalCommandQueueSize);
 	check(Queue);

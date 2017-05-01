@@ -17,7 +17,7 @@
 		</if>
 
 		<!-- Check for GoogleVR Deployment Mode and Set Vars. -->
-		<setStringFromProperty result="GoogleVRMode" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="GoogleVRMode" default="Cardboard" />
+		<setStringFromProperty result="GoogleVRMode" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="GoogleVRMode" default="DaydreamAndCardboard" />
 		<setBool result="bDaydreamMode" value="false" />
 		<setBool result="bDaydreamAndCardboardMode" value="false" />
 		<setBoolIsEqual result="bDaydreamMode" arg1="$S(GoogleVRMode)" arg2="Daydream" />

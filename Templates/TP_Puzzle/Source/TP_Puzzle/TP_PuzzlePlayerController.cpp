@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_Puzzle.h"
 #include "TP_PuzzlePlayerController.h"
 
 ATP_PuzzlePlayerController::ATP_PuzzlePlayerController()

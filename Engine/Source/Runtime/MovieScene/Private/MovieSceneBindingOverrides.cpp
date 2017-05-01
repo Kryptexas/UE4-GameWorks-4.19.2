@@ -54,7 +54,7 @@ void UMovieSceneBindingOverrides::SetBinding(FMovieSceneObjectBindingID Binding,
 			continue;
 		}
 
-		LookupMap.Add(Binding.GetObjectBindingID(), BindingData.Num());
+		LookupMap.Add(Binding.GetGuid(), BindingData.Num());
 
 		FMovieSceneBindingOverrideData NewBinding;
 		NewBinding.ObjectBindingId = Binding;
@@ -68,7 +68,7 @@ void UMovieSceneBindingOverrides::AddBinding(FMovieSceneObjectBindingID Binding,
 {
 	if (Object)
 	{
-		LookupMap.Add(Binding.GetObjectBindingID(), BindingData.Num());
+		LookupMap.Add(Binding.GetGuid(), BindingData.Num());
 
 		FMovieSceneBindingOverrideData NewBinding;
 		NewBinding.ObjectBindingId = Binding;
@@ -118,7 +118,7 @@ void UMovieSceneBindingOverrides::RebuildLookupMap() const
 
 	for (int32 Index = 0; Index < BindingData.Num(); ++Index)
 	{
-		LookupMap.Add(BindingData[Index].ObjectBindingId.GetObjectBindingID(), Index);
+		LookupMap.Add(BindingData[Index].ObjectBindingId.GetGuid(), Index);
 	}
 
 	bLookupDirty = false;

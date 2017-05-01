@@ -578,7 +578,7 @@ public:
 	{
 		if (Term->bIsLiteral)
 		{
-			check(!Term->Type.bIsArray || CoerceProperty);
+			check(!Term->Type.IsContainer() || CoerceProperty);
 
 			// Additional Validation, since we cannot trust custom k2nodes
 			const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
@@ -872,7 +872,7 @@ public:
 					Writer << EX_EndStructConst;
 				}
 			}
-			else if (auto ArrayPropr = Cast<UArrayProperty>(CoerceProperty))
+			else if (UArrayProperty* ArrayPropr = Cast<UArrayProperty>(CoerceProperty))
 			{
 				UProperty* InnerProp = ArrayPropr->Inner;
 				ensure(InnerProp);
@@ -887,25 +887,66 @@ public:
 				Writer << ElementNum;
 				for (int32 ElemIdx = 0; ElemIdx < ElementNum; ++ElemIdx)
 				{
-					FBPTerminal NewTerm;
-					Schema->ConvertPropertyToPinType(InnerProp, NewTerm.Type);
-					NewTerm.bIsLiteral = true;
-					NewTerm.Source = Term->Source;
-					NewTerm.SourcePin = Term->SourcePin;
 					uint8* RawElemData = ScriptArrayHelper.GetRawPtr(ElemIdx);
-					InnerProp->ExportText_Direct(NewTerm.Name, RawElemData, RawElemData, NULL, PPF_None);
-					if (InnerProp->IsA(UTextProperty::StaticClass()))
-					{
-						NewTerm.TextLiteral = Cast<UTextProperty>(InnerProp)->GetPropertyValue(RawElemData);
-						NewTerm.Name = NewTerm.TextLiteral.ToString();
-					}
-					else if (InnerProp->IsA(UObjectPropertyBase::StaticClass()))
-					{
-						NewTerm.ObjectLiteral = Cast<UObjectPropertyBase>(InnerProp)->GetObjectPropertyValue(RawElemData);
-					}
-					EmitTermExpr(&NewTerm, InnerProp);
+					EmitInnerElementExpr(Term, InnerProp, RawElemData);
 				}
 				Writer << EX_EndArrayConst;
+			}
+			else if (USetProperty* SetPropr = Cast<USetProperty>(CoerceProperty))
+			{
+				UProperty* InnerProp = SetPropr->ElementProp;
+				ensure(InnerProp);
+
+				FScriptSet ScriptSet;
+				SetPropr->ImportText(*Term->Name, &ScriptSet, 0, NULL, GLog);
+				int32 ElementNum = ScriptSet.Num();
+
+				FScriptSetHelper ScriptSetHelper(SetPropr, &ScriptSet);
+
+				Writer << EX_SetConst;
+				Writer << InnerProp;
+				Writer << ElementNum;
+
+				for (int32 ElemIdx = 0, SparseIndex = 0; ElemIdx < ElementNum; ++SparseIndex)
+				{
+					if (ScriptSet.IsValidIndex(SparseIndex))
+					{
+						uint8* RawElemData = ScriptSetHelper.GetElementPtr(SparseIndex);
+						EmitInnerElementExpr(Term, InnerProp, RawElemData);
+
+						++ElemIdx;
+					}
+				}
+				Writer << EX_EndSetConst;
+			}
+			else if (UMapProperty* MapPropr = Cast<UMapProperty>(CoerceProperty))
+			{
+				UProperty* KeyProp = MapPropr->KeyProp;
+				UProperty* ValProp = MapPropr->ValueProp;
+				ensure(KeyProp && ValProp);
+
+				FScriptMap ScriptMap;
+				MapPropr->ImportText(*Term->Name, &ScriptMap, 0, NULL, GLog);
+				int32 ElementNum = ScriptMap.Num();
+
+				FScriptMapHelper ScriptMapHelper(MapPropr, &ScriptMap);
+
+				Writer << EX_MapConst;
+				Writer << KeyProp;
+				Writer << ValProp;
+				Writer << ElementNum;
+
+				for (int32 ElemIdx = 0, SparseIndex = 0; ElemIdx < ElementNum; ++SparseIndex)
+				{
+					if (ScriptMap.IsValidIndex(SparseIndex))
+					{
+						EmitInnerElementExpr(Term, KeyProp, ScriptMapHelper.GetKeyPtr(SparseIndex));
+						EmitInnerElementExpr(Term, ValProp, ScriptMapHelper.GetValuePtr(SparseIndex));
+
+						++ElemIdx;
+					}
+				}
+				Writer << EX_EndMapConst;
 			}
 			else if (FLiteralTypeHelper::IsDelegate(&Term->Type, CoerceProperty))
 			{
@@ -993,6 +1034,28 @@ public:
 			}
 			Writer << Term->AssociatedVarProperty;
 		}
+	}
+
+	void EmitInnerElementExpr(FBPTerminal* OuterTerm, UProperty* InnerProp, uint8* RawElemPtr)
+	{
+		FBPTerminal NewTerm;
+		Schema->ConvertPropertyToPinType(InnerProp, NewTerm.Type);
+		NewTerm.bIsLiteral = true;
+		NewTerm.Source = OuterTerm->Source;
+		NewTerm.SourcePin = OuterTerm->SourcePin;
+
+		InnerProp->ExportText_Direct(NewTerm.Name, RawElemPtr, RawElemPtr, NULL, PPF_None);
+		if (InnerProp->IsA(UTextProperty::StaticClass()))
+		{
+			NewTerm.TextLiteral = Cast<UTextProperty>(InnerProp)->GetPropertyValue(RawElemPtr);
+			NewTerm.Name = NewTerm.TextLiteral.ToString();
+		}
+		else if (InnerProp->IsA(UObjectPropertyBase::StaticClass()))
+		{
+			NewTerm.ObjectLiteral = Cast<UObjectPropertyBase>(InnerProp)->GetObjectPropertyValue(RawElemPtr);
+		}
+
+		EmitTermExpr(&NewTerm, InnerProp);
 	}
 
 	void EmitLatentInfoTerm(FBPTerminal* Term, UProperty* LatentInfoProperty, FBlueprintCompiledStatement* TargetLabel)
@@ -1163,25 +1226,7 @@ public:
 			Writer << FunctionName;
 		}
 		
-		TArray<FName> WildcardParams;
 		const bool bIsCustomThunk = FunctionToCall->HasMetaData(TEXT("CustomThunk"));
-		if (bIsCustomThunk)
-		{
-			// collect all parameters that (should) have wildcard type.
-			auto CollectWildcards = [&](FName MetaDataName)
-			{
-				const FString DependentPinMetaData = FunctionToCall->GetMetaData(MetaDataName);
-				TArray<FString> TypeDependentPinNames;
-				DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
-				for (FString& Iter : TypeDependentPinNames)
-				{
-					WildcardParams.Add(FName(*Iter));
-				}
-			};
-			CollectWildcards(FBlueprintMetadata::MD_ArrayDependentParam);
-			CollectWildcards(FName(TEXT("CustomStructureParam")));
-		}
-
 		// Emit function parameters
 		int32 NumParams = 0;
 		for (TFieldIterator<UProperty> PropIt(FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
@@ -1200,10 +1245,10 @@ public:
  				}
 				else
 				{
-					const bool bWildcard = WildcardParams.Contains(FuncParamProperty->GetFName());
 					// Native type of a wildcard parameter should be ignored.
+					const bool bBadCoerceProperty = bIsCustomThunk && !Term->Type.IsContainer() && UEdGraphSchema_K2::IsWildcardProperty(FuncParamProperty);
 					// When no coerce property is passed, a type of literal will be retrieved from the term.
-					EmitTerm(Term, bWildcard ? nullptr : FuncParamProperty);
+					EmitTerm(Term, bBadCoerceProperty ? nullptr : FuncParamProperty);
 				}
 				NumParams++;
 			}

@@ -3132,6 +3132,7 @@ void UViewportWorldInteraction::SetGizmoHandleType( const EGizmoHandleTypes InGi
 	{
 		case EGizmoHandleTypes::All:
 			GizmoType = InGizmoHandleType;
+			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_Translate );
 			break;
 
 		case EGizmoHandleTypes::Translate:

@@ -10,5 +10,6 @@ echo CMAKE_PATH_F = %CMAKE_PATH_F%
 SET PATH=%PATH%;"%CMAKE_PATH_F%"
 call GenerateProjects.bat
 call GenerateProjectsPs4.bat
+call GenerateProjectsSwitch.bat
 call GenerateProjectsXboxOne.bat
 pause

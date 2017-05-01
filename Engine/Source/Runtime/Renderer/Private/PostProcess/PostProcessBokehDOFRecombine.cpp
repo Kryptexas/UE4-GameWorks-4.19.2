@@ -468,7 +468,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 			TexSize,
 			*VertexShader,
 			View.StereoPass,
-			Context.HasHmdMesh(),
+			false, // Disabled for correctness
 			EDRF_UseTriangleOptimization);
 
 		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

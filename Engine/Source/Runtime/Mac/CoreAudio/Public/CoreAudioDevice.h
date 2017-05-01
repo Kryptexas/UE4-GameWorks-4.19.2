@@ -43,7 +43,7 @@ enum ESoundFormat
 	SoundFormat_Streaming
 };
 
-struct CoreAudioBuffer
+struct FCoreAudioBuffer
 {
 	uint8 *AudioData;
 	int32 AudioDataSize;
@@ -152,6 +152,10 @@ public:
 	 * @return Size in bytes
 	 */
 	int32 GetSize( void );
+
+	// These are used by the streaming engine to manage loading/unloading of chunks
+	virtual int32 GetCurrentChunkIndex() const override;
+	virtual int32 GetCurrentChunkOffset() const override;
 
 	/** Audio device this buffer is attached to	*/
 	FAudioDevice*				AudioDevice;
@@ -278,7 +282,7 @@ protected:
 	FCoreAudioEffectsManager*	Effects;
 
 	/** Cached sound buffer associated with currently bound wave instance. */
-	FCoreAudioSoundBuffer*		Buffer;
+	FCoreAudioSoundBuffer*		CoreAudioBuffer;
 
 	AudioConverterRef			CoreAudioConverter;
 
@@ -288,7 +292,7 @@ protected:
 	/** Which sound buffer should be written to next - used for double buffering. */
 	bool						bStreamedSound;
 	/** A pair of sound buffers to allow notification when a sound loops. */
-	CoreAudioBuffer				CoreAudioBuffers[3];
+	FCoreAudioBuffer			CoreAudioBuffers[3];
 	/** Set when we wish to let the buffers play themselves out */
 	bool						bBuffersToFlush;
 
@@ -316,6 +320,8 @@ protected:
 	int32						NumActiveBuffers;
 	
 	int32						MixerInputNumber;
+
+	FCriticalSection			CriticalSection;
 
 private:
 
@@ -377,6 +383,12 @@ class FCoreAudioDevice : public FAudioDevice
 	
 	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
 	{
+		static FName NAME_OPUS(TEXT("OPUS"));
+
+		if (SoundWave->IsStreaming())
+		{
+			return NAME_OPUS;
+		}
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;
 	}

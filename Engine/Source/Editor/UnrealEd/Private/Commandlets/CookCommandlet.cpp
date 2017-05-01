@@ -382,72 +382,101 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 	//	2. We have cooked non-map packages and...
 	//		a. we have accumulated 50 (configurable) of these since the last GC.
 	//		b. we have been idle for 20 (configurable) seconds.
-	bool bShouldGC = true;
-
-	// megamoth
-	uint32 NonMapPackageCountSinceLastGC = 0;
-	
-	const uint32 PackagesPerGC = CookOnTheFlyServer->GetPackagesPerGC();
-	const double IdleTimeToGC = CookOnTheFlyServer->GetIdleTimeToGC();
-	const uint64 MaxMemoryAllowance = CookOnTheFlyServer->GetMaxMemoryAllowance();
-
-	double LastCookActionTime = FPlatformTime::Seconds();
-
-	FDateTime LastConnectionTime = FDateTime::UtcNow();
-	bool bHadConnection = false;
-
-	bool bCookedAMapSinceLastGC = false;
-	while (!GIsRequestingExit)
+	struct FCookOnTheFlyGCController
 	{
-		uint32 TickResults = 0;
-		static const float CookOnTheSideTimeSlice = 10.0f;
-		TickResults = CookOnTheFlyServer->TickCookOnTheSide(CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC);
+	public:
+		FCookOnTheFlyGCController(const UCookOnTheFlyServer* COtFServer)
+			: PackagesPerGC(COtFServer->GetPackagesPerGC())
+			, IdleTimeToGC(COtFServer->GetIdleTimeToGC())
+			, bShouldGC(true)
+			, PackagesCookedSinceLastGC(0)
+			, LastCookActionTime(FPlatformTime::Seconds())
+		{}
 
-		bCookedAMapSinceLastGC |= ((TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0);
-		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage | UCookOnTheFlyServer::COSR_WaitingOnCache))
+		/** Tntended to be called with stats from a UCookOnTheFlyServer::TickCookOnTheSide() call. Determines if we should be calling GC after TickCookOnTheSide(). */
+		void Update(uint32 CookedCount, UCookOnTheFlyServer::ECookOnTheSideResult ResultFlags)
 		{
-			LastCookActionTime = FPlatformTime::Seconds();
-		}
+			if (ResultFlags & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage | UCookOnTheFlyServer::COSR_WaitingOnCache))
+			{
+				LastCookActionTime = FPlatformTime::Seconds();
+			}
+			
+			if (ResultFlags & UCookOnTheFlyServer::COSR_RequiresGC)
+			{
+				UE_LOG(LogCookCommandlet, Display, TEXT("Cooker cooked a map since last gc... collecting garbage"));
+				bShouldGC |= true;
+			}
 
-		if (NonMapPackageCountSinceLastGC > 0)
-		{
-			if ((PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC))
+			PackagesCookedSinceLastGC += CookedCount;
+			if ((PackagesPerGC > 0) && (PackagesCookedSinceLastGC > PackagesPerGC))
 			{
 				UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has exceeded max number of non map packages since last gc"));
 				bShouldGC |= true;
 			}
 
-			if ((IdleTimeToGC > 0) && ((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC))
+			// we don't want to gc if we are waiting on cache of objects. this could clean up objects which we will need to reload next frame
+			bPosteponeGC = (ResultFlags & UCookOnTheFlyServer::COSR_WaitingOnCache) != 0;
+		}
+
+		/** Runs GC if Update() determined it should happen. Also checks the idle time against the limit, and runs GC then if packages have been loaded. */
+		void ConditionallyCollectGarbage(const UCookOnTheFlyServer* COtFServer)
+		{
+			if (!bShouldGC)
 			{
-				UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has been idle for long time gc"));
-				bShouldGC |= true;
+				if (PackagesCookedSinceLastGC > 0 && IdleTimeToGC > 0)
+				{
+					double IdleTime = FPlatformTime::Seconds() - LastCookActionTime;
+					if (IdleTime >= IdleTimeToGC)
+					{
+						UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has been idle for long time gc"));
+						bShouldGC |= true;
+					}
+				}
+
+				if (!bShouldGC && COtFServer->HasExceededMaxMemory())
+				{
+					UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has exceeded max memory usage collecting garbage"));
+					bShouldGC |= true;
+				}
+			}
+
+			if (bShouldGC && !bPosteponeGC)
+			{	
+				Reset();
+				UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
+				CollectGarbage(RF_NoFlags);
 			}
 		}
 
-		if ( bCookedAMapSinceLastGC )
-		{
-			UE_LOG(LogCookCommandlet, Display, TEXT("Cooker cooked a map since last gc collecting garbage"));
-			bShouldGC |= true;
-		}
-
-		if ( !bShouldGC && CookOnTheFlyServer->HasExceededMaxMemory() )
-		{
-			UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has exceeded max memory usage collecting garbage"));
-			bShouldGC |= true;
-		}
-
-		// we don't want to gc if we are waiting on cache of objects. this could clean up objects which we will need to reload next frame
-		if (bShouldGC && ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache)==0) )
+	private:
+		/** Resets counters and flags used to determine when we should GC. */
+		void Reset()
 		{
 			bShouldGC = false;
-			bCookedAMapSinceLastGC = false;
-			NonMapPackageCountSinceLastGC = 0;
-
-			UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
-
-			CollectGarbage(RF_NoFlags);
+			PackagesCookedSinceLastGC = 0;
 		}
 
+	private:
+		const uint32 PackagesPerGC;
+		const double IdleTimeToGC;
+
+		bool   bShouldGC;
+		uint32 PackagesCookedSinceLastGC;
+		double LastCookActionTime;
+		bool   bPosteponeGC;
+
+	} CookOnTheFlyGCController(CookOnTheFlyServer);
+
+	FDateTime LastConnectionTime = FDateTime::UtcNow();
+	bool bHadConnection = false;
+
+	while (!GIsRequestingExit)
+	{
+		uint32 CookedPkgCount = 0;
+		uint32 TickResults = CookOnTheFlyServer->TickCookOnTheSide(/*TimeSlice =*/10.f, CookedPkgCount);
+
+		CookOnTheFlyGCController.Update(CookedPkgCount, (UCookOnTheFlyServer::ECookOnTheSideResult)TickResults);
+		CookOnTheFlyGCController.ConditionallyCollectGarbage(CookOnTheFlyServer);
 
 		// force at least a tick shader compilation even if we are requesting stuff
 		CookOnTheFlyServer->TickRecompileShaderRequests();
@@ -490,6 +519,8 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 					GIsRequestingExit = true;
 				}
 			}
+
+			CookOnTheFlyGCController.ConditionallyCollectGarbage(CookOnTheFlyServer);
 		}
 	}
 

@@ -223,7 +223,7 @@ public:
 	/**
 	 * Updates or resets view properties such as aspect ratio, FOV, location etc to match that of any actor we are locked to
 	 */
-	void UpdateViewForLockedActor();
+	void UpdateViewForLockedActor(float DeltaTime=0.f);
 
 	/**
 	 * Returns the horizontal axis for this viewport.

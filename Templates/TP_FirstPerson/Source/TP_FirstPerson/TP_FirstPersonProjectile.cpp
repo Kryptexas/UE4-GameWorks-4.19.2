@@ -1,8 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_FirstPerson.h"
 #include "TP_FirstPersonProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Components/SphereComponent.h"
 
 ATP_FirstPersonProjectile::ATP_FirstPersonProjectile() 
 {

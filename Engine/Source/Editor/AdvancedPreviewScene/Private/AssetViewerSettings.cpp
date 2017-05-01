@@ -46,6 +46,12 @@ UAssetViewerSettings* UAssetViewerSettings::Get()
 
 void UAssetViewerSettings::Save()
 {
+	ULocalProfiles* LocalProfilesObject = GetMutableDefault<ULocalProfiles>();
+	USharedProfiles* SharedProfilesObject = GetMutableDefault<USharedProfiles>();
+
+	TArray<FPreviewSceneProfile>& LocalProfiles = GetMutableDefault<ULocalProfiles>()->Profiles;
+	TArray<FPreviewSceneProfile>& SharedProfiles = GetMutableDefault<USharedProfiles>()->Profiles;
+
 	LocalProfiles.Empty();
 	SharedProfiles.Empty();
 
@@ -62,29 +68,10 @@ void UAssetViewerSettings::Save()
 		}
 	}
 
-	UClass* Class = GetClass();
-	UField* Child = Class->Children;
-	const FString LocalFilename = GetConfigFilename(this);
-	const FString SharedFilename = GetDefaultConfigFilename();	
+	LocalProfilesObject->SaveConfig();
 
-	// Store name for last selected profile
-	GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileName = Profiles[GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex].ProfileName;
-
-	UProperty* PropertyLink = Class->PropertyLink;
-	for (UProperty* Property = GetClass()->PropertyLink; Property; Property = Property->PropertyLinkNext)
-	{
-		const FName PropertyName = Property->GetFName();
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, LocalProfiles))
-		{
-			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
-			UpdateSinglePropertyInConfigFile(ArrayProperty->Inner, LocalFilename);
-		}
-		else if (PropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, SharedProfiles))
-		{
-			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
-			UpdateSinglePropertyInConfigFile(ArrayProperty->Inner, SharedFilename);
-		}
-	}
+	SharedProfilesObject->SaveConfig();
+	SharedProfilesObject->UpdateDefaultConfigFile();
 }
 
 void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -117,11 +104,14 @@ void UAssetViewerSettings::PostInitProperties()
 	Super::PostInitProperties();
 
 	Profiles.Empty();
+	
+	TArray<FPreviewSceneProfile>& SharedProfiles = GetMutableDefault<USharedProfiles>()->Profiles;
 	for (FPreviewSceneProfile& Profile : SharedProfiles)
 	{
 		Profiles.Add(Profile);
 	}
 
+	TArray<FPreviewSceneProfile>& LocalProfiles = GetMutableDefault<ULocalProfiles>()->Profiles;
 	for (FPreviewSceneProfile& Profile : LocalProfiles)
 	{
 		Profiles.Add(Profile);

@@ -2080,10 +2080,10 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 		GPerspViewMatrix = View->ViewMatrices.GetViewMatrix();
 	}
 
-	UpdateViewForLockedActor();
+	UpdateViewForLockedActor(DeltaTime);
 }
 
-void FLevelEditorViewportClient::UpdateViewForLockedActor()
+void FLevelEditorViewportClient::UpdateViewForLockedActor(float DeltaTime)
 {
 	// We can't be locked to a matinee actor if this viewport doesn't allow matinee control
 	if ( !bAllowCinematicPreview && ActorLockedByMatinee.IsValid() )
@@ -2123,7 +2123,7 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 				if (CameraComponent != nullptr)
 				{
 					bUseControllingActorViewInfo = true;
-					CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+					CameraComponent->GetCameraView(DeltaTime, ControllingActorViewInfo);
 					CameraComponent->GetExtraPostProcessBlends(ControllingActorExtraPostProcessBlends, ControllingActorExtraPostProcessBlendWeights);
 
 					// Post processing is handled by OverridePostProcessingSettings

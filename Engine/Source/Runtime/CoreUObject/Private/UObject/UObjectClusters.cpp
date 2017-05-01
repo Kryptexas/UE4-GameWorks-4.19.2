@@ -748,7 +748,7 @@ void UObjectBaseUtility::AddToCluster(UObjectBaseUtility* ClusterRootOrObjectFro
 
 bool UObjectBaseUtility::CanBeInCluster() const
 {
-	return true;
+	return OuterPrivate ? OuterPrivate->CanBeInCluster() : true;
 }
 
 void UObjectBaseUtility::CreateCluster()

@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_2DSideScroller.h"
 #include "TP_2DSideScrollerGameMode.h"
 #include "TP_2DSideScrollerCharacter.h"
 

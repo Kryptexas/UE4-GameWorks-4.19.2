@@ -1724,7 +1724,12 @@ void FAnimationViewportClient::OnAssetViewerSettingsChanged(const FName& InPrope
 {
 	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled) || InPropertyName == NAME_None)
 	{
-		SetAdvancedShowFlagsForScene(UAssetViewerSettings::Get()->Profiles[GetPreviewScene()->GetCurrentProfileIndex()].bPostProcessingEnabled);
+		UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+		const int32 ProfileIndex = GetPreviewScene()->GetCurrentProfileIndex();
+		if (Settings->Profiles.IsValidIndex(ProfileIndex))
+		{			
+			SetAdvancedShowFlagsForScene(Settings->Profiles[ProfileIndex].bPostProcessingEnabled);
+		}
 	}
 }
 

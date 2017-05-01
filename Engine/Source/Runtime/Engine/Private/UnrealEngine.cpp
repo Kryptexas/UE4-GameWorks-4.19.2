@@ -126,12 +126,16 @@
 #include "Particles/ParticleModuleRequired.h"
 
 #include "Components/TextRenderComponent.h"
-
+#include "Classes/Sound/AudioSettings.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 
 #if WITH_EDITORONLY_DATA
 #include "ObjectEditorUtils.h"
+#endif
+
+#if WITH_EDITOR
+#include "AudioEditorModule.h"
 #endif
 
 #include "HardwareInfo.h"
@@ -2025,6 +2029,18 @@ bool UEngine::InitializeAudioDeviceManager()
 				// did the module exist?
 				if (AudioDeviceModule)
 				{
+					const bool bIsAudioMixerEnabled = AudioDeviceModule->IsAudioMixerModule();
+					GetMutableDefault<UAudioSettings>()->SetAudioMixerEnabled(bIsAudioMixerEnabled);
+
+#if WITH_EDITOR
+					if (bIsAudioMixerEnabled)
+					{
+						IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
+						AudioEditorModule->RegisterAudioMixerAssetActions();
+						AudioEditorModule->RegisterEffectPresetAssetActions();
+					}
+#endif
+
 					// Create the audio device manager and register the platform module to the device manager
 					AudioDeviceManager = new FAudioDeviceManager();
 					AudioDeviceManager->RegisterAudioDeviceModule(AudioDeviceModule);

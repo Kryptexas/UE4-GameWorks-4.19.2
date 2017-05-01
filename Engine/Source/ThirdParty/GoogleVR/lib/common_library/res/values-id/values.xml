@@ -4,7 +4,7 @@
 <eat-comment/>
 <string name="back_button_content_description" msgid="233061162317617848">"kembali"</string>
 <string name="cancel_button" msgid="2401572676578172896">"Batal"</string>
-<string name="dialog_button_got_it" msgid="2482357845034618478">"MENGERTI"</string>
+<string name="dialog_button_got_it" msgid="2482357845034618478">"OK"</string>
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"BUKA PUSAT BANTUAN"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Ponsel yang kompatibel dengan Daydream diperlukan. Kunjungi Pusat Bantuan Daydream untuk informasi lebih lanjut."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Dapatkan aplikasi Cardboard untuk mengonfigurasikan penampil Anda."</string>

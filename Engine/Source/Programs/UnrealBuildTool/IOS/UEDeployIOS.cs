@@ -20,12 +20,6 @@ namespace UnrealBuildTool
 
         protected UnrealPluginLanguage UPL = null;
 
-		public void SetIOSPluginData(FileReference ProjectFile, List<string> Architectures, List<string> inPluginExtraData)
-		{
-			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, Architectures, "", "", UnrealTargetPlatform.IOS);
-			//UPL.SetTrace ();
-		}
-
 		protected class VersionUtilities
 		{
 			public static string BuildDirectory
@@ -574,11 +568,11 @@ namespace UnrealBuildTool
 				InThis.UPL.ProcessPluginNode("None", "iosPListUpdates", "", ref XDoc);
                 string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString().Replace("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"[]>", "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
 				File.WriteAllText(PListFile, result);
+				
+				Text = new StringBuilder(result);
 			}
-			else
-			{
-				File.WriteAllText(PListFile, Text.ToString());
-			}
+			
+			File.WriteAllText(PListFile, Text.ToString());
 
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -594,6 +588,31 @@ namespace UnrealBuildTool
 
 		public virtual bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
+			List<string> ProjectArches = new List<string>();
+			ProjectArches.Add("None");
+
+            string ReceiptFilename;
+            string BundlePath;
+
+            // get the receipt
+            if (bIsUE4Game)
+            {
+                ReceiptFilename = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory.ToString(), "UE4Game", UnrealTargetPlatform.IOS, Config, "");
+                BundlePath = Path.Combine(UnrealBuildTool.EngineDirectory.ToString(), "Intermediate", "IOS-Deploy", "UE4Game", Config.ToString(), "Payload", "UE4Game.app");
+            }
+            else
+            {
+                ReceiptFilename = TargetReceipt.GetDefaultPath(ProjectDirectory, ProjectName, UnrealTargetPlatform.IOS, Config, "");
+                BundlePath = Path.Combine(ProjectDirectory, "Binaries", "IOS", "Payload", ProjectName + ".app");
+            }
+
+            string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
+
+			UPL = new UnrealPluginLanguage(ProjectFile, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)), ProjectArches, "", "", UnrealTargetPlatform.IOS);
+
+			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
+			UPL.Init(ProjectArches, true, RelativeEnginePath, BundlePath, ProjectDirectory, Config.ToString());
+
 			return GenerateIOSPList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
 		}
 
@@ -832,35 +851,6 @@ namespace UnrealBuildTool
 			{
 				DecoratedGameName = String.Format("{0}-{1}-{2}", GameName, InTarget.Platform.ToString(), InTarget.Configuration.ToString());
 			}
-
-			// Run through iOS APL file
-            string BaseSoName = InTarget.OutputPaths[0].FullName;
-
-			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(InTarget.ProjectFile);
-
-			List<string> ProjectArches;
-			if(InTarget.Configuration == UnrealTargetConfiguration.Shipping)
-			{
-				ProjectArches = ProjectSettings.ShippingArchitectures.ToList();
-			}
-			else
-			{
-				ProjectArches = ProjectSettings.NonShippingArchitectures.ToList();
-			}
-
-			// get the receipt
-			UnrealTargetPlatform Platform = InTarget.Platform;
-			UnrealTargetConfiguration Configuration = InTarget.Configuration;
-			string ProjectBaseName = Path.GetFileName(BaseSoName).Replace("-" + Platform, "").Replace("-" + Configuration, "").Replace(".so", "");
-			string ReceiptFilename = TargetReceipt.GetDefaultPath(InTarget.ProjectDirectory.FullName, ProjectBaseName, Platform, Configuration, "");
-			Log.TraceInformation("Receipt Filename: {0}", ReceiptFilename);
-			SetIOSPluginData(InTarget.ProjectFile, ProjectArches, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)));
-
-			string BundlePath = Path.Combine (ProjectDirectory, "Binaries", "IOS", "Payload", ProjectBaseName + ".app");
-
-			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
-			string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
-			UPL.Init (ProjectArches, true, RelativeEnginePath, BundlePath, ProjectDirectory, Configuration.ToString());
 
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
 			{
