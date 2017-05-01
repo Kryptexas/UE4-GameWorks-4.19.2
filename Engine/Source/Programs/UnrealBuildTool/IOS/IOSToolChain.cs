@@ -408,7 +408,7 @@ namespace UnrealBuildTool
 
         public virtual bool ShouldExcludeNonPortableIncludePathWarnings()
         {
-            if (IOSSDKVersionFloat >= 10.3)
+            if (IOSSDKVersionFloat >= 10.3f)
             {
                 return true;
             }

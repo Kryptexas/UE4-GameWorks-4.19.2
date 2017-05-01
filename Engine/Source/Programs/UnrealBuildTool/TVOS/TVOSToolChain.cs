@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 
         public override bool ShouldExcludeNonPortableIncludePathWarnings()
         {
-            if (IOSSDKVersionFloat >= 10.2)
+            if (IOSSDKVersionFloat >= 10.2f)
             {
                 return true;
             }
