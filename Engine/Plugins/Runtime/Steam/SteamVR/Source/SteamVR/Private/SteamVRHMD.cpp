@@ -1083,15 +1083,23 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 				uint32 Width, Height;
 				GetWindowBounds( &PosX, &PosY, &Width, &Height );
 				SceneVP->SetViewportSize( Width, Height );
+				bStereoEnabled = bStereoDesired;
 			}
 			else
 			{
+				// Note: Setting before resize to ensure we don't try to allocate a new vr rt.
+				bStereoEnabled = bStereoDesired;
+
+				FRHIViewport* const ViewportRHI = SceneVP->GetViewportRHI();
+				if (ViewportRHI != nullptr)
+				{
+					ViewportRHI->SetCustomPresent(nullptr);
+				}
+
 				FVector2D size = SceneVP->FindWindow()->GetSizeInScreen();
 				SceneVP->SetViewportSize( size.X, size.Y );
 				Window->SetViewportSizeDrivenByWindow( true );
 			}
-
-			bStereoEnabled = bStereoDesired;
 		}
 	}
 
