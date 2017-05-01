@@ -17,6 +17,13 @@ D3D12_RESOURCE_DESC CreateStructuredBufferResourceDesc(uint32 Size, uint32 InUsa
 		Desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	}
 
+#if PLATFORM_XBOXONE
+	if (InUsage & BUF_DrawIndirect)
+	{
+		Desc.Flags |= D3D12XBOX_RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER;
+	}
+#endif
+
 	return Desc;
 }
 
