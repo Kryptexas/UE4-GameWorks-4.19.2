@@ -195,6 +195,16 @@ PX_FORCE_INLINE				Vd::PvdSceneQueryCollector&	getBatchedSqCollector() const {re
 #endif // PX_SUPPORT_PVD
 };
 
+//explicit template instantiation declaration
+extern template
+bool NpSceneQueries::multiQuery<PxRaycastHit>(const MultiQueryInput&, PxHitCallback<PxRaycastHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const;
+
+extern template
+bool NpSceneQueries::multiQuery<PxOverlapHit>(const MultiQueryInput&, PxHitCallback<PxOverlapHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const;
+
+extern template
+bool NpSceneQueries::multiQuery<PxSweepHit>(const MultiQueryInput&, PxHitCallback<PxSweepHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const;
+
 namespace Sq { class AABBPruner; class AABBTreeRuntimeNode; class AABBTree; }
 
 #if PX_VC 

@@ -62,6 +62,9 @@ cloth::Fabric* cloth::SwFactory::createFabric(uint32_t numParticles, Range<const
 	                    getNextFabricId());
 }
 
+//explicit template instantiation declaration
+extern template class cloth::ClothImpl<cloth::SwCloth>;
+
 cloth::Cloth* cloth::SwFactory::createCloth(Range<const PxVec4> particles, Fabric& fabric)
 {
 	return new SwClothImpl(*this, fabric, particles);

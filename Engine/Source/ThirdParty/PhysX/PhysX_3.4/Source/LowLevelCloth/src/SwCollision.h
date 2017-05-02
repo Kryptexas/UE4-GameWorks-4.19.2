@@ -134,5 +134,14 @@ class SwCollision
 
 	static const Simd4f sSkeletonWidth;
 };
+
+//explicit template instantiation declaration
+#if NV_SIMD_SIMD
+extern template class SwCollision<Simd4f>;
+#endif
+#if NV_SIMD_SCALAR
+extern template class SwCollision<Scalar4f>;
+#endif
+
 }
 }
