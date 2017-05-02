@@ -16,6 +16,16 @@
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 #include "GenericPlatformDriver.h"			// FGPUDriverInfo
 
+#if NV_AFTERMATH
+int32 GDX11NVAfterMathEnabled = 1;
+static FAutoConsoleVariableRef CVarDX11NVAfterMathBufferSize(
+	TEXT("r.DX11NVAfterMathEnabled"),
+	GDX11NVAfterMathEnabled,
+	TEXT("Use NV Aftermath for GPU crash analysis"),
+	ECVF_ReadOnly
+);
+#endif
+
 extern bool D3D11RHI_ShouldCreateWithD3DDebug();
 extern bool D3D11RHI_ShouldAllowAsyncResourceCreation();
 
@@ -453,6 +463,19 @@ static bool SupportsHDROutput(FD3D11DynamicRHI* D3DRHI)
 	return false;
 }
 
+void FD3D11DynamicRHIModule::StartupModule()
+{	
+#if NV_AFTERMATH
+	FString AftermathBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/NVIDIA/NVaftermath/Win64/");
+	if (LoadLibraryW(*(AftermathBinariesRoot + "GFSDK_Aftermath_Lib.dll")) == nullptr)
+	{
+		UE_LOG(LogD3D11RHI, Log, TEXT("Failed to load GFSDK_Aftermath_Lib.dll"));
+		GDX11NVAfterMathEnabled = 0;
+		return;
+	}
+#endif
+}
+
 bool FD3D11DynamicRHIModule::IsSupported()
 {
 	// if not computed yet
@@ -672,9 +695,11 @@ FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedF
 	return new FD3D11DynamicRHI(DXGIFactory1,ChosenAdapter.MaxSupportedFeatureLevel,ChosenAdapter.AdapterIndex,ChosenDescription);
 }
 
+FDx11RHIPacemaker GDx11RHIPacemaker;
 void FD3D11DynamicRHI::Init()
 {
 	InitD3DDevice();
+	GRHIPacemaker = &GDx11RHIPacemaker;
 }
 
 void FD3D11DynamicRHI::FlushPendingLogs()
@@ -906,7 +931,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			Direct3DDevice.GetInitReference(),
 			&ActualFeatureLevel,
 			Direct3DDeviceIMContext.GetInitReference()
-			));
+		));
 
 		// We should get the feature level we asked for as earlier we checked to ensure it is supported.
 		check(ActualFeatureLevel == FeatureLevel);
@@ -946,6 +971,13 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			}
 		}
 
+#if NV_AFTERMATH
+		if (!IsRHIDeviceNVIDIA())
+		{
+			GDX11NVAfterMathEnabled = 0;
+		}
+#endif
+		
 #if PLATFORM_DESKTOP
 		if( IsRHIDeviceNVIDIA() )
 		{
@@ -966,6 +998,27 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			{
 				UE_LOG(LogD3D11RHI, Log, TEXT("NvAPI_D3D_GetCurrentSLIState failed: 0x%x"), (int32)SLIStatus);
 			}
+
+#if NV_AFTERMATH
+			if (GDX11NVAfterMathEnabled)
+			{
+				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, Direct3DDevice);
+				if (Result == GFSDK_Aftermath_Result_Success)
+				{
+					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled and primed"));
+					GEmitDrawEvents = true;
+				}
+				else
+				{
+					unsigned Index = (unsigned)Result & (~((unsigned)GFSDK_Aftermath_Result_Fail));
+					const TCHAR* Reason[13] = { TEXT("Fail"), TEXT("VersionMismatch"), TEXT("NotInitialized"), TEXT("InvalidAdapter"), TEXT("InvalidParameter"), TEXT("Unknown"), TEXT("ApiError"), TEXT("NvApiIncompatible"), TEXT("GettingContextDataWithNewCommandList"), TEXT("AlreadyInitialized"), TEXT("D3DDebugLayerNotCompatible"),TEXT("NotEnabledInDriver"), TEXT("DriverVersionNotSupported") };
+					Index = Index > 12 ? 0 : Index;
+
+					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled but failed to initialize due to reason: %s"), Reason[Index]);
+					GDX11NVAfterMathEnabled = 0;
+				}
+			}
+#endif
 		}
 		else if( IsRHIDeviceAMD() )
 		{

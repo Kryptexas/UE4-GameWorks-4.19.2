@@ -174,6 +174,7 @@
 #include "Engine/EndUserSettings.h"
 
 #include "Engine/LODActor.h"
+#include "GameplayTagsManager.h"
 
 #if !UE_BUILD_SHIPPING
 #include "Interfaces/IAutomationWorkerModule.h"
@@ -1699,6 +1700,9 @@ void UEngine::InitializeObjectReferences()
 
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
 	UISettings->ForceLoadResources();
+
+	// This initializes the tag data if it hasn't been already
+	UGameplayTagsManager::Get();
 }
 
 void UEngine::InitializePortalServices()

@@ -30,6 +30,9 @@ namespace UnrealVS
 	// match the ItemGroup inside the UnrealVS.csproj MSBuild file (hand-typed.)
 	[ProvideMenuResource( "Menus.ctmenu", 1 )]
 
+	// Force the package to load whenever a solution exists
+	[ProvideAutoLoad(UIContextGuids80.SolutionExists)]
+
 	// Register the settings implementing class as providing support to UnrealVSPackage.
 	//[ProvideProfile(typeof (ProfileManager), "UnrealVS", "UnrealVSPackage", 110, 113, false)]
 
@@ -56,7 +59,7 @@ namespace UnrealVS
 	{
 		/** Constants */
 
-		private const string VersionString = "v1.44";
+		private const string VersionString = "v1.46";
 		private const string UnrealSolutionFileNamePrefix = "UE4";
 		private const string ExtensionName = "UnrealVS";
 		private const string CommandLineOptionKey = ExtensionName + "CommandLineMRU";

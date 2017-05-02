@@ -215,7 +215,7 @@ namespace UnrealBuildTool
 			}
 
 			// fix for Xcode 8.3 enabling nonportable include checks, but p4 has some invalid cases in it
-			if (IOSSDKVersionFloat >= 10.3)
+			if (ShouldExcludeNonPortableIncludePathWarnings())
 			{
 				Result += " -Wno-nonportable-include-path";
 			}
@@ -406,7 +406,16 @@ namespace UnrealBuildTool
 			}
 		}
 
-		string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
+        public virtual bool ShouldExcludeNonPortableIncludePathWarnings()
+        {
+            if (IOSSDKVersionFloat >= 10.3f)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
             PlatformContext.SetUpProjectEnvironment(LinkEnvironment.Config.Configuration);
 

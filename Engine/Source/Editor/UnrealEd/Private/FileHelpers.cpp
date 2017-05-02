@@ -1063,7 +1063,8 @@ void FEditorFileUtils::Import(const FString& InFilename)
 	FFormatNamedArguments Args;
 	//Import scene support only fbx for now
 	//Check the extension because the import map don't support fbx file import
-	if (FPaths::GetExtension(InFilename).Compare(TEXT("fbx"), ESearchCase::IgnoreCase) == 0)
+	if (FPaths::GetExtension(InFilename).Compare(TEXT("fbx"), ESearchCase::IgnoreCase) == 0 ||
+		FPaths::GetExtension(InFilename).Compare(TEXT("obj"), ESearchCase::IgnoreCase) == 0)
 	{
 		//Ask a root content path to the user
 		TSharedRef<SDlgPickPath> PickContentPathDlg =

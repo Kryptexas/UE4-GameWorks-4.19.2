@@ -1,3 +1,36 @@
+ /************************************************************************************************************************************\
+|*                                                                                                                                    *|
+|*     Copyright © 2012 NVIDIA Corporation.  All rights reserved.                                                                     *|
+|*                                                                                                                                    *|
+|*  NOTICE TO USER:                                                                                                                   *|
+|*                                                                                                                                    *|
+|*  This software is subject to NVIDIA ownership rights under U.S. and international Copyright laws.                                  *|
+|*                                                                                                                                    *|
+|*  This software and the information contained herein are PROPRIETARY and CONFIDENTIAL to NVIDIA                                     *|
+|*  and are being provided solely under the terms and conditions of an NVIDIA software license agreement.                             *|
+|*  Otherwise, you have no rights to use or access this software in any manner.                                                       *|
+|*                                                                                                                                    *|
+|*  If not covered by the applicable NVIDIA software license agreement:                                                               *|
+|*  NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOFTWARE FOR ANY PURPOSE.                                            *|
+|*  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR IMPLIED WARRANTY OF ANY KIND.                                                           *|
+|*  NVIDIA DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,                                                                     *|
+|*  INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.                       *|
+|*  IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES,                               *|
+|*  OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT,                         *|
+|*  NEGLIGENCE OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOURCE CODE.            *|
+|*                                                                                                                                    *|
+|*  U.S. Government End Users.                                                                                                        *|
+|*  This software is a "commercial item" as that term is defined at 48 C.F.R. 2.101 (OCT 1995),                                       *|
+|*  consisting  of "commercial computer  software"  and "commercial computer software documentation"                                  *|
+|*  as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995) and is provided to the U.S. Government only as a commercial end item.     *|
+|*  Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through 227.7202-4 (JUNE 1995),                                          *|
+|*  all U.S. Government End Users acquire the software with only those rights set forth herein.                                       *|
+|*                                                                                                                                    *|
+|*  Any use of this software in individual and commercial software must include,                                                      *|
+|*  in the user documentation and internal comments to the code,                                                                      *|
+|*  the above Disclaimer (as applicable) and U.S. Government End Users Notice.                                                        *|
+|*                                                                                                                                    *|
+ \************************************************************************************************************************************/
 #pragma once
 #include"nvapi_lite_salstart.h"
 #pragma pack(push,8)
@@ -60,7 +93,6 @@ typedef NvU8 NvBool;
 #define NV_TRUE           ((NvBool)(0 == 0))
 #define NV_FALSE          ((NvBool)(0 != 0))
 
-
 typedef struct _NV_RECT
 {
     NvU32    left;
@@ -68,7 +100,6 @@ typedef struct _NV_RECT
     NvU32    right;
     NvU32    bottom;
 } NV_RECT;
-
 
 
 #define NV_DECLARE_HANDLE(name) struct name##__ { int unused; }; typedef struct name##__ *name
@@ -82,11 +113,11 @@ typedef struct _NV_RECT
 //!                 reconfiguration (going into or out of SLI modes) occurs.  If NVAPI_HANDLE_INVALIDATED
 //!                 is received by an app, it should discard all handles, and re-enumerate them.
 //! @{  
+NV_DECLARE_HANDLE(NvLogicalGpuHandle);             //!< One or more physical GPUs acting in concert (SLI)
+NV_DECLARE_HANDLE(NvPhysicalGpuHandle);            //!< A single physical GPU
 NV_DECLARE_HANDLE(NvDisplayHandle);                //!< Display Device driven by NVIDIA GPU(s) (an attached display)
 NV_DECLARE_HANDLE(NvMonitorHandle);                //!< Monitor handle
 NV_DECLARE_HANDLE(NvUnAttachedDisplayHandle);      //!< Unattached Display Device driven by NVIDIA GPU(s)
-NV_DECLARE_HANDLE(NvLogicalGpuHandle);             //!< One or more physical GPUs acting in concert (SLI)
-NV_DECLARE_HANDLE(NvPhysicalGpuHandle);            //!< A single physical GPU
 NV_DECLARE_HANDLE(NvEventHandle);                  //!< A handle to an event registration instance
 NV_DECLARE_HANDLE(NvVisualComputingDeviceHandle);  //!< A handle to a Visual Computing Device
 NV_DECLARE_HANDLE(NvHICHandle);                    //!< A handle to a Host Interface Card
@@ -120,7 +151,6 @@ static const NVDX_SwapChainHandle NVDX_SWAPCHAIN_NONE = 0;
 #define NVAPI_LONG_STRING_MAX       256
 #define NVAPI_SHORT_STRING_MAX      64
 
-
 typedef struct 
 {
     NvS32   sX;
@@ -140,10 +170,13 @@ typedef struct
     NvU8  data4[8];
 } NvGUID, NvLUID;
 
+
 #endif //#ifndef NvGUID_Defined
 
 
 #define NVAPI_MAX_PHYSICAL_GPUS             64
+
+
 #define NVAPI_MAX_PHYSICAL_BRIDGES          100
 #define NVAPI_PHYSICAL_GPUS                 32
 #define NVAPI_MAX_LOGICAL_GPUS              64
@@ -318,7 +351,7 @@ typedef enum _NvAPI_Status
     NVAPI_ECID_KEY_VERIFICATION_FAILED          = -198,    //!< The encrypted public key verification has failed.
     NVAPI_FIRMWARE_OUT_OF_DATE                  = -199,    //!< The device's firmware is out of date.
     NVAPI_FIRMWARE_REVISION_NOT_SUPPORTED       = -200,    //!< The device's firmware is not supported.
-    NVAPI_LICENSE_CALLER_AUTHENTICATION_FAILED  = -201,    //!< The caller is not authorized to modify the License.		
+    NVAPI_LICENSE_CALLER_AUTHENTICATION_FAILED  = -201,    //!< The caller is not authorized to modify the License.
     NVAPI_D3D_DEVICE_NOT_REGISTERED             = -202,    //!< The user tried to use a deferred context without registering the device first 	 
     NVAPI_RESOURCE_NOT_ACQUIRED                 = -203,    //!< Head or SourceId was not reserved for the VR Display before doing the Modeset.
     NVAPI_TIMING_NOT_SUPPORTED                  = -204,    //!< Provided timing is not supported.
@@ -326,6 +359,14 @@ typedef enum _NvAPI_Status
     NVAPI_PCLK_LIMITATION_FAILED                = -206,    //!< Provided mode is over sink device pclk limitation.
     NVAPI_NO_CONNECTOR_FOUND                    = -207,    //!< No connector on GPU found. 
     NVAPI_HDCP_DISABLED                         = -208,    //!< When a non-HDCP capable HMD is connected, we would inform user by this code.
+    NVAPI_API_IN_USE                            = -209,    //!< Atleast an API is still being called
+    NVAPI_NVIDIA_DISPLAY_NOT_FOUND              = -210,    //!< No display found on Nvidia GPU(s).
+    NVAPI_PRIV_SEC_VIOLATION                    = -211,    //!< Priv security violation, improper access to a secured register.
+    NVAPI_INCORRECT_VENDOR                      = -212,    //!< NVAPI cannot be called by this vendor
+    NVAPI_DISPLAY_IN_USE                        = -213,    //!< DirectMode Display is already in use
+    NVAPI_UNSUPPORTED_CONFIG_NON_HDCP_HMD       = -214,    //!< The Config is having Non-NVidia GPU with Non-HDCP HMD connected
+    NVAPI_MAX_DISPLAY_LIMIT_REACHED             = -215,    //!< GPU's Max Display Limit has Reached
+    NVAPI_INVALID_DIRECT_MODE_DISPLAY           = -216,    //!< DirectMode not Enabled on the Display
 } NvAPI_Status;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -451,7 +492,7 @@ NVAPI_INTERFACE NvAPI_GPU_GetMemoryInfo(NvPhysicalGpuHandle hPhysicalGpu, NV_DIS
 //! \note In drivers older than 105.00, all physical GPU handles get invalidated on a
 //!       modeset. So the calling applications need to renum the handles after every modeset.\n
 //!       With drivers 105.00 and up, all physical GPU handles are constant.
-//!       Physical GPU handles are constant as long as the GPUs are not physically moved and 
+//!       Physical GPU handles are constant as long as the GPUs are not physically moved and
 //!       the SBIOS VGA order is unchanged.
 //!
 //!       For GPU handles in TCC MODE please use NvAPI_EnumTCCPhysicalGPUs()
@@ -468,13 +509,14 @@ NVAPI_INTERFACE NvAPI_GPU_GetMemoryInfo(NvPhysicalGpuHandle hPhysicalGpu, NV_DIS
 //! \ingroup gpu
 ///////////////////////////////////////////////////////////////////////////////
 NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs(NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
-#if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d11_h__)
+#if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d11_h__) || defined(__d3d12_h__)
 
 NV_DECLARE_HANDLE(NVDX_ObjectHandle);  // DX Objects
 static const NVDX_ObjectHandle NVDX_OBJECT_NONE = 0;
 
-#endif //if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d11_h__)
+#endif //if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d11_h__) || defined(__d3d12_h__)
 #if defined(_D3D9_H_) || defined(__d3d10_h__) || defined(__d3d11_h__)
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // FUNCTION NAME: NvAPI_D3D_GetObjectHandleForResource

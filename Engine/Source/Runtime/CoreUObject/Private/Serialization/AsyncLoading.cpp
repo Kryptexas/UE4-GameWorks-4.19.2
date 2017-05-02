@@ -1889,8 +1889,20 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 					check(ImportLinker->AsyncRoot != this);
 					check(!Import.OuterIndex.IsNull());
 					check(Import.OuterIndex.IsImport());
-					FName OuterName = Import.OuterIndex == OuterMostIndex ? NAME_None : // if the outer is the package, then that is just a null outer in the export table
-						Linker->Imp(Import.OuterIndex).ObjectName;
+
+					TArray<FName, TInlineAllocator<8> > OuterNames;
+
+					{
+						FPackageIndex WorkingOuter = Import.OuterIndex;
+						while (WorkingOuter != OuterMostIndex)
+						{
+							check(WorkingOuter.IsImport());
+							FObjectImport& WorkingImport = Linker->Imp(WorkingOuter);
+							OuterNames.Add(WorkingImport.ObjectName);
+							WorkingOuter = WorkingImport.OuterIndex;
+						}
+					}
+					FName OuterName = OuterNames.Num() ? OuterNames[0] : NAME_None;
 
 					FPackageIndex LocalExportIndex;
 					for (auto It = ImportLinker->AsyncRoot->ObjectNameToImportOrExport.CreateKeyIterator(Import.ObjectName); It; ++It)
@@ -1899,16 +1911,26 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 						if (PotentialExport.IsExport())
 						{
 							FObjectExport& Export = ImportLinker->Exp(PotentialExport);
-							// this logic might not cover all cases
-							bool bMatch = false;
-							if (Export.OuterIndex.IsNull())
+							bool bMatch = true;
+							int32 Index = 0;
+
 							{
-								bMatch = OuterName == NAME_None;
-							}
-							else
-							{
-								check(Export.OuterIndex.IsExport());
-								bMatch = ImportLinker->Exp(Export.OuterIndex).ObjectName == OuterName;
+								FPackageIndex WorkingOuter = Export.OuterIndex;
+								while (WorkingOuter.IsExport() && Index < OuterNames.Num())
+								{
+									FObjectExport& WorkingExport = ImportLinker->Exp(WorkingOuter);
+									if (OuterNames[Index] != WorkingExport.ObjectName)
+									{
+										bMatch = false;
+										break;
+									}
+									Index++;
+									WorkingOuter = WorkingExport.OuterIndex;
+								}
+								if (Index < OuterNames.Num() || WorkingOuter.IsExport())
+								{
+									bMatch = false;
+								}
 							}
 							if (bMatch)
 							{

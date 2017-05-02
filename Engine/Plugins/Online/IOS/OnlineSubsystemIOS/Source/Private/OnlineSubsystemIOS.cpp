@@ -5,6 +5,7 @@
 
 FOnlineSubsystemIOS::FOnlineSubsystemIOS()
 {
+    StoreHelper = nil;
 
 }
 

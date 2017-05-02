@@ -1290,8 +1290,15 @@ public:
 	virtual bool RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox) { return false; }
 };
 
+struct FRHIPacemaker
+{
+	//checks if the GPU is still alive.
+	virtual bool CheckGpuHeartbeat() const { return true; }
+};
+
 /** A global pointer to the dynamically bound RHI implementation. */
 extern RHI_API FDynamicRHI* GDynamicRHI;
+extern RHI_API FRHIPacemaker* GRHIPacemaker;
 
 FORCEINLINE FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer)
 {

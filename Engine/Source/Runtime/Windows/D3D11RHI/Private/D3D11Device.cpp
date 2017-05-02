@@ -241,6 +241,8 @@ void FD3D11DynamicRHI::Shutdown()
 	FMemory::Free(ZeroBuffer);
 	ZeroBuffer = NULL;
 	ZeroBufferSize = 0;
+
+	GRHIPacemaker = NULL;
 }
 
 void FD3D11DynamicRHI::RHIPushEvent(const TCHAR* Name, FColor Color)

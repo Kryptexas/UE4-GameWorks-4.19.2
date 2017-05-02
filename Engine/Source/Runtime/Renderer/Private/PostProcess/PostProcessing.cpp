@@ -607,7 +607,7 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
-	FRenderingCompositePass* DOFInputPass = DOFSetup;
+	auto ColorSetup = FRenderingCompositeOutputRef( DOFSetup, ePId_Output0 );
 	auto CocSetup = FRenderingCompositeOutputRef( DOFSetup, SupportSceneAlpha() ? ePId_Output1 : ePId_Output0 );
 	if( Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 	{
@@ -623,12 +623,12 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 		}
 
 		FRenderingCompositePass* NodeTemporalAA = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessDOFTemporalAA );
-		NodeTemporalAA->SetInput( ePId_Input0, CocSetup );
+		NodeTemporalAA->SetInput( ePId_Input0, DOFSetup );
 		NodeTemporalAA->SetInput( ePId_Input1, FRenderingCompositeOutputRef( HistoryInput ) );
 		NodeTemporalAA->SetInput( ePId_Input2, FRenderingCompositeOutputRef( HistoryInput ) );
 		NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
 
-		CocSetup = FRenderingCompositeOutputRef( NodeTemporalAA );
+		ColorSetup = FRenderingCompositeOutputRef(NodeTemporalAA);
 		ViewState->bDOFHistory = false;
 	}
 
@@ -637,7 +637,7 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 	FRenderingCompositeOutputRef Near = FRenderingCompositeOutputRef(DOFNear, ePId_Output0);
 
 	FRenderingCompositePass* DOFApply = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOF());
-	DOFApply->SetInput(ePId_Input0, FRenderingCompositeOutputRef(DOFInputPass, ePId_Output0));
+	DOFApply->SetInput(ePId_Input0, ColorSetup);
 	DOFApply->SetInput(ePId_Input1, Near);
 	DOFApply->SetInput(ePId_Input2, CocSetup);
 	FRenderingCompositeOutputRef Far = FRenderingCompositeOutputRef(DOFApply, ePId_Output0);

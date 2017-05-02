@@ -644,12 +644,13 @@ void FPackageDependencyInfo::AsyncDetermineAllDependentPackageInfo(const TArray<
 	{
 		auto Task = new ResolvePackageDependenciesTask(ThreadSafeQueue, this);
 		CurrentTasks.Add(Task);
-		Task->StartBackgroundTask(
+		Task->StartSynchronousTask();
+		/*Task->StartBackgroundTask(
 #if WITH_EDITOR
 			// use the large thread pool when it exists (editor)
 			GLargeThreadPool
 #endif
-		);
+		);*/
 	}
 
 	while ( true )
@@ -1070,11 +1071,23 @@ bool FPackageDependencyInfo::DeterminePackageDependencies(FPackageDependencyTrac
 		PkgInfo->bBeingProcessed = true;
 		{
 			// generate hash for file
-			FArchive* Loader = Linker->Loader;
-			int64 OriginalPos = Loader->Tell();
-			Loader->Seek(0);
-			PkgInfo->FullPackageHash = FMD5Hash::HashFileFromArchive(Loader);
-			Loader->Seek(OriginalPos);
+
+			if ( Linker->Summary.Guid.IsValid() )
+			{
+				FMD5 PackageSourceHash;
+				FGuid PackageGuid = Linker->Summary.Guid;
+				PackageSourceHash.Update((uint8*)(&PackageGuid), sizeof(FGuid));
+				PkgInfo->FullPackageHash.Set(PackageSourceHash);
+			}
+			else
+			{
+				UE_LOG(LogPackageDependencyInfo, Warning, TEXT("Found package missing GUID %s calculating hash slow way"), *PkgInfo->PackageName);
+				FArchive* Loader = Linker->Loader;
+				int64 OriginalPos = Loader->Tell();
+				Loader->Seek(0);
+				PkgInfo->FullPackageHash = FMD5Hash::HashFileFromArchive(Loader);
+				Loader->Seek(OriginalPos);
+			}
 		}
 		// Start off with setting the dependent time to the package itself
 		PkgInfo->TimeStamp = PkgInfo->TimeStamp;

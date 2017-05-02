@@ -25,13 +25,21 @@ void USoundNodeWavePlayer::LoadAsset(bool bAddToRoot)
 		{
 			SoundWave->AddToRoot();
 		}
+		if (SoundWave)
+		{
+			SoundWave->AddToCluster(this);
+		}
 	}
 	else
 	{
 		SoundWave = SoundWaveAssetPtr.LoadSynchronous();
-		if (bAddToRoot && SoundWave)
+		if (SoundWave)
 		{
-			SoundWave->AddToRoot();
+			if (bAddToRoot)
+			{
+				SoundWave->AddToRoot();
+			}
+			SoundWave->AddToCluster(this);
 		}
 	}
 }
@@ -41,9 +49,13 @@ void USoundNodeWavePlayer::OnSoundWaveLoaded(const FName& PackageName, UPackage*
 	if (Result == EAsyncLoadingResult::Succeeded)
 	{
 		SoundWave = SoundWaveAssetPtr.Get();
-		if (bAddToRoot && SoundWave)
+		if (SoundWave)
 		{
-			SoundWave->AddToRoot();
+			if (bAddToRoot)
+			{
+				SoundWave->AddToRoot();
+			}
+			SoundWave->AddToCluster(this);
 		}
 	}
 	bAsyncLoading = false;

@@ -651,7 +651,8 @@ public:
 						// We need to make sure the package namespace is correct at this point
 						// Note: We don't test GIsEditor here as we need to mimic using compile-on-load what the compile during cook would have done when running with -game
 						{
-							const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Term->Source);
+							checkf(Term->SourcePin || Term->Source, TEXT("EmitTermExpr needs a valid source to correctly emit localized text"));
+							const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Term->SourcePin ? Term->SourcePin->GetOwningNode() : Term->Source);
 							Namespace = TextNamespaceUtil::BuildFullNamespace(Namespace, PackageNamespace);
 						}
 #endif // USE_STABLE_LOCALIZATION_KEYS
@@ -835,6 +836,7 @@ public:
 							Schema->ConvertPropertyToPinType(Prop, NewTerm.Type);
 							NewTerm.bIsLiteral = true;
 							NewTerm.Source = Term->Source;
+							NewTerm.SourcePin = Term->SourcePin;
 							Prop->ExportText_InContainer(ArrayIter, NewTerm.Name, StructData, StructData, NULL, PPF_None);
 							if (Prop->IsA(UTextProperty::StaticClass()))
 							{
@@ -872,6 +874,7 @@ public:
 					Schema->ConvertPropertyToPinType(InnerProp, NewTerm.Type);
 					NewTerm.bIsLiteral = true;
 					NewTerm.Source = Term->Source;
+					NewTerm.SourcePin = Term->SourcePin;
 					uint8* RawElemData = ScriptArrayHelper.GetRawPtr(ElemIdx);
 					InnerProp->ExportText_Direct(NewTerm.Name, RawElemData, RawElemData, NULL, PPF_None);
 					if (InnerProp->IsA(UTextProperty::StaticClass()))

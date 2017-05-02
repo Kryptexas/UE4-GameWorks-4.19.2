@@ -58,6 +58,7 @@
 #define OGL_SINGLE_BACKDEPTH_BUFFER_STRING         L"Unified back/depth buffer"
 #define OGL_SLI_MULTICAST_STRING                   L"Enable NV_gpu_multicast extension"
 #define OGL_THREAD_CONTROL_STRING                  L"Threaded optimization"
+#define OGL_TMON_LEVEL_STRING                      L"Event Log Tmon Severity Threshold"
 #define OGL_TRIPLE_BUFFER_STRING                   L"Triple buffering"
 #define AA_BEHAVIOR_FLAGS_STRING                   L"Antialiasing - Behavior Flags"
 #define AA_MODE_ALPHATOCOVERAGE_STRING             L"Antialiasing - Transparency Multisampling"
@@ -70,8 +71,10 @@
 #define ANISO_MODE_SELECTOR_STRING                 L"Anisotropic filtering mode"
 #define ANSEL_ALLOW_STRING                         L"NVIDIA Predefined Ansel Usage"
 #define ANSEL_ENABLE_STRING                        L"Enable Ansel"
+#define ANSEL_WHITELISTED_STRING                   L"Ansel flags for enabled applications"
 #define APPLICATION_PROFILE_NOTIFICATION_TIMEOUT_STRING L"Application Profile Notification Popup Timeout"
 #define APPLICATION_STEAM_ID_STRING                L"Steam Application ID"
+#define BATTERY_BOOST_STRING                       L"Battery Boost"
 #define CPL_HIDDEN_PROFILE_STRING                  L"Do not display this profile in the Control Panel"
 #define CUDA_EXCLUDED_GPUS_STRING                  L"List of Universal GPU ids"
 #define D3DOGL_GPU_MAX_POWER_STRING                L"Maximum GPU Power"
@@ -118,7 +121,6 @@
 #define AO_MODE_STRING                             L"Ambient Occlusion"
 #define AO_MODE_ACTIVE_STRING                      L"NVIDIA Predefined Ambient Occlusion Usage"
 #define AUTO_LODBIASADJUST_STRING                  L"Texture filtering - Driver Controlled LOD Bias"
-#define ENABLE_GTX950_SPECIFIC_FEATURES_STRING     L"Enable GTX950 specific features"
 #define EXPORT_PERF_COUNTERS_DX9_ONLY_STRING       L"Export Performance Counters for DX9 only"
 #define ICAFE_LOGO_CONFIG_STRING                   L"ICafe Settings"
 #define LODBIASADJUST_STRING                       L"Texture filtering - LOD Bias"
@@ -157,6 +159,7 @@ enum ESetting {
     OGL_SINGLE_BACKDEPTH_BUFFER_ID                = 0x20A29055,
     OGL_SLI_MULTICAST_ID                          = 0x2092D3BE,
     OGL_THREAD_CONTROL_ID                         = 0x20C1221E,
+    OGL_TMON_LEVEL_ID                             = 0x202888C1,
     OGL_TRIPLE_BUFFER_ID                          = 0x20FDD1F9,
     AA_BEHAVIOR_FLAGS_ID                          = 0x10ECDB82,
     AA_MODE_ALPHATOCOVERAGE_ID                    = 0x10FC2D9C,
@@ -169,8 +172,10 @@ enum ESetting {
     ANISO_MODE_SELECTOR_ID                        = 0x10D2BB16,
     ANSEL_ALLOW_ID                                = 0x1035DB89,
     ANSEL_ENABLE_ID                               = 0x1075D972,
+    ANSEL_WHITELISTED_ID                          = 0x1085DA8A,
     APPLICATION_PROFILE_NOTIFICATION_TIMEOUT_ID   = 0x104554B6,
     APPLICATION_STEAM_ID_ID                       = 0x107CDDBC,
+    BATTERY_BOOST_ID                              = 0x10115C89,
     CPL_HIDDEN_PROFILE_ID                         = 0x106D5CFF,
     CUDA_EXCLUDED_GPUS_ID                         = 0x10354FF8,
     D3DOGL_GPU_MAX_POWER_ID                       = 0x10D1EF29,
@@ -217,7 +222,6 @@ enum ESetting {
     AO_MODE_ID                                    = 0x00667329,
     AO_MODE_ACTIVE_ID                             = 0x00664339,
     AUTO_LODBIASADJUST_ID                         = 0x00638E8F,
-    ENABLE_GTX950_SPECIFIC_FEATURES_ID            = 0x00041807,
     EXPORT_PERF_COUNTERS_DX9_ONLY_ID              = 0x00B65E72,
     ICAFE_LOGO_CONFIG_ID                          = 0x00DB1337,
     LODBIASADJUST_ID                              = 0x00738E8F,
@@ -236,9 +240,9 @@ enum ESetting {
     SET_VAB_DATA_ID                               = 0x00AB8687,
     VSYNCMODE_ID                                  = 0x00A879CF,
     VSYNCTEARCONTROL_ID                           = 0x005A375C,
-    TOTAL_DWORD_SETTING_NUM = 93,
+    TOTAL_DWORD_SETTING_NUM = 95,
     TOTAL_WSTRING_SETTING_NUM = 4,
-    TOTAL_SETTING_NUM = 97,
+    TOTAL_SETTING_NUM = 99,
     INVALID_SETTING_ID = 0xFFFFFFFF
 };
 
@@ -375,6 +379,17 @@ enum EValues_OGL_THREAD_CONTROL {
     OGL_THREAD_CONTROL_DISABLE                           = 0x00000002,
     OGL_THREAD_CONTROL_NUM_VALUES = 2,
     OGL_THREAD_CONTROL_DEFAULT = 0
+};
+
+enum EValues_OGL_TMON_LEVEL {
+    OGL_TMON_LEVEL_DISABLE                               = 0,
+    OGL_TMON_LEVEL_CRITICAL                              = 1,
+    OGL_TMON_LEVEL_WARNING                               = 2,
+    OGL_TMON_LEVEL_INFORMATION                           = 3,
+    OGL_TMON_LEVEL_MOST                                  = 4,
+    OGL_TMON_LEVEL_VERBOSE                               = 5,
+    OGL_TMON_LEVEL_NUM_VALUES = 6,
+    OGL_TMON_LEVEL_DEFAULT = OGL_TMON_LEVEL_MOST
 };
 
 enum EValues_OGL_TRIPLE_BUFFER {
@@ -554,7 +569,14 @@ enum EValues_ANSEL_ENABLE {
     ANSEL_ENABLE_OFF                                     = 0,
     ANSEL_ENABLE_ON                                      = 1,
     ANSEL_ENABLE_NUM_VALUES = 2,
-    ANSEL_ENABLE_DEFAULT = ANSEL_ENABLE_OFF
+    ANSEL_ENABLE_DEFAULT = ANSEL_ENABLE_ON
+};
+
+enum EValues_ANSEL_WHITELISTED {
+    ANSEL_WHITELISTED_DISALLOWED                         = 0,
+    ANSEL_WHITELISTED_ALLOWED                            = 1,
+    ANSEL_WHITELISTED_NUM_VALUES = 2,
+    ANSEL_WHITELISTED_DEFAULT = ANSEL_WHITELISTED_DISALLOWED
 };
 
 enum EValues_APPLICATION_PROFILE_NOTIFICATION_TIMEOUT {
@@ -566,6 +588,15 @@ enum EValues_APPLICATION_PROFILE_NOTIFICATION_TIMEOUT {
     APPLICATION_PROFILE_NOTIFICATION_TIMEOUT_TWO_MINUTES = 120,
     APPLICATION_PROFILE_NOTIFICATION_TIMEOUT_NUM_VALUES = 6,
     APPLICATION_PROFILE_NOTIFICATION_TIMEOUT_DEFAULT = APPLICATION_PROFILE_NOTIFICATION_TIMEOUT_DISABLED
+};
+
+enum EValues_BATTERY_BOOST {
+    BATTERY_BOOST_MIN                                    = 0x00000001,
+    BATTERY_BOOST_MAX                                    = 0x000000ff,
+    BATTERY_BOOST_ENABLED                                = 0x10000000,
+    BATTERY_BOOST_DISABLED                               = 0x00000000,
+    BATTERY_BOOST_NUM_VALUES = 4,
+    BATTERY_BOOST_DEFAULT = BATTERY_BOOST_DISABLED
 };
 
 enum EValues_CPL_HIDDEN_PROFILE {
@@ -666,22 +697,18 @@ enum EValues_PS_FRAMERATE_LIMITER {
     PS_FRAMERATE_LIMITER_FPS_40                          = 0x00000028,
     PS_FRAMERATE_LIMITER_FPSMASK                         = 0x000000ff,
     PS_FRAMERATE_LIMITER_FRL2                            = 0x00010000,
+    PS_FRAMERATE_LIMITER_LOWER_FPS_TO_ALIGN              = 0x00020000,
     PS_FRAMERATE_LIMITER_FORCE_VSYNC_OFF                 = 0x00040000,
     PS_FRAMERATE_LIMITER_GPS_WEB                         = 0x00080000,
-    PS_FRAMERATE_LIMITER_FORCE_OPTIMUS_POLICY            = 0x00100000,
     PS_FRAMERATE_LIMITER_DISALLOWED                      = 0x00200000,
     PS_FRAMERATE_LIMITER_USE_CPU_WAIT                    = 0x00400000,
-    PS_FRAMERATE_LIMITER_THRESHOLD                       = 0x00000000,
-    PS_FRAMERATE_LIMITER_TEMPERATURE                     = 0x02000000,
-    PS_FRAMERATE_LIMITER_POWER                           = 0x04000000,
-    PS_FRAMERATE_LIMITER_MODEMASK                        = 0x0f000000,
     PS_FRAMERATE_LIMITER_ACCURATE                        = 0x10000000,
     PS_FRAMERATE_LIMITER_ALLOW_WINDOWED                  = 0x20000000,
     PS_FRAMERATE_LIMITER_FORCEON                         = 0x40000000,
     PS_FRAMERATE_LIMITER_ENABLED                         = 0x80000000,
-    PS_FRAMERATE_LIMITER_OPENGL_REMOTE_DESKTOP           = 0xe010003c,
-    PS_FRAMERATE_LIMITER_MASK                            = 0xff7C00ff,
-    PS_FRAMERATE_LIMITER_NUM_VALUES = 21,
+    PS_FRAMERATE_LIMITER_OPENGL_REMOTE_DESKTOP           = 0xe000003c,
+    PS_FRAMERATE_LIMITER_MASK                            = 0xf06f00ff,
+    PS_FRAMERATE_LIMITER_NUM_VALUES = 17,
     PS_FRAMERATE_LIMITER_DEFAULT = PS_FRAMERATE_LIMITER_DISABLED
 };
 
@@ -690,12 +717,14 @@ enum EValues_PS_FRAMERATE_LIMITER_2_CONTROL {
     PS_FRAMERATE_LIMITER_2_CONTROL_DELAY_3D              = 0x00000001,
     PS_FRAMERATE_LIMITER_2_CONTROL_AVOID_NOOP            = 0x00000002,
     PS_FRAMERATE_LIMITER_2_CONTROL_DELAY_FLIP_BY_FLIPMETERING = 0x00000004,
+    PS_FRAMERATE_LIMITER_2_CONTROL_DELAY_CE_PRESENT_3D   = 0x00000008,
     PS_FRAMERATE_LIMITER_2_CONTROL_ALLOW_ALL_MAXWELL     = 0x00000010,
     PS_FRAMERATE_LIMITER_2_CONTROL_ALLOW_ALL             = 0x00000020,
     PS_FRAMERATE_LIMITER_2_CONTROL_FORCE_OFF             = 0x00000040,
+    PS_FRAMERATE_LIMITER_2_CONTROL_ENABLE_VCE            = 0x00000080,
     PS_FRAMERATE_LIMITER_2_CONTROL_DEFAULT_FOR_GM10X     = 0x00000011,
-    PS_FRAMERATE_LIMITER_2_CONTROL_NUM_VALUES = 8,
-    PS_FRAMERATE_LIMITER_2_CONTROL_DEFAULT = PS_FRAMERATE_LIMITER_2_CONTROL_DELAY_CE
+    PS_FRAMERATE_LIMITER_2_CONTROL_NUM_VALUES = 10,
+    PS_FRAMERATE_LIMITER_2_CONTROL_DEFAULT = 0x00000088
 };
 
 enum EValues_PS_FRAMERATE_LIMITER_GPS_CTRL {
@@ -1023,12 +1052,6 @@ enum EValues_AUTO_LODBIASADJUST {
     AUTO_LODBIASADJUST_DEFAULT = AUTO_LODBIASADJUST_ON
 };
 
-enum EValues_ENABLE_GTX950_SPECIFIC_FEATURES {
-    ENABLE_GTX950_SPECIFIC_FEATURES_DISALLOWED           = 0,
-    ENABLE_GTX950_SPECIFIC_FEATURES_ALLOWED              = 1,
-    ENABLE_GTX950_SPECIFIC_FEATURES_NUM_VALUES = 2,
-    ENABLE_GTX950_SPECIFIC_FEATURES_DEFAULT = ENABLE_GTX950_SPECIFIC_FEATURES_DISALLOWED
-};
 
 enum EValues_EXPORT_PERF_COUNTERS_DX9_ONLY {
     EXPORT_PERF_COUNTERS_DX9_ONLY_OFF                    = 0x00000000,

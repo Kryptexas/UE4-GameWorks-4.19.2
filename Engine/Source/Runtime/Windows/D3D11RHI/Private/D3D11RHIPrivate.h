@@ -33,6 +33,17 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 #define WITH_DX_PERF	1
 #endif
 
+#ifndef NV_AFTERMATH
+#define NV_AFTERMATH	0
+#endif
+
+#if NV_AFTERMATH
+#define GFSDK_Aftermath_WITH_DX11 1
+#include "GFSDK_Aftermath.h"
+#undef GFSDK_Aftermath_WITH_DX11
+extern int32 GDX11NVAfterMathEnabled;
+#endif
+
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
 #define CHECK_SRV_TRANSITIONS 0
 #else
@@ -282,6 +293,12 @@ struct FD3DGPUProfiler : public FGPUProfiler
 	void BeginFrame(class FD3D11DynamicRHI* InRHI);
 
 	void EndFrame();
+
+	bool CheckGpuHeartbeat() const;
+
+private:
+	TMap<uint32, FString> CachedStrings;
+	TArray<uint32> PushPopStack;
 };
 
 /** Forward declare the context for the AMD AGS utility library. */
@@ -532,6 +549,7 @@ public:
 	{
 		return DXGIFactory1;
 	}
+
 private:
 	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
@@ -740,6 +758,7 @@ protected:
 	TMultiMap<ID3D11Resource*, FUnresolvedRTInfo> UnresolvedTargets;
 #endif
 
+	friend struct FDx11RHIPacemaker;
 	FD3DGPUProfiler GPUProfilingData;
 	// >= 0, was computed before, unless hardware was changed during engine init it should be the same
 	int32 ChosenAdapter;
@@ -835,6 +854,19 @@ protected:
 
 };
 
+struct FDx11RHIPacemaker : public FRHIPacemaker
+{
+	//checks if the GPU is still alive.
+	bool CheckGpuHeartbeat() const override
+	{
+		if (GDynamicRHI)
+		{
+			return static_cast<FD3D11DynamicRHI*>(GDynamicRHI)->GPUProfilingData.CheckGpuHeartbeat();
+		}
+		return true;
+	}
+};
+
 struct FD3D11Adapter
 {
 	/** -1 if not supported or FindAdpater() wasn't called. Ideally we would store a pointer to IDXGIAdapter but it's unlikely the adpaters change during engine init. */
@@ -859,8 +891,9 @@ struct FD3D11Adapter
 class FD3D11DynamicRHIModule : public IDynamicRHIModule
 {
 public:
-	// IModuleInterface
+	// IModuleInterface	
 	virtual bool SupportsDynamicReloading() override { return false; }
+	virtual void StartupModule() override;
 
 	// IDynamicRHIModule
 	virtual bool IsSupported() override;

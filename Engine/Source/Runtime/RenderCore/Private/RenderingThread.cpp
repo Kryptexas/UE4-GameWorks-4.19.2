@@ -795,7 +795,6 @@ void CheckRenderingThreadHealth()
 		GIsCriticalError = false;
 		UE_LOG(LogRendererCore, Fatal,TEXT("Rendering thread exception:\r\n%s"),*GRenderingThreadError);
 	}
-	
 
 	if (IsInGameThread())
 	{

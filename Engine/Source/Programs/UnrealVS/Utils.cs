@@ -10,6 +10,7 @@ using System.Linq.Expressions;
 using VSLangProj;
 using System.IO;
 using EnvDTE80;
+using Microsoft.VisualStudio.Shell;
 
 namespace UnrealVS
 {
@@ -104,36 +105,6 @@ namespace UnrealVS
 		}
 
 		/// <summary>
-		/// Locates a specific project config property for the active configuration and returns it (or null if not found.)
-		/// </summary>
-		/// <param name="Project">Project to search the active configuration for the property</param>
-		/// <param name="Configuration">Project configuration to edit, or null to use the "active" configuration</param>
-		/// <param name="PropertyName">Name of the property</param>
-		/// <returns>Property object or null if not found</returns>
-		public static Property GetProjectConfigProperty(Project Project, Configuration Configuration, string PropertyName)
-		{
-			if (Configuration == null)
-			{
-				Configuration = Project.ConfigurationManager.ActiveConfiguration;
-			}
-			if (Configuration != null)
-			{
-				var Properties = Configuration.Properties;
-				foreach (var RawProperty in Properties)
-				{
-					var Property = (Property)RawProperty;
-					if (Property.Name.Equals(PropertyName, StringComparison.InvariantCultureIgnoreCase))
-					{
-						return Property;
-					}
-				}
-			}
-
-			// Not found
-			return null;
-		}
-
-		/// <summary>
 		/// Locates a specific project property for the active configuration and returns it (or null if not found.)
 		/// </summary>
 		/// <param name="Project">Project to search for the property</param>
@@ -142,14 +113,17 @@ namespace UnrealVS
 		public static Property GetProjectProperty(Project Project, string PropertyName)
 		{
 			var Properties = Project.Properties;
-			foreach (var RawProperty in Properties)
-			{
-				var Property = (Property)RawProperty;
-				if (Property.Name.Equals(PropertyName, StringComparison.InvariantCultureIgnoreCase))
-				{
-					return Property;
-				}
-			}
+            if (Properties != null)
+            {
+                foreach (var RawProperty in Properties)
+                {
+                    var Property = (Property)RawProperty;
+                    if (Property.Name.Equals(PropertyName, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        return Property;
+                    }
+                }
+            }
 
 			// Not found
 			return null;
@@ -243,164 +217,6 @@ namespace UnrealVS
 			}
 
 			return Results;
-		}
-
-		/// <summary>
-		/// Helper to check the properties of a project and determine whether it can be run in VS.
-		/// Projects that return true can be run in the debugger by pressing the usual Start Debugging (F5) command.
-		/// </summary>
-		public static bool IsProjectSuitable(Project Project)
-		{
-			try
-			{
-				Logging.WriteLine("IsProjectExecutable: Attempting to determine if project " + Project.Name + " is executable");
-
-				var ConfigManager = Project.ConfigurationManager;
-				if (ConfigManager == null)
-				{
-					return false;
-				}
-
-				var ActiveProjectConfig = Project.ConfigurationManager.ActiveConfiguration;
-				if (ActiveProjectConfig != null)
-				{
-					Logging.WriteLine(
-						"IsProjectExecutable: ActiveProjectConfig=\"" + ActiveProjectConfig.ConfigurationName + "|" + ActiveProjectConfig.PlatformName + "\"");
-				}
-				else
-				{
-					Logging.WriteLine("IsProjectExecutable: Warning - ActiveProjectConfig is null!");
-				}
-
-				bool IsSuitable = false;
-
-				if (Project.Kind.Equals(GuidList.VCSharpProjectKindGuidString, StringComparison.OrdinalIgnoreCase))
-				{
-					// C# project
-
-					// Chris.Wood
-					//Property StartActionProp = GetProjectConfigProperty(Project, null, "StartAction");
-					//if (StartActionProp != null)
-					//{
-					//	prjStartAction StartAction = (prjStartAction)StartActionProp.Value;
-					//	if (StartAction == prjStartAction.prjStartActionProject)
-					//	{
-					//		// Project starts the project's output file when run
-					//		Property OutputTypeProp = GetProjectProperty(Project, "OutputType");
-					//		if (OutputTypeProp != null)
-					//		{
-					//			prjOutputType OutputType = (prjOutputType)OutputTypeProp.Value;
-					//			if (OutputType == prjOutputType.prjOutputTypeWinExe ||
-					//				OutputType == prjOutputType.prjOutputTypeExe)
-					//			{
-					//				IsSuitable = true;
-					//			}
-					//		}
-					//	}
-					//	else if (StartAction == prjStartAction.prjStartActionProgram ||
-					//			 StartAction == prjStartAction.prjStartActionURL)
-					//	{
-					//		// Project starts an external program or a URL when run - assume it has been set deliberately to something executable
-					//		IsSuitable = true;
-					//	}
-					//}
-
-					IsSuitable = true;
-				}
-				else if (Project.Kind.Equals(GuidList.VCProjectKindGuidString, StringComparison.OrdinalIgnoreCase))
-				{
-					// C++ project 
-
-					SolutionConfiguration SolutionConfig = UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
-					SolutionContext ProjectSolutionCtxt = SolutionConfig.SolutionContexts.Item(Project.UniqueName);
-
-					// Get the correct config object from the VCProject
-					string ActiveConfigName = string.Format(
-						"{0}|{1}",
-						ProjectSolutionCtxt.ConfigurationName,
-						ProjectSolutionCtxt.PlatformName);
-
-					// Get the VS version-specific VC project object.
-					VCProject VCProject = new VCProject(Project, ActiveConfigName);
-
-					if (VCProject != null)
-					{
-						// Sometimes the configurations is null.
-						if (VCProject.Configurations != null)
-						{
-							var VCConfigMatch = VCProject.Configurations.FirstOrDefault(VCConfig => VCConfig.Name == ActiveConfigName);
-
-							if (VCConfigMatch != null)
-							{
-								if (VCConfigMatch.DebugAttach)
-								{
-									// Project attaches to a running process
-									IsSuitable = true;
-								}
-								else
-								{
-									// Project runs its own process
-
-									if (VCConfigMatch.DebugFlavor == DebuggerFlavor.Remote)
-									{
-										// Project debugs remotely
-										if (VCConfigMatch.DebugRemoteCommand.Length != 0)
-										{
-											// An remote program is specified to run
-											IsSuitable = true;
-										}
-									}
-									else
-									{
-										// Local debugger
-
-										if (VCConfigMatch.DebugCommand.Length != 0 && VCConfigMatch.DebugCommand != "$(TargetPath)")
-										{
-											// An external program is specified to run
-											IsSuitable = true;
-										}
-										else
-										{
-											// No command so the project runs the target file
-
-											if (VCConfigMatch.ConfigType == ConfigType.Application)
-											{
-												IsSuitable = true;
-											}
-											else if (VCConfigMatch.ConfigType == ConfigType.Generic)
-											{
-												// Makefile
-
-												if (VCConfigMatch.NMakeToolOutput.Length != 0)
-												{
-													string Ext = Path.GetExtension(VCConfigMatch.NMakeToolOutput);
-													if (!IsLibraryFileExtension(Ext))
-													{
-														IsSuitable = true;
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-				else
-				{
-					// @todo: support other project types
-					Logging.WriteLine("IsProjectExecutable: Unrecognised 'Kind' in project " + Project.Name + " guid=" + Project.Kind);
-				}
-
-				return IsSuitable;
-			}
-			catch (Exception ex)
-			{
-				Exception AppEx = new ApplicationException("IsProjectExecutable() failed", ex);
-				Logging.WriteLine(AppEx.ToString());
-				throw AppEx;
-			}
 		}
 
 		/// <summary>
@@ -682,7 +498,10 @@ namespace UnrealVS
 		public static bool SelectProjectInSolutionExplorer(Project Project)
 		{
 			UnrealVSPackage.Instance.DTE.ExecuteCommand("View.SolutionExplorer");
-			Project.ParentProjectItem.ExpandView();
+			if (Project.ParentProjectItem != null)
+			{
+				Project.ParentProjectItem.ExpandView();
+			}
 
 			UIHierarchy SolutionExplorerHierarachy = UnrealVSPackage.Instance.DTE2.ToolWindows.SolutionExplorer;
 			Utils.UITreeItem SolutionExplorerTree = Utils.GetUIHierarchyTree(SolutionExplorerHierarachy);
