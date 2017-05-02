@@ -392,64 +392,7 @@ void UPhysicsConstraintComponent::PostLoad()
 #if WITH_EDITOR
 void UPhysicsConstraintComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	static const FName StiffnessName = GET_MEMBER_NAME_CHECKED(FConstraintDrive, Stiffness);
-	static const FName MaxForceName = GET_MEMBER_NAME_CHECKED(FConstraintDrive, MaxForce);
-	static const FName DampingName = GET_MEMBER_NAME_CHECKED(FConstraintDrive, Damping);
-
-	if (TDoubleLinkedList<UProperty*>::TDoubleLinkedListNode* PropertyNode = PropertyChangedEvent.PropertyChain.GetTail())
-	{
-		if (TDoubleLinkedList<UProperty*>::TDoubleLinkedListNode* ParentProeprtyNode = PropertyNode->GetPrevNode())
-		{
-			if (UProperty* Property = PropertyNode->GetValue())
-			{
-				if (UProperty* ParentProperty = ParentProeprtyNode->GetValue())
-				{
-					const FName PropertyName = Property->GetFName();
-					const FName ParentPropertyName = ParentProperty->GetFName();
-
-					if (ParentPropertyName == GET_MEMBER_NAME_CHECKED(FLinearDriveConstraint, XDrive))
-					{
-						FLinearDriveConstraint& LinearDriveConstraint = ConstraintInstance.ProfileInstance.LinearDrive;
-						if (StiffnessName == PropertyName)
-						{
-							LinearDriveConstraint.YDrive.Stiffness = LinearDriveConstraint.XDrive.Stiffness;
-							LinearDriveConstraint.ZDrive.Stiffness = LinearDriveConstraint.XDrive.Stiffness;
-						}
-						else if (MaxForceName == PropertyName)
-						{
-							LinearDriveConstraint.YDrive.MaxForce = LinearDriveConstraint.XDrive.MaxForce;
-							LinearDriveConstraint.ZDrive.MaxForce = LinearDriveConstraint.XDrive.MaxForce;
-						}
-						else if (DampingName == PropertyName)
-						{
-							LinearDriveConstraint.YDrive.Damping = LinearDriveConstraint.XDrive.Damping;
-							LinearDriveConstraint.ZDrive.Damping = LinearDriveConstraint.XDrive.Damping;
-						}
-					}
-					else if (ParentPropertyName == GET_MEMBER_NAME_CHECKED(FAngularDriveConstraint, SlerpDrive))
-					{
-						FAngularDriveConstraint& AngularDriveConstraint = ConstraintInstance.ProfileInstance.AngularDrive;
-						if (StiffnessName == PropertyName)
-						{
-							AngularDriveConstraint.SwingDrive.Stiffness = AngularDriveConstraint.SlerpDrive.Stiffness;
-							AngularDriveConstraint.TwistDrive.Stiffness = AngularDriveConstraint.SlerpDrive.Stiffness;
-						}
-						else if (MaxForceName == PropertyName)
-						{
-							AngularDriveConstraint.SwingDrive.MaxForce = AngularDriveConstraint.SlerpDrive.MaxForce;
-							AngularDriveConstraint.TwistDrive.MaxForce = AngularDriveConstraint.SlerpDrive.MaxForce;
-						}
-						else if (DampingName == PropertyName)
-						{
-							AngularDriveConstraint.SwingDrive.Damping = AngularDriveConstraint.SlerpDrive.Damping;
-							AngularDriveConstraint.TwistDrive.Damping = AngularDriveConstraint.SlerpDrive.Damping;
-						}
-					}
-				}
-			}
-		}
-	}
-
+	ConstraintInstance.ProfileInstance.SyncChangedConstraintProperties(PropertyChangedEvent);
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
 

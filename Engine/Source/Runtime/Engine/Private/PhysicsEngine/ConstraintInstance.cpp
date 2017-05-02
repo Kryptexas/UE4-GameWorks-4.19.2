@@ -12,6 +12,10 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
+#if WITH_EDITOR
+#include "UObject/UnrealType.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "ConstraintInstance"
 
 TAutoConsoleVariable<float> CVarConstraintDampingScale(
@@ -45,6 +49,67 @@ physx::PxD6Joint* FConstraintInstance::GetUnbrokenJoint_AssumesLocked() const
 {
 	return (ConstraintData && !(ConstraintData->getConstraintFlags()&PxConstraintFlag::eBROKEN)) ? ConstraintData : nullptr;
 }
+
+#if WITH_EDITOR
+void FConstraintProfileProperties::SyncChangedConstraintProperties(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	static const FName StiffnessProperty = GET_MEMBER_NAME_CHECKED(FConstraintDrive, Stiffness);
+	static const FName MaxForceName = GET_MEMBER_NAME_CHECKED(FConstraintDrive, MaxForce);
+	static const FName DampingName = GET_MEMBER_NAME_CHECKED(FConstraintDrive, Damping);
+
+	if (TDoubleLinkedList<UProperty*>::TDoubleLinkedListNode* PropertyNode = PropertyChangedEvent.PropertyChain.GetTail())
+	{
+		if (TDoubleLinkedList<UProperty*>::TDoubleLinkedListNode* ParentProeprtyNode = PropertyNode->GetPrevNode())
+		{
+			if (UProperty* Property = PropertyNode->GetValue())
+			{
+				if (UProperty* ParentProperty = ParentProeprtyNode->GetValue())
+				{
+					const FName PropertyName = Property->GetFName();
+					const FName ParentPropertyName = ParentProperty->GetFName();
+
+					if (ParentPropertyName == GET_MEMBER_NAME_CHECKED(FLinearDriveConstraint, XDrive))
+					{
+						if (StiffnessProperty == PropertyName)
+						{
+							LinearDrive.YDrive.Stiffness = LinearDrive.XDrive.Stiffness;
+							LinearDrive.ZDrive.Stiffness = LinearDrive.XDrive.Stiffness;
+						}
+						else if (MaxForceName == PropertyName)
+						{
+							LinearDrive.YDrive.MaxForce = LinearDrive.XDrive.MaxForce;
+							LinearDrive.ZDrive.MaxForce = LinearDrive.XDrive.MaxForce;
+						}
+						else if (DampingName == PropertyName)
+						{
+							LinearDrive.YDrive.Damping = LinearDrive.XDrive.Damping;
+							LinearDrive.ZDrive.Damping = LinearDrive.XDrive.Damping;
+						}
+					}
+					else if (ParentPropertyName == GET_MEMBER_NAME_CHECKED(FAngularDriveConstraint, SlerpDrive))
+					{
+						if (StiffnessProperty == PropertyName)
+						{
+							AngularDrive.SwingDrive.Stiffness = AngularDrive.SlerpDrive.Stiffness;
+							AngularDrive.TwistDrive.Stiffness = AngularDrive.SlerpDrive.Stiffness;
+						}
+						else if (MaxForceName == PropertyName)
+						{
+							AngularDrive.SwingDrive.MaxForce = AngularDrive.SlerpDrive.MaxForce;
+							AngularDrive.TwistDrive.MaxForce = AngularDrive.SlerpDrive.MaxForce;
+						}
+						else if (DampingName == PropertyName)
+						{
+							AngularDrive.SwingDrive.Damping = AngularDrive.SlerpDrive.Damping;
+							AngularDrive.TwistDrive.Damping = AngularDrive.SlerpDrive.Damping;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+#endif
 
 bool FConstraintInstance::ExecuteOnUnbrokenJointReadOnly(TFunctionRef<void(const physx::PxD6Joint*)> Func) const
 {
