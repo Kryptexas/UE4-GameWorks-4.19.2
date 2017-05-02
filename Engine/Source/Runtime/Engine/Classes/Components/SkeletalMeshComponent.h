@@ -729,6 +729,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh", meta = (DevelopmentOnly, UnsafeDuringActorConstruction = "true"))
 	void SetUpdateAnimationInEditor(const bool NewUpdateState);
 
+	/**
+	 * return true if currently updating in editor is true
+	 * this is non BP because this is only used for slave component to detect master component ticking state
+	 */
+	bool GetUpdateAnimationInEditor() const 
+	{		
+		return bUpdateAnimationInEditor;	
+	}
+
 	/** We detach the Component once we are done playing it.
 	 *
 	 * @param	ParticleSystemComponent that finished

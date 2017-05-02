@@ -911,6 +911,17 @@ bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 		{
 			return true;
 		}
+
+		// if master pose is ticking, slave also has to update it
+		if (MasterPoseComponent.IsValid())
+		{
+			const USkeletalMeshComponent* Master = CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
+			if (Master->GetUpdateAnimationInEditor())
+			{
+				return true;
+			}
+		}
+
 		if( !bLODHasChanged )
 		{
 			return false;
