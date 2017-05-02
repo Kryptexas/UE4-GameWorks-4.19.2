@@ -42,6 +42,8 @@ $ PakSigningKeysFile (String): Path to the set of pak signing keys to embed in t
 
 $ SolutionDirectory (String): Allows a Program Target to specify it's own solution folder path.
 
+$ bBuildInSolutionByDefault (Nullable&lt;Boolean&gt;): Whether the target should be included in the default solution build configuration
+
 $ bOutputToEngineBinaries (Boolean): Output the executable to the engine binaries folder.
 
 $ bShouldCompileAsDLL (Boolean): Whether this target should be compiled as a DLL.  Requires LinkType to be set to TargetLinkType.Monolithic.

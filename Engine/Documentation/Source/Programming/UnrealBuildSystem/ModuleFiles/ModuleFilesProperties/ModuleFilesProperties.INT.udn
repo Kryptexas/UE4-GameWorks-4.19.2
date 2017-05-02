@@ -89,4 +89,6 @@ $ AdditionalPropertiesForReceipt (List&lt;ReceiptProperty&gt;): List of addition
 
 $ PrecompileForTargets (PrecompileTargetsType): Which targets this module should be precompiled for
 
+$ ExternalDependencies (List&lt;String&gt;): External files which invalidate the makefile if modified. Relative paths are resolved relative to the .build.cs file.
+
 
